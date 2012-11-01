@@ -9,12 +9,9 @@ BufferedFile::BufferedFile() :
   bufferPosition_(0),
   frameSize_(0),
   offset_(0),
-  Nelts_(0),
   Ncols_(0),
   eltWidth_(0)
-{
-  memset( linebuffer_, 0, LINE_BUF_SIZE );
-}
+{ }
 
 BufferedFile::~BufferedFile() {
   if (buffer_!=0) delete[] buffer_;
@@ -29,20 +26,19 @@ BufferedFile::~BufferedFile() {
   * \param offsetIn Offset to be used in seeking.
   * \return Size of set-up frame.
   */
-size_t BufferedFile::SetupFrameBuffer(int NeltsIn, int eltWidthIn, int eltsPerLine, int offsetIn) 
+size_t BufferedFile::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLine, int offsetIn) 
 {
-  Nelts_ = NeltsIn;
   Ncols_ = eltsPerLine;
   eltWidth_ = (size_t)eltWidthIn;
   offset_ = (size_t) offsetIn;
-  int frame_lines = Nelts_ / eltsPerLine;
-  if ((Nelts_ % eltsPerLine) > 0)
+  int frame_lines = Nelts / eltsPerLine;
+  if ((Nelts % eltsPerLine) > 0)
     ++frame_lines;
   bool readingFile = (Access() == CpptrajFile::READ);
   // If Reading and DOS, CR present for each newline
   if (readingFile && IsDos()) frame_lines *= 2;
   // Calculate total frame size
-  frameSize_ = (((size_t)Nelts_ * eltWidth_) + frame_lines) + offset_;
+  frameSize_ = (((size_t)Nelts * eltWidth_) + frame_lines) + offset_;
   // If writing, add +1 for NULL
   if (!readingFile)
     ++frameSize_;
@@ -57,31 +53,27 @@ size_t BufferedFile::SetupFrameBuffer(int NeltsIn, int eltWidthIn, int eltsPerLi
   return frameSize_;
 }
 
-/** Increase or decrease size of buffer by delta, keeping contents
-  * intact.
+/** Increase size of buffer by delta elements, keeping contents
+  * intact. Intended for adding one line (e.g. for box coords).
   */
 size_t BufferedFile::ResizeBuffer(int delta) {
   if (delta == 0) return frameSize_;
-  int newsize = (int)frameSize_ + (delta * (int)eltWidth_);
-  Nelts_ += delta;
-  if (newsize < 1) {
-    frameSize_ = 0;
-    delete[] buffer_;
-    buffer_ = 0;
-    Nelts_ = 0;
-  } else {
-    char* newbuffer = new char[ newsize ];
-    if (newsize <= (int)frameSize_)
-      memcpy(newbuffer, buffer_, newsize);
-    else {
-      memcpy(newbuffer, buffer_, frameSize_);
-      memset(newbuffer+frameSize_, 0, newsize - frameSize_);
-    }
-    delete[] buffer_;
-    buffer_ = newbuffer;
-    frameSize_ = (size_t)newsize;
+  if (delta < 0) {
+    mprinterr("Internal Error: ResizeBuffer: Negative value given.\n");
+    return frameSize_;
   }
+  // Add 1 for newline
+  size_t newsize = frameSize_ + ((size_t)delta * eltWidth_) + 1;
+  // If reading and isDos add 1 for carriage return
+  if (Access() == CpptrajFile::READ && IsDos())
+    ++newsize;
+  char* newbuffer = new char[ newsize ];
+  memcpy(newbuffer, buffer_, frameSize_);
+  memset(newbuffer+frameSize_, 0, newsize - frameSize_);
+  delete[] buffer_;
+  buffer_ = newbuffer;
   bufferPosition_ = buffer_;
+  frameSize_ = newsize;
   return frameSize_;
 }
 
@@ -110,6 +102,10 @@ void BufferedFile::BufferBeginOffset() {
 
 void BufferedFile::BufferBegin() {
   bufferPosition_ = buffer_;
+}
+
+void BufferedFile::BufferBeginAt(size_t pos) {
+  bufferPosition_ = buffer_ + pos;
 }
 
 /** Convert text in buffer containing numerical elements with format 
@@ -166,7 +162,7 @@ void BufferedFile::DoubleToBuffer(const double* Xin, int Nin, const char* format
 }
 
 std::string BufferedFile::GetLineUnbuffered() {
-  if (Gets(linebuffer_, LINE_BUF_SIZE) != 0)
+  if (Gets(linebuffer_, BUF_SIZE) != 0)
     return std::string();
   return std::string(linebuffer_);
 }

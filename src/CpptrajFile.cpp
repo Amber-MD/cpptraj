@@ -29,8 +29,6 @@ const char CpptrajFile::AccessTypeName[3][2] = {
   "R", "W", "A"
 };
 
-const size_t CpptrajFile::BUF_SIZE = 128;
-
 // CONSTRUCTOR
 CpptrajFile::CpptrajFile() :
   IO_(0),
@@ -42,7 +40,7 @@ CpptrajFile::CpptrajFile() :
   debug_(0),
   isOpen_(false),
   fileType_(STANDARD)
-{}
+{ }
 
 // Copy Constructor
 CpptrajFile::CpptrajFile(const CpptrajFile &rhs) :
@@ -61,7 +59,7 @@ CpptrajFile::CpptrajFile(const CpptrajFile &rhs) :
   // Set up the IO object
   // NOTE: Should probably throw an exception if this fails.
   if (rhs.IO_ != 0) 
-    SetupFileIO();
+    IO_ = SetupFileIO( fileType_ );
 }
 
 // Assignment
@@ -80,11 +78,10 @@ CpptrajFile &CpptrajFile::operator=(const CpptrajFile &rhs) {
   fname_ = rhs.fname_;
   compressType_ = rhs.compressType_;
   isDos_ = rhs.isDos_;
-  // If charbuffer, assign here
   // Set up the IO object
   // NOTE: Should probably throw an exception if this fails.
   if (rhs.IO_ != 0) 
-    SetupFileIO();
+    IO_ = SetupFileIO( fileType_ );
   else
     IO_ = 0;
   return *this;
@@ -95,12 +92,6 @@ CpptrajFile::~CpptrajFile() {
    //fprintf(stderr,"CPPTRAJFILE DESTRUCTOR\n");
    CloseFile();
    if (IO_ != 0) delete IO_;
-}
-
-// CpptrajFile::IsDos()
-bool CpptrajFile::IsDos() {
-  if (isDos_==1) return true;
-  return false;
 }
 
 // CpptrajFile::IsCompressed()
@@ -156,7 +147,6 @@ int CpptrajFile::OpenFile() {
 }
 
 // CpptrajFile::CloseFile()
-/** Close the file.  */
 void CpptrajFile::CloseFile() {
   if (isOpen_) {
     IO_->Close();
@@ -172,8 +162,8 @@ void CpptrajFile::CloseFile() {
 void CpptrajFile::Printf(const char *format, ...) {
   va_list args;
   va_start(args, format);
-  vsprintf(printf_buffer_,format,args);
-  IO_->Write(printf_buffer_, strlen(printf_buffer_));
+  vsprintf(linebuffer_,format,args);
+  IO_->Write(linebuffer_, strlen(linebuffer_));
   va_end(args);
 }
 
@@ -184,11 +174,11 @@ void CpptrajFile::Printf(const char *format, ...) {
 void CpptrajFile::Rank_printf(int rank, const char *format, ...) {
   va_list args;
   va_start(args, format);
-  vsprintf(printf_buffer_,format,args);
+  vsprintf(linebuffer_,format,args);
 #ifdef MPI
     if (worldrank==rank)
 #endif
-      IO_->Write(printf_buffer_, strlen(printf_buffer_));
+      IO_->Write(linebuffer_, strlen(linebuffer_));
   va_end(args);
 }
 
@@ -217,76 +207,95 @@ void CpptrajFile::Reset() {
 
 // CpptrajFile::OpenRead()
 int CpptrajFile::OpenRead(std::string const& nameIn) {
-  int err = SetupRead( nameIn, 0 );
-  err += OpenFile();
-  if (err != 0) {
-    if (nameIn.empty())
-      mprinterr("Error: No filename specified for read.\n");
-    else
-      mprinterr("Error: Could not open %s for reading.\n", nameIn.c_str());
-  }
-  return err;
-}
-
-// CpptrajFile::SetupRead()
-int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
-  if (nameIn.empty()) return 1;
-  return SetupRead(nameIn.c_str(), debugIn);
+  if (SetupRead( nameIn, debug_ )) return 1; 
+  if (OpenFile()) return 1;
+  return 0;
 }
 
 // CpptrajFile::SetupRead()
 /** Set up file for reading. Will autodetect the type and format.
   * \return 0 on success, 1 on error.
   */
-int CpptrajFile::SetupRead(const char *filenameIn, int debugIn) {
+int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
   // NULL filename not allowed
-  if (filenameIn==NULL) {
-    mprinterr("Internal Error: NULL filename specified for READ.\n");
+  if (nameIn.empty()) {
+    mprinterr("Internal Error: No filename specified for READ.\n");
     return 1;
   }
-  // Check if file exists
-  if (!fileExists( filenameIn )) return 1;
+  // Check if file exists. If not, fail silently
+  if (!fileExists( nameIn.c_str() )) return 1;
   // Clear file, set debug level
   Reset();
   debug_ = debugIn;
   access_ = READ;
-  // Setting fileFormat to unknown implicitly requests detection.
-  //fileFormat_ = UNKNOWN_FORMAT;
   fileType_ = UNKNOWN_TYPE;
   if (debug_>0)
-    mprintf("CpptrajFile: Setting up %s for READ.\n",filenameIn);
+    mprintf("CpptrajFile: Setting up %s for READ.\n", nameIn.c_str());
   // Perform tilde-expansion
-  std::string expandedName = tildeExpansion( filenameIn );
+  std::string expandedName = tildeExpansion( nameIn.c_str() );
   if (expandedName.empty()) {
-    // Failure of tilde-expansion probably means file does not exist.
-    //mprinterr("Interal Error: CpptrajFile: Tilde-expansion failed.\n");
+    mprinterr("Interal Error: CpptrajFile: Tilde-expansion failed.\n");
     return 1;
   }
   // Determine file type. This sets up IO and determines compression. 
   if (ID_Type( expandedName.c_str() )) return 1;
-  // Set up filename; sets base filename and extension
-  fname_.SetFileName( expandedName.c_str(), (compressType_ != NO_COMPRESSION) );
+  // Set up filename; sets base filename and extensions
+  fname_.SetFileName( expandedName.c_str(), IsCompressed() );
   if (debug_>0)
     rprintf("\t[%s] is type %s with access READ\n", FullFileStr(), FileTypeName[fileType_]);
   return 0;
 }
 
+// CpptrajFile::OpenWrite()
+int CpptrajFile::OpenWrite(std::string const& nameIn) {
+  if (SetupWrite(nameIn, debug_)) return 1;
+  if (OpenFile()) return 1;
+  return 0;
+}
+
+// CpptrajFile::SetupWrite()
+int CpptrajFile::SetupWrite(std::string const& nameIn, int debugIn) {
+  return SetupWrite(nameIn, UNKNOWN_TYPE, debugIn);
+}
+
+// CpptrajFile::SetupWrite()
+/** Set up file for writing with the given type. If no filename is given 
+  * this indicates STDOUT. If no type is specified attempt to detect
+  * from the compression extension.
+  * \return 0 on success, 1 on error.
+  */
+int CpptrajFile::SetupWrite(std::string const& filenameIn, FileType typeIn, int debugIn) 
+{
+  // Clear file, set debug level
+  Reset();
+  debug_ = debugIn;
+  access_ = WRITE;
+  if (debug_>0)
+    mprintf("CpptrajFile: Setting up %s for WRITE.\n",filenameIn.c_str());
+  // Set up filename; sets base filename and extension
+  fname_.SetFileName(filenameIn.c_str());
+  // If file type is not specified, try to determine from filename extension
+  if (typeIn == UNKNOWN_TYPE) {
+    if (fname_.Compress() == ".gz")
+      fileType_ = GZIPFILE;
+    else if (fname_.Compress() == ".bz2")
+      fileType_ = BZIP2FILE;
+    else
+      fileType_ = STANDARD;
+  }
+  // Setup IO based on type.
+  IO_ = SetupFileIO( fileType_ );
+  if (IO_ == 0) return 1;
+  if (debug_>0)
+    rprintf("\t[%s] is type %s with access WRITE\n", FullFileStr(), FileTypeName[fileType_]);
+  return 0;
+}
+
 // CpptrajFile::OpenAppend()
 int CpptrajFile::OpenAppend(std::string const& nameIn) {
-  int err;
-  if (nameIn.empty())
-    // Append to STDOUT is meaningless, just open write
-    err = SetupWrite(NULL, 0);
-  else
-    err = SetupAppend(nameIn.c_str(), 0);
-  err += OpenFile();
-  if (err != 0) {
-    if (nameIn.empty())
-      mprinterr("Error: Could not set up STDOUT append (write).\n");
-    else
-      mprinterr("Error: Could not open %s for appending.\n", nameIn.c_str());
-  }
-  return err;
+  if (SetupAppend(nameIn, debug_)) return 1;
+  if (OpenFile()) return 1;
+  return 0;
 }
 
 // CpptrajFile::SetupAppend()
@@ -297,70 +306,25 @@ int CpptrajFile::OpenAppend(std::string const& nameIn) {
 int CpptrajFile::SetupAppend(std::string const& filenameIn, int debugIn) {
   // Make append to NULL an error
   if (filenameIn.empty()) {
-    mprinterr("Error: SetupAppend(): NULL filename specified\n");
+    mprinterr("Error: SetupAppend(): No filename specified\n");
     return 1;
   }
   if (fileExists(filenameIn.c_str())) {
     // If file exists, first set up for read to determine type and format.
-    if (SetupRead(filenameIn,debugIn)!=0) return 1;
+    if (SetupRead(filenameIn, debugIn)!=0) return 1;
     access_ = APPEND;
   } else {
     // File does not exist, just set up for write.
-    if (SetupWrite(filenameIn,debugIn)!=0) return 1;
+    if (SetupWrite(filenameIn, debugIn)!=0) return 1;
     if (debug_>0)
-      mprintf("CpptrajFile: %s does not exist, changed access from APPEND to WRITE.\n",
+      mprintf("Warning: %s does not exist, changed access from APPEND to WRITE.\n",
               FullFileStr());
   }
-  return 0;
-}
-
-// CpptrajFile::OpenWrite()
-int CpptrajFile::OpenWrite(std::string const& nameIn) {
-  int err = SetupWrite(nameIn, 0);
-  err += OpenFile();
-  if (err != 0) {
-    if (nameIn.empty())
-      mprinterr("Error: Could not set up STDOUT write.\n");
-    else
-      mprinterr("Error: Could not open %s for writing.\n", nameIn.c_str());
+  // Appending and compression not supported.
+  if (IsCompressed()) {
+    mprinterr("Error: Appending to compressed files is not supported.\n");
+    return 1;
   }
-  return err;
-}
-
-// CpptrajFile::SetupWrite()
-int CpptrajFile::SetupWrite(std::string const& nameIn, int debugIn) {
-  if (nameIn.empty())
-    return SetupWrite(NULL, debugIn);
-  return SetupWrite(nameIn.c_str(), debugIn);
-}
-
-// CpptrajFile::SetupWrite()
-/** Set up file for writing with the given format and type. If a NULL filename
-  * is given this indicates STDOUT.
-  * \return 0 on success, 1 on error.
-  */
-//int CpptrajFile::SetupWrite(char *filenameIn, FileFormat fmtIn, FileType typeIn, int debugIn)
-int CpptrajFile::SetupWrite(const char *filenameIn, int debugIn) 
-{
-  // Clear file, set debug level
-  Reset();
-  debug_ = debugIn;
-  access_ = WRITE;
-  if (debug_>0)
-    mprintf("CpptrajFile: Setting up %s for WRITE.\n",filenameIn);
-  // Set up filename; sets base filename and extension
-  fname_.SetFileName(filenameIn);
-  // If file type is not specified, try to determine from filename extension
-  if (fname_.Compress() == ".gz")
-    fileType_ = GZIPFILE;
-  else if (fname_.Compress() == ".bz2")
-    fileType_ = BZIP2FILE;
-  else
-    fileType_ = STANDARD; 
-  // Setup IO based on type.
-  if (SetupFileIO()) return 1;
-  if (debug_>0)
-    rprintf("\t[%s] is type %s with access WRITE\n", FullFileStr(), FileTypeName[fileType_]);
   return 0;
 }
 
@@ -379,42 +343,37 @@ int CpptrajFile::SwitchAccess(AccessType newAccess) {
 // CpptrajFile::SetupFileIO()
 /** Set up the IO based on previously determined file type.
   */
-int CpptrajFile::SetupFileIO() {
-  switch (fileType_) {
-    case STANDARD  : IO_ = new FileIO_Std();  break;
+FileIO* CpptrajFile::SetupFileIO(FileType typeIn) {
+  switch (typeIn) {
+    case STANDARD  : return (new FileIO_Std());
     case GZIPFILE  : 
 #ifdef HASGZ
-      IO_ = new FileIO_Gzip(); 
+      return new FileIO_Gzip(); 
 #else
-      mprinterr("Error: (%s): Compiled without Gzip support. Recompile with -DHASGZ\n",
-                FullFileStr());
-      return 1;
+      mprinterr("Error: Compiled without Gzip support. Recompile with -DHASGZ\n");
+      return 0;
 #endif
       break;
     case BZIP2FILE :
 #ifdef HASBZ2 
-      IO_ = new FileIO_Bzip2();
+      return (new FileIO_Bzip2());
 #else
-      mprinterr("Error: (%s): Compiled without Bzip2 support. Recompile with -DHASBZ2\n",
-                FullFileStr());
-      return 1;
+      mprinterr("Error: Compiled without Bzip2 support. Recompile with -DHASBZ2\n");
+      return 0;
 #endif
     break;
     case MPIFILE   : 
 #ifdef MPI
-      IO_ = new FileIO_Mpi();
+      return (new FileIO_Mpi());
 #else
-      mprinterr("Error: (%s): Compiled without MPI support. Recompile with -DMPI\n",
-                FullFileStr());
-      return 1;
+      mprinterr("Error: Compiled without MPI support. Recompile with -DMPI\n");
+      return 0;
 #endif
       break;
-    //case ZIPFILE   : IO_ = new ZipFile(); break;
+    //case ZIPFILE   : return (new ZipFile()); break;
     default : 
-      mprinterr("Error: (%s): Unrecognized file type.\n",FullFileStr());
-      return 1;
+      mprinterr("Error: Unrecognized file type.\n");
   }
-  if (IO_ == 0) return 1;
   return 0;
 }
 
@@ -423,15 +382,9 @@ int CpptrajFile::SetupFileIO() {
   * to identify the file type.
   */
 int CpptrajFile::ID_Type(const char* filenameIn) {
-  unsigned char magic[3];
-  char buffer1[BUF_SIZE];
-  struct stat frame_stat;
-
-  //mprintf("DEBUG: ID_Type( %s )\n",FullFileStr());
-  // Get basic file information
-  // An error here means file probably doesnt exist. Dont print an error at 
-  // basic debug level since this could also be used to test if file exists.
   if (filenameIn == 0) return 1;
+  // Get basic file information
+  struct stat frame_stat;
   if (stat(filenameIn, &frame_stat) == -1) {
     mprinterr( "Error: Could not find file status for %s\n", filenameIn);
     if (debug_>0) 
@@ -439,17 +392,15 @@ int CpptrajFile::ID_Type(const char* filenameIn) {
     return 1;
   }
   file_size_ = frame_stat.st_size;
-
-  // Start off every file as a standard file - may need to change for MPI
+  // Start off every file as a standard file
   fileType_ = STANDARD;
   IO_ = new FileIO_Std();
-
   // ID by magic number - open for binary read access
+  unsigned char magic[3];
   if ( IO_->Open(filenameIn, "rb") ) { 
     mprintf("Could not open %s for hex signature read.\n", filenameIn);
     return 1;
   }
-
   // Read first 3 bytes
   magic[0] = 0; magic[1] = 0; magic[2] = 0;
   IO_->Read(magic  ,1);
@@ -457,7 +408,6 @@ int CpptrajFile::ID_Type(const char* filenameIn) {
   IO_->Read(magic+2,1);
   IO_->Close();
   if (debug_>0) mprintf("\t    Hex sig: %x %x %x", magic[0],magic[1],magic[2]);
-
   // Check compression
   if ((magic[0]==0x1f) && (magic[1]==0x8b) && (magic[2]==0x8)) {
     if (debug_>0) mprintf(", Gzip file.\n");
@@ -474,17 +424,10 @@ int CpptrajFile::ID_Type(const char* filenameIn) {
   } else {
     if (debug_>0) mprintf(", No compression.\n");
   }
-
-  // Appending and compression not supported.
-  if (access_==APPEND && compressType_!=NO_COMPRESSION) {
-    mprintf("Error: Appending to compressed files is not supported.\n");
-    return 1;
-  }
-
   // Assign the appropriate IO type based on the file type
   delete (FileIO_Std*) IO_;
-  IO_ = 0;
-  if (SetupFileIO()) return 1;
+  IO_ = SetupFileIO( fileType_ );
+  if (IO_ == 0) return 1;
 
   // If the file is compressed, get the uncompressed size
   // For standard files this just returns 0UL
@@ -492,15 +435,15 @@ int CpptrajFile::ID_Type(const char* filenameIn) {
   uncompressed_size_ = IO_->Size(filenameIn);
 
   // Additional file characteristics
-  buffer1[0]='\0';
+  linebuffer_[0]='\0';
   if (IO_->Open(filenameIn, "rb")!=0) return 1; 
-  IO_->Gets(buffer1,BUF_SIZE);
+  IO_->Gets(linebuffer_,BUF_SIZE);
   IO_->Close();
 
   // Check for terminal CR before newline, indicates DOS file
-  size_t i = strlen(buffer1);
+  size_t i = strlen(linebuffer_);
   if ( i>1 ) {
-    if (buffer1[ i - 2 ] == '\r') {
+    if (linebuffer_[ i - 2 ] == '\r') {
       if (debug_>0) mprintf("  [DOS]");
       isDos_ = 1;
     }

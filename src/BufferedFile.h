@@ -15,6 +15,7 @@ class BufferedFile : public CpptrajFile {
     void GetDoubleAtPosition(double&,size_t,size_t);
     void BufferBeginOffset();
     void BufferBegin();
+    void BufferBeginAt(size_t);
     void BufferToDouble(double*,int);
     void DoubleToBuffer(const double*,int, const char*);
 
@@ -24,15 +25,12 @@ class BufferedFile : public CpptrajFile {
     const char* Buffer() { return buffer_; }
   private:
     static const size_t DEFAULT_BUFFERSIZE = 16384;
-    static const size_t LINE_BUF_SIZE = 1024;
-    char linebuffer_[LINE_BUF_SIZE];
 
     char* buffer_;
     char* bufferPosition_;
-    size_t frameSize_;
-    size_t offset_;
-    int Nelts_;
-    int Ncols_;
-    size_t eltWidth_;
+    size_t frameSize_;     ///< Total size of frame to read.
+    size_t offset_;        ///< User specified offset, used in seeking.
+    int Ncols_;            ///< Number of columns, use to convert array to buffer.
+    size_t eltWidth_;      ///< Width of each element in the frame.
 };
 #endif

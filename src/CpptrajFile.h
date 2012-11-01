@@ -8,20 +8,23 @@ class CpptrajFile {
   public:
     enum AccessType   { READ, WRITE, APPEND };
     enum CompressType { NO_COMPRESSION, GZIP, BZIP2, ZIP };
+    enum FileType { UNKNOWN_TYPE, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE };
 
     CpptrajFile();
     virtual ~CpptrajFile(); // Virtual since class is inherited
     CpptrajFile(const CpptrajFile&);
     CpptrajFile &operator=(const CpptrajFile &);
-
-    /// Prepare file for reading. 
-    int SetupRead(const char*, int);
-    int SetupRead(std::string const&, int);
+    /// Set up and open file for reading.
     int OpenRead(std::string const&);
-    /// Prepare file for writing.
-    int SetupWrite(const char*, int);
-    int SetupWrite(std::string const&, int);
+    /// Prepare file for reading. 
+    int SetupRead(std::string const&, int);
+    /// Set up and open file for writing
     int OpenWrite(std::string const&);
+    /// Prepare file for writing.
+    int SetupWrite(std::string const&, int);
+    /// Prepare file of given type for writing
+    int SetupWrite(std::string const&, FileType, int);
+    /// Set up and open file for appending.
     int OpenAppend(std::string const&);
     /// Prepare file for appending. 
     int SetupAppend(std::string const&, int);
@@ -51,8 +54,8 @@ class CpptrajFile {
     std::string const& BaseFileName() { return fname_.Base();         }
     /// Return the file extension
     std::string const& Extension()    { return fname_.Ext();          }
-    /// Return true if the file contains carriage returns in addition to newlines
-    bool IsDos();
+    /// Return 1 if the file contains carriage returns in addition to newlines
+    int IsDos() { return isDos_; }
     /// Return true if the file is compressed.
     bool IsCompressed();
     /// Return uncompressed file size (just size if file is not compressed).
@@ -63,11 +66,12 @@ class CpptrajFile {
     int Read(void* buf, size_t num)  { return IO_->Read(buf, num);  }
     int Seek(off_t offset)           { return IO_->Seek(offset);    }
     int Rewind()                     { return IO_->Rewind();        }
+  protected:
+    static const size_t BUF_SIZE = 1024;
+    char linebuffer_[BUF_SIZE]; ///< Used in Printf functions
   private:
-    enum FileType { UNKNOWN_TYPE, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE };
     static const char FileTypeName[][13];
     static const char AccessTypeName[][2];
-    static const size_t BUF_SIZE;
 
     FileIO* IO_;                ///< The interface to basic IO operations.
     AccessType access_;         ///< Access (Read, write, append)
@@ -79,10 +83,9 @@ class CpptrajFile {
     bool isOpen_;               ///< If true, file is open and ready for IO.
     FileType fileType_;         ///< File type (determines IO)
     FileName fname_;            ///< Holds full and base file name + any extensions.
-    char printf_buffer_[1024];  ///< Used in Printf functions
 
     void Reset();
-    int SetupFileIO();
+    static FileIO* SetupFileIO(FileType);
     int ID_Type(const char*);
 };
 #endif
