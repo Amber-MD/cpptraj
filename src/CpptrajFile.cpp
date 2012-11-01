@@ -182,6 +182,14 @@ void CpptrajFile::Rank_printf(int rank, const char *format, ...) {
   va_end(args);
 }
 
+std::string CpptrajFile::GetLine() {
+  if (IO_->Gets(linebuffer_, BUF_SIZE) != 0) {
+    mprinterr("Error: Getting line from %s\n", FullFileStr());
+    return std::string();
+  }
+  return std::string(linebuffer_);
+}
+
 // -----------------------------------------------------------------------------
 // CpptrajFile::UncompressedSize()
 off_t CpptrajFile::UncompressedSize() {
@@ -243,6 +251,13 @@ int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
   fname_.SetFileName( expandedName.c_str(), IsCompressed() );
   if (debug_>0)
     rprintf("\t[%s] is type %s with access READ\n", FullFileStr(), FileTypeName[fileType_]);
+  return 0;
+}
+
+// CpptrajFile::OpenWriteWithName()
+int CpptrajFile::OpenWriteWithName(std::string const& newName) {
+  if (IO_->Open( newName.c_str(), "wb")) return 1;
+  isOpen_ = true;
   return 0;
 }
 

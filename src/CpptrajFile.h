@@ -18,6 +18,8 @@ class CpptrajFile {
     int OpenRead(std::string const&);
     /// Prepare file for reading. 
     int SetupRead(std::string const&, int);
+    /// Open file as set up for write except use a new name
+    int OpenWriteWithName(std::string const&);
     /// Set up and open file for writing
     int OpenWrite(std::string const&);
     /// Prepare file for writing.
@@ -38,6 +40,7 @@ class CpptrajFile {
     void Printf(const char*, ...);
     /// Printf using the files Write routine for the given rank.
     void Rank_printf(int, const char *, ...);
+    std::string GetLine();
     /// Return the access file is currently set up for.
     AccessType Access()               { return access_;               }
     /// Return the compression type

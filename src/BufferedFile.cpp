@@ -161,8 +161,3 @@ void BufferedFile::DoubleToBuffer(const double* Xin, int Nin, const char* format
   }
 }
 
-std::string BufferedFile::GetLineUnbuffered() {
-  if (Gets(linebuffer_, BUF_SIZE) != 0)
-    return std::string();
-  return std::string(linebuffer_);
-}

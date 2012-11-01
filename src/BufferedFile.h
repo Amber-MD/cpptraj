@@ -19,8 +19,6 @@ class BufferedFile : public CpptrajFile {
     void BufferToDouble(double*,int);
     void DoubleToBuffer(const double*,int, const char*);
 
-    std::string GetLineUnbuffered();
-
     size_t FrameSize() { return frameSize_; }
     const char* Buffer() { return buffer_; }
   private:
