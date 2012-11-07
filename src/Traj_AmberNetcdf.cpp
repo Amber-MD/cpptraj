@@ -137,6 +137,8 @@ int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm,
     if ( NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), HasV(),
                     HasBox(), HasT(), true, Title() ) )
       return 1;
+    // Close Netcdf file. It will be reopened write.
+    NC_close();
     // Allocate memory
     if (Coord_!=0) delete[] Coord_;
     Coord_ = new float[ Ncatom3() ];

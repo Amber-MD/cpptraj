@@ -232,6 +232,7 @@ int TopologyList::CheckCommand(int cmdidxIn, ArgList& argIn) {
       mprinterr("Error: %s: parm %i not loaded.\n",argIn.Command(), pindex);
       return 1;
     }
+    err = 0;
     switch ( cmdidx ) {
       case BONDINFO: TopList_[pindex]->PrintBondInfo(); break;
       case RESINFO : TopList_[pindex]->PrintResidueInfo(); break;

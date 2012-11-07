@@ -187,6 +187,7 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   float Occ = 0.0; 
   float B = 0.0;
   int anum = 1; // Actual PDB atom number
+  int aidx = 0; // Atom index in topology
   Topology::mol_iterator mol = pdbTop_->MolStart();
   int lastAtomInMol = (*mol).EndAtom();
   double *Xptr = X;
@@ -194,18 +195,16 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     int res = (*atom).ResNum();
     // If this atom belongs to a new molecule print a TER card
     // Use res instead of res+1 since this TER belongs to last mol/res
-    if (anum == lastAtomInMol) {
-      file_.WriteTER( anum, pdbTop_->Res(res-1).Name(), chainID_[anum-1], res );
-      ++anum;
+    if (aidx == lastAtomInMol) {
+      file_.WriteTER( anum++, pdbTop_->Res(res-1).Name(), chainID_[aidx], res );
       ++mol;
-      lastAtomInMol = (*mol).EndAtom() + 1;
+      lastAtomInMol = (*mol).EndAtom();
     }
     if (dumpq_) Occ = (float) (*atom).Charge();
     if (dumpr_) B = (float) (*atom).Radius();
-    file_.WriteRec(PDBfile::ATOM, anum, (*atom).Name(), pdbTop_->Res(res).Name(),
-                   chainID_[anum-1], res+1, Xptr[0], Xptr[1], Xptr[2], Occ, B, "", dumpq_);
+    file_.WriteRec(PDBfile::ATOM, anum++, (*atom).Name(), pdbTop_->Res(res).Name(),
+                   chainID_[aidx++], res+1, Xptr[0], Xptr[1], Xptr[2], Occ, B, "", dumpq_);
     Xptr += 3;
-    ++anum;
   }
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame, close output file
