@@ -31,9 +31,10 @@ class DataFile {
     DataFormatType dataType_;
     bool isInverted_;
     DataSetList SetList_; 
-    DataIO *dataio_;
+    DataIO* dataio_;
+    FileName filename_;
 
     void DetermineTypeFromExt( std::string const& );
-    int SetupDataIO(DataIO&);
+    int SetupDataIO();
 };
 #endif

@@ -4,7 +4,7 @@
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
 #include "StringRoutines.h" // SetStringFormatString
-#include "FileBuffer.h"
+#include "BufferedFile.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() : 
@@ -19,7 +19,7 @@ static void PrintColumnError() {
 }
 
 // DataIO_Std::ReadData()
-int DataIO_Std::ReadData(DataSetList& datasetlist) {
+int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
   ArgList labels;
   bool hasLabels = false;
   std::vector<DataSet*> DsetList;
@@ -28,14 +28,16 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
   //DataSet::DataType indextype = DataSet::UNKNOWN_DATA;
 
   // Buffer file
-  FileBuffer buffer( IOptr(), (int)FileSize() );
+  BufferedFile buffer;
+  if (buffer.OpenWrite( fname )) return 1;
+  buffer.SetupBuffer();
 
   // Read the first line. Attempt to determine the number of columns
   const char* linebuffer = buffer.NextLine();
   if (linebuffer == 0) return 1;
   int ntoken = buffer.TokenizeLine( SEPARATORS );
   if ( ntoken == 0 ) {
-    mprinterr("Error: No columns detected in %s\n", FullFileStr());
+    mprinterr("Error: No columns detected in %s\n", buffer.FullFileStr());
     return 1;
   }
 
@@ -71,10 +73,10 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       // STRING columns cannot be index columns
       if ( col == indexcol ) {
         mprinterr("Error: DataFile %s index column %i has string values.\n", 
-                  FullFileStr(), indexcol+1);
+                  buffer.FullFileStr(), indexcol+1);
         return 1;
       }
-      dset = datasetlist.AddSetIdx( DataSet::STRING, BaseFileName(), col+1 );
+      dset = datasetlist.AddSetIdx( DataSet::STRING, buffer.BaseFileName(), col+1 );
     } else if ( isdigit( token[0] ) || 
                 token[0]=='+' || 
                 token[0]=='-' ||
@@ -83,13 +85,13 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       if ( strchr( token, '.' ) != NULL ) {
         //mprintf(" DOUBLE!\n");
         if ( col != indexcol )
-          dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), col+1 );
+          dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.BaseFileName(), col+1 );
         //else
         //  indextype = DataSet::DOUBLE;
       } else {
         //mprintf(" INTEGER!\n");
         if (col != indexcol)
-          dset = datasetlist.AddSetIdx( DataSet::INT, BaseFileName(), col+1 );
+          dset = datasetlist.AddSetIdx( DataSet::INT, buffer.BaseFileName(), col+1 );
         //else
         //  indextype = DataSet::INT;
       }
@@ -99,7 +101,7 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       dset->SetLegend( labels[col] );
 
     if ( col != indexcol && dset == NULL ) {
-      mprinterr("Error: DataFile %s: Could not identify column %i", FullFileStr(), col+1);
+      mprinterr("Error: DataFile %s: Could not identify column %i", buffer.FullFileStr(), col+1);
       mprinterr(" (token=%s)\n",token);
       return 1;
     }
@@ -147,8 +149,8 @@ int DataIO_Std::ReadData(DataSetList& datasetlist) {
       }
     }
   } while (buffer.NextLine() != 0);
-
-  mprintf("\tDataFile %s has %i columns.\n", FullFileStr(), ntoken);
+  buffer.CloseFile();
+  mprintf("\tDataFile %s has %i columns.\n", buffer.FullFileStr(), ntoken);
   if (hasLabels) {
     mprintf("\tDataFile contains labels:\n");
     labels.PrintList();
@@ -175,7 +177,7 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
 }
 
 // DataIO_Std::WriteNameToBuffer()
-void DataIO_Std::WriteNameToBuffer(DataSet* DS, bool leftAlign) 
+void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, DataSet* DS, bool leftAlign) 
 {
   std::string temp_name = DS->Legend();
   // If left aligning, add '#' to name; ensure that name will not be
@@ -194,14 +196,16 @@ void DataIO_Std::WriteNameToBuffer(DataSet* DS, bool leftAlign)
   // Set up header format string
   std::string header_format;
   SetStringFormatString(header_format, width, leftAlign);
-  Printf(header_format.c_str(), temp_name.c_str());
+  fileIn.Printf(header_format.c_str(), temp_name.c_str());
 }
 
 // DataIO_Std::WriteData()
-int DataIO_Std::WriteData(DataSetList &SetList) {
+int DataIO_Std::WriteData(std::string const& fname, DataSetList &SetList) {
   std::string x_header_fmt;
   DataSetList::const_iterator set;
 
+  CpptrajFile file;
+  if (file.OpenWrite( fname )) return 1;
   // Create format string for X column. If xstep is 1 set precision to 0
   // NOTE: only is hasXcolumn?
   if (xstep_ == 1) xcol_precision_ = 0;
@@ -223,18 +227,18 @@ int DataIO_Std::WriteData(DataSetList &SetList) {
       x_label_.insert(0,"#");
       x_label_.resize( xcol_width_, ' ');
       SetStringFormatString(x_header_fmt, xcol_width_, true);
-      Printf(x_header_fmt.c_str(), x_label_.c_str());
+      file.Printf(x_header_fmt.c_str(), x_label_.c_str());
     }
     // Write dataset names to header, left-aligning first set if no X-column
     set = SetList.begin();
     if (!hasXcolumn_)
-      WriteNameToBuffer( *set, true );
+      WriteNameToBuffer( file, *set, true );
     else
-      WriteNameToBuffer( *set, false );
+      WriteNameToBuffer( file, *set, false );
     ++set;
     for (; set != SetList.end(); ++set) 
-      WriteNameToBuffer( *set, false );
-    Printf("\n"); 
+      WriteNameToBuffer( file, *set, false );
+    file.Printf("\n"); 
   }
 
   // Write Data
@@ -254,19 +258,22 @@ int DataIO_Std::WriteData(DataSetList &SetList) {
     // Output Frame
     if (hasXcolumn_) {
       double xcoord = (xstep_ * (double)frame) + xmin_;
-      Printf(x_format_.c_str(), xcoord);
+      file.Printf(x_format_.c_str(), xcoord);
     }
     for (set = SetList.begin(); set != SetList.end(); set++) 
-      (*set)->WriteBuffer(*this,frame);
-    Printf("\n"); 
+      (*set)->WriteBuffer(file,frame);
+    file.Printf("\n"); 
   }
+  file.CloseFile();
   return 0;
 }
 
 // DataIO_Std::WriteDataInverted()
-int DataIO_Std::WriteDataInverted(DataSetList &SetList) {
+int DataIO_Std::WriteDataInverted(std::string const& fname, DataSetList &SetList) {
   DataSetList::const_iterator set;
   std::string dset_name, x_header_fmt;
+  CpptrajFile file;
+  if (file.OpenWrite( fname )) return 1;
 
   for (set = SetList.begin(); set != SetList.end(); set++) {
     // if specified check for empty frames in the set
@@ -281,26 +288,27 @@ int DataIO_Std::WriteDataInverted(DataSetList &SetList) {
       if (emptyFrames) continue;
     }
     // Write dataset name as first column.
-    WriteNameToBuffer( *set, false); 
+    WriteNameToBuffer( file, *set, false); 
     // Write each frame to subsequent columns
     for (int frame=0; frame<maxFrames_; frame++) 
-      (*set)->WriteBuffer(*this,frame);
-    Printf("\n");
+      (*set)->WriteBuffer(file,frame);
+    file.Printf("\n");
   }
+  file.CloseFile();
   return 0;
 }
 
-int DataIO_Std::WriteData2D( DataSet& set ) {
+int DataIO_Std::WriteData2D( std::string const& fname, DataSet& set ) {
   std::vector<int> dimensions; 
-
+  CpptrajFile file;
+  if (file.OpenWrite( fname )) return 1;
   set.GetDimensions(dimensions);
   if (dimensions.size() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              set.Legend().c_str(), FullFileStr(), dimensions.size());
+              set.Legend().c_str(), file.FullFileStr(), dimensions.size());
     return 1;
   }
   
-
   if (square2d_) {
     // Print XY values in a grid
     // x0y0 x0y1 x0y2
@@ -309,34 +317,33 @@ int DataIO_Std::WriteData2D( DataSet& set ) {
     if (writeHeader_) {
       SetIntegerFormatString( headerstring, set.Width(), false);
       if (hasXcolumn_)
-        Printf("%-*s ",set.Width(), "#Frame");
+        file.Printf("%-*s ",set.Width(), "#Frame");
       for (int iy = 0; iy < dimensions[1]; ++iy)
-        Printf(headerstring.c_str(), iy+OUTPUTFRAMESHIFT);
-      Printf("\n");
+        file.Printf(headerstring.c_str(), iy+OUTPUTFRAMESHIFT);
+      file.Printf("\n");
     }
     for (int ix = 0; ix < dimensions[0]; ++ix) {
       if (hasXcolumn_)
-        Printf(headerstring.c_str(), ix+OUTPUTFRAMESHIFT);
+        file.Printf(headerstring.c_str(), ix+OUTPUTFRAMESHIFT);
       for (int iy = 0; iy < dimensions[1]; ++iy) {
-        set.Write2D( *this, ix, iy);
+        set.Write2D( file, ix, iy);
       }
-      Printf("\n");
+      file.Printf("\n");
     }
   } else {
     // Print X Y Value
     // Print dataset name
-    Printf("#%s\n", set.Legend().c_str());
+    file.Printf("#%s\n", set.Legend().c_str());
   
     for (int ix = 0; ix < dimensions[0]; ++ix) {
       double xcoord = (xstep_ * (double)ix) + xmin_;
       for (int iy = 0; iy < dimensions[1]; ++iy) {
         double ycoord = (ystep_ * (double)iy) + ymin_;
-        Printf("%8.3f %8.3f", xcoord, ycoord);
-        set.Write2D( *this, ix, iy );
-        Printf("\n");
+        file.Printf("%8.3f %8.3f", xcoord, ycoord);
+        set.Write2D( file, ix, iy );
+        file.Printf("\n");
       }
     }
   }
   return 0;
 }
-

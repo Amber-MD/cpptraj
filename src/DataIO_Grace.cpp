@@ -1,7 +1,7 @@
 #include <cstdio> // sscanf
 #include "DataIO_Grace.h"
 #include "CpptrajStdio.h"
-#include "FileBuffer.h"
+#include "BufferedFile.h"
 
 // CONSTRUCTOR
 DataIO_Grace::DataIO_Grace() :
@@ -10,7 +10,7 @@ DataIO_Grace::DataIO_Grace() :
 {}
 
 // Dont assume anything about set ordering
-int DataIO_Grace::ReadData(DataSetList& datasetlist) {
+int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
   ArgList dataline;
   int setnum = 1;
   int frame = 0;
@@ -21,10 +21,12 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
   const char* linebuffer;
   
   // Allocate and set up read buffer
-  FileBuffer buffer( IOptr(), (int)FileSize() );
+  BufferedFile buffer;
+  if (buffer.OpenWrite( fname )) return 1;
+  buffer.SetupBuffer();
 
   // Read chunks from file
-  while ( (linebuffer = buffer.NextLine()) != 0 ) {
+  while ( (linebuffer = buffer.BufferedLine()) != 0 ) {
     if (linebuffer[0] == '@') {
       // Command: create command line without the @
       dataline.SetList(linebuffer+1, " \t");
@@ -35,9 +37,9 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
           labels.push_back( lbl );
       } else if (dataline.CommandIs("target")) {
         // Indicates dataset will be read soon. Allocate new set.
-        dset = datasetlist.AddSetIdx( DataSet::DOUBLE, BaseFileName(), setnum++);
+        dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.BaseFileName(), setnum++);
         if (dset == NULL) {
-          mprinterr("Error: %s: Could not allocate data set.\n", FullFileStr());
+          mprinterr("Error: %s: Could not allocate data set.\n", buffer.FullFileStr());
           return 1;
         }
         Dsets.push_back( dset );
@@ -47,7 +49,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
       // Data
       if (dset==NULL) {
         mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", 
-                  FullFileStr());
+                  buffer.FullFileStr());
         return 1;
       }
       // FIXME: Ignoring frame for now
@@ -55,6 +57,7 @@ int DataIO_Grace::ReadData(DataSetList& datasetlist) {
       dset->Add( frame++, &dval );
     }
   } // END loop over file
+  buffer.CloseFile();
 
   // Set DataSet legends if specified
   if (!labels.empty()) {
@@ -87,13 +90,15 @@ int DataIO_Grace::processWriteArgs(ArgList &argIn) {
 }
 
 // DataIO_Grace::WriteData()
-int DataIO_Grace::WriteData(DataSetList &SetList) {
+int DataIO_Grace::WriteData(std::string const& fname, DataSetList &SetList) {
   DataSetList::const_iterator set;
+  CpptrajFile file;
+  if (file.OpenWrite(fname)) return 1;
   // Create format string for X column. Default precision is 3
   SetupXcolumn();
 
   // Grace header
-  Printf(
+  file.Printf(
     "@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",
     x_label_.c_str(), y_label_.c_str()
   );
@@ -101,7 +106,7 @@ int DataIO_Grace::WriteData(DataSetList &SetList) {
   int setnum = 0;
   for (set=SetList.begin(); set != SetList.end(); set++) {
     // Set information
-    Printf("@  s%-8i legend \"%s\"\n@target G0.S%-8i\n@type xy\n", 
+    file.Printf("@  s%-8i legend \"%s\"\n@target G0.S%-8i\n@type xy\n", 
                    setnum, (*set)->Legend().c_str(), setnum );
     // Write Data
     for (int frame=0; frame<maxFrames_; frame++) {
@@ -110,23 +115,26 @@ int DataIO_Grace::WriteData(DataSetList &SetList) {
         if ( (*set)->FrameIsEmpty(frame) ) continue;
       }
       double xcoord = (xstep_ * (double)frame) + xmin_;
-      Printf(x_format_.c_str(), xcoord);
-      (*set)->WriteBuffer(*this,frame);
-      Printf("\n");
+      file.Printf(x_format_.c_str(), xcoord);
+      (*set)->WriteBuffer(file, frame);
+      file.Printf("\n");
     }
     ++setnum;
   }
+  file.CloseFile();
   return 0;
 }
 
 // DataIO_Grace::WriteDataInverted()
-int DataIO_Grace::WriteDataInverted(DataSetList &SetList) {
+int DataIO_Grace::WriteDataInverted(std::string const& fname, DataSetList &SetList) {
   DataSetList::const_iterator set;
+  CpptrajFile file;
+  if (file.OpenWrite(fname)) return 1;
   // Create format string for X column. Default precision is 3
   SetupXcolumn();
 
   // Grace Header
-  Printf(
+  file.Printf(
     "@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",
     y_label_.c_str(), x_label_.c_str()
   );
@@ -145,16 +153,17 @@ int DataIO_Grace::WriteDataInverted(DataSetList &SetList) {
       if (hasEmpty) continue;
     }
     // Set information
-    Printf("@target G0.S%-8i\n@type xy\n",frame);
+    file.Printf("@target G0.S%-8i\n@type xy\n",frame);
     // Loop over all Set Data for this frame
     int setnum = 0;
     for (set=SetList.begin(); set!=SetList.end(); set++) {
       double xcoord = (ystep_ * setnum) + ymin_;
-      Printf(x_format_.c_str(), xcoord);
-      (*set)->WriteBuffer(*this, frame);
-      Printf("\"%s\"\n", (*set)->Legend().c_str());
+      file.Printf(x_format_.c_str(), xcoord);
+      (*set)->WriteBuffer(file, frame);
+      file.Printf("\"%s\"\n", (*set)->Legend().c_str());
     }
   }
+  file.CloseFile();
   return 0;
 }
 

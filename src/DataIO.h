@@ -4,7 +4,7 @@
 #include "DataSetList.h"
 // Class: DataIO
 /// Base class that all DataIO objects inherit from.
-class DataIO : public CpptrajFile {
+class DataIO {
   public:
     DataIO();
     virtual ~DataIO() { }
@@ -16,11 +16,11 @@ class DataIO : public CpptrajFile {
  
     int ProcessCommonArgs(ArgList &); 
 
-    virtual int ReadData(DataSetList &)          { return 1;}
-    virtual int processWriteArgs(ArgList &)      { return 0;}
-    virtual int WriteData(DataSetList &)         { return 1;}
-    virtual int WriteData2D(DataSet&)            { return 1;}
-    virtual int WriteDataInverted(DataSetList &) { return 1;}
+    virtual int ReadData(std::string const&, DataSetList &)          { return 1;}
+    virtual int processWriteArgs(ArgList &)                          { return 0;}
+    virtual int WriteData(std::string const&, DataSetList &)         { return 1;}
+    virtual int WriteData2D(std::string const&, DataSet&)            { return 1;}
+    virtual int WriteDataInverted(std::string const&, DataSetList &) { return 1;}
   protected:
     int maxFrames_;
     int debug_;

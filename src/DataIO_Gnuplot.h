@@ -8,13 +8,14 @@ class DataIO_Gnuplot : public DataIO {
     DataIO_Gnuplot();
 
     int processWriteArgs(ArgList &);
-    int WriteData(DataSetList&);
+    int WriteData(std::string const&,DataSetList&);
     //int WriteDataInverted(DataSetList&);
-    int WriteData2D( DataSet& );
+    int WriteData2D( std::string const&,DataSet& );
   private:
     std::string y_label_;
     double ymin_;
     double ystep_;
+    CpptrajFile file_;
 
     std::vector<std::string> Xlabels_;
     std::vector<std::string> Ylabels_;
@@ -31,7 +32,7 @@ class DataIO_Gnuplot : public DataIO {
     void WriteRangeAndHeader(double, double, std::string const&);
     void Finish();
     void JpegOut(int,int);
-    int WriteDataAscii(DataSetList&);
-    int WriteDataBinary(DataSetList&);
+    int WriteDataAscii(std::string const&,DataSetList&);
+    int WriteDataBinary(std::string const&,DataSetList&);
 };
 #endif

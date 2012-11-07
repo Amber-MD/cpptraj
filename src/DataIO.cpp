@@ -18,8 +18,7 @@ DataIO::DataIO() {
 }
 
 // Copy Constructor
-DataIO::DataIO(const DataIO &rhs) :
-  CpptrajFile(rhs)
+DataIO::DataIO(const DataIO &rhs) 
 {
   maxFrames_ = rhs.maxFrames_;
   debug_ = rhs.debug_;
@@ -36,8 +35,6 @@ DataIO::DataIO(const DataIO &rhs) :
 DataIO &DataIO::operator=(const DataIO &rhs) {
   // Self
   if (this == &rhs) return *this;
-  // Base
-  CpptrajFile::operator=(rhs);
   // Deallocate
   // Allocate and copy
   maxFrames_ = rhs.maxFrames_;

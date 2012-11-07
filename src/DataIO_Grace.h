@@ -7,10 +7,10 @@ class DataIO_Grace : public DataIO {
   public:
     DataIO_Grace();
 
-    int ReadData(DataSetList&);
+    int ReadData(std::string const&,DataSetList&);
     int processWriteArgs(ArgList &);
-    int WriteData(DataSetList&);
-    int WriteDataInverted(DataSetList&);
+    int WriteData(std::string const&,DataSetList&);
+    int WriteDataInverted(std::string const&,DataSetList&);
   private:
     std::string y_label_;
     double ymin_;

@@ -52,12 +52,12 @@ std::string DataIO_Gnuplot::Pm3d() {
   switch (pm3d_) {
     case C2C: 
       if (maxFrames_ == 1)
-        Printf("set pm3d map corners2color c3\n");
+        file_.Printf("set pm3d map corners2color c3\n");
       else 
-        Printf("set pm3d map corners2color c1\n"); 
+        file_.Printf("set pm3d map corners2color c1\n"); 
       break;
-    case MAP: Printf("set pm3d map\n"); break;
-    case ON : Printf("set pm3d\n"); break;
+    case MAP: file_.Printf("set pm3d map\n"); break;
+    case ON : file_.Printf("set pm3d\n"); break;
     case OFF: pm3d_cmd.clear(); break;
   }
   return pm3d_cmd;
@@ -68,17 +68,18 @@ std::string DataIO_Gnuplot::Pm3d() {
 void DataIO_Gnuplot::WriteRangeAndHeader(double xcoord, double ycoord, 
                                          std::string const& pm3dstr)
 {
-  Printf("set xlabel \"%s\"\nset ylabel \"%s\"\n", x_label_.c_str(), y_label_.c_str());
-  Printf("set yrange [%8.3f:%8.3f]\nset xrange [%8.3f:%8.3f]\n", 
+  file_.Printf("set xlabel \"%s\"\nset ylabel \"%s\"\n", x_label_.c_str(), y_label_.c_str());
+  file_.Printf("set yrange [%8.3f:%8.3f]\nset xrange [%8.3f:%8.3f]\n", 
          ymin_ - ystep_, ycoord + ystep_,
          xmin_ - xstep_, xcoord + xstep_);
-  Printf("splot \"-\" %s title \"%s\"\n", pm3dstr.c_str(), BaseFileStr());
+  file_.Printf("splot \"-\" %s title \"%s\"\n", pm3dstr.c_str(), file_.BaseFileStr());
 }
 
 // DataIO_Gnuplot::Finish()
 void DataIO_Gnuplot::Finish() {
   if (!jpegout_)
-    Printf("end\npause -1\n");
+    file_.Printf("end\npause -1\n");
+  file_.CloseFile();
 }
 
 // DataIO_Gnuplot::JpegOut()
@@ -90,18 +91,19 @@ void DataIO_Gnuplot::JpegOut(int xsize, int ysize) {
     if (xsize == ysize)
       sizearg = "768,768";
     // Create jpg filename
-    std::string jpegname = FullFileName() + ".jpg";
-    Printf("set terminal jpeg size %s\nset output \"%s\"\n",
+    std::string jpegname = file_.FullFileName() + ".jpg";
+    file_.Printf("set terminal jpeg size %s\nset output \"%s\"\n",
                   sizearg.c_str(), jpegname.c_str());
   }
 }
 
-int DataIO_Gnuplot::WriteData(DataSetList &SetList) {
+int DataIO_Gnuplot::WriteData(std::string const& fname, DataSetList &SetList) {
   //mprintf("BINARY IS %i\n", (int)binary_);
+  if (file_.OpenWrite( fname )) return 1;
   if (binary_)
-    return WriteDataBinary( SetList );
+    return WriteDataBinary( fname, SetList );
   else
-    return WriteDataAscii( SetList );
+    return WriteDataAscii( fname, SetList );
 }
 
 /** Format:
@@ -110,7 +112,7 @@ int DataIO_Gnuplot::WriteData(DataSetList &SetList) {
   *    <x1> <z1,0> <z1,1> <z1,2> ... <z1,N>
   *     :      :      :      :   ...    :
   */
-int DataIO_Gnuplot::WriteDataBinary(DataSetList &SetList) {
+int DataIO_Gnuplot::WriteDataBinary(std::string const& fname, DataSetList &SetList) {
   DataSetList::const_iterator set;
 
   int Ymax = SetList.size();
@@ -118,37 +120,37 @@ int DataIO_Gnuplot::WriteDataBinary(DataSetList &SetList) {
     ++Ymax;
   float fvar = (float)Ymax;
   mprintf("Ymax = %f\n",fvar);
-  Write( &fvar, sizeof(float) );
+  file_.Write( &fvar, sizeof(float) );
   for (int setnum = 0; setnum < Ymax; ++setnum) {
     double ycoord = (ystep_ * (double)setnum) + ymin_;
     fvar = (float)ycoord;
-    Write( &fvar, sizeof(float) );
+    file_.Write( &fvar, sizeof(float) );
   }
   // Data
   for (int frame = 0; frame < maxFrames_; frame++) {
     double xcoord = (xstep_ * (double)frame) + xmin_;
     fvar = (float)xcoord;
-    Write( &fvar, sizeof(float) );
+    file_.Write( &fvar, sizeof(float) );
     for (set=SetList.begin(); set !=SetList.end(); set++) {
       fvar = (float)(*set)->Dval( frame );
-      Write( &fvar, sizeof(float) );
+      file_.Write( &fvar, sizeof(float) );
     }
     if (!useMap_) {
       // Print one empty row for gnuplot pm3d without map
       fvar = 0;
-      Write( &fvar, sizeof(float) );
+      file_.Write( &fvar, sizeof(float) );
     }
   }
   if (!useMap_) {
     // Print one empty set for gnuplot pm3d without map
     double xcoord = (xstep_ * (double)maxFrames_) + xmin_;
     fvar = (float)xcoord;
-    Write( &fvar, sizeof(float) );
+    file_.Write( &fvar, sizeof(float) );
     fvar = 0;
     for (int blankset=0; blankset < Ymax; blankset++)
-      Write( &fvar, sizeof(float) ); 
+      file_.Write( &fvar, sizeof(float) ); 
   }
-
+  file_.CloseFile();
   return 0;
 }
 
@@ -167,10 +169,9 @@ int DataIO_Gnuplot::WriteDataBinary(DataSetList &SetList) {
   * However, in the interest of keeping data consistent, this is no longer
   * done. Could be added back in later as an option.
   */
-int DataIO_Gnuplot::WriteDataAscii(DataSetList &SetList) {
+int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList &SetList) {
   DataSetList::const_iterator set;
   double xcoord, ycoord;
-
   // Create format string for X and Y columns. Default precision is 3
   SetupXcolumn();
   std::string xy_format_string = x_format_ + " " + x_format_ + " ";
@@ -194,18 +195,18 @@ int DataIO_Gnuplot::WriteDataAscii(DataSetList &SetList) {
   // Y axis Data Labels
   if (printLabels_) {
     // NOTE: Add option to turn on grid later?
-    //outfile->Printf("set pm3d map hidden3d 100 corners2color c1\n");
-    //outfile->Printf("set style line 100 lt 2 lw 0.5\n");
+    //outfile->file_.Printf("set pm3d map hidden3d 100 corners2color c1\n");
+    //outfile->file_.Printf("set style line 100 lt 2 lw 0.5\n");
     // Set up Y labels
-    Printf("set ytics %8.3f,%8.3f\nset ytics(",ymin_,ystep_);
+    file_.Printf("set ytics %8.3f,%8.3f\nset ytics(",ymin_,ystep_);
     int setnum = 0;
     for (set=SetList.begin(); set!=SetList.end(); set++) {
-      if (setnum>0) Printf(",");
+      if (setnum>0) file_.Printf(",");
       ycoord = (ystep_ * setnum) + ymin_;
-      Printf("\"%s\" %8.3f",(*set)->Legend().c_str(),ycoord);
+      file_.Printf("\"%s\" %8.3f",(*set)->Legend().c_str(),ycoord);
       ++setnum; 
     }
-    Printf(")\n");
+    file_.Printf(")\n");
   }
 
   // Set axis label and range, write plot command
@@ -235,28 +236,28 @@ int DataIO_Gnuplot::WriteDataAscii(DataSetList &SetList) {
     int setnum = 0;
     for (set=SetList.begin(); set !=SetList.end(); set++) {
       ycoord = (ystep_ * setnum) + ymin_;
-      Printf( xy_format, xcoord, ycoord );
-      (*set)->WriteBuffer( *this, frame );
-      Printf("\n");
+      file_.Printf( xy_format, xcoord, ycoord );
+      (*set)->WriteBuffer( file_, frame );
+      file_.Printf("\n");
       ++setnum;
     }
     if (!useMap_) {
       // Print one empty row for gnuplot pm3d without map
       ycoord = (ystep_ * setnum) + ymin_;
-      Printf(xy_format,xcoord,ycoord);
-      Printf("0\n");
+      file_.Printf(xy_format,xcoord,ycoord);
+      file_.Printf("0\n");
     }
-    Printf("\n");
+    file_.Printf("\n");
   }
   if (!useMap_) {
     // Print one empty set for gnuplot pm3d without map
     xcoord = (xstep_ * frame) + xmin_;
     for (int blankset=0; blankset <= (int)SetList.size(); blankset++) {
       ycoord = (ystep_ * blankset) + ymin_;
-      Printf(xy_format,xcoord,ycoord);
-      Printf("0\n");
+      file_.Printf(xy_format,xcoord,ycoord);
+      file_.Printf("0\n");
     }
-    Printf("\n");
+    file_.Printf("\n");
   }
   // End and Pause command
   Finish();
@@ -264,14 +265,14 @@ int DataIO_Gnuplot::WriteDataAscii(DataSetList &SetList) {
 }
 
 // DataIO_Gnuplot::WriteData2D()
-int DataIO_Gnuplot::WriteData2D( DataSet& set ) {
+int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSet& set ) {
   std::vector<int> dimensions;
-
+  if (file_.OpenWrite( fname )) return 1;
   // Get dimensions
   set.GetDimensions(dimensions);
   if (dimensions.size() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              set.Legend().c_str(), FullFileStr(), dimensions.size());
+              set.Legend().c_str(), file_.FullFileStr(), dimensions.size());
     return 1;
   } 
 
@@ -288,25 +289,25 @@ int DataIO_Gnuplot::WriteData2D( DataSet& set ) {
       if ( (int)Ylabels_.size() != dimensions[1])
         mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%i)\n",
                 Ylabels_.size(), dimensions[1]);
-      Printf("set ytics %8.3f,%8.3f\nset ytics(",ymin_,ystep_);
+      file_.Printf("set ytics %8.3f,%8.3f\nset ytics(",ymin_,ystep_);
       for (int iy = 0; iy < (int)Ylabels_.size(); ++iy) {
-        if (iy>0) Printf(",");
+        if (iy>0) file_.Printf(",");
         double ycoord = (ystep_ * (double)iy) + ymin_;
-        Printf("\"%s\" %8.3f", Ylabels_[iy].c_str(), ycoord);
+        file_.Printf("\"%s\" %8.3f", Ylabels_[iy].c_str(), ycoord);
       }
-      Printf(")\n");
+      file_.Printf(")\n");
     }
     if (!Xlabels_.empty()) {
       if ( (int)Xlabels_.size() != dimensions[0])
         mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%i)\n",
                 Xlabels_.size(), dimensions[0]); 
-      Printf("set xtics %8.3f,%8.3f\nset xtics(",xmin_,xstep_);
+      file_.Printf("set xtics %8.3f,%8.3f\nset xtics(",xmin_,xstep_);
       for (int ix = 0; ix < (int)Xlabels_.size(); ++ix) {
-        if (ix>0) Printf(",");
+        if (ix>0) file_.Printf(",");
         double xcoord = (xstep_ * (double)ix) + xmin_;
-        Printf("\"%s\" %8.3f", Xlabels_[ix].c_str(), xcoord);
+        file_.Printf("\"%s\" %8.3f", Xlabels_[ix].c_str(), xcoord);
       }
-      Printf(")\n");
+      file_.Printf(")\n");
     }
   }
 
@@ -321,25 +322,25 @@ int DataIO_Gnuplot::WriteData2D( DataSet& set ) {
     double xcoord = (xstep_ * (double)ix) + xmin_;
     for (int iy = 0; iy < dimensions[1]; ++iy) {
       double ycoord = (ystep_ * (double)iy) + ymin_;
-      Printf("%8.3f %8.3f", xcoord, ycoord);
-      set.Write2D( *this, ix, iy );
-      Printf("\n");
+      file_.Printf("%8.3f %8.3f", xcoord, ycoord);
+      set.Write2D( file_, ix, iy );
+      file_.Printf("\n");
     }
     if (!useMap_) {
       // Print one empty row for gnuplot pm3d without map
       ycoord = (ystep_ * dimensions[1]) + ymin_;
-      Printf("%8.3f %8.3f 0\n", xcoord, ycoord);
+      file_.Printf("%8.3f %8.3f 0\n", xcoord, ycoord);
     }
-    Printf("\n");
+    file_.Printf("\n");
   }
   if (!useMap_) {
     // Print one empty set for gnuplot pm3d without map
     xcoord = (xstep_ * dimensions[0]) + xmin_;
     for (int blankset=0; blankset <= dimensions[1]; blankset++) {
       ycoord = (ystep_ * blankset) + ymin_;
-      Printf("%8.3f %8.3f 0\n", xcoord, ycoord);
+      file_.Printf("%8.3f %8.3f 0\n", xcoord, ycoord);
     }
-    Printf("\n");
+    file_.Printf("\n");
   }
   // End and Pause command
   Finish();

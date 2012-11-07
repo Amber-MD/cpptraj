@@ -7,11 +7,11 @@ class DataIO_Std : public DataIO {
   public:
     DataIO_Std();
 
-    int ReadData(DataSetList&);
+    int ReadData(std::string const&,DataSetList&);
     int processWriteArgs(ArgList &);
-    int WriteData(DataSetList&);
-    int WriteDataInverted(DataSetList&);
-    int WriteData2D( DataSet& set );
+    int WriteData(std::string const&,DataSetList&);
+    int WriteDataInverted(std::string const&,DataSetList&);
+    int WriteData2D(std::string const&, DataSet& set );
   private:
     bool writeHeader_;
     bool square2d_;
@@ -21,6 +21,6 @@ class DataIO_Std : public DataIO {
     double ymin_;
     double ystep_;
 
-    void WriteNameToBuffer(DataSet*, bool);
+    void WriteNameToBuffer(CpptrajFile&, DataSet*, bool);
 };
 #endif

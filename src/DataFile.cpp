@@ -38,10 +38,7 @@ void DataFile::DetermineTypeFromExt( std::string const& Ext ) {
     dataType_ = DATAFILE;
 }
 
-int DataFile::SetupDataIO(DataIO& basicData) {
-  // Determine data format from extension 
-  DetermineTypeFromExt( basicData.Extension() );
-
+int DataFile::SetupDataIO() {
   if (dataio_!=0) delete dataio_;
   switch (dataType_) {
     case DATAFILE : dataio_ = new DataIO_Std(); break;
@@ -50,42 +47,32 @@ int DataFile::SetupDataIO(DataIO& basicData) {
     default       : dataio_ = new DataIO_Std(); break;
   }
   if (dataio_ == 0) return 1;
-  // Place the basic file in the data IO class
-  dataio_->DataIO::operator=( basicData );
-
   // Set Debug
   dataio_->SetDebug( debug_ );
   return 0;
 }
 
 int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
-  DataIO basicData;
-
-  if (basicData.SetupRead(argIn.GetStringNext(), debug_)!=0) return 1;
-
+  filename_.SetFileName( argIn.GetStringNext() );
+  DetermineTypeFromExt( filename_.Ext() );
   // Set up DataIO based on format. 
-  if (SetupDataIO(basicData)) return 1;
-
-  if (dataio_->OpenFile()) return 1;
-  if ( dataio_->ReadData( datasetlist ) ) {
-    mprinterr("Error reading datafile %s\n", dataio_->FullFileStr());
+  if (SetupDataIO()) return 1;
+  // Read data
+  if ( dataio_->ReadData( filename_.Full(), datasetlist ) ) {
+    mprinterr("Error reading datafile %s\n", filename_.Full().c_str());
     return 1;
   }
-  dataio_->CloseFile();
 
   return 0;
 }
 
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(std::string const& fnameIn) {
-  DataIO basicData;
-
   if (fnameIn.empty()) return 1;
-  // Open basic data file
-  if (basicData.SetupWrite(fnameIn,debug_)!=0) return 1;
-
+  filename_.SetFileName( fnameIn );
+  DetermineTypeFromExt( filename_.Ext() );
   // Set up DataIO based on format. 
-  if (SetupDataIO(basicData)) return 1;
+  if (SetupDataIO()) return 1;
 
   return 0;
 }
@@ -96,7 +83,7 @@ int DataFile::AddSet(DataSet* dataIn) {
   if (SetList_.empty())
     dimension_ = dataIn->Dim();
   else if (dataIn->Dim() != dimension_) {
-    mprinterr("Error: DataSets in DataFile %s have dimension %i\n", dataio_->BaseFileStr());
+    mprinterr("Error: DataSets in DataFile %s have dimension %i\n", filename_.base());
     mprinterr("Error: Attempting to add set %s of dimension %i\n", 
               dataIn->Legend().c_str(), dataIn->Dim());
     mprinterr("Error: Adding DataSets with different dimensions to same file\n");
@@ -114,7 +101,7 @@ int DataFile::ProcessArgs(ArgList &argIn) {
     isInverted_ = true;
     // Currently GNUPLOT files cannot be inverted.
     if (dataType_ == GNUPLOT) {
-      mprintf("Warning: (%s) Gnuplot files cannot be inverted.\n",dataio_->FullFileStr());
+      mprintf("Warning: (%s) Gnuplot files cannot be inverted.\n",filename_.base());
       isInverted_ = false;;
     }
   }
@@ -139,7 +126,6 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
 
 // DataFile::Write()
 void DataFile::Write() {
-
   // Remove data sets that do not contain data. Also determine max X.
   // All DataSets should have same dimension (enforced by AddSet()).
   int maxFrames = 0;
@@ -169,7 +155,7 @@ void DataFile::Write() {
   }
   // If all data sets are empty no need to write
   if (SetList_.empty()) {
-    mprintf("Warning: file %s has no sets containing data.\n", dataio_->FullFileStr());
+    mprintf("Warning: file %s has no sets containing data.\n", filename_.base());
     return;
   }
 
@@ -179,37 +165,35 @@ void DataFile::Write() {
 
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);
-  if (dataio_->OpenFile()) return;
 #ifdef DATAFILE_TIME
   clock_t t0 = clock();
 #endif
   if ( dimension_ == 1 ) {
-    mprintf("%s: Writing %i frames.\n",dataio_->FullFileStr(),maxFrames);
+    mprintf("%s: Writing %i frames.\n",filename_.base(), maxFrames);
     if (maxFrames>0) {
       dataio_->SetMaxFrames( maxFrames );
       if (!isInverted_)
-        dataio_->WriteData(SetList_);
+        dataio_->WriteData(filename_.Full(), SetList_);
       else
-        dataio_->WriteDataInverted(SetList_);
+        dataio_->WriteDataInverted(filename_.Full(), SetList_);
     } else {
       mprintf("Warning: DataFile %s has no valid sets - skipping.\n",
-              dataio_->FullFileStr());
+              filename_.base());
     }
   } else if ( dimension_ == 2) {
-    mprintf("%s: Writing 2D data.\n",dataio_->FullFileStr(),maxFrames);
+    mprintf("%s: Writing 2D data.\n",filename_.base(),maxFrames);
     int err = 0;
     for ( DataSetList::const_iterator set = SetList_.begin();
                                       set != SetList_.end(); ++set)
-      err += dataio_->WriteData2D( *(*set) );
+      err += dataio_->WriteData2D(filename_.Full(), *(*set) );
     if (err > 0) 
-      mprinterr("Error writing 2D DataSets to %s\n", dataio_->FullFileStr());
+      mprinterr("Error writing 2D DataSets to %s\n", filename_.base());
   }
 #ifdef DATAFILE_TIME
   clock_t tf = clock();
-  mprinterr("DataFile %s Write took %f seconds.\n", dataio_->FullFileStr(),
+  mprinterr("DataFile %s Write took %f seconds.\n", filename_.base(),
             ((float)(tf - t0)) / CLOCKS_PER_SEC);
 #endif
-  dataio_->CloseFile();
 }
 
 // DataFile::SetPrecision()
@@ -218,7 +202,7 @@ void DataFile::Write() {
   */
 void DataFile::SetPrecision(std::string const& dsetName, int widthIn, int precisionIn) {
   if (widthIn<1) {
-    mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",dataio_->FullFileStr());
+    mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",filename_.base());
     return;
   }
   int precision = precisionIn;
@@ -232,7 +216,7 @@ void DataFile::SetPrecision(std::string const& dsetName, int widthIn, int precis
 
 // DataFile::Filename()
 const char *DataFile::Filename() {
-  return dataio_->BaseFileStr();
+  return filename_.base();
 }
 
 // DataFile::DataSetNames()
