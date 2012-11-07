@@ -1,10 +1,8 @@
 // CpptrajFile
-// TODO: Replace sprintf/atof with sstream functs?
-#include <cstring> // strlen 
+#include <cstring>    // strlen 
 #include <sys/stat.h> // stat
-#include <cstdio> // sprintf, vsprintf
-#include <cstdlib> // atof
-#include <cstdarg> // va_X functions
+#include <cstdio>     // vsprintf
+#include <cstdarg>    // va_X functions
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, tildeExpansion
@@ -23,10 +21,6 @@
 
 const char CpptrajFile::FileTypeName[6][13] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
-};
-
-const char CpptrajFile::AccessTypeName[3][2] = {
-  "R", "W", "A"
 };
 
 // CONSTRUCTOR
@@ -184,10 +178,18 @@ void CpptrajFile::Rank_printf(int rank, const char *format, ...) {
 
 std::string CpptrajFile::GetLine() {
   if (IO_->Gets(linebuffer_, BUF_SIZE) != 0) {
-    mprinterr("Error: Getting line from %s\n", FullFileStr());
+    //mprinterr("Error: Getting line from %s\n", FullFileStr());
     return std::string();
   }
   return std::string(linebuffer_);
+}
+
+const char* CpptrajFile::NextLine() {
+  if (IO_->Gets(linebuffer_, BUF_SIZE) != 0) {
+    //mprinterr("Error: Reading line from %s\n", FullFileStr());
+    return 0;
+  }
+  return linebuffer_;
 }
 
 // -----------------------------------------------------------------------------
@@ -221,7 +223,7 @@ int CpptrajFile::OpenRead(std::string const& nameIn) {
 }
 
 // CpptrajFile::SetupRead()
-/** Set up file for reading. Will autodetect the type and format.
+/** Set up file for reading. Will autodetect the type.
   * \return 0 on success, 1 on error.
   */
 int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
@@ -248,7 +250,7 @@ int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
   // Determine file type. This sets up IO and determines compression. 
   if (ID_Type( expandedName.c_str() )) return 1;
   // Set up filename; sets base filename and extensions
-  fname_.SetFileName( expandedName.c_str(), IsCompressed() );
+  fname_.SetFileName( expandedName, IsCompressed() );
   if (debug_>0)
     rprintf("\t[%s] is type %s with access READ\n", FullFileStr(), FileTypeName[fileType_]);
   return 0;
@@ -288,7 +290,7 @@ int CpptrajFile::SetupWrite(std::string const& filenameIn, FileType typeIn, int 
   if (debug_>0)
     mprintf("CpptrajFile: Setting up %s for WRITE.\n",filenameIn.c_str());
   // Set up filename; sets base filename and extension
-  fname_.SetFileName(filenameIn.c_str());
+  fname_.SetFileName(filenameIn);
   // If file type is not specified, try to determine from filename extension
   if (typeIn == UNKNOWN_TYPE) {
     if (fname_.Compress() == ".gz")
@@ -324,6 +326,7 @@ int CpptrajFile::SetupAppend(std::string const& filenameIn, int debugIn) {
     mprinterr("Error: SetupAppend(): No filename specified\n");
     return 1;
   }
+  // NOTE: File will be cleared and debug set by either SetupRead/SetupWrite
   if (fileExists(filenameIn.c_str())) {
     // If file exists, first set up for read to determine type and format.
     if (SetupRead(filenameIn, debugIn)!=0) return 1;
@@ -343,21 +346,9 @@ int CpptrajFile::SetupAppend(std::string const& filenameIn, int debugIn) {
   return 0;
 }
 
-// CpptrajFile::SwitchAccess()
-int CpptrajFile::SwitchAccess(AccessType newAccess) {
-  if (newAccess == access_) return 0;
-  if (isOpen_) CloseFile();
-  switch (newAccess) {
-    case READ  : return SetupRead(FullFileName(), debug_);
-    case WRITE : return SetupWrite(FullFileName(), debug_);
-    case APPEND: return SetupAppend(FullFileName(), debug_);
-  }
-  return 1;
-}
-
+// -----------------------------------------------------------------------------
 // CpptrajFile::SetupFileIO()
-/** Set up the IO based on previously determined file type.
-  */
+/** Set up the IO based on given file type. */
 FileIO* CpptrajFile::SetupFileIO(FileType typeIn) {
   switch (typeIn) {
     case STANDARD  : return (new FileIO_Std());
@@ -393,8 +384,8 @@ FileIO* CpptrajFile::SetupFileIO(FileType typeIn) {
 }
 
 // CpptrajFile::ID_Type() 
-/** Open the file specified by filenameIn for READ or APPEND access. Attempt 
-  * to identify the file type.
+/** Attempt to identify the file type for filenameIn. Also set file_size,
+  * uncompressed_size, and compressType.
   */
 int CpptrajFile::ID_Type(const char* filenameIn) {
   if (filenameIn == 0) return 1;
@@ -411,16 +402,16 @@ int CpptrajFile::ID_Type(const char* filenameIn) {
   fileType_ = STANDARD;
   IO_ = new FileIO_Std();
   // ID by magic number - open for binary read access
-  unsigned char magic[3];
   if ( IO_->Open(filenameIn, "rb") ) { 
     mprintf("Could not open %s for hex signature read.\n", filenameIn);
     return 1;
   }
   // Read first 3 bytes
-  magic[0] = 0; magic[1] = 0; magic[2] = 0;
-  IO_->Read(magic  ,1);
-  IO_->Read(magic+1,1);
-  IO_->Read(magic+2,1);
+  unsigned char magic[3];
+  magic[0] = 0; 
+  magic[1] = 0; 
+  magic[2] = 0;
+  IO_->Read(magic, 3);
   IO_->Close();
   if (debug_>0) mprintf("\t    Hex sig: %x %x %x", magic[0],magic[1],magic[2]);
   // Check compression
@@ -465,4 +456,3 @@ int CpptrajFile::ID_Type(const char* filenameIn) {
   }
   return 0;
 }
-

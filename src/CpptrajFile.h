@@ -30,8 +30,6 @@ class CpptrajFile {
     int OpenAppend(std::string const&);
     /// Prepare file for appending. 
     int SetupAppend(std::string const&, int);
-    /// Switch file access mode
-    int SwitchAccess(AccessType);
     /// Open file.
     int OpenFile();
     /// Close file.
@@ -40,7 +38,10 @@ class CpptrajFile {
     void Printf(const char*, ...);
     /// Printf using the files Write routine for the given rank.
     void Rank_printf(int, const char *, ...);
+    /// Get next line as a string
     std::string GetLine();
+    /// Get next line and return pointer to raw buffer
+    const char* NextLine();
     /// Return the access file is currently set up for.
     AccessType Access()               { return access_;               }
     /// Return the compression type
@@ -63,18 +64,17 @@ class CpptrajFile {
     bool IsCompressed();
     /// Return uncompressed file size (just size if file is not compressed).
     off_t UncompressedSize();
-    FileIO* IOptr()                  { return IO_; } // TODO: Remove 
     int Gets(char* buf, int num)     { return IO_->Gets(buf, num);  }
     int Write(void* buf, size_t num) { return IO_->Write(buf, num); }
     int Read(void* buf, size_t num)  { return IO_->Read(buf, num);  }
     int Seek(off_t offset)           { return IO_->Seek(offset);    }
     int Rewind()                     { return IO_->Rewind();        }
+    off_t Tell()                     { return IO_->Tell();          }
   protected:
     static const size_t BUF_SIZE = 1024;
-    char linebuffer_[BUF_SIZE]; ///< Used in Printf functions
+    char linebuffer_[BUF_SIZE]; ///< Used in Printf/GetLine functions
   private:
     static const char FileTypeName[][13];
-    static const char AccessTypeName[][2];
 
     FileIO* IO_;                ///< The interface to basic IO operations.
     AccessType access_;         ///< Access (Read, write, append)
