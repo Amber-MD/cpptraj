@@ -16,7 +16,7 @@ class DataSet_Modes : public DataSet {
     void SetAvgCoords(int, const double*);
     int CalcEigen(DataSet_Matrix&,int); // TODO: Make const ref
     void PrintModes();
-    void WriteToFile(CpptrajFile&);
+    int WriteToFile(std::string const&);
     int ReadEvecFile(std::string const&, int, int);
     int EigvalToFreq();
     int MassWtEigvect( const double* );

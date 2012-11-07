@@ -3,7 +3,7 @@
 #include <cstring> // memcpy, memset
 #include "DataSet_Modes.h"
 #include "CpptrajStdio.h"
-#include "FrameBuffer.h"
+#include "BufferedFile.h"
 //#incl ude "vectormath.h" // printModes
 
 #ifndef NO_MATHLIB
@@ -261,11 +261,15 @@ void DataSet_Modes::PrintModes() {
 /** Write eigenvalues and if present eigenvectors/avg coords to file
   * in PTRAJ-compatible format.
   */
-void DataSet_Modes::WriteToFile(CpptrajFile& outfile) {
-  if (!outfile.IsOpen()) {
-    mprinterr("Internal Error: DataSet_Modes: File %s is not open for write.\n",
-              outfile.FullFileStr());
-    return;
+int DataSet_Modes::WriteToFile(std::string const& fname) {
+  if (fname.empty()) {
+    mprinterr("Internal Error: DataSet_Modes::WriteToFile: No filename given.\n");
+    return 1;
+  }
+  BufferedFile outfile;
+  if (outfile.OpenWrite( fname )) {
+    mprinterr("Error: Could not open %s for writing.\n", fname.c_str());
+    return 1;
   }
   if (reduced_)
     outfile.Printf(" Reduced Eigenvector file: ");
@@ -286,10 +290,10 @@ void DataSet_Modes::WriteToFile(CpptrajFile& outfile) {
     bufsize = navgcrd_;
   else
     bufsize = vecsize_;
-  FrameBuffer fbuffer(bufsize, colwidth, 7, outfile.IsDos());
+  outfile.SetupFrameBuffer( bufsize, colwidth, 7 );
   // Print average coords
-  fbuffer.DoubleToBuffer( avgcrd_, navgcrd_, data_format_, colwidth, 7);
-  outfile.Write( fbuffer.Buffer(), fbuffer.CurrentSize() );
+  outfile.DoubleToBuffer( avgcrd_, navgcrd_, data_format_ );
+  outfile.WriteFrame();
   // Eigenvectors and eigenvalues
   for (int mode = 0; mode < nmodes_; ++mode) {
     outfile.Printf(" ****\n %4i ", mode+1);
@@ -297,28 +301,28 @@ void DataSet_Modes::WriteToFile(CpptrajFile& outfile) {
     outfile.Printf("\n");
     if (evectors_ != 0) {
       const double* Vec = Eigenvector(mode);
-      fbuffer.BufferBegin();
-      fbuffer.DoubleToBuffer( Vec, vecsize_, data_format_, colwidth, 7 );
-      outfile.Write( fbuffer.Buffer(), fbuffer.CurrentSize() ); 
+      outfile.BufferBegin();
+      outfile.DoubleToBuffer( Vec, vecsize_, data_format_ );
+      outfile.WriteFrame(); 
     }
   }
+  outfile.CloseFile();
+  return 0;
 }
 
 // DataSet_Modes::ReadEvecFile()
 int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend) {
-  static const size_t BUFSIZE = 1024;
-  char buffer[BUFSIZE];
-
   int modesToRead = iend - ibeg + 1;
   if (modesToRead < 1) {
     mprinterr("Error: Specified # of modes to read (%i) must be > 0\n",modesToRead);
     return 1;
   }
 
-  CpptrajFile infile;
+  BufferedFile infile;
   if (infile.OpenRead( modesfile)) return 1;
   // Read title line, convert to arg list
-  if (infile.Gets(buffer, BUFSIZE)!=0) {
+  const char* buffer = 0;
+  if ( (buffer = infile.NextLine())==0 ) {
     mprinterr("Error: ReadEvecFile(): error while reading title (%s)\n",infile.FullFileStr());
     return 1;
   }
@@ -363,7 +367,7 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
   width_ = colwidth - 1;
   SetDataSetFormat(false);
   // Read number of elements in avg coords and eigenvectors
-  if ( infile.Gets(buffer, BUFSIZE)!=0) {
+  if ( (buffer = infile.NextLine())==0 ) {
     mprinterr("Error: ReadEvecFile(): error while reading number of atoms (%s)\n",
               infile.FullFileStr());
     return 1;
@@ -384,14 +388,14 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
     bufsize = navgcrd_;
   else
     bufsize = vecsize_;
-  FrameBuffer fbuffer(bufsize, colwidth, 7, infile.IsDos()); 
+  infile.SetupFrameBuffer( bufsize, colwidth, 7 );
   // Allocate memory for avg coords and read in
   if (avgcrd_ != 0) delete[] avgcrd_;
   if (navgcrd_ > 0) {
     avgcrd_ = new double[ navgcrd_ ];
-    infile.Read( fbuffer.Buffer(), fbuffer.ReadSize() );
-    fbuffer.BufferToDouble( avgcrd_, navgcrd_, colwidth );
-    fbuffer.BufferBegin(); // Reset buffer position
+    infile.ReadFrame( );
+    infile.BufferToDouble( avgcrd_, navgcrd_ );
+    infile.BufferBegin(); // Reset buffer position
   }
   // Allocate memory for eigenvalues and eigenvectors
   if (evalues_!=0) delete[] evalues_;
@@ -405,15 +409,15 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
   int currentMode = 0;
   int nno = 0;
   bool firstRead = true;
-  while ( infile.Gets(buffer, BUFSIZE)==0 ) { // This should read in ' ****'
+  while ( (buffer = infile.NextLine())!=0 ) { // This should read in ' ****'
     if (strncmp(buffer," ****", 5)!=0) {
       mprinterr("Error: ReadEvecFile(): When reading eigenvector %i, expected ' ****',\n",
                 currentMode+1);
-      mprinterr("       got %s [%s]\n", buffer, infile.FullFileStr());
+      mprinterr("Error: got %s [%s]\n", buffer, infile.FullFileStr());
       return 1;
     }
     // Read number and eigenvalue 
-    if (infile.Gets(buffer, BUFSIZE)!=0) {
+    if ( (buffer = infile.NextLine())==0 ) {
       mprinterr("Error: ReadEvecFile(): error while reading number and eigenvalue (%s)\n",
                 infile.FullFileStr());
       return 1;
@@ -431,7 +435,7 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
       double* Vec = evectors_ + (nmodes_ * vecsize_);
       int vi = 0;
       while (vi < vecsize_) {
-        infile.Gets(buffer,BUFSIZE);
+        buffer = infile.NextLine();
         if (firstRead && (buffer[0] == '\n' || buffer[0] == '\r')) {
           mprintf("Warning: Old modes file with vecsize > 0 but no eigenvectors.\n");
           vecsize_ = -1;
@@ -452,7 +456,7 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
       ++currentMode;
     } else if (vecsize_ == -1) {
       // Blank read past empty eigenvector
-      infile.Gets(buffer,BUFSIZE);
+      buffer = infile.NextLine();
     }
     firstRead = false;
   }

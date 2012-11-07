@@ -135,10 +135,6 @@ Analysis::RetType Analysis_Matrix::Analyze() {
 }
 
 void Analysis_Matrix::Print(DataFileList* DFLin) {
-  if (!outfilename_.empty()) {
-    CpptrajFile outfile;
-    outfile.OpenWrite( outfilename_ );
-    modes_->WriteToFile( outfile );
-    outfile.CloseFile();
-  }
+  if (!outfilename_.empty())
+    modes_->WriteToFile( outfilename_ ); 
 }
