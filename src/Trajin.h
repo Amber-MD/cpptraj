@@ -7,14 +7,15 @@ class Trajin : public TrajectoryFile {
   public:
     Trajin();
     virtual ~Trajin() {}
-    virtual int SetupTrajRead(std::string const&, ArgList *, Topology *) = 0;
+    virtual int SetupTrajRead(std::string const&, ArgList*, Topology *) = 0;
     virtual int BeginTraj(bool) = 0;
     virtual void EndTraj() = 0;
     virtual int GetNextFrame(Frame&) = 0;
     virtual void PrintInfo(int) = 0;
     virtual bool HasVelocity() = 0;
 
-    int SetupTrajIO( TrajectoryIO*, ArgList* ); 
+    int SetupTrajIO( std::string const&, TrajectoryIO&, ArgList* );
+    int CheckBoxInfo(const char*, Box&, Box const&); 
     int setupFrameInfo();
     void SingleFrame();
     void PrepareForRead(bool,bool);

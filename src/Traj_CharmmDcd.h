@@ -10,40 +10,44 @@ class Traj_CharmmDcd : public TrajectoryIO {
     ~Traj_CharmmDcd();
     // charmm dcd-specific functions
   private:
-    int dcdatom;
-    int dcdframes;
-    int dcdoutsize;
-    int dcdheadersize;
-    bool isBigEndian;
-    bool is64bit;
-    unsigned int readSize;
+    int dcdatom_;            ///< Number of atoms in DCD file.
+    int dcdframes_;          ///< Number of frames in DCD file.
+    //int dcdheadersize;
+    bool isBigEndian_;       ///< True if file is Big endian
+    bool is64bit_;           ///< True if file is 64 bit
+    unsigned int blockSize_; ///< Size of block bytes: 32 bit = 4, 64 bit = 8
     //bool dcdExtraBlock;
-    bool dcd4D;
-    int istart;
-    int nsavc;
-    int namnf;
-    int nfreat;
-    int *freeat;
-    float timestep;
-    float *xcoord;
-    float *ycoord;
-    float *zcoord;
+    size_t dcd_dim_;         ///< Number of dimensions in DCD file.
+    size_t boxBytes_;        ///< Number of bytes used by box coords if present.
+    size_t frame1Bytes_;     ///< Number of bytes used by first frame.
+    size_t frameNBytes_;     ///< Number of bytes used by other frames (==frame1 if namnf==0).
+    size_t headerBytes_;     ///< Size of DCD header in bytes.
+    size_t coordinate_size_; ///< Size of X|Y|Z coord frame in bytes.
+    int nfixedat_;           ///< Number of fixed atoms
+    int nfreeat_;            ///< Number of free atoms
+    int* freeat_;            ///< Free atom indices
+    float* xcoord_;          ///< Master coord array, start of X coords
+    float* ycoord_;          ///< Pointer to start of Y coords in master coord array
+    float* zcoord_;          ///< Pointer to start of Z coords in master coord array
+    CpptrajFile file_;       ///< Input/Output file
 
     union headerbyte { unsigned char c[80]; int i[20]; float f[20]; };
     int ReadBlock(int);
     int WriteBlock(int);
+    void AllocateCoords();
     int readDcdHeader();
+    int ReadBox(double*);
     int writeDcdHeader();
 
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
-    int setupTrajin(std::string const&, Topology*, TrajInfo&);
-    int setupTrajout(std::string const&, Topology*, int, TrajInfo const&,bool);
-    int openTraj();
+    int setupTrajin(std::string const&, Topology*);
+    int setupTrajout(std::string const&, Topology*, int, bool);
+    int openTrajin();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
-    void info();
+    void Info();
     int processWriteArgs(ArgList&);
 
     int readVelocity(int, double*) { return 1; }

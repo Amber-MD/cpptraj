@@ -7,37 +7,32 @@
 /// Abstract base class for performing trajectory reading and writing.
 class TrajectoryIO {
   public:
-    virtual ~TrajectoryIO(); // virtual since this class is inherited.
-    struct TrajInfo {
-      int NreplicaDim;     ///< Number of replica dimensions if applicable.
-      Box BoxInfo;         ///< Box info for first frame of trajectory.
-      bool HasV;           ///< True if trajectory has velocity info.
-      bool HasT;           ///< True if trajectory has temperature info.
-      bool IsSeekable;     ///< True if trajectory is randomly seekable.
-      std::string Title;   ///< Set to trajectory title.
-    };
+    TrajectoryIO() : debug_(0), hasV_(false), hasT_(false), seekable_(false) {}
+    virtual ~TrajectoryIO() {} // virtual since this class is inherited.
     typedef TrajectoryIO* (*AllocatorType)();
     // -----------===== Inherited functions =====-----------
     /// Return true if file format matches trajectory type.
-    virtual bool ID_TrajFormat(CpptrajFile&) = 0; 
-    /// Set up trajectory IO for READ/APPEND
-    /** Called inside TrajectoryFile::SetupRead. The first argument is the 
-      * Topology class that will be associated with this trajectory. The
-      * remaining argument will be set to contain trajectory information:
-      * box (if any), velocity, temperature, etc.
-      * \return the number of frames in the underlying trajectory file. 
-      * \return -1 if an error occurs.
+    virtual bool ID_TrajFormat(CpptrajFile&) = 0;
+    static const int TRAJIN_ERR = -1;
+    static const int TRAJIN_UNK = -2;
+    /// Set up trajectory IO for READ
+    /** First arg is the trajectory name. Second arg is the Topology that
+      * will be associated with this trajectory.
+      * \return Number of frames in trajectory.
+      * \return TRAJIN_ERR if an error occured during setup.
+      * \return TRAJIN_UNK if the number of frames could not be determined.
       */
-    virtual int setupTrajin(std::string const&, Topology *, TrajInfo&) = 0;
-    /// Set up trajectory IO for WRITE 
-    /** Called inside TrajectoryFile::WriteFrame on the first write call. Takes
-      * as arguments the Topology class that will be associated with this 
-      * trajectory, the expected number of frames to be written, and any
-      * additional trajectory information. 
+    virtual int setupTrajin(std::string const&, Topology *) = 0;
+    /// Set up and open trajectory IO for WRITE/APPEND 
+    /** Called on the first write call. First arg is the trajectory name.
+      * Second arg is the Topology that will be associated with this
+      * trajectory. Third argument specifies whether trajectory is being
+      * appended to. 
+      * \return 0 on success, 1 on error.
       */
-    virtual int setupTrajout(std::string const&,Topology*,int,TrajInfo const&,bool) = 0; 
-    /// Open traj, prepare for IO.
-    virtual int openTraj() = 0; 
+    virtual int setupTrajout(std::string const&,Topology*,int,bool) = 0; 
+    /// Open previously set-up input trajectory, prepare for IO.
+    virtual int openTrajin() = 0;
     /// Read a frame from trajectory
     /** Given a frame number, read that frame; return the coordinates in the 
       * first array, velocities in the second array, the box lengths/angles in 
@@ -59,7 +54,7 @@ class TrajectoryIO {
     /// Close trajectory
     virtual void closeTraj() = 0; 
     /// Print information on what kind of trajectory this is.
-    virtual void info() = 0; 
+    virtual void Info() = 0; 
     /// Process arguments relevant to writing trajectory (optional)
     /** Process any arguments from the arg list that have to do with 
       * setting the trajectory up for writing. Called before setupTrajout, so 
@@ -70,6 +65,30 @@ class TrajectoryIO {
       */
     virtual int processWriteArgs(ArgList&) = 0; 
     /// Process arguments relevant to reading trajectory (optional)
-    virtual int processReadArgs(ArgList&) = 0; 
+    virtual int processReadArgs(ArgList&) = 0;
+    // TODO: Replace with pure virtual
+    virtual int NreplicaDimensions() { return 0; }
+    // -----------------------------------------------------
+    bool HasBox()              const { return box_.HasBox();               }
+    const Box& TrajBox()       const { return box_;                        }
+    bool HasV()                const { return hasV_;                       }
+    bool HasT()                const { return hasT_;                       }
+    bool IsSeekable()          const { return seekable_;                   }
+    std::string const& Title() const { return title_;                      }
+
+    void SetDebug(int dIn)                { debug_ = dIn;    }
+    void SetBox(Box const& bIn)           { box_ = bIn;      }
+    void SetVelocity(bool vIn)            { hasV_ = vIn;     }
+    void SetTemperature(bool tIn)         { hasT_ = tIn;     }
+    void SetSeekable(bool sIn)            { seekable_ = sIn; }
+    void SetTitle(std::string const& tIn) { title_ = tIn;    }
+  protected:
+    int debug_;           ///< Trajectory debug level.
+  private:
+    Box box_;             ///< Default box info for trajectory.
+    bool hasV_;           ///< True if trajectory has velocity info.
+    bool hasT_;           ///< True if trajectory has temperature info.
+    bool seekable_;       ///< True if trajectory is randomly seekable.
+    std::string title_;   ///< Set to trajectory title.
 }; 
 #endif

@@ -43,7 +43,7 @@ class Trajin_Multi : public Trajin {
     typedef std::map<double,int> TmapType;
     TmapType TemperatureMap_;
 
-    NameListType SearchForReplicas(bool);
+    NameListType SearchForReplicas();
     bool IsTarget(double);
 };
 #endif

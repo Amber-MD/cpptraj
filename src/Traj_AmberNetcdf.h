@@ -10,16 +10,15 @@ class Traj_AmberNetcdf : public TrajectoryIO, NetcdfFile {
     Traj_AmberNetcdf();
     static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_AmberNetcdf(); }
     ~Traj_AmberNetcdf();
-    // AmberNetcdf-specific functions
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
-    int setupTrajin(std::string const&, Topology*, TrajInfo&);
-    int setupTrajout(std::string const&, Topology*, int, TrajInfo const&, bool);
-    int openTraj();
+    int setupTrajin(std::string const&, Topology*);
+    int setupTrajout(std::string const&, Topology*, int, bool);
+    int openTrajin();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
-    void info();
+    void Info();
     int processWriteArgs(ArgList&);
     int NreplicaDimensions() { return remd_dimension_; }
     int readIndices(int,int*);
@@ -27,9 +26,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, NetcdfFile {
   private:
     float *Coord_;
     float *Veloc_;
-    CpptrajFile::AccessType access_;
     FileName filename_;
-    int debug_;
     int readVelocity(int, double*) { return 1; }
     int processReadArgs(ArgList&) { return 0; }
 };

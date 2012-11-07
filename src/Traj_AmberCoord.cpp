@@ -1,33 +1,22 @@
 // Traj_AmberCoord
-#include <cstdio>
+#include <cstdio> // sscanf
 #include "Traj_AmberCoord.h"
 #include "CpptrajStdio.h"
 
 /// Size of REMD header
 const size_t Traj_AmberCoord::REMD_HEADER_SIZE = 42;
-/// Max Size of 1 line of amber coords, 80 + newline [+CR] + NULL
-const size_t Traj_AmberCoord::BUF_SIZE = 128;
 
 // CONSTRUCTOR
 Traj_AmberCoord::Traj_AmberCoord() :
-  debug_(0),
   natom3_(0),
-  titleSize_(0),
   hasREMD_(0),
   numBoxCoords_(0),
   outfmt_("%8.3lf"),
-  highPrecision_(false),
-  mdvel_(0),
-  seekable_(false)
+  highPrecision_(false)
 {
   boxAngle_[0] = 0.0; 
   boxAngle_[1] = 0.0; 
   boxAngle_[2] = 0.0; 
-}
-
-// DESTRUCTOR
-Traj_AmberCoord::~Traj_AmberCoord() {
-  if (mdvel_!=0) delete mdvel_;
 }
 
 // IsRemdHeader()
@@ -40,21 +29,20 @@ static inline bool IsRemdHeader(const char* buffer) {
 
 // Traj_AmberCoord::ID_TrajFormat()
 bool Traj_AmberCoord::ID_TrajFormat(CpptrajFile& fileIn) {
-  char buffer2[BUF_SIZE];
   // File must already be set up for read
   if (fileIn.OpenFile()) return false;
-  fileIn.Gets(buffer2, BUF_SIZE); // Title
-  fileIn.Gets(buffer2, BUF_SIZE); // REMD header/coords
+  if (fileIn.NextLine()==0) return false; // Title
+  std::string buffer2 = fileIn.GetLine(); // REMD header/coords
   fileIn.CloseFile();
   // Check if second line contains REMD/HREMD, Amber Traj with REMD header
-  if ( IsRemdHeader( buffer2 ) ) {
+  if ( IsRemdHeader( buffer2.c_str() ) ) {
     if (debug_>0) mprintf("  AMBER TRAJECTORY with (H)REMD header.\n");
-    hasREMD_ = REMD_HEADER_SIZE;
+    hasREMD_ = REMD_HEADER_SIZE + (size_t)fileIn.IsDos();
     return true;
   }
   // Check if we can read at least 3 coords of width 8, Amber trajectory
   float TrajCoord[3];
-  if ( sscanf(buffer2, "%8f%8f%8f", TrajCoord, TrajCoord+1, TrajCoord+2) == 3 )
+  if ( sscanf(buffer2.c_str(), "%8f%8f%8f", TrajCoord, TrajCoord+1, TrajCoord+2) == 3 )
   {
     if (debug_>0) mprintf("  AMBER TRAJECTORY file\n");
     return true;
@@ -67,28 +55,13 @@ void Traj_AmberCoord::closeTraj() {
   file_.CloseFile();
 }
 
-// Traj_AmberCoord::openTraj()
-/** Open Amber Trajectory, read past title and set titleSize
-  * Always read title so file pointer is always correctly positioned
-  * to read a frame.
+// Traj_AmberCoord::openTrajin()
+/** Open Amber Trajectory for reading. Read past title; this is done so
+  * file pointer is always correctly positioned to read first frame.
   */
-int Traj_AmberCoord::openTraj() {
-  char titleIn[BUF_SIZE];
-  switch (file_.Access()) {
-    case CpptrajFile::READ: // Read in title, set size in bytes 
-      if ( file_.OpenFile() ) return 1;
-      title_ = file_.GetLine();
-      title_.assign( titleIn );
-      titleSize_ = title_.size();
-      break;
-    case CpptrajFile::WRITE: // Write title
-      if (file_.OpenFile()) return 1;
-      file_.Rank_printf(0,"%-*s\n",titleSize_-1,title_.c_str());
-      break;
-    case CpptrajFile::APPEND:  // Just open
-      if (file_.OpenFile()) return 1;
-      break;
-  }
+int Traj_AmberCoord::openTrajin() {
+  if (file_.OpenFile()) return 1;
+  if (file_.NextLine() == 0) return 1; // Skip past title
   return 0;
 }
 
@@ -101,17 +74,17 @@ int Traj_AmberCoord::readFrame(int set, double *X, double *V, double *box, doubl
   mprinterr("Reading frame %10i from %s\n",set,BaseFileStr());
 #endif
   // If trajectory is not broken, seek to given frame.
-  if (seekable_)
+  if (IsSeekable())
     file_.SeekToFrame( set ); 
 
   // Read frame into the char buffer
   if (file_.ReadFrame() == -1) return 1;
 
   // Get REMD Temperature if present
-  if (hasREMD_ > 0) 
+  if (hasREMD_ != 0) 
     file_.GetDoubleAtPosition(*T, 33, 41); 
   // Get Coordinates; offset is hasREMD (size in bytes of REMD header)
-  file_.BufferBeginOffset();
+  file_.BufferBeginAt(hasREMD_);
   file_.BufferToDouble(X, natom3_);
   if (numBoxCoords_ != 0) { 
     file_.BufferToDouble(box, numBoxCoords_);
@@ -131,7 +104,7 @@ int Traj_AmberCoord::readFrame(int set, double *X, double *V, double *box, doubl
   */
 // NOTE: The output frame size is calcd here - should it just be precalcd?
 int Traj_AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T) {
-  if (hasREMD_>0) 
+  if (hasREMD_ != 0) 
     file_.Printf("REMD  %8i %8i %8i %8.3f\n", 0, set+1, set+1, T);
 
   file_.BufferBegin();
@@ -144,57 +117,31 @@ int Traj_AmberCoord::writeFrame(int set, double *X, double *V, double *box, doub
   return 0;
 }
 
-// Traj_AmberCoord::processReadArgs()
-int Traj_AmberCoord::processReadArgs(ArgList& argIn) {
-  ArgList::ConstArg mdvelname = argIn.getKeyString("mdvel");
-  if (mdvelname!=NULL) {
-    // Set up corresponding velocity file
-    if (mdvel_!=0) delete mdvel_;
-    mdvel_ = new Traj_AmberCoord();
-    CpptrajFile velfile;
-    if (velfile.SetupRead( mdvelname, debug_ )) {
-      mprinterr("Error: mdvel %s: Could not set up file for reading.\n", mdvelname);
-      return 1;
-    }
-    if ( !mdvel_->ID_TrajFormat( velfile ) ) {
-      mprinterr("Error: mdvel %s is not Amber ASCII velocity file.\n", mdvelname);
-      return 1;
-    }
-    mprintf("\tmdvel: %s\n", mdvelname);
-  }
-    
-  return 0;
-}
-
 // Traj_AmberCoord::setupTrajin()
-/** Setup opens the given file for read access, sets information.
-  * \return the number of frames present in trajectory file.
-  * \return -1 if an error occurs.
-  * \return -2 if the number of frames could not be determined.
-  */
-int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm,
-                    TrajInfo& tinfo)
+int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
 {
   // Set up file for reading 
-  if (file_.SetupRead( fname, debug_ )) return -1;
-  // Attempt to open the file. open() sets the title and titleSize
-  if (openTraj()) return -1;
-  // Allocate mem to read in frame (plus REMD header if present) 
+  if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
+  // Attempt to open the file. Read and set the title and titleSize
+  if ( file_.OpenFile() ) return TRAJIN_ERR;
+  std::string title = file_.GetLine();
+  // Allocate mem to read in frame (plus REMD header if present). REMD
+  // header is checked for when file is IDd. Title size is used in seeking. 
   natom3_ = trajParm->Natom() * 3;
-  file_.SetupFrameBuffer( natom3_, 8, 10, hasREMD_ );
+  file_.SetupFrameBuffer( natom3_, 8, 10, hasREMD_, title.size() );
   if (debug_ > 0) {
     mprintf("Each frame is %u bytes", file_.FrameSize());
-    if (hasREMD_ > 0) mprintf(" (including REMD header)");
+    if (hasREMD_ != 0) mprintf(" (including REMD header)");
     mprintf(".\n");
   }
   // Read the first frame of coordinates
   if ( file_.ReadFrame() == -1 ) {
     mprinterr("Error in read of Coords frame 1 of trajectory %s.\n", file_.BaseFileStr());
-    return -1;
+    return TRAJIN_ERR;
   }
   // Check for box coordinates. If present, update the frame size and
   // reallocate the frame buffer.
-  tinfo.BoxInfo.SetNoBox();
+  Box boxInfo;
   std::string nextLine = file_.GetLine();
   if ( !nextLine.empty() ) {
     if (debug_>0) rprintf("DEBUG: Line after first frame: (%s)\n", nextLine.c_str());
@@ -202,21 +149,28 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm,
       // REMD header - no box coords
       numBoxCoords_ = 0;
     } else {
-      double box[6];
-      numBoxCoords_ = sscanf(nextLine.c_str(), "%8lf%8lf%8lf%8lf%8lf%8lf",
-                             box, box+1, box+2, box+3, box+4, box+5);
+      double box[8];
+      numBoxCoords_ = sscanf(nextLine.c_str(), "%8lf%8lf%8lf%8lf%8lf%8lf%8lf%8lf",
+                             box, box+1, box+2, box+3, box+4, box+5, box+6, box+7);
       if (numBoxCoords_ == -1) {
         mprinterr("Error: Could not read Box coord line of trajectory %s.",file_.BaseFileStr());
-        return -1;
+        return TRAJIN_ERR;
+      } else if (numBoxCoords_ == 8) {
+        // Full line of coords was read, no box coords.
+        numBoxCoords_ = 0;
       } else if (numBoxCoords_ == 3) {
-        // Box lengths only, orthogonal or truncated oct. Set lengths.
-        tinfo.BoxInfo.SetLengths( box );
+        // Box lengths only, ortho. or truncated oct. Use default parm angles.
+        box[3] = boxAngle_[0] = trajParm->ParmBox().Alpha();
+        box[4] = boxAngle_[1] = trajParm->ParmBox().Beta();
+        box[5] = boxAngle_[2] = trajParm->ParmBox().Gamma();
+        boxInfo.SetBox( box );
       } else if (numBoxCoords_ == 6) {
         // General triclinic. Set lengths and angles.
-        tinfo.BoxInfo.SetBox( box );
+        boxInfo.SetBox( box );
       } else {
         mprinterr("Error: Expect only 3 or 6 box coords, got %i\n", numBoxCoords_);
-        return -1;
+        mprinterr("Error: Box line=[%s]\n", nextLine.c_str());
+        return TRAJIN_ERR;
       }
     }
     // Reallocate frame buffer accordingly
@@ -224,15 +178,16 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm,
   }
   // Calculate Frames and determine seekable. If not possible and this is not a
   // compressed file the trajectory is probably corrupted. Frames will
-  // be read until EOF (Frames = -2).
+  // be read until EOF.
   int Frames = 0;
   if (debug_>0)
     rprintf("Title offset=%lu FrameSize=%lu UncompressedFileSize=%lu\n",
-            titleSize_, file_.FrameSize(), file_.UncompressedSize());
-  off_t title_size = (off_t) titleSize_;
+            title.size(), file_.FrameSize(), file_.UncompressedSize());
+  off_t title_size = (off_t) title.size();
   off_t frame_size = (off_t) file_.FrameSize();
   off_t uncompressed_size = file_.UncompressedSize();
   off_t file_size = uncompressed_size - title_size;
+  bool seekable = false;
   if (file_.Compression() != CpptrajFile::NO_COMPRESSION) {
     // -----==== AMBER TRAJ COMPRESSED ====------
     // If the uncompressed size of compressed file is reported as <= 0,
@@ -245,8 +200,8 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm,
         mprintf("         (This is normal for bzipped files)\n");
       mprintf("         Number of frames could not be calculated.\n");
       mprintf("         Frames will be read until EOF.\n");
-      Frames = -2;
-      seekable_ = false;
+      Frames = TRAJIN_UNK;
+      seekable = false;
     } else {
       // Frame calculation for large gzip files
       if (file_.Compression() == CpptrajFile::GZIP) {
@@ -274,47 +229,45 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm,
       }
       if ((file_size % frame_size) == 0) {
         Frames = (int) (file_size / frame_size);
-        seekable_ = true;
+        seekable = true;
       } else {
         mprintf("Warning: %s: Number of frames in compressed traj could not be determined.\n",
                 file_.BaseFileStr());
         mprintf("         Frames will be read until EOF.\n");
-        Frames=-2;
-        seekable_=false;
+        Frames = TRAJIN_UNK;
+        seekable=false;
       }
     }
   } else {     
     // ----==== AMBER TRAJ NOT COMPRESSED ====----
     Frames = (int) (file_size / frame_size);
     if ( (file_size % frame_size) == 0 ) {
-      seekable_ = true;
+      seekable = true;
     } else {
       mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
               file_.BaseFileStr());
       mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
               Frames);
-      seekable_=false;
+      seekable=false;
     }
   }
 
   if (debug_>0)
     rprintf("Atoms: %i FrameSize: %lu TitleSize: %lu NumBox: %i Seekable: %i Frames: %i\n\n", 
-            trajParm->Natom(), frame_size, title_size, numBoxCoords_, (int)seekable_, Frames);
+            trajParm->Natom(), frame_size, title_size, numBoxCoords_, (int)seekable, Frames);
   // Close the file
-  closeTraj();
-  // Set trajectory info.
-  tinfo.NreplicaDim = 0;
-  tinfo.HasV = false;
-  tinfo.HasT = (hasREMD_ > 0);
-  tinfo.IsSeekable = seekable_;
-  tinfo.Title = title_;
-
+  file_.CloseFile();
+  // Set trajectory info
+  SetBox( boxInfo );
+  SetTemperature( hasREMD_ != 0 );
+  SetTitle( title );
+  SetSeekable( seekable );
   return Frames;
 }
 
 // Traj_AmberCoord::processWriteArgs()
 int Traj_AmberCoord::processWriteArgs(ArgList& argIn) {
-  if (argIn.hasKey("remdtraj")) hasREMD_ = REMD_HEADER_SIZE; 
+  SetTemperature( argIn.hasKey("remdtraj") );
   if (argIn.hasKey("highprecision")) { 
     outfmt_ = "%8.6lf";
     highPrecision_ = true;
@@ -328,29 +281,41 @@ int Traj_AmberCoord::processWriteArgs(ArgList& argIn) {
   * size, necessary only for seeking when MPI writing. Allocate memory for
   * the frame buffer. 
   */
-int Traj_AmberCoord::setupTrajout(std::string const& fname, Topology* trajParm,
-                     int NframesToWrite, TrajInfo const& tinfo, bool append)
+int Traj_AmberCoord::setupTrajout(std::string const& fname, Topology* trajParm, 
+                                  int NframesToWrite, bool append)
 {
-  // Set up file for writing
-  if (append) {
-    // First set up and open READ to read title. If file does not exist
-    // this will fail silently and title will not be set.
-    if (file_.SetupRead( fname, debug_ ) == 0) {
-      if (openTraj()) return 1; // This sets the title and titleSize
-      closeTraj();
-    }
-    file_.SwitchAccess( CpptrajFile::APPEND );
-  } else {
-    file_.SetupWrite( fname, debug_ );
-    title_ = tinfo.Title;
-  }   
   // Set Temperature Write 
-  if (tinfo.HasT) hasREMD_ = REMD_HEADER_SIZE;
-  // Allocate buffer. Will not buffer REMD header.
+  if (HasT()) hasREMD_ = REMD_HEADER_SIZE;
+  if (!append) {
+    // Write the title if not appending
+    if (file_.SetupWrite( fname, debug_ )) return 1;
+    std::string title = Title();
+    if (title.empty()) {
+      // Set up default title
+      title.assign("Cpptraj Generated trajectory");
+      title.resize(80,' ');
+    } else {
+      // Check title length
+      if (title.size() > 80) {
+        mprintf("Warning: Amber traj title for %s too long: truncating.\n[%s]\n",
+                file_.BaseFileStr(), title.c_str());
+        title.resize(80);
+      }
+    }
+    if (file_.OpenFile()) return 1;
+    file_.Rank_printf(0,"%-s\n", title.c_str());
+  } else {
+    // Just set up for append
+    if (file_.SetupAppend( fname, debug_ )) return 1;
+    if (file_.OpenFile()) return 1;
+  }
+  // Allocate buffer. Will not buffer REMD header or need to seek.
+  // NOTE: This is done here since SetupFrameBuffer allocates based
+  //       on write mode, which is not known until now.
   natom3_ = trajParm->Natom() * 3;
-  file_.SetupFrameBuffer( natom3_, 8, 10, 0 );
+  file_.SetupFrameBuffer( natom3_, 8, 10 );
   // If box coords are present, allocate extra space for them
-  switch (tinfo.BoxInfo.Type()) {
+  switch (TrajBox().Type()) {
     case Box::NOBOX   : numBoxCoords_ = 0; break;
     case Box::ORTHO   :
     case Box::TRUNCOCT: numBoxCoords_ = 3; break;
@@ -358,21 +323,6 @@ int Traj_AmberCoord::setupTrajout(std::string const& fname, Topology* trajParm,
   }
   file_.ResizeBuffer( numBoxCoords_ );
  
-  if (title_.empty()) {
-    // Set up default title
-    title_.assign("Cpptraj Generated trajectory");
-    title_.resize(80,' ');
-    titleSize_ = title_.size();
-  } else {
-    // Check title length
-    titleSize_ = title_.size(); 
-    if (titleSize_>80) {
-      title_.resize(80);
-      mprintf("Warning: Amber traj title for %s too long: truncating.\n[%s]\n",
-              file_.BaseFileStr(), title_.c_str());
-    }
-  }
-
   if (debug_>0) 
     rprintf("(%s): Each frame has %lu bytes.\n", file_.BaseFileStr(), file_.FrameSize());
   
@@ -380,8 +330,8 @@ int Traj_AmberCoord::setupTrajout(std::string const& fname, Topology* trajParm,
 }
 
 // Traj_AmberCoord::Info()
-void Traj_AmberCoord::info() {
-  if (hasREMD_) 
+void Traj_AmberCoord::Info() {
+  if (HasT()) 
     mprintf("is an AMBER REMD trajectory");
   else
     mprintf("is an AMBER trajectory");

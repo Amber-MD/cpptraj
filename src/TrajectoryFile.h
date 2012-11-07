@@ -23,19 +23,17 @@ class TrajectoryFile {
     static TrajFormatType GetTypeFromExtension(std::string const&);
 
     void SetDebug(int);
-    void SetFileName( std::string const& );
+    void SetTrajFileName( std::string const& );
     int SetTrajParm( Topology* );
 
     Topology* TrajParm()              { return trajParm_;                  }
-    const char* FullTrajStr()         { return trajName_.Full().c_str();   }
-    std::string const& FullTrajName() { return trajName_.Full();           }
+    const FileName& TrajName()        { return trajName_;                  }
     const char* BaseTrajStr()         { return trajName_.Base().c_str();   }
-    std::string const& BaseTrajName() { return trajName_.Base();           }
+    const char* FullTrajStr()         { return trajName_.Full().c_str();   }
   protected:
     int debug_;            ///< Trajectory debug level.
-
     static TrajectoryIO* AllocTrajIO(TrajFormatType);
-    static TrajectoryIO* DetectFormat(CpptrajFile&);
+    static TrajectoryIO* DetectFormat(std::string const&);
   private:
     struct TrajToken {
       TrajFormatType Type;

@@ -19,9 +19,9 @@ bool Traj_Binpos::ID_TrajFormat(CpptrajFile& fileIn) {
   buffer[1] = ' ';
   buffer[2] = ' ';
   buffer[3] = ' ';
-  if ( OpenFile() ) return false;
-  IO->Read(buffer, 4);
-  CloseFile();
+  if ( fileIn.OpenFile() ) return false;
+  fileIn.Read(buffer, 4);
+  fileIn.CloseFile();
   // Check for the magic header of the Scripps binary format.
   if (buffer[0] == 'f' &&
       buffer[1] == 'x' &&
@@ -31,96 +31,74 @@ bool Traj_Binpos::ID_TrajFormat(CpptrajFile& fileIn) {
   return false;
 }
 
-int Traj_Binpos::openTraj() {
+int Traj_Binpos::openTrajin() {
   unsigned char buffer[4]; 
-
-  switch (access_) {
-    case READ:
-      if (OpenFile()) return 1;
-      // Read past magic header
-      IO->Read(buffer, 4);
-      break;
-    case APPEND:
-      mprinterr("Error: Append not supported for binpos files.\n");
-      return 1;
-      break;
-    case WRITE: 
-      if (OpenFile()) return 1;
-      // Always write header
-      buffer[0] = 'f';
-      buffer[1] = 'x';
-      buffer[2] = 'y';
-      buffer[3] = 'z';
-      IO->Write(buffer, 4);
-      break; 
-  }
+  if (file_.OpenFile()) return 1;
+  // Read past magic header
+  if (file_.Read(buffer, 4) != 4) return 1;
   return 0;
 }
 
 void Traj_Binpos::closeTraj() {
-  CloseFile();
+  file_.CloseFile();
 }
 
-int Traj_Binpos::setupTrajin(std::string const& fname, Topology* trajParm,
-                    TrajInfo& tinfo)
+int Traj_Binpos::setupTrajin(std::string const& fname, Topology* trajParm)
 {
+  if (file_.SetupRead( fname, 0 )) return TRAJIN_ERR;
   // Open - reads past the 4 byte header
-  if (openTraj()) return 1;
-
+  if (openTrajin()) return TRAJIN_ERR;
   // Binpos file is 4 byte header followed by binpos frame records.
   // Each frame record is an int (# atoms) followed by 3*natom
   // floats (the xyz coords).
   // First assume binpos file has consistent # of atoms in each record
   // and try to determine # of frames.
-  IO->Read(&bpnatom_, sizeof(int));
+  file_.Read(&bpnatom_, sizeof(int));
   if (bpnatom_ != trajParm->Natom()) {
     mprinterr("Error: # of atoms in binpos file frame 1 (%i) is not equal to\n",bpnatom_);
     mprinterr("Error: the # of atoms in associated parm %s (%i)\n",
               trajParm->c_str(), trajParm->Natom());
-    return -1;
+    return TRAJIN_ERR;
   }
   bpnatom3_ = bpnatom_ * 3;
   frameSize_ = (size_t)bpnatom3_ * sizeof(float);
   off_t framesize = (off_t)frameSize_ + sizeof(int);
-  off_t filesize = file_size_;
-  if ( compressType_ != NO_COMPRESSION)
-    filesize = uncompressed_size_;
-  filesize -= 4; // Subtract 4 byte header
-  int Frames = (int)(filesize / framesize);
-  if ( (filesize % framesize) == 0 ) {
-    seekable_ = true;
-  } else {
-    mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
-            BaseFileStr());
-    mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
-            Frames);
-    seekable_=false;
+  off_t filesize = file_.UncompressedSize();
+  int Frames = 0;
+  if (filesize < 1) {
+    mprintf("Warning: binpos: Could not determine file size for # frames prediction.\n");
+    mprintf("Warning: This is normal for bzip2 files.\n");
+    Frames = TRAJIN_UNK;
+  } else { 
+    filesize -= 4; // Subtract 4 byte header
+    Frames = (int)(filesize / framesize);
+    if ( (filesize % framesize) == 0 ) {
+      SetSeekable( true );
+    } else {
+      mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
+              file_.BaseFileStr());
+      mprintf("Warning: indicates a corrupted trajectory. Will attempt to read %i frames.\n",
+              Frames);
+      SetSeekable( false );
+    }
   }
-
   mprintf("\t%i atoms, framesize=%lu, filesize=%lu, #Frames=%i\n", 
           bpnatom_, framesize, filesize, Frames);
-
   // Allocate space to read in floats
   if (bpbuffer_!=0)
     delete[] bpbuffer_;
   bpbuffer_ = new float[ bpnatom3_ ];
-
   closeTraj();
   return Frames;
 }
 
 int Traj_Binpos::readFrame(int set, double* X, double* V, double* box, double* T) {
   int natoms;
-  off_t offset;
-
-  if (seekable_) {
-    offset = (off_t) set;
-    offset *= (frameSize_ + sizeof(int));
-    offset += 4;
-    IO->Seek(offset);
-  }
+  // Seek
+  if (IsSeekable()) 
+    file_.Seek( ((off_t)set * (frameSize_ + sizeof(int))) + 4 );
   // Read past natom
-  if (IO->Read(&natoms, sizeof(int))<1)
+  if (file_.Read(&natoms, sizeof(int))<1)
     return 1;
   // Sanity check
   if ( natoms != bpnatom_ ) {
@@ -128,7 +106,7 @@ int Traj_Binpos::readFrame(int set, double* X, double* V, double* box, double* T
     return 1;
   }
   // Read coords
-  IO->Read(bpbuffer_, frameSize_);
+  file_.Read(bpbuffer_, frameSize_);
   // Convert float to double
   for (int i = 0; i < bpnatom3_; ++i)
     X[i] = (double)bpbuffer_[i];
@@ -136,8 +114,9 @@ int Traj_Binpos::readFrame(int set, double* X, double* V, double* box, double* T
 }
 
 int Traj_Binpos::setupTrajout(std::string const& fname, Topology* trajParm,
-                     int NframesToWrite, TrajInfo const& tinfo)
+                              int NframesToWrite, bool append)
 {
+  unsigned char buffer[4];
   bpnatom_ = trajParm->Natom();
   bpnatom3_ = bpnatom_ * 3;
   frameSize_ = (size_t)bpnatom3_ * sizeof(float);
@@ -145,22 +124,28 @@ int Traj_Binpos::setupTrajout(std::string const& fname, Topology* trajParm,
   if (bpbuffer_!=0)
     delete[] bpbuffer_;
   bpbuffer_ = new float[ bpnatom3_ ];
-  if (hasBox_) 
+  if (HasBox()) 
     mprintf("Warning: BINPOS format does not support writing of box coordinates.\n");
-
+  if (file_.OpenFile()) return 1;
+  // Always write header
+  buffer[0] = 'f';
+  buffer[1] = 'x';
+  buffer[2] = 'y';
+  buffer[3] = 'z';
+  file_.Write(buffer, 4);
   return 0;
 }
 
 int Traj_Binpos::writeFrame(int set, double* X, double* V, double* box, double T) {
-  IO->Write( &bpnatom_, sizeof(int) );
+  file_.Write( &bpnatom_, sizeof(int) );
   // Convert double to float
   for (int i = 0; i < bpnatom3_; ++i)
     bpbuffer_[i] = (float)X[i];
-  if (IO->Write( bpbuffer_, frameSize_ )) return 1;
+  if (file_.Write( bpbuffer_, frameSize_ )) return 1;
   return 0;
 }
 
-void Traj_Binpos::info() {
+void Traj_Binpos::Info() {
   mprintf("is a BINPOS file");
 }
  

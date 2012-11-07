@@ -11,19 +11,21 @@ class Traj_Binpos : public TrajectoryIO {
   private:
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
-    int setupTrajin(std::string const&, Topology*, TrajInfo&);
-    int setupTrajout(std::string const&, Topology*, int, TrajInfo const&,bool);
-    int openTraj();
+    int setupTrajin(std::string const&, Topology*);
+    int setupTrajout(std::string const&, Topology*, int, bool);
+    int openTrajin();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
-    void info();
-    int processWriteArgs(ArgList&);
+    void Info();
+    int processWriteArgs(ArgList&) { return 0; }
 
     int bpnatom_;
     int bpnatom3_;
     size_t frameSize_;
     float* bpbuffer_;
+    CpptrajFile file_;
+
     int readVelocity(int, double*) { return 1; }
     int readIndices(int,int*) { return 1; }
     int processReadArgs(ArgList&) { return 0; }

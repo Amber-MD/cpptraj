@@ -1,5 +1,6 @@
 #include "Trajin.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // SMALL
 
 // CONSTRUCTOR
 Trajin::Trajin() :
@@ -16,16 +17,16 @@ Trajin::Trajin() :
 {}
 
 // Trajin::SetupTrajIO()
-int Trajin::SetupTrajIO( TrajectoryIO* trajio, ArgList* argIn ) {
+int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList* argIn ) {
   // -1 indicates an error.
   // -2 indicates the number of frames could not be determined, read to EOF.
-  total_frames_ = trajio->setupTrajin(TrajParm());
-  if (total_frames_ == -1) {
-    mprinterr("Error: Could not set up %s for reading.\n",FullTrajStr());
+  total_frames_ = trajio.setupTrajin(fname, TrajParm());
+  if (total_frames_ == TrajectoryIO::TRAJIN_ERR) {
+    mprinterr("Error: Could not set up %s for reading.\n", fname.c_str());
     return 1;
   }
   if (total_frames_>-1)
-    mprintf("\t[%s] contains %i frames.\n",BaseTrajStr(),total_frames_);
+    mprintf("\t[%s] contains %i frames.\n", BaseTrajStr(), total_frames_);
   else
     mprintf("\t[%s] contains an unknown number of frames.\n",BaseTrajStr());
   // Set stop based on calcd number of frames.
@@ -113,6 +114,36 @@ int Trajin::SetupTrajIO( TrajectoryIO* trajio, ArgList* argIn ) {
     if (debug_>0)
       mprintf("DEBUG [%s] SetArgs: Start %i Stop %i  Offset %i\n",
               BaseTrajStr(),start_,stop_,offset_);
+  }
+  return 0;
+}
+
+int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox) {
+  if (!trajBox.HasBox()) {
+    if ( parmBox.HasBox()) {
+      // No box in traj but box in parm - disable parm box.
+      mprintf("Warning: Box information present in parm but not in trajectory.\n");
+      mprintf("Warning: DISABLING BOX in parm [%s]!\n", parmName);
+      parmBox.SetNoBox();
+      return 0;
+    } else
+      // No box in traj or parm - exit.
+      return 0;
+  }
+  // Check for zero box lengths
+  if ( trajBox.BoxX() < SMALL || trajBox.BoxY() < SMALL || trajBox.BoxZ() < SMALL ) {
+    mprintf("Warning: Box information present in trajectory but lengths are zero.\n");
+    mprintf("Warning: DISABLING BOX in parm [%s]!\n", parmName);
+    parmBox.SetNoBox();
+    return 0;
+  }
+  // If box coords present but no box info in associated parm, print
+  // a warning. Set parm box from trajectory
+  if (!parmBox.HasBox()) {
+    mprintf("\tWarning: Box info present in trajectory %s but not in\n", BaseTrajStr());
+    mprintf("\tWarning: associated parm %s\n", parmName);
+    mprintf("\tWarning: Setting parm box information from trajectory.\n");
+    parmBox = trajBox;
   }
   return 0;
 }

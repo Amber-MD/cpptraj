@@ -84,9 +84,9 @@ void TrajectoryFile::SetDebug(int debugIn) {
   if (debug_>0) mprintf("\tTrajectoryFile debug level set to %i\n",debug_);
 }
 
-// TrajectoryFile::SetFileName()
-void TrajectoryFile::SetFileName(std::string const& full) {
-  trajName_.SetFileName( full.c_str() );
+// TrajectoryFile::SetTrajFileName()
+void TrajectoryFile::SetTrajFileName(std::string const& full) {
+  trajName_.SetFileName( full );
 } 
 
 int TrajectoryFile::SetTrajParm( Topology* tparmIn ) {
@@ -109,21 +109,22 @@ TrajectoryIO* TrajectoryFile::AllocTrajIO(TrajFormatType tformat) {
         mprinterr("Error: CPPTRAJ was compiled without support for %s files.\n",
                   token->Description);
         return 0;
-      } else
-        return (TrajectoryIO*)token->Alloc;
+      } else 
+        return (TrajectoryIO*)token->Alloc();
     }
   }
   return 0;
 }
 
 // TrajectoryFile::DetectFormat()
-TrajectoryIO* TrajectoryFile::DetectFormat(CpptrajFile& fileIn) {
-  // Assume fileIn set up for reading
+TrajectoryIO* TrajectoryFile::DetectFormat(std::string const& fname) {
+  CpptrajFile file;
+  if (file.SetupRead(fname, 0)) return 0;
   for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token) {
     if (token->Alloc != 0) {
-      TrajectoryIO* trajio = (TrajectoryIO*)token->Alloc;
-      // TODO: Set debug
-      if ( trajio->ID_TrajFormat( fileIn ) ) return trajio;
+      TrajectoryIO* trajio = (TrajectoryIO*)token->Alloc();
+      if ( trajio->ID_TrajFormat( file ) ) 
+        return trajio;
       delete trajio;
     }
   }

@@ -1,8 +1,7 @@
 #include <locale> // isdigit
-#include <sstream>
 #include "Trajin_Multi.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // fileExists
+#include "StringRoutines.h" // fileExists, convertToInteger
 
 // CONSTRUCTOR
 Trajin_Multi::Trajin_Multi() :
@@ -23,14 +22,6 @@ Trajin_Multi::~Trajin_Multi() {
     delete *replica;
 }
 
-// PrintNoExtError()
-static void PrintNoExtError(const char* nameIn) {
-  mprinterr("Error: Traj %s has no numerical extension, required for automatic\n", nameIn);
-  mprinterr("       detection of replica trajectories. Expected filename format is\n");
-  mprinterr("       <Prefix>.<#> (with optional compression extension, examples:\n");
-  mprinterr("       Rep.traj.nc.000,  remd.x.01.gz etc.\n");
-}
-
 // Trajin_Multi::SearchForReplicas()
 /** Assuming lowest replica filename has been set, search for all other 
   * replica names assuming a naming scheme of '<PREFIX>.<EXT>[.<CEXT>]', 
@@ -38,7 +29,7 @@ static void PrintNoExtError(const char* nameIn) {
   * compression extension. 
   * \return Found replica filenames, or an empty list on error. 
   */
-Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas(bool isCompressed) {
+Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
   NameListType ReplicaNames;
   std::string Prefix;
   std::string CompressExt;
@@ -52,30 +43,19 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas(bool isCompressed) {
   // rem.002 or rem.000.gz, rem.001.gz, rem.002.gz etc).
   if (debug_>1)
     mprintf("\tREMDTRAJ: FileName=[%s]\n",FullTrajStr());
-  size_t found = FullTrajName().find_last_of(".");
-  // NOTE: Eventually allow just numbers, no prefix? 000 002 etc
-  if (found == std::string::npos) {
-    PrintNoExtError(BaseTrajName().c_str());
+  if ( TrajName().Ext().empty() ) {
+    mprinterr("Error: Traj %s has no numerical extension, required for automatic\n",
+              BaseTrajStr());
+    mprinterr("Error: detection of replica trajectories. Expected filename format is\n");
+    mprinterr("Error: <Prefix>.<#> (with optional compression extension, examples:\n");
+    mprinterr("Error: Rep.traj.nc.000,  remd.x.01.gz etc.\n");
     return ReplicaNames;
   }
-  // If file is not compressed, this should be the numeric extension
-  if (!isCompressed) {
-    Prefix = FullTrajName().substr(0, found);
-    ReplicaExt = FullTrajName().substr(found+1);
-  } else {
-  // If file is compressed, this should be the compression extension
-  // include the dot.
-    CompressExt = FullTrajName().substr(found);
-    // Get prefix and numerical extension, without the Compression extension
-    std::string compressPrefix = FullTrajName().substr(0,found);
-    found = compressPrefix.find_last_of(".");
-    if (found == std::string::npos) {
-      PrintNoExtError(BaseTrajName().c_str());
-      return ReplicaNames;
-    }
-    Prefix = compressPrefix.substr(0,found);
-    ReplicaExt = compressPrefix.substr(found+1);
-  }
+  // Split off everything before replica extension
+  size_t found = TrajName().Full().find_last_of( TrajName().Ext() );
+  Prefix = TrajName().Full().substr(0, found); 
+  ReplicaExt = TrajName().Ext(); // This should be the numeric extension
+  CompressExt = TrajName().Compress();
   if (debug_>1) {
     mprintf("\tREMDTRAJ: Prefix=[%s], #Ext=[%s], CompressExt=[%s]\n",
             Prefix.c_str(), ReplicaExt.c_str(), CompressExt.c_str());
@@ -83,8 +63,7 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas(bool isCompressed) {
 
   // STEP 2 - Check that the numerical extension is valid.
   for (std::string::iterator schar = ReplicaExt.begin();
-                             schar != ReplicaExt.end();
-                             schar++)
+                             schar != ReplicaExt.end(); ++schar)
   {
     if (!isdigit(*schar,loc)) {
       mprinterr("Error: RemdTraj: Char [%c] in extension %s is not a digit!\n",
@@ -96,9 +75,9 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas(bool isCompressed) {
   if (debug_>1)
     mprintf("\tREMDTRAJ: Numerical Extension width=%i\n",ExtWidth);
 
- // STEP 3 - Store lowest replica number
-  std::istringstream iss( ReplicaExt );
-  if ( !(iss >> lowestRepnum_) ) {
+  // STEP 3 - Store lowest replica number
+  try { lowestRepnum_ = convertToInteger( ReplicaExt ); }
+  catch ( ... ) {
     mprinterr("Error: RemdTraj: Could not convert lowest rep # %s to integer.\n",
               ReplicaExt.c_str());
     return ReplicaNames;
@@ -109,28 +88,22 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas(bool isCompressed) {
   // Search for a replica number lower than this. Correct functioning
   // of the replica code requires the file specified by trajin be the
   // lowest # replica.
-  std::ostringstream replica_num;
-  replica_num.fill('0');
-  replica_num.width( ExtWidth );
-  replica_num << std::right << (lowestRepnum_ - 1);
-  std::string replica_filename = Prefix + "." + replica_num.str() + CompressExt;
+  std::string replica_filename = Prefix + "." + 
+                                 integerToString(lowestRepnum_ - 1, ExtWidth) +
+                                 CompressExt;
   if (fileExists(replica_filename.c_str())) {
-    mprintf("    Warning: RemdTraj: Replica# found lower than file specified with trajin!\n");
-    mprintf("             (Found %s)\n",replica_filename.c_str());
-    mprintf("             trajin <file> remdtraj requires lowest # replica!\n");
+    mprintf("Warning: RemdTraj: Replica# found lower than file specified with trajin!\n");
+    mprintf("Warning:           (Found %s)\n",replica_filename.c_str());
+    mprintf("Warning:           trajin <file> remdtraj requires lowest # replica!\n");
   }
 
   // Add lowest filename, search for and add all replicas higher than it.
-  ReplicaNames.push_back( FullTrajName() );
+  ReplicaNames.push_back( TrajName().Full() );
   int current_repnum = lowestRepnum_;
   bool search_for_files = true;
   while (search_for_files) {
     ++current_repnum;
-    replica_num.str("");
-    replica_num.fill('0');
-    replica_num.width( ExtWidth );
-    replica_num << std::right << current_repnum;
-    replica_filename = Prefix + "." + replica_num.str() + CompressExt;
+    replica_filename = Prefix + "." + integerToString(current_repnum, ExtWidth) + CompressExt;
     //mprintf("\t\tChecking for %s\n",replica_filename.c_str());
     if (fileExists(replica_filename.c_str()))
       ReplicaNames.push_back( replica_filename );
@@ -175,11 +148,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     mprinterr("Error: File %s does not exist.\n",tnameIn.c_str());
     return 1;
   }
-  // Set up CpptrajFile
-  CpptrajFile baseFile;
-  if (baseFile.SetupRead( tnameIn, debug_ )) return 1;
-  // Set file name and base file name
-  SetFileNames( tnameIn, baseFile.BaseFileName() );
+  // Set base trajectory filename
+  SetTrajFileName( tnameIn );
   // Process REMD-specific arguments
   if (argIn->Contains("remdtrajidx")) {
     // Looking for specific indices
@@ -211,7 +181,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   ArgList remdtraj_list( argIn->GetStringKey("trajnames"), "," );
   if (remdtraj_list.Nargs()==0) {
     // Automatically scan for additional REMD traj files.
-    replica_filenames_ = SearchForReplicas(baseFile.IsCompressed());
+    replica_filenames_ = SearchForReplicas();
   } else {
     // Get filenames from args of remdtraj_list
     replica_filenames_.push_back( tnameIn );
@@ -229,31 +199,28 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   for (NameListType::iterator repfile = replica_filenames_.begin();
                               repfile != replica_filenames_.end(); ++repfile)
   {
-    // Set file info
-    if (!lowestRep)
-      baseFile.SetupRead( *repfile, debug_ );
     // Detect format
-    TrajectoryIO* replica0 = DetectFormat( baseFile );
+    TrajectoryIO* replica0 = DetectFormat( *repfile );
     if ( replica0 == 0 ) {
       mprinterr("Error: RemdTraj: Could not set up replica file %s\n", (*repfile).c_str());
       return 1;
     }
+    replica0->SetDebug( debug_ );
     // Pushing replica0 here allows the destructor to handle it on errors
     REMDtraj_.push_back( replica0 );
     if (lowestRep) {
       // Set up the lowest for reading and get the number of frames.
-      if (SetupTrajIO( replica0, argIn )) return 1;
+      if (SetupTrajIO( *repfile, *replica0, argIn )) return 1;
       // Check how many frames will actually be read
       if (setupFrameInfo() == 0) return 1;
-      // If lowest has box coords, set box type from box Angles
-      if (replica0->CheckBoxInfo( TrajParm() ) != 0) {
-        mprinterr("Error in replica %s box info.\n", (*repfile).c_str());
-        return 1;
-      }
+      // If lowest has box coords, check type against parm box info 
+      Box parmBox = tparmIn->ParmBox();
+      if (CheckBoxInfo(tparmIn->c_str(), parmBox, replica0->TrajBox())) return 1;
+      tparmIn->SetBox( parmBox );
       // If lowest rep has box info, all others must have box info.
       repBoxInfo = replica0->HasBox();
       // If lowest rep has velocity, all others must have velocity.
-      hasVelocity_ = replica0->HasVelocity();
+      hasVelocity_ = replica0->HasV();
       // If lowest rep has dimensions, all others must have same dimensions
       Ndimensions = replica0->NreplicaDimensions();
       // Check that replica dimension valid for desired indices.
@@ -265,7 +232,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
       }
     } else {
       // Check total frames in this replica against lowest rep.
-      int repframes = replica0->setupTrajin( TrajParm() );
+      int repframes = replica0->setupTrajin( *repfile, TrajParm() );
       if (repframes < 0 || repframes != TotalFrames()) {
         mprintf("Warning: RemdTraj: Replica %s frames (%i) does not match\n",
                  (*repfile).c_str(), repframes);
@@ -286,7 +253,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
         return 1;
       }
       // Check velocity info against lowest rep.
-      if ( replica0->HasVelocity() != hasVelocity_ ) {
+      if ( replica0->HasV() != hasVelocity_ ) {
         mprinterr("Error: RemdTraj: Replica %s velocity info does not match first replica.\n",
                   (*repfile).c_str());
         return 1;
@@ -299,10 +266,10 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
       }
     }
     // All must be seekable or none will be
-    if (isSeekable_ && !replica0->Seekable())
+    if (isSeekable_ && !replica0->IsSeekable())
       isSeekable_ = false;
     // Check for temperature information
-    if ( !replica0->HasTemperature()) {
+    if ( !replica0->HasT()) {
       mprinterr("Error: RemdTraj: Replica %s does not have temperature info.\n",
                 (*repfile).c_str());
       return 1;
@@ -340,7 +307,7 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
   mprintf("\tREMD: OPENING REMD TRAJECTORIES\n");
   for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
   {
-    if ( (*replica)->openTraj()) {
+    if ( (*replica)->openTrajin()) {
       mprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica # %zu\n",
                 replica - REMDtraj_.begin() );
       return 1;
@@ -427,7 +394,7 @@ void Trajin_Multi::PrintInfo(int showExtended) {
     {
       mprintf("\t%u:[%s] ", repnum, replica_filenames_[repnum].c_str());
       ++repnum;
-      (*replica)->info();
+      (*replica)->Info();
       mprintf("\n");
     }
   }
@@ -470,7 +437,7 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
     FrameArray::iterator frame = f_ensemble.begin();
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
-      if ( (*replica)->openTraj() ) return 1;
+      if ( (*replica)->openTrajin() ) return 1;
       if ( (*replica)->readFrame( CurrentFrame(), (*frame).xAddress(), (*frame).vAddress(),
                                   (*frame).bAddress(), (*frame).tAddress()) )
         return 1;

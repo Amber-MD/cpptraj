@@ -8,10 +8,7 @@ class Traj_AmberRestart : public TrajectoryIO {
   public:
     Traj_AmberRestart();
     static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_AmberRestart(); }
-    // AmberRestart-specific functions
-    void SetNoVelocity();
   private:
-    int debug_;
     int restartAtoms_;     ///< Number of atoms in restart file
     int natom3_;           ///< Number of coords
     int numBoxCoords_;     ///< Number of box coords (3 or 6)
@@ -21,22 +18,20 @@ class Traj_AmberRestart : public TrajectoryIO {
     double time0_;         ///< For writes, restart time offset
     double dt_;            ///< For writes, restart timestep (scaling)
     bool singleWrite_;     ///< If false, frame # will be appended to output filename
-    bool HasT_;
-    bool HasV_;
+    bool readAccess_;      ///< If true, presence/absence of velocity info is known
     BufferedFile file_;
-    std::string title_;
 
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
-    int setupTrajin(std::string const&, Topology*, TrajInfo&);
-    int setupTrajout(std::string const&, Topology*, int, TrajInfo const&,bool);
-    int openTraj();
+    int setupTrajin(std::string const&, Topology*);
+    int setupTrajout(std::string const&, Topology*, int, bool);
+    int openTrajin();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
     int readVelocity(int, double*);
     int writeFrame(int,double*,double*,double*,double);
     int processWriteArgs(ArgList&);
-    void info();
+    void Info();
 
     int getBoxAngles(const char*, Box&);
     int readIndices(int,int*) { return 1; }

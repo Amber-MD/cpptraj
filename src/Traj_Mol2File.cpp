@@ -5,96 +5,63 @@
 
 // CONSTRUCTOR
 Traj_Mol2File::Traj_Mol2File() : 
-  mol2WriteMode_(SINGLE),
+  mol2WriteMode_(NONE),
   mol2Top_(0),
   hasCharges_(false)
 {}
 
 bool Traj_Mol2File::ID_TrajFormat(CpptrajFile& fileIn) {
-  if (OpenFile()) return false;
-  //mprintf("DEBUG: Checking Mol2 parm format.\n");
-  bool ismol2file = ID( IO );
-  CloseFile();
-  return ismol2file;
+  return Mol2File::ID_Mol2( fileIn );
 }
 
-// Traj_Mol2File::openTraj()
-int Traj_Mol2File::openTraj() {
-  int err;
-
-  err=0;
-  switch (access_) {
-    case READ : err = OpenFile(); break;
-    case APPEND :
-      mprinterr("Error: Append not supported for mol2 files.\n");
-      err=1;
-      break;
-    case WRITE :
-      // Set up title
-      if (title_.empty())
-        title_.assign("Cpptraj generated mol2 file.");
-      // If writing 1 mol2 per frame do not open here
-      if (mol2WriteMode_!=MULTI) err = OpenFile();
-      break;
-  }
-      
-  return err;
+// Traj_Mol2File::openTrajin()
+int Traj_Mol2File::openTrajin() {
+  return file_.OpenFile(); 
 }
 
 // Traj_Mol2File::closeTraj() {
 void Traj_Mol2File::closeTraj() {
-  // On WRITE only close if not writing 1 mol2 per frame
-  if (access_==WRITE) {
-    if (mol2WriteMode_!=MULTI) CloseFile();
-  } else {
-  // Otherwise just close the file
-    CloseFile();
-  }
+  if ( mol2WriteMode_ != MULTI )
+    file_.CloseFile();
 }
 
 // Traj_Mol2File::setupTrajin()
 /** See how many MOLECULE records are in file, make sure num atoms match
   * parm and each frame.
   */
-int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm,
-                    TrajInfo& tinfo)
+int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm)
 {
-  int frameAtom;
   int Frames=0;
-
-  if (this->openTraj()) return -1;
-
+  mol2WriteMode_ = NONE;
+  if (file_.SetupRead( fname, debug_)) return TRAJIN_ERR;
+  if (file_.OpenFile()) return TRAJIN_ERR;
   // Get @<TRIPOS>MOLECULE information for first frame
-  if (ReadMolecule( IO )) return -1;
+  if (file_.ReadMolecule()) return TRAJIN_ERR;
   // Check #atoms in mol2 file against #atoms in parm
-  if (Mol2Natoms() != trajParm->Natom()) {
+  if (file_.Mol2Natoms() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in Mol2 file %s frame %i (%i) does not\n",
-              BaseFileStr(),Frames+OUTPUTFRAMESHIFT,Mol2Natoms());
-    mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
-    return -1;
+              file_.BaseFileStr(), Frames+1, file_.Mol2Natoms());
+    mprinterr("Error: match number in associated parmtop (%i)!\n",trajParm->Natom());
+    return TRAJIN_ERR;
   }
   // Set title
-  title_.assign( Mol2Title().c_str() );
-  ++Frames;
-
+  SetTitle( file_.Mol2Title() );
+  Frames = 1;
   // See how many more MOLECULE records there are. Ensure same #atoms 
   // in each frame.
-  while ( (frameAtom=NextMolecule( IO ))!=-1 ) {
-    if (frameAtom != Mol2Natoms()) {
+  int frameAtom;
+  while ( (frameAtom = file_.NextMolecule( ))!=-1 ) {
+    if (frameAtom != file_.Mol2Natoms()) {
       mprintf("Warning: # atoms in Mol2 file %s frame %i (%i) not equal\n",
-                BaseFileStr(),Frames+OUTPUTFRAMESHIFT,frameAtom);
-      mprintf("         to # atoms int first frame (%i).\n",Mol2Natoms());
-      mprintf("         Only using frames 1-%i.\n",Frames);
+              file_.BaseFileStr(), Frames+1, frameAtom);
+      mprintf("Warning: to # atoms int first frame (%i).\n", file_.Mol2Natoms());
+      mprintf("Warning: Only using frames 1-%i.\n", Frames);
       break;
     }
     ++Frames;
   }
- 
-  this->closeTraj();
-  if (debug_>0) mprintf("      Mol2 file %s has %i frames.\n",BaseFileStr(),Frames);
-  seekable_ = false;
-  hasTemperature_=false;
-  hasBox_=false;
+  file_.CloseFile();
+  if (debug_>0) mprintf("\tMol2 file %s has %i frames.\n",file_.BaseFileStr(), Frames);
 
   return Frames;
 }
@@ -102,31 +69,22 @@ int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm,
 // Traj_Mol2File::readFrame()
 int Traj_Mol2File::readFrame(int set,double *X, double *V,double *box, double *T) {
   // Position file at next @<TRIPOS>ATOM tag
-  if (ScanTo(IO, ATOM)) return 1;
-
+  if (file_.ScanTo(Mol2File::ATOM)) return 1;
   double *Xptr = X; 
-  for (int atom = 0; atom < Mol2Natoms(); atom++) {
-    if ( GetLine( IO ) ) return 1;
-    Mol2XYZ(Xptr);
+  for (int atom = 0; atom < file_.Mol2Natoms(); atom++) {
+    if (file_.Mol2XYZ(Xptr)) return 1;
     //F->printAtomCoord(atom);
     Xptr += 3;
   }
-
   return 0;
 }
 
 // Traj_Mol2File::processWriteArgs()
-int processWriteArgs(ArgList& argIn) {
-  if (argIn->hasKey("single")) this->SetWriteMode(MOL);
-  if (argIn->hasKey("multi"))  this->SetWriteMode(MULTI);
+int Traj_Mol2File::processWriteArgs(ArgList& argIn) {
+  mol2WriteMode_ = SINGLE; // Default to single writes
+  if (argIn.hasKey("single")) mol2WriteMode_ = MOL;
+  if (argIn.hasKey("multi"))  mol2WriteMode_ = MULTI;
   return 0;
-}
-
-// Traj_Mol2File::SetWriteMode()
-/** Set write mode to SINGLE, MOL, or MULTI */
-void Traj_Mol2File::SetWriteMode(MOL2WRITEMODE modeIn) {
-  mol2WriteMode_ = modeIn;
-  //mprintf("MOL2 WRITE MODE SET TO %i\n",(int)mol2WriteMode_);
 }
 
 // Traj_Mol2File::setupTrajout()
@@ -134,23 +92,29 @@ void Traj_Mol2File::SetWriteMode(MOL2WRITEMODE modeIn) {
   * number of frames to be written.
   */
 int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
-                     int NframesToWrite, TrajInfo const& tinfo)
+                                int NframesToWrite, bool append)
 {
-  if (trajParm==NULL) return 1;
+  if (trajParm==0) return 1;
   mol2Top_ = trajParm;
+  // Set up file
+  if (append && mol2WriteMode_ != MULTI) {
+    if (file_.SetupAppend( fname, debug_)) return 1;
+  } else {
+    if (mol2WriteMode_ == MULTI)
+      mprintf("Warning: 'append' not compatible with 'multi' mol2 write.\n");
+    if (file_.SetupWrite( fname, debug_ )) return 1;
+  }
   // If writing more than 1 frame and not writing 1 pdb per frame, 
   // use @<TRIPOS>MOLECULE keyword to separate frames.
-  if (mol2WriteMode_==SINGLE && NframesToWrite>1) 
-    mol2WriteMode_=MOL;
-
+  if (append || (mol2WriteMode_==SINGLE && NframesToWrite>1)) 
+    mol2WriteMode_ = MOL;
   // Set # atoms; if more than 99999 atoms the file may not write correctly
-  SetMol2Natoms( mol2Top_->Natom() );
-  if (Mol2Natoms() > 99999) {
+  file_.SetMol2Natoms( mol2Top_->Natom() );
+  if (file_.Mol2Natoms() > 99999) {
     mprintf("Warning: %s: Large # of atoms (%i > 99999) for mol2 format.\n",
-            BaseFileStr(), Mol2Natoms());
-    mprintf("         File may not write correctly.\n");
+            file_.BaseFileStr(), file_.Mol2Natoms());
+    mprintf("Warning: File may not write correctly.\n");
   }
-
   // TODO: Change this, right now for backwards compat. only!
   // If all charges == 0 set noCharges.
   hasCharges_ = false;
@@ -161,7 +125,10 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
       break;
     }
   }
-
+  // Set Title
+  if (Title().empty())
+    SetTitle("Cpptraj generated mol2 file.");
+  file_.SetMol2Title( Title() );
   // Setup output array for bonds. Bonds in parm are stored as:
   //   0_idx1 0_idx2 0_pidx 1_idx1 1_idx2 1_pidx ...
   // where idx is the atom index, i.e. atom# * 3, and pidx is the index
@@ -170,8 +137,6 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
   trajBonds_.clear();
   for (std::vector<int>::const_iterator bidx = mol2Top_->Bonds().begin();
                                         bidx != mol2Top_->Bonds().end(); bidx++)
-  //for (Topology::bond_iterator bidx = mol2Top_->BondsStart();
-  //                             bidx != mol2Top_->BondsEnd(); bidx++)
   {
     trajBonds_.push_back( ((*bidx)/3) + 1 );
     ++bidx;
@@ -180,8 +145,6 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
   }
   for (std::vector<int>::const_iterator bidx = mol2Top_->BondsH().begin();
                                         bidx != mol2Top_->BondsH().end(); bidx++)
-  //or (Topology::bond_iterator bidx = mol2Top_->BondsH_Start(); 
-  //                             bidx != mol2Top_->BondsH_End(); bidx++)
   {
     trajBonds_.push_back( ((*bidx)/3) + 1 );
     ++bidx;
@@ -190,10 +153,13 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
   }
   // Check number of bonds
   if (trajBonds_.empty()) 
-    mprintf("Warning: %s: topology does not contain bond information.\n",BaseFileStr());
+    mprintf("Warning: %s: topology does not contain bond information.\n",
+            file_.BaseFileStr());
   else
-    SetMol2Nbonds( trajBonds_.size() / 2 );
-
+    file_.SetMol2Nbonds( trajBonds_.size() / 2 );
+  // Open here if writing to a single file
+  if ( mol2WriteMode_ != MULTI )
+    return file_.OpenFile(); 
   return 0;
 }
 
@@ -201,47 +167,29 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
 int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double T) {
   //mprintf("DEBUG: Calling Traj_Mol2File::writeFrame for set %i\n",set);
   if (mol2WriteMode_==MULTI) {
-    std::string fname = NumberFilename(FullFileName(), set+OUTPUTFRAMESHIFT);
-    if (IO->Open(fname.c_str(),"wb")) return 1;
+    if (file_.OpenWriteWithName( NumberFilename( file_.FullFileName(), set+1) )) return 1;
   }
   //@<TRIPOS>MOLECULE section
-  // TODO: Add to Mol2File?
-  Printf("@<TRIPOS>MOLECULE\n");
-  // mol_name
-  // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
-  // mol_type
-  // charge_type
-  // [status_bits
-  // [mol_comment]]
-  Printf("%s\n",title_.c_str());
-  Printf("%5i %5i %5i %5i %5i\n",Mol2Natoms(), Mol2Nbonds(), 1, 0, 0);
-  Printf("SMALL\n"); // May change this later
-  if ( hasCharges_ )
-    Printf("USER_CHARGES\n"); // May change this later
-  else
-    Printf("NO_CHARGES\n");
-  Printf("\n\n");
-
+  file_.WriteMolecule( hasCharges_ );
   //@<TRIPOS>ATOM section
-  Printf("@<TRIPOS>ATOM\n");
+  file_.WriteHeader(Mol2File::ATOM);
   double *Xptr = X;
-  for (int i=0; i < Mol2Natoms(); i++) {
-    const Atom atom = (*mol2Top_)[i];
+  int atnum = 1;
+  for (Topology::iterator atom = mol2Top_->begin(); atom != mol2Top_->end(); ++atom) {
     // figure out the residue number
-    int res = atom.ResNum();
+    int res = (*atom).ResNum();
     // If atom type is blank, set to atom name.
-    NameType atype = atom.Type();
+    NameType atype = (*atom).Type();
     if ( atype == "" )
-      atype = atom.Name();
-    Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-5s %6i %-6s %10.6lf\n",
-                     i+1, atom.c_str(), Xptr[0], Xptr[1], Xptr[2],
-                     *atype, res+1, mol2Top_->Res(res).c_str(), atom.Charge());
+      atype = (*atom).Name();
+    file_.Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-5s %6i %-6s %10.6lf\n",
+                     atnum++, (*atom).c_str(), Xptr[0], Xptr[1], Xptr[2],
+                     *atype, res+1, mol2Top_->Res(res).c_str(), (*atom).Charge());
     Xptr += 3;
   }
-
   //@<TRIPOS>BOND section
   if (!trajBonds_.empty()) {
-    Printf("@<TRIPOS>BOND\n");
+    file_.WriteHeader(Mol2File::BOND); 
     int bondnum = 1;
     for (std::vector<int>::iterator bond = trajBonds_.begin();
                                     bond != trajBonds_.end();
@@ -249,32 +197,28 @@ int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double 
     {
       int firstBondAtom = *bond;
       ++bond;
-      Printf("%5d %5d %5d 1\n",bondnum++,firstBondAtom, *bond);
+      file_.Printf("%5d %5d %5d 1\n",bondnum++,firstBondAtom, *bond);
     }
   }
-
   //@<TRIPOS>SUBSTRUCTURE section
-  Printf("@<TRIPOS>SUBSTRUCTURE\n");
+  file_.WriteHeader(Mol2File::SUBSTRUCT);
   int resnum = 1;
   for (Topology::res_iterator Res = mol2Top_->ResStart(); Res!=mol2Top_->ResEnd(); Res++) {
-    Printf("%7d %4s %14d ****               0 ****  **** \n",
+    file_.Printf("%7d %4s %14d ****               0 ****  **** \n",
                       resnum++, (*Res).c_str(), (*Res).FirstAtom()+1);
   }
-
-  // If writing 1 pdb per frame, close output file
+  // If writing 1 mol2 per frame, close output file
   if (mol2WriteMode_==MULTI)
-    IO->Close();
+    file_.CloseFile();
 
   return 0;
 }
  
 // Traj_Mol2File::info()
-void Traj_Mol2File::info() {
+void Traj_Mol2File::Info() {
   mprintf("is a Tripos Mol2 file");
-  if (access_==WRITE) {
-    if (mol2WriteMode_==MULTI)
-      mprintf(" (1 file per frame)");
-    else if (mol2WriteMode_==MOL)
-      mprintf(" (1 MOLECULE per frame)");
-  }
+  if (mol2WriteMode_==MULTI)
+    mprintf(" (1 file per frame)");
+  else if (mol2WriteMode_==MOL)
+    mprintf(" (1 MOLECULE per frame)");
 }
