@@ -52,9 +52,11 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
     return ReplicaNames;
   }
   // Split off everything before replica extension
-  size_t found = TrajName().Full().find_last_of( TrajName().Ext() );
+  size_t found = TrajName().Full().find( TrajName().Ext() );
   Prefix = TrajName().Full().substr(0, found); 
   ReplicaExt = TrajName().Ext(); // This should be the numeric extension
+  // Remove leading '.'
+  if (ReplicaExt[0] == '.') ReplicaExt.erase(0,1);
   CompressExt = TrajName().Compress();
   if (debug_>1) {
     mprintf("\tREMDTRAJ: Prefix=[%s], #Ext=[%s], CompressExt=[%s]\n",
