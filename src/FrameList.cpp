@@ -66,13 +66,13 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   // TODO: This is done after SetupTrajRead because forward slash is a valid
   //       mask operand for element, so getNextMask will unfortunately pick up 
   //       filenames as well as masks.
-  ArgList::ConstArg maskexpr = argIn.getNextMask();
+  std::string maskexpr = argIn.GetMaskNext();
 
   // Check for tag - done after SetupTrajRead so traj can process args
   std::string reftag = argIn.getNextTag();
 
   // Check and warn if filename/reftag currently in use
-  if (FindName( traj.FullTrajName() )!=-1) {
+  if (FindName( traj.TrajName().Full() )!=-1) {
     mprintf("Warning: Reference with name %s already exists!\n",traj.FullTrajStr());
     //return 1;
   }
@@ -120,7 +120,7 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
 
   // If a mask expression was specified, strip to match the expression.
   Topology *CurrentParm = parmIn;
-  if (maskexpr != NULL) {
+  if (!maskexpr.empty()) {
     AtomMask stripMask( maskexpr );
     mprintf("    reference: Keeping atoms in mask [%s]\n",stripMask.MaskString());
     if (parmIn->SetupIntegerMask(stripMask, *CurrentFrame)) {
@@ -151,7 +151,7 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   }
 
   frames_.push_back( CurrentFrame );
-  AddNameWithTag( traj.FullTrajName(), traj.BaseTrajName(), reftag );
+  AddNameWithTag( traj.TrajName().Full(), traj.TrajName().Base(), reftag );
   nums_.push_back( traj.Start() );
   parms_.push_back( CurrentParm );
   return 0;
