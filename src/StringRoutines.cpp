@@ -227,6 +227,14 @@ std::string integerToString(int i) {
   return oss.str();
 }
 
+std::string integerToString(int i, int width) {
+  std::ostringstream oss;
+  oss.fill('0');
+  oss.width( width );
+  oss << std::right << i;
+  return oss.str();
+}
+
 std::string doubleToString(double d) {
   std::ostringstream oss;
   oss << d;

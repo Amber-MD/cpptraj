@@ -21,5 +21,6 @@ int convertToInteger(std::string const &);
 double convertToDouble(std::string const &);
 void RemoveTrailingWhitespace(std::string &);
 std::string integerToString(int);
+std::string integerToString(int,int);
 std::string doubleToString(double);
 #endif
