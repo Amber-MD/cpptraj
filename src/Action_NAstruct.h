@@ -7,7 +7,7 @@
 #include "AxisType.h"
 #include "Range.h"
 #ifdef NASTRUCTDEBUG
-#include "PDBtype.h"
+#include "PDBfile.h"
 #endif
 /// Basic Nucleic acid structure analysis. 
 /** Calculate nucleic acid base/base pair structural parameters.
@@ -98,7 +98,7 @@ class Action_NAstruct: public Action {
     int determineBasepairParameters(int);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - Class to hold PDB output
-    class AxisPDBwriter : CpptrajFile, PDBtype {
+    class AxisPDBwriter : protected PDBfile {
       public:
         AxisPDBwriter() : pdbatom_(1) { }
         ~AxisPDBwriter() { CloseFile(); }
@@ -106,8 +106,8 @@ class Action_NAstruct: public Action {
         void Write(AxisType &axis, const double* XYZin, int res, const char *resname) {
           const double* XYZ = XYZin;
           for (int i = 0; i < axis.Natom(); ++i) {
-            pdb_write_ATOM( IO, PDBATOM, pdbatom_++, axis.AtomName(i), resname, 'X', res+1,
-                            XYZ[0], XYZ[1], XYZ[2], 1.0, 0.0, "", false);
+            WriteRec( PDBfile::ATOM, pdbatom_++, axis.AtomName(i), resname, 'X', res+1,
+                      XYZ[0], XYZ[1], XYZ[2], 1.0, 0.0, "", false);
             XYZ += 3;
           }
         }
@@ -115,20 +115,20 @@ class Action_NAstruct: public Action {
           double OXYZ[3], V[3];
           axis.OXYZ( OXYZ );
           // Origin
-          pdb_write_ATOM( IO, PDBATOM, pdbatom_++, "Orig", resname, 'X', res+1,
-                          OXYZ[0], OXYZ[1], OXYZ[2], 1.0, 0.0, "", false);
+          WriteRec( PDBfile::ATOM, pdbatom_++, "Orig", resname, 'X', res+1,
+                    OXYZ[0], OXYZ[1], OXYZ[2], 1.0, 0.0, "", false);
           // X vector
           axis.RX( V );
-          pdb_write_ATOM( IO, PDBATOM, pdbatom_++, "X", resname, 'X', res+1,
-                          OXYZ[0]+V[0], OXYZ[1]+V[1], OXYZ[2]+V[2], 1.0, 0.0, "", false);
+          WriteRec( PDBfile::ATOM, pdbatom_++, "X", resname, 'X', res+1,
+                    OXYZ[0]+V[0], OXYZ[1]+V[1], OXYZ[2]+V[2], 1.0, 0.0, "", false);
           // Y vector
           axis.RY( V );
-          pdb_write_ATOM( IO, PDBATOM, pdbatom_++, "Y", resname, 'X', res+1,
-                          OXYZ[0]+V[0], OXYZ[1]+V[1], OXYZ[2]+V[2], 1.0, 0.0, "", false);
+          WriteRec( PDBfile::ATOM, pdbatom_++, "Y", resname, 'X', res+1,
+                    OXYZ[0]+V[0], OXYZ[1]+V[1], OXYZ[2]+V[2], 1.0, 0.0, "", false);
           // Z vector
           axis.RZ( V );
-          pdb_write_ATOM( IO, PDBATOM, pdbatom_++, "Z", resname, 'X', res+1,
-                          OXYZ[0]+V[0], OXYZ[1]+V[1], OXYZ[2]+V[2], 1.0, 0.0, "", false);
+          WriteRec( PDBfile::ATOM, pdbatom_++, "Z", resname, 'X', res+1,
+                    OXYZ[0]+V[0], OXYZ[1]+V[1], OXYZ[2]+V[2], 1.0, 0.0, "", false);
         }
       private:
         int pdbatom_;

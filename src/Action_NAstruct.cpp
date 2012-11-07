@@ -85,9 +85,9 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
       BaseAxes[base].SetO4crd( InputFrame->XYZ( BaseAxes[base].O4idx() ) );
 #   ifdef NASTRUCTDEBUG
     int expbasenum = BaseAxes[base].ResNum();
-    mprintf("Base REF %i:%4s   EXP %i:%4s\n",
+    mprintf("Base REF %i:%4s   EXP %i\n",
             RefCoords[base].ResNum()+1,RefCoords[base].ResName(),
-            expbasenum+1,currentParm->ResidueName(expbasenum));
+            expbasenum+1);//,currentParm->ResidueName(expbasenum));
     ExpMasks[base].PrintMaskAtoms("ExpMask");
     FitMasks[base].PrintMaskAtoms("FitMask");
     mprintf("#  %4s %8s %8s %8s   %4s %8s %8s %8s\n","Ref","Rx","Ry","Rz","Exp","Ex","Ey","Ez");
