@@ -275,6 +275,7 @@ int NetcdfFile::SetupMultiD() {
 
 // NetcdfFile::SetupBox()
 /** \return 0 on success, 1 on error, -1 for no box coords. */
+// TODO: Use Box class
 int NetcdfFile::SetupBox(double* boxIn) {
   boxIn[0] = 0.0;
   boxIn[1] = 0.0;
