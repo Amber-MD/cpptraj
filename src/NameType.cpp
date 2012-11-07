@@ -242,7 +242,7 @@ void NameType::ReplaceAsterisk() {
   if (c_array_[3]=='*') c_array_[3]='\'';
 }
 
-char NameType::operator[](int idx) {
+char NameType::operator[](int idx) const {
   if (idx < 0 || idx >= (int)NameSize_) return '\0';
   return c_array_[idx];
 }

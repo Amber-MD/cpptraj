@@ -24,7 +24,7 @@ class NameType {
 
     const char * operator*() const;
 
-    char operator[](int);
+    char operator[](int) const;
     void ReplaceAsterisk();
 
   private:
