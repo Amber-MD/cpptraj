@@ -1,6 +1,4 @@
 // DataSetList
-#include <cstdio> // sprintf FIXME: Get rid of
-#include <cstring> // strlen
 #include <algorithm> // sort
 // This also includes basic DataSet class and dataType
 #include "DataSetList.h"
@@ -234,17 +232,10 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, std::string const& nameI
   * i.e. defaultName_XXXXX 
   */
 std::string DataSetList::GenerateDefaultName(const char* defaultName) {
-  // Determine size of name + extension
-  size_t namesize = strlen( defaultName );
-  size_t extsize = (size_t) DigitWidth( size() ); // # digits
-  if (extsize < 5) extsize = 5;                   // Minimum size is 5 digits
-  extsize += 2;                                   // + underscore + null
-  namesize += extsize;
-  char* newName = new char[ namesize ];
-  sprintf(newName,"%s_%05i", defaultName, size());
-  std::string dsname = newName;
-  delete[] newName;
-  return dsname;
+  // Determine # chars needed to hold text version of set number (min 5).
+  size_t extsize = (size_t) DigitWidth( size() );
+  if (extsize < 5) extsize = 5;
+  return ( std::string(defaultName) + "_" + integerToString(size(), extsize) ); 
 }
 
 // DataSetList::Add()
