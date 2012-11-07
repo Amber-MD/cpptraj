@@ -1,19 +1,17 @@
 // Parm_CharmmPsf.cpp
-#include <cstring> // memcpy, strcpy
 #include <cstdio> // sscanf
+#include <cstring> // strncmp
 #include "Parm_CharmmPsf.h"
 #include "CpptrajStdio.h"
 
 bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
   // Assumes already set up
   if (fileIn.OpenFile()) return false;
-  if (fileIn.Gets(buffer_, BUF_SIZE_)) return false;
-  if (buffer_[0]=='P' && buffer_[1]=='S' && buffer_[2]=='F') {
-    fileIn.CloseFile();
-    return true;
-  }
+  std::string nextLine = fileIn.GetLine();
+  if (nextLine.empty()) return false;
+  bool isPSF = ( nextLine.compare(0, 3, "PSF") == 0 );
   fileIn.CloseFile();
-  return false;
+  return isPSF;
 }
 
 // Parm_CharmmPsf::ReadParm()
@@ -23,27 +21,32 @@ bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
 int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
   const size_t TAGSIZE = 10; 
   char tag[TAGSIZE];
+  tag[0]='\0';
 
   CpptrajFile infile;
   if (infile.OpenRead(fname)) return 1;
-
   mprintf("    Reading Charmm PSF file %s as topology file.\n",infile.BaseFileStr());
-  memset(buffer_,' ',BUF_SIZE_);
-  memset(tag,' ',TAGSIZE);
-  tag[0]='\0';
-
   // Read the first line, should contain PSF...
-  if (infile.Gets(buffer_,BUF_SIZE_)) return 1;
-
-  // TODO: Assign title
+  const char* buffer = 0;
+  if ( (buffer=infile.NextLine()) == 0 ) return 1;
+  // Advance to <ntitle> !NTITLE
+  int ntitle = 0;
+  while (strncmp(tag,"!NTITLE",7)!=0) {
+    if ( (buffer=infile.NextLine()) == 0 ) return 1;
+    sscanf(buffer,"%i %10s",&ntitle, tag);
+  }
+  // Only read in 1st title
   std::string psftitle;
-  parmOut.SetParmName( psftitle, infile.BaseFileStr() );
-
+  if (ntitle > 0) {
+    buffer = infile.NextLine();
+    psftitle.assign( buffer );
+  }
+  parmOut.SetParmName( psftitle, infile.BaseFileName() );
   // Advance to <natom> !NATOM
   int natom = 0;
   while (strncmp(tag,"!NATOM",6)!=0) {
-    if (infile.Gets(buffer_,BUF_SIZE_)) return 1;
-    sscanf(buffer_,"%i %10s",&natom,tag);
+    if ( (buffer=infile.NextLine()) == 0 ) return 1;
+    sscanf(buffer,"%i %10s",&natom,tag);
   }
   mprintf("\tPSF: !NATOM tag found, natom=%i\n", natom);
   // If no atoms, probably issue with PSF file
@@ -51,12 +54,6 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
     mprinterr("Error: No atoms in PSF file.\n");
     return 1;
   }
-
-  // Allocate memory for atom name, charge, mass.
-  //parmOut.names=(NAME*)    new NAME[ parmOut.natom ];
-  //parmOut.mass=(double*)   new double[ parmOut.natom ];
-  //parmOut.charge=(double*) new double[ parmOut.natom ];
-
   // Read the next natom lines
   int psfresnum;
   char psfresname[6];
@@ -65,55 +62,40 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
   double psfcharge;
   double psfmass;
   for (int atom=0; atom < natom; atom++) {
-    if (infile.Gets(buffer_,BUF_SIZE_) ) {
+    if ( (buffer=infile.NextLine()) == 0 ) {
       mprinterr("Error: ReadParmPSF(): Reading atom %i\n",atom+1);
       return 1;
     }
-    // Detect and remove trailing newline
-    //bufferLen = strlen(buffer);
-    //if (buffer[bufferLen-1] == '\n') buffer[bufferLen-1]='\0';
     // Read line
     // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    sscanf(buffer_,"%*i %*s %i %s %s %s %lf %lf",&psfresnum, psfresname, 
+    sscanf(buffer,"%*i %*s %i %s %s %s %lf %lf",&psfresnum, psfresname, 
            psfname, psftype, &psfcharge, &psfmass);
     parmOut.AddAtom( Atom( psfname, psfcharge, 0, psfmass, 0, psftype, 0, 0, psfresnum),
                      Residue(psfresnum, psfresname), NULL );
-    // Clear the buffer
-    //memset(buffer,' ',256);
   } // END loop over atoms 
-
   // Advance to <nbond> !NBOND
   int nbond = 0;
   int bondatoms[8];
   while (strncmp(tag,"!NBOND",6)!=0) {
-    if (infile.Gets(buffer_,BUF_SIZE_)) return 1;
-    sscanf(buffer_,"%i %10s",&nbond,tag);
+    if ( (buffer=infile.NextLine()) == 0 ) return 1;
+    sscanf(buffer,"%i %10s",&nbond,tag);
   }
   int nlines = nbond / 4;
   if ( (nbond % 4) != 0) nlines++;
   for (int bondline=0; bondline < nlines; bondline++) {
-    if (infile.Gets(buffer_,BUF_SIZE_) ) {
+    if ( (buffer=infile.NextLine()) == 0 ) {
       mprinterr("Error: ReadParmPSF(): Reading bond line %i\n",bondline+1);
       return 1;
     }
     // Each line has 4 pairs of atom numbers
-    int nbondsread = sscanf(buffer_,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
+    int nbondsread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
                             bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
                             bondatoms+6,bondatoms+7);
     // NOTE: Charmm atom nums start from 1
     for (int bondidx=0; bondidx < nbondsread; bondidx+=2)
       parmOut.AddBond(bondatoms[bondidx]-1, bondatoms[bondidx+1]-1);
   }
-  //mprintf("DEBUG: Charmm PSF last line after bond read:\n");
-  //mprintf("\t[%s]\n",buffer);
-  /*mprintf("\t%i bonds to hydrogen.\n\t%i bonds to non-hydrogen.\n",
-          parmOut.NbondsWithH,parmOut.NbondsWithoutH);*/
-    
-  //boxType = NOBOX;
-
-  //if (debug_>0) 
-    mprintf("    PSF contains %i atoms, %i residues.\n",
-            parmOut.Natom(), parmOut.Nres());
+  mprintf("\tPSF contains %i atoms, %i residues.\n", parmOut.Natom(), parmOut.Nres());
 
   infile.CloseFile();
 

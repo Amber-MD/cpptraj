@@ -8,8 +8,5 @@ class Parm_CharmmPsf : public ParmIO {
     int ReadParm(std::string const&, Topology&);
     int WriteParm(std::string const&, Topology const&) { return 1; }
     void SetDebug(int) {}
-  private:
-    static const size_t BUF_SIZE_ = 256;
-    char buffer_[BUF_SIZE_];
 };
 #endif

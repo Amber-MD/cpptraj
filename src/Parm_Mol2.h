@@ -1,8 +1,7 @@
 #ifndef INC_PARM_MOL2_H
 #define INC_PARM_MOL2_H
 #include "ParmIO.h"
-#include "Mol2File.h"
-class Parm_Mol2 : public ParmIO, Mol2File {
+class Parm_Mol2 : public ParmIO {
   public :
     static ParmIO* Alloc() { return (ParmIO*)new Parm_Mol2(); }
     bool ID_ParmFormat(CpptrajFile&);

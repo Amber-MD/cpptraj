@@ -1,8 +1,7 @@
 #ifndef INC_PARM_PDB_H
 #define INC_PARM_PDB_H
 #include "ParmIO.h"
-#include "PDBtype.h"
-class Parm_PDB : public ParmIO, PDBtype {
+class Parm_PDB : public ParmIO {
   public :
     Parm_PDB() { }
     static ParmIO* Alloc() { return (ParmIO*)new Parm_PDB(); }

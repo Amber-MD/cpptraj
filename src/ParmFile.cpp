@@ -27,7 +27,7 @@ int ParmFile::Read(Topology& Top, std::string const& fname, bool bondsearch, int
   
   // Loop over all parm formats
   for ( TokenPtr token = ParmArray; token->Alloc != 0; ++token ) {
-    ParmIO* parmio = (ParmIO*)token->Alloc;
+    ParmIO* parmio = (ParmIO*)token->Alloc();
     parmio->SetDebug( debugIn );
     if ( parmio->ID_ParmFormat( basicParm ) ) {
       // Read this format
@@ -53,7 +53,7 @@ int ParmFile::Write(Topology const& Top, std::string const& fname, ParmFormatTyp
   // Loop over all parm formats
   for ( TokenPtr token = ParmArray; token->Alloc != 0; ++token ) {
     if ( token->Type == fmt ) {
-      ParmIO* parmio = (ParmIO*)token->Alloc;
+      ParmIO* parmio = (ParmIO*)token->Alloc();
       parmio->SetDebug( debugIn );
       int err = parmio->WriteParm( fname, Top );
       if (err != 0 ) 

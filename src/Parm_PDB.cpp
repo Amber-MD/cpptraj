@@ -1,35 +1,31 @@
 #include "Parm_PDB.h"
+#include "PDBfile.h"
 
 int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
-  CpptrajFile infile;
+  PDBfile infile;
+  double XYZ[3];
   if (infile.OpenRead(fname)) return 1;
   // Loop over PDB records 
-  while ( PDB_GetNextRecord( infile.IOptr() ) ) {
-    if (IsPDBatomKeyword()) {
+  while ( infile.NextLine() != 0 ) {
+    if (infile.IsPDBatomKeyword()) {
       // If this is an ATOM / HETATM keyword, add to topology
-      TopIn.AddAtom(pdb_Atom(), pdb_Residue(), XYZ());
-    } else if (IsPDB_TER() || IsPDB_END()) {
+      infile.pdb_XYZ(XYZ);
+      TopIn.AddAtom(infile.pdb_Atom(), infile.pdb_Residue(), XYZ);
+    } else if (infile.IsPDB_TER() || infile.IsPDB_END()) {
       // Indicate end of molecule for TER/END. Finish if END.
       TopIn.StartNewMol();
-      if (IsPDB_END()) break;
+      if (infile.IsPDB_END()) break;
     }
   }
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
   std::string pdbtitle;
-  TopIn.SetParmName( pdbtitle, infile.BaseFileStr() );
+  TopIn.SetParmName( pdbtitle, infile.BaseFileName() );
 
   infile.CloseFile();
   return 0;
 }
 
-
 bool Parm_PDB::ID_ParmFormat(CpptrajFile& fileIn) {
-  // Assumes already set up
-  if (fileIn.OpenFile()) return false;
-  bool ispdbfile = ID( fileIn.IOptr() );
-  fileIn.CloseFile();
-  return ispdbfile;
+  return PDBfile::ID_PDB( fileIn );
 }
-
-
