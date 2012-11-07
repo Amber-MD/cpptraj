@@ -3,17 +3,16 @@
 /// Hold box information.
 class Box {
   public:
-    enum BoxType { NOBOX=0, ORTHO, TRUNCOCT, RHOMBIC, NONORTHO, NOANGLES }; 
+    enum BoxType { NOBOX=0, ORTHO, TRUNCOCT, RHOMBIC, NONORTHO }; 
 
     Box();
+    Box(const double*);
     Box(const Box&);
     Box& operator=(const Box&);
 
     const char* TypeName(); 
 
     void SetBetaLengths(double,double,double,double);
-    void SetAngles(const double*);
-    void SetLengths(const double*);
     void SetBox(const double*);
     void SetTruncOct();
     void SetNoBox();
@@ -35,7 +34,7 @@ class Box {
     double Alpha() const { return box_[3]; }
     double Beta()  const { return box_[4]; }
     double Gamma() const { return box_[5]; }
-
+    bool HasBox()  const { return (btype_ != NOBOX); }
   private:
     static const double TRUNCOCTBETA;
     static const char BoxNames[][15];

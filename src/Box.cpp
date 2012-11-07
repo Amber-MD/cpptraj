@@ -16,6 +16,10 @@ Box::Box() :
   box_[5] = 0;
 }
 
+Box::Box(const double* bIn) {
+  SetBox( bIn );
+}
+
 // COPY CONSTRUCTOR
 Box::Box(const Box& rhs) : 
   debug_(rhs.debug_),
@@ -65,31 +69,7 @@ void Box::SetBetaLengths(double beta, double xin, double yin, double zin) {
   SetBoxType();
 }
 
-// Box::SetAngles()
-/** Set box type from input alpha/beta/gamma angles. */
-void Box::SetAngles(const double* abg) {
-  if (abg==0) {
-    mprinterr("Error: SetAngles: Input array is NULL.\n");
-    return;
-  }
-  box_[3] = abg[0];
-  box_[4] = abg[1];
-  box_[5] = abg[2];
-  SetBoxType();
-}
-
-void Box::SetLengths(const double* xyz) {
-  if (xyz==0) {
-    mprinterr("Error: SetLengths: Input array is NULL\n");
-    return;
-  }
-  box_[0] = xyz[0];
-  box_[1] = xyz[1];
-  box_[2] = xyz[2];
-  if (btype_ == NOBOX)
-    btype_ = NOANGLES;
-}
-
+/** Set box from double[6] array */
 void Box::SetBox(const double* xyzabg) {
   if (xyzabg == 0) {
     mprinterr("Error: SetBox: Input array is NULL\n");
@@ -234,4 +214,3 @@ double Box::ToRecip(double *ucell, double *recip) {
 
   return volume;
 }
-
