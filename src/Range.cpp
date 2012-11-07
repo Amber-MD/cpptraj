@@ -11,7 +11,7 @@ Range::Range() { }
 /// Takes argument string as input
 Range::Range( std::string const& argIn ) {
   if (!argIn.empty())
-    SetRange( argIn.c_str() );
+    SetRange( argIn );
 }
 
 // COPY CONSTRUCTOR
@@ -36,14 +36,14 @@ Range &Range::operator=(const Range &rhs) {
   * \return 0 on success, 1 on error.
   */
 // TODO: Accept string
-int Range::SetRange(const char *ArgIn) {
+int Range::SetRange(std::string const& ArgIn) {
   std::string arg;
   int R[2], upper;
   ArgList DashList;
 
   //mprintf("DEBUG: SetRange(%s)\n",ArgIn);
 
-  if (ArgIn==NULL) return 1;
+  if (ArgIn.empty()) return 1;
   rangeList_.clear();
 
   // Set rangeArg
@@ -51,7 +51,7 @@ int Range::SetRange(const char *ArgIn) {
   // Check if ArgIn is a mask expression
   size_t maskcharpos = rangeArg_.find_first_of(":@*");
   if (maskcharpos != std::string::npos) {
-    mprinterr("Error: Using a mask expression for range (%s)\n",ArgIn);
+    mprinterr("Error: Using a mask expression for range (%s)\n",ArgIn.c_str());
     mprinterr("Error: Ranges should only contain digits, dashes, and commas (e.g. 3-5,8-10)\n");
     return 1;
   } 
@@ -66,7 +66,8 @@ int Range::SetRange(const char *ArgIn) {
     R[0] = DashList.getNextInteger(-1);
     R[1] = DashList.getNextInteger(-1);
     if (R[0]==-1) {
-      mprintf("Error: Range::SetRange(%s): Range is -1 for %s\n",ArgIn, DashList.ArgLine());
+      mprinterr("Error: Range::SetRange(%s): Range is -1 for %s\n",ArgIn.c_str(), 
+                DashList.ArgLine());
       err=1;
       break;
     }
@@ -74,7 +75,8 @@ int Range::SetRange(const char *ArgIn) {
     if (upper==-1) upper=R[0];
     ++upper; // Want up to and including the upper argument
     if ( this->SetRange(R[0], upper) )
-      mprintf("Warning: Converting %s to range [%i-%i] is not valid.\n",ArgIn,R[0],R[1]);
+      mprintf("Warning: Converting %s to range [%i-%i] is not valid.\n",
+              ArgIn.c_str(), R[0], R[1]);
   }
 
   // Dont return an empty list

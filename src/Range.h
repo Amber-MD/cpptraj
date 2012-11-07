@@ -21,7 +21,7 @@ class Range {
     bool Empty()           { return rangeList_.empty();      }
     int Size()             { return (int) rangeList_.size(); }
 
-    int SetRange(const char *);
+    int SetRange(std::string const&);
     int SetRange(int,int);
 
     const char *RangeArg();
