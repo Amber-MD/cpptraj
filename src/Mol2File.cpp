@@ -1,5 +1,5 @@
-#include <cstring>
-#include <cstdio>
+#include <cstring> //strlen
+#include <cstdio> //sscanf
 #include "Mol2File.h"
 #include "CpptrajStdio.h" // To print debug info
 #include "StringRoutines.h" // RemoveTrailingWhitespace

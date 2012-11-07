@@ -7,8 +7,7 @@ class PDBfile : public CpptrajFile {
   public:
     PDBfile() : anum_(1) {}
     // NOTE: PDB_RECNAME must correspond with this.
-    enum PDB_RECTYPE {ATOM=0, HETATM, TER/*, END, HEADER, TITLE, COMPND, AUTHOR,
-                      CRYST1, REMARK, MODEL, JRNL, SEQRES, BLANK*/};
+    enum PDB_RECTYPE {ATOM=0, HETATM, TER};
     /// \return true if the first 6 chars of buffer match a PDB keyword
     static bool IsPDBkeyword(const char*);
     /// Check if either of the first two lines contain valid PDB records.
@@ -37,11 +36,6 @@ class PDBfile : public CpptrajFile {
     /// Write PDB ATOM/HETATM record
     void WriteRec(PDB_RECTYPE, int, NameType const&, NameType const&, char, int,
                   double, double, double);
-/*    int pdb_atomNumber(char*);
-    NameType pdb_atomName(char*);
-    NameType pdb_resName(char*);
-    char pdb_chainID(char*);
-    int pdb_resNum(char*);*/
   private:
     int anum_;
     static const char PDB_RECNAME[][7];

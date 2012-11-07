@@ -4,10 +4,7 @@
 
 /// PDB record types
 // NOTE: Must correspond with PDB_RECTYPE
-const char PDBfile::PDB_RECNAME[3][7] = {
-  "ATOM  ", "HETATM", "TER   "/*, "END   ", "HEADER", "TITLE ", "COMPND",
-  "AUTHOR", "CRYST1", "REMARK", "MODEL ", "JRNL  ", "SEQRES", ""*/
-};
+const char PDBfile::PDB_RECNAME[3][7] = { "ATOM  ", "HETATM", "TER   " };
 
 // PDBfile::IsPDBkeyword()
 bool PDBfile::IsPDBkeyword(const char* recname) {
@@ -66,10 +63,6 @@ Atom PDBfile::pdb_Atom() {
   // Replace asterisks with single quotes
   aname.ReplaceAsterisk();
   linebuffer_[16] = savechar;
-  // X coord (30-38)
-  // Y coord (38-46)
-  // Z coord (46-54)
-
   return Atom(aname);
 }
 
@@ -181,99 +174,12 @@ void PDBfile::WriteRec(PDB_RECTYPE Record, int anum, NameType const& name,
   else
     Printf("    %8.3f%8.3f%8.3f%6.2f%6.2f%14s\n", X, Y, Z, Occ, B, End);
 }
- 
-/*/// PDB Record Chain ID
-char PDB::pdb_chainID(char *buffer) {
-  return buffer[21];
-}*/
 
-/*/// PDB Record Occupancy 
-double pdb_occ(char *buffer) {
-  char temp[7];
-
-  temp[0]=buffer[54];
-  temp[1]=buffer[55];
-  temp[2]=buffer[56];
-  temp[3]=buffer[57];
-  temp[4]=buffer[58];
-  temp[5]=buffer[59];
-  temp[6]='\0';
-  return atof(temp);
-}*/
-
-/// PDB Record B-factor
-/*double pdb_Bfactor(char *buffer) {
-  char temp[7];
-
-  temp[0]=buffer[60];
-  temp[1]=buffer[61];
-  temp[2]=buffer[62];
-  temp[3]=buffer[63];
-  temp[4]=buffer[64];
-  temp[5]=buffer[65];
-  temp[6]='\0';
-  return atof(temp);
-}*/
-
-/// 10 chars between Bfactor and element
-/*char *pdb_lastChar(char *buffer) {
-  char *E;
-
-  E=(char*) malloc(11*sizeof(char));
-  E[0]=buffer[66];
-  E[1]=buffer[67];
-  E[2]=buffer[68];
-  E[3]=buffer[69];
-  E[4]=buffer[70];
-  E[5]=buffer[71];
-  E[6]=buffer[72];
-  E[7]=buffer[73];
-  E[8]=buffer[74];
-  E[9]=buffer[75];
-  E[10]='\0';
-  return E;
-}*/
-
-/// Element. If blank, try to guess from the name
-/** Currently recognized: H C N O F Cl Br S P */
-/*char *pdb_elt(char *buffer) {
-  char *E,*ptr;
-  char name[5];
-
-  E=(char*) malloc(3*sizeof(char));
-  E[0]=buffer[76]; // Element
-  E[1]=buffer[77]; // Element
-  E[2]='\0';*/
-
-/*  if (E[0]==' ' && E[1]==' ') {
-    pdb_name(buffer,name);
-    // position ptr at first non-space character
-    ptr=name;
-    while (*ptr==' ' && *ptr!='\0') ptr++;
-    // if NULL something went wrong, abort
-    if (*ptr=='\0') return E;
-    E[0]=ptr[0];
-    // If C, check for L or l for chlorine
-    if (ptr[0]=='C') {
-      if (ptr[1]=='L' || ptr[1]=='l') E[1]='l';
-    }
-    // If B, check for R or r for bromine
-    if (ptr[0]=='B') {
-      if (ptr[1]=='R' || ptr[1]=='r') E[1]='r';
-    }
-  }*/
-
-/*  return E;
-}*/
-
-/// Charge. 
-/*char *pdb_charge(char *buffer) {
-  char *E;
-
-  E=(char*) malloc(3*sizeof(char));
-  E[0]=buffer[78]; // Charge
-  E[1]=buffer[79]; // Charge
-  E[2]='\0';
-  return E;
-}*/
-
+/* Additional Values:
+ *  Chain ID : buffer[21]
+ *  Occupancy: buffer[54] to buffer[59]
+ *  B-factor : buffer[60] to buffer[65]
+ *  10 chars between Bfactor and element: buffer[66] to buffer[75]
+ *  Element  : buffer[76] and buffer[77]
+ *  Charge   : buffer[78] and buffer[79]
+ */
