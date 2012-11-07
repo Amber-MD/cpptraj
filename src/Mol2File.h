@@ -1,39 +1,44 @@
 #ifndef INC_MOL2FILE_H
 #define INC_MOL2FILE_H
 #include "Topology.h"
-#include "FileIO.h"
+#include "CpptrajFile.h"
 /// Used to access mol2 files.
-class Mol2File {
+class Mol2File : public CpptrajFile {
   public: 
     Mol2File();
 
     enum TRIPOSTAG { MOLECULE=0, ATOM, BOND, SUBSTRUCT };
 
-    bool IsMol2Keyword();
-    bool GetLine(FileIO*);
-    bool ID(FileIO *IO);
-    int ScanTo( FileIO *, TRIPOSTAG );
-    bool ReadMolecule( FileIO*);
-    int NextMolecule( FileIO * );
-    void Mol2Bond(int &, int &);
+    static bool IsMol2Keyword(const char*);
+    static bool ID_Mol2(CpptrajFile&);
+    /// Scan to the specified TRIPOS section of file.
+    int ScanTo( TRIPOSTAG );
+    void WriteHeader( TRIPOSTAG );
+    /// Read in MOLECULE section of mol2file.
+    bool ReadMolecule();
+    bool WriteMolecule(bool);
+    //// Used to only read # atoms in next MOLECULE record.
+    int NextMolecule();
+    /// Read in the next Mol2 BOND line. Get the indices of the bonded atoms.
+    int Mol2Bond(int &, int &);
+    /// Read in the next Mol2 ATOM line. Get the X Y and Z coords.
+    int Mol2XYZ(double *);
+    /// Convert current line to Atom 
     Atom Mol2Atom();
+    /// Convert current line to Residue
     Residue Mol2Residue();
-    void Mol2XYZ(double *);
-    const double* XYZ();
 
-    void SetMol2Natoms(int);
-    void SetMol2Nbonds(int);
-    int Mol2Natoms();
-    int Mol2Nbonds();
-    std::string &Mol2Title();
+    void SetMol2Natoms(int nIn)               { mol2atoms_ = nIn; }
+    void SetMol2Nbonds(int nIn)               { mol2bonds_ = nIn; }
+    void SetMol2Title(std::string const& tIn) { mol2title_ = tIn; }
+    int Mol2Natoms()               { return mol2atoms_; }
+    int Mol2Nbonds()               { return mol2bonds_; }
+    std::string const& Mol2Title() { return mol2title_; }
   private:
     static const char TRIPOSTAGTEXT[][22];
-    static const size_t BUF_SIZE_ = 256;
-    char buffer_[BUF_SIZE_];
     int mol2debug_;
     int mol2atoms_;
     int mol2bonds_;
     std::string mol2title_;
-    double XYZ_[3];
 };
 #endif  

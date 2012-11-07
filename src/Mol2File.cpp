@@ -9,11 +9,7 @@ Mol2File::Mol2File() :
   mol2debug_(0),
   mol2atoms_(0),
   mol2bonds_(0)
-{
-  XYZ_[0] = 0;
-  XYZ_[1] = 0;
-  XYZ_[2] = 0;
-}
+{}
 
 /// Tripos Tags - must be in same order as enum type TRIPOSTAG
 const char Mol2File::TRIPOSTAGTEXT[4][22]={
@@ -24,95 +20,125 @@ const char Mol2File::TRIPOSTAGTEXT[4][22]={
 };
 
 // Mol2File::IsMol2Keyword()
-bool Mol2File::IsMol2Keyword() {
-  if (strncmp(buffer_,"@<TRIPOS>",9)==0)
+bool Mol2File::IsMol2Keyword(const char* key) {
+  if (strncmp(key, "@<TRIPOS>",9)==0)
     return true;
   return false;
 }
 
-// Mol2File::GetLine()
-bool Mol2File::GetLine(FileIO *IO) {
-  return ( IO->Gets(buffer_, BUF_SIZE_) != 0 );
-}
-
-// Mol2File::ID()
-bool Mol2File::ID( FileIO *IO ) {
+// Mol2File::ID_Mol2()
+bool Mol2File::ID_Mol2(CpptrajFile& fileIn) {
+  // NOTE: ASSUMES FILE IS ALREADY SETUP!
+  if (fileIn.OpenFile()) return false;
   for (int line = 0; line < 10; line++) {
-    if ( GetLine( IO ) ) return false;
-    //mprintf("DEBUG: MOL2LINE %i: [%s]\n",line,buffer_);
-    if ( IsMol2Keyword() ) {
+    std::string nextLine = fileIn.GetLine();
+    //mprintf("DEBUG: MOL2LINE %i: [%s]\n",line,linebuffer_);
+    if ( IsMol2Keyword(nextLine.c_str()) ) {
+      fileIn.CloseFile();
       return true;
     }
   }
+  fileIn.CloseFile();
   return false;
 }
 
 // Mol2File::ScanTo()
-/** Scan to the specified TRIPOS section of file.
-  * \return 0 if the tag was found, 1 if not found.
-  */
-int Mol2File::ScanTo( FileIO *IO, TRIPOSTAG tag ) {
+/** \return 0 if the tag was found, 1 if not found. */
+int Mol2File::ScanTo( TRIPOSTAG tag ) {
   int tagSize = (int)strlen(TRIPOSTAGTEXT[tag]);
-  while ( IO->Gets(buffer_,BUF_SIZE_)==0 ) {
+  while ( Gets(linebuffer_, BUF_SIZE)==0 ) {
     //mprintf("DEBUG: Line [%s]\n",buffer);
     //mprintf("DEBUG: Targ [%s]\n",TRIPOSTAGTEXT[tag]); 
-    if (strncmp(buffer_,TRIPOSTAGTEXT[tag],tagSize)==0) return 0;
+    if (strncmp(linebuffer_, TRIPOSTAGTEXT[tag], tagSize)==0) return 0;
   }
   // Suppress this warning so routine can be used to scan # frames
   //mprintf("Warning: Mol2File::ScanTo(): Could not find tag %s\n",TRIPOSTAGTEXT[tag]);
   return 1;
 }
 
+void Mol2File::WriteHeader( Mol2File::TRIPOSTAG tag ) {
+  Printf("%s\n", TRIPOSTAGTEXT[tag] );
+}
+
 // Mol2File::ReadMolecule()
-/** Read in MOLECULE section of mol2file. Set title, number of atoms,
-  * and number of bonds.
-  */
-bool Mol2File::ReadMolecule( FileIO *IO ) {
+/** Set title, number of atoms, and number of bonds. */
+bool Mol2File::ReadMolecule( ) {
   // Scan to the section
-  if ( ScanTo( IO, MOLECULE ) == 1 ) return true;
+  if ( ScanTo( MOLECULE ) == 1 ) return true;
   //   Scan title
-  if ( IO->Gets(buffer_,BUF_SIZE_) ) return true;
-  mol2title_.assign( buffer_ );
+  if ( Gets(linebuffer_, BUF_SIZE) ) return true;
+  mol2title_.assign( linebuffer_ );
   RemoveTrailingWhitespace( mol2title_ );
   if (mol2debug_>0) mprintf("      Mol2 Title: [%s]\n",mol2title_.c_str());
   //   Scan # atoms and bonds
   // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
-  if ( IO->Gets(buffer_,BUF_SIZE_) ) return true;
+  if ( Gets(linebuffer_, BUF_SIZE) ) return true;
   mol2atoms_ = 0;
   mol2bonds_ = 0;
-  sscanf(buffer_,"%i %i",&mol2atoms_, &mol2bonds_);
+  if (sscanf(linebuffer_,"%i %i",&mol2atoms_, &mol2bonds_) != 2) {
+    mprinterr("Error: Mol2File: Could not read # atoms/ # bonds.\n");
+    return false;
+  }
   if (mol2debug_>0) {
-    mprintf("      Mol2 #atoms: %i\n",mol2atoms_);
-    mprintf("      Mol2 #bonds: %i\n",mol2bonds_);
+    mprintf("\tMol2 #atoms: %i\n",mol2atoms_);
+    mprintf("\tMol2 #bonds: %i\n",mol2bonds_);
   }
   return false;
 }
 
-/** Used to only read # atoms in next MOLECULE record. 
-  * \return # atoms in next MOLECULE, -1 on error or end of file.
-  */
-int Mol2File::NextMolecule( FileIO *IO ) {
-  int natom;
+bool Mol2File::WriteMolecule(bool hasCharges) {
+  Printf("%s\n", TRIPOSTAGTEXT[MOLECULE]);
+  // mol_name
+  // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
+  // mol_type
+  // charge_type
+  // [status_bits
+  // [mol_comment]]
+  Printf("%s\n", mol2title_.c_str());
+  Printf("%5i %5i %5i %5i %5i\n", mol2atoms_, mol2bonds_, 1, 0, 0);
+  Printf("SMALL\n"); // May change this later
+  if ( hasCharges )
+    Printf("USER_CHARGES\n"); // May change this later
+  else
+    Printf("NO_CHARGES\n");
+  Printf("\n\n");
+  return false;
+}
+
+/** \return # atoms in next MOLECULE, -1 on error or end of file. */
+int Mol2File::NextMolecule( ) {
+  int natom = 0;
   // Scan to the section
-  if ( ScanTo( IO, MOLECULE ) == 1 ) return -1;
+  if ( ScanTo( MOLECULE ) == 1 ) return -1;
   // Scan past the title
-  if ( IO->Gets(buffer_,BUF_SIZE_) ) return -1;
+  if ( Gets(linebuffer_, BUF_SIZE) ) return -1;
   // Scan # atoms
-  if ( IO->Gets(buffer_,BUF_SIZE_) ) return -1;
-  sscanf(buffer_, "%i", &natom);
+  if ( Gets(linebuffer_, BUF_SIZE) ) return -1;
+  sscanf(linebuffer_, "%i", &natom);
   return natom;
 }
 
 // Mol2File::Mol2Bond()
-void Mol2File::Mol2Bond(int &at1, int &at2) {
-  sscanf(buffer_,"%*i %i %i\n", &at1, &at2);
+int Mol2File::Mol2Bond(int& at1, int& at2) {
+  if ( Gets(linebuffer_, BUF_SIZE) != 0 ) return 1;
+  // bond_id origin_atom_id target_atom_id bond_type [status_bits]
+  sscanf(linebuffer_,"%*i %i %i\n", &at1, &at2);
+  return 0;
 }
 
-// atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
+// Mol2File::Mol2XYZ()
+int Mol2File::Mol2XYZ(double *X) {
+  if ( Gets(linebuffer_, BUF_SIZE) != 0 ) return 1;
+  sscanf(linebuffer_,"%*i %*s %lf %lf %lf",X, X+1, X+2);
+  return 0;
+}
+
+// Mol2File::Mol2Atom()
 Atom Mol2File::Mol2Atom() {
   char mol2name[10], mol2type[10];
   double mol2q;
-  sscanf(buffer_, "%*i %s %*f %*f %*f %s %*i %*s %lf", mol2name, mol2type, &mol2q);
+  // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
+  sscanf(linebuffer_, "%*i %s %*f %*f %*f %s %*i %*s %lf", mol2name, mol2type, &mol2q);
   NameType m2name( mol2name );
   // Replace all asterisks with single quote.
   m2name.ReplaceAsterisk();
@@ -123,41 +149,9 @@ Atom Mol2File::Mol2Atom() {
 Residue Mol2File::Mol2Residue() {
   char resname[10];
   int resnum;
-  sscanf(buffer_,"%*i %*s %*f %*f %*f %*s %i %s",&resnum,resname);
+  sscanf(linebuffer_,"%*i %*s %*f %*f %*f %*s %i %s",&resnum,resname);
   NameType rname( resname );
   // Replace all asterisks with single quote.
   rname.ReplaceAsterisk();
   return Residue(resnum, rname);
 }
-
-// Mol2XYZ()
-/** Given a Mol2 ATOM line, get the X Y and Z coords. */
-void Mol2File::Mol2XYZ(double *X) {
-  sscanf(buffer_,"%*i %*s %lf %lf %lf",X, X+1, X+2);
-}
-
-const double* Mol2File::XYZ() {
-  sscanf(buffer_,"%*i %*s %lf %lf %lf",XYZ_, XYZ_+1, XYZ_+2);
-  return XYZ_;
-}
-
-void Mol2File::SetMol2Natoms(int natomIn) {
-  mol2atoms_ = natomIn;
-}
-
-void Mol2File::SetMol2Nbonds(int nbondIn) {
-  mol2bonds_ = nbondIn;
-}
-
-int Mol2File::Mol2Natoms() {
-  return mol2atoms_;
-}
-
-int Mol2File::Mol2Nbonds() {
-  return mol2bonds_;
-}
-
-std::string& Mol2File::Mol2Title() {
-  return mol2title_;
-}
-
