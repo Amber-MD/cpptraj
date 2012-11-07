@@ -33,10 +33,10 @@ void Topology::SetDebug(int debugIn) {
 }
 
 // Topology::SetParmName()
-void Topology::SetParmName(std::string& title, const char* filename) {
+void Topology::SetParmName(std::string const& title, std::string const& filename) {
   // NOTE: Check for NULL?
   parmName_ = title;
-  fileName_.assign( filename );
+  fileName_ = filename;
 }
 
 // Topology::SetGBradiiSet()

@@ -15,7 +15,7 @@ class Topology {
     // ----- Set internal variables -----
     void SetOffset(double oIn);
     void SetDebug(int);
-    void SetParmName(std::string&, const char*);
+    void SetParmName(std::string const&, std::string const&);
     void SetGBradiiSet(std::string&);
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
