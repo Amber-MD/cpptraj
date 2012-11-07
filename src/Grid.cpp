@@ -271,7 +271,7 @@ void Grid::PrintPDB(std::string const& filename, double cut, double normIn)
   norm = 1.0 / norm;
   // Write PDB
   PDBfile pdbout;
-  if (pdbout.OpenPDB(filename)) {
+  if (pdbout.OpenWrite(filename)) {
     mprinterr("Error: %s: Cannot open PDB output.\n", callingRoutine_.c_str()); 
     return;
   }
