@@ -146,8 +146,8 @@ void Traj_CharmmDcd::AllocateCoords() {
   coordinate_size_ = (size_t)dcdatom_ * sizeof(float);
   if (xcoord_ != 0) delete[] xcoord_;
   xcoord_ = new float[ 3 * dcdatom_ ];
-  ycoord_ = xcoord_ + coordinate_size_;
-  zcoord_ = ycoord_ + coordinate_size_;
+  ycoord_ = xcoord_ + dcdatom_;
+  zcoord_ = ycoord_ + dcdatom_;
 }
 
 // Traj_CharmmDcd::setupTrajin()
@@ -156,6 +156,12 @@ int Traj_CharmmDcd::setupTrajin(std::string const& fname, Topology* trajParm)
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
   // Call openTrajin, which will open and read past the DCD header.
   if ( openTrajin() ) return TRAJIN_ERR;
+  // Warn if # atoms in parm does not match
+  if (trajParm->Natom() != dcdatom_) {
+    mprinterr("Error: # atoms in DCD file (%i) does not match # atoms in parm %s (%i)\n",
+              dcdatom_, trajParm->c_str(), trajParm->Natom());
+    return TRAJIN_ERR;
+  }
   // Allocate space for coordinate reads.
   AllocateCoords();
   // DCD file may have less frames than is stored in the header.
@@ -557,12 +563,11 @@ int Traj_CharmmDcd::writeDcdHeader() {
   file_.Write(dcdkey.i, sizeof(int)*1);
   // If title is longer than 80 truncate it for now
   std::string title = Title();
-  if (title.size() > 80) {
+  if (title.size() > 80) 
     mprintf("Warning: CharmmDCD: Title size is > 80 chars, truncating to 80.\n");
-    title.resize(80);
-  }
+  title.resize(80);
   // Write title
-  file_.Write((char*)title.c_str(), sizeof(char)*80);
+  file_.Write((char*)title.c_str(), 80);
   // Write title end block
   WriteBlock(84);
   // Write atom block - 4 bytes
