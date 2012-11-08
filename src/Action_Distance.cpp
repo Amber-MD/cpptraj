@@ -20,7 +20,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Get Keywords
   InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
-  ArgList::ConstArg distanceFile = actionArgs.getKeyString("out");
+  std::string distanceFile = actionArgs.GetStringKey("out");
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
   if      ( stypename == "hbond" ) stype = DataSet::HBOND;
@@ -39,11 +39,11 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   Mask2_.SetMaskString(mask2);
 
   // Dataset to store distances
-  dist_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Dis");
-  if (dist_==NULL) return Action::ERR;
+  dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Dis");
+  if (dist_==0) return Action::ERR;
   dist_->SetScalar( DataSet::M_DISTANCE, stype );
   // Add dataset to data file list
-  DFL->Add(distanceFile, dist_);
+  DFL->AddSetToFile(distanceFile, dist_, actionArgs);
 
   mprintf("    DISTANCE: %s to %s",Mask1_.MaskString(), Mask2_.MaskString());
   if (!UseImage()) 

@@ -24,10 +24,10 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   useMass_ = actionArgs.hasKey("mass");
 
   // Get Masks
-  ArgList::ConstArg mask1 = actionArgs.getNextMask();
-  ArgList::ConstArg mask2 = actionArgs.getNextMask();
-  ArgList::ConstArg mask3 = actionArgs.getNextMask();
-  if (mask1==NULL || mask2==NULL || mask3==NULL) {
+  std::string mask1 = actionArgs.GetMaskNext();
+  std::string mask2 = actionArgs.GetMaskNext();
+  std::string mask3 = actionArgs.GetMaskNext();
+  if (mask1.empty() || mask2.empty() || mask3.empty()) {
     mprinterr("Error: angle: Requires 3 masks\n");
     return Action::ERR;
   }
@@ -36,11 +36,11 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   Mask3_.SetMaskString(mask3);
 
   // Dataset to store angles
-  ang_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Ang");
-  if (ang_==NULL) return Action::ERR;
+  ang_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Ang");
+  if (ang_==0) return Action::ERR;
   ang_->SetScalar( DataSet::M_ANGLE );
   // Add dataset to data file list
-  DFL->AddSetToFile(angleFile, ang_);
+  DFL->AddSetToFile(angleFile, ang_, actionArgs);
 
   mprintf("    ANGLE: [%s]-[%s]-[%s]\n",Mask1_.MaskString(), Mask2_.MaskString(), 
           Mask3_.MaskString());

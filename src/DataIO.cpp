@@ -4,32 +4,30 @@
 #include "StringRoutines.h" // DoubleFormatString
 
 // CONSTRUCTOR
-DataIO::DataIO() {
-  maxFrames_ = 0;
-  debug_ = 0;
-  hasXcolumn_ = true;
-  xcol_width_ = 0;
-  xcol_precision_ = 3;
-  x_label_ = "Frame";
-  xmin_ = 1;
-  xstep_ = 1;
-
-  printEmptyFrames_ = true;
-}
+DataIO::DataIO() :
+  maxFrames_(0),
+  debug_(0),
+  hasXcolumn_(true),
+  xcol_width_(0),
+  xcol_precision_(3),
+  x_label_("Frame"),
+  xmin_(1.0),
+  xstep_(1.0),
+  printEmptyFrames_(true)
+{}
 
 // Copy Constructor
-DataIO::DataIO(const DataIO &rhs) 
-{
-  maxFrames_ = rhs.maxFrames_;
-  debug_ = rhs.debug_;
-  hasXcolumn_ = rhs.hasXcolumn_;
-  xcol_width_ = rhs.xcol_width_;
-  xcol_precision_ = rhs.xcol_precision_;
-  x_label_ = rhs.x_label_;
-  xmin_ = rhs.xmin_;
-  xstep_ = rhs.xstep_;
-  printEmptyFrames_ = rhs.printEmptyFrames_;
-}
+DataIO::DataIO(const DataIO &rhs) : 
+  maxFrames_(rhs.maxFrames_),
+  debug_(rhs.debug_),
+  hasXcolumn_(rhs.hasXcolumn_),
+  xcol_width_(rhs.xcol_width_),
+  xcol_precision_(rhs.xcol_precision_),
+  x_label_(rhs.x_label_),
+  xmin_(rhs.xmin_),
+  xstep_(rhs.xstep_),
+  printEmptyFrames_(rhs.printEmptyFrames_)
+{}
 
 // Assignment
 DataIO &DataIO::operator=(const DataIO &rhs) {
@@ -66,6 +64,10 @@ int DataIO::ProcessCommonArgs(ArgList &argIn) {
   if (xlabel!=NULL) x_label_.assign(xlabel);
   xmin_ = argIn.getKeyDouble("xmin",xmin_);
   xstep_ = argIn.getKeyDouble("xstep",xstep_);
+  if (argIn.Contains("time")) {
+    xstep_ = argIn.getKeyDouble("time",xstep_);
+    xmin_ = 0.0;
+  }
   return 0;
 }  
 

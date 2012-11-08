@@ -31,7 +31,6 @@ class DataIO {
     std::string x_label_;
     double xmin_;
     double xstep_;
-
     bool printEmptyFrames_;
 
     void SetupXcolumn();

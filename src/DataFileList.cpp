@@ -40,12 +40,19 @@ DataFile* DataFileList::Add(const char* nameIn, DataSet* dsetIn) {
   return AddSetToFile( std::string(nameIn), dsetIn );
 }
 
+DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn) {
+  ArgList empty;
+  return AddSetToFile(nameIn, dsetIn, empty);
+}
+
 // DataFileList::AddSetToFile()
 /** Add dataset to datafile in list with given file name. If the file does
   * not yet exist in the list create it. Return a pointer to the datafile
   * in the list.
   */
-DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn) {
+DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn,
+                                     ArgList& argIn) 
+{
   // If no filename, no output desired
   if (nameIn.empty()) return NULL;
   // If DataSet is NULL, dont add
@@ -71,10 +78,11 @@ DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn)
 
   // Add the dataset to the current DataFile
   Current->AddSet(dsetIn);
-
   // Set debug level
   Current->SetDebug(debug_);
-
+  // Process Arguments
+  if (!argIn.empty())
+    Current->ProcessArgs( argIn );
   // DEBUG
   //mprintf("** ADDED DATASET %s TO FILE %s\n",D->Name(),Current->filename);
 

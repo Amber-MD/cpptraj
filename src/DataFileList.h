@@ -16,6 +16,7 @@ class DataFileList : public FileList {
     DataFile* GetDataFile(std::string const&);
     DataFile* Add(const char*, DataSet*);
     DataFile* AddSetToFile(std::string const&,  DataSet*);
+    DataFile* AddSetToFile(std::string const&,  DataSet*, ArgList&);
     void List();
     void Write();
     int ProcessDataFileArgs(ArgList&);
