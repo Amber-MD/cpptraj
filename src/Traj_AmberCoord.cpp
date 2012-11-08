@@ -98,6 +98,15 @@ int Traj_AmberCoord::readFrame(int set, double *X, double *V, double *box, doubl
   return 0;
 }
 
+int Traj_AmberCoord::readVelocity(int set, double* V) {
+  if (IsSeekable()) file_.SeekToFrame( set );
+  // Read frame into the char buffer
+  if (file_.ReadFrame() == -1) return 1;
+  file_.BufferBeginAt(hasREMD_);
+  file_.BufferToDouble(V, natom3_);
+  return 0;
+}
+
 // Traj_AmberCoord::writeFrame()
 /** Write coordinates from Frame to frameBuffer. frameBuffer must be large
   * enough to accomodate all coords in F (handled by SetupWrite).
