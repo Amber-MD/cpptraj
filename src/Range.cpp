@@ -35,7 +35,6 @@ Range &Range::operator=(const Range &rhs) {
   * the argument. Remove any duplicate numbers.
   * \return 0 on success, 1 on error.
   */
-// TODO: Accept string
 int Range::SetRange(std::string const& ArgIn) {
   std::string arg;
   int R[2], upper;

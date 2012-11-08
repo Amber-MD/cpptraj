@@ -169,7 +169,7 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
   if (idx_arg.empty())
     idxrange.SetRange( -1, 0 ); 
   else
-    idxrange.SetRange( idx_arg.c_str() );
+    idxrange.SetRange( idx_arg );
 
   // All start selected
   std::vector<char> SelectedSets(DataList_.size(), 'T');

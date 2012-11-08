@@ -920,8 +920,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   double origincut = actionArgs.getKeyDouble("origincut", -1);
   if (origincut > 0)
     originCut2_ = origincut * origincut;
-  ArgList::ConstArg resrange_arg = actionArgs.getKeyString("resrange");
-  if (resrange_arg != NULL)
+  std::string resrange_arg = actionArgs.GetStringKey("resrange");
+  if (!resrange_arg.empty())
     if (resRange.SetRange( resrange_arg )) return Action::ERR;
   printheader_ = !actionArgs.hasKey("noheader");
   // Reference for setting up basepairs

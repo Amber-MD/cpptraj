@@ -96,7 +96,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (!nofit_)
     rotate_ = !actionArgs.hasKey("norotate");
   useMass_ = actionArgs.hasKey("mass");
-  ArgList::ConstArg rmsdFile = actionArgs.getKeyString("out");
+  std::string rmsdFile = actionArgs.GetStringKey("out");
   // Reference keywords
   refmode_ = UNKNOWN_REF;
   if ( actionArgs.hasKey("first") ) {
@@ -119,8 +119,8 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (perres_) {
     perresout_ = actionArgs.GetStringKey("perresout");
     perresinvert_ = actionArgs.hasKey("perresinvert");
-    ResRange_.SetRange( actionArgs.getKeyString("range") );
-    RefRange_.SetRange( actionArgs.getKeyString("refrange") );
+    ResRange_.SetRange( actionArgs.GetStringKey("range") );
+    RefRange_.SetRange( actionArgs.GetStringKey("refrange") );
     perresmask_ = actionArgs.GetStringKey("perresmask");
     if (perresmask_.empty()) 
       perresmask_.assign("");
@@ -187,7 +187,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (rmsd_==NULL) return Action::ERR;
   rmsd_->SetScalar( DataSet::M_RMS );
   // Add dataset to data file list
-  DFL->Add(rmsdFile, rmsd_);
+  DFL->AddSetToFile(rmsdFile, rmsd_);
 
   //rmsd->Info();
   mprintf("    RMSD: (%s), reference is",FrameMask_.MaskString());
