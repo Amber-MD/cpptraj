@@ -34,6 +34,7 @@ class TrajectoryFile {
     int debug_;            ///< Trajectory debug level.
     static TrajectoryIO* AllocTrajIO(TrajFormatType);
     static TrajectoryIO* DetectFormat(std::string const&);
+    static TrajFormatType TrajFormat(std::string const&);
   private:
     struct TrajToken {
       TrajFormatType Type;

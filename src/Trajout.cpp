@@ -1,5 +1,6 @@
 #include "Trajout.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
 Trajout::Trajout() :
@@ -48,6 +49,20 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
     if (writeFormat == AMBERTRAJ) {
       writeFormat = GetTypeFromExtension( TrajName().Ext() );
       if (writeFormat == UNKNOWN_TRAJ) writeFormat = AMBERTRAJ;
+    }
+  }
+  // If appending, file must exist and must match the current format.
+  if (append_) {
+    if (fileExists(tnameIn.c_str())) { 
+      TrajectoryFile::TrajFormatType appendFormat = TrajFormat( tnameIn );
+      if (appendFormat == TrajectoryFile::UNKNOWN_TRAJ)
+        mprintf("Warning: Could not determine file format for 'append'. Using %s\n",
+                FormatString( writeFormat ) );
+      else
+        writeFormat = appendFormat;
+    } else {
+      mprintf("Warning: 'append' specified for non-existent file.\n");
+      append_ = false;
     }
   }
   // Set up for the specified format

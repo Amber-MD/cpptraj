@@ -131,3 +131,19 @@ TrajectoryIO* TrajectoryFile::DetectFormat(std::string const& fname) {
   return 0;
 }
 
+// TrajectoryFile::TrajFormat()
+TrajectoryFile::TrajFormatType TrajectoryFile::TrajFormat(std::string const& fname) {
+  CpptrajFile file;
+  if (file.SetupRead(fname, 0)) return UNKNOWN_TRAJ;
+  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token) {
+    if (token->Alloc != 0) {
+      TrajectoryIO* trajio = (TrajectoryIO*)token->Alloc();
+      if ( trajio->ID_TrajFormat( file ) ) {
+        delete trajio;
+        return token->Type;
+      }
+      delete trajio;
+    }
+  }
+  return UNKNOWN_TRAJ;
+}

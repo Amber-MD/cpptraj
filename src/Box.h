@@ -10,7 +10,7 @@ class Box {
     Box(const Box&);
     Box& operator=(const Box&);
 
-    const char* TypeName(); 
+    const char* TypeName() const; 
 
     void SetBetaLengths(double,double,double,double);
     void SetBox(const double*);
@@ -38,7 +38,7 @@ class Box {
   private:
     static const double TRUNCOCTBETA;
     static const char BoxNames[][15];
-    int debug_;
+    //int debug_; // TODO: Replace with ifdefs or just comment out?
     BoxType btype_;
     double box_[6];
 

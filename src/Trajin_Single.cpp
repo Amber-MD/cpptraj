@@ -130,7 +130,7 @@ void Trajin_Single::PrintInfo(int showExtended) {
   mprintf("  [%s] ",BaseTrajStr());
   trajio_->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
-  if (trajio_->HasBox()) mprintf(" (with box info)");
+  if (trajio_->HasBox()) mprintf(" (%s box)", trajio_->TrajBox().TypeName());
   if (showExtended==1) PrintFrameInfo(); 
   if (debug_>0)
     mprintf(", %i atoms, Box %i, seekable %i",TrajParm()->Natom(),(int)trajio_->HasBox(),

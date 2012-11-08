@@ -6,7 +6,6 @@
 #include "netcdf.h"
 #include "Traj_AmberNetcdf.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
 Traj_AmberNetcdf::Traj_AmberNetcdf() :
@@ -44,7 +43,6 @@ int Traj_AmberNetcdf::openTrajin() {
     mprinterr("Error: Opening Netcdf file %s for reading.\n", filename_.base()); 
     return 1;
   }
-  if (debug_>1) NetcdfDebug();
   return 0;
 }
 
@@ -108,6 +106,7 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
     Veloc_ = new float[ Ncatom3() ];
   else
     Veloc_ = 0;
+  if (debug_>1) NetcdfDebug();
   closeTraj();
   // NetCDF files are always seekable
   SetSeekable( true );
@@ -128,7 +127,7 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn) {
 int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm, 
                                    int NframesToWrite, bool append)
 {
-  if (!append || !fileExists(fname.c_str())) {
+  if (!append) {
     filename_.SetFileName( fname );
     // Set up title
     if (Title().empty())
@@ -137,23 +136,24 @@ int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm,
     if ( NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), HasV(),
                     HasBox(), HasT(), true, Title() ) )
       return 1;
+    if (debug_>1) NetcdfDebug();
     // Close Netcdf file. It will be reopened write.
     NC_close();
     // Allocate memory
     if (Coord_!=0) delete[] Coord_;
     Coord_ = new float[ Ncatom3() ];
-  } else {
+  } else { // NOTE: File existence is checked for in Trajout
     // Call setupTrajin to set input parameters. This will also allocate
     // memory for coords.
-    if (setupTrajin(fname, trajParm) == TRAJIN_ERR) return 1; 
-    mprintf("\tNetCDF: Appending %s starting at frame %i\n", filename_.base(), Ncframe()); 
+    if (setupTrajin(fname, trajParm) == TRAJIN_ERR) return 1;
+    if (debug_ > 0)
+      mprintf("\tNetCDF: Appending %s starting at frame %i\n", filename_.base(), Ncframe()); 
   }
   // Open file
   if ( NC_openWrite( filename_.Full() ) != 0 ) {
     mprinterr("Error: Opening Netcdf file %s for Write.\n", filename_.base());
     return 1;
   }
-  if (debug_>1) NetcdfDebug();
  
   return 0;
 }

@@ -4,9 +4,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Box::Box() :
-  debug_(0),
-  btype_(NOBOX)
+Box::Box() : btype_(NOBOX) //, debug_(0)
 {
   box_[0] = 0;
   box_[1] = 0;
@@ -16,14 +14,13 @@ Box::Box() :
   box_[5] = 0;
 }
 
-Box::Box(const double* bIn) {
+Box::Box(const double* bIn) //: debug_(0)
+{
   SetBox( bIn );
 }
 
 // COPY CONSTRUCTOR
-Box::Box(const Box& rhs) : 
-  debug_(rhs.debug_),
-  btype_(rhs.btype_)
+Box::Box(const Box& rhs) : btype_(rhs.btype_) //, debug_(rhs.debug_)
 {
   box_[0] = rhs.box_[0];
   box_[1] = rhs.box_[1];
@@ -36,7 +33,7 @@ Box::Box(const Box& rhs) :
 // Assignment
 Box &Box::operator=(const Box& rhs) {
   if (&rhs == this) return *this;
-  debug_ = rhs.debug_;
+  //debug_ = rhs.debug_;
   btype_ = rhs.btype_;
   box_[0] = rhs.box_[0];
   box_[1] = rhs.box_[1];
@@ -54,7 +51,7 @@ const char Box::BoxNames[5][15] = {
 };
 
 // Box::TypeName()
-const char* Box::TypeName() {
+const char* Box::TypeName() const {
   return BoxNames[btype_];
 }
 
@@ -143,30 +140,26 @@ void Box::SetBoxType() {
       btype_ = ORTHO;
       box_[3] = 90.0;
       box_[5] = 90.0;
-      //if (debug_>0)
-      //  mprintf("    Setting box to be orthogonal\n");
+      //if (debug_>0) mprintf("\tSetting box to be orthogonal\n");
     } else if ( IsTruncOct( box_[4] ) ) {
       btype_ = TRUNCOCT;
       //Box[3] = TRUNCOCTBETA;
       box_[3] = box_[4];
       box_[5] = box_[4];
-      //if (debug_>0) 
-      //  mprintf("    Setting box to be a truncated octahedron, angle is %lf\n",box_[3]);
+      //if (debug_>0) mprintf("\tSetting box to be a truncated octahedron, angle is %lf\n",box_[3]);
     } else if (box_[4] == 60.0) {
       btype_ = RHOMBIC;
       box_[3]=60.0; 
       box_[4]=90.0; 
       box_[5]=60.0;
-      //if (debug_>0)
-      //  mprintf("    Setting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n");
+      //if (debug_>0) mprintf("\tSetting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n");
     } else {
       mprintf("Warning: Box: Unrecognized beta (%lf); setting all angles to beta.\n",box_[4]);
       box_[3] = box_[4];
       box_[5] = box_[4];
     }
   } 
-  //if (debug_>0) 
-    mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
+  //if (debug_>0) mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
 }
 
 // Box::ToRecip()
