@@ -25,7 +25,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
-  ArgList::ConstArg puckerFile = actionArgs.getKeyString("out");
+  std::string puckerFile = actionArgs.GetStringKey("out");
   if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
   amplitude_ = actionArgs.hasKey("amplitude");
@@ -39,12 +39,12 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if ( stypename == "pucker" ) stype = DataSet::PUCKER;
 
   // Get Masks
-  ArgList::ConstArg mask1 = actionArgs.getNextMask();
-  ArgList::ConstArg mask2 = actionArgs.getNextMask();
-  ArgList::ConstArg mask3 = actionArgs.getNextMask();
-  ArgList::ConstArg mask4 = actionArgs.getNextMask();
-  ArgList::ConstArg mask5 = actionArgs.getNextMask();
-  if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL || mask5==NULL) {
+  std::string mask1 = actionArgs.GetMaskNext();
+  std::string mask2 = actionArgs.GetMaskNext();
+  std::string mask3 = actionArgs.GetMaskNext();
+  std::string mask4 = actionArgs.GetMaskNext();
+  std::string mask5 = actionArgs.GetMaskNext();
+  if (mask1.empty() || mask2.empty() || mask3.empty() || mask4.empty() || mask5.empty()) {
     mprinterr("Error: pucker: Requires 5 masks\n");
     return Action::ERR;
   }
@@ -55,11 +55,11 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   M5_.SetMaskString(mask5);
 
   // Setup dataset
-  puck_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Pucker");
+  puck_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Pucker");
   if (puck_==NULL) return Action::ERR;
   puck_->SetScalar( DataSet::M_PUCKER, stype );
   // Add dataset to datafile list
-  DFL->Add(puckerFile, puck_);
+  DFL->AddSetToFile(puckerFile, puck_, actionArgs);
 
   //dih->Info();
   mprintf("    PUCKER: [%s]-[%s]-[%s]-[%s]-[%s]\n", M1_.MaskString(),M2_.MaskString(),
@@ -68,8 +68,8 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf("            Using Altona & Sundaralingam method.\n");
   else if (puckerMethod_==CREMER)
     mprintf("            Using Cremer & Pople method.\n");
-  if (puckerFile!=NULL) 
-    mprintf("            Data will be written to %s\n",puckerFile);
+  if (!puckerFile.empty()) 
+    mprintf("            Data will be written to %s\n",puckerFile.c_str());
   if (amplitude_)
     mprintf("            Amplitudes will be stored instead of psuedorotation.\n");
   if (offset_!=0)

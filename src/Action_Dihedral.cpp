@@ -20,7 +20,7 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
-  ArgList::ConstArg dihedralFile = actionArgs.getKeyString("out");
+  std::string dihedralFile = actionArgs.GetStringKey("out");
   useMass_ = actionArgs.hasKey("mass");
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
@@ -38,11 +38,11 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   else if ( stypename == "pchi"    ) stype = DataSet::PCHI;
 
   // Get Masks
-  ArgList::ConstArg mask1 = actionArgs.getNextMask();
-  ArgList::ConstArg mask2 = actionArgs.getNextMask();
-  ArgList::ConstArg mask3 = actionArgs.getNextMask();
-  ArgList::ConstArg mask4 = actionArgs.getNextMask();
-  if (mask1==NULL || mask2==NULL || mask3==NULL || mask4==NULL) {
+  std::string mask1 = actionArgs.GetMaskNext();
+  std::string mask2 = actionArgs.GetMaskNext();
+  std::string mask3 = actionArgs.GetMaskNext();
+  std::string mask4 = actionArgs.GetMaskNext();
+  if (mask1.empty() || mask2.empty() || mask3.empty() || mask4.empty()) {
     mprinterr("Error: dihedral: Requires 4 masks\n");
     return Action::ERR;
   }
@@ -52,11 +52,11 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   M4_.SetMaskString(mask4);
 
   // Setup dataset
-  dih_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"Dih");
-  if (dih_==NULL) return Action::ERR;
+  dih_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Dih");
+  if (dih_==0) return Action::ERR;
   dih_->SetScalar( DataSet::M_TORSION, stype );
   // Add dataset to datafile list
-  DFL->Add(dihedralFile, dih_);
+  DFL->AddSetToFile(dihedralFile, dih_, actionArgs);
 
   mprintf("    DIHEDRAL: [%s]-[%s]-[%s]-[%s]\n", M1_.MaskString(), 
           M2_.MaskString(), M3_.MaskString(), M4_.MaskString());
