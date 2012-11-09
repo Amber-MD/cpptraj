@@ -567,6 +567,8 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
         break;
       default: mprintf("Dispatch type is currently not handled.\n");
     }
+  } else {
+    if (exitOnError_) return C_ERR;
   }
   return C_OK;
 }
