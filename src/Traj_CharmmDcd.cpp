@@ -1,7 +1,6 @@
 // Traj_CharmmDcd
-#include <cmath> // for cos, acos
-#include <cstddef>
-#include <cstring>
+#include <cmath>   // for cos, acos
+#include <cstring> // memset
 #include "Traj_CharmmDcd.h"
 #include "Constants.h"
 #include "CpptrajStdio.h"
