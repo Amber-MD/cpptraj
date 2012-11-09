@@ -1,5 +1,4 @@
 // DataFileList
-#include <cstddef> // NULL
 #include "DataFileList.h"
 #include "CpptrajStdio.h"
 
@@ -28,18 +27,19 @@ void DataFileList::SetDebug(int debugIn) {
   * otherwise return null.
   */
 DataFile* DataFileList::GetDataFile(std::string const& nameIn) {
-  if (nameIn.empty()) return NULL;
+  if (nameIn.empty()) return 0;
   int idx = FindName( nameIn );
-  if (idx == -1) return NULL;
+  if (idx == -1) return 0;
   return fileList_[idx];
 }
 
 // DataFileList::Add()
 DataFile* DataFileList::Add(const char* nameIn, DataSet* dsetIn) {
-  if (nameIn == NULL) return NULL;
+  if (nameIn == 0) return 0;
   return AddSetToFile( std::string(nameIn), dsetIn );
 }
 
+// DataFileList::AddSetToFile()
 DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn) {
   ArgList empty;
   return AddSetToFile(nameIn, dsetIn, empty);
@@ -54,23 +54,23 @@ DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn,
                                      ArgList& argIn) 
 {
   // If no filename, no output desired
-  if (nameIn.empty()) return NULL;
+  if (nameIn.empty()) return 0;
   // If DataSet is NULL, dont add
-  if (dsetIn==NULL) {
+  if (dsetIn==0) {
     mprintf("Error: Attempting to add non-existent dataset to file %s\n",nameIn.c_str());
-    return NULL;
+    return 0;
   }
 
   // Check if this filename already in use
   DataFile* Current = GetDataFile(nameIn);
 
   // If no DataFile associated with nameIn, create new datafile
-  if (Current==NULL) {
+  if (Current==0) {
     Current = new DataFile();
     if (Current->SetupDatafile(nameIn)) {
       mprinterr("Error setting up DataFile %s\n",nameIn.c_str());
       delete Current;
-      return NULL;
+      return 0;
     } 
     fileList_.push_back(Current);
     AddFilename( nameIn );
@@ -129,7 +129,7 @@ int DataFileList::ProcessDataFileArgs(ArgList& dataArg) {
             df_cmd.c_str(), df_cmd.c_str());
   //mprintf("  [%s]\n",(*dataArg).ArgLine());
   DataFile* df = GetDataFile( df_cmd.c_str() );
-  if (df == NULL) {
+  if (df == 0) {
     mprinterr("Error: datafile: File %s not found.\n", df_cmd.c_str());
     return 1;
   }
