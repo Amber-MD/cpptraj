@@ -172,24 +172,21 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   corrOut_ = actionArgs.GetStringKey("corrout");
   do_gridsearch_ = actionArgs.hasKey("gridsearch");
 
-  ArgList::ConstArg referenceName=actionArgs.getKeyString("ref");
+  std::string referenceName = actionArgs.GetStringKey("ref");
   int refindex=actionArgs.getKeyInt("refindex",-1);
   if (actionArgs.hasKey("reference")) // For compatibility with ptraj
     refindex = 0;
 
   // Get Masks
-  ArgList::ConstArg mask0 = actionArgs.getNextMask();
-  AtomMask RefMask(mask0);
-  TargetMask_.SetMaskString(mask0);
-
-  // Dataset
+  AtomMask RefMask( actionArgs.GetMaskNext() );
+  TargetMask_.SetMaskString( RefMask.MaskExpression() );
   
   // Initialize random number generator
   RNgen_.rn_set( rseed_ );
 
   // Set up reference for RMSD
   // Attempt to get reference index by name
-  if (referenceName!=NULL)
+  if (!referenceName.empty())
     refindex=FL->FindName(referenceName);
   // Get reference frame by index
   Frame* TempFrame=FL->GetFrame(refindex);

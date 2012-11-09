@@ -23,7 +23,7 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, F
 {
   debug_ = debugIn;
   printIndividual_ = !(actionArgs.hasKey("average"));
-  mask_.SetMaskString( actionArgs.getNextMask() );
+  mask_.SetMaskString( actionArgs.GetMaskNext() );
   time_ = actionArgs.getNextDouble(1.0);
   if (time_ < 0) {
     mprinterr("Error: diffusion: time per frame incorrectly specified\n");

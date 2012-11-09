@@ -27,7 +27,7 @@ Action_Closest::Action_Closest() :
 
 void Action_Closest::Help() {
   mprintf("closest <# to keep> <mask> [noimage] [first/oxygen]\n");
-  mprintf("        [closestout <filename> [outprefix <parmprefix>]\n");
+  mprintf("        [closestout <filename> [name <setname>]] [outprefix <parmprefix>]\n");
   mprintf("\tKeep only the closest <# to keep> molecules to atoms in <mask>\n");
 }
 
@@ -55,32 +55,37 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   prefix_ = actionArgs.GetStringKey("outprefix");
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
-  ArgList::ConstArg filename = actionArgs.getKeyString("closestout");
-  if (filename != NULL) {
+  std::string filename = actionArgs.GetStringKey("closestout");
+  if (!filename.empty()) {
+    std::string dsetName = actionArgs.GetStringKey("name");
+    if (dsetName.empty())
+      dsetName = DSL->GenerateDefaultName("CLOSEST");
     // Set up datasets
-    framedata_ = outList_.Add(DataSet::INT, "Frame", "Frame");
-    moldata_   = outList_.Add(DataSet::INT, "Mol", "Mol");
-    distdata_  = outList_.Add(DataSet::DOUBLE, "Dist", "Dist");
-    atomdata_  = outList_.Add(DataSet::INT, "FirstAtm", "FirstAtm");
-    if (framedata_==NULL || moldata_==NULL || distdata_==NULL || atomdata_==NULL) {
-      mprinterr("Error: closest:: Could not setup data sets for output file %s\n",
-                filename);
+    framedata_ = DSL->AddSetAspect(DataSet::INT,    dsetName, "Frame");
+    moldata_   = DSL->AddSetAspect(DataSet::INT,    dsetName, "Mol");
+    distdata_  = DSL->AddSetAspect(DataSet::DOUBLE, dsetName, "Dist");
+    atomdata_  = DSL->AddSetAspect(DataSet::INT,    dsetName, "FirstAtm");
+    if (framedata_==0 || moldata_==0 || distdata_==0 || atomdata_==0) {
+      mprinterr("Error: closest: Could not setup data sets for output file %s\n",
+                filename.c_str());
       return Action::ERR;
     }
     // Add sets to datafile in list.
-    outFile_ = DFL->Add(filename, framedata_);
-    outFile_ = DFL->Add(filename, moldata_);
-    outFile_ = DFL->Add(filename, distdata_);
-    outFile_ = DFL->Add(filename, atomdata_);
-    if (outFile_==NULL) {
-      mprintf("Error: closest: Could not setup output file %s\n",filename);
+    outFile_ = DFL->AddDataFile( filename );
+    if (outFile_ == 0) {
+      mprinterr("Error: closest: could not set up output file %s\n", filename.c_str());
       return Action::ERR;
     }
+    outFile_->AddSet(framedata_);
+    outFile_->AddSet(moldata_);
+    outFile_->AddSet(distdata_);
+    outFile_->AddSet(atomdata_);
+    outFile_->ProcessArgs("noxcol");
   }
 
   // Get Masks
-  ArgList::ConstArg mask1 = actionArgs.getNextMask();
-  if (mask1==NULL) {
+  std::string mask1 = actionArgs.GetMaskNext();
+  if (mask1.empty()) {
     mprinterr("Error: closest: No mask specified.\n");
     return Action::ERR;
   }
@@ -341,19 +346,3 @@ Action::RetType Action_Closest::DoAction(int frameNum, Frame* currentFrame, Fram
 
   return Action::OK;
 } 
-
-// Action_Closest::print()
-/** Set up the closest output file for writing. Since the datasets used in
-  * closest are local and not part of the master data set list, call Sync
-  * for them here. Also set so that the X column (which is just an index)
-  * is not written.
-  */
-void Action_Closest::Print() {
-  if (outFile_==NULL) return;
-  // Sync up the dataset list here since it is not part of the master 
-  // dataset list.
-  outList_.Sync();
-  // Set specific datafile options
-  outFile_->ProcessArgs("noxcol");
-}
-

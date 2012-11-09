@@ -9,13 +9,13 @@ const double Action_DSSP::DSSP_fac = 27.888;
 // CONSTRUCTOR
 Action_DSSP::Action_DSSP() :
   debug_(0),
+  outfile_(0),
   dssp_(0), 
   Nres_(0),
   Nframe_(0),
   SSline_(0),
   printString_(false),
   masterDSL_(0),
-  masterDFL_(0),
   BB_N("N"),
   BB_H("H"),
   BB_C("C"),
@@ -49,12 +49,11 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 //  debugout.OpenFile();
 
   // Get keywords
-  outfilename_ = actionArgs.GetStringKey("out");
+  outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   std::string temp = actionArgs.GetStringKey("sumout");
-  if (!temp.empty()) 
-    sumOut_ = temp;
-  else if (!outfilename_.empty()) 
-    sumOut_ = outfilename_ + ".sum";
+  if (temp.empty() && outfile_ != 0) 
+    temp = outfile_->FullFilename() + ".sum";
+  dsspFile_ = DFL->AddDataFile( temp );
   if (actionArgs.hasKey("ptrajformat")) printString_=true;
   temp = actionArgs.GetStringKey("namen");
   if (!temp.empty()) BB_N = temp;
@@ -73,14 +72,14 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (printString_) {
     dssp_ = DSL->AddSet(DataSet::STRING, dsetname_, 0);
     if (dssp_==0) return Action::ERR;
-    DFL->AddSetToFile(outfilename_, dssp_, actionArgs);
+    outfile_->AddSet( dssp_ );
   }
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
-  if (!outfilename_.empty()) 
-    mprintf("               Dumping results to %s\n", outfilename_.c_str());
-  if (!sumOut_.empty())
-    mprintf("               Sum results to %s\n",sumOut_.c_str());
+  if (outfile_ != 0) 
+    mprintf("               Dumping results to %s\n", outfile_->Filename());
+  if (dsspFile_ != 0)
+    mprintf("               Sum results to %s\n", dsspFile_->Filename());
   if (printString_) 
     mprintf("               SS data for each residue will be stored as a string.\n");
   else
@@ -88,7 +87,6 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   mprintf("               Backbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]\n",
           *BB_N, *BB_H, *BB_C, *BB_O );
   masterDSL_ = DSL;
-  masterDFL_ = DFL;
   return Action::OK;
 }
 
@@ -191,7 +189,7 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
       SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INT, dsetname_,
                                                                 res+1, "res");
       if (SecStruct_[res].resDataSet!=NULL) {
-        masterDFL_->AddSetToFile(outfilename_, SecStruct_[res].resDataSet);
+        outfile_->AddSet(SecStruct_[res].resDataSet);
         SecStruct_[res].resDataSet->SetLegend( currentParm->ResNameNum(res) );
       }
     }
@@ -401,24 +399,23 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
   * Prepare for output via the master data file list.
   */
 void Action_DSSP::Print() {
-  DataFile *dsspFile;
   int resi, ss;
   double avg;
   std::vector<DataSet*> dsspData_(7);
 
-  if (sumOut_.empty()) return;
+  if (dsspFile_ == 0) return;
 
   // Set up a dataset for each SS type
   for (ss=1; ss<7; ss++) {
     dsspData_[ss] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dsetname_, ss, "avgss");
     dsspData_[ss]->SetLegend( SSname[ss] );
-    dsspFile = masterDFL_->AddSetToFile( sumOut_, dsspData_[ss] ); 
+    dsspFile_->AddSet( dsspData_[ss] ); 
   }
   // Change the X label to Residue
-  dsspFile->ProcessArgs("xlabel Residue");
+  dsspFile_->ProcessArgs("xlabel Residue");
   // Dont print empty frames
   // NOTE: Obsolete?
-  dsspFile->ProcessArgs("noemptyframes");
+  dsspFile_->ProcessArgs("noemptyframes");
 
   // Calc the avg structure of each type for each selected residue 
   for (resi=0; resi < Nres_; resi++) {

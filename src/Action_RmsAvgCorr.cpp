@@ -23,7 +23,7 @@ Action::RetType Action_RmsAvgCorr::Init(ArgList& actionArgs, TopologyList* PFL, 
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get Keywords
-  ArgList::ConstArg outfilename = actionArgs.getKeyString("out");
+  std::string outfilename = actionArgs.GetStringKey("out");
 # ifdef _OPENMP
   if (actionArgs.hasKey("output")) {
     mprinterr("Error: 'output' keyword not supported in OpenMP version of rmsavgcorr.\n");
@@ -35,22 +35,21 @@ Action::RetType Action_RmsAvgCorr::Init(ArgList& actionArgs, TopologyList* PFL, 
   useMass_ = actionArgs.hasKey("mass");
   maxwindow_ = actionArgs.getKeyInt("stop",-1);
   // Get Masks
-  ArgList::ConstArg rmsmask = actionArgs.getNextMask();
-  Mask0_.SetMaskString( rmsmask );
+  Mask0_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Set up dataset to hold correlation 
-  Ct_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"RACorr");
-  if (Ct_==NULL) return Action::ERR;
+  Ct_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"RACorr");
+  if (Ct_==0) return Action::ERR;
   // Add dataset to data file list
-  DFL->Add(outfilename,Ct_);
+  DFL->AddSetToFile(outfilename, Ct_);
 
   mprintf("    RMSAVGCORR:");
-  if (rmsmask!=NULL)
-    mprintf(" RMSD Mask [%s]",rmsmask);
+  if (Mask0_.MaskStringSet())
+    mprintf(" RMSD Mask [%s]", Mask0_.MaskString());
   else
     mprintf(" All atoms");
   if (useMass_) mprintf(" (mass-weighted)");
-  if (outfilename!=NULL) mprintf(", Output to %s",outfilename);
+  if (!outfilename.empty()) mprintf(", Output to %s",outfilename.c_str());
   if (maxwindow_!=-1) mprintf(", max window %i",maxwindow_);
   mprintf(".\n");
   if (!separateName_.empty())

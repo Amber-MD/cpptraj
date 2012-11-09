@@ -9,8 +9,10 @@
 Action_Rmsd::Action_Rmsd() :
   perres_(false),
   NumResidues_(0),
+  perresout_(0),
   perrescenter_(false),
   perresinvert_(false),
+  perresavg_(0),
   ResFrame_(NULL),
   ResRefFrame_(NULL),
   nofit_(false),
@@ -18,7 +20,6 @@ Action_Rmsd::Action_Rmsd() :
   useMass_(false),
   rmsd_(NULL),
   masterDSL_(0),
-  masterDFL_(0),
   refmode_(UNKNOWN_REF),
   RefParm_(NULL)
 { }
@@ -96,7 +97,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (!nofit_)
     rotate_ = !actionArgs.hasKey("norotate");
   useMass_ = actionArgs.hasKey("mass");
-  std::string rmsdFile = actionArgs.GetStringKey("out");
+  DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   // Reference keywords
   refmode_ = UNKNOWN_REF;
   if ( actionArgs.hasKey("first") ) {
@@ -117,7 +118,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
-    perresout_ = actionArgs.GetStringKey("perresout");
+    perresout_ = DFL->AddDataFile( actionArgs.GetStringKey("perresout") );
     perresinvert_ = actionArgs.hasKey("perresinvert");
     ResRange_.SetRange( actionArgs.GetStringKey("range") );
     RefRange_.SetRange( actionArgs.GetStringKey("refrange") );
@@ -130,7 +131,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
         perresmask_ = '&' + perresmask_;
     }
     perrescenter_ = actionArgs.hasKey("perrescenter");
-    perresavg_ = actionArgs.GetStringKey("perresavg");
+    perresavg_ = DFL->AddDataFile( actionArgs.GetStringKey("perresavg") );
   }
   // Get the RMS mask string for target 
   std::string mask0 = actionArgs.GetMaskNext();
@@ -187,7 +188,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (rmsd_==0) return Action::ERR;
   rmsd_->SetScalar( DataSet::M_RMS );
   // Add dataset to data file list
-  DFL->AddSetToFile(rmsdFile, rmsd_, actionArgs);
+  if (outfile != 0) outfile->AddSet( rmsd_ );
 
   //rmsd->Info();
   mprintf("    RMSD: (%s), reference is",FrameMask_.MaskString());
@@ -224,17 +225,16 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     if (!RefRange_.Empty())
       mprintf(" (reference residues %s)",RefRange_.RangeArg());
     mprintf(" using mask [:X%s].\n",perresmask_.c_str());
-    if (!perresout_.empty())
-      mprintf("          Per-residue output file is %s\n",perresout_.c_str());
-    if (!perresavg_.empty())
-      mprintf("          Avg per-residue output file is %s\n",perresavg_.c_str());
+    if (perresout_ != 0)
+      mprintf("          Per-residue output file is %s\n",perresout_->Filename());
+    if (perresavg_ != 0)
+      mprintf("          Avg per-residue output file is %s\n",perresavg_->Filename());
     if (perrescenter_)
       mprintf("          perrescenter: Each residue will be centered prior to RMS calc.\n");
     if (perresinvert_)
       mprintf("          perresinvert: Frames will be written in rows instead of columns.\n");
   }
   masterDSL_ = DSL;
-  masterDFL_ = DFL;
   return Action::OK;
 }
 
@@ -468,40 +468,31 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
   * file options. Calculate averages if requested.
   */
 void Action_Rmsd::Print() {
-  DataFile *outFile;
-
   if (!perres_ || PerResRMSD_.empty()) return;
   // Per-residue output
-  if (!perresout_.empty()) {
+  if (perresout_ != 0) {
     // Add data sets to perresout
     for (std::vector<DataSet*>::iterator set = PerResRMSD_.begin();
                                          set != PerResRMSD_.end(); ++set)
-    {
-      outFile = masterDFL_->AddSetToFile(perresout_, *set);
-      if (outFile == NULL) 
-        mprinterr("Error adding set %s to file %s\n", (*set)->Legend().c_str(), 
-                   perresout_.c_str());
-    }
-    if (outFile!=NULL) {
-      // Set output file to be inverted if requested
-      if (perresinvert_) 
-        outFile->ProcessArgs("invert");
-      mprintf("    RMSD: Per-residue: Writing data for %zu residues to %s\n",
-              PerResRMSD_.size(), outFile->Filename());
-    }
+      perresout_->AddSet(*set);
+    // Set output file to be inverted if requested
+    if (perresinvert_) 
+      perresout_->ProcessArgs("invert");
+    mprintf("    RMSD: Per-residue: Writing data for %zu residues to %s\n",
+            PerResRMSD_.size(), perresout_->Filename());
   }
 
   // Average
-  if (!perresavg_.empty()) {
+  if (perresavg_ != 0) {
     int Nperres = (int)PerResRMSD_.size();
     // Use the per residue rmsd dataset list to add one more for averaging
-    DataSet *PerResAvg = masterDSL_->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Avg");
+    DataSet* PerResAvg = masterDSL_->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Avg");
     // another for stdev
-    DataSet *PerResStdev = masterDSL_->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Stdev");
+    DataSet* PerResStdev = masterDSL_->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Stdev");
     // Add the average and stdev datasets to the master datafile list
-    outFile = masterDFL_->AddSetToFile(perresavg_, PerResAvg);
-    outFile = masterDFL_->AddSetToFile(perresavg_, PerResStdev);
-    outFile->ProcessArgs("xlabel Residue");
+    perresavg_->AddSet(PerResAvg);
+    perresavg_->AddSet(PerResStdev);
+    perresavg_->ProcessArgs("xlabel Residue");
     // For each residue, get the average rmsd
     double stdev = 0;
     double avg = 0;
@@ -513,4 +504,3 @@ void Action_Rmsd::Print() {
     }
   }
 }
- 

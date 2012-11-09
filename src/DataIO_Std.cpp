@@ -163,8 +163,8 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
 
 // DataIO_Std::processWriteArgs()
 int DataIO_Std::processWriteArgs(ArgList &argIn) {
-  ArgList::ConstArg ylabel = argIn.getKeyString("ylabel");
-  if (ylabel!=NULL) y_label_.assign(ylabel);
+  std::string ylabel = argIn.GetStringKey("ylabel");
+  if (!ylabel.empty()) y_label_.assign(ylabel);
   ymin_ = argIn.getKeyDouble("ymin",ymin_);
   ystep_ = argIn.getKeyDouble("ystep",ystep_);
  

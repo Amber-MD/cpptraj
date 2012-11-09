@@ -242,29 +242,6 @@ std::string DataSetList::GenerateDefaultName(const char* defaultName) {
   return ( std::string(defaultName) + "_" + integerToString(size(), extsize) ); 
 }
 
-// DataSetList::Add() TODO: Obsolete
-/** Used to add a DataSet to the DataSetList which may or may not
-  * be named. If nameIn is not specified create a name based on the 
-  * given defaultName and dataset #.
-  */
-DataSet* DataSetList::Add(DataSet::DataType inType, const char *nameIn,
-                          const char *defaultName)
-{
-  std::string dsname;
-  // Require a default name
-  if (defaultName == NULL) {
-    mprinterr("Internal Error: DataSetList::Add() called without default name.\n");
-    return NULL;
-  }
-  // If nameIn is NULL, generate a name based on defaultName
-  if (nameIn == NULL)
-    dsname = GenerateDefaultName( defaultName ); 
-  else
-    dsname.assign( nameIn );
-
-  return AddSetIdxAspect( inType, dsname, -1, std::string() );
-}
-
 // DataSetList::AddSetIdx()
 /** Add DataSet of specified type with given name and index to list. */
 DataSet* DataSetList::AddSetIdx(DataSet::DataType inType,

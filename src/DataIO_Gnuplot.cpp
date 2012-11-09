@@ -24,8 +24,8 @@ void DataIO_Gnuplot::LabelArg( std::vector<std::string>& labels, std::string con
 
 // DataIO_Gnuplot::processWriteArgs()
 int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
-  ArgList::ConstArg ylabel = argIn.getKeyString("ylabel");
-  if (ylabel!=NULL) y_label_.assign(ylabel);
+  std::string ylabel = argIn.GetStringKey("ylabel");
+  if (!ylabel.empty()) y_label_.assign(ylabel);
   ymin_ = argIn.getKeyDouble("ymin",ymin_);
   ystep_ = argIn.getKeyDouble("ystep",ystep_);
 

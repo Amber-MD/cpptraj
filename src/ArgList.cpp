@@ -19,8 +19,8 @@ ArgList::ArgList(std::string const& input, const char* sep) {
 
 // COPY CONSTRUCTOR
 ArgList::ArgList(const ArgList &rhs) :
-  arglist_(rhs.arglist_),
   argline_(rhs.argline_),
+  arglist_(rhs.arglist_),
   marked_(rhs.marked_)
 {}
 
@@ -28,8 +28,8 @@ ArgList::ArgList(const ArgList &rhs) :
 ArgList &ArgList::operator=(const ArgList &rhs) {
   if (&rhs==this) return *this;
   // Allocate and copy. Assignment ops should automatically deallocate.
-  arglist_ = rhs.arglist_;
   argline_ = rhs.argline_;
+  arglist_ = rhs.arglist_;
   marked_ = rhs.marked_;
   return *this;
 }
@@ -197,18 +197,6 @@ bool ArgList::CommandIs(const char *key) const {
   return false;
 }
 
-// ArgList::getNextString()
-/** \return the next unmarked string.
-  */
-ArgList::ConstArg ArgList::getNextString() {
-  for (unsigned int arg = 0; arg < arglist_.size(); ++arg)
-    if (!marked_[arg]) {
-      marked_[arg]=true;
-      return arglist_[arg].c_str();
-    }
-  return NULL;
-}
-
 // ArgList::GetStringNext()
 std::string ArgList::GetStringNext() {
   for (unsigned int arg = 0; arg < arglist_.size(); ++arg)
@@ -219,7 +207,7 @@ std::string ArgList::GetStringNext() {
   return std::string();
 }
 
-// ArgList::getNextMask()
+// ArgList::GetMaskNext()
 /** Return next unmarked Mask. A mask MUST include one of the following: 
   *   ':' residue
   *   '@' atom
@@ -228,20 +216,7 @@ std::string ArgList::GetStringNext() {
   *   '*' everything
   * \return the next unmarked atom mask expression
   */
-ArgList::ConstArg ArgList::getNextMask() {
-  for (unsigned int arg=0; arg < arglist_.size(); ++arg) {
-    if (!marked_[arg]) {
-      size_t found = arglist_[arg].find_first_of(":@*/%");
-      if (found != std::string::npos) {
-        marked_[arg]=true;
-        return arglist_[arg].c_str();
-      }
-    }
-  }
-  return NULL;
-}
-
-// ArgList::GetMaskNext()
+// FIXME: / and % may only be valid after @
 std::string ArgList::GetMaskNext() {
   for (unsigned int arg = 0; arg < arglist_.size(); ++arg) {
     if (!marked_[arg]) {
@@ -323,25 +298,11 @@ double ArgList::getNextDouble(double def) {
   return def;
 }
 
-// ArgList::getKeyString()
+// ArgList::GetStringKey()
 /** Search the argument list for key, return the argument following key
   * as a string if found, otherwise return 0.
   * \param key string to search for
   */
-ArgList::ConstArg ArgList::getKeyString(const char *key) {
-  unsigned int nargs = arglist_.size() - 1;
-  for (unsigned int arg=0; arg < nargs; ++arg)
-    if (!marked_[arg]) {
-      if (arglist_[arg].compare(key)==0) { 
-        marked_[arg++]=true;
-        marked_[arg]=true;
-        return arglist_[arg].c_str();
-      }
-    }
-  return NULL;
-}
-
-// ArgList::GetStringKey()
 std::string ArgList::GetStringKey(const char *key) {
   std::string empty;
   unsigned int nargs = arglist_.size() - 1;

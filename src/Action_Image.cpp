@@ -42,7 +42,6 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, TopologyList* PFL, Frame
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
-  ArgList::ConstArg mask1;
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
   center_ = actionArgs.hasKey("center");
@@ -57,14 +56,13 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, TopologyList* PFL, Frame
 
   // Get Masks
   if (triclinic_ == FAMILIAR) {
-    mask1 = actionArgs.getKeyString("com");
-    if (mask1!=NULL) {
+    std::string maskexpr = actionArgs.GetStringKey("com");
+    if (!maskexpr.empty()) {
       ComMask_ = new AtomMask();
-      ComMask_->SetMaskString(mask1);
+      ComMask_->SetMaskString(maskexpr);
     }
   }
-  mask1 = actionArgs.getNextMask();
-  Mask1_.SetMaskString(mask1);
+  Mask1_.SetMaskString(actionArgs.GetMaskNext());
   
   mprintf("    IMAGE: By %s to", ImageModeString[imageMode_]);
   if (origin_)

@@ -25,7 +25,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
-  std::string puckerFile = actionArgs.GetStringKey("out");
+  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
   if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
   amplitude_ = actionArgs.hasKey("amplitude");
@@ -59,7 +59,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (puck_==NULL) return Action::ERR;
   puck_->SetScalar( DataSet::M_PUCKER, stype );
   // Add dataset to datafile list
-  DFL->AddSetToFile(puckerFile, puck_, actionArgs);
+  if (outfile != 0) outfile->AddSet( puck_ );
 
   //dih->Info();
   mprintf("    PUCKER: [%s]-[%s]-[%s]-[%s]-[%s]\n", M1_.MaskString(),M2_.MaskString(),
@@ -68,8 +68,8 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf("            Using Altona & Sundaralingam method.\n");
   else if (puckerMethod_==CREMER)
     mprintf("            Using Cremer & Pople method.\n");
-  if (!puckerFile.empty()) 
-    mprintf("            Data will be written to %s\n",puckerFile.c_str());
+  if (outfile != 0) 
+    mprintf("            Data will be written to %s\n", outfile->Filename());
   if (amplitude_)
     mprintf("            Amplitudes will be stored instead of psuedorotation.\n");
   if (offset_!=0)

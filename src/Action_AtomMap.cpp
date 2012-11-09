@@ -731,9 +731,9 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   if (!maponly_ && rmsfit_) {
     mprintf("             rmsfit: Will rms fit mapped atoms in tgt to reference.\n");
     if (!rmsout.empty()) {
-      rmsdata_ = DSL->Add(DataSet::DOUBLE,actionArgs.getNextString(),"RMSD");
-      if (rmsdata_==NULL) return Action::ERR;
-      DFL->AddSetToFile(rmsout,rmsdata_);
+      rmsdata_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RMSD");
+      if (rmsdata_==0) return Action::ERR;
+      DFL->AddSetToFile(rmsout, rmsdata_);
     }
   }
 

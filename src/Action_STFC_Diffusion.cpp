@@ -27,8 +27,8 @@ void Action_STFC_Diffusion::Help() {
 Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ArgList::ConstArg maskarg = actionArgs.getKeyString("mask");
-  if (maskarg == NULL) {
+  std::string maskarg = actionArgs.GetStringKey("mask");
+  if (maskarg.empty()) {
     mprinterr("Error: diffusion: No mask specified.\n");
     return Action::ERR;
   }
@@ -65,10 +65,10 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* P
   if ( actionArgs.hasKey("xyz") ) direction_ = DXYZ;
     
   // Process second mask
-  maskarg = actionArgs.getKeyString("mask2");
+  maskarg = actionArgs.GetStringKey("mask2");
   double lcut = 0;
   double ucut = 0;
-  if (maskarg != NULL) {
+  if (!maskarg.empty()) {
     mask2_.SetMaskString( maskarg );
     lcut = actionArgs.getKeyDouble("lower", 0.01);
     ucut = actionArgs.getKeyDouble("upper", 3.5 );

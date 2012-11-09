@@ -25,8 +25,8 @@ Action::RetType Action_AvgCoord::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Get keywords
   useMass_ = actionArgs.hasKey("mass");
   calcMagnitude_ = actionArgs.hasKey("magnitude");
-  ArgList::ConstArg filename = actionArgs.getKeyString("outfile");
-  if (filename==NULL) {
+  std::string filename = actionArgs.GetStringKey("outfile");
+  if (filename.empty()) {
     mprinterr("Error: avgcoord: must specify output file with 'outfile'\n");
     return Action::ERR;
   }
@@ -34,10 +34,10 @@ Action::RetType Action_AvgCoord::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   if (outfile_.OpenFile()) return Action::ERR;
 
   // Get Masks
-  Mask_.SetMaskString( actionArgs.getNextMask() );
+  Mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   mprintf("    AVGCOORD: Average of atoms in mask [%s] will be output to %s\n",
-          Mask_.MaskString(), filename);
+          Mask_.MaskString(), filename.c_str());
   if (useMass_)
     mprintf("              Average will be mass-weighted.\n");
   if (calcMagnitude_)

@@ -133,9 +133,9 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   debug_ = debugIn;
 
   // Set up histogram DataSet
-  hist_ = (Histogram*) datasetlist->Add( DataSet::HIST, 
-                                         analyzeArgs.getKeyString("name"), 
-                                         "Hist");
+  hist_ = (Histogram*) datasetlist->AddSet( DataSet::HIST, 
+                                            analyzeArgs.GetStringKey("name"), 
+                                            "Hist");
   hist_->SetDebug(debug_);
   //hist_ = new Histogram( );
 

@@ -50,7 +50,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   }
   // Get other keywords
   bfactor_ = actionArgs.hasKey("bfactor");
-  std::string outfilename = actionArgs.GetStringKey("out");
+  outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs ); 
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRES;
   else if (actionArgs.hasKey("bymask"))
@@ -58,28 +58,26 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   else if (actionArgs.hasKey("byatom") || actionArgs.hasKey("byatm"))
     outtype_ = BYATOM;
   // Get Mask
-  Mask.SetMaskString( actionArgs.getNextMask()  );
+  Mask.SetMaskString( actionArgs.GetMaskNext()  );
   // Get DataSet name
   std::string setname = actionArgs.GetStringNext();
   // Add output dataset
   dataout_ = DSL->AddSet( DataSet::DOUBLE, setname, "Fluct" );
-  if (dataout_ == NULL) {
+  if (dataout_ == 0) {
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return Action::ERR; 
   }
-  outfile_ = DFL->AddSetToFile( outfilename, dataout_ );
-  outfile_->ProcessArgs("noemptyframes");
-
-
+  if (outfile_ != 0) {
+    outfile_->AddSet( dataout_ );
+    outfile_->ProcessArgs("noemptyframes");
+  }
   mprintf("    ATOMICFLUCT: calculating");
   if (bfactor_)
     mprintf(" B factors");
   else
     mprintf(" atomic positional fluctuations");
-  if (!outfilename.empty())
-    mprintf(", output to STDOUT");
-  else
-    mprintf(", output to file %s",outfilename.c_str());
+  if (outfile_ != 0)
+    mprintf(", output to file %s",outfile_->Filename());
   mprintf("\n                 Atom mask: [%s]\n",Mask.MaskString());
   if (start_>0 || stop_!=-1 || offset_!=1) {
     mprintf("                 Processing frames %i to",start_+1);

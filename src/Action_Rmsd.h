@@ -31,11 +31,11 @@ class Action_Rmsd: public Action {
     std::vector<bool> resIsActive_;    ///< True if residue was set up correctly
     Range ResRange_;                   ///< Residues to calculate perRes rmsd for
     Range RefRange_;                   ///< Residues in reference corresponding to those in ResRange
-    std::string perresout_;            ///< Per res RMSD data output file name
+    DataFile* perresout_;              ///< Per res RMSD data output file
     std::string perresmask_;           ///< Additional mask to apply to residue masks
     bool perrescenter_;                ///< Move residues to common COM before rms calc
     bool perresinvert_;                ///< If true rows will contain set info instead of cols
-    std::string perresavg_;            ///< Hold per residue average filename
+    DataFile* perresavg_;              ///< Hold per residue average filename
     Frame *ResFrame_;                  ///< Hold residue target coords
     Frame *ResRefFrame_;               ///< Hold residue reference coords.
     // ------------------------ 
@@ -48,7 +48,6 @@ class Action_Rmsd: public Action {
     DataSet *rmsd_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
-    DataFileList* masterDFL_;
     // Reference variables and functions
     enum RefModeType { UNKNOWN_REF=0, FIRST, REF, REFTRAJ };
     RefModeType refmode_;

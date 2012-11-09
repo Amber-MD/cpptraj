@@ -20,7 +20,7 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
-  std::string dihedralFile = actionArgs.GetStringKey("out");
+  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   useMass_ = actionArgs.hasKey("mass");
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
@@ -56,7 +56,7 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   if (dih_==0) return Action::ERR;
   dih_->SetScalar( DataSet::M_TORSION, stype );
   // Add dataset to datafile list
-  DFL->AddSetToFile(dihedralFile, dih_, actionArgs);
+  if (outfile != 0) outfile->AddSet( dih_ );
 
   mprintf("    DIHEDRAL: [%s]-[%s]-[%s]-[%s]\n", M1_.MaskString(), 
           M2_.MaskString(), M3_.MaskString(), M4_.MaskString());

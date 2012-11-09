@@ -48,7 +48,7 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   }
 
   // Get mask string
-  mask_.SetMaskString( actionArgs.getNextMask() );
+  mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   mprintf("    UNWRAP: (%s), reference is ", mask_.MaskString());
   if ( refindex > -1)

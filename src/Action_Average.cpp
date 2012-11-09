@@ -49,12 +49,10 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   offset_ = actionArgs.getKeyInt("offset",1);
 
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.getNextMask() );
+  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Save all remaining arguments for setting up the trajectory at the end.
-  ArgList::ConstArg arg;
-  while ( (arg = actionArgs.getNextString() ) != NULL )
-    trajArgs_.AddArg( arg );
+  trajArgs_ = actionArgs.RemainingArgs();
 
   mprintf("    AVERAGE: Averaging over coordinates in mask [%s]",Mask1_.MaskString());
   if (stop_==-1) 

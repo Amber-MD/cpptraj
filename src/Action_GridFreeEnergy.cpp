@@ -27,8 +27,8 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* P
     return Action::ERR;
 
   // Get mask
-  ArgList::ConstArg maskexpr = actionArgs.getNextMask();
-  if (maskexpr==NULL) {
+  std::string maskexpr = actionArgs.GetMaskNext();
+  if (maskexpr.empty()) {
     mprinterr("Error: GRID: No mask specified.\n");
     return Action::ERR;
   }

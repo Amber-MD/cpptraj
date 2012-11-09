@@ -13,14 +13,13 @@ class Action_Closest: public Action, ImagedAction {
 
     ~Action_Closest();
 
-    void Print();
+    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
 
-    DataSetList outList_; // TODO: Put in master DSL
     DataFile *outFile_;
     DataSet *framedata_;
     DataSet *moldata_;

@@ -13,8 +13,6 @@ class Action_Hbond : public Action {
 
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Hbond(); }
     static void Help();
-
-
     void Print();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
@@ -70,7 +68,6 @@ class Action_Hbond : public Action {
     DataSet* NumBridge_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
-    DataFileList* masterDFL_; 
     /// Return true if the first hbond has more frames than the second.
     /** If both have the same # of frames, pick something arbitrary just to
       * be sure that we have a well-defined ordering (otherwise we could get

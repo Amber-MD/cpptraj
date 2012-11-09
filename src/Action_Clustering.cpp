@@ -51,7 +51,7 @@ Action::RetType Action_Clustering::Init(ArgList& actionArgs, TopologyList* PFL, 
   if (actionArgs.hasKey("linkage")) Linkage_=ClusterList::SINGLELINK;
   if (actionArgs.hasKey("averagelinkage")) Linkage_=ClusterList::AVERAGELINK;
   if (actionArgs.hasKey("complete")) Linkage_=ClusterList::COMPLETELINK;
-  ArgList::ConstArg cnumvtimefile = actionArgs.getKeyString("out");
+  std::string cnumvtimefile = actionArgs.GetStringKey("out");
   clusterinfo_ = actionArgs.GetStringKey("info");
   summaryfile_ = actionArgs.GetStringKey("summary");
   halffile_ = actionArgs.GetStringKey("summaryhalf");
@@ -75,13 +75,13 @@ Action::RetType Action_Clustering::Init(ArgList& actionArgs, TopologyList* PFL, 
   reptrajfile_ = actionArgs.GetStringKey("repout");
   reptrajfmt_ = TrajectoryFile::GetFormatFromString( actionArgs.GetStringKey("repfmt") );
   // Get the mask string 
-  Mask0_.SetMaskString( actionArgs.getNextMask() );
+  Mask0_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Dataset to store cluster number v time
-  cnumvtime_ = DSL->Add(DataSet::INT, actionArgs.getNextString(), "Cnum");
+  cnumvtime_ = DSL->AddSet(DataSet::INT, actionArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==NULL) return Action::ERR;
   // Add dataset to data file list
-  DFL->Add(cnumvtimefile,cnumvtime_);
+  DFL->AddSetToFile(cnumvtimefile, cnumvtime_);
 
   // Determine finish criteria. If nothing specified default to 10 clusters.
   if (targetNclusters_==-1 && epsilon_==-1.0)

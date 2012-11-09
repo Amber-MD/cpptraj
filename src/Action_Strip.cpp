@@ -32,9 +32,9 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   removeBoxInfo_ = actionArgs.hasKey("nobox");
 
   // Get mask of atoms to be stripped
-  ArgList::ConstArg mask1 = actionArgs.getNextMask();
+  std::string mask1 = actionArgs.GetMaskNext();
   //mprintf("    Mask 1: %s\n",mask1);
-  if (mask1==NULL) {
+  if (mask1.empty()) {
     mprinterr("Error: strip: Requires atom mask.\n");
     return Action::ERR;
   }
@@ -58,7 +58,6 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   */
 Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddress) {
   if (currentParm->SetupIntegerMask( M1_ )) return Action::ERR;
-  //mprintf("    STRIP: Mask %s contains %i atoms\n",mask1,m1atoms);
   if (M1_.None()) {
     mprintf("Warning: strip: Mask [%s] has no atoms.\n",M1_.MaskString());
     return Action::ERR;

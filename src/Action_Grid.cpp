@@ -40,8 +40,8 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   pdbname_ = actionArgs.GetStringKey("pdb"); 
 
   // Get mask
-  ArgList::ConstArg maskexpr = actionArgs.getNextMask();
-  if (maskexpr==NULL) {
+  std::string maskexpr = actionArgs.GetMaskNext();
+  if (maskexpr.empty()) {
     mprinterr("Error: GRID: No mask specified.\n");
     return Action::ERR;
   }

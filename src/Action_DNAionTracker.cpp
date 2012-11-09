@@ -34,13 +34,12 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, TopologyList* PF
     bintype_ = COUNT;
 
   // Get masks - 4 must be specified
-  ArgList::ConstArg m1 = actionArgs.getNextMask();
-  ArgList::ConstArg m2 = actionArgs.getNextMask();
-  ArgList::ConstArg m3 = actionArgs.getNextMask();
-  ArgList::ConstArg m4 = actionArgs.getNextMask();
-  if (m1==NULL || m2==NULL || m3==NULL || m4==NULL) {
+  std::string m1 = actionArgs.GetMaskNext();
+  std::string m2 = actionArgs.GetMaskNext();
+  std::string m3 = actionArgs.GetMaskNext();
+  std::string m4 = actionArgs.GetMaskNext();
+  if (m1.empty() || m2.empty() || m3.empty() || m4.empty()) {
     mprinterr("Error: dnaiontracker requires 4 masks.\n");
-    mprinterr("Error: mask1=%s  mask2=%s  mask3=%s  mask4=%s\n",m1,m2,m3,m4);
     return Action::ERR;
   }
   p1_.SetMaskString(m1);
@@ -48,21 +47,13 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, TopologyList* PF
   base_.SetMaskString(m3);
   ions_.SetMaskString(m4);
 
-  // Dataset name
-  ArgList::ConstArg dsetname = actionArgs.getNextString();
-  if (dsetname==NULL) {
-    mprinterr("Error: dnaiontracker: It is necessary to specify a unique name\n");
-    mprinterr("Error:                for each specified tracking.\n");
-    return Action::ERR;
-  }
-
   // Add dataset to dataset list (and datafile list if filename specified)
-  distance_ = DSL->Add(DataSet::DOUBLE, dsetname, "DNAion");
+  distance_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "DNAion");
   // NOTE: Set to mode distance in PTRAJ
   distance_->SetScalar( DataSet::M_DISTANCE );
-  if (distance_==NULL) return Action::ERR;
+  if (distance_==0) return Action::ERR;
   if (!filename_.empty())
-    DFL->Add( filename_.c_str(), distance_ );
+    DFL->AddSetToFile( filename_, distance_ );
 
   // INFO
   mprintf("    DNAIONTRACKER: Data representing the ");

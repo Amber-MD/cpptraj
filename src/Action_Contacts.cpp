@@ -62,31 +62,25 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Square the cutoff
   distance_ = dist * dist;
   first_ = actionArgs.hasKey("first");
-  ArgList::ConstArg referenceName = actionArgs.getKeyString("ref");
+  std::string referenceName = actionArgs.GetStringKey("ref");
   int refindex = actionArgs.getKeyInt("refindex",-1);
   // For compatibility with ptraj, keyword 'reference' == 'refindex 0'
   if (actionArgs.hasKey("reference")) refindex = 0;
-  ArgList::ConstArg outfilename = actionArgs.getKeyString("out"); 
-  if (outfile_.SetupWrite(outfilename, debugIn))
-    return Action::ERR;
-  if (outfile_.OpenFile())
+  std::string outfilename = actionArgs.GetStringKey("out"); 
+  if (outfile_.OpenWrite(outfilename))
     return Action::ERR;
   if (byResidue_) {
-    if (outfilename==NULL) {
+    if (outfilename.empty()) {
       mprinterr("Error: Contacts 'byresidue' requires output filename.\n");
       return Action::ERR;
     }
-    std::string file2name( outfilename );
-    file2name += ".native";
-    if (outfile2_.SetupWrite( file2name, debugIn ))
-      return Action::ERR;
-    if (outfile2_.OpenFile())
+    if (outfile2_.OpenWrite( outfilename + ".native" ))
       return Action::ERR;
   }
 
   // Get Mask
-  ArgList::ConstArg mask0 = actionArgs.getNextMask();
-  if (mask0==NULL && byResidue_)
+  std::string mask0 = actionArgs.GetMaskNext();
+  if (mask0.empty() && byResidue_)
     Mask_.SetMaskString("@CA");
   else
     Mask_.SetMaskString( mask0 );
@@ -96,14 +90,14 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // 'RefTrans' to be NULL.
   //if (RefInit(true, false, Mask_.MaskString(), actionArgs, FL, PFL, NULL)!=0)
   //  return 1;
-  if (!first_ && referenceName==NULL && refindex==-1) {
+  if (!first_ && referenceName.empty() && refindex==-1) {
     mprintf("\tNo reference structure specified. Defaulting to first.\n");
     first_ = true;
   }
 
   if (!first_) {
     // Attempt to get the reference index by name/tag
-    if (referenceName != NULL)
+    if (!referenceName.empty())
       refindex = FL->FindName(referenceName);
     // Get reference frame by index
     // TODO: Convert FrameList to return frame reference?
@@ -139,10 +133,10 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   else
     mprintf(" reference structure.\n");
   mprintf("                   Distance cutoff is %lf angstroms.\n", dist);
-  if (outfilename==NULL)
+  if (outfilename.empty())
     mprintf("              Results will be written to stdout");
   else
-    mprintf("              Writing results to %s", outfilename);
+    mprintf("              Writing results to %s", outfilename.c_str());
   mprintf("\n");
   if (byResidue_)
     mprintf("              Results are output on a per-residue basis.\n");

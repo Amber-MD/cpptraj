@@ -15,18 +15,17 @@ class Action_Surf: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Surf(); }
     static void Help();
 
-
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
   private:
-    DataSet *surf;
-    AtomMask Mask1;
-    AtomMask atomi_neighborMask;
-    AtomMask atomi_noNeighborMask;
-    AtomMask atomj_neighborMask;
+    DataSet* surf_;
+    AtomMask Mask1_;
+    AtomMask atomi_neighborMask_;
+    AtomMask atomi_noNeighborMask_;
+    AtomMask atomj_neighborMask_;
     /// Contain data for an atoms LCPO SA calc
     // TODO: Rework VDW storage
     struct SurfInfo {
@@ -37,11 +36,11 @@ class Action_Surf: public Action {
       double P4;
     };
     /// Contain LCPO data for all atoms in atomi_neighborMask
-    std::vector<SurfInfo> SurfaceInfo_neighbor;
+    std::vector<SurfInfo> SurfaceInfo_neighbor_;
     /// Contain LCPO data for all atoms in atomi_noNeighborMask
-    std::vector<SurfInfo> SurfaceInfo_noNeighbor;
+    std::vector<SurfInfo> SurfaceInfo_noNeighbor_;
     /// Contain vdw radii for all atoms
-    std::vector<double> VDW;
+    std::vector<double> VDW_;
 
     void AssignLCPO(SurfInfo *, double, double, double, double , double );
     void SetAtomLCPO(Topology const&,int, SurfInfo*);

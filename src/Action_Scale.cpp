@@ -19,7 +19,7 @@ Action::RetType Action_Scale::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   sx_ = actionArgs.getKeyDouble("x", 1);
   sy_ = actionArgs.getKeyDouble("y", 1);
   sz_ = actionArgs.getKeyDouble("z", 1);
-  mask_.SetMaskString( actionArgs.getNextMask() );
+  mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   mprintf("    SCALE coordinates: X by %.3f, Y by %.3f, Z by %.3f\n", sx_, sy_, sz_);
   mprintf("                       Mask is [%s]\n", mask_.MaskString());

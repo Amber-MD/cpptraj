@@ -214,11 +214,6 @@ void DataFile::SetPrecision(std::string const& dsetName, int widthIn, int precis
     (*set)->SetPrecision(widthIn, precision);
 }
 
-// DataFile::Filename()
-const char *DataFile::Filename() {
-  return filename_.base();
-}
-
 // DataFile::DataSetNames()
 /** Print Dataset names to one line. If the number of datasets is greater 
   * than 10 just print the first and last 4 data sets.

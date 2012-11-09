@@ -127,7 +127,7 @@ void Analysis_FFT::Print( DataFileList* datafilelist ) {
   if (!outfilename_.empty()) {
     for (std::vector<DataSet*>::iterator dsout = output_dsets_.begin();
                                          dsout != output_dsets_.end(); ++dsout)
-      datafilelist->Add( outfilename_.c_str(), *dsout );
+      datafilelist->AddSetToFile( outfilename_, *dsout );
     DataFile* DF = datafilelist->GetDataFile( outfilename_ );
     if (DF != NULL) 
       DF->ProcessArgs("xlabel Freq. xmin 0 xstep " + doubleToString( f0_ ));

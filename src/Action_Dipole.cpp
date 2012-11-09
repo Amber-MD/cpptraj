@@ -38,8 +38,8 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   dipolez_.resize( grid_.GridSize(), 0 );
 
   // Get mask
-  ArgList::ConstArg maskexpr = actionArgs.getNextMask();
-  if (maskexpr==NULL) {
+  std::string maskexpr = actionArgs.GetMaskNext();
+  if (maskexpr.empty()) {
     mprinterr("Error: Dipole: No mask specified.\n");
     return Action::ERR;
   }

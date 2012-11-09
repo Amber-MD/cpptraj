@@ -47,7 +47,7 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   Topology* RefParm = NULL;
 
   // Check for keywords
-  ArgList::ConstArg rmsdFile = actionArgs.getKeyString("out");
+  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Reference keywords
   refmode_ = UNKNOWN_REF;
   if ( actionArgs.hasKey("first") ) {
@@ -67,11 +67,11 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   }
 
   // Get the RMS mask string for target 
-  ArgList::ConstArg mask0 = actionArgs.getNextMask();
+  std::string mask0 = actionArgs.GetMaskNext();
   TgtMask_.SetMaskString(mask0);
   // Get the RMS mask string for reference
-  ArgList::ConstArg mask1 = actionArgs.getNextMask();
-  if (mask1==NULL)
+  std::string mask1 = actionArgs.GetMaskNext();
+  if (mask1.empty())
     mask1 = mask0;
   RefMask_.SetMaskString( mask1 );
 
@@ -117,10 +117,10 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   }
 
   // Set up the RMSD data set
-  drmsd_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"DRMSD");
-  if (drmsd_==NULL) return Action::ERR;
+  drmsd_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"DRMSD");
+  if (drmsd_==0) return Action::ERR;
   // Add dataset to data file list
-  DFL->Add(rmsdFile,drmsd_);
+  if (outfile != 0) outfile->AddSet( drmsd_ );
 
   mprintf("    DISTRMSD: (%s), reference is",TgtMask_.MaskString());
   if (refmode_ == FIRST)

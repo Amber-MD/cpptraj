@@ -32,18 +32,18 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   debug_ = debugIn;
   // Get Keywords
   InitImaging( !(actionArgs.hasKey("noimage")) );
-  ArgList::ConstArg reportFile = actionArgs.getKeyString("reportfile");
+  std::string reportFile = actionArgs.GetStringKey("reportfile");
   bondoffset_ = actionArgs.getKeyDouble("offset",1.15);
   double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
 
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.getNextMask() );
+  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask [%s]",Mask1_.MaskString());
   if (!UseImage()) 
     mprintf(", imaging off");
-  if (reportFile!=NULL)
-    mprintf(", output to %s",reportFile);
+  if (!reportFile.empty())
+    mprintf(", output to %s",reportFile.c_str());
   mprintf(".\n");
   mprintf("                    Warnings will be printed for bond length > eq + %.2lf\n",
           bondoffset_);

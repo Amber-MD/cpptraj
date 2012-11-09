@@ -3,9 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DataFileList::DataFileList() :
-  debug_(0)
-{ }
+DataFileList::DataFileList() : debug_(0) {}
 
 // DESTRUCTOR
 DataFileList::~DataFileList() {
@@ -33,37 +31,12 @@ DataFile* DataFileList::GetDataFile(std::string const& nameIn) {
   return fileList_[idx];
 }
 
-// DataFileList::Add()
-DataFile* DataFileList::Add(const char* nameIn, DataSet* dsetIn) {
-  if (nameIn == 0) return 0;
-  return AddSetToFile( std::string(nameIn), dsetIn );
-}
-
-// DataFileList::AddSetToFile()
-DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn) {
-  ArgList empty;
-  return AddSetToFile(nameIn, dsetIn, empty);
-}
-
-// DataFileList::AddSetToFile()
-/** Add dataset to datafile in list with given file name. If the file does
-  * not yet exist in the list create it. Return a pointer to the datafile
-  * in the list.
-  */
-DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn,
-                                     ArgList& argIn) 
-{
+/** Create new DataFile, or return existing DataFile. */
+DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
-  // If DataSet is NULL, dont add
-  if (dsetIn==0) {
-    mprintf("Error: Attempting to add non-existent dataset to file %s\n",nameIn.c_str());
-    return 0;
-  }
-
   // Check if this filename already in use
   DataFile* Current = GetDataFile(nameIn);
-
   // If no DataFile associated with nameIn, create new datafile
   if (Current==0) {
     Current = new DataFile();
@@ -71,22 +44,31 @@ DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn,
       mprinterr("Error setting up DataFile %s\n",nameIn.c_str());
       delete Current;
       return 0;
-    } 
+    }
     fileList_.push_back(Current);
     AddFilename( nameIn );
   }
-
-  // Add the dataset to the current DataFile
-  Current->AddSet(dsetIn);
   // Set debug level
   Current->SetDebug(debug_);
   // Process Arguments
   if (!argIn.empty())
     Current->ProcessArgs( argIn );
-  // DEBUG
-  //mprintf("** ADDED DATASET %s TO FILE %s\n",D->Name(),Current->filename);
-
   return Current;
+}
+
+// DataFileList::AddDataFile()
+DataFile* DataFileList::AddDataFile(std::string const& nameIn) {
+  ArgList empty;
+  return AddDataFile( nameIn, empty );
+}
+
+// DataFileList::AddSetToFile()
+DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn) {
+  ArgList empty;
+  DataFile* DF = AddDataFile( nameIn, empty );
+  if (DF == 0) return 0;
+  DF->AddSet( dsetIn );
+  return DF;
 }
 
 // DataFileList::List()
@@ -136,4 +118,3 @@ int DataFileList::ProcessDataFileArgs(ArgList& dataArg) {
   // Process command
   return df->ProcessArgs( dataArg );
 }
-

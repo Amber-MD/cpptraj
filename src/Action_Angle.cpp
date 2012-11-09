@@ -6,7 +6,7 @@
 
 // CONSTRUCTOR
 Action_Angle::Action_Angle() :
-  ang_(NULL),
+  ang_(0),
   useMass_(false)
 { } 
 
@@ -20,7 +20,7 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, TopologyList* PFL, Frame
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
-  std::string angleFile = actionArgs.GetStringKey("out");
+  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   useMass_ = actionArgs.hasKey("mass");
 
   // Get Masks
@@ -40,7 +40,7 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   if (ang_==0) return Action::ERR;
   ang_->SetScalar( DataSet::M_ANGLE );
   // Add dataset to data file list
-  DFL->AddSetToFile(angleFile, ang_, actionArgs);
+  if (outfile != 0) outfile->AddSet( ang_ );
 
   mprintf("    ANGLE: [%s]-[%s]-[%s]\n",Mask1_.MaskString(), Mask2_.MaskString(), 
           Mask3_.MaskString());

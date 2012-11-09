@@ -14,9 +14,9 @@ class DataFileList : public FileList {
 
     void SetDebug(int);
     DataFile* GetDataFile(std::string const&);
-    DataFile* Add(const char*, DataSet*); // TODO: Obsolete
+    DataFile* AddDataFile(std::string const&, ArgList&);
+    DataFile* AddDataFile(std::string const&);
     DataFile* AddSetToFile(std::string const&,  DataSet*);
-    DataFile* AddSetToFile(std::string const&,  DataSet*, ArgList&);
     void List();
     void Write();
     int ProcessDataFileArgs(ArgList&);

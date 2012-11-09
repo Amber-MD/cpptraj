@@ -86,14 +86,14 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* 
   if (!dihedralIn.empty()) {
     if ( ReadDihedrals( dihedralIn ) != 0) return Action::ERR;
   } else {
-    mask_.SetMaskString( actionArgs.getNextMask() );
+    mask_.SetMaskString( actionArgs.GetMaskNext() );
   }
 
   // CVT dataset
   if (!cvtfile.empty()) {
-    CVT_ = DSL->Add(DataSet::INT, actionArgs.getNextString(), "DCVT");
-    if (CVT_ == NULL) return Action::ERR;
-    DFL->Add(cvtfile.c_str(), CVT_);
+    CVT_ = DSL->AddSet(DataSet::INT, actionArgs.GetStringNext(), "DCVT");
+    if (CVT_ == 0) return Action::ERR;
+    DFL->AddSetToFile(cvtfile.c_str(), CVT_);
   }
 
   // INFO

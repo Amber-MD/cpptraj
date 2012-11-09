@@ -160,10 +160,10 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
   std::string karpluspath;
 
   // Get Keywords
-  ArgList::ConstArg outfilename = actionArgs.getKeyString("outfile");
+  std::string outfilename = actionArgs.GetStringKey("outfile");
 
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.getNextMask() );
+  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Dataset setup 
   // Add dataset to data file list
@@ -200,7 +200,10 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
   mprintf("                Using Karplus parameters in \"%s\"\n",karpluspath.c_str());
   mprintf("                %i parameters found for %zu residues.\n",Nconstants_,
           KarplusConstants_.size());
-  mprintf("                Writing output to %s\n",outfilename);
+  if (!outfilename.empty())
+    mprintf("                Writing output to %s\n",outfilename.c_str());
+  else
+    mprintf("                Writing output to STDOUT\n");
 
   // Open output
   if ( outputfile_.OpenWrite( outfilename ) ) return Action::ERR;

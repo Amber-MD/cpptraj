@@ -25,7 +25,7 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   maskpdb_ = actionArgs.GetStringKey("maskpdb");
 
   // Get Mask
-  Mask1_.SetMaskString( actionArgs.getNextMask() );
+  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
   mprintf("    ActionMask: Information on atoms in mask %s will be printed",
           Mask1_.MaskString());

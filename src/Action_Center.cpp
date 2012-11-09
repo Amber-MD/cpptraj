@@ -21,7 +21,7 @@ Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   useMass_ = actionArgs.hasKey("mass");
 
   // Get Masks
-  Mask_.SetMaskString( actionArgs.getNextMask() );
+  Mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   mprintf("    CENTER: To");
   if (origin_)

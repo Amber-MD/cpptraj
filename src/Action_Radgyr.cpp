@@ -23,7 +23,7 @@ Action::RetType Action_Radgyr::Init(ArgList& actionArgs, TopologyList* PFL, Fram
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
-  std::string rogFile = actionArgs.GetStringKey("out");
+  DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   useMass_ = actionArgs.hasKey("mass");
   calcRogmax_ = !actionArgs.hasKey("nomax");
   calcTensor_ = actionArgs.hasKey("tensor");
@@ -35,16 +35,16 @@ Action::RetType Action_Radgyr::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Also add datasets to data file list
   rog_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RoG");
   if (rog_==0) return Action::ERR;
-  DFL->AddSetToFile(rogFile, rog_, actionArgs);
+  if (outfile != 0) outfile->AddSet( rog_ );
   if (calcRogmax_) {
     rogmax_ = DSL->AddSetAspect(DataSet::DOUBLE, rog_->Name(), "Max");
     if (rogmax_ == 0) return Action::ERR; 
-    DFL->AddSetToFile(rogFile, rogmax_);
+    if (outfile != 0) outfile->AddSet( rogmax_ );
   }
   if (calcTensor_) {
     rogtensor_ = DSL->AddSetAspect(DataSet::VECTOR, rog_->Name(), "Tensor");
     if (rogtensor_ == 0) return Action::ERR;
-    DFL->AddSetToFile(rogFile, rogtensor_);
+    if (outfile != 0) outfile->AddSet( rogtensor_ );
   }
 
   mprintf("    RADGYR: Calculating for atoms in mask %s",Mask1_.MaskString());

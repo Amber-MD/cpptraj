@@ -47,7 +47,7 @@ class AtomMask {
     /// Return original mask expression as char*
     const char *MaskString() const;
     /// Return original mask expression as std::string
-    std::string MaskExpression();
+    std::string const& MaskExpression() { return maskString_; }
     /// Reset atom mask
     void ResetMask();
     /// Switch char used to denote selected atoms (T->F, F->T)

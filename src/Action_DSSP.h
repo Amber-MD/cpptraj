@@ -41,18 +41,17 @@ class Action_DSSP : public Action {
     std::vector<Residue> SecStruct_; ///< Hold SS-related data for all residues
     // Class variables
     int debug_;
-    std::string outfilename_; ///< Data file name
+    DataFile* outfile_;       ///< Output Data file
+    DataFile* dsspFile_;      ///< Sum output file
     DataSet* dssp_;           ///< If printString, hold the string dataset
     std::string dsetname_;    ///< DSSP data set name
     AtomMask Mask_;           ///< Mask used to determine selected residues
     int Nres_;                ///< Current total # of residues
     int Nframe_;              ///< # of frames, for calculating SS avg.
-    std::string sumOut_;      ///< File to output SS avgs (dssp.dat.sum)
     char *SSline_;            ///< Hold SS propensity for frame, each char represents a residue
     bool printString_;        ///< If true print 1 char per residue indicating ss type
     // TODO: Replace these with new type of DataSet
     DataSetList* masterDSL_;
-    DataFileList* masterDFL_;
     //CpptrajFile debugout; // DEBUG
     // For printString=false, Int dataset, hold SStype for each residue at each frame
     NameType BB_N;

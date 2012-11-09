@@ -134,9 +134,9 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     }
     while (analyzeArgs.hasKey("maskp")) {
       // Next two arguments should be one-atom masks
-      ArgList::ConstArg a1mask = analyzeArgs.getNextMask();
-      ArgList::ConstArg a2mask = analyzeArgs.getNextMask();
-      if (a1mask==NULL || a2mask==NULL) {
+      std::string a1mask = analyzeArgs.GetMaskNext();
+      std::string a2mask = analyzeArgs.GetMaskNext();
+      if (a1mask.empty() || a2mask.empty()) {
         mprinterr("Error: analyze modes: For 'corr' two 1-atom masks are expected.\n");
         return Analysis::ERR;
       }

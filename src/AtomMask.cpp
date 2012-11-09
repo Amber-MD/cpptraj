@@ -412,11 +412,6 @@ const char *AtomMask::MaskString() const {
   return maskString_.c_str();
 }
 
-// AtomMask::MaskExpression() {
-std::string AtomMask::MaskExpression() {
-  return maskString_;
-}
-
 // AtomMask::ResetMask()
 void AtomMask::ResetMask() {
   nselected_ = 0;

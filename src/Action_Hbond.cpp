@@ -25,8 +25,7 @@ Action_Hbond::Action_Hbond() :
   NumHbonds_(NULL),
   NumSolvent_(NULL),
   NumBridge_(NULL),
-  masterDSL_(0),
-  masterDFL_(0)
+  masterDSL_(0)
 {}
 
 void Action_Hbond::Help() {
@@ -52,7 +51,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
 {
   debug_ = debugIn;
   // Get keywords
-  std::string outfilename = actionArgs.GetStringKey("out");
+  DataFile* DF = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   series_ = actionArgs.hasKey("series");
   avgout_ = actionArgs.GetStringKey("avgout");
   solvout_ = actionArgs.GetStringKey("solvout");
@@ -108,14 +107,14 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
     hbsetname_ = DSL->GenerateDefaultName("HB");
   NumHbonds_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "UU");
   if (NumHbonds_==0) return Action::ERR;
-  DFL->AddSetToFile(outfilename,NumHbonds_,actionArgs);
+  if (DF != 0) DF->AddSet( NumHbonds_ );
   if (calcSolvent_) {
     NumSolvent_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "UV");
     if (NumSolvent_ == 0) return Action::ERR;
-    DFL->AddSetToFile(outfilename, NumSolvent_);
+    if (DF != 0) DF->AddSet( NumSolvent_ );
     NumBridge_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "Bridge");
     if (NumBridge_ == 0) return Action::ERR;
-    DFL->AddSetToFile(outfilename, NumBridge_);
+    if (DF != 0) DF->AddSet( NumBridge_ );
   } 
 
   mprintf( "  HBOND: ");
@@ -140,8 +139,8 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
     mprintf("\tWill search for hbonds between solute and solvent acceptors in [%s]\n",
             SolventAcceptorMask_.MaskString());
   mprintf("\tDistance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*RADDEG);
-  if (!outfilename.empty()) 
-    mprintf("\tDumping # Hbond v time results to %s\n", outfilename.c_str());
+  if (DF != 0) 
+    mprintf("\tDumping # Hbond v time results to %s\n", DF->Filename());
   if (!avgout_.empty())
     mprintf("\tDumping Hbond avgs to %s\n",avgout_.c_str());
   if (calcSolvent_ && !solvout_.empty())
@@ -151,7 +150,6 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   if (series_)
     mprintf("\tTime series data for each hbond will be saved for analysis.\n");
   masterDSL_ = DSL;
-  masterDFL_ = DFL;
   return Action::OK;
 }
 

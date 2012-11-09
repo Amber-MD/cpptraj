@@ -26,7 +26,7 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, TopologyList* PFL, F
   useMass_ = actionArgs.hasKey("mass");
 
   // Masks
-  mask_.SetMaskString( actionArgs.getNextMask() );
+  mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   mprintf("    PRINCIPAL");
   if (doRotation_)

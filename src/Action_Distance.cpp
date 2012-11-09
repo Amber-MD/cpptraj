@@ -20,18 +20,16 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Get Keywords
   InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
-  std::string distanceFile = actionArgs.GetStringKey("out");
+  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
   if      ( stypename == "hbond" ) stype = DataSet::HBOND;
   else if (stypename == "noe"    ) stype = DataSet::NOE; // TODO: Grab bound and boundh
 
   // Get Masks
-  ArgList::ConstArg mask1 = actionArgs.getNextMask();
-  ArgList::ConstArg mask2 = actionArgs.getNextMask();
-  //fprintf(stdout,"    Mask 1: %s\n",mask1);
-  //fprintf(stdout,"    Mask 2: %s\n",mask2);
-  if (mask1==NULL || mask2==NULL) {
+  std::string mask1 = actionArgs.GetMaskNext();
+  std::string mask2 = actionArgs.GetMaskNext();
+  if (mask1.empty() || mask2.empty()) {
     mprinterr("Error: distance: Requires 2 masks\n");
     return Action::ERR;
   }
@@ -42,8 +40,8 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Dis");
   if (dist_==0) return Action::ERR;
   dist_->SetScalar( DataSet::M_DISTANCE, stype );
-  // Add dataset to data file list
-  DFL->AddSetToFile(distanceFile, dist_, actionArgs);
+  // Add dataset to data file
+  if (outfile != 0) outfile->AddSet( dist_ );
 
   mprintf("    DISTANCE: %s to %s",Mask1_.MaskString(), Mask2_.MaskString());
   if (!UseImage()) 

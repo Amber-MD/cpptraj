@@ -12,20 +12,10 @@
   * it has :, @, % characters etc). All of the getX routines (along with
   * the hasKey routine) mark the argument they access as used, so that
   * subsequent calls with these functions will not return the same
-  * argument over and over. For string arguments two versions currently
-  * exist, lowercase 'get' and uppercase 'Get'. The 'get' routines
-  * return a const char* (type defined as ConstArg), while the 'Get' routines
-  * return a string object. The former routines exist both as legacy code
-  * and potentially for performance reasons (since no copy of a string
-  * object has to be made), although I haven't benchmarked to see just
-  * how "fast" they are). It should only be used in local scope, i.e.
-  * to hold a variable in Action::init() only; anything outside that
-  * should use the 'Get' routine.
+  * argument over and over. 
   */
 class ArgList {
   public:
-    /// Return type definition for 'getX' string routines.
-    typedef const char* ConstArg;
     // Constructors
     ArgList() {}
     ArgList(const char*);
@@ -66,12 +56,8 @@ class ArgList {
     const char *Command() const;
     /// \return true if the first argument matches key
     bool CommandIs(const char*) const;
-    /// Return const char* to next unmarked string.
-    ConstArg getNextString();
     /// Return the next unmarked string
     std::string GetStringNext();
-    /// Return the next unmarked mask
-    ConstArg getNextMask();
     /// Return the next unmarked mask
     std::string GetMaskNext();
     /// Return the next unmarked tag
@@ -80,8 +66,6 @@ class ArgList {
     int getNextInteger(int);
     /// Return the next unmarked double
     double getNextDouble(double);
-    /// Return const char* to string following the given key.
-    ConstArg getKeyString(const char *);
     /// Return the string following the given key
     std::string GetStringKey(const char *);
     /// Return the integer following the given key 
@@ -93,10 +77,10 @@ class ArgList {
     /// Return true if they key is in the list but do not mark.
     bool Contains(const char*);
   private:
-    /// List of arguments
-    std::vector<std::string> arglist_;
     /// The original argument string (complete list)
     std::string argline_;
+    /// List of arguments
+    std::vector<std::string> arglist_;
     /// Mark which arguments have been used
     std::vector<bool> marked_;
 };

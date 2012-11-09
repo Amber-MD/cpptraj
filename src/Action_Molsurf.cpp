@@ -105,18 +105,18 @@ Action::RetType Action_Molsurf::Init(ArgList& actionArgs, TopologyList* PFL, Fra
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
-  ArgList::ConstArg molsurfFile = actionArgs.getKeyString("out");
+  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   probe_rad_ = actionArgs.getKeyDouble("probe",1.4);
   rad_offset_ = actionArgs.getKeyDouble("offset",0.0);
 
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.getNextMask() );
+  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Dataset to store angles
-  sasa_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"MSURF");
-  if (sasa_==NULL) return Action::ERR;
+  sasa_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"MSURF");
+  if (sasa_==0) return Action::ERR;
   // Add dataset to data file list
-  DFL->Add(molsurfFile,sasa_);
+  if (outfile != 0) outfile->AddSet(sasa_);
 
   mprintf("    MOLSURF: [%s] Probe Radius=%.3lf\n",Mask1_.MaskString(),probe_rad_);
   if (rad_offset_>0)

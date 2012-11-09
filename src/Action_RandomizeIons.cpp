@@ -23,8 +23,8 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, TopologyList* PF
 {
   debug_ = debugIn;
   // Get first mask
-  ArgList::ConstArg ionmask = actionArgs.getNextMask();
-  if (ionmask == NULL) {
+  std::string ionmask = actionArgs.GetMaskNext();
+  if (ionmask.empty()) {
     mprinterr("Error: randomizeions: No mask for ions specified.\n");
     return Action::ERR;
   }
