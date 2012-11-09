@@ -42,13 +42,14 @@ class Action_DSSP : public Action {
     // Class variables
     int debug_;
     std::string outfilename_; ///< Data file name
-    DataSet *dssp_;     ///< If printString, hold the string dataset
-    AtomMask Mask_;     ///< Mask used to determine selected residues
-    int Nres_;          ///< Current total # of residues
-    int Nframe_;        ///< # of frames, for calculating SS avg.
-    std::string sumOut_;///< File to output SS avgs (dssp.dat.sum)
-    char *SSline_;      ///< Hold SS propensity for frame, each char represents a residue
-    bool printString_;  ///< If true print 1 char per residue indicating ss type
+    DataSet* dssp_;           ///< If printString, hold the string dataset
+    std::string dsetname_;    ///< DSSP data set name
+    AtomMask Mask_;           ///< Mask used to determine selected residues
+    int Nres_;                ///< Current total # of residues
+    int Nframe_;              ///< # of frames, for calculating SS avg.
+    std::string sumOut_;      ///< File to output SS avgs (dssp.dat.sum)
+    char *SSline_;            ///< Hold SS propensity for frame, each char represents a residue
+    bool printString_;        ///< If true print 1 char per residue indicating ss type
     // TODO: Replace these with new type of DataSet
     DataSetList* masterDSL_;
     DataFileList* masterDFL_;

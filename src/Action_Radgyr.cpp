@@ -35,7 +35,7 @@ Action::RetType Action_Radgyr::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Also add datasets to data file list
   rog_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RoG");
   if (rog_==0) return Action::ERR;
-  DFL->AddSetToFile(rogFile, rog_);
+  DFL->AddSetToFile(rogFile, rog_, actionArgs);
   if (calcRogmax_) {
     rogmax_ = DSL->AddSetAspect(DataSet::DOUBLE, rog_->Name(), "Max");
     if (rogmax_ == 0) return Action::ERR; 

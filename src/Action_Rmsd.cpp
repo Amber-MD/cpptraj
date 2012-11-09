@@ -133,11 +133,11 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     perresavg_ = actionArgs.GetStringKey("perresavg");
   }
   // Get the RMS mask string for target 
-  ArgList::ConstArg mask0 = actionArgs.getNextMask();
+  std::string mask0 = actionArgs.GetMaskNext();
   FrameMask_.SetMaskString(mask0);
   // Get the RMS mask string for reference
-  ArgList::ConstArg mask1 = actionArgs.getNextMask();
-  if (mask1==NULL)
+  std::string mask1 = actionArgs.GetMaskNext();
+  if (mask1.empty())
     mask1 = mask0;
   RefMask_.SetMaskString( mask1 );
 
@@ -183,11 +183,11 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   }
 
   // Set up the RMSD data set. 
-  rmsd_ = DSL->Add(DataSet::DOUBLE, actionArgs.getNextString(),"RMSD");
-  if (rmsd_==NULL) return Action::ERR;
+  rmsd_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"RMSD");
+  if (rmsd_==0) return Action::ERR;
   rmsd_->SetScalar( DataSet::M_RMS );
   // Add dataset to data file list
-  DFL->AddSetToFile(rmsdFile, rmsd_);
+  DFL->AddSetToFile(rmsdFile, rmsd_, actionArgs);
 
   //rmsd->Info();
   mprintf("    RMSD: (%s), reference is",FrameMask_.MaskString());

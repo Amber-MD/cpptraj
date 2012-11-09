@@ -9,7 +9,7 @@ const double Action_DSSP::DSSP_fac = 27.888;
 // CONSTRUCTOR
 Action_DSSP::Action_DSSP() :
   debug_(0),
-  dssp_(NULL), 
+  dssp_(0), 
   Nres_(0),
   Nframe_(0),
   SSline_(0),
@@ -50,30 +50,31 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 
   // Get keywords
   outfilename_ = actionArgs.GetStringKey("out");
-  ArgList::ConstArg temp = actionArgs.getKeyString("sumout");
-  if (temp!=NULL) 
-    sumOut_.assign(temp);
+  std::string temp = actionArgs.GetStringKey("sumout");
+  if (!temp.empty()) 
+    sumOut_ = temp;
   else if (!outfilename_.empty()) 
     sumOut_ = outfilename_ + ".sum";
   if (actionArgs.hasKey("ptrajformat")) printString_=true;
-  temp = actionArgs.getKeyString("namen");
-  if (temp != NULL) BB_N = temp;
-  temp = actionArgs.getKeyString("nameh");
-  if (temp != NULL) BB_H = temp;
-  temp = actionArgs.getKeyString("namec");
-  if (temp != NULL) BB_C = temp;
-  temp = actionArgs.getKeyString("nameo");
-  if (temp != NULL) BB_O = temp;
+  temp = actionArgs.GetStringKey("namen");
+  if (!temp.empty()) BB_N = temp;
+  temp = actionArgs.GetStringKey("nameh");
+  if (!temp.empty()) BB_H = temp;
+  temp = actionArgs.GetStringKey("namec");
+  if (!temp.empty()) BB_C = temp;
+  temp = actionArgs.GetStringKey("nameo");
+  if (!temp.empty()) BB_O = temp;
   // Get masks
-  Mask_.SetMaskString( actionArgs.getNextMask() );
+  Mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Set up the DSSP data set
-  dssp_ = DSL->Add(DataSet::STRING, actionArgs.getNextString(),"DSSP");
+  dsetname_ = actionArgs.GetStringNext();
+  if (dsetname_.empty()) dsetname_ = DSL->GenerateDefaultName( "DSSP" );
   if (printString_) {
-    if (dssp_==NULL) return Action::ERR;
-    DFL->AddSetToFile(outfilename_, dssp_);
-  } //else
-    //SSdata_ = new DataSetList;
+    dssp_ = DSL->AddSet(DataSet::STRING, dsetname_, 0);
+    if (dssp_==0) return Action::ERR;
+    DFL->AddSetToFile(outfilename_, dssp_, actionArgs);
+  }
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
   if (!outfilename_.empty()) 
@@ -187,8 +188,8 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
     // Set up dataset if necessary 
     if (!printString_ && SecStruct_[res].resDataSet==NULL) {
       // Setup dataset name for this residue
-      SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INT, dssp_->Name(),
-                                                         res+1, "res");
+      SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INT, dsetname_,
+                                                                res+1, "res");
       if (SecStruct_[res].resDataSet!=NULL) {
         masterDFL_->AddSetToFile(outfilename_, SecStruct_[res].resDataSet);
         SecStruct_[res].resDataSet->SetLegend( currentParm->ResNameNum(res) );
@@ -409,9 +410,9 @@ void Action_DSSP::Print() {
 
   // Set up a dataset for each SS type
   for (ss=1; ss<7; ss++) {
-    dsspData_[ss] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dssp_->Name(), ss, "avgss");
+    dsspData_[ss] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dsetname_, ss, "avgss");
     dsspData_[ss]->SetLegend( SSname[ss] );
-    dsspFile = masterDFL_->Add( sumOut_.c_str(), dsspData_[ss] ); 
+    dsspFile = masterDFL_->AddSetToFile( sumOut_, dsspData_[ss] ); 
   }
   // Change the X label to Residue
   dsspFile->ProcessArgs("xlabel Residue");
@@ -426,8 +427,6 @@ void Action_DSSP::Print() {
     for (ss=1; ss<7; ss++) {
       avg = (double)SecStruct_[resi].SSprob[ss];
       avg /= (double)Nframe_;
-      //DataSet *tempDS = dsspData_->GetDataSetN(ss-1);
-      //tempDS->Add(resi, &avg);
       dsspData_[ss]->Add(resi, &avg);
     }
   }

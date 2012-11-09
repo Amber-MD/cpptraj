@@ -221,10 +221,14 @@ DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string con
 DataSet* DataSetList::AddSet( DataSet::DataType inType, std::string const& nameIn,
                               const char* defaultName )
 {
-  if (nameIn.empty())
-    return Add( inType, NULL, defaultName );
-  else
-    return Add( inType, nameIn.c_str(), defaultName );
+  if (nameIn.empty()) {
+    if (defaultName == 0) {
+      mprinterr("Internal Error: DataSetList::AddSet() called without default name.\n");
+      return 0;
+    }
+    return AddSetIdxAspect( inType, GenerateDefaultName(defaultName), -1, std::string() ); 
+  } else
+    return AddSetIdxAspect( inType, nameIn, -1, std::string() );
 }
 
 // DataSetList::GenerateDefaultName()
@@ -238,7 +242,7 @@ std::string DataSetList::GenerateDefaultName(const char* defaultName) {
   return ( std::string(defaultName) + "_" + integerToString(size(), extsize) ); 
 }
 
-// DataSetList::Add()
+// DataSetList::Add() TODO: Obsolete
 /** Used to add a DataSet to the DataSetList which may or may not
   * be named. If nameIn is not specified create a name based on the 
   * given defaultName and dataset #.

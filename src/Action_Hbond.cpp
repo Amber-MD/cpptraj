@@ -52,7 +52,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
 {
   debug_ = debugIn;
   // Get keywords
-  ArgList::ConstArg outfilename = actionArgs.getKeyString("out");
+  std::string outfilename = actionArgs.GetStringKey("out");
   series_ = actionArgs.hasKey("series");
   avgout_ = actionArgs.GetStringKey("avgout");
   solvout_ = actionArgs.GetStringKey("solvout");
@@ -63,40 +63,39 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   double dcut = actionArgs.getKeyDouble("dist",3.0);
   dcut2_ = dcut * dcut;
   // Get donor mask
-  ArgList::ConstArg mask = actionArgs.getKeyString("donormask");
-  if (mask!=NULL) {
+  std::string mask = actionArgs.GetStringKey("donormask");
+  if (!mask.empty()) {
     DonorMask_.SetMaskString(mask);
     hasDonorMask_=true;
     // Get donorH mask (if specified)
-    mask = actionArgs.getKeyString("donorhmask");
-    if (mask!=NULL) {
+    mask = actionArgs.GetStringKey("donorhmask");
+    if (!mask.empty()) {
       DonorHmask_.SetMaskString(mask);
       hasDonorHmask_=true;
     }
   }
   // Get acceptor mask
-  mask = actionArgs.getKeyString("acceptormask");
-  if (mask!=NULL) {
+  mask = actionArgs.GetStringKey("acceptormask");
+  if (!mask.empty()) {
     AcceptorMask_.SetMaskString(mask);
     hasAcceptorMask_=true;
   }
   // Get solvent donor mask
-  mask = actionArgs.getKeyString("solventdonor");
-  if (mask!=NULL) {
+  mask = actionArgs.GetStringKey("solventdonor");
+  if (!mask.empty()) {
     SolventDonorMask_.SetMaskString(mask);
     hasSolventDonor_ = true;
     calcSolvent_ = true;
   }
   // Get solvent acceptor mask
-  mask = actionArgs.getKeyString("solventacceptor");
-  if (mask!=NULL) {
+  mask = actionArgs.GetStringKey("solventacceptor");
+  if (!mask.empty()) {
     SolventAcceptorMask_.SetMaskString(mask);
     hasSolventAcceptor_ = true;
     calcSolvent_ = true;
   }
   // Get generic mask
-  mask = actionArgs.getNextMask();
-  Mask_.SetMaskString(mask);
+  Mask_.SetMaskString(actionArgs.GetMaskNext());
 
   // If calculating solvent and avgout filename is specified but 
   // solvout is not, set solvout = avgout
@@ -108,15 +107,15 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   if (hbsetname_.empty())
     hbsetname_ = DSL->GenerateDefaultName("HB");
   NumHbonds_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "UU");
-  if (NumHbonds_==NULL) return Action::ERR;
-  DFL->Add(outfilename,NumHbonds_);
+  if (NumHbonds_==0) return Action::ERR;
+  DFL->AddSetToFile(outfilename,NumHbonds_,actionArgs);
   if (calcSolvent_) {
     NumSolvent_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "UV");
-    if (NumSolvent_ == NULL) return Action::ERR;
-    DFL->Add(outfilename, NumSolvent_);
+    if (NumSolvent_ == 0) return Action::ERR;
+    DFL->AddSetToFile(outfilename, NumSolvent_);
     NumBridge_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "Bridge");
-    if (NumBridge_ == NULL) return Action::ERR;
-    DFL->Add(outfilename, NumBridge_);
+    if (NumBridge_ == 0) return Action::ERR;
+    DFL->AddSetToFile(outfilename, NumBridge_);
   } 
 
   mprintf( "  HBOND: ");
@@ -141,8 +140,8 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
     mprintf("\tWill search for hbonds between solute and solvent acceptors in [%s]\n",
             SolventAcceptorMask_.MaskString());
   mprintf("\tDistance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*RADDEG);
-  if (outfilename!=NULL) 
-    mprintf("\tDumping # Hbond v time results to %s\n", outfilename);
+  if (!outfilename.empty()) 
+    mprintf("\tDumping # Hbond v time results to %s\n", outfilename.c_str());
   if (!avgout_.empty())
     mprintf("\tDumping Hbond avgs to %s\n",avgout_.c_str());
   if (calcSolvent_ && !solvout_.empty())
