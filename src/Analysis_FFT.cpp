@@ -23,9 +23,10 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
   std::string setname_ = analyzeArgs.GetStringKey("name");
   outfilename_ = analyzeArgs.GetStringKey("out");
   dt_ = analyzeArgs.getKeyDouble("dt",1.0);
-  // Select datasets
-  while (analyzeArgs.ArgsRemain()) 
-    input_dsets_ += datasetlist->GetMultipleSets( analyzeArgs.GetStringNext() );
+  // Select datasets from remaining args
+  ArgList dsetArgs = analyzeArgs.RemainingArgs();
+  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
+    input_dsets_ += datasetlist->GetMultipleSets( *dsa );
   if (input_dsets_.empty()) {
     mprinterr("Error: FFT: No data sets selected.\n");
     return Analysis::ERR;

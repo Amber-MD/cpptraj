@@ -28,9 +28,10 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   cumulative_ = analyzeArgs.hasKey("cumulative");
   deltaAvg_ = analyzeArgs.hasKey("delta");
   cut_ = analyzeArgs.getKeyDouble("cut", 0.5);
-  // Select datasets
-  while (analyzeArgs.ArgsRemain())
-    inputDsets_ += datasetlist->GetMultipleSets( analyzeArgs.GetStringNext() );
+  // Select datasets from remaining args
+  ArgList dsetArgs = analyzeArgs.RemainingArgs();
+  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
+    inputDsets_ += datasetlist->GetMultipleSets( *dsa );
   if (inputDsets_.empty()) {
     mprinterr("Error: lifetime: No data sets selected.\n");
     return Analysis::ERR;

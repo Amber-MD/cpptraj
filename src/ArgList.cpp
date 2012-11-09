@@ -1,75 +1,44 @@
-#include "ArgList.h"
-//ArgList.cpp
-#include <cstring>
-#include <locale>
+#include <locale>  // isdigit, 
 #include <stdexcept> // ArgList[]
+#include <cstring> //strtok, strchr
+#include "ArgList.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
- 
-using namespace std;
 
-// CONSTRUCTOR
-ArgList::ArgList() :
-  debug(0)
-{}
-
-// CONSTRUCTOR - Take string and convert to args delimited by space
-ArgList::ArgList(const char* argIn) :
-  debug(0)
-{
-  SetList(argIn, " ");
+ArgList::ArgList(const char* input) {
+  if (input != 0) SetList( std::string(input), " ");
 }
 
-// CONSTRUCTOR - Take string and convert to args delimted by separators
-ArgList::ArgList(std::string const& expression, const char *separators) :
-  debug(0)
-{
-  if (!expression.empty())
-    SetList(expression.c_str(), separators);
+ArgList::ArgList(std::string const& input) {
+  SetList( input, " " );
+}
+
+ArgList::ArgList(std::string const& input, const char* sep) {
+  SetList( input, sep );
 }
 
 // COPY CONSTRUCTOR
-ArgList::ArgList(const ArgList &rhs) {
-  arglist = rhs.arglist;
-  argline = rhs.argline;
-  marked = rhs.marked;
-  debug = rhs.debug;
-}
+ArgList::ArgList(const ArgList &rhs) :
+  arglist_(rhs.arglist_),
+  argline_(rhs.argline_),
+  marked_(rhs.marked_)
+{}
 
 // ArgList::operator=()
 ArgList &ArgList::operator=(const ArgList &rhs) {
   if (&rhs==this) return *this;
   // Allocate and copy. Assignment ops should automatically deallocate.
-  arglist = rhs.arglist;
-  argline = rhs.argline;
-  marked = rhs.marked;
-  debug = rhs.debug;
+  arglist_ = rhs.arglist_;
+  argline_ = rhs.argline_;
+  marked_ = rhs.marked_;
   return *this;
 }
 
 // ArgList::operator[]
 std::string const& ArgList::operator[](int idx) {
-  if (idx < 0 || idx >= (int)arglist.size())
+  if (idx < 0 || idx >= (int)arglist_.size())
     throw std::out_of_range("ArgList[]");
-  return arglist[idx];
-}
-
-// ArgList::SetDebug()
-void ArgList::SetDebug(int debugIn) {
-  debug = debugIn;
-  if (debug>0)
-    mprintf("ArgList debug level set to %i\n",debug);
-}
-
-// ArgList::SetList()
-int ArgList::SetList(const char *inputString) {
-  return SetList(inputString, " ");
-}
-
-// ArgList::SetList()
-int ArgList::SetList(std::string const& inputString, const char* separator) {
-  if (inputString.empty()) return 1;
-  return (SetList(inputString.c_str(), separator));
+  return arglist_[idx];
 }
 
 // ArgList::SetList()
@@ -79,29 +48,24 @@ int ArgList::SetList(std::string const& inputString, const char* separator) {
   * \param separator string containing characters used to separate arguments
   * \return 0 if arglist successfully set up, 1 if not.
   */
-int ArgList::SetList(const char *inputString, const char *separator) {
-  string argument;
-  char quotechar;
-
-  if (inputString==NULL || separator==NULL) return 1;
-  // Copy inputString to temp since it is destroyed by tokenize,
-  // this allows const strings to be passed in.
-  size_t inputStringSize = strlen(inputString);
-  char *tempString = new char[ inputStringSize+1 ];
+int ArgList::SetList(std::string const& inputString, const char *separator) {
+  if (inputString.empty() || separator==0) return 1;
+  // Copy inputString to temp since it is destroyed by tokenize.
+  size_t inputStringSize = inputString.size();
   if (inputStringSize < 1) return 1;
-  strcpy(tempString,inputString);
+  char* tempString = new char[ inputStringSize+1 ];
+  inputString.copy( tempString, inputStringSize, 0 );
+  tempString[ inputStringSize ] = '\0'; // copy() does not append NULL
   // Remove newline char from tempString if present
   if ( tempString[ inputStringSize - 1 ] == '\n' )
     tempString[ inputStringSize - 1 ] = '\0';
-  
   // Free existing arglist
-  arglist.clear();
-  marked.clear();
-  
+  arglist_.clear();
+  marked_.clear();
   // Store inputString
-  argline.assign(inputString);
-
+  argline_.assign(inputString);
   // Begin tokenization
+  char quotechar;
   char *pch = strtok(tempString, separator);
   if (pch!=NULL) {
     while (pch!=NULL) {
@@ -111,13 +75,11 @@ int ArgList::SetList(const char *inputString, const char *separator) {
       else if (pch[0]=='\'') quotechar='\'';
       else quotechar=' ';
       if (quotechar==' ') {
-        argument.assign(pch);
-        arglist.push_back(argument);
-
-      // If the argument begins with a quote, place this and all subsequent
-      // arguments ending with another quote into this argument
+        arglist_.push_back( std::string(pch) );
       } else {
-        argument.assign(pch);
+        // If the argument begins with a quote, place this and all subsequent
+        // arguments ending with another quote into this argument
+        std::string argument(pch);
         unsigned int argsize = argument.size();
         // Check for blank quote token ("")
         if (argsize != 2 || argument[1] != quotechar) {
@@ -136,43 +98,50 @@ int ArgList::SetList(const char *inputString, const char *separator) {
             }
           }
           // Remove quotes from the argument
-          for (string::iterator character = argument.begin();
-                                character < argument.end();
-                                character++)
+          for (std::string::iterator character = argument.begin();
+                                     character < argument.end();
+                                     ++character)
             if (*character == quotechar) character = argument.erase(character);
-          arglist.push_back(argument);
+          arglist_.push_back(argument);
         }
       }
       //if (debug>1) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
       pch = strtok(NULL,separator);
     } // END while loop
     // Set up marked array
-    marked.resize( arglist.size(), false );
+    marked_.resize( arglist_.size(), false );
   }
   // if (debug>0) mprintf("getArgList: Processed %i args\n",nargs);
   delete[] tempString;
   return 0;
 }
 
+ArgList ArgList::RemainingArgs() {
+  ArgList remain;
+  for (unsigned int arg = 0; arg < arglist_.size(); ++arg) {
+    if ( !marked_[arg] )
+      remain.AddArg( arglist_[arg] );
+  }
+  return remain;
+}
+
 // ArgList::AddArg()
 /** \param input NULL terminated string to add to argument list
   */
-void ArgList::AddArg(const char *input) {
-  string argument;
+void ArgList::AddArg(std::string const& input) {
   // Dont store blank tokens
-  if (input==NULL) return;
+  if (input.empty()) return;
   if (input[0]=='\n') return;
-  argument.assign(input);
-  arglist.push_back(argument);
-  argline.append(argument);
-  argline.append(" ");
-  marked.push_back(false);
+  arglist_.push_back(input);
+  argline_.append(input);
+  argline_.append(" ");
+  marked_.push_back(false);
 }
 
 // ArgList::MarkArg()
 void ArgList::MarkArg(int arg) {
-  if (arg < 0 || arg >= (int) marked.size()) return;
-  marked[arg]=true;
+  if (arg < 0 || arg >= (int) marked_.size()) return;
+  marked_[arg]=true;
 }
 
 // ArgList::CheckForMoreArgs()
@@ -180,59 +149,42 @@ void ArgList::MarkArg(int arg) {
   * with all unprocessed arguments.
   */
 void ArgList::CheckForMoreArgs() {
-  bool empty = true;
-  string notmarked;
-  
-  for (unsigned int arg=0; arg < arglist.size(); arg++) {
-    if (!marked[arg]) {
-      empty=false;
-      notmarked.append(arglist[arg] + " ");
-    }
+  std::string notmarked;
+  for (unsigned int arg=0; arg < arglist_.size(); arg++) {
+    if (!marked_[arg]) 
+      notmarked.append(arglist_[arg] + " ");
   }
-  if (!empty)  
-    mprintf("Warning: [%s] Not all arguments handled: [ %s]\n",arglist[0].c_str(),
-            notmarked.c_str());
+  if (!notmarked.empty())  
+    mprintf("Warning: [%s] Not all arguments handled: [ %s]\n",
+            arglist_[0].c_str(), notmarked.c_str());
 }
 
 // ArgList::PrintList()
 void ArgList::PrintList() {
-  unsigned int nargs = arglist.size();
-  if (debug==0) {
-    for (unsigned int arg = 0; arg < nargs; arg++) 
-      mprintf("  %u: %s\n",arg+1,arglist[arg].c_str());
-  } else {
-    mprintf("ArgLine: %s\n",argline.c_str());
-    for (unsigned int arg = 0; arg < nargs; arg++)
-      mprintf("\tArg %u: %s (%i)\n",arg+1,arglist[arg].c_str(),(int)marked[arg]);
-  }
+  for (unsigned int arg = 0; arg < arglist_.size(); arg++) 
+    mprintf("  %u: %s\n",arg+1,arglist_[arg].c_str());
 }
 
-// ArgList::ArgLine()
-const char *ArgList::ArgLine() {
-  return argline.c_str();
-}        
-        
-// ArgList::ArgAt()
-/** \param pos argument position
-  * \return pointer to the argument at pos or NULL if pos is out of bounds.
-  */
-const char *ArgList::ArgAt(int pos) {
-  if (pos < 0 || pos >= (int) arglist.size()) return NULL;
-  return arglist[pos].c_str();
+// ArgList::PrintDebug()
+void ArgList::PrintDebug() {
+  mprintf("ArgLine: %s\n",argline_.c_str());
+  for (unsigned int arg = 0; arg < arglist_.size(); arg++)
+    mprintf("\tArg %u: %s (%i)\n",arg+1,arglist_[arg].c_str(),(int)marked_[arg]);
 }
 
+// ArgList::RemoveFirstArg()
 void ArgList::RemoveFirstArg() {
-  if (arglist.empty()) return;
-  arglist.erase( arglist.begin() );
-  marked.erase( marked.begin() );
+  if (arglist_.empty()) return;
+  arglist_.erase( arglist_.begin() );
+  marked_.erase( marked_.begin() );
 }
 
 // ArgList::Command()
 /* \return pointer to the first argument
  */
 const char *ArgList::Command() const {
-  if (arglist.empty()) return NULL;
-  return arglist[0].c_str();
+  if (arglist_.empty()) return NULL;
+  return arglist_[0].c_str();
 }
 
 // ArgList::CommandIs()
@@ -240,43 +192,31 @@ const char *ArgList::Command() const {
   * \return true if first argument matches key
   */
 bool ArgList::CommandIs(const char *key) const {
-  if (arglist.empty()) return false;
-  if (arglist[0].compare( key )==0) return true;
+  if (arglist_.empty()) return false;
+  if (arglist_[0].compare( key )==0) return true;
   return false;
 }
-
-/* ArgList::CommandIs()
- * Check the first nchar characters of key against command, return true if
- * they match. Mark command no matter what.
- */
-/*bool ArgList::CommandIs(const char *key, size_t nchar) {
-  if (arglist.empty()) return false;
-  marked[0]=true;
-  if (arglist[0].compare( 0, nchar, key )==0) return true;
-  return false;
-}*/
 
 // ArgList::getNextString()
 /** \return the next unmarked string.
   */
 ArgList::ConstArg ArgList::getNextString() {
-  for (unsigned int arg = 0; arg < arglist.size(); ++arg)
-    if (!marked[arg]) {
-      marked[arg]=true;
-      return arglist[arg].c_str();
+  for (unsigned int arg = 0; arg < arglist_.size(); ++arg)
+    if (!marked_[arg]) {
+      marked_[arg]=true;
+      return arglist_[arg].c_str();
     }
   return NULL;
 }
 
 // ArgList::GetStringNext()
 std::string ArgList::GetStringNext() {
-  std::string emptystring;
-  for (unsigned int arg = 0; arg < arglist.size(); ++arg)
-    if (!marked[arg]) {
-      marked[arg]=true;
-      return arglist[arg];
+  for (unsigned int arg = 0; arg < arglist_.size(); ++arg)
+    if (!marked_[arg]) {
+      marked_[arg]=true;
+      return arglist_[arg];
     }
-  return emptystring;
+  return std::string();
 }
 
 // ArgList::getNextMask()
@@ -289,12 +229,12 @@ std::string ArgList::GetStringNext() {
   * \return the next unmarked atom mask expression
   */
 ArgList::ConstArg ArgList::getNextMask() {
-  for (unsigned int arg=0; arg < arglist.size(); ++arg) {
-    if (!marked[arg]) {
-      size_t found = arglist[arg].find_first_of(":@*/%");
+  for (unsigned int arg=0; arg < arglist_.size(); ++arg) {
+    if (!marked_[arg]) {
+      size_t found = arglist_[arg].find_first_of(":@*/%");
       if (found != std::string::npos) {
-        marked[arg]=true;
-        return arglist[arg].c_str();
+        marked_[arg]=true;
+        return arglist_[arg].c_str();
       }
     }
   }
@@ -303,12 +243,12 @@ ArgList::ConstArg ArgList::getNextMask() {
 
 // ArgList::GetMaskNext()
 std::string ArgList::GetMaskNext() {
-  for (unsigned int arg = 0; arg < arglist.size(); ++arg) {
-    if (!marked[arg]) {
-      size_t found = arglist[arg].find_first_of(":@*/%");
+  for (unsigned int arg = 0; arg < arglist_.size(); ++arg) {
+    if (!marked_[arg]) {
+      size_t found = arglist_[arg].find_first_of(":@*/%");
       if (found != std::string::npos) {
-        marked[arg] = true;
-        return arglist[arg];
+        marked_[arg] = true;
+        return arglist_[arg];
       }
     }
   }
@@ -319,33 +259,32 @@ std::string ArgList::GetMaskNext() {
 /** Return the next unmarked tag. A tag is defined as a character string
   * bounded by brackets, e.g. [tag].
   */
-string ArgList::getNextTag() {
-  string emptystring;
-  for (unsigned int arg = 0; arg < arglist.size(); arg++) {
-    if (!marked[arg]) {
-      string::reverse_iterator lastchar  = arglist[arg].rbegin();
-      string::iterator         firstchar = arglist[arg].begin();
+std::string ArgList::getNextTag() {
+  for (unsigned int arg = 0; arg < arglist_.size(); arg++) {
+    if (!marked_[arg]) {
+      std::string::reverse_iterator lastchar  = arglist_[arg].rbegin();
+      std::string::iterator         firstchar = arglist_[arg].begin();
       if (*firstchar=='[' && *lastchar==']') {
-        marked[arg]==true;
-        return arglist[arg];
+        marked_[arg]==true;
+        return arglist_[arg];
       }
     }
   }
-  return emptystring;
+  return std::string();
 }
 
 // validInteger()
 /// Brief check that the passed in string begins with a digit or '-'
-inline bool validInteger(string const &argument) {
-  locale loc;
+inline bool validInteger(std::string const &argument) {
+  std::locale loc;
   if (isdigit(argument[0],loc) || argument[0]=='-') return true;
   return false;
 }
 
 // validDouble()
 /// Brief check that the passed in string begins with a digit, '-', or '.'
-inline bool validDouble(string const &argument) {
-  locale loc;
+inline bool validDouble(std::string const &argument) {
+  std::locale loc;
   if (isdigit(argument[0],loc) || argument[0]=='-' || argument[0]=='.' ) return true;
   return false;
 }
@@ -355,12 +294,12 @@ inline bool validDouble(string const &argument) {
   * \return Next unmarked integer argument or def
   */
 int ArgList::getNextInteger(int def) {
-  for (unsigned int arg=0; arg < arglist.size(); arg++)
-    if (!marked[arg]) {
+  for (unsigned int arg=0; arg < arglist_.size(); arg++)
+    if (!marked_[arg]) {
       // Check that first char is indeed an integer or '-', if not then continue
-      if (validInteger(arglist[arg])) {
-        int ival = convertToInteger(arglist[arg]);
-        marked[arg]=true;
+      if (validInteger(arglist_[arg])) {
+        int ival = convertToInteger(arglist_[arg]);
+        marked_[arg]=true;
         return ival;
       }
     }
@@ -372,12 +311,12 @@ int ArgList::getNextInteger(int def) {
   * \return Next unmarked double argument or def
   */
 double ArgList::getNextDouble(double def) {
-  for (unsigned int arg=0; arg < arglist.size(); arg++)
-    if (!marked[arg]) {
+  for (unsigned int arg=0; arg < arglist_.size(); arg++)
+    if (!marked_[arg]) {
       // Check that first char is indeed a digit, '.', or '-', if not then continue
-      if (validDouble(arglist[arg])) {
-        double dval = convertToDouble(arglist[arg]);
-        marked[arg]=true;
+      if (validDouble(arglist_[arg])) {
+        double dval = convertToDouble(arglist_[arg]);
+        marked_[arg]=true;
         return dval;
       }
     }
@@ -390,13 +329,13 @@ double ArgList::getNextDouble(double def) {
   * \param key string to search for
   */
 ArgList::ConstArg ArgList::getKeyString(const char *key) {
-  unsigned int nargs = arglist.size() - 1;
+  unsigned int nargs = arglist_.size() - 1;
   for (unsigned int arg=0; arg < nargs; ++arg)
-    if (!marked[arg]) {
-      if (arglist[arg].compare(key)==0) { 
-        marked[arg++]=true;
-        marked[arg]=true;
-        return arglist[arg].c_str();
+    if (!marked_[arg]) {
+      if (arglist_[arg].compare(key)==0) { 
+        marked_[arg++]=true;
+        marked_[arg]=true;
+        return arglist_[arg].c_str();
       }
     }
   return NULL;
@@ -405,14 +344,14 @@ ArgList::ConstArg ArgList::getKeyString(const char *key) {
 // ArgList::GetStringKey()
 std::string ArgList::GetStringKey(const char *key) {
   std::string empty;
-  unsigned int nargs = arglist.size() - 1;
+  unsigned int nargs = arglist_.size() - 1;
   for (unsigned int arg=0; arg < nargs; arg++)
-    if (!marked[arg]) {
-      if (arglist[arg].compare(key)==0) {
-        marked[arg]=true;
+    if (!marked_[arg]) {
+      if (arglist_[arg].compare(key)==0) {
+        marked_[arg]=true;
         arg++;
-        marked[arg]=true;
-        return arglist[arg];
+        marked_[arg]=true;
+        return arglist_[arg];
       }
     }
   return empty;
@@ -425,15 +364,15 @@ std::string ArgList::GetStringKey(const char *key) {
   * \param def Value to return if key not found.
   */
 int ArgList::getKeyInt(const char *key, int def) {
-  unsigned int nargs = arglist.size() - 1;
+  unsigned int nargs = arglist_.size() - 1;
   for (unsigned int arg=0; arg < nargs; arg++)
-    if (!marked[arg]) {
-      if (arglist[arg].compare(key)==0) {
-        if (validInteger(arglist[arg+1])) {
-          marked[arg]=true;
+    if (!marked_[arg]) {
+      if (arglist_[arg].compare(key)==0) {
+        if (validInteger(arglist_[arg+1])) {
+          marked_[arg]=true;
           arg++;
-          int ival = convertToInteger(arglist[arg]);
-          marked[arg]=true;
+          int ival = convertToInteger(arglist_[arg]);
+          marked_[arg]=true;
           return ival;
         }
       }
@@ -448,15 +387,15 @@ int ArgList::getKeyInt(const char *key, int def) {
   * \param def Value to return if key not found.
   */
 double ArgList::getKeyDouble(const char *key, double def) {
-  unsigned int nargs = arglist.size() - 1;
+  unsigned int nargs = arglist_.size() - 1;
   for (unsigned int arg=0; arg < nargs; arg++)
-    if (!marked[arg]) {
-      if (arglist[arg].compare(key)==0) {
-        if (validDouble(arglist[arg+1])) {
-          marked[arg]=true;
+    if (!marked_[arg]) {
+      if (arglist_[arg].compare(key)==0) {
+        if (validDouble(arglist_[arg+1])) {
+          marked_[arg]=true;
           arg++;
-          double dval = convertToDouble(arglist[arg]);
-          marked[arg]=true;
+          double dval = convertToDouble(arglist_[arg]);
+          marked_[arg]=true;
           return dval;
         }
       }
@@ -470,10 +409,10 @@ double ArgList::getKeyDouble(const char *key, double def) {
   * \return true if key is found, false if not.
   */
 bool ArgList::hasKey(const char *key) {
-  for (unsigned int arg = 0; arg < arglist.size(); arg++) 
-    if (!marked[arg]) {
-      if (arglist[arg].compare(key)==0) {
-        marked[arg]=true;
+  for (unsigned int arg = 0; arg < arglist_.size(); arg++) 
+    if (!marked_[arg]) {
+      if (arglist_[arg].compare(key)==0) {
+        marked_[arg]=true;
         return true;
       }
     }
@@ -486,47 +425,11 @@ bool ArgList::hasKey(const char *key) {
   */
 // NOTE: Should this be ignoring previously marked strings?
 bool ArgList::Contains(const char *key) {
-  for (unsigned int arg = 0; arg < arglist.size(); arg++) 
-    if (!marked[arg]) {
-      if (arglist[arg].compare(key)==0) {
+  for (unsigned int arg = 0; arg < arglist_.size(); arg++) 
+    if (!marked_[arg]) {
+      if (arglist_[arg].compare(key)==0) {
         return true;
       }
     }
-  return false;
-}
-
-// ArgList::ArgToDouble()
-double ArgList::ArgToDouble(int pos) {
-  if (pos < 0 || pos >= (int)arglist.size()) {
-    mprinterr("Internal Error: ArgList::ArgToDouble: position out of range.\n");
-    return 0;
-  }
-  if (!validDouble(arglist[pos])) {
-    mprinterr("Error: Arg %s is not a valid double.\n",arglist[pos].c_str());
-    return 0;
-  }
-  return convertToDouble(arglist[pos]);
-}
-
-// ArgList::ArgToInteger()
-int ArgList::ArgToInteger(int pos) {
-  if (pos < 0 || pos >= (int)arglist.size()) {
-    mprinterr("Internal Error: ArgList::ArgToInteger: position out of range.\n");
-    return 0;
-  }
-  if (!validInteger(arglist[pos])) {
-    mprinterr("Error: Arg %s is not a valid integer.\n",arglist[pos].c_str());
-    return 0;
-  }
-  return convertToInteger(arglist[pos]);
-}
-
-/** Return true as soon as an unmarked arg is encountered. */
-bool ArgList::ArgsRemain() {
-  for (std::vector<bool>::iterator mark = marked.begin();
-                                   mark != marked.end(); ++mark)
-  {  
-    if ( !(*mark) ) return true;
-  }
   return false;
 }

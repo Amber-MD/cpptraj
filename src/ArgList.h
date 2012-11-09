@@ -26,46 +26,46 @@ class ArgList {
   public:
     /// Return type definition for 'getX' string routines.
     typedef const char* ConstArg;
-    // Construction/Assignment/Access
-    ArgList();
+    // Constructors
+    ArgList() {}
     ArgList(const char*);
+    ArgList(std::string const&);
     ArgList(std::string const&, const char*);
+    // Copy/Assignment
     ArgList(const ArgList&);
     ArgList& operator=(const ArgList &);
+    /// Return the argument at the given position
     std::string const& operator[](int);
     // Iterators
     typedef std::vector<std::string>::const_iterator const_iterator;
-    const_iterator begin() { return arglist.begin(); }
-    const_iterator end()   { return arglist.end();   }
-    /// Set the debug level
-    void SetDebug(int);
-    /// Set up argument list from string using space as a separator.
-    int SetList(const char *);
-    /// Set up argument list from string and given separators
-    int SetList(const char *, const char *); // TODO: Obsolete
+    const_iterator begin() { return arglist_.begin();     }
+    const_iterator end()   { return arglist_.end();       }
+    /// \return the number of arguments
+    int Nargs()            { return (int)arglist_.size(); }
+    /// \return true if no arguments in list.
+    bool empty()           { return arglist_.empty();     }
+    /// \return the argument string
+    const char *ArgLine()  { return argline_.c_str();     }
     /// Set up argument list from string and given separators
     int SetList(std::string const&, const char *);
+    /// \return an argument list of remaining unmarked args.
+    ArgList RemainingArgs();
     /// Add argument to the list
-    void AddArg(const char*);
+    void AddArg(std::string const&);
     /// Mark given argument
     void MarkArg(int);
     /// Print a warning if not all arguments are marked
     void CheckForMoreArgs();
     /// Print the argument list
     void PrintList();
-    /// Return the argument string
-    const char *ArgLine();
-    /// Return the argument at given position
-    const char* ArgAt(int);
+    /// Print detailed info for arg list
+    void PrintDebug();
+    /// Remove the first argument
     void RemoveFirstArg();
-    /// Return the first argument
+    /// \return the first argument
     const char *Command() const;
-    /// Return true if the first argument matches key
+    /// \return true if the first argument matches key
     bool CommandIs(const char*) const;
-    //bool CommandIs(const char*,size_t);
-    /// Return the number of arguments
-    int Nargs()  { return (int)arglist.size(); }
-    bool empty() { return arglist.empty();     }
     /// Return const char* to next unmarked string.
     ConstArg getNextString();
     /// Return the next unmarked string
@@ -92,20 +92,12 @@ class ArgList {
     bool hasKey(const char*);
     /// Return true if they key is in the list but do not mark.
     bool Contains(const char*);
-    /// Convert arg at position to double.
-    double ArgToDouble(int);
-    /// Convert arg at position to integer.
-    int ArgToInteger(int);
-    /// True if any unmarked args remain.
-    bool ArgsRemain();
   private:
     /// List of arguments
-    std::vector<std::string> arglist;
+    std::vector<std::string> arglist_;
     /// The original argument string (complete list)
-    std::string argline;
+    std::string argline_;
     /// Mark which arguments have been used
-    std::vector<bool> marked;
-    /// debug level
-    int debug;
+    std::vector<bool> marked_;
 };
 #endif

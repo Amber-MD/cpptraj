@@ -27,21 +27,21 @@ void Analysis_Hist::Help() {
   * that DataSet_Name exists and is valid. Add the argument to 
   * dimensionArgs and the corresponding dataset to histdata.
   */
-int Analysis_Hist::CheckDimension(const char* input, DataSetList *datasetlist) {
+int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *datasetlist) {
   ArgList arglist;
   // Separate input string by ','
   arglist.SetList(input, ",");
   if (arglist.Nargs()<1) {
-    mprintf("Warning: Hist::CheckDimension: No arguments found in input: %s\n",input);
+    mprintf("Warning: Hist::CheckDimension: No arguments found in input: %s\n",input.c_str());
     return 1;
   }
 
   // First argument should specify dataset name
   if (debug_>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
-                       arglist.ArgAt(0));
+                       arglist.Command());
   DataSet *dset = datasetlist->GetDataSet( arglist[0] );
   if (dset == NULL) {
-    mprintf("\t      Dataset %s not found.\n",arglist.ArgAt(0));
+    mprintf("\t      Dataset %s not found.\n",arglist.Command());
     return 1;
   }
 
@@ -78,14 +78,14 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   // Cycle through coordinate arguments. Any argument left blank will be 
   // assigned a default value later.
   for (int i=1; i<arglist.Nargs(); i++) {
-    if (debug_>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist.ArgAt(i));
+    if (debug_>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist[i].c_str());
     // Default explicitly requested
     if (arglist[i] == "*") continue;
     switch (i) {
-      case 1 : dim.SetMin( arglist.ArgToDouble(i) ); minArg=true; break;
-      case 2 : dim.SetMax( arglist.ArgToDouble(i) ); maxArg=true; break;
-      case 3 : dim.SetStep( arglist.ArgToDouble(i) ); break;
-      case 4 : dim.SetBins( arglist.ArgToInteger(i) ); break;
+      case 1 : dim.SetMin(  convertToDouble( arglist[i]) ); minArg=true; break;
+      case 2 : dim.SetMax(  convertToDouble( arglist[i]) ); maxArg=true; break;
+      case 3 : dim.SetStep( convertToDouble( arglist[i]) ); break;
+      case 4 : dim.SetBins( convertToInteger(arglist[i]) ); break;
     }
   }
 
@@ -131,7 +131,6 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
                             TopologyList* PFLin, int debugIn)
 {
   debug_ = debugIn;
-  ArgList::ConstArg datasetstring;
 
   // Set up histogram DataSet
   hist_ = (Histogram*) datasetlist->Add( DataSet::HIST, 
@@ -163,9 +162,12 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   default_dim_.SetBins( analyzeArgs.getKeyInt("bins",-1) );
 
   // Datasets
-  // Treat all remaining arguments as dataset names. 
-  while ( (datasetstring = analyzeArgs.getNextString())!=NULL ) {
-    if (CheckDimension( datasetstring,datasetlist )) return Analysis::ERR;
+  // Treat all remaining arguments as dataset names.
+  ArgList dsetNames = analyzeArgs.RemainingArgs();
+  for ( ArgList::const_iterator setname = dsetNames.begin(); 
+                                setname != dsetNames.end(); ++setname)
+  { 
+    if (CheckDimension( *setname, datasetlist )) return Analysis::ERR;
   }
 
   if (histdata_.empty()) {

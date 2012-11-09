@@ -69,14 +69,11 @@ Action::RetType Action_Clustering::Init(ArgList& actionArgs, TopologyList* PFL, 
   }
   // Output trajectory stuff
   clusterfile_ = actionArgs.GetStringKey("clusterout");
-  ArgList tmpArg( actionArgs.getKeyString("clusterfmt") );
-  clusterfmt_ = TrajectoryFile::GetFormatFromArg( tmpArg ); 
+  clusterfmt_ = TrajectoryFile::GetFormatFromString( actionArgs.GetStringKey("clusterfmt") ); 
   singlerepfile_ = actionArgs.GetStringKey("singlerepout");
-  tmpArg.SetList( actionArgs.getKeyString("singlerepfmt") );
-  singlerepfmt_ = TrajectoryFile::GetFormatFromArg( tmpArg );
+  singlerepfmt_ = TrajectoryFile::GetFormatFromString( actionArgs.GetStringKey("singlerepfmt") );
   reptrajfile_ = actionArgs.GetStringKey("repout");
-  tmpArg.SetList( actionArgs.getKeyString("repfmt") );
-  reptrajfmt_ = TrajectoryFile::GetFormatFromArg( tmpArg );
+  reptrajfmt_ = TrajectoryFile::GetFormatFromString( actionArgs.GetStringKey("repfmt") );
   // Get the mask string 
   Mask0_.SetMaskString( actionArgs.getNextMask() );
 

@@ -181,19 +181,22 @@ int Cpptraj::Create_DataFile(ArgList& dataArg) {
     return 1;
   }
   DataFile* df = DFL.GetDataFile(name1);
-  if (df==NULL)
+  if (df==0)
     mprintf("    Creating file %s:",name1.c_str());
   else
     mprintf("    Adding sets to file %s:",name1.c_str());
+  // Process any recognized datafile args
+  df->ProcessArgs( dataArg );
+  // Treat all remaining args as dataset names
   int err = 0;
-  while ( dataArg.ArgsRemain() ) {
-    std::string name2 = dataArg.GetStringNext();
-    DataSetList Sets = DSL.GetMultipleSets( name2 );
+  ArgList dsetArgs = dataArg.RemainingArgs();
+  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa) {
+    DataSetList Sets = DSL.GetMultipleSets( *dsa );
     if (Sets.empty())
-      mprintf("Warning: %s does not correspond to any data sets.\n", name2.c_str());
+      mprintf("Warning: %s does not correspond to any data sets.\n", (*dsa).c_str());
     for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
       mprintf(" %s", (*set)->Legend().c_str());
-      if ( DFL.AddSetToFile(name1, *set)==NULL ) {
+      if ( DFL.AddSetToFile(name1, *set)==0 ) {
         mprinterr("Error: Could not add data set %s to file.\n", (*set)->Legend().c_str());
         ++err;
       }

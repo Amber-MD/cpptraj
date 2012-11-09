@@ -46,6 +46,13 @@ TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromArg(ArgList& argIn)
   return AMBERTRAJ;
 }
 
+TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromString(std::string const& fmt)
+{
+  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token)
+    if ( fmt.compare( token->Key )==0 ) return token->Type;
+  return AMBERTRAJ;
+}
+
 // TrajectoryFile::GetExtensionForType()
 std::string TrajectoryFile::GetExtensionForType(TrajFormatType typeIn) {
   for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token)

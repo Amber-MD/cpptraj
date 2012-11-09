@@ -348,8 +348,8 @@ int AtomMask::Tokenize() {
         ArgList commaList(tokenString, ",");
         //commaList.PrintList();
         // Assign each comma-separated arg to a new token
-        for (int arg = 0; arg < commaList.Nargs(); arg++) {
-          token.SetToken( tokenType, commaList[arg] );
+        for (ArgList::const_iterator arg = commaList.begin(); arg != commaList.end(); ++arg) {
+          token.SetToken( tokenType, *arg );
           maskTokens_.push_back( token );
         }
         // Indicate that after last token is processed the resulting mask should 

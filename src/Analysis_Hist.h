@@ -31,7 +31,7 @@ class Analysis_Hist : public Analysis {
     bool minArgSet_;
     bool maxArgSet_;
 
-    int CheckDimension(const char*, DataSetList*);
+    int CheckDimension(std::string const&, DataSetList*);
     int setupDimension(ArgList&, DataSet*);
 };
 #endif

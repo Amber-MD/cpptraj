@@ -17,6 +17,7 @@ class TrajectoryFile {
     static const char* FormatString( TrajFormatType );
     /// Get format type from keyword
     static TrajFormatType GetFormatFromArg(ArgList&);
+    static TrajFormatType GetFormatFromString(std::string const&);
     /// Get standard file extension for trajectory format
     static std::string GetExtensionForType(TrajFormatType);
     /// Get type from extension

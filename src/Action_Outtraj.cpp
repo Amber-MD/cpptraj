@@ -22,14 +22,19 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   mprintf("ERROR: OUTTRAJ currently not functional with MPI.\n");
   return Action::ERR;
 #endif
-
   outtraj_.SetDebug(debugIn);
-  Topology* tempParm = PFL->GetParm(actionArgs);
-  if (tempParm==NULL) {
-    mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",actionArgs.ArgAt(1));
+  std::string trajfilename = actionArgs.GetStringNext();
+  if (trajfilename.empty()) {
+    mprinterr("Error: outtraj: no filename given.\nError: Usage: ");
+    Help();
     return Action::ERR;
   }
-  if ( outtraj_.SetupTrajWrite(actionArgs.GetStringNext(), &actionArgs, 
+  Topology* tempParm = PFL->GetParm(actionArgs);
+  if (tempParm==0) {
+    mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",trajfilename.c_str());
+    return Action::ERR;
+  }
+  if ( outtraj_.SetupTrajWrite(trajfilename, &actionArgs, 
                                tempParm, TrajectoryFile::UNKNOWN_TRAJ) ) 
     return Action::ERR;
   mprintf("    OUTTRAJ:");

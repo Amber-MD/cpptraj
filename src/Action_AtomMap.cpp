@@ -684,18 +684,18 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   TgtMap_.SetDebug(debug_);
 
   // Get Args
-  ArgList::ConstArg outputname = actionArgs.getKeyString("mapout");
+  std::string outputname = actionArgs.GetStringKey("mapout");
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");
   if (rmsfit_)
     rmsout = actionArgs.GetStringKey("rmsout");
-  ArgList::ConstArg targetName = actionArgs.getNextString();
-  ArgList::ConstArg refName = actionArgs.getNextString();
-  if (targetName==NULL) {
+  std::string targetName = actionArgs.GetStringNext();
+  std::string refName = actionArgs.GetStringNext();
+  if (targetName.empty()) {
     mprintf("AtomMap::init: Error: No target specified.\n");
     return Action::ERR;
   }
-  if (refName==NULL) {
+  if (refName.empty()) {
     mprintf("AtomMap::init: Error: No reference specified.\n");
     return Action::ERR;
   }
@@ -707,7 +707,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   // Get reference parm
   RefParm_ = FL->GetFrameParm(refIndex);
   if (RefFrame_==NULL || RefParm_==NULL) {
-    mprintf("AtomMap::init: Error: Could not get reference frame %s\n",refName);
+    mprintf("AtomMap::init: Error: Could not get reference frame %s\n",refName.c_str());
     return Action::ERR;
   }
   // Get target index based on filename
@@ -717,15 +717,15 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   // Get target parm
   TgtParm_ = FL->GetFrameParm(targetIndex);
   if (TgtFrame_==NULL || TgtParm_==NULL) {
-    mprintf("AtomMap::init: Error: Could not get target frame %s\n",targetName);
+    mprintf("AtomMap::init: Error: Could not get target frame %s\n",targetName.c_str());
     return Action::ERR;
   }
 
   mprintf("    ATOMMAP: Atoms in trajectories associated with parm %s will be\n",
           TgtParm_->c_str());
   mprintf("             mapped according to parm %s.\n",RefParm_->c_str());
-  if (outputname!=NULL)
-    mprintf("             Map will be written to %s\n",outputname);
+  if (!outputname.empty())
+    mprintf("             Map will be written to %s\n",outputname.c_str());
   if (maponly_)
     mprintf("             maponly: Map will only be written, not used in trajectory read.\n");
   if (!maponly_ && rmsfit_) {

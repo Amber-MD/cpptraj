@@ -948,15 +948,15 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   }
 
   // Get custom residue maps
-  ArgList::ConstArg maparg;
   ArgList maplist;
   AxisType::NAbaseType mapbase;
-  while ( (maparg = actionArgs.getKeyString("resmap"))!=NULL ) {
+  while ( actionArgs.Contains("resmap") ) {
     // Split maparg at ':'
-    maplist.SetList(maparg,":");
+    maplist.SetList( actionArgs.GetStringKey("resmap"), ":" );
     // Expect only 2 args
     if (maplist.Nargs()!=2) {
-      mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",maparg);
+      mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
+                maplist.ArgLine());
       return Action::ERR;
     }
     // Check that second arg is A,C,G,T,or U
@@ -966,13 +966,14 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     else if (maplist[1] == "T") mapbase=AxisType::THY;
     else if (maplist[1] == "U") mapbase=AxisType::URA;
     else {
-      mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",maparg);
+      mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
+                maplist.ArgLine());
       return Action::ERR;
     }
     // Check that residue name is <= 4 chars
     std::string resname = maplist[0]; 
     if (resname.size() > 4) {
-      mprinterr("Error: nastruct: resmap resname > 4 chars (%s)\n",maparg);
+      mprinterr("Error: nastruct: resmap resname > 4 chars (%s)\n",maplist.ArgLine());
       return Action::ERR;
     }
     // Format residue name

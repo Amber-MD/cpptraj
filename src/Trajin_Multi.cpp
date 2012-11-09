@@ -160,8 +160,9 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
       mprinterr("Error: remdtrajidx expects comma-separated list of target indices (e.g. 1,0,1)\n");
       return 1;
     }
-    for (int argidx = 0; argidx < indicesArg.Nargs(); ++argidx)
-       remdtrajidx_.push_back( indicesArg.ArgToInteger(argidx) );
+    for (ArgList::const_iterator arg = indicesArg.begin(); 
+                                 arg != indicesArg.end(); ++arg)
+      remdtrajidx_.push_back( convertToInteger( *arg ) );
     targetType_ = INDICES;
     remd_indices_ = new int[ remdtrajidx_.size() ];
   } else if (argIn->Contains("remdtrajtemp")) {

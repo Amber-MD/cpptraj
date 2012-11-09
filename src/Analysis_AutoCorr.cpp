@@ -20,9 +20,10 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
   std::string setname_ = analyzeArgs.GetStringKey("name");
   outfilename_ = analyzeArgs.GetStringKey("out");
   lagmax_ = analyzeArgs.getKeyInt("lagmax",-1);
-  // Select datasets
-  while (analyzeArgs.ArgsRemain())
-    dsets_ += datasetlist->GetMultipleSets( analyzeArgs.GetStringNext() );
+  // Select datasets from remaining args
+  ArgList dsetArgs = analyzeArgs.RemainingArgs();
+  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
+    dsets_ += datasetlist->GetMultipleSets( *dsa );
   if (dsets_.empty()) {
     mprinterr("Error: autocorr: No data sets selected.\n");
     return Analysis::ERR;

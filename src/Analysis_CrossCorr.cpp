@@ -15,9 +15,10 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
 {
   std::string setname_ = analyzeArgs.GetStringKey("name");
   outfilename_ = analyzeArgs.GetStringKey("out");
-  // Select datasets
-  while (analyzeArgs.ArgsRemain())
-    dsets_ += datasetlist->GetMultipleSets( analyzeArgs.GetStringNext() );
+  // Select datasets from remaining args
+  ArgList dsetArgs = analyzeArgs.RemainingArgs();
+  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
+    dsets_ += datasetlist->GetMultipleSets( *dsa );
   if (dsets_.empty()) {
     mprinterr("Error: crosscorr: No data sets selected.\n");
     return Analysis::ERR;
