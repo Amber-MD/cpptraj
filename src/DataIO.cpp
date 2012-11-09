@@ -60,8 +60,8 @@ void DataIO::SetMaxFrames(int maxIn) {
 int DataIO::ProcessCommonArgs(ArgList &argIn) {
   if (argIn.hasKey("noxcol")) hasXcolumn_ = false;
   if (argIn.hasKey("noemptyframes")) printEmptyFrames_ = false;
-  ArgList::ConstArg xlabel = argIn.getKeyString("xlabel");
-  if (xlabel!=NULL) x_label_.assign(xlabel);
+  std::string label = argIn.GetStringKey("xlabel");
+  if (!label.empty()) x_label_ = label;
   xmin_ = argIn.getKeyDouble("xmin",xmin_);
   xstep_ = argIn.getKeyDouble("xstep",xstep_);
   if (argIn.Contains("time")) {
