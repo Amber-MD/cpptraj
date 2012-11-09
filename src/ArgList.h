@@ -57,17 +57,17 @@ class ArgList {
     /// \return true if the first argument matches key
     bool CommandIs(const char*) const;
     /// Return the next unmarked string
-    std::string GetStringNext();
+    std::string const& GetStringNext();
     /// Return the next unmarked mask
-    std::string GetMaskNext();
+    std::string const& GetMaskNext();
     /// Return the next unmarked tag
-    std::string getNextTag();
+    std::string const& getNextTag();
     /// Return the next unmarked integer
     int getNextInteger(int);
     /// Return the next unmarked double
     double getNextDouble(double);
     /// Return the string following the given key
-    std::string GetStringKey(const char *);
+    std::string const& GetStringKey(const char *);
     /// Return the integer following the given key 
     int getKeyInt(const char *, int);
     /// Return the double following the given key
@@ -77,6 +77,8 @@ class ArgList {
     /// Return true if they key is in the list but do not mark.
     bool Contains(const char*);
   private:
+    /// Empty string to return when args not found
+    static const std::string emptystring;
     /// The original argument string (complete list)
     std::string argline_;
     /// List of arguments

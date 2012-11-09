@@ -5,6 +5,8 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 
+const std::string ArgList::emptystring = "";
+
 ArgList::ArgList(const char* input) {
   if (input != 0) SetList( std::string(input), " ");
 }
@@ -198,13 +200,13 @@ bool ArgList::CommandIs(const char *key) const {
 }
 
 // ArgList::GetStringNext()
-std::string ArgList::GetStringNext() {
+std::string const& ArgList::GetStringNext() {
   for (unsigned int arg = 0; arg < arglist_.size(); ++arg)
     if (!marked_[arg]) {
       marked_[arg]=true;
       return arglist_[arg];
     }
-  return std::string();
+  return emptystring;
 }
 
 // ArgList::GetMaskNext()
@@ -217,7 +219,7 @@ std::string ArgList::GetStringNext() {
   * \return the next unmarked atom mask expression
   */
 // FIXME: / and % may only be valid after @
-std::string ArgList::GetMaskNext() {
+std::string const& ArgList::GetMaskNext() {
   for (unsigned int arg = 0; arg < arglist_.size(); ++arg) {
     if (!marked_[arg]) {
       size_t found = arglist_[arg].find_first_of(":@*/%");
@@ -227,14 +229,14 @@ std::string ArgList::GetMaskNext() {
       }
     }
   }
-  return std::string();
+  return emptystring;
 }
 
 // ArgList::getNextTag()
 /** Return the next unmarked tag. A tag is defined as a character string
   * bounded by brackets, e.g. [tag].
   */
-std::string ArgList::getNextTag() {
+std::string const& ArgList::getNextTag() {
   for (unsigned int arg = 0; arg < arglist_.size(); arg++) {
     if (!marked_[arg]) {
       std::string::reverse_iterator lastchar  = arglist_[arg].rbegin();
@@ -245,12 +247,12 @@ std::string ArgList::getNextTag() {
       }
     }
   }
-  return std::string();
+  return emptystring;
 }
 
 // validInteger()
 /// Brief check that the passed in string begins with a digit or '-'
-inline bool validInteger(std::string const &argument) {
+static inline bool validInteger(std::string const &argument) {
   std::locale loc;
   if (isdigit(argument[0],loc) || argument[0]=='-') return true;
   return false;
@@ -258,7 +260,7 @@ inline bool validInteger(std::string const &argument) {
 
 // validDouble()
 /// Brief check that the passed in string begins with a digit, '-', or '.'
-inline bool validDouble(std::string const &argument) {
+static inline bool validDouble(std::string const &argument) {
   std::locale loc;
   if (isdigit(argument[0],loc) || argument[0]=='-' || argument[0]=='.' ) return true;
   return false;
@@ -303,8 +305,7 @@ double ArgList::getNextDouble(double def) {
   * as a string if found, otherwise return 0.
   * \param key string to search for
   */
-std::string ArgList::GetStringKey(const char *key) {
-  std::string empty;
+std::string const& ArgList::GetStringKey(const char *key) {
   unsigned int nargs = arglist_.size() - 1;
   for (unsigned int arg=0; arg < nargs; arg++)
     if (!marked_[arg]) {
@@ -315,7 +316,7 @@ std::string ArgList::GetStringKey(const char *key) {
         return arglist_[arg];
       }
     }
-  return empty;
+  return emptystring;
 }
 
 // ArgList::getKeyInt()
