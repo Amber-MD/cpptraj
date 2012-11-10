@@ -69,8 +69,9 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
   SetTitle( GetAttrText("title") );
   // Get Frame info
   if ( SetupFrame()!=0 ) return TRAJIN_ERR;
-  // Setup Coordinates
-  if ( SetupCoordinates()!=0 ) return TRAJIN_ERR;
+  // Setup Coordinates/Velocities
+  if ( SetupCoordsVelo()!=0 ) return TRAJIN_ERR;
+  SetVelocity( HasVelocities() );
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n",
@@ -78,9 +79,6 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
     mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
     return TRAJIN_ERR;
   }
-  // Setup Velocity - Allowed to fail silently
-  if (SetupVelocity() == 0)
-    SetVelocity( true );
   // Setup Time
   if ( SetupTime()!=0 ) return TRAJIN_ERR;
   // Box info
@@ -211,6 +209,24 @@ int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double
   }
 
 
+  return 0;
+}
+
+int Traj_AmberNetcdf::readVelocity(int set, double* V) {
+  start_[0] = set;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 1;
+  count_[1] = Ncatom();
+  count_[2] = 3;
+  // Read Velocities
+  if (velocityVID_ != -1) {
+    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Veloc_)) ) {
+      mprinterr("Error: Getting velocities for frame %i\n", set);
+      return 1;
+    }
+    FloatToDouble(V, Veloc_);
+  }
   return 0;
 }
 

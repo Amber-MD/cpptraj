@@ -158,24 +158,24 @@ int NetcdfFile::SetupFrame() {
   return 0;
 }
 
-// NetcdfFile::SetupCoordinates()
-/** Setup ncatom, ncatom3, atomDID, coordVID, spatialDID, spatialVID. 
-  * Check units and spatial dimensions.
+// NetcdfFile::SetupCoordsVelo()
+/** Setup ncatom, ncatom3, atomDID, coordVID, spatialDID, spatialVID,
+  * velocityVID. Check units and spatial dimensions.
   */
-int NetcdfFile::SetupCoordinates() {
+int NetcdfFile::SetupCoordsVelo() {
   int spatial;
   atomDID_ = GetDimInfo(NCATOM, &ncatom_);
   if (atomDID_==-1) return 1;
   ncatom3_ = ncatom_ * 3;
   // Get coord info
-  if (checkNCerr(nc_inq_varid(ncid_, NCCOORDS, &coordVID_))) {
-    mprinterr("Error: Getting coordinate ID\n");
-    return 1;
+  coordVID_ = -1;
+  if ( nc_inq_varid(ncid_, NCCOORDS, &coordVID_) == NC_NOERR ) {
+    if (ncdebug_ > 0) mprintf("\tNetcdf file has coordinates.\n");
+    std::string attrText = GetAttrText(coordVID_, "units");
+    if (attrText!="angstrom")
+      mprintf("Warning: Netcdf file has length units of %s - expected angstrom.\n",
+              attrText.c_str());
   }
-  std::string attrText = GetAttrText(coordVID_, "units");
-  if (attrText!="angstrom")
-    mprintf("WARNING: Netcdf file has length units of %s - expected angstrom.\n",
-            attrText.c_str());
   // Get spatial info
   spatialDID_ = GetDimInfo(NCSPATIAL, &spatial);
   if (spatialDID_==-1) return 1;
@@ -187,19 +187,17 @@ int NetcdfFile::SetupCoordinates() {
     mprinterr("Error: Getting spatial VID\n");
     return 1;
   }
-  return 0;
-}
-
-// NetcdfFile::SetupVelocity()
-/** Determine if Netcdf file contains velocities; if so set velocityVID. */
-int NetcdfFile::SetupVelocity() {
-  if ( nc_inq_varid(ncid_,NCVELO,&velocityVID_)==NC_NOERR ) {
+  // Get velocity info
+  velocityVID_ = -1;
+  if ( nc_inq_varid(ncid_, NCVELO, &velocityVID_) == NC_NOERR ) {
     if (ncdebug_>0) mprintf("    Netcdf file has velocities.\n");
-    return 0;
   }
-  // TODO: Check velocity scaling factor. 
-  velocityVID_=-1;
-  return 1;
+  // Return a error if no coords and no velocity
+  if ( coordVID_ == -1 && velocityVID_ == -1 ) {
+    mprinterr("Error: NetCDF file has no coords and no velocities.\n");
+    return 1;
+  }
+  return 0;
 }
 
 // NetcdfFile::SetupTime()

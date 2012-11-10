@@ -293,13 +293,13 @@ int Traj_AmberRestart::writeFrame(int set, double *X, double *V, double *box, do
 
   // Write coords to buffer
   file_.BufferBegin();
-  file_.DoubleToBuffer(X, natom3_, "%12.7lf");
+  file_.DoubleToBuffer(X, natom3_, "%12.7f");
   // Write velocity to buffer. Check V since velocity not known ahead of time
   if (HasV() && V!=NULL)
-    file_.DoubleToBuffer(V, natom3_, "%12.7lf");
+    file_.DoubleToBuffer(V, natom3_, "%12.7f");
   // Write box to buffer
   if (numBoxCoords_!=0)
-    file_.DoubleToBuffer(box, numBoxCoords_, "%12.7lf");
+    file_.DoubleToBuffer(box, numBoxCoords_, "%12.7f");
 
   if (file_.WriteFrame()) return 1;
 

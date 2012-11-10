@@ -17,6 +17,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, NetcdfFile {
     int openTrajin();
     void closeTraj();
     int readFrame(int,double*,double*,double*,double*);
+    int readVelocity(int, double*);
     int writeFrame(int,double*,double*,double*,double);
     void Info();
     int processWriteArgs(ArgList&);
@@ -27,7 +28,6 @@ class Traj_AmberNetcdf : public TrajectoryIO, NetcdfFile {
     float *Coord_;
     float *Veloc_;
     FileName filename_;
-    int readVelocity(int, double*) { return 1; }
     int processReadArgs(ArgList&) { return 0; }
 };
 #endif

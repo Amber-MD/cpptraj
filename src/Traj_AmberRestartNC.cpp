@@ -64,8 +64,9 @@ int Traj_AmberRestartNC::setupTrajin(std::string const& fname, Topology* trajPar
             filename_.base(), attrText.c_str());
   // Get title
   SetTitle( GetAttrText("title") );
-  // Setup Coordinates
-  if ( SetupCoordinates()!=0 ) return TRAJIN_ERR;
+  // Setup Coordinates/Velocities
+  if ( SetupCoordsVelo()!=0 ) return TRAJIN_ERR;
+  SetVelocity( HasVelocities() );
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF restart file %s (%i) does not\n",
@@ -73,9 +74,6 @@ int Traj_AmberRestartNC::setupTrajin(std::string const& fname, Topology* trajPar
     mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
     return TRAJIN_ERR;
   }
-  // Setup Velocity - allowed to fail silently 
-  if (SetupVelocity() == 0)
-    SetVelocity( true );
   // Setup Time
   if ( SetupTime()!=0 ) return TRAJIN_ERR;
   // Box info

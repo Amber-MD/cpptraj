@@ -21,8 +21,7 @@ class NetcdfFile {
     void NC_close();
 
     int SetupFrame();
-    int SetupCoordinates();
-    int SetupVelocity();
+    int SetupCoordsVelo();
     int SetupTime();
     int SetupBox(double*);
     int SetupTemperature();
@@ -31,10 +30,11 @@ class NetcdfFile {
     void FloatToDouble(double*,float*);
     void DoubleToFloat(float*,double*); 
 
-    inline int Ncid() { return ncid_; }
-    inline int Ncatom() { return ncatom_; }
+    inline int Ncid()    { return ncid_;    }
+    inline int Ncatom()  { return ncatom_;  }
     inline int Ncatom3() { return ncatom3_; }
     inline int Ncframe() { return ncframe_; }
+    bool HasVelocities() { return (velocityVID_ != -1); } 
 
     inline void SetNcatom( int natomIn ) { ncatom_ = natomIn; }
   protected: // TODO: Make all private
