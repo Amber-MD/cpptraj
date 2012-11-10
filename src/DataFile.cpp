@@ -107,7 +107,7 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   }
   if (dataio_->processWriteArgs(argIn)==1) return 1;
   if (dataio_->ProcessCommonArgs(argIn)==1) return 1;
-  argIn.CheckForMoreArgs();
+  if (debug_ > 0) argIn.CheckForMoreArgs();
   return 0;
 }
 
