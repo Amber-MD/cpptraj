@@ -66,10 +66,13 @@ int Traj_CharmmDcd::openTrajin() {
 void Traj_CharmmDcd::closeTraj() {
   byte8 framecount;
   if (file_.IsOpen() && file_.Access() != CpptrajFile::READ) {
-    file_.Seek( sizeof(int) + 4 );
+    file_.CloseFile();
+    file_.OpenFile(CpptrajFile::UPDATE);
+    file_.Seek( sizeof(int)+4 );
     framecount.i[1] = 0;
     framecount.i[0] = dcdframes_;
-    // NOTE: Here we are ensuring that ONLY 4 bytes are read. This could
+    mprintf("\tDEBUG: Updated DCD frame count is %i\n", dcdframes_);
+    // NOTE: Here we are ensuring that ONLY 4 bytes are written. This could
     //       overflow for large # of frames.
     file_.Write(framecount.c,sizeof(unsigned char)*4); 
   }

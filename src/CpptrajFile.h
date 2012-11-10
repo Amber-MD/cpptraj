@@ -6,7 +6,7 @@
 /// Class to abstract handling of basic file routines.
 class CpptrajFile {
   public:
-    enum AccessType   { READ, WRITE, APPEND };
+    enum AccessType   { READ, WRITE, APPEND, UPDATE };
     enum CompressType { NO_COMPRESSION, GZIP, BZIP2, ZIP };
     enum FileType { UNKNOWN_TYPE, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE };
 
@@ -32,6 +32,8 @@ class CpptrajFile {
     int SetupAppend(std::string const&, int);
     /// Open file.
     int OpenFile();
+    /// Open file with given access.
+    int OpenFile(AccessType);
     /// Close file.
     void CloseFile();
     /// Printf using the files Write routine.

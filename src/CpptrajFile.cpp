@@ -94,12 +94,17 @@ bool CpptrajFile::IsCompressed() {
   return true;
 }
 
+int CpptrajFile::OpenFile() {
+  return OpenFile( access_ );
+}
+
 // CpptrajFile::OpenFile()
 /** Open the file. If already open, reopen.  */
-int CpptrajFile::OpenFile() {
+int CpptrajFile::OpenFile(AccessType accessIn) {
+  int err;
   if (isOpen_) CloseFile();
 
-  switch (access_) {
+  switch (accessIn) {
     case READ:
       if (fname_.empty()) {
         mprinterr("Error: CpptrajFile: Filename is NULL.\n");
@@ -123,7 +128,7 @@ int CpptrajFile::OpenFile() {
       if (debug_>0) rprintf("Opened %s for appending.\n", FullFileStr());
       break;
     case WRITE:
-      int err = 0;
+      err = 0;
       if ( fname_.empty() )
         err = IO_->Open(NULL, "wb");
       else
@@ -133,6 +138,17 @@ int CpptrajFile::OpenFile() {
         return 1;
       }
       if (debug_>0) rprintf("Opened %s for writing.\n", FullFileStr());
+      break;
+    case UPDATE:
+      if (fname_.empty()) {
+        mprinterr("Error: CpptrajFile: Filename is NULL.\n");
+        return 1;
+      }
+      if ( IO_->Open(FullFileStr(), "r+b") ) {
+        rprintf("Could not open %s for updating.\n", FullFileStr());
+        return 1;
+      }
+      if (debug_>0) rprintf("Opened %s for updating.\n", FullFileStr());
       break;
   }
       
