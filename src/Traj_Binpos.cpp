@@ -116,23 +116,31 @@ int Traj_Binpos::readFrame(int set, double* X, double* V, double* box, double* T
 int Traj_Binpos::setupTrajout(std::string const& fname, Topology* trajParm,
                               int NframesToWrite, bool append)
 {
-  unsigned char buffer[4];
-  bpnatom_ = trajParm->Natom();
-  bpnatom3_ = bpnatom_ * 3;
-  frameSize_ = (size_t)bpnatom3_ * sizeof(float);
-  // Allocate space to write out floats
-  if (bpbuffer_!=0)
-    delete[] bpbuffer_;
-  bpbuffer_ = new float[ bpnatom3_ ];
-  if (HasBox()) 
-    mprintf("Warning: BINPOS format does not support writing of box coordinates.\n");
-  if (file_.OpenFile()) return 1;
-  // Always write header
-  buffer[0] = 'f';
-  buffer[1] = 'x';
-  buffer[2] = 'y';
-  buffer[3] = 'z';
-  file_.Write(buffer, 4);
+  if (!append) {
+    if (file_.SetupWrite( fname, debug_ )) return 1;
+    unsigned char buffer[4];
+    bpnatom_ = trajParm->Natom();
+    bpnatom3_ = bpnatom_ * 3;
+    frameSize_ = (size_t)bpnatom3_ * sizeof(float);
+    // Allocate space to write out floats
+    if (bpbuffer_!=0)
+      delete[] bpbuffer_;
+    bpbuffer_ = new float[ bpnatom3_ ];
+    if (HasBox()) 
+      mprintf("Warning: BINPOS format does not support writing of box coordinates.\n");
+    if (file_.OpenFile()) return 1;
+    // Always write header
+    buffer[0] = 'f';
+    buffer[1] = 'x';
+    buffer[2] = 'y';
+    buffer[3] = 'z';
+    file_.Write(buffer, 4);
+  } else {
+    if ( setupTrajin( fname, trajParm ) == TRAJIN_ERR ) return 1;
+    // Re-open for appending
+    if (file_.SetupAppend( fname, debug_ )) return 1;
+    if (file_.OpenFile()) return 1;
+  }
   return 0;
 }
 

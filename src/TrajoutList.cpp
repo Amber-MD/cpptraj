@@ -90,7 +90,7 @@ int TrajoutList::Write(int set, Topology *CurrentParm, Frame *CurrentFrame) {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj) 
   {
     if ( (*traj)->WriteFrame(set, CurrentParm, *CurrentFrame) ) {
-      mprinterr("Error writing output trajectory.\n");
+      mprinterr("Error writing output trajectory, frame %i.\n", set+1);
       return 1;
     }
   }
