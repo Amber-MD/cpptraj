@@ -180,11 +180,11 @@ int Cpptraj::Create_DataFile(ArgList& dataArg) {
     Help_Create_DataFile();
     return 1;
   }
-  DataFile* df = DFL.GetDataFile(name1);
-  if (df==0)
-    mprintf("    Creating file %s:",name1.c_str());
-  else
-    mprintf("    Adding sets to file %s:",name1.c_str());
+  DataFile* df = DFL.AddDataFile(name1, dataArg);
+  if (df==0) {
+    mprinterr("Error: create: Could not create file %s:",name1.c_str());
+    return 1;
+  }
   // Process any recognized datafile args
   df->ProcessArgs( dataArg );
   // Treat all remaining args as dataset names
@@ -196,7 +196,7 @@ int Cpptraj::Create_DataFile(ArgList& dataArg) {
       mprintf("Warning: %s does not correspond to any data sets.\n", (*dsa).c_str());
     for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
       mprintf(" %s", (*set)->Legend().c_str());
-      if ( DFL.AddSetToFile(name1, *set)==0 ) {
+      if ( df->AddSet(*set) ) {
         mprinterr("Error: Could not add data set %s to file.\n", (*set)->Legend().c_str());
         ++err;
       }
