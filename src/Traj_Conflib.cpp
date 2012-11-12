@@ -40,14 +40,14 @@ int Traj_Conflib::setupTrajin(std::string const& fname, Topology* trajParm)
   if (file_.OpenRead(fname)) return TRAJIN_ERR;
   size_t file_size = (size_t)file_.UncompressedSize();
   if (file_size > 0) {
-    // Conflib is double,double,int,natom*3*double
+    // Conflib frame is double,double,int,natom*3*double
     long unsigned int confFrame = (((trajParm->Natom() * 3) + 2) * sizeof(double)) + sizeof(int);
     Frames = (int) (file_size / confFrame);
     if ( (file_size % confFrame) != 0 ) {
-      mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
+      mprintf("Warning: %s: Could not accurately predict # frames. This can indicate either\n",
               file_.BaseFileStr());
-      mprintf("Warning: indicates a corrupted trajectory. Will attempt to read %i frames.\n",
-              Frames);
+      mprintf("Warning: the wrong topology is associated with this CONFLIB file or that the\n");
+      mprintf("Warning: trajectory is corrupted. Will attempt to read %i frames.\n", Frames);
     }
   } else {
     Frames = TRAJIN_UNK;
@@ -64,7 +64,7 @@ int Traj_Conflib::readFrame(int set, double *X, double *V,double *box, double *T
   file_.Read(&timesFound_,sizeof(int));
   file_.Read(X,sizeof(double)*conflibAtom_*3); 
 
-  if (debug_>0) mprinterr("CONFLIB %10i: %10.4lf %10.4lf %6i %10.4lf %10.4lf %10.4lf\n",
+  if (debug_>0) mprinterr("CONFLIB %10i: E=%10.4f RoG=%10.4f Found=%6i %12.4f %12.4f %12.4f\n",
                          set, energy_, radGyr_, timesFound_, X[0], X[1], X[2]);
   return 0;
 }
@@ -73,13 +73,13 @@ int Traj_Conflib::readFrame(int set, double *X, double *V,double *box, double *T
 int Traj_Conflib::setupTrajout(std::string const& fname, Topology* trajParm,
                                int NframesToWrite, bool append)
 {
-  mprintf("Error: conflib writes not yet implemented.\n");
+  mprinterr("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
 // Traj_Conflib::writeFrame()
 int Traj_Conflib::writeFrame(int set, double *X, double *V,double *box, double T) {
-  mprintf("Error: conflib writes not yet implemented.\n");
+  mprinterr("Error: conflib writes not yet implemented.\n");
   return 1;
 }
 
