@@ -34,6 +34,18 @@ Traj_CharmmDcd::~Traj_CharmmDcd() {
   if (xcoord_!=0) delete[] xcoord_;
 }
 
+static inline bool CORD_32BIT(const unsigned char* buffer) {
+  if (buffer[4] == 'C' && buffer[5] == 'O' && buffer[ 6] == 'R' && buffer[ 7] == 'D')
+    return true; // 32 bit
+  return false;
+}
+
+static inline bool CORD_64BIT(const unsigned char* buffer) {
+  if (buffer[8] == 'C' && buffer[9] == 'O' && buffer[10] == 'R' && buffer[11] == 'D')
+    return true; // 64 bit
+  return false;
+}
+
 bool Traj_CharmmDcd::ID_TrajFormat(CpptrajFile& fileIn) {
   // Charmm DCD is 32 or 64 bit int (84) followed by 'CORD'
   unsigned char buffer[12];
@@ -42,10 +54,8 @@ bool Traj_CharmmDcd::ID_TrajFormat(CpptrajFile& fileIn) {
   if (fileIn.Read(buffer, 12) != 12) return false;
   fileIn.CloseFile();
   // If the second 4 or last 4 chars are C O R D, charmm DCD
-  if (buffer[4] == 'C' && buffer[5] == 'O' && buffer[ 6] == 'R' && buffer[ 7] == 'D')
-    return true; // 32 bit
-  if (buffer[8] == 'C' && buffer[9] == 'O' && buffer[10] == 'R' && buffer[11] == 'D')
-    return true; // 64 bit
+  if (CORD_32BIT(buffer)) return true;
+  if (CORD_64BIT(buffer)) return true;
   return false;
 }
 
@@ -220,72 +230,42 @@ int Traj_CharmmDcd::setupTrajin(std::string const& fname, Topology* trajParm)
   * File must have already been opened. Return 1 on error, 0 on success.
   */
 int Traj_CharmmDcd::readDcdHeader() {
-  byte8 dcdkey;
-  byte8 LEbyte;
-  byte8 BEbyte;
-  headerbyte buffer;
-// ********** Step 1 - Determine endianness.
-  // Read first 8 bytes - first number in dcd header should be 84.
-  // If 32 bit the number is in the first 4 bytes, 64 bit is first
-  // 8 bytes.
-  file_.Read(LEbyte.c, sizeof(unsigned char)*8);
-  // Key that identifies dcd file, will be 4 bytes after first block
-  dcdkey.i[1]=0;
-  dcdkey.c[0]='C';
-  dcdkey.c[1]='O';
-  dcdkey.c[2]='R';
-  dcdkey.c[3]='D';
-  if ( (LEbyte.i[0]+LEbyte.i[1]) == 84 ) {
-    // If the sum of the first 2 4-byte blocks is 84 this is a 
-    // 64bit little endian
-    isBigEndian_ = false;
-    is64bit_ = true;
-  } else if ( LEbyte.i[0]==84 && LEbyte.i[1]==dcdkey.i[0]) {
-    // If first 4-byte block is 84 and second is CORD this is
-    // 32bit little endian
-    isBigEndian_ = false;
+  // ********** Step 1 - Determine 32/64 bit
+  unsigned char cord_buf[12];
+  // 'CORD' should be in bytes 4-8 (32 bit) or 8-12 (64 bit)
+  if (file_.Read( cord_buf, 8 * sizeof(unsigned char))!=8) return 1;
+  if (CORD_32BIT(cord_buf)) {
     is64bit_ = false;
+    blockSize_ = 4;
   } else {
-    // Flip bytes to convert to big endian
-    BEbyte.c[0] = LEbyte.c[3];
-    BEbyte.c[1] = LEbyte.c[2];
-    BEbyte.c[2] = LEbyte.c[1];
-    BEbyte.c[3] = LEbyte.c[0];
-    BEbyte.c[4] = LEbyte.c[7];
-    BEbyte.c[5] = LEbyte.c[6];
-    BEbyte.c[6] = LEbyte.c[5];
-    BEbyte.c[7] = LEbyte.c[4];
-    if ( (BEbyte.i[0] + BEbyte.i[1]) == 84 ) {
-      // If the sum of the first 2 4-byte blocks is 84 this is a 
-      // 64bit big endian
-      isBigEndian_ = true;
-      is64bit_ = true;
-    } else if ( BEbyte.i[0]==84 && LEbyte.i[1]==dcdkey.i[0]) {
-      // If first 4-byte block is 84 and second is CORD this is
-      // 32bit big endian
-      isBigEndian_ = true;
-      is64bit_ = false;
-    } else {
-      // Otherwise who knows what the heck this is
-      mprinterr("Error: Unrecognized DCD header [%s].\n",file_.BaseFileStr());
-      return 1;
-    }
-  }
-  // If 64 bit check next 4 bytes for the dcd key
-  if (is64bit_) {
-    file_.Read(LEbyte.c, sizeof(unsigned char)*4);
-    if ( LEbyte.i[0] != dcdkey.i[0] ) {
+    if (file_.Read( cord_buf + 8, 4 * sizeof(unsigned char))!=4) return 1;
+    if (!CORD_64BIT(cord_buf)) {
       mprinterr("Error: DCD key not found in 64 bit Charmm DCD file.\n");
       return 1;
     }
-  }
-  // Set readSize 
-  if (is64bit_) 
+    is64bit_ = true;
     blockSize_ = 8;
-  else
-    blockSize_ = 4;
-
-// ********** Step 2 - Read the rest of the first header block
+  }
+  // ********** Step 2 - Determine Endianness
+  byte8 firstbyte;
+  firstbyte.i[1] = 0;
+  memcpy(firstbyte.c, cord_buf, blockSize_ * sizeof(unsigned char));
+  if (firstbyte.i[0] == 84)
+    isBigEndian_ = false;
+  else {
+    if (is64bit_)
+      endian_swap( firstbyte.i, 2 );
+    else
+      endian_swap( firstbyte.i, 1 );
+    if (firstbyte.i[0] == 84)
+      isBigEndian_ = true;
+    else {
+      mprinterr("Error: Could not read header block size from Charmm DCD file.\n");
+      return 1;
+    }
+  }
+  // ********** Step 3 - Read the rest of the first header block
+  headerbyte buffer;
   if (file_.Read(buffer.c, sizeof(unsigned char)*80) < 1) {
     mprinterr("Error: Could not buffer DCD header.\n");
     return 1;
@@ -328,8 +308,7 @@ int Traj_CharmmDcd::readDcdHeader() {
   if (debug_>0) mprintf("\tTimestep is %f\n",timestep);
   // Read end size of first block, should also be 84
   if (ReadBlock(84)<0) return 1;
-
-// ********** Step 3 - Read title block
+  // ********** Step 4 - Read title block
   // Read title block size
   int ntitle;
   std::string title;
@@ -356,8 +335,7 @@ int Traj_CharmmDcd::readDcdHeader() {
   }
   // Read title end block size
   if (ReadBlock(titleSize)<0) return 1;
-
-// ********** Step 4 - Read in natoms 
+  // ********** Step 4 - Read in natoms 
   // Read in next block size, should be 4
   if (ReadBlock(4)<0) return 1;
   // Read in number of atoms
@@ -369,8 +347,7 @@ int Traj_CharmmDcd::readDcdHeader() {
   if (debug_>0) mprintf("\tNatom %i\n",dcdatom_);
   // Read in end block size, should also be 4
   if (ReadBlock(4)<0) return 1;
-
-// ********** Step 5 - Read in free atom indices if necessary
+  // ********** Step 5 - Read in free atom indices if necessary
   // Calculate number of free atoms (#total - #fixed)
   nfreeat_ = dcdatom_ - nfixedat_;
   // If number of fixed atoms not 0, need to read list of free atoms.
@@ -390,7 +367,6 @@ int Traj_CharmmDcd::readDcdHeader() {
     // Read end index array size
     if (ReadBlock(nfreeat_ * 4) < 0) return 1;
   }
-
   return 0;
 }
 
