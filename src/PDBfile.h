@@ -1,7 +1,7 @@
 #ifndef INC_PDBFILE_H
 #define INC_PDBFILE_H
-#include "Topology.h" // Atom, Residue
 #include "CpptrajFile.h"
+#include "Atom.h"
 /// Used to access PDB files
 class PDBfile : public CpptrajFile {
   public:
@@ -21,7 +21,7 @@ class PDBfile : public CpptrajFile {
     /// \return Atom based on current line.
     Atom pdb_Atom();
     /// \return Residue based on current line.
-    Residue pdb_Residue();
+    NameType pdb_Residue(int&);
     /// Set XYZ based on current line.
     void pdb_XYZ(double*);
     /// Write HETATM record using internal atom numbering

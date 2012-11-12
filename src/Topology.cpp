@@ -14,7 +14,6 @@
 Topology::Topology() :
   offset_(0.20),
   debug_(0),
-  topology_error_(0),
   NsolventMolecules_(0),
   finalSoluteRes_(-1),
   pindex_(0),
@@ -425,15 +424,17 @@ void Topology::PrintResidueInfo() {
 
 // -----------------------------------------------------------------------------
 // Topology::AddAtom()
-void Topology::AddAtom(Atom atomIn, Residue resIn, const double* XYZin) {
+void Topology::AddAtom(Atom atomIn, NameType const& resname, int current_res, int& last_res, 
+                       const double* XYZin) 
+{
   // DEBUG
   //mprintf("Adding atom %i [%s] of residue %i [%s]\n",
   //       atomIn.Num(), atomIn.Name(), resIn.Num(), resIn.Name());
   // Check if this is a new residue
-  if (residues_.empty() || resIn != residues_.back()) {
-    // Set atom number of first atom of this residue
-    resIn.SetFirstAtom( atoms_.size() );
-    residues_.push_back( resIn );
+  if (residues_.empty() || current_res != last_res) {
+    // First atom of new residue is == current # atoms.
+    residues_.push_back( Residue(resname, atoms_.size()) );
+    last_res = current_res;
   }
   //mprintf("DEBUG: Atom %zu belongs to residue %zu\n",atoms_.size(), residues_.size());
   //mprintf("DEBUG: Atom %zu: %lf %lf %lf\n",atoms_.size(),XYZin[0],XYZin[1],XYZin[2]);
@@ -683,7 +684,7 @@ int Topology::CommonSetup(bool bondsearch) {
     if (DetermineMolecules()) return 1;
 
   // Set up solvent information
-  SetSolventInfo();
+  if (SetSolventInfo()) return 1;
 
   // Determine excluded atoms
   DetermineExcludedAtoms();
@@ -806,6 +807,15 @@ double Topology::GetBondLength(Atom::AtomicElementType atom1, Atom::AtomicElemen
   return cut;
 }
 
+bool Topology::NameIsSolvent(NameType const& resname) {
+  if (resname == "WAT " ||
+      resname == "HOH " ||
+      resname == "TIP3"
+     )
+    return true;
+  return false;
+}
+
 // Topology::GetBondsFromAtomCoords()
 void Topology::GetBondsFromAtomCoords() {
   int stopatom;
@@ -866,7 +876,7 @@ void Topology::GetBondsFromAtomCoords() {
     }
     // If this residue is recognized as solvent, no need to check previous or
     // next residue
-    if ((*res).NameIsSolvent()) {
+    if ( NameIsSolvent((*res).Name()) ) {
       ++res;
       if (res == residues_.end()) break;
       continue;
@@ -874,7 +884,7 @@ void Topology::GetBondsFromAtomCoords() {
     // Get previous residue
     std::vector<Residue>::iterator previous_res = res - 1;
     // If previous residue is recognized as solvent, no need to check previous.
-    if ((*previous_res).NameIsSolvent()) continue;
+    if ( NameIsSolvent((*previous_res).Name()) ) continue;
     // Get previous residue start atom
     int startatom = (*previous_res).FirstAtom();
     // Previous residue stop atom, this residue start atom
@@ -1107,12 +1117,11 @@ int Topology::SetSolvent(std::string const& maskexpr) {
 /** Determine which molecules are solvent based on residue name. 
   * Also set finalSoluteRes.
   */
-void Topology::SetSolventInfo() {
+int Topology::SetSolventInfo() {
   // Require molecule information
   if (molecules_.empty()) {
     mprinterr("Error: SetSolventInfo: No molecule information.\n");
-    topology_error_ = 1;
-    return;
+    return 1;
   }
   // Loop over each molecule. Check if first residue of molecule is solvent.
   NsolventMolecules_ = 0;
@@ -1123,7 +1132,7 @@ void Topology::SetSolventInfo() {
                                        mol != molecules_.end(); mol++)
   {
     int firstRes = atoms_[ (*mol).BeginAtom() ].ResNum();
-    if ( residues_[firstRes].NameIsSolvent() ) {
+    if ( NameIsSolvent(residues_[firstRes].Name()) ) {
       (*mol).SetSolvent();
       ++NsolventMolecules_;
       numSolvAtoms += (*mol).NumAtoms();
@@ -1143,6 +1152,7 @@ void Topology::SetSolventInfo() {
     else
       mprintf("    %i solvent molecules, %i solvent atoms\n",NsolventMolecules_,numSolvAtoms);
   }
+  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -1604,7 +1614,10 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
     return 0;
   }
   // Set new solvent information based on new molecules
-  newParm->SetSolventInfo(); 
+  if (newParm->SetSolventInfo()) {
+    delete newParm;
+    return 0;
+  } 
   // Set up new angle info
   newParm->angles_ = SetupSequentialArray(atomMap, 4, angles_);
   newParm->anglesh_ = SetupSequentialArray(atomMap, 4, anglesh_);

@@ -1,7 +1,7 @@
 #ifndef INC_MOL2FILE_H
 #define INC_MOL2FILE_H
-#include "Topology.h"
 #include "CpptrajFile.h"
+#include "Atom.h"
 /// Used to access mol2 files.
 class Mol2File : public CpptrajFile {
   public: 
@@ -26,7 +26,7 @@ class Mol2File : public CpptrajFile {
     /// Convert current line to Atom 
     Atom Mol2Atom();
     /// Convert current line to Residue
-    Residue Mol2Residue();
+    NameType Mol2Residue(int&);
 
     void SetMol2Natoms(int nIn)               { mol2atoms_ = nIn; }
     void SetMol2Nbonds(int nIn)               { mol2bonds_ = nIn; }

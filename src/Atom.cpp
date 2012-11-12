@@ -90,6 +90,7 @@ Atom::Atom( NameType aname, NameType atype, double q ) :
   * atomic number if set, otherwise determine from mass. Determine element 
   * from name if all else fails.
   */
+// TODO: Necessary to set resnum here?
 Atom::Atom( NameType name, double charge, int atomicnum, double mass, int atidx,
             NameType type, double rad, double screen, int resnum ) :
   charge_(charge),
@@ -169,11 +170,6 @@ void Atom::Info() {
   mprintf(" Charge=%lf",charge_);
   mprintf(" Mass=%lf",mass_);
   mprintf("\n");
-}
-
-// Atom::SetName()
-void Atom::SetName(NameType nameIn) {
-  aname_ = nameIn;
 }
 
 // Atom::SetResNum()

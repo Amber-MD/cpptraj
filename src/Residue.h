@@ -5,25 +5,16 @@
 /// Hold information for a residue.
 class Residue {
   public:
-    Residue();
-    Residue(int, NameType);
-    Residue(NameType, int);
-    Residue(int);
+    Residue() : firstAtom_(0), resname_("") {}
+    Residue(NameType const& resname, int firstAtomIn) :
+      firstAtom_(firstAtomIn),
+      resname_(resname)
+    {}
 
-    bool operator==(const Residue &);
-    bool operator!=(const Residue &);
-
-    inline int OriginalNum()         { return original_resnum_; }
-    inline int FirstAtom() const     { return firstAtom_;       }
-    inline const char *c_str() const { return *resname_;        }
-    inline NameType Name() const     { return resname_;         }
-
-    void SetFirstAtom(int);
-    inline void SetName(NameType nameIn) { resname_ = nameIn; }
-
-    bool NameIsSolvent();
+    inline int FirstAtom() const        { return firstAtom_; }
+    inline const char *c_str() const    { return *resname_;  }
+    inline NameType const& Name() const { return resname_;   }
   private:
-    int original_resnum_;
     int firstAtom_;
     NameType resname_;
 };

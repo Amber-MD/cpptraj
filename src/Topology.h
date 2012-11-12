@@ -113,7 +113,7 @@ class Topology {
     inline Box::BoxType BoxType()     { return box_.Type(); }
     void SetBox( Box const& bIn )     { box_ = bIn;         }
     // ----- PDB/Mol2 etc setup routines -----
-    void AddAtom(Atom, Residue, const double*);
+    void AddAtom(Atom, NameType const&, int, int&, const double*);
     void StartNewMol();
     // ----- Amber setup routines -----
     int CreateAtomArray(std::vector<NameType>&, std::vector<double>&,
@@ -191,7 +191,6 @@ class Topology {
 
     double offset_;         ///< Offset used when searching for bonds
     int debug_;
-    int topology_error_;
     int NsolventMolecules_;
     int finalSoluteRes_;
     int pindex_;
@@ -203,12 +202,13 @@ class Topology {
     static void WarnBondLengthDefault(Atom::AtomicElementType,
                                       Atom::AtomicElementType,double);
     static double GetBondLength(Atom::AtomicElementType, Atom::AtomicElementType);
+    static bool NameIsSolvent(NameType const&);
     void GetBondsFromAtomCoords();
     void VisitAtom(int, int);
     int DetermineMolecules();
     void AtomDistance(int, int, int, std::set<int>&);
     void DetermineExcludedAtoms();
-    void SetSolventInfo();
+    int SetSolventInfo();
 
     void Mask_SelectDistance( Frame &, char*, bool, bool, double );
     void Mask_AND(char*,char*);

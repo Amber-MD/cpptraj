@@ -55,7 +55,8 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
     return 1;
   }
   // Read the next natom lines
-  int psfresnum;
+  int psfresnum = 0;
+  int last_res = -1;
   char psfresname[6];
   char psfname[6];
   char psftype[6];
@@ -71,7 +72,7 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
     sscanf(buffer,"%*i %*s %i %s %s %s %lf %lf",&psfresnum, psfresname, 
            psfname, psftype, &psfcharge, &psfmass);
     parmOut.AddAtom( Atom( psfname, psfcharge, 0, psfmass, 0, psftype, 0, 0, psfresnum),
-                     Residue(psfresnum, psfresname), NULL );
+                     psfresname, psfresnum, last_res, 0 );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int nbond = 0;

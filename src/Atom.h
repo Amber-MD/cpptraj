@@ -43,7 +43,6 @@ class Atom {
     // Info functions
     void Info();
     // Functions that set internal vars
-    void SetName(NameType);
     void SetResNum(int);
     void SetMol(int);
     bool NoMol();

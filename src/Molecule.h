@@ -4,8 +4,12 @@
 /// Hold information for a molecule
 class Molecule {
   public:
-    Molecule();
-    Molecule(int, int);
+    Molecule() : beginAtom_(0), endAtom_(0), isSolvent_(false) {}
+    Molecule(int begin, int end) :
+      beginAtom_(begin),
+      endAtom_(end),
+      isSolvent_(false)
+    {}
 
     void SetFirst(int begin) { beginAtom_ = begin; }
     void SetLast(int last)   { endAtom_ = last;    }

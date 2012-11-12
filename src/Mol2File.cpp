@@ -146,12 +146,11 @@ Atom Mol2File::Mol2Atom() {
 }
 
 // Mol2File::Mol2Residue()
-Residue Mol2File::Mol2Residue() {
+NameType Mol2File::Mol2Residue(int& current_res) {
   char resname[10];
-  int resnum;
-  sscanf(linebuffer_,"%*i %*s %*f %*f %*f %*s %i %s",&resnum,resname);
+  sscanf(linebuffer_,"%*i %*s %*f %*f %*f %*s %i %s", &current_res, resname);
   NameType rname( resname );
   // Replace all asterisks with single quote.
   rname.ReplaceAsterisk();
-  return Residue(resnum, rname);
+  return rname;
 }

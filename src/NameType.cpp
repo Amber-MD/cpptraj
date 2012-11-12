@@ -96,7 +96,7 @@ void NameType::ToBuffer(char *buffer) {
   buffer[4] = '\0';
 }
 
-bool NameType::Match(NameType const& maskName) { 
+bool NameType::Match(NameType const& maskName) const { 
   int c = 0;
   for (int m = 0; m < 5; m++) {
     if (maskName.c_array_[m] == '\0' && c_array_[c] == ' ')
@@ -139,7 +139,7 @@ NameType &NameType::operator=(const char *rhs) {
 }
 */
 
-bool NameType::operator==(const NameType &rhs) {
+bool NameType::operator==(const NameType &rhs) const {
   if (c_array_[0] != rhs.c_array_[0]) return false;
   if (c_array_[1] != rhs.c_array_[1]) return false;
   if (c_array_[2] != rhs.c_array_[2]) return false;
@@ -147,12 +147,12 @@ bool NameType::operator==(const NameType &rhs) {
   return true;
 }
 
-bool NameType::operator==(const char *rhs) {
+bool NameType::operator==(const char *rhs) const {
   NameType tmp(rhs);
   return (*this == tmp);
 }
 
-bool NameType::operator!=(const NameType &rhs) {
+bool NameType::operator!=(const NameType &rhs) const {
   if (c_array_[0] != rhs.c_array_[0]) return true;
   if (c_array_[1] != rhs.c_array_[1]) return true;
   if (c_array_[2] != rhs.c_array_[2]) return true;
@@ -160,7 +160,7 @@ bool NameType::operator!=(const NameType &rhs) {
   return false;
 }
 
-bool NameType::operator!=(const char *rhs) {
+bool NameType::operator!=(const char *rhs) const {
   NameType tmp(rhs);
   return (*this != tmp);
 }

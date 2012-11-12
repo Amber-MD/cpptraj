@@ -67,7 +67,7 @@ Atom PDBfile::pdb_Atom() {
 }
 
 // PDBfile::pdb_Residue()
-Residue PDBfile::pdb_Residue() {
+NameType PDBfile::pdb_Residue(int& current_res) {
   // Res name (16-20)
   char savechar = linebuffer_[20];
   linebuffer_[20] = '\0';
@@ -78,9 +78,9 @@ Residue PDBfile::pdb_Residue() {
   // Res num (22-27)
   savechar = linebuffer_[27];
   linebuffer_[27] = '\0';
-  int resnum = atoi( linebuffer_+22 );
+  current_res = atoi( linebuffer_+22 );
   linebuffer_[27] = savechar;
-  return Residue(resnum, resname);
+  return resname;
 }
 
 // PDBfile::pdb_XYZ()
