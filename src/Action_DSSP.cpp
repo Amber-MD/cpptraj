@@ -190,7 +190,7 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
                                                                 res+1, "res");
       if (SecStruct_[res].resDataSet!=NULL) {
         outfile_->AddSet(SecStruct_[res].resDataSet);
-        SecStruct_[res].resDataSet->SetLegend( currentParm->ResNameNum(res) );
+        SecStruct_[res].resDataSet->SetLegend( currentParm->TruncResNameNum(res) );
       }
     }
     ++selected;

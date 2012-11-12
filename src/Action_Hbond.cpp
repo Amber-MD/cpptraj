@@ -614,9 +614,9 @@ void Action_Hbond::Print() {
       angle = angle / ((double) (*hbond).Frames);
       angle *= RADDEG;
 
-      Aname = CurrentParm_->ResAtomName((*hbond).A);
-      Hname = CurrentParm_->ResAtomName((*hbond).H);
-      Dname = CurrentParm_->ResAtomName((*hbond).D);
+      Aname = CurrentParm_->TruncResAtomName((*hbond).A);
+      Hname = CurrentParm_->TruncResAtomName((*hbond).H);
+      Dname = CurrentParm_->TruncResAtomName((*hbond).D);
 
       outfile.Printf("%-*s %*s %*s %8i %12.4lf %12.4lf %12.4lf\n",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
@@ -657,13 +657,13 @@ void Action_Hbond::Print() {
       if ((*hbond).A==-1) // Solvent acceptor
         Aname = "SolventAcc";
       else
-        Aname = CurrentParm_->ResAtomName((*hbond).A);
+        Aname = CurrentParm_->TruncResAtomName((*hbond).A);
       if ((*hbond).D==-1) { // Solvent donor
         Dname = "SolventDnr";
-        Hname = "SolventH  ";
+        Hname = "SolventH";
       } else {
-        Dname = CurrentParm_->ResAtomName((*hbond).D);
-        Hname = CurrentParm_->ResAtomName((*hbond).H);
+        Dname = CurrentParm_->TruncResAtomName((*hbond).D);
+        Hname = CurrentParm_->TruncResAtomName((*hbond).H);
       }
 
       outfile.Printf("%-*s %*s %*s %8i %12.4lf %12.4lf %12.4lf\n",

@@ -214,28 +214,13 @@ const char* Topology::ResidueName(int res) {
   return residues_[res].c_str();
 }
 
-// Topology::ResAtomName()
+// Topology::TruncResAtomName()
 /** Given an atom number, return a string containing the corresponding 
-  * residue name (replacing any blanks with '_') and number (starting
-  * from 1) along with the atom name with format: 
+  * residue name and number (starting from 1) along with the atom name 
+  * with format: 
   * "<resname><resnum>@<atomname>", e.g. "ARG_11@CA".
+  * Truncate the residue and atom names so there are no blanks.
   */
-std::string Topology::ResAtomName(int atom) {
-  std::string res_name;
-  if (atom < 0 || atom >= (int)atoms_.size()) return res_name;
-  std::string atom_name( atoms_[atom].c_str() );
-  int res = atoms_[atom].ResNum();
-  res_name.assign( residues_[res].c_str() );
-  // NOTE: ensure a residue size of 4?
-  if (res_name[3]==' ')
-    res_name[3]='_';
-  ++res; // want output as res+1
-  res_name += integerToString(res);
-  res_name += "@";
-  res_name += atom_name;
-  return res_name;
-}
-
 std::string Topology::TruncResAtomName(int atom) {
   std::string res_name;
   if (atom < 0 || atom >= (int)atoms_.size()) return res_name;
@@ -258,18 +243,13 @@ std::string Topology::TruncResAtomName(int atom) {
   return res_name;
 }
 
-// Topology::ResNameNum()
+// Topology::TruncResNameNum()
 /** Given a residue number (starting from 0), return a string containing 
   * residue name and number (starting from 1) with format: 
-  * "<resname> <resnum>", e.g. "ARG 11".
+  * "<resname>:<resnum>", e.g. "ARG:11".
+  * Truncate residue name so there are no blanks.
   */
 // FIXME: Add residue bounds check.
-std::string Topology::ResNameNum(int res) {
-  std::string resnamenum( residues_[res].c_str() );
-  resnamenum += integerToString( res+1 );
-  return resnamenum;
-}
-
 std::string Topology::TruncResNameNum(int res) {
   std::string resnamenum( residues_[res].c_str() );
   // Remove trailing spaces

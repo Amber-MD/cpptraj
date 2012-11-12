@@ -299,7 +299,7 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
     ++N;
     // Create dataset for res - if already present this returns NULL
     DataSet* prDataSet = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, rmsd_->Name(), tgtRes, "res");
-    prDataSet->SetLegend( currentParm->ResNameNum(tgtRes-1) );
+    prDataSet->SetLegend( currentParm->TruncResNameNum(tgtRes-1) );
     PerResRMSD_.push_back( prDataSet );
 
     // Setup mask strings. Note that masks are based off user residue nums

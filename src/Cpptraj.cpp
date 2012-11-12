@@ -215,7 +215,7 @@ int Cpptraj::Precision(ArgList& dataArg) {
     return 1;
   }
   DataFile* df = DFL.GetDataFile(name1);
-  if (df==NULL) {
+  if (df==0) {
     mprinterr("Error: precision: DataFile %s does not exist.\n",name1.c_str());
     return 1;
   }
