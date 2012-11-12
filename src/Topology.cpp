@@ -427,19 +427,13 @@ void Topology::PrintResidueInfo() {
 void Topology::AddAtom(Atom atomIn, NameType const& resname, int current_res, int& last_res, 
                        const double* XYZin) 
 {
-  // DEBUG
-  //mprintf("Adding atom %i [%s] of residue %i [%s]\n",
-  //       atomIn.Num(), atomIn.Name(), resIn.Num(), resIn.Name());
   // Check if this is a new residue
   if (residues_.empty() || current_res != last_res) {
     // First atom of new residue is == current # atoms.
     residues_.push_back( Residue(resname, atoms_.size()) );
     last_res = current_res;
   }
-  //mprintf("DEBUG: Atom %zu belongs to residue %zu\n",atoms_.size(), residues_.size());
-  //mprintf("DEBUG: Atom %zu: %lf %lf %lf\n",atoms_.size(),XYZin[0],XYZin[1],XYZin[2]);
-  // Overwrite atom number
-  //atomIn.SetNum( atoms_.size() );
+  // Set this atoms residue number 
   atomIn.SetResNum( residues_.size()-1 );
   atoms_.push_back(atomIn);
   // Add coordinate if given

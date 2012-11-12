@@ -29,7 +29,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
 
   // Buffer file
   BufferedFile buffer;
-  if (buffer.OpenWrite( fname )) return 1;
+  if (buffer.OpenRead( fname )) return 1;
   buffer.SetupBuffer();
 
   // Read the first line. Attempt to determine the number of columns

@@ -22,7 +22,7 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
   
   // Allocate and set up read buffer
   BufferedFile buffer;
-  if (buffer.OpenWrite( fname )) return 1;
+  if (buffer.OpenRead( fname )) return 1;
   buffer.SetupBuffer();
 
   // Read chunks from file
