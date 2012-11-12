@@ -10,11 +10,9 @@
 Traj_CharmmDcd::Traj_CharmmDcd() :
   dcdatom_(0),
   dcdframes_(0),
-  //dcdheadersize_( 0),
   isBigEndian_(false),
   is64bit_(false),
   blockSize_(4),
-  //dcdExtraBlock_(false),
   dcd_dim_(3),
   boxBytes_(0),
   frame1Bytes_(0),

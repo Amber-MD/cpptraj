@@ -8,15 +8,12 @@ class Traj_CharmmDcd : public TrajectoryIO {
     Traj_CharmmDcd();
     static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_CharmmDcd(); }
     ~Traj_CharmmDcd();
-    // charmm dcd-specific functions
   private:
     int dcdatom_;            ///< Number of atoms in DCD file.
     int dcdframes_;          ///< Number of frames in DCD file.
-    //int dcdheadersize;
     bool isBigEndian_;       ///< True if file is Big endian
     bool is64bit_;           ///< True if file is 64 bit
     unsigned int blockSize_; ///< Size of block bytes: 32 bit = 4, 64 bit = 8
-    //bool dcdExtraBlock;
     size_t dcd_dim_;         ///< Number of dimensions in DCD file.
     size_t boxBytes_;        ///< Number of bytes used by box coords if present.
     size_t frame1Bytes_;     ///< Number of bytes used by first frame.
