@@ -35,17 +35,17 @@ Traj_CharmmDcd::~Traj_CharmmDcd() {
 }
 
 bool Traj_CharmmDcd::ID_TrajFormat(CpptrajFile& fileIn) {
-  unsigned char buffer[8];
-  memset(buffer, ' ', 8);
+  // Charmm DCD is 32 or 64 bit int (84) followed by 'CORD'
+  unsigned char buffer[12];
+  memset(buffer, ' ', 12);
   if (fileIn.OpenFile()) return false;
-  if (fileIn.Read(buffer, 8) != 8) return false;
+  if (fileIn.Read(buffer, 12) != 12) return false;
   fileIn.CloseFile();
-  // If the second 4 chars are C O R D, charmm DCD
-  if (buffer[4] == 'C' &&
-      buffer[5] == 'O' &&
-      buffer[6] == 'R' &&
-      buffer[7] == 'D')
-    return true;
+  // If the second 4 or last 4 chars are C O R D, charmm DCD
+  if (buffer[4] == 'C' && buffer[5] == 'O' && buffer[ 6] == 'R' && buffer[ 7] == 'D')
+    return true; // 32 bit
+  if (buffer[8] == 'C' && buffer[9] == 'O' && buffer[10] == 'R' && buffer[11] == 'D')
+    return true; // 64 bit
   return false;
 }
 
@@ -68,7 +68,7 @@ void Traj_CharmmDcd::closeTraj() {
   if (file_.IsOpen() && file_.Access() != CpptrajFile::READ) {
     file_.CloseFile();
     file_.OpenFile(CpptrajFile::UPDATE);
-    file_.Seek( sizeof(int)+4 );
+    file_.Seek( blockSize_+4 );
     framecount.i[1] = 0;
     framecount.i[0] = dcdframes_;
     mprintf("\tDEBUG: Updated DCD frame count is %i\n", dcdframes_);
@@ -138,6 +138,7 @@ int Traj_CharmmDcd::ReadBlock(int expected) {
   */
 int Traj_CharmmDcd::WriteBlock(int blocksize) {
   byte8 OUTbyte;
+  OUTbyte.i[1] = 0;
   OUTbyte.i[0] = blocksize;
   if (file_.Write(OUTbyte.c, sizeof(unsigned char)*blockSize_)) return 1;
   return 0;
@@ -168,12 +169,17 @@ int Traj_CharmmDcd::setupTrajin(std::string const& fname, Topology* trajParm)
   AllocateCoords();
   // DCD file may have less frames than is stored in the header.
   // Check the file size against the reported number of frames.
+  size_t extraBytes;
   size_t file_size = (size_t)file_.UncompressedSize();
   SetSeekable(false);
   if (file_size > 0) {
     size_t dimBytes = dcd_dim_ * sizeof(float);
-    frame1Bytes_ = (((size_t) dcdatom_ + 2) * dimBytes) + boxBytes_;
-    frameNBytes_ = (((size_t) nfreeat_ + 2) * dimBytes) + boxBytes_;
+    if (is64bit_)
+      extraBytes = 4;
+    else
+      extraBytes = 2;
+    frame1Bytes_ = (((size_t) dcdatom_ + extraBytes) * dimBytes) + boxBytes_;
+    frameNBytes_ = (((size_t) nfreeat_ + extraBytes) * dimBytes) + boxBytes_;
     // Header size should be current position after open, which automatically
     // reads DCD header.
     headerBytes_ = (size_t)file_.Tell();
@@ -229,14 +235,14 @@ int Traj_CharmmDcd::readDcdHeader() {
   dcdkey.c[1]='O';
   dcdkey.c[2]='R';
   dcdkey.c[3]='D';
-  // If the sum of the first 2 4-byte blocks is 84 this is a 
-  // 64bit little endian
   if ( (LEbyte.i[0]+LEbyte.i[1]) == 84 ) {
+    // If the sum of the first 2 4-byte blocks is 84 this is a 
+    // 64bit little endian
     isBigEndian_ = false;
     is64bit_ = true;
-  // If first 4-byte block is 84 and second is CORD this is
-  // 32bit little endian
   } else if ( LEbyte.i[0]==84 && LEbyte.i[1]==dcdkey.i[0]) {
+    // If first 4-byte block is 84 and second is CORD this is
+    // 32bit little endian
     isBigEndian_ = false;
     is64bit_ = false;
   } else {
@@ -249,18 +255,18 @@ int Traj_CharmmDcd::readDcdHeader() {
     BEbyte.c[5] = LEbyte.c[6];
     BEbyte.c[6] = LEbyte.c[5];
     BEbyte.c[7] = LEbyte.c[4];
-    // If the sum of the first 2 4-byte blocks is 84 this is a 
-    // 64bit big endian
     if ( (BEbyte.i[0] + BEbyte.i[1]) == 84 ) {
+      // If the sum of the first 2 4-byte blocks is 84 this is a 
+      // 64bit big endian
       isBigEndian_ = true;
       is64bit_ = true;
-    // If first 4-byte block is 84 and second is CORD this is
-    // 32bit big endian
     } else if ( BEbyte.i[0]==84 && LEbyte.i[1]==dcdkey.i[0]) {
+      // If first 4-byte block is 84 and second is CORD this is
+      // 32bit big endian
       isBigEndian_ = true;
       is64bit_ = false;
-    // Otherwise who knows what the heck this is
     } else {
+      // Otherwise who knows what the heck this is
       mprinterr("Error: Unrecognized DCD header [%s].\n",file_.BaseFileStr());
       return 1;
     }
@@ -314,7 +320,7 @@ int Traj_CharmmDcd::readDcdHeader() {
   nfixedat_  = buffer.i[8];
   // Box information
   if (buffer.i[10] != 0) 
-    boxBytes_ = 56; // 6(crds) * 8(double) + 4(hdr) + 4(end hdr)
+    boxBytes_ = 48 + (2 * blockSize_); // 6(crds) * 8(double) + (hdr) + (end hdr)
   else
     boxBytes_ = 0;
   // Timestep
@@ -467,6 +473,16 @@ int Traj_CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *
 
 // Traj_CharmmDcd::processWriteArgs()
 int Traj_CharmmDcd::processWriteArgs(ArgList& argIn) {
+  // Determine 32 bit/64 bit block size
+  if (sizeof(void*)!=4) {
+    is64bit_ = true;
+    blockSize_ = 8;
+  } else {
+    is64bit_ = false;
+    blockSize_ = 4;
+  }
+  // TODO: Determine OS endianness
+  isBigEndian_ = false;
   return 0;
 }
 
@@ -494,14 +510,6 @@ int Traj_CharmmDcd::setupTrajout(std::string const& fname, Topology* trajParm,
     // (22*int) + 4 + (3*int) + 80 + (3*int)
     // (28*int) + 84
     //dcdheadersize = (28*sizeof(int)) + 84;
-    if (sizeof(int)==8) {
-      is64bit_ = true;
-      blockSize_ = 8;
-    } else {
-      is64bit_ = false;
-      blockSize_ = 4;
-    }
-    isBigEndian_ = false;
     if (file_.SetupWrite( fname, debug_)) return 1;
     if (file_.OpenFile()) return 1;
     if (writeDcdHeader()) return 1;
@@ -533,7 +541,7 @@ int Traj_CharmmDcd::writeDcdHeader() {
   dcdkey.c[3]='D';
   file_.Write(dcdkey.c, sizeof(unsigned char)*4);
   // Set up header information, 80 bytes
-  memset(buffer.i,0,20*sizeof(int));
+  memset(buffer.c, 0, 80*sizeof(unsigned char));
   // Frames
   //buffer.i[0] = trajParm->parmFrames;
   buffer.i[0] = 0;
@@ -550,11 +558,11 @@ int Traj_CharmmDcd::writeDcdHeader() {
   // Box information
   if (HasBox()) {
     buffer.i[10] = 1;
-    boxBytes_ = 56;
+    boxBytes_ = 48 + (2 * blockSize_);
   } else
     boxBytes_ = 0;
   // Write the header
-  file_.Write(buffer.i, sizeof(int)*20);
+  file_.Write(buffer.c, sizeof(unsigned char)*80);
   // Write endblock size
   WriteBlock(84);
   // Write title block - only 1 title for now
@@ -569,7 +577,7 @@ int Traj_CharmmDcd::writeDcdHeader() {
     mprintf("Warning: CharmmDCD: Title size is > 80 chars, truncating to 80.\n");
   title.resize(80);
   // Write title
-  file_.Write((char*)title.c_str(), 80);
+  file_.Write((char*)title.c_str(), 80*sizeof(char));
   // Write title end block
   WriteBlock(84);
   // Write atom block - 4 bytes
