@@ -227,6 +227,7 @@ int Traj_CharmmDcd::setupTrajin(std::string const& fname, Topology* trajParm)
 /** Read the header of a DCD file. Determine the endianness and bit size.
   * File must have already been opened. Return 1 on error, 0 on success.
   */
+// TODO: Check if sizeof(int) is portable or if should be int32_t
 int Traj_CharmmDcd::readDcdHeader() {
   // ********** Step 1 - Determine 32/64 bit
   unsigned char cord_buf[12];
@@ -447,14 +448,13 @@ int Traj_CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *
 
 // Traj_CharmmDcd::processWriteArgs()
 int Traj_CharmmDcd::processWriteArgs(ArgList& argIn) {
-  // Determine 32 bit/64 bit block size
-  if (sizeof(void*)!=4) {
-    is64bit_ = true;
+  // Default is to write 32 bit
+  is64bit_ = argIn.hasKey("x64");
+  if (is64bit_)
     blockSize_ = 8;
-  } else {
-    is64bit_ = false;
+  else
     blockSize_ = 4;
-  }
+  // Determine 32 bit/64 bit block size 'if (sizeof(void*)!=4)'
   // TODO: Determine OS endianness
   isBigEndian_ = false;
   return 0;
