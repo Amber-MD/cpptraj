@@ -75,7 +75,8 @@ class AtomMask {
     /// Set up CharMask based on given char mask 
     void SetupCharMask(char*, int, int);
     /// True if given atom is T in CharMask
-    bool AtomInCharMask(int atom);
+    bool AtomInCharMask(int) const;
+    bool AtomsInCharMask(int,int) const;
     /// True if mask expression has been set.
     bool MaskStringSet() { return (!maskString_.empty()); }
     /// Convert mask type (char->int, int->char)

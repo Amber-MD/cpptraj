@@ -234,9 +234,9 @@ int TopologyList::CheckCommand(int cmdidxIn, ArgList& argIn) {
     }
     err = 0;
     switch ( cmdidx ) {
-      case BONDINFO: TopList_[pindex]->PrintBondInfo(); break;
+      case BONDINFO: TopList_[pindex]->PrintBondInfo(argIn.GetMaskNext()); break;
       case RESINFO : TopList_[pindex]->PrintResidueInfo(); break;
-      case MOLINFO : TopList_[pindex]->PrintMoleculeInfo(); break;
+      case MOLINFO : TopList_[pindex]->PrintMoleculeInfo(argIn.GetMaskNext()); break;
       default: err = 1; // Should never get here
     }
   }

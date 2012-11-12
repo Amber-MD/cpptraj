@@ -13,7 +13,7 @@ class NameType {
 
 //    void AssignNoFormat(const char*);
     void ToBuffer(char*);
-    bool Match(NameType &);
+    bool Match(NameType const&);
 
     //NameType& operator=(const char*);
     bool operator==(const NameType&);

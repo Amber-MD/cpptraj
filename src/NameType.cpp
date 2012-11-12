@@ -96,7 +96,7 @@ void NameType::ToBuffer(char *buffer) {
   buffer[4] = '\0';
 }
 
-bool NameType::Match(NameType &maskName) { 
+bool NameType::Match(NameType const& maskName) { 
   int c = 0;
   for (int m = 0; m < 5; m++) {
     if (maskName.c_array_[m] == '\0' && c_array_[c] == ' ')

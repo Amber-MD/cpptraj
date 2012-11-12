@@ -330,9 +330,8 @@ void Topology::ParmInfo() {
 
 // Topology::PrintAtomInfo()
 void Topology::PrintAtomInfo(std::string const& maskString) {
-  AtomMask mask(maskString);
-  mask.SetMaskString( maskString ); // TODO: Use only strings
-  ParseMask(refCoords_, mask, true);
+  AtomMask mask( maskString );
+  ParseMask(refCoords_, mask, true); // integer mask
   if ( mask.None() )
     mprintf("\tSelection is empty.\n");
   else
@@ -343,13 +342,23 @@ void Topology::PrintAtomInfo(std::string const& maskString) {
 } 
 
 // Topology::PrintBonds()
-void Topology::PrintBonds(std::vector<int>& barray) {
+/** \param maskIn AtomMask which should have already been set up as a char mask
+  */
+void Topology::PrintBonds(std::vector<int>& barray, AtomMask const& maskIn) {
   for (std::vector<int>::iterator batom = barray.begin();
                                   batom != barray.end(); batom++)
   {
     int atom1 = ((*batom) / 3);
+    if (!maskIn.AtomInCharMask( atom1 )) {
+      batom += 2;
+      continue;
+    }
     ++batom;
     int atom2 = ((*batom) / 3);
+    if (!maskIn.AtomInCharMask( atom2 )) {
+      ++batom;
+      continue;
+    }
     mprintf("\tAtom %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
                                      atom2+1, atoms_[atom2].c_str());
     ++batom;
@@ -366,32 +375,38 @@ void Topology::PrintBonds(std::vector<int>& barray) {
 }
 
 // Topology::PrintBondInfo()
-void Topology::PrintBondInfo() {
+void Topology::PrintBondInfo(std::string const& maskString) {
+  AtomMask mask( maskString );
+  ParseMask(refCoords_, mask, false); // Char mask
   if (!bondsh_.empty()) {
     mprintf("%zu BONDS TO HYDROGEN:\n",bondsh_.size()/3);
-    PrintBonds( bondsh_ );
+    PrintBonds( bondsh_, mask );
   }
   if (!bonds_.empty()) {
     mprintf("%zu BONDS TO NON-HYDROGEN:\n",bonds_.size()/3);
-    PrintBonds( bonds_ );
+    PrintBonds( bonds_, mask );
   }
 }
 
 // Topology::PrintMoleculeInfo()
-void Topology::PrintMoleculeInfo() {
+void Topology::PrintMoleculeInfo(std::string const& maskString) {
   if (molecules_.empty())
     mprintf("\t[%s] No molecule info.\n",c_str());
   else {
+    AtomMask mask( maskString );
+    ParseMask(refCoords_, mask, false); // Char mask
     mprintf("MOLECULES:\n");
     unsigned int mnum = 1;
     for (std::vector<Molecule>::iterator mol = molecules_.begin(); 
                                          mol != molecules_.end(); mol++)
     {
-      int firstres = atoms_[ (*mol).BeginAtom() ].ResNum();
-      mprintf("\tMolecule %u, %i atoms, first residue %i:%s",mnum,(*mol).NumAtoms(),
-              firstres+1,residues_[firstres].c_str());
-      if ( (*mol).IsSolvent() ) mprintf(" SOLVENT");
-      mprintf("\n");
+      if ( mask.AtomsInCharMask( (*mol).BeginAtom(), (*mol).EndAtom() ) ) {
+        int firstres = atoms_[ (*mol).BeginAtom() ].ResNum();
+        mprintf("\tMolecule %u, %i atoms, first residue %i:%s",mnum,(*mol).NumAtoms(),
+                firstres+1,residues_[firstres].c_str());
+        if ( (*mol).IsSolvent() ) mprintf(" SOLVENT");
+        mprintf("\n");
+      }
       ++mnum;
     }
   }
@@ -1295,7 +1310,7 @@ void Topology::Mask_NEG(char *mask1) {
 }
 
 // Topology::MaskSelectResidues()
-void Topology::MaskSelectResidues(NameType name, char *mask) {
+void Topology::MaskSelectResidues(NameType const& name, char *mask) {
   int endatom;
   std::vector<Residue>::iterator res1 = residues_.begin() + 1;
 
@@ -1341,7 +1356,7 @@ void Topology::MaskSelectResidues(int res1, int res2, char *mask) {
 }
 
 // Topology::MaskSelectElements()
-void Topology::MaskSelectElements( NameType element, char* mask ) {
+void Topology::MaskSelectElements( NameType const& element, char* mask ) {
   unsigned int m = 0;
   for (std::vector<Atom>::iterator atom = atoms_.begin();
                                    atom != atoms_.end(); ++atom)
@@ -1354,7 +1369,7 @@ void Topology::MaskSelectElements( NameType element, char* mask ) {
 }
 
 // Topology::MaskSelectTypes()
-void Topology::MaskSelectTypes( NameType type, char* mask ) {
+void Topology::MaskSelectTypes( NameType const& type, char* mask ) {
   unsigned int m = 0;
   for (std::vector<Atom>::iterator atom = atoms_.begin();
                                    atom != atoms_.end(); ++atom)
@@ -1366,7 +1381,7 @@ void Topology::MaskSelectTypes( NameType type, char* mask ) {
 }
 
 // Topology::MaskSelectAtoms()
-void Topology::MaskSelectAtoms( NameType name, char *mask) {
+void Topology::MaskSelectAtoms( NameType const& name, char *mask) {
   //mprintf("\t\t\tSelecting atoms named [%s]\n",*name);
   unsigned int m = 0;
   for (std::vector<Atom>::iterator atom = atoms_.begin();
@@ -1403,13 +1418,13 @@ void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) {
 // Topology::ParseMask()
 bool Topology::ParseMask(Frame &REF, AtomMask &maskIn, bool intMask) {
   std::stack<char*> Stack;
-  char *pMask = NULL; 
-  char *pMask2 = NULL;
+  char *pMask = 0; 
+  char *pMask2 = 0;
 
   for (AtomMask::token_iterator token = maskIn.begintoken();
                                 token != maskIn.endtoken(); token++)
   {
-    if (pMask==NULL) {
+    if (pMask==0) {
       // Create new blank mask
       pMask = new char[ atoms_.size() ];
       std::fill(pMask, pMask + atoms_.size(), 'F');
@@ -1463,11 +1478,11 @@ bool Topology::ParseMask(Frame &REF, AtomMask &maskIn, bool intMask) {
     if ( (*token).OnStack() ) {
       //mprintf("Pushing Mask on stack, last Token [%s]\n",(*token).TypeName());
       Stack.push( pMask );
-      pMask = NULL;
+      pMask = 0;
     }
   }
-  // If pMask is not NULL it is probably a blank leftover
-  if (pMask!=NULL) delete[] pMask;
+  // If pMask is not null it is probably a blank leftover
+  if (pMask!=0) delete[] pMask;
 
   // If stack is empty here there was an error.
   if (Stack.empty()) {

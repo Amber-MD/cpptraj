@@ -100,14 +100,13 @@ class Topology {
     int FindAtomInResidue(int, NameType);
     int FindResidueMaxNatom() const;
     int SoluteAtoms();
-    //double *Mass();
     int SetSolvent(std::string const&);
     // ----- Print topology info -----
     void Summary();
     void ParmInfo();
     void PrintAtomInfo(std::string const&);
-    void PrintBondInfo();
-    void PrintMoleculeInfo();
+    void PrintBondInfo(std::string const&);
+    void PrintMoleculeInfo(std::string const&);
     void PrintResidueInfo();
     // ----- Routines to Access/Modify Box info -----
     inline Box const& ParmBox() const { return box_;        }
@@ -199,11 +198,11 @@ class Topology {
     int nframes_;
     int ntypes_; // This is stored for the purpose of checking array sizes
 
-    void PrintBonds(std::vector<int>&);
+    void PrintBonds(std::vector<int>&, AtomMask const&);
     void SetAtomBondInfo();
     static void WarnBondLengthDefault(Atom::AtomicElementType,
                                       Atom::AtomicElementType,double);
-    double GetBondLength(Atom::AtomicElementType, Atom::AtomicElementType);
+    static double GetBondLength(Atom::AtomicElementType, Atom::AtomicElementType);
     void GetBondsFromAtomCoords();
     void VisitAtom(int, int);
     int DetermineMolecules();
@@ -215,13 +214,12 @@ class Topology {
     void Mask_AND(char*,char*);
     void Mask_OR(char*,char*);
     void Mask_NEG(char*);
+    void MaskSelectResidues(NameType const&, char *);
     void MaskSelectResidues(int, int, char *);
-    // TODO: NameType Reference
-    void MaskSelectResidues(NameType, char *);
-    void MaskSelectElements( NameType, char* );
-    void MaskSelectTypes( NameType, char* );
-    void MaskSelectAtoms(int,int,char*);
-    void MaskSelectAtoms(NameType,char*);
+    void MaskSelectElements( NameType const&, char* );
+    void MaskSelectTypes( NameType const& , char* );
+    void MaskSelectAtoms(NameType const&, char*);
+    void MaskSelectAtoms(int, int, char*);
     bool ParseMask(Frame &, AtomMask &,bool);
 
     std::vector<int> SetupSequentialArray(std::vector<int>&, int, std::vector<int>&);
