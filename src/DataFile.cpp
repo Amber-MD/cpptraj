@@ -197,21 +197,10 @@ void DataFile::Write() {
 }
 
 // DataFile::SetPrecision()
-/** Set precision of the specified dataset to width.precision. If no name or
-  * asterisk specified set for all datasets in file.
-  */
-void DataFile::SetPrecision(std::string const& dsetName, int widthIn, int precisionIn) {
-  if (widthIn<1) {
-    mprintf("Error: SetPrecision (%s): Cannot set width < 1.\n",filename_.base());
-    return;
-  }
-  int precision = precisionIn;
-  if (precisionIn<0) precision = 0;
-  DataSetList dsets = SetList_.GetMultipleSets( dsetName );
-  mprintf("    Setting width.precision for %i sets to %i.%i\n", dsets.size(), 
-          widthIn, precision);
-  for (DataSetList::const_iterator set = dsets.begin(); set != dsets.end(); ++set)
-    (*set)->SetPrecision(widthIn, precision);
+/** Set precision for all DataSets in file to width.precision. */
+void DataFile::SetPrecision(int widthIn, int precisionIn) {
+  for (DataSetList::const_iterator set = SetList_.begin(); set != SetList_.end(); ++set)
+    (*set)->SetPrecision(widthIn, precisionIn);
 }
 
 // DataFile::DataSetNames()

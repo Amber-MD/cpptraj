@@ -9,45 +9,22 @@
 /** Can either add new topology by filename, or add existing topology by 
   * address. Can search for topology in list by index, full/base filename,
   * or tag.
-  * TopologyList also serves as the command interpreter for parm-related
-  * commands. Currently recognized commands are: parm, parmlist, parminfo,
-  * parmbondinfo, parmmolinfo, parmresinfo, bondsearch, nobondsearch, 
-  * molsearch, nomolsearch.
   */
 class TopologyList : public FileList {
   public:
-    static void Help_Parm();
-    static void Help_ParmInfo();
-    static void Help_ParmWrite();
-    static void Help_ParmStrip();
-    static void Help_ParmBox();
-    static void Help_Solvent();
-    static void Help_BondInfo();
-    static void Help_ResInfo();
-    static void Help_MolInfo();
-
-    static const DispatchObject::Token ParmCmds[];
     TopologyList();
     ~TopologyList();
 
-    int CheckCommand(int,ArgList &);
     Topology *GetParm(int);
     Topology *GetParm(ArgList&);
     int AddParmFile(std::string const&);
     int AddParmFile(std::string const&,std::string const&,bool,double);
     int AddParm(Topology*);
+    void ReplaceParm(int, Topology*);
     void List();
 
   private:
     std::vector<Topology*> TopList_;
     bool hasCopies_;  ///< true: List contains addresses of topologies, do not delete
-
-    int LoadParm(ArgList&);
-    int ParmInfo(ArgList&);
-    int ParmWrite(ArgList&);
-    int ParmStrip(ArgList&);
-    int ParmBox(ArgList&);
-    int ParmSolvent(ArgList&);
-    int Select(ArgList&);
 };
 #endif

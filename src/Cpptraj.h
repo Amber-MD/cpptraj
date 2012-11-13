@@ -29,6 +29,19 @@ class Cpptraj {
     static void Help_Create_DataFile();
     static void Help_Precision();
     static void Help_SelectDS();
+    static void Help_Trajin();
+    static void Help_Ensemble();
+    static void Help_Trajout();
+    static void Help_Reference();
+    static void Help_Parm();
+    static void Help_ParmInfo();
+    static void Help_ParmWrite();
+    static void Help_ParmStrip();
+    static void Help_ParmBox();
+    static void Help_Solvent();
+    static void Help_BondInfo();
+    static void Help_ResInfo();
+    static void Help_MolInfo();
     void List(ArgList&);
     void Help(ArgList&);
     void Debug(ArgList&);
@@ -37,9 +50,18 @@ class Cpptraj {
     int Precision(ArgList&);
     int ReadData(ArgList&);
     void SelectDS(ArgList&);
+    int LoadParm(ArgList&);
+    int ParmInfo(ArgList&,int);
+    int ParmWrite(ArgList&);
+    int ParmStrip(ArgList&);
+    int ParmBox(ArgList&);
+    int ParmSolvent(ArgList&);
+    int Select(ArgList&);
 
     static const DispatchObject::Token GeneralCmds[];
     static const DispatchObject::Token CoordCmds[];
+    static const DispatchObject::Token ParmCmds[];
+    static const DispatchObject::Token Deprecated[];
     void ListAllCommands(const DispatchObject::Token*);
     DispatchObject::TokenPtr SearchTokenArray(const DispatchObject::Token*, ArgList const&);
     DispatchObject::TokenPtr SearchToken(ArgList&);

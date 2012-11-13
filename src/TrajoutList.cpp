@@ -40,11 +40,6 @@ int TrajoutList::AddTrajout(ArgList& argIn, TopologyList& topListIn) {
   return AddTrajout( filename, argIn, topListIn );
 } 
 
-void TrajoutList::Help() {
-  mprintf("trajout <filename> <fileformat> [append] [nobox]\n");
-  mprintf("[parm <parmfile> | parmindex <#>] [<range>]\n");
-}
-
 // TrajoutList::AddTrajout()
 /** Add trajectory to the trajectory list as an output trajectory. 
   * Associate the trajectory with one of the parm files in the 

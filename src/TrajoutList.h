@@ -9,7 +9,6 @@ class TrajoutList : public FileList {
     TrajoutList();
     ~TrajoutList();
     int AddEnsembleTrajout(ArgList const&, TopologyList&, int);
-    static void Help();
     /// Add a traj file to the list with given access and associate with a parm
     int AddTrajout(ArgList&, TopologyList&);
     /// Call write for all trajectories

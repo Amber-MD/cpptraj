@@ -7,6 +7,7 @@
 #include "Trajin_Multi.h"
 #include "FrameArray.h"
 #include "ReadLine.h"
+#include "ParmFile.h"
 
 void Cpptraj::Usage(const char* programName) {
   mprinterr("\nUsage: %s [-p <Top1>, -p <Top2>, ...] [-i <Input1>, -i <Input2>, ...]\n",
@@ -42,8 +43,9 @@ void Cpptraj::Help_Create_DataFile() {
 }
 
 void Cpptraj::Help_Precision() {
-  mprintf("precision <filename> [<dataset>] [<width>] [<precision>]\n");
-  mprintf("\tSet precision for dataset(s) in given datafile to <width>.<precision>\n");
+  mprintf("precision {<filename> | <dataset arg>} [<width>] [<precision>]\n");
+  mprintf("\tSet precision for all datasets in datafile <filename> or\n");
+  mprintf("dataset(s) specified by <dataset arg> to <width>.<precision>\n");
   mprintf("If width/precision not specified default to 12.4\n");
 }
 
@@ -57,44 +59,138 @@ void Cpptraj::Help_SelectDS() {
   mprintf("a wildcard. E.g. 'selectds R2', 'selectds RoG[Max]', 'selectds PR[res]:2-12'\n");
 }
 
+void Cpptraj::Help_Trajin() {
+  mprintf("trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]\n");
+  mprintf("       [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n");
+  mprintf("         trajnames <rep1>,<rep2>,...,<repN> ]\n");
+}
+
+void Cpptraj::Help_Ensemble() {
+  mprintf("ensemble <file0> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]\n");
+  mprintf("         [trajnames <file1>,<file2>,...,<fileN>\n");
+}
+
+void Cpptraj::Help_Trajout() {
+  mprintf("trajout <filename> <fileformat> [append] [nobox]\n");
+  mprintf("[parm <parmfile> | parmindex <#>] [<range>]\n");
+}
+
+void Cpptraj::Help_Reference() {
+  mprintf("reference <filename> [<frame#>] [average] [<mask>] [TAG] [lastframe]\n");
+}
+
+void Cpptraj::Help_Parm() {
+  mprintf("parm <filename> [<tag>] [nobondsearch | bondsearch [<offset>]]\n");
+  mprintf("\tAdd <filename> to parm list\n");
+}
+
+void Cpptraj::Help_ParmInfo() {
+  mprintf("parminfo [<parmindex>] [<mask>]:\n");
+  mprintf("\tPrint information on parm <parmindex> (0 by default). If <mask> is given\n");
+  mprintf("print info on atoms in mask. If no mask given print overall information.\n");
+}
+
+void Cpptraj::Help_ParmWrite() {
+  mprintf("parmwrite out <filename> [<parmindex>]\n");
+  mprintf("\tWrite parm <parmindex> to <filename>\n");
+}
+
+void Cpptraj::Help_ParmStrip() {
+  mprintf("parmstrip <mask> [<parmindex>]\n");
+  mprintf("\tStrip atoms in mask from parm\n");
+}
+
+void Cpptraj::Help_ParmBox() {
+  mprintf("[parm]box [<parmindex>] [x <xval>] [y <yval>] [z <zval>]");
+  mprintf(" [alpha <a>] [beta <b>] [gamma <g>] [nobox]\n");
+  mprintf("\tSet the given parm box info to what is specified. If nobox, remove box info.\n");
+}
+
+void Cpptraj::Help_Solvent() {
+  mprintf("solvent [<parmindex>] <mask>\n");
+  mprintf("\tSet solvent for the given parm (default 0) based on <mask>\n");
+}
+
+void Cpptraj::Help_BondInfo() {
+  mprintf("parmbondinfo [<parmindex>]\n");
+  mprintf("\tPrint bond information for parm <parmindex> (0 by default).\n");
+}
+
+void Cpptraj::Help_ResInfo() {
+  mprintf("parmresinfo [<parmindex>]\n");
+  mprintf("\tPrint residue information for parm <parmindex> (0 by default).\n");
+}
+
+void Cpptraj::Help_MolInfo() {
+  mprintf("parmmolinfo [<parmindex>]\n");
+  mprintf("\tPrint molecule information for parm <parmindex> (0 by default).\n");
+}
+
+// -----------------------------------------------------------------------------
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
                        SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
                        SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
-  { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef, ACTIVEREF },
-  { DispatchObject::GENERAL, "runanalysis",     0, 0, RUN_ANALYSIS },
-  { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE },
-  { DispatchObject::GENERAL, "datafile",        0, 0, DATAFILE },
-  { DispatchObject::GENERAL, "debug",         0, Help_Debug, DEBUG    },
-  { DispatchObject::GENERAL, "exit" ,         0,          0, QUIT     },
-  { DispatchObject::GENERAL, "go"   ,         0,          0, RUN      },
-  { DispatchObject::GENERAL, "head" ,         0,  0, SYSTEM     },
-  { DispatchObject::GENERAL, "help" ,         0,  Help_Help, HELP     },
-  { DispatchObject::GENERAL, "list" ,         0,  Help_List, LIST     },
-  { DispatchObject::GENERAL, "ls",            0,          0, SYSTEM   },
-  { DispatchObject::GENERAL, "noexitonerror", 0,          0, NOEXITERR},
-  { DispatchObject::GENERAL, "noprogress",    0,          0, NOPROG   },
-  { DispatchObject::GENERAL, "precision",    0,   Help_Precision, PRECISION   },
-  { DispatchObject::GENERAL, "prnlev",        0, Help_Debug, DEBUG    },
-  { DispatchObject::GENERAL, "pwd",           0,          0, SYSTEM   },
-  { DispatchObject::GENERAL, "quit" ,         0,          0, QUIT     },
-  { DispatchObject::GENERAL, "readdata",      0,          0, READDATA },
-  { DispatchObject::GENERAL, "readinput",      0,          0, READINPUT },
-  { DispatchObject::GENERAL, "run"   ,         0,          0, RUN      },
-  { DispatchObject::GENERAL, "writedata",      0,          0, WRITEDATA },
-  { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS, SELECTDS },
-  { DispatchObject::NONE,                  0, 0,          0,      0   }
+  { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef,       ACTIVEREF    },
+  { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE       },
+  { DispatchObject::GENERAL, "datafile",      0, 0,                    DATAFILE     },
+  { DispatchObject::GENERAL, "debug",         0, Help_Debug,           DEBUG        },
+  { DispatchObject::GENERAL, "exit" ,         0, 0,                    QUIT         },
+  { DispatchObject::GENERAL, "go"   ,         0, 0,                    RUN          },
+  { DispatchObject::GENERAL, "head" ,         0, 0,                    SYSTEM       },
+  { DispatchObject::GENERAL, "help" ,         0, Help_Help,            HELP         },
+  { DispatchObject::GENERAL, "list" ,         0, Help_List,            LIST         },
+  { DispatchObject::GENERAL, "ls",            0, 0,                    SYSTEM       },
+  { DispatchObject::GENERAL, "noexitonerror", 0, 0,                    NOEXITERR    },
+  { DispatchObject::GENERAL, "noprogress",    0, 0,                    NOPROG       },
+  { DispatchObject::GENERAL, "precision",     0, Help_Precision,       PRECISION    },
+  { DispatchObject::GENERAL, "prnlev",        0, Help_Debug,           DEBUG        },
+  { DispatchObject::GENERAL, "pwd",           0, 0,                    SYSTEM       },
+  { DispatchObject::GENERAL, "quit" ,         0, 0,                    QUIT         },
+  { DispatchObject::GENERAL, "readdata",      0, 0,                    READDATA     },
+  { DispatchObject::GENERAL, "readinput",     0, 0,                    READINPUT    },
+  { DispatchObject::GENERAL, "run"   ,        0, 0,                    RUN          },
+  { DispatchObject::GENERAL, "runanalysis",   0, 0,                    RUN_ANALYSIS },
+  { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS,        SELECTDS     },
+  { DispatchObject::GENERAL, "writedata",     0, 0,                    WRITEDATA    },
+  { DispatchObject::NONE,    0,               0, 0,                    0            }
 };
 
 enum CoordCmdTypes { REFERENCE, TRAJIN, TRAJOUT };
 
 const DispatchObject::Token Cpptraj::CoordCmds[] = {
-  { DispatchObject::COORD, "reference",     0, FrameList::Help,   REFERENCE },
-  { DispatchObject::COORD, "trajin",        0, TrajinList::Help_Trajin,  TRAJIN },
-  { DispatchObject::COORD, "ensemble",        0, TrajinList::Help_Ensemble,  TRAJIN },
-  { DispatchObject::COORD, "trajout",       0, TrajoutList::Help, TRAJOUT },
-  { DispatchObject::NONE,                  0, 0,                 0, 0 }
+  { DispatchObject::COORD, "reference", 0, Help_Reference, REFERENCE },
+  { DispatchObject::COORD, "trajin",    0, Help_Trajin,    TRAJIN    },
+  { DispatchObject::COORD, "ensemble",  0, Help_Ensemble,  TRAJIN    },
+  { DispatchObject::COORD, "trajout",   0, Help_Trajout,   TRAJOUT   },
+  { DispatchObject::NONE,  0,           0, 0,              0         }
+};
+
+enum ParmCmdTypes { LOADPARM=0, PARMINFO, PARMWRITE, PARMSTRIP, PARMBOX,
+                    SOLVENT, BONDINFO, RESINFO, MOLINFO, SELECT };
+
+const DispatchObject::Token Cpptraj::ParmCmds[] = {
+  { DispatchObject::PARM, "box",          0, Help_ParmBox,   PARMBOX   },
+  { DispatchObject::PARM, "parm",         0, Help_Parm,      LOADPARM  },
+  { DispatchObject::PARM, "parmbondinfo", 0, Help_BondInfo,  BONDINFO  },
+  { DispatchObject::PARM, "parmbox",      0, Help_ParmBox,   PARMBOX   },
+  { DispatchObject::PARM, "parminfo",     0, Help_ParmInfo,  PARMINFO  },
+  { DispatchObject::PARM, "parmmolinfo",  0, Help_MolInfo,   MOLINFO   },
+  { DispatchObject::PARM, "parmresinfo",  0, Help_ResInfo,   RESINFO   },
+  { DispatchObject::PARM, "parmstrip",    0, Help_ParmStrip, PARMSTRIP },
+  { DispatchObject::PARM, "parmwrite",    0, Help_ParmWrite, PARMWRITE },
+  { DispatchObject::PARM, "select",       0, 0,              SELECT    },
+  { DispatchObject::PARM, "solvent",      0, Help_Solvent,   SOLVENT   },
+  { DispatchObject::NONE, 0,              0, 0,              0         }
+};
+
+const DispatchObject::Token Cpptraj::Deprecated[] = {
+  { DispatchObject::DEPRECATED, "molsearch",    0, 0, 0 },
+  { DispatchObject::DEPRECATED, "nomolsearch",  0, 0, 0 },
+  { DispatchObject::DEPRECATED, "bondsearch",   0, 0, 0 },
+  { DispatchObject::DEPRECATED, "nobondsearch", 0, 0, 0 },
+  { DispatchObject::NONE      , 0,              0, 0, 0 }
 };
 
 // -----------------------------------------------------------------------------
@@ -106,6 +202,7 @@ Cpptraj::Cpptraj() :
   nrun_(0)
 {}
 
+/** List all commands, or call help function of specific command. */
 void Cpptraj::Help(ArgList& argIn) {
   ArgList arg = argIn;
   arg.RemoveFirstArg();
@@ -113,7 +210,7 @@ void Cpptraj::Help(ArgList& argIn) {
     mprintf("General Commands:\n");
     ListAllCommands( GeneralCmds );
     mprintf("Topology Commands:\n");
-    ListAllCommands( TopologyList::ParmCmds );
+    ListAllCommands( ParmCmds );
     mprintf("Coordinate Commands:\n");
     ListAllCommands( CoordCmds );
     mprintf("Action Commands:\n");
@@ -129,6 +226,7 @@ void Cpptraj::Help(ArgList& argIn) {
   }
 }
 
+/** Call List routine to list all members of given list. */
 void Cpptraj::List(ArgList& argIn) {
   if      (argIn.hasKey("actions")) actionList.List();
   else if (argIn.hasKey("trajin")) trajinList.List();
@@ -144,6 +242,7 @@ void Cpptraj::List(ArgList& argIn) {
   }
 }
 
+/** Set debug level of given list or set debug level for all lists. */
 void Cpptraj::Debug(ArgList& argIn) {
   debug_ = argIn.getNextInteger(0);
   if (argIn.hasKey("actions")) actionList.SetDebug( debug_ );
@@ -172,6 +271,7 @@ void Cpptraj::SetGlobalDebug(int debugIn) {
   DSL.SetDebug(debug_);
 }
 
+/** Add DataFile to DataFileList using specified sets. */
 int Cpptraj::Create_DataFile(ArgList& dataArg) {
   // Next string is datafile that command pertains to.
   std::string name1 = dataArg.GetStringNext();
@@ -206,24 +306,35 @@ int Cpptraj::Create_DataFile(ArgList& dataArg) {
   return err;
 }
 
+/** Set precision for specific set or all sets in specified DataFile */
 int Cpptraj::Precision(ArgList& dataArg) {
-  // Next string is datafile that command pertains to.
+  // Next string is DataSet(s)/DataFile that command pertains to.
   std::string name1 = dataArg.GetStringNext();
   if (name1.empty()) {
-    mprinterr("Error: precision: No filename given.\nError: Usage: ");
+    mprinterr("Error: precision: No filename/setname given.\nError: Usage: ");
     Help_Precision();
-    return 1;
-  }
-  DataFile* df = DFL.GetDataFile(name1);
-  if (df==0) {
-    mprinterr("Error: precision: DataFile %s does not exist.\n",name1.c_str());
     return 1;
   }
   // This will break if dataset name starts with a digit...
   int width = dataArg.getNextInteger(12);
+  if (width < 1) {
+    mprintf("Error: precision: Cannot set width < 1 (%i).\n", width);
+    return 1;
+  }
   int precision = dataArg.getNextInteger(4);
-  std::string name2 = dataArg.GetStringNext();
-  df->SetPrecision(name2, width, precision);
+  if (precision < 0) precision = 0;
+  DataFile* df = DFL.GetDataFile(name1);
+  if (df != 0) {
+    mprintf("\tSetting precision for all sets in %s to %i.%i\n", df->Filename(),
+            width, precision);
+    df->SetPrecision(width, precision);
+  } else {
+    DataSetList dsets = DSL.GetMultipleSets( name1 );
+    mprintf("\tSetting precision for %i sets to %i.%i\n", dsets.size(),
+            width, precision);
+    for (DataSetList::const_iterator set = dsets.begin(); set != dsets.end(); ++set)
+      (*set)->SetPrecision(width, precision);
+  }
   return 0;
 }
 
@@ -242,6 +353,136 @@ void Cpptraj::SelectDS(ArgList& argIn) {
   mprintf("SelectDS: Arg [%s] selects %i data sets:\n", dsarg.c_str(), dsets.size());
   for (DataSetList::const_iterator set = dsets.begin(); set != dsets.end(); ++set)
     (*set)->Info();
+}
+
+// -----------------------------------------------------------------------------
+int Cpptraj::LoadParm(ArgList& argIn) {
+  std::string parmtag = argIn.getNextTag();
+  bool bondsearch = !argIn.hasKey("nobondsearch");
+  double offset = argIn.getKeyDouble("bondsearch", -1.0);
+  return parmFileList.AddParmFile(argIn.GetStringNext(), parmtag, bondsearch, offset);
+}
+
+int Cpptraj::ParmInfo(ArgList& argIn, int cmdidxIn) {
+  ParmCmdTypes cmdidx = (ParmCmdTypes) cmdidxIn;
+  int pindex = argIn.getNextInteger(0);
+  Topology* parm = parmFileList.GetParm( pindex );
+  if ( parm == 0 ) {
+    mprinterr("Error: parm index %i not loaded.\n",pindex);
+    return 1;
+  }
+  std::string maskarg = argIn.GetMaskNext();
+  switch (cmdidx) {
+    case PARMINFO:
+      if (!maskarg.empty())
+        parm->PrintAtomInfo( maskarg );
+      else
+        parm->Summary();
+      break;
+    case BONDINFO: parm->PrintBondInfo( maskarg ); break;
+    case RESINFO : parm->PrintResidueInfo(); break;
+    case MOLINFO : parm->PrintMoleculeInfo( maskarg ); break;
+    default: return 1; // Should never get here
+  }
+  return 0;
+}
+
+int Cpptraj::ParmWrite(ArgList& argIn) {
+  std::string outfilename = argIn.GetStringKey("out");
+  if (outfilename.empty()) {
+    mprinterr("Error: parmwrite: No output filename specified (use 'out <filename>').\n");
+    return 1;
+  }
+  int pindex = argIn.getNextInteger(0);
+  Topology* parm = parmFileList.GetParm( pindex );
+  if ( parm == 0 ) {
+    mprinterr("Error: parmwrite: parm index %i not loaded.\n",pindex);
+    return 1;
+  }
+  mprintf("\tWriting parm %i (%s) to Amber parm %s\n",pindex,
+          parm->c_str(), outfilename.c_str());
+  ParmFile pfile;
+  pfile.Write( *parm, outfilename, ParmFile::AMBERPARM, debug_ );
+  return 0;
+}
+
+int Cpptraj::ParmStrip(ArgList& argIn) {
+  int pindex = argIn.getNextInteger(0);
+  Topology* parm = parmFileList.GetParm( pindex );
+  if ( parm == 0 ) {
+    mprinterr("Error: parmstrip: parm index %i not loaded.\n",pindex);
+    return 1;
+  }
+  AtomMask tempMask( argIn.GetMaskNext() );
+  // Since want to keep atoms outside mask, invert selection
+  tempMask.InvertMask();
+  parm->SetupIntegerMask( tempMask );
+  mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.MaskString(),
+           parm->Natom() - tempMask.Nselected(), parm->c_str());
+  Topology* tempParm = parm->modifyStateByMask(tempMask);
+  if (tempParm==0) {
+    mprinterr("Error: parmstrip: Could not strip parm.\n");
+    return 1;
+  } else {
+    // Replace parm with stripped version
+    tempParm->ParmInfo();
+    parmFileList.ReplaceParm(pindex, tempParm);
+  }
+  return 0;
+}
+
+int Cpptraj::ParmBox(ArgList& argIn) {
+  int pindex = argIn.getNextInteger(0);
+  Topology* parm = parmFileList.GetParm( pindex );
+  if ( parm == 0 ) {
+    mprinterr("Error: parmbox: parm index %i not loaded.\n",pindex);
+    return 1;
+  }
+  if ( argIn.hasKey("nobox") )
+    parm->SetBox( Box() );
+  else {
+    Box pbox;
+    pbox.SetX( argIn.getKeyDouble("x",0) );
+    pbox.SetY( argIn.getKeyDouble("y",0) );
+    pbox.SetZ( argIn.getKeyDouble("z",0) );
+    pbox.SetAlpha( argIn.getKeyDouble("alpha",0) );
+    pbox.SetBeta(  argIn.getKeyDouble("beta",0)  );
+    pbox.SetGamma( argIn.getKeyDouble("gamma",0) );
+    // Fill in missing parm box information from specified parm
+    pbox.SetMissingInfo( parm->ParmBox() );
+    parm->SetBox( pbox );
+  }
+  return 0;
+}
+
+int Cpptraj::ParmSolvent(ArgList& argIn) {
+  std::string maskexpr = argIn.GetMaskNext();
+  if ( maskexpr.empty() ) {
+    mprinterr("Error: solvent: No mask specified.\n");
+    return 1;
+  }
+  // Get parm index
+  int pindex = argIn.getNextInteger(0);
+  Topology* parm = parmFileList.GetParm( pindex );
+  if ( parm == 0 ) {
+    mprinterr("Error: solvent: parm index %i not loaded.\n",pindex);
+    return 1;
+  } 
+  parm->SetSolvent( maskexpr );
+  return 0;
+}
+
+int Cpptraj::Select(ArgList& argIn) {
+  AtomMask tempMask( argIn.GetMaskNext() );
+  int pindex = argIn.getNextInteger(0);
+  Topology* parm = parmFileList.GetParm( pindex );
+  if ( parm == 0 ) {
+    mprinterr("Error: solvent: parm index %i not loaded.\n",pindex);
+    return 1;
+  }
+  parm->SetupIntegerMask( tempMask );
+  tempMask.PrintMaskAtoms("Selected");
+  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -295,13 +536,15 @@ DispatchObject::TokenPtr Cpptraj::SearchToken(ArgList& argIn) {
   } else {
     tkn = SearchTokenArray( GeneralCmds, argIn );
     if (tkn != 0) return tkn;
-    tkn = SearchTokenArray( TopologyList::ParmCmds, argIn );
+    tkn = SearchTokenArray( ParmCmds, argIn );
     if (tkn != 0) return tkn;
     tkn = SearchTokenArray( CoordCmds, argIn );
     if (tkn != 0) return tkn;
     tkn = SearchTokenArray( ActionList::DispatchArray, argIn);
     if (tkn != 0) return tkn;
     tkn = SearchTokenArray( AnalysisList::DispatchArray, argIn);
+    if (tkn != 0) return tkn;
+    tkn = SearchTokenArray( Deprecated, argIn);
     if (tkn != 0) return tkn;
   }
   mprinterr("[%s]: Command not found.\n",argIn.Command());
@@ -486,6 +729,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   * \return C_QUIT if quit requested.
   */
 Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
+  int err = 0;
   //mprintf("\t[%s]\n", inputLine);
   ArgList command( inputLine );
   if ( command.empty() ) return C_OK;
@@ -495,47 +739,46 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
     //mprintf("TOKEN FOUND. CMD=%s  TYPE=%i\n", dispatchToken->Cmd, (int)dispatchToken->Type);
     switch (dispatchToken->Type) {
       case DispatchObject::PARM :
-        if ( parmFileList.CheckCommand(dispatchToken->Idx, command) 
-             && exitOnError_ )
-          return C_ERR;
+        switch ( dispatchToken->Idx ) {
+          case LOADPARM : err = LoadParm( command ); break;
+          case BONDINFO :
+          case RESINFO  :
+          case MOLINFO  :
+          case PARMINFO : err = ParmInfo( command, dispatchToken->Idx ); break;
+          case PARMWRITE: err = ParmWrite( command ); break;
+          case PARMSTRIP: err = ParmStrip( command ); break;
+          case PARMBOX  : err = ParmBox( command ); break;
+          case SOLVENT  : err = ParmSolvent(command); break;
+          case SELECT   : err = Select(command); break; 
+        } 
         break;
       case DispatchObject::COORD :
         switch ( dispatchToken->Idx ) {
-          case TRAJIN :
-            if (trajinList.AddTrajin(command, parmFileList) && exitOnError_)
-              return C_ERR;
-            break;
+          case TRAJIN : err = trajinList.AddTrajin(command, parmFileList); break;
           case TRAJOUT :
             // For setting up ensemble, save trajout arg
             trajoutArgs_.push_back(command);
-            if (trajoutList.AddTrajout(command, parmFileList) && exitOnError_)
-              return C_ERR;
+            err = trajoutList.AddTrajout(command, parmFileList);
             break;
-          case REFERENCE :
-            if (refFrames.AddReference(command, parmFileList) && exitOnError_)
-              return C_ERR;
-            break;
+          case REFERENCE : err = refFrames.AddReference(command, parmFileList); break;
         }
         break;
       case DispatchObject::ACTION : 
         // For setting up ensemble, save action arg
         actionArgs_.push_back(command);
-        if (actionList.AddAction( dispatchToken->Alloc, command, &parmFileList,
-                                  &refFrames, &DSL, &DFL ) != 0 && exitOnError_ )
-          return C_ERR;
+        err = actionList.AddAction( dispatchToken->Alloc, command, &parmFileList, 
+                                    &refFrames, &DSL, &DFL );
         break;
       case DispatchObject::ANALYSIS :
-        if ( analysisList.AddAnalysis( dispatchToken->Alloc, command, &parmFileList, &DSL ) 
-             && exitOnError_)
-          return C_ERR;
+        err = analysisList.AddAnalysis( dispatchToken->Alloc, command, &parmFileList, &DSL );
         break;
       case DispatchObject::GENERAL :
         switch ( dispatchToken->Idx ) {
-          case LIST  : List(command); break;
-          case HELP  : Help(command); break;
-          case DEBUG : Debug(command); break;
-          case SELECTDS: SelectDS(command); break;
-          case NOPROG: 
+          case LIST     : List(command); break;
+          case HELP     : Help(command); break;
+          case DEBUG    : Debug(command); break;
+          case SELECTDS : SelectDS(command); break;
+          case NOPROG   : 
             showProgress_ = false; 
             mprintf("\tProgress bar will not be shown.\n");
             break;
@@ -543,12 +786,8 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
             exitOnError_ = false;
             mprintf("\tcpptraj will attempt to ignore errors if possible.\n");
             break;
-          case ACTIVEREF:
-            refFrames.SetActiveRef( command.getNextInteger(0) );
-            break;
-          case READDATA: 
-            if (ReadData( command ) && exitOnError_) return C_ERR;
-            break;
+          case ACTIVEREF: refFrames.SetActiveRef( command.getNextInteger(0) ); break;
+          case READDATA : err = ReadData( command ); break;
           case READINPUT:
             switch (ProcessInput( command.GetStringNext() )) {
               case C_ERR : if ( exitOnError_ ) return C_ERR; break;
@@ -556,15 +795,9 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
               default    : break;
             } 
             break;
-          case CREATE:
-            if (Create_DataFile( command ) && exitOnError_) return C_ERR;
-            break;
-          case PRECISION:
-            if (Precision( command ) && exitOnError_) return C_ERR;
-            break;
-          case DATAFILE:
-            if (DFL.ProcessDataFileArgs( command ) && exitOnError_) return C_ERR;
-            break;
+          case CREATE      : err = Create_DataFile( command ); break;
+          case PRECISION   : err = Precision( command ); break;
+          case DATAFILE    : err = DFL.ProcessDataFileArgs( command ); break;
           case SYSTEM      : system( command.ArgLine() ); break;
           case RUN         : Run(); break;
           case RUN_ANALYSIS: analysisList.DoAnalyses(&DFL); break;
@@ -572,9 +805,13 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
           case QUIT        : return C_QUIT; break;
         }
         break;
+      case DispatchObject::DEPRECATED: 
+        mprintf("Warning: %s is deprecated.\n", command.Command()); 
+        break;
       default: mprintf("Dispatch type is currently not handled.\n");
     }
-  } else {
+    if (err != 0 && exitOnError_) return C_ERR;
+  } else { // Command not recognized
     if (exitOnError_) return C_ERR;
   }
   return C_OK;

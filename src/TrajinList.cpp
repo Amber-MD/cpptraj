@@ -15,17 +15,6 @@ TrajinList::~TrajinList() {
     delete *traj;
 }
 
-void TrajinList::Help_Trajin() { 
-  mprintf("trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]\n");
-  mprintf("       [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n");
-  mprintf("         trajnames <rep1>,<rep2>,...,<repN> ]\n");
-}
-
-void TrajinList::Help_Ensemble() {
-  mprintf("ensemble <file0> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]\n");
-  mprintf("         [trajnames <file1>,<file2>,...,<fileN>\n");
-}
-
 // TrajinList::AddTrajin()
 /** Add trajectory to the trajectory list as an input trajectory. 
   * Associate the trajectory with one of the parm files in the 
