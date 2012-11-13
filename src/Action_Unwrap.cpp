@@ -9,7 +9,7 @@ Action_Unwrap::Action_Unwrap() :
 { }
 
 void Action_Unwrap::Help() {
-
+  mprintf("unwrap [{reference | ref <refname> | refindex <#>}] [<mask>]\n");
 }
 
 Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,

@@ -7,6 +7,7 @@
 Action_Contacts::Action_Contacts() :
   byResidue_(false),
   distance_(49.0), // 7.0^2
+  dt_(1.0),
   first_(false),
   CurrentParm_(0)
 { }
@@ -59,6 +60,7 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 
   byResidue_ = actionArgs.hasKey("byresidue");
   double dist = actionArgs.getKeyDouble("distance", 7.0);
+  dt_ = actionArgs.getKeyDouble("time", 1.0);
   // Square the cutoff
   distance_ = dist * dist;
   first_ = actionArgs.hasKey("first");
@@ -243,11 +245,11 @@ Action::RetType Action_Contacts::DoAction(int frameNum, Frame* currentFrame, Fra
   // is bidirectional, i.e. atom1->atom2 and atom2->atom1 each
   // count as a separate contact.
   if (!byResidue_) {
-    outfile_.Printf("%10.2lf\t%i\t%i\n", (double)frameNum+OUTPUTFRAMESHIFT,
+    outfile_.Printf("%10.2f\t%i\t%i\n", (double)(frameNum+1) * dt_,
                     numcontacts*2, numnative*2);
   } else {
-    outfile_.Printf("%10.2lf", (double)frameNum+OUTPUTFRAMESHIFT);
-    outfile2_.Printf("%10.2lf", (double)frameNum+OUTPUTFRAMESHIFT);
+    outfile_.Printf("%10.2f", (double)(frameNum+1) * dt_);
+    outfile2_.Printf("%10.2f", (double)(frameNum+1) * dt_);
     for (std::set<int>::iterator res = activeResidues_.begin();
                                  res != activeResidues_.end(); ++res)
     {

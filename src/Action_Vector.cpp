@@ -14,7 +14,9 @@ Action_Vector::Action_Vector() :
 {}
 
 void Action_Vector::Help() {
-
+  mprintf("vector [<name>] [out <filename> [ptrajoutput]]\n");
+  mprintf("       [{ principal [x|y|z] | dipole | box | corrplane | ired]\n");
+  mprintf("       <mask1> [<mask2>]\n");
 }
 
 // DESTRUCTOR
@@ -70,8 +72,6 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mode_ = MASK;
   // Check if IRED vector
   bool isIred = actionArgs.hasKey("ired"); 
-  // Require a vector name - this behavior is consistent with ptraj
-  std::string name = actionArgs.GetStringNext();
   // Vector Mask
   if (mode_ != BOX)
     mask_.SetMaskString( actionArgs.GetMaskNext() );
@@ -85,7 +85,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mask2_.SetMaskString( maskexpr );
   }
   // Set up vector dataset and IRED status
-  Vec_ = (DataSet_Vector*)DSL->AddSet(DataSet::VECTOR, name, "Vec");
+  Vec_ = (DataSet_Vector*)DSL->AddSet(DataSet::VECTOR, actionArgs.GetStringNext(), "Vec");
   if (Vec_ == 0) return Action::ERR;
   if (isIred)
     Vec_->SetIred( );

@@ -13,7 +13,7 @@ Action_Principal::Action_Principal() :
 { }
 
 void Action_Principal::Help() {
-
+  mprintf("principal [<mask>] [dorotation] [mass]\n");
 }
 
 // Action_Principal::init()

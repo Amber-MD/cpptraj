@@ -16,6 +16,7 @@ class Action_Contacts : public Action {
     AtomMask Mask_;
     bool byResidue_;
     double distance_;
+    double dt_;
     bool first_;
     Topology* CurrentParm_;
     CpptrajFile outfile_;
