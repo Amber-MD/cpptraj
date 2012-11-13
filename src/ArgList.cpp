@@ -121,8 +121,10 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
 ArgList ArgList::RemainingArgs() {
   ArgList remain;
   for (unsigned int arg = 0; arg < arglist_.size(); ++arg) {
-    if ( !marked_[arg] )
+    if ( !marked_[arg] ) {
       remain.AddArg( arglist_[arg] );
+      marked_[arg] = true;
+    }
   }
   return remain;
 }
