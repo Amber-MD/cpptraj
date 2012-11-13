@@ -1,11 +1,10 @@
-#include <cstdio> // fprintf, fopen, fclose, sprintf
-#include <cstring> // tildeExpansion
-#include <cmath> // log10
-#include <sstream> // istringstream
-#include <locale> // isspace
+#include <cstdio>    // fprintf, fopen, fclose, sprintf
+#include <cmath>     // log10
+#include <sstream>   // istringstream, ostringstream
+#include <locale>    // isspace
 #include <stdexcept> // BadConversion
 #ifndef __PGI
-#  include <glob.h> // For tilde expansion
+#  include <glob.h>  // For tilde expansion
 #endif
 
 // tildeExpansion()
@@ -22,7 +21,7 @@ std::string tildeExpansion(const char *filenameIn) {
   // NOTE: It seems some PGI compilers do not function correctly when glob.h
   //       is included and large file flags are set. Just disable globbing
   //       for PGI and return a copy of filenameIn.
-  std::string returnFilename(filenameIn);
+  return std::string(filenameIn);
 #else
   glob_t globbuf;
   globbuf.gl_offs = 1;
@@ -31,8 +30,8 @@ std::string tildeExpansion(const char *filenameIn) {
   //mprintf("DEBUG\tGLOB(0): [%s]\n", globbuf.gl_pathv[0]);
   std::string returnFilename( globbuf.gl_pathv[0] );
   globfree(&globbuf);
-#endif
   return returnFilename;
+#endif
 }
 
 // fileExists()

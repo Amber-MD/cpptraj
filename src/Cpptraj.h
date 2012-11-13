@@ -44,7 +44,7 @@ class Cpptraj {
     DispatchObject::TokenPtr SearchTokenArray(const DispatchObject::Token*, ArgList const&);
     DispatchObject::TokenPtr SearchToken(ArgList&);
 
-    int ProcessInput(std::string const&);
+    Mode ProcessInput(std::string const&);
     Mode Dispatch(const char*);        ///< Function that decides where to send commands
 
     /// List of parameter files 

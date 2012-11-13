@@ -336,13 +336,13 @@ static inline bool EndChar(char ptr) {
   * (otherwise indicates 'literal').
   * \return 0 if successfully read, 1 on error.
   */
-int Cpptraj::ProcessInput(std::string const& inputFilename) {
+Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
   FILE *infile;
-  if (inputFilename.empty()) return 1;
+  if (inputFilename.empty()) return C_ERR;
   mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
   if ( (infile=fopen(inputFilename.c_str(),"r"))==NULL ) {
     rprintf("Error: Could not open input file %s\n",inputFilename.c_str());
-    return 1;
+    return C_ERR;
   }
   // Read in each line of input. Newline or NULL terminates. \ continues line.
   std::string inputLine;
@@ -393,8 +393,7 @@ int Cpptraj::ProcessInput(std::string const& inputFilename) {
     ++idx;
   }
   fclose(infile);
-  if (cmode == C_ERR) return 1;
-  return 0;
+  return cmode;
 } 
 
 /** Read command line args. */
@@ -450,14 +449,18 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (parmFileList.AddParmFile( argv[++i] )) return C_ERR;
     } else if (arg == "-i" && i+1 != argc) {
       // -i: Input file(s)
-      if (ProcessInput( argv[++i] )) return C_ERR;
+      Cpptraj::Mode cmode = ProcessInput( argv[++i] );
+      if (cmode == C_ERR) return C_ERR;
+      if (cmode == C_QUIT) return C_QUIT;
       hasInput = true;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
       if (parmFileList.AddParmFile( argv[i])) return C_ERR;
     } else if ( i == 2 ) {
       // For backwards compatibility with PTRAJ; Position 2 = INPUT file
-      if (ProcessInput( argv[i])) return C_ERR;
+      Cpptraj::Mode cmode = ProcessInput( argv[i] );
+      if (cmode == C_ERR) return C_ERR;
+      if (cmode == C_QUIT) return C_QUIT;
       hasInput = true;
     } else {
       // Unrecognized
@@ -547,7 +550,11 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
             if (ReadData( command ) && exitOnError_) return C_ERR;
             break;
           case READINPUT:
-            if (ProcessInput( command.GetStringNext() ) && exitOnError_) return C_ERR;
+            switch (ProcessInput( command.GetStringNext() )) {
+              case C_ERR : if ( exitOnError_ ) return C_ERR; break;
+              case C_QUIT: return C_QUIT; break;
+              default    : break;
+            } 
             break;
           case CREATE:
             if (Create_DataFile( command ) && exitOnError_) return C_ERR;
