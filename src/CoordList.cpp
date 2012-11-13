@@ -10,7 +10,7 @@ CoordList::CoordList() { }
 /** Given a frame and a corresponding atom mask,store the selected atoms in a 
   * float array. Currently only for use with Integer masks.
   */
-int CoordList::AddFrameByMask(Frame &frameIn, AtomMask &MaskIn) {
+int CoordList::AddFrameByMask(Frame const& frameIn, AtomMask const& MaskIn) {
   if (MaskIn.None()) return 1;
   coordList_.push_back( frameIn.ConvertToFloat(MaskIn) );
   return 0;

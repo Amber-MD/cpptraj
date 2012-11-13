@@ -198,7 +198,7 @@ Frame& Frame::operator=(std::vector<float> const& farray) {
 
 // Frame::ConvertToFloat()
 /** Place atom coordinates according to maskIn into a float array. */
-std::vector<float> Frame::ConvertToFloat(AtomMask const& maskIn) {
+std::vector<float> Frame::ConvertToFloat(AtomMask const& maskIn) const {
   std::vector<float> farray;
 
   farray.reserve( maskIn.Nselected() * 3 );

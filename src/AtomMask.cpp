@@ -495,8 +495,8 @@ void AtomMask::AddAtom(int atomIn) {
 /** Given an array, add the atom numbers in array to the Selected_ array.
   * The resulting array is sorted and any duplicates are removed.
   */
-void AtomMask::AddAtoms(std::vector<int> &atomsIn) {
-  std::vector<int>::iterator atom;
+void AtomMask::AddAtoms(std::vector<int> const& atomsIn) {
+  std::vector<int>::const_iterator atom;
   // Make room for atomsIn in Selected_
   //Selected_.reserve( Selected_.size() + atomsIn.size() );
   // Put every atom in atomsIn in Selected_ array
@@ -593,7 +593,7 @@ int AtomMask::SetMaskString( std::string const& maskStringIn ) {
 }
 
 // AtomMask::None()
-bool AtomMask::None() {
+bool AtomMask::None() const {
   if (nselected_==0) return true;
   return false;
 }

@@ -1,6 +1,5 @@
 #ifndef INC_COORDLIST_H
 #define INC_COORDLIST_H
-#include <vector>
 #include "AtomMask.h"
 #include "Frame.h"
 // Class: CoordList
@@ -13,7 +12,7 @@ class CoordList {
   public:
     CoordList();
 
-    int AddFrameByMask(Frame&, AtomMask&);
+    int AddFrameByMask(Frame const&, AtomMask const&);
     std::vector<float> &operator[](int);
     int MaxNatom();
     int Ncoords();

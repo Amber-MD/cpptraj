@@ -57,7 +57,7 @@ class AtomMask {
     /// Add given atom to Selected array 
     void AddAtom(int);
     /// Add a list of atoms to mask
-    void AddAtoms(std::vector<int>&);
+    void AddAtoms(std::vector<int> const&);
     /// Add minAtom <= atom < maxAtom to mask
     void AddAtomRange(int,int);
     /// Add atoms in given mask to this mask at positon, update position
@@ -65,7 +65,7 @@ class AtomMask {
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*);
     /// Return true if no atoms selected. 
-    bool None();
+    bool None() const;
     /// Set the mask string. If NULL, set * (all)
     int SetMaskString(const char*);
     /// Set the mask string.
@@ -85,12 +85,8 @@ class AtomMask {
     void MaskInfo();
 
     typedef std::vector<MaskToken>::const_iterator token_iterator;
-    inline token_iterator begintoken() const {
-      return maskTokens_.begin();
-    }
-    inline token_iterator endtoken() const {
-      return maskTokens_.end();
-    }
+    inline token_iterator begintoken() const { return maskTokens_.begin(); }
+    inline token_iterator endtoken()   const { return maskTokens_.end();   }
   private:
     int debug_;
     std::vector<char> CharMask_; ///< Char array of atoms, T if selected, F if not.
