@@ -13,7 +13,7 @@ Analysis_FFT::Analysis_FFT() :
 {}
 
 void Analysis_FFT::Help() {
-  mprintf("fft <sets arg> [out <outfile>] [name <outsetname>] [d]\n");
+  mprintf("fft <dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] [dt <samp_int>]\n");
 }
 
 // Analysis_FFT::Setup()
@@ -74,6 +74,7 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
 /** Calculate FFT for input DataSets. FFT magnitude is reported. Magnitude
   * is normalized by N / 2. Only data up to the Nyquist frequency is used. 
   */
+//TODO: Deal with vectors
 Analysis::RetType Analysis_FFT::Analyze() {
   //PubFFT pubfft( maxsize_ );
   PubFFT pubfft;

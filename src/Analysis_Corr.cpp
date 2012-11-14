@@ -11,7 +11,8 @@ Analysis_Corr::Analysis_Corr() :
 {}
 
 void Analysis_Corr::Help() {
-  mprintf("corr out <outfilename> <Dataset1> [<Dataset2>] [lagmax <lagmax>]\n");
+  mprintf("corr out <outfilename> <Dataset1> [<Dataset2>]\n");
+  mprintf("         [lagmax <lag>] [nocovar] [direct]\n");
 }
 
 // Analysis_Corr::Setup()
@@ -22,6 +23,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   // Keywords
   lagmax_ = analyzeArgs.getKeyInt("lagmax",-1);
   usefft_ = !analyzeArgs.hasKey("direct");
+  calc_covar_ = !analyzeArgs.hasKey("nocovar");
   outfilename_ = analyzeArgs.GetStringKey("out");
   if (outfilename_.empty()) {
     mprinterr("Error: Corr: No output filename specified ('out' <filename>).\n");

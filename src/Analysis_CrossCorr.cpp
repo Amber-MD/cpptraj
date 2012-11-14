@@ -7,13 +7,13 @@
 Analysis_CrossCorr::Analysis_CrossCorr() {}
 
 void Analysis_CrossCorr::Help() {
-  mprintf("crosscorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] out <filename>\n");
+  mprintf("crosscorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] [out <filename>]\n");
 }
 
 Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, int debugIn)
 {
-  std::string setname_ = analyzeArgs.GetStringKey("name");
+  std::string setname = analyzeArgs.GetStringKey("name");
   outfilename_ = analyzeArgs.GetStringKey("out");
   // Select datasets from remaining args
   ArgList dsetArgs = analyzeArgs.RemainingArgs();
@@ -24,12 +24,12 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
     return Analysis::ERR;
   }
   // Setup output dataset
-  matrix_ = datasetlist->AddSet( DataSet::TRIMATRIX, setname_, "crosscorr" );
+  matrix_ = datasetlist->AddSet( DataSet::TRIMATRIX, setname, "crosscorr" );
   
   mprintf("    CROSSCORR: Calculating correlation between %i data sets:\n", dsets_.size());
   dsets_.List();
-  if ( !setname_.empty() )
-    mprintf("\tSet name: %s\n", setname_.c_str() );
+  if ( !setname.empty() )
+    mprintf("\tSet name: %s\n", setname.c_str() );
   if ( !outfilename_.empty() )
     mprintf("\tOutfile name: %s\n", outfilename_.c_str());
 

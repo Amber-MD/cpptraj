@@ -13,7 +13,8 @@ Analysis_Matrix::Analysis_Matrix() :
 {}
 
 void Analysis_Matrix::Help() {
-  mprintf("analyze matrix <name> out <filename> [thermo outthermo <filename>] [vecs <#>]\n");
+  mprintf("diagmatrix <name> [out <filename>] [thermo outthermo <filename>]\n");
+  mprintf("           [vecs <#>] [name <modesname>] [reduce]\n");
 }
 
 // Analysis_Matrix::Setup()
@@ -57,7 +58,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   if (thermopt_) {
     if (nevec_ < 0) nevec_ = 0;
   } else if (nevec_ <= 0) {
-    mprintf("Warning: # of eigenvectors specified is < 1 (%i) and 'thermopt' not specified.\n",
+    mprintf("Warning: # of eigenvectors specified is < 1 (%i) and 'thermo' not specified.\n",
             nevec_);
     mprintf("Warning: Specify # eigenvectors with 'vecs <#>'. Setting to 1.\n");
     nevec_ = 1;

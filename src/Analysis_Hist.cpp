@@ -19,7 +19,7 @@ Analysis_Hist::Analysis_Hist() :
 void Analysis_Hist::Help() {
   mprintf("hist <dataset_name>[,min,max,step,bins] ...\n");
   mprintf("     [free <temperature>] [norm] [gnu] [circular] out <filename>\n");
-  mprintf("     min <min> max <max> step <step> bins <bins>\n");
+  mprintf("     [min <min>] [max <max>] [step <step>] [bins <bins>]\n");
 }
 
 // Analysis_Hist::CheckDimension()

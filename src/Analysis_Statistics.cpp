@@ -11,7 +11,7 @@ Analysis_Statistics::Analysis_Statistics() :
 {}
 
 void Analysis_Statistics::Help() {
-  mprintf("analyze statistics {<name> | ALL} [shift <value>]\n");
+  mprintf("stat {<name> | ALL} [shift <value>]\n");
 }
 
 Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* DSLin,

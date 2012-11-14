@@ -17,9 +17,9 @@ Analysis_Modes::Analysis_Modes() :
 {}
 
 void Analysis_Modes::Help() {
-  mprintf("analyze modes fluct|displ|corr name <modesname>\n"); 
-  mprintf("              [beg <beg>] [end <end>] [bose] [factor <factor>]\n");
-  mprintf("              [out <outfile>] [maskp <mask1> <mask2> [...]]\n");
+  mprintf("modes {fluct|displ|corr} name <modesname>\n"); 
+  mprintf("      [beg <beg>] [end <end>] [bose] [factor <factor>]\n");
+  mprintf("      [out <outfile>] [maskp <mask1> <mask2> [...]]\n");
   mprintf("\tfluct: rms fluctations from normal modes\n");
   mprintf("\tdispl: displacement of cartesian coordinates along normal mode directions\n");
   mprintf(" Results vector usage:\n");

@@ -16,8 +16,7 @@ Analysis_CrankShaft::Analysis_CrankShaft() :
 {}
 
 void Analysis_CrankShaft::Help() {
-  mprintf("analyze crankshaft {angle | distance} <scalar-name1> <scalar-name2>\n");
-  mprintf("                   info <string>\n");
+  mprintf("crank {angle | distance} <scalar-name1> <scalar-name2> info <string>\n");
 }
 
 const char Analysis_CrankShaft::CSstring[2][9] = { "angle", "distance" };

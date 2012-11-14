@@ -9,7 +9,8 @@ Analysis_AutoCorr::Analysis_AutoCorr() :
 {}
 
 void Analysis_AutoCorr::Help() {
-  mprintf("autocorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] out <filename>\n");
+  mprintf("autocorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] [out <filename>]\n");
+  mprintf("         [lagmax <lag>] [nocovar] [direct]\n");
 }
 
 Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
@@ -20,6 +21,8 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
   std::string setname_ = analyzeArgs.GetStringKey("name");
   outfilename_ = analyzeArgs.GetStringKey("out");
   lagmax_ = analyzeArgs.getKeyInt("lagmax",-1);
+  calc_covar_ = !analyzeArgs.hasKey("nocovar");
+  usefft_ = !analyzeArgs.hasKey("direct");
   // Select datasets from remaining args
   ArgList dsetArgs = analyzeArgs.RemainingArgs();
   for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)

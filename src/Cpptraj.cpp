@@ -62,7 +62,7 @@ void Cpptraj::Help_SelectDS() {
 void Cpptraj::Help_Trajin() {
   mprintf("trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]\n");
   mprintf("       [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n");
-  mprintf("         trajnames <rep1>,<rep2>,...,<repN> ]\n");
+  mprintf("         [trajnames <rep1>,<rep2>,...,<repN> ] ]\n");
 }
 
 void Cpptraj::Help_Ensemble() {
