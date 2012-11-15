@@ -25,8 +25,8 @@ Analysis_IRED::Analysis_IRED() :
 {}
 
 void Analysis_IRED::Help() {
-  mprintf("ired [relax] [freq <hz>] [NHdist <distnh>] [order <order>]\n");
-  mprintf("     tstep <tstep> tcorr <tcorr> out <filename>\n");
+  mprintf("ired [relax freq <hz> [NHdist <distnh>]] [order <order>]\n");
+  mprintf("     tstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n");
   mprintf("     modes <modesname> [beg <ibeg> end <iend>]\n");
 }
 

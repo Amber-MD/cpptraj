@@ -112,24 +112,24 @@ void Cpptraj::Help_Solvent() {
 }
 
 void Cpptraj::Help_BondInfo() {
-  mprintf("parmbondinfo [<parmindex>]\n");
+  mprintf("bondinfo [<parmindex>] <mask>\n");
   mprintf("\tPrint bond information for parm <parmindex> (0 by default).\n");
 }
 
 void Cpptraj::Help_ResInfo() {
-  mprintf("parmresinfo [<parmindex>]\n");
+  mprintf("resinfo [<parmindex>]\n");
   mprintf("\tPrint residue information for parm <parmindex> (0 by default).\n");
 }
 
 void Cpptraj::Help_MolInfo() {
-  mprintf("parmmolinfo [<parmindex>]\n");
+  mprintf("molinfo [<parmindex>] <mask>\n");
   mprintf("\tPrint molecule information for parm <parmindex> (0 by default).\n");
 }
 
 // -----------------------------------------------------------------------------
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
                        SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
-                       SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA };
+                       SELECT, SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef,       ACTIVEREF    },
@@ -152,6 +152,7 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "readinput",     0, 0,                    READINPUT    },
   { DispatchObject::GENERAL, "run"   ,        0, 0,                    RUN          },
   { DispatchObject::GENERAL, "runanalysis",   0, 0,                    RUN_ANALYSIS },
+  { DispatchObject::GENERAL, "select",        0, 0,                    SELECT    },
   { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS,        SELECTDS     },
   { DispatchObject::GENERAL, "writedata",     0, 0,                    WRITEDATA    },
   { DispatchObject::NONE,    0,               0, 0,                    0            }
@@ -168,10 +169,11 @@ const DispatchObject::Token Cpptraj::CoordCmds[] = {
 };
 
 enum ParmCmdTypes { LOADPARM=0, PARMINFO, PARMWRITE, PARMSTRIP, PARMBOX,
-                    SOLVENT, BONDINFO, RESINFO, MOLINFO, SELECT };
+                    SOLVENT, BONDINFO, RESINFO, MOLINFO };
 
 const DispatchObject::Token Cpptraj::ParmCmds[] = {
-//  { DispatchObject::PARM, "box",          0, Help_ParmBox,   PARMBOX   },
+  { DispatchObject::PARM, "bondinfo",     0, Help_BondInfo,  BONDINFO  },
+  { DispatchObject::PARM, "molinfo",      0, Help_MolInfo,   MOLINFO   },
   { DispatchObject::PARM, "parm",         0, Help_Parm,      LOADPARM  },
   { DispatchObject::PARM, "parmbondinfo", 0, Help_BondInfo,  BONDINFO  },
   { DispatchObject::PARM, "parmbox",      0, Help_ParmBox,   PARMBOX   },
@@ -180,7 +182,7 @@ const DispatchObject::Token Cpptraj::ParmCmds[] = {
   { DispatchObject::PARM, "parmresinfo",  0, Help_ResInfo,   RESINFO   },
   { DispatchObject::PARM, "parmstrip",    0, Help_ParmStrip, PARMSTRIP },
   { DispatchObject::PARM, "parmwrite",    0, Help_ParmWrite, PARMWRITE },
-  { DispatchObject::PARM, "select",       0, 0,              SELECT    },
+  { DispatchObject::PARM, "resinfo",      0, Help_ResInfo,   RESINFO   },
   { DispatchObject::PARM, "solvent",      0, Help_Solvent,   SOLVENT   },
   { DispatchObject::NONE, 0,              0, 0,              0         }
 };
@@ -338,6 +340,7 @@ int Cpptraj::Precision(ArgList& dataArg) {
   return 0;
 }
 
+/** Read data from file into master DataSetList */
 int Cpptraj::ReadData(ArgList& argIn) {
   DataFile dataIn;
   if (dataIn.ReadData( argIn, DSL )!=0) {
@@ -347,6 +350,7 @@ int Cpptraj::ReadData(ArgList& argIn) {
   return 0;
 }
 
+/** Show results of DataSet selection */
 void Cpptraj::SelectDS(ArgList& argIn) {
   std::string dsarg = argIn.GetStringNext();
   DataSetList dsets = DSL.GetMultipleSets( dsarg );
@@ -356,6 +360,7 @@ void Cpptraj::SelectDS(ArgList& argIn) {
 }
 
 // -----------------------------------------------------------------------------
+/** Load file into TopologyList */
 int Cpptraj::LoadParm(ArgList& argIn) {
   std::string parmtag = argIn.getNextTag();
   bool bondsearch = !argIn.hasKey("nobondsearch");
@@ -363,6 +368,7 @@ int Cpptraj::LoadParm(ArgList& argIn) {
   return parmFileList.AddParmFile(argIn.GetStringNext(), parmtag, bondsearch, offset);
 }
 
+/** Print information for specified parm */
 int Cpptraj::ParmInfo(ArgList& argIn, int cmdidxIn) {
   ParmCmdTypes cmdidx = (ParmCmdTypes) cmdidxIn;
   int pindex = argIn.getNextInteger(0);
@@ -387,6 +393,7 @@ int Cpptraj::ParmInfo(ArgList& argIn, int cmdidxIn) {
   return 0;
 }
 
+/** Write parm to Amber Topology file. */
 int Cpptraj::ParmWrite(ArgList& argIn) {
   std::string outfilename = argIn.GetStringKey("out");
   if (outfilename.empty()) {
@@ -406,6 +413,7 @@ int Cpptraj::ParmWrite(ArgList& argIn) {
   return 0;
 }
 
+// Cpptraj::ParmStrip()
 int Cpptraj::ParmStrip(ArgList& argIn) {
   int pindex = argIn.getNextInteger(0);
   Topology* parm = parmFileList.GetParm( pindex );
@@ -431,6 +439,7 @@ int Cpptraj::ParmStrip(ArgList& argIn) {
   return 0;
 }
 
+/** Modify parm box information. */
 int Cpptraj::ParmBox(ArgList& argIn) {
   int pindex = argIn.getNextInteger(0);
   Topology* parm = parmFileList.GetParm( pindex );
@@ -455,6 +464,7 @@ int Cpptraj::ParmBox(ArgList& argIn) {
   return 0;
 }
 
+/** Modify parm solvent information */
 int Cpptraj::ParmSolvent(ArgList& argIn) {
   std::string maskexpr = argIn.GetMaskNext();
   if ( maskexpr.empty() ) {
@@ -472,6 +482,7 @@ int Cpptraj::ParmSolvent(ArgList& argIn) {
   return 0;
 }
 
+/** Show results of mask expression */
 int Cpptraj::Select(ArgList& argIn) {
   AtomMask tempMask( argIn.GetMaskNext() );
   int pindex = argIn.getNextInteger(0);
@@ -514,7 +525,6 @@ DispatchObject::TokenPtr Cpptraj::SearchTokenArray(DispatchObject::TokenPtr Disp
   for (DispatchObject::TokenPtr token = DispatchArray;
                                 token->Type != DispatchObject::NONE; ++token)
   {
-    //mprintf("DBG: CMD [%s] LISTALLCMD=%i  ARG=%s\n", token->Cmd,(int)listAllCommands,arg.Command());
     if ( arg.CommandIs( token->Cmd ) ) 
       return token;
   }
@@ -749,7 +759,6 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
           case PARMSTRIP: err = ParmStrip( command ); break;
           case PARMBOX  : err = ParmBox( command ); break;
           case SOLVENT  : err = ParmSolvent(command); break;
-          case SELECT   : err = Select(command); break; 
         } 
         break;
       case DispatchObject::COORD :
@@ -777,6 +786,7 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
           case LIST     : List(command); break;
           case HELP     : Help(command); break;
           case DEBUG    : Debug(command); break;
+          case SELECT   : err = Select(command); break; 
           case SELECTDS : SelectDS(command); break;
           case NOPROG   : 
             showProgress_ = false; 

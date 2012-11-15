@@ -27,10 +27,9 @@ Analysis_Timecorr::Analysis_Timecorr() :
 {}
 
 void Analysis_Timecorr::Help() {
-  mprintf("timecorr vec1 <vecname1> [vec2 <vecname2>]\n");
-  mprintf("         [relax] [freq <hz>] [NHdist <distnh>] [order <order>]\n");
-  mprintf("         tstep <tstep> tcorr <tcorr> out <filename>\n");
-  mprintf("         [ corrired modes <modesname> [beg <ibeg> end <iend>] ]\n");
+  mprintf("timecorr vec1 <vecname1> [vec2 <vecname2>] out <filename>\n");
+  mprintf("         [order <order>] tstep <tstep> tcorr <tcorr>\n");
+  mprintf("         [dplr] [norm] [drct]\n");
 }
 
 // DESTRUCTOR
