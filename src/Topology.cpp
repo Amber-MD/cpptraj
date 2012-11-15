@@ -301,7 +301,7 @@ int Topology::SoluteAtoms() {
 // -----------------------------------------------------------------------------
 // Topology::Summary()
 void Topology::Summary() {
-  mprintf("\t\tTopology contains %zu atoms.\n", atoms_.size());
+  mprintf("\t\tTopology %s contains %zu atoms.\n", c_str(), atoms_.size());
   mprintf("\t\t                  %zu residues.\n", residues_.size());
   mprintf("\t\t                  %zu bonds.\n", (bonds_.size()+bondsh_.size()) / 3 );
   mprintf("\t\t                  %zu molecules.\n", molecules_.size());

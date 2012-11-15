@@ -19,6 +19,7 @@ void Cpptraj::Usage(const char* programName) {
   mprinterr(  "         --defines     : Print list of defines used in compilation.\n");
   mprinterr(  "         -debug <N>    : Set global debug level.\n");
   mprinterr(  "         --interactive : Enter interactive mode.\n");
+  mprinterr(  "         --log <file>  : Record commands used in interactive mode to <file>.\n");
 }
 
 void Cpptraj::Help_List() {
