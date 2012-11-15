@@ -123,7 +123,7 @@ class AxisType {
     std::string basename_num_;
 #endif
     /// Identify NA base from residue name
-    NAbaseType ID_base(NameType);
+    NAbaseType ID_base(NameType const&);
     /// Allocate memory
     int AllocAxis(int);
 };

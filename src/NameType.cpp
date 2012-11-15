@@ -1,6 +1,4 @@
 #include "NameType.h"
-// DEBUG
-//#include "CpptrajStdio.h"
 
 NameType::NameType() :
   NameSize_(6)
@@ -34,7 +32,6 @@ NameType::NameType(const char *rhs) :
     if (*ptr=='\0') break;
     ++ptr;
   }
-  //FormatName(true);
   FormatName();
 }
 
@@ -48,23 +45,9 @@ NameType::NameType(std::string const& str) :
   for (unsigned int j = 0; j < strend; j++) 
     c_array_[j] = str[j];
   c_array_[strend] = '\0';
-  //FormatName(true);
   FormatName();
 }
  
-
-/*NameType::NameType(char *rhs) :
-  NameSize_(6)
-{
-  char *ptr = rhs;
-  for (unsigned int j = 0; j < NameSize_-1; j++) {
-    c_array_[j] = *ptr;
-    if (*ptr=='\0') break;
-    ++ptr;
-  }
-  //FormatName(true);
-}*/
-
 NameType &NameType::operator=(const NameType &rhs) {
   if (&rhs==this) return *this;
   c_array_[0] = rhs.c_array_[0];
@@ -76,19 +59,9 @@ NameType &NameType::operator=(const NameType &rhs) {
   return *this;
 }
 
-/*void NameType::AssignNoFormat(const char *rhs) {
-  const char *ptr = rhs;
-  for (unsigned int j = 0; j < NameSize_-1; j++) {
-    c_array_[j] = *ptr;
-    if (*ptr=='\0') break;
-    ++ptr;
-  }
-  FormatName(false);
-}*/
-
 // NameType::ToBuffer()
-/// For interfacing with old C stuff. Only set 1st 4 chars.
-void NameType::ToBuffer(char *buffer) {
+/** For interfacing with old C stuff. Only set 1st 4 chars. */
+void NameType::ToBuffer(char *buffer) const {
   buffer[0] = c_array_[0];
   buffer[1] = c_array_[1];
   buffer[2] = c_array_[2];
@@ -121,24 +94,6 @@ bool NameType::Match(NameType const& maskName) const {
   return true;
 }
 
-/*
-NameType &NameType::operator=(const char *rhs) {
-  if (rhs==NULL) {
-    c_array_[0] = '\0';
-    return *this;
-  }
-  const char *ptr = rhs;
-  for (unsigned int j = 0; j < NameSize_-1; j++) {
-    c_array_[j] = (char)*ptr;
-    if (*ptr=='\0') break;
-    ++ptr;
-  }
-  FormatName();
-  // 5 is always NULL
-  return *this;
-}
-*/
-
 bool NameType::operator==(const NameType &rhs) const {
   if (c_array_[0] != rhs.c_array_[0]) return false;
   if (c_array_[1] != rhs.c_array_[1]) return false;
@@ -165,22 +120,21 @@ bool NameType::operator!=(const char *rhs) const {
   return (*this != tmp);
 }
 
-/*
-char *NameType::Assign(char *bufferIn) {
-  char *ptr = bufferIn;
-  for (unsigned int j = 0; j < NameSize_-1; j++) {
-    c_array_[j] = *ptr;
-    if (*ptr=='\0') break;
-    ++ptr;
-  }
-  FormatName();
-  // 5 is always NULL
-  return ptr;
-}
-*/
-
-const char *NameType::operator*() const {
+const char* NameType::operator*() const {
   return c_array_;
+}
+
+char NameType::operator[](int idx) const {
+  if (idx < 0 || idx >= (int)NameSize_) return '\0';
+  return c_array_[idx];
+}
+
+/** Replace asterisks with a single quote */
+void NameType::ReplaceAsterisk() {
+  if (c_array_[0]=='*') c_array_[0]='\'';
+  if (c_array_[1]=='*') c_array_[1]='\'';
+  if (c_array_[2]=='*') c_array_[2]='\'';
+  if (c_array_[3]=='*') c_array_[3]='\'';
 }
 
 // NameType::FormatName()
@@ -214,7 +168,7 @@ void NameType::FormatName()
   }
   // Remove leading whitespace.
   if        (c_array_[0]==' ') { // Some leading whitespace
-    if (c_array_[1]!=' ') { // [_XXX]
+    if (c_array_[1]!=' ') {        // [_XXX]
       c_array_[0]=c_array_[1];
       c_array_[1]=c_array_[2];
       c_array_[2]=c_array_[3];
@@ -232,18 +186,3 @@ void NameType::FormatName()
     }
   }
 }
-
-void NameType::ReplaceAsterisk() {
-  //if (!replaceAsterisk) return;
-  // Replace asterisks with a single quote
-  if (c_array_[0]=='*') c_array_[0]='\'';
-  if (c_array_[1]=='*') c_array_[1]='\'';
-  if (c_array_[2]=='*') c_array_[2]='\'';
-  if (c_array_[3]=='*') c_array_[3]='\'';
-}
-
-char NameType::operator[](int idx) const {
-  if (idx < 0 || idx >= (int)NameSize_) return '\0';
-  return c_array_[idx];
-}
-

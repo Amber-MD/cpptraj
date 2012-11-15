@@ -249,10 +249,7 @@ double *AxisType::Origin() {
   * NOTE: Currently based only on amber residue names. Will not recognize
   * non-standard bases.
   */
-// FIXME: Accept a reference instead of copy
-AxisType::NAbaseType AxisType::ID_base(NameType resname) {
-  //mprintf("DBG:\tNAresname [%s]\n",resname);
-  //if (resname==NULL) return UNKNOWN_BASE;
+AxisType::NAbaseType AxisType::ID_base(NameType const& resname) {
   // If residue name begins with D, assume AMBER DNA residue
   if (resname[0]=='D') {
     switch (resname[1]) {

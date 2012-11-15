@@ -52,7 +52,7 @@ Atom::Atom() :
 
 // CONSTRUCTOR
 /// Take atom name. Attempt to determine element from name.
-Atom::Atom(NameType aname) :
+Atom::Atom(NameType const& aname) :
   charge_(0),
   mass_(1),
   gb_radius_(0),
@@ -69,7 +69,7 @@ Atom::Atom(NameType aname) :
 
 // CONSTRUCTOR
 /// Take atom name and charge. Attempt to determine element from name.
-Atom::Atom( NameType aname, NameType atype, double q ) :
+Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   charge_(q),
   mass_(1),
   gb_radius_(0),
@@ -91,8 +91,8 @@ Atom::Atom( NameType aname, NameType atype, double q ) :
   * from name if all else fails.
   */
 // TODO: Necessary to set resnum here?
-Atom::Atom( NameType name, double charge, int atomicnum, double mass, int atidx,
-            NameType type, double rad, double screen, int resnum ) :
+Atom::Atom( NameType const& name, double charge, int atomicnum, double mass, int atidx,
+            NameType const& type, double rad, double screen, int resnum ) :
   charge_(charge),
   mass_(mass),
   gb_radius_(rad),
@@ -202,20 +202,12 @@ void Atom::SortBonds() {
   sort( bonds_.begin(), bonds_.end() );
 }
 
-// Atom::AddExcluded()
-/*void Atom::AddExcluded(int idxIn) {
-  excluded_.insert( idxIn );
-}*/
+// Atom::AddExclusionList()
 void Atom::AddExclusionList(std::set<int>& elist) {
   excluded_.clear();
   for (std::set<int>::iterator ei = elist.begin(); ei != elist.end(); ei++)
     excluded_.push_back( *ei );
 }
-
-// Atom::ClearExcluded()
-/*void Atom::ClearExcluded() {
-  excluded_.clear();
-}*/
 
 // Atom::SetElementFromName()
 /** If not already known, try to determine atomic element from atom name. 
@@ -519,4 +511,3 @@ void Atom::SetElementFromMass() {
               mass_, *aname_);
   }
 }
-

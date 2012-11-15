@@ -63,7 +63,7 @@ class Parm_Amber : public ParmIO {
     int AllocateAndRead(int,int,int);
     bool PositionFileAtFlag(AmberParmFlagType);
 
-    static void CheckNameWidth(const char*, NameType&);
+    static void CheckNameWidth(const char*, NameType const&);
     int AmberIfbox(const Box&);
     int WriteSetup(AmberParmFlagType,size_t);
     int WriteInteger(AmberParmFlagType,std::vector<int>const&);

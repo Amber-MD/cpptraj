@@ -8,22 +8,15 @@ class NameType {
     NameType(const NameType&);
     NameType(const char*);
     NameType(std::string const&);
-    //NameType( char*);
     NameType& operator=(const NameType&);
 
-//    void AssignNoFormat(const char*);
-    void ToBuffer(char*);
+    void ToBuffer(char*) const;
     bool Match(NameType const&) const;
-
-    //NameType& operator=(const char*);
     bool operator==(const NameType&) const;
     bool operator==(const char*) const;
     bool operator!=(const NameType&) const;
     bool operator!=(const char*) const;
-    //char *Assign(char*);
-
-    const char * operator*() const;
-
+    const char* operator*() const;
     char operator[](int) const;
     void ReplaceAsterisk();
 
@@ -31,7 +24,6 @@ class NameType {
     const size_t NameSize_;
     char c_array_[6];
 
-//    void FormatName(bool);
     void FormatName();
 };  
 #endif

@@ -160,7 +160,7 @@ int Parm_Amber::AmberIfbox(const Box& boxIn) {
   return 1;
 }
 
-void Parm_Amber::CheckNameWidth(const char* typeIn, NameType& nameIn) {
+void Parm_Amber::CheckNameWidth(const char* typeIn, NameType const& nameIn) {
   if (nameIn[4] != '\0')
     mprintf("Warning: Parm_Amber: %s name (%s) is too large and will be truncated (4 chars max).\n",
             typeIn, *nameIn);

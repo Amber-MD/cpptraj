@@ -16,14 +16,14 @@ class MaskToken {
     int SetDistance( std::string & );
     void SetOperator(MaskTokenType);
 
-    inline MaskTokenType Type() const { return type_;     }
-    inline int Res1() const           { return res1_;     }
-    inline int Res2() const           { return res2_;     }
-    inline NameType Name() const      { return name_;     }
-    inline bool OnStack() const       { return onStack_;  }
-    inline bool Within() const        { return d_within_; }
-    inline bool ByAtom() const        { return d_atom_;   }
-    inline double Distance() const    { return distance_; }
+    inline MaskTokenType Type() const   { return type_;     }
+    inline int Res1() const             { return res1_;     }
+    inline int Res2() const             { return res2_;     }
+    inline const NameType& Name() const { return name_;     }
+    inline bool OnStack() const         { return onStack_;  }
+    inline bool Within() const          { return d_within_; }
+    inline bool ByAtom() const          { return d_atom_;   }
+    inline double Distance() const      { return distance_; }
 
     void SetOnStack();
   private:

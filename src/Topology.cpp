@@ -265,7 +265,7 @@ std::string Topology::TruncResNameNum(int res) {
   * \return the atom number of the specified atom if found in the given residue.
   * \return -1 if atom not found in given residue.
   */
-int Topology::FindAtomInResidue(int res, NameType atname) {
+int Topology::FindAtomInResidue(int res, NameType const& atname) {
   if (res < 0 || res >= (int)residues_.size()) return -1;
   for (atom_iterator atom = ResAtomStart(res); atom != ResAtomEnd(res); atom++)
     if ( (*atom).Name() == atname )

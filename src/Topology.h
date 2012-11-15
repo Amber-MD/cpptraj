@@ -97,7 +97,7 @@ class Topology {
     const char* ResidueName(int); // TODO: Make obsolete
     std::string TruncResAtomName(int);
     std::string TruncResNameNum(int);
-    int FindAtomInResidue(int, NameType);
+    int FindAtomInResidue(int, NameType const&);
     int FindResidueMaxNatom() const;
     int SoluteAtoms();
     int SetSolvent(std::string const&);

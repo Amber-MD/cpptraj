@@ -26,9 +26,9 @@ class Atom {
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}
-    Atom(NameType);
-    Atom( NameType, NameType, double );
-    Atom( NameType, double, int, double, int, NameType, double, double,int );
+    Atom(NameType const&);
+    Atom( NameType const&, NameType const&, double );
+    Atom( NameType const&, double, int, double, int, NameType const&, double, double,int );
     Atom(const Atom &);
     void swap(Atom &, Atom &);
     Atom &operator=(Atom);
@@ -52,9 +52,8 @@ class Atom {
     inline int ResNum() const                { return resnum_; }
     inline AtomicElementType Element() const { return element_; }
     inline int AtomicNumber() const          { return AtomicElementNum[element_]; }
-    // NOTE: return reference?
-    inline NameType Name() const             { return aname_; }
-    inline NameType Type() const             { return atype_; }
+    inline const NameType& Name() const             { return aname_; }
+    inline const NameType& Type() const             { return atype_; }
     inline int TypeIndex() const             { return atype_index_; }
     inline int Mol() const                   { return mol_; }
     inline int Nbonds() const                { return (int)bonds_.size(); }
@@ -67,10 +66,8 @@ class Atom {
     void AddBond(int);
     void ClearBonds();
     void SortBonds();
-    /// Add atom # to this atoms exclusion list
-    //void AddExcluded(int);
+    /// Create exclusion list from input set.
     void AddExclusionList(std::set<int>&);
-    //void ClearExcluded();
   protected:
     static const size_t NUMELEMENTS = 74;
   private:
