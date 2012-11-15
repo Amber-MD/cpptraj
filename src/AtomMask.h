@@ -71,9 +71,9 @@ class AtomMask {
     /// Set the mask string.
     int SetMaskString( std::string const& );
     /// Set up Selected based on given char mask 
-    void SetupMask(char*,int,int);
+    void SetupMask(const char*,int,int);
     /// Set up CharMask based on given char mask 
-    void SetupCharMask(char*, int, int);
+    void SetupCharMask(const char*, int, int);
     /// True if given atom is T in CharMask
     bool AtomInCharMask(int) const;
     bool AtomsInCharMask(int,int) const;
