@@ -320,7 +320,7 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteInteger(F_EXCLUDE, excluded);
   // HBOND
   WriteDouble(F_ASOL, parmIn.Asol());
-  WriteDouble(F_BSOL, parmIn.Asol());
+  WriteDouble(F_BSOL, parmIn.Bsol());
   WriteDouble(F_HBCUT, parmIn.HBcut());
   // AMBER ATOM TYPE
   WriteName(F_TYPES, types);
