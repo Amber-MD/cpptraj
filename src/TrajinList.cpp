@@ -78,5 +78,5 @@ void TrajinList::List() {
   if (maxframes_ < 0)
     mprintf("  Total number of frames is unknown.\n");
   else
-    mprintf("  Total number of frames is %i.\n", maxframes_);
+    mprintf("  Coordinate processing will occur on %i frames.\n", maxframes_);
 }
