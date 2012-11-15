@@ -100,6 +100,8 @@ class Cpptraj {
     bool exitOnError_;
     /// Number of times the Run routine has been called.
     int nrun_;
+    /// Log file for interactive mode
+    CpptrajFile logfile_;
 
     int RunEnsemble();
     int RunNormal();

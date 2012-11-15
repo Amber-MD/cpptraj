@@ -567,12 +567,19 @@ Cpptraj::Mode Cpptraj::Interactive() {
   ReadLine inputLine;
   // By default when interactive do not exit on errors
   exitOnError_ = false;
+  // Open log file if name has been set
+  if (!logfile_.FullFileName().empty())
+    logfile_.OpenFile();
   Mode readLoop = C_OK;
   while ( readLoop == C_OK ) {
     if (inputLine.GetInput()) break; 
-    if (!inputLine.empty())
+    if (!inputLine.empty()) {
       readLoop = Dispatch( inputLine.c_str() );
+      if (logfile_.IsOpen())
+        logfile_.Printf("%s\n", inputLine.c_str());
+    }
   }
+  logfile_.CloseFile();
   // If we broke out of loop because of EOF and Run has been called at least
   // once, indicate that we can safely quit.
   if (readLoop == C_OK && nrun_ > 0) return C_QUIT;
@@ -696,7 +703,10 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       interactive = true;
     else if ( arg == "-debug" && i+1 != argc) 
       // -debug: Set overall debug level
-      SetGlobalDebug( convertToInteger( argv[++i] ) ); 
+      SetGlobalDebug( convertToInteger( argv[++i] ) );
+    else if ( arg == "--log" && i+1 != argc)
+      // --log: Set up log file for interactive mode
+      logfile_.SetupWrite( argv[++i], debug_ );
     else if ( arg == "-p" && i+1 != argc) {
       // -p: Topology file
       if (parmFileList.AddParmFile( argv[++i] )) return C_ERR;
