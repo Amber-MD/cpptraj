@@ -171,7 +171,7 @@ enum ParmCmdTypes { LOADPARM=0, PARMINFO, PARMWRITE, PARMSTRIP, PARMBOX,
                     SOLVENT, BONDINFO, RESINFO, MOLINFO, SELECT };
 
 const DispatchObject::Token Cpptraj::ParmCmds[] = {
-  { DispatchObject::PARM, "box",          0, Help_ParmBox,   PARMBOX   },
+//  { DispatchObject::PARM, "box",          0, Help_ParmBox,   PARMBOX   },
   { DispatchObject::PARM, "parm",         0, Help_Parm,      LOADPARM  },
   { DispatchObject::PARM, "parmbondinfo", 0, Help_BondInfo,  BONDINFO  },
   { DispatchObject::PARM, "parmbox",      0, Help_ParmBox,   PARMBOX   },

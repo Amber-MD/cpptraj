@@ -56,6 +56,7 @@
 #include "Action_Bounds.h"
 #include "Action_Rotate.h"
 #include "Action_Translate.h"
+#include "Action_Box.h"
 
 const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "2drms", Action_Rms2d::Alloc, Action_Rms2d::Help, 0 },
@@ -67,6 +68,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "average", Action_Average::Alloc, Action_Average::Help, 0 },
   { DispatchObject::ACTION, "avgcoord", Action_AvgCoord::Alloc, Action_AvgCoord::Help, 0 },
   { DispatchObject::ACTION, "bounds", Action_Bounds::Alloc, Action_Bounds::Help, 0 },
+  { DispatchObject::ACTION, "box", Action_Box::Alloc, Action_Box::Help, 0 },
   { DispatchObject::ACTION, "center", Action_Center::Alloc, Action_Center::Help, 0 },
   { DispatchObject::ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
   { DispatchObject::ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
