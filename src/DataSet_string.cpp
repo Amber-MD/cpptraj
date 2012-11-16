@@ -6,11 +6,9 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DataSet_string::DataSet_string() {
-  width_ = 1;
-  dType_ = STRING;
-  SetDataSetFormat(false);
-}
+DataSet_string::DataSet_string() :
+  DataSet(STRING, 1, 0, 1)
+{}
 
 // DataSet_string::Allocate()
 /** Reserve space in the Data and Frames arrays. */

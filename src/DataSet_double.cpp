@@ -5,12 +5,9 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DataSet_double::DataSet_double() {
-  width_ = 12;
-  precision_ = 4;
-  dType_ = DOUBLE;
-  SetDataSetFormat(false);
-}
+DataSet_double::DataSet_double() :
+  DataSet(DOUBLE, 12, 4, 1) 
+{}
 
 // DataSet_double::Allocate()
 /** Reserve space in the Data and Frames arrays. */

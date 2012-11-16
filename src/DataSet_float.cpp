@@ -5,12 +5,9 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DataSet_float::DataSet_float() {
-  width_ = 8;
-  precision_ = 3;
-  dType_ = FLOAT;
-  SetDataSetFormat(false);
-}
+DataSet_float::DataSet_float() :
+  DataSet(FLOAT, 8, 3, 1)
+{}
 
 // DataSet_float::Allocate()
 /** Reserve space in the Data and Frames arrays. */
