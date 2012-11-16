@@ -513,7 +513,7 @@ void Cpptraj::ListAllCommands(DispatchObject::TokenPtr DispatchArray) {
       col = 0;
     }
   }
-  if (col > 0) mprintf("\n");
+  mprintf("\n");
 }
 
 // Cpptraj::SearchTokenArray()

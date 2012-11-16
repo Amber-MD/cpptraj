@@ -53,7 +53,6 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, TopologyList* PFL, Frame
 // Action_Angle::setup()
 /** Set angle up for this parmtop. Get masks etc.
   */
-// currentParm is set in Action::Setup
 Action::RetType Action_Angle::Setup(Topology* currentParm, Topology** parmAddress) {
 
   if (currentParm->SetupIntegerMask(Mask1_)) return Action::ERR;

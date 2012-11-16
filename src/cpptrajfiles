@@ -1,6 +1,6 @@
 SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_Average.cpp Action_Box.cpp Action_Center.cpp Action_CheckStructure.cpp \
-        Action_Closest.cpp Action_Clustering.cpp Action_Dihedral.cpp \
+        Action_Closest.cpp Action_Clustering.cpp Action_CreateCrd.cpp Action_Dihedral.cpp \
         Action_Distance.cpp Action_DistRmsd.cpp Action_AvgCoord.cpp Action_DihedralScan.cpp \
         Action_DSSP.cpp Action_Hbond.cpp Action_Image.cpp Action_Jcoupling.cpp \
         Action_Mask.cpp Action_Molsurf.cpp Action_NAstruct.cpp \
@@ -15,7 +15,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Action_STFC_Diffusion.cpp Action_AtomicCorr.cpp Action_Bounds.cpp \
         Action_Vector.cpp Action_Matrix.cpp Action_Rotate.cpp Action_Translate.cpp \
         ActionList.cpp \
-        Analysis_Corr.cpp Analysis_Hist.cpp Analysis_Matrix.cpp \
+        Analysis_Corr.cpp Analysis_CrdFluct.cpp Analysis_Hist.cpp Analysis_Matrix.cpp \
         Analysis_Timecorr.cpp Analysis_IRED.cpp Analysis_Modes.cpp \
         Analysis_CrankShaft.cpp Analysis_Statistics.cpp Analysis_CrossCorr.cpp \
         Analysis_Lifetime.cpp Analysis_AutoCorr.cpp Analysis_FFT.cpp \
@@ -25,7 +25,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         CpptrajFile.cpp \
         Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
-        DataSet.cpp DataSet_double.cpp DataSet_float.cpp DataSet_integer.cpp \
+        DataSet.cpp DataSet_Coords.cpp DataSet_double.cpp DataSet_float.cpp DataSet_integer.cpp \
         DataSetList.cpp DataSet_string.cpp DataSet_Vector.cpp DataSet_Matrix.cpp \
         DataSet_Modes.cpp \
         DistRoutines.cpp Dimension.cpp \

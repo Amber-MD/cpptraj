@@ -24,7 +24,7 @@ class DataSet {
     /// Base type of data stored in DataSet
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, STRING, INT, FLOAT, VECTOR, MATRIX, MODES, 
-      HIST, TRIMATRIX, MATRIX2D
+      HIST, TRIMATRIX, MATRIX2D, COORDS
     };
     /// Source of data stored in DataSet, used by Analysis_Statistics
     enum scalarMode {

@@ -99,6 +99,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
     case MATRIX2D:
     case DOUBLE: SetDoubleFormatString(format_, width_, precision_, 0, leftAlign); break;
     case TRIMATRIX:
+    case COORDS:
     case FLOAT : SetDoubleFormatString(format_, width_, precision_, 1, leftAlign); break;
     case INT   : SetIntegerFormatString(format_, width_, leftAlign); break;
     case STRING: SetStringFormatString(format_, width_, leftAlign); break;
