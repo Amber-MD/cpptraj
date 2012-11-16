@@ -40,8 +40,6 @@ class Atom {
     typedef std::vector<int>::const_iterator excluded_iterator;
     inline excluded_iterator excludedbegin() const { return excluded_.begin(); }
     inline excluded_iterator excludedend() const   { return excluded_.end();   }
-    // Info functions
-    void Info();
     // Functions that set internal vars
     void SetResNum(int);
     void SetMol(int);

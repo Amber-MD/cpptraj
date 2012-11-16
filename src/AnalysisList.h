@@ -7,7 +7,7 @@ class AnalysisList {
     static const DispatchObject::Token DispatchArray[];
     AnalysisList();
     ~AnalysisList();
-    
+    void Clear(); 
     void SetDebug(int);
     int AddAnalysis(DispatchObject::DispatchAllocatorType, ArgList&,
                     TopologyList*, DataSetList*);

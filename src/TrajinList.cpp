@@ -11,8 +11,13 @@ TrajinList::TrajinList() :
 {}
 
 TrajinList::~TrajinList() {
+  Clear();
+}
+
+void TrajinList::Clear() {
   for (ListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj)
     delete *traj;
+  trajin_.clear();
 }
 
 // TrajinList::AddTrajin()

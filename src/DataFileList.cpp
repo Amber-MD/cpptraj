@@ -7,9 +7,13 @@ DataFileList::DataFileList() : debug_(0) {}
 
 // DESTRUCTOR
 DataFileList::~DataFileList() {
-//  fprintf(stderr,"DataFileList DESTRUCTOR\n");
+  Clear();
+}
+
+void DataFileList::Clear() {
   for (df_iterator it = fileList_.begin(); it != fileList_.end(); it++)
     delete *it;
+  fileList_.clear();
 }
 
 // DataFileList::SetDebug()

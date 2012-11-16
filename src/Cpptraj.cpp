@@ -3,7 +3,6 @@
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // convertToInteger
 #include "Trajin_Multi.h"
 #include "FrameArray.h"
 #include "ReadLine.h"
@@ -22,16 +21,23 @@ void Cpptraj::Usage(const char* programName) {
   mprinterr(  "         --log <file>  : Record commands used in interactive mode to <file>.\n");
 }
 
-void Cpptraj::Help_List() {
-  mprintf("list <type> (<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)\n");
-}
-
 void Cpptraj::Help_Help() {
   mprintf("help [<cmd>]\n");
 }
 
+static const char TypeList[] = 
+  "(<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)";
+
+void Cpptraj::Help_List() {
+  mprintf("list <type> %s\n", TypeList);
+}
+
 void Cpptraj::Help_Debug() {
-  mprintf("debug [<type>] <#> ((<type> = actions,trajin,trajout,ref,parm,analysis,datafile)\n");
+  mprintf("debug [<type>] <#> %s\n", TypeList);
+}
+
+void Cpptraj::Help_Clear() {
+  mprintf("clear [<type>] %s\n", TypeList);
 }
 
 void Cpptraj::Help_ActiveRef() {
@@ -130,14 +136,17 @@ void Cpptraj::Help_MolInfo() {
 // -----------------------------------------------------------------------------
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
                        SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
-                       SELECT, SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA };
+                       SELECT, SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA,
+                       CLEAR };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef,       ACTIVEREF    },
+  { DispatchObject::GENERAL, "clear",         0, Help_Clear,           CLEAR        },
   { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE       },
   { DispatchObject::GENERAL, "datafile",      0, 0,                    DATAFILE     },
   { DispatchObject::GENERAL, "debug",         0, Help_Debug,           DEBUG        },
   { DispatchObject::GENERAL, "exit" ,         0, 0,                    QUIT         },
+  { DispatchObject::GENERAL, "gnuplot" ,      0, 0,                    SYSTEM       },
   { DispatchObject::GENERAL, "go"   ,         0, 0,                    RUN          },
   { DispatchObject::GENERAL, "head" ,         0, 0,                    SYSTEM       },
   { DispatchObject::GENERAL, "help" ,         0, Help_Help,            HELP         },
@@ -156,6 +165,7 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "select",        0, 0,                    SELECT    },
   { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS,        SELECTDS     },
   { DispatchObject::GENERAL, "writedata",     0, 0,                    WRITEDATA    },
+  { DispatchObject::GENERAL, "xmgrace",       0, 0,                    SYSTEM       },
   { DispatchObject::NONE,    0,               0, 0,                    0            }
 };
 
@@ -229,49 +239,69 @@ void Cpptraj::Help(ArgList& argIn) {
   }
 }
 
-/** Call List routine to list all members of given list. */
+/// Types of lists
+enum ListType { L_ACTION = 0, L_TRAJIN, L_REF, L_TRAJOUT, L_PARM, L_ANALYSIS,
+                L_DATAFILE, L_DATASET, N_LISTS };
+/// Select lists from ArgList
+static std::vector<bool> ListsFromArg( ArgList& argIn ) {
+  std::vector<bool> enabled( (int)N_LISTS );
+  enabled[L_ACTION] = argIn.hasKey("actions");
+  enabled[L_TRAJIN] = argIn.hasKey("trajin");
+  enabled[L_REF] = argIn.hasKey("ref");
+  enabled[L_TRAJOUT] = argIn.hasKey("trajout");
+  enabled[L_PARM] = argIn.hasKey("parm");
+  enabled[L_ANALYSIS] = argIn.hasKey("analysis");
+  enabled[L_DATAFILE] = argIn.hasKey("datafile");
+  enabled[L_DATASET] = argIn.hasKey("dataset");
+  // If nothing is enabled, set all enabled
+  bool nothing_enabled = true;
+  for (std::vector<bool>::iterator en = enabled.begin(); en != enabled.end(); ++en)
+    if (*en) {
+      nothing_enabled = false;
+      break;
+    }
+  if (nothing_enabled) enabled.assign( (int)N_LISTS, true );
+  return enabled;
+}
+
+/** List all members of specified lists. */
 void Cpptraj::List(ArgList& argIn) {
-  if      (argIn.hasKey("actions")) actionList.List();
-  else if (argIn.hasKey("trajin")) trajinList.List();
-  else if (argIn.hasKey("ref")) refFrames.List();
-  else if (argIn.hasKey("trajout")) trajoutList.List();
-  else if (argIn.hasKey("parm")) parmFileList.List();
-  else if (argIn.hasKey("analysis")) analysisList.List();
-  else if (argIn.hasKey("datafile")) DFL.List();
-  else if (argIn.hasKey("dataset")) DSL.List();
-  else {
-    mprinterr("Error: list: unrecognized list type (%s)\n", argIn.ArgLine());
-    Help_List();
-  }
+  std::vector<bool> enabled = ListsFromArg( argIn );
+  if ( enabled[L_ACTION] ) actionList.List();
+  if ( enabled[L_TRAJIN] ) trajinList.List();
+  if ( enabled[L_REF] ) refFrames.List();
+  if ( enabled[L_TRAJOUT] ) trajoutList.List();
+  if ( enabled[L_PARM] ) parmFileList.List();
+  if ( enabled[L_ANALYSIS] ) analysisList.List();
+  if ( enabled[L_DATAFILE] ) DFL.List();
+  if ( enabled[L_DATASET] ) DSL.List();
 }
 
-/** Set debug level of given list or set debug level for all lists. */
+/** Set debug level of specified lists */
 void Cpptraj::Debug(ArgList& argIn) {
+  std::vector<bool> enabled = ListsFromArg( argIn );
   debug_ = argIn.getNextInteger(0);
-  if (argIn.hasKey("actions")) actionList.SetDebug( debug_ );
-  else if (argIn.hasKey("trajin")) trajinList.SetDebug( debug_ );
-  else if (argIn.hasKey("ref")) refFrames.SetDebug( debug_ );
-  else if (argIn.hasKey("trajout")) trajoutList.SetDebug( debug_ );
-  else if (argIn.hasKey("parm")) parmFileList.SetDebug( debug_ );
-  else if (argIn.hasKey("analysis")) analysisList.SetDebug( debug_ );
-  else if (argIn.hasKey("datafile")) DFL.SetDebug( debug_ );
-  else if (argIn.hasKey("dataset")) DSL.SetDebug( debug_ );
-  else SetGlobalDebug(debug_);
+  if ( enabled[L_ACTION] ) actionList.SetDebug( debug_ );
+  if ( enabled[L_TRAJIN] ) trajinList.SetDebug( debug_ );
+  if ( enabled[L_REF] ) refFrames.SetDebug( debug_ );
+  if ( enabled[L_TRAJOUT] ) trajoutList.SetDebug( debug_ );
+  if ( enabled[L_PARM] ) parmFileList.SetDebug( debug_ );
+  if ( enabled[L_ANALYSIS] ) analysisList.SetDebug( debug_ );
+  if ( enabled[L_DATAFILE] ) DFL.SetDebug( debug_ );
+  if ( enabled[L_DATASET] ) DSL.SetDebug( debug_ );
 }
 
-// Cpptraj::SetGlobalDebug()
-/** Set the debug level for all components of Cpptraj. */
-void Cpptraj::SetGlobalDebug(int debugIn) {
-  debug_ = debugIn;
-  rprintf("GLOBAL DEBUG LEVEL SET TO %i\n",debug_);
-  trajinList.SetDebug(debug_);
-  refFrames.SetDebug(debug_);
-  trajoutList.SetDebug(debug_);
-  parmFileList.SetDebug(debug_);
-  actionList.SetDebug(debug_);
-  analysisList.SetDebug(debug_);
-  DFL.SetDebug(debug_);
-  DSL.SetDebug(debug_);
+/** Clear specified lists */
+void Cpptraj::Clear(ArgList& argIn) {
+  std::vector<bool> enabled = ListsFromArg( argIn );
+  if ( enabled[L_ACTION] ) actionList.Clear();
+  if ( enabled[L_TRAJIN] ) trajinList.Clear();
+  if ( enabled[L_REF] ) refFrames.Clear();
+  if ( enabled[L_TRAJOUT] ) trajoutList.Clear();
+  if ( enabled[L_PARM] ) parmFileList.Clear();
+  if ( enabled[L_ANALYSIS] ) analysisList.Clear();
+  if ( enabled[L_DATAFILE] ) DFL.Clear();
+  if ( enabled[L_DATASET] ) DSL.Clear();
 }
 
 /** Add DataFile to DataFileList using specified sets. */
@@ -702,10 +732,11 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     }
     if ( arg == "--interactive" )
       interactive = true;
-    else if ( arg == "-debug" && i+1 != argc) 
+    else if ( arg == "-debug" && i+1 != argc) { 
       // -debug: Set overall debug level
-      SetGlobalDebug( convertToInteger( argv[++i] ) );
-    else if ( arg == "--log" && i+1 != argc)
+      ArgList dbgarg( argv[++i] );
+      Debug( dbgarg );
+    } else if ( arg == "--log" && i+1 != argc)
       // --log: Set up log file for interactive mode
       logfile_.SetupWrite( argv[++i], debug_ );
     else if ( arg == "-p" && i+1 != argc) {
@@ -717,6 +748,11 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (cmode == C_ERR) return C_ERR;
       if (cmode == C_QUIT) return C_QUIT;
       hasInput = true;
+    } else if (arg == "-ms" && i+1 != argc) {
+      // -ms: Mask string
+      ArgList maskArg( argv[++i] );
+      ParmInfo( maskArg, PARMINFO );
+      return C_QUIT; 
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
       if (parmFileList.AddParmFile( argv[i])) return C_ERR;
@@ -794,9 +830,10 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
         break;
       case DispatchObject::GENERAL :
         switch ( dispatchToken->Idx ) {
-          case LIST     : List(command); break;
           case HELP     : Help(command); break;
+          case LIST     : List(command); break;
           case DEBUG    : Debug(command); break;
+          case CLEAR    : Clear(command); break;
           case SELECT   : err = Select(command); break; 
           case SELECTDS : SelectDS(command); break;
           case NOPROG   : 
@@ -821,7 +858,10 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
           case DATAFILE    : err = DFL.ProcessDataFileArgs( command ); break;
           case SYSTEM      : system( command.ArgLine() ); break;
           case RUN         : Run(); break;
-          case RUN_ANALYSIS: analysisList.DoAnalyses(&DFL); break;
+          case RUN_ANALYSIS: 
+            analysisList.DoAnalyses(&DFL); 
+            mprintf("Analysis complete. Use 'writedata' to write datafiles to disk.\n");
+            break;
           case WRITEDATA   : if (worldrank == 0) DFL.Write(); break;
           case QUIT        : return C_QUIT; break;
         }

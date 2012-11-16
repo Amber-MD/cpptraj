@@ -5,11 +5,9 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DataSet_integer::DataSet_integer() {
-  width_ = 12;
-  dType_ = INT;
-  SetDataSetFormat(false);
-}
+DataSet_integer::DataSet_integer() :
+  DataSet(INT, 12, 0, 1)
+{}
 
 // DataSet_integer::Resize()
 /** Make this dataset an empty one of size sizeIn that can then be randomly

@@ -161,17 +161,6 @@ Atom &Atom::operator=(Atom other) {
   return *this;
 }
 
-// Atom::Info()
-void Atom::Info() {
-  mprintf(" [%s]",*aname_);
-  mprintf(" Res %i:",resnum_+1);
-  mprintf(" Mol %i", mol_+1);
-  mprintf(" Type=[%s]",*atype_);
-  mprintf(" Charge=%lf",charge_);
-  mprintf(" Mass=%lf",mass_);
-  mprintf("\n");
-}
-
 // Atom::SetResNum()
 void Atom::SetResNum(int resnumIn) {
   resnum_ = resnumIn;

@@ -18,6 +18,7 @@ class DataSetList {
   public:
     DataSetList();
     ~DataSetList();
+    void Clear();
     DataSetList& operator+=(DataSetList const&);
     /// DataSetList default iterator
     typedef std::vector<DataSet*>::const_iterator const_iterator;

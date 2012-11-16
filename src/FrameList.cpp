@@ -10,12 +10,18 @@ FrameList::FrameList() :
 
 // DESTRUCTOR
 FrameList::~FrameList() {
+  Clear();
+}
+
+void FrameList::Clear() {
   for (std::vector<Frame*>::iterator frame = frames_.begin();
                                      frame != frames_.end(); frame++)
     delete *frame;
+  frames_.clear();
   for (std::vector<Topology*>::iterator parm = StrippedRefParms_.begin();
                                         parm != StrippedRefParms_.end(); parm++)
     delete *parm;
+  StrippedRefParms_.clear();
 }
 
 // -----------------------------------------------------------------------------

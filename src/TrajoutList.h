@@ -8,6 +8,7 @@ class TrajoutList : public FileList {
   public:
     TrajoutList();
     ~TrajoutList();
+    void Clear();
     int AddEnsembleTrajout(ArgList const&, TopologyList&, int);
     /// Add a traj file to the list with given access and associate with a parm
     int AddTrajout(ArgList&, TopologyList&);

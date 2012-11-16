@@ -8,11 +8,16 @@ TopologyList::TopologyList() : hasCopies_(false) {}
 
 // DESTRUCTOR
 TopologyList::~TopologyList() {
+  Clear();
+}
+
+void TopologyList::Clear() {
   if (!hasCopies_) {
     for (std::vector<Topology*>::iterator top = TopList_.begin();
                                           top != TopList_.end(); top++)
       delete *top;
   }
+  TopList_.clear();
 }
 
 // TopologyList::GetParm()

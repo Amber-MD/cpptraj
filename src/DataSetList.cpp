@@ -25,17 +25,19 @@ DataSetList::DataSetList() :
   hasCopies_(false), 
   maxFrames_(0),
   vecidx_(0)
-{
-  //fprintf(stderr,"DSL Constructor\n");
-}
+{}
 
 // DESTRUCTOR
 DataSetList::~DataSetList() {
-  //fprintf(stderr,"DSL Destructor\n");
+  Clear();
+}
+
+void DataSetList::Clear() {
   if (!hasCopies_)
     for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
-      delete *ds; 
-}
+      delete *ds;
+  DataList_.clear();
+} 
 
 DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   // It is OK if rhs does not have copies, but this should have copies.
