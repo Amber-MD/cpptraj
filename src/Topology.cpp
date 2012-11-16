@@ -333,12 +333,23 @@ void Topology::PrintAtomInfo(std::string const& maskString) {
   ParseMask(refCoords_, mask, true); // integer mask
   if ( mask.None() )
     mprintf("\tSelection is empty.\n");
-  else
-    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); atom++) {
-      mprintf("\tAtom %i", *atom+1);
-      atoms_[ (*atom) ].Info();
+  else {
+    int width = DigitWidth(atoms_.size());
+    if (width < 5) width = 5;
+    mprintf("%-*s %4s %*s %4s %*s %4s %8s %8s\n", 
+            width, "#Atom", "Name", 
+            width, "#Res",  "Name",
+            width, "#Mol",  "Type", "Charge", "Mass");
+    for (AtomMask::const_iterator atnum = mask.begin(); atnum != mask.end(); atnum++) {
+      const Atom& atom = atoms_[*atnum];
+      int resnum = atom.ResNum();
+      mprintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f\n", 
+              width, *atnum+1, atom.c_str(), 
+              width, resnum+1, residues_[resnum].c_str(),
+              width, atom.Mol()+1, *(atom.Type()), atom.Charge(), atom.Mass());
     }
-} 
+  }
+}
 
 // Topology::PrintBonds()
 /** \param maskIn AtomMask which should have already been set up as a char mask

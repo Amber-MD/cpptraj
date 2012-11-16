@@ -717,6 +717,11 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (cmode == C_ERR) return C_ERR;
       if (cmode == C_QUIT) return C_QUIT;
       hasInput = true;
+    } else if (arg == "-ms" && i+1 != argc) {
+      // -ms: Mask string
+      ArgList maskArg( argv[++i] );
+      ParmInfo( maskArg, PARMINFO );
+      return C_QUIT; 
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
       if (parmFileList.AddParmFile( argv[i])) return C_ERR;
