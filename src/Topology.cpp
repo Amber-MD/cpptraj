@@ -1021,6 +1021,7 @@ int Topology::DetermineMolecules() {
                 mol);
       mprinterr("Error: topology does not have bond information (e.g. PDB file), try\n");
       mprinterr("Error: increasing the bond search cutoff offset (currently %f).\n",offset_);
+      mprinterr("Error: e.g. 'parm %s bondsearch <new offset>'\n", fileName_.c_str());
       molecules_.clear();
       return 1;
     }

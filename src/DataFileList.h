@@ -11,7 +11,7 @@ class DataFileList : public FileList {
   public:
     DataFileList();
     ~DataFileList();
-
+    void Clear();
     void SetDebug(int);
     DataFile* GetDataFile(std::string const&);
     DataFile* AddDataFile(std::string const&, ArgList&);

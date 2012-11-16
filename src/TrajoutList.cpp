@@ -7,8 +7,13 @@
 TrajoutList::TrajoutList() { }
 
 TrajoutList::~TrajoutList() {
+  Clear();
+}
+
+void TrajoutList::Clear() {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj) 
     delete *traj;
+  trajout_.clear();
 }
 
 // TrajoutList::AddEnsembleTrajout()

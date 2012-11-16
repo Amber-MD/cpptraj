@@ -22,9 +22,10 @@ class Cpptraj {
     int Run();
   private:
     static void Usage(const char*);
-    static void Help_List();
     static void Help_Help();
+    static void Help_List();
     static void Help_Debug();
+    static void Help_Clear();
     static void Help_ActiveRef();
     static void Help_Create_DataFile();
     static void Help_Precision();
@@ -42,10 +43,10 @@ class Cpptraj {
     static void Help_BondInfo();
     static void Help_ResInfo();
     static void Help_MolInfo();
-    void List(ArgList&);
     void Help(ArgList&);
+    void List(ArgList&);
     void Debug(ArgList&);
-    void SetGlobalDebug(int);  ///< Set debug level for all components
+    void Clear(ArgList&);
     int Create_DataFile(ArgList&);
     int Precision(ArgList&);
     int ReadData(ArgList&);

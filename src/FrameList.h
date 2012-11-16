@@ -12,7 +12,7 @@ class FrameList : public FileList {
   public:
     FrameList();
     ~FrameList();
-
+    void Clear();
     Frame *ActiveReference();
     int AddReference(ArgList&, TopologyList&);
     void SetActiveRef(int);

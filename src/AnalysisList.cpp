@@ -40,8 +40,13 @@ AnalysisList::AnalysisList() :
 
 // DESTRUCTOR
 AnalysisList::~AnalysisList() {
+  Clear();
+}
+
+void AnalysisList::Clear() {
   for (aListType::iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
     delete *ana;
+  analysisList_.clear();
 }
 
 // AnalysisList::SetDebug()

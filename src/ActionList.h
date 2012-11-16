@@ -16,6 +16,8 @@ class ActionList {
   public:
     ActionList();
     ~ActionList();
+    /// Clear the list
+    void Clear();
     /// Hold all recognized action commands.
     static const DispatchObject::Token DispatchArray[];
     /// Set the debug level for actions.
