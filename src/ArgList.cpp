@@ -308,8 +308,8 @@ double ArgList::getNextDouble(double def) {
   * \param key string to search for
   */
 std::string const& ArgList::GetStringKey(const char *key) {
-  unsigned int nargs = arglist_.size() - 1;
-  for (unsigned int arg=0; arg < nargs; arg++)
+  int nargs = (int)arglist_.size() - 1;
+  for (int arg=0; arg < nargs; arg++)
     if (!marked_[arg]) {
       if (arglist_[arg].compare(key)==0) {
         marked_[arg]=true;
@@ -328,8 +328,8 @@ std::string const& ArgList::GetStringKey(const char *key) {
   * \param def Value to return if key not found.
   */
 int ArgList::getKeyInt(const char *key, int def) {
-  unsigned int nargs = arglist_.size() - 1;
-  for (unsigned int arg=0; arg < nargs; arg++)
+  int nargs = (int)arglist_.size() - 1;
+  for (int arg=0; arg < nargs; arg++)
     if (!marked_[arg]) {
       if (arglist_[arg].compare(key)==0) {
         if (validInteger(arglist_[arg+1])) {
@@ -351,8 +351,8 @@ int ArgList::getKeyInt(const char *key, int def) {
   * \param def Value to return if key not found.
   */
 double ArgList::getKeyDouble(const char *key, double def) {
-  unsigned int nargs = arglist_.size() - 1;
-  for (unsigned int arg=0; arg < nargs; arg++)
+  int nargs = (int)arglist_.size() - 1;
+  for (int arg=0; arg < nargs; arg++)
     if (!marked_[arg]) {
       if (arglist_[arg].compare(key)==0) {
         if (validDouble(arglist_[arg+1])) {
