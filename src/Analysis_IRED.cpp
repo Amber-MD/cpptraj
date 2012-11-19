@@ -47,11 +47,12 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   debug_ = debugIn;
   int ibeg=0, iend=0;
   // Count and store the number of previously defined IRED vectors.
-  DataSet_Vector* Vtmp;
-  DSLin->VectorBegin();
-  while ( (Vtmp = (DataSet_Vector*)DSLin->NextVector()) != 0 ) {
-    if (Vtmp->IsIred()) 
-      IredVectors_.push_back( Vtmp );
+  for ( DataSetList::const_iterator DS = DSLin->begin(); DS != DSLin->end(); ++DS) {
+    if ( (*DS)->Type() == DataSet::VECTOR ) {
+      DataSet_Vector* Vtmp = (DataSet_Vector*)(*DS);
+      if (Vtmp->IsIred())
+        IredVectors_.push_back( Vtmp );
+    }
   }
   if (IredVectors_.empty()) {
     mprinterr("Error: analyze ired: corrired: No IRED vectors defined.\n");
@@ -118,7 +119,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   }
 
   // Print Status
-  mprintf("    ANALYZE IRED: IRED calculation.\n");
+  mprintf("    ANALYZE IRED: IRED calculation, %u vectors.\n", IredVectors_.size());
   if (!orderparamfile_.empty())
     mprintf("\tOrder parameters will be written to %s\n",orderparamfile_.c_str());
   mprintf("\tCorrelation time %lf, time step %lf\n", tcorr_, tstep_);

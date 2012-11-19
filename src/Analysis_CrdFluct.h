@@ -13,10 +13,10 @@ class Analysis_CrdFluct : public Analysis {
     void Print(DataFileList*);
   private:
     DataSet_Coords* coords_;
-    DataSetList outSets_;
+    typedef std::vector<DataSet*> SetList;
+    SetList outSets_;
     bool bfactor_;
     std::string outfilename_;
-    std::string setname_;
     int windowSize_;
 
     void CalcBfactors( Frame, Frame, double, DataSet& );

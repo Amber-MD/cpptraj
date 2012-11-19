@@ -40,8 +40,10 @@ class DataSetList {
     int MaxFrames()               { return maxFrames_;            }
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
-    /// Allocate DataSet memory. Sets the max # elts expected to be read in.
-    void AllocateSets(int);
+    /// Set maximum # elements expected to be read in.
+    void SetMax(int);
+    /// Allocate DataSet memory based on current maximum.
+    void AllocateSets();
     /// Set width.precision of all DataSets in the list.
     void SetPrecisionOfDatasets(int, int);
     /// Separate input string into DataSet args.
@@ -70,9 +72,6 @@ class DataSetList {
     void Sync();
     /// Find next set of specified type with given name.
     DataSet* FindSetOfType(std::string const&, DataSet::DataType);
-    
-    void VectorBegin();
-    DataSet* NextVector();
   private:
     typedef std::vector<DataSet*> DataListType;
     /// DataSet debug level
@@ -83,8 +82,6 @@ class DataSetList {
     DataListType DataList_;
     /// Expected number of frames to be read in.
     int maxFrames_;
-    /// Used in NextVector routine
-    int vecidx_;
 
     /// Get DataSet with specified name, index, and aspect.
     DataSet* GetSet(std::string const&, int, std::string const&);

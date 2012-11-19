@@ -22,6 +22,9 @@ void FrameList::Clear() {
                                         parm != StrippedRefParms_.end(); parm++)
     delete *parm;
   StrippedRefParms_.clear();
+  parms_.clear();
+  nums_.clear();
+  refFrameNum_ = 0;
 }
 
 // -----------------------------------------------------------------------------

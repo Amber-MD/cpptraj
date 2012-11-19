@@ -23,8 +23,7 @@
 DataSetList::DataSetList() :
   debug_(0),
   hasCopies_(false), 
-  maxFrames_(0),
-  vecidx_(0)
+  maxFrames_(0)
 {}
 
 // DESTRUCTOR
@@ -37,6 +36,8 @@ void DataSetList::Clear() {
     for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
       delete *ds;
   DataList_.clear();
+  hasCopies_ = false;
+  maxFrames_ = 0;
 } 
 
 DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
@@ -85,10 +86,13 @@ void DataSetList::SetDebug(int debugIn) {
 }
 
 // DataSetList::SetMax()
-/** Call Allocate for each DataSet in the list. */
-void DataSetList::AllocateSets(int expectedMax) {
+void DataSetList::SetMax(int expectedMax) {
   maxFrames_ = expectedMax;
   if (maxFrames_<0) maxFrames_ = 0;
+}
+
+/** Call Allocate for each DataSet in the list. */
+void DataSetList::AllocateSets() {
   if (maxFrames_ == 0) return;
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     (*ds)->Allocate( maxFrames_ );
@@ -390,22 +394,3 @@ DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType
   }
   return 0;
 }
-
-// ---------- VECTOR ROUTINES
-// DataSetList::VectorBegin()
-void DataSetList::VectorBegin() {
-  vecidx_ = 0;
-}
-
-// DataSetList::NextVector()
-DataSet* DataSetList::NextVector() {
-  for (int idx = vecidx_; idx < (int)DataList_.size(); ++idx) {
-    if (DataList_[idx]->Type() == DataSet::VECTOR) {
-      // Position vecidx at the next dataset
-      vecidx_ = idx + 1;
-      return DataList_[idx];
-    }
-  }
-  return 0;
-}
-

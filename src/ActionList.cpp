@@ -139,7 +139,9 @@ void ActionList::Clear() {
   // No need to cast back to whatever action was allocd since Action destructor is virtual
   for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act)
     delete *act;
-  actionlist_.clear(); 
+  actionlist_.clear();
+  actioncmd_.clear();
+  actionstatus_.clear(); 
 }
 
 // ActionList::SetDebug()

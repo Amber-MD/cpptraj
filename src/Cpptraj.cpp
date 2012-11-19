@@ -810,7 +810,11 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
         break;
       case DispatchObject::COORD :
         switch ( dispatchToken->Idx ) {
-          case TRAJIN : err = trajinList.AddTrajin(command, parmFileList); break;
+          case TRAJIN :
+            // Update # of sets to be read in for master DSL
+            err = trajinList.AddTrajin(command, parmFileList); 
+            if (err == 0) DSL.SetMax( trajinList.MaxFrames() );
+            break;
           case TRAJOUT :
             // For setting up ensemble, save trajout arg
             trajoutArgs_.push_back(command);
@@ -945,8 +949,9 @@ int Cpptraj::RunEnsemble() {
   // TODO: One loop over member?
   for (int member = 0; member < ensembleSize; ++member) {
     mprintf("***** ENSEMBLE MEMBER %i: ", member);
-    // Set max frames in the data set list
-    DataSetEnsemble[member].AllocateSets(maxFrames);
+    // Set max frames in the data set list and allocate
+    DataSetEnsemble[member].SetMax( maxFrames );
+    DataSetEnsemble[member].AllocateSets();
     // Initialize actions 
     for (ArgsArray::iterator aarg = actionArgs_.begin(); aarg != actionArgs_.end(); ++aarg)
     {
@@ -1082,7 +1087,7 @@ int Cpptraj::RunNormal() {
   mprintf("\nOUTPUT TRAJECTORIES:\n");
   trajoutList.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
-  DSL.AllocateSets(trajinList.MaxFrames()); 
+  DSL.AllocateSets(); 
   
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList

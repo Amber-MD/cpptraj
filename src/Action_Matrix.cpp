@@ -85,11 +85,12 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       mprinterr("Error: matrix: order parameter <= 0, ignoring command\n");
       return Action::ERR;
     }
-    DataSet_Vector* Vtmp;
-    DSL->VectorBegin();
-    while ( (Vtmp = (DataSet_Vector*)DSL->NextVector()) != 0 ) {
-      if (Vtmp->IsIred()) 
-        IredVectors_.push_back( Vtmp );
+    for ( DataSetList::const_iterator DS = DSL->begin(); DS != DSL->end(); ++DS) {
+      if ( (*DS)->Type() == DataSet::VECTOR ) {
+        DataSet_Vector* Vtmp = (DataSet_Vector*)(*DS);
+        if (Vtmp->IsIred())
+          IredVectors_.push_back( Vtmp );
+      }
     }
     if (IredVectors_.empty()) {
       mprinterr("Error: matrix: no vectors defined for IRED\n");
@@ -119,7 +120,8 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   }
   mprintf("\n");
   if (type_ == DataSet_Matrix::IRED)
-    mprintf("            Order of Legendre polynomials: %i\n",order_);
+    mprintf("            %u IRED vecs, Order of Legendre polynomials: %i\n",
+            IredVectors_.size(), order_);
   if (!filename_.empty()) {
     mprintf("            Printing to file %s\n",filename_.c_str());
     if (outtype_ != BYATOM) {

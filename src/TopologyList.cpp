@@ -18,6 +18,7 @@ void TopologyList::Clear() {
       delete *top;
   }
   TopList_.clear();
+  hasCopies_ = false;
 }
 
 // TopologyList::GetParm()

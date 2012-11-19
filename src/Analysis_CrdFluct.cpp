@@ -14,6 +14,7 @@ void Analysis_CrdFluct::Help() {
   mprintf("crdfluct <crd set name> [out <filename>] [window <size>]\n");
 }
 
+// Analysis_CrdFluct::Setup()
 Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, int debugIn)
 {
@@ -32,15 +33,42 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   outfilename_ = analyzeArgs.GetStringKey("out");
   windowSize_ = analyzeArgs.getKeyInt("window", -1);
 
-  //outset_ = datasetlist->AddSet( DataSet::DOUBLE, analyzeArgs.GetStringNext(), "fluct" );
-  setname_ = analyzeArgs.GetStringNext();
-  if (setname_.empty()) setname_ = datasetlist->GenerateDefaultName("fluct");
-
   mprintf("    CRDFLUCT: Atomic fluctuations will be calcd for set %s\n", 
           coords_->Legend().c_str());
+  if (windowSize_ != -1) mprintf("\tWindow size = %i\n", windowSize_);
+  if (!outfilename_.empty()) mprintf("\tOutput to %s\n", outfilename_.c_str());
+
+  // Set up data sets
+  setname = analyzeArgs.GetStringNext();
+  if (windowSize_ < 1) {
+    // Only one data set for total B-factors
+    DataSet* ds = datasetlist->AddSet( DataSet::DOUBLE, setname, "fluct" );
+    if (ds == 0) return Analysis::ERR;
+    outSets_.push_back( ds );
+  } else {
+    if (setname.empty()) setname = datasetlist->GenerateDefaultName("fluct");
+    // Determine how many windows will be needed
+    int nwindows = datasetlist->MaxFrames() / windowSize_;
+    for (int win = 0; win < nwindows; ++win) {
+      int frame = (win + 1) * windowSize_;
+      DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, frame );
+      if (ds == 0) return Analysis::ERR;
+      ds->SetLegend( "F_" + integerToString( frame ) );
+      outSets_.push_back( ds );
+    }
+    if ( (datasetlist->MaxFrames() % windowSize_) != 0 ) {
+      DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, datasetlist->MaxFrames() );
+      ds->SetLegend("Final");
+      outSets_.push_back( ds );
+    }
+    for (SetList::iterator out = outSets_.begin(); out != outSets_.end(); ++out)
+      mprintf("\t%s\n", (*out)->Legend().c_str());
+  }
+
   return Analysis::OK;
 }
 
+// Analysis_CrdFluct::CalcBfactors()
 void Analysis_CrdFluct::CalcBfactors( Frame SumCoords, Frame SumCoords2, double Nsets,
                                       DataSet& outset )
 {
@@ -70,6 +98,7 @@ void Analysis_CrdFluct::CalcBfactors( Frame SumCoords, Frame SumCoords2, double 
   }
 }
 
+// Analysis_CrdFluct::Analyze()
 Analysis::RetType Analysis_CrdFluct::Analyze() {
   int end = coords_->Size();
   mprintf("\tFluctuation analysis for %i frames (%i atoms each).\n", end, 
@@ -80,28 +109,25 @@ Analysis::RetType Analysis_CrdFluct::Analyze() {
   Frame SumCoords2( coords_->Natom() );
   SumCoords2.ZeroCoords();
   int w_count = 0;
+  SetList::iterator out = outSets_.begin();
   for (int frame = 0; frame < end; frame++) {
     currentFrame = (*coords_)[ frame ];
     SumCoords += currentFrame;
     SumCoords2 += ( currentFrame * currentFrame );
     ++w_count;
     if (w_count == windowSize_) {
-      DataSet* ds = outSets_.AddSetIdx( DataSet::DOUBLE, setname_, frame + 1 );
-      ds->SetLegend("F_" + integerToString( frame+1 ) );
-      CalcBfactors( SumCoords, SumCoords2, (double)frame, *ds );
+      CalcBfactors( SumCoords, SumCoords2, (double)frame, *(*out) );
+      ++out;
       w_count = 0;
     }
   }
 
-  if (windowSize_ < 1) {
-    DataSet* ds = outSets_.AddSet( DataSet::DOUBLE, setname_, "fluct" );
-    CalcBfactors( SumCoords, SumCoords2, (double)end, *ds );
-  } else if (w_count != 0) {
-    mprintf("Warning: Number of frames (%i) was not evenly divisible by window size.\n",
-             end);
-    DataSet* ds = outSets_.AddSetIdx( DataSet::DOUBLE, setname_, end );
-    ds->SetLegend("F_" + integerToString( end ) );
-    CalcBfactors( SumCoords, SumCoords2, (double)end, *ds );
+  if (windowSize_ < 1 || w_count != 0) {
+    // For windowSize < 1 this is the only b-factor calc
+    CalcBfactors( SumCoords, SumCoords2, (double)end, *(*out) );
+    if (w_count != 0) 
+      mprintf("Warning: Number of frames (%i) was not evenly divisible by window size.\n",
+               end);
   }
 
   return Analysis::OK;
@@ -111,10 +137,9 @@ void Analysis_CrdFluct::Print( DataFileList* datafilelist ) {
   if (outfilename_.empty()) return;
   DataFile* outfile = datafilelist->AddDataFile(outfilename_);
   if (outfile == 0) return;
-  for (DataSetList::const_iterator set = outSets_.begin();
-                                   set != outSets_.end(); ++set)
+  for (SetList::iterator set = outSets_.begin(); set != outSets_.end(); ++set)
     outfile->AddSet( *set );
   if (bfactor_)
     outfile->ProcessArgs("ylabel B-factors");
-  outfile->ProcessArgs("xlabel Atom");
+  outfile->ProcessArgs("xlabel Atom noemptyframes");
 }

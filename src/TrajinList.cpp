@@ -18,6 +18,8 @@ void TrajinList::Clear() {
   for (ListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj)
     delete *traj;
   trajin_.clear();
+  mode_ = UNDEFINED;
+  maxframes_ = 0;
 }
 
 // TrajinList::AddTrajin()

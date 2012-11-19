@@ -49,6 +49,8 @@ void AnalysisList::Clear() {
   for (aListType::iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
     delete *ana;
   analysisList_.clear();
+  analysisCmd_.clear();
+  analysisStatus_.clear();
 }
 
 // AnalysisList::SetDebug()
