@@ -180,7 +180,7 @@ Frame &Frame::operator=(Frame rhs) {
 Frame& Frame::operator=(std::vector<float> const& farray) {
   int f_ncoord = (int)farray.size();
   if (f_ncoord > maxnatom_*3) {
-    mprinterr("Error: Float array size %zu > max #coords in frame %zu\n",
+    mprinterr("Error: Float array size (%zu) > max #coords in frame (%zu)\n",
               farray.size(), maxnatom_*3);
     return *this;
   }
@@ -209,6 +209,16 @@ std::vector<float> Frame::ConvertToFloat(AtomMask const& maskIn) const {
     farray.push_back( (float)X_[crdidx+1] );
     farray.push_back( (float)X_[crdidx+2] );
   }
+  return farray;
+}
+
+// Frame::ConvertToFloat()
+/** Place atom coordinates into a float array. */
+std::vector<float> Frame::ConvertToFloat() const {
+  std::vector<float> farray;
+  farray.reserve( ncoord_ );
+  for (int ix = 0; ix < ncoord_; ++ix)
+    farray.push_back( (float)X_[ix] );
   return farray;
 }
 

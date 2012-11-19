@@ -47,6 +47,7 @@ class Frame {
     // Convert to/from arrays
     Frame &operator=(std::vector<float> const&);
     std::vector<float> ConvertToFloat(AtomMask const&) const;
+    std::vector<float> ConvertToFloat() const;
     // Access internal data
     void printAtomCoord(int);
     void Info(const char*);

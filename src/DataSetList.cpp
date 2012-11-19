@@ -356,15 +356,20 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   */
 void DataSetList::List() {
   if (DataList_.empty())
-    mprintf("  There are no data sets set up for analysis.");
+    mprintf("  No data sets.");
   else if (DataList_.size()==1)
-    mprintf("  There is 1 data set: ");
+    mprintf("  1 data set: ");
   else
-    mprintf("  There are %zu data sets: ", DataList_.size());
+    mprintf("  %zu data sets: ", DataList_.size());
 
   mprintf("\n");
   for (unsigned int ds=0; ds<DataList_.size(); ds++) {
-    mprintf("\t\"%s\"", DataList_[ds]->Legend().c_str());
+    mprintf("\t%s", DataList_[ds]->Name().c_str());
+    if (!DataList_[ds]->Aspect().empty())
+      mprintf("[%s]", DataList_[ds]->Aspect().c_str());
+    if (DataList_[ds]->Idx() != -1)
+      mprintf(":%i", DataList_[ds]->Idx());
+    mprintf(" \"%s\"", DataList_[ds]->Legend().c_str());
     mprintf(" (%s)", DataList_[ds]->TypeName());
     mprintf(", size is %i", DataList_[ds]->Size());
     DataList_[ds]->Info();

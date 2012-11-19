@@ -140,8 +140,11 @@ void TopologyList::List() {
     return;
   }
   for (std::vector<Topology*>::iterator top = TopList_.begin(); top != TopList_.end(); top++)
+  {
+    mprintf(" %i:", (*top)->Pindex());
     (*top)->ParmInfo();
-
-    //mprintf("  %i: %s, %i atoms (%i trajectory frames associated)\n",
-    //        i,ParmList[i]->File.filename, ParmList[i]->natom, ParmList[i]->parmFrames);
+    if ((*top)->Nframes() > 0)
+      mprintf(", %i frames", (*top)->Nframes());
+    mprintf("\n");
+  }
 }

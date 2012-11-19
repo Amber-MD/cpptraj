@@ -318,13 +318,10 @@ void Topology::Summary() {
 
 // Topology::ParmInfo()
 void Topology::ParmInfo() {
-  mprintf(" %i: %s, %zu atoms, %zu res, box: %s, %zu mol",pindex_,c_str(),
-          atoms_.size(),residues_.size(),box_.TypeName(),molecules_.size());
+  mprintf(" %s, %zu atoms, %zu res, box: %s, %zu mol", c_str(),
+          atoms_.size(), residues_.size(), box_.TypeName(), molecules_.size());
   if (NsolventMolecules_>0)
-    mprintf(", %i solvent",NsolventMolecules_);
-  if (nframes_>0) 
-    mprintf(", %i frames",nframes_);
-  mprintf("\n");
+    mprintf(", %i solvent", NsolventMolecules_);
 }
 
 // Topology::PrintAtomInfo()

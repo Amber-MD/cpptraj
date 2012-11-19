@@ -396,9 +396,8 @@ int Cpptraj::ReadData(ArgList& argIn) {
 void Cpptraj::SelectDS(ArgList& argIn) {
   std::string dsarg = argIn.GetStringNext();
   DataSetList dsets = DSL.GetMultipleSets( dsarg );
-  mprintf("SelectDS: Arg [%s] selects %i data sets:\n", dsarg.c_str(), dsets.size());
-  for (DataSetList::const_iterator set = dsets.begin(); set != dsets.end(); ++set)
-    (*set)->Info();
+  mprintf("SelectDS: Arg [%s]:", dsarg.c_str());
+  dsets.List();
 }
 
 // -----------------------------------------------------------------------------
@@ -558,24 +557,42 @@ int Cpptraj::CrdAction(ArgList& argIn) {
   if ( tkn == 0 ) return 1;
   Action* act = (Action*)tkn->Alloc();
   if (act == 0) return 1;
-  if ( act->Init( actionargs, &parmFileList, &refFrames, &DSL, &DFL, debug_ ) != Action::OK )
+  if ( act->Init( actionargs, &parmFileList, &refFrames, &DSL, &DFL, debug_ ) != Action::OK ) {
+    delete act;
     return 1;
+  }
   actionargs.CheckForMoreArgs();
+  // Set up frame and parm for COORDS.
   Topology* currentParm = CRD->Top();
-  if ( act->Setup( currentParm, &currentParm ) == Action::ERR ) return 1;
-  Frame* currentFrame = new Frame( CRD->Natom() );
+  Frame* originalFrame = new Frame( CRD->Top()->Atoms() );
+  if ( act->Setup( currentParm, &currentParm ) == Action::ERR ) {
+    delete act;
+    return 1;
+  }
+  // Check if parm was modified. If so, update COORDS.
+  if ( currentParm != CRD->Top() ) {
+    mprintf("Info: crdaction: Parm for %s was modified by action %s\n", 
+            CRD->Legend().c_str(), actionargs.Command());
+    CRD->SetTop( currentParm );
+  }
+  // Loop over all frames in COORDS.
   int end = CRD->Size();
   ProgressBar progress( end );
   for (int frame = 0; frame < end; frame++) {
     progress.Update( frame );
-    *currentFrame = (*CRD)[ frame ];
+    *originalFrame = (*CRD)[ frame ];
+    Frame* currentFrame = originalFrame;
     if (act->DoAction( frame, currentFrame, &currentFrame ) == Action::ERR) {
       mprinterr("Error: crdaction: Frame %i\n", frame + 1);
       break;
     }
+    // Check if frame was modified. If so, update COORDS.
+    if ( currentFrame != originalFrame ) 
+      CRD->SetFrame( frame, *currentFrame );
   }
-  delete currentFrame;
+  delete originalFrame;
   act->Print();
+  delete act;
   return 0;
 }
 
@@ -1096,8 +1113,6 @@ int Cpptraj::RunEnsemble() {
         }
       }
       if (!setupOK) continue;
-      //fprintf(stdout,"DEBUG: After setup of Actions in Cpptraj parm name is %s\n",
-      //        CurrentParm->parmName);
       lastPindex = CurrentParm->Pindex();
     }
 
@@ -1210,8 +1225,6 @@ int Cpptraj::RunNormal() {
                 CurrentParm->c_str());
         continue;
       }
-      //fprintf(stdout,"DEBUG: After setup of Actions in Cpptraj parm name is %s\n",
-      //        CurrentParm->parmName);
       lastPindex = CurrentParm->Pindex();
     }
 
@@ -1225,9 +1238,6 @@ int Cpptraj::RunNormal() {
       // Do Output
       if (!suppress_output)
         trajoutList.Write(actionSet, CurrentParm, CurrentFrame);
-//#     ifdef DEBUG
-//      dbgprintf("\tDEBUG: %30s: %4i\n",CurrentParm->parmName,CurrentParm->outFrame);
-//#     endif
       // Increment frame counter
       ++actionSet; 
     }

@@ -14,11 +14,13 @@ class DataSet_Coords : public DataSet {
     void Info();
 
     void AddFrame(Frame const&);
+    void SetFrame(int, Frame const&);
     int SetupTopMask(std::string const&, Topology&);
     int Natom()                    { return top_->Natom(); }
     const AtomMask& Mask()         { return mask_;         }
     const CRD& operator[](int idx) { return coords_[idx];  }
     Topology* Top()                { return top_;          }
+    void SetTop(Topology*);
   private:
     AtomMask mask_;                    ///< Mask
     Topology* top_;                    ///< Associated topology corresponding to mask.
