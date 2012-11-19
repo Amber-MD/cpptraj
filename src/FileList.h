@@ -6,7 +6,7 @@ class FileList {
   public:
     FileList();
     virtual ~FileList();
-
+    void Clear();
     inline void SetDebug(int dIn)    { debug_ = dIn;           }
     std::string const& Tag(int idx)  { return tags_[idx];      }
     std::string const& Name(int idx) { return basenames_[idx]; }

@@ -25,6 +25,7 @@ void FrameList::Clear() {
   parms_.clear();
   nums_.clear();
   refFrameNum_ = 0;
+  FileList::Clear();
 }
 
 // -----------------------------------------------------------------------------

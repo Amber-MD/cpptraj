@@ -14,6 +14,7 @@ void TrajoutList::Clear() {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj) 
     delete *traj;
   trajout_.clear();
+  FileList::Clear();
 }
 
 // TrajoutList::AddEnsembleTrajout()

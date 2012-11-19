@@ -217,12 +217,12 @@ void DataFile::DataSetNames() {
       ++set;
     }
     mprintf(" ...");
-    set = SetList_.end();
-    setnum=0;
+    set = SetList_.end() - 4;
+    setnum = 0;
     while (setnum < 4) {
-      --set;
       mprintf(" %s",(*set)->Legend().c_str());
       ++setnum;
+      ++set;
     }
   } else {
     for (; set != SetList_.end(); set++)

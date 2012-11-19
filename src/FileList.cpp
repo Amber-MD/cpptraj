@@ -8,6 +8,12 @@ FileList::FileList() :
 // DESTRUCTOR
 FileList::~FileList() {}
 
+void FileList::Clear() {
+  fnames_.clear();
+  basenames_.clear();
+  tags_.clear();
+}
+
 // FileList::AddNameWithTag()
 void FileList::AddNameWithTag(std::string const& filename, 
                               std::string const& basename, 

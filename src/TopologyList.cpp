@@ -19,6 +19,7 @@ void TopologyList::Clear() {
   }
   TopList_.clear();
   hasCopies_ = false;
+  FileList::Clear();
 }
 
 // TopologyList::GetParm()
