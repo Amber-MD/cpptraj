@@ -38,7 +38,8 @@ void Cpptraj::Help_Debug() {
 }
 
 void Cpptraj::Help_Clear() {
-  mprintf("clear [<type>] %s\n", TypeList);
+  mprintf("clear [ {all | <type>} ] %s\n", TypeList);
+  mprintf("\tAll lists will be cleared only if 'all' is specified by itself.\n");
 }
 
 void Cpptraj::Help_ActiveRef() {
@@ -254,7 +255,7 @@ void Cpptraj::Help(ArgList& argIn) {
 enum ListType { L_ACTION = 0, L_TRAJIN, L_REF, L_TRAJOUT, L_PARM, L_ANALYSIS,
                 L_DATAFILE, L_DATASET, N_LISTS };
 /// Select lists from ArgList
-static std::vector<bool> ListsFromArg( ArgList& argIn ) {
+static std::vector<bool> ListsFromArg( ArgList& argIn, bool allowEnableAll ) {
   std::vector<bool> enabled( (int)N_LISTS );
   enabled[L_ACTION] = argIn.hasKey("actions");
   enabled[L_TRAJIN] = argIn.hasKey("trajin");
@@ -264,6 +265,7 @@ static std::vector<bool> ListsFromArg( ArgList& argIn ) {
   enabled[L_ANALYSIS] = argIn.hasKey("analysis");
   enabled[L_DATAFILE] = argIn.hasKey("datafile");
   enabled[L_DATASET] = argIn.hasKey("dataset");
+  if (!allowEnableAll) return enabled;
   // If nothing is enabled, set all enabled
   bool nothing_enabled = true;
   for (std::vector<bool>::iterator en = enabled.begin(); en != enabled.end(); ++en)
@@ -277,7 +279,7 @@ static std::vector<bool> ListsFromArg( ArgList& argIn ) {
 
 /** List all members of specified lists. */
 void Cpptraj::List(ArgList& argIn) {
-  std::vector<bool> enabled = ListsFromArg( argIn );
+  std::vector<bool> enabled = ListsFromArg( argIn, true );
   if ( enabled[L_ACTION] ) actionList.List();
   if ( enabled[L_TRAJIN] ) trajinList.List();
   if ( enabled[L_REF] ) refFrames.List();
@@ -290,7 +292,7 @@ void Cpptraj::List(ArgList& argIn) {
 
 /** Set debug level of specified lists */
 void Cpptraj::Debug(ArgList& argIn) {
-  std::vector<bool> enabled = ListsFromArg( argIn );
+  std::vector<bool> enabled = ListsFromArg( argIn, true );
   debug_ = argIn.getNextInteger(0);
   if ( enabled[L_ACTION] ) actionList.SetDebug( debug_ );
   if ( enabled[L_TRAJIN] ) trajinList.SetDebug( debug_ );
@@ -304,7 +306,7 @@ void Cpptraj::Debug(ArgList& argIn) {
 
 /** Clear specified lists */
 void Cpptraj::Clear(ArgList& argIn) {
-  std::vector<bool> enabled = ListsFromArg( argIn );
+  std::vector<bool> enabled = ListsFromArg( argIn, argIn.hasKey("all") );
   if ( enabled[L_ACTION] ) actionList.Clear();
   if ( enabled[L_TRAJIN] ) trajinList.Clear();
   if ( enabled[L_REF] ) refFrames.Clear();
