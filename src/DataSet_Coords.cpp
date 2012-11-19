@@ -1,4 +1,5 @@
 #include "DataSet_Coords.h"
+#include "CpptrajStdio.h"
 
 DataSet_Coords::DataSet_Coords() :
   DataSet(COORDS, 8, 3, 4),
@@ -16,6 +17,10 @@ void DataSet_Coords::AddFrame(Frame const& frameIn) {
 int DataSet_Coords::Allocate( int sizeIn ) {
   coords_.reserve( sizeIn );
   return 0;
+}
+
+void DataSet_Coords::Info() {
+  mprintf(", mask [%s] (%i atoms)", mask_.MaskString(), Natom());
 }
 
 /** \return 0 on success, 1 on error, -1 if topology/mask already set up. */

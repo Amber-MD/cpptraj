@@ -40,7 +40,7 @@ class DataSet {
 
     DataSet();          // Constructor
     DataSet(DataType,int,int,int);
-    virtual ~DataSet(); // Destructor - virtual since this class is inherited
+    virtual ~DataSet() {} // Destructor - virtual since this class is inherited
 
     // ----------===== Inheritable functions =====----------
     virtual int Allocate(int)       { return 0; }
@@ -70,7 +70,9 @@ class DataSet {
     /// Return data from data set as double precision
     virtual double Dval(int)        { return 0; }
     /// Return last value written to data set as double precision
-    virtual double CurrentDval()    { return 0; }
+    virtual double CurrentDval()    { return 0; } // TODO: Obsolete
+    /// Print DataSet information
+    virtual void Info()             { return;   }
     // -----------------------------------------------------
 
     // Calculation routines for atomic types (DOUBLE, FLOAT, INT)
@@ -90,8 +92,6 @@ class DataSet {
     void SetPrecision(int,int);
     /// Set up DataSet with given name and size
     int SetupSet(std::string const&,int,std::string const&);
-    /// Print DataSet information
-    void Info();
     /// True if set is empty. 
     bool Empty();
     /// Used to set the data and header format strings 
@@ -116,6 +116,8 @@ class DataSet {
     std::string const& Aspect() { return aspect_; }
     /// Return DataSet type.
     DataType Type()             { return dType_; }
+    /// Return DataSet type name.
+    const char* TypeName()      { return SetStrings[dType_]; }
     /// Return DataSet dimension.
     int Dim()                   { return dim_; }
     /// Size in characters necessary to write data from this set.
@@ -150,6 +152,7 @@ class DataSet {
     scalarMode scalarmode_;    ///< Source of data in DataSet.
     scalarType scalartype_;    ///< Specific type of data in DataSet (if any).
   private:
+    static const char* SetStrings[];
     bool GoodCalcType();
 };
 #endif 

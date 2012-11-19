@@ -7,6 +7,7 @@
 #include "FrameArray.h"
 #include "ReadLine.h"
 #include "ParmFile.h"
+#include "DataSet_Coords.h" // CrdAction
 
 void Cpptraj::Usage(const char* programName) {
   mprinterr("\nUsage: %s [-p <Top1>, -p <Top2>, ...] [-i <Input1>, -i <Input2>, ...]\n",
@@ -133,15 +134,25 @@ void Cpptraj::Help_MolInfo() {
   mprintf("\tPrint molecule information for parm <parmindex> (0 by default).\n");
 }
 
+void Cpptraj::Help_CrdAction() {
+  mprintf("crdaction <crd set> <actioncmd> [<action args>]\n");
+}
+
+void Cpptraj::Help_CrdOut() {
+  mprintf("crdout <crd set> <filename> [<trajout args>]\n");
+}
+
 // -----------------------------------------------------------------------------
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
                        SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
                        SELECT, SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA,
-                       CLEAR };
+                       CLEAR, CRDACTION, CRDOUT };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef,       ACTIVEREF    },
   { DispatchObject::GENERAL, "clear",         0, Help_Clear,           CLEAR        },
+  { DispatchObject::GENERAL, "crdaction",     0, Help_CrdAction,       CRDACTION    },
+  { DispatchObject::GENERAL, "crdout",        0, Help_CrdOut,          CRDOUT       },
   { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE       },
   { DispatchObject::GENERAL, "datafile",      0, 0,                    DATAFILE     },
   { DispatchObject::GENERAL, "debug",         0, Help_Debug,           DEBUG        },
@@ -528,6 +539,83 @@ int Cpptraj::Select(ArgList& argIn) {
 }
 
 // -----------------------------------------------------------------------------
+/** Perform action on given COORDS dataset */
+int Cpptraj::CrdAction(ArgList& argIn) {
+  std::string setname = argIn.GetStringNext();
+  if (setname.empty()) {
+    mprinterr("Error: crdaction: Specify COORDS dataset name.\n");
+    Help_CrdAction();
+    return 1;
+  }
+  DataSet_Coords* CRD = (DataSet_Coords*)DSL.FindSetOfType( setname, DataSet::COORDS );
+  if (CRD == 0) {
+    mprinterr("Error: crdaction: No COORDS set with name %s found.\n", setname.c_str());
+    return 1;
+  }
+  ArgList actionargs = argIn.RemainingArgs();
+  actionargs.MarkArg(0);
+  DispatchObject::TokenPtr tkn = SearchTokenArray( ActionList::DispatchArray, actionargs);
+  if ( tkn == 0 ) return 1;
+  Action* act = (Action*)tkn->Alloc();
+  if (act == 0) return 1;
+  if ( act->Init( actionargs, &parmFileList, &refFrames, &DSL, &DFL, debug_ ) != Action::OK )
+    return 1;
+  actionargs.CheckForMoreArgs();
+  Topology* currentParm = CRD->Top();
+  if ( act->Setup( currentParm, &currentParm ) == Action::ERR ) return 1;
+  Frame* currentFrame = new Frame( CRD->Natom() );
+  int end = CRD->Size();
+  ProgressBar progress( end );
+  for (int frame = 0; frame < end; frame++) {
+    progress.Update( frame );
+    *currentFrame = (*CRD)[ frame ];
+    if (act->DoAction( frame, currentFrame, &currentFrame ) == Action::ERR) {
+      mprinterr("Error: crdaction: Frame %i\n", frame + 1);
+      break;
+    }
+  }
+  delete currentFrame;
+  act->Print();
+  return 0;
+}
+
+/** Write out COORDS dataset */
+int Cpptraj::CrdOut(ArgList& argIn) {
+  std::string setname = argIn.GetStringNext();
+  if (setname.empty()) {
+    mprinterr("Error: crdout: Specify COORDS dataset name.\n");
+    Help_CrdOut();
+    return 1;
+  }
+  DataSet_Coords* CRD = (DataSet_Coords*)DSL.FindSetOfType( setname, DataSet::COORDS );
+  if (CRD == 0) {
+    mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
+    return 1;
+  }
+  setname = argIn.GetStringNext();
+  Trajout outtraj;
+  if (outtraj.SetupTrajWrite( setname, &argIn, CRD->Top(), TrajectoryFile::UNKNOWN_TRAJ)) {
+    mprinterr("Error: crdout: Could not set up output trajectory.\n");
+    return 1;
+  }
+  outtraj.PrintInfo( 1 );
+  Topology* currentParm = CRD->Top();
+  Frame currentFrame( CRD->Natom() );
+  int end = CRD->Size();
+  ProgressBar progress( end );
+  for (int frame = 0; frame < end; frame++) {
+    progress.Update( frame );
+    currentFrame = (*CRD)[ frame ];
+    if ( outtraj.WriteFrame( frame, currentParm, currentFrame ) ) {
+      mprinterr("Error writing %s to output trajectory, frame %i.\n", 
+                CRD->Legend().c_str(), frame + 1);
+      break;
+    }
+  }
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 // Cpptraj::ListAllCommands()
 /** List all commands in the given token array. */
 void Cpptraj::ListAllCommands(DispatchObject::TokenPtr DispatchArray) {
@@ -838,6 +926,8 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
           case LIST     : List(command); break;
           case DEBUG    : Debug(command); break;
           case CLEAR    : Clear(command); break;
+          case CRDACTION: err = CrdAction(command); break;
+          case CRDOUT   : err = CrdOut(command); break;
           case SELECT   : err = Select(command); break; 
           case SELECTDS : SelectDS(command); break;
           case NOPROG   : 
@@ -1158,14 +1248,15 @@ int Cpptraj::RunNormal() {
 
   // Sync DataSets and print DataSet information
   DSL.Sync();
-  mprintf("\nDATASETS BEFORE ANALYSIS:\n");
-  DSL.List();
 
   // ========== A N A L Y S I S  P H A S E ==========
-  analysisList.DoAnalyses(&DFL);
-
-  // DEBUG: DataSets, post-Analysis
-  mprintf("\nDATASETS AFTER ANALYSIS:\n");
+  if (!analysisList.Empty()) {
+    mprintf("\nDATASETS BEFORE ANALYSIS:\n");
+    DSL.List();
+    analysisList.DoAnalyses(&DFL);
+    // DEBUG: DataSets, post-Analysis
+    mprintf("\nDATASETS AFTER ANALYSIS:\n");
+  }
   DSL.List();
 
   // ========== D A T A  W R I T E  P H A S E ==========

@@ -43,6 +43,8 @@ class Cpptraj {
     static void Help_BondInfo();
     static void Help_ResInfo();
     static void Help_MolInfo();
+    static void Help_CrdAction();
+    static void Help_CrdOut();
     void Help(ArgList&);
     void List(ArgList&);
     void Debug(ArgList&);
@@ -58,6 +60,8 @@ class Cpptraj {
     int ParmBox(ArgList&);
     int ParmSolvent(ArgList&);
     int Select(ArgList&);
+    int CrdAction(ArgList&);
+    int CrdOut(ArgList&);
 
     static const DispatchObject::Token GeneralCmds[];
     static const DispatchObject::Token CoordCmds[];

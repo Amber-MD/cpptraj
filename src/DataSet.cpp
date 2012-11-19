@@ -16,9 +16,13 @@ DataSet::DataSet() :
   data_format_(NULL),
   scalarmode_(UNKNOWN_MODE),
   scalartype_(UNDEFINED)
-{
-  //fprintf(stderr,"DataSet Constructor.\n");
-}
+{ }
+
+const char* DataSet::SetStrings[] = {
+  "unknown",   "double", "string",    "integer", "float", "vector",
+  "matrix",    "modes",  "histogram", "upper-triangle matrix",
+  "2D matrix", "coords"
+};
 
 /// CONSTRUCTOR - Take type, width, precision, and dimension
 DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
@@ -33,11 +37,6 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
 {
   SetDataSetFormat(false);
 }  
-
-// DESTRUCTOR
-DataSet::~DataSet() {
-  //fprintf(stderr,"DataSet Destructor\n");
-}
 
 // DataSet::SetPrecision()
 /** Set dataset width and precision and recalc output format string.
@@ -67,15 +66,6 @@ int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& a
  
   return 0;
 }
-
-// DataSet::Info()
-void DataSet::Info() {
-  mprintf("\tData set %s",name_.c_str());
-  mprintf(", size is %i", Size());
-  mprintf(" [%s]", aspect_.c_str());
-  mprintf(":%i \"%s\"\n", idx_,Legend().c_str());
-}
-
 
 // DataSet::Empty()
 /** \return true if size==0, which indicates set has not been written to. 
@@ -120,6 +110,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
 /** Return DataSet legend. If the legend is empty create one based on 
   * DataSet name (and aspect/index if present). Possible formats are:
   * - Name[Aspect]
+  * - Name:idx
   * - Aspect:Idx
   * - Name
   */
@@ -127,6 +118,8 @@ std::string const& DataSet::Legend() {
   if (legend_.empty()) {
     if (!aspect_.empty() && idx_ == -1)
       legend_ = name_ + "[" + aspect_ + "]";
+    else if (aspect_.empty() && idx_ != -1)
+      legend_ = name_ + ":" + integerToString( idx_ );
     else if (!aspect_.empty() && idx_ != -1)
       legend_ = aspect_ + ":" + integerToString( idx_ );
     else

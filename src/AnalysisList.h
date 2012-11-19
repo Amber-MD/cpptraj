@@ -13,6 +13,7 @@ class AnalysisList {
                     TopologyList*, DataSetList*);
     void DoAnalyses(DataFileList*);
     void List();
+    bool Empty() { return analysisList_.empty(); }
   private:
     /// Analysis setup status
     enum AnalysisStatusType { NO_SETUP = 0, SETUP, INACTIVE };

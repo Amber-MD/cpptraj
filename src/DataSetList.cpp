@@ -364,12 +364,12 @@ void DataSetList::List() {
 
   mprintf("\n");
   for (unsigned int ds=0; ds<DataList_.size(); ds++) {
-    //if (ds>0) mprintf(",");
-    //mprintf("%s",DataList_[ds]->c_str());
-    //mprintf("%s",DataList_[ds]->Legend().c_str());
+    mprintf("\t\"%s\"", DataList_[ds]->Legend().c_str());
+    mprintf(" (%s)", DataList_[ds]->TypeName());
+    mprintf(", size is %i", DataList_[ds]->Size());
     DataList_[ds]->Info();
+    mprintf("\n");
   }
-  //mprintf("\n");
 }
 
 // DataSetList::Sync()
