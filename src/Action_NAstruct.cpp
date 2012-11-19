@@ -909,6 +909,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
+  masterDSL_ = DSL;
   Frame* refframe = NULL;
   Topology* refparm = NULL;
 
@@ -1024,7 +1025,6 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   } else {
     mprintf("\tUsing first frame to determine base pairing.\n");
   }
-  masterDSL_ = DSL;
   return Action::OK;
 }
 
