@@ -1,5 +1,6 @@
 #include "Analysis_AutoCorr.h"
 #include "CpptrajStdio.h"
+#include "DS_Math.h"
 
 // CONSTRUCTOR
 Analysis_AutoCorr::Analysis_AutoCorr() :
@@ -69,7 +70,7 @@ Analysis::RetType Analysis_AutoCorr::Analyze() {
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS)
   {
     mprintf("\t\tCalculating AutoCorrelation for set %s\n", (*DS)->Legend().c_str());
-    (*DS)->CrossCorr( *(*DS), *(*dsout), lagmax_, calc_covar_, usefft_ );
+    DS_Math::CrossCorr(*(*DS), *(*DS), *(*dsout), lagmax_, calc_covar_, usefft_ );
     ++dsout;
   }
 

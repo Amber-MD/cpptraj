@@ -2,6 +2,7 @@
 #include "TriangleMatrix.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
+#include "DS_Math.h"
 
 // CONSTRUCTOR
 Analysis_CrossCorr::Analysis_CrossCorr() {}
@@ -54,7 +55,7 @@ Analysis::RetType Analysis_CrossCorr::Analyze() {
     for (int j = i + 1; j < Nsets; ++j) {
       //mprinterr("DBG:\tCross corr between %i (%s) and %i (%s)\n",
       //          i, dsets_[i]->Legend().c_str(), j, dsets_[j]->Legend().c_str());
-      double corr = dsets_[i]->Corr( *dsets_[j] );
+      double corr = DS_Math::CorrCoeff( *dsets_[i], *dsets_[j] );
       tmatrix->AddElement( corr );
     }
   }

@@ -28,7 +28,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         DataSet.cpp DataSet_Coords.cpp DataSet_double.cpp DataSet_float.cpp DataSet_integer.cpp \
         DataSetList.cpp DataSet_string.cpp DataSet_Vector.cpp DataSet_Matrix.cpp \
         DataSet_Modes.cpp \
-        DistRoutines.cpp Dimension.cpp \
+        DistRoutines.cpp Dimension.cpp DS_Math.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
         FileName.cpp \
         Frame.cpp FrameList.cpp Grid.cpp Histogram.cpp Integrate.cpp \

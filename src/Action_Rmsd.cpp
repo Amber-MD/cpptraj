@@ -2,6 +2,7 @@
 #include "Action_Rmsd.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
+#include "DS_Math.h" // Avg
 
 // TODO: Make all Frames non-pointers
 
@@ -497,7 +498,7 @@ void Action_Rmsd::Print() {
     double stdev = 0;
     double avg = 0;
     for (int pridx = 0; pridx < Nperres; pridx++) {
-      avg = PerResRMSD_[pridx]->Avg( &stdev );
+      avg = DS_Math::Avg(*PerResRMSD_[pridx], &stdev );
       int dsidx = PerResRMSD_[pridx]->Idx() - 1;
       PerResAvg->Add(dsidx, &avg);
       PerResStdev->Add(dsidx,&stdev);

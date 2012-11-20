@@ -1,6 +1,7 @@
 #include "Analysis_Hist.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // doubleToString
+#include "DS_Math.h" // Min, Max
 // Analysis_Hist
 
 // CONSTRUCTOR
@@ -92,14 +93,14 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   // If no min arg and no default min arg, get min from dataset
   if (!minArg) {
     if (!minArgSet_) 
-      dim.SetMin( dset->Min() );
+      dim.SetMin( DS_Math::Min(*dset) );
     else
       dim.SetMin( default_dim_.Min() );
   }
   // If no max arg and no default max arg, get max from dataset
   if (!maxArg) {
     if (!maxArgSet_)
-      dim.SetMax( dset->Max() );
+      dim.SetMax( DS_Math::Max(*dset) );
     else
       dim.SetMax( default_dim_.Max() );
   }

@@ -1,6 +1,5 @@
 #ifndef INC_DATASET_H
 #define INC_DATASET_H
-#include <string>
 #include <vector>
 #include "CpptrajFile.h"
 // Class: DataSet
@@ -21,7 +20,7 @@
   */
 class DataSet {
   public:
-    /// Base type of data stored in DataSet
+    /// Type of data stored in DataSet
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, STRING, INT, FLOAT, VECTOR, MATRIX, MODES, 
       HIST, TRIMATRIX, MATRIX2D, COORDS
@@ -74,19 +73,6 @@ class DataSet {
     /// Print DataSet information
     virtual void Info()             { return;   }
     // -----------------------------------------------------
-
-    // Calculation routines for atomic types (DOUBLE, FLOAT, INT)
-    /// Return the average/stdev of all values in the set
-    double Avg(double *);
-    /// Return the smallest value added to the set.
-    double Min();
-    /// Return the largest value added to the set
-    double Max();
-    /// Calculate time correlation.
-    int CrossCorr( DataSet&, DataSet&, int, bool, bool );
-    /// Calculate Pearson product-moment correlation coefficient. 
-    double Corr( DataSet& ) ;
-
     // -----===== Public functions =====-----
     /// Set output precision
     void SetPrecision(int,int);
@@ -109,13 +95,13 @@ class DataSet {
 
     // -----===== Functions that return private vars =====-----
     /// Return DataSet base name.
-    std::string const& Name()   { return name_; }
+    std::string const& Name()   const { return name_; }
     /// Return DataSet index.
-    int Idx()                   { return idx_; }
+    int Idx()                   const { return idx_; }
     /// Return DataSet aspect.
-    std::string const& Aspect() { return aspect_; }
+    std::string const& Aspect() const { return aspect_; }
     /// Return DataSet type.
-    DataType Type()             { return dType_; }
+    DataType Type()             const { return dType_; }
     /// Return DataSet type name.
     const char* TypeName()      { return SetStrings[dType_]; }
     /// Return DataSet dimension.
