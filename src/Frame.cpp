@@ -177,31 +177,48 @@ Frame &Frame::operator=(Frame rhs) {
 
 // ---------- CONVERT TO/FROM ARRAYS -------------------------------------------
 /** Assign float array to this frame. */ 
-Frame& Frame::operator=(std::vector<float> const& farray) {
-  int f_ncoord = (int)farray.size();
+void Frame::SetFromCRD(CRDtype const& farray, int numBoxCrd) {
+  int f_ncoord = (int)(farray.size()) - numBoxCrd;
   if (f_ncoord > maxnatom_*3) {
-    mprinterr("Error: Float array size (%zu) > max #coords in frame (%zu)\n",
+    mprinterr("Error: Float array size (%zu) > max #coords in frame (%i)\n",
               farray.size(), maxnatom_*3);
-    return *this;
-  }
-  double* Xptr = X_;
-  for (std::vector<float>::const_iterator Fptr = farray.begin(); 
-                                          Fptr != farray.end(); ++Fptr)
-  {
-    *Xptr = (double)(*Fptr);
-    ++Xptr;
+    return;
   }
   ncoord_ = f_ncoord;
   natom_ = ncoord_ / 3;
-  return *this;
+  for (int ix = 0; ix < f_ncoord; ++ix)
+    X_[ix] = (double)farray[ix];
+  for (int ib = 0; ib < numBoxCrd; ++ib)
+    box_[ib] = (double)farray[f_ncoord++];
+  return;
 }
 
-// Frame::ConvertToFloat()
-/** Place atom coordinates according to maskIn into a float array. */
-std::vector<float> Frame::ConvertToFloat(AtomMask const& maskIn) const {
-  std::vector<float> farray;
+void Frame::SetFromCRD(CRDtype const& farray, int numBoxCrd, AtomMask const& mask) {
+  if (mask.Nselected() > maxnatom_) {
+    mprinterr("Error: Selected # atoms in float array (%i) > max #atoms in frame (%i)\n",
+              mask.Nselected(), maxnatom_);
+    return;
+  }
+  natom_ = mask.Nselected();
+  ncoord_ = natom_ * 3;
+  int ix = 0;
+  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
+    int ia = *atom * 3;
+    X_[ix++] = (double)farray[ia++];
+    X_[ix++] = (double)farray[ia++];
+    X_[ix++] = (double)farray[ia++];
+  }
+  int f_ncoord = farray.size() - numBoxCrd;
+  for (int ib = 0; ib < numBoxCrd; ++ib)
+    box_[ib] = (double)farray[f_ncoord++];
+  return;
+}
 
-  farray.reserve( maskIn.Nselected() * 3 );
+/** Place atom coordinates according to maskIn into a float array. */
+/*Frame::CRDtype Frame::ConvertToCRD(AtomMask const& maskIn, int numBoxCrd) const {
+  CRDtype farray;
+
+  farray.reserve( (maskIn.Nselected() * 3) + numBoxCrd );
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
   {
     int crdidx = (*atom) * 3; 
@@ -209,16 +226,19 @@ std::vector<float> Frame::ConvertToFloat(AtomMask const& maskIn) const {
     farray.push_back( (float)X_[crdidx+1] );
     farray.push_back( (float)X_[crdidx+2] );
   }
+  for (int ib = 0; ib < numBoxCrd; ++ib)
+    farray.push_back( (float)box_[ib] );
   return farray;
-}
+}*/
 
-// Frame::ConvertToFloat()
 /** Place atom coordinates into a float array. */
-std::vector<float> Frame::ConvertToFloat() const {
+Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd) const {
   std::vector<float> farray;
-  farray.reserve( ncoord_ );
+  farray.reserve( ncoord_ + numBoxCrd );
   for (int ix = 0; ix < ncoord_; ++ix)
     farray.push_back( (float)X_[ix] );
+  for (int ib = 0; ib < numBoxCrd; ++ib)
+    farray.push_back( (float)box_[ib] );
   return farray;
 }
 
@@ -1311,7 +1331,7 @@ double Frame::RMSD( Frame const& Ref, bool useMass) {
 /** Calcuate the distance RMSD of Frame to Ref. Frames must contain
   * same # of atoms. Should not be called for 0 atoms.
   */
-double Frame::DISTRMSD( Frame& Ref ) {
+double Frame::DISTRMSD( Frame const& Ref ) {
   double TgtDist, RefDist;
   double diff, rms_return;
   double x,y,z;

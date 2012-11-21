@@ -1,32 +1,29 @@
-#ifndef INC_ACTION_CLUSTERING_H
-#define INC_ACTION_CLUSTERING_H
-#include "Action.h"
+#ifndef INC_ANALYSIS_CLUSTERING_H
+#define INC_ANALYSIS_CLUSTERING_H
+#include "Analysis.h"
 #include "TriangleMatrix.h"
 #include "ClusterList.h"
 #include "TrajectoryFile.h"
-// Class: Action_Clustering
+#include "DataSet_Coords.h"
+// Class: Analysis_Clustering
 /// Used to perform clustering of frames, currently by RMSD only.
-class Action_Clustering: public Action {
+class Analysis_Clustering: public Analysis {
   public:
-    Action_Clustering();
+    Analysis_Clustering();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Clustering(); }
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Clustering(); }
     static void Help();
-
-
-    void Print();
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Analyze();
+    void Print(DataFileList*);
   private:
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
-
-    FrameList ReferenceFrames_; ///< Hold frames from all trajin stmts
-    AtomMask Mask0_;            ///< Atoms to cluster on
+    DataSet_Coords* coords_;
+    std::string maskexpr_;            ///< If RMSD, Atoms to cluster on
     double epsilon_;            ///< Once the min distance is > epsilon, stop clustering
     int targetNclusters_;       ///< Once there are targetNclusters, stop clustering
     int sieve_;
     DataSet* cnumvtime_;        ///< Cluster vs time dataset
+    std::string cnumvtimefile_;
     std::string summaryfile_;         ///< Summary file name
     std::string halffile_;            ///< 1st/2nd half summary file name
     std::string clusterfile_;         ///< Cluster trajectory base filename.
@@ -46,9 +43,8 @@ class Action_Clustering: public Action {
     TrajectoryFile::TrajFormatType singlerepfmt_;
     /// Cluster rep to separate trajectory format.
     TrajectoryFile::TrajFormatType reptrajfmt_;
-    Topology* CurrentParm_;
     int debug_;
-    static const char PAIRDISTFILE[]; // TODO: Make this a user option
+    static const char* PAIRDISTFILE; // TODO: Make this a user option
 
     int calcDistFromRmsd( TriangleMatrix &);
     int ClusterHierAgglo( TriangleMatrix &, ClusterList&);

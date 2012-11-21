@@ -477,6 +477,7 @@ int Cpptraj::ParmStrip(ArgList& argIn) {
   } else {
     // Replace parm with stripped version
     tempParm->ParmInfo();
+    mprintf("\n");
     parmFileList.ReplaceParm(pindex, tempParm);
   }
   return 0;
@@ -565,34 +566,39 @@ int Cpptraj::CrdAction(ArgList& argIn) {
   }
   actionargs.CheckForMoreArgs();
   // Set up frame and parm for COORDS.
-  Topology* currentParm = CRD->Top();
-  Frame* originalFrame = new Frame( CRD->Top()->Atoms() );
+  Topology* originalParm = new Topology();
+  *originalParm = CRD->Top();
+  Frame* originalFrame = new Frame( CRD->Top().Atoms() );
+  // Set up for this topology
+  Topology* currentParm = originalParm;
   if ( act->Setup( currentParm, &currentParm ) == Action::ERR ) {
     delete act;
     return 1;
   }
   // Check if parm was modified. If so, update COORDS.
-  if ( currentParm != CRD->Top() ) {
+  if ( currentParm != originalParm ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n", 
             CRD->Legend().c_str(), actionargs.Command());
-    CRD->SetTop( currentParm );
+    CRD->SetTopology( *currentParm );
   }
   // Loop over all frames in COORDS.
   int end = CRD->Size();
   ProgressBar progress( end );
   for (int frame = 0; frame < end; frame++) {
     progress.Update( frame );
-    *originalFrame = (*CRD)[ frame ];
+    originalFrame->SetFromCRD( (*CRD)[ frame ], CRD->NumBoxCrd() );
     Frame* currentFrame = originalFrame;
     if (act->DoAction( frame, currentFrame, &currentFrame ) == Action::ERR) {
       mprinterr("Error: crdaction: Frame %i\n", frame + 1);
       break;
     }
     // Check if frame was modified. If so, update COORDS.
-    if ( currentFrame != originalFrame ) 
+    // TODO: Have actions indicate whether they will modify coords
+    //if ( currentFrame != originalFrame ) 
       CRD->SetFrame( frame, *currentFrame );
   }
   delete originalFrame;
+  delete originalParm;
   act->Print();
   delete act;
   return 0;
@@ -613,18 +619,18 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   }
   setname = argIn.GetStringNext();
   Trajout outtraj;
-  if (outtraj.SetupTrajWrite( setname, &argIn, CRD->Top(), TrajectoryFile::UNKNOWN_TRAJ)) {
+  Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
+  if (outtraj.SetupTrajWrite( setname, &argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
     return 1;
   }
   outtraj.PrintInfo( 1 );
-  Topology* currentParm = CRD->Top();
-  Frame currentFrame( CRD->Natom() );
+  Frame currentFrame( CRD->Top().Natom() );
   int end = CRD->Size();
   ProgressBar progress( end );
   for (int frame = 0; frame < end; frame++) {
     progress.Update( frame );
-    currentFrame = (*CRD)[ frame ];
+    currentFrame.SetFromCRD( (*CRD)[ frame ], CRD->NumBoxCrd() );
     if ( outtraj.WriteFrame( frame, currentParm, currentFrame ) ) {
       mprinterr("Error writing %s to output trajectory, frame %i.\n", 
                 CRD->Legend().c_str(), frame + 1);
@@ -1262,8 +1268,8 @@ int Cpptraj::RunNormal() {
   DSL.Sync();
 
   // ========== A N A L Y S I S  P H A S E ==========
+  mprintf("\nDATASETS:\n");
   if (!analysisList.Empty()) {
-    mprintf("\nDATASETS BEFORE ANALYSIS:\n");
     DSL.List();
     analysisList.DoAnalyses(&DFL);
     // DEBUG: DataSets, post-Analysis

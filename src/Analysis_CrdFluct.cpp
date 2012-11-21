@@ -11,7 +11,7 @@ Analysis_CrdFluct::Analysis_CrdFluct() :
 {}
 
 void Analysis_CrdFluct::Help() {
-  mprintf("crdfluct <crd set name> [out <filename>] [window <size>]\n");
+  mprintf("crdfluct <crd set name> [<mask>] [out <filename>] [window <size>]\n");
 }
 
 // Analysis_CrdFluct::Setup()
@@ -32,9 +32,11 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   }
   outfilename_ = analyzeArgs.GetStringKey("out");
   windowSize_ = analyzeArgs.getKeyInt("window", -1);
+  // Get mask
+  mask_.SetMaskString( analyzeArgs.GetMaskNext() );
 
-  mprintf("    CRDFLUCT: Atomic fluctuations will be calcd for set %s\n", 
-          coords_->Legend().c_str());
+  mprintf("    CRDFLUCT: Atomic fluctuations will be calcd for set %s, mask [%s]\n", 
+          coords_->Legend().c_str(), mask_.MaskString());
   if (windowSize_ != -1) mprintf("\tWindow size = %i\n", windowSize_);
   if (!outfilename_.empty()) mprintf("\tOutput to %s\n", outfilename_.c_str());
 
@@ -77,7 +79,7 @@ void Analysis_CrdFluct::CalcBfactors( Frame SumCoords, Frame SumCoords2, double 
   //SumCoords2 = SumCoords2 - (SumCoords * SumCoords);
   SumCoords *= SumCoords;
   SumCoords2 -= SumCoords;
-  AtomMask::const_iterator maskat = coords_->Mask().begin();
+  AtomMask::const_iterator maskat = mask_.begin();
   if (bfactor_) {
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
@@ -100,18 +102,22 @@ void Analysis_CrdFluct::CalcBfactors( Frame SumCoords, Frame SumCoords2, double 
 
 // Analysis_CrdFluct::Analyze()
 Analysis::RetType Analysis_CrdFluct::Analyze() {
+  // Set up mask
+  if ( coords_->Top().SetupIntegerMask( mask_ )) return Analysis::ERR;
+  mask_.MaskInfo();
+  if (mask_.None()) return Analysis::ERR;
   int end = coords_->Size();
   mprintf("\tFluctuation analysis for %i frames (%i atoms each).\n", end, 
-          coords_->Natom());
-  Frame currentFrame( coords_->Natom() );
-  Frame SumCoords( coords_->Natom() );
+          coords_->Top().Natom());
+  Frame currentFrame( mask_.Nselected() );
+  Frame SumCoords( mask_.Nselected() );
   SumCoords.ZeroCoords();
-  Frame SumCoords2( coords_->Natom() );
+  Frame SumCoords2( mask_.Nselected() );
   SumCoords2.ZeroCoords();
   int w_count = 0;
   SetList::iterator out = outSets_.begin();
   for (int frame = 0; frame < end; frame++) {
-    currentFrame = (*coords_)[ frame ];
+    currentFrame.SetFromCRD( (*coords_)[ frame ], 0, mask_);
     SumCoords += currentFrame;
     SumCoords2 += ( currentFrame * currentFrame );
     ++w_count;

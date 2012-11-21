@@ -13,6 +13,7 @@ class Analysis_CrdFluct : public Analysis {
     void Print(DataFileList*);
   private:
     DataSet_Coords* coords_;
+    AtomMask mask_;
     typedef std::vector<DataSet*> SetList;
     SetList outSets_;
     bool bfactor_;

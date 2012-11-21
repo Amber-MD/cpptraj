@@ -30,6 +30,7 @@
   */
 class Frame {
   public:
+    typedef std::vector<float> CRDtype;
     // Construction/Destruction/Assignment
     Frame();
     ~Frame();
@@ -45,19 +46,21 @@ class Frame {
     Frame(const Frame&);
     Frame& operator=(Frame);
     // Convert to/from arrays
-    Frame &operator=(std::vector<float> const&);
-    std::vector<float> ConvertToFloat(AtomMask const&) const;
-    std::vector<float> ConvertToFloat() const;
+    //Frame &operator=( const&);
+    void SetFromCRD(CRDtype const&, int);
+    void SetFromCRD(CRDtype const&, int, AtomMask const&);
+    //CRDtype ConvertToCRD(AtomMask const&, int) const;
+    CRDtype ConvertToCRD(int) const;
     // Access internal data
     void printAtomCoord(int);
     void Info(const char*);
     void AddXYZ(const double *);
-    bool empty()                 { return (natom_ == 0);        }
+    bool empty()           const { return (natom_ == 0);        }
     bool HasVelocity()           { return (V_ != NULL);         }
     int Natom()                  { return natom_;               }
     int size()                   { return ncoord_;              }
     double Temperature()         { return T_;                   }
-    const double* XYZ(int atnum) { return X_ + (atnum*3);       } 
+    const double* XYZ(int atnum) const { return X_ + (atnum*3);       } 
     const double* CRD(int idx)   { return X_ + idx;             } 
     double& operator[](int idx)  { return X_[idx];              } // TODO: Make const?
     double Mass(int atnum)       { return Mass_[atnum];         }
@@ -209,7 +212,7 @@ class Frame {
     double RMSD(Frame &, double*, double*,bool);
     double RMSD_CenteredRef( Frame const&, double[9], double[6], bool);
     double RMSD(Frame const&,bool);
-    double DISTRMSD( Frame& );
+    double DISTRMSD( Frame const& );
 
     void SetAxisOfRotation(double *, int, int);
     void RotateAroundAxis(double *, AtomMask &);

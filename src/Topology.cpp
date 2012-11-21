@@ -105,7 +105,7 @@ void Topology::IncreaseFrames(int frames) {
 /** Return a printf-compatible char* of the parm filename, or the parm
   * name (title) if the parm filename is empty.
   */
-const char *Topology::c_str() {
+const char *Topology::c_str() const {
   if (!fileName_.empty()) 
     return fileName_.c_str();
   return parmName_.c_str();
@@ -1160,28 +1160,28 @@ int Topology::SetSolventInfo() {
 
 // -----------------------------------------------------------------------------
 // Topology::SetupIntegerMask()
-bool Topology::SetupIntegerMask(AtomMask &mask) { 
+bool Topology::SetupIntegerMask(AtomMask &mask) const { 
   return ParseMask(refCoords_, mask, true);
 }
 
 // Topology::SetupCharMask()
-bool Topology::SetupCharMask(AtomMask &mask) {
+bool Topology::SetupCharMask(AtomMask &mask) const {
   return ParseMask(refCoords_, mask, false);
 }
 
 // Topology::SetupIntegerMask()
-bool Topology::SetupIntegerMask(AtomMask &mask, Frame &frame) {
+bool Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
   return ParseMask( frame, mask, true );
 }
 
 // Topology::SetupCharMask()
-bool Topology::SetupCharMask(AtomMask &mask, Frame &frame) {
+bool Topology::SetupCharMask(AtomMask &mask, Frame const& frame) const {
   return ParseMask( frame, mask, false );
 }
 
 // Topology::Mask_SelectDistance()
-void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within, 
-                                    bool byAtom, double distance ) 
+void Topology::Mask_SelectDistance( Frame const& REF, char *mask, bool within, 
+                                    bool byAtom, double distance ) const 
 {
   int endatom, resi;
   bool selectresidue;
@@ -1289,7 +1289,7 @@ void Topology::Mask_SelectDistance( Frame &REF, char *mask, bool within,
 }
 
 // Topology::Mask_AND()
-void Topology::Mask_AND(char *mask1, char *mask2) {
+void Topology::Mask_AND(char *mask1, char *mask2) const {
   //mprintf("\t\t\tPerforming AND on masks.\n");
   for (unsigned int i = 0; i < atoms_.size(); i++) {
     //mprintf(" [%c|%c]",mask1[i],mask2[i]);
@@ -1301,7 +1301,7 @@ void Topology::Mask_AND(char *mask1, char *mask2) {
 }
 
 // Topology::Mask_OR()
-void Topology::Mask_OR(char *mask1, char *mask2) {
+void Topology::Mask_OR(char *mask1, char *mask2) const {
   //mprintf("\t\t\tPerforming OR on masks.\n");
   for (unsigned int i = 0; i < atoms_.size(); i++) {
     if (mask1[i]=='T' || mask2[i]=='T')
@@ -1312,7 +1312,7 @@ void Topology::Mask_OR(char *mask1, char *mask2) {
 }
 
 // Topology::Mask_NEG()
-void Topology::Mask_NEG(char *mask1) {
+void Topology::Mask_NEG(char *mask1) const {
   //mprintf("\t\t\tNegating mask.\n");
   for (unsigned int i = 0; i < atoms_.size(); i++) {
     if (mask1[i]=='T')
@@ -1323,13 +1323,13 @@ void Topology::Mask_NEG(char *mask1) {
 }
 
 // Topology::MaskSelectResidues()
-void Topology::MaskSelectResidues(NameType const& name, char *mask) {
+void Topology::MaskSelectResidues(NameType const& name, char *mask) const {
   int endatom;
-  std::vector<Residue>::iterator res1 = residues_.begin() + 1;
+  std::vector<Residue>::const_iterator res1 = residues_.begin() + 1;
 
   //mprintf("\t\t\tSelecting residues named [%s]\n",*name);
-  for (std::vector<Residue>::iterator res = residues_.begin();
-                                      res != residues_.end(); res++)
+  for (std::vector<Residue>::const_iterator res = residues_.begin();
+                                            res != residues_.end(); res++)
   {
     if ( (*res).Name().Match( name ) ) {
       if (res1 == residues_.end())
@@ -1344,7 +1344,7 @@ void Topology::MaskSelectResidues(NameType const& name, char *mask) {
 
 // Topology::MaskSelectResidues()
 // Mask args expected to start from 1
-void Topology::MaskSelectResidues(int res1, int res2, char *mask) {
+void Topology::MaskSelectResidues(int res1, int res2, char *mask) const {
   int startatom, endatom;
   int nres = (int) residues_.size();
   //mprintf("\t\t\tSelecting residues %i to %i\n",res1,res2);
@@ -1369,10 +1369,10 @@ void Topology::MaskSelectResidues(int res1, int res2, char *mask) {
 }
 
 // Topology::MaskSelectElements()
-void Topology::MaskSelectElements( NameType const& element, char* mask ) {
+void Topology::MaskSelectElements( NameType const& element, char* mask ) const {
   unsigned int m = 0;
-  for (std::vector<Atom>::iterator atom = atoms_.begin();
-                                   atom != atoms_.end(); ++atom)
+  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
+                                         atom != atoms_.end(); ++atom)
   {
     NameType atom_element( Atom::AtomicElementName[(*atom).Element()] );
     if ( atom_element.Match( element ) )
@@ -1382,10 +1382,10 @@ void Topology::MaskSelectElements( NameType const& element, char* mask ) {
 }
 
 // Topology::MaskSelectTypes()
-void Topology::MaskSelectTypes( NameType const& type, char* mask ) {
+void Topology::MaskSelectTypes( NameType const& type, char* mask ) const {
   unsigned int m = 0;
-  for (std::vector<Atom>::iterator atom = atoms_.begin();
-                                   atom != atoms_.end(); ++atom)
+  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
+                                         atom != atoms_.end(); ++atom)
   {
     if ( (*atom).Type().Match( type ) )
       mask[m] = 'T';
@@ -1394,11 +1394,11 @@ void Topology::MaskSelectTypes( NameType const& type, char* mask ) {
 }
 
 // Topology::MaskSelectAtoms()
-void Topology::MaskSelectAtoms( NameType const& name, char *mask) {
+void Topology::MaskSelectAtoms( NameType const& name, char *mask) const {
   //mprintf("\t\t\tSelecting atoms named [%s]\n",*name);
   unsigned int m = 0;
-  for (std::vector<Atom>::iterator atom = atoms_.begin();
-                                   atom != atoms_.end(); atom++)
+  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
+                                         atom != atoms_.end(); atom++)
   {
     //mprintf("\t\t\t%u PARM[%s]  NAME[%s]",m,(*atom).c_str(),*name);
     if ( (*atom).Name().Match( name ) )
@@ -1410,7 +1410,7 @@ void Topology::MaskSelectAtoms( NameType const& name, char *mask) {
 
 // Topology::MaskSelectAtoms()
 // Mask args expected to start from 1
-void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) {
+void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) const {
   int startatom, endatom;
   //mprintf("\t\t\tSelecting atoms %i to %i\n",atom1,atom2);
   if (atom1 > (int)atoms_.size()) {
@@ -1429,7 +1429,7 @@ void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) {
 }
 
 // Topology::ParseMask()
-bool Topology::ParseMask(Frame &REF, AtomMask &maskIn, bool intMask) {
+bool Topology::ParseMask(Frame const& REF, AtomMask &maskIn, bool intMask) const {
   std::stack<char*> Stack;
   char *pMask = 0; 
   char *pMask2 = 0;

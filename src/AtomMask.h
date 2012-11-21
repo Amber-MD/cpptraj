@@ -47,7 +47,7 @@ class AtomMask {
     /// Return original mask expression as char*
     const char *MaskString() const;
     /// Return original mask expression as std::string
-    std::string const& MaskExpression() { return maskString_; }
+    std::string const& MaskExpression() const { return maskString_; }
     /// Reset atom mask
     void ResetMask();
     /// Switch char used to denote selected atoms (T->F, F->T)
@@ -82,7 +82,7 @@ class AtomMask {
     /// Convert mask type (char->int, int->char)
     int ConvertMaskType();
     /// Print mask string and number of selected atoms.
-    void MaskInfo();
+    void MaskInfo() const;
 
     typedef std::vector<MaskToken>::const_iterator token_iterator;
     inline token_iterator begintoken() const { return maskTokens_.begin(); }

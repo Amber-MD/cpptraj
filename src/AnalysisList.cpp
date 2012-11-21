@@ -14,9 +14,14 @@
 #include "Analysis_Lifetime.h"
 #include "Analysis_FFT.h"
 #include "Analysis_CrdFluct.h"
+#include "Analysis_RmsAvgCorr.h"
+#include "Analysis_Rms2d.h"
+#include "Analysis_Clustering.h"
 
 const DispatchObject::Token AnalysisList::DispatchArray[] = {
+  { DispatchObject::ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
   { DispatchObject::ANALYSIS, "autocorr", Analysis_AutoCorr::Alloc, Analysis_AutoCorr::Help, 0 },
+  { DispatchObject::ANALYSIS, "cluster", Analysis_Clustering::Alloc, Analysis_Clustering::Help, 0 },
   { DispatchObject::ANALYSIS, "corr", Analysis_Corr::Alloc, Analysis_Corr::Help, 0 },
   { DispatchObject::ANALYSIS, "correlationcoe", Analysis_Corr::Alloc, Analysis_Corr::Help, 0 },
   { DispatchObject::ANALYSIS, "crank", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, 0 },
@@ -30,8 +35,10 @@ const DispatchObject::Token AnalysisList::DispatchArray[] = {
   { DispatchObject::ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, 0 },
   { DispatchObject::ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, 0 },
   { DispatchObject::ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, 0 },
-  { DispatchObject::ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, 0 },
+  { DispatchObject::ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
+  { DispatchObject::ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, 0 },
   { DispatchObject::ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, 0 },
+  { DispatchObject::ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, 0 },
   { DispatchObject::NONE,        0,                  0,                 0, 0 }
 };
 

@@ -1,104 +1,117 @@
-// Action: Action_Clustering
+// Analysis_Clustering
 #include <cfloat> // DBL_MAX
-#include "Action_Clustering.h"
+#include "Analysis_Clustering.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
 #include "ProgressBar.h"
 #include "DataSet_integer.h" // For converting cnumvtime
 #include "Trajout.h"
+#include "Analysis_Rms2d.h"
 
 // CONSTRUCTOR
-Action_Clustering::Action_Clustering() :
+Analysis_Clustering::Analysis_Clustering() :
   epsilon_(-1.0),
   targetNclusters_(-1),
   sieve_(1),
-  cnumvtime_(NULL),
+  cnumvtime_(0),
   nofitrms_(false),
   useMass_(false),
   grace_color_(false),
   load_pair_(true),
-  cluster_dataset_(NULL),
+  cluster_dataset_(0),
   Linkage_(ClusterList::AVERAGELINK),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
-  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
-  CurrentParm_(0)
+  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ)
 { } 
 
-void Action_Clustering::Help() {
-  mprintf("cluster [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
+void Analysis_Clustering::Help() {
+  mprintf("cluster <dataset> [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
   mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit]\n");
   mprintf("        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n");
   mprintf("        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
   mprintf("        [ repout <repprefix> [repfmt <repfmt>] ]\n");
-  mprintf("        [data <setname>]\n");
+  mprintf("        [data <dsetname>]\n");
   mprintf("\tCluster structures based on RMSD or a given DataFile.\n");
 }
 
-const char Action_Clustering::PAIRDISTFILE[16]="CpptrajPairDist";
+const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
 
-// Action_Clustering::init()
-Action::RetType Action_Clustering::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
+                                             TopologyList* PFLin, int debugIn)
 {
   debug_ = debugIn;
-  // Get keywords
-  useMass_ = actionArgs.hasKey("mass");
-  targetNclusters_ = actionArgs.getKeyInt("clusters",-1);
-  sieve_ = actionArgs.getKeyInt("sieve",1);
-  epsilon_ = actionArgs.getKeyDouble("epsilon",-1.0);
-  if (actionArgs.hasKey("linkage")) Linkage_=ClusterList::SINGLELINK;
-  if (actionArgs.hasKey("averagelinkage")) Linkage_=ClusterList::AVERAGELINK;
-  if (actionArgs.hasKey("complete")) Linkage_=ClusterList::COMPLETELINK;
-  std::string cnumvtimefile = actionArgs.GetStringKey("out");
-  clusterinfo_ = actionArgs.GetStringKey("info");
-  summaryfile_ = actionArgs.GetStringKey("summary");
-  halffile_ = actionArgs.GetStringKey("summaryhalf");
-  if (actionArgs.hasKey("nofit")) nofitrms_=true;
-  if (actionArgs.hasKey("gracecolor")) grace_color_=true;
-  if (actionArgs.hasKey("noload")) load_pair_=false;
-  std::string dsetname = actionArgs.GetStringKey("data");
-  if (!dsetname.empty()) {
-    // Attempt to get dataset from datasetlist
-    cluster_dataset_ = DSL->GetDataSet( dsetname );
+  // Attempt to get coords dataset from datasetlist
+  std::string setname = analyzeArgs.GetStringNext();
+  if (setname.empty()) {
+    mprinterr("Error: clustering: Specify crd set name.\n");
+    Help();
+    return Analysis::ERR;
+  }
+  coords_ = (DataSet_Coords*)datasetlist->FindSetOfType( setname, DataSet::COORDS );
+  if (coords_ == 0) {
+    mprinterr("Error: clustering: Could not locate COORDS set corresponding to %s\n",
+              setname.c_str());
+    return Analysis::ERR;
+  }
+  // Check for dataset to cluster on, otherwise coords will be used
+  setname = analyzeArgs.GetStringKey("data");
+  if (!setname.empty()) {
+    cluster_dataset_ = datasetlist->GetDataSet( setname );
     if (cluster_dataset_ == 0) {
-      mprinterr("Error: cluster: dataset %s not found.\n",dsetname.c_str());
-      return Action::ERR;
+      mprinterr("Error: cluster: dataset %s not found.\n", setname.c_str());
+      return Analysis::ERR;
     }
   }
+  // Get keywords
+  useMass_ = analyzeArgs.hasKey("mass");
+  targetNclusters_ = analyzeArgs.getKeyInt("clusters",-1);
+  sieve_ = analyzeArgs.getKeyInt("sieve",1);
+  epsilon_ = analyzeArgs.getKeyDouble("epsilon",-1.0);
+  if (analyzeArgs.hasKey("linkage")) Linkage_=ClusterList::SINGLELINK;
+  if (analyzeArgs.hasKey("averagelinkage")) Linkage_=ClusterList::AVERAGELINK;
+  if (analyzeArgs.hasKey("complete")) Linkage_=ClusterList::COMPLETELINK;
+  cnumvtimefile_ = analyzeArgs.GetStringKey("out");
+  clusterinfo_ = analyzeArgs.GetStringKey("info");
+  summaryfile_ = analyzeArgs.GetStringKey("summary");
+  halffile_ = analyzeArgs.GetStringKey("summaryhalf");
+  if (analyzeArgs.hasKey("nofit")) nofitrms_=true;
+  if (analyzeArgs.hasKey("gracecolor")) grace_color_=true;
+  if (analyzeArgs.hasKey("noload")) load_pair_=false;
   // Output trajectory stuff
-  clusterfile_ = actionArgs.GetStringKey("clusterout");
-  clusterfmt_ = TrajectoryFile::GetFormatFromString( actionArgs.GetStringKey("clusterfmt") ); 
-  singlerepfile_ = actionArgs.GetStringKey("singlerepout");
-  singlerepfmt_ = TrajectoryFile::GetFormatFromString( actionArgs.GetStringKey("singlerepfmt") );
-  reptrajfile_ = actionArgs.GetStringKey("repout");
-  reptrajfmt_ = TrajectoryFile::GetFormatFromString( actionArgs.GetStringKey("repfmt") );
+  clusterfile_ = analyzeArgs.GetStringKey("clusterout");
+  clusterfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("clusterfmt") ); 
+  singlerepfile_ = analyzeArgs.GetStringKey("singlerepout");
+  singlerepfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("singlerepfmt") );
+  reptrajfile_ = analyzeArgs.GetStringKey("repout");
+  reptrajfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("repfmt") );
   // Get the mask string 
-  Mask0_.SetMaskString( actionArgs.GetMaskNext() );
+  maskexpr_ = analyzeArgs.GetMaskNext();
 
   // Dataset to store cluster number v time
-  cnumvtime_ = DSL->AddSet(DataSet::INT, actionArgs.GetStringNext(), "Cnum");
-  if (cnumvtime_==NULL) return Action::ERR;
-  // Add dataset to data file list
-  DFL->AddSetToFile(cnumvtimefile, cnumvtime_);
+  cnumvtime_ = datasetlist->AddSet(DataSet::INT, analyzeArgs.GetStringNext(), "Cnum");
+  if (cnumvtime_==0) return Analysis::ERR;
 
   // Determine finish criteria. If nothing specified default to 10 clusters.
   if (targetNclusters_==-1 && epsilon_==-1.0)
     targetNclusters_ = 10;
 
-  mprintf("    CLUSTER:");
-  if (!dsetname.empty()) {
-    mprintf(" On dataset %s",dsetname.c_str());
-  } else {
-    mprintf(" Using RMSD (mask [%s])",Mask0_.MaskString());
+  mprintf("    CLUSTER: Using coords dataset %s, clustering using", coords_->Legend().c_str());
+  if ( cluster_dataset_ == 0 ) {
+    if (!maskexpr_.empty())
+      mprintf(" RMSD (mask [%s])",maskexpr_.c_str());
+    else
+      mprintf(" RMSD (all atoms)");
     if (useMass_)
       mprintf(", mass-weighted");
     if (nofitrms_)
       mprintf(", no fitting");
     else
       mprintf(" best fit");
-  }
+  } else 
+    mprintf(" dataset %s", cluster_dataset_->Legend().c_str());
+  mprintf("\n");
   if (targetNclusters_ != -1)
     mprintf(" looking for %i clusters",targetNclusters_);
   if (epsilon_ != -1.0)
@@ -143,33 +156,15 @@ Action::RetType Action_Clustering::Init(ArgList& actionArgs, TopologyList* PFL, 
   // if target clusters not given make it 1
   if (targetNclusters_ == -1) targetNclusters_=1;
 
-  return Action::OK;
+  return Analysis::OK;
 }
 
-Action::RetType Action_Clustering::Setup(Topology* currentParm, Topology** parmAddress) {
-  CurrentParm_ = currentParm;
-  return Action::OK;
-}
-
-// Action_Clustering::action()
-/** Store current frame as a reference frame. Always do this even if
-  * not calculating RMSD since we may need to print representative
-  * frames etc.
-  */
-Action::RetType Action_Clustering::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  Frame *fCopy = currentFrame->FrameCopy();
-  ReferenceFrames_.AddFrame(fCopy,CurrentParm_);
-  
-  return Action::OK;
-} 
-
-// Action_Clustering::print()
 /** This is where the clustering is actually performed. First the distances
   * between each frame are calculated. Then the clustering routine is called.
   */
 // TODO: Need to update save to indicate distance type
 // NOTE: Should distances be saved only if load_pair?
-void Action_Clustering::Print() {
+Analysis::RetType Analysis_Clustering::Analyze() {
   TriangleMatrix Distances;
   ClusterList CList;
 
@@ -181,7 +176,7 @@ void Action_Clustering::Print() {
   int pairdist_mode = 0; 
   if (load_pair_ && fileExists(PAIRDISTFILE))
     pairdist_mode = 1;
-  if (cluster_dataset_ != NULL)
+  if (cluster_dataset_ != 0)
     pairdist_mode = 2;
 
   if (pairdist_mode == 2) {  // Get distances from dataset.
@@ -190,13 +185,13 @@ void Action_Clustering::Print() {
   }
   if (pairdist_mode == 1) {  // Get distances from file.
     mprintf(" %s found, loading pairwise distances.\n",PAIRDISTFILE);
-    if (Distances.LoadFile(PAIRDISTFILE,ReferenceFrames_.NumFrames())) {
+    if ( Distances.LoadFile(PAIRDISTFILE, coords_->Size()) ) {
       mprintf("\tLoading pairwise distances failed - regenerating from frames.\n");
       pairdist_mode = 0;
     }
   } 
   if (pairdist_mode == 0) { // Get RMSDs between frames
-    calcDistFromRmsd( Distances );
+    Analysis_Rms2d::Calc2drms(*coords_, Distances, nofitrms_, useMass_, maskexpr_);
     Distances.SaveFile( PAIRDISTFILE );
   } 
 
@@ -249,109 +244,18 @@ void Action_Clustering::Print() {
   // Write all representative frames to separate trajs
   if (!reptrajfile_.empty())
     WriteRepTraj( CList );
+  return Analysis::OK;
+}
+
+// Analysis_Clustering::Print()
+void Analysis_Clustering::Print(DataFileList* DFL) {
+  // Add dataset to data file list
+  DFL->AddSetToFile(cnumvtimefile_, cnumvtime_);
+
 }
 
 // -----------------------------------------------------------------------------
-// Action_Clustering::calcDistFromRmsd()
-int Action_Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
-  // Reference
-  Topology *RefParm = NULL;
-  Frame *RefFrame = NULL;
-  Frame SelectedRef;
-  int lastrefpindex=-1;
-  int refatoms = 0;
-  // Target
-  Topology *TgtParm;
-  Frame *TgtFrame;
-  Frame SelectedTgt;
-  int lasttgtpindex=-1;
-  // Other vars
-  double R, U[9], Trans[6];
-  int current=0;
-  int max=0;
-  int totalref=0;
-
-  totalref = ReferenceFrames_.NumFrames();
-  Distances.Setup(totalref);
-
-  max = Distances.Nelements();
-  if (nofitrms_)
-    mprintf(" Calculating no-fit RMSDs between each frame (%i total).\n  ",max);
-  else
-    mprintf(" Calculating RMSDs with fitting between each frame (%i total).\n",max);
-
-  // Set up progress Bar
-  ProgressBar progress(max);
-
-  // LOOP OVER REFERENCE FRAMES
-  for (int nref=0; nref < totalref - 1; nref++) {
-    progress.Update(current);
-    RefParm = ReferenceFrames_.GetFrameParm( nref );
-    // If the current ref parm not same as last ref parm, reset reference mask
-    if (RefParm->Pindex() != lastrefpindex) {
-      if ( RefParm->SetupIntegerMask(Mask0_)) {
-        mprinterr("Error: Clustering: Could not set up reference mask for %s\n",RefParm->c_str());
-        return 1;
-      }
-      refatoms = Mask0_.Nselected();
-      // NOTE: This copies in correct masses according to Mask0
-      SelectedRef.SetupFrameFromMask(Mask0_, RefParm->Atoms());
-      lastrefpindex = RefParm->Pindex();
-    }
-    // Get the current reference frame
-    RefFrame = ReferenceFrames_.GetFrame( nref );
-    // Set the selected atoms from the reference frame
-    SelectedRef.SetCoordinates(*RefFrame, Mask0_);
-    // If fitting, pre-center reference frame
-    if (!nofitrms_)
-      SelectedRef.CenterReference(Trans+3, useMass_);
-
-    // LOOP OVER TARGET FRAMES
-    for (int nframe=nref+1; nframe < totalref; nframe++) {
-      TgtParm = ReferenceFrames_.GetFrameParm( nframe );
-      // If the current frame parm not same as last frame parm, reset frame mask
-      if (TgtParm->Pindex() != lasttgtpindex) {
-        if ( TgtParm->SetupIntegerMask(Mask0_) ) {
-          mprinterr("Error: Clustering: Could not set up target mask for %s\n",TgtParm->c_str());
-          return 1;
-        }
-        // Check that num atoms in mask are the same
-        if (Mask0_.Nselected() != refatoms) {
-          mprintf("Warning: Clustering RMS: Num atoms in frame %i (%i) != num atoms \n",
-                    nframe+1, Mask0_.Nselected());
-          mprintf("Warning:   in frame %i (%i). Assigning an RMS of 10000.\n",
-                   nref+1, refatoms);
-          R = 10000;
-          Distances.AddElement( R );
-          continue;
-        }
-        // NOTE: This copies in correct masses according to Mask0
-        SelectedTgt.SetupFrameFromMask(Mask0_, TgtParm->Atoms());
-        lasttgtpindex = TgtParm->Pindex();
-      }
-      // Get the current target frame
-      TgtFrame = ReferenceFrames_.GetFrame( nframe );
-
-      // Set the selected atoms from the target frame
-      SelectedTgt.SetCoordinates(*TgtFrame, Mask0_);
-
-      // Perform RMS calculation
-      if (nofitrms_)
-        R = SelectedTgt.RMSD(SelectedRef, useMass_);
-      else 
-        R = SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass_);
-
-      Distances.AddElement( R );
-      // DEBUG
-      //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
-      ++current;
-    } // END loop over target frames
-  } // END loop over reference frames
-
-  return 0;
-}
-
-// Action_Clustering::ClusterHierAgglo()
+// Analysis_Clustering::ClusterHierAgglo()
 /** Cluster using a hierarchical agglomerative (bottom-up) approach. All frames
   * start in their own cluster. The closest two clusters are merged, and 
   * distances between the newly merged cluster and all remaining clusters are
@@ -360,7 +264,7 @@ int Action_Clustering::calcDistFromRmsd( TriangleMatrix& Distances) {
   * - average-linkage : The average distance between frames in clusters are used.
   * - complete-linkage: The maximum distance between frames in clusters are used.
   */
-int Action_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances, 
+int Analysis_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances, 
                                   ClusterList& CList) 
 {
   std::list<int> frames;
@@ -406,9 +310,9 @@ int Action_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances,
   return 0;
 }
 
-// Action_Clustering::CreateCnumvtime()
+// Analysis_Clustering::CreateCnumvtime()
 /** Put cluster number vs frame into dataset.  */
-void Action_Clustering::CreateCnumvtime( ClusterList &CList ) {
+void Analysis_Clustering::CreateCnumvtime( ClusterList &CList ) {
   // FIXME:
   // Cast generic DataSet for cnumvtime back to integer dataset to 
   // access specific integer dataset functions for resizing and []
@@ -438,9 +342,9 @@ void Action_Clustering::CreateCnumvtime( ClusterList &CList ) {
   }
 }
 
-// Action_Clustering::WriteClusterTraj()
+// Analysis_Clustering::WriteClusterTraj()
 /** Write frames in each cluster to a trajectory file.  */
-void Action_Clustering::WriteClusterTraj( ClusterList &CList ) {
+void Analysis_Clustering::WriteClusterTraj( ClusterList &CList ) {
   // Loop over all clusters
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); C++)
@@ -452,8 +356,8 @@ void Action_Clustering::WriteClusterTraj( ClusterList &CList ) {
     // Use parm from first frame of cluster (pot. dangerous)
     Trajout *clusterout = new Trajout;
     ClusterNode::frame_iterator frame = (*C).beginframe();
-    Topology *clusterparm = ReferenceFrames_.GetFrameParm( *frame );
-    if (clusterout->SetupTrajWrite(cfilename, NULL, clusterparm, clusterfmt_)) 
+    Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
+    if (clusterout->SetupTrajWrite(cfilename, 0, clusterparm, clusterfmt_)) 
     {
       mprinterr("Error: Clustering::WriteClusterTraj: Could not set up %s for write.\n",
                 cfilename.c_str());
@@ -463,10 +367,11 @@ void Action_Clustering::WriteClusterTraj( ClusterList &CList ) {
     //mprinterr("Cluster %i:\n",CList->CurrentNum());
     // Loop over all frames in cluster
     int framenum = 0;
+    Frame clusterframe( coords_->Top().Natom() );
     for (; frame != (*C).endframe(); frame++) {
       //mprinterr("%i,",*frame);
-      Frame *clusterframe = ReferenceFrames_.GetFrame( *frame );
-      clusterout->WriteFrame(framenum++, clusterparm, *clusterframe);
+      clusterframe.SetFromCRD( (*coords_)[*frame], coords_->NumBoxCrd() );
+      clusterout->WriteFrame(framenum++, clusterparm, clusterframe);
     }
     // Close traj
     clusterout->EndTraj();
@@ -476,9 +381,9 @@ void Action_Clustering::WriteClusterTraj( ClusterList &CList ) {
   }
 }
 
-// Action_Clustering::WriteSingleRepTraj()
+// Analysis_Clustering::WriteSingleRepTraj()
 /** Write representative frame of each cluster to a trajectory file.  */
-void Action_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
+void Analysis_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
   Trajout clusterout;
 
   // Find centroid of first cluster in order to set up parm
@@ -487,8 +392,8 @@ void Action_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
   int framenum = (*cluster).Centroid();
 
   // Set up trajectory file. Use parm from first frame of cluster (pot. dangerous)
-  Topology *clusterparm = ReferenceFrames_.GetFrameParm( framenum );
-  if (clusterout.SetupTrajWrite(singlerepfile_, NULL, clusterparm, singlerepfmt_)) 
+  Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
+  if (clusterout.SetupTrajWrite(singlerepfile_, 0, clusterparm, singlerepfmt_)) 
   {
     mprinterr("Error: Clustering::WriteSingleRepTraj: Could not set up %s for write.\n",
                 singlerepfile_.c_str());
@@ -496,16 +401,17 @@ void Action_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
   }
   // Write first cluster rep frame
   int framecounter = 0;
-  Frame *clusterframe = ReferenceFrames_.GetFrame( framenum );
-  clusterout.WriteFrame(framecounter++, clusterparm, *clusterframe);
+  Frame clusterframe( coords_->Top().Natom() );
+  clusterframe.SetFromCRD( (*coords_)[ framenum ], coords_->NumBoxCrd() );
+  clusterout.WriteFrame(framecounter++, clusterparm, clusterframe);
 
   ++cluster;
   for (; cluster != CList.endcluster(); cluster++) {
     //mprinterr("Cluster %i: ",CList->CurrentNum());
    framenum = (*cluster).Centroid();
    //mprinterr("%i\n",framenum);
-   clusterframe = ReferenceFrames_.GetFrame( framenum );
-   clusterout.WriteFrame(framecounter++, clusterparm, *clusterframe);
+   clusterframe.SetFromCRD( (*coords_)[framenum], coords_->NumBoxCrd() );
+   clusterout.WriteFrame(framecounter++, clusterparm, clusterframe);
     //mprinterr("\n");
     //break;
   }
@@ -513,11 +419,11 @@ void Action_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
   clusterout.EndTraj();
 }
 
-// Action_Clustering::WriteRepTraj()
+// Analysis_Clustering::WriteRepTraj()
 /** Write representative frame of each cluster to a separate trajectory file,
   * repfile.REPNUM.FMT
   */
-void Action_Clustering::WriteRepTraj( ClusterList &CList ) {
+void Analysis_Clustering::WriteRepTraj( ClusterList &CList ) {
   // Create trajectory file object
   std::string tmpExt = TrajectoryFile::GetExtensionForType(reptrajfmt_);
 
@@ -531,7 +437,7 @@ void Action_Clustering::WriteRepTraj( ClusterList &CList ) {
     std::string cfilename = reptrajfile_ + "." + integerToString(framenum+1) + tmpExt;
     // Set up trajectory file. 
     // Use parm from first frame of cluster (pot. dangerous)
-    Topology *clusterparm = ReferenceFrames_.GetFrameParm( framenum );
+    Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: Fix cast
     if (clusterout->SetupTrajWrite(cfilename, NULL, clusterparm, reptrajfmt_)) 
     {
       mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
@@ -540,16 +446,17 @@ void Action_Clustering::WriteRepTraj( ClusterList &CList ) {
        return;
     }
     // Write cluster rep frame
-    Frame *clusterframe = ReferenceFrames_.GetFrame( framenum );
-    clusterout->WriteFrame(framenum, clusterparm, *clusterframe);
+    Frame clusterframe( coords_->Top().Natom() );
+    clusterframe.SetFromCRD( (*coords_)[framenum], coords_->NumBoxCrd() );
+    clusterout->WriteFrame(framenum, clusterparm, clusterframe);
     // Close traj
     clusterout->EndTraj();
     delete clusterout;
   }
 }
 
-// Action_Clustering::calcDistFromDataset()
-void Action_Clustering::calcDistFromDataset( TriangleMatrix &Distances ) {
+// Analysis_Clustering::calcDistFromDataset()
+void Analysis_Clustering::calcDistFromDataset( TriangleMatrix &Distances ) {
   int N = cluster_dataset_->Size();
   //mprintf("DEBUG: xmax is %i\n",N);
   Distances.Setup(N);

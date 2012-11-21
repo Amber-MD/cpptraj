@@ -29,7 +29,7 @@ class Topology {
     int Nframes() const;
     int Ntypes() const;
     void IncreaseFrames(int);
-    const char *c_str();
+    const char *c_str() const;
     std::string ParmName() const;
     std::string OriginalFilename();
     std::string GBradiiSet() const;
@@ -45,7 +45,7 @@ class Topology {
     atom_iterator MolAtomStart(int) const;
     atom_iterator MolAtomEnd(int) const;
     const Atom &operator[](int) const;
-    std::vector<Atom> const& Atoms() { return atoms_; }
+    std::vector<Atom> const& Atoms() const { return atoms_; }
     // ----- Residue-specific routines -----
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
@@ -139,10 +139,10 @@ class Topology {
     void ClearBondInfo();
     void AddBond(int,int);
     // ----- Mask Routines -----
-    bool SetupIntegerMask(AtomMask &);
-    bool SetupCharMask(AtomMask &);
-    bool SetupIntegerMask(AtomMask &, Frame &);
-    bool SetupCharMask(AtomMask &, Frame &);
+    bool SetupIntegerMask(AtomMask &) const;
+    bool SetupCharMask(AtomMask &) const;
+    bool SetupIntegerMask(AtomMask &, Frame const&) const;
+    bool SetupCharMask(AtomMask &, Frame const&) const;
     // ----- Topology modification routines -----
     Topology *modifyStateByMask(AtomMask &);
     Topology *ModifyByMap(std::vector<int>&);
@@ -210,17 +210,17 @@ class Topology {
     void DetermineExcludedAtoms();
     int SetSolventInfo();
 
-    void Mask_SelectDistance( Frame &, char*, bool, bool, double );
-    void Mask_AND(char*,char*);
-    void Mask_OR(char*,char*);
-    void Mask_NEG(char*);
-    void MaskSelectResidues(NameType const&, char *);
-    void MaskSelectResidues(int, int, char *);
-    void MaskSelectElements( NameType const&, char* );
-    void MaskSelectTypes( NameType const& , char* );
-    void MaskSelectAtoms(NameType const&, char*);
-    void MaskSelectAtoms(int, int, char*);
-    bool ParseMask(Frame &, AtomMask &,bool);
+    void Mask_SelectDistance( Frame const&, char*, bool, bool, double ) const;
+    void Mask_AND(char*,char*) const;
+    void Mask_OR(char*,char*) const;
+    void Mask_NEG(char*) const;
+    void MaskSelectResidues(NameType const&, char *) const;
+    void MaskSelectResidues(int, int, char *) const;
+    void MaskSelectElements( NameType const&, char* ) const;
+    void MaskSelectTypes( NameType const& , char* ) const;
+    void MaskSelectAtoms(NameType const&, char*) const;
+    void MaskSelectAtoms(int, int, char*) const;
+    bool ParseMask(Frame const&, AtomMask &,bool) const;
 
     std::vector<int> SetupSequentialArray(std::vector<int>&, int, std::vector<int>&);
 };

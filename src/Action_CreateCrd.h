@@ -15,7 +15,6 @@ class Action_CreateCrd : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
 
     DataSet_Coords* coords_;
-    std::string maskexpr_;
     int pindex_;
 };
 #endif

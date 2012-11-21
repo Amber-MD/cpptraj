@@ -2,7 +2,6 @@
 #include "ActionList.h"
 #include "CpptrajStdio.h"
 // All action classes go here
-// TODO: Re-enable actions
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
 #include "Action_Dihedral.h"
@@ -20,19 +19,16 @@
 #include "Action_NAstruct.h"
 #include "Action_Pucker.h"
 #include "Action_Outtraj.h"
-#include "Action_Rms2d.h"
 #include "Action_Average.h"
 #include "Action_Radial.h"
 #include "Action_DistRmsd.h"
 #include "Action_Jcoupling.h"
-#include "Action_Clustering.h"
 #include "Action_Pairwise.h"
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
 #include "Action_DihedralScan.h"
 #include "Action_Rotdif.h"
 #include "Action_RunningAvg.h"
-#include "Action_RmsAvgCorr.h"
 #include "Action_AtomicFluct.h"
 #include "Action_Watershell.h"
 #include "Action_AvgCoord.h"
@@ -60,7 +56,6 @@
 #include "Action_CreateCrd.h"
 
 const DispatchObject::Token ActionList::DispatchArray[] = {
-  { DispatchObject::ACTION, "2drms", Action_Rms2d::Alloc, Action_Rms2d::Help, 0 },
   { DispatchObject::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, 0 },
   { DispatchObject::ACTION, "atomiccorr", Action_AtomicCorr::Alloc, Action_AtomicCorr::Help, 0 },
   { DispatchObject::ACTION, "atomicfluct", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, 0 },
@@ -74,7 +69,6 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
   { DispatchObject::ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
   { DispatchObject::ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, 0 },
-  { DispatchObject::ACTION, "cluster", Action_Clustering::Alloc, Action_Clustering::Help, 0 },
   { DispatchObject::ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, 0 },
   { DispatchObject::ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, 0 },
   { DispatchObject::ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, 0 },
@@ -103,10 +97,8 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, 0 },
   { DispatchObject::ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, 0 },
   { DispatchObject::ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, 0 },
-  { DispatchObject::ACTION, "rms2d", Action_Rms2d::Alloc, Action_Rms2d::Help, 0 },
   { DispatchObject::ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, 0 },
   { DispatchObject::ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, 0 },
-  { DispatchObject::ACTION, "rmsavgcorr", Action_RmsAvgCorr::Alloc, Action_RmsAvgCorr::Help, 0 },
   { DispatchObject::ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, 0 },
   { DispatchObject::ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, 0 },
   { DispatchObject::ACTION, "rotdif", Action_Rotdif::Alloc, Action_Rotdif::Help, 0 },

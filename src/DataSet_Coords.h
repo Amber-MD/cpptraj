@@ -4,27 +4,24 @@
 #include "Topology.h"
 class DataSet_Coords : public DataSet {
   public:
-    typedef std::vector<float> CRD;
     DataSet_Coords();
-    ~DataSet_Coords();
-
+    // DataSet routines
     int Allocate(int);
-    int Xmax() { return (int)(coords_.size() - 1); }
     int Size() { return (int)coords_.size(); }
     void Info();
-
+    /// Add a frame
     void AddFrame(Frame const&);
+    /// Set frame at position
     void SetFrame(int, Frame const&);
-    int SetupTopMask(std::string const&, Topology&);
-    int Natom()                    { return top_->Natom(); }
-    const AtomMask& Mask()         { return mask_;         }
-    const CRD& operator[](int idx) { return coords_[idx];  }
-    Topology* Top()                { return top_;          }
-    void SetTop(Topology*);
+    /// Set topology and number of box coords.
+    void SetTopology(Topology const&);
+    Topology const& Top()                     { return top_;          }
+    size_t NumBoxCrd()                        { return numBoxCrd_;    }
+    const Frame::CRDtype& operator[](int idx) { return coords_[idx];  }
   private:
-    AtomMask mask_;                    ///< Mask
-    Topology* top_;                    ///< Associated topology corresponding to mask.
-    typedef std::vector<CRD> CRDarray;
-    CRDarray coords_;                  ///< Array of coordinates.
+    typedef std::vector<Frame::CRDtype> CRDarray;
+    CRDarray coords_;                  ///< Array of coordinate frames.
+    Topology top_;                     ///< Topology corresponding to coordinates.
+    size_t numBoxCrd_;                 ///< Number of box coords (0 or 6).
 };
 #endif

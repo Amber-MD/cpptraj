@@ -713,6 +713,6 @@ int AtomMask::ConvertMaskType() {
   return 0;
 }
 
-void AtomMask::MaskInfo() {
+void AtomMask::MaskInfo() const {
   mprintf("\tMask [%s] corresponds to %i atoms.\n", maskString_.c_str(), nselected_);
 }
