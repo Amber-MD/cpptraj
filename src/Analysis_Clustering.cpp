@@ -26,7 +26,7 @@ Analysis_Clustering::Analysis_Clustering() :
 { } 
 
 void Analysis_Clustering::Help() {
-  mprintf("cluster <dataset> [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
+  mprintf("cluster <crd set> [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
   mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit]\n");
   mprintf("        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n");
   mprintf("        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
@@ -34,6 +34,7 @@ void Analysis_Clustering::Help() {
   mprintf("        [ repout <repprefix> [repfmt <repfmt>] ]\n");
   mprintf("        [data <dsetname>]\n");
   mprintf("\tCluster structures based on RMSD or a given DataFile.\n");
+  mprintf("<crd set> can be created with the 'createcrd' command.\n");
 }
 
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";

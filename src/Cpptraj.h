@@ -62,6 +62,7 @@ class Cpptraj {
     int Select(ArgList&);
     int CrdAction(ArgList&);
     int CrdOut(ArgList&);
+    int CrdAnalyze(ArgList&);
 
     static const DispatchObject::Token GeneralCmds[];
     static const DispatchObject::Token CoordCmds[];

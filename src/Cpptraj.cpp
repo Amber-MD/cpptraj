@@ -147,12 +147,13 @@ void Cpptraj::Help_CrdOut() {
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
                        SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
                        SELECT, SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA,
-                       CLEAR, CRDACTION, CRDOUT };
+                       CLEAR, CRDACTION, CRDOUT, CRDANALYZE };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef,       ACTIVEREF    },
   { DispatchObject::GENERAL, "clear",         0, Help_Clear,           CLEAR        },
   { DispatchObject::GENERAL, "crdaction",     0, Help_CrdAction,       CRDACTION    },
+  { DispatchObject::GENERAL, "crdanalyze",    0, 0,                    CRDANALYZE   },
   { DispatchObject::GENERAL, "crdout",        0, Help_CrdOut,          CRDOUT       },
   { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE       },
   { DispatchObject::GENERAL, "datafile",      0, 0,                    DATAFILE     },
@@ -640,6 +641,23 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   return 0;
 }
 
+int Cpptraj::CrdAnalyze(ArgList& argIn) {
+  ArgList analyzeargs = argIn.RemainingArgs();
+  analyzeargs.MarkArg(0);
+  DispatchObject::TokenPtr tkn = SearchTokenArray( AnalysisList::DispatchArray, analyzeargs);
+  if ( tkn == 0 ) return 1;
+  Analysis* ana = (Analysis*)tkn->Alloc();
+  if (ana == 0) return 1;
+  if ( ana->Setup( analyzeargs, &DSL, &parmFileList, debug_ ) != Analysis::OK ) {
+    delete ana;
+    return 1;
+  }
+  if (ana->Analyze() == Analysis::OK)
+    ana->Print(&DFL);
+  delete ana;
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // Cpptraj::ListAllCommands()
 /** List all commands in the given token array. */
@@ -947,15 +965,16 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
         break;
       case DispatchObject::GENERAL :
         switch ( dispatchToken->Idx ) {
-          case HELP     : Help(command); break;
-          case LIST     : List(command); break;
-          case DEBUG    : Debug(command); break;
-          case CLEAR    : Clear(command); break;
-          case CRDACTION: err = CrdAction(command); break;
-          case CRDOUT   : err = CrdOut(command); break;
-          case SELECT   : err = Select(command); break; 
-          case SELECTDS : SelectDS(command); break;
-          case NOPROG   : 
+          case HELP      : Help(command); break;
+          case LIST      : List(command); break;
+          case DEBUG     : Debug(command); break;
+          case CLEAR     : Clear(command); break;
+          case CRDACTION : err = CrdAction(command); break;
+          case CRDOUT    : err = CrdOut(command); break;
+          case CRDANALYZE: err = CrdAnalyze(command); break;
+          case SELECT    : err = Select(command); break; 
+          case SELECTDS  : SelectDS(command); break;
+          case NOPROG    : 
             showProgress_ = false; 
             mprintf("\tProgress bar will not be shown.\n");
             break;
@@ -963,13 +982,13 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
             exitOnError_ = false;
             mprintf("\tcpptraj will attempt to ignore errors if possible.\n");
             break;
-          case ACTIVEREF: refFrames.SetActiveRef( command.getNextInteger(0) ); break;
-          case READDATA : err = ReadData( command ); break;
-          case READINPUT:
+          case ACTIVEREF : refFrames.SetActiveRef( command.getNextInteger(0) ); break;
+          case READDATA  : err = ReadData( command ); break;
+          case READINPUT :
             switch (ProcessInput( command.GetStringNext() )) {
-              case C_ERR : if ( exitOnError_ ) return C_ERR; break;
-              case C_QUIT: return C_QUIT; break;
-              default    : break;
+              case C_ERR  : if ( exitOnError_ ) return C_ERR; break;
+              case C_QUIT : return C_QUIT; break;
+              default     : break;
             } 
             break;
           case CREATE      : err = Create_DataFile( command ); break;

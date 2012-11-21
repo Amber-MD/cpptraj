@@ -16,9 +16,12 @@ Analysis_Rms2d::Analysis_Rms2d() :
 { } 
 
 void Analysis_Rms2d::Help() {
-  mprintf("rms2d <crd_set> [<mask>] rmsout <filename> [nofit] [mass]\n");
+  mprintf("rms2d <crd set> [<mask>] rmsout <filename> [nofit] [mass]\n");
   mprintf("      [reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n");
   mprintf("      [corr <corrfilename>]\n");
+  mprintf("\tCalculate RMSD between all frames in <crd set>, or between frames in\n");
+  mprintf("<crd set> and frames in <traj>.\n");
+  mprintf("<crd set> can be created with the 'createcrd' command.\n");
 }
 
 Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
@@ -34,6 +37,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   if (coords_ == 0) {
     mprinterr("Error: rms2d: Could not locate COORDS set corresponding to %s\n",
               setname.c_str());
+    Help();
     return Analysis::ERR;
   }
   // Get keywords

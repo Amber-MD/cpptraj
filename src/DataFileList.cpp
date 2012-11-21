@@ -14,6 +14,7 @@ void DataFileList::Clear() {
   for (df_iterator it = fileList_.begin(); it != fileList_.end(); it++)
     delete *it;
   fileList_.clear();
+  FileList::Clear();
 }
 
 // DataFileList::SetDebug()

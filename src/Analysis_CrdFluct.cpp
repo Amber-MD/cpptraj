@@ -11,7 +11,8 @@ Analysis_CrdFluct::Analysis_CrdFluct() :
 {}
 
 void Analysis_CrdFluct::Help() {
-  mprintf("crdfluct <crd set name> [<mask>] [out <filename>] [window <size>]\n");
+  mprintf("crdfluct <crd set> [<mask>] [out <filename>] [window <size>]\n");
+  mprintf("<crd set> can be created with the 'createcrd' command.\n");
 }
 
 // Analysis_CrdFluct::Setup()

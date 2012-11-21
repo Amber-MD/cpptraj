@@ -15,6 +15,7 @@ Analysis_RmsAvgCorr::Analysis_RmsAvgCorr() :
 
 void Analysis_RmsAvgCorr::Help() {
   mprintf("rmsavgcorr <crd set> [<mask>] [out <filename>] [output <separatename>]\n");
+  mprintf("<crd set> can be created with the 'createcrd' command.\n");
 }
 
 Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
