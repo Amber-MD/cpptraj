@@ -16,7 +16,7 @@ Analysis_Rms2d::Analysis_Rms2d() :
 { } 
 
 void Analysis_Rms2d::Help() {
-  mprintf("rms2d <crd set> [<mask>] rmsout <filename> [nofit] [mass]\n");
+  mprintf("rms2d <crd set> [<mask>] rmsout <filename> [nofit] [mass] [dme]\n");
   mprintf("      [reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n");
   mprintf("      [corr <corrfilename>]\n");
   mprintf("\tCalculate RMSD between all frames in <crd set>, or between frames in\n");
@@ -53,6 +53,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     }
     mode_ = REFTRAJ; 
   }
+  if (analyzeArgs.hasKey("dme")) mode_ = DME;
   // Check for correlation; if so, reftraj not supported
   corrfilename_ = analyzeArgs.GetStringKey("corr");
   if (!corrfilename_.empty() && mode_ == REFTRAJ) {
@@ -101,14 +102,18 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     mprintf(", mask [%s]", maskexpr_.c_str());
   else
     mprintf(", all atoms");
-  if (mode_ == REFTRAJ) {
-    mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_.FullTrajStr(),
-            RefMask_.MaskString(), RefTraj_.TotalReadFrames());
+  switch (mode_) {
+    case REFTRAJ:
+      mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_.FullTrajStr(),
+              RefMask_.MaskString(), RefTraj_.TotalReadFrames());
+      break;
+    case DME: mprintf(", using DME"); break;
+    case NORMAL: // RMSD
+      if (nofit_)
+        mprintf(" (no fitting)");
+      if (useMass_)
+        mprintf(" (mass-weighted)");
   }
-  if (nofit_)
-    mprintf(" (no fitting)");
-  if (useMass_)
-    mprintf(" (mass-weighted)");
   if (!rmsdFile_.empty()) 
     mprintf(" output to %s",rmsdFile_.c_str());
   mprintf("\n");
@@ -167,6 +172,46 @@ int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distance
         R = (float) TgtFrame.RMSD_CenteredRef(RefFrame, U, Trans, useMassIn);
       }
       Distances.AddElement( R );
+      // DEBUG
+      //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
+    } // END loop over target frames
+  } // END loop over reference frames
+
+  return 0;
+}
+
+// Analysis_Rms2d::CalcDME()
+int Analysis_Rms2d::CalcDME(DataSet_Coords& coordsIn, TriangleMatrix& Distances,
+                            std::string const& maskexpr) 
+{
+  int totalref = coordsIn.Size();
+  Distances.Setup( totalref );
+  int max = Distances.Nelements();
+  mprintf("  RMS2D: Calculating DMEs between each frame (%i total).\n  ",max);
+
+  // Set up progress Bar
+  ProgressBar progress(totalref - 1);
+  // Set up mask
+  AtomMask tgtmask( maskexpr );
+  if (coordsIn.Top().SetupIntegerMask( tgtmask )) return 1;
+  tgtmask.MaskInfo();
+  if (tgtmask.None()) return 1;
+  // Set up target and reference frames basd on mask
+  Frame RefFrame;
+  RefFrame.SetupFrameFromMask( tgtmask, coordsIn.Top().Atoms() );
+  Frame TgtFrame = RefFrame;
+
+  // LOOP OVER REFERENCE FRAMES
+  for (int nref=0; nref < totalref - 1; nref++) {
+    progress.Update(nref);
+    // Get the current reference frame - no box crd
+    RefFrame.SetFromCRD(coordsIn[nref], 0, tgtmask);
+    // LOOP OVER TARGET FRAMES
+    for (int nframe=nref+1; nframe < totalref; nframe++) {
+      // Get the current target frame
+      TgtFrame.SetFromCRD(coordsIn[nframe], 0, tgtmask);
+      // Perform DME calc
+      Distances.AddElement( (float)TgtFrame.DISTRMSD(RefFrame) );
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
     } // END loop over target frames
@@ -274,11 +319,19 @@ int Analysis_Rms2d::CalcRmsToTraj() {
 /** Perform the rms calculation of each frame to each other frame. */
 Analysis::RetType Analysis_Rms2d::Analyze() {
   int err = 0;
-  if (mode_ ==  NORMAL) { 
-    err = Calc2drms( *coords_, *((TriangleMatrix*)rmsdataset_), nofit_, useMass_, maskexpr_ );
-    if (Ct_ != 0) CalcAutoCorr( *((TriangleMatrix*)rmsdataset_) );
-  } else
-    err = CalcRmsToTraj();
+  switch (mode_) {
+    case NORMAL:
+      err = Calc2drms( *coords_, *((TriangleMatrix*)rmsdataset_), nofit_, useMass_, maskexpr_ );
+      if (Ct_ != 0) CalcAutoCorr( *((TriangleMatrix*)rmsdataset_) );
+      break;
+    case REFTRAJ: 
+      err = CalcRmsToTraj(); 
+      break;
+    case DME: 
+      err = CalcDME( *coords_, *((TriangleMatrix*)rmsdataset_), maskexpr_ ); 
+      if (Ct_ != 0) CalcAutoCorr( *((TriangleMatrix*)rmsdataset_) );
+      break;
+  }
   if (err != 0) return Analysis::ERR;
   return Analysis::OK;
 }

@@ -31,6 +31,7 @@ class Analysis_Clustering: public Analysis {
     std::string reptrajfile_;         ///< Cluster rep to separate trajectory filename.
     std::string clusterinfo_;         ///< Name for Ptraj-like cluster output file.
     bool nofitrms_;             ///< If true do not best-fit when calc RMSD.
+    bool usedme_;
     bool useMass_;
     bool grace_color_;          ///< If true print grace colors instead of cluster number
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found

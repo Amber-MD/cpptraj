@@ -17,12 +17,13 @@ class Analysis_Rms2d: public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Rms2d(); }
     static void Help();
     static int Calc2drms(DataSet_Coords&, TriangleMatrix&,bool,bool,std::string const&);
+    static int CalcDME(DataSet_Coords&, TriangleMatrix&, std::string const&);
 
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
     Analysis::RetType Analyze();
     void Print(DataFileList*);
   private:
-    enum ModeType { NORMAL = 0, REFTRAJ };
+    enum ModeType { NORMAL = 0, REFTRAJ, DME };
     ModeType mode_;
     DataSet_Coords* coords_;   ///< Hold coords from input frames.
     bool nofit_;               ///< Do not perform rms fitting

@@ -15,6 +15,7 @@ Analysis_Clustering::Analysis_Clustering() :
   sieve_(1),
   cnumvtime_(0),
   nofitrms_(false),
+  usedme_(false),
   useMass_(false),
   grace_color_(false),
   load_pair_(true),
@@ -27,7 +28,7 @@ Analysis_Clustering::Analysis_Clustering() :
 
 void Analysis_Clustering::Help() {
   mprintf("cluster <crd set> [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
-  mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit]\n");
+  mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit] [dme]\n");
   mprintf("        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n");
   mprintf("        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
@@ -70,16 +71,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   targetNclusters_ = analyzeArgs.getKeyInt("clusters",-1);
   sieve_ = analyzeArgs.getKeyInt("sieve",1);
   epsilon_ = analyzeArgs.getKeyDouble("epsilon",-1.0);
-  if (analyzeArgs.hasKey("linkage")) Linkage_=ClusterList::SINGLELINK;
-  if (analyzeArgs.hasKey("averagelinkage")) Linkage_=ClusterList::AVERAGELINK;
-  if (analyzeArgs.hasKey("complete")) Linkage_=ClusterList::COMPLETELINK;
+  if (analyzeArgs.hasKey("linkage")) Linkage_ = ClusterList::SINGLELINK;
+  if (analyzeArgs.hasKey("averagelinkage")) Linkage_ = ClusterList::AVERAGELINK;
+  if (analyzeArgs.hasKey("complete")) Linkage_ = ClusterList::COMPLETELINK;
   cnumvtimefile_ = analyzeArgs.GetStringKey("out");
   clusterinfo_ = analyzeArgs.GetStringKey("info");
   summaryfile_ = analyzeArgs.GetStringKey("summary");
   halffile_ = analyzeArgs.GetStringKey("summaryhalf");
-  if (analyzeArgs.hasKey("nofit")) nofitrms_=true;
-  if (analyzeArgs.hasKey("gracecolor")) grace_color_=true;
-  if (analyzeArgs.hasKey("noload")) load_pair_=false;
+  nofitrms_ = analyzeArgs.hasKey("nofit");
+  usedme_ = analyzeArgs.hasKey("dme");
+  grace_color_ = analyzeArgs.hasKey("gracecolor");
+  load_pair_ = !analyzeArgs.hasKey("noload");
   // Output trajectory stuff
   clusterfile_ = analyzeArgs.GetStringKey("clusterout");
   clusterfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("clusterfmt") ); 
@@ -192,7 +194,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     }
   } 
   if (pairdist_mode == 0) { // Get RMSDs between frames
-    Analysis_Rms2d::Calc2drms(*coords_, Distances, nofitrms_, useMass_, maskexpr_);
+    if (usedme_)
+      Analysis_Rms2d::CalcDME(*coords_, Distances, maskexpr_);
+    else
+      Analysis_Rms2d::Calc2drms(*coords_, Distances, nofitrms_, useMass_, maskexpr_);
     Distances.SaveFile( PAIRDISTFILE );
   } 
 
