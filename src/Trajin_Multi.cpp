@@ -472,6 +472,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
   while ( !tgtFrameFound ) {
     FrameArray::iterator frame = f_ensemble.begin();
     RemdIdxType::iterator fidx = frameidx_.begin();
+    badEnsemble_ = false;
     // Read in all replicas
     //mprintf("DBG: Ensemble frame %i:",CurrentFrame()+1); // DEBUG
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
@@ -481,7 +482,10 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
         return 0;
       // TODO: Indices read
       TmapType::iterator tmap = TemperatureMap_.find( (*frame).Temperature() );
-      *fidx = (*tmap).second;
+      if (tmap ==  TemperatureMap_.end())
+        badEnsemble_ = true;
+      else
+        *fidx = (*tmap).second;
       //mprintf(" %.2f[%i]", (*frame).Temperature(), *fidx ); // DEBUG
       ++fidx;
       ++frame;

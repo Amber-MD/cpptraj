@@ -20,6 +20,7 @@ class Trajin_Multi : public Trajin {
     int GetNextEnsemble( FrameArray& );
     int EnsembleSize() { return (int)REMDtraj_.size(); }
     int EnsemblePosition(int member) { return frameidx_[member]; }
+    bool BadEnsemble() { return badEnsemble_; }
   private:
     /// Define type that will hold REMD indices
     typedef std::vector<int> RemdIdxType;
@@ -36,6 +37,7 @@ class Trajin_Multi : public Trajin {
     bool hasVelocity_;        ///< True if all trajs have velocities.
     bool isEnsemble_;         ///< True if this will be processed as an ensemble.
     bool replicasAreOpen_;    ///< True is replicas are open.
+    bool badEnsemble_;        ///< True if problem with any frames in the ensemble
     TargetType targetType_;   ///< Hold type of REMD frame being searched for.
     NameListType replica_filenames_;
     // ENSEMBLE
