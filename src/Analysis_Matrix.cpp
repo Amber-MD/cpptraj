@@ -48,7 +48,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   thermopt_ = analyzeArgs.hasKey("thermo");
   if (thermopt_)
     outthermo_ = analyzeArgs.GetStringKey("outthermo");
-  if (thermopt_ && matrix_->Mass()==0) {
+  if (thermopt_ && matrix_->Type()!=DataSet_Matrix::MWCOVAR) {
     mprinterr("Error: analyze matrix: parameter 'thermo' only works for\n");
     mprinterr("       mass-weighted covariance matrix ('mwcovar').\n");
     return Analysis::ERR;
@@ -109,6 +109,10 @@ Analysis::RetType Analysis_Matrix::Analyze() {
   // Calculate eigenvalues / eigenvectors
   if (modes_->CalcEigen( *matrix_, nevec_ )) return Analysis::ERR;
   if (matrix_->Type() == DataSet_Matrix::MWCOVAR) {
+    if ( matrix_->Mass() == 0) {
+      mprinterr("Error: MWCOVAR Matrix %s does not have mass info.\n", matrix_->Legend().c_str());
+      return Analysis::ERR;
+    }
     // Convert eigenvalues to cm^-1
     if (modes_->EigvalToFreq()) return Analysis::ERR;
     // Mass-wt eigenvectors
