@@ -1147,18 +1147,22 @@ int Cpptraj::RunEnsemble() {
     (*traj)->PrintInfoLine();
     Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
     while ( mtraj->GetNextEnsemble(FrameEnsemble) ) {
-      // Loop over all members of the ensemble
-      for (int member = 0; member < ensembleSize; ++member) {
-        // Get this members current position
-        int pos = mtraj->EnsemblePosition( member );
-        // Since Frame can be modified by actions, save original and use CurrentFrame
-        Frame* CurrentFrame = &(FrameEnsemble[member]);
-        // Perform Actions on Frame
-        bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
-        // Do Output
-        if (!suppress_output) 
-          TrajoutEnsemble[pos].Write(actionSet, CurrentParm, CurrentFrame);
-      } // END loop over ensemble
+      if (!mtraj->BadEnsemble()) {
+        // Loop over all members of the ensemble
+        for (int member = 0; member < ensembleSize; ++member) {
+          // Get this members current position
+          int pos = mtraj->EnsemblePosition( member );
+          // Since Frame can be modified by actions, save original and use CurrentFrame
+          Frame* CurrentFrame = &(FrameEnsemble[member]);
+          // Perform Actions on Frame
+          bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
+          // Do Output
+          if (!suppress_output) 
+            TrajoutEnsemble[pos].Write(actionSet, CurrentParm, CurrentFrame);
+        } // END loop over ensemble
+      } else {
+        mprinterr("Error: Could not read frame %i for ensemble.\n", actionSet + 1);
+      }
       // Increment frame counter
       ++actionSet;
     }
