@@ -7,6 +7,8 @@ class Trajin_Single : public Trajin {
     Trajin_Single();
     ~Trajin_Single();
 
+    int SetupTrajRead(std::string const&, ArgList *, Topology *, bool);
+
     int SetupTrajRead(std::string const&, ArgList *, Topology *);
     int BeginTraj(bool);
     void EndTraj();

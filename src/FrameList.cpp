@@ -62,8 +62,8 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   // Check if we want to obtain the average structure
   bool average = argIn.hasKey("average");
 
-  // Set up trajectory
-  if ( traj.SetupTrajRead( argIn.GetStringNext(), &argIn, parmIn ) ) {
+  // Set up trajectory - false = do not modify box info
+  if ( traj.SetupTrajRead( argIn.GetStringNext(), &argIn, parmIn, false ) ) {
     mprinterr("Error: reference: Could not set up trajectory.\n");
     return 1;
   }
