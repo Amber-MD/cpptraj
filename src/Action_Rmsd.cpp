@@ -73,7 +73,7 @@ void Action_Rmsd::SetRefStructure( Frame& frameIn ) {
   RefFrame_ = frameIn;
   SelectedRef_.SetCoordinates( RefFrame_, RefMask_ );
   if (!nofit_)
-    SelectedRef_.CenterReference( Trans_+3, useMass_ );
+    refTrans_ = SelectedRef_.CenterReference( useMass_ );
 }
 
 void Action_Rmsd::Help() {
@@ -398,7 +398,8 @@ Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress
   * and puts the translation from origin to reference in Trans[3-5]. 
   */
 Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double R, U[9];
+  double R;
+  Matrix_3x3 U;
 
   // Perform any needed reference actions
   if (refmode_ == FIRST) {
@@ -408,7 +409,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
     RefTraj_.GetNextFrame( RefFrame_ );
     SelectedRef_.SetCoordinates(RefFrame_, RefMask_);
     if (!nofit_)
-      SelectedRef_.CenterReference(Trans_+3, useMass_);
+      refTrans_ = SelectedRef_.CenterReference(useMass_);
   }
 
   // Set selected frame atoms. Masses have already been set.
@@ -422,15 +423,13 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
 */
 
   if (nofit_) {
-    R = SelectedFrame_.RMSD(SelectedRef_, useMass_);
+    R = SelectedFrame_.RMSD_NoFit(SelectedRef_, useMass_);
   } else {
     R = SelectedFrame_.RMSD_CenteredRef(SelectedRef_, U, Trans_, useMass_);
     if (rotate_)
-      currentFrame->Trans_Rot_Trans(Trans_, U);
+      currentFrame->Trans_Rot_Trans(Trans_, U, refTrans_);
     else {
-      Trans_[0] += Trans_[3];
-      Trans_[1] += Trans_[4];
-      Trans_[2] += Trans_[5];
+      Trans_ += refTrans_;
       currentFrame->Translate(Trans_);
     }
   }
@@ -453,7 +452,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
         ResFrame_->ShiftToGeometricCenter( );
         ResRefFrame_->ShiftToGeometricCenter( );
       }
-      R = ResFrame_->RMSD(*ResRefFrame_, useMass_);
+      R = ResFrame_->RMSD_NoFit(*ResRefFrame_, useMass_);
       //mprintf("DEBUG:           [%4i] Res [%s] nofit RMSD to [%s] = %lf\n",N,
       //        tgtResMask[N]->MaskString(),refResMask[N]->MaskString(),R);
       PerResRMSD_[N]->Add(frameNum, &R);

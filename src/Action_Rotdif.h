@@ -73,7 +73,7 @@ class Action_Rotdif: public Action {
     // Variables used by the random number generator
     Random_Number RNgen_;
 
-    std::vector<double*> Rmatrices_; ///< Store rotation matrices
+    std::vector<Matrix_3x3> Rmatrices_; ///< Store rotation matrices
     double *random_vectors_;         ///< Hold nvecs random vectors
     double *D_eff_;                  ///< Hold calculated effective D values for each vector
     std::vector<double> tau1_;       ///< Hold tau for l=1, full anisotropy

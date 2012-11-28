@@ -26,7 +26,7 @@ int Parm_Mol2::ReadParm(std::string const& fname, Topology &parmOut) {
   for (int atom=0; atom < infile.Mol2Natoms(); atom++) {
     if ( infile.Mol2XYZ(XYZ) ) return 1;
     NameType mol2resname = infile.Mol2Residue(current_res);
-    parmOut.AddAtom( infile.Mol2Atom(), mol2resname, current_res, last_res, XYZ );
+    parmOut.AddTopAtom( infile.Mol2Atom(), mol2resname, current_res, last_res, XYZ );
   }
 
   // Get @<TRIPOS>BOND information [optional]

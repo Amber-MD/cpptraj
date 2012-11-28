@@ -59,7 +59,6 @@ void Action_NAstruct::ClearLists() {
   * coords. This sets up the reference axes for each base.
   */
 int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
-  double rmsd, RotMatrix[9], TransVec[6];
   Frame refFrame(maxResSize_); // Hold copy of base reference coords for RMS fit
   Frame inpFrame(maxResSize_); // Hold copy of input base coords for RMS fit
 # ifdef NASTRUCTDEBUG
@@ -106,10 +105,12 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
      * appropriate rotation and translations that will put the reference coords 
      * on top of input (experimental) coords. Per 3DNA procedure, not all 
      * reference atoms are used in the RMS fit; only ring atoms are used. 
-     */
+     */ 
+    Matrix_3x3 RotMatrix;
+    Vec3 TransVec, refTrans;
     refFrame.SetCoordinatesByMask( RefCoords[base].xAddress(), FitMasks[base] );
     inpFrame.SetCoordinatesByMask( BaseAxes[base].xAddress(), FitMasks[base] );
-    rmsd = refFrame.RMSD( inpFrame, RotMatrix, TransVec, false);
+    double rmsd = refFrame.RMSD( inpFrame, RotMatrix, TransVec, refTrans, false);
     /* RotMatrix and TransVec now contain rotation and translation
      * that will orient refcoord to expframe. The first translation is that of
      * the reference frame to the absolute origin, the second translation is
@@ -118,11 +119,9 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
      * vectors of the base axes.
      */
     // Store the Rotation matrix and the rotated and translated origin.
-    double Vec[3];
-    Vec[0]=(TransVec[0]*RotMatrix[0]+TransVec[1]*RotMatrix[1]+TransVec[2]*RotMatrix[2])+TransVec[3];
-    Vec[1]=(TransVec[0]*RotMatrix[3]+TransVec[1]*RotMatrix[4]+TransVec[2]*RotMatrix[5])+TransVec[4];
-    Vec[2]=(TransVec[0]*RotMatrix[6]+TransVec[1]*RotMatrix[7]+TransVec[2]*RotMatrix[8])+TransVec[5];
-    BaseAxes[base].StoreRotMatrix( RotMatrix, Vec );
+    Vec3 Vec = (RotMatrix * TransVec) + refTrans;
+
+    BaseAxes[base].StoreRotMatrix( RotMatrix.Dptr(), Vec.Dptr() );
     if (debug_>0) { 
       mprintf("Base %i: RMS of RefCoords from ExpCoords is %lf\n",base+1,rmsd);
       //printMatrix_3x3("Rotation matrix:",RotMatrix);
@@ -134,7 +133,7 @@ int Action_NAstruct::setupBaseAxes(Frame *InputFrame) {
     baseaxesfile.WriteAxes(BaseAxes[base], base, BaseAxes[base].ResName());
     // Overlap ref coords onto input coords.
     Frame reftemp(RefCoords[base].Natom(), RefCoords[base].xAddress() ); 
-    reftemp.Trans_Rot_Trans(TransVec,RotMatrix);
+    reftemp.Trans_Rot_Trans(TransVec,RotMatrix,refTrans);
     basesfile.Write(RefCoords[base], reftemp.xAddress(), base, RefCoords[base].ResName());
 #   endif
   } // END loop over bases

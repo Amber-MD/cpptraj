@@ -23,7 +23,7 @@ Vec3 SetupImageTruncoct( Frame& frameIn, AtomMask* ComMask, bool useMass, bool o
     return Vec3( frameIn.BoxX() / 2, frameIn.BoxY() / 2, frameIn.BoxZ() / 2 );
   }
   //fprintf(stdout,"DEBUG: fcom = %lf %lf %lf\n",fcom[0],fcom[1],fcom[2]);
-  return Vec3(); // Default is origin {0,0,0}
+  return Vec3(0.0, 0.0, 0.0); // Default is origin {0,0,0}
 }
 
 // ImageNonortho()
@@ -191,7 +191,7 @@ void ImageOrtho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, boo
   */
 Vec3 ImageOrtho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Vec3 const& BoxVec)
 {
-  double trans[3];
+  Vec3 trans;
   // Determine how far Coord is out of box
   for (int i = 0; i < 3; ++i) {
     trans[i] = 0.0;
@@ -205,7 +205,7 @@ Vec3 ImageOrtho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Vec3 const& B
       trans[i] -= BoxVec[i];
     }
   }
-  return Vec3( trans );
+  return trans;
 }
 
 // UnwrapNonortho()

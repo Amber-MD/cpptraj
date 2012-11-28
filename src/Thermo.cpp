@@ -7,9 +7,8 @@
 // MomentOfInertia()
 static void MomentOfInertia(int natom, const double *X_, const double* Mass_, double* pmom)
 {
-  double IVEC[9];
-  double eigvec[9];
-  double eval[3];
+  Matrix_3x3 IVEC;
+  Vec3 eval;
   // Center of mass
   double cx = 0.0;
   double cy = 0.0;
@@ -58,10 +57,9 @@ static void MomentOfInertia(int natom, const double *X_, const double* Mass_, do
   IVEC[7] = yz;
   IVEC[8] = zz;
 
-  Matrix_3x3 TEMP( IVEC );
   // NOTE: Diagonalize sorts evals/evecs in descending order, but
   //       thermo() expects ascending.
-  TEMP.Diagonalize_Sort( eigvec, eval );
+  IVEC.Diagonalize_Sort( eval );
   pmom[0] = eval[2];
   pmom[1] = eval[1];
   pmom[2] = eval[0];

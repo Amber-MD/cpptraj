@@ -131,7 +131,6 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
 int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distances,
                               bool nofitIn, bool useMassIn, std::string const& maskexpr) 
 {
-  double U[9], Trans[6];
   float R;
  
   int totalref = coordsIn.Size();
@@ -158,7 +157,7 @@ int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distance
     RefFrame.SetFromCRD(coordsIn[nref], 0, tgtmask);
     // Select and pre-center reference atoms (if fitting)
     if (!nofitIn)
-      RefFrame.CenterReference(Trans+3, useMassIn);
+      RefFrame.CenterReference(useMassIn);
   
     // LOOP OVER TARGET FRAMES
     for (int nframe=nref+1; nframe < totalref; nframe++) {
@@ -166,10 +165,10 @@ int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distance
       TgtFrame.SetFromCRD(coordsIn[nframe], 0, tgtmask);
       if (nofitIn) {
         // Perform no fit RMS calculation
-        R = (float) TgtFrame.RMSD(RefFrame, useMassIn);
+        R = (float) TgtFrame.RMSD_NoFit(RefFrame, useMassIn);
       } else {
         // Perform fit RMS calculation
-        R = (float) TgtFrame.RMSD_CenteredRef(RefFrame, U, Trans, useMassIn);
+        R = (float) TgtFrame.RMSD_CenteredRef(RefFrame, useMassIn);
       }
       Distances.AddElement( R );
       // DEBUG
@@ -248,7 +247,6 @@ void Analysis_Rms2d::CalcAutoCorr(TriangleMatrix& Distances) {
   * ReferenceCoords.
   */
 int Analysis_Rms2d::CalcRmsToTraj() {
-  double U[9], Trans[6];
   float R;
 
   Matrix_2D* rmsdata = (Matrix_2D*)rmsdataset_;
@@ -295,17 +293,17 @@ int Analysis_Rms2d::CalcRmsToTraj() {
     // Set reference atoms and pre-center if fitting
     SelectedRef.SetCoordinates(RefFrame, RefMask_);
     if (!nofit_)
-      SelectedRef.CenterReference(Trans+3, useMass_);
+      SelectedRef.CenterReference(useMass_);
     // LOOP OVER TARGET FRAMES
     for (int nframe=0; nframe < totaltgt; nframe++) {
       // Get selected atoms of the current target frame
       SelectedTgt.SetFromCRD( (*coords_)[nframe], 0, TgtMask);
       if (nofit_) {
         // Perform no fit RMS calculation
-        R = (float) SelectedTgt.RMSD(SelectedRef, useMass_);
+        R = (float) SelectedTgt.RMSD_NoFit(SelectedRef, useMass_);
       } else {
         // Perform fit RMS calculation
-        R = (float) SelectedTgt.RMSD_CenteredRef(SelectedRef, U, Trans, useMass_);
+        R = (float) SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_);
       }
       rmsdata->AddElement( R );
       // DEBUG

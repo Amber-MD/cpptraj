@@ -4,7 +4,6 @@
 #include "DataSet_Modes.h"
 #include "CpptrajStdio.h"
 #include "BufferedFile.h"
-//#incl ude "vectormath.h" // printModes
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class

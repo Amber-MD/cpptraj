@@ -71,8 +71,6 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   double avg;
   int window, frame, WindowMax;
   CpptrajFile separateDatafile;
-
-  double U[9], Trans[6];
   bool first;
 
   int frameThreshold, subtractWindow;
@@ -131,12 +129,12 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   // Get coords of first frame for use as reference. No Box info.
   refFrame.SetFromCRD( (*coords_)[0], 0, mask_ );
   // Pre-center reference
-  refFrame.CenterReference(Trans+3, useMass_);
+  refFrame.CenterReference(useMass_);
   // Calc initial RMSD
   avg = 0;
   for (frame = 0; frame < coords_->Size(); frame++) {
     tgtFrame.SetFromCRD( (*coords_)[frame], 0, mask_);
-    avg += tgtFrame.RMSD_CenteredRef(refFrame, U, Trans, useMass_);
+    avg += tgtFrame.RMSD_CenteredRef(refFrame, useMass_);
   }
   // DEBUG
 /*
@@ -153,7 +151,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
 
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
 # ifdef _OPENMP
-#pragma omp parallel private(window, frame, avg, frameThreshold, subtractWindow, d_Nwindow, first, U, Trans) firstprivate(refFrame,tgtFrame,sumFrame)
+#pragma omp parallel private(window, frame, avg, frameThreshold, subtractWindow, d_Nwindow, first) firstprivate(refFrame,tgtFrame,sumFrame)
 {
   //mythread = omp_get_thread_num();
 #pragma omp for schedule(dynamic)
@@ -182,10 +180,10 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
           // Set coords only for speed (everything else is same anyway)
           refFrame.SetCoordinates( tgtFrame );
           // Pre-center reference
-          refFrame.CenterReference(Trans+3, useMass_);
+          refFrame.CenterReference(useMass_);
           first = false;
         }
-        avg += tgtFrame.RMSD_CenteredRef(refFrame, U, Trans, useMass_);
+        avg += tgtFrame.RMSD_CenteredRef(refFrame, useMass_);
         // Subtract frame at subtractWindow from sumFrame 
         tgtFrame.SetFromCRD( (*coords_)[subtractWindow], 0, mask_);
         sumFrame -= tgtFrame;

@@ -61,20 +61,20 @@ Action::RetType Action_AvgCoord::Setup(Topology* currentParm, Topology** parmAdd
 // Action_AvgCoord::action()
 /** Calc avg of coordinates in frame. */
 Action::RetType Action_AvgCoord::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double position[3];
+  Vec3 position;
  
   if (useMass_)
-    currentFrame->CenterOfMass(position, Mask_);
+    position = currentFrame->VCenterOfMass(Mask_);
   else 
-    currentFrame->GeometricCenter(position, Mask_);
+    position = currentFrame->VGeometricCenter(Mask_);
   // Calculate the magnitude
   if (calcMagnitude_) {
-    double r2 = (position[0]*position[0]) + (position[1]*position[1]) + (position[2]*position[2]);
+    double r2 = position.Magnitude2();
     double r = sqrt( r2 );
-    outfile_.Printf("%i %lf %lf %lf %lf\n", frameNum+1, 
+    outfile_.Printf("%i %f %f %f %f\n", frameNum+1, 
                         position[0], position[1], position[2], r);
   } else {
-    outfile_.Printf("%i %lf %lf %lf\n",frameNum+1, position[0], position[1], position[2]);
+    outfile_.Printf("%i %f %f %f\n",frameNum+1, position[0], position[1], position[2]);
   }
 
   return Action::OK;

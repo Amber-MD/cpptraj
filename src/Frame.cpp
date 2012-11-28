@@ -2,9 +2,7 @@
 #include <cstring> // memcpy, memset
 #include "Frame.h"
 #include "Constants.h" // SMALL
-#include "vectormath.h" // CROSS_PRODUCT, normalize
 #include "CpptrajStdio.h"
-#include "Matrix_3x3.h"
 
 const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 const size_t Frame::BOXSIZE_ = 6 * sizeof(double);
@@ -213,23 +211,6 @@ void Frame::SetFromCRD(CRDtype const& farray, int numBoxCrd, AtomMask const& mas
     box_[ib] = (double)farray[f_ncoord++];
   return;
 }
-
-/** Place atom coordinates according to maskIn into a float array. */
-/*Frame::CRDtype Frame::ConvertToCRD(AtomMask const& maskIn, int numBoxCrd) const {
-  CRDtype farray;
-
-  farray.reserve( (maskIn.Nselected() * 3) + numBoxCrd );
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-  {
-    int crdidx = (*atom) * 3; 
-    farray.push_back( (float)X_[crdidx  ] );
-    farray.push_back( (float)X_[crdidx+1] );
-    farray.push_back( (float)X_[crdidx+2] );
-  }
-  for (int ib = 0; ib < numBoxCrd; ++ib)
-    farray.push_back( (float)box_[ib] );
-  return farray;
-}*/
 
 /** Place atom coordinates into a float array. */
 Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd) const {
@@ -683,130 +664,6 @@ void Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
   }
 }
 
-// ---------- CENTER OF MASS / GEOMETRIC CENTER --------------------------------
-// Frame::CenterOfMass()
-/** Given an AtomMask put center of mass of atoms in mask into Coord. Return 
-  * sum of masses in Mask.
-  */
-double Frame::CenterOfMass(double* Coord, AtomMask const& Mask) 
-{
-  double Coord0 = 0.0;
-  double Coord1 = 0.0;
-  double Coord2 = 0.0;
-  double sumMass = 0.0;
-
-  for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); ++atom)
-  {
-    unsigned int xidx = (*atom) * 3;
-    double mass = Mass_[*atom];
-    sumMass += mass;
-    Coord0 += ( X_[xidx  ] * mass );
-    Coord1 += ( X_[xidx+1] * mass );
-    Coord2 += ( X_[xidx+2] * mass );
-  }
-  Coord[0] = Coord0;
-  Coord[1] = Coord1;
-  Coord[2] = Coord2;
-  // NOTE: Not using == since it is unreliable for floating point numbers.
-  // Should NEVER have a mass smaller than SMALL.
-  if (sumMass < SMALL) return 0;
-  Coord[0] /= sumMass;
-  Coord[1] /= sumMass;
-  Coord[2] /= sumMass;
-  return sumMass;
-}
-
-// Frame::GeometricCenter()
-/** Given an AtomMask put geometric center of atoms in mask into Coord. Return 
-  * #atoms in Mask.
-  */
-double Frame::GeometricCenter(double* Coord, AtomMask const& Mask) {
-  double Coord0 = 0.0;
-  double Coord1 = 0.0;
-  double Coord2 = 0.0;
-
-  for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); ++atom)
-  {
-    unsigned int xidx = (*atom) * 3;
-    Coord0 += X_[xidx  ];
-    Coord1 += X_[xidx+1];
-    Coord2 += X_[xidx+2];
-  }
-  Coord[0] = Coord0;
-  Coord[1] = Coord1;
-  Coord[2] = Coord2;
-  double sumMass = (double)Mask.Nselected();
-  // NOTE: Not using == since it is unreliable for floating point numbers.
-  // Should NEVER have a mass smaller than SMALL.
-  if (sumMass < SMALL) return 0;
-  Coord[0] /= sumMass;
-  Coord[1] /= sumMass;
-  Coord[2] /= sumMass;
-  return sumMass;
-}
-
-// Frame::CenterOfMass()
-/** Put center of mass of all atoms between start and stop in frame into 
-  * Coord. Return sum of masses.
-  */
-double Frame::CenterOfMass(double *Coord, int startAtom, int stopAtom) 
-{  
-  double Coord0 = 0.0;
-  double Coord1 = 0.0;
-  double Coord2 = 0.0;
-  double sumMass = 0.0;
-
-  Darray::iterator mass = Mass_.begin() + startAtom;
-  int startAtom3 = startAtom * 3;
-  int stopAtom3 = stopAtom * 3;
-  for (int i = startAtom3; i < stopAtom3; i += 3) {
-    sumMass += (*mass);
-    Coord0 += ( X_[i  ] * (*mass) );
-    Coord1 += ( X_[i+1] * (*mass) );
-    Coord2 += ( X_[i+2] * (*mass) );
-    ++mass;
-  }
-  Coord[0] = Coord0;
-  Coord[1] = Coord1;
-  Coord[2] = Coord2;
-   // NOTE: Not using == since it is unreliable for floating point numbers.
-  // Should NEVER have a mass smaller than SMALL.
-  if (sumMass < SMALL) return 0;
-  Coord[0] /= sumMass;
-  Coord[1] /= sumMass;
-  Coord[2] /= sumMass;
-  return sumMass;
-}
-
-// Frame::GeometricCenter()
-/** Put geometric center of all atoms between start and stop in frame into 
-  * Coord. Return #atoms used in calc.
-  */
-double Frame::GeometricCenter(double *Coord, int startAtom, int stopAtom) {  
-  double Coord0 = 0.0;
-  double Coord1 = 0.0;
-  double Coord2 = 0.0;
-
-  int startAtom3 = startAtom * 3;
-  int stopAtom3 = stopAtom * 3;
-  for (int i = startAtom3; i < stopAtom3; i += 3) {
-    Coord0 += X_[i  ];
-    Coord1 += X_[i+1];
-    Coord2 += X_[i+2];
-  }
-  Coord[0] = Coord0;
-  Coord[1] = Coord1;
-  Coord[2] = Coord2;
-  double sumMass = (double)(stopAtom - startAtom);
-  // NOTE: Not using == since it is unreliable for floating point numbers.
-  // Should NEVER have a mass smaller than SMALL.
-  if (sumMass < SMALL) return 0;
-  Coord[0] /= sumMass;
-  Coord[1] /= sumMass;
-  Coord[2] /= sumMass;
-  return sumMass;
-}
-
 // ---------- COORDINATE MANIPULATION ------------------------------------------
 // Frame::SCALE()
 void Frame::SCALE(AtomMask const& maskIn, double sx, double sy, double sz) {
@@ -820,57 +677,18 @@ void Frame::SCALE(AtomMask const& maskIn, double sx, double sy, double sz) {
   }
 }
 
-// Frame::Translate()
-/** Translate all coords by Vec.  */
-void Frame::Translate(const double* Vec) {
-  double Vec0 = Vec[0];
-  double Vec1 = Vec[1];
-  double Vec2 = Vec[2];
-  for (int i = 0; i < ncoord_; i += 3) {
-    X_[i  ] += Vec0;
-    X_[i+1] += Vec1;
-    X_[i+2] += Vec2;
-  }
-}
-
-// Frame::Translate()
-/** Translate atoms in range by Vec. */
-// NOTE: SHOULD CHECK BOUNDS! 
-void Frame::Translate(const double *Vec, int firstAtom, int lastAtom) {
-  double Vec0 = Vec[0];
-  double Vec1 = Vec[1];
-  double Vec2 = Vec[2];
-  int startatom3 = firstAtom * 3;
-  int stopatom3 = lastAtom * 3;
-  for (int i = startatom3; i < stopatom3; i += 3) {
-    X_[i  ] += Vec0;
-    X_[i+1] += Vec1;
-    X_[i+2] += Vec2;
-  }
-}
-
-// Frame::Translate()
-/** Translate atom by Vec */
-void Frame::Translate(const double* Vec, int atom) {
-  int xidx = atom * 3;
-  X_[xidx  ] += Vec[0];
-  X_[xidx+1] += Vec[1];
-  X_[xidx+2] += Vec[2];
-}
-
 // Frame::Trans_Rot_Trans()
-/** Given an array Vec of size 6 containing two translations:
-  *   T0x T0y T0z T1x T1y T1z
-  * and a rotation matrix T, apply the first translation, then
-  * the rotation, then the second translation.
+/** Apply a translation, followed by a rotation, followed by 
+  * another translation.
   */
-void Frame::Trans_Rot_Trans(const double *Vec, const double *T) {
-  double Vec0 = Vec[0];
-  double Vec1 = Vec[1];
-  double Vec2 = Vec[2];
-  double Vec3 = Vec[3];
-  double Vec4 = Vec[4];
-  double Vec5 = Vec[5];
+void Frame::Trans_Rot_Trans(Vec3 const& Trans, Matrix_3x3 const& T, Vec3 const& refTrans)
+{
+  double Vec0 = Trans[0];
+  double Vec1 = Trans[1];
+  double Vec2 = Trans[2];
+  double Vec3 = refTrans[0];
+  double Vec4 = refTrans[1];
+  double Vec5 = refTrans[2];
 
   double T0 = T[0]; 
   double T1 = T[1]; 
@@ -897,66 +715,6 @@ void Frame::Trans_Rot_Trans(const double *Vec, const double *T) {
   }
 }
 
-// Frame::Rotate()
-/** Multiply natomx3 matrix X by 3x3 matrix T. If T is a rotation matrix
-  * this rotates the coords in X. 
-  */
-void Frame::Rotate(const double* T) {
-  double T0 = T[0];
-  double T1 = T[1];
-  double T2 = T[2];
-  double T3 = T[3];
-  double T4 = T[4];
-  double T5 = T[5];
-  double T6 = T[6];
-  double T7 = T[7];
-  double T8 = T[8];
-
-  for (int i = 0; i < ncoord_; i += 3) {
-    double *Xptr = X_ + i;
-    double *Yptr = Xptr + 1;
-    double *Zptr = Xptr + 2;
-
-    double x = *Xptr;
-    double y = *Yptr;
-    double z = *Zptr;
-
-    *Xptr = (x*T0) + (y*T1) + (z*T2);
-    *Yptr = (x*T3) + (y*T4) + (z*T5);
-    *Zptr = (x*T6) + (y*T7) + (z*T8);
-  }
-} 
-
-// Frame::InverseRotate()
-/** Multiply natomx3 matrix X by transpose of 3x3 matrix T. If T is a rotation
-  * matrix this rotates the coords in X in the opposite direction.
-  */
-void Frame::InverseRotate(const double* T) {
-  double T0 = T[0];
-  double T1 = T[1];
-  double T2 = T[2];
-  double T3 = T[3];
-  double T4 = T[4];
-  double T5 = T[5];
-  double T6 = T[6];
-  double T7 = T[7];
-  double T8 = T[8];
-  
-  for (int i = 0; i < ncoord_; i += 3) {
-    double *Xptr = X_ + i;
-    double *Yptr = Xptr + 1;
-    double *Zptr = Xptr + 2;
-
-    double x = *Xptr;
-    double y = *Yptr;
-    double z = *Zptr;
-
-    *Xptr = (x*T0) + (y*T3) + (z*T6);
-    *Yptr = (x*T1) + (y*T4) + (z*T7);
-    *Zptr = (x*T2) + (y*T5) + (z*T8);
-  }
-}
-
 // Frame::Center()
 /** Center coordinates to center of coordinates in Mask w.r.t. given XYZ in
   * boxcoord. When called from Action_Center boxcoord will be either origin 
@@ -965,62 +723,49 @@ void Frame::InverseRotate(const double* T) {
   */
 void Frame::Center(AtomMask const& Mask, bool origin, bool useMassIn) 
 {
-  double center[3];
-
+  Vec3 center;
   if (useMassIn)
-    this->CenterOfMass(center, Mask);
+    center = VCenterOfMass(Mask);
   else
-    this->GeometricCenter(center, Mask);
+    center = VGeometricCenter(Mask);
   //mprinterr("  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
-
-  if (origin) {
+  if (origin) 
     // Shift to coordinate origin (0,0,0)
-    center[0] = -center[0];
-    center[1] = -center[1];
-    center[2] = -center[2];
-  } else {
+    center.Neg();
+  else {
     // Shift to box center
     center[0] = (box_[0] / 2) - center[0];
     center[1] = (box_[1] / 2) - center[1];
     center[2] = (box_[2] / 2) - center[2];
   }
-
-  this->Translate(center);
+  Translate(center);
 }
 
 // Frame::CenterReference()
-/** Center coordinates to origin in preparation for RMSD calculation. Store
-  * translation vector from origin to reference in Trans.
+/** Center coordinates to origin in preparation for RMSD calculation. 
+  * \return translation vector from origin to reference.
   */
-void Frame::CenterReference(double *Trans, bool useMassIn)
+Vec3 Frame::CenterReference(bool useMassIn)
 {
-  double center[3];
+  Vec3 center;
   if (useMassIn)
-    this->CenterOfMass(Trans,0,natom_);
+    center = VCenterOfMass(0, natom_); // TODO: Replace with total version?
   else
-    this->GeometricCenter(Trans,0,natom_);
+    center = VGeometricCenter(0, natom_);
   //mprinterr("  REF FRAME CENTER: %lf %lf %lf\n",Trans[0],Trans[1],Trans[2]); //DEBUG
-  // Trans now contains translation from origin -> Ref
-  center[0] = -Trans[0];
-  center[1] = -Trans[1];
-  center[2] = -Trans[2];
-  // Center now contains translation from Ref -> origin.
-  this->Translate(center);
+  // center contains translation from origin -> Ref, therefore
+  // -center is translation from Ref -> origin.
+  NegTranslate(center);
+  return center;
 }
 
 // Frame::ShiftToGeometricCenter()
 /** Shift geometric center of coordinates in frame to origin. */
 void Frame::ShiftToGeometricCenter( ) {
-  double frameCOM[3];
-
-  this->GeometricCenter(frameCOM, 0, natom_);
+  Vec3 frameCOM = VGeometricCenter(0, natom_);
   //mprinterr("  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
-  
   // Shift to common COM
-  frameCOM[0] = -frameCOM[0]; 
-  frameCOM[1] = -frameCOM[1]; 
-  frameCOM[2] = -frameCOM[2];
-  this->Translate(frameCOM);
+  NegTranslate(frameCOM);
 }
 
 // ---------- COORDINATE CALCULATION ------------------------------------------- 
@@ -1072,112 +817,127 @@ double Frame::BoxToRecip(double *ucell, double *recip) {
 }
 
 // Frame::RMSD()
+double Frame::RMSD( Frame& Ref, bool useMassIn ) {
+  Matrix_3x3 U;
+  Vec3 Trans, refTrans;
+  return RMSD( Ref, U, Trans, refTrans, useMassIn );
+}
+
+// Frame::RMSD()
 /** Get the RMSD of this Frame to Ref Frame. Ref frame must contain the same
   * number of atoms as this Frame - should be checked for before this routine
-  * is called. Put the best-fit rotation matrix in U and the COM translation 
-  * vectors in Trans. The translation is composed of two XYZ vectors; the first
-  * is the shift of the XYZ coords to origin, and the second is the shift to Ref 
-  * origin. To reproduce the fit perform the first translation (Trans[0...2]), 
-  * then rotate (U), then the second translation (Trans[3...5]).
+  * is called. 
+  * \param Ref frame to calc RMSD to. Will be translated to origin.
+  * \param U Will be set with best-fit rotation matrix.
+  * \param Trans Will be set with translation of coords to origin.
+  * \param refTrans Will be set with translation from origin to Ref.
+  * \param useMassIn If true, mass-weight everything.
+  * To reproduce the fit perform the first translation (Trans), 
+  * then rotate (U), then the second translation (refTrans).
   */
-double Frame::RMSD( Frame& Ref, double *U, double *Trans, bool useMassIn) 
+double Frame::RMSD( Frame& Ref, Matrix_3x3& U, Vec3& Trans, Vec3& refTrans, bool useMassIn) 
 {
-  double refCOM[3];
-
   // Rotation will occur around geometric center/center of mass
   // Coords are shifted to common CoM first (Trans0-2), then
   // to original reference location (Trans3-5).
   if (useMassIn) 
-    Ref.CenterOfMass(Trans+3, 0, natom_);
+    refTrans = Ref.VCenterOfMass(0, natom_);
   else 
-    Ref.GeometricCenter(Trans+3, 0, natom_);
-  //fprintf(stderr,"  REF   COM: %lf %lf %lf\n",refCOM[0],refCOM[1],refCOM[2]); //DEBUG
-
-  // Shift to common COM
-  refCOM[0] = -Trans[3];
-  refCOM[1] = -Trans[4];
-  refCOM[2] = -Trans[5];
-  Ref.Translate(refCOM);
-
-  double rmsval = RMSD_CenteredRef( Ref, U, Trans, useMassIn );
-
+    refTrans = Ref.VGeometricCenter(0, natom_);
+  //fprintf(stderr,"  REF   COM: %lf %lf %lf\n",refTrans[0],refTrans[1],refTrans[2]); //DEBUG
+  // Shift reference to COM
+  Ref.NegTranslate(refTrans);
+  return RMSD_CenteredRef( Ref, U, Trans, useMassIn );
   //DEBUG
   //printRotTransInfo(U,Trans);
   //fprintf(stdout,"RMS is %lf\n",rms_return);
+  //return rmsval;
+}
 
-  return rmsval;
+double Frame::RMSD_CenteredRef( Frame const& Ref, bool useMassIn ) {
+  Matrix_3x3 U;
+  Vec3 Trans;
+  return RMSD_CenteredRef( Ref, U, Trans, useMassIn );
+}
+
+static inline void normalize(double* vIn) {
+  double b = 1.0 / sqrt(vIn[0]*vIn[0] + vIn[1]*vIn[1] + vIn[2]*vIn[2]);
+  vIn[0] *= b;
+  vIn[1] *= b;
+  vIn[2] *= b;
 }
 
 // Frame::RMSD_CenteredRef()
 /** Get the RMSD of this Frame to given Reference Frame. Ref frame must contain 
   * the same number of atoms as this Frame and should have already been 
   * translated to coordinate origin (neither is checked for in the interest
-  * of speed). Put the best-fit rotation matrix in U and the COM translation 
-  * vector for Frame in Trans[0-2]. The translation is composed of two XYZ 
-  * vectors; the first is the shift of the XYZ coords to origin, and the second 
-  * is the shift to Reference origin (should already be set). To reproduce the 
-  * fit perform the first translation (Trans[0...2]), rotate (U), then the second
-  * translation (Trans[3...5]).
-  */
-double Frame::RMSD_CenteredRef( Frame const& Ref, double U[9], double Trans[6], bool useMassIn)
+  * of speed). 
+  * \param Frame to calc RMSD to.
+  * \param U Will be set to the best-fit rotation matrix
+  * \param Trans will contain translation vector for this frame to origin.
+  * \param useMassIn If true, mass-weight everything.
+  */ 
+double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bool useMassIn)
 {
-  double frameCOM[3], rms_return, total_mass;
-  double mwss, rot[9], rtr[9];
-  double xt,yt,zt,xr,yr,zr;
-  double Evector[9], Eigenvalue[3];
-  double b[9];
-  double cp[3], sig3;
-
-  U[0]=0.0; U[1]=0.0; U[2]=0.0;
-  U[3]=0.0; U[4]=0.0; U[5]=0.0;
-  U[6]=0.0; U[7]=0.0; U[8]=0.0;
+  double total_mass, cp[3], sig3, b[9];
+  // Need to init U?
   // Trans is set at the end
- 
   // Rotation will occur around geometric center/center of mass
-  if (useMassIn)
-    total_mass = this->CenterOfMass(frameCOM,0,natom_);
-  else
-    total_mass = this->GeometricCenter(frameCOM,0,natom_);
-
+  Trans.Zero();
+  if (useMassIn) {
+    Darray::iterator mass = Mass_.begin();
+    total_mass = 0.0;
+    for (int ix = 0; ix < ncoord_; ix += 3) {
+      total_mass += *mass;
+      Trans[0] += (X_[ix  ] * (*mass));
+      Trans[1] += (X_[ix+1] * (*mass));
+      Trans[2] += (X_[ix+2] * (*mass));
+      ++mass;
+    }
+  } else {
+    total_mass = (double)natom_;
+    for (int ix = 0; ix < ncoord_; ix += 3) {
+      Trans[0] += X_[ix  ];
+      Trans[1] += X_[ix+1];
+      Trans[2] += X_[ix+2];
+    }
+  }
   if (total_mass<SMALL) {
     mprinterr("Error: Frame::RMSD: Divide by zero.\n");
     return -1;
   }
-  //fprintf(stderr,"  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
+  Trans[0] /= total_mass;
+  Trans[1] /= total_mass;
+  Trans[2] /= total_mass;
+  //mprinterr("  FRAME COM: %lf %lf %lf\n",Trans[0],Trans[1],Trans[2]); //DEBUG
 
   // Shift to common COM
-  frameCOM[0] = -frameCOM[0]; 
-  frameCOM[1] = -frameCOM[1]; 
-  frameCOM[2] = -frameCOM[2];
-  this->Translate(frameCOM);
-  //mprintf("  SHIFTED FRAME 0: %lf %lf %lf\n",X[0],X[1],X[2]); //DEBUG
-  //mprintf("  SHIFTED REF 0  : %lf %lf %lf\n",Ref.X[0],Ref.X[1],Ref.X[2]); //DEBUG
+  Trans.Neg();
+  Translate(Trans);
+  //for (int i = 0; i < natom_; i++) {
+  //  mprinterr("\tSHIFTED FRAME %i: %f %f %f\n",i,X_[i*3],X_[i*3+1],X_[i*3+2]); //DEBUG
+  //  mprinterr("\tSHIFTED REF %i  : %f %f %f\n",i,Ref.X_[i*3],Ref.X_[i*3+1],Ref.X_[i*3+2]); //DEBUG
+  //}
 
   // Use Kabsch algorithm to calculate optimum rotation matrix.
   // U = [(RtR)^.5][R^-1]
-  mwss=0.0;
-  rot[0]=0.0; rot[1]=0.0; rot[2]=0.0;
-  rot[3]=0.0; rot[4]=0.0; rot[5]=0.0;
-  rot[6]=0.0; rot[7]=0.0; rot[8]=0.0;
-  // rtr is set below
+  double mwss = 0.0;
+  Matrix_3x3 rot(0.0);
   // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
   Darray::iterator mass = Mass_.begin();
   double atom_mass = 1.0;
   for (int i = 0; i < ncoord_; i += 3)
   {
-    xt = X_[i  ];
-    yt = X_[i+1];
-    zt = X_[i+2];
-    xr = Ref.X_[i  ];
-    yr = Ref.X_[i+1];
-    zr = Ref.X_[i+2];
-
+    double xt = X_[i  ];
+    double yt = X_[i+1];
+    double zt = X_[i+2];
+    double xr = Ref.X_[i  ];
+    double yr = Ref.X_[i+1];
+    double zr = Ref.X_[i+2];
     // Use atom_mass to hold mass for this atom if specified
     if (useMassIn) 
       atom_mass = *(mass++);
-
     mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
-
     // Calculate the Kabsch matrix: R = (rij) = Sum(yni*xnj)
     rot[0] += atom_mass*xt*xr;
     rot[1] += atom_mass*xt*yr;
@@ -1192,34 +952,19 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, double U[9], double Trans[6], 
     rot[8] += atom_mass*zt*zr;
   }
   mwss *= 0.5;    // E0 = 0.5*Sum(xn^2+yn^2) 
-
   //DEBUG
-  //fprintf(stderr,"ROT:\n%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
-  //        rot[0],rot[1],rot[2],rot[3],rot[4],rot[5],rot[6],rot[7],rot[8]);
-  //fprintf(stderr,"MWSS: %lf\n",mwss);
-
-  // calculate Kabsch matrix multiplied by its transpose: RtR 
-  rtr[0] = rot[0]*rot[0] + rot[1]*rot[1] + rot[2]*rot[2];
-  rtr[1] = rot[0]*rot[3] + rot[1]*rot[4] + rot[2]*rot[5];
-  rtr[2] = rot[0]*rot[6] + rot[1]*rot[7] + rot[2]*rot[8];
-  rtr[3] = rot[3]*rot[0] + rot[4]*rot[1] + rot[5]*rot[2];
-  rtr[4] = rot[3]*rot[3] + rot[4]*rot[4] + rot[5]*rot[5];
-  rtr[5] = rot[3]*rot[6] + rot[4]*rot[7] + rot[5]*rot[8];
-  rtr[6] = rot[6]*rot[0] + rot[7]*rot[1] + rot[8]*rot[2];
-  rtr[7] = rot[6]*rot[3] + rot[7]*rot[4] + rot[8]*rot[5];
-  rtr[8] = rot[6]*rot[6] + rot[7]*rot[7] + rot[8]*rot[8];
-
+  //mprinterr("ROT:\n%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
+  //          rot[0],rot[1],rot[2],rot[3],rot[4],rot[5],rot[6],rot[7],rot[8]);
+  //mprinterr("MWSS: %lf\n",mwss);
+  // calculate Kabsch matrix multiplied by its transpose: RtR
+  Matrix_3x3 Evector = rot.TransposeMult(rot); 
   // Diagonalize
-  Matrix_3x3 TEMP(rtr);
-  if (TEMP.Diagonalize_Sort( Evector, Eigenvalue))
-    return 0;
-  //if (!Diagonalize_Sort( rtr, Evector, Eigenvalue)) return 0;
-
+  Vec3 Eigenvalue;
+  if (Evector.Diagonalize_Sort( Eigenvalue )) return 0;
   // a3 = a1 x a2
-  CROSS_PRODUCT(Evector[6], Evector[7], Evector[8],
-                Evector[0], Evector[1], Evector[2],
-                Evector[3], Evector[4], Evector[5]);
-
+  Evector[6] = (Evector[1]*Evector[5]) - (Evector[2]*Evector[4]); 
+  Evector[7] = (Evector[2]*Evector[3]) - (Evector[0]*Evector[5]); 
+  Evector[8] = (Evector[0]*Evector[4]) - (Evector[1]*Evector[3]);
   // Evector dot transpose rot: b = R . ak
   b[0] = Evector[0]*rot[0] + Evector[1]*rot[3] + Evector[2]*rot[6];
   b[1] = Evector[0]*rot[1] + Evector[1]*rot[4] + Evector[2]*rot[7];
@@ -1233,25 +978,17 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, double U[9], double Trans[6], 
   b[7] = Evector[6]*rot[1] + Evector[7]*rot[4] + Evector[8]*rot[7];
   b[8] = Evector[6]*rot[2] + Evector[7]*rot[5] + Evector[8]*rot[8];
   normalize(b+6);
-  /*matrix_multiply_3x3(b, Evector, rot);
-  normalize(b);
-  normalize(b+3);
-  normalize(b+6);*/
-
- /* b3 = b1 x b2 */
-  CROSS_PRODUCT(cp[0], cp[1], cp[2],
-                 b[0],  b[1],  b[2],
-                 b[3],  b[4],  b[5]);
-
+  // b3 = b1 x b2
+  cp[0] = (b[1]*b[5]) - (b[2]*b[4]); 
+  cp[1] = (b[2]*b[3]) - (b[0]*b[5]); 
+  cp[2] = (b[0]*b[4]) - (b[1]*b[3]);
   if ( (cp[0]*b[6] + cp[1]*b[7] + cp[2]*b[8]) < 0.0 )
     sig3 = -1.0;
   else
     sig3 = 1.0;
-
   b[6] = cp[0];
   b[7] = cp[1];
   b[8] = cp[2];
-
   // U has the best rotation 
   U[0] = (Evector[0]*b[0]) + (Evector[3]*b[3]) + (Evector[6]*b[6]);  
   U[1] = (Evector[1]*b[0]) + (Evector[4]*b[3]) + (Evector[7]*b[6]);
@@ -1266,29 +1003,17 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, double U[9], double Trans[6], 
   U[8] = (Evector[2]*b[2]) + (Evector[5]*b[5]) + (Evector[8]*b[8]);
 
   // E=E0-sqrt(mu1)-sqrt(mu2)-sig3*sqrt(mu3) 
-  rms_return = mwss;
-  rms_return -= sqrt(fabs(Eigenvalue[0]));
-  rms_return -= sqrt(fabs(Eigenvalue[1]));
-  rms_return -= (sig3*sqrt(fabs(Eigenvalue[2])));
-
+  double rms_return = mwss - sqrt(fabs(Eigenvalue[0])) 
+                           - sqrt(fabs(Eigenvalue[1]))
+                           - (sig3*sqrt(fabs(Eigenvalue[2])));
   if (rms_return<0) {
-    //fprintf(stderr,"RMS returned is <0 before sqrt, setting to 0 (%lf)\n",rms_return);
-    rms_return=0.0;
+    //mprinterr("RMS returned is <0 before sqrt, setting to 0 (%f)\n", rms_return);
+    rms_return = 0.0;
   } else
     rms_return = sqrt((2.0*rms_return)/total_mass);
-
-  // Translation vectors: Coords are shifted to common CoM first (origin), then
-  // to original reference location.
-  // frameCOM was negated above to facilitate translation to COM.
-  // Reference translation should already be set
-  Trans[0] = frameCOM[0];
-  Trans[1] = frameCOM[1];
-  Trans[2] = frameCOM[2];
-
   //DEBUG
   //printRotTransInfo(U,Trans);
   //fprintf(stdout,"RMS is %lf\n",rms_return);
-
   return rms_return;
 }
 
@@ -1296,7 +1021,7 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, double U[9], double Trans[6], 
 /** Calculate RMSD of Frame to Ref with no fitting. Frames must contain
   * same # atoms.
   */
-double Frame::RMSD( Frame const& Ref, bool useMass) {
+double Frame::RMSD_NoFit( Frame const& Ref, bool useMass) {
   double rms_return = 0.0;
   double total_mass = 0.0;
   
@@ -1385,32 +1110,20 @@ double Frame::DISTRMSD( Frame const& Ref ) {
   * a vector (U) which will be the axis for rotating the system around that 
   * dihedral and translate the coordinates (X) to the origin of the new axis.
   */
-void Frame::SetAxisOfRotation(double *U, int atom1, int atom2) {
-  double A1[3], A2[3];
+Vec3 Frame::SetAxisOfRotation(int atom1, int atom2) {
   int a1 = atom1 * 3;
   int a2 = atom2 * 3;
-  
-  A1[0] = X_[a1  ];
-  A1[1] = X_[a1+1];
-  A1[2] = X_[a1+2];
-  A2[0] = X_[a2  ];
-  A2[1] = X_[a2+1];
-  A2[2] = X_[a2+2];
-
+ 
+  Vec3 A1( X_[a1], X_[a1+1], X_[a1+2] ); 
   // Calculate vector of dihedral axis, which will be the new rot. axis
-  U[0] = A2[0] - A1[0];
-  U[1] = A2[1] - A1[1];
-  U[2] = A2[2] - A1[2];
-
+  Vec3 U( X_[a2]-A1[0], X_[a2+1]-A1[1], X_[a2+2]-A1[2] );
   // Normalize Vector for axis of rotation or scaling will occur!
-  normalize(U);
-
+  U.Normalize();
   // Now the rest of the coordinates need to be translated to match the new 
   // rotation axis.
-  A1[0] = -A1[0];
-  A1[1] = -A1[1];
-  A1[2] = -A1[2];
+  A1.Neg();
   Translate(A1);
+  return U;
 }
 
 // Frame::RotateAroundAxis()
@@ -1450,13 +1163,11 @@ void Frame::RotateAroundAxis(double *T, AtomMask &Rmask) {
 }
 
 // Frame::CalculateInertia()
-void Frame::CalculateInertia(AtomMask& Mask, double* Inertia, double* CXYZ)
+/** \return Center of mass of coordinates in mask. */
+Vec3 Frame::CalculateInertia(AtomMask const& Mask, Matrix_3x3& Inertia)
 {
   double Ivec[6]; // Ivec = xx, yy, zz, xy, xz, yz
-  //if (useMass)
-    CenterOfMass(CXYZ, Mask);
-  //else
-  //  GeometricCenter(&Mask, CXYZ);
+  Vec3 CXYZ = VCenterOfMass(Mask);
 
   // Calculate moments of inertia and products of inertia
   Ivec[0] = 0; // xx
@@ -1489,5 +1200,6 @@ void Frame::CalculateInertia(AtomMask& Mask, double* Inertia, double* CXYZ)
   Inertia[6] = Ivec[4];
   Inertia[7] = Ivec[5];
   Inertia[8] = Ivec[2];
+  return CXYZ;
 }
 

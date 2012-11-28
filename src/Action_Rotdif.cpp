@@ -7,11 +7,11 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // NumberFilename
 #include "Constants.h" // TWOPI
-#include "vectormath.h"
 #include "Integrate.h"
 #include "ProgressBar.h"
 #include "DataSet_Vector.h"
 #include "PubFFT.h"
+#include "vectormath.h" // TODO: Obsolete
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -119,10 +119,6 @@ void Action_Rotdif::Help() {
 // DESTRUCTOR
 Action_Rotdif::~Action_Rotdif() {
   //fprintf(stderr,"Rotdif Destructor.\n");
-  for (std::vector<double*>::iterator Rmatrix = Rmatrices_.begin();
-                                      Rmatrix != Rmatrices_.end();
-                                      Rmatrix++)
-    delete[] *Rmatrix;
   if (work_!=NULL) delete[] work_;
   if (random_vectors_!=NULL) delete[] random_vectors_;
   if (D_eff_!=NULL) delete[] D_eff_;
@@ -134,7 +130,6 @@ Action_Rotdif::~Action_Rotdif() {
 Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  double Trans[3]; // Dummy variable for CenteredRef routine
   debug_ = debugIn;
   // Get Keywords
   usefft_ = actionArgs.hasKey("usefft");
@@ -208,7 +203,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Set reference frame coordinates
   SelectedRef_.SetCoordinates(*TempFrame, RefMask);
   // Always fitting; Pre-center reference frame
-  SelectedRef_.CenterReference(Trans, useMass_); 
+  SelectedRef_.CenterReference(useMass_); 
 
   // Open output file. Defaults to stdout if no name specified
   if (outfile_.OpenWrite(outfilename)) {
@@ -293,14 +288,12 @@ Action::RetType Action_Rotdif::Setup(Topology* currentParm, Topology** parmAddre
 /** Calculate and store the rotation matrix for frame to reference.
   */
 Action::RetType Action_Rotdif::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double *U, Trans[6];
+  Matrix_3x3 U;
+  Vec3 Trans; // Unused
 
   // Set selected frame atoms. Masses have already been set.
   SelectedTgt_.SetCoordinates(*currentFrame, TargetMask_);
-
-  U = new double[ 9 ];
   SelectedTgt_.RMSD_CenteredRef(SelectedRef_, U, Trans, useMass_);
-
   Rmatrices_.push_back( U );
 
   return Action::OK;
@@ -376,6 +369,10 @@ double *Action_Rotdif::randvec() {
 
   return XYZ;
 }
+
+/*static inline double dot_product(const double* V, const double* U) {
+  return (V[0] * U[0]) + (V[1] * U[1]) + (V[2] * U[2]);
+}*/
 
 // Action_Rotdif::compute_corr()
 /** Given a normalized vector that has been randomly rotated itotframes 
@@ -1537,13 +1534,17 @@ int Action_Rotdif::DetermineDeffs() {
     rotvec[1] = rndvec[1];
     rotvec[2] = rndvec[2];
     rotvec += 3;
+    Vec3 randomVector(rndvec);
     // Loop over rotation matrices
-    for (std::vector<double*>::iterator rmatrix = Rmatrices_.begin();
+    for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
                                         rmatrix != Rmatrices_.end();
                                         ++rmatrix)
     {
       // Rotate normalized vector
-      matrix_times_vector(rotvec, *rmatrix, rndvec);
+      Vec3 rtmp = *rmatrix * randomVector;
+      rotvec[0] = rtmp[0];
+      rotvec[1] = rtmp[1];
+      rotvec[2] = rtmp[2];
       // DEBUG
       //mprintf("DBG:%6i%15.8lf%15.8lf%15.8lf\n",ridx,rotated_x[ridx],
       //        rotated_y[ridx],rotated_z[ridx]);
@@ -1644,10 +1645,10 @@ void Action_Rotdif::Print() {
   // HACK: To match results from rmscorr.f (where rotation matrices are
   //       implicitly transposed), transpose each rotation matrix.
   // NOTE: Is this actually correct? Want inverse rotation?
-  for (std::vector<double*>::iterator rmatrix = Rmatrices_.begin();
+  for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
                                       rmatrix != Rmatrices_.end();
                                       rmatrix++) {
-    matrix_transpose_3x3(*rmatrix);
+    (*rmatrix).Transpose();
   }
   // Print rotation matrices
   if (!rmOut_.empty()) {
@@ -1657,7 +1658,7 @@ void Action_Rotdif::Print() {
     } else {
       rmout.OpenFile();
       int rmframe=1;
-      for (std::vector<double*>::iterator rmatrix = Rmatrices_.begin();
+      for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
                                           rmatrix != Rmatrices_.end();
                                           rmatrix++) {
         rmout.Printf("%13i %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f\n",

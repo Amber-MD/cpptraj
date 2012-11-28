@@ -16,15 +16,13 @@ class Action_AtomicCorr : public Action {
         AtomVector() : idx_(0) {}
         AtomVector(std::string const& sIn, int idxIn) : lbl_(sIn), idx_(idxIn) {}
         int operator-(const AtomVector& rhs) { return idx_ - rhs.idx_; }
-        bool empty()   { return vec_.empty(); }
-        size_t size()  { return vec_.size();  }
+        bool empty()               { return vec_.empty();    }
+        size_t size()              { return vec_.size();     }
         void push_back(float fval) { vec_.push_back( fval ); }
-        void XYZ(double* Vout, int idx3) {
-          Vout[0] = (double)vec_[idx3  ];
-          Vout[1] = (double)vec_[idx3+1];
-          Vout[2] = (double)vec_[idx3+2];
-        }
-        std::string const& Label() { return lbl_; }
+        std::string const& Label() { return lbl_;            }
+        Vec3 VXYZ(int idx)         { return Vec3((double)vec_[idx  ], 
+                                                 (double)vec_[idx+1], 
+                                                 (double)vec_[idx+2]); }
       private:
         std::vector<float> vec_;
         std::string lbl_;

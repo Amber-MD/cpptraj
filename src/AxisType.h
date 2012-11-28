@@ -44,7 +44,7 @@ class AxisType {
     void PrintAxisInfo(const char *);
 
     void SetCoordsFromFrame( Frame& ); // TODO: Make const
-    void StoreRotMatrix(double*,double*);
+    void StoreRotMatrix(const double*,const double*);
     void StoreBPresnums(int,int);
 
     enum RefReturn { NA_OK, NA_UNKNOWN, NA_ERROR };

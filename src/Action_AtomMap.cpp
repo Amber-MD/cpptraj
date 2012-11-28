@@ -508,7 +508,6 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
   double lowestRMS = 0;
   std::vector<int> bestMap;
   int numAtomsMapped;
-  double Rot[9], Trans[6];
 
   mprintf("      Warning: No unique atoms found, usually indicates highly symmetric system.\n");
   mprintf("               Trying to guess starting point.\n");
@@ -577,7 +576,7 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
         // Set up a reference/target frame containing only mapped atoms
         rmsRefFrame_.SetReferenceByMap(*RefFrame_, AMap_);
         rmsTgtFrame_.SetTargetByMap(*TgtFrame_, AMap_);
-        double RmsVal = rmsTgtFrame_.RMSD(rmsRefFrame_, Rot, Trans, false);
+        double RmsVal = rmsTgtFrame_.RMSD(rmsRefFrame_, false);
         mprintf("\tRMS fit (%i atoms) based on guess Tgt %i -> Ref %i, %lf\n",
                 numAtomsMapped,(*t)+1, (*r)+1, RmsVal);
         // -----------------------------------------------------------------
@@ -899,15 +898,16 @@ Action::RetType Action_AtomMap::Setup(Topology* currentParm, Topology** parmAddr
 /** Modify the current frame based on the atom map. 
   */
 Action::RetType Action_AtomMap::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double Rot[9], Trans[6], R;
   if (maponly_) return Action::OK;
 
   // Perform RMS fit on mapped atoms only
   if (rmsfit_) {
     // Set target frame up according to atom map.
     rmsTgtFrame_.SetTargetByMap(*currentFrame, AMap_);
-    R = rmsTgtFrame_.RMSD(rmsRefFrame_, Rot, Trans, false);
-    currentFrame->Trans_Rot_Trans(Trans,Rot);
+    Matrix_3x3 Rot;
+    Vec3 Trans, refTrans;
+    double R = rmsTgtFrame_.RMSD(rmsRefFrame_, Rot, Trans, refTrans, false);
+    currentFrame->Trans_Rot_Trans(Trans, Rot, refTrans);
     if (rmsdata_!=NULL)
       rmsdata_->Add(frameNum, &R);
     return Action::OK;

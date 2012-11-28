@@ -207,7 +207,7 @@ Action::RetType Action_Radial::Setup(Topology* currentParm, Topology** parmAddre
   */
 // NOTE: Because of maximum2 not essential to check idx>numBins?
 Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double D, ucell[9], recip[9], coord_center[3];
+  double D, ucell[9], recip[9];
   int atom1, atom2;
   int nmask1, nmask2;
   int idx, mydistances;
@@ -226,7 +226,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
   mydistances = 0;
   // Calculation of center of Mask1 to all atoms in Mask2
   if (center1_) {
-    currentFrame->GeometricCenter(coord_center, Mask1_);
+    Vec3 coord_center = currentFrame->VGeometricCenter(Mask1_);
     int mask2_max = Mask2_.Nselected();
 #ifdef _OPENMP
 #pragma omp parallel private(nmask2,atom2,D,idx,mythread) reduction(+:mydistances)
@@ -236,7 +236,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 #endif
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = Mask2_[nmask2];
-      D = DIST2(coord_center, currentFrame->XYZ(atom2), ImageType(),
+      D = DIST2(coord_center.Dptr(), currentFrame->XYZ(atom2), ImageType(),
                 boxXYZ, ucell, recip);
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?

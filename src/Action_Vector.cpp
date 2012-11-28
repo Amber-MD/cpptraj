@@ -262,7 +262,8 @@ void Action_Vector::Mask(Frame* currentFrame) {
 }
 
 void Action_Vector::Dipole(Frame* currentFrame) {
-  Vec3 VXYZ, CXYZ;
+  Vec3 VXYZ(0.0, 0.0, 0.0);
+  Vec3 CXYZ(0.0, 0.0, 0.0);
   double total_mass = 0;
   for (AtomMask::const_iterator atom = mask_.begin();
                                 atom != mask_.end(); ++atom)
@@ -280,23 +281,23 @@ void Action_Vector::Dipole(Frame* currentFrame) {
 }
 
 void Action_Vector::Principal(Frame* currentFrame) {
-  double Inertia[9], Evec[9], Eval[3], CXYZ[3];
-  // TODO: Convert to Vec3 and Matrix_3x3
-  currentFrame->CalculateInertia( mask_, Inertia, CXYZ );
-  Matrix_3x3 TEMP( Inertia );
+  Matrix_3x3 Inertia;
+  Vec3 Eval; 
+
+  Vec3 CXYZ = currentFrame->CalculateInertia( mask_, Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
-  TEMP.Diagonalize_Sort_Chirality( Evec, Eval, 0 );
+  Inertia.Diagonalize_Sort_Chirality( Eval, 0 );
   /*if (debug > 2) {
     printVector("PRINCIPAL EIGENVALUES", Eval );
     //TEMP.Print("GENERAL");
     printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
   }*/
   if ( mode_ == PRINCIPAL_X ) 
-    Vec_->AddVxyz( Evec    , CXYZ ); // First row = first eigenvector
+    Vec_->AddVxyz( Inertia.Row1(), CXYZ.Dptr() ); // First row = first eigenvector
   else if ( mode_ == PRINCIPAL_Y )
-    Vec_->AddVxyz( Evec + 3, CXYZ ); // Second row = second eigenvector
+    Vec_->AddVxyz( Inertia.Row2(), CXYZ.Dptr() ); // Second row = second eigenvector
   else // PRINCIPAL_Z
-    Vec_->AddVxyz( Evec + 6, CXYZ ); // Third row = third eigenvector
+    Vec_->AddVxyz( Inertia.Row3(), CXYZ.Dptr() ); // Third row = third eigenvector
 }
 
 void Action_Vector::CorrPlane(Frame* currentFrame) {

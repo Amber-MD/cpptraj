@@ -113,8 +113,9 @@ Action::RetType Action_DNAionTracker::Setup(Topology* currentParm, Topology** pa
 }
 
 Action::RetType Action_DNAionTracker::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double ucell[9], recip[9], pp_centroid[3], P1[3], P2[3], BASE[3];
+  double ucell[9], recip[9];
   double d_tmp, dval;
+  Vec3 P1, P2, BASE;
   Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
   // Setup imaging info if necessary
   if (ImageType()==NONORTHO) 
@@ -122,26 +123,24 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, Frame* currentFrame
 
   // Get center for P1, P2, and Base
   if (useMass_) {
-    currentFrame->CenterOfMass( P1, p1_ );
-    currentFrame->CenterOfMass( P2, p2_ );
-    currentFrame->CenterOfMass( BASE, base_ );
+    P1 = currentFrame->VCenterOfMass( p1_ );
+    P2 = currentFrame->VCenterOfMass( p2_ );
+    BASE = currentFrame->VCenterOfMass( base_ );
   } else {
-    currentFrame->GeometricCenter( P1, p1_ );
-    currentFrame->GeometricCenter( P2, p2_ );
-    currentFrame->GeometricCenter( BASE, base_ );
+    P1 = currentFrame->VGeometricCenter( p1_ );
+    P2 = currentFrame->VGeometricCenter( p2_ );
+    BASE = currentFrame->VGeometricCenter( base_ );
   }
  
   // Calculate P -- P distance and centroid
-  double d_pp = DIST2(P1, P2, ImageType(), boxXYZ, ucell, recip);
-  pp_centroid[0] = (P1[0] + P2[0]) / 2;
-  pp_centroid[1] = (P1[1] + P2[1]) / 2;
-  pp_centroid[2] = (P1[2] + P2[2]) / 2;
+  double d_pp = DIST2(P1.Dptr(), P2.Dptr(), ImageType(), boxXYZ, ucell, recip);
+  Vec3 pp_centroid = (P1 + P2) / 2.0;
 
   // Cutoff^2
   double d_cut = d_pp*0.25 + (poffset_*poffset_); // TODO: precalc offset^2
 
   // Calculate P -- base centroid to median point
-  double d_pbase = DIST2(pp_centroid, BASE, ImageType(), boxXYZ, ucell, recip);
+  double d_pbase = DIST2(pp_centroid.Dptr(), BASE.Dptr(), ImageType(), boxXYZ, ucell, recip);
 
   //double d_min = DBL_MAX;
   if (bintype_ == SHORTEST)
@@ -152,9 +151,9 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, Frame* currentFrame
   for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
   {
     const double* ionxyz = currentFrame->XYZ(*ion);
-    double d_p1ion =   DIST2(P1,   ionxyz, ImageType(), boxXYZ, ucell, recip);
-    double d_p2ion =   DIST2(P2,   ionxyz, ImageType(), boxXYZ, ucell, recip);
-    double d_baseion = DIST2(BASE, ionxyz, ImageType(), boxXYZ, ucell, recip);
+    double d_p1ion =   DIST2(P1.Dptr(),   ionxyz, ImageType(), boxXYZ, ucell, recip);
+    double d_p2ion =   DIST2(P2.Dptr(),   ionxyz, ImageType(), boxXYZ, ucell, recip);
+    double d_baseion = DIST2(BASE.Dptr(), ionxyz, ImageType(), boxXYZ, ucell, recip);
     //mprintf("DEBUG: ion atom %i to P1 is %f\n", *ion+1, sqrt(d_p1ion));
     //mprintf("DEBUG: ion atom %i to P2 is %f\n", *ion+1, sqrt(d_p2ion));
     //mprintf("DEBUG: ion atom %i to base is %f\n", *ion+1, sqrt(d_baseion));

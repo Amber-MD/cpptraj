@@ -3,6 +3,9 @@
 #include <cstring> // memcpy
 #include "AxisType.h"
 #include "CpptrajStdio.h"
+#ifdef NASTRUCTDEBUG
+#include "StringRoutines.h" // integerToString
+#endif
 
 // ---------- NA REFERENCE BASE ATOM NAMES AND COORDS --------------------------
 // TODO: Since the names get converted to NameType probably dont need extra space
@@ -352,7 +355,7 @@ void AxisType::SetCoordsFromFrame( Frame& frameIn ) {
 /** Store the rotation matrix and origin coordinates associated with
   * this base.
   */
-void AxisType::StoreRotMatrix(double *RotMatrix, double *originIn) {
+void AxisType::StoreRotMatrix(const double *RotMatrix, const double *originIn) {
   R[0] = RotMatrix[0];
   R[1] = RotMatrix[1];
   R[2] = RotMatrix[2];

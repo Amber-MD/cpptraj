@@ -2,7 +2,6 @@
     \brief Routines used to calculate torsions and angles.
  */
 #include <cmath>
-#include "vectormath.h"
 #include "TorsionRoutines.h"
 #include "Constants.h" // PI, TWOPI
 
@@ -12,27 +11,22 @@
   */
 double Torsion(const double *a1, const double *a2, const double *a3, const double *a4) 
 {
-  double Lx, Ly, Lz, Lnorm;
-  double Rx, Ry, Rz, Rnorm;
-  double Sx, Sy, Sz;
-  double angle;
+  double Lx = ((a2[1]-a1[1])*(a3[2]-a2[2])) - ((a2[2]-a1[2])*(a3[1]-a2[1])); 
+  double Ly = ((a2[2]-a1[2])*(a3[0]-a2[0])) - ((a2[0]-a1[0])*(a3[2]-a2[2])); 
+  double Lz = ((a2[0]-a1[0])*(a3[1]-a2[1])) - ((a2[1]-a1[1])*(a3[0]-a2[0]));
 
-  CROSS_PRODUCT(     Lx,      Ly,      Lz,
-                (a2[0]-a1[0]), (a2[1]-a1[1]), (a2[2]-a1[2]),
-                (a3[0]-a2[0]), (a3[1]-a2[1]), (a3[2]-a2[2]));
+  double Rx = ((a4[1]-a3[1])*(a2[2]-a3[2])) - ((a4[2]-a3[2])*(a2[1]-a3[1])); 
+  double Ry = ((a4[2]-a3[2])*(a2[0]-a3[0])) - ((a4[0]-a3[0])*(a2[2]-a3[2])); 
+  double Rz = ((a4[0]-a3[0])*(a2[1]-a3[1])) - ((a4[1]-a3[1])*(a2[0]-a3[0]));
 
-  CROSS_PRODUCT(     Rx,      Ry,      Rz,
-                (a4[0]-a3[0]), (a4[1]-a3[1]), (a4[2]-a3[2]),
-                (a2[0]-a3[0]), (a2[1]-a3[1]), (a2[2]-a3[2]));
+  double Lnorm = sqrt(Lx*Lx + Ly*Ly + Lz*Lz);
+  double Rnorm = sqrt(Rx*Rx + Ry*Ry + Rz*Rz);
 
-  Lnorm = sqrt(Lx*Lx + Ly*Ly + Lz*Lz);
-  Rnorm = sqrt(Rx*Rx + Ry*Ry + Rz*Rz);
+  double Sx = (Ly*Rz) - (Lz*Ry); 
+  double Sy = (Lz*Rx) - (Lx*Rz); 
+  double Sz = (Lx*Ry) - (Ly*Rx);
 
-  CROSS_PRODUCT(Sx, Sy, Sz,
-                Lx, Ly, Lz,
-                Rx, Ry, Rz);
-
-  angle = (Lx*Rx + Ly*Ry + Lz*Rz) / (Lnorm * Rnorm);
+  double angle = (Lx*Rx + Ly*Ry + Lz*Rz) / (Lnorm * Rnorm);
 
   if ( angle > 1.0 ) angle = 1.0;
   if ( angle < -1.0 ) angle = -1.0;
@@ -45,6 +39,11 @@ double Torsion(const double *a1, const double *a2, const double *a3, const doubl
   return angle;
 }
 
+/// Constant used in CP pucker calc
+static const double one_over_five = 1.0 / 5.0;
+/// Constant used in AS and CP pucker calcs
+static const double pi_over_5 = PI * one_over_five;
+
 // Pucker_AS()
 /** Return the pucker (in radians) of coords stored in a1-a5 based on 
   * Altona & Sundaralingam method.
@@ -54,11 +53,9 @@ double Pucker_AS(const double* a1, const double* a2, const double* a3,
 {
   double pucker;
   double v1, v2, v3, v4, v5, a, b;
-  double pi_over_5;
 
   pucker = 0.0;
   *amp = 0.0;
-  pi_over_5 = PI / 5.0;
 
   v4 = Torsion(a4,a5,a1,a2);
   v5 = Torsion(a5,a1,a2,a3);
@@ -105,13 +102,9 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
   double r1x, r1y, r1z;
   double r2x, r2y, r2z;
   double sum1, sum2;
-  double pi_over_5;
-  double one_over_five;
 
   pucker = 0.0;
   *amplitude = 0.0;
-  one_over_five = 1 / 5.0;
-  pi_over_5 = PI * one_over_five;
 
   x2 = a1[0]; y2 = a1[1]; z2 = a1[2];
   x3 = a2[0]; y3 = a2[1]; z3 = a2[2];
@@ -164,9 +157,9 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
         z5 * cos(8.0*pi_over_5);
 
   // Calculate vector normal to plane
-  CROSS_PRODUCT( nx,  ny,  nz,
-                r1x, r1y, r1z,
-                r2x, r2y, r2z );
+  nx = (r1y*r2z) - (r1z*r2y); 
+  ny = (r1z*r2x) - (r1x*r2z); 
+  nz = (r1x*r2y) - (r1y*r2x);
 
   norm = sqrt(nx*nx + ny*ny + nz*nz);
   nx /= norm;
@@ -229,4 +222,3 @@ double CalcAngle(const double* V1, const double* V2, const double* V3)
 
   return angle;
 }
-

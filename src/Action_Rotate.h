@@ -9,7 +9,7 @@ class Action_Rotate : public Action {
     static void Help();
 
   private:
-    double RotMatrix_[9];
+    Matrix_3x3 RotMatrix_;
     AtomMask mask_;
 
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,

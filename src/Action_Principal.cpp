@@ -1,8 +1,5 @@
 #include "Action_Principal.h"
 #include "CpptrajStdio.h"
-// DEBUG
-//#incl ude "Constants.h"
-#include "vectormath.h"
 #include "Matrix_3x3.h"
 
 // CONSTRUCTOR
@@ -77,25 +74,25 @@ Action::RetType Action_Principal::Setup(Topology* currentParm, Topology** parmAd
 
 // Action_Principal::action()
 Action::RetType Action_Principal::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double Inertia[9], CXYZ[3], Evec[9], Eval[3];
+  Matrix_3x3 Inertia;
+  Vec3 Eval;
 
-  currentFrame->CalculateInertia( mask_, Inertia, CXYZ );
+  currentFrame->CalculateInertia( mask_, Inertia );
   //printMatrix_3x3("PRINCIPAL INERTIA", Inertia);
 
-  Matrix_3x3 TEMP( Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
-  TEMP.Diagonalize_Sort_Chirality( Evec, Eval, debug_ );
+  Inertia.Diagonalize_Sort_Chirality( Eval, debug_ );
   if (debug_ > 2) {
-    printVector("PRINCIPAL EIGENVALUES", Eval );
+    Eval.Print("PRINCIPAL EIGENVALUES");
     //TEMP.Print("GENERAL");
-    printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
+    Inertia.Print("PRINCIPAL EIGENVECTORS (Rows)");
   }
   
   // Rotate - since Evec is already transposed (eigenvectors
   // are returned in rows) just do plain rotation to affect an
   // inverse rotation.
   if (doRotation_)
-    currentFrame->Rotate( Evec );
+    currentFrame->Rotate( Inertia );
 
   return Action::OK;
 }

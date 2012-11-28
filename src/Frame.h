@@ -3,6 +3,7 @@
 #include "Atom.h"
 #include "AtomMask.h"
 #include "Vec3.h"
+#include "Matrix_3x3.h"
 // Class: Frame
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,
@@ -46,10 +47,8 @@ class Frame {
     Frame(const Frame&);
     Frame& operator=(Frame);
     // Convert to/from arrays
-    //Frame &operator=( const&);
     void SetFromCRD(CRDtype const&, int);
     void SetFromCRD(CRDtype const&, int, AtomMask const&);
-    //CRDtype ConvertToCRD(AtomMask const&, int) const;
     CRDtype ConvertToCRD(int) const;
     // Access internal data
     void printAtomCoord(int);
@@ -98,11 +97,11 @@ class Frame {
     int Divide(Frame const&, double); 
     void Divide(double);
     void AddByMask(Frame const&, AtomMask const&); 
-    // Center of mass / Geometric Center
-    // DEBUG -------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // NOTE: Placing these functions in the header since most modern compilers
     //       will actually try to inline them which results in a decent
     //       speedup for most routines (e.g. when imaging).
+    /// \return Center of mass of atoms in mask.
     Vec3 VCenterOfMass( AtomMask const& Mask ) {
       double Coord0 = 0.0;
       double Coord1 = 0.0;
@@ -120,6 +119,7 @@ class Frame {
       if (sumMass == 0.0) return Vec3();
       return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
     }
+    /// \return Geometric center of atoms in mask.
     Vec3 VGeometricCenter( AtomMask const& Mask ) {
       double Coord0 = 0.0;
       double Coord1 = 0.0;
@@ -135,6 +135,7 @@ class Frame {
       if (sumMass == 0) return Vec3();
       return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
     }
+    /// \return Center of mass of atoms in range.
     Vec3 VCenterOfMass(int startAtom, int stopAtom) {
       double Coord0 = 0.0;
       double Coord1 = 0.0;
@@ -153,6 +154,7 @@ class Frame {
       if (sumMass == 0.0) return Vec3();
       return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
     }
+    /// \return Geometric center of atoms in range.
     Vec3 VGeometricCenter(int startAtom, int stopAtom) {
       double Coord0 = 0.0;
       double Coord1 = 0.0;
@@ -168,16 +170,9 @@ class Frame {
       if (sumMass == 0) return Vec3();
       return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
     }
-    // END DEBUG ---------------------------------------------------------------
-    double CenterOfMass(double*, AtomMask const&);
-    double GeometricCenter(double*, AtomMask const&);
-    double CenterOfMass(double*,int,int);
-    double GeometricCenter(double*,int,int);
-    // Coordinate manipulation
+    /// Scale coordinates of atoms in mask by given X|Y|Z constants
     void SCALE(AtomMask const&, double, double, double);
-    void Translate(const double *);
-    void Translate(const double *, int,int);
-    void Translate(const double *, int);
+    /// Translate atoms in range by Vec
     void Translate(const Vec3& Vec, int firstAtom, int lastAtom) {
       double Vec0 = Vec[0];
       double Vec1 = Vec[1];
@@ -190,10 +185,47 @@ class Frame {
         X_[i+2] += Vec2;
       }
     }
-    void Trans_Rot_Trans(const double *, const double *);
-    void Rotate(const double *);
-    void InverseRotate(const double *);
-    void Rotate(const double* RotMatrix, AtomMask& mask) {
+    /// Translate atom by Vec
+    void Translate(const Vec3& Vec, int atom) {
+      int icrd = atom * 3;
+      X_[icrd  ] += Vec[0];
+      X_[icrd+1] += Vec[1];
+      X_[icrd+2] += Vec[2];
+    }
+    /// Translate all atoms by Vec
+    void Translate(const Vec3& Vec) {
+      for (int i = 0; i < ncoord_; i += 3) {
+        X_[i  ] += Vec[0];
+        X_[i+1] += Vec[1];
+        X_[i+2] += Vec[2];
+      }
+    }
+    /// Translate all atoms by negative Vec
+    void NegTranslate(const Vec3& Vec) {
+      for (int i = 0; i < ncoord_; i += 3) {
+        X_[i  ] -= Vec[0];
+        X_[i+1] -= Vec[1];
+        X_[i+2] -= Vec[2];
+      }
+    }
+    /// Rotate all coords by matrix
+    void Rotate(Matrix_3x3 const& T) {
+      for (int i = 0; i < ncoord_; i += 3) {
+        double *Xptr = X_ + i;
+        double *Yptr = Xptr + 1;
+        double *Zptr = Xptr + 2;
+
+        double x = *Xptr;
+        double y = *Yptr;
+        double z = *Zptr;
+
+        *Xptr = (x*T[0]) + (y*T[1]) + (z*T[2]);
+        *Yptr = (x*T[3]) + (y*T[4]) + (z*T[5]);
+        *Zptr = (x*T[6]) + (y*T[7]) + (z*T[8]);
+      }
+    }
+    /// Rotate all atoms in mask by matrix
+    void Rotate(Matrix_3x3 const& RotMatrix, AtomMask& mask) {
       for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
         double* XYZ = X_ + (*atom * 3) ;
         double x = XYZ[0];
@@ -204,19 +236,23 @@ class Frame {
         XYZ[2] = (x*RotMatrix[2]) + (y*RotMatrix[5]) + (z*RotMatrix[8]);
       }
     }
+    // -------------------------------------------------------------------------
+    void Trans_Rot_Trans(Vec3 const&, Matrix_3x3 const&, Vec3 const&);
     void Center(AtomMask const&, bool,bool);
-    void CenterReference(double *, bool);
+    Vec3 CenterReference(bool);
     void ShiftToGeometricCenter();
     // Coordinate calculation
     double BoxToRecip(double *, double *);
-    double RMSD(Frame &, double*, double*,bool);
-    double RMSD_CenteredRef( Frame const&, double[9], double[6], bool);
-    double RMSD(Frame const&,bool);
+    double RMSD(Frame &, bool );
+    double RMSD(Frame &, Matrix_3x3&, Vec3&, Vec3&, bool);
+    double RMSD_CenteredRef( Frame const&, bool);
+    double RMSD_CenteredRef( Frame const&, Matrix_3x3&, Vec3&, bool);
+    double RMSD_NoFit(Frame const&,bool);
     double DISTRMSD( Frame const& );
 
-    void SetAxisOfRotation(double *, int, int);
+    Vec3 SetAxisOfRotation(int, int);
     void RotateAroundAxis(double *, AtomMask &);
-    void CalculateInertia(AtomMask&, double*, double*);
+    Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&);
 
   private:
     typedef std::vector<double> Darray;

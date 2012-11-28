@@ -3,9 +3,7 @@
 /// Designed to hold array of size 3 (like XYZ coord etc).
 class Vec3 {
   public:
-    Vec3() {
-      Zero(); 
-    }
+    Vec3() { }
     Vec3(const Vec3& rhs) {
       V_[0] = rhs.V_[0];
       V_[1] = rhs.V_[1];
@@ -21,6 +19,11 @@ class Vec3 {
       V_[1] = XYZ[1];
       V_[2] = XYZ[2];
     }
+    Vec3(const float* XYZ) {
+      V_[0] = (double)XYZ[0];
+      V_[1] = (double)XYZ[1];
+      V_[2] = (double)XYZ[2];
+    }
     Vec3(const int* XYZ) {
       V_[0] = (double)XYZ[0];
       V_[1] = (double)XYZ[1];
@@ -33,50 +36,59 @@ class Vec3 {
       V_[2] = rhs.V_[2];
       return *this;
     }
+    // Vector OP scalar
     void operator/=(double xIn) {
       V_[0] /= xIn;
       V_[1] /= xIn;
       V_[2] /= xIn;
+    }
+    Vec3 operator/(double xIn) {
+      return Vec3( V_[0] / xIn, V_[1] / xIn, V_[2] / xIn);
     }
     void operator*=(double xIn) {
       V_[0] *= xIn;
       V_[1] *= xIn;
       V_[2] *= xIn;
     }
+    Vec3 operator*(double xIn) {
+      return Vec3( V_[0] * xIn, V_[1] * xIn, V_[2] * xIn);
+    }
     void operator+=(double xIn) {
       V_[0] += xIn;
       V_[1] += xIn;
       V_[2] += xIn;
     }
+    Vec3 operator+(double xIn) {
+      return Vec3( V_[0] + xIn, V_[1] + xIn, V_[2] + xIn);
+    }
+    // Vector OP vector
     void operator-=(const Vec3& rhs) {
       V_[0] -= rhs.V_[0];
       V_[1] -= rhs.V_[1];
       V_[2] -= rhs.V_[2];
+    }
+    Vec3 operator-(const Vec3& rhs) const {
+      return Vec3(V_[0]-rhs.V_[0], V_[1]-rhs.V_[1], V_[2]-rhs.V_[2]);
     }
     void operator+=(const Vec3& rhs) {
       V_[0] += rhs.V_[0];
       V_[1] += rhs.V_[1];
       V_[2] += rhs.V_[2];
     }
-    Vec3 operator-(const Vec3& rhs) const {
-      Vec3 tmp( *this );
-      tmp -= rhs;
-      return tmp;
-    }
     Vec3 operator+(const Vec3& rhs) const {
-      Vec3 tmp( *this );
-      tmp += rhs;
-      return tmp;
+      return Vec3(V_[0]+rhs.V_[0], V_[1]+rhs.V_[1], V_[2]+rhs.V_[2]);
     }
     double operator*(const Vec3& rhs) const { // Dot product
       return ( (V_[0]*rhs.V_[0]) + (V_[1]*rhs.V_[1]) + (V_[2]*rhs.V_[2]) );
     }
-    Vec3 operator*(double xIn) {
-      Vec3 tmp( *this );
-      tmp *= xIn;
-      return tmp;
+    Vec3 Cross(Vec3 const& rhs) { // Cross product
+      return Vec3( (V_[1]*rhs.V_[2]) + (V_[2]*rhs.V_[1]),   // UYVZ+UZVY
+                   (V_[2]*rhs.V_[0]) + (V_[0]*rhs.V_[2]),   // UZVX+UXVZ
+                   (V_[0]*rhs.V_[1]) + (V_[1]*rhs.V_[0]) ); // UXVY+UYVX
     }
-    double operator[](int idx) const { return V_[idx]; }
+    // TODO: Make const ref only?
+    double  operator[](int idx) const { return V_[idx]; }
+    double& operator[](int idx)       { return V_[idx]; }
     double Magnitude2() {
       double x = V_[0] * V_[0];
       double y = V_[1] * V_[1];
@@ -98,8 +110,12 @@ class Vec3 {
       V_[1] = vy;
       V_[2] = vz;
     }
+    double Normalize();
+    void Print(const char*);
+    double Angle(Vec3 const&);
+    double SignedAngle(Vec3 const&, Vec3 const&);
     // TODO: Eliminate this routine
-    double* Dptr() { return V_; }
+    const double* Dptr() { return V_; }
   private:
     double V_[3];
 };

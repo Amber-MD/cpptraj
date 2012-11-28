@@ -1,20 +1,9 @@
 #include "Action_Rotate.h"
 #include "CpptrajStdio.h"
-#include "vectormath.h"
 #include "Constants.h"
 
 // CONSTRUCTOR
-Action_Rotate::Action_Rotate() {
-  RotMatrix_[0] = 0.0;
-  RotMatrix_[1] = 0.0;
-  RotMatrix_[2] = 0.0;
-  RotMatrix_[3] = 0.0;
-  RotMatrix_[4] = 0.0;
-  RotMatrix_[5] = 0.0;
-  RotMatrix_[6] = 0.0;
-  RotMatrix_[7] = 0.0;
-  RotMatrix_[8] = 0.0;
-}
+Action_Rotate::Action_Rotate() { }
 
 void Action_Rotate::Help() {
   mprintf("rotate [<mask>] [x <xdeg>] [y <ydeg>] [z <zdeg>]\n");
@@ -29,7 +18,7 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Calc rotation matrix
-  calcRotationMatrix( RotMatrix_, xrot * DEGRAD, yrot * DEGRAD, zrot * DEGRAD );
+  RotMatrix_.CalcRotationMatrix( xrot * DEGRAD, yrot * DEGRAD, zrot * DEGRAD );
 
   mprintf("    ROTATE: Rotating atoms in mask %s\n", mask_.MaskString());
   mprintf("\t%f degrees around X, %f degrees around Y, %f degrees around Z\n",

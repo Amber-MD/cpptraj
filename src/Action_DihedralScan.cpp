@@ -4,7 +4,6 @@
 #include "Action_DihedralScan.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD
-#include "vectormath.h" // calcRotationMatrix
 #include "DistRoutines.h"
 
 // Activate DEBUG info
@@ -396,7 +395,8 @@ int Action_DihedralScan::CheckResidue( Frame *FrameIn, DihedralScanType &dih, in
 
 // Action_DihedralScan::action()
 Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double axisOfRotation[3], rotationMatrix[9], theta_in_degrees, theta_in_radians;
+  Matrix_3x3 rotationMatrix;
+  double theta_in_degrees, theta_in_radians;
   int n_problems, next_resnum;
   double bestClash, clash; // The largest distance observed during clashes
   int bestLoop = 0;
@@ -424,7 +424,7 @@ Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame,
       next_resnum = (*dih).resnum-1;
 
     // Set axis of rotation
-    currentFrame->SetAxisOfRotation(axisOfRotation,(*dih).atom1,(*dih).atom2);
+    Vec3 axisOfRotation = currentFrame->SetAxisOfRotation((*dih).atom1, (*dih).atom2);
     // Generate random value to rotate by in radians
     // Guaranteed to rotate by at least 1 degree.
     // NOTE: could potentially rotate 360 - prevent?
@@ -435,7 +435,7 @@ Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame,
       theta_in_degrees = (*dih).interval;
     theta_in_radians = theta_in_degrees * DEGRAD;
     // Calculate rotation matrix for random theta
-    calcRotationMatrix(rotationMatrix, axisOfRotation, theta_in_radians);
+    rotationMatrix.CalcRotationMatrix(axisOfRotation, theta_in_radians);
     bool rotate_dihedral = (*dih).isRandom;
     int loop_count = 0;
     clash = 0;
@@ -482,7 +482,7 @@ Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame,
         theta_in_degrees = (double)increment;
         theta_in_radians = theta_in_degrees * DEGRAD;
         // Calculate rotation matrix for new theta
-        calcRotationMatrix(rotationMatrix, axisOfRotation, theta_in_radians);
+        rotationMatrix.CalcRotationMatrix(axisOfRotation, theta_in_radians);
       }
       ++loop_count;
       if (loop_count == max_increment) {

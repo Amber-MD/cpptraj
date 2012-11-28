@@ -4,7 +4,6 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 #include "TriangleMatrix.h"
-#include "vectormath.h"
 #include "ProgressBar.h"
 #ifdef _OPENMP
 #  include "omp.h"
@@ -118,8 +117,8 @@ Action::RetType Action_AtomicCorr::Setup(Topology* currentParm, Topology** parmA
   return Action::OK;
 }
 
-Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double RXYZ[3], CXYZ[3];
+Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
+{
   // On first pass through refframe will be empty and first frame will become ref.
   if (!refframe_.empty()) {
     ACvector::iterator atom_vector = atom_vectors_.begin();
@@ -138,8 +137,8 @@ Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, F
       for (std::vector<AtomMask>::iterator rmask = resmasks_.begin();
                                            rmask != resmasks_.end(); ++rmask)
       {
-        currentFrame->GeometricCenter( CXYZ, *rmask );
-        refframe_.GeometricCenter( RXYZ, *rmask );
+        Vec3 CXYZ = currentFrame->VGeometricCenter( *rmask );
+        Vec3 RXYZ = refframe_.VGeometricCenter( *rmask );
         (*atom_vector).push_back( (float)(CXYZ[0] - RXYZ[0]) );
         (*atom_vector).push_back( (float)(CXYZ[1] - RXYZ[1]) );
         (*atom_vector).push_back( (float)(CXYZ[2] - RXYZ[2]) );
@@ -154,7 +153,6 @@ Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, F
 
 void Action_AtomicCorr::Print() {
   int idx, idx3, vec1size;
-  double V1[3], V2[3], corr_coeff;
   mprintf("    ATOMICCORR: Calculating correlations between %s vectors:\n",
           ModeString[acorr_mode_]);
   if (atom_vectors_.empty()) {
@@ -172,7 +170,7 @@ void Action_AtomicCorr::Print() {
   {
     for (ACvector::iterator vec2 = vec1 + 1; vec2 != av_end; ++vec2)
     {
-      corr_coeff = 0.0;
+      double corr_coeff = 0.0;
       progress.Update( iprogress++ );
       // If vectors are too close, skip. vec2 always > vec1
       if ( (*vec2) - (*vec1) > min_ ) {
@@ -193,11 +191,16 @@ void Action_AtomicCorr::Print() {
 #endif
           for (idx = 0; idx < vec1size; ++idx) {
             idx3 = idx * 3;
-            (*vec1).XYZ(V1, idx3);
+            Vec3 V1 = (*vec1).VXYZ(idx3);
+            Vec3 V2 = (*vec2).VXYZ(idx3);
+            V1.Normalize();
+            V2.Normalize();
+            corr_coeff += (V1 * V2);
+            /*(*vec1).XYZ(V1, idx3);
             (*vec2).XYZ(V2, idx3);
             normalize( V1 );
             normalize( V2 );
-            corr_coeff += dot_product( V1, V2 );
+            corr_coeff += dot_product( V1, V2 );*/
           }
 #ifdef _OPENMP
 } // END pragma omp parallel

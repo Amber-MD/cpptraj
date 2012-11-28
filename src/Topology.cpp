@@ -431,8 +431,8 @@ void Topology::PrintResidueInfo() {
 }
 
 // -----------------------------------------------------------------------------
-// Topology::AddAtom()
-void Topology::AddAtom(Atom atomIn, NameType const& resname, int current_res, int& last_res, 
+// Topology::AddTopAtom()
+void Topology::AddTopAtom(Atom atomIn, NameType const& resname, int current_res, int& last_res, 
                        const double* XYZin) 
 {
   // Check if this is a new residue
