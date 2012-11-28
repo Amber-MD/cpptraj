@@ -15,6 +15,7 @@ void Action_Grid::Help() {
   Grid::Help();
   mprintf(" <mask>\n"); 
   mprintf("     [max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");
+  mprintf("     [pdb <pdbout>]\n\n");
   mprintf("<fraction>: Percent of max to write.\n");
   mprintf("<madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.\n");
   mprintf("<value>   : Used to smooth density.\n");

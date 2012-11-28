@@ -75,7 +75,7 @@ Grid& Grid::operator=(const Grid& rhs) {
 }
 
 void Grid::Help() {
-  mprintf(" nx dx ny dy nz dz [box|origin|center] [negative]");
+  mprintf(" nx dx ny dy nz dz [box|origin|center <mask>] [negative]");
 }
  
 // Grid::GridInit()
@@ -119,11 +119,12 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
   sy_ = (double)ny_ * dy_/2.0;
   sz_ = (double)nz_ * dz_/2.0;
   // Box/origin
+  mode_ = ORIGIN;
   if (argIn.hasKey("box"))
     mode_ = BOX;
   else if (argIn.hasKey("origin"))
     mode_ = ORIGIN;
-  else {
+  else if (argIn.Contains("center")) {
     std::string maskexpr = argIn.GetStringKey("center");
     if (maskexpr.empty()) {
       mprinterr("Error: 'center' requires <mask>\n");
