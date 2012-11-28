@@ -23,7 +23,7 @@ class NetcdfFile {
     int SetupFrame();
     int SetupCoordsVelo();
     int SetupTime();
-    int SetupBox(double*);
+    int SetupBox(double*,NCTYPE);
     int SetupTemperature();
     int SetupMultiD();
 

@@ -78,7 +78,7 @@ int Traj_AmberRestartNC::setupTrajin(std::string const& fname, Topology* trajPar
   if ( SetupTime()!=0 ) return TRAJIN_ERR;
   // Box info
   double boxcrd[6];
-  if (SetupBox(boxcrd) == 1) // 1 indicates an error
+  if (SetupBox(boxcrd, NC_AMBERRESTART) == 1) // 1 indicates an error
     return TRAJIN_ERR;
   SetBox( boxcrd );
   // Replica Temperatures - allowed to fail silently 

@@ -274,7 +274,7 @@ int NetcdfFile::SetupMultiD() {
 // NetcdfFile::SetupBox()
 /** \return 0 on success, 1 on error, -1 for no box coords. */
 // TODO: Use Box class
-int NetcdfFile::SetupBox(double* boxIn) {
+int NetcdfFile::SetupBox(double* boxIn, NCTYPE typeIn) {
   boxIn[0] = 0.0;
   boxIn[1] = 0.0;
   boxIn[2] = 0.0;
@@ -292,8 +292,17 @@ int NetcdfFile::SetupBox(double* boxIn) {
     start_[0]=0; 
     start_[1]=0; 
     start_[2]=0;
-    count_[0]=1; 
-    count_[1]=3; 
+    switch (typeIn) {
+      case NC_AMBERRESTART:
+        count_[0]=3;
+        count_[1]=0;
+        break;
+      case NC_AMBERTRAJ:
+        count_[0]=1; 
+        count_[1]=3;
+        break;
+      case NC_UNKNOWN: return 1; // Sanity check
+    }
     count_[2]=0;
     if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, boxIn )) )
     {
@@ -305,6 +314,8 @@ int NetcdfFile::SetupBox(double* boxIn) {
       mprinterr("Error: Getting cell angles.\n");
       return 1;
     }
+    if (ncdebug_ > 0) mprintf("\tNetcdf Box: XYZ={%f %f %f} ABG={%f %f %f}\n",
+                              boxIn[0], boxIn[1], boxIn[2], boxIn[3], boxIn[4], boxIn[5]);
     return 0;
   }
   // No box information

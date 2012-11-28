@@ -18,8 +18,14 @@ Trajin_Single::~Trajin_Single() {
   if (velio_!=0) delete velio_;
 }
 
+int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topology *tparmIn)
+{
+  return SetupTrajRead(tnameIn, argIn, tparmIn, true);
+}
+
 // Trajin_Single::SetupTrajRead()
-int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topology *tparmIn) 
+int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, 
+                                 Topology *tparmIn, bool checkBox) 
 {
   // Require a filename
   if (tnameIn.empty()) {
@@ -46,10 +52,12 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Top
   if (SetupTrajIO( tnameIn, *trajio_, argIn )) return 1;
   // Check how many frames will actually be read
   if (setupFrameInfo() == 0) return 1;
-  // Check traj box info against parm box info 
-  Box parmBox = tparmIn->ParmBox();
-  if (CheckBoxInfo(tparmIn->c_str(), parmBox, trajio_->TrajBox())) return 1;
-  tparmIn->SetBox( parmBox );
+  // Check traj box info against parm box info
+  if (checkBox) { 
+    Box parmBox = tparmIn->ParmBox();
+    if (CheckBoxInfo(tparmIn->c_str(), parmBox, trajio_->TrajBox())) return 1;
+    tparmIn->SetBox( parmBox );
+  }
   // Check if a separate mdvel file will be read
   if (argIn!=0 && argIn->Contains("mdvel")) {
     std::string mdvelname = argIn->GetStringKey("mdvel");
