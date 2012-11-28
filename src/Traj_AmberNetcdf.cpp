@@ -83,7 +83,7 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
   if ( SetupTime()!=0 ) return TRAJIN_ERR;
   // Box info
   double boxcrd[6];
-  if (SetupBox(boxcrd) == 1) // 1 indicates an error
+  if (SetupBox(boxcrd, NC_AMBERTRAJ) == 1) // 1 indicates an error
     return TRAJIN_ERR;
   SetBox( boxcrd );
   // Replica Temperatures - Allowed to fail silently
