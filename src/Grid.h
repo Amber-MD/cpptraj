@@ -10,7 +10,11 @@ class Grid {
     ~Grid();
     Grid(const Grid&);
     Grid& operator=(const Grid&);
-
+    /// Indicate which kind of gridding to perform
+    enum GridModeType { ORIGIN = 0, BOX, CENTER };
+    static void Help();
+    GridModeType GridMode()      { return mode_;       } // TODO: Obsolete
+    AtomMask const& CenterMask() { return centerMask_; } // TODO: Obsolete
     /// Initialize grid from argument list.
     int GridInit(const char*, ArgList&);
     /// Print information about the grid, allocate memory.
@@ -18,14 +22,16 @@ class Grid {
     /// Setup grid based on given topology.
     int GridSetup(Topology*);
     /// Grid the given XYZ point.
-    int GridPoint(double, double, double); 
+    int GridPoint(double, double, double);
+    /// Grid the given frame
+    void GridFrame(Frame& currentFrame, AtomMask const& mask);
+    /// Grid point (for backwards compat. with Action_Dipole) 
     int BinPoint(double, double, double); 
     /// Print Xplor format grid density
     void PrintXplor(std::string const&, const char*, std::string);
     void PrintPDB(std::string const&, double, double);
     // DEBUG
     void PrintEntireGrid();
-
     /// Return number of bins in the X dimension. 
     int NX() { return nx_; }
     /// Return number of bins in the Y dimension.
@@ -40,8 +46,6 @@ class Grid {
     double SY() { return sy_; }
     /// Real Z coordinate of grid center.
     double SZ() { return sz_; }
-    /// \return true if grid is set up for box. Informational only.
-    bool GridBox() { return box_; }
     /// Return X coordinate of bin center
     double Xcrd(int i) { return (double)i*dx_ - sx_ + 0.5*dx_; }
     /// Return Y coordinate of bin center
@@ -95,7 +99,8 @@ class Grid {
     iterator end() { return (grid_ + gridsize_); }
   private:
     float increment_; ///< Set to -1 if negative, 1 if not.
-    bool box_;
+    GridModeType mode_;
+    AtomMask centerMask_;
     double dx_;
     double dy_;
     double dz_;

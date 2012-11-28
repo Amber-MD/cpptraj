@@ -7,7 +7,7 @@
 // CONSTRUCTOR
 Grid::Grid() :
   increment_(1.0),
-  box_(false),
+  mode_(ORIGIN),
   dx_(0),
   dy_(0),
   dz_(0),
@@ -30,7 +30,7 @@ Grid::~Grid() {
 // Copy Constructor
 Grid::Grid(const Grid& rhs) :
   increment_(rhs.increment_),
-  box_(rhs.box_),
+  mode_(rhs.mode_),
   dx_(rhs.dx_),
   dy_(rhs.dy_),
   dz_(rhs.dz_),
@@ -55,7 +55,7 @@ Grid& Grid::operator=(const Grid& rhs) {
   if (grid_!=0) delete[] grid_;
   grid_ = 0;
   increment_ = rhs.increment_;
-  box_ = rhs.box_;
+  mode_ = rhs.mode_;
   dx_ = rhs.dx_;
   dy_ = rhs.dy_;
   dz_ = rhs.dz_;
@@ -73,11 +73,13 @@ Grid& Grid::operator=(const Grid& rhs) {
   }
   return *this;
 }
+
+void Grid::Help() {
+  mprintf(" nx dx ny dy nz dz [box|origin|center] [negative]");
+}
  
 // Grid::GridInit()
-/** Initialize grid from argument list. Expected call:
-  * <nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative]  
-  */
+/** Initialize grid from argument list. */
 int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
   if (callingRoutineIn!=NULL)
     callingRoutine_.assign(callingRoutineIn);
@@ -93,7 +95,7 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
       dx_ < 0 || dy_ < 0 || dz_ < 0)
   {
     mprinterr("Error: %s: Invalid grid size/spacing.\n", callingRoutine_.c_str());
-    mprinterr("       nx=%i ny=%i nz=%i | dx=%.3lf dy=%.3lf dz=%.3lf\n",
+    mprinterr("       nx=%i ny=%i nz=%i | dx=%.3f dy=%.3f dz=%.3f\n",
               nx_, ny_, nz_, dx_, dy_, dz_);
     return 1;
   }
@@ -118,9 +120,18 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
   sz_ = (double)nz_ * dz_/2.0;
   // Box/origin
   if (argIn.hasKey("box"))
-    box_ = true;
+    mode_ = BOX;
   else if (argIn.hasKey("origin"))
-    box_ = false;
+    mode_ = ORIGIN;
+  else {
+    std::string maskexpr = argIn.GetStringKey("center");
+    if (maskexpr.empty()) {
+      mprinterr("Error: 'center' requires <mask>\n");
+      return 1;
+    }
+    centerMask_.SetMaskString( maskexpr );
+    mode_ = CENTER;
+  }
   // Negative
   if (argIn.hasKey("negative"))
     increment_ = -1.0;
@@ -141,28 +152,37 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
 // Grid::GridInfo()
 void Grid::GridInfo() {
   mprintf("    %s: Grid at", callingRoutine_.c_str());
-  if (box_)
+  if (mode_ == BOX)
     mprintf(" box center");
-  else
+  else if (mode_ == ORIGIN)
     mprintf(" origin");
+  else if (mode_ == CENTER)
+    mprintf(" center of atoms in mask [%s]\n", centerMask_.MaskString());
   mprintf(" will be calculated as");
   if (increment_ > 0)
     mprintf(" positive density\n");
   else
     mprintf(" negative density\n");
   mprintf("\tGrid points : %5i %5i %5i\n", nx_, ny_, nz_);
-  mprintf("\tGrid spacing: %5.3lf %5.3lf %5.3lf\n", dx_, dy_, dz_);
+  mprintf("\tGrid spacing: %5.3f %5.3f %5.3f\n", dx_, dy_, dz_);
 }
 
 // Grid::GridSetup()
 int Grid::GridSetup(Topology* currentParm) {
   // Check box
-  if (box_) {
+  if (mode_ == BOX) {
     if (currentParm->BoxType()!=Box::ORTHO) {
       mprintf("Warning: %s: Code to shift to the box center is not yet\n",callingRoutine_.c_str());
-      mprintf("         implemented for non-orthorhomibic unit cells.\n");
-      mprintf("         Shifting to the origin instead.\n");
-      box_ = false;
+      mprintf("Warning:\timplemented for non-orthorhomibic unit cells.\n");
+      mprintf("Warning:\tShifting to the origin instead.\n");
+      mode_ = ORIGIN;
+    }
+  } else if (mode_ == CENTER) {
+    if ( currentParm->SetupIntegerMask( centerMask_ ) ) return 1;
+    centerMask_.MaskInfo();
+    if ( centerMask_.None() ) {
+      mprinterr("Error: No atoms selected for grid center mask [%s]\n", centerMask_.MaskString());
+      return 1;
     }
   }
 
@@ -191,6 +211,22 @@ int Grid::GridPoint(double xIn, double yIn, double zIn) {
     }
   }
   return -1;
+}
+
+void Grid::GridFrame(Frame& currentFrame, AtomMask const& mask) {
+  Vec3 center;
+  switch (mode_) {
+    case BOX: center.SetVec(currentFrame.BoxX() / 2.0,
+                            currentFrame.BoxY() / 2.0,
+                            currentFrame.BoxZ() / 2.0 ); break;
+    case CENTER: center = currentFrame.VGeometricCenter( centerMask_ ); break;
+    case ORIGIN: center.SetVec(0.0, 0.0, 0.0); break;
+  }
+  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
+  {
+    Vec3 XYZ = Vec3(currentFrame.XYZ( *atom )) - center;
+    GridPoint( XYZ[0], XYZ[1], XYZ[2] );
+  }
 }
 
 // Grid::BinPoint
@@ -296,6 +332,6 @@ void Grid::PrintPDB(std::string const& filename, double cut, double normIn)
 // Grid::GridPrint()
 void Grid::PrintEntireGrid() {
   for (int i = 0; i < gridsize_; ++i)
-    mprintf("\t%lf\n", grid_[i]);
+    mprintf("\t%f\n", grid_[i]);
 }
 

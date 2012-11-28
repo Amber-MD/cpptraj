@@ -9,7 +9,9 @@ Action_GridFreeEnergy::Action_GridFreeEnergy() :
 {}
 
 void Action_GridFreeEnergy::Help() {
-
+  mprintf("gfe <filename>");
+  Grid::Help();
+  mprintf(" <mask>\n");
 }
 
 // Action_GridFreeEnergy::init()
@@ -64,30 +66,7 @@ Action::RetType Action_GridFreeEnergy::Setup(Topology* currentParm, Topology** p
 
 // Action_GridFreeEnergy::action()
 Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  if (grid_.GridBox()) {
-    // Grid based on box dimensions - get box center.
-    Vec3 boxCenter( currentFrame->BoxX() / 2.0,
-                    currentFrame->BoxY() / 2.0,
-                    currentFrame->BoxZ() / 2.0 );
-    for (AtomMask::const_iterator atom = mask_.begin();
-                                  atom != mask_.end(); ++atom)
-    {
-      Vec3 XYZ = currentFrame->XYZ( *atom );
-      XYZ -= boxCenter;
-      //mprintf("BATM %6i ", *atom + 1);
-      grid_.GridPoint( XYZ[0], XYZ[1], XYZ[2] );
-    }
-  } else {
-    // Normal grid
-    for (AtomMask::const_iterator atom = mask_.begin();
-                                  atom != mask_.end(); ++atom)
-    {
-      const double* XYZ = currentFrame->XYZ( *atom );
-      //mprintf("ATOM %6i ", *atom + 1);
-      grid_.GridPoint( XYZ[0], XYZ[1], XYZ[2] );
-    }
-  }
-
+  grid_.GridFrame( *currentFrame, mask_ );
   return Action::OK;
 }
 

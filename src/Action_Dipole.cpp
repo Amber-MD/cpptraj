@@ -10,8 +10,9 @@ Action_Dipole::Action_Dipole() :
 {}
 
 void Action_Dipole::Help() {
-  mprintf("dipole <filename> <nx> <x_spacing> <ny> <y_spacing> <nz> <z_spacing>\n");
-  mprintf("       <mask1> {origin | box} [max <max_percent>]\n");
+  mprintf("dipole <filename>");
+  Grid::Help();
+  mprintf("\n       <mask1> {origin | box} [max <max_percent>]\n");
 }
 
 // Action_Dipole::init()
@@ -94,18 +95,19 @@ Action::RetType Action_Dipole::Setup(Topology* currentParm, Topology** parmAddre
 
 // Action_Dipole::action()
 Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double sol[3], cX, cY, cZ;
+  double sol[3];
+  Vec3 cXYZ;
   double dipolar_vector[3], COM[3];
 
   // Set up center to origin or box center
-  if (grid_.GridBox()) {
-    cX = currentFrame->BoxX() / 2;
-    cY = currentFrame->BoxY() / 2;
-    cZ = currentFrame->BoxZ() / 2;
+  if (grid_.GridMode() == Grid::BOX) {
+    cXYZ.SetVec(currentFrame->BoxX() / 2,
+                currentFrame->BoxY() / 2,
+                currentFrame->BoxZ() / 2);
+  } else if (grid_.GridMode() == Grid::CENTER) {
+    cXYZ = currentFrame->VGeometricCenter( grid_.CenterMask() );
   } else {
-    cX = 0.0;
-    cY = 0.0;
-    cZ = 0.0;
+    cXYZ.SetVec(0.0, 0.0, 0.0);
   }
 
   // Traverse over solvent molecules.
@@ -128,9 +130,9 @@ Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame
       if ( mask_.AtomInCharMask(satom) ) {
         // Get coordinates and shift to origin and then to appropriate spacing
         const double* XYZ = currentFrame->XYZ( satom );
-        sol[0] = XYZ[0] + grid_.SX() - cX;
-        sol[1] = XYZ[1] + grid_.SY() - cY;
-        sol[2] = XYZ[2] + grid_.SZ() - cZ;
+        sol[0] = XYZ[0] + grid_.SX() - cXYZ[0];
+        sol[1] = XYZ[1] + grid_.SY() - cXYZ[1];
+        sol[2] = XYZ[2] + grid_.SZ() - cXYZ[2];
         // Calculate dipole vector. The center of mass of the solvent is used 
         // as the "origin" for the vector.
         // NOTE: the total charge on the solvent should be neutral for this 

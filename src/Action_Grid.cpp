@@ -11,7 +11,9 @@ Action_Grid::Action_Grid() :
 {}
 
 void Action_Grid::Help() {
-  mprintf("grid <filename> nx dx ny dy nz dz [origin] [negative] <mask>\n"); 
+  mprintf("grid <filename>");
+  Grid::Help();
+  mprintf(" <mask>\n"); 
   mprintf("     [max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");
   mprintf("<fraction>: Percent of max to write.\n");
   mprintf("<madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.\n");
@@ -81,29 +83,9 @@ Action::RetType Action_Grid::Setup(Topology* currentParm, Topology** parmAddress
 }
 
 // Action_Grid::action()
+// TODO: Combine all below
 Action::RetType Action_Grid::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  if (grid_.GridBox()) {
-    Vec3 boxCenter( currentFrame->BoxX() / 2.0,
-                    currentFrame->BoxY() / 2.0,
-                    currentFrame->BoxZ() / 2.0 );
-    for (AtomMask::const_iterator atom = mask_.begin();
-                                  atom != mask_.end(); ++atom)
-    {
-      Vec3 XYZ = currentFrame->XYZ( *atom );
-      XYZ -= boxCenter;
-      //mprintf("BATM %6i ", *atom + 1);
-      grid_.GridPoint( XYZ[0], XYZ[1], XYZ[2] );
-    }
-  } else {
-    for (AtomMask::const_iterator atom = mask_.begin();
-                                  atom != mask_.end(); ++atom)
-    {
-      const double* XYZ = currentFrame->XYZ( *atom );
-      //mprintf("ATOM %6i ", *atom + 1);
-      grid_.GridPoint( XYZ[0], XYZ[1], XYZ[2] );
-    }
-  }
-
+  grid_.GridFrame( *currentFrame, mask_ );
   return Action::OK;
 }
 
