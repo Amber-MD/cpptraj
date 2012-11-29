@@ -8,14 +8,15 @@
 Action_CheckStructure::Action_CheckStructure() : 
   bondoffset_(1.15),
   nonbondcut2_(0.64), // 0.8^2
-  isSeparate_(false),
+  bondcheck_(true),
+  silent_(false),
   CurrentParm_(0),
   debug_(0)
 {} 
 
 void Action_CheckStructure::Help() {
   mprintf("check[structure] [<mask1>] [reportfile <report>] [noimage]\n");
-  mprintf("                 [offset <offset>] [cut <cut>]\n");
+  mprintf("                 [offset <offset>] [cut <cut>] [nobondcheck]\n");
   mprintf("\tCheck frames for atomic overlaps and unusual bond lengths\n");
 }
 
@@ -35,6 +36,9 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   std::string reportFile = actionArgs.GetStringKey("reportfile");
   bondoffset_ = actionArgs.getKeyDouble("offset",1.15);
   double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
+  bondcheck_ = !actionArgs.hasKey("nobondcheck");
+  // Hidden option, for use when used by other actions
+  silent_ = actionArgs.hasKey("silent");
 
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
@@ -45,9 +49,15 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   if (!reportFile.empty())
     mprintf(", output to %s",reportFile.c_str());
   mprintf(".\n");
-  mprintf("                    Warnings will be printed for bond length > eq + %.2lf\n",
-          bondoffset_);
-  mprintf("                    and non-bond distance < %.2lf\n",nonbondcut);
+  if (!bondcheck_) {
+    mprintf("\tChecking inter-atom distances only.\n");
+    mprintf("\tWarnings will be printed for non-bond distances < %.2f Ang.\n", nonbondcut);
+  } else {
+    mprintf("\tChecking inter-atom and bond distances.\n");
+    mprintf("\tWarnings will be printed for bond lengths > eq + %.2f Ang\n",
+            bondoffset_);
+    mprintf("\tand non-bond distances < %.2f Ang.\n",nonbondcut);
+  }
   nonbondcut2_ = nonbondcut * nonbondcut;
 
   if (outfile_.SetupWrite(reportFile, debug_))
@@ -55,25 +65,6 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   outfile_.OpenFile();
 
   return Action::OK;
-}
-
-// Action_CheckStructure::SeparateInit()
-void Action_CheckStructure::SeparateInit(double bondoffsetIn, double nonbondcutIn, int debugIn) 
-{
-  double nonbondcut;
-  isSeparate_ = true;
-  debug_ = debugIn;
-  InitImaging( false );
-  if (bondoffsetIn < 0)
-    bondoffset_ = 1.15;
-  else
-    bondoffset_ = bondoffsetIn;
-  if (nonbondcutIn < 0)
-    nonbondcut = 0.8;
-  else 
-    nonbondcut = nonbondcutIn;
-  nonbondcut2_ = nonbondcut * nonbondcut;
-  Mask1_.SetMaskString(NULL);
 }
 
 /** Set up bond arrays in a sorted list for easy access during loop
@@ -96,6 +87,8 @@ void Action_CheckStructure::SetupBondlist(std::vector<int> const& BndLst) {
     bnd.param = *bondatom - 1; // Amber indices start from 1
     bondL_.push_back(bnd); 
   }
+  if (bondL_.empty())
+    mprintf("Warning: No bond info in parm %s, will not check bonds.\n",CurrentParm_->c_str());
 }
 
 // Action_CheckStructure::setup()
@@ -110,6 +103,7 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
   double rk = 0;
   unsigned int totalbonds;
 
+  CurrentParm_ = currentParm;      
   // Initially set up character mask to easily determine whether
   // both atoms of a bond are in the mask.
   if ( currentParm->SetupCharMask(Mask1_) ) return Action::ERR;
@@ -122,12 +116,12 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
 
   // Check bonds
   bondL_.clear();
-  SetupBondlist( currentParm->Bonds() );
-  SetupBondlist( currentParm->BondsH() );
-  if (bondL_.empty()) {
-    mprintf("    Warning: No bond info in %s, will not check bonds.\n",currentParm->c_str());
     totalbonds = 0;
-  } else {  
+  if (bondcheck_) {
+    SetupBondlist( currentParm->Bonds() );
+    SetupBondlist( currentParm->BondsH() );
+  }
+  if (!bondL_.empty()) {
     // Since in the loop atom1 always < atom2, enforce this with parameters.
     // Sort by atom1, then by atom2
     sort( bondL_.begin(), bondL_.end(), bond_list_cmp() );
@@ -161,113 +155,66 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
   // Reset to integer mask.
   if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
   // Print imaging info for this parm
-  if (!isSeparate_) {
-    mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1_.MaskString(), Mask1_.Nselected(),
-            totalbonds);
-    if (ImagingEnabled())
-      mprintf(", imaging on");
-    else
-      mprintf(", imaging off");
-    mprintf(".\n");
-  }
-  CurrentParm_ = currentParm;      
+  mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1_.MaskString(), Mask1_.Nselected(),
+          totalbonds);
+  if (ImagingEnabled())
+    mprintf(", imaging on");
+  else
+    mprintf(", imaging off");
+  mprintf(".\n");
   return Action::OK;  
 }
 
-// Action_CheckStructure::action()
-Action::RetType Action_CheckStructure::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double ucell[9], recip[9], D2, D, bondmax;
-  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() ); 
+// Action_CheckStructure::CheckFrame()
+int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
+  double ucell[9], recip[9];
+  int Nproblems = 0;
+  // Set box info, needed if imaging enabled. 
+  Vec3 boxXYZ = currentFrame.BoxLengths();
+  // Start bond list 
   std::vector<bond_list>::iterator currentBond = bondL_.begin();
-
-  if (ImageType()==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
-
+  // Get imaging info for non-orthogonal box
+  if (ImageType()==NONORTHO) currentFrame.BoxToRecip(ucell,recip);
+  // Begin loop
   int lastidx = Mask1_.Nselected() - 1;
   for (int maskidx1 = 0; maskidx1 < lastidx; maskidx1++) {
     int atom1 = Mask1_[maskidx1];
     for (int maskidx2 = maskidx1 + 1; maskidx2 < Mask1_.Nselected(); maskidx2++) {
       int atom2 = Mask1_[maskidx2];
       // Get distance^2
-      D2 = DIST2(currentFrame->XYZ(atom1), currentFrame->XYZ(atom2),
-                 ImageType(), boxXYZ, ucell, recip);
-      // Are these atoms bonded?
+      double D2 = DIST2(currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
+                        ImageType(), boxXYZ, ucell, recip);
       if ( (atom1==(*currentBond).atom1) && (atom2==(*currentBond).atom2) ) {
+        // Atoms bonded, check bond length.
         // req has been precalced to (req + bondoffset)^2
-        bondmax = (*currentBond).req;
+        double bondmax = (*currentBond).req;
         // Check for long bond length; distance2 > (req+bondoffset)^2
         if (D2 > bondmax) {
-          D = sqrt(D2);
+          ++Nproblems;
           outfile_.Printf(
-                  "%i\t Warning: Unusual bond length %i@%s to %i@%s (%.2lf)\n",
-                  frameNum+OUTPUTFRAMESHIFT,
+                  "%i\t Warning: Unusual bond length %i@%s to %i@%s (%.2lf)\n", frameNum,
                   atom1+1, (*CurrentParm_)[atom1].c_str(), 
-                  atom2+1, (*CurrentParm_)[atom2].c_str(), D);
+                  atom2+1, (*CurrentParm_)[atom2].c_str(), sqrt(D2));
         }
         // Next bond
         currentBond++;
-      // Atoms not bonded, check overlap
       } else {
+        // Atoms not bonded, check overlap
         if (D2 < nonbondcut2_) {
-          D = sqrt(D2);
+          ++Nproblems;
           outfile_.Printf(
-                  "%i\t Warning: Atoms %i@%s and %i@%s are close (%.2lf)\n",
-                  frameNum+OUTPUTFRAMESHIFT,
+                  "%i\t Warning: Atoms %i@%s and %i@%s are close (%.2lf)\n", frameNum,
                   atom1+1, (*CurrentParm_)[atom1].c_str(), 
-                  atom2+1, (*CurrentParm_)[atom2].c_str(), D);
+                  atom2+1, (*CurrentParm_)[atom2].c_str(), sqrt(D2));
         }
       }
     } // END second loop over mask atoms
   } // END first loop over mask atoms
-
-  return Action::OK;
-}
-
-// Action_CheckStructure::SeparateAction()
-/// Used when you want to check all input coordinates.
-int Action_CheckStructure::SeparateAction(Frame *frameIn) {
-  double D2, bondmax;
-  std::vector<bond_list>::iterator currentBond = bondL_.begin();
-  int Nproblems = 0;
-
-  //if (imageType>0) frameIn->BoxToRecip(ucell,recip);
-
-  int frame_natom = frameIn->Natom();
-  int lastatom = frame_natom - 1;
-  int idx1 = 0;
-  for (int atom1 = 0; atom1 < lastatom; atom1++) {
-    int idx2 = idx1 + 3;
-    for (int atom2 = atom1 + 1; atom2 < frame_natom; atom2++) {
-      // Get distance^2
-      D2 = DIST2_NoImage( frameIn->CRD(idx1), frameIn->CRD(idx2) );
-      // Are these atoms bonded?
-      if ( (atom1==(*currentBond).atom1) && (atom2==(*currentBond).atom2) ) {
-        // req has been precalced to (req + bondoffset)^2
-        bondmax = (*currentBond).req;
-        // Check for long bond length; distance2 > (req+bondoffset)^2
-        if (D2 > bondmax) {
-          Nproblems++; 
-          if (debug_>0)
-            mprintf("\t\tWarning: Unusual bond length %i@%s to %i@%s (%.2lf)\n",
-                    atom1+1, (*CurrentParm_)[atom1].c_str(), 
-                    atom2+1, (*CurrentParm_)[atom2].c_str(), sqrt(D2));
-        }
-        // Next bond
-        currentBond++;
-      // Atoms not bonded, check overlap
-      } else {
-        if (D2 < nonbondcut2_) {
-          Nproblems++;
-          if (debug_>0)
-            mprintf("\t\tWarning: Atoms %i@%s and %i@%s are close (%.2lf)\n",
-                    atom1+1, (*CurrentParm_)[atom1].c_str(), 
-                    atom2+1, (*CurrentParm_)[atom1].c_str(), sqrt(D2));
-        }
-      }
-      idx2+=3;
-    } // END second loop over mask atoms
-    idx1+=3;
-  } // END first loop over mask atoms
-
   return Nproblems;
 }
 
+// Action_CheckStructure::action()
+Action::RetType Action_CheckStructure::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+  CheckFrame(frameNum+1, *currentFrame);
+  return Action::OK;
+}

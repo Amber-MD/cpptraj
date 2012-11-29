@@ -12,14 +12,13 @@ class Action_CheckStructure: public Action, ImagedAction {
     static void Help();
 
     ~Action_CheckStructure();
-
-    void SeparateInit(double, double, int);
-    Action::RetType Setup(Topology*, Topology**);
-    int SeparateAction(Frame *);
-    void Print() {}
-  private:
+    // These are made public for use in other actions (e.g. Action_DihedralScan)
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    int CheckFrame(int, Frame const&);
+    void Print() {}
+  private:
     Action::RetType DoAction(int, Frame*, Frame**);
 
     /// Used to cache bond parameters
@@ -45,8 +44,9 @@ class Action_CheckStructure: public Action, ImagedAction {
     AtomMask Mask1_;
     double bondoffset_;
     double nonbondcut2_;
+    bool bondcheck_;
+    bool silent_;
     CpptrajFile outfile_;
-    bool isSeparate_; ///< True if set up outside main Action List
     Topology* CurrentParm_;
     int debug_;
 

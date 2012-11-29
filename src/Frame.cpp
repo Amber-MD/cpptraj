@@ -774,7 +774,7 @@ void Frame::ShiftToGeometricCenter( ) {
   * with imaging routines. Return cell volume.
   */
 // NOTE: Move to separate routine in DistRoutines?
-double Frame::BoxToRecip(double *ucell, double *recip) {
+double Frame::BoxToRecip(double *ucell, double *recip) const {
   double u12x,u12y,u12z;
   double u23x,u23y,u23z;
   double u31x,u31y,u31z;

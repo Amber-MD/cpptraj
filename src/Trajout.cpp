@@ -17,6 +17,7 @@ Trajout::Trajout() :
 Trajout::~Trajout() {
   if (trajio_!=0) {
     if (trajIsOpen_) EndTraj();
+    trajIsOpen_ = false;
     delete trajio_;
   }
 }

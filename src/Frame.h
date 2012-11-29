@@ -67,7 +67,7 @@ class Frame {
     double BoxX() { return box_[0]; }
     double BoxY() { return box_[1]; }
     double BoxZ() { return box_[2]; }
-    Vec3 BoxLengths() { return Vec3( box_[0], box_[1], box_[2] ); }
+    Vec3 BoxLengths() const { return Vec3( box_[0], box_[1], box_[2] ); }
     // Routines for accessing internal data pointers
     inline double* xAddress() { return X_;   }
     inline double* vAddress() { return V_;   }
@@ -242,7 +242,7 @@ class Frame {
     Vec3 CenterReference(bool);
     void ShiftToGeometricCenter();
     // Coordinate calculation
-    double BoxToRecip(double *, double *);
+    double BoxToRecip(double *, double *) const;
     double RMSD(Frame &, bool );
     double RMSD(Frame &, Matrix_3x3&, Vec3&, Vec3&, bool);
     double RMSD_CenteredRef( Frame const&, bool);

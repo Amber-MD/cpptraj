@@ -19,7 +19,7 @@ class Trajout : public TrajectoryFile {
     void EndTraj();
     int WriteFrame(int, Topology*, Frame&);
     void PrintInfo(int);
-
+    bool TrajIsOpen()        { return trajIsOpen_;         }
     int NumFramesProcessed() { return numFramesProcessed_; }
   private:
     int numFramesProcessed_;
