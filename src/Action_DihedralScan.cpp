@@ -5,6 +5,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD
 #include "DistRoutines.h"
+#include "TorsionRoutines.h"
 
 // Activate DEBUG info
 //#define DEBUG_DIHEDRALSCAN
@@ -14,10 +15,11 @@
 
 // CONSTRUCTOR
 Action_DihedralScan::Action_DihedralScan() :
-  mode_(RANDOM),
-  check_for_clashes_(false),
+  mode_(IMPOSE),
   outframe_(0),
   interval_(60.0),
+  maxVal_(0),
+  check_for_clashes_(false),
   max_rotations_(0),
   max_factor_(2),
   cutoff_(0.64), // 0.8^2
@@ -60,9 +62,13 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   else if (actionArgs.hasKey("interval"))
     mode_ = INTERVAL;
   else if (actionArgs.hasKey("impose"))
-    mode_ = RANDOM;
-  if ( mode_ != RANDOM ) 
+    mode_ = IMPOSE;
+  // For impose/interval, get value to impose/shift by
+  if ( mode_ != RANDOM ) {
     interval_ = actionArgs.getNextDouble(60.0);
+    maxVal_ = (int) (360.0 / interval_);
+  }
+  // For interval, set up output trajectory
   if (mode_ == INTERVAL) {
     outfilename_ = actionArgs.GetStringKey("outtraj");
     if (!outfilename_.empty()) {
@@ -74,6 +80,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
       }
     }
   }
+  // Get 'random' args
   if (mode_ == RANDOM) {
     check_for_clashes_ = actionArgs.hasKey("check");
     cutoff_ = actionArgs.getKeyDouble("cutoff",0.8);
@@ -106,7 +113,6 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   }
   // Output file for # of problems
   std::string problemFile = actionArgs.GetStringKey("out");
-
   // Dataset to store number of problems
   number_of_problems_ = DSL->AddSet(DataSet::INT, actionArgs.GetStringNext(),"Nprob");
   if (number_of_problems_==0) return Action::ERR;
@@ -155,18 +161,51 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
     mprinterr("Error: Could not set up structure check for DIHEDRALSCAN.\n");
     return Action::ERR;
   }
-
   return Action::OK;
 }
 
 // GetBondedAtomIdx()
-static int GetBondedAtomIdx(Topology const& topIn, int atom, NameType nameIn) {
+static int GetBondedAtomIdx(Topology const& topIn, int atom, NameType const& nameIn) {
   for (Atom::bond_iterator bndatm = topIn[atom].bondbegin();
                            bndatm != topIn[atom].bondend(); ++bndatm)
   {
     if ( topIn[*bndatm].Name() == nameIn ) return *bndatm;
   }
   return -1;
+}
+
+/** \return array containing atom indices involved with specified dihedral.
+  * Always check that an atom is in Mask1.
+  * \param topIn Topology
+  * \param atom1 Index of 2nd atom in dihedral
+  * \param A0 name of 1st atom in dihedral
+  * \param A2 name of 3rd atom in dihedral
+  * \param A3 name of 4th atom in dihedral
+  */
+int Action_DihedralScan::GetDihedralIdxs(int* idxs, Topology const& topIn, 
+                                         int atom1, NameType const& A0, 
+                                         NameType const& A2, NameType const& A3)
+{
+  idxs[0] = -1; // atom0
+//idxs[1] = -1; // atom2
+  idxs[2] = -1; // atom3
+  if (mode_ == IMPOSE) { 
+    // Get index of atom0
+    idxs[0] = GetBondedAtomIdx(topIn, atom1, A0);
+    if (idxs[0] == -1) return 1;
+    if (!Mask1_.AtomInCharMask(idxs[0])) return 1;
+  }
+  // Get index of atom2
+  idxs[1] = GetBondedAtomIdx(topIn, atom1, A2);
+  if (idxs[1] == -1) return 1;
+  if (!Mask1_.AtomInCharMask(idxs[1])) return 1;
+  if (mode_ == IMPOSE) {
+    // Get index of atom 3
+    idxs[2] = GetBondedAtomIdx(topIn, idxs[1], A3);
+    if (idxs[2] == -1) return 1;
+    if (!Mask1_.AtomInCharMask(idxs[2])) return 1;
+  }
+  return 0;
 }
 
 // VisitAtom()
@@ -195,71 +234,75 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
   }
   // For now just focus on backbone phi/psi dihedrals:
   //   C-N-CA-C  N-CA-C-N
+  int idxs[3];
   std::vector<char> Visited( currentParm->Natom(), 'F' );
-  for (int atom=0; atom < currentParm->Natom(); atom++) {
-    if (Mask1_.AtomInCharMask(atom)) {
-      int atom2 = -1;
+  for (int atom1 = 0; atom1 < currentParm->Natom(); atom1++) {
+    if (Mask1_.AtomInCharMask(atom1)) {
       // PHI: C-N-CA-C
-      if ((*currentParm)[atom].Name() == "N   ") {
-        atom2 = GetBondedAtomIdx(*currentParm, atom, "CA  ");
+      if ((*currentParm)[atom1].Name() == "N   ") {
+        if (GetDihedralIdxs(idxs, *currentParm, atom1, "C", "CA", "C")) continue;
       // PSI: N-CA-C-N
-      } else if ((*currentParm)[atom].Name() == "CA  ") {
-        atom2 = GetBondedAtomIdx(*currentParm, atom, "C   ");
+      } else if ((*currentParm)[atom1].Name() == "CA  ") {
+        if (GetDihedralIdxs(idxs, *currentParm, atom1, "N", "C", "N")) continue;
+      } else
+        continue;
+      // Set up mask of atoms that will move upon rotation of dihedral.
+      // Also set up mask of atoms in this residue that will not move
+      // upon rotation of dihedral, including atom2
+      dst.Rmask.ResetMask();
+      Visited.assign( currentParm->Natom(), 'F' );
+      // Mark atom1 as already visited
+      Visited[atom1] = 'T';
+      for (Atom::bond_iterator bndatm = (*currentParm)[idxs[1]].bondbegin();
+                               bndatm != (*currentParm)[idxs[1]].bondend(); ++bndatm)
+      {
+        if ( *bndatm != atom1 )
+          VisitAtom( *currentParm, *bndatm, Visited );
       }
-      // If a second atom was found dihedral is defined and in mask, store it
-      if (atom2 != -1 && Mask1_.AtomInCharMask(atom2)) {
-        // Set up mask of atoms that will move upon rotation of dihedral.
-        // Also set up mask of atoms in this residue that will not move
-        // upon rotation of dihedral, including atom2
-        //if (currentParm->MaskOfAtomsAroundBond(atom, atom2, tmpMask)) return Action::ERR;
-        dst.Rmask.ResetMask();
-        Visited.assign( currentParm->Natom(), 'F' );
-        // Mark atom as already visited
-        Visited[atom] = 'T';
-        for (Atom::bond_iterator bndatm = (*currentParm)[atom2].bondbegin();
-                                 bndatm != (*currentParm)[atom2].bondend(); ++bndatm)
-        {
-          if ( *bndatm != atom )
-            VisitAtom( *currentParm, *bndatm, Visited );
+      dst.checkAtoms.clear();
+      int a1res = (*currentParm)[atom1].ResNum();
+      int a1res_start = currentParm->ResFirstAtom( a1res );
+      int a1res_stop = currentParm->ResLastAtom( a1res );
+      for (int maskatom = 0; maskatom < (int)Visited.size(); maskatom++) {
+        if (Visited[maskatom]=='T')
+          dst.Rmask.AddAtom(maskatom);
+        else {
+          // If this atom is in the same residue but will not move, it needs
+          // to be checked for clashes since further rotations will not
+          // help it.
+          if (maskatom >= a1res_start && maskatom < a1res_stop   )
+            dst.checkAtoms.push_back( maskatom );
         }
-        dst.checkAtoms.clear();
-        int a1res = (*currentParm)[atom].ResNum();
-        int a1res_start = currentParm->ResFirstAtom( a1res );
-        int a1res_stop = currentParm->ResLastAtom( a1res );
-        for (int maskatom = 0; maskatom < (int)Visited.size(); maskatom++) {
-          if (Visited[maskatom]=='T')
-            dst.Rmask.AddAtom(maskatom);
-          else {
-            // If this atom is in the same residue but will not move, it needs
-            // to be checked for clashes since further rotations will not
-            // help it.
-            if (maskatom >= a1res_start && maskatom < a1res_stop   )
-              dst.checkAtoms.push_back( maskatom );
-          }
-        }
-        dst.checkAtoms.push_back( atom2 ); // atom already included from tmpMask
-        dst.atom1 = atom;
-        dst.atom2 = atom2;
-        // Since only the second atom and atoms it is
-        // bonded to move during rotation, base the check
-        // on the residue of the second atom.
-        dst.resnum = (*currentParm)[atom2].ResNum();
-        dst.currentVal = 0;
-        dst.interval = interval_;
-        dst.maxVal = (int) (360.0 / interval_);
-        BB_dihedrals_.push_back(dst);
       }
+      dst.checkAtoms.push_back( idxs[1] ); // atom1 already included from tmpMask
+      dst.atom0 = idxs[0];
+      dst.atom1 = atom1;
+      dst.atom2 = idxs[1];
+      dst.atom3 = idxs[2];
+      // Since only the second atom and atoms it is bonded to move during 
+      // rotation, base the check on the residue of the second atom.
+      dst.resnum = (*currentParm)[idxs[1]].ResNum();
+      BB_dihedrals_.push_back(dst);
     } // END if atom in char mask
   }
 
   // DEBUG: List defined dihedrals
   if (debug_>0) {
-    mprintf("DEBUG: Dihedrals (central 2 atoms only):\n");
+    mprintf("DEBUG: Dihedrals:");
+    if (mode_ != IMPOSE)
+      mprintf(" (central two atoms only)");
+    mprintf("\n");
     for (unsigned int dih = 0; dih < BB_dihedrals_.size(); dih++) {
-      mprintf("\t%8i%4s %8i%4s %8i%4s\n",
-              BB_dihedrals_[dih].atom1+1, (*currentParm)[BB_dihedrals_[dih].atom1].c_str(), 
-              BB_dihedrals_[dih].atom2+1, (*currentParm)[BB_dihedrals_[dih].atom2].c_str(), 
-              BB_dihedrals_[dih].resnum+1, currentParm->Res(BB_dihedrals_[dih].resnum).c_str());
+      mprintf("\t");
+      std::string aname = currentParm->TruncResAtomName(BB_dihedrals_[dih].atom0);
+      if (!aname.empty()) mprintf("%s-", aname.c_str());
+      aname = currentParm->TruncResAtomName(BB_dihedrals_[dih].atom1);
+      mprintf("%s-", aname.c_str());
+      aname = currentParm->TruncResAtomName(BB_dihedrals_[dih].atom2);
+      mprintf("%s", aname.c_str());
+      aname = currentParm->TruncResAtomName(BB_dihedrals_[dih].atom3);
+      if (!aname.empty()) mprintf("-%s", aname.c_str());
+      mprintf("\n");
       if (debug_>1) {
         mprintf("\t\tCheckAtoms=");
         for (std::vector<int>::iterator ca = BB_dihedrals_[dih].checkAtoms.begin();
@@ -373,37 +416,6 @@ int Action_DihedralScan::CheckResidue( Frame const& FrameIn, DihedralScanType &d
   }
   return 0;
 } 
-
-// Action_DihedralScan::IntervalAngles()
-void Action_DihedralScan::IntervalAngles(Frame& currentFrame) {
-  Matrix_3x3 rotationMatrix;
-  // Write original frame
-  if (!outfilename_.empty())
-    outtraj_.WriteFrame(outframe_++, CurrentParm_, currentFrame);
-  for (std::vector<DihedralScanType>::iterator dih = BB_dihedrals_.begin();
-                                               dih != BB_dihedrals_.end();
-                                               dih++)
-  {
-    // Set axis of rotation
-    Vec3 axisOfRotation = currentFrame.SetAxisOfRotation((*dih).atom1, (*dih).atom2);
-    double theta_in_radians = (*dih).interval * DEGRAD;
-    // Calculate rotation matrix for interval 
-    rotationMatrix.CalcRotationMatrix(axisOfRotation, theta_in_radians);
-    if (debug_ > 0) {
-      std::string a1name = CurrentParm_->TruncResAtomName( (*dih).atom1 );
-      std::string a2name = CurrentParm_->TruncResAtomName( (*dih).atom2 );
-      mprintf("\tRotating Dih %s-%s by %.2f deg %i times.\n",
-               a1name.c_str(), a2name.c_str(), (*dih).interval, (*dih).maxVal); 
-    }
-    for (int rot = 0; rot < (*dih).maxVal; ++rot) {
-      // Rotate around axis
-      currentFrame.Rotate(rotationMatrix, (*dih).Rmask);
-      // Write output trajectory
-      if (outtraj_.TrajIsOpen())
-        outtraj_.WriteFrame(outframe_++, CurrentParm_, currentFrame);
-    }
-  }
-}
 
 // Action_DihedralScan::RandomizeAngles()
 void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
@@ -539,12 +551,76 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
 #endif
 }
 
+// Action_DihedralScan::IntervalAngles()
+void Action_DihedralScan::IntervalAngles(Frame& currentFrame) {
+  Matrix_3x3 rotationMatrix;
+  double theta_in_radians = interval_ * DEGRAD;
+  // Write original frame
+  if (!outfilename_.empty())
+    outtraj_.WriteFrame(outframe_++, CurrentParm_, currentFrame);
+  for (std::vector<DihedralScanType>::iterator dih = BB_dihedrals_.begin();
+                                               dih != BB_dihedrals_.end();
+                                               dih++)
+  {
+    // Set axis of rotation
+    Vec3 axisOfRotation = currentFrame.SetAxisOfRotation((*dih).atom1, (*dih).atom2);
+    // Calculate rotation matrix for interval 
+    rotationMatrix.CalcRotationMatrix(axisOfRotation, theta_in_radians);
+    if (debug_ > 0) {
+      std::string a1name = CurrentParm_->TruncResAtomName( (*dih).atom1 );
+      std::string a2name = CurrentParm_->TruncResAtomName( (*dih).atom2 );
+      mprintf("\tRotating Dih %s-%s by %.2f deg %i times.\n",
+               a1name.c_str(), a2name.c_str(), interval_, maxVal_); 
+    }
+    for (int rot = 0; rot < maxVal_; ++rot) {
+      // Rotate around axis
+      currentFrame.Rotate(rotationMatrix, (*dih).Rmask);
+      // Write output trajectory
+      if (outtraj_.TrajIsOpen())
+        outtraj_.WriteFrame(outframe_++, CurrentParm_, currentFrame);
+    }
+  }
+}
+
+// Action_DihedralScan::ImposeAngles()
+void Action_DihedralScan::ImposeAngles(Frame& currentFrame) {
+  Matrix_3x3 rotationMatrix;
+  double theta_in_radians = interval_ * DEGRAD;
+  for (std::vector<DihedralScanType>::iterator dih = BB_dihedrals_.begin();
+                                               dih != BB_dihedrals_.end();
+                                               dih++)
+  {
+    // Calculate current value of dihedral
+    double torsion = Torsion( currentFrame.XYZ( (*dih).atom0 ),
+                              currentFrame.XYZ( (*dih).atom1 ),
+                              currentFrame.XYZ( (*dih).atom2 ),
+                              currentFrame.XYZ( (*dih).atom3 ) );
+    // Calculate delta needed to get to theta
+    double delta = theta_in_radians - torsion;
+    // Set axis of rotation
+    Vec3 axisOfRotation = currentFrame.SetAxisOfRotation((*dih).atom1, (*dih).atom2);
+    // Calculate rotation matrix for delta 
+    rotationMatrix.CalcRotationMatrix(axisOfRotation, delta);
+    if (debug_ > 0) {
+      std::string a0name = CurrentParm_->TruncResAtomName( (*dih).atom0 );
+      std::string a1name = CurrentParm_->TruncResAtomName( (*dih).atom1 );
+      std::string a2name = CurrentParm_->TruncResAtomName( (*dih).atom2 );
+      std::string a3name = CurrentParm_->TruncResAtomName( (*dih).atom3 );
+      mprintf("\tRotating Dih %s-%s-%s-%s (@%.2f) by %.2f deg to get to %.2f.\n",
+               a0name.c_str(), a1name.c_str(), a2name.c_str(), a3name.c_str(),
+               torsion*RADDEG, delta*RADDEG, interval_); 
+    }
+    // Rotate around axis
+    currentFrame.Rotate(rotationMatrix, (*dih).Rmask);
+  }
+}
+
 // Action_DihedralScan::action()
 Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   switch (mode_) {
     case RANDOM: RandomizeAngles(*currentFrame); break;
     case INTERVAL: IntervalAngles(*currentFrame); break;
-    case IMPOSE: break;
+    case IMPOSE: ImposeAngles(*currentFrame); break;
   }
   // Check the resulting structure
   int n_problems = checkStructure_.CheckFrame( frameNum+1, *currentFrame );

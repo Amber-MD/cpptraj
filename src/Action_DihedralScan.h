@@ -24,13 +24,12 @@ class Action_DihedralScan: public Action {
     ModeType mode_;
     /// Hold info for a dihedral
     struct DihedralScanType {
-      AtomMask Rmask;
-      std::vector<int> checkAtoms;
-      double interval;
-      int currentVal;
-      int maxVal;
+      AtomMask Rmask;              ///< Mask of atoms to hold fixed during rotation
+      std::vector<int> checkAtoms; ///< Atoms in same residue that should be checked for clashes
+      int atom0;
       int atom1;
       int atom2;
+      int atom3;
       int resnum;
     };
     std::vector<DihedralScanType> BB_dihedrals_;
@@ -44,27 +43,32 @@ class Action_DihedralScan: public Action {
     std::vector<ResidueCheckType> ResCheck_;
 
     AtomMask Mask1_;
-    bool check_for_clashes_;
     Trajout outtraj_;
     std::string outfilename_;
     int outframe_;
-    double interval_;
-    int max_rotations_;
-    int max_factor_;
-    double cutoff_;
-    double rescutoff_;
-    int backtrack_;
+    double interval_;   ///< interval/impose, value to shift by/impose
+    int maxVal_;        ///< Maximum number of times to rotate dihedral
+    // 'random' options
+    bool check_for_clashes_;
+    int max_rotations_; ///< Max # of random rotations to try, == # of dihedrals
+    int max_factor_;    ///< # of times to randomly rotate each dihedral
+    double cutoff_;     ///< When checking for clashes, atom cutoff
+    double rescutoff_;  ///< When checking for clashes, residue cutoff
+    int backtrack_;     ///< When a clash cannot be resolved, # of dihedrals to backtrack
     int increment_;     ///< Value in degrees to increment random dihedral by if clash happens
     int max_increment_; ///< 360 / increment
+    // General
     int debug_;
     Topology* CurrentParm_;
     DataSet *number_of_problems_;
     Action_CheckStructure checkStructure_;
     Random_Number RN_;
 
-    //int CheckResidues( Frame *, int );
+    int GetDihedralIdxs(int*, Topology const&,int, NameType const&, 
+                         NameType const&, NameType const&);
     int CheckResidue( Frame const&, DihedralScanType&,int,double*);
-    void IntervalAngles(Frame&);
     void RandomizeAngles(Frame&);
+    void IntervalAngles(Frame&);
+    void ImposeAngles(Frame&);
 };
 #endif  
