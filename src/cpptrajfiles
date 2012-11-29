@@ -19,6 +19,7 @@ SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
         Analysis_Timecorr.cpp Analysis_IRED.cpp Analysis_Modes.cpp \
         Analysis_CrankShaft.cpp Analysis_Statistics.cpp Analysis_CrossCorr.cpp \
         Analysis_Lifetime.cpp Analysis_AutoCorr.cpp Analysis_FFT.cpp \
+        Analysis_RunningAvg.cpp \
         AnalysisList.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
         BufferedFile.cpp ByteRoutines.cpp ClusterList.cpp ClusterNode.cpp CoordList.cpp \

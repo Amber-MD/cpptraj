@@ -14,6 +14,7 @@
 #include "Analysis_Lifetime.h"
 #include "Analysis_FFT.h"
 #include "Analysis_CrdFluct.h"
+#include "Analysis_RunningAvg.h"
 
 const DispatchObject::Token AnalysisList::DispatchArray[] = {
   { DispatchObject::ANALYSIS, "autocorr", Analysis_AutoCorr::Alloc, Analysis_AutoCorr::Help, 0 },
@@ -32,6 +33,7 @@ const DispatchObject::Token AnalysisList::DispatchArray[] = {
   { DispatchObject::ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, 0 },
   { DispatchObject::ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, 0 },
   { DispatchObject::ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, 0 },
+  { DispatchObject::ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, 0 },
   { DispatchObject::NONE,        0,                  0,                 0, 0 }
 };
 
