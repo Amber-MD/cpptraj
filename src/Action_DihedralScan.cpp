@@ -37,7 +37,8 @@ Action_DihedralScan::~Action_DihedralScan() {
 }
 
 void Action_DihedralScan::Help() {
-  mprintf("dihedralscan <mask> {interval | random | impose}\n");
+  mprintf("dihedralscan <mask> [{interval|random|impose*}] [all] [phi] [psi]]\n");
+  mprintf("\t'*' denotes default.\n");
   mprintf("\tOptions for 'random': [rseed <rseed>]\n");
   mprintf("\t\t[ check [cutoff <cutoff>] [rescutoff <rescutoff>]\n");
   mprintf("\t\t  [backtrack <backtrack>] [increment <increment>] [maxfactor <max_factor>] ]\n");
@@ -54,8 +55,6 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   int iseed;
 
   debug_ = debugIn;
-  // Get mask
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
   // Get Keywords - first determine mode
   if (actionArgs.hasKey("random"))
     mode_ = RANDOM;
@@ -63,13 +62,31 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
     mode_ = INTERVAL;
   else if (actionArgs.hasKey("impose"))
     mode_ = IMPOSE;
-  // For impose/interval, get value to impose/shift by
-  if ( mode_ != RANDOM ) {
-    interval_ = actionArgs.getNextDouble(60.0);
-    maxVal_ = (int) (360.0 / interval_);
+  else
+    mode_ = IMPOSE;
+  // Determine which angles to search for
+  SearchFor_[PHI] = actionArgs.hasKey("phi");
+  SearchFor_[PSI] = actionArgs.hasKey("psi");
+  // If nothing is enabled or 'all' specified, enable all
+  bool nothing_enabled = true;
+  for (int i = 0; i < N_ANGLE; i++) {
+    if (SearchFor_[i]) {
+      nothing_enabled = false;
+      break;
+    }
   }
-  // For interval, set up output trajectory
+  if (nothing_enabled || actionArgs.hasKey("all"))
+  for (int i = 0; i < N_ANGLE; i++)
+    SearchFor_[i] = true;
+  // Get mask
+  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  // For impose/interval, get value to impose/shift by
+  if ( mode_ != RANDOM ) 
+    interval_ = actionArgs.getNextDouble(60.0);
+  // For interval, set max rotations and set up output trajectory
   if (mode_ == INTERVAL) {
+    maxVal_ = (int) (360.0 / interval_);
+    if (maxVal_ < 0) maxVal_ = -maxVal_;
     outfilename_ = actionArgs.GetStringKey("outtraj");
     if (!outfilename_.empty()) {
       outfmt = TrajectoryFile::GetFormatFromArg( actionArgs );
@@ -129,7 +146,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
         mprintf("\tRandom number generator will be seeded using %i\n",iseed);
       if (check_for_clashes_) {
         mprintf("\tWill attempt to recover from bad steric clashes.\n");
-        mprintf("\tAtom cutoff %.2lf, residue cutoff %.2lf, backtrack = %i\n",
+        mprintf("\tAtom cutoff %.2f, residue cutoff %.2f, backtrack = %i\n",
                 cutoff_, rescutoff_, backtrack_);
         mprintf("\tWhen clashes occur dihedral will be incremented by %i\n",increment_);
         mprintf("\tMax # attempted rotations = %i times number dihedrals.\n",
@@ -137,13 +154,15 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
       }
       break;
     case INTERVAL:
-      mprintf("\tDihedrals will be rotated at intervals of %.2lf degrees.\n",
+      mprintf("\tDihedrals will be rotated at intervals of %.2f degrees.\n",
               interval_);
       if (!outfilename_.empty())
         mprintf("\tCoordinates output to %s, format %s\n",outfilename_.c_str(), 
                 TrajectoryFile::FormatString(outfmt));
       break;
-    case IMPOSE: return Action::ERR;
+    case IMPOSE:
+      mprintf("\tA value of %.2f degrees will be imposed on selected dihedrals.\n",
+               interval_);
   }
   // Setup output trajectory
   if (!outfilename_.empty()) {
@@ -182,6 +201,8 @@ static int GetBondedAtomIdx(Topology const& topIn, int atom, NameType const& nam
   * \param A2 name of 3rd atom in dihedral
   * \param A3 name of 4th atom in dihedral
   */
+// TODO: Should atom0 and atom3 be checked for in mask?
+// TODO: Should atom0 and atom3 always be looked for?
 int Action_DihedralScan::GetDihedralIdxs(int* idxs, Topology const& topIn, 
                                          int atom1, NameType const& A0, 
                                          NameType const& A2, NameType const& A3)
@@ -193,7 +214,7 @@ int Action_DihedralScan::GetDihedralIdxs(int* idxs, Topology const& topIn,
     // Get index of atom0
     idxs[0] = GetBondedAtomIdx(topIn, atom1, A0);
     if (idxs[0] == -1) return 1;
-    if (!Mask1_.AtomInCharMask(idxs[0])) return 1;
+    //if (!Mask1_.AtomInCharMask(idxs[0])) return 1;
   }
   // Get index of atom2
   idxs[1] = GetBondedAtomIdx(topIn, atom1, A2);
@@ -203,7 +224,7 @@ int Action_DihedralScan::GetDihedralIdxs(int* idxs, Topology const& topIn,
     // Get index of atom 3
     idxs[2] = GetBondedAtomIdx(topIn, idxs[1], A3);
     if (idxs[2] == -1) return 1;
-    if (!Mask1_.AtomInCharMask(idxs[2])) return 1;
+    //if (!Mask1_.AtomInCharMask(idxs[2])) return 1;
   }
   return 0;
 }
@@ -240,9 +261,11 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
     if (Mask1_.AtomInCharMask(atom1)) {
       // PHI: C-N-CA-C
       if ((*currentParm)[atom1].Name() == "N   ") {
+        if (!SearchFor_[PHI]) continue;
         if (GetDihedralIdxs(idxs, *currentParm, atom1, "C", "CA", "C")) continue;
       // PSI: N-CA-C-N
       } else if ((*currentParm)[atom1].Name() == "CA  ") {
+        if (!SearchFor_[PSI]) continue;
         if (GetDihedralIdxs(idxs, *currentParm, atom1, "N", "C", "N")) continue;
       } else
         continue;
@@ -326,11 +349,10 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
   max_rotations_ = (int) BB_dihedrals_.size();
   max_rotations_ *= max_factor_;
 
-  // CheckStructure can take quite a long time. Set up an alternative
-  // structure check. First step is coarse; check distances between a 
-  // certain atom in each residue (first, COM, CA, some other atom?) 
-  // to see if residues are in each others neighborhood. Second step
-  // is to check the atoms in each close residue.
+  // Set up simple structure check. First step is coarse; check distances 
+  // between a certain atom in each residue (first, COM, CA, some other atom?)
+  // to see if residues are in each others neighborhood. Second step is to 
+  // check the atoms in each close residue.
   if (check_for_clashes_) {
     ResidueCheckType rct;
     int Nres = currentParm->FinalSoluteRes();

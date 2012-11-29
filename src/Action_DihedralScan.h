@@ -20,8 +20,12 @@ class Action_DihedralScan: public Action {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     /// What kind of scanning will be performed
-    enum ModeType { RANDOM = 0, INTERVAL, IMPOSE };
+    enum ModeType  { RANDOM = 0, INTERVAL, IMPOSE };
     ModeType mode_;
+    /// Recognized angles
+    enum AngleType { PHI = 0, PSI, N_ANGLE };
+    /// Hold which angles to search for
+    bool SearchFor_[N_ANGLE];
     /// Hold info for a dihedral
     struct DihedralScanType {
       AtomMask Rmask;              ///< Mask of atoms to hold fixed during rotation
@@ -33,7 +37,7 @@ class Action_DihedralScan: public Action {
       int resnum;
     };
     std::vector<DihedralScanType> BB_dihedrals_;
-
+    /// Hold info for clash check
     struct ResidueCheckType {
       int checkatom;
       int start;

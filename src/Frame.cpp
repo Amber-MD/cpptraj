@@ -1130,7 +1130,7 @@ Vec3 Frame::SetAxisOfRotation(int atom1, int atom2) {
 /** Given a vector representing an axis and a magnitude, rotate all 
   * coordinates in the given mask around the axis.
   */
-void Frame::RotateAroundAxis(double *T, AtomMask &Rmask) {
+/*void Frame::RotateAroundAxis(double *T, AtomMask &Rmask) {
   double x,y,z;
   double T0,T1,T2,T3,T4,T5,T6,T7,T8;
   //double T[9];
@@ -1160,7 +1160,7 @@ void Frame::RotateAroundAxis(double *T, AtomMask &Rmask) {
     X_[i2]=(x*T6) + (y*T7) + (z*T8);
   }
 
-}
+}*/
 
 // Frame::CalculateInertia()
 /** \return Center of mass of coordinates in mask. */

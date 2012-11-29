@@ -231,9 +231,9 @@ class Frame {
         double x = XYZ[0];
         double y = XYZ[1];
         double z = XYZ[2];
-        XYZ[0] = (x*RotMatrix[0]) + (y*RotMatrix[3]) + (z*RotMatrix[6]);
-        XYZ[1] = (x*RotMatrix[1]) + (y*RotMatrix[4]) + (z*RotMatrix[7]);
-        XYZ[2] = (x*RotMatrix[2]) + (y*RotMatrix[5]) + (z*RotMatrix[8]);
+        XYZ[0] = (x*RotMatrix[0]) + (y*RotMatrix[1]) + (z*RotMatrix[2]);
+        XYZ[1] = (x*RotMatrix[3]) + (y*RotMatrix[4]) + (z*RotMatrix[5]);
+        XYZ[2] = (x*RotMatrix[6]) + (y*RotMatrix[7]) + (z*RotMatrix[8]);
       }
     }
     // -------------------------------------------------------------------------
@@ -251,7 +251,7 @@ class Frame {
     double DISTRMSD( Frame const& );
 
     Vec3 SetAxisOfRotation(int, int);
-    void RotateAroundAxis(double *, AtomMask &);
+    //void RotateAroundAxis(double *, AtomMask &);
     Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&);
 
   private:
