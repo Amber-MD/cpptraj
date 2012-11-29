@@ -151,6 +151,7 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& 
   // Attempt to initialize action
   if ( act->Init( argIn, PFL, FL, DSL, DFL, debug_ ) != Action::OK ) {
     mprinterr("Error: Could not initialize action [%s]\n", argIn.Command());
+    delete act;
     return 1;
   }
   argIn.CheckForMoreArgs();

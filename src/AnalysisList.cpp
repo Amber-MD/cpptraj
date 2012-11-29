@@ -79,6 +79,7 @@ int AnalysisList::AddAnalysis(DispatchObject::DispatchAllocatorType Alloc, ArgLi
   // Attempt to set up analysis
   if (ana->Setup( argIn, DSLin, PFLin, debug_) != Analysis::OK) {
     mprinterr("Error: Could not setup analysis [%s]\n", argIn.Command());
+    delete ana;
     return 1;
   }
   argIn.CheckForMoreArgs();
