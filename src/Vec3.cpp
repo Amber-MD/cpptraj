@@ -12,14 +12,14 @@ double Vec3::Normalize() {
   return r;
 } 
 
-void Vec3::Print(const char *Name) {
+void Vec3::Print(const char *Name) const {
   mprintf("    %s: %8.4f %8.4f %8.4f\n", Name, V_[0], V_[1], V_[2]);
 }
 
 /** Return the angle obtained from the dot product between this vector 
   * and U. Only works correctly if both are normalized beforehand.
   */
-double Vec3::Angle(const Vec3& U) {
+double Vec3::Angle(const Vec3& U) const {
   return acos( *this * U );
 }
 

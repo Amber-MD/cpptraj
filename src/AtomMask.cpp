@@ -543,16 +543,18 @@ void AtomMask::AddMaskAtPosition(AtomMask& maskIn, int idx) {
 }
 
 // AtomMask::PrintMaskAtoms()
-void AtomMask::PrintMaskAtoms(const char *header) {
+void AtomMask::PrintMaskAtoms(const char *header) const {
   mprintf("%s=",header);
   if (this->None()) 
     mprintf("No atoms selected.");
   else if (!Selected_.empty()) {
-    for (std::vector<int>::iterator atom = Selected_.begin();  atom != Selected_.end(); atom++)
+    for (std::vector<int>::const_iterator atom = Selected_.begin(); 
+                                          atom != Selected_.end(); ++atom)
       mprintf(" %i",*atom + 1);
   } else if (!CharMask_.empty()) {
     int atomnum = 0;
-    for (std::vector<char>::iterator mc = CharMask_.begin();  mc != CharMask_.end(); mc++) {
+    for (std::vector<char>::const_iterator mc = CharMask_.begin(); 
+                                           mc != CharMask_.end(); mc++) {
       if (*mc == maskChar_) mprintf(" %i",atomnum);
       ++atomnum;
     }

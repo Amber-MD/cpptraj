@@ -229,7 +229,7 @@ Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd) const {
 void Frame::printAtomCoord(int atom) {
   int atmidx = atom * 3;
   if (atmidx >= ncoord_) return;
-  mprintf("ATOM %i: %lf %lf %lf\n",atom,X_[atmidx],X_[atmidx+1],X_[atmidx+2]);
+  mprintf("%i: %f %f %f\n",atom+1,X_[atmidx],X_[atmidx+1],X_[atmidx+2]);
 }
 
 // Frame::Info()
@@ -245,21 +245,33 @@ void Frame::Info(const char *msg) {
   mprintf("\n");
 }
 
+// Frame::ReallocateX()
+void Frame::ReallocateX() {
+  maxnatom_ += 500;
+  double *newX = new double[ maxnatom_ * 3 ];
+  if (X_!=NULL) {
+    memcpy(newX, X_, natom_ * COORDSIZE_);
+    delete[] X_;
+  }
+  X_ = newX;
+}
+
 // Frame::AddXYZ()
 /** Append the given XYZ coord to this frame. */
 void Frame::AddXYZ(const double *XYZin) {
   if (XYZin == NULL) return;
-  if (natom_ >= maxnatom_) {
-    // Reallocate
-    maxnatom_ += 500;
-    double *newX = new double[ maxnatom_ * 3 ];
-    if (X_!=NULL) {
-      memcpy(newX, X_, natom_ * COORDSIZE_);
-      delete[] X_;
-    }
-    X_ = newX;
-  }
+  if (natom_ >= maxnatom_) 
+    ReallocateX(); 
   memcpy(X_ + ncoord_, XYZin, COORDSIZE_);
+  ++natom_;
+  ncoord_ += 3;
+}
+
+// Frame::AddVec3()
+void Frame::AddVec3(Vec3 const& vIn) {
+  if (natom_ >= maxnatom_) 
+    ReallocateX();
+  memcpy(X_ + ncoord_, vIn.Dptr(), COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
 }

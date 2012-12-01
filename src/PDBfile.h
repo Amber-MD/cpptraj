@@ -26,8 +26,10 @@ class PDBfile : public CpptrajFile {
     void pdb_XYZ(double*);
     /// Write HETATM record using internal atom numbering
     void WriteHET(int, double, double, double);
-    /// Write ATOM record using internal atom numbering
+    /// Write no-name ATOM record using internal atom numbering
     void WriteATOM(int, double, double, double, const char*, double);
+    /// Write ATOM record with given name using internal atom numbering
+    void WriteATOM(const char*, int, double, double, double, const char*, double);
     /// Write TER record
     void WriteTER(int, NameType const&, char, int);
     /// Write PDB ATOM/HETATM record

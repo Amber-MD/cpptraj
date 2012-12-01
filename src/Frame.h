@@ -54,6 +54,7 @@ class Frame {
     void printAtomCoord(int);
     void Info(const char*);
     void AddXYZ(const double *);
+    void AddVec3(Vec3 const&);
     bool empty()           const { return (natom_ == 0);        }
     bool HasVelocity()           { return (V_ != NULL);         }
     int Natom()                  { return natom_;               }
@@ -269,5 +270,6 @@ class Frame {
     Darray Mass_;   ///< Masses.
 
     void swap(Frame&, Frame&);
+    void ReallocateX();
 };
 #endif

@@ -63,7 +63,7 @@ class AtomMask {
     /// Add atoms in given mask to this mask at positon, update position
     void AddMaskAtPosition(AtomMask&, int);
     /// Print all mask atoms in to a line
-    void PrintMaskAtoms(const char*);
+    void PrintMaskAtoms(const char*) const;
     /// Return true if no atoms selected. 
     bool None() const;
     /// Set the mask string. If NULL, set * (all)

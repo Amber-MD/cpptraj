@@ -4,127 +4,82 @@
 /*! \file AxisType.h
     \brief Hold classes and functions used for NA structure analysis.
  */
-
-// Class: AxisType
-/// Frame for NA bases, intended for use with NAstruct Action.
-/** AxisType is a special kind of Frame. It will be used in 2 cases: 
-  * - To hold the coordinates of reference bases for RMS fitting onto input
-  *   coordinates in order to obtain reference frames.
-  * - For holding the coordinates and rotation matrix/ origin of input 
-  *   frames.
-  */
-class AxisType {
+/// Hold information for NA base.
+class NA_Base {
   public:
-    /// Type for each standard NA base.
-    enum NAbaseType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
-
-    NAbaseType ID;
-    double R[9];
-    double *HbondCoord[3];
-    int HbondAtom[3];
-
-    AxisType();
-    AxisType(const AxisType&);
-    AxisType & operator=(const AxisType&);
-    ~AxisType();
-
-    void RX(double Vin[3]);
-    void RY(double Vin[3]);
-    void RZ(double Vin[3]);
-    void OXYZ(double Vin[3]);
-    double *Origin();
-
-    const char* ResName();
-    int ResNum() { return residue_number; }
-    int ResNum2() { return second_resnum; }
-    const double* xAddress() { return X_; }
-    bool AtomNameIs(int, char *);
-    const char* AtomName(int);
+     /// Type for each standard NA base.
+    enum NAType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
+    NA_Base();
+    NA_Base(const NA_Base&);
+    NA_Base& operator=(const NA_Base&);
+    static NAType ID_BaseFromName(NameType const&);
+    NA_Base(Topology const&, int, NAType);
+    void SetInputFrame(Frame const&);
     void PrintAtomNames();
-    void PrintAxisInfo(const char *);
+    NAType Type()               const { return type_;           }
+    const char* ResName()       const { return *rname_;         }
+    int ResNum()                      { return rnum_;           }
+    Frame const& Ref()                { return Ref_;            }
+    Frame const& Input()              { return Inp_;            }
+    AtomMask const& InputFitMask()    { return inpFitMask_;     }
+    AtomMask const& RefFitMask()      { return refFitMask_;     }
+    const char* AtomName(int i) const { return *(anames_[i]);   }
+    bool HasPatom()             const { return patomidx_ != -1; }
+    bool HasO4atom()            const { return o4atomidx_ != -1;}
+#   ifdef NASTRUCTDEBUG
+    const char* RefName(int i)     { return *(refnames_[i]); }
+    int HBidx(int i)         const { return hbidx_[i];       }
+#   endif
+    const double* HBxyz(int i) const { return Inp_.XYZ(hbidx_[i]); }
+    const double* Pxyz()       const { return Inp_.XYZ(patomidx_); }
+    const double* O4xyz()      const { return Inp_.XYZ(o4atomidx_);}
+  private:
+    NameType rname_;                ///< Residue name
+    int rnum_;                      ///< Original residue number
+    NAType type_;                   ///< Base type.
+    Frame Ref_;                     ///< Reference coords.
+    std::vector<NameType> anames_;  ///< Atom names (Input)
+#   ifdef NASTRUCTDEBUG
+    std::vector<NameType> refnames_; ///< Atom names (Ref)
+#   endif  
+    Frame Inp_;                     ///< Input coords.
+    int hbidx_[3];                  ///< Indices of h-bonding atoms
+    int patomidx_;                  ///< Index of phosphorous atom if present
+    int o4atomidx_;                 ///< Index of O4' atom if present
+    AtomMask parmMask_;             ///< Mask corresponding to atoms in parm.
+    AtomMask inpFitMask_;           ///< Mask of input atoms to be used in RMS fit.
+    AtomMask refFitMask_;           ///< Mask of ref atoms to be used in RMS fit.
 
-    void SetCoordsFromFrame( Frame& ); // TODO: Make const
-    void StoreRotMatrix(const double*,const double*);
-    void StoreBPresnums(int,int);
+    int FindAtom(NameType const&);
+};
 
-    enum RefReturn { NA_OK, NA_UNKNOWN, NA_ERROR };
-    RefReturn SetRefCoord(Topology *, int, AtomMask &,AtomMask&,NAbaseType);
+/// Hold information for axis corresponding to base/base-pair.
+class NA_Axis {
+  public:
+    NA_Axis();
+    NA_Axis(Matrix_3x3 const&, Vec3 const&, int);
+    NA_Axis(int,int,bool);
+    void StoreRotMatrix(Matrix_3x3 const&, Vec3 const&);
+    void PrintAxisInfo(const char*);
     void FlipYZ();
     void FlipXY();
-    // P/O4' atom routines
-    bool HasPatom() { return patomidx_ > -1; }
-    bool HasO4atom() { return o4atomidx_ > -1; }
-    int Pidx() { return patomidx_; }
-    int O4idx() { return o4atomidx_; }
-    void SetPcrd( const double* Xin ) { 
-      atomcrd_[0] = Xin[0];
-      atomcrd_[1] = Xin[1];
-      atomcrd_[2] = Xin[2];
-    }
-    void SetO4crd( const double* Xin ) {
-      atomcrd_[3] = Xin[0];
-      atomcrd_[4] = Xin[1];
-      atomcrd_[5] = Xin[2];
-    }
-    const double* Pcrd() { return atomcrd_; }
-    const double* O4crd() { return atomcrd_+3; }
-#ifdef NASTRUCTDEBUG
-    const char* BaseName();
-    int Natom() { return natom_; }
-    double operator[](int idx) { return X_[idx]; }
-#endif
+    Matrix_3x3 const& Rot() const { return R_;      }
+    Vec3 const& Oxyz()      const { return origin_; }
+    Vec3 const& Rx()        const { return RX_;     }
+    Vec3 const& Ry()        const { return RY_;     }
+    Vec3 const& Rz()        const { return RZ_;     }
+    int Res1()              const { return residue_number_; }
+    int Res2()              const { return second_resnum_;  }
+    bool IsAnti()           const { return isAnti_;         }
   private:
-    static const int ADENATOM;
-    static const char ADEnames[][5];
-    static const int ADEhbonds[];
-    static const double ADEcoords[][3];
-    static const int CYTNATOM;
-    static const char CYTnames[][5];
-    static const int CYThbonds[];
-    static const double CYTcoords[][3];
-    static const int GUANATOM;
-    static const char GUAnames[][5];
-    static const int GUAhbonds[];
-    static const double GUAcoords[][3];
-    static const int THYNATOM;
-    static const char THYnames[][5];
-    static const int THYhbonds[];
-    static const double THYcoords[][3];
-    static const int URANATOM;
-    static const char URAnames[][5];
-    static const int URAhbonds[];
-    static const double URAcoords[][3];
-    /// Current number of atoms
-    int natom_;
-    /// Maximum number of atoms
-    int maxnatom_;
-    /// Number of coordinates
-    int Ncoord_;
-    /// Hold coordinates
-    double* X_;
-    /// Strings corresponding to NAbaseType
-    static const char NAbaseName[][4];
-    /// Atom Names
-    std::vector<NameType> Name;
-    /// Original residue number
-    int residue_number;
-    /// Second base number if this is a base pair
-    int second_resnum;
-    /// Origin coordinates
-    double origin[3];
-    /// Index of phosphorus atom if present
-    int patomidx_;
-    /// Index of O4' atom if present
-    int o4atomidx_;
-    /// Hold phosphorus/O4' atom coordinates
-    double atomcrd_[6];
-#ifdef NASTRUCTDEBUG
-    /// DEBUG - Storage for writing out BaseName + residue_number 
-    std::string basename_num_;
-#endif
-    /// Identify NA base from residue name
-    NAbaseType ID_base(NameType const&);
-    /// Allocate memory
-    int AllocAxis(int);
+    Matrix_3x3 R_;       ///< Rotation matrix for this axis
+    Vec3 origin_;        ///< Origin of this axis
+    // Rotation X|Y|Z vecs are stored to avoid constant calls to R.
+    Vec3 RX_;            ///< Rotation X vector (col 1)
+    Vec3 RY_;            ///< Rotation Y vector (col 2)
+    Vec3 RZ_;            ///< Rotation Z vector (col 3)
+    int residue_number_; ///< Residue number
+    int second_resnum_;  ///< Second residue if this is a base pair
+    bool isAnti_;        ///< If basepair, true if pair is anti-parallel
 };
 #endif  

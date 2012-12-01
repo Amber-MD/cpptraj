@@ -343,6 +343,12 @@ double DIST2_NoImage(const double* a1, const double* a2) {
   return D;
 }
 
+double DIST2_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
+  Vec3 vec = a1;
+  vec -= a2;
+  return vec.Magnitude2();
+}
+
 double DIST2(const double* a1, const double* a2, ImagingType itype,
              Vec3 const& box, const double* ucell, const double* recip)
 {
@@ -353,10 +359,4 @@ double DIST2(const double* a1, const double* a2, ImagingType itype,
   else // NONORTHO
     return DIST2_ImageNonOrtho( a1, a2, ucell, recip );
 }
-
-/*double DIST2_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
-  Vec3 vec = a1;
-  vec -= a2;
-  return vec.Magnitude2();
-}*/
 

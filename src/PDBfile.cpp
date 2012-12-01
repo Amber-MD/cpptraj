@@ -114,6 +114,13 @@ void PDBfile::WriteATOM(int res, double x, double y, double z,
            res, x, y, z, (float)Occ, 0, "", false);
 }
 
+void PDBfile::WriteATOM(const char* anameIn, int res, double x, double y, double z, 
+                        const char* resnameIn, double Occ)
+{
+  WriteRec(ATOM, anum_++, anameIn, resnameIn, ' ',
+           res, x, y, z, (float)Occ, 0, "", false);
+}
+
 void PDBfile::WriteTER(int anum, NameType const& resnameIn, char chain, int resnum)
 {
   WriteRec(TER, anum, "", resnameIn, chain, resnum, 0, 0, 0, 0, 0, "", false);

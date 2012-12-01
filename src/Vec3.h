@@ -81,10 +81,10 @@ class Vec3 {
     double operator*(const Vec3& rhs) const { // Dot product
       return ( (V_[0]*rhs.V_[0]) + (V_[1]*rhs.V_[1]) + (V_[2]*rhs.V_[2]) );
     }
-    Vec3 Cross(Vec3 const& rhs) { // Cross product
-      return Vec3( (V_[1]*rhs.V_[2]) + (V_[2]*rhs.V_[1]),   // UYVZ+UZVY
-                   (V_[2]*rhs.V_[0]) + (V_[0]*rhs.V_[2]),   // UZVX+UXVZ
-                   (V_[0]*rhs.V_[1]) + (V_[1]*rhs.V_[0]) ); // UXVY+UYVX
+    Vec3 Cross(Vec3 const& rhs) const { // Cross product
+      return Vec3( (V_[1]*rhs.V_[2]) - (V_[2]*rhs.V_[1]),   // UYVZ+UZVY
+                   (V_[2]*rhs.V_[0]) - (V_[0]*rhs.V_[2]),   // UZVX+UXVZ
+                   (V_[0]*rhs.V_[1]) - (V_[1]*rhs.V_[0]) ); // UXVY+UYVX
     }
     // TODO: Make const ref only?
     double  operator[](int idx) const { return V_[idx]; }
@@ -111,11 +111,11 @@ class Vec3 {
       V_[2] = vz;
     }
     double Normalize();
-    void Print(const char*);
-    double Angle(Vec3 const&);
+    void Print(const char*) const;
+    double Angle(Vec3 const&) const;
     double SignedAngle(Vec3 const&, Vec3 const&);
     // TODO: Eliminate this routine
-    const double* Dptr() { return V_; }
+    const double* Dptr() const { return V_; }
   private:
     double V_[3];
 };

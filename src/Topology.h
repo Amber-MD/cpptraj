@@ -49,11 +49,11 @@ class Topology {
     // ----- Residue-specific routines -----
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
-    inline res_iterator ResEnd() const   { return residues_.end();   }
-    const Residue& Res(int idx)          { return residues_[idx];    }
-    int ResFirstAtom(int);
-    int ResLastAtom(int);
-    int ResSize(int); 
+    inline res_iterator ResEnd()   const { return residues_.end();   }
+    const Residue& Res(int idx)    const { return residues_[idx];    }
+    int ResFirstAtom(int) const;
+    int ResLastAtom(int) const;
+    int ResSize(int) const; 
     // ----- Molecule-specific routines -----
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const { return molecules_.begin(); }
@@ -97,7 +97,7 @@ class Topology {
     const char* ResidueName(int); // TODO: Make obsolete
     std::string TruncResAtomName(int);
     std::string TruncResNameNum(int);
-    int FindAtomInResidue(int, NameType const&);
+    int FindAtomInResidue(int, NameType const&) const;
     int FindResidueMaxNatom() const;
     int SoluteAtoms();
     int SetSolvent(std::string const&);

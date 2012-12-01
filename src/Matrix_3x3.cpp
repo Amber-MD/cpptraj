@@ -83,7 +83,7 @@ void Matrix_3x3::Zero() {
 }
 
 // Matrix_3x3::Print()
-void Matrix_3x3::Print(const char* Title) 
+void Matrix_3x3::Print(const char* Title) const 
 {
   mprintf("    %s\n",Title);
   mprintf("     %8.4lf %8.4lf %8.4lf\n", M_[0], M_[1], M_[2]);

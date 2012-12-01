@@ -161,19 +161,19 @@ const Atom& Topology::operator[](int idx) const {
 }
 
 // -----------------------------------------------------------------------------
-int Topology::ResFirstAtom(int resnum) {
+int Topology::ResFirstAtom(int resnum) const {
   if (resnum < 0 || resnum >= (int)residues_.size())
     return (int)atoms_.size();
   return residues_[resnum].FirstAtom();
 }
 
-int Topology::ResLastAtom(int resnum) {
+int Topology::ResLastAtom(int resnum) const {
   if (resnum < 0 || resnum >= (int)residues_.size()-1)
     return (int)atoms_.size();
   return residues_[resnum+1].FirstAtom();
 }
 
-int Topology::ResSize(int resnum) {
+int Topology::ResSize(int resnum) const {
   if (resnum < 0 || resnum >=(int)residues_.size())
     return 0;
   else if (resnum == (int)residues_.size()-1)
@@ -265,7 +265,7 @@ std::string Topology::TruncResNameNum(int res) {
   * \return the atom number of the specified atom if found in the given residue.
   * \return -1 if atom not found in given residue.
   */
-int Topology::FindAtomInResidue(int res, NameType const& atname) {
+int Topology::FindAtomInResidue(int res, NameType const& atname) const {
   if (res < 0 || res >= (int)residues_.size()) return -1;
   for (atom_iterator atom = ResAtomStart(res); atom != ResAtomEnd(res); atom++)
     if ( (*atom).Name() == atname )
