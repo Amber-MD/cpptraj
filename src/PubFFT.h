@@ -14,7 +14,6 @@ class PubFFT {
     void Back(double*);
     int SetupFFT(int);
     int SetupFFTforN(int);
-    //void CorF_FFT(int, double*, double*);
     void CorF_Auto(ComplexArray&);
     void CorF_Cross(ComplexArray&, ComplexArray&);
     int size() { return fft_size_; }
