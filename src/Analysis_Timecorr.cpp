@@ -1,3 +1,4 @@
+#include <cmath> // sqrt
 #include "Analysis_Timecorr.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
@@ -16,12 +17,6 @@ Analysis_Timecorr::Analysis_Timecorr() :
   dplr_(false),
   norm_(false),
   drct_(false),
-  table_(0),
-  data1_(0),
-  data2_(0),
-  cf_(0),
-  p2cf_(0),
-  rcf_(0),
   vinfo1_(0),
   vinfo2_(0)
 {}
@@ -32,33 +27,64 @@ void Analysis_Timecorr::Help() {
   mprintf("         [dplr] [norm] [drct]\n");
 }
 
-// DESTRUCTOR
-Analysis_Timecorr::~Analysis_Timecorr() {
-  if (table_!=0) delete[] table_;
-  if (data1_!=0) delete[] data1_;
-  if (data2_!=0) delete[] data2_;
-  if (cf_!=0) delete[] cf_;
-  if (p2cf_!=0) delete[] p2cf_;
-  if (rcf_!=0) delete[] rcf_;
+// Analysis_TimeCorr::CalculateAverages()
+std::vector<double> Analysis_Timecorr::CalculateAverages(DataSet_Vector& vIn, 
+                                                         AvgResults& avgOut) 
+{
+  std::vector<double> R3i;
+  R3i.reserve(vIn.Size());
+  double avgx = 0.0;
+  double avgy = 0.0;
+  double avgz = 0.0;
+  avgOut.rave_ = 0.0;
+  avgOut.r3iave_ = 0.0;
+  avgOut.r6iave_ = 0.0;
+  // Loop over all vectors
+  for (DataSet_Vector::iterator vec = vIn.begin();
+                                vec != vIn.end(); ++vec)
+  {
+    const double* VXYZ = *vec;
+    // Calc vector length
+    double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
+    // Update avgcrd, rave, r3iave, r6iave
+    avgx += VXYZ[0];
+    avgy += VXYZ[1];
+    avgz += VXYZ[2];
+    avgOut.rave_ += len;
+    double r3i = 1.0 / (len*len*len);
+    avgOut.r3iave_ += r3i;
+    avgOut.r6iave_ += r3i*r3i;
+    R3i.push_back( r3i );
+  }
+  // Normalize averages
+  double dnorm = 1.0 / (double)vIn.Size();
+  avgOut.rave_ *= dnorm;
+  avgOut.r3iave_ *= dnorm;
+  avgOut.r6iave_ *= dnorm;
+  avgOut.avgr_ = sqrt(avgx*avgx + avgy*avgy + avgz*avgz) * dnorm;
+  return R3i;
 }
 
 // Analysis_Timecorr::CalcCorr()
 // TODO: Move to DataSet_Vector
-void Analysis_Timecorr::CalcCorr(int ndata, int nsteps, int frame) {
+void Analysis_Timecorr::CalcCorr(int frame) {
   if (drct_) {
     // Calc correlation function using direct approach
-    DataSet_Vector::corfdir(ndata, data1_, data2_, nsteps, table_);
+    if (mode_ == AUTO)
+      corfdir_.AutoCorr(data1_);
+    else
+      corfdir_.CrossCorr(data1_, data2_);
   } else {
     // Pad with zero's at the end
-    for (int k = 2 * frame; k < ndata; ++k) {
-      data1_[k] = 0;
-      if (data2_ != 0) data2_[k] = 0;
+    data1_.PadWithZero(frame);
+    if (mode_ == AUTO)
+      pubfft_.CorF_Auto(data1_);
+    else {
+      data2_.PadWithZero(frame);
+      pubfft_.CorF_Cross(data1_, data2_);
     }
-    // Calc correlation function using FFT
-    pubfft_.CorF_FFT(ndata, data1_, data2_);
   }
 }
-
 
 // Analysis_Timecorr::Setup()
 Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
@@ -161,47 +187,37 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   else
     nsteps = time;
   // ndata
-  int ndata = 0;
+  //int ndata = 0;
+  // Allocate memory to hold complex numbers for direct or FFT
   if (drct_) {
-    ndata = 2 * frame;
-    table_ = new double[ 2 * nsteps ];
+    data1_.Allocate( frame );
+    if (mode_ == CROSS)
+      data2_.Allocate( frame ); 
+    corfdir_.Allocate( nsteps ); 
   } else {
     // Initialize FFT
     pubfft_.SetupFFT( frame );
-    ndata = pubfft_.size() * 2;
+    data1_ = pubfft_.Array();
+    if (mode_ == CROSS)
+      data2_ = data1_;
   }
-  int mtot = 2 * order_ + 1;
-  mprintf("CDBG: frame=%i time=%i nsteps=%i ndata=%i mtot=%i\n",frame,time,nsteps,ndata,mtot);
+  //int mtot = 2 * order_ + 1;
+  //mprintf("CDBG: frame=%i time=%i nsteps=%i ndata=%i mtot=%i\n",frame,time,nsteps,ndata,mtot);
 
   // ---------------------------------------------------------------------------
-  if (dplr_) {
-    vinfo1_->CalculateAverages();
-    if (vinfo2_ != 0)
-      vinfo2_->CalculateAverages();
-  }
   // Real + Img. for each -order <= m <= order, spherical Harmonics for each frame
   vinfo1_->CalcSphericalHarmonics(order_);
   if (vinfo2_ != 0)
     vinfo2_->CalcSphericalHarmonics(order_);
   // ---------------------------------------------------------------------------
 
-  // Allocate common memory and initialize arrays
-  data1_ = new double[ ndata ];
-  data2_ = 0;
-  if (mode_ == CROSS)
-    data2_ = new double[ ndata ];
-
-  // Initialize memory
-  p2cf_ = new double[ nsteps ];
-  for (int i = 0; i < nsteps; ++i)
-    p2cf_[i] = 0;
+  // Initialize output array memory
+  std::vector<double> p2cf_(nsteps, 0.0);
+  std::vector<double> cf_;
+  std::vector<double> rcf_;
   if (dplr_) {
-    cf_ = new double[ nsteps ];
-    rcf_ = new double[ nsteps ];
-    for (int i = 0; i < nsteps; ++i) {
-      cf_[i] = 0;
-      rcf_[i] = 0;
-    }
+    cf_.assign(nsteps, 0.0);
+    rcf_.assign(nsteps, 0.0);
   }
 
   // P2
@@ -209,42 +225,50 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     vinfo1_->FillData( data1_, midx );
     if (vinfo2_ != 0)
       vinfo2_->FillData( data2_, midx);
-    CalcCorr( ndata, nsteps, frame );
+    CalcCorr( frame );
     for (int k = 0; k < nsteps; ++k)
       p2cf_[k] += data1_[2 * k];
   }
+  // Only needed if dplr
+  AvgResults Avg1, Avg2;
   if (dplr_) {
+    // Calculate averages
+    std::vector<double> R3i_1 = CalculateAverages(*vinfo1_, Avg1);
+    std::vector<double> R3i_2;
+    if (vinfo2_ != 0)
+      R3i_2 = CalculateAverages(*vinfo2_, Avg2);
     // C
     for (int midx = -order_; midx <= order_; ++midx) {
       vinfo1_->FillData( data1_, midx );
       if (vinfo2_ != 0)
         vinfo2_->FillData( data2_, midx);
+      int i2 = 0;
       for (int i = 0; i < frame; ++i) {
-        int i2 = i * 2;
-        double r3i = vinfo1_->R3( i ); 
+        double r3i = R3i_1[ i ]; 
         data1_[i2  ] *= r3i;
         data1_[i2+1] *= r3i;
         if ( vinfo2_ != 0 ) {
-          r3i = vinfo2_->R3( i );
+          r3i = R3i_2[ i ];
           data2_[i2  ] *= r3i;
           data2_[i2+1] *= r3i;
         }
+        i2 += 2;
       }
-      CalcCorr( ndata, nsteps, frame );
+      CalcCorr( frame );
       for (int k = 0; k < nsteps; ++k) 
         cf_[k] += data1_[2 * k];
     }
     // 1 / R^6
     for (int i = 0; i < frame; ++i) {
       int i2 = i * 2;
-      data1_[i2  ] = vinfo1_->R3( i );
+      data1_[i2  ] = R3i_1[ i ];
       data1_[i2+1] = 0.0;
       if ( vinfo2_ != 0 ) {
-        data2_[i2  ] = vinfo2_->R3( i );
+        data2_[i2  ] = R3i_2[ i ];
         data2_[i2+1] = 0.0;
       }
     }
-    CalcCorr( ndata, nsteps, frame );
+    CalcCorr( frame );
     for (int k = 0; k < nsteps; ++k)
       rcf_[k] = data1_[2 * k];
   }
@@ -256,9 +280,11 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   if (dplr_) {
     outfile.Printf("***** Vector length *****\n");
     outfile.Printf("%10s %10s %10s %10s\n", "<r>", "<rrig>", "<1/r^3>", "<1/r^6>");
-    vinfo1_->PrintAvgcrd( outfile );
-    if (vinfo2_ != 0)
-      vinfo2_->PrintAvgcrd( outfile );
+    outfile.Printf("%10.4f %10.4f %10.4f %10.4f\n",
+                   Avg1.rave_, Avg1.avgr_, Avg1.r3iave_, Avg1.r6iave_);
+    if (mode_ == CROSS)
+      outfile.Printf("%10.4f %10.4f %10.4f %10.4f\n",
+                     Avg2.rave_, Avg2.avgr_, Avg2.r3iave_, Avg2.r6iave_);
   }
   outfile.Printf("\n***** Correlation functions *****\n");
   if (dplr_) {

@@ -12,21 +12,12 @@ DataSet_Vector::DataSet_Vector() :
   order_(0),
   xyz_(0),
   writeSum_(false),
-  isIred_(false),
-  // Analysis_TimeCorr vars
-  avgx_(0.0),
-  avgy_(0.0),
-  avgz_(0.0),
-  rave_(0.0),
-  r3iave_(0.0),
-  r6iave_(0.0),
-  R3i_(0)
+  isIred_(false)
 { }
 
 // DESTRUCTOR
 DataSet_Vector::~DataSet_Vector() {
   if (xyz_!=0) delete[] xyz_;
-  if (R3i_!=0) delete[] R3i_;
 }
 
 // DataSet_Vector::IncreaseSize()
@@ -79,63 +70,6 @@ void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, int frameIn) {
   }
 }
 
-/** Calculates correlation functions using the "direct" approach
-  * (s. Comp. Sim. of Liquids, p.185)
-  * - the result is not yet normalized by (no_of_discrete_data - t)**-1 (!)
-  */
-void DataSet_Vector::corfdir(int ndata, double *data1, double *data2, int nsteps, double *dtmp)
-{
-  int i, j;
-  int ind1, ind2;
-  double dsum, dsumi;
-  int ndata2 = ndata / 2; // TODO: Pass in
-
-  if (data2 == NULL) {
-    for(i = 0; i < ndata2; i++){
-      dsum = 0.0;
-      for(j = i; j < ndata2; j++){
-        ind1 = 2 * j;
-        ind2 = 2 * (j-i);
-        dsum += data1[ind1] * data1[ind2] + data1[ind1+1] * data1[ind2+1];
-      }
-      if(i < nsteps){
-        ind1 = 2 * i;
-        dtmp[ind1  ] = dsum;
-        dtmp[ind1+1] = 0.0;
-      }
-      else{
-        break;
-      }
-    }
-  } else {
-    for(i = 0; i < ndata2; i++){
-      dsum = 0.0;
-      dsumi = 0.0;
-      for(j = i; j < ndata2; j++){
-        ind1 = 2 * j;
-        ind2 = 2 * (j-i);
-        dsum  += data2[ind1] * data1[ind2  ] + data2[ind1+1] * data1[ind2+1];
-        dsumi += data2[ind1] * data1[ind2+1] - data2[ind1+1] * data1[ind2  ];
-      }
-      if(i < nsteps){
-        ind1 = 2 * i;
-        dtmp[ind1  ] = dsum;
-        dtmp[ind1+1] = dsumi;
-      }
-      else{
-        break;
-      }
-    }
-  }
-
-  for(i = 0; i < nsteps; i++){
-    ind1 = 2 * i;
-    data1[ind1  ] = dtmp[ind1  ];
-    data1[ind1+1] = dtmp[ind1+1];
-  }
-}
-
-
 // DataSet_Vector::sphericalHarmonics()
 /** Calc spherical harmonics of order l=0,1,2
   * and -l<=m<=l with cartesian coordinates as input
@@ -185,8 +119,16 @@ void DataSet_Vector::sphericalHarmonics(int l, int m, const double* XYZ, double 
 }
 
 // DataSet_Vector::CalcSphericalHarmonics()
-// TODO: Change memory layout so order of all vecs follow each other,
-//       i.e. order 2: m-2[0], m-2[1], ... m-2[N], m-1[0] ...
+/** Calculate spherical harmonics for all vectors in DataSet for the
+  * specified order. Spherical harmonics will be stored internally
+  * in the sphereharm array, which will speed up any subsequent calcs
+  * at the expense of memory. The layout is currently e.g. (order 2):
+  *   V0[m-2R], V0[m-2C], V0[m-1R], V0[m-1C], ... V0[m+2C], V1[m-2R], ...
+  */
+// TODO: Just return an array?
+// TODO: Change memory layout so all values for a given order for each 
+//       vector follow each other, i.e. order 2: 
+//    V0[m-2R], V0[m-2C], ... VN[m-2R], VN[m-2C], V0[m-1R], V0[m-1C], ...
 void DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
   double Dcomplex[2];
   // If sphereharm is not empty assume SphericalHarmonics was already called.
@@ -198,10 +140,9 @@ void DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
   int n_of_vecs = Size();
   int p2blocksize = 2 * ((order_ * 2) + 1);
   int p2size = (p2blocksize * n_of_vecs);
-  sphereharm_.resize( p2size );
+  sphereharm_.reserve( p2size );
    // Loop over all vectors, convert to spherical harmonics
   double* VXYZ = xyz_;
-  std::vector<double>::iterator P2 = sphereharm_.begin();
   // TODO: Use iterator?
   for (int i = 0; i < n_of_vecs; ++i) {
     // Calc vector length
@@ -210,23 +151,22 @@ void DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
     for (int midx = -order_; midx <= order_; ++midx) {
       sphericalHarmonics(order_, midx, VXYZ, len, Dcomplex);
       //mprinterr("DBG: Vec %i sphereHarm[%u](m=%i) = %f + %fi\n",i,P2-sphereharm_.begin(),midx,Dcomplex[0],Dcomplex[1]);
-      *(P2++) = Dcomplex[0];
-      *(P2++) = Dcomplex[1];
+      sphereharm_.push_back(Dcomplex[0]);
+      sphereharm_.push_back(Dcomplex[1]);
     }
     VXYZ += 6;
   }
 }
 
 // DataSet_Vector::FillData()
-int DataSet_Vector::FillData(double* dest, int midx) {
-  if (dest==0) return -1;
+int DataSet_Vector::FillData(ComplexArray& dest, int midx) {
   if ( abs(midx) > order_ ) {
     mprinterr("Internal Error: Vector %s: FillData called with m=%i (max order= %i)\n",
               Legend().c_str(), midx, order_);
     return 1;
   }
   int p2blocksize = 2 * (2 * order_ + 1);
-  double *CF = dest;
+  double *CF = dest.CAptr();
   for ( std::vector<double>::iterator sidx = sphereharm_.begin() + 2 * (midx + order_);
                                       sidx < sphereharm_.end();
                                       sidx += p2blocksize)
@@ -236,44 +176,3 @@ int DataSet_Vector::FillData(double* dest, int midx) {
   }
   return 0;
 }
-
-// DataSet_Vector::CalculateAverages()
-void DataSet_Vector::CalculateAverages() {
-  // If r3i is not NULL assume CalculateAverages was already called.
-  if (R3i_ != 0) return;
-  int n_of_vecs = Size();
-  R3i_ = new double[ n_of_vecs ];
-  avgx_ = 0.0;
-  avgy_ = 0.0;
-  avgz_ = 0.0;
-  rave_ = 0.0;
-  r3iave_ = 0.0;
-  r6iave_ = 0.0;
-  // Loop over all vectors
-  double* VXYZ = xyz_;
-  for (int i = 0; i < n_of_vecs; ++i) {
-    // Calc vector length
-    double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
-    // Update avgcrd, rave, r3iave, r6iave
-    avgx_ += VXYZ[0];
-    avgy_ += VXYZ[1];
-    avgz_ += VXYZ[2];
-    rave_ += len;
-    double r3i = 1.0 / (len*len*len);
-    r3iave_ += r3i;
-    r6iave_ += r3i*r3i;
-    R3i_[i] = r3i;
-    VXYZ += 6;
-  }
-}
-
-// NOTE: Only used in 'analyze timecorr'
-void DataSet_Vector::PrintAvgcrd(CpptrajFile& outfile) {
-  double dnorm = 1.0 / (double)Size();
-  outfile.Printf("%10.4f %10.4f %10.4f %10.4f\n",
-          rave_ * dnorm,
-          sqrt(avgx_*avgx_ + avgy_*avgy_ + avgz_*avgz_) * dnorm,
-          r3iave_ * dnorm,
-          r6iave_ * dnorm);
-}
- 

@@ -135,21 +135,17 @@ int DS_Math::CrossCorr( DataSet& D1, DataSet& D2, DataSet& Ct, int lagmaxIn,
   if ( usefft ) {
     // Calc using FFT
     PubFFT pubfft1(Nelements);
-    int ndata = pubfft1.size() * 2; // Allocate space for real + img component
-    double* data1 = new double[ ndata ];
-    memset( data1, 0, ndata * sizeof(double) );
+    ComplexArray data1 = pubfft1.Array();
     for (int i = 0; i < Nelements; ++i)
       data1[i*2] = D1.Dval(i) - avg1;
     if (&D2 == &D1)
-      pubfft1.CorF_FFT(ndata, data1, NULL);
+      pubfft1.CorF_Auto(data1);
     else {
       // Populate second dataset if different
-      double* data2 = new double[ ndata ];
-      memset( data2, 0, ndata * sizeof(double) );
+      ComplexArray data2 = pubfft1.Array();
       for (int i = 0; i < Nelements; ++i)
         data2[i*2] = D2.Dval(i) - avg2;
-      pubfft1.CorF_FFT(ndata, data1, data2);
-      delete[] data2;
+      pubfft1.CorF_Cross(data1, data2);
     }
     // Put real components of data1 in output DataSet
     norm = 1.0 / fabs( data1[0] );
@@ -157,7 +153,6 @@ int DS_Math::CrossCorr( DataSet& D1, DataSet& D2, DataSet& Ct, int lagmaxIn,
       ct = data1[i*2] * norm;
       Ct.Add(i, &ct);
     }
-    delete[] data1;
   } else {
     // Direct calc
     for (int lag = 0; lag < lagmax; ++lag) {

@@ -93,7 +93,7 @@ static const NA_RefAtom R_URA[] = {
 
 // UNKNOWN_BASE, ADE, CYT, GUA, THY, URA 
 /// Base names corresponding to NAbaseType
-static const char* NAbaseName[] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
+//static const char* NAbaseName[] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
 
 // ---------- NA_Base ----------------------------------------------------------
 NA_Base::NA_Base() :

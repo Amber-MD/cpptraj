@@ -1,6 +1,23 @@
 #include "Integrate.h"
 #include "CpptrajStdio.h"
 
+/// CONSTRUCTOR - Set up X mesh
+Interpolate::Interpolate(double ti, double tf, int n) :
+  mesh_size_(n),
+  mesh_x_(n),
+  mesh_y_(n)
+{
+  CalcMeshX(ti, tf);
+}
+
+// Interpolate::CalcMeshX()
+void Interpolate::CalcMeshX(double ti, double tf) {
+  double s = (ti + tf)/2;
+  double d = (tf - ti)/2;
+  for (int i = 0; i < mesh_size_; i++)
+    mesh_x_[i] = s + d*((double) (2*i + 1 - mesh_size_)/(mesh_size_ - 1));
+}
+
 // Interpolate::cubicSpline_coeff()
 /** Given a set of x and y values of size n, compute the b, c, and d
   * coefficients for n interpolating cubic splines of form:
@@ -17,17 +34,14 @@
   *
   * \param x Input X values
   * \param y Corresponding Y values
-  * \param n Total number of X/Y values
   */
-void Interpolate::cubicSpline_coeff(double *x, double *y, int n) 
+void Interpolate::cubicSpline_coeff(std::vector<double> const& x, std::vector<double> const& y) 
 {
-  // NOTE: CHECK FOR NULLS!
-  // No point if 1 or less values
-  if (n < 2) return;
+  int n = (int)x.size();
 
-  b.resize(n,0);
-  c.resize(n,0);
-  d.resize(n,0);
+  b.resize(n, 0.0);
+  c.resize(n, 0.0);
+  d.resize(n, 0.0);
 
   int n_minus1 = n - 1;
 
@@ -97,21 +111,14 @@ void Interpolate::cubicSpline_coeff(double *x, double *y, int n)
   * d from coordinates x/y for all points in mesh.
   * \param x Input X coordinates
   * \param y Input Y coordinates
-  * \param n number of data points in x,y,b,c,d
-  * \return 0 on success, 1 on error.
   */
-int Interpolate::cubicSpline_eval(double *x, double *y, int n)
+void Interpolate::cubicSpline_eval(std::vector<double> const& x, std::vector<double> const& y)
 {
   int xidx;  
-
-  if (n < 2) {
-    mprinterr("Error: cubicSpline_eval: Data length is < 2.\n");
-    return 1;
-  }
+  int n = (int)x.size();
 
   for (int uidx = 0; uidx < mesh_size_; uidx++) {
     double U = mesh_x_[uidx];
-
     // Search for U in x
     if (U < x[0])
       xidx = 0;
@@ -130,17 +137,44 @@ int Interpolate::cubicSpline_eval(double *x, double *y, int n)
           break;
       }
     }
-    
     // Evaluate v for this u
     double dx = U - x[xidx];
     mesh_y_[uidx] = y[xidx] + dx*(b[xidx] + dx*(c[xidx] + dx*d[xidx])); 
   }
+}
+
+// Interpolate::SetMesh_X() 
+/** Given a start, stop, and size, set up mesh x values. */
+void Interpolate::SetMesh_X(double ti, double tf, int n) {
+  mesh_size_ = n;
+  mesh_x_.resize( mesh_size_ );
+  mesh_y_.resize( mesh_size_ );
+  CalcMeshX(ti, tf);
+}
+
+// Interpolate::SetMesh_Y()
+/** Set mesh Y values based on input X and Y and previously set up
+  * mesh X.
+  */
+int Interpolate::SetMesh_Y(std::vector<double> const& x, std::vector<double> const& y) {
+  if (x.size() != y.size()) {
+    mprinterr("Error: Interpolate::SetMesh: X size (%u) != Y size (%u)\n",
+              x.size(), y.size());
+    return 1;
+  }
+  // No point if 1 or less values
+  if (x.size() < 2) {
+    mprinterr("Error: Interpolate::SetMesh: Requires > 1 values (%u specified).\n",
+              x.size());
+    return 1;
+  }
+  cubicSpline_coeff(x, y); 
+  cubicSpline_eval(x, y);
   return 0;
 }
 
 // Interpolate::Integrate_Trapezoid() 
-/** Integrate the mesh using the trapezoid rule.
-  */
+/** Integrate the mesh using the trapezoid rule. */
 double Interpolate::Integrate_Trapezoid() {
   double sum = 0.0;
 
@@ -152,18 +186,3 @@ double Interpolate::Integrate_Trapezoid() {
   }
   return sum;
 }
-
-// Interpolate::Set_meshX() 
-/** Given a start, stop, and size, set up mesh x values.
-  */
-void Interpolate::Set_meshX(double ti, double tf, int n) {
-  mesh_size_ = n;
-  mesh_x_.resize( mesh_size_ );
-  mesh_y_.resize( mesh_size_ );
-
-  double s = (ti + tf)/2;
-  double d = (tf - ti)/2;
-  for (int i = 0; i < mesh_size_; i++)
-    mesh_x_[i] = s + d*((double) (2*i + 1 - n)/(n - 1));
-}
-

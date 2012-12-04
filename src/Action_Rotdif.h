@@ -2,6 +2,7 @@
 #define INC_ACTION_ROTDIF_H
 #include "Action.h"
 #include "Random.h"
+#include "DataSet_Vector.h"
 // Class: Action_Rotdif
 /// Estimate rotational diffusion tensors from MD simulations
 /** To estimate rotational diffusion tensors from MD simulations along the
@@ -33,7 +34,18 @@ class Action_Rotdif: public Action {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
-
+    // -------------------------------------------
+    class Vec6 {
+      public:
+        Vec6() {}
+        void Q_to_D(Matrix_3x3&) const;
+        void D_to_Q(Matrix_3x3 const&);
+        double& operator[](int idx) { return Q_[idx]; }
+        double const& operator[](int idx) const { return Q_[idx]; }
+      private:
+        double Q_[6];
+    };
+    // -------------------------------------------
     int debug_;
     int rseed_;       ///< Random seed
     int nvecs_;       ///< Number of random vectors to generate
@@ -54,10 +66,10 @@ class Action_Rotdif: public Action {
     bool usefft_;
 
     // Workspace for LAPACK functions
-    double *work_;
+    double* work_;
     int lwork_;
-    double D_tensor_[9];
-    double D_XYZ_[3];
+    Matrix_3x3 D_tensor_;
+    Vec3 D_XYZ_;
 
     std::string randvecOut_;
     std::string randvecIn_;
@@ -74,25 +86,29 @@ class Action_Rotdif: public Action {
     Random_Number RNgen_;
 
     std::vector<Matrix_3x3> Rmatrices_; ///< Store rotation matrices
-    double *random_vectors_;         ///< Hold nvecs random vectors
-    double *D_eff_;                  ///< Hold calculated effective D values for each vector
-    std::vector<double> tau1_;       ///< Hold tau for l=1, full anisotropy
-    std::vector<double> tau2_;       ///< Hold tau for l=2, full anisotropy
-    std::vector<double> *Tau_;       ///> Hold tau being compared based on olegendre
+    std::vector<Vec3> random_vectors_;  ///< Hold nvecs random vectors
+    std::vector<double> D_eff_;         ///< Hold calculated effective D values for each vector
+    std::vector<double> tau1_;          ///< Hold tau for l=1, full anisotropy
+    std::vector<double> tau2_;          ///< Hold tau for l=2, full anisotropy
+    std::vector<double> *Tau_;          ///> Hold tau being compared based on olegendre
     std::vector<double> sumc2_;      
 
-    double *randvec();
-    int compute_corr(double *, int, int, double *, double *);
-    int fft_compute_corr(double*, int, int, double*, int);
+    std::vector<Vec3> RandomVectors();
+    int compute_corr(DataSet_Vector&, int, std::vector<double>&, std::vector<double>&);
+    int fft_compute_corr(DataSet_Vector&, int, std::vector<double>&, int);
     double calcEffectiveDiffusionConst(double );
 
-    int calc_Asymmetric(double *, double *);
-    double chi_squared(double *);
-    double Amotry(double[][6], double *, double *, int, double); 
+    static void PrintMatrix(CpptrajFile&, const char*, Matrix_3x3 const&);
+    static void PrintVector(CpptrajFile&, const char*, Vec3 const&);
+    static void PrintVec6(CpptrajFile&, const char*, Vec6 const&);
+    int calc_Asymmetric(Vec3 const&, Matrix_3x3 const&);
+    double chi_squared(Vec6 const&);
+    double Amotry(double[][6], double *, Vec6&, int, double); 
     int Amoeba(double[][6], double *);
-    int Simplex_min(double*);
-    int Grid_search(double *, int);
-    int Tensor_Fit(double*);
+    static void Average_vertices(Vec6&, double[][6]);
+    int Simplex_min(Vec6&);
+    int Grid_search(Vec6&, int);
+    int Tensor_Fit(Vec6&);
     int DetermineDeffs();
 };
 #endif  

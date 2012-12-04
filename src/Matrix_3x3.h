@@ -59,6 +59,7 @@ class Matrix_3x3 {
     Matrix_3x3 TransposeMult(Matrix_3x3 const&) const;
     // TODO: Get rid of this
     const double* Dptr() const { return M_; }
+    double* Dptr() { return M_; }
   private:
     double M_[9];
     // The following three variables are set during Diagonalize_Sort. They

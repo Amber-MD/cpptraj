@@ -3,14 +3,16 @@
 #include "DataSet.h"
 #include "ArgList.h"
 #include "Vec3.h"
+#include "ComplexArray.h"
 class DataSet_Vector : public DataSet {
+  // TODO: Should this just be two arrays of Vec3?
   public:
     DataSet_Vector();
     ~DataSet_Vector();
     // DataSet functions -------------------------
     int Size()  { return currentidx_ / 6;       }
     int Xmax()  { return (currentidx_ / 6) - 1; }
-    int Width() { return ((width_ + 1) * 9);  }
+    int Width() { return ((width_ + 1) * 9);    }
     int Allocate(int);
     void WriteBuffer(CpptrajFile&, int);
     void Add(int frameNum, void* vIn) { // TODO: Somehow incorporate frameNum?
@@ -26,7 +28,17 @@ class DataSet_Vector : public DataSet {
       currentidx_ += 6;
     }
     // -------------------------------------------
-
+    double SphereHarm(int i) { return sphereharm_[i]; } // TODO: Replace
+    void reset()             { currentidx_ = 0;       }
+    void SetIred()           { isIred_ = true;        }
+    bool IsIred()            { return isIred_;        }
+    void CalcSphericalHarmonics(int);
+    int FillData(ComplexArray&, int); 
+    // -------------------------------------------
+    Vec3 operator[](int i) const {
+      int idx = i * 6;
+      return Vec3( xyz_[idx], xyz_[idx+1], xyz_[idx+2] );
+    }
     void AddVxyz(Vec3 const& vxyz, Vec3 const& cxyz) {
       if (currentidx_ == totalidx_)
         IncreaseSize();
@@ -38,7 +50,6 @@ class DataSet_Vector : public DataSet {
       xyz_[currentidx_+5] = cxyz[2];
       currentidx_ += 6;
     }
-
     void AddVxyz(Vec3 const& xyz) {
       if (currentidx_ == totalidx_)
         IncreaseSize();
@@ -47,7 +58,6 @@ class DataSet_Vector : public DataSet {
       xyz_[currentidx_+2] = xyz[2];
       currentidx_ += 6;
     }
-
     Vec3 VXYZ(int i) {
       int idx = i * 6;
       return Vec3( xyz_[idx], xyz_[idx+1], xyz_[idx+2] ); 
@@ -56,26 +66,17 @@ class DataSet_Vector : public DataSet {
       int idx = (i * 6) + 3;
       return Vec3( xyz_[idx], xyz_[idx+1], xyz_[idx+2] ); 
     }
-
-    void SetIred() { isIred_ = true; }
-    bool IsIred()  { return isIred_; }
+    Vec3 CurrentVec() {
+      if (currentidx_ == 0) return Vec3(0,0,0);
+      return Vec3(xyz_[currentidx_-6], xyz_[currentidx_-5], xyz_[currentidx_-4]);
+    }
     // Currently only used for matrix IRED
     double Dot(const DataSet_Vector& rhs) {
       return (xyz_[currentidx_-6]*rhs.xyz_[currentidx_-6] + 
               xyz_[currentidx_-5]*rhs.xyz_[currentidx_-5] + 
               xyz_[currentidx_-4]*rhs.xyz_[currentidx_-4]  );
     }
-
-    double R3(int i) { return R3i_[i]; }
-    double SphereHarm(int i) { return sphereharm_[i]; } // TODO: Replace
-
-    static void corfdir(int, double *, double *, int, double *);
-    static void sphericalHarmonics(int,int,const double*,double, double[2]);
-    void CalcSphericalHarmonics(int);
-    int FillData(double*, int); 
-    void CalculateAverages();
-    void PrintAvgcrd(CpptrajFile&);
-
+    // -------------------------------------------
     // Iterator over vectors
     class iterator : public std::iterator<std::forward_iterator_tag, const double*>
     {
@@ -118,15 +119,8 @@ class DataSet_Vector : public DataSet {
     double* xyz_;     ///< 3x Vector lengths followed by 3x vector origin
     bool writeSum_;   ///< If true will print vx+cx vy+cy vz+cz in WriteBuffer
     bool isIred_;     ///< If true this vector can be used to calc subsequent IRED matrix
-    // For use with Analysis_Timecorr only
-    double avgx_;
-    double avgy_;
-    double avgz_;
-    double rave_;
-    double r3iave_;
-    double r6iave_;
-    double* R3i_;
 
     void IncreaseSize();
+    static void sphericalHarmonics(int,int,const double*,double, double[2]);
 };
 #endif

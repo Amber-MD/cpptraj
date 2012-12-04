@@ -4,10 +4,10 @@
 // Class: Interpolate
 class Interpolate {
   public:
-    void cubicSpline_coeff(double *, double *, int);
-    int cubicSpline_eval(double*, double*, int);
-
-    void Set_meshX(double, double, int);
+    Interpolate() : mesh_size_(0) {}
+    Interpolate(double,double,int);
+    void SetMesh_X(double, double, int);
+    int SetMesh_Y(std::vector<double> const&, std::vector<double> const&);
     double Integrate_Trapezoid();
 
     int Mesh_Size() { return mesh_size_; }
@@ -17,9 +17,12 @@ class Interpolate {
     std::vector<double> b;
     std::vector<double> c;
     std::vector<double> d;
-
+    int mesh_size_;
     std::vector<double> mesh_x_;
     std::vector<double> mesh_y_;
-    int mesh_size_;
+
+    void CalcMeshX(double,double);
+    void cubicSpline_coeff(std::vector<double> const&, std::vector<double> const&);
+    void cubicSpline_eval(std::vector<double> const&, std::vector<double> const&);
 };
 #endif

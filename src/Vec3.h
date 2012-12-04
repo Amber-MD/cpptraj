@@ -116,6 +116,7 @@ class Vec3 {
     double SignedAngle(Vec3 const&, Vec3 const&);
     // TODO: Eliminate this routine
     const double* Dptr() const { return V_; }
+    double* Dptr() { return V_; }
   private:
     double V_[3];
 };

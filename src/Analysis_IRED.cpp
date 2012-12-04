@@ -16,7 +16,6 @@ Analysis_IRED::Analysis_IRED() :
   norm_(false),
   drct_(false),
   data1_(0),
-  table_(0),
   cf_(0),
   cf_cjt_(0),
   cfinf_(0),
@@ -32,8 +31,6 @@ void Analysis_IRED::Help() {
 
 // DESTRUCTOR
 Analysis_IRED::~Analysis_IRED() {
-  if (data1_!=0) delete[] data1_;
-  if (table_!=0) delete[] table_;
   if (cf_!=0) delete[] cf_;
   if (cf_cjt_!=0) delete[] cf_cjt_;
   if (cfinf_!=0) delete[] cfinf_;
@@ -222,20 +219,16 @@ Analysis::RetType Analysis_IRED::Analyze() {
   else
     nsteps = time;
   // ndata
-  int ndata = 0;
+  //int ndata = 0;
+  // Allocate memory to hold complex numbers for direct or FFT
   if (drct_) {
-    ndata = 2 * Nframes_;
-    table_ = new double[ 2 * nsteps ];
+    data1_.Allocate( Nframes_ );
+    corfdir_.Allocate( nsteps );
   } else {
     // Initialize FFT
     pubfft_.SetupFFT( Nframes_ );
-    ndata = pubfft_.size() * 2;
+    data1_ = pubfft_.Array();
   }
-  int mtot = 2 * order_ + 1;
-  mprintf("CDBG: Nframes=%i time=%i nsteps=%i ndata=%i mtot=%i\n",Nframes_,time,nsteps,ndata,mtot);
-
-  // Allocate common memory and initialize arrays
-  data1_ = new double[ ndata ];
 
   // -------------------- IRED CALCULATION ---------------------------
   // Store Modes Info
@@ -260,6 +253,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
   }
 
   // Allocate memory to project spherical harmonics on eigenmodes
+  int mtot = 2 * order_ + 1;
+  //mprintf("CDBG: Nframes=%i time=%i nsteps=%i ndata=%i mtot=%i\n",Nframes_,time,nsteps,ndata,mtot);
   int p2blocksize = 2 * mtot;                // Real + Img. for each -order <= m <= order
   int nsphereharm = Nframes_ * p2blocksize;  // Spherical Harmonics for each frame
   int ntotal = nvect * nsphereharm;          // Each vector has set of spherical harmonics
@@ -312,14 +307,13 @@ Analysis::RetType Analysis_IRED::Analyze() {
       cfinf_[veci] += (cfinfavgreal * cfinfavgreal) + (cfinfavgimg * cfinfavgimg);
       if (drct_) {
         // Calc correlation function (= C(m,l,t) in Bruschweiler paper) using direct approach
-        DataSet_Vector::corfdir(ndata, data1_, NULL, nsteps, table_);
+        corfdir_.AutoCorr( data1_ );
       } else {
         // Pad with zero's at the end
-        for (int k = 2*Nframes_; k < ndata; ++k)
-          data1_[k] = 0;
+        data1_.PadWithZero( Nframes_ );
         // Calc correlation function (= C(m,l,t) in Bruschweiler paper) using FFT
         //corffft(ndata, data1_, NULL, table_);
-        pubfft_.CorF_FFT(ndata, data1_, NULL);
+        pubfft_.CorF_Auto(data1_);
       }
       // Sum into cf (= C(m,t) in Bruschweiler paper)
       for (int k = 0; k < nsteps; ++k) {

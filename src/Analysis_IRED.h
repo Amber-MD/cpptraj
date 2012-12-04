@@ -20,9 +20,6 @@ class Analysis_IRED : public Analysis {
     Analysis::RetType Analyze();
     void Print(DataFileList*) { return; }
   private:
-    //static const double factor_;
-    // 4/5*PI due to spherical harmonics addition theorem
-    // FOURFIFTHSPI in Constants.h
     double freq_;
     double tstep_;
     double tcorr_;
@@ -32,8 +29,7 @@ class Analysis_IRED : public Analysis {
     bool relax_;
     bool norm_;
     bool drct_;
-    double* data1_;
-    double* table_;
+    ComplexArray data1_;
     double* cf_;
     double* cf_cjt_;
     double* cfinf_;
@@ -42,6 +38,7 @@ class Analysis_IRED : public Analysis {
     std::string filename_;
     std::string orderparamfile_;
     PubFFT pubfft_;
+    CorrF_Direct corfdir_;
     DataSet_Modes* modinfo_;
     std::vector<DataSet_Vector*> IredVectors_;
 

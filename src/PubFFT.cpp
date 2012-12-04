@@ -129,9 +129,31 @@ int PubFFT::SetupFFTforN(int sizeIn) {
   return 0;
 }
 
+void PubFFT::CorF_Auto(ComplexArray& data1) {
+  cfftf_(fft_size_, data1.CAptr(), saved_work_, saved_factors_);
+  // Calculate square modulus of F(data1)
+  data1.SquareModulus();
+  // Inverse FFT
+  cfftb_(fft_size_, data1.CAptr(), saved_work_, saved_factors_);
+  // Normalize with fft_size (since not done in inverse FFT routine)
+  data1.Normalize( 1.0 / ((double) (fft_size_)));
+}
+
+void PubFFT::CorF_Cross(ComplexArray& data1, ComplexArray& data2) {
+  // Cross-correlation
+  cfftf_(fft_size_, data1.CAptr(), saved_work_, saved_factors_);
+  cfftf_(fft_size_, data2.CAptr(), saved_work_, saved_factors_);
+  // Calculate [data1]* x [data2] where * denotes complex conjugate.
+  data1.ComplexConjTimes(data2);
+  // Inverse FFT
+  cfftb_(fft_size_, data1.CAptr(), saved_work_, saved_factors_);
+  // Normalize with fft_size (since not done in inverse FFT routine)
+  data1.Normalize( 1.0 / ((double) (fft_size_)));
+}
+
 // PubFFT::CorF_FFT()
 /** /author Original Authors: Alrun N. Koller & H. Gohlke
-  * /author C++ Adaptation and Cross-correlation fix by Dan Roe
+  * /author C++ Adaptation by Dan Roe
   *
   * Calculates correlation function using Cross-correlation theorem /
   * Wiener-Khinchin-Theorem (s. Comp. Sim. of Liquids, p. 188) if data2
@@ -145,7 +167,7 @@ int PubFFT::SetupFFTforN(int sizeIn) {
   * - The discrete data should be padded with zeros to avoid spurious correlations
   * - The result is not yet normalized by (no_of_discrete_data - t)**-1 (!)
   */
-void PubFFT::CorF_FFT(int ndata, double* data1, double* data2) {
+/*void PubFFT::CorF_FFT(int ndata, double* data1, double* data2) {
   if (data2 == NULL) {
     // Auto-correlation
     cfftf_(fft_size_, data1, saved_work_, saved_factors_);
@@ -173,4 +195,4 @@ void PubFFT::CorF_FFT(int ndata, double* data1, double* data2) {
   double norm = 1.0 / ((double) (fft_size_));
   for(int i = 0; i < ndata; ++i)
     data1[i] *= norm;
-}
+}*/
