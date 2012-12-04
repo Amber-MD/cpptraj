@@ -17,6 +17,7 @@
 #include "Analysis_RmsAvgCorr.h"
 #include "Analysis_Rms2d.h"
 #include "Analysis_Clustering.h"
+#include "Analysis_RunningAvg.h"
 
 const DispatchObject::Token AnalysisList::DispatchArray[] = {
   { DispatchObject::ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
@@ -39,6 +40,7 @@ const DispatchObject::Token AnalysisList::DispatchArray[] = {
   { DispatchObject::ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, 0 },
   { DispatchObject::ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, 0 },
   { DispatchObject::ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, 0 },
+  { DispatchObject::ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, 0 },
   { DispatchObject::NONE,        0,                  0,                 0, 0 }
 };
 
