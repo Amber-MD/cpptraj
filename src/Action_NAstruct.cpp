@@ -39,8 +39,8 @@ Action_NAstruct::~Action_NAstruct() {
 }
 
 // Output Format Strings
-static const char BP_OUTPUT_FMT[66] = "%8i %8i %8i %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %2i\n";
-static const char NA_OUTPUT_FMT[73] = "%8i %4i-%-4i %4i-%-4i %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf %10.4lf\n";
+static const char BP_OUTPUT_FMT[66] = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2i\n";
+static const char NA_OUTPUT_FMT[73] = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f\n";
 
 // ------------------------- PRIVATE FUNCTIONS ---------------------------------
 // Action_NAstruct::ClearLists()
@@ -128,10 +128,9 @@ int Action_NAstruct::setupBaseAxes(Frame const& InputFrame) {
      * vectors of the base axes.
      */
     // Store the Rotation matrix and the rotated and translated origin.
-    Vec3 Vec = (RotMatrix * TransVec) + refTrans;
-    BaseAxes_.push_back( NA_Axis(RotMatrix, Vec, (*base).ResNum()) );
+    BaseAxes_.push_back( NA_Axis(RotMatrix, (RotMatrix*TransVec)+refTrans, (*base).ResNum()) );
     if (debug_>0) { 
-      mprintf("Base %u: RMS of RefCoords from ExpCoords is %lf\n",base-Bases_.begin(),rmsd);
+      mprintf("Base %u: RMS of RefCoords from ExpCoords is %f\n",base-Bases_.begin(),rmsd);
       //printMatrix_3x3("Rotation matrix:",RotMatrix);
       //printRotTransInfo(RotMatrix,TransVec);
       BaseAxes_.back().PrintAxisInfo("BaseAxes");
@@ -169,7 +168,7 @@ int Action_NAstruct::GCpair(NA_Base const& DG, NA_Base const& DC) {
 #     ifdef NASTRUCTDEBUG
       int dg_hbatom = DG.HBidx(hb);
       int dc_hbatom = DC.HBidx(hb);
-      mprintf("\t\t%s:%s -- %s:%s = %lf\n",
+      mprintf("\t\t%s:%s -- %s:%s = %f\n",
               DG.ResName(), DG.AtomName(dg_hbatom),
               DC.ResName(), DC.AtomName(dc_hbatom), sqrt(dist2));
 #     endif
@@ -192,7 +191,7 @@ int Action_NAstruct::ATpair(NA_Base const& DA, NA_Base const& DT) {
 #     ifdef NASTRUCTDEBUG
       int da_hbatom = DA.HBidx(hb);
       int dt_hbatom = DT.HBidx(hb);
-      mprintf("\t\t%s:%s -- %s:%s = %lf\n",
+      mprintf("\t\t%s:%s -- %s:%s = %f\n",
               DA.ResName(), DA.AtomName(da_hbatom),
               DT.ResName(), DT.AtomName(dt_hbatom), sqrt(dist2));
 #     endif
@@ -430,7 +429,7 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
   // Roll/Tilt is Angle between Z1 and Z2
   double rolltilt = Axis1.Rz().Angle( Axis2.Rz() );
 # ifdef NASTRUCTDEBUG
-  mprintf("\tAngle between Z1 and Z2= %lf\n",rolltilt*RADDEG);
+  mprintf("\tAngle between Z1 and Z2= %f\n",rolltilt*RADDEG);
 # endif
   // Calculate forward and backwards half rolltilt rotation around
   // hinge axis.
@@ -502,7 +501,7 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
   Vec3 Y2 = RotatedR2.Col2();
   double twistopen = Y1.SignedAngle(Y2, Z1);
 # ifdef NASTRUCTDEBUG
-  mprintf("\tFinal Twist/Opening is %10.4lf\n",twistopen*RADDEG);
+  mprintf("\tFinal Twist/Opening is %10.4f\n",twistopen*RADDEG);
 # endif
   Param[3] = twistopen;
 
@@ -514,7 +513,7 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
   double sinphi = sin( phi );
   double cosphi = cos( phi );
 # ifdef NASTRUCTDEBUG
-  mprintf("\tPhase angle is %lf, sinphi is %lf, cosphi is %lf\n",phi*RADDEG,sinphi,cosphi);
+  mprintf("\tPhase angle is %f, sinphi is %f, cosphi is %f\n",phi*RADDEG,sinphi,cosphi);
 # endif
 
   // Roll / Propeller
@@ -526,8 +525,8 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
   Param[5] = tiltbuck;
 
 # ifdef NASTRUCTDEBUG
-  mprintf("\tRoll/Propeller %10.4lf\n",rollprop*RADDEG);
-  mprintf("\tTilt/Buckle %10.4lf\n",tiltbuck*RADDEG);
+  mprintf("\tRoll/Propeller %10.4f\n",rollprop*RADDEG);
+  mprintf("\tTilt/Buckle %10.4f\n",tiltbuck*RADDEG);
   if (calcparam_) calcparam_=false;
 # endif
   return 0;
@@ -568,7 +567,7 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
 # endif
 
   // Tip/inclination should be same for z2
-  //mprintf("\tTipCheck= %lf\n",dot_product_angle(helicalAxis, Z2)*RADDEG);
+  //mprintf("\tTipCheck= %f\n",dot_product_angle(helicalAxis, Z2)*RADDEG);
   // Hinge axis (Vec) is normalized cross product from h to z2
   Vec3 Vec = helicalAxis.Cross( Axis2.Rz() );
   Vec.Normalize();
@@ -632,7 +631,7 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   O2.Normalize();
 # ifdef NASTRUCTDEBUG
   O1.Print("AB");
-  mprintf("\tAD_angle is %lf\n",AD_angle*RADDEG);
+  mprintf("\tAD_angle is %f\n",AD_angle*RADDEG);
   O2.Print("AD");
 # endif
 
@@ -651,7 +650,7 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   // Calculate origin of middle helical frame, store in Vec 
   Vec = (O2 + O1) / 2.0;
 # ifdef NASTRUCTDEBUG
-  mprintf("\t|AD| = %lf\n",AD_mag);
+  mprintf("\t|AD| = %f\n",AD_mag);
   O1.Print("o1_h");
   O2.Print("o2_h");
   Vec.Print("Om_h");
@@ -673,8 +672,8 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   double Y_disp = Vec * X1;
   Param[1] = Y_disp;
 # ifdef NASTRUCTDEBUG
-  mprintf("\tX-displacement= %lf\n",X_disp);
-  mprintf("\tY-displacement= %lf\n",Y_disp);
+  mprintf("\tX-displacement= %f\n",X_disp);
+  mprintf("\tY-displacement= %f\n",Y_disp);
 # endif
 
   return 0;
@@ -942,9 +941,9 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     if (!printheader_) mprintf(", no header");
   }
   mprintf(".\n");
-  mprintf("\tHydrogen bond cutoff for determining base pairs is %.2lf Angstroms.\n",
+  mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( HBdistCut2_ ) );
-  mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2lf Angstroms.\n",
+  mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( originCut2_ ) );
 
   // Use reference to determine base pairing
