@@ -153,6 +153,7 @@ Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, F
 
 void Action_AtomicCorr::Print() {
   int idx, idx3, vec1size;
+  Vec3 V1, V2;
   mprintf("    ATOMICCORR: Calculating correlations between %s vectors:\n",
           ModeString[acorr_mode_]);
   if (atom_vectors_.empty()) {
@@ -191,8 +192,8 @@ void Action_AtomicCorr::Print() {
 #endif
           for (idx = 0; idx < vec1size; ++idx) {
             idx3 = idx * 3;
-            Vec3 V1 = (*vec1).VXYZ(idx3);
-            Vec3 V2 = (*vec2).VXYZ(idx3);
+            V1 = (*vec1).VXYZ(idx3);
+            V2 = (*vec2).VXYZ(idx3);
             V1.Normalize();
             V2.Normalize();
             corr_coeff += (V1 * V2);
