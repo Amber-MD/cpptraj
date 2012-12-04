@@ -14,8 +14,6 @@ Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs,
                                              TopologyList* PFLin,
                                              int debugIn)
 {
-  const char* calctype;
-
   outfilename_ = analyzeArgs.GetStringKey("out");
   setname_ = analyzeArgs.GetStringKey("name");
   // The remaining arguments are the data sets to take running averages of
