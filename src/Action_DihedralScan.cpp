@@ -50,9 +50,9 @@ void Action_DihedralScan::Help() {
 Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  TrajectoryFile::TrajFormatType outfmt;
-  Topology* outtop;
-  int iseed;
+  TrajectoryFile::TrajFormatType outfmt = TrajectoryFile::UNKNOWN_TRAJ;
+  Topology* outtop = 0;
+  int iseed = -1;
 
   debug_ = debugIn;
   // Get Keywords - first determine mode
