@@ -40,6 +40,6 @@ class PDBfile : public CpptrajFile {
                   double, double, double);
   private:
     int anum_;
-    static const char PDB_RECNAME[][7];
+    static const char* PDB_RECNAME[];
 };
 #endif

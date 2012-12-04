@@ -25,8 +25,8 @@ class DataSet_Matrix : public DataSet {
     enum MatrixType {
       NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED, NMAT
     };
-    static const char MatrixTypeString[][27];
-    static const char MatrixOutputString[][10];
+    static const char* MatrixTypeString[];
+    static const char* MatrixOutputString[];
     static MatrixType TypeFromArg(ArgList&);
     void SetType(MatrixType typeIn) { type_ = typeIn; }
     MatrixType Type() { return type_; }

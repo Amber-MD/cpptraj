@@ -37,7 +37,7 @@ class Box {
     bool HasBox()  const { return (btype_ != NOBOX); }
   private:
     static const double TRUNCOCTBETA;
-    static const char BoxNames[][15];
+    static const char* BoxNames[];
     //int debug_; // TODO: Replace with ifdefs or just comment out?
     BoxType btype_;
     double box_[6];

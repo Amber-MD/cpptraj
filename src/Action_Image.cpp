@@ -33,7 +33,7 @@ Action_Image::~Action_Image() {
   if (ComMask_!=NULL) delete ComMask_;
 }
 
-const char Action_Image::ImageModeString[3][9] = {
+const char* Action_Image::ImageModeString[] = {
   "molecule", "residue", "atom"
 };
 

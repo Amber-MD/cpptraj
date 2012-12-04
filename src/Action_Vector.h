@@ -18,7 +18,7 @@ class Action_Vector : public Action {
       DIPOLE,    BOX,         MASK,        IRED,
       CORRPLANE, CORR,        CORRIRED
     };
-    static const char ModeString[][12];
+    static const char* ModeString[];
 
     DataSet_Vector* Vec_;
     double* vcorr_;

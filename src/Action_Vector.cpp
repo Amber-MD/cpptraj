@@ -24,7 +24,7 @@ Action_Vector::~Action_Vector() {
   if (vcorr_!=0) delete[] vcorr_;
 }
 
-const char Action_Vector::ModeString[11][12] = {
+const char* Action_Vector::ModeString[] = {
   "NO_OP", "Principal X", "Principal Y", "Principal Z",
   "Dipole", "Box", "Mask", "Ired",
   "CorrPlane", "Corr", "CorrIred"

@@ -35,8 +35,8 @@ Action_DSSP::~Action_DSSP() {
   if (SSline_!=0) delete[] SSline_;
 }
 
-const char Action_DSSP::SSchar[7]={ '0', 'b', 'B', 'G', 'H', 'I', 'T' };
-const char Action_DSSP::SSname[7][6]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn"};
+const char Action_DSSP::SSchar[]={ '0', 'b', 'B', 'G', 'H', 'I', 'T' };
+const char* Action_DSSP::SSname[]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn"};
 
 // Action_DSSP::init()
 // For now dont allow NULL(stdout) filename for output

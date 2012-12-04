@@ -22,7 +22,7 @@ class Atom {
       TANTALUM,   THALLIUM,   VANADIUM, TUNGSTEN,  XENON,      ZIRCONIUM,
       EXTRAPT 
     };
-    static const char AtomicElementName[][3];
+    static const char* AtomicElementName[];
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}

@@ -24,7 +24,7 @@ class Analysis_Timecorr : public Analysis {
       double r6iave_;
     };
     enum timecorrMode { AUTO = 0, CROSS };
-    static const char ModeString[][6];
+    static const char* ModeString[];
 
     double tstep_;
     double tcorr_;

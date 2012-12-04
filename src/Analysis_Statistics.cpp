@@ -131,7 +131,7 @@ Analysis::RetType Analysis_Statistics::Analyze() {
   return Analysis::OK;
 }
 
-const char Analysis_Statistics::pucker_ss[10][9] = {
+const char* Analysis_Statistics::pucker_ss[] = {
   "C3'-endo", "C4'-exo ", "O4'-endo", "C1'-exo ", "C2'-endo", "C3'-exo ",
   "C4'-endo", "O4'-exo ", "C1'-endo", "C2'-exo "
 };
@@ -239,11 +239,11 @@ void Analysis_Statistics::PuckerAnalysis( DataSet* ds, int totalFrames ) {
   }
 }
 
-const char Analysis_Statistics::torsion_ss[6][8] = {
+const char* Analysis_Statistics::torsion_ss[] = {
   "g+     ", "a+     ", "t      ", "a-     ", "g-     ", "c      "
 };
 
-const double Analysis_Statistics::torsion_offset[6] = { 
+const double Analysis_Statistics::torsion_offset[] = { 
   0.0, 0.0, 0.0, 0.0, 0.0, 180.0 
 };
 
@@ -440,7 +440,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet* ds, int totalFrames) {
   }
 }
 
-const char Analysis_Statistics::distance_ss[6][8] = {
+const char* Analysis_Statistics::distance_ss[] = {
   " < 2.5 ", "2.5-3.5", "3.5-4.5", "4.5-5.5", "5.5-6.5", " > 6.5 "
 };
 

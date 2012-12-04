@@ -1,5 +1,5 @@
 #include "MapAtom.h"
-
+// TODO: Just set the char to whatever the atomic weight is?
 const char MapAtom::AtomicElementChar[Atom::NUMELEMENTS] = { 0,
   'H',  'B',  'C',  'N',  'O', 'F',  
   'P',  'S',  'X',  'Y',  'f', 'c',

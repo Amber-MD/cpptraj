@@ -237,8 +237,18 @@ class Frame {
         XYZ[2] = (x*RotMatrix[6]) + (y*RotMatrix[7]) + (z*RotMatrix[8]);
       }
     }
+    /// Apply translation followed by rotation followed by second translation
+    void Trans_Rot_Trans(Vec3 const& t1, Matrix_3x3 const& R, Vec3 const& t2) {
+      for (int i = 0; i < ncoord_; i+=3) {
+        double x = X_[i  ] + t1[0];
+        double y = X_[i+1] + t1[1];
+        double z = X_[i+2] + t1[2];
+        X_[i  ] = x*R[0] + y*R[1] + z*R[2] + t2[0];
+        X_[i+1] = x*R[3] + y*R[4] + z*R[5] + t2[1];
+        X_[i+2] = x*R[6] + y*R[7] + z*R[8] + t2[2];
+      }
+    }
     // -------------------------------------------------------------------------
-    void Trans_Rot_Trans(Vec3 const&, Matrix_3x3 const&, Vec3 const&);
     void Center(AtomMask const&, bool,bool);
     Vec3 CenterReference(bool);
     void ShiftToGeometricCenter();
@@ -252,7 +262,6 @@ class Frame {
     double DISTRMSD( Frame const& );
 
     Vec3 SetAxisOfRotation(int, int);
-    //void RotateAroundAxis(double *, AtomMask &);
     Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&);
 
   private:

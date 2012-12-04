@@ -76,7 +76,7 @@ class CpptrajFile {
     static const size_t BUF_SIZE = 1024;
     char linebuffer_[BUF_SIZE]; ///< Used in Printf/GetLine functions
   private:
-    static const char FileTypeName[][13];
+    static const char* FileTypeName[];
 
     FileIO* IO_;                ///< The interface to basic IO operations.
     AccessType access_;         ///< Access (Read, write, append)

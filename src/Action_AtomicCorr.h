@@ -35,7 +35,7 @@ class Action_AtomicCorr : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
 
     enum AcorrModeType { ATOM = 0, RES };
-    static const char ModeString[][8];
+    static const char* ModeString[];
     AcorrModeType acorr_mode_;
     double cut_;
     int min_;

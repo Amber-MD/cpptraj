@@ -689,44 +689,6 @@ void Frame::SCALE(AtomMask const& maskIn, double sx, double sy, double sz) {
   }
 }
 
-// Frame::Trans_Rot_Trans()
-/** Apply a translation, followed by a rotation, followed by 
-  * another translation.
-  */
-void Frame::Trans_Rot_Trans(Vec3 const& Trans, Matrix_3x3 const& T, Vec3 const& refTrans)
-{
-  double Vec0 = Trans[0];
-  double Vec1 = Trans[1];
-  double Vec2 = Trans[2];
-  double Vec3 = refTrans[0];
-  double Vec4 = refTrans[1];
-  double Vec5 = refTrans[2];
-
-  double T0 = T[0]; 
-  double T1 = T[1]; 
-  double T2 = T[2]; 
-  double T3 = T[3]; 
-  double T4 = T[4]; 
-  double T5 = T[5]; 
-  double T6 = T[6]; 
-  double T7 = T[7]; 
-  double T8 = T[8]; 
-
-  for (int i = 0; i < ncoord_; i += 3) {
-    double *Xptr = X_ + i;
-    double *Yptr = Xptr + 1;
-    double *Zptr = Xptr + 2;
- 
-    double x = *Xptr + Vec0;
-    double y = *Yptr + Vec1;
-    double z = *Zptr + Vec2;
-
-    *Xptr = (x*T0) + (y*T1) + (z*T2) + Vec3;
-    *Yptr = (x*T3) + (y*T4) + (z*T5) + Vec4;
-    *Zptr = (x*T6) + (y*T7) + (z*T8) + Vec5;
-  }
-}
-
 // Frame::Center()
 /** Center coordinates to center of coordinates in Mask w.r.t. given XYZ in
   * boxcoord. When called from Action_Center boxcoord will be either origin 
@@ -1138,42 +1100,6 @@ Vec3 Frame::SetAxisOfRotation(int atom1, int atom2) {
   return U;
 }
 
-// Frame::RotateAroundAxis()
-/** Given a vector representing an axis and a magnitude, rotate all 
-  * coordinates in the given mask around the axis.
-  */
-/*void Frame::RotateAroundAxis(double *T, AtomMask &Rmask) {
-  double x,y,z;
-  double T0,T1,T2,T3,T4,T5,T6,T7,T8;
-  //double T[9];
-  // Setup rotation matrix for this axis and given theta
-  //calcRotationMatrix(T, U, theta);
-  // Rotate
-  T0=T[0];
-  T1=T[1];
-  T2=T[2];
-  T3=T[3];
-  T4=T[4];
-  T5=T[5];
-  T6=T[6];
-  T7=T[7];
-  T8=T[8];
-  for (AtomMask::const_iterator atom = Rmask.begin();
-                                atom != Rmask.end();
-                                atom++)
-  {
-    int i0 = (*atom) * 3;
-    int i1 = i0 + 1;
-    int i2 = i1 + 1;
-    x=X_[i0]; y=X_[i1]; z=X_[i2];
-
-    X_[i0]=(x*T0) + (y*T1) + (z*T2);
-    X_[i1]=(x*T3) + (y*T4) + (z*T5);
-    X_[i2]=(x*T6) + (y*T7) + (z*T8);
-  }
-
-}*/
-
 // Frame::CalculateInertia()
 /** \return Center of mass of coordinates in mask. */
 Vec3 Frame::CalculateInertia(AtomMask const& Mask, Matrix_3x3& Inertia)
@@ -1188,7 +1114,6 @@ Vec3 Frame::CalculateInertia(AtomMask const& Mask, Matrix_3x3& Inertia)
   Ivec[3] = 0; // xy
   Ivec[4] = 0; // xz
   Ivec[5] = 0; // yz
-  //double *crd = X_;
   for (AtomMask::const_iterator atom = Mask.begin(); atom != Mask.end(); ++atom) {
     int xidx = (*atom) * 3;
     double cx = X_[xidx  ] - CXYZ[0];
@@ -1214,4 +1139,3 @@ Vec3 Frame::CalculateInertia(AtomMask const& Mask, Matrix_3x3& Inertia)
   Inertia[8] = Ivec[2];
   return CXYZ;
 }
-

@@ -8,7 +8,7 @@
 #include "CpptrajFile.h"
 
 // XMGRACE colors
-const char ClusterList::XMGRACE_COLOR[16][12] = {
+const char* ClusterList::XMGRACE_COLOR[] = {
   "white", "black", "red", "green", "blue", "yellow", "brown", "grey", "violet",
   "cyan", "magenta", "orange", "indigo", "maroon", "turquoise", "darkgreen"
 };

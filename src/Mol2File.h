@@ -35,7 +35,7 @@ class Mol2File : public CpptrajFile {
     int Mol2Nbonds()               { return mol2bonds_; }
     std::string const& Mol2Title() { return mol2title_; }
   private:
-    static const char TRIPOSTAGTEXT[][22];
+    static const char* TRIPOSTAGTEXT[];
     int mol2debug_;
     int mol2atoms_;
     int mol2bonds_;

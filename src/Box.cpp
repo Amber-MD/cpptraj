@@ -46,7 +46,7 @@ Box &Box::operator=(const Box& rhs) {
 
 const double Box::TRUNCOCTBETA = 109.4712206344906917365733534097672;
 
-const char Box::BoxNames[5][15] = {
+const char* Box::BoxNames[] = {
   "None", "Orthogonal", "Trunc. Oct.", "Rhombic Dodec.", "Non-orthogonal"
 };
 

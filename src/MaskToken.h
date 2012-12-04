@@ -27,7 +27,7 @@ class MaskToken {
 
     void SetOnStack();
   private:
-    static const char MaskTypeString[][12];
+    static const char* MaskTypeString[];
 
     MaskTokenType type_;
     int res1_;

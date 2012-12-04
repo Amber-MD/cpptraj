@@ -19,7 +19,7 @@
 #  include "FileIO_Bzip2.h"
 #endif
 
-const char CpptrajFile::FileTypeName[6][13] = {
+const char* CpptrajFile::FileTypeName[] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
 };
 

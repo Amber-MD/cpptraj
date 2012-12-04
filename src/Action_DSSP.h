@@ -25,7 +25,7 @@ class Action_DSSP : public Action {
     };
     static const double DSSP_fac;
     static const char SSchar[];
-    static const char SSname[][6];
+    static const char* SSname[];
     /// Hold SS-related data for each residue
     struct Residue {
       int SSprob[7];            ///< Hold count for each SS type

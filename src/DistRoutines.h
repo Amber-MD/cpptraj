@@ -4,6 +4,7 @@
 /*! \file DistRoutines.h
     \brief A collection of routines used to calculate distance.
  */
+// TODO: Move ImagingType to Box, include Box instead of Vec3, create recipInfo type
 /// Potential imaging types 
 enum ImagingType { NOIMAGE=0, ORTHO, NONORTHO };
 double DIST2_ImageNonOrtho(const double *, const double *, const double *, const double *);

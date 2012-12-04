@@ -14,7 +14,7 @@ class Action_Image: public Action {
     void Print() {}
   private:
     enum ImageMode { BYMOL = 0, BYRES, BYATOM };
-    static const char ImageModeString[][9];
+    static const char* ImageModeString[];
     ImageMode imageMode_;
     /// Only atoms in Mask1 will be imaged
     AtomMask Mask1_;

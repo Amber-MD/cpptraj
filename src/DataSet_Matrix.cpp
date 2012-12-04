@@ -27,7 +27,7 @@ DataSet_Matrix::~DataSet_Matrix() {
 }
 
 /// Strings corresponding to MatrixType enumerated type.
-const char DataSet_Matrix::MatrixTypeString[8][27] = {
+const char* DataSet_Matrix::MatrixTypeString[] = {
   "UNDEFINED",
   "distance matrix",
   "covar matrix",
@@ -38,7 +38,7 @@ const char DataSet_Matrix::MatrixTypeString[8][27] = {
   "ired matrix"
 };
 
-const char DataSet_Matrix::MatrixOutputString[8][10] = {
+const char* DataSet_Matrix::MatrixOutputString[] = {
   "UNKNOWN",
   "DIST",
   "COVAR",

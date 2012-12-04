@@ -4,9 +4,7 @@
 #include "Constants.h" // PI
 
 /// Strings corresponding to modes, used in output.
-const char Analysis_Timecorr::ModeString[2][6] = {
-  "Auto", "Cross"
-};
+const char* Analysis_Timecorr::ModeString[] = { "Auto", "Cross" };
 
 // CONSTRUCTOR
 Analysis_Timecorr::Analysis_Timecorr() :

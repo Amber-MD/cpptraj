@@ -19,7 +19,7 @@ void Analysis_CrankShaft::Help() {
   mprintf("crank {angle | distance} <scalar-name1> <scalar-name2> info <string>\n");
 }
 
-const char Analysis_CrankShaft::CSstring[2][9] = { "angle", "distance" };
+const char* Analysis_CrankShaft::CSstring[] = { "angle", "distance" };
 
 Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
                             TopologyList* PFLin, int debugIn)
@@ -78,7 +78,7 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
   return Analysis::OK;
 }
 
-const char  Analysis_CrankShaft::distance_ss_2D[6][6][9] = {
+const char* Analysis_CrankShaft::distance_ss_2D[][6] = {
   {"< 2, < 2", "< 2, 2-3", "< 2, 3-4", "< 2, 4-5", "< 2, 5-6", "< 2, > 6" },
   {"2-3, < 2", "2-3, 2-3", "2-3, 3-4", "2-3, 4-5", "2-3, 5-6", "2-3, > 6" },
   {"3-4, < 2", "3-4, 2-3", "3-4, 3-4", "3-4, 4-5", "3-4, 5-6", "3-4, > 6" },
@@ -87,7 +87,7 @@ const char  Analysis_CrankShaft::distance_ss_2D[6][6][9] = {
   {"> 6, < 2", "> 6, 2-3", "> 6, 3-4", "> 6, 4-5", "> 6, 5-6", "> 6, > 6" }
 };
 
-const char  Analysis_CrankShaft::torsion_ss_2D[6][6][6] = {
+const char* Analysis_CrankShaft::torsion_ss_2D[][6] = {
   {"g+ g+", "g+ a+", "g+ t", "g+ a-", "g+ g-", "g+ c"},
   {"a+ g+", "a+ a+", "a+ t", "a+ a-", "a+ g-", "a+ c"},
   {"t  g+", "t  a+", "t  t", "t  a-", "t  g-", "t  c"},

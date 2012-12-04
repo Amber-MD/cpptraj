@@ -4,7 +4,7 @@
 
 /// PDB record types
 // NOTE: Must correspond with PDB_RECTYPE
-const char PDBfile::PDB_RECNAME[3][7] = { "ATOM  ", "HETATM", "TER   " };
+const char* PDBfile::PDB_RECNAME[] = { "ATOM  ", "HETATM", "TER   " };
 
 // PDBfile::IsPDBkeyword()
 bool PDBfile::IsPDBkeyword(const char* recname) {

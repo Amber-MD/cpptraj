@@ -22,7 +22,7 @@ enum topValues {
 /// Number of unique amber parm FLAGs
 const int Parm_Amber::NUMAMBERPARMFLAGS=44;
 /// Constant strings for fortran formats corresponding to Amber parm flags
-const char Parm_Amber::AmberParmFmt[NUMAMBERPARMFLAGS][16] = {
+const char* Parm_Amber::AmberParmFmt[NUMAMBERPARMFLAGS] = {
 "%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",
 "%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(3I8)",
 "%FORMAT(10I8)",   "%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",
@@ -34,7 +34,7 @@ const char Parm_Amber::AmberParmFmt[NUMAMBERPARMFLAGS][16] = {
 "%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(20a4)",   "%FORMAT(1a80)"
 };
 /// Constant strings for Amber parm flags
-const char Parm_Amber::AmberParmFlag[NUMAMBERPARMFLAGS][27] = {
+const char* Parm_Amber::AmberParmFlag[NUMAMBERPARMFLAGS] = {
   "POINTERS",
   "ATOM_NAME",
   "CHARGE",

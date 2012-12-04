@@ -14,7 +14,7 @@ MaskToken::MaskToken() :
   distance_(0.0)
 { }
 
-const char MaskToken::MaskTypeString[12][12] = {
+const char* MaskToken::MaskTypeString[] = {
   "OP_NONE", "ResNum", "ResName", "AtomNum", "AtomName", "AtomType", "AtomElement", "SelectAll",
   "OP_AND", "OP_OR", "OP_NEG", "OP_DIST"
 };

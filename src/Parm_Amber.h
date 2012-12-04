@@ -29,8 +29,8 @@ class Parm_Amber : public ParmIO {
     };
     static const int NUMAMBERPARMFLAGS;
     static const int AMBERPOINTERS;
-    static const char AmberParmFmt[][16];
-    static const char AmberParmFlag[][27];
+    static const char* AmberParmFmt[];
+    static const char* AmberParmFlag[];
 
     // NOTE: Although amber topology files should only ever require 83 chars
     //       to read each line (80 chars + newline + CR (if dos) + NULL)

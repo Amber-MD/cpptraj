@@ -12,7 +12,7 @@ Mol2File::Mol2File() :
 {}
 
 /// Tripos Tags - must be in same order as enum type TRIPOSTAG
-const char Mol2File::TRIPOSTAGTEXT[4][22]={
+const char* Mol2File::TRIPOSTAGTEXT[]={
   "@<TRIPOS>MOLECULE",
   "@<TRIPOS>ATOM",
   "@<TRIPOS>BOND",

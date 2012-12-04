@@ -35,7 +35,7 @@ class ClusterList {
     cluster_iterator begincluster() { return clusters_.begin(); }
     cluster_iterator endcluster()   { return clusters_.end();   }
   private:
-    static const char XMGRACE_COLOR[][12];
+    static const char* XMGRACE_COLOR[];
 
     int debug_;
     /// Store individual cluster info; frame numbers, centroid, etc.

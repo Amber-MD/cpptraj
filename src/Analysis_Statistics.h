@@ -4,8 +4,8 @@
 class Analysis_Statistics : public Analysis {
   public:
     // The following 2 are also used in Analysis_Crankshaft
-    static const char torsion_ss[][8];
-    static const double torsion_offset[6];
+    static const char* torsion_ss[];
+    static const double torsion_offset[];
 
     Analysis_Statistics();
 
@@ -22,10 +22,10 @@ class Analysis_Statistics : public Analysis {
     double shift_;
     int debug_;
 
-    static const char pucker_ss[][9];
+    static const char* pucker_ss[];
     void PuckerAnalysis( DataSet*, int );
     void TorsionAnalysis( DataSet*, int );
-    static const char distance_ss[][8];
+    static const char* distance_ss[];
     void DistanceAnalysis( DataSet*, int, double, double );
 };
 #endif

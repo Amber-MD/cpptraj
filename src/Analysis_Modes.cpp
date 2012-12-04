@@ -44,7 +44,7 @@ const double Analysis_Modes::CONT  = CMTOA / TWOPI;
 // NOTE: Original TWOPI was 6.2832, results in small roundoff diffs from ptraj
 
 /// Strings describing modes calculation types.
-const char Analysis_Modes::analysisTypeString[3][22] = {
+const char* Analysis_Modes::analysisTypeString[] = {
   "rms fluctuations",
   "displacements",
   "correlation functions"
