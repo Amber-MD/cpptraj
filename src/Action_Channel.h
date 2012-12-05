@@ -12,7 +12,7 @@ class Action_Channel : public Action {
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    void Print() {}
+    void Print();
 
     Grid solvent_;
     Grid solute_;

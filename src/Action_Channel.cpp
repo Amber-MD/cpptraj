@@ -31,7 +31,8 @@ Action::RetType Action_Channel::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     maskexpr = ":WAT@O";
   solventMask_.SetMaskString( maskexpr );
 
-  mprintf("    CHANNEL: Solute mask [%s], solvent mask [%s]\n",
+  solute_.GridInfo();
+  mprintf("\tSolute mask [%s], solvent mask [%s]\n",
           soluteMask_.MaskString(), solventMask_.MaskString());
   return Action::OK;
 }
@@ -62,4 +63,12 @@ Action::RetType Action_Channel::DoAction(int frameNum, Frame* currentFrame, Fram
   solute_.GridFrame( *currentFrame, soluteMask_ );
   solvent_.GridFrame( *currentFrame, solventMask_ );
   return Action::OK;
+}
+
+void Action_Channel::Print() {
+  // TEST: Write Xplor files
+  solute_.PrintXplor( "solute.xplor", "This line is ignored",
+                      "rdparm generated grid density" );
+  solvent_.PrintXplor( "solvent.xplor", "This line is ignored",
+                       "rdparm generated grid density" );
 }
