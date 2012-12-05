@@ -125,11 +125,9 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, Frame* currentFrame, Fr
       previousz_.push_back( XYZ[2] );
     }
   } else {
-    if (hasBox_) {
-      boxcenter_[0] = currentFrame->BoxX() / 2;
-      boxcenter_[1] = currentFrame->BoxY() / 2;
-      boxcenter_[2] = currentFrame->BoxZ() / 2;
-    }
+    if (hasBox_) 
+      boxcenter_ = currentFrame->BoxCrd().Center();
+    Vec3 boxL = currentFrame->BoxCrd().Lengths();
     // Set iterators
     std::vector<double>::iterator px = previousx_.begin();
     std::vector<double>::iterator py = previousy_.begin();
@@ -158,12 +156,12 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, Frame* currentFrame, Fr
       // it was imaged and adjust the distance of the total
       // movement with respect to the original frame.
       if (hasBox_) {
-        if      (delx >  boxcenter_[0]) *dx -= currentFrame->BoxX();
-        else if (delx < -boxcenter_[0]) *dx += currentFrame->BoxX();
-        else if (dely >  boxcenter_[1]) *dy -= currentFrame->BoxY();
-        else if (dely < -boxcenter_[1]) *dy += currentFrame->BoxY();
-        else if (delz >  boxcenter_[2]) *dz -= currentFrame->BoxZ();
-        else if (delz < -boxcenter_[2]) *dz += currentFrame->BoxZ();
+        if      (delx >  boxcenter_[0]) *dx -= boxL[0];
+        else if (delx < -boxcenter_[0]) *dx += boxL[0];
+        else if (dely >  boxcenter_[1]) *dy -= boxL[1];
+        else if (dely < -boxcenter_[1]) *dy += boxL[1];
+        else if (delz >  boxcenter_[2]) *dz -= boxL[2];
+        else if (delz < -boxcenter_[2]) *dz += boxL[2];
       }
       // DEBUG
       if (debug_ > 2)

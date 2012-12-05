@@ -7,7 +7,7 @@
 Action_AutoImage::Action_AutoImage() :
   origin_(false),
   ortho_(false),
-  center_(false),
+  usecom_(false),
   truncoct_(false),
   useMass_(false),
   triclinic_(OFF)
@@ -25,7 +25,7 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, F
 {
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
-  center_ = actionArgs.hasKey("center");
+  usecom_ = actionArgs.hasKey("center");
   if (actionArgs.hasKey("familiar")) triclinic_ = FAMILIAR;
   if (actionArgs.hasKey("triclinic")) triclinic_ = FORCE;
   anchor_ = actionArgs.GetStringKey("anchor");
@@ -41,7 +41,7 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, F
   else
     mprintf(" box center");
   mprintf(" based on");
-  if (center_)
+  if (usecom_)
     mprintf(" center of mass");
   else
     mprintf(" first atom position");
@@ -187,36 +187,30 @@ Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAd
 
 // Action_AutoImage::action()
 Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double center[3], ucell[9], recip[9];
+  Matrix_3x3 ucell, recip;
   Vec3 fcom;
-  Vec3 bp, bm, BoxVec;
-  Vec3 Trans, framecenter, imagedcenter;
+  Vec3 bp, bm;
+  Vec3 Trans, framecenter, imagedcenter, anchorcenter;
 
   // Center w.r.t. anchor
   currentFrame->Center( anchorMask_, origin_, useMass_);
   // Determine whether anchor center is at box center or coordinate origin
-  if (origin_) {
-    center[0] = 0;
-    center[1] = 0;
-    center[2] = 0;
-  } else {
-    center[0] = currentFrame->BoxX() / 2;
-    center[1] = currentFrame->BoxY() / 2;
-    center[2] = currentFrame->BoxZ() / 2;
-  }
+  if (origin_)
+    anchorcenter.Zero(); 
+  else
+    anchorcenter = currentFrame->BoxCrd().Center(); 
 
   // Setup imaging, and image everything in currentFrame 
   // according to mobileList. 
   if (ortho_) {
-    SetupImageOrtho(*currentFrame, bp, bm, origin_);
-    BoxVec.SetVec( currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
-    ImageOrtho(*currentFrame, bp, bm, center_, useMass_, mobileList_);
+    SetupImageOrtho(currentFrame->BoxCrd(), bp, bm, origin_);
+    ImageOrtho(*currentFrame, bp, bm, usecom_, useMass_, mobileList_);
   } else {
-    currentFrame->BoxToRecip(ucell, recip);
+    currentFrame->BoxCrd().ToRecip(ucell, recip);
     if (truncoct_)
       fcom = SetupImageTruncoct( *currentFrame, NULL, useMass_, origin_ );
     ImageNonortho(*currentFrame, origin_, fcom, ucell, recip, truncoct_,
-                                center_, useMass_, mobileList_);
+                                usecom_, useMass_, mobileList_);
   }  
 
   // For each molecule defined by atom pairs in fixedList, determine if the
@@ -237,15 +231,15 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
     //imagedcenter[1] = framecenter[1];
     //imagedcenter[2] = framecenter[2];
     if (ortho_)
-      Trans = ImageOrtho(framecenter, bp, bm, BoxVec);
+      Trans = ImageOrtho(framecenter, bp, bm, currentFrame->BoxCrd());
     else
       Trans = ImageNonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
     // If molecule was imaged, determine whether imaged position is closer to anchor.
     if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
       imagedcenter = framecenter;
       imagedcenter += Trans;
-      double framedist2 = DIST2_NoImage( center, framecenter.Dptr() );
-      double imageddist2 = DIST2_NoImage( center, imagedcenter.Dptr() );
+      double framedist2 = DIST2_NoImage( anchorcenter, framecenter );
+      double imageddist2 = DIST2_NoImage( anchorcenter, imagedcenter );
       //mprintf("DBG: [%5i] Fixed @%i-%i frame dist2=%lf, imaged dist2=%lf\n", frameNum,
       //        firstAtom+1, lastAtom+1,
       //        framedist2, imageddist2);

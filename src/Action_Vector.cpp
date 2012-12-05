@@ -317,7 +317,7 @@ void Action_Vector::CorrPlane(Frame* currentFrame) {
 }
 
 void Action_Vector::Box(Frame* currentFrame) {
-  Vec_->AddVxyz( currentFrame->BoxLengths() );
+  Vec_->AddVxyz( currentFrame->BoxCrd().Lengths() );
 }
 
 // Action_Vector::action()

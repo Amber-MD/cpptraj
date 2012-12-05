@@ -332,7 +332,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, Frame* currentFram
   avgy = 0;
   avgz = 0;
 
-  Vec3 Box( currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
+  Vec3 Box = currentFrame->BoxCrd().Lengths();
   if ( calcType_ == DEFAULT ) 
   {
     int idx2 = 0;

@@ -217,11 +217,9 @@ int Grid::GridPoint(double xIn, double yIn, double zIn) {
 void Grid::GridFrame(Frame& currentFrame, AtomMask const& mask) {
   Vec3 center;
   switch (mode_) {
-    case BOX: center.SetVec(currentFrame.BoxX() / 2.0,
-                            currentFrame.BoxY() / 2.0,
-                            currentFrame.BoxZ() / 2.0 ); break;
+    case BOX: center = currentFrame.BoxCrd().Center(); break;
     case CENTER: center = currentFrame.VGeometricCenter( centerMask_ ); break;
-    case ORIGIN: center.SetVec(0.0, 0.0, 0.0); break;
+    case ORIGIN: center.Zero(); break;
   }
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
   {

@@ -74,7 +74,7 @@ Atom.o : Atom.cpp Atom.h CpptrajStdio.h NameType.h
 AtomMap.o : AtomMap.cpp Atom.h AtomMap.h AtomMask.h Box.h CpptrajStdio.h Frame.h MapAtom.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h Topology.h Vec3.h
 AtomMask.o : AtomMask.cpp ArgList.h AtomMask.h CpptrajStdio.h MaskToken.h NameType.h
 AxisType.o : AxisType.cpp Atom.h AtomMask.h AxisType.h Box.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h StringRoutines.h Topology.h Vec3.h
-Box.o : Box.cpp Box.h Constants.h CpptrajStdio.h
+Box.o : Box.cpp Box.h Constants.h CpptrajStdio.h Matrix_3x3.h Vec3.h
 BufferedFile.o : BufferedFile.cpp BufferedFile.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h
 ByteRoutines.o : ByteRoutines.cpp
 ClusterList.o : ClusterList.cpp ClusterList.h ClusterNode.h CpptrajFile.h CpptrajStdio.h DataSet.h FileIO.h FileName.h TriangleMatrix.h
@@ -98,8 +98,8 @@ DataSetList.o : DataSetList.cpp ArgList.h Atom.h AtomMask.h Box.h ComplexArray.h
 DataSet_string.o : DataSet_string.cpp CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_string.h FileIO.h FileName.h MpiRoutines.h
 DataSet_Vector.o : DataSet_Vector.cpp ArgList.h ComplexArray.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_Vector.h FileIO.h FileName.h Vec3.h
 DataSet_Matrix.o : DataSet_Matrix.cpp ArgList.h Atom.h AtomMask.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_Matrix.h FileIO.h FileName.h MaskToken.h NameType.h
-DataSet_Modes.o : DataSet_Modes.cpp ArgList.h Atom.h AtomMask.h BufferedFile.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_Matrix.h DataSet_Modes.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
-DistRoutines.o : DistRoutines.cpp DistRoutines.h Vec3.h
+DataSet_Modes.o : DataSet_Modes.cpp ArgList.h Atom.h AtomMask.h Box.h BufferedFile.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_Matrix.h DataSet_Modes.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
+DistRoutines.o : DistRoutines.cpp Box.h DistRoutines.h Matrix_3x3.h Vec3.h
 Dimension.o : Dimension.cpp CpptrajStdio.h Dimension.h
 DS_Math.o : DS_Math.cpp ComplexArray.h CpptrajFile.h CpptrajStdio.h DS_Math.h DataSet.h FileIO.h FileName.h PubFFT.h
 FileIO_Bzip2.o : FileIO_Bzip2.cpp CpptrajStdio.h FileIO.h FileIO_Bzip2.h
@@ -108,12 +108,12 @@ FileIO_Mpi.o : FileIO_Mpi.cpp FileIO.h FileIO_Mpi.h MpiRoutines.h
 FileIO_Std.o : FileIO_Std.cpp FileIO.h FileIO_Std.h
 FileList.o : FileList.cpp FileList.h
 FileName.o : FileName.cpp FileName.h
-Frame.o : Frame.cpp Atom.h AtomMask.h Constants.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
+Frame.o : Frame.cpp Atom.h AtomMask.h Box.h Constants.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
 FrameList.o : FrameList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h DispatchObject.h FileIO.h FileList.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
 Grid.o : Grid.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h Grid.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h PDBfile.h Residue.h Topology.h Vec3.h
 Histogram.o : Histogram.cpp CpptrajFile.h CpptrajStdio.h DataSet.h Dimension.h FileIO.h FileName.h Histogram.h
 Integrate.o : Integrate.cpp CpptrajStdio.h Integrate.h
-ImageRoutines.o : ImageRoutines.cpp Atom.h AtomMask.h DistRoutines.h Frame.h ImageRoutines.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
+ImageRoutines.o : ImageRoutines.cpp Atom.h AtomMask.h Box.h DistRoutines.h Frame.h ImageRoutines.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
 main.o : main.cpp Action.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h Cpptraj.h CpptrajFile.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h DispatchObject.h FileIO.h FileList.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h MpiRoutines.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h TrajinList.h Trajout.h TrajoutList.h Vec3.h
 MapAtom.o : MapAtom.cpp Atom.h MapAtom.h NameType.h
 Matrix_3x3.o : Matrix_3x3.cpp Constants.h CpptrajStdio.h Matrix_3x3.h Vec3.h

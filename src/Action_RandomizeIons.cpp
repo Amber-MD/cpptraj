@@ -146,11 +146,11 @@ Action::RetType Action_RandomizeIons::Setup(Topology* currentParm, Topology** pa
 
 // Action_RandomizeIons::action()
 Action::RetType Action_RandomizeIons::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double ucell[9], recip[9], trans[3];
-  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
+  Matrix_3x3 ucell, recip;
+  Vec3 trans;
 
   if (ImageType()==NONORTHO)
-    currentFrame->BoxToRecip(ucell, recip);
+    currentFrame->BoxCrd().ToRecip(ucell, recip);
   // loop over all solvent molecules and mark those that are too close to the solute
   std::vector<bool>::iterator smask = solvent_.begin();
   //int smolnum = 1; // DEBUG
@@ -163,7 +163,7 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, Frame* currentFrame
       for (AtomMask::const_iterator atom = around_.begin(); atom != around_.end(); ++atom)
       {
         double dist = DIST2( currentFrame->XYZ(*beginatom), currentFrame->XYZ(*atom), 
-                             ImageType(), boxXYZ, ucell, recip);
+                             ImageType(), currentFrame->BoxCrd(), ucell, recip);
         //mprintf("CDBG: @%i to @%i = %lf\n", *beginatom+1,
         //        *atom+1, sqrt(dist));
         if (dist < min_) {
@@ -210,7 +210,7 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, Frame* currentFrame
         {
           if (*ion != *ion2) {
             double dist = DIST2( currentFrame->XYZ(*beginatom), currentFrame->XYZ(*ion2), 
-                                 ImageType(), boxXYZ, ucell, recip);
+                                 ImageType(), currentFrame->BoxCrd(), ucell, recip);
             if (dist < overlap_) {
               *smask = false;
               //mprintf("RANDOMIZEIONS: water %i only %.2f ang from ion @%i\n",
@@ -248,13 +248,9 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, Frame* currentFrame
       const double* ionXYZ = currentFrame->XYZ( *ion );
       int sbegin = solventStart_[ swapMol ];
       const double* watXYZ = currentFrame->XYZ( sbegin );
-      trans[0] = ionXYZ[0] - watXYZ[0];
-      trans[1] = ionXYZ[1] - watXYZ[1];
-      trans[2] = ionXYZ[2] - watXYZ[2];
+      Vec3 trans( ionXYZ[0]-watXYZ[0], ionXYZ[1]-watXYZ[1], ionXYZ[2]-watXYZ[2]);
       currentFrame->Translate( trans, sbegin, solventEnd_[ swapMol ] );
-      trans[0] = -trans[0];
-      trans[1] = -trans[1];
-      trans[2] = -trans[2];
+      trans.Neg();
       currentFrame->Translate( trans, *ion );
     }
 

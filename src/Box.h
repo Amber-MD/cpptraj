@@ -1,6 +1,7 @@
 #ifndef INC_BOX_H
 #define INC_BOX_H
-/// Hold box information.
+#include "Matrix_3x3.h"
+/// Hold box information; 3xlengths, 3xangles.
 class Box {
   public:
     enum BoxType { NOBOX=0, ORTHO, TRUNCOCT, RHOMBIC, NONORTHO }; 
@@ -18,7 +19,7 @@ class Box {
     void SetNoBox();
     void SetMissingInfo(const Box&);
 
-    double ToRecip(double*,double*);
+    double ToRecip(Matrix_3x3&, Matrix_3x3&) const;
 
     void SetX(double xin)     { box_[0] = xin; }
     void SetY(double yin)     { box_[1] = yin; }
@@ -35,6 +36,13 @@ class Box {
     double Beta()  const { return box_[4]; }
     double Gamma() const { return box_[5]; }
     bool HasBox()  const { return (btype_ != NOBOX); }
+    Vec3 Center()  const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
+    Vec3 Lengths() const { return Vec3(box_[0], box_[1], box_[2]);             }
+    // For interfacing with file IO
+    double* Dptr()       { return box_;    }
+
+    double const& operator[](int idx) const { return box_[idx]; }
+    double&       operator[](int idx)       { return box_[idx]; }
   private:
     static const double TRUNCOCTBETA;
     static const char* BoxNames[];

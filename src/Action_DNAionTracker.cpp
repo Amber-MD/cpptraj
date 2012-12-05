@@ -113,13 +113,12 @@ Action::RetType Action_DNAionTracker::Setup(Topology* currentParm, Topology** pa
 }
 
 Action::RetType Action_DNAionTracker::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double ucell[9], recip[9];
+  Matrix_3x3 ucell, recip;
   double d_tmp, dval;
   Vec3 P1, P2, BASE;
-  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
   // Setup imaging info if necessary
   if (ImageType()==NONORTHO) 
-    currentFrame->BoxToRecip(ucell,recip);
+    currentFrame->BoxCrd().ToRecip(ucell,recip);
 
   // Get center for P1, P2, and Base
   if (useMass_) {
@@ -133,14 +132,15 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, Frame* currentFrame
   }
  
   // Calculate P -- P distance and centroid
-  double d_pp = DIST2(P1.Dptr(), P2.Dptr(), ImageType(), boxXYZ, ucell, recip);
+  double d_pp = DIST2(P1.Dptr(), P2.Dptr(), ImageType(), currentFrame->BoxCrd(), ucell, recip);
   Vec3 pp_centroid = (P1 + P2) / 2.0;
 
   // Cutoff^2
   double d_cut = d_pp*0.25 + (poffset_*poffset_); // TODO: precalc offset^2
 
   // Calculate P -- base centroid to median point
-  double d_pbase = DIST2(pp_centroid.Dptr(), BASE.Dptr(), ImageType(), boxXYZ, ucell, recip);
+  double d_pbase = DIST2(pp_centroid.Dptr(), BASE.Dptr(), ImageType(), currentFrame->BoxCrd(), 
+                         ucell, recip);
 
   //double d_min = DBL_MAX;
   if (bintype_ == SHORTEST)
@@ -151,9 +151,12 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, Frame* currentFrame
   for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
   {
     const double* ionxyz = currentFrame->XYZ(*ion);
-    double d_p1ion =   DIST2(P1.Dptr(),   ionxyz, ImageType(), boxXYZ, ucell, recip);
-    double d_p2ion =   DIST2(P2.Dptr(),   ionxyz, ImageType(), boxXYZ, ucell, recip);
-    double d_baseion = DIST2(BASE.Dptr(), ionxyz, ImageType(), boxXYZ, ucell, recip);
+    double d_p1ion =   DIST2(P1.Dptr(),   ionxyz, ImageType(), currentFrame->BoxCrd(), 
+                             ucell, recip);
+    double d_p2ion =   DIST2(P2.Dptr(),   ionxyz, ImageType(), currentFrame->BoxCrd(), 
+                             ucell, recip);
+    double d_baseion = DIST2(BASE.Dptr(), ionxyz, ImageType(), currentFrame->BoxCrd(), 
+                             ucell, recip);
     //mprintf("DEBUG: ion atom %i to P1 is %f\n", *ion+1, sqrt(d_p1ion));
     //mprintf("DEBUG: ion atom %i to P2 is %f\n", *ion+1, sqrt(d_p2ion));
     //mprintf("DEBUG: ion atom %i to base is %f\n", *ion+1, sqrt(d_baseion));

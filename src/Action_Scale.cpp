@@ -39,6 +39,6 @@ Action::RetType Action_Scale::Setup(Topology* currentParm, Topology** parmAddres
 
 // Action_Scale::action()
 Action::RetType Action_Scale::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  currentFrame->SCALE(mask_, sx_, sy_, sz_);
+  currentFrame->Scale(mask_, sx_, sy_, sz_);
   return Action::OK;
 }

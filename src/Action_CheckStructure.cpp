@@ -167,14 +167,12 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
 
 // Action_CheckStructure::CheckFrame()
 int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
-  double ucell[9], recip[9];
+  Matrix_3x3 ucell, recip;
   int Nproblems = 0;
-  // Set box info, needed if imaging enabled. 
-  Vec3 boxXYZ = currentFrame.BoxLengths();
   // Start bond list 
   std::vector<bond_list>::iterator currentBond = bondL_.begin();
   // Get imaging info for non-orthogonal box
-  if (ImageType()==NONORTHO) currentFrame.BoxToRecip(ucell,recip);
+  if (ImageType()==NONORTHO) currentFrame.BoxCrd().ToRecip(ucell, recip);
   // Begin loop
   int lastidx = Mask1_.Nselected() - 1;
   for (int maskidx1 = 0; maskidx1 < lastidx; maskidx1++) {
@@ -183,7 +181,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
       int atom2 = Mask1_[maskidx2];
       // Get distance^2
       double D2 = DIST2(currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
-                        ImageType(), boxXYZ, ucell, recip);
+                        ImageType(), currentFrame.BoxCrd(), ucell, recip);
       if ( (atom1==(*currentBond).atom1) && (atom2==(*currentBond).atom2) ) {
         // Atoms bonded, check bond length.
         // req has been precalced to (req + bondoffset)^2

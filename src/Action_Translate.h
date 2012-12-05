@@ -9,7 +9,7 @@ class Action_Translate : public Action {
     static void Help();
 
   private:
-    double Trans_[3];
+    Vec3 Trans_;
     AtomMask mask_;
 
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,

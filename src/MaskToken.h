@@ -1,6 +1,5 @@
 #ifndef INC_MASKTOKEN_H
 #define INC_MASKTOKEN_H
-#include <string>
 #include "NameType.h"
 /// Hold information use in mask selection. 
 class MaskToken {

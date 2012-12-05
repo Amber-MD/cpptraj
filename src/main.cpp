@@ -6,8 +6,8 @@
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
 #ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V13.9.5b"
-#define CPPTRAJ_INTERNAL_VERSION "V3.7.5b"
+#define CPPTRAJ_VERSION_STRING "V13.9.6b"
+#define CPPTRAJ_INTERNAL_VERSION "V3.7.6b"
 #endif
 
 // ----------========== CPPTRAJ MAIN ROUTINE ==========----------
@@ -38,4 +38,3 @@ int main(int argc, char **argv) {
   printf("\n");
   return 0;
 }
-

@@ -113,10 +113,9 @@ Action::RetType Action_Watershell::Setup(Topology* currentParm, Topology** parmA
 
 // Action_Watershell::action()
 Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double ucell[9], recip[9];
-  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
+  Matrix_3x3 ucell, recip;
  
-  if (ImageType()==NONORTHO) currentFrame->BoxToRecip(ucell,recip);
+  if (ImageType()==NONORTHO) currentFrame->BoxCrd().ToRecip(ucell,recip);
 
   // Loop over solute atoms
   for (AtomMask::const_iterator solute_at = soluteMask_.begin();
@@ -131,7 +130,7 @@ Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, F
       // If residue is not yet marked as 1st shell, calc distance
       if ( activeResidues_[currentRes] < 2 ) {
         double dist = DIST2(currentFrame->XYZ(*solute_at), currentFrame->XYZ(*solvent_at), 
-                            ImageType(), boxXYZ, ucell, recip );
+                            ImageType(), currentFrame->BoxCrd(), ucell, recip );
         // Less than upper, 2nd shell
         if (dist < upperCutoff_) {
           activeResidues_[currentRes] = 1;
@@ -163,4 +162,3 @@ Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, F
 
   return Action::OK;
 }
-

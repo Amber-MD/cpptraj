@@ -94,7 +94,7 @@ Action::RetType Action_Unwrap::Setup(Topology* currentParm, Topology** parmAddre
 }
 
 Action::RetType Action_Unwrap::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double ucell[9], recip[9];
+  Matrix_3x3 ucell, recip;
   // Set reference structure if not already set
   if (RefFrame_.empty()) {
     RefFrame_ = *currentFrame;
@@ -104,7 +104,7 @@ Action::RetType Action_Unwrap::DoAction(int frameNum, Frame* currentFrame, Frame
   if (orthogonal_)
     UnwrapOrtho( *currentFrame, RefFrame_, mask_ );
   else {
-    currentFrame->BoxToRecip( ucell, recip );
+    currentFrame->BoxCrd().ToRecip( ucell, recip );
     UnwrapNonortho( *currentFrame, RefFrame_, mask_, ucell, recip );
   }
 

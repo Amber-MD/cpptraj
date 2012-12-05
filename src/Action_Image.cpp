@@ -191,14 +191,14 @@ Action::RetType Action_Image::DoAction(int frameNum, Frame* currentFrame, Frame*
   // Ortho
   Vec3 bp, bm;
   // Nonortho
-  double ucell[9], recip[9];
+  Matrix_3x3 ucell, recip;
   Vec3 fcom;
   
   if (ortho_) {
-    SetupImageOrtho(*currentFrame, bp, bm, origin_);
+    SetupImageOrtho(currentFrame->BoxCrd(), bp, bm, origin_);
     ImageOrtho(*currentFrame, bp, bm, center_, useMass_, imageList_);
   } else {
-    currentFrame->BoxToRecip( ucell, recip );
+    currentFrame->BoxCrd().ToRecip( ucell, recip );
     if (truncoct_)
       fcom = SetupImageTruncoct( *currentFrame, ComMask_, useMass_, origin_ );
     ImageNonortho( *currentFrame, origin_, fcom, ucell, recip, truncoct_,

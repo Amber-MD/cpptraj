@@ -430,7 +430,7 @@ int Action_Hbond::AtomsAreHbonded(Frame* currentFrame, int frameNum,
 Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // accept ... H-D
   int D, H;
-  double dist, dist2, angle;//, ucell[9], recip[9];
+  double dist, dist2, angle;
   HBmapType::iterator it;
   HbondType HB;
 
@@ -446,7 +446,6 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
     {
       if (*accept == D) continue;
       dist2 = DIST2_NoImage(currentFrame->XYZ(*accept), currentFrame->XYZ(D));
-      //dist2 = currentFrame->DIST2(*accept, D, (int)P->boxType, ucell, recip);
       if (dist2 > dcut2_) continue;
       angle = CalcAngle( currentFrame->XYZ(*accept), 
                          currentFrame->XYZ(H),
@@ -699,4 +698,3 @@ void Action_Hbond::Print() {
     outfile.CloseFile();
   } 
 }
-

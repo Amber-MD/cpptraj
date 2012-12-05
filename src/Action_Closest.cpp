@@ -242,20 +242,21 @@ Action::RetType Action_Closest::Setup(Topology* currentParm, Topology** parmAddr
   */
 Action::RetType Action_Closest::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   int solventMol; 
-  double Dist, maxD, ucell[9], recip[9];
+  double Dist, maxD;
+  Matrix_3x3 ucell, recip;
   AtomMask::const_iterator solute_atom, solvent_atom;
 
   if (ImagingEnabled()) {
-    currentFrame->BoxToRecip(ucell, recip);
+    currentFrame->BoxCrd().ToRecip(ucell, recip);
     // Calculate max possible imaged distance
-    maxD = currentFrame->BoxX() + currentFrame->BoxY() + currentFrame->BoxZ();
+    maxD = currentFrame->BoxCrd().BoxX() + currentFrame->BoxCrd().BoxY() + 
+           currentFrame->BoxCrd().BoxZ();
     maxD *= maxD;
   } else {
     // If not imaging, set max distance to an arbitrarily large number
     maxD = DBL_MAX;
   }
 
-  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
   // Loop over all solvent molecules in original frame
   // DEBUG
   //mprintf("Closest: Begin parallel loop for %i\n",frameNum);
@@ -280,7 +281,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, Frame* currentFrame, Fram
     {
       Dist = DIST2(currentFrame->XYZ(*solute_atom),
                    currentFrame->XYZ(*solvent_atom), ImageType(), 
-                   boxXYZ, ucell, recip);
+                   currentFrame->BoxCrd(), ucell, recip);
       if (Dist < SolventMols_[solventMol].D) 
         SolventMols_[solventMol].D = Dist;
       //fprintf(stdout,"D atom %i %i = %lf image %i\n",*solute_atom,*solvent_atom,minD,imageType);
@@ -291,7 +292,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, Frame* currentFrame, Fram
         {
           Dist = DIST2(currentFrame->XYZ(*solute_atom),
                        currentFrame->XYZ(*solvent_atom), ImageType(), 
-                       boxXYZ, ucell, recip);
+                       currentFrame->BoxCrd(), ucell, recip);
           if (Dist < SolventMols_[solventMol].D) 
             SolventMols_[solventMol].D = Dist;
         }

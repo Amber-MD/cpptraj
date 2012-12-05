@@ -36,6 +36,6 @@ class Action_Diffusion : public Action {
     CpptrajFile outputz_;
     CpptrajFile outputr_;
     CpptrajFile outputa_;
-    double boxcenter_[3]; ///< Hold center of box each frame
+    Vec3 boxcenter_; ///< Hold center of box each frame
 };
 #endif

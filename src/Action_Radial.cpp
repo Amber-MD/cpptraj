@@ -219,11 +219,11 @@ Action::RetType Action_Radial::Setup(Topology* currentParm, Topology** parmAddre
   */
 // NOTE: Because of maximum2 not essential to check idx>numBins?
 Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double D, ucell[9], recip[9];
+  double D;
+  Matrix_3x3 ucell, recip;
   int atom1, atom2;
   int nmask1, nmask2;
   int idx, mydistances;
-  Vec3 boxXYZ(currentFrame->BoxX(), currentFrame->BoxY(), currentFrame->BoxZ() );
 # ifdef _OPENMP
   int mythread;
 # endif
@@ -231,7 +231,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
   // Set imaging information and store volume if specified
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
   if (ImagingEnabled()) {
-    D = currentFrame->BoxToRecip(ucell,recip);
+    D = currentFrame->BoxCrd().ToRecip(ucell,recip);
     if (useVolume_)  volume_ += D;
   }
 
@@ -249,7 +249,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = Mask2_[nmask2];
       D = DIST2(coord_center.Dptr(), currentFrame->XYZ(atom2), ImageType(),
-                boxXYZ, ucell, recip);
+                currentFrame->BoxCrd(), ucell, recip);
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);
@@ -284,7 +284,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
         atom2 = InnerMask_[nmask2];
         if (atom1 != atom2) {
           D = DIST2( currentFrame->XYZ(atom1), currentFrame->XYZ(atom2),
-                     ImageType(), boxXYZ, ucell, recip);
+                     ImageType(), currentFrame->BoxCrd(), ucell, recip);
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);

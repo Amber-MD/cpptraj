@@ -22,7 +22,7 @@ class Action_AutoImage : public Action {
 
     bool origin_;         ///< If true imaging occurs w.r.t. coordinate origin.
     bool ortho_;          ///< If true imaging is orthogonal.
-    bool center_;         ///< If true imaging of mobile region uses molecule center.
+    bool usecom_;         ///< If true imaging of mobile region uses molecule center.
     bool truncoct_;
     bool useMass_;
     enum TriclinicArg {OFF, FORCE, FAMILIAR};

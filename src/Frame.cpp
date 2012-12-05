@@ -5,7 +5,6 @@
 #include "CpptrajStdio.h"
 
 const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
-const size_t Frame::BOXSIZE_ = 6 * sizeof(double);
 
 // ---------- CONSTRUCTION/DESTRUCTION/ASSIGNMENT ------------------------------
 /// CONSTRUCTOR
@@ -16,9 +15,7 @@ Frame::Frame( ) :
   T_(0.0),
   X_(NULL),
   V_(NULL)
-{
-  memset(box_, 0, BOXSIZE_);
-}
+{}
 
 /// DESTRUCTOR
 // Defined since this class can be inherited.
@@ -36,27 +33,9 @@ Frame::Frame(int natomIn) :
   X_(NULL),
   V_(NULL)
 {
-  memset(box_, 0, BOXSIZE_);
   if (ncoord_ > 0)
     X_ = new double[ ncoord_ ];
 }
-
-#ifdef NASTRUCTDEBUG
-Frame::Frame(int natomIn, const double* Xin) :
-  natom_(natomIn),
-  maxnatom_(natomIn),
-  ncoord_(natomIn*3),
-  T_(0.0),
-  X_(NULL),
-  V_(NULL)
-{
-  memset(box_, 0, BOXSIZE_);
-  if (ncoord_ > 0) {
-    X_ = new double[ ncoord_ ];
-    memcpy(X_, Xin, natom_ * COORDSIZE_);
-  }
-}
-#endif
 
 // CONSTRUCTOR
 Frame::Frame(std::vector<Atom> const& atoms) :
@@ -67,7 +46,6 @@ Frame::Frame(std::vector<Atom> const& atoms) :
   X_(NULL),
   V_(NULL)
 {
-  memset(box_, 0, BOXSIZE_);
   if (ncoord_ > 0) {
     X_ = new double[ ncoord_ ];
     Mass_.reserve( natom_ );
@@ -81,6 +59,7 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   natom_( maskIn.Nselected() ),
   maxnatom_(natom_),
   ncoord_(natom_*3),
+  box_(frameIn.box_),
   T_( frameIn.T_ ),
   X_(NULL),
   V_(NULL)
@@ -120,8 +99,6 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
       }
     }
   }
-  // Copy box coords
-  memcpy(box_, frameIn.box_, BOXSIZE_);
 }
 
 // COPY CONSTRUCTOR
@@ -129,13 +106,12 @@ Frame::Frame(const Frame& rhs) :
   natom_(rhs.natom_),
   maxnatom_(rhs.maxnatom_),
   ncoord_(rhs.ncoord_),
+  box_(rhs.box_),
   T_(rhs.T_),
   X_(NULL),
   V_(NULL),
   Mass_(rhs.Mass_) 
 {
-  // Copy box coords
-  memcpy(box_, rhs.box_, BOXSIZE_);
   // Copy coords/velo; allocate for maxnatom but copy natom
   int maxncoord = maxnatom_ * 3;
   if (rhs.X_!=NULL) {
@@ -378,29 +354,6 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
 }
 
 // ---------- FRAME SETUP OF COORDINATES ---------------------------------------
-// Frame::SetCoordinatesByMask()
-/** Copy raw double array into frame by mask. */
-void Frame::SetCoordinatesByMask(const double* Xin, AtomMask const& maskIn) {
-  // Copy only coords from Xin according to maskIn
-  if (Xin==NULL) {
-    mprinterr("Internal Error: SetCoordinatesByMask called with NULL pointer.\n");
-    return;
-  }
-  if (maskIn.Nselected() > maxnatom_) {
-    mprinterr("Internal Error: SetCoordinatesByMask: Selected=%i, maxnatom = %i\n",
-              maskIn.Nselected(), maxnatom_);
-    return;
-  }
-  natom_ = maskIn.Nselected();
-  ncoord_ = natom_ * 3;
-  double* newXptr = X_;
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-  {
-    memcpy( newXptr, Xin + ((*atom) * 3), COORDSIZE_);
-    newXptr += 3;
-  }
-}
-
 // Frame::SetCoordinates()
 /** Copy only coordinates, box, and T from input frame to this frame based
   * on selected atoms in mask.
@@ -413,7 +366,7 @@ void Frame::SetCoordinates(Frame const& frameIn, AtomMask const& maskIn) {
   }
   natom_ = maskIn.Nselected();
   ncoord_ = natom_ * 3;
-  memcpy(box_, frameIn.box_, BOXSIZE_);
+  box_ = frameIn.box_;
   T_ = frameIn.T_;
   double* newXptr = X_;
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
@@ -450,7 +403,7 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   natom_ = maskIn.Nselected();
   ncoord_ = natom_ * 3;
   // Copy T/box
-  memcpy(box_, frameIn.box_, BOXSIZE_);
+  box_ = frameIn.box_;
   T_ = frameIn.T_;
   double* newXptr = X_;
   Darray::iterator mass = Mass_.begin();
@@ -677,8 +630,8 @@ void Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
 }
 
 // ---------- COORDINATE MANIPULATION ------------------------------------------
-// Frame::SCALE()
-void Frame::SCALE(AtomMask const& maskIn, double sx, double sy, double sz) {
+// Frame::Scale()
+void Frame::Scale(AtomMask const& maskIn, double sx, double sy, double sz) {
   for (AtomMask::const_iterator atom = maskIn.begin();
                                 atom != maskIn.end(); atom++)
   {
@@ -743,53 +696,6 @@ void Frame::ShiftToGeometricCenter( ) {
 }
 
 // ---------- COORDINATE CALCULATION ------------------------------------------- 
-// Frame::BoxToRecip()
-/** Use box coordinates to calculate reciprocal space conversions for use
-  * with imaging routines. Return cell volume.
-  */
-// NOTE: Move to separate routine in DistRoutines?
-double Frame::BoxToRecip(double *ucell, double *recip) const {
-  double u12x,u12y,u12z;
-  double u23x,u23y,u23z;
-  double u31x,u31y,u31z;
-  double volume,onevolume;
-
-  ucell[0] = box_[0]; // ucell(1,1)
-  ucell[1] = 0.0;    // ucell(2,1)
-  ucell[2] = 0.0;    // ucell(3,1)
-  ucell[3] = box_[1]*cos(DEGRAD*box_[5]); // ucell(1,2)
-  ucell[4] = box_[1]*sin(DEGRAD*box_[5]); // ucell(2,2)
-  ucell[5] = 0.0;                       // ucell(3,2)
-  ucell[6] = box_[2]*cos(DEGRAD*box_[4]);                                         // ucell(1,3)
-  ucell[7] = (box_[1]*box_[2]*cos(DEGRAD*box_[3]) - ucell[6]*ucell[3]) / ucell[4]; // ucell(2,3)
-  ucell[8] = sqrt(box_[2]*box_[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);       // ucell(3,3)
-
-  // Get reciprocal vectors
-  u23x = ucell[4]*ucell[8] - ucell[5]*ucell[7];
-  u23y = ucell[5]*ucell[6] - ucell[3]*ucell[8];
-  u23z = ucell[3]*ucell[7] - ucell[4]*ucell[6];
-  u31x = ucell[7]*ucell[2] - ucell[8]*ucell[1];
-  u31y = ucell[8]*ucell[0] - ucell[6]*ucell[2];
-  u31z = ucell[6]*ucell[1] - ucell[7]*ucell[0];
-  u12x = ucell[1]*ucell[5] - ucell[2]*ucell[4];
-  u12y = ucell[2]*ucell[3] - ucell[0]*ucell[5];
-  u12z = ucell[0]*ucell[4] - ucell[1]*ucell[3];
-  volume=ucell[0]*u23x + ucell[1]*u23y + ucell[2]*u23z;
-  onevolume = 1.0 / volume;
-
-  recip[0] = u23x*onevolume;
-  recip[1] = u23y*onevolume;
-  recip[2] = u23z*onevolume;
-  recip[3] = u31x*onevolume;
-  recip[4] = u31y*onevolume;
-  recip[5] = u31z*onevolume;
-  recip[6] = u12x*onevolume;
-  recip[7] = u12y*onevolume;
-  recip[8] = u12z*onevolume;
-
-  return volume;
-}
-
 // Frame::RMSD()
 double Frame::RMSD( Frame& Ref, bool useMassIn ) {
   Matrix_3x3 U;

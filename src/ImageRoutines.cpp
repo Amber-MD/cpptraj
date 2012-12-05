@@ -20,7 +20,7 @@ Vec3 SetupImageTruncoct( Frame& frameIn, AtomMask* ComMask, bool useMass, bool o
       return frameIn.VGeometricCenter( *ComMask );
   } else if (!origin) {
     // Use box center
-    return Vec3( frameIn.BoxX() / 2, frameIn.BoxY() / 2, frameIn.BoxZ() / 2 );
+    return frameIn.BoxCrd().Center(); 
   }
   //fprintf(stdout,"DEBUG: fcom = %lf %lf %lf\n",fcom[0],fcom[1],fcom[2]);
   return Vec3(0.0, 0.0, 0.0); // Default is origin {0,0,0}
@@ -46,9 +46,9 @@ void ImageNonortho(Frame& frameIn, bool origin, Vec3 const& fcom,
   double min = -1.0;
 
   if (truncoct)
-    min = 100.0 * (frameIn.BoxX()*frameIn.BoxX()+
-                   frameIn.BoxY()*frameIn.BoxY()+
-                   frameIn.BoxZ()*frameIn.BoxZ());
+    min = 100.0 * (frameIn.BoxCrd().BoxX()*frameIn.BoxCrd().BoxX()+
+                   frameIn.BoxCrd().BoxY()*frameIn.BoxCrd().BoxY()+
+                   frameIn.BoxCrd().BoxZ()*frameIn.BoxCrd().BoxZ());
 
   // Loop over atom pairs
   for (std::vector<int>::const_iterator atom = AtomPairs.begin();
@@ -110,7 +110,7 @@ Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct,
       f2 += 0.5;
     }
 
-    DIST2_ImageNonOrthoRecip(TransCoord.Dptr(), f2.Dptr(), min, ixyz, ucell.Dptr());
+    DIST2_ImageNonOrthoRecip(TransCoord, f2, min, ixyz, ucell);
     if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
       boxTransOut += ucell.TransposeMult( ixyz );
       //if (debug > 2)
@@ -127,17 +127,13 @@ Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct,
   * \param bm Output: Box - boundary.
   * \param origin If true, image w.r.t. coordinate origin, otherwise box center.
   */
-void SetupImageOrtho(Frame& frameIn, Vec3& bp, Vec3& bm, bool origin) {
+void SetupImageOrtho(Box const& boxIn, Vec3& bp, Vec3& bm, bool origin) {
   // Set up boundary information for orthorhombic cell
   if (origin) {
-    bp.SetVec( frameIn.BoxX() / 2,
-               frameIn.BoxY() / 2,
-               frameIn.BoxZ() / 2 );
+    bp = boxIn.Center();
     bm.SetVec( -bp[0], -bp[1], -bp[2] );
   } else {
-    bp.SetVec( frameIn.BoxX(),
-               frameIn.BoxY(),
-               frameIn.BoxZ()  );
+    bp.SetVec( boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ()  );
     bm.Zero();
   }
 }
@@ -153,7 +149,6 @@ void ImageOrtho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, boo
                 std::vector<int> const& AtomPairs)
 {
   Vec3 Coord;
-  Vec3 BoxVec( frameIn.BoxX(), frameIn.BoxY(), frameIn.BoxZ() );
 
   // Loop over atom pairs
   for (std::vector<int>::const_iterator atom = AtomPairs.begin();
@@ -175,7 +170,7 @@ void ImageOrtho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, boo
       Coord = frameIn.XYZ( firstAtom );
 
     // boxTrans will hold calculated translation needed to move atoms back into box
-    Vec3 boxTrans = ImageOrtho(Coord, bp, bm, BoxVec);
+    Vec3 boxTrans = ImageOrtho(Coord, bp, bm, frameIn.BoxCrd());
 
     // Translate atoms according to Coord
     frameIn.Translate(boxTrans, firstAtom, lastAtom);
@@ -189,7 +184,7 @@ void ImageOrtho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, boo
   * \param BoxVec box lengths.
   * \return Vector containing image translation
   */
-Vec3 ImageOrtho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Vec3 const& BoxVec)
+Vec3 ImageOrtho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& BoxVec)
 {
   Vec3 trans;
   // Determine how far Coord is out of box
@@ -262,9 +257,9 @@ void UnwrapNonortho( Frame& frameIn, Frame& ref, AtomMask const& mask,
 
 // UnwrapOrtho()
 void UnwrapOrtho( Frame& frameIn, Frame& ref, AtomMask const& mask ) {
-  double boxX = frameIn.BoxX();
-  double boxY = frameIn.BoxY();
-  double boxZ = frameIn.BoxZ();
+  double boxX = frameIn.BoxCrd().BoxX();
+  double boxY = frameIn.BoxCrd().BoxY();
+  double boxZ = frameIn.BoxCrd().BoxZ();
   for (AtomMask::const_iterator atom = mask.begin();
                                 atom != mask.end(); ++atom)
   {
@@ -278,4 +273,3 @@ void UnwrapOrtho( Frame& frameIn, Frame& ref, AtomMask const& mask ) {
     ref[i3+2] = frameIn[i3+2] = frameIn[i3+2] - floor( dz / boxZ + 0.5 ) * boxZ;
   }
 }
-

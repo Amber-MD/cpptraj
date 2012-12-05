@@ -6,20 +6,12 @@
   * the current non-orthorhombic box, return the shortest imaged distance^2 
   * between the coordinates.
   */
-double DIST2_ImageNonOrtho(const double* a1, const double* a2, 
-                           const double* ucell, const double* recip) 
+double DIST2_ImageNonOrtho(Vec3 const& a1, Vec3 const& a2, 
+                           Matrix_3x3 const& ucell, Matrix_3x3 const& recip) 
 { 
-// double closest2
-  double f[3], f2[3];
   int ixyz[3];
-
-  f[0] = a2[0]*recip[0] + a2[1]*recip[1] + a2[2]*recip[2];
-  f[1] = a2[0]*recip[3] + a2[1]*recip[4] + a2[2]*recip[5];
-  f[2] = a2[0]*recip[6] + a2[1]*recip[7] + a2[2]*recip[8];
-
-  f2[0] = a1[0]*recip[0] + a1[1]*recip[1] + a1[2]*recip[2];
-  f2[1] = a1[0]*recip[3] + a1[1]*recip[4] + a1[2]*recip[5];
-  f2[2] = a1[0]*recip[6] + a1[1]*recip[7] + a1[2]*recip[8];
+  Vec3 f = recip * a2;
+  Vec3 f2 = recip * a1;
 
   return DIST2_ImageNonOrthoRecip(f, f2, -1.0, ixyz, ucell);
 }
@@ -31,8 +23,8 @@ double DIST2_ImageNonOrtho(const double* a1, const double* a2,
   * The integer coefficients describing the closest reflection in reciprocal
   * space will be placed in ixyz.
   */
-double DIST2_ImageNonOrthoRecip(const double* f, const double* f2, double minIn, 
-                                int *ixyz, const double* ucell) 
+double DIST2_ImageNonOrthoRecip(Vec3 const& f, Vec3 const& f2, double minIn, 
+                                int* ixyz, Matrix_3x3 const& ucell) 
 { 
   //double closest2
   double fx, fy, fz, f2x, f2y, f2z, X_factor, Y_factor, Z_factor;
@@ -285,12 +277,10 @@ double DIST2_ImageNonOrthoRecip(const double* f, const double* f2, double minIn,
 /** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
   * and a2.
   */
-double DIST2_ImageOrtho(const double* a1, const double* a2, Vec3 const& box) {
-  double x,y,z,D;
-
-  x = a1[0] - a2[0];
-  y = a1[1] - a2[1];
-  z = a1[2] - a2[2];
+double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  double x = a1[0] - a2[0];
+  double y = a1[1] - a2[1];
+  double z = a1[2] - a2[2];
 
   // Get rid of sign info
   if (x<0) x=-x;
@@ -303,7 +293,7 @@ double DIST2_ImageOrtho(const double* a1, const double* a2, Vec3 const& box) {
   while (z > box[2]) z = z - box[2];
 
   // Find shortest distance in periodic reference
-  D = box[0] - x;
+  double D = box[0] - x;
   if (D < x) x = D;
   D = box[1] - y;
   if (D < y) y = D;  
@@ -324,33 +314,22 @@ double DIST2_ImageOrtho(const double* a1, const double* a2, Vec3 const& box) {
 /** Return distance^2 between coordinates in a1 and a2.
   */
 double DIST2_NoImage(const double* a1, const double* a2) {
-  double x,y,z,D;
-
-  x = a1[0] - a2[0];
-  y = a1[1] - a2[1];
-  z = a1[2] - a2[2];
-
-  x=x*x;
-  y=y*y;
-  z=z*z;
-
-  //D=sqrt(x + y + z);
-  D = x + y + z;
-
-  //fprintf(stdout,"Mask1=%8.3lf %8.3lf %8.3lf Mask2=%8.3lf %8.3lf %8.3lf D=%8.3lf\n",
+  double x = a1[0] - a2[0];
+  double y = a1[1] - a2[1];
+  double z = a1[2] - a2[2];
+  //double D = x*x + y*y + z*z;
+  //fprintf(stdout,"Mask1=%8.3f %8.3f %8.3f Mask2=%8.3f %8.3f %8.3f D=%8.3f\n",
   //        a1[0],a1[1],a1[2],a2[0],a2[1],a2[2],D);
-
-  return D;
+  return (x*x + y*y + z*z);
 }
 
 double DIST2_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
-  Vec3 vec = a1;
-  vec -= a2;
+  Vec3 vec = a1 - a2;
   return vec.Magnitude2();
 }
 
 double DIST2(const double* a1, const double* a2, ImagingType itype,
-             Vec3 const& box, const double* ucell, const double* recip)
+             Box const& box, Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
 {
   if (itype==NOIMAGE) 
     return DIST2_NoImage( a1, a2 );
@@ -359,4 +338,3 @@ double DIST2(const double* a1, const double* a2, ImagingType itype,
   else // NONORTHO
     return DIST2_ImageNonOrtho( a1, a2, ucell, recip );
 }
-

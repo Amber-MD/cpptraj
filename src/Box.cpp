@@ -166,7 +166,7 @@ void Box::SetBoxType() {
 /** Use box coordinates to calculate reciprocal space conversions for use
   * with imaging routines. Return cell volume.
   */
-double Box::ToRecip(double *ucell, double *recip) {
+double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   double u12x,u12y,u12z;
   double u23x,u23y,u23z;
   double u31x,u31y,u31z;

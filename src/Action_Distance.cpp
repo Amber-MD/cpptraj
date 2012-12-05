@@ -83,7 +83,8 @@ Action::RetType Action_Distance::Setup(Topology* currentParm, Topology** parmAdd
 
 // Action_Distance::action()
 Action::RetType Action_Distance::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double ucell[9], recip[9], Dist;
+  double Dist;
+  Matrix_3x3 ucell, recip;
   Vec3 a1, a2;
 
   if (useMass_) {
@@ -96,16 +97,14 @@ Action::RetType Action_Distance::DoAction(int frameNum, Frame* currentFrame, Fra
 
   switch ( ImageType() ) {
     case NONORTHO:
-      currentFrame->BoxToRecip(ucell,recip);
-      Dist = DIST2_ImageNonOrtho(a1.Dptr(), a2.Dptr(), ucell, recip);
+      currentFrame->BoxCrd().ToRecip(ucell, recip);
+      Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);
       break;
     case ORTHO:
-      Dist = DIST2_ImageOrtho(a1.Dptr(), a2.Dptr(), Vec3( currentFrame->BoxX(),
-                                                          currentFrame->BoxY(),
-                                                          currentFrame->BoxZ() ));
+      Dist = DIST2_ImageOrtho(a1, a2, currentFrame->BoxCrd());
       break;
     case NOIMAGE:
-      Dist = DIST2_NoImage(a1.Dptr(), a2.Dptr());
+      Dist = DIST2_NoImage(a1, a2);
       break;
   }
   Dist = sqrt(Dist);
@@ -116,4 +115,3 @@ Action::RetType Action_Distance::DoAction(int frameNum, Frame* currentFrame, Fra
   
   return Action::OK;
 } 
-

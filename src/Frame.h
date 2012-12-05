@@ -2,8 +2,7 @@
 #define INC_FRAME_H
 #include "Atom.h"
 #include "AtomMask.h"
-#include "Vec3.h"
-#include "Matrix_3x3.h"
+#include "Box.h"
 // Class: Frame
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,
@@ -37,16 +36,13 @@ class Frame {
     ~Frame();
     /// Set up empty frame for given # of atoms.
     Frame(int);
-#ifdef NASTRUCTDEBUG
-    Frame(int,const double*);
-#endif
     /// Set up to be the size of given atom array (including masses).
     Frame(std::vector<Atom> const&);
     /// Copy input frame according to input mask.
     Frame(Frame const&, AtomMask const&);
     Frame(const Frame&);
     Frame& operator=(Frame);
-    // Convert to/from arrays
+    // Convert to/from CRDtype arrays
     void SetFromCRD(CRDtype const&, int);
     void SetFromCRD(CRDtype const&, int, AtomMask const&);
     CRDtype ConvertToCRD(int) const;
@@ -55,32 +51,28 @@ class Frame {
     void Info(const char*);
     void AddXYZ(const double *);
     void AddVec3(Vec3 const&);
-    bool empty()           const { return (natom_ == 0);        }
-    bool HasVelocity()           { return (V_ != NULL);         }
-    int Natom()                  { return natom_;               }
-    int size()                   { return ncoord_;              }
-    double Temperature()         { return T_;                   }
-    const double* XYZ(int atnum) const { return X_ + (atnum*3);       } 
-    const double* CRD(int idx)   { return X_ + idx;             } 
-    double& operator[](int idx)  { return X_[idx];              } // TODO: Make const?
-    double Mass(int atnum)       { return Mass_[atnum];         }
-    // Box routines
-    double BoxX() { return box_[0]; }
-    double BoxY() { return box_[1]; }
-    double BoxZ() { return box_[2]; }
-    Vec3 BoxLengths() const { return Vec3( box_[0], box_[1], box_[2] ); }
+    double& operator[](int idx)        { return X_[idx];        } // TODO: Make const?
+    const double& operator[](int idx) const { return X_[idx];   }
+    bool empty()                 const { return (natom_ == 0);  }
+    bool HasVelocity()           const { return (V_ != NULL);   }
+    int Natom()                  const { return natom_;         }
+    int size()                   const { return ncoord_;        }
+    double Temperature()         const { return T_;             }
+    const double* XYZ(int atnum) const { return X_ + (atnum*3); } 
+    const double* CRD(int idx)   const { return X_ + idx;       } 
+    double Mass(int atnum)       const { return Mass_[atnum];   }
+    const Box& BoxCrd()          const { return box_;           }
     // Routines for accessing internal data pointers
-    inline double* xAddress() { return X_;   }
-    inline double* vAddress() { return V_;   }
-    inline double* bAddress() { return box_; }
-    inline double* tAddress() { return &T_;  }
+    inline double* xAddress() { return X_;          }
+    inline double* vAddress() { return V_;          }
+    inline double* bAddress() { return box_.Dptr(); }
+    inline double* tAddress() { return &T_;         }
     // Frame memory allocation/reallocation
     int SetupFrame(int);
     int SetupFrameM(std::vector<Atom> const&);
     int SetupFrameV(std::vector<Atom> const&,bool);
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
     // Frame setup of coords (no memory realloc)
-    void SetCoordinatesByMask(const double*, AtomMask const&); // TODO: Convert to Vec3 array 
     void SetCoordinates(Frame const&, AtomMask const&);
     void SetCoordinates(Frame const&);
     void SetFrame(Frame const&, AtomMask const&);
@@ -99,8 +91,8 @@ class Frame {
     void Divide(double);
     void AddByMask(Frame const&, AtomMask const&); 
     // -------------------------------------------------------------------------
-    // NOTE: Placing these functions in the header since most modern compilers
-    //       will actually try to inline them which results in a decent
+    // NOTE: These functions are placed in the header since most modern 
+    //       compilers will try to inline them which results in a decent
     //       speedup for most routines (e.g. when imaging).
     /// \return Center of mass of atoms in mask.
     Vec3 VCenterOfMass( AtomMask const& Mask ) {
@@ -172,18 +164,15 @@ class Frame {
       return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
     }
     /// Scale coordinates of atoms in mask by given X|Y|Z constants
-    void SCALE(AtomMask const&, double, double, double);
+    void Scale(AtomMask const&, double, double, double);
     /// Translate atoms in range by Vec
     void Translate(const Vec3& Vec, int firstAtom, int lastAtom) {
-      double Vec0 = Vec[0];
-      double Vec1 = Vec[1];
-      double Vec2 = Vec[2];
       int startatom3 = firstAtom * 3;
       int stopatom3 = lastAtom * 3;
       for (int i = startatom3; i < stopatom3; i += 3) {
-        X_[i  ] += Vec0;
-        X_[i+1] += Vec1;
-        X_[i+2] += Vec2;
+        X_[i  ] += Vec[0];
+        X_[i+1] += Vec[1];
+        X_[i+2] += Vec[2];
       }
     }
     /// Translate atom by Vec
@@ -212,17 +201,12 @@ class Frame {
     /// Rotate all coords by matrix
     void Rotate(Matrix_3x3 const& T) {
       for (int i = 0; i < ncoord_; i += 3) {
-        double *Xptr = X_ + i;
-        double *Yptr = Xptr + 1;
-        double *Zptr = Xptr + 2;
-
-        double x = *Xptr;
-        double y = *Yptr;
-        double z = *Zptr;
-
-        *Xptr = (x*T[0]) + (y*T[1]) + (z*T[2]);
-        *Yptr = (x*T[3]) + (y*T[4]) + (z*T[5]);
-        *Zptr = (x*T[6]) + (y*T[7]) + (z*T[8]);
+        double x = X_[i  ];
+        double y = X_[i+1];
+        double z = X_[i+2];
+        X_[i  ] = (x*T[0]) + (y*T[1]) + (z*T[2]);
+        X_[i+1] = (x*T[3]) + (y*T[4]) + (z*T[5]);
+        X_[i+2] = (x*T[6]) + (y*T[7]) + (z*T[8]);
       }
     }
     /// Rotate all atoms in mask by matrix
@@ -253,7 +237,6 @@ class Frame {
     Vec3 CenterReference(bool);
     void ShiftToGeometricCenter();
     // Coordinate calculation
-    double BoxToRecip(double *, double *) const;
     double RMSD(Frame &, bool );
     double RMSD(Frame &, Matrix_3x3&, Vec3&, Vec3&, bool);
     double RMSD_CenteredRef( Frame const&, bool);
@@ -272,7 +255,7 @@ class Frame {
     int natom_;     ///< Number of atoms stored in frame.
     int maxnatom_;  ///< Maximum number of atoms this frame can store.
     int ncoord_;    ///< Number of coordinates stored in frame (natom * 3).
-    double box_[6]; ///< Box coords, 3xlengths, 3xangles
+    Box box_;       ///< Box coords, 3xlengths, 3xangles
     double T_;      ///< Temperature
     double* X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     double* V_;     ///< Velocities (same arrangement as Coords).

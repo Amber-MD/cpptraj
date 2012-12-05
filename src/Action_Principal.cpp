@@ -52,26 +52,6 @@ Action::RetType Action_Principal::Setup(Topology* currentParm, Topology** parmAd
   return Action::OK;
 }
 
-// DEBUG
-/*static void CheckAngle( char axis, char eigen, double *Evec) {
-  double CXYZ[3];
-  double* ptr;
-  switch (axis) {
-    case 'x' : CXYZ[0] = 1; CXYZ[1] = 0; CXYZ[2] = 0; break;
-    case 'y' : CXYZ[0] = 0; CXYZ[1] = 1; CXYZ[2] = 0; break;
-    case 'z' : CXYZ[0] = 0; CXYZ[1] = 0; CXYZ[2] = 1; break;
-    default: mprinterr("CHECKANGLE ERROR\n"); return;
-  }
-  switch (eigen) {
-    case 'x' : ptr = Evec; break;
-    case 'y' : ptr = Evec + 3; break;
-    case 'z' : ptr = Evec + 6; break;
-    default: mprinterr("CHECKANGLE ERROR\n"); return;
-  }
-  double angle = dot_product_angle(CXYZ, ptr);
-  mprintf("PRINCIPAL DEBUG: Angle between %c and eigen(%c) is %lf\n",axis,eigen,angle*RADDEG);
-}*/
-
 // Action_Principal::action()
 Action::RetType Action_Principal::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   Matrix_3x3 Inertia;
@@ -96,4 +76,3 @@ Action::RetType Action_Principal::DoAction(int frameNum, Frame* currentFrame, Fr
 
   return Action::OK;
 }
-

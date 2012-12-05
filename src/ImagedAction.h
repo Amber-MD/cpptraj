@@ -1,7 +1,6 @@
 #ifndef INC_IMAGEDACTION_H
 #define INC_IMAGEDACTION_H
 #include "DistRoutines.h"
-#include "Box.h"
 class ImagedAction {
   public:
     ImagedAction() : imageType_(NOIMAGE), useImage_(false) {}
