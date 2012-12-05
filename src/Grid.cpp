@@ -195,14 +195,14 @@ int Grid::GridSetup(Topology* currentParm) {
   * corresponds to a valid bin and if so increment the bin.
   * \return Bin index if binned, -1 if out of bounds.
   */
-int Grid::GridPoint(double xIn, double yIn, double zIn) {
-  double xx = xIn + sx_;
+int Grid::GridPoint(Vec3 const& vIn) {
+  double xx = vIn[0] + sx_;
   int i = (int) (xx / dx_) - 1;
   if (i >= 0 && i < nx_) {
-    double yy = yIn + sy_;
+    double yy = vIn[1] + sy_;
     int j = (int) (yy / dy_) - 1;
     if (j >= 0 && j < ny_) {
-      double zz = zIn + sz_;
+      double zz = vIn[2] + sz_;
       int k = (int) (zz / dz_) - 1;
       if (k >= 0 && k < nz_) {
         int idx = i*ny_*nz_ + j*nz_ + k;
@@ -222,10 +222,7 @@ void Grid::GridFrame(Frame& currentFrame, AtomMask const& mask) {
     case ORIGIN: center.Zero(); break;
   }
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
-  {
-    Vec3 XYZ = Vec3(currentFrame.XYZ( *atom )) - center;
-    GridPoint( XYZ[0], XYZ[1], XYZ[2] );
-  }
+    GridPoint( Vec3(currentFrame.XYZ( *atom )) - center );
 }
 
 // Grid::BinPoint

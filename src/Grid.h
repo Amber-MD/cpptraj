@@ -22,7 +22,7 @@ class Grid {
     /// Setup grid based on given topology.
     int GridSetup(Topology*);
     /// Grid the given XYZ point.
-    int GridPoint(double, double, double);
+    int GridPoint(Vec3 const&);
     /// Grid the given frame
     void GridFrame(Frame& currentFrame, AtomMask const& mask);
     /// Grid point (for backwards compat. with Action_Dipole) 
