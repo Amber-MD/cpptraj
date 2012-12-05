@@ -45,6 +45,7 @@ class Cpptraj {
     static void Help_MolInfo();
     static void Help_CrdAction();
     static void Help_CrdOut();
+    static void Help_RunAnalysis();
     void Help(ArgList&);
     void List(ArgList&);
     void Debug(ArgList&);

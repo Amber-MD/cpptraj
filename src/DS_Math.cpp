@@ -136,6 +136,7 @@ int DS_Math::CrossCorr( DataSet& D1, DataSet& D2, DataSet& Ct, int lagmaxIn,
     // Calc using FFT
     PubFFT pubfft1(Nelements);
     ComplexArray data1 = pubfft1.Array();
+    data1.PadWithZero(Nelements);
     for (int i = 0; i < Nelements; ++i)
       data1[i*2] = D1.Dval(i) - avg1;
     if (&D2 == &D1)
@@ -143,6 +144,7 @@ int DS_Math::CrossCorr( DataSet& D1, DataSet& D2, DataSet& Ct, int lagmaxIn,
     else {
       // Populate second dataset if different
       ComplexArray data2 = pubfft1.Array();
+      data2.PadWithZero(Nelements);
       for (int i = 0; i < Nelements; ++i)
         data2[i*2] = D2.Dval(i) - avg2;
       pubfft1.CorF_Cross(data1, data2);

@@ -136,24 +136,29 @@ void Cpptraj::Help_MolInfo() {
 }
 
 void Cpptraj::Help_CrdAction() {
-  mprintf("crdaction <crd set> <actioncmd> [<action args>]\n");
+  mprintf("crdaction <crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n");
 }
 
 void Cpptraj::Help_CrdOut() {
-  mprintf("crdout <crd set> <filename> [<trajout args>]\n");
+  mprintf("crdout <crd set> <filename> [<trajout args>] [crdframes <start>,<stop>,<offset>]\n");
+}
+
+void Cpptraj::Help_RunAnalysis() {
+  mprintf("runanalysis [<analysis> [<analysis args>]]\n");
+  mprintf("\tIf specified alone, run all analyses in the analysis list.\n");
+  mprintf("Otherwise run the specified analysis immediately.\n");
 }
 
 // -----------------------------------------------------------------------------
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
                        SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
                        SELECT, SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA,
-                       CLEAR, CRDACTION, CRDOUT, CRDANALYZE };
+                       CLEAR, CRDACTION, CRDOUT };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef,       ACTIVEREF    },
   { DispatchObject::GENERAL, "clear",         0, Help_Clear,           CLEAR        },
   { DispatchObject::GENERAL, "crdaction",     0, Help_CrdAction,       CRDACTION    },
-  { DispatchObject::GENERAL, "crdanalyze",    0, 0,                    CRDANALYZE   },
   { DispatchObject::GENERAL, "crdout",        0, Help_CrdOut,          CRDOUT       },
   { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE       },
   { DispatchObject::GENERAL, "datafile",      0, 0,                    DATAFILE     },
@@ -174,7 +179,7 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "readdata",      0, 0,                    READDATA     },
   { DispatchObject::GENERAL, "readinput",     0, 0,                    READINPUT    },
   { DispatchObject::GENERAL, "run"   ,        0, 0,                    RUN          },
-  { DispatchObject::GENERAL, "runanalysis",   0, 0,                    RUN_ANALYSIS },
+  { DispatchObject::GENERAL, "runanalysis",   0, Help_RunAnalysis,     RUN_ANALYSIS },
   { DispatchObject::GENERAL, "select",        0, 0,                    SELECT    },
   { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS,        SELECTDS     },
   { DispatchObject::GENERAL, "writedata",     0, 0,                    WRITEDATA    },
@@ -542,6 +547,7 @@ int Cpptraj::Select(ArgList& argIn) {
 }
 
 // -----------------------------------------------------------------------------
+// Cpptraj::CrdAction()
 /** Perform action on given COORDS dataset */
 int Cpptraj::CrdAction(ArgList& argIn) {
   std::string setname = argIn.GetStringNext();
@@ -555,6 +561,12 @@ int Cpptraj::CrdAction(ArgList& argIn) {
     mprinterr("Error: crdaction: No COORDS set with name %s found.\n", setname.c_str());
     return 1;
   }
+  // Start, stop, offset
+  ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
+  int start = crdarg.getNextInteger(1) - 1;
+  int stop = crdarg.getNextInteger(CRD->Size());
+  int offset = crdarg.getNextInteger(1);
+  if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   ArgList actionargs = argIn.RemainingArgs();
   actionargs.MarkArg(0);
   DispatchObject::TokenPtr tkn = SearchTokenArray( ActionList::DispatchArray, actionargs);
@@ -583,9 +595,8 @@ int Cpptraj::CrdAction(ArgList& argIn) {
     CRD->SetTopology( *currentParm );
   }
   // Loop over all frames in COORDS.
-  int end = CRD->Size();
-  ProgressBar progress( end );
-  for (int frame = 0; frame < end; frame++) {
+  ProgressBar progress( stop );
+  for (int frame = start; frame < stop; frame += offset) {
     progress.Update( frame );
     originalFrame->SetFromCRD( (*CRD)[ frame ], CRD->NumBoxCrd() );
     Frame* currentFrame = originalFrame;
@@ -605,6 +616,7 @@ int Cpptraj::CrdAction(ArgList& argIn) {
   return 0;
 }
 
+// Cpptraj::CrdOut()
 /** Write out COORDS dataset */
 int Cpptraj::CrdOut(ArgList& argIn) {
   std::string setname = argIn.GetStringNext();
@@ -619,6 +631,12 @@ int Cpptraj::CrdOut(ArgList& argIn) {
     return 1;
   }
   setname = argIn.GetStringNext();
+  // Start, stop, offset
+  ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
+  int start = crdarg.getNextInteger(1) - 1;
+  int stop = crdarg.getNextInteger(CRD->Size());
+  int offset = crdarg.getNextInteger(1);
+  if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   Trajout outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
   if (outtraj.SetupTrajWrite( setname, &argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
@@ -627,9 +645,8 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   }
   outtraj.PrintInfo( 1 );
   Frame currentFrame( CRD->Top().Natom() );
-  int end = CRD->Size();
-  ProgressBar progress( end );
-  for (int frame = 0; frame < end; frame++) {
+  ProgressBar progress( stop );
+  for (int frame = start; frame < stop; frame += offset) {
     progress.Update( frame );
     currentFrame.SetFromCRD( (*CRD)[ frame ], CRD->NumBoxCrd() );
     if ( outtraj.WriteFrame( frame, currentParm, currentFrame ) ) {
@@ -641,6 +658,8 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   return 0;
 }
 
+// Cpptraj::CrdAnalyze()
+/** Run a single analysis. */
 int Cpptraj::CrdAnalyze(ArgList& argIn) {
   ArgList analyzeargs = argIn.RemainingArgs();
   analyzeargs.MarkArg(0);
@@ -971,7 +990,6 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
           case CLEAR     : Clear(command); break;
           case CRDACTION : err = CrdAction(command); break;
           case CRDOUT    : err = CrdOut(command); break;
-          case CRDANALYZE: err = CrdAnalyze(command); break;
           case SELECT    : err = Select(command); break; 
           case SELECTDS  : SelectDS(command); break;
           case NOPROG    : 
@@ -996,8 +1014,12 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
           case DATAFILE    : err = DFL.ProcessDataFileArgs( command ); break;
           case SYSTEM      : system( command.ArgLine() ); break;
           case RUN         : Run(); break;
-          case RUN_ANALYSIS: 
-            analysisList.DoAnalyses(&DFL); 
+          case RUN_ANALYSIS:
+            // If only 1 arg (the command) run all analyses in list
+            if (command.Nargs() == 1)  
+              analysisList.DoAnalyses(&DFL);
+            else
+              err = CrdAnalyze(command);
             mprintf("Analysis complete. Use 'writedata' to write datafiles to disk.\n");
             break;
           case WRITEDATA   : if (worldrank == 0) DFL.Write(); break;
