@@ -26,12 +26,14 @@ Action_Radial::Action_Radial() :
   // Default particle density (molecules/Ang^3) for water based on 1.0 g/mL
   density_(0.033456),
   Dset_(0),
+  outmask2_(0),
   debug_(0)
 {} 
 
 void Action_Radial::Help() {
   mprintf("radial <outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]\n");
   mprintf("       [density <density> | volume] [center1] [<name>]\n");
+  mprintf("       outmask2 <file>\n");
 }
 
 // DESTRUCTOR
@@ -56,6 +58,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   density_ = actionArgs.getKeyDouble("density",0.033456);
   center1_ = actionArgs.hasKey("center1");
   useVolume_ = actionArgs.hasKey("volume");
+  std::string outmask2name = actionArgs.GetStringKey("outmask2");
 
   // Get required args
   std::string outfilename = actionArgs.GetStringNext();
@@ -95,7 +98,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Set up output dataset. 
   Dset_ = DSL->AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");
   DataFile* outfile = DFL->AddSetToFile(outfilename, Dset_);
-  if (outfile==NULL) {
+  if (outfile==0) {
     mprinterr("Error: Radial: Could not setup output file %s\n",outfilename.c_str());
     return Action::ERR;
   }
@@ -107,6 +110,17 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   outfile->ProcessArgs("xlabel \"[" + Mask1_.MaskExpression() + "] => [" + 
                                       Mask2_.MaskExpression() + "]\"" );
   outfile->ProcessArgs("ylabel g(r)");
+  // Set up output for sum of mask2 if specified.
+  if (!outmask2name.empty()) {
+    outmask2_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "m2sum" );
+    outfile = DFL->AddSetToFile( outmask2name, outmask2_ );
+    if (outfile == 0) {
+      mprinterr("Error: Could not add mask2sum set to file %s\n", outmask2name.c_str());
+      return Action::ERR;
+    }
+    outfile->ProcessArgs("xmin 0.0 xstep " + doubleToString(spacing_));
+  } else
+    outmask2_ = 0;
 
   // Set up histogram
   one_over_spacing_ = 1 / spacing_;
@@ -137,14 +151,12 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   mprintf("\n            Output to %s.\n",outfilename.c_str());
   if (center1_)
     mprintf("            Using center of atoms in mask1.\n");
-  //mprintf("            Histogram max %lf, spacing %lf, bins %i.\n",rdf.Max(0),
-  //        rdf.Step(0),rdf.NBins(0));
-  mprintf("            Histogram max %lf, spacing %lf, bins %i.\n",maximum,
+  mprintf("            Histogram max %f, spacing %f, bins %i.\n",maximum,
           spacing_,numBins_);
   if (useVolume_)
     mprintf("            Normalizing based on cell volume.\n");
   else
-    mprintf("            Normalizing using particle density of %lf molecules/Ang^3.\n",density_);
+    mprintf("            Normalizing using particle density of %f molecules/Ang^3.\n",density_);
   if (!UseImage()) 
     mprintf("            Imaging disabled.\n");
   if (numthreads_ > 1)
@@ -241,7 +253,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);
-        //mprintf("MASKLOOP: %10i %10i %10.4lf\n",atom1,atom2,D);
+        //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
         idx = (int) (D * one_over_spacing_);
         if (idx > -1 && idx < numBins_)
 #         ifdef _OPENMP
@@ -276,7 +288,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
-            //mprintf("MASKLOOP: %10i %10i %10.4lf\n",atom1,atom2,D);
+            //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
             idx = (int) (D * one_over_spacing_);
             if (idx > -1 && idx < numBins_)
 #             ifdef _OPENMP
@@ -307,8 +319,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 //       if multiple prmtops are loaded and number of atoms changes from 
 //       prmtop to prmtop this will throw off normalization.
 void Action_Radial::Print() {
-  double N, R, Rdr, dv, norm;
- 
+  double nmask1;
   if (numFrames_==0) return;
 #  ifdef _OPENMP 
   // Combine results from each rdf_thread into rdf
@@ -322,20 +333,29 @@ void Action_Radial::Print() {
   // If Mask1 and Mask2 have any atoms in common distances were not calcd
   // between them (because they are 0.0 of course); need to correct for this.
   int numSameAtoms = Mask1_.NumAtomsInCommon( Mask2_ );
+
+  // If the center1 option was specified only one distance was calcd
+  // from mask 1 (the COM).
+  if (center1_)
+    nmask1 = 1.0;
+  else
+    nmask1 = (double)Mask1_.Nselected();
   
   // If useVolume, calculate the density from the average volume
   if (useVolume_) {
-    dv = volume_ / numFrames_;
-    mprintf("            Average volume is %lf Ang^3.\n",dv);
-    density_ = ((double)Mask1_.Nselected() * (double)Mask2_.Nselected() - (double)numSameAtoms) / 
-               dv;
-    mprintf("            Average density is %lf distances / Ang^3.\n",density_);
+    double dv = volume_ / numFrames_;
+    mprintf("            Average volume is %f Ang^3.\n",dv);
+    density_ = (nmask1 * (double)Mask2_.Nselected() - (double)numSameAtoms) / dv;
+    mprintf("            Average density is %f distances / Ang^3.\n",density_);
   } else {
     density_ = density_ * 
-              ((double)Mask1_.Nselected() * (double)Mask2_.Nselected() - (double)numSameAtoms) /
-              ((double)Mask1_.Nselected());
-    mprintf("            Density is %lf distances / Ang^3.\n",density_);
+               (nmask1 * (double)Mask2_.Nselected() - (double)numSameAtoms) / 
+               nmask1;
+    mprintf("            Density is %f distances / Ang^3.\n",density_);
   }
+  // Calculate (average) density of atoms in mask2
+  double mask2density = density_ / nmask1;
+  mprintf("            Average density of atoms in mask2 is %f atoms / Ang^3\n", mask2density);
 
   // Need to normalize each bin, which holds the particle count at that
   // distance. Calculate the expected number of molecules for that 
@@ -345,23 +365,27 @@ void Action_Radial::Print() {
   for (int bin = 0; bin < numBins_; bin++) {
     //mprintf("DBG:\tNumBins= %i\n",rdf[bin]); 
     // Number of particles in this volume slice over all frames.
-    N = (double) RDF_[bin];
+    double N = (double) RDF_[bin];
     // r
-    R = spacing_ * (double)bin;
+    double R = spacing_ * (double)bin;
     // r + dr
-    Rdr = spacing_ * (double)(bin+1);
+    double Rdr = spacing_ * (double)(bin+1);
     // Volume of slice: 4/3_pi * [(r+dr)^3 - (dr)^3]
-    dv = FOURTHIRDSPI * ( (Rdr * Rdr * Rdr) - (R * R * R) );
+    double dv = FOURTHIRDSPI * ( (Rdr * Rdr * Rdr) - (R * R * R) );
     // Expected # distances in this volume slice
-    norm = dv * density_;
+    double norm = dv * density_;
     if (debug_>0)
-      mprintf("    \tBin %lf->%lf <Pop>=%lf, V=%lf, D=%lf, norm %lf distances.\n",
+      mprintf("    \tBin %f->%f <Pop>=%f, V=%f, D=%f, norm %f distances.\n",
               R,Rdr,N/numFrames_,dv,density_,norm);
     // Divide by # frames
     norm *= numFrames_;
     N /= norm;
-
-    Dset_->Add(bin,&N);
+    Dset_->Add(bin, &N);
+    if (outmask2_ != 0) {
+      // Expected # mask2 atoms in this volume slice
+      norm = dv * mask2density * N;
+      outmask2_->Add(bin, &norm);
+    }
   }
 }
 

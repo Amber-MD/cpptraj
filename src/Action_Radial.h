@@ -38,6 +38,7 @@ class Action_Radial: public Action, ImagedAction {
     int numDistances_;        ///< Number of distances binned, only informational.
     double density_;          ///< Particle density (molecules/Ang^3).
     DataSet* Dset_;
+    DataSet* outmask2_;
     int debug_;
 };
 #endif  
