@@ -110,12 +110,16 @@ int Traj_AmberRestart::setupTrajout(std::string const& fname, Topology* trajParm
 // Traj_AmberRestart::getBoxAngles()
 /** Based on input buffer, determine num box coords and get box angles.
   */
-int Traj_AmberRestart::getBoxAngles(const char *boxline, Box& trajBox) {
+int Traj_AmberRestart::getBoxAngles(std::string const& boxline, Box& trajBox) {
   double box[6];
-  numBoxCoords_ = sscanf(boxline, "%12lf%12lf%12lf%12lf%12lf%12lf",
-                        box,box+1,box+2,box+3,box+4,box+5);
+  if (boxline.empty()) {
+    mprinterr("Internal Error: Restart box line is NULL.\n");
+    return 1;
+  }
+  numBoxCoords_ = sscanf(boxline.c_str(), "%12lf%12lf%12lf%12lf%12lf%12lf",
+                         box, box+1, box+2, box+3, box+4, box+5);
   if (debug_>0) {
-    mprintf("DEBUG: Restart BoxLine [%s]\n",boxline);
+    mprintf("DEBUG: Restart BoxLine [%s]\n",boxline.c_str());
     mprintf("       Restart numBoxCoords_=%i\n",numBoxCoords_);
   }
   if (numBoxCoords_==-1) {
@@ -198,12 +202,13 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
     // If we can read 1 more line after velocity, should be box info.
     nextLine = file_.GetLine();
     if (!nextLine.empty()) {
-      if (getBoxAngles(nextLine.c_str(), boxInfo)) return TRAJIN_ERR;
+      if (getBoxAngles(nextLine, boxInfo)) return TRAJIN_ERR;
     } 
   } else if (readSize<82) {
     // If we read something but didnt fill framebuffer, should have box coords.
     SetVelocity( false );
-    if (getBoxAngles(file_.Buffer(), boxInfo)) return TRAJIN_ERR;
+    nextLine.assign(file_.Buffer(), readSize);
+    if (getBoxAngles(nextLine, boxInfo)) return TRAJIN_ERR;
   } else {
     // Otherwise, who knows what was read?
     mprinterr("Error: AmberRestart::setupTrajin(): When attempting to read in\n");
