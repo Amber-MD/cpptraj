@@ -140,7 +140,7 @@ Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame, 
 
 // Action_AtomicFluct::print() 
 void Action_AtomicFluct::Print() {
-  int atom, res, resstart, resstop; 
+  int atom, res;
   double xi, fluct, mass;
 
   mprintf("    ATOMICFLUCT: Calculating fluctuations for %i sets.\n",sets_);
@@ -194,11 +194,12 @@ void Action_AtomicFluct::Print() {
     // By residue output
     case BYRES:
       outfile_->ProcessArgs("xlabel Res");
-      for (res = 0; res < fluctParm_->Nres(); res++) {
+      res = 0;
+      for (Topology::res_iterator residue = fluctParm_->ResStart();
+                                  residue != fluctParm_->ResEnd(); ++residue) {
         xi = 0;
         fluct = 0;
-        fluctParm_->ResAtomRange(res, &resstart, &resstop);
-        for (atom = resstart; atom < resstop; atom++) {
+        for (atom = (*residue).FirstAtom(); atom < (*residue).LastAtom(); atom++) {
           if ( Mask.AtomInCharMask(atom) ) {
             mass = (*fluctParm_)[atom].Mass(); 
             xi += mass;
@@ -209,6 +210,7 @@ void Action_AtomicFluct::Print() {
           mass = fluct / xi;
           dataout_->Add( res, &mass );
         }
+        ++res;
       }
       break;
     // By mask output

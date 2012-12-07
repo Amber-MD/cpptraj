@@ -14,16 +14,15 @@ class Action_Pairwise: public Action {
   public:
     Action_Pairwise();
     ~Action_Pairwise();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Pairwise(); }
     static void Help();
-
+  private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
-  private:
+
     enum PairCalcType { SET_REF, COMPARE_REF, NORMAL };
     PairCalcType nb_calcType_;       ///< Type of nonbonded calc being performed
     AtomMask Mask0_;                 ///< Calculate energy for atoms in mask
@@ -59,8 +58,8 @@ class Action_Pairwise: public Action {
     int SetupNonbondParm(AtomMask &, Topology *);
     /// Calculate nonbond energy using nonbondParm for given frame
     void NonbondEnergy(Frame *, Topology *, AtomMask &);
-    int WriteCutFrame(int, Topology *, AtomMask&, std::vector<double> const&, 
-                      Frame *, std::string const&);
+    int WriteCutFrame(int, Topology const&, AtomMask const&, std::vector<double> const&, 
+                      Frame const&, std::string const&);
     void PrintCutAtoms(Frame *,int);
 };
 #endif  

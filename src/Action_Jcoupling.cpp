@@ -239,7 +239,7 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
   // atoms involved are present in the mask.
   MaxResidues = currentParm->FinalSoluteRes();
   for (int residue=0; residue < MaxResidues; residue++) {
-    resName.assign(currentParm->ResidueName(residue));
+    resName.assign(currentParm->Res(residue).c_str());
     karplusConstantMap::iterator reslist = KarplusConstants_.find(resName);
     // If list does not exist for residue, skip it.
     if (reslist == KarplusConstants_.end() ) {
@@ -302,7 +302,7 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
     for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
                                               jc !=JcouplingInfo_.end(); ++jc) 
     {
-      mprintf("%8i [%i:%4s]",MaxResidues+1,(*jc).residue,currentParm->ResidueName((*jc).residue));
+      mprintf("%8i [%i:%4s]",MaxResidues+1,(*jc).residue, currentParm->Res((*jc).residue).c_str());
       mprintf(" %6i:%-4s",(*jc).atom[0],(*currentParm)[(*jc).atom[0]].c_str());
       mprintf(" %6i:%-4s",(*jc).atom[1],(*currentParm)[(*jc).atom[1]].c_str());
       mprintf(" %6i:%-4s",(*jc).atom[2],(*currentParm)[(*jc).atom[2]].c_str());
@@ -351,7 +351,7 @@ Action::RetType Action_Jcoupling::DoAction(int frameNum, Frame* currentFrame, Fr
     residue = (*jc).residue;
     // Output
     outputfile_.Printf("%5i %4s%4s%4s%4s%4s%12lf%12lf\n",
-                       residue+1, CurrentParm_->ResidueName(residue),
+                       residue+1, CurrentParm_->Res(residue).c_str(),
                        (*CurrentParm_)[(*jc).atom[0]].c_str(), 
                        (*CurrentParm_)[(*jc).atom[1]].c_str(),
                        (*CurrentParm_)[(*jc).atom[2]].c_str(), 

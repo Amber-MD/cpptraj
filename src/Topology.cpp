@@ -54,51 +54,16 @@ void Topology::SetReferenceCoords( Frame *frameptr ) {
     refCoords_ = *frameptr;
 }
 
+// Topology::IncreaseFrames()
+void Topology::IncreaseFrames(int frames) {
+  nframes_ += frames;
+}
+
 // -----------------------------------------------------------------------------
 // Topology::FinalSoluteRes()
 /** Return 1 past the last solute residue. */
 int Topology::FinalSoluteRes() const {
   return finalSoluteRes_ + 1;
-}
-
-// Topology::Pindex()
-int Topology::Pindex() const {
-  return pindex_;
-}
-
-// Topology::Natom()
-int Topology::Natom() const {
-  return (int)atoms_.size();
-}
-
-// Topology::Nres()
-int Topology::Nres() const {
-  return (int)residues_.size();
-}
-
-// Topology::Nmol()
-int Topology::Nmol() const {
-  return (int)molecules_.size();
-}
-
-// Topology::Nsolvent()
-int Topology::Nsolvent() const {
-  return NsolventMolecules_;
-}
-
-// Topology::Nframes()
-int Topology::Nframes() const {
-  return nframes_;
-}
-
-// Topology::Ntypes()
-int Topology::Ntypes() const {
-  return ntypes_;
-}
-
-// Topology::IncreaseFrames()
-void Topology::IncreaseFrames(int frames) {
-  nframes_ += frames;
 }
 
 // Topology::c_str()
@@ -109,76 +74,6 @@ const char *Topology::c_str() const {
   if (!fileName_.empty()) 
     return fileName_.c_str();
   return parmName_.c_str();
-}
-
-// Topology::ParmName()
-std::string Topology::ParmName() const { 
-  return parmName_;
-}
-
-// Topology::OriginalFilename()
-std::string Topology::OriginalFilename() {
-  return fileName_;
-}
-
-// Topology::GBradiiSet()
-std::string Topology::GBradiiSet() const {
-  return radius_set_;
-}
-
-// -----------------------------------------------------------------------------
-// Topology::ResAtomStart()
-Topology::atom_iterator Topology::ResAtomStart(int resnum) const {
-  if (resnum < 0 || resnum >= (int)residues_.size())
-    return atoms_.end();
-  return atoms_.begin() + residues_[resnum].FirstAtom();
-}
-
-// Topology::ResAtomEnd()
-Topology::atom_iterator Topology::ResAtomEnd(int resnum) const {
-  if (resnum < 0 || resnum >= (int)residues_.size()-1)
-    return atoms_.end();
-  return atoms_.begin() + residues_[resnum+1].FirstAtom();
-}
-
-// Topology::MolAtomStart()
-Topology::atom_iterator Topology::MolAtomStart(int molnum) const {
-  if (molnum < 0 || molnum >= (int)molecules_.size())
-    return atoms_.end();
-  return atoms_.begin() + molecules_[molnum].BeginAtom();
-}
-
-// Topology::MolAtomEnd()
-Topology::atom_iterator Topology::MolAtomEnd(int molnum) const {
-  if (molnum < 0 || molnum >= (int) molecules_.size()-1)
-    return atoms_.end();
-  return atoms_.begin() + molecules_[molnum+1].BeginAtom();
-}
-
-// Topology::operator[]
-const Atom& Topology::operator[](int idx) const {
-  return atoms_[idx];
-}
-
-// -----------------------------------------------------------------------------
-int Topology::ResFirstAtom(int resnum) const {
-  if (resnum < 0 || resnum >= (int)residues_.size())
-    return (int)atoms_.size();
-  return residues_[resnum].FirstAtom();
-}
-
-int Topology::ResLastAtom(int resnum) const {
-  if (resnum < 0 || resnum >= (int)residues_.size()-1)
-    return (int)atoms_.size();
-  return residues_[resnum+1].FirstAtom();
-}
-
-int Topology::ResSize(int resnum) const {
-  if (resnum < 0 || resnum >=(int)residues_.size())
-    return 0;
-  else if (resnum == (int)residues_.size()-1)
-    return ((int)atoms_.size() - residues_[resnum].FirstAtom());
-  return (residues_[resnum+1].FirstAtom() - residues_[resnum].FirstAtom());
 }
 
 // -----------------------------------------------------------------------------
@@ -194,24 +89,6 @@ double Topology::GetBondedCutoff(int atom1, int atom2) {
   return GetBondLength( atoms_[atom1].Element(), atoms_[atom2].Element() );
 }
 // -----------------------------------------------------------------------------
-// Topology::ResAtomRange()
-int Topology::ResAtomRange(int res, int *resstart, int *resstop) {
-  int nres1 = (int)residues_.size() - 1;
-  if (res < 0 || res > nres1) return 1;
-  *resstart = residues_[res].FirstAtom();
-  if (res == nres1)
-    *resstop = (int)atoms_.size();
-  else
-    *resstop = residues_[res+1].FirstAtom();
-  return 0;
-}
-
-// Topology::ResidueName()
-const char* Topology::ResidueName(int res) {
-  if (res < 0 || res >= (int) residues_.size())
-    return NULL;
-  return residues_[res].c_str();
-}
 
 // Topology::TruncResAtomName()
 /** Given an atom number, return a string containing the corresponding 
@@ -223,17 +100,12 @@ const char* Topology::ResidueName(int res) {
 std::string Topology::TruncResAtomName(int atom) {
   std::string res_name;
   if (atom < 0 || atom >= (int)atoms_.size()) return res_name;
-  std::string atom_name( atoms_[atom].c_str() );
-  // Remove trailing spaces
-  if (atom_name[3] == ' ') atom_name.resize(3);
-  if (atom_name[2] == ' ') atom_name.resize(2);
-  if (atom_name[1] == ' ') atom_name.resize(1);
+  // Atom name with no trailing spaces.
+  std::string atom_name = atoms_[atom].Name().Truncated();
   int res = atoms_[atom].ResNum();
-  res_name.assign( residues_[res].c_str() );
+  // Residue name with no trailing spaces.
   // NOTE: ensure a residue size of 4?
-  if (res_name[3]==' ') res_name.resize(3);
-  if (res_name[2]==' ') res_name.resize(2);
-  if (res_name[1]==' ') res_name.resize(1);
+  res_name = residues_[res].Name().Truncated();
   ++res; // want output as res+1
   res_name += "_";
   res_name += integerToString(res);
@@ -250,12 +122,8 @@ std::string Topology::TruncResAtomName(int atom) {
   */
 // FIXME: Add residue bounds check.
 std::string Topology::TruncResNameNum(int res) {
-  std::string resnamenum( residues_[res].c_str() );
-  // Remove trailing spaces
-  if (resnamenum[3] == ' ') resnamenum.resize(3);
-  if (resnamenum[2] == ' ') resnamenum.resize(2);
-  if (resnamenum[1] == ' ') resnamenum.resize(1);
-  return resnamenum + ":" + integerToString( res+1 );
+  // Residue name with no trailing spaces.
+  return residues_[res].Name().Truncated() + ":" + integerToString( res+1 );
 }
 
 // Topology::FindAtomInResidue()
@@ -267,9 +135,9 @@ std::string Topology::TruncResNameNum(int res) {
   */
 int Topology::FindAtomInResidue(int res, NameType const& atname) const {
   if (res < 0 || res >= (int)residues_.size()) return -1;
-  for (atom_iterator atom = ResAtomStart(res); atom != ResAtomEnd(res); atom++)
-    if ( (*atom).Name() == atname )
-      return ( atom - atoms_.begin() );
+  for (int at = residues_[res].FirstAtom(); at < residues_[res].LastAtom(); ++at)
+    if ( atoms_[at].Name() == atname )
+      return at;
   return -1;
 }
 
@@ -279,23 +147,22 @@ int Topology::FindResidueMaxNatom() const {
   if (residues_.size() <= 1)
     return (int)atoms_.size();
   int largest_natom = 0;
-  int lastatom = (int)atoms_.size();
-  for (std::vector<Residue>::const_iterator res = residues_.end() - 1;
-                                            res != residues_.begin(); res--)
+  for (std::vector<Residue>::const_iterator res = residues_.begin();
+                                            res != residues_.end(); res++)
   {
-    int firstatom = (*res).FirstAtom();
-    int diff = lastatom - firstatom;
+    int diff = (*res).NumAtoms();
     if (diff > largest_natom) largest_natom = diff;
-    lastatom = firstatom;
   }
   return largest_natom;
 }
 
 // Topology::SoluteAtoms()
+// TODO: do not rely on finalsoluteres since it makes assumptions about
+//       system layout
 int Topology::SoluteAtoms() {
   if (NsolventMolecules_ == 0)
     return (int)atoms_.size();
-  return ( ResLastAtom( finalSoluteRes_ ) );
+  return ( residues_[finalSoluteRes_].LastAtom() );
 }
 
 // -----------------------------------------------------------------------------
@@ -410,7 +277,7 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) {
       if ( mask.AtomsInCharMask( (*mol).BeginAtom(), (*mol).EndAtom() ) ) {
         int firstres = atoms_[ (*mol).BeginAtom() ].ResNum();
         mprintf("\tMolecule %u, %i atoms, first residue %i:%s",mnum,(*mol).NumAtoms(),
-                firstres+1,residues_[firstres].c_str());
+                firstres+1, residues_[firstres].c_str());
         if ( (*mol).IsSolvent() ) mprintf(" SOLVENT");
         mprintf("\n");
       }
@@ -425,7 +292,8 @@ void Topology::PrintResidueInfo() {
   for (std::vector<Residue>::iterator res = residues_.begin();
                                       res != residues_.end(); res++)
   {
-    mprintf("\tResidue %u, %s, first atom %i\n",rnum,(*res).c_str(),(*res).FirstAtom()+1);
+    mprintf("\tResidue %u, %s, first atom %i, last atom %i\n",
+            rnum,(*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom()+1);
     ++rnum;
   }
 }
@@ -437,6 +305,9 @@ void Topology::AddTopAtom(Atom atomIn, NameType const& resname, int current_res,
 {
   // Check if this is a new residue
   if (residues_.empty() || current_res != last_res) {
+    // Last atom of old residue is == current # atoms.
+    if (!residues_.empty())
+      residues_.back().SetLastAtom( atoms_.size() );
     // First atom of new residue is == current # atoms.
     residues_.push_back( Residue(resname, atoms_.size()) );
     last_res = current_res;
@@ -530,8 +401,14 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
   // Create residue information
   size_t nres = resnames.size();
   residues_.reserve( nres );
-  for (size_t res = 0; res < nres; res++)
-    residues_.push_back( Residue( resnames[res], resnums[res] ) ); 
+  for (size_t res = 0; res < nres; res++) {
+    int lastatom;
+    if (res+1 < nres)
+      lastatom = resnums[res+1];
+    else
+      lastatom = (int)atoms_.size();
+    residues_.push_back( Residue( resnames[res], resnums[res], lastatom ) );
+  } 
 
   return 0;
 }
@@ -672,8 +549,8 @@ void Topology::SetAtomBondInfo() {
 
 // Topology::CommonSetup()
 int Topology::CommonSetup(bool bondsearch) {
-  // Add placeholder to residues to indicate last residue
-  //residues_.push_back( Residue( atoms_.size() ) );
+  // Set residue last atom (PDB/Mol2/PSF) 
+  residues_.back().SetLastAtom( atoms_.size() );
   // Set up bond information if specified and necessary
   if (bondsearch) {
     if (bonds_.empty() && bondsh_.empty() && !refCoords_.empty()) {
@@ -820,8 +697,6 @@ bool Topology::NameIsSolvent(NameType const& resname) {
 
 // Topology::GetBondsFromAtomCoords()
 void Topology::GetBondsFromAtomCoords() {
-  int stopatom;
-
   mprintf("\t%s: determining bond info from distances.\n",c_str());
   // ----- STEP 1: Determine bonds within residues
   for (std::vector<Residue>::iterator res = residues_.begin(); 
@@ -830,11 +705,7 @@ void Topology::GetBondsFromAtomCoords() {
     // Get residue start atom.
     int startatom = (*res).FirstAtom();
     // Get residue end atom.
-    std::vector<Residue>::iterator nextres = res + 1;
-    if (nextres == residues_.end())
-      stopatom = atoms_.size();
-    else
-      stopatom = (*nextres).FirstAtom();
+    int stopatom = (*res).LastAtom();
     // DEBUG
     //mprintf("\tRes %i Start atom %zu coords: ",resnum+1, startatom+1);
     //atoms_[startatom].PrintXYZ();
@@ -892,11 +763,7 @@ void Topology::GetBondsFromAtomCoords() {
     // Previous residue stop atom, this residue start atom
     int midatom = (*res).FirstAtom();
     // This residue stop atom
-    std::vector<Residue>::iterator nextres = res + 1;
-    if (nextres == residues_.end())
-      stopatom = atoms_.size();
-    else
-      stopatom = (*nextres).FirstAtom();
+    int stopatom = (*res).LastAtom();
     //mprintf("\tBonds between residues %s and %s\n",(*previous_res).c_str(),(*res).c_str());
     // Check for bonds between adjacent residues
     for (int atom1 = startatom; atom1 < midatom; atom1++) {
@@ -1256,10 +1123,7 @@ void Topology::Mask_SelectDistance( Frame const& REF, char *mask, bool within,
     for (resi = 0; resi < (int)residues_.size(); resi++) {
       selectresidue = false;
       // Determine end atom for this residue
-      if (resi+1 == (int)residues_.size())
-        endatom = atoms_.size();
-      else
-        endatom = residues_[resi+1].FirstAtom();
+      endatom = residues_[resi].LastAtom();
       // Loop over mask atoms
       for (idx = 0; idx < (int)selected.size(); idx++) {
         atomj = selected[idx];
@@ -1324,48 +1188,40 @@ void Topology::Mask_NEG(char *mask1) const {
 
 // Topology::MaskSelectResidues()
 void Topology::MaskSelectResidues(NameType const& name, char *mask) const {
-  int endatom;
-  std::vector<Residue>::const_iterator res1 = residues_.begin() + 1;
-
   //mprintf("\t\t\tSelecting residues named [%s]\n",*name);
   for (std::vector<Residue>::const_iterator res = residues_.begin();
                                             res != residues_.end(); res++)
   {
     if ( (*res).Name().Match( name ) ) {
-      if (res1 == residues_.end())
-        endatom = atoms_.size();
-      else
-        endatom = (*res1).FirstAtom();
-      std::fill(mask + (*res).FirstAtom(), mask + endatom, 'T');
+      std::fill(mask + (*res).FirstAtom(), mask + (*res).LastAtom(), 'T');
     }
-    ++res1;
   }
 }
 
 // Topology::MaskSelectResidues()
 // Mask args expected to start from 1
 void Topology::MaskSelectResidues(int res1, int res2, char *mask) const {
-  int startatom, endatom;
+  int endatom;
   int nres = (int) residues_.size();
   //mprintf("\t\t\tSelecting residues %i to %i\n",res1,res2);
-  // Get start atom
-  if (res1 > nres) {
+  // Check start atom
+  if (res1 > nres || res1 < 1) {
     if (debug_>0)
       mprintf("Warning: Select residues: res 1 out of range (%i)\n",res1);
     return;
   }
-  startatom = residues_[res1-1].FirstAtom();
-  // Get end atom
-  //if ( res2 > nres) {
-  //  mprinterr("Error: Select residues: res 2 out of range (%i)\n",res2);
-  //  return;
-  //}
+  // Check end atom
+  if ( res2 < res1 ) {
+    mprintf("Warning: Select residues: res 2 (%i) less than res1 (%i)\n",res2,res1);
+    return;
+  }
+  // If last res > nres, make it nres
   if ( res2 >= nres )
     endatom = (int)atoms_.size();
   else
-    endatom = residues_[res2].FirstAtom();
+    endatom = residues_[res2-1].LastAtom();
   // Select atoms
-  std::fill(mask + startatom, mask + endatom, 'T');
+  std::fill(mask + residues_[res1-1].FirstAtom(), mask + endatom, 'T');
 }
 
 // Topology::MaskSelectElements()
@@ -1572,7 +1428,9 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
     // Check if this old atom is in a different residue than the last. If so,
     // set new residue information.
     if ( curres != oldres ) {
-      newParm->residues_.push_back( Residue( residues_[curres].Name(), newatom ) );
+      if (!newParm->residues_.empty())
+        newParm->residues_.back().SetLastAtom( newatom );
+      newParm->residues_.push_back( Residue(residues_[curres].Name(), newatom) );
       oldres = curres;
     }
     // Clear bond information from new atom
@@ -1600,6 +1458,8 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
     if (!join_.empty()) newParm->join_.push_back( join_[oldatom] );
     if (!irotat_.empty()) newParm->irotat_.push_back( irotat_[oldatom] );
   }
+  // Set last residue last atom
+  newParm->residues_.back().SetLastAtom( newParm->atoms_.size() );
 
   // NOTE: Since in the bond/angle/dihedral atom arrays the parm indices have 
   //       survived intact we can just include direct copies of all the 

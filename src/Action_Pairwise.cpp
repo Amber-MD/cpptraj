@@ -329,33 +329,36 @@ void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &
 }
 
 // Action_Pairwise::WriteCutFrame()
-int Action_Pairwise::WriteCutFrame(int frameNum, Topology *Parm, AtomMask& CutMask, 
+/** Write file containing only cut atoms and charges. */
+int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask const& CutMask, 
                                    std::vector<double> const& CutCharges,
-                                   Frame *frame, std::string const& outfilename) 
+                                   Frame const& frame, std::string const& outfilename) 
 {
-  Frame CutFrame(*frame, CutMask);
-  // TEST: Write file containing only cut atoms
-  Topology* CutParm = Parm->modifyStateByMask(CutMask);
-  if (CutParm->Natom() != (int)CutCharges.size()) {
+  if (CutMask.Nselected() != (int)CutCharges.size()) {
     mprinterr("Error: Pairwise: WriteCutFrame: # of charges (%u) != # mask atoms (%i)\n",
-              CutCharges.size(), CutParm->Natom());
-    delete CutParm;
+              CutCharges.size(), CutMask.Nselected());
     return 1;
   }
+  Frame CutFrame(frame, CutMask);
+  Topology CutParm;
+  int last_res = -1;
+  // Dont use modifyStateByMask so we can set new charges. This means no
+  // bond/molecule information (could add with call to CommonSetup).
   std::vector<double>::const_iterator Qi = CutCharges.begin();
-  for (Topology::iterator atom = Parm->begin(); atom != Parm->end(); ++atom)
-    (*atom).SetCharge( *(Qi++) );
-  //CutFrame.SetupFrame(CutParm->natom, CutParm->mass);
-  //CutFrame.SetFrameFromMask(frame, CutMask);
+  for (AtomMask::const_iterator atnum = CutMask.begin(); atnum != CutMask.end(); ++atnum) {
+    Atom cutatom = Parm[*atnum];
+    int resnum = cutatom.ResNum(); 
+    cutatom.SetCharge( *(Qi++) );
+    CutParm.AddTopAtom( cutatom, Parm.Res(resnum).Name(), resnum, last_res, 0 );
+  } 
+    
   Trajout tout;
-  if (tout.SetupTrajWriteWithArgs(outfilename,"multi",CutParm,TrajectoryFile::MOL2FILE)) {
+  if (tout.SetupTrajWriteWithArgs(outfilename,"multi",&CutParm,TrajectoryFile::MOL2FILE)) {
     mprinterr("Error: Pairwise: Could not set up cut mol2 file %s\n",outfilename.c_str());
-    delete CutParm;
     return 1;
   }
-  tout.WriteFrame(frameNum,CutParm,CutFrame);
+  tout.WriteFrame(frameNum, &CutParm, CutFrame);
   tout.EndTraj();
-  delete CutParm;
   return 0;
 }
 
@@ -384,7 +387,8 @@ void Action_Pairwise::PrintCutAtoms(Frame *frame, int frameNum) {
     }
   }
   if (!cutout_.empty() && !CutMask.None()) {
-    if (WriteCutFrame(frameNum, CurrentParm_, CutMask, CutCharges, frame, cutout_ + ".evdw.mol2")) 
+    if (WriteCutFrame(frameNum, *CurrentParm_, CutMask, CutCharges, 
+                      *frame, cutout_ + ".evdw.mol2")) 
       return;
   }
   CutMask.ResetMask();
@@ -407,7 +411,8 @@ void Action_Pairwise::PrintCutAtoms(Frame *frame, int frameNum) {
     }  
   }
   if (!cutout_.empty() && !CutMask.None()) {
-    if (WriteCutFrame(frameNum, CurrentParm_, CutMask, CutCharges, frame, cutout_ + ".eelec.mol2"))
+    if (WriteCutFrame(frameNum, *CurrentParm_, CutMask, CutCharges, 
+                      *frame, cutout_ + ".eelec.mol2"))
       return;
   }
 }

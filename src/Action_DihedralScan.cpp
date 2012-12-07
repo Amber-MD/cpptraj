@@ -283,9 +283,7 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
           VisitAtom( *currentParm, *bndatm, Visited );
       }
       dst.checkAtoms.clear();
-      int a1res = (*currentParm)[atom1].ResNum();
-      int a1res_start = currentParm->ResFirstAtom( a1res );
-      int a1res_stop = currentParm->ResLastAtom( a1res );
+      const Residue& a1res = currentParm->Res( (*currentParm)[atom1].ResNum() );
       for (int maskatom = 0; maskatom < (int)Visited.size(); maskatom++) {
         if (Visited[maskatom]=='T')
           dst.Rmask.AddAtom(maskatom);
@@ -293,7 +291,7 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
           // If this atom is in the same residue but will not move, it needs
           // to be checked for clashes since further rotations will not
           // help it.
-          if (maskatom >= a1res_start && maskatom < a1res_stop   )
+          if (maskatom >= a1res.FirstAtom() && maskatom < a1res.LastAtom()   )
             dst.checkAtoms.push_back( maskatom );
         }
       }
@@ -355,11 +353,13 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
   // check the atoms in each close residue.
   if (check_for_clashes_) {
     ResidueCheckType rct;
-    int Nres = currentParm->FinalSoluteRes();
-    for (int res = 0; res < Nres; res++) {
-      rct.resnum = res;
-      rct.start = currentParm->ResFirstAtom( res );
-      rct.stop = currentParm->ResLastAtom( res );
+    int res = 0;
+    for (Topology::res_iterator residue = currentParm->ResStart();
+                                residue != currentParm->ResEnd(); ++residue)
+    {
+      rct.resnum = res++;
+      rct.start = (*residue).FirstAtom();
+      rct.stop = (*residue).LastAtom();
       rct.checkatom = rct.start;
       ResCheck_.push_back(rct);
     }

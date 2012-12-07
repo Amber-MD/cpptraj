@@ -68,7 +68,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
       int res = (*CurrentParm_)[atom].ResNum();
       outfile_.Printf("%8i %8i %4s %8i %4s %8i\n", frameNum+OUTPUTFRAMESHIFT,
                       atom+1, (*CurrentParm_)[atom].c_str(), res+1,
-                      CurrentParm_->ResidueName(res), (*CurrentParm_)[atom].Mol()+1);
+                      CurrentParm_->Res(res).c_str(), (*CurrentParm_)[atom].Mol()+1);
       /*mprintf(" Type=%4s",CurrentParm_->types[atom]);
       mprintf(" Charge=%lf",CurrentParm_->charge[atom]);
       mprintf(" Mass=%lf",CurrentParm_->mass[atom]);

@@ -129,6 +129,15 @@ char NameType::operator[](int idx) const {
   return c_array_[idx];
 }
 
+std::string NameType::Truncated() const {
+  std::string outname( c_array_ );
+  // Remove trailing spaces
+  if (outname[3] == ' ') outname.resize(3);
+  if (outname[2] == ' ') outname.resize(2);
+  if (outname[1] == ' ') outname.resize(1);
+  return outname;
+}
+
 /** Replace asterisks with a single quote */
 void NameType::ReplaceAsterisk() {
   if (c_array_[0]=='*') c_array_[0]='\'';

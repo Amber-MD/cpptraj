@@ -163,7 +163,7 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
     int nres = patom.ResNum();
     atm_ptr->rnum = nres+1; // for debug output only, residues start from 1
     patom.Name().ToBuffer( atm_ptr->anam );
-    strcpy(atm_ptr->rnam,currentParm->ResidueName(nres));
+    strcpy(atm_ptr->rnam, currentParm->Res(nres).c_str());
     atm_ptr->pos[0] = 0;
     atm_ptr->pos[1] = 0;
     atm_ptr->pos[2] = 0;

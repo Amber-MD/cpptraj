@@ -175,7 +175,7 @@ int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double 
   file_.WriteHeader(Mol2File::ATOM);
   double *Xptr = X;
   int atnum = 1;
-  for (Topology::iterator atom = mol2Top_->begin(); atom != mol2Top_->end(); ++atom) {
+  for (Topology::atom_iterator atom = mol2Top_->begin(); atom != mol2Top_->end(); ++atom) {
     // figure out the residue number
     int res = (*atom).ResNum();
     // If atom type is blank, set to atom name.

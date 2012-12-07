@@ -19,46 +19,36 @@ class Topology {
     void SetGBradiiSet(std::string&);
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
-    // ----- Return internal variables -----
-    int FinalSoluteRes() const;
-    int Pindex() const;
-    int Natom() const;
-    int Nres() const;
-    int Nmol() const;
-    int Nsolvent() const;
-    int Nframes() const;
-    int Ntypes() const;
     void IncreaseFrames(int);
+    // ----- Return internal variables -----
+    int Pindex()                   const { return pindex_;                }
+    int Natom()                    const { return (int)atoms_.size();     }
+    int Nres()                     const { return (int)residues_.size();  }
+    int Nmol()                     const { return (int)molecules_.size(); }
+    int Nsolvent()                 const { return NsolventMolecules_;     }
+    int Nframes()                  const { return nframes_;               }
+    int Ntypes()                   const { return ntypes_;                }
+    std::string ParmName()         const { return parmName_;              }
+    std::string OriginalFilename() const { return fileName_;              }
+    std::string GBradiiSet()       const { return radius_set_;            }
+    int FinalSoluteRes() const;
     const char *c_str() const;
-    std::string ParmName() const;
-    std::string OriginalFilename();
-    std::string GBradiiSet() const;
     // ---- Atom-specific routines -----
-    typedef std::vector<Atom>::iterator iterator;
-    inline iterator begin() { return atoms_.begin(); }
-    inline iterator end()   { return atoms_.end();   }
     typedef std::vector<Atom>::const_iterator atom_iterator;
-    inline atom_iterator begin() const { return atoms_.begin(); }
-    inline atom_iterator end()   const { return atoms_.end();   }
-    atom_iterator ResAtomStart(int) const;
-    atom_iterator ResAtomEnd(int) const;
-    atom_iterator MolAtomStart(int) const;
-    atom_iterator MolAtomEnd(int) const;
-    const Atom &operator[](int) const;
-    std::vector<Atom> const& Atoms() const { return atoms_; }
+    atom_iterator begin()            const { return atoms_.begin(); }
+    atom_iterator end()              const { return atoms_.end();   }
+    const Atom &operator[](int idx)  const { return atoms_[idx];    }
+    std::vector<Atom> const& Atoms() const { return atoms_;         }
     // ----- Residue-specific routines -----
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
     inline res_iterator ResEnd()   const { return residues_.end();   }
     const Residue& Res(int idx)    const { return residues_[idx];    }
-    int ResFirstAtom(int) const;
-    int ResLastAtom(int) const;
-    int ResSize(int) const; 
     // ----- Molecule-specific routines -----
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const { return molecules_.begin(); }
-    inline mol_iterator MolEnd() const   { return molecules_.end();   }
-    const Molecule& Mol(int idx)         { return molecules_[idx];    }
+    inline mol_iterator MolEnd()   const { return molecules_.end();   }
+    const Molecule& Mol(int idx)   const { return molecules_[idx];    }
     // ----- Bond-specific routines -----
     inline const std::vector<int>& Bonds() const { return bonds_; }
     inline const std::vector<int>& BondsH() const { return bondsh_; }
@@ -93,8 +83,6 @@ class Topology {
     inline const std::vector<double>& LJA() const { return lja_; }
     inline const std::vector<double>& LJB() const { return ljb_; }
     // ----- Misc routines -----
-    int ResAtomRange(int, int *, int *);
-    const char* ResidueName(int); // TODO: Make obsolete
     std::string TruncResAtomName(int);
     std::string TruncResNameNum(int);
     int FindAtomInResidue(int, NameType const&) const;

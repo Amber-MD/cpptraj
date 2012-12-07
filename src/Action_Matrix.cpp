@@ -704,23 +704,23 @@ void Action_Matrix::Print() {
     // Loop over residue pairs
     int crow = 0;
     double mass = 1.0;
-    for (int resi = 0; resi < CurrentParm_->Nres(); ++resi) { // Row
+    for (Topology::res_iterator resi = CurrentParm_->ResStart(); 
+                                resi != CurrentParm_->ResEnd(); ++resi) { // Row
       bool printnewline = false;
       int crowold = crow;
       int ccol = 0;
-      for (int resj = 0; resj < CurrentParm_->Nres(); ++resj) { // Column
+      for (Topology::res_iterator resj = CurrentParm_->ResStart();
+                                  resj != CurrentParm_->ResEnd(); ++resj) { // Column
         bool printval = false;
         double val = 0;
         double valnorm = 0;
         crow = crowold;
         int ccolold = ccol;
-        for (int atomi = CurrentParm_->ResFirstAtom(resi);
-                 atomi < CurrentParm_->ResLastAtom(resi); ++atomi)
+        for (int atomi = (*resi).FirstAtom(); atomi < (*resi).LastAtom(); ++atomi)
         {
           if ( mask2_.AtomInCharMask(atomi) ) {
             ccol = ccolold;
-            for (int atomj = CurrentParm_->ResFirstAtom(resj);
-                     atomj < CurrentParm_->ResLastAtom(resj); ++atomj)
+            for (int atomj = (*resj).FirstAtom(); atomj < (*resj).LastAtom(); ++atomj)
             {
               if ( mask1_.AtomInCharMask(atomj) ) {
                 if (useMass_)

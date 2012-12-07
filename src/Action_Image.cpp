@@ -159,8 +159,9 @@ Action::RetType Action_Image::Setup(Topology* currentParm, Topology** parmAddres
      break;
     case BYRES:
       imageList_.reserve( currentParm->Nres()*2 );
-      for (int resnum = 0; resnum < currentParm->Nres(); ++resnum)
-        CheckRange( currentParm->ResFirstAtom( resnum ), currentParm->ResLastAtom( resnum ) );
+      for (Topology::res_iterator residue = currentParm->ResStart(); 
+                                  residue != currentParm->ResEnd(); ++residue)
+        CheckRange( (*residue).FirstAtom(), (*residue).LastAtom() );
       break;
     case BYATOM:
       imageList_.reserve( currentParm->Natom()*2 );

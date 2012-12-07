@@ -217,8 +217,8 @@ NA_Base::NA_Base(Topology const& currentParm, int resnum, NA_Base::NAType baseTy
       mprinterr("Internal Error: Residue %i is not a recognized NA residue.\n", resnum+1);
   }
   if ( REF != 0 ) {
-    int resstart = currentParm.ResFirstAtom(resnum);
-    int resstop = currentParm.ResLastAtom(resnum);
+    int resstart = currentParm.Res(resnum).FirstAtom();
+    int resstop = currentParm.Res(resnum).LastAtom();
     // Create mask for all input coords for this residue
     parmMask_.AddAtomRange(resstart, resstop);
     // Allocate space to hold input coords

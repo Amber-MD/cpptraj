@@ -101,12 +101,12 @@ Action::RetType Action_RandomizeIons::Setup(Topology* currentParm, Topology** pa
     int res = (*currentParm)[*ion].ResNum();
     if (debug_ > 0)
       mprintf("\tAtom %i is in residue %i which is %i atoms\n",
-              *ion+1, res+1, currentParm->ResSize( res ) );
-    if ( currentParm->ResSize( res ) > 1 ) {
+              *ion+1, res+1, currentParm->Res( res ).NumAtoms() );
+    if ( currentParm->Res( res ).NumAtoms() > 1 ) {
       mprintf("Warning: randomizeions: Ion atom %i belongs to residue %i which\n",
               *ion + 1, res + 1);
       mprintf("Warning:                contains more than 1 atom (%i)!\n", 
-              currentParm->ResSize( res ));
+              currentParm->Res( res ).NumAtoms());
     }
   }
 

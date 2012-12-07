@@ -191,7 +191,7 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   Topology::mol_iterator mol = pdbTop_->MolStart();
   int lastAtomInMol = (*mol).EndAtom();
   double *Xptr = X;
-  for (Topology::iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom) {
+  for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom) {
     int res = (*atom).ResNum();
     // If this atom belongs to a new molecule print a TER card
     // Use res instead of res+1 since this TER belongs to last mol/res

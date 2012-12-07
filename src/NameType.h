@@ -18,6 +18,7 @@ class NameType {
     bool operator!=(const char*) const;
     const char* operator*() const;
     char operator[](int) const;
+    std::string Truncated() const;
     void ReplaceAsterisk();
 
   private:
