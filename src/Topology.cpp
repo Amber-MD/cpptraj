@@ -401,14 +401,9 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
   // Create residue information
   size_t nres = resnames.size();
   residues_.reserve( nres );
-  for (size_t res = 0; res < nres; res++) {
-    int lastatom;
-    if (res+1 < nres)
-      lastatom = resnums[res+1];
-    else
-      lastatom = (int)atoms_.size();
-    residues_.push_back( Residue( resnames[res], resnums[res], lastatom ) );
-  } 
+  for (size_t res = 0; res < nres - 1; res++) 
+    residues_.push_back( Residue( resnames[res], resnums[res], resnums[res+1] ) );
+  residues_.push_back( Residue( resnames[nres-1], resnums[nres-1], atoms_.size() ) );
 
   return 0;
 }
