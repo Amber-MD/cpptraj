@@ -54,7 +54,6 @@
 #include "Action_Translate.h"
 #include "Action_Box.h"
 #include "Action_CreateCrd.h"
-#include "Action_Channel.h"
 
 const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, 0 },
@@ -67,7 +66,6 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "bounds", Action_Bounds::Alloc, Action_Bounds::Help, 0 },
   { DispatchObject::ACTION, "box", Action_Box::Alloc, Action_Box::Help, 0 },
   { DispatchObject::ACTION, "center", Action_Center::Alloc, Action_Center::Help, 0 },
-  { DispatchObject::ACTION, "channel", Action_Channel::Alloc, Action_Channel::Help, 0 },
   { DispatchObject::ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
   { DispatchObject::ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
   { DispatchObject::ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, 0 },

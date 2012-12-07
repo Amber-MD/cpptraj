@@ -1,47 +1,45 @@
-SOURCES=Action_Angle.cpp Action_AtomicFluct.cpp Action_AtomMap.cpp \
-        Action_Average.cpp Action_Box.cpp Action_Center.cpp Action_Channel.cpp \
-        Action_CheckStructure.cpp \
-        Action_Closest.cpp Action_CreateCrd.cpp Action_Dihedral.cpp \
-        Action_Distance.cpp Action_DistRmsd.cpp Action_AvgCoord.cpp Action_DihedralScan.cpp \
-        Action_DSSP.cpp Action_Hbond.cpp Action_Image.cpp Action_Jcoupling.cpp \
-        Action_Mask.cpp Action_Molsurf.cpp Action_NAstruct.cpp \
-        Action_Outtraj.cpp Action_Contacts.cpp \
-        Action_Pairwise.cpp Action_Pucker.cpp Action_Radgyr.cpp Action_Radial.cpp \
-        Action_Rmsd.cpp Action_Rotdif.cpp \
-        Action_RunningAvg.cpp Action_Strip.cpp Action_Surf.cpp Action_Watershell.cpp \
-        Action_Principal.cpp Action_Grid.cpp Action_GridFreeEnergy.cpp \
-        Action_Dipole.cpp Action_Projection.cpp Action_ClusterDihedral.cpp \
-        Action_Unwrap.cpp Action_Diffusion.cpp Action_DNAionTracker.cpp \
-        Action_Scale.cpp Action_RandomizeIons.cpp Action_AutoImage.cpp \
-        Action_STFC_Diffusion.cpp Action_AtomicCorr.cpp Action_Bounds.cpp \
-        Action_Vector.cpp Action_Matrix.cpp Action_Rotate.cpp Action_Translate.cpp \
-        ActionList.cpp \
-        Analysis_AutoCorr.cpp Analysis_Clustering.cpp Analysis_Corr.cpp Analysis_CrankShaft.cpp \
-        Analysis_CrdFluct.cpp Analysis_CrossCorr.cpp Analysis_FFT.cpp Analysis_Hist.cpp \
-        Analysis_IRED.cpp Analysis_Lifetime.cpp Analysis_Matrix.cpp Analysis_Modes.cpp \
-        Analysis_Timecorr.cpp Analysis_Rms2d.cpp Analysis_RmsAvgCorr.cpp Analysis_RunningAvg.cpp \
-        Analysis_Statistics.cpp \
-        AnalysisList.cpp \
+SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
+        Action_AtomMap.cpp Action_AutoImage.cpp Action_Average.cpp \
+        Action_AvgCoord.cpp Action_Bounds.cpp Action_Box.cpp Action_Center.cpp \
+        Action_CheckStructure.cpp Action_Contacts.cpp Action_Closest.cpp \
+        Action_ClusterDihedral.cpp Action_CreateCrd.cpp Action_Diffusion.cpp \
+        Action_Dihedral.cpp Action_Dipole.cpp Action_Distance.cpp \
+        Action_DistRmsd.cpp Action_DihedralScan.cpp Action_DNAionTracker.cpp \
+        Action_DSSP.cpp Action_Grid.cpp Action_GridFreeEnergy.cpp \
+        Action_Hbond.cpp Action_Image.cpp Action_Jcoupling.cpp Action_Mask.cpp \
+        Action_Matrix.cpp Action_Molsurf.cpp Action_NAstruct.cpp \
+        Action_Outtraj.cpp Action_Pairwise.cpp Action_Principal.cpp \
+        Action_Projection.cpp Action_Pucker.cpp Action_Radgyr.cpp \
+        Action_Radial.cpp Action_RandomizeIons.cpp Action_Rmsd.cpp \
+        Action_Rotate.cpp Action_Rotdif.cpp Action_RunningAvg.cpp \
+        Action_Scale.cpp Action_STFC_Diffusion.cpp Action_Strip.cpp \
+        Action_Surf.cpp Action_Translate.cpp Action_Unwrap.cpp \
+        Action_Vector.cpp Action_Watershell.cpp ActionList.cpp \
+        Analysis_AutoCorr.cpp Analysis_Clustering.cpp Analysis_Corr.cpp \
+        Analysis_CrankShaft.cpp Analysis_CrdFluct.cpp Analysis_CrossCorr.cpp \
+        Analysis_FFT.cpp Analysis_Hist.cpp Analysis_IRED.cpp \
+        Analysis_Lifetime.cpp Analysis_Matrix.cpp Analysis_Modes.cpp \
+        Analysis_Timecorr.cpp Analysis_Rms2d.cpp Analysis_RmsAvgCorr.cpp \
+        Analysis_RunningAvg.cpp Analysis_Statistics.cpp AnalysisList.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
         BufferedFile.cpp ByteRoutines.cpp ClusterList.cpp ClusterNode.cpp \
-        ComplexArray.cpp CpptrajFile.cpp \
-        Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
+        ComplexArray.cpp CpptrajFile.cpp Cpptraj.cpp CpptrajStdio.cpp \
+        DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
-        DataSet.cpp DataSet_Coords.cpp DataSet_double.cpp DataSet_float.cpp DataSet_integer.cpp \
-        DataSetList.cpp DataSet_string.cpp DataSet_Vector.cpp DataSet_Matrix.cpp \
-        DataSet_Modes.cpp \
+        DataSet.cpp DataSet_Coords.cpp DataSet_double.cpp DataSet_float.cpp \
+        DataSet_integer.cpp DataSet_string.cpp DataSet_Vector.cpp \
+        DataSet_Matrix.cpp DataSet_Modes.cpp DataSetList.cpp \
         DistRoutines.cpp Dimension.cpp DS_Math.cpp \
-        FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp FileList.cpp \
-        FileName.cpp \
-        Frame.cpp FrameList.cpp Grid.cpp Histogram.cpp Integrate.cpp \
-        ImageRoutines.cpp \
-        main.cpp MapAtom.cpp Matrix_3x3.cpp Matrix_2D.cpp \
-        MaskToken.cpp Mol2File.cpp NameType.cpp NetcdfFile.cpp \
-        Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp TopologyList.cpp \
-        Parm_Mol2.cpp Parm_PDB.cpp \
-        Random.cpp Range.cpp Thermo.cpp Topology.cpp \
-        PDBfile.cpp ProgressBar.cpp PubFFT.cpp ReadLine.cpp \
-        StringRoutines.cpp TorsionRoutines.cpp \
+        FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp \
+        FileList.cpp FileName.cpp Frame.cpp FrameList.cpp Grid.cpp \
+        Histogram.cpp Integrate.cpp ImageRoutines.cpp main.cpp MapAtom.cpp \
+        Matrix_3x3.cpp Matrix_2D.cpp MaskToken.cpp Mol2File.cpp NameType.cpp \
+        NetcdfFile.cpp \
+        Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp Parm_Mol2.cpp \
+        Parm_PDB.cpp \
+        Random.cpp Range.cpp Thermo.cpp Topology.cpp PDBfile.cpp \
+        ProgressBar.cpp PubFFT.cpp ReadLine.cpp StringRoutines.cpp \
+        TorsionRoutines.cpp TopologyList.cpp \
         Trajin.cpp Trajin_Single.cpp Trajin_Multi.cpp Trajout.cpp \
         Traj_AmberCoord.cpp Traj_AmberNetcdf.cpp Traj_AmberRestart.cpp Traj_Binpos.cpp \
         Traj_AmberRestartNC.cpp Traj_CharmmDcd.cpp Traj_Conflib.cpp TrajectoryFile.cpp \
