@@ -16,7 +16,7 @@ class Topology {
     void SetOffset(double oIn);
     void SetDebug(int);
     void SetParmName(std::string const&, std::string const&);
-    void SetGBradiiSet(std::string&);
+    void SetGBradiiSet(std::string const&);
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
     void IncreaseFrames(int);
@@ -28,9 +28,9 @@ class Topology {
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int Nframes()                  const { return nframes_;               }
     int Ntypes()                   const { return ntypes_;                }
-    std::string ParmName()         const { return parmName_;              }
-    std::string OriginalFilename() const { return fileName_;              }
-    std::string GBradiiSet()       const { return radius_set_;            }
+    std::string const& ParmName()         const { return parmName_;       }
+    std::string const& OriginalFilename() const { return fileName_;       }
+    std::string const& GBradiiSet()       const { return radius_set_;     }
     int FinalSoluteRes() const;
     const char *c_str() const;
     // ---- Atom-specific routines -----

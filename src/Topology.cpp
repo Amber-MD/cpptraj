@@ -33,13 +33,12 @@ void Topology::SetDebug(int debugIn) {
 
 // Topology::SetParmName()
 void Topology::SetParmName(std::string const& title, std::string const& filename) {
-  // NOTE: Check for NULL?
   parmName_ = title;
   fileName_ = filename;
 }
 
 // Topology::SetGBradiiSet()
-void Topology::SetGBradiiSet(std::string &gbset) {
+void Topology::SetGBradiiSet(std::string const& gbset) {
   radius_set_ = gbset;
 }  
 
@@ -49,9 +48,9 @@ void Topology::SetPindex(int pindexIn) {
 }
 
 // Topology::SetReferenceCoords()
-void Topology::SetReferenceCoords( Frame *frameptr ) {
-    if (frameptr==NULL) return;
-    refCoords_ = *frameptr;
+void Topology::SetReferenceCoords( Frame* frameptr ) {
+  if (frameptr == 0) return;
+  refCoords_ = *frameptr;
 }
 
 // Topology::IncreaseFrames()
