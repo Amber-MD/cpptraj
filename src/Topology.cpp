@@ -1199,15 +1199,10 @@ void Topology::MaskSelectResidues(int res1, int res2, char *mask) const {
   int endatom;
   int nres = (int) residues_.size();
   //mprintf("\t\t\tSelecting residues %i to %i\n",res1,res2);
-  // Check start atom
-  if (res1 > nres || res1 < 1) {
+  // Check start atom. res1 and res2 are checked by MaskToken
+  if (res1 > nres) {
     if (debug_>0)
       mprintf("Warning: Select residues: res 1 out of range (%i)\n",res1);
-    return;
-  }
-  // Check end atom
-  if ( res2 < res1 ) {
-    mprintf("Warning: Select residues: res 2 (%i) less than res1 (%i)\n",res2,res1);
     return;
   }
   // If last res > nres, make it nres
