@@ -12,6 +12,7 @@
 class DataSet_double : public DataSet {
   public:
     DataSet_double();
+    double& operator[](int idx) { return Data_[idx]; }
 
     int Allocate(int);
     int Xmax();

@@ -1,18 +1,21 @@
 // Action_Dihedral
 #include "Action_Dihedral.h"
+#include "DataSet_double.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG
 #include "TorsionRoutines.h"
 
 // CONSTRUCTOR
 Action_Dihedral::Action_Dihedral() :
-  dih_(NULL),
-  useMass_(false)
+  dih_(0),
+  useMass_(false),
+  range360_(false)
 { } 
 
 void Action_Dihedral::Help() {
   mprintf("dihedral [<name>] <mask1> <mask2> <mask3> <mask4> [out filename] [mass]\n");
   mprintf("         [type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p|h1p|phi|psi|pchi}]\n");
+  mprintf("         [range360]\n");
 }
 
 // Action_Dihedral::init()
@@ -23,6 +26,7 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   useMass_ = actionArgs.hasKey("mass");
   DataSet::scalarType stype = DataSet::UNDEFINED;
+  range360_ = actionArgs.hasKey("range360");
   std::string stypename = actionArgs.GetStringKey("type");
   if      ( stypename == "alpha"   ) stype = DataSet::ALPHA;
   else if ( stypename == "beta"    ) stype = DataSet::BETA;
@@ -62,6 +66,10 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
           M2_.MaskString(), M3_.MaskString(), M4_.MaskString());
   if (useMass_)
     mprintf("              Using center of mass of atoms in masks.\n");
+  if (range360_)
+    mprintf("              Output range is 0 to 360 degrees.\n");
+  else
+    mprintf("              Output range is -180 to 180 degrees.\n");
 
   return Action::OK;
 }
@@ -110,3 +118,12 @@ Action::RetType Action_Dihedral::DoAction(int frameNum, Frame* currentFrame, Fra
   return Action::OK;
 } 
 
+void Action_Dihedral::Print() {
+  if (range360_) {
+    DataSet_double* ds = (DataSet_double*)dih_;
+    for (int i = 0; i < ds->Size(); i++) {
+      if ( (*ds)[i] < 0.0 )
+        (*ds)[i] += 360.0;
+    }
+  }
+}

@@ -6,11 +6,8 @@
 class Action_Pucker: public Action {
   public:
     Action_Pucker();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Pucker(); }
     static void Help();
-
-    void Print() {}
   private:
     DataSet *puck_;
     AtomMask M1_;
@@ -22,13 +19,13 @@ class Action_Pucker: public Action {
     PmethodType puckerMethod_;
     bool amplitude_;
     bool useMass_;
+    bool range360_;
     double offset_;
-    double puckermin_;
-    double puckermax_;
 
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 };
 #endif  

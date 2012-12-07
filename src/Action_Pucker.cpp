@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG
 #include "TorsionRoutines.h"
+#include "DataSet_double.h"
 
 // CONSTRUCTOR
 Action_Pucker::Action_Pucker() :
@@ -10,9 +11,8 @@ Action_Pucker::Action_Pucker() :
   puckerMethod_(ALTONA),
   amplitude_(false),
   useMass_(true),
-  offset_(0),
-  puckermin_( -180.0),
-  puckermax_( 180.0)
+  range360_(false),
+  offset_(0.0)
 { } 
 
 void Action_Pucker::Help() {
@@ -30,10 +30,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
   amplitude_ = actionArgs.hasKey("amplitude");
   offset_ = actionArgs.getKeyDouble("offset",0.0);
-  if (actionArgs.hasKey("range360")) {
-    puckermax_=360.0;
-    puckermin_=0.0;
-  }
+  range360_ = actionArgs.hasKey("range360");
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
   if ( stypename == "pucker" ) stype = DataSet::PUCKER;
@@ -56,12 +53,11 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 
   // Setup dataset
   puck_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Pucker");
-  if (puck_==NULL) return Action::ERR;
+  if (puck_ == 0) return Action::ERR;
   puck_->SetScalar( DataSet::M_PUCKER, stype );
   // Add dataset to datafile list
   if (outfile != 0) outfile->AddSet( puck_ );
 
-  //dih->Info();
   mprintf("    PUCKER: [%s]-[%s]-[%s]-[%s]-[%s]\n", M1_.MaskString(),M2_.MaskString(),
           M3_.MaskString(), M4_.MaskString(), M5_.MaskString());
   if (puckerMethod_==ALTONA) 
@@ -74,7 +70,10 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf("            Amplitudes will be stored instead of psuedorotation.\n");
   if (offset_!=0)
     mprintf("            Offset: %lf will be added to values.\n");
-  mprintf  ("            Values will range from %.1lf to %.1lf\n",puckermin_,puckermax_);
+  if (range360_)
+    mprintf("              Output range is 0 to 360 degrees.\n");
+  else
+    mprintf("              Output range is -180 to 180 degrees.\n");
 
   return Action::OK;
 }
@@ -132,17 +131,27 @@ Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame
   
   pval *= RADDEG;
 
-  // Deal with offset
-  pval += offset_;
-
-  // Wrap values > puckermax or < puckermin
-  if      (pval > puckermax_) pval -= 360.0;
-  else if (pval < puckermin_) pval += 360.0;
-
   puck_->Add(frameNum, &pval);
 
-  //fprintf(outfile,"%10i %10.4lf\n",frameNum,pval);
-  
   return Action::OK;
 } 
 
+void Action_Pucker::Print() {
+  double puckermin, puckermax;
+  if (range360_) {
+    puckermax =  360.0;
+    puckermin =    0.0;
+  } else {
+    puckermax =  180.0;
+    puckermin = -180.0;
+  }
+  // Deal with offset and wrap values
+  DataSet_double* ds = (DataSet_double*)puck_;
+  for (int i = 0; i < ds->Size(); i++) {
+    (*ds)[i] += offset_;
+    if ( (*ds)[i] > puckermax )
+      (*ds)[i] -= 360.0;
+    else if ( (*ds)[i] < puckermin )
+      (*ds)[i] += 360.0;
+  }
+}
