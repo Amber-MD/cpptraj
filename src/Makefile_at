@@ -8,7 +8,7 @@ CPPTRAJ_FLAGS=-I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
 # of these libraries each time 'make' is invoked.
 # NOTE: Since -nobintraj is possible and the dependency for netcdf is not
 #       set correctly by configure there is no way this can work for netcdf
-READLINE_HOME=$(AMBERHOME)/AmberTools/src/gleap/freelib/readline
+READLINE_HOME=readline
 READLINE=$(READLINE_HOME)/libreadline.a
 EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a $(READLINE)
 
@@ -64,9 +64,11 @@ ReadLine.o: ReadLine.cpp
 
 clean:
 	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX)
+	cd readline && $(MAKE) clean
 
 uninstall:
 	/bin/rm -f $(BINDIR)/cpptraj$(SFX)
+	cd readline && $(MAKE) uninstall
 
 # Header dependencies
 include cpptrajdepend

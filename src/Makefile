@@ -43,6 +43,7 @@ ReadLine.o: ReadLine.cpp
 
 clean:
 	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX)
+	cd readline && $(MAKE) clean
 
 libclean: $(BLAS_HOME)/Makefile $(ARPACK_HOME)/Makefile $(LAPACK_HOME)/Makefile $(READLINE_HOME)/Makefile
 	cd $(BLAS_HOME) && $(MAKE) clean
