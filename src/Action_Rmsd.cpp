@@ -438,8 +438,8 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
 
   // ---=== Per Residue RMSD ===---
   // Set reference and selected frame for each residue using the previously
-  // set-up masks in refResMask and tgtResMask. Use SetFrameFromMask instead
-  // of SetFrameCoordsFromMask since each residue can be a different size.
+  // set-up masks in refResMask and tgtResMask. Use SetFrame instead
+  // of SetCoordinates since each residue can be a different size.
   if (perres_) {
     for (int N=0; N < NumResidues_; ++N) {
       if (!resIsActive_[N]) {
