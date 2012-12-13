@@ -216,11 +216,12 @@ int Grid::GridPoint(Vec3 const& vIn) {
 
 void Grid::GridFrame(Frame& currentFrame, AtomMask const& mask) {
   Vec3 center;
-  switch (mode_) {
-    case BOX: center = currentFrame.BoxCrd().Center(); break;
-    case CENTER: center = currentFrame.VGeometricCenter( centerMask_ ); break;
-    case ORIGIN: center.Zero(); break;
-  }
+  if (mode_ == BOX) 
+    center = currentFrame.BoxCrd().Center();
+  else if (mode_ == CENTER)
+    center = currentFrame.VGeometricCenter( centerMask_ );
+  else // ORIGIN
+    center.Zero();
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
     GridPoint( Vec3(currentFrame.XYZ( *atom )) - center );
 }
