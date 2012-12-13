@@ -9,7 +9,7 @@
 #include "Constants.h" // TWOPI
 #include "Integrate.h"
 #include "ProgressBar.h"
-#include "PubFFT.h"
+#include "ComplexArray.h"
 #include "BufferedFile.h"
 
 #ifndef NO_MATHLIB
@@ -409,14 +409,15 @@ int Action_Rotdif::fft_compute_corr(DataSet_Vector& rotated_vectors, int nsteps,
   rotated_vectors.CalcSphericalHarmonics( order );
 
   // Calculate correlation fn
-  PubFFT pubfft( n_of_vecs );
+  CorrF_FFT pubfft( n_of_vecs );
   ComplexArray data1 = pubfft.Array();
   // Loop over m = -olegendre, ..., +olegendre
   for (int midx = -order; midx <= order; ++midx) { 
     rotated_vectors.FillData( data1, midx );
     // Pad with zeros at the end
+    // TODO: Does this always have to be done or can it just be done once
     data1.PadWithZero( n_of_vecs );
-    pubfft.CorF_Auto(data1);
+    pubfft.AutoCorr(data1);
     // Sum into pX
     for (int i = 0; i < nsteps; ++i)
       p2[i] += data1[i*2];

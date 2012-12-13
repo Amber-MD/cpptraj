@@ -3,7 +3,6 @@
 #include "Analysis.h"
 #include "DataSet_Vector.h"
 #include "DataSet_Modes.h"
-#include "PubFFT.h"
 /** \author Original Code by Alrun N. Koller & H. Gohlke
   * \author Adapted by DRR
   */
@@ -37,8 +36,6 @@ class Analysis_IRED : public Analysis {
     std::string noeFilename_;
     std::string filename_;
     std::string orderparamfile_;
-    PubFFT pubfft_;
-    CorrF_Direct corfdir_;
     DataSet_Modes* modinfo_;
     std::vector<DataSet_Vector*> IredVectors_;
 

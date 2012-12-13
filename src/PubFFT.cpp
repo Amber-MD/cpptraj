@@ -64,8 +64,8 @@ PubFFT::PubFFT(const PubFFT& rhs) :
 // Assignment operator
 PubFFT& PubFFT::operator=(const PubFFT& rhs) {
   if (this == &rhs) return *this;
-  delete[] saved_work_;
-  delete[] saved_factors_;
+  if (saved_work_ != 0) delete[] saved_work_;
+  if (saved_factors_ != 0) delete[] saved_factors_;
   fft_size_ = rhs.fft_size_;
   saved_factors_size_ = rhs.saved_factors_size_;
   saved_work_size_ = rhs.saved_work_size_;
@@ -112,8 +112,8 @@ void PubFFT::Allocate() {
   cffti_( fft_size_, saved_work_, saved_factors_ );
 }
 
-// PubFFT::SetupFFT()
-int PubFFT::SetupFFT(int sizeIn) {
+// PubFFT::SetupFFT_NextPowerOf2()
+int PubFFT::SetupFFT_NextPowerOf2(int sizeIn) {
   int ndata = NextPowOf2( sizeIn ); 
   fft_size_ = ndata / 2;
   saved_work_size_ = 2 * ndata;
@@ -127,26 +127,4 @@ int PubFFT::SetupFFTforN(int sizeIn) {
   saved_work_size_ = 4 * fft_size_;
   Allocate();
   return 0;
-}
-
-void PubFFT::CorF_Auto(ComplexArray& data1) {
-  cfftf_(fft_size_, data1.CAptr(), saved_work_, saved_factors_);
-  // Calculate square modulus of F(data1)
-  data1.SquareModulus();
-  // Inverse FFT
-  cfftb_(fft_size_, data1.CAptr(), saved_work_, saved_factors_);
-  // Normalize with fft_size (since not done in inverse FFT routine)
-  data1.Normalize( 1.0 / ((double) (fft_size_)));
-}
-
-void PubFFT::CorF_Cross(ComplexArray& data1, ComplexArray& data2) {
-  // Cross-correlation
-  cfftf_(fft_size_, data1.CAptr(), saved_work_, saved_factors_);
-  cfftf_(fft_size_, data2.CAptr(), saved_work_, saved_factors_);
-  // Calculate [data1]* x [data2] where * denotes complex conjugate.
-  data1.ComplexConjTimes(data2);
-  // Inverse FFT
-  cfftb_(fft_size_, data1.CAptr(), saved_work_, saved_factors_);
-  // Normalize with fft_size (since not done in inverse FFT routine)
-  data1.Normalize( 1.0 / ((double) (fft_size_)));
 }

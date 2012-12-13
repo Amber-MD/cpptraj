@@ -2,7 +2,7 @@
 #define INC_ANALYSIS_TIMECORR_H
 #include "Analysis.h"
 #include "DataSet_Vector.h"
-#include "PubFFT.h"
+#include "ComplexArray.h"
 /** \author Original Code by Alrun N. Koller & H. Gohlke
   * \author Adapted by DRR
   */
@@ -38,7 +38,7 @@ class Analysis_Timecorr : public Analysis {
     DataSet_Vector* vinfo1_;
     DataSet_Vector* vinfo2_;
     std::string filename_;
-    PubFFT pubfft_;
+    CorrF_FFT pubfft_;
     CorrF_Direct corfdir_;
     
     std::vector<double> CalculateAverages(DataSet_Vector&, AvgResults&);

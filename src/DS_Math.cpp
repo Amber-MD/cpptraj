@@ -1,7 +1,6 @@
 #include <cmath> // sqrt, fabs
-#include <cstring> // memset
 #include "DS_Math.h"
-#include "PubFFT.h"
+#include "ComplexArray.h"
 #include "CpptrajStdio.h"
 
 /// Return true if set is an atomic type (i.e. int, double, float).
@@ -134,20 +133,20 @@ int DS_Math::CrossCorr( DataSet& D1, DataSet& D2, DataSet& Ct, int lagmaxIn,
   double norm = 1.0;
   if ( usefft ) {
     // Calc using FFT
-    PubFFT pubfft1(Nelements);
+    CorrF_FFT pubfft1(Nelements);
     ComplexArray data1 = pubfft1.Array();
     data1.PadWithZero(Nelements);
     for (int i = 0; i < Nelements; ++i)
       data1[i*2] = D1.Dval(i) - avg1;
     if (&D2 == &D1)
-      pubfft1.CorF_Auto(data1);
+      pubfft1.AutoCorr(data1);
     else {
       // Populate second dataset if different
       ComplexArray data2 = pubfft1.Array();
       data2.PadWithZero(Nelements);
       for (int i = 0; i < Nelements; ++i)
         data2[i*2] = D2.Dval(i) - avg2;
-      pubfft1.CorF_Cross(data1, data2);
+      pubfft1.CrossCorr(data1, data2);
     }
     // Put real components of data1 in output DataSet
     norm = 1.0 / fabs( data1[0] );

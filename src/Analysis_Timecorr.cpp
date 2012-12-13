@@ -64,7 +64,6 @@ std::vector<double> Analysis_Timecorr::CalculateAverages(DataSet_Vector& vIn,
 }
 
 // Analysis_Timecorr::CalcCorr()
-// TODO: Move to DataSet_Vector
 void Analysis_Timecorr::CalcCorr(int frame) {
   if (drct_) {
     // Calc correlation function using direct approach
@@ -76,10 +75,10 @@ void Analysis_Timecorr::CalcCorr(int frame) {
     // Pad with zero's at the end
     data1_.PadWithZero(frame);
     if (mode_ == AUTO)
-      pubfft_.CorF_Auto(data1_);
+      pubfft_.AutoCorr(data1_);
     else {
       data2_.PadWithZero(frame);
-      pubfft_.CorF_Cross(data1_, data2_);
+      pubfft_.CrossCorr(data1_, data2_);
     }
   }
 }
@@ -184,8 +183,6 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     nsteps = frame;
   else
     nsteps = time;
-  // ndata
-  //int ndata = 0;
   // Allocate memory to hold complex numbers for direct or FFT
   if (drct_) {
     data1_.Allocate( frame );
@@ -194,13 +191,11 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     corfdir_.Allocate( nsteps ); 
   } else {
     // Initialize FFT
-    pubfft_.SetupFFT( frame );
+    pubfft_.Allocate( frame );
     data1_ = pubfft_.Array();
     if (mode_ == CROSS)
       data2_ = data1_;
   }
-  //int mtot = 2 * order_ + 1;
-  //mprintf("CDBG: frame=%i time=%i nsteps=%i ndata=%i mtot=%i\n",frame,time,nsteps,ndata,mtot);
 
   // ---------------------------------------------------------------------------
   // Real + Img. for each -order <= m <= order, spherical Harmonics for each frame
@@ -322,4 +317,3 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
 
   return Analysis::OK;
 }
-

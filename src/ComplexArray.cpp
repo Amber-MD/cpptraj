@@ -72,10 +72,6 @@ void ComplexArray::ComplexConjTimes(ComplexArray const& rhs) {
 }
 
 // -----------------------------------------------------------------------------
-CorrF_Direct::CorrF_Direct(int stepsIn) : nsteps_(stepsIn) { 
-  table_.assign(2*nsteps_, 0.0); 
-}
-
 void CorrF_Direct::Allocate(int stepsIn) {
   nsteps_ = stepsIn;
   table_.resize(2*nsteps_, 0.0);
@@ -120,4 +116,31 @@ void CorrF_Direct::CrossCorr(ComplexArray& data1, ComplexArray const& data2) {
       break;
   }
   std::copy(table_.begin(), table_.end(), data1.CAptr());
+}
+
+// -----------------------------------------------------------------------------
+void CorrF_FFT::Allocate(int stepsIn) {
+  pubfft_.SetupFFT_NextPowerOf2( stepsIn );
+}
+
+void CorrF_FFT::AutoCorr(ComplexArray& data1) {
+  pubfft_.Forward( data1.CAptr() );
+  // Calculate square modulus of F(data1)
+  data1.SquareModulus();
+  // Inverse FFT
+  pubfft_.Back( data1.CAptr() );
+  // Normalize with fft_size (since not done in inverse FFT routine)
+  data1.Normalize( 1.0 / (double)pubfft_.size() );
+}
+
+void CorrF_FFT::CrossCorr(ComplexArray& data1, ComplexArray& data2) {
+  // Cross-correlation
+  pubfft_.Forward( data1.CAptr() );
+  pubfft_.Forward( data2.CAptr() );
+  // Calculate [data1]* x [data2] where * denotes complex conjugate.
+  data1.ComplexConjTimes(data2);
+  // Inverse FFT
+  pubfft_.Back( data1.CAptr() );
+  // Normalize with fft_size (since not done in inverse FFT routine)
+  data1.Normalize( 1.0 / (double)pubfft_.size() );
 }

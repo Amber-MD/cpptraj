@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists
 #include "Constants.h" // PI
+#include "ComplexArray.h"
 
 // CONSTRUCTOR
 Analysis_IRED::Analysis_IRED() :
@@ -161,6 +162,8 @@ double Analysis_IRED::calc_spectral_density(int vi, double omega) {
 
 // Analysis_IRED::Analyze()
 Analysis::RetType Analysis_IRED::Analyze() {
+  CorrF_FFT pubfft_;
+  CorrF_Direct corfdir_;
   if (!orderparamfile_.empty()) {
     // Calculation of S2 order parameters according to 
     //   Prompers & Brüschweiler, JACS  124, 4522, 2002; 
@@ -218,15 +221,13 @@ Analysis::RetType Analysis_IRED::Analyze() {
     nsteps = Nframes_;
   else
     nsteps = time;
-  // ndata
-  //int ndata = 0;
   // Allocate memory to hold complex numbers for direct or FFT
   if (drct_) {
     data1_.Allocate( Nframes_ );
     corfdir_.Allocate( nsteps );
   } else {
     // Initialize FFT
-    pubfft_.SetupFFT( Nframes_ );
+    pubfft_.Allocate( Nframes_ );
     data1_ = pubfft_.Array();
   }
 
@@ -254,7 +255,6 @@ Analysis::RetType Analysis_IRED::Analyze() {
 
   // Allocate memory to project spherical harmonics on eigenmodes
   int mtot = 2 * order_ + 1;
-  //mprintf("CDBG: Nframes=%i time=%i nsteps=%i ndata=%i mtot=%i\n",Nframes_,time,nsteps,ndata,mtot);
   int p2blocksize = 2 * mtot;                // Real + Img. for each -order <= m <= order
   int nsphereharm = Nframes_ * p2blocksize;  // Spherical Harmonics for each frame
   int ntotal = nvect * nsphereharm;          // Each vector has set of spherical harmonics
@@ -312,8 +312,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
         // Pad with zero's at the end
         data1_.PadWithZero( Nframes_ );
         // Calc correlation function (= C(m,l,t) in Bruschweiler paper) using FFT
-        //corffft(ndata, data1_, NULL, table_);
-        pubfft_.CorF_Auto(data1_);
+        pubfft_.AutoCorr(data1_);
       }
       // Sum into cf (= C(m,t) in Bruschweiler paper)
       for (int k = 0; k < nsteps; ++k) {
