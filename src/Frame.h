@@ -76,7 +76,6 @@ class Frame {
     void SetCoordinates(Frame const&, AtomMask const&);
     void SetCoordinates(Frame const&);
     void SetFrame(Frame const&, AtomMask const&);
-    Frame* FrameCopy(); // TODO: Obsolete
     // Frame Setup with Atom Mapping
     void SetCoordinatesByMap(Frame const&, std::vector<int>const&);
     void SetReferenceByMap(Frame const&, std::vector<int>const&);

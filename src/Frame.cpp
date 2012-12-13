@@ -432,14 +432,6 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   }
 }
 
-// Frame::FrameCopy()
-/** Return a copy of the frame */
-// TODO: Obsolete
-Frame *Frame::FrameCopy( ) {
-  Frame* newFrame = new Frame( *this );
-  return newFrame;
-}
-
 // ---------- FRAME SETUP WITH ATOM MAPPING ------------------------------------
 // NOTE: Should these map routines be part of a child class used only by AtomMap?
 // Frame::SetCoordinatesByMap()
