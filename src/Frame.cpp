@@ -656,15 +656,10 @@ void Frame::Center(AtomMask const& Mask, bool origin, bool useMassIn)
   else
     center = VGeometricCenter(Mask);
   //mprinterr("  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
-  if (origin) 
-    // Shift to coordinate origin (0,0,0)
+  if (origin) // Shift to coordinate origin (0,0,0)
     center.Neg();
-  else {
-    // Shift to box center
-    center[0] = (box_[0] / 2) - center[0];
-    center[1] = (box_[1] / 2) - center[1];
-    center[2] = (box_[2] / 2) - center[2];
-  }
+  else        // Shift to box center
+    center = box_.Center() - center;
   Translate(center);
 }
 
