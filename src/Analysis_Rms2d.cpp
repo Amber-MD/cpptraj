@@ -157,7 +157,7 @@ int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distance
     RefFrame.SetFromCRD(coordsIn[nref], 0, tgtmask);
     // Select and pre-center reference atoms (if fitting)
     if (!nofitIn)
-      RefFrame.CenterReference(useMassIn);
+      RefFrame.CenterOnOrigin(useMassIn);
   
     // LOOP OVER TARGET FRAMES
     for (int nframe=nref+1; nframe < totalref; nframe++) {
@@ -293,7 +293,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
     // Set reference atoms and pre-center if fitting
     SelectedRef.SetCoordinates(RefFrame, RefMask_);
     if (!nofit_)
-      SelectedRef.CenterReference(useMass_);
+      SelectedRef.CenterOnOrigin(useMass_);
     // LOOP OVER TARGET FRAMES
     for (int nframe=0; nframe < totaltgt; nframe++) {
       // Get selected atoms of the current target frame

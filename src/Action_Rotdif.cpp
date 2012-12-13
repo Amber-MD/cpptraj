@@ -200,7 +200,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Set reference frame coordinates
   SelectedRef_.SetCoordinates(*TempFrame, RefMask);
   // Always fitting; Pre-center reference frame
-  SelectedRef_.CenterReference(useMass_); 
+  SelectedRef_.CenterOnOrigin(useMass_); 
 
   // Open output file. Defaults to stdout if no name specified
   if (outfile_.OpenWrite(outfilename)) {

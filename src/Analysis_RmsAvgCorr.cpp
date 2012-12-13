@@ -129,7 +129,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   // Get coords of first frame for use as reference. No Box info.
   refFrame.SetFromCRD( (*coords_)[0], 0, mask_ );
   // Pre-center reference
-  refFrame.CenterReference(useMass_);
+  refFrame.CenterOnOrigin(useMass_);
   // Calc initial RMSD
   avg = 0;
   for (frame = 0; frame < coords_->Size(); frame++) {
@@ -180,7 +180,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
           // Set coords only for speed (everything else is same anyway)
           refFrame.SetCoordinates( tgtFrame );
           // Pre-center reference
-          refFrame.CenterReference(useMass_);
+          refFrame.CenterOnOrigin(useMass_);
           first = false;
         }
         avg += tgtFrame.RMSD_CenteredRef(refFrame, useMass_);

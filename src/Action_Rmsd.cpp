@@ -73,7 +73,7 @@ void Action_Rmsd::SetRefStructure( Frame& frameIn ) {
   RefFrame_ = frameIn;
   SelectedRef_.SetCoordinates( RefFrame_, RefMask_ );
   if (!nofit_)
-    refTrans_ = SelectedRef_.CenterReference( useMass_ );
+    refTrans_ = SelectedRef_.CenterOnOrigin( useMass_ );
 }
 
 void Action_Rmsd::Help() {
@@ -409,7 +409,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
     RefTraj_.GetNextFrame( RefFrame_ );
     SelectedRef_.SetCoordinates(RefFrame_, RefMask_);
     if (!nofit_)
-      refTrans_ = SelectedRef_.CenterReference(useMass_);
+      refTrans_ = SelectedRef_.CenterOnOrigin(useMass_);
   }
 
   // Set selected frame atoms. Masses have already been set.
@@ -449,8 +449,8 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
       ResRefFrame_->SetFrame(RefFrame_, refResMask_[N]);
       ResFrame_->SetFrame(*currentFrame, tgtResMask_[N]);
       if (perrescenter_) {
-        ResFrame_->ShiftToGeometricCenter( );
-        ResRefFrame_->ShiftToGeometricCenter( );
+        ResFrame_->CenterOnOrigin(false);
+        ResRefFrame_->CenterOnOrigin(false);
       }
       R = ResFrame_->RMSD_NoFit(*ResRefFrame_, useMass_);
       //mprintf("DEBUG:           [%4i] Res [%s] nofit RMSD to [%s] = %lf\n",N,

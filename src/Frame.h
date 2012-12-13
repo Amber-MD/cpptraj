@@ -234,8 +234,7 @@ class Frame {
     }
     // -------------------------------------------------------------------------
     void Center(AtomMask const&, bool,bool);
-    Vec3 CenterReference(bool);
-    void ShiftToGeometricCenter();
+    Vec3 CenterOnOrigin(bool);
     // Coordinate calculation
     double RMSD(Frame &, bool );
     double RMSD(Frame &, Matrix_3x3&, Vec3&, Vec3&, bool);

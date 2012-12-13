@@ -833,11 +833,7 @@ int Action_NAstruct::determineBasepairParameters(int frameNum) {
 }
 // ----------------------------------------------------------------------------
 
-// Action_NAstruct::init()
-// Dataset name will be the last arg checked for. Check order is:
-//    1) Keywords
-//    2) Masks
-//    3) Dataset name
+// Action_NAstruct::Init()
 Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {

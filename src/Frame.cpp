@@ -663,11 +663,11 @@ void Frame::Center(AtomMask const& Mask, bool origin, bool useMassIn)
   Translate(center);
 }
 
-// Frame::CenterReference()
-/** Center coordinates to origin in preparation for RMSD calculation. 
-  * \return translation vector from origin to reference.
+// Frame::CenterOnOrigin()
+/** Center coordinates to origin. 
+  * \return translation vector from origin to original center.
   */
-Vec3 Frame::CenterReference(bool useMassIn)
+Vec3 Frame::CenterOnOrigin(bool useMassIn)
 {
   Vec3 center;
   if (useMassIn)
@@ -679,15 +679,6 @@ Vec3 Frame::CenterReference(bool useMassIn)
   // -center is translation from Ref -> origin.
   NegTranslate(center);
   return center;
-}
-
-// Frame::ShiftToGeometricCenter()
-/** Shift geometric center of coordinates in frame to origin. */
-void Frame::ShiftToGeometricCenter( ) {
-  Vec3 frameCOM = VGeometricCenter(0, natom_);
-  //mprinterr("  FRAME COM: %lf %lf %lf\n",frameCOM[0],frameCOM[1],frameCOM[2]); //DEBUG
-  // Shift to common COM
-  NegTranslate(frameCOM);
 }
 
 // ---------- COORDINATE CALCULATION ------------------------------------------- 
@@ -712,23 +703,16 @@ double Frame::RMSD( Frame& Ref, bool useMassIn ) {
   */
 double Frame::RMSD( Frame& Ref, Matrix_3x3& U, Vec3& Trans, Vec3& refTrans, bool useMassIn) 
 {
-  // Rotation will occur around geometric center/center of mass
-  // Coords are shifted to common CoM first (Trans0-2), then
-  // to original reference location (Trans3-5).
-  if (useMassIn) 
-    refTrans = Ref.VCenterOfMass(0, natom_);
-  else 
-    refTrans = Ref.VGeometricCenter(0, natom_);
-  //fprintf(stderr,"  REF   COM: %lf %lf %lf\n",refTrans[0],refTrans[1],refTrans[2]); //DEBUG
-  // Shift reference to COM
-  Ref.NegTranslate(refTrans);
+  // Rotation will occur around geometric center/center of mass. Coords are 
+  // shifted to common CoM first (Trans), then to original reference 
+  // location (refTrans).
+  refTrans = Ref.CenterOnOrigin(useMassIn);
   return RMSD_CenteredRef( Ref, U, Trans, useMassIn );
-  //DEBUG
-  //printRotTransInfo(U,Trans);
-  //fprintf(stdout,"RMS is %lf\n",rms_return);
-  //return rmsval;
 }
 
+// Frame::RMSD_CenteredRef()
+/** Calculate RMSD of this Frame to Ref Frame previously centered at origin.
+  */
 double Frame::RMSD_CenteredRef( Frame const& Ref, bool useMassIn ) {
   Matrix_3x3 U;
   Vec3 Trans;
@@ -747,7 +731,7 @@ static inline void normalize(double* vIn) {
   * the same number of atoms as this Frame and should have already been 
   * translated to coordinate origin (neither is checked for in the interest
   * of speed). 
-  * \param Frame to calc RMSD to.
+  * \param Ref Previously-centered frame to calc RMSD to.
   * \param U Will be set to the best-fit rotation matrix
   * \param Trans will contain translation vector for this frame to origin.
   * \param useMassIn If true, mass-weight everything.
@@ -755,8 +739,6 @@ static inline void normalize(double* vIn) {
 double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bool useMassIn)
 {
   double total_mass, cp[3], sig3, b[9];
-  // Need to init U?
-  // Trans is set at the end
   // Rotation will occur around geometric center/center of mass
   Trans.Zero();
   if (useMassIn) {
@@ -932,52 +914,37 @@ double Frame::RMSD_NoFit( Frame const& Ref, bool useMass) {
   * same # of atoms. Should not be called for 0 atoms.
   */
 double Frame::DISTRMSD( Frame const& Ref ) {
-  double TgtDist, RefDist;
-  double diff, rms_return;
-  double x,y,z;
-  int a10,a11,a12;
-  int a20,a21,a22; 
-  double Ndistances = ((natom_ * natom_) - natom_) / 2;
-
-  rms_return = 0;
-  a10 = 0;
+  double Ndistances = (double)((natom_ * natom_) - natom_) / 2.0;
+  double sumDiff = 0.0;
+  unsigned int a10 = 0;
   for (int atom1 = 0; atom1 < natom_-1; ++atom1) {
-    a20 = a10 + 3;
+    unsigned a20 = a10 + 3;
     for (int atom2 = atom1+1; atom2 < natom_; ++atom2) {
-      a11 = a10 + 1;
-      a12 = a10 + 2;
-      a21 = a20 + 1;
-      a22 = a20 + 2;
+      unsigned int a11 = a10 + 1;
+      unsigned int a12 = a10 + 2;
+      unsigned int a21 = a20 + 1;
+      unsigned int a22 = a20 + 2;
       // Tgt
-      x = X_[a10] - X_[a20];
-      x = x * x;
-      y = X_[a11] - X_[a21];
-      y = y * y;
-      z = X_[a12] - X_[a22];
-      z = z * z;
-      TgtDist = sqrt(x + y + z);
+      double x = X_[a10] - X_[a20];
+      double y = X_[a11] - X_[a21];
+      double z = X_[a12] - X_[a22];
+      double TgtDist = sqrt(x*x + y*y + z*z);
       // Ref
       x = Ref.X_[a10] - Ref.X_[a20];
-      x = x * x;
       y = Ref.X_[a11] - Ref.X_[a21];
-      y = y * y;
       z = Ref.X_[a12] - Ref.X_[a22];
-      z = z * z;
-      RefDist = sqrt(x + y + z);
+      double RefDist = sqrt(x*x + y*y + z*z);
       // DRMSD
-      diff = TgtDist - RefDist;
+      double diff = TgtDist - RefDist;
       diff *= diff;
-      rms_return += diff;
+      sumDiff += diff;
 
       a20 += 3;
     } 
     a10 += 3;
   }
 
-  TgtDist = rms_return / Ndistances;
-  rms_return = sqrt(TgtDist);
-
-  return rms_return;
+  return sqrt(sumDiff / Ndistances);
 }
 
 // Frame::SetAxisOfRotation()
