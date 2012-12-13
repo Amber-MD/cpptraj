@@ -1363,7 +1363,7 @@ bool Topology::ParseMask(Frame const& REF, AtomMask &maskIn, bool intMask) const
   }
 
   if (intMask)
-    maskIn.SetupMask( pMask, atoms_.size(), debug_ );
+    maskIn.SetupIntMask( pMask, atoms_.size(), debug_ );
   else
     maskIn.SetupCharMask( pMask, atoms_.size(), debug_);
   delete[] pMask;

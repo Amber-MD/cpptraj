@@ -386,32 +386,6 @@ int AtomMask::Tokenize() {
   return 0;
 }
 
-// AtomMask::begin()
-AtomMask::const_iterator AtomMask::begin() const {
-  return Selected_.begin();
-}
-
-// AtomMask::end()
-AtomMask::const_iterator AtomMask::end() const {
-  return Selected_.end();
-}
-
-// AtomMask::Nselected()
-int AtomMask::Nselected() const {
-  return nselected_;
-}
-
-// AtomMask::operator[]()
-// NOTE: NO BOUNDS CHECK
-const int &AtomMask::operator[](int idx) {
-  return Selected_[idx];
-}
-
-// AtomMask::MaskString()
-const char *AtomMask::MaskString() const {
-  return maskString_.c_str();
-}
-
 // AtomMask::ResetMask()
 void AtomMask::ResetMask() {
   nselected_ = 0;
@@ -594,20 +568,14 @@ int AtomMask::SetMaskString( std::string const& maskStringIn ) {
     return ( SetMaskString( NULL ) );
 }
 
-// AtomMask::None()
-bool AtomMask::None() const {
-  if (nselected_==0) return true;
-  return false;
-}
-
-// AtomMask::SetupMask()
+// AtomMask::SetupIntMask()
 /** Set up an atom mask containing selected atom numbers given a char
   * array of size natom with T for selected atoms and F for unselected
   * atoms. The actual mask parser is called from Topology. 
   * maskChar_ is used to determine whether atoms denoted by 'T' or 'F' will
   * be selected (the latter is the case e.g. with stripped atoms). 
   */
-void AtomMask::SetupMask(const char *charmask,int natom,int debugIn) {
+void AtomMask::SetupIntMask(const char *charmask,int natom,int debugIn) {
   debug_ = debugIn;
   // Wipe out previous char mask if allocated
   CharMask_.clear();

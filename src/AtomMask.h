@@ -32,22 +32,26 @@ class AtomMask {
     AtomMask();
     AtomMask(std::string const&);
     AtomMask(const AtomMask &);
-    AtomMask & operator=(const AtomMask&);
+    AtomMask& operator=(const AtomMask&);
 
     /// AtomMask default iterator
     typedef std::vector<int>::const_iterator const_iterator;
     /// Iterator to the beginning of Selected
-    const_iterator begin() const;
+    const_iterator begin()              const { return Selected_.begin();    }
     /// Iterator at end of Selected
-    const_iterator end() const;
+    const_iterator end()                const { return Selected_.end();      }
     /// Return number of selected atoms
-    int Nselected() const;
+    int Nselected()                     const { return nselected_;           }
     /// Return selected atom at idx
-    const int &operator[](int);
+    const int& operator[](int idx)      const { return Selected_[idx];       }
     /// Return original mask expression as char*
-    const char *MaskString() const;
+    const char *MaskString()            const { return maskString_.c_str();  }
     /// Return original mask expression as std::string
-    std::string const& MaskExpression() const { return maskString_; }
+    std::string const& MaskExpression() const { return maskString_;          }
+    /// True if mask expression has been set.
+    bool MaskStringSet()                const { return !maskString_.empty(); }
+    /// Return true if no atoms selected. 
+    bool None()                         const { return (nselected_==0);      }
     /// Reset atom mask
     void ResetMask();
     /// Switch char used to denote selected atoms (T->F, F->T)
@@ -64,21 +68,18 @@ class AtomMask {
     void AddMaskAtPosition(AtomMask&, int);
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*) const;
-    /// Return true if no atoms selected. 
-    bool None() const;
     /// Set the mask string. If NULL, set * (all)
     int SetMaskString(const char*);
     /// Set the mask string.
     int SetMaskString( std::string const& );
     /// Set up Selected based on given char mask 
-    void SetupMask(const char*,int,int);
+    void SetupIntMask(const char*,int,int);
     /// Set up CharMask based on given char mask 
     void SetupCharMask(const char*, int, int);
     /// True if given atom is T in CharMask
     bool AtomInCharMask(int) const;
+    /// True if any atoms in given range are T in CharMask.
     bool AtomsInCharMask(int,int) const;
-    /// True if mask expression has been set.
-    bool MaskStringSet() { return (!maskString_.empty()); }
     /// Convert mask type (char->int, int->char)
     int ConvertMaskType();
     /// Print mask string and number of selected atoms.
