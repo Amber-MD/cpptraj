@@ -9,6 +9,19 @@ DataSet_double::DataSet_double() :
   DataSet(DOUBLE, 12, 4, 1) 
 {}
 
+// DataSet_double::Resize()
+/** Make this dataset an empty one of size sizeIn that can then be randomly
+  * accessed with the [] operator.
+  */
+void DataSet_double::Resize( int sizeIn ) {
+  Data_.resize( sizeIn, 0.0 );
+  Frames_.clear();
+  Frames_.reserve( sizeIn );
+  // Assume input data will be monatomic starting from 0
+  for (int i = 0; i < sizeIn; ++i)
+    Frames_.push_back( i );
+}
+
 // DataSet_double::Allocate()
 /** Reserve space in the Data and Frames arrays. */
 int DataSet_double::Allocate( int sizeIn ) {

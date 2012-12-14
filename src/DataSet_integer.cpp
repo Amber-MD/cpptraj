@@ -15,6 +15,7 @@ DataSet_integer::DataSet_integer() :
   */
 void DataSet_integer::Resize( int sizeIn ) {
   Data_.resize( sizeIn, 0 );
+  Frames_.clear();
   Frames_.reserve( sizeIn );
   // Assume input data will be monatomic starting from 0
   for (int i = 0; i < sizeIn; ++i)

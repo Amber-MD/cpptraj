@@ -6,6 +6,8 @@
 #include "ClusterList.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
+#include "DataSet_double.h"
+#include "DS_Math.h"
 
 // XMGRACE colors
 const char* ClusterList::XMGRACE_COLOR[] = {
@@ -30,7 +32,9 @@ void ClusterList::SetDebug(int debugIn) {
 
 // ClusterList::Renumber()
 /** Sort clusters by size and renumber starting from 0, where cluster 0
-  * is the largest.
+  * is the largest. Also calculate anything dependent on FrameDistances
+  * (i.e. centroid, avg distance within clusters). Renumber frames
+  * according to sieve if necessary.
   * NOTE: This destroys indexing into ClusterDistances.
   */
 void ClusterList::Renumber(int sieve) {
@@ -56,15 +60,37 @@ void ClusterList::Renumber(int sieve) {
   }
   
   clusters_.sort( );
+  // Since frame #s may be modifed by sieveing, calculate cluster properties
+  // that depend on frame number here.
+  DataSet_double distances;
   int newNum = 0;
   for (cluster_it node = clusters_.begin();
                   node != clusters_.end(); node++) 
   {
-    (*node).SetNum( newNum );
+    (*node).SetNum( newNum++ );
     // Find the centroid. Since FindCentroid uses FrameDistances and not
     // ClusterDistances its ok to call after sorting/renumbering.
     FindCentroid( node );
-    ++newNum;
+    // Calculate the average distance between frames in the cluster
+    int numframes = (*node).Nframes();
+    distances.Resize( ((numframes * numframes) - numframes) / 2 );
+    int nd = 0;
+    ClusterNode::frame_iterator frame1end = (*node).endframe();
+    --frame1end;
+    for (ClusterNode::frame_iterator frame1 = (*node).beginframe(); frame1 != frame1end; ++frame1)
+    {
+      ClusterNode::frame_iterator frame2 = frame1;
+      ++frame2;
+      for (; frame2 != (*node).endframe(); ++frame2)
+      {
+        distances[nd++] = FrameDistances_->GetElement(*frame1, *frame2);
+        //mprintf("\t\tFrame %3i to %3i %8.3lf\n",*frame1,*frame2,dist); // DEBUG
+      }
+    }
+    // Calculate avg and stdev;
+    double stdev = 0;
+    double avg = DS_Math::Avg( distances, &stdev );
+    (*node).SetInternalAvg( avg, stdev );
   }
 
   // If sieveing the frame numbers should actually be multiplied by sieve
@@ -78,8 +104,6 @@ void ClusterList::Renumber(int sieve) {
 /** Print a summary of clusters.  */
 void ClusterList::Summary(std::string const& summaryfile, int maxframes_) {
   CpptrajFile outfile;
-  std::vector<double> distances;
-
   if (outfile.OpenWrite(summaryfile)) {
     mprinterr("Error: ClusterList::Summary: Could not set up file.\n");
     return;
@@ -94,57 +118,11 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframes_) {
     int numframes = (*node).Nframes();
     float frac = (float) maxframes_;
     frac = ((float) numframes) / frac;
-    // Find centroid - now done in Renumber
-    //FindCentroid(node);
-    // Calculate the average distance between frames in the cluster
-    distances.clear();
-    //int numdist = ((numframes * numframes) - numframes) / 2;
-    //distances = new double[ numdist ];
-    // DEBUG
-    //mprintf("\tCluster %i\n",(*node).num);
-    double avgdist = 0;
-    //numdist = 0;
-    for (ClusterNode::frame_iterator frame1 = (*node).beginframe();
-                                     frame1 != (*node).endframe(); frame1++)
-    {
-      ClusterNode::frame_iterator frame2 = frame1;
-      ++frame2;
-      for (; frame2 != (*node).endframe(); frame2++) 
-      {
-        if (frame1==frame2) continue;
-        double dist = FrameDistances_->GetElement(*frame1, *frame2);
-        distances.push_back( dist );
-        // DEBUG
-        //mprintf("\t\tFrame %3i to %3i %8.3lf\n",*frame1,*frame2,dist);
-        avgdist += dist;
-        //numdist++;
-      }
-    }
-    double sdist = 0;
-    // Calculate avg and stdev of distances
-    if (!distances.empty()) {
-      double ndist = (double)distances.size();
-      avgdist /= ndist;
-      // Stdev
-      for (std::vector<double>::iterator D = distances.begin();
-                                         D != distances.end(); D++)
-      {
-        double dist = *D - avgdist;
-        dist *= dist;
-        sdist += dist;
-      }
-      sdist /= ndist;
-      sdist = sqrt(sdist);
-    } //else {
-    //  avgdist = 0;
-    //}
     // OUTPUT
     outfile.Printf("%8i %8i %8.3f %8.3lf %8.3lf %8i %8.3lf\n",
-                   (*node).Num(), numframes, frac, avgdist, sdist,
-                   (*node).Centroid()+1, (*node).AvgDist() );
-    //delete[] distances;
+                   (*node).Num(), numframes, frac, (*node).InternalAvg(), 
+                   (*node).InternalSD(), (*node).Centroid()+1, (*node).AvgDist() );
   } // END loop over clusters
-
   outfile.CloseFile();
 }
 

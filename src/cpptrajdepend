@@ -77,7 +77,7 @@ AxisType.o : AxisType.cpp Atom.h AtomMask.h AxisType.h Box.h CpptrajStdio.h Fram
 Box.o : Box.cpp Box.h Constants.h CpptrajStdio.h Matrix_3x3.h Vec3.h
 BufferedFile.o : BufferedFile.cpp BufferedFile.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h
 ByteRoutines.o : ByteRoutines.cpp
-ClusterList.o : ClusterList.cpp ClusterList.h ClusterNode.h CpptrajFile.h CpptrajStdio.h DataSet.h FileIO.h FileName.h TriangleMatrix.h
+ClusterList.o : ClusterList.cpp ClusterList.h ClusterNode.h CpptrajFile.h CpptrajStdio.h DS_Math.h DataSet.h DataSet_double.h FileIO.h FileName.h TriangleMatrix.h
 ClusterNode.o : ClusterNode.cpp ClusterNode.h
 ComplexArray.o : ComplexArray.cpp ComplexArray.h PubFFT.h
 CpptrajFile.o : CpptrajFile.cpp CpptrajFile.h CpptrajStdio.h FileIO.h FileIO_Bzip2.h FileIO_Gzip.h FileIO_Mpi.h FileIO_Std.h FileName.h MpiRoutines.h StringRoutines.h
