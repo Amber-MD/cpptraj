@@ -11,6 +11,7 @@ class DataSet_Coords : public DataSet {
     void Info();
     /// Add a frame
     void AddFrame(Frame const&);
+    void AddCrd(Frame::CRDtype const&);
     /// Set frame at position
     void SetFrame(int, Frame const&);
     /// Set topology and number of box coords.

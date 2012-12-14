@@ -16,7 +16,7 @@ const char* ClusterList::XMGRACE_COLOR[] = {
 // CONSTRUCTOR
 ClusterList::ClusterList() :
   debug_(0),
-  maxframes_(0),
+  //maxframes_(0),
   FrameDistances_(0),
   Linkage_(AVERAGELINK)
 {}
@@ -33,7 +33,7 @@ void ClusterList::SetDebug(int debugIn) {
   * is the largest.
   * NOTE: This destroys indexing into ClusterDistances.
   */
-void ClusterList::Renumber() {
+void ClusterList::Renumber(int sieve) {
   // Before clusters are renumbered, calculate the average distance of 
   // this cluster to every other cluster
   double numdist = (double) (clusters_.size() - 1);
@@ -66,11 +66,17 @@ void ClusterList::Renumber() {
     FindCentroid( node );
     ++newNum;
   }
+
+  // If sieveing the frame numbers should actually be multiplied by sieve
+  if (sieve > 0) {
+    for (cluster_it node = clusters_.begin(); node != clusters_.end(); node++)
+      (*node).FrameSieveOffset( sieve );
+  }
 }
 
 // ClusterList::Summary()
 /** Print a summary of clusters.  */
-void ClusterList::Summary(std::string const& summaryfile) {
+void ClusterList::Summary(std::string const& summaryfile, int maxframes_) {
   CpptrajFile outfile;
   std::vector<double> distances;
 
@@ -145,7 +151,7 @@ void ClusterList::Summary(std::string const& summaryfile) {
 // ClusterList::Summary_Half
 /** Print a summary of the first half of the data to the second half.
   */
-void ClusterList::Summary_Half(std::string const& summaryfile) {
+void ClusterList::Summary_Half(std::string const& summaryfile, int maxframes_) {
   CpptrajFile outfile;
 
   if (outfile.OpenWrite(summaryfile)) {
@@ -214,7 +220,7 @@ int ClusterList::AddCluster( std::list<int>& framelistIn, int numIn ) {
   */
 void ClusterList::Initialize(TriangleMatrix *matrixIn) {
   FrameDistances_ = matrixIn;
-  maxframes_ = matrixIn->Nrows();
+  //maxframes_ = matrixIn->Nrows();
   ClusterDistances_.Setup( clusters_.size() );
   // Build initial cluster distances
   if (Linkage_==AVERAGELINK) {
@@ -240,7 +246,8 @@ void ClusterList::Initialize(TriangleMatrix *matrixIn) {
 /** Print list of clusters and frame numbers belonging to each cluster.
   */
 void ClusterList::PrintClusters() {
-  mprintf("CLUSTER: %u clusters, %i frames.\n", clusters_.size(),maxframes_);
+  //mprintf("CLUSTER: %u clusters, %i frames.\n", clusters_.size(),maxframes_);
+  mprintf("CLUSTER: %u clusters, %i frames.\n", clusters_.size(),FrameDistances_->Nrows() );
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++) {
     mprintf("\t%8i : ",(*C).Num());
     for (ClusterNode::frame_iterator fnum = (*C).beginframe();
@@ -259,7 +266,7 @@ void ClusterList::PrintClusters() {
   * in the clusters and . for all other frames. Also print out the
   * representative frame numbers.
   */
-void ClusterList::PrintClustersToFile(std::string const& filename) {
+void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes_) {
   CpptrajFile outfile;
   std::string buffer;
   

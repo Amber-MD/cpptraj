@@ -17,23 +17,27 @@ class ClusterList {
  
     void SetLinkage(LINKAGETYPE Lin) { Linkage_ = Lin; }
     int Nclusters() { return (int)clusters_.size(); }
-    int MaxFrames() { return maxframes_; }
+    //int MaxFrames() { return maxframes_; }
 
     void SetDebug(int);
     void Initialize(TriangleMatrix *);
     int AddCluster(std::list<int>&, int);
     void PrintClusters();
-    void PrintClustersToFile(std::string const&);
+    void PrintClustersToFile(std::string const&,int);
     void PrintRepFrames();
     int MergeClosest(double);
-    void Renumber();
-    void Summary(std::string const&);
-    void Summary_Half(std::string const&);
+    void Renumber(int);
+    void Summary(std::string const&,int);
+    void Summary_Half(std::string const&,int);
     bool CheckEpsilon(double);
-    // Iterator over clusters
+    // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     cluster_iterator begincluster() { return clusters_.begin(); }
     cluster_iterator endcluster()   { return clusters_.end();   }
+    /// Iterator over clusters
+    typedef std::list<ClusterNode>::iterator cluster_it;
+    cluster_it begin() { return clusters_.begin(); }
+    cluster_it end()   { return clusters_.end();   }
   private:
     static const char* XMGRACE_COLOR[];
 
@@ -41,15 +45,13 @@ class ClusterList {
     /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
     /// Total number of frames being clustered
-    int maxframes_;
+    //int maxframes_;
     /// Distances between each frame
     TriangleMatrix *FrameDistances_;
     /// Distances between each cluster 
     TriangleMatrix ClusterDistances_;
     /// Type of distance calculation for clusters 
     LINKAGETYPE Linkage_;
-    /// Internal iterator over clusters
-    typedef std::list<ClusterNode>::iterator cluster_it;
 
     int Merge(cluster_it&, cluster_it&);
     void FindCentroid(cluster_it&);

@@ -19,6 +19,10 @@ void DataSet_Coords::AddFrame(Frame const& frameIn) {
   coords_.push_back( frameIn.ConvertToCRD(numBoxCrd_) );
 }
 
+void DataSet_Coords::AddCrd(Frame::CRDtype const& crdIn) {
+  coords_.push_back( crdIn );
+}
+
 void DataSet_Coords::SetFrame(int idx, Frame const& frameIn) {
   coords_[idx] = frameIn.ConvertToCRD(numBoxCrd_);
 }

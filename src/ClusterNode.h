@@ -19,17 +19,18 @@ class ClusterNode {
     }
     inline const frame_iterator endframe() const { return frameList_.end(); }
     // Return internal variables
-    inline double AvgDist() { return avgClusterDist_; }
-    inline double Eccentricity() { return eccentricity_; }
-    inline int Num() const { return num_; }
-    inline int Centroid() const { return centroid_; }
-    inline int Nframes() { return (int)frameList_.size(); }
+    inline double AvgDist()      const { return avgClusterDist_;        }
+    inline double Eccentricity() const { return eccentricity_;          }
+    inline int Num()             const { return num_;                   }
+    inline int Centroid()        const { return centroid_;              }
+    inline int Nframes()         const { return (int)frameList_.size(); }
     // Set internal variables 
-    void SetAvgDist(double avg) { avgClusterDist_ = avg; }
+    void SetAvgDist(double avg)        { avgClusterDist_ = avg; }
     void SetEccentricity(double eccen) { eccentricity_ = eccen; }
+    void SetCentroid(int cent)         { centroid_ = cent;      }
+    void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum ); }
     void SetNum(int);
-    void SetCentroid(int cent) { centroid_ = cent; }
-
+    void FrameSieveOffset(int);
   private:
     double avgClusterDist_;
     double eccentricity_;
