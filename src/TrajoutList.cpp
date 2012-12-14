@@ -25,7 +25,7 @@ int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList& topListI
   ArgList args = argIn;
   std::string filename = args.GetStringNext();
   if (filename.empty()) {
-    mprinterr("Error: TrajoutList::AddEnsemble: Called with NULL filename.\n");
+    mprinterr("Error: TrajoutList::AddEnsemble: Called with null filename.\n");
     return 1;
   }
   // Modify filename by member
@@ -40,7 +40,7 @@ int TrajoutList::AddTrajout(ArgList& argIn, TopologyList& topListIn) {
   // overwrites, determine the filename here.
   std::string filename = argIn.GetStringNext();
   if (filename.empty()) {
-    mprinterr("Error: TrajoutList::Add: Called with NULL filename.\n");
+    mprinterr("Error: TrajoutList::Add: Called with null filename.\n");
     return 1;
   }
   return AddTrajout( filename, argIn, topListIn );

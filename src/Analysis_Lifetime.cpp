@@ -47,7 +47,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     for (DataSetList::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
     {
       DataSet* outSet = datasetlist->AddSetIdx( DataSet::FLOAT, setname_, didx );
-      if (outSet==NULL) {
+      if (outSet==0) {
         mprinterr("Error: lifetime: Could not allocate output set for %s\n", 
                   (*set)->Legend().c_str());
         return Analysis::ERR;
@@ -56,7 +56,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       outputDsets_.push_back( outSet );
       if (!averageonly_) {
         // MAX
-        // FIXME: CHeck for NULLS
+        // FIXME: CHeck for nullS
         outSet = datasetlist->AddSetIdxAspect( DataSet::INT, setname_, didx, "max" );
         outSet->SetLegend( (*set)->Legend() );
         maxDsets_.push_back( outSet );
@@ -219,12 +219,12 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
 void Analysis_Lifetime::PrintListToFile(DataFileList *dfl, std::vector<DataSet*>& list,
                                         std::string const& outname)
 {
-  DataFile *outfile = NULL;
+  DataFile *outfile = 0;
   if (outname.empty()) return;
   for (std::vector<DataSet*>::iterator set = list.begin(); set != list.end(); ++set)
   {
     outfile = dfl->AddSetToFile( outname, *set );
-    if (outfile == NULL) {
+    if (outfile == 0) {
       mprinterr("Error adding set %s to file %s\n", (*set)->Legend().c_str(), outname.c_str());
       return;
     }

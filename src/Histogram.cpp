@@ -150,7 +150,7 @@ void Histogram::BinStart(bool circularIn) {
   * --- CURRENTLY NOT IMPLEMENTED ---
   * If binType is 0, the Bins array will be printed. If binType is 1, the
   * landscape will be printed.
-  * if SD is not NULL, the standard deviation array will also be printed.
+  * if SD is not null, the standard deviation array will also be printed.
   */
 void Histogram::PrintBins(const char *outfilename, bool circularIn, bool gnuplot) {
   CpptrajFile outfile;

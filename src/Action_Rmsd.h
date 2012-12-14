@@ -50,7 +50,7 @@ class Action_Rmsd: public Action {
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     // Reference variables and functions
-    enum RefModeType { UNKNOWN_REF=0, FIRST, REF, REFTRAJ };
+    enum RefModeType { UNKNOWN_REF=0, FIRST, REFFRAME, REFTRAJ };
     RefModeType refmode_;
     Frame RefFrame_;
     Topology* RefParm_; // Needed for PerResSetup

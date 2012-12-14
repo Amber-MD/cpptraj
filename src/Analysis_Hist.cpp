@@ -41,7 +41,7 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
   if (debug_>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
                        arglist.Command());
   DataSet *dset = datasetlist->GetDataSet( arglist[0] );
-  if (dset == NULL) {
+  if (dset == 0) {
     mprintf("\t      Dataset %s not found.\n",arglist.Command());
     return 1;
   }
@@ -243,7 +243,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
   * native output to print.
   */
 void Analysis_Hist::Print(DataFileList *datafilelist) {
-  DataFile *outfile=NULL;
+  DataFile *outfile=0;
 
   // Calc free energy if requested
   if (calcFreeE_) hist_->CalcFreeE(Temp_, -1);
@@ -254,7 +254,7 @@ void Analysis_Hist::Print(DataFileList *datafilelist) {
   if (hist_->NumDimension() == 1 && !gnuplot_ && !circular_) {
     // For 1 dimension just need to hold bin counts
     outfile = datafilelist->AddSetToFile( outfilename_, hist_ );
-    if (outfile==NULL) {
+    if (outfile==0) {
       mprinterr("Error creating 1D histogram output for file %s\n",outfilename_.c_str());
       return;
     }
@@ -264,7 +264,7 @@ void Analysis_Hist::Print(DataFileList *datafilelist) {
 
   } else if (hist_->NumDimension() == 2 && !gnuplot_ && !circular_) {
     outfile = datafilelist->AddSetToFile( outfilename_, hist_ );
-    if (outfile==NULL) {
+    if (outfile==0) {
       mprinterr("Error creating 2D histogram output for file %s\n", outfilename_.c_str());
       return;
     }

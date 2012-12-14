@@ -34,7 +34,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
       return Analysis::ERR;
     }
     DataSet *tempds = DSLin->GetDataSet( dsetname );
-    if (tempds == NULL) {
+    if (tempds == 0) {
       mprinterr("Error: analyze statistics: No dataset with name %s\n", dsetname.c_str());
       return Analysis::ERR;
     }

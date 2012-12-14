@@ -476,7 +476,7 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
   }
 # endif
 
-  // If BPaxis is not NULL, store Rm and OM as BP axis.
+  // If BPaxis is not null, store Rm and OM as BP axis.
   if (BPaxis != 0)  
     BPaxis->StoreRotMatrix(Rm, OM);
 
@@ -839,8 +839,6 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 {
   debug_ = debugIn;
   masterDSL_ = DSL;
-  Frame* refframe = NULL;
-  Topology* refparm = NULL;
 
   // Get keywords
   outputsuffix_ = actionArgs.GetStringKey("naout");
@@ -855,27 +853,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     if (resRange_.SetRange( resrange_arg )) return Action::ERR;
   printheader_ = !actionArgs.hasKey("noheader");
   // Reference for setting up basepairs
-  int refindex = actionArgs.getKeyInt("refindex", -1);
-  if (actionArgs.hasKey("reference")) refindex = 0;
-  std::string refname = actionArgs.GetStringKey("ref");
-  if (refindex!=-1 || !refname.empty()) {
+  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  if (REF.error()) return Action::ERR;
+  if (!REF.empty()) 
     useReference_ = true;
-    // Reference by name/tag
-    if (!refname.empty())
-      refindex = FL->FindName( refname );
-    // Get reference by index
-    refframe = FL->GetFrame( refindex );
-    if (refframe==NULL) {
-      mprinterr("Error: nastruct: Could not get ref frame, index=%i\n",refindex);
-      return Action::ERR;
-    }
-    // Get parm for reference
-    refparm = FL->GetFrameParm( refindex );
-    if (refparm == NULL) {
-      mprinterr("Error: nastruct: Could not get parm for frame %s\n", FL->FrameName(refindex));
-      return Action::ERR;
-    }
-  }
 
   // Get custom residue maps
   ArgList maplist;
@@ -944,10 +925,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 
   // Use reference to determine base pairing
   if (useReference_) {
-    mprintf("\tUsing reference %s to determine base-pairing.\n",FL->FrameName(refindex));
-    if (Setup(refparm, 0)) return Action::ERR;
+    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.FrameName());
+    if (Setup(REF.Parm(), 0)) return Action::ERR;
     // Set up base axes
-    if ( setupBaseAxes(*refframe) ) return Action::ERR;
+    if ( setupBaseAxes(*(REF.Coord())) ) return Action::ERR;
     // Determine Base Pairing
     if ( determineBasePairing() ) return Action::ERR;
     mprintf("\tSet up %zu base pairs.\n", BasePairAxes_.size() ); 

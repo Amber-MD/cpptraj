@@ -98,7 +98,7 @@ int TriangleMatrix::SaveFile(const char *filename) {
   magic[3]=0;   // Version
 
   FILE* outfile = fopen(filename,"wb");
-  if (outfile==NULL) {
+  if (outfile==0) {
     mprinterr("Error: TriangleMatrix::SaveFile: Could not open file %s\n",filename);
     return 1;
   }
@@ -124,7 +124,7 @@ int TriangleMatrix::LoadFile(const char *filename, int sizeIn) {
   char magic[4];
 
   FILE* infile = fopen(filename, "rb");
-  if (infile==NULL) {
+  if (infile==0) {
     mprinterr("Error: TriangleMatrix::LoadFile: Could not open file %s\n",filename);
     return 1;
   }

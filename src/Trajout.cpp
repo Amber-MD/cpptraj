@@ -72,7 +72,7 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
   trajio_->SetDebug( debug_ );
   // Process additional arguments
   if (argIn != 0) {
-    // Get specified title if any - will not set if NULL
+    // Get specified title if any - will not set if null 
     trajio_->SetTitle( argIn->GetStringKey("title") );
     /*// If supported, set temperature write
     trajio_->SetTemperature( argIn->hasKey("remdtraj") );

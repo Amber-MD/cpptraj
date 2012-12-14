@@ -46,7 +46,7 @@ int Action_Jcoupling::loadKarplus(std::string filename) {
   int i;
   CpptrajFile KarplusFile;
   karplusConstant KC;
-  karplusConstantList* currentResList=NULL;
+  karplusConstantList* currentResList=0;
   std::string CurrentRes;
   karplusConstantMap::iterator reslist;
 
@@ -172,7 +172,7 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
   karpluspath.clear();
   // First look in $AMBERHOME/dat/Karplus.txt
   char* env = getenv("AMBERHOME");
-  if (env==NULL) {
+  if (env==0) {
     mprintf("    Warning: jcoupling: AMBERHOME not set.\n");
   } else {
     karpluspath.assign(env);
@@ -185,7 +185,7 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
   // Second look for $KARPLUS
   if (karpluspath.empty()) {
     env = getenv("KARPLUS");
-    if (env==NULL) {
+    if (env==0) {
       mprinterr("Error: jcoupling: Karplus parameters $AMBERHOME/dat/Karplus.txt not found\n");
       mprinterr("       and KARPLUS environment variable not set.\n");
       return Action::ERR;
@@ -217,7 +217,7 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
   */
 Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAddress) {
   std::string resName;
-  karplusConstantList* currentResList=NULL;
+  karplusConstantList* currentResList=0;
   int MaxResidues;
   jcouplingInfo JC;
 

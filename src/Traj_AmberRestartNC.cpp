@@ -149,7 +149,7 @@ int Traj_AmberRestartNC::readFrame(int set,double *X, double *V,double *box, dou
   }
 
   // Read Velocity
-  if (velocityVID_!=-1 && V!=NULL) {
+  if (velocityVID_!=-1 && V!=0) {
     if ( checkNCerr(nc_get_vara_double(ncid_, velocityVID_, start_, count_, V)) ) {
       mprinterr("Error: Getting velocities\n"); 
       return 1;
@@ -263,11 +263,11 @@ void Traj_AmberRestartNC::Info() {
   /*if (debug_ > 2) {
       if (!title_.empt() )
         printfone("    title:        \"%s\"\n", title_.c_str());
-      if (application != NULL)  
+      if (application != 0)  
         printfone("    application:  \"%s\"\n", p->application);
-      if (program != NULL) 
+      if (program != 0) 
         printfone("    program:      \"%s\"\n", p->program);
-      if (version != NULL) 
+      if (version != 0) 
         printfone("    version:      \"%s\"\n", p->version);
   }*/
 }

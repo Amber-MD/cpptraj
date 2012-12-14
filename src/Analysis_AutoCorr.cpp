@@ -39,7 +39,7 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
   int idx = 0;
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
     DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++ );
-    if (dsout==NULL) return Analysis::ERR;
+    if (dsout==0) return Analysis::ERR;
     dsout->SetLegend( (*DS)->Legend() );
     outputData_.push_back( dsout );
   }
@@ -83,7 +83,7 @@ void Analysis_AutoCorr::Print( DataFileList* datafilelist ) {
                                          dsout != outputData_.end(); ++dsout)
       datafilelist->AddSetToFile( outfilename_, *dsout );
     //DataFile* DF = datafilelist->GetDataFile( outfilename_.c_str());
-    //if (DF != NULL) 
+    //if (DF != 0) 
     //  DF->ProcessArgs("xlabel DataSets");
   }
 }

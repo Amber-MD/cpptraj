@@ -19,7 +19,7 @@ NameType::NameType(const NameType &rhs) :
   c_array_[2] = rhs.c_array_[2];
   c_array_[3] = rhs.c_array_[3];
   c_array_[4] = rhs.c_array_[4];
-  // 5 is always NULL
+  // 5 is always null 
   c_array_[5]='\0';
 }
 
@@ -55,7 +55,7 @@ NameType &NameType::operator=(const NameType &rhs) {
   c_array_[2] = rhs.c_array_[2];
   c_array_[3] = rhs.c_array_[3];
   c_array_[4] = rhs.c_array_[4];
-  // 5 is always NULL
+  // 5 is always null 
   return *this;
 }
 
@@ -147,7 +147,7 @@ void NameType::ReplaceAsterisk() {
 }
 
 // NameType::FormatName()
-/** For consistency with Amber names, replace any NULL in the first 4 chars
+/** For consistency with Amber names, replace any null in the first 4 chars
   * with spaces. Remove any leading whitespace. Change any asterisk (*) to
   * prime ('). In cpptraj asterisks are considered reserved characters for
   * atom masks.

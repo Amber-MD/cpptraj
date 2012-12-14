@@ -6,8 +6,8 @@
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
 #ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V13.9.6b"
-#define CPPTRAJ_INTERNAL_VERSION "V3.7.6b"
+#define CPPTRAJ_VERSION_STRING "V13.9.7b"
+#define CPPTRAJ_INTERNAL_VERSION "V3.7.7b"
 #endif
 
 // ----------========== CPPTRAJ MAIN ROUTINE ==========----------

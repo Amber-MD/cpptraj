@@ -66,7 +66,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
     //if (col == indexcol)
     //  mprintf(" INDEX");
     // Determine data type
-    DataSet* dset = NULL;
+    DataSet* dset = 0;
     if ( isalpha( token[0] ) ) 
     {
       //mprintf(" STRING!\n");
@@ -82,7 +82,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
                 token[0]=='-' ||
                 token[0]=='.'   )
     {
-      if ( strchr( token, '.' ) != NULL ) {
+      if ( strchr( token, '.' ) != 0 ) {
         //mprintf(" DOUBLE!\n");
         if ( col != indexcol )
           dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.BaseFileName(), col+1 );
@@ -97,10 +97,10 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
       }
     }
     // Set legend to label if present
-    if ( dset != NULL && hasLabels)
+    if ( dset != 0 && hasLabels)
       dset->SetLegend( labels[col] );
 
-    if ( col != indexcol && dset == NULL ) {
+    if ( col != indexcol && dset == 0 ) {
       mprinterr("Error: DataFile %s: Could not identify column %i", buffer.FullFileStr(), col+1);
       mprinterr(" (token=%s)\n",token);
       return 1;
@@ -132,7 +132,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
     // Convert data in columns
     for (int i = 0; i < ntoken; ++i) {
       const char* token = buffer.NextToken();
-      if (DsetList[i] == NULL) continue;
+      if (DsetList[i] == 0) continue;
       switch ( DsetList[i]->Type() ) {
         case DataSet::INT: 
           ival = atoi( token ); 

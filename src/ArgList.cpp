@@ -46,7 +46,7 @@ std::string const& ArgList::operator[](int idx) {
 // ArgList::SetList()
 /** Separate input by the characters in separator and store as separate args.
   * This overwrites any existing args and completely resets the list.
-  * \param inputString NULL terminated string to be converted to arguments
+  * \param inputString null-terminated string to be converted to arguments
   * \param separator string containing characters used to separate arguments
   * \return 0 if arglist successfully set up, 1 if not.
   */
@@ -57,7 +57,7 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
   if (inputStringSize < 1) return 1;
   char* tempString = new char[ inputStringSize+1 ];
   inputString.copy( tempString, inputStringSize, 0 );
-  tempString[ inputStringSize ] = '\0'; // copy() does not append NULL
+  tempString[ inputStringSize ] = '\0'; // copy() does not append null 
   // Remove newline char from tempString if present
   if ( tempString[ inputStringSize - 1 ] == '\n' )
     tempString[ inputStringSize - 1 ] = '\0';
@@ -69,8 +69,8 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
   // Begin tokenization
   char quotechar;
   char *pch = strtok(tempString, separator);
-  if (pch!=NULL) {
-    while (pch!=NULL) {
+  if (pch!=0) {
+    while (pch!=0) {
       //if (debug>1) mprintf("getArgList:  Arg %i, Token [%s], ",nargs,pch);
       // If the argument is not quoted add it to the list
       if      (pch[0]=='"' ) quotechar='"';
@@ -87,16 +87,16 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
         if (argsize != 2 || argument[1] != quotechar) {
           // Check if this argument itself ends with a quote
           if (argsize == 1 || argument[argsize-1]!=quotechar) {
-            while (pch!=NULL) {
+            while (pch!=0) {
               argument.append(" ");
-              pch=strtok(NULL," ");
-              // If pch is NULL at this point there was no closing quote.
-              if (pch==NULL) {
+              pch=strtok(0," ");
+              // If pch is 0 at this point there was no closing quote.
+              if (pch==0) {
                 mprintf("\tWarning: argument missing closing quote [%c]\n",quotechar);
                 break;
               }
               argument.append(pch);
-              if (strchr(pch,quotechar)!=NULL) break;
+              if (strchr(pch,quotechar)!=0) break;
             }
           }
           // Remove quotes from the argument
@@ -108,7 +108,7 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
         }
       }
       //if (debug>1) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
-      pch = strtok(NULL,separator);
+      pch = strtok(0,separator);
     } // END while loop
     // Set up marked array
     marked_.resize( arglist_.size(), false );
@@ -130,7 +130,7 @@ ArgList ArgList::RemainingArgs() {
 }
 
 // ArgList::AddArg()
-/** \param input NULL terminated string to add to argument list
+/** \param input null terminated string to add to argument list
   */
 void ArgList::AddArg(std::string const& input) {
   // Dont store blank tokens
@@ -187,7 +187,7 @@ void ArgList::RemoveFirstArg() {
 /* \return pointer to the first argument
  */
 const char *ArgList::Command() const {
-  if (arglist_.empty()) return NULL;
+  if (arglist_.empty()) return 0;
   return arglist_[0].c_str();
 }
 

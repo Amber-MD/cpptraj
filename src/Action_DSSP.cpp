@@ -39,7 +39,7 @@ const char Action_DSSP::SSchar[]={ '0', 'b', 'B', 'G', 'H', 'I', 'T' };
 const char* Action_DSSP::SSname[]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn"};
 
 // Action_DSSP::init()
-// For now dont allow NULL(stdout) filename for output
+// For now dont allow null(stdout) filename for output
 Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -138,7 +138,7 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
   RES.SSprob[4]=0;
   RES.SSprob[5]=0;
   RES.SSprob[6]=0;
-  RES.resDataSet = NULL;
+  RES.resDataSet = 0;
   // Only resize SecStruct if current # residues > previous # residues
   if (Nres_ > (int) SecStruct_.size())
     SecStruct_.resize(Nres_, RES);
@@ -184,11 +184,11 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
       }
     }
     // Set up dataset if necessary 
-    if (!printString_ && SecStruct_[res].resDataSet==NULL) {
+    if (!printString_ && SecStruct_[res].resDataSet==0) {
       // Setup dataset name for this residue
       SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INT, dsetname_,
                                                                 res+1, "res");
-      if (SecStruct_[res].resDataSet!=NULL) {
+      if (SecStruct_[res].resDataSet!=0) {
         outfile_->AddSet(SecStruct_[res].resDataSet);
         SecStruct_[res].resDataSet->SetLegend( currentParm->TruncResNameNum(res) );
       }

@@ -7,16 +7,16 @@
 // CONSTRUCTOR
 Action_AtomMap::Action_AtomMap() :
   debug_(0),
-  RefFrame_(NULL),
-  RefParm_(NULL),
-  TgtFrame_(NULL),
-  TgtParm_(NULL), 
+  RefFrame_(0),
+  RefParm_(0),
+  TgtFrame_(0),
+  TgtParm_(0),
   maponly_(false),
-  newFrame_(NULL),
-  newParm_(NULL),
-  stripParm_(NULL),
+  newFrame_(0),
+  newParm_(0),
+  stripParm_(0),
   rmsfit_(false),
-  rmsdata_(NULL)
+  rmsdata_(0)
 {}
 
 void Action_AtomMap::Help() {
@@ -28,9 +28,9 @@ void Action_AtomMap::Help() {
 
 // DESTRUCTOR
 Action_AtomMap::~Action_AtomMap() {
-  if (newFrame_!=NULL) delete newFrame_;
-  if (newParm_!=NULL) delete newParm_;
-  if (stripParm_!=NULL) delete stripParm_;
+  if (newFrame_!=0) delete newFrame_;
+  if (newParm_!=0) delete newParm_;
+  if (stripParm_!=0) delete stripParm_;
 }
 
 // Action_AtomMap::mapBondsToUnique()
@@ -589,7 +589,7 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
     } // End loop over tgt guesses
   } // End loop over ref guesses
 
-  // If bestMap is NULL something went wrong. Otherwise set AMap to best map.
+  // If bestMap is null something went wrong. Otherwise set AMap to best map.
   if (bestMap.empty()) {
     mprinterr("Error: AtomMap::MapWithNoUniqueAtoms: Could not guess starting point.\n");
     return 1;
@@ -698,28 +698,23 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     mprintf("AtomMap::init: Error: No reference specified.\n");
     return Action::ERR;
   }
-
-  // Get reference index based on filename 
-  int refIndex = FL->FindName(refName);
-  // Get reference frame
-  RefFrame_ = FL->GetFrame(refIndex);
-  // Get reference parm
-  RefParm_ = FL->GetFrameParm(refIndex);
-  if (RefFrame_==NULL || RefParm_==NULL) {
+  // Get Reference
+  ReferenceFrame REF = FL->GetFrame( refName );
+  if (REF.empty()) {
     mprintf("AtomMap::init: Error: Could not get reference frame %s\n",refName.c_str());
     return Action::ERR;
   }
-  // Get target index based on filename
-  int targetIndex = FL->FindName(targetName);
-  // Get target frame 
-  TgtFrame_ = FL->GetFrame(targetIndex);
-  // Get target parm
-  TgtParm_ = FL->GetFrameParm(targetIndex);
-  if (TgtFrame_==NULL || TgtParm_==NULL) {
+  RefFrame_ = REF.Coord();
+  RefParm_ = REF.Parm();
+  // Get Target
+  ReferenceFrame TGT = FL->GetFrame( targetName );
+  if (TGT.empty()) {
     mprintf("AtomMap::init: Error: Could not get target frame %s\n",targetName.c_str());
     return Action::ERR;
   }
-
+  TgtFrame_ = TGT.Coord();
+  TgtParm_ = TGT.Parm();
+ 
   mprintf("    ATOMMAP: Atoms in trajectories associated with parm %s will be\n",
           TgtParm_->c_str());
   mprintf("             mapped according to parm %s.\n",RefParm_->c_str());
@@ -825,19 +820,19 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
       }
       // Strip reference parm
       mprintf("    Modifying reference %s topology and frame to match mapped atoms.\n",
-              FL->FrameName(refIndex));
+              REF.FrameName());
       stripParm_ = RefParm_->modifyStateByMask(*M1);
       // Strip reference frame
       newFrame_ = new Frame(*RefFrame_, *M1);
       delete M1;
       // Replace reference with stripped versions
-      if (FL->ReplaceFrame(refIndex, newFrame_, stripParm_)) {
+      if (FL->ReplaceFrame(REF, newFrame_, stripParm_)) {
         mprintf("Error: AtomMap: Could not strip reference.\n");
         return Action::ERR;
       }
       // Since AMap[ ref ] = tgt but ref is now missing any stripped atoms,
       // the indices of AMap must be shifted to match
-      refIndex=0; // The new index
+      int refIndex=0; // The new index
       for (refatom=0; refatom<RefMap_.Natom(); refatom++) {
         targetatom = AMap_[refatom];
         if (targetatom<0)
@@ -908,7 +903,7 @@ Action::RetType Action_AtomMap::DoAction(int frameNum, Frame* currentFrame, Fram
     Vec3 Trans, refTrans;
     double R = rmsTgtFrame_.RMSD(rmsRefFrame_, Rot, Trans, refTrans, false);
     currentFrame->Trans_Rot_Trans(Trans, Rot, refTrans);
-    if (rmsdata_!=NULL)
+    if (rmsdata_!=0)
       rmsdata_->Add(frameNum, &R);
     return Action::OK;
   }

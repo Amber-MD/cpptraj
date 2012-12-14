@@ -80,7 +80,7 @@ int Traj_AmberRestart::setupTrajout(std::string const& fname, Topology* trajParm
   // Calculate the length of coordinate frame in bytes
   file_.SetupFrameBuffer( natom3_, 12, 6 ); 
   // Dont know ahead of time if velocities will be used, allocate space
-  // just in case. Velocity will not be written if V input is NULL.
+  // just in case. Velocity will not be written if V input is null.
   file_.ResizeBuffer( natom3_ );
   // If box coords are present, allocate extra space for them
   if (HasBox()) {
@@ -113,7 +113,7 @@ int Traj_AmberRestart::setupTrajout(std::string const& fname, Topology* trajParm
 int Traj_AmberRestart::getBoxAngles(std::string const& boxline, Box& trajBox) {
   double box[6];
   if (boxline.empty()) {
-    mprinterr("Internal Error: Restart box line is NULL.\n");
+    mprinterr("Internal Error: Restart box line is empty.\n");
     return 1;
   }
   numBoxCoords_ = sscanf(boxline.c_str(), "%12lf%12lf%12lf%12lf%12lf%12lf",
@@ -300,7 +300,7 @@ int Traj_AmberRestart::writeFrame(int set, double *X, double *V, double *box, do
   file_.BufferBegin();
   file_.DoubleToBuffer(X, natom3_, "%12.7f");
   // Write velocity to buffer. Check V since velocity not known ahead of time
-  if (HasV() && V!=NULL)
+  if (HasV() && V!=0)
     file_.DoubleToBuffer(V, natom3_, "%12.7f");
   // Write box to buffer
   if (numBoxCoords_!=0)

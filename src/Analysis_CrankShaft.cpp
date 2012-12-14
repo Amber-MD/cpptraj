@@ -55,12 +55,12 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
 
   // Get datasets
   scalar1_ = DSLin->GetDataSet( name1 );
-  if (scalar1_ == NULL) {
+  if (scalar1_ == 0) {
     mprinterr("Error: crankshaft: Dataset %s not found.\n", name1.c_str());
     return Analysis::ERR;
   }
   scalar2_ = DSLin->GetDataSet( name2 );
-  if (scalar2_ == NULL) {
+  if (scalar2_ == 0) {
     mprinterr("Error: crankshaft: Dataset %s not found.\n", name2.c_str());
     return Analysis::ERR;
   } 

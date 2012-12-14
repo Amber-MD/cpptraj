@@ -13,15 +13,15 @@ Frame::Frame( ) :
   maxnatom_(0),
   ncoord_(0),
   T_(0.0),
-  X_(NULL),
-  V_(NULL)
+  X_(0),
+  V_(0)
 {}
 
 /// DESTRUCTOR
 // Defined since this class can be inherited.
 Frame::~Frame( ) { 
-  if (X_ != NULL) delete[] X_;
-  if (V_ != NULL) delete[] V_;
+  if (X_ != 0) delete[] X_;
+  if (V_ != 0) delete[] V_;
 }
 
 // CONSTRUCTOR
@@ -30,8 +30,8 @@ Frame::Frame(int natomIn) :
   maxnatom_(natomIn),
   ncoord_(natomIn*3), 
   T_(0.0),
-  X_(NULL),
-  V_(NULL)
+  X_(0),
+  V_(0)
 {
   if (ncoord_ > 0)
     X_ = new double[ ncoord_ ];
@@ -43,8 +43,8 @@ Frame::Frame(std::vector<Atom> const& atoms) :
   maxnatom_(natom_),
   ncoord_(natom_*3),
   T_(0.0),
-  X_(NULL),
-  V_(NULL)
+  X_(0),
+  V_(0)
 {
   if (ncoord_ > 0) {
     X_ = new double[ ncoord_ ];
@@ -61,14 +61,14 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   ncoord_(natom_*3),
   box_(frameIn.box_),
   T_( frameIn.T_ ),
-  X_(NULL),
-  V_(NULL)
+  X_(0),
+  V_(0)
 {
   if (ncoord_ > 0) {
     X_ = new double[ ncoord_ ];
     double* newX = X_;
     if ( !frameIn.Mass_.empty() ) {
-      if ( frameIn.V_ != NULL ) {
+      if ( frameIn.V_ != 0 ) {
         // Copy coords/mass/velo
         V_ = new double[ ncoord_ ];
         double* newV = V_;
@@ -108,17 +108,17 @@ Frame::Frame(const Frame& rhs) :
   ncoord_(rhs.ncoord_),
   box_(rhs.box_),
   T_(rhs.T_),
-  X_(NULL),
-  V_(NULL),
+  X_(0),
+  V_(0),
   Mass_(rhs.Mass_) 
 {
   // Copy coords/velo; allocate for maxnatom but copy natom
   int maxncoord = maxnatom_ * 3;
-  if (rhs.X_!=NULL) {
+  if (rhs.X_!=0) {
     X_ = new double[ maxncoord ];
     memcpy(X_, rhs.X_, natom_ * COORDSIZE_);
   }
-  if (rhs.V_!=NULL) {
+  if (rhs.V_!=0) {
     V_ = new double[ maxncoord ];
     memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
   }
@@ -211,12 +211,12 @@ void Frame::printAtomCoord(int atom) {
 // Frame::Info()
 // For debugging
 void Frame::Info(const char *msg) {
-  if (msg!=NULL)
+  if (msg!=0)
     mprintf("\tFrame [%s]:",msg);
   else
     mprintf("\tFrame:");
   mprintf("%i atoms, %i coords",natom_, ncoord_);
-  if (V_!=NULL) mprintf(" with Velocities");
+  if (V_!=0) mprintf(" with Velocities");
   if (!Mass_.empty()) mprintf(" with Masses");
   mprintf("\n");
 }
@@ -225,7 +225,7 @@ void Frame::Info(const char *msg) {
 void Frame::ReallocateX() {
   maxnatom_ += 500;
   double *newX = new double[ maxnatom_ * 3 ];
-  if (X_!=NULL) {
+  if (X_!=0) {
     memcpy(newX, X_, natom_ * COORDSIZE_);
     delete[] X_;
   }
@@ -235,7 +235,7 @@ void Frame::ReallocateX() {
 // Frame::AddXYZ()
 /** Append the given XYZ coord to this frame. */
 void Frame::AddXYZ(const double *XYZin) {
-  if (XYZin == NULL) return;
+  if (XYZin == 0) return;
   if (natom_ >= maxnatom_) 
     ReallocateX(); 
   memcpy(X_ + ncoord_, XYZin, COORDSIZE_);
@@ -260,11 +260,11 @@ int Frame::SetupFrame(int natomIn) {
   ncoord_ = natom_ * 3;
   if (natom_ > maxnatom_) {
     // Reallocate
-    if (X_ != NULL) delete[] X_;
+    if (X_ != 0) delete[] X_;
     X_ = new double[ ncoord_ ];
     maxnatom_ = natom_;
   }
-  if (V_ != NULL) delete[] V_;
+  if (V_ != 0) delete[] V_;
   Mass_.clear();
   return 0;
 }
@@ -279,7 +279,7 @@ int Frame::SetupFrameM(std::vector<Atom> const& atoms) {
   // will be reallocated as well, or allocated if not already.
   if (natom_ > maxnatom_) {
     reallocate = true;
-    if (X_ != NULL) delete[] X_;
+    if (X_ != 0) delete[] X_;
     X_ = new double[ ncoord_ ];
     maxnatom_ = natom_;
   }
@@ -290,7 +290,7 @@ int Frame::SetupFrameM(std::vector<Atom> const& atoms) {
   for (std::vector<Atom>::const_iterator atom = atoms.begin();
                                          atom != atoms.end(); ++atom)
     *(mass++) = (*atom).Mass();
-  if (V_ != NULL) delete[] V_;
+  if (V_ != 0) delete[] V_;
   return 0;
 }
 
@@ -304,19 +304,19 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity) {
   ncoord_ = natom_ * 3;
   if (natom_ > maxnatom_) {
     reallocate = true;
-    if (X_ != NULL) delete[] X_;
+    if (X_ != 0) delete[] X_;
     X_ = new double[ ncoord_ ];
     maxnatom_ = natom_;
   }
   if (hasVelocity) {
-    if (reallocate || V_ == NULL) {
-      if (V_ != NULL) delete[] V_;
+    if (reallocate || V_ == 0) {
+      if (V_ != 0) delete[] V_;
       V_ = new double[ maxnatom_*3 ];
       // Since velocity might not be read in, initialize it to 0.
       memset(V_, 0, maxnatom_ * COORDSIZE_);
     }
   } else {
-    if (V_ != NULL) delete[] V_;
+    if (V_ != 0) delete[] V_;
   }
   if (reallocate || Mass_.empty())
     Mass_.resize(maxnatom_);
@@ -340,7 +340,7 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
   ncoord_ = natom_ * 3;
   if (natom_ > maxnatom_) {
     reallocate = true;
-    if (X_ != NULL) delete[] X_;
+    if (X_ != 0) delete[] X_;
     X_ = new double[ ncoord_ ];
     maxnatom_ = natom_;
   }
@@ -407,7 +407,7 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   T_ = frameIn.T_;
   double* newXptr = X_;
   Darray::iterator mass = Mass_.begin();
-  if (frameIn.V_ != NULL && V_ != NULL) {
+  if (frameIn.V_ != 0 && V_ != 0) {
     // Copy Coords/Mass/Velo
     double *newVptr = V_;
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
@@ -635,10 +635,8 @@ void Frame::Scale(AtomMask const& maskIn, double sx, double sy, double sz) {
 }
 
 // Frame::Center()
-/** Center coordinates to center of coordinates in Mask w.r.t. given XYZ in
-  * boxcoord. When called from Action_Center boxcoord will be either origin 
-  * or box center. Use geometric center if mass is NULL, otherwise center 
-  * of mass will be used.
+/** Center coordinates in Mask to to origin or box center. Use center of
+  * mass if useMassIn is true, otherwise use geometric center.
   */
 void Frame::Center(AtomMask const& Mask, bool origin, bool useMassIn) 
 {

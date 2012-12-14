@@ -22,7 +22,7 @@ class Action_DistRmsd: public Action {
     AtomMask TgtMask_;  ///< Target mask.
     Frame SelectedTgt_; ///< Hold only target coords selected by TgtMask
     // Reference variables and functions
-    enum RefModeType { UNKNOWN_REF=0, FIRST, REF, REFTRAJ };
+    enum RefModeType { UNKNOWN_REF=0, FIRST, REFFRAME, REFTRAJ };
     RefModeType refmode_;
     Frame RefFrame_;
     Frame SelectedRef_;

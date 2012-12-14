@@ -11,8 +11,8 @@
 
 // CONSTRUCTOR
 Action_Radial::Action_Radial() :
-  RDF_(NULL),
-  rdf_thread_(NULL),
+  RDF_(0),
+  rdf_thread_(0),
   center1_(false),
   useVolume_(false),
   volume_(0),
@@ -39,8 +39,8 @@ void Action_Radial::Help() {
 // DESTRUCTOR
 Action_Radial::~Action_Radial() {
   //fprintf(stderr,"Radial Destructor.\n");
-  if (RDF_!=NULL) delete[] RDF_;
-  if (rdf_thread_!=NULL) {
+  if (RDF_!=0) delete[] RDF_;
+  if (rdf_thread_!=0) {
     for (int i=0; i < numthreads_; i++)
       delete[] rdf_thread_[i];
     delete[] rdf_thread_;

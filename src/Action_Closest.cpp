@@ -12,15 +12,15 @@
 
 // CONSTRUCTOR
 Action_Closest::Action_Closest() :
-  outFile_(NULL),
-  framedata_(NULL),
-  moldata_(NULL),
-  distdata_(NULL),
-  atomdata_(NULL),
+  outFile_(0),
+  framedata_(0),
+  moldata_(0),
+  distdata_(0),
+  atomdata_(0),
   Nclosest_(0),
   closestWaters_(0),
   firstAtom_(false),
-  newParm_(NULL),
+  newParm_(0),
   NsolventMolecules_(0),
   debug_(0)
 {} 
@@ -34,7 +34,7 @@ void Action_Closest::Help() {
 // DESTRUCTOR
 Action_Closest::~Action_Closest() {
   //fprintf(stderr,"Closest Destructor.\n");
-  if (newParm_!=NULL) delete newParm_;
+  if (newParm_!=0) delete newParm_;
 }
 
 // Action_Closest::init()
@@ -97,7 +97,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     mprintf("\tImaging will be turned off.\n");
   if (firstAtom_)
     mprintf("\tOnly first atom of solvent molecule used for distance calc.\n");
-  if (outFile_!=NULL)
+  if (outFile_!=0)
     mprintf("\tClosest molecules will be saved to %s\n",outFile_->Filename());
   if (!prefix_.empty())
     mprintf("\tStripped topology file will be written with prefix %s\n",
@@ -206,9 +206,9 @@ Action::RetType Action_Closest::Setup(Topology* currentParm, Topology** parmAddr
   NsolventMolecules_ = currentParm->Nsolvent();
  
   // Create stripped Parm
-  if (newParm_!=NULL) delete newParm_;
+  if (newParm_!=0) delete newParm_;
   newParm_ = currentParm->modifyStateByMask(stripMask_);
-  if (newParm_==NULL) {
+  if (newParm_==0) {
     mprinterr("Error: closest: Could not create new parmtop.\n");
     return Action::ERR;
   }
@@ -324,7 +324,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, Frame* currentFrame, Fram
     ++katom;
 
     // Record which water molecules are closest if requested
-    if (outFile_!=NULL) {
+    if (outFile_!=0) {
       int fnum = frameNum + 1;
       framedata_->Add(Nclosest_, &fnum);
       moldata_->Add(Nclosest_, &((*solvent).mol));

@@ -163,12 +163,9 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   std::string outfilename = actionArgs.GetStringKey("outfile");
   corrOut_ = actionArgs.GetStringKey("corrout");
   do_gridsearch_ = actionArgs.hasKey("gridsearch");
-
-  std::string referenceName = actionArgs.GetStringKey("ref");
-  int refindex=actionArgs.getKeyInt("refindex",-1);
-  if (actionArgs.hasKey("reference")) // For compatibility with ptraj
-    refindex = 0;
-
+  // Reference Keywords
+  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  if (REF.error()) return Action::ERR;
   // Get Masks
   AtomMask RefMask( actionArgs.GetMaskNext() );
   TargetMask_.SetMaskString( RefMask.MaskExpression() );
@@ -177,28 +174,16 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   RNgen_.rn_set( rseed_ );
 
   // Set up reference for RMSD
-  // Attempt to get reference index by name
-  if (!referenceName.empty())
-    refindex=FL->FindName(referenceName);
-  // Get reference frame by index
-  Frame* TempFrame=FL->GetFrame(refindex);
-  if (TempFrame==0) {
-    mprinterr("    Error: Rotdif::init: Could not get reference index %i\n",refindex);
-    return Action::ERR;
-  }
-  //RefFrame = *TempFrame;
-  // Set reference parm
-  Topology* RefParm = FL->GetFrameParm(refindex);
   // Setup reference mask
-  if (RefParm->SetupIntegerMask( RefMask )) return Action::ERR;
+  if (REF.Parm()->SetupIntegerMask( RefMask )) return Action::ERR;
   if (RefMask.None()) {
-    mprintf("    Error: Rotdif::init: No atoms in reference mask.\n");
+    mprintf("Error: Rotdif::init: No atoms in reference mask.\n");
     return Action::ERR;
   }
   // Allocate frame for selected reference atoms
-  SelectedRef_.SetupFrameFromMask(RefMask, RefParm->Atoms());
+  SelectedRef_.SetupFrameFromMask(RefMask, REF.Parm()->Atoms());
   // Set reference frame coordinates
-  SelectedRef_.SetCoordinates(*TempFrame, RefMask);
+  SelectedRef_.SetCoordinates(*(REF.Coord()), RefMask);
   // Always fitting; Pre-center reference frame
   SelectedRef_.CenterOnOrigin(useMass_); 
 

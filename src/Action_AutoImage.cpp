@@ -208,7 +208,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
   } else {
     currentFrame->BoxCrd().ToRecip(ucell, recip);
     if (truncoct_)
-      fcom = SetupImageTruncoct( *currentFrame, NULL, useMass_, origin_ );
+      fcom = SetupImageTruncoct( *currentFrame, 0, useMass_, origin_ );
     ImageNonortho(*currentFrame, origin_, fcom, ucell, recip, truncoct_,
                                 usecom_, useMass_, mobileList_);
   }  

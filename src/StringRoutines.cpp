@@ -13,8 +13,8 @@
   * memory allocated with tildeExpansion.
   */
 std::string tildeExpansion(const char *filenameIn) {
-  if (filenameIn==NULL) {
-    fprintf(stderr,"Error: tildeExpansion: NULL filename specified.\n");
+  if (filenameIn==0) {
+    fprintf(stderr,"Error: tildeExpansion: null filename specified.\n");
     return std::string("");
   }
 #ifdef __PGI
@@ -41,7 +41,7 @@ bool fileExists(const char *filenameIn) {
   std::string fname = tildeExpansion(filenameIn);
   if (fname.empty()) return false;
   FILE *infile = fopen(fname.c_str(), "rb");
-  if (infile==NULL) return false;
+  if (infile==0) return false;
   fclose(infile);
   return true;
 }
@@ -80,7 +80,7 @@ int DigitWidth(int numberIn) {
 
 // ---------- STRING FORMAT ROUTINES -------------------------------------------
 // NOTE: In the following format routines, 2 char arrays are used
-// since a 1 char NULL terminates the format string.
+// since a 1 char null terminates the format string.
 
 // SetDoubleFormatString()
 /** Set up a printf-style format string for float/double of given width, 

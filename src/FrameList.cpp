@@ -3,6 +3,8 @@
 #include "Trajin_Single.h"
 #include "CpptrajStdio.h"
 
+const ReferenceFrame FrameList::ErrorFrame_(0,0,"",-1);
+
 // CONSTRUCTOR
 FrameList::FrameList() : 
   refFrameNum_(0)
@@ -13,17 +15,16 @@ FrameList::~FrameList() {
   Clear();
 }
 
+/** Clear the FrameList. */
 void FrameList::Clear() {
-  for (std::vector<Frame*>::iterator frame = frames_.begin();
-                                     frame != frames_.end(); frame++)
-    delete *frame;
+  for (std::vector<ReferenceFrame>::iterator ref = frames_.begin();
+                                             ref != frames_.end(); ++ref)
+    delete (*ref).Coord();
   frames_.clear();
   for (std::vector<Topology*>::iterator parm = StrippedRefParms_.begin();
                                         parm != StrippedRefParms_.end(); parm++)
     delete *parm;
   StrippedRefParms_.clear();
-  parms_.clear();
-  nums_.clear();
   refFrameNum_ = 0;
   FileList::Clear();
 }
@@ -32,9 +33,9 @@ void FrameList::Clear() {
 // FrameList::ActiveReference()
 /** Return the address of the frame pointed to by refFrameNum_.
   */
-Frame *FrameList::ActiveReference() {
-  if (frames_.empty()) return NULL;
-  return frames_[refFrameNum_];
+Frame* FrameList::ActiveReference() {
+  if (frames_.empty()) return 0;
+  return frames_[refFrameNum_].Coord();
 }
 
 // FrameList::SetActiveRef()
@@ -47,7 +48,6 @@ void FrameList::SetActiveRef(int numIn) {
   }
   refFrameNum_ = numIn;
 }
-
 // -----------------------------------------------------------------------------
 /** Add Frame from the given trajectory file to the FrameList. Store trajectory 
   * name and frame number that this frame came from in frameNames and frameNums 
@@ -143,7 +143,7 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
     mprintf("\tKept %i atoms.\n", strippedRefFrame->Natom());
     // Create new stripped parm
     Topology *strippedRefParm = CurrentParm->modifyStateByMask( stripMask );
-    if (strippedRefParm==NULL) {
+    if (strippedRefParm==0) {
       mprinterr("Error: could not strip reference.\n");
       return 1;
     }
@@ -156,50 +156,76 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
     CurrentParm = strippedRefParm;
   }
 
-  frames_.push_back( CurrentFrame );
+  frames_.push_back( ReferenceFrame( CurrentFrame, CurrentParm, 
+                                     traj.TrajName().Base(), traj.Start() ) );
   AddNameWithTag( traj.TrajName().Full(), traj.TrajName().Base(), reftag );
-  nums_.push_back( traj.Start() );
-  parms_.push_back( CurrentParm );
   return 0;
-}
-
-// FrameList::AddFrame()
-/** Add given Frame to the FrameList. Store the associated parm in FrameParm.
-  */
-int FrameList::AddFrame(Frame *F, Topology *P) {
-  if (F==NULL || P==NULL) return 1;
-  frames_.push_back(F);
-  parms_.push_back(P);
-  return 0;
-}
-
-// FrameList::GetFrameParm()
-/** Given index of frame, return parm in FrameParm
-  */
-Topology *FrameList::GetFrameParm(int idx) {
-  if (idx < 0 || idx >= (int)parms_.size()) return NULL;
-  return parms_[idx];
 }
 
 // FrameList::GetFrame()
-/** Return the frame in the frame list specified by index.
+/** \return ReferenceFrame based on args in argIn.
+  * The keywords in order of precedence are:
+  *   - 'ref <name>'  : Get reference frame by name/tag.
+  *   - 'reference'   : First reference frame in list.
+  *   - 'refindex <#>': Reference frame at position.
   */
-Frame *FrameList::GetFrame(int idx) {
-  if (idx<0 || idx>=(int)frames_.size()) return NULL;
-  return frames_[idx];
+ReferenceFrame FrameList::GetFrame(ArgList& argIn) {
+  int refindex;
+  // By name/tag
+  std::string refname = argIn.GetStringKey("ref");
+  if (!refname.empty()) {
+    refindex = FindName( refname );
+    if (refindex == -1) {
+      mprinterr("Error: Could not get reference with name %s\n", refname.c_str());
+      return ErrorFrame_;
+    }
+    return frames_[refindex];
+  }
+  // First defined reference
+  if (argIn.hasKey("reference")) {
+    if (frames_.empty()) {
+      mprinterr("Error: No reference frames defined.\n");
+      return ErrorFrame_;
+    }
+    return frames_[0];
+  }
+  // By index
+  refindex = argIn.getKeyInt("refindex", -1);
+  if (refindex != -1) {
+    if (refindex < 0 || refindex >= (int)frames_.size()) {
+      mprinterr("Error: reference index %i is out of bounds.\n");
+      return ErrorFrame_;
+    }
+    return frames_[refindex];
+  }
+  // No frame desired, return empty.
+  return ReferenceFrame();
+}
+
+// FrameList::GetFrame()
+ReferenceFrame FrameList::GetFrame(std::string const& refName) {
+  int refIndex = FindName( refName );
+  if (refIndex < 0)
+    return ReferenceFrame();
+  return frames_[refIndex];
 }
 
 // FrameList::ReplaceFrame()
 /** Replace the frame/parm at the given position with the given frame/parm.
   * The old frame is deleted. 
   */
-int FrameList::ReplaceFrame(int idx, Frame *newFrame, Topology *newParm) {
-  if (newFrame==NULL || newParm==NULL) return 1;
-  if (idx<0 || idx>=(int)frames_.size()) return 1;
-  delete frames_[idx];
-  frames_[idx] = newFrame;
-  parms_[idx] = newParm;
-  return 0;
+int FrameList::ReplaceFrame(ReferenceFrame const& refIn, Frame *newFrame, Topology *newParm) {
+  if (newFrame==0 || newParm==0) return 1;
+  for (std::vector<ReferenceFrame>::iterator ref = frames_.begin(); 
+                                             ref != frames_.end(); ++ref) 
+  {
+    if ( *ref == refIn ) {
+      delete (*ref).Coord();
+      (*ref).SetRef( newFrame, newParm );
+      return 0;
+    }
+  }
+  return 1;
 }
 
 // FrameList::List()
@@ -214,24 +240,14 @@ void FrameList::List() {
     mprintf("  The following %zu frames have been defined:\n",frames_.size());
     for (int fn=0; fn < (int)frames_.size(); fn++) { 
       if (!Tag(fn).empty())
-        mprintf("    %i: %s frame %i\n",fn,Tag(fn).c_str(),
-                nums_[fn]+OUTPUTFRAMESHIFT);
+        mprintf("    %i: %s frame %i\n", fn, Tag(fn).c_str(),
+                frames_[fn].Num()+1);
       else
         mprintf("    %i: %s frame %i\n",fn,Name(fn).c_str(),
-                nums_[fn]+OUTPUTFRAMESHIFT);
+                frames_[fn].Num()+1);
     }
   } else {
     mprintf("  %zu frames have been defined.\n",frames_.size());
   }
   mprintf("\tActive reference frame for masks is %i\n",refFrameNum_);
 }
-
-// FrameList::FrameName()
-/** Return name of given frame.
-  */
-const char *FrameList::FrameName(int idx) {
-  if (idx<0 || idx>=(int)frames_.size()) return NULL;
-  if (Name(idx).empty()) return NULL;
-  return Name(idx).c_str();
-}
-

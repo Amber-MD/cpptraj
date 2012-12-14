@@ -444,7 +444,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList &CList ) {
     // Set up trajectory file. 
     // Use parm from first frame of cluster (pot. dangerous)
     Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: Fix cast
-    if (clusterout->SetupTrajWrite(cfilename, NULL, clusterparm, reptrajfmt_)) 
+    if (clusterout->SetupTrajWrite(cfilename, 0, clusterparm, reptrajfmt_)) 
     {
       mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
                 reptrajfile_.c_str());

@@ -14,22 +14,22 @@ Action_Rmsd::Action_Rmsd() :
   perrescenter_(false),
   perresinvert_(false),
   perresavg_(0),
-  ResFrame_(NULL),
-  ResRefFrame_(NULL),
+  ResFrame_(0),
+  ResRefFrame_(0),
   nofit_(false),
   rotate_(true),
   useMass_(false),
-  rmsd_(NULL),
+  rmsd_(0),
   masterDSL_(0),
   refmode_(UNKNOWN_REF),
-  RefParm_(NULL)
+  RefParm_(0)
 { }
 
 // DESTRUCTOR
 Action_Rmsd::~Action_Rmsd() {
   //mprinterr("RMSD DESTRUCTOR\n");
-  if (ResFrame_!=NULL) delete ResFrame_;
-  if (ResRefFrame_!=NULL) delete ResRefFrame_;
+  if (ResFrame_!=0) delete ResFrame_;
+  if (ResRefFrame_!=0) delete ResRefFrame_;
 }
 
 // Action_Rmsd::resizeResMasks()
@@ -51,8 +51,8 @@ void Action_Rmsd::resizeResMasks() {
   */
 int Action_Rmsd::SetRefMask( Topology* RefParmIn ) {
   // If a reference parm is already set, exit.
-  if (RefParm_!=NULL) return 0;
-  if (RefParmIn == NULL) return 1;
+  if (RefParm_!=0) return 0;
+  if (RefParmIn == 0) return 1;
   RefParm_ = RefParmIn;
   if (RefParm_->SetupIntegerMask( RefMask_ )) return 1;
   if (RefMask_.None()) {
@@ -89,11 +89,10 @@ void Action_Rmsd::Help() {
 Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  std::string refname, reftrajname;
-  int refindex = -1;
-  Topology* refparm = NULL;
-
-  // Check for other keywords
+  std::string reftrajname;
+  Topology* RefParm = 0;
+  ReferenceFrame REF;
+  // Check for keywords
   nofit_ = actionArgs.hasKey("nofit");
   if (!nofit_)
     rotate_ = !actionArgs.hasKey("norotate");
@@ -104,17 +103,20 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if ( actionArgs.hasKey("first") ) {
     refmode_ = FIRST;
   } else {
-    refindex = actionArgs.getKeyInt("refindex", -1);
-    if (actionArgs.hasKey("reference")) refindex = 0;
-    refname = actionArgs.GetStringKey("ref");
-    if (refindex==-1 && refname.empty()) {
+    REF = FL->GetFrame( actionArgs );
+    if (REF.error()) return Action::ERR;
+    if (REF.empty()) {
       reftrajname = actionArgs.GetStringKey("reftraj");
       if (!reftrajname.empty()) {
-        refparm = PFL->GetParm( actionArgs );
+        RefParm = PFL->GetParm( actionArgs );
         refmode_ = REFTRAJ;
+      } else {
+        // No reference keywords specified. Default to first.
+        mprintf("Warning: rmsd: No reference structure given. Defaulting to first.\n");
+        refmode_ = FIRST;
       }
     } else
-      refmode_ = REF;
+      refmode_ = REFFRAME;
   }
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
@@ -143,44 +145,29 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     mask1 = mask0;
   RefMask_.SetMaskString( mask1 );
 
-  // Check that a reference keyword was specified. If not, default to first.
-  if (refmode_==UNKNOWN_REF) {
-    mprintf("Warning: rmsd: No reference structure given. Defaulting to first.\n");
-    refmode_ = FIRST;
-  }
   // Initialize reference if not 'first'.
   if (refmode_ != FIRST) {
     if ( !reftrajname.empty() ) {
       // Reference trajectory
-      if (refparm == NULL) {
+      if (RefParm == 0) {
         mprinterr("Error: rmsd: Could not get parm for reftraj %s\n", reftrajname.c_str());
         return Action::ERR;
       }
-      if (SetRefMask( refparm )!=0) return Action::ERR;
+      if (SetRefMask( RefParm )!=0) return Action::ERR;
       // Attempt to open reference traj.
-      if (RefTraj_.SetupTrajRead( reftrajname, NULL, refparm)) {
+      if (RefTraj_.SetupTrajRead( reftrajname, 0, RefParm)) {
         mprinterr("Error: rmsd: Could not set up reftraj %s\n", reftrajname.c_str());
         return Action::ERR;
       }
-      RefFrame_.SetupFrameV(refparm->Atoms(), RefTraj_.HasVelocity());
+      RefFrame_.SetupFrameV(RefParm->Atoms(), RefTraj_.HasVelocity());
       if (RefTraj_.BeginTraj(false)) {
         mprinterr("Error: rmsd: Could not open reftraj %s\n", reftrajname.c_str());
         return Action::ERR;
       }
     } else {
-      // Reference by name/tag
-      if (!refname.empty())
-        refindex = FL->FindName( refname );
-      // Get reference by index
-      Frame* TempFrame = FL->GetFrame( refindex );
-      // Get parm for reference
-      refparm = FL->GetFrameParm( refindex );
-      if (refparm == NULL) {
-        mprinterr("Error: rmsd: Could not get parm for frame %s\n", FL->FrameName(refindex));
-        return Action::ERR;
-      }
-      if (SetRefMask( refparm )!=0) return Action::ERR;
-      SetRefStructure( *TempFrame );
+      // Reference Frame
+      if (SetRefMask( REF.Parm() ) != 0) return Action::ERR;
+      SetRefStructure( *(REF.Coord()) );
     } 
   }
 
@@ -191,21 +178,14 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   // Add dataset to data file list
   if (outfile != 0) outfile->AddSet( rmsd_ );
 
-  //rmsd->Info();
   mprintf("    RMSD: (%s), reference is",FrameMask_.MaskString());
   if (refmode_ == FIRST)
     mprintf(" first frame");
   else if (refmode_==REFTRAJ)
     mprintf(" trajectory %s",RefTraj_.FullTrajStr());
-  else {
-    mprintf(" reference frame");
-    if (!refname.empty())
-      mprintf(" %s",refname.c_str());
-    else
-      mprintf(" index %i", refindex);
-  }
+  else // REFFRAME
+    mprintf (" reference frame %s", REF.FrameName()); 
   mprintf(" (%s)",RefMask_.MaskString());
-
   if (nofit_)
     mprintf(", no fitting");
   else {
@@ -298,7 +278,7 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
       continue;
     }
     ++N;
-    // Create dataset for res - if already present this returns NULL
+    // Create dataset for res - if already present this returns null 
     DataSet* prDataSet = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, rmsd_->Name(), tgtRes, "res");
     prDataSet->SetLegend( currentParm->TruncResNameNum(tgtRes-1) );
     PerResRMSD_.push_back( prDataSet );
@@ -345,10 +325,10 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
   // of each Frame is initially allocated to the maximum number of atoms.
   // Although initial masses are wrong this is ok since the number of atoms 
   // and masses will change when residue RMSD is actually being calcd.
-  if (ResRefFrame_!=NULL) delete ResRefFrame_;
+  if (ResRefFrame_!=0) delete ResRefFrame_;
   ResRefFrame_ = new Frame( RefParm->Atoms() );
   //ResRefFrame->Info("ResRefFrame");
-  if (ResFrame_!=NULL) delete ResFrame_;
+  if (ResFrame_!=0) delete ResFrame_;
   ResFrame_ = new Frame( currentParm->Atoms() );
   //ResFrame->Info("ResFrame");
 
@@ -404,7 +384,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
   // Perform any needed reference actions
   if (refmode_ == FIRST) {
     SetRefStructure( *currentFrame );
-    refmode_ = REF;
+    refmode_ = REFFRAME;
   } else if (refmode_ == REFTRAJ) {
     RefTraj_.GetNextFrame( RefFrame_ );
     SelectedRef_.SetCoordinates(RefFrame_, RefMask_);

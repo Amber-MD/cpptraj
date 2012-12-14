@@ -84,7 +84,7 @@ NameType PDBfile::pdb_Residue(int& current_res) {
 }
 
 // PDBfile::pdb_XYZ()
-// NOTE: Should check for NULL Xout
+// NOTE: Should check for null Xout
 void PDBfile::pdb_XYZ(double *Xout) {
   // X coord (30-38)
   char savechar = linebuffer_[38];

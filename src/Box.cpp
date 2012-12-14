@@ -69,7 +69,7 @@ void Box::SetBetaLengths(double beta, double xin, double yin, double zin) {
 /** Set box from double[6] array */
 void Box::SetBox(const double* xyzabg) {
   if (xyzabg == 0) {
-    mprinterr("Error: SetBox: Input array is NULL\n");
+    mprinterr("Error: SetBox: Input array is null\n");
     return;
   }
   box_[0] = xyzabg[0];

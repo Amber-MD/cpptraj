@@ -74,7 +74,7 @@ void rprinterr(const char *format, ...) {
 
   va_start(args,format);
   fprintf(stdout,"Error: ");
-  if (ROUTINE!=NULL)
+  if (ROUTINE!=0)
     fprintf(stdout, "%s: ",ROUTINE);
   vfprintf(stdout,format,args);
   va_end(args);
@@ -89,7 +89,7 @@ void rprinterr(const char *format, ...) {
 
   va_start(args,format);
   fprintf(stdout, "Warning: ");
-  if (ROUTINE!=NULL)
+  if (ROUTINE!=0)
     fprintf(stdout,"%s: ",ROUTINE);
   vfprintf(stdout,format,args);
   va_end(args);

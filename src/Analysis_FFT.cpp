@@ -55,7 +55,7 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
       continue;
     }
     DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++ );
-    if (dsout==NULL) return Analysis::ERR;
+    if (dsout==0) return Analysis::ERR;
     dsout->SetLegend( (*DS)->Legend() );
     output_dsets_.push_back( dsout );
   }
@@ -130,7 +130,7 @@ void Analysis_FFT::Print( DataFileList* datafilelist ) {
                                          dsout != output_dsets_.end(); ++dsout)
       datafilelist->AddSetToFile( outfilename_, *dsout );
     DataFile* DF = datafilelist->GetDataFile( outfilename_ );
-    if (DF != NULL) 
+    if (DF != 0) 
       DF->ProcessArgs("xlabel Freq. xmin 0 xstep " + doubleToString( f0_ ));
   }
 }

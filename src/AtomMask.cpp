@@ -542,7 +542,7 @@ void AtomMask::PrintMaskAtoms(const char *header) const {
   * with the mask parser. Convert to infix, then postfix notation.
   */
 int AtomMask::SetMaskString(const char* maskString_In) {
-  if (maskString_In!=NULL) 
+  if (maskString_In!=0) 
     maskString_.assign( maskString_In );
   else
     maskString_.assign( "*" );
@@ -565,7 +565,7 @@ int AtomMask::SetMaskString( std::string const& maskStringIn ) {
   if (!maskStringIn.empty())
     return ( SetMaskString( maskStringIn.c_str() ) );
   else
-    return ( SetMaskString( NULL ) );
+    return ( SetMaskString( 0 ) );
 }
 
 // AtomMask::SetupIntMask()

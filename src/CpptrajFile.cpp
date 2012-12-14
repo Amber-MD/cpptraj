@@ -107,7 +107,7 @@ int CpptrajFile::OpenFile(AccessType accessIn) {
   switch (accessIn) {
     case READ:
       if (fname_.empty()) {
-        mprinterr("Error: CpptrajFile: Filename is NULL.\n");
+        mprinterr("Error: CpptrajFile: Filename is null.\n");
         return 1;
       }
       if ( IO_->Open(FullFileStr(), "rb")  ) { 
@@ -118,7 +118,7 @@ int CpptrajFile::OpenFile(AccessType accessIn) {
       break;
     case APPEND:
       if (fname_.empty()) {
-        mprinterr("Error: CpptrajFile: Filename is NULL.\n");
+        mprinterr("Error: CpptrajFile: Filename is null.\n");
         return 1;
       }
       if ( IO_->Open(FullFileStr(), "ab") ) {
@@ -130,7 +130,7 @@ int CpptrajFile::OpenFile(AccessType accessIn) {
     case WRITE:
       err = 0;
       if ( fname_.empty() )
-        err = IO_->Open(NULL, "wb");
+        err = IO_->Open(0, "wb");
       else
         err = IO_->Open(FullFileStr(), "wb");
       if ( err != 0 ) { 
@@ -141,7 +141,7 @@ int CpptrajFile::OpenFile(AccessType accessIn) {
       break;
     case UPDATE:
       if (fname_.empty()) {
-        mprinterr("Error: CpptrajFile: Filename is NULL.\n");
+        mprinterr("Error: CpptrajFile: Filename is null.\n");
         return 1;
       }
       if ( IO_->Open(FullFileStr(), "r+b") ) {
@@ -243,7 +243,7 @@ int CpptrajFile::OpenRead(std::string const& nameIn) {
   * \return 0 on success, 1 on error.
   */
 int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
-  // NULL filename not allowed
+  // null filename not allowed
   if (nameIn.empty()) {
     mprinterr("Internal Error: No filename specified for READ.\n");
     return 1;
@@ -337,7 +337,7 @@ int CpptrajFile::OpenAppend(std::string const& nameIn) {
   * \return 0 on success, 1 on error.
   */
 int CpptrajFile::SetupAppend(std::string const& filenameIn, int debugIn) {
-  // Make append to NULL an error
+  // Make append to null an error
   if (filenameIn.empty()) {
     mprinterr("Error: SetupAppend(): No filename specified\n");
     return 1;

@@ -5,7 +5,7 @@
 
 // CONSTRUCTOR
 Action_Distance::Action_Distance() :
-  dist_(NULL),
+  dist_(0),
   useMass_(true)
 { } 
 

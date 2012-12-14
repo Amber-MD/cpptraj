@@ -140,7 +140,7 @@ std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& 
          (attr_pos0 == std::string::npos && attr_pos1 != std::string::npos) )
     {
       mprinterr("Error: Malformed attribute ([<attr>]) in dataset name %s\n", nameIn.c_str());
-      return NULL;
+      return 0;
     }
     // Advance to after '[', length is position of ']' minus '[' minus 1 
     attr_arg = dsname.substr( attr_pos0 + 1, attr_pos1 - attr_pos0 - 1 );
@@ -212,13 +212,13 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
 }
 
 // DataSetList::GetSet()
-/** \return Specified Dataset or NULL if not found.
+/** \return Specified Dataset or null if not found.
   */
 DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string const& aspect) 
 {
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
     if ( (*ds)->Matches( dsname, idx, aspect ) ) return *ds;
-  return NULL;
+  return 0;
 }
 
 // DataSetList::AddSet()
@@ -273,7 +273,7 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
                                       std::string const& legendIn)
 {
   DataSet* ds = AddSetIdxAspect( inType, nameIn, idxIn, aspectIn );
-  if (ds != NULL)
+  if (ds != 0)
     ds->SetLegend( legendIn );
   return ds;
 }
@@ -294,15 +294,15 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
   // Do not add to a list with copies
   if (hasCopies_) {
     mprinterr("Internal Error: Adding DataSet %s copy to invalid list.\n", nameIn.c_str());
-    return NULL;
+    return 0;
   }
 
   // Check if DataSet with same attributes already present.
   DataSet* DS = GetSet(nameIn, idxIn, aspectIn);
-  if (DS != NULL) {
+  if (DS != 0) {
     mprintf("Warning: DataSet %s:%i already present.\n", nameIn.c_str(), idxIn);
     // NOTE: Should return found dataset?
-    return NULL; 
+    return 0; 
   }
 
   switch (inType) {
@@ -320,18 +320,18 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
     case DataSet::UNKNOWN_DATA :
     default:
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");
-      return NULL;
+      return 0;
   }
-  if (DS==NULL) {
+  if (DS==0) {
     mprinterr("Internal Error: DataSet %s memory allocation failed.\n", nameIn.c_str());
-    return NULL;
+    return 0;
   }
 
   // Set up dataset 
   if ( DS->SetupSet(nameIn, idxIn, aspectIn) ) {
     mprinterr("Error setting up data set %s.\n",nameIn.c_str());
     delete DS;
-    return NULL;
+    return 0;
   }
 
   DataList_.push_back(DS); 

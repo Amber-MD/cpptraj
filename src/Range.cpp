@@ -162,7 +162,7 @@ const char *Range::RangeArg() {
 // Range::PrintRange()
 /** Print all numbers in the range to a line. Increment by offset. */
 void Range::PrintRange(const char* header, int offset) {
-  if (header!=NULL)
+  if (header!=0)
     mprintf("%s",header);
   for (std::list<int>::iterator it=rangeList_.begin(); it!=rangeList_.end(); it++)
     mprintf(" %i",(*it)+offset);

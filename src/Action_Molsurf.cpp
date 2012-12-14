@@ -6,39 +6,39 @@
 // CONSTRUCTOR
 Action_Molsurf::Action_Molsurf() {
   //fprintf(stderr,"Angle Con\n");
-  sasa_=NULL;
-  atom_ = NULL;
+  sasa_=0;
+  atom_ = 0;
   probe_rad_ = 1.4;
   rad_offset_ = 0;
 
-  upper_neighbors=NULL;
-  neighbors=NULL;
-  toruslist=NULL;
-  probelist=NULL;
+  upper_neighbors=0;
+  neighbors=0;
+  toruslist=0;
+  probelist=0;
 
-  concave_face=NULL;
-  saddle_face=NULL;
-  convex_face=NULL;
-  cone_face=NULL;
-  broken_concave_face=NULL;
-  concave_cycle=NULL;
+  concave_face=0;
+  saddle_face=0;
+  convex_face=0;
+  cone_face=0;
+  broken_concave_face=0;
+  concave_cycle=0;
 
-  vertexlist=NULL;
-  concave_edge_list=NULL;
-  convex_edge_list=NULL;
-  convex_circle_list=NULL;
-  concave_circle_list=NULL;
+  vertexlist=0;
+  concave_edge_list=0;
+  convex_edge_list=0;
+  convex_circle_list=0;
+  concave_circle_list=0;
 
-  cyclelist=NULL;
-  low_torus=NULL;
-  cusp_edge=NULL;
-  cusp_pair=NULL;
+  cyclelist=0;
+  low_torus=0;
+  cusp_edge=0;
+  cusp_pair=0;
 } 
 
 // DESTRUCTOR
 Action_Molsurf::~Action_Molsurf() {
   ClearMemory();
-  if (atom_!=NULL) delete[] atom_;
+  if (atom_!=0) delete[] atom_;
 }
 
 void Action_Molsurf::Help() {
@@ -49,25 +49,25 @@ void Action_Molsurf::Help() {
 // MolSurf::ClearMemory()
 /// Clear mem used by molsurf data structures
 void Action_Molsurf::ClearMemory() {
-  if (upper_neighbors!=NULL) delete[] upper_neighbors;
-  if (neighbors!=NULL) delete[] neighbors;
-  if (probelist!=NULL) delete[] probelist;
-  if (toruslist!=NULL) delete[] toruslist;
-  if (convex_circle_list!=NULL) delete[] convex_circle_list;
-  if (concave_circle_list!=NULL) delete[] concave_circle_list;
-  if (concave_face!=NULL) delete[] concave_face;
-  if (convex_face!=NULL) delete[] convex_face;
-  if (saddle_face!=NULL) delete[] saddle_face;
-  if (cone_face!=NULL) delete[] cone_face;
-  if (broken_concave_face!=NULL) delete[] broken_concave_face;
-  if (concave_cycle!=NULL) delete[] concave_cycle;
-  if (cyclelist!=NULL) delete[] cyclelist;
-  if (vertexlist!=NULL) delete[] vertexlist;
-  if (concave_edge_list!=NULL) delete[] concave_edge_list;
-  if (convex_edge_list!=NULL) delete[] convex_edge_list;
-  if (low_torus!=NULL) delete[] low_torus;
-  if (cusp_edge!=NULL) delete[] cusp_edge;
-  if (cusp_pair!=NULL) delete[] cusp_pair;
+  if (upper_neighbors!=0) delete[] upper_neighbors;
+  if (neighbors!=0) delete[] neighbors;
+  if (probelist!=0) delete[] probelist;
+  if (toruslist!=0) delete[] toruslist;
+  if (convex_circle_list!=0) delete[] convex_circle_list;
+  if (concave_circle_list!=0) delete[] concave_circle_list;
+  if (concave_face!=0) delete[] concave_face;
+  if (convex_face!=0) delete[] convex_face;
+  if (saddle_face!=0) delete[] saddle_face;
+  if (cone_face!=0) delete[] cone_face;
+  if (broken_concave_face!=0) delete[] broken_concave_face;
+  if (concave_cycle!=0) delete[] concave_cycle;
+  if (cyclelist!=0) delete[] cyclelist;
+  if (vertexlist!=0) delete[] vertexlist;
+  if (concave_edge_list!=0) delete[] concave_edge_list;
+  if (convex_edge_list!=0) delete[] convex_edge_list;
+  if (low_torus!=0) delete[] low_torus;
+  if (cusp_edge!=0) delete[] cusp_edge;
+  if (cusp_pair!=0) delete[] cusp_pair;
 }
 
 // Action_Molsurf::AllocateMemory()
@@ -141,9 +141,9 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
 
   // The ATOM structure is how molsurf organizes atomic data. Allocate
   // here and fill in parm info. Coords will be filled in during action. 
-  if (atom_!=NULL) delete[] atom_;
+  if (atom_!=0) delete[] atom_;
   atom_ = new ATOM[ Mask1_.Nselected() ];
-  if (atom_==NULL) {
+  if (atom_==0) {
     mprinterr("Error: Molsurf::Setup Could not allocate memory for ATOMs.\n");
     return Action::ERR;
   }

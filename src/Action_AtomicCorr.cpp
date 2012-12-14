@@ -50,7 +50,7 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, TopologyList* PFL, 
   
   // Set up DataSet
   dset_ = DSL->AddSet( DataSet::TRIMATRIX, actionArgs.GetStringNext(), "ACorr" );
-  if (dset_ == NULL) {
+  if (dset_ == 0) {
     mprinterr("Error: atomiccorr: Could not allocate output dataset.\n");
     return Action::ERR;
   }

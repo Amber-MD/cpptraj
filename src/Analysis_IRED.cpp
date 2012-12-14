@@ -378,7 +378,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     CpptrajFile noefile;
     int err = 0;
     if (noeFilename_.empty())
-      err = noefile.SetupWrite(NULL, debug_);
+      err = noefile.SetupWrite(0, debug_);
     else
       err = noefile.SetupWrite(noeFilename_, debug_);
     if (err != 0) {

@@ -4,7 +4,7 @@
 
 // CONSTRUCTOR
 Action_DistRmsd::Action_DistRmsd() :
-  drmsd_(NULL),
+  drmsd_(0),
   refmode_(UNKNOWN_REF)
 {}
 
@@ -18,7 +18,7 @@ void Action_DistRmsd::Help() {
   * reference atoms. 
   */
 int Action_DistRmsd::SetRefMask( Topology* RefParm ) {
-  if (RefParm == NULL) return 1;
+  if (RefParm == 0) return 1;
   if (RefParm->SetupIntegerMask( RefMask_ )) return 1;
   if (RefMask_.None()) {
     mprinterr("Error: distrmsd: No reference atoms selected for parm %s, [%s]\n",
@@ -42,10 +42,9 @@ void Action_DistRmsd::SetRefStructure( Frame& frameIn ) {
 Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  std::string refname, reftrajname;
-  int refindex = -1;
-  Topology* RefParm = NULL;
-
+  std::string reftrajname;
+  Topology* RefParm = 0;
+  ReferenceFrame REF;
   // Check for keywords
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Reference keywords
@@ -53,19 +52,21 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   if ( actionArgs.hasKey("first") ) {
     refmode_ = FIRST;
   } else {
-    refindex = actionArgs.getKeyInt("refindex", -1);
-    if (actionArgs.hasKey("reference")) refindex = 0;
-    refname = actionArgs.GetStringKey("ref");
-    if (refindex==-1 && refname.empty()) {
+    REF = FL->GetFrame( actionArgs );
+    if (REF.error()) return Action::ERR; 
+    if (REF.empty()) {
       reftrajname = actionArgs.GetStringKey("reftraj");
       if (!reftrajname.empty()) {
         RefParm = PFL->GetParm( actionArgs );
         refmode_ = REFTRAJ;
+      } else {
+        // No reference keywords specified. Default to first.
+        mprintf("Warning: distrmsd: No reference structure given. Defaulting to first.\n");
+        refmode_ = FIRST;
       }
     } else
-      refmode_ = REF;
+      refmode_ = REFFRAME;
   }
-
   // Get the RMS mask string for target 
   std::string mask0 = actionArgs.GetMaskNext();
   TgtMask_.SetMaskString(mask0);
@@ -75,22 +76,17 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     mask1 = mask0;
   RefMask_.SetMaskString( mask1 );
 
-  // Check that a reference keyword was specified. If not, default to first.
-  if (refmode_==UNKNOWN_REF) {
-    mprintf("Warning: distrmsd: No reference structure given. Defaulting to first.\n");
-    refmode_ = FIRST;
-  }
   // Initialize reference if not 'first'.
   if (refmode_ != FIRST) {
     if ( !reftrajname.empty() ) {
       // Reference trajectory
-      if (RefParm == NULL) {
+      if (RefParm == 0) {
         mprinterr("Error: distrmsd: Could not get parm for reftraj %s\n", reftrajname.c_str());
         return Action::ERR;
       }
       if (SetRefMask( RefParm )!=0) return Action::ERR;
       // Attempt to open reference traj.
-      if (RefTraj_.SetupTrajRead( reftrajname, NULL, RefParm)) {
+      if (RefTraj_.SetupTrajRead( reftrajname, 0, RefParm)) {
         mprinterr("Error: distrmsd: Could not set up reftraj %s\n", reftrajname.c_str());
         return Action::ERR;
       }
@@ -100,19 +96,9 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Fr
         return Action::ERR;
       }
     } else {
-      // Reference by name/tag
-      if (!refname.empty())
-        refindex = FL->FindName( refname );
-      // Get reference by index
-      Frame* TempFrame = FL->GetFrame( refindex );
-      // Get parm for reference
-      RefParm = FL->GetFrameParm( refindex );
-      if (RefParm == NULL) {
-        mprinterr("Error: distrmsd: Could not get parm for frame %s\n", FL->FrameName(refindex));
-        return Action::ERR;
-      }
-      if (SetRefMask( RefParm )!=0) return Action::ERR;
-      SetRefStructure( *TempFrame );
+      // Reference Frame
+      if (SetRefMask( REF.Parm() ) != 0) return Action::ERR;
+      SetRefStructure( *(REF.Coord()) );
     }
   }
 
@@ -127,13 +113,8 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     mprintf(" first frame");
   else if (refmode_==REFTRAJ)
     mprintf(" trajectory %s",RefTraj_.FullTrajStr());
-  else {
-    mprintf(" reference frame");
-    if (!refname.empty())
-      mprintf(" %s",refname.c_str());
-    else
-      mprintf(" index %i", refindex);
-  }
+  else // REFFRAME
+    mprintf(" reference frame %s", REF.FrameName());
   mprintf(" (%s)\n",RefMask_.MaskString());
 
   return Action::OK;
@@ -177,7 +158,7 @@ Action::RetType Action_DistRmsd::DoAction(int frameNum, Frame* currentFrame, Fra
   // Perform any needed reference actions
   if (refmode_ == FIRST) {
     SetRefStructure( *currentFrame );
-    refmode_ = REF;
+    refmode_ = REFFRAME;
   } else if (refmode_ == REFTRAJ) {
     RefTraj_.GetNextFrame( RefFrame_ );
     SelectedRef_.SetCoordinates(RefFrame_, RefMask_);

@@ -81,7 +81,7 @@ void Grid::Help() {
 // Grid::GridInit()
 /** Initialize grid from argument list. */
 int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
-  if (callingRoutineIn!=NULL)
+  if (callingRoutineIn!=0)
     callingRoutine_.assign(callingRoutineIn);
 
   // Get nx, dx, ny, dy, nz, dz

@@ -304,13 +304,13 @@ void Traj_AmberNetcdf::Info() {
   if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
 
   /*if (debug_ > 2) {
-      if (title != NULL)
+      if (title != 0)
         printfone("    title:        \"%s\"\n", p->title);
-      if (application != NULL)  
+      if (application != 0)  
         printfone("    application:  \"%s\"\n", p->application);
-      if (program != NULL) 
+      if (program != 0) 
         printfone("    program:      \"%s\"\n", p->program);
-      if (version != NULL) 
+      if (version != 0) 
         printfone("    version:      \"%s\"\n", p->version);
   }*/
 }

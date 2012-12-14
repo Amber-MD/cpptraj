@@ -4,8 +4,8 @@
 
 // CONSTRUCTOR
 Analysis_Corr::Analysis_Corr() :
-  D1_(NULL),
-  D2_(NULL),
+  D1_(0),
+  D2_(0),
   lagmax_(0),
   usefft_(true),
   calc_covar_(true)
@@ -50,7 +50,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
     D2_ = D1_;
     D2name = D1name;
   }
-  if (D2_==NULL) {
+  if (D2_==0) {
     mprinterr("Error: Corr: Could not get dataset named %s\n",D2name.c_str());
     return Analysis::ERR;
   }
@@ -63,7 +63,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   // Setup output dataset
   std::string corrname = D1_->Legend() + "-" + D2_->Legend();
   Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, dataset_name, corrname );
-  if (Ct_ == NULL) return Analysis::ERR;
+  if (Ct_ == 0) return Analysis::ERR;
 
   if (calc_covar_)
     calctype = "covariance";

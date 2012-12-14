@@ -17,7 +17,7 @@ const char* ClusterList::XMGRACE_COLOR[] = {
 ClusterList::ClusterList() :
   debug_(0),
   maxframes_(0),
-  FrameDistances_(NULL),
+  FrameDistances_(0),
   Linkage_(AVERAGELINK)
 {}
 

@@ -34,7 +34,7 @@ Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs,
   int idx = 0;
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
     DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++);
-    if (dsout == NULL)
+    if (dsout == 0)
       return Analysis::ERR;
     dsout->SetLegend( (*DS)->Legend() );
     outputData_.push_back( dsout );

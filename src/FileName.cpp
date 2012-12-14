@@ -8,7 +8,7 @@ void FileName::clear() {
 }
 
 int FileName::SetFileName(std::string const& nameIn, FileName::CompressStatus compressed) {
-  // NULL filename allowed for WRITE (indicates STDOUT)
+  // null filename allowed for WRITE (indicates STDOUT)
   if (nameIn.empty()) {
     clear();
     return 0;

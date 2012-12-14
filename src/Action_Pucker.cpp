@@ -7,7 +7,7 @@
 
 // CONSTRUCTOR
 Action_Pucker::Action_Pucker() :
-  puck_(NULL),
+  puck_(0),
   puckerMethod_(ALTONA),
   amplitude_(false),
   useMass_(true),

@@ -5,8 +5,8 @@
 
 // CONSTRUCTOR
 Action_Average::Action_Average() :
-  AvgFrame_(NULL),
-  AvgParm_(NULL),
+  AvgFrame_(0),
+  AvgParm_(0),
   parmStripped_(false),
   Natom_(0),
   Nframes_(0),
@@ -25,8 +25,8 @@ void Action_Average::Help() {
 // DESTRUCTOR
 Action_Average::~Action_Average() {
   //fprintf(stderr,"Average Destructor.\n");
-  if (AvgFrame_!=NULL) delete AvgFrame_;
-  if (parmStripped_ && AvgParm_!=NULL) delete AvgParm_;
+  if (AvgFrame_!=0) delete AvgFrame_;
+  if (parmStripped_ && AvgParm_!=0) delete AvgParm_;
 }
 
 // Action_Average::init()
@@ -86,7 +86,7 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
 
   mprintf("    AVERAGE:");
 
-  if (AvgFrame_==NULL) {
+  if (AvgFrame_==0) {
     mprintf(" Averaging over %i atoms.\n",Mask1_.Nselected());
     AvgFrame_ = new Frame(Mask1_.Nselected());
     AvgFrame_->ZeroCoords();

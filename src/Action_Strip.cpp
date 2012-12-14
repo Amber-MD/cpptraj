@@ -5,8 +5,8 @@
 
 // CONSTRUCTOR
 Action_Strip::Action_Strip() :
-  oldParm_(NULL),
-  newParm_(NULL),
+  oldParm_(0),
+  newParm_(0),
   removeBoxInfo_(false)
 {
   //fprintf(stderr,"Strip Con\n");
@@ -20,7 +20,7 @@ void Action_Strip::Help() {
 Action_Strip::~Action_Strip() {
   //fprintf(stderr,"Strip Des\n");
   // oldParm does not need dealloc because it is passed in
-  if (newParm_!=NULL) delete newParm_;
+  if (newParm_!=0) delete newParm_;
 }
 
 // Action_Strip::init()
@@ -68,9 +68,9 @@ Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddres
   oldParm_ = currentParm;
 
   // Attempt to create new parmtop based on mask
-  if (newParm_!=NULL) delete newParm_;
+  if (newParm_!=0) delete newParm_;
   newParm_ = currentParm->modifyStateByMask(M1_);
-  if (newParm_==NULL) {
+  if (newParm_==0) {
     mprinterr("Error: strip: Could not create new parmtop.\n");
     return Action::ERR;
   }

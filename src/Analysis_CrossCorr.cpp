@@ -66,7 +66,7 @@ Analysis::RetType Analysis_CrossCorr::Analyze() {
 void Analysis_CrossCorr::Print( DataFileList* datafilelist ) {
   if (!outfilename_.empty()) {
     DataFile* DF = datafilelist->AddSetToFile( outfilename_, matrix_ );
-    if (DF != NULL) {
+    if (DF != 0) {
       //DF->ProcessArgs("xlabels " + Xlabels_);
       DF->ProcessArgs("xlabel DataSets ylabels " + Ylabels_);
     }

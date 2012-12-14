@@ -6,7 +6,7 @@
 // CONSTRUCTOR
 Action_Image::Action_Image() :
   imageMode_(BYMOL),
-  ComMask_(NULL),
+  ComMask_(0),
   origin_(false),
   center_(false),
   ortho_(false),
@@ -30,7 +30,7 @@ void Action_Image::Help() {
 
 // DESTRUCTOR
 Action_Image::~Action_Image() {
-  if (ComMask_!=NULL) delete ComMask_;
+  if (ComMask_!=0) delete ComMask_;
 }
 
 const char* Action_Image::ImageModeString[] = {
@@ -79,7 +79,7 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, TopologyList* PFL, Frame
     mprintf( "           Triclinic On.\n");
   else if (triclinic_ == FAMILIAR) {
     mprintf( "           Triclinic On, familiar shape");
-    if (ComMask_!=NULL) 
+    if (ComMask_!=0) 
       mprintf( " centering on atoms in mask %s", ComMask_->MaskString());
     mprintf(".\n");
   }
@@ -134,7 +134,7 @@ Action::RetType Action_Image::Setup(Topology* currentParm, Topology** parmAddres
   }
 
   if (triclinic_ == FAMILIAR) {
-    if (ComMask_!=NULL) {
+    if (ComMask_!=0) {
       if ( currentParm->SetupIntegerMask( *ComMask_ ) ) return Action::ERR;
       if (ComMask_->None()) {
         mprintf("Warning: Image::setup: Mask for 'familiar com' contains no atoms.\n");

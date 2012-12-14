@@ -76,7 +76,7 @@ NetcdfFile::NetcdfFile() :
 // NetcdfFile::GetAttrText()
 /** Get the information about a netcdf attribute with given vid and 
   * attribute text.
-  * Since there is no guarantee that NULL char at the end of retrieved string
+  * Since there is no guarantee that null char at the end of retrieved string
   * append one.
   */
 std::string NetcdfFile::GetAttrText(int vid, const char *attribute) {
@@ -87,7 +87,7 @@ std::string NetcdfFile::GetAttrText(int vid, const char *attribute) {
     mprinterr("Error: Getting length for attribute %s\n",attribute); 
     return attrOut;
   }
-  // Allocate space for attr text, plus one for NULL char
+  // Allocate space for attr text, plus one for null char
   char *attrText = new char[ (attlen + 1) ];
   // Get attr text
   if ( checkNCerr(nc_get_att_text(ncid_, vid, attribute, attrText)) ) {
@@ -95,7 +95,7 @@ std::string NetcdfFile::GetAttrText(int vid, const char *attribute) {
     delete[] attrText;
     return attrOut;
   }
-  // Append NULL char - NECESSARY?
+  // Append null char - NECESSARY?
   attrText[attlen]='\0';
   attrOut.assign( attrText );
   delete[] attrText;

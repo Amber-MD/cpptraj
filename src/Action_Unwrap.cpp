@@ -16,43 +16,20 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get reference
-  int refindex = -1;
-  if (actionArgs.hasKey("reference"))
-    refindex = 0;
-  else {
-    refindex = actionArgs.getKeyInt("refindex", -1);
-    std::string refname = actionArgs.GetStringKey("ref");
-    if (!refname.empty()) {
-      refindex = FL->FindName( refname );
-      if (refindex == -1) {
-        mprinterr("Error: unwrap: Reference [%s] not found.\n", refname.c_str());
-        return Action::ERR;
-      }
-    }
-  }
-  // If refindex is not -1, attempt to get reference frame.
-  if (refindex > -1) {
-    Frame *tempframe = FL->GetFrame(refindex);
-    if (tempframe==NULL) {
-      mprinterr("Error: unwrap: Could not get reference index %i\n", refindex);
-      return Action::ERR;
-    }
-    RefFrame_ = *tempframe;
+  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  if (REF.error()) return Action::ERR;
+  if (!REF.empty()) {
+    RefFrame_ = *(REF.Coord());
     // Get reference parm for frame
-    RefParm_ = FL->GetFrameParm(refindex);
-    if (RefParm_ == NULL) {
-      mprinterr("Error: unwrap: Could not get reference parm for frame %s\n",
-                FL->FrameName(refindex));
-      return Action::ERR;
-    }
+    RefParm_ = REF.Parm();
   }
 
   // Get mask string
   mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   mprintf("    UNWRAP: (%s), reference is ", mask_.MaskString());
-  if ( refindex > -1)
-    mprintf("%s", FL->FrameName(refindex));
+  if ( !REF.empty())
+    mprintf("%s", REF.FrameName());
   else
     mprintf("first frame.");
   mprintf("\n");

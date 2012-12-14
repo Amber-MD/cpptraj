@@ -39,8 +39,6 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Get Keywords
   std::string dataout = actionArgs.GetStringKey("out");
   std::string eout = actionArgs.GetStringKey("eout");
-  std::string referenceName = actionArgs.GetStringKey("ref");
-  int refindex = actionArgs.getKeyInt("refindex",-1);
   cut_eelec_ = actionArgs.getKeyDouble("cuteelec",1.0);
   cut_eelec1_ = -cut_eelec_;
   cut_evdw_ = actionArgs.getKeyDouble("cutevdw",1.0);
@@ -64,30 +62,21 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   DFL->AddSetToFile(dataout, ds_elec_);
 
   // Get reference structure
-  Frame* RefFrame = 0;
-  if (!referenceName.empty() || refindex!=-1) {
-    // Attempt to get reference index by name
-    if (!referenceName.empty())
-      refindex = FL->FindName( referenceName );
-    // Get reference frame by index
-    RefFrame = FL->GetFrame(refindex);
-    if (RefFrame==0) {
-      mprinterr("    Error: Pairwise::init: Could not get reference index %i\n",refindex);
-      return Action::ERR;
-    }
-    // Set reference parm
-    Topology* RefParm = FL->GetFrameParm(refindex);
+  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  if (REF.error()) return Action::ERR;
+  if (!REF.empty()) { 
     // Set up reference mask
-    if ( RefParm->SetupIntegerMask(RefMask_) ) return Action::ERR;
+    if ( REF.Parm()->SetupIntegerMask(RefMask_) ) return Action::ERR;
     if (RefMask_.None()) {
       mprinterr("    Error: Pairwise::init: No atoms selected in reference mask.\n");
       return Action::ERR;
     }
     // Set up nonbonded params for reference
-    if ( (N_ref_interactions_=SetupNonbondParm( RefMask_, RefParm )) == -1 ) return Action::ERR;
+    if ( (N_ref_interactions_=SetupNonbondParm( RefMask_, REF.Parm() )) == -1 ) 
+      return Action::ERR;
     // Calculate energy for reference
     nb_calcType_ = SET_REF;
-    NonbondEnergy(RefFrame, RefParm, RefMask_);
+    NonbondEnergy(REF.Coord(), REF.Parm(), RefMask_);
     mprintf("DEBUG:\tReference ELJ= %12.4lf  Eelec= %12.4lf\n",ELJ_,Eelec_);
     mprintf("DEBUG:\tSize of reference eelec array: %u\n",ref_nonbondEnergy_.size());
     mprintf("DEBUG:\tSize of reference evdw array: %u\n",ref_nonbondEnergy_.size());
@@ -106,8 +95,8 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   mprintf("    PAIRWISE: Atoms in mask [%s].\n",Mask0_.MaskString());
   if (!eout.empty())
     mprintf("\tEnergy info for each atom will be written to %s\n",eout.c_str());
-  if (RefFrame!=0) 
-    mprintf("\tReference index %i, mask [%s]\n",refindex, RefMask_.MaskString());
+  if (!REF.empty()) 
+    mprintf("\tReference %s, mask [%s]\n", REF.FrameName(), RefMask_.MaskString());
   mprintf("\tEelec absolute cutoff: %12.4lf\n",cut_eelec_);
   mprintf("\tEvdw absolute cutoff: %12.4lf\n",cut_evdw_);
   if (!cutout_.empty())
@@ -436,7 +425,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
 
 // Action_Pairwise::print()
 void Action_Pairwise::Print() {
-/*  if (RefFrame!=NULL) {
+/*  if (RefFrame!=0) {
     mprintf("\tPAIRWISE: Cumulative dEelec:\n");
     int iatom = 0;
     for (std::vector<double>::iterator atom = atom_eelec.begin();

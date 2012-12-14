@@ -34,7 +34,7 @@ Topology *TopologyList::GetParm(int num) {
   *   parm <parm name>
   *   parmindex <parm index>
   * \param argIn argument list that contains parm-related keyword
-  * \return parm specified by 'parm' or 'parmindex', or the first parm. NULL on error.
+  * \return parm specified by 'parm' or 'parmindex', or the first parm. null on error.
   */
 Topology *TopologyList::GetParm(ArgList &argIn) {
   // Get any parm keywords if present
@@ -44,10 +44,10 @@ Topology *TopologyList::GetParm(ArgList &argIn) {
   if (!parmfilename.empty())
     pindex = FindName(parmfilename);
   Topology *ParmOut = GetParm(pindex);
-  if (ParmOut==NULL) {
+  if (ParmOut==0) {
     mprintf("Warning: Could not get parameter file:\n");
     mprintf("Warning: parmname=%s, pindex=%i\n",parmfilename.c_str(),pindex);
-    return NULL;
+    return 0;
   }
 
   return ParmOut;
@@ -110,7 +110,7 @@ int TopologyList::AddParmFile(std::string const& filename, std::string const& Pa
   * of parm files corresponding to frames in the reference frame list.
   */
 int TopologyList::AddParm(Topology *ParmIn) {
-  if (ParmIn==NULL) return 1;
+  if (ParmIn==0) return 1;
   if (!hasCopies_ && !TopList_.empty()) {
     mprinterr("Error: Attempting to add copy of parm to list with non-copies!\n");
     return 1;

@@ -22,9 +22,9 @@ Action_Hbond::Action_Hbond() :
   dcut2_(0),
   CurrentParm_(0),
   series_(false),
-  NumHbonds_(NULL),
-  NumSolvent_(NULL),
-  NumBridge_(NULL),
+  NumHbonds_(0),
+  NumSolvent_(0),
+  NumBridge_(0),
   masterDSL_(0)
 {}
 
@@ -300,7 +300,7 @@ Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddres
   Acceptor_.clear();
   Donor_.clear();
   // SOLUTE: Four cases:
-  // 1) DonorMask and AcceptorMask NULL: donors and acceptors automatically searched for.
+  // 1) DonorMask and AcceptorMask null: donors and acceptors automatically searched for.
   if (!hasDonorMask_ && !hasAcceptorMask_) {
     SearchAcceptor(Acceptor_, Mask_,true);
     SearchDonor(Donor_, Mask_, true, false);

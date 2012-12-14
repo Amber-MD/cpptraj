@@ -14,7 +14,7 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
   ArgList dataline;
   int setnum = 1;
   int frame = 0;
-  DataSet *dset = NULL;
+  DataSet *dset = 0;
   std::vector<DataSet*> Dsets;
   std::vector<std::string> labels;
   double dval;
@@ -38,7 +38,7 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
       } else if (dataline.CommandIs("target")) {
         // Indicates dataset will be read soon. Allocate new set.
         dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.BaseFileName(), setnum++);
-        if (dset == NULL) {
+        if (dset == 0) {
           mprinterr("Error: %s: Could not allocate data set.\n", buffer.FullFileStr());
           return 1;
         }
@@ -47,7 +47,7 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
       }
     } else if (linebuffer[0] != '#' && linebuffer[0] != '&') { // Skip comments and dataset end
       // Data
-      if (dset==NULL) {
+      if (dset==0) {
         mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", 
                   buffer.FullFileStr());
         return 1;

@@ -10,7 +10,7 @@ DataSet::DataSet() :
   dim_(1),
   width_(0),
   precision_(0),
-  data_format_(NULL),
+  data_format_(0),
   scalarmode_(UNKNOWN_MODE),
   scalartype_(UNDEFINED)
 { }
@@ -28,7 +28,7 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   dim_(dimIn),
   width_(widthIn),
   precision_(precisionIn),
-  data_format_(NULL),
+  data_format_(0),
   scalarmode_(UNKNOWN_MODE),
   scalartype_(UNDEFINED)
 {

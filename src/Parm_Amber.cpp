@@ -706,7 +706,7 @@ bool Parm_Amber::SeekToFlag(AmberParmFlagType fflag) {
 
 // Parm_Amber::AllocateAndRead()
 int Parm_Amber::AllocateAndRead(int width, int ncols, int maxval) {
-  char temp[3]; // Only for when maxval is 0, space for \n, \r, NULL
+  char temp[3]; // Only for when maxval is 0, space for \n, \r, null
   // Sanity Check
   if (maxval < 0) {
     mprinterr("Internal Error: AllocateAndRead called with maxval < 0 (%i)\n",maxval);
@@ -787,7 +787,7 @@ int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
     file_.Printf("\n");
     return 1;
   }
-  // Allocate character buffer space for memory, +1 for NULL
+  // Allocate character buffer space for memory, +1 for null
   size_t bufsize = GetFortranBufferSize(fwidth_, fncols_, Nelements);
   //mprinterr("DEBUG: Current max=%zu  Current size=%zu  Requested size=%zu\n",
   //          buffer_max_size_, buffer_size_, bufsize);

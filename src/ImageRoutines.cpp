@@ -5,14 +5,14 @@
 // SetupImageTruncoct()
 /** Set up centering if putting nonortho cell into familiar trunc. oct. shape.
   * \param frameIn Frame to set up for.
-  * \param ComMask If not NULL center is calcd w.r.t. center of atoms in mask.
+  * \param ComMask If not null center is calcd w.r.t. center of atoms in mask.
   * \param useMass If true calculate COM, otherwise calc geometric center.
-  * \param origin If true and ComMask is NULL use origin, otherwise use box center.
+  * \param origin If true and ComMask is null use origin, otherwise use box center.
   * \return Coordinates of center.
   */
 Vec3 SetupImageTruncoct( Frame& frameIn, AtomMask* ComMask, bool useMass, bool origin)
 {
-  if (ComMask!=NULL) {
+  if (ComMask!=0) {
     // Use center of atoms in mask
     if (useMass)
       return frameIn.VCenterOfMass( *ComMask );

@@ -64,10 +64,9 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Square the cutoff
   distance_ = dist * dist;
   first_ = actionArgs.hasKey("first");
-  std::string referenceName = actionArgs.GetStringKey("ref");
-  int refindex = actionArgs.getKeyInt("refindex",-1);
-  // For compatibility with ptraj, keyword 'reference' == 'refindex 0'
-  if (actionArgs.hasKey("reference")) refindex = 0;
+  // Get reference
+  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  if (REF.error()) return Action::ERR;
   std::string outfilename = actionArgs.GetStringKey("out"); 
   if (outfile_.OpenWrite(outfilename))
     return Action::ERR;
@@ -89,35 +88,20 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   
   // Initialize reference. If no reference mask is given mask0 will be used.
   // First arg 'nofit' set to true, no fitting with contacts. Allows last arg
-  // 'RefTrans' to be NULL.
-  //if (RefInit(true, false, Mask_.MaskString(), actionArgs, FL, PFL, NULL)!=0)
+  // 'RefTrans' to be null.
+  //if (RefInit(true, false, Mask_.MaskString(), actionArgs, FL, PFL, 0)!=0)
   //  return 1;
-  if (!first_ && referenceName.empty() && refindex==-1) {
+  if (!first_ && REF.empty()) {
     mprintf("\tNo reference structure specified. Defaulting to first.\n");
     first_ = true;
   }
 
   if (!first_) {
-    // Attempt to get the reference index by name/tag
-    if (!referenceName.empty())
-      refindex = FL->FindName(referenceName);
-    // Get reference frame by index
     // TODO: Convert FrameList to return frame reference?
-    Frame* RefFrame = FL->GetFrame(refindex);
-    if (RefFrame == 0) {
-      mprinterr("Error: Could not get reference index %i\n",refindex);
-      return Action::ERR;
-    }
-    // Get reference parm for frame
-    Topology* RefParm = FL->GetFrameParm(refindex);
-    if (RefParm==0) {
-      mprinterr("Error: Could not get parm for frame %s\n", FL->FrameName(refindex));
-      return Action::ERR;
-    }
     // Set up atom mask for reference frame
-    if (RefParm->SetupIntegerMask(Mask_, *RefFrame)) return Action::ERR;
+    if (REF.Parm()->SetupIntegerMask(Mask_, *(REF.Coord()))) return Action::ERR;
     // Set up reference contacts 
-    SetupContacts(RefFrame, RefParm);
+    SetupContacts(REF.Coord(), REF.Parm());
   }
 
   // Output file header - only if not byresidue

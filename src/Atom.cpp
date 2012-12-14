@@ -19,7 +19,7 @@ const int Atom::AtomicElementNum[NUMELEMENTS] = { 0,
 };
 
 /// Atom names corresponding to AtomicElementType.
-// 2 chars + NULL.
+// 2 chars + null.
 const char* Atom::AtomicElementName[NUMELEMENTS] = { "??",
   "H",  "B",  "C",  "N",  "O",   "F",  
   "P",  "S",  "Cl", "Br", "Fe", "Ca",

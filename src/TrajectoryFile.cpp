@@ -98,7 +98,7 @@ void TrajectoryFile::SetTrajFileName(std::string const& full) {
 
 int TrajectoryFile::SetTrajParm( Topology* tparmIn ) {
   if (tparmIn==0) {
-    mprinterr("Error: TrajectoryFile: Parm file is NULL.\n");
+    mprinterr("Error: TrajectoryFile: Parm file is null.\n");
     return 1;
   }
   trajParm_ = tparmIn;

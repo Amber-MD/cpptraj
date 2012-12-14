@@ -781,11 +781,11 @@ Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
   FILE *infile;
   if (inputFilename.empty()) return C_ERR;
   mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
-  if ( (infile=fopen(inputFilename.c_str(),"r"))==NULL ) {
+  if ( (infile=fopen(inputFilename.c_str(),"r"))==0 ) {
     rprintf("Error: Could not open input file %s\n",inputFilename.c_str());
     return C_ERR;
   }
-  // Read in each line of input. Newline or NULL terminates. \ continues line.
+  // Read in each line of input. Newline or null terminates. \ continues line.
   std::string inputLine;
   unsigned int idx = 0;
   char lastchar = '0';
@@ -801,7 +801,7 @@ Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
     // If '#' is encountered, skip the rest of the line
     if (ptr=='#') 
       while (!EndChar(ptr)) ptr=(char)fgetc(infile);
-    // newline, NULL, or EOF terminates the line
+    // newline, null, or EOF terminates the line
     if (EndChar(ptr)) {
       // If no chars in string continue
       if (inputLine.empty()) continue;
@@ -930,7 +930,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   * arguments, the first of which is considered the command. This command
   * is searched for and if it is recognized it is sent to the appropriate
   * class. 
-  * \param inputLine NULL-terminated string consisting of command and arguments.
+  * \param inputLine null-terminated string consisting of command and arguments.
   * \return C_OK if command was accepted or no error occurred.
   * \return C_ERR if error occurred.
   * \return C_QUIT if quit requested.
