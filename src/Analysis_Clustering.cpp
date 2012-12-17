@@ -277,6 +277,9 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     CList.PrintRepFrames();
   }
 
+  // TEST - print DBI
+  mprintf("\tDBI = %f\n", CList.ComputeDBI( *coords_, maskexpr_ ));
+
   // Print ptraj-like cluster info
   if (!clusterinfo_.empty())
     CList.PrintClustersToFile(clusterinfo_, coords_->Size());
@@ -345,14 +348,9 @@ int Analysis_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances,
   // DEBUG
   if (debug_>1) CList.PrintClusters();
 
-  // Initial check to see if epsilon is satisfied.
-  //clusteringComplete = CList->CheckEpsilon(epsilon_);
-
   while (!clusteringComplete) {
-    // Merge 2 closest clusters
+    // Merge 2 closest clusters. Clustering complete if closest dist > epsilon.
     if (CList.MergeClosest(epsilon_)) break; 
-
-    // Check if clustering is complete.
     // If the target number of clusters is reached we are done
     if (CList.Nclusters() <= targetNclusters_) {
       mprintf("\n\tTarget # of clusters (%i) met (%u), clustering complete.\n",targetNclusters_,
@@ -360,8 +358,7 @@ int Analysis_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances,
       break;
     } 
     if (CList.Nclusters() == 1) clusteringComplete = true; // Sanity check
-    cluster_progress.Update( iterations );
-    ++iterations;
+    cluster_progress.Update( iterations++ );
   }
   mprintf("\tCompleted after %i iterations, %u clusters.\n",iterations,
           CList.Nclusters());
@@ -369,6 +366,7 @@ int Analysis_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances,
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // Analysis_Clustering::CreateCnumvtime()
 /** Put cluster number vs frame into dataset.  */
 void Analysis_Clustering::CreateCnumvtime( ClusterList &CList ) {

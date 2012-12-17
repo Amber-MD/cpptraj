@@ -27,8 +27,8 @@ class TriangleMatrix : public DataSet {
     int AddElement(float);
     void SetElement(int,int,double);
     void SetElementF(int,int,float);
-    double GetElement(int,int);
-    float GetElementF(int,int);
+    double GetElement(int,int) const;
+    float GetElementF(int,int) const;
     double FindMin(int *, int *);
     void PrintElements();
 
@@ -45,6 +45,6 @@ class TriangleMatrix : public DataSet {
     size_t currentElement_; ///< Current element, used in AddElement only.
     bool *ignore_;          ///< If true, ignore the row/col when printing/searching etc
 
-    int calcIndex(int,int);
+    int calcIndex(int,int) const;
 };
 #endif

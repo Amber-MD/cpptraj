@@ -16,9 +16,9 @@ class DataSet_Coords : public DataSet {
     void SetFrame(int, Frame const&);
     /// Set topology and number of box coords.
     void SetTopology(Topology const&);
-    Topology const& Top()                     { return top_;          }
-    size_t NumBoxCrd()                        { return numBoxCrd_;    }
-    const Frame::CRDtype& operator[](int idx) { return coords_[idx];  }
+    Topology const& Top()                     const { return top_;          }
+    size_t NumBoxCrd()                        const { return numBoxCrd_;    }
+    const Frame::CRDtype& operator[](int idx) const { return coords_[idx];  }
   private:
     typedef std::vector<Frame::CRDtype> CRDarray;
     CRDarray coords_;                  ///< Array of coordinate frames.

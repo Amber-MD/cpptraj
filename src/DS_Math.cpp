@@ -20,7 +20,10 @@ static bool GoodCalcType(DataSet const& ds) {
 double DS_Math::Avg(DataSet& ds, double* stdev) {
   // Check # values
   int numvalues = ds.Size();
-  if ( numvalues < 1 ) return 0;
+  if ( numvalues < 1 ) {
+    if (stdev != 0) *stdev = 0.0;
+    return 0.0;
+  }
   double avg = 0;
   // Check if this set is a good type
   if ( GoodCalcType(ds) ) {

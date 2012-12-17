@@ -119,7 +119,7 @@ int TriangleMatrix::SaveFile(const char *filename) {
   return 0;
 }
 
-// TriangleMatrix::LoadFile
+// TriangleMatrix::LoadFile()
 int TriangleMatrix::LoadFile(const char *filename, int sizeIn) {
   char magic[4];
 
@@ -221,7 +221,7 @@ int TriangleMatrix::AddElement(float elementIn) {
 /** Calculate index in elements array for given row and column.
   * SHOULD NEVER BE CALLED WITH iIn == jIn!
   */
-int TriangleMatrix::calcIndex(int iIn, int jIn) {
+int TriangleMatrix::calcIndex(int iIn, int jIn) const {
   int i, j, i1;
 
   if (iIn > jIn) {
@@ -264,7 +264,7 @@ void TriangleMatrix::SetElementF(int iIn, int jIn, float elementIn) {
 // TriangleMatrix::GetElement()
 /** Get the element at specified row and column as a double.
   */
-double TriangleMatrix::GetElement(int iIn, int jIn) {
+double TriangleMatrix::GetElement(int iIn, int jIn) const {
   int idx;
  
   if (iIn == jIn) return 0;
@@ -276,7 +276,7 @@ double TriangleMatrix::GetElement(int iIn, int jIn) {
 
 // TriangleMatrix::GetElementF()
 /** Get the element at specified row and column. */
-float TriangleMatrix::GetElementF(int iIn, int jIn) {
+float TriangleMatrix::GetElementF(int iIn, int jIn) const {
   int idx;
   
   if (iIn == jIn) return 0;
