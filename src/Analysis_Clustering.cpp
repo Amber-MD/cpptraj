@@ -116,11 +116,11 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       mprintf(" best fit");
   } else 
     mprintf(" dataset %s", cluster_dataset_->Legend().c_str());
-  mprintf("\n");
+  mprintf("\n\t");
   if (targetNclusters_ != -1)
-    mprintf(" looking for %i clusters",targetNclusters_);
+    mprintf("Looking for %i clusters, ",targetNclusters_);
   if (epsilon_ != -1.0)
-    mprintf(" epsilon is %.3lf",epsilon_);
+    mprintf("Epsilon is %.3f,",epsilon_);
   mprintf("\n");
   mprintf("\tUsing hierarchical bottom-up clustering algorithm,");
   if (Linkage_==ClusterList::SINGLELINK)
