@@ -245,7 +245,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   }
 
   // DEBUG
-  if (debug_>0) {
+  if (debug_ > 0) {
     mprintf("\nFINAL CLUSTERS:\n");
     CList.PrintClusters();
     mprintf("\nREPRESENTATIVE FRAMES:\n");
@@ -253,7 +253,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   }
 
   // TEST - print DBI
-  mprintf("\tDBI = %f\n", CList.ComputeDBI( *coords_, maskexpr_ ));
+  mprintf("\tDBI = %f\n", CList.ComputeDBI( maskexpr_ ));
 
   // Print ptraj-like cluster info
   if (!clusterinfo_.empty())

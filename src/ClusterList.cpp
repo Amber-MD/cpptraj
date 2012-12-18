@@ -281,7 +281,8 @@ int ClusterList::ClusterHierAgglo(double epsilon, int targetN, LINKAGETYPE linka
   // Build initial cluster distance matrix.
   InitializeClusterDistances(linkage);
   // DEBUG - print initial clusters
-  PrintClusters();
+  if (debug_ > 1)
+    PrintClusters();
   bool clusteringComplete = false;
   int iterations = 0;
   while (!clusteringComplete) {
@@ -378,15 +379,15 @@ int ClusterList::MergeClosest(double epsilon, LINKAGETYPE linkage) {
     mprintf("\tMinimum found between clusters %i and %i (%f)\n",C1,C2,min);
   // If the minimum distance is greater than epsilon we are done
   if (min > epsilon) {
-    mprintf("\n\tMinimum distance is greater than epsilon (%f), clustering complete.\n",
-            epsilon);
+    mprintf("\n\tMinimum distance (%f) is greater than epsilon (%f), clustering complete.\n",
+            min, epsilon);
     return 1;
   }
 
   // Find the clusters in the cluster list
   // Find C1
   cluster_it C1_it = clusters_.begin();
-  for (; C1_it != clusters_.end(); C1_it++) 
+  for (; C1_it != clusters_.end(); ++C1_it) 
   {
     if ( (*C1_it).Num() == C1 ) break;
   }
@@ -396,7 +397,7 @@ int ClusterList::MergeClosest(double epsilon, LINKAGETYPE linkage) {
   }
   // Find C2 - start from C1 since C1 < C2
   cluster_it C2_it = C1_it;
-  for (; C2_it != clusters_.end(); C2_it++) {
+  for (; C2_it != clusters_.end(); ++C2_it) {
     if ( (*C2_it).Num() == C2 ) break;
   }
   if (C2_it == clusters_.end()) {
@@ -571,19 +572,21 @@ bool ClusterList::CheckEpsilon(double epsilon) {
   * (Cx + Cy)/dXY ...here Cx is the average distance from points in X to the 
   * centroid, similarly Cy, and dXY is the distance between cluster centroids.
   */
-double ClusterList::ComputeDBI( DataSet_Coords const& coordsIn, std::string const& maskIn ) {
+// NOTE: Currently only valid for COORDS
+double ClusterList::ComputeDBI( std::string const& maskIn ) {
   std::vector<double> averageDist;
   averageDist.reserve( clusters_.size() );
   AtomMask mask(maskIn);
-  coordsIn.Top().SetupIntegerMask( mask );
+  DataSet_Coords* coords = (DataSet_Coords*)ClusterData_;
+  coords->Top().SetupIntegerMask( mask );
   for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
-    //mprintf("AVG DISTANCES FOR CLUSTER %d:\n",(*C1).Num());
+    mprintf("AVG DISTANCES FOR CLUSTER %d:\n",(*C1).Num()); // DEBUG
     // Make sure centroid frame for this cluster is up to date
-    (*C1).CalcCentroidFrame( coordsIn, mask );
+    (*C1).CalcCentroidFrame( *coords, mask );
     // Calculate average distance to centroid for this cluster
-    averageDist.push_back( (*C1).CalcAvgToCentroid( coordsIn, mask ) );
-    //mprintf("\tCluster %i has average-distance-to-centroid %f\n", (*C1).Num(),
-    //        averageDist.back());
+    averageDist.push_back( (*C1).CalcAvgToCentroid( *coords, mask ) );
+    mprintf("\tCluster %i has average-distance-to-centroid %f\n", (*C1).Num(), // DEBUG
+            averageDist.back()); // DEBUG
   }
   double DBITotal = 0.0;
   unsigned int nc1 = 0;
@@ -601,3 +604,12 @@ double ClusterList::ComputeDBI( DataSet_Coords const& coordsIn, std::string cons
   }
   return (DBITotal / (double)clusters_.size() );
 }
+
+/** The pseudo-F statistic is another measure of clustering goodness. HIGH 
+  * values are GOOD. Generally, one selects a cluster-count that gives a peak 
+  * in the pseudo-f statistic (or pSF, for short).
+  * Formula: A/B, where A = (T - P)/(G-1), and B = P / (n-G). Here n is the 
+  * number of points, G is the number of clusters, T is the total distance from
+  * the all-data centroid, and P is the sum (for all clusters) of the distances
+  * from the cluster centroid.
+  */

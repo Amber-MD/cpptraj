@@ -29,7 +29,7 @@ class ClusterList {
     void PrintClustersToFile(std::string const&,int);
     void PrintRepFrames();
 
-    double ComputeDBI( DataSet_Coords const&, std::string const& );
+    double ComputeDBI( std::string const& );
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     cluster_iterator begincluster() { return clusters_.begin(); }

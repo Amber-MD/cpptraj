@@ -10,7 +10,7 @@ class ClusterNode {
     ClusterNode(std::list<int> const&, int);
     ClusterNode(const ClusterNode&);
     ClusterNode& operator=(const ClusterNode&);
-    /// Used in sorting
+    /// Used to sort clusters by # of frames in cluster
     bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
     void MergeFrames(ClusterNode&);
@@ -25,7 +25,7 @@ class ClusterNode {
     /// Calculate average distance of all frames to centroid
     double CalcAvgToCentroid( DataSet_Coords const&, AtomMask const& );
     /// Calculate distance from this centroid to another nodes centroid.
-    double CentroidDist( ClusterNode const& );
+    double CentroidDist( ClusterNode& );
     // Iterator over frame numbers
     typedef std::list<int>::const_iterator frame_iterator;
     const frame_iterator beginframe() const { return frameList_.begin(); }
