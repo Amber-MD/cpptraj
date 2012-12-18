@@ -4,31 +4,31 @@
 // Class: ClusterList
 /** This class holds all the individual clusters, as well as routines that
   * can be used to perform clustering (metric recalculation, cluster merging,
-  * and so on). The distance calculation routines require that a
-  * triangle matrix with distances between all frames be previously
-  * calculated.
+  * and so on).
   */
 class ClusterList {
   public:
-    enum LINKAGETYPE {SINGLELINK, AVERAGELINK, COMPLETELINK};
-
+    /// Type of distance calculation between clusters.
+    enum LINKAGETYPE  { SINGLELINK = 0, AVERAGELINK, COMPLETELINK };
+    enum DistModeType { USE_FRAMES = 0, USE_FILE,    USE_DATASET  };
     ClusterList();
- 
-    void SetLinkage(LINKAGETYPE Lin) { Linkage_ = Lin; }
-    int Nclusters() { return (int)clusters_.size(); }
-    //int MaxFrames() { return maxframes_; }
+    int Nclusters()                  const { return (int)clusters_.size(); }
 
     void SetDebug(int);
-    void Initialize(TriangleMatrix *);
-    int AddCluster(std::list<int> const&, int);
-    void PrintClusters();
-    void PrintClustersToFile(std::string const&,int);
-    void PrintRepFrames();
-    int MergeClosest(double);
     void Renumber(int);
     void Summary(std::string const&,int);
     void Summary_Half(std::string const&,int);
-    bool CheckEpsilon(double);
+
+    int AddCluster(std::list<int> const&, int);
+    int CalcFrameDistances(std::string const&, DataSet*, DistModeType, bool,
+                           bool, bool, std::string const&);
+
+    int ClusterHierAgglo(double, int, LINKAGETYPE);
+
+    void PrintClusters();
+    void PrintClustersToFile(std::string const&,int);
+    void PrintRepFrames();
+
     double ComputeDBI( DataSet_Coords const&, std::string const& );
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
@@ -40,27 +40,25 @@ class ClusterList {
     cluster_it end()   { return clusters_.end();   }
   private:
     static const char* XMGRACE_COLOR[];
-
     int debug_;
     /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
-    /// Total number of frames being clustered
-    //int maxframes_;
-    /// Distances between each frame
-    TriangleMatrix* FrameDistances_;
-    /// Distances between each cluster 
-    TriangleMatrix ClusterDistances_;
-    /// Type of distance calculation for clusters 
-    LINKAGETYPE Linkage_;
+    /// DataSet describing property to be clustered on.
+    DataSet* ClusterData_;
+    /// Distances between each frame.
+    ClusterMatrix FrameDistances_;
+    /// Distances between each cluster.
+    ClusterMatrix ClusterDistances_;
 
+    void calcDistFromDataSet();
+    void InitializeClusterDistances(LINKAGETYPE);
+    int MergeClosest(double, LINKAGETYPE);
     int Merge(cluster_it&, cluster_it&);
-    //void FindCentroid(cluster_it&);
-
     // Distance calculation routines
     void calcMinDist(cluster_it&);
     void calcMaxDist(cluster_it&);
     void calcAvgDist(cluster_it&);
 
-    //void CalcEccentricity(cluster_it&);
+    bool CheckEpsilon(double);
 };
 #endif

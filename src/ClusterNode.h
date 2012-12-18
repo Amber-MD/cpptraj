@@ -2,7 +2,7 @@
 #define INC_CLUSTERNODE_H
 #include <list>
 #include "DataSet_Coords.h"
-#include "TriangleMatrix.h"
+#include "ClusterMatrix.h"
 /// Hold information for a cluster in a ClusterList
 class ClusterNode {
   public:
@@ -17,11 +17,11 @@ class ClusterNode {
     /// Calculate centroid frame from frames in this cluster.
     void CalcCentroidFrame(DataSet_Coords const&, AtomMask const&);
     /// Determine which frame in the cluster is centroid.
-    int FindCentroid(TriangleMatrix const&);
+    int FindCentroid(ClusterMatrix const&);
     /// Calculate eccentricity for frames in this cluster.
-    void CalcEccentricity(TriangleMatrix const&);
+    void CalcEccentricity(ClusterMatrix const&);
     /// Calculate average distance between all frames in the cluster
-    void CalcAvgFrameDist(TriangleMatrix const&);
+    void CalcAvgFrameDist(ClusterMatrix const&);
     /// Calculate average distance of all frames to centroid
     double CalcAvgToCentroid( DataSet_Coords const&, AtomMask const& );
     /// Calculate distance from this centroid to another nodes centroid.

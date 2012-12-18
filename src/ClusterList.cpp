@@ -3,6 +3,8 @@
 #include "ClusterList.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
+#include "Analysis_Rms2d.h"
+#include "ProgressBar.h"
 
 // XMGRACE colors
 const char* ClusterList::XMGRACE_COLOR[] = {
@@ -11,11 +13,7 @@ const char* ClusterList::XMGRACE_COLOR[] = {
 };
 
 // CONSTRUCTOR
-ClusterList::ClusterList() :
-  debug_(0),
-  FrameDistances_(0),
-  Linkage_(AVERAGELINK)
-{}
+ClusterList::ClusterList() : debug_(0) {}
 
 // ClusterList::SetDebug()
 /** Set the debug level */
@@ -62,12 +60,12 @@ void ClusterList::Renumber(int sieve) {
     (*node).SetNum( newNum++ );
     // Find the centroid. Since FindCentroid uses FrameDistances and not
     // ClusterDistances its ok to call after sorting/renumbering.
-    if ((*node).FindCentroid( *FrameDistances_ )) {
+    if ((*node).FindCentroid( FrameDistances_ )) {
       mprinterr("Error: Could not determine centroid frame for cluster %i\n",
                 (*node).Num());
     }
     // Calculate avg and stdev of all distances.
-    (*node).CalcAvgFrameDist( *FrameDistances_ );
+    (*node).CalcAvgFrameDist( FrameDistances_ );
   }
 
   // If sieveing the frame numbers should actually be multiplied by sieve
@@ -155,6 +153,7 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn) 
   outfile.CloseFile();
 }
 
+// -----------------------------------------------------------------------------
 // ClusterList::AddCluster()
 /** Add a cluster made up of frames specified by the given framelist to 
   * the list.
@@ -164,24 +163,94 @@ int ClusterList::AddCluster( std::list<int> const& framelistIn, int numIn ) {
   return 0;
 }
 
-// ClusterList::Initialize()
-/** Given a triangle matrix containing the distances between all frames,
-  * set up the initial distances between clusters.
-  * Should be called before any clustering is performed. 
+// ClusterList::CalcFrameDistances()
+int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
+                                    DistModeType mode, bool useDME, bool nofit,
+                                    bool useMass, std::string const& maskexpr)
+{
+  if (dsIn == 0) {
+    mprinterr("Internal Error: ClusterList: Cluster properties DataSet is null.\n");
+    return 1;
+  }
+  ClusterData_ = dsIn;
+  if (mode == USE_DATASET)   // Get distances from DataSet
+    calcDistFromDataSet();
+  else if (ClusterData_->Type() != DataSet::COORDS) {
+    mprinterr("Internal Error: DataSet type is not COORDS and mode is not USE_DATASET\n");
+    return 1;
+  }
+  // The following modes only work with COORDS
+  if (mode == USE_FILE) {    // Get distances from file
+    mprintf(" Loading pair-wise distances from %s\n", filename.c_str());
+    if (FrameDistances_.LoadFile( filename, ClusterData_->Size() )) {
+      mprintf("\tLoading pair-wise distances failed - regenerating from frames.\n");
+      mode = USE_FRAMES;
+    }
+  }
+  if (mode == USE_FRAMES) { // Get distances from RMSDs between frames.
+    if (useDME)
+      Analysis_Rms2d::CalcDME( *((DataSet_Coords*)ClusterData_), FrameDistances_, maskexpr);
+    else
+      Analysis_Rms2d::Calc2drms( *((DataSet_Coords*)ClusterData_), FrameDistances_, 
+                                 nofit, useMass, maskexpr );
+  }
+  
+  // Save distances - overwrites old distances
+  // TODO: Only when !USE_FILE
+  FrameDistances_.SaveFile( filename );
+  // DEBUG - Print Frame distances
+  if (debug_ > 1) {
+    mprintf("INTIAL FRAME DISTANCES:\n");
+    FrameDistances_.PrintElements();
+  }
+  return 0;
+}  
+    
+// ClusterList::calcDistFromDataSet()
+void ClusterList::calcDistFromDataSet() {
+  int N = ClusterData_->Size();
+  //mprintf("DEBUG: xmax is %i\n",N);
+  FrameDistances_.Setup(N);
+  int max = FrameDistances_.Nelements();
+  mprintf(" Calculating distances using dataset %s (%i total).\n",
+          ClusterData_->Legend().c_str(),max);
+
+  ProgressBar progress(max);
+  // LOOP 
+  int current = 0;
+  for (int i = 0; i < N-1; i++) {
+    progress.Update(current);
+    double iVal = ClusterData_->Dval(i);
+    for (int j = i + 1; j < N; j++) {
+      double jVal = ClusterData_->Dval(j);
+      // Calculate abs( delta )
+      double delta = iVal - jVal;
+      if (delta < 0) delta = -delta;
+      FrameDistances_.AddElement( delta );
+      current++;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// ClusterList::InitializeClusterDistances()
+/** Set up the initial distances between clusters. Should be called before 
+  * any clustering is performed. 
   */
-void ClusterList::Initialize(TriangleMatrix *matrixIn) {
-  FrameDistances_ = matrixIn;
+void ClusterList::InitializeClusterDistances(LINKAGETYPE linkage) {
   ClusterDistances_.Setup( clusters_.size() );
+  // Set up the ignore array
+  ClusterDistances_.SetupIgnore();
   // Build initial cluster distances
-  if (Linkage_==AVERAGELINK) {
+  if (linkage==AVERAGELINK) {
     for (cluster_it C1_it = clusters_.begin(); 
                     C1_it != clusters_.end(); C1_it++) 
       calcAvgDist(C1_it);
-  } else if (Linkage_==SINGLELINK) {
+  } else if (linkage==SINGLELINK) {
     for (cluster_it C1_it = clusters_.begin();
                     C1_it != clusters_.end(); C1_it++) 
       calcMinDist(C1_it);
-  } else if (Linkage_==COMPLETELINK) {
+  } else if (linkage==COMPLETELINK) {
     for (cluster_it C1_it = clusters_.begin(); 
                     C1_it != clusters_.end(); C1_it++) 
       calcMaxDist(C1_it);
@@ -191,20 +260,58 @@ void ClusterList::Initialize(TriangleMatrix *matrixIn) {
     ClusterDistances_.PrintElements();
   }
 }
- 
+
+// ClusterList::ClusterHierAgglo()
+/** Cluster using a hierarchical agglomerative (bottom-up) approach. All frames
+  * start in their own cluster. The closest two clusters are merged, and 
+  * distances between the newly merged cluster and all remaining clusters are
+  * recalculated according to one of the following metrics:
+  * - single-linkage  : The minimum distance between frames in clusters are used.
+  * - average-linkage : The average distance between frames in clusters are used.
+  * - complete-linkage: The maximum distance between frames in clusters are used.
+  */
+int ClusterList::ClusterHierAgglo(double epsilon, int targetN, LINKAGETYPE linkage) 
+{
+  mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
+  ProgressBar cluster_progress(-1);
+  // Build initial clusters.
+  for (int cluster = 0; cluster < FrameDistances_.Nrows(); cluster++) 
+    AddCluster( std::list<int>(1, cluster), cluster);
+  mprintf("\t%i initial clusters.\n", Nclusters());
+  // Build initial cluster distance matrix.
+  InitializeClusterDistances(linkage);
+  // DEBUG - print initial clusters
+  PrintClusters();
+  bool clusteringComplete = false;
+  int iterations = 0;
+  while (!clusteringComplete) {
+    // Merge 2 closest clusters. Clustering complete if closest dist > epsilon.
+    if (MergeClosest(epsilon, linkage)) break;
+    // If the target number of clusters is reached we are done
+    if (Nclusters() <= targetN) {
+      mprintf("\n\tTarget # of clusters (%i) met (%u), clustering complete.\n", targetN,
+              Nclusters());
+      break;
+    }
+    if (Nclusters() == 1) clusteringComplete = true; // Sanity check
+    cluster_progress.Update( iterations++ );
+  }
+  mprintf("\tCompleted after %i iterations, %u clusters.\n",iterations,
+          Nclusters());
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 // ClusterList::PrintClusters()
 /** Print list of clusters and frame numbers belonging to each cluster.
   */
 void ClusterList::PrintClusters() {
-  mprintf("CLUSTER: %u clusters, %i frames.\n", clusters_.size(),FrameDistances_->Nrows() );
+  mprintf("CLUSTER: %u clusters, %i frames.\n", clusters_.size(), FrameDistances_.Nrows() );
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++) {
     mprintf("\t%8i : ",(*C).Num());
     for (ClusterNode::frame_iterator fnum = (*C).beginframe();
-                                     fnum != (*C).endframe();
-                                     fnum++)
-    {
+                                     fnum != (*C).endframe(); ++fnum)
       mprintf("%i,",(*fnum)+1);
-    }
     mprintf("\n");
   }
 }
@@ -262,11 +369,11 @@ void ClusterList::PrintRepFrames() {
 // ClusterList::MergeClosest()
 /** Find and merge the two closest clusters.
   */
-int ClusterList::MergeClosest(double epsilon) { 
+int ClusterList::MergeClosest(double epsilon, LINKAGETYPE linkage) { 
   int C1, C2;
 
   // Find the minimum distance between clusters. C1 will be lower than C2.
-  double min = ClusterDistances_.FindMin(&C1, &C2);
+  double min = ClusterDistances_.FindMin(C1, C2);
   if (debug_>0) 
     mprintf("\tMinimum found between clusters %i and %i (%f)\n",C1,C2,min);
   // If the minimum distance is greater than epsilon we are done
@@ -308,12 +415,11 @@ int ClusterList::MergeClosest(double epsilon) {
   ClusterDistances_.Ignore(C2);
 
   // Recalculate distances between C1 and all other clusters
-  if (Linkage_==AVERAGELINK)
-    calcAvgDist(C1_it);
-  else if (Linkage_==SINGLELINK)
-    calcMinDist(C1_it);
-  else if (Linkage_==COMPLETELINK)
-    calcMaxDist(C1_it);
+  switch (linkage) {
+    case AVERAGELINK : calcAvgDist(C1_it); break;
+    case SINGLELINK  : calcMinDist(C1_it); break;
+    case COMPLETELINK: calcMaxDist(C1_it); break;
+  }
 
   if (debug_>2) { 
     mprintf("NEW CLUSTER DISTANCES:\n");
@@ -367,7 +473,7 @@ void ClusterList::calcMinDist(cluster_it& C1_it)
                                        c2frames != (*C2_it).endframe();
                                        c2frames++)
       {
-        double Dist = FrameDistances_->GetElement(*c1frames, *c2frames);
+        double Dist = FrameDistances_.GetElement(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %lf\n",*c1frames,*c2frames,Dist);
         if ( Dist < min ) min = Dist;
       }
@@ -399,7 +505,7 @@ void ClusterList::calcMaxDist(cluster_it& C1_it)
                                        c2frames != (*C2_it).endframe();
                                        c2frames++)
       {
-        double Dist = FrameDistances_->GetElement(*c1frames, *c2frames);
+        double Dist = FrameDistances_.GetElement(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %lf\n",*c1frames,*c2frames,Dist);
         if ( Dist > max ) max = Dist;
       }
@@ -432,7 +538,7 @@ void ClusterList::calcAvgDist(cluster_it& C1_it)
                                        c2frames != (*C2_it).endframe();
                                        c2frames++)
       {
-        double Dist = FrameDistances_->GetElement(*c1frames, *c2frames);
+        double Dist = FrameDistances_.GetElement(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %lf\n",*c1frames,*c2frames,Dist);
         sumDist += Dist;
         N++;
@@ -453,7 +559,7 @@ void ClusterList::calcAvgDist(cluster_it& C1_it)
 bool ClusterList::CheckEpsilon(double epsilon) {
   for (cluster_it C1_it = clusters_.begin(); C1_it != clusters_.end(); ++C1_it) 
   {
-    (*C1_it).CalcEccentricity(*FrameDistances_);
+    (*C1_it).CalcEccentricity(FrameDistances_);
     if ( (*C1_it).Eccentricity() < epsilon) return true;
   }
   return false;

@@ -87,7 +87,7 @@ void ClusterNode::CalcCentroidFrame(DataSet_Coords const& coordsIn, AtomMask con
 /** Find the frame in the given cluster that is the centroid, i.e. has the
   * lowest cumulative distance to every other point in the cluster.
   */
-int ClusterNode::FindCentroid(TriangleMatrix const& FrameDistancesIn) {
+int ClusterNode::FindCentroid(ClusterMatrix const& FrameDistancesIn) {
   double mindist = DBL_MAX;
   int minframe = -1;
   for (frame_iterator frm1 = frameList_.begin(); frm1 != frameList_.end(); ++frm1)
@@ -112,7 +112,7 @@ int ClusterNode::FindCentroid(TriangleMatrix const& FrameDistancesIn) {
 /** Calculate the eccentricity of this cluster (i.e. the largest distance
   * between any two points in the cluster).
   */
-void ClusterNode::CalcEccentricity(TriangleMatrix const& FrameDistancesIn) {
+void ClusterNode::CalcEccentricity(ClusterMatrix const& FrameDistancesIn) {
   double maxdist = 0.0;
   frame_iterator frame1_end = frameList_.end();
   --frame1_end;
@@ -130,7 +130,7 @@ void ClusterNode::CalcEccentricity(TriangleMatrix const& FrameDistancesIn) {
 }
 
 /** Get the average distance between all frames in the cluster */
-void ClusterNode::CalcAvgFrameDist(TriangleMatrix const& FrameDistancesIn) {
+void ClusterNode::CalcAvgFrameDist(ClusterMatrix const& FrameDistancesIn) {
   DataSet_double distances;
   int numframes = (int)frameList_.size(); 
   distances.Resize( ((numframes * numframes) - numframes) / 2 );

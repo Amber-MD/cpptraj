@@ -22,9 +22,9 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         Analysis_Timecorr.cpp Analysis_Rms2d.cpp Analysis_RmsAvgCorr.cpp \
         Analysis_RunningAvg.cpp Analysis_Statistics.cpp AnalysisList.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
-        BufferedFile.cpp ByteRoutines.cpp ClusterList.cpp ClusterNode.cpp \
-        ComplexArray.cpp CpptrajFile.cpp Cpptraj.cpp CpptrajStdio.cpp \
-        DataFile.cpp DataFileList.cpp \
+        BufferedFile.cpp ByteRoutines.cpp ClusterList.cpp ClusterMatrix.cpp \
+        ClusterNode.cpp ComplexArray.cpp CpptrajFile.cpp Cpptraj.cpp \
+        CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
         DataSet.cpp DataSet_Coords.cpp DataSet_double.cpp DataSet_float.cpp \
         DataSet_integer.cpp DataSet_string.cpp DataSet_Vector.cpp \

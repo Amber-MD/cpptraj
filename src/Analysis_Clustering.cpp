@@ -3,10 +3,8 @@
 #include "Analysis_Clustering.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
-#include "ProgressBar.h"
 #include "DataSet_integer.h" // For converting cnumvtime
 #include "Trajout.h"
-#include "Analysis_Rms2d.h"
 
 // CONSTRUCTOR
 Analysis_Clustering::Analysis_Clustering() :
@@ -172,7 +170,6 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
 // TODO: Need to update save to indicate distance type
 // NOTE: Should distances be saved only if load_pair?
 Analysis::RetType Analysis_Clustering::Analyze() {
-  TriangleMatrix Distances;
   ClusterList CList;
   DataSet_Coords* clusterCoords = coords_;
 
@@ -196,42 +193,20 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   //          1 - If PAIRDISTFILE exists load pair distances from there.
   //          2 - If DataSet was specified get pair distances from that.
   // Calculated distances will be saved if not loaded from file.
-  int pairdist_mode = 0; 
+  ClusterList::DistModeType pairdist_mode = ClusterList::USE_FRAMES; 
   if (load_pair_ && fileExists(PAIRDISTFILE))
-    pairdist_mode = 1;
+    pairdist_mode = ClusterList::USE_FILE;
   if (cluster_dataset_ != 0)
-    pairdist_mode = 2;
-
-  if (pairdist_mode == 2) {  // Get distances from dataset.
-    calcDistFromDataset( Distances );
-    Distances.SaveFile( PAIRDISTFILE );
-  }
-  if (pairdist_mode == 1) {  // Get distances from file.
-    mprintf(" %s found, loading pairwise distances.\n",PAIRDISTFILE);
-    if ( Distances.LoadFile(PAIRDISTFILE, clusterCoords->Size()) ) {
-      mprintf("\tLoading pairwise distances failed - regenerating from frames.\n");
-      pairdist_mode = 0;
-    }
-  } 
-  if (pairdist_mode == 0) { // Get RMSDs between frames
-    if (usedme_)
-      Analysis_Rms2d::CalcDME(*clusterCoords, Distances, maskexpr_);
-    else
-      Analysis_Rms2d::Calc2drms(*clusterCoords, Distances, nofitrms_, useMass_, maskexpr_);
-    Distances.SaveFile( PAIRDISTFILE );
-  } 
-
-  // DEBUG
-  if (debug_>1) {
-    mprintf("INTIAL FRAME DISTANCES:\n");
-    Distances.PrintElements();
-  }
-
+    pairdist_mode = ClusterList::USE_DATASET;
+  else
+     cluster_dataset_ = (DataSet*) coords_;
+  // Calculate distances between frames
+  if (CList.CalcFrameDistances( PAIRDISTFILE, cluster_dataset_, pairdist_mode, usedme_,
+                                nofitrms_, useMass_, maskexpr_ ))
+    return Analysis::ERR;
   // Cluster
   CList.SetDebug(debug_);
-  CList.SetLinkage(Linkage_);
-  ClusterHierAgglo( Distances, CList);
-
+  CList.ClusterHierAgglo( epsilon_, targetNclusters_, Linkage_);
   // Sort clusters and renumber; also finds centroids for printing
   // representative frames.
   CList.Renumber(sieve_);
@@ -314,56 +289,6 @@ void Analysis_Clustering::Print(DataFileList* DFL) {
   // Add dataset to data file list
   DFL->AddSetToFile(cnumvtimefile_, cnumvtime_);
 
-}
-
-// -----------------------------------------------------------------------------
-// Analysis_Clustering::ClusterHierAgglo()
-/** Cluster using a hierarchical agglomerative (bottom-up) approach. All frames
-  * start in their own cluster. The closest two clusters are merged, and 
-  * distances between the newly merged cluster and all remaining clusters are
-  * recalculated according to one of the following metrics:
-  * - single-linkage  : The minimum distance between frames in clusters are used.
-  * - average-linkage : The average distance between frames in clusters are used.
-  * - complete-linkage: The maximum distance between frames in clusters are used.
-  */
-int Analysis_Clustering::ClusterHierAgglo( TriangleMatrix& FrameDistances, 
-                                  ClusterList& CList) 
-{
-  std::list<int> frames;
-  bool clusteringComplete = false;
-  int iterations = 0;
-
-  mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
-  ProgressBar cluster_progress(-1);
-
-  // Build initial clusters.
-  for (int cluster = 0; cluster < FrameDistances.Nrows(); cluster++) {
-    frames.assign(1,cluster);
-    CList.AddCluster(frames, cluster);
-  }
-  mprintf("\t%i initial clusters.\n", CList.Nclusters());
-  // Build initial cluster distance matrix.
-  CList.Initialize( &FrameDistances );
-
-  // DEBUG
-  if (debug_>1) CList.PrintClusters();
-
-  while (!clusteringComplete) {
-    // Merge 2 closest clusters. Clustering complete if closest dist > epsilon.
-    if (CList.MergeClosest(epsilon_)) break; 
-    // If the target number of clusters is reached we are done
-    if (CList.Nclusters() <= targetNclusters_) {
-      mprintf("\n\tTarget # of clusters (%i) met (%u), clustering complete.\n",targetNclusters_,
-              CList.Nclusters());
-      break;
-    } 
-    if (CList.Nclusters() == 1) clusteringComplete = true; // Sanity check
-    cluster_progress.Update( iterations++ );
-  }
-  mprintf("\tCompleted after %i iterations, %u clusters.\n",iterations,
-          CList.Nclusters());
-
-  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -509,32 +434,5 @@ void Analysis_Clustering::WriteRepTraj( ClusterList &CList ) {
     // Close traj
     clusterout->EndTraj();
     delete clusterout;
-  }
-}
-
-// Analysis_Clustering::calcDistFromDataset()
-void Analysis_Clustering::calcDistFromDataset( TriangleMatrix &Distances ) {
-  int N = cluster_dataset_->Size();
-  //mprintf("DEBUG: xmax is %i\n",N);
-  Distances.Setup(N);
-
-  int max = Distances.Nelements();
-  mprintf(" Calculating distances using dataset %s (%i total).\n",
-          cluster_dataset_->Legend().c_str(),max);
-
-  ProgressBar progress(max);
-  // LOOP 
-  int current = 0;
-  for (int i = 0; i < N-1; i++) {
-    progress.Update(current);
-    double iVal = cluster_dataset_->Dval(i);
-    for (int j = i + 1; j < N; j++) {
-      double jVal = cluster_dataset_->Dval(j);
-      // Calculate abs( delta )
-      double delta = iVal - jVal;
-      if (delta < 0) delta = -delta;
-      Distances.AddElement( delta );
-      current++;
-    }
   }
 }

@@ -10,8 +10,9 @@
   */
 class TriangleMatrix : public DataSet {
   public :
-    int Nrows()            { return nrows_;     }
-    int Nelements()        { return (int)nelements_; }
+    int Nrows()                const { return nrows_;                 }
+    int Nelements()            const { return (int)nelements_;        }
+    double operator[](int idx) const { return (double)elements_[idx]; }
 
     TriangleMatrix();
     TriangleMatrix(int);
@@ -19,32 +20,24 @@ class TriangleMatrix : public DataSet {
     ~TriangleMatrix();
     TriangleMatrix & operator=(const TriangleMatrix &);
 
-    int SaveFile(const char*);
-    int LoadFile(const char*,int);
     int Setup(int);
-    void Ignore(int);
     int AddElement(double);
     int AddElement(float);
     void SetElement(int,int,double);
     void SetElementF(int,int,float);
     double GetElement(int,int) const;
     float GetElementF(int,int) const;
-    double FindMin(int *, int *);
-    void PrintElements();
-
-    double operator[](int idx) { return (double)elements_[idx]; }
-
+    // DataSet functions
     int Xmax() { return nrows_ - 1; }
     int Size() { return (int)nelements_; }
     void Write2D( CpptrajFile&, int, int);
-    void GetDimensions(std::vector<int>&); 
-  private:
+    void GetDimensions(std::vector<int>&);
+  protected:
     float *elements_;       ///< Hold all elements
     int nrows_;             ///< Number of elements in one row
     size_t nelements_;      ///< Total number of elements
     size_t currentElement_; ///< Current element, used in AddElement only.
-    bool *ignore_;          ///< If true, ignore the row/col when printing/searching etc
-
+  private:
     int calcIndex(int,int) const;
 };
 #endif
