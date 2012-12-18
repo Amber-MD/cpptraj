@@ -67,7 +67,7 @@ class CpptrajFile {
     /// Return uncompressed file size (just size if file is not compressed).
     off_t UncompressedSize();
     int Gets(char* buf, int num)     { return IO_->Gets(buf, num);  }
-    int Write(void* buf, size_t num) { return IO_->Write(buf, num); }
+    int Write(const void* buf, size_t num) { return IO_->Write(buf, num); }
     int Read(void* buf, size_t num)  { return IO_->Read(buf, num);  }
     int Seek(off_t offset)           { return IO_->Seek(offset);    }
     int Rewind()                     { return IO_->Rewind();        }

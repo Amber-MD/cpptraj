@@ -25,7 +25,7 @@ class FileIO {
     /// Write bytes to a file.
     /** \return 0 on success, 1 on failure.
       */
-    virtual int Write(void *, size_t)            = 0;
+    virtual int Write(const void *, size_t)      = 0;
     /// Seek to specified position in file.
     virtual int Seek(off_t)                      = 0;
     /// Reset file pointer to beginning.

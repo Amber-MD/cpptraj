@@ -57,7 +57,7 @@ int FileIO_Std::Read(void *buffer, size_t num_bytes) {
 }
 
 // FileIO_Std::Write()
-int FileIO_Std::Write(void *buffer, size_t num_bytes) {
+int FileIO_Std::Write(const void *buffer, size_t num_bytes) {
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {
   //  fprintf(stdout,"Error: FileIO_Std::Write: Attempted to write to NULL file pointer.\n");

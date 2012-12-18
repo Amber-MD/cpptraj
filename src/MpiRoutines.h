@@ -50,7 +50,7 @@ off_t parallel_position( parallelType );
 int parallel_open_file_write(parallelType, const char *);
 int parallel_closeFile(parallelType);
 int parallel_fread(parallelType, void*, int );
-int parallel_fwrite(parallelType, void *, int);
+int parallel_fwrite(parallelType, const void *, int);
 int parallel_fseek(parallelType, off_t, int);
 char *parallel_fgets(parallelType, char *, int);
 int parallel_setSize(parallelType, long int);

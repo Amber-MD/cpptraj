@@ -95,7 +95,7 @@ int FileIO_Gzip::Read(void *buffer, size_t num_bytes) {
 }
 
 // FileIO_Gzip::Write()
-int FileIO_Gzip::Write(void *buffer, size_t num_bytes) {
+int FileIO_Gzip::Write(const void *buffer, size_t num_bytes) {
   //size_t numwrite;
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {

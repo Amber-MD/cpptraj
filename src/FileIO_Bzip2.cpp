@@ -221,13 +221,14 @@ int FileIO_Bzip2::Read(void *buffer, size_t num_bytes) {
 }
 
 // FileIO_Bzip2::Write()
-int FileIO_Bzip2::Write(void *buffer, size_t num_bytes) {
+int FileIO_Bzip2::Write(const void *buffer, size_t num_bytes) {
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {
   //  mprintf("Error: FileIO_Bzip2::Write: Attempted to write to NULL file pointer.\n");
   //  return 1;
   //}
-  BZ2_bzWrite ( &err_, infile_, buffer, num_bytes );
+  // NOTE: The bzip2 library requires the void* cast
+  BZ2_bzWrite ( &err_, infile_, (void*)buffer, num_bytes );
 
   // Update position
   position_ += ((off_t)num_bytes);

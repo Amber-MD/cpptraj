@@ -48,7 +48,7 @@ int FileIO_Mpi::Read(void *buffer, size_t num_bytes) {
 }
 
 // FileIO_Mpi::Write()
-int FileIO_Mpi::Write(void *buffer, size_t num_bytes) {
+int FileIO_Mpi::Write(const void *buffer, size_t num_bytes) {
   //size_t numwrite;
   // Should never be able to call Write when fp is NULL.
   //if (fp==NULL) {

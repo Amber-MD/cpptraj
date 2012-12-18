@@ -285,7 +285,7 @@ int parallel_fread(parallelType pfile, void *buffer, int count) {
 
 // parallel_fwrite()
 /** fwrite using MPI routines.  */
-int parallel_fwrite(parallelType pfile, void *buffer, int count) {
+int parallel_fwrite(parallelType pfile, const void *buffer, int count) {
 #ifdef MPI
   int err;
   MPI_Status status;
@@ -296,8 +296,8 @@ int parallel_fwrite(parallelType pfile, void *buffer, int count) {
   //dbgprintf("Calling MPI write(%i): [%s]\n",count,temp);
   dbgprintf("Calling MPI write(%i):\n",count);
 #  endif
-
-  err=MPI_File_write( *(pfile->mfp),buffer,count,MPI_CHAR,&status);
+  // NOTE: Some MPI implementations require the void* cast
+  err=MPI_File_write( *(pfile->mfp),(void*)buffer,count,MPI_CHAR,&status);
   if (err!=MPI_SUCCESS) {
     printMPIerr(err,"parallel_fwrite");
     return 1;

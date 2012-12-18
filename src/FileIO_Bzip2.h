@@ -14,7 +14,7 @@ class FileIO_Bzip2 : public FileIO {
     int Close();
     off_t Size(const char *);
     int Read(void *, size_t );
-    int Write(void *, size_t);  
+    int Write(const void *, size_t);  
     int Seek(off_t);
     int Rewind();  
     off_t Tell();  // NOTE: Tell may be unnecessary if only for size reporting.
