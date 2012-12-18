@@ -256,10 +256,8 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList &SetList) {
       if (emptyFrames) continue;
     }
     // Output Frame
-    if (hasXcolumn_) {
-      double xcoord = (xstep_ * (double)frame) + xmin_;
-      file.Printf(x_format_.c_str(), xcoord);
-    }
+    if (hasXcolumn_)
+      PrintX(file, frame); 
     for (set = SetList.begin(); set != SetList.end(); set++) 
       (*set)->WriteBuffer(file,frame);
     file.Printf("\n"); 

@@ -31,8 +31,12 @@ class DataIO {
     std::string x_label_;
     double xmin_;
     double xstep_;
+    double xoffset_;
     bool printEmptyFrames_;
 
     void SetupXcolumn();
+    void PrintX(CpptrajFile& file, int frame) {
+      file.Printf(x_format_.c_str(), (xstep_ * ((double)frame+xoffset_)) + xmin_);
+    }
 };
 #endif

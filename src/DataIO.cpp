@@ -13,6 +13,7 @@ DataIO::DataIO() :
   x_label_("Frame"),
   xmin_(1.0),
   xstep_(1.0),
+  xoffset_(0.0),
   printEmptyFrames_(true)
 {}
 
@@ -26,6 +27,7 @@ DataIO::DataIO(const DataIO &rhs) :
   x_label_(rhs.x_label_),
   xmin_(rhs.xmin_),
   xstep_(rhs.xstep_),
+  xoffset_(rhs.xoffset_),
   printEmptyFrames_(rhs.printEmptyFrames_)
 {}
 
@@ -42,6 +44,7 @@ DataIO &DataIO::operator=(const DataIO &rhs) {
   x_label_ = rhs.x_label_;
   xmin_ = rhs.xmin_;
   xstep_ = rhs.xstep_;
+  xoffset_ = rhs.xoffset_;
   printEmptyFrames_ = rhs.printEmptyFrames_;
   return *this;
 }
@@ -67,6 +70,7 @@ int DataIO::ProcessCommonArgs(ArgList &argIn) {
   if (argIn.Contains("time")) {
     xstep_ = argIn.getKeyDouble("time",xstep_);
     xmin_ = 0.0;
+    xoffset_ = 1.0;
   }
   return 0;
 }  
@@ -80,7 +84,7 @@ int DataIO::ProcessCommonArgs(ArgList &argIn) {
   */
 void DataIO::SetupXcolumn() {
   // Determine the character width necessary to hold the largest X value
-  int max_xval = maxFrames_;
+  int max_xval = maxFrames_ + (int)xoffset_;
   if (xstep_ > 1)
     max_xval *= (int)xstep_;
   max_xval += (int)xmin_;
