@@ -114,8 +114,7 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList &SetList) {
       if (!printEmptyFrames_) {
         if ( (*set)->FrameIsEmpty(frame) ) continue;
       }
-      double xcoord = (xstep_ * (double)frame) + xmin_;
-      file.Printf(x_format_.c_str(), xcoord);
+      PrintX( file, frame );
       (*set)->WriteBuffer(file, frame);
       file.Printf("\n");
     }
