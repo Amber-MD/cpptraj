@@ -38,7 +38,7 @@ Vec3 SetupImageTruncoct( Frame& frameIn, AtomMask* ComMask, bool useMass, bool o
   * \param AtomPairs Atom pairs to image.
   */
 void ImageNonortho(Frame& frameIn, bool origin, Vec3 const& fcom, 
-                   Matrix_3x3 ucell, Matrix_3x3 recip, // TODO: Make const &
+                   Matrix_3x3 const& ucell, Matrix_3x3 const& recip,
                    bool truncoct, bool center,
                    bool useMass, std::vector<int> const& AtomPairs)
 {
@@ -87,7 +87,7 @@ void ImageNonortho(Frame& frameIn, bool origin, Vec3 const& fcom,
   * \return Vector containing image translation.
   */
 Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct, 
-                   bool origin, const Matrix_3x3& ucell, const Matrix_3x3& recip, 
+                   bool origin, Matrix_3x3 const& ucell, Matrix_3x3 const& recip, 
                    Vec3 const& fcom, double min)
 {
   int ixyz[3];
@@ -126,8 +126,9 @@ Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct,
   * \param bp Output: Box + boundary.
   * \param bm Output: Box - boundary.
   * \param origin If true, image w.r.t. coordinate origin, otherwise box center.
+  * \return 1 if box lengths are zero, 0 if setup completed successfully.
   */
-void SetupImageOrtho(Box const& boxIn, Vec3& bp, Vec3& bm, bool origin) {
+int SetupImageOrtho(Box const& boxIn, Vec3& bp, Vec3& bm, bool origin) {
   // Set up boundary information for orthorhombic cell
   if (origin) {
     bp = boxIn.Center();
@@ -136,6 +137,8 @@ void SetupImageOrtho(Box const& boxIn, Vec3& bp, Vec3& bm, bool origin) {
     bp.SetVec( boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ()  );
     bm.Zero();
   }
+  if (bp.IsZero()) return 1;
+  return 0;
 }
 
 // ImageOrtho()
