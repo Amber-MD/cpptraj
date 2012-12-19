@@ -131,28 +131,30 @@ void ClusterNode::CalcAvgFrameDist(ClusterMatrix const& FrameDistancesIn) {
 }
 
 /** Compute the centroid (avg) coords for each atom from all frames in this
-  * cluster. In order to have more representative avg coords, RMS fit to 
-  * first frame in cluster.
+  * cluster. In order to have more representative avg coords, RMS fit to  
+  * centroid as it is being built.
   */
 // NOTE: Should ONLY be fitting if RMS was previously calcd with FIT!
+// TODO: useMass, nofit, DME
 void ClusterNode::CalcCentroidFrame(DataSet_Coords const& coordsIn, AtomMask const& maskIn) 
 {
   Matrix_3x3 Rot;
   Vec3 Trans;
-  cframe_.SetupFrame( maskIn.Nselected() );
-  cframe_.ZeroCoords();
-  // Ref is first cluster frame; pre-center it at the origin. 
-  Frame refFrame( maskIn.Nselected() );
-  refFrame.SetFromCRD( coordsIn[0], coordsIn.NumBoxCrd(), maskIn );
-  refFrame.CenterOnOrigin(false);
+  // Reset atom count for centroid.
+  cframe_.ClearAtoms();
   // Frame to hold input coords
   Frame frameIn( maskIn.Nselected() );
   for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
   {
-    frameIn.SetFromCRD( coordsIn[ *frm ], coordsIn.NumBoxCrd(), maskIn );
-    frameIn.RMSD_CenteredRef( refFrame, Rot, Trans, false );
-    frameIn.Rotate( Rot );
-    cframe_ += frameIn;
+    coordsIn.GetFrame( *frm, frameIn, maskIn );
+    if (cframe_.empty()) {
+      cframe_ = frameIn;
+      cframe_.CenterOnOrigin(false);
+    } else {
+      frameIn.RMSD_CenteredRef( cframe_, Rot, Trans, false );
+      frameIn.Rotate( Rot );
+      cframe_ += frameIn;
+    }
   }
   cframe_.Divide( (double)frameList_.size() );
   //mprintf("\t\tFirst 3 centroid coords (of %i): %f %f %f\n", cframe_.Natom(), cframe_[0],
@@ -161,8 +163,7 @@ void ClusterNode::CalcCentroidFrame(DataSet_Coords const& coordsIn, AtomMask con
 
 
 /** Calculate average distance between all frames in cluster and
-  * the centroid frame. NOTE: RMSD will translate ref/tgt to origin,
-  * but since centroid is already there we dont care.
+  * the centroid frame. 
   */
 // TODO: usemass, DME, etc
 double ClusterNode::CalcAvgToCentroid( DataSet_Coords const& coordsIn, AtomMask const& maskIn ) 
@@ -174,17 +175,17 @@ double ClusterNode::CalcAvgToCentroid( DataSet_Coords const& coordsIn, AtomMask 
   int idx = 0; // DEBUG
   for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
   {
-    frameIn.SetFromCRD( coordsIn[ *frm ], coordsIn.NumBoxCrd(), maskIn );
-    double dist = frameIn.RMSD( cframe_, false ); // Best-fit RMSD
+    coordsIn.GetFrame( *frm, frameIn, maskIn);
+    // Centroid is already at origin.
+    double dist = frameIn.RMSD_CenteredRef( cframe_, false ); // Best-fit RMSD
     mprintf("\tDist to %i is %f\n", idx++, dist); // DEBUG
     avgdist += dist;
   }
   return ( avgdist / (double)frameList_.size() );
 }
 
-/** Calculate distance between centroid frames. NOTE: RMSD will translate
-  * ref/tgt to origin, but since centroids are already there we dont care.
-  */
+/** Calculate distance between centroid frames. */
 double ClusterNode::CentroidDist( ClusterNode& rhs ) {
-  return cframe_.RMSD( rhs.cframe_, false );
+  // Centroids are already at origin.
+  return cframe_.RMSD_CenteredRef( rhs.cframe_, false );
 }

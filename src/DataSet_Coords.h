@@ -9,15 +9,31 @@ class DataSet_Coords : public DataSet {
     int Allocate(int);
     int Size() { return (int)coords_.size(); }
     void Info();
-    /// Add a frame
-    void AddFrame(Frame const&);
-    void AddCrd(Frame::CRDtype const&);
-    /// Set frame at position
-    void SetFrame(int, Frame const&);
+    /// Add a frame.
+    void AddFrame(Frame const& fIn) { 
+      coords_.push_back( fIn.ConvertToCRD(numBoxCrd_) ); 
+    }
+    /// Add a CRD.
+    void AddCrd(Frame::CRDtype const& crdIn) {
+      coords_.push_back( crdIn );
+    }
+    /// Get a frame at position.
+    void GetFrame(int idx, Frame& fIn) const { 
+      fIn.SetFromCRD( coords_[idx], numBoxCrd_ ); 
+    }
+    /// Get a frame at position corresponding to mask.
+    void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) const {
+      fIn.SetFromCRD( coords_[idx], numBoxCrd_, mIn );
+    }
+    /// Set CRD at position with frame.
+    void SetCRD(int idx, Frame const& fIn) {
+      coords_[idx] = fIn.ConvertToCRD(numBoxCrd_);
+    }
     /// Set topology and number of box coords.
     void SetTopology(Topology const&);
+    /// \return Topology corresponding to coords.
     Topology const& Top()                     const { return top_;          }
-    size_t NumBoxCrd()                        const { return numBoxCrd_;    }
+    /// \return CRD at position.
     const Frame::CRDtype& operator[](int idx) const { return coords_[idx];  }
   private:
     typedef std::vector<Frame::CRDtype> CRDarray;

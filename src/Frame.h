@@ -50,6 +50,7 @@ class Frame {
     void printAtomCoord(int);
     void Info(const char*);
     void AddXYZ(const double *);
+    void ClearAtoms();
     void AddVec3(Vec3 const&);
     double& operator[](int idx)        { return X_[idx];        } // TODO: Make const?
     const double& operator[](int idx) const { return X_[idx];   }

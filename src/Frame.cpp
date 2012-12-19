@@ -243,6 +243,12 @@ void Frame::AddXYZ(const double *XYZin) {
   ncoord_ += 3;
 }
 
+/** Set atom/coord count to zero but do not clear memory. */
+void Frame::ClearAtoms() {
+  natom_ = 0;
+  ncoord_ = 0;
+}
+
 // Frame::AddVec3()
 void Frame::AddVec3(Vec3 const& vIn) {
   if (natom_ >= maxnatom_) 
@@ -720,7 +726,7 @@ static inline void normalize(double* vIn) {
 /** Get the RMSD of this Frame to given Reference Frame. Ref frame must contain 
   * the same number of atoms as this Frame and should have already been 
   * translated to coordinate origin (neither is checked for in the interest
-  * of speed). 
+  * of speed). This frame will be translated to the origin. 
   * \param Ref Previously-centered frame to calc RMSD to.
   * \param U Will be set to the best-fit rotation matrix
   * \param Trans will contain translation vector for this frame to origin.

@@ -223,13 +223,13 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       } else {
         mprintf(" %i", frame);
         // How close is this frame to any clusters centroid?
-        sievedFrame.SetFromCRD( (*coords_)[ frame ], coords_->NumBoxCrd() );
+        coords_->GetFrame( frame, sievedFrame );
         double minrmsd = DBL_MAX;
         ClusterList::cluster_it minNode = CList.end();
         for (ClusterList::cluster_it Cnode = CList.begin();
                                      Cnode != CList.end(); ++Cnode)
         {
-           clusterFrame.SetFromCRD( (*coords_)[ (*Cnode).Centroid() ], coords_->NumBoxCrd() );
+           coords_->GetFrame( (*Cnode).Centroid(), clusterFrame);
            double rmsd = clusterFrame.RMSD( sievedFrame, false );
            if (rmsd < minrmsd) {
              minrmsd = rmsd;
@@ -352,7 +352,7 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList &CList ) {
     Frame clusterframe( coords_->Top().Natom() );
     for (; frame != (*C).endframe(); frame++) {
       //mprinterr("%i,",*frame);
-      clusterframe.SetFromCRD( (*coords_)[*frame], coords_->NumBoxCrd() );
+      coords_->GetFrame( *frame, clusterframe );
       clusterout->WriteFrame(framenum++, clusterparm, clusterframe);
     }
     // Close traj
@@ -367,13 +367,7 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList &CList ) {
 /** Write representative frame of each cluster to a trajectory file.  */
 void Analysis_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
   Trajout clusterout;
-
-  // Find centroid of first cluster in order to set up parm
-  // NOTE: This is redundant if the Summary routine has already been called.
-  ClusterList::cluster_iterator cluster = CList.begincluster();
-  int framenum = (*cluster).Centroid();
-
-  // Set up trajectory file. Use parm from first frame of cluster (pot. dangerous)
+  // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
   if (clusterout.SetupTrajWrite(singlerepfile_, 0, clusterparm, singlerepfmt_)) 
   {
@@ -381,21 +375,15 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
                 singlerepfile_.c_str());
      return;
   }
-  // Write first cluster rep frame
-  int framecounter = 0;
+  // Set up frame to hold cluster rep coords. 
   Frame clusterframe( coords_->Top().Natom() );
-  clusterframe.SetFromCRD( (*coords_)[ framenum ], coords_->NumBoxCrd() );
-  clusterout.WriteFrame(framecounter++, clusterparm, clusterframe);
-
-  ++cluster;
-  for (; cluster != CList.endcluster(); cluster++) {
-    //mprinterr("Cluster %i: ",CList->CurrentNum());
-   framenum = (*cluster).Centroid();
-   //mprinterr("%i\n",framenum);
-   clusterframe.SetFromCRD( (*coords_)[framenum], coords_->NumBoxCrd() );
+  int framecounter = 0;
+  // Write rep frames from all clusters.
+  for (ClusterList::cluster_iterator cluster = CList.begincluster(); 
+                                     cluster != CList.endcluster(); ++cluster) 
+  {
+   coords_->GetFrame( (*cluster).Centroid(), clusterframe );
    clusterout.WriteFrame(framecounter++, clusterparm, clusterframe);
-    //mprinterr("\n");
-    //break;
   }
   // Close traj
   clusterout.EndTraj();
@@ -406,30 +394,30 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
   * repfile.REPNUM.FMT
   */
 void Analysis_Clustering::WriteRepTraj( ClusterList &CList ) {
-  // Create trajectory file object
+  // Get extension for representative frame format 
   std::string tmpExt = TrajectoryFile::GetExtensionForType(reptrajfmt_);
-
+  // Use Topology from COORDS DataSet to set up input frame
+  Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: Fix cast
+  Frame clusterframe( clusterparm->Natom() );
+  // Loop over all clusters
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
   {
-    Trajout *clusterout = new Trajout();
-    // Find centroid of first cluster in order to set up parm
+    Trajout* clusterout = new Trajout();
+    // Get centroid frame # 
     int framenum = (*C).Centroid();
-    // Create filename
+    // Create filename based on frame #
     std::string cfilename = reptrajfile_ + "." + integerToString(framenum+1) + tmpExt;
     // Set up trajectory file. 
-    // Use parm from first frame of cluster (pot. dangerous)
-    Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: Fix cast
     if (clusterout->SetupTrajWrite(cfilename, 0, clusterparm, reptrajfmt_)) 
     {
       mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
-                reptrajfile_.c_str());
+                cfilename.c_str());
        delete clusterout;
        return;
     }
     // Write cluster rep frame
-    Frame clusterframe( coords_->Top().Natom() );
-    clusterframe.SetFromCRD( (*coords_)[framenum], coords_->NumBoxCrd() );
+    coords_->GetFrame( framenum, clusterframe );
     clusterout->WriteFrame(framenum, clusterparm, clusterframe);
     // Close traj
     clusterout->EndTraj();

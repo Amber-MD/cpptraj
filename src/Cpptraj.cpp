@@ -598,7 +598,7 @@ int Cpptraj::CrdAction(ArgList& argIn) {
   ProgressBar progress( stop );
   for (int frame = start; frame < stop; frame += offset) {
     progress.Update( frame );
-    originalFrame->SetFromCRD( (*CRD)[ frame ], CRD->NumBoxCrd() );
+    CRD->GetFrame( frame, *originalFrame );
     Frame* currentFrame = originalFrame;
     if (act->DoAction( frame, currentFrame, &currentFrame ) == Action::ERR) {
       mprinterr("Error: crdaction: Frame %i\n", frame + 1);
@@ -607,7 +607,7 @@ int Cpptraj::CrdAction(ArgList& argIn) {
     // Check if frame was modified. If so, update COORDS.
     // TODO: Have actions indicate whether they will modify coords
     //if ( currentFrame != originalFrame ) 
-      CRD->SetFrame( frame, *currentFrame );
+      CRD->SetCRD( frame, *currentFrame );
   }
   delete originalFrame;
   delete originalParm;
@@ -648,7 +648,7 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   ProgressBar progress( stop );
   for (int frame = start; frame < stop; frame += offset) {
     progress.Update( frame );
-    currentFrame.SetFromCRD( (*CRD)[ frame ], CRD->NumBoxCrd() );
+    CRD->GetFrame( frame, currentFrame );
     if ( outtraj.WriteFrame( frame, currentParm, currentFrame ) ) {
       mprinterr("Error writing %s to output trajectory, frame %i.\n", 
                 CRD->Legend().c_str(), frame + 1);

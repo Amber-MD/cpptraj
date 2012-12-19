@@ -196,8 +196,8 @@ int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
   }
   
   // Save distances - overwrites old distances
-  // TODO: Only when !USE_FILE
-  FrameDistances_.SaveFile( filename );
+  if (!USE_FILE)
+    FrameDistances_.SaveFile( filename );
   // DEBUG - Print Frame distances
   if (debug_ > 1) {
     mprintf("INTIAL FRAME DISTANCES:\n");

@@ -126,6 +126,7 @@ void Trajout::EndTraj() {
 }
 
 // Trajout::WriteFrame()
+// TODO: Make const frame&
 int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
   // Check that input parm matches setup parm - if not, skip
   if (tparmIn->Pindex() != TrajParm()->Pindex()) return 0;

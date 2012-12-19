@@ -5,7 +5,6 @@
 #include "Residue.h"
 #include "Molecule.h"
 #include "AtomMask.h"
-#include "Box.h"
 #include "Frame.h"
 // Class: Topology
 /// Hold information for all atoms
