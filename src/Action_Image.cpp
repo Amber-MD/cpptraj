@@ -196,7 +196,11 @@ Action::RetType Action_Image::DoAction(int frameNum, Frame* currentFrame, Frame*
   Vec3 fcom;
   
   if (ortho_) {
-    SetupImageOrtho(currentFrame->BoxCrd(), bp, bm, origin_);
+    if (SetupImageOrtho(currentFrame->BoxCrd(), bp, bm, origin_)) {
+      mprintf("Warning: image: Frame %i imaging failed, box lengths are zero.\n",frameNum);
+      // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
+      return Action::OK;
+    }
     ImageOrtho(*currentFrame, bp, bm, center_, useMass_, imageList_);
   } else {
     currentFrame->BoxCrd().ToRecip( ucell, recip );

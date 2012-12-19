@@ -203,7 +203,11 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
   // Setup imaging, and image everything in currentFrame 
   // according to mobileList. 
   if (ortho_) {
-    SetupImageOrtho(currentFrame->BoxCrd(), bp, bm, origin_);
+    if (SetupImageOrtho(currentFrame->BoxCrd(), bp, bm, origin_)) {
+      mprintf("Warning: autoimage: Frame %i imaging failed, box lengths are zero.\n",frameNum);
+      // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
+      return Action::OK;
+    }
     ImageOrtho(*currentFrame, bp, bm, usecom_, useMass_, mobileList_);
   } else {
     currentFrame->BoxCrd().ToRecip(ucell, recip);
