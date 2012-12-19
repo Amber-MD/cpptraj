@@ -94,6 +94,14 @@ class Frame {
     // NOTE: These functions are placed in the header since most modern 
     //       compilers will try to inline them which results in a decent
     //       speedup for most routines (e.g. when imaging).
+    /// \return true if 1st two coord sets are 0; indicates possible corruption.
+    bool CheckCoordsInvalid() {
+      if (natom_ > 1) {
+        return (X_[0] == 0.0 && X_[1] == 0.0 && X_[2] == 0.0 &&
+                X_[3] == 0.0 && X_[4] == 0.0 && X_[5] == 0.0   );
+      }
+      return false;
+    }
     /// \return Center of mass of atoms in mask.
     Vec3 VCenterOfMass( AtomMask const& Mask ) {
       double Coord0 = 0.0;

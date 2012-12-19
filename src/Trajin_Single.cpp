@@ -118,7 +118,6 @@ void Trajin_Single::EndTraj() {
 int Trajin_Single::GetNextFrame( Frame& frameIn ) {
   // If the current frame is out of range, exit
   if ( CheckFinished() ) return 0;
-
   bool tgtFrameFound = false;
   while ( !tgtFrameFound ) {
     if (trajio_->readFrame(CurrentFrame(), frameIn.xAddress(), frameIn.vAddress(),
@@ -126,10 +125,13 @@ int Trajin_Single::GetNextFrame( Frame& frameIn ) {
       return 0;
     if (velio_ != 0 && velio_->readVelocity(CurrentFrame(), frameIn.vAddress()))
       return 0;
+    // Check if coords in frame are valid.
+    if (frameIn.CheckCoordsInvalid())
+      mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
+              CurrentFrame()+1);
     //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
     tgtFrameFound = ProcessFrame();
   }
-
   return 1;
 }
 
