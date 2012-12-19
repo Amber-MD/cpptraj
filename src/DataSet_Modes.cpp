@@ -464,11 +464,14 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
   return 0;
 }
 
-/** Convert eigenvalues to cm^-1 */
+/** Convert eigenvalues to cm^-1. 
+  * Frequency = sqrt( Ene / (mass * MSF)) = sqrt( Ene / Eigval )
+  */
 int DataSet_Modes::EigvalToFreq() {
-  mprintf("\tConverting eigenvalues to frequencies.\n");
+  mprintf("\tConverting eigenvalues to frequencies (cm^-1).\n");
   for (int i = 0; i < nmodes_; ++i) {
-    // "0.6" is conversion of kT for 300K into kcal/mol(?)
+    // "0.6" is conversion of kT for 300K into kcal/mol
+    // "108.597" is conversion to units of cm^-1
     if (evalues_[i] > 0)
       evalues_[i] =  108.587 * sqrt( 0.6 / evalues_[i]);
     else if (evalues_[i] < 0.0)
