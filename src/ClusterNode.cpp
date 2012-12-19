@@ -1,5 +1,7 @@
 #include <cfloat> // DBL_MAX
+#include <cmath> // sqrt
 #include "ClusterNode.h"
+#include "DataSet_Coords.h"
 #include "DataSet_double.h"
 #include "DS_Math.h"
 // DEBUG
@@ -8,7 +10,10 @@
 // CONSTRUCTOR
 ClusterNode::ClusterNode() :
   avgClusterDist_(0),
+  internalAvg_(0.0),
+  internalSD_(0.0),
   eccentricity_(0),
+  cval_(0.0),
   num_(0),
   centroid_(0)
 {}
@@ -16,8 +21,11 @@ ClusterNode::ClusterNode() :
 // Set initial centroid to front, even though that will probably be wrong
 // when number of frames in the list > 1
 ClusterNode::ClusterNode(std::list<int> const& frameListIn, int numIn) :
-  avgClusterDist_(0),
-  eccentricity_(0),
+  avgClusterDist_(0.0),
+  internalAvg_(0.0),
+  internalSD_(0.0),
+  eccentricity_(0.0),
+  cval_(0.0),
   num_(numIn),
   centroid_(frameListIn.front()),
   frameList_(frameListIn)
@@ -26,20 +34,27 @@ ClusterNode::ClusterNode(std::list<int> const& frameListIn, int numIn) :
 // COPY CONSTRUCTOR
 ClusterNode::ClusterNode(const ClusterNode& rhs) :
   avgClusterDist_( rhs.avgClusterDist_ ),
+  internalAvg_( rhs.internalAvg_ ),
+  internalSD_( rhs.internalSD_ ),
   eccentricity_( rhs.eccentricity_ ),
+  cval_( rhs.cval_ ),
   num_( rhs.num_ ),
   centroid_( rhs.centroid_ ),
-  frameList_( rhs.frameList_ )
+  frameList_( rhs.frameList_ ),
+  cframe_( rhs.cframe_ )
 {}
 
 // ASSIGNMENT
 ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   if (&rhs == this) return *this;
   avgClusterDist_ = rhs.avgClusterDist_;
+  internalAvg_ = rhs.internalAvg_;
+  internalSD_ = rhs.internalSD_;
   eccentricity_ = rhs.eccentricity_;
   num_ = rhs.num_;
   centroid_ = rhs.centroid_;
   frameList_ = rhs.frameList_;
+  cframe_ = rhs.cframe_;
   return *this;
 }
 
@@ -130,62 +145,92 @@ void ClusterNode::CalcAvgFrameDist(ClusterMatrix const& FrameDistancesIn) {
   internalAvg_ = DS_Math::Avg( distances, &internalSD_ );
 }
 
-/** Compute the centroid (avg) coords for each atom from all frames in this
+/** Two potential modes based on type of DataSet. If DataSet is COORDS, 
+  * Compute the centroid (avg) coords for each atom from all frames in this
   * cluster. In order to have more representative avg coords, RMS fit to  
   * centroid as it is being built.
+  * If other type of dataset just calc average of double vals.
   */
 // NOTE: Should ONLY be fitting if RMS was previously calcd with FIT!
 // TODO: useMass, nofit, DME
-void ClusterNode::CalcCentroidFrame(DataSet_Coords const& coordsIn, AtomMask const& maskIn) 
+void ClusterNode::CalculateCentroid(DataSet* dsIn, AtomMask const& maskIn) 
 {
-  Matrix_3x3 Rot;
-  Vec3 Trans;
-  // Reset atom count for centroid.
-  cframe_.ClearAtoms();
-  // Frame to hold input coords
-  Frame frameIn( maskIn.Nselected() );
-  for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
-  {
-    coordsIn.GetFrame( *frm, frameIn, maskIn );
-    if (cframe_.empty()) {
-      cframe_ = frameIn;
-      cframe_.CenterOnOrigin(false);
-    } else {
-      frameIn.RMSD_CenteredRef( cframe_, Rot, Trans, false );
-      frameIn.Rotate( Rot );
-      cframe_ += frameIn;
+  if (dsIn->Type() == DataSet::COORDS) {
+    DataSet_Coords* coords = (DataSet_Coords*)dsIn;
+    Matrix_3x3 Rot;
+    Vec3 Trans;
+    // Reset atom count for centroid.
+    cframe_.ClearAtoms();
+    // Frame to hold input coords
+    Frame frameIn( maskIn.Nselected() );
+    for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
+    {
+      coords->GetFrame( *frm, frameIn, maskIn );
+      if (cframe_.empty()) {
+        cframe_ = frameIn;
+        cframe_.CenterOnOrigin(false);
+      } else {
+        frameIn.RMSD_CenteredRef( cframe_, Rot, Trans, false );
+        frameIn.Rotate( Rot );
+        cframe_ += frameIn;
+      }
     }
+    cframe_.Divide( (double)frameList_.size() );
+    //mprintf("\t\tFirst 3 centroid coords (of %i): %f %f %f\n", cframe_.Natom(), cframe_[0],
+    //        cframe_[1],cframe_[2]);
+  } else {
+    // Generic DataSet; get average of all frames; empty centroid frame
+    cframe_.ClearAtoms();
+    cval_ = 0.0;
+    for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
+      cval_ += dsIn->Dval( *frm );
+    cval_ /= (double)frameList_.size();
   }
-  cframe_.Divide( (double)frameList_.size() );
-  //mprintf("\t\tFirst 3 centroid coords (of %i): %f %f %f\n", cframe_.Natom(), cframe_[0],
-  //        cframe_[1],cframe_[2]);
 }
 
 
-/** Calculate average distance between all frames in cluster and
-  * the centroid frame. 
+/** Calculate average distance between all members in cluster and
+  * the centroid. 
   */
 // TODO: usemass, DME, etc
-double ClusterNode::CalcAvgToCentroid( DataSet_Coords const& coordsIn, AtomMask const& maskIn ) 
+double ClusterNode::CalcAvgToCentroid( DataSet* dsIn, AtomMask const& maskIn ) 
 {
-  // TODO: Check that mask size matches centroid
-  // Temp frame to hold input coords
-  Frame frameIn( maskIn.Nselected() );
-  double avgdist = 0.0;
-  int idx = 0; // DEBUG
-  for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
-  {
-    coordsIn.GetFrame( *frm, frameIn, maskIn);
-    // Centroid is already at origin.
-    double dist = frameIn.RMSD_CenteredRef( cframe_, false ); // Best-fit RMSD
-    mprintf("\tDist to %i is %f\n", idx++, dist); // DEBUG
-    avgdist += dist;
+  if (dsIn->Type() == DataSet::COORDS) {
+    DataSet_Coords* coords = (DataSet_Coords*)dsIn;
+    // TODO: Check that mask size matches centroid
+    // Temp frame to hold input coords
+    Frame frameIn( maskIn.Nselected() );
+    double avgdist = 0.0;
+    int idx = 0; // DEBUG
+    for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
+    {
+      coords->GetFrame( *frm, frameIn, maskIn);
+      // Centroid is already at origin.
+      double dist = frameIn.RMSD_CenteredRef( cframe_, false ); // Best-fit RMSD
+      mprintf("\tDist to %i is %f\n", idx++, dist); // DEBUG
+      avgdist += dist;
+    }
+    return ( avgdist / (double)frameList_.size() );
+  } else {
+    // Generic DataSet
+    double sumdiff2 = 0.0;
+    for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
+    {
+      double diff = dsIn->Dval( *frm ) - cval_;
+      sumdiff2 += (diff * diff);
+    }
+    sumdiff2 /= (double)frameList_.size();
+    return sqrt( sumdiff2 );
   }
-  return ( avgdist / (double)frameList_.size() );
 }
 
 /** Calculate distance between centroid frames. */
 double ClusterNode::CentroidDist( ClusterNode& rhs ) {
-  // Centroids are already at origin.
-  return cframe_.RMSD_CenteredRef( rhs.cframe_, false );
+  if (!cframe_.empty())
+    // Centroids are already at origin.
+    return cframe_.RMSD_CenteredRef( rhs.cframe_, false );
+  else {
+    double diff = cval_ - rhs.cval_;
+    return fabs( diff );
+  }
 }

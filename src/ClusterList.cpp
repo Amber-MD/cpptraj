@@ -577,14 +577,14 @@ double ClusterList::ComputeDBI( std::string const& maskIn ) {
   std::vector<double> averageDist;
   averageDist.reserve( clusters_.size() );
   AtomMask mask(maskIn);
-  DataSet_Coords* coords = (DataSet_Coords*)ClusterData_;
-  coords->Top().SetupIntegerMask( mask );
+  if (ClusterData_->Type() == DataSet::COORDS)
+    (*(DataSet_Coords*)ClusterData_).Top().SetupIntegerMask( mask );
   for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
     mprintf("AVG DISTANCES FOR CLUSTER %d:\n",(*C1).Num()); // DEBUG
     // Make sure centroid frame for this cluster is up to date
-    (*C1).CalcCentroidFrame( *coords, mask );
+    (*C1).CalculateCentroid( ClusterData_, mask );
     // Calculate average distance to centroid for this cluster
-    averageDist.push_back( (*C1).CalcAvgToCentroid( *coords, mask ) );
+    averageDist.push_back( (*C1).CalcAvgToCentroid( ClusterData_, mask ) );
     mprintf("\tCluster %i has average-distance-to-centroid %f\n", (*C1).Num(), // DEBUG
             averageDist.back()); // DEBUG
   }

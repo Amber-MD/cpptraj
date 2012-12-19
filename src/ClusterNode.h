@@ -1,8 +1,8 @@
 #ifndef INC_CLUSTERNODE_H
 #define INC_CLUSTERNODE_H
 #include <list>
-#include "DataSet_Coords.h"
 #include "ClusterMatrix.h"
+#include "Frame.h"
 /// Hold information for a cluster in a ClusterList
 class ClusterNode {
   public:
@@ -14,16 +14,16 @@ class ClusterNode {
     bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
     void MergeFrames(ClusterNode&);
-    /// Calculate centroid frame from frames in this cluster.
-    void CalcCentroidFrame(DataSet_Coords const&, AtomMask const&);
     /// Determine which frame in the cluster is centroid.
     int FindCentroid(ClusterMatrix const&);
     /// Calculate eccentricity for frames in this cluster.
     void CalcEccentricity(ClusterMatrix const&);
     /// Calculate average distance between all frames in the cluster
     void CalcAvgFrameDist(ClusterMatrix const&);
-    /// Calculate average distance of all frames to centroid
-    double CalcAvgToCentroid( DataSet_Coords const&, AtomMask const& );
+    /// Calculate centroid of members of this cluster.
+    void CalculateCentroid(DataSet*, AtomMask const&);
+    /// Calculate average distance of all members to centroid
+    double CalcAvgToCentroid( DataSet*, AtomMask const& );
     /// Calculate distance from this centroid to another nodes centroid.
     double CentroidDist( ClusterNode& );
     // Iterator over frame numbers
@@ -48,6 +48,7 @@ class ClusterNode {
     double internalAvg_;
     double internalSD_;
     double eccentricity_;      ///< Maximum distance between any 2 frames.
+    double cval_;              ///< Centroid value (avg) for non-coords DataSets.
     int num_;                  ///< Cluster number.
     int centroid_;             ///< Frame number with lowest distance to all other frames.
     std::list<int> frameList_; ///< List of frames belonging to this cluster.
