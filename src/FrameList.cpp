@@ -193,7 +193,7 @@ ReferenceFrame FrameList::GetFrame(ArgList& argIn) {
   refindex = argIn.getKeyInt("refindex", -1);
   if (refindex != -1) {
     if (refindex < 0 || refindex >= (int)frames_.size()) {
-      mprinterr("Error: reference index %i is out of bounds.\n");
+      mprinterr("Error: reference index %i is out of bounds.\n", refindex);
       return ErrorFrame_;
     }
     return frames_[refindex];
