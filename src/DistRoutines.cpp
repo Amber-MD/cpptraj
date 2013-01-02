@@ -278,20 +278,19 @@ double DIST2_ImageNonOrthoRecip(Vec3 const& f, Vec3 const& f2, double minIn,
   * and a2.
   */
 double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  // If box lengths are zero no imaging possible
+  if (box[0]==0.0 && box[1]==0.0 && box[2]==0.0) return -1.0;
   double x = a1[0] - a2[0];
   double y = a1[1] - a2[1];
   double z = a1[2] - a2[2];
-
   // Get rid of sign info
   if (x<0) x=-x;
   if (y<0) y=-y;
   if (z<0) z=-z;
-
   // Get rid of multiples of box lengths 
   while (x > box[0]) x = x - box[0];
   while (y > box[1]) y = y - box[1];
   while (z > box[2]) z = z - box[2];
-
   // Find shortest distance in periodic reference
   double D = box[0] - x;
   if (D < x) x = D;
@@ -300,14 +299,7 @@ double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
   D = box[2] - z;
   if (D < z) z = D;
 
-  x = x * x;
-  y = y * y;
-  z = z * z;
- 
-  //D = sqrt(x + y + z);
-  D = x + y + z;
-
-  return D;
+  return (x*x + y*y + z*z);
 }
 
 // Frame::DIST2_NoImage()
