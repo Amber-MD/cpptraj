@@ -542,7 +542,9 @@ int Cpptraj::Select(ArgList& argIn) {
     return 1;
   }
   parm->SetupIntegerMask( tempMask );
-  tempMask.PrintMaskAtoms("Selected");
+  mprintf("Selected %i atoms.\n", tempMask.Nselected());
+  if (!argIn.hasKey("total"))
+    tempMask.PrintMaskAtoms("Selected");
   return 0;
 }
 

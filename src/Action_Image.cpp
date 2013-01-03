@@ -197,7 +197,7 @@ Action::RetType Action_Image::DoAction(int frameNum, Frame* currentFrame, Frame*
   
   if (ortho_) {
     if (SetupImageOrtho(currentFrame->BoxCrd(), bp, bm, origin_)) {
-      mprintf("Warning: image: Frame %i imaging failed, box lengths are zero.\n",frameNum);
+      mprintf("Warning: image: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
       return Action::OK;
     }

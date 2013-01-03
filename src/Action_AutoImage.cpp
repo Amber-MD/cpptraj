@@ -204,7 +204,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
   // according to mobileList. 
   if (ortho_) {
     if (SetupImageOrtho(currentFrame->BoxCrd(), bp, bm, origin_)) {
-      mprintf("Warning: autoimage: Frame %i imaging failed, box lengths are zero.\n",frameNum);
+      mprintf("Warning: autoimage: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
       return Action::OK;
     }
