@@ -152,8 +152,8 @@ void ClusterNode::CalcAvgFrameDist(ClusterMatrix const& FrameDistancesIn) {
   * If other type of dataset just calc average of double vals.
   */
 // NOTE: Should ONLY be fitting if RMS was previously calcd with FIT!
-// TODO: useMass, nofit, DME
-void ClusterNode::CalculateCentroid(DataSet* dsIn, AtomMask const& maskIn) 
+void ClusterNode::CalculateCentroid(DataSet* dsIn, RMSoptions const& rmsopt,
+                                    AtomMask const& maskIn) 
 {
   if (dsIn->Type() == DataSet::COORDS) {
     DataSet_Coords* coords = (DataSet_Coords*)dsIn;
@@ -168,10 +168,13 @@ void ClusterNode::CalculateCentroid(DataSet* dsIn, AtomMask const& maskIn)
       coords->GetFrame( *frm, frameIn, maskIn );
       if (cframe_.empty()) {
         cframe_ = frameIn;
-        cframe_.CenterOnOrigin(false);
+        if (!rmsopt.nofit)
+          cframe_.CenterOnOrigin(rmsopt.useMass);
       } else {
-        frameIn.RMSD_CenteredRef( cframe_, Rot, Trans, false );
-        frameIn.Rotate( Rot );
+        if (!rmsopt.nofit) {
+          frameIn.RMSD_CenteredRef( cframe_, Rot, Trans, rmsopt.useMass );
+          frameIn.Rotate( Rot );
+        }
         cframe_ += frameIn;
       }
     }
@@ -192,11 +195,12 @@ void ClusterNode::CalculateCentroid(DataSet* dsIn, AtomMask const& maskIn)
 /** Calculate average distance between all members in cluster and
   * the centroid. 
   */
-// TODO: usemass, DME, etc
-double ClusterNode::CalcAvgToCentroid( DataSet* dsIn, AtomMask const& maskIn ) 
+double ClusterNode::CalcAvgToCentroid( DataSet* dsIn, RMSoptions const& rmsopt, 
+                                       AtomMask const& maskIn ) 
 {
   if (dsIn->Type() == DataSet::COORDS) {
     DataSet_Coords* coords = (DataSet_Coords*)dsIn;
+    double dist;
     // TODO: Check that mask size matches centroid
     // Temp frame to hold input coords
     Frame frameIn( maskIn.Nselected() );
@@ -205,8 +209,15 @@ double ClusterNode::CalcAvgToCentroid( DataSet* dsIn, AtomMask const& maskIn )
     for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
     {
       coords->GetFrame( *frm, frameIn, maskIn);
-      // Centroid is already at origin.
-      double dist = frameIn.RMSD_CenteredRef( cframe_, false ); // Best-fit RMSD
+      if (rmsopt.useDME)
+        dist = frameIn.DISTRMSD( cframe_ );
+      else {
+        if (!rmsopt.nofit)
+          // Centroid is already at origin.
+          dist = frameIn.RMSD_CenteredRef( cframe_, rmsopt.useMass ); // Best-fit RMSD
+        else
+          dist = frameIn.RMSD_NoFit( cframe_, rmsopt.useMass );
+      }
       mprintf("\tDist to %i is %f\n", idx++, dist); // DEBUG
       avgdist += dist;
     }
@@ -225,11 +236,18 @@ double ClusterNode::CalcAvgToCentroid( DataSet* dsIn, AtomMask const& maskIn )
 }
 
 /** Calculate distance between centroid frames. */
-double ClusterNode::CentroidDist( ClusterNode& rhs ) {
-  if (!cframe_.empty())
-    // Centroids are already at origin.
-    return cframe_.RMSD_CenteredRef( rhs.cframe_, false );
-  else {
+double ClusterNode::CentroidDist( ClusterNode& rhs, RMSoptions const& rmsopt ) {
+  if (!cframe_.empty()) {
+    if (rmsopt.useDME)
+      return cframe_.DISTRMSD( rhs.cframe_ );
+    else {
+      if (!rmsopt.nofit)
+        // Centroids are already at origin.
+        return cframe_.RMSD_CenteredRef( rhs.cframe_, rmsopt.useMass );
+      else
+        return cframe_.RMSD_NoFit( rhs.cframe_, rmsopt.useMass );
+    }
+  } else {
     double diff = cval_ - rhs.cval_;
     return fabs( diff );
   }

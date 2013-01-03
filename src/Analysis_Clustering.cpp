@@ -201,8 +201,12 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   else
      cluster_dataset_ = (DataSet*) coords_;
   // Calculate distances between frames
-  if (CList.CalcFrameDistances( PAIRDISTFILE, cluster_dataset_, pairdist_mode, usedme_,
-                                nofitrms_, useMass_, maskexpr_ ))
+  ClusterNode::RMSoptions rmsopt;
+  rmsopt.useDME = usedme_;
+  rmsopt.nofit = nofitrms_;
+  rmsopt.useMass = useMass_;
+  rmsopt.maskexpr = maskexpr_;
+  if (CList.CalcFrameDistances( PAIRDISTFILE, cluster_dataset_, pairdist_mode, rmsopt ))
     return Analysis::ERR;
   // Cluster
   CList.SetDebug(debug_);
@@ -253,7 +257,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   }
 
   // TEST - print DBI
-  mprintf("\tDBI = %f\n", CList.ComputeDBI( maskexpr_ ));
+  mprintf("\tDBI = %f\n", CList.ComputeDBI( rmsopt ));
 
   // Print ptraj-like cluster info
   if (!clusterinfo_.empty())

@@ -20,8 +20,8 @@ class ClusterList {
     void Summary_Half(std::string const&,int);
 
     int AddCluster(std::list<int> const&, int);
-    int CalcFrameDistances(std::string const&, DataSet*, DistModeType, bool,
-                           bool, bool, std::string const&);
+    int CalcFrameDistances(std::string const&, DataSet*, DistModeType, 
+                           ClusterNode::RMSoptions const&);
 
     int ClusterHierAgglo(double, int, LINKAGETYPE);
 
@@ -29,7 +29,7 @@ class ClusterList {
     void PrintClustersToFile(std::string const&,int);
     void PrintRepFrames();
 
-    double ComputeDBI( std::string const& );
+    double ComputeDBI( ClusterNode::RMSoptions const& );
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     cluster_iterator begincluster() { return clusters_.begin(); }

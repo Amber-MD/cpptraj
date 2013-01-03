@@ -10,6 +10,13 @@ class ClusterNode {
     ClusterNode(std::list<int> const&, int);
     ClusterNode(const ClusterNode&);
     ClusterNode& operator=(const ClusterNode&);
+    // For holding RMS/DME calc options
+    struct RMSoptions {
+      bool useDME;
+      bool nofit;
+      bool useMass;
+      std::string maskexpr;
+    };
     /// Used to sort clusters by # of frames in cluster
     bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
@@ -21,11 +28,11 @@ class ClusterNode {
     /// Calculate average distance between all frames in the cluster
     void CalcAvgFrameDist(ClusterMatrix const&);
     /// Calculate centroid of members of this cluster.
-    void CalculateCentroid(DataSet*, AtomMask const&);
+    void CalculateCentroid(DataSet*, RMSoptions const&, AtomMask const&);
     /// Calculate average distance of all members to centroid
-    double CalcAvgToCentroid( DataSet*, AtomMask const& );
+    double CalcAvgToCentroid( DataSet*, RMSoptions const&, AtomMask const& );
     /// Calculate distance from this centroid to another nodes centroid.
-    double CentroidDist( ClusterNode& );
+    double CentroidDist( ClusterNode&, RMSoptions const& );
     // Iterator over frame numbers
     typedef std::list<int>::const_iterator frame_iterator;
     const frame_iterator beginframe() const { return frameList_.begin(); }

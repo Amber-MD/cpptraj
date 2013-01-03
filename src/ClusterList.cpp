@@ -165,8 +165,8 @@ int ClusterList::AddCluster( std::list<int> const& framelistIn, int numIn ) {
 
 // ClusterList::CalcFrameDistances()
 int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
-                                    DistModeType mode, bool useDME, bool nofit,
-                                    bool useMass, std::string const& maskexpr)
+                                    DistModeType mode, 
+                                    ClusterNode::RMSoptions const& rmsopt)
 {
   if (dsIn == 0) {
     mprinterr("Internal Error: ClusterList: Cluster properties DataSet is null.\n");
@@ -188,11 +188,12 @@ int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
     }
   }
   if (mode == USE_FRAMES) { // Get distances from RMSDs between frames.
-    if (useDME)
-      Analysis_Rms2d::CalcDME( *((DataSet_Coords*)ClusterData_), FrameDistances_, maskexpr);
+    if (rmsopt.useDME)
+      Analysis_Rms2d::CalcDME( *((DataSet_Coords*)ClusterData_), FrameDistances_, 
+                               rmsopt.maskexpr);
     else
       Analysis_Rms2d::Calc2drms( *((DataSet_Coords*)ClusterData_), FrameDistances_, 
-                                 nofit, useMass, maskexpr );
+                                 rmsopt.nofit, rmsopt.useMass, rmsopt.maskexpr );
   }
   
   // Save distances - overwrites old distances
@@ -572,19 +573,18 @@ bool ClusterList::CheckEpsilon(double epsilon) {
   * (Cx + Cy)/dXY ...here Cx is the average distance from points in X to the 
   * centroid, similarly Cy, and dXY is the distance between cluster centroids.
   */
-// NOTE: Currently only valid for COORDS
-double ClusterList::ComputeDBI( std::string const& maskIn ) {
+double ClusterList::ComputeDBI( ClusterNode::RMSoptions const& rmsopt ) {
   std::vector<double> averageDist;
   averageDist.reserve( clusters_.size() );
-  AtomMask mask(maskIn);
+  AtomMask mask(rmsopt.maskexpr);
   if (ClusterData_->Type() == DataSet::COORDS)
     (*(DataSet_Coords*)ClusterData_).Top().SetupIntegerMask( mask );
   for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
     mprintf("AVG DISTANCES FOR CLUSTER %d:\n",(*C1).Num()); // DEBUG
     // Make sure centroid frame for this cluster is up to date
-    (*C1).CalculateCentroid( ClusterData_, mask );
+    (*C1).CalculateCentroid( ClusterData_, rmsopt, mask );
     // Calculate average distance to centroid for this cluster
-    averageDist.push_back( (*C1).CalcAvgToCentroid( ClusterData_, mask ) );
+    averageDist.push_back( (*C1).CalcAvgToCentroid( ClusterData_, rmsopt, mask ) );
     mprintf("\tCluster %i has average-distance-to-centroid %f\n", (*C1).Num(), // DEBUG
             averageDist.back()); // DEBUG
   }
@@ -596,7 +596,7 @@ double ClusterList::ComputeDBI( std::string const& maskIn ) {
     for (cluster_it c2 = clusters_.begin(); c2 != clusters_.end(); ++c2, ++nc2) {
       if (c1 == c2) continue;
       double Fred = averageDist[nc1] + averageDist[nc2];
-      Fred /= (*c1).CentroidDist( *c2 );
+      Fred /= (*c1).CentroidDist( *c2, rmsopt );
       if (Fred > MaxFred)
         MaxFred = Fred;
     }
