@@ -95,7 +95,7 @@ class Topology {
     void PrintAtomInfo(std::string const&);
     void PrintBondInfo(std::string const&);
     void PrintMoleculeInfo(std::string const&);
-    void PrintResidueInfo();
+    void PrintResidueInfo(std::string const&);
     // ----- Routines to Access/Modify Box info -----
     inline Box const& ParmBox() const { return box_;        }
     inline Box::BoxType BoxType()     { return box_.Type(); }
