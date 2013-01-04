@@ -31,6 +31,24 @@ ClusterNode::ClusterNode(std::list<int> const& frameListIn, int numIn) :
   frameList_(frameListIn)
 {}
 
+/// Create singleton cluster whose only purpose will be centroid calc (e.g. in sieving)
+ClusterNode::ClusterNode(DataSet* dsIn, int frameIn, RMSoptions const& rmsopt) :
+  avgClusterDist_(0.0),
+  internalAvg_(0.0),
+  internalSD_(0.0),
+  eccentricity_(0.0),
+  cval_(0.0),
+  num_(frameIn),
+  centroid_(0)
+{
+  if (dsIn->Type() == DataSet::COORDS) {
+    DataSet_Coords* coords = (DataSet_Coords*)dsIn;
+    cframe_.SetupFrame( rmsopt.mask.Nselected() );
+    coords->GetFrame( frameIn, cframe_, rmsopt.mask );
+  } else
+    cval_ = dsIn->Dval( frameIn );
+}
+
 // COPY CONSTRUCTOR
 ClusterNode::ClusterNode(const ClusterNode& rhs) :
   avgClusterDist_( rhs.avgClusterDist_ ),
@@ -85,7 +103,7 @@ void ClusterNode::FrameSieveOffset(int sieve) {
 /** Find the frame in the given cluster that is the centroid, i.e. has the
   * lowest cumulative distance to every other point in the cluster.
   */
-int ClusterNode::FindCentroid(ClusterMatrix const& FrameDistancesIn) {
+int ClusterNode::FindCentroidFrame(ClusterMatrix const& FrameDistancesIn) {
   double mindist = DBL_MAX;
   int minframe = -1;
   for (frame_iterator frm1 = frameList_.begin(); frm1 != frameList_.end(); ++frm1)
@@ -152,8 +170,7 @@ void ClusterNode::CalcAvgFrameDist(ClusterMatrix const& FrameDistancesIn) {
   * If other type of dataset just calc average of double vals.
   */
 // NOTE: Should ONLY be fitting if RMS was previously calcd with FIT!
-void ClusterNode::CalculateCentroid(DataSet* dsIn, RMSoptions const& rmsopt,
-                                    AtomMask const& maskIn) 
+void ClusterNode::CalculateCentroid(DataSet* dsIn, RMSoptions const& rmsopt) 
 {
   if (dsIn->Type() == DataSet::COORDS) {
     DataSet_Coords* coords = (DataSet_Coords*)dsIn;
@@ -162,10 +179,10 @@ void ClusterNode::CalculateCentroid(DataSet* dsIn, RMSoptions const& rmsopt,
     // Reset atom count for centroid.
     cframe_.ClearAtoms();
     // Frame to hold input coords
-    Frame frameIn( maskIn.Nselected() );
+    Frame frameIn( rmsopt.mask.Nselected() );
     for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
     {
-      coords->GetFrame( *frm, frameIn, maskIn );
+      coords->GetFrame( *frm, frameIn, rmsopt.mask );
       if (cframe_.empty()) {
         cframe_ = frameIn;
         if (!rmsopt.nofit)
@@ -195,20 +212,19 @@ void ClusterNode::CalculateCentroid(DataSet* dsIn, RMSoptions const& rmsopt,
 /** Calculate average distance between all members in cluster and
   * the centroid. 
   */
-double ClusterNode::CalcAvgToCentroid( DataSet* dsIn, RMSoptions const& rmsopt, 
-                                       AtomMask const& maskIn ) 
+double ClusterNode::CalcAvgToCentroid( DataSet* dsIn, RMSoptions const& rmsopt) 
 {
   if (dsIn->Type() == DataSet::COORDS) {
     DataSet_Coords* coords = (DataSet_Coords*)dsIn;
     double dist;
     // TODO: Check that mask size matches centroid
     // Temp frame to hold input coords
-    Frame frameIn( maskIn.Nselected() );
+    Frame frameIn( rmsopt.mask.Nselected() );
     double avgdist = 0.0;
     int idx = 0; // DEBUG
     for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
     {
-      coords->GetFrame( *frm, frameIn, maskIn);
+      coords->GetFrame( *frm, frameIn, rmsopt.mask);
       if (rmsopt.useDME)
         dist = frameIn.DISTRMSD( cframe_ );
       else {

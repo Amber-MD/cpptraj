@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
 #include "DataSet_integer.h" // For converting cnumvtime
+#include "DataSet_double.h" // For sieveing non-coords datasets
 #include "Trajout.h"
 
 // CONSTRUCTOR
@@ -171,27 +172,11 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
 // NOTE: Should distances be saved only if load_pair?
 Analysis::RetType Analysis_Clustering::Analyze() {
   ClusterList CList;
-  DataSet_Coords* clusterCoords = coords_;
 
   mprintf("    CLUSTER:");
-  // If sieving, create new COORDS dataset containing sieved frames.
-  if (sieve_ > 0) {
-    mprintf(" (Sieve %i):", sieve_);
-    clusterCoords = new DataSet_Coords();
-    int total_sieve_frames = coords_->Size() / sieve_;
-    if ( (coords_->Size() % sieve_) > 0 )
-      ++total_sieve_frames;
-    clusterCoords->Allocate( total_sieve_frames );
-    clusterCoords->SetTopology( coords_->Top() );
-    for (int frame = 0; frame < coords_->Size(); frame += sieve_) {
-      mprintf(" %i", frame+1);
-      clusterCoords->AddCrd( (*coords_)[frame] );
-    }
-    mprintf("\n");
-  }
-  // Default: 0 - Get RMSDs from frames.
-  //          1 - If PAIRDISTFILE exists load pair distances from there.
-  //          2 - If DataSet was specified get pair distances from that.
+  // Default: USE_FRAMES  - Get RMSDs from frames.
+  //          USE_FILE    - If PAIRDISTFILE exists load pair distances from there.
+  //          USE_DATASET - If DataSet was specified get pair distances from that.
   // Calculated distances will be saved if not loaded from file.
   ClusterList::DistModeType pairdist_mode = ClusterList::USE_FRAMES; 
   if (load_pair_ && fileExists(PAIRDISTFILE))
@@ -200,13 +185,42 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     pairdist_mode = ClusterList::USE_DATASET;
   else
      cluster_dataset_ = (DataSet*) coords_;
+  // If sieveing, create new reduced dataset containing sieved frames
+  DataSet* clusterData = cluster_dataset_;
+  if (sieve_ > 0) {
+    mprintf(" (Sieve %i):", sieve_);
+    int total_sieve_frames = cluster_dataset_->Size() / sieve_;
+    if ( (cluster_dataset_->Size() % sieve_) > 0 )
+      ++total_sieve_frames;
+    if (cluster_dataset_->Type() == DataSet::COORDS) {
+      DataSet_Coords* sievedCoords = new DataSet_Coords();
+      sievedCoords->Allocate( total_sieve_frames );
+      sievedCoords->SetTopology( coords_->Top() );
+      for (int frame = 0; frame < coords_->Size(); frame += sieve_) {
+        mprintf(" %i", frame+1);
+        sievedCoords->AddCrd( (*coords_)[frame] );
+      }
+      clusterData = (DataSet*)sievedCoords;
+    } else {
+      DataSet_double* sievedData = new DataSet_double();
+      sievedData->Allocate( total_sieve_frames );
+      int idx = 0;
+      for (int frame = 0; frame < cluster_dataset_->Size(); frame += sieve_) {
+        mprintf(" %i", frame+1);
+        (*sievedData)[idx++] = cluster_dataset_->Dval( frame );
+      }
+      clusterData = (DataSet*)sievedData;
+    }
+    mprintf("\n");
+  }
   // Calculate distances between frames
   ClusterNode::RMSoptions rmsopt;
   rmsopt.useDME = usedme_;
   rmsopt.nofit = nofitrms_;
   rmsopt.useMass = useMass_;
-  rmsopt.maskexpr = maskexpr_;
-  if (CList.CalcFrameDistances( PAIRDISTFILE, cluster_dataset_, pairdist_mode, rmsopt ))
+  rmsopt.mask.SetMaskString( maskexpr_ );
+  coords_->Top().SetupIntegerMask( rmsopt.mask );
+  if (CList.CalcFrameDistances( PAIRDISTFILE, clusterData, pairdist_mode, rmsopt ))
     return Analysis::ERR;
   // Cluster
   CList.SetDebug(debug_);
@@ -218,25 +232,26 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   // If sieving, add remaining frames
   if (sieve_ > 0) {
     mprintf("\tRestoring non-sieved frames:");
-    Frame clusterFrame( coords_->Top().Natom() );
-    Frame sievedFrame( coords_->Top().Natom() );
+    // Ensure cluster centroids are up to date
+    for (ClusterList::cluster_it Cnode = CList.begin(); Cnode != CList.end(); ++Cnode)
+      (*Cnode).CalculateCentroid( cluster_dataset_, rmsopt );
     int nextToSkip = 0;
     for (int frame = 0; frame < coords_->Size(); ++frame) {
       if (frame == nextToSkip) {
         nextToSkip += sieve_;
       } else {
         mprintf(" %i", frame);
-        // How close is this frame to any clusters centroid?
-        coords_->GetFrame( frame, sievedFrame );
-        double minrmsd = DBL_MAX;
+        // Create a cluster with centroid equal to this one frame. 
+        ClusterNode sievedFrame(cluster_dataset_, frame, rmsopt);
+        double mindist = DBL_MAX;
+        // Which current clusters centroid is closest to this frame?
         ClusterList::cluster_it minNode = CList.end();
         for (ClusterList::cluster_it Cnode = CList.begin();
                                      Cnode != CList.end(); ++Cnode)
         {
-           coords_->GetFrame( (*Cnode).Centroid(), clusterFrame);
-           double rmsd = clusterFrame.RMSD( sievedFrame, false );
-           if (rmsd < minrmsd) {
-             minrmsd = rmsd;
+           double dist = sievedFrame.CentroidDist( *Cnode, rmsopt );
+           if (dist < mindist) {
+             mindist = dist;
              minNode = Cnode;
            }
         }
@@ -245,7 +260,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       }
     }
     mprintf("\n");
-    delete clusterCoords;
+    delete clusterData;
   }
 
   // DEBUG
@@ -257,7 +272,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   }
 
   // TEST - print DBI
-  mprintf("\tDBI = %f\n", CList.ComputeDBI( rmsopt ));
+  mprintf("\tDBI = %f\n", CList.ComputeDBI( cluster_dataset_, rmsopt ));
 
   // Print ptraj-like cluster info
   if (!clusterinfo_.empty())

@@ -58,9 +58,9 @@ void ClusterList::Renumber(int sieve) {
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) 
   {
     (*node).SetNum( newNum++ );
-    // Find the centroid. Since FindCentroid uses FrameDistances and not
+    // Find the centroid. Since FindCentroidFrame uses FrameDistances and not
     // ClusterDistances its ok to call after sorting/renumbering.
-    if ((*node).FindCentroid( FrameDistances_ )) {
+    if ((*node).FindCentroidFrame( FrameDistances_ )) {
       mprinterr("Error: Could not determine centroid frame for cluster %i\n",
                 (*node).Num());
     }
@@ -172,28 +172,27 @@ int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
     mprinterr("Internal Error: ClusterList: Cluster properties DataSet is null.\n");
     return 1;
   }
-  ClusterData_ = dsIn;
   if (mode == USE_DATASET)   // Get distances from DataSet
-    calcDistFromDataSet();
-  else if (ClusterData_->Type() != DataSet::COORDS) {
+    calcDistFromDataSet( dsIn );
+  else if (dsIn->Type() != DataSet::COORDS) {
     mprinterr("Internal Error: DataSet type is not COORDS and mode is not USE_DATASET\n");
     return 1;
   }
   // The following modes only work with COORDS
   if (mode == USE_FILE) {    // Get distances from file
     mprintf(" Loading pair-wise distances from %s\n", filename.c_str());
-    if (FrameDistances_.LoadFile( filename, ClusterData_->Size() )) {
+    if (FrameDistances_.LoadFile( filename, dsIn->Size() )) {
       mprintf("\tLoading pair-wise distances failed - regenerating from frames.\n");
       mode = USE_FRAMES;
     }
   }
   if (mode == USE_FRAMES) { // Get distances from RMSDs between frames.
     if (rmsopt.useDME)
-      Analysis_Rms2d::CalcDME( *((DataSet_Coords*)ClusterData_), FrameDistances_, 
-                               rmsopt.maskexpr);
+      Analysis_Rms2d::CalcDME( *((DataSet_Coords*)dsIn), FrameDistances_, 
+                               rmsopt.mask.MaskString() );
     else
-      Analysis_Rms2d::Calc2drms( *((DataSet_Coords*)ClusterData_), FrameDistances_, 
-                                 rmsopt.nofit, rmsopt.useMass, rmsopt.maskexpr );
+      Analysis_Rms2d::Calc2drms( *((DataSet_Coords*)dsIn), FrameDistances_, 
+                                 rmsopt.nofit, rmsopt.useMass, rmsopt.mask.MaskString() );
   }
   
   // Save distances - overwrites old distances
@@ -208,22 +207,22 @@ int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
 }  
     
 // ClusterList::calcDistFromDataSet()
-void ClusterList::calcDistFromDataSet() {
-  int N = ClusterData_->Size();
+void ClusterList::calcDistFromDataSet( DataSet* ClusterData ) {
+  int N = ClusterData->Size();
   //mprintf("DEBUG: xmax is %i\n",N);
   FrameDistances_.Setup(N);
   int max = FrameDistances_.Nelements();
   mprintf(" Calculating distances using dataset %s (%i total).\n",
-          ClusterData_->Legend().c_str(),max);
+          ClusterData->Legend().c_str(),max);
 
   ProgressBar progress(max);
   // LOOP 
   int current = 0;
   for (int i = 0; i < N-1; i++) {
     progress.Update(current);
-    double iVal = ClusterData_->Dval(i);
+    double iVal = ClusterData->Dval(i);
     for (int j = i + 1; j < N; j++) {
-      double jVal = ClusterData_->Dval(j);
+      double jVal = ClusterData->Dval(j);
       // Calculate abs( delta )
       double delta = iVal - jVal;
       if (delta < 0) delta = -delta;
@@ -573,18 +572,15 @@ bool ClusterList::CheckEpsilon(double epsilon) {
   * (Cx + Cy)/dXY ...here Cx is the average distance from points in X to the 
   * centroid, similarly Cy, and dXY is the distance between cluster centroids.
   */
-double ClusterList::ComputeDBI( ClusterNode::RMSoptions const& rmsopt ) {
+double ClusterList::ComputeDBI( DataSet* dsIn, ClusterNode::RMSoptions const& rmsopt ) {
   std::vector<double> averageDist;
   averageDist.reserve( clusters_.size() );
-  AtomMask mask(rmsopt.maskexpr);
-  if (ClusterData_->Type() == DataSet::COORDS)
-    (*(DataSet_Coords*)ClusterData_).Top().SetupIntegerMask( mask );
   for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
     mprintf("AVG DISTANCES FOR CLUSTER %d:\n",(*C1).Num()); // DEBUG
     // Make sure centroid frame for this cluster is up to date
-    (*C1).CalculateCentroid( ClusterData_, rmsopt, mask );
+    (*C1).CalculateCentroid( dsIn, rmsopt );
     // Calculate average distance to centroid for this cluster
-    averageDist.push_back( (*C1).CalcAvgToCentroid( ClusterData_, rmsopt, mask ) );
+    averageDist.push_back( (*C1).CalcAvgToCentroid( dsIn, rmsopt ) );
     mprintf("\tCluster %i has average-distance-to-centroid %f\n", (*C1).Num(), // DEBUG
             averageDist.back()); // DEBUG
   }

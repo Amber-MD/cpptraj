@@ -29,7 +29,7 @@ class ClusterList {
     void PrintClustersToFile(std::string const&,int);
     void PrintRepFrames();
 
-    double ComputeDBI( ClusterNode::RMSoptions const& );
+    double ComputeDBI( DataSet*, ClusterNode::RMSoptions const& );
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     cluster_iterator begincluster() { return clusters_.begin(); }
@@ -43,14 +43,12 @@ class ClusterList {
     int debug_;
     /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
-    /// DataSet describing property to be clustered on.
-    DataSet* ClusterData_;
     /// Distances between each frame.
     ClusterMatrix FrameDistances_;
     /// Distances between each cluster.
     ClusterMatrix ClusterDistances_;
 
-    void calcDistFromDataSet();
+    void calcDistFromDataSet(DataSet*);
     void InitializeClusterDistances(LINKAGETYPE);
     int MergeClosest(double, LINKAGETYPE);
     int Merge(cluster_it&, cluster_it&);

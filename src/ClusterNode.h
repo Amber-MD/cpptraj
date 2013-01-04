@@ -6,31 +6,32 @@
 /// Hold information for a cluster in a ClusterList
 class ClusterNode {
   public:
-    ClusterNode();
-    ClusterNode(std::list<int> const&, int);
-    ClusterNode(const ClusterNode&);
-    ClusterNode& operator=(const ClusterNode&);
     // For holding RMS/DME calc options
     struct RMSoptions {
       bool useDME;
       bool nofit;
       bool useMass;
-      std::string maskexpr;
+      AtomMask mask;
     };
+    ClusterNode();
+    ClusterNode(std::list<int> const&, int);
+    ClusterNode(DataSet*, int, RMSoptions const&);
+    ClusterNode(const ClusterNode&);
+    ClusterNode& operator=(const ClusterNode&);
     /// Used to sort clusters by # of frames in cluster
     bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
     void MergeFrames(ClusterNode&);
     /// Determine which frame in the cluster is centroid.
-    int FindCentroid(ClusterMatrix const&);
+    int FindCentroidFrame(ClusterMatrix const&);
     /// Calculate eccentricity for frames in this cluster.
     void CalcEccentricity(ClusterMatrix const&);
     /// Calculate average distance between all frames in the cluster
     void CalcAvgFrameDist(ClusterMatrix const&);
     /// Calculate centroid of members of this cluster.
-    void CalculateCentroid(DataSet*, RMSoptions const&, AtomMask const&);
+    void CalculateCentroid(DataSet*, RMSoptions const&);
     /// Calculate average distance of all members to centroid
-    double CalcAvgToCentroid( DataSet*, RMSoptions const&, AtomMask const& );
+    double CalcAvgToCentroid( DataSet*, RMSoptions const&);
     /// Calculate distance from this centroid to another nodes centroid.
     double CentroidDist( ClusterNode const&, RMSoptions const& );
     // Iterator over frame numbers
