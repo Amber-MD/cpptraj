@@ -20,6 +20,10 @@ int ActionFrameCounter::InitFrameCounter(ArgList& argIn) {
   // User start/stop args begin at frame 1. 
   --start_;
   stop_ = argIn.getKeyInt("stop",-1);
+  // For backwards compat., check for 'end' (matrix only?)
+  // NOTE: Deprecate?
+  if (stop_ == -1)
+    stop_ = argIn.getKeyInt("end", -1);
   if (stop_!=-1) {
     --stop_;
     if (stop_ < start_)

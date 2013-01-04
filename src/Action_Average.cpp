@@ -14,7 +14,7 @@ Action_Average::Action_Average() :
 { } 
 
 void Action_Average::Help() {
-  mprintf("average <filename> [mask]");
+  mprintf("average <filename> [mask] ");
   ActionFrameCounter::Help();
   mprintf("\n        [TRAJOUT ARGS]\n");
   mprintf("\tCalculate the average structure over input frames.\n");

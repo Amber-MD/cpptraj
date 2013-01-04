@@ -9,9 +9,6 @@ Action_Matrix::Action_Matrix() :
   outfile_(0),
   outtype_(BYATOM),
   type_(DataSet_Matrix::NO_OP),
-  start_(0),
-  stop_(-1),
-  offset_(1),
   snap_(0),
   order_(2),
   useMask2_(false),
@@ -20,11 +17,12 @@ Action_Matrix::Action_Matrix() :
 {}
 
 void Action_Matrix::Help() {
-  mprintf("matrix [out <filename>] [start <#>] [stop|end <#>] [offset <#>]\n");
-  mprintf("       [name <name>] [ byatom | byres [mass] | bymask [mass] ]\n");
-  mprintf("       [ ired [order <#>] ]\n");
-  mprintf("       [ {distcovar | idea} <mask1> ]\n");
-  mprintf("       [ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n");
+  mprintf("matrix [out <filename>] ");
+  ActionFrameCounter::Help();
+  mprintf("\n       [name <name>] [ byatom | byres [mass] | bymask [mass] ]\n");
+  mprintf(  "       [ ired [order <#>] ]\n");
+  mprintf(  "       [ {distcovar | idea} <mask1> ]\n");
+  mprintf(  "       [ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n");
 }
 
 // Action_Matrix::init()
@@ -33,13 +31,8 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 {
   // Get Keywords
   filename_ = actionArgs.GetStringKey("out");
-  start_ = actionArgs.getKeyInt("start", 1);
-  stop_ = actionArgs.getKeyInt("stop", -1);
-  if (stop_ == -1)
-    stop_ = actionArgs.getKeyInt("end", -1);
-  offset_ = actionArgs.getKeyInt("offset", 1);
-  // Actual start frame arg should be from 0
-  --start_;
+  // Get start/stop/offset
+  if (InitFrameCounter(actionArgs)) return Action::ERR;
   // Determine matrix type
   type_ = DataSet_Matrix::TypeFromArg(actionArgs);
   // Output type
@@ -132,14 +125,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (!name.empty())
     mprintf("            Storing matrix on internal stack with name: %s\n", 
             Mat_->Legend().c_str());
-  if (start_!=0 || stop_!=-1 || offset_!=1) {
-    mprintf("            start: %i  stop:",start_);
-    if (stop_==-1)
-      mprintf(" Final frame");
-    else
-      mprintf(" %i",stop_);
-    mprintf("  offset: %i\n",offset_);
-  }
+  FrameCounterInfo();
   if (type_ != DataSet_Matrix::IRED) {
     mprintf("            Mask1: %s\n",mask1_.MaskString());
     if (useMask2_)
@@ -506,13 +492,10 @@ void Action_Matrix::CalcDistanceCovarianceMatrix(Frame* currentFrame) {
 
 // Action_Matrix::action()
 Action::RetType Action_Matrix::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  // If the current frame is less than start exit
-  if (frameNum < start_) return Action::OK;
-  // If the current frame is greater than stop exit
-  if (stop_!=-1 && frameNum >= stop_) return Action::OK;
-  // Increment number of snapshots, update next target frame
+  // Check if this frame should be processed
+  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
+  // Increment number of snapshots
   ++snap_; 
-  start_ += offset_;
 
   switch (type_) {
     case DataSet_Matrix::DIST     : CalcDistanceMatrix(currentFrame); break;
