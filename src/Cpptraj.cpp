@@ -435,7 +435,7 @@ int Cpptraj::ParmInfo(ArgList& argIn, int cmdidxIn) {
         parm->Summary();
       break;
     case BONDINFO: parm->PrintBondInfo( maskarg ); break;
-    case RESINFO : parm->PrintResidueInfo(); break;
+    case RESINFO : parm->PrintResidueInfo( maskarg ); break;
     case MOLINFO : parm->PrintMoleculeInfo( maskarg ); break;
     default: return 1; // Should never get here
   }

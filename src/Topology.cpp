@@ -286,13 +286,18 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) {
 }
 
 // Topology::PrintResidueInfo()
-void Topology::PrintResidueInfo() {
+void Topology::PrintResidueInfo(std::string const& maskString) {
+  AtomMask mask( maskString );
+  ParseMask(refCoords_, mask, false); // Char mask
+  mprintf("RESIDUES:\n");
   unsigned int rnum = 1;
   for (std::vector<Residue>::iterator res = residues_.begin();
                                       res != residues_.end(); res++)
   {
-    mprintf("\tResidue %u, %s, first atom %i, last atom %i\n",
-            rnum,(*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom()+1);
+    if ( mask.AtomsInCharMask( (*res).FirstAtom(), (*res).LastAtom() ) ) {
+      mprintf("\tResidue %u, %s, first atom %i, last atom %i\n",
+              rnum, (*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom()+1);
+    }
     ++rnum;
   }
 }
