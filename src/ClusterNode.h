@@ -32,7 +32,7 @@ class ClusterNode {
     /// Calculate average distance of all members to centroid
     double CalcAvgToCentroid( DataSet*, RMSoptions const&, AtomMask const& );
     /// Calculate distance from this centroid to another nodes centroid.
-    double CentroidDist( ClusterNode&, RMSoptions const& );
+    double CentroidDist( ClusterNode const&, RMSoptions const& );
     // Iterator over frame numbers
     typedef std::list<int>::const_iterator frame_iterator;
     const frame_iterator beginframe() const { return frameList_.begin(); }

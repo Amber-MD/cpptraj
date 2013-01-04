@@ -236,7 +236,7 @@ double ClusterNode::CalcAvgToCentroid( DataSet* dsIn, RMSoptions const& rmsopt,
 }
 
 /** Calculate distance between centroid frames. */
-double ClusterNode::CentroidDist( ClusterNode& rhs, RMSoptions const& rmsopt ) {
+double ClusterNode::CentroidDist( ClusterNode const& rhs, RMSoptions const& rmsopt ) {
   if (!cframe_.empty()) {
     if (rmsopt.useDME)
       return cframe_.DISTRMSD( rhs.cframe_ );
