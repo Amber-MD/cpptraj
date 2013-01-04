@@ -6,10 +6,6 @@
 // CONSTRUCTOR
 Action_AtomicFluct::Action_AtomicFluct() :
   sets_(0),
-  start_(0),
-  stop_(-1),
-  offset_(1),
-  targetSet_(0),
   bfactor_(false),
   fluctParm_(0),
   outtype_(BYATOM),
@@ -18,9 +14,9 @@ Action_AtomicFluct::Action_AtomicFluct() :
 {}
 
 void Action_AtomicFluct::Help() {
-  mprintf("atomicfluct [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]\n");
-  mprintf("            [start <start>] [stop <stop>] [offset <offset>]\n");
-  mprintf("\tCalculate atomic fluctuations of atoms in <mask>\n");
+  mprintf("atomicfluct [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]\n\t");
+  ActionFrameCounter::Help();
+  mprintf("\nCalculate atomic fluctuations of atoms in <mask>\n");
 }
 
 // Action_AtomicFluct::init()
@@ -28,26 +24,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get frame # keywords
-  int startArg = actionArgs.getKeyInt("start",1);
-  stop_ = actionArgs.getKeyInt("stop",-1);
-  if (stop_==-1) 
-    stop_ = actionArgs.getKeyInt("end",-1);
-  // Cpptraj frame #s start from 0
-  if (startArg<1) {
-    mprinterr("Error: AtomicFluct: start arg must be >= 1 (%i)\n",startArg);
-    return Action::ERR;
-  }
-  if (stop_!=-1 && startArg>stop_) {
-    mprinterr("Error: AtomicFluct: start arg (%i) > stop arg (%i)\n",startArg,stop_);
-    return Action::ERR;
-  }
-  start_ = startArg - 1;
-  targetSet_ = start_;
-  offset_ = actionArgs.getKeyInt("offset",1);
-  if (offset_<1) {
-    mprinterr("Error: AtomicFluct: offset arg must be >= 1 (%i)\n",offset_);
-    return Action::ERR;
-  }
+  if (InitFrameCounter(actionArgs)) return Action::ERR;
   // Get other keywords
   bfactor_ = actionArgs.hasKey("bfactor");
   outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs ); 
@@ -79,15 +56,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   if (outfile_ != 0)
     mprintf(", output to file %s",outfile_->Filename());
   mprintf("\n                 Atom mask: [%s]\n",Mask.MaskString());
-  if (start_>0 || stop_!=-1 || offset_!=1) {
-    mprintf("                 Processing frames %i to",start_+1);
-    if (stop_!=-1)
-      mprintf(" %i",stop_);
-    else
-      mprintf(" end");
-    if (offset_!=1)
-      mprintf(", offset %i\n",offset_);
-  }
+  FrameCounterInfo();
   if (!setname.empty())
     mprintf("\tData will be saved to set named %s\n", setname.c_str());
 
@@ -126,15 +95,13 @@ Action::RetType Action_AtomicFluct::Setup(Topology* currentParm, Topology** parm
 }
 
 // Action_AtomicFluct::action()
-Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  if (frameNum == targetSet_) {
-    SumCoords_ += *currentFrame;
-    SumCoords2_ += ( (*currentFrame) * (*currentFrame) ) ;
-    ++sets_;
-    targetSet_ += offset_;
-    if (targetSet_ >= stop_ && stop_!=-1)
-      targetSet_ = -1;
-  }
+Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame, 
+                                             Frame** frameAddress) 
+{
+  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
+  SumCoords_ += *currentFrame;
+  SumCoords2_ += ( (*currentFrame) * (*currentFrame) ) ;
+  ++sets_;
   return Action::OK;
 }
 
