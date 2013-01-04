@@ -1,9 +1,10 @@
 #ifndef INC_ACTION_AVERAGE_H
 #define INC_ACTION_AVERAGE_H
 #include "Action.h"
+#include "ActionFrameCounter.h"
 // Class: Action_Average
 /// Sum up all coordinates and print the averaged coords in given format.
-class Action_Average: public Action {
+class Action_Average: public Action, ActionFrameCounter {
   public:
     Action_Average();
 
@@ -27,11 +28,6 @@ class Action_Average: public Action {
     bool parmStripped_;
     int Natom_;
     int Nframes_;
-    int start_;
-    int stop_;
-    int offset_;
-    int targetFrame_;
     std::string avgfilename_;
-
 };
 #endif  
