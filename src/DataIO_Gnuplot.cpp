@@ -94,6 +94,10 @@ void DataIO_Gnuplot::JpegOut(int xsize, int ysize) {
     std::string jpegname = file_.FullFileName() + ".jpg";
     file_.Printf("set terminal jpeg size %s\nset output \"%s\"\n",
                   sizearg.c_str(), jpegname.c_str());
+  } else {
+    // If not writing jpeg and xsize == ysize, make output square
+    if (xsize == ysize)
+      file_.Printf("set size square\n");
   }
 }
 

@@ -3,8 +3,9 @@
 #include "Action.h"
 #include "DataSet_Matrix.h"
 #include "DataSet_Vector.h"
+#include "ActionFrameCounter.h"
 /// Calculate various types of matrices
-class Action_Matrix : public Action {
+class Action_Matrix : public Action, ActionFrameCounter {
   public:
     Action_Matrix();
 
@@ -27,10 +28,6 @@ class Action_Matrix : public Action {
     std::string filename_;
     OutputType outtype_;
     DataSet_Matrix::MatrixType type_;
-    // TODO: Put start, stop, offset into its own class
-    int start_;
-    int stop_;
-    int offset_;
     int snap_;
     // IRED only
     int order_;

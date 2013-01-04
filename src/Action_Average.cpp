@@ -5,20 +5,18 @@
 
 // CONSTRUCTOR
 Action_Average::Action_Average() :
+  debug_(0),
   AvgFrame_(0),
   AvgParm_(0),
   parmStripped_(false),
   Natom_(0),
-  Nframes_(0),
-  start_(0),
-  stop_(0),
-  offset_(1),
-  targetFrame_(0)
+  Nframes_(0)
 { } 
 
 void Action_Average::Help() {
-  mprintf("average <filename> [mask] [start <start>] [stop <stop>] [offset <offset>]\n");
-  mprintf("        [TRAJOUT ARGS]\n");
+  mprintf("average <filename> [mask] ");
+  ActionFrameCounter::Help();
+  mprintf("\n        [TRAJOUT ARGS]\n");
   mprintf("\tCalculate the average structure over input frames.\n");
 }
 
@@ -33,20 +31,15 @@ Action_Average::~Action_Average() {
 Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  debug_ = debugIn;
   // Get Keywords
   avgfilename_ = actionArgs.GetStringNext();
   if (avgfilename_.empty()) {
     mprinterr("Error: average: No filename given.\n");
     return Action::ERR;
   }
-  // TODO: Create frame tracker class for actions
-  // User start/stop args are +1
-  start_ = actionArgs.getKeyInt("start",1);
-  --start_;
-  targetFrame_ = start_;
-  stop_ = actionArgs.getKeyInt("stop",-1);
-  if (stop_!=-1) --stop_;
-  offset_ = actionArgs.getKeyInt("offset",1);
+  // Get start/stop/offset args
+  if (InitFrameCounter(actionArgs)) return Action::ERR;
 
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
@@ -54,14 +47,9 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   // Save all remaining arguments for setting up the trajectory at the end.
   trajArgs_ = actionArgs.RemainingArgs();
 
-  mprintf("    AVERAGE: Averaging over coordinates in mask [%s]",Mask1_.MaskString());
-  if (stop_==-1) 
-    mprintf(", starting from frame %i",start_+1);
-  else
-    mprintf(", frames %i-%i",start_+1,stop_+1);
-  if (offset_!=1)
-    mprintf(", offset %i",offset_);
-  mprintf(".\n             Writing averaged coords to [%s]\n",avgfilename_.c_str());
+  mprintf("    AVERAGE: Averaging over coordinates in mask [%s]\n",Mask1_.MaskString());
+  FrameCounterInfo();
+  mprintf("\tWriting averaged coords to [%s]\n",avgfilename_.c_str());
 
   Nframes_ = 0;
 
@@ -98,7 +86,8 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
       mprintf("             Atom selection < natom, stripping parm for averaging only:\n");
       AvgParm_ = currentParm->modifyStateByMask(Mask1_);
       parmStripped_=true;
-      AvgParm_->Summary();
+      if (debug_ > 0)
+        AvgParm_->Summary();
     } else 
       AvgParm_ = currentParm; 
   } else {
@@ -127,15 +116,13 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
 }
 
 // Action_Average::action()
-Action::RetType Action_Average::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  if (frameNum != targetFrame_) return Action::OK;
+Action::RetType Action_Average::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
+{
+  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
 
   AvgFrame_->AddByMask(*currentFrame, Mask1_);
   ++Nframes_; 
 
-  targetFrame_ += offset_;
-  // Since frameNum will never be -1 this effectively disables the routine
-  if (targetFrame_>stop_ && stop_!=-1) targetFrame_=-1;
   return Action::OK;
 } 
 

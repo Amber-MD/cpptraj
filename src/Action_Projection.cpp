@@ -1,32 +1,29 @@
 #include <cmath> // sqrt
 #include "Action_Projection.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 // CONSTRUCTOR
 Action_Projection::Action_Projection() :
   beg_(0),
-  end_(0),
-  start_(0),
-  stop_(-1),
-  offset_(1)
+  end_(0)
 {}
 
 void Action_Projection::Help() {
   mprintf("projection modes <modesfile> out <outfile>\n");
-  mprintf("           [beg <beg>] [end <end>] [<mask>]\n");
-  mprintf("           [start <start>] [stop <stop>] [offset <offset>]\n");
+  mprintf("           [beg <beg>] [end <end>] [<mask>]\n           ");
+  ActionFrameCounter::Help();
+  mprintf("\n");
 }
 
 Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get ibeg, iend, start, stop, offset
+  // NOTE: Must get 'end' before InitFrameCounter since the latter checks for 'end'
   beg_ = actionArgs.getKeyInt("beg", 1);
   end_ = actionArgs.getKeyInt("end", 2);
-  // Frames start from 0
-  start_ = actionArgs.getKeyInt("start", 1) - 1;
-  stop_ = actionArgs.getKeyInt("stop", -1);
-  offset_ = actionArgs.getKeyInt("offset", 1);
+  if (InitFrameCounter(actionArgs)) return Action::ERR;
 
   // Get modes from file
   std::string modesname = actionArgs.GetStringKey("modes");
@@ -62,13 +59,15 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   int imode = beg_;
   for (int mode = 0; mode < modinfo_.Nmodes(); ++mode) {
     if (modinfo_.Type() != DataSet_Matrix::IDEA) { // COVAR, MWCOVAR
-      DataSet* dout = DSL->AddSetIdx( DataSet::FLOAT, setname, imode++ );
+      DataSet* dout = DSL->AddSetIdx( DataSet::FLOAT, setname, imode );
       if (dout == 0) {
-        mprinterr("Error creating output dataset for mode %i\n",imode-1);
+        mprinterr("Error creating output dataset for mode %i\n",imode);
         return Action::ERR;
       }
+      dout->SetLegend("Mode"+integerToString(imode));
       project_.push_back( dout );
       DFL->AddSetToFile( filename_, dout );
+      imode++;
     } else { // IDEA TODO: Error check
       project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode, "X") );
       DFL->AddSetToFile( filename_, project_.back() );
@@ -80,18 +79,20 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
       DFL->AddSetToFile( filename_, project_.back() );
     }
   }
+  // Set datafile args
+  if (!filename_.empty()) {
+    DataFile* df = DFL->GetDataFile( filename_ );
+    if (df == 0) {
+      mprinterr("Internal Error: File %s was not set up.\n", filename_.c_str());
+      return Action::ERR;
+    }
+    df->ProcessArgs("noemptyframes");
+  }
 
   mprintf("    PROJECTION: Calculating projection using modes %i to %i of file %s\n",
           beg_, end_, modinfo_.Legend().c_str());
   mprintf("                Results are written to %s\n", filename_.c_str());
-  mprintf("                Start: %i", start_+1);
-  if (stop_!=-1)
-    mprintf("  Stop: %i", stop_);
-  else
-    mprintf("  Stop: Last Frame");
-  if (offset_!=1)
-    mprintf("  Offset: %i", offset_);
-  mprintf("\n");
+  FrameCounterInfo();
   mprintf("                Atom Mask: [%s]\n", mask_.MaskString());
 
   return Action::OK;
@@ -148,14 +149,10 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_Projection::action()
-Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-    // If the current frame is less than start exit
-  if (frameNum < start_) return Action::OK;
-  // If the current frame is greater than stop exit
-  if (stop_!=-1 && frameNum >= stop_) return Action::OK;
-  // Update next target frame
-  start_ += offset_;
-
+Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, 
+                                            Frame** frameAddress)
+{
+  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Always start at first eigenvector element of first mode.
   const double* Vec = modinfo_.Eigenvector(0);
   // Project snapshots on modes

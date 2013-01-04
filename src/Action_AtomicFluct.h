@@ -1,7 +1,8 @@
 #ifndef INC_ACTION_ATOMICFLUCT_H
 #define INC_ACTION_ATOMICFLUCT_H
 #include "Action.h"
-class Action_AtomicFluct : public Action {
+#include "ActionFrameCounter.h"
+class Action_AtomicFluct : public Action, ActionFrameCounter {
   public :
     Action_AtomicFluct();
 
@@ -21,10 +22,6 @@ class Action_AtomicFluct : public Action {
     Frame SumCoords2_;
     AtomMask Mask;
     int sets_;
-    int start_;
-    int stop_;
-    int offset_;
-    int targetSet_;
     bool bfactor_;
     std::string outfilename_;
     Topology *fluctParm_;
