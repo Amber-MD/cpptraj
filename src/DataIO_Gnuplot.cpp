@@ -97,7 +97,7 @@ void DataIO_Gnuplot::JpegOut(int xsize, int ysize) {
   } else {
     // If not writing jpeg and xsize == ysize, make output square
     if (xsize == ysize)
-      file_.Printf("set size .721, 1\n");
+      file_.Printf("set size square\n");
   }
 }
 
