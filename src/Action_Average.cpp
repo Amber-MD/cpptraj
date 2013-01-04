@@ -5,6 +5,7 @@
 
 // CONSTRUCTOR
 Action_Average::Action_Average() :
+  debug_(0),
   AvgFrame_(0),
   AvgParm_(0),
   parmStripped_(false),
@@ -33,6 +34,7 @@ Action_Average::~Action_Average() {
 Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  debug_ = debugIn;
   // Get Keywords
   avgfilename_ = actionArgs.GetStringNext();
   if (avgfilename_.empty()) {
@@ -40,12 +42,21 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     return Action::ERR;
   }
   // TODO: Create frame tracker class for actions
-  // User start/stop args are +1
   start_ = actionArgs.getKeyInt("start",1);
+  if ( start_ < 1 ) {
+    mprintf("Warning: average: starting frame %i is less than 1, setting to 1.\n", start_);
+    start_ = 1;
+  }
+  // User start/stop args are +1
   --start_;
   targetFrame_ = start_;
   stop_ = actionArgs.getKeyInt("stop",-1);
-  if (stop_!=-1) --stop_;
+  if (stop_!=-1) {
+    --stop_;
+    if (stop_ < start_)
+      mprintf("Warning: stop frame %i less than start (%i); only 1 frame will be averaged.\n",
+              stop_ + 1, start_ + 1);
+  }
   offset_ = actionArgs.getKeyInt("offset",1);
 
   // Get Masks
@@ -98,7 +109,8 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
       mprintf("             Atom selection < natom, stripping parm for averaging only:\n");
       AvgParm_ = currentParm->modifyStateByMask(Mask1_);
       parmStripped_=true;
-      AvgParm_->Summary();
+      if (debug_ > 0)
+        AvgParm_->Summary();
     } else 
       AvgParm_ = currentParm; 
   } else {

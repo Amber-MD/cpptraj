@@ -19,6 +19,7 @@ class Action_Average: public Action {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
 
+    int debug_;
     AtomMask Mask1_;
     Frame* AvgFrame_;
     Topology* AvgParm_;
