@@ -152,7 +152,7 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
   if (append && pdbWriteMode_ != MULTI) {
     if (file_.SetupAppend( fname, debug_)) return 1;
   } else {
-    if (pdbWriteMode_ == MULTI)
+    if (append && pdbWriteMode_ == MULTI)
       mprintf("Warning: 'append' not compatible with 'multi' pdb write.\n");
     if (file_.SetupWrite( fname, debug_ )) return 1;
   }
