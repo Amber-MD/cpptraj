@@ -1,9 +1,9 @@
+#include <cmath>
 #include <cfloat> // DBL_MAX
 #include <vector>
 #include "ClusterList.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
-#include "Analysis_Rms2d.h"
 #include "ProgressBar.h"
 
 // XMGRACE colors
@@ -13,7 +13,12 @@ const char* ClusterList::XMGRACE_COLOR[] = {
 };
 
 // CONSTRUCTOR
-ClusterList::ClusterList() : debug_(0) {}
+ClusterList::ClusterList() : debug_(0), Cdist_(0) {}
+
+// DESTRUCTOR
+ClusterList::~ClusterList() {
+  if (Cdist_ != 0) delete Cdist_;
+}
 
 // ClusterList::SetDebug()
 /** Set the debug level */
@@ -25,60 +30,51 @@ void ClusterList::SetDebug(int debugIn) {
 // ClusterList::Renumber()
 /** Sort clusters by size and renumber starting from 0, where cluster 0
   * is the largest. Also calculate anything dependent on FrameDistances
-  * (i.e. centroid, avg distance within clusters). Renumber frames
-  * according to sieve if necessary.
+  * (i.e. centroid, avg distance within clusters).
   * NOTE: This destroys indexing into ClusterDistances.
   */
-void ClusterList::Renumber(int sieve) {
+void ClusterList::Renumber() {
   // Before clusters are renumbered, calculate the average distance of 
   // this cluster to every other cluster
   double numdist = (double) (clusters_.size() - 1);
-  for (cluster_it node = clusters_.begin();
-                  node != clusters_.end(); node++)
+  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
   {
     double avgclusterdist = 0;
     for (cluster_it node2 = clusters_.begin();
                     node2 != clusters_.end(); node2++)
     {
       if (node == node2) continue;
-      //mprintf("DBG:\t\t%i to %i %lf\n",(*node).num, (*node2).num, 
+      //mprintf("DBG:\t\t%i to %i %f\n",(*node).num, (*node2).num, 
       //        ClusterDistances.GetElement( (*node).num, (*node2).num ));
       avgclusterdist += ClusterDistances_.GetElement( (*node).Num(), 
                                                      (*node2).Num() );
     }
     avgclusterdist /= numdist;
-    //mprintf("DBG:\tCluster %i avg dist = %lf\n",(*node).num,avgclusterdist);
+    //mprintf("DBG:\tCluster %i avg dist = %f\n",(*node).num,avgclusterdist);
     (*node).SetAvgDist( avgclusterdist ); 
   }
-  
+  // Sort clusters by population 
   clusters_.sort( );
-  // Since frame #s may be modifed by sieveing, calculate cluster properties
-  // that depend on frame number here.
+  // Renumber clusters and calculate some cluster properties.
   int newNum = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) 
   {
     (*node).SetNum( newNum++ );
-    // Find the centroid. Since FindCentroidFrame uses FrameDistances and not
-    // ClusterDistances its ok to call after sorting/renumbering.
+    // Find the centroid frame. Since FindCentroidFrame uses FrameDistances 
+    // and not ClusterDistances its ok to call after sorting/renumbering.
     if ((*node).FindCentroidFrame( FrameDistances_ )) {
       mprinterr("Error: Could not determine centroid frame for cluster %i\n",
                 (*node).Num());
     }
-    // Calculate avg and stdev of all distances.
-    (*node).CalcAvgFrameDist( FrameDistances_ );
   }
-
-  // If sieveing the frame numbers should actually be multiplied by sieve
-  if (sieve > 0) {
-    for (cluster_it node = clusters_.begin(); node != clusters_.end(); node++)
-      (*node).FrameSieveOffset( sieve );
-  }
+  // TODO: Clear ClusterDistances?
 }
 
 // ClusterList::Summary()
 /** Print a summary of clusters.  */
 void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
   CpptrajFile outfile;
+  std::vector<double> distances;
   float fmax = (float)maxframesIn;
   if (outfile.OpenWrite(summaryfile)) {
     mprinterr("Error: ClusterList::Summary: Could not set up file.\n");
@@ -93,10 +89,41 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
     // Calculate size and fraction of total size of this cluster
     int numframes = (*node).Nframes();
     float frac = (float)numframes / fmax;
+    double internalAvg = 0.0;
+    double internalSD = 0.0;
+    int ndistances = ((numframes * numframes) - numframes) / 2;
+    if (ndistances > 0) {
+      // Calculate average distance between all frames in this cluster
+      distances.clear();
+      distances.reserve( ndistances );
+      ClusterNode::frame_iterator frame2_end = (*node).endframe();
+      ClusterNode::frame_iterator frame1_end = frame2_end;
+      --frame1_end;
+      for (ClusterNode::frame_iterator frm1 = (*node).beginframe();
+                                       frm1 != frame1_end; ++frm1)
+      {
+        ClusterNode::frame_iterator frm2 = frm1;
+        ++frm2;
+        for (; frm2 != frame2_end; ++frm2) {
+          distances.push_back( FrameDistances_.GetElement(*frm1, *frm2) );
+          internalAvg += distances.back();
+        }
+      }
+      internalAvg /= (double)distances.size();
+      // Calculate standard deviation
+      for (std::vector<double>::iterator dval = distances.begin();
+                                         dval != distances.end(); ++dval)
+      {
+        double diff = internalAvg - *dval;
+        internalSD += (diff * diff);
+      }
+      internalSD /= (double)distances.size();
+      internalSD = sqrt(internalSD);
+    }
     // OUTPUT
-    outfile.Printf("%8i %8i %8.3f %8.3lf %8.3lf %8i %8.3lf\n",
-                   (*node).Num(), numframes, frac, (*node).InternalAvg(), 
-                   (*node).InternalSD(), (*node).Centroid()+1, (*node).AvgDist() );
+    outfile.Printf("%8i %8i %8.3f %8.3f %8.3f %8i %8.3f\n",
+                   (*node).Num(), numframes, frac, internalAvg, 
+                   internalSD, (*node).CentroidFrame()+1, (*node).AvgDist() );
   } // END loop over clusters
   outfile.CloseFile();
 }
@@ -155,46 +182,57 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn) 
 
 // -----------------------------------------------------------------------------
 // ClusterList::AddCluster()
-/** Add a cluster made up of frames specified by the given framelist to 
-  * the list.
+/** Add a cluster made up of frames specified by the given list of frames to 
+  * the cluster list. Cluster # is current cluster list size.
   */
-int ClusterList::AddCluster( std::list<int> const& framelistIn, int numIn ) {
-  clusters_.push_back( ClusterNode( framelistIn, numIn ) );
+int ClusterList::AddCluster( std::list<int> const& framelistIn ) {
+  clusters_.push_back( ClusterNode( Cdist_, framelistIn, clusters_.size() ) );
   return 0;
 }
 
 // ClusterList::CalcFrameDistances()
 int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
-                                    DistModeType mode, 
-                                    ClusterNode::RMSoptions const& rmsopt)
+                                    DistModeType mode, bool useDME, bool nofit, 
+                                    bool useMass, std::string const& maskexpr,
+                                    int sieve) 
 {
   if (dsIn == 0) {
     mprinterr("Internal Error: ClusterList: Cluster properties DataSet is null.\n");
     return 1;
   }
-  if (mode == USE_DATASET)   // Get distances from DataSet
-    calcDistFromDataSet( dsIn );
-  else if (dsIn->Type() != DataSet::COORDS) {
-    mprinterr("Internal Error: DataSet type is not COORDS and mode is not USE_DATASET\n");
-    return 1;
+  // Set up internal cluster disance calculation
+  if (dsIn->Type() == DataSet::COORDS) {
+    if (useDME)
+      Cdist_ = new ClusterDist_DME(dsIn, maskexpr);
+    else
+      Cdist_ = new ClusterDist_RMS(dsIn, maskexpr, nofit, useMass);
+  } else {
+    Cdist_ = new ClusterDist_Num(dsIn);
   }
-  // The following modes only work with COORDS
-  if (mode == USE_FILE) {    // Get distances from file
+  // Attempt to load pairwise distances from file if specified
+  if (mode == USE_FILE && !filename.empty()) {
     mprintf(" Loading pair-wise distances from %s\n", filename.c_str());
     if (FrameDistances_.LoadFile( filename, dsIn->Size() )) {
       mprintf("\tLoading pair-wise distances failed - regenerating from frames.\n");
       mode = USE_FRAMES;
     }
   }
-  if (mode == USE_FRAMES) { // Get distances from RMSDs between frames.
-    if (rmsopt.useDME)
-      Analysis_Rms2d::CalcDME( *((DataSet_Coords*)dsIn), FrameDistances_, 
-                               rmsopt.mask.MaskString() );
-    else
-      Analysis_Rms2d::Calc2drms( *((DataSet_Coords*)dsIn), FrameDistances_, 
-                                 rmsopt.nofit, rmsopt.useMass, rmsopt.mask.MaskString() );
+  // Calculate pairwise distances from input DataSet
+  if (mode == USE_FRAMES)
+    FrameDistances_ = Cdist_->PairwiseDist(sieve);
+  // Sieved distances should be ignored
+  if (sieve > 1) {
+    //mprintf(" (Sieve %i):", sieve); // DEBUG
+    int tgtframe = 0;
+    for (int frame = 0; frame < dsIn->Size(); ++frame) {
+      if (tgtframe == frame) {
+        //mprintf(" %i", frame + 1); // DEBUG
+        tgtframe += sieve;
+      } else
+        FrameDistances_.Ignore( frame );
+    }
+    //mprintf("\n"); // DEBUG
   }
-  
   // Save distances - overwrites old distances
   if (!USE_FILE)
     FrameDistances_.SaveFile( filename );
@@ -203,33 +241,36 @@ int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
     mprintf("INTIAL FRAME DISTANCES:\n");
     FrameDistances_.PrintElements();
   }
+  
   return 0;
 }  
-    
-// ClusterList::calcDistFromDataSet()
-void ClusterList::calcDistFromDataSet( DataSet* ClusterData ) {
-  int N = ClusterData->Size();
-  //mprintf("DEBUG: xmax is %i\n",N);
-  FrameDistances_.Setup(N);
-  int max = FrameDistances_.Nelements();
-  mprintf(" Calculating distances using dataset %s (%i total).\n",
-          ClusterData->Legend().c_str(),max);
 
-  ProgressBar progress(max);
-  // LOOP 
-  int current = 0;
-  for (int i = 0; i < N-1; i++) {
-    progress.Update(current);
-    double iVal = ClusterData->Dval(i);
-    for (int j = i + 1; j < N; j++) {
-      double jVal = ClusterData->Dval(j);
-      // Calculate abs( delta )
-      double delta = iVal - jVal;
-      if (delta < 0) delta = -delta;
-      FrameDistances_.AddElement( delta );
-      current++;
+// ClusterList::AddSievedFrames()
+void ClusterList::AddSievedFrames() {
+  mprintf("\tRestoring non-sieved frames:");
+  // Ensure cluster centroids are up-to-date
+  for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) 
+    (*Cnode).CalculateCentroid( Cdist_ );
+  for (int frame = 0; frame < FrameDistances_.Nrows(); ++frame) {
+    if (FrameDistances_.IgnoringRow(frame)) {
+      //mprintf(" %i [", frame + 1); // DEBUG
+      // Which clusters centroid is closest to this frame?
+      double mindist = DBL_MAX;
+      cluster_it  minNode = clusters_.end();
+      for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
+        double dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
+        //mprintf(" %i:%-6.2f", (*Cnode).Num(), dist); // DEBUG
+        if (dist < mindist) {
+          mindist = dist;
+          minNode = Cnode;
+        }
+      }
+      //mprintf(" ], to cluster %i\n", (*minNode).Num()); // DEBUG
+      // Add sieved frame to the closest cluster.
+      (*minNode).AddFrameToCluster( frame );
     }
   }
+  mprintf("\n");
 }
 
 // -----------------------------------------------------------------------------
@@ -275,8 +316,10 @@ int ClusterList::ClusterHierAgglo(double epsilon, int targetN, LINKAGETYPE linka
   mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
   ProgressBar cluster_progress(-1);
   // Build initial clusters.
-  for (int cluster = 0; cluster < FrameDistances_.Nrows(); cluster++) 
-    AddCluster( std::list<int>(1, cluster), cluster);
+  for (int frame = 0; frame < FrameDistances_.Nrows(); frame++) {
+    if (!FrameDistances_.IgnoringRow( frame ))
+      AddCluster( std::list<int>(1, frame) );
+  }
   mprintf("\t%i initial clusters.\n", Nclusters());
   // Build initial cluster distance matrix.
   InitializeClusterDistances(linkage);
@@ -351,7 +394,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   // Print representative frames
   outfile.Printf("#Representative frames:");
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++)
-    outfile.Printf(" %i",(*C).Centroid()+1);
+    outfile.Printf(" %i",(*C).CentroidFrame()+1);
   outfile.Printf("\n");
   
   outfile.CloseFile();
@@ -362,7 +405,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   */
 void ClusterList::PrintRepFrames() {
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++) 
-    mprintf("%i ",(*C).Centroid()+1);
+    mprintf("%i ",(*C).CentroidFrame()+1);
   mprintf("\n");
 }
 
@@ -431,7 +474,7 @@ int ClusterList::MergeClosest(double epsilon, LINKAGETYPE linkage) {
   //CalcEccentricity(C1_it);
   // Check if eccentricity is less than epsilon
   //if ( (*C1_it).eccentricity < epsilon) {
-  //  mprintf("\tCluster %i eccentricity %lf > epsilon (%lf), clustering complete.\n",
+  //  mprintf("\tCluster %i eccentricity %f > epsilon (%f), clustering complete.\n",
   //          (*C1_it).num, (*C1_it).eccentricity, epsilon);
   //  return 1;
   //}
@@ -475,11 +518,11 @@ void ClusterList::calcMinDist(cluster_it& C1_it)
                                        c2frames++)
       {
         double Dist = FrameDistances_.GetElement(*c1frames, *c2frames);
-        //mprintf("\t\t\tFrame %i to frame %i = %lf\n",*c1frames,*c2frames,Dist);
+        //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         if ( Dist < min ) min = Dist;
       }
     }
-    //mprintf("\t\tMin distance between %i and %i: %lf\n",C1,newc2,min);
+    //mprintf("\t\tMin distance between %i and %i: %f\n",C1,newc2,min);
     ClusterDistances_.SetElement( (*C1_it).Num(), (*C2_it).Num(), min );
   } 
 }
@@ -507,11 +550,11 @@ void ClusterList::calcMaxDist(cluster_it& C1_it)
                                        c2frames++)
       {
         double Dist = FrameDistances_.GetElement(*c1frames, *c2frames);
-        //mprintf("\t\t\tFrame %i to frame %i = %lf\n",*c1frames,*c2frames,Dist);
+        //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         if ( Dist > max ) max = Dist;
       }
     }
-    //mprintf("\t\tMax distance between %i and %i: %lf\n",C1,newc2,max);
+    //mprintf("\t\tMax distance between %i and %i: %f\n",C1,newc2,max);
     ClusterDistances_.SetElement( (*C1_it).Num(), (*C2_it).Num(), max );
   } 
 }
@@ -540,13 +583,13 @@ void ClusterList::calcAvgDist(cluster_it& C1_it)
                                        c2frames++)
       {
         double Dist = FrameDistances_.GetElement(*c1frames, *c2frames);
-        //mprintf("\t\t\tFrame %i to frame %i = %lf\n",*c1frames,*c2frames,Dist);
+        //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         sumDist += Dist;
         N++;
       }
     }
     double Dist = sumDist / N;
-    //mprintf("\t\tAvg distance between %i and %i: %lf\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
+    //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
     ClusterDistances_.SetElement( (*C1_it).Num(), (*C2_it).Num(), Dist );
   } 
 }
@@ -572,15 +615,15 @@ bool ClusterList::CheckEpsilon(double epsilon) {
   * (Cx + Cy)/dXY ...here Cx is the average distance from points in X to the 
   * centroid, similarly Cy, and dXY is the distance between cluster centroids.
   */
-double ClusterList::ComputeDBI( DataSet* dsIn, ClusterNode::RMSoptions const& rmsopt ) {
+double ClusterList::ComputeDBI( ) {
   std::vector<double> averageDist;
   averageDist.reserve( clusters_.size() );
   for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
     mprintf("AVG DISTANCES FOR CLUSTER %d:\n",(*C1).Num()); // DEBUG
     // Make sure centroid frame for this cluster is up to date
-    (*C1).CalculateCentroid( dsIn, rmsopt );
+    (*C1).CalculateCentroid( Cdist_ );
     // Calculate average distance to centroid for this cluster
-    averageDist.push_back( (*C1).CalcAvgToCentroid( dsIn, rmsopt ) );
+    averageDist.push_back( (*C1).CalcAvgToCentroid( Cdist_ ) );
     mprintf("\tCluster %i has average-distance-to-centroid %f\n", (*C1).Num(), // DEBUG
             averageDist.back()); // DEBUG
   }
@@ -592,7 +635,7 @@ double ClusterList::ComputeDBI( DataSet* dsIn, ClusterNode::RMSoptions const& rm
     for (cluster_it c2 = clusters_.begin(); c2 != clusters_.end(); ++c2, ++nc2) {
       if (c1 == c2) continue;
       double Fred = averageDist[nc1] + averageDist[nc2];
-      Fred /= (*c1).CentroidDist( *c2, rmsopt );
+      Fred /= Cdist_->CentroidDist( (*c1).Cent(), (*c2).Cent() );
       if (Fred > MaxFred)
         MaxFred = Fred;
     }

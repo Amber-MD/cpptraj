@@ -10,35 +10,33 @@ class ClusterList {
   public:
     /// Type of distance calculation between clusters.
     enum LINKAGETYPE  { SINGLELINK = 0, AVERAGELINK, COMPLETELINK };
-    enum DistModeType { USE_FRAMES = 0, USE_FILE,    USE_DATASET  };
+    enum DistModeType { USE_FRAMES = 0, USE_FILE };
     ClusterList();
+    ~ClusterList();
     int Nclusters()                  const { return (int)clusters_.size(); }
 
     void SetDebug(int);
-    void Renumber(int);
+    void Renumber();
     void Summary(std::string const&,int);
     void Summary_Half(std::string const&,int);
 
-    int AddCluster(std::list<int> const&, int);
     int CalcFrameDistances(std::string const&, DataSet*, DistModeType, 
-                           ClusterNode::RMSoptions const&);
-
+                           bool, bool, bool, std::string const&, int);
+    void AddSievedFrames();
     int ClusterHierAgglo(double, int, LINKAGETYPE);
 
     void PrintClusters();
     void PrintClustersToFile(std::string const&,int);
     void PrintRepFrames();
 
-    double ComputeDBI( DataSet*, ClusterNode::RMSoptions const& );
+    double ComputeDBI();
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     cluster_iterator begincluster() { return clusters_.begin(); }
     cluster_iterator endcluster()   { return clusters_.end();   }
+  private:
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
-    cluster_it begin() { return clusters_.begin(); }
-    cluster_it end()   { return clusters_.end();   }
-  private:
     static const char* XMGRACE_COLOR[];
     int debug_;
     /// Store individual cluster info; frame numbers, centroid, etc.
@@ -47,8 +45,10 @@ class ClusterList {
     ClusterMatrix FrameDistances_;
     /// Distances between each cluster.
     ClusterMatrix ClusterDistances_;
+    /// Used to calculate distances between frames and/or centroids.
+    ClusterDist* Cdist_;
 
-    void calcDistFromDataSet(DataSet*);
+    int AddCluster(std::list<int> const&);
     void InitializeClusterDistances(LINKAGETYPE);
     int MergeClosest(double, LINKAGETYPE);
     int Merge(cluster_it&, cluster_it&);

@@ -2,20 +2,21 @@
 #include "ClusterMatrix.h"
 #include "CpptrajStdio.h"
 
-ClusterMatrix::ClusterMatrix() {}
-
 const unsigned char ClusterMatrix::Magic_[4] = {'C', 'T', 'M', 0};
 
+/// CONSTRUCTOR - Set up TriangleMatrix and Ignore array.
 ClusterMatrix::ClusterMatrix(int sizeIn) :
   TriangleMatrix(sizeIn),
   ignore_(sizeIn, false)
 {}
 
+// COPY CONSTRUCTOR
 ClusterMatrix::ClusterMatrix(const ClusterMatrix& rhs) :
   TriangleMatrix(rhs),
   ignore_(rhs.ignore_)
 {}
 
+// ASSIGNMENT
 ClusterMatrix& ClusterMatrix::operator=(const ClusterMatrix& rhs) {
   if (this == &rhs) return *this;
   TriangleMatrix::operator=(rhs);
