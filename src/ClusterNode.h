@@ -38,7 +38,6 @@ class ClusterNode {
     void SetAvgDist(double avg)        { avgClusterDist_ = avg; }
     void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum ); }
     void SetNum(int);
-    void FrameSieveOffset(int);
   private:
     double avgClusterDist_;     ///< Avg distance of this cluster to all other clusters.
     double eccentricity_;       ///< Maximum distance between any 2 frames.

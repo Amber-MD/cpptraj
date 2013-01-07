@@ -71,14 +71,6 @@ void ClusterNode::SetNum(int numIn) {
   frameList_.sort();
 }
 
-/** When sieving, frame #s are off by sieve. Fix frame and centroid #s. */
-void ClusterNode::FrameSieveOffset(int sieve) {
-  for (std::list<int>::iterator fnum = frameList_.begin();
-                                fnum != frameList_.end(); ++fnum)
-    (*fnum) *= sieve;
-  centroidframe_ *= sieve;
-}
-
 /** Find the frame in the given cluster that is the centroid, i.e. has the
   * lowest cumulative distance to every other point in the cluster.
   */
