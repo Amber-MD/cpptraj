@@ -92,6 +92,8 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
   }
   // Read elements
   infile.Read( elements_, Ntemp*sizeof(float) );
+  // TODO: Read ignore?
+  SetupIgnore();
   return 0;
 }
 

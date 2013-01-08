@@ -29,6 +29,7 @@ class Analysis_Clustering: public Analysis {
     std::string singlerepfile_; ///< Cluster all rep single trajectory filename.
     std::string reptrajfile_;   ///< Cluster rep to separate trajectory filename.
     std::string clusterinfo_;   ///< Name for Ptraj-like cluster output file.
+    std::string pairdistfile_;  ///< Name of pairwise-distances file.
     bool nofitrms_;             ///< If true do not best-fit when calc RMSD.
     bool usedme_;
     bool useMass_;

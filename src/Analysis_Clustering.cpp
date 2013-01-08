@@ -16,7 +16,7 @@ Analysis_Clustering::Analysis_Clustering() :
   usedme_(false),
   useMass_(false),
   grace_color_(false),
-  load_pair_(true),
+  load_pair_(false),
   cluster_dataset_(0),
   Linkage_(ClusterList::AVERAGELINK),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -26,13 +26,14 @@ Analysis_Clustering::Analysis_Clustering() :
 
 void Analysis_Clustering::Help() {
   mprintf("cluster <crd set> [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
+  mprintf("        sieve <#> [loadpairdist] [savepairdist] [pairdist <file>]\n");
   mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit] [dme]\n");
   mprintf("        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n");
   mprintf("        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
   mprintf("        [ repout <repprefix> [repfmt <repfmt>] ]\n");
   mprintf("        [data <dsetname>]\n");
-  mprintf("\tCluster structures based on RMSD or a given DataFile.\n");
+  mprintf("\tCluster structures based on coordinates (RMSD/DME) or a given DataSet.\n");
   mprintf("<crd set> can be created with the 'createcrd' command.\n");
 }
 
@@ -83,7 +84,18 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   nofitrms_ = analyzeArgs.hasKey("nofit");
   usedme_ = analyzeArgs.hasKey("dme");
   grace_color_ = analyzeArgs.hasKey("gracecolor");
-  load_pair_ = !analyzeArgs.hasKey("noload");
+  // Options for loading/saving pairwise distance file
+  load_pair_ = analyzeArgs.hasKey("loadpairdist");
+  bool save_pair = analyzeArgs.hasKey("savepairdist");
+  pairdistfile_ = analyzeArgs.GetStringKey("pairdist");
+  if ( (load_pair_ || save_pair) && pairdistfile_.empty() )
+    pairdistfile_.assign(PAIRDISTFILE);
+  else if (!pairdistfile_.empty())
+    load_pair_ = true;
+  if ( (load_pair_ || !pairdistfile_.empty()) && sieve_ > 1 ) {
+    mprinterr("Error: Loading/saving pairwise distance file not supported with sieveing.\n");
+    return Analysis::ERR;
+  }
   // Output trajectory stuff
   clusterfile_ = analyzeArgs.GetStringKey("clusterout");
   clusterfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("clusterfmt") ); 
@@ -134,9 +146,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tGrace color instead of cluster number (1-15) will be saved.\n");
   if (load_pair_)
     mprintf("\tPreviously calcd pair distances %s will be used if found.\n",
-            PAIRDISTFILE);
-  else
-    mprintf("\tPreviously calcd pair distances will be ignored.\n");
+            pairdistfile_.c_str());
   if (!clusterinfo_.empty())
     mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
   if (!summaryfile_.empty())
@@ -173,18 +183,18 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   ClusterList CList;
   CList.SetDebug(debug_);
 
-  mprintf("    CLUSTER:");
+  mprintf("\tStarting clustering.\n");
   // Default: USE_FRAMES  - Calculate pair distances from frames.
-  //          USE_FILE    - If PAIRDISTFILE exists, load pair distances from there.
+  //          USE_FILE    - If pairdistfile exists, load pair distances from there.
   // Calculated distances will be saved if not loaded from file.
   ClusterList::DistModeType pairdist_mode = ClusterList::USE_FRAMES; 
-  if (load_pair_ && fileExists(PAIRDISTFILE))
+  if (load_pair_ && fileExists(pairdistfile_.c_str()))
     pairdist_mode = ClusterList::USE_FILE;
   // If no dataset specified, use COORDS
   if (cluster_dataset_ == 0)
      cluster_dataset_ = (DataSet*) coords_;
   // Calculate distances between frames
-  if (CList.CalcFrameDistances( PAIRDISTFILE, cluster_dataset_, pairdist_mode,
+  if (CList.CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
                                 usedme_, nofitrms_, useMass_, maskexpr_, sieve_ ))
     return Analysis::ERR;
   // Cluster

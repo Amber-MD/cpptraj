@@ -102,23 +102,31 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
       for (ClusterNode::frame_iterator frm1 = (*node).beginframe();
                                        frm1 != frame1_end; ++frm1)
       {
-        ClusterNode::frame_iterator frm2 = frm1;
-        ++frm2;
-        for (; frm2 != frame2_end; ++frm2) {
-          distances.push_back( FrameDistances_.GetElement(*frm1, *frm2) );
-          internalAvg += distances.back();
+        // Since this can be called after sieved frames are added back in,
+        // need to ensure distances were calcd for these frames.
+        if (!FrameDistances_.IgnoringRow(*frm1)) {
+          ClusterNode::frame_iterator frm2 = frm1;
+          ++frm2;
+          for (; frm2 != frame2_end; ++frm2) {
+            if (!FrameDistances_.IgnoringRow(*frm2)) {
+              distances.push_back( FrameDistances_.GetElement(*frm1, *frm2) );
+              internalAvg += distances.back();
+            }
+          }
         }
       }
-      internalAvg /= (double)distances.size();
-      // Calculate standard deviation
-      for (std::vector<double>::iterator dval = distances.begin();
-                                         dval != distances.end(); ++dval)
-      {
-        double diff = internalAvg - *dval;
-        internalSD += (diff * diff);
+      if (!distances.empty()) {
+        internalAvg /= (double)distances.size();
+        // Calculate standard deviation
+        for (std::vector<double>::iterator dval = distances.begin();
+                                           dval != distances.end(); ++dval)
+        {
+          double diff = internalAvg - *dval;
+          internalSD += (diff * diff);
+        }
+        internalSD /= (double)distances.size();
+        internalSD = sqrt(internalSD);
       }
-      internalSD /= (double)distances.size();
-      internalSD = sqrt(internalSD);
     }
     // OUTPUT
     outfile.Printf("%8i %8i %8.3f %8.3f %8.3f %8i %8.3f\n",
@@ -211,15 +219,17 @@ int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
   }
   // Attempt to load pairwise distances from file if specified
   if (mode == USE_FILE && !filename.empty()) {
-    mprintf(" Loading pair-wise distances from %s\n", filename.c_str());
+    mprintf("\tLoading pair-wise distances from %s\n", filename.c_str());
     if (FrameDistances_.LoadFile( filename, dsIn->Size() )) {
       mprintf("\tLoading pair-wise distances failed - regenerating from frames.\n");
       mode = USE_FRAMES;
     }
   }
   // Calculate pairwise distances from input DataSet
-  if (mode == USE_FRAMES)
+  if (mode == USE_FRAMES) {
+    mprintf("\tCalculating pair-wise distances.\n");
     FrameDistances_ = Cdist_->PairwiseDist(sieve);
+  }
   // Sieved distances should be ignored
   if (sieve > 1) {
     //mprintf(" (Sieve %i):", sieve); // DEBUG
@@ -233,9 +243,11 @@ int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
     }
     //mprintf("\n"); // DEBUG
   }
-  // Save distances - overwrites old distances
-  if (!USE_FILE)
+  // Save distances if filename specified and not previously loaded.
+  if (mode == USE_FRAMES && !filename.empty()) {
+    mprintf("\tSaving pair-wise distances to %s\n", filename.c_str());
     FrameDistances_.SaveFile( filename );
+  }
   // DEBUG - Print Frame distances
   if (debug_ > 1) {
     mprintf("INTIAL FRAME DISTANCES:\n");
@@ -619,13 +631,14 @@ double ClusterList::ComputeDBI( ) {
   std::vector<double> averageDist;
   averageDist.reserve( clusters_.size() );
   for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
-    mprintf("AVG DISTANCES FOR CLUSTER %d:\n",(*C1).Num()); // DEBUG
+    //mprintf("AVG DISTANCES FOR CLUSTER %d:\n",(*C1).Num()); // DEBUG
     // Make sure centroid frame for this cluster is up to date
     (*C1).CalculateCentroid( Cdist_ );
     // Calculate average distance to centroid for this cluster
     averageDist.push_back( (*C1).CalcAvgToCentroid( Cdist_ ) );
-    mprintf("\tCluster %i has average-distance-to-centroid %f\n", (*C1).Num(), // DEBUG
-            averageDist.back()); // DEBUG
+    if (debug_ > 0)
+      mprintf("\tCluster %i has average-distance-to-centroid %f\n", (*C1).Num(),
+              averageDist.back());
   }
   double DBITotal = 0.0;
   unsigned int nc1 = 0;
