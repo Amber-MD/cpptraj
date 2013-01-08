@@ -75,7 +75,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     if (refmaskexpr.empty()) refmaskexpr = maskexpr_;
     RefMask_.SetMaskString( refmaskexpr );
     // Attempt to set up reference trajectory
-    if (RefTraj_.SetupTrajRead(reftrajname, 0, RefParm_)) {
+    if (RefTraj_.SetupTrajRead(reftrajname, &analyzeArgs, RefParm_)) {
       mprinterr("Error: Rms2d: Could not set up reftraj %s.\n", reftrajname.c_str());
       return Analysis::ERR;
     }

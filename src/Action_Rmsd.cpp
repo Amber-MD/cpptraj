@@ -155,7 +155,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
       }
       if (SetRefMask( RefParm )!=0) return Action::ERR;
       // Attempt to open reference traj.
-      if (RefTraj_.SetupTrajRead( reftrajname, 0, RefParm)) {
+      if (RefTraj_.SetupTrajRead( reftrajname, &actionArgs, RefParm)) {
         mprinterr("Error: rmsd: Could not set up reftraj %s\n", reftrajname.c_str());
         return Action::ERR;
       }
