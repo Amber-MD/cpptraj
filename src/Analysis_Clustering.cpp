@@ -26,8 +26,8 @@ Analysis_Clustering::Analysis_Clustering() :
 
 void Analysis_Clustering::Help() {
   mprintf("cluster <crd set> [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
-  mprintf("        sieve <#> [loadpairdist] [savepairdist] [pairdist <file>]\n");
-  mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [noload] [nofit] [dme]\n");
+  mprintf("        [sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n");
+  mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [nofit] [dme]\n");
   mprintf("        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n");
   mprintf("        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
