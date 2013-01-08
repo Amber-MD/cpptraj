@@ -69,23 +69,27 @@ void Cpptraj::Help_SelectDS() {
 }
 
 void Cpptraj::Help_Trajin() {
-  mprintf("trajin <filename> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]\n");
+  mprintf("trajin <filename> {[<start>] [<stop> | last] [offset]} | lastframe\n");
+  mprintf("       [parm <parmfile> | parmindex <#>]\n");
   mprintf("       [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n");
   mprintf("         [trajnames <rep1>,<rep2>,...,<repN> ] ]\n");
 }
 
 void Cpptraj::Help_Ensemble() {
-  mprintf("ensemble <file0> [start] [stop] [offset] [parm <parmfile> | parmindex <#>]\n");
+  mprintf("ensemble <file0> {[<start>] [<stop> | last] [offset]} | lastframe\n");
+  mprintf("          [parm <parmfile> | parmindex <#>]\n");
   mprintf("         [trajnames <file1>,<file2>,...,<fileN>\n");
 }
 
 void Cpptraj::Help_Trajout() {
-  mprintf("trajout <filename> <fileformat> [append] [nobox]\n");
-  mprintf("[parm <parmfile> | parmindex <#>] [<range>]\n");
+  mprintf("trajout <filename> [<fileformat>] [append] [nobox]\n");
+  mprintf("        [parm <parmfile> | parmindex <#>] [onlyframes <range>] ]title <title>]\n");
+  mprintf("        <Format Options>\n");
 }
 
 void Cpptraj::Help_Reference() {
-  mprintf("reference <filename> [<frame#>] [average] [<mask>] [TAG] [lastframe]\n");
+  mprintf("reference <filename> [<frame#>] [<mask>] [TAG] [lastframe]\n");
+  mprintf("          [average [<stop>] [<offset>]]\n");
 }
 
 void Cpptraj::Help_Parm() {
