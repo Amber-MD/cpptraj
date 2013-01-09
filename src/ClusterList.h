@@ -11,6 +11,7 @@ class ClusterList {
     /// Type of distance calculation between clusters.
     enum LINKAGETYPE  { SINGLELINK = 0, AVERAGELINK, COMPLETELINK };
     enum DistModeType { USE_FRAMES = 0, USE_FILE };
+    enum ClusterAlgorithm { HIERAGGLO = 0, DBSCAN };
     ClusterList();
     ~ClusterList();
     int Nclusters()                  const { return (int)clusters_.size(); }
@@ -27,6 +28,7 @@ class ClusterList {
     void AddSievedFrames();
     // Clustering Methods
     int ClusterHierAgglo(double, int, LINKAGETYPE);
+    int ClusterDBSCAN(double, int);
 
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
@@ -46,7 +48,7 @@ class ClusterList {
     /// Used to calculate distances between frames and/or centroids.
     ClusterDist* Cdist_;
 
-    int AddCluster(std::list<int> const&);
+    int AddCluster(ClusterDist::Cframes const&);
 
     // Hierarchical Agglomerative calculation routines
     void InitializeClusterDistances(LINKAGETYPE);
@@ -54,6 +56,8 @@ class ClusterList {
     void calcMinDist(cluster_it&);
     void calcMaxDist(cluster_it&);
     void calcAvgDist(cluster_it&);
+    // DBSCAN routines
+    void RegionQuery(std::vector<int>&, std::vector<int> const&, int, double);
 
     double ComputeDBI(CpptrajFile&);
 };

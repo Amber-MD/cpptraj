@@ -35,23 +35,26 @@ void ClusterList::SetDebug(int debugIn) {
   */
 void ClusterList::Renumber() {
   // Before clusters are renumbered, calculate the average distance of 
-  // this cluster to every other cluster
-  double numdist = (double) (clusters_.size() - 1);
-  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
-  {
-    double avgclusterdist = 0;
-    for (cluster_it node2 = clusters_.begin();
-                    node2 != clusters_.end(); node2++)
+  // this cluster to every other cluster.
+  // Only do this if ClusterDistances has been set.
+  if (ClusterDistances_.Size() > 0) {
+    double numdist = (double) (clusters_.size() - 1);
+    for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
     {
-      if (node == node2) continue;
-      //mprintf("DBG:\t\t%i to %i %f\n",(*node).num, (*node2).num, 
-      //        ClusterDistances.GetElement( (*node).num, (*node2).num ));
-      avgclusterdist += ClusterDistances_.GetElement( (*node).Num(), 
-                                                     (*node2).Num() );
+      double avgclusterdist = 0.0;
+      for (cluster_it node2 = clusters_.begin();
+                      node2 != clusters_.end(); node2++)
+      {
+        if (node == node2) continue;
+        //mprintf("DBG:\t\t%i to %i %f\n",(*node).num, (*node2).num, 
+        //        ClusterDistances.GetElement( (*node).num, (*node2).num ));
+        avgclusterdist += ClusterDistances_.GetElement( (*node).Num(), 
+                                                       (*node2).Num() );
+      }
+      avgclusterdist /= numdist;
+      //mprintf("DBG:\tCluster %i avg dist = %f\n",(*node).num,avgclusterdist);
+      (*node).SetAvgDist( avgclusterdist ); 
     }
-    avgclusterdist /= numdist;
-    //mprintf("DBG:\tCluster %i avg dist = %f\n",(*node).num,avgclusterdist);
-    (*node).SetAvgDist( avgclusterdist ); 
   }
   // Sort clusters by population 
   clusters_.sort( );
@@ -573,6 +576,103 @@ void ClusterList::calcAvgDist(cluster_it& C1_it)
     //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
     ClusterDistances_.SetElement( (*C1_it).Num(), (*C2_it).Num(), Dist );
   } 
+}
+
+// -----------------------------------------------------------------------------
+// ClusterList::RegionQuery()
+void ClusterList::RegionQuery(std::vector<int>& NeighborPts,
+                              std::vector<int> const& FramesToCluster,
+                              int point, double epsilon) 
+{
+  NeighborPts.clear();
+  for (std::vector<int>::const_iterator otherpoint = FramesToCluster.begin();
+                                        otherpoint != FramesToCluster.end();
+                                        ++otherpoint)
+  {
+    if (point == *otherpoint) continue;
+    if ( FrameDistances_.GetElement(point, *otherpoint) < epsilon )
+      NeighborPts.push_back( *otherpoint );
+  }
+}
+
+// ClusterList::ClusterDBSCAN() 
+int ClusterList::ClusterDBSCAN(double epsilon, int minPoints) {
+  std::vector<int> NeighborPts;
+  std::vector<int> Npts2; // Will hold neighbors of a neighbor
+  std::vector<int> FramesToCluster;
+  ClusterDist::Cframes cluster_frames; 
+  // First determine which frames are being clustered.
+  for (int frame = 0; frame < FrameDistances_.Nrows(); ++frame)
+    if (!FrameDistances_.IgnoringRow( frame ))
+      FramesToCluster.push_back( frame );
+  // Set up array to keep track of points that have been visited.
+  // Make it the size of FrameDistances so we can index into it. May
+  // waste memory during sieving but makes code easier.
+  std::vector<bool> Visited( FrameDistances_.Nrows(), false );
+  // Set up array to keep track of whether points are noise or in a cluster.
+  static char UNASSIGNED = 'U';
+  static char NOISE = 'N';
+  static char INCLUSTER = 'C';
+  std::vector<char> Status( FrameDistances_.Nrows(), UNASSIGNED);
+  for (std::vector<int>::iterator point = FramesToCluster.begin();
+                                  point != FramesToCluster.end(); ++point)
+  {
+    if (!Visited[*point]) {
+      mprintf("\tPoint %i\n", *point + 1); // DEBUG
+      // Mark this point as visited
+      Visited[*point] = true;
+      // Determine how many other points are near this point
+      RegionQuery( NeighborPts, FramesToCluster, *point, epsilon );
+      mprintf("\t\t%u neighbors:", NeighborPts.size()); // DEBUG
+      // If # of neighbors less than cutoff, noise; otherwise cluster
+      if ((int)NeighborPts.size() < minPoints) {
+        mprintf(" NOISE\n");
+        Status[*point] = NOISE;
+      } else {
+        // Expand cluster
+        cluster_frames.clear();
+        cluster_frames.push_back( *point );
+        // NOTE: Use index instead of iterator since NeighborPts may be
+        //       modified inside this loop.
+        unsigned int endidx = NeighborPts.size();
+        for (unsigned int idx = 0; idx < endidx; ++idx) {
+          int neighbor_pt = NeighborPts[idx];
+          if (!Visited[neighbor_pt]) {
+            mprintf(" %i", neighbor_pt + 1); // DEBUG
+            // Mark this neighbor as visited
+            Visited[neighbor_pt] = true;
+            // Determine how many other points are near this neighbor
+            RegionQuery( Npts2, FramesToCluster, neighbor_pt, epsilon );
+            if ((int)Npts2.size() >= minPoints) {
+              // Add other points to current neighbor list
+              NeighborPts.insert( NeighborPts.end(), Npts2.begin(), Npts2.end() );
+              endidx = NeighborPts.size();
+            }
+          }
+          // If neighbor is not yet part of a cluster, add it to this one.
+          if (Status[neighbor_pt] != INCLUSTER) {
+            cluster_frames.push_back( neighbor_pt );
+            Status[neighbor_pt] = INCLUSTER;
+          }
+        }
+        mprintf("\n"); // DEBUG
+        // Add cluster to the list
+        AddCluster( cluster_frames );
+        PrintClusters(); // DEBUG
+      }
+    }
+  } // END loop over FramesToCluster
+  // Count the number of noise points
+  mprintf("\tNOISE FRAMES:");
+  unsigned int frame = 1;
+  for (std::vector<char>::iterator stat = Status.begin(); 
+                                   stat != Status.end(); ++stat, ++frame)
+  {
+    if ( *stat == NOISE )
+      mprintf(" %i", frame);
+  }
+  mprintf("\n");
+  return 0;
 }
 
 // -----------------------------------------------------------------------------

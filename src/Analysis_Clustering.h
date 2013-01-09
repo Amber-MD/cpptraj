@@ -38,6 +38,8 @@ class Analysis_Clustering: public Analysis {
     DataSet* cluster_dataset_;  ///< Dataset to use for clustering.
     /// Cluster linkage type
     ClusterList::LINKAGETYPE Linkage_;
+    /// Clustering algorithm to use.
+    ClusterList::ClusterAlgorithm mode_;
     /// Cluster trajectory format.
     TrajectoryFile::TrajFormatType clusterfmt_;
     /// Cluster all rep single trajectory format.

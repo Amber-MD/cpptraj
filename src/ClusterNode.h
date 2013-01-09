@@ -6,7 +6,7 @@ class ClusterNode {
   public:
     ClusterNode();
     ~ClusterNode();
-    ClusterNode(ClusterDist*,std::list<int> const&, int);
+    ClusterNode(ClusterDist*,ClusterDist::Cframes const&, int);
     ClusterNode(const ClusterNode&);
     ClusterNode& operator=(const ClusterNode&);
     /// Used to sort clusters by # of frames in cluster
@@ -24,7 +24,7 @@ class ClusterNode {
     /// Calculate average distance of all members to centroid
     double CalcAvgToCentroid( ClusterDist*);
     // Iterator over frame numbers
-    typedef std::list<int>::const_iterator frame_iterator;
+    typedef ClusterDist::Cframes::const_iterator frame_iterator;
     const frame_iterator beginframe() const { return frameList_.begin(); }
     const frame_iterator endframe()   const { return frameList_.end();   }
     // Return internal variables
@@ -39,11 +39,11 @@ class ClusterNode {
     void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum ); }
     void SetNum(int);
   private:
-    double avgClusterDist_;     ///< Avg distance of this cluster to all other clusters.
-    double eccentricity_;       ///< Maximum distance between any 2 frames.
-    int num_;                   ///< Cluster number.
-    int centroidframe_;         ///< Frame number with lowest distance to all other frames.
-    std::list<int> frameList_;  ///< List of frames belonging to this cluster.
-    Centroid* centroid_;        ///< Centroid of all frames in this cluster. 
+    double avgClusterDist_;           ///< Avg distance of this cluster to all other clusters.
+    double eccentricity_;             ///< Maximum distance between any 2 frames.
+    int num_;                         ///< Cluster number.
+    int centroidframe_;               ///< Frame number with lowest dist. to all other frames.
+    ClusterDist::Cframes frameList_;  ///< List of frames belonging to this cluster.
+    Centroid* centroid_;              ///< Centroid of all frames in this cluster. 
 };
 #endif

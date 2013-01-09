@@ -19,6 +19,7 @@ Analysis_Clustering::Analysis_Clustering() :
   load_pair_(false),
   cluster_dataset_(0),
   Linkage_(ClusterList::AVERAGELINK),
+  mode_(ClusterList::HIERAGGLO),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ)
@@ -33,6 +34,7 @@ void Analysis_Clustering::Help() {
   mprintf("        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
   mprintf("        [ repout <repprefix> [repfmt <repfmt>] ]\n");
   mprintf("        [data <dsetname>]\n");
+  mprintf("        [hieragglo | dbscan]\n");
   mprintf("\tCluster structures based on coordinates (RMSD/DME) or a given DataSet.\n");
   mprintf("<crd set> can be created with the 'createcrd' command.\n");
 }
@@ -74,9 +76,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     return Analysis::ERR;
   }
   epsilon_ = analyzeArgs.getKeyDouble("epsilon",-1.0);
-  if (analyzeArgs.hasKey("linkage")) Linkage_ = ClusterList::SINGLELINK;
-  if (analyzeArgs.hasKey("averagelinkage")) Linkage_ = ClusterList::AVERAGELINK;
-  if (analyzeArgs.hasKey("complete")) Linkage_ = ClusterList::COMPLETELINK;
+  // Get cluster options
+  if (analyzeArgs.hasKey("hieragglo"))   mode_ = ClusterList::HIERAGGLO;
+  else if (analyzeArgs.hasKey("dbscan")) mode_ = ClusterList::DBSCAN;
+  if (analyzeArgs.hasKey("linkage"))             Linkage_ = ClusterList::SINGLELINK;
+  else if (analyzeArgs.hasKey("averagelinkage")) Linkage_ = ClusterList::AVERAGELINK;
+  else if (analyzeArgs.hasKey("complete"))       Linkage_ = ClusterList::COMPLETELINK;
   cnumvtimefile_ = analyzeArgs.GetStringKey("out");
   clusterinfo_ = analyzeArgs.GetStringKey("info");
   summaryfile_ = analyzeArgs.GetStringKey("summary");
@@ -198,7 +203,14 @@ Analysis::RetType Analysis_Clustering::Analyze() {
                                 usedme_, nofitrms_, useMass_, maskexpr_, sieve_ ))
     return Analysis::ERR;
   // Cluster
-  CList.ClusterHierAgglo( epsilon_, targetNclusters_, Linkage_);
+  switch (mode_) {
+    case ClusterList::HIERAGGLO:
+      CList.ClusterHierAgglo( epsilon_, targetNclusters_, Linkage_);
+      break;
+    case ClusterList::DBSCAN:
+      CList.ClusterDBSCAN( epsilon_, targetNclusters_ );
+      break;
+  }
   // Sort clusters and renumber; also finds centroids for printing
   // representative frames.
   CList.Renumber();
@@ -258,6 +270,11 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList &CList ) {
   // operator. Should this eventually be generic to all atomic DataSets? 
   DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
   cnum_temp->Resize( coords_->Size() );
+  // Make all clusters start at -1. This way cluster algorithms that
+  // have noise points (i.e. no cluster assigned) will be distinguished.
+  if (!grace_color_)
+    for (int i = 0; i < cnum_temp->Size(); ++i)
+      (*cnum_temp)[i] = -1;
 
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); C++)
