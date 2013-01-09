@@ -595,7 +595,10 @@ void ClusterList::RegionQuery(std::vector<int>& NeighborPts,
   }
 }
 
-// ClusterList::ClusterDBSCAN() 
+// ClusterList::ClusterDBSCAN()
+/** Ester, Kriegel, Sander, Xu; Proceedings of 2nd International Conference
+  * on Knowledge Discovery and Data Mining (KDD-96); pp 226-231.
+  */ 
 int ClusterList::ClusterDBSCAN(double epsilon, int minPoints) {
   std::vector<int> NeighborPts;
   std::vector<int> Npts2; // Will hold neighbors of a neighbor
