@@ -27,9 +27,8 @@ class ClusterList {
 
     void PrintClusters();
     void PrintClustersToFile(std::string const&,int);
-    void PrintRepFrames();
 
-    double ComputeDBI();
+    double ComputeDBI(CpptrajFile&);
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     cluster_iterator begincluster() { return clusters_.begin(); }

@@ -29,9 +29,9 @@ void ClusterList::SetDebug(int debugIn) {
 
 // ClusterList::Renumber()
 /** Sort clusters by size and renumber starting from 0, where cluster 0
-  * is the largest. Also calculate anything dependent on FrameDistances
-  * (i.e. centroid, avg distance within clusters).
-  * NOTE: This destroys indexing into ClusterDistances.
+  * is the largest. Also determine best representative frame and calculate 
+  * anything dependent on ClusterDistances since sorting destroys indexing 
+  * into ClusterDistances.
   */
 void ClusterList::Renumber() {
   // Before clusters are renumbered, calculate the average distance of 
@@ -187,6 +187,48 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn) 
   }
   outfile.CloseFile();
 }
+
+// ClusterList::PrintClustersToFile()
+/** Print list of clusters in a style similar to ptraj; each cluster is
+  * given a line maxframes characters long, with X for each frame that is
+  * in the clusters and . for all other frames. Also print out the
+  * representative frame numbers.
+  */
+void ClusterList::PrintClustersToFile(std::string const& filename, int maxframesIn) {
+  CpptrajFile outfile;
+  std::string buffer;
+  
+  if ( outfile.OpenWrite(filename) ) {
+    mprinterr("Error: PrintClustersToFile: Could not set up file %s\n",
+              filename.c_str());
+    return;
+  }
+  outfile.Printf("#Clustering: %u clusters %i frames\n",
+                 clusters_.size(), maxframesIn);
+  ComputeDBI( outfile );
+  for (cluster_it C1_it = clusters_.begin(); 
+                  C1_it != clusters_.end(); C1_it++)
+  {
+    buffer.clear();
+    buffer.resize(maxframesIn, '.');
+    for (ClusterNode::frame_iterator frame1 = (*C1_it).beginframe();
+                                     frame1 != (*C1_it).endframe();
+                                     frame1++)
+    {
+      buffer[ *frame1 ] = 'X';
+    }
+    buffer += '\n';
+    outfile.Write((void*)buffer.c_str(), buffer.size());
+  }
+  // Print representative frames
+  outfile.Printf("#Representative frames:");
+  for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++)
+    outfile.Printf(" %i",(*C).CentroidFrame()+1);
+  outfile.Printf("\n");
+  
+  outfile.CloseFile();
+}
+
 
 // -----------------------------------------------------------------------------
 // ClusterList::AddCluster()
@@ -370,55 +412,6 @@ void ClusterList::PrintClusters() {
       mprintf("%i,",(*fnum)+1);
     mprintf("\n");
   }
-}
-
-// ClusterList::PrintClustersToFile()
-/** Print list of clusters in a style similar to ptraj; each cluster is
-  * given a line maxframes characters long, with X for each frame that is
-  * in the clusters and . for all other frames. Also print out the
-  * representative frame numbers.
-  */
-void ClusterList::PrintClustersToFile(std::string const& filename, int maxframesIn) {
-  CpptrajFile outfile;
-  std::string buffer;
-  
-  if ( outfile.OpenWrite(filename) ) {
-    mprinterr("Error: PrintClustersToFile: Could not set up file %s\n",
-              filename.c_str());
-    return;
-  }
-  outfile.Printf("#Clustering: %u clusters %i frames\n",
-                 clusters_.size(), maxframesIn);
-  for (cluster_it C1_it = clusters_.begin(); 
-                  C1_it != clusters_.end(); C1_it++)
-  {
-    buffer.clear();
-    buffer.resize(maxframesIn, '.');
-    for (ClusterNode::frame_iterator frame1 = (*C1_it).beginframe();
-                                     frame1 != (*C1_it).endframe();
-                                     frame1++)
-    {
-      buffer[ *frame1 ] = 'X';
-    }
-    buffer += '\n';
-    outfile.Write((void*)buffer.c_str(), buffer.size());
-  }
-  // Print representative frames
-  outfile.Printf("#Representative frames:");
-  for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++)
-    outfile.Printf(" %i",(*C).CentroidFrame()+1);
-  outfile.Printf("\n");
-  
-  outfile.CloseFile();
-}
-
-// ClusterList::PrintRepFrames()
-/** Print representative frame of each cluster to 1 line.
-  */
-void ClusterList::PrintRepFrames() {
-  for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++) 
-    mprintf("%i ",(*C).CentroidFrame()+1);
-  mprintf("\n");
 }
 
 // -----------------------------------------------------------------------------
@@ -627,18 +620,17 @@ bool ClusterList::CheckEpsilon(double epsilon) {
   * (Cx + Cy)/dXY ...here Cx is the average distance from points in X to the 
   * centroid, similarly Cy, and dXY is the distance between cluster centroids.
   */
-double ClusterList::ComputeDBI( ) {
+double ClusterList::ComputeDBI(CpptrajFile& outfile) {
   std::vector<double> averageDist;
   averageDist.reserve( clusters_.size() );
   for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
-    //mprintf("AVG DISTANCES FOR CLUSTER %d:\n",(*C1).Num()); // DEBUG
     // Make sure centroid frame for this cluster is up to date
     (*C1).CalculateCentroid( Cdist_ );
     // Calculate average distance to centroid for this cluster
     averageDist.push_back( (*C1).CalcAvgToCentroid( Cdist_ ) );
-    if (debug_ > 0)
-      mprintf("\tCluster %i has average-distance-to-centroid %f\n", (*C1).Num(),
-              averageDist.back());
+    if (outfile.IsOpen())
+      outfile.Printf("#Cluster %i has average-distance-to-centroid %f\n", (*C1).Num(),
+                     averageDist.back());
   }
   double DBITotal = 0.0;
   unsigned int nc1 = 0;
@@ -654,7 +646,9 @@ double ClusterList::ComputeDBI( ) {
     }
     DBITotal += MaxFred;
   }
-  return (DBITotal / (double)clusters_.size() );
+  DBITotal /= (double)clusters_.size();
+  if (outfile.IsOpen()) outfile.Printf("#DBI: %f\n", DBITotal);
+  return DBITotal;
 }
 
 /** The pseudo-F statistic is another measure of clustering goodness. HIGH 

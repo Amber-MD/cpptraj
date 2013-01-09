@@ -210,12 +210,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   if (debug_ > 0) {
     mprintf("\nFINAL CLUSTERS:\n");
     CList.PrintClusters();
-    mprintf("\nREPRESENTATIVE FRAMES:\n");
-    CList.PrintRepFrames();
   }
-
-  // TEST - print DBI
-  mprintf("\tDBI = %f\n", CList.ComputeDBI());
 
   // Print ptraj-like cluster info
   if (!clusterinfo_.empty())

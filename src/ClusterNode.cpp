@@ -123,6 +123,7 @@ double ClusterNode::CalcAvgToCentroid( ClusterDist* Cdist )
 {
   double avgdist = 0.0;
   //int idx = 0; // DEBUG
+  //mprintf("AVG DISTANCES FOR CLUSTER %d:\n", Num()); // DEBUG
   for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
   {
     double dist = Cdist->FrameCentroidDist( *frm, centroid_ );
