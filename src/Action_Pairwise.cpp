@@ -55,8 +55,11 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 
   // Datasets
   std::string ds_name = actionArgs.GetStringNext();
-  ds_vdw_  = DSL->AddSet(DataSet::DOUBLE, ds_name, "EVDW");
-  ds_elec_ = DSL->AddSet(DataSet::DOUBLE, ds_name, "EELEC");
+  if (ds_name.empty())
+    ds_name = DSL->GenerateDefaultName("PW");
+  ds_vdw_  = DSL->AddSetAspect(DataSet::DOUBLE, ds_name, "EVDW");
+  ds_elec_ = DSL->AddSetAspect(DataSet::DOUBLE, ds_name, "EELEC");
+  if (ds_vdw_ == 0 || ds_elec_ == 0) return Action::ERR;
   // Add datasets to data file list
   DFL->AddSetToFile(dataout, ds_vdw_);
   DFL->AddSetToFile(dataout, ds_elec_);
