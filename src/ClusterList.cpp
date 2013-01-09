@@ -621,15 +621,17 @@ int ClusterList::ClusterDBSCAN(double epsilon, int minPoints) {
                                   point != FramesToCluster.end(); ++point)
   {
     if (!Visited[*point]) {
-      mprintf("\tPoint %i\n", *point + 1); // DEBUG
       // Mark this point as visited
       Visited[*point] = true;
       // Determine how many other points are near this point
       RegionQuery( NeighborPts, FramesToCluster, *point, epsilon );
-      mprintf("\t\t%u neighbors:", NeighborPts.size()); // DEBUG
+      if (debug_ > 0) {
+        mprintf("\tPoint %i\n", *point + 1);
+        mprintf("\t\t%u neighbors:", NeighborPts.size());
+      }
       // If # of neighbors less than cutoff, noise; otherwise cluster
       if ((int)NeighborPts.size() < minPoints) {
-        mprintf(" NOISE\n");
+        if (debug_ > 0) mprintf(" NOISE\n"); 
         Status[*point] = NOISE;
       } else {
         // Expand cluster
@@ -641,7 +643,7 @@ int ClusterList::ClusterDBSCAN(double epsilon, int minPoints) {
         for (unsigned int idx = 0; idx < endidx; ++idx) {
           int neighbor_pt = NeighborPts[idx];
           if (!Visited[neighbor_pt]) {
-            mprintf(" %i", neighbor_pt + 1); // DEBUG
+            if (debug_ > 0) mprintf(" %i", neighbor_pt + 1);
             // Mark this neighbor as visited
             Visited[neighbor_pt] = true;
             // Determine how many other points are near this neighbor
@@ -658,10 +660,12 @@ int ClusterList::ClusterDBSCAN(double epsilon, int minPoints) {
             Status[neighbor_pt] = INCLUSTER;
           }
         }
-        mprintf("\n"); // DEBUG
         // Add cluster to the list
         AddCluster( cluster_frames );
-        PrintClusters(); // DEBUG
+        if (debug_ > 0) {
+          mprintf("\n");
+          PrintClusters();
+        }
       }
     }
   } // END loop over FramesToCluster
