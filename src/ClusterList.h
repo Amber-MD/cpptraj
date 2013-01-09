@@ -19,16 +19,15 @@ class ClusterList {
     void Renumber();
     void Summary(std::string const&,int);
     void Summary_Half(std::string const&,int);
+    void PrintClustersToFile(std::string const&,int);
+    void PrintClusters();
 
     int CalcFrameDistances(std::string const&, DataSet*, DistModeType, 
                            bool, bool, bool, std::string const&, int);
     void AddSievedFrames();
+    // Clustering Methods
     int ClusterHierAgglo(double, int, LINKAGETYPE);
 
-    void PrintClusters();
-    void PrintClustersToFile(std::string const&,int);
-
-    double ComputeDBI(CpptrajFile&);
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     cluster_iterator begincluster() { return clusters_.begin(); }
@@ -48,14 +47,14 @@ class ClusterList {
     ClusterDist* Cdist_;
 
     int AddCluster(std::list<int> const&);
+
+    // Hierarchical Agglomerative calculation routines
     void InitializeClusterDistances(LINKAGETYPE);
     int MergeClosest(double, LINKAGETYPE);
-    int Merge(cluster_it&, cluster_it&);
-    // Distance calculation routines
     void calcMinDist(cluster_it&);
     void calcMaxDist(cluster_it&);
     void calcAvgDist(cluster_it&);
 
-    bool CheckEpsilon(double);
+    double ComputeDBI(CpptrajFile&);
 };
 #endif

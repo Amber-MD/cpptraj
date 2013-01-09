@@ -229,6 +229,19 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   outfile.CloseFile();
 }
 
+// ClusterList::PrintClusters()
+/** Print list of clusters and frame numbers belonging to each cluster.
+  */
+void ClusterList::PrintClusters() {
+  mprintf("CLUSTER: %u clusters, %i frames.\n", clusters_.size(), FrameDistances_.Nrows() );
+  for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++) {
+    mprintf("\t%8i : ",(*C).Num());
+    for (ClusterNode::frame_iterator fnum = (*C).beginframe();
+                                     fnum != (*C).endframe(); ++fnum)
+      mprintf("%i,",(*fnum)+1);
+    mprintf("\n");
+  }
+}
 
 // -----------------------------------------------------------------------------
 // ClusterList::AddCluster()
@@ -399,22 +412,6 @@ int ClusterList::ClusterHierAgglo(double epsilon, int targetN, LINKAGETYPE linka
   return 0;
 }
 
-// -----------------------------------------------------------------------------
-// ClusterList::PrintClusters()
-/** Print list of clusters and frame numbers belonging to each cluster.
-  */
-void ClusterList::PrintClusters() {
-  mprintf("CLUSTER: %u clusters, %i frames.\n", clusters_.size(), FrameDistances_.Nrows() );
-  for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++) {
-    mprintf("\t%8i : ",(*C).Num());
-    for (ClusterNode::frame_iterator fnum = (*C).beginframe();
-                                     fnum != (*C).endframe(); ++fnum)
-      mprintf("%i,",(*fnum)+1);
-    mprintf("\n");
-  }
-}
-
-// -----------------------------------------------------------------------------
 // ClusterList::MergeClosest()
 /** Find and merge the two closest clusters.
   */
@@ -453,8 +450,9 @@ int ClusterList::MergeClosest(double epsilon, LINKAGETYPE linkage) {
     return 1;
   }
 
-  // Merge the closest clusters, C2 -> C1
-  Merge(C1_it, C2_it);
+  // Merge the closest clusters, C2 -> C1, remove C2
+  (*C1_it).MergeFrames( *C2_it );
+  clusters_.erase( C2_it );
   // DEBUG
   if (debug_>1) {
     mprintf("\nAFTER MERGE of %i and %i:\n",C1,C2);
@@ -475,31 +473,9 @@ int ClusterList::MergeClosest(double epsilon, LINKAGETYPE linkage) {
     ClusterDistances_.PrintElements();
   }
 
-  // Calculate the new eccentricity of C1
-  //CalcEccentricity(C1_it);
-  // Check if eccentricity is less than epsilon
-  //if ( (*C1_it).eccentricity < epsilon) {
-  //  mprintf("\tCluster %i eccentricity %f > epsilon (%f), clustering complete.\n",
-  //          (*C1_it).num, (*C1_it).eccentricity, epsilon);
-  //  return 1;
-  //}
-
   return 0;
 }
 
-// ClusterList::Merge()
-/** Merge cluster C2 into C1; remove C2. 
-  */
-int ClusterList::Merge(cluster_it& c1, cluster_it& c2) 
-{
-  // Merge C2 into C1
-  (*c1).MergeFrames( *c2 );
-  // Remove c2
-  clusters_.erase( c2 );
-  return 0;
-}        
-
-// -----------------------------------------------------------------------------
 // ClusterList::calcMinDist()
 /** Calculate the minimum distance between frames in cluster specified by
   * iterator C1 and frames in all other clusters.
@@ -600,20 +576,6 @@ void ClusterList::calcAvgDist(cluster_it& C1_it)
 }
 
 // -----------------------------------------------------------------------------
-// ClusterList::CheckEpsilon()
-/** Check the eccentricity of every cluster against the given epsilon. If
-  * any cluster has an eccentricity less than epsilon return true, 
-  * otherwise return false.
-  */
-bool ClusterList::CheckEpsilon(double epsilon) {
-  for (cluster_it C1_it = clusters_.begin(); C1_it != clusters_.end(); ++C1_it) 
-  {
-    (*C1_it).CalcEccentricity(FrameDistances_);
-    if ( (*C1_it).Eccentricity() < epsilon) return true;
-  }
-  return false;
-}
-
 /** The Davies-Bouldin Index (DBI) is a measure of clustering merit; the 
   * smaller the DBI, the better. The DBI is defined as the average, for all 
   * clusters X, of fred, where fred(X) = max, across other clusters Y, of 
