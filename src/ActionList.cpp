@@ -36,6 +36,7 @@
 #include "Action_Vector.h"
 #include "Action_Principal.h"
 #include "Action_Matrix.h"
+#include "Action_LIE.h"
 #include "Action_Grid.h"
 #include "Action_GridFreeEnergy.h"
 #include "Action_Dipole.h"
@@ -85,6 +86,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, 0 },
   { DispatchObject::ACTION, "image", Action_Image::Alloc, Action_Image::Help, 0 },
   { DispatchObject::ACTION, "jcoupling", Action_Jcoupling::Alloc, Action_Jcoupling::Help, 0 },
+  { DispatchObject::ACTION, "lie", Action_LIE::Alloc, Action_LIE::Help, 0 },
   { DispatchObject::ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, 0 },
   { DispatchObject::ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, 0 },
   { DispatchObject::ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, 0 },

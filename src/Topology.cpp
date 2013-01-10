@@ -416,10 +416,9 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
 int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh,
                           std::vector<double> &bond_rk, std::vector<double> &bond_req) 
 {
-  if (bonds.empty() && bondsh.empty()) {
-    mprinterr("Error: Topology: Input bonds and bondsh are empty.\n");
-    return 1;
-  }
+  if (bonds.empty() && bondsh.empty())
+    mprinterr("Warning: Topology: Input bonds and bondsh are empty.\n");
+
   if (atoms_.empty()) {
     mprinterr("Error: Topology: Cannot set up bonds, no atoms present.\n");
     return 1;
