@@ -49,6 +49,7 @@ Grid::Grid(const Grid& rhs) :
   memset(grid_, 0, gridsize_ * sizeof(float));
 }
 
+// ASSIGNMENT
 Grid& Grid::operator=(const Grid& rhs) {
   if (this == &rhs) return *this;
   // Deallocate
@@ -79,7 +80,14 @@ void Grid::Help() {
 }
  
 // Grid::GridInit()
-/** Initialize grid from argument list. */
+/** Initialize grid from argument list. Expected args are:
+  * <nx> <dx> <ny> <dy> <nz> <dz> [box|origin|center <mask>] [negative]
+  * Where n is the number of bin points and d is the bin spacing in
+  * a given direction, box/origin/center <mask> specifies where the
+  * grid should be centered, and [negative] builds negative instead of
+  * positive density.
+  * \return 1 on error, 0 on success.
+  */
 int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
   if (callingRoutineIn!=0)
     callingRoutine_.assign(callingRoutineIn);
@@ -214,6 +222,8 @@ int Grid::GridPoint(Vec3 const& vIn) {
   return -1;
 }
 
+// Grid::GridFrame()
+/** Grid coordinates in currentFrame according to mask. */
 void Grid::GridFrame(Frame& currentFrame, AtomMask const& mask) {
   Vec3 center;
   if (mode_ == BOX) 
@@ -286,6 +296,7 @@ void Grid::PrintXplor(std::string const& name, const char* title,
   outfile.CloseFile();
 }
 
+// Grid::PrintPDB()
 void Grid::PrintPDB(std::string const& filename, double cut, double normIn) 
 {
   double norm = normIn;
