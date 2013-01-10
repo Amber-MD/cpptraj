@@ -17,7 +17,7 @@ Analysis_Clustering::Analysis_Clustering() :
   useMass_(false),
   grace_color_(false),
   load_pair_(false),
-  cluster_dataset_(0),
+  //cluster_dataset_(0),
   Linkage_(ClusterList::AVERAGELINK),
   mode_(ClusterList::HIERAGGLO),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -58,13 +58,18 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
               setname.c_str());
     return Analysis::ERR;
   }
-  // Check for dataset to cluster on, otherwise coords will be used
+  // Check for DataSet(s) to cluster on, otherwise coords will be used
+  cluster_dataset_.clear();
   setname = analyzeArgs.GetStringKey("data");
   if (!setname.empty()) {
-    cluster_dataset_ = datasetlist->GetDataSet( setname );
-    if (cluster_dataset_ == 0) {
-      mprinterr("Error: cluster: dataset %s not found.\n", setname.c_str());
-      return Analysis::ERR;
+    ArgList dsnames(setname, ",");
+    for (ArgList::const_iterator name = dsnames.begin(); name != dsnames.end(); ++name) {
+      DataSet* ds = datasetlist->GetDataSet( *name );
+      if (ds == 0) {
+        mprinterr("Error: cluster: dataset %s not found.\n", (*name).c_str());
+        return Analysis::ERR;
+      }
+      cluster_dataset_.push_back( ds );
     }
   }
   // Get keywords
@@ -120,7 +125,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     targetNclusters_ = 10;
 
   mprintf("    CLUSTER: Using coords dataset %s, clustering using", coords_->Legend().c_str());
-  if ( cluster_dataset_ == 0 ) {
+  if ( cluster_dataset_.empty() ) {
     if (!maskexpr_.empty())
       mprintf(" RMSD (mask [%s])",maskexpr_.c_str());
     else
@@ -131,8 +136,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       mprintf(", no fitting");
     else
       mprintf(" best fit");
-  } else 
-    mprintf(" dataset %s", cluster_dataset_->Legend().c_str());
+  } else {
+    if (cluster_dataset_.size() == 1)
+      mprintf(" dataset %s", cluster_dataset_[0]->Legend().c_str());
+    else
+      mprintf(" %u datasets.", cluster_dataset_.size());
+  }
   mprintf("\n\t");
   if (targetNclusters_ != -1)
     mprintf("Looking for %i clusters, ",targetNclusters_);
@@ -196,8 +205,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   if (load_pair_ && fileExists(pairdistfile_.c_str()))
     pairdist_mode = ClusterList::USE_FILE;
   // If no dataset specified, use COORDS
-  if (cluster_dataset_ == 0)
-     cluster_dataset_ = (DataSet*) coords_;
+  if (cluster_dataset_.empty())
+     cluster_dataset_.push_back( (DataSet*)coords_ );
   // Calculate distances between frames
   if (CList.CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
                                 usedme_, nofitrms_, useMass_, maskexpr_, sieve_ ))

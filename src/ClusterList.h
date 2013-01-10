@@ -23,7 +23,7 @@ class ClusterList {
     void PrintClustersToFile(std::string const&,int);
     void PrintClusters();
 
-    int CalcFrameDistances(std::string const&, DataSet*, DistModeType, 
+    int CalcFrameDistances(std::string const&, ClusterDist::DsArray const&, DistModeType, 
                            bool, bool, bool, std::string const&, int);
     void AddSievedFrames();
     // Clustering Methods

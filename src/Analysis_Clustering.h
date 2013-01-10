@@ -35,7 +35,7 @@ class Analysis_Clustering: public Analysis {
     bool useMass_;
     bool grace_color_;          ///< If true print grace colors instead of cluster number
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found
-    DataSet* cluster_dataset_;  ///< Dataset to use for clustering.
+    ClusterDist::DsArray cluster_dataset_;  ///< DataSet(s) to use for clustering.
     /// Cluster linkage type
     ClusterList::LINKAGETYPE Linkage_;
     /// Clustering algorithm to use.

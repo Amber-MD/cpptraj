@@ -11,13 +11,24 @@ class Centroid {
     virtual Centroid* Copy() = 0;
 };
 /// Cluster centroid for generic DataSet.
-// TODO: Make members private?
 class Centroid_Num : public Centroid {
   public:
     Centroid_Num()           : cval_(0.0) {}
     Centroid_Num(double val) : cval_(val) {}
-    double cval_;
     Centroid* Copy() { return (Centroid*)new Centroid_Num(cval_); }
+    friend class ClusterDist_Num;
+  private:
+    double cval_;
+};
+/// Cluster centroid for mulitple DataSets
+class Centroid_Multi : public Centroid {
+  public:
+    Centroid_Multi() {}
+    Centroid_Multi(std::vector<double> const& val) : cvals_(val) {}
+    Centroid* Copy() { return (Centroid*)new Centroid_Multi(cvals_); }
+    friend class ClusterDist_Euclid;
+  private:
+    std::vector<double> cvals_;
 };
 /// Cluster Centroid for Coords DataSet.
 class Centroid_Coord : public Centroid {
@@ -25,20 +36,24 @@ class Centroid_Coord : public Centroid {
     Centroid_Coord() {}
     Centroid_Coord(Frame const& frame) : cframe_(frame) {}
     Centroid_Coord(int natom) : cframe_(natom) {}
-    Frame cframe_;
     Centroid* Copy() { return (Centroid*)new Centroid_Coord(cframe_); }
+    friend class ClusterDist_DME;
+    friend class ClusterDist_RMS;
+  private:
+    Frame cframe_;
 };
 
 /// Abstract Base Class for Cluster distance calc.
+/** The pairwise-distance calculation is here to make COORDS DataSet calcs 
+  * more efficient; otherwise they would have to copy frame1 coords each time 
+  * as well as always track memory for frame2.
+  */
 class ClusterDist {
   public:
     typedef std::list<int> Cframes;
     typedef Cframes::const_iterator Cframes_it;
+    typedef std::vector<DataSet*> DsArray;
     virtual ~ClusterDist() {}
-    // NOTE: The pairwise-distance calculation is here to make COORDS
-    //       DataSet calcs more efficient; otherwise they would have to
-    //       copy frame1 coords each time as well as always track memory
-    //       for frame2.
     virtual ClusterMatrix PairwiseDist(int) = 0;
     virtual double CentroidDist( Centroid*, Centroid* ) = 0;
     virtual double FrameCentroidDist(int, Centroid* ) = 0;
@@ -53,11 +68,23 @@ class ClusterDist_Num : public ClusterDist {
     ClusterMatrix PairwiseDist(int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
-    /// Calculate avg value of given frames.
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
   private:
     DataSet* data_;
+};
+/// Cluster distance calc using Euclid distance
+class ClusterDist_Euclid : public ClusterDist {
+  public:
+    ClusterDist_Euclid() {}
+    ClusterDist_Euclid(DsArray const& dsIn) : dsets_(dsIn) {}
+    ClusterMatrix PairwiseDist(int);
+    double CentroidDist( Centroid*, Centroid* );
+    double FrameCentroidDist(int, Centroid*);
+    void CalculateCentroid(Centroid*, Cframes const&);
+    Centroid* NewCentroid(Cframes const&);
+  private:
+    DsArray dsets_;
 };
 /// DME cluster distance calc for Coords DataSet.
 class ClusterDist_DME: public ClusterDist {
@@ -67,9 +94,6 @@ class ClusterDist_DME: public ClusterDist {
     ClusterMatrix PairwiseDist(int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
-    /** Compute the centroid (avg) coords for each atom from all frames in this
-      * cluster.
-      */
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
   private:
@@ -85,9 +109,6 @@ class ClusterDist_RMS : public ClusterDist {
     ClusterMatrix PairwiseDist(int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
-    /** Compute the centroid (avg) coords for each atom from all frames in this
-      * cluster. If fitting,  RMS fit to centroid as it is being built.
-      */
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
   private:

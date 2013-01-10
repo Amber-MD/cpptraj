@@ -257,15 +257,19 @@ int ClusterList::AddCluster( std::list<int> const& framelistIn ) {
 }
 
 // ClusterList::CalcFrameDistances()
-int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
+int ClusterList::CalcFrameDistances(std::string const& filename, 
+                                    ClusterDist::DsArray const& dataSets,
                                     DistModeType mode, bool useDME, bool nofit, 
                                     bool useMass, std::string const& maskexpr,
                                     int sieve) 
 {
-  if (dsIn == 0) {
-    mprinterr("Internal Error: ClusterList: Cluster properties DataSet is null.\n");
+  if (dataSets.empty()) {
+    mprinterr("Internal Error: CalcFrameDistances: No DataSets given.\n");
     return 1;
   }
+  // Base everything off of the first DataSet
+  // TODO: Check all DataSet sizes?
+  DataSet* dsIn = dataSets[0];
   // Set up internal cluster disance calculation
   if (dsIn->Type() == DataSet::COORDS) {
     if (useDME)
@@ -273,7 +277,10 @@ int ClusterList::CalcFrameDistances(std::string const& filename, DataSet* dsIn,
     else
       Cdist_ = new ClusterDist_RMS(dsIn, maskexpr, nofit, useMass);
   } else {
-    Cdist_ = new ClusterDist_Num(dsIn);
+    if (dataSets.size() == 1)
+      Cdist_ = new ClusterDist_Num(dsIn);
+    else // TODO: More than just euclid
+      Cdist_ = new ClusterDist_Euclid(dataSets);
   }
   // Attempt to load pairwise distances from file if specified
   if (mode == USE_FILE && !filename.empty()) {

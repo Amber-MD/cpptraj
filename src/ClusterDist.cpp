@@ -1,6 +1,7 @@
 #include <cmath>
 #include "ClusterDist.h"
 
+// ---------- Distance calc routines for single DataSet ------------------------
 ClusterMatrix ClusterDist_Num::PairwiseDist(int sieve) {
   int f2end = data_->Size();
   ClusterMatrix frameDistances( f2end );
@@ -20,6 +21,7 @@ double ClusterDist_Num::FrameCentroidDist(int f1, Centroid* c1) {
   return fabs(data_->Dval(f1) - ((Centroid_Num*)c1)->cval_);
 }
 
+/** Calculate avg value of given frames. */
 void ClusterDist_Num::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Num* cent = (Centroid_Num*)centIn;
   cent->cval_ = 0.0;
@@ -34,7 +36,65 @@ Centroid* ClusterDist_Num::NewCentroid( Cframes const& cframesIn ) {
   return cent;
 }
 
-// -----------------------------------------------------------------------------
+// ---------- Distance calc routines for multiple DataSets (Euclid) ------------
+ClusterMatrix ClusterDist_Euclid::PairwiseDist(int sieve) {
+  int f2end = dsets_[0]->Size();
+  ClusterMatrix frameDistances( f2end );
+  int f1end = f2end - sieve;
+  for (int f1 = 0; f1 < f1end; f1 += sieve) {
+    for (int f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
+      double dist = 0.0;
+      for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
+        double diff = (*ds)->Dval(f1) - (*ds)->Dval(f2);
+        dist += (diff * diff);
+      }
+      frameDistances.SetElement( f1, f2, sqrt(dist) );
+    }
+  }
+  return frameDistances;
+}
+
+double ClusterDist_Euclid::CentroidDist(Centroid* c1, Centroid* c2) {
+  double dist = 0.0;
+  std::vector<double>::iterator c2val = ((Centroid_Multi*)c2)->cvals_.begin();
+  for (std::vector<double>::iterator c1val = ((Centroid_Multi*)c1)->cvals_.begin();
+                                     c1val != ((Centroid_Multi*)c1)->cvals_.end();
+                                     ++c1val)
+  {
+    double diff = *c1val - *(c2val++);
+    dist += (diff * diff);
+  }
+  return sqrt(dist);
+}
+
+double ClusterDist_Euclid::FrameCentroidDist(int f1, Centroid* c1) {
+  double dist = 0.0;
+  std::vector<double>::iterator c1val = ((Centroid_Multi*)c1)->cvals_.begin();
+  for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
+    double diff = (*ds)->Dval(f1) - *(c1val++);
+    dist += (diff * diff);
+  }
+  return sqrt(dist);
+}
+
+void ClusterDist_Euclid::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
+  Centroid_Multi* cent = (Centroid_Multi*)centIn;
+  cent->cvals_.clear();
+  for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
+    double cval = 0.0;
+    for (Cframes_it frm = cframesIn.begin(); frm != cframesIn.end(); ++frm)
+      cval += (*ds)->Dval( *frm );
+    cent->cvals_.push_back( cval / (double)cframesIn.size() );
+  }
+}
+
+Centroid* ClusterDist_Euclid::NewCentroid(Cframes const& cframesIn) {
+  Centroid_Multi* cent = new Centroid_Multi();
+  CalculateCentroid(cent, cframesIn);
+  return cent;
+}
+
+// ---------- Distance calc routines for COORDS DataSet using DME --------------
 ClusterDist_DME::ClusterDist_DME(DataSet* dIn, std::string const& maskexpr) :
   coords_((DataSet_Coords*)dIn),
   mask_(maskexpr)
@@ -67,6 +127,9 @@ double ClusterDist_DME::FrameCentroidDist(int f1, Centroid* c1) {
   return frm1_.DISTRMSD( ((Centroid_Coord*)c1)->cframe_ );
 }
 
+/** Compute the centroid (avg) coords for each atom from all frames in this
+  * cluster.
+  */
 void ClusterDist_DME::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Coord* cent = (Centroid_Coord*)centIn;
   // Reset atom count for centroid.
@@ -91,7 +154,7 @@ Centroid* ClusterDist_DME::NewCentroid( Cframes const& cframesIn ) {
   return cent;
 }
 
-// -----------------------------------------------------------------------------
+// ---------- Distance calc routines for COORDS DataSets using RMSD ------------
 ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, std::string const& maskexpr, 
                                  bool nofit, bool useMass) :
   coords_((DataSet_Coords*)dIn),
@@ -139,6 +202,9 @@ double ClusterDist_RMS::FrameCentroidDist(int f1, Centroid* c1) {
     return frm1_.RMSD_CenteredRef( ((Centroid_Coord*)c1)->cframe_, useMass_ );
 }
 
+/** Compute the centroid (avg) coords for each atom from all frames in this
+  * cluster. If fitting,  RMS fit to centroid as it is being built.
+  */
 void ClusterDist_RMS::CalculateCentroid(Centroid* centIn,  Cframes const& cframesIn) {
   Matrix_3x3 Rot;
   Vec3 Trans;
