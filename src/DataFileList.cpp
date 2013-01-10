@@ -45,19 +45,20 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
   // If no DataFile associated with nameIn, create new datafile
   if (Current==0) {
     Current = new DataFile();
-    if (Current->SetupDatafile(nameIn)) {
+    if (Current->SetupDatafile(nameIn, argIn, debug_)) {
       mprinterr("Error setting up DataFile %s\n",nameIn.c_str());
       delete Current;
       return 0;
     }
     fileList_.push_back(Current);
     AddFilename( nameIn );
+  } else {
+    // Set debug level
+    Current->SetDebug(debug_);
+    // Process Arguments
+    if (!argIn.empty())
+      Current->ProcessArgs( argIn );
   }
-  // Set debug level
-  Current->SetDebug(debug_);
-  // Process Arguments
-  if (!argIn.empty())
-    Current->ProcessArgs( argIn );
   return Current;
 }
 

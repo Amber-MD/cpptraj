@@ -67,13 +67,15 @@ int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
 }
 
 // DataFile::SetupDatafile()
-int DataFile::SetupDatafile(std::string const& fnameIn) {
+int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debugIn) {
   if (fnameIn.empty()) return 1;
   filename_.SetFileName( fnameIn );
   DetermineTypeFromExt( filename_.Ext() );
   // Set up DataIO based on format. 
   if (SetupDataIO()) return 1;
-
+  debug_ = debugIn;
+  if (!argIn.empty())
+    ProcessArgs( argIn );
   return 0;
 }
 

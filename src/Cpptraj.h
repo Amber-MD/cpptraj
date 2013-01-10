@@ -50,7 +50,7 @@ class Cpptraj {
     void List(ArgList&);
     void Debug(ArgList&);
     void Clear(ArgList&);
-    int Create_DataFile(ArgList&);
+    int Create_DataFile(ArgList&,int);
     int Precision(ArgList&);
     int ReadData(ArgList&);
     void SelectDS(ArgList&);

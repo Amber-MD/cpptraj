@@ -157,7 +157,7 @@ void Cpptraj::Help_RunAnalysis() {
 enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
                        SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
                        SELECT, SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA,
-                       CLEAR, CRDACTION, CRDOUT };
+                       CLEAR, CRDACTION, CRDOUT, WRITE };
 
 const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef,       ACTIVEREF    },
@@ -184,8 +184,9 @@ const DispatchObject::Token Cpptraj::GeneralCmds[] = {
   { DispatchObject::GENERAL, "readinput",     0, 0,                    READINPUT    },
   { DispatchObject::GENERAL, "run"   ,        0, 0,                    RUN          },
   { DispatchObject::GENERAL, "runanalysis",   0, Help_RunAnalysis,     RUN_ANALYSIS },
-  { DispatchObject::GENERAL, "select",        0, 0,                    SELECT    },
+  { DispatchObject::GENERAL, "select",        0, 0,                    SELECT       },
   { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS,        SELECTDS     },
+  { DispatchObject::GENERAL, "write",         0, Help_Create_DataFile, WRITE        },
   { DispatchObject::GENERAL, "writedata",     0, 0,                    WRITEDATA    },
   { DispatchObject::GENERAL, "xmgrace",       0, 0,                    SYSTEM       },
   { DispatchObject::NONE,    0,               0, 0,                    0            }
@@ -328,21 +329,32 @@ void Cpptraj::Clear(ArgList& argIn) {
 }
 
 /** Add DataFile to DataFileList using specified sets. */
-int Cpptraj::Create_DataFile(ArgList& dataArg) {
+int Cpptraj::Create_DataFile(ArgList& dataArg, int cmdidxIn) {
+  // Two modes:
+  //   1) create: Add a new DataFile to DFL with specified DataSets.
+  //   2) write:  Immediately write DataFile with specified DataSets.
+  GeneralCmdTypes cmdidx = (GeneralCmdTypes)cmdidxIn;
   // Next string is datafile that command pertains to.
   std::string name1 = dataArg.GetStringNext();
   if (name1.empty()) {
-    mprinterr("Error: create: No filename given.\nError: Usage: ");
+    mprinterr("Error: No filename given.\nError: Usage: ");
     Help_Create_DataFile();
     return 1;
   }
-  DataFile* df = DFL.AddDataFile(name1, dataArg);
+  DataFile* df = 0;
+  if ( cmdidx == CREATE )
+    df = DFL.AddDataFile(name1, dataArg);
+  else { // WRITE
+    df = new DataFile();
+    if (df->SetupDatafile( name1, dataArg, debug_ )) {
+      delete df;
+      df = 0;
+    }
+  }
   if (df==0) {
-    mprinterr("Error: create: Could not create file %s:",name1.c_str());
+    mprinterr("Error: Could not create file %s:",name1.c_str());
     return 1;
   }
-  // Process any recognized datafile args
-  df->ProcessArgs( dataArg );
   // Treat all remaining args as dataset names
   int err = 0;
   ArgList dsetArgs = dataArg.RemainingArgs();
@@ -359,6 +371,10 @@ int Cpptraj::Create_DataFile(ArgList& dataArg) {
     }
   }
   mprintf("\n");
+  if ( cmdidx == WRITE && err == 0 ) {
+    df->Write();
+    delete df;
+  }
   return err;
 }
 
@@ -1015,7 +1031,8 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
               default     : break;
             } 
             break;
-          case CREATE      : err = Create_DataFile( command ); break;
+          case WRITE       :
+          case CREATE      : err = Create_DataFile( command, dispatchToken->Idx ); break;
           case PRECISION   : err = Precision( command ); break;
           case DATAFILE    : err = DFL.ProcessDataFileArgs( command ); break;
           case SYSTEM      : system( command.ArgLine() ); break;

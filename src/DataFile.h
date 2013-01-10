@@ -15,7 +15,7 @@ class DataFile {
 
     void SetDebug(int);
     int ReadData(ArgList&, DataSetList&);
-    int SetupDatafile(std::string const&);
+    int SetupDatafile(std::string const&, ArgList&, int);
     int AddSet(DataSet*);
     int ProcessArgs(ArgList&);
     int ProcessArgs(const char*);
