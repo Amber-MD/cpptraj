@@ -1,6 +1,8 @@
 #include <cmath>
 #include "ClusterDist.h"
-
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 // ---------- Distance calc routines for single DataSet ------------------------
 ClusterMatrix ClusterDist_Num::PairwiseDist(int sieve) {
   int f2end = data_->Size();
@@ -168,13 +170,21 @@ ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, std::string const& maskexpr,
 
 ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
   double rmsd;
+  int f1, f2;
   Frame frm2 = frm1_;
   int f2end = coords_->Size();
   ClusterMatrix frameDistances( f2end );
   int f1end = f2end - sieve;
-  for (int f1 = 0; f1 < f1end; f1 += sieve) {
+#ifdef _OPENMP
+  Frame frm1 = frm1_;
+# define frm1_ frm1
+#pragma omp parallel private(f1, f2, rmsd) firstprivate(frm1, frm2)
+{
+#pragma omp for schedule(dynamic)
+#endif
+  for (f1 = 0; f1 < f1end; f1 += sieve) {
     coords_->GetFrame( f1, frm1_, mask_ );
-    for (int f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
+    for (f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
       coords_->GetFrame( f2, frm2,  mask_ );
       if (nofit_) 
         rmsd = frm1_.RMSD_NoFit( frm2, useMass_ );
@@ -183,6 +193,10 @@ ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
       frameDistances.SetElement( f1, f2, rmsd );
     }
   }
+#ifdef _OPENMP
+# undef frm1_
+} // END pragma omp parallel
+#endif
   return frameDistances;
 }
 
