@@ -610,7 +610,7 @@ int ClusterList::ClusterDBSCAN(double epsilon, int minPoints) {
   std::vector<int> NeighborPts;
   std::vector<int> Npts2; // Will hold neighbors of a neighbor
   std::vector<int> FramesToCluster;
-  ClusterDist::Cframes cluster_frames; 
+  ClusterDist::Cframes cluster_frames;
   // First determine which frames are being clustered.
   for (int frame = 0; frame < FrameDistances_.Nrows(); ++frame)
     if (!FrameDistances_.IgnoringRow( frame ))
@@ -624,6 +624,9 @@ int ClusterList::ClusterDBSCAN(double epsilon, int minPoints) {
   static char NOISE = 'N';
   static char INCLUSTER = 'C';
   std::vector<char> Status( FrameDistances_.Nrows(), UNASSIGNED);
+  mprintf("\tStarting DBSCAN Clustering:\n");
+  ProgressBar cluster_progress(FramesToCluster.size());
+  int iteration = 0;
   for (std::vector<int>::iterator point = FramesToCluster.begin();
                                   point != FramesToCluster.end(); ++point)
   {
@@ -675,6 +678,7 @@ int ClusterList::ClusterDBSCAN(double epsilon, int minPoints) {
         }
       }
     }
+    cluster_progress.Update(iteration++);
   } // END loop over FramesToCluster
   // Count the number of noise points
   mprintf("\tNOISE FRAMES:");
