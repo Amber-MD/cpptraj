@@ -3,24 +3,49 @@
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
+
+/// Calculate difference between two dihedral/pucker angles.
+static double DistCalc_Dih(double d1, double d2) {
+  double diff = fabs(d1 - d2);
+  if (diff > 180.0)
+    return (360.0 - diff);
+  else
+    return diff;
+}
+
+/// Calculate basic difference.
+static double DistCalc_Std(double d1, double d2) {
+  return fabs(d1 - d2);
+}
 // ---------- Distance calc routines for single DataSet ------------------------
+ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
+  data_(dsIn)
+{
+  if (dsIn->ScalarMode() == DataSet::M_TORSION ||
+      dsIn->ScalarMode() == DataSet::M_PUCKER ||
+      dsIn->ScalarMode() == DataSet::M_ANGLE     )
+    dcalc_ = DistCalc_Dih;
+  else
+    dcalc_ = DistCalc_Std;
+}
+
 ClusterMatrix ClusterDist_Num::PairwiseDist(int sieve) {
   int f2end = data_->Size();
   ClusterMatrix frameDistances( f2end );
   int f1end = f2end - sieve;
   for (int f1 = 0; f1 < f1end; f1 += sieve) {
     for (int f2 = f1 + sieve; f2 < f2end; f2 += sieve)
-      frameDistances.SetElement( f1, f2, fabs(data_->Dval(f1) - data_->Dval(f2)) );
+      frameDistances.SetElement( f1, f2, dcalc_(data_->Dval(f1), data_->Dval(f2)) );
   }
   return frameDistances;
 }
 
 double ClusterDist_Num::CentroidDist(Centroid* c1, Centroid* c2) {
-  return fabs(((Centroid_Num*)c1)->cval_ - ((Centroid_Num*)c2)->cval_);
+  return dcalc_(((Centroid_Num*)c1)->cval_, ((Centroid_Num*)c2)->cval_);
 }
 
 double ClusterDist_Num::FrameCentroidDist(int f1, Centroid* c1) {
-  return fabs(data_->Dval(f1) - ((Centroid_Num*)c1)->cval_);
+  return dcalc_(data_->Dval(f1), ((Centroid_Num*)c1)->cval_);
 }
 
 /** Calculate avg value of given frames. */
@@ -32,6 +57,7 @@ void ClusterDist_Num::CalculateCentroid(Centroid* centIn, Cframes const& cframes
   cent->cval_ /= (double)cframesIn.size();
 }
 
+/** \return A new centroid of the given frames. */
 Centroid* ClusterDist_Num::NewCentroid( Cframes const& cframesIn ) {
   Centroid_Num* cent = new Centroid_Num();
   CalculateCentroid( cent, cframesIn );

@@ -63,15 +63,17 @@ class ClusterDist {
 /// Cluster distance calc for generic DataSet
 class ClusterDist_Num : public ClusterDist {
   public:
-    ClusterDist_Num() : data_(0) {}
-    ClusterDist_Num(DataSet* dsIn) : data_(dsIn) {}
+    ClusterDist_Num() : data_(0), dcalc_(0) {}
+    ClusterDist_Num(DataSet*);
     ClusterMatrix PairwiseDist(int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
   private:
+    typedef double (*DistCalc)(double,double);
     DataSet* data_;
+    DistCalc dcalc_;
 };
 /// Cluster distance calc using Euclid distance
 class ClusterDist_Euclid : public ClusterDist {
