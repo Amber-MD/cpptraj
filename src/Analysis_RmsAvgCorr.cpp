@@ -103,7 +103,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     WindowMax = maxwindow_+1;
     if (WindowMax > coords_->Size()) {
       WindowMax = coords_->Size();
-      mprintf("Warning: RmsAvgCorr: stop (%i) > max # frames (%s), using max.\n",
+      mprintf("Warning: RmsAvgCorr: stop (%i) > max # frames (%i), using max.\n",
               maxwindow_, WindowMax);
     }
   }
