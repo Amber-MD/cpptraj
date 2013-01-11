@@ -17,26 +17,42 @@ static double DistCalc_Dih(double d1, double d2) {
 static double DistCalc_Std(double d1, double d2) {
   return fabs(d1 - d2);
 }
+
+static bool IsTorsionArray( DataSet* dsIn ) {
+  if (dsIn->ScalarMode() == DataSet::M_TORSION ||
+      dsIn->ScalarMode() == DataSet::M_PUCKER ||
+      dsIn->ScalarMode() == DataSet::M_ANGLE     )
+    return true;
+  return false;
+}
+
 // ---------- Distance calc routines for single DataSet ------------------------
 ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
   data_(dsIn)
 {
-  if (dsIn->ScalarMode() == DataSet::M_TORSION ||
-      dsIn->ScalarMode() == DataSet::M_PUCKER ||
-      dsIn->ScalarMode() == DataSet::M_ANGLE     )
+  if (IsTorsionArray( dsIn ))
     dcalc_ = DistCalc_Dih;
   else
     dcalc_ = DistCalc_Std;
 }
 
 ClusterMatrix ClusterDist_Num::PairwiseDist(int sieve) {
+  int f1, f2;
   int f2end = data_->Size();
   ClusterMatrix frameDistances( f2end );
   int f1end = f2end - sieve;
-  for (int f1 = 0; f1 < f1end; f1 += sieve) {
-    for (int f2 = f1 + sieve; f2 < f2end; f2 += sieve)
+#ifdef _OPENMP
+#pragma omp parallel private(f1, f2)
+{
+#pragma omp for schedule(dynamic)
+#endif
+  for (f1 = 0; f1 < f1end; f1 += sieve) {
+    for (f2 = f1 + sieve; f2 < f2end; f2 += sieve)
       frameDistances.SetElement( f1, f2, dcalc_(data_->Dval(f1), data_->Dval(f2)) );
   }
+#ifdef _OPENMP
+}
+#endif
   return frameDistances;
 }
 
@@ -65,31 +81,56 @@ Centroid* ClusterDist_Num::NewCentroid( Cframes const& cframesIn ) {
 }
 
 // ---------- Distance calc routines for multiple DataSets (Euclid) ------------
+ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn) :
+  dsets_(dsIn)
+{
+  for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
+    if ( IsTorsionArray( *ds ) )
+      dcalcs_.push_back( DistCalc_Dih );
+    else
+      dcalcs_.push_back( DistCalc_Std );
+  }
+}
+
 ClusterMatrix ClusterDist_Euclid::PairwiseDist(int sieve) {
+  int f1, f2;
+  double dist, diff;
+  DcArray::iterator dcalc;
+  DsArray::iterator ds;
   int f2end = dsets_[0]->Size();
   ClusterMatrix frameDistances( f2end );
   int f1end = f2end - sieve;
-  for (int f1 = 0; f1 < f1end; f1 += sieve) {
-    for (int f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
-      double dist = 0.0;
-      for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
-        double diff = (*ds)->Dval(f1) - (*ds)->Dval(f2);
+#ifdef _OPENMP
+#pragma omp parallel private(f1, f2, dist, diff, dcalc, ds)
+{
+#pragma omp for schedule(dynamic)
+#endif
+  for (f1 = 0; f1 < f1end; f1 += sieve) {
+    for (f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
+      dist = 0.0;
+      dcalc = dcalcs_.begin();
+      for (ds = dsets_.begin(); ds != dsets_.end(); ++ds, ++dcalc) {
+        diff = (*dcalc)((*ds)->Dval(f1), (*ds)->Dval(f2));
         dist += (diff * diff);
       }
       frameDistances.SetElement( f1, f2, sqrt(dist) );
     }
   }
+#ifdef _OPENMP
+}
+#endif
   return frameDistances;
 }
 
 double ClusterDist_Euclid::CentroidDist(Centroid* c1, Centroid* c2) {
   double dist = 0.0;
   std::vector<double>::iterator c2val = ((Centroid_Multi*)c2)->cvals_.begin();
+  DcArray::iterator dcalc = dcalcs_.begin();
   for (std::vector<double>::iterator c1val = ((Centroid_Multi*)c1)->cvals_.begin();
                                      c1val != ((Centroid_Multi*)c1)->cvals_.end();
-                                     ++c1val)
+                                     ++c1val, ++dcalc)
   {
-    double diff = *c1val - *(c2val++);
+    double diff = (*dcalc)(*c1val, *(c2val++));
     dist += (diff * diff);
   }
   return sqrt(dist);
@@ -98,8 +139,9 @@ double ClusterDist_Euclid::CentroidDist(Centroid* c1, Centroid* c2) {
 double ClusterDist_Euclid::FrameCentroidDist(int f1, Centroid* c1) {
   double dist = 0.0;
   std::vector<double>::iterator c1val = ((Centroid_Multi*)c1)->cvals_.begin();
+  DcArray::iterator dcalc = dcalcs_.begin();
   for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
-    double diff = (*ds)->Dval(f1) - *(c1val++);
+    double diff = (*dcalc)((*ds)->Dval(f1), *(c1val++));
     dist += (diff * diff);
   }
   return sqrt(dist);
@@ -132,17 +174,29 @@ ClusterDist_DME::ClusterDist_DME(DataSet* dIn, std::string const& maskexpr) :
 }
 
 ClusterMatrix ClusterDist_DME::PairwiseDist(int sieve) {
+  int f1, f2;
   Frame frm2 = frm1_;
   int f2end = coords_->Size();
   ClusterMatrix frameDistances( f2end );
   int f1end = f2end - sieve;
-  for (int f1 = 0; f1 < f1end; f1 += sieve) { 
+#ifdef _OPENMP
+  Frame frm1 = frm1_;
+# define frm1_ frm1
+#pragma omp parallel private(f1, f2) firstprivate(frm1, frm2)
+{
+#pragma omp for schedule(dynamic)
+#endif
+  for (f1 = 0; f1 < f1end; f1 += sieve) { 
     coords_->GetFrame( f1, frm1_, mask_ );
-    for (int f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
+    for (f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
       coords_->GetFrame( f2, frm2,  mask_ );
       frameDistances.SetElement( f1, f2, frm1_.DISTRMSD( frm2 ) );
     }
   }
+#ifdef _OPENMP
+# undef frm1_
+} // END pragma omp parallel
+#endif
   return frameDistances;
 }
 

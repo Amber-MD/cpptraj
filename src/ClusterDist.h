@@ -59,6 +59,8 @@ class ClusterDist {
     virtual double FrameCentroidDist(int, Centroid* ) = 0;
     virtual void CalculateCentroid(Centroid*, Cframes const&) = 0;
     virtual Centroid* NewCentroid(Cframes const&) = 0;
+  protected:
+    typedef double (*DistCalc)(double,double);
 };
 /// Cluster distance calc for generic DataSet
 class ClusterDist_Num : public ClusterDist {
@@ -71,7 +73,6 @@ class ClusterDist_Num : public ClusterDist {
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
   private:
-    typedef double (*DistCalc)(double,double);
     DataSet* data_;
     DistCalc dcalc_;
 };
@@ -79,7 +80,7 @@ class ClusterDist_Num : public ClusterDist {
 class ClusterDist_Euclid : public ClusterDist {
   public:
     ClusterDist_Euclid() {}
-    ClusterDist_Euclid(DsArray const& dsIn) : dsets_(dsIn) {}
+    ClusterDist_Euclid(DsArray const&);
     ClusterMatrix PairwiseDist(int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
@@ -87,6 +88,8 @@ class ClusterDist_Euclid : public ClusterDist {
     Centroid* NewCentroid(Cframes const&);
   private:
     DsArray dsets_;
+    typedef std::vector<DistCalc> DcArray;
+    DcArray dcalcs_;
 };
 /// DME cluster distance calc for Coords DataSet.
 class ClusterDist_DME: public ClusterDist {
