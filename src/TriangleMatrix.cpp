@@ -70,7 +70,7 @@ int TriangleMatrix::Setup(int sizeIn) {
   nrows_ = sizeIn;
   size_t ROWS = (size_t) nrows_;
   // Use half square matrix minus the diagonal
-  nelements_ = ( ROWS * (ROWS - 1) ) / 2; 
+  nelements_ = ( ROWS * (ROWS - 1L) ) / 2L; 
   if (elements_!=0) delete[] elements_;
   if (nelements_ > 0)
     elements_ = new float[ nelements_ ];
