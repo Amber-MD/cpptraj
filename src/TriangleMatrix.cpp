@@ -16,7 +16,7 @@ TriangleMatrix::TriangleMatrix(int sizeIn) :
   DataSet(TRIMATRIX, 12, 4, 2),
   elements_(0),
   nrows_(sizeIn),
-  nelements_( (size_t)( (nrows_*(nrows_ - 1)) / 2) ),
+  nelements_( (size_t)( (nrows_*(nrows_ - 1L)) / 2L) ),
   currentElement_(0)
 {
   if (nrows_ > 0)
