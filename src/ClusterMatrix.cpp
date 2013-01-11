@@ -108,29 +108,29 @@ int ClusterMatrix::SetupIgnore() {
 double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
   iOut = -1;
   jOut = -1;
-  int iVal = 0;
-  int jVal = 1;
+  size_t iVal = 0L;
+  size_t jVal = 1L;
   float min = FLT_MAX;
-  for (size_t idx = 0; idx < nelements_; ++idx) {
+  for (size_t idx = 0L; idx < nelements_; ++idx) {
     if (ignore_[iVal] || ignore_[jVal]) {
       // If we dont care about this row/col, just increment
       jVal++;
       if (jVal == nrows_) {
         iVal++;
-        jVal = iVal + 1;
+        jVal = iVal + 1L;
       }
     } else {
       // Otherwise search for minimum
       if ( elements_[idx] < min ) {
         min = elements_[idx];
-        iOut = iVal;
-        jOut = jVal;
+        iOut = (int)iVal;
+        jOut = (int)jVal;
       }
       // Increment indices
       jVal++;
       if (jVal == nrows_) {
         iVal++;
-        jVal = iVal + 1;
+        jVal = iVal + 1L;
       }
     }
   }
@@ -139,16 +139,16 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
 
 // ClusterMatrix::PrintElements()
 void ClusterMatrix::PrintElements() const {
-  int iVal = 0;
-  int jVal = 1;
-  for (size_t idx = 0; idx < nelements_; idx++) {
+  size_t iVal = 0;
+  size_t jVal = 1;
+  for (size_t idx = 0L; idx < nelements_; idx++) {
     if (!ignore_[iVal] && !ignore_[jVal])
-      mprintf("\t%i %i %8.3f\n",iVal,jVal,elements_[idx]);
+      mprintf("\t%u %u %8.3f\n",iVal,jVal,elements_[idx]);
     // Increment indices
     jVal++;
     if (jVal == nrows_) {
       ++iVal;
-      jVal = iVal + 1;
+      jVal = iVal + 1L;
     }
   }
 } 

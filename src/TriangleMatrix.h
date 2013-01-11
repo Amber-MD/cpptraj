@@ -10,7 +10,7 @@
   */
 class TriangleMatrix : public DataSet {
   public :
-    int Nrows()                const { return nrows_;                 }
+    int Nrows()                const { return (int)nrows_;            }
     int Nelements()            const { return (int)nelements_;        }
     double operator[](int idx) const { return (double)elements_[idx]; }
 
@@ -28,16 +28,16 @@ class TriangleMatrix : public DataSet {
     double GetElement(int,int) const;
     float GetElementF(int,int) const;
     // DataSet functions
-    int Xmax() { return nrows_ - 1; }
-    int Size() { return (int)nelements_; }
+    int Xmax() { return (int)(nrows_ - 1L); }
+    int Size() { return (int)nelements_;    }
     void Write2D( CpptrajFile&, int, int);
     void GetDimensions(std::vector<int>&);
   protected:
     float *elements_;       ///< Hold all elements
-    int nrows_;             ///< Number of elements in one row
+    size_t nrows_;          ///< Number of elements in one row
     size_t nelements_;      ///< Total number of elements
     size_t currentElement_; ///< Current element, used in AddElement only.
   private:
-    int calcIndex(int,int) const;
+    size_t calcIndex(size_t,size_t) const;
 };
 #endif

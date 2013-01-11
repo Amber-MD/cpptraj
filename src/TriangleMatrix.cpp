@@ -6,20 +6,20 @@
 TriangleMatrix::TriangleMatrix() :
   DataSet(TRIMATRIX, 12, 4, 2),
   elements_(0),
-  nrows_(0),
-  nelements_(0),
-  currentElement_(0)
+  nrows_(0L),
+  nelements_(0L),
+  currentElement_(0L)
 {}
 
 // CONSTRUCTOR
 TriangleMatrix::TriangleMatrix(int sizeIn) :
   DataSet(TRIMATRIX, 12, 4, 2),
   elements_(0),
-  nrows_(sizeIn),
-  nelements_( (size_t)( (nrows_*(nrows_ - 1L)) / 2L) ),
-  currentElement_(0)
+  nrows_((size_t)sizeIn),
+  nelements_( (nrows_*(nrows_ - 1L)) / 2L ),
+  currentElement_(0L)
 {
-  if (nrows_ > 0)
+  if (nrows_ > 0L)
     elements_ = new float[ nelements_ ];
 }
 
@@ -35,7 +35,7 @@ TriangleMatrix::TriangleMatrix(const TriangleMatrix &rhs) :
   nelements_ = rhs.nelements_;
   nrows_ = rhs.nrows_;
   currentElement_ = rhs.currentElement_;
-  if (nrows_ > 0) {
+  if (nrows_ > 0L) {
     elements_ = new float[ nelements_ ];
     memcpy(elements_, rhs.elements_, nelements_ * sizeof(float));
   } else
@@ -53,7 +53,7 @@ TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
   nelements_ = rhs.nelements_;
   nrows_ = rhs.nrows_;
   currentElement_ = rhs.currentElement_;
-  if (nrows_ > 0) {
+  if (nrows_ > 0L) {
     elements_ = new float[ nelements_ ];
     // Copy
     memcpy(elements_, rhs.elements_, nelements_ * sizeof(float));
@@ -67,16 +67,15 @@ TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
   * Set the current element to 0.
   */
 int TriangleMatrix::Setup(int sizeIn) {
-  nrows_ = sizeIn;
-  size_t ROWS = (size_t) nrows_;
+  nrows_ = (size_t)sizeIn;
   // Use half square matrix minus the diagonal
-  nelements_ = ( ROWS * (ROWS - 1L) ) / 2L; 
+  nelements_ = ( nrows_ * (nrows_ - 1L) ) / 2L; 
   if (elements_!=0) delete[] elements_;
-  if (nelements_ > 0)
+  if (nelements_ > 0L)
     elements_ = new float[ nelements_ ];
   else
     elements_ = 0;
-  currentElement_ = 0;
+  currentElement_ = 0L;
   if (elements_==0) return 1;
   return 0;
 }
@@ -87,8 +86,7 @@ int TriangleMatrix::Setup(int sizeIn) {
   */
 int TriangleMatrix::AddElement(double elementIn) {
   if (currentElement_>=nelements_) return 0;
-  elements_[currentElement_] = (float) elementIn;
-  ++currentElement_;
+  elements_[currentElement_++] = (float) elementIn;
   return 1;
 }
 
@@ -98,8 +96,7 @@ int TriangleMatrix::AddElement(double elementIn) {
   */
 int TriangleMatrix::AddElement(float elementIn) {
   if (currentElement_>=nelements_) return 0;
-  elements_[currentElement_] = elementIn;
-  ++currentElement_;
+  elements_[currentElement_++] = elementIn;
   return 1;
 }
 
@@ -107,8 +104,8 @@ int TriangleMatrix::AddElement(float elementIn) {
 /** Calculate index in elements array for given row and column.
   * SHOULD NEVER BE CALLED WITH iIn == jIn!
   */
-int TriangleMatrix::calcIndex(int iIn, int jIn) const {
-  int i, j;
+size_t TriangleMatrix::calcIndex(size_t iIn, size_t jIn) const {
+  size_t i, j;
   if (iIn > jIn) {
     j = iIn;
     i = jIn;
@@ -116,15 +113,15 @@ int TriangleMatrix::calcIndex(int iIn, int jIn) const {
     i = iIn;
     j = jIn;
   } 
-  int i1 = i + 1;
-  return ( ( (nrows_ * i) - ((i1 * i) / 2) ) + j - i1 );
+  size_t i1 = i + 1L;
+  return ( ( (nrows_ * i) - ((i1 * i) / 2L) ) + j - i1 );
 }
 
 // TriangleMatrix::SetElement()
 /** Set element at specified row and column. */
 void TriangleMatrix::SetElement(int iIn, int jIn, double elementIn) {
   if (iIn == jIn) return;
-  int idx = calcIndex(iIn, jIn);
+  size_t idx = calcIndex((size_t)iIn, (size_t)jIn);
   elements_[idx] = (float) elementIn;
 }
 
@@ -132,17 +129,16 @@ void TriangleMatrix::SetElement(int iIn, int jIn, double elementIn) {
 /** Set element at specified row and column. */
 void TriangleMatrix::SetElementF(int iIn, int jIn, float elementIn) {
   if (iIn == jIn) return;
-  int idx = calcIndex(iIn, jIn);
+  size_t idx = calcIndex((size_t)iIn, (size_t)jIn);
   elements_[idx] = elementIn;
 }
-
 
 // TriangleMatrix::GetElement()
 /** Get the element at specified row and column as a double.
   */
 double TriangleMatrix::GetElement(int iIn, int jIn) const {
   if (iIn == jIn) return 0;
-  int idx = calcIndex(iIn, jIn);
+  size_t idx = calcIndex((size_t)iIn, (size_t)jIn);
   return (double)elements_[idx];
 }
 
@@ -150,15 +146,17 @@ double TriangleMatrix::GetElement(int iIn, int jIn) const {
 /** Get the element at specified row and column. */
 float TriangleMatrix::GetElementF(int iIn, int jIn) const {
   if (iIn == jIn) return 0;
-  int idx = calcIndex(iIn, jIn);
+  size_t idx = calcIndex((size_t)iIn, (size_t)jIn);
   return elements_[idx];
 }
 
-void TriangleMatrix::Write2D( CpptrajFile& outfile, int x, int y ) {
-  if ( x==y || x < 0 || y < 0 || x >= nrows_ || y >= nrows_ ) 
+void TriangleMatrix::Write2D( CpptrajFile& outfile, int xIn, int yIn ) {
+  size_t x = (size_t)xIn;
+  size_t y = (size_t)yIn;
+  if ( x==y || x < 0L || y < 0L || x >= nrows_ || y >= nrows_ ) 
     outfile.Printf(data_format_, 0.0);
   else {
-    int index = calcIndex(x, y);
+    size_t index = calcIndex(x, y);
     outfile.Printf(data_format_, elements_[index]);
   }
 }
