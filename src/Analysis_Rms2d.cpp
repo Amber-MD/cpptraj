@@ -193,17 +193,20 @@ int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distance
   return 0;
 }
 
+// TODO: make the RMS/DIST calc a function pointer?
 // Analysis_Rms2d::CalcDME()
 int Analysis_Rms2d::CalcDME(DataSet_Coords& coordsIn, TriangleMatrix& Distances,
                             std::string const& maskexpr) 
 {
+  int nref, nframe;
   int totalref = coordsIn.Size();
   Distances.Setup( totalref );
   int max = Distances.Nelements();
   mprintf("  RMS2D: Calculating DMEs between each frame (%i total).\n  ",max);
-
+# ifndef _OPENMP
   // Set up progress Bar
   ProgressBar progress(totalref - 1);
+# endif
   // Set up mask
   AtomMask tgtmask( maskexpr );
   if (coordsIn.Top().SetupIntegerMask( tgtmask )) return 1;
@@ -213,23 +216,36 @@ int Analysis_Rms2d::CalcDME(DataSet_Coords& coordsIn, TriangleMatrix& Distances,
   Frame RefFrame;
   RefFrame.SetupFrameFromMask( tgtmask, coordsIn.Top().Atoms() );
   Frame TgtFrame = RefFrame;
-
+  int endref = totalref - 1;
   // LOOP OVER REFERENCE FRAMES
-  for (int nref=0; nref < totalref - 1; nref++) {
+#ifdef _OPENMP
+#pragma omp parallel private(nref, nframe) firstprivate(TgtFrame, RefFrame)
+{
+#pragma omp for schedule(dynamic)
+#endif
+  for (nref=0; nref < endref; nref++) {
+#   ifndef _OPENMP
     progress.Update(nref);
+#   endif
     // Get the current reference frame - no box crd
     RefFrame.SetFromCRD(coordsIn[nref], 0, tgtmask);
     // LOOP OVER TARGET FRAMES
-    for (int nframe=nref+1; nframe < totalref; nframe++) {
+    for (nframe=nref+1; nframe < totalref; nframe++) {
       // Get the current target frame
       TgtFrame.SetFromCRD(coordsIn[nframe], 0, tgtmask);
       // Perform DME calc
+#     ifdef _OPENMP
+      Distances.SetElement( nframe, nref, TgtFrame.DISTRMSD(RefFrame) );
+#     else
       Distances.AddElement( (float)TgtFrame.DISTRMSD(RefFrame) );
+#     endif
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
     } // END loop over target frames
   } // END loop over reference frames
-
+#ifdef _OPENMP
+}
+#endif
   return 0;
 }
 
