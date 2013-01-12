@@ -3,6 +3,9 @@
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 #include "Matrix_2D.h"
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 
 // CONSTRUCTOR
 Analysis_Rms2d::Analysis_Rms2d() :
@@ -132,14 +135,15 @@ int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distance
                               bool nofitIn, bool useMassIn, std::string const& maskexpr) 
 {
   float R;
- 
+  int nref, nframe; 
   int totalref = coordsIn.Size();
   Distances.Setup( totalref );
   int max = Distances.Nelements();
   mprintf("  RMS2D: Calculating RMSDs between each frame (%i total).\n  ",max);
-
+# ifndef _OPENMP
   // Set up progress Bar
   ProgressBar progress(totalref - 1);
+# endif
   // Set up mask
   AtomMask tgtmask( maskexpr );
   if (coordsIn.Top().SetupIntegerMask( tgtmask )) return 1;
@@ -149,33 +153,43 @@ int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distance
   Frame RefFrame;
   RefFrame.SetupFrameFromMask( tgtmask, coordsIn.Top().Atoms() );
   Frame TgtFrame = RefFrame;
-
+  int endref = totalref - 1;
   // LOOP OVER REFERENCE FRAMES
-  for (int nref=0; nref < totalref - 1; nref++) {
+#ifdef _OPENMP
+#pragma omp parallel private(nref, nframe, R) firstprivate(TgtFrame, RefFrame)
+{
+#pragma omp for schedule(dynamic)
+#endif
+  for (nref=0; nref < endref; nref++) {
+#   ifndef _OPENMP
     progress.Update(nref);
+#   endif
     // Get the current reference frame - no box crd
+    // TODO: Use coordsIn.GetFrame instead?
     RefFrame.SetFromCRD(coordsIn[nref], 0, tgtmask);
     // Select and pre-center reference atoms (if fitting)
     if (!nofitIn)
       RefFrame.CenterOnOrigin(useMassIn);
-  
     // LOOP OVER TARGET FRAMES
-    for (int nframe=nref+1; nframe < totalref; nframe++) {
+    for (nframe = nref + 1; nframe < totalref; nframe++) {
       // Get the current target frame
       TgtFrame.SetFromCRD(coordsIn[nframe], 0, tgtmask);
-      if (nofitIn) {
-        // Perform no fit RMS calculation
-        R = (float) TgtFrame.RMSD_NoFit(RefFrame, useMassIn);
-      } else {
-        // Perform fit RMS calculation
-        R = (float) TgtFrame.RMSD_CenteredRef(RefFrame, useMassIn);
-      }
+      if (nofitIn) // Perform no fit RMS calculation
+        R = (float)TgtFrame.RMSD_NoFit(RefFrame, useMassIn);
+      else         // Perform fit RMS calculation
+        R = (float)TgtFrame.RMSD_CenteredRef(RefFrame, useMassIn);
+#     ifdef _OPENMP
+      Distances.SetElementF(nframe, nref, R);
+#     else
       Distances.AddElement( R );
+#     endif
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
     } // END loop over target frames
   } // END loop over reference frames
-
+#ifdef _OPENMP
+}
+#endif
   return 0;
 }
 
