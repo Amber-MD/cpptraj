@@ -670,6 +670,10 @@ int ClusterList::ClusterDBSCAN(double epsilon, int minPoints) {
             Status[neighbor_pt] = INCLUSTER;
           }
         }
+        // Remove duplicate frames
+        // TODO: Take care of this in Renumber?
+        cluster_frames.sort();
+        cluster_frames.unique();
         // Add cluster to the list
         AddCluster( cluster_frames );
         if (debug_ > 0) {
@@ -690,6 +694,22 @@ int ClusterList::ClusterDBSCAN(double epsilon, int minPoints) {
       mprintf(" %i", frame);
   }
   mprintf("\n");
+  // Calculate the distances between each cluster based on centroids
+  ClusterDistances_.Setup( clusters_.size() );
+  // Set up the ignore array
+  ClusterDistances_.SetupIgnore();
+  // Make sure centroid for clusters are up to date
+  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
+    (*C1).CalculateCentroid( Cdist_ );
+  // Calculate distances between each cluster centroid
+  cluster_it C1end = clusters_.end();
+  for (cluster_it C1 = clusters_.begin(); C1 != C1end; ++C1) {
+    cluster_it C2 = C1;
+    ++C2;
+    for (; C2 != clusters_.end(); ++C2)
+      ClusterDistances_.AddElement( Cdist_->CentroidDist( (*C1).Cent(), (*C2).Cent() ) );
+  }
+    
   return 0;
 }
 
@@ -704,7 +724,7 @@ double ClusterList::ComputeDBI(CpptrajFile& outfile) {
   std::vector<double> averageDist;
   averageDist.reserve( clusters_.size() );
   for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
-    // Make sure centroid frame for this cluster is up to date
+    // Make sure centroid for this cluster is up to date
     (*C1).CalculateCentroid( Cdist_ );
     // Calculate average distance to centroid for this cluster
     averageDist.push_back( (*C1).CalcAvgToCentroid( Cdist_ ) );
