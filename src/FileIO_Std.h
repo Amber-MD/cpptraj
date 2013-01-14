@@ -1,5 +1,5 @@
 #ifndef INC_FILEIO_STD_H
-#define INC FILEIO_STD_H
+#define INC_FILEIO_STD_H
 #include <cstdio> // For FILE
 #include "FileIO.h"
 // Class: FileIO_Std
