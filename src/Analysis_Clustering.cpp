@@ -102,10 +102,6 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     pairdistfile_.assign(PAIRDISTFILE);
   else if (!pairdistfile_.empty())
     load_pair_ = true;
-  if ( (load_pair_ || !pairdistfile_.empty()) && sieve_ > 1 ) {
-    mprinterr("Error: Loading/saving pairwise distance file not supported with sieveing.\n");
-    return Analysis::ERR;
-  }
   // Output trajectory stuff
   clusterfile_ = analyzeArgs.GetStringKey("clusterout");
   clusterfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("clusterfmt") ); 

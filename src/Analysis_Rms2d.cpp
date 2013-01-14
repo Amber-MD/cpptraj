@@ -138,8 +138,7 @@ int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distance
   int nref, nframe; 
   int totalref = coordsIn.Size();
   Distances.Setup( totalref );
-  int max = Distances.Nelements();
-  mprintf("  RMS2D: Calculating RMSDs between each frame (%i total).\n  ",max);
+  mprintf("  RMS2D: Calculating RMSDs between each frame (%lu total).\n  ", Distances.Nelements());
 # ifndef _OPENMP
   // Set up progress Bar
   ProgressBar progress(totalref - 1);
@@ -201,8 +200,7 @@ int Analysis_Rms2d::CalcDME(DataSet_Coords& coordsIn, TriangleMatrix& Distances,
   int nref, nframe;
   int totalref = coordsIn.Size();
   Distances.Setup( totalref );
-  int max = Distances.Nelements();
-  mprintf("  RMS2D: Calculating DMEs between each frame (%i total).\n  ",max);
+  mprintf("  RMS2D: Calculating DMEs between each frame (%lu total).\n  ", Distances.Nelements());
 # ifndef _OPENMP
   // Set up progress Bar
   ProgressBar progress(totalref - 1);

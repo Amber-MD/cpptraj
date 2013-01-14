@@ -2,7 +2,10 @@
 #include "ClusterMatrix.h"
 #include "CpptrajStdio.h"
 
-const unsigned char ClusterMatrix::Magic_[4] = {'C', 'T', 'M', 0};
+// NOTES:
+//   Version 1: Add write of ignore array when reduced. Write nrows and
+//              and nelements as 8 byte integers.
+const unsigned char ClusterMatrix::Magic_[4] = {'C', 'T', 'M', 1};
 
 /// CONSTRUCTOR - Set up TriangleMatrix and Ignore array.
 ClusterMatrix::ClusterMatrix(int sizeIn) :
@@ -31,6 +34,7 @@ ClusterMatrix& ClusterMatrix::operator=(const ClusterMatrix& rhs) {
   */
 int ClusterMatrix::SaveFile(std::string const& filename) const {
   CpptrajFile outfile;
+  uint_8 ntemp;
   // No stdout write allowed.
   if (filename.empty()) {
     mprinterr("Internal Error: ClusterMatrix::SaveFile called with no filename.\n");
@@ -42,15 +46,54 @@ int ClusterMatrix::SaveFile(std::string const& filename) const {
   }
   // Write magic byte
   outfile.Write( Magic_, 4 );
-  // Write nrows
-  outfile.Write( &nrows_, sizeof(int) );
-  // Write number of elements.
-  // TODO: Make long int?
-  int Ntemp = (int)nelements_;
-  outfile.Write( &Ntemp, sizeof(int) );
-  // Write matrix elements
-  outfile.Write( elements_, Ntemp*sizeof(float) );
-  // TODO: Write ignore?
+  // Determine if any rows are ignored. Will write reduced matrix if so.
+  int nignored = 0;
+  for (std::vector<bool>::const_iterator ig = ignore_.begin(); ig != ignore_.end(); ++ig) {
+    if (*ig) ++nignored; 
+  }
+  if (nignored > 0) {
+    mprintf("\tSaving reduced matrix with %i rows/cols\n", Nrows() - nignored);
+    //mprintf("Ignoring %i out of %i rows/cols\n", nignored, Nrows()); // DEBUG
+    ClusterMatrix reduced(Nrows() - nignored);
+    for (int row = 0; row < Nrows() - 1; ++row) {
+      if (!ignore_[row]) {
+        for (int col = row + 1; col < Nrows(); ++col) {
+          if (!ignore_[col]) 
+            reduced.AddElement( this->GetElementF(row, col) );
+        }
+      }
+    }
+    // DEBUG - Print reduced matrix
+    //mprintf("Reduced matrix:\n");
+    //reduced.PrintElements();
+    // Write original nrows
+    ntemp = (uint_8)nrows_;
+    outfile.Write( &ntemp, sizeof(uint_8) );
+    // Write reduced # of elements
+    ntemp = (uint_8)reduced.nelements_;
+    outfile.Write( &ntemp, sizeof(uint_8) );
+    // Write reduced matrix elements
+    outfile.Write( reduced.elements_, reduced.nelements_*sizeof(float) );
+    // Write ignore array - convert to char array first
+    char* ignore_out = new char[ ignore_.size() ];
+    int idx = 0;
+    for (std::vector<bool>::const_iterator ig = ignore_.begin(); ig != ignore_.end(); ++ig) 
+      if (*ig)
+        ignore_out[idx++] = 'T';
+      else
+        ignore_out[idx++] = 'F';
+    outfile.Write( ignore_out, ignore_.size()*sizeof(char) );
+    delete[] ignore_out;
+  } else {
+    // Write nrows
+    ntemp = (uint_8)nrows_;
+    outfile.Write( &ntemp, sizeof(uint_8) );
+    // Write number of elements.
+    ntemp = (uint_8)nelements_;
+    outfile.Write( &ntemp, sizeof(uint_8) );
+    // Write matrix elements
+    outfile.Write( elements_, nelements_*sizeof(float) );
+  }
   return 0;
 }
 
@@ -58,6 +101,8 @@ int ClusterMatrix::SaveFile(std::string const& filename) const {
 int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
   unsigned char magic[4];
   CpptrajFile infile;
+  uint_8 ROWS;
+  uint_8 ELTS;
   if (infile.OpenRead(filename)) {
     mprinterr("Error: ClusterMatrix::LoadFile: Could not open %s for read.\n", filename.c_str());
     return 1;
@@ -69,31 +114,61 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
               filename.c_str());
     return 1;
   }
-  if (magic[3] != Magic_[3])
-    mprintf("Warning: ClusterMatrix::LoadFile: %s version byte %c does not match (%c)\n",
-            filename.c_str(), magic[3], Magic_[3]);
-  // Read nrows
-  int Ntemp = 0;
-  infile.Read( &Ntemp, sizeof(int) );
+  // Check version, read in nrows and nelements.
+  if (magic[3] == 0) {
+    int Ntemp = 0;
+    infile.Read( &Ntemp, sizeof(int) );
+    ROWS = (uint_8)Ntemp;
+    infile.Read( &Ntemp, sizeof(int) );
+    ELTS = (uint_8)Ntemp;
+  } else if (magic[3] == 1) {
+    infile.Read( &ROWS, sizeof(uint_8) );
+    infile.Read( &ELTS, sizeof(uint_8) );
+  } else {
+    mprinterr("Error: ClusterMatrix version %u is not recognized.\n", (unsigned int)magic[3]);
+    return 1;
+  }
   // If number of rows is not what was expected, abort
-  if (Ntemp != sizeIn) {
-    mprinterr("Error: ClusterMatrix::LoadFile: File %s has %i rows, expected %i.\n",
-              filename.c_str(), Ntemp, sizeIn);
+  if (ROWS != (uint_8)sizeIn) {
+    mprinterr("Error: ClusterMatrix file %s has %lu rows, expected %i.\n",
+              filename.c_str(), ROWS, sizeIn);
     return 1;
   }
   // Setup underlying TriangleMatrix
-  Setup( Ntemp );
-  // Read number of elements (just another check really).
-  // TODO: read long int?
-  infile.Read( &Ntemp, sizeof(int) );
-  if ( Ntemp != (int)nelements_ ) {
-    mprinterr("Internal Error: ClusterMatrix setup unsuccessful!\n");
-    return 1;
-  }
-  // Read elements
-  infile.Read( elements_, Ntemp*sizeof(float) );
-  // TODO: Read ignore?
+  Setup( ROWS );
   SetupIgnore();
+  // Read in matrix
+  if ( nelements_ != (size_t)ELTS ) {
+    if ( magic[3] == 0 ) {
+      mprinterr("Error: ClusterMatrix %s is version 0, does not support sieved data.\n",
+                filename.c_str());
+      return 1;
+    }
+    mprintf("Warning: ClusterMatrix %s contains sieved data.\n", filename.c_str());
+    mprintf("\tReading in reduced matrix with %lu elements.\n", ELTS);
+    // Reduced matrix. Need to read elements and ignore array.
+    float* reduced = new float[ ELTS ];
+    infile.Read( reduced, ELTS*sizeof(float) );
+    float* RF = reduced;
+    char* ignore_in = new char[ ROWS ];
+    infile.Read( ignore_in, ROWS*sizeof(char) );
+    for (int row = 0; row < Nrows() - 1; ++row) {
+      if (ignore_in[row] == 'F') {
+        for (int col = row + 1; col < Nrows(); ++col) {
+          if (ignore_in[col] == 'F') 
+            SetElementF( row, col, *(RF++) );
+        }
+      } else {
+        ignore_[row] = true;
+      }
+    }
+    delete[] ignore_in;
+    delete[] reduced;
+    //PrintElements(); // DEBUG
+  } else {
+    // Complete matrix. Read elements only.
+    infile.Read( elements_, ELTS*sizeof(float) );
+  }
   return 0;
 }
 

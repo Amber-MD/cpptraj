@@ -11,11 +11,11 @@
 class TriangleMatrix : public DataSet {
   public :
     int Nrows()                const { return (int)nrows_;            }
-    int Nelements()            const { return (int)nelements_;        }
+    size_t Nelements()         const { return nelements_;             }
     double operator[](int idx) const { return (double)elements_[idx]; }
 
     TriangleMatrix();
-    TriangleMatrix(int);
+    TriangleMatrix(size_t);
     TriangleMatrix(const TriangleMatrix&);
     ~TriangleMatrix();
     TriangleMatrix & operator=(const TriangleMatrix &);

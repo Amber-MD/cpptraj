@@ -20,5 +20,7 @@ class ClusterMatrix : public TriangleMatrix {
   private:
     static const unsigned char Magic_[];
     std::vector<bool> ignore_; ///< If true, ignore the row/col when printing/searching etc
+    /// For reading/writing 8 byte integers
+    typedef unsigned long long int uint_8;
 };
 #endif

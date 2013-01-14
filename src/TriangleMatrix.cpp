@@ -12,15 +12,17 @@ TriangleMatrix::TriangleMatrix() :
 {}
 
 // CONSTRUCTOR
-TriangleMatrix::TriangleMatrix(int sizeIn) :
+TriangleMatrix::TriangleMatrix(size_t sizeIn) :
   DataSet(TRIMATRIX, 12, 4, 2),
   elements_(0),
-  nrows_((size_t)sizeIn),
+  nrows_(sizeIn),
   nelements_( (nrows_*(nrows_ - 1L)) / 2L ),
   currentElement_(0L)
 {
-  if (nrows_ > 0L)
+  if (nrows_ > 0L) {
     elements_ = new float[ nelements_ ];
+    memset(elements_, 0, nelements_ * sizeof(float));
+  }
 }
 
 // DESTRUCTOR
