@@ -155,7 +155,7 @@ float TriangleMatrix::GetElementF(int iIn, int jIn) const {
 void TriangleMatrix::Write2D( CpptrajFile& outfile, int xIn, int yIn ) {
   size_t x = (size_t)xIn;
   size_t y = (size_t)yIn;
-  if ( x==y || x < 0L || y < 0L || x >= nrows_ || y >= nrows_ ) 
+  if ( xIn==yIn || xIn < 0 || yIn < 0 || x >= nrows_ || y >= nrows_ ) 
     outfile.Printf(data_format_, 0.0);
   else {
     size_t index = calcIndex(x, y);
