@@ -1,15 +1,17 @@
 // Analysis_Clustering
-#include <cfloat> // DBL_MAX
 #include "Analysis_Clustering.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
 #include "DataSet_integer.h" // For converting cnumvtime
 #include "Trajout.h"
+// Clustering Algorithms
+#include "Cluster_HierAgglo.h"
+#include "Cluster_DBSCAN.h"
 
 // CONSTRUCTOR
 Analysis_Clustering::Analysis_Clustering() :
-  epsilon_(-1.0),
-  targetNclusters_(-1),
+  coords_(0),
+  CList_(0),
   sieve_(1),
   cnumvtime_(0),
   nofitrms_(false),
@@ -17,13 +19,15 @@ Analysis_Clustering::Analysis_Clustering() :
   useMass_(false),
   grace_color_(false),
   load_pair_(false),
-  //cluster_dataset_(0),
-  Linkage_(ClusterList::AVERAGELINK),
-  mode_(ClusterList::HIERAGGLO),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ)
 { } 
+
+// DESTRUCTOR
+Analysis_Clustering::~Analysis_Clustering() {
+  if (CList_ != 0) delete CList_;
+}
 
 void Analysis_Clustering::Help() {
   mprintf("cluster <crd set> [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
@@ -72,27 +76,32 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       cluster_dataset_.push_back( ds );
     }
   }
+  // Get clustering algorithm
+  if (CList_ != 0) delete CList_;
+  CList_ = 0;
+  if (analyzeArgs.hasKey("hieragglo"))   CList_ = new Cluster_HierAgglo(); 
+  else if (analyzeArgs.hasKey("dbscan")) CList_ = new Cluster_DBSCAN();
+  else {
+    mprintf("Warning: No clustering algorithm specified; defaulting to 'hieragglo'\n");
+    CList_ = new Cluster_HierAgglo();
+  }
+  if (CList_ == 0) return Analysis::ERR;
+  CList_->SetDebug(debug_);
+  // Get algorithm-specific keywords
+  if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
   // Get keywords
   useMass_ = analyzeArgs.hasKey("mass");
-  targetNclusters_ = analyzeArgs.getKeyInt("clusters",-1);
+  usedme_ = analyzeArgs.hasKey("dme");
   sieve_ = analyzeArgs.getKeyInt("sieve",1);
   if (sieve_ < 1) {
     mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
     return Analysis::ERR;
   }
-  epsilon_ = analyzeArgs.getKeyDouble("epsilon",-1.0);
-  // Get cluster options
-  if (analyzeArgs.hasKey("hieragglo"))   mode_ = ClusterList::HIERAGGLO;
-  else if (analyzeArgs.hasKey("dbscan")) mode_ = ClusterList::DBSCAN;
-  if (analyzeArgs.hasKey("linkage"))             Linkage_ = ClusterList::SINGLELINK;
-  else if (analyzeArgs.hasKey("averagelinkage")) Linkage_ = ClusterList::AVERAGELINK;
-  else if (analyzeArgs.hasKey("complete"))       Linkage_ = ClusterList::COMPLETELINK;
   cnumvtimefile_ = analyzeArgs.GetStringKey("out");
   clusterinfo_ = analyzeArgs.GetStringKey("info");
   summaryfile_ = analyzeArgs.GetStringKey("summary");
   halffile_ = analyzeArgs.GetStringKey("summaryhalf");
   nofitrms_ = analyzeArgs.hasKey("nofit");
-  usedme_ = analyzeArgs.hasKey("dme");
   grace_color_ = analyzeArgs.hasKey("gracecolor");
   // Options for loading/saving pairwise distance file
   load_pair_ = analyzeArgs.hasKey("loadpairdist");
@@ -116,10 +125,6 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   cnumvtime_ = datasetlist->AddSet(DataSet::INT, analyzeArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==0) return Analysis::ERR;
 
-  // Determine finish criteria. If nothing specified default to 10 clusters.
-  if (targetNclusters_==-1 && epsilon_==-1.0)
-    targetNclusters_ = 10;
-
   mprintf("    CLUSTER: Using coords dataset %s, clustering using", coords_->Legend().c_str());
   if ( cluster_dataset_.empty() ) {
     if (!maskexpr_.empty())
@@ -138,20 +143,10 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     else
       mprintf(" %u datasets.", cluster_dataset_.size());
   }
-  mprintf("\n\t");
-  if (targetNclusters_ != -1)
-    mprintf("Looking for %i clusters, ",targetNclusters_);
-  if (epsilon_ != -1.0)
-    mprintf("Epsilon is %.3f,",epsilon_);
   mprintf("\n");
-  mprintf("\tUsing hierarchical bottom-up clustering algorithm,");
-  if (Linkage_==ClusterList::SINGLELINK)
-    mprintf(" single-linkage");
-  else if (Linkage_==ClusterList::AVERAGELINK)
-    mprintf(" average-linkage");
-  else if (Linkage_==ClusterList::COMPLETELINK)
-    mprintf(" complete-linkage");
-  mprintf(".\n");
+  CList_->ClusteringInfo();
+  if (!cnumvtimefile_.empty())
+    mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile_.c_str());
   if (grace_color_)
     mprintf("\tGrace color instead of cluster number (1-15) will be saved.\n");
   if (load_pair_)
@@ -175,11 +170,6 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\t\tprefix (%s), format %s\n",reptrajfile_.c_str(), 
             TrajectoryFile::FormatString(reptrajfmt_));
   }
-  // If epsilon not given make it huge
-  // NOTE: Currently only valid for Hierarchical Agglomerative 
-  if (epsilon_ == -1.0) epsilon_ = DBL_MAX;
-  // if target clusters not given make it 1
-  if (targetNclusters_ == -1) targetNclusters_=1;
 
   return Analysis::OK;
 }
@@ -190,9 +180,6 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
 // TODO: Need to update save to indicate distance type
 // NOTE: Should distances be saved only if load_pair?
 Analysis::RetType Analysis_Clustering::Analyze() {
-  ClusterList CList;
-  CList.SetDebug(debug_);
-
   mprintf("\tStarting clustering.\n");
   // Default: USE_FRAMES  - Calculate pair distances from frames.
   //          USE_FILE    - If pairdistfile exists, load pair distances from there.
@@ -204,57 +191,50 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   if (cluster_dataset_.empty())
      cluster_dataset_.push_back( (DataSet*)coords_ );
   // Calculate distances between frames
-  if (CList.CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
-                                usedme_, nofitrms_, useMass_, maskexpr_, sieve_ ))
+  if (CList_->CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
+                                  usedme_, nofitrms_, useMass_, maskexpr_, sieve_ ))
     return Analysis::ERR;
   // Cluster
-  switch (mode_) {
-    case ClusterList::HIERAGGLO:
-      CList.ClusterHierAgglo( epsilon_, targetNclusters_, Linkage_);
-      break;
-    case ClusterList::DBSCAN:
-      CList.ClusterDBSCAN( epsilon_, targetNclusters_ );
-      break;
-  }
+  CList_->Cluster();
   // Sort clusters and renumber; also finds centroids for printing
   // representative frames.
-  CList.Renumber();
+  CList_->Renumber();
   // If sieving, add remaining frames
   if (sieve_ > 1)
-    CList.AddSievedFrames();
+    CList_->AddSievedFrames();
 
   // DEBUG
   if (debug_ > 0) {
     mprintf("\nFINAL CLUSTERS:\n");
-    CList.PrintClusters();
+    CList_->PrintClusters();
   }
 
   // Print ptraj-like cluster info
   if (!clusterinfo_.empty())
-    CList.PrintClustersToFile(clusterinfo_, coords_->Size());
+    CList_->PrintClustersToFile(clusterinfo_, coords_->Size());
 
   // Print a summary of clusters
   if (!summaryfile_.empty())
-    CList.Summary(summaryfile_, coords_->Size());
+    CList_->Summary(summaryfile_, coords_->Size());
 
   // Print a summary comparing first half to second half of data for clusters
   if (!halffile_.empty())
-    CList.Summary_Half(halffile_, coords_->Size());
+    CList_->Summary_Half(halffile_, coords_->Size());
 
   // Create cluster v time data from clusters.
-  CreateCnumvtime( CList );
+  CreateCnumvtime( *CList_ );
 
   // Write clusters to trajectories
   if (!clusterfile_.empty())
-    WriteClusterTraj( CList ); 
+    WriteClusterTraj( *CList_ ); 
 
   // Write all representative frames to a single traj
   if (!singlerepfile_.empty())
-    WriteSingleRepTraj( CList );
+    WriteSingleRepTraj( *CList_ );
 
   // Write all representative frames to separate trajs
   if (!reptrajfile_.empty())
-    WriteRepTraj( CList );
+    WriteRepTraj( *CList_ );
   return Analysis::OK;
 }
 

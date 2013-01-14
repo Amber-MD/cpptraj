@@ -9,6 +9,7 @@
 class Analysis_Clustering: public Analysis {
   public:
     Analysis_Clustering();
+    ~Analysis_Clustering();
 
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Clustering(); }
     static void Help();
@@ -16,11 +17,10 @@ class Analysis_Clustering: public Analysis {
     Analysis::RetType Analyze();
     void Print(DataFileList*);
   private:
-    DataSet_Coords* coords_;
+    DataSet_Coords* coords_;    ///< Hold coordinates of frames being clustered.
+    ClusterList* CList_;        ///< Hold specified clustering algorithm.
     std::string maskexpr_;      ///< If RMSD, Atoms to cluster on
-    double epsilon_;            ///< Once the min distance is > epsilon, stop clustering
-    int targetNclusters_;       ///< Once there are targetNclusters, stop clustering
-    int sieve_;
+    int sieve_;                 ///< If > 1, frames to skip on initial clustering pass.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
     std::string cnumvtimefile_; ///< Cluster vs time filename.
     std::string summaryfile_;   ///< Summary file name
@@ -36,10 +36,6 @@ class Analysis_Clustering: public Analysis {
     bool grace_color_;          ///< If true print grace colors instead of cluster number
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found
     ClusterDist::DsArray cluster_dataset_;  ///< DataSet(s) to use for clustering.
-    /// Cluster linkage type
-    ClusterList::LINKAGETYPE Linkage_;
-    /// Clustering algorithm to use.
-    ClusterList::ClusterAlgorithm mode_;
     /// Cluster trajectory format.
     TrajectoryFile::TrajFormatType clusterfmt_;
     /// Cluster all rep single trajectory format.
@@ -47,7 +43,7 @@ class Analysis_Clustering: public Analysis {
     /// Cluster rep to separate trajectory format.
     TrajectoryFile::TrajFormatType reptrajfmt_;
     int debug_;
-    static const char* PAIRDISTFILE; // TODO: Make this a user option
+    static const char* PAIRDISTFILE;
 
     void CreateCnumvtime( ClusterList & );
     void WriteClusterTraj( ClusterList & );

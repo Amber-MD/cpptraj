@@ -1,19 +1,16 @@
 #ifndef INC_CLUSTERLIST_H
-#define INC CLUSTERLIST_H
+#define INC_CLUSTERLIST_H
+#include "ArgList.h"
 #include "ClusterNode.h" 
 // Class: ClusterList
-/** This class holds all the individual clusters, as well as routines that
-  * can be used to perform clustering (metric recalculation, cluster merging,
-  * and so on).
+/** This base class holds all the individual clusters, as well as routines 
+  * that can be used to obtain information on clusters after clustering.
   */
 class ClusterList {
   public:
-    /// Type of distance calculation between clusters.
-    enum LINKAGETYPE  { SINGLELINK = 0, AVERAGELINK, COMPLETELINK };
     enum DistModeType { USE_FRAMES = 0, USE_FILE };
-    enum ClusterAlgorithm { HIERAGGLO = 0, DBSCAN };
     ClusterList();
-    ~ClusterList();
+    virtual ~ClusterList();
     int Nclusters()                  const { return (int)clusters_.size(); }
 
     void SetDebug(int);
@@ -26,18 +23,18 @@ class ClusterList {
     int CalcFrameDistances(std::string const&, ClusterDist::DsArray const&, DistModeType, 
                            bool, bool, bool, std::string const&, int);
     void AddSievedFrames();
-    // Clustering Methods
-    int ClusterHierAgglo(double, int, LINKAGETYPE);
-    int ClusterDBSCAN(double, int);
+    // Inherited by individual clustering methods
+    virtual int SetupCluster(ArgList&) = 0;
+    virtual void ClusteringInfo() = 0;
+    virtual int Cluster() = 0;
 
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     cluster_iterator begincluster() { return clusters_.begin(); }
     cluster_iterator endcluster()   { return clusters_.end();   }
-  private:
+  protected:
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
-    static const char* XMGRACE_COLOR[];
     int debug_;
     /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
@@ -47,18 +44,11 @@ class ClusterList {
     ClusterMatrix ClusterDistances_;
     /// Used to calculate distances between frames and/or centroids.
     ClusterDist* Cdist_;
-
+    /// Add specified frames to a new cluster.
     int AddCluster(ClusterDist::Cframes const&);
-
-    // Hierarchical Agglomerative calculation routines
-    void InitializeClusterDistances(LINKAGETYPE);
-    int MergeClosest(double, LINKAGETYPE);
-    void calcMinDist(cluster_it&);
-    void calcMaxDist(cluster_it&);
-    void calcAvgDist(cluster_it&);
-    // DBSCAN routines
-    void RegionQuery(std::vector<int>&, std::vector<int> const&, int, double);
-
+    /// Calculate the Davies-Bouldin index of clusters.
     double ComputeDBI(CpptrajFile&);
+  private:
+    static const char* XMGRACE_COLOR[];
 };
 #endif
