@@ -9,6 +9,10 @@ Cluster_HierAgglo::Cluster_HierAgglo() :
   linkage_(AVERAGELINK)
 {}
 
+void Cluster_HierAgglo::Help() {
+  mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]]\n");
+}
+
 int Cluster_HierAgglo::SetupCluster(ArgList& analyzeArgs) {
   nclusters_ = analyzeArgs.getKeyInt("clusters", -1);
   epsilon_ = analyzeArgs.getKeyDouble("epsilon", -1.0);

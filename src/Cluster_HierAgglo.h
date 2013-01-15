@@ -6,7 +6,7 @@ class Cluster_HierAgglo : public ClusterList {
     /// Type of distance calculation between clusters.
     enum LINKAGETYPE  { SINGLELINK = 0, AVERAGELINK, COMPLETELINK };
     Cluster_HierAgglo();
-
+    static void Help();
     int SetupCluster(ArgList&);
     void ClusteringInfo();
     int Cluster();

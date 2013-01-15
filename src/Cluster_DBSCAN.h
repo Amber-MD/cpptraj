@@ -4,7 +4,7 @@
 class Cluster_DBSCAN : public ClusterList {
   public:
     Cluster_DBSCAN();
-
+    static void Help();
     int SetupCluster(ArgList&);
     void ClusteringInfo();
     int Cluster();

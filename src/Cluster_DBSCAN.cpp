@@ -7,6 +7,10 @@ Cluster_DBSCAN::Cluster_DBSCAN() :
   epsilon_(-1.0)
 {}
 
+void Cluster_DBSCAN::Help() {
+  mprintf("\t[dbscan minpoints <n> epsilon <e>]\n");
+}
+
 int Cluster_DBSCAN::SetupCluster(ArgList& analyzeArgs) {
   minPoints_ = analyzeArgs.getKeyInt("minpoints", -1);
   if (minPoints_ < 1) {

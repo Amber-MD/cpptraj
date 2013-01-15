@@ -30,16 +30,21 @@ Analysis_Clustering::~Analysis_Clustering() {
 }
 
 void Analysis_Clustering::Help() {
-  mprintf("cluster <crd set> [<mask>] [mass] [clusters <n>] [epsilon <e>] [out <cnumvtime>]\n");
-  mprintf("        [sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n");
-  mprintf("        [ linkage | averagelinkage | complete ] [gracecolor] [nofit] [dme]\n");
-  mprintf("        [summary <summaryfile>] [summaryhalf <halffile>] [info <infofile>]\n");
-  mprintf("        [ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
-  mprintf("        [ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
-  mprintf("        [ repout <repprefix> [repfmt <repfmt>] ]\n");
-  mprintf("        [data <dsetname>]\n");
-  mprintf("        [hieragglo | dbscan]\n");
-  mprintf("\tCluster structures based on coordinates (RMSD/DME) or a given DataSet.\n");
+  mprintf("cluster <crd set>\n");
+  mprintf("  Algorithms:\n");
+  Cluster_HierAgglo::Help();
+  Cluster_DBSCAN::Help();
+  mprintf("  Distance options:\n");
+  mprintf("\t{[[rms] [<mask>] [mass] [nofit]] | [dme [<mask>]] | [data <dset0>[,<dset1>,...]]}\n");
+  mprintf("\t[sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n");
+  mprintf("  Output options:\n");
+  mprintf("\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n");
+  mprintf("\t[summaryhalf <halffile>]\n");
+  mprintf("  Coordinate output options:\n");
+  mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
+  mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
+  mprintf("\t[ repout <repprefix> [repfmt <repfmt>] ]\n");
+  mprintf("Cluster structures based on coordinates (RMSD/DME) or given DataSet(s).\n");
   mprintf("<crd set> can be created with the 'createcrd' command.\n");
 }
 
