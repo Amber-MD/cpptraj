@@ -377,7 +377,7 @@ int Traj_CharmmDcd::readDcdHeader() {
 static inline double BoxInDeg( double BoxInRad ) {
   if ( BoxInRad == 0 )
     return 90.0;
-  return acos( BoxInRad * RADDEG );
+  return acos( BoxInRad ) * RADDEG;
 }
 
 // Traj_CharmmDcd::ReadBox()
