@@ -30,6 +30,7 @@ Traj_GmxTrX::Traj_GmxTrX() :
   dt_(0.0),
   lambda_(0.0),
   frameSize_(0),
+  headerBytes_(0),
   farray_(0) 
 {}
 
@@ -219,8 +220,6 @@ int Traj_GmxTrX::ReadTrxHeader() {
 /** Open trX trajectory and read past header info. */
 int Traj_GmxTrX::openTrajin() {
   if (file_.OpenFile()) return 1;
-  ReadTrxHeader();
-  GmxInfo(); // DEBUG
   return 0;
 }
 
@@ -272,8 +271,10 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
 {
   int nframes = 0;
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
-  // Call openTrajin, which will open and read past header
-  if ( openTrajin() ) return TRAJIN_ERR;
+  // Open and read in header
+  if ( file_.OpenFile() ) return TRAJIN_ERR;
+  ReadTrxHeader();
+  GmxInfo(); // DEBUG
   // Warn if # atoms in parm does not match
   if (trajParm->Natom() != natoms_) {
     mprinterr("Error: # atoms in TRX file (%i) does not match # atoms in parm %s (%i)\n",
@@ -289,11 +290,11 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
   SetVelocity( (v_size_ > 0) );
   // Attempt to determine # of frames in traj
   SetSeekable(false);
-  size_t headerBytes = (size_t)file_.Tell();
-  frameSize_ = headerBytes + (size_t)box_size_ + (size_t)vir_size_ + (size_t)pres_size_ +
-                             (size_t)x_size_   + (size_t)v_size_ +   (size_t)f_size_;
-                             //(size_t)ir_size_ + (size_t)e_size_ + (size_t)top_size_ + 
-                             //(size_t)sym_size_;
+  headerBytes_ = (size_t)file_.Tell();
+  frameSize_ = headerBytes_ + (size_t)box_size_ + (size_t)vir_size_ + (size_t)pres_size_ +
+                              (size_t)x_size_   + (size_t)v_size_ +   (size_t)f_size_;
+                              //(size_t)ir_size_ + (size_t)e_size_ + (size_t)top_size_ + 
+                              //(size_t)sym_size_;
   size_t file_size = (size_t)file_.UncompressedSize();
   if (file_size > 0) {
     nframes = (int)(file_size / frameSize_);
@@ -348,10 +349,10 @@ int Traj_GmxTrX::ReadAtomVector( double* Dout, int size ) {
 
 int Traj_GmxTrX::readFrame(int set,double *X, double *V,double *box, double *T) {
   if (IsSeekable()) 
-    file_.Seek( frameSize_ * set );
-  // Read the header
-  // TODO: Can we just seek past this??
-  if ( ReadTrxHeader() ) return 1;
+    file_.Seek( (frameSize_ * set) + headerBytes_ );
+  else // Seek past the header
+    file_.Seek( file_.Tell() + headerBytes_ );
+  //if ( ReadTrxHeader() ) return 1;
   // Read box info
   if (box_size_ > 0) {
     if (ReadBox( box )) return 1;
@@ -384,9 +385,11 @@ int Traj_GmxTrX::readFrame(int set,double *X, double *V,double *box, double *T) 
 }
 
 int Traj_GmxTrX::readVelocity(int set, double* V) {
-  if (IsSeekable())
-    file_.Seek( frameSize_ * set );
-  if ( ReadTrxHeader() ) return 1;
+  if (IsSeekable()) 
+    file_.Seek( (frameSize_ * set) + headerBytes_ );
+  else // Seek past the header
+    file_.Seek( file_.Tell() + headerBytes_ );
+  //if ( ReadTrxHeader() ) return 1;
   // Blank read past box
   if (box_size_ > 0) file_.Seek( file_.Tell() + box_size_ );
   // Blank read past virial tensor

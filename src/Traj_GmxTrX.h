@@ -33,6 +33,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     float dt_;
     float lambda_;
     size_t frameSize_;
+    size_t headerBytes_;
     float* farray_;
 
     void GmxInfo();
