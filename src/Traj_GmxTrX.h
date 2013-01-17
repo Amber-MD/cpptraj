@@ -14,8 +14,6 @@ class Traj_GmxTrX : public TrajectoryIO {
     bool isBigEndian_;   /// True if byte order is reversed
     CpptrajFile file_;
     FormatType format_;
-    static const int BUF_SIZE = 128;
-    char linebuffer_[BUF_SIZE];
 
     int ir_size_;
     int e_size_;
@@ -55,7 +53,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
     void Info();
-    int readVelocity(int, double*) { return 1; }
+    int readVelocity(int, double*);
     int processWriteArgs(ArgList&) { return 0; }
     int processReadArgs(ArgList&)  { return 0; }
     int readIndices(int,int*)      { return 1; }

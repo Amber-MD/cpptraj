@@ -133,6 +133,8 @@ int Traj_GmxTrX::read_real( float& fval ) {
   */
 std::string Traj_GmxTrX::read_string( ) {
   int size = 0;
+  const int BUF_SIZE = 128;
+  char linebuffer_[BUF_SIZE];
   // Read string size
   if ( read_int( size ) ) return std::string();
   if ( size < BUF_SIZE ) {
@@ -373,6 +375,31 @@ int Traj_GmxTrX::readFrame(int set,double *X, double *V,double *box, double *T) 
   if (!IsSeekable())
     file_.Seek( file_.Tell() + f_size_ );
 
+  return 0;
+}
+
+int Traj_GmxTrX::readVelocity(int set, double* V) {
+  if (IsSeekable())
+    file_.Seek( frameSize_ * set );
+  if ( ReadTrxHeader() ) return 1;
+  // Blank read past box
+  if (box_size_ > 0) file_.Seek( file_.Tell() + box_size_ );
+  // Blank read past virial tensor
+  if (vir_size_ > 0) file_.Seek( file_.Tell() + vir_size_ );
+  // Blank read past pressure tensor
+  if (pres_size_ > 0) file_.Seek( file_.Tell() + pres_size_ );
+  // Blank read past coords
+  if (x_size_ > 0) file_.Seek( file_.Tell() + x_size_);
+  // Read velocities
+  if (v_size_ > 0) {
+    if (ReadAtomVector(V, v_size_)) {
+      mprinterr("Error: Reading TRX velocities frame %i\n", set+1);
+      return 1;
+    }
+  }
+  // If not seekable need a blank read past forces
+  if (!IsSeekable())
+    file_.Seek( file_.Tell() + f_size_ );
   return 0;
 }
 
