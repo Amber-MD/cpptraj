@@ -1,6 +1,12 @@
+#include <cmath>
 #include "Traj_GmxTrX.h"
 #include "CpptrajStdio.h"
 #include "ByteRoutines.h"
+#include "Constants.h" // PIOVER2
+
+// Internal defines
+#define ANGS_PER_NM 10.0 
+#define ANGS2_PER_NM2 100.0
 
 // CONSTRUCTOR
 Traj_GmxTrX::Traj_GmxTrX() :
@@ -17,13 +23,20 @@ Traj_GmxTrX::Traj_GmxTrX() :
   v_size_(0),
   f_size_(0),
   natoms_(0),
+  natom3_(0),
   step_(0),
   nre_(0),
   precision_(0),
   dt_(0.0),
   lambda_(0.0),
-  frameSize_(0) 
+  frameSize_(0),
+  farray_(0) 
 {}
+
+// DESTRUCTOR
+Traj_GmxTrX::~Traj_GmxTrX() {
+  if (farray_ != 0) delete[] farray_;
+}
 
 /** For debugging, print internal info. */
 void Traj_GmxTrX::GmxInfo() {
@@ -41,6 +54,7 @@ void Traj_GmxTrX::GmxInfo() {
   mprintf("\tv_size= %i\n", v_size_);
   mprintf("\tf_size= %i\n", f_size_);
   mprintf("\tnatoms= %i\n", natoms_);
+  mprintf("\tnatom3= %i\n", natom3_);
   mprintf("\tstep= %i\n", step_);
   mprintf("\tnre= %i\n", nre_);
   mprintf("\tprecision= %i\n", precision_);
@@ -148,17 +162,14 @@ std::string Traj_GmxTrX::read_string( ) {
   }
 }
 
-/** Open trX trajectory and read past header info. */
-int Traj_GmxTrX::openTrajin() {
-  unsigned char buffer[4];
-  if (file_.OpenFile()) return 1;
-  // Read past magic byte
-  if (file_.Read(buffer, 4) != 4) return 1;
-  // Read version for TRR
+int Traj_GmxTrX::ReadTrxHeader() {
   int version = 0;
+  // Read past magic byte
+  if (file_.Read(&version, 4) != 4) return 1;
+  // Read version for TRR
   if (format_ != TRJ)
     read_int( version );
-  mprintf("DEBUG: TRX Version= %i\n", version);
+  //mprintf("DEBUG: TRX Version= %i\n", version);
   // Read in title string
   SetTitle( read_string() );
   // Read in size data
@@ -177,15 +188,16 @@ int Traj_GmxTrX::openTrajin() {
     mprinterr("Error: No atoms detected in TRX trajectory.\n");
     return 1;
   }
+  natom3_ = natoms_ * 3;
   if ( read_int( step_ ) ) return 1;
   if ( read_int( nre_ ) ) return 1;
   // Determine precision
   if (x_size_ > 0)
-    precision_ = x_size_ / (natoms_ * 3);
+    precision_ = x_size_ / natom3_;
   else if (v_size_ > 0)
-    precision_ = v_size_ / (natoms_ * 3);
+    precision_ = v_size_ / natom3_;
   else if (f_size_ > 0)
-    precision_ = f_size_ / (natoms_ * 3);
+    precision_ = f_size_ / natom3_;
   else {
     mprinterr("Error: X/V/F sizes are 0 in TRX trajectory.\n");
     return 1;
@@ -199,7 +211,52 @@ int Traj_GmxTrX::openTrajin() {
   // Read timestep and lambda
   if ( read_real( dt_ ) ) return 1;
   if ( read_real( lambda_ ) ) return 1;
+  return 0;
+}
+
+/** Open trX trajectory and read past header info. */
+int Traj_GmxTrX::openTrajin() {
+  if (file_.OpenFile()) return 1;
+  ReadTrxHeader();
   GmxInfo(); // DEBUG
+  return 0;
+}
+
+/** 
+  * \param boxOut Double array of length 6 containing {X Y Z alpha beta gamma} 
+  */
+int Traj_GmxTrX::ReadBox(double* boxOut) {
+  // xyz is an array of length 9 containing X{xyz} Y{xyz} Z{xyz}.
+  double xyz[9];
+  float f_boxIn[9];
+  switch (precision_) {
+    case sizeof(float):
+      if (file_.Read( f_boxIn, box_size_ ) != box_size_) return 1;
+      for (int i = 0; i < 9; ++i)
+        xyz[i] = (double)f_boxIn[i];
+      break;
+    case sizeof(double):
+      if (file_.Read( xyz, box_size_ ) != box_size_) return 1;
+      break;
+    default: return 1;
+  }
+  // Calculate box lengths
+  boxOut[0] = sqrt((xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2])) * ANGS_PER_NM;
+  boxOut[1] = sqrt((xyz[3]*xyz[3] + xyz[4]*xyz[4] + xyz[5]*xyz[5])) * ANGS_PER_NM;
+  boxOut[2] = sqrt((xyz[6]*xyz[6] + xyz[7]*xyz[7] + xyz[8]*xyz[8])) * ANGS_PER_NM;
+  if (boxOut[0] <= 0.0 || boxOut[1] <= 0.0 || boxOut[2] <= 0.0) {
+    // Use zero-length box size and set angles to 90
+    boxOut[0] = boxOut[1] = boxOut[2] = 0.0;
+    boxOut[3] = boxOut[4] = boxOut[5] = 90.0;
+  } else {
+    // Get angles between x+y(gamma), x+z(beta), and y+z(alpha)
+    boxOut[5] = acos( (xyz[0]*xyz[3] + xyz[1]*xyz[4] + xyz[2]*xyz[5]) * 
+                      ANGS2_PER_NM2 / (boxOut[0]* boxOut[1]) ) * 90.0/PIOVER2;
+    boxOut[4] = acos( (xyz[0]*xyz[6] + xyz[1]*xyz[7] + xyz[2]*xyz[8]) *
+                      ANGS2_PER_NM2 / (boxOut[0]* boxOut[2]) ) * 90.0/PIOVER2;
+    boxOut[3] = acos( (xyz[3]*xyz[6] + xyz[4]*xyz[7] + xyz[5]*xyz[8]) *
+                      ANGS2_PER_NM2 / (boxOut[1]* boxOut[2]) ) * 90.0/PIOVER2;
+  }
   return 0;
 }
 
@@ -216,13 +273,20 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
               natoms_, trajParm->c_str(), trajParm->Natom());
     return TRAJIN_ERR;
   }
+  // If float precision, create temp array
+  if (precision_ == sizeof(float)) {
+    if (farray_ != 0) delete[] farray_;
+    farray_ = new float[ natom3_ ];
+  }
+  // Set velocity info
+  SetVelocity( (v_size_ > 0) );
   // Attempt to determine # of frames in traj
   SetSeekable(false);
   size_t headerBytes = (size_t)file_.Tell();
-  frameSize_ = headerBytes + (size_t)ir_size_ + (size_t)e_size_ + (size_t)box_size_ + 
-                             (size_t)vir_size_ + (size_t)pres_size_ + (size_t)top_size_ + 
-                             (size_t)sym_size_ + (size_t)x_size_ + (size_t)v_size_ + 
-                             (size_t)f_size_;
+  frameSize_ = headerBytes + (size_t)box_size_ + (size_t)vir_size_ + (size_t)pres_size_ +
+                             (size_t)x_size_   + (size_t)v_size_ +   (size_t)f_size_;
+                             //(size_t)ir_size_ + (size_t)e_size_ + (size_t)top_size_ + 
+                             //(size_t)sym_size_;
   size_t file_size = (size_t)file_.UncompressedSize();
   if (file_size > 0) {
     nframes = (int)(file_size / frameSize_);
@@ -237,6 +301,15 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
     mprintf("Warning: bzip2 files. Cannot check # of frames. Frames will be read until EOF.\n");
     nframes = TRAJIN_UNK;
   }
+  // Load box info so that it can be checked.
+  double box[6];
+  box[0]=0.0; box[1]=0.0; box[2]=0.0; box[3]=0.0; box[4]=0.0; box[5]=0.0;
+  if ( box_size_ > 0 ) {
+    if ( ReadBox( box ) ) return TRAJIN_ERR;
+  }
+  SetBox( box ); 
+  
+  closeTraj();
   return nframes;
 }
 
@@ -246,8 +319,61 @@ int Traj_GmxTrX::setupTrajout(std::string const& fname, Topology* trajParm,
   return 1;
 }
 
+/** Read array of size natom3 with set precision. Swap endianness if 
+  * necessary. Since GROMACS units are nm, convert to Ang.
+  */
+int Traj_GmxTrX::ReadAtomVector( double* Dout, int size ) {
+  switch (precision_) {
+    case sizeof(float):
+      if (file_.Read( farray_, size ) != size) return 1;
+      if (isBigEndian_) endian_swap(farray_, natom3_);
+      for (int i = 0; i < natom3_; ++i)
+        Dout[i] = (double)(farray_[i] * ANGS_PER_NM); // FIXME: Legit for velocities?
+      break;
+    case sizeof(double):
+      if (file_.Read( Dout, size ) != size) return 1;
+      if (isBigEndian_) endian_swap8(Dout, natom3_);
+      break;
+    default: return 1;
+  }
+  return 0;
+}
+
 int Traj_GmxTrX::readFrame(int set,double *X, double *V,double *box, double *T) {
-  return 1;
+  if (IsSeekable()) 
+    file_.Seek( frameSize_ * set );
+  // Read the header
+  // TODO: Can we just seek past this??
+  if ( ReadTrxHeader() ) return 1;
+  // Read box info
+  if (box_size_ > 0) {
+    if (ReadBox( box )) return 1;
+  }
+  // Blank read past virial tensor
+  if (vir_size_ > 0)
+    file_.Seek( file_.Tell() + vir_size_ );
+  // Blank read past pressure tensor
+  if (pres_size_ > 0)
+    file_.Seek( file_.Tell() + pres_size_ );
+  // Read coordinates
+  if (x_size_ > 0) {
+    if (ReadAtomVector(X, x_size_)) {
+      mprinterr("Error: Reading TRX coords frame %i\n", set+1);
+      return 1;
+    }
+  }
+  // Read velocities
+  if (v_size_ > 0) {
+    if (ReadAtomVector(V, v_size_)) {
+      mprinterr("Error: Reading TRX velocities frame %i\n", set+1);
+      return 1;
+    }
+  }
+  // If not seekable need a blank read past forces
+  if (!IsSeekable())
+    file_.Seek( file_.Tell() + f_size_ );
+
+  return 0;
 }
 
 int Traj_GmxTrX::writeFrame(int set, double *X, double *V,double *box, double T) {

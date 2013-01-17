@@ -5,6 +5,7 @@
 class Traj_GmxTrX : public TrajectoryIO {
   public:
     Traj_GmxTrX();
+    ~Traj_GmxTrX();
     static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_GmxTrX(); }
   private:
     enum FormatType { TRR = 0, TRJ };
@@ -27,18 +28,23 @@ class Traj_GmxTrX : public TrajectoryIO {
     int v_size_;
     int f_size_;
     int natoms_;
+    int natom3_;
     int step_;
     int nre_;
     int precision_;
     float dt_;
     float lambda_;
     size_t frameSize_;
+    float* farray_;
 
     void GmxInfo();
     bool IsTRX(CpptrajFile&);
     int read_int(int&);
     int read_real(float&);
     std::string read_string();
+    int ReadBox(double*);
+    int ReadTrxHeader();
+    int ReadAtomVector(double*, int);
 
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
