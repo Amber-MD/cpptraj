@@ -44,17 +44,43 @@ static inline bool CORD_64BIT(const unsigned char* buffer) {
   return false;
 }
 
+/** Charmm DCD is 32 or 64 bit int (84) followed by 'CORD'. Determine
+  * endianness and bit size.
+  */
 bool Traj_CharmmDcd::ID_TrajFormat(CpptrajFile& fileIn) {
-  // Charmm DCD is 32 or 64 bit int (84) followed by 'CORD'
+  byte8 firstbyte;
   unsigned char buffer[12];
   memset(buffer, ' ', 12);
   if (fileIn.OpenFile()) return false;
   if (fileIn.Read(buffer, 12) != 12) return false;
   fileIn.CloseFile();
   // If the second 4 or last 4 chars are C O R D, charmm DCD
-  if (CORD_32BIT(buffer)) return true;
-  if (CORD_64BIT(buffer)) return true;
-  return false;
+  if (CORD_32BIT(buffer)) { 
+    is64bit_ = false;
+    firstbyte.i[1] = 0;
+    blockSize_ = 4; 
+  } else if (CORD_64BIT(buffer)) {
+    is64bit_ = true;
+    blockSize_ = 8;
+  } else
+    return false; // CORD not found.
+  // Determine 32/64 bit
+  memcpy(firstbyte.c, buffer, blockSize_ * sizeof(unsigned char));
+  if (firstbyte.i[0] == 84)
+    isBigEndian_ = false;
+  else {
+    // Swap bytes
+    if (is64bit_)
+      //endian_swap( firstbyte.i, 2 );
+      endian_swap8( firstbyte.i, 1 );
+    else
+      endian_swap( firstbyte.i, 1 );
+    if (firstbyte.i[0] == 84)
+      isBigEndian_ = true;
+    else
+      return false;
+  }
+  return true; 
 }
 
 // Traj_CharmmDcd::openTrajin()
@@ -229,41 +255,10 @@ int Traj_CharmmDcd::setupTrajin(std::string const& fname, Topology* trajParm)
   */
 // TODO: Check if sizeof(int) is portable or if should be int32_t
 int Traj_CharmmDcd::readDcdHeader() {
-  // ********** Step 1 - Determine 32/64 bit
-  unsigned char cord_buf[12];
-  // 'CORD' should be in bytes 4-8 (32 bit) or 8-12 (64 bit)
-  if (file_.Read( cord_buf, 8 * sizeof(unsigned char))!=8) return 1;
-  if (CORD_32BIT(cord_buf)) {
-    is64bit_ = false;
-    blockSize_ = 4;
-  } else {
-    if (file_.Read( cord_buf + 8, 4 * sizeof(unsigned char))!=4) return 1;
-    if (!CORD_64BIT(cord_buf)) {
-      mprinterr("Error: DCD key not found in 64 bit Charmm DCD file.\n");
-      return 1;
-    }
-    is64bit_ = true;
-    blockSize_ = 8;
-  }
-  // ********** Step 2 - Determine Endianness
-  byte8 firstbyte;
-  firstbyte.i[1] = 0;
-  memcpy(firstbyte.c, cord_buf, blockSize_ * sizeof(unsigned char));
-  if (firstbyte.i[0] == 84)
-    isBigEndian_ = false;
-  else {
-    if (is64bit_)
-      endian_swap( firstbyte.i, 2 );
-    else
-      endian_swap( firstbyte.i, 1 );
-    if (firstbyte.i[0] == 84)
-      isBigEndian_ = true;
-    else {
-      mprinterr("Error: Could not read header block size from Charmm DCD file.\n");
-      return 1;
-    }
-  }
-  // ********** Step 3 - Read the rest of the first header block
+  // Endianness and 32/64 bit is determined in ID_TrajFormat. Read past
+  // blockSize + 4 bytes (32/64 bit 84 + CORD).
+  file_.Seek( blockSize_ + 4 );
+  // ********** Step 1 - Read the rest of the first header block
   headerbyte buffer;
   if (file_.Read(buffer.c, sizeof(unsigned char)*80) < 1) {
     mprinterr("Error: Could not buffer DCD header.\n");
@@ -307,7 +302,7 @@ int Traj_CharmmDcd::readDcdHeader() {
   if (debug_>0) mprintf("\tTimestep is %f\n",timestep);
   // Read end size of first block, should also be 84
   if (ReadBlock(84)<0) return 1;
-  // ********** Step 4 - Read title block
+  // ********** Step 2 - Read title block
   // Read title block size
   int ntitle;
   std::string title;
@@ -334,7 +329,7 @@ int Traj_CharmmDcd::readDcdHeader() {
   }
   // Read title end block size
   if (ReadBlock(titleSize)<0) return 1;
-  // ********** Step 4 - Read in natoms 
+  // ********** Step 3 - Read in natoms 
   // Read in next block size, should be 4
   if (ReadBlock(4)<0) return 1;
   // Read in number of atoms
@@ -346,7 +341,7 @@ int Traj_CharmmDcd::readDcdHeader() {
   if (debug_>0) mprintf("\tNatom %i\n",dcdatom_);
   // Read in end block size, should also be 4
   if (ReadBlock(4)<0) return 1;
-  // ********** Step 5 - Read in free atom indices if necessary
+  // ********** Step 4 - Read in free atom indices if necessary
   // Calculate number of free atoms (#total - #fixed)
   nfreeat_ = dcdatom_ - nfixedat_;
   // If number of fixed atoms not 0, need to read list of free atoms.
