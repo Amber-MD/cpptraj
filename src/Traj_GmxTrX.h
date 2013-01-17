@@ -32,6 +32,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     int precision_;
     float dt_;
     float lambda_;
+    size_t frameSize_;
 
     void GmxInfo();
     bool IsTRX(CpptrajFile&);

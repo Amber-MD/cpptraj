@@ -21,12 +21,15 @@ Traj_GmxTrX::Traj_GmxTrX() :
   nre_(0),
   precision_(0),
   dt_(0.0),
-  lambda_(0.0) 
+  lambda_(0.0),
+  frameSize_(0) 
 {}
 
+/** For debugging, print internal info. */
 void Traj_GmxTrX::GmxInfo() {
-  mprintf("------------------------------\n");
+  mprintf("------------------------------\nFile ");
   Info();
+  mprintf("\n\tTitle= [%s]\n", Title().c_str());
   mprintf("\tir_size= %i\n", ir_size_);
   mprintf("\te_size= %i\n", e_size_);
   mprintf("\tbox_size= %i\n", box_size_);
@@ -49,6 +52,7 @@ void Traj_GmxTrX::GmxInfo() {
 //const unsigned char Traj_GmxTrX::Magic_TRJ_[4] = {203, 7, 0, 0};
 const int Traj_GmxTrX::Magic_ = 1993;
 
+/** \return true if TRR/TRJ file. Determine endianness. */
 bool Traj_GmxTrX::IsTRX(CpptrajFile& infile) {
   int magic;
   if ( infile.Read( &magic, 4 ) != 4 ) return 1;
@@ -69,6 +73,7 @@ bool Traj_GmxTrX::IsTRX(CpptrajFile& infile) {
   return true;
 }
 
+/** \return true if TRR/TRJ file. */
 bool Traj_GmxTrX::ID_TrajFormat(CpptrajFile& infile) {
   // File must already be set up for read
   if (infile.OpenFile()) return false;
@@ -77,10 +82,12 @@ bool Traj_GmxTrX::ID_TrajFormat(CpptrajFile& infile) {
   return istrx;
 }
 
+// Traj_GmxTrX::closeTraj()
 void Traj_GmxTrX::closeTraj() {
   file_.CloseFile();
 }
 
+/** Read 1 integer, swap bytes if big endian. */
 int Traj_GmxTrX::read_int( int& ival ) {
   // ASSUMING 4 byte integers
   if ( file_.Read( &ival, 4 ) != 4 ) return 1;
@@ -88,6 +95,7 @@ int Traj_GmxTrX::read_int( int& ival ) {
   return 0;
 }
 
+/** Read 1 float/double based on precision, swap bytes if big endian. */
 int Traj_GmxTrX::read_real( float& fval ) {
   double dval;
   switch (precision_) {
@@ -106,6 +114,9 @@ int Traj_GmxTrX::read_real( float& fval ) {
   return 0;
 }
 
+/** Read an integer value which gives string size, then the following string
+  * of that size.
+  */
 std::string Traj_GmxTrX::read_string( ) {
   int size = 0;
   // Read string size
@@ -147,6 +158,7 @@ int Traj_GmxTrX::openTrajin() {
   int version = 0;
   if (format_ != TRJ)
     read_int( version );
+  mprintf("DEBUG: TRX Version= %i\n", version);
   // Read in title string
   SetTitle( read_string() );
   // Read in size data
@@ -191,8 +203,10 @@ int Traj_GmxTrX::openTrajin() {
   return 0;
 }
 
+/** Prepare trajectory for reading. Determine number of frames. */
 int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
 {
+  int nframes = 0;
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
   // Call openTrajin, which will open and read past header
   if ( openTrajin() ) return TRAJIN_ERR;
@@ -202,7 +216,28 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
               natoms_, trajParm->c_str(), trajParm->Natom());
     return TRAJIN_ERR;
   }
-  return TRAJIN_ERR;
+  // Attempt to determine # of frames in traj
+  SetSeekable(false);
+  size_t headerBytes = (size_t)file_.Tell();
+  frameSize_ = headerBytes + (size_t)ir_size_ + (size_t)e_size_ + (size_t)box_size_ + 
+                             (size_t)vir_size_ + (size_t)pres_size_ + (size_t)top_size_ + 
+                             (size_t)sym_size_ + (size_t)x_size_ + (size_t)v_size_ + 
+                             (size_t)f_size_;
+  size_t file_size = (size_t)file_.UncompressedSize();
+  if (file_size > 0) {
+    nframes = (int)(file_size / frameSize_);
+    if ( (file_size % frameSize_) != 0 ) {
+      mprintf("Warning: %s: Number of frames in TRX file could not be accurately determined.\n",
+              file_.BaseFileStr());
+      mprintf("Warning: Will attempt to read %i frames.\n", nframes);
+    } else
+      SetSeekable(true);
+  } else {
+    mprintf("Warning: Uncompressed size could not be determined. This is normal for\n");
+    mprintf("Warning: bzip2 files. Cannot check # of frames. Frames will be read until EOF.\n");
+    nframes = TRAJIN_UNK;
+  }
+  return nframes;
 }
 
 int Traj_GmxTrX::setupTrajout(std::string const& fname, Topology* trajParm,
@@ -229,5 +264,4 @@ void Traj_GmxTrX::Info() {
     mprintf(" big-endian");
   else
     mprintf(" little-endian");
-  mprintf("\n");
 }
