@@ -234,11 +234,13 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
   switch (precision_) {
     case sizeof(float):
       if (file_.Read( f_boxIn, box_size_ ) != box_size_) return 1;
+      if (isBigEndian_) endian_swap( f_boxIn, 9 );
       for (int i = 0; i < 9; ++i)
         xyz[i] = (double)f_boxIn[i];
       break;
     case sizeof(double):
       if (file_.Read( xyz, box_size_ ) != box_size_) return 1;
+      if (isBigEndian_) endian_swap8( xyz, 9 );
       break;
     default: return 1;
   }
@@ -246,8 +248,10 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
   boxOut[0] = sqrt((xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2])) * ANGS_PER_NM;
   boxOut[1] = sqrt((xyz[3]*xyz[3] + xyz[4]*xyz[4] + xyz[5]*xyz[5])) * ANGS_PER_NM;
   boxOut[2] = sqrt((xyz[6]*xyz[6] + xyz[7]*xyz[7] + xyz[8]*xyz[8])) * ANGS_PER_NM;
+  //mprintf("DEBUG:\tTRX Box Lengths: %f %f %f\n", boxOut[0], boxOut[1], boxOut[2]);
   if (boxOut[0] <= 0.0 || boxOut[1] <= 0.0 || boxOut[2] <= 0.0) {
     // Use zero-length box size and set angles to 90
+    // TODO: This will cause box detection to fail in Trajin. Set to max(X,Y,Z)?
     boxOut[0] = boxOut[1] = boxOut[2] = 0.0;
     boxOut[3] = boxOut[4] = boxOut[5] = 90.0;
   } else {
@@ -259,6 +263,7 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
     boxOut[3] = acos( (xyz[3]*xyz[6] + xyz[4]*xyz[7] + xyz[5]*xyz[8]) *
                       ANGS2_PER_NM2 / (boxOut[1]* boxOut[2]) ) * 90.0/PIOVER2;
   }
+  //mprintf("DEBUG:\tTRX Box Angles: %f %f %f\n", boxOut[3], boxOut[4], boxOut[5]);
   return 0;
 }
 
