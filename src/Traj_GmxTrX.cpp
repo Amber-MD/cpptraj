@@ -4,10 +4,6 @@
 #include "ByteRoutines.h"
 #include "Constants.h" // PIOVER2
 
-// Internal defines
-#define ANGS_PER_NM 10.0 
-#define ANGS2_PER_NM2 100.0
-
 // CONSTRUCTOR
 Traj_GmxTrX::Traj_GmxTrX() :
   isBigEndian_(false),
@@ -26,7 +22,7 @@ Traj_GmxTrX::Traj_GmxTrX() :
   natom3_(0),
   step_(0),
   nre_(0),
-  precision_(0),
+  precision_(4),
   dt_(0.0),
   lambda_(0.0),
   frameSize_(0),
@@ -244,9 +240,10 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
     default: return 1;
   }
   // Calculate box lengths
-  boxOut[0] = sqrt((xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2])) * ANGS_PER_NM;
-  boxOut[1] = sqrt((xyz[3]*xyz[3] + xyz[4]*xyz[4] + xyz[5]*xyz[5])) * ANGS_PER_NM;
-  boxOut[2] = sqrt((xyz[6]*xyz[6] + xyz[7]*xyz[7] + xyz[8]*xyz[8])) * ANGS_PER_NM;
+  // NOTE: GROMACS units are nm
+  boxOut[0] = sqrt((xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2])) * 10.0;
+  boxOut[1] = sqrt((xyz[3]*xyz[3] + xyz[4]*xyz[4] + xyz[5]*xyz[5])) * 10.0;
+  boxOut[2] = sqrt((xyz[6]*xyz[6] + xyz[7]*xyz[7] + xyz[8]*xyz[8])) * 10.0;
   //mprintf("DEBUG:\tTRX Box Lengths: %f %f %f\n", boxOut[0], boxOut[1], boxOut[2]);
   if (boxOut[0] <= 0.0 || boxOut[1] <= 0.0 || boxOut[2] <= 0.0) {
     // Use zero-length box size and set angles to 90
@@ -256,11 +253,11 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
   } else {
     // Get angles between x+y(gamma), x+z(beta), and y+z(alpha)
     boxOut[5] = acos( (xyz[0]*xyz[3] + xyz[1]*xyz[4] + xyz[2]*xyz[5]) * 
-                      ANGS2_PER_NM2 / (boxOut[0]* boxOut[1]) ) * 90.0/PIOVER2;
+                      100.0 / (boxOut[0]* boxOut[1]) ) * 90.0/PIOVER2;
     boxOut[4] = acos( (xyz[0]*xyz[6] + xyz[1]*xyz[7] + xyz[2]*xyz[8]) *
-                      ANGS2_PER_NM2 / (boxOut[0]* boxOut[2]) ) * 90.0/PIOVER2;
+                      100.0 / (boxOut[0]* boxOut[2]) ) * 90.0/PIOVER2;
     boxOut[3] = acos( (xyz[3]*xyz[6] + xyz[4]*xyz[7] + xyz[5]*xyz[8]) *
-                      ANGS2_PER_NM2 / (boxOut[1]* boxOut[2]) ) * 90.0/PIOVER2;
+                      100.0 / (boxOut[1]* boxOut[2]) ) * 90.0/PIOVER2;
   }
   //mprintf("DEBUG:\tTRX Box Angles: %f %f %f\n", boxOut[3], boxOut[4], boxOut[5]);
   return 0;
@@ -324,7 +321,60 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
 int Traj_GmxTrX::setupTrajout(std::string const& fname, Topology* trajParm,
                                  int NframesToWrite, bool append)
 {
-  return 1;
+  if (!append) {
+    natoms_ = trajParm->Natom();
+    natom3_ = natoms_ * 3;
+    // Default to little endian, precision 4, TRR
+    format_ = TRR;
+    isBigEndian_ = false;
+    precision_ = 4;
+    // Set up title
+    if (Title().empty())
+      SetTitle("Cpptraj generated dcd file.");
+    // Set size defaults, box, velocity etc
+    ir_size_ = 0;
+    e_size_ = 0;
+    if (HasBox())
+      box_size_ = precision_ * 9;
+    else
+      box_size_ = 0;
+    vir_size_ = 0;
+    pres_size_ = 0;
+    top_size_ = 0;
+    sym_size_ = 0;
+    x_size_ = natom3_ * precision_;
+    if (HasV())
+      v_size_ = natom3_ * precision_;
+    else
+      v_size_ = 0;
+    f_size_ = 0;
+    step_ = 0;
+    nre_ = 0;
+    dt_ = 0.0;
+    lambda_ = 0.0;
+    // Allocate temp space for coords/velo
+    if (farray_ != 0) delete[] farray_;
+    if (precision_ == sizeof(float)) {
+      if (HasV())
+        farray_ = new float[2 * natom3_];
+      else
+        farray_ = new float[ natom3_ ];
+    }
+    if (file_.SetupWrite( fname, debug_)) return 1;
+    if (file_.OpenFile()) return 1;
+  } else {
+    int nframes = setupTrajin( fname, trajParm );
+    if ( format_ == TRJ ) {
+      mprinterr("Error: Only writes to TRR files supported.\n");
+      return 1;
+    }
+    if ( nframes == TRAJIN_ERR ) return 1;
+    mprintf("\tAppending to TRR file starting at frame %i\n", nframes);
+    // Re-open for appending
+    if (file_.SetupAppend( fname, debug_ )) return 1;
+    if (file_.OpenFile()) return 1;
+  }
+  return 0;
 }
 
 /** Read array of size natom3 with set precision. Swap endianness if 
@@ -336,11 +386,13 @@ int Traj_GmxTrX::ReadAtomVector( double* Dout, int size ) {
       if (file_.Read( farray_, size ) != size) return 1;
       if (isBigEndian_) endian_swap(farray_, natom3_);
       for (int i = 0; i < natom3_; ++i)
-        Dout[i] = (double)(farray_[i] * ANGS_PER_NM); // FIXME: Legit for velocities?
+        Dout[i] = (double)(farray_[i] * 10.0); // FIXME: Legit for velocities?
       break;
     case sizeof(double):
       if (file_.Read( Dout, size ) != size) return 1;
       if (isBigEndian_) endian_swap8(Dout, natom3_);
+      for (int i = 0; i < natom3_; ++i)
+        Dout[i] *= 10.0; // FIXME: Legit for velocities?
       break;
     default: return 1;
   }
@@ -412,7 +464,75 @@ int Traj_GmxTrX::readVelocity(int set, double* V) {
 }
 
 int Traj_GmxTrX::writeFrame(int set, double *X, double *V,double *box, double T) {
-  return 1;
+  int tsize;
+  // Write header
+  file_.Write( &Magic_, 4 );
+  tsize = (int)Title().size() + 1;
+  file_.Write( &tsize, 4);
+  --tsize;
+  file_.Write( &tsize, 4);
+  file_.Write( Title().c_str(), Title().size() );
+  file_.Write( &ir_size_, 4 );
+  file_.Write( &e_size_, 4 );
+  file_.Write( &box_size_, 4 );
+  file_.Write( &vir_size_, 4 );
+  file_.Write( &pres_size_, 4 );
+  file_.Write( &top_size_, 4 );
+  file_.Write( &sym_size_, 4 );
+  file_.Write( &x_size_, 4 );
+  file_.Write( &v_size_, 4 );
+  file_.Write( &f_size_, 4 );
+  file_.Write( &natoms_, 4 );
+  file_.Write( &step_, 4 );
+  file_.Write( &nre_, 4 );
+  dt_ = (float)set;
+  file_.Write( &dt_, 4 ); // TODO: Write actual time
+  file_.Write( &lambda_, 4 );
+  // Write box
+  // NOTE: GROMACS units are nm
+  if (box_size_ > 0) {
+    double ucell[9];
+    double by = box[1] * 0.1;
+    double bz = box[2] * 0.1; 
+    ucell[0] = box[0] * 0.1;
+    ucell[1] = 0.0;
+    ucell[2] = 0.0;
+    ucell[3] = by*cos(DEGRAD*box[5]);
+    ucell[4] = by*sin(DEGRAD*box[5]);
+    ucell[5] = 0.0;
+    ucell[6] = bz*cos(DEGRAD*box[4]);
+    ucell[7] = (by*bz*cos(DEGRAD*box[3]) - ucell[6]*ucell[3]) / ucell[4];
+    ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
+    if (precision_ == sizeof(float)) {
+      float f_ucell[9];
+      for (int i = 0; i < 9; i++)
+        f_ucell[i] = (float)ucell[i];
+      file_.Write( f_ucell, box_size_ );
+    } else // double
+      file_.Write( ucell, box_size_ );
+  }
+  // Write coords/velo
+  // NOTE: GROMACS units are nm
+  if (precision_ == sizeof(float)) {
+    int ix = 0;
+    for (; ix < natom3_; ix++)
+      farray_[ix] = (float)(X[ix] * 0.1);
+    if (v_size_ > 0)
+      for (int iv = 0; iv < natom3_; iv++, ix++)
+        farray_[ix] = (float)(V[iv] * 0.1);
+    file_.Write( farray_, x_size_ + v_size_ );
+  } else { // double
+    for (int ix = 0; ix < natom3_; ix++)
+      X[ix] *= 0.1;
+    file_.Write( X, x_size_ );
+    if (v_size_ > 0) {
+      for (int iv = 0; iv < natom3_; iv++)
+        V[iv] *= 0.1;
+      file_.Write( V, v_size_ );
+    }
+  }
+  
+  return 0;
 }
 
 void Traj_GmxTrX::Info() {
@@ -422,7 +542,11 @@ void Traj_GmxTrX::Info() {
   else
     mprintf(" TRJ file,");
   if (isBigEndian_) 
-    mprintf(" big-endian");
+    mprintf(" big-endian,");
   else
-    mprintf(" little-endian");
+    mprintf(" little-endian,");
+  if (precision_ == sizeof(float))
+    mprintf(" single precision");
+  else if (precision_ == sizeof(double))
+    mprintf(" double precision");
 }
