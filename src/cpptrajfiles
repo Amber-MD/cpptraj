@@ -44,9 +44,9 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         TorsionRoutines.cpp TopologyList.cpp \
         Trajin.cpp Trajin_Single.cpp Trajin_Multi.cpp Trajout.cpp \
         Traj_AmberCoord.cpp Traj_AmberNetcdf.cpp Traj_AmberRestart.cpp Traj_Binpos.cpp \
-        Traj_AmberRestartNC.cpp Traj_CharmmDcd.cpp Traj_Conflib.cpp TrajectoryFile.cpp \
-        TrajinList.cpp Traj_Mol2File.cpp TrajoutList.cpp Traj_PDBfile.cpp \
-        TriangleMatrix.cpp Vec3.cpp 
+        Traj_AmberRestartNC.cpp Traj_CharmmDcd.cpp Traj_Conflib.cpp Traj_GmxTrX.cpp \
+        TrajectoryFile.cpp TrajinList.cpp Traj_Mol2File.cpp TrajoutList.cpp \
+        Traj_PDBfile.cpp TriangleMatrix.cpp Vec3.cpp 
 
 CSOURCES=molsurf.c MpiRoutines.c 
 

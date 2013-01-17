@@ -12,6 +12,7 @@
 #include "Traj_Conflib.h"
 #include "Traj_CharmmDcd.h"
 #include "Traj_Binpos.h"
+#include "Traj_GmxTrX.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 const TrajectoryFile::TrajToken TrajectoryFile::TrajArray[] = {
@@ -28,6 +29,7 @@ const TrajectoryFile::TrajToken TrajectoryFile::TrajArray[] = {
   { MOL2FILE,       "mol2",      "Mol2",             ".mol2",    Traj_Mol2File::Alloc       },
   { CHARMMDCD,      "dcd",       "Charmm DCD",       ".dcd",     Traj_CharmmDcd::Alloc      },
   { CHARMMDCD,      "charmm",    "Charmm DCD",       ".dcd",     Traj_CharmmDcd::Alloc      },
+  { GMXTRX,         "trr",       "Gromacs TRX",      ".trr",     Traj_GmxTrX::Alloc         },
   { BINPOS,         "binpos",    "BINPOS",           ".binpos",  Traj_Binpos::Alloc         },
   { AMBERRESTART,   "restart",   "Amber Restart",    ".rst7",    Traj_AmberRestart::Alloc   },
   { AMBERTRAJ,      "crd",       "Amber Trajectory", ".crd",     Traj_AmberCoord::Alloc     },

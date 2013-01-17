@@ -7,7 +7,7 @@ class TrajectoryFile {
     /// Known trajectory formats.
     enum TrajFormatType {
       UNKNOWN_TRAJ=0, AMBERNETCDF, AMBERRESTARTNC, PDBFILE, MOL2FILE, CHARMMDCD,
-      BINPOS, AMBERRESTART, AMBERTRAJ, CONFLIB
+      BINPOS, AMBERRESTART, AMBERTRAJ, CONFLIB, GMXTRX
     };
 
     TrajectoryFile();
