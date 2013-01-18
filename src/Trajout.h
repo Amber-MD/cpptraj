@@ -2,6 +2,7 @@
 #define INC_TRAJOUT_H
 #include "TrajectoryFile.h"
 #include "Range.h"
+#include "ActionFrameCounter.h"
 /// Output trajectory class.
 class Trajout : public TrajectoryFile {
   public:
@@ -29,6 +30,7 @@ class Trajout : public TrajectoryFile {
     bool append_;                      ///< If true, append to this file.
     bool hasRange_;                    ///< If true a frame range is defined.
     Range FrameRange_;                 ///< List of frame numbers to write.
-    Range::const_iterator rangeframe_; ///< If frame range define, this is next frame in range.
+    Range::const_iterator rangeframe_; ///< If frame range defined, this is next frame in range.
+    ActionFrameCounter frameCount_;    ///< Hold start/stop/offset values
 };
 #endif

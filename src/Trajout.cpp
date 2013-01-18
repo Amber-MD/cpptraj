@@ -93,6 +93,10 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
       // User frame args start from 1. Start from 0 internally.
       FrameRange_.ShiftBy(-1);
       hasRange_ = true;
+    } else {
+      if (frameCount_.InitFrameCounter( *argIn )) return 1;
+      frameCount_.FrameCounterInfo();
+      hasRange_ = false;
     }
 
     // Check for nobox argument - will override any box info present in parm
@@ -168,6 +172,8 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
     if ( *rangeframe_ != set ) return 0;
     // This frame is next in the range. Advance FrameRange iterator.
     ++rangeframe_;
+  } else {
+    if (frameCount_.CheckFrameCounter( set )) return 0;
   }
 
   // Write
