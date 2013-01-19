@@ -48,7 +48,7 @@ $(LIBDIR)/libblas.a:
 	cd ../../blas && $(MAKE) $(BLAS)
 
 $(READLINE):
-	cd $(READLINE_HOME) && $(MAKE)
+	cd $(READLINE_HOME) && $(MAKE) -f Makefile_at 
 
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ pub_fft.F90
@@ -64,11 +64,11 @@ ReadLine.o: ReadLine.cpp
 
 clean:
 	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX)
-	cd readline && $(MAKE) clean
+	cd readline && $(MAKE) -f Makefile_at clean
 
 uninstall:
 	/bin/rm -f $(BINDIR)/cpptraj$(SFX)
-	cd readline && $(MAKE) uninstall
+	cd readline && $(MAKE) -f Makefile_at uninstall
 
 # Header dependencies
 include cpptrajdepend
