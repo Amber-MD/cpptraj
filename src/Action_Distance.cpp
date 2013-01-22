@@ -10,7 +10,7 @@ Action_Distance::Action_Distance() :
 { } 
 
 void Action_Distance::Help() {
-  mprintf("distance <name> <mask1> <mask2> [out filename] [geom] [noimage]\n");
+  mprintf("distance [<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]\n");
 }
 
 // Action_Distance::init()
@@ -62,10 +62,13 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 Action::RetType Action_Distance::Setup(Topology* currentParm, Topology** parmAddress) {
   if (currentParm->SetupIntegerMask( Mask1_ )) return Action::ERR;
   if (currentParm->SetupIntegerMask( Mask2_ )) return Action::ERR;
-
-  // Print mask and imaging info for this parm
   mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1_.MaskString(), Mask1_.Nselected(),
           Mask2_.MaskString(),Mask2_.Nselected());
+  if (Mask1_.None() || Mask2_.None()) {
+    mprintf("\nWarning: distance: One or both masks have no atoms.\n");
+    return Action::ERR;
+  }
+  // Set up imaging info for this parm
   SetupImaging( currentParm->BoxType() );
   if (ImagingEnabled())
     mprintf(", imaged");
@@ -73,11 +76,6 @@ Action::RetType Action_Distance::Setup(Topology* currentParm, Topology** parmAdd
     mprintf(", imaging off");
   mprintf(".\n");
 
-  if (Mask1_.None() || Mask2_.None()) {
-    mprintf("Warning: distance: One or both masks have no atoms.\n");
-    return Action::ERR;
-  }
-       
   return Action::OK;  
 }
 

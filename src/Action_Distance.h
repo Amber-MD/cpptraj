@@ -13,8 +13,8 @@ class Action_Distance: public Action, ImagedAction {
 
     void Print() {}
   private:
-    DataSet *dist_;
-    bool useMass_;
+    DataSet* dist_;  ///< Will hold DataSet of calculated distances.
+    bool useMass_;   ///< If true, mass-weight distances.
     AtomMask Mask1_;
     AtomMask Mask2_;
 

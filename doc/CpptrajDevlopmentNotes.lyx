@@ -103,6 +103,16 @@ CPPTRAJ is code intended to be a complement and perhaps eventually a replacement
  to make the code more readable, leak-free, and thread-safe.
  The biggest functional change from PTRAJ is the ability to load and process
  trajectories with different topology files in the same run.
+\end_layout
+
+\begin_layout Abstract
+This guide assumes that the reader has at least a basic familiarity with
+ C++/object-oriented programming.
+ If you aren't sure what a constructor is you may have a difficult time
+ coding in Cpptraj.
+ There are several good introduction to C++ tutorials on the web that may
+ be helpful.
+ 
 \begin_inset Newpage pagebreak
 \end_inset
 
@@ -155,6 +165,32 @@ CapWords
 \begin_layout Itemize
 C++ files have '.cpp' suffix, C files have '.c' suffix, header files have
  '.h' suffix.
+\end_layout
+
+\begin_layout Itemize
+All header files should have a '#define' guard to prevent multiple inclusion.
+ The define guard has format:
+\end_layout
+
+\begin_layout LyX-Code
+#ifndef INC_<basefilename>_H
+\end_layout
+
+\begin_layout LyX-Code
+#define INC_<basefilename>_H
+\end_layout
+
+\begin_layout LyX-Code
+...
+\end_layout
+
+\begin_layout LyX-Code
+#endif
+\end_layout
+
+\begin_layout Itemize
+The order of #include directives should be (in general): C includes, C++
+ includes, class definition, any other Cpptraj includes.
 \end_layout
 
 \begin_layout Itemize
@@ -303,6 +339,825 @@ $AMBERHOME/AmberTools/src/cpptraj/doc/html/index.html
 \end_layout
 
 \begin_layout Part
+Adding New Functionality
+\end_layout
+
+\begin_layout Standard
+Most development for Cpptraj will likely be in adding new functionality;
+ actions, analyses, and trajectory/topology/data file formats.
+ This part of the manual will provide guidance and some helpful hints to
+ this end.
+ In general, adding new functionality is done by writing an implementation
+ of the desired class type (e.g.
+ for actions, inherit from the Action class) and then adding that class
+ to the container for that specific functionality (e,g, in the case of actions,
+ ActionList).
+\end_layout
+
+\begin_layout Section
+Adding Actions - Example
+\end_layout
+
+\begin_layout Standard
+All actions inherit from the Action abstract base class.
+ The Action class itself inherits from the DispatchObject class so that
+ it can be associated with an allocator (to create the action) and a help
+ function.
+ There are four functions that every action must implement: Init(), Setup(),
+ DoAction(), and Print().
+ Init() is called when the action is first created, and processes input
+ arguments, sets up DataSets/DataFiles, deals with reference frames, and
+ sets the debug level.
+ Setup() is called to set the action up for a specific topology, and so
+ handles anything Topology-related (such as parsing atom masks).
+ The DoAction() function is called to actually perform the action on input
+ coordinate frames.
+ The Init(), Setup(), and DoAction() functions return a special type of
+ integer, Action::RetType, which described the result of the action:
+\end_layout
+
+\begin_layout Description
+Action::OK Action is successful.
+\end_layout
+
+\begin_layout Description
+Action::ERR Action is not successful.
+\end_layout
+
+\begin_layout Description
+Action::USEORIGINALFRAME Action requests that the original unmodified topology/f
+rame be used (see e.g.
+ Action_Unstrip in Action_Strip.h).
+\end_layout
+
+\begin_layout Description
+Action::SUPPRESSCOORDOUTPUT Action requests that further processing of the
+ current coordinate frame be skipped (see e.g.
+ Action_RunningAvg).
+\end_layout
+
+\begin_layout Standard
+The final function is Print(), which is called after all trajectory processing
+ is complete and performs any additional calculation or output necessary.
+ This function can be blank if such functionality is not needed, but it
+ still must be implemented.
+\end_layout
+
+\begin_layout Standard
+In addition to Action, there are currently two additional action-related
+ classes that actions may want to inherit from.
+ The ImagedAction class is for classes that may need to calculate imaged
+ distances, and the ActionFrameCounter class is for actions that may want
+ to process subsets of input frames (see e.g.
+ the Action_Matrix action).
+\end_layout
+
+\begin_layout Standard
+As an example, we will go through the creation of the Action_Distance class
+ for calculating distances; this will cover using the DataSet, DataFile,
+ AtomMask, and ImagedAction classes as well.
+\end_layout
+
+\begin_layout Subsection
+Create the Class Header
+\end_layout
+
+\begin_layout Standard
+As mentioned in the style guide, header files should be named after the
+ class, so the Action_Distance class will go in a file named 
+\begin_inset Quotes eld
+\end_inset
+
+Action_Distance.h
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The first thing to do is create a 
+\begin_inset Quotes eld
+\end_inset
+
+header guard
+\begin_inset Quotes erd
+\end_inset
+
+ - this will prevent issues with multiple inclusion.
+ The header guard should be named after the class and header file, so for
+ Action_Distance.h:
+\end_layout
+
+\begin_layout LyX-Code
+#ifndef INC_ACTION_DISTANCE_H
+\end_layout
+
+\begin_layout LyX-Code
+#define INC_ACTION_DISTANCE_H
+\end_layout
+
+\begin_layout Standard
+Next comes the class description.
+ Since distance calculations may involve imaging we also include the ImagedActio
+n class to simplify image handling:
+\end_layout
+
+\begin_layout LyX-Code
+class Action_Distance: public Action, ImagedAction {
+\end_layout
+
+\begin_layout Standard
+Following the style guide, we first implement any public methods.
+ For actions this is at least the constructor, the allocator (named Alloc()
+ by convention), and the Help() function.
+ The allocator and help functions need to be static so that they can be
+ called without instantiating the class.
+ 
+\end_layout
+
+\begin_layout LyX-Code
+public:
+\end_layout
+
+\begin_layout LyX-Code
+  Action_Distance();  ///< Constructor
+\end_layout
+
+\begin_layout LyX-Code
+  /// Allocator
+\end_layout
+
+\begin_layout LyX-Code
+  static DispatchObject* Alloc() { return (DispatchObject*)new Action_Distance()
+; }
+\end_layout
+
+\begin_layout LyX-Code
+  static void Help(); ///< Help function
+\end_layout
+
+\begin_layout Standard
+The implemented functions Init(), Setup(), DoAction(), and Print() can be
+ either public or private, although the preference is private.
+\end_layout
+
+\begin_layout Standard
+The private section is where all variables specific to the class will go.
+ For Action_Distance we will want a DataSet to hold the calculated distances,
+ two AtomMasks to describe the points between which the distance should
+ be calculated, and a flag to indicate whether the distance should be mass-weigh
+ted.
+\end_layout
+
+\begin_layout LyX-Code
+private:
+\end_layout
+
+\begin_layout LyX-Code
+  DataSet* dist_;  ///< Will hold DataSet of calculated distances.
+\end_layout
+
+\begin_layout LyX-Code
+  bool useMass_;   ///< If true, mass-weight distances.
+\end_layout
+
+\begin_layout LyX-Code
+  AtomMask Mask1_;
+\end_layout
+
+\begin_layout LyX-Code
+  AtomMask Mask2_;
+\end_layout
+
+\begin_layout Standard
+All variables related to imaging are already include via the ImagedAction
+ class.
+ We now add entries for the functions inherited from the Action base class
+ which must be implemented.
+ Since we will not need to do any post-processing for this action, the Print()
+ function is empty:
+\end_layout
+
+\begin_layout LyX-Code
+  Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+ DataFileList*, int);
+\end_layout
+
+\begin_layout LyX-Code
+  Action::RetType Setup(Topology*, Topology**);
+\end_layout
+
+\begin_layout LyX-Code
+  Action::RetType DoAction(int, Frame*, Frame**);
+\end_layout
+
+\begin_layout LyX-Code
+  void Print() {}
+\end_layout
+
+\begin_layout Standard
+Last, end the class definition and finish the header guard:
+\end_layout
+
+\begin_layout LyX-Code
+};
+\end_layout
+
+\begin_layout LyX-Code
+#endif
+\end_layout
+
+\begin_layout Subsection
+Create the Class Implementation
+\end_layout
+
+\begin_layout Standard
+Following the naming scheme, the class implementation will go into Action_Distan
+ce.cpp.
+ The first part of this file will have the necessary #include directives.
+ We need <cmath> for the square root function, Action_Distance.h for the
+ class definition, and CpptrajStdio.h for wiriting to the console.
+ 
+\end_layout
+
+\begin_layout LyX-Code
+#include <cmath>
+\end_layout
+
+\begin_layout LyX-Code
+#include "Action_Distance.h"
+\end_layout
+
+\begin_layout LyX-Code
+#include "CpptrajStdio.h"
+\end_layout
+
+\begin_layout Standard
+First we will need to create the class constructor.
+ It is encouraged that users make use of initalizer lists (which tend to
+ be more efficient) for this purpose.
+ In this case we have two non-class variables: dist_, which is a pointer
+ to a DataSet, and useMass_, which is boolean:
+\end_layout
+
+\begin_layout LyX-Code
+Action_Distance::Action_Distance() : dist_(0), useMass_(true) {}
+\end_layout
+
+\begin_layout Standard
+Next, ensure that the Help() function has an implementation.
+ Note that in cpptraj 
+\begin_inset Quotes eld
+\end_inset
+
+mprintf
+\begin_inset Quotes erd
+\end_inset
+
+ is used over 
+\begin_inset Quotes eld
+\end_inset
+
+printf
+\begin_inset Quotes erd
+\end_inset
+
+ for making any future IO modifications easier:
+\end_layout
+
+\begin_layout LyX-Code
+void Action_Distance::Help() {
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf("distance [<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Subsubsection
+Init() - Parse user arguments, set up DataSets/DataFiles etc
+\end_layout
+
+\begin_layout Standard
+Init() is called when the action is created and is responsible for parsing
+ the Argument list (ArgList) and inital setup.
+ Init() has the same input arguments for every action:
+\end_layout
+
+\begin_layout LyX-Code
+Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList*
+ PFL, FrameList* FL,
+\end_layout
+
+\begin_layout LyX-Code
+                                      DataSetList* DSL, DataFileList* DFL,
+ int debugIn) {
+\end_layout
+
+\begin_layout Standard
+The input arguments are as follows: actionArgs contains arguments from user
+ input, PFL is the current list of Topology classes, FL is the current list
+ of reference frames, DSL is the master DataSetList, DFL is the master DataFileL
+ist, and debugIn is the current debug level for actions.
+ It is up to the action implementation whether it wants to record the debug
+ level or not.
+\end_layout
+
+\begin_layout Standard
+Typical order of argument processing is keywords, masks, DataSet name.
+ First we will process the keywords 'noimage', 'geom', and 'out <filename>'.
+\end_layout
+
+\begin_layout Standard
+In order to determine whether the action will try to use imaging we call
+ the InitImaging() function (inherited from the ImagedAction class).
+ If the ArgList actionArgs contains the string 
+\begin_inset Quotes eld
+\end_inset
+
+noimage
+\begin_inset Quotes erd
+\end_inset
+
+, false will be sent to InitImaging to disable imaging:
+\end_layout
+
+\begin_layout LyX-Code
+  InitImaging( !(actionArgs.hasKey("noimage")) );
+\end_layout
+
+\begin_layout Standard
+Next we set useMass_.
+ If actionArgs contains the string 
+\begin_inset Quotes eld
+\end_inset
+
+geom
+\begin_inset Quotes erd
+\end_inset
+
+, useMass_ will be set to false:
+\end_layout
+
+\begin_layout LyX-Code
+  useMass_ = !(actionArgs.hasKey("geom"));
+\end_layout
+
+\begin_layout Standard
+Next, we will try to create an output DataFile:
+\end_layout
+
+\begin_layout LyX-Code
+  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArg
+s );
+\end_layout
+
+\begin_layout Standard
+The behavior of AddDataFile() depends on the result from actionArgs.GetStringKey(
+); if 
+\begin_inset Quotes eld
+\end_inset
+
+out
+\begin_inset Quotes erd
+\end_inset
+
+ is present in actionArgs, the next string (presumably <filename>) is returned
+ and passed to AddDataFile(), and a DataFile will be returned corresponding
+ to <filename>.
+ If 
+\begin_inset Quotes eld
+\end_inset
+
+out
+\begin_inset Quotes erd
+\end_inset
+
+ is not present nothing will be returned, no file will be set up, and outfile
+ will be null (0).
+ 
+\end_layout
+
+\begin_layout Standard
+Next, we will get two atom mask expressions.
+ We will require that the user must specify two masks, so if either of the
+ strings is empty return an error:
+\end_layout
+
+\begin_layout LyX-Code
+  std::string mask1 = actionArgs.GetMaskNext();
+\end_layout
+
+\begin_layout LyX-Code
+  std::string mask2 = actionArgs.GetMaskNext();
+\end_layout
+
+\begin_layout LyX-Code
+  if (mask1.empty() || mask2.empty()) {
+\end_layout
+
+\begin_layout LyX-Code
+    mprinterr("Error: distance: Requires 2 masks
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+    return Action::ERR;
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout Standard
+Now we can use the mask expression strings to initialize the two AtomMask
+ classes (note that this tokenizes the mask expressions but does not yet
+ set them up since we need topology information to do that):
+\end_layout
+
+\begin_layout LyX-Code
+  Mask1_.SetMaskString(mask1);
+\end_layout
+
+\begin_layout LyX-Code
+  Mask2_.SetMaskString(mask2);
+\end_layout
+
+\begin_layout Standard
+Next we will use the master DataSetList (DSL) to create a DataSet to store
+ the calculated distances.
+ We will set up a DataSet of type DOUBLE (for increased precision) using
+ any string left in actionArgs, or if no strings are left a default name
+ of 
+\begin_inset Quotes eld
+\end_inset
+
+Dis
+\begin_inset Quotes erd
+\end_inset
+
+.
+ If any errors occur, NULL (0) will be returned:
+\end_layout
+
+\begin_layout LyX-Code
+  dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Dis");
+\end_layout
+
+\begin_layout LyX-Code
+  if (dist_==0) return Action::ERR;
+\end_layout
+
+\begin_layout Standard
+If a DataFile was previously set up, we now add the DataSet to this DataFile:
+\end_layout
+
+\begin_layout LyX-Code
+  if (outfile != 0) outfile->AddSet( dist_ );
+\end_layout
+
+\begin_layout Standard
+Last, we print out some information regarding how the Action has been initialize
+d and return Action::OK to indicate successful intialization:
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf("    DISTANCE: %s to %s",Mask1_.MaskString(), Mask2_.MaskString());
+\end_layout
+
+\begin_layout LyX-Code
+  if (!UseImage())
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(", non-imaged");
+\end_layout
+
+\begin_layout LyX-Code
+  if (useMass_)
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(", center of mass");
+\end_layout
+
+\begin_layout LyX-Code
+  else 
+\end_layout
+
+\begin_layout LyX-Code
+   mprintf(", geometric center");   mprintf(".
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+  return Action::OK;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Subsubsection
+Setup() - Set up Topology-related parts of the Action
+\end_layout
+
+\begin_layout Standard
+Setup() is called whenever the action needs to be set up for a given Topology
+ file.
+ Any component of the action that depends on Topology (in this case the
+ AtomMasks and the Imaging) is handled here.
+ The arguments to Setup() are:
+\end_layout
+
+\begin_layout LyX-Code
+Action::RetType Action_Distance::Setup(Topology* currentParm, Topology**
+ parmAddress) {
+\end_layout
+
+\begin_layout Standard
+Note that both a pointer to the current Topology as well as the address
+ of that pointer (Topology**) are given.
+ This is for actions that may want to modify the current Topology (see e.g.
+ Action_Strip).
+ 
+\end_layout
+
+\begin_layout Standard
+IMPORTANT: Note that this is the only time in which a Topology is passed
+ to the Action.
+ If the Action requires Topology information later (such as in DoAction()
+ or Print()) it must be saved in the Action itself (usually through a pointer).
+ 
+\end_layout
+
+\begin_layout Standard
+First, we setup the AtomMasks.
+ Each AtomMask is passed to the current topology using the SetupIntegerMask()
+ function, which will create an integer array containing only the selected
+ atoms based on the mask expression.
+ If we needed to know both selected and unselected atoms we could use the
+ SetupCharMask() function instead.
+\end_layout
+
+\begin_layout LyX-Code
+  if (currentParm->SetupIntegerMask( Mask1_ )) return Action::ERR;
+\end_layout
+
+\begin_layout LyX-Code
+  if (currentParm->SetupIntegerMask( Mask2_ )) return Action::ERR;
+\end_layout
+
+\begin_layout Standard
+After this, we print some information about what atoms are selected (note
+ we could also use the MaskInfo() function of AtomMask for this).
+ For calculating distance, we need to make sure atoms were actually selected
+ (using the None() function of AtomMask):
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf("
+\backslash
+t%s (%i atoms) to %s (%i atoms)",Mask1_.MaskString(), Mask1_.Nselected(),
+\end_layout
+
+\begin_layout LyX-Code
+          Mask2_.MaskString(),Mask2_.Nselected());
+\end_layout
+
+\begin_layout LyX-Code
+  if (Mask1_.None() || Mask2_.None()) {
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf("
+\backslash
+nWarning: distance: One or both masks have no atoms.
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+    return Action::ERR;
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout Standard
+Next we determine if imaging can actually be performed based on the box
+ information present in the current Topology; if there is no box information
+ imaging cannot be performed.
+ We do this with the SetupImaging() function, inherited from ImagedAction.
+ The ImagingEnabled() function (also inherited from ImagedAction) will let
+ us know if imaging for this Topology is possible or not:
+\end_layout
+
+\begin_layout LyX-Code
+SetupImaging( currentParm->BoxType() );
+\end_layout
+
+\begin_layout LyX-Code
+  if (ImagingEnabled())
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(", imaged");
+\end_layout
+
+\begin_layout LyX-Code
+  else
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(", imaging off");
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf(".
+\backslash
+n");
+\end_layout
+
+\begin_layout Standard
+Now all Topology-dependent aspects of the action are set up.
+ Return Action::OK.
+\end_layout
+
+\begin_layout LyX-Code
+  return Action::OK;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Subsubsection
+DoAction() - Process input Frame
+\end_layout
+
+\begin_layout Standard
+Coordinates are read in a frame at a time and stored in a Frame class, which
+ is then passed to each action in the ActionList.
+ The DoAction() function is called to process a coordinate Frame.
+ The arguments are:
+\end_layout
+
+\begin_layout LyX-Code
+Action::RetType Action_Distance::DoAction(int frameNum, Frame* currentFrame,
+ Frame** frameAddress) {
+\end_layout
+
+\begin_layout Standard
+The first argument is the current frame number (starting at 0).
+ Note that like Setup(), both a pointer to the current Frame as well as
+ the address of that pointer (Frame**) are given, again so that actions
+ may modify the current Frame (see e.g.
+ Action_Strip).
+\end_layout
+
+\begin_layout Standard
+There are several variables needed for calculating the distance.
+ First, we have two Vec3 classes to store the XYZ coordinates of the points:
+\end_layout
+
+\begin_layout LyX-Code
+  Vec3 a1, a2;
+\end_layout
+
+\begin_layout Standard
+If we are performing non-orthorhombic imaging we need to store unit cell
+ and reciprocal XYZ vector coordinates (in Matrix_3x3 classes):
+\end_layout
+
+\begin_layout LyX-Code
+  Matrix_3x3 ucell, recip;
+\end_layout
+
+\begin_layout Standard
+Finally, we need a double to store the actual result of the distance calculation
+:
+\end_layout
+
+\begin_layout LyX-Code
+  double Dist;
+\end_layout
+
+\begin_layout Standard
+In the first part of the actual calculation, we calculate the centers of
+ the coordinates in Mask1_ and Mask2_, either mass-weighted or not depending
+ on useMass_:
+\end_layout
+
+\begin_layout LyX-Code
+  if (useMass_) {
+\end_layout
+
+\begin_layout LyX-Code
+    a1 = currentFrame->VCenterOfMass( Mask1_ );
+\end_layout
+
+\begin_layout LyX-Code
+    a2 = currentFrame->VCenterOfMass( Mask2_ );
+\end_layout
+
+\begin_layout LyX-Code
+  } else {
+\end_layout
+
+\begin_layout LyX-Code
+    a1 = currentFrame->VGeometricCenter( Mask1_ );
+\end_layout
+
+\begin_layout LyX-Code
+    a2 = currentFrame->VGeometricCenter( Mask2_ );
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout Standard
+Next, we get the distance between the coordinates stored in a1 and a2.
+ For non-orthorhombic imaging we first need to convert the current box coordinat
+e vectors (given as 3 lengths and 3 angles) into unit cell and reciprocal
+ space coordinates:
+\end_layout
+
+\begin_layout LyX-Code
+  switch ( ImageType() ) {
+\end_layout
+
+\begin_layout LyX-Code
+    case NONORTHO:
+\end_layout
+
+\begin_layout LyX-Code
+      currentFrame->BoxCrd().ToRecip(ucell, recip);
+\end_layout
+
+\begin_layout LyX-Code
+      Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);
+\end_layout
+
+\begin_layout LyX-Code
+      break;
+\end_layout
+
+\begin_layout LyX-Code
+    case ORTHO:
+\end_layout
+
+\begin_layout LyX-Code
+      Dist = DIST2_ImageOrtho(a1, a2, currentFrame->BoxCrd());
+\end_layout
+
+\begin_layout LyX-Code
+      break;
+\end_layout
+
+\begin_layout LyX-Code
+    case NOIMAGE:
+\end_layout
+
+\begin_layout LyX-Code
+      Dist = DIST2_NoImage(a1, a2);       break;
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout LyX-Code
+  Dist = sqrt(Dist);
+\end_layout
+
+\begin_layout Standard
+Last, we add the result to the DataSet and return Action::OK.
+ Since DataSet is just an interface we pass in the address of Dist (&Dist)
+ to let the underlying DataSet framework take care of the fact that it is
+ a double.
+\end_layout
+
+\begin_layout LyX-Code
+  dist_->Add(frameNum, &Dist);
+\end_layout
+
+\begin_layout LyX-Code
+  return Action::OK;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Part
 Overall Code Organization
 \begin_inset CommandInset label
 LatexCommand label
@@ -360,8 +1215,7 @@ TopologyList
 \begin_inset space ~
 \end_inset
 
-parmFileList List of all Topology objects stored during the execution of
- cpptraj
+parmFileList List of all Topology classes from loaded topology files.
 \end_layout
 
 \begin_layout Description
@@ -369,8 +1223,8 @@ TrajinList
 \begin_inset space ~
 \end_inset
 
-trajinList List of all input trajectory files whose frames will be read
- in and passed to each action
+trajinList List of all Trajin classes whose frames will be read in and passed
+ to each action during coordinate processing.
 \end_layout
 
 \begin_layout Description
@@ -378,7 +1232,7 @@ FrameList
 \begin_inset space ~
 \end_inset
 
-refFrames List of reference coordinate files and their frames
+refFrames List of ReferenceFrame classes containing reference coordiantes.
 \end_layout
 
 \begin_layout Description
@@ -386,7 +1240,8 @@ TrajoutList
 \begin_inset space ~
 \end_inset
 
-trajoutList List of all output trajectory files that will be written
+trajoutList List of all Trajout classes that will be written to during coordinat
+e processing.
 \end_layout
 
 \begin_layout Description
@@ -394,7 +1249,8 @@ AnalysisList
 \begin_inset space ~
 \end_inset
 
-analysisList List of all data set analyses to perform
+analysisList List of all Analysis classes, which will be performed after
+ coordinate processing.
 \end_layout
 
 \begin_layout Description
@@ -409,7 +1265,7 @@ name "Master_DSL"
 
 \end_inset
 
- List of all data sets generated by various actions
+ List of all DataSet classes generated by various actions/analyses.
 \end_layout
 
 \begin_layout Description
@@ -417,8 +1273,8 @@ ActionList
 \begin_inset space ~
 \end_inset
 
-actionList List of all actions to be performed on every frame read from
- trajinList
+actionList List of all Action classes to be performed during coordinate
+ processing.
 \end_layout
 
 \begin_layout Description
@@ -426,7 +1282,7 @@ DataFileList
 \begin_inset space ~
 \end_inset
 
-DFL List of all data files that will be written from the various data sets
+DFL List of all DataFile classes that will write data from one or more DataSets.
 \end_layout
 
 \begin_layout Standard
