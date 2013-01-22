@@ -5,6 +5,9 @@
 #include "ArgList.h"
 // Class: TrajectoryIO
 /// Abstract base class for performing trajectory reading and writing.
+/** This is the generic interface for a trajectory format used by 
+  * TrajectoryFile-derived classes.
+  */
 class TrajectoryIO {
   public:
     TrajectoryIO() : debug_(0), hasV_(false), hasT_(false), seekable_(false) {}

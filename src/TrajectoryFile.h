@@ -2,6 +2,13 @@
 #define INC_TRAJECTORYFILE_H
 #include "TrajectoryIO.h"
 /// Base class that all input and output trajectories will inherit.
+/** There are 3 steps to adding new trajectory types:
+  *   - 1) Create the TrajectoryIO-derived class for the format and include
+  *        it in TrajectoryFile.cpp.
+  *   - 2) Add a unique entry to enumerated type TrajFormatType.
+  *   - 3) Add entry/entries describing how the format is to be called
+  *        to the TrajArray[] array.
+  */
 class TrajectoryFile {
   public:
     /// Known trajectory formats.
@@ -12,11 +19,11 @@ class TrajectoryFile {
 
     TrajectoryFile();
     virtual ~TrajectoryFile() {}
-
-    /// Return string corresponding to given format
+    /// Return string corresponding to given format.
     static const char* FormatString( TrajFormatType );
-    /// Get format type from keyword
+    /// Get format type from keyword in ArgList. 
     static TrajFormatType GetFormatFromArg(ArgList&);
+    /// Get format type from keyword.
     static TrajFormatType GetFormatFromString(std::string const&);
     /// Get standard file extension for trajectory format
     static std::string GetExtensionForType(TrajFormatType);
