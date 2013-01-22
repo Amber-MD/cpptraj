@@ -9,7 +9,7 @@ class PDBfile : public CpptrajFile {
     // NOTE: PDB_RECNAME must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, TER};
     /// \return true if the first 6 chars of buffer match a PDB keyword
-    static bool IsPDBkeyword(const char*);
+    static bool IsPDBkeyword(std::string const&);
     /// Check if either of the first two lines contain valid PDB records.
     static bool ID_PDB(CpptrajFile&);
     /// \return true if current line has an ATOM/HETATM record.

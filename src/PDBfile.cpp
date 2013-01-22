@@ -1,5 +1,5 @@
 #include <cstdlib> // atoi, atof
-#include <cstring> //strncmp
+#include <cstring> // strncmp
 #include "PDBfile.h"
 
 /// PDB record types
@@ -7,19 +7,27 @@
 const char* PDBfile::PDB_RECNAME[] = { "ATOM  ", "HETATM", "TER   " };
 
 // PDBfile::IsPDBkeyword()
-bool PDBfile::IsPDBkeyword(const char* recname) {
-  if (strncmp(recname,"HEADER",6)==0) return true;
-  if (strncmp(recname,"TITLE ",6)==0) return true;
-  if (strncmp(recname,"COMPND",6)==0) return true;
-  if (strncmp(recname,"AUTHOR",6)==0) return true;
-  if (strncmp(recname,"ATOM  ",6)==0) return true;
-  if (strncmp(recname,"HETATM",6)==0) return true;
-  if (strncmp(recname,"CRYST1",6)==0) return true;
-  if (strncmp(recname,"SCALE", 5)==0) return true; // SCALEn
-  if (strncmp(recname,"REMARK",6)==0) return true;
-  if (strncmp(recname,"MODEL ",6)==0) return true;
-  if (strncmp(recname,"JRNL  ",6)==0) return true;
-  if (strncmp(recname,"SEQRES",6)==0) return true;
+bool PDBfile::IsPDBkeyword(std::string const& recname) {
+  // Title Section
+  if (recname.compare(0,6,"HEADER")==0) return true;
+  if (recname.compare(0,6,"SOURCE")==0) return true;
+  if (recname.compare(0,6,"AUTHOR")==0) return true;
+  if (recname.compare(0,6,"TITLE ")==0) return true;
+  if (recname.compare(0,6,"NUMMDL")==0) return true;
+  if (recname.compare(0,6,"JRNL  ")==0) return true;
+  if (recname.compare(0,6,"REMARK")==0) return true;
+  if (recname.compare(0,6,"COMPND")==0) return true;
+  // Primary Structure Section
+  if (recname.compare(0,6,"SEQRES")==0) return true;
+  // Coordinate Section
+  if (recname.compare(0,6,"MODEL ")==0) return true;
+  if (recname.compare(0,6,"ATOM  ")==0) return true;
+  if (recname.compare(0,6,"HETATM")==0) return true;
+  // Crystallographic and Coordinate Transformation Section 
+  if (recname.compare(0,6,"CRYST1")==0) return true;
+  if (recname.compare(0,5,"SCALE" )==0) return true; // SCALEn
+  if (recname.compare(0,5,"ORIGX" )==0) return true; // ORIGXn
+  if (recname.compare(0,5,"MTRIX" )==0) return true; // MTRIXn
   return false;
 }
 
@@ -30,8 +38,8 @@ bool PDBfile::ID_PDB(CpptrajFile& fileIn) {
   std::string line1 = fileIn.GetLine();
   std::string line2 = fileIn.GetLine();
   fileIn.CloseFile();
-  if (!IsPDBkeyword( line1.c_str() )) return false;
-  if (!IsPDBkeyword( line2.c_str() )) return false;
+  if (!IsPDBkeyword( line1 )) return false;
+  if (!IsPDBkeyword( line2 )) return false;
   return true;
 }
 
