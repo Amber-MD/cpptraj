@@ -15,6 +15,7 @@ bool PDBfile::IsPDBkeyword(const char* recname) {
   if (strncmp(recname,"ATOM  ",6)==0) return true;
   if (strncmp(recname,"HETATM",6)==0) return true;
   if (strncmp(recname,"CRYST1",6)==0) return true;
+  if (strncmp(recname,"SCALE", 5)==0) return true; // SCALEn
   if (strncmp(recname,"REMARK",6)==0) return true;
   if (strncmp(recname,"MODEL ",6)==0) return true;
   if (strncmp(recname,"JRNL  ",6)==0) return true;
