@@ -190,9 +190,9 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
         if (D2 > bondmax) {
           ++Nproblems;
           outfile_.Printf(
-                  "%i\t Warning: Unusual bond length %i@%s to %i@%s (%.2lf)\n", frameNum,
-                  atom1+1, (*CurrentParm_)[atom1].c_str(), 
-                  atom2+1, (*CurrentParm_)[atom2].c_str(), sqrt(D2));
+                  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
+                  atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
+                  atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
         }
         // Next bond
         currentBond++;
@@ -201,9 +201,9 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
         if (D2 < nonbondcut2_) {
           ++Nproblems;
           outfile_.Printf(
-                  "%i\t Warning: Atoms %i@%s and %i@%s are close (%.2lf)\n", frameNum,
-                  atom1+1, (*CurrentParm_)[atom1].c_str(), 
-                  atom2+1, (*CurrentParm_)[atom2].c_str(), sqrt(D2));
+                  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
+                  atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
+                  atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
         }
       }
     } // END second loop over mask atoms

@@ -133,7 +133,7 @@ LatexCommand tableofcontents
 \end_layout
 
 \begin_layout Part
-Coding Conventions
+Introduction
 \begin_inset CommandInset label
 LatexCommand label
 name "part:Coding-Conventions"
@@ -141,6 +141,10 @@ name "part:Coding-Conventions"
 \end_inset
 
 
+\end_layout
+
+\begin_layout Section
+Coding Conventions
 \end_layout
 
 \begin_layout Standard
@@ -300,7 +304,7 @@ S (both included with AmberTools), i.e.
  no Boost etc.
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Building Cpptraj and Documentation
 \end_layout
 
@@ -311,7 +315,37 @@ Cpptraj is built alongside AmberTools, or it can be built standalone using
 $AMBERHOME/AmberTools/src/cpptraj
 \family default
  directory.
- To build the documentation using 
+ Type './configure --help' for a list of standalone configure options.
+ In order to build Cpptraj standalone one needs to specify the location
+ of the NetCDF, zlib, and bzlib2 libraries if they aren't in your system
+ path; otherwise specify a -noX option to disable use of that library.
+ Also, currently for certain functions Cpptraj needs access to the BLAS,
+ LAPACK, and ARPACK libraries bundled with AMBER, so either AMBERHOME must
+ be set or 
+\begin_inset Quotes eld
+\end_inset
+
+-nomathlib
+\begin_inset Quotes erd
+\end_inset
+
+ specified to disable this functionality.
+\end_layout
+
+\begin_layout Standard
+To build cpptraj standalone:
+\end_layout
+
+\begin_layout LyX-Code
+./configure [options]
+\end_layout
+
+\begin_layout LyX-Code
+make install_local OR cd src && make install
+\end_layout
+
+\begin_layout Standard
+To build the documentation using 
 \emph on
 doxygen
 \emph default
@@ -336,6 +370,330 @@ to build the documentation.
 $AMBERHOME/AmberTools/src/cpptraj/doc/html/index.html
 \family default
  to see the class heirarchy and descriptions.
+\end_layout
+
+\begin_layout Section
+Brief Overview of Key Classes
+\end_layout
+
+\begin_layout Standard
+The following is a brief list of some of the more commonly-used classes
+ in Cpptraj.
+ Classes are more or less self-documented to a certain extent; this section
+ will be focused on how these classes are/should be used.
+\end_layout
+
+\begin_layout Subsection
+ArgList
+\end_layout
+
+\begin_layout Standard
+The ArgList class is used throughout Cpptraj.
+ It is the main way that user input is translated to actions, analyses,
+ trajectory IO, etc.
+ Basically, the ArgList class takes a string and separates it into tokens
+ based on a given delimiter or delimiters.
+ For example, the user input:
+\end_layout
+
+\begin_layout LyX-Code
+trajin mytraj.nc 1 100 10
+\end_layout
+
+\begin_layout Standard
+can be separated via a space (' ') delimeter into 5 tokens:
+\end_layout
+
+\begin_layout LyX-Code
+0: trajin
+\end_layout
+
+\begin_layout LyX-Code
+1: mytraj.nc
+\end_layout
+
+\begin_layout LyX-Code
+2: 1
+\end_layout
+
+\begin_layout LyX-Code
+3: 100
+\end_layout
+
+\begin_layout LyX-Code
+4: 10
+\end_layout
+
+\begin_layout Standard
+Similarly, the user input:
+\end_layout
+
+\begin_layout LyX-Code
+d01,d02,d03,d04
+\end_layout
+
+\begin_layout Standard
+can be separated via a comma (',') delimiter into 4 tokens:
+\end_layout
+
+\begin_layout LyX-Code
+0: d01
+\end_layout
+
+\begin_layout LyX-Code
+1: d02
+\end_layout
+
+\begin_layout LyX-Code
+2: d03
+\end_layout
+
+\begin_layout LyX-Code
+3: d04
+\end_layout
+
+\begin_layout Standard
+These tokens (or arguments) are stored internally as an STL vector of strings.
+ ArgList provides many functions to access user arguments.
+ A second array of boolean values records whether an argument has been accessed.
+ This concept is functionally similar to the argumentStack in Ptraj; however,
+ it avoids the constant memory allocation/deallocation when arguments are
+ added/accessed, and allows an argument list to be re-used if desired.
+ The two main ways arguments are usually accessed are through 
+\begin_inset Quotes eld
+\end_inset
+
+GetNext
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+GetKey
+\begin_inset Quotes erd
+\end_inset
+
+ functions.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Quotes eld
+\end_inset
+
+GetNext
+\begin_inset Quotes erd
+\end_inset
+
+ functions return the next argument of the desired type.
+ For example, using the ArgList created in the first example from 
+\begin_inset Quotes eld
+\end_inset
+
+trajin mytraj.nc 1 100 10
+\begin_inset Quotes erd
+\end_inset
+
+ and assuming all arguments are unmarked, GetStringNext() would return 
+\begin_inset Quotes eld
+\end_inset
+
+trajin
+\begin_inset Quotes erd
+\end_inset
+
+, while getNextInteger() would return 
+\begin_inset Quotes eld
+\end_inset
+
+1
+\begin_inset Quotes erd
+\end_inset
+
+; in both cases the argument returned would be marked, so that a subsequent
+ call to GetStringNext() would return 
+\begin_inset Quotes eld
+\end_inset
+
+mytraj.nc
+\begin_inset Quotes erd
+\end_inset
+
+ and so on.
+ Another very commonly used 
+\begin_inset Quotes eld
+\end_inset
+
+GetNext
+\begin_inset Quotes erd
+\end_inset
+
+ function is the 
+\begin_inset Quotes eld
+\end_inset
+
+GetMaskNext()
+\begin_inset Quotes erd
+\end_inset
+
+ function, which returns the next atom mask expression (so noted because
+ it will begin with ':', '@', '*'); an example of this will be shown below.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Quotes eld
+\end_inset
+
+GetKey
+\begin_inset Quotes erd
+\end_inset
+
+ functions return an argument next to a specified 
+\begin_inset Quotes eld
+\end_inset
+
+key
+\begin_inset Quotes erd
+\end_inset
+
+ string.
+ Take for example the argument list created from 
+\begin_inset Quotes eld
+\end_inset
+
+rmsd R1 @CA ref [myref] out rmsd.dat
+\begin_inset Quotes erd
+\end_inset
+
+:
+\end_layout
+
+\begin_layout LyX-Code
+0: rmsd
+\end_layout
+
+\begin_layout LyX-Code
+1: R1
+\end_layout
+
+\begin_layout LyX-Code
+2: @CA
+\end_layout
+
+\begin_layout LyX-Code
+2: ref
+\end_layout
+
+\begin_layout LyX-Code
+3: [myref]
+\end_layout
+
+\begin_layout LyX-Code
+4: out
+\end_layout
+
+\begin_layout LyX-Code
+5: rmsd.dat
+\end_layout
+
+\begin_layout Standard
+If we want to access a specific argument, we use a 
+\begin_inset Quotes eld
+\end_inset
+
+GetKey
+\begin_inset Quotes erd
+\end_inset
+
+ function.
+ For example, if we want to know the filename specified by 'out', we would
+ use GetStringKey(
+\begin_inset Quotes eld
+\end_inset
+
+out
+\begin_inset Quotes erd
+\end_inset
+
+); this would return 
+\begin_inset Quotes eld
+\end_inset
+
+rmsd.dat
+\begin_inset Quotes erd
+\end_inset
+
+, and mark both 
+\begin_inset Quotes eld
+\end_inset
+
+out
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+rmsd.dat
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Similarly, GetStringKey(
+\begin_inset Quotes eld
+\end_inset
+
+ref
+\begin_inset Quotes erd
+\end_inset
+
+) would return 
+\begin_inset Quotes eld
+\end_inset
+
+[myref]
+\begin_inset Quotes erd
+\end_inset
+
+.
+ At this point we could also use the GetMaskNext() function to get the atom
+ mask expression 
+\begin_inset Quotes eld
+\end_inset
+
+@CA
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+AtomMask
+\end_layout
+
+\begin_layout Standard
+The AtomMask class is another important class.
+ It keeps track of what atoms in a given coordinate Frame are selected based
+ on a given mask expression.
+ Unlike Ptraj, in Cpptraj the AtomMask functions in 2 ways.
+ The main way to use AtomMask is as an integer mask, where the atom numbers
+ currently selected are stored as an array of integers.
+ The second way (useful when one needs to know both selected and unselected
+ atoms) is to use AtomMask as a character mask, which is analogous to the
+ way masks functions in Ptraj.
+ However, most of the AtomMask functionality requires it to be set up as
+ a character mask, and all of the interfacing with Frame and Topology require
+ this; in the interests of speed this is NOT EXPLICITLY CHECKED so it is
+ up to the developer to use AtomMask responsibly.
+\end_layout
+
+\begin_layout Standard
+There are 3 phases to using AtomMask: 1) initialization with a mask expression,
+ 2) setup via a Topology class, and 3) iteration over the mask.
 \end_layout
 
 \begin_layout Part
