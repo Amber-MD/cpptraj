@@ -694,6 +694,202 @@ The AtomMask class is another important class.
 \begin_layout Standard
 There are 3 phases to using AtomMask: 1) initialization with a mask expression,
  2) setup via a Topology class, and 3) iteration over the mask.
+ Initialization with a mask expression performs all necessary tokenization
+ of the mask expression string and prepares the mask to be set up, but does
+ not actually select atoms.
+ The mask expression can be used during AtomMask construction or passed
+ in via SetMaskString():
+\end_layout
+
+\begin_layout LyX-Code
+Mask = new AtomMask(
+\begin_inset Quotes eld
+\end_inset
+
+@CA
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout LyX-Code
+Mask.SetMaskString(
+\begin_inset Quotes eld
+\end_inset
+
+@CA
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout Standard
+Setup occurs via a Topology class (since in order to set up a mask you need
+ to know atom names/numbers, residue name/number/types etc).
+ This can be done using SetupIntegerMask() or SetupCharMask() to set up
+ an integer mask (more common) or a char mask:
+\end_layout
+
+\begin_layout LyX-Code
+Top.SetupIntegerMask( Mask );
+\end_layout
+
+\begin_layout LyX-Code
+Top.SetupCharMask( Mask );
+\end_layout
+
+\begin_layout Standard
+If necessary, one can convert between the mask types post-setup by the AtomMask
+ ConvertMaskType() function.
+ Once a mask has been setup the Nselected() function returns the number
+ of selected atoms, while the None() function returns true if no atoms were
+ selected.
+\end_layout
+
+\begin_layout Standard
+The final stage is to make use of the atom mask.
+ Many functions in the Frame class take an integer AtomMask as input.
+ One can iterate over selected atoms in an integer atom mask using the STL-like
+ const_iterator variable and begin() and end() functions - this is the recommend
+ed way to use atom masks:
+\end_layout
+
+\begin_layout LyX-Code
+for (AtomMask::const_iterator atomnum = Mask.begin(); atomnum != Mask.end();
+ ++atomnum)
+\end_layout
+
+\begin_layout Standard
+One can also access members of the integer array directly via the bracket
+ ('[]') operator:
+\end_layout
+
+\begin_layout LyX-Code
+for (int maskidx = 0; maskidx < Mask.Nselected(); ++maskidx)
+\end_layout
+
+\begin_layout LyX-Code
+  int atomnum = Mask[atomidx];
+\end_layout
+
+\begin_layout Standard
+In order to access an AtomMask that has been set up as a char mask, use
+ the AtomInCharMask() and AtomsInCharMask() functions.
+ The former returns true if a specified atom is selected, the latter returns
+ true if any atoms within a given range are selected.
+ For example:
+\end_layout
+
+\begin_layout LyX-Code
+for (int atom = 0; atom < Top.Natom(); ++atom)
+\end_layout
+
+\begin_layout LyX-Code
+  if (Mask.AtomInCharMask(atom)) 
+\end_layout
+
+\begin_layout LyX-Code
+    AtomIsSelected(atom);
+\end_layout
+
+\begin_layout LyX-Code
+for (int res = 0; res < Top.Nres(); ++res)
+\end_layout
+
+\begin_layout LyX-Code
+  if (Mask.AtomsInCharMask( Top.Res(res).FirstAtom(), Top.Res(re).LastAtom()
+ ))
+\end_layout
+
+\begin_layout LyX-Code
+    ResidueIsSelected(res);
+\end_layout
+
+\begin_layout Subsection
+DataSet and DataFile
+\end_layout
+
+\begin_layout Standard
+One of the goals in writing cpptraj was to try and generalize data collection
+ and output, so that e.g.
+ any action could output in any format known to cpptraj without having to
+ write any extra code.
+ To that end actions have access to a main DataSetList (named DSL inside
+ actions) and DataFileList (named DFL inside actions).
+ I will give a simple usage example based on the 'distance' action (Action_Dista
+nce, I will actually modify the code that is there slightly to reflect updates
+ that will eventually be made).
+ The first step is to create the DataSet in the init() routine.
+\end_layout
+
+\begin_layout LyX-Code
+dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Dis");
+\end_layout
+
+\begin_layout LyX-Code
+if (dist_==0) return 1;
+\end_layout
+
+\begin_layout Standard
+In the first line I am adding a DataSet class of type DOUBLE to the master
+ DataSetList.
+ The various types are enumerated in DataSet.h.
+ The DataSet will be named whatever the next string is in the actionArgs
+ ArgList.
+ If there is no name, a default one will be created based on the given default
+ "Dis" and the DataSet's overall position in the DataSetList (so in this
+ case the default could be something like Dis_00000).
+ What is returned is a pointer to the DataSet; DataSet is actually a base
+ class that specific DataSet types inherit (in this case DataSet_double).
+ In this way the interface is generalized.
+\end_layout
+
+\begin_layout Standard
+The next step is to add the DataSet to the DataFileList.
+\end_layout
+
+\begin_layout LyX-Code
+DFL->AddSetToFile(distanceFile, dist_);
+\end_layout
+
+\begin_layout Standard
+In this line I am adding DataSet dist_ to a file named distanceFile (string
+ obtained previously with something like distanceFile = actionArgs.GetStringKey("
+out");).
+ If distanceFile is empty the statement has no effect.
+ If distanceFile is already in DFL the DataSet will be added to that file
+ (in this way output from multiple actions can be combined rather than overwritt
+en).
+ The machinery of the DataFileList takes care of output from there.
+\end_layout
+
+\begin_layout Standard
+The final phase is actually adding data to the DataSet.
+ So for example in the action() routine you could have:
+\end_layout
+
+\begin_layout LyX-Code
+double distance = sqrt( DIST2_NoImage( V1, V2 ) );
+\end_layout
+
+\begin_layout LyX-Code
+dist_->Add(frameNum, &distance);
+\end_layout
+
+\begin_layout Standard
+In the first line the value 'distance' is being calculated.
+ In the next line the value from 'distance' is being added to DataSet dist_
+ with frame number 'frameNum' (automatically set within Action).
+ Notice that the address of 'distance' is passed rather than the value;
+ this is a necessity from the generalization of the DataSet interface.
+ DataSet has no idea a prior what the data type might be, so in the Add
+ routine the value is cast to what the underlying DataSet implementation
+ expects.
+ This allows the Add routine to be used for double, float, int, string,
+ etc.
+ 
 \end_layout
 
 \begin_layout Part
@@ -1526,7 +1722,18 @@ name "part:Overall-Code-Organization"
 
 \end_layout
 
+\begin_layout Standard
+
+\series bold
+WARNING: MUCH OF THE INFORMATION IN THIS SECTION IS OUT-OF-DATE AS OF 2013-01-23.
+ REFER TO INTERNAL CODE DOCUMENTATION FOR NOW.
+\end_layout
+
 \begin_layout Section
+Classes
+\end_layout
+
+\begin_layout Subsection
 Cpptraj
 \begin_inset CommandInset label
 LatexCommand label
@@ -1659,7 +1866,7 @@ The Cpptraj class is set up via calls to AddParm() (which adds a new Topology),
  Finally, the Data Write phase writes data out in a specified format.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 FileList
 \begin_inset Index idx
 status open
@@ -1852,7 +2059,7 @@ not
  inherit from it.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 ActionList
 \begin_inset Index idx
 status open
@@ -1929,7 +2136,7 @@ TrajoutList
 .
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 DataSetList
 \begin_inset Index idx
 status open
@@ -2026,7 +2233,7 @@ DataSetList
 .
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 AnalysisList
 \begin_inset Index idx
 status open
@@ -2057,7 +2264,7 @@ DataSet
 s.
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Basic File Handling
 \end_layout
 
@@ -2170,7 +2377,7 @@ IO
  
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 FileIO
 \begin_inset Index idx
 status open
@@ -2419,7 +2626,7 @@ int
 length) Read length bytes into buffer, up until newline, null, or EOF.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 CpptrajFile
 \begin_inset Index idx
 status open
@@ -2744,6 +2951,47 @@ TrajectoryFile
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+Trajectory files comprise a subset of file formats, and are handled by a
+ combination of the 
+\emph on
+TrajectoryFile
+\emph default
+ class, which deals with the common features of trajectories (number of
+ frames, start frame, stop frame, etc), and a TrajectoryIO class, which
+ handles all IO operations for the trajectory.
+ The 
+\emph on
+TrajectoryIO
+\emph default
+ class is a base class which should be inherited by any class implementing
+ trajectory IO operations.
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+TrajectoryFile
+\emph default
+ is the main class used for handling trajectory files.
+ The intent is for 
+\emph on
+TrajectoryFile
+\emph default
+ to be an easy-to-use class for reading and writing any trajectory format
+ that Cpptraj recognizes.
+ 
+\emph on
+TrajectoryFile
+\emph default
+ will contain information common to all trajectory formats, as well as a
+ 
+\emph on
+TrajectoryIO
+\emph default
+ class that will be used for reading/writing that specific format.
 \end_layout
 
 \begin_layout Standard
@@ -3941,331 +4189,6 @@ Used in Traj_PDBfile.cpp to determine where TER cards should be output, and
 
 \begin_layout Description
 NSolventMolecules_: The number of solvent molecules.
-\end_layout
-
-\begin_layout Part
-TrajectoryFile
-\begin_inset Index idx
-status open
-
-\begin_layout Plain Layout
-TrajectoryFile
-\end_layout
-
-\end_inset
-
-
-\begin_inset CommandInset label
-LatexCommand label
-name "part:TrajectoryFile"
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Trajectory files comprise a subset of file formats, and are handled by a
- combination of the 
-\emph on
-TrajectoryFile
-\emph default
- class, which deals with the common features of trajectories (number of
- frames, start frame, stop frame, etc), and a TrajectoryIO class, which
- handles all IO operations for the trajectory.
- The 
-\emph on
-TrajectoryIO
-\emph default
- class is a base class which should be inherited by any class implementing
- trajectory IO operations.
-\end_layout
-
-\begin_layout Standard
-
-\emph on
-TrajectoryFile
-\emph default
- is the main class used for handling trajectory files.
- The intent is for 
-\emph on
-TrajectoryFile
-\emph default
- to be an easy-to-use class for reading and writing any trajectory format
- that Cpptraj recognizes.
- 
-\emph on
-TrajectoryFile
-\emph default
- will contain information common to all trajectory formats, as well as a
- 
-\emph on
-TrajectoryIO
-\emph default
- class that will be used for reading/writing that specific format.
-\end_layout
-
-\begin_layout Subsection*
-Variables
-\end_layout
-
-\begin_layout Description
-int
-\begin_inset space ~
-\end_inset
-
-debug Debug level for the class, set with SetDebug().
-\end_layout
-
-\begin_layout Description
-TrajectoryIO
-\begin_inset space ~
-\end_inset
-
-*trajio The TrajectoryIO class for the specific trajectory format; setup
- via setupTrajIO (or setupRemdTrajIO for replica trajectories).
-\end_layout
-
-\begin_layout Description
-char
-\begin_inset space ~
-\end_inset
-
-*trajName Trajectory name, by default set to the base filename in setupTrajIO.
-\end_layout
-
-\begin_layout Description
-AmberParm
-\begin_inset space ~
-\end_inset
-
-*trajParm The associated topology file.
-\end_layout
-
-\begin_layout Description
-AccessType
-\begin_inset space ~
-\end_inset
-
-fileAccess The file access, READ/WRITE/APPEND, set by SetupRead or SetupWrite.
-\end_layout
-
-\begin_layout Description
-int
-\begin_inset space ~
-\end_inset
-
-numFramesProcessed # frames actually read/written after calls to GetNextFrame
- or WriteFrame.
-\end_layout
-
-\begin_layout Subsubsection*
-Specific to trajectory reads:
-\end_layout
-
-\begin_layout Description
-ProgressBar
-\begin_inset space ~
-\end_inset
-
-*progress Hold ProgressBar class.
- Set up if necessary during BeginTraj based on <stop>, updated during GetNextFra
-me.
-\end_layout
-
-\begin_layout Description
-int
-\begin_inset space ~
-\end_inset
-
-start Frame that reads will start at.
-\end_layout
-
-\begin_layout Description
-int
-\begin_inset space ~
-\end_inset
-
-stop Frame that reads will stop at.
-\end_layout
-
-\begin_layout Description
-int
-\begin_inset space ~
-\end_inset
-
-offset Number of frames to skip during reads.
-\end_layout
-
-\begin_layout Description
-int
-\begin_inset space ~
-\end_inset
-
-total_frames Total # of frames in the traj
-\end_layout
-
-\begin_layout Description
-int
-\begin_inset space ~
-\end_inset
-
-total_read_frames # frames that will be read based on start/stop/offset
-\end_layout
-
-\begin_layout Description
-BoxType
-\begin_inset space ~
-\end_inset
-
-boxType Box type based on angles in boxAngle.
-\end_layout
-
-\begin_layout Description
-int
-\begin_inset space ~
-\end_inset
-
-currentFrame Current frame being read.
- Not needed for writes since frames are not skipped during writes.
-\end_layout
-
-\begin_layout Description
-int
-\begin_inset space ~
-\end_inset
-
-targetSet The next frame that will be processed.
-\end_layout
-
-\begin_layout Description
-int
-\begin_inset space ~
-\end_inset
-
-frameskip The number of frames to skip over during reads.
- For seekable trajectories this is offset.
- For non-seekable trajectories this is 1.
-\end_layout
-
-\begin_layout Subsubsection*
-Specific to trajectory writes:
-\end_layout
-
-\begin_layout Description
-Range
-\begin_inset space ~
-\end_inset
-
-*FrameRange Set in SetupWrite; if defined, only frames in the frame range
- will be written.
-\end_layout
-
-\begin_layout Description
-bool
-\begin_inset space ~
-\end_inset
-
-nobox If true then trajectories will be told not include box information
- when setupWrite is initially called (WriteFrame).
-\end_layout
-
-\begin_layout Description
-bool
-\begin_inset space ~
-\end_inset
-
-setupForWrite Initially false; set to true when WriteFrame has been called
- for the first time with the topology indicated in SetupWrite.
-\end_layout
-
-\begin_layout Part
-Actions
-\end_layout
-
-\begin_layout Section
-DataSets and DataFiles
-\end_layout
-
-\begin_layout Standard
-One of the goals in writing cpptraj was to try and generalize data collection
- and output, so that e.g.
- any action could output in any format known to cpptraj without having to
- write any extra code.
- To that end actions have access to a main DataSetList (named DSL inside
- actions) and DataFileList (named DFL inside actions).
- I will give a simple usage example based on the 'distance' action (Action_Dista
-nce, I will actually modify the code that is there slightly to reflect updates
- that will eventually be made).
- The first step is to create the DataSet in the init() routine.
-\end_layout
-
-\begin_layout LyX-Code
-dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Dis");
-\end_layout
-
-\begin_layout LyX-Code
-if (dist_==0) return 1;
-\end_layout
-
-\begin_layout Standard
-In the first line I am adding a DataSet class of type DOUBLE to the master
- DataSetList.
- The various types are enumerated in DataSet.h.
- The DataSet will be named whatever the next string is in the actionArgs
- ArgList.
- If there is no name, a default one will be created based on the given default
- "Dis" and the DataSet's overall position in the DataSetList (so in this
- case the default could be something like Dis_00000).
- What is returned is a pointer to the DataSet; DataSet is actually a base
- class that specific DataSet types inherit (in this case DataSet_double).
- In this way the interface is generalized.
-\end_layout
-
-\begin_layout Standard
-The next step is to add the DataSet to the DataFileList.
-\end_layout
-
-\begin_layout LyX-Code
-DFL->AddSetToFile(distanceFile, dist_);
-\end_layout
-
-\begin_layout Standard
-In this line I am adding DataSet dist_ to a file named distanceFile (string
- obtained previously with something like distanceFile = actionArgs.GetStringKey("
-out");).
- If distanceFile is empty the statement has no effect.
- If distanceFile is already in DFL the DataSet will be added to that file
- (in this way output from multiple actions can be combined rather than overwritt
-en).
- The machinery of the DataFileList takes care of output from there.
-\end_layout
-
-\begin_layout Standard
-The final phase is actually adding data to the DataSet.
- So for example in the action() routine you could have:
-\end_layout
-
-\begin_layout LyX-Code
-double distance = sqrt( DIST2_NoImage( V1, V2 ) );
-\end_layout
-
-\begin_layout LyX-Code
-dist_->Add(frameNum, &distance);
-\end_layout
-
-\begin_layout Standard
-In the first line the value 'distance' is being calculated.
- In the next line the value from 'distance' is being added to DataSet dist_
- with frame number 'frameNum' (automatically set within Action).
- Notice that the address of 'distance' is passed rather than the value;
- this is a necessity from the generalization of the DataSet interface.
- DataSet has no idea a prior what the data type might be, so in the Add
- routine the value is cast to what the underlying DataSet implementation
- expects.
- This allows the Add routine to be used for double, float, int, string,
- etc.
- 
 \end_layout
 
 \begin_layout Standard
