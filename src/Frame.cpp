@@ -323,6 +323,7 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity) {
     }
   } else {
     if (V_ != 0) delete[] V_;
+    V_ = 0;
   }
   if (reallocate || Mass_.empty())
     Mass_.resize(maxnatom_);
