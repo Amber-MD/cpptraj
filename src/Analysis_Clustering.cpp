@@ -20,6 +20,7 @@ Analysis_Clustering::Analysis_Clustering() :
   usedme_(false),
   useMass_(false),
   grace_color_(false),
+  norm_pop_(false),
   load_pair_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -41,7 +42,7 @@ void Analysis_Clustering::Help() {
   mprintf("\t[sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n");
   mprintf("  Output options:\n");
   mprintf("\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n");
-  mprintf("\t[summaryhalf <halffile>] [cpopvtime <file>]\n");
+  mprintf("\t[summaryhalf <halffile>] [cpopvtime <file> [normpop]]\n");
   mprintf("  Coordinate output options:\n");
   mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
@@ -111,9 +112,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   halffile_ = analyzeArgs.GetStringKey("summaryhalf");
   nofitrms_ = analyzeArgs.hasKey("nofit");
   grace_color_ = analyzeArgs.hasKey("gracecolor");
-  if (grace_color_ && cpopvtimefile_ != 0) {
-    mprintf("Warning: 'gracecolor' not compatible with 'cpopvtime' - disabling 'gracecolor'\n");
-    grace_color_ = false;
+  if (cpopvtimefile_ != 0) {
+    if (grace_color_) {
+      mprintf("Warning: 'gracecolor' not compatible with 'cpopvtime' - disabling 'gracecolor'\n");
+      grace_color_ = false;
+    }
+    norm_pop_ = analyzeArgs.hasKey("normpop");
   }
   // Options for loading/saving pairwise distance file
   load_pair_ = analyzeArgs.hasKey("loadpairdist");
@@ -162,8 +166,11 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   CList_->ClusteringInfo();
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->Filename());
-  if (cpopvtimefile_ != 0)
-    mprintf("\tCluster pop vs time will be written to %s\n", cpopvtimefile_->Filename());
+  if (cpopvtimefile_ != 0) {
+    mprintf("\tCluster pop vs time will be written to %s", cpopvtimefile_->Filename());
+    if (norm_pop_) mprintf(" (normalized)");
+    mprintf("\n");
+  }
   if (grace_color_)
     mprintf("\tGrace color instead of cluster number (1-15) will be saved.\n");
   if (load_pair_)
@@ -300,7 +307,15 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList ) {
 // Analysis_Clustering::CreateCpopvtime()
 // NOTE: Should not be called if cpopvtimefile is NULL
 void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList ) {
-  std::vector<float> Pop(CList.Nclusters(), 0.0);
+  std::vector<int> Pop(CList.Nclusters(), 0);
+  // Set up normalization
+  std::vector<double> Norm(CList.Nclusters(), 1.0);
+  if (norm_pop_) {
+    int cnum = 0;
+    for (ClusterList::cluster_iterator C = CList.begincluster(); 
+                                       C != CList.endcluster(); ++C)
+      Norm[cnum++] = 1.0 / (double)((*C).Nframes());
+  }
   std::vector<DataSet*> DSL;
   for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) { 
     DSL.push_back(masterDSL_->AddSetIdxAspect( DataSet::FLOAT, cnumvtime_->Name(), 
@@ -315,9 +330,12 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList ) {
   // TODO: Normalization
   DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
   for (int frame = 0; frame < coords_->Size(); ++frame) {
-    Pop[ (*cnum_temp)[frame] ]++;
+    int cluster_num = (*cnum_temp)[frame];
+    // Noise points are -1
+    if (cluster_num > -1)
+      Pop[cluster_num]++;
     for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
-      float f = Pop[cnum];
+      float f = ((double)Pop[cnum] * Norm[cnum]);
       DSL[cnum]->Add(frame, &f);
     }
   }
