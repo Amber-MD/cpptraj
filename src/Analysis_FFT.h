@@ -9,16 +9,13 @@ class Analysis_FFT : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_FFT(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print(DataFileList*);
   private:
+    DataFile* outfile_;
     DataSetList input_dsets_;
-    std::string outfilename_;
-    std::string setname_;
     std::vector<DataSet*> output_dsets_;
     int maxsize_;
     double dt_;
-    double f0_; 
 };
 #endif

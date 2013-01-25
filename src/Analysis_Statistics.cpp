@@ -15,7 +15,7 @@ void Analysis_Statistics::Help() {
 }
 
 Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   bool analyzeAll = false;

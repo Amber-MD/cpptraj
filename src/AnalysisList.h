@@ -10,8 +10,8 @@ class AnalysisList {
     void Clear(); 
     void SetDebug(int);
     int AddAnalysis(DispatchObject::DispatchAllocatorType, ArgList&,
-                    TopologyList*, DataSetList*);
-    void DoAnalyses(DataFileList*);
+                    TopologyList*, DataSetList*, DataFileList*);
+    void DoAnalyses();
     void List();
     bool Empty() { return analysisList_.empty(); }
   private:

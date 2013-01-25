@@ -12,21 +12,21 @@ Analysis_Corr::Analysis_Corr() :
 {}
 
 void Analysis_Corr::Help() {
-  mprintf("corr out <outfilename> <Dataset1> [<Dataset2>]\n");
+  mprintf("corr out <outfilename> <Dataset1> [<Dataset2>] [name <name>]\n");
   mprintf("         [lagmax <lag>] [nocovar] [direct]\n");
 }
 
 // Analysis_Corr::Setup()
 Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   const char* calctype;
   // Keywords
   lagmax_ = analyzeArgs.getKeyInt("lagmax",-1);
   usefft_ = !analyzeArgs.hasKey("direct");
   calc_covar_ = !analyzeArgs.hasKey("nocovar");
-  outfilename_ = analyzeArgs.GetStringKey("out");
-  if (outfilename_.empty()) {
+  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  if (outfile == 0) {
     mprinterr("Error: Corr: No output filename specified ('out' <filename>).\n");
     return Analysis::ERR;
   }
@@ -56,7 +56,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   }
 
   // TODO: Check DataSet type
-  std::string dataset_name = analyzeArgs.GetStringNext();
+  std::string dataset_name = analyzeArgs.GetStringKey("name");
   if (dataset_name.empty())
     dataset_name = datasetlist->GenerateDefaultName( "Corr" );
 
@@ -64,6 +64,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   std::string corrname = D1_->Legend() + "-" + D2_->Legend();
   Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, dataset_name, corrname );
   if (Ct_ == 0) return Analysis::ERR;
+  outfile->AddSet( Ct_ );
 
   if (calc_covar_)
     calctype = "covariance";
@@ -76,7 +77,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprintf("    CORR: %s between set %s and set %s", calctype, D1name.c_str(), D2name.c_str());
   if (lagmax_!=-1) 
     mprintf(", max lag %i",lagmax_);
-  mprintf("\n\tOutput to %s\n",outfilename_.c_str());
+  mprintf("\n\tOutput to %s\n",outfile->Filename());
   if (usefft_)
     mprintf("\tUsing FFT to calculate %s.\n", calctype);
   else
@@ -107,9 +108,3 @@ Analysis::RetType Analysis_Corr::Analyze() {
 
   return Analysis::OK;
 }
-
-// Analysis_Corr::Print()
-void Analysis_Corr::Print(DataFileList *dfl) {
-  dfl->AddSetToFile(outfilename_, Ct_);
-}
-

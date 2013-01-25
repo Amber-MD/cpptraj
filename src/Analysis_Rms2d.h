@@ -19,9 +19,8 @@ class Analysis_Rms2d: public Analysis {
     static int Calc2drms(DataSet_Coords&, TriangleMatrix&,bool,bool,std::string const&);
     static int CalcDME(DataSet_Coords&, TriangleMatrix&, std::string const&);
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print(DataFileList*);
   private:
     enum ModeType { NORMAL = 0, REFTRAJ, DME };
     ModeType mode_;
@@ -34,8 +33,6 @@ class Analysis_Rms2d: public Analysis {
     Topology* RefParm_;        ///< Reference trajectory Parm
     DataSet* rmsdataset_;
     DataSet* Ct_;
-    std::string rmsdFile_;     ///< Output file
-    std::string corrfilename_; ///< Correlation output file.
 
     int CalcRmsToTraj();
     void CalcAutoCorr(TriangleMatrix&);

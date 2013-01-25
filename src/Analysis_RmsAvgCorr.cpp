@@ -19,7 +19,7 @@ void Analysis_RmsAvgCorr::Help() {
 }
 
 Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                                             TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringNext();
   if (setname.empty()) {
@@ -34,7 +34,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
     return Analysis::ERR;
   }
   // Get Keywords
-  outfilename_ = analyzeArgs.GetStringKey("out");
+  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
 # ifdef _OPENMP
   if (analyzeArgs.hasKey("output")) {
     mprinterr("Error: 'output' keyword not supported in OpenMP version of rmsavgcorr.\n");
@@ -51,11 +51,12 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   // Set up dataset to hold correlation 
   Ct_ = datasetlist->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringNext(),"RACorr");
   if (Ct_==0) return Analysis::ERR;
+  if (outfile != 0) outfile->AddSet( Ct_ );
 
   mprintf("    RMSAVGCORR: COORDS set [%s]", coords_->Legend().c_str());
   mprintf(", mask [%s]", mask_.MaskString());
   if (useMass_) mprintf(" (mass-weighted)");
-  if (!outfilename_.empty()) mprintf(", Output to %s",outfilename_.c_str());
+  if (outfile != 0) mprintf(", Output to %s",outfile->Filename());
   if (maxwindow_!=-1) mprintf(", max window %i",maxwindow_);
   mprintf(".\n");
   if (!separateName_.empty())
@@ -212,9 +213,4 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   if (!separateName_.empty())
     separateDatafile.CloseFile();
   return Analysis::OK;
-}
-
-void Analysis_RmsAvgCorr::Print(DataFileList* DFL) {
-  // Add dataset to data file list
-  DFL->AddSetToFile(outfilename_, Ct_);
 }

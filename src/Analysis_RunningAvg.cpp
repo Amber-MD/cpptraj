@@ -2,20 +2,17 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Analysis_RunningAvg::Analysis_RunningAvg()
-{}
+Analysis_RunningAvg::Analysis_RunningAvg() {}
 
 void Analysis_RunningAvg::Help() {
   mprintf("runningavg <dset1> [<dset2> ...] [name <dsetname>] [out <filename>]\n");
 }
 
-Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, 
-                                             DataSetList* datasetlist,
-                                             TopologyList* PFLin,
-                                             int debugIn)
+Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, 
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  outfilename_ = analyzeArgs.GetStringKey("out");
-  setname_ = analyzeArgs.GetStringKey("name");
+  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  std::string setname_ = analyzeArgs.GetStringKey("name");
   // The remaining arguments are the data sets to take running averages of
   ArgList dsetArgs = analyzeArgs.RemainingArgs();
   // Build the data set list
@@ -38,13 +35,14 @@ Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs,
       return Analysis::ERR;
     dsout->SetLegend( (*DS)->Legend() );
     outputData_.push_back( dsout );
+    if (outfile != 0) outfile->AddSet( dsout );
   }
 
   mprintf("    RUNNINGAVG: Calculating the running average for %i data sets:\n",
           dsets_.size());
   dsets_.List();
-  if ( !outfilename_.empty() )
-    mprintf("\tOutfile name: %s\n", outfilename_.c_str());
+  if ( outfile != 0 )
+    mprintf("\tOutfile name: %s\n", outfile->Filename());
 
   return Analysis::OK;
 }
@@ -64,12 +62,4 @@ Analysis::RetType Analysis_RunningAvg::Analyze() {
   }
 
   return Analysis::OK;
-}
-
-void Analysis_RunningAvg::Print( DataFileList* datafilelist) {
-  if (!outfilename_.empty()) {
-    for (std::vector<DataSet*>::iterator dsout = outputData_.begin();
-                                         dsout != outputData_.end(); dsout++)
-      datafilelist->AddSetToFile( outfilename_, *dsout );
-  }
 }

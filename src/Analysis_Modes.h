@@ -11,9 +11,8 @@ class Analysis_Modes : public Analysis {
 
     ~Analysis_Modes();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print(DataFileList*) { return; }
   private:
     static const double CONSQ;
     static const double TKBC2;

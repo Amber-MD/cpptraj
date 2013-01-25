@@ -10,15 +10,13 @@ class Analysis_Corr : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Corr(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print(DataFileList*);
   private:
     DataSet *D1_;
     DataSet *D2_;
     int lagmax_;
     DataSet* Ct_;
-    std::string outfilename_;
     bool usefft_;
     bool calc_covar_;
 };

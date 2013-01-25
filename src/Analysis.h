@@ -17,8 +17,7 @@ class Analysis : public DispatchObject {
     /// Destructor - virtual since this class is inherited
     virtual ~Analysis() {}
     /// Set up action
-    virtual RetType Setup(ArgList&,DataSetList*,TopologyList*,int) = 0;
+    virtual RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int) = 0;
     virtual RetType Analyze() = 0;
-    virtual void Print(DataFileList*) = 0;
 };
 #endif

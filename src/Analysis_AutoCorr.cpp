@@ -15,12 +15,12 @@ void Analysis_AutoCorr::Help() {
 }
 
 Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   const char* calctype;
 
-  std::string setname_ = analyzeArgs.GetStringKey("name");
-  outfilename_ = analyzeArgs.GetStringKey("out");
+  std::string setname = analyzeArgs.GetStringKey("name");
+  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   lagmax_ = analyzeArgs.getKeyInt("lagmax",-1);
   calc_covar_ = !analyzeArgs.hasKey("nocovar");
   usefft_ = !analyzeArgs.hasKey("direct");
@@ -33,15 +33,17 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
     return Analysis::ERR;
   }
   // If setname is empty generate a default name
-  if (setname_.empty())
-    setname_ = datasetlist->GenerateDefaultName( "autocorr" );
+  if (setname.empty())
+    setname = datasetlist->GenerateDefaultName( "autocorr" );
   // Setup output datasets
   int idx = 0;
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
-    DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++ );
+    DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, idx++ );
     if (dsout==0) return Analysis::ERR;
     dsout->SetLegend( (*DS)->Legend() );
     outputData_.push_back( dsout );
+    // Add set to output file
+    if (outfile != 0) outfile->AddSet( outputData_.back() );
   }
  
   if (calc_covar_)
@@ -53,10 +55,10 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
   dsets_.List();
   if (lagmax_!=-1)
     mprintf("\tLag max= %i\n", lagmax_);
-  if ( !setname_.empty() )
-    mprintf("\tSet name: %s\n", setname_.c_str() );
-  if ( !outfilename_.empty() )
-    mprintf("\tOutfile name: %s\n", outfilename_.c_str());
+  if ( !setname.empty() )
+    mprintf("\tSet name: %s\n", setname.c_str() );
+  if ( outfile != 0 )
+    mprintf("\tOutfile name: %s\n", outfile->Filename());
   if (usefft_)
     mprintf("\tUsing FFT to calculate %s.\n", calctype);
   else
@@ -76,15 +78,3 @@ Analysis::RetType Analysis_AutoCorr::Analyze() {
 
   return Analysis::OK;
 }
-
-void Analysis_AutoCorr::Print( DataFileList* datafilelist ) {
-  if (!outfilename_.empty()) {
-    for (std::vector<DataSet*>::iterator dsout = outputData_.begin();
-                                         dsout != outputData_.end(); ++dsout)
-      datafilelist->AddSetToFile( outfilename_, *dsout );
-    //DataFile* DF = datafilelist->GetDataFile( outfilename_.c_str());
-    //if (DF != 0) 
-    //  DF->ProcessArgs("xlabel DataSets");
-  }
-}
-

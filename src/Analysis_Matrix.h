@@ -11,9 +11,8 @@ class Analysis_Matrix : public Analysis {
     static void Help();
 
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print(DataFileList*);
   private:
     DataSet_Matrix* matrix_;
     DataSet_Modes* modes_;

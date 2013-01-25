@@ -40,7 +40,7 @@ Analysis_IRED::~Analysis_IRED() {
 
 // Analysis_IRED::Setup()
 Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   int ibeg=0, iend=0;
@@ -508,4 +508,3 @@ Analysis::RetType Analysis_IRED::Analyze() {
 
   return Analysis::OK;
 }
-

@@ -18,13 +18,22 @@ void Analysis_Lifetime::Help() {
 }
 
 Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   // Get Keywords
-  outfilename_ = analyzeArgs.GetStringKey("out");
+  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  if (outfile != 0) outfile->ProcessArgs("noemptyframes");
+  DataFile* maxfile = 0;
+  DataFile* avgfile = 0;
   std::string setname_ = analyzeArgs.GetStringKey("name");
   windowSize_ = analyzeArgs.getKeyInt("window", -1);
   averageonly_ = analyzeArgs.hasKey("averageonly");
+  if (!averageonly_ && outfile != 0) {
+    maxfile = DFLin->AddDataFile("max." + outfile->FullFilename(), analyzeArgs);
+    maxfile->ProcessArgs("noemptyframes");
+    avgfile = DFLin->AddDataFile("avg." + outfile->FullFilename(), analyzeArgs);
+    avgfile->ProcessArgs("noemptyframes");
+  }
   cumulative_ = analyzeArgs.hasKey("cumulative");
   deltaAvg_ = analyzeArgs.hasKey("delta");
   cut_ = analyzeArgs.getKeyDouble("cut", 0.5);
@@ -54,20 +63,23 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       }
       outSet->SetLegend( (*set)->Legend() );
       outputDsets_.push_back( outSet );
+      if (outfile != 0) outfile->AddSet( outSet );
       if (!averageonly_) {
         // MAX
         // FIXME: CHeck for nullS
         outSet = datasetlist->AddSetIdxAspect( DataSet::INT, setname_, didx, "max" );
         outSet->SetLegend( (*set)->Legend() );
         maxDsets_.push_back( outSet );
+        if (maxfile != 0) maxfile->AddSet( outSet );
         // AVG
         outSet = datasetlist->AddSetIdxAspect( DataSet::FLOAT, setname_, didx, "avg" );
         outSet->SetLegend( (*set)->Legend() );
         avgDsets_.push_back( outSet );
+        if (avgfile != 0) avgfile->AddSet( outSet );
       }
       ++didx;
     }
-  } else if (!outfilename_.empty()) {
+  } else if (outfile != 0) {
     mprinterr("Error: Output file name specified but no window size given ('window <N>')\n");
     return Analysis::ERR;
   }
@@ -87,10 +99,10 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       mprintf("\tCumulative averages will be saved.\n");
     if (deltaAvg_)
       mprintf("\tChange of average from previous average will be saved.\n");
-    if (!outfilename_.empty()) {
-      mprintf("\tOutfile: %s", outfilename_.c_str());
+    if (outfile != 0) {
+      mprintf("\tOutfile: %s", outfile->Filename());
       if (!averageonly_)
-        mprintf(", max.%s, avg.%s", outfilename_.c_str(), outfilename_.c_str());
+        mprintf(", %s, %s", maxfile->Filename(), avgfile->Filename());
       mprintf("\n");
     }
   }
@@ -215,30 +227,3 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
   }
   return Analysis::OK;
 }
-
-void Analysis_Lifetime::PrintListToFile(DataFileList *dfl, std::vector<DataSet*>& list,
-                                        std::string const& outname)
-{
-  DataFile *outfile = 0;
-  if (outname.empty()) return;
-  for (std::vector<DataSet*>::iterator set = list.begin(); set != list.end(); ++set)
-  {
-    outfile = dfl->AddSetToFile( outname, *set );
-    if (outfile == 0) {
-      mprinterr("Error adding set %s to file %s\n", (*set)->Legend().c_str(), outname.c_str());
-      return;
-    }
-  }
-  outfile->ProcessArgs("noemptyframes");
-}
-
-void Analysis_Lifetime::Print(DataFileList* datafilelist) {
-  if (!outfilename_.empty()) {
-    PrintListToFile(datafilelist, outputDsets_, outfilename_);
-    if (!averageonly_) {
-      PrintListToFile(datafilelist, maxDsets_, "max." + outfilename_);
-      PrintListToFile(datafilelist, avgDsets_, "avg." + outfilename_);
-    }
-  }
-}
-

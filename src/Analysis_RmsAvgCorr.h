@@ -11,13 +11,11 @@ class Analysis_RmsAvgCorr: public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_RmsAvgCorr(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print(DataFileList*);
   private:
     AtomMask mask_;
     std::string separateName_;
-    std::string outfilename_;
     DataSet_Coords* coords_;
     DataSet* Ct_;
     int maxwindow_;

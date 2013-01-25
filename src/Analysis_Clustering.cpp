@@ -15,7 +15,7 @@ Analysis_Clustering::Analysis_Clustering() :
   CList_(0),
   sieve_(1),
   cnumvtime_(0),
-  cpopvtime_(0),
+  cpopvtimefile_(0),
   nofitrms_(false),
   usedme_(false),
   useMass_(false),
@@ -41,7 +41,7 @@ void Analysis_Clustering::Help() {
   mprintf("\t[sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n");
   mprintf("  Output options:\n");
   mprintf("\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n");
-  mprintf("\t[summaryhalf <halffile>]\n");
+  mprintf("\t[summaryhalf <halffile>] [cpopvtime <file>]\n");
   mprintf("  Coordinate output options:\n");
   mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
@@ -53,7 +53,7 @@ void Analysis_Clustering::Help() {
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
 
 Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                                             TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   // Attempt to get coords dataset from datasetlist
@@ -104,12 +104,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
     return Analysis::ERR;
   }
-  cnumvtimefile_ = analyzeArgs.GetStringKey("out");
+  DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  cpopvtimefile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
   clusterinfo_ = analyzeArgs.GetStringKey("info");
   summaryfile_ = analyzeArgs.GetStringKey("summary");
   halffile_ = analyzeArgs.GetStringKey("summaryhalf");
   nofitrms_ = analyzeArgs.hasKey("nofit");
   grace_color_ = analyzeArgs.hasKey("gracecolor");
+  if (grace_color_ && cpopvtimefile_ != 0) {
+    mprintf("Warning: 'gracecolor' not compatible with 'cpopvtime' - disabling 'gracecolor'\n");
+    grace_color_ = false;
+  }
   // Options for loading/saving pairwise distance file
   load_pair_ = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
@@ -131,6 +136,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   // Dataset to store cluster number v time
   cnumvtime_ = datasetlist->AddSet(DataSet::INT, analyzeArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==0) return Analysis::ERR;
+  if (cnumvtimefile != 0) cnumvtimefile->AddSet( cnumvtime_ ); 
   // Save master DSL for Cpopvtime
   masterDSL_ = datasetlist;
 
@@ -154,8 +160,10 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   }
   mprintf("\n");
   CList_->ClusteringInfo();
-  if (!cnumvtimefile_.empty())
-    mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile_.c_str());
+  if (cnumvtimefile != 0)
+    mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->Filename());
+  if (cpopvtimefile_ != 0)
+    mprintf("\tCluster pop vs time will be written to %s\n", cpopvtimefile_->Filename());
   if (grace_color_)
     mprintf("\tGrace color instead of cluster number (1-15) will be saved.\n");
   if (load_pair_)
@@ -233,6 +241,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   // Create cluster v time data from clusters.
   CreateCnumvtime( *CList_ );
 
+  // Create cluster pop v time plots
+  if (cpopvtimefile_ != 0)
+    CreateCpopvtime( *CList_ );
+
   // Write clusters to trajectories
   if (!clusterfile_.empty())
     WriteClusterTraj( *CList_ ); 
@@ -245,12 +257,6 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   if (!reptrajfile_.empty())
     WriteRepTraj( *CList_ );
   return Analysis::OK;
-}
-
-// Analysis_Clustering::Print()
-void Analysis_Clustering::Print(DataFileList* DFL) {
-  // Add dataset to data file list
-  DFL->AddSetToFile(cnumvtimefile_, cnumvtime_);
 }
 
 // -----------------------------------------------------------------------------
@@ -292,6 +298,7 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList ) {
 }
 
 // Analysis_Clustering::CreateCpopvtime()
+// NOTE: Should not be called if cpopvtimefile is NULL
 void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList ) {
   std::vector<float> Pop(CList.Nclusters(), 0.0);
   std::vector<DataSet*> DSL;
@@ -302,10 +309,10 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList ) {
       mprinterr("Error: Could not allocate cluster pop v time DataSet.\n");
       return;
     }
-    if (cpopvtime_ != 0)
-      cpopvtime_->AddSet( DSL.back() );
+    cpopvtimefile_->AddSet( DSL.back() );
   }
   // Assumes cnumvtime has been calcd and not gracecolor!
+  // TODO: Normalization
   DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
   for (int frame = 0; frame < coords_->Size(); ++frame) {
     Pop[ (*cnum_temp)[frame] ]++;
@@ -314,7 +321,6 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList ) {
       DSL[cnum]->Add(frame, &f);
     }
   }
-     
 }
 
 // Analysis_Clustering::WriteClusterTraj()

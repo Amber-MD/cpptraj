@@ -69,7 +69,7 @@ void Analysis_Modes::CheckDeprecated(ArgList& analyzeArgs, std::string& modesnam
 
 // Analysis_Modes::Setup()
 Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   // Analysis type
   if (analyzeArgs.hasKey("fluct"))

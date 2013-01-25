@@ -8,16 +8,12 @@ class Analysis_CrossCorr : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CrossCorr(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print( DataFileList* );
 
   private:
+    DataFile* outfile_;
     DataSetList dsets_;
-    std::string outfilename_;
-    std::string setname_;
     DataSet* matrix_;
-    //std::string Xlabels_;
-    std::string Ylabels_;
 };
 #endif

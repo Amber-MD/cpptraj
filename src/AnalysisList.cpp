@@ -77,11 +77,11 @@ void AnalysisList::SetDebug(int debugIn) {
   * DataSetList.
   */
 int AnalysisList::AddAnalysis(DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn,
-                              TopologyList* PFLin, DataSetList* DSLin)
+                              TopologyList* PFLin, DataSetList* DSLin, DataFileList* DFLin)
 {
   Analysis* ana = (Analysis*)Alloc();
   // Attempt to set up analysis
-  if (ana->Setup( argIn, DSLin, PFLin, debug_) != Analysis::OK) {
+  if (ana->Setup( argIn, DSLin, PFLin, DFLin, debug_) != Analysis::OK) {
     mprinterr("Error: Could not setup analysis [%s]\n", argIn.Command());
     delete ana;
     return 1;
@@ -94,16 +94,15 @@ int AnalysisList::AddAnalysis(DispatchObject::DispatchAllocatorType Alloc, ArgLi
 }
 
 // AnalysisList::DoAnalyses()
-void AnalysisList::DoAnalyses(DataFileList *datafilelist) {
+void AnalysisList::DoAnalyses() {
   if (analysisList_.empty()) return;
   mprintf("\nANALYSIS: Performing %zu analyses:\n",analysisList_.size());
   unsigned int ananum = 0;
   for (aListType::iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana) {
     if ( analysisStatus_[ananum] == SETUP ) {
       mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
-      if ((*ana)->Analyze()==Analysis::OK) 
-        (*ana)->Print(datafilelist); 
-      // NOTE: Move print function ??
+      if ((*ana)->Analyze()==Analysis::ERR)
+        mprinterr("Error: in Analysis %u\n", ananum); 
     }
     ++ananum;
   }

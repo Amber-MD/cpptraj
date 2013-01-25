@@ -13,9 +13,8 @@ class Analysis_Clustering: public Analysis {
 
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Clustering(); }
     static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print(DataFileList*);
   private:
     DataSetList* masterDSL_;    ///< For Cluster pop v time DataSets.
     DataSet_Coords* coords_;    ///< Hold coordinates of frames being clustered.
@@ -23,8 +22,7 @@ class Analysis_Clustering: public Analysis {
     std::string maskexpr_;      ///< If RMSD, Atoms to cluster on
     int sieve_;                 ///< If > 1, frames to skip on initial clustering pass.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
-    DataFile* cpopvtime_;       ///< Cluster pop v time file.
-    std::string cnumvtimefile_; ///< Cluster vs time filename.
+    DataFile* cpopvtimefile_;   ///< Cluster pop v time file.
     std::string summaryfile_;   ///< Summary file name
     std::string halffile_;      ///< 1st/2nd half summary file name
     std::string clusterfile_;   ///< Cluster trajectory base filename.

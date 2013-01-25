@@ -8,14 +8,10 @@ class Analysis_AutoCorr : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_AutoCorr(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print( DataFileList* );
-
   private:
     DataSetList dsets_;
-    std::string outfilename_;
-    std::string setname_;
     std::vector<DataSet*> outputData_;
     int lagmax_;
     bool usefft_;

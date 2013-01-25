@@ -28,7 +28,7 @@ void Analysis_Rms2d::Help() {
 }
 
 Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                                             TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringNext();
   if (setname.empty()) {
@@ -46,7 +46,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   // Get keywords
   nofit_ = analyzeArgs.hasKey("nofit");
   useMass_ = analyzeArgs.hasKey("mass"); 
-  rmsdFile_ = analyzeArgs.GetStringKey("rmsout");
+  DataFile* rmsdFile = DFLin->AddDataFile(analyzeArgs.GetStringKey("rmsout"), analyzeArgs);
   std::string reftrajname = analyzeArgs.GetStringKey("reftraj");
   if (!reftrajname.empty()) {
     RefParm_ = PFLin->GetParm(analyzeArgs);
@@ -58,13 +58,13 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   }
   if (analyzeArgs.hasKey("dme")) mode_ = DME;
   // Check for correlation; if so, reftraj not supported
-  corrfilename_ = analyzeArgs.GetStringKey("corr");
-  if (!corrfilename_.empty() && mode_ == REFTRAJ) {
+  DataFile* corrfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("corr"), analyzeArgs);
+  if (corrfile != 0 && mode_ == REFTRAJ) {
     mprinterr("Error: Rms2d: Keyword 'corr' not supported with 'reftraj'\n");
     return Analysis::ERR;
   }
   // Require an output filename if corr not specified
-  if (rmsdFile_.empty() && corrfilename_.empty()) {
+  if (rmsdFile == 0 && corrfile == 0) {
     mprinterr("Error: Rms2d: No output filename specified.\n");
     Help();
     return Analysis::ERR;
@@ -88,9 +88,10 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     // Set up DataSet for normal rms2d, half matrix
     rmsdataset_ = datasetlist->AddSet( DataSet::TRIMATRIX, analyzeArgs.GetStringNext(), "Rms2d" );
     // Set up DataSet and DataFile for correlate
-    if (!corrfilename_.empty() && rmsdataset_ != 0) {
+    if (corrfile != 0 && rmsdataset_ != 0) {
       Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, rmsdataset_->Name(), "Corr" );
       if (Ct_ == 0) return Analysis::ERR;
+      corrfile->AddSet( Ct_ );
     }
   }
   if (rmsdataset_ == 0) {
@@ -99,6 +100,11 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   }
   // Format DataSet 
   rmsdataset_->SetPrecision(8,3);
+  // Add to output file
+  if (rmsdFile != 0) {
+    rmsdFile->AddSet( rmsdataset_ );
+    rmsdFile->ProcessArgs("square2d");
+  }
 
   mprintf("    RMS2D: COORDS set [%s]", coords_->Legend().c_str());
   if (!maskexpr_.empty())
@@ -117,12 +123,12 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
       if (useMass_)
         mprintf(" (mass-weighted)");
   }
-  if (!rmsdFile_.empty()) 
-    mprintf(" output to %s",rmsdFile_.c_str());
+  if (rmsdFile != 0) 
+    mprintf(" output to %s",rmsdFile->Filename());
   mprintf("\n");
-  if (!corrfilename_.empty())
+  if (corrfile != 0)
     mprintf("           RMSD auto-correlation will be calculated and output to %s\n",
-            corrfilename_.c_str());
+            corrfile->Filename());
 
   return Analysis::OK;
 }
@@ -360,13 +366,4 @@ Analysis::RetType Analysis_Rms2d::Analyze() {
   }
   if (err != 0) return Analysis::ERR;
   return Analysis::OK;
-}
-
-void Analysis_Rms2d::Print(DataFileList* DFL) {
-  if (!corrfilename_.empty())
-    DFL->AddSetToFile(corrfilename_, Ct_);
-  if (!rmsdFile_.empty()) {
-    DataFile* rmsdatafile = DFL->AddSetToFile( rmsdFile_, rmsdataset_ );
-    rmsdatafile->ProcessArgs("square2d");
-  }
 }

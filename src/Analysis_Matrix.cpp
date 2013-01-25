@@ -19,7 +19,7 @@ void Analysis_Matrix::Help() {
 
 // Analysis_Matrix::Setup()
 Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
 #ifdef NO_MATHLIB
   mprinterr("Error: analyze matrix: Compiled without LAPACK routines.\n");
@@ -136,10 +136,8 @@ Analysis::RetType Analysis_Matrix::Analyze() {
       modes_->ReduceDistCovar( matrix_->Nelts() );
   }
   //modes_->PrintModes(); // DEBUG
-  return Analysis::OK;
-}
-
-void Analysis_Matrix::Print(DataFileList* DFLin) {
   if (!outfilename_.empty())
     modes_->WriteToFile( outfilename_ ); 
+
+  return Analysis::OK;
 }

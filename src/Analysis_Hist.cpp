@@ -5,7 +5,8 @@
 // Analysis_Hist
 
 // CONSTRUCTOR
-Analysis_Hist::Analysis_Hist() : 
+Analysis_Hist::Analysis_Hist() :
+  outfile_(0), 
   hist_(0),
   debug_(0), 
   calcFreeE_(false),
@@ -129,7 +130,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
 // Analysis_Hist::Setup()
 /** Set up histogram with specified data sets. */
 Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
 
@@ -170,10 +171,23 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   { 
     if (CheckDimension( *setname, datasetlist )) return Analysis::ERR;
   }
-
+  // histdata contains the DataSets to be histogrammed
   if (histdata_.empty()) {
     mprinterr("Error: Hist: No datasets specified.\n");
     return Analysis::ERR;
+  }
+  // If one or two dimensions and not gnuplot/circular, use DataFileList 
+  // for writing.
+  if (dimensionArgs_.size() < 3 && !circular_ && !gnuplot_) {
+    outfile_ = DFLin->AddDataFile(outfilename_, analyzeArgs);
+    if (outfile_ == 0) {
+      mprinterr("Error: Could not create output file %s\n", outfilename_.c_str());
+      return Analysis::ERR;
+    }
+    // NOTE: Do not add hist DataSet to outfile here; unlike other DataSets
+    // the dimension of hist is not finalized until dimensions are set up in
+    // Analyze()
+    //outfile_->AddSet(hist_);
   }
 
   mprintf("\tHist: %s: Set up for %zu dimensions using the following datasets:\n", 
@@ -234,51 +248,33 @@ Analysis::RetType Analysis_Hist::Analyze() {
     hist_->BinData( coord );
   }
 
-  //hist.PrintBins(false,false);
-  return Analysis::OK;
-}
-
-// Analysis_Hist::Print()
-/** Convert 1D and 2D histograms to datafiles, otherwise use histogram
-  * native output to print.
-  */
-void Analysis_Hist::Print(DataFileList *datafilelist) {
-  DataFile *outfile=0;
-
   // Calc free energy if requested
   if (calcFreeE_) hist_->CalcFreeE(Temp_, -1);
 
   // Normalize if requested
   if (normalize_) hist_->Normalize();
 
-  if (hist_->NumDimension() == 1 && !gnuplot_ && !circular_) {
-    // For 1 dimension just need to hold bin counts
-    outfile = datafilelist->AddSetToFile( outfilename_, hist_ );
-    if (outfile==0) {
-      mprinterr("Error creating 1D histogram output for file %s\n",outfilename_.c_str());
-      return;
-    }
-    outfile->ProcessArgs("xlabel " + (*hist_)[0].Label() + " ylabel Count" +
-                         " xmin "  + doubleToString( (*hist_)[0].Min()  ) +
-                         " xstep " + doubleToString( (*hist_)[0].Step() )  );
-
-  } else if (hist_->NumDimension() == 2 && !gnuplot_ && !circular_) {
-    outfile = datafilelist->AddSetToFile( outfilename_, hist_ );
-    if (outfile==0) {
-      mprinterr("Error creating 2D histogram output for file %s\n", outfilename_.c_str());
-      return;
-    }
-    outfile->ProcessArgs("xlabel "  + (*hist_)[0].Label() +
-                         " ylabel " + (*hist_)[1].Label() +
-                         " xmin "   + doubleToString( (*hist_)[0].Min()  ) +
-                         " xstep " + doubleToString( (*hist_)[0].Step() ) +
-                         " ymin "  + doubleToString( (*hist_)[1].Min()  ) +
-                         " ystep " + doubleToString( (*hist_)[1].Step() ) +
-                         "noxcol usemap nolabels");
-  } else {
-    // If > two dimensions, create 1 coord dataset for each dimension plus
-    // 1 dataset to hold bin counts.
-    //hist_.Print_ND( histout_, circular_ );
+  if (outfile_ == 0) {
+    // Use Histogram built-in output
     hist_->PrintBins(outfilename_.c_str(), circular_, gnuplot_);
+  } else {
+    outfile_->AddSet( hist_ );
+    // Using DataFileList framework, set-up labels etc.
+    if (hist_->NumDimension() == 1) {
+      outfile_->ProcessArgs("xlabel " + (*hist_)[0].Label() + " ylabel Count" +
+                            " xmin "  + doubleToString( (*hist_)[0].Min()  ) +
+                            " xstep " + doubleToString( (*hist_)[0].Step() )  );
+    } else { // two dimensions
+      outfile_->ProcessArgs("xlabel "  + (*hist_)[0].Label() +
+                            " ylabel " + (*hist_)[1].Label() +
+                            " xmin "   + doubleToString( (*hist_)[0].Min()  ) +
+                            " xstep " + doubleToString( (*hist_)[0].Step() ) +
+                            " ymin "  + doubleToString( (*hist_)[1].Min()  ) +
+                            " ystep " + doubleToString( (*hist_)[1].Step() ) +
+                            "noxcol usemap nolabels");
+    }
   }
+
+  //hist.PrintBins(false,false);
+  return Analysis::OK;
 }

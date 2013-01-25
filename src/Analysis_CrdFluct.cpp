@@ -17,7 +17,7 @@ void Analysis_CrdFluct::Help() {
 
 // Analysis_CrdFluct::Setup()
 Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringNext();
   if (setname.empty()) {
@@ -31,7 +31,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
               setname.c_str());
     return Analysis::ERR;
   }
-  outfilename_ = analyzeArgs.GetStringKey("out");
+  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   windowSize_ = analyzeArgs.getKeyInt("window", -1);
   // Get mask
   mask_.SetMaskString( analyzeArgs.GetMaskNext() );
@@ -39,7 +39,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   mprintf("    CRDFLUCT: Atomic fluctuations will be calcd for set %s, mask [%s]\n", 
           coords_->Legend().c_str(), mask_.MaskString());
   if (windowSize_ != -1) mprintf("\tWindow size = %i\n", windowSize_);
-  if (!outfilename_.empty()) mprintf("\tOutput to %s\n", outfilename_.c_str());
+  if (outfile != 0) mprintf("\tOutput to %s\n", outfile->Filename());
 
   // Set up data sets
   setname = analyzeArgs.GetStringNext();
@@ -48,6 +48,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
     DataSet* ds = datasetlist->AddSet( DataSet::DOUBLE, setname, "fluct" );
     if (ds == 0) return Analysis::ERR;
     outSets_.push_back( ds );
+    if (outfile != 0) outfile->AddSet( ds );
   } else {
     if (setname.empty()) setname = datasetlist->GenerateDefaultName("fluct");
     // Determine how many windows will be needed
@@ -58,15 +59,21 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
       if (ds == 0) return Analysis::ERR;
       ds->SetLegend( "F_" + integerToString( frame ) );
       outSets_.push_back( ds );
+      if (outfile != 0) outfile->AddSet( ds );
     }
     if ( (datasetlist->MaxFrames() % windowSize_) != 0 ) {
       DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, datasetlist->MaxFrames() );
       ds->SetLegend("Final");
       outSets_.push_back( ds );
+      if (outfile != 0) outfile->AddSet( ds );
     }
     for (SetList::iterator out = outSets_.begin(); out != outSets_.end(); ++out)
       mprintf("\t%s\n", (*out)->Legend().c_str());
   }
+  // Setup output file
+  if (bfactor_)
+    outfile->ProcessArgs("ylabel B-factors");
+  outfile->ProcessArgs("xlabel Atom noemptyframes");
 
   return Analysis::OK;
 }
@@ -138,15 +145,4 @@ Analysis::RetType Analysis_CrdFluct::Analyze() {
   }
 
   return Analysis::OK;
-}
-
-void Analysis_CrdFluct::Print( DataFileList* datafilelist ) {
-  if (outfilename_.empty()) return;
-  DataFile* outfile = datafilelist->AddDataFile(outfilename_);
-  if (outfile == 0) return;
-  for (SetList::iterator set = outSets_.begin(); set != outSets_.end(); ++set)
-    outfile->AddSet( *set );
-  if (bfactor_)
-    outfile->ProcessArgs("ylabel B-factors");
-  outfile->ProcessArgs("xlabel Atom noemptyframes");
 }

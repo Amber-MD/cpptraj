@@ -689,14 +689,14 @@ int Cpptraj::CrdAnalyze(ArgList& argIn) {
   if ( tkn == 0 ) return 1;
   Analysis* ana = (Analysis*)tkn->Alloc();
   if (ana == 0) return 1;
-  if ( ana->Setup( analyzeargs, &DSL, &parmFileList, debug_ ) != Analysis::OK ) {
+  if ( ana->Setup( analyzeargs, &DSL, &parmFileList, &DFL, debug_ ) != Analysis::OK ) {
     delete ana;
     return 1;
   }
-  if (ana->Analyze() == Analysis::OK)
-    ana->Print(&DFL);
+  int err = 0;
+  if (ana->Analyze() == Analysis::ERR) err = 1;
   delete ana;
-  return 0;
+  return err;
 }
 
 // -----------------------------------------------------------------------------
@@ -1002,7 +1002,7 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
                                     &refFrames, &DSL, &DFL );
         break;
       case DispatchObject::ANALYSIS :
-        err = analysisList.AddAnalysis( dispatchToken->Alloc, command, &parmFileList, &DSL );
+        err = analysisList.AddAnalysis( dispatchToken->Alloc, command, &parmFileList, &DSL, &DFL );
         break;
       case DispatchObject::GENERAL :
         switch ( dispatchToken->Idx ) {
@@ -1040,7 +1040,7 @@ Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
           case RUN_ANALYSIS:
             // If only 1 arg (the command) run all analyses in list
             if (command.Nargs() == 1)  
-              analysisList.DoAnalyses(&DFL);
+              analysisList.DoAnalyses();
             else
               err = CrdAnalyze(command);
             mprintf("Analysis complete. Use 'writedata' to write datafiles to disk.\n");
@@ -1339,7 +1339,7 @@ int Cpptraj::RunNormal() {
   mprintf("\nDATASETS:\n");
   if (!analysisList.Empty()) {
     DSL.List();
-    analysisList.DoAnalyses(&DFL);
+    analysisList.DoAnalyses();
     // DEBUG: DataSets, post-Analysis
     mprintf("\nDATASETS AFTER ANALYSIS:\n");
   }

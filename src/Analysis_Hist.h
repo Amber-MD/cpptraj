@@ -11,10 +11,10 @@ class Analysis_Hist : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Hist(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print(DataFileList*);
   private:
+    DataFile* outfile_;                  ///< Output DataFile for 1 or 2 dims.
     Histogram* hist_;
     std::vector<DataSet*> histdata_;
     std::vector<ArgList> dimensionArgs_;

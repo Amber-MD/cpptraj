@@ -8,16 +8,14 @@ class Analysis_CrdFluct : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CrdFluct(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print(DataFileList*);
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;
     typedef std::vector<DataSet*> SetList;
     SetList outSets_;
     bool bfactor_;
-    std::string outfilename_;
     int windowSize_;
 
     void CalcBfactors( Frame, Frame, double, DataSet& );

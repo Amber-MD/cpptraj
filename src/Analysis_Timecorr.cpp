@@ -85,7 +85,7 @@ void Analysis_Timecorr::CalcCorr(int frame) {
 
 // Analysis_Timecorr::Setup()
 Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   // Get Vectors
   std::string vec1name = analyzeArgs.GetStringKey("vec1");

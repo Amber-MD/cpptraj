@@ -7,9 +7,9 @@
 
 // CONSTRUCTOR
 Analysis_FFT::Analysis_FFT() :
+  outfile_(0),
   maxsize_(0),
-  dt_(0.0),
-  f0_(0.0)
+  dt_(0.0)
 {}
 
 void Analysis_FFT::Help() {
@@ -18,10 +18,10 @@ void Analysis_FFT::Help() {
 
 // Analysis_FFT::Setup()
 Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, int debugIn)
+                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  std::string setname_ = analyzeArgs.GetStringKey("name");
-  outfilename_ = analyzeArgs.GetStringKey("out");
+  std::string setname = analyzeArgs.GetStringKey("name");
+  outfile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   dt_ = analyzeArgs.getKeyDouble("dt",1.0);
   // Select datasets from remaining args
   ArgList dsetArgs = analyzeArgs.RemainingArgs();
@@ -32,8 +32,8 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
     return Analysis::ERR;
   }
   // If setname is empty generate a default name
-  if (setname_.empty())
-    setname_ = datasetlist->GenerateDefaultName( "FFT" );
+  if (setname.empty())
+    setname = datasetlist->GenerateDefaultName( "FFT" );
   // Setup output datasets. Also ensure all DataSets have the same # of points. 
   int idx = 0;
   maxsize_ = 0;
@@ -54,19 +54,20 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
               (*DS)->Legend().c_str(), (*DS)->Size(), maxsize_ );
       continue;
     }
-    DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++ );
+    DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, idx++ );
     if (dsout==0) return Analysis::ERR;
     dsout->SetLegend( (*DS)->Legend() );
     output_dsets_.push_back( dsout );
+    if (outfile_ != 0) outfile_->AddSet( dsout );
   }
 
   mprintf("    FFT: Calculating FFT for %i data sets (of size %i):\n", 
           input_dsets_.size(), maxsize_ );
   mprintf("\tTime step: %f\n", dt_);
-  if ( !setname_.empty() )
-    mprintf("\tSet name: %s\n", setname_.c_str() );
-  if ( !outfilename_.empty() )
-    mprintf("\tOutfile name: %s\n", outfilename_.c_str());
+  if ( !setname.empty() )
+    mprintf("\tSet name: %s\n", setname.c_str() );
+  if ( outfile_ != 0 )
+    mprintf("\tOutfile name: %s\n", outfile_->Filename());
 
   return Analysis::OK;
 }
@@ -83,10 +84,12 @@ Analysis::RetType Analysis_FFT::Analyze() {
   int ndata = pubfft.size() * 2; // space for (real + img) per datapoint
   double *data1 = new double[ ndata ];
 
-  double sr = 1.0 / dt_;      // 1 / sampling interval, sampling rate (freq)
-  double fnyquist = sr / 2.0; // Nyquist frequency
+  double sr = 1.0 / dt_;              // 1 / sampling interval, sampling rate (freq)
+  double fnyquist = sr / 2.0;         // Nyquist frequency
   double total_time = dt_ * maxsize_; // Total time (fundamental period)
-  f0_ = 1.0 / total_time;     // Fundamental frequency (first harmonic)
+  double f0 = 1.0 / total_time;       // Fundamental frequency (first harmonic)
+  if (outfile_ != 0) 
+    outfile_->ProcessArgs("xlabel Freq. xmin 0 xstep " + doubleToString( f0 ));
   double norm = (double)(maxsize_ / 2);
 
   std::vector<DataSet*>::iterator dsout = output_dsets_.begin();
@@ -99,7 +102,7 @@ Analysis::RetType Analysis_FFT::Analyze() {
     // Place data from DS in real spots in data1
     int datasize =  (*DS)->Size();
     mprintf("\t\t\tDT=%f ps, SR= %f ps^-1, FC= %f ps^-1, total time=%f ps, f0=%f ps^-1\n",
-            dt_, sr, fnyquist, total_time, f0_);
+            dt_, sr, fnyquist, total_time, f0);
     for (int i = 0; i < datasize; ++i)
       data1[i*2] = (*DS)->Dval(i);
     // DEBUG
@@ -110,7 +113,7 @@ Analysis::RetType Analysis_FFT::Analyze() {
     // Place real data from FFT in output Data up to the Nyquist frequency
     int i2 = 0;
     for (int i1 = 0; i1 < datasize; ++i1) {
-     double freq = i1 * f0_;
+     double freq = i1 * f0;
      if (freq > fnyquist) break;
      double magnitude = sqrt(data1[i2]*data1[i2] + data1[i2+1]*data1[i2+1]);
      magnitude /= norm;
@@ -122,15 +125,4 @@ Analysis::RetType Analysis_FFT::Analyze() {
   }
   delete[] data1;
   return Analysis::OK;
-}
-
-void Analysis_FFT::Print( DataFileList* datafilelist ) {
-  if (!outfilename_.empty()) {
-    for (std::vector<DataSet*>::iterator dsout = output_dsets_.begin();
-                                         dsout != output_dsets_.end(); ++dsout)
-      datafilelist->AddSetToFile( outfilename_, *dsout );
-    DataFile* DF = datafilelist->GetDataFile( outfilename_ );
-    if (DF != 0) 
-      DF->ProcessArgs("xlabel Freq. xmin 0 xstep " + doubleToString( f0_ ));
-  }
 }

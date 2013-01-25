@@ -15,9 +15,8 @@ class Analysis_IRED : public Analysis {
 
     ~Analysis_IRED();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
-    void Print(DataFileList*) { return; }
   private:
     double freq_;
     double tstep_;
