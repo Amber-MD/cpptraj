@@ -17,11 +17,13 @@ class Analysis_Clustering: public Analysis {
     Analysis::RetType Analyze();
     void Print(DataFileList*);
   private:
+    DataSetList* masterDSL_;    ///< For Cluster pop v time DataSets.
     DataSet_Coords* coords_;    ///< Hold coordinates of frames being clustered.
     ClusterList* CList_;        ///< Hold specified clustering algorithm.
     std::string maskexpr_;      ///< If RMSD, Atoms to cluster on
     int sieve_;                 ///< If > 1, frames to skip on initial clustering pass.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
+    DataFile* cpopvtime_;       ///< Cluster pop v time file.
     std::string cnumvtimefile_; ///< Cluster vs time filename.
     std::string summaryfile_;   ///< Summary file name
     std::string halffile_;      ///< 1st/2nd half summary file name
@@ -45,9 +47,10 @@ class Analysis_Clustering: public Analysis {
     int debug_;
     static const char* PAIRDISTFILE;
 
-    void CreateCnumvtime( ClusterList & );
-    void WriteClusterTraj( ClusterList & );
-    void WriteSingleRepTraj( ClusterList & );
-    void WriteRepTraj( ClusterList & );
+    void CreateCnumvtime( ClusterList const& );
+    void CreateCpopvtime( ClusterList const& );
+    void WriteClusterTraj( ClusterList const& );
+    void WriteSingleRepTraj( ClusterList const& );
+    void WriteRepTraj( ClusterList const& );
 };
 #endif

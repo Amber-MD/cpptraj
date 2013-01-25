@@ -30,8 +30,8 @@ class ClusterList {
 
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
-    cluster_iterator begincluster() { return clusters_.begin(); }
-    cluster_iterator endcluster()   { return clusters_.end();   }
+    const cluster_iterator begincluster() const { return clusters_.begin(); }
+    const cluster_iterator endcluster()   const { return clusters_.end();   }
   protected:
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;

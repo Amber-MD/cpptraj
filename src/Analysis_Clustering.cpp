@@ -10,10 +10,12 @@
 
 // CONSTRUCTOR
 Analysis_Clustering::Analysis_Clustering() :
+  masterDSL_(0),
   coords_(0),
   CList_(0),
   sieve_(1),
   cnumvtime_(0),
+  cpopvtime_(0),
   nofitrms_(false),
   usedme_(false),
   useMass_(false),
@@ -129,6 +131,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   // Dataset to store cluster number v time
   cnumvtime_ = datasetlist->AddSet(DataSet::INT, analyzeArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==0) return Analysis::ERR;
+  // Save master DSL for Cpopvtime
+  masterDSL_ = datasetlist;
 
   mprintf("    CLUSTER: Using coords dataset %s, clustering using", coords_->Legend().c_str());
   if ( cluster_dataset_.empty() ) {
@@ -247,13 +251,12 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 void Analysis_Clustering::Print(DataFileList* DFL) {
   // Add dataset to data file list
   DFL->AddSetToFile(cnumvtimefile_, cnumvtime_);
-
 }
 
 // -----------------------------------------------------------------------------
 // Analysis_Clustering::CreateCnumvtime()
 /** Put cluster number vs frame into dataset.  */
-void Analysis_Clustering::CreateCnumvtime( ClusterList &CList ) {
+void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList ) {
   // FIXME:
   // Cast generic DataSet for cnumvtime back to integer dataset to 
   // access specific integer dataset functions for resizing and []
@@ -288,9 +291,35 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList &CList ) {
   }
 }
 
+// Analysis_Clustering::CreateCpopvtime()
+void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList ) {
+  std::vector<float> Pop(CList.Nclusters(), 0.0);
+  std::vector<DataSet*> DSL;
+  for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) { 
+    DSL.push_back(masterDSL_->AddSetIdxAspect( DataSet::FLOAT, cnumvtime_->Name(), 
+                                               cnum, "Pop" ));
+    if (DSL.back() == 0) {
+      mprinterr("Error: Could not allocate cluster pop v time DataSet.\n");
+      return;
+    }
+    if (cpopvtime_ != 0)
+      cpopvtime_->AddSet( DSL.back() );
+  }
+  // Assumes cnumvtime has been calcd and not gracecolor!
+  DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
+  for (int frame = 0; frame < coords_->Size(); ++frame) {
+    Pop[ (*cnum_temp)[frame] ]++;
+    for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
+      float f = Pop[cnum];
+      DSL[cnum]->Add(frame, &f);
+    }
+  }
+     
+}
+
 // Analysis_Clustering::WriteClusterTraj()
 /** Write frames in each cluster to a trajectory file.  */
-void Analysis_Clustering::WriteClusterTraj( ClusterList &CList ) {
+void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
   // Loop over all clusters
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); C++)
@@ -329,7 +358,7 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList &CList ) {
 
 // Analysis_Clustering::WriteSingleRepTraj()
 /** Write representative frame of each cluster to a trajectory file.  */
-void Analysis_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
+void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   Trajout clusterout;
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
@@ -357,7 +386,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList &CList ) {
 /** Write representative frame of each cluster to a separate trajectory file,
   * repfile.REPNUM.FMT
   */
-void Analysis_Clustering::WriteRepTraj( ClusterList &CList ) {
+void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
   // Get extension for representative frame format 
   std::string tmpExt = TrajectoryFile::GetExtensionForType(reptrajfmt_);
   // Use Topology from COORDS DataSet to set up input frame
