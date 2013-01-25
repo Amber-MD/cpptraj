@@ -141,8 +141,11 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
 // ClusterList::Summary_Half
 /** Print a summary of the first half of the data to the second half.
   */
-void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn) {
+void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
+                               int splitFrame) 
+{
   CpptrajFile outfile;
+  int half;
   float fmax = (float)maxframesIn;
   if (outfile.OpenWrite(summaryfile)) {
     mprinterr("Error: ClusterList::Summary_Half: Could not set up file.\n");
@@ -150,13 +153,16 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn) 
   }
 
   // Calculate halfway point
-  int half = maxframesIn / 2;
-  // xmgrace color
-  int color = 1;
-
+  if (splitFrame < 0)
+    half = maxframesIn / 2;
+  else
+    half = splitFrame;
+  // Header
+  outfile.Printf("# 1st < %i <= 2nd\n", half + 1); 
   outfile.Printf("#%-7s %8s %6s %2s %10s %8s %8s %6s %6s\n", 
                  "Cluster", "Total", "Frac", "C#", "Color", 
                  "NumIn1st", "NumIn2nd","Frac1","Frac2");
+  int color = 1; // xmgrace color, 1-15
   for (cluster_it node = clusters_.begin();
                   node != clusters_.end(); node++)
   {

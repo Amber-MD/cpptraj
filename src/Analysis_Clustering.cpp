@@ -14,6 +14,7 @@ Analysis_Clustering::Analysis_Clustering() :
   coords_(0),
   CList_(0),
   sieve_(1),
+  splitFrame_(-1),
   cnumvtime_(0),
   cpopvtimefile_(0),
   nofitrms_(false),
@@ -42,7 +43,7 @@ void Analysis_Clustering::Help() {
   mprintf("\t[sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n");
   mprintf("  Output options:\n");
   mprintf("\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n");
-  mprintf("\t[summaryhalf <halffile>] [cpopvtime <file> [normpop]]\n");
+  mprintf("\t[summaryhalf <halffile>] [cpopvtime <file> [normpop]] [splitframe <frame>]\n");
   mprintf("  Coordinate output options:\n");
   mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
@@ -105,6 +106,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
     return Analysis::ERR;
   }
+  splitFrame_ = analyzeArgs.getKeyInt("splitframe", -1);
   DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   cpopvtimefile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
   clusterinfo_ = analyzeArgs.GetStringKey("info");
@@ -243,7 +245,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 
   // Print a summary comparing first half to second half of data for clusters
   if (!halffile_.empty())
-    CList_->Summary_Half(halffile_, coords_->Size());
+    CList_->Summary_Half(halffile_, coords_->Size(), splitFrame_);
 
   // Create cluster v time data from clusters.
   CreateCnumvtime( *CList_ );
