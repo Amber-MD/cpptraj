@@ -140,9 +140,14 @@ int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox)
   // If box coords present but no box info in associated parm, print
   // a warning. Set parm box from trajectory
   if (!parmBox.HasBox()) {
-    mprintf("\tWarning: Box info present in trajectory %s but not in\n", BaseTrajStr());
-    mprintf("\tWarning: associated parm %s\n", parmName);
-    mprintf("\tWarning: Setting parm box information from trajectory.\n");
+    mprintf("Warning: Box info present in trajectory %s but not in\n", BaseTrajStr());
+    mprintf("Warning: associated parm %s\n", parmName);
+    mprintf("Warning: Setting parm box information from trajectory.\n");
+    parmBox = trajBox;
+  } else if (parmBox.Type() != trajBox.Type()) {
+    mprintf("Warning: Trajectory box is %s but parm box is %s\n", 
+            trajBox.TypeName(), parmBox.TypeName());
+    mprintf("Warning: Setting parm box information from trajectory.\n");
     parmBox = trajBox;
   }
   return 0;
