@@ -663,7 +663,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
 /** Convert float coords to double coords
   * NOTE: natom3 needs to match up with size of Coord!
   */
-void NetcdfFile::FloatToDouble(double *X, float *Coord) {
+void NetcdfFile::FloatToDouble(double* X, const float* Coord) {
   for (int i=0; i<ncatom3_; ++i)
     X[i]=(double) Coord[i];
 }
@@ -671,7 +671,7 @@ void NetcdfFile::FloatToDouble(double *X, float *Coord) {
 // DoubleToFloat()
 /** Convert double coords to float coords
   */
-void NetcdfFile::DoubleToFloat(float *Coord, double *X) {
+void NetcdfFile::DoubleToFloat(float* Coord, const double* X) {
   for (int i=0; i<ncatom3_; ++i)
     Coord[i]=(float) X[i];
 }

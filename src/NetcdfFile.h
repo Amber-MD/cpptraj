@@ -27,8 +27,8 @@ class NetcdfFile {
     int SetupTemperature();
     int SetupMultiD();
 
-    void FloatToDouble(double*,float*);
-    void DoubleToFloat(float*,double*); 
+    void FloatToDouble(double*,const float*);
+    void DoubleToFloat(float*,const double*); 
 
     inline int Ncid()    { return ncid_;    }
     inline int Ncatom()  { return ncatom_;  }
