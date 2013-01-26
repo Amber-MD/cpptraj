@@ -7,18 +7,15 @@
 class Action_Radial: public Action, ImagedAction {
   public:
     Action_Radial();
-
+    ~Action_Radial();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Radial(); }
     static void Help();
-
-    ~Action_Radial();
-
-    void Print();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 
     int* RDF_;                ///< Hold bin counts.
     int **rdf_thread_;        ///< Hold bin count on each thread.
@@ -38,7 +35,7 @@ class Action_Radial: public Action, ImagedAction {
     int numDistances_;        ///< Number of distances binned, only informational.
     double density_;          ///< Particle density (molecules/Ang^3).
     DataSet* Dset_;
-    DataSet* outmask2_;
+    DataSet* intrdf_;
     int debug_;
 };
 #endif  

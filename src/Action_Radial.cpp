@@ -26,14 +26,14 @@ Action_Radial::Action_Radial() :
   // Default particle density (molecules/Ang^3) for water based on 1.0 g/mL
   density_(0.033456),
   Dset_(0),
-  outmask2_(0),
+  intrdf_(0),
   debug_(0)
 {} 
 
 void Action_Radial::Help() {
   mprintf("radial <outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]\n");
   mprintf("       [density <density> | volume] [center1] [<name>]\n");
-  mprintf("       outmask2 <file>\n");
+  mprintf("       intrdf <file>\n");
 }
 
 // DESTRUCTOR
@@ -58,7 +58,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   density_ = actionArgs.getKeyDouble("density",0.033456);
   center1_ = actionArgs.hasKey("center1");
   useVolume_ = actionArgs.hasKey("volume");
-  std::string outmask2name = actionArgs.GetStringKey("outmask2");
+  std::string intrdfname = actionArgs.GetStringKey("intrdf");
 
   // Get required args
   std::string outfilename = actionArgs.GetStringNext();
@@ -104,23 +104,26 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   }
   // Make default precision a little higher than normal
   Dset_->SetPrecision(12,6);
-  // Setup output datafile.
-  outfile->ProcessArgs("xmin 0.0 xstep " + doubleToString(spacing_));
+  // Setup output datafile. Align on bin centers instead of left.
+  std::string outfile_args = "xmin " + doubleToString(spacing_ / 2.0) + 
+                             " xstep " + doubleToString(spacing_);
+  outfile->ProcessArgs(outfile_args);
   // Create label from mask strings. Enclose in quotes so the label is 1 arg.
   outfile->ProcessArgs("xlabel \"[" + Mask1_.MaskExpression() + "] => [" + 
                                       Mask2_.MaskExpression() + "]\"" );
   outfile->ProcessArgs("ylabel g(r)");
   // Set up output for sum of mask2 if specified.
-  if (!outmask2name.empty()) {
-    outmask2_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "m2sum" );
-    outfile = DFL->AddSetToFile( outmask2name, outmask2_ );
+  if (!intrdfname.empty()) {
+    intrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "m2sum" );
+    intrdf_->SetPrecision(12,6);
+    outfile = DFL->AddSetToFile( intrdfname, intrdf_ );
     if (outfile == 0) {
-      mprinterr("Error: Could not add mask2sum set to file %s\n", outmask2name.c_str());
+      mprinterr("Error: Could not add mask2sum set to file %s\n", intrdfname.c_str());
       return Action::ERR;
     }
-    outfile->ProcessArgs("xmin 0.0 xstep " + doubleToString(spacing_));
+    outfile->ProcessArgs(outfile_args);
   } else
-    outmask2_ = 0;
+    intrdf_ = 0;
 
   // Set up histogram
   one_over_spacing_ = 1 / spacing_;
@@ -149,6 +152,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (!mask2.empty()) 
     mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
   mprintf("\n            Output to %s.\n",outfilename.c_str());
+  if (intrdf_ != 0)
+    mprintf("            Integral of RDF will be output to %s\n", intrdfname.c_str());
   if (center1_)
     mprintf("            Using center of atoms in mask1.\n");
   mprintf("            Histogram max %f, spacing %f, bins %i.\n",maximum,
@@ -362,6 +367,7 @@ void Action_Radial::Print() {
   // volume slice. Expected # of molecules is particle density times volume 
   // of each slice:
   // Density * ( [(4/3)*PI*(R+dr)^3] - [(4/3)*PI*(dr)^3] )
+  double sum = 0.0;
   for (int bin = 0; bin < numBins_; bin++) {
     //mprintf("DBG:\tNumBins= %i\n",rdf[bin]); 
     // Number of particles in this volume slice over all frames.
@@ -380,12 +386,12 @@ void Action_Radial::Print() {
     // Divide by # frames
     norm *= numFrames_;
     N /= norm;
-    Dset_->Add(bin, &N);
-    if (outmask2_ != 0) {
-      // Expected # mask2 atoms in this volume slice
-      norm = dv * mask2density * N;
-      outmask2_->Add(bin, &norm);
+    if (intrdf_ != 0) {
+      // Expected # mask2 atoms in this volume slice via trapezoid integration
+      sum += ((Rdr - R) * (Dset_->CurrentDval() + N) * 0.5);
+      intrdf_->Add(bin, &sum);
     }
+    Dset_->Add(bin, &N);
   }
 }
 
