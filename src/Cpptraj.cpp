@@ -777,7 +777,7 @@ Cpptraj::Mode Cpptraj::Interactive() {
   while ( readLoop == C_OK ) {
     if (inputLine.GetInput()) break; 
     if (!inputLine.empty()) {
-      readLoop = Dispatch( inputLine.c_str() );
+      readLoop = Dispatch( *inputLine );
       if (logfile_.IsOpen())
         logfile_.Printf("%s\n", inputLine.c_str());
     }
@@ -830,7 +830,7 @@ Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
       // Print the input line that will be sent to dispatch
       mprintf("  [%s]\n",inputLine.c_str());
       // Call Dispatch to convert input to arglist and process.
-      cmode = Dispatch(inputLine.c_str());
+      cmode = Dispatch(inputLine);
       if (cmode != C_OK) break;
       // Reset Input line
       inputLine.clear();
@@ -914,6 +914,12 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     else if ( arg == "-p" && i+1 != argc) {
       // -p: Topology file
       if (parmFileList.AddParmFile( argv[++i] )) return C_ERR;
+    } else if ( arg == "-x" && i+1 != argc) {
+      // -x: Trajectory file
+      if (Dispatch("trajin " + std::string(argv[++i])) == C_ERR) return C_ERR;
+    } else if ( arg == "-c" && i+1 != argc) {
+      // -c: Reference file
+      if (Dispatch("reference " + std::string(argv[++i])) == C_ERR) return C_ERR;
     } else if (arg == "-i" && i+1 != argc) {
       // -i: Input file(s)
       Cpptraj::Mode cmode = ProcessInput( argv[++i] );
@@ -957,7 +963,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   * \return C_ERR if error occurred.
   * \return C_QUIT if quit requested.
   */
-Cpptraj::Mode Cpptraj::Dispatch(const char* inputLine) {
+Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
   int err = 0;
   //mprintf("\t[%s]\n", inputLine);
   ArgList command( inputLine );

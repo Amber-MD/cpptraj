@@ -74,7 +74,7 @@ class Cpptraj {
     DispatchObject::TokenPtr SearchToken(ArgList&);
 
     Mode ProcessInput(std::string const&);
-    Mode Dispatch(const char*);        ///< Function that decides where to send commands
+    Mode Dispatch(std::string const&);     ///< Function that decides where to send commands
 
     /// List of parameter files 
     TopologyList parmFileList;
