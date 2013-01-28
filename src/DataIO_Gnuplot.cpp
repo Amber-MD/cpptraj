@@ -39,6 +39,7 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   // Label arguments
   LabelArg( Xlabels_, argIn.GetStringKey( "xlabels" ) );
   LabelArg( Ylabels_, argIn.GetStringKey( "ylabels" ) );
+  LabelArg( Zlabels_, argIn.GetStringKey( "zlabels" ) );
 
   if (pm3d_ == MAP) useMap_ = true;
   return 0;
@@ -211,6 +212,18 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList &SetLis
       ++setnum; 
     }
     file_.Printf(")\n");
+    // Set up Z labels
+    if (!Zlabels_.empty()) {
+      file_.Printf("set cbtics 1.0, 1.0\nset cbtics(");
+      int iz = 0;
+      for (std::vector<std::string>::iterator label = Zlabels_.begin();
+                                              label != Zlabels_.end(); ++label)
+      {
+        if (iz > 0) file_.Printf(",");
+        file_.Printf("\"%s\" %8.3f", (*label).c_str(), (float)iz++);
+      }
+      file_.Printf(")\n");
+    }
   }
 
   // Set axis label and range, write plot command

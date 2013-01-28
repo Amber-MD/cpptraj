@@ -19,6 +19,7 @@ class DataIO_Gnuplot : public DataIO {
 
     std::vector<std::string> Xlabels_;
     std::vector<std::string> Ylabels_;
+    std::vector<std::string> Zlabels_;
 
     enum PM3D_OPT { OFF = 0, ON, MAP, C2C };
     PM3D_OPT pm3d_;

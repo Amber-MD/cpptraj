@@ -73,6 +73,9 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     dssp_ = DSL->AddSet(DataSet::STRING, dsetname_, 0);
     if (dssp_==0) return Action::ERR;
     outfile_->AddSet( dssp_ );
+  } else {
+    // If not string output set up Z labels
+    outfile_->ProcessArgs("zlabels None,Para,Anti,3-10,Alpha,Pi,Turn");
   }
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
