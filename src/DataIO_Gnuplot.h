@@ -22,6 +22,7 @@ class DataIO_Gnuplot : public DataIO {
     std::vector<std::string> Zlabels_;
 
     enum PM3D_OPT { OFF = 0, ON, MAP, C2C };
+    static const char* BasicPalette[];
     PM3D_OPT pm3d_;
     bool printLabels_; 
     bool useMap_;
@@ -33,6 +34,7 @@ class DataIO_Gnuplot : public DataIO {
     void WriteRangeAndHeader(double, double, std::string const&);
     void Finish();
     void JpegOut(int,int);
+    void WriteDefinedPalette(int);
     int WriteDataAscii(std::string const&,DataSetList&);
     int WriteDataBinary(std::string const&,DataSetList&);
 };

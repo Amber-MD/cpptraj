@@ -159,6 +159,34 @@ int DataIO_Gnuplot::WriteDataBinary(std::string const& fname, DataSetList &SetLi
   return 0;
 }
 
+const char* DataIO_Gnuplot::BasicPalette[]= {
+  "#000000", // Black, 0
+  "#0000FF", // Blue,  1
+  "#00FF00", // Green, N/2
+  "#FF0000", // Red,   N
+};
+
+// DataIO_Gnuplot::WriteDefinedPalette()
+/** Write out a defined palette to the gnuplot file. */
+void DataIO_Gnuplot::WriteDefinedPalette(int ncolors) {
+  float mincolor = -0.5;
+  float maxcolor = (float)ncolors - 0.5;
+  file_.Printf("set cbrange [%8.3f:%8.3f]\nset cbtics %8.3f %8.3f 1.0\n",
+               mincolor, maxcolor, mincolor + 0.5, maxcolor - 0.5);
+  file_.Printf("set palette maxcolors %i\n", ncolors);
+  // NOTE: Giving gnuplot too many colors can mess up the palette 
+  //       interpolation, leading to unwanted colors being inserted.
+  //       Instead, just define a few "hint" colors; the zero color,
+  //       then low/middle/high.
+  const char** CurrentPalette = BasicPalette;
+  file_.Printf("set palette defined (");
+  file_.Printf("0 \"%s\",", CurrentPalette[0]);
+  file_.Printf("1 \"%s\",", CurrentPalette[1]);
+  if (ncolors > 3)
+    file_.Printf("%i \"%s\",", (ncolors / 2), CurrentPalette[2]);
+  file_.Printf("%i \"%s\")\n", (ncolors - 1), CurrentPalette[3]);
+}
+
 // DataIO_Gnuplot::WriteData()
 /** Write each frame from all sets in blocks in the following format:
   *   Frame Set   Value
@@ -214,7 +242,8 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList &SetLis
     file_.Printf(")\n");
     // Set up Z labels
     if (!Zlabels_.empty()) {
-      file_.Printf("set cbtics 1.0, 1.0\nset cbtics(");
+      WriteDefinedPalette(Zlabels_.size());
+      file_.Printf("set cbtics(");
       int iz = 0;
       for (std::vector<std::string>::iterator label = Zlabels_.begin();
                                               label != Zlabels_.end(); ++label)
