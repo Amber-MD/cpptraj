@@ -1072,6 +1072,14 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
 int Cpptraj::Run() {
   int err = 0;
   ++nrun_;
+  // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
+  // this means 1 or more actions has requested that a default COORDS DataSet
+  // be created.
+  DataSet* default_crd = DSL.FindSetOfType("_DEFAULTCRD_", DataSet::COORDS);
+  if (default_crd != 0) {
+    mprintf("Warning: One or more analyses requested creation of default COORDS DataSet.\n");
+    if (Dispatch("createcrd _DEFAULTCRD_") == C_ERR) return 1;
+  }
   switch ( trajinList.Mode() ) {
     case TrajinList::NORMAL   : err = RunNormal(); break;
     case TrajinList::ENSEMBLE : err = RunEnsemble(); break;

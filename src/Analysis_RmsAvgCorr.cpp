@@ -14,20 +14,16 @@ Analysis_RmsAvgCorr::Analysis_RmsAvgCorr() :
 { } 
 
 void Analysis_RmsAvgCorr::Help() {
-  mprintf("rmsavgcorr <crd set> [<mask>] [out <filename>] [output <separatename>]\n");
+  mprintf("rmsavgcorr [crdset <crd set>] [<mask>] [out <filename>] [output <separatename>]\n");
   mprintf("<crd set> can be created with the 'createcrd' command.\n");
 }
 
 Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  std::string setname = analyzeArgs.GetStringNext();
-  if (setname.empty()) {
-    mprinterr("Error: rmsavgcorr: Specify crd set name.\n");
-    Help();
-    return Analysis::ERR;
-  }
-  coords_ = (DataSet_Coords*)datasetlist->FindSetOfType( setname, DataSet::COORDS );
+  // Attempt to get coords dataset from datasetlist
+  std::string setname = analyzeArgs.GetStringKey("crdset");
+  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
   if (coords_ == 0) {
     mprinterr("Error: rmsavgcorr: Could not locate COORDS set corresponding to %s\n",
               setname.c_str());

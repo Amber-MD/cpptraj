@@ -11,7 +11,7 @@ Analysis_CrdFluct::Analysis_CrdFluct() :
 {}
 
 void Analysis_CrdFluct::Help() {
-  mprintf("crdfluct <crd set> [<mask>] [out <filename>] [window <size>]\n");
+  mprintf("crdfluct [crdset <crd set>] [<mask>] [out <filename>] [window <size>]\n");
   mprintf("<crd set> can be created with the 'createcrd' command.\n");
 }
 
@@ -19,13 +19,9 @@ void Analysis_CrdFluct::Help() {
 Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  std::string setname = analyzeArgs.GetStringNext();
-  if (setname.empty()) {
-    mprinterr("Error: crdfluct: Specify set name.\n");
-    Help();
-    return Analysis::ERR;
-  }
-  coords_ = (DataSet_Coords*)datasetlist->FindSetOfType( setname, DataSet::COORDS );
+  // Attempt to get coords dataset from datasetlist
+  std::string setname = analyzeArgs.GetStringKey("crdset");
+  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
   if (coords_ == 0) {
     mprinterr("Error: crdfluct: Could not locate COORDS set corresponding to %s\n",
               setname.c_str());

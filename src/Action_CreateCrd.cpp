@@ -18,7 +18,13 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, F
   }
   pindex_ = parm->Pindex();
   // DataSet
-  coords_ = (DataSet_Coords*)DSL->AddSet(DataSet::COORDS, actionArgs.GetStringNext(), "CRD");
+  std::string setname = actionArgs.GetStringNext();
+  if (setname == "_DEFAULTCRD_") {
+    // Special case: Creation of COORDS DataSet has been requested by an
+    //               analysis and should already be present.
+    coords_ = (DataSet_Coords*)DSL->FindSetOfType(setname, DataSet::COORDS);
+  } else 
+    coords_ = (DataSet_Coords*)DSL->AddSet(DataSet::COORDS, setname, "CRD");
   if (coords_ == 0) return Action::ERR;
   // Do not set topology here since it may be modified later.
 

@@ -72,6 +72,8 @@ class DataSetList {
     void Sync();
     /// Find next set of specified type with given name.
     DataSet* FindSetOfType(std::string const&, DataSet::DataType);
+    /// Find COORDS DataSet or create default COORDS DataSet.
+    DataSet* FindCoordsSet(std::string const&);
   private:
     typedef std::vector<DataSet*> DataListType;
     /// DataSet debug level

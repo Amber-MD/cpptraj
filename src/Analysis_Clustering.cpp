@@ -34,7 +34,7 @@ Analysis_Clustering::~Analysis_Clustering() {
 }
 
 void Analysis_Clustering::Help() {
-  mprintf("cluster <crd set>\n");
+  mprintf("cluster [crdset <crd set>]\n");
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
@@ -59,16 +59,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
 {
   debug_ = debugIn;
   // Attempt to get coords dataset from datasetlist
-  std::string setname = analyzeArgs.GetStringNext();
-  if (setname.empty()) {
-    mprinterr("Error: clustering: Specify crd set name.\n");
-    Help();
-    return Analysis::ERR;
-  }
-  coords_ = (DataSet_Coords*)datasetlist->FindSetOfType( setname, DataSet::COORDS );
+  std::string setname = analyzeArgs.GetStringKey("crdset");
+  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
   if (coords_ == 0) {
     mprinterr("Error: clustering: Could not locate COORDS set corresponding to %s\n",
               setname.c_str());
+    Help();
     return Analysis::ERR;
   }
   // Check for DataSet(s) to cluster on, otherwise coords will be used

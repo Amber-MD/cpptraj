@@ -19,7 +19,7 @@ Analysis_Rms2d::Analysis_Rms2d() :
 { } 
 
 void Analysis_Rms2d::Help() {
-  mprintf("rms2d <crd set> [<mask>] rmsout <filename> [nofit] [mass] [dme]\n");
+  mprintf("rms2d [crdset <crd set>] [<mask>] rmsout <filename> [nofit] [mass] [dme]\n");
   mprintf("      [reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n");
   mprintf("      [corr <corrfilename>]\n");
   mprintf("\tCalculate RMSD between all frames in <crd set>, or between frames in\n");
@@ -30,13 +30,9 @@ void Analysis_Rms2d::Help() {
 Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  std::string setname = analyzeArgs.GetStringNext();
-  if (setname.empty()) {
-    mprinterr("Error: rms2d: Specify crd set name.\n");
-    Help();
-    return Analysis::ERR;
-  }
-  coords_ = (DataSet_Coords*)datasetlist->FindSetOfType( setname, DataSet::COORDS );
+  // Attempt to get coords dataset from datasetlist
+  std::string setname = analyzeArgs.GetStringKey("crdset");
+  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
   if (coords_ == 0) {
     mprinterr("Error: rms2d: Could not locate COORDS set corresponding to %s\n",
               setname.c_str());

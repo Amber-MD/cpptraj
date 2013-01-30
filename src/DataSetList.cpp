@@ -399,3 +399,22 @@ DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType
   }
   return 0;
 }
+
+/** Search for a COORDS DataSet. If no name specified, create a default 
+  * COORDS DataSet named _DEFAULTCRD_.
+  */
+DataSet* DataSetList::FindCoordsSet(std::string const& setname) {
+  DataSet* outset = 0;
+  if (setname.empty()) {
+    // crdset not given, search for the default set
+    outset = FindSetOfType("_DEFAULTCRD_", DataSet::COORDS);
+    if (outset == 0) {
+      // No default set; create one.
+      outset = AddSet(DataSet::COORDS, "_DEFAULTCRD_", "CRD");
+    }
+  } else {
+    // crdset specified
+    outset = FindSetOfType(setname, DataSet::COORDS);
+  }
+  return outset;
+}
