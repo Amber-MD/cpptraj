@@ -48,6 +48,9 @@ class DataSetList {
     void SetPrecisionOfDatasets(int, int);
     /// Separate input string into DataSet args.
     std::string ParseArgString(std::string const&, std::string&, std::string&);
+    /// Get DataSet with specified name, index, and aspect.
+    DataSet* GetSet(std::string const&, int, std::string const&);
+    /// Get DataSet matching specified argument.
     DataSet* GetDataSet( std::string const& );
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& );
@@ -85,8 +88,6 @@ class DataSetList {
     /// Expected number of frames to be read in.
     int maxFrames_;
 
-    /// Get DataSet with specified name, index, and aspect.
-    DataSet* GetSet(std::string const&, int, std::string const&);
     /// Used to sort DataSets
     struct dsl_cmp {
       inline bool operator()(DataSet* first, DataSet* second) const {

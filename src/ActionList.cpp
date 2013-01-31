@@ -55,6 +55,7 @@
 #include "Action_Translate.h"
 #include "Action_Box.h"
 #include "Action_CreateCrd.h"
+#include "Action_MultiDihedral.h"
 
 const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, 0 },
@@ -90,6 +91,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, 0 },
   { DispatchObject::ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, 0 },
   { DispatchObject::ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, 0 },
+  { DispatchObject::ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, 0 },
   { DispatchObject::ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, 0 },
   { DispatchObject::ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, 0 },
   { DispatchObject::ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, 0 },
