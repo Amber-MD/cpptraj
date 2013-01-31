@@ -128,17 +128,20 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
     return Action::ERR;
   }
   // Print selected dihedrals
+  std::vector<DataSet*>::iterator ds = data_.begin();
   for (std::vector<int>::iterator atom = maskAtoms_.begin();
-                                  atom != maskAtoms_.end(); ++atom)
+                                  atom != maskAtoms_.end(); atom += 4, ++ds)
   {
-    mprintf("\tDIH: %s", currentParm->TruncResAtomName(*(atom++)).c_str());
+    /*mprintf("\tDIH: %s", currentParm->TruncResAtomName(*(atom++)).c_str());
     mprintf("-%s", currentParm->TruncResAtomName(*(atom++)).c_str());
     mprintf("-%s", currentParm->TruncResAtomName(*(atom++)).c_str());
-    mprintf("-%s\n", currentParm->TruncResAtomName(*atom).c_str());
+    mprintf("-%s\n", currentParm->TruncResAtomName(*atom).c_str());*/
+    mprintf("\tDIH [%s]:", (*ds)->Legend().c_str());
+    mprintf(" :%i@%i",   (*currentParm)[*atom    ].ResNum()+1, *atom     + 1);
+    mprintf(" :%i@%i",   (*currentParm)[*(atom+1)].ResNum()+1, *(atom+1) + 1);
+    mprintf(" :%i@%i",   (*currentParm)[*(atom+2)].ResNum()+1, *(atom+2) + 1);
+    mprintf(" :%i@%i\n", (*currentParm)[*(atom+3)].ResNum()+1, *(atom+3) + 1);
   }
-  // Print created DataSets
-  for (std::vector<DataSet*>::iterator ds = data_.begin(); ds != data_.end(); ++ds)
-    mprintf("\tDS: %s\n", (*ds)->Legend().c_str());
   return Action::OK;
 }
 
