@@ -19,7 +19,6 @@ class Action_MultiDihedral : public Action {
 
     std::vector<int> maskAtoms_;  ///< Selected atoms, 4 per dihedral
     std::vector<DataSet*> data_;  ///< Output DataSets, 1 per dihedral
-    bool useMass_;
     bool range360_;
     bool findPHI_;
     bool findPSI_;

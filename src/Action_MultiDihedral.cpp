@@ -5,7 +5,6 @@
 #include "TorsionRoutines.h"
 
 Action_MultiDihedral::Action_MultiDihedral() :
-  useMass_(false),
   range360_(false),
   findPHI_(false),
   findPSI_(false),
@@ -13,8 +12,8 @@ Action_MultiDihedral::Action_MultiDihedral() :
 {}
 
 void Action_MultiDihedral::Help() {
-  mprintf("\t[<name>] [phi] [psi] [resrange <range>] [mass] [out <filename>]\n");
-  mprintf("\t[range360]\n");
+  mprintf("\t[<name>] [phi] [psi] [resrange <range>] [out <filename>]\n");
+  //mprintf("\t[range360]\n");
 }
 
 Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
@@ -22,7 +21,6 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
 {
   // Get keywords
   outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
-  useMass_ = actionArgs.hasKey("mass");
   range360_ = actionArgs.hasKey("range360");
   std::string resrange_arg = actionArgs.GetStringKey("resrange");
   if (!resrange_arg.empty())
@@ -48,7 +46,6 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
     mprintf(" dihedrals for all residues.\n");
   mprintf("\tDataSet name: %s\n", dsetname_.c_str());
   if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->Filename());
-  if (useMass_) mprintf("\tMass-weighted\n");
   if (range360_) 
     mprintf("\tRange 0-360 deg.\n");
   else
