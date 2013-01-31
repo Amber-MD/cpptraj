@@ -301,12 +301,12 @@ std::vector<Vec3> Action_Rotdif::RandomVectors() {
   XYZ.reserve( nvecs_ );
   // ----- Read nvecs vectors from a file
   if (!randvecIn_.empty()) {
-    BufferedFile vecIn;
+    CpptrajFile vecIn;
     if (vecIn.OpenRead(randvecIn_)) {
       mprinterr("Error: Could not open random vectors input file %s",randvecIn_.c_str());
       return XYZ;
     }
-    vecIn.SetupBuffer();
+    //vecIn.SetupBuffer(); // NOTE: Use CpptrajFile internal buffer (1024 chars)
     double xIn[3];
     for (int i = 0; i < nvecs_; i++) {
       const char* buffer = vecIn.NextLine();
