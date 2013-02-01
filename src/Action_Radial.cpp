@@ -104,13 +104,15 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   }
   // Make default precision a little higher than normal
   Dset_->SetPrecision(12,6);
+  // Set legend
+  Dset_->SetLegend("[" + Mask1_.MaskExpression() + "] => [" +
+                         Mask2_.MaskExpression() + "]" );
   // Setup output datafile. Align on bin centers instead of left.
   std::string outfile_args = "xmin " + doubleToString(spacing_ / 2.0) + 
                              " xstep " + doubleToString(spacing_);
   outfile->ProcessArgs(outfile_args);
   // Create label from mask strings. Enclose in quotes so the label is 1 arg.
-  outfile->ProcessArgs("xlabel \"[" + Mask1_.MaskExpression() + "] => [" + 
-                                      Mask2_.MaskExpression() + "]\"" );
+  outfile->ProcessArgs("xlabel \"Distance (Ang)\"");
   outfile->ProcessArgs("ylabel g(r)");
   // Set up output for sum of mask2 if specified.
   if (!intrdfname.empty()) {
