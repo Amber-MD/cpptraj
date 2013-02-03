@@ -43,6 +43,7 @@ class Action_Rmsd: public Action {
     bool nofit_;                       ///< If true do not calculate best-fit RMSD
     bool rotate_;                      ///< If true and fitting, do not rotate coords.
     bool useMass_;
+    bool previous_;
     Vec3 Trans_;                       ///< For fit, hold translation tgt->origin
     Vec3 refTrans_;                    ///< For fit, hold translation origin->ref
     Frame SelectedFrame_;              ///< Hold only selected target frame coords.

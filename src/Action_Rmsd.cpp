@@ -19,6 +19,7 @@ Action_Rmsd::Action_Rmsd() :
   nofit_(false),
   rotate_(true),
   useMass_(false),
+  previous_(false),
   rmsd_(0),
   masterDSL_(0),
   refmode_(UNKNOWN_REF),
@@ -100,7 +101,8 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   // Reference keywords
   refmode_ = UNKNOWN_REF;
-  if ( actionArgs.hasKey("first") ) {
+  previous_ = actionArgs.hasKey("previous");
+  if ( actionArgs.hasKey("first") || previous_) {
     refmode_ = FIRST;
   } else {
     REF = FL->GetFrame( actionArgs );
@@ -179,7 +181,9 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (outfile != 0) outfile->AddSet( rmsd_ );
 
   mprintf("    RMSD: (%s), reference is",FrameMask_.MaskString());
-  if (refmode_ == FIRST)
+  if (previous_)
+    mprintf(" previous frame");
+  else if (refmode_ == FIRST)
     mprintf(" first frame");
   else if (refmode_==REFTRAJ)
     mprintf(" trajectory %s",RefTraj_.FullTrajStr());
@@ -353,6 +357,9 @@ Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress
   // Reference setup if 'first'
   if (refmode_ == FIRST) {
     if ( SetRefMask( currentParm )!=0 ) return Action::ERR;
+  } else if (previous_) {
+    mprintf("Warning: 'previous' may not work properly for changing topologies.\n");
+    if ( SetRefMask( currentParm )!=0 ) return Action::ERR;
   }
   
   // Check that num atoms in frame mask from this parm match ref parm mask
@@ -438,6 +445,9 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
       PerResRMSD_[N]->Add(frameNum, &R);
     }
   }
+
+  if (previous_)
+    SetRefStructure( *currentFrame );
 
   return Action::OK;
 }
