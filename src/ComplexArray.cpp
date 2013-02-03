@@ -4,9 +4,10 @@
 ComplexArray::ComplexArray(int i) : 
   ndata_(i*2), ncomplex_(i) 
 { 
-  if (ndata_ > 0) 
-    data_ = new double[ ndata_ ]; 
-  else
+  if (ndata_ > 0) { 
+    data_ = new double[ ndata_ ];
+    memset(data_, 0, ndata_ * sizeof(double));
+  } else
     data_ = 0;
 }
 
@@ -14,9 +15,10 @@ ComplexArray::ComplexArray(ComplexArray const& rhs) :
   ndata_(rhs.ndata_),
   ncomplex_(rhs.ncomplex_)
 {
-  if (ndata_ > 0) 
+  if (ndata_ > 0) { 
     data_ = new double[ ndata_ ];
-  else
+    memcpy(data_, rhs.data_, ndata_ * sizeof(double));
+  } else
     data_ = 0;
 }
 
