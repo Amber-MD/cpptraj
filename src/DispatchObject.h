@@ -1,6 +1,5 @@
 #ifndef INC_DISPATCHOBJECT_H
 #define INC_DISPATCHOBJECT_H
-#include "ArgList.h"
 /// Abstract base class that all dispatchable objects will inherit.
 class DispatchObject {
   public:
@@ -16,7 +15,7 @@ class DispatchObject {
       DispatchCmdType Cmd;
       DispatchAllocatorType Alloc;
       DispatchHelpType Help;
-      int Idx;
+      int Idx; // TODO: Remove
     };
     typedef const Token* TokenPtr;
 };

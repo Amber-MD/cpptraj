@@ -46,29 +46,59 @@ class Cpptraj {
     static void Help_CrdAction();
     static void Help_CrdOut();
     static void Help_RunAnalysis();
-    void Help(ArgList&);
-    void List(ArgList&);
-    void Debug(ArgList&);
-    void Clear(ArgList&);
-    int Create_DataFile(ArgList&,int);
-    int Precision(ArgList&);
-    int ReadData(ArgList&);
-    void SelectDS(ArgList&);
-    int LoadParm(ArgList&);
-    int ParmInfo(ArgList&,int);
-    int ParmWrite(ArgList&);
-    int ParmStrip(ArgList&);
-    int ParmBox(ArgList&);
-    int ParmSolvent(ArgList&);
-    int Select(ArgList&);
-    int CrdAction(ArgList&);
-    int CrdOut(ArgList&);
-    int CrdAnalyze(ArgList&);
 
-    static const DispatchObject::Token GeneralCmds[];
-    static const DispatchObject::Token CoordCmds[];
-    static const DispatchObject::Token ParmCmds[];
-    static const DispatchObject::Token Deprecated[];
+    /*class CommandObject {
+      public:
+        typedef int (Cpptraj::*FxnPtrType)(ArgList&,int);
+        CommandObject() : type_(0), command_(0), fxn_(0) {}
+        CommandObject(int t,const char* c,FxnPtrType f) : type_(t), command_(c), fxn_(f) {}
+        CommandObject(const CommandObject& rhs) :
+          type_(rhs.type_), command_(rhs.command_), fxn_(rhs.fxn_) {}
+        DispatchObject::DispatchType Type() const { return type_;    }
+        const char* Command()               const { return command_; }
+        FxnPtrType Fxn()                    const { return fxn_;     }
+        int Idx()                           const { return idx_;     }
+      private:
+        DispatchObject::DispatchType type_;
+        const char* command_;
+        FxnPtrType fxn_;
+        int idx_;
+    };
+    std::vector<CommandObject> Cmds_;*/
+    typedef int (Cpptraj::*FxnPtrType)(ArgList&,int);
+    struct CommandObject {
+      DispatchObject::DispatchType type_;
+      const char* command_;
+      DispatchObject::DispatchHelpType help_;
+      FxnPtrType fxn_;
+      int idx_;
+    };
+    static const CommandObject Cmds_[];
+
+    int GeneralCmd(ArgList&,int);
+    int Help(ArgList&,int);
+    int List(ArgList&,int);
+    int Debug(ArgList&,int);
+    int Clear(ArgList&,int);
+    int Create_DataFile(ArgList&,int);
+    int Precision(ArgList&,int);
+    int ReadData(ArgList&,int);
+    int SelectDS(ArgList&,int);
+    int LoadParm(ArgList&,int);
+    int ParmInfo(ArgList&,int);
+    int ParmWrite(ArgList&,int);
+    int ParmStrip(ArgList&,int);
+    int ParmBox(ArgList&,int);
+    int ParmSolvent(ArgList&,int);
+    int Select(ArgList&,int);
+    int CrdAction(ArgList&,int);
+    int CrdOut(ArgList&,int);
+    int CrdAnalyze(ArgList&,int);
+
+    //static const DispatchObject::Token GeneralCmds[];
+    //static const DispatchObject::Token CoordCmds[];
+    //static const DispatchObject::Token ParmCmds[];
+    //static const DispatchObject::Token Deprecated[];
     void ListAllCommands(const DispatchObject::Token*);
     DispatchObject::TokenPtr SearchTokenArray(const DispatchObject::Token*, ArgList const&);
     DispatchObject::TokenPtr SearchToken(ArgList&);
