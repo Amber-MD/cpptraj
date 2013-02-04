@@ -170,7 +170,7 @@ int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double 
     if (file_.OpenWriteWithName( NumberFilename( file_.FullFileName(), set+1) )) return 1;
   }
   //@<TRIPOS>MOLECULE section
-  file_.WriteMolecule( hasCharges_ );
+  file_.WriteMolecule( hasCharges_, mol2Top_->Nres() );
   //@<TRIPOS>ATOM section
   file_.WriteHeader(Mol2File::ATOM);
   double *Xptr = X;

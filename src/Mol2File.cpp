@@ -86,7 +86,7 @@ bool Mol2File::ReadMolecule( ) {
   return false;
 }
 
-bool Mol2File::WriteMolecule(bool hasCharges) {
+bool Mol2File::WriteMolecule(bool hasCharges, int mol2res) {
   Printf("%s\n", TRIPOSTAGTEXT[MOLECULE]);
   // mol_name
   // num_atoms [num_bonds [num_subst [num_feat [num_sets]]]]
@@ -95,7 +95,7 @@ bool Mol2File::WriteMolecule(bool hasCharges) {
   // [status_bits
   // [mol_comment]]
   Printf("%s\n", mol2title_.c_str());
-  Printf("%5i %5i %5i %5i %5i\n", mol2atoms_, mol2bonds_, 1, 0, 0);
+  Printf("%5i %5i %5i %5i %5i\n", mol2atoms_, mol2bonds_, mol2res, 0, 0);
   Printf("SMALL\n"); // May change this later
   if ( hasCharges )
     Printf("USER_CHARGES\n"); // May change this later

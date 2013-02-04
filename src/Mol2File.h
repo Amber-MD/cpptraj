@@ -16,7 +16,7 @@ class Mol2File : public CpptrajFile {
     void WriteHeader( TRIPOSTAG );
     /// Read in MOLECULE section of mol2file.
     bool ReadMolecule();
-    bool WriteMolecule(bool);
+    bool WriteMolecule(bool,int);
     //// Used to only read # atoms in next MOLECULE record.
     int NextMolecule();
     /// Read in the next Mol2 BOND line. Get the indices of the bonded atoms.
