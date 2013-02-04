@@ -240,6 +240,9 @@ int Action_NAstruct::determineBasePairing() {
   int Nbases1 = Nbases - 1;
   std::vector<bool> isPaired( Nbases, false);
   for (int base1 = 0; base1 < Nbases1; base1++) {
+#   ifdef NASTRUCTDEBUG
+    mprintf("Base %i:%s\n",Bases_[base1].ResNum()+1, Bases_[base1].ResName());
+#   endif
     if (isPaired[base1]) continue;
     int minBaseNum = -1;
     double minDistance = 0;
@@ -700,7 +703,7 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
     const NA_Base& base1 = Bases_[b1];
     const NA_Base& base2 = Bases_[b2]; 
 #   ifdef NASTRUCTDEBUG
-    mprintf("BasePair %s to %s", base1.ResName(), base2.ResName());
+    mprintf("BasePair %i:%s to %i:%s", b1+1, base1.ResName(), b2+1, base2.ResName());
     if ((*BP).IsAnti())
       mprintf(" Anti-parallel.\n");
     else
@@ -970,6 +973,9 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
                              resnum != actualRange.end(); ++resnum)
   {
     NA_Base::NAType baseType = NA_Base::UNKNOWN_BASE;
+#   ifdef NASTRUCTDEBUG
+    mprintf(" ----- Setting up %i:%s -----\n", *resnum+1, currentParm->Res(*resnum).c_str());
+#   endif
     // Check if the residue at resnum matches any of the custom maps
     if (!CustomMap_.empty()) {
       std::string resname( currentParm->Res(*resnum).c_str() );

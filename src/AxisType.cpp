@@ -152,24 +152,31 @@ NA_Base& NA_Base::operator=(const NA_Base& rhs) {
 // NA_Base::ID_BaseFromName()
 /** Identify NA base typ from residue name. */
 NA_Base::NAType NA_Base::ID_BaseFromName(NameType const& resname) {
-  // If residue name begins with D, assume AMBER DNA residue
   if (resname[0]=='D') {
+    // If residue name begins with D, assume AMBER DNA residue
     switch (resname[1]) {
       case 'A': return ADE;
       case 'C': return CYT;
       case 'G': return GUA;
       case 'T': return THY;
     }
-  // If residue name beings with R, assume AMBER RNA residue
   } else if (resname[0]=='R') {
+    // If residue name beings with R, assume AMBER RNA residue
     switch (resname[1]) {
       case 'A': return ADE;
       case 'C': return CYT;
       case 'G': return GUA;
       case 'U': return URA;
     }
-  // Look for standard 3 letter/1 letter NA residue names
+  } else if (resname[2] == ' ' && (resname[1] == '3' || resname[1] == '5')) {
+    // Look for 1 letter terminal NA residue names
+    if (resname[0] == 'A') return ADE;
+    if (resname[0] == 'C') return CYT;
+    if (resname[0] == 'G') return GUA;
+    if (resname[0] == 'T') return THY;
+    if (resname[0] == 'U') return URA;
   } else {
+    // Look for standard 3 letter/1 letter NA residue names
     if ( resname == "ADE " ) return ADE;
     if ( resname == "CYT " ) return CYT;
     if ( resname == "GUA " ) return GUA;
