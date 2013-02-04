@@ -76,7 +76,7 @@ ArgList.o : ArgList.cpp ArgList.h CpptrajStdio.h StringRoutines.h
 Atom.o : Atom.cpp Atom.h CpptrajStdio.h NameType.h
 AtomMap.o : AtomMap.cpp Atom.h AtomMap.h AtomMask.h Box.h CpptrajStdio.h Frame.h MapAtom.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h Topology.h Vec3.h
 AtomMask.o : AtomMask.cpp ArgList.h AtomMask.h CpptrajStdio.h MaskToken.h NameType.h
-AxisType.o : AxisType.cpp Atom.h AtomMask.h AxisType.h Box.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h StringRoutines.h Topology.h Vec3.h
+AxisType.o : AxisType.cpp Atom.h AtomMask.h AxisType.h Box.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h Topology.h Vec3.h
 Box.o : Box.cpp Box.h Constants.h CpptrajStdio.h Matrix_3x3.h Vec3.h
 BufferedFile.o : BufferedFile.cpp BufferedFile.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h
 ByteRoutines.o : ByteRoutines.cpp
