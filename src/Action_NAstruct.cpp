@@ -85,8 +85,9 @@ int Action_NAstruct::setupBaseAxes(Frame const& InputFrame) {
   basesfile.OpenWrite("bases.pdb");
   mprintf("\n=================== Setup Base Axes ===================\n");
 # endif
-
-  for (std::vector<NA_Base>::iterator base = Bases_.begin(); base != Bases_.end(); ++base)
+  std::vector<NA_Axis>::iterator baseAxis = BaseAxes_.begin();
+  for (std::vector<NA_Base>::iterator base = Bases_.begin(); 
+                                      base != Bases_.end(); ++base, ++baseAxis)
   {
     // Set input coords for entire NA residue. 
     (*base).SetInputFrame( InputFrame );
@@ -128,16 +129,14 @@ int Action_NAstruct::setupBaseAxes(Frame const& InputFrame) {
      * vectors of the base axes.
      */
     // Store the Rotation matrix and the rotated and translated origin.
-    BaseAxes_.push_back( NA_Axis(RotMatrix, (RotMatrix*TransVec)+refTrans, (*base).ResNum()) );
+    (*baseAxis).SetupBaseAxis( RotMatrix, (RotMatrix*TransVec)+refTrans, (*base).ResNum() );
     if (debug_>0) { 
       mprintf("Base %u: RMS of RefCoords from ExpCoords is %f\n",base-Bases_.begin(),rmsd);
-      //printMatrix_3x3("Rotation matrix:",RotMatrix);
-      //printRotTransInfo(RotMatrix,TransVec);
-      BaseAxes_.back().PrintAxisInfo("BaseAxes");
+      (*baseAxis).PrintAxisInfo("BaseAxes");
     }
 #   ifdef NASTRUCTDEBUG
     // DEBUG - Write base axis to file
-    WriteAxes(baseaxesfile, (*base).ResNum()+1, (*base).ResName(), BaseAxes_.back());
+    WriteAxes(baseaxesfile, (*base).ResNum()+1, (*base).ResName(), *baseAxis);
      // Overlap ref coords onto input coords.
     Frame reftemp = (*base).Ref(); 
     reftemp.Trans_Rot_Trans(TransVec, RotMatrix, refTrans);
@@ -944,7 +943,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   */
 Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAddress) {
   Range actualRange;
-  // Clear all lists
+  // Clear Bases and BaseAxes
   ClearLists();
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
@@ -1011,7 +1010,7 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
     }
   } // End Loop over NA residues
   // Allocate space for base axes
-  BaseAxes_.reserve( Bases_.size() );
+  BaseAxes_.resize( Bases_.size() );
   mprintf("\tSet up %zu bases.\n", Bases_.size());
 
   return Action::OK;  
@@ -1096,7 +1095,7 @@ void Action_NAstruct::Print() {
   // Check that there is actually data
   // TODO: Check helix data as well
   if ( SHIFT_.empty() || SHIFT_[0]->Empty() )
-    mprinterr("Error: nastruct: Could not write BPstep / helix files: No data.\n"); 
+    mprintf("Warning: nastruct: Could not write BPstep / helix files: No data.\n"); 
   else {
     int err = 0;
     err += outfile.OpenWrite( outfilename );

@@ -3,9 +3,6 @@
 #include <cstring> // memcpy
 #include "AxisType.h"
 #include "CpptrajStdio.h"
-#ifdef NASTRUCTDEBUG
-#include "StringRoutines.h" // integerToString
-#endif
 
 // ---------- NA REFERENCE BASE ATOM NAMES AND COORDS --------------------------
 struct NA_RefAtom {
@@ -91,9 +88,11 @@ static const NA_RefAtom R_URA[] = {
   {  0.000000,  0.000000,  0.000000,  0, 0, 0     }
 };
 
+#ifdef NASTRUCTDEBUG
 // UNKNOWN_BASE, ADE, CYT, GUA, THY, URA 
 /// Base names corresponding to NAbaseType
-//static const char* NAbaseName[] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
+static const char* NAbaseName[] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
+#endif
 
 // ---------- NA_Base ----------------------------------------------------------
 NA_Base::NA_Base() :
@@ -200,7 +199,6 @@ int NA_Base::FindAtom(NameType const& atname) {
   * the atom ordering in the reference matches that in the given parm.
   * If an error occurs the type will be set to UNKNOWN_BASE. 
   */
-// TODO: Pass in Residue instead of Parm. Residue should contain first/last atom.
 NA_Base::NA_Base(Topology const& currentParm, int resnum, NA_Base::NAType baseType) 
 {
   type_ = UNKNOWN_BASE;
@@ -254,6 +252,10 @@ NA_Base::NA_Base(Topology const& currentParm, int resnum, NA_Base::NAType baseTy
         break;
       } else {
         BaseMap.insert( std::pair<int,int>(inpatom, refatom) );
+#       ifdef NASTRUCTDEBUG
+        mprintf("Ref atom %i:%s found in parm (%i:%s)\n",refatom+1,ref->aname,
+                inpatom+1,*anames_[inpatom]);
+#       endif
       }
       ++refatom;
     }
@@ -264,8 +266,9 @@ NA_Base::NA_Base(Topology const& currentParm, int resnum, NA_Base::NAType baseTy
       hbidx_[0] = -1;
       hbidx_[1] = -1;
       hbidx_[2] = -1;
+      int refidx = 0; // Will correspond to Ref frame
       for (std::map<int,int>::iterator atom = BaseMap.begin(); 
-                                       atom != BaseMap.end(); atom++) {
+                                       atom != BaseMap.end(); atom++, refidx++) {
         inpatom = (*atom).first;
         refatom = (*atom).second;
         // Check if this is an H bonding atom. If so, store the memory address
@@ -283,7 +286,7 @@ NA_Base::NA_Base(Topology const& currentParm, int resnum, NA_Base::NAType baseTy
         // Will this atom be used for RMS fitting?
         if (REF[refatom].rms_fit == 1) {
           inpFitMask_.AddAtom( inpatom );
-          refFitMask_.AddAtom( refatom );
+          refFitMask_.AddAtom( refidx );
         }
       }
       // Make sure all masks have atoms
@@ -328,22 +331,14 @@ void NA_Base::PrintAtomNames() {
 }
 
 // ---------- NA_Axis ----------------------------------------------------------
+// CONSTRUCTOR
 NA_Axis::NA_Axis() : residue_number_(0), second_resnum_(-1), isAnti_(false) {}
 
-/// Used to set up base axis
-NA_Axis::NA_Axis(Matrix_3x3 const& Rin, Vec3 const& oIn, int rnum) :
-  R_(Rin),
-  origin_(oIn),
-  residue_number_(rnum),
-  second_resnum_(-1),
-  isAnti_(false)
-{
-  RX_ = R_.Col1();
-  RY_ = R_.Col2();
-  RZ_ = R_.Col3();
+void NA_Axis::SetupBaseAxis(Matrix_3x3 const& Rin, Vec3 const& oIn, int rnum) {
+  StoreRotMatrix(Rin, oIn);
+  residue_number_ = rnum;
 }
 
-/// Used to set up base pair axis
 NA_Axis::NA_Axis(int rnum1, int rnum2, bool isAntiIn) :
   residue_number_(rnum1),
   second_resnum_(rnum2),
