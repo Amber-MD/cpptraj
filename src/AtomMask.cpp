@@ -124,6 +124,9 @@ static int OperatorPriority(char op) {
   *   is scanned, or ')' is scanned when '_' is at the top of the
   *   stack, the parentheses of the atom expression were unbalanced
   *   and an unrecoverable error has occurred.
+  *
+  * \authors Daniel R. Roe, based on the tokenize() routine from PTRAJ
+  *          by Viktor Hornak (2003).
   */
 int AtomMask::Tokenize() {
   std::string infix;
