@@ -631,9 +631,9 @@ int Cpptraj::CrdAction(ArgList& argIn) {
     //if ( currentFrame != originalFrame ) 
       CRD->SetCRD( frame, *currentFrame );
   }
+  act->Print();
   delete originalFrame;
   delete originalParm;
-  act->Print();
   delete act;
   return 0;
 }
