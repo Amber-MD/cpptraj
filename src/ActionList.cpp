@@ -114,6 +114,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, 0 },
   { DispatchObject::ACTION, "surf", Action_Surf::Alloc, Action_Surf::Help, 0 },
   { DispatchObject::ACTION, "trans", Action_Translate::Alloc, Action_Translate::Help, 0 },
+  { DispatchObject::ACTION, "translate", Action_Translate::Alloc, Action_Translate::Help, 0 },
   { DispatchObject::ACTION, "unstrip", Action_Unstrip::Alloc, Action_Unstrip::Help, 0 },
   { DispatchObject::ACTION, "unwrap", Action_Unwrap::Alloc, Action_Unwrap::Help, 0 },
   { DispatchObject::ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, 0 },
