@@ -235,7 +235,7 @@ while [[ ! -z $1 ]] ; do
     "-debug" | "-d" ) 
       echo "Turning on compiler debug info"
       echo "Turning off optimization"
-      DBGFLAGS="-g -Wall -O0"
+      DBGFLAGS="-g -O0"
       OPT=0
       ;;
     "-debugon"      ) 
@@ -317,21 +317,6 @@ if [[ -z $CC || -z $CXX ]] ; then
   exit 1
 fi
 
-# Use cray wrappers
-if [[ $USECRAY -eq 1 ]] ; then
-  # For pgi modify some flags
-  if [[ $CC = "pgcc" ]] ; then
-    OPTFLAGS="-fast"
-    OMPFLAGS="-mp=nonuma"
-    FFLAGS="-Mfree"
-    FOPTFLAGS="-fast"
-    FLIBS="-pgf90libs"
-  fi
-  CC=cc
-  CXX=CC
-  FC=ftn
-fi
-
 # Remove opt flags if specified
 if [[ $OPT -eq 0 ]] ; then
   OPTFLAGS=""
@@ -380,15 +365,6 @@ else
   fi
 fi
 
-# Change compilers for MPI if specified
-if [[ $USEMPI -eq 1 ]] ; then
-  echo "Using MPI"
-  CC=mpicc
-  CXX=mpicxx
-  FC=mpif90
-  DIRECTIVES="$DIRECTIVES -DMPI"
-fi
-
 # Add flags for OPENMP if specified
 if [[ $USEOPENMP -eq 1 ]] ; then
   echo "Using OPENMP"
@@ -396,13 +372,22 @@ if [[ $USEOPENMP -eq 1 ]] ; then
   LDFLAGS="$OMPFLAGS $LDFLAGS"
 fi
 
+# For pgi on cray modify some flags
+if [[ $USECRAY -eq 1 && $CC = "pgcc" ]] ; then
+    OPTFLAGS="-fast"
+    OMPFLAGS="-mp=nonuma"
+    FOPTFLAGS="-fast"
+fi
+
 CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 FFLAGS="$FFLAGS $DBGFLAGS $FOPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 
-# Add C++ specific debug flags if debug info on
-if [[ ! -z $DBGFLAGS ]] ; then
-  CXXFLAGS="-fno-inline $CXXFLAGS"
+# Add debug flags for non-PGI compilers if debug info on
+if [[ ! -z $DBGFLAGS && $CXX != "pgc++" ]] ; then
+  CFLAGS="-Wall $CFLAGS"
+  CXXFLAGS="-Wall -fno-inline $CXXFLAGS"
+  FFLAGS="-Wall $FFLAGS"
 fi
 
 # Turn on profiling if specified
@@ -414,6 +399,24 @@ if [[ $PROFILE -eq 1 && $CXX = "g++" ]] ; then
 elif [[ $PROFILE -eq 2 && $CXX = "g++" ]] ; then
   echo "Turning on GLIBC profiling for $CXX."
   CXXFLAGS="-D_GLIBCXX_PROFILE $CXXFLAGS"
+fi
+
+# Change compilers for MPI if specified
+if [[ $USEMPI -eq 1 ]] ; then
+  echo "Using MPI"
+  DIRECTIVES="$DIRECTIVES -DMPI"
+  if [[ $USECRAY -eq 0 ]] ; then
+    CC=mpicc
+    CXX=mpicxx
+    FC=mpif90
+  fi
+fi
+
+# Use cray wrappers
+if [[ $USECRAY -eq 1 ]] ; then
+  CC=cc
+  CXX=CC
+  FC=ftn
 fi
 
 # Test compilers
