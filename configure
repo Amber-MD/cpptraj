@@ -8,11 +8,12 @@
 
 # Print help message
 Usage() {
-  echo "Usage: ./configure [gnu/intel] OPTIONS"
+  echo "Usage: ./configure [gnu | intel | pgi] OPTIONS"
   echo "   OPTIONS:"
   echo "   --help     : Display this message."
   echo "   -d, -debug : Turn on compiler debugging info"
   echo "   -openmp    : Use openmp for parallelization of certain routines."
+  echo "   -cray      : Use cray compiler wrappers (cc/CC/ftn)."
   echo "   -debugon   : Add -DDEBUG flag to activate internal debugging"
   echo "   -noopt     : Do not use optimized compiler flags (default when -d specified)"
   echo "   -nobzlib   : Do not use Bzip2"
@@ -190,6 +191,7 @@ INCLUDE=""
 USEMPI=0
 USEOPENMP=0
 PROFILE=0
+USECRAY=0
 while [[ ! -z $1 ]] ; do
   ParseArg $1
   case "$KEY" in
@@ -225,6 +227,10 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-Mfree"
       FOPTFLAGS="-fast -O3"
       FLIBS="-pgf90libs"
+      ;;
+    "-cray" )
+      echo "Using cray compiler wrappers (cc/CC/ftn)"
+      USECRAY=1
       ;; 
     "-debug" | "-d" ) 
       echo "Turning on compiler debug info"
@@ -306,9 +312,24 @@ done
 # Check for compilers
 if [[ -z $CC || -z $CXX ]] ; then
   echo "No compiler specified."
-  echo "Specify 'gnu' or 'intel' as an argument to ./configure"
+  echo "Specify 'gnu', 'intel', or 'pgi' as an argument to ./configure"
   Usage
   exit 1
+fi
+
+# Use cray wrappers
+if [[ $USECRAY -eq 1 ]] ; then
+  # For pgi modify some flags
+  if [[ $CC = "pgcc" ]] ; then
+    OPTFLAGS="-fast"
+    OMPFLAGS="-mp=nonuma"
+    FFLAGS="-Mfree"
+    FOPTFLAGS="-fast"
+    FLIBS="-pgf90libs"
+  fi
+  CC=cc
+  CXX=CC
+  FC=ftn
 fi
 
 # Remove opt flags if specified
