@@ -1083,12 +1083,13 @@ void Topology::Mask_SelectDistance( Frame const& REF, char *mask, bool within,
 
   if (byAtom) { // Select by atom
     // Loop over all atoms
+    int n_of_atoms = (int)atoms_.size();
 #ifdef _OPENMP
 #pragma omp parallel private(atomi, idx, atomj, d2, i_crd)
 {
 #pragma omp for
 #endif
-    for (atomi = 0; atomi < (int)atoms_.size(); atomi++) {
+    for (atomi = 0; atomi < n_of_atoms; atomi++) {
       // No need to calculate if atomi already selected
       if (mask[atomi] == 'T') continue;
       // Loop over initially selected atoms
@@ -1113,12 +1114,13 @@ void Topology::Mask_SelectDistance( Frame const& REF, char *mask, bool within,
 } // END pragma omp parallel
 #endif
   } else { // Select by residue
+    int n_of_res = (int)residues_.size();
 #ifdef _OPENMP
 #pragma omp parallel private(atomi, idx, atomj, d2, resi, selectresidue, endatom, i_crd)
 {
 #pragma omp for
 #endif
-    for (resi = 0; resi < (int)residues_.size(); resi++) {
+    for (resi = 0; resi < n_of_res; resi++) {
       selectresidue = false;
       // Determine end atom for this residue
       endatom = residues_[resi].LastAtom();
