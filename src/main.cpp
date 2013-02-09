@@ -5,11 +5,7 @@
 #include <cstdio>
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
-#ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V13.9.9b"
-#define CPPTRAJ_INTERNAL_VERSION "V3.7.9b"
-#endif
-
+#include "Version.h"
 // ----------========== CPPTRAJ MAIN ROUTINE ==========----------
 /// Main routine.
 int main(int argc, char **argv) {

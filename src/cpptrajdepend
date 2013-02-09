@@ -121,14 +121,14 @@ Grid.o : Grid.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h
 Histogram.o : Histogram.cpp CpptrajFile.h CpptrajStdio.h DataSet.h Dimension.h FileIO.h FileName.h Histogram.h
 Integrate.o : Integrate.cpp CpptrajStdio.h Integrate.h
 ImageRoutines.o : ImageRoutines.cpp Atom.h AtomMask.h Box.h DistRoutines.h Frame.h ImageRoutines.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
-main.o : main.cpp Action.h ActionFrameCounter.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h Cpptraj.h CpptrajFile.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h DispatchObject.h FileIO.h FileList.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h MpiRoutines.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h TrajinList.h Trajout.h TrajoutList.h Vec3.h
+main.o : main.cpp Action.h ActionFrameCounter.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h Cpptraj.h CpptrajFile.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h DispatchObject.h FileIO.h FileList.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h MpiRoutines.h NameType.h ProgressBar.h Range.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h TrajinList.h Trajout.h TrajoutList.h Vec3.h Version.h
 MapAtom.o : MapAtom.cpp Atom.h MapAtom.h NameType.h
 Matrix_3x3.o : Matrix_3x3.cpp Constants.h CpptrajStdio.h Matrix_3x3.h Vec3.h
 Matrix_2D.o : Matrix_2D.cpp CpptrajFile.h DataSet.h FileIO.h FileName.h Matrix_2D.h
 MaskToken.o : MaskToken.cpp CpptrajStdio.h MaskToken.h NameType.h StringRoutines.h
 Mol2File.o : Mol2File.cpp Atom.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Mol2File.h NameType.h StringRoutines.h
 NameType.o : NameType.cpp NameType.h
-NetcdfFile.o : NetcdfFile.cpp CpptrajStdio.h NetcdfFile.h
+NetcdfFile.o : NetcdfFile.cpp CpptrajStdio.h NetcdfFile.h Version.h
 Parm_Amber.o : Parm_Amber.cpp Atom.h AtomMask.h Box.h Constants.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParmIO.h Parm_Amber.h Residue.h StringRoutines.h Topology.h Vec3.h
 Parm_CharmmPsf.o : Parm_CharmmPsf.cpp Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParmIO.h Parm_CharmmPsf.h Residue.h Topology.h Vec3.h
 ParmFile.o : ParmFile.cpp Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParmFile.h ParmIO.h Parm_Amber.h Parm_CharmmPsf.h Parm_Mol2.h Parm_PDB.h Residue.h Topology.h Vec3.h
