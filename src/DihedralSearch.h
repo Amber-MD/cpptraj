@@ -3,13 +3,11 @@
 #include "Topology.h"
 #include "Range.h"
 class DihedralSearch {
+    class DihedralMask;
   public:
-    typedef std::vector<AtomMask>::const_iterator mask_it;
+    typedef std::vector<DihedralMask>::const_iterator mask_it;
     mask_it begin() { return dihedrals_.begin(); }
     mask_it end()   { return dihedrals_.end();   }
-    typedef std::vector< std::pair<int,std::string> >::const_iterator dihres_it;
-    dihres_it dihbegin() { return dihRes_.begin(); }
-    dihres_it dihend()   { return dihRes_.end();   }
     /// Recognized dihedral types
     enum DihedralType { PHI = 0, PSI, NDIHTYPE };
     DihedralSearch();
@@ -24,12 +22,29 @@ class DihedralSearch {
     /// Print dihedrals currently being searched for.
     void PrintTypes();
   private:
+    /// Hold dihedral atom #s, residue #, and type name.
+    class DihedralMask {
+      public:
+        DihedralMask();
+        DihedralMask(int,int,int,int,int,std::string const&);
+        int A0()                  const { return a0_;         }
+        int A1()                  const { return a1_;         }
+        int A2()                  const { return a2_;         }
+        int A3()                  const { return a3_;         }
+        int ResNum()              const { return res_;        }
+        std::string const& Name() const { return name_;       }
+        bool None()               const { return (a0_ == -1); }
+      private:
+        int a0_, a1_, a2_, a3_, res_;
+        std::string name_;
+    };
+    /// Hold dihedral type information used for searching.
     class DihedralToken {
       public:
         DihedralToken();
         DihedralToken(int, const char*, const char*, const char*, const char*, const char*);
         /// \return mask with 4 atoms corresponding to dihedral for specified residue.
-        AtomMask FindDihedralAtoms(Topology const&, int);
+        DihedralMask FindDihedralAtoms(Topology const&, int);
         std::string const& Name() { return name_; }
       private:
         int offset_;       ///< -1|0|1: Dihedral starts at prev.|stays in current|ends at next res.
@@ -39,10 +54,7 @@ class DihedralSearch {
         NameType aname3_;  ///< Dihedral 4th atom name.
         std::string name_; ///< Dihedral name
     };
-
     std::vector<DihedralToken> dihedralTokens_; ///< Dihedrals to search for
-    std::vector<AtomMask> dihedrals_;           ///< Contains atom #s for each dihedral
-    ///< Contain residue # and dihedral name for each dihedral.
-    std::vector< std::pair<int,std::string> > dihRes_;
+    std::vector<DihedralMask> dihedrals_;       ///< Contains atom #s for each found dihedral
 };
 #endif

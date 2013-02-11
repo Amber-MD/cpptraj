@@ -19,6 +19,16 @@ static const DIH_TYPE DIH[] = {
 };
 
 // -----------------------------------------------------------------------------
+// CONSTRUCTOR - DihedralMask
+DihedralSearch::DihedralMask::DihedralMask() : a0_(-1), a1_(-1), a2_(-1), 
+                                               a3_(-1), res_(-1) {}
+
+// CONSTRUCTOR - DihedralMask
+DihedralSearch::DihedralMask::DihedralMask(int a0, int a1, int a2, int a3, 
+                                           int res, std::string const& name) :
+  a0_(a0), a1_(a1), a2_(a2), a3_(a3), res_(res), name_(name) {}
+
+// -----------------------------------------------------------------------------
 // CONSTRUCTOR - DihedralToken
 DihedralSearch::DihedralToken::DihedralToken(int off, 
                                              const char* an0, const char* an1,
@@ -29,10 +39,9 @@ DihedralSearch::DihedralToken::DihedralToken(int off,
 {}
 
 // DihedralSearch::DihedralToken::FindDihedralAtoms()
-AtomMask DihedralSearch::DihedralToken::FindDihedralAtoms(Topology const& topIn,
-                                                          int resIn)
+DihedralSearch::DihedralMask 
+  DihedralSearch::DihedralToken::FindDihedralAtoms(Topology const& topIn, int resIn)
 {
-  AtomMask maskOut;
   int firstAtomRes = resIn;
   int lastAtomRes = resIn;
   if (offset_ == -1)
@@ -40,19 +49,15 @@ AtomMask DihedralSearch::DihedralToken::FindDihedralAtoms(Topology const& topIn,
   else if (offset_ == 1)
     ++lastAtomRes;
   int atom1 = topIn.FindAtomInResidue(firstAtomRes, aname0_);
-  if (atom1 == -1) return maskOut;
+  if (atom1 == -1) return DihedralMask();
   int atom2 = topIn.FindAtomInResidue(resIn, aname1_);
-  if (atom2 == -1) return maskOut;
+  if (atom2 == -1) return DihedralMask();
   int atom3 = topIn.FindAtomInResidue(resIn, aname2_);
-  if (atom3 == -1) return maskOut;
+  if (atom3 == -1) return DihedralMask();
   int atom4 = topIn.FindAtomInResidue(lastAtomRes, aname3_);
-  if (atom4 == -1) return maskOut;
+  if (atom4 == -1) return DihedralMask();
   // All atoms found at this point.
-  maskOut.AddAtom(atom1);
-  maskOut.AddAtom(atom2);
-  maskOut.AddAtom(atom3);
-  maskOut.AddAtom(atom4);
-  return maskOut;
+  return DihedralMask(atom1, atom2, atom3, atom4, resIn, name_);
 }
 
 // -----------------------------------------------------------------------------
@@ -91,9 +96,7 @@ int DihedralSearch::FindDihedrals(Topology const& currentParm, Range const& rang
         mprintf("Warning: Dihedral %s not found for residue %i\n", 
                 (*dih).Name().c_str(), *res + 1);
         dihedrals_.pop_back();
-      } else {
-        dihRes_.push_back( std::pair<int,std::string>(*res, (*dih).Name()) );
-      }
+      } 
     }
   }
   if (dihedrals_.empty()) {

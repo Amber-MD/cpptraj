@@ -75,17 +75,15 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
 
   // Print selected dihedrals, set up DataSets
   data_.clear();
-  DihedralSearch::dihres_it dihres = dihSearch_.dihbegin();
   for (DihedralSearch::mask_it dih = dihSearch_.begin();
-                               dih != dihSearch_.end(); ++dih, ++dihres)
+                               dih != dihSearch_.end(); ++dih)
   {
-    int resIn = (*dihres).first + 1;
-    std::string aspectIn = (*dihres).second;
+    int resNum = (*dih).ResNum() + 1;
     // See if Dataset already present
-    DataSet* ds = masterDSL_->GetSet(dsetname_, resIn, aspectIn);
+    DataSet* ds = masterDSL_->GetSet(dsetname_, resNum, (*dih).Name());
     if (ds == 0) {
       // Create new DataSet
-      ds = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, dsetname_, resIn, aspectIn);
+      ds = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, dsetname_, resNum, (*dih).Name());
       // Add to outfile
       if (outfile_ != 0)
         outfile_->AddSet( ds );
@@ -97,10 +95,10 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
     mprintf("-%s", currentParm->TruncResAtomName(*(atom++)).c_str());
     mprintf("-%s\n", currentParm->TruncResAtomName(*atom).c_str());*/
     mprintf("\tDIH [%s]:", ds->Legend().c_str());
-    mprintf(" :%i@%i",   (*currentParm)[(*dih)[0]].ResNum()+1, (*dih)[0] + 1);
-    mprintf(" :%i@%i",   (*currentParm)[(*dih)[1]].ResNum()+1, (*dih)[1] + 1);
-    mprintf(" :%i@%i",   (*currentParm)[(*dih)[2]].ResNum()+1, (*dih)[2] + 1);
-    mprintf(" :%i@%i\n", (*currentParm)[(*dih)[3]].ResNum()+1, (*dih)[3] + 1);
+    mprintf(" :%i@%i",   (*currentParm)[(*dih).A0()].ResNum()+1, (*dih).A0() + 1);
+    mprintf(" :%i@%i",   (*currentParm)[(*dih).A1()].ResNum()+1, (*dih).A1() + 1);
+    mprintf(" :%i@%i",   (*currentParm)[(*dih).A2()].ResNum()+1, (*dih).A2() + 1);
+    mprintf(" :%i@%i\n", (*currentParm)[(*dih).A3()].ResNum()+1, (*dih).A3() + 1);
   }
   return Action::OK;
 }
@@ -113,10 +111,10 @@ Action::RetType Action_MultiDihedral::DoAction(int frameNum, Frame* currentFrame
   for (DihedralSearch::mask_it dih = dihSearch_.begin();
                                dih != dihSearch_.end(); ++dih, ++ds)
   {
-    double torsion = Torsion( currentFrame->XYZ((*dih)[0]),
-                              currentFrame->XYZ((*dih)[1]),
-                              currentFrame->XYZ((*dih)[2]),
-                              currentFrame->XYZ((*dih)[3]) );
+    double torsion = Torsion( currentFrame->XYZ((*dih).A0()),
+                              currentFrame->XYZ((*dih).A1()),
+                              currentFrame->XYZ((*dih).A2()),
+                              currentFrame->XYZ((*dih).A3()) );
     torsion *= RADDEG;
     (*ds)->Add(frameNum, &torsion);
   }
