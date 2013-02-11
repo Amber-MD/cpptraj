@@ -6,8 +6,9 @@ class DihedralSearch {
     class DihedralMask;
   public:
     typedef std::vector<DihedralMask>::const_iterator mask_it;
-    mask_it begin() { return dihedrals_.begin(); }
-    mask_it end()   { return dihedrals_.end();   }
+    mask_it begin()  const { return dihedrals_.begin();     }
+    mask_it end()    const { return dihedrals_.end();       }
+    int Ndihedrals() const { return (int)dihedrals_.size(); }
     /// Recognized dihedral types
     enum DihedralType { PHI = 0, PSI, NDIHTYPE };
     DihedralSearch();

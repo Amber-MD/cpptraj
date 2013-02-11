@@ -56,6 +56,7 @@
 #include "Action_Box.h"
 #include "Action_CreateCrd.h"
 #include "Action_MultiDihedral.h"
+#include "Action_MakeStructure.h"
 
 const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, 0 },
@@ -88,6 +89,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "image", Action_Image::Alloc, Action_Image::Help, 0 },
   { DispatchObject::ACTION, "jcoupling", Action_Jcoupling::Alloc, Action_Jcoupling::Help, 0 },
   { DispatchObject::ACTION, "lie", Action_LIE::Alloc, Action_LIE::Help, 0 },
+  { DispatchObject::ACTION, "makestructure", Action_MakeStructure::Alloc, Action_MakeStructure::Help, 0 },
   { DispatchObject::ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, 0 },
   { DispatchObject::ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, 0 },
   { DispatchObject::ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, 0 },
