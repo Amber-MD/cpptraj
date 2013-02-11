@@ -7,6 +7,9 @@ class DihedralSearch {
     typedef std::vector<AtomMask>::const_iterator mask_it;
     mask_it begin() { return dihedrals_.begin(); }
     mask_it end()   { return dihedrals_.end();   }
+    typedef std::vector< std::pair<int,std::string> >::const_iterator dihres_it;
+    dihres_it dihbegin() { return dihRes_.begin(); }
+    dihres_it dihend()   { return dihRes_.end();   }
     /// Recognized dihedral types
     enum DihedralType { PHI = 0, PSI, NDIHTYPE };
     DihedralSearch();
@@ -39,5 +42,7 @@ class DihedralSearch {
 
     std::vector<DihedralToken> dihedralTokens_; ///< Dihedrals to search for
     std::vector<AtomMask> dihedrals_;           ///< Contains atom #s for each dihedral
+    ///< Contain residue # and dihedral name for each dihedral.
+    std::vector< std::pair<int,std::string> > dihRes_;
 };
 #endif

@@ -91,6 +91,8 @@ int DihedralSearch::FindDihedrals(Topology const& currentParm, Range const& rang
         mprintf("Warning: Dihedral %s not found for residue %i\n", 
                 (*dih).Name().c_str(), *res + 1);
         dihedrals_.pop_back();
+      } else {
+        dihRes_.push_back( std::pair<int,std::string>(*res, (*dih).Name()) );
       }
     }
   }
