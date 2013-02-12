@@ -56,6 +56,7 @@
 #include "Action_Box.h"
 #include "Action_CreateCrd.h"
 #include "Action_MultiDihedral.h"
+#include "Action_GIST.h"
 
 const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, 0 },
@@ -83,6 +84,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, 0 },
   { DispatchObject::ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, 0 },
   { DispatchObject::ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, 0 },
+  { DispatchObject::ACTION, "gist", Action_GIST::Alloc, Action_GIST::Help, 0 },
   { DispatchObject::ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, 0 },
   { DispatchObject::ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, 0 },
   { DispatchObject::ACTION, "image", Action_Image::Alloc, Action_Image::Help, 0 },
