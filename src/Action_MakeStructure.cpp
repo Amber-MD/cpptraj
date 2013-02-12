@@ -2,34 +2,26 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD
 #include "TorsionRoutines.h"
-
-struct SS_TYPE {
-  double phi;
-  double psi;
-  double phi2;
-  double psi2;
-  int isTurn;
-  const char* name;
-};
-
-static SS_TYPE SS[] = {
-  {  -57.8,  -47.0,    0.0,   0.0, 0, "alpha"    },
-  {   57.8,   47.0,    0.0,   0.0, 0, "left"     },
-  {  -75.0,  145.0,    0.0,   0.0, 0, "pp2"      },
-  { -100.0,  130.0,    0.0,   0.0, 0, "hairpin"  },
-  { -150.0,  155.0,    0.0,   0.0, 0, "extended" },
-  {  -60.0,  -30.0,  -90.0,   0.0, 1, "typeI"    }, 	
-  {  -60.0,  120.0,   80.0,   0.0, 1, "typeII"   },	
-  {  -60.0,  -30.0, -120.0, 120.0, 1, "typeVIII" }, 	
-  {   60.0,   30.0,   90.0,   0.0, 1, "typeI'"   }, 	
-  {   60.0, -120.0,  -80.0,   0.0, 1, "typeII'"  }, 	
-  {  -60.0,  120.0,  -90.0,   0.0, 1, "typeVIa1" }, // 2nd res must be cis-PRO 	
-  { -120.0,  120.0,  -60.0,   0.0, 1, "typeVIa2" }, // 2nd res must be cis-PRO 	
-  { -135.0,  135.0,  -75.0, 160.0, 1, "typeVIb"  }  // 2nd res must be cis-PRO
-};
+#include "StringRoutines.h" // convertToDouble
 
 // CONSTRUCTOR
-Action_MakeStructure::Action_MakeStructure() { }
+Action_MakeStructure::Action_MakeStructure() { 
+  // NOTE: There should be as many entries in SS as in ssType, and they MUST
+  //       BE IN THE SAME ORDER!
+  SS.push_back(SS_TYPE(  -57.8,  -47.0,    0.0,   0.0, 0, "alpha"    ));
+  SS.push_back(SS_TYPE(   57.8,   47.0,    0.0,   0.0, 0, "left"     ));
+  SS.push_back(SS_TYPE(  -75.0,  145.0,    0.0,   0.0, 0, "pp2"      ));
+  SS.push_back(SS_TYPE( -100.0,  130.0,    0.0,   0.0, 0, "hairpin"  ));
+  SS.push_back(SS_TYPE( -150.0,  155.0,    0.0,   0.0, 0, "extended" ));
+  SS.push_back(SS_TYPE(  -60.0,  -30.0,  -90.0,   0.0, 1, "typeI"    )); 	
+  SS.push_back(SS_TYPE(  -60.0,  120.0,   80.0,   0.0, 1, "typeII"   ));	
+  SS.push_back(SS_TYPE(  -60.0,  -30.0, -120.0, 120.0, 1, "typeVIII" )); 	
+  SS.push_back(SS_TYPE(   60.0,   30.0,   90.0,   0.0, 1, "typeI'"   )); 	
+  SS.push_back(SS_TYPE(   60.0, -120.0,  -80.0,   0.0, 1, "typeII'"  )); 	
+  SS.push_back(SS_TYPE(  -60.0,  120.0,  -90.0,   0.0, 1, "typeVIa1" )); // 2nd res must be cis-PRO
+  SS.push_back(SS_TYPE( -120.0,  120.0,  -60.0,   0.0, 1, "typeVIa2" )); // 2nd res must be cis-PRO
+  SS.push_back(SS_TYPE( -135.0,  135.0,  -75.0, 160.0, 1, "typeVIb"  )); // 2nd res must be cis-PRO
+}
 
 void Action_MakeStructure::Help() {
   mprintf(" <ss type>:<res range> [<ss type>:<res range> ...]\n");
@@ -53,7 +45,7 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
     int ss = 0;
     for (; ss < (int)NSS; ss++) {
       if (ss_arg[0].compare(SS[ss].name) == 0) { 
-        ss_holder.type = (ssType)ss;
+        ss_holder.type = SS.begin() + ss;
         ss_holder.name.assign( SS[ss].name );
         ss_holder.resRange.SetRange(ss_arg[1]);
         // Since user range args start from 1, shift range
@@ -66,8 +58,27 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
       }
     }
     if (ss == (int)NSS) {
-      mprinterr("Error: SS type [%s] not found.\n", ss_arg[0].c_str());
-      return Action::ERR;
+      // SS type not found. If more than two args, create custom type, name:range:phi:psi
+      if (ss_arg.Nargs() == 4 || ss_arg.Nargs() == 6) {
+        ss_holder.name = ss_arg[0];
+        ss_holder.resRange.SetRange(ss_arg[1]);
+        double phi1 = convertToDouble(ss_arg[2]);
+        double psi1 = convertToDouble(ss_arg[3]);
+        int isTurn = 0;
+        double phi2 = 0.0;
+        double psi2 = 0.0;
+        if (ss_arg.Nargs() == 6) {
+          isTurn = 1;
+          phi2 = convertToDouble(ss_arg[4]);
+          psi2 = convertToDouble(ss_arg[5]);
+        }
+        SS.push_back(SS_TYPE(phi1, psi1, phi2, psi2, isTurn, ss_holder.name.c_str() ));
+        ss_holder.type = SS.end() - 1;
+        secstruct_.push_back( ss_holder );
+      } else {
+        mprinterr("Error: SS type [%s] not found.\n", ss_arg[0].c_str());
+        return Action::ERR;
+      }
     }
     ss_expr = actionArgs.GetStringNext();
   }
@@ -127,10 +138,10 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
             (*ss).dihSearch_.Ndihedrals());
     // Set up found dihedrals 
     // TODO: Check that # dihedrals is multiple of 2?
-    ssType myType = (*ss).type;
+    SS_TYPE const& myType = *((*ss).type);
     (*ss).Rmasks_.clear();
     (*ss).thetas_.clear();
-    if (SS[myType].isTurn) {
+    if (myType.isTurn) {
       // Require phi/psi residue pairs; must be multiple of 4
       if ( ((*ss).dihSearch_.Ndihedrals() % 4) != 0) {
         mprintf("Error: Assigning turn SS requires residue phi/psi pairs.\n");
@@ -147,7 +158,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
           return Action::ERR;
         }
         int res1num = (*dih).ResNum();
-        (*ss).thetas_.push_back((float)(SS[myType].phi * DEGRAD));
+        (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
         (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
         ++dih;
         // Second has to be psi and +0
@@ -156,7 +167,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
           mprinterr("Error: Assigning turn SS requires 2nd dihedral be psi and consecutive.\n");
           return Action::ERR;
         }
-        (*ss).thetas_.push_back((float)(SS[myType].psi * DEGRAD));
+        (*ss).thetas_.push_back((float)(myType.psi * DEGRAD));
         (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
         ++dih;
         // Third has to be phi and +1
@@ -165,7 +176,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
           mprinterr("Error: Assigning turn SS requires 3rd dihedral be phi and consecutive.\n");
           return Action::ERR;
         }
-        (*ss).thetas_.push_back((float)(SS[myType].phi2 * DEGRAD));
+        (*ss).thetas_.push_back((float)(myType.phi2 * DEGRAD));
         (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
         ++dih;
         // Fourth has to be phi and +1
@@ -174,7 +185,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
           mprinterr("Error: Assigning turn SS requires 4th dihedral be psi and consecutive.\n");
           return Action::ERR;
         }
-        (*ss).thetas_.push_back((float)(SS[myType].psi2 * DEGRAD));
+        (*ss).thetas_.push_back((float)(myType.psi2 * DEGRAD));
         (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
       }
     } else {
@@ -184,10 +195,10 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
       {
         mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
         if ((*dih).Name() == "phi") {
-          (*ss).thetas_.push_back((float)(SS[myType].phi * DEGRAD));
+          (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
           (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
         } else {
-          (*ss).thetas_.push_back((float)(SS[myType].psi * DEGRAD));
+          (*ss).thetas_.push_back((float)(myType.psi * DEGRAD));
           (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
         }
       }
