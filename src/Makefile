@@ -1,3 +1,4 @@
+# Cpptraj stand-alone make file
 include ../config.h
 
 include cpptrajfiles
@@ -19,18 +20,9 @@ dependclean:
 	-/bin/rm FindDepend.o
 	-/bin/rm findDepend
 
-cpptraj$(SFX): $(OBJECTS) pub_fft.o $(ARPACK) $(LAPACK) $(BLAS) $(READLINE) 
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(NETCDFLIB) $(ZLIB) $(BZLIB) $(ARPACK) $(LAPACK) $(BLAS) $(READLINE) $(FLIBS) 
+cpptraj$(SFX): $(OBJECTS) pub_fft.o $(READLINE)
+	$(CXX) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
 
-
-$(BLAS): $(BLAS_HOME)/Makefile
-	cd $(BLAS_HOME) && $(MAKE) install
-
-$(ARPACK): $(ARPACK_HOME)/Makefile
-	cd $(ARPACK_HOME) && $(MAKE) install
-
-$(LAPACK): $(LAPACK_HOME)/Makefile
-	cd $(LAPACK_HOME) && $(MAKE) install
 
 $(READLINE): $(READLINE_HOME)/Makefile
 	cd $(READLINE_HOME) && $(MAKE)
@@ -43,14 +35,7 @@ ReadLine.o: ReadLine.cpp
 
 clean:
 	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX)
-	cd readline && $(MAKE) clean
-
-libclean: $(BLAS_HOME)/Makefile $(ARPACK_HOME)/Makefile $(LAPACK_HOME)/Makefile $(READLINE_HOME)/Makefile
-	cd $(BLAS_HOME) && $(MAKE) clean
-	cd $(LAPACK_HOME) && $(MAKE) clean
-	cd $(ARPACK_HOME) && $(MAKE) clean
 	cd $(READLINE_HOME) && $(MAKE) clean
-	/bin/rm -f $(BLAS) $(ARPACK) $(LAPACK) $(READLINE)
 
 # Header dependencies
 include cpptrajdepend
