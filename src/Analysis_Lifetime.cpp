@@ -25,7 +25,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   if (outfile != 0) outfile->ProcessArgs("noemptyframes");
   DataFile* maxfile = 0;
   DataFile* avgfile = 0;
-  std::string setname_ = analyzeArgs.GetStringKey("name");
+  std::string setname = analyzeArgs.GetStringKey("name");
   windowSize_ = analyzeArgs.getKeyInt("window", -1);
   averageonly_ = analyzeArgs.hasKey("averageonly");
   if (!averageonly_ && outfile != 0) {
@@ -50,12 +50,12 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
 
   // Create output datasets
   if ( windowSize_ != -1) {
-    if (setname_.empty()) 
-      setname_ = datasetlist->GenerateDefaultName( "lifetime" );
+    if (setname.empty()) 
+      setname = datasetlist->GenerateDefaultName( "lifetime" );
     int didx = 0;
     for (DataSetList::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
     {
-      DataSet* outSet = datasetlist->AddSetIdx( DataSet::FLOAT, setname_, didx );
+      DataSet* outSet = datasetlist->AddSetIdx( DataSet::FLOAT, setname, didx );
       if (outSet==0) {
         mprinterr("Error: lifetime: Could not allocate output set for %s\n", 
                   (*set)->Legend().c_str());
@@ -67,12 +67,12 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       if (!averageonly_) {
         // MAX
         // FIXME: CHeck for nullS
-        outSet = datasetlist->AddSetIdxAspect( DataSet::INT, setname_, didx, "max" );
+        outSet = datasetlist->AddSetIdxAspect( DataSet::INT, setname, didx, "max" );
         outSet->SetLegend( (*set)->Legend() );
         maxDsets_.push_back( outSet );
         if (maxfile != 0) maxfile->AddSet( outSet );
         // AVG
-        outSet = datasetlist->AddSetIdxAspect( DataSet::FLOAT, setname_, didx, "avg" );
+        outSet = datasetlist->AddSetIdxAspect( DataSet::FLOAT, setname, didx, "avg" );
         outSet->SetLegend( (*set)->Legend() );
         avgDsets_.push_back( outSet );
         if (avgfile != 0) avgfile->AddSet( outSet );
@@ -93,7 +93,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     inputDsets_.List();
   if (windowSize_ != -1) {
     mprintf("\tAverage of data over windows will be saved to sets named %s\n",
-            setname_.c_str());
+            setname.c_str());
     mprintf("\tWindow size for averaging: %i\n", windowSize_);
     if (cumulative_)
       mprintf("\tCumulative averages will be saved.\n");

@@ -12,7 +12,7 @@ Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* 
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  std::string setname_ = analyzeArgs.GetStringKey("name");
+  std::string setname = analyzeArgs.GetStringKey("name");
   // The remaining arguments are the data sets to take running averages of
   ArgList dsetArgs = analyzeArgs.RemainingArgs();
   // Build the data set list
@@ -25,12 +25,12 @@ Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* 
     return Analysis::ERR;
   }
   // If setname is empty, generate a default name
-  if (setname_.empty())
-    setname_ = datasetlist->GenerateDefaultName( "runningavg" );
+  if (setname.empty())
+    setname = datasetlist->GenerateDefaultName( "runningavg" );
   // Setup output datasets
   int idx = 0;
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
-    DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname_, idx++);
+    DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, idx++);
     if (dsout == 0)
       return Analysis::ERR;
     dsout->SetLegend( (*DS)->Legend() );
