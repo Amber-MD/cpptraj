@@ -71,6 +71,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (printString_) {
     dssp_ = DSL->AddSet(DataSet::STRING, dsetname_, "DSSP");
     if (dssp_==0) return Action::ERR;
+    dsetname_ = dssp_->Name();
     outfile_->AddSet( dssp_ );
   } else {
     // If not string output set up Z labels
