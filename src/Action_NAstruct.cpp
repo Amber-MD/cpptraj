@@ -316,6 +316,8 @@ int Action_NAstruct::determineBasePairing() {
     }
   }
   // For each BP, set up a dataset for each structural parameter
+  if (dataname_.empty())
+    dataname_ = masterDSL_->GenerateDefaultName("NA");
   int dsidx = 1; // Base pair # and DataSet idx
   for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
                                       BP != BasePairAxes_.end(); ++BP)
@@ -906,8 +908,6 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Get Masks
   // Dataset
   dataname_ = actionArgs.GetStringNext();
-  if (dataname_.empty())
-    dataname_ = DSL->GenerateDefaultName("NA");
   // DataSets are added to data file list in print()
 
   mprintf("    NAstruct: ");

@@ -32,8 +32,6 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
 
   // Setup DataSet(s) name
   dsetname_ = actionArgs.GetStringNext();
-  if (dsetname_.empty())
-    dsetname_ = DSL->GenerateDefaultName("MDIH");
 
   mprintf("    MULTIDIHEDRAL: Calculating");
   dihSearch_.PrintTypes();
@@ -41,7 +39,8 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
     mprintf(" dihedrals for residues in range %s\n", resRange_.RangeArg());
   else
     mprintf(" dihedrals for all residues.\n");
-  mprintf("\tDataSet name: %s\n", dsetname_.c_str());
+  if (!dsetname_.empty())
+    mprintf("\tDataSet name: %s\n", dsetname_.c_str());
   if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->Filename());
   if (range360_) 
     mprintf("\tRange 0-360 deg.\n");
@@ -75,6 +74,8 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
 
   // Print selected dihedrals, set up DataSets
   data_.clear();
+  if (dsetname_.empty())
+    dsetname_ = masterDSL_->GenerateDefaultName("MDIH");
   for (DihedralSearch::mask_it dih = dihSearch_.begin();
                                dih != dihSearch_.end(); ++dih)
   {
