@@ -472,8 +472,8 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
         HB.angle = angle;
         if (series_) {
           std::string hblegend = CurrentParm_->TruncResAtomName(*accept) + "-" +
-                                 CurrentParm_->TruncResAtomName(D) + "@" +
-                                 (*CurrentParm_)[H].c_str();
+                                 CurrentParm_->TruncResAtomName(D) + "-" +
+                                 (*CurrentParm_)[H].Name().Truncated();
           HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INT, hbsetname_,
                                                               hbidx, "solutehb" );
           //mprinterr("Created solute Hbond dataset index %i\n", hbidx);
