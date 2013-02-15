@@ -159,6 +159,8 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   frames_.push_back( ReferenceFrame( CurrentFrame, CurrentParm, 
                                      traj.TrajName().Base(), traj.Start() ) );
   AddNameWithTag( traj.TrajName().Full(), traj.TrajName().Base(), reftag );
+  // If the top currently has no reference coords, set them now
+  if (CurrentParm->NoRefCoords()) CurrentParm->SetReferenceCoords( CurrentFrame ); 
   return 0;
 }
 
