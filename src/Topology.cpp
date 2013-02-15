@@ -295,7 +295,7 @@ void Topology::PrintResidueInfo(std::string const& maskString) {
                                       res != residues_.end(); res++)
   {
     if ( mask.AtomsInCharMask( (*res).FirstAtom(), (*res).LastAtom() ) ) {
-      mprintf("\tResidue %u, %s, first atom %i, last atom %i\n",
+      mprintf("\tResidue %u %s first atom %i last atom %i\n",
               rnum, (*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom());
     }
     ++rnum;
