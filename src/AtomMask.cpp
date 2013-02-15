@@ -642,7 +642,7 @@ bool AtomMask::AtomsInCharMask(int startatom, int endatom) const {
   if (CharMask_.empty()) return false;
   if (startatom > endatom) return false;
   if (startatom < 0) return false;
-  if (endatom >= (int)CharMask_.size()) return false;
+  if (endatom > (int)CharMask_.size()) return false;
   for (int idx = startatom; idx < endatom; ++idx)
     if (CharMask_[idx] == maskChar_) return true;
   return false;
