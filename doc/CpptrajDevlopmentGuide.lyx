@@ -1711,6 +1711,68 @@ Last, we add the result to the DataSet and return Action::OK.
 }
 \end_layout
 
+\begin_layout Subsection
+Add the Action to ActionList
+\end_layout
+
+\begin_layout Standard
+Now that the class implementation is complete, we need to let cpptraj know
+ how to call it.
+ This is currently done using a static array in ActionList.cpp called DispatchArr
+ay.
+ An entry in DispatchArray is called a DispatchToken (DispatchObject.h) and
+ consists of 5 fields:
+\end_layout
+
+\begin_layout Enumerate
+Type: The DispatchType, in this case DispatchObject::ACTION.
+\end_layout
+
+\begin_layout Enumerate
+Cmd: The keyword (const character string) that will call this action.
+\end_layout
+
+\begin_layout Enumerate
+Alloc: The Allocator, which we previously defined in the header as Alloc().
+\end_layout
+
+\begin_layout Enumerate
+Help: The help function, which we defined in the header and implemented
+ as a static void function.
+\end_layout
+
+\begin_layout Enumerate
+Idx: This is currently unused for actions and can be set to zero.
+\end_layout
+
+\begin_layout Standard
+We will add the entry alphabetically by keyword.
+ The final array can look like e.g.:
+\end_layout
+
+\begin_layout LyX-Code
+const DispatchObject::Token ActionList::DispatchArray[] = {
+\end_layout
+
+\begin_layout LyX-Code
+  { DispatchObject::ACTION, "dihedral", Action_Dihedral::Alloc, Action_Dihedral:
+:Help, 0 },
+\end_layout
+
+\begin_layout LyX-Code
+  { DispatchObject::ACTION, "distance", Action_Distance::Alloc, Action_Distance:
+:Help, 0 },
+\end_layout
+
+\begin_layout LyX-Code
+  { DispatchObject::ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help,
+ 0 },
+\end_layout
+
+\begin_layout LyX-Code
+};
+\end_layout
+
 \begin_layout Part
 Overall Code Organization
 \begin_inset CommandInset label

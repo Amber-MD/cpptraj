@@ -100,6 +100,6 @@ class Action_Hbond : public Action {
 
     void SearchAcceptor(HBlistType&,AtomMask&,bool);
     void SearchDonor(HBlistType&,AtomMask&,bool,bool);
-    inline int AtomsAreHbonded(Frame*, int, int, int, int, int,bool);
+    inline int AtomsAreHbonded(Frame const&, int, int, int, int, int,bool);
 };
 #endif

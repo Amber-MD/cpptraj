@@ -30,6 +30,7 @@ class Topology {
     std::string const& ParmName()         const { return parmName_;       }
     std::string const& OriginalFilename() const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
+    bool NoRefCoords()                    const { return (refCoords_.empty()); }
     int FinalSoluteRes() const;
     const char *c_str() const;
     // ---- Atom-specific routines -----

@@ -35,17 +35,17 @@ void Action_Hbond::Help() {
   mprintf("      [solventdonor <mask>] [solventacceptor <mask>]\n");
   mprintf("      [solvout <filename>] [bridgeout <filename>]\n");
   mprintf("\tSearch for Hbonding atoms in region specified by mask.\n");
-  mprintf("If just <mask> is specified donors and acceptors will be automatically searched for.\n");
-  mprintf("If donormask is specified but not acceptormask, acceptors will be\n");
-  mprintf("automatically searched for in <mask>.\n");
-  mprintf("If acceptormask is specified but not donormask, donors will be automatically\n");
-  mprintf("searched for in <mask>.\n");
-  mprintf("If both donormask and acceptor mask are specified no searching will occur.\n");
-  mprintf("If donorhmask is specified atoms in that mask will be paired with atoms in\n");
-  mprintf("donormask instead of automatically searching for hydrogen atoms.\n");
+  mprintf("\tIf just <mask> specified donors and acceptors will be automatically searched for.\n");
+  mprintf("\tIf donormask is specified but not acceptormask, acceptors will be\n");
+  mprintf("\tautomatically searched for in <mask>.\n");
+  mprintf("\tIf acceptormask is specified but not donormask, donors will be automatically\n");
+  mprintf("\tsearched for in <mask>.\n");
+  mprintf("\tIf both donormask and acceptor mask are specified no searching will occur.\n");
+  mprintf("\tIf donorhmask is specified atoms in that mask will be paired with atoms in\n");
+  mprintf("\tdonormask instead of automatically searching for hydrogen atoms.\n");
 }
 
-// Action_Hbond::init()
+// Action_Hbond::Init()
 Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -97,9 +97,14 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   Mask_.SetMaskString(actionArgs.GetMaskNext());
 
   // If calculating solvent and avgout filename is specified but 
-  // solvout is not, set solvout = avgout
-  if ( calcSolvent_ && solvout_.empty() && !avgout_.empty() )
-    solvout_ = avgout_;
+  // solvout/bridgeout is not, set solvout = avgout and 
+  // bridgeout = solvout.
+  if ( calcSolvent_ ) {
+    if (solvout_.empty() && !avgout_.empty())
+      solvout_ = avgout_;
+    if (bridgeout_.empty() && !solvout_.empty())
+      bridgeout_ = solvout_;
+  }
 
   // Setup datasets
   hbsetname_ = actionArgs.GetStringNext();
@@ -239,7 +244,7 @@ void Action_Hbond::SearchDonor(HBlistType& dlist, AtomMask& dmask, bool Auto,
   } // END loop over selected atoms
 }
 
-// Action_Hbond::setup()
+// Action_Hbond::Setup()
 /** Search for hbond donors and acceptors. */
 Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddress) {
   CurrentParm_ = currentParm;
@@ -359,7 +364,7 @@ Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddres
 
 // Action_Hbond::AtomsAreHbonded()
 /** Used to determine if solute atoms are bonded to solvent atoms. */
-int Action_Hbond::AtomsAreHbonded(Frame* currentFrame, int frameNum, 
+int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum, 
                                   int a_atom, int d_atom, int h_atom, 
                                   int hbidx, bool solutedonor) 
 {
@@ -368,16 +373,16 @@ int Action_Hbond::AtomsAreHbonded(Frame* currentFrame, int frameNum,
   double angle;
 
   if (a_atom == d_atom) return 0;
-  double dist2 = DIST2_NoImage(currentFrame->XYZ(a_atom), currentFrame->XYZ(d_atom));
+  double dist2 = DIST2_NoImage(currentFrame.XYZ(a_atom), currentFrame.XYZ(d_atom));
   if (dist2 > dcut2_) return 0;
   /*mprintf("DEBUG: Donor %i@%s -- acceptor %i@%s = %lf",
          d_atom+1, (*currentParm)[d_atom].c_str(),
          a_atom+1, (*currentParm)[a_atom].c_str(), sqrt(dist2));*/
   // For ions, donor atom will be same as h atom so no angle needed.
   if (d_atom != h_atom) {
-    angle = CalcAngle( currentFrame->XYZ(a_atom), 
-                       currentFrame->XYZ(h_atom),
-                       currentFrame->XYZ(d_atom) );
+    angle = CalcAngle( currentFrame.XYZ(a_atom), 
+                       currentFrame.XYZ(h_atom),
+                       currentFrame.XYZ(d_atom) );
     if (angle < acut_) return 0;
   }
   double dist = sqrt(dist2);
@@ -424,7 +429,7 @@ int Action_Hbond::AtomsAreHbonded(Frame* currentFrame, int frameNum,
   return 1;
 }
 
-// Action_Hbond::action()
+// Action_Hbond::DoAction()
 /** Calculate distance between all donors and acceptors. Store Hbond info.
   */    
 Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
@@ -451,11 +456,10 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
                          currentFrame->XYZ(H),
                          currentFrame->XYZ(D)       );
       if (angle < acut_) continue;
-//      mprintf( "HBOND[%i]: %i:%s ... %i:%s-%i:%s Dist=%lf Angle=%lf\n", 
-//              hbidx, *accept, P->names[*accept],
-//              H, P->names[H], D, P->names[D], dist, angle);
       ++numHB;
       dist = sqrt(dist2);
+      //mprintf("HBOND[%i] A=%i ... H=%i D=%i  Dist=%f Angle=%f\n", hbidx, // DEBUG 
+      //        *accept + 1, H + 1, D + 1, dist, angle*RADDEG);            // DEBUG
       // Find hbond in map
       it = HbondMap_.find( hbidx );
       if (it == HbondMap_.end() ) {
@@ -468,7 +472,8 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
         HB.angle = angle;
         if (series_) {
           std::string hblegend = CurrentParm_->TruncResAtomName(*accept) + "-" +
-                                 CurrentParm_->TruncResAtomName(D);
+                                 CurrentParm_->TruncResAtomName(D) + "-" +
+                                 (*CurrentParm_)[H].Name().Truncated();
           HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INT, hbsetname_,
                                                               hbidx, "solutehb" );
           //mprinterr("Created solute Hbond dataset index %i\n", hbidx);
@@ -507,7 +512,7 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
         for (HBlistType::iterator accept = SolventAcceptor_.begin(); 
                                   accept != SolventAcceptor_.end(); ++accept)
         { 
-          if (AtomsAreHbonded( currentFrame, frameNum, *accept, D, H, H, true )) {
+          if (AtomsAreHbonded( *currentFrame, frameNum, *accept, D, H, H, true )) {
             ++numHB;
             int soluteres = (*CurrentParm_)[D].ResNum();
             int solventmol = (*CurrentParm_)[*accept].Mol();
@@ -532,7 +537,7 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
         for (HBlistType::iterator accept = Acceptor_.begin();
                                   accept != Acceptor_.end(); ++accept)
         {
-          if (AtomsAreHbonded( currentFrame, frameNum, *accept, D, H, *accept, false )) {
+          if (AtomsAreHbonded( *currentFrame, frameNum, *accept, D, H, *accept, false )) {
             ++numHB;
             int soluteres = (*CurrentParm_)[*accept].ResNum();
             int solventmol = (*CurrentParm_)[D].Mol();

@@ -7,6 +7,7 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         Action_DistRmsd.cpp Action_DihedralScan.cpp Action_DNAionTracker.cpp \
         Action_DSSP.cpp Action_Grid.cpp Action_GridFreeEnergy.cpp \
         Action_Hbond.cpp Action_Image.cpp Action_Jcoupling.cpp Action_Mask.cpp \
+        Action_MakeStructure.cpp \
         Action_Matrix.cpp Action_Molsurf.cpp Action_MultiDihedral.cpp Action_NAstruct.cpp \
         Action_Outtraj.cpp Action_Pairwise.cpp Action_Principal.cpp \
         Action_Projection.cpp Action_Pucker.cpp Action_Radgyr.cpp \
@@ -31,7 +32,7 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         DataSet.cpp DataSet_Coords.cpp DataSet_double.cpp DataSet_float.cpp \
         DataSet_integer.cpp DataSet_string.cpp DataSet_Vector.cpp \
         DataSet_Matrix.cpp DataSet_Modes.cpp DataSetList.cpp \
-        DistRoutines.cpp Dimension.cpp DS_Math.cpp \
+        DihedralSearch.cpp DistRoutines.cpp Dimension.cpp DS_Math.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp \
         FileList.cpp FileName.cpp Frame.cpp FrameList.cpp Grid.cpp \
         Histogram.cpp Integrate.cpp ImageRoutines.cpp main.cpp MapAtom.cpp \

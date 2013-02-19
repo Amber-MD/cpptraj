@@ -52,7 +52,7 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
     return ReplicaNames;
   }
   // Split off everything before replica extension
-  size_t found = TrajName().Full().find( TrajName().Ext() );
+  size_t found = TrajName().Full().rfind( TrajName().Ext() );
   Prefix = TrajName().Full().substr(0, found); 
   ReplicaExt = TrajName().Ext(); // This should be the numeric extension
   // Remove leading '.'

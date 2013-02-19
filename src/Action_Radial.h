@@ -18,7 +18,7 @@ class Action_Radial: public Action, ImagedAction {
     void Print();
 
     int* RDF_;                ///< Hold bin counts.
-    int **rdf_thread_;        ///< Hold bin count on each thread.
+    int** rdf_thread_;        ///< Hold bin count on each thread.
     AtomMask Mask1_;          ///< Atoms to calculate RDF for.
     AtomMask Mask2_;          ///< Optional mask to calc RDF to atoms in Mask1.
     AtomMask OuterMask_;      ///< Mask with the most atoms.
@@ -36,6 +36,7 @@ class Action_Radial: public Action, ImagedAction {
     double density_;          ///< Particle density (molecules/Ang^3).
     DataSet* Dset_;
     DataSet* intrdf_;
+    DataSet* rawrdf_;
     int debug_;
 };
 #endif  

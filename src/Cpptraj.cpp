@@ -648,9 +648,9 @@ int Cpptraj::CrdAction(ArgList& argIn, int cmdidx) {
     //if ( currentFrame != originalFrame ) 
       CRD->SetCRD( frame, *currentFrame );
   }
+  act->Print();
   delete originalFrame;
   delete originalParm;
-  act->Print();
   delete act;
   return 0;
 }
@@ -811,18 +811,22 @@ static inline bool EndChar(char ptr) {
   return false;
 }
 
-/** Read commands from an input file. '#' indicates the beginning of a
-  * comment, backslash at the end of a line indicates continuation
-  * (otherwise indicates 'literal').
+/** Read commands from an input file, or from STDIN if given filename
+  * is empty. '#' indicates the beginning of a comment, backslash at the 
+  * end of a line indicates continuation (otherwise indicates 'literal').
   * \return 0 if successfully read, 1 on error.
   */
 Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
-  FILE *infile;
-  if (inputFilename.empty()) return C_ERR;
-  mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
-  if ( (infile=fopen(inputFilename.c_str(),"r"))==0 ) {
-    rprintf("Error: Could not open input file %s\n",inputFilename.c_str());
-    return C_ERR;
+  FILE* infile;
+  if (inputFilename.empty()) {
+    mprintf("INPUT: Reading Input from STDIN\n");
+    infile = stdin;
+  } else {
+    mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
+    if ( (infile=fopen(inputFilename.c_str(),"r"))==0 ) {
+      rprintf("Error: Could not open input file %s\n",inputFilename.c_str());
+      return C_ERR;
+    }
   }
   // Read in each line of input. Newline or null terminates. \ continues line.
   std::string inputLine;
@@ -872,7 +876,8 @@ Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
     inputLine += ptr;
     ++idx;
   }
-  fclose(infile);
+  if (!inputFilename.empty())
+    fclose(infile);
   return cmode;
 } 
 

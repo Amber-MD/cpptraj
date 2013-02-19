@@ -18,6 +18,7 @@ class Cpptraj {
     enum Mode { C_OK = 0, C_ERR, C_QUIT, C_INTERACTIVE };
     Cpptraj();
     Mode Interactive();
+    Mode ProcessInput(std::string const&);
     Mode ProcessCmdLineArgs(int,char**);
     int Run();
   private:
@@ -103,7 +104,6 @@ class Cpptraj {
     DispatchObject::TokenPtr SearchTokenArray(const DispatchObject::Token*, ArgList const&);
     DispatchObject::TokenPtr SearchToken(ArgList&);
 
-    Mode ProcessInput(std::string const&);
     Mode Dispatch(std::string const&);     ///< Function that decides where to send commands
 
     /// List of parameter files 

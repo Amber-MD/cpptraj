@@ -68,10 +68,10 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 
   // Set up the DSSP data set
   dsetname_ = actionArgs.GetStringNext();
-  if (dsetname_.empty()) dsetname_ = DSL->GenerateDefaultName( "DSSP" );
   if (printString_) {
-    dssp_ = DSL->AddSet(DataSet::STRING, dsetname_, 0);
+    dssp_ = DSL->AddSet(DataSet::STRING, dsetname_, "DSSP");
     if (dssp_==0) return Action::ERR;
+    dsetname_ = dssp_->Name();
     outfile_->AddSet( dssp_ );
   } else {
     // If not string output set up Z labels
@@ -188,6 +188,8 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
     }
     // Set up dataset if necessary 
     if (!printString_ && SecStruct_[res].resDataSet==0) {
+      // Set default name if none specified
+      if (dsetname_.empty()) dsetname_=masterDSL_->GenerateDefaultName("DSSP");
       // Setup dataset name for this residue
       SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INT, dsetname_,
                                                                 res+1, "res");
@@ -407,6 +409,7 @@ void Action_DSSP::Print() {
   std::vector<DataSet*> dsspData_(7);
 
   if (dsspFile_ == 0) return;
+  if (dsetname_.empty()) return;
 
   // Set up a dataset for each SS type
   for (ss=1; ss<7; ss++) {
