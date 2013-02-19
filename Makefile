@@ -18,6 +18,9 @@ install:
 check:
 	cd ../../test/cpptraj/ && $(MAKE) test
 
+check_local:
+	cd ../../test/cpptraj/ && $(MAKE) test.standalone
+
 # Clean up
 clean_local:
 	cd src && $(MAKE) clean

@@ -2,7 +2,7 @@
 // This file contains a collection of routines designed for reading
 // netcdf trajectory files used with amber.
 // Dan Roe 10-2008
-// Original implementation of netcdf in Amber by Jon Mongan.
+// Original implementation of netcdf in Amber by John Mongan.
 #include "netcdf.h"
 #include "Traj_AmberNetcdf.h"
 #include "CpptrajStdio.h"
