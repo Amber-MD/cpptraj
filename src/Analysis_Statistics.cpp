@@ -11,9 +11,10 @@ Analysis_Statistics::Analysis_Statistics() :
 {}
 
 void Analysis_Statistics::Help() {
-  mprintf("stat {<name> | ALL} [shift <value>]\n");
+  mprintf("stat {<name> | all} [shift <value>] [out <filename>]\n");
 }
 
+// Analysis_Statistics::Setup()
 Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
@@ -59,6 +60,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   return Analysis::OK;
 }
 
+// Analysis_Statistics::Analyze()
 Analysis::RetType Analysis_Statistics::Analyze() {
   if (outfile_.OpenWrite( filename_ )) return Analysis::ERR;
   for (std::vector<DataSet*>::iterator ds = datasets_.begin();

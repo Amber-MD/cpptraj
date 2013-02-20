@@ -10,7 +10,6 @@ Analysis_CrankShaft::Analysis_CrankShaft() :
   stop_(-1),
   offset_(1),
   type_(ANGLE),
-  angletype_(NOTYPE),
   scalar1_(0),
   scalar2_(0)
 {}
@@ -312,7 +311,9 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
   outfile.Printf("  FINAL VALUE:   %s (%6.1f, %6.1f)\n\n", final_label, final_v1, final_v2);
 
   // Supplementary information based on type of crankshaft
-  if (angletype_ == EPSILON_ZETA) {
+  if (scalar1_->ScalarType() == DataSet::EPSILON && 
+      scalar2_->ScalarType() == DataSet::ZETA) 
+  {
     // epsilon/zeta in nucleic acids!
     i1 = 0;
     i2 = 0;
@@ -331,7 +332,9 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
     outfile.Printf("      BII = (g-, t) or eps-zeta ~ +90 [currently = %.1f%%]\n\n",
                    i2*100.0 / totalFrames);
 
-  } else if (angletype_ == ALPHA_GAMMA) {
+  } else if (scalar1_->ScalarType() == DataSet::ALPHA && 
+             scalar2_->ScalarType() == DataSet::GAMMA) 
+  {
     // alpha/gamma in nucleic acids!
     outfile.Printf("    ALPHA/GAMMA crankshaft\n");
     outfile.Printf("      canonical is (g-, g+) [currently at %.1f%%]\n",
