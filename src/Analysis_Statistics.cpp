@@ -250,8 +250,8 @@ const double Analysis_Statistics::torsion_offset[] = {
 void Analysis_Statistics::TorsionAnalysis(DataSet* ds, int totalFrames) {
   int torsion_visits[6];
   int torsion_transitions[6][6];
-  double torsion_avg[10]; // NOTE: Should this be dim 6?
-  double torsion_sd[10];  // NOTE: Should this be dim 6?
+  double torsion_avg[6]; 
+  double torsion_sd[6];
   int prevbin, curbin;
 
   for (int j=0;j<6;j++) {
