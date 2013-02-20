@@ -48,6 +48,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     RefParm_ = PFLin->GetParm(analyzeArgs);
     if (RefParm_==0) {
       mprinterr("Error: Rms2d: Could not get parm for reftraj %s.\n",reftrajname.c_str());
+      mprinterr("Error:        Ensure parm has been previously loaded.\n");
       return Analysis::ERR;
     }
     mode_ = REFTRAJ; 
