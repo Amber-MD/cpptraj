@@ -1,4 +1,5 @@
 #include "FileName.h"
+#include "StringRoutines.h" // tildeExpansion
 
 void FileName::clear() {
   fullPathName_.clear();
@@ -7,6 +8,12 @@ void FileName::clear() {
   compressExt_.clear();
 }
 
+/** Main routine for setting file name. Assume nameIn is the full path
+  * filename. Determine the base file name and extensions. If compress
+  * status is yes, set the compression extension and prior extension
+  * (if any). If compress status is unknown, see if extension is a 
+  * recognized compression extension.
+  */
 int FileName::SetFileName(std::string const& nameIn, FileName::CompressStatus compressed) {
   // null filename allowed for WRITE (indicates STDOUT)
   if (nameIn.empty()) {
@@ -61,4 +68,8 @@ int FileName::SetFileName( std::string const& nameIn, bool isCompressed ) {
   if (isCompressed)
     return SetFileName( nameIn, YES );
   return SetFileName( nameIn, NO );
+}
+
+int FileName::SetFileNameWithExpansion( std::string const& nameIn ) {
+  return SetFileName( tildeExpansion( nameIn.c_str() ), UNKNOWN );
 }

@@ -116,7 +116,7 @@ FileIO_Gzip.o : FileIO_Gzip.cpp CpptrajStdio.h FileIO.h FileIO_Gzip.h
 FileIO_Mpi.o : FileIO_Mpi.cpp FileIO.h FileIO_Mpi.h MpiRoutines.h
 FileIO_Std.o : FileIO_Std.cpp FileIO.h FileIO_Std.h
 FileList.o : FileList.cpp FileList.h
-FileName.o : FileName.cpp FileName.h
+FileName.o : FileName.cpp FileName.h StringRoutines.h
 Frame.o : Frame.cpp Atom.h AtomMask.h Box.h Constants.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
 FrameList.o : FrameList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h DispatchObject.h FileIO.h FileList.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
 Grid.o : Grid.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h Grid.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h PDBfile.h Residue.h Topology.h Vec3.h
