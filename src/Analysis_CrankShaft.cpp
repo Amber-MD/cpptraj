@@ -16,7 +16,9 @@ Analysis_CrankShaft::Analysis_CrankShaft() :
 {}
 
 void Analysis_CrankShaft::Help() {
-  mprintf("crank {angle | distance} <scalar-name1> <scalar-name2> info <string>\n");
+  mprintf("\t{angle | distance} <scalar-name1> <scalar-name2> info <string>\n");
+  mprintf("\t[out <filename>] [results <resultsfile>]\n");
+  mprintf("\t[start <start>] [stop <stop>] [offset <offset>]\n");
 }
 
 const char* Analysis_CrankShaft::CSstring[] = { "angle", "distance" };
@@ -35,6 +37,7 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
     type_ = DISTANCE;
 
   filename_ = analyzeArgs.GetStringKey("out");
+  resultsname_ = analyzeArgs.GetStringKey("results");
 
   start_ = analyzeArgs.getKeyInt("start", 1);
   --start_;
@@ -285,8 +288,10 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
     }
   }
 
-  // NOTE: In original ptraj code output was closed here. Keep using
-  // output file for easy redirection of results.
+  if (resultsname_.empty() || resultsname_ != filename_) {
+    outfile.CloseFile();
+    outfile.OpenWrite( resultsname_ );
+  }
   
   // PRINT RESULTS
   const char* initial_label = 0;

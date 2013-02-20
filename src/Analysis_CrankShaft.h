@@ -17,7 +17,8 @@ class Analysis_CrankShaft : public Analysis {
     static const char* distance_ss_2D[][6];
     static const char* torsion_ss_2D[][6];
 
-    std::string filename_;
+    std::string filename_;    ///< Filename for frame vs bin number
+    std::string resultsname_; ///< Filename for crankshaft results
     int debug_;
     int start_;
     int stop_;
