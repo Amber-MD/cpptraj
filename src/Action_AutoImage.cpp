@@ -15,7 +15,7 @@ Action_AutoImage::Action_AutoImage() :
 
 void Action_AutoImage::Help() {
   mprintf("autoimage [<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n");
-  mprintf("          [origin] [familiar | triclinic]\n");
+  mprintf("          [origin] [center] [familiar | triclinic]\n");
   mprintf("\tAutomatically center and image periodic trajectory.\n");
 }
 

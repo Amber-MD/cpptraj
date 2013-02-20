@@ -114,7 +114,7 @@ void Cpptraj::Help_ParmStrip() {
 }
 
 void Cpptraj::Help_ParmBox() {
-  mprintf("[parm]box [<parmindex>] [x <xval>] [y <yval>] [z <zval>]");
+  mprintf("parmbox [<parmindex>] [x <xval>] [y <yval>] [z <zval>]");
   mprintf(" [alpha <a>] [beta <b>] [gamma <g>] [nobox]\n");
   mprintf("\tSet the given parm box info to what is specified. If nobox, remove box info.\n");
 }
@@ -586,7 +586,11 @@ int Cpptraj::CrdAction(ArgList& argIn) {
   // Start, stop, offset
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
   int start = crdarg.getNextInteger(1) - 1;
-  int stop = crdarg.getNextInteger(CRD->Size());
+  int stop;
+  if (crdarg.hasKey("last"))
+    stop = CRD->Size();
+  else
+    stop = crdarg.getNextInteger(CRD->Size());
   int offset = crdarg.getNextInteger(1);
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   ArgList actionargs = argIn.RemainingArgs();
@@ -656,7 +660,11 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   // Start, stop, offset
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
   int start = crdarg.getNextInteger(1) - 1;
-  int stop = crdarg.getNextInteger(CRD->Size());
+  int stop;
+  if (crdarg.hasKey("last"))
+    stop = CRD->Size();
+  else
+    stop = crdarg.getNextInteger(CRD->Size());
   int offset = crdarg.getNextInteger(1);
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   Trajout outtraj;
