@@ -1,7 +1,7 @@
 #include <cmath> // sqrt
 #include "Action_Projection.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h"
+#include "StringRoutines.h" // integerToString
 
 // CONSTRUCTOR
 Action_Projection::Action_Projection() :
