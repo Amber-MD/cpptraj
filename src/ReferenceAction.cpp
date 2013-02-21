@@ -3,18 +3,18 @@
 
 // ReferenceAction::SetRefMask()
 int ReferenceAction::SetRefMask(Topology const& topIn, const char* call) {
-  if (topIn.SetupIntegerMask( RefMask_ )) return 1;
-  if (RefMask_.None()) {
+  if (topIn.SetupIntegerMask( refMask_ )) return 1;
+  if (refMask_.None()) {
     mprinterr("Error: %s: No reference atoms selected for parm %s, [%s]\n",
-              call, topIn.c_str(), RefMask_.MaskString());
+              call, topIn.c_str(), refMask_.MaskString());
     return 1;
   }
-  SelectedRef_.SetupFrameFromMask( RefMask_, topIn.Atoms() );
+  selectedRef_.SetupFrameFromMask( refMask_, topIn.Atoms() );
   return 0;
 }
 
 // ReferenceAction::InitRef()
-int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool nofitIn,
+int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool fitIn,
                              std::string const& reftrajname, ReferenceFrame& REF, 
                              Topology* RefParm, std::string const& refmaskIn, 
                              ArgList& actionArgs, const char* call)
@@ -42,28 +42,38 @@ int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool no
       refmode_ = REFFRAME;
   }
   // Set the reference mask expression
-  RefMask_.SetMaskString(refmaskIn);
+  refMask_.SetMaskString(refmaskIn);
   // Initialize reference if not 'first'
   if (refmode_ != FIRST) {
     if ( !reftrajname.empty() ) {
       // Reference trajectory
       if (SetRefMask( *RefParm, call )!=0) return 1;
       // Attempt to open reference traj.
-      if (RefTraj_.SetupTrajRead( reftrajname, &actionArgs, RefParm)) {
+      if (refTraj_.SetupTrajRead( reftrajname, &actionArgs, RefParm)) {
         mprinterr("Error: %s: Could not set up reftraj %s\n", call, reftrajname.c_str());
         return 1;
       }
-      RefFrame_.SetupFrameV(RefParm->Atoms(), RefTraj_.HasVelocity());
-      if (RefTraj_.BeginTraj(false)) {
+      refFrame_.SetupFrameV(RefParm->Atoms(), refTraj_.HasVelocity());
+      if (refTraj_.BeginTraj(false)) {
         mprinterr("Error: %s: Could not open reftraj %s\n", call, reftrajname.c_str());
         return 1;
       }
     } else {
       // Reference Frame
       if (SetRefMask( *(REF.Parm()), call ) != 0) return 1;
-      SetRefStructure( *(REF.Coord()), nofitIn, massIn );
+      SetRefStructure( *(REF.Coord()), fitIn, massIn );
     }
   }
+  // Set reference mode string
+  if (previous_)
+    modeString_ = "previous frame";
+  else if (refmode_ == FIRST)
+    modeString_ = "first frame";
+  else if (refmode_==REFTRAJ)
+    modeString_ = "trajectory " + refTraj_.TrajName().Full();
+  else // REFFRAME
+    modeString_ = "reference frame " + REF.FrameName();
+  modeString_ += " (" + refMask_.MaskExpression() + ")";
 
   return 0;
 }
@@ -77,9 +87,9 @@ int ReferenceAction::SetupRef(Topology const& topIn, int Ntgt, const char* call)
     if ( SetRefMask( topIn, call )!=0 ) return 1;
   }
   // Check that num atoms in target mask from this parm match ref parm mask
-  if ( RefMask_.Nselected() != Ntgt ) {
+  if ( refMask_.Nselected() != Ntgt ) {
     mprintf( "Warning: Number of atoms in target mask (%i) does not \n", Ntgt);
-    mprintf( "         equal number of atoms in Ref mask (%i).\n",RefMask_.Nselected());
+    mprintf( "         equal number of atoms in Ref mask (%i).\n",refMask_.Nselected());
     return 1;
   }
   return 0;

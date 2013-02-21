@@ -29,7 +29,7 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 
   mprintf("    UNWRAP: (%s), reference is ", mask_.MaskString());
   if ( !REF.empty())
-    mprintf("%s", REF.FrameName());
+    mprintf("%s", REF.FrameName().c_str());
   else
     mprintf("first frame.");
   mprintf("\n");

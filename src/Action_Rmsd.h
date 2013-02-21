@@ -3,24 +3,21 @@
 #include <vector>
 #include "Action.h"
 #include "Range.h"
-#include "Trajin_Single.h"
+#include "ReferenceAction.h"
 // Class: Action_Rmsd
 /// Action to calculate the RMSD between frame and a reference frame.
-class Action_Rmsd: public Action {
+class Action_Rmsd: public Action, ReferenceAction {
   public:
     Action_Rmsd();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rmsd(); }
     static void Help();
-
     ~Action_Rmsd();
-
-    void Print();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 
     // PerResRMSD -------------
     bool perres_;                      ///< If true calculate per-residue rmsd
@@ -38,29 +35,17 @@ class Action_Rmsd: public Action {
     DataFile* perresavg_;              ///< Hold per residue average filename
     Frame *ResFrame_;                  ///< Hold residue target coords
     Frame *ResRefFrame_;               ///< Hold residue reference coords.
+    Topology* RefParm_;                ///< Needed for mask setup in PerResSetup
     // ------------------------ 
     AtomMask FrameMask_;               ///< Target mask.
-    bool nofit_;                       ///< If true do not calculate best-fit RMSD
+    bool fit_;                         ///< If false do not calculate best-fit RMSD
     bool rotate_;                      ///< If true and fitting, do not rotate coords.
     bool useMass_;
-    bool previous_;
     Vec3 Trans_;                       ///< For fit, hold translation tgt->origin
-    Vec3 refTrans_;                    ///< For fit, hold translation origin->ref
     Frame SelectedFrame_;              ///< Hold only selected target frame coords.
     DataSet *rmsd_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
-    // Reference variables and functions
-    enum RefModeType { UNKNOWN_REF=0, FIRST, REFFRAME, REFTRAJ };
-    RefModeType refmode_;
-    Frame RefFrame_;
-    Topology* RefParm_; // Needed for PerResSetup
-    Frame SelectedRef_;
-    AtomMask RefMask_;
-    Trajin_Single RefTraj_;
-    int SetRefMask( Topology* );
-    void SetRefStructure( Frame& );
-
     /// Resize per-residue RMSD masks
     void resizeResMasks();
     /// Set up per-residue RMSD calc

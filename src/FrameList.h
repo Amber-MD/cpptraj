@@ -29,8 +29,8 @@ class ReferenceFrame {
     bool empty()      const { return frame_ == 0;   }
     Frame* Coord()          { return frame_;        }
     Topology* Parm()        { return parm_;         }
-    const char* FrameName() { return name_.c_str(); }
     int Num()         const { return num_;          }
+    std::string const& FrameName() const { return name_;   }
   private:
     Frame* frame_;     ///< Reference coords, allocated.
     Topology* parm_;   ///< Pointer to assiociated parm in TopologyList.

@@ -820,7 +820,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
       }
       // Strip reference parm
       mprintf("    Modifying reference %s topology and frame to match mapped atoms.\n",
-              REF.FrameName());
+              REF.FrameName().c_str());
       stripParm_ = RefParm_->modifyStateByMask(*M1);
       // Strip reference frame
       newFrame_ = new Frame(*RefFrame_, *M1);
