@@ -128,10 +128,10 @@ Action::RetType Action_Image::Setup(Topology* currentParm, Topology** parmAddres
 
   // If box is originally truncated oct and not forcing triclinic, 
   // turn familiar on.
-  if (currentParm->BoxType()==Box::TRUNCOCT && triclinic_!=FORCE && triclinic_!=FAMILIAR) {
+  /*if (currentParm->BoxType()==Box::TRUNCOCT && triclinic_!=FORCE && triclinic_!=FAMILIAR) {
     mprintf("\tOriginal box is truncated octahedron, turning on 'familiar'.\n");
     triclinic_=FAMILIAR;
-  }
+  }*/
 
   if (triclinic_ == FAMILIAR) {
     if (ComMask_!=0) {
