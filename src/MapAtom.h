@@ -9,26 +9,24 @@ class MapAtom : public Atom {
     MapAtom(const Atom&);
     MapAtom& operator=(const MapAtom&);
 
-    bool IsChiral() { return isChiral_; }
-    bool IsMapped() { return isMapped_; }
-    bool Complete() { return complete_; }
-    bool IsUnique() { return (Nduplicated_ == 0); }
-    const std::string& AtomID() { return atomID_; }
-    const std::string& Unique() { return unique_;}
-    int Nduplicated() { return Nduplicated_; }
-    char CharName() { return name_; }
+    bool IsChiral()             const { return isChiral_; }
+    bool IsMapped()             const { return isMapped_; }
+    bool Complete()             const { return complete_; }
+    bool IsUnique()             const { return (Nduplicated_ == 0); }
+    const std::string& AtomID() const { return atomID_; }
+    const std::string& Unique() const { return unique_;}
+    int Nduplicated()           const { return Nduplicated_; }
+    char CharName()             const { return name_; }
 
-    void IsDuplicated() { ++Nduplicated_; }
-
-    void SetMapped() { isMapped_ = true; } 
-    void SetComplete() { complete_ = true; }
-    void SetChiral() { isChiral_ = true; }
+    void IsDuplicated()                  { ++Nduplicated_; }
+    void SetMapped()                     { isMapped_ = true; } 
+    void SetComplete()                   { complete_ = true; }
+    void SetChiral()                     { isChiral_ = true; }
     void SetAtomID(std::string const& s) { atomID_ = s; }
     void SetUnique(std::string const& s) { unique_ = s; Nduplicated_ = 0; }
-    
-    void SetNotMapped() { isMapped_ = false; }
-    void SetNotComplete() { complete_ = false; }
-    void SetNotChiral() { isChiral_ = false; }
+    void SetNotMapped()                  { isMapped_ = false; }
+    void SetNotComplete()                { complete_ = false; }
+    void SetNotChiral()                  { isChiral_ = false; }
   private:
     static const char AtomicElementChar[];
     bool isChiral_;      ///< true: Atom is a chiral center
