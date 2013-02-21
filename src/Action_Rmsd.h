@@ -1,12 +1,12 @@
 #ifndef INC_ACTION_RMSD_H
 #define INC_ACTION_RMSD_H
-#include <vector>
 #include "Action.h"
 #include "Range.h"
 #include "ReferenceAction.h"
+#include "RmsAction.h" 
 // Class: Action_Rmsd
 /// Action to calculate the RMSD between frame and a reference frame.
-class Action_Rmsd: public Action, ReferenceAction {
+class Action_Rmsd: public Action, RmsAction, ReferenceAction {
   public:
     Action_Rmsd();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rmsd(); }
@@ -37,13 +37,7 @@ class Action_Rmsd: public Action, ReferenceAction {
     Frame *ResRefFrame_;               ///< Hold residue reference coords.
     Topology* RefParm_;                ///< Needed for mask setup in PerResSetup
     // ------------------------ 
-    AtomMask FrameMask_;               ///< Target mask.
-    bool fit_;                         ///< If false do not calculate best-fit RMSD
-    bool rotate_;                      ///< If true and fitting, do not rotate coords.
-    bool useMass_;
-    Vec3 Trans_;                       ///< For fit, hold translation tgt->origin
-    Frame SelectedFrame_;              ///< Hold only selected target frame coords.
-    DataSet *rmsd_;
+    DataSet* rmsd_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     /// Resize per-residue RMSD masks

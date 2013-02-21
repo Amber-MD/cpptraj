@@ -17,9 +17,6 @@ Action_Rmsd::Action_Rmsd() :
   ResFrame_(0),
   ResRefFrame_(0),
   RefParm_(0),
-  fit_(true),
-  rotate_(true),
-  useMass_(false),
   rmsd_(0),
   masterDSL_(0)
 { }
@@ -32,11 +29,11 @@ Action_Rmsd::~Action_Rmsd() {
 }
 
 void Action_Rmsd::Help() {
-  mprintf("rmsd [<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n");
-  mprintf("     [ first | ref <filename> | refindex <#> |\n");
-  mprintf("     reftraj <filename> [parm <parmname> | parmindex <#>] ]\n");
-  mprintf("     [ perres perresout <filename> [range <res range>] [refrange <ref res range>]\n");
-  mprintf("     [perresmask <addtl mask>] [perresinvert] [perrescenter] perresavg <pravg> ]\n");
+  mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n");
+  mprintf("\t[ first | ref <filename> | refindex <#> |\n");
+  mprintf("\treftraj <filename> [parm <parmname> | parmindex <#>] ]\n");
+  mprintf("\t[ perres perresout <filename> [range <res range>] [refrange <ref res range>]\n");
+  mprintf("\t[perresmask <addtl mask>] [perresinvert] [perrescenter] perresavg <pravg> ]\n");
 }
 
 // Action_Rmsd::init()
@@ -45,10 +42,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Check for keywords
-  fit_ = !actionArgs.hasKey("nofit");
-  if (fit_)
-    rotate_ = !actionArgs.hasKey("norotate");
-  useMass_ = actionArgs.hasKey("mass");
+  GetRmsKeywords( actionArgs );
   DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
@@ -74,16 +68,10 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     perrescenter_ = actionArgs.hasKey("perrescenter");
     perresavg_ = DFL->AddDataFile( actionArgs.GetStringKey("perresavg") );
   }
-  // Get the RMS mask string for target 
-  std::string mask0 = actionArgs.GetMaskNext();
-  FrameMask_.SetMaskString(mask0);
-  // Get the RMS mask string for reference
-  std::string mask1 = actionArgs.GetMaskNext();
-  if (mask1.empty())
-    mask1 = mask0;
-
+  // Get the RMS mask string for target
+  std::string mask1 = GetRmsMasks(actionArgs); 
   // Initialize reference
-  if (InitRef(previous, first, useMass_, fit_, reftrajname, REF, RefParm_, mask1,
+  if (InitRef(previous, first, UseMass(), Fit(), reftrajname, REF, RefParm_, mask1,
               actionArgs, "rmsd"))
     return Action::ERR;
   // Set RefParm for perres if not empty
@@ -97,18 +85,9 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   // Add dataset to data file list
   if (outfile != 0) outfile->AddSet( rmsd_ );
 
-  mprintf("    RMSD: (%s), reference is %s",FrameMask_.MaskString(),
+  mprintf("    RMSD: (%s), reference is %s",TgtMask().MaskString(),
           RefModeString());
-  if (!fit_)
-    mprintf(", no fitting");
-  else {
-    mprintf(", with fitting");
-    if (!rotate_)
-      mprintf(" (no rotation)");
-  }
-  if (useMass_) 
-    mprintf(", mass-weighted");
-  mprintf(".\n");
+  PrintRmsStatus();
   // Per-residue RMSD info.
   if (perres_) {
     mprintf("          No-fit RMSD will also be calculated for ");
@@ -266,18 +245,10 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
   * parmtop and allocate space for selected atoms from the Frame.
   */
 Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress) {
-  if ( currentParm->SetupIntegerMask( FrameMask_ ) ) return Action::ERR;
-  FrameMask_.MaskInfo();
-  if ( FrameMask_.None() ) {
-    mprintf("Warning: rmsd: No atoms in mask.\n");
-    return Action::ERR;
-  }
-  // Allocate space for selected atoms in the frame. This will also put the
-  // correct masses in based on the mask.
-  SelectedFrame_.SetupFrameFromMask(FrameMask_, currentParm->Atoms());
-
+  // Target setup
+  if (SetupRmsMask(*currentParm, "rmsd")) return Action::ERR;
   // Reference setup
-  if (SetupRef(*currentParm, FrameMask_.Nselected(), "rmsd"))
+  if (SetupRef(*currentParm, TgtMask().Nselected(), "rmsd"))
     return Action::ERR;
  
   // Per residue rmsd setup
@@ -298,28 +269,11 @@ Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress
   * and puts the translation from origin to reference in Trans[3-5]. 
   */
 Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double R;
-  Matrix_3x3 U;
-
   // Perform any needed reference actions
-  ActionRef( *currentFrame, fit_, useMass_ );
-
-  // Set selected frame atoms. Masses have already been set.
-  SelectedFrame_.SetCoordinates(*currentFrame, FrameMask_);
-
-  if (!fit_) {
-    R = SelectedFrame_.RMSD_NoFit(SelectedRef(), useMass_);
-  } else {
-    R = SelectedFrame_.RMSD_CenteredRef(SelectedRef(), U, Trans_, useMass_);
-    if (rotate_)
-      currentFrame->Trans_Rot_Trans(Trans_, U, RefTrans());
-    else {
-      Trans_ += RefTrans();
-      currentFrame->Translate(Trans_);
-    }
-  }
-
-  rmsd_->Add(frameNum, &R);
+  ActionRef( *currentFrame, Fit(), UseMass() );
+  // Calculate RMSD
+  double rmsdval = CalcRmsd( *currentFrame, SelectedRef(), RefTrans() );
+  rmsd_->Add(frameNum, &rmsdval);
 
   // ---=== Per Residue RMSD ===---
   // Set reference and selected frame for each residue using the previously
@@ -337,7 +291,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
         ResFrame_->CenterOnOrigin(false);
         ResRefFrame_->CenterOnOrigin(false);
       }
-      R = ResFrame_->RMSD_NoFit(*ResRefFrame_, useMass_);
+      double R = ResFrame_->RMSD_NoFit(*ResRefFrame_, UseMass());
       //mprintf("DEBUG:           [%4i] Res [%s] nofit RMSD to [%s] = %lf\n",N,
       //        tgtResMask[N]->MaskString(),refResMask[N]->MaskString(),R);
       PerResRMSD_[N]->Add(frameNum, &R);
@@ -345,7 +299,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
   }
 
   if (Previous())
-    SetRefStructure( *currentFrame, fit_, useMass_ );
+    SetRefStructure( *currentFrame, Fit(), UseMass() );
 
   return Action::OK;
 }
