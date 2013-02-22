@@ -56,11 +56,25 @@ int AtomMap::Setup(Topology const& TopIn) {
 
 int AtomMap::SetupResidue(Topology const& topIn, int resnum) {
   mapatoms_.clear();
-  for (int atom = topIn.Res(resnum).FirstAtom(); 
-           atom < topIn.Res(resnum).LastAtom(); ++atom)
-  {
+  int firstAtom = topIn.Res(resnum).FirstAtom();
+  int lastAtom = topIn.Res(resnum).LastAtom();
+  //mprintf("DEBUG:\tResidue %i, atoms %i to %i\n", resnum + 1, firstAtom+1, lastAtom);
+  for (int atom = firstAtom; atom < lastAtom; ++atom) {
     mapatoms_.push_back( topIn[atom] );
     if (InvalidElement()) return 1;
+    // Add bonds for this residue 
+    mapatoms_.back().ClearBonds();
+    for (Atom::bond_iterator bndatm = topIn[atom].bondbegin();
+                             bndatm != topIn[atom].bondend(); ++bndatm)
+    {
+      //mprintf("DEBUG:\t\tOriginal bond %u-%i", atom+1, *bndatm+1);
+      if (*bndatm >= firstAtom && *bndatm < lastAtom) { 
+        int newbndatm = *bndatm - firstAtom;
+        mapatoms_.back().AddBond(newbndatm);
+        //mprintf(", new bond %i-%i", mapatoms_.size(), newbndatm+1);
+      }
+      //mprintf("\n");
+    }
   }
   return 0;
 }

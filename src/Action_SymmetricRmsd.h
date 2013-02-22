@@ -16,6 +16,16 @@ class Action_SymmetricRmsd : public Action, ReferenceAction, RmsAction {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
 
+    /// Hold info for each residue
+    typedef std::vector<int> Iarray;
+    class SymRes {
+      public:
+        SymRes() {}
+        Iarray NonSymAtoms_;
+        std::vector<Iarray> SymMasks_;
+    };
+    std::vector<SymRes> residues_;
+
     DataSet* rmsd_;
 };
 #endif
