@@ -319,7 +319,6 @@ void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &
   } // END Outer loop
 
 }
-
 // Action_Pairwise::WriteCutFrame()
 /** Write file containing only cut atoms and charges. */
 int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask const& CutMask, 
