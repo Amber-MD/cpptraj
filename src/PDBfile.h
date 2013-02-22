@@ -32,10 +32,10 @@ class PDBfile : public CpptrajFile {
     void WriteATOM(const char*, int, double, double, double, const char*, double);
     /// Write TER record
     void WriteTER(int, NameType const&, char, int);
-    /// Write PDB ATOM/HETATM record
+    /// Write complete PDB ATOM/HETATM record
     void WriteRec(PDB_RECTYPE, int, NameType const&, NameType const&, char, int,
-                  double, double, double, float, float, const char *, bool);
-    /// Write PDB ATOM/HETATM record
+                  double, double, double, float, float, const char *, int, bool);
+    /// Write PDB ATOM/HETATM record, default B-factor, occ, elt, and charge.
     void WriteRec(PDB_RECTYPE, int, NameType const&, NameType const&, char, int,
                   double, double, double);
   private:

@@ -36,7 +36,7 @@ void AtomMap::SetDebug(int debugIn) {
 bool AtomMap::InvalidElement() {
   if (mapatoms_.back().CharName() == 0) {
     mprinterr("Error: AtomMap: Mapping currently not supported for element %s\n",
-              Atom::AtomicElementName[ mapatoms_.back().Element() ]);
+              mapatoms_.back().ElementName());
     return true;
   }
   return false;

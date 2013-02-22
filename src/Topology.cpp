@@ -1225,7 +1225,7 @@ void Topology::MaskSelectElements( NameType const& element, char* mask ) const {
   for (std::vector<Atom>::const_iterator atom = atoms_.begin();
                                          atom != atoms_.end(); ++atom)
   {
-    NameType atom_element( Atom::AtomicElementName[(*atom).Element()] );
+    NameType atom_element( (*atom).ElementName() );
     if ( atom_element.Match( element ) )
       mask[m] = 'T';
     ++m;
