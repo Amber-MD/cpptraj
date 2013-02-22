@@ -43,7 +43,7 @@ int AtomMap::Setup(Topology *TopIn) {
     // Check if 1 char name set to 0, means unidentified element.
     if (mapatoms_.back().CharName() == 0) {
       mprinterr("Error: AtomMap::Setup: Mapping currently not supported for element %s\n",
-                Atom::AtomicElementName[ mapatoms_.back().Element() ]);
+                mapatoms_.back().ElementName());
       return 1;
     }
   }
