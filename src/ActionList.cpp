@@ -57,6 +57,7 @@
 #include "Action_CreateCrd.h"
 #include "Action_MultiDihedral.h"
 #include "Action_MakeStructure.h"
+#include "Action_SymmetricRmsd.h"
 
 const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, 0 },
@@ -115,6 +116,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "stfcdiffusion", Action_STFC_Diffusion::Alloc, Action_STFC_Diffusion::Help, 0 },
   { DispatchObject::ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, 0 },
   { DispatchObject::ACTION, "surf", Action_Surf::Alloc, Action_Surf::Help, 0 },
+  { DispatchObject::ACTION, "symmrmsd", Action_SymmetricRmsd::Alloc, Action_SymmetricRmsd::Help, 0 },
   { DispatchObject::ACTION, "trans", Action_Translate::Alloc, Action_Translate::Help, 0 },
   { DispatchObject::ACTION, "translate", Action_Translate::Alloc, Action_Translate::Help, 0 },
   { DispatchObject::ACTION, "unstrip", Action_Unstrip::Alloc, Action_Unstrip::Help, 0 },

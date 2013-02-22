@@ -32,20 +32,35 @@ void AtomMap::SetDebug(int debugIn) {
   debug_ = debugIn;
 }
 
+/// Check if 1 char name set to 0, means unidentified element.
+bool AtomMap::InvalidElement() {
+  if (mapatoms_.back().CharName() == 0) {
+    mprinterr("Error: AtomMap: Mapping currently not supported for element %s\n",
+              Atom::AtomicElementName[ mapatoms_.back().Element() ]);
+    return true;
+  }
+  return false;
+}
+
 // AtomMap::Setup()
 /** Copy all atoms from input topology to this AtomMap. */
-int AtomMap::Setup(Topology *TopIn) {
-  // Copy atoms
+int AtomMap::Setup(Topology const& TopIn) {
   mapatoms_.clear();
-  for (Topology::atom_iterator atom = TopIn->begin(); atom != TopIn->end(); atom++) {
+  for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); atom++) {
     // This sets up 1 char atom name based on atom element
     mapatoms_.push_back( *atom );
-    // Check if 1 char name set to 0, means unidentified element.
-    if (mapatoms_.back().CharName() == 0) {
-      mprinterr("Error: AtomMap::Setup: Mapping currently not supported for element %s\n",
-                Atom::AtomicElementName[ mapatoms_.back().Element() ]);
-      return 1;
-    }
+    if (InvalidElement()) return 1;
+  }
+  return 0;
+}
+
+int AtomMap::SetupResidue(Topology const& topIn, int resnum) {
+  mapatoms_.clear();
+  for (int atom = topIn.Res(resnum).FirstAtom(); 
+           atom < topIn.Res(resnum).LastAtom(); ++atom)
+  {
+    mapatoms_.push_back( topIn[atom] );
+    if (InvalidElement()) return 1;
   }
   return 0;
 }

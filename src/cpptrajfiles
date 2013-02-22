@@ -14,6 +14,7 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         Action_Radial.cpp Action_RandomizeIons.cpp Action_Rmsd.cpp \
         Action_Rotate.cpp Action_Rotdif.cpp Action_RunningAvg.cpp \
         Action_Scale.cpp Action_STFC_Diffusion.cpp Action_Strip.cpp \
+        Action_SymmetricRmsd.cpp \
         Action_Surf.cpp Action_Translate.cpp Action_Unwrap.cpp \
         Action_Vector.cpp Action_Watershell.cpp ActionList.cpp \
         ActionFrameCounter.cpp Action_LIE.cpp \

@@ -10,7 +10,8 @@ class AtomMap {
     MapAtom& operator[](int);
     int Natom();
     void SetDebug(int);
-    int Setup(Topology*);
+    int Setup(Topology const&);
+    int SetupResidue(Topology const&,int);
     void ResetMapping();
     bool BondIsRepeated(int,int);
     void DetermineAtomIDs();
@@ -19,6 +20,8 @@ class AtomMap {
     int CheckBonds();
 
   private:
+    bool InvalidElement();
+
     static MapAtom EMPTYMAPATOM;
     std::vector<MapAtom> mapatoms_;
     int debug_;
