@@ -66,13 +66,16 @@ int Hungarian::Assign() {
         }
       }
     }
-    // DEBUG
+#   ifdef DEBUG_HUNGARIAN
     mprintf("Min Row %i (%i), min Column %i (%i)\n", minRow, minRowZeros,
             minCol, minColZeros);
+#   endif
     if (minRow == -1 && minCol == -1) // No zeros left
       break;
-    if (minColZeros < minRowZeros) { 
-      mprintf("\tColumn %i has min # of zeros (%i)\n", minCol, minColZeros); // DEBUG
+    if (minColZeros < minRowZeros) {
+#     ifdef DEBUG_HUNGARIAN 
+      mprintf("\tColumn %i has min # of zeros (%i)\n", minCol, minColZeros);
+#     endif
       // Assign column to the first unassigned row whose elt is zero.
       int elt = minCol; 
       for (int row = 0; row < matrix_.Nrows(); ++row, elt += matrix_.Ncols()) {
@@ -81,13 +84,17 @@ int Hungarian::Assign() {
           lineThroughCol_[minCol] = true;
           assignRowToCol_[minCol] = row;
           assignColToRow_[row] = minCol;
-          mprintf("\tAssigned row %i to column %i\n", row, minCol); // DEBUG
+#         ifdef DEBUG_HUNGARIAN
+          mprintf("\tAssigned row %i to column %i\n", row, minCol);
+#         endif
           assigned = 1;
           break;
         }
       }
     } else if (minRowZeros >= minColZeros) { // Preference given to rows
-      mprintf("Row %i has min # of zeros (%i)\n", minRow, minRowZeros); // DEBUG
+#     ifdef DEBUG_HUNGARIAN
+      mprintf("Row %i has min # of zeros (%i)\n", minRow, minRowZeros);
+#     endif
       // Assign row to the first unassigned col whose elt is zero.
       int elt = minRow * matrix_.Ncols();
       for (int col = 0; col < matrix_.Ncols(); ++col, ++elt) {
@@ -96,7 +103,9 @@ int Hungarian::Assign() {
           lineThroughCol_[col] = true;
           assignRowToCol_[col] = minRow;
           assignColToRow_[minRow] = col;
-          mprintf("\tAssigned row %i to column %i\n", minRow, col); // DEBUG
+#         ifdef DEBUG_HUNGARIAN
+          mprintf("\tAssigned row %i to column %i\n", minRow, col);
+#         endif
           assigned = 1;
           break;
         }
@@ -104,17 +113,20 @@ int Hungarian::Assign() {
     }
     Nassigned += assigned;
   } // END while loop
+# ifdef DEBUG_HUNGARIAN
   // DEBUG - Print assignments
   mprintf("%i ASSIGNMENTS:\n", Nassigned);
   for (int col = 0; col < matrix_.Ncols(); ++col)
     mprintf("\tAssigned row %i to column %i\n", assignRowToCol_[col], col);
-
+# endif
   return Nassigned;
 } 
 
 /** \return Array containing which row idx matches which column idx. */
 std::vector<int> Hungarian::Optimize() {
+# ifdef DEBUG_HUNGARIAN
   matrix_.Print("INITIAL MATRIX");
+# endif
   // Reduce elements in each row by the minimum in each row
   for (int row = 0; row < matrix_.Nrows(); ++row) {
     double minval = DBL_MAX;
@@ -125,8 +137,9 @@ std::vector<int> Hungarian::Optimize() {
     for (int col = 0; col < matrix_.Ncols(); ++col, ++elt0)
       matrix_[elt0] -= minval;
   }
+# ifdef DEBUG_HUNGARIAN
   matrix_.Print("AFTER ROW REDUCTION");
-
+# endif
   // Reduce elements in each col by the minimum in each col
   for (int col = 0; col < matrix_.Ncols(); ++col) {
     double minval = DBL_MAX;
@@ -137,8 +150,9 @@ std::vector<int> Hungarian::Optimize() {
     for (int row = 0; row < matrix_.Nrows(); ++row, elt0 += matrix_.Ncols())
       matrix_[elt0] -= minval;
   }
+# ifdef DEBUG_HUNGARIAN
   matrix_.Print("AFTER COL REDUCTION");
-
+# endif
   // Loop until every row is assigned a column
   int max_iterations = matrix_.Nrows() * matrix_.Ncols();
   int iterations = 0;
@@ -168,7 +182,9 @@ void Hungarian::UpdateMatrix() {
         if (!lineThroughCol_[col]) {
           double matrix_elt = matrix_.GetElement(row, col);
           if (matrix_elt < min_uncovered) {
-            mprintf("\tNew min %f at %i, %i\n",matrix_elt,row,col); // DEBUG
+#           ifdef DEBUG_HUNGARIAN
+            mprintf("\tNew min %f at %i, %i\n",matrix_elt,row,col);
+#           endif
             min_uncovered = matrix_elt;
           }
         }
@@ -176,7 +192,9 @@ void Hungarian::UpdateMatrix() {
     }
   }
   // Update matrix elements
-  mprintf("MIN UNCOVERED ELEMENT= %f\n", min_uncovered); // DEBUG
+# ifdef DEBUG_HUNGARIAN
+  mprintf("MIN UNCOVERED ELEMENT= %f\n", min_uncovered);
+# endif
   int elt = 0;
   for (int row = 0; row < matrix_.Nrows(); ++row) {
     for (int col = 0; col < matrix_.Ncols(); ++col, ++elt) {
@@ -186,9 +204,12 @@ void Hungarian::UpdateMatrix() {
         matrix_[elt] -= min_uncovered;
     }
   }
+# ifdef DEBUG_HUNGARIAN
   matrix_.Print("AFTER ADDITION/SUBTRACTION OF MIN UNCOVERED");
+# endif
 }
 
+#ifdef DEBUG_HUNGARIAN
 // Hungarian::PrintLines()
 void Hungarian::PrintLines(const char* title) {
   mprintf("%s\n", title);
@@ -200,6 +221,7 @@ void Hungarian::PrintLines(const char* title) {
     if (lineThroughCol_[col]) mprintf(" %i", col);
   mprintf("\n");
 }
+#endif
 
 // Hungarian::CoverZeroElements()
 /** Cover all zeros in the matrix by marking as few rows and/or columns as 
@@ -213,7 +235,9 @@ int Hungarian::CoverZeroElements() {
     if (assignColToRow_[row] == -1)
       lineThroughRow_[row] = true;
   }
+# ifdef DEBUG_HUNGARIAN
   PrintLines("MARK UNASSIGNED ROWS:");
+# endif
   bool closed = false;
   while (!closed) {
     closed = true;
@@ -227,7 +251,9 @@ int Hungarian::CoverZeroElements() {
         }
       }
     }
+#   ifdef DEBUG_HUNGARIAN
     PrintLines("MARK COLS WITH ZEROS IN MARKED ROWS:");
+#   endif
     // Mark all rows having assignments in marked columns
     for (int col = 0; col < matrix_.Ncols(); ++col) {
       if (lineThroughCol_[col]) {
@@ -239,12 +265,16 @@ int Hungarian::CoverZeroElements() {
         }
       }
     }
+#   ifdef DEBUG_HUNGARIAN
     PrintLines("MARK ROWS HAVING ASSIGNMENTS IN MARKED COLS:");
+#   endif
   }
   // Lines are drawn through marked columns and unmarked rows.
   for (std::vector<bool>::iterator mrow = lineThroughRow_.begin();
                                    mrow != lineThroughRow_.end(); ++mrow)
     *mrow = !(*mrow);
+# ifdef DEBUG_HUNGARIAN
   PrintLines("FINAL LINES:");
+# endif
   return 0;
 } 
