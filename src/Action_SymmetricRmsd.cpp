@@ -1,9 +1,8 @@
-//#include <algorithm> // next_permuation
-//#include <list>
-#include <cmath>
+#include "Hungarian.h" 
 #include "Action_SymmetricRmsd.h"
 #include "CpptrajStdio.h"
 #include "AtomMap.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Action_SymmetricRmsd::Action_SymmetricRmsd() {}
@@ -14,6 +13,7 @@ void Action_SymmetricRmsd::Help() {
   mprintf("\treftraj <filename> [parm <parmname> | parmindex <#>] ]\n");
 }
 
+// Action_SymmetricRmsd::Init()
 Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PFL, 
                           FrameList* FL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -26,7 +26,6 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
   ReferenceFrame  REF = FL->GetFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
   Topology* RefParm = PFL->GetParm( actionArgs );
-  // Per-res keywords
   // Get the RMS mask string for target
   std::string mask1 = GetRmsMasks(actionArgs);
   // Initialize reference
@@ -46,15 +45,24 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
   return Action::OK;
 }
 
+// Action_SymmetricRmsd::Setup()
 Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** parmAddress) {
   // Target setup
   if (SetupRmsMask(*currentParm, "symmrmsd")) return Action::ERR;
+  // Target remap setup
+  // FIXME: No mass information yet
+  rmsTgtFrame_.SetupFrame( TgtMask().Nselected() );
   // Reference setup
   if (SetupRef(*currentParm, TgtMask().Nselected(), "symmrmsd"))
     return Action::ERR;
   // Check for symmetric atoms
   //AtomMask cMask = TgtMask();
   //cMask.ConvertMaskType(); // Convert to char mask
+  // Create initial 1 to 1 atom map
+  AMap_.clear();
+  for (int atom = 0; atom < currentParm->Natom(); atom++)
+    AMap_.push_back(atom);
+  // Create atom maps for each residue
   AtomMap resmap;
   resmap.SetDebug(0); // DEBUG
   for (int residue = 0; residue < currentParm->Nres(); ++residue) {
@@ -63,12 +71,9 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
     if (resmap.CheckBonds() != 0) return Action::ERR;
     resmap.DetermineAtomIDs();
     // Generate maps for symmetric atoms
-    residues_.push_back( SymRes() ); // DEBUG
+    PairArray pairs;
     std::vector<bool> selected(resmap.Natom(), false);
     for (int atom1 = 0; atom1 < resmap.Natom(); atom1++) {
-      // DEBUG
-      residues_.back().NonSymAtoms_.push_back( atom1 + currentParm->Res(residue).FirstAtom() );
-      // DEBUG
       if (!selected[atom1]) {
         if (resmap[atom1].Nduplicated() > 0) {
           selected[atom1] = true;
@@ -79,21 +84,16 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
               symmatoms.push_back(atom2);
             }
           } // End loop over atom2
-          residues_.back().SymMasks_.push_back( symmatoms );
+          pairs.push_back( AtomPair(symmatoms) );
           mprintf("DEBUG:\t\tAtom ID %s is duplicated %u times:", resmap[atom1].Unique().c_str(),
                   symmatoms.size());
-          //do {
-          //for (unsigned int iteration = 0; iteration < symmatoms.size(); ++iteration) {
-            for (Iarray::const_iterator sa = symmatoms.begin(); sa != symmatoms.end(); ++sa)
-              mprintf(" %i", *sa + 1);
-            mprintf("\n");
-          //  symmatoms.push_front( symmatoms.back() );
-          //  symmatoms.pop_back();
-          //}
-          //} while (std::next_permutation(symmatoms.begin(), symmatoms.end()));
+          for (Iarray::const_iterator sa = symmatoms.begin(); sa != symmatoms.end(); ++sa)
+            mprintf(" %i", *sa + 1);
+          mprintf("\n");
         }
       }
     } // End loop over atom1
+    residues_.push_back( pairs );
     mprintf("DEBUG:\tNon-symmetric atoms:");
     for (int atom1 = 0; atom1 < resmap.Natom(); atom1++)
       if (!selected[atom1]) mprintf(" %i", atom1+1);
@@ -103,48 +103,55 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
   return Action::OK;
 }
 
+// Action_SymmetricRmsd::DoAction()
 Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame, 
                                                Frame** frameAddress) 
 {
+  Matrix_2D cost_matrix;
   // Perform any needed reference actions
   ActionRef( *currentFrame, Fit(), UseMass() );
   // Calculate initial best-fit RMSD
   if (Fit())
     CalcRmsd( *currentFrame, SelectedRef(), RefTrans() );
   // Correct RMSD for symmetry
-  double rms_return = 0.0;
-  int total = 0;
   // FIXME: currently calcs all atom RMSD
-  for (std::vector<SymRes>::iterator res = residues_.begin(); res != residues_.end(); res++) 
+  for (std::vector<PairArray>::iterator res = residues_.begin(); res != residues_.end(); res++) 
   {
-    // First get RMSD of non-symmetric atoms.
-    for (Iarray::const_iterator atom = (*res).NonSymAtoms_.begin();
-                                atom != (*res).NonSymAtoms_.end(); ++atom)
-    { 
-      Vec3 diff( RefFrame().XYZ(*atom) );
-      diff -= Vec3( currentFrame->XYZ(*atom) );
-      rms_return += diff.Magnitude2();
-      ++total;
-    }
     // For each array of symmetric atoms, determine the lowest distance score
-    for (std::vector<Iarray>::iterator symmask = (*res).SymMasks_.begin();
-                                       symmask != (*res).SymMasks_.end(); ++symmask)
+    for (PairArray::iterator pair = (*res).begin(); pair != (*res).end(); ++pair)
     {
-      for (Iarray::iterator tgtatom = (*symmask).begin(); 
-                            tgtatom != (*symmask).end(); ++tgtatom)
+      cost_matrix.Setup((*pair).AtomIndexes_.size(), (*pair).AtomIndexes_.size());
+      for (Iarray::iterator tgtatom = (*pair).AtomIndexes_.begin(); 
+                            tgtatom != (*pair).AtomIndexes_.end(); ++tgtatom)
       {
-        for (Iarray::iterator refatom = (*symmask).begin();
-                              refatom != (*symmask).end(); ++refatom)
+        for (Iarray::iterator refatom = (*pair).AtomIndexes_.begin();
+                              refatom != (*pair).AtomIndexes_.end(); ++refatom)
         {
-          Vec3 diff( RefFrame().XYZ(*refatom) );
-          diff -= Vec3( currentFrame->XYZ(*tgtatom) );
-          mprintf("\t\t%i to %i: %f\n", *tgtatom + 1, *refatom + 1, diff.Magnitude2());
+          double dist2 = DIST2_NoImage( RefFrame().XYZ(*refatom), currentFrame->XYZ(*tgtatom) );
+          //mprintf("\t\t%i to %i: %f\n", *tgtatom + 1, *refatom + 1, dist2);
+          cost_matrix.AddElement( dist2 ); 
         }
+        //AMap_[ minrefatom ] = *tgtatom;
+      }
+      mprintf("\tRes %i", res - residues_.begin() + 1);
+      cost_matrix.Print("Cost Matrix:");
+      Hungarian HA(cost_matrix);
+      Iarray resMap = HA.Optimize();
+      // Fill in overall map
+      Iarray::iterator rmap = resMap.begin();
+      for (Iarray::iterator atmidx = (*pair).AtomIndexes_.begin();
+                            atmidx != (*pair).AtomIndexes_.end(); ++atmidx, ++rmap)
+      {
+        AMap_[*atmidx] = (*pair).AtomIndexes_[*rmap];
+        mprintf("\tAssigned atom %i to atom %i\n", *atmidx + 1, (*pair).AtomIndexes_[*rmap] + 1);
       }
     }
   }
-  rms_return = sqrt(rms_return / (double)total);
-  //rmsd_->Add(frameNum, &rmsdval);
-  rmsd_->Add(frameNum, &rms_return);
+/*  int ref = 0;
+  for (Iarray::iterator map = AMap_.begin(); map != AMap_.end(); ++map)
+    mprintf("\t%i -> %i\n", ref++, *map);*/
+  rmsTgtFrame_.SetTargetByMap(*currentFrame, AMap_);
+  double rmsdval = CalcRmsd(rmsTgtFrame_, SelectedRef(), RefTrans());
+  rmsd_->Add(frameNum, &rmsdval);
   return Action::OK;
 }

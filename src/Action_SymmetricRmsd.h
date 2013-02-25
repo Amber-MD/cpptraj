@@ -18,14 +18,18 @@ class Action_SymmetricRmsd : public Action, ReferenceAction, RmsAction {
 
     /// Hold info for each residue
     typedef std::vector<int> Iarray;
-    class SymRes {
+    class AtomPair {
       public:
-        SymRes() {}
-        Iarray NonSymAtoms_;
-        std::vector<Iarray> SymMasks_;
+        AtomPair() {}
+        AtomPair(Iarray Iin) : AtomIndexes_(Iin), AtomValues_(Iin) {}
+        Iarray AtomIndexes_; ///< Indexes into AMap
+        Iarray AtomValues_;  ///< Actual atom index at position
     };
-    std::vector<SymRes> residues_;
+    typedef std::vector<AtomPair> PairArray;
+    std::vector<PairArray> residues_;
 
+    Iarray AMap_;
     DataSet* rmsd_;
+    Frame rmsTgtFrame_;
 };
 #endif
