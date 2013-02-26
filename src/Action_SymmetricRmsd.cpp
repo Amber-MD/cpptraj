@@ -55,18 +55,22 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
   // Reference setup
   if (SetupRef(*currentParm, TgtMask().Nselected(), "symmrmsd"))
     return Action::ERR;
-  // Check for symmetric atoms
-  //AtomMask cMask = TgtMask();
-  //cMask.ConvertMaskType(); // Convert to char mask
-  // Create initial 1 to 1 atom map
+  //InitialFitMask.ResetMask();
+  // Create char mask to see what symmetric atoms are selected. 
+  AtomMask cMask = TgtMask();
+  cMask.ConvertMaskType(); // Convert to char mask
+  // Create initial 1 to 1 atom map for all atoms; indices in 
+  // SymmetricAtomIndices will correspond to positions in AMap.
   AMap_.clear();
   for (int atom = 0; atom < currentParm->Natom(); atom++)
     AMap_.push_back(atom);
-  // Create atom maps for each residue
+  // Determine last selected residue
+  int last_res = (*currentParm)[TgtMask().back()].ResNum() + 1;
+  // Create atom maps for each selected atom in residues
   SymmetricAtomIndices_.clear();
   AtomMap resmap;
   resmap.SetDebug(0); // DEBUG
-  for (int residue = 0; residue < currentParm->Nres(); ++residue) {
+  for (int residue = 0; residue < last_res; ++residue) {
     int res_first_atom = currentParm->Res(residue).FirstAtom();
     mprintf("DEBUG: Residue %s\n", currentParm->TruncResNameNum(residue).c_str());
     if (resmap.SetupResidue(*currentParm, residue) != 0) return Action::ERR;
@@ -74,33 +78,53 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
     resmap.DetermineAtomIDs();
     // NOTE: Indices for resmap start at 0.
     // Generate maps for symmetric atoms
-    std::vector<bool> selected(resmap.Natom(), false);
+    // AtomStatus: 0=Unselected, 1=Selected/Non-symm., 2=Selected/Symm
+    std::vector<int> AtomStatus(resmap.Natom(), 0);
     for (int atom1 = 0; atom1 < resmap.Natom(); atom1++) {
-      if (!selected[atom1]) {
-        if (resmap[atom1].Nduplicated() > 0) { // This atom is duplicated
-          selected[atom1] = true;
-          Iarray symmatoms(1, atom1 + res_first_atom);
+      int actual_atom1 = atom1 + res_first_atom; // Actual atom index in currentParm
+      if (cMask.AtomInCharMask(actual_atom1) && AtomStatus[atom1] == 0) {
+        AtomStatus[atom1] = 1; // Initially select as non-symmetric
+        // Check if atom is duplicated. If so, find all selected duplicates.
+        if (resmap[atom1].Nduplicated() > 0) {
+          AtomStatus[atom1] = 2; // Select as symmetric
+          Iarray symmatoms(1, actual_atom1);
           for (int atom2 = atom1 + 1; atom2 < resmap.Natom(); atom2++) {
-            if (resmap[atom1].Unique() == resmap[atom2].Unique()) {
-              selected[atom2] = true;
-              symmatoms.push_back(atom2 + res_first_atom);
+            int actual_atom2 = atom2 + res_first_atom;
+            if (cMask.AtomInCharMask(actual_atom2) &&
+                resmap[atom1].Unique() == resmap[atom2].Unique()) 
+            {
+              AtomStatus[atom2] = 2; // Select as symmetric
+              symmatoms.push_back(actual_atom2);
             }
-          } // End loop over atom2
-          SymmetricAtomIndices_.push_back( symmatoms );
+          } // END loop over atom2
           mprintf("DEBUG:\t\tAtom %s ID %s is duplicated %u times:", 
                   currentParm->TruncResAtomName(symmatoms.front()).c_str(), 
                   resmap[atom1].Unique().c_str(), symmatoms.size());
-          for (Iarray::const_iterator sa = symmatoms.begin(); sa != symmatoms.end(); ++sa)
-            mprintf(" %i", *sa + 1);
-          mprintf("\n");
-        }
+          if (symmatoms.size() > 1) {
+            SymmetricAtomIndices_.push_back( symmatoms );
+            for (Iarray::const_iterator sa = symmatoms.begin(); sa != symmatoms.end(); ++sa)
+              mprintf(" %i", *sa + 1);
+          } else {
+            // Only one atom selected, no symmetry. Change to non-symmetric.
+            AtomStatus[symmatoms.front() - res_first_atom] = 1; // Select as non-symmetric
+          }
+          mprintf("\n"); // DEBUG
+        } // END if atom is duplicated
       }
-    } // End loop over atom1
-    mprintf("DEBUG:\tNon-symmetric atoms:");
-    for (int atom1 = 0; atom1 < resmap.Natom(); atom1++)
-      if (!selected[atom1]) mprintf(" %i", atom1 + res_first_atom + 1);
-    mprintf("\n");
+    } // END loop over atom1
+    // TODO: If fitting, set up mask to perform initial fit with selected nonsymmetric atoms
+    if (Fit()) {
+      mprintf("DEBUG:\tSelected Non-symmetric atoms:");
+      for (int atom1 = 0; atom1 < resmap.Natom(); atom1++)
+        if (AtomStatus[atom1] == 1) { // If selected/non-symmetric
+          mprintf(" %i", atom1 + res_first_atom + 1);
+          //InitialFitMask.AddAtom(atom1 + res_first_atom);
+        }
+      mprintf("\n");
+    }
   } // End loop over residue
+  //if (Fit()) 
+  //  mprintf("DEBUG: Initial fit mask has %i atoms.\n", InitialFitMask.Nselected());
 
   return Action::OK;
 }

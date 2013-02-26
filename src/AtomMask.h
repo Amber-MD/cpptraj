@@ -40,6 +40,8 @@ class AtomMask {
     const_iterator begin()              const { return Selected_.begin();    }
     /// Iterator at end of Selected
     const_iterator end()                const { return Selected_.end();      }
+    /// Last selected atom
+    int back()                          const { return Selected_.back();     }
     /// Return number of selected atoms
     int Nselected()                     const { return nselected_;           }
     /// Return selected atom at idx
