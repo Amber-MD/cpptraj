@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "TorsionRoutines.h"
+#include "StringRoutines.h" // convertToInteger
 
 Action_MultiDihedral::Action_MultiDihedral() :
   range360_(false),
@@ -10,8 +11,12 @@ Action_MultiDihedral::Action_MultiDihedral() :
 {}
 
 void Action_MultiDihedral::Help() {
-  mprintf("\t[<name>] [phi] [psi] [resrange <range>] [out <filename>]\n");
+  mprintf("\t[<name>] <dihedral types> [resrange <range>] [out <filename>]\n");
+  mprintf("\t[dihtype <name><a0>:<a1>:<a2>:<a3>[:<offset>] ...]\n");
+  DihedralSearch::OffsetHelp();
   //mprintf("\t[range360]\n");
+  mprintf("\t<dihedral types> = ");
+  DihedralSearch::ListKnownTypes();
 }
 
 Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
@@ -23,10 +28,21 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
   std::string resrange_arg = actionArgs.GetStringKey("resrange");
   if (!resrange_arg.empty())
     if (resRange_.SetRange( resrange_arg )) return Action::ERR;
-  if (actionArgs.hasKey("phi"))
-    dihSearch_.SearchFor(DihedralSearch::PHI);
-  if (actionArgs.hasKey("psi"))
-    dihSearch_.SearchFor(DihedralSearch::PSI);
+  // Search for known dihedral keywords
+  dihSearch_.SearchForArgs(actionArgs);
+  // Get custom dihedral arguments: dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>]
+  std::string dihtype_arg = actionArgs.GetStringKey("dihtype");
+  while (!dihtype_arg.empty()) {
+    ArgList dihtype(dihtype_arg, ":");
+    if (dihtype.Nargs() < 5) {
+      mprinterr("Error: Malformed dihtype arg.\n");
+      return Action::ERR;
+    }
+    int offset = 0;
+    if (dihtype.Nargs() == 6) offset = convertToInteger(dihtype[5]);
+    dihSearch_.SearchForNewType(offset,dihtype[1],dihtype[2],dihtype[3],dihtype[4], dihtype[0]);
+    dihtype_arg = actionArgs.GetStringKey("dihtype");
+  }
   // If no dihedral types yet selected, this will select all.
   dihSearch_.SearchForAll();
 
@@ -89,6 +105,7 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
       if (outfile_ != 0)
         outfile_->AddSet( ds );
     }
+    // TODO: SetScalar
     if (ds != 0)
       data_.push_back( ds );
     /*mprintf("\tDIH: %s", currentParm->TruncResAtomName(*(atom++)).c_str());
