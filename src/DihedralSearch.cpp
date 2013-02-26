@@ -18,6 +18,19 @@ static const DIH_TYPE DIH[] = {
   { 1, "N", "CA", "C", "N", "psi"}  // PSI: N0-CA0-C0-N1
 };
 
+void DihedralSearch::ListKnownTypes() {
+  for (int i = 0; i < (int)NDIHTYPE; ++i)
+    mprintf(" %s", DIH[i].name);
+  mprintf("\n");
+}
+
+DihedralSearch::DihedralType DihedralSearch::GetType(std::string const& typeIn) {
+  for (int i = 0; i < (int)NDIHTYPE; ++i)
+    if (typeIn.compare(DIH[i].name)==0)
+      return (DihedralType)i;
+  return NDIHTYPE;
+}
+
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR - DihedralMask
 DihedralSearch::DihedralMask::DihedralMask() : a0_(-1), a1_(-1), a2_(-1), 

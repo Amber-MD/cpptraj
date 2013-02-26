@@ -12,6 +12,8 @@ class DihedralSearch {
     /// Recognized dihedral types
     enum DihedralType { PHI = 0, PSI, NDIHTYPE };
     DihedralSearch();
+    static void ListKnownTypes();
+    static DihedralType GetType(std::string const&);
     /// Add a new dihedral type to be searched for.
     int SearchFor(DihedralType);
     /// Add all dihedral types if none have been added yet.

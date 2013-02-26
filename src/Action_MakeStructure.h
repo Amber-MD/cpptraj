@@ -13,27 +13,26 @@ class Action_MakeStructure : public Action {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
-
-    enum ssType { ALPHA = 0, LEFT, PP2, EXT, 
-                  TI, TII, TVIII, TIp, TIIp, TVIa1, TVIa2, TVIb, NSS };
+    /// Hold secondary structure/turn/single dihedral types.
     class SS_TYPE {
       public: 
         SS_TYPE() {}
-        SS_TYPE(double ph,double ps,double ph2,double ps2,int t,const char* n) :
-          phi(ph), psi(ps), phi2(ph2), psi2(ps2), isTurn(t), name(n) {}
-        double phi, psi, phi2, psi2;
-        int isTurn;
-        const char* name;
+        SS_TYPE(double ph,double ps,double ph2,double ps2,int t,std::string const& n) :
+          phi(ph), psi(ps), phi2(ph2), psi2(ps2), isTurn(t), type_arg(n) {}
+        bool empty() { return (isTurn == -1); }
+        double phi, psi, phi2, psi2; // Angle(s)
+        int isTurn; // 0=phi/psi, 1=Turn (phi/psi/phi2/psi2), 2=Single Dihedral(phi)
+        std::string type_arg;
     };
     std::vector<SS_TYPE> SS;
-
+    std::vector<SS_TYPE>::const_iterator FindSStype(std::string const&);
+    /// Hold what angles will be applied to which residues.
     struct SecStructHolder {
       Range resRange;                ///< Residues to set phi/psi for.
       DihedralSearch dihSearch_;     ///< Used to search for specified dihedrals
       std::vector<AtomMask> Rmasks_; ///< Masks of atoms to hold fixed during rotation.
       std::vector<float> thetas_;    ///< theta for each dihedral.
       std::vector<SS_TYPE>::const_iterator type; ///< Pointer to SS_TYPE.
-      std::string name;              ///< SS type name.
     };
     std::vector<SecStructHolder> secstruct_;
 };

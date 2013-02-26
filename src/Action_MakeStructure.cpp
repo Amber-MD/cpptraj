@@ -1,3 +1,4 @@
+#include <cctype> // islpha
 #include "Action_MakeStructure.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD
@@ -5,9 +6,8 @@
 #include "StringRoutines.h" // convertToDouble
 
 // CONSTRUCTOR
-Action_MakeStructure::Action_MakeStructure() { 
-  // NOTE: There should be as many entries in SS as in ssType, and they MUST
-  //       BE IN THE SAME ORDER!
+Action_MakeStructure::Action_MakeStructure() {
+  // Initially known structure types. 
   SS.push_back(SS_TYPE(  -57.8,  -47.0,    0.0,   0.0, 0, "alpha"    ));
   SS.push_back(SS_TYPE(   57.8,   47.0,    0.0,   0.0, 0, "left"     ));
   SS.push_back(SS_TYPE(  -75.0,  145.0,    0.0,   0.0, 0, "pp2"      ));
@@ -23,8 +23,29 @@ Action_MakeStructure::Action_MakeStructure() {
   SS.push_back(SS_TYPE( -135.0,  135.0,  -75.0, 160.0, 1, "typeVIb"  )); // 2nd res must be cis-PRO
 }
 
+// Action_MakeStructure::FindSStype()
+std::vector<Action_MakeStructure::SS_TYPE>::const_iterator 
+  Action_MakeStructure::FindSStype(std::string const& typeIn) 
+{
+  for (std::vector<SS_TYPE>::const_iterator sstype = SS.begin();
+                                            sstype != SS.end(); ++sstype)
+    if (typeIn == (*sstype).type_arg)
+      return sstype;
+  return SS.end();
+} 
+
 void Action_MakeStructure::Help() {
-  mprintf(" <ss type>:<res range> [<ss type>:<res range> ...]\n");
+  mprintf("\t<List of Args>, containing 1 or more of the following arg types:\n");
+  mprintf("\t{<sstype>:<res range>} Apply SS type (phi/psi) to residue range.\n");
+  mprintf("\t\t<sstype> standard = alpha, left, pp2, hairpin, extended\n");
+  mprintf("\t\t<sstype> turn = typeI, typeII, typeVIII, typeI', typeII,\n");
+  mprintf("\t\t                typeVIa1, typeVIa2, typeVIb\n");
+  mprintf("\t\tTurns are applied to 2 residues at a time, so resrange must be divisible by 4.\n");
+  mprintf("\t{<custom ss>:<res range>:<phi>:<psi>} Apply custom <phi>/<psi> to residue range.\n");
+  mprintf("\t{<custom turn>:<res range>:<phi1>:<psi1>:<phi2>:<psi2>} Apply custom <phi>/<psi> to residue range.\n");
+  mprintf("\t{<custom dih>:<res range>:<dih type>:<angle>} Apply <angle> to dihedrals in range.\n");
+  mprintf("\t\t<dih type> =");
+  DihedralSearch::ListKnownTypes();
 }
 
 // Action_MakeStructure::Init()
@@ -33,35 +54,48 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
 {
   SecStructHolder ss_holder;
   secstruct_.clear();
-  // Get all keywords
+  // Get all arguments 
   std::string ss_expr = actionArgs.GetStringNext();
   while ( !ss_expr.empty() ) {
     ArgList ss_arg(ss_expr, ":");
     if (ss_arg.Nargs() < 2) {
-      mprinterr("Error: Malformed SS arg, expected <ss type>,<res range>\n");
+      mprinterr("Error: Malformed SS arg.\n");
+      Help();
       return Action::ERR;
     }
-    // Find SS type
-    int ss = 0;
-    for (; ss < (int)NSS; ss++) {
-      if (ss_arg[0].compare(SS[ss].name) == 0) { 
-        ss_holder.type = SS.begin() + ss;
-        ss_holder.name.assign( SS[ss].name );
-        ss_holder.resRange.SetRange(ss_arg[1]);
-        // Since user range args start from 1, shift range
-        ss_holder.resRange.ShiftBy(-1);
-        ss_holder.dihSearch_.Clear();
-        ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
-        ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
-        secstruct_.push_back( ss_holder );
-        break;
+    ss_holder.dihSearch_.Clear();
+    // Residue range is always 2nd arg. User range args start at 1 so shift -1.
+    ss_holder.resRange.SetRange(ss_arg[1]);
+    ss_holder.resRange.ShiftBy(-1);
+    // See if type (1st arg) has been previously defined.
+    ss_holder.type = FindSStype(ss_arg[0]);
+    if (ss_arg.Nargs() == 2) {
+      // Find SS type: <ss type>:<range>
+      if (ss_holder.type == SS.end()) {
+        mprinterr("Error: SS type %s not found.\n", ss_arg[0].c_str());
+        return Action::ERR;
+      } 
+      ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
+      ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
+      secstruct_.push_back( ss_holder );
+    } else if (ss_arg.Nargs() == 4 && isalpha(ss_arg[2][0])) {
+      // Single dihedral type: <name>:<range>:<dih type>:<angle>
+      DihedralSearch::DihedralType dtype = DihedralSearch::GetType(ss_arg[2]);
+      if (ss_holder.type == SS.end()) {
+        // Type not yet defined. Create new type. 
+        if (dtype == DihedralSearch::NDIHTYPE) {
+          mprinterr("Error: Dihedral type %s not found.\n", ss_arg[2].c_str());
+          return Action::ERR;
+        }
+        SS.push_back( SS_TYPE(convertToDouble(ss_arg[3]), 0.0, 0.0, 0.0, 2, ss_arg[0]) );
+        ss_holder.type = SS.end() - 1;
       }
-    }
-    if (ss == (int)NSS) {
-      // SS type not found. If more than two args, create custom type, name:range:phi:psi
-      if (ss_arg.Nargs() == 4 || ss_arg.Nargs() == 6) {
-        ss_holder.name = ss_arg[0];
-        ss_holder.resRange.SetRange(ss_arg[1]);
+      ss_holder.dihSearch_.SearchFor( dtype ); 
+      secstruct_.push_back( ss_holder );
+    } else if (ss_arg.Nargs() == 4 || ss_arg.Nargs() == 6) {
+      // Custom SS/turn type: <name>:<range>:<phi1>:<psi1>[:<phi2>:<psi2>]
+      if (ss_holder.type == SS.end()) {
+        // Type not yet defined. Create new type.
         double phi1 = convertToDouble(ss_arg[2]);
         double psi1 = convertToDouble(ss_arg[3]);
         int isTurn = 0;
@@ -72,16 +106,18 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
           phi2 = convertToDouble(ss_arg[4]);
           psi2 = convertToDouble(ss_arg[5]);
         }
-        SS.push_back(SS_TYPE(phi1, psi1, phi2, psi2, isTurn, ss_holder.name.c_str() ));
+        SS.push_back(SS_TYPE(phi1, psi1, phi2, psi2, isTurn, ss_arg[0] ));
         ss_holder.type = SS.end() - 1;
-        secstruct_.push_back( ss_holder );
-      } else {
-        mprinterr("Error: SS type [%s] not found.\n", ss_arg[0].c_str());
-        return Action::ERR;
       }
+      ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
+      ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
+      secstruct_.push_back( ss_holder );
+    } else {
+      mprinterr("Error: SS arg type [%s] not recognized.\n", ss_arg[0].c_str());
+      return Action::ERR;
     }
     ss_expr = actionArgs.GetStringNext();
-  }
+  } // End loop over args
   if (secstruct_.empty()) {
     mprinterr("Error: No SS types defined.\n");
     return Action::ERR;
@@ -134,15 +170,15 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
   {
     if ((*ss).dihSearch_.FindDihedrals(*currentParm, (*ss).resRange))
       return Action::ERR;
-    mprintf("\t[%s] %s %i dih", (*ss).resRange.RangeArg(), (*ss).name.c_str(),
-            (*ss).dihSearch_.Ndihedrals());
+    SS_TYPE const& myType = *((*ss).type);
+    mprintf("\tResRange=[%s] Type=%s, %i dihedrals:", (*ss).resRange.RangeArg(), 
+            myType.type_arg.c_str(), (*ss).dihSearch_.Ndihedrals());
     // Set up found dihedrals 
     // TODO: Check that # dihedrals is multiple of 2?
-    SS_TYPE const& myType = *((*ss).type);
     (*ss).Rmasks_.clear();
     (*ss).thetas_.clear();
-    if (myType.isTurn) {
-      // Require phi/psi residue pairs; must be multiple of 4
+    if (myType.isTurn == 1) {
+      // Turn: Require phi/psi residue pairs; must be multiple of 4
       if ( ((*ss).dihSearch_.Ndihedrals() % 4) != 0) {
         mprintf("Error: Assigning turn SS requires residue phi/psi pairs.\n");
         return Action::ERR;
@@ -188,8 +224,17 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
         (*ss).thetas_.push_back((float)(myType.psi2 * DEGRAD));
         (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
       }
-    } else {
-      // Not a turn. Assign SS.
+    } else if (myType.isTurn == 2) {
+      // Dihedrals of a single type
+      for (DihedralSearch::mask_it dih = (*ss).dihSearch_.begin();
+                                   dih != (*ss).dihSearch_.end(); ++dih)
+      {
+        mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
+        (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
+        (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
+      }
+    } else if (myType.isTurn == 0) {
+      // Assign SS.
       for (DihedralSearch::mask_it dih = (*ss).dihSearch_.begin();
                                    dih != (*ss).dihSearch_.end(); ++dih)
       {
