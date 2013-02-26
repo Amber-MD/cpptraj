@@ -46,6 +46,8 @@ void Action_MakeStructure::Help() {
   mprintf("\t{<custom dih>:<res range>:<dih type>:<angle>} Apply <angle> to dihedrals in range.\n");
   mprintf("\t\t<dih type> =");
   DihedralSearch::ListKnownTypes();
+  mprintf("\t{<custom dih>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]}\n");
+  DihedralSearch::OffsetHelp();
 }
 
 // Action_MakeStructure::Init()
@@ -91,6 +93,18 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
         ss_holder.type = SS.end() - 1;
       }
       ss_holder.dihSearch_.SearchFor( dtype ); 
+      secstruct_.push_back( ss_holder );
+    } else if (ss_arg.Nargs() == 7 || ss_arg.Nargs() == 8) {
+      // Single custom dihedral type: <name>:<range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]
+      if (ss_holder.type == SS.end()) {
+        // Type not yet defined. Create new type.
+        SS.push_back( SS_TYPE(convertToDouble(ss_arg[6]), 0.0, 0.0, 0.0, 2, ss_arg[0]) );
+        ss_holder.type = SS.end() - 1;
+      }
+      int offset = 0;
+      if (ss_arg.Nargs() == 8) offset = convertToInteger(ss_arg[7]);
+      ss_holder.dihSearch_.SearchForNewType(offset,ss_arg[2],ss_arg[3],ss_arg[4],ss_arg[5],
+                                            ss_arg[0]);
       secstruct_.push_back( ss_holder );
     } else if (ss_arg.Nargs() == 4 || ss_arg.Nargs() == 6) {
       // Custom SS/turn type: <name>:<range>:<phi1>:<psi1>[:<phi2>:<psi2>]
