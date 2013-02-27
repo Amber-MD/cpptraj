@@ -14,6 +14,7 @@ class Hungarian {
     void UpdateMatrix();
 #   ifdef DEBUG_HUNGARIAN
     void PrintLines(const char*);
+    void PrintMatrix(const char*);
 #   endif
     Matrix_2D matrix_;                 // Working matrix. 
     std::vector<bool> lineThroughRow_; // True if specified row is marked.

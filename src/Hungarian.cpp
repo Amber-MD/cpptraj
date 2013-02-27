@@ -1,8 +1,8 @@
 #include <cfloat> // DBL_MAX
 #include <stdexcept>
 #include "Hungarian.h"
-#include "CpptrajStdio.h"
 #include "Constants.h" // SMALL
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Hungarian::Hungarian(Matrix_2D const& mIn) :
@@ -125,7 +125,7 @@ int Hungarian::Assign() {
 /** \return Array containing which row idx matches which column idx. */
 std::vector<int> Hungarian::Optimize() {
 # ifdef DEBUG_HUNGARIAN
-  matrix_.Print("INITIAL MATRIX");
+  PrintMatrix("INITIAL MATRIX");
 # endif
   // Reduce elements in each row by the minimum in each row
   for (int row = 0; row < matrix_.Nrows(); ++row) {
@@ -138,7 +138,7 @@ std::vector<int> Hungarian::Optimize() {
       matrix_[elt0] -= minval;
   }
 # ifdef DEBUG_HUNGARIAN
-  matrix_.Print("AFTER ROW REDUCTION");
+  PrintMatrix("AFTER ROW REDUCTION");
 # endif
   // Reduce elements in each col by the minimum in each col
   for (int col = 0; col < matrix_.Ncols(); ++col) {
@@ -151,7 +151,7 @@ std::vector<int> Hungarian::Optimize() {
       matrix_[elt0] -= minval;
   }
 # ifdef DEBUG_HUNGARIAN
-  matrix_.Print("AFTER COL REDUCTION");
+  PrintMatrix("AFTER COL REDUCTION");
 # endif
   // Loop until every row is assigned a column
   int max_iterations = matrix_.Nrows() * matrix_.Ncols();
@@ -205,7 +205,7 @@ void Hungarian::UpdateMatrix() {
     }
   }
 # ifdef DEBUG_HUNGARIAN
-  matrix_.Print("AFTER ADDITION/SUBTRACTION OF MIN UNCOVERED");
+  PrintMatrix("AFTER ADDITION/SUBTRACTION OF MIN UNCOVERED");
 # endif
 }
 
@@ -220,6 +220,17 @@ void Hungarian::PrintLines(const char* title) {
   for (int col = 0; col < matrix_.Ncols(); ++col)
     if (lineThroughCol_[col]) mprintf(" %i", col);
   mprintf("\n");
+}
+
+// Hungarian::PrintMatrix()
+void Hungarian::PrintMatrix(const char* Title) {
+  mprintf("    %s\n",Title);
+  int elt = 0;
+  for (int row = 0; row < matrix_.Nrows(); ++row) {
+    for (int col = 0; col < matrix_.Ncols(); ++col)
+      mprintf(" %8.4f", matrix_[elt++]);
+    mprintf("\n");
+  }
 }
 #endif
 

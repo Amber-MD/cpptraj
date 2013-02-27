@@ -1,6 +1,5 @@
 #include <cstring> // memcpy
 #include "Matrix_2D.h"
-#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Matrix_2D::Matrix_2D() :
@@ -64,16 +63,6 @@ int Matrix_2D::Setup(int cols, int rows) {
   return 0;
 }
 
-void Matrix_2D::Print(const char* Title) const {
-  mprintf("    %s\n",Title);
-  int elt = 0;
-  for (int row = 0; row < nrows_; ++row) {
-    for (int col = 0; col < ncols_; ++col) 
-      mprintf(" %8.4f", elements_[elt++]);
-    mprintf("\n");
-  }
-}
-
 /** Add the input double to the element array and increment currentElement.
   * \return 1 on success, 0 if no more elements can be added.
   */
@@ -112,4 +101,3 @@ void Matrix_2D::GetDimensions( std::vector<int>& vIn ) {
   vIn[0] = ncols_;
   vIn[1] = nrows_;
 }
-

@@ -10,7 +10,6 @@ class Matrix_2D : public DataSet {
     double& operator[](int idx) { return elements_[idx]; }
 
     int Setup(int,int);
-    void Print(const char*) const;
     int AddElement(double);
     void SetElement(int,int,double);
     double GetElement(int,int);
