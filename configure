@@ -129,7 +129,7 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-    TestCxxProgram "Checking ARPACK/LAPACK/BLAS" "$ARPACK $LAPACK $BLAS $FLIBS"
+    TestCxxProgram "Checking ARPACK/LAPACK/BLAS" "$ARPACK $LAPACK $BLAS $MKLLIB $FLIBS"
   fi
 }
 
@@ -194,6 +194,7 @@ VALUE=""
 echo ""
 
 # Process Options
+ARCHITECTURE="x86_64" # TODO: Actually determine
 OPT=1
 USEMPI=0
 USEOPENMP=0
@@ -230,6 +231,7 @@ LAPACK="-llapack"
 ARPACK="-larpack"
 READLINE=$READLINE_HOME/libreadline.a
 USE_AMBER_LIB=0
+USEMKL=0
 FLIBS=""
 #HDF5LIB="-lhdf5_hl -lhdf5"
 HDF5LIB=""
@@ -313,6 +315,17 @@ while [[ ! -z $1 ]] ; do
       fi
       echo "Using BLAS/LAPACK/ARPACK/NetCDF libraries in $AMBERHOME"
       USE_AMBER_LIB=1 
+      ;;
+    "-mkl" )
+      if [[ -z $MKLROOT ]] ; then
+        if [[ -z $MKL_HOME ]] ; then
+          echo "MKLROOT/MKL_HOME not set."
+          exit 1
+        fi
+        MKLROOT=$MKL_HOME
+      fi
+      echo "Using MKL for BLAS/LAPACK in $MKLROOT"
+      USEMKL=1
       ;;
     "-nobzlib"      )
       echo "Not using bzip2"
@@ -472,8 +485,32 @@ else
   fi
 fi
 
+MKLLIB=""
+if [[ $USEMKL -eq 1 ]] ; then
+  # Use MKL for LAPACK/BLAS
+  if [[ $ARCHITECTURE = "x86_64" ]] ; then
+    MKLINTERFACE=libmkl_intel_lp64.a
+    MKLROOT="$MKLROOT/lib/intel64"
+    BLAS="-lmkl_blas95_lp64"
+    LAPACK="-lmkl_lapack95_lp64"
+  else # Assume 32 bit
+    MKLINTERFACE=libmkl_intel.a
+    MKLROOT="$MKLROOT/lib/32"
+    BLAS="-lmkl_blas95"
+    LAPACK="-lmkl_lapack95"
+  fi
+  # Assume GNU linker.
+  if [[ $USEOPENMP -eq 1 ]] ; then
+    MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl, --start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_intel_thread.a $MKLROOT/libmkl_core.a -Wl,--end-group -liomp5 -lpthread"
+  else
+    MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl,--start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_sequential.a $MKLROOT/libmkl_core.a -Wl,--end-group -lpthread"
+  fi
+  BLAS=""
+  LAPACK=""
+fi
+
 # Set up linking flags
-LDFLAGS="$ARPACK $LAPACK $BLAS $NETCDFLIB $BZLIB $ZLIB $FLIBS"
+LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $BZLIB $ZLIB $FLIBS"
 
 # Add flags for OPENMP if specified
 if [[ $USEOPENMP -eq 1 ]] ; then
