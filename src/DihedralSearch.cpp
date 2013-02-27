@@ -162,7 +162,7 @@ int DihedralSearch::FindDihedrals(Topology const& currentParm, Range const& rang
     mprintf("Warning: No dihedrals selected for topology %s\n", currentParm.c_str());
     return 1;
   }
-  mprintf("\tFound %u dihedrals.\n", dihedrals_.size());
+  //mprintf("\tFound %u dihedrals.\n", dihedrals_.size()); // DEBUG
   return 0;
 }
 

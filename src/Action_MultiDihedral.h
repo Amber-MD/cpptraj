@@ -14,6 +14,7 @@ class Action_MultiDihedral : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
 
+    int debug_;
     DihedralSearch dihSearch_;    ///< Used to search for specified dihedrals
     std::vector<DataSet*> data_;  ///< Output DataSets, 1 per dihedral
     bool range360_;
