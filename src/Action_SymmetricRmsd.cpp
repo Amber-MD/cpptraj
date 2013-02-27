@@ -179,7 +179,7 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame
   for (Iarray::iterator map = AMap_.begin(); map != AMap_.end(); ++map)
     mprintf("\t%i -> %i\n", ref++, *map);*/
   // FIXME: mass information not yet remapped
-  remapFrame_.SetTargetByMap(*currentFrame, AMap_);
+  remapFrame_.SetCoordinatesByMap(*currentFrame, AMap_);
   double rmsdval = CalcRmsd(remapFrame_, SelectedRef(), RefTrans());
   rmsd_->Add(frameNum, &rmsdval);
   return Action::OK;

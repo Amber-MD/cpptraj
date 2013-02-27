@@ -461,11 +461,14 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   natom_ = tgtIn.natom_;
   ncoord_ = natom_ * 3;
   double* newXptr = X_;
+  Darray::iterator newmass = Mass_.begin();
   for (std::vector<int>::const_iterator refatom = mapIn.begin(); 
                                         refatom != mapIn.end(); ++refatom)
   {
     memcpy( newXptr, tgtIn.X_ + ((*refatom) * 3), COORDSIZE_ );
     newXptr += 3;
+    *(newmass++) = tgtIn.Mass_[*refatom];
+    // TODO: Copy velocities
   }
 }
 
