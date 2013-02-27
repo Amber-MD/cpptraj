@@ -5,7 +5,7 @@
 #include "DistRoutines.h"
 
 // CONSTRUCTOR
-Action_SymmetricRmsd::Action_SymmetricRmsd() {}
+Action_SymmetricRmsd::Action_SymmetricRmsd() : debug_(0) {}
 
 void Action_SymmetricRmsd::Help() {
   mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n");
@@ -17,6 +17,7 @@ void Action_SymmetricRmsd::Help() {
 Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PFL, 
                           FrameList* FL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  debug_ = debugIn;
   // Check for keywords
   GetRmsKeywords( actionArgs );
   DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
@@ -50,8 +51,7 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
   // Target setup
   if (SetupRmsMask(*currentParm, "symmrmsd")) return Action::ERR;
   // Target remap setup
-  // FIXME: No mass information yet
-  rmsTgtFrame_.SetupFrame( TgtMask().Nselected() );
+  remapFrame_.SetupFrameM( currentParm->Atoms() );
   // Reference setup
   if (SetupRef(*currentParm, TgtMask().Nselected(), "symmrmsd"))
     return Action::ERR;
@@ -69,10 +69,11 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
   // Create atom maps for each selected atom in residues
   SymmetricAtomIndices_.clear();
   AtomMap resmap;
-  resmap.SetDebug(0); // DEBUG
+  if (debug_ > 1) resmap.SetDebug(1);
   for (int residue = 0; residue < last_res; ++residue) {
     int res_first_atom = currentParm->Res(residue).FirstAtom();
-    mprintf("DEBUG: Residue %s\n", currentParm->TruncResNameNum(residue).c_str());
+    if (debug_ > 0)
+      mprintf("DEBUG: Residue %s\n", currentParm->TruncResNameNum(residue).c_str());
     if (resmap.SetupResidue(*currentParm, residue) != 0) return Action::ERR;
     if (resmap.CheckBonds() != 0) return Action::ERR;
     resmap.DetermineAtomIDs();
@@ -84,36 +85,40 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
       int actual_atom1 = atom1 + res_first_atom; // Actual atom index in currentParm
       if (cMask.AtomInCharMask(actual_atom1) && AtomStatus[atom1] == 0) {
         AtomStatus[atom1] = 1; // Initially select as non-symmetric
-        // Check if atom is duplicated. If so, find all selected duplicates.
-        if (resmap[atom1].Nduplicated() > 0) {
+        // Check if atom is duplicated and not bound to a chiral center. 
+        // If so, find all selected duplicates.
+        if (!resmap[atom1].BoundToChiral() && resmap[atom1].Nduplicated() > 0) {
           AtomStatus[atom1] = 2; // Select as symmetric
           Iarray symmatoms(1, actual_atom1);
           for (int atom2 = atom1 + 1; atom2 < resmap.Natom(); atom2++) {
             int actual_atom2 = atom2 + res_first_atom;
             if (cMask.AtomInCharMask(actual_atom2) &&
-                resmap[atom1].Unique() == resmap[atom2].Unique()) 
+                resmap[atom1].Unique() == resmap[atom2].Unique() &&
+                !resmap[atom2].BoundToChiral()) 
             {
               AtomStatus[atom2] = 2; // Select as symmetric
               symmatoms.push_back(actual_atom2);
             }
           } // END loop over atom2
-          mprintf("DEBUG:\t\tAtom %s ID %s is duplicated %u times:", 
-                  currentParm->TruncResAtomName(symmatoms.front()).c_str(), 
-                  resmap[atom1].Unique().c_str(), symmatoms.size());
+          if (debug_ > 0)
+            mprintf("DEBUG:\t\tAtom %s ID %s is duplicated %u times:", 
+                    currentParm->TruncResAtomName(symmatoms.front()).c_str(), 
+                    resmap[atom1].Unique().c_str(), symmatoms.size());
           if (symmatoms.size() > 1) {
             SymmetricAtomIndices_.push_back( symmatoms );
-            for (Iarray::const_iterator sa = symmatoms.begin(); sa != symmatoms.end(); ++sa)
-              mprintf(" %i", *sa + 1);
+            if (debug_ > 0)
+              for (Iarray::const_iterator sa = symmatoms.begin(); sa != symmatoms.end(); ++sa)
+                mprintf(" %i", *sa + 1);
           } else {
             // Only one atom selected, no symmetry. Change to non-symmetric.
             AtomStatus[symmatoms.front() - res_first_atom] = 1; // Select as non-symmetric
           }
-          mprintf("\n"); // DEBUG
+          if (debug_ > 0) mprintf("\n");
         } // END if atom is duplicated
       }
     } // END loop over atom1
     // TODO: If fitting, set up mask to perform initial fit with selected nonsymmetric atoms
-    if (Fit()) {
+    if (debug_ > 0 && Fit()) {
       mprintf("DEBUG:\tSelected Non-symmetric atoms:");
       for (int atom1 = 0; atom1 < resmap.Natom(); atom1++)
         if (AtomStatus[atom1] == 1) { // If selected/non-symmetric
@@ -153,12 +158,12 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame
                             refatom != (*symmatoms).end(); ++refatom)
       {
         double dist2 = DIST2_NoImage( RefFrame().XYZ(*refatom), currentFrame->XYZ(*tgtatom) );
-        mprintf("\t\t%i to %i: %f\n", *tgtatom + 1, *refatom + 1, dist2);
+//        mprintf("\t\t%i to %i: %f\n", *tgtatom + 1, *refatom + 1, dist2);
         cost_matrix.AddElement( dist2 ); 
       }
     }
-    mprintf("\tSymmetric atoms starting with %i", (*symmatoms).front() + 1);
-    cost_matrix.Print("Cost Matrix:"); // DEBUG
+//    mprintf("\tSymmetric atoms starting with %i", (*symmatoms).front() + 1);
+//    cost_matrix.Print("Cost Matrix:"); // DEBUG
     Hungarian HA(cost_matrix);
     Iarray resMap = HA.Optimize();
     // Fill in overall map
@@ -167,14 +172,15 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame
                           atmidx != (*symmatoms).end(); ++atmidx, ++rmap)
     {
       AMap_[*atmidx] = (*symmatoms)[*rmap];
-      mprintf("\tAssigned atom %i to atom %i\n", *atmidx + 1, (*symmatoms)[*rmap] + 1);
+//      mprintf("\tAssigned atom %i to atom %i\n", *atmidx + 1, (*symmatoms)[*rmap] + 1);
     }
   }
 /*  int ref = 0;
   for (Iarray::iterator map = AMap_.begin(); map != AMap_.end(); ++map)
     mprintf("\t%i -> %i\n", ref++, *map);*/
-  rmsTgtFrame_.SetTargetByMap(*currentFrame, AMap_);
-  double rmsdval = CalcRmsd(rmsTgtFrame_, SelectedRef(), RefTrans());
+  // FIXME: mass information not yet remapped
+  remapFrame_.SetTargetByMap(*currentFrame, AMap_);
+  double rmsdval = CalcRmsd(remapFrame_, SelectedRef(), RefTrans());
   rmsd_->Add(frameNum, &rmsdval);
   return Action::OK;
 }

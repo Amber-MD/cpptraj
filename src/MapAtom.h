@@ -10,6 +10,7 @@ class MapAtom : public Atom {
     MapAtom& operator=(const MapAtom&);
 
     bool IsChiral()             const { return isChiral_; }
+    bool BoundToChiral()        const { return boundToChiral_; }
     bool IsMapped()             const { return isMapped_; }
     bool Complete()             const { return complete_; }
     bool IsUnique()             const { return (Nduplicated_ == 0); }
@@ -22,6 +23,7 @@ class MapAtom : public Atom {
     void SetMapped()                     { isMapped_ = true; } 
     void SetComplete()                   { complete_ = true; }
     void SetChiral()                     { isChiral_ = true; }
+    void SetBoundToChiral()              { boundToChiral_ = true; }
     void SetAtomID(std::string const& s) { atomID_ = s; }
     void SetUnique(std::string const& s) { unique_ = s; Nduplicated_ = 0; }
     void SetNotMapped()                  { isMapped_ = false; }
@@ -30,6 +32,7 @@ class MapAtom : public Atom {
   private:
     static const char AtomicElementChar[];
     bool isChiral_;      ///< true: Atom is a chiral center
+    bool boundToChiral_; ///< true: Atom is bound to a chiral center.
     bool isMapped_;      ///< true: this atom has been mapped
     bool complete_;      ///< true: This atom an all bonded atoms have been mapped
     std::string atomID_; ///< ID created from this atom name, then bonded atom names

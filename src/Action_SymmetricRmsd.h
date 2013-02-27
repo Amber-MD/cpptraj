@@ -21,8 +21,9 @@ class Action_SymmetricRmsd : public Action, ReferenceAction, RmsAction {
     /// Array of groups of potentially symmetric atoms
     AtomIndexArray SymmetricAtomIndices_;
 
+    int debug_;
     Iarray AMap_;       /// AMap_[ref] = tgt
     DataSet* rmsd_;     /// Output DataSet
-    Frame rmsTgtFrame_; /// Frame that will contained target re-mapped for symmetry
+    Frame remapFrame_;  /// Frame that will contained target re-mapped for symmetry
 };
 #endif

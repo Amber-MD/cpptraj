@@ -244,8 +244,12 @@ int AtomMap::CheckBonds() {
         if (mapatoms_[*bondedAtom].Nbonds() == 1)
           ++N_single_atoms;
       }
-      if (N_single_atoms<3)
+      if (N_single_atoms<3) {
         (*matom).SetChiral();
+        for (Atom::bond_iterator bondedAtom = (*matom).bondbegin();
+                               bondedAtom != (*matom).bondend(); bondedAtom++)
+          mapatoms_[*bondedAtom].SetBoundToChiral();
+      }
     }
   }
   if (total_bonds == 0) {
@@ -262,7 +266,8 @@ int AtomMap::CheckBonds() {
     {
       mprintf("  Atom %s(%c)_%i has %i bonds.",(*matom).c_str(),(*matom).CharName(),
               anum, (*matom).Nbonds());
-      if ((*matom).IsChiral()) mprintf(" CHIRAL!");
+      if ((*matom).IsChiral()) mprintf(" CHIRAL");
+      if ((*matom).BoundToChiral()) mprintf(" BOUND TO CHIRAL");
       mprintf("\n");
       for (Atom::bond_iterator bondedAtom = (*matom).bondbegin();
                                bondedAtom != (*matom).bondend(); bondedAtom++)
