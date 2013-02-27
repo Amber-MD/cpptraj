@@ -86,6 +86,8 @@ class AtomMask {
     int ConvertMaskType();
     /// Print mask string and number of selected atoms.
     void MaskInfo() const;
+    /// Print brief mask info
+    void BriefMaskInfo() const;
 
     typedef std::vector<MaskToken>::const_iterator token_iterator;
     inline token_iterator begintoken() const { return maskTokens_.begin(); }

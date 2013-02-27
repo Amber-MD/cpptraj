@@ -690,3 +690,7 @@ int AtomMask::ConvertMaskType() {
 void AtomMask::MaskInfo() const {
   mprintf("\tMask [%s] corresponds to %i atoms.\n", maskString_.c_str(), nselected_);
 }
+
+void AtomMask::BriefMaskInfo() const {
+  mprintf(" [%s](%i)", maskString_.c_str(), nselected_);
+}
