@@ -360,14 +360,13 @@ void Grid::PrintDX(std::string const& filename)
   
   // Now print out the data. It is already in row-major form (z-axis changes
   // fastest), so no need to do any kind of data adjustment
-  for (int i = 0; i + 2 < gridsize_; i++)
-    outfile.Printf("%g %g %g\n", grid_[i], grid_[++i], grid_[++i]);
-  
+  for (int i = 0; i < gridsize_ - 2; i += 3)
+    outfile.Printf("%g %g %g\n", grid_[i], grid_[i+1], grid_[i+2]);
   // Print out any points we may have missed
-  if (gridsize_ % 3 == 2)
-    outfile.Printf("%g %g\n", grid_[gridsize_-2], grid_[gridsize_-1]);
-  else if (gridsize_ % 3 == 1)
-    outfile.Printf("%g\n", grid_[gridsize_-1]);
+  switch (gridsize_ % 3) {
+    case 2: outfile.Printf("%g %g\n", grid_[gridsize_-2], grid_[gridsize_-1]); break;
+    case 1: outfile.Printf("%g\n", grid_[gridsize_-1]); break;
+  }
   
   // Print tail
   if (mode_ == CENTER)
