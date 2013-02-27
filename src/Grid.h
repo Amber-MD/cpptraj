@@ -25,6 +25,8 @@ class Grid {
     int GridSetup(Topology*);
     /// Grid the given XYZ point.
     int GridPoint(Vec3 const&);
+    /// Add the given value to the density
+    void AddDensity(int i, int j, int k, double val) { grid_[i*ny_*nz_+j*nz_+k] += val; }
     /// Grid the given frame
     void GridFrame(Frame& currentFrame, AtomMask const& mask);
     /// Grid point (for backwards compat. with Action_Dipole) 

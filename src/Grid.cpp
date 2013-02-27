@@ -190,6 +190,8 @@ int Grid::GridInit(std::string const& filename, const char* filetype)
         else {
           nx_ = nx; ny_ = ny; nz_ = nz;
           gridsize_ = nx_ * ny_ * nz_;
+//        mprintf("Found Grid dimensions: %d x %d x %d\n", nx_, ny_, nz_);
+//        mprintf("          Grid points: %d\n", gridsize_);
           lines_found++;
         }
       }
@@ -200,6 +202,7 @@ int Grid::GridInit(std::string const& filename, const char* filetype)
           continue;
         else
           lines_found++;
+//      mprintf("Found origin dimensions: %lg x %lg x %lg\n", ox, oy, oz);
       }
       // Now try to read the three delta lines
       if (lines_found < 5) {
@@ -232,12 +235,12 @@ int Grid::GridInit(std::string const& filename, const char* filetype)
           found_nzero = true;
         }
         lines_found++;
+//      mprintf("Found a spacing: %lg x %lg x %lg\n", dx_, dy_, dz_);
         if (lines_found == 5) {
           // Now we have enough data to calculate the center of the box
-          int nx2 = nx_ / 2, ny2 = ny_ / 2, nz2 = nz_ / 2;
-          sx_ = ox + nx2 * dx_;
-          sy_ = oy + ny2 * dy_;
-          sz_ = oz + nz2 * dz_;
+          sx_ = (double)nx_ * dx_/2.0;
+          sy_ = (double)ny_ * dy_/2.0;
+          sz_ = (double)nz_ * dz_/2.0;
         }
       }
 
@@ -281,7 +284,6 @@ int Grid::GridInit(std::string const& filename, const char* filetype)
       if (line.empty()) {
         mprinterr("Error: Unexpected EOF hit in %s\n", filename.c_str());
         infile.CloseFile();
-        delete[] grid_;
         return 1;
       }
       
@@ -290,7 +292,6 @@ int Grid::GridInit(std::string const& filename, const char* filetype)
         if (i >= gridsize_) {
           mprinterr("Error: Too many grid points found!\n");
           infile.CloseFile();
-          delete[] grid_;
           return 1;
         }
         grid_[i++] = (float)atof(words[j].c_str());
@@ -493,14 +494,17 @@ void Grid::PrintPDB(std::string const& filename, double cut, double normIn)
 void Grid::PrintDX(std::string const& filename)
 {
   CpptrajFile outfile;
-  outfile.OpenWrite(filename);
+  if (outfile.OpenWrite(filename)) {
+    mprinterr("Error: Could not open OpenDX output file.\n");
+    return;
+  }
   // Print the OpenDX header
   outfile.Printf("object 1 class gridpositions counts %d %d %d\n",
                  nx_, ny_, nz_);
-  outfile.Printf("origin %g %g %g\n", Xcrd(0), Ycrd(0), Zcrd(0));
-  outfile.Printf("delta %g 0 0\n", dx_);
-  outfile.Printf("delta 0 %g 0\n", dy_);
-  outfile.Printf("delta 0 0 %g\n", dz_);
+  outfile.Printf("origin %lg %lg %lg\n", Xbin(0), Ybin(0), Zbin(0));
+  outfile.Printf("delta %lg 0 0\n", dx_);
+  outfile.Printf("delta 0 %lg 0\n", dy_);
+  outfile.Printf("delta 0 0 %lg\n", dz_);
   outfile.Printf("object 2 class gridconnections counts %d %d %d\n",
                  nx_, ny_, nz_);
   outfile.Printf(

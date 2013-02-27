@@ -251,18 +251,26 @@ split(std::string const& instring, std::string const& splitchars, bool keep_empt
   std::string curword;
 
   int i = 0;
+  int pushed_last = false;
   while (i < instring.length()) {
-    if (splitchars.find(instring[i])) {
+    if (splitchars.find(instring[i]) != std::string::npos) {
       // We split on this character. Add this to the word list _only_ if it is
       // not empty _or_ we keep empty strings
       if (!curword.empty() || keep_empty) {
         words.push_back(curword);
         curword.erase(curword.begin(), curword.end());
+        pushed_last = true;
       }
-   }else
+   }else {
       curword += instring[i];
+      pushed_last = false;
+    }
     // Go to the next character
     i++;
+  }
+  if (!pushed_last) {
+    if (!curword.empty() || keep_empty)
+      words.push_back(curword);
   }
   return words;
 }
