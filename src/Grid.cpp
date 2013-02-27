@@ -337,6 +337,47 @@ void Grid::PrintPDB(std::string const& filename, double cut, double normIn)
         pdbout.WriteHET(res, Xcrd(i), Ycrd(j), Zcrd(k));
 }
 
+// Grid::PrintDX
+/** This will print the grid in OpenDX format, commonly used by VMD, PBSA,
+ * 3D-RISM, etc.
+ */
+void Grid::PrintDX(std::string const& filename)
+{
+  CpptrajFile outfile;
+  outfile.OpenWrite(filename);
+  // Print the OpenDX header
+  outfile.Printf("object 1 class gridpositions counts %d %d %d\n",
+                 nx_, ny_, nz_);
+  outfile.Printf("origin %g %g %g\n", Xcrd(0), Ycrd(0), Zcrd(0));
+  outfile.Printf("delta %g 0 0\n", dx_);
+  outfile.Printf("delta 0 %g 0\n", dy_);
+  outfile.Printf("delta 0 0 %g\n", dz_);
+  outfile.Printf("object 2 class gridconnections counts %d %d %d\n",
+                 nx_, ny_, nz_);
+  outfile.Printf(
+    "object 3 class array type double rank 0 items %d data follows\n",
+    gridsize_);
+  
+  // Now print out the data. It is already in row-major form (z-axis changes
+  // fastest), so no need to do any kind of data adjustment
+  for (int i = 0; i < gridsize_ - 2; i += 3)
+    outfile.Printf("%g %g %g\n", grid_[i], grid_[i+1], grid_[i+2]);
+  // Print out any points we may have missed
+  switch (gridsize_ % 3) {
+    case 2: outfile.Printf("%g %g\n", grid_[gridsize_-2], grid_[gridsize_-1]); break;
+    case 1: outfile.Printf("%g\n", grid_[gridsize_-1]); break;
+  }
+  
+  // Print tail
+  if (mode_ == CENTER)
+    outfile.Printf("\nobject \"density (%s) [A^-3]\" class field\n",
+                   centerMask_.MaskString());
+  else
+    outfile.Printf("\nobject \"density [A^-3]\" class field\n");
+
+  outfile.CloseFile();
+}
+
 // Grid::GridPrint()
 void Grid::PrintEntireGrid() {
   for (int i = 0; i < gridsize_; ++i)

@@ -30,6 +30,8 @@ class Grid {
     /// Print Xplor format grid density
     void PrintXplor(std::string const&, const char*, std::string);
     void PrintPDB(std::string const&, double, double);
+    /// Print DX format grid density
+    void PrintDX(std::string const&);
     // DEBUG
     void PrintEntireGrid();
     /// Return number of bins in the X dimension. 
