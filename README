@@ -24,7 +24,7 @@ specified in the file LICENSE.
 
 Contributors to CPPTRAJ
 ---------------------------------------
-Lead Author: Daniel R. Roe, Ph.D. (daniel.r.roe@gmail.com)
+Lead Author: Daniel R. Roe (daniel.r.roe@gmail.com)
              Department of Medicinal Chemistry
              University of Utah, Salt Lake City, UT.
 
@@ -41,7 +41,7 @@ Contributors:
     Code for calculating J-couplings (used in Action_Jcoupling).
 
   - Jason M. Swails (Univeristy of Florida, Gainesville, FL, USA)
-    Action_LIE, Analysis_RunningAvg 
+    Action_LIE, Analysis_RunningAvg, Grid OpenDX output 
 
   The following people wrote code in PTRAJ which was eventually adapted for
 use in CPPTRAJ:
