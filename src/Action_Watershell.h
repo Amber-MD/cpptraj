@@ -6,10 +6,11 @@
 class Action_Watershell : public Action, ImagedAction {
   public:
     Action_Watershell();
-
+#   ifdef _OPENMP
+    ~Action_Watershell();
+#   endif
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Watershell(); }
     static void Help();
-
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
@@ -20,11 +21,17 @@ class Action_Watershell : public Action, ImagedAction {
     AtomMask soluteMask_;
     AtomMask solventMask_;
     std::string solventmaskexpr_;
-    std::vector<int> activeResidues_;
     double lowerCutoff_;
     double upperCutoff_;
     Topology* CurrentParm_;
     DataSet* lower_;
     DataSet* upper_;
+    int numthreads_;
+#   ifdef _OPENMP
+    int** activeResidues_thread_;
+    int NactiveResidues_;
+#   else
+    std::vector<int> activeResidues_;
+#   endif
 };
 #endif
