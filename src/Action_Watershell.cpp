@@ -168,15 +168,17 @@ Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame,
 
   if (ImageType()==NONORTHO) currentFrame->BoxCrd().ToRecip(ucell,recip);
 
-#ifdef _OPENMP
-  int Vidx, Uidx, Vat, mythread, currentRes;
+  int Vidx, Uidx, Vat, currentRes;
   int NU = soluteMask_.Nselected();
   int NV = solventMask_.Nselected();
   double dist;
+# ifdef _OPENMP
+  int mythread;
 #pragma omp parallel private(dist,Vidx,Vat,currentRes,Uidx,mythread)
 {
   mythread = omp_get_thread_num();
 #pragma omp for
+# endif
   // Assume solvent mask is the larger one.
   // Loop over solvent atoms
   for (Vidx = 0; Vidx < NV; Vidx++) {
@@ -186,18 +188,34 @@ Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame,
     // Loop over solute atoms
     for (Uidx = 0; Uidx < NU; Uidx++) {
       // If residue is not yet marked as 1st shell, calc distance
-      if ( activeResidues_thread_[mythread][currentRes] < 2 ) {
+#     ifdef _OPENMP
+      if ( activeResidues_thread_[mythread][currentRes] < 2 )
+#     else
+      if ( activeResidues_[currentRes] < 2 )
+#     endif
+      {
         dist = DIST2(currentFrame->XYZ(soluteMask_[Uidx]), currentFrame->XYZ(Vat),
                      ImageType(), currentFrame->BoxCrd(), ucell, recip );
         // Less than upper, 2nd shell
-        if (dist < upperCutoff_) {
+        if (dist < upperCutoff_) 
+        {
+#         ifdef _OPENMP
           activeResidues_thread_[mythread][currentRes] = 1;
+#         else
+          activeResidues_[currentRes] = 1;
+#         endif
           // Less than lower, 1st shell
-          if (dist < lowerCutoff_) activeResidues_thread_[mythread][currentRes] = 2;
+          if (dist < lowerCutoff_)
+#           ifdef _OPENMP
+            activeResidues_thread_[mythread][currentRes] = 2;
+#           else
+            activeResidues_[currentRes] = 2;
+#           endif
         }
       }
     } // End loop over solute atoms
   } // End loop over solvent atoms
+# ifdef _OPENMP
 } // END parallel
   // Combine results from each thread.
   for (int res = 0; res < NactiveResidues_; res++) {
@@ -213,45 +231,19 @@ Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame,
       if (shell > 1) ++nlower;
     }
   }
-#else
-  // Loop over solute atoms
-  for (AtomMask::const_iterator solute_at = soluteMask_.begin();
-                                solute_at != soluteMask_.end(); ++solute_at)
-  {
-    // Loop over solvent atoms
-    for (AtomMask::const_iterator solvent_at = solventMask_.begin();
-                                  solvent_at != solventMask_.end(); ++solvent_at)
-    {
-      // Figure out which solvent residue this is
-      int currentRes = (*CurrentParm_)[ *solvent_at].ResNum();
-      // If residue is not yet marked as 1st shell, calc distance
-      if ( activeResidues_[currentRes] < 2 ) {
-        double dist = DIST2(currentFrame->XYZ(*solute_at), currentFrame->XYZ(*solvent_at), 
-                            ImageType(), currentFrame->BoxCrd(), ucell, recip );
-        // Less than upper, 2nd shell
-        if (dist < upperCutoff_) {
-          activeResidues_[currentRes] = 1;
-          // Less than lower, 1st shell
-          if (dist < lowerCutoff_) 
-            activeResidues_[currentRes] = 2;
-        }
-      }
-    } // END loop over solvent atoms
-  } // END loop over solute atoms
+# else
   // Now each residue is marked 0 (no shell), 1 (second shell), 2 (first shell)
   for (std::vector<int>::iterator shell = activeResidues_.begin();
                                   shell != activeResidues_.end(); ++shell)
   {
     if ( *shell > 0 ) {
       ++nupper;
-      if ( *shell > 1 ) {
-        ++nlower;
-      }
+      if ( *shell > 1 ) ++nlower;
     }
     // Reset for next pass
     *shell = 0;
   }
-#endif
+# endif
   lower_->Add(frameNum, &nlower);
   upper_->Add(frameNum, &nupper);
 
