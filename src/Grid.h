@@ -17,6 +17,8 @@ class Grid {
     AtomMask const& CenterMask() { return centerMask_; } // TODO: Obsolete
     /// Initialize grid from argument list.
     int GridInit(const char*, ArgList&);
+    /// Initialize grid from Density file
+    int GridInit(std::string const&, const char*);
     /// Print information about the grid, allocate memory.
     void GridInfo();
     /// Setup grid based on given topology.

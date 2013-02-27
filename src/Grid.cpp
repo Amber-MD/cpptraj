@@ -1,8 +1,12 @@
 #include <cstring> // memset
+#include <cstdio>  // sscanf
+#include <cstdlib> // atof
+#include <vector>
 #include "Grid.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
 #include "PDBfile.h"
+#include "StringRoutines.h"
 
 // CONSTRUCTOR
 Grid::Grid() :
@@ -154,6 +158,151 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
   if (grid_!=0) delete[] grid_;
   grid_ = new float[ gridsize_ ];
   memset(grid_, 0, gridsize_ * sizeof(float));
+
+  return 0;
+}
+
+// Grid::GridInit()
+/** Initializes a grid from a density file instead of input arguments. The
+ *  filetype must be a recognized file type (case-sensitive). So far only
+ *  the following file types are recognized for input densities:
+ *      DX
+ */
+int Grid::GridInit(std::string const& filename, const char* filetype)
+{
+  if (filetype == "DX") {
+    CpptrajFile infile;
+    infile.OpenRead(filename);
+    // First read the header
+    bool header_done = false;
+    int lines_found = 0;
+    // Store the origin
+    double ox, oy, oz;
+    std::string line;
+    do {
+      line = infile.GetLine();
+      // Try to read the first line
+      if (lines_found < 1) {
+        int nx, ny, nz;
+        if (sscanf(line.c_str(), "object 1 class gridpositions counts %d %d %d",
+                   &nx, &ny, &nz) != 3)
+          continue;
+        else {
+          nx_ = nx; ny_ = ny; nz_ = nz;
+          gridsize_ = nx_ * ny_ * nz_;
+          lines_found++;
+        }
+      }
+      
+      // Try to read the second line
+      if (lines_found < 2) {
+        if (sscanf(line.c_str(), "origin %lg %lg %lg", &ox, &oy, &oz) != 3)
+          continue;
+        else
+          lines_found++;
+      }
+      // Now try to read the three delta lines
+      if (lines_found < 5) {
+        double dx, dy, dz;
+        if (sscanf(line.c_str(), "delta %lg %lg %lg", &dx, &dy, &dz) != 3)
+          continue;
+        // Now make sure two of the grid dimensions are zero, and add the
+        // non-zero resolution where it belongs
+        bool found_nzero = false;
+        if (dx != 0) {
+          dx_ = dx;
+          found_nzero = true;
+        }
+        if (dy != 0) {
+          if (found_nzero) {
+            mprinterr("Error: rotated basis in DX file not yet supported.\n");
+            infile.CloseFile();
+            return 1;
+          }
+          dy_ = dy;
+          found_nzero = true;
+        }
+        if (dz != 0) {
+          if (found_nzero) {
+            mprinterr("Error: rotated basis in DX file not yet supported.\n");
+            infile.CloseFile();
+            return 1;
+          }
+          dz_ = dz;
+          found_nzero = true;
+        }
+        lines_found++;
+        if (lines_found == 5) {
+          // Now we have enough data to calculate the center of the box
+          int nx2 = nx_ / 2, ny2 = ny_ / 2, nz2 = nz_ / 2;
+          sx_ = ox + nx2 * dx_;
+          sy_ = oy + ny2 * dy_;
+          sz_ = oz + nz2 * dz_;
+        }
+      }
+
+      // Now try to read the gridconnections count
+      if (lines_found < 6) {
+        int nx, ny, nz;
+        if (sscanf(line.c_str(), "object 2 class gridconnections counts %d %d %d",
+                   &nx, &ny, &nz) != 3)
+          continue;
+        if (nx_ != nx || ny_ != ny || nz_ != nz) {
+          mprinterr("Error: Conflicting grid dimensions in input DX density file\n");
+          infile.CloseFile();
+          return 1;
+        }
+        lines_found++;
+      }
+
+      // Now try to read the total number of data points
+      int npts;
+      if (sscanf(line.c_str(), "object 3 class array type double rank 0 items %d data follows",
+                 &npts) != 1)
+        continue;
+      if (npts != gridsize_) {
+        mprinterr("Error: Inconsistent grid size in input OpenDX Density file.\n");
+        infile.CloseFile();
+        return 1;
+      }
+      // We finished the header, now break out so we can read the data
+      break;
+    } while (! line.empty());
+    // Allocate the grid and fill it with zeros
+    if (grid_ != 0) delete[] grid_;
+    grid_ = new float[gridsize_];
+    memset(grid_, 0, gridsize_ * sizeof(float));
+    // Now read the data
+    int i = 0;
+    float val;
+    bool done = false;
+    while (i < gridsize_) {
+      line = infile.GetLine();
+      if (line.empty()) {
+        mprinterr("Error: Unexpected EOF hit in %s\n", filename.c_str());
+        infile.CloseFile();
+        delete[] grid_;
+        return 1;
+      }
+      
+      std::vector<std::string> words = split(line);
+      for (int j = 0; j < words.size(); j++) {
+        if (i >= gridsize_) {
+          mprinterr("Error: Too many grid points found!\n");
+          infile.CloseFile();
+          delete[] grid_;
+          return 1;
+        }
+        grid_[i++] = (float)atof(words[j].c_str());
+      }
+    }
+    // Ignore the tail
+
+ }else {
+    mprinterr("Input density file type [%s] is not recognized\n",
+              filetype);
+    return 1;
+  }
 
   return 0;
 }

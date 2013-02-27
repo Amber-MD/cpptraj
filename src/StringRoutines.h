@@ -1,6 +1,7 @@
 #ifndef INC_STRINGROUTINES_H
 #define INC_STRINGROUTINES_H
 #include <string>
+#include <vector>
 /*! \file StringRoutines.h
     \brief Collection of useful string routines.
 
@@ -23,4 +24,6 @@ void RemoveTrailingWhitespace(std::string &);
 std::string integerToString(int);
 std::string integerToString(int,int);
 std::string doubleToString(double);
+std::vector<std::string> split(std::string const&);
+std::vector<std::string> split(std::string const&, const char*, bool);
 #endif
