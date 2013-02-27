@@ -17,12 +17,16 @@ class Grid {
     AtomMask const& CenterMask() { return centerMask_; } // TODO: Obsolete
     /// Initialize grid from argument list.
     int GridInit(const char*, ArgList&);
+    /// Initialize grid from Density file
+    int GridInit(std::string const&, const char*);
     /// Print information about the grid, allocate memory.
     void GridInfo();
     /// Setup grid based on given topology.
     int GridSetup(Topology*);
     /// Grid the given XYZ point.
     int GridPoint(Vec3 const&);
+    /// Add the given value to the density
+    void AddDensity(int i, int j, int k, double val) { grid_[i*ny_*nz_+j*nz_+k] += val; }
     /// Grid the given frame
     void GridFrame(Frame& currentFrame, AtomMask const& mask);
     /// Grid point (for backwards compat. with Action_Dipole) 

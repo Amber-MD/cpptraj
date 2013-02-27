@@ -3,6 +3,7 @@
 #include <sstream>   // istringstream, ostringstream
 #include <locale>    // isspace
 #include <stdexcept> // BadConversion
+#include <vector>
 #ifndef __PGI
 #  include <glob.h>  // For tilde expansion
 #endif
@@ -240,3 +241,42 @@ std::string doubleToString(double d) {
   return oss.str();
 }
 
+/** Splits string along any list of arbitrary characters. The characters it
+ *  splits on are omitted from any of the returned list of words
+ */
+std::vector<std::string> 
+split(std::string const& instring, std::string const& splitchars, bool keep_empty=true)
+{
+  std::vector<std::string> words;
+  std::string curword;
+
+  int i = 0;
+  int pushed_last = false;
+  while (i < instring.length()) {
+    if (splitchars.find(instring[i]) != std::string::npos) {
+      // We split on this character. Add this to the word list _only_ if it is
+      // not empty _or_ we keep empty strings
+      if (!curword.empty() || keep_empty) {
+        words.push_back(curword);
+        curword.erase(curword.begin(), curword.end());
+        pushed_last = true;
+      }
+   }else {
+      curword += instring[i];
+      pushed_last = false;
+    }
+    // Go to the next character
+    i++;
+  }
+  if (!pushed_last) {
+    if (!curword.empty() || keep_empty)
+      words.push_back(curword);
+  }
+  return words;
+}
+
+/** Splits a string along whitespace. Ignores multiple whitespace
+ */
+std::vector<std::string> split(std::string const& instring) {
+  return split(instring, std::string(" \t\n\r"), false);
+}
