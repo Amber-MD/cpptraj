@@ -59,10 +59,9 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   else
     mode_ = INTERVAL;
   // Get residue range
-  if (resRange_.SetRange(actionArgs.GetStringKey("resrange"))) {
-    mprinterr("Error: dihedralscan: Invalid residue range ('resrange <range')\n");
-    return Action::ERR;
-  }
+  resRange_.SetRange(actionArgs.GetStringKey("resrange"));
+  if (!resRange_.Empty())
+    resRange_.ShiftBy(-1); // User res args start from 1
   // Determine which angles to search for
   dihSearch_.SearchForArgs(actionArgs);
   // If nothing is enabled, enable all 
@@ -122,7 +121,11 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   // Add dataset to data file list
   DFL->AddSetToFile(problemFile,number_of_problems_);
 
-  mprintf("    DIHEDRALSCAN: Dihedrals in residue range [%s]\n", resRange_.RangeArg());
+  mprintf("    DIHEDRALSCAN: Dihedrals in");
+  if (resRange_.Empty())
+    mprintf(" all solute residues.\n");
+  else
+    mprintf(" residue range [%s]\n", resRange_.RangeArg());
   switch (mode_) {
     case RANDOM:
       mprintf("\tDihedrals will be rotated to random values.\n");
@@ -170,8 +173,15 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
 /** Determine from selected mask atoms which dihedrals will be rotated. */
 Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** parmAddress) {
   DihedralScanType dst;
+  // If range is empty (i.e. no resrange arg given) look through all 
+  // solute residues.
+  Range actualRange;
+  if (resRange_.Empty())
+    actualRange.SetRange(0, currentParm->FinalSoluteRes());
+  else 
+    actualRange = resRange_;
   // Search for dihedrals
-  if (dihSearch_.FindDihedrals(*currentParm, resRange_))
+  if (dihSearch_.FindDihedrals(*currentParm, actualRange))
     return Action::ERR;
   // For each found dihedral, set up mask of atoms that will move upon 
   // rotation. Also set up mask of atoms in this residue that will not
