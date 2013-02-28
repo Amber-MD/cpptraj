@@ -58,7 +58,7 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
   //InitialFitMask.ResetMask();
   // Create char mask to see what symmetric atoms are selected. 
   AtomMask cMask = TgtMask();
-  cMask.ConvertMaskType(); // Convert to char mask
+  cMask.ConvertToCharMask();
   // Create initial 1 to 1 atom map for all atoms; indices in 
   // SymmetricAtomIndices will correspond to positions in AMap.
   AMap_.clear();

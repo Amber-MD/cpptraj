@@ -34,6 +34,8 @@ class DihedralSearch {
     void Clear();
     /// Print dihedrals currently being searched for.
     void PrintTypes();
+    /// \return Mask of atoms that will move upon rotation.
+    static AtomMask MovingAtoms(Topology const&, int, int);
   private:
     /// Hold dihedral atom #s, residue #, and type name.
     class DihedralMask {

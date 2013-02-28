@@ -172,10 +172,44 @@ void DihedralSearch::Clear() {
   dihedrals_.clear();
 }
 
+// DihedralSearch::PrintTypes()
 void DihedralSearch::PrintTypes() {
   for (std::vector<DihedralToken>::iterator dih = dihedralTokens_.begin();
                                             dih != dihedralTokens_.end(); ++dih)
   {
     mprintf(" %s", (*dih).Name().c_str());
   }
+}
+
+// VisitAtom()
+static void VisitAtom( Topology const& topIn, int atm, std::vector<bool>& Visited )
+{
+  // If this atom has already been visited return
+  if (Visited[atm]) return;
+  // Mark this atom as visited
+  Visited[atm] = true;
+  // Visit each atom bonded to this atom
+  for (Atom::bond_iterator bondedatom = topIn[atm].bondbegin();
+                           bondedatom != topIn[atm].bondend(); ++bondedatom)
+    VisitAtom(topIn, *bondedatom, Visited);
+}
+
+// DihedralSearch::MovingAtoms()
+AtomMask DihedralSearch::MovingAtoms(Topology const& topIn, int atom0, int atom1) {
+  std::vector<bool> Visited( topIn.Natom(), false );
+  // Mark atom0 as already visited
+  Visited[atom0] = true;
+  for (Atom::bond_iterator bndatm = topIn[atom1].bondbegin();
+                           bndatm != topIn[atom1].bondend(); ++bndatm)
+  {
+    if ( *bndatm != atom0 )
+      VisitAtom( topIn, *bndatm, Visited );
+  }
+  // Everything marked T will move.
+  AtomMask Rmask;
+  for (int maskatom = 0; maskatom < (int)Visited.size(); maskatom++) {
+    if (Visited[maskatom])
+      Rmask.AddAtom(maskatom);
+  }
+  return Rmask;
 }

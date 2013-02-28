@@ -157,44 +157,8 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
   return Action::OK;
 }
 
-// VisitAtom()
-static void VisitAtom( Topology const& topIn, int atm, std::vector<bool>& Visited )
-{
-  // If this atom has already been visited return
-  if (Visited[atm]) return;
-  // Mark this atom as visited
-  Visited[atm] = true;
-  // Visit each atom bonded to this atom
-  for (Atom::bond_iterator bondedatom = topIn[atm].bondbegin();
-                           bondedatom != topIn[atm].bondend(); ++bondedatom)
-    VisitAtom(topIn, *bondedatom, Visited);
-}
-
-/// Set up mask of atoms that will move upon rotation.
-static AtomMask MovingAtoms(Topology const& topIn, std::vector<bool>& Visited, 
-                            int atom0, int atom1) 
-{
-  Visited.assign( topIn.Natom(), false );
-  // Mark atom0 as already visited
-  Visited[atom0] = true;
-  for (Atom::bond_iterator bndatm = topIn[atom1].bondbegin();
-                           bndatm != topIn[atom1].bondend(); ++bndatm)
-  {
-    if ( *bndatm != atom0 )
-      VisitAtom( topIn, *bndatm, Visited );
-  }
-  // Everything marked T will move.
-  AtomMask Rmask;
-  for (int maskatom = 0; maskatom < (int)Visited.size(); maskatom++) {
-    if (Visited[maskatom])
-      Rmask.AddAtom(maskatom);
-  }
-  return Rmask;
-}
-
 // Action_MakeStructure::Setup()
 Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** parmAddress) {
-  std::vector<bool> Visited( currentParm->Natom(), false );
   // Set up each SS type
   for (std::vector<SecStructHolder>::iterator ss = secstruct_.begin();
                                               ss != secstruct_.end(); ++ss)
@@ -226,7 +190,8 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
         }
         int res1num = (*dih).ResNum();
         (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
-        (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
+        (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                 (*dih).A1(), (*dih).A2()) );
         ++dih;
         // Second has to be psi and +0
         if (debug_>0) mprintf("-%i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
@@ -235,7 +200,8 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
           return Action::ERR;
         }
         (*ss).thetas_.push_back((float)(myType.psi * DEGRAD));
-        (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
+        (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                 (*dih).A1(), (*dih).A2()) );
         ++dih;
         // Third has to be phi and +1
         if (debug_>0) mprintf("-%i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
@@ -244,7 +210,8 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
           return Action::ERR;
         }
         (*ss).thetas_.push_back((float)(myType.phi2 * DEGRAD));
-        (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
+        (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                 (*dih).A1(), (*dih).A2()) );
         ++dih;
         // Fourth has to be phi and +1
         if (debug_>0) mprintf("-%i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
@@ -253,7 +220,8 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
           return Action::ERR;
         }
         (*ss).thetas_.push_back((float)(myType.psi2 * DEGRAD));
-        (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
+        (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                 (*dih).A1(), (*dih).A2()) );
       }
     } else if (myType.isTurn == 2) {
       // Dihedrals of a single type
@@ -262,7 +230,8 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
       {
         if (debug_>0) mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
         (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
-        (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
+        (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                 (*dih).A1(), (*dih).A2()) );
       }
     } else if (myType.isTurn == 0) {
       // Assign SS.
@@ -272,10 +241,12 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
         if (debug_>0) mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
         if ((*dih).Name() == "phi") {
           (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
-          (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
+          (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                   (*dih).A1(), (*dih).A2()) );
         } else {
           (*ss).thetas_.push_back((float)(myType.psi * DEGRAD));
-          (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
+          (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                   (*dih).A1(), (*dih).A2()) );
         }
       }
     }
