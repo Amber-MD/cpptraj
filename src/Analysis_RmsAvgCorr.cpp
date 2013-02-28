@@ -1,6 +1,7 @@
 // Analysis_RmsAvgCorr
 #include "Analysis_RmsAvgCorr.h"
 #include "CpptrajStdio.h"
+#include "ProgressBar.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -147,13 +148,16 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     separateDatafile.Printf("%8i %lf\n",1,avg);
 
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
+  ProgressBar progress(WindowMax+1);
+  int mythread = 0;
 # ifdef _OPENMP
-#pragma omp parallel private(window, frame, avg, frameThreshold, subtractWindow, d_Nwindow, first) firstprivate(refFrame,tgtFrame,sumFrame)
+#pragma omp parallel private(mythread,window,frame,avg,frameThreshold,subtractWindow,d_Nwindow,first) firstprivate(refFrame,tgtFrame,sumFrame)
 {
-  //mythread = omp_get_thread_num();
+  mythread = omp_get_thread_num();
 #pragma omp for schedule(dynamic)
 #endif
   for (window = 2; window < WindowMax; window++ ) {
+    if (mythread == 0) progress.Update(window);
     // Initialize and set up running average for this window size
     frameThreshold = window - 2;
     // TODO: Make subtractWindow a const iterator to CoordList
@@ -206,6 +210,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     Ct_->Add(window, Ct_openmp+window);
   delete[] Ct_openmp;
 #endif
+  progress.Update(WindowMax);
   if (!separateName_.empty())
     separateDatafile.CloseFile();
   return Analysis::OK;
