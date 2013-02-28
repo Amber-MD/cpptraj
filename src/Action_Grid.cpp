@@ -12,15 +12,15 @@ Action_Grid::Action_Grid() :
 {}
 
 void Action_Grid::Help() {
-  mprintf("grid <filename>");
+  mprintf("\t<filename>");
   Grid::Help();
   mprintf(" <mask>\n"); 
-  mprintf("     [max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");
-  mprintf("     [pdb <pdbout>] [opendx]\n\n");
-  mprintf("<fraction>: Percent of max to write.\n");
-  mprintf("<madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.\n");
-  mprintf("<value>   : Used to smooth density.\n");
-  mprintf("[opendx]  : Write the density file in OpenDX format.\n");
+  mprintf("\t[max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");
+  mprintf("\t[pdb <pdbout>] [opendx]\n\n");
+  mprintf("\t<fraction>: Percent of max to write.\n");
+  mprintf("\t<madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.\n");
+  mprintf("\t<value>   : Used to smooth density.\n");
+  mprintf("\t[opendx]  : Write the density file in OpenDX format.\n");
 }
 
 // Action_Grid::init()
@@ -72,7 +72,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 // Action_Grid::setup()
 Action::RetType Action_Grid::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup grid, checks box info.
-  if (grid_.GridSetup( currentParm )) return Action::ERR;
+  if (grid_.GridSetup( *currentParm )) return Action::ERR;
 
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ ))

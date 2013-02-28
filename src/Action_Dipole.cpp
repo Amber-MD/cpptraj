@@ -79,7 +79,7 @@ Action::RetType Action_Dipole::Setup(Topology* currentParm, Topology** parmAddre
   mprintf("\tLargest solvent mol is %i atoms.\n", NsolventAtoms);
 
   // Setup grid, checks box info.
-  if (grid_.GridSetup( currentParm )) return Action::ERR;
+  if (grid_.GridSetup( *currentParm )) return Action::ERR;
 
   // Setup mask
   if (currentParm->SetupCharMask( mask_ ))

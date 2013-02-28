@@ -18,11 +18,11 @@ class Grid {
     /// Initialize grid from argument list.
     int GridInit(const char*, ArgList&);
     /// Initialize grid from Density file
-    int GridInit(std::string const&, const char*);
+    int InitFromFile(std::string const&, std::string const&);
     /// Print information about the grid, allocate memory.
     void GridInfo();
     /// Setup grid based on given topology.
-    int GridSetup(Topology*);
+    int GridSetup(Topology const&);
     /// Grid the given XYZ point.
     int GridPoint(Vec3 const&);
     /// Add the given value to the density
@@ -104,6 +104,8 @@ class Grid {
     iterator begin() { return grid_; }
     iterator end() { return (grid_ + gridsize_); }
   private:
+    int Allocate();
+
     float increment_; ///< Set to -1 if negative, 1 if not.
     GridModeType mode_;
     AtomMask centerMask_;
