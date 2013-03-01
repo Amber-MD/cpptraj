@@ -24,7 +24,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
   bool first = actionArgs.hasKey("first");
-  ReferenceFrame  REF = FL->GetFrame( actionArgs );
+  ReferenceFrame  REF = FL->GetFrameFromArgs( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
   Topology* RefParm = PFL->GetParm( actionArgs );
   // Get the RMS mask string for target

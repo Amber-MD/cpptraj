@@ -57,9 +57,9 @@ class FrameList : public FileList {
     /// Add a reference frame base on given args
     int AddReference(ArgList&, TopologyList&);
     /// Get reference frame based on given args
-    ReferenceFrame GetFrame(ArgList&);
+    ReferenceFrame GetFrameFromArgs(ArgList&);
     /// Get reference frame with given name.
-    ReferenceFrame GetFrame(std::string const&);
+    ReferenceFrame GetFrameByName(std::string const&);
     /// Replace the given reference frame with given Frame/Topology.
     int ReplaceFrame(ReferenceFrame const&, Frame*, Topology*);
     /// Print all reference frames.

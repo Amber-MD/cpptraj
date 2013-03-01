@@ -65,7 +65,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   DFL->AddSetToFile(dataout, ds_elec_);
 
   // Get reference structure
-  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) { 
     // Set up reference mask

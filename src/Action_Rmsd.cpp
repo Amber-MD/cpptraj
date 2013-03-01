@@ -47,7 +47,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
   bool first = actionArgs.hasKey("first");
-  ReferenceFrame  REF = FL->GetFrame( actionArgs );
+  ReferenceFrame  REF = FL->GetFrameFromArgs( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
   RefParm_ = PFL->GetParm( actionArgs );
   // Per-res keywords

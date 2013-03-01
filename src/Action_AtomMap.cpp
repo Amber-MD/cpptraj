@@ -699,7 +699,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     return Action::ERR;
   }
   // Get Reference
-  ReferenceFrame REF = FL->GetFrame( refName );
+  ReferenceFrame REF = FL->GetFrameByName( refName );
   if (REF.empty()) {
     mprintf("AtomMap::init: Error: Could not get reference frame %s\n",refName.c_str());
     return Action::ERR;
@@ -707,7 +707,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   RefFrame_ = REF.Coord();
   RefParm_ = REF.Parm();
   // Get Target
-  ReferenceFrame TGT = FL->GetFrame( targetName );
+  ReferenceFrame TGT = FL->GetFrameByName( targetName );
   if (TGT.empty()) {
     mprintf("AtomMap::init: Error: Could not get target frame %s\n",targetName.c_str());
     return Action::ERR;

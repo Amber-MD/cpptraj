@@ -21,7 +21,7 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Reference keywords
   // TODO: Can these just be put in the InitRef call?
   bool first = actionArgs.hasKey("first");
-  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
   Topology* RefParm = PFL->GetParm( actionArgs );
   // Get the RMS mask string for target 
