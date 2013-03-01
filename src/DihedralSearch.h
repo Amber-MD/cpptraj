@@ -30,8 +30,10 @@ class DihedralSearch {
     int SearchForAll();
     /// Find specified dihedrals for residues in Range.
     int FindDihedrals(Topology const&, Range const&);
-    /// Clear dihedrals
+    /// Clear found dihedrals and tokens.
     void Clear();
+    /// Clear found dihedrals only.
+    void ClearFound();
     /// Print dihedrals currently being searched for.
     void PrintTypes();
     /// \return Mask of atoms that will move upon rotation.

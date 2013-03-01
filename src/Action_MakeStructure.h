@@ -22,19 +22,24 @@ class Action_MakeStructure : public Action {
         SS_TYPE(double ph,double ps,double ph2,double ps2,int t,std::string const& n) :
           phi(ph), psi(ps), phi2(ph2), psi2(ps2), isTurn(t), type_arg(n) {}
         bool empty() { return (isTurn == -1); }
-        double phi, psi, phi2, psi2; // Angle(s)
+        double phi, psi, phi2, psi2; // Angle(s) FIXME: Should this be an array?
         int isTurn; // 0=phi/psi, 1=Turn (phi/psi/phi2/psi2), 2=Single Dihedral(phi)
         std::string type_arg;
     };
     std::vector<SS_TYPE> SS;
-    std::vector<SS_TYPE>::const_iterator FindSStype(std::string const&);
+    /// Determine if SS type has already been defined.
+    int FindSStype(std::string const&);
     /// Hold what angles will be applied to which residues.
-    struct SecStructHolder {
-      Range resRange;                ///< Residues to set phi/psi for.
-      DihedralSearch dihSearch_;     ///< Used to search for specified dihedrals
-      std::vector<AtomMask> Rmasks_; ///< Masks of atoms to hold fixed during rotation.
-      std::vector<float> thetas_;    ///< theta for each dihedral.
-      std::vector<SS_TYPE>::const_iterator type; ///< Pointer to SS_TYPE.
+    class SecStructHolder {
+      public:
+        SecStructHolder() : sstype_idx(-1) {}
+        SecStructHolder(std::string const& rangearg, int typeidx) :
+          resRange(rangearg, -1), sstype_idx(typeidx) {}
+        Range resRange;                ///< Residues to set phi/psi for.
+        DihedralSearch dihSearch_;     ///< Used to search for specified dihedrals
+        std::vector<AtomMask> Rmasks_; ///< Masks of atoms to hold fixed during rotation.
+        std::vector<float> thetas_;    ///< theta for each dihedral.
+        int sstype_idx;                ///< Pointer to corresponding SS_TYPE.
     };
     std::vector<SecStructHolder> secstruct_;
 };

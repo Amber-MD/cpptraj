@@ -172,6 +172,11 @@ void DihedralSearch::Clear() {
   dihedrals_.clear();
 }
 
+// DihedralSearch::ClearFound()
+void DihedralSearch::ClearFound() {
+  dihedrals_.clear();
+}
+
 // DihedralSearch::PrintTypes()
 void DihedralSearch::PrintTypes() {
   for (std::vector<DihedralToken>::iterator dih = dihedralTokens_.begin();
