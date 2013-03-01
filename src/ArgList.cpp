@@ -67,48 +67,46 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
   // Store inputString
   argline_.assign(inputString);
   // Begin tokenization
-  char quotechar;
-  char *pch = strtok(tempString, separator);
-  if (pch!=0) {
-    while (pch!=0) {
+  char* pch = strtok(tempString, separator);
+  if (pch != 0) {
+    while (pch != 0) {
       //if (debug>1) mprintf("getArgList:  Arg %i, Token [%s], ",nargs,pch);
       // If the argument is not quoted add it to the list
-      if      (pch[0]=='"' ) quotechar='"';
-      else if (pch[0]=='\'') quotechar='\'';
-      else quotechar=' ';
-      if (quotechar==' ') {
+      if (pch[0] != '"' && pch[0] != '\'') 
         arglist_.push_back( std::string(pch) );
-      } else {
+      else {
+        char quotechar = pch[0];
         // If the argument begins with a quote, place this and all subsequent
         // arguments ending with another quote into this argument
         std::string argument(pch);
-        unsigned int argsize = argument.size();
-        // Check for blank quote token ("")
-        if (argsize != 2 || argument[1] != quotechar) {
-          // Check if this argument itself ends with a quote
-          if (argsize == 1 || argument[argsize-1]!=quotechar) {
-            while (pch!=0) {
-              argument.append(" ");
-              pch=strtok(0," ");
-              // If pch is 0 at this point there was no closing quote.
-              if (pch==0) {
-                mprintf("\tWarning: argument missing closing quote [%c]\n",quotechar);
-                break;
-              }
-              argument.append(pch);
-              if (strchr(pch,quotechar)!=0) break;
+        // Make sure this argument doesnt just end with a quote.
+        unsigned int arg_size = argument.size();
+        if (arg_size == 1 || argument[arg_size-1] != quotechar) {
+          while (pch != 0) {
+            argument.append(" ");
+            pch = strtok(0, separator);
+            // If pch is 0 at this point there was no closing quote.
+            if (pch == 0) {
+              mprintf("Warning: argument list closing quote [%c] missing or misplaced\n", 
+                      quotechar);
+              break;
             }
+            argument.append(pch);
+            // Check if this argument has the closing quote.
+            if (argument[argument.size()-1] == quotechar) break;
           }
-          // Remove quotes from the argument
-          for (std::string::iterator character = argument.begin();
-                                     character < argument.end();
-                                     ++character)
-            if (*character == quotechar) character = argument.erase(character);
-          arglist_.push_back(argument);
         }
+        // Remove quotes from the argument
+        std::string::iterator character = argument.begin();
+        while (character < argument.end())
+          if (*character == quotechar)
+            character = argument.erase(character);
+          else
+            ++character;
+        if (!argument.empty()) arglist_.push_back(argument);
       }
       //if (debug>1) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
-      pch = strtok(0,separator);
+      pch = strtok(0,separator); // Next argument
     } // END while loop
     // Set up marked array
     marked_.resize( arglist_.size(), false );
