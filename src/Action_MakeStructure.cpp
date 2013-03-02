@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD
 #include "TorsionRoutines.h"
-#include "StringRoutines.h" // convertToDouble
+#include "StringRoutines.h" // convertToDouble, convertToInteger
 
 // CONSTRUCTOR
 Action_MakeStructure::Action_MakeStructure() : debug_(0) {
@@ -48,6 +48,7 @@ void Action_MakeStructure::Help() {
   DihedralSearch::ListKnownTypes();
   mprintf("\t{<custom dih>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]}\n");
   DihedralSearch::OffsetHelp();
+  mprintf("\t{ref:<range>:<refname>[:<ref range>]} Apply dihedrals from reference <refname>.\n");
 }
 
 // Action_MakeStructure::Init()
@@ -67,8 +68,9 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
     }
     // Type is 1st arg, range is 2nd arg.
     SecStructHolder ss_holder(ss_arg[1], FindSStype(ss_arg[0]));
+
     if (ss_arg.Nargs() == 2) {
-      // Find SS type: <ss type>:<range>
+    // Find SS type: <ss type>:<range>
       if (ss_holder.sstype_idx == SS_EMPTY) {
         mprinterr("Error: SS type %s not found.\n", ss_arg[0].c_str());
         return Action::ERR;
@@ -76,8 +78,16 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
       ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
       ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
       secstruct_.push_back( ss_holder );
-    } else if (ss_arg.Nargs() >= 4 && ss_arg[2] == "ref") {
-      // Currently only unique args of this type are allowed
+
+    } else if (ss_arg[0] == "ref") {
+    // Use dihedrals from reference structure
+      if (ss_arg.Nargs() < 3) {
+        mprinterr("Error: Invalid 'ref' arg. Requires 'ref:<range>:<refname>[:<ref range>]'\n");
+        return Action::ERR;
+      }
+      ss_arg.MarkArg(0);
+      ss_arg.MarkArg(1);
+      // Sanity check: Currently only unique args of this type are allowed
       if (ss_holder.sstype_idx != SS_EMPTY) {
         mprinterr("Error: Ref backbone types must be unique [%s]\n", ss_arg[0].c_str());
         return Action::ERR;
@@ -86,16 +96,14 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
       ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
       ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
       // Get reference structure
-      ReferenceFrame REF = FL->GetFrameByName( ss_arg[3] );
+      ReferenceFrame REF = FL->GetFrameByName( ss_arg.GetStringNext() ); // ss_arg[2]
       if (REF.error() || REF.empty()) {
-        mprinterr("Error: Could not get reference structure [%s]\n", ss_arg[3].c_str());
+        mprinterr("Error: Could not get reference structure [%s]\n", ss_arg[2].c_str());
         return Action::ERR;
       }
       // Get reference residue range, or use resRange
-      Range refRange;
-      if (ss_arg.Nargs() == 5) {
-        refRange.SetRange(ss_arg[4]);
-        refRange.ShiftBy(-1);
+      Range refRange(ss_arg.GetStringNext(), -1); // ss_arg[3]
+      if (!refRange.Empty()) {
         if (ss_holder.resRange.Size() != refRange.Size()) {
           mprinterr("Error: Reference range [%s] must match residue range [%s]\n",
                     refRange.RangeArg(), ss_holder.resRange.RangeArg());
@@ -118,8 +126,9 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
         ss_holder.thetas_.push_back( (float)torsion );
       }
       secstruct_.push_back( ss_holder );
+
     } else if (ss_arg.Nargs() == 4 && isalpha(ss_arg[2][0])) {
-      // Single dihedral type: <name>:<range>:<dih type>:<angle>
+    // Single dihedral type: <name>:<range>:<dih type>:<angle>
       DihedralSearch::DihedralType dtype = DihedralSearch::GetType(ss_arg[2]);
       if (ss_holder.sstype_idx == SS_EMPTY) {
         // Type not yet defined. Create new type. 
@@ -127,27 +136,47 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
           mprinterr("Error: Dihedral type %s not found.\n", ss_arg[2].c_str());
           return Action::ERR;
         }
+        if (!ss_arg.ValidDouble(3)) {
+          mprinterr("Error: 4th arg (angle) is not a valid number.\n");
+          return Action::ERR;
+        }
         SS.push_back( SS_TYPE(convertToDouble(ss_arg[3]), 0.0, 0.0, 0.0, 2, ss_arg[0]) );
         ss_holder.sstype_idx = (int)(SS.size() - 1);
       }
       ss_holder.dihSearch_.SearchFor( dtype ); 
       secstruct_.push_back( ss_holder );
+
     } else if (ss_arg.Nargs() == 7 || ss_arg.Nargs() == 8) {
-      // Single custom dihedral type: <name>:<range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]
+    // Single custom dihedral type: <name>:<range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]
       if (ss_holder.sstype_idx == SS_EMPTY) {
         // Type not yet defined. Create new type.
+        if (!ss_arg.ValidDouble(6)) {
+          mprinterr("Error: 7th arg (angle) is not a valid number.\n");
+          return Action::ERR;
+        }
         SS.push_back( SS_TYPE(convertToDouble(ss_arg[6]), 0.0, 0.0, 0.0, 2, ss_arg[0]) );
         ss_holder.sstype_idx = (int)(SS.size() - 1);
       }
       int offset = 0;
-      if (ss_arg.Nargs() == 8) offset = convertToInteger(ss_arg[7]);
+      if (ss_arg.Nargs() == 8) {
+        if (!ss_arg.ValidInteger(7)) {
+          mprinterr("Error: 8th arg (offset) is not a valid number.\n");
+          return Action::ERR;
+        }
+        offset = convertToInteger(ss_arg[7]);
+      }
       ss_holder.dihSearch_.SearchForNewType(offset,ss_arg[2],ss_arg[3],ss_arg[4],ss_arg[5],
                                             ss_arg[0]);
       secstruct_.push_back( ss_holder );
+
     } else if (ss_arg.Nargs() == 4 || ss_arg.Nargs() == 6) {
-      // Custom SS/turn type: <name>:<range>:<phi1>:<psi1>[:<phi2>:<psi2>]
+    // Custom SS/turn type: <name>:<range>:<phi1>:<psi1>[:<phi2>:<psi2>]
       if (ss_holder.sstype_idx == SS_EMPTY) {
         // Type not yet defined. Create new type.
+        if (!ss_arg.ValidDouble(2) || !ss_arg.ValidDouble(3)) {
+          mprinterr("Error: 3rd or 4th arg (phi1/psi1) is not a valid number.\n");
+          return Action::ERR;
+        }
         double phi1 = convertToDouble(ss_arg[2]);
         double psi1 = convertToDouble(ss_arg[3]);
         int isTurn = 0;
@@ -155,6 +184,10 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
         double psi2 = 0.0;
         if (ss_arg.Nargs() == 6) {
           isTurn = 1;
+          if (!ss_arg.ValidDouble(4) || !ss_arg.ValidDouble(5)) {
+            mprinterr("Error: 5th or 6th arg (phi2/psi2) is not a valid number.\n");
+            return Action::ERR;
+          }
           phi2 = convertToDouble(ss_arg[4]);
           psi2 = convertToDouble(ss_arg[5]);
         }
@@ -164,6 +197,7 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
       ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
       ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
       secstruct_.push_back( ss_holder );
+
     } else {
       mprinterr("Error: SS arg type [%s] not recognized.\n", ss_arg[0].c_str());
       return Action::ERR;
@@ -298,7 +332,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
       // type was empty. Make sure the number of found dihedrals equals
       // number of reference dihedrals.
       if ( (*ss).dihSearch_.Ndihedrals() != (int)(*ss).thetas_.size() ) {
-        mprinterr("Error: Number of found dihedrals (%i) != number reference dihedrals (%s)\n",
+        mprinterr("Error: Number of found dihedrals (%i) != number reference dihedrals (%u)\n",
                   (*ss).dihSearch_.Ndihedrals(), (*ss).thetas_.size());
         return Action::ERR;
       }

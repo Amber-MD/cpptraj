@@ -266,6 +266,18 @@ static inline bool validDouble(std::string const &argument) {
   return false;
 }
 
+bool ArgList::ValidInteger(int idx) {
+  if (idx < 0 || idx >= (int)arglist_.size())
+    return false;
+  return validInteger(arglist_[idx]);
+}
+
+bool ArgList::ValidDouble(int idx) {
+  if (idx < 0 || idx >= (int)arglist_.size())
+    return false;
+  return validDouble(arglist_[idx]);
+}
+
 // ArgList::getNextInteger()
 /** \param def Value to return if no integer args found
   * \return Next unmarked integer argument or def
