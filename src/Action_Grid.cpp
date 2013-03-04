@@ -12,7 +12,7 @@ Action_Grid::Action_Grid() :
 {}
 
 void Action_Grid::Help() {
-  mprintf("\t<filename>");
+  mprintf("grid <filename>");
   Grid::Help();
   mprintf(" <mask>\n"); 
   mprintf("\t[max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");

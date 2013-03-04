@@ -1,11 +1,16 @@
+#include <cmath>   // floor
 #include <cstring> // memset
 #include <cstdio>  // sscanf
 #include <cstdlib> // atof
 #include <vector>
-#include "Grid.h"
+#include "Constants.h"
 #include "CpptrajStdio.h"
+#include "Grid.h"
 #include "BufferedFile.h"
 #include "PDBfile.h"
+
+#define MIN(X, Y) ( ( (X) < (Y) ) ? (X) : (Y) )
+#define MAX(X, Y) ( ( (X) < (Y) ) ? (Y) : (X) )
 
 // CONSTRUCTOR
 Grid::Grid() :
@@ -151,6 +156,34 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
   return 0;
 }
 
+// Grid::GridInitSizeRes()
+/** Initialize grid from a given size and resolution */
+int Grid::GridInitSizeRes(const char* callingRoutineIn, double size[3],
+                          double res[3], const char* mode) {
+  if (callingRoutineIn!=0)
+    callingRoutine_.assign(callingRoutineIn);
+  // Determine the mode
+  if (mode == "center")
+    mode_ = CENTER;
+  else if (mode == "box")
+    mode_ = BOX;
+  else
+    mode_ = ORIGIN;
+  // Set our grid spacing
+  dx_ = res[0]; dy_ = res[1]; dz_ = res[2];
+  // Determine our bin count, and make sure it's even
+  nx_ = (int) (size[0] / dx_);
+  ny_ = (int) (size[1] / dy_);
+  nz_ = (int) (size[2] / dz_);
+  if (nx_ % 2 == 1) nx_++;
+  if (ny_ % 2 == 1) ny_++;
+  if (nz_ % 2 == 1) nz_++;
+  // Now allocate the grid
+  if (Allocate())
+    return 1;
+  return 0;
+}
+
 /** Allocate the grid and calculate the half grid. */
 int Grid::Allocate() {
   // Calculate half grid
@@ -160,7 +193,7 @@ int Grid::Allocate() {
   // Allocate memory
   gridsize_ = nx_ * ny_ * nz_;
   if (gridsize_ <= 0) {
-    mprinterr("Error: %s: Grid size <= 0 (%i)\n",gridsize_, callingRoutine_.c_str());
+    mprinterr("Error: %s: Grid size <= 0 (%i)\n",callingRoutine_.c_str(), gridsize_);
     return 1;
   }
   if (grid_!=0) delete[] grid_;
@@ -280,6 +313,46 @@ int Grid::InitFromFile(std::string const& filename, std::string const& filetype)
   return 0;
 }
 
+// Grid::InitFromMask()
+/** Initializes a grid from a mask such that it surrounds it with a given buffer */
+int Grid::InitFromMask(const char* callingRoutineIn, Frame& currentFrame,
+                       AtomMask const& mask, double res[3], double buffer) {
+  if (callingRoutineIn!=0)
+    callingRoutine_.assign(callingRoutineIn);
+  // This subroutine implies that our mode_ is CENTERed on our mask
+  mode_ = CENTER;
+  // Set the passed resolution
+  dx_ = res[0]; dy_ = res[1]; dz_ = res[2];
+  // Double the buffer, since it's added to both sides
+  buffer *= 2;
+  // Loop through all allowed frames and track the max and min
+  AtomMask::const_iterator it = mask.begin();
+  Vec3 pt = Vec3( currentFrame.XYZ(*it) );
+  double xmin = pt[0]; double xmax = pt[0];
+  double ymin = pt[1]; double ymax = pt[1];
+  double zmin = pt[2]; double zmax = pt[2];
+  it++;
+  for (; it != mask.end(); it++) {
+    pt = Vec3(currentFrame.XYZ(*it));
+    xmin = MIN(xmin, pt[0]); xmax = MAX(xmax, pt[0]);
+    ymin = MIN(ymin, pt[1]); ymax = MAX(ymax, pt[1]);
+    zmin = MIN(zmin, pt[2]); zmax = MAX(zmax, pt[2]);
+  }
+//mprintf("Dimensions of the grid: %lfx%lf %lfx%lf %lfx%lf\n",
+//        xmin, xmax, ymin, ymax, zmin, zmax);
+  double range[3] = {xmax - xmin + buffer, ymax - ymin + buffer, zmax - zmin + buffer};
+  // Get the number of bin points, and make sure it's even.
+  nx_ = (int) (range[0] / dx_);
+  ny_ = (int) (range[1] / dy_);
+  nz_ = (int) (range[2] / dz_);
+  if (nx_ % 2 == 1) nx_++;
+  if (ny_ % 2 == 1) ny_++;
+  if (nz_ % 2 == 1) nz_++;
+  // Allocate the grid
+  if (Allocate())
+    return 1;
+  return 0;
+}
 // Grid::GridInfo()
 void Grid::GridInfo() {
   mprintf("    %s: Grid at", callingRoutine_.c_str());
@@ -460,10 +533,18 @@ void Grid::PrintPDB(std::string const& filename, double cut, double normIn)
 }
 
 // Grid::PrintDX
+/** Use the default lower-left corner (first bin) as the origin when printing this
+  * DX file
+  */
+void Grid::PrintDX(std::string const& filename) {
+  PrintDX(filename, Xbin(0), Ybin(0), Zbin(0));
+}
+
+// Grid::PrintDX
 /** This will print the grid in OpenDX format, commonly used by VMD, PBSA,
  * 3D-RISM, etc.
  */
-void Grid::PrintDX(std::string const& filename)
+void Grid::PrintDX(std::string const& filename, double xorig, double yorig, double zorig)
 {
   CpptrajFile outfile;
   if (outfile.OpenWrite(filename)) {
@@ -473,7 +554,7 @@ void Grid::PrintDX(std::string const& filename)
   // Print the OpenDX header
   outfile.Printf("object 1 class gridpositions counts %d %d %d\n",
                  nx_, ny_, nz_);
-  outfile.Printf("origin %lg %lg %lg\n", Xbin(0), Ybin(0), Zbin(0));
+  outfile.Printf("origin %lg %lg %lg\n", xorig, yorig, zorig);
   outfile.Printf("delta %lg 0 0\n", dx_);
   outfile.Printf("delta 0 %lg 0\n", dy_);
   outfile.Printf("delta 0 0 %lg\n", dz_);

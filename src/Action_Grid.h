@@ -11,6 +11,7 @@ class Action_Grid : public Action {
 
 
     void Print();
+    double dz_;
   private:
     double max_;
     double madura_;
@@ -21,6 +22,8 @@ class Action_Grid : public Action {
     std::string filename_;
     std::string pdbname_;
     Grid grid_;
+    double dy_;
+    double dx_;
 
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);

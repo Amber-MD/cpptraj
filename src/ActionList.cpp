@@ -58,6 +58,7 @@
 #include "Action_MultiDihedral.h"
 #include "Action_MakeStructure.h"
 #include "Action_SymmetricRmsd.h"
+#include "Action_Volmap.h"
 
 const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, 0 },
@@ -123,6 +124,7 @@ const DispatchObject::Token ActionList::DispatchArray[] = {
   { DispatchObject::ACTION, "unwrap", Action_Unwrap::Alloc, Action_Unwrap::Help, 0 },
   { DispatchObject::ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, 0 },
   { DispatchObject::ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, 0 },
+  { DispatchObject::ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, 0},
   { DispatchObject::NONE,        0,                  0,                 0, 0 }
 };
 
