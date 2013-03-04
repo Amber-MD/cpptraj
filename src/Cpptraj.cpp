@@ -203,7 +203,7 @@ const DispatchObject::Token Cpptraj::CoordCmds[] = {
 };
 
 enum ParmCmdTypes { LOADPARM=0, PARMINFO, PARMWRITE, PARMSTRIP, PARMBOX,
-                    SOLVENT, BONDINFO, RESINFO, MOLINFO };
+                    SOLVENT, BONDINFO, RESINFO, MOLINFO, CHARGEINFO };
 
 const DispatchObject::Token Cpptraj::ParmCmds[] = {
   { DispatchObject::PARM, "bondinfo",     0, Help_BondInfo,  BONDINFO  },
@@ -217,6 +217,7 @@ const DispatchObject::Token Cpptraj::ParmCmds[] = {
   { DispatchObject::PARM, "parmstrip",    0, Help_ParmStrip, PARMSTRIP },
   { DispatchObject::PARM, "parmwrite",    0, Help_ParmWrite, PARMWRITE },
   { DispatchObject::PARM, "resinfo",      0, Help_ResInfo,   RESINFO   },
+  { DispatchObject::PARM, "charge",       0, Help_ResInfo,   CHARGEINFO   },
   { DispatchObject::PARM, "solvent",      0, Help_Solvent,   SOLVENT   },
   { DispatchObject::NONE, 0,              0, 0,              0         }
 };
@@ -457,6 +458,7 @@ int Cpptraj::ParmInfo(ArgList& argIn, int cmdidxIn) {
     case BONDINFO: parm->PrintBondInfo( maskarg ); break;
     case RESINFO : parm->PrintResidueInfo( maskarg ); break;
     case MOLINFO : parm->PrintMoleculeInfo( maskarg ); break;
+    case CHARGEINFO: parm->PrintChargeInfo( maskarg ); break;
     default: return 1; // Should never get here
   }
   return 0;
@@ -992,6 +994,7 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
           case BONDINFO :
           case RESINFO  :
           case MOLINFO  :
+          case CHARGEINFO  :
           case PARMINFO : err = ParmInfo( command, dispatchToken->Idx ); break;
           case PARMWRITE: err = ParmWrite( command ); break;
           case PARMSTRIP: err = ParmStrip( command ); break;
