@@ -159,7 +159,7 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
 // Grid::GridInitSizeRes()
 /** Initialize grid from a given size and resolution */
 int Grid::GridInitSizeRes(const char* callingRoutineIn, double size[3],
-                          double res[3], const char* mode) {
+                          double res[3], std::string const& mode) {
   if (callingRoutineIn!=0)
     callingRoutine_.assign(callingRoutineIn);
   // Determine the mode

@@ -23,7 +23,7 @@ class Grid {
     /// Initialize grid from argument list.
     int GridInit(const char*, ArgList&);
     /// Initialize the grid from a given size and resolution
-    int GridInitSizeRes(const char*, double[3], double[3], const char*);
+    int GridInitSizeRes(const char*, double[3], double[3], std::string const&);
     /// Initialize grid from Density file
     int InitFromFile(std::string const&, std::string const&);
     /// Print information about the grid, allocate memory.

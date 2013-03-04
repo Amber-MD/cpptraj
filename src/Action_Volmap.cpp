@@ -93,7 +93,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     xcenter_ = centerargs.getNextDouble(0.0);
     ycenter_ = centerargs.getNextDouble(0.0);
     zcenter_ = centerargs.getNextDouble(0.0);
-    grid_.GridInitSizeRes("volmap", size, res, "origin");
+    grid_.GridInitSizeRes("volmap", size, res, std::string("origin"));
  }else {
     // Now we generate our grid around our mask. See if we have a center mask
     if (center.empty())
