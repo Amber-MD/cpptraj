@@ -70,4 +70,17 @@ void ProgressBar::Update(int current) {
     }
   }
 }
+// -----------------------------------------------------------------------------
+void ParallelProgress::printProgress(int it) {
+  float currentPercent = (float)it * C_over_max_;
+  if (currentPercent >= tgt_) {
+    mprintf("%2.0f%% ", currentPercent);
+    mflush();
+    //while (tgt_ <= currentPercent) 
+      tgt_ += 10.0;
+  }
+}
 
+void ParallelProgress::Finish() {
+  mprintf("Complete.\n");
+}

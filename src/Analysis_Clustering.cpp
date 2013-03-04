@@ -162,6 +162,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   }
   mprintf("\n");
   CList_->ClusteringInfo();
+  if (sieve_ > 1)
+    mprintf("\tInitial clustering sieve value is %i frames.\n", sieve_);
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->Filename());
   if (cpopvtimefile_ != 0) {
