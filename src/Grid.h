@@ -26,8 +26,6 @@ class Grid {
     int GridInitSizeRes(const char*, double[3], double[3], const char*);
     /// Initialize grid from Density file
     int InitFromFile(std::string const&, std::string const&);
-    /// Initialize grid to surround a mask
-    int InitFromMask(const char*, Frame&, AtomMask const&, double[3], double);
     /// Print information about the grid, allocate memory.
     void GridInfo();
     /// Setup grid based on given topology.

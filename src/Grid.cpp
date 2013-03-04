@@ -313,46 +313,6 @@ int Grid::InitFromFile(std::string const& filename, std::string const& filetype)
   return 0;
 }
 
-// Grid::InitFromMask()
-/** Initializes a grid from a mask such that it surrounds it with a given buffer */
-int Grid::InitFromMask(const char* callingRoutineIn, Frame& currentFrame,
-                       AtomMask const& mask, double res[3], double buffer) {
-  if (callingRoutineIn!=0)
-    callingRoutine_.assign(callingRoutineIn);
-  // This subroutine implies that our mode_ is CENTERed on our mask
-  mode_ = CENTER;
-  // Set the passed resolution
-  dx_ = res[0]; dy_ = res[1]; dz_ = res[2];
-  // Double the buffer, since it's added to both sides
-  buffer *= 2;
-  // Loop through all allowed frames and track the max and min
-  AtomMask::const_iterator it = mask.begin();
-  Vec3 pt = Vec3( currentFrame.XYZ(*it) );
-  double xmin = pt[0]; double xmax = pt[0];
-  double ymin = pt[1]; double ymax = pt[1];
-  double zmin = pt[2]; double zmax = pt[2];
-  it++;
-  for (; it != mask.end(); it++) {
-    pt = Vec3(currentFrame.XYZ(*it));
-    xmin = MIN(xmin, pt[0]); xmax = MAX(xmax, pt[0]);
-    ymin = MIN(ymin, pt[1]); ymax = MAX(ymax, pt[1]);
-    zmin = MIN(zmin, pt[2]); zmax = MAX(zmax, pt[2]);
-  }
-//mprintf("Dimensions of the grid: %lfx%lf %lfx%lf %lfx%lf\n",
-//        xmin, xmax, ymin, ymax, zmin, zmax);
-  double range[3] = {xmax - xmin + buffer, ymax - ymin + buffer, zmax - zmin + buffer};
-  // Get the number of bin points, and make sure it's even.
-  nx_ = (int) (range[0] / dx_);
-  ny_ = (int) (range[1] / dy_);
-  nz_ = (int) (range[2] / dz_);
-  if (nx_ % 2 == 1) nx_++;
-  if (ny_ % 2 == 1) ny_++;
-  if (nz_ % 2 == 1) nz_++;
-  // Allocate the grid
-  if (Allocate())
-    return 1;
-  return 0;
-}
 // Grid::GridInfo()
 void Grid::GridInfo() {
   mprintf("    %s: Grid at", callingRoutine_.c_str());
