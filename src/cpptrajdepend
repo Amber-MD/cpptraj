@@ -82,7 +82,7 @@ AxisType.o : AxisType.cpp Atom.h AtomMask.h AxisType.h Box.h CpptrajStdio.h Fram
 Box.o : Box.cpp Box.h Constants.h CpptrajStdio.h Matrix_3x3.h Vec3.h
 BufferedFile.o : BufferedFile.cpp BufferedFile.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h
 ByteRoutines.o : ByteRoutines.cpp
-ClusterDist.o : ClusterDist.cpp Atom.h AtomMask.h Box.h ClusterDist.h ClusterMatrix.h Constants.h CpptrajFile.h DataSet.h DataSet_Coords.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h Topology.h TriangleMatrix.h Vec3.h
+ClusterDist.o : ClusterDist.cpp Atom.h AtomMask.h Box.h ClusterDist.h ClusterMatrix.h Constants.h CpptrajFile.h DataSet.h DataSet_Coords.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TriangleMatrix.h Vec3.h
 ClusterList.o : ClusterList.cpp ArgList.h Atom.h AtomMask.h Box.h ClusterDist.h ClusterList.h ClusterMatrix.h ClusterNode.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_Coords.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h Topology.h TriangleMatrix.h Vec3.h
 ClusterMatrix.o : ClusterMatrix.cpp ClusterMatrix.h CpptrajFile.h CpptrajStdio.h DataSet.h FileIO.h FileName.h TriangleMatrix.h
 ClusterNode.o : ClusterNode.cpp Atom.h AtomMask.h Box.h ClusterDist.h ClusterMatrix.h ClusterNode.h CpptrajFile.h DataSet.h DataSet_Coords.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h Topology.h TriangleMatrix.h Vec3.h
@@ -120,7 +120,7 @@ FileList.o : FileList.cpp FileList.h
 FileName.o : FileName.cpp FileName.h StringRoutines.h
 Frame.o : Frame.cpp Atom.h AtomMask.h Box.h Constants.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
 FrameList.o : FrameList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h DispatchObject.h FileIO.h FileList.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ProgressBar.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
-Grid.o : Grid.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h Grid.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h PDBfile.h Residue.h StringRoutines.h Topology.h Vec3.h
+Grid.o : Grid.cpp ArgList.h Atom.h AtomMask.h Box.h BufferedFile.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h Grid.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h PDBfile.h Residue.h Topology.h Vec3.h
 Histogram.o : Histogram.cpp CpptrajFile.h CpptrajStdio.h DataSet.h Dimension.h FileIO.h FileName.h Histogram.h
 Hungarian.o : Hungarian.cpp Constants.h CpptrajFile.h CpptrajStdio.h DataSet.h FileIO.h FileName.h Hungarian.h Matrix_2D.h
 Integrate.o : Integrate.cpp CpptrajStdio.h Integrate.h

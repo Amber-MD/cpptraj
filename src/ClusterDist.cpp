@@ -1,6 +1,7 @@
 #include <cmath>
 #include "ClusterDist.h"
 #include "Constants.h" // RADDEG, DEGRAD
+#include "ProgressBar.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -281,14 +282,17 @@ ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
   int f2end = coords_->Size();
   ClusterMatrix frameDistances( f2end );
   int f1end = f2end - sieve;
+  ParallelProgress progress(f1end);
 #ifdef _OPENMP
   Frame frm1 = frm1_;
 # define frm1_ frm1
-#pragma omp parallel private(f1, f2, rmsd) firstprivate(frm1, frm2)
+#pragma omp parallel private(f1, f2, rmsd) firstprivate(frm1, frm2, progress)
 {
+  progress.SetThread(omp_get_thread_num());
 #pragma omp for schedule(dynamic)
 #endif
   for (f1 = 0; f1 < f1end; f1 += sieve) {
+    progress.Update(f1);
     coords_->GetFrame( f1, frm1_, mask_ );
     for (f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
       coords_->GetFrame( f2, frm2,  mask_ );
@@ -303,6 +307,7 @@ ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
 # undef frm1_
 } // END pragma omp parallel
 #endif
+  progress.Finish();
   return frameDistances;
 }
 
