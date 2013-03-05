@@ -81,6 +81,24 @@ class Grid {
     double GridVal(int i, int j, int k) {
       return (double)grid_[i*ny_*nz_ + j*nz_ + k];
     }
+    /// Allows you to assign a specific value to a particular grid point
+    void SetGridVal(int i, int j, int k, float val) {
+      grid_[i*ny_*nz_ + j*nz_ + k] = val;
+    }
+    void SetGridVal(int i, int j, int k, double val) {
+      grid_[i*ny_*nz_ + j*nz_ + k] = (float) val;
+    }
+    void SetGridVal(int i, float val) {
+      grid_[i] = val;
+    }
+    void SetGridVal(int i, double val) {
+      grid_[i] = (float) val;
+    }
+    /** Returns a grid with 0 everywhere except local maxima in density,
+      * filtering out all points whose total density is less than the filter
+      * \returns Grid instance with 0s everywhere except local maxima, which are unchanged
+      */
+    Grid& ExtractPeaks(double min_filter);
 
     // Iterator over grid
     class iterator : public std::iterator<std::forward_iterator_tag, float> 

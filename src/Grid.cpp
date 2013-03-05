@@ -9,6 +9,9 @@
 #include "BufferedFile.h"
 #include "PDBfile.h"
 
+#define MIN(X, Y) ( ( (X) < (Y) ) ? (X) : (Y) )
+#define MAX(X, Y) ( ( (X) < (Y) ) ? (Y) : (X) )
+
 // CONSTRUCTOR
 Grid::Grid() :
   increment_(1.0),
@@ -547,3 +550,101 @@ void Grid::PrintEntireGrid() {
     mprintf("\t%f\n", grid_[i]);
 }
 
+// Grid::ExtractPeaks()
+/** Extract peaks from the current grid and return another Grid instance */
+
+/* This is adapted from an algorithm that Guanglei Cui found on StackOverflow
+ * for finding densities in N-dimensional grids using ideas from image
+ * processing. The Python pseudo-code we have to reproduce here is shown below
+ * in 7 steps:
+ *
+ * 1)    _nparray = numpy.select([self.dxgrid > bgcutoff], [self.dxgrid])
+ * 2)    bg = (_nparray < bgcutoff)
+ * 3)    nbr = ndimage.morphology.generate_binary_structure(len(_nparray.shape), 3)
+ * 4)    lmax = (ndimage.filters.maximum_filter(_nparray, footprint=nbr)==_nparray)
+ * 5)    ebg = ndimage.morphology.binary_erosion(bg, structure=nbr, border_value=1)
+ * 6)    self.maxmask = lmax - ebg
+ * 7)    self.dxgridmax = numpy.where(self.maxmask, _nparray, numpy.zeros(_nparray.shape))
+ *
+ * Effectively what is done here is the 'background' peaks less than the filter
+ * are zeroed out, each point is replaced by the maximum of its value or any of
+ * its 26 neighboring grid points, and then zeroed if its value changed. This
+ * final array is the one that is returned.
+ */
+Grid& Grid::ExtractPeaks(double min_filter) {
+   // Start out with a copy of myself and an integer vector for the background
+  Grid& peaks = *this;                     // _nparray
+  std::vector<int> background(gridsize_); // bg
+  // Steps 1 and 2
+  for (int i = 0; i < gridsize_; i++) {
+    background[i] = 0;
+    if (grid_[i] < min_filter) {
+      background[i] = 1;
+      grid_[i] = 0.0f;
+    }
+  } // End steps 1 and 2
+
+  /* Step 3 just defines all of our neighbors to be the 26 grid points in which
+   * the x, y, and z grid point indexes are <= 1 grid point away.
+   */
+  std::vector<int> density_filter(gridsize_);
+  for (int i = 0; i < nx_; i++)
+  for (int j = 0; j < ny_; j++)
+  for (int k = 0; k < nz_; k++) {
+    float maxval = 0.0;
+    int idx = i*ny_*nz_ + j*nz_ + k;
+    // Now loop over all neighbors, being careful not to go past either end
+    for (int ii = MIN(i-1, 0); ii <= MAX(i+1, nx_); ii++)
+    for (int jj = MIN(j-1, 0); jj <= MAX(j+1, ny_); jj++)
+    for (int kk = MIN(k-1, 0); kk <= MAX(k+1, ny_); kk++) {
+      int idx2 = ii*ny_*nz_ + jj*nz_ + kk;
+      if (grid_[idx2] > maxval)
+        maxval = grid_[idx2];
+    }
+    if (maxval == grid_[idx] && maxval > 0)
+      density_filter[idx] = 1;
+    else
+      density_filter[idx] = 0;
+  } // End step 4
+
+  /* Now it's time to erode the background. eroded_bg is an integer vector that
+   * stores 1 if each neighbor of background is 1 and 0 otherwise. Every point
+   * beyond the edges is taken to be 1.
+   */
+  std::vector<int> eroded_bg(gridsize_);
+  for (int i = 0; i < nx_; i++)
+  for (int j = 0; j < ny_; j++)
+  for (int k = 0; k < nz_; k++) {
+    int idx = i*ny_*nz_ + j*nz_ + k;
+    // Now loop over all neighbors, being careful not to go past either end
+    eroded_bg[idx] = 1;
+    for (int ii = MIN(i-1, 0); ii <= MAX(i+1, nx_); ii++)
+    for (int jj = MIN(j-1, 0); jj <= MAX(j+1, ny_); jj++)
+    for (int kk = MIN(k-1, 0); kk <= MAX(k+1, ny_); kk++) {
+      // Skip over i,j,k
+      if (ii = i && jj == j && kk == k)
+        continue;
+      int idx2 = ii*ny_*nz_ + jj*nz_ + kk;
+      if (background[idx2] == 0)
+        eroded_bg[idx] = 0;
+    }
+  } // End step 5
+
+  /* Now we have to subtract the eroded background from the density filter. To
+   * avoid allocating another gridsize_-size integer vector, just reuse
+   * background (since we're done with it)
+   */
+  for (int i = 0; i < gridsize_; i++)
+    background[i] = density_filter[i] - eroded_bg[i];
+  // End step 6
+
+  /* Finally, scan this background and when non-zero, take the value from
+   * density. Otherwise, set the value to 0
+   */
+  for (int i = 0; i < gridsize_; i++)
+    if (background[i] == 0)
+      peaks.SetGridVal(i, 0.0f);
+
+  // Now we return our peak grid
+  return peaks;
+}
