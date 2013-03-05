@@ -679,9 +679,9 @@ void Action_Matrix::Print() {
     outfile.OpenWrite(filename_);
     // Convert masks to char masks in order to check whether an atom
     // is selected.
-    mask1_.ConvertMaskType();
+    mask1_.ConvertToCharMask();
     if (useMask2_)
-      mask2_.ConvertMaskType();
+      mask2_.ConvertToCharMask();
     else
       mask2_ = mask1_;
     // Loop over residue pairs

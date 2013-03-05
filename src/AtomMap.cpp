@@ -32,19 +32,48 @@ void AtomMap::SetDebug(int debugIn) {
   debug_ = debugIn;
 }
 
+/// Check if 1 char name set to 0, means unidentified element.
+bool AtomMap::InvalidElement() {
+  if (mapatoms_.back().CharName() == 0) {
+    mprinterr("Error: AtomMap: Mapping currently not supported for element %s\n",
+              mapatoms_.back().ElementName());
+    return true;
+  }
+  return false;
+}
+
 // AtomMap::Setup()
 /** Copy all atoms from input topology to this AtomMap. */
-int AtomMap::Setup(Topology *TopIn) {
-  // Copy atoms
+int AtomMap::Setup(Topology const& TopIn) {
   mapatoms_.clear();
-  for (Topology::atom_iterator atom = TopIn->begin(); atom != TopIn->end(); atom++) {
+  for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); atom++) {
     // This sets up 1 char atom name based on atom element
     mapatoms_.push_back( *atom );
-    // Check if 1 char name set to 0, means unidentified element.
-    if (mapatoms_.back().CharName() == 0) {
-      mprinterr("Error: AtomMap::Setup: Mapping currently not supported for element %s\n",
-                Atom::AtomicElementName[ mapatoms_.back().Element() ]);
-      return 1;
+    if (InvalidElement()) return 1;
+  }
+  return 0;
+}
+
+int AtomMap::SetupResidue(Topology const& topIn, int resnum) {
+  mapatoms_.clear();
+  int firstAtom = topIn.Res(resnum).FirstAtom();
+  int lastAtom = topIn.Res(resnum).LastAtom();
+  //mprintf("DEBUG:\tResidue %i, atoms %i to %i\n", resnum + 1, firstAtom+1, lastAtom);
+  for (int atom = firstAtom; atom < lastAtom; ++atom) {
+    mapatoms_.push_back( topIn[atom] );
+    if (InvalidElement()) return 1;
+    // Add bonds for this residue 
+    mapatoms_.back().ClearBonds();
+    for (Atom::bond_iterator bndatm = topIn[atom].bondbegin();
+                             bndatm != topIn[atom].bondend(); ++bndatm)
+    {
+      //mprintf("DEBUG:\t\tOriginal bond %u-%i", atom+1, *bndatm+1);
+      if (*bndatm >= firstAtom && *bndatm < lastAtom) { 
+        int newbndatm = *bndatm - firstAtom;
+        mapatoms_.back().AddBond(newbndatm);
+        //mprintf(", new bond %i-%i", mapatoms_.size(), newbndatm+1);
+      }
+      //mprintf("\n");
     }
   }
   return 0;
@@ -215,8 +244,12 @@ int AtomMap::CheckBonds() {
         if (mapatoms_[*bondedAtom].Nbonds() == 1)
           ++N_single_atoms;
       }
-      if (N_single_atoms<3)
+      if (N_single_atoms<3) {
         (*matom).SetChiral();
+        for (Atom::bond_iterator bondedAtom = (*matom).bondbegin();
+                               bondedAtom != (*matom).bondend(); bondedAtom++)
+          mapatoms_[*bondedAtom].SetBoundToChiral();
+      }
     }
   }
   if (total_bonds == 0) {
@@ -233,7 +266,8 @@ int AtomMap::CheckBonds() {
     {
       mprintf("  Atom %s(%c)_%i has %i bonds.",(*matom).c_str(),(*matom).CharName(),
               anum, (*matom).Nbonds());
-      if ((*matom).IsChiral()) mprintf(" CHIRAL!");
+      if ((*matom).IsChiral()) mprintf(" CHIRAL");
+      if ((*matom).BoundToChiral()) mprintf(" BOUND TO CHIRAL");
       mprintf("\n");
       for (Atom::bond_iterator bondedAtom = (*matom).bondbegin();
                                bondedAtom != (*matom).bondend(); bondedAtom++)

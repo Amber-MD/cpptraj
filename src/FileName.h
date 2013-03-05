@@ -5,9 +5,11 @@
 class FileName {
   public:
     FileName() {}
-    /// Only name is known;
+    /// Set file name and extensions; only name is known.
     int SetFileName(std::string const&);
-    /// Name and compressed status are known.
+    /// Set file name and extension; perform tilde expansion.
+    int SetFileNameWithExpansion(std::string const&);
+    /// Set file name and extensions; name and compressed status are known.
     int SetFileName(std::string const&, bool);
     /// Clear FileName
     void clear();

@@ -96,9 +96,10 @@ class Topology {
     void PrintBondInfo(std::string const&);
     void PrintMoleculeInfo(std::string const&);
     void PrintResidueInfo(std::string const&);
+    void PrintChargeInfo(std::string const&);
     // ----- Routines to Access/Modify Box info -----
-    inline Box const& ParmBox() const { return box_;        }
-    inline Box::BoxType BoxType()     { return box_.Type(); }
+    inline Box const& ParmBox()   const { return box_;        }
+    inline Box::BoxType BoxType() const { return box_.Type(); }
     void SetBox( Box const& bIn )     { box_ = bIn;         }
     // ----- PDB/Mol2 etc setup routines -----
     void AddTopAtom(Atom, NameType const&, int, int&, const double*);

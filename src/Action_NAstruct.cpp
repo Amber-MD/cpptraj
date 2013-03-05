@@ -852,12 +852,13 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   double origincut = actionArgs.getKeyDouble("origincut", -1);
   if (origincut > 0)
     originCut2_ = origincut * origincut;
-  std::string resrange_arg = actionArgs.GetStringKey("resrange");
-  if (!resrange_arg.empty())
-    if (resRange_.SetRange( resrange_arg )) return Action::ERR;
+  // Get residue range
+  resRange_.SetRange(actionArgs.GetStringKey("resrange"));
+  if (!resRange_.Empty())
+    resRange_.ShiftBy(-1); // User res args start from 1
   printheader_ = !actionArgs.hasKey("noheader");
   // Reference for setting up basepairs
-  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) 
     useReference_ = true;
@@ -927,7 +928,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 
   // Use reference to determine base pairing
   if (useReference_) {
-    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.FrameName());
+    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.FrameName().c_str());
     if (Setup(REF.Parm(), 0)) return Action::ERR;
     // Set up base axes
     if ( setupBaseAxes(*(REF.Coord())) ) return Action::ERR;
@@ -945,19 +946,15 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   * the masks that correspond to the reference frame atoms.
   */
 Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAddress) {
-  Range actualRange;
   // Clear Bases and BaseAxes
   ClearLists();
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
+  Range actualRange;
   if (resRange_.Empty()) 
     actualRange.SetRange(0, currentParm->FinalSoluteRes());
-  else {
-    // If user range specified, create new range shifted by -1 since internal
-    // resnums start from 0.
+  else 
     actualRange = resRange_;
-    actualRange.ShiftBy(-1);
-  }
   // Exit if no residues specified
   if (actualRange.Empty()) {
     mprinterr("Error: NAstruct::setup: No residues specified for %s\n",currentParm->c_str());

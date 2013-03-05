@@ -1,13 +1,13 @@
+#include <cctype> // islpha
 #include "Action_MakeStructure.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD
 #include "TorsionRoutines.h"
-#include "StringRoutines.h" // convertToDouble
+#include "StringRoutines.h" // convertToDouble, convertToInteger
 
 // CONSTRUCTOR
-Action_MakeStructure::Action_MakeStructure() { 
-  // NOTE: There should be as many entries in SS as in ssType, and they MUST
-  //       BE IN THE SAME ORDER!
+Action_MakeStructure::Action_MakeStructure() : debug_(0) {
+  // Initially known structure types. 
   SS.push_back(SS_TYPE(  -57.8,  -47.0,    0.0,   0.0, 0, "alpha"    ));
   SS.push_back(SS_TYPE(   57.8,   47.0,    0.0,   0.0, 0, "left"     ));
   SS.push_back(SS_TYPE(  -75.0,  145.0,    0.0,   0.0, 0, "pp2"      ));
@@ -23,45 +23,160 @@ Action_MakeStructure::Action_MakeStructure() {
   SS.push_back(SS_TYPE( -135.0,  135.0,  -75.0, 160.0, 1, "typeVIb"  )); // 2nd res must be cis-PRO
 }
 
+/// Used to indicate type not found
+#define SS_EMPTY -1
+// Action_MakeStructure::FindSStype()
+int Action_MakeStructure::FindSStype(std::string const& typeIn) 
+{
+  for (unsigned int sstype = 0; sstype < SS.size(); ++sstype)
+    if (typeIn == SS[sstype].type_arg)
+      return (int)sstype;
+  return SS_EMPTY;
+} 
+
 void Action_MakeStructure::Help() {
-  mprintf(" <ss type>:<res range> [<ss type>:<res range> ...]\n");
+  mprintf("\t<List of Args>, containing 1 or more of the following arg types:\n");
+  mprintf("\t{<sstype>:<res range>} Apply SS type (phi/psi) to residue range.\n");
+  mprintf("\t\t<sstype> standard = alpha, left, pp2, hairpin, extended\n");
+  mprintf("\t\t<sstype> turn = typeI, typeII, typeVIII, typeI', typeII,\n");
+  mprintf("\t\t                typeVIa1, typeVIa2, typeVIb\n");
+  mprintf("\t\tTurns are applied to 2 residues at a time, so resrange must be divisible by 4.\n");
+  mprintf("\t{<custom ss>:<res range>:<phi>:<psi>} Apply custom <phi>/<psi> to residue range.\n");
+  mprintf("\t{<custom turn>:<res range>:<phi1>:<psi1>:<phi2>:<psi2>} Apply custom <phi>/<psi> to residue range.\n");
+  mprintf("\t{<custom dih>:<res range>:<dih type>:<angle>} Apply <angle> to dihedrals in range.\n");
+  mprintf("\t\t<dih type> =");
+  DihedralSearch::ListKnownTypes();
+  mprintf("\t{<custom dih>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]}\n");
+  DihedralSearch::OffsetHelp();
+  mprintf("\t{ref:<range>:<refname>[:<ref range>]} Apply dihedrals from reference <refname>.\n");
 }
 
 // Action_MakeStructure::Init()
 Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  SecStructHolder ss_holder;
+  debug_ = debugIn;
   secstruct_.clear();
-  // Get all keywords
+  // Get all arguments 
   std::string ss_expr = actionArgs.GetStringNext();
   while ( !ss_expr.empty() ) {
     ArgList ss_arg(ss_expr, ":");
     if (ss_arg.Nargs() < 2) {
-      mprinterr("Error: Malformed SS arg, expected <ss type>,<res range>\n");
+      mprinterr("Error: Malformed SS arg.\n");
+      Help();
       return Action::ERR;
     }
-    // Find SS type
-    int ss = 0;
-    for (; ss < (int)NSS; ss++) {
-      if (ss_arg[0].compare(SS[ss].name) == 0) { 
-        ss_holder.type = SS.begin() + ss;
-        ss_holder.name.assign( SS[ss].name );
-        ss_holder.resRange.SetRange(ss_arg[1]);
-        // Since user range args start from 1, shift range
-        ss_holder.resRange.ShiftBy(-1);
-        ss_holder.dihSearch_.Clear();
-        ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
-        ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
-        secstruct_.push_back( ss_holder );
-        break;
+    // Type is 1st arg, range is 2nd arg.
+    SecStructHolder ss_holder(ss_arg[1], FindSStype(ss_arg[0]));
+
+    if (ss_arg.Nargs() == 2) {
+    // Find SS type: <ss type>:<range>
+      if (ss_holder.sstype_idx == SS_EMPTY) {
+        mprinterr("Error: SS type %s not found.\n", ss_arg[0].c_str());
+        return Action::ERR;
+      } 
+      ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
+      ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
+      secstruct_.push_back( ss_holder );
+
+    } else if (ss_arg[0] == "ref") {
+    // Use dihedrals from reference structure
+      if (ss_arg.Nargs() < 3) {
+        mprinterr("Error: Invalid 'ref' arg. Requires 'ref:<range>:<refname>[:<ref range>]'\n");
+        return Action::ERR;
       }
-    }
-    if (ss == (int)NSS) {
-      // SS type not found. If more than two args, create custom type, name:range:phi:psi
-      if (ss_arg.Nargs() == 4 || ss_arg.Nargs() == 6) {
-        ss_holder.name = ss_arg[0];
-        ss_holder.resRange.SetRange(ss_arg[1]);
+      ss_arg.MarkArg(0);
+      ss_arg.MarkArg(1);
+      // Sanity check: Currently only unique args of this type are allowed
+      if (ss_holder.sstype_idx != SS_EMPTY) {
+        mprinterr("Error: Ref backbone types must be unique [%s]\n", ss_arg[0].c_str());
+        return Action::ERR;
+      }
+      // Use backbone phi/psi from reference structure
+      ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
+      ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
+      // Get reference structure
+      ReferenceFrame REF = FL->GetFrameByName( ss_arg.GetStringNext() ); // ss_arg[2]
+      if (REF.error() || REF.empty()) {
+        mprinterr("Error: Could not get reference structure [%s]\n", ss_arg[2].c_str());
+        return Action::ERR;
+      }
+      // Get reference residue range, or use resRange
+      Range refRange(ss_arg.GetStringNext(), -1); // ss_arg[3]
+      if (!refRange.Empty()) {
+        if (ss_holder.resRange.Size() != refRange.Size()) {
+          mprinterr("Error: Reference range [%s] must match residue range [%s]\n",
+                    refRange.RangeArg(), ss_holder.resRange.RangeArg());
+          return Action::ERR;
+        }
+      } else
+        refRange = ss_holder.resRange;
+      // Look for phi/psi only in reference
+      DihedralSearch refSearch;
+      refSearch.SearchFor(DihedralSearch::PHI);
+      refSearch.SearchFor(DihedralSearch::PSI);
+      if (refSearch.FindDihedrals( *(REF.Parm()), refRange )) return Action::ERR;
+      // For each found dihedral, set theta 
+      for (DihedralSearch::mask_it dih = refSearch.begin(); dih != refSearch.end(); ++dih)
+      {
+        double torsion = Torsion( REF.Coord()->XYZ((*dih).A0()),
+                                  REF.Coord()->XYZ((*dih).A1()),
+                                  REF.Coord()->XYZ((*dih).A2()),
+                                  REF.Coord()->XYZ((*dih).A3()) );
+        ss_holder.thetas_.push_back( (float)torsion );
+      }
+      secstruct_.push_back( ss_holder );
+
+    } else if (ss_arg.Nargs() == 4 && isalpha(ss_arg[2][0])) {
+    // Single dihedral type: <name>:<range>:<dih type>:<angle>
+      DihedralSearch::DihedralType dtype = DihedralSearch::GetType(ss_arg[2]);
+      if (ss_holder.sstype_idx == SS_EMPTY) {
+        // Type not yet defined. Create new type. 
+        if (dtype == DihedralSearch::NDIHTYPE) {
+          mprinterr("Error: Dihedral type %s not found.\n", ss_arg[2].c_str());
+          return Action::ERR;
+        }
+        if (!ss_arg.ValidDouble(3)) {
+          mprinterr("Error: 4th arg (angle) is not a valid number.\n");
+          return Action::ERR;
+        }
+        SS.push_back( SS_TYPE(convertToDouble(ss_arg[3]), 0.0, 0.0, 0.0, 2, ss_arg[0]) );
+        ss_holder.sstype_idx = (int)(SS.size() - 1);
+      }
+      ss_holder.dihSearch_.SearchFor( dtype ); 
+      secstruct_.push_back( ss_holder );
+
+    } else if (ss_arg.Nargs() == 7 || ss_arg.Nargs() == 8) {
+    // Single custom dihedral type: <name>:<range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]
+      if (ss_holder.sstype_idx == SS_EMPTY) {
+        // Type not yet defined. Create new type.
+        if (!ss_arg.ValidDouble(6)) {
+          mprinterr("Error: 7th arg (angle) is not a valid number.\n");
+          return Action::ERR;
+        }
+        SS.push_back( SS_TYPE(convertToDouble(ss_arg[6]), 0.0, 0.0, 0.0, 2, ss_arg[0]) );
+        ss_holder.sstype_idx = (int)(SS.size() - 1);
+      }
+      int offset = 0;
+      if (ss_arg.Nargs() == 8) {
+        if (!ss_arg.ValidInteger(7)) {
+          mprinterr("Error: 8th arg (offset) is not a valid number.\n");
+          return Action::ERR;
+        }
+        offset = convertToInteger(ss_arg[7]);
+      }
+      ss_holder.dihSearch_.SearchForNewType(offset,ss_arg[2],ss_arg[3],ss_arg[4],ss_arg[5],
+                                            ss_arg[0]);
+      secstruct_.push_back( ss_holder );
+
+    } else if (ss_arg.Nargs() == 4 || ss_arg.Nargs() == 6) {
+    // Custom SS/turn type: <name>:<range>:<phi1>:<psi1>[:<phi2>:<psi2>]
+      if (ss_holder.sstype_idx == SS_EMPTY) {
+        // Type not yet defined. Create new type.
+        if (!ss_arg.ValidDouble(2) || !ss_arg.ValidDouble(3)) {
+          mprinterr("Error: 3rd or 4th arg (phi1/psi1) is not a valid number.\n");
+          return Action::ERR;
+        }
         double phi1 = convertToDouble(ss_arg[2]);
         double psi1 = convertToDouble(ss_arg[3]);
         int isTurn = 0;
@@ -69,138 +184,165 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
         double psi2 = 0.0;
         if (ss_arg.Nargs() == 6) {
           isTurn = 1;
+          if (!ss_arg.ValidDouble(4) || !ss_arg.ValidDouble(5)) {
+            mprinterr("Error: 5th or 6th arg (phi2/psi2) is not a valid number.\n");
+            return Action::ERR;
+          }
           phi2 = convertToDouble(ss_arg[4]);
           psi2 = convertToDouble(ss_arg[5]);
         }
-        SS.push_back(SS_TYPE(phi1, psi1, phi2, psi2, isTurn, ss_holder.name.c_str() ));
-        ss_holder.type = SS.end() - 1;
-        secstruct_.push_back( ss_holder );
-      } else {
-        mprinterr("Error: SS type [%s] not found.\n", ss_arg[0].c_str());
-        return Action::ERR;
+        SS.push_back(SS_TYPE(phi1, psi1, phi2, psi2, isTurn, ss_arg[0] ));
+        ss_holder.sstype_idx = (int)(SS.size() - 1);
       }
+      ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
+      ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
+      secstruct_.push_back( ss_holder );
+
+    } else {
+      mprinterr("Error: SS arg type [%s] not recognized.\n", ss_arg[0].c_str());
+      return Action::ERR;
     }
     ss_expr = actionArgs.GetStringNext();
-  }
+  } // End loop over args
   if (secstruct_.empty()) {
     mprinterr("Error: No SS types defined.\n");
     return Action::ERR;
   }
-
-  return Action::OK;
-}
-
-// VisitAtom()
-static void VisitAtom( Topology const& topIn, int atm, std::vector<bool>& Visited )
-{
-  // If this atom has already been visited return
-  if (Visited[atm]) return;
-  // Mark this atom as visited
-  Visited[atm] = true;
-  // Visit each atom bonded to this atom
-  for (Atom::bond_iterator bondedatom = topIn[atm].bondbegin();
-                           bondedatom != topIn[atm].bondend(); ++bondedatom)
-    VisitAtom(topIn, *bondedatom, Visited);
-}
-
-/// Set up mask of atoms that will move upon rotation.
-static AtomMask MovingAtoms(Topology const& topIn, std::vector<bool>& Visited, 
-                            int atom0, int atom1) 
-{
-  Visited.assign( topIn.Natom(), false );
-  // Mark atom0 as already visited
-  Visited[atom0] = true;
-  for (Atom::bond_iterator bndatm = topIn[atom1].bondbegin();
-                           bndatm != topIn[atom1].bondend(); ++bndatm)
+  mprintf("    MAKESTRUCTURE:\n");
+  for (std::vector<SecStructHolder>::iterator ss = secstruct_.begin();
+                                              ss != secstruct_.end(); ++ss)
   {
-    if ( *bndatm != atom0 )
-      VisitAtom( topIn, *bndatm, Visited );
+    if ((*ss).sstype_idx != SS_EMPTY) {
+      const SS_TYPE& myType = SS[(*ss).sstype_idx];
+      switch ( myType.isTurn ) {
+        case 0:
+          mprintf("\tSS type %s will be applied to residue(s) %s\n",
+                 myType.type_arg.c_str(), (*ss).resRange.RangeArg());
+          break;
+        case 1:
+          mprintf("\tTurn type %s will be applied to residue(s) %s\n",
+                  myType.type_arg.c_str(), (*ss).resRange.RangeArg());
+          break;
+        case 2:
+          mprintf("\tDihedral value of %.2f will be applied to %s dihedrals in residue(s) %s\n",
+                  myType.phi, myType.type_arg.c_str(), (*ss).resRange.RangeArg());
+      }
+    } else 
+      mprintf("\tBackbone angles from reference will be applied to residue(s) %s\n",
+              (*ss).resRange.RangeArg());
   }
-  // Everything marked T will move.
-  AtomMask Rmask;
-  for (int maskatom = 0; maskatom < (int)Visited.size(); maskatom++) {
-    if (Visited[maskatom])
-      Rmask.AddAtom(maskatom);
-  }
-  return Rmask;
+  return Action::OK;
 }
 
 // Action_MakeStructure::Setup()
 Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** parmAddress) {
-  std::vector<bool> Visited( currentParm->Natom(), false );
   // Set up each SS type
   for (std::vector<SecStructHolder>::iterator ss = secstruct_.begin();
                                               ss != secstruct_.end(); ++ss)
   {
     if ((*ss).dihSearch_.FindDihedrals(*currentParm, (*ss).resRange))
       return Action::ERR;
-    mprintf("\t[%s] %s %i dih", (*ss).resRange.RangeArg(), (*ss).name.c_str(),
-            (*ss).dihSearch_.Ndihedrals());
-    // Set up found dihedrals 
-    // TODO: Check that # dihedrals is multiple of 2?
-    SS_TYPE const& myType = *((*ss).type);
-    (*ss).Rmasks_.clear();
-    (*ss).thetas_.clear();
-    if (myType.isTurn) {
-      // Require phi/psi residue pairs; must be multiple of 4
-      if ( ((*ss).dihSearch_.Ndihedrals() % 4) != 0) {
-        mprintf("Error: Assigning turn SS requires residue phi/psi pairs.\n");
-        return Action::ERR;
-      }
-      // Turns require that each pair of residues is consecutive
-      for (DihedralSearch::mask_it dih = (*ss).dihSearch_.begin();
-                                   dih != (*ss).dihSearch_.end(); ++dih)
-      {
-        // First has to be phi
-        mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
-        if ( (*dih).Name() != "phi" ) {
-          mprinterr("Error: Assigning turn SS requires 1st dihedral be phi.\n");
+    if ( (*ss).sstype_idx != SS_EMPTY) {
+      SS_TYPE const& myType = SS[(*ss).sstype_idx];
+      mprintf("\tResRange=[%s] Type=%s, %i dihedrals", (*ss).resRange.RangeArg(), 
+              myType.type_arg.c_str(), (*ss).dihSearch_.Ndihedrals());
+      // Set up found dihedrals 
+      // TODO: Check that # dihedrals is multiple of 2?
+      (*ss).Rmasks_.clear();
+      (*ss).thetas_.clear();
+      if (myType.isTurn == 1) {
+        // Turn: Require phi/psi residue pairs; must be multiple of 4
+        if ( ((*ss).dihSearch_.Ndihedrals() % 4) != 0) {
+          mprintf("Error: Assigning turn SS requires residue phi/psi pairs.\n");
           return Action::ERR;
         }
-        int res1num = (*dih).ResNum();
-        (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
-        (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
-        ++dih;
-        // Second has to be psi and +0
-        mprintf("-%i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
-        if ((*dih).Name() != "psi" || ((*dih).ResNum() != res1num)) {
-          mprinterr("Error: Assigning turn SS requires 2nd dihedral be psi and consecutive.\n");
-          return Action::ERR;
+        // Turns require that each pair of residues is consecutive
+        for (DihedralSearch::mask_it dih = (*ss).dihSearch_.begin();
+                                     dih != (*ss).dihSearch_.end(); ++dih)
+        {
+          // First has to be phi
+          if (debug_>0) mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
+          if ( (*dih).Name() != "phi" ) {
+            mprinterr("Error: Assigning turn SS requires 1st dihedral be phi.\n");
+            return Action::ERR;
+          }
+          int res1num = (*dih).ResNum();
+          (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
+          (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                   (*dih).A1(), (*dih).A2()) );
+          ++dih;
+          // Second has to be psi and +0
+          if (debug_>0) mprintf("-%i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
+          if ((*dih).Name() != "psi" || ((*dih).ResNum() != res1num)) {
+            mprinterr("Error: Assigning turn SS requires 2nd dihedral be psi and consecutive.\n");
+            return Action::ERR;
+          }
+          (*ss).thetas_.push_back((float)(myType.psi * DEGRAD));
+          (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                   (*dih).A1(), (*dih).A2()) );
+          ++dih;
+          // Third has to be phi and +1
+          if (debug_>0) mprintf("-%i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
+          if ((*dih).Name() != "phi" || ((*dih).ResNum() - res1num) != 1) {
+            mprinterr("Error: Assigning turn SS requires 3rd dihedral be phi and consecutive.\n");
+            return Action::ERR;
+          }
+          (*ss).thetas_.push_back((float)(myType.phi2 * DEGRAD));
+          (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                   (*dih).A1(), (*dih).A2()) );
+          ++dih;
+          // Fourth has to be phi and +1
+          if (debug_>0) mprintf("-%i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
+          if ((*dih).Name() != "psi" || ((*dih).ResNum() - res1num) != 1) {
+            mprinterr("Error: Assigning turn SS requires 4th dihedral be psi and consecutive.\n");
+            return Action::ERR;
+          }
+          (*ss).thetas_.push_back((float)(myType.psi2 * DEGRAD));
+          (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                   (*dih).A1(), (*dih).A2()) );
         }
-        (*ss).thetas_.push_back((float)(myType.psi * DEGRAD));
-        (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
-        ++dih;
-        // Third has to be phi and +1
-        mprintf("-%i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
-        if ((*dih).Name() != "phi" || ((*dih).ResNum() - res1num) != 1) {
-          mprinterr("Error: Assigning turn SS requires 3rd dihedral be phi and consecutive.\n");
-          return Action::ERR;
+      } else if (myType.isTurn == 2) {
+        // Dihedrals of a single type
+        for (DihedralSearch::mask_it dih = (*ss).dihSearch_.begin();
+                                     dih != (*ss).dihSearch_.end(); ++dih)
+        {
+          if (debug_>0) mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
+          (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
+          (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                   (*dih).A1(), (*dih).A2()) );
         }
-        (*ss).thetas_.push_back((float)(myType.phi2 * DEGRAD));
-        (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
-        ++dih;
-        // Fourth has to be phi and +1
-        mprintf("-%i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
-        if ((*dih).Name() != "psi" || ((*dih).ResNum() - res1num) != 1) {
-          mprinterr("Error: Assigning turn SS requires 4th dihedral be psi and consecutive.\n");
-          return Action::ERR;
+      } else if (myType.isTurn == 0) {
+        // Assign SS.
+        for (DihedralSearch::mask_it dih = (*ss).dihSearch_.begin();
+                                     dih != (*ss).dihSearch_.end(); ++dih)
+        {
+          if (debug_>0) mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
+          if ((*dih).Name() == "phi") {
+            (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
+            (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                     (*dih).A1(), (*dih).A2()) );
+          } else {
+            (*ss).thetas_.push_back((float)(myType.psi * DEGRAD));
+            (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
+                                     (*dih).A1(), (*dih).A2()) );
+          }
         }
-        (*ss).thetas_.push_back((float)(myType.psi2 * DEGRAD));
-        (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
       }
     } else {
-      // Not a turn. Assign SS.
+      // type was empty. Make sure the number of found dihedrals equals
+      // number of reference dihedrals.
+      if ( (*ss).dihSearch_.Ndihedrals() != (int)(*ss).thetas_.size() ) {
+        mprinterr("Error: Number of found dihedrals (%i) != number reference dihedrals (%u)\n",
+                  (*ss).dihSearch_.Ndihedrals(), (*ss).thetas_.size());
+        return Action::ERR;
+      }
+      std::vector<float>::const_iterator theta = (*ss).thetas_.begin();
       for (DihedralSearch::mask_it dih = (*ss).dihSearch_.begin();
                                    dih != (*ss).dihSearch_.end(); ++dih)
       {
-        mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
-        if ((*dih).Name() == "phi") {
-          (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
-          (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
-        } else {
-          (*ss).thetas_.push_back((float)(myType.psi * DEGRAD));
-          (*ss).Rmasks_.push_back( MovingAtoms(*currentParm, Visited, (*dih).A1(), (*dih).A2()) );
-        }
+        mprintf("\tDihedral in residue %i = %f\n", (*dih).ResNum()+1, *(theta++)*RADDEG);
+        (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm,
+                                 (*dih).A1(), (*dih).A2()) );
       }
     }
     mprintf("\n");
@@ -240,10 +382,10 @@ Action::RetType Action_MakeStructure::DoAction(int frameNum, Frame* currentFrame
 //        std::string a3name = CurrentParm_->TruncResAtomName( (*dih).A3() );
 //        mprintf("\tRotating Dih %s-%s-%s-%s (@%.2f) by %.2f deg to get to %.2f.\n",
 //                 a0name.c_str(), a1name.c_str(), a2name.c_str(), a3name.c_str(),
-          mprintf("\tRotating Dih %i:%s (%i-%i-%i-%i) (@%.2f) by %.2f deg to get to %.2f.\n",
-                  (*dih).ResNum()+1, (*dih).Name().c_str(),
-                  (*dih).A0() + 1, (*dih).A1() + 1, (*dih).A2() + 1, (*dih).A3() + 1, 
-                  torsion*RADDEG, delta*RADDEG, theta_in_radians*RADDEG);
+//          mprintf("\tRotating Dih %i:%s (%i-%i-%i-%i) (@%.2f) by %.2f deg to get to %.2f.\n",
+//                  (*dih).ResNum()+1, (*dih).Name().c_str(),
+//                  (*dih).A0() + 1, (*dih).A1() + 1, (*dih).A2() + 1, (*dih).A3() + 1, 
+//                  torsion*RADDEG, delta*RADDEG, theta_in_radians*RADDEG);
 //      }
     // Rotate around axis
       currentFrame->Rotate(rotationMatrix, *Rmask);
@@ -251,3 +393,4 @@ Action::RetType Action_MakeStructure::DoAction(int frameNum, Frame* currentFrame
   }
   return Action::OK;
 }
+#undef SS_EMPTY

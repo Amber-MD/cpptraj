@@ -16,7 +16,7 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get reference
-  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) {
     RefFrame_ = *(REF.Coord());
@@ -29,7 +29,7 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 
   mprintf("    UNWRAP: (%s), reference is ", mask_.MaskString());
   if ( !REF.empty())
-    mprintf("%s", REF.FrameName());
+    mprintf("%s", REF.FrameName().c_str());
   else
     mprintf("first frame.");
   mprintf("\n");

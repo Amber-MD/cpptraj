@@ -80,7 +80,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
   if (!maskpdb_.empty()) {
     // Convert Mask1 to an integer mask for use in parm/frame functions
     AtomMask Mask2 = Mask1_;
-    Mask2.ConvertMaskType();
+    Mask2.ConvertToIntMask();
     // Create new parm and frame based on atoms in Mask
     Topology* pdbParm = CurrentParm_->modifyStateByMask(Mask2);
     //pdbParm->Summary(); // DEBUG

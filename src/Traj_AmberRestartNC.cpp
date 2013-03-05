@@ -49,7 +49,7 @@ int Traj_AmberRestartNC::openTrajin() {
   */
 int Traj_AmberRestartNC::setupTrajin(std::string const& fname, Topology* trajParm)
 {
-  filename_.SetFileName( fname );
+  filename_.SetFileNameWithExpansion( fname );
   if (openTrajin()) return TRAJIN_ERR;
   // Sanity check - Make sure this is a Netcdf restart
   if ( GetNetcdfConventions() != NC_AMBERRESTART ) {

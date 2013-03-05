@@ -16,6 +16,7 @@ class Action_Grid : public Action {
     double madura_;
     double smooth_;
     bool invert_;
+    bool dxform_;
     AtomMask mask_;
     std::string filename_;
     std::string pdbname_;

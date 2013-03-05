@@ -2,7 +2,7 @@
 // This file contains a collection of routines designed for reading
 // netcdf trajectory files used with amber.
 // Dan Roe 10-2008
-// Original implementation of netcdf in Amber by Jon Mongan.
+// Original implementation of netcdf in Amber by John Mongan.
 #include "netcdf.h"
 #include "Traj_AmberNetcdf.h"
 #include "CpptrajStdio.h"
@@ -52,7 +52,7 @@ int Traj_AmberNetcdf::openTrajin() {
   */
 int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
 {
-  filename_.SetFileName( fname );
+  filename_.SetFileNameWithExpansion( fname );
   if (openTrajin()) return TRAJIN_ERR;
 
   // Sanity check - Make sure this is a Netcdf trajectory

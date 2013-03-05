@@ -302,6 +302,17 @@ void Topology::PrintResidueInfo(std::string const& maskString) {
   }
 }
 
+void Topology::PrintChargeInfo(std::string const& maskString) {
+  AtomMask mask( maskString );
+  ParseMask(refCoords_, mask, true); // Int mask
+  double sumq = 0.0;
+  for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
+    sumq += atoms_[*aidx].Charge();
+  mprintf("\tSum of charges in mask");
+  mask.BriefMaskInfo();
+  mprintf(" is %f\n", sumq);
+}
+
 // -----------------------------------------------------------------------------
 // Topology::AddTopAtom()
 void Topology::AddTopAtom(Atom atomIn, NameType const& resname, int current_res, int& last_res, 
@@ -1225,7 +1236,7 @@ void Topology::MaskSelectElements( NameType const& element, char* mask ) const {
   for (std::vector<Atom>::const_iterator atom = atoms_.begin();
                                          atom != atoms_.end(); ++atom)
   {
-    NameType atom_element( Atom::AtomicElementName[(*atom).Element()] );
+    NameType atom_element( (*atom).ElementName() );
     if ( atom_element.Match( element ) )
       mask[m] = 'T';
     ++m;

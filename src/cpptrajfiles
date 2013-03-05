@@ -14,6 +14,7 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         Action_Radial.cpp Action_RandomizeIons.cpp Action_Rmsd.cpp \
         Action_Rotate.cpp Action_Rotdif.cpp Action_RunningAvg.cpp \
         Action_Scale.cpp Action_STFC_Diffusion.cpp Action_Strip.cpp \
+        Action_SymmetricRmsd.cpp Action_Volmap.cpp \
         Action_Surf.cpp Action_Translate.cpp Action_Unwrap.cpp \
         Action_Vector.cpp Action_Watershell.cpp ActionList.cpp \
         ActionFrameCounter.cpp Action_LIE.cpp \
@@ -35,14 +36,14 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         DihedralSearch.cpp DistRoutines.cpp Dimension.cpp DS_Math.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp \
         FileList.cpp FileName.cpp Frame.cpp FrameList.cpp Grid.cpp \
-        Histogram.cpp Integrate.cpp ImageRoutines.cpp main.cpp MapAtom.cpp \
+        Histogram.cpp Hungarian.cpp Integrate.cpp ImageRoutines.cpp main.cpp MapAtom.cpp \
         Matrix_3x3.cpp Matrix_2D.cpp MaskToken.cpp Mol2File.cpp NameType.cpp \
         NetcdfFile.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp Parm_Mol2.cpp \
         Parm_PDB.cpp \
-        Random.cpp Range.cpp Thermo.cpp Topology.cpp PDBfile.cpp \
-        ProgressBar.cpp PubFFT.cpp ReadLine.cpp StringRoutines.cpp \
-        TorsionRoutines.cpp TopologyList.cpp \
+        Random.cpp Range.cpp ReferenceAction.cpp RmsAction.cpp Thermo.cpp \
+        Topology.cpp PDBfile.cpp ProgressBar.cpp PubFFT.cpp ReadLine.cpp \
+        StringRoutines.cpp TorsionRoutines.cpp TopologyList.cpp \
         Trajin.cpp Trajin_Single.cpp Trajin_Multi.cpp Trajout.cpp \
         Traj_AmberCoord.cpp Traj_AmberNetcdf.cpp Traj_AmberRestart.cpp Traj_Binpos.cpp \
         Traj_AmberRestartNC.cpp Traj_CharmmDcd.cpp Traj_Conflib.cpp Traj_GmxTrX.cpp \

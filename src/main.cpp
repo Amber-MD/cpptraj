@@ -1,6 +1,8 @@
 /*
  * CPPTRAJ: Rewrite of PTRAJ in C++
- * 2010 Daniel R. Roe
+ * Copyright (c) 2010-2013 Daniel R. Roe
+ * For license information see the LICENSE file.
+ * For a full list of contributing authors see the README file.
  */
 #include <unistd.h> // isatty
 #include <cstdio>

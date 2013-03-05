@@ -50,7 +50,7 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* P
 // Action_GridFreeEnergy::setup()
 Action::RetType Action_GridFreeEnergy::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup grid, checks box info.
-  if (grid_.GridSetup( currentParm )) return Action::ERR;
+  if (grid_.GridSetup( *currentParm )) return Action::ERR;
 
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ ))

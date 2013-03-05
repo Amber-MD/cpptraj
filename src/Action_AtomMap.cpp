@@ -699,7 +699,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     return Action::ERR;
   }
   // Get Reference
-  ReferenceFrame REF = FL->GetFrame( refName );
+  ReferenceFrame REF = FL->GetFrameByName( refName );
   if (REF.empty()) {
     mprintf("AtomMap::init: Error: Could not get reference frame %s\n",refName.c_str());
     return Action::ERR;
@@ -707,7 +707,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   RefFrame_ = REF.Coord();
   RefParm_ = REF.Parm();
   // Get Target
-  ReferenceFrame TGT = FL->GetFrame( targetName );
+  ReferenceFrame TGT = FL->GetFrameByName( targetName );
   if (TGT.empty()) {
     mprintf("AtomMap::init: Error: Could not get target frame %s\n",targetName.c_str());
     return Action::ERR;
@@ -736,12 +736,12 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   // cutoffs, the give each atom an ID based on what atoms are bonded to
   // it, noting which IDs are unique for that map. 
 
-  if (RefMap_.Setup(RefParm_)!=0) return Action::ERR;
+  if (RefMap_.Setup(*RefParm_)!=0) return Action::ERR;
   if (RefMap_.CheckBonds()!=0) return Action::ERR;
   //RefMap_.WriteMol2((char*)"RefMap.mol2\0"); // DEBUG
   RefMap_.DetermineAtomIDs();
 
-  if (TgtMap_.Setup(TgtParm_)!=0) return Action::ERR;
+  if (TgtMap_.Setup(*TgtParm_)!=0) return Action::ERR;
   if (TgtMap_.CheckBonds()!=0) return Action::ERR;
   //TgtMap_.WriteMol2((char*)"TgtMap.mol2\0"); // DEBUG
   TgtMap_.DetermineAtomIDs();
@@ -820,7 +820,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
       }
       // Strip reference parm
       mprintf("    Modifying reference %s topology and frame to match mapped atoms.\n",
-              REF.FrameName());
+              REF.FrameName().c_str());
       stripParm_ = RefParm_->modifyStateByMask(*M1);
       // Strip reference frame
       newFrame_ = new Frame(*RefFrame_, *M1);

@@ -114,7 +114,7 @@ void Cpptraj::Help_ParmStrip() {
 }
 
 void Cpptraj::Help_ParmBox() {
-  mprintf("[parm]box [<parmindex>] [x <xval>] [y <yval>] [z <zval>]");
+  mprintf("parmbox [<parmindex>] [x <xval>] [y <yval>] [z <zval>]");
   mprintf(" [alpha <a>] [beta <b>] [gamma <g>] [nobox]\n");
   mprintf("\tSet the given parm box info to what is specified. If nobox, remove box info.\n");
 }
@@ -207,7 +207,6 @@ const DispatchObject::Token Cpptraj::CoordCmds[] = {
   { DispatchObject::NONE,  0,           0, 0,              0         }
 };
 
-
 const DispatchObject::Token Cpptraj::ParmCmds[] = {
   { DispatchObject::PARM, "bondinfo",     0, Help_BondInfo,  BONDINFO  },
   { DispatchObject::PARM, "molinfo",      0, Help_MolInfo,   MOLINFO   },
@@ -220,6 +219,7 @@ const DispatchObject::Token Cpptraj::ParmCmds[] = {
   { DispatchObject::PARM, "parmstrip",    0, Help_ParmStrip, PARMSTRIP },
   { DispatchObject::PARM, "parmwrite",    0, Help_ParmWrite, PARMWRITE },
   { DispatchObject::PARM, "resinfo",      0, Help_ResInfo,   RESINFO   },
+  { DispatchObject::PARM, "charge",       0, Help_ResInfo,   CHARGEINFO   },
   { DispatchObject::PARM, "solvent",      0, Help_Solvent,   SOLVENT   },
   { DispatchObject::NONE, 0,              0, 0,              0         }
 };
@@ -474,6 +474,7 @@ int Cpptraj::ParmInfo(ArgList& argIn, int cmdidxIn) {
     case BONDINFO: parm->PrintBondInfo( maskarg ); break;
     case RESINFO : parm->PrintResidueInfo( maskarg ); break;
     case MOLINFO : parm->PrintMoleculeInfo( maskarg ); break;
+    case CHARGEINFO: parm->PrintChargeInfo( maskarg ); break;
     default: return 1; // Should never get here
   }
   return 0;
@@ -603,7 +604,11 @@ int Cpptraj::CrdAction(ArgList& argIn, int cmdidx) {
   // Start, stop, offset
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
   int start = crdarg.getNextInteger(1) - 1;
-  int stop = crdarg.getNextInteger(CRD->Size());
+  int stop;
+  if (crdarg.hasKey("last"))
+    stop = CRD->Size();
+  else
+    stop = crdarg.getNextInteger(CRD->Size());
   int offset = crdarg.getNextInteger(1);
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   ArgList actionargs = argIn.RemainingArgs();
@@ -673,7 +678,11 @@ int Cpptraj::CrdOut(ArgList& argIn, int cmdidx) {
   // Start, stop, offset
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
   int start = crdarg.getNextInteger(1) - 1;
-  int stop = crdarg.getNextInteger(CRD->Size());
+  int stop;
+  if (crdarg.hasKey("last"))
+    stop = CRD->Size();
+  else
+    stop = crdarg.getNextInteger(CRD->Size());
   int offset = crdarg.getNextInteger(1);
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   Trajout outtraj;
@@ -1001,6 +1010,7 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
           case BONDINFO :
           case RESINFO  :
           case MOLINFO  :
+          case CHARGEINFO  :
           case PARMINFO : err = ParmInfo( command, dispatchToken->Idx ); break;
           case PARMWRITE: err = ParmWrite( command ); break;
           case PARMSTRIP: err = ParmStrip( command ); break;

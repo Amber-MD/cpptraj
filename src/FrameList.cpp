@@ -171,7 +171,7 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   *   - 'reference'   : First reference frame in list.
   *   - 'refindex <#>': Reference frame at position.
   */
-ReferenceFrame FrameList::GetFrame(ArgList& argIn) {
+ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) {
   int refindex;
   // By name/tag
   std::string refname = argIn.GetStringKey("ref");
@@ -205,7 +205,7 @@ ReferenceFrame FrameList::GetFrame(ArgList& argIn) {
 }
 
 // FrameList::GetFrame()
-ReferenceFrame FrameList::GetFrame(std::string const& refName) {
+ReferenceFrame FrameList::GetFrameByName(std::string const& refName) {
   int refIndex = FindName( refName );
   if (refIndex < 0)
     return ReferenceFrame();

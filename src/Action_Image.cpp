@@ -17,8 +17,8 @@ Action_Image::Action_Image() :
 { } 
 
 void Action_Image::Help() {
-  mprintf("Expected call: image [origin] [center] [triclinic | familiar [com <mask>]] <mask>\n"); 
-  mprintf("                     [ bymol | byres | byatom ]\n");
+  mprintf("\t[origin] [center] [triclinic | familiar [com <mask>]] <mask>\n"); 
+  mprintf("\t[ bymol | byres | byatom ]\n");
   mprintf("- origin: center at 0.0, 0.0, 0.0, otherwise center at box center.\n");
   mprintf("- center: Use center of mass for imaging, otherwise use first atom.\n");
   mprintf("- triclinic: Force imaging with triclinic code.\n");
@@ -128,10 +128,10 @@ Action::RetType Action_Image::Setup(Topology* currentParm, Topology** parmAddres
 
   // If box is originally truncated oct and not forcing triclinic, 
   // turn familiar on.
-  if (currentParm->BoxType()==Box::TRUNCOCT && triclinic_!=FORCE && triclinic_!=FAMILIAR) {
+  /*if (currentParm->BoxType()==Box::TRUNCOCT && triclinic_!=FORCE && triclinic_!=FAMILIAR) {
     mprintf("\tOriginal box is truncated octahedron, turning on 'familiar'.\n");
     triclinic_=FAMILIAR;
-  }
+  }*/
 
   if (triclinic_ == FAMILIAR) {
     if (ComMask_!=0) {

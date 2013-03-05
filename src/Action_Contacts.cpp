@@ -65,7 +65,7 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   distance_ = dist * dist;
   first_ = actionArgs.hasKey("first");
   // Get reference
-  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   std::string outfilename = actionArgs.GetStringKey("out"); 
   if (outfile_.OpenWrite(outfilename))

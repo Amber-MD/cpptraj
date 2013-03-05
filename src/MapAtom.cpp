@@ -18,7 +18,8 @@ const char MapAtom::AtomicElementChar[Atom::NUMELEMENTS] = { 0,
 
 /// CONSTRUCTOR
 MapAtom::MapAtom() :
-  isChiral_(false), 
+  isChiral_(false),
+  boundToChiral_(false), 
   isMapped_(false), 
   complete_(false), 
   Nduplicated_(0),
@@ -27,7 +28,8 @@ MapAtom::MapAtom() :
 
 // COPY CONSTRUCTOR
 MapAtom::MapAtom(const MapAtom& rhs) : Atom(rhs),
-   isChiral_(rhs.isChiral_), 
+   isChiral_(rhs.isChiral_),
+   boundToChiral_(rhs.boundToChiral_), 
    isMapped_(rhs.isMapped_), 
    complete_(rhs.complete_),
    atomID_(rhs.atomID_), 
@@ -40,6 +42,7 @@ MapAtom::MapAtom(const MapAtom& rhs) : Atom(rhs),
 /// Copy base atom to this MapAtom
 MapAtom::MapAtom(const Atom& rhs) : Atom(rhs),
   isChiral_(false),
+  boundToChiral_(false),
   isMapped_(false),
   complete_(false),
   Nduplicated_(0),
@@ -51,6 +54,7 @@ MapAtom& MapAtom::operator=(const MapAtom& rhs) {
   if (&rhs == this) return *this;
   Atom::operator=(rhs);
   isChiral_ = rhs.isChiral_;
+  boundToChiral_ = rhs.boundToChiral_;
   isMapped_ = rhs.isMapped_;
   complete_ = rhs.complete_;
   atomID_   = rhs.atomID_;
@@ -59,4 +63,3 @@ MapAtom& MapAtom::operator=(const MapAtom& rhs) {
   name_ = rhs.name_;
   return *this;
 }
-

@@ -164,7 +164,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   corrOut_ = actionArgs.GetStringKey("corrout");
   do_gridsearch_ = actionArgs.hasKey("gridsearch");
   // Reference Keywords
-  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   // Get Masks
   AtomMask RefMask( actionArgs.GetMaskNext() );

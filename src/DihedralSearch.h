@@ -2,6 +2,9 @@
 #define INC_DIHEDRALSEARCH_H
 #include "Topology.h"
 #include "Range.h"
+#include "ArgList.h"
+/// Class that can be used to search for dihedral angles in a range.
+// Thanks to C. Bergonzo for the NA angle definitions.
 class DihedralSearch {
     class DihedralMask;
   public:
@@ -10,18 +13,31 @@ class DihedralSearch {
     mask_it end()    const { return dihedrals_.end();       }
     int Ndihedrals() const { return (int)dihedrals_.size(); }
     /// Recognized dihedral types
-    enum DihedralType { PHI = 0, PSI, NDIHTYPE };
+    enum DihedralType { PHI = 0, PSI, CHIP, OMEGA, ALPHA, BETA, GAMMA, DELTA,
+                        EPSILON, ZETA, NU1, NU2, CHIN, NDIHTYPE };
     DihedralSearch();
-    /// Add a new dihedral type to be searched for.
+    static void ListKnownTypes();
+    static void OffsetHelp();
+    static DihedralType GetType(std::string const&);
+    /// Add a known dihedral type to be searched for.
     int SearchFor(DihedralType);
+    /// Search for known dihedral type keywords.
+    void SearchForArgs(ArgList&);
+    /// Add a new dihedral type to be searched for.
+    int SearchForNewType(int, std::string const&, std::string const&, std::string const&, 
+                         std::string const&, std::string const&);
     /// Add all dihedral types if none have been added yet.
     int SearchForAll();
     /// Find specified dihedrals for residues in Range.
     int FindDihedrals(Topology const&, Range const&);
-    /// Clear dihedrals
+    /// Clear found dihedrals and tokens.
     void Clear();
+    /// Clear found dihedrals only.
+    void ClearFound();
     /// Print dihedrals currently being searched for.
     void PrintTypes();
+    /// \return Mask of atoms that will move upon rotation.
+    static AtomMask MovingAtoms(Topology const&, int, int);
   private:
     /// Hold dihedral atom #s, residue #, and type name.
     class DihedralMask {
@@ -43,7 +59,8 @@ class DihedralSearch {
     class DihedralToken {
       public:
         DihedralToken();
-        DihedralToken(int, const char*, const char*, const char*, const char*, const char*);
+        DihedralToken(int, NameType const&, NameType const&, NameType const&, NameType const&,
+                      std::string const&);
         /// \return mask with 4 atoms corresponding to dihedral for specified residue.
         DihedralMask FindDihedralAtoms(Topology const&, int);
         std::string const& Name() { return name_; }

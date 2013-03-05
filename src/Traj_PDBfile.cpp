@@ -6,6 +6,7 @@
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
   pdbAtom_(0),
+  ter_num_(0),
   pdbWriteMode_(NONE),
   dumpq_(false),
   dumpr_(false),
@@ -131,6 +132,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
    dumpq_ = true; 
    dumpr_ = true;
   }
+  if (argIn.hasKey("teradvance")) ter_num_ = 1;
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
   std::string temp = argIn.GetStringKey("chainid");
@@ -184,7 +186,7 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     file_.Printf("MODEL     %i\n", set + 1);
   }
 
-  float Occ = 0.0; 
+  float Occ = 1.0; 
   float B = 0.0;
   int anum = 1; // Actual PDB atom number
   int aidx = 0; // Atom index in topology
@@ -196,14 +198,16 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
     // If this atom belongs to a new molecule print a TER card
     // Use res instead of res+1 since this TER belongs to last mol/res
     if (aidx == lastAtomInMol) {
-      file_.WriteTER( anum++, pdbTop_->Res(res-1).Name(), chainID_[aidx], res );
+      file_.WriteTER( anum, pdbTop_->Res(res-1).Name(), chainID_[aidx], res );
+      anum += ter_num_;
       ++mol;
       lastAtomInMol = (*mol).EndAtom();
     }
     if (dumpq_) Occ = (float) (*atom).Charge();
     if (dumpr_) B = (float) (*atom).Radius();
     file_.WriteRec(PDBfile::ATOM, anum++, (*atom).Name(), pdbTop_->Res(res).Name(),
-                   chainID_[aidx++], res+1, Xptr[0], Xptr[1], Xptr[2], Occ, B, "", dumpq_);
+                   chainID_[aidx++], res+1, Xptr[0], Xptr[1], Xptr[2], Occ, B, 
+                   (*atom).ElementName(), 0, dumpq_);
     Xptr += 3;
   }
   if (pdbWriteMode_==MULTI) {
