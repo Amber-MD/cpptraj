@@ -594,9 +594,9 @@ Grid& Grid::ExtractPeaks(double min_filter) {
     float maxval = 0.0;
     int idx = i*ny_*nz_ + j*nz_ + k;
     // Now loop over all neighbors, being careful not to go past either end
-    for (int ii = MIN(i-1, 0); ii <= MAX(i+1, nx_); ii++)
-    for (int jj = MIN(j-1, 0); jj <= MAX(j+1, ny_); jj++)
-    for (int kk = MIN(k-1, 0); kk <= MAX(k+1, ny_); kk++) {
+    for (int ii = MAX(i-1, 0); ii <= MIN(i+1, nx_); ii++)
+    for (int jj = MAX(j-1, 0); jj <= MIN(j+1, ny_); jj++)
+    for (int kk = MAX(k-1, 0); kk <= MIN(k+1, nz_); kk++) {
       int idx2 = ii*ny_*nz_ + jj*nz_ + kk;
       if (grid_[idx2] > maxval)
         maxval = grid_[idx2];
@@ -618,11 +618,11 @@ Grid& Grid::ExtractPeaks(double min_filter) {
     int idx = i*ny_*nz_ + j*nz_ + k;
     // Now loop over all neighbors, being careful not to go past either end
     eroded_bg[idx] = 1;
-    for (int ii = MIN(i-1, 0); ii <= MAX(i+1, nx_); ii++)
-    for (int jj = MIN(j-1, 0); jj <= MAX(j+1, ny_); jj++)
-    for (int kk = MIN(k-1, 0); kk <= MAX(k+1, ny_); kk++) {
+    for (int ii = MAX(i-1, 0); ii <= MIN(i+1, nx_); ii++)
+    for (int jj = MAX(j-1, 0); jj <= MIN(j+1, ny_); jj++)
+    for (int kk = MAX(k-1, 0); kk <= MIN(k+1, nz_); kk++) {
       // Skip over i,j,k
-      if (ii = i && jj == j && kk == k)
+      if (ii == i && jj == j && kk == k)
         continue;
       int idx2 = ii*ny_*nz_ + jj*nz_ + kk;
       if (background[idx2] == 0)

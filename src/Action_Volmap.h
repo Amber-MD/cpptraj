@@ -27,6 +27,13 @@ class Action_Volmap : public Action {
     AtomMask densitymask_;
     /** \brief the grid we are using */
     Grid grid_;
+    /** \brief the grid with the peak locations */
+    Grid peakgrid_;
+    /** \brief file name with the peak locations as Carbons in XYZ file format
+     */
+    std::string peakfilename_;
+    /// \brief The value below which to ignore all peaks
+    double peakcut_;
     /** \brief file name for the output density */
     std::string filename_;
     /** \brief the atomic radii of each atom in the gridded selection */

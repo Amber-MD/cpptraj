@@ -29,7 +29,6 @@ Action_Volmap::~Action_Volmap() {
 }
 
 void Action_Volmap::Help() {
-  mprintf("volmap ");
   RawHelp();
   mprintf("filename   -- Output file name\n");
   mprintf("dx, dy, dz -- grid spacing in the x-, y-, and z-dimensions, respectively.\n\n");
@@ -41,8 +40,9 @@ void Action_Volmap::Help() {
 }
 
 void Action_Volmap::RawHelp() {
-  mprintf("filename dx dy dz <mask> [xplor] [radscale <factor>]\n");
+  mprintf("\tfilename dx dy dz <mask> [xplor] [radscale <factor>]\n");
   mprintf("\t[ [[buffer <buffer>] [centermask <mask>]] | [center <x,y,z>] [size <x,y,z>] ]\n");
+  mprintf("\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");
 }
 
 // Action_Volmap::init()
@@ -68,6 +68,8 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   dz_ = actionArgs.getNextDouble(0.0);
 
   // Get extra options
+  peakcut_ = actionArgs.getKeyDouble("peakcut", 0.05);
+  peakfilename_ = actionArgs.GetStringKey("peakfile");
   buffer_ = actionArgs.getKeyDouble("buffer", 3.0);
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", 1.0);
   std::string sizestr = actionArgs.GetStringKey("size");
@@ -117,6 +119,9 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf("OpenDX format\n");
   else
     mprintf("Xplor format\n");
+  if (!peakfilename_.empty())
+    mprintf("\tDensity peaks above %.3lf will be printed to %s in XYZ-format\n",
+            peakcut_, peakfilename_.c_str());
 
   return Action::OK;
 }
@@ -244,5 +249,39 @@ void Action_Volmap::Print() {
   else
     grid_.PrintXplor( filename_, "This line is ignored", 
                       "rdparm generated grid density" );
+  
+  // See if we need to write the peaks out somewhere
+  if (!peakfilename_.empty()) {
+    peakgrid_ = grid_.ExtractPeaks(peakcut_);
+    int npeaks = 0;
+    std::vector<double> peakdata;
+    for (int i = 0; i < peakgrid_.NX(); i++)
+    for (int j = 0; j < peakgrid_.NY(); j++)
+    for (int k = 0; k < peakgrid_.NZ(); k++) {
+      double gval = peakgrid_.GridVal(i, j, k);
+      if (gval > 0) {
+        npeaks++;
+        peakdata.push_back(xmin_+dx_*i);
+        peakdata.push_back(ymin_+dy_*j);
+        peakdata.push_back(zmin_+dz_*k);
+        peakdata.push_back(gval);
+      }
+    }
+    // If we have peaks, open up our peak data and print it
+    if (npeaks > 0) {
+      CpptrajFile outfile;
+      if(outfile.OpenWrite(peakfilename_)) {
+        mprinterr("Error: Could not open %s for writing.\n", peakfilename_.c_str());
+        return;
+      }
+      outfile.Printf("%d\n\n", npeaks);
+      for (int i = 0; i < npeaks; i++)
+        outfile.Printf("C %16.8f %16.8f %16.8f %16.8f\n", peakdata[4*i],
+                       peakdata[4*i+1], peakdata[4*i+2], peakdata[4*i+3]);
+      outfile.CloseFile();
+    }else{
+      mprintf("No peaks found with a density greater than %.3lf\n", peakcut_);
+    }
+  }
 
 }
