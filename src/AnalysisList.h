@@ -4,7 +4,6 @@
 /// Hold all analyses to be performed.
 class AnalysisList {
   public:
-    static const DispatchObject::Token DispatchArray[];
     AnalysisList();
     ~AnalysisList();
     void Clear(); 
