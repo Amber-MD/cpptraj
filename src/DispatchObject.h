@@ -3,19 +3,19 @@
 /// Abstract base class that all dispatchable objects will inherit.
 class DispatchObject {
   public:
-    enum DispatchType { NONE=0, PARM, COORD, ACTION, ANALYSIS, GENERAL, DEPRECATED };
+    enum DispatchType { NONE=0, PARM, TRAJ, ACTION, ANALYSIS, GENERAL, DEPRECATED };
     // Function pointers
     typedef DispatchObject* (*DispatchAllocatorType)();
     typedef void (*DispatchHelpType)();
     //typedef bool (*DispatchCmdType)(ArgList const&);
     typedef const char* DispatchCmdType;
-    // Struct that describes how a dispatchable object is called.
+    /// Struct that describes how a command is called.
     struct Token {
-      DispatchType Type;
-      DispatchCmdType Cmd;
-      DispatchAllocatorType Alloc;
-      DispatchHelpType Help;
-      int Idx; // TODO: Remove
+      DispatchType Type;           ///< Command type
+      DispatchCmdType Cmd;         ///< Command keyword
+      DispatchAllocatorType Alloc; ///< Allocator (Action/Analysis only)
+      DispatchHelpType Help;       ///< Help text function.
+      int Idx;                     ///< Command index (all except Action/Analysis).
     };
     typedef const Token* TokenPtr;
 };

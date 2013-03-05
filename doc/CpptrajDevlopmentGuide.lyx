@@ -330,6 +330,8 @@ $AMBERHOME/AmberTools/src/cpptraj
 \end_inset
 
  specified to disable this functionality.
+ If AMBERHOME is set and NetCDF/BLAS/LAPACK/ARPACK are already built, specify
+ the '-amberlib' flag to automatically use the these libraries from AMBERHOME.
 \end_layout
 
 \begin_layout Standard
@@ -354,7 +356,7 @@ doxygen
 doxygen
 \emph default
  installed, and you must have configured AmberTools.
- Run the command
+ Run the command:
 \end_layout
 
 \begin_layout LyX-Code
@@ -1712,16 +1714,15 @@ Last, we add the result to the DataSet and return Action::OK.
 \end_layout
 
 \begin_layout Subsection
-Add the Action to ActionList
+Add the Action to the Command class
 \end_layout
 
 \begin_layout Standard
 Now that the class implementation is complete, we need to let cpptraj know
  how to call it.
- This is currently done using a static array in ActionList.cpp called DispatchArr
-ay.
- An entry in DispatchArray is called a DispatchToken (DispatchObject.h) and
- consists of 5 fields:
+ This is currently done using a static array in Command.cpp called Commands.
+ An entry in Commands is called a DispatchToken (DispatchObject.h) and consists
+ of 5 fields:
 \end_layout
 
 \begin_layout Enumerate
@@ -1746,12 +1747,31 @@ Idx: This is currently unused for actions and can be set to zero.
 \end_layout
 
 \begin_layout Standard
-We will add the entry alphabetically by keyword.
+To make navigation of Commands.cpp easier, you can search for INC_ACTION
+ (or INC_ANALYSIS if adding an Analysis) to go where things need to be added.
+ First add the class to Commands.cpp with the appropriate '#include'.
+\end_layout
+
+\begin_layout LyX-Code
+#include "Action_Dihedral.h"
+\end_layout
+
+\begin_layout LyX-Code
+#include "Action_Distance.h"
+\end_layout
+
+\begin_layout LyX-Code
+#include "Action_Hbond.h"
+\end_layout
+
+\begin_layout Standard
+Then will add the command entry to commands in the appropriate section (in
+ this case DispatchObject::ACTION) alphabetically by keyword.
  The final array can look like e.g.:
 \end_layout
 
 \begin_layout LyX-Code
-const DispatchObject::Token ActionList::DispatchArray[] = {
+const DispatchObject::Token Command::Commands[] = {
 \end_layout
 
 \begin_layout LyX-Code

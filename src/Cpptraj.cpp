@@ -39,6 +39,16 @@ void Cpptraj::Help(ArgList& argIn) {
   if (arg.empty()) 
     // NONE in this context means list all commands
     Command::List(DispatchObject::NONE);
+  else if (arg.CommandIs("General"))
+    Command::List(DispatchObject::GENERAL);
+  else if (arg.CommandIs("Topology"))
+    Command::List(DispatchObject::PARM);
+  else if (arg.CommandIs("Action"))
+    Command::List(DispatchObject::ACTION);
+  else if (arg.CommandIs("Analysis"))
+    Command::List(DispatchObject::ANALYSIS);
+  else if (arg.CommandIs("Trajectory"))
+    Command::List(DispatchObject::TRAJ);
   else {
     DispatchObject::TokenPtr dispatchToken = Command::SearchToken( arg );
     if (dispatchToken == 0 || dispatchToken->Help == 0) 
@@ -718,7 +728,7 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
           case Command::SOLVENT  : err = ParmSolvent(command); break;
         } 
         break;
-      case DispatchObject::COORD : /** TRAJECTORY COMMANDS */
+      case DispatchObject::TRAJ : /** TRAJECTORY COMMANDS */
         switch ( dispatchToken->Idx ) {
           case Command::TRAJIN :
             // Update # of sets to be read in for master DSL

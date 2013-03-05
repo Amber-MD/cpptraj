@@ -2,6 +2,11 @@
 #define INC_COMMAND_H
 #include "DispatchObject.h"
 #include "ArgList.h"
+/// This is a static class that determines how commands are handled.
+/** To add a new Action/Analysis command, add the appropriate '#include'
+  * to the top of Command.cpp and add an entry to Commands[] (search for 
+  * INC_ACTION/INC_ANALYSIS respectively).
+  */
 class Command {
   public:
     enum Type { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR,
