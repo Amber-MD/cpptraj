@@ -17,6 +17,7 @@ Action_GIST::Action_GIST() :
   useTIP4P_(false),
   useTIP4PEW_(false)
 {
+  mprintf("\tGIST: INIT \n");
   gridcntr_[0] = -1;
   gridcntr_[1] = -1;
   gridcntr_[2] = -1;
@@ -24,6 +25,10 @@ Action_GIST::Action_GIST() :
   griddim_[0] = -1;
   griddim_[1] = -1;
   griddim_[2] = -1;
+  
+  gridorig_[0] = -1;
+  gridorig_[1] = -1;
+  gridorig_[2] = -1;
   
   gridspacn_ = 0;
  } 
@@ -37,10 +42,13 @@ void Action_GIST::Help() {
 Action::RetType Action_GIST::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
 				  DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+    mprintf("\tGIST: init \n");
   // Get keywords
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   DataSet::scalarType stype = DataSet::UNDEFINED;
   stype = DataSet::GIST;
+
+    mprintf("\tGIST: init2 \n");
 
   useTIP3P_ = actionArgs.hasKey("tip3p");
   useTIP4P_ = actionArgs.hasKey("tip4p");
@@ -110,6 +118,33 @@ Action::RetType Action_GIST::Setup(Topology* currentParm, Topology** parmAddress
   atom_charge_.reserve( currentParm->Natom() );
   for (Topology::atom_iterator atom = currentParm->begin(); atom != currentParm->end(); ++atom)
     atom_charge_.push_back( (*atom).Charge() * ELECTOAMBER );
+  gridwat_.clear();
+  gridwat_.reserve( currentParm->Natom() );
+
+  // Set Masks
+  std::string refmask = ":WAT";
+  Mask1_.SetMaskString(refmask );
+  refmask = ":WAT@O";
+  Mask2_.SetMaskString(refmask );
+  refmask = ":!WAT";
+  Mask3_.SetMaskString(refmask );
+
+  if (CurrentParm_->SetupIntegerMask( Mask1_ )) return Action::ERR;
+  if (CurrentParm_->SetupIntegerMask( Mask2_ )) return Action::ERR;
+  if (CurrentParm_->SetupIntegerMask( Mask3_ )) return Action::ERR;
+
+ 
+  mprintf("GIST Setup    : Atoms in mask1 [%s] %d \n",Mask1_.MaskString(),Mask1_.Nselected());
+  mprintf("GIST Setup    : Atoms in mask2 [%s] %d \n",Mask2_.MaskString(),Mask2_.Nselected());
+  mprintf("GIST Setup    : Atoms in mask3 [%s] %d \n",Mask3_.MaskString(),Mask3_.Nselected());
+
+
+  // Set up grid origin
+  gridorig_[0] = gridcntr_[0] - 0.5*griddim_[0]*gridspacn_;
+  gridorig_[1] = gridcntr_[1] - 0.5*griddim_[1]*gridspacn_;
+  gridorig_[2] = gridcntr_[2] - 0.5*griddim_[2]*gridspacn_;
+  mprintf("\tGIST grid origin: %5.3f %5.3f %5.3f\n", gridorig_[0],gridorig_[1],gridorig_[2]);
+
   return Action::OK;  
 }
 
@@ -121,9 +156,10 @@ Action::RetType Action_GIST::DoAction(int frameNum, Frame* currentFrame, Frame**
   //calculating energy
   atom_eelec_.assign(CurrentParm_->Natom(), 0);
   atom_evdw_.assign(CurrentParm_->Natom(), 0);
+  gridwat_.assign(CurrentParm_->Natom(), 0);
 
   // Set Masks
-  std::string refmask = ":WAT";
+  /*  std::string refmask = ":WAT";
   Mask1_.SetMaskString(refmask );
   refmask = ":WAT@O";
   Mask2_.SetMaskString(refmask );
@@ -131,10 +167,15 @@ Action::RetType Action_GIST::DoAction(int frameNum, Frame* currentFrame, Frame**
   if (CurrentParm_->SetupIntegerMask( Mask1_ )) return Action::ERR;
   if (CurrentParm_->SetupIntegerMask( Mask2_ )) return Action::ERR;
 
- 
+  */
   mprintf("GIST Action    : Atoms in mask1 [%s] %d \n",Mask1_.MaskString(),Mask1_.Nselected());
   mprintf("GIST Action    : Atoms in mask2 [%s] %d \n",Mask2_.MaskString(),Mask2_.Nselected());
+  mprintf("GIST Action    : Atoms in mask3 [%s] %d \n",Mask3_.MaskString(),Mask3_.Nselected());
+
+
   //  Action_Pairwise::NonbondEnergy( currentFrame, CurrentParm_, Mask1_);
+
+  Grid(currentFrame,  CurrentParm_ , Mask2_);
   NonbondEnergy2( currentFrame, CurrentParm_, Mask1_ , Mask2_ );
   return Action::OK;
 }
@@ -219,12 +260,12 @@ void Action_GIST::NonbondEnergy2(Frame *frameIn, Topology *parmIn, AtomMask &mas
 	// Cumulative evdw - divide between both atoms
 	delta2 = e_vdw * 0.5;
 	atom_evdw_[atom1] += delta2;
-	atom_evdw_[atom2] += delta2;
+	//	atom_evdw_[atom2] += delta2;
 	deltatest = delta2;
 	// Cumulative eelec - divide between both atoms
 	delta2 = e_elec * 0.5;
 	atom_eelec_[atom1] += delta2;
-	atom_eelec_[atom2] += delta2;
+	//	atom_eelec_[atom2] += delta2;
 	//	mprintf("GIST Action NONBONDE atom1 %d atom2 %d eelec %f vdW %f \n",atom1,atom2, deltatest, delta2);
 
         // ----------------------------------------
@@ -234,10 +275,44 @@ void Action_GIST::NonbondEnergy2(Frame *frameIn, Topology *parmIn, AtomMask &mas
 
 }
 
-/*how can I call from action_pairwise (i can add a second declaration with the two masks, 
-I can also try to access the vectors atom_eelec_ and atom_evdw_ to get the E values to 
-everything else. If I can just call NonbondEnergy from Action_Pairwise and read atom_eelec_
- and atom_evdw_, I can remove these two functions  void Action_GIST::NonbondEnergy(Frame 
-*frameIn, Topology *parmIn, AtomMask &maskIn , AtomMask &maskIn2) static void GetLJparam(
-Topology const& top, double& A, double& B, int atom1, int atom2) */
+
+// Action_GIST::grid()
+void Action_GIST::Grid(Frame *frameIn, Topology *parmIn, AtomMask &maskIn2) {
+  // maskIn2 = water oxygen only defined in DoAction Set Masks
+  // loop through all water molecules
+
+  mprintf("GIST Grid  \n");
+  mprintf("GIST Grid: Atoms in mask2 [%s] %d \n",maskIn2.MaskString(),maskIn2.Nselected());
+
+  AtomMask::const_iterator mask_end2 = maskIn2.end();
+  for (AtomMask::const_iterator maskatom = maskIn2.begin();
+                                  maskatom != mask_end2;
+                                  maskatom++)
+  {
+
+    // Set up coord index for this atom
+    int coord1 = (*maskatom) * 3;
+    // get the components of the water vector
+    Vec3 comp = Vec3(frameIn->CRD(coord1)) - Vec3(gridcntr_);
+    double rij2 = comp.Magnitude2();
+    double rij = sqrt(rij2);
+    Vec3 compnew = comp/gridspacn_;
+    Vec3 index;
+    index[0] = (int) compnew[0];
+    index[1] = (int) compnew[1];
+    index[2] = (int) compnew[2];
+    if (index[0] && index[1] && index[2] && (index[0]<griddim_[0]) && (index[1]<griddim_[1]) && (index[2]<griddim_[2]))
+    {
+      // this water belongs to grid point index[0], index[1], index[2]
+      int voxel = (index[0]*griddim_[1] + index[1])*griddim_[2] + index[2];
+      int wat1 = *maskatom;
+      gridwat_[wat1] = voxel;
+
+     // calculate the water-host energy for wat 1
+    }
+  }
+
+}
+
+
 

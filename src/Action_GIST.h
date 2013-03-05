@@ -26,10 +26,12 @@ class Action_GIST: public Action  {
     bool useTIP4PEW_;
     AtomMask Mask1_;                 ///< Calculate energy for atoms in mask
     AtomMask Mask2_;                 ///< Calculate energy for atoms in mask
+    AtomMask Mask3_;                 ///< Calculate energy for atoms in mask
 
     //    Box gridbox_;    
     Vec3 gridcntr_;    
     Vec3 griddim_; 
+    Vec3 gridorig_; 
     double gridspacn_;
 
     //non-bond energy stuff
@@ -39,8 +41,10 @@ class Action_GIST: public Action  {
     std::vector<double> atom_evdw_;  ///< Cumulative Evdw on each atom
     std::vector<double> atom_eelec_; ///< Cumulative Eelec on each atom
     std::vector<double> atom_charge_;
+    std::vector<double> gridwat_;
 
     void NonbondEnergy2(Frame *, Topology *, AtomMask &, AtomMask &);
-    
+    void Grid(Frame*, Topology *, AtomMask &);
+
 };
 #endif
