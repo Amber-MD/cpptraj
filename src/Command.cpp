@@ -119,6 +119,11 @@ static void Help_Create_DataFile() {
   mprintf("\timmediately write the data.\n");
 }
 
+static void Help_Write_DataFile() {
+  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
+  mprintf("\tWrite specified data sets to <filename> immediately.\n");
+}
+
 static void Help_Precision() {
   mprintf("\t{<filename> | <dataset arg>} [<width>] [<precision>]\n");
   mprintf("\tSet precision for all datasets in datafile <filename> or dataset(s)\n");
@@ -256,7 +261,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::GENERAL, "runanalysis",   0, Help_RunAnalysis,     RUN_ANALYSIS },
   { DispatchObject::GENERAL, "select",        0, 0,                    SELECT       },
   { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS,        SELECTDS     },
-  { DispatchObject::GENERAL, "write",         0, Help_Create_DataFile, WRITE        },
+  { DispatchObject::GENERAL, "write",         0, Help_Write_DataFile,  WRITE        },
   { DispatchObject::GENERAL, "writedata",     0, 0,                    WRITEDATA    },
   { DispatchObject::GENERAL, "xmgrace",       0, 0,                    SYSTEM       },
   // TRAJECTORY COMMANDS
