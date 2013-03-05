@@ -2,9 +2,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-AnalysisList::AnalysisList() :
-  debug_(0)
-{}
+AnalysisList::AnalysisList() : debug_(0) {}
 
 // DESTRUCTOR
 AnalysisList::~AnalysisList() {

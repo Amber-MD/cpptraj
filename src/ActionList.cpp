@@ -1,10 +1,9 @@
 // ActionList
 #include "ActionList.h"
 #include "CpptrajStdio.h"
+
 // CONSTRUCTOR
-ActionList::ActionList() :
-  debug_(0)
-{}
+ActionList::ActionList() : debug_(0) {}
 
 // DESTRUCTOR
 ActionList::~ActionList() {
