@@ -851,7 +851,7 @@ void Topology::VisitAtom(int atomnum, int mol) {
 int Topology::DetermineMolecules() {
   std::vector<Atom>::iterator atom;
 
-  mprintf("\t%s: determining molecule info from bonds.\n",c_str());
+  if (debug_ > 0) mprintf("\t%s: determining molecule info from bonds.\n",c_str());
   // Reset molecule info for each atom
   for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
     (*atom).SetMol( -1 );

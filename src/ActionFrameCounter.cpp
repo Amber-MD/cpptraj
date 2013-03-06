@@ -48,3 +48,10 @@ void ActionFrameCounter::FrameCounterInfo() {
     mprintf("  Offset: %i", offset_);
   mprintf("\n");
 }
+
+void ActionFrameCounter::FrameCounterBrief() {
+  if (stop_ != -1)
+    mprintf(" (%i-%i, %i)", start_+1, stop_+1, offset_);
+  else
+    mprintf(" (%i-Last, %i)", start_+1, offset_);
+}

@@ -95,7 +95,6 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
       hasRange_ = true;
     } else {
       if (frameCount_.InitFrameCounter( *argIn )) return 1;
-      frameCount_.FrameCounterInfo();
       hasRange_ = false;
     }
 
@@ -193,8 +192,11 @@ void Trajout::PrintInfo(int showExtended) {
   if (trajio_->HasBox()) mprintf(" (with box info)");
   if (hasRange_)
     FrameRange_.PrintRange(": Writing frames",OUTPUTFRAMESHIFT);
-  else
+  else {
     mprintf(": Writing %i frames", TrajParm()->Nframes());
+    frameCount_.FrameCounterBrief();
+  }
+  
   if (append_) mprintf(", appended");
   mprintf("\n");
 }

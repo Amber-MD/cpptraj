@@ -24,6 +24,7 @@ class ActionFrameCounter {
       return false;
     }
     void FrameCounterInfo();
+    void FrameCounterBrief();
   private:
     int start_;
     int stop_;
