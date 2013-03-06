@@ -873,12 +873,18 @@ int Cpptraj::Run() {
     }
   }
   switch ( trajinList.Mode() ) {
-    case TrajinList::NORMAL   : err = RunNormal(); break;
+    case TrajinList::NORMAL   : 
+      err = RunNormal();
+      // Analysis has been run at this point. Clean up Analyses
+      analysisList.Clear();
+      break;
     case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
     default: 
       mprinterr("No trajectories loaded. Exiting.\n");
       err = 1; 
   }
+  // Clean up Actions.
+  actionList.Clear();
   return err;
 }
 
