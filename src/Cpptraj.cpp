@@ -639,6 +639,8 @@ Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
   }
   if (!inputFilename.empty())
     fclose(infile);
+  // If everything OK and Run has already been called, just quit.
+  if (cmode == C_OK && nrun_ > 0) return C_QUIT;
   return cmode;
 } 
 
@@ -863,7 +865,12 @@ int Cpptraj::Run() {
   DataSet* default_crd = DSL.FindSetOfType("_DEFAULTCRD_", DataSet::COORDS);
   if (default_crd != 0) {
     mprintf("Warning: One or more analyses requested creation of default COORDS DataSet.\n");
-    if (Dispatch("createcrd _DEFAULTCRD_") == C_ERR) return 1;
+    // If the DataSet has already been written to do not create again.
+    if (default_crd->Size() > 0)
+      mprintf("Warning: Default COORDS DataSet has already been written to.\n");
+    else { 
+      if (Dispatch("createcrd _DEFAULTCRD_") == C_ERR) return 1;
+    }
   }
   switch ( trajinList.Mode() ) {
     case TrajinList::NORMAL   : err = RunNormal(); break;
