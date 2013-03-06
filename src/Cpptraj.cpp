@@ -506,9 +506,11 @@ Cpptraj::Mode Cpptraj::Interactive() {
   ReadLine inputLine;
   // By default when interactive do not exit on errors
   exitOnError_ = false;
-  // Open log file if name has been set
+  // Open log file. If no name has been set, use default.
   if (!logfile_.FullFileName().empty())
     logfile_.OpenFile();
+  else
+    logfile_.OpenAppend("cpptraj.log");
   Mode readLoop = C_OK;
   while ( readLoop == C_OK ) {
     if (inputLine.GetInput()) break; 
