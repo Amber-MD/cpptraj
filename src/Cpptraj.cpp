@@ -4,6 +4,7 @@
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 #include "Trajin_Multi.h"
+#include "Trajin_Single.h"
 #include "FrameArray.h"
 #include "ReadLine.h"
 #include "ParmFile.h"
@@ -364,6 +365,45 @@ int Cpptraj::Select(ArgList& argIn) {
 }
 
 // -----------------------------------------------------------------------------
+// Cpptraj::LoadCrd()
+int Cpptraj::LoadCrd(ArgList& argIn) {
+  // Get parm
+  Topology* parm = parmFileList.GetParm( argIn );
+  if (parm == 0) {
+    mprinterr("Error: loadcrd: No parm files loaded.\n");
+    return 1;
+  }
+  // Load trajectory
+  Trajin_Single trajin;
+  trajin.SetDebug( debug_ );
+  if (trajin.SetupTrajRead(argIn.GetStringNext(), &argIn, parm)) {
+    mprinterr("Error: loadcrd: Could not set up input trajectory.\n");
+    return 1;
+  }
+  // Create input frame
+  Frame frameIn;
+  frameIn.SetupFrameV(parm->Atoms(), trajin.HasVelocity());
+  // Create DataSet, use base file name as set name if none specified. 
+  // NOTE: Default name should NEVER get used.
+  std::string setname = argIn.GetStringNext();
+  if (setname.empty())
+    setname = trajin.TrajName().Base();
+  DataSet_Coords* coords = (DataSet_Coords*)DSL.AddSet(DataSet::COORDS, setname, "__DCRD__");
+  if (coords == 0) {
+    mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
+    return 1;
+  }
+  coords->SetTopology( *parm );
+  // Read trajectory
+  mprintf("\tLoading trajectory %s as \"%s\"\n", trajin.FullTrajStr(), setname.c_str());
+  trajin.BeginTraj(true);
+  trajin.PrintInfoLine();
+  while (trajin.GetNextFrame( frameIn ))
+    coords->AddFrame( frameIn );
+  trajin.EndTraj();
+  return 0;
+}
+  
 // Cpptraj::CrdAction()
 /** Perform action on given COORDS dataset */
 int Cpptraj::CrdAction(ArgList& argIn) {
@@ -759,7 +799,8 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
           case Command::HELP      : Help(command); break;
           case Command::LIST      : 
           case Command::DEBUG     : 
-          case Command::CLEAR     : ListAction(command, dispatchToken->Idx); break; 
+          case Command::CLEAR     : ListAction(command, dispatchToken->Idx); break;
+          case Command::LOADCRD   : err = LoadCrd(command); break; 
           case Command::CRDACTION : err = CrdAction(command); break;
           case Command::CRDOUT    : err = CrdOut(command); break;
           case Command::SELECT    : err = Select(command); break; 

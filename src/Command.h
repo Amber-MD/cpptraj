@@ -12,7 +12,7 @@ class Command {
     enum Type { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR,
                 SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
                 SELECT, SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA,
-                CLEAR, CRDACTION, CRDOUT, WRITE,
+                CLEAR, LOADCRD, CRDACTION, CRDOUT, WRITE,
                 // TRAJ
                 REFERENCE, TRAJIN, TRAJOUT,
                 // PARM

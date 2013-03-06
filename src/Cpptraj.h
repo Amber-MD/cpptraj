@@ -37,6 +37,7 @@ class Cpptraj {
     int ParmBox(ArgList&);
     int ParmSolvent(ArgList&);
     int Select(ArgList&);
+    int LoadCrd(ArgList&);
     int CrdAction(ArgList&);
     int CrdOut(ArgList&);
     int CrdAnalyze(ArgList&);

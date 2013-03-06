@@ -213,6 +213,11 @@ static void Help_MolInfo() {
   mprintf("\tPrint information for molecules in <mask> for topology <parmindex> (0 by default).\n");
 }
 
+static void Help_LoadCrd() {
+  mprintf("\t<filename> [parm <parm> | parmindex<#>] [<trajin args>]\n");
+  mprintf("\tLoad trajectory <filename> as a COORDS data set.\n");
+}
+
 static void Help_CrdAction() {
   mprintf("\t<crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n");
   mprintf("\tPerform action <actioncmd> on COORDS data set <crd set>.\n");
@@ -243,11 +248,12 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::GENERAL, "datafile",      0, 0,                    DATAFILE     },
   { DispatchObject::GENERAL, "debug",         0, Help_Debug,           DEBUG        },
   { DispatchObject::GENERAL, "exit" ,         0, 0,                    QUIT         },
-  { DispatchObject::GENERAL, "gnuplot" ,      0, 0,                    SYSTEM       },
-  { DispatchObject::GENERAL, "go"   ,         0, 0,                    RUN          },
-  { DispatchObject::GENERAL, "head" ,         0, 0,                    SYSTEM       },
-  { DispatchObject::GENERAL, "help" ,         0, Help_Help,            HELP         },
-  { DispatchObject::GENERAL, "list" ,         0, Help_List,            LIST         },
+  { DispatchObject::GENERAL, "gnuplot",       0, 0,                    SYSTEM       },
+  { DispatchObject::GENERAL, "go",            0, 0,                    RUN          },
+  { DispatchObject::GENERAL, "head",          0, 0,                    SYSTEM       },
+  { DispatchObject::GENERAL, "help",          0, Help_Help,            HELP         },
+  { DispatchObject::GENERAL, "list",          0, Help_List,            LIST         },
+  { DispatchObject::GENERAL, "loadcrd",       0, Help_LoadCrd,         LOADCRD      },
   { DispatchObject::GENERAL, "ls",            0, 0,                    SYSTEM       },
   { DispatchObject::GENERAL, "noexitonerror", 0, 0,                    NOEXITERR    },
   { DispatchObject::GENERAL, "noprogress",    0, 0,                    NOPROG       },

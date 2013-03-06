@@ -56,8 +56,7 @@ Topology *TopologyList::GetParm(ArgList &argIn) {
 // TopologyList::AddParmFile()
 /** Add a parameter file to the parm file list. */
 int TopologyList::AddParmFile(std::string const& filename) {
-  std::string emptystring;
-  return AddParmFile(filename, emptystring, true, -1.0);
+  return AddParmFile(filename, std::string(), true, -1.0);
 }
 
 // TopologyList::AddParmFile()
