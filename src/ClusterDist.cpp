@@ -5,7 +5,7 @@
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
-
+// TODO: All DataSet stuff const&
 /// Calculate smallest difference between two angles (in degrees).
 static double DistCalc_Dih(double d1, double d2) {
   double diff = fabs(d1 - d2);
@@ -20,10 +20,10 @@ static double DistCalc_Std(double d1, double d2) {
   return fabs(d1 - d2);
 }
 
-static bool IsTorsionArray( DataSet* dsIn ) {
-  if (dsIn->ScalarMode() == DataSet::M_TORSION ||
-      dsIn->ScalarMode() == DataSet::M_PUCKER  ||
-      dsIn->ScalarMode() == DataSet::M_ANGLE     )
+static bool IsTorsionArray( DataSet const& dsIn ) {
+  if (dsIn.ScalarMode() == DataSet::M_TORSION ||
+      dsIn.ScalarMode() == DataSet::M_PUCKER  ||
+      dsIn.ScalarMode() == DataSet::M_ANGLE     )
     return true;
   return false;
 }
@@ -57,7 +57,7 @@ static double AvgCalc_Std( DataSet* dsIn, ClusterDist::Cframes const& cframesIn 
 ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
   data_(dsIn)
 {
-  if (IsTorsionArray( dsIn ))
+  if (IsTorsionArray( *dsIn ))
     dcalc_ = DistCalc_Dih;
   else
     dcalc_ = DistCalc_Std;
@@ -94,7 +94,7 @@ double ClusterDist_Num::FrameCentroidDist(int f1, Centroid* c1) {
 /** Calculate avg value of given frames. */
 void ClusterDist_Num::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Num* cent = (Centroid_Num*)centIn;
-  if (IsTorsionArray(data_))
+  if (IsTorsionArray(*data_))
     cent->cval_ = AvgCalc_Dih(data_, cframesIn);
   else
     cent->cval_ = AvgCalc_Std(data_, cframesIn);
@@ -112,7 +112,7 @@ ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn) :
   dsets_(dsIn)
 {
   for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
-    if ( IsTorsionArray( *ds ) )
+    if ( IsTorsionArray( *(*ds) ) )
       dcalcs_.push_back( DistCalc_Dih );
     else
       dcalcs_.push_back( DistCalc_Std );
@@ -178,7 +178,7 @@ void ClusterDist_Euclid::CalculateCentroid(Centroid* centIn, Cframes const& cfra
   Centroid_Multi* cent = (Centroid_Multi*)centIn;
   cent->cvals_.clear();
   for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
-    if (IsTorsionArray(*ds))
+    if (IsTorsionArray(*(*ds)))
       cent->cvals_.push_back( AvgCalc_Dih(*ds, cframesIn) );
     else
       cent->cvals_.push_back( AvgCalc_Std(*ds, cframesIn) );

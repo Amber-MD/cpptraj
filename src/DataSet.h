@@ -103,17 +103,17 @@ class DataSet {
     /// Return DataSet type.
     DataType Type()             const { return dType_; }
     /// Return DataSet type name.
-    const char* TypeName()      { return SetStrings[dType_]; }
+    const char* TypeName()      const { return SetStrings[dType_]; }
     /// Return DataSet dimension.
-    int Dim()                   { return dim_; }
+    int Dim()                   const { return dim_; }
     /// Size in characters necessary to write data from this set.
-    int Width()                 { return width_; }
+    int Width()                 const { return width_; }
     /// Return scalar mode
-    scalarMode ScalarMode()     { return scalarmode_; }
+    scalarMode ScalarMode()     const { return scalarmode_; }
     /// Return scalar type
-    scalarType ScalarType()     { return scalartype_; }
+    scalarType ScalarType()     const { return scalartype_; }
     /// Comparison for sorting, name/aspect/idx
-    bool operator<(const DataSet& rhs) {
+    bool operator<(const DataSet& rhs) const {
       if ( name_ == rhs.name_ ) {
         if ( aspect_ == rhs.aspect_ ) {
           return ( idx_ < rhs.idx_ );
