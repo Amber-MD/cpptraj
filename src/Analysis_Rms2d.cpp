@@ -19,12 +19,12 @@ Analysis_Rms2d::Analysis_Rms2d() :
 { } 
 
 void Analysis_Rms2d::Help() {
-  mprintf("rms2d [crdset <crd set>] [<mask>] rmsout <filename> [nofit] [mass] [dme]\n");
-  mprintf("      [reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n");
-  mprintf("      [corr <corrfilename>]\n");
+  mprintf("\t[crdset <crd set>] [<mask>] [out <filename>] [nofit] [mass] [dme]\n");
+  mprintf("\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n");
+  mprintf("\t[corr <corrfilename>]\n");
   mprintf("\tCalculate RMSD between all frames in <crd set>, or between frames in\n");
-  mprintf("<crd set> and frames in <traj>.\n");
-  mprintf("<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("\t<crd set> and frames in <traj>.\n");
+  mprintf("\n\t<crd set> can be created with the 'createcrd' command.\n");
 }
 
 Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
@@ -41,8 +41,10 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   }
   // Get keywords
   nofit_ = analyzeArgs.hasKey("nofit");
-  useMass_ = analyzeArgs.hasKey("mass"); 
-  DataFile* rmsdFile = DFLin->AddDataFile(analyzeArgs.GetStringKey("rmsout"), analyzeArgs);
+  useMass_ = analyzeArgs.hasKey("mass");
+  std::string outfilename = analyzeArgs.GetStringKey("out");
+  if (outfilename.empty()) outfilename = analyzeArgs.GetStringKey("rmsout");
+  DataFile* rmsdFile = DFLin->AddDataFile(outfilename, analyzeArgs);
   std::string reftrajname = analyzeArgs.GetStringKey("reftraj");
   if (!reftrajname.empty()) {
     RefParm_ = PFLin->GetParm(analyzeArgs);
