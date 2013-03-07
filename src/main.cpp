@@ -35,16 +35,14 @@ int main(int argc, char **argv) {
         cmode = State.ProcessInput(""); // "" means read from STDIN 
       if (cmode == Cpptraj::C_OK) 
         err = State.Run(); 
-      else
+      else if (cmode == Cpptraj::C_ERR)
         err = 1;
       break;
     case Cpptraj::C_ERR         :
       err = 1;
     case Cpptraj::C_QUIT        : break;
   }
-
   parallel_end();
-
   printf("\n");
   return err;
 }

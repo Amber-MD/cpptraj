@@ -41,7 +41,7 @@ Contributors:
     Code for calculating J-couplings (used in Action_Jcoupling).
 
   - Jason M. Swails (Univeristy of Florida, Gainesville, FL, USA)
-    Action_LIE, Analysis_RunningAvg, Grid OpenDX output 
+    Action_LIE, Analysis_RunningAvg, Action_Volmap, Grid OpenDX output.
 
   The following people wrote code in PTRAJ which was eventually adapted for
 use in CPPTRAJ:
