@@ -37,10 +37,10 @@ class Action_Vector : public Action {
     static double solve_cubic_eq(double,double,double,double);
     static Vec3 leastSquaresPlane(int,const double*);
 
-    void Mask(Frame*);
-    void Dipole(Frame*);
-    void Principal(Frame*);
-    void CorrPlane(Frame*);
-    void Box(Frame*);
+    void Mask(Frame const&);
+    void Dipole(Frame const&);
+    void Principal(Frame const&);
+    void CorrPlane(Frame const&);
+    void Box(Frame const&);
 };
 #endif

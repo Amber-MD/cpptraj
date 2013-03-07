@@ -254,14 +254,14 @@ Vec3 Action_Vector::leastSquaresPlane(int n, const double* vcorr) {
 }
 
 // -----------------------------------------------------------------------------
-void Action_Vector::Mask(Frame* currentFrame) {
-  Vec3 CXYZ = currentFrame->VCenterOfMass(mask_);
-  Vec3 VXYZ = currentFrame->VCenterOfMass(mask2_);
+void Action_Vector::Mask(Frame const& currentFrame) {
+  Vec3 CXYZ = currentFrame.VCenterOfMass(mask_);
+  Vec3 VXYZ = currentFrame.VCenterOfMass(mask2_);
   VXYZ -= CXYZ;
   Vec_->AddVxyz(VXYZ, CXYZ);
 }
 
-void Action_Vector::Dipole(Frame* currentFrame) {
+void Action_Vector::Dipole(Frame const& currentFrame) {
   Vec3 VXYZ(0.0, 0.0, 0.0);
   Vec3 CXYZ(0.0, 0.0, 0.0);
   double total_mass = 0;
@@ -270,7 +270,7 @@ void Action_Vector::Dipole(Frame* currentFrame) {
   {
     double mass = (*CurrentParm_)[*atom].Mass();
     total_mass += mass;
-    Vec3 XYZ = currentFrame->XYZ( *atom );
+    Vec3 XYZ = currentFrame.XYZ( *atom );
     CXYZ += ( XYZ * mass );
     double charge = (*CurrentParm_)[*atom].Charge();
     XYZ *= charge;
@@ -280,11 +280,11 @@ void Action_Vector::Dipole(Frame* currentFrame) {
   Vec_->AddVxyz( VXYZ, CXYZ );
 }
 
-void Action_Vector::Principal(Frame* currentFrame) {
+void Action_Vector::Principal(Frame const& currentFrame) {
   Matrix_3x3 Inertia;
   Vec3 Eval; 
 
-  Vec3 CXYZ = currentFrame->CalculateInertia( mask_, Inertia );
+  Vec3 CXYZ = currentFrame.CalculateInertia( mask_, Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
   Inertia.Diagonalize_Sort_Chirality( Eval, 0 );
   /*if (debug > 2) {
@@ -300,13 +300,13 @@ void Action_Vector::Principal(Frame* currentFrame) {
     Vec_->AddVxyz( Inertia.Row3(), CXYZ.Dptr() ); // Third row = third eigenvector
 }
 
-void Action_Vector::CorrPlane(Frame* currentFrame) {
-  Vec3 CXYZ = currentFrame->VCenterOfMass(mask_);
+void Action_Vector::CorrPlane(Frame const& currentFrame) {
+  Vec3 CXYZ = currentFrame.VCenterOfMass(mask_);
   int idx = 0;
   for (AtomMask::const_iterator atom = mask_.begin();
                               atom != mask_.end(); ++atom)
   {
-    Vec3 XYZ = currentFrame->XYZ( *atom );
+    Vec3 XYZ = currentFrame.XYZ( *atom );
     XYZ -= CXYZ;
     vcorr_[idx++] = XYZ[0];
     vcorr_[idx++] = XYZ[1];
@@ -316,8 +316,8 @@ void Action_Vector::CorrPlane(Frame* currentFrame) {
   Vec_->AddVxyz(VXYZ, CXYZ);
 }
 
-void Action_Vector::Box(Frame* currentFrame) {
-  Vec_->AddVxyz( currentFrame->BoxCrd().Lengths() );
+void Action_Vector::Box(Frame const& currentFrame) {
+  Vec_->AddVxyz( currentFrame.BoxCrd().Lengths() );
 }
 
 // Action_Vector::action()
@@ -325,13 +325,13 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
   switch ( mode_ ) {
     case MASK        :
     case CORR        :
-    case CORRIRED    : Mask(currentFrame); break;
-    case DIPOLE      : Dipole(currentFrame); break;
+    case CORRIRED    : Mask(*currentFrame); break;
+    case DIPOLE      : Dipole(*currentFrame); break;
     case PRINCIPAL_X :
     case PRINCIPAL_Y :
-    case PRINCIPAL_Z : Principal(currentFrame); break;
-    case CORRPLANE   : CorrPlane(currentFrame); break;
-    case BOX         : Box(currentFrame); break;
+    case PRINCIPAL_Z : Principal(*currentFrame); break;
+    case CORRPLANE   : CorrPlane(*currentFrame); break;
+    case BOX         : Box(*currentFrame); break;
     default                          : return Action::ERR; break; // NO_OP
   } // END switch over vectorMode
   return Action::OK;

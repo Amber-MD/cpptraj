@@ -103,7 +103,7 @@ class Frame {
       return false;
     }
     /// \return Center of mass of atoms in mask.
-    Vec3 VCenterOfMass( AtomMask const& Mask ) {
+    Vec3 VCenterOfMass( AtomMask const& Mask ) const {
       double Coord0 = 0.0;
       double Coord1 = 0.0;
       double Coord2 = 0.0;
@@ -121,7 +121,7 @@ class Frame {
       return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
     }
     /// \return Geometric center of atoms in mask.
-    Vec3 VGeometricCenter( AtomMask const& Mask ) {
+    Vec3 VGeometricCenter( AtomMask const& Mask ) const {
       double Coord0 = 0.0;
       double Coord1 = 0.0;
       double Coord2 = 0.0;
@@ -137,12 +137,12 @@ class Frame {
       return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
     }
     /// \return Center of mass of atoms in range.
-    Vec3 VCenterOfMass(int startAtom, int stopAtom) {
+    Vec3 VCenterOfMass(int startAtom, int stopAtom) const {
       double Coord0 = 0.0;
       double Coord1 = 0.0;
       double Coord2 = 0.0;
       double sumMass = 0.0;
-      Darray::iterator mass = Mass_.begin() + startAtom;
+      Darray::const_iterator mass = Mass_.begin() + startAtom;
       int startAtom3 = startAtom * 3;
       int stopAtom3 = stopAtom * 3;
       for (int i = startAtom3; i < stopAtom3; i += 3) {
@@ -156,7 +156,7 @@ class Frame {
       return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
     }
     /// \return Geometric center of atoms in range.
-    Vec3 VGeometricCenter(int startAtom, int stopAtom) {
+    Vec3 VGeometricCenter(int startAtom, int stopAtom) const {
       double Coord0 = 0.0;
       double Coord1 = 0.0;
       double Coord2 = 0.0;
@@ -252,7 +252,7 @@ class Frame {
     double DISTRMSD( Frame const& );
 
     Vec3 SetAxisOfRotation(int, int);
-    Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&);
+    Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&) const;
 
   private:
     typedef std::vector<double> Darray;

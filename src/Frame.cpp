@@ -970,7 +970,7 @@ Vec3 Frame::SetAxisOfRotation(int atom1, int atom2) {
 
 // Frame::CalculateInertia()
 /** \return Center of mass of coordinates in mask. */
-Vec3 Frame::CalculateInertia(AtomMask const& Mask, Matrix_3x3& Inertia)
+Vec3 Frame::CalculateInertia(AtomMask const& Mask, Matrix_3x3& Inertia) const
 {
   double Ivec[6]; // Ivec = xx, yy, zz, xy, xz, yz
   Vec3 CXYZ = VCenterOfMass(Mask);
