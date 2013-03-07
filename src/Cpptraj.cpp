@@ -920,10 +920,11 @@ int Cpptraj::RunEnsemble() {
   refFrames.List();
 
   // Allocate an ActionList, TrajoutList, and DataSetList for each
-  // member of the ensemble.
+  // member of the ensemble. Use separate DataFileList.
   std::vector<ActionList> ActionEnsemble( ensembleSize );
   std::vector<TrajoutList> TrajoutEnsemble( ensembleSize );
   std::vector<DataSetList> DataSetEnsemble( ensembleSize );
+  DataFileList DataFileEnsemble;
 
   // Set up output trajectories for each member of the ensemble
   for (ArgsArray::iterator targ = trajoutArgs_.begin(); targ != trajoutArgs_.end(); ++targ)
@@ -951,7 +952,8 @@ int Cpptraj::RunEnsemble() {
         // Create copy of arg list so that args remain unmarked for next member
         ArgList command = *aarg;
         if (ActionEnsemble[member].AddAction( dispatchToken->Alloc, command, &parmFileList,
-                                          &refFrames, &(DataSetEnsemble[member]), &DFL ))
+                                              &refFrames, &(DataSetEnsemble[member]), 
+                                              &DataFileEnsemble ))
           return 1;
       }
     }
@@ -1050,10 +1052,10 @@ int Cpptraj::RunEnsemble() {
   }
 
   // Print Datafile information
-  DFL.List();
+  DataFileEnsemble.List();
   // Only Master does DataFile output
   if (worldrank==0)
-    DFL.Write();
+    DataFileEnsemble.Write();
 
   return 0;
 }
