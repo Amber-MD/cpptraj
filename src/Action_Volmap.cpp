@@ -12,15 +12,15 @@
 
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
-  xsize_(0.0),
-  ysize_(0.0),
-  zsize_(0.0),
   xcenter_(0.0),
   ycenter_(0.0),
   zcenter_(0.0),
-  radscale_(1.0),
   Nframes_(0),
-  halfradii_(NULL)
+  halfradii_(NULL),
+  radscale_(1.0),
+  xsize_(0.0),
+  ysize_(0.0),
+  zsize_(0.0)
 {}
 
 // Destructor
