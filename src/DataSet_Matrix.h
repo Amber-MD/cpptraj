@@ -46,8 +46,8 @@ class DataSet_Matrix : public DataSet {
     double* MatrixPtr()  { return mat_;  } // For interfacing w/fortran routines
     double GetElement(int col, int row) { return mat_[calcIndex(ncols_, col, row)]; } 
 
-    int AllocateVectors(int);
-    int AllocateMatrix(int,int,int,int);
+    int AllocateVectors(size_t);
+    int AllocateMatrix(size_t,size_t,size_t,size_t);
     void StoreMass(std::vector<double> const&);
     void DivideBy(double);
     void Vect2MinusVect();
@@ -106,15 +106,15 @@ class DataSet_Matrix : public DataSet {
     double* vect2_;   ///< Square of vect_. May not need to be stored.
     double* mass_;    ///< Hold masses. Currently only for square (i.e. size is nrows)?
     MatrixType type_; ///< Type of matrix
-    int matsize_;     ///< Total number of matrix elements
-    int nrows_;       ///< Number of rows in the matrix
-    int ncols_;       ///< Number of columns in the matrix
-    int nelts_;       ///< Number of elements in a row of the matrix.
-    int vectsize_;    ///< Sizes of vect | vect2
+    size_t matsize_;     ///< Total number of matrix elements
+    size_t nrows_;       ///< Number of rows in the matrix
+    size_t ncols_;       ///< Number of columns in the matrix
+    size_t nelts_;       ///< Number of elements in a row of the matrix.
+    size_t vectsize_;    ///< Sizes of vect | vect2
     /// Pointer to index calculator for current matrix type
-    int (*calcIndex)(int,int,int);
+    size_t (*calcIndex)(size_t,size_t,size_t);
 
-    static int calcFullIndex(int,int,int);
-    static int calcHalfIndex(int,int,int);
+    static size_t calcFullIndex(size_t,size_t,size_t);
+    static size_t calcHalfIndex(size_t,size_t,size_t);
 };
 #endif
