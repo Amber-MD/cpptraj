@@ -52,6 +52,8 @@ class Frame {
     void AddXYZ(const double *);
     void ClearAtoms();
     void AddVec3(Vec3 const&);
+    /// Swap the coordinates and velocities of two atoms
+    void SwapAtoms(int, int);
     double& operator[](int idx)        { return X_[idx];        } // TODO: Make const?
     const double& operator[](int idx) const { return X_[idx];   }
     bool empty()                 const { return (natom_ == 0);  }

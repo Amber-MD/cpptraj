@@ -58,6 +58,7 @@
 #include "Action_MakeStructure.h"
 #include "Action_SymmetricRmsd.h"
 #include "Action_Volmap.h"
+#include "Action_Spam.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -343,6 +344,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, 0 },
   { DispatchObject::ACTION, "scale", Action_Scale::Alloc, Action_Scale::Help, 0 },
   { DispatchObject::ACTION, "secstruct", Action_DSSP::Alloc, Action_DSSP::Help, 0 },
+  { DispatchObject::ACTION, "spam", Action_Spam::Alloc, Action_Spam::Help, 0 },
   { DispatchObject::ACTION, "stfcdiffusion", Action_STFC_Diffusion::Alloc, Action_STFC_Diffusion::Help, 0 },
   { DispatchObject::ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, 0 },
   { DispatchObject::ACTION, "surf", Action_Surf::Alloc, Action_Surf::Help, 0 },
