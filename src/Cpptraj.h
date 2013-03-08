@@ -44,11 +44,11 @@ class Cpptraj {
     /// Function that decides where to send commands
     Mode Dispatch(std::string const&);
     /// List of parameter files 
-    TopologyList parmFileList;
+    TopologyList parmFileList_;
     /// List of input trajectory files
-    TrajinList trajinList;
+    TrajinList trajinList_;
     /// List of reference coordinate files
-    FrameList refFrames; 
+    FrameList refFrames_; 
 
     typedef std::vector<ArgList> ArgsArray;
     /// Array of trajout args for setting up ensemble trajout.
@@ -57,15 +57,15 @@ class Cpptraj {
     ArgsArray actionArgs_;
 
     /// List of output trajectory files 
-    TrajoutList trajoutList;
+    TrajoutList trajoutList_;
     /// List of analyses to be performed on datasets
-    AnalysisList analysisList;
+    AnalysisList analysisList_;
     /// List of generated data sets
-    DataSetList DSL;
+    DataSetList DSL_;
     /// List of actions to be performed each frame
-    ActionList actionList;    
+    ActionList actionList_;    
     /// List of datafiles that data sets will be written to
-    DataFileList DFL;
+    DataFileList DFL_;
     /// The debug level
     int debug_;
     /// If true the progress of reading input trajectories will be shown
