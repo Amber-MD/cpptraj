@@ -104,7 +104,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL,
     // If it's a sphere, square the radius to compare with
     if (sphere_)
       site_size_ *= site_size_;
-    std::string datafile_ = actionArgs.GetStringKey("out");
+    datafile_ = actionArgs.GetStringKey("out");
     std::string ds_name = actionArgs.GetStringKey("name");
     if (ds_name.empty())
       ds_name = myDSL_.GenerateDefaultName("SPAM");
