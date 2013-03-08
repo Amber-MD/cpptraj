@@ -343,39 +343,41 @@ int Action_NAstruct::determineBasePairing() {
   }
   // For each BP step, set up a dataset for each structural parameter. 
   // One less than total # BP.
-  dsidx = 1; // Base pair step # and DataSet idx
-  std::vector<NA_Axis>::iterator NBPstep = BasePairAxes_.end() - 1;
-  for (std::vector<NA_Axis>::iterator BP1 = BasePairAxes_.begin();
-                                      BP1 != NBPstep; ++BP1)
-  {
-    std::vector<NA_Axis>::iterator BP2 = BP1 + 1;
-    // Create legend
-    int bp_1 = (*BP1).Res1();
-    int bp_2 = (*BP1).Res2();
-    int bp_3 = (*BP2).Res1();
-    int bp_4 = (*BP2).Res2();
-    std::string sname = integerToString( bp_1+1 ) +
-                        Bases_[bp_1].ResName()[0] +
-                        integerToString( bp_2+1 ) +
-                        Bases_[bp_2].ResName()[0] + "-" +
-                        integerToString( bp_3+1 ) +
-                        Bases_[bp_3].ResName()[0] +
-                        integerToString( bp_4+1 ) +
-                        Bases_[bp_4].ResName()[0];
-    // Create Sets
-    SHIFT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname) );
-    SLIDE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname) );
-    RISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"rise",sname) );
-    TILT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tilt",sname) );
-    ROLL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"roll",sname) );
-    TWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"twist",sname) );
-    XDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"xdisp",sname) );
-    YDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"ydisp",sname) );
-    HRISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"hrise",sname) );
-    INCL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname) );
-    TIP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname) );
-    HTWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname) );
-    ++dsidx;
+  if (BasePairAxes_.size() > 1) {
+    dsidx = 1; // Base pair step # and DataSet idx
+    std::vector<NA_Axis>::iterator NBPstep = BasePairAxes_.end() - 1;
+    for (std::vector<NA_Axis>::iterator BP1 = BasePairAxes_.begin();
+                                        BP1 != NBPstep; ++BP1)
+    {
+      std::vector<NA_Axis>::iterator BP2 = BP1 + 1;
+      // Create legend
+      int bp_1 = (*BP1).Res1();
+      int bp_2 = (*BP1).Res2();
+      int bp_3 = (*BP2).Res1();
+      int bp_4 = (*BP2).Res2();
+      std::string sname = integerToString( bp_1+1 ) +
+                          Bases_[bp_1].ResName()[0] +
+                          integerToString( bp_2+1 ) +
+                          Bases_[bp_2].ResName()[0] + "-" +
+                          integerToString( bp_3+1 ) +
+                          Bases_[bp_3].ResName()[0] +
+                          integerToString( bp_4+1 ) +
+                          Bases_[bp_4].ResName()[0];
+      // Create Sets
+      SHIFT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname) );
+      SLIDE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname) );
+      RISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"rise",sname) );
+      TILT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tilt",sname) );
+      ROLL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"roll",sname) );
+      TWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"twist",sname) );
+      XDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"xdisp",sname) );
+      YDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"ydisp",sname) );
+      HRISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"hrise",sname) );
+      INCL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname) );
+      TIP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname) );
+      HTWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname) );
+      ++dsidx;
+    }
   }
   return 0;
 }
@@ -784,6 +786,7 @@ int Action_NAstruct::determineBasepairParameters(int frameNum) {
 # ifdef NASTRUCTDEBUG
   mprintf("\n=================== Determine BPstep Parameters ===================\n");
 # endif
+  if (BasePairAxes_.size() < 2) return 0;
   int bpi = 0;
   std::vector<NA_Axis>::iterator NBPstep = BasePairAxes_.end() - 1;
   for (std::vector<NA_Axis>::iterator BP1 = BasePairAxes_.begin();
