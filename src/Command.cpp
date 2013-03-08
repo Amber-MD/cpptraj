@@ -215,8 +215,8 @@ static void Help_MolInfo() {
 }
 
 static void Help_LoadCrd() {
-  mprintf("\t<filename> [parm <parm> | parmindex<#>] [<trajin args>]\n");
-  mprintf("\tLoad trajectory <filename> as a COORDS data set.\n");
+  mprintf("\t<filename> [parm <parm> | parmindex<#>] [<trajin args>] [<name>]\n");
+  mprintf("\tLoad trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
 }
 
 static void Help_CrdAction() {

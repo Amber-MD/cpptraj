@@ -28,7 +28,7 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, F
   if (coords_ == 0) return Action::ERR;
   // Do not set topology here since it may be modified later.
 
-  mprintf("    CREATECRD: Saving coordinates from Top %s to %s\n",
+  mprintf("    CREATECRD: Saving coordinates from Top %s to \"%s\"\n",
           parm->c_str(), coords_->Legend().c_str());
   return Action::OK;
 }

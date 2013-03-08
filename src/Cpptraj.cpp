@@ -433,7 +433,8 @@ int Cpptraj::CrdAction(ArgList& argIn) {
   if ( tkn == 0 ) return 1;
   Action* act = (Action*)tkn->Alloc();
   if (act == 0) return 1;
-  if ( act->Init( actionargs, &parmFileList_, &refFrames_, &DSL_, &DFL_, debug_ ) != Action::OK ) {
+  DataFileList dfl;
+  if ( act->Init( actionargs, &parmFileList_, &refFrames_, &DSL_, &dfl, debug_ ) != Action::OK ) {
     delete act;
     return 1;
   }
@@ -470,6 +471,7 @@ int Cpptraj::CrdAction(ArgList& argIn) {
       CRD->SetCRD( frame, *currentFrame );
   }
   act->Print();
+  if (worldrank == 0) dfl.Write();
   delete originalFrame;
   delete originalParm;
   delete act;
@@ -530,12 +532,15 @@ int Cpptraj::CrdAnalyze(ArgList& argIn) {
   if ( tkn == 0 ) return 1;
   Analysis* ana = (Analysis*)tkn->Alloc();
   if (ana == 0) return 1;
-  if ( ana->Setup( analyzeargs, &DSL_, &parmFileList_, &DFL_, debug_ ) != Analysis::OK ) {
+  DataFileList dfl;
+  if ( ana->Setup( analyzeargs, &DSL_, &parmFileList_, &dfl, debug_ ) != Analysis::OK ) {
     delete ana;
     return 1;
   }
   int err = 0;
-  if (ana->Analyze() == Analysis::ERR) err = 1;
+  if (ana->Analyze() == Analysis::ERR) 
+    err = 1;
+  else if (worldrank == 0) dfl.Write();
   delete ana;
   return err;
 }
@@ -832,11 +837,11 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
           case Command::RUN         : Run(); break;
           case Command::RUN_ANALYSIS:
             // If only 1 arg (the command) run all analyses in list
-            if (command.Nargs() == 1)  
+            if (command.Nargs() == 1) { 
               analysisList_.DoAnalyses();
-            else
+              mprintf("Analysis complete. Use 'writedata' to write datafiles to disk.\n");
+            } else
               err = CrdAnalyze(command);
-            mprintf("Analysis complete. Use 'writedata' to write datafiles to disk.\n");
             break;
           case Command::WRITEDATA   : if (worldrank == 0) DFL_.Write(); break;
           case Command::QUIT        : return C_QUIT; break;
