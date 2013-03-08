@@ -379,6 +379,10 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
       mprinterr("Error: for this ensemble.\n");
       return 0; 
     }
+    // Check if coords in frame are valid.
+    if (frameIn.CheckCoordsInvalid())
+      mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
+              CurrentFrame()+1);
     tgtFrameFound = ProcessFrame();
   }
 
@@ -495,5 +499,3 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
   }
   return 1;
 }
-
-
