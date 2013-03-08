@@ -279,6 +279,8 @@ void Action_Volmap::Print() {
         outfile.Printf("C %16.8f %16.8f %16.8f %16.8f\n", peakdata[4*i],
                        peakdata[4*i+1], peakdata[4*i+2], peakdata[4*i+3]);
       outfile.CloseFile();
+      mprintf("VolMap: %d density peaks found with higher density than %.4lf\n",
+              npeaks, peakcut_);
     }else{
       mprintf("No peaks found with a density greater than %.3lf\n", peakcut_);
     }

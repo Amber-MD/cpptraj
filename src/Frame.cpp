@@ -1007,3 +1007,30 @@ Vec3 Frame::CalculateInertia(AtomMask const& Mask, Matrix_3x3& Inertia) const
   Inertia[8] = Ivec[2];
   return CXYZ;
 }
+
+// Frame::SwapAtoms()
+/** \brief Swaps the coordinates of two atoms. Currently just crd, vel, mass */
+void Frame::SwapAtoms(int at1, int at2) {
+  // Create array indexes
+  int at1_3 = at1 * 3;
+  int at2_3 = at2 * 3;
+  // Crds.
+  double x = X_[at1_3];
+  X_[at1_3] = X_[at2_3]; X_[at2_3] = x;
+  x = X_[at1_3 + 1];
+  X_[at1_3 + 1] = X_[at2_3 + 1]; X_[at2_3 + 1] = x;
+  x = X_[at1_3 + 2];
+  X_[at1_3 + 2] = X_[at2_3 + 2]; X_[at2_3 + 2] = x;
+  // Vels.
+  if (HasVelocity()) {
+    x = V_[at1_3];
+    V_[at1_3] = V_[at2_3]; V_[at2_3] = x;
+    x = V_[at1_3 + 1];
+    V_[at1_3 + 1] = V_[at2_3 + 1]; V_[at2_3 + 1] = x;
+    x = V_[at1_3 + 2];
+    V_[at1_3 + 2] = V_[at2_3 + 2]; V_[at2_3 + 2] = x;
+  }
+  // Mass
+  x = Mass_[at1];
+  Mass_[at1] = Mass_[at2]; Mass_[at2] = x;
+}
