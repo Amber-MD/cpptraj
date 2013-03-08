@@ -48,7 +48,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   } else {
     if (setname.empty()) setname = datasetlist->GenerateDefaultName("fluct");
     // Determine how many windows will be needed
-    int nwindows = datasetlist->MaxFrames() / windowSize_;
+    int nwindows = coords_->Size() / windowSize_;
     for (int win = 0; win < nwindows; ++win) {
       int frame = (win + 1) * windowSize_;
       DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, frame );
@@ -57,8 +57,8 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
       outSets_.push_back( ds );
       if (outfile != 0) outfile->AddSet( ds );
     }
-    if ( (datasetlist->MaxFrames() % windowSize_) != 0 ) {
-      DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, datasetlist->MaxFrames() );
+    if ( (coords_->Size() % windowSize_) != 0 ) {
+      DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, coords_->Size() );
       ds->SetLegend("Final");
       outSets_.push_back( ds );
       if (outfile != 0) outfile->AddSet( ds );
