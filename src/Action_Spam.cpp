@@ -12,16 +12,16 @@
 
 // CONSTRUCTOR
 Action_Spam::Action_Spam() :
-  overflow_(false),
+  bulk_(0.0),
   purewater_(false),
   reorder_(false),
-  sphere_(false),
-  bulk_(0.0),
   cut2_(144.0),
-  doublecut_(24.0),
   onecut2_(1.0 / 144.0),
+  doublecut_(24.0),
   site_size_(2.5),
-  Nframes_(0)
+  sphere_(false),
+  Nframes_(0),
+  overflow_(false)
 { }
 
 void Action_Spam::Help() {
@@ -137,11 +137,11 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL,
     peakfile.CloseFile();
     // Check that our initial number of peaks matches our parsed peaks. Warn
     // otherwise
-    if (npeaks != peaks_.size())
+    if (npeaks != (int)peaks_.size())
       mprinterr("SPAM: Warning: %s claims to have %d peaks, but really has %d!\n",
                 filename.c_str(), npeaks, peaks_.size());
     // Now add all of the data sets
-    for (int i = 0; i < peaks_.size(); i++) {
+    for (int i = 0; i < (int)peaks_.size(); i++) {
       myDSL_.AddSetAspect(DataSet::DOUBLE, ds_name,
                                       integerToString(i+1).c_str());
       // Add a new list of integers to keep track of omitted frames
@@ -346,9 +346,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame* currentFrame) {
    * unreserved solvent residue has an index -1. At the end, we will go through
    * and re-order the frame if requested.
    */
-  std::vector<int> reservations(solvent_residues_.size());
-  for (int i = 0; i < reservations.size(); i++)
-    reservations[i] = -1;
+  std::vector<int> reservations(solvent_residues_.size(), -1);
   // Tabulate all of the COMs
   std::vector<Vec3> comlist;
   for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
@@ -385,12 +383,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame* currentFrame) {
    * this peak's data set in peakFrameData_. If a site is double-occupied, add
    * -frameNum to this peak's data set in peakFrameData_.
    */
-  std::vector<bool> occupied(peaks_.size());
-  std::vector<bool> doubled(peaks_.size()); // to avoid double-additions
-  for (int i = 0; i < occupied.size(); i++) {
-    occupied[i] = false;
-    doubled[i] = false;
-  }
+  std::vector<bool> occupied(peaks_.size(), false);
+  std::vector<bool> doubled(peaks_.size(), false); // to avoid double-additions
   for (std::vector<int>::const_iterator it = reservations.begin();
        it != reservations.end(); it++) {
     if (*it > -1) {
@@ -403,14 +397,12 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame* currentFrame) {
     }
   }
   // Now loop through and add all non-occupied sites
-  for (int i = 0; i < peaks_.size(); i++)
-    if (!occupied[i]) {
-      int val = frameNum; // copy the variable
+  for (unsigned int i = 0; i < peaks_.size(); i++)
+    if (!occupied[i]) 
       peakFrameData_[i].push_back(frameNum);
-    }
   // Now adjust the occupied vectors to only contain 'true' for sites we need to
   // analyze (i.e., make all doubled points 'unoccupied')
-  for (int i = 0; i < peaks_.size(); i++)
+  for (unsigned int i = 0; i < peaks_.size(); i++)
     if (doubled[i])
       occupied[i] = false;
 
@@ -420,14 +412,14 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame* currentFrame) {
      * which one is in that site, and calculate the LJ and EEL energies for that
      * water molecule within a given cutoff.
      */
-    for (int peak = 0; peak < peaks_.size(); peak++) {
+    for (int peak = 0; peak < (int)peaks_.size(); peak++) {
       // Skip unoccupied peaks
       if (!occupied[peak]) {
         double val = 0;
         myDSL_[peak]->Add(frameNum, &val);
         continue;
       }
-      for (int i = 0; i < reservations.size(); i++) {
+      for (unsigned int i = 0; i < reservations.size(); i++) {
         if (reservations[i] != peak) continue;
         /* Now we have our residue number. Create a pairlist for each solvent
          * molecule that can be used for each atom in that residue. Should
@@ -445,10 +437,10 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame* currentFrame) {
     /* Loop over every occupied site and swap the atoms so the same solvent
      * residue is always in the same site
      */
-    for (int i = 0; i < peaks_.size(); i++) {
+    for (int i = 0; i < (int)peaks_.size(); i++) {
       // Skip unoccupied sites
       if (!occupied[i]) continue;
-      for (int j = 0; j < solvent_residues_.size(); j++) {
+      for (unsigned int j = 0; j < solvent_residues_.size(); j++) {
         // This is the solvent residue in our site
         if (reservations[j] == i) {
           for (int k = 0; k < solvent_residues_[j].NumAtoms(); k++)
@@ -485,16 +477,16 @@ void Action_Spam::Print() {
     info.Printf("# There are %d density peaks and %d frames\n\n",
                 (int)peaks_.size(), Nframes_);
     // Loop over every Data set
-    for (int i = 0; i < peakFrameData_.size(); i++) {
+    for (unsigned int i = 0; i < peakFrameData_.size(); i++) {
       // Skip peaks with 0 unoccupied sites
       if (peakFrameData_[i].size() == 0) continue;
       // Find out how many double-occupied frames there are
       int ndouble = 0;
-      for (int j = 0; j < peakFrameData_[i].size(); j++)
+      for (unsigned int j = 0; j < peakFrameData_[i].size(); j++)
         if (peakFrameData_[i][j] < 0) ndouble++;
-      info.Printf("# Peak %d has %d omitted frames (%d double-occupied)\n",
+      info.Printf("# Peak %u has %d omitted frames (%d double-occupied)\n",
                   i, peakFrameData_[i].size(), ndouble);
-      for (int j = 0; j < peakFrameData_[i].size(); j++) {
+      for (unsigned int j = 0; j < peakFrameData_[i].size(); j++) {
         if (j > 0 && j % 10 == 0) info.Printf("\n");
         info.Printf("%7d ", peakFrameData_[i][j]);
       }
