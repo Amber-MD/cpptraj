@@ -34,6 +34,7 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
   if (recname.compare(0,6,"MODEL ")==0) return true;
   if (recname.compare(0,6,"ATOM  ")==0) return true;
   if (recname.compare(0,6,"HETATM")==0) return true;
+  if (recname.compare(0,6,"TER   ")==0) return true;
   // Crystallographic and Coordinate Transformation Section 
   if (recname.compare(0,6,"CRYST1")==0) return true;
   if (recname.compare(0,5,"SCALE" )==0) return true; // SCALEn
