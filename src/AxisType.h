@@ -15,31 +15,33 @@ class NA_Base {
     static NAType ID_BaseFromName(NameType const&);
     NA_Base(Topology const&, int, NAType);
     void SetInputFrame(Frame const&);
-    void PrintAtomNames();
-    NAType Type()               const { return type_;           }
-    const char* ResName()       const { return *rname_;         }
-    int ResNum()                      { return rnum_;           }
-    Frame const& Ref()                { return Ref_;            }
-    Frame const& Input()              { return Inp_;            }
-    AtomMask const& InputFitMask()    { return inpFitMask_;     }
-    AtomMask const& RefFitMask()      { return refFitMask_;     }
-    const char* AtomName(int i) const { return *(anames_[i]);   }
-    bool HasPatom()             const { return patomidx_ != -1; }
-    bool HasO4atom()            const { return o4atomidx_ != -1;}
+    void PrintAtomNames() const;
+    NAType Type()                  const { return type_;           }
+    int ResNum()                   const { return rnum_;           }
+    char BaseChar()                const { return bchar_;          }
+    Frame const& Ref()             const { return Ref_;            }
+    Frame const& Input()           const { return Inp_;            }
+    AtomMask const& InputFitMask() const { return inpFitMask_;     }
+    AtomMask const& RefFitMask()   const { return refFitMask_;     }
+    const char* AtomName(int i)    const { return *(anames_[i]);   }
+    bool HasPatom()                const { return patomidx_ != -1; }
+    bool HasO4atom()               const { return o4atomidx_ != -1;}
 #   ifdef NASTRUCTDEBUG
-    const char* RefName(int i)     { return *(refnames_[i]); }
-    int HBidx(int i)         const { return hbidx_[i];       }
+    const char* ResName()       const { return *rname_;         }
+    const char* RefName(int i)  const { return *(refnames_[i]); }
+    int HBidx(int i)            const { return hbidx_[i];       }
 #   endif
     const double* HBxyz(int i) const { return Inp_.XYZ(hbidx_[i]); }
     const double* Pxyz()       const { return Inp_.XYZ(patomidx_); }
     const double* O4xyz()      const { return Inp_.XYZ(o4atomidx_);}
   private:
-    NameType rname_;                ///< Residue name
     int rnum_;                      ///< Original residue number
+    char bchar_;                    ///< 1 char base name.
     NAType type_;                   ///< Base type.
     Frame Ref_;                     ///< Reference coords.
     std::vector<NameType> anames_;  ///< Atom names (Input)
 #   ifdef NASTRUCTDEBUG
+    NameType rname_;                 ///< Residue name
     std::vector<NameType> refnames_; ///< Atom names (Ref)
 #   endif  
     Frame Inp_;                     ///< Input coords.
@@ -50,7 +52,7 @@ class NA_Base {
     AtomMask inpFitMask_;           ///< Mask of input atoms to be used in RMS fit.
     AtomMask refFitMask_;           ///< Mask of ref atoms to be used in RMS fit.
 
-    int FindAtom(NameType const&);
+    int FindAtom(NameType const&) const;
 };
 
 /// Hold information for axis corresponding to base/base-pair.
@@ -63,7 +65,7 @@ class NA_Axis {
     NA_Axis(int,int,bool);
     /// Used to set rotation matrix/origin for base pair axis
     void StoreRotMatrix(Matrix_3x3 const&, Vec3 const&);
-    void PrintAxisInfo(const char*);
+    void PrintAxisInfo(const char*) const;
     void FlipYZ();
     void FlipXY();
     Matrix_3x3 const& Rot() const { return R_;      }

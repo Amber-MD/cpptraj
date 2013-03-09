@@ -306,9 +306,9 @@ int Action_NAstruct::determineBasePairing() {
     {
       int bp_1 = (*BP).Res1();
       int bp_2 = (*BP).Res2();
-      mprintf("        BP %i: Res %i:%s to %i:%s", nBP++,
-              bp_1+1, Bases_[bp_1].ResName(), 
-              bp_2+1, Bases_[bp_2].ResName());
+      mprintf("        BP %i: Res %i:%c to %i:%c", nBP++,
+              bp_1+1, Bases_[bp_1].BaseChar(), 
+              bp_2+1, Bases_[bp_2].BaseChar());
       if ( (*BP).IsAnti() )
         mprintf(" AntiParallel.\n");
       else
@@ -326,9 +326,9 @@ int Action_NAstruct::determineBasePairing() {
     int bp_1 = (*BP).Res1();
     int bp_2 = (*BP).Res2();
     std::string bpname = integerToString( bp_1+1 ) +
-                         Bases_[bp_1].ResName() +
+                         Bases_[bp_1].BaseChar() +
                          integerToString( bp_2+1 ) + 
-                         Bases_[bp_2].ResName();
+                         Bases_[bp_2].BaseChar();
     // Create sets
     SHEAR_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname) );
     STRETCH_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname));
@@ -356,13 +356,13 @@ int Action_NAstruct::determineBasePairing() {
       int bp_3 = (*BP2).Res1();
       int bp_4 = (*BP2).Res2();
       std::string sname = integerToString( bp_1+1 ) +
-                          Bases_[bp_1].ResName()[0] +
+                          Bases_[bp_1].BaseChar() +
                           integerToString( bp_2+1 ) +
-                          Bases_[bp_2].ResName()[0] + "-" +
+                          Bases_[bp_2].BaseChar() + "-" +
                           integerToString( bp_3+1 ) +
-                          Bases_[bp_3].ResName()[0] +
+                          Bases_[bp_3].BaseChar() +
                           integerToString( bp_4+1 ) +
-                          Bases_[bp_4].ResName()[0];
+                          Bases_[bp_4].BaseChar();
       // Create Sets
       SHIFT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname) );
       SLIDE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname) );

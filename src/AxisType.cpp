@@ -1,6 +1,5 @@
 // AxisType
 #include <map>
-#include <cstring> // memcpy
 #include "AxisType.h"
 #include "CpptrajStdio.h"
 
@@ -88,8 +87,10 @@ static const NA_RefAtom R_URA[] = {
   {  0.000000,  0.000000,  0.000000,  0, 0, 0     }
 };
 
+// UNKNOWN_BASE, ADE, CYT, GUA, THY, URA
+/// 1 character base names corresponding to NAbaseType
+static const char NAbaseChar[] = { '?', 'A', 'C', 'G', 'T', 'U' }; 
 #ifdef NASTRUCTDEBUG
-// UNKNOWN_BASE, ADE, CYT, GUA, THY, URA 
 /// Base names corresponding to NAbaseType
 static const char* NAbaseName[] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
 #endif
@@ -97,6 +98,7 @@ static const char* NAbaseName[] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
 // ---------- NA_Base ----------------------------------------------------------
 NA_Base::NA_Base() :
   rnum_(0),
+  bchar_('?'),
   type_(UNKNOWN_BASE),
   patomidx_(-1),
   o4atomidx_(-1)
@@ -107,12 +109,13 @@ NA_Base::NA_Base() :
 }
 
 NA_Base::NA_Base(const NA_Base& rhs) :
-  rname_(rhs.rname_),
   rnum_(rhs.rnum_),
+  bchar_(rhs.bchar_),
   type_(rhs.type_),
   Ref_(rhs.Ref_),
   anames_(rhs.anames_),
 # ifdef NASTRUCTDEBUG
+  rname_(rhs.rname_),
   refnames_(rhs.refnames_),
 # endif
   Inp_(rhs.Inp_),
@@ -129,12 +132,13 @@ NA_Base::NA_Base(const NA_Base& rhs) :
 
 NA_Base& NA_Base::operator=(const NA_Base& rhs) {
   if (this == &rhs) return *this;
-  rname_ = rhs.rname_;
   rnum_ = rhs.rnum_;
+  bchar_ = rhs.bchar_;
   type_ = rhs.type_;
   Ref_ = rhs.Ref_;
   anames_ = rhs.anames_;
 # ifdef NASTRUCTDEBUG
+  rname_ = rhs.rname_;
   refnames_ = rhs.refnames_;
 # endif
   Inp_ = rhs.Inp_;
@@ -191,10 +195,10 @@ NA_Base::NAType NA_Base::ID_BaseFromName(NameType const& resname) {
   return UNKNOWN_BASE;
 }
 
-int NA_Base::FindAtom(NameType const& atname) {
+int NA_Base::FindAtom(NameType const& atname) const {
   int atom = 0;
-  for (std::vector<NameType>::iterator Name = anames_.begin();
-                                       Name != anames_.end(); ++Name)
+  for (std::vector<NameType>::const_iterator Name = anames_.begin();
+                                             Name != anames_.end(); ++Name)
   {
     if (*Name == atname) return atom;
     ++atom;
@@ -301,10 +305,11 @@ NA_Base::NA_Base(Topology const& currentParm, int resnum, NA_Base::NAType baseTy
         mprinterr("Error: One or more masks for NA residue %i has no atoms.\n", resnum+1);
       else {
         rnum_ = resnum;
-        rname_ = currentParm.Res(resnum).Name();
         type_ = baseType;
+        bchar_ = NAbaseChar[type_];
 #       ifdef NASTRUCTDEBUG
-        mprintf("\tSet up residue %i:%s as %s\n", rnum_+1, *rname_, NAbaseName[type_]);
+        rname_ = currentParm.Res(resnum).Name();
+        mprintf("\tSet up residue %i:%s as %s (%c)\n", rnum_+1, *rname_, NAbaseName[type_], bchar_);
         mprintf("\tReference Atoms:\n");
         for (int atom = 0; atom < Ref_.Natom(); ++atom) {
           mprintf("\t\t%s: ", *(refnames_[atom]));
@@ -329,10 +334,10 @@ void NA_Base::SetInputFrame(Frame const& inputFrame) {
   Inp_.SetCoordinates( inputFrame, parmMask_ );
 }
 
-void NA_Base::PrintAtomNames() {
+void NA_Base::PrintAtomNames() const {
   mprintf("\tInp Atoms:");
-  for (std::vector<NameType>::iterator aname = anames_.begin();
-                                       aname != anames_.end(); ++aname)
+  for (std::vector<NameType>::const_iterator aname = anames_.begin();
+                                             aname != anames_.end(); ++aname)
     mprintf(" %s", *(*aname));
   mprintf("\n");
 }
@@ -360,7 +365,7 @@ void NA_Axis::StoreRotMatrix(Matrix_3x3 const& Rin, Vec3 const& vIn) {
   origin_ = vIn;
 }
  
-void NA_Axis::PrintAxisInfo(const char *title) {
+void NA_Axis::PrintAxisInfo(const char *title) const {
   mprintf("         %s origin: %8.4f %8.4f %8.4f\n",title,origin_[0],origin_[1],origin_[2]);
   mprintf("         %s R_x vec: %8.4f %8.4f %8.4f\n",title,R_[0],R_[3],R_[6]);
   mprintf("         %s R_y vec: %8.4f %8.4f %8.4f\n",title,R_[1],R_[4],R_[7]);
