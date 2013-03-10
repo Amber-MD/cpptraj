@@ -163,7 +163,6 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame
       }
     }
 //    mprintf("\tSymmetric atoms starting with %i", (*symmatoms).front() + 1);
-//    cost_matrix.Print("Cost Matrix:"); // DEBUG
     Hungarian HA(cost_matrix);
     Iarray resMap = HA.Optimize();
     // Fill in overall map
@@ -178,7 +177,6 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame
 /*  int ref = 0;
   for (Iarray::iterator map = AMap_.begin(); map != AMap_.end(); ++map)
     mprintf("\t%i -> %i\n", ref++, *map);*/
-  // FIXME: mass information not yet remapped
   remapFrame_.SetCoordinatesByMap(*currentFrame, AMap_);
   double rmsdval = CalcRmsd(remapFrame_, SelectedRef(), RefTrans());
   rmsd_->Add(frameNum, &rmsdval);
