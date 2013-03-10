@@ -287,8 +287,8 @@ double Action_Spam::Calculate_Energy(Frame *frameIn, Residue const& res) {
         double r2 = 1 / dist2;
         double r6 = r2 * r2 * r2;
                   // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
-        result += qiqj / sqrt(dist2) * (1 - dist2 * onecut2_) * (1 - dist2 * onecut2_)
-                + A * r6 * r6 - B * r6;
+        double shift = (1 - dist2 * onecut2_);
+        result += qiqj / sqrt(dist2) * shift * shift + A * r6 * r6 - B * r6;
       }
     }
   }
