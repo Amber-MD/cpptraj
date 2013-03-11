@@ -11,7 +11,7 @@ Action_Angle::Action_Angle() :
 { } 
 
 void Action_Angle::Help() {
-  mprintf("angle [<name>] <mask1> <mask2> <mask3> [out filename] [mass]\n");
+  mprintf("\t[<name>] <mask1> <mask2> <mask3> [out <filename>] [mass]\n");
   mprintf("\tCalculate the angle between atoms in masks 1-3\n");
 }
 

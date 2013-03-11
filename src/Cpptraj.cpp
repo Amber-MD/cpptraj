@@ -22,6 +22,8 @@ void Cpptraj::Usage(const char* programName) {
   mprinterr(  "         -debug <N>    : Set global debug level.\n");
   mprinterr(  "         --interactive : Enter interactive mode.\n");
   mprinterr(  "         --log <file>  : Record commands used in interactive mode to <file>.\n");
+  mprinterr(  "         -y <file>     : Same as 'trajin <file>'.\n");
+  mprinterr(  "         -x <file>     : Same as 'trajout <file>'.\n");
 }
 
 // -----------------------------------------------------------------------------
@@ -704,9 +706,13 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     else if ( arg == "-p" && i+1 != argc) {
       // -p: Topology file
       if (parmFileList_.AddParmFile( argv[++i] )) return C_ERR;
-    } else if ( arg == "-x" && i+1 != argc) {
-      // -x: Trajectory file
+    } else if ( arg == "-y" && i+1 != argc) {
+      // -y: Trajectory file in
       if (Dispatch("trajin " + std::string(argv[++i])) == C_ERR) return C_ERR;
+    } else if ( arg == "-x" && i+1 != argc) {
+      // -x: Trajectory file out 
+      if (Dispatch("trajout " + std::string(argv[++i])) == C_ERR) return C_ERR;
+      hasInput = true;
     } else if ( arg == "-c" && i+1 != argc) {
       // -c: Reference file
       if (Dispatch("reference " + std::string(argv[++i])) == C_ERR) return C_ERR;

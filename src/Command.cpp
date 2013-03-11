@@ -205,6 +205,11 @@ static void Help_BondInfo() {
   mprintf("\tPrint bond information of atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
+static void Help_ChargeInfo() {
+  mprintf("\t[<parmindex>] <mask>\n");
+  mprintf("\tPrint the total charge of atoms in <mask> for topology <parmindex> (0 by default).\n");
+}
+
 static void Help_ResInfo() {
   mprintf("\t[<parmindex>] [<mask>]\n");
   mprintf("\tPrint information for residues in <mask> for topology <parmindex> (0 by default).\n");
@@ -278,7 +283,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::TRAJ,   "trajout",       0, Help_Trajout,         TRAJOUT    },
   // TOPOLOGY COMMANDS
   { DispatchObject::PARM,    "bondinfo",      0, Help_BondInfo,        BONDINFO   },
-  { DispatchObject::PARM,    "charge",        0, Help_ResInfo,         CHARGEINFO },
+  { DispatchObject::PARM,    "charge",        0, Help_ChargeInfo,      CHARGEINFO },
   { DispatchObject::PARM,    "molinfo",       0, Help_MolInfo,         MOLINFO    },
   { DispatchObject::PARM,    "parm",          0, Help_Parm,            LOADPARM   },
   { DispatchObject::PARM,    "parmbondinfo",  0, Help_BondInfo,        BONDINFO   },
