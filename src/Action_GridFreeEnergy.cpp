@@ -9,7 +9,7 @@ Action_GridFreeEnergy::Action_GridFreeEnergy() :
 {}
 
 void Action_GridFreeEnergy::Help() {
-  mprintf("gfe <filename>");
+  mprintf("\t<filename>");
   Grid::Help();
   mprintf(" <mask>\n");
 }

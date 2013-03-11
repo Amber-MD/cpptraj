@@ -9,7 +9,7 @@ Action_Center::Action_Center() :
 { } 
 
 void Action_Center::Help() {
-  mprintf("center <mask> [origin] [mass]\n\tCenter coordinates.\n");
+  mprintf("\t<mask> [origin] [mass]\n\tCenter coordinates in <mask>.\n");
 }
 
 // Action_Center::init()

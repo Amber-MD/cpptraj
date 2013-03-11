@@ -20,10 +20,10 @@ Action_AtomMap::Action_AtomMap() :
 {}
 
 void Action_AtomMap::Help() {
-  mprintf("atommap <target> <reference> [mapout <filename>] [maponly]\n");
-  mprintf("        [rmsfit [ rmsout <rmsout> ]]\n");
-  mprintf("\tAttempt to create a map from atoms in target to atoms in reference solely\n");
-  mprintf("based on how they are bonded (not how they are named).\n");
+  mprintf("\t<target> <reference> [mapout <filename>] [maponly]\n");
+  mprintf("\t[rmsfit [ rmsout <rmsout> ]]\n");
+  mprintf("\tAttempt to create a map from atoms in <target> to atoms in <reference> solely\n");
+  mprintf("\tbased on how they are bonded (not how they are named).\n");
 }
 
 // DESTRUCTOR

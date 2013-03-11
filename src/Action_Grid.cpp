@@ -12,11 +12,12 @@ Action_Grid::Action_Grid() :
 {}
 
 void Action_Grid::Help() {
-  mprintf("grid <filename>");
+  mprintf("\t<filename>");
   Grid::Help();
   mprintf(" <mask>\n"); 
   mprintf("\t[max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");
   mprintf("\t[pdb <pdbout>] [opendx]\n\n");
+  mprintf("\tBin atoms in <mask> into a 3D grid.\n");
   mprintf("\t<fraction>: Percent of max to write.\n");
   mprintf("\t<madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.\n");
   mprintf("\t<value>   : Used to smooth density.\n");

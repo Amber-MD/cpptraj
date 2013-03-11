@@ -18,6 +18,7 @@ void Action_MultiDihedral::Help() {
   //mprintf("\t[range360]\n");
   mprintf("\t<dihedral types> = ");
   DihedralSearch::ListKnownTypes();
+  mprintf("\tCalculate specified dihedral angle types for residues in given <range>.\n");
 }
 
 Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,

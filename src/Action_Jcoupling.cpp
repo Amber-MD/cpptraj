@@ -17,7 +17,8 @@ Action_Jcoupling::Action_Jcoupling() :
 { } 
 
 void Action_Jcoupling::Help() {
-  mprintf("jcoupling <mask1> [outfile <filename>]\n");
+  mprintf("\t<mask1> [outfile <filename>]\n");
+  mprintf("\tCalculate J-coupling values for all dihedrals found in <mask1>.\n");
 }
 
 // DESTRUCTOR

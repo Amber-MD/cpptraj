@@ -9,8 +9,8 @@ Action_AvgCoord::Action_AvgCoord() :
 { } 
 
 void Action_AvgCoord::Help() {
-  mprintf("avgcoord [<mask>] [mass] outfile <file> [magnitude]\n");
-  mprintf("\tCalculate average coordinates of atoms in <mask> each frame\n");
+  mprintf("\t[<mask>] [mass] outfile <file> [magnitude]\n");
+  mprintf("\tCalculate the coordinates of the center of atoms in <mask> each frame.\n");
 }
 
 // DESTRUCTOR

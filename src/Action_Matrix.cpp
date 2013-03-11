@@ -17,12 +17,13 @@ Action_Matrix::Action_Matrix() :
 {}
 
 void Action_Matrix::Help() {
-  mprintf("matrix [out <filename>] ");
+  mprintf("\t[out <filename>] ");
   ActionFrameCounter::Help();
-  mprintf("\n       [name <name>] [ byatom | byres [mass] | bymask [mass] ]\n");
-  mprintf(  "       [ ired [order <#>] ]\n");
-  mprintf(  "       [ {distcovar | idea} <mask1> ]\n");
-  mprintf(  "       [ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n");
+  mprintf("\n\t[name <name>] [ byatom | byres [mass] | bymask [mass] ]\n");
+  mprintf(  "\t[ ired [order <#>] ]\n");
+  mprintf(  "\t[ {distcovar | idea} <mask1> ]\n");
+  mprintf(  "\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n");
+  mprintf(  "\tCalculate a matrix of the specified type from input coordinates.\n");
 }
 
 // Action_Matrix::init()

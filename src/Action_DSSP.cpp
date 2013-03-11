@@ -23,9 +23,10 @@ Action_DSSP::Action_DSSP() :
 {}
 
 void Action_DSSP::Help() {
-  mprintf("secstruct [out <filename>] [<mask>] [sumout <filename>]\n");
-  mprintf("          [ptrajformat] [namen <N name>] [nameh <H name>]\n");
-  mprintf("          [namec <C name>] [nameo <O name>]\n");
+  mprintf("\t[out <filename>] [<mask>] [sumout <filename>]\n");
+  mprintf("\t[ptrajformat] [namen <N name>] [nameh <H name>]\n");
+  mprintf("\t[namec <C name>] [nameo <O name>]\n");
+  mprintf("\tCalculate secondary structure content for residues in <mask>.\n");
   mprintf("\tIf sumout not specified, the filename specified by out is used with .sum suffix.\n");
 }
 

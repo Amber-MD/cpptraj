@@ -13,8 +13,9 @@ Action_Contacts::Action_Contacts() :
 { }
 
 void Action_Contacts::Help() {
-  mprintf("contacts [ first | reference | ref <ref> | refindex <#> ] [byresidue]\n");
-  mprintf("         [out <filename>] [time <interval>] [distance <cutoff>] [<mask>]\n");
+  mprintf("\t[ first | reference | ref <ref> | refindex <#> ] [byresidue]\n");
+  mprintf("\t[out <filename>] [time <interval>] [distance <cutoff>] [<mask>]\n");
+  mprintf("\tCalculate contacts for each frame based on a reference.\n");
   mprintf("\tbyresidue: calculate number of contacts for every specified atom and save result per residue\n");
 }
 

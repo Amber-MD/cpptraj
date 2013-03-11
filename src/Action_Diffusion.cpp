@@ -15,7 +15,8 @@ Action_Diffusion::Action_Diffusion() :
 }
 
 void Action_Diffusion::Help() {
-  mprintf("diffusion mask [average] [time <time per frame>]\n");
+  mprintf("\t<mask> <time per frame> [average] [<outfile prefix>]\n");
+  mprintf("\tCompute a mean square displacement plot for the atoms in the mask.\n");
 }
 
 Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
