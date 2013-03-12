@@ -24,10 +24,12 @@ Action_NAstruct::Action_NAstruct() :
 {}
 
 void Action_NAstruct::Help() {
-  mprintf("nastruct [resrange <range>] [naout <nafilename>]\n");
-  mprintf("         [noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n");
-  mprintf("         [hbcut <hbcut>] [origincut <origincut>]\n");
-  mprintf("         [ reference | refindex <#> | ref <REF> ]\n");
+  mprintf("\t[resrange <range>] [naout <nafilename>]\n");
+  mprintf("\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n");
+  mprintf("\t[hbcut <hbcut>] [origincut <origincut>]\n");
+  mprintf("\t[ reference | refindex <#> | ref <REF> ]\n");
+  mprintf("\tPerform nucleic acid structure analysis. Base pairing is determined\n");
+  mprintf("\tfrom specified reference or first frame.\n");
 }
 
 // DESTRUCTOR

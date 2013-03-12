@@ -10,10 +10,11 @@ Action_Projection::Action_Projection() :
 {}
 
 void Action_Projection::Help() {
-  mprintf("projection modes <modesfile> out <outfile>\n");
-  mprintf("           [beg <beg>] [end <end>] [<mask>]\n           ");
+  mprintf("\tmodes <modesfile> out <outfile>\n");
+  mprintf("\t[beg <beg>] [end <end>] [<mask>]\n           ");
   ActionFrameCounter::Help();
   mprintf("\n");
+  mprintf("\tCalculate projection of coordinates along given eigenmodes.\n");
 }
 
 Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
