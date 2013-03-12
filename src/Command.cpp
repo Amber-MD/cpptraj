@@ -87,6 +87,30 @@ static void Help_Help() {
   mprintf("\tlist commands only in that category.\n");
 }
 
+static void Help_System() {
+  mprintf("\tCall command from system.\n");
+}
+
+static void Help_NoProgress() {
+  mprintf("\tDo not print progress while reading in trajectories.\n");
+}
+
+static void Help_NoExitOnError() {
+  mprintf("\tDo not exit when errors are encountered. This is the default\n");
+  mprintf("\tin interactive mode.\n");
+}
+
+static void Help_Run() {
+  mprintf("\tProcess all trajectories currently in input trajectory list.\n");
+  mprintf("\tAll actions in action list will be run on each frame.\n");
+  mprintf("\tIf not processing ensemble input, all analyses in analysis\n");
+  mprintf("\tlist will be run after trajectory processing.\n");
+}
+
+static void Help_Quit() {
+  mprintf("\tExit CPPTRAJ\n");
+}
+
 static const char TypeList[] =
   "(<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)";
 
@@ -120,9 +144,28 @@ static void Help_Create_DataFile() {
   mprintf("\timmediately write the data.\n");
 }
 
+static void Help_DataFile() {
+  mprintf("\t<data filename> <datafile cmd>\n");
+  mprintf("\tPass <datafile cmd> to specified data file currently in data file list.\n");
+}
+
+static void Help_ReadData() {
+  mprintf("\t<filename>\n");
+  mprintf("\tRead data from <filename> into data sets.\n");
+}
+
+static void Help_ReadInput() {
+  mprintf("\t<filename>\n");
+  mprintf("\tRead commands from <filename>\n");
+}
+
 static void Help_Write_DataFile() {
   mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
   mprintf("\tWrite specified data sets to <filename> immediately.\n");
+}
+
+static void Help_WriteData() {
+  mprintf("\tWrite all files currently in the data file list.\n");
 }
 
 static void Help_Precision() {
@@ -131,6 +174,13 @@ static void Help_Precision() {
   mprintf("\tspecified by <dataset arg> to <width>.<precision>. If width/precision\n");
   mprintf("\tnot specified default to 12.4\n");
 }
+
+static void Help_Select() {
+  mprintf("\t[<parmindex>] <mask>\n");
+  mprintf("\tShow atom numbers selected by <mask> for parm <parmindex>\n");
+  mprintf("\t(default first parm)\n");
+}
+
 static void Help_SelectDS() {
   mprintf("\t<dataset selection>\n");
   mprintf("\tShow results of data set selection. Data set selection format is:\n");
@@ -251,31 +301,31 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::GENERAL, "crdaction",     0, Help_CrdAction,       CRDACTION    },
   { DispatchObject::GENERAL, "crdout",        0, Help_CrdOut,          CRDOUT       },
   { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE       },
-  { DispatchObject::GENERAL, "datafile",      0, 0,                    DATAFILE     },
+  { DispatchObject::GENERAL, "datafile",      0, Help_DataFile,        DATAFILE     },
   { DispatchObject::GENERAL, "debug",         0, Help_Debug,           DEBUG        },
-  { DispatchObject::GENERAL, "exit" ,         0, 0,                    QUIT         },
-  { DispatchObject::GENERAL, "gnuplot",       0, 0,                    SYSTEM       },
-  { DispatchObject::GENERAL, "go",            0, 0,                    RUN          },
-  { DispatchObject::GENERAL, "head",          0, 0,                    SYSTEM       },
+  { DispatchObject::GENERAL, "exit" ,         0, Help_Quit,            QUIT         },
+  { DispatchObject::GENERAL, "gnuplot",       0, Help_System,          SYSTEM       },
+  { DispatchObject::GENERAL, "go",            0, Help_Run,             RUN          },
+  { DispatchObject::GENERAL, "head",          0, Help_System,          SYSTEM       },
   { DispatchObject::GENERAL, "help",          0, Help_Help,            HELP         },
   { DispatchObject::GENERAL, "list",          0, Help_List,            LIST         },
   { DispatchObject::GENERAL, "loadcrd",       0, Help_LoadCrd,         LOADCRD      },
-  { DispatchObject::GENERAL, "ls",            0, 0,                    SYSTEM       },
-  { DispatchObject::GENERAL, "noexitonerror", 0, 0,                    NOEXITERR    },
-  { DispatchObject::GENERAL, "noprogress",    0, 0,                    NOPROG       },
+  { DispatchObject::GENERAL, "ls",            0, Help_System,          SYSTEM       },
+  { DispatchObject::GENERAL, "noexitonerror", 0, Help_NoExitOnError,   NOEXITERR    },
+  { DispatchObject::GENERAL, "noprogress",    0, Help_NoProgress,      NOPROG       },
   { DispatchObject::GENERAL, "precision",     0, Help_Precision,       PRECISION    },
   { DispatchObject::GENERAL, "prnlev",        0, Help_Debug,           DEBUG        },
-  { DispatchObject::GENERAL, "pwd",           0, 0,                    SYSTEM       },
-  { DispatchObject::GENERAL, "quit" ,         0, 0,                    QUIT         },
-  { DispatchObject::GENERAL, "readdata",      0, 0,                    READDATA     },
-  { DispatchObject::GENERAL, "readinput",     0, 0,                    READINPUT    },
-  { DispatchObject::GENERAL, "run"   ,        0, 0,                    RUN          },
+  { DispatchObject::GENERAL, "pwd",           0, Help_System,          SYSTEM       },
+  { DispatchObject::GENERAL, "quit" ,         0, Help_Quit,            QUIT         },
+  { DispatchObject::GENERAL, "readdata",      0, Help_ReadData,        READDATA     },
+  { DispatchObject::GENERAL, "readinput",     0, Help_ReadInput,       READINPUT    },
+  { DispatchObject::GENERAL, "run"   ,        0, Help_Run,             RUN          },
   { DispatchObject::GENERAL, "runanalysis",   0, Help_RunAnalysis,     RUN_ANALYSIS },
-  { DispatchObject::GENERAL, "select",        0, 0,                    SELECT       },
+  { DispatchObject::GENERAL, "select",        0, Help_Select,          SELECT       },
   { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS,        SELECTDS     },
   { DispatchObject::GENERAL, "write",         0, Help_Write_DataFile,  WRITE        },
-  { DispatchObject::GENERAL, "writedata",     0, 0,                    WRITEDATA    },
-  { DispatchObject::GENERAL, "xmgrace",       0, 0,                    SYSTEM       },
+  { DispatchObject::GENERAL, "writedata",     0, Help_WriteData,       WRITEDATA    },
+  { DispatchObject::GENERAL, "xmgrace",       0, Help_System,          SYSTEM       },
   // TRAJECTORY COMMANDS
   { DispatchObject::TRAJ,   "ensemble",      0, Help_Ensemble,        TRAJIN     },
   { DispatchObject::TRAJ,   "reference",     0, Help_Reference,       REFERENCE  },
