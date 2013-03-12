@@ -34,6 +34,7 @@ void Action_Rmsd::Help() {
   mprintf("\treftraj <filename> [parm <parmname> | parmindex <#>] ]\n");
   mprintf("\t[ perres perresout <filename> [range <res range>] [refrange <ref res range>]\n");
   mprintf("\t[perresmask <addtl mask>] [perresinvert] [perrescenter] perresavg <pravg> ]\n");
+  mprintf("\tCalculate coordinate root-mean-squared deviation of atoms in <mask>\n");
 }
 
 // Action_Rmsd::init()

@@ -6,7 +6,8 @@
 Action_Rotate::Action_Rotate() { }
 
 void Action_Rotate::Help() {
-  mprintf("rotate [<mask>] [x <xdeg>] [y <ydeg>] [z <zdeg>]\n");
+  mprintf("\t[<mask>] [x <xdeg>] [y <ydeg>] [z <zdeg>]\n");
+  mprintf("\tRotate atoms in <mask> around x, y, and/or z axes.\n");
 }
 
 Action::RetType Action_Rotate::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,

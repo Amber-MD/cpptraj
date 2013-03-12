@@ -29,8 +29,8 @@ Action_Watershell::~Action_Watershell() {
 #endif
 
 void Action_Watershell::Help() {
-  mprintf("watershell <solutemask> <filename> [lower <lower cut>] [upper <upper cut>]\n");
-  mprintf("           [noimage] [<solventmask>]\n");
+  mprintf("\t<solutemask> <filename> [lower <lower cut>] [upper <upper cut>]\n");
+  mprintf("\t[noimage] [<solventmask>]\n");
   mprintf("\tCalculate # of waters in 1st and 2nd solvation shells.\n");
 }
 

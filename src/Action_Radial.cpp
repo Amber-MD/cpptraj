@@ -32,9 +32,12 @@ Action_Radial::Action_Radial() :
 {} 
 
 void Action_Radial::Help() {
-  mprintf("radial <outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]\n");
-  mprintf("       [density <density> | volume] [center1] [<name>]\n");
-  mprintf("       [intrdf <file>] [rawrdf <file>]\n");
+  mprintf("\t<outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]\n");
+  mprintf("\t[density <density> | volume] [center1] [<name>]\n");
+  mprintf("\t[intrdf <file>] [rawrdf <file>]\n");
+  mprintf("\tCalculate the radial distribution function of atoms in <mask1>\n");
+  mprintf("\tfrom all other atoms in <mask1>, or atoms in <mask2> if\n");
+  mprintf("\tspecified.\n");
 }
 
 // DESTRUCTOR

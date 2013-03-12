@@ -14,9 +14,10 @@ Action_Vector::Action_Vector() :
 {}
 
 void Action_Vector::Help() {
-  mprintf("vector [<name>] [out <filename> [ptrajoutput]]\n");
-  mprintf("       [{ principal [x|y|z] | dipole | box | corrplane | ired]\n");
-  mprintf("       <mask1> [<mask2>]\n");
+  mprintf("\t[<name>] [out <filename> [ptrajoutput]]\n");
+  mprintf("\t[{ principal [x|y|z] | dipole | box | corrplane | ired]\n");
+  mprintf("\t<mask1> [<mask2>]\n");
+  mprintf("\tCalculate the specified coordinate vector.\n");
 }
 
 // DESTRUCTOR

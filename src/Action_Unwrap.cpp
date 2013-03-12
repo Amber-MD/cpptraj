@@ -9,7 +9,9 @@ Action_Unwrap::Action_Unwrap() :
 { }
 
 void Action_Unwrap::Help() {
-  mprintf("unwrap [{reference | ref <refname> | refindex <#>}] [<mask>]\n");
+  mprintf("\t[{reference | ref <refname> | refindex <#>}] [<mask>]\n");
+  mprintf("\tReverse of 'image'; unwrap coordinates in <mask> according\n");
+  mprintf("\tto a reference structure.\n");
 }
 
 Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,

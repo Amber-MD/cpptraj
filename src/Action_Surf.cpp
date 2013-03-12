@@ -11,7 +11,7 @@
 Action_Surf::Action_Surf() : surf_(0) {} 
 
 void Action_Surf::Help() {
-  mprintf("surf <name> <mask1> [out filename]\n");
+  mprintf("\t<name> <mask1> [out filename]\n");
   mprintf("\tCalculate LCPO surface area of atoms in <mask1>\n");
 }
 

@@ -31,7 +31,7 @@ class Action_Unstrip: public Action {
   public:
     Action_Unstrip() {}
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Unstrip(); }
-    static void Help() { }
+    static void Help();
 
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,

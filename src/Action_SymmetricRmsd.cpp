@@ -11,6 +11,7 @@ void Action_SymmetricRmsd::Help() {
   mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n");
   mprintf("\t[ first | ref <filename> | refindex <#> |\n");
   mprintf("\treftraj <filename> [parm <parmname> | parmindex <#>] ]\n");
+  mprintf("\tPerform symmetry-corrected RMSD calculation.\n");
 }
 
 // Action_SymmetricRmsd::Init()
