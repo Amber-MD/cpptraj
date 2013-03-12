@@ -15,8 +15,11 @@ Analysis_RmsAvgCorr::Analysis_RmsAvgCorr() :
 { } 
 
 void Analysis_RmsAvgCorr::Help() {
-  mprintf("rmsavgcorr [crdset <crd set>] [<mask>] [out <filename>] [output <separatename>]\n");
-  mprintf("<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("\t[crdset <crd set>] [<mask>] [out <filename>] [output <separatename>]\n");
+  mprintf("\tCalculate the RMS average correlation, i.e. the average RMSD\n");
+  mprintf("\tof structures which have been averaged over increasing numbers\n");
+  mprintf("\tof frames.\n");
+  mprintf("\t<crd set> can be created with the 'createcrd' command.\n");
 }
 
 Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,

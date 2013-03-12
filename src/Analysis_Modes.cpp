@@ -17,9 +17,10 @@ Analysis_Modes::Analysis_Modes() :
 {}
 
 void Analysis_Modes::Help() {
-  mprintf("modes {fluct|displ|corr} name <modesname>\n"); 
-  mprintf("      [beg <beg>] [end <end>] [bose] [factor <factor>]\n");
-  mprintf("      [out <outfile>] [maskp <mask1> <mask2> [...]]\n");
+  mprintf("\t{fluct|displ|corr} name <modesname>\n"); 
+  mprintf("\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n");
+  mprintf("\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n");
+  mprintf("\tPerform one of the following analysis on calculated Eigenmodes.\n");
   mprintf("\tfluct: rms fluctations from normal modes\n");
   mprintf("\tdispl: displacement of cartesian coordinates along normal mode directions\n");
   mprintf(" Results vector usage:\n");

@@ -20,9 +20,10 @@ Analysis_Timecorr::Analysis_Timecorr() :
 {}
 
 void Analysis_Timecorr::Help() {
-  mprintf("timecorr vec1 <vecname1> [vec2 <vecname2>] out <filename>\n");
-  mprintf("         [order <order>] tstep <tstep> tcorr <tcorr>\n");
-  mprintf("         [dplr] [norm] [drct]\n");
+  mprintf("\tvec1 <vecname1> [vec2 <vecname2>] out <filename>\n");
+  mprintf("\t[order <order>] tstep <tstep> tcorr <tcorr>\n");
+  mprintf("\t[dplr] [norm] [drct]\n");
+  mprintf("\tCalculate auto or cross-correlation function for specified vectors.\n");
 }
 
 // Analysis_TimeCorr::CalculateAverages()

@@ -11,7 +11,7 @@ Analysis_Statistics::Analysis_Statistics() :
 {}
 
 void Analysis_Statistics::Help() {
-  mprintf("stat {<name> | all} [shift <value>] [out <filename>]\n");
+  mprintf("\t{<name> | all} [shift <value>] [out <filename>]\n");
 }
 
 // Analysis_Statistics::Setup()

@@ -34,7 +34,7 @@ Analysis_Clustering::~Analysis_Clustering() {
 }
 
 void Analysis_Clustering::Help() {
-  mprintf("cluster [crdset <crd set>]\n");
+  mprintf("\t[crdset <crd set>]\n");
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
@@ -48,8 +48,8 @@ void Analysis_Clustering::Help() {
   mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
   mprintf("\t[ repout <repprefix> [repfmt <repfmt>] ]\n");
-  mprintf("Cluster structures based on coordinates (RMSD/DME) or given DataSet(s).\n");
-  mprintf("<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("\tCluster structures based on coordinates (RMSD/DME) or given data set(s).\n");
+  mprintf("\t<crd set> can be created with the 'createcrd' command.\n");
 }
 
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";

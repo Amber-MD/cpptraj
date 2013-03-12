@@ -10,8 +10,9 @@ Analysis_AutoCorr::Analysis_AutoCorr() :
 {}
 
 void Analysis_AutoCorr::Help() {
-  mprintf("autocorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] [out <filename>]\n");
-  mprintf("         [lagmax <lag>] [nocovar] [direct]\n");
+  mprintf("\t[name <dsetname>] <dsetarg0> [<dsetarg1> ...] [out <filename>]\n");
+  mprintf("\t[lagmax <lag>] [nocovar] [direct]\n");
+  mprintf("\tCalculate autocorrelation for selected data set(s)\n");
 }
 
 Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,

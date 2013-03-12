@@ -12,9 +12,11 @@ Analysis_Lifetime::Analysis_Lifetime() :
 {}
 
 void Analysis_Lifetime::Help() {
-  mprintf("lifetime [out <filename>] <dsetarg0> [ <dsetarg1> ... ]\n");
-  mprintf("         [window <windowsize> [name <setname>]] [averageonly]\n");
-  mprintf("         [cumulative] [cut <cutoff>]\n");
+  mprintf("\t[out <filename>] <dsetarg0> [ <dsetarg1> ... ]\n");
+  mprintf("\t[window <windowsize> [name <setname>]] [averageonly]\n");
+  mprintf("\t[cumulative] [cut <cutoff>]\n");
+  mprintf("\tCalculate lifetimes for specified data set(s) (time data is > <cutoff>,\n");
+  mprintf("\tdefault 0.5) over windows of given size.\n");
 }
 
 Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,

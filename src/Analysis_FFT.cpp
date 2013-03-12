@@ -13,7 +13,8 @@ Analysis_FFT::Analysis_FFT() :
 {}
 
 void Analysis_FFT::Help() {
-  mprintf("fft <dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] [dt <samp_int>]\n");
+  mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] [dt <samp_int>]\n");
+  mprintf("\tPerform fast-Fourier transformation of data set(s)\n");
 }
 
 // Analysis_FFT::Setup()

@@ -13,6 +13,7 @@ Analysis_RunningAvg::Analysis_RunningAvg() :
 void Analysis_RunningAvg::Help() {
   mprintf("\t<dset1> [<dset2> ...] [name <dsetname>] [out <filename>]\n");
   mprintf("\t[ [cumulative] | [window <window>] ]\n");
+  mprintf("\tCalculate running average of data in selected data set(s)\n");
 }
 
 Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, 
