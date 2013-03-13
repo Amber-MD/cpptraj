@@ -255,7 +255,8 @@ class Frame {
 
     Vec3 SetAxisOfRotation(int, int);
     Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&) const;
-
+    // Velocity routines
+    double Temperature(AtomMask const&);
   private:
     typedef std::vector<double> Darray;
     static const size_t COORDSIZE_;

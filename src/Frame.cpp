@@ -1034,3 +1034,23 @@ void Frame::SwapAtoms(int at1, int at2) {
   x = Mass_[at1];
   Mass_[at1] = Mass_[at2]; Mass_[at2] = x;
 }
+
+// Frame::Temperature
+double Frame::Temperature(AtomMask const& mask) {
+  if (V_==0) return 0.0;
+  if (mask.None()) return 0.0;
+  double boltz2 = 0.00831441 * 0.5;
+  boltz2 /= 4.184;
+  double onefac = 1.0 / (boltz2 * 3 * mask.Nselected());
+  double total_KE = 0.0;
+  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
+    int idx = *atom * 3;
+    double vx = V_[idx  ];
+    double vy = V_[idx+1];
+    double vz = V_[idx+2];
+    double v2 = vx*vx + vy*vy + vz*vz;
+    total_KE += v2 * Mass_[*atom];
+  }
+  total_KE *= onefac; 
+  return total_KE;
+}

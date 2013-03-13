@@ -59,6 +59,7 @@
 #include "Action_SymmetricRmsd.h"
 #include "Action_Volmap.h"
 #include "Action_Spam.h"
+#include "Action_Temperature.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -404,6 +405,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, 0 },
   { DispatchObject::ACTION, "surf", Action_Surf::Alloc, Action_Surf::Help, 0 },
   { DispatchObject::ACTION, "symmrmsd", Action_SymmetricRmsd::Alloc, Action_SymmetricRmsd::Help, 0 },
+  { DispatchObject::ACTION, "temperature", Action_Temperature::Alloc, Action_Temperature::Help, 0 },
   { DispatchObject::ACTION, "trans", Action_Translate::Alloc, Action_Translate::Help, 0 },
   { DispatchObject::ACTION, "translate", Action_Translate::Alloc, Action_Translate::Help, 0 },
   { DispatchObject::ACTION, "unstrip", Action_Unstrip::Alloc, Action_Unstrip::Help, 0 },
