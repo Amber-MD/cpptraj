@@ -17,8 +17,7 @@ depend: findDepend
 	./findDepend $(SOURCES) $(CSOURCES) > cpptrajdepend
 
 dependclean:
-	-/bin/rm FindDepend.o
-	-/bin/rm findDepend
+	/bin/rm -f FindDepend.o findDepend
 
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(READLINE)
 	$(CXX) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
