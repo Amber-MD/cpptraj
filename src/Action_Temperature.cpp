@@ -3,7 +3,8 @@
 
 Action_Temperature::Action_Temperature() :
   Tdata_(0),
-  ntc_(1)
+  ntc_(1),
+  degrees_of_freedom_(0)
 {}
 
 void Action_Temperature::Help() {
@@ -39,6 +40,10 @@ Action::RetType Action_Temperature::Setup(Topology* currentParm, Topology** parm
     mprintf("Warning: temperature: No atoms selected in [%s]\n", Mask_.MaskString());
     return Action::ERR;
   }
+  // Calculate degrees of freedom
+  // Just estimate for now, 3N - 6
+  degrees_of_freedom_ = (3 * Mask_.Nselected()) - 6;
+  mprintf("\t# of degrees of freedom = %i\n", degrees_of_freedom_);
   return Action::OK;
 }
 
@@ -46,7 +51,7 @@ Action::RetType Action_Temperature::Setup(Topology* currentParm, Topology** parm
 Action::RetType Action_Temperature::DoAction(int frameNum, Frame* currentFrame, 
                                              Frame** frameAddress) 
 {
-  double tdata = currentFrame->Temperature(Mask_);
+  double tdata = currentFrame->Temperature(Mask_, degrees_of_freedom_);
   Tdata_->Add(frameNum, &tdata);
   return Action::OK;
 }

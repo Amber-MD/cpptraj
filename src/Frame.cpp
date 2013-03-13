@@ -1036,12 +1036,11 @@ void Frame::SwapAtoms(int at1, int at2) {
 }
 
 // Frame::Temperature
-double Frame::Temperature(AtomMask const& mask) {
+double Frame::Temperature(AtomMask const& mask, int deg_of_freedom) {
   if (V_==0) return 0.0;
   if (mask.None()) return 0.0;
-  double boltz2 = 0.00831441 * 0.5;
-  boltz2 /= 4.184;
-  double onefac = 1.0 / (boltz2 * 3 * mask.Nselected());
+  double boltz2 = 0.00831441 * 0.5 / 4.184;
+  double fac = boltz2 * deg_of_freedom; // Estimate for DoF
   double total_KE = 0.0;
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
     int idx = *atom * 3;
@@ -1049,8 +1048,8 @@ double Frame::Temperature(AtomMask const& mask) {
     double vy = V_[idx+1];
     double vz = V_[idx+2];
     double v2 = vx*vx + vy*vy + vz*vz;
-    total_KE += v2 * Mass_[*atom];
+    total_KE += (v2 * Mass_[*atom]);
   }
-  total_KE *= onefac; 
-  return total_KE;
+  total_KE *= 0.5; 
+  return total_KE / fac;
 }

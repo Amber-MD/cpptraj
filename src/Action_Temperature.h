@@ -17,5 +17,6 @@ class Action_Temperature : public Action {
     DataSet* Tdata_;
     AtomMask Mask_;
     int ntc_;
+    int degrees_of_freedom_;
 };
 #endif
