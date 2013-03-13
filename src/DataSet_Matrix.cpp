@@ -156,7 +156,7 @@ size_t DataSet_Matrix::calcHalfIndex(size_t ncols, size_t row, size_t col) {
 // DataSet_Matrix::Write2D()
 void DataSet_Matrix::Write2D( CpptrajFile& outfile, int x, int y ) {
   size_t index = calcIndex(ncols_, x, y);
-  if (index < 0 || index >= matsize_)
+  if (index >= matsize_)
     outfile.Printf(data_format_, 0.0);
   else
     outfile.Printf(data_format_, mat_[index]);
