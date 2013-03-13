@@ -1039,9 +1039,10 @@ void Frame::SwapAtoms(int at1, int at2) {
 double Frame::Temperature(AtomMask const& mask, int deg_of_freedom) {
   if (V_==0) return 0.0;
   if (mask.None()) return 0.0;
-  double boltz2 = 0.00831441 * 0.5 / 4.184;
-  double fac = boltz2 * deg_of_freedom; // Estimate for DoF
+  //double boltz2 = 0.00831441 * 0.5 / 4.184;
+  double fac = BOLTZ2 * deg_of_freedom; // Estimate for DoF
   double total_KE = 0.0;
+  //mprintf("|DEBUG: vxyz0 %10.4f%10.4f%10.4f\n", V_[0], V_[1], V_[2]);
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
     int idx = *atom * 3;
     double vx = V_[idx  ];
@@ -1050,6 +1051,7 @@ double Frame::Temperature(AtomMask const& mask, int deg_of_freedom) {
     double v2 = vx*vx + vy*vy + vz*vz;
     total_KE += (v2 * Mass_[*atom]);
   }
-  total_KE *= 0.5; 
+  total_KE *= 0.5;
+  //mprintf("|DEBUG temp si fac %10.4f%10.4f%10.4f\n", total_KE/fac,total_KE,fac);
   return total_KE / fac;
 }

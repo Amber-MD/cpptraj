@@ -3,7 +3,7 @@
 
 Action_Temperature::Action_Temperature() :
   Tdata_(0),
-  ntc_(1),
+  shakeType_(OFF),
   degrees_of_freedom_(0)
 {}
 
@@ -11,12 +11,24 @@ void Action_Temperature::Help() {
   mprintf("\t[<name>] [<mask>] [ntc <#>] [out <filename>]\n");
 }
 
+static const char* ShakeString[] = {
+  "off", "bonds to H", "all bonds"
+};
+
 // Action_Temperature::Init()
 Action::RetType Action_Temperature::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Keywords
-  ntc_ = actionArgs.getNextInteger(1);
+  int ntc = actionArgs.getKeyInt("ntc",-1);
+  if (ntc != -1) {
+    if (ntc < 1 || ntc > 3) {
+      mprinterr("Error: temperature: ntc must be 1, 2, or 3\n");
+      return Action::ERR;
+    }
+    shakeType_ = (ShakeType)(ntc - 1);
+  } else
+    shakeType_ = OFF;
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Masks
   Mask_.SetMaskString( actionArgs.GetMaskNext() );
@@ -26,7 +38,7 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, TopologyList* PFL,
   if (outfile != 0) outfile->AddSet( Tdata_ );
 
   mprintf("    TEMPERATURE: Calculate temperature for atoms in mask [%s]\n", Mask_.MaskString());
-  mprintf("\tUsing SHAKE (ntc) value of %i\n", ntc_);
+  mprintf("\tUsing SHAKE (ntc) value of [%s]\n", ShakeString[shakeType_]);
   return Action::OK;
 }
 

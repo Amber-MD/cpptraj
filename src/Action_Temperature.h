@@ -8,6 +8,7 @@ class Action_Temperature : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Temperature(); }
     static void Help();
   private:
+    enum ShakeType {OFF = 0, BONDS_TO_H, ALL_BONDS};
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
@@ -16,7 +17,7 @@ class Action_Temperature : public Action {
 
     DataSet* Tdata_;
     AtomMask Mask_;
-    int ntc_;
+    ShakeType shakeType_;
     int degrees_of_freedom_;
 };
 #endif
