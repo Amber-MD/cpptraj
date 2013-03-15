@@ -462,13 +462,28 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   ncoord_ = natom_ * 3;
   double* newXptr = X_;
   Darray::iterator newmass = Mass_.begin();
-  for (std::vector<int>::const_iterator refatom = mapIn.begin(); 
-                                        refatom != mapIn.end(); ++refatom)
-  {
-    memcpy( newXptr, tgtIn.X_ + ((*refatom) * 3), COORDSIZE_ );
-    newXptr += 3;
-    *(newmass++) = tgtIn.Mass_[*refatom];
-    // TODO: Copy velocities
+  if (tgtIn.V_ != 0 && V_ != 0) {
+    // Copy Coords/Mass/Velo
+    double *newVptr = V_;
+    for (std::vector<int>::const_iterator refatom = mapIn.begin();
+                                          refatom != mapIn.end(); ++refatom)
+    {
+      int idx = ((*refatom) * 3);
+      memcpy( newXptr, tgtIn.X_ + idx, COORDSIZE_ );
+      newXptr += 3;
+      memcpy( newVptr, tgtIn.V_ + idx, COORDSIZE_ );
+      newVptr += 3;
+      *(newmass++) = tgtIn.Mass_[*refatom];
+    }
+  } else {
+    // Copy Coords/Mass only
+    for (std::vector<int>::const_iterator refatom = mapIn.begin(); 
+                                          refatom != mapIn.end(); ++refatom)
+    {
+      memcpy( newXptr, tgtIn.X_ + ((*refatom) * 3), COORDSIZE_ );
+      newXptr += 3;
+      *(newmass++) = tgtIn.Mass_[*refatom];
+    }
   }
 }
 
@@ -611,9 +626,7 @@ void Frame::Divide(double divisor) {
 }
 
 // Frame::AddByMask()
-/** Increment atoms in this frame by the selected atoms in given frame.
-  */
-// TODO: Should this be removed in favor of SetByMask followed by '+='?
+/** Increment atoms in this frame by the selected atoms in given frame. */
 void Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
   if (maskIn.Nselected() > maxnatom_) {
     mprinterr("Error: AddByMask: Input mask #atoms (%i) > frame #atoms (%i)\n",
