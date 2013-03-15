@@ -1,8 +1,7 @@
 #ifndef INC_IMAGEROUTINES_H
 #define INC_IMAGEROUTINES_H
 #include "Frame.h"
-// TODO: Make Frame const
-Vec3 SetupImageTruncoct( Frame&, AtomMask*, bool, bool);
+Vec3 SetupImageTruncoct( Frame const&, AtomMask*, bool, bool);
 void ImageNonortho(Frame&, bool, Vec3 const&, Matrix_3x3 const&, Matrix_3x3 const&,
                    bool, bool, bool, std::vector<int> const&);
 Vec3 ImageNonortho(Vec3 const&, bool, bool,
