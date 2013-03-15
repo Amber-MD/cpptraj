@@ -8,9 +8,9 @@
 Action_SymmetricRmsd::Action_SymmetricRmsd() : debug_(0) {}
 
 void Action_SymmetricRmsd::Help() {
-  mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n");
+  mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [nofit | norotate] [mass]\n");
   mprintf("\t[ first | ref <filename> | refindex <#> |\n");
-  mprintf("\treftraj <filename> [parm <parmname> | parmindex <#>] ]\n");
+  mprintf("\t  reftraj <trajname> [parm <parmname> | parmindex <#>] ]\n");
   mprintf("\tPerform symmetry-corrected RMSD calculation.\n");
 }
 

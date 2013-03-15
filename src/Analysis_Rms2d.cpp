@@ -19,7 +19,8 @@ Analysis_Rms2d::Analysis_Rms2d() :
 { } 
 
 void Analysis_Rms2d::Help() {
-  mprintf("\t[crdset <crd set>] [<mask>] [out <filename>] [nofit] [mass] [dme]\n");
+  mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>]\n");
+  mprintf("\t[dme] [mass] [nofit]\n");
   mprintf("\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n");
   mprintf("\t[corr <corrfilename>]\n");
   mprintf("\tCalculate RMSD between all frames in <crd set>, or between frames in\n");
@@ -123,7 +124,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
         mprintf(" (mass-weighted)");
   }
   if (rmsdFile != 0) 
-    mprintf(" output to %s",rmsdFile->Filename());
+    mprintf(", output to %s",rmsdFile->Filename());
   mprintf("\n");
   if (corrfile != 0)
     mprintf("           RMSD auto-correlation will be calculated and output to %s\n",

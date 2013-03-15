@@ -38,19 +38,19 @@ void Action_MakeStructure::Help() {
   mprintf("\t<List of Args>\n");
   mprintf("\tApply dihedrals to specified residues using arguments found in <List of Args>,\n");
   mprintf("\twhere an argument is 1 or more of the following arg types:\n");
-  mprintf("\t{<sstype>:<res range>} Apply SS type (phi/psi) to residue range.\n");
+  mprintf("\t'<sstype>:<res range>' Apply SS type (phi/psi) to residue range.\n");
   mprintf("\t\t<sstype> standard = alpha, left, pp2, hairpin, extended\n");
   mprintf("\t\t<sstype> turn = typeI, typeII, typeVIII, typeI', typeII,\n");
   mprintf("\t\t                typeVIa1, typeVIa2, typeVIb\n");
   mprintf("\t\tTurns are applied to 2 residues at a time, so resrange must be divisible by 4.\n");
-  mprintf("\t{<custom ss>:<res range>:<phi>:<psi>} Apply custom <phi>/<psi> to residue range.\n");
-  mprintf("\t{<custom turn>:<res range>:<phi1>:<psi1>:<phi2>:<psi2>} Apply custom <phi>/<psi> to residue range.\n");
-  mprintf("\t{<custom dih>:<res range>:<dih type>:<angle>} Apply <angle> to dihedrals in range.\n");
+  mprintf("\t'<custom ss>:<res range>:<phi>:<psi>' Apply custom <phi>/<psi> to residue range.\n");
+  mprintf("\t'<custom turn>:<res range>:<phi1>:<psi1>:<phi2>:<psi2>' Apply custom turn <phi>/<psi> pair to residue range.\n");
+  mprintf("\t'<custom dih>:<res range>:<dih type>:<angle>' Apply <angle> to dihedrals in range.\n");
   mprintf("\t\t<dih type> =");
   DihedralSearch::ListKnownTypes();
-  mprintf("\t{<custom dih>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]}\n");
+  mprintf("\t'<custom dih>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]' Apply <angle> to dihedral defined by atoms <at1>, <at2>, <at3>, and <at4>.\n");
   DihedralSearch::OffsetHelp();
-  mprintf("\t{ref:<range>:<refname>[:<ref range>]} Apply dihedrals from reference <refname>.\n");
+  mprintf("\t'ref:<range>:<refname>[:<ref range>]' Apply dihedrals from reference <refname>.\n");
 }
 
 // Action_MakeStructure::Init()

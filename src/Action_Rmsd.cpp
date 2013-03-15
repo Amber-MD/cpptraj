@@ -31,9 +31,10 @@ Action_Rmsd::~Action_Rmsd() {
 void Action_Rmsd::Help() {
   mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n");
   mprintf("\t[ first | ref <filename> | refindex <#> |\n");
-  mprintf("\treftraj <filename> [parm <parmname> | parmindex <#>] ]\n");
-  mprintf("\t[ perres perresout <filename> [range <res range>] [refrange <ref res range>]\n");
-  mprintf("\t[perresmask <addtl mask>] [perresinvert] [perrescenter] perresavg <pravg> ]\n");
+  mprintf("\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n");
+  mprintf("\t[perres perresout <filename> [perresavg <avgfile>]\n");
+  mprintf("\t [range <resRange>] [refrange <refRange>]\n");
+  mprintf("\t [perresmask <additional mask>] [perrescenter] [perresinvert]\n");
   mprintf("\tCalculate coordinate root-mean-squared deviation of atoms in <mask>\n");
 }
 

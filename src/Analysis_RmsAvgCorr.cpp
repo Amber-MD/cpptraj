@@ -15,7 +15,8 @@ Analysis_RmsAvgCorr::Analysis_RmsAvgCorr() :
 { } 
 
 void Analysis_RmsAvgCorr::Help() {
-  mprintf("\t[crdset <crd set>] [<mask>] [out <filename>] [output <separatename>]\n");
+  mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>] [mass]\n");
+  mprintf("\t[stop <maxwindow>]\n");
   mprintf("\tCalculate the RMS average correlation, i.e. the average RMSD\n");
   mprintf("\tof structures which have been averaged over increasing numbers\n");
   mprintf("\tof frames.\n");

@@ -6,12 +6,12 @@
 
 Analysis_CrdFluct::Analysis_CrdFluct() : 
   coords_(0),
-  bfactor_(true),
+  bfactor_(false),
   windowSize_(-1)
 {}
 
 void Analysis_CrdFluct::Help() {
-  mprintf("\t[crdset <crd set>] [<mask>] [out <filename>] [window <size>]\n");
+  mprintf("\t[crdset <crd set>] [<mask>] [out <filename>] [window <size>] [bfactor]\n");
   mprintf("\tCalculate atomic positional fluctuations for atoms in <mask>\n");
   mprintf("\tover windows of specified size.\n");
   mprintf("\t<crd set> can be created with the 'createcrd' command.\n");
@@ -21,6 +21,7 @@ void Analysis_CrdFluct::Help() {
 Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
+  bfactor_ = analyzeArgs.hasKey("bfactor");
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
   coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
