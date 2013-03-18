@@ -16,11 +16,12 @@ class Action_Vector : public Action {
     enum vectorMode {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
       DIPOLE,    BOX,         MASK,        IRED,
-      CORRPLANE, CORR,        CORRIRED
+      CORRPLANE, CENTER 
     };
     static const char* ModeString[];
 
     DataSet_Vector* Vec_;
+    DataSet* Magnitude_;
     double* vcorr_;
     vectorMode mode_;
     bool ptrajoutput_;
@@ -41,6 +42,5 @@ class Action_Vector : public Action {
     void Dipole(Frame const&);
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
-    void Box(Frame const&);
 };
 #endif

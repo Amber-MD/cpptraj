@@ -22,7 +22,7 @@ class Cpptraj {
     Mode ProcessCmdLineArgs(int,char**);
     int Run();
   private:
-    static void Usage(const char*);
+    static void Usage();
 
     void Help(ArgList&);
     void ListAction(ArgList&,int);

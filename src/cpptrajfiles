@@ -1,6 +1,6 @@
 SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         Action_AtomMap.cpp Action_AutoImage.cpp Action_Average.cpp \
-        Action_AvgCoord.cpp Action_Bounds.cpp Action_Box.cpp Action_Center.cpp \
+        Action_Bounds.cpp Action_Box.cpp Action_Center.cpp \
         Action_CheckStructure.cpp Action_Contacts.cpp Action_Closest.cpp \
         Action_ClusterDihedral.cpp Action_CreateCrd.cpp Action_Diffusion.cpp \
         Action_Dihedral.cpp Action_Dipole.cpp Action_Distance.cpp \

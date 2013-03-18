@@ -30,7 +30,6 @@
 #include "Action_RunningAvg.h"
 #include "Action_AtomicFluct.h"
 #include "Action_Watershell.h"
-#include "Action_AvgCoord.h"
 #include "Action_Contacts.h"
 #include "Action_Vector.h"
 #include "Action_Principal.h"
@@ -353,7 +352,6 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "atommap", Action_AtomMap::Alloc, Action_AtomMap::Help, 0 },
   { DispatchObject::ACTION, "autoimage", Action_AutoImage::Alloc, Action_AutoImage::Help, 0 },
   { DispatchObject::ACTION, "average", Action_Average::Alloc, Action_Average::Help, 0 },
-  { DispatchObject::ACTION, "avgcoord", Action_AvgCoord::Alloc, Action_AvgCoord::Help, 0 },
   { DispatchObject::ACTION, "bounds", Action_Bounds::Alloc, Action_Bounds::Help, 0 },
   { DispatchObject::ACTION, "box", Action_Box::Alloc, Action_Box::Help, 0 },
   { DispatchObject::ACTION, "center", Action_Center::Alloc, Action_Center::Help, 0 },

@@ -11,19 +11,21 @@
 #include "DataSet_Coords.h" // CrdAction
 #include "Command.h"
 
-void Cpptraj::Usage(const char* programName) {
-  mprinterr("\nUsage: %s [-p <Top1>, -p <Top2>, ...] [-i <Input1>, -i <Input2>, ...]\n",
-            programName);
-  mprinterr(  "       %s <Top> <Input>\n",programName);
-  mprinterr(  "       Additional options:\n");
-  mprinterr(  "         --help, -help : Print usage information and exit.\n");
-  mprinterr(  "         -V, --version : Print version information and exit.\n");
-  mprinterr(  "         --defines     : Print list of defines used in compilation.\n");
-  mprinterr(  "         -debug <N>    : Set global debug level.\n");
-  mprinterr(  "         --interactive : Enter interactive mode.\n");
-  mprinterr(  "         --log <file>  : Record commands used in interactive mode to <file>.\n");
-  mprinterr(  "         -y <file>     : Same as 'trajin <file>'.\n");
-  mprinterr(  "         -x <file>     : Same as 'trajout <file>'.\n");
+void Cpptraj::Usage() {
+  mprinterr("\nUsage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n");
+  mprinterr("               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n");
+  mprinterr("               [--interactive] [--log <logfile>]\n");
+  mprinterr("       cpptraj <Top> <Input>\n");
+  mprinterr("\t-p <Top0>      : Load <Top0> as a topology file. May be specified more than once.\n");
+  mprinterr("\t-i <Input0>    : Read input from <Input0>. May be specified more than once.\n");
+  mprinterr("\t-y <trajin>    : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n");
+  mprinterr("\t-x <trajout>   : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n");
+  mprinterr("\t-h | --help    : Print command line help and exit.\n");
+  mprinterr("\t-V | --version : Print version and exit.\n");
+  mprinterr("\t--defines      : Print compiler defines and exit.\n");
+  mprinterr("\t-debug <#>     : Set global debug level to <#>; same as input 'debug <#>'.\n");
+  mprinterr("\t--interactive  : Force interactive mode.\n");
+  mprinterr("\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n");
 }
 
 // -----------------------------------------------------------------------------
@@ -660,7 +662,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     std::string arg(argv[i]); 
     if ( arg == "--help" || arg == "-h" ) {
       // --help, -help: Print usage and exit
-      Usage( argv[0] );
+      Usage();
       return C_QUIT;
     }
     if ( arg == "-V" || arg == "--version" ) 
@@ -739,7 +741,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     } else {
       // Unrecognized
       mprintf("  Unrecognized input on command line: %i: %s\n", i,argv[i]);
-      Usage(argv[0]);
+      Usage();
       return C_QUIT;
     }
   }
