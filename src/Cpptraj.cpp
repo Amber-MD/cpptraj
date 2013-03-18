@@ -658,7 +658,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   bool interactive = false;
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]); 
-    if ( arg == "--help" || arg == "-help" ) {
+    if ( arg == "--help" || arg == "-h" ) {
       // --help, -help: Print usage and exit
       Usage( argv[0] );
       return C_QUIT;
