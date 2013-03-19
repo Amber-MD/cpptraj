@@ -5,18 +5,43 @@
 // NOTES:
 //   Version 1: Add write of ignore array when reduced. Write nrows and
 //              and nelements as 8 byte integers.
-const unsigned char ClusterMatrix::Magic_[4] = {'C', 'T', 'M', 1};
+//   Version 2: Instead of nrows and nelements, write original nrows
+//              and actual nrows to easily determine if this is a reduced
+//              matrix. Also write sieve value.
+const unsigned char ClusterMatrix::Magic_[4] = {'C', 'T', 'M', 2};
 
-/// CONSTRUCTOR - Set up TriangleMatrix and Ignore array.
-ClusterMatrix::ClusterMatrix(int sizeIn) :
-  TriangleMatrix(sizeIn),
-  ignore_(sizeIn, false)
-{}
+// CONSTRUCTOR
+/** Intended for use with cluster pairwise distance calculations
+  * where frames may be sieved. The underlying TriangleMatrix will
+  * only be set up to hold the actual number of frames based on
+  * the sieve value. The Ignore array will be set up based on
+  * the original number of frames.
+  */
+ClusterMatrix::ClusterMatrix(size_t sizeIn, size_t sieveIn) : sieve_(sieveIn)
+{
+  if (sieve_ < 1) sieve_ = 1;
+  // Sieved distances should be ignored
+  if (sieve_ > 1) {
+    // Determine size of underlying TriangleMatrix
+    size_t actual_nrows = sizeIn / sieve_;
+    if ( (sizeIn % sieve_) > 0 )
+      ++actual_nrows;
+    TriangleMatrix::Setup( actual_nrows );
+    // Set up the ignore array to ignore sieved frames
+    ignore_.assign(sizeIn, true);
+    for (size_t frame = 0; frame < sizeIn; frame += sieve_) 
+      ignore_[frame] = false;
+  } else {
+    TriangleMatrix::Setup( sizeIn );
+    ignore_.assign(sizeIn, false);
+  }
+}
 
 // COPY CONSTRUCTOR
 ClusterMatrix::ClusterMatrix(const ClusterMatrix& rhs) :
   TriangleMatrix(rhs),
-  ignore_(rhs.ignore_)
+  ignore_(rhs.ignore_),
+  sieve_(rhs.sieve_)
 {}
 
 // ASSIGNMENT
@@ -24,13 +49,15 @@ ClusterMatrix& ClusterMatrix::operator=(const ClusterMatrix& rhs) {
   if (this == &rhs) return *this;
   TriangleMatrix::operator=(rhs);
   ignore_ = rhs.ignore_;
+  sieve_ = rhs.sieve_;
   return *this;
 }
 
 // ClusterMatrix::SaveFile()
 /** Save the matrix to a binary file. Format is:
-  *   Data: [4*char][int][int][nelements*float]
-  *   Vars: ['C''T''M'0][nrows][nelements][elements]
+  *     Full: [4*char]     [uint_8] [uint_8]    [uint_8] [nelements*float]
+  *  Reduced: [4*char]     [uint_8] [uint_8]    [uint_8] [nelements*float] [nrows*char]
+  *     Vars: ['C''T''M'X] [nrows]  [nelements] [sieve]  [elements]        [ignore]
   */
 int ClusterMatrix::SaveFile(std::string const& filename) const {
   CpptrajFile outfile;
@@ -46,35 +73,19 @@ int ClusterMatrix::SaveFile(std::string const& filename) const {
   }
   // Write magic byte
   outfile.Write( Magic_, 4 );
-  // Determine if any rows are ignored. Will write reduced matrix if so.
-  int nignored = 0;
-  for (std::vector<bool>::const_iterator ig = ignore_.begin(); ig != ignore_.end(); ++ig) {
-    if (*ig) ++nignored; 
-  }
-  if (nignored > 0) {
-    mprintf("\tSaving reduced matrix with %i rows/cols\n", Nrows() - nignored);
-    //mprintf("Ignoring %i out of %i rows/cols\n", nignored, Nrows()); // DEBUG
-    ClusterMatrix reduced(Nrows() - nignored);
-    for (int row = 0; row < Nrows() - 1; ++row) {
-      if (!ignore_[row]) {
-        for (int col = row + 1; col < Nrows(); ++col) {
-          if (!ignore_[col]) 
-            reduced.AddElement( this->GetElementF(row, col) );
-        }
-      }
-    }
-    // DEBUG - Print reduced matrix
-    //mprintf("Reduced matrix:\n");
-    //reduced.PrintElements();
-    // Write original nrows
-    ntemp = (uint_8)nrows_;
-    outfile.Write( &ntemp, sizeof(uint_8) );
-    // Write reduced # of elements
-    ntemp = (uint_8)reduced.nelements_;
-    outfile.Write( &ntemp, sizeof(uint_8) );
-    // Write reduced matrix elements
-    outfile.Write( reduced.elements_, reduced.nelements_*sizeof(float) );
-    // Write ignore array - convert to char array first
+  // Write original nrows (size of ignore)
+  ntemp = (uint_8)ignore_.size();
+  outfile.Write( &ntemp, sizeof(uint_8) );
+  // Write actual nrows
+  ntemp = (uint_8)Nrows();
+  outfile.Write( &ntemp, sizeof(uint_8) );
+  // Write out sieve value
+  ntemp = (uint_8)sieve_;
+  outfile.Write( &ntemp, sizeof(uint_8) );
+  // Write matrix elements
+  outfile.Write( elements_, Nelements()*sizeof(float) );
+  // If this is a reduced matrix, write the ignore array as chars.
+  if (sieve_ > 1) {
     char* ignore_out = new char[ ignore_.size() ];
     int idx = 0;
     for (std::vector<bool>::const_iterator ig = ignore_.begin(); ig != ignore_.end(); ++ig) 
@@ -84,15 +95,6 @@ int ClusterMatrix::SaveFile(std::string const& filename) const {
         ignore_out[idx++] = 'F';
     outfile.Write( ignore_out, ignore_.size()*sizeof(char) );
     delete[] ignore_out;
-  } else {
-    // Write nrows
-    ntemp = (uint_8)nrows_;
-    outfile.Write( &ntemp, sizeof(uint_8) );
-    // Write number of elements.
-    ntemp = (uint_8)nelements_;
-    outfile.Write( &ntemp, sizeof(uint_8) );
-    // Write matrix elements
-    outfile.Write( elements_, nelements_*sizeof(float) );
   }
   return 0;
 }
@@ -101,8 +103,9 @@ int ClusterMatrix::SaveFile(std::string const& filename) const {
 int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
   unsigned char magic[4];
   CpptrajFile infile;
-  uint_8 ROWS;
-  uint_8 ELTS;
+  uint_8 ROWS, ELTS, SIEVE;
+  size_t actual_nrows = 0;
+  // Open file for reading
   if (infile.OpenRead(filename)) {
     mprinterr("Error: ClusterMatrix::LoadFile: Could not open %s for read.\n", filename.c_str());
     return 1;
@@ -119,11 +122,19 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
     int Ntemp = 0;
     infile.Read( &Ntemp, sizeof(int) );
     ROWS = (uint_8)Ntemp;
+    actual_nrows = (size_t)ROWS;
     infile.Read( &Ntemp, sizeof(int) );
     ELTS = (uint_8)Ntemp;
   } else if (magic[3] == 1) {
     infile.Read( &ROWS, sizeof(uint_8) );
+    actual_nrows = (size_t)ROWS;
     infile.Read( &ELTS, sizeof(uint_8) );
+  } else if (magic[3] == 2) {
+    infile.Read( &ROWS,  sizeof(uint_8) ); // V2: Original Nrows
+    infile.Read( &ELTS,  sizeof(uint_8) ); // V2: Actual Nrows
+    actual_nrows = (size_t)ELTS;
+    infile.Read( &SIEVE, sizeof(uint_8) ); // V2: Sieve
+    sieve_ = (size_t)SIEVE;
   } else {
     mprinterr("Error: ClusterMatrix version %u is not recognized.\n", (unsigned int)magic[3]);
     return 1;
@@ -134,47 +145,44 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
               filename.c_str(), ROWS, sizeIn);
     return 1;
   }
-  // Setup underlying TriangleMatrix
-  Setup( ROWS );
-  SetupIgnore();
-  // Read in matrix
-  if ( nelements_ != (size_t)ELTS ) {
-    if ( magic[3] == 0 ) {
-      mprinterr("Error: ClusterMatrix %s is version 0, does not support sieved data.\n",
-                filename.c_str());
+  if (magic[3] == 0 || magic[3] == 1) {
+    // Version 0/1: Actual # of rows is not known yet. Check that the # elements
+    // in the file match the original # elements (i.e. matrix is not sieved).
+    // If it is sieved this is not supported.
+    uint_8 original_nelements = ( ROWS * (ROWS - 1UL) ) / 2UL;
+    if ( original_nelements != ELTS ) {
+      mprinterr("Error: Sieved data in ClusterMatrix file %s (version %u) not supported.\n",
+                filename.c_str(), (unsigned int)magic[3]);
       return 1;
     }
-    mprintf("Warning: ClusterMatrix %s contains sieved data.\n", filename.c_str());
-    mprintf("\tReading in reduced matrix with %lu elements.\n", ELTS);
-    // Reduced matrix. Need to read elements and ignore array.
-    float* reduced = new float[ ELTS ];
-    infile.Read( reduced, ELTS*sizeof(float) );
-    float* RF = reduced;
-    char* ignore_in = new char[ ROWS ];
-    infile.Read( ignore_in, ROWS*sizeof(char) );
-    for (int row = 0; row < Nrows() - 1; ++row) {
-      if (ignore_in[row] == 'F') {
-        for (int col = row + 1; col < Nrows(); ++col) {
-          if (ignore_in[col] == 'F') 
-            SetElementF( row, col, *(RF++) );
-        }
-      } else {
-        ignore_[row] = true;
-      }
-    }
-    delete[] ignore_in;
-    delete[] reduced;
-    //PrintElements(); // DEBUG
-  } else {
-    // Complete matrix. Read elements only.
-    infile.Read( elements_, ELTS*sizeof(float) );
+    sieve_ = 1;
   }
+  // Setup underlying TriangleMatrix for actual # of rows
+  if (TriangleMatrix::Setup( actual_nrows )) return 1;
+  // Set all ignore elements for original # rows to false.
+  ignore_.assign(ROWS, false);
+  // Read in matrix elements
+  infile.Read( elements_, Nelements()*sizeof(float) );
+  // If sieved, read in the ignore array
+  if (sieve_ > 1) {
+    mprintf("Warning: ClusterMatrix %s contains sieved data.\n", filename.c_str());
+    char* ignore_in = new char[ ROWS ]; // Original nrows
+    infile.Read( ignore_in, ROWS*sizeof(char) );
+    for (uint_8 row = 0; row < ROWS; ++row)
+      if (ignore_in[row] == 'T')
+        ignore_[row] = true;
+    delete[] ignore_in;
+  }
+  mprintf("\tLoaded %s: %u original rows, %u actual rows, %u elements, sieve=%u\n",
+          filename.c_str(), ROWS, Nrows(), Nelements(), sieve_);
   return 0;
 }
 
-// ClusterMatrix::SetupIgnore()
-int ClusterMatrix::SetupIgnore() {
-  ignore_.assign( nrows_, false );
+// ClusterMatrix::SetupMatrix()
+int ClusterMatrix::SetupMatrix(size_t sizeIn) {
+  if (TriangleMatrix::Setup(sizeIn)) return 1;
+  ignore_.assign( sizeIn, false );
+  sieve_ = 1;
   return 0;
 }
 
@@ -184,15 +192,15 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
   iOut = -1;
   jOut = -1;
   size_t iVal = 0L;
-  size_t jVal = 1L;
+  size_t jVal = sieve_;
   float min = FLT_MAX;
-  for (size_t idx = 0L; idx < nelements_; ++idx) {
+  for (size_t idx = 0L; idx < Nelements(); ++idx) {
     if (ignore_[iVal] || ignore_[jVal]) {
       // If we dont care about this row/col, just increment
-      jVal++;
-      if (jVal == nrows_) {
-        iVal++;
-        jVal = iVal + 1L;
+      jVal += sieve_;
+      if (jVal >= ignore_.size()) {
+        iVal += sieve_;
+        jVal = iVal + sieve_;
       }
     } else {
       // Otherwise search for minimum
@@ -202,10 +210,10 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
         jOut = (int)jVal;
       }
       // Increment indices
-      jVal++;
-      if (jVal == nrows_) {
-        iVal++;
-        jVal = iVal + 1L;
+      jVal += sieve_;
+      if (jVal >= ignore_.size()) {
+        iVal += sieve_;
+        jVal = iVal + sieve_;
       }
     }
   }
@@ -214,16 +222,16 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
 
 // ClusterMatrix::PrintElements()
 void ClusterMatrix::PrintElements() const {
-  size_t iVal = 0;
-  size_t jVal = 1;
-  for (size_t idx = 0L; idx < nelements_; idx++) {
+  size_t iVal = 0L;
+  size_t jVal = sieve_;
+  for (size_t idx = 0L; idx < Nelements(); idx++) {
     if (!ignore_[iVal] && !ignore_[jVal])
       mprintf("\t%u %u %8.3f\n",iVal,jVal,elements_[idx]);
     // Increment indices
-    jVal++;
-    if (jVal == nrows_) {
-      ++iVal;
-      jVal = iVal + 1L;
+    jVal += sieve_;
+    if (jVal >= ignore_.size()) {
+      iVal += sieve_;
+      jVal = iVal + sieve_;
     }
   }
-} 
+}

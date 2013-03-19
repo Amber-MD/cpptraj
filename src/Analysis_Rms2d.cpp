@@ -186,7 +186,7 @@ int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distance
 #     ifdef _OPENMP
       Distances.SetElementF(nframe, nref, R);
 #     else
-      Distances.AddElement( R );
+      Distances.AddElementF( R );
 #     endif
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
@@ -241,7 +241,7 @@ int Analysis_Rms2d::CalcDME(DataSet_Coords& coordsIn, TriangleMatrix& Distances,
 #     ifdef _OPENMP
       Distances.SetElement( nframe, nref, TgtFrame.DISTRMSD(RefFrame) );
 #     else
-      Distances.AddElement( (float)TgtFrame.DISTRMSD(RefFrame) );
+      Distances.AddElement( TgtFrame.DISTRMSD(RefFrame) );
 #     endif
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
@@ -257,8 +257,8 @@ int Analysis_Rms2d::CalcDME(DataSet_Coords& coordsIn, TriangleMatrix& Distances,
   * exp[ -RMSD(framei, framei+lag) ] is used. This takes advantage of
   * the fact that 0.0 RMSD essentially means perfect correlation (1.0).
   */
-void Analysis_Rms2d::CalcAutoCorr(TriangleMatrix& Distances) {
-  int N = Distances.Nrows();
+void Analysis_Rms2d::CalcAutoCorr(TriangleMatrix const& Distances) {
+  int N = (int)Distances.Nrows();
   int lagmax = N;
   // By definition for lag == 0 RMS is 0 for all frames,
   // translates to correlation of 1.
@@ -281,7 +281,7 @@ void Analysis_Rms2d::CalcAutoCorr(TriangleMatrix& Distances) {
   * ReferenceCoords.
   */
 int Analysis_Rms2d::CalcRmsToTraj() {
-  float R;
+  double R;
 
   Matrix_2D* rmsdata = (Matrix_2D*)rmsdataset_;
   // Set up mask
@@ -334,10 +334,10 @@ int Analysis_Rms2d::CalcRmsToTraj() {
       SelectedTgt.SetFromCRD( (*coords_)[nframe], 0, TgtMask);
       if (nofit_) {
         // Perform no fit RMS calculation
-        R = (float) SelectedTgt.RMSD_NoFit(SelectedRef, useMass_);
+        R = SelectedTgt.RMSD_NoFit(SelectedRef, useMass_);
       } else {
         // Perform fit RMS calculation
-        R = (float) SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_);
+        R = SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_);
       }
       rmsdata->AddElement( R );
       // DEBUG
