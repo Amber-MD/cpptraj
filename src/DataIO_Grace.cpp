@@ -12,7 +12,7 @@ DataIO_Grace::DataIO_Grace() :
 // Dont assume anything about set ordering
 int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
   ArgList dataline;
-  int setnum = 1;
+  int setnum = 0;
   int frame = 0;
   DataSet *dset = 0;
   std::vector<DataSet*> Dsets;
