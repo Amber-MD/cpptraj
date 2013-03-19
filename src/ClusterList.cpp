@@ -241,7 +241,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
 /** Print list of clusters and frame numbers belonging to each cluster.
   */
 void ClusterList::PrintClusters() {
-  mprintf("CLUSTER: %u clusters, %u frames.\n", clusters_.size(), FrameDistances_.Nrows() );
+  mprintf("CLUSTER: %u clusters, %u frames.\n", clusters_.size(), FrameDistances_.Nframes() );
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++) {
     mprintf("\t%8i : ",(*C).Num());
     for (ClusterNode::frame_iterator fnum = (*C).beginframe();
@@ -295,23 +295,11 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
       mode = USE_FRAMES;
     }
   }
-  // Calculate pairwise distances from input DataSet
+  // Calculate pairwise distances from input DataSet. The ignore array will
+  // be set up to ignore sieved frames.
   if (mode == USE_FRAMES) {
     mprintf("\tCalculating pair-wise distances.\n");
     FrameDistances_ = Cdist_->PairwiseDist(sieve);
-  }
-  // Sieved distances should be ignored
-  if (sieve > 1) {
-    //mprintf(" (Sieve %i):", sieve); // DEBUG
-    int tgtframe = 0;
-    for (int frame = 0; frame < dsIn->Size(); ++frame) {
-      if (tgtframe == frame) {
-        //mprintf(" %i", frame + 1); // DEBUG
-        tgtframe += sieve;
-      } else
-        FrameDistances_.Ignore( frame );
-    }
-    //mprintf("\n"); // DEBUG
   }
   // Save distances if filename specified and not previously loaded.
   if (mode == USE_FRAMES && !filename.empty()) {
@@ -333,7 +321,7 @@ void ClusterList::AddSievedFrames() {
   // Ensure cluster centroids are up-to-date
   for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) 
     (*Cnode).CalculateCentroid( Cdist_ );
-  for (int frame = 0; frame < (int)FrameDistances_.Nrows(); ++frame) {
+  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame) {
     if (FrameDistances_.IgnoringRow(frame)) {
       //mprintf(" %i [", frame + 1); // DEBUG
       // Which clusters centroid is closest to this frame?

@@ -86,7 +86,7 @@ int Cluster_HierAgglo::Cluster() {
   mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
   ProgressBar cluster_progress(-1);
   // Build initial clusters.
-  for (int frame = 0; frame < (int)FrameDistances_.Nrows(); frame++) {
+  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); frame++) {
     if (!FrameDistances_.IgnoringRow( frame ))
       AddCluster( std::list<int>(1, frame) );
   }

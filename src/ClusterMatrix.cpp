@@ -197,7 +197,7 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
     if (ignore_[iVal] || ignore_[jVal]) {
       // If we dont care about this row/col, just increment
       jVal += sieve_;
-      if (jVal == ignore_.size()) {
+      if (jVal >= ignore_.size()) {
         iVal += sieve_;
         jVal = iVal + sieve_;
       }
@@ -210,7 +210,7 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
       }
       // Increment indices
       jVal += sieve_;
-      if (jVal == ignore_.size()) {
+      if (jVal >= ignore_.size()) {
         iVal += sieve_;
         jVal = iVal + sieve_;
       }
@@ -228,7 +228,7 @@ void ClusterMatrix::PrintElements() const {
       mprintf("\t%u %u %8.3f\n",iVal,jVal,elements_[idx]);
     // Increment indices
     jVal += sieve_;
-    if (jVal == ignore_.size()) {
+    if (jVal >= ignore_.size()) {
       iVal += sieve_;
       jVal = iVal + sieve_;
     }

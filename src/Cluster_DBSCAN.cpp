@@ -57,18 +57,18 @@ int Cluster_DBSCAN::Cluster() {
   std::vector<int> FramesToCluster;
   ClusterDist::Cframes cluster_frames;
   // First determine which frames are being clustered.
-  for (int frame = 0; frame < (int)FrameDistances_.Nrows(); ++frame)
+  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
     if (!FrameDistances_.IgnoringRow( frame ))
       FramesToCluster.push_back( frame );
   // Set up array to keep track of points that have been visited.
   // Make it the size of FrameDistances so we can index into it. May
   // waste memory during sieving but makes code easier.
-  std::vector<bool> Visited( FrameDistances_.Nrows(), false );
+  std::vector<bool> Visited( FrameDistances_.Nframes(), false );
   // Set up array to keep track of whether points are noise or in a cluster.
   static char UNASSIGNED = 'U';
   static char NOISE = 'N';
   static char INCLUSTER = 'C';
-  std::vector<char> Status( FrameDistances_.Nrows(), UNASSIGNED);
+  std::vector<char> Status( FrameDistances_.Nframes(), UNASSIGNED);
   mprintf("\tStarting DBSCAN Clustering:\n");
   ProgressBar cluster_progress(FramesToCluster.size());
   int iteration = 0;

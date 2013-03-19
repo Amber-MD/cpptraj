@@ -22,7 +22,7 @@ class TriangleMatrix : public DataSet {
 
     int Setup(size_t);
     int AddElement(double);
-    int AddElement(float);
+    int AddElementF(float);
     void SetElement(int,int,double);
     void SetElementF(int,int,float);
     double GetElement(int,int) const;

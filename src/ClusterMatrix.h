@@ -13,18 +13,18 @@ class ClusterMatrix : private TriangleMatrix {
     int LoadFile(std::string const&, int);
     int SetupMatrix(size_t);
     /// Indicate given row/col should be ignored.
-    void Ignore(int row)            { ignore_[row] = true; }
-    /// Return true if given row/col has been ignored.
-    bool IgnoringRow(int row) const { return ignore_[row]; }
+    void Ignore(int row)            { ignore_[row] = true;   }
+    /// \return true if given row/col has been ignored.
+    bool IgnoringRow(int row) const { return ignore_[row];   }
+    /// \return Number of frames (original nrows)
+    size_t Nframes()          const { return ignore_.size(); }
     /// Set the row and column of the smallest element.
     double FindMin(int&, int&) const;
     void PrintElements() const;
     inline double GetElement(int, int) const;
     inline void SetElement(int, int, double);
-    // Members of TriangleMatrix that should be public.
-    using TriangleMatrix::AddElement;
-    using TriangleMatrix::Nrows;
     using TriangleMatrix::Nelements;
+    using TriangleMatrix::AddElement;
   private:
     static const unsigned char Magic_[];
     /// For reading/writing 8 byte integers

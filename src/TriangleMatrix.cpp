@@ -96,7 +96,7 @@ int TriangleMatrix::AddElement(double elementIn) {
 /** Add the input float to the element array and increment currentElement.
   * \return 1 on success, 0 if no more elements can be added.
   */
-int TriangleMatrix::AddElement(float elementIn) {
+int TriangleMatrix::AddElementF(float elementIn) {
   if (currentElement_>=nelements_) return 0;
   elements_[currentElement_++] = elementIn;
   return 1;
