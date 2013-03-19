@@ -171,6 +171,7 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
     for (uint_8 row = 0; row < ROWS; ++row)
       if (ignore_in[row] == 'T')
         ignore_[row] = true;
+    delete[] ignore_in;
   }
   mprintf("\tLoaded %s: %u original rows, %u actual rows, %u elements, sieve=%u\n",
           filename.c_str(), ROWS, Nrows(), Nelements(), sieve_);
