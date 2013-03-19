@@ -310,7 +310,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, Frame* currentFrame, Fram
   // DEBUG
 
   // Sort distances
-  sort( SolventMols_.begin(), SolventMols_.end(), moldist_cmp() );
+  std::sort( SolventMols_.begin(), SolventMols_.end(), moldist_cmp() );
 
   // Add first closestWaters solvent atoms to stripMask
   std::vector<MolDist>::iterator solventend = SolventMols_.begin() + closestWaters_;
