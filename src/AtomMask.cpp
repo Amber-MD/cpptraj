@@ -430,10 +430,10 @@ int AtomMask::NumAtomsInCommon(AtomMask &maskIn) {
   std::vector<int> selected_1 = Selected_;
   std::vector<int> selected_2 = maskIn.Selected_;
   // Sort the arrays
-  sort(selected_1.begin(), selected_1.end());
-  sort(selected_2.begin(), selected_2.end());
+  std::sort(selected_1.begin(), selected_1.end());
+  std::sort(selected_2.begin(), selected_2.end());
   // Set intersect to the intersection of selected_1 and selectd_2
-  intersect_end = set_intersection(selected_1.begin(), selected_1.end(),
+  intersect_end = std::set_intersection(selected_1.begin(), selected_1.end(),
                                    selected_2.begin(), selected_2.end(),
                                    intersect.begin());
   // DEBUG:
@@ -481,7 +481,7 @@ void AtomMask::AddAtoms(std::vector<int> const& atomsIn) {
   for (atom = atomsIn.begin(); atom != atomsIn.end(); atom++) 
     Selected_.push_back( *atom ); 
   // Sort Selected_
-  sort( Selected_.begin(), Selected_.end() );
+  std::sort( Selected_.begin(), Selected_.end() );
   // Remove duplicates
   atom = unique( Selected_.begin(), Selected_.end() );
   Selected_.resize( atom - Selected_.begin() );
@@ -498,7 +498,7 @@ void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
   for (int atom = minAtom; atom < maxAtom; atom++)
     Selected_.push_back( atom );
   // Sort Selected_
-  sort( Selected_.begin(), Selected_.end() );
+  std::sort( Selected_.begin(), Selected_.end() );
   // Remove duplicates
   std::vector<int>::iterator atomit = unique( Selected_.begin(), Selected_.end() );
   Selected_.resize( atomit - Selected_.begin() );
