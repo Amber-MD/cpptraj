@@ -66,7 +66,7 @@ ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
 ClusterMatrix ClusterDist_Num::PairwiseDist(int sieve) {
   int f1, f2;
   int f2end = data_->Size();
-  ClusterMatrix frameDistances( f2end );
+  ClusterMatrix frameDistances( f2end, sieve );
   int f1end = f2end - sieve;
 #ifdef _OPENMP
 #pragma omp parallel private(f1, f2)
@@ -125,7 +125,7 @@ ClusterMatrix ClusterDist_Euclid::PairwiseDist(int sieve) {
   DcArray::iterator dcalc;
   DsArray::iterator ds;
   int f2end = dsets_[0]->Size();
-  ClusterMatrix frameDistances( f2end );
+  ClusterMatrix frameDistances( f2end, sieve );
   int f1end = f2end - sieve;
 #ifdef _OPENMP
 #pragma omp parallel private(f1, f2, dist, diff, dcalc, ds)
@@ -204,7 +204,7 @@ ClusterMatrix ClusterDist_DME::PairwiseDist(int sieve) {
   int f1, f2;
   Frame frm2 = frm1_;
   int f2end = coords_->Size();
-  ClusterMatrix frameDistances( f2end );
+  ClusterMatrix frameDistances( f2end, sieve );
   int f1end = f2end - sieve;
 #ifdef _OPENMP
   Frame frm1 = frm1_;
@@ -280,7 +280,7 @@ ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
   int f1, f2;
   Frame frm2 = frm1_;
   int f2end = coords_->Size();
-  ClusterMatrix frameDistances( f2end );
+  ClusterMatrix frameDistances( f2end, sieve );
   int f1end = f2end - sieve;
   ParallelProgress progress(f1end);
 #ifdef _OPENMP

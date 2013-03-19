@@ -57,7 +57,7 @@ int Cluster_DBSCAN::Cluster() {
   std::vector<int> FramesToCluster;
   ClusterDist::Cframes cluster_frames;
   // First determine which frames are being clustered.
-  for (int frame = 0; frame < FrameDistances_.Nrows(); ++frame)
+  for (int frame = 0; frame < (int)FrameDistances_.Nrows(); ++frame)
     if (!FrameDistances_.IgnoringRow( frame ))
       FramesToCluster.push_back( frame );
   // Set up array to keep track of points that have been visited.
@@ -140,9 +140,7 @@ int Cluster_DBSCAN::Cluster() {
   }
   mprintf("\n");
   // Calculate the distances between each cluster based on centroids
-  ClusterDistances_.Setup( clusters_.size() );
-  // Set up the ignore array
-  ClusterDistances_.SetupIgnore();
+  ClusterDistances_.SetupMatrix( clusters_.size() );
   // Make sure centroid for clusters are up to date
   for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
     (*C1).CalculateCentroid( Cdist_ );

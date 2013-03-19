@@ -35,6 +35,6 @@ class Analysis_Rms2d: public Analysis {
     DataSet* Ct_;
 
     int CalcRmsToTraj();
-    void CalcAutoCorr(TriangleMatrix&);
+    void CalcAutoCorr(TriangleMatrix const&);
 };
 #endif

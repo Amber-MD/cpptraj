@@ -36,7 +36,7 @@ void ClusterList::Renumber() {
   // Before clusters are renumbered, calculate the average distance of 
   // this cluster to every other cluster.
   // Only do this if ClusterDistances has been set.
-  if (ClusterDistances_.Size() > 0) {
+  if (ClusterDistances_.Nelements() > 0) {
     double numdist = (double) (clusters_.size() - 1);
     for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
     {
@@ -241,7 +241,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
 /** Print list of clusters and frame numbers belonging to each cluster.
   */
 void ClusterList::PrintClusters() {
-  mprintf("CLUSTER: %u clusters, %i frames.\n", clusters_.size(), FrameDistances_.Nrows() );
+  mprintf("CLUSTER: %u clusters, %u frames.\n", clusters_.size(), FrameDistances_.Nrows() );
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++) {
     mprintf("\t%8i : ",(*C).Num());
     for (ClusterNode::frame_iterator fnum = (*C).beginframe();
@@ -333,7 +333,7 @@ void ClusterList::AddSievedFrames() {
   // Ensure cluster centroids are up-to-date
   for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) 
     (*Cnode).CalculateCentroid( Cdist_ );
-  for (int frame = 0; frame < FrameDistances_.Nrows(); ++frame) {
+  for (int frame = 0; frame < (int)FrameDistances_.Nrows(); ++frame) {
     if (FrameDistances_.IgnoringRow(frame)) {
       //mprintf(" %i [", frame + 1); // DEBUG
       // Which clusters centroid is closest to this frame?

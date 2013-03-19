@@ -68,8 +68,8 @@ TriangleMatrix &TriangleMatrix::operator=(const TriangleMatrix &rhs) {
 /** Set matrix up based on the given size of 1 side of the square matrix.
   * Set the current element to 0.
   */
-int TriangleMatrix::Setup(int sizeIn) {
-  nrows_ = (size_t)sizeIn;
+int TriangleMatrix::Setup(size_t sizeIn) {
+  nrows_ = sizeIn;
   // Use half square matrix minus the diagonal
   nelements_ = ( nrows_ * (nrows_ - 1L) ) / 2L; 
   if (elements_!=0) delete[] elements_;
