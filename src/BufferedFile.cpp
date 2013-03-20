@@ -11,9 +11,11 @@ BufferedFile::BufferedFile() :
   offset_(0),
   Ncols_(0),
   eltWidth_(0),
-  lineptr_(0),
-  endlinebuffer_(linebuffer_ + BUF_SIZE),
-  endbuffer_(0)
+  tokenptr_(tokens_.begin()),
+  saveChar_(0),
+  lineEnd_(0),
+  endChar_(0),
+  endBuffer_(0)
 { }
 
 BufferedFile::~BufferedFile() {
@@ -24,41 +26,43 @@ BufferedFile::~BufferedFile() {
 // BufferedFile::SetupBuffer()
 int BufferedFile::SetupBuffer() {
   if (buffer_!=0) delete[] buffer_;
-  buffer_ = new char[ DEFAULT_BUFFERSIZE ];
+  buffer_ = new char[ DEFAULT_BUFFERSIZE + 1];
+  buffer_[ DEFAULT_BUFFERSIZE ] = '\0';
   bufferPosition_ = buffer_;
-  endbuffer_ = bufferPosition_; // This guarantees on first BufferedLine buffer will be filled
+  endBuffer_ = bufferPosition_; // This guarantees on first BufferedLine buffer will be filled
+  lineEnd_= bufferPosition_;
   return 0;
 } 
 
 // BufferedFile::BufferedLine()
 const char* BufferedFile::BufferedLine() {
-  // Reset line buffer
-  // TODO: Replace with string
-  lineptr_ = linebuffer_;
-  // Get next line from chunk.
-  while ( lineptr_ < endlinebuffer_ ) {
-    // Fill buffer if needed.
-    if (endbuffer_ == bufferPosition_) {
-      int Nread = Read(buffer_, DEFAULT_BUFFERSIZE);
+  *lineEnd_ = endChar_;
+  bufferPosition_ = lineEnd_;
+  // Search for next end line 
+  lineEnd_ = bufferPosition_;
+  while (lineEnd_ <= endBuffer_) {
+    // Fill buffer if needed
+    if (lineEnd_ == endBuffer_) {
+      size_t bufferRemainder = endBuffer_ - bufferPosition_;
+      if (bufferRemainder == DEFAULT_BUFFERSIZE) break;
+      memcpy(buffer_, bufferPosition_, bufferRemainder);
+      int Nread = Read(buffer_ + bufferRemainder, DEFAULT_BUFFERSIZE - bufferRemainder);
       if (Nread < 1) return 0;
-      //total_read_ += Nread;
-      //progress_.Update( total_read_ );
-      bufferPosition_ = buffer_;
-      endbuffer_ = buffer_ + (size_t)Nread;
+      lineEnd_ = bufferPosition_ = buffer_;
+      endBuffer_ = buffer_ + bufferRemainder + (size_t)Nread;
+      // TODO: Check if this has happened multiple times with no endline
     }
-    // Fill line buffer
-    *(lineptr_++) = *bufferPosition_;
-    if (*bufferPosition_ == '\n') {
-      *lineptr_ = '\0';
-      // Position ptr at next char
-      ++bufferPosition_;
-      return linebuffer_;
+    if ( *(lineEnd_++) == '\n') {
+      // End of the line
+      endChar_ = *lineEnd_;
+      *lineEnd_ = '\0';
+      return bufferPosition_;
     }
-    ++bufferPosition_;
   }
-  mprinterr("Error: BuffedLine: blowing line buffer (> %zu bytes)\n", BUF_SIZE);
-  linebuffer_[BUF_SIZE - 1] = '\0';
-  return linebuffer_;
+  // Should never get here
+  mprinterr("Internal Error: Input line size > internal buffer size (%lu)\n", 
+            DEFAULT_BUFFERSIZE);
+  return 0;
 }
 
 /** Separate the current line into tokens delimited by given chars. 
@@ -66,19 +70,19 @@ const char* BufferedFile::BufferedLine() {
   */
 int BufferedFile::TokenizeLine(const char* separator) {
   if ( separator == 0 ) return 0;
-  unsigned int ntokens = 0;;
-  char* linechar = linebuffer_;
+  char* linechar = bufferPosition_;
   bool inToken = false;
+  tokens_.clear();
   // NOTE: Just check for newline?
   while ( *linechar != '\0' && *linechar != '\n' ) {
     if (!inToken) { // Not in token.
       if ( strchr( separator, *linechar ) == 0 ) {
-        tokens_[ntokens++] = linechar; // Pointer to beginning of token.
+        tokens_.push_back( linechar); // Pointer to beginning of token.
         inToken = true;
       }
     } else {        // In a token.
       if ( strchr( separator, *linechar ) != 0 ) {
-        tokens_[ntokens++] = linechar; // Pointer to end of token.
+        tokens_.push_back( linechar ); // Pointer to end of token.
         inToken = false;
       }
     }
@@ -86,15 +90,13 @@ int BufferedFile::TokenizeLine(const char* separator) {
   }
   // If inToken is still true point to linechar as the last token
   if (inToken)
-    tokens_[ntokens++] = linechar;
-  // Init for NextToken
-  tokens_[ntokens+1] = '\0';
-  tokenptr_ = tokens_;
+    tokens_.push_back(linechar);
+  tokenptr_ = tokens_.begin();
   /*mprintf("DBG: Tokenize: Line=[%s]\n", linebuffer_);
   mprintf("\t%i Tokens:\n", ntokens);
   for (unsigned int t = 0; t < ntokens; ++t)
     mprintf("\t\t%u %c\n",t, *tokens_[t]);*/
-  return ntokens / 2;
+  return (int)(tokens_.size() / 2);
 }
 
 /** Following a call to TokenizeLine return char* to next token in the
@@ -103,11 +105,11 @@ int BufferedFile::TokenizeLine(const char* separator) {
   * again.
   */
 const char* BufferedFile::NextToken() {
-  if (tokenptr_ == '\0') return 0;
-  if (tokenptr_ != tokens_)
-    *(tokenptr_[-1]) = savechar_;
-  savechar_ = *(tokenptr_[1]);
-  *(tokenptr_[1]) = '\0';
+  if (tokenptr_ == tokens_.end()) return 0;
+  if (tokenptr_ != tokens_.begin())
+    *(*(tokenptr_ - 1)) = saveChar_;
+  saveChar_ = *(*(tokenptr_ + 1));
+  *(tokenptr_ + 1) = '\0';
   char* tokenpos = tokenptr_[0];
   tokenptr_ += 2;
   return tokenpos;

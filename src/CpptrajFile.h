@@ -72,11 +72,10 @@ class CpptrajFile {
     int Seek(off_t offset)           { return IO_->Seek(offset);    }
     int Rewind()                     { return IO_->Rewind();        }
     off_t Tell()                     { return IO_->Tell();          }
-  protected:
-    static const size_t BUF_SIZE = 1024;
-    char linebuffer_[BUF_SIZE]; ///< Used in Printf/GetLine functions
   private:
     static const char* FileTypeName[];
+    static const size_t BUF_SIZE = 1024;
+    char linebuffer_[BUF_SIZE]; ///< Used in Printf/GetLine functions
 
     FileIO* IO_;                ///< The interface to basic IO operations.
     AccessType access_;         ///< Access (Read, write, append)
