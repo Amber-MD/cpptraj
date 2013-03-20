@@ -150,7 +150,7 @@ Frame &Frame::operator=(Frame rhs) {
 }
 
 // ---------- CONVERT TO/FROM ARRAYS -------------------------------------------
-/** Assign float array to this frame. */ 
+// Frame::SetFromCRD()
 void Frame::SetFromCRD(CRDtype const& farray, int numBoxCrd) {
   int f_ncoord = (int)(farray.size()) - numBoxCrd;
   if (f_ncoord > maxnatom_*3) {
@@ -167,6 +167,7 @@ void Frame::SetFromCRD(CRDtype const& farray, int numBoxCrd) {
   return;
 }
 
+// Frame::SetFromCRD()
 void Frame::SetFromCRD(CRDtype const& farray, int numBoxCrd, AtomMask const& mask) {
   if (mask.Nselected() > maxnatom_) {
     mprinterr("Error: Selected # atoms in float array (%i) > max #atoms in frame (%i)\n",
@@ -188,9 +189,9 @@ void Frame::SetFromCRD(CRDtype const& farray, int numBoxCrd, AtomMask const& mas
   return;
 }
 
-/** Place atom coordinates into a float array. */
+// Frame::ConvertToCRD()
 Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd) const {
-  std::vector<float> farray;
+  CRDtype farray;
   farray.reserve( ncoord_ + numBoxCrd );
   for (int ix = 0; ix < ncoord_; ++ix)
     farray.push_back( (float)X_[ix] );
@@ -201,16 +202,14 @@ Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd) const {
 
 // ---------- ACCESS INTERNAL DATA ---------------------------------------------
 // Frame::printAtomCoord()
-/** Print XYZ coords of given atom */
-void Frame::printAtomCoord(int atom) {
+void Frame::printAtomCoord(int atom) const {
   int atmidx = atom * 3;
   if (atmidx >= ncoord_) return;
   mprintf("%i: %f %f %f\n",atom+1,X_[atmidx],X_[atmidx+1],X_[atmidx+2]);
 }
 
 // Frame::Info()
-// For debugging
-void Frame::Info(const char *msg) {
+void Frame::Info(const char *msg) const {
   if (msg!=0)
     mprintf("\tFrame [%s]:",msg);
   else
@@ -232,6 +231,12 @@ void Frame::ReallocateX() {
   X_ = newX;
 }
 
+/** Set atom/coord count to zero but do not clear memory. */
+void Frame::ClearAtoms() {
+  natom_ = 0;
+  ncoord_ = 0;
+}
+
 // Frame::AddXYZ()
 /** Append the given XYZ coord to this frame. */
 void Frame::AddXYZ(const double *XYZin) {
@@ -241,12 +246,6 @@ void Frame::AddXYZ(const double *XYZin) {
   memcpy(X_ + ncoord_, XYZin, COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
-}
-
-/** Set atom/coord count to zero but do not clear memory. */
-void Frame::ClearAtoms() {
-  natom_ = 0;
-  ncoord_ = 0;
 }
 
 // Frame::AddVec3()
@@ -260,7 +259,6 @@ void Frame::AddVec3(Vec3 const& vIn) {
 
 // ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
 // Frame::SetupFrame()
-/** Set up frame for given number of atoms, no mass or velocity information. */
 int Frame::SetupFrame(int natomIn) {
   natom_ = natomIn;
   ncoord_ = natom_ * 3;
@@ -276,7 +274,6 @@ int Frame::SetupFrame(int natomIn) {
 }
 
 // Frame::SetupFrameM()
-/** Set up frame for given atom array (mass info included), no velocities. */
 int Frame::SetupFrameM(std::vector<Atom> const& atoms) {
   bool reallocate = false;
   natom_ = (int)atoms.size();
@@ -301,9 +298,6 @@ int Frame::SetupFrameM(std::vector<Atom> const& atoms) {
 }
 
 // Frame::SetupFrameV()
-/** Set up frame for given atom array. Set up for velocity info if 
-  * hasVelocity is true.
-  */
 int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity) {
   bool reallocate = false;
   natom_ = (int)atoms.size();
@@ -362,9 +356,6 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
 
 // ---------- FRAME SETUP OF COORDINATES ---------------------------------------
 // Frame::SetCoordinates()
-/** Copy only coordinates, box, and T from input frame to this frame based
-  * on selected atoms in mask.
-  */
 void Frame::SetCoordinates(Frame const& frameIn, AtomMask const& maskIn) {
   if (maskIn.Nselected() > maxnatom_) {
     mprinterr("Error: SetCoordinates: Mask [%s] selected (%i) > max natom (%i)\n",
@@ -384,8 +375,6 @@ void Frame::SetCoordinates(Frame const& frameIn, AtomMask const& maskIn) {
 }
 
 // Frame::SetCoordinates()
-/** Copy only coordinates from input frame to this frame.
-  */
 void Frame::SetCoordinates(Frame const& frameIn) {
   if (frameIn.natom_ > maxnatom_) {
     mprinterr("Error: Frame::SetCoordinates: Input frame atoms (%i) > max natom (%i)\n",
@@ -398,9 +387,6 @@ void Frame::SetCoordinates(Frame const& frameIn) {
 }
 
 // Frame::SetFrame()
-/** Copy entire input frame (including velocity if defined in both) to this 
-  * frame based on selected atoms in mask. Assumes coords and mass exist. 
-  */
 void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   if (maskIn.Nselected() > maxnatom_) {
     mprinterr("Error: SetFrame: Mask [%s] selected (%i) > max natom (%i)\n",
@@ -677,9 +663,7 @@ void Frame::Center(AtomMask const& Mask, bool origin, bool useMassIn)
 }
 
 // Frame::CenterOnOrigin()
-/** Center coordinates to origin. 
-  * \return translation vector from origin to original center.
-  */
+/** \return translation vector from origin to original center. */
 Vec3 Frame::CenterOnOrigin(bool useMassIn)
 {
   Vec3 center;
@@ -891,11 +875,11 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
 /** Calculate RMSD of Frame to Ref with no fitting. Frames must contain
   * same # atoms.
   */
-double Frame::RMSD_NoFit( Frame const& Ref, bool useMass) {
+double Frame::RMSD_NoFit( Frame const& Ref, bool useMass) const {
   double rms_return = 0.0;
   double total_mass = 0.0;
   
-  Darray::iterator mass = Mass_.begin();
+  Darray::const_iterator mass = Mass_.begin();
   double atom_mass = 1.0;
   for (int i = 0; i < ncoord_; i += 3)
   {
@@ -918,7 +902,6 @@ double Frame::RMSD_NoFit( Frame const& Ref, bool useMass) {
     //mprinterr("RMS returned is <0 before sqrt, setting to 0 (%lf)\n",rms_return);
     return 0;
   }
-
   return (sqrt(rms_return / total_mass));
 }
 
@@ -926,7 +909,7 @@ double Frame::RMSD_NoFit( Frame const& Ref, bool useMass) {
 /** Calcuate the distance RMSD of Frame to Ref. Frames must contain
   * same # of atoms. Should not be called for 0 atoms.
   */
-double Frame::DISTRMSD( Frame const& Ref ) {
+double Frame::DISTRMSD( Frame const& Ref ) const {
   double Ndistances = (double)((natom_ * natom_) - natom_) / 2.0;
   double sumDiff = 0.0;
   unsigned int a10 = 0;
@@ -1049,7 +1032,7 @@ void Frame::SwapAtoms(int at1, int at2) {
 }
 
 // Frame::Temperature
-double Frame::Temperature(AtomMask const& mask, int deg_of_freedom) {
+double Frame::Temperature(AtomMask const& mask, int deg_of_freedom) const {
   if (V_==0) return 0.0;
   if (mask.None()) return 0.0;
   //double boltz2 = 0.00831441 * 0.5 / 4.184;
