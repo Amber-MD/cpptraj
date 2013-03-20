@@ -83,9 +83,8 @@ Grid& Grid::operator=(const Grid& rhs) {
   return *this;
 }
 
-void Grid::Help() {
-  mprintf(" {nx dx ny dy nz dz [box|origin|center <mask>] [negative]} | {readdx <file>}");
-}
+const char* Grid::HelpText = 
+  "{nx dx ny dy nz dz [box|origin|center <mask>] [negative]} | {readdx <file>}";
  
 // Grid::GridInit()
 /** Initialize grid from argument list. Expected args are:

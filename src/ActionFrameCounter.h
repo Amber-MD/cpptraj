@@ -5,7 +5,7 @@
 class ActionFrameCounter {
   public:
     ActionFrameCounter();
-    static void Help();
+    static const char* HelpText;
     int InitFrameCounter(ArgList&);
     /// \return true if frame should not be processed.
     bool CheckFrameCounter(int frameNum) {

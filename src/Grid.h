@@ -17,7 +17,7 @@ class Grid {
     }
     /// Indicate which kind of gridding to perform
     enum GridModeType { ORIGIN = 0, BOX, CENTER };
-    static void Help();
+    static const char* HelpText;
     GridModeType GridMode()      { return mode_;       } // TODO: Obsolete
     AtomMask const& CenterMask() { return centerMask_; } // TODO: Obsolete
     /// Initialize grid from argument list.

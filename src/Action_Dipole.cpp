@@ -10,9 +10,8 @@ Action_Dipole::Action_Dipole() :
 {}
 
 void Action_Dipole::Help() {
-  mprintf("dipole <filename>");
-  Grid::Help();
-  mprintf("\n       <mask1> {origin | box} [max <max_percent>]\n");
+  mprintf("\t<filename> %s\n", Grid::HelpText);
+  mprintf("\t<mask1> {origin | box} [max <max_percent>]\n");
 }
 
 // Action_Dipole::init()

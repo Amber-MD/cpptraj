@@ -10,10 +10,8 @@ Action_Projection::Action_Projection() :
 {}
 
 void Action_Projection::Help() {
-  mprintf("\tmodes <modesfile> out <outfile>\n");
-  mprintf("\t[beg <beg>] [end <end>] [<mask>]\n           ");
-  ActionFrameCounter::Help();
-  mprintf("\n");
+  mprintf("\tmodes <modesfile> out <outfile> [beg <beg>] [end <end>] [<mask>]\n");
+  mprintf("\t%s\n", ActionFrameCounter::HelpText);
   mprintf("\tCalculate projection of coordinates along given eigenmodes.\n");
 }
 

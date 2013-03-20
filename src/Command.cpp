@@ -208,8 +208,9 @@ static void Help_Ensemble() {
 
 static void Help_Trajout() {
   mprintf("\t<filename> [<fileformat>] [append] [nobox]\n");
-  mprintf("\t           [parm <parmfile> | parmindex <#>] [onlyframes <range>] ]title <title>]\n");
-  mprintf("\t           <Format Options>\n");
+  mprintf("\t           [parm <parmfile> | parmindex <#>] [onlyframes <range>] [title <title>]\n");
+  mprintf("\t           %s\n", ActionFrameCounter::HelpText);
+  mprintf("\t           [ <Format Options> ]\n");
   mprintf("\tSpecify output trajectory.\n");
 }
 
