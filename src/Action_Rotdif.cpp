@@ -10,7 +10,6 @@
 #include "Integrate.h"
 #include "ProgressBar.h"
 #include "ComplexArray.h"
-#include "BufferedFile.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class

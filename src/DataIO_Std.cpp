@@ -4,7 +4,7 @@
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
 #include "StringRoutines.h" // SetStringFormatString
-#include "BufferedFile.h"
+#include "BufferedLine.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() : 
@@ -28,12 +28,12 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
   //DataSet::DataType indextype = DataSet::UNKNOWN_DATA;
 
   // Buffer file
-  BufferedFile buffer;
+  BufferedLine buffer;
   if (buffer.OpenRead( fname )) return 1;
   buffer.SetupBuffer();
 
   // Read the first line. Attempt to determine the number of columns
-  const char* linebuffer = buffer.BufferedLine();
+  const char* linebuffer = buffer.Line();
   if (linebuffer == 0) return 1;
   int ntoken = buffer.TokenizeLine( SEPARATORS );
   if ( ntoken == 0 ) {
@@ -50,7 +50,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
       indexcol = 0;
     // Read in next non # line, should be data.
     while (linebuffer[0] == '#') {
-      linebuffer = buffer.BufferedLine();
+      linebuffer = buffer.Line();
       if (linebuffer == 0) return 1;
     }
     if (buffer.TokenizeLine( SEPARATORS ) != ntoken) {
@@ -148,7 +148,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
         default: continue; 
       }
     }
-  } while (buffer.BufferedLine() != 0);
+  } while (buffer.Line() != 0);
   buffer.CloseFile();
   mprintf("\tDataFile %s has %i columns.\n", buffer.FullFileStr(), ntoken);
   if (hasLabels) {

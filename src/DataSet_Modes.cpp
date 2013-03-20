@@ -3,7 +3,7 @@
 #include <cstring> // memcpy, memset
 #include "DataSet_Modes.h"
 #include "CpptrajStdio.h"
-#include "BufferedFile.h"
+#include "BufferedFrame.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -265,7 +265,7 @@ int DataSet_Modes::WriteToFile(std::string const& fname) {
     mprinterr("Internal Error: DataSet_Modes::WriteToFile: No filename given.\n");
     return 1;
   }
-  BufferedFile outfile;
+  BufferedFrame outfile;
   if (outfile.OpenWrite( fname )) {
     mprinterr("Error: Could not open %s for writing.\n", fname.c_str());
     return 1;
@@ -317,7 +317,7 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
     return 1;
   }
 
-  BufferedFile infile;
+  BufferedFrame infile;
   if (infile.OpenRead( modesfile)) return 1;
   // Read title line, convert to arg list
   const char* buffer = 0;

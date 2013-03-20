@@ -3,7 +3,7 @@
 #include <vector>
 #include "CpptrajFile.h"
 /// Used to buffer text files that will be read line-by-line
-class BufferedLine : public CpptrajFile {
+class BufferedLine : private CpptrajFile {
   public:
     BufferedLine();
     ~BufferedLine();
@@ -14,6 +14,12 @@ class BufferedLine : public CpptrajFile {
     const char* NextToken();
 
     const char* Buffer() const { return buffer_; }
+    // Members of CpptrajFile that should be public
+    using CpptrajFile::OpenRead;
+    using CpptrajFile::BaseFileName;
+    using CpptrajFile::FullFileStr;
+    using CpptrajFile::CloseFile;
+    using CpptrajFile::GetLine;
   private:
     static const size_t DEFAULT_BUFFERSIZE = 16384;
 

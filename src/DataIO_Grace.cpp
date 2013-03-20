@@ -1,7 +1,7 @@
 #include <cstdio> // sscanf
 #include "DataIO_Grace.h"
 #include "CpptrajStdio.h"
-#include "BufferedFile.h"
+#include "BufferedLine.h"
 
 // CONSTRUCTOR
 DataIO_Grace::DataIO_Grace() :
@@ -21,12 +21,12 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
   const char* linebuffer;
   
   // Allocate and set up read buffer
-  BufferedFile buffer;
+  BufferedLine buffer;
   if (buffer.OpenRead( fname )) return 1;
   buffer.SetupBuffer();
 
   // Read chunks from file
-  while ( (linebuffer = buffer.BufferedLine()) != 0 ) {
+  while ( (linebuffer = buffer.Line()) != 0 ) {
     if (linebuffer[0] == '@') {
       // Command: create command line without the @
       dataline.SetList(linebuffer+1, " \t");

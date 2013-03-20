@@ -6,7 +6,7 @@
 #include "Constants.h"
 #include "CpptrajStdio.h"
 #include "Grid.h"
-#include "BufferedFile.h"
+#include "BufferedLine.h"
 #include "PDBfile.h"
 
 #define MIN(X, Y) ( ( (X) < (Y) ) ? (X) : (Y) )
@@ -211,7 +211,7 @@ int Grid::Allocate() {
 int Grid::InitFromFile(std::string const& filename, std::string const& filetype)
 {
   if (filetype == "DX") {
-    BufferedFile infile;
+    BufferedLine infile;
     infile.OpenRead(filename);
     // Set some defaults
     mode_ = ORIGIN;
@@ -289,7 +289,7 @@ int Grid::InitFromFile(std::string const& filename, std::string const& filetype)
     int ndata = 0;
     infile.SetupBuffer();
     while (ndata < gridsize_) {
-      if (infile.BufferedLine() == 0) {
+      if (infile.Line() == 0) {
         mprinterr("Error: Unexpected EOF hit in %s\n", filename.c_str());
         infile.CloseFile();
         return 1;
