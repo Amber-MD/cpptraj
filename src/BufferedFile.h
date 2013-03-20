@@ -29,8 +29,7 @@ class BufferedFile : public CpptrajFile {
     size_t FrameSize() { return frameSize_; }
     const char* Buffer() { return buffer_; }
   private:
-    //static const size_t DEFAULT_BUFFERSIZE = 16384;
-    static const size_t DEFAULT_BUFFERSIZE = 30; // DEBUG!
+    static const size_t DEFAULT_BUFFERSIZE = 16384;
 
     size_t CalcFrameSize(int);
 
@@ -40,9 +39,9 @@ class BufferedFile : public CpptrajFile {
     size_t offset_;        ///< User specified offset, used in seeking.
     int Ncols_;            ///< Number of columns, use to convert array to buffer.
     size_t eltWidth_;      ///< Width of each element in the frame.
-    /// Array of pointers to beginning of tokens in linebuffer
+    /// Array of pointers to beginning and ends of tokens in current line. 
     std::vector<char*> tokens_;
-    std::vector<char*>::iterator tokenptr_; ///< Position in tokens
+    size_t tokenidx_;      ///< Current position in tokens array
     char saveChar_;        ///< Saved last char of current token
     char* lineEnd_;        ///< End of current line in buffer
     char endChar_;         ///< Character that was at *lineend

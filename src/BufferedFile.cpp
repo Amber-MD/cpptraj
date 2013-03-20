@@ -11,7 +11,7 @@ BufferedFile::BufferedFile() :
   offset_(0),
   Ncols_(0),
   eltWidth_(0),
-  tokenptr_(tokens_.begin()),
+  tokenidx_(0),
   saveChar_(0),
   lineEnd_(0),
   endChar_(0),
@@ -48,8 +48,9 @@ const char* BufferedFile::BufferedLine() {
       memcpy(buffer_, bufferPosition_, bufferRemainder);
       int Nread = Read(buffer_ + bufferRemainder, DEFAULT_BUFFERSIZE - bufferRemainder);
       if (Nread < 1) return 0;
-      lineEnd_ = bufferPosition_ = buffer_;
-      endBuffer_ = buffer_ + bufferRemainder + (size_t)Nread;
+      bufferPosition_ = buffer_;
+      lineEnd_ = buffer_ + bufferRemainder;
+      endBuffer_ = lineEnd_ + (size_t)Nread;
       // TODO: Check if this has happened multiple times with no endline
     }
     if ( *(lineEnd_++) == '\n') {
@@ -59,9 +60,10 @@ const char* BufferedFile::BufferedLine() {
       return bufferPosition_;
     }
   }
-  // Should never get here
+  // Should never get here. Could implement a realloc above.
   mprinterr("Internal Error: Input line size > internal buffer size (%lu)\n", 
             DEFAULT_BUFFERSIZE);
+  mprinterr("Internal Error: Increase the size of BufferedFile::DEFAULT_BUFFERSIZE and recompile\n");
   return 0;
 }
 
@@ -91,8 +93,8 @@ int BufferedFile::TokenizeLine(const char* separator) {
   // If inToken is still true point to linechar as the last token
   if (inToken)
     tokens_.push_back(linechar);
-  tokenptr_ = tokens_.begin();
-  /*mprintf("DBG: Tokenize: Line=[%s]\n", linebuffer_);
+  tokenidx_ = 0; 
+  /*mprintf("DBG: Tokenize: Line=[%s]\n", bufferPosition_);
   mprintf("\t%i Tokens:\n", ntokens);
   for (unsigned int t = 0; t < ntokens; ++t)
     mprintf("\t\t%u %c\n",t, *tokens_[t]);*/
@@ -105,14 +107,15 @@ int BufferedFile::TokenizeLine(const char* separator) {
   * again.
   */
 const char* BufferedFile::NextToken() {
-  if (tokenptr_ == tokens_.end()) return 0;
-  if (tokenptr_ != tokens_.begin())
-    *(*(tokenptr_ - 1)) = saveChar_;
-  saveChar_ = *(*(tokenptr_ + 1));
-  *(tokenptr_ + 1) = '\0';
-  char* tokenpos = tokenptr_[0];
-  tokenptr_ += 2;
-  return tokenpos;
+  if (tokenidx_ == tokens_.size()) return 0;
+  char* tokenptr = tokens_[tokenidx_];
+  if (tokenidx_ != 0)
+    *(tokens_[tokenidx_-1]) = saveChar_;
+  char* nextptr = tokens_[tokenidx_+1];
+  saveChar_ = *nextptr;
+  *nextptr = '\0';
+  tokenidx_ += 2;
+  return tokenptr;
 }
 
 // -----------------------------------------------------------------------------

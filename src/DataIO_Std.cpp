@@ -33,7 +33,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
   buffer.SetupBuffer();
 
   // Read the first line. Attempt to determine the number of columns
-  const char* linebuffer = buffer.NextLine();
+  const char* linebuffer = buffer.BufferedLine();
   if (linebuffer == 0) return 1;
   int ntoken = buffer.TokenizeLine( SEPARATORS );
   if ( ntoken == 0 ) {
@@ -50,7 +50,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
       indexcol = 0;
     // Read in next non # line, should be data.
     while (linebuffer[0] == '#') {
-      linebuffer = buffer.NextLine();
+      linebuffer = buffer.BufferedLine();
       if (linebuffer == 0) return 1;
     }
     if (buffer.TokenizeLine( SEPARATORS ) != ntoken) {
@@ -148,7 +148,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
         default: continue; 
       }
     }
-  } while (buffer.NextLine() != 0);
+  } while (buffer.BufferedLine() != 0);
   buffer.CloseFile();
   mprintf("\tDataFile %s has %i columns.\n", buffer.FullFileStr(), ntoken);
   if (hasLabels) {

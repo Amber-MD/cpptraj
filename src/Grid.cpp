@@ -287,8 +287,9 @@ int Grid::InitFromFile(std::string const& filename, std::string const& filetype)
     if (Allocate()) return 1;
     // Read in data
     int ndata = 0;
+    infile.SetupBuffer();
     while (ndata < gridsize_) {
-      if (infile.NextLine() == 0) {
+      if (infile.BufferedLine() == 0) {
         mprinterr("Error: Unexpected EOF hit in %s\n", filename.c_str());
         infile.CloseFile();
         return 1;
