@@ -37,9 +37,9 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
           labels.push_back( lbl );
       } else if (dataline.CommandIs("target")) {
         // Indicates dataset will be read soon. Allocate new set.
-        dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.BaseFileName(), setnum++);
+        dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.Filename().Base(), setnum++);
         if (dset == 0) {
-          mprinterr("Error: %s: Could not allocate data set.\n", buffer.FullFileStr());
+          mprinterr("Error: %s: Could not allocate data set.\n", buffer.Filename().full());
           return 1;
         }
         Dsets.push_back( dset );
@@ -49,7 +49,7 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
       // Data
       if (dset==0) {
         mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", 
-                  buffer.FullFileStr());
+                  buffer.Filename().full());
         return 1;
       }
       // FIXME: Ignoring frame for now

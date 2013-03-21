@@ -15,10 +15,10 @@ int Parm_Mol2::ReadParm(std::string const& fname, Topology &parmOut) {
   int current_res = 0;
   int last_res = -1;
   if (infile.OpenRead(fname)) return 1;
-  mprintf("    Reading Mol2 file %s as topology file.\n",infile.BaseFileStr());
+  mprintf("    Reading Mol2 file %s as topology file.\n",infile.Filename().base());
   // Get @<TRIPOS>MOLECULE information
   if (infile.ReadMolecule()) return 1;
-  parmOut.SetParmName( infile.Mol2Title(), infile.BaseFileName() );
+  parmOut.SetParmName( infile.Mol2Title(), infile.Filename().Base() );
 
   // Get @<TRIPOS>ATOM information
   if (infile.ScanTo( Mol2File::ATOM)) return 1;

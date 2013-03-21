@@ -110,45 +110,45 @@ int CpptrajFile::OpenFile(AccessType accessIn) {
         mprinterr("Error: CpptrajFile: Filename is null.\n");
         return 1;
       }
-      if ( IO_->Open(FullFileStr(), "rb")  ) { 
-        rprintf("Could not open %s for reading.\n", FullFileStr());
+      if ( IO_->Open(Filename().full(), "rb")  ) { 
+        rprintf("Could not open %s for reading.\n", Filename().full());
         return 1;
       }
-      if (debug_>0) rprintf("Opened %s for reading.\n", FullFileStr());
+      if (debug_>0) rprintf("Opened %s for reading.\n", Filename().full());
       break;
     case APPEND:
       if (fname_.empty()) {
         mprinterr("Error: CpptrajFile: Filename is null.\n");
         return 1;
       }
-      if ( IO_->Open(FullFileStr(), "ab") ) {
-        rprintf("Could not open %s for appending.\n", FullFileStr());
+      if ( IO_->Open(Filename().full(), "ab") ) {
+        rprintf("Could not open %s for appending.\n", Filename().full());
         return 1;
       }
-      if (debug_>0) rprintf("Opened %s for appending.\n", FullFileStr());
+      if (debug_>0) rprintf("Opened %s for appending.\n", Filename().full());
       break;
     case WRITE:
       err = 0;
       if ( fname_.empty() )
         err = IO_->Open(0, "wb");
       else
-        err = IO_->Open(FullFileStr(), "wb");
+        err = IO_->Open(Filename().full(), "wb");
       if ( err != 0 ) { 
-        rprintf("Could not open %s for writing.\n", FullFileStr());
+        rprintf("Could not open %s for writing.\n", Filename().full());
         return 1;
       }
-      if (debug_>0) rprintf("Opened %s for writing.\n", FullFileStr());
+      if (debug_>0) rprintf("Opened %s for writing.\n", Filename().full());
       break;
     case UPDATE:
       if (fname_.empty()) {
         mprinterr("Error: CpptrajFile: Filename is null.\n");
         return 1;
       }
-      if ( IO_->Open(FullFileStr(), "r+b") ) {
-        rprintf("Could not open %s for updating.\n", FullFileStr());
+      if ( IO_->Open(Filename().full(), "r+b") ) {
+        rprintf("Could not open %s for updating.\n", Filename().full());
         return 1;
       }
-      if (debug_>0) rprintf("Opened %s for updating.\n", FullFileStr());
+      if (debug_>0) rprintf("Opened %s for updating.\n", Filename().full());
       break;
   }
       
@@ -160,7 +160,7 @@ int CpptrajFile::OpenFile(AccessType accessIn) {
 void CpptrajFile::CloseFile() {
   if (isOpen_) {
     IO_->Close();
-    if (debug_>0) rprintf("Closed %s.\n", FullFileStr());
+    if (debug_>0) rprintf("Closed %s.\n", Filename().full());
     isOpen_=false;
   }
 }
@@ -194,7 +194,7 @@ void CpptrajFile::Rank_printf(int rank, const char *format, ...) {
 
 std::string CpptrajFile::GetLine() {
   if (IO_->Gets(linebuffer_, BUF_SIZE) != 0) {
-    //mprinterr("Error: Getting line from %s\n", FullFileStr());
+    //mprinterr("Error: Getting line from %s\n", Filename().full());
     return std::string();
   }
   return std::string(linebuffer_);
@@ -202,7 +202,7 @@ std::string CpptrajFile::GetLine() {
 
 const char* CpptrajFile::NextLine() {
   if (IO_->Gets(linebuffer_, BUF_SIZE) != 0) {
-    //mprinterr("Error: Reading line from %s\n", FullFileStr());
+    //mprinterr("Error: Reading line from %s\n", Filename().full());
     return 0;
   }
   return linebuffer_;
@@ -268,7 +268,7 @@ int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
   // Set up filename; sets base filename and extensions
   fname_.SetFileName( expandedName, IsCompressed() );
   if (debug_>0)
-    rprintf("\t[%s] is type %s with access READ\n", FullFileStr(), FileTypeName[fileType_]);
+    rprintf("\t[%s] is type %s with access READ\n", Filename().full(), FileTypeName[fileType_]);
   return 0;
 }
 
@@ -320,7 +320,7 @@ int CpptrajFile::SetupWrite(std::string const& filenameIn, FileType typeIn, int 
   IO_ = SetupFileIO( fileType_ );
   if (IO_ == 0) return 1;
   if (debug_>0)
-    rprintf("\t[%s] is type %s with access WRITE\n", FullFileStr(), FileTypeName[fileType_]);
+    rprintf("\t[%s] is type %s with access WRITE\n", Filename().full(), FileTypeName[fileType_]);
   return 0;
 }
 
@@ -352,7 +352,7 @@ int CpptrajFile::SetupAppend(std::string const& filenameIn, int debugIn) {
     if (SetupWrite(filenameIn, debugIn)!=0) return 1;
     if (debug_>0)
       mprintf("Warning: %s does not exist, changed access from APPEND to WRITE.\n",
-              FullFileStr());
+              Filename().full());
   }
   // Appending and compression not supported.
   if (IsCompressed()) {

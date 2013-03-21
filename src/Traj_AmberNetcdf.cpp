@@ -23,7 +23,7 @@ Traj_AmberNetcdf::~Traj_AmberNetcdf() {
 }
 
 bool Traj_AmberNetcdf::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( GetNetcdfConventions( fileIn.FullFileStr() ) == NC_AMBERTRAJ ) return true;
+  if ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERTRAJ ) return true;
   return false;
 } 
 

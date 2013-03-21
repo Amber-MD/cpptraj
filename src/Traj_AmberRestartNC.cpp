@@ -22,7 +22,7 @@ Traj_AmberRestartNC::~Traj_AmberRestartNC() {
 }
 
 bool Traj_AmberRestartNC::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( GetNetcdfConventions( fileIn.FullFileStr() ) == NC_AMBERRESTART ) return true;
+  if ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERRESTART ) return true;
   return false;
 }
 

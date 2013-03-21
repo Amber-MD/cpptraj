@@ -68,7 +68,7 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
         if ( pdbatom.Name() != (*trajParm)[atom].Name() ) {
           if (debug_>1) 
             mprintf("Warning: %s: PDB atom %i name [%s] does not match parm atom name [%s]\n",
-                    file_.BaseFileStr(), atom+1, *(pdbatom.Name()), 
+                    file_.Filename().base(), atom+1, *(pdbatom.Name()), 
                     *((*trajParm)[atom].Name()));
           ++numMismatch;
         }
@@ -82,7 +82,7 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
       // Check that # atoms read in this frame match the first frame
       if (atom>0 && pdbAtom_!=atom) {
         mprintf("Warning: PDB %s: Reading frame %i, got %i atoms, expected %i.\n",
-                file_.BaseFileStr(), Frames+1, atom, pdbAtom_);
+                file_.Filename().base(), Frames+1, atom, pdbAtom_);
         mprintf("Warning: Only using frames 1-%i\n", Frames);
         scanPDB = false;
         break;
@@ -93,15 +93,15 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
   file_.CloseFile(); 
   if (Frames<1) {
     mprinterr("Error: PDB %s: No frames read. atom=%i expected %i.\n",
-              file_.BaseFileStr(), atom, trajParm->Natom());
+              file_.Filename().base(), atom, trajParm->Natom());
     return TRAJIN_ERR;
   }
   if (debug_>0) mprintf("Traj_PDBfile: %s has %i atoms, %i frames.\n",
-                        file_.BaseFileStr(), pdbAtom_, Frames);
+                        file_.Filename().base(), pdbAtom_, Frames);
   // Report mismatches of pdb atom names against parm names
   if (numMismatch > 0)
     mprintf("Warning: In PDB file %s: %i name mismatches with parm %s.\n",
-            file_.BaseFileStr(), numMismatch, trajParm->c_str());
+            file_.Filename().base(), numMismatch, trajParm->c_str());
   return Frames;
 }
 
@@ -178,7 +178,7 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
 int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame set up output filename and open
-    if (file_.OpenWriteWithName( NumberFilename(file_.FullFileName(), set+1) )) return 1;
+    if (file_.OpenWriteWithName( NumberFilename(file_.Filename().Full(), set+1) )) return 1;
   } else if (pdbWriteMode_==MODEL) {
     // If specified, write MODEL keyword
     // 1-6 MODEL, 11-14 model serial #

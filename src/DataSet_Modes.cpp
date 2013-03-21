@@ -322,7 +322,7 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
   // Read title line, convert to arg list
   const char* buffer = 0;
   if ( (buffer = infile.NextLine())==0 ) {
-    mprinterr("Error: ReadEvecFile(): error while reading title (%s)\n",infile.FullFileStr());
+    mprinterr("Error: ReadEvecFile(): error while reading title (%s)\n",infile.Filename().full());
     return 1;
   }
   ArgList title(buffer);
@@ -368,16 +368,16 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
   // Read number of elements in avg coords and eigenvectors
   if ( (buffer = infile.NextLine())==0 ) {
     mprinterr("Error: ReadEvecFile(): error while reading number of atoms (%s)\n",
-              infile.FullFileStr());
+              infile.Filename().full());
     return 1;
   }
   int nvals = sscanf(buffer, "%i %i", &navgcrd_, &vecsize_);
   if (nvals == 0) {
-    mprinterr("Error: ReadEvecFile(): sscanf on coords failed (%s)\n",infile.FullFileStr());
+    mprinterr("Error: ReadEvecFile(): sscanf on coords failed (%s)\n",infile.Filename().full());
     return 1;
   } else if (nvals == 1) {
     mprintf("Warning: ReadEvecFile(): No value for eigenvector size found in %s,\n",
-            infile.FullFileStr());
+            infile.Filename().full());
     mprintf("         assuming it is equal to #average elements (%i)\n",navgcrd_);
     vecsize_ = navgcrd_;
   }
@@ -412,18 +412,18 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
     if (strncmp(buffer," ****", 5)!=0) {
       mprinterr("Error: ReadEvecFile(): When reading eigenvector %i, expected ' ****',\n",
                 currentMode+1);
-      mprinterr("Error: got %s [%s]\n", buffer, infile.FullFileStr());
+      mprinterr("Error: got %s [%s]\n", buffer, infile.Filename().full());
       return 1;
     }
     // Read number and eigenvalue 
     if ( (buffer = infile.NextLine())==0 ) {
       mprinterr("Error: ReadEvecFile(): error while reading number and eigenvalue (%s)\n",
-                infile.FullFileStr());
+                infile.Filename().full());
       return 1;
     }
     if (sscanf(buffer, "%i%lf", &nno, evalues_ + nmodes_) != 2) {
       mprinterr("Error: ReadEvecFile(): error while scanning number and eigenvalue (%s)\n",
-                infile.FullFileStr());
+                infile.Filename().full());
       return 1;
     }
     if (vecsize_ > 0) {

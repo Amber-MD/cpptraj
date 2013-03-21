@@ -16,8 +16,7 @@ class BufferedLine : private CpptrajFile {
     const char* Buffer() const { return buffer_; }
     // Members of CpptrajFile that should be public
     using CpptrajFile::OpenRead;
-    using CpptrajFile::BaseFileName;
-    using CpptrajFile::FullFileStr;
+    using CpptrajFile::Filename;
     using CpptrajFile::CloseFile;
     using CpptrajFile::GetLine;
   private:

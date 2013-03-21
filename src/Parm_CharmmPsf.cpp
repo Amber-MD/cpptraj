@@ -25,7 +25,7 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
 
   CpptrajFile infile;
   if (infile.OpenRead(fname)) return 1;
-  mprintf("    Reading Charmm PSF file %s as topology file.\n",infile.BaseFileStr());
+  mprintf("    Reading Charmm PSF file %s as topology file.\n",infile.Filename().base());
   // Read the first line, should contain PSF...
   const char* buffer = 0;
   if ( (buffer=infile.NextLine()) == 0 ) return 1;
@@ -41,7 +41,7 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
     buffer = infile.NextLine();
     psftitle.assign( buffer );
   }
-  parmOut.SetParmName( psftitle, infile.BaseFileName() );
+  parmOut.SetParmName( psftitle, infile.Filename().Base() );
   // Advance to <natom> !NATOM
   int natom = 0;
   while (strncmp(tag,"!NATOM",6)!=0) {

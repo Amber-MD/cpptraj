@@ -111,11 +111,11 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* P
     mprintf("\t\tOnly the average");
   else
     mprintf("\t\tThe average and individual");
-  mprintf(" results will be written to %s\n", output_.FullFileStr());
+  mprintf(" results will be written to %s\n", output_.Filename().full());
 
   if (calcType_ == DIST)
     mprintf("\t\tThe number of atoms in the shell will be written to %s\n",
-            outputnw_.FullFileStr());
+            outputnw_.Filename().full());
 
   if (!outputAverDist_.empty())
     mprintf("\t\t<dr^2> will be written to %s\n", outputAverDist_.c_str());

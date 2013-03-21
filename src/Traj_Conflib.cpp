@@ -15,7 +15,7 @@ bool Traj_Conflib::ID_TrajFormat(CpptrajFile& fileIn) {
   // If the file name is conflib.dat, assume this is a conflib.dat file 
   // from LMOD. Cant think of a better way to detect this since there is no 
   // magic number but the file is binary.
-  if ( fileIn.BaseFileName() == "conflib.dat" )
+  if ( fileIn.Filename().Base() == "conflib.dat" )
   {
     mprintf("  LMOD CONFLIB file\n");
     return true;
@@ -45,7 +45,7 @@ int Traj_Conflib::setupTrajin(std::string const& fname, Topology* trajParm)
     Frames = (int) (file_size / confFrame);
     if ( (file_size % confFrame) != 0 ) {
       mprintf("Warning: %s: Could not accurately predict # frames. This can indicate either\n",
-              file_.BaseFileStr());
+              file_.Filename().base());
       mprintf("Warning: the wrong topology is associated with this CONFLIB file or that the\n");
       mprintf("Warning: trajectory is corrupted. Will attempt to read %i frames.\n", Frames);
     }

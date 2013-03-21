@@ -44,42 +44,31 @@ class CpptrajFile {
     std::string GetLine();
     /// Get next line and return pointer to raw buffer
     const char* NextLine();
-    /// Return the access file is currently set up for.
-    AccessType Access()               { return access_;               }
-    /// Return the compression type
-    CompressType Compression()        { return compressType_;         }
-    /// Return true if the file is open
-    bool IsOpen()                     { return isOpen_;               }
+    /// \return the access file is currently set up for.
+    AccessType Access()         const { return access_;               }
+    /// \return the compression type
+    CompressType Compression()  const { return compressType_;         }
+    /// \return true if the file is open
+    bool IsOpen()               const { return isOpen_;               }
     /// \return file name class.
     const FileName& Filename()  const { return fname_;                }
-    /// Return the file name with full path.
-    const char* FullFileStr()         { return fname_.Full().c_str(); }
-    /// String version of file name with full path.
-    std::string const& FullFileName() { return fname_.Full();         }
-    /// Return the file name without the path.
-    const char* BaseFileStr()         { return fname_.Base().c_str(); }
-    /// String version of file name without the path.
-    std::string const& BaseFileName() { return fname_.Base();         }
-    /// Return the file extension
-    std::string const& Extension()    { return fname_.Ext();          }
-    /// Return 1 if the file contains carriage returns in addition to newlines
-    int IsDos() { return isDos_; }
-    /// Return true if the file is compressed.
+    /// \return 1 if the file contains carriage returns in addition to newlines
+    int IsDos()                 const { return isDos_;                }
+    /// \return true if the file is compressed.
     bool IsCompressed();
-    /// Return uncompressed file size (just size if file is not compressed).
+    /// \return uncompressed file size (just size if file is not compressed).
     off_t UncompressedSize();
-    int Gets(char* buf, int num)     { return IO_->Gets(buf, num);  }
+    int Gets(char* buf, int num)           { return IO_->Gets(buf, num);  }
     int Write(const void* buf, size_t num) { return IO_->Write(buf, num); }
-    int Read(void* buf, size_t num)  { return IO_->Read(buf, num);  }
-    int Seek(off_t offset)           { return IO_->Seek(offset);    }
-    int Rewind()                     { return IO_->Rewind();        }
-    off_t Tell()                     { return IO_->Tell();          }
+    int Read(void* buf, size_t num)        { return IO_->Read(buf, num);  }
+    int Seek(off_t offset)                 { return IO_->Seek(offset);    }
+    int Rewind()                           { return IO_->Rewind();        }
+    off_t Tell()                           { return IO_->Tell();          }
   protected: // Protected for PDBfile/Mol2File
     static const size_t BUF_SIZE = 1024;
     char linebuffer_[BUF_SIZE]; ///< Used in Printf/GetLine functions
   private:
     static const char* FileTypeName[];
-
     FileIO* IO_;                ///< The interface to basic IO operations.
     AccessType access_;         ///< Access (Read, write, append)
     int isDos_;                 ///< 1 if CR present, need to count them as newlines

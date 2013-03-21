@@ -40,7 +40,7 @@ int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm)
   // Check #atoms in mol2 file against #atoms in parm
   if (file_.Mol2Natoms() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in Mol2 file %s frame %i (%i) does not\n",
-              file_.BaseFileStr(), Frames+1, file_.Mol2Natoms());
+              file_.Filename().base(), Frames+1, file_.Mol2Natoms());
     mprinterr("Error: match number in associated parmtop (%i)!\n",trajParm->Natom());
     return TRAJIN_ERR;
   }
@@ -53,7 +53,7 @@ int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm)
   while ( (frameAtom = file_.NextMolecule( ))!=-1 ) {
     if (frameAtom != file_.Mol2Natoms()) {
       mprintf("Warning: # atoms in Mol2 file %s frame %i (%i) not equal\n",
-              file_.BaseFileStr(), Frames+1, frameAtom);
+              file_.Filename().base(), Frames+1, frameAtom);
       mprintf("Warning: to # atoms int first frame (%i).\n", file_.Mol2Natoms());
       mprintf("Warning: Only using frames 1-%i.\n", Frames);
       break;
@@ -61,7 +61,7 @@ int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm)
     ++Frames;
   }
   file_.CloseFile();
-  if (debug_>0) mprintf("\tMol2 file %s has %i frames.\n",file_.BaseFileStr(), Frames);
+  if (debug_>0) mprintf("\tMol2 file %s has %i frames.\n",file_.Filename().base(), Frames);
 
   return Frames;
 }
@@ -112,7 +112,7 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
   file_.SetMol2Natoms( mol2Top_->Natom() );
   if (file_.Mol2Natoms() > 99999) {
     mprintf("Warning: %s: Large # of atoms (%i > 99999) for mol2 format.\n",
-            file_.BaseFileStr(), file_.Mol2Natoms());
+            file_.Filename().base(), file_.Mol2Natoms());
     mprintf("Warning: File may not write correctly.\n");
   }
   // TODO: Change this, right now for backwards compat. only!
@@ -154,7 +154,7 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
   // Check number of bonds
   if (trajBonds_.empty()) 
     mprintf("Warning: %s: topology does not contain bond information.\n",
-            file_.BaseFileStr());
+            file_.Filename().base());
   else
     file_.SetMol2Nbonds( trajBonds_.size() / 2 );
   // Open here if writing to a single file
@@ -167,7 +167,7 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
 int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double T) {
   //mprintf("DEBUG: Calling Traj_Mol2File::writeFrame for set %i\n",set);
   if (mol2WriteMode_==MULTI) {
-    if (file_.OpenWriteWithName( NumberFilename( file_.FullFileName(), set+1) )) return 1;
+    if (file_.OpenWriteWithName( NumberFilename( file_.Filename().Full(), set+1) )) return 1;
   }
   //@<TRIPOS>MOLECULE section
   file_.WriteMolecule( hasCharges_, mol2Top_->Nres() );

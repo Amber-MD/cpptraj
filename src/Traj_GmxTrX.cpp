@@ -78,8 +78,8 @@ bool Traj_GmxTrX::IsTRX(CpptrajFile& infile) {
     isBigEndian_ = false;
   // TODO: At this point file is trX, but not sure how best to differentiate 
   // between TRR and TRJ. For now do it based on extension. Default TRR.
-  if      (infile.Extension() == ".trr") format_ = TRR;
-  else if (infile.Extension() == ".trj") format_ = TRJ;
+  if      (infile.Filename().Ext() == ".trr") format_ = TRR;
+  else if (infile.Filename().Ext() == ".trj") format_ = TRJ;
   else format_ = TRR; 
   return true;
 }
@@ -297,7 +297,7 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
     nframes = (int)(file_size / frameSize_);
     if ( (file_size % frameSize_) != 0 ) {
       mprintf("Warning: %s: Number of frames in TRX file could not be accurately determined.\n",
-              file_.BaseFileStr());
+              file_.Filename().base());
       mprintf("Warning: Will attempt to read %i frames.\n", nframes);
     } else
       SetSeekable(true);

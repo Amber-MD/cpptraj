@@ -31,13 +31,13 @@ int ParmFile::Read(Topology& Top, std::string const& fname, bool bondsearch, int
     parmio->SetDebug( debugIn );
     if ( parmio->ID_ParmFormat( basicParm ) ) {
       // Read this format
-      err = parmio->ReadParm( basicParm.FullFileName(), Top);
+      err = parmio->ReadParm( basicParm.Filename().Full(), Top);
       parmName_ = basicParm.Filename();
       // Perform setup common to all parm files.
       if (err == 0) 
         err = Top.CommonSetup(bondsearch);
       else
-        mprinterr("Error reading parm file %s\n", basicParm.FullFileStr());
+        mprinterr("Error reading parm file %s\n", basicParm.Filename().full());
       delete parmio;
       return err;
     }

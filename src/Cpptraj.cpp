@@ -556,7 +556,7 @@ Cpptraj::Mode Cpptraj::Interactive() {
   // By default when interactive do not exit on errors
   exitOnError_ = false;
   // Open log file. If no name has been set, use default.
-  if (!logfile_.FullFileName().empty())
+  if (!logfile_.Filename().empty())
     logfile_.OpenFile();
   else
     logfile_.OpenAppend("cpptraj.log");
