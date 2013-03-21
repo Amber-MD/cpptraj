@@ -79,7 +79,7 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
 
   // Check and warn if filename/reftag currently in use
   if (FindName( traj.TrajFilename().Full() )!=-1) {
-    mprintf("Warning: Reference with name %s already exists!\n",traj.FullTrajStr());
+    mprintf("Warning: Reference with name %s already exists!\n",traj.TrajFilename().full());
     //return 1;
   }
   if (FindName(reftag)!=-1) {
@@ -95,12 +95,12 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   // Check number of frames to be read
   int trajFrames = traj.TotalReadFrames();
   if (trajFrames < 1) {
-    mprinterr("Error: No frames could be read for reference %s\n", traj.BaseTrajStr());
+    mprinterr("Error: No frames could be read for reference %s\n", traj.TrajFilename().base());
     return 1;
   }
   // Start trajectory read
   if ( traj.BeginTraj(false) ) {
-    mprinterr("Error: Could not open reference %s\n.", traj.BaseTrajStr());
+    mprinterr("Error: Could not open reference %s\n.", traj.TrajFilename().base());
     return 1;
   }
   traj.PrintInfo(1);

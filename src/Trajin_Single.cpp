@@ -80,7 +80,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn,
     }
     if (trajio_->IsSeekable() && !velio_->IsSeekable()) {
       mprinterr("Error: traj %s is seekable but velocity file %s is not.\n",
-                FullTrajStr(), mdvelname.c_str());
+                TrajFilename().full(), mdvelname.c_str());
       return 1;
     }
   }
@@ -91,7 +91,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn,
 int Trajin_Single::BeginTraj(bool showProgress) {
   // Open the trajectory
   if (trajio_->openTrajin()) {
-    mprinterr("Error: Trajin_Single::BeginTraj: Could not open %s\n",BaseTrajStr());
+    mprinterr("Error: Trajin_Single::BeginTraj: Could not open %s\n",TrajFilename().base());
     return 1;
   }
   // Open mdvel file if present
@@ -137,7 +137,7 @@ int Trajin_Single::GetNextFrame( Frame& frameIn ) {
 
 // Trajin_Single::PrintInfo()
 void Trajin_Single::PrintInfo(int showExtended) {
-  mprintf("[%s] ",BaseTrajStr());
+  mprintf("[%s] ",TrajFilename().base());
   trajio_->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
   if (trajio_->HasBox()) mprintf(" (%s box)", trajio_->TrajBox().TypeName());

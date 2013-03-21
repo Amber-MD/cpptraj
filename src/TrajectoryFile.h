@@ -36,8 +36,6 @@ class TrajectoryFile {
 
     Topology* TrajParm()              { return trajParm_;                }
     const FileName& TrajFilename()    { return trajName_;                }
-    const char* BaseTrajStr()         { return trajName_.Base().c_str(); }
-    const char* FullTrajStr()         { return trajName_.Full().c_str(); }
   protected:
     int debug_;            ///< Trajectory debug level.
     static TrajectoryIO* AllocTrajIO(TrajFormatType);

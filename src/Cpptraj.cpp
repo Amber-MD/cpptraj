@@ -399,7 +399,7 @@ int Cpptraj::LoadCrd(ArgList& argIn) {
   }
   coords->SetTopology( *parm );
   // Read trajectory
-  mprintf("\tLoading trajectory %s as \"%s\"\n", trajin.FullTrajStr(), setname.c_str());
+  mprintf("\tLoading trajectory %s as \"%s\"\n", trajin.TrajFilename().full(), setname.c_str());
   trajin.BeginTraj(true);
   trajin.PrintInfoLine();
   while (trajin.GetNextFrame( frameIn ))
@@ -995,7 +995,7 @@ int Cpptraj::RunEnsemble() {
   {
     // Open up the trajectory file. If an error occurs, bail 
     if ( (*traj)->BeginTraj(showProgress_) ) {
-      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->FullTrajStr());
+      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->TrajFilename().full());
       break;
     }
     // Set current parm from current traj.
@@ -1122,7 +1122,7 @@ int Cpptraj::RunNormal() {
   {
     // Open up the trajectory file. If an error occurs, bail 
     if ( (*traj)->BeginTraj(showProgress_) ) {
-      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->FullTrajStr());
+      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->TrajFilename().full());
       break;
     }
     // Set current parm from current traj.

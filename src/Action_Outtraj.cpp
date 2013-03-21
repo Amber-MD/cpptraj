@@ -113,7 +113,7 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, Frame* currentFrame, Fram
 /** Close trajectory. Indicate how many frames were actually written.
   */
 void Action_Outtraj::Print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.BaseTrajStr(),
+  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.TrajFilename().base(),
           outtraj_.NumFramesProcessed());
   outtraj_.EndTraj();
 }

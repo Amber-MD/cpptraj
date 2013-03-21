@@ -42,10 +42,10 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
   // replica, and that the other files are in sequence (e.g. rem.000, rem.001, 
   // rem.002 or rem.000.gz, rem.001.gz, rem.002.gz etc).
   if (debug_>1)
-    mprintf("\tREMDTRAJ: FileName=[%s]\n",FullTrajStr());
+    mprintf("\tREMDTRAJ: FileName=[%s]\n",TrajFilename().full());
   if ( TrajFilename().Ext().empty() ) {
     mprinterr("Error: Traj %s has no numerical extension, required for automatic\n",
-              BaseTrajStr());
+              TrajFilename().base());
     mprinterr("Error: detection of replica trajectories. Expected filename format is\n");
     mprinterr("Error: <Prefix>.<#> (with optional compression extension, examples:\n");
     mprinterr("Error: Rep.traj.nc.000,  remd.x.01.gz etc.\n");
@@ -392,7 +392,7 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
 // Trajin_Multi::PrintInfo()
 void Trajin_Multi::PrintInfo(int showExtended) {
   mprintf("REMD trajectories (%u total), lowest replica [%s]", REMDtraj_.size(),
-          BaseTrajStr());
+          TrajFilename().base());
   if (showExtended == 1) PrintFrameInfo();
   mprintf("\n");
   if (debug_ > 0) {

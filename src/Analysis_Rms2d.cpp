@@ -113,7 +113,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     mprintf(", all atoms");
   switch (mode_) {
     case REFTRAJ:
-      mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_.FullTrajStr(),
+      mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_.TrajFilename().base(),
               RefMask_.MaskString(), RefTraj_.TotalReadFrames());
       break;
     case DME: mprintf(", using DME"); break;
@@ -313,7 +313,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
   int max = totalref * totaltgt;
   mprintf("  RMS2D: Calculating RMSDs between each input frame and each reference\n"); 
   mprintf("         trajectory %s frame (%i total).\n  ",
-          RefTraj_.BaseTrajStr(), max);
+          RefTraj_.TrajFilename().base(), max);
   rmsdata->Setup( totalref, totaltgt );
   if (RefTraj_.BeginTraj(true)) {
     mprinterr("Error: Rms2d: Could not open reference trajectory.\n");

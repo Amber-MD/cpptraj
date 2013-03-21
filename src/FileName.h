@@ -14,11 +14,12 @@ class FileName {
     /// Clear FileName
     void clear();
 
-    const std::string& Full()     const { return fullPathName_;     }
-    const std::string& Base()     const { return baseName_;         }
-    const char* base()            const { return baseName_.c_str(); }
-    const std::string& Ext()      const { return extension_;        }
-    const std::string& Compress() const { return compressExt_;      }
+    const std::string& Full()     const { return fullPathName_;         }
+    const std::string& Base()     const { return baseName_;             }
+    const char* full()            const { return fullPathName_.c_str(); }
+    const char* base()            const { return baseName_.c_str();     }
+    const std::string& Ext()      const { return extension_;            }
+    const std::string& Compress() const { return compressExt_;          }
     bool empty()                  const { return fullPathName_.empty(); }
   private:
     enum CompressStatus { UNKNOWN=0, YES, NO };
