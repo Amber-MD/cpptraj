@@ -54,7 +54,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   else
     mprintf(" atomic positional fluctuations");
   if (outfile_ != 0)
-    mprintf(", output to file %s",outfile_->Filename());
+    mprintf(", output to file %s",outfile_->DataFilename().base());
   mprintf("\n                 Atom mask: [%s]\n",Mask.MaskString());
   FrameCounterInfo();
   if (!setname.empty())

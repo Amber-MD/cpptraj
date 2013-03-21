@@ -59,7 +59,7 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
   if ( !setname.empty() )
     mprintf("\tSet name: %s\n", setname.c_str() );
   if ( outfile != 0 )
-    mprintf("\tOutfile name: %s\n", outfile->Filename());
+    mprintf("\tOutfile name: %s\n", outfile->DataFilename().base());
   if (usefft_)
     mprintf("\tUsing FFT to calculate %s.\n", calctype);
   else

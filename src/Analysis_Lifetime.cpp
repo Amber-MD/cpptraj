@@ -31,9 +31,9 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   windowSize_ = analyzeArgs.getKeyInt("window", -1);
   averageonly_ = analyzeArgs.hasKey("averageonly");
   if (!averageonly_ && outfile != 0) {
-    maxfile = DFLin->AddDataFile("max." + outfile->FullFilename(), analyzeArgs);
+    maxfile = DFLin->AddDataFile("max." + outfile->DataFilename().Full(), analyzeArgs);
     maxfile->ProcessArgs("noemptyframes");
-    avgfile = DFLin->AddDataFile("avg." + outfile->FullFilename(), analyzeArgs);
+    avgfile = DFLin->AddDataFile("avg." + outfile->DataFilename().Full(), analyzeArgs);
     avgfile->ProcessArgs("noemptyframes");
   }
   cumulative_ = analyzeArgs.hasKey("cumulative");
@@ -102,9 +102,9 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     if (deltaAvg_)
       mprintf("\tChange of average from previous average will be saved.\n");
     if (outfile != 0) {
-      mprintf("\tOutfile: %s", outfile->Filename());
+      mprintf("\tOutfile: %s", outfile->DataFilename().base());
       if (!averageonly_)
-        mprintf(", %s, %s", maxfile->Filename(), avgfile->Filename());
+        mprintf(", %s, %s", maxfile->DataFilename().base(), avgfile->DataFilename().base());
       mprintf("\n");
     }
   }

@@ -53,7 +53,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   std::string temp = actionArgs.GetStringKey("sumout");
   if (temp.empty() && outfile_ != 0) 
-    temp = outfile_->FullFilename() + ".sum";
+    temp = outfile_->DataFilename().Full() + ".sum";
   dsspFile_ = DFL->AddDataFile( temp );
   if (actionArgs.hasKey("ptrajformat")) printString_=true;
   temp = actionArgs.GetStringKey("namen");
@@ -81,9 +81,9 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
   if (outfile_ != 0) 
-    mprintf("               Dumping results to %s\n", outfile_->Filename());
+    mprintf("               Dumping results to %s\n", outfile_->DataFilename().base());
   if (dsspFile_ != 0)
-    mprintf("               Sum results to %s\n", dsspFile_->Filename());
+    mprintf("               Sum results to %s\n", dsspFile_->DataFilename().base());
   if (printString_) 
     mprintf("               SS data for each residue will be stored as a string.\n");
   else

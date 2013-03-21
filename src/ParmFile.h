@@ -8,7 +8,7 @@ class ParmFile {
     ParmFile() {}
     int Read(Topology&, std::string const&, bool,int);
     int Write(Topology const&, std::string const&, ParmFormatType,int);
-    std::string const& BaseName() { return baseName_; }
+    FileName const& ParmFilename() { return parmName_; }
   private :
     struct ParmToken {
       ParmFormatType Type;
@@ -17,6 +17,6 @@ class ParmFile {
     };
     static const ParmToken ParmArray[];
     typedef const ParmToken* TokenPtr;
-    std::string baseName_; ///< Used on Read for TopologyList
+    FileName parmName_; ///< Used on Read for TopologyList
 };
 #endif

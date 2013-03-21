@@ -124,11 +124,11 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
         mprintf(" (mass-weighted)");
   }
   if (rmsdFile != 0) 
-    mprintf(", output to %s",rmsdFile->Filename());
+    mprintf(", output to %s",rmsdFile->DataFilename().base());
   mprintf("\n");
   if (corrfile != 0)
     mprintf("           RMSD auto-correlation will be calculated and output to %s\n",
-            corrfile->Filename());
+            corrfile->DataFilename().base());
 
   return Analysis::OK;
 }

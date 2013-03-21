@@ -66,7 +66,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else if (puckerMethod_==CREMER)
     mprintf("            Using Cremer & Pople method.\n");
   if (outfile != 0) 
-    mprintf("            Data will be written to %s\n", outfile->Filename());
+    mprintf("            Data will be written to %s\n", outfile->DataFilename().base());
   if (amplitude_)
     mprintf("            Amplitudes will be stored instead of psuedorotation.\n");
   if (offset_!=0)

@@ -79,7 +79,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprintf("    CORR: %s between set %s and set %s", calctype, D1name.c_str(), D2name.c_str());
   if (lagmax_!=-1) 
     mprintf(", max lag %i",lagmax_);
-  mprintf("\n\tOutput to %s\n",outfile->Filename());
+  mprintf("\n\tOutput to %s\n",outfile->DataFilename().base());
   if (usefft_)
     mprintf("\tUsing FFT to calculate %s.\n", calctype);
   else

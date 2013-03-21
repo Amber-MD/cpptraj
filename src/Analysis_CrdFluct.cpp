@@ -38,7 +38,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   mprintf("    CRDFLUCT: Atomic fluctuations will be calcd for set %s, mask [%s]\n", 
           coords_->Legend().c_str(), mask_.MaskString());
   if (windowSize_ != -1) mprintf("\tWindow size = %i\n", windowSize_);
-  if (outfile != 0) mprintf("\tOutput to %s\n", outfile->Filename());
+  if (outfile != 0) mprintf("\tOutput to %s\n", outfile->DataFilename().base());
 
   // Set up data sets
   setname = analyzeArgs.GetStringNext();

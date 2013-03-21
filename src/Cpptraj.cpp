@@ -196,7 +196,7 @@ int Cpptraj::Precision(ArgList& dataArg) {
   if (precision < 0) precision = 0;
   DataFile* df = DFL_.GetDataFile(name1);
   if (df != 0) {
-    mprintf("\tSetting precision for all sets in %s to %i.%i\n", df->Filename(),
+    mprintf("\tSetting precision for all sets in %s to %i.%i\n", df->DataFilename().base(),
             width, precision);
     df->SetPrecision(width, precision);
   } else {
@@ -391,7 +391,7 @@ int Cpptraj::LoadCrd(ArgList& argIn) {
   // NOTE: Default name should NEVER get used.
   std::string setname = argIn.GetStringNext();
   if (setname.empty())
-    setname = trajin.TrajName().Base();
+    setname = trajin.TrajFilename().Base();
   DataSet_Coords* coords = (DataSet_Coords*)DSL_.AddSet(DataSet::COORDS, setname, "__DCRD__");
   if (coords == 0) {
     mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");

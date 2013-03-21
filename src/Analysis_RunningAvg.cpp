@@ -57,7 +57,7 @@ Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* 
             dsets_.size(), window_);
   dsets_.List();
   if ( outfile != 0 )
-    mprintf("\tOutfile name: %s\n", outfile->Filename());
+    mprintf("\tOutfile name: %s\n", outfile->DataFilename().base());
 
   return Analysis::OK;
 }

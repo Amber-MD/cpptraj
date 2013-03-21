@@ -77,7 +77,7 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn, Topolog
   // Add to trajectory file list
   trajout_.push_back(traj);
   // Add filename to filename list
-  AddFilename( filename ); 
+  AddFilename( traj->TrajFilename() ); 
 
   return 0;
 }

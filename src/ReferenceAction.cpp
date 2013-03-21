@@ -70,7 +70,7 @@ int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool fi
   else if (refmode_ == FIRST)
     modeString_ = "first frame";
   else if (refmode_==REFTRAJ)
-    modeString_ = "trajectory " + refTraj_.TrajName().Full();
+    modeString_ = "trajectory " + refTraj_.TrajFilename().Full();
   else // REFFRAME
     modeString_ = "reference frame " + REF.FrameName();
   modeString_ += " (" + refMask_.MaskExpression() + ")";

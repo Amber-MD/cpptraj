@@ -57,7 +57,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   mprintf("    RMSAVGCORR: COORDS set [%s]", coords_->Legend().c_str());
   mprintf(", mask [%s]", mask_.MaskString());
   if (useMass_) mprintf(" (mass-weighted)");
-  if (outfile != 0) mprintf(", Output to %s",outfile->Filename());
+  if (outfile != 0) mprintf(", Output to %s",outfile->DataFilename().base());
   if (maxwindow_!=-1) mprintf(", max window %i",maxwindow_);
   mprintf(".\n");
   if (!separateName_.empty())

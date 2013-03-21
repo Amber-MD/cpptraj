@@ -60,7 +60,7 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
     mprintf(" dihedrals for all residues.\n");
   if (!dsetname_.empty())
     mprintf("\tDataSet name: %s\n", dsetname_.c_str());
-  if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->Filename());
+  if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().base());
   if (range360_) 
     mprintf("\tRange 0-360 deg.\n");
   else

@@ -51,7 +51,7 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
       return 0;
     }
     fileList_.push_back(Current);
-    AddFilename( nameIn );
+    AddFilename( Current->DataFilename() );
   } else {
     // Set debug level
     Current->SetDebug(debug_);
@@ -87,7 +87,7 @@ void DataFileList::List() const {
 
   mprintf("DATAFILE OUTPUT:\n");
   for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
-    mprintf("  %s: ",(*it)->Filename());
+    mprintf("  %s: ",(*it)->DataFilename().base());
     (*it)->DataSetNames();
     mprintf("\n");
   }

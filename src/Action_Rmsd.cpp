@@ -101,9 +101,9 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
       mprintf(" (reference residues %s)",RefRange_.RangeArg());
     mprintf(" using mask [:X%s].\n",perresmask_.c_str());
     if (perresout_ != 0)
-      mprintf("          Per-residue output file is %s\n",perresout_->Filename());
+      mprintf("          Per-residue output file is %s\n",perresout_->DataFilename().base());
     if (perresavg_ != 0)
-      mprintf("          Avg per-residue output file is %s\n",perresavg_->Filename());
+      mprintf("          Avg per-residue output file is %s\n",perresavg_->DataFilename().base());
     if (perrescenter_)
       mprintf("          perrescenter: Each residue will be centered prior to RMS calc.\n");
     if (perresinvert_)
@@ -323,7 +323,7 @@ void Action_Rmsd::Print() {
     if (perresinvert_) 
       perresout_->ProcessArgs("invert");
     mprintf("    RMSD: Per-residue: Writing data for %zu residues to %s\n",
-            PerResRMSD_.size(), perresout_->Filename());
+            PerResRMSD_.size(), perresout_->DataFilename().base());
   }
 
   // Average

@@ -165,9 +165,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   if (sieve_ > 1)
     mprintf("\tInitial clustering sieve value is %i frames.\n", sieve_);
   if (cnumvtimefile != 0)
-    mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->Filename());
+    mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->DataFilename().base());
   if (cpopvtimefile_ != 0) {
-    mprintf("\tCluster pop vs time will be written to %s", cpopvtimefile_->Filename());
+    mprintf("\tCluster pop vs time will be written to %s", cpopvtimefile_->DataFilename().base());
     if (norm_pop_) mprintf(" (normalized)");
     mprintf("\n");
   }

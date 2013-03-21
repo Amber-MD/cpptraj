@@ -51,7 +51,7 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
     // If still AMBERTRAJ this means no type specified. Check to see if
     // the filename extension is recognized.
     if (writeFormat == AMBERTRAJ) {
-      writeFormat = GetTypeFromExtension( TrajName().Ext() );
+      writeFormat = GetTypeFromExtension( TrajFilename().Ext() );
       if (writeFormat == UNKNOWN_TRAJ) writeFormat = AMBERTRAJ;
     }
   }
@@ -154,7 +154,7 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
     if (hasRange_)
       NframesToWrite = FrameRange_.Size();
     // Set up write and open for the current parm file 
-    if (trajio_->setupTrajout(TrajName().Full(), TrajParm(), NframesToWrite, append_)) 
+    if (trajio_->setupTrajout(TrajFilename().Full(), TrajParm(), NframesToWrite, append_)) 
       return 1;
     trajIsOpen_ = true;
     // If a framerange is defined set it to the begining of the range

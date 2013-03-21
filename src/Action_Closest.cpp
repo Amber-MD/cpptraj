@@ -98,7 +98,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   if (firstAtom_)
     mprintf("\tOnly first atom of solvent molecule used for distance calc.\n");
   if (outFile_!=0)
-    mprintf("\tClosest molecules will be saved to %s\n",outFile_->Filename());
+    mprintf("\tClosest molecules will be saved to %s\n",outFile_->DataFilename().base());
   if (!prefix_.empty())
     mprintf("\tStripped topology file will be written with prefix %s\n",
             prefix_.c_str());

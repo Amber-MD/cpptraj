@@ -38,7 +38,7 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
   if ( !setname.empty() )
     mprintf("\tSet name: %s\n", setname.c_str() );
   if ( outfile_ != 0 )
-    mprintf("\tOutfile name: %s\n", outfile_->Filename());
+    mprintf("\tOutfile name: %s\n", outfile_->DataFilename().base());
 
   return Analysis::OK;
 }

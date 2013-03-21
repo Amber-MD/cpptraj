@@ -78,7 +78,7 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   std::string reftag = argIn.getNextTag();
 
   // Check and warn if filename/reftag currently in use
-  if (FindName( traj.TrajName().Full() )!=-1) {
+  if (FindName( traj.TrajFilename().Full() )!=-1) {
     mprintf("Warning: Reference with name %s already exists!\n",traj.FullTrajStr());
     //return 1;
   }
@@ -157,8 +157,8 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   }
 
   frames_.push_back( ReferenceFrame( CurrentFrame, CurrentParm, 
-                                     traj.TrajName().Base(), traj.Start() ) );
-  AddNameWithTag( traj.TrajName().Full(), traj.TrajName().Base(), reftag );
+                                     traj.TrajFilename().Base(), traj.Start() ) );
+  AddNameWithTag( traj.TrajFilename(), reftag );
   // If the top currently has no reference coords, set them now
   if (CurrentParm->NoRefCoords()) CurrentParm->SetReferenceCoords( CurrentFrame ); 
   return 0;
@@ -245,7 +245,7 @@ void FrameList::List() const {
         mprintf("    %i: %s frame %i\n", fn, Tag(fn).c_str(),
                 frames_[fn].Num()+1);
       else
-        mprintf("    %i: %s frame %i\n",fn,Name(fn).c_str(),
+        mprintf("    %i: %s frame %i\n",fn,Name(fn).base(),
                 frames_[fn].Num()+1);
     }
   } else {

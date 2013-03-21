@@ -43,7 +43,7 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
   // rem.002 or rem.000.gz, rem.001.gz, rem.002.gz etc).
   if (debug_>1)
     mprintf("\tREMDTRAJ: FileName=[%s]\n",FullTrajStr());
-  if ( TrajName().Ext().empty() ) {
+  if ( TrajFilename().Ext().empty() ) {
     mprinterr("Error: Traj %s has no numerical extension, required for automatic\n",
               BaseTrajStr());
     mprinterr("Error: detection of replica trajectories. Expected filename format is\n");
@@ -52,12 +52,12 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
     return ReplicaNames;
   }
   // Split off everything before replica extension
-  size_t found = TrajName().Full().rfind( TrajName().Ext() );
-  Prefix = TrajName().Full().substr(0, found); 
-  ReplicaExt = TrajName().Ext(); // This should be the numeric extension
+  size_t found = TrajFilename().Full().rfind( TrajFilename().Ext() );
+  Prefix = TrajFilename().Full().substr(0, found); 
+  ReplicaExt = TrajFilename().Ext(); // This should be the numeric extension
   // Remove leading '.'
   if (ReplicaExt[0] == '.') ReplicaExt.erase(0,1);
-  CompressExt = TrajName().Compress();
+  CompressExt = TrajFilename().Compress();
   if (debug_>1) {
     mprintf("\tREMDTRAJ: Prefix=[%s], #Ext=[%s], CompressExt=[%s]\n",
             Prefix.c_str(), ReplicaExt.c_str(), CompressExt.c_str());
@@ -100,7 +100,7 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
   }
 
   // Add lowest filename, search for and add all replicas higher than it.
-  ReplicaNames.push_back( TrajName().Full() );
+  ReplicaNames.push_back( TrajFilename().Full() );
   int current_repnum = lowestRepnum_;
   bool search_for_files = true;
   while (search_for_files) {

@@ -149,7 +149,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
             SolventAcceptorMask_.MaskString());
   mprintf("\tDistance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*RADDEG);
   if (DF != 0) 
-    mprintf("\tDumping # Hbond v time results to %s\n", DF->Filename());
+    mprintf("\tDumping # Hbond v time results to %s\n", DF->DataFilename().base());
   if (!avgout_.empty())
     mprintf("\tDumping Hbond avgs to %s\n",avgout_.c_str());
   if (calcSolvent_ && !solvout_.empty())

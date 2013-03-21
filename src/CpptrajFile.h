@@ -50,6 +50,8 @@ class CpptrajFile {
     CompressType Compression()        { return compressType_;         }
     /// Return true if the file is open
     bool IsOpen()                     { return isOpen_;               }
+    /// \return file name class.
+    const FileName& Filename()  const { return fname_;                }
     /// Return the file name with full path.
     const char* FullFileStr()         { return fname_.Full().c_str(); }
     /// String version of file name with full path.

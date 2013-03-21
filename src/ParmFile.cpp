@@ -32,7 +32,7 @@ int ParmFile::Read(Topology& Top, std::string const& fname, bool bondsearch, int
     if ( parmio->ID_ParmFormat( basicParm ) ) {
       // Read this format
       err = parmio->ReadParm( basicParm.FullFileName(), Top);
-      baseName_ = basicParm.BaseFileName();
+      parmName_ = basicParm.Filename();
       // Perform setup common to all parm files.
       if (err == 0) 
         err = Top.CommonSetup(bondsearch);
