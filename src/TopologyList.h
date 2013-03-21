@@ -15,14 +15,13 @@ class TopologyList : public FileList {
     TopologyList();
     ~TopologyList();
     void Clear();
-    Topology *GetParm(int);
-    Topology *GetParm(ArgList&);
+    Topology* GetParm(int) const;
+    Topology* GetParm(ArgList&) const;
     int AddParmFile(std::string const&);
     int AddParmFile(std::string const&,std::string const&,bool,double);
     int AddParm(Topology*);
     void ReplaceParm(int, Topology*);
-    void List();
-
+    void List() const;
   private:
     std::vector<Topology*> TopList_;
     bool hasCopies_;  ///< true: List contains addresses of topologies, do not delete

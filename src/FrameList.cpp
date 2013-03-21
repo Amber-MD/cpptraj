@@ -164,14 +164,14 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   return 0;
 }
 
-// FrameList::GetFrame()
+// FrameList::GetFrameFromArgs()
 /** \return ReferenceFrame based on args in argIn.
   * The keywords in order of precedence are:
   *   - 'ref <name>'  : Get reference frame by name/tag.
   *   - 'reference'   : First reference frame in list.
   *   - 'refindex <#>': Reference frame at position.
   */
-ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) {
+ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
   int refindex;
   // By name/tag
   std::string refname = argIn.GetStringKey("ref");
@@ -204,8 +204,8 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) {
   return ReferenceFrame();
 }
 
-// FrameList::GetFrame()
-ReferenceFrame FrameList::GetFrameByName(std::string const& refName) {
+// FrameList::GetFrameByName()
+ReferenceFrame FrameList::GetFrameByName(std::string const& refName) const{
   int refIndex = FindName( refName );
   if (refIndex < 0)
     return ReferenceFrame();
@@ -233,7 +233,7 @@ int FrameList::ReplaceFrame(ReferenceFrame const& refIn, Frame *newFrame, Topolo
 // FrameList::List()
 /** Print a list of trajectory names that frames have been taken from.
   */
-void FrameList::List() {
+void FrameList::List() const {
   if (frames_.empty()) {
     mprintf("  No frames defined.\n");
     return;

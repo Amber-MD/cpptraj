@@ -63,9 +63,9 @@ void AnalysisList::DoAnalyses() {
   //mprintf("    ...................................................\n\n");
 }
 
-void AnalysisList::List() {
+void AnalysisList::List() const {
   unsigned int ananum = 0;
-  for (aListType::iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
+  for (aListType::const_iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
   {
     mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
     ++ananum;

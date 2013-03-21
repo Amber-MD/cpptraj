@@ -15,7 +15,7 @@ class ReferenceFrame {
     }*/ // NOTE: Delete in FrameList
     //ReferenceFrame(const ReferenceFrame&);
     //ReferenceFrame& operator=(const ReferenceFrame&);
-    bool operator==(const ReferenceFrame& rhs) {
+    bool operator==(const ReferenceFrame& rhs) const {
       if (frame_ != rhs.frame_) return false;
       if (parm_ != rhs.parm_) return false;
       return true;
@@ -57,15 +57,15 @@ class FrameList : public FileList {
     /// Add a reference frame base on given args
     int AddReference(ArgList&, TopologyList&);
     /// Get reference frame based on given args
-    ReferenceFrame GetFrameFromArgs(ArgList&);
+    ReferenceFrame GetFrameFromArgs(ArgList&) const;
     /// Get reference frame with given name.
-    ReferenceFrame GetFrameByName(std::string const&);
+    ReferenceFrame GetFrameByName(std::string const&) const;
     /// Replace the given reference frame with given Frame/Topology.
     int ReplaceFrame(ReferenceFrame const&, Frame*, Topology*);
     /// Print all reference frames.
-    void List();
+    void List() const;
     /// \return the number of reference frames.
-    int NumFrames() { return (int)frames_.size(); }
+    int NumFrames() const { return (int)frames_.size(); }
   private:
     std::vector<ReferenceFrame> frames_;
     std::vector<Topology*> StrippedRefParms_;

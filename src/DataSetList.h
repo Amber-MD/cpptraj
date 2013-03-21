@@ -23,21 +23,21 @@ class DataSetList {
     /// DataSetList default iterator
     typedef std::vector<DataSet*>::const_iterator const_iterator;
     /// Iterator to beginning of dataset list
-    const_iterator begin() const;
+    const_iterator begin() const { return DataList_.begin();     }
     /// Iterator to end of dataset list
-    const_iterator end() const;
+    const_iterator end()   const { return DataList_.end();       }
+    /// True if no DataSets in list.
+    bool empty()           const { return DataList_.empty();     }
+    /// Return number of datasets in the list 
+    int size()             const { return (int)DataList_.size(); }
+    /// Return the max # expected frames
+    int MaxFrames()        const { return maxFrames_;            }
     /// Erase set from list
     void erase( const_iterator );
     /// Sort DataSets in list.
     void sort();
-    /// True if no DataSets in list.
-    bool empty()                  { return DataList_.empty();     }
     /// Return DataSet at didx.
     DataSet* operator[](int didx) { return DataList_[didx]; } // FIXME: No bounds check
-    /// Return number of datasets in the list 
-    int size()                    { return (int)DataList_.size(); }
-    /// Return the max # expected frames
-    int MaxFrames()               { return maxFrames_;            }
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
     /// Set maximum # elements expected to be read in.
@@ -46,16 +46,14 @@ class DataSetList {
     void AllocateSets();
     /// Set width.precision of all DataSets in the list.
     void SetPrecisionOfDatasets(int, int);
-    /// Separate input string into DataSet args.
-    std::string ParseArgString(std::string const&, std::string&, std::string&);
     /// Get DataSet with specified name, index, and aspect.
-    DataSet* GetSet(std::string const&, int, std::string const&);
+    DataSet* GetSet(std::string const&, int, std::string const&) const;
     /// Get DataSet matching specified argument.
-    DataSet* GetDataSet( std::string const& );
+    DataSet* GetDataSet( std::string const& ) const;
     /// Get multiple DataSets matching specified argument.
-    DataSetList GetMultipleSets( std::string const& );
+    DataSetList GetMultipleSets( std::string const& ) const;
     /// Generate name based on given default and # of DataSets.
-    std::string GenerateDefaultName(const char*);
+    std::string GenerateDefaultName(const char*) const;
     /// Add DataSet to list with name, or default name if not specified.
     DataSet* AddSet( DataSet::DataType, std::string const&, const char*);
     /// Add DataSet to list with name and index.
@@ -70,14 +68,17 @@ class DataSetList {
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
     /// Print info on DataSets in the list
-    void List();
+    void List() const;
     /// Call sync for DataSets in the list (MPI only)
     void Sync();
     /// Find next set of specified type with given name.
-    DataSet* FindSetOfType(std::string const&, DataSet::DataType);
+    DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
     /// Find COORDS DataSet or create default COORDS DataSet.
     DataSet* FindCoordsSet(std::string const&);
   private:
+    /// Separate input string into DataSet args.
+    static std::string ParseArgString(std::string const&, std::string&, std::string&);
+
     typedef std::vector<DataSet*> DataListType;
     /// DataSet debug level
     int debug_;

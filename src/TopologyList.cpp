@@ -24,7 +24,7 @@ void TopologyList::Clear() {
 
 // TopologyList::GetParm()
 /** Return the parm structure with index num. */
-Topology *TopologyList::GetParm(int num) {
+Topology* TopologyList::GetParm(int num) const {
   if (num>=(int)TopList_.size() || num<0) return 0;
   return TopList_[num];
 }
@@ -36,7 +36,7 @@ Topology *TopologyList::GetParm(int num) {
   * \param argIn argument list that contains parm-related keyword
   * \return parm specified by 'parm' or 'parmindex', or the first parm. null on error.
   */
-Topology *TopologyList::GetParm(ArgList &argIn) {
+Topology* TopologyList::GetParm(ArgList &argIn) const {
   // Get any parm keywords if present
   std::string parmfilename = argIn.GetStringKey("parm");
   int pindex = argIn.getKeyInt("parmindex",0);
@@ -132,13 +132,13 @@ void TopologyList::ReplaceParm(int pindex, Topology* newParm) {
 
 // TopologyList::List()
 /** Print list of loaded parameter files */
-void TopologyList::List() {
+void TopologyList::List() const {
   mprintf("\nPARAMETER FILES:\n");
   if (TopList_.empty()) {
     mprintf("  No parameter files defined.\n");
     return;
   }
-  for (std::vector<Topology*>::iterator top = TopList_.begin(); top != TopList_.end(); top++)
+  for (std::vector<Topology*>::const_iterator top = TopList_.begin(); top != TopList_.end(); top++)
   {
     mprintf(" %i:", (*top)->Pindex());
     (*top)->ParmInfo();

@@ -100,18 +100,18 @@ int TrajoutList::Write(int set, Topology *CurrentParm, Frame *CurrentFrame) {
 }
 
 // TrajoutList::Close()
-/** Close output trajectories. Called after input traj processing completed.
-  */
+/** Close output trajectories. Called after input traj processing completed. */
 void TrajoutList::Close() {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
     (*traj)->EndTraj();
 }
 
-void TrajoutList::List() {
+// TrajoutList::List()
+void TrajoutList::List() const {
   if (trajout_.empty()) {
     mprintf("  No files.\n");
   } else {
-    for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
+    for (ListType::const_iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
       (*traj)->PrintInfo( 1 );
   }
 }

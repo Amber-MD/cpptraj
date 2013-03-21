@@ -11,7 +11,7 @@ DataFileList::~DataFileList() {
 }
 
 void DataFileList::Clear() {
-  for (df_iterator it = fileList_.begin(); it != fileList_.end(); it++)
+  for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); it++)
     delete *it;
   fileList_.clear();
   FileList::Clear();
@@ -29,7 +29,7 @@ void DataFileList::SetDebug(int debugIn) {
 /** Return DataFile specified by given file name if it exists in the list,
   * otherwise return null.
   */
-DataFile* DataFileList::GetDataFile(std::string const& nameIn) {
+DataFile* DataFileList::GetDataFile(std::string const& nameIn) const {
   if (nameIn.empty()) return 0;
   int idx = FindName( nameIn );
   if (idx == -1) return 0;
@@ -79,14 +79,14 @@ DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn)
 
 // DataFileList::List()
 /** Print information on what datasets are going to what datafiles */
-void DataFileList::List() {
+void DataFileList::List() const {
   if (fileList_.empty()) {
     //mprintf("NO DATASETS WILL BE OUTPUT\n");
     return;
   }
 
   mprintf("DATAFILE OUTPUT:\n");
-  for (df_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
+  for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
     mprintf("  %s: ",(*it)->Filename());
     (*it)->DataSetNames();
     mprintf("\n");
@@ -98,7 +98,7 @@ void DataFileList::List() {
   */
 void DataFileList::Write() {
   //if (worldrank!=0) return; 
-  for (df_iterator it = fileList_.begin(); it != fileList_.end(); it++)
+  for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); it++)
     (*it)->Write();
 }
 

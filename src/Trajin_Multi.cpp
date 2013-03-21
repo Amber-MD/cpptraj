@@ -307,7 +307,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
 // Trajin_Multi::BeginTraj()
 int Trajin_Multi::BeginTraj(bool showProgress) {
   // Open the trajectories
-  mprintf("\tREMD: OPENING REMD TRAJECTORIES\n");
+  mprintf("\tREMD: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
   for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
   {
     if ( (*replica)->openTrajin()) {
@@ -391,11 +391,11 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
 
 // Trajin_Multi::PrintInfo()
 void Trajin_Multi::PrintInfo(int showExtended) {
-  mprintf("  REMD trajectories (%u total), lowest replica [%s]", REMDtraj_.size(),
+  mprintf("REMD trajectories (%u total), lowest replica [%s]", REMDtraj_.size(),
           BaseTrajStr());
   if (showExtended == 1) PrintFrameInfo();
   mprintf("\n");
-  if (showExtended == 1) {
+  if (debug_ > 0) {
     unsigned int repnum = 0;
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
@@ -418,17 +418,23 @@ void Trajin_Multi::PrintInfo(int showExtended) {
     mprintf("\tProcessing ensemble using");
     if ( targetType_ == INDICES )
       mprintf(" replica indices\n");
-    else {
+    else
       mprintf(" replica temperatures\n");
-      mprintf("\tEnsemble Temperature Map:\n");
-      for (TmapType::iterator tmap = TemperatureMap_.begin();
-                                          tmap != TemperatureMap_.end(); ++tmap)
-        mprintf("\t\t%10.2f -> %i\n", (*tmap).first, (*tmap).second);
-    }
+    if (debug_ > 0) EnsembleInfo();
   }
 }
 
 // -----------------------------------------------------------------------------
+// Trajin_Multi::EnsembleInfo()
+void Trajin_Multi::EnsembleInfo() const {
+  if (targetType_ == TEMP) {
+    mprintf("  Ensemble Temperature Map:\n");
+    for (TmapType::const_iterator tmap = TemperatureMap_.begin();
+                                  tmap != TemperatureMap_.end(); ++tmap)
+      mprintf("\t%10.2f -> %i\n", (*tmap).first, (*tmap).second);
+  }
+}
+
 // Trajin_Multi::EnsembleSetup()
 int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   std::set<double> tList;

@@ -926,7 +926,9 @@ int Cpptraj::RunEnsemble() {
     // Perform ensemble setup - this also resizes FrameEnsemble
     if ( mtraj->EnsembleSetup( FrameEnsemble ) ) return 1;
   }
-  mprintf("  Ensemble size is %i\n", ensembleSize);
+  mprintf("  Ensemble size is %i\n", ensembleSize); 
+  // At this point all ensembles should match (i.e. same map etc.)
+  ((Trajin_Multi*)(trajinList_.front()))->EnsembleInfo();
 
   // Calculate frame division among trajectories
   trajinList_.List();
@@ -950,19 +952,23 @@ int Cpptraj::RunEnsemble() {
     for (int member = 0; member < ensembleSize; ++member) 
       TrajoutEnsemble[member].AddEnsembleTrajout( *targ, parmFileList_, member );
   }
-  mprintf("\n");
-  for (int member = 0; member < ensembleSize; ++member) {
-    mprintf("OUTPUT TRAJECTORIES Member %i:\n", member);
-    TrajoutEnsemble[member].List();
+  mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
+  TrajoutEnsemble[0].List();
+  if (debug_ > 0) {
+    for (int member = 1; member < ensembleSize; ++member) {
+      mprintf("OUTPUT TRAJECTORIES Member %i:\n", member);
+      TrajoutEnsemble[member].List();
+    }
   }
 
   // TODO: One loop over member?
   for (int member = 0; member < ensembleSize; ++member) {
-    mprintf("***** ENSEMBLE MEMBER %i: ", member);
     // Set max frames in the data set list and allocate
     DataSetEnsemble[member].SetMax( maxFrames );
     DataSetEnsemble[member].AllocateSets();
     // Initialize actions 
+    if (!actionArgs_.empty())
+      mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
     for (ArgsArray::iterator aarg = actionArgs_.begin(); aarg != actionArgs_.end(); ++aarg)
     {
       DispatchObject::TokenPtr dispatchToken = Command::SearchToken( *aarg );
@@ -983,7 +989,7 @@ int Cpptraj::RunEnsemble() {
   int actionSet = 0;
   bool hasVelocity = false;
   // Loop over every trajectory in trajFileList
-  rprintf("BEGIN ENSEMBLE PROCESSING:\n");
+  rprintf("\nBEGIN ENSEMBLE PROCESSING:\n");
   for ( TrajinList::const_iterator traj = trajinList_.begin();
                                    traj != trajinList_.end(); ++traj)
   {
@@ -1057,16 +1063,22 @@ int Cpptraj::RunEnsemble() {
     TrajoutEnsemble[member].Close();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
+  mprintf("\nENSEMBLE ACTION OUTPUT:\n");
   for (int member = 0; member < ensembleSize; ++member)
     actionList_.Print( );
 
   // Sync DataSets and print DataSet information
   // TODO - Also have datafilelist call a sync??
+  int total_data_sets = DataSetEnsemble[0].size();
+  mprintf("\nENSEMBLE DATASETS: Each member has %i sets total.\n", total_data_sets);
   for (int member = 0; member < ensembleSize; ++member) {
     DataSetEnsemble[member].Sync();
     DataSetEnsemble[member].sort();
-    mprintf("\nENSEMBLE MEMBER %i DATASETS:\n",member);
-    DataSetEnsemble[member].List();
+    if (total_data_sets != DataSetEnsemble[member].size())
+      mprintf("Warning: Ensemble member %i # data sets (%i) does not match member 0 (%i)\n",
+              member, DataSetEnsemble[member].size(), total_data_sets);
+    if (debug_ > 0)
+      DataSetEnsemble[member].List();
   }
 
   // Print Datafile information
@@ -1104,7 +1116,7 @@ int Cpptraj::RunNormal() {
   
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
-  rprintf("BEGIN TRAJECTORY PROCESSING:\n");
+  rprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
   for ( TrajinList::const_iterator traj = trajinList_.begin();
                                    traj != trajinList_.end(); ++traj)
   {
@@ -1162,6 +1174,7 @@ int Cpptraj::RunNormal() {
   trajoutList_.Close();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
+  mprintf("\nACTION OUTPUT:\n");
   actionList_.Print( );
 
   // Sync DataSets and print DataSet information

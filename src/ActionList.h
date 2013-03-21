@@ -24,7 +24,7 @@ class ActionList {
     /// Call print for each action.
     void Print();
     /// List all actions in the action list.
-    void List();
+    void List() const;
   private:
     /// Action initialization and setup status.
     enum ActionStatusType { NO_INIT=0, INIT, SETUP, INACTIVE };

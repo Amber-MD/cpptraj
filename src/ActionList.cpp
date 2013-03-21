@@ -49,10 +49,10 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& 
   * If an action cannot be set up skip it.
   */
 int ActionList::SetupActions(Topology **ParmAddress) {
+  if (actionlist_.empty()) return 0;
   Topology *OriginalParm = *ParmAddress;
-
   mprintf(".....................................................\n");
-  mprintf("PARM [%s]: Setting up %zu actions.\n",(*ParmAddress)->c_str(),actionlist_.size());
+  mprintf("ACTION SETUP FOR PARM [%s] (%zu actions):\n",(*ParmAddress)->c_str(),actionlist_.size());
   unsigned int actnum = 0;
   for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act)
   {
@@ -124,7 +124,6 @@ bool ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
 
 // ActionList::Print()
 void ActionList::Print() {
-  mprintf("\nACTION OUTPUT:\n");
   unsigned int actnum = 0;
   for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act)
   {
@@ -134,7 +133,7 @@ void ActionList::Print() {
   }
 }
 
-void ActionList::List() {
+void ActionList::List() const {
   mprintf("ACTIONS:\n");
   for (unsigned int actnum = 0; actnum < actionlist_.size(); ++actnum)
     mprintf("  %u: [%s]\n", actnum, actioncmd_[actnum].c_str());   
