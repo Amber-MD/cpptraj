@@ -96,12 +96,12 @@ void Cpptraj::ListAction(ArgList& argIn, int cmdidx) {
       enabled = ListsFromArg( argIn, true );
       if ( enabled[L_ACTION]   ) actionList_.List();
       if ( enabled[L_TRAJIN]   ) trajinList_.List();
-      if ( enabled[L_REF]      ) refFrames_.List();
-      if ( enabled[L_TRAJOUT]  ) trajoutList_.List();
+      if ( enabled[L_REF]      ) {mprintf("\nREFERENCE COORDS:\n");refFrames_.List();}
+      if ( enabled[L_TRAJOUT]  ) {mprintf("\nOUTPUT TRAJECTORIES:\n");trajoutList_.List();}
       if ( enabled[L_PARM]     ) parmFileList_.List();
       if ( enabled[L_ANALYSIS] ) analysisList_.List();
       if ( enabled[L_DATAFILE] ) DFL_.List();
-      if ( enabled[L_DATASET]  ) DSL_.List();
+      if ( enabled[L_DATASET]  ) {mprintf("\nDATASETS:\n");DSL_.List();}
       break;
     case Command::DEBUG: /** Set debug level of specified lists */
       enabled = ListsFromArg( argIn, true );

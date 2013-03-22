@@ -64,10 +64,10 @@ void AnalysisList::DoAnalyses() {
 }
 
 void AnalysisList::List() const {
-  unsigned int ananum = 0;
-  for (aListType::const_iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
-  {
-    mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
-    ++ananum;
-  }
+  mprintf("ANALYSES:\n");
+  if (analysisList_.empty())
+    mprintf("  No Analyses.\n");
+  else
+    for (unsigned int ananum = 0; ananum < analysisList_.size(); ++ananum)
+      mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
 }
