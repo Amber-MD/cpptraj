@@ -13,6 +13,10 @@ class DataSet_Coords : public DataSet {
     void AddFrame(Frame const& fIn) { 
       coords_.push_back( fIn.ConvertToCRD(numBoxCrd_) ); 
     }
+    /// Add a CRD.
+    void AddCrd(Frame::CRDtype const& crdIn) {
+      coords_.push_back( crdIn );
+    }
     /// Get a frame at position.
     void GetFrame(int idx, Frame& fIn) const { 
       fIn.SetFromCRD( coords_[idx], numBoxCrd_ ); 
