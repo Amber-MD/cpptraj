@@ -43,6 +43,13 @@ Contributors:
   - Jason M. Swails (University of Florida, Gainesville, FL, USA)
     Action_LIE, Analysis_RunningAvg, Action_Volmap, Grid OpenDX output.
 
+  - Jason M. Swails (University of Florida, Gainesville, FL, USA)
+  - Guanglei Cui (GlaxoSmithKline, Upper Providence, PA, USA)
+    Action_SPAM
+
+  - Mark J. Williamson
+    Action_GridFreeEnergy
+
   The following people wrote code in PTRAJ which was eventually adapted for
 use in CPPTRAJ:
   - Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)
