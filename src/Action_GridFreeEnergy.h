@@ -28,10 +28,13 @@ class Action_GridFreeEnergy : public Action {
     //      function of the trajectory.Maybe an upper limit of this is:
     //          numberOfVoxels * numberOfFrames?
     int maxVoxelOccupancyCount_;
+    // Temperature to calculate gfe at
+    double tempInKevin_;
     /// Output filename
     std::string filename_;
     /// Atom mask
     AtomMask mask_;
     Grid grid_;
+
 };
 #endif
