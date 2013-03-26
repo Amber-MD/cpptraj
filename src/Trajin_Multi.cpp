@@ -6,6 +6,7 @@
 // CONSTRUCTOR
 Trajin_Multi::Trajin_Multi() :
   remdtrajtemp_(0.0),
+  Ndimensions_(0),
   remd_indices_(0),
   lowestRepnum_(0),
   isSeekable_(true),
@@ -20,6 +21,7 @@ Trajin_Multi::~Trajin_Multi() {
   if (replicasAreOpen_) EndTraj();
   for (IOarrayType::iterator replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     delete *replica;
+  if (remd_indices_ != 0) delete[] remd_indices_;
 }
 
 // Trajin_Multi::SearchForReplicas()
@@ -164,7 +166,6 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
                                  arg != indicesArg.end(); ++arg)
       remdtrajidx_.push_back( convertToInteger( *arg ) );
     targetType_ = INDICES;
-    remd_indices_ = new int[ remdtrajidx_.size() ];
   } else if (argIn->Contains("remdtrajtemp")) {
     // Looking for target temperature
     remdtrajtemp_ = argIn->getKeyDouble("remdtrajtemp",0.0);
@@ -196,7 +197,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   // Loop over all filenames in replica_filenames 
   bool lowestRep = true;
   bool repBoxInfo = false;
-  int Ndimensions = -1;
+  Ndimensions_ = -1;
   isSeekable_ = true;
   hasVelocity_ = false;
   for (NameListType::iterator repfile = replica_filenames_.begin();
@@ -225,12 +226,12 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
       // If lowest rep has velocity, all others must have velocity.
       hasVelocity_ = replica0->HasV();
       // If lowest rep has dimensions, all others must have same dimensions
-      Ndimensions = replica0->NreplicaDimensions();
+      Ndimensions_ = replica0->NreplicaDimensions();
       // Check that replica dimension valid for desired indices.
-      if (targetType_ == INDICES && Ndimensions != (int)remdtrajidx_.size())
+      if (targetType_ == INDICES && Ndimensions_ != (int)remdtrajidx_.size())
       {
         mprinterr("Error: RemdTraj: Replica # of dim (%i) not equal to target # dim (%zu)\n",
-                  Ndimensions, remdtrajidx_.size());
+                  Ndimensions_, remdtrajidx_.size());
         return 1;
       }
     } else {
@@ -262,7 +263,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
         return 1;
       }
       // Check # dimensions against lowest rep
-      if ( replica0->NreplicaDimensions() != Ndimensions ) {
+      if ( replica0->NreplicaDimensions() != Ndimensions_ ) {
         mprinterr("Error: RemdTraj: Replica %s dimension info does not match first replica.\n",
                   (*repfile).c_str());
         return 1;
@@ -279,11 +280,14 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     }
     lowestRep = false;
   }
+  // Allocate space for number of dimensions
+  if (Ndimensions_ > 0)
+    remd_indices_ = new int[ Ndimensions_ ];
   // If targetType is currently NONE these will be processed as an ensemble. 
   // If dimensions are present index by replica indices, otherwise index
   // by temperature.
   if (isEnsemble_) {
-    if (Ndimensions > 0)
+    if (Ndimensions_ > 0)
       targetType_ = INDICES;
     else
       targetType_ = TEMP;
@@ -432,12 +436,24 @@ void Trajin_Multi::EnsembleInfo() const {
     for (TmapType::const_iterator tmap = TemperatureMap_.begin();
                                   tmap != TemperatureMap_.end(); ++tmap)
       mprintf("\t%10.2f -> %i\n", (*tmap).first, (*tmap).second);
+  } else { // INDICES
+    mprintf("  Ensemble Indices Map:\n");
+    for (ImapType::const_iterator imap = IndicesMap_.begin();
+                                  imap != IndicesMap_.end(); ++imap)
+    {
+      mprintf("\t{");
+      for (std::vector<int>::const_iterator idx = (*imap).first.begin();
+                                            idx != (*imap).first.end(); ++idx)
+        mprintf(" %i", *idx);
+      mprintf(" } -> %i\n", (*imap).second);
+    }
   }
 }
 
 // Trajin_Multi::EnsembleSetup()
 int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   std::set<double> tList;
+  std::set< std::vector<int> > iList;
   // Allocate space to hold position of each incoming frame in replica space.
   frameidx_.resize( REMDtraj_.size() );
   f_ensemble.resize( REMDtraj_.size() );
@@ -469,7 +485,28 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
     for (std::set<double>::iterator temp0 = tList.begin(); temp0 != tList.end(); ++temp0)
       TemperatureMap_.insert(std::pair<double,int>(*temp0, repnum++)); 
   } else if (targetType_ == INDICES) {
-    return 1;
+    // Get a list of all indices present in input REMD trajectories
+    // by reading in the first frame.
+    IndicesMap_.clear();
+    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    {
+      if ( (*replica)->openTrajin() ) return 1;
+      if ( (*replica)->readIndices( CurrentFrame(), remd_indices_ ) ) return 1;
+      (*replica)->closeTraj();
+      std::pair<std::set< std::vector<int> >::iterator,bool> ret = 
+        iList.insert( std::vector<int>( remd_indices_, remd_indices_ + Ndimensions_ ) );
+      if ( !ret.second ) {
+        mprinterr("Error: Ensemble: Duplicate indices detected:");
+        for (std::vector<int>::const_iterator idx = (*ret.first).begin(); 
+                                              idx != (*ret.first).end(); ++idx)
+          mprinterr(" %i", *idx);
+        mprinterr("\n");
+        return 1;
+      }
+    }
+    int repnum = 0;
+    for (std::set< std::vector<int> >::iterator idxs = iList.begin(); idxs != iList.end(); ++idxs)
+      IndicesMap_.insert(std::pair< std::vector<int>, int >(*idxs, repnum++));
   } 
   return 0;
 }
@@ -490,13 +527,27 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
       if ( (*replica)->readFrame( CurrentFrame(), (*frame).xAddress(), (*frame).vAddress(),
                                   (*frame).bAddress(), (*frame).tAddress()) )
         return 0;
-      // TODO: Indices read
-      TmapType::iterator tmap = TemperatureMap_.find( (*frame).Temperature() );
-      if (tmap ==  TemperatureMap_.end())
-        badEnsemble_ = true;
-      else
-        *fidx = (*tmap).second;
-      //mprintf(" %.2f[%i]", (*frame).Temperature(), *fidx ); // DEBUG
+      if (targetType_ == TEMP) {
+        TmapType::iterator tmap = TemperatureMap_.find( (*frame).Temperature() );
+        if (tmap ==  TemperatureMap_.end())
+          badEnsemble_ = true;
+        else
+          *fidx = (*tmap).second;
+        //mprintf(" %.2f[%i]", (*frame).Temperature(), *fidx ); // DEBUG
+      } else { // INDICES
+        if ( (*replica)->readIndices( CurrentFrame(), remd_indices_ ) ) return 1;
+        ImapType::iterator imap = IndicesMap_.find( 
+          std::vector<int>( remd_indices_, remd_indices_ + Ndimensions_ ) );
+        if (imap == IndicesMap_.end())
+          badEnsemble_ = true;
+        else
+          *fidx = (*imap).second;
+        // DEBUG
+        //mprintf(" {");
+        //for (int idx = 0; idx < Ndimensions_; ++idx)
+        //  mprintf(" %i", remd_indices_[idx]);
+        //mprintf(" }[%i]", *fidx);
+      }
       ++fidx;
       ++frame;
     }
