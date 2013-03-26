@@ -78,6 +78,7 @@
 #include "Analysis_Rms2d.h"
 #include "Analysis_Clustering.h"
 #include "Analysis_RunningAvg.h"
+#include "Analysis_MeltCurve.h"
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
 static void Help_Help() {
@@ -429,6 +430,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ANALYSIS, "ired", Analysis_IRED::Alloc, Analysis_IRED::Help, 0 },
   { DispatchObject::ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, 0 },
   { DispatchObject::ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, 0 },
+  { DispatchObject::ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, 0 },
   { DispatchObject::ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, 0 },
   { DispatchObject::ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
   { DispatchObject::ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, 0 },
