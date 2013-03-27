@@ -20,6 +20,7 @@ Trajin_Multi::~Trajin_Multi() {
   if (replicasAreOpen_) EndTraj();
   for (IOarrayType::iterator replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     delete *replica;
+  if (remd_indices_!=0) delete[] remd_indices_;
 }
 
 // Trajin_Multi::SearchForReplicas()
