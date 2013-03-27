@@ -73,10 +73,11 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     dssp_ = DSL->AddSet(DataSet::STRING, dsetname_, "DSSP");
     if (dssp_==0) return Action::ERR;
     dsetname_ = dssp_->Name();
-    outfile_->AddSet( dssp_ );
+    if (outfile_ != 0) outfile_->AddSet( dssp_ );
   } else {
     // If not string output set up Z labels
-    outfile_->ProcessArgs("zlabels None,Para,Anti,3-10,Alpha,Pi,Turn");
+    if (outfile_ != 0)
+      outfile_->ProcessArgs("zlabels None,Para,Anti,3-10,Alpha,Pi,Turn");
   }
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
@@ -195,7 +196,7 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
       SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INT, dsetname_,
                                                                 res+1, "res");
       if (SecStruct_[res].resDataSet!=0) {
-        outfile_->AddSet(SecStruct_[res].resDataSet);
+        if (outfile_ != 0) outfile_->AddSet(SecStruct_[res].resDataSet);
         SecStruct_[res].resDataSet->SetLegend( currentParm->TruncResNameNum(res) );
       }
     }
