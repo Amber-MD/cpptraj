@@ -21,7 +21,7 @@ const char* DataSet::SetStrings[] = {
   "2D matrix", "coords"
 };
 
-/// CONSTRUCTOR - Take type, width, precision, and dimension
+// CONSTRUCTOR
 DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   idx_(-1),
   dType_(typeIn),
@@ -60,16 +60,21 @@ int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& a
   // Set index and aspect if given
   if (idxIn != -1) idx_ = idxIn;
   if (!aspectIn.empty()) aspect_ = aspectIn;
- 
-  return 0;
-}
-
-// DataSet::Empty()
-/** \return true if size==0, which indicates set has not been written to. 
-  * \return false otherwise.
-  */
-bool DataSet::Empty() {
-  if (Size()==0) return 1;
+  // If no legend set yet create a default one. Possible formats are:
+  //  - Name[Aspect]
+  //  - Name:idx
+  //  - Aspect:Idx
+  //  - Name
+  if (legend_.empty()) {
+    if (!aspect_.empty() && idx_ == -1)
+      legend_ = name_ + "[" + aspect_ + "]";
+    else if (aspect_.empty() && idx_ != -1)
+      legend_ = name_ + ":" + integerToString( idx_ );
+    else if (!aspect_.empty() && idx_ != -1)
+      legend_ = aspect_ + ":" + integerToString( idx_ );
+    else
+      legend_ = name_;
+  }
   return 0;
 }
 
@@ -84,15 +89,15 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   switch (dType_) {
     case HIST  :
     case MATRIX2D:
-    case DOUBLE: SetDoubleFormatString(format_, width_, precision_, 0, leftAlign); break;
+    case DOUBLE: format_ = SetDoubleFormatString(width_, precision_, 0, leftAlign); break;
     case TRIMATRIX:
     case COORDS:
-    case FLOAT : SetDoubleFormatString(format_, width_, precision_, 1, leftAlign); break;
-    case INT   : SetIntegerFormatString(format_, width_, leftAlign); break;
-    case STRING: SetStringFormatString(format_, width_, leftAlign); break;
+    case FLOAT : format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
+    case INT   : format_ = SetIntegerFormatString(width_, leftAlign); break;
+    case STRING: format_ = SetStringFormatString(width_, leftAlign); break;
     case MODES :
     case MATRIX:
-    case VECTOR: SetDoubleFormatString(format_, width_, precision_, 0, false); break;
+    case VECTOR: format_ = SetDoubleFormatString(width_, precision_, 0, false); break;
     default:
       mprinterr("Error: No format string defined for this data type (%s).\n", 
                 Legend().c_str());
@@ -101,34 +106,6 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   // Assign format to a constant ptr to avoid continuous calls to c_str
   data_format_ = format_.c_str();
   return 0;
-}
-
-// DataSet::Legend()
-/** Return DataSet legend. If the legend is empty create one based on 
-  * DataSet name (and aspect/index if present). Possible formats are:
-  * - Name[Aspect]
-  * - Name:idx
-  * - Aspect:Idx
-  * - Name
-  */
-std::string const& DataSet::Legend() {
-  if (legend_.empty()) {
-    if (!aspect_.empty() && idx_ == -1)
-      legend_ = name_ + "[" + aspect_ + "]";
-    else if (aspect_.empty() && idx_ != -1)
-      legend_ = name_ + ":" + integerToString( idx_ );
-    else if (!aspect_.empty() && idx_ != -1)
-      legend_ = aspect_ + ":" + integerToString( idx_ );
-    else
-      legend_ = name_;
-  }
-  return legend_;
-}
-
-// DataSet::SetScalar()
-void DataSet::SetScalar( scalarMode modeIn, scalarType typeIn ) {
-  scalarmode_ = modeIn;
-  scalartype_ = typeIn;
 }
 
 // DataSet::Matches()
