@@ -14,9 +14,6 @@ bool fileExists(const char *);
 
 std::string NumberFilename(std::string const &, int);
 int DigitWidth(int);
-void SetDoubleFormatString(std::string &, int, int, int, bool);
-void SetStringFormatString(std::string &, int, bool);
-void SetIntegerFormatString(std::string &, int, bool);
 
 int convertToInteger(std::string const &);
 double convertToDouble(std::string const &);
@@ -24,4 +21,8 @@ void RemoveTrailingWhitespace(std::string &);
 std::string integerToString(int);
 std::string integerToString(int,int);
 std::string doubleToString(double);
+
+std::string SetDoubleFormatString(int, int, int, bool);
+std::string SetStringFormatString(int, bool);
+std::string SetIntegerFormatString(int, bool);
 #endif

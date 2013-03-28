@@ -79,100 +79,6 @@ int DigitWidth(int numberIn) {
   return (minusSign + numi);
 }
 
-// ---------- STRING FORMAT ROUTINES -------------------------------------------
-// NOTE: In the following format routines, 2 char arrays are used
-// since a 1 char null terminates the format string.
-
-// SetDoubleFormatString()
-/** Set up a printf-style format string for float/double of given width, 
-  * precision, and alignment.
-  */
-void SetDoubleFormatString(std::string &formatString, int width, int precision,
-                           int type, bool leftAlign)
-{
-  char leftSpace[2];
-  char typestring[3];
-  // If left-aligned, no leading space.
-  if (leftAlign)
-    leftSpace[0]='\0';
-  else {
-    leftSpace[0]=' ';
-    leftSpace[1]='\0';
-  }
-  // Type: 1 = float, 2 = scientific (E), otherwise double
-  if (type == 1) {
-    typestring[0]='f';
-    typestring[1]='\0';
-  } else if (type == 2) {
-    typestring[0] = 'l';
-    typestring[1] = 'E';
-    typestring[2] = '\0';
-  } else {
-    typestring[0] = 'l';
-    typestring[1] = 'f';
-    typestring[2] = '\0';
-  }
-  // # chars necessary to hold width arg
-  int wWidth = DigitWidth( width );
-  // # chars necessary to hold precision arg
-  int pWidth = DigitWidth( precision );
-  // String fmt: "%w.plf\0"
-  char *format = new char[ pWidth + wWidth + 6 ];
-  sprintf(format, "%s%%%i.%i%s", leftSpace, width, precision, typestring);
-  formatString.assign( format );
-  //mprintf("DEBUG: Double Format string: [%s]\n",format);
-  delete[] format;
-}
-
-// SetStringFormatString()
-/** Set up a printf-style format string for string (char*) of given
-  * width and alignment.
-  */
-void SetStringFormatString(std::string &formatString, int width, bool leftAlign)
-{
-  char leftSpace[2];
-  char alignChar[2];
-  // If left-aligned, no leading space, set alignment char
-  if (leftAlign) {
-    leftSpace[0]='\0';
-    alignChar[0]='-';
-    alignChar[1]='\0';
-  } else {
-    leftSpace[0]=' ';
-    leftSpace[1]='\0';
-    alignChar[0]='\0';
-  }
-  // # chars necessary to hold width arg
-  int wWidth = DigitWidth( width );
-  // String fmt: " %-ws"
-  char *format = new char[ wWidth + 5 ];
-  sprintf(format, "%s%%%s%is", leftSpace, alignChar, width);
-  formatString.assign( format );
-  //mprintf("DEBUG: String Format string: [%s]\n",format);
-  delete[] format;
-}
-
-// SetIntegerFormatString()
-void SetIntegerFormatString(std::string &formatString, int width, bool leftAlign)
-{
-  char leftSpace[2];
-  // If left-aligned, no leading space.
-  if (leftAlign)
-    leftSpace[0]='\0';
-  else {
-    leftSpace[0]=' ';
-    leftSpace[1]='\0';
-  }
-  // # chars necessary to hold width arg
-  int wWidth = DigitWidth( width );
-  // String fmt: " %wi"
-  char *format = new char[ wWidth + 4 ];
-  sprintf(format, "%s%%%ii", leftSpace, width);
-  formatString.assign( format );
-  //mprinterr("DEBUG: Integer Format string: [%s]\n",format);
-  delete[] format;
-}
-
 // ---------- STRING CONVERSION ROUTINES --------------------------------------- 
 /*! \class: BadConversion
     \brief Runtime exception for catching bad conversions from the convertToX routines.
@@ -239,4 +145,73 @@ std::string doubleToString(double d) {
   std::ostringstream oss;
   oss << d;
   return oss.str();
+}
+
+// ---------- STRING FORMAT ROUTINES -------------------------------------------
+// SetDoubleFormatString()
+/** Set up a printf-style format string for float/double of given width, 
+  * precision, and alignment, e.g. '%8.3lf'.
+  */
+std::string SetDoubleFormatString(int width, int precision, int type, bool leftAlign)
+{
+  std::string format;
+  std::string width_arg;
+  std::string prec_arg;
+  std::string type_arg; // Will be f, lf, or E.
+
+  // If not left-aligned, need leading space.
+  if (!leftAlign) format.append(" ");
+  // Type: 1 = float, 2 = scientific (E), otherwise double
+  switch (type) {
+    case 1:  type_arg = "f"; break;
+    case 2:  type_arg = "E"; break;
+    default: type_arg = "lf"; break;
+  }
+  // Set width and/or precision if applicable.
+  if (width > 0)
+    width_arg = integerToString( width );
+  if (precision > -1)
+    prec_arg = "." + integerToString( precision );
+  // Set format string.
+  format.append( "%" + width_arg + prec_arg + type_arg );
+  return format; 
+}
+
+// SetStringFormatString()
+/** Set up a printf-style format string for string (char*) of given
+  * width and alignment, e.g. '%20s'.
+  */
+std::string SetStringFormatString(int width, bool leftAlign)
+{
+  std::string format;
+  std::string width_arg;
+  // If not left-aligned, need leading space.
+  if (!leftAlign) 
+    format.append(" %");
+  else
+    format.append("%-");
+  // Set width if applicable
+  if (width > 0)
+    width_arg = integerToString( width );
+  // Set format string.
+  format.append( width_arg + "s" );
+  return format;
+}
+
+// SetIntegerFormatString()
+/** Set up a printf-style format string for integer of given width
+  * and alignment, e.g. '%8i'.
+  */
+std::string SetIntegerFormatString(int width, bool leftAlign)
+{
+  std::string format;
+  std::string width_arg;
+  // If not left-aligned, need leading space.
+  if (!leftAlign) format.append(" ");
+  // Set width if applicable
+  if (width > 0)
+    width_arg = integerToString( width );
+  // Set format string.
+  format.append( "%" + width_arg + "i" );
+  return format;
 }
