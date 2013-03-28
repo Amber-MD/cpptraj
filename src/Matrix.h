@@ -4,15 +4,18 @@
 /// Two-dimensional matrix template.
 template <class T> class Matrix {
   public:
+    enum MType { FULL = 0, HALF, TRI }; 
     Matrix() :
-      elements_(0), ncols_(0L), nrows_(0L), 
-      nelements_(0L), currentElement_(0L), calcIndex(calcFullIndex) {}
+      elements_(0), ncols_(0L), nrows_(0L), nelements_(0L), 
+      currentElement_(0L), type_(FULL), calcIndex(calcFullIndex) {}
     ~Matrix() { if (elements_!=0) delete[] elements_; }
     Matrix( const Matrix& );
     Matrix& operator=( const Matrix& );
     T& operator[](size_t idx)                  { return elements_[idx];  }
     /// \return total number of elements in the matrix.
     size_t size()                        const { return nelements_;      }
+    /// \return current matrix type.
+    MType Type()                         const { return type_;           }
     /// Set up matrix for given number of cols and rows.
     int resize(size_t,size_t);
     /// \return element at specified col and row.
@@ -35,6 +38,7 @@ template <class T> class Matrix {
     size_t nrows_;          ///< Number of rows (Y)
     size_t nelements_;      ///< Total number of elements.
     size_t currentElement_; ///< Current element (for AddElement())
+    MType type_;            ///< Current matrix type.
     /// Pointer to index calculator for current matrix type
     size_t (*calcIndex)(size_t,size_t,size_t);
     /// Full 2D matrix. 
@@ -114,16 +118,19 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
     nrows_ = nY;
     nelements_ = ncols_ * nrows_;
     calcIndex = calcFullIndex;
+    type_ = FULL;
   } else if (nX > 0L && nY == 0L) { // HALF
     ncols_ = nX;
     nrows_ = nX;
     nelements_ = ncols_ * (ncols_ + 1L) / 2L;
     calcIndex = calcHalfIndex;
+    type_ = HALF;
   } else if (nX == 0L && nY > 0L) { // TRIANGLE
     ncols_ = nY;
     nrows_ = nY;
     nelements_ = ncols_ * (ncols_ - 1L) / 2L;
     calcIndex = calcTriIndex;
+    type_ = TRI;
   } else { // Both Zero, EMPTY
     return 1;
   }
