@@ -5,12 +5,13 @@
 
 // CONSTRUCTOR
 DataSet::DataSet() :
+  data_format_(0),
   idx_(-1),
   dType_(UNKNOWN_DATA),
   dim_(1),
-  width_(0),
-  precision_(0),
-  data_format_(0),
+  colwidth_(0),
+//  width_(0),
+//  precision_(0),
   scalarmode_(UNKNOWN_MODE),
   scalartype_(UNDEFINED)
 { }
@@ -23,26 +24,18 @@ const char* DataSet::SetStrings[] = {
 
 // CONSTRUCTOR
 DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
+  data_format_(0),
   idx_(-1),
   dType_(typeIn),
   dim_(dimIn),
-  width_(widthIn),
-  precision_(precisionIn),
-  data_format_(0),
+  colwidth_(widthIn),
+//  width_(widthIn),
+//  precision_(precisionIn),
   scalarmode_(UNKNOWN_MODE),
   scalartype_(UNDEFINED)
 {
-  SetDataSetFormat(false);
+  SetDataSetFormat(widthIn, precisionIn, false);
 }  
-
-// DataSet::SetPrecision()
-/** Set dataset width and precision and recalc output format string.
-  */
-void DataSet::SetPrecision(int widthIn, int precisionIn) {
-  width_ = widthIn;
-  precision_ = precisionIn;
-  SetDataSetFormat(false);
-}
 
 // DataSet::SetupSet()
 /** Set up common to all data sets. The dataset name should be unique and is
@@ -84,20 +77,27 @@ int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& a
   *        otherwise they will be preceded by a space.
   * \return 0 on success, 1 on error.
   */
-int DataSet::SetDataSetFormat(bool leftAlign) {
-  // Set data format string
+int DataSet::SetDataSetFormat(int widthIn, int precisionIn, bool leftAlign) {
+  //width_ = widthIn;
+  //precision_ = precisionIn;
+  // Set data format string.
+  // NOTE: According to C++ std 4.7/4 (int)true == 1
+  colwidth_ = widthIn + (int)leftAlign;
   switch (dType_) {
     case HIST  :
     case MATRIX2D:
-    case DOUBLE: format_ = SetDoubleFormatString(width_, precision_, 0, leftAlign); break;
+    case DOUBLE: format_ = SetDoubleFormatString(widthIn, precisionIn, 0, leftAlign); break;
     case TRIMATRIX:
     case COORDS:
-    case FLOAT : format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
-    case INT   : format_ = SetIntegerFormatString(width_, leftAlign); break;
-    case STRING: format_ = SetStringFormatString(width_, leftAlign); break;
+    case FLOAT : format_ = SetDoubleFormatString(widthIn, precisionIn, 1, leftAlign); break;
+    case INT   : format_ = SetIntegerFormatString(widthIn, leftAlign); break;
+    case STRING: format_ = SetStringFormatString(widthIn, leftAlign); break;
     case MODES :
     case MATRIX:
-    case VECTOR: format_ = SetDoubleFormatString(width_, precision_, 0, false); break;
+    case VECTOR: // No left-align allowed for now with VECTOR.
+      format_ = SetDoubleFormatString(widthIn, precisionIn, 0, false); 
+      colwidth_ = (widthIn + 1) * 6; // Vx Vy Vz Ox Oy Oz
+      break;
     default:
       mprinterr("Error: No format string defined for this data type (%s).\n", 
                 Legend().c_str());

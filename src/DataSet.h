@@ -47,7 +47,7 @@ class DataSet {
     // ----------===== Inheritable functions =====----------
     /// Allocate memory for a certain number of frames (1D).
     virtual int Allocate(int) = 0;
-    /// Return the number of data elements stored in the set.
+    /// \return the number of data elements stored in the set.
     virtual int Size() const = 0;
     /// Used to check if a frame in DataSet has data (1D).
     virtual int FrameIsEmpty(int) const = 0; 
@@ -65,16 +65,12 @@ class DataSet {
     virtual void Write2D(CpptrajFile&,int,int) const = 0;
     /// Consolodate this DataSet across all threads (MPI only)
     virtual int Sync() = 0;
-    /// Return data from data set as double precision (1D)
+    /// \return data from data set as double precision (1D)
     virtual double Dval(int) const = 0;
-    /// Return last value written to data set as double precision (1D)
-    virtual double CurrentDval() const = 0;
     /// Print DataSet information
     virtual void Info() const = 0;
     // -----------------------------------------------------
     // ----------===== Public functions =====---------------
-    /// Set output precision
-    void SetPrecision(int,int);
     /// Set up DataSet with given name, index, and aspect.
     int SetupSet(std::string const&,int,std::string const&);
     /// Set DataSet legend.
@@ -82,9 +78,9 @@ class DataSet {
     /// Set scalar mode
     void SetScalar( scalarMode mIn )         { scalarmode_ = mIn; }
     /// Set scalar mode and type
-    void SetScalar( scalarMode, scalarType );
+    inline void SetScalar( scalarMode, scalarType );
     /// Used to set the data and header format strings 
-    int SetDataSetFormat(bool);
+    int SetDataSetFormat(int,int,bool);
     /// Check if name and/or index and aspect match this dataset.
     bool Matches(std::string const&, int, std::string const&);
     // -----------------------------------------------------
@@ -93,40 +89,44 @@ class DataSet {
     bool Empty()                const { return (Size() == 0);      }
     /// DataSet output label.
     std::string const& Legend() const { return legend_;            }
-    /// Return DataSet base name.
+    /// \return DataSet base name.
     std::string const& Name()   const { return name_;              }
-    /// Return DataSet index.
+    /// \return DataSet index.
     int Idx()                   const { return idx_;               }
-    /// Return DataSet aspect.
+    /// \return DataSet aspect.
     std::string const& Aspect() const { return aspect_;            }
-    /// Return DataSet type.
+    /// \return Total output width of a data element in characters.
+    int ColumnWidth()           const { return colwidth_;          }
+    /// \return DataSet type.
     DataType Type()             const { return dType_;             }
-    /// Return DataSet type name.
+    /// \return DataSet type name.
     const char* TypeName()      const { return SetStrings[dType_]; }
-    /// Width of output data elements.
-    int Width()                 const { return width_;             }
-    /// Return scalar mode
+    /// \return scalar mode
     scalarMode ScalarMode()     const { return scalarmode_;        }
-    /// Return scalar type
+    /// \return scalar type
     scalarType ScalarType()     const { return scalartype_;        }
-    /// Return DataSet dimension array.
+    /// \return DataSet dimension array.
     const DimArray& Dim()       const { return dim_;               }
     /// Comparison for sorting, name/aspect/idx
-    bool operator<(const DataSet&) const;
+    inline bool operator<(const DataSet&) const;
+  protected:
+    /// Width of numbers in output elements.
+    //int Width()                 const { return width_;             }
+    const char* data_format_; ///< Used to avoid constant calls to format_.c_str().
   private:
-    std::string name_;           ///< Name of the DataSet
-    int idx_;                    ///< DataSet index
-    std::string aspect_;         ///< DataSet aspect.
-    std::string legend_;         ///< DataSet legend.
-    DataType dType_;             ///< The DataSet type
-    DimArray dim_;               ///< Holds info for writing each dimension in the data set.
-    int width_;                  ///< The output width of a data element
-    int precision_;              ///< The output precision of a data element (if applicable)
-    std::string format_;         ///< Output printf format string for data.
-    const char *data_format_;    ///< Used to avoid constant calls to format_.c_str().
-    scalarMode scalarmode_;      ///< Source of data in DataSet.
-    scalarType scalartype_;      ///< Specific type of data in DataSet (if any).
-    /// Strings for each data set type.
+    std::string name_;        ///< Name of the DataSet
+    int idx_;                 ///< DataSet index
+    std::string aspect_;      ///< DataSet aspect.
+    std::string legend_;      ///< DataSet legend.
+    DataType dType_;          ///< The DataSet type
+    DimArray dim_;            ///< Holds info for writing each dimension in the data set.
+    int colwidth_;            ///< The total output width of a data element.
+    //int width_;               ///< The output width of numbers in a data element.
+    //int precision_;           ///< The output precision of numbers in a data element.
+    std::string format_;      ///< Output printf format string for data.
+    scalarMode scalarmode_;   ///< Source of data in DataSet.
+    scalarType scalartype_;   ///< Specific type of data in DataSet (if any).
+    /// Strings describing each data set type (corresponds to DataType).
     static const char* SetStrings[];
 };
 // ---------- INLINE FUNCTIONS -------------------------------------------------
