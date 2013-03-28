@@ -1,31 +1,29 @@
 #ifndef INC_DIMENSION_H
 #define INC_DIMENSION_H
 #include <string>
-/// Holds information about a histogram dimension
+/// Holds information about a coordinate dimension.
 class Dimension {
   public:
     Dimension();
     Dimension(const Dimension&);
     Dimension& operator=(const Dimension&);
  
-    void SetLabel(std::string const&);
-    void SetMin(double);
-    void SetMax(double);
-    void SetStep(double);
-    void SetBins(int);
-    void SetOffset(int);
+    void SetLabel(std::string const& l) { label_ = l;  }
+    void SetMin(double m)               { min_ = m;    }
+    void SetMax(double m)               { max_ = m;    }
+    void SetStep(double s)              { step_ = s;   }
+    void SetBins(int b)                 { bins_ = b;   }
+    void SetOffset(int o)               { offset_ = o; } 
 
-    const char* c_str() { return label_.c_str(); }
-    std::string const& Label() { return label_; }
-    double Min() { return min_; }
-    double Max() { return max_; }
-    double Step() { return step_; }
-    int Bins() { return bins_; }
-    int Offset() { return offset_; }
-
+    std::string const& Label() const { return label_;  }
+    double Min()               const { return min_;    }
+    double Max()               const { return max_;    }
+    double Step()              const { return step_;   }
+    int Bins()                 const { return bins_;   }
+    int Offset()               const { return offset_; }
+    /// Attempt to set up bins or step.
     int CalcBinsOrStep();
-    void PrintDim();
-    
+    void PrintDim() const;
   private:
     std::string label_;
     double min_;

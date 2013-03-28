@@ -33,35 +33,10 @@ Dimension& Dimension::operator=(const Dimension& rhs) {
   return *this;
 }
 
-void Dimension::SetLabel(std::string const& labelIn) {
-  label_ = labelIn;
-}
-
-void Dimension::SetMin(double minIn) {
-  min_ = minIn;
-}
-
-void Dimension::SetMax(double maxIn) {
-  max_ = maxIn;
-}
-
-void Dimension::SetStep(double stepIn) {
-  step_ = stepIn;
-}
-
-void Dimension::SetBins(int binsIn) {
-  bins_ = binsIn;
-}
-
-void Dimension::SetOffset(int offsetIn) {
-  offset_ = offsetIn;
-}
-
 // Dimension::CalcBinsOrStep()
-/** Attempt to set up bins or step. If both have been defined, use the
-  * specified bins and calculate a new step. If neither have been defined,
-  * use default bins and calculate step.
-  * When calculating bins from a stepsize, round up.
+/** If both have been defined, use the specified bins and calculate a new 
+  * step. If neither have been defined, use default bins and calculate 
+  * step. When calculating bins from a stepsize, round up.
   */
 int Dimension::CalcBinsOrStep() {
   if (bins_!=-1 && step_!=-1) {
@@ -95,8 +70,7 @@ int Dimension::CalcBinsOrStep() {
   return 0;
 }
 
-void Dimension::PrintDim() {
-  mprintf("\tDim %s: %lf->%lf, step %lf, %i bins.\n", label_.c_str(),
+void Dimension::PrintDim() const {
+  mprintf("\tDim %s: %f->%f, step %f, %i bins.\n", label_.c_str(),
           min_, max_, step_, bins_);
 }
-
