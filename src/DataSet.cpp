@@ -10,8 +10,8 @@ DataSet::DataSet() :
   dType_(UNKNOWN_DATA),
   dim_(1),
   colwidth_(0),
-//  width_(0),
-//  precision_(0),
+  width_(0),
+  precision_(0),
   scalarmode_(UNKNOWN_MODE),
   scalartype_(UNDEFINED)
 { }
@@ -29,13 +29,73 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   dType_(typeIn),
   dim_(dimIn),
   colwidth_(widthIn),
-//  width_(widthIn),
-//  precision_(precisionIn),
+  width_(widthIn),
+  precision_(precisionIn),
   scalarmode_(UNKNOWN_MODE),
   scalartype_(UNDEFINED)
 {
-  SetDataSetFormat(widthIn, precisionIn, false);
+  SetDataSetFormat(false);
+  // Allocate default values for dimensions
+  for (unsigned int d = 0; d < dim_.size(); ++d) {
+    switch (d) {
+      case 0: dim_[d].SetLabel("X"); break;
+      case 1: dim_[d].SetLabel("Y"); break;
+      case 2: dim_[d].SetLabel("Z"); break;
+      default: dim_[d].SetLabel("D" + integerToString(d));
+    }
+    dim_[d].SetStep(1.0);
+  }   
 }  
+
+// COPY CONSTRUCTOR
+DataSet::DataSet(const DataSet& rhs) :
+  data_format_(0),
+  name_(rhs.name_),
+  idx_(rhs.idx_),
+  aspect_(rhs.aspect_),
+  legend_(rhs.legend_),
+  dType_(rhs.dType_),
+  dim_(rhs.dim_),
+  colwidth_(rhs.colwidth_),
+  width_(rhs.width_),
+  precision_(rhs.precision_),
+  format_(rhs.format_),
+  scalarmode_(rhs.scalarmode_),
+  scalartype_(rhs.scalartype_)
+{
+  if (!format_.empty())
+    data_format_ = format_.c_str();
+}
+
+// ASSIGNMENT
+DataSet& DataSet::operator=(const DataSet& rhs) {
+  if (this == &rhs) return *this;
+  name_ = rhs.name_;
+  idx_ = rhs.idx_;
+  aspect_ = rhs.aspect_;
+  legend_ = rhs.legend_;
+  dType_ = rhs.dType_;
+  dim_ = rhs.dim_;
+  colwidth_ = rhs.colwidth_;
+  width_ = rhs.width_;
+  precision_ = rhs.precision_;
+  format_ = rhs.format_;
+  if (!format_.empty()) 
+    data_format_ = format_.c_str();
+  scalarmode_ = rhs.scalarmode_;
+  scalartype_ = rhs.scalartype_;
+  return *this;
+}
+
+// DataSet::SetPrecision()
+/** Set dataset width and precision and recalc output format string.
+  */
+void DataSet::SetPrecision(int widthIn, int precisionIn) {
+  width_ = widthIn;
+  precision_ = precisionIn;
+  SetDataSetFormat(false);
+}
+
 
 // DataSet::SetupSet()
 /** Set up common to all data sets. The dataset name should be unique and is
@@ -77,26 +137,24 @@ int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& a
   *        otherwise they will be preceded by a space.
   * \return 0 on success, 1 on error.
   */
-int DataSet::SetDataSetFormat(int widthIn, int precisionIn, bool leftAlign) {
-  //width_ = widthIn;
-  //precision_ = precisionIn;
+int DataSet::SetDataSetFormat(bool leftAlign) {
   // Set data format string.
   // NOTE: According to C++ std 4.7/4 (int)true == 1
-  colwidth_ = widthIn + (int)leftAlign;
+  colwidth_ = width_ + (int)leftAlign;
   switch (dType_) {
     case HIST  :
     case MATRIX2D:
-    case DOUBLE: format_ = SetDoubleFormatString(widthIn, precisionIn, 0, leftAlign); break;
+    case DOUBLE: format_ = SetDoubleFormatString(width_, precision_, 0, leftAlign); break;
     case TRIMATRIX:
     case COORDS:
-    case FLOAT : format_ = SetDoubleFormatString(widthIn, precisionIn, 1, leftAlign); break;
-    case INT   : format_ = SetIntegerFormatString(widthIn, leftAlign); break;
-    case STRING: format_ = SetStringFormatString(widthIn, leftAlign); break;
+    case FLOAT : format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
+    case INT   : format_ = SetIntegerFormatString(width_, leftAlign); break;
+    case STRING: format_ = SetStringFormatString(width_, leftAlign); break;
     case MODES :
     case MATRIX:
     case VECTOR: // No left-align allowed for now with VECTOR.
-      format_ = SetDoubleFormatString(widthIn, precisionIn, 0, false); 
-      colwidth_ = (widthIn + 1) * 6; // Vx Vy Vz Ox Oy Oz
+      format_ = SetDoubleFormatString(width_, precision_, 0, false); 
+      colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz
       break;
     default:
       mprinterr("Error: No format string defined for this data type (%s).\n", 

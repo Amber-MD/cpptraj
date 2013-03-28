@@ -1,5 +1,6 @@
 #ifndef INC_DATASET_H
 #define INC_DATASET_H
+#include <cstddef>
 #include <vector>
 #include "Dimension.h"
 #include "CpptrajFile.h"
@@ -42,35 +43,21 @@ class DataSet {
     DataSet();
     /// Set DataSet type, width, precision, and dimension.
     DataSet(DataType,int,int,int);
+    DataSet(const DataSet&);
+    DataSet& operator=(const DataSet&);
     virtual ~DataSet() {} // Destructor - virtual since this class is inherited
 
     // ----------===== Inheritable functions =====----------
-    /// Allocate memory for a certain number of frames (1D).
-    virtual int Allocate(int) = 0;
     /// \return the number of data elements stored in the set.
-    virtual int Size() const = 0;
-    /// Used to check if a frame in DataSet has data (1D).
-    virtual int FrameIsEmpty(int) const = 0; 
-    /// Add data to the DataSet.
-    /** A pointer to the data is passed in as void - it is up to the 
-      * inheriting class to cast it. The X value for the data is passed 
-      * in as well. It is expected that each successive X value will
-      * be greater than the preceeding one (does not need to be
-      * consecutive however). 
-      */
-    virtual void Add( int, void * ) = 0;
-    /// Write data at frame to file (1D) 
-    virtual void WriteBuffer(CpptrajFile&,int) const = 0;
-    /// Write 2D data to file (2D)
-    virtual void Write2D(CpptrajFile&,int,int) const = 0;
+    virtual size_t Size() const = 0;
     /// Consolodate this DataSet across all threads (MPI only)
     virtual int Sync() = 0;
-    /// \return data from data set as double precision (1D)
-    virtual double Dval(int) const = 0;
     /// Print DataSet information
     virtual void Info() const = 0;
     // -----------------------------------------------------
     // ----------===== Public functions =====---------------
+    /// Set output precision
+    void SetPrecision(int,int);
     /// Set up DataSet with given name, index, and aspect.
     int SetupSet(std::string const&,int,std::string const&);
     /// Set DataSet legend.
@@ -80,7 +67,7 @@ class DataSet {
     /// Set scalar mode and type
     inline void SetScalar( scalarMode, scalarType );
     /// Used to set the data and header format strings 
-    int SetDataSetFormat(int,int,bool);
+    int SetDataSetFormat(bool);
     /// Check if name and/or index and aspect match this dataset.
     bool Matches(std::string const&, int, std::string const&);
     // -----------------------------------------------------
@@ -107,11 +94,13 @@ class DataSet {
     scalarType ScalarType()     const { return scalartype_;        }
     /// \return DataSet dimension array.
     const DimArray& Dim()       const { return dim_;               }
+    /// \return number of dimensions.
+    int Ndim()                  const { return (int)dim_.size();   }
     /// Comparison for sorting, name/aspect/idx
     inline bool operator<(const DataSet&) const;
   protected:
     /// Width of numbers in output elements.
-    //int Width()                 const { return width_;             }
+    int Width()                 const { return width_;             }
     const char* data_format_; ///< Used to avoid constant calls to format_.c_str().
   private:
     std::string name_;        ///< Name of the DataSet
@@ -121,8 +110,8 @@ class DataSet {
     DataType dType_;          ///< The DataSet type
     DimArray dim_;            ///< Holds info for writing each dimension in the data set.
     int colwidth_;            ///< The total output width of a data element.
-    //int width_;               ///< The output width of numbers in a data element.
-    //int precision_;           ///< The output precision of numbers in a data element.
+    int width_;               ///< The output width of numbers in a data element.
+    int precision_;           ///< The output precision of numbers in a data element.
     std::string format_;      ///< Output printf format string for data.
     scalarMode scalarmode_;   ///< Source of data in DataSet.
     scalarType scalartype_;   ///< Specific type of data in DataSet (if any).
