@@ -1,12 +1,12 @@
-#ifndef INC_MATRIX_2D_H
-#define INC_MATRIX_2D_H
+#ifndef INC_DATASET_MATRIXDBL_H
+#define INC_DATASET_MATRIXDBL_H
 #include "DataSet.h"
 #include "DataSet_2D.h"
 #include "Matrix.h"
 /// Double-precision two-dimensional matrix.
-class Matrix_2D : public DataSet, DataSet_2D {
+class DataSet_MatrixDbl : public DataSet, DataSet_2D {
   public:
-    Matrix_2D();
+    DataSet_MatrixDbl() : DataSet(MATRIX2D, 12, 4, 2) {}
     double& operator[](size_t idx)             { return mat_[idx];          }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return mat_.size();        }
