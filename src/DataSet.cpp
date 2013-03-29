@@ -167,18 +167,18 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
 }
 
 // DataSet::Matches()
-bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const& attr_arg )
+bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const& aspect )
 {
   /*mprintf("DEBUG: Input: %s[%s]:%i  This Set: %s[%s]:%i\n",
-          dsname.c_str(), attr_arg.c_str(), idxnum, 
+          dsname.c_str(), aspect.c_str(), idxnum, 
           name_.c_str(), aspect_.c_str(), idx_);*/
   if ( dsname != name_ && dsname != "*") return false;
   // Currently match any index if not specified.
   if (idxnum != -1 && idxnum != idx_) return false;
   // If aspect specified make sure it matches. 
-  if (!attr_arg.empty() && (attr_arg != aspect_ && attr_arg != "*")) return false;
+  if (!aspect.empty() && (aspect != aspect_ && aspect != "*")) return false;
   // If no aspect specified but dataset has aspect do not match.
-  if (attr_arg.empty() && !aspect_.empty()) return false;
+  if (aspect.empty() && !aspect_.empty()) return false;
   //mprintf("\tMATCH\n");
   return true;
 }

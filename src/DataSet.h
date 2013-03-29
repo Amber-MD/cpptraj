@@ -22,6 +22,7 @@
   */
 class DataSet {
   public:
+    /// Type to hold coordinate info for each dimension in DataSet.
     typedef std::vector<Dimension> DimArray;
     /// Type of data stored in DataSet
     enum DataType {
@@ -71,7 +72,7 @@ class DataSet {
     /// Check if name and/or index and aspect match this dataset.
     bool Matches(std::string const&, int, std::string const&);
     // -----------------------------------------------------
-    // -----===== Functions that return private vars =====-----
+    // ---===== Functions that return private vars =====----
     /// True if set is empty. 
     bool Empty()                const { return (Size() == 0);      }
     /// DataSet output label.
