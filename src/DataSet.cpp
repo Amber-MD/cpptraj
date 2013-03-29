@@ -8,7 +8,7 @@ DataSet::DataSet() :
   data_format_(0),
   idx_(-1),
   dType_(UNKNOWN_DATA),
-  dim_(1),
+  dim_(0),
   colwidth_(0),
   width_(0),
   precision_(0),

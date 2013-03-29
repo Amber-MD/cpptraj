@@ -5,12 +5,7 @@
 #include "Dimension.h"
 // Class: DataSet
 /// Base class that all DataSet types will inherit.
-/** All atomic classes inheriting the DataSet class must implement 8 routines:
-  * Xmax, Size, FrameIsEmpty, Add, WriteBuffer, Sync, Dval, and CurrentDval 
-  * (the last 2 not needed for String).
-  * Other types wishing to use DataFile output should at least implement the 
-  * Size, Xmax, and WriteBuffer routines.
-  * DataSets are given certain attributes to make DataSet selection easier; 
+/** DataSets are given certain attributes to make DataSet selection easier; 
   * these are name, index, and aspect. Name is typically associated with the
   * action that creates the dataset, e.g. RMSD or distance. Index is used
   * when and action outputs subsets of data, e.g. with RMSD it is possible to 
@@ -23,6 +18,7 @@ class DataSet {
   public:
     /// Type to hold coordinate info for each dimension in DataSet.
     typedef std::vector<Dimension> DimArray;
+    typedef DataSet* (*AllocatorType)();
     /// Type of data stored in DataSet
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, STRING, INT, FLOAT, VECTOR, MATRIX, MODES, 

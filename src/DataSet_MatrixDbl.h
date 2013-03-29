@@ -5,7 +5,7 @@
 /// Double-precision two-dimensional matrix.
 class DataSet_MatrixDbl : public DataSet_2D {
   public:
-    DataSet_MatrixDbl() : DataSet(MATRIX2D, 12, 4, 2) {}
+    DataSet_MatrixDbl() : DataSet_2D(MATRIX2D, 12, 4) {}
     double& operator[](size_t idx)             { return mat_[idx];          }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return mat_.size();        }

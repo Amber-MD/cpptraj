@@ -27,7 +27,7 @@ double Vec3::Angle(const Vec3& U) const {
   * and U, with sign determined from (VxU) dot Z. Assumes vectors 
   * are normalized.
   */
-double Vec3::SignedAngle(const Vec3& U, const Vec3& Z) {
+double Vec3::SignedAngle(const Vec3& U, const Vec3& Z) const {
   double dp = Angle( U );
   Vec3 Vec = Cross( U );
   double sign = Vec * Z;

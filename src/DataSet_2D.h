@@ -3,10 +3,15 @@
 #include "DataSet.h"
 #include "CpptrajFile.h"
 /// Interface for 2D DataSets.
-class DataSet_2D : virtual public DataSet {
-  // NOTE: virtual inheritance required so that DataSet can share member
-  //       data instance with classes inheriting DataSet_2D.
+class DataSet_2D : public DataSet {
   public:
+    enum MatrixType {
+      NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED, NMAT
+    };
+
+    DataSet_2D() : type_(NO_OP) {}
+    DataSet_2D(DataSet::DataType tIn, int wIn, int pIn) : 
+      DataSet(tIn, wIn, pIn, 2), type_(NO_OP) {}
     /// Set up matrix for given # rows and columns.
     virtual int Allocate2D(size_t, size_t) = 0;
     virtual int AllocateHalf(size_t) = 0;
@@ -19,5 +24,10 @@ class DataSet_2D : virtual public DataSet {
     virtual size_t Nrows() const = 0;
     /// \return the number of columns.
     virtual size_t Ncols() const = 0;
+
+    static const char* MatrixTypeString[];
+    static const char* MatrixOutputString[];
+  private:
+    MatrixType type_;
 };
 #endif

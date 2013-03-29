@@ -2,8 +2,12 @@
 #define INC_DATASET_1D_H
 #include "DataSet.h"
 #include "CpptrajFile.h"
-class DataSet_1D : virtual public DataSet {
+/// Class that all 1D DataSets will inherit.
+class DataSet_1D : public DataSet {
   public:
+    DataSet_1D() {}
+    DataSet_1D(DataSet::DataType tIn, int wIn, int pIn) : DataSet(tIn, wIn, pIn, 1) {}
+    virtual ~DataSet_1D() {}
     /// Allocate memory for a certain number of frames (1D).
     virtual int Allocate1D(size_t) = 0;
     /// Add data to the DataSet.

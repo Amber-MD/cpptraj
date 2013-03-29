@@ -27,7 +27,7 @@ template <class T> class Matrix {
     /// Add an element to the matrix in order.
     int addElement( const T& );
     /// Set element at col and row.
-    void setElement(size_t,size_t,T);
+    void setElement(size_t,size_t, const T&);
     /// \return pointer to internal array of elements.
     T* Ptr()                 { return elements_;  }
     // DEBUG
@@ -150,7 +150,7 @@ template<class T> int Matrix<T>::addElement(const T& elementIn) {
   return 1;
 }
 // Matrix::setElement()
-template<class T> void Matrix<T>::setElement(size_t xIn, size_t yIn, T eltIn) {
+template<class T> void Matrix<T>::setElement(size_t xIn, size_t yIn, const T& eltIn) {
   size_t idx = calcIndex(ncols_, xIn, yIn);
   elements_[idx] = eltIn;
 }
