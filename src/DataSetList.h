@@ -88,7 +88,12 @@ class DataSetList {
     DataListType DataList_;
     /// Expected number of frames to be read in.
     int maxFrames_;
-
+    struct DataToken {
+      const char* Description;
+      DataSet::AllocatorType Alloc;
+    };
+    static const DataToken DataArray[];
+    typedef const DataToken* TokenPtr;
     /// Used to sort DataSets
     struct dsl_cmp {
       inline bool operator()(DataSet* first, DataSet* second) const {

@@ -5,8 +5,9 @@
 /// Single-precision two-dimensional matrix.
 class DataSet_MatrixFlt : public DataSet_2D {
   public:
-    DataSet_MatrixFlt() : DataSet_2D(MATRIX2D, 12, 4) {}
+    DataSet_MatrixFlt() : DataSet_2D(MATRIX_FLT, 12, 4) {}
     float& operator[](size_t idx)              { return mat_[idx];          }
+    static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixFlt();     }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return mat_.size();        }
     int Sync()                                 { return 1;                  }
@@ -19,10 +20,10 @@ class DataSet_MatrixFlt : public DataSet_2D {
     double GetElement(size_t x,size_t y) const { return (float)mat_.element(x,y);}
     size_t Nrows()                       const { return mat_.Nrows();       }
     size_t Ncols()                       const { return mat_.Ncols();       }
+    double* MatrixArray()                const; 
     // -------------------------------------------
     int AddElement(float d)                    { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,float d) { mat_.setElement(x,y,d);    }
-    float* Ptr()                               { return mat_.Ptr();         }
   private:
     Matrix<float> mat_;
 };

@@ -32,12 +32,13 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp \
         DataSet.cpp DataSet_Coords.cpp DataSet_double.cpp DataSet_float.cpp \
         DataSet_integer.cpp DataSet_string.cpp DataSet_Vector.cpp \
-        DataSet_Matrix.cpp DataSet_Modes.cpp DataSetList.cpp \
+        DataSet_Matrix.cpp DataSet_MatrixDbl.cpp DataSet_MatrixFlt.cpp \
+        DataSet_Modes.cpp DataSet_MatrixVec3.cpp DataSetList.cpp \
         DihedralSearch.cpp DistRoutines.cpp Dimension.cpp DS_Math.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp \
         FileList.cpp FileName.cpp Frame.cpp FrameList.cpp Grid.cpp \
         Histogram.cpp Hungarian.cpp Integrate.cpp ImageRoutines.cpp main.cpp MapAtom.cpp \
-        Matrix_3x3.cpp Matrix_2D.cpp MaskToken.cpp Mol2File.cpp NameType.cpp \
+        Matrix_3x3.cpp MaskToken.cpp Mol2File.cpp NameType.cpp \
         NetcdfFile.cpp \
         Parm_Amber.cpp Parm_CharmmPsf.cpp ParmFile.cpp Parm_Mol2.cpp \
         Parm_PDB.cpp \

@@ -1,7 +1,7 @@
 #include <cstring> // memset
 #include "DataSet_Matrix.h"
 #include "CpptrajStdio.h"
-
+// FIXME: All size_t const numbers get L suffix
 // CONSTRUCTOR
 DataSet_Matrix::DataSet_Matrix() :
   DataSet(MATRIX, 6, 3, 2),

@@ -8,16 +8,36 @@
 #include "Range.h"
 // Data types go here
 #include "DataSet_double.h"
-#include "DataSet_string.h"
-#include "DataSet_integer.h"
 #include "DataSet_float.h"
-#include "DataSet_Vector.h"
-#include "DataSet_Matrix.h"
-#include "Histogram.h"
-#include "TriangleMatrix.h"
-#include "Matrix_2D.h"
-#include "DataSet_Modes.h"
+#include "DataSet_integer.h"
+#include "DataSet_string.h"
+//#include "DataSet_Matrix.h"
+//#include "Histogram.h"
+//#include "TriangleMatrix.h"
+//#include "Matrix_2D.h"
+#include "DataSet_MatrixDbl.h"
+#include "DataSet_MatrixFlt.h"
+#include "DataSet_MatrixVec3.h"
 #include "DataSet_Coords.h"
+#include "DataSet_Vector.h"
+#include "DataSet_Modes.h"
+
+// ----- STATIC VARS / ROUTINES ------------------------------------------------
+// IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
+const DataSetList::DataToken DataSetList::DataArray[] = {
+  { "unknown",     0                           }, // UNKNOWN_DATA
+  { "double",        DataSet_double::Alloc     }, // DOUBLE
+  { "float",         DataSet_float::Alloc      }, // FLOAT
+  { "integer",       DataSet_float::Alloc      }, // INTEGER
+  { "string",        DataSet_string::Alloc     }, // STRING
+  { "double matrix", DataSet_MatrixDbl::Alloc  }, // MATRIX_DBL
+  { "float matrix",  DataSet_MatrixFlt::Alloc  }, // MATRIX_FLT
+  { "coord matrix",  DataSet_MatrixVec3::Alloc }, // MATRIX_VEC3
+  { "coordinates",   DataSet_Coords::Alloc     }, // COORDS
+  { "vector",        DataSet_Vector::Alloc     }, // VECTOR
+  { "eigenmodes",    DataSet_Modes::Alloc      }, // MODES
+  { 0, 0 }
+};
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
@@ -85,7 +105,10 @@ void DataSetList::SetMax(int expectedMax) {
 void DataSetList::AllocateSets() {
   if (maxFrames_ == 0) return;
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    (*ds)->Allocate( maxFrames_ );
+  {
+    if ((*ds)->Ndim() == 1)
+      ((DataSet_1D*)(*ds))->Allocate1D( maxFrames_ );
+  }
 }
 
 /* DataSetList::SetPrecisionOfDatasets()
@@ -295,8 +318,13 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
     // NOTE: Should return found dataset?
     return 0; 
   }
-
-  switch (inType) {
+  TokenPtr token = &(DataArray[inType]);
+  if ( token->Alloc == 0) {
+    mprinterr("Internal Error: No allocator for DataSet type [%s]\n", token->Description);
+    return 0;
+  }
+  DS = (DataSet*)token->Alloc();
+/*  switch (inType) {
     case DataSet::DOUBLE       : DS = new DataSet_double(); break;
     case DataSet::FLOAT        : DS = new DataSet_float(); break;
     case DataSet::STRING       : DS = new DataSet_string(); break;
@@ -312,7 +340,7 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
     default:
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");
       return 0;
-  }
+  }*/
   if (DS==0) {
     mprinterr("Internal Error: DataSet %s memory allocation failed.\n", nameIn.c_str());
     return 0;

@@ -166,7 +166,7 @@ int Topology::SoluteAtoms() {
 
 // -----------------------------------------------------------------------------
 // Topology::Summary()
-void Topology::Summary() {
+void Topology::Summary() const {
   mprintf("\t\tTopology %s contains %zu atoms.\n", c_str(), atoms_.size());
   mprintf("\t\t                  %zu residues.\n", residues_.size());
   mprintf("\t\t                  %zu bonds.\n", (bonds_.size()+bondsh_.size()) / 3 );
@@ -183,7 +183,7 @@ void Topology::Summary() {
 }
 
 // Topology::ParmInfo()
-void Topology::ParmInfo() {
+void Topology::ParmInfo() const {
   mprintf(" %s, %zu atoms, %zu res, box: %s, %zu mol", c_str(),
           atoms_.size(), residues_.size(), box_.TypeName(), molecules_.size());
   if (NsolventMolecules_>0)

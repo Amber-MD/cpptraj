@@ -90,8 +90,8 @@ class Topology {
     int SoluteAtoms();
     int SetSolvent(std::string const&);
     // ----- Print topology info -----
-    void Summary();
-    void ParmInfo();
+    void Summary() const;
+    void ParmInfo() const;
     void PrintAtomInfo(std::string const&);
     void PrintBondInfo(std::string const&);
     void PrintMoleculeInfo(std::string const&);

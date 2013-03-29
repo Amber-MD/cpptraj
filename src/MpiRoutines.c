@@ -397,6 +397,7 @@ int parallel_sendMaster(void *Buffer, int Count, int rank, int datatype) {
     case 0 : currentType = MPI_INT; break;
     case 1 : currentType = MPI_DOUBLE; break;
     case 2 : currentType = MPI_CHAR; break;
+    case 3 : currentType = MPI_FLOAT; break;
     default: return 1;
   }
 

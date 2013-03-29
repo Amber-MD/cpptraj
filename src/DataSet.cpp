@@ -142,19 +142,21 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   // NOTE: According to C++ std 4.7/4 (int)true == 1
   colwidth_ = width_ + (int)leftAlign;
   switch (dType_) {
-    case HIST  :
-    case MATRIX2D:
+//    case HIST  :
+//    case MATRIX2D:
+    case MATRIX_DBL:
     case DOUBLE: format_ = SetDoubleFormatString(width_, precision_, 0, leftAlign); break;
-    case TRIMATRIX:
-    case COORDS:
-    case FLOAT : format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
-    case INT   : format_ = SetIntegerFormatString(width_, leftAlign); break;
-    case STRING: format_ = SetStringFormatString(width_, leftAlign); break;
-    case MODES :
-    case MATRIX:
-    case VECTOR: // No left-align allowed for now with VECTOR.
-      format_ = SetDoubleFormatString(width_, precision_, 0, false); 
-      colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz
+//    case TRIMATRIX:
+    case MATRIX_FLT:
+    case COORDS: format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
+//    case FLOAT : format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
+//    case INT   : format_ = SetIntegerFormatString(width_, leftAlign); break;
+//    case STRING: format_ = SetStringFormatString(width_, leftAlign); break;
+//    case MODES :
+//    case MATRIX:
+//    case VECTOR: // No left-align allowed for now with VECTOR.
+//      format_ = SetDoubleFormatString(width_, precision_, 0, false); 
+//      colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz
       break;
     default:
       mprinterr("Error: No format string defined for this data type (%s).\n", 

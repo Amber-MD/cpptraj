@@ -24,6 +24,8 @@ class DataSet_2D : public DataSet {
     virtual size_t Nrows() const = 0;
     /// \return the number of columns.
     virtual size_t Ncols() const = 0;
+    /// \return double array containing matrix elements.
+    virtual double* MatrixArray() const = 0;
 
     static const char* MatrixTypeString[];
     static const char* MatrixOutputString[];

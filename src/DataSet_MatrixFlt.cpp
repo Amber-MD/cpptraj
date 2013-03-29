@@ -7,3 +7,10 @@ void DataSet_MatrixFlt::Write2D(CpptrajFile& outfile, int xIn, int yIn) const {
   else 
     outfile.Printf(data_format_, mat_.element(x,y));
 }
+
+double* DataSet_MatrixFlt::MatrixArray() const {
+  double* matOut = new double[ mat_.size() ];
+  for (size_t i = 0; i < mat_.size(); ++i)
+    matOut[i] = (double)mat_[i];
+  return matOut;
+}

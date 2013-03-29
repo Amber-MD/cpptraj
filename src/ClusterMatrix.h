@@ -1,7 +1,10 @@
 #ifndef INC_CLUSTERMATRIX_H
 #define INC_CLUSTERMATRIX_H
-#include "TriangleMatrix.h"
-class ClusterMatrix : private TriangleMatrix {
+#include <string>
+#include <vector>
+#include "Matrix.h"
+// NOTE: This only needs to inherit directly if going on DataSetList.
+class ClusterMatrix {
   public:
     ClusterMatrix() : sieve_(1) {}
     /// Set up matrix with sieve value.
@@ -23,8 +26,8 @@ class ClusterMatrix : private TriangleMatrix {
     void PrintElements() const;
     inline double GetElement(int, int) const;
     inline void SetElement(int, int, double);
-    using TriangleMatrix::Nelements;
-    using TriangleMatrix::AddElement;
+    size_t Nelements()        const { return Mat_.size();               }
+    int AddElement(double d)        { return Mat_.addElement((float)d); }
   private:
     static const unsigned char Magic_[];
     /// For reading/writing 8 byte integers
@@ -32,15 +35,16 @@ class ClusterMatrix : private TriangleMatrix {
     /// If true, ignore the row/col when printing/searching etc
     std::vector<bool> ignore_;
     size_t sieve_;
+    Matrix<float> Mat_;
 };
 // Inline functions
 double ClusterMatrix::GetElement(int row, int col) const {
   // row and col are based on original; convert to reduced
   // FIXME: This assumes GetElement will never be called for a sieved frame.
-  return TriangleMatrix::GetElement(row / sieve_, col / sieve_);
+  return (double)Mat_.element(col / sieve_, row / sieve_);
 }
 
 void ClusterMatrix::SetElement(int row, int col, double val) {
-  return TriangleMatrix::SetElement(row / sieve_, col / sieve_, val);
+  Mat_.setElement(col / sieve_, row / sieve_, (float)val);
 }
 #endif

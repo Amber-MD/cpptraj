@@ -6,7 +6,7 @@
 /// Two-dimensional matrix of XYZ vectors.
 class DataSet_MatrixVec3 : public DataSet_2D {
   public:
-    DataSet_MatrixVec3() : DataSet_2D(MATRIX2D, 12, 4) {}
+    DataSet_MatrixVec3() : DataSet_2D(MATRIX_VEC3, 12, 4) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixVec3();    }
     Vec3& operator[](size_t idx)               { return mat_[idx];          }
     // ----- DataSet functions -------------------
@@ -21,6 +21,7 @@ class DataSet_MatrixVec3 : public DataSet_2D {
     double GetElement(size_t x,size_t y) const { return mat_.element(x,y).Magnitude2(); }
     size_t Nrows()                       const { return mat_.Nrows();       }
     size_t Ncols()                       const { return mat_.Ncols();       }
+    double* MatrixArray()                const;
     // -------------------------------------------
     int AddElement(const Vec3& v)              { return mat_.addElement(v); }
     void SetElement(size_t x,size_t y,const Vec3& v){ mat_.setElement(x,y,v);}

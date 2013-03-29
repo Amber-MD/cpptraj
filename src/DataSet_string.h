@@ -1,32 +1,26 @@
 #ifndef INC_DATASET_STRING_H
 #define INC_DATASET_STRING_H
-#include <vector>
 #include <string>
-#include "DataSet.h"
+#include "DataSet_1D.h"
 // Class: DataSet_string
-/// Hold an array of strings.
-/** Actually 2 arrays; one for data and one for frame indices. This allows 
-  * Y values with non-consecutive X values to be stored, which can happen 
-  * e.g. when an action is not active for a certain trajectory because it 
-  * is not valid for that topology.
-  */
-class DataSet_string : public DataSet {
+/// Hold an array of string values.
+class DataSet_string : public DataSet_1D {
   public:
-    DataSet_string();
-
-    int Allocate(int);
-    int Xmax();
-    int Size();
-    int FrameIsEmpty(int);
-    void Add( int, void * );
-    void WriteBuffer(CpptrajFile&, int);
+    DataSet_string() : DataSet_1D(STRING, 1, 0) {}
+    static DataSet* Alloc() { return (DataSet*)new DataSet_string();}
+    std::string& operator[](size_t idx) { return Data_[idx];         }
+    /// Make set size sizeIn, all values set to 0.0.
+    void Resize(size_t sizeIn)     { Data_.resize(sizeIn, ""); }
+    // ----- DataSet functions -------------------
+    size_t Size()            const { return Data_.size();       }
     int Sync();
+    void Info()              const { return;                    }
+    // ----- DataSet_1D functions ----------------
+    int Allocate1D(size_t);
+    void Add( size_t, const void* );
+    double Dval(size_t idx)  const { return 0.0;                }
+    void WriteBuffer(CpptrajFile&, size_t) const;
   private:
-    typedef std::vector<std::string> DType;
-    typedef std::vector<int> IType;
-    DType Data_;
-    DType::iterator datum_;
-    IType Frames_;
-    IType::iterator frame_;
+    std::vector<std::string> Data_;
 };
 #endif

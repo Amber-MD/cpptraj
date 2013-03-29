@@ -4,6 +4,7 @@
 #include "DataSet_Modes.h"
 #include "CpptrajStdio.h"
 #include "BufferedFrame.h"
+#include "ArgList.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -54,7 +55,7 @@ void DataSet_Modes::SetAvgCoords(int ncoords, const double* Xin) {
 /** Get eigenvectors and eigenvalues. They will be stored in descending 
   * order (largest eigenvalue first).
   */
-int DataSet_Modes::CalcEigen(DataSet_Matrix& mIn, int n_to_calc) {
+int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
   bool eigenvaluesOnly;
   int info = 0;
   if (mIn.Nrows() > 0) {
@@ -64,19 +65,19 @@ int DataSet_Modes::CalcEigen(DataSet_Matrix& mIn, int n_to_calc) {
   // If number to calc is 0, assume we want eigenvalues only
   if (n_to_calc < 1) {
     eigenvaluesOnly = true;
-    nmodes_ = mIn.Ncols();
+    nmodes_ = (int)mIn.Ncols();
   } else {
     eigenvaluesOnly = false;
     nmodes_ = n_to_calc;
   }
-  if (nmodes_ > mIn.Ncols()) {
+  if (nmodes_ > (int)mIn.Ncols()) {
     mprintf("Warning: Specified # of eigenvalues to calc (%i) > matrix dimension (%i).\n",
             nmodes_, mIn.Ncols());
     nmodes_ = mIn.Ncols();
     mprintf("Warning: Only calculating %i eigenvalues.\n", nmodes_);
   }
   // -----------------------------------------------------------------
-  if (nmodes_ == mIn.Ncols()) {
+  if (nmodes_ == (int)mIn.Ncols()) {
     // Calculate all eigenvalues (and optionally eigenvectors). 
     char jobz = 'V'; // Default: Calc both eigenvectors and eigenvalues
     vecsize_ = mIn.Ncols();
@@ -95,8 +96,7 @@ int DataSet_Modes::CalcEigen(DataSet_Matrix& mIn, int n_to_calc) {
     if (evalues_ != 0) delete[] evalues_;
     evalues_ = new double[ nmodes_ ];
     // Create copy of matrix since call to dspev destroys it
-    double* mat = new double[ mIn.Size() ];
-    memcpy(mat, mIn.MatrixPtr(), mIn.Size() * sizeof(double));
+    double* mat = mIn.MatrixArray();
     // Lower triangle; not upper since fortran array layout is inverted w.r.t. C/C++
     char uplo = 'L'; 
     // Allocate temporary workspace
@@ -166,8 +166,7 @@ int DataSet_Modes::CalcEigen(DataSet_Matrix& mIn, int n_to_calc) {
     int ipntr[11];
     memset(ipntr, 0, 11 * sizeof(int));
     // Create copy of matrix since it will be modified 
-    double* mat = new double[ mIn.Size() ];
-    memcpy(mat, mIn.MatrixPtr(), mIn.Size() * sizeof(double));
+    double* mat = mIn.MatrixArray();
     // LOOP
     bool loop = false;
     do {
@@ -274,12 +273,12 @@ int DataSet_Modes::WriteToFile(std::string const& fname) {
     outfile.Printf(" Reduced Eigenvector file: ");
   else
     outfile.Printf(" Eigenvector file: ");
-  outfile.Printf("%s", DataSet_Matrix::MatrixOutputString[type_]);
+  outfile.Printf("%s", DataSet_2D::MatrixOutputString[type_]);
   // Write out # of modes on title line to not break compat. with older modes files
   outfile.Printf(" nmodes %i", nmodes_);
   // Write out col width on title line to not break compat. with older modes files
   // Since data format has leading space, actual width is width + 1
-  int colwidth = width_ + 1;
+  int colwidth = ColumnWidth() + 1;
   outfile.Printf(" width %i\n", colwidth);
   // First number is # avg coords, second is size of each vector
   outfile.Printf(" %4i %4i\n", navgcrd_, vecsize_);
@@ -329,21 +328,21 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
   // Check if reduced
   reduced_ = title.hasKey("Reduced");
   // Determine modes file type
-  type_ = DataSet_Matrix::NO_OP;
-  for (int matidx = (int)DataSet_Matrix::NO_OP + 1; 
-           matidx != (int)DataSet_Matrix::NMAT; ++matidx)
+  type_ = DataSet_2D::NO_OP;
+  for (int matidx = (int)DataSet_2D::NO_OP + 1; 
+           matidx != (int)DataSet_2D::NMAT; ++matidx)
   {
-    if ( title.hasKey( DataSet_Matrix::MatrixOutputString[matidx] ))
+    if ( title.hasKey( DataSet_2D::MatrixOutputString[matidx] ))
     {
-      type_ = (DataSet_Matrix::MatrixType)matidx;
+      type_ = (DataSet_2D::MatrixType)matidx;
       break;
     }
   }
   // For compatibility with quasih and nmode output
-  if (type_ == DataSet_Matrix::NO_OP) {
+  if (type_ == DataSet_2D::NO_OP) {
     mprintf("Warning: ReadEvecFile(): Unrecognized type [%s]\n", title.ArgLine());
     mprintf("         Assuming MWCOVAR.\n");
-    type_ = DataSet_Matrix::MWCOVAR;
+    type_ = DataSet_2D::MWCOVAR;
   }
   // For newer modesfiles, get # of modes in file.
   int modesInFile = title.getKeyInt("nmodes",-1);
@@ -363,7 +362,7 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
   int colwidth = title.getKeyInt("width", -1);
   if (colwidth == -1) 
     colwidth = 11; // Default, 10 + 1 space
-  width_ = colwidth - 1;
+  SetPrecision(colwidth - 1, 5);
   SetDataSetFormat(false);
   // Read number of elements in avg coords and eigenvectors
   if ( (buffer = infile.NextLine())==0 ) {

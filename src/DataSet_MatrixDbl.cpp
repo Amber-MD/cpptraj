@@ -7,3 +7,9 @@ void DataSet_MatrixDbl::Write2D(CpptrajFile& outfile, int xIn, int yIn) const {
   else 
     outfile.Printf(data_format_, mat_.element(x,y));
 }
+
+double* DataSet_MatrixDbl::MatrixArray() const {
+  double* matOut = new double[ mat_.size() ];
+  std::copy( mat_.Ptr(), mat_.Ptr() + mat_.size(), matOut );
+  return matOut;
+}

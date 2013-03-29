@@ -2,16 +2,16 @@
 #include "CpptrajStdio.h"
 
 DataSet_Coords::DataSet_Coords() :
-  DataSet(COORDS, 8, 3, 4),
+  DataSet_1D(COORDS, 8, 3),
   numBoxCrd_(0)
 {}
 
-int DataSet_Coords::Allocate( int sizeIn ) {
+int DataSet_Coords::Allocate1D( size_t sizeIn ) {
   coords_.reserve( sizeIn );
   return 0;
 }
 
-void DataSet_Coords::Info() {
+void DataSet_Coords::Info() const {
   top_.ParmInfo();
 }
 

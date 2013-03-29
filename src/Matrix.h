@@ -12,6 +12,7 @@ template <class T> class Matrix {
     Matrix( const Matrix& );
     Matrix& operator=( const Matrix& );
     T& operator[](size_t idx)                  { return elements_[idx];  }
+    const T& operator[](size_t idx)      const { return elements_[idx];  }
     /// \return total number of elements in the matrix.
     size_t size()                        const { return nelements_;      }
     /// \return current matrix type.
@@ -29,6 +30,7 @@ template <class T> class Matrix {
     /// Set element at col and row.
     void setElement(size_t,size_t, const T&);
     /// \return pointer to internal array of elements.
+    T const* Ptr()     const { return elements_;  }
     T* Ptr()                 { return elements_;  }
     // DEBUG
     size_t CalcIndex(size_t x, size_t y) { return calcIndex(ncols_, x, y); }

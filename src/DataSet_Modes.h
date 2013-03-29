@@ -1,20 +1,19 @@
 #ifndef INC_DATASET_MODES_H
 #define INC_DATASET_MODES_H
-#include "DataSet.h"
-#include "Frame.h"
-#include "DataSet_Matrix.h"
+#include "DataSet_2D.h"
 /// Hold eigenvalues/eigenvectors and optionally averaged coords.
 class DataSet_Modes : public DataSet {
   public:
     DataSet_Modes();
     ~DataSet_Modes();
-
-    // ---------- DataSet routines
-    int Size() { return nmodes_; }
-    // ---------------------------
-
+    static DataSet* Alloc() { return (DataSet*)new DataSet_Modes();}
+    // ----- DataSet functions -------------------
+    size_t Size() const { return nmodes_; }
+    int Sync()          { return 1;       }
+    void Info()   const { return;         }
+    // -------------------------------------------
     void SetAvgCoords(int, const double*);
-    int CalcEigen(DataSet_Matrix&,int); // TODO: Make const ref
+    int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
     int WriteToFile(std::string const&);
     int ReadEvecFile(std::string const&, int, int);
@@ -23,7 +22,7 @@ class DataSet_Modes : public DataSet {
     int ReduceCovar();
     int ReduceDistCovar(int);
 
-    void SetType( DataSet_Matrix::MatrixType typeIn ) { type_ = typeIn; }
+    void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
 
     const double* AvgCrd()            { return avgcrd_;                    }
     const double* Eigenvalues()       { return evalues_;                   } 
@@ -33,7 +32,7 @@ class DataSet_Modes : public DataSet {
     int Nmodes()                      { return nmodes_;                    }
     int VectorSize()                  { return vecsize_;                   }
     int NavgCrd()                     { return navgcrd_;                   }
-    DataSet_Matrix::MatrixType Type() { return type_;                      }
+    DataSet_2D::MatrixType Type() { return type_;                      }
   private:
     double* avgcrd_;
     double* evalues_;
@@ -41,7 +40,7 @@ class DataSet_Modes : public DataSet {
     int nmodes_;
     int vecsize_;
     int navgcrd_;
-    DataSet_Matrix::MatrixType type_;
+    DataSet_2D::MatrixType type_;
     bool reduced_;
 };
 #endif
