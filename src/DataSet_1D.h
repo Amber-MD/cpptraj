@@ -1,7 +1,8 @@
 #ifndef INC_DATASET_1D_H
 #define INC_DATASET_1D_H
-#include <cstddef> // size_t
-class DataSet_1D {
+#include "DataSet.h"
+#include "CpptrajFile.h"
+class DataSet_1D : virtual public DataSet {
   public:
     /// Allocate memory for a certain number of frames (1D).
     virtual int Allocate1D(size_t) = 0;

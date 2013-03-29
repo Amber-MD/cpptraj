@@ -1,10 +1,9 @@
 #ifndef INC_DATASET_MATRIXFLT_H
 #define INC_DATASET_MATRIXFLT_H
-#include "DataSet.h"
 #include "DataSet_2D.h"
 #include "Matrix.h"
 /// Single-precision two-dimensional matrix.
-class DataSet_MatrixFlt : public DataSet, DataSet_2D {
+class DataSet_MatrixFlt : public DataSet_2D {
   public:
     DataSet_MatrixFlt() : DataSet(MATRIX2D, 12, 4, 2) {}
     float& operator[](size_t idx)              { return mat_[idx];          }

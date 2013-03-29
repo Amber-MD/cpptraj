@@ -1,6 +1,11 @@
 #ifndef INC_DATASET_2D_H
 #define INC_DATASET_2D_H
-class DataSet_2D {
+#include "DataSet.h"
+#include "CpptrajFile.h"
+/// Interface for 2D DataSets.
+class DataSet_2D : virtual public DataSet {
+  // NOTE: virtual inheritance required so that DataSet can share member
+  //       data instance with classes inheriting DataSet_2D.
   public:
     /// Set up matrix for given # rows and columns.
     virtual int Allocate2D(size_t, size_t) = 0;

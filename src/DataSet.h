@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <vector>
 #include "Dimension.h"
-#include "CpptrajFile.h"
 // Class: DataSet
 /// Base class that all DataSet types will inherit.
 /** All atomic classes inheriting the DataSet class must implement 8 routines:
