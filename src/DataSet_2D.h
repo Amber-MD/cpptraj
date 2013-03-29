@@ -4,7 +4,8 @@ class DataSet_2D {
   public:
     /// Set up matrix for given # rows and columns.
     virtual int Allocate2D(size_t, size_t) = 0;
-    // TODO: Add AllocateHalf and AllocateTri
+    virtual int AllocateHalf(size_t) = 0;
+    virtual int AllocateTriangle(size_t) = 0;
     /// Write 2D data to file (2D)
     virtual void Write2D(CpptrajFile&,int,int) const = 0;
     /// \return Data from matrix at row/col

@@ -14,6 +14,8 @@ class DataSet_MatrixDbl : public DataSet, DataSet_2D {
     void Info()                          const { return;                    }
     // ----- DataSet_2D functions ----------------
     int Allocate2D(size_t x,size_t y)          { return mat_.resize(x,y);   }
+    int AllocateHalf(size_t x)                 { return mat_.resize(x,0L);  }
+    int AllocateTriangle(size_t x)             { return mat_.resize(0L,x);  }
     void Write2D(CpptrajFile&, int, int) const;
     double GetElement(size_t x,size_t y) const { return mat_.element(x,y);  }
     size_t Nrows()                       const { return mat_.Nrows();       }
