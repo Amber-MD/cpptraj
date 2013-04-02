@@ -38,8 +38,8 @@ const TrajectoryFile::TrajToken TrajectoryFile::TrajArray[] = {
 };
 
 // TrajectoryFile::GetFormatFromArg()
-/** Given an arglist, search for one of the file format keywords.
-  * Default to AmberTraj if no arglist given or no keywords present. 
+/** Given an ArgList, search for one of the file format keywords.
+  * Default to AMBERTRAJ if no keywords present. 
   */
 TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromArg(ArgList& argIn)
 {

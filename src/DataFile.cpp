@@ -8,7 +8,20 @@
 #include "DataIO_Grace.h"
 #include "DataIO_Gnuplot.h"
 
-// CONSTUCTOR
+// ----- STATIC VARS / ROUTINES ------------------------------------------------
+const DataFile::DataFileToken DataFile::DataFileArray[] = {
+  { DATAFILE,     "dat",   "Standard Data File", ".dat", DataIO_Std::Alloc   },
+  { XMGRACE,      "grace", "Grace File",         ".agr", DataIO_Grace::Alloc },
+  { GNUPLOT,      "gnu",   "Gnuplot File",       ".gnu", DataIO_Gnu::Alloc   },
+  { UNKNOWN_DATA, 0,       "Unknown",            0,      0                   }
+};
+
+/** Given an ArgList, search for one of the file format keywords. Default to
+  * DATAFILE if no keywords present.
+  */
+
+
+// CONSTRUCTOR
 DataFile::DataFile() :
   debug_(0),
   dimension_(-1),
