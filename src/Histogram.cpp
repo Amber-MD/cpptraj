@@ -53,7 +53,7 @@ int Histogram::AddDimension(Dimension &dim) {
   for (std::vector<Dimension>::reverse_iterator rd = dimensions_.rbegin();
                                                 rd != dimensions_.rend(); ++rd)
   {
-    if (debug_>0) mprintf("\tHistogram: %s offset is %i\n",(*rd).c_str(), offset);
+    if (debug_>0) mprintf("\tHistogram: %s offset is %i\n",(*rd).Label().c_str(), offset);
     (*rd).SetOffset( offset );
     offset *= (*rd).Bins(); 
   }
@@ -96,7 +96,7 @@ int Histogram::BinData(std::vector<double>& DataIn) {
     double coord = *data - (*dim).Min();
     coord = coord / (*dim).Step();
     int idx = (int)coord;
-    if (debug_>1) mprintf(" [%s:%lf (%i)],",(*dim).c_str(), *data, idx);
+    if (debug_>1) mprintf(" [%s:%lf (%i)],",(*dim).Label().c_str(), *data, idx);
 
     // Calculate overall index in Bins, offset has already been calc.
     index += (idx * (*dim).Offset());

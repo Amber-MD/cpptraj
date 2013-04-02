@@ -109,7 +109,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   // Check that min < max
   if (dim.Min() >= dim.Max()) {
     mprinterr("Error: Hist: Dimension %s: min (%lf) must be less than max (%lf).\n",
-              dim.c_str(), dim.Min(), dim.Max());
+              dim.Label().c_str(), dim.Min(), dim.Max());
     return 1;
   }
 
