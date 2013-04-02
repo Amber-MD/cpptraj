@@ -121,38 +121,38 @@ size_t TriangleMatrix::calcIndex(size_t iIn, size_t jIn) const {
 
 // TriangleMatrix::SetElement()
 /** Set element at specified row and column. */
-void TriangleMatrix::SetElement(int iIn, int jIn, double elementIn) {
+void TriangleMatrix::SetElement(size_t iIn, size_t jIn, double elementIn) {
   if (iIn == jIn) return;
-  size_t idx = calcIndex((size_t)iIn, (size_t)jIn);
+  size_t idx = calcIndex(iIn, jIn);
   elements_[idx] = (float) elementIn;
 }
 
 // TriangleMatrix::SetElementF()
 /** Set element at specified row and column. */
-void TriangleMatrix::SetElementF(int iIn, int jIn, float elementIn) {
+void TriangleMatrix::SetElementF(size_t iIn, size_t jIn, float elementIn) {
   if (iIn == jIn) return;
-  size_t idx = calcIndex((size_t)iIn, (size_t)jIn);
+  size_t idx = calcIndex(iIn, jIn);
   elements_[idx] = elementIn;
 }
 
 // TriangleMatrix::GetElement()
 /** Get the element at specified row and column as a double.
   */
-double TriangleMatrix::GetElement(int iIn, int jIn) const {
+double TriangleMatrix::GetElement(size_t iIn, size_t jIn) const {
   if (iIn == jIn) return 0;
-  size_t idx = calcIndex((size_t)iIn, (size_t)jIn);
+  size_t idx = calcIndex(iIn, jIn);
   return (double)elements_[idx];
 }
 
 // TriangleMatrix::GetElementF()
 /** Get the element at specified row and column. */
-float TriangleMatrix::GetElementF(int iIn, int jIn) const {
+float TriangleMatrix::GetElementF(size_t iIn, size_t jIn) const {
   if (iIn == jIn) return 0;
-  size_t idx = calcIndex((size_t)iIn, (size_t)jIn);
+  size_t idx = calcIndex(iIn, jIn);
   return elements_[idx];
 }
 
-void TriangleMatrix::Write2D( CpptrajFile& outfile, int xIn, int yIn ) {
+void TriangleMatrix::Write2D( CpptrajFile& outfile, int xIn, int yIn ) const {
   size_t x = (size_t)xIn;
   size_t y = (size_t)yIn;
   if ( xIn==yIn || xIn < 0 || yIn < 0 || x >= nrows_ || y >= nrows_ ) 
@@ -161,8 +161,4 @@ void TriangleMatrix::Write2D( CpptrajFile& outfile, int xIn, int yIn ) {
     size_t index = calcIndex(x, y);
     outfile.Printf(data_format_, elements_[index]);
   }
-}
-
-void TriangleMatrix::GetDimensions( std::vector<int>& vIn ) {
-  vIn.assign( 2, nrows_ );
 }

@@ -23,15 +23,21 @@ class TriangleMatrix : public DataSet {
     int Setup(size_t);
     int AddElement(double);
     int AddElementF(float);
-    void SetElement(int,int,double);
-    void SetElementF(int,int,float);
-    double GetElement(int,int) const;
-    float GetElementF(int,int) const;
-    // DataSet functions
-    int Xmax() { return (int)(nrows_ - 1L); }
-    int Size() { return (int)nelements_;    }
-    void Write2D( CpptrajFile&, int, int);
-    void GetDimensions(std::vector<int>&);
+    void SetElement(size_t,size_t,double);
+    void SetElementF(size_t,size_t,float);
+    double GetElement(size_t,size_t) const;
+    float GetElementF(size_t,size_t) const;
+    // ----- DataSet functions -------------------
+    int Allocate(int)                          { return 1;               }
+    int Size()                           const { return (int)nelements_; }
+    int FrameIsEmpty(int)                const { return 1;               }
+    void Add(int, void*)                       { return;                 }
+    void WriteBuffer(CpptrajFile&, int)  const { return;                 }
+    void Write2D(CpptrajFile&, int, int) const;
+    int Sync()                                 { return 1;               }
+    double Dval(int)                     const { return 0.0;             }
+    void Info()                          const { return;                 }
+    // -------------------------------------------
   protected:
     float* elements_;       ///< Hold all elements
   private:
