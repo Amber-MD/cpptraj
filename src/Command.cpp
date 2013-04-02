@@ -464,14 +464,15 @@ void Command::List(DispatchObject::DispatchType dtype) {
     // Command type title
     if (currentType != lastType) {
       if (col != 0) mprintf("\n");
-      mprintf("%s Commands:\n\t", CommandTitle[currentType]);
+      mprintf("%s Commands:\n", CommandTitle[currentType]);
       lastType = currentType;
       col = 0;
     }
+    if (col == 0) mprintf("\t");
     mprintf("%s  ", token->Cmd);
     ++col;
     if (col == 8) {
-      mprintf("\n\t");
+      mprintf("\n");
       col = 0;
     }
   }
