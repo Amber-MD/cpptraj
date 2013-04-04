@@ -310,12 +310,8 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
     {
       if (!(*solvmol).IsSolvent()) continue;
 
-      // DEBUG
-      mprintf("GIST: Found %d solvent residues \n", resnum);
-      if (solventMolecules_ != resnum) {
-	mprinterr("GIST Error: No solvent molecules don't match %d %d\n", solventMolecules_, resnum);
-      }
-      
+      if (gridwat_[resnum]>=MAX_GRID_PT) continue;
+
       int i = (*solvmol).BeginAtom();
       O_wat = Vec3(frameIn->XYZ(i));
       i++;
@@ -445,6 +441,12 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
       //     else std::cout << fm << " " << wat << " gimbal lock problem, two z_wat paralell" << std::endl;
       resnum++;
     }
+  // DEBUG
+  mprintf("GIST: Found %d solvent residues \n", resnum);
+  if (solventMolecules_ != resnum) {
+    mprinterr("GIST Error: No solvent molecules don't match %d %d\n", solventMolecules_, resnum);
+  }
+  
 } 
 
 
