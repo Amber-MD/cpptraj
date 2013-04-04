@@ -22,8 +22,9 @@ Action_Pairwise::Action_Pairwise() :
 {} 
 
 void Action_Pairwise::Help() {
-  mprintf("pairwise [<name>] [<mask>] [out <filename>] [cuteelec <cute>] [cutevdw <cutv>]\n");
-  mprintf("         [ref <reffilename> | refindex <ref#>] [cutout <cutmol2name>]\n");
+  mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <cute>] [cutevdw <cutv>]\n");
+  mprintf("\t[ref <reffilename> | refindex <ref#>] [cutout <cutmol2name>]\n");
+  mprintf("\tCalculate pairwise (non-bonded) energy for atoms in <mask>.\n");
 }
 
 // DESTRUCTOR
@@ -65,7 +66,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   DFL->AddSetToFile(dataout, ds_elec_);
 
   // Get reference structure
-  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) { 
     // Set up reference mask
@@ -99,7 +100,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   if (!eout.empty())
     mprintf("\tEnergy info for each atom will be written to %s\n",eout.c_str());
   if (!REF.empty()) 
-    mprintf("\tReference %s, mask [%s]\n", REF.FrameName(), RefMask_.MaskString());
+    mprintf("\tReference %s, mask [%s]\n", REF.FrameName().c_str(), RefMask_.MaskString());
   mprintf("\tEelec absolute cutoff: %12.4lf\n",cut_eelec_);
   mprintf("\tEvdw absolute cutoff: %12.4lf\n",cut_evdw_);
   if (!cutout_.empty())

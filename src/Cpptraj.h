@@ -18,38 +18,14 @@ class Cpptraj {
     enum Mode { C_OK = 0, C_ERR, C_QUIT, C_INTERACTIVE };
     Cpptraj();
     Mode Interactive();
+    Mode ProcessInput(std::string const&);
     Mode ProcessCmdLineArgs(int,char**);
     int Run();
   private:
-    static void Usage(const char*);
-    static void Help_Help();
-    static void Help_List();
-    static void Help_Debug();
-    static void Help_Clear();
-    static void Help_ActiveRef();
-    static void Help_Create_DataFile();
-    static void Help_Precision();
-    static void Help_SelectDS();
-    static void Help_Trajin();
-    static void Help_Ensemble();
-    static void Help_Trajout();
-    static void Help_Reference();
-    static void Help_Parm();
-    static void Help_ParmInfo();
-    static void Help_ParmWrite();
-    static void Help_ParmStrip();
-    static void Help_ParmBox();
-    static void Help_Solvent();
-    static void Help_BondInfo();
-    static void Help_ResInfo();
-    static void Help_MolInfo();
-    static void Help_CrdAction();
-    static void Help_CrdOut();
-    static void Help_RunAnalysis();
+    static void Usage();
+
     void Help(ArgList&);
-    void List(ArgList&);
-    void Debug(ArgList&);
-    void Clear(ArgList&);
+    void ListAction(ArgList&,int);
     int Create_DataFile(ArgList&,int);
     int Precision(ArgList&);
     int ReadData(ArgList&);
@@ -61,27 +37,18 @@ class Cpptraj {
     int ParmBox(ArgList&);
     int ParmSolvent(ArgList&);
     int Select(ArgList&);
+    int LoadCrd(ArgList&);
     int CrdAction(ArgList&);
     int CrdOut(ArgList&);
     int CrdAnalyze(ArgList&);
-
-    static const DispatchObject::Token GeneralCmds[];
-    static const DispatchObject::Token CoordCmds[];
-    static const DispatchObject::Token ParmCmds[];
-    static const DispatchObject::Token Deprecated[];
-    void ListAllCommands(const DispatchObject::Token*);
-    DispatchObject::TokenPtr SearchTokenArray(const DispatchObject::Token*, ArgList const&);
-    DispatchObject::TokenPtr SearchToken(ArgList&);
-
-    Mode ProcessInput(std::string const&);
-    Mode Dispatch(std::string const&);     ///< Function that decides where to send commands
-
+    /// Function that decides where to send commands
+    Mode Dispatch(std::string const&);
     /// List of parameter files 
-    TopologyList parmFileList;
+    TopologyList parmFileList_;
     /// List of input trajectory files
-    TrajinList trajinList;
+    TrajinList trajinList_;
     /// List of reference coordinate files
-    FrameList refFrames; 
+    FrameList refFrames_; 
 
     typedef std::vector<ArgList> ArgsArray;
     /// Array of trajout args for setting up ensemble trajout.
@@ -90,15 +57,15 @@ class Cpptraj {
     ArgsArray actionArgs_;
 
     /// List of output trajectory files 
-    TrajoutList trajoutList;
+    TrajoutList trajoutList_;
     /// List of analyses to be performed on datasets
-    AnalysisList analysisList;
+    AnalysisList analysisList_;
     /// List of generated data sets
-    DataSetList DSL;
+    DataSetList DSL_;
     /// List of actions to be performed each frame
-    ActionList actionList;    
+    ActionList actionList_;    
     /// List of datafiles that data sets will be written to
-    DataFileList DFL;
+    DataFileList DFL_;
     /// The debug level
     int debug_;
     /// If true the progress of reading input trajectories will be shown

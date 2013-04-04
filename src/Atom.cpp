@@ -22,17 +22,17 @@ const int Atom::AtomicElementNum[NUMELEMENTS] = { 0,
 // 2 chars + null.
 const char* Atom::AtomicElementName[NUMELEMENTS] = { "??",
   "H",  "B",  "C",  "N",  "O",   "F",  
-  "P",  "S",  "Cl", "Br", "Fe", "Ca",
-  "I",  "Mg", "Cu", "Li", "K",  "Rb", 
-  "Cs", "Zn", "Na", "Al", "Ar", "As",
-  "Ag", "Au", "At", "Be", "Ba", "Bi",
-  "Cr", "Co", "Cd", "Fr", "Ga", "Ge",
-  "He", "Hf", "Hg", "In", "Ir", "Kr",
-  "Mn", "Mo", "Ne", "Ni", "Nb", "Os",
-  "Pd", "Pt", "Pb", "Po", "Ru", "Rh",
-  "Re", "Rn", "Ra", "Si", "Sc", "Se",
-  "Sr", "Sn", "Sb", "Ti", "Tc", "Te",
-  "Ta", "Tl", "V",  "W",  "Xe", "Zr",
+  "P",  "S",  "CL", "BR", "FE", "CA",
+  "I",  "MG", "CU", "LI", "K",  "RB", 
+  "CS", "ZN", "NA", "AL", "AR", "AS",
+  "AG", "AU", "AT", "BE", "BA", "BI",
+  "CR", "CO", "CD", "FR", "GA", "GE",
+  "HE", "HF", "HG", "IN", "IR", "KR",
+  "MN", "MO", "NE", "NI", "NB", "OS",
+  "PD", "PT", "PB", "PO", "RU", "RH",
+  "RE", "RN", "RA", "SI", "SC", "SE",
+  "SR", "SN", "SB", "TI", "TC", "TE",
+  "TA", "TL", "V",  "W",  "XE", "ZR",
   "XP"
 };
 
@@ -51,7 +51,6 @@ Atom::Atom() :
 { }
 
 // CONSTRUCTOR
-/// Take atom name. Attempt to determine element from name.
 Atom::Atom(NameType const& aname) :
   charge_(0),
   mass_(1),
@@ -68,7 +67,6 @@ Atom::Atom(NameType const& aname) :
 }
 
 // CONSTRUCTOR
-/// Take atom name and charge. Attempt to determine element from name.
 Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   charge_(q),
   mass_(1),

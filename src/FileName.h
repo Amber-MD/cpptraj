@@ -5,18 +5,21 @@
 class FileName {
   public:
     FileName() {}
-    /// Only name is known;
+    /// Set file name and extensions; only name is known.
     int SetFileName(std::string const&);
-    /// Name and compressed status are known.
+    /// Set file name and extension; perform tilde expansion.
+    int SetFileNameWithExpansion(std::string const&);
+    /// Set file name and extensions; name and compressed status are known.
     int SetFileName(std::string const&, bool);
     /// Clear FileName
     void clear();
 
-    const std::string& Full()     const { return fullPathName_;     }
-    const std::string& Base()     const { return baseName_;         }
-    const char* base()            const { return baseName_.c_str(); }
-    const std::string& Ext()      const { return extension_;        }
-    const std::string& Compress() const { return compressExt_;      }
+    const std::string& Full()     const { return fullPathName_;         }
+    const std::string& Base()     const { return baseName_;             }
+    const char* full()            const { return fullPathName_.c_str(); }
+    const char* base()            const { return baseName_.c_str();     }
+    const std::string& Ext()      const { return extension_;            }
+    const std::string& Compress() const { return compressExt_;          }
     bool empty()                  const { return fullPathName_.empty(); }
   private:
     enum CompressStatus { UNKNOWN=0, YES, NO };

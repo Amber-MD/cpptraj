@@ -16,8 +16,9 @@ Action_Pucker::Action_Pucker() :
 { } 
 
 void Action_Pucker::Help() {
-  mprintf("pucker [<name>] <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>\n");
-  mprintf("       [range360] [amplitude] [altona | cremer] [offset <offset>]\n");
+  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>\n");
+  mprintf("\t[range360] [amplitude] [altona | cremer] [offset <offset>]\n");
+  mprintf("\tCalculate pucker of atoms in masks 1-5.\n");
 }
 
 // Action_Pucker::init()
@@ -65,7 +66,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else if (puckerMethod_==CREMER)
     mprintf("            Using Cremer & Pople method.\n");
   if (outfile != 0) 
-    mprintf("            Data will be written to %s\n", outfile->Filename());
+    mprintf("            Data will be written to %s\n", outfile->DataFilename().base());
   if (amplitude_)
     mprintf("            Amplitudes will be stored instead of psuedorotation.\n");
   if (offset_!=0)
@@ -85,11 +86,13 @@ Action::RetType Action_Pucker::Setup(Topology* currentParm, Topology** parmAddre
   if ( currentParm->SetupIntegerMask( M3_ ) ) return Action::ERR;
   if ( currentParm->SetupIntegerMask( M4_ ) ) return Action::ERR;
   if ( currentParm->SetupIntegerMask( M5_ ) ) return Action::ERR;
-  M1_.MaskInfo();
-  M2_.MaskInfo();
-  M3_.MaskInfo();
-  M4_.MaskInfo();
-  M5_.MaskInfo();
+  mprintf("\t");
+  M1_.BriefMaskInfo();
+  M2_.BriefMaskInfo();
+  M3_.BriefMaskInfo();
+  M4_.BriefMaskInfo();
+  M5_.BriefMaskInfo();
+  mprintf("\n");
 
   if ( M1_.None() || M2_.None() || M3_.None() || M4_.None() || M5_.None() ) {
     mprintf("Warning: pucker: One or more masks have no atoms.\n");

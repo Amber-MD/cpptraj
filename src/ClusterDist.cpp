@@ -1,10 +1,11 @@
 #include <cmath>
 #include "ClusterDist.h"
 #include "Constants.h" // RADDEG, DEGRAD
+#include "ProgressBar.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
-
+// TODO: All DataSet stuff const&
 /// Calculate smallest difference between two angles (in degrees).
 static double DistCalc_Dih(double d1, double d2) {
   double diff = fabs(d1 - d2);
@@ -19,10 +20,10 @@ static double DistCalc_Std(double d1, double d2) {
   return fabs(d1 - d2);
 }
 
-static bool IsTorsionArray( DataSet* dsIn ) {
-  if (dsIn->ScalarMode() == DataSet::M_TORSION ||
-      dsIn->ScalarMode() == DataSet::M_PUCKER  ||
-      dsIn->ScalarMode() == DataSet::M_ANGLE     )
+static bool IsTorsionArray( DataSet const& dsIn ) {
+  if (dsIn.ScalarMode() == DataSet::M_TORSION ||
+      dsIn.ScalarMode() == DataSet::M_PUCKER  ||
+      dsIn.ScalarMode() == DataSet::M_ANGLE     )
     return true;
   return false;
 }
@@ -56,7 +57,7 @@ static double AvgCalc_Std( DataSet* dsIn, ClusterDist::Cframes const& cframesIn 
 ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
   data_(dsIn)
 {
-  if (IsTorsionArray( dsIn ))
+  if (IsTorsionArray( *dsIn ))
     dcalc_ = DistCalc_Dih;
   else
     dcalc_ = DistCalc_Std;
@@ -65,7 +66,7 @@ ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
 ClusterMatrix ClusterDist_Num::PairwiseDist(int sieve) {
   int f1, f2;
   int f2end = data_->Size();
-  ClusterMatrix frameDistances( f2end );
+  ClusterMatrix frameDistances( f2end, sieve );
   int f1end = f2end - sieve;
 #ifdef _OPENMP
 #pragma omp parallel private(f1, f2)
@@ -93,7 +94,7 @@ double ClusterDist_Num::FrameCentroidDist(int f1, Centroid* c1) {
 /** Calculate avg value of given frames. */
 void ClusterDist_Num::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Num* cent = (Centroid_Num*)centIn;
-  if (IsTorsionArray(data_))
+  if (IsTorsionArray(*data_))
     cent->cval_ = AvgCalc_Dih(data_, cframesIn);
   else
     cent->cval_ = AvgCalc_Std(data_, cframesIn);
@@ -111,7 +112,7 @@ ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn) :
   dsets_(dsIn)
 {
   for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
-    if ( IsTorsionArray( *ds ) )
+    if ( IsTorsionArray( *(*ds) ) )
       dcalcs_.push_back( DistCalc_Dih );
     else
       dcalcs_.push_back( DistCalc_Std );
@@ -124,7 +125,7 @@ ClusterMatrix ClusterDist_Euclid::PairwiseDist(int sieve) {
   DcArray::iterator dcalc;
   DsArray::iterator ds;
   int f2end = dsets_[0]->Size();
-  ClusterMatrix frameDistances( f2end );
+  ClusterMatrix frameDistances( f2end, sieve );
   int f1end = f2end - sieve;
 #ifdef _OPENMP
 #pragma omp parallel private(f1, f2, dist, diff, dcalc, ds)
@@ -177,7 +178,7 @@ void ClusterDist_Euclid::CalculateCentroid(Centroid* centIn, Cframes const& cfra
   Centroid_Multi* cent = (Centroid_Multi*)centIn;
   cent->cvals_.clear();
   for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
-    if (IsTorsionArray(*ds))
+    if (IsTorsionArray(*(*ds)))
       cent->cvals_.push_back( AvgCalc_Dih(*ds, cframesIn) );
     else
       cent->cvals_.push_back( AvgCalc_Std(*ds, cframesIn) );
@@ -203,7 +204,7 @@ ClusterMatrix ClusterDist_DME::PairwiseDist(int sieve) {
   int f1, f2;
   Frame frm2 = frm1_;
   int f2end = coords_->Size();
-  ClusterMatrix frameDistances( f2end );
+  ClusterMatrix frameDistances( f2end, sieve );
   int f1end = f2end - sieve;
 #ifdef _OPENMP
   Frame frm1 = frm1_;
@@ -279,16 +280,19 @@ ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
   int f1, f2;
   Frame frm2 = frm1_;
   int f2end = coords_->Size();
-  ClusterMatrix frameDistances( f2end );
+  ClusterMatrix frameDistances( f2end, sieve );
   int f1end = f2end - sieve;
+  ParallelProgress progress(f1end);
 #ifdef _OPENMP
   Frame frm1 = frm1_;
 # define frm1_ frm1
-#pragma omp parallel private(f1, f2, rmsd) firstprivate(frm1, frm2)
+#pragma omp parallel private(f1, f2, rmsd) firstprivate(frm1, frm2, progress)
 {
+  progress.SetThread(omp_get_thread_num());
 #pragma omp for schedule(dynamic)
 #endif
   for (f1 = 0; f1 < f1end; f1 += sieve) {
+    progress.Update(f1);
     coords_->GetFrame( f1, frm1_, mask_ );
     for (f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
       coords_->GetFrame( f2, frm2,  mask_ );
@@ -303,6 +307,7 @@ ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
 # undef frm1_
 } // END pragma omp parallel
 #endif
+  progress.Finish();
   return frameDistances;
 }
 

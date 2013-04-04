@@ -18,6 +18,7 @@ class Traj_PDBfile: public TrajectoryIO {
     static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_PDBfile(); }
   private:
     int pdbAtom_;
+    int ter_num_; ///< Amount to increment atom number for TER
     PDBWRITEMODE pdbWriteMode_;
     bool dumpq_; ///< If true, print charges in Occupancy column
     bool dumpr_; ///< If true, print radii in B-factor column.

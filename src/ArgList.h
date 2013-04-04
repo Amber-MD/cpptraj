@@ -62,6 +62,10 @@ class ArgList {
     std::string const& GetMaskNext();
     /// Return the next unmarked tag
     std::string const& getNextTag();
+    /// \return true if arg at position is valid integer.
+    bool ValidInteger(int);
+    /// \return true if arg at position is valid double.
+    bool ValidDouble(int);
     /// Return the next unmarked integer
     int getNextInteger(int);
     /// Return the next unmarked double

@@ -24,20 +24,20 @@ AtomMask::AtomMask(std::string const& maskstring) :
 }
 
 // COPY CONSTRUCTOR
-AtomMask::AtomMask(const AtomMask &rhs) {
-  debug_ = rhs.debug_;
-  CharMask_ = rhs.CharMask_;
-  maskChar_ = rhs.maskChar_;
-  maskString_ = rhs.maskString_;
-  Natom_ = rhs.Natom_;
-  nselected_ = rhs.nselected_;
-  Selected_ = rhs.Selected_;
-  maskTokens_ = rhs.maskTokens_;
-}
+AtomMask::AtomMask(const AtomMask &rhs) : 
+  debug_(rhs.debug_),
+  CharMask_(rhs.CharMask_),
+  maskChar_(rhs.maskChar_),
+  maskString_(rhs.maskString_),
+  Natom_(rhs.Natom_),
+  nselected_(rhs.nselected_),
+  Selected_(rhs.Selected_),
+  maskTokens_(rhs.maskTokens_)
+{}
 
 // AtomMask::operator=()
 /// AtomMask assignment
-AtomMask &AtomMask::operator=(const AtomMask &rhs) {
+AtomMask& AtomMask::operator=(const AtomMask &rhs) {
   // Check for self assignment
   if ( this == &rhs ) return *this;
   // Deallocate
@@ -393,7 +393,7 @@ int AtomMask::Tokenize() {
 // AtomMask::ResetMask()
 void AtomMask::ResetMask() {
   nselected_ = 0;
-  Natom_=0;
+  Natom_ = 0;
   maskChar_ = 'T';
   maskString_.clear();
   Selected_.clear();
@@ -430,10 +430,10 @@ int AtomMask::NumAtomsInCommon(AtomMask &maskIn) {
   std::vector<int> selected_1 = Selected_;
   std::vector<int> selected_2 = maskIn.Selected_;
   // Sort the arrays
-  sort(selected_1.begin(), selected_1.end());
-  sort(selected_2.begin(), selected_2.end());
+  std::sort(selected_1.begin(), selected_1.end());
+  std::sort(selected_2.begin(), selected_2.end());
   // Set intersect to the intersection of selected_1 and selectd_2
-  intersect_end = set_intersection(selected_1.begin(), selected_1.end(),
+  intersect_end = std::set_intersection(selected_1.begin(), selected_1.end(),
                                    selected_2.begin(), selected_2.end(),
                                    intersect.begin());
   // DEBUG:
@@ -481,7 +481,7 @@ void AtomMask::AddAtoms(std::vector<int> const& atomsIn) {
   for (atom = atomsIn.begin(); atom != atomsIn.end(); atom++) 
     Selected_.push_back( *atom ); 
   // Sort Selected_
-  sort( Selected_.begin(), Selected_.end() );
+  std::sort( Selected_.begin(), Selected_.end() );
   // Remove duplicates
   atom = unique( Selected_.begin(), Selected_.end() );
   Selected_.resize( atom - Selected_.begin() );
@@ -498,7 +498,7 @@ void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
   for (int atom = minAtom; atom < maxAtom; atom++)
     Selected_.push_back( atom );
   // Sort Selected_
-  sort( Selected_.begin(), Selected_.end() );
+  std::sort( Selected_.begin(), Selected_.end() );
   // Remove duplicates
   std::vector<int>::iterator atomit = unique( Selected_.begin(), Selected_.end() );
   Selected_.resize( atomit - Selected_.begin() );
@@ -642,51 +642,45 @@ bool AtomMask::AtomsInCharMask(int startatom, int endatom) const {
   if (CharMask_.empty()) return false;
   if (startatom > endatom) return false;
   if (startatom < 0) return false;
-  if (endatom >= (int)CharMask_.size()) return false;
+  if (endatom > (int)CharMask_.size()) return false;
   for (int idx = startatom; idx < endatom; ++idx)
     if (CharMask_[idx] == maskChar_) return true;
   return false;
 }
 
-// AtomMask::ConvertMaskType()
-/** If the mask is an integer mask, convert it to a char mask and 
-  * vice versa.
-  */
-int AtomMask::ConvertMaskType() {
-  // nselected_ remains the same.
-  // Integer to Char
-  if (!Selected_.empty()) {
-    // If Natom_ is 0 (which can happen if mask was set up with AddAtomX
-    // functions) this cant work.
-    if (Natom_==0) {
-      mprinterr("Error: AtomMask::ConvertMaskType(): Natom_ for integer mask is 0.\n");
-      return 1;
-    }
-    CharMask_.assign( Natom_, 'F' );
-    for (std::vector<int>::iterator maskatom = Selected_.begin();
-                                    maskatom != Selected_.end();
-                                    maskatom++)
-    {
-      CharMask_[*maskatom]='T';
-    }
-    Selected_.clear();
-
-  // Char to Integer
-  } else if (!CharMask_.empty()) {
-    Selected_.reserve( nselected_ );
-    for (int atom = 0; atom < Natom_; atom++) {
-      if (CharMask_[atom]=='T')
-        Selected_.push_back( atom );
-    }
-    CharMask_.clear();
-
-  } else {
-    mprinterr("Error: AtomMask::ConvertMaskType(): Mask has not been set up.\n");
+// AtomMask::ConvertToCharMask()
+int AtomMask::ConvertToCharMask() {
+  if (Selected_.empty()) return 0;
+  // If Natom_ is 0 (which can happen if mask was set up with AddAtomX
+  // functions) this cant work.
+  if (Natom_==0) {
+    mprinterr("Error: ConvertToCharMask(): Natom for integer mask is 0.\n");
     return 1;
   }
+  CharMask_.assign( Natom_, 'F' );
+  for (std::vector<int>::iterator maskatom = Selected_.begin();
+                                  maskatom != Selected_.end(); ++maskatom)
+    CharMask_[*maskatom]='T';
+  Selected_.clear();
+  return 0;
+}
+
+// AtomMask::ConvertToIntMask()
+int AtomMask::ConvertToIntMask() {
+  if (CharMask_.empty()) return 0;
+  Selected_.reserve( nselected_ );
+  for (int atom = 0; atom < Natom_; atom++) {
+    if (CharMask_[atom]=='T')
+      Selected_.push_back( atom );
+  }
+  CharMask_.clear();
   return 0;
 }
 
 void AtomMask::MaskInfo() const {
   mprintf("\tMask [%s] corresponds to %i atoms.\n", maskString_.c_str(), nselected_);
+}
+
+void AtomMask::BriefMaskInfo() const {
+  mprintf(" [%s](%i)", maskString_.c_str(), nselected_);
 }

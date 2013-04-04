@@ -20,6 +20,7 @@ Trajin_Multi::~Trajin_Multi() {
   if (replicasAreOpen_) EndTraj();
   for (IOarrayType::iterator replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     delete *replica;
+  if (remd_indices_!=0) delete[] remd_indices_;
 }
 
 // Trajin_Multi::SearchForReplicas()
@@ -42,22 +43,22 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
   // replica, and that the other files are in sequence (e.g. rem.000, rem.001, 
   // rem.002 or rem.000.gz, rem.001.gz, rem.002.gz etc).
   if (debug_>1)
-    mprintf("\tREMDTRAJ: FileName=[%s]\n",FullTrajStr());
-  if ( TrajName().Ext().empty() ) {
+    mprintf("\tREMDTRAJ: FileName=[%s]\n",TrajFilename().full());
+  if ( TrajFilename().Ext().empty() ) {
     mprinterr("Error: Traj %s has no numerical extension, required for automatic\n",
-              BaseTrajStr());
+              TrajFilename().base());
     mprinterr("Error: detection of replica trajectories. Expected filename format is\n");
     mprinterr("Error: <Prefix>.<#> (with optional compression extension, examples:\n");
     mprinterr("Error: Rep.traj.nc.000,  remd.x.01.gz etc.\n");
     return ReplicaNames;
   }
   // Split off everything before replica extension
-  size_t found = TrajName().Full().rfind( TrajName().Ext() );
-  Prefix = TrajName().Full().substr(0, found); 
-  ReplicaExt = TrajName().Ext(); // This should be the numeric extension
+  size_t found = TrajFilename().Full().rfind( TrajFilename().Ext() );
+  Prefix = TrajFilename().Full().substr(0, found); 
+  ReplicaExt = TrajFilename().Ext(); // This should be the numeric extension
   // Remove leading '.'
   if (ReplicaExt[0] == '.') ReplicaExt.erase(0,1);
-  CompressExt = TrajName().Compress();
+  CompressExt = TrajFilename().Compress();
   if (debug_>1) {
     mprintf("\tREMDTRAJ: Prefix=[%s], #Ext=[%s], CompressExt=[%s]\n",
             Prefix.c_str(), ReplicaExt.c_str(), CompressExt.c_str());
@@ -100,7 +101,7 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
   }
 
   // Add lowest filename, search for and add all replicas higher than it.
-  ReplicaNames.push_back( TrajName().Full() );
+  ReplicaNames.push_back( TrajFilename().Full() );
   int current_repnum = lowestRepnum_;
   bool search_for_files = true;
   while (search_for_files) {
@@ -307,7 +308,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
 // Trajin_Multi::BeginTraj()
 int Trajin_Multi::BeginTraj(bool showProgress) {
   // Open the trajectories
-  mprintf("\tREMD: OPENING REMD TRAJECTORIES\n");
+  mprintf("\tREMD: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
   for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
   {
     if ( (*replica)->openTrajin()) {
@@ -379,6 +380,10 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
       mprinterr("Error: for this ensemble.\n");
       return 0; 
     }
+    // Check if coords in frame are valid.
+    if (frameIn.CheckCoordsInvalid())
+      mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
+              CurrentFrame()+1);
     tgtFrameFound = ProcessFrame();
   }
 
@@ -387,11 +392,11 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
 
 // Trajin_Multi::PrintInfo()
 void Trajin_Multi::PrintInfo(int showExtended) {
-  mprintf("  REMD trajectories (%u total), lowest replica [%s]", REMDtraj_.size(),
-          BaseTrajStr());
+  mprintf("REMD trajectories (%u total), lowest replica [%s]", REMDtraj_.size(),
+          TrajFilename().base());
   if (showExtended == 1) PrintFrameInfo();
   mprintf("\n");
-  if (showExtended == 1) {
+  if (debug_ > 0) {
     unsigned int repnum = 0;
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
@@ -414,17 +419,23 @@ void Trajin_Multi::PrintInfo(int showExtended) {
     mprintf("\tProcessing ensemble using");
     if ( targetType_ == INDICES )
       mprintf(" replica indices\n");
-    else {
+    else
       mprintf(" replica temperatures\n");
-      mprintf("\tEnsemble Temperature Map:\n");
-      for (TmapType::iterator tmap = TemperatureMap_.begin();
-                                          tmap != TemperatureMap_.end(); ++tmap)
-        mprintf("\t\t%10.2f -> %i\n", (*tmap).first, (*tmap).second);
-    }
+    if (debug_ > 0) EnsembleInfo();
   }
 }
 
 // -----------------------------------------------------------------------------
+// Trajin_Multi::EnsembleInfo()
+void Trajin_Multi::EnsembleInfo() const {
+  if (targetType_ == TEMP) {
+    mprintf("  Ensemble Temperature Map:\n");
+    for (TmapType::const_iterator tmap = TemperatureMap_.begin();
+                                  tmap != TemperatureMap_.end(); ++tmap)
+      mprintf("\t%10.2f -> %i\n", (*tmap).first, (*tmap).second);
+  }
+}
+
 // Trajin_Multi::EnsembleSetup()
 int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   std::set<double> tList;
@@ -495,5 +506,3 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
   }
   return 1;
 }
-
-

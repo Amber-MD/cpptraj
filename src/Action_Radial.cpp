@@ -27,13 +27,17 @@ Action_Radial::Action_Radial() :
   density_(0.033456),
   Dset_(0),
   intrdf_(0),
+  rawrdf_(0),
   debug_(0)
 {} 
 
 void Action_Radial::Help() {
-  mprintf("radial <outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]\n");
-  mprintf("       [density <density> | volume] [center1] [<name>]\n");
-  mprintf("       intrdf <file>\n");
+  mprintf("\t<outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]\n");
+  mprintf("\t[density <density> | volume] [center1] [<name>]\n");
+  mprintf("\t[intrdf <file>] [rawrdf <file>]\n");
+  mprintf("\tCalculate the radial distribution function of atoms in <mask1>\n");
+  mprintf("\tfrom all other atoms in <mask1>, or atoms in <mask2> if\n");
+  mprintf("\tspecified.\n");
 }
 
 // DESTRUCTOR
@@ -47,7 +51,7 @@ Action_Radial::~Action_Radial() {
   }
 }
 
-// Action_Radial::init()
+// Action_Radial::Init()
 Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -59,21 +63,25 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   center1_ = actionArgs.hasKey("center1");
   useVolume_ = actionArgs.hasKey("volume");
   std::string intrdfname = actionArgs.GetStringKey("intrdf");
+  std::string rawrdfname = actionArgs.GetStringKey("rawrdf");
 
   // Get required args
   std::string outfilename = actionArgs.GetStringNext();
   if (outfilename.empty()) {
     mprinterr("Error: Radial: No output filename given.\n");
+    Help();
     return Action::ERR;
   }
   spacing_ = actionArgs.getNextDouble(-1.0);
   if (spacing_ < 0) {
     mprinterr("Error: Radial: No spacing argument or arg < 0.\n");
+    Help();
     return Action::ERR;
   }
   double maximum = actionArgs.getNextDouble(-1.0);
   if (maximum < 0) {
     mprinterr("Error: Radial: No maximum argument or arg < 0.\n");
+    Help();
     return Action::ERR;
   }
   // Store max^2, distances^2 greater than max^2 do not need to be
@@ -104,28 +112,44 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   }
   // Make default precision a little higher than normal
   Dset_->SetPrecision(12,6);
-  // Set legend
-  Dset_->SetLegend("[" + Mask1_.MaskExpression() + "] => [" +
-                         Mask2_.MaskExpression() + "]" );
+  // Set DataSet legend from mask strings.
+  Dset_->SetLegend(Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression());
   // Setup output datafile. Align on bin centers instead of left.
   std::string outfile_args = "xmin " + doubleToString(spacing_ / 2.0) + 
                              " xstep " + doubleToString(spacing_);
   outfile->ProcessArgs(outfile_args);
-  // Create label from mask strings. Enclose in quotes so the label is 1 arg.
-  outfile->ProcessArgs("xlabel \"Distance (Ang)\"");
-  outfile->ProcessArgs("ylabel g(r)");
-  // Set up output for sum of mask2 if specified.
+  // Set axis labels. Enclose in quotes so the label is 1 arg.
+  outfile->ProcessArgs("xlabel \"Distance (Ang)\" ylabel g(r)");
+  // Set up output for integral of mask2 if specified.
   if (!intrdfname.empty()) {
-    intrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "m2sum" );
+    intrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "int" );
     intrdf_->SetPrecision(12,6);
+    intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
     outfile = DFL->AddSetToFile( intrdfname, intrdf_ );
     if (outfile == 0) {
-      mprinterr("Error: Could not add mask2sum set to file %s\n", intrdfname.c_str());
+      mprinterr("Error: Could not add intrdf set to file %s\n", intrdfname.c_str());
       return Action::ERR;
     }
     outfile->ProcessArgs(outfile_args);
+    if (intrdfname != outfilename)
+      outfile->ProcessArgs("xlabel \"Distance (Ang)\" ylabel \" \"");
   } else
     intrdf_ = 0;
+  // Set up output for raw rdf
+  if (!rawrdfname.empty()) {
+    rawrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "raw" );
+    rawrdf_->SetPrecision(12,6);
+    rawrdf_->SetLegend("Raw[" + Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression() + "]");
+    outfile = DFL->AddSetToFile( rawrdfname, rawrdf_ );
+    if (outfile == 0) {
+      mprinterr("Error: Could not add rawrdf set to file %s\n", rawrdfname.c_str());
+      return Action::ERR;
+    }
+    outfile->ProcessArgs(outfile_args);
+    if (rawrdfname != outfilename)
+      outfile->ProcessArgs("xlabel \"Distance (Ang)\" ylabel \"Distrances\"");
+  } else
+    rawrdf_ = 0;
 
   // Set up histogram
   one_over_spacing_ = 1 / spacing_;
@@ -155,7 +179,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
   mprintf("\n            Output to %s.\n",outfilename.c_str());
   if (intrdf_ != 0)
-    mprintf("            Integral of RDF will be output to %s\n", intrdfname.c_str());
+    mprintf("            Integral of mask2 atoms will be output to %s\n", intrdfname.c_str());
+  if (rawrdf_ != 0)
+    mprintf("            Raw RDF bin values will be output to %s\n", rawrdfname.c_str());
   if (center1_)
     mprintf("            Using center of atoms in mask1.\n");
   mprintf("            Histogram max %f, spacing %f, bins %i.\n",maximum,
@@ -172,7 +198,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   return Action::OK;
 }
 
-// Action_Radial::setup()
+// Action_Radial::Setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   * Also determine whether imaging should be performed.
   */
@@ -220,7 +246,7 @@ Action::RetType Action_Radial::Setup(Topology* currentParm, Topology** parmAddre
   return Action::OK;  
 }
 
-// Action_Radial::action()
+// Action_Radial::DoAction()
 /** Calculate distances from atoms in mask1 to atoms in mask 2 and
   * bin them.
   */
@@ -319,7 +345,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
   return Action::OK;
 } 
 
-// Action_Radial::print()
+// Action_Radial::Print()
 /** Convert the histogram to a dataset, normalize, create datafile.
   */
 // NOTE: Currently the normalization is based on number of atoms in each mask;
@@ -328,31 +354,32 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 void Action_Radial::Print() {
   double nmask1;
   if (numFrames_==0) return;
-#  ifdef _OPENMP 
+# ifdef _OPENMP 
   // Combine results from each rdf_thread into rdf
   for (int thread=0; thread < numthreads_; thread++) 
     for (int bin = 0; bin < numBins_; bin++) 
       RDF_[bin] += rdf_thread_[thread][bin];
-#  endif
+# endif
 
   mprintf("    RADIAL: %i frames, %i distances.\n",numFrames_,numDistances_);
-
   // If Mask1 and Mask2 have any atoms in common distances were not calcd
   // between them (because they are 0.0 of course); need to correct for this.
   int numSameAtoms = Mask1_.NumAtomsInCommon( Mask2_ );
-
   // If the center1 option was specified only one distance was calcd
   // from mask 1 (the COM).
-  if (center1_)
+  if (center1_) {
     nmask1 = 1.0;
-  else
+    numSameAtoms = 0; // COM of mask1 probably != atoms in mask2
+  } else
     nmask1 = (double)Mask1_.Nselected();
+  mprintf("            # in mask1= %.0f, # in mask2 = %u, # in common = %i\n",
+          nmask1, Mask2_.Nselected(), numSameAtoms);
   
   // If useVolume, calculate the density from the average volume
   if (useVolume_) {
-    double dv = volume_ / numFrames_;
-    mprintf("            Average volume is %f Ang^3.\n",dv);
-    density_ = (nmask1 * (double)Mask2_.Nselected() - (double)numSameAtoms) / dv;
+    double avgVol = volume_ / numFrames_;
+    mprintf("            Average volume is %f Ang^3.\n",avgVol);
+    density_ = (nmask1 * (double)Mask2_.Nselected() - (double)numSameAtoms) / avgVol;
     mprintf("            Average density is %f distances / Ang^3.\n",density_);
   } else {
     density_ = density_ * 
@@ -361,22 +388,22 @@ void Action_Radial::Print() {
     mprintf("            Density is %f distances / Ang^3.\n",density_);
   }
   // Calculate (average) density of atoms in mask2
-  double mask2density = density_ / nmask1;
-  mprintf("            Average density of atoms in mask2 is %f atoms / Ang^3\n", mask2density);
+  //double mask2density = density_ / nmask1;
+  //mprintf("            Average density of atoms in mask2 is %f atoms / Ang^3\n", mask2density);
 
   // Need to normalize each bin, which holds the particle count at that
   // distance. Calculate the expected number of molecules for that 
   // volume slice. Expected # of molecules is particle density times volume 
   // of each slice:
   // Density * ( [(4/3)*PI*(R+dr)^3] - [(4/3)*PI*(dr)^3] )
-  double sum = 0.0;
   for (int bin = 0; bin < numBins_; bin++) {
     //mprintf("DBG:\tNumBins= %i\n",rdf[bin]); 
     // Number of particles in this volume slice over all frames.
     double N = (double) RDF_[bin];
-    // r
+    if (rawrdf_ != 0)
+      rawrdf_->Add(bin, &N);
+    // r, r + dr
     double R = spacing_ * (double)bin;
-    // r + dr
     double Rdr = spacing_ * (double)(bin+1);
     // Volume of slice: 4/3_pi * [(r+dr)^3 - (dr)^3]
     double dv = FOURTHIRDSPI * ( (Rdr * Rdr * Rdr) - (R * R * R) );
@@ -386,14 +413,24 @@ void Action_Radial::Print() {
       mprintf("    \tBin %f->%f <Pop>=%f, V=%f, D=%f, norm %f distances.\n",
               R,Rdr,N/numFrames_,dv,density_,norm);
     // Divide by # frames
-    norm *= numFrames_;
+    norm *= (double)numFrames_;
     N /= norm;
-    if (intrdf_ != 0) {
-      // Expected # mask2 atoms in this volume slice via trapezoid integration
-      sum += ((Rdr - R) * (Dset_->CurrentDval() + N) * 0.5);
-      intrdf_->Add(bin, &sum);
-    }
     Dset_->Add(bin, &N);
   }
+  // If specified, calc integral of # mask2 atoms as fn of distance
+  if (intrdf_ != 0) {
+    double sum = 0.0;
+    double lastBin = 0.0;
+    double binNorm = 1.0 / ((double)numFrames_ * nmask1);
+    for (int bin = 0; bin < numBins_; bin++) {
+      // Expected # mask2 atoms up to this volume slice via trapezoid integration
+      double thisBin = ((double)RDF_[bin]) * binNorm;
+      double R = spacing_ * (double)bin;
+      double Rdr = spacing_ * (double)(bin+1);
+      sum += ((Rdr - R) * (lastBin + thisBin) * 0.5);
+      lastBin = thisBin;
+      //sum += ((Rdr - R) * (Dset_->CurrentDval() + N) * 0.5);
+      intrdf_->Add(bin, &sum);
+    }
+  }
 }
-

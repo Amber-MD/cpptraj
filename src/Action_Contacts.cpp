@@ -13,8 +13,9 @@ Action_Contacts::Action_Contacts() :
 { }
 
 void Action_Contacts::Help() {
-  mprintf("contacts [ first | reference | ref <ref> | refindex <#> ] [byresidue]\n");
-  mprintf("         [out <filename>] [time <interval>] [distance <cutoff>] [<mask>]\n");
+  mprintf("\t[ first | reference | ref <ref> | refindex <#> ] [byresidue]\n");
+  mprintf("\t[out <filename>] [time <interval>] [distance <cutoff>] [<mask>]\n");
+  mprintf("\tCalculate contacts for each frame based on a reference.\n");
   mprintf("\tbyresidue: calculate number of contacts for every specified atom and save result per residue\n");
 }
 
@@ -65,7 +66,7 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   distance_ = dist * dist;
   first_ = actionArgs.hasKey("first");
   // Get reference
-  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   std::string outfilename = actionArgs.GetStringKey("out"); 
   if (outfile_.OpenWrite(outfilename))

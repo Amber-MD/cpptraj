@@ -4,6 +4,7 @@
 #include "Action_CheckStructure.h"
 #include "Random.h"
 #include "Trajout.h"
+#include "DihedralSearch.h"
 // Class: Action_DihedralScan
 /// Action to rotate dihedrals randomly or in intervals 
 class Action_DihedralScan: public Action {
@@ -12,21 +13,19 @@ class Action_DihedralScan: public Action {
     ~Action_DihedralScan();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_DihedralScan(); }
     static void Help();
-
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
+    /// Scan types
+    enum ModeType  { RANDOM = 0, INTERVAL };
     /// What kind of scanning will be performed
-    enum ModeType  { RANDOM = 0, INTERVAL, IMPOSE };
     ModeType mode_;
-    /// Recognized angles
-    enum AngleType { PHI = 0, PSI, N_ANGLE };
-    /// Hold which angles to search for
-    bool SearchFor_[N_ANGLE];
-    /// Hold info for a dihedral
+    /// Used to search for and hold info for specified dihedrals
+    DihedralSearch dihSearch_;
+    /// Hold additional info for a dihedral
     struct DihedralScanType {
       AtomMask Rmask;              ///< Mask of atoms to hold fixed during rotation
       std::vector<int> checkAtoms; ///< Atoms in same residue that should be checked for clashes
@@ -46,11 +45,11 @@ class Action_DihedralScan: public Action {
     };
     std::vector<ResidueCheckType> ResCheck_;
 
-    AtomMask Mask1_;
+    Range resRange_;
     Trajout outtraj_;
     std::string outfilename_;
     int outframe_;
-    double interval_;   ///< interval/impose, value to shift by/impose
+    double interval_;   ///< interval, value to shift by
     int maxVal_;        ///< Maximum number of times to rotate dihedral
     // 'random' options
     bool check_for_clashes_;
@@ -64,7 +63,7 @@ class Action_DihedralScan: public Action {
     // General
     int debug_;
     Topology* CurrentParm_;
-    DataSet *number_of_problems_;
+    DataSet* number_of_problems_;
     Action_CheckStructure checkStructure_;
     Random_Number RN_;
 

@@ -8,15 +8,17 @@
 // CONSTRUCTOR
 Action_Vector::Action_Vector() :
   Vec_(0),
+  Magnitude_(0),
   vcorr_(0),
   ptrajoutput_(false),
   CurrentParm_(0)
 {}
 
 void Action_Vector::Help() {
-  mprintf("vector [<name>] [out <filename> [ptrajoutput]]\n");
-  mprintf("       [{ principal [x|y|z] | dipole | box | corrplane | ired]\n");
-  mprintf("       <mask1> [<mask2>]\n");
+  mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n");
+  mprintf("\t[magnitude] [ired]\n");
+  mprintf("\t<Type> = { principal [x|y|z] | dipole | box | center | corrplane }\n");
+  mprintf("\tCalculate the specified coordinate vector.\n");
 }
 
 // DESTRUCTOR
@@ -27,7 +29,7 @@ Action_Vector::~Action_Vector() {
 const char* Action_Vector::ModeString[] = {
   "NO_OP", "Principal X", "Principal Y", "Principal Z",
   "Dipole", "Box", "Mask", "Ired",
-  "CorrPlane", "Corr", "CorrIred"
+  "CorrPlane", "Center"
 };
 
 static Action::RetType WarnDeprecated() {
@@ -49,6 +51,11 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprinterr("Error: 'ptrajoutput' specified but no 'out <filename>' arg given.\n");
     return Action::ERR;
   }
+  bool calc_magnitude = actionArgs.hasKey("magnitude");
+  if (calc_magnitude && ptrajoutput_) {
+    mprinterr("Error: 'ptrajoutput' and 'magnitude' are incompatible.\n");
+    return Action::ERR;
+  }
   // Acceptable args: principal [x | y | z], dipole, box, corrplane, 
   // Deprecated: corrired, corr, ired
   if ( actionArgs.hasKey("principal") ) {
@@ -56,7 +63,9 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     if ( actionArgs.hasKey("x") ) mode_ = PRINCIPAL_X;
     if ( actionArgs.hasKey("y") ) mode_ = PRINCIPAL_Y;
     if ( actionArgs.hasKey("z") ) mode_ = PRINCIPAL_Z;
-  } else if (actionArgs.hasKey("dipole"))
+  } else if (actionArgs.hasKey("center"))
+    mode_ = CENTER;
+  else if (actionArgs.hasKey("dipole"))
     mode_ = DIPOLE;
   else if (actionArgs.hasKey("box"))
     mode_ = BOX;
@@ -66,8 +75,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     return WarnDeprecated();
   else if (actionArgs.hasKey("corr"))
     return WarnDeprecated();
-  //else if (actionArgs.hasKey("ired"))
-  //  return WarnDeprecated();
+  else if (actionArgs.hasKey("mask"))
+    mode_ = MASK; 
   else
     mode_ = MASK;
   // Check if IRED vector
@@ -92,8 +101,16 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Add set to output file if not doing ptraj-compatible output
   if (!ptrajoutput_)
     DFL->AddSetToFile(filename_, Vec_);
-
+  // Set up magnitude data set.
+  if (calc_magnitude) {
+    Magnitude_ = DSL->AddSetAspect(DataSet::FLOAT, Vec_->Name(), "Mag");
+    if (Magnitude_ == 0) return Action::ERR;
+    DFL->AddSetToFile(filename_, Magnitude_);
+  }
+  
   mprintf("    VECTOR: Type %s", ModeString[ mode_ ]);
+  if (calc_magnitude)
+    mprintf(" (with magnitude)");
   if (isIred)
     mprintf(", IRED");
   if (mode_ != BOX)
@@ -254,14 +271,14 @@ Vec3 Action_Vector::leastSquaresPlane(int n, const double* vcorr) {
 }
 
 // -----------------------------------------------------------------------------
-void Action_Vector::Mask(Frame* currentFrame) {
-  Vec3 CXYZ = currentFrame->VCenterOfMass(mask_);
-  Vec3 VXYZ = currentFrame->VCenterOfMass(mask2_);
+void Action_Vector::Mask(Frame const& currentFrame) {
+  Vec3 CXYZ = currentFrame.VCenterOfMass(mask_);
+  Vec3 VXYZ = currentFrame.VCenterOfMass(mask2_);
   VXYZ -= CXYZ;
   Vec_->AddVxyz(VXYZ, CXYZ);
 }
 
-void Action_Vector::Dipole(Frame* currentFrame) {
+void Action_Vector::Dipole(Frame const& currentFrame) {
   Vec3 VXYZ(0.0, 0.0, 0.0);
   Vec3 CXYZ(0.0, 0.0, 0.0);
   double total_mass = 0;
@@ -270,7 +287,7 @@ void Action_Vector::Dipole(Frame* currentFrame) {
   {
     double mass = (*CurrentParm_)[*atom].Mass();
     total_mass += mass;
-    Vec3 XYZ = currentFrame->XYZ( *atom );
+    Vec3 XYZ = currentFrame.XYZ( *atom );
     CXYZ += ( XYZ * mass );
     double charge = (*CurrentParm_)[*atom].Charge();
     XYZ *= charge;
@@ -280,11 +297,11 @@ void Action_Vector::Dipole(Frame* currentFrame) {
   Vec_->AddVxyz( VXYZ, CXYZ );
 }
 
-void Action_Vector::Principal(Frame* currentFrame) {
+void Action_Vector::Principal(Frame const& currentFrame) {
   Matrix_3x3 Inertia;
   Vec3 Eval; 
 
-  Vec3 CXYZ = currentFrame->CalculateInertia( mask_, Inertia );
+  Vec3 CXYZ = currentFrame.CalculateInertia( mask_, Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
   Inertia.Diagonalize_Sort_Chirality( Eval, 0 );
   /*if (debug > 2) {
@@ -300,13 +317,13 @@ void Action_Vector::Principal(Frame* currentFrame) {
     Vec_->AddVxyz( Inertia.Row3(), CXYZ.Dptr() ); // Third row = third eigenvector
 }
 
-void Action_Vector::CorrPlane(Frame* currentFrame) {
-  Vec3 CXYZ = currentFrame->VCenterOfMass(mask_);
+void Action_Vector::CorrPlane(Frame const& currentFrame) {
+  Vec3 CXYZ = currentFrame.VCenterOfMass(mask_);
   int idx = 0;
   for (AtomMask::const_iterator atom = mask_.begin();
                               atom != mask_.end(); ++atom)
   {
-    Vec3 XYZ = currentFrame->XYZ( *atom );
+    Vec3 XYZ = currentFrame.XYZ( *atom );
     XYZ -= CXYZ;
     vcorr_[idx++] = XYZ[0];
     vcorr_[idx++] = XYZ[1];
@@ -316,24 +333,23 @@ void Action_Vector::CorrPlane(Frame* currentFrame) {
   Vec_->AddVxyz(VXYZ, CXYZ);
 }
 
-void Action_Vector::Box(Frame* currentFrame) {
-  Vec_->AddVxyz( currentFrame->BoxCrd().Lengths() );
-}
-
 // Action_Vector::action()
 Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   switch ( mode_ ) {
-    case MASK        :
-    case CORR        :
-    case CORRIRED    : Mask(currentFrame); break;
-    case DIPOLE      : Dipole(currentFrame); break;
+    case MASK        : Mask(*currentFrame); break;
+    case CENTER      : Vec_->AddVxyz( currentFrame->VCenterOfMass(mask_) ); break; 
+    case DIPOLE      : Dipole(*currentFrame); break;
     case PRINCIPAL_X :
     case PRINCIPAL_Y :
-    case PRINCIPAL_Z : Principal(currentFrame); break;
-    case CORRPLANE   : CorrPlane(currentFrame); break;
-    case BOX         : Box(currentFrame); break;
-    default                          : return Action::ERR; break; // NO_OP
+    case PRINCIPAL_Z : Principal(*currentFrame); break;
+    case CORRPLANE   : CorrPlane(*currentFrame); break;
+    case BOX         : Vec_->AddVxyz( currentFrame->BoxCrd().Lengths() ); break; 
+    default          : return Action::ERR; break; // NO_OP
   } // END switch over vectorMode
+  if (Magnitude_ != 0) {
+    float mag = (float)(sqrt(Vec_->CurrentVec().Magnitude2()));
+    Magnitude_->Add(frameNum, &mag);
+  }
   return Action::OK;
 }
 

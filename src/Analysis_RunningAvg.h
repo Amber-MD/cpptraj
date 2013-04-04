@@ -12,6 +12,8 @@ class Analysis_RunningAvg : public Analysis {
     Analysis::RetType Analyze();
   private:
     DataSetList dsets_;
+    bool cumulative_;
+    int window_;
     std::vector<DataSet*> outputData_;
 };
 #endif

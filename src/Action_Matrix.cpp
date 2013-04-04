@@ -17,12 +17,12 @@ Action_Matrix::Action_Matrix() :
 {}
 
 void Action_Matrix::Help() {
-  mprintf("matrix [out <filename>] ");
-  ActionFrameCounter::Help();
-  mprintf("\n       [name <name>] [ byatom | byres [mass] | bymask [mass] ]\n");
-  mprintf(  "       [ ired [order <#>] ]\n");
-  mprintf(  "       [ {distcovar | idea} <mask1> ]\n");
-  mprintf(  "       [ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n");
+  mprintf("\t[out <filename>] %s\n", ActionFrameCounter::HelpText);
+  mprintf("\t[name <name>] [ byatom | byres [mass] | bymask [mass] ]\n");
+  mprintf("\t[ ired [order <#>] ]\n");
+  mprintf("\t[ {distcovar | idea} <mask1> ]\n");
+  mprintf("\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n");
+  mprintf("\tCalculate a matrix of the specified type from input coordinates.\n");
 }
 
 // Action_Matrix::init()
@@ -150,8 +150,8 @@ void Action_Matrix::FillMassArray(Topology* currentParm, std::vector<double>& ma
 
 // Action_Matrix::setup()
 Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddress) {
-  int mask1tot = 0; // Will be # of columns
-  int mask2tot = 0; // Will be # of rows if not symmetric matrix
+  size_t mask1tot = 0; // Will be # of columns
+  size_t mask2tot = 0; // Will be # of rows if not symmetric matrix
 
   // Set up masks. Store mass info for masks if MWCOVAR
   if (type_ != DataSet_Matrix::IRED) {
@@ -171,11 +171,11 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
       }
       FillMassArray(currentParm, mass2_, mask2_); // MWCOVAR only
     }
-    mask1tot = mask1_.Nselected();
-    mask2tot = mask2_.Nselected();
+    mask1tot = (size_t)mask1_.Nselected();
+    mask2tot = (size_t)mask2_.Nselected();
   } else {
     // IRED - matrix # cols = # of IRED vectors
-    mask1tot = (int)IredVectors_.size();
+    mask1tot = IredVectors_.size();
   }
   if (mask1tot < mask2tot) {
     mprinterr("Error: DataSet_Matrix: # of atoms in mask1 < # of atoms in mask2\n");
@@ -183,7 +183,7 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   }
 
   // Allocate vector memory
-  int vectsize = 0;
+  size_t vectsize = 0;
   switch( type_ ) {
     case DataSet_Matrix::DIST     : break;
     case DataSet_Matrix::DISTCOVAR: vectsize = mask1tot * (mask1tot - 1) / 2; break;
@@ -195,9 +195,9 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   if (Mat_->AllocateVectors( vectsize )) return Action::ERR;
 
   // Allocate matrix memory.
-  int matrixSize = 0;
-  int nrows = 0;
-  int ncols = 0;
+  size_t matrixSize = 0;
+  size_t nrows = 0;
+  size_t ncols = 0;
   if (mask2tot == 0) {
     // "Upper right half" matrix, including main diagonal.
     switch( type_ ) {
@@ -679,9 +679,9 @@ void Action_Matrix::Print() {
     outfile.OpenWrite(filename_);
     // Convert masks to char masks in order to check whether an atom
     // is selected.
-    mask1_.ConvertMaskType();
+    mask1_.ConvertToCharMask();
     if (useMask2_)
-      mask2_.ConvertMaskType();
+      mask2_.ConvertToCharMask();
     else
       mask2_ = mask1_;
     // Loop over residue pairs

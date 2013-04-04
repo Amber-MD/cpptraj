@@ -12,8 +12,10 @@ Analysis_Corr::Analysis_Corr() :
 {}
 
 void Analysis_Corr::Help() {
-  mprintf("corr out <outfilename> <Dataset1> [<Dataset2>] [name <name>]\n");
-  mprintf("         [lagmax <lag>] [nocovar] [direct]\n");
+  mprintf("\tout <outfilename> <Dataset1> [<Dataset2>] [name <name>]\n");
+  mprintf("\t[lagmax <lag>] [nocovar] [direct]\n");
+  mprintf("\tCalculate auto-correlation for <Dataset1>, or cross -correlation\n");
+  mprintf("\tbetween <Dataset1> and <Dataset2>\n");
 }
 
 // Analysis_Corr::Setup()
@@ -77,7 +79,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprintf("    CORR: %s between set %s and set %s", calctype, D1name.c_str(), D2name.c_str());
   if (lagmax_!=-1) 
     mprintf(", max lag %i",lagmax_);
-  mprintf("\n\tOutput to %s\n",outfile->Filename());
+  mprintf("\n\tOutput to %s\n",outfile->DataFilename().base());
   if (usefft_)
     mprintf("\tUsing FFT to calculate %s.\n", calctype);
   else

@@ -23,8 +23,7 @@ class DataFile {
     void Write();
 
     void SetPrecision(int, int);
-    const char* Filename()            { return filename_.base(); }
-    std::string const& FullFilename() { return filename_.Full(); }
+    FileName const& DataFilename() const  { return filename_; }
     void DataSetNames();
   private:
     int debug_;

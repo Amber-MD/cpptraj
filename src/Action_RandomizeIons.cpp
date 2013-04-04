@@ -13,8 +13,10 @@ Action_RandomizeIons::Action_RandomizeIons() :
 {}
 
 void Action_RandomizeIons::Help() {
-  mprintf("randomizeions <mask> [around <mask> by <distance>] [overlap <value>]\n");
-  mprintf("              [noimage] [seed <value>]\n");
+  mprintf("\t<mask> [around <mask> by <distance>] [overlap <value>]\n");
+  mprintf("\t[noimage] [seed <value>]\n");
+  mprintf("\tSwap positions of ions in <mask> with randomly selected\n");
+  mprintf("\tsolvent molecules.\n");
 }
 
 // Action_RandomizeIons::Init()

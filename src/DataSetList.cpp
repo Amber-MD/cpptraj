@@ -53,16 +53,6 @@ DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   return *this;
 }
 
-// DataSetList::begin()
-DataSetList::const_iterator DataSetList::begin() const {
-  return DataList_.begin();
-}
-
-// DataSetList::end()
-DataSetList::const_iterator DataSetList::end() const {
-  return DataList_.end();
-}
-
 // DataSetList::erase()
 // NOTE: In order to call erase, must use iterator and not const_iterator.
 //       Hence, the conversion. The new standard *should* allow const_iterator
@@ -153,7 +143,8 @@ std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& 
   return dsname;
 }
 
-DataSet* DataSetList::GetDataSet( std::string const& nameIn ) {
+// DataSetList::GetDataSet()
+DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
   std::string attr_arg;
   std::string idx_arg;
   std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
@@ -164,7 +155,7 @@ DataSet* DataSetList::GetDataSet( std::string const& nameIn ) {
 
 // DataSetList::GetMultipleSets()
 /** \return a list of all DataSets matching the given argument. */
-DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
+DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
   Range idxrange;
@@ -183,7 +174,7 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
   // First check name
   std::vector<char>::iterator selected = SelectedSets.begin();
   if ( dsname != "*" ) {
-    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
       if ( (*ds)->Name() != dsname ) *selected = 'F';
       ++selected;
     }
@@ -191,7 +182,7 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
   // Second check aspect
   if ( attr_arg != "*" ) {
     selected = SelectedSets.begin();
-    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
       if ( *selected == 'T' && (*ds)->Aspect() != attr_arg ) *selected = 'F';
       ++selected;
     }
@@ -199,14 +190,14 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
   // Last check index
   if ( !idx_arg.empty() && idx_arg != "*" ) {
     selected = SelectedSets.begin();
-    for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
       if ( *selected == 'T' && !idxrange.InRange( (*ds)->Idx() ) ) *selected = 'F';
       ++selected;
     }
   }
   // Add selected DataSets to dsetOut
   selected = SelectedSets.begin();
-  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ( *(selected++) == 'T' ) dsetOut.DataList_.push_back( *ds );
   return dsetOut;
 }
@@ -214,9 +205,9 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) {
 // DataSetList::GetSet()
 /** \return Specified Dataset or null if not found.
   */
-DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string const& aspect) 
+DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string const& aspect) const 
 {
-  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
     if ( (*ds)->Matches( dsname, idx, aspect ) ) return *ds;
   return 0;
 }
@@ -242,7 +233,7 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, std::string const& nameI
 /** Create a name based on the given defaultName and # of DataSets,
   * i.e. defaultName_XXXXX 
   */
-std::string DataSetList::GenerateDefaultName(const char* defaultName) {
+std::string DataSetList::GenerateDefaultName(const char* defaultName) const {
   // Determine # chars needed to hold text version of set number (min 5).
   size_t extsize = (size_t) DigitWidth( size() );
   if (extsize < 5) extsize = 5;
@@ -354,7 +345,7 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
 /** Print information on all data sets in the list, as well as any datafiles
   * that will be written to.
   */
-void DataSetList::List() {
+void DataSetList::List() const {
   if (DataList_.empty())
     mprintf("  No data sets.");
   else if (DataList_.size()==1)
@@ -389,9 +380,9 @@ void DataSetList::Sync() {
 }
 
 // DataSetList::FindSetOfType()
-DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn)
+DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn) const
 {
-  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
     if ( (*ds)->Type() == typeIn ) {
       if ( (*ds)->Name() == nameIn )
         return (*ds);

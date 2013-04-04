@@ -4,7 +4,6 @@
 /// Hold all analyses to be performed.
 class AnalysisList {
   public:
-    static const DispatchObject::Token DispatchArray[];
     AnalysisList();
     ~AnalysisList();
     void Clear(); 
@@ -12,8 +11,8 @@ class AnalysisList {
     int AddAnalysis(DispatchObject::DispatchAllocatorType, ArgList&,
                     TopologyList*, DataSetList*, DataFileList*);
     void DoAnalyses();
-    void List();
-    bool Empty() { return analysisList_.empty(); }
+    void List() const;
+    bool Empty() const { return analysisList_.empty(); }
   private:
     /// Analysis setup status
     enum AnalysisStatusType { NO_SETUP = 0, SETUP, INACTIVE };

@@ -10,7 +10,9 @@ Action_Mask::Action_Mask() :
 { } 
 
 void Action_Mask::Help() {
-  mprintf("mask <mask1> [maskout <filename>] [maskpdb <filename>]\n");
+  mprintf("\t<mask1> [maskout <filename>] [maskpdb <filename>]\n");
+  mprintf("\tPrint atoms selected by <mask1> to file specified by 'maskout' and/or\n");
+  mprintf("\tthe PDB file specified by 'maskpdb'. Good for distance-based masks.\n");
 }
 
 // Action_Mask::init()
@@ -37,11 +39,13 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 
   // Open output file
   // TODO: Buffer write out
-  if ( outfile_.OpenWrite( maskFilename ) )
-    return Action::ERR;
-  // Header
-  outfile_.Printf("%-8s %8s %4s %8s %4s %8s\n","#Frame","AtomNum","Atom",
-                  "ResNum","Res", "MolNum");
+  if (!maskFilename.empty()) {
+    if ( outfile_.OpenWrite( maskFilename ) )
+      return Action::ERR;
+      // Header
+    outfile_.Printf("%-8s %8s %4s %8s %4s %8s\n","#Frame","AtomNum","Atom",
+                    "ResNum","Res", "MolNum");
+  }
 
   return Action::OK;
 }
@@ -66,9 +70,10 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
   for (int atom=0; atom < CurrentParm_->Natom(); atom++) {
     if (Mask1_.AtomInCharMask(atom)) {
       int res = (*CurrentParm_)[atom].ResNum();
-      outfile_.Printf("%8i %8i %4s %8i %4s %8i\n", frameNum+OUTPUTFRAMESHIFT,
-                      atom+1, (*CurrentParm_)[atom].c_str(), res+1,
-                      CurrentParm_->Res(res).c_str(), (*CurrentParm_)[atom].Mol()+1);
+      if (outfile_.IsOpen())
+        outfile_.Printf("%8i %8i %4s %8i %4s %8i\n", frameNum+OUTPUTFRAMESHIFT,
+                        atom+1, (*CurrentParm_)[atom].c_str(), res+1,
+                        CurrentParm_->Res(res).c_str(), (*CurrentParm_)[atom].Mol()+1);
       /*mprintf(" Type=%4s",CurrentParm_->types[atom]);
       mprintf(" Charge=%lf",CurrentParm_->charge[atom]);
       mprintf(" Mass=%lf",CurrentParm_->mass[atom]);
@@ -80,7 +85,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
   if (!maskpdb_.empty()) {
     // Convert Mask1 to an integer mask for use in parm/frame functions
     AtomMask Mask2 = Mask1_;
-    Mask2.ConvertMaskType();
+    Mask2.ConvertToIntMask();
     // Create new parm and frame based on atoms in Mask
     Topology* pdbParm = CurrentParm_->modifyStateByMask(Mask2);
     //pdbParm->Summary(); // DEBUG
@@ -94,7 +99,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
       mprinterr("Error: Action_Mask: maskpdb %s: Could not set up for write of frame %i.\n",
                 maskpdb_.c_str(),frameNum);
     } else {
-      pdbout.PrintInfo(0);
+      if (debug_ > 0) pdbout.PrintInfo(0);
       pdbout.WriteFrame(frameNum,pdbParm,pdbFrame);
       pdbout.EndTraj();
     }

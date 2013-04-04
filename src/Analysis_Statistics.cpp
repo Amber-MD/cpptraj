@@ -11,9 +11,10 @@ Analysis_Statistics::Analysis_Statistics() :
 {}
 
 void Analysis_Statistics::Help() {
-  mprintf("stat {<name> | ALL} [shift <value>]\n");
+  mprintf("\t{<name> | all} [shift <value>] [out <filename>]\n");
 }
 
+// Analysis_Statistics::Setup()
 Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
@@ -59,6 +60,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   return Analysis::OK;
 }
 
+// Analysis_Statistics::Analyze()
 Analysis::RetType Analysis_Statistics::Analyze() {
   if (outfile_.OpenWrite( filename_ )) return Analysis::ERR;
   for (std::vector<DataSet*>::iterator ds = datasets_.begin();
@@ -250,8 +252,8 @@ const double Analysis_Statistics::torsion_offset[] = {
 void Analysis_Statistics::TorsionAnalysis(DataSet* ds, int totalFrames) {
   int torsion_visits[6];
   int torsion_transitions[6][6];
-  double torsion_avg[10]; // NOTE: Should this be dim 6?
-  double torsion_sd[10];  // NOTE: Should this be dim 6?
+  double torsion_avg[6]; 
+  double torsion_sd[6];
   int prevbin, curbin;
 
   for (int j=0;j<6;j++) {

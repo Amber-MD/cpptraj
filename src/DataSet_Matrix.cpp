@@ -70,7 +70,7 @@ DataSet_Matrix::MatrixType DataSet_Matrix::TypeFromArg(ArgList& actionArgs) {
 }
 
 // DataSet_Matrix::AllocateVectors()
-int DataSet_Matrix::AllocateVectors(int sizeIn) {
+int DataSet_Matrix::AllocateVectors(size_t sizeIn) {
   if (vect_==0) {
     vectsize_ = sizeIn;
     if (vectsize_ > 0) {
@@ -83,7 +83,7 @@ int DataSet_Matrix::AllocateVectors(int sizeIn) {
     // Already allocated. Make sure size does not change.
     if (sizeIn != vectsize_) {
       mprinterr("Error: DataSet_Matrix: Attempting to reallocate matrix vector with \n");
-      mprinterr("Error: different size. Original size= %i, new size= %i\n", vectsize_, sizeIn);
+      mprinterr("Error: different size. Original size= %u, new size= %u\n", vectsize_, sizeIn);
       mprinterr("Error: This can occur when different #s of atoms are selected in\n");
       mprinterr("Error: different topology files.\n");
       return 1;
@@ -93,7 +93,7 @@ int DataSet_Matrix::AllocateVectors(int sizeIn) {
 }
 
 // DataSet_Matrix::AllocateMatrix()
-int DataSet_Matrix::AllocateMatrix(int ncolsIn, int nrowsIn, int neltsIn, int sizeIn)
+int DataSet_Matrix::AllocateMatrix(size_t ncolsIn, size_t nrowsIn, size_t neltsIn, size_t sizeIn)
 {
   if (mat_ == 0) {
     matsize_ = sizeIn;
@@ -112,7 +112,7 @@ int DataSet_Matrix::AllocateMatrix(int ncolsIn, int nrowsIn, int neltsIn, int si
     // Already allocated. Make sure size does not change.
     if (matsize_ != sizeIn) {
       mprinterr("Error: DataSet_Matrix: Attempting to reallocate matrix with different size.\n");
-      mprinterr("Error: Original size= %i, new size= %i\n", matsize_, sizeIn);
+      mprinterr("Error: Original size= %u, new size= %u\n", matsize_, sizeIn);
       mprinterr("Error: This can occur when different #s of atoms are selected in\n");
       mprinterr("Error: different topology files.\n");
       return 1;
@@ -134,13 +134,13 @@ void DataSet_Matrix::StoreMass(std::vector<double> const& massIn) {
 }
 
 // DataSet_Matrix::calcFullIndex()
-int DataSet_Matrix::calcFullIndex(int ncols, int i, int j) { 
+size_t DataSet_Matrix::calcFullIndex(size_t ncols, size_t i, size_t j) { 
   return ( (i*ncols)+j ); 
 }
 
 // DataSet_Matrix::calcHalfIndex()
-int DataSet_Matrix::calcHalfIndex(int ncols, int row, int col) {
-  int i, j;
+size_t DataSet_Matrix::calcHalfIndex(size_t ncols, size_t row, size_t col) {
+  size_t i, j;
   if (row>col) {
     i = col;
     j = row;
@@ -155,8 +155,8 @@ int DataSet_Matrix::calcHalfIndex(int ncols, int row, int col) {
 
 // DataSet_Matrix::Write2D()
 void DataSet_Matrix::Write2D( CpptrajFile& outfile, int x, int y ) {
-  int index = calcIndex(ncols_, x, y);
-  if (index < 0 || index >= matsize_)
+  size_t index = calcIndex(ncols_, x, y);
+  if (index >= matsize_)
     outfile.Printf(data_format_, 0.0);
   else
     outfile.Printf(data_format_, mat_[index]);
@@ -166,29 +166,29 @@ void DataSet_Matrix::Write2D( CpptrajFile& outfile, int x, int y ) {
 void DataSet_Matrix::GetDimensions( std::vector<int>& vIn ) {
   vIn.resize( 2 );
   if (nrows_ > 0) {
-    vIn[0] = ncols_;
-    vIn[1] = nrows_;
+    vIn[0] = (int)ncols_;
+    vIn[1] = (int)nrows_;
   } else {
-    vIn[0] = ncols_;
-    vIn[1] = ncols_;
+    vIn[0] = (int)ncols_;
+    vIn[1] = (int)ncols_;
   }
 }
 
 // DataSet_Matrix::DivideBy()
 void DataSet_Matrix::DivideBy(double dval) {
   if (vect_!=0) {
-    for (int i = 0; i < vectsize_; ++i) {
+    for (size_t i = 0; i < vectsize_; ++i) {
       vect_[i] /= dval;
       vect2_[i] /= dval;
     }
   }
-  for (int i = 0; i < matsize_; ++i)
+  for (size_t i = 0; i < matsize_; ++i)
     mat_[i] /= dval;
 }
 
 /** Calc <riri> - <ri><ri> */
 void DataSet_Matrix::Vect2MinusVect() {
-  for (int i = 0; i < vectsize_; ++i) {
+  for (size_t i = 0; i < vectsize_; ++i) {
     //mprintf("CDBG:\tvect2[%i] = %lf\n",i,vect2_[i]);
     vect2_[i] -= (vect_[i]*vect_[i]);
     //mprintf("CDBG:\tvect2[%i] = %lf\n",i,vect2_[i]);

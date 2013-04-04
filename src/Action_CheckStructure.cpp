@@ -15,8 +15,8 @@ Action_CheckStructure::Action_CheckStructure() :
 {} 
 
 void Action_CheckStructure::Help() {
-  mprintf("check[structure] [<mask1>] [reportfile <report>] [noimage]\n");
-  mprintf("                 [offset <offset>] [cut <cut>] [nobondcheck]\n");
+  mprintf("\t[<mask1>] [reportfile <report>] [noimage]\n");
+  mprintf("\t[offset <offset>] [cut <cut>] [nobondcheck]\n");
   mprintf("\tCheck frames for atomic overlaps and unusual bond lengths\n");
 }
 
@@ -124,7 +124,7 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
   if (!bondL_.empty()) {
     // Since in the loop atom1 always < atom2, enforce this with parameters.
     // Sort by atom1, then by atom2
-    sort( bondL_.begin(), bondL_.end(), bond_list_cmp() );
+    std::sort( bondL_.begin(), bondL_.end(), bond_list_cmp() );
     // Fill in (req + offset)^2 values
     for (std::vector<bond_list>::iterator it = bondL_.begin(); it!=bondL_.end(); it++) {
       if ( currentParm->GetBondParamIdx((*it).param, rk, req) ) {

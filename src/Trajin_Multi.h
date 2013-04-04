@@ -16,11 +16,12 @@ class Trajin_Multi : public Trajin {
     void PrintInfo(int);
     bool HasVelocity() { return hasVelocity_; }
 
+    void EnsembleInfo() const;
     int EnsembleSetup( FrameArray& );
     int GetNextEnsemble( FrameArray& );
-    int EnsembleSize() { return (int)REMDtraj_.size(); }
-    int EnsemblePosition(int member) { return frameidx_[member]; }
-    bool BadEnsemble() { return badEnsemble_; }
+    int EnsembleSize()               const { return (int)REMDtraj_.size(); }
+    int EnsemblePosition(int member) const { return frameidx_[member];     }
+    bool BadEnsemble()               const { return badEnsemble_;          }
   private:
     /// Define type that will hold REMD indices
     typedef std::vector<int> RemdIdxType;

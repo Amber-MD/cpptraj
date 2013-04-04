@@ -4,230 +4,29 @@
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
 #include "Trajin_Multi.h"
+#include "Trajin_Single.h"
 #include "FrameArray.h"
 #include "ReadLine.h"
 #include "ParmFile.h"
 #include "DataSet_Coords.h" // CrdAction
+#include "Command.h"
 
-void Cpptraj::Usage(const char* programName) {
-  mprinterr("\nUsage: %s [-p <Top1>, -p <Top2>, ...] [-i <Input1>, -i <Input2>, ...]\n",
-            programName);
-  mprinterr(  "       %s <Top> <Input>\n",programName);
-  mprinterr(  "       Additional options:\n");
-  mprinterr(  "         --help, -help : Print usage information and exit.\n");
-  mprinterr(  "         -V, --version : Print version information and exit.\n");
-  mprinterr(  "         --defines     : Print list of defines used in compilation.\n");
-  mprinterr(  "         -debug <N>    : Set global debug level.\n");
-  mprinterr(  "         --interactive : Enter interactive mode.\n");
-  mprinterr(  "         --log <file>  : Record commands used in interactive mode to <file>.\n");
+void Cpptraj::Usage() {
+  mprinterr("\nUsage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n");
+  mprinterr("               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n");
+  mprinterr("               [--interactive] [--log <logfile>]\n");
+  mprinterr("       cpptraj <Top> <Input>\n");
+  mprinterr("\t-p <Top0>      : Load <Top0> as a topology file. May be specified more than once.\n");
+  mprinterr("\t-i <Input0>    : Read input from <Input0>. May be specified more than once.\n");
+  mprinterr("\t-y <trajin>    : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n");
+  mprinterr("\t-x <trajout>   : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n");
+  mprinterr("\t-h | --help    : Print command line help and exit.\n");
+  mprinterr("\t-V | --version : Print version and exit.\n");
+  mprinterr("\t--defines      : Print compiler defines and exit.\n");
+  mprinterr("\t-debug <#>     : Set global debug level to <#>; same as input 'debug <#>'.\n");
+  mprinterr("\t--interactive  : Force interactive mode.\n");
+  mprinterr("\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n");
 }
-
-void Cpptraj::Help_Help() {
-  mprintf("help [<cmd>]\n");
-}
-
-static const char TypeList[] = 
-  "(<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)";
-
-void Cpptraj::Help_List() {
-  mprintf("list <type> %s\n", TypeList);
-}
-
-void Cpptraj::Help_Debug() {
-  mprintf("debug [<type>] <#> %s\n", TypeList);
-}
-
-void Cpptraj::Help_Clear() {
-  mprintf("clear [ {all | <type>} ] %s\n", TypeList);
-  mprintf("\tAll lists will be cleared only if 'all' is specified by itself.\n");
-}
-
-void Cpptraj::Help_ActiveRef() {
-  mprintf("activeref <#>\n");
-  mprintf("\tSet the reference structure to be used for coordinate-based mask parsing.\n");
-}
-
-void Cpptraj::Help_Create_DataFile() {
-  mprintf("create <filename> <dataset0> <dataset1> ...\n");
-}
-
-void Cpptraj::Help_Precision() {
-  mprintf("precision {<filename> | <dataset arg>} [<width>] [<precision>]\n");
-  mprintf("\tSet precision for all datasets in datafile <filename> or\n");
-  mprintf("dataset(s) specified by <dataset arg> to <width>.<precision>\n");
-  mprintf("If width/precision not specified default to 12.4\n");
-}
-
-void Cpptraj::Help_SelectDS() {
-  mprintf("selectds <dataset selection>\n");
-  mprintf("\tShow results of data set selection. Data set selection format is:\n");
-  mprintf("\t\t<name>[<aspect]:<idx range>\n");
-  mprintf("Where '<name>' is the data set name, '[<aspect>]' is the data set aspect,\n");
-  mprintf("and <idx range> is a numerical range specifying data set indices (i.e. 2-5,7 etc).\n");
-  mprintf("The aspect and index portions may be optional. An asterisk '*' may be used as\n");
-  mprintf("a wildcard. E.g. 'selectds R2', 'selectds RoG[Max]', 'selectds PR[res]:2-12'\n");
-}
-
-void Cpptraj::Help_Trajin() {
-  mprintf("trajin <filename> {[<start>] [<stop> | last] [offset]} | lastframe\n");
-  mprintf("       [parm <parmfile> | parmindex <#>]\n");
-  mprintf("       [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n");
-  mprintf("         [trajnames <rep1>,<rep2>,...,<repN> ] ]\n");
-}
-
-void Cpptraj::Help_Ensemble() {
-  mprintf("ensemble <file0> {[<start>] [<stop> | last] [offset]} | lastframe\n");
-  mprintf("          [parm <parmfile> | parmindex <#>]\n");
-  mprintf("         [trajnames <file1>,<file2>,...,<fileN>\n");
-}
-
-void Cpptraj::Help_Trajout() {
-  mprintf("trajout <filename> [<fileformat>] [append] [nobox]\n");
-  mprintf("        [parm <parmfile> | parmindex <#>] [onlyframes <range>] ]title <title>]\n");
-  mprintf("        <Format Options>\n");
-}
-
-void Cpptraj::Help_Reference() {
-  mprintf("reference <filename> [<frame#>] [<mask>] [TAG] [lastframe]\n");
-  mprintf("          [average [<stop>] [<offset>]]\n");
-}
-
-void Cpptraj::Help_Parm() {
-  mprintf("parm <filename> [<tag>] [nobondsearch | bondsearch [<offset>]]\n");
-  mprintf("\tAdd <filename> to parm list\n");
-}
-
-void Cpptraj::Help_ParmInfo() {
-  mprintf("parminfo [<parmindex>] [<mask>]:\n");
-  mprintf("\tPrint information on parm <parmindex> (0 by default). If <mask> is given\n");
-  mprintf("print info on atoms in mask. If no mask given print overall information.\n");
-}
-
-void Cpptraj::Help_ParmWrite() {
-  mprintf("parmwrite out <filename> [<parmindex>]\n");
-  mprintf("\tWrite parm <parmindex> to <filename>\n");
-}
-
-void Cpptraj::Help_ParmStrip() {
-  mprintf("parmstrip <mask> [<parmindex>]\n");
-  mprintf("\tStrip atoms in mask from parm\n");
-}
-
-void Cpptraj::Help_ParmBox() {
-  mprintf("[parm]box [<parmindex>] [x <xval>] [y <yval>] [z <zval>]");
-  mprintf(" [alpha <a>] [beta <b>] [gamma <g>] [nobox]\n");
-  mprintf("\tSet the given parm box info to what is specified. If nobox, remove box info.\n");
-}
-
-void Cpptraj::Help_Solvent() {
-  mprintf("solvent [<parmindex>] <mask>\n");
-  mprintf("\tSet solvent for the given parm (default 0) based on <mask>\n");
-}
-
-void Cpptraj::Help_BondInfo() {
-  mprintf("bondinfo [<parmindex>] <mask>\n");
-  mprintf("\tPrint bond information for parm <parmindex> (0 by default).\n");
-}
-
-void Cpptraj::Help_ResInfo() {
-  mprintf("resinfo [<parmindex>]\n");
-  mprintf("\tPrint residue information for parm <parmindex> (0 by default).\n");
-}
-
-void Cpptraj::Help_MolInfo() {
-  mprintf("molinfo [<parmindex>] <mask>\n");
-  mprintf("\tPrint molecule information for parm <parmindex> (0 by default).\n");
-}
-
-void Cpptraj::Help_CrdAction() {
-  mprintf("crdaction <crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n");
-}
-
-void Cpptraj::Help_CrdOut() {
-  mprintf("crdout <crd set> <filename> [<trajout args>] [crdframes <start>,<stop>,<offset>]\n");
-}
-
-void Cpptraj::Help_RunAnalysis() {
-  mprintf("runanalysis [<analysis> [<analysis args>]]\n");
-  mprintf("\tIf specified alone, run all analyses in the analysis list.\n");
-  mprintf("Otherwise run the specified analysis immediately.\n");
-}
-
-// -----------------------------------------------------------------------------
-enum GeneralCmdTypes { LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, 
-                       SYSTEM, ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE,
-                       SELECT, SELECTDS, READINPUT, RUN_ANALYSIS, WRITEDATA,
-                       CLEAR, CRDACTION, CRDOUT, WRITE };
-
-const DispatchObject::Token Cpptraj::GeneralCmds[] = {
-  { DispatchObject::GENERAL, "activeref",     0, Help_ActiveRef,       ACTIVEREF    },
-  { DispatchObject::GENERAL, "clear",         0, Help_Clear,           CLEAR        },
-  { DispatchObject::GENERAL, "crdaction",     0, Help_CrdAction,       CRDACTION    },
-  { DispatchObject::GENERAL, "crdout",        0, Help_CrdOut,          CRDOUT       },
-  { DispatchObject::GENERAL, "create",        0, Help_Create_DataFile, CREATE       },
-  { DispatchObject::GENERAL, "datafile",      0, 0,                    DATAFILE     },
-  { DispatchObject::GENERAL, "debug",         0, Help_Debug,           DEBUG        },
-  { DispatchObject::GENERAL, "exit" ,         0, 0,                    QUIT         },
-  { DispatchObject::GENERAL, "gnuplot" ,      0, 0,                    SYSTEM       },
-  { DispatchObject::GENERAL, "go"   ,         0, 0,                    RUN          },
-  { DispatchObject::GENERAL, "head" ,         0, 0,                    SYSTEM       },
-  { DispatchObject::GENERAL, "help" ,         0, Help_Help,            HELP         },
-  { DispatchObject::GENERAL, "list" ,         0, Help_List,            LIST         },
-  { DispatchObject::GENERAL, "ls",            0, 0,                    SYSTEM       },
-  { DispatchObject::GENERAL, "noexitonerror", 0, 0,                    NOEXITERR    },
-  { DispatchObject::GENERAL, "noprogress",    0, 0,                    NOPROG       },
-  { DispatchObject::GENERAL, "precision",     0, Help_Precision,       PRECISION    },
-  { DispatchObject::GENERAL, "prnlev",        0, Help_Debug,           DEBUG        },
-  { DispatchObject::GENERAL, "pwd",           0, 0,                    SYSTEM       },
-  { DispatchObject::GENERAL, "quit" ,         0, 0,                    QUIT         },
-  { DispatchObject::GENERAL, "readdata",      0, 0,                    READDATA     },
-  { DispatchObject::GENERAL, "readinput",     0, 0,                    READINPUT    },
-  { DispatchObject::GENERAL, "run"   ,        0, 0,                    RUN          },
-  { DispatchObject::GENERAL, "runanalysis",   0, Help_RunAnalysis,     RUN_ANALYSIS },
-  { DispatchObject::GENERAL, "select",        0, 0,                    SELECT       },
-  { DispatchObject::GENERAL, "selectds",      0, Help_SelectDS,        SELECTDS     },
-  { DispatchObject::GENERAL, "write",         0, Help_Create_DataFile, WRITE        },
-  { DispatchObject::GENERAL, "writedata",     0, 0,                    WRITEDATA    },
-  { DispatchObject::GENERAL, "xmgrace",       0, 0,                    SYSTEM       },
-  { DispatchObject::NONE,    0,               0, 0,                    0            }
-};
-
-enum CoordCmdTypes { REFERENCE, TRAJIN, TRAJOUT };
-
-const DispatchObject::Token Cpptraj::CoordCmds[] = {
-  { DispatchObject::COORD, "reference", 0, Help_Reference, REFERENCE },
-  { DispatchObject::COORD, "trajin",    0, Help_Trajin,    TRAJIN    },
-  { DispatchObject::COORD, "ensemble",  0, Help_Ensemble,  TRAJIN    },
-  { DispatchObject::COORD, "trajout",   0, Help_Trajout,   TRAJOUT   },
-  { DispatchObject::NONE,  0,           0, 0,              0         }
-};
-
-enum ParmCmdTypes { LOADPARM=0, PARMINFO, PARMWRITE, PARMSTRIP, PARMBOX,
-                    SOLVENT, BONDINFO, RESINFO, MOLINFO };
-
-const DispatchObject::Token Cpptraj::ParmCmds[] = {
-  { DispatchObject::PARM, "bondinfo",     0, Help_BondInfo,  BONDINFO  },
-  { DispatchObject::PARM, "molinfo",      0, Help_MolInfo,   MOLINFO   },
-  { DispatchObject::PARM, "parm",         0, Help_Parm,      LOADPARM  },
-  { DispatchObject::PARM, "parmbondinfo", 0, Help_BondInfo,  BONDINFO  },
-  { DispatchObject::PARM, "parmbox",      0, Help_ParmBox,   PARMBOX   },
-  { DispatchObject::PARM, "parminfo",     0, Help_ParmInfo,  PARMINFO  },
-  { DispatchObject::PARM, "parmmolinfo",  0, Help_MolInfo,   MOLINFO   },
-  { DispatchObject::PARM, "parmresinfo",  0, Help_ResInfo,   RESINFO   },
-  { DispatchObject::PARM, "parmstrip",    0, Help_ParmStrip, PARMSTRIP },
-  { DispatchObject::PARM, "parmwrite",    0, Help_ParmWrite, PARMWRITE },
-  { DispatchObject::PARM, "resinfo",      0, Help_ResInfo,   RESINFO   },
-  { DispatchObject::PARM, "solvent",      0, Help_Solvent,   SOLVENT   },
-  { DispatchObject::NONE, 0,              0, 0,              0         }
-};
-
-const DispatchObject::Token Cpptraj::Deprecated[] = {
-  { DispatchObject::DEPRECATED, "molsearch",    0, 0, 0 },
-  { DispatchObject::DEPRECATED, "nomolsearch",  0, 0, 0 },
-  { DispatchObject::DEPRECATED, "bondsearch",   0, 0, 0 },
-  { DispatchObject::DEPRECATED, "nobondsearch", 0, 0, 0 },
-  { DispatchObject::NONE      , 0,              0, 0, 0 }
-};
 
 // -----------------------------------------------------------------------------
 // Constructor
@@ -242,19 +41,21 @@ Cpptraj::Cpptraj() :
 void Cpptraj::Help(ArgList& argIn) {
   ArgList arg = argIn;
   arg.RemoveFirstArg();
-  if (arg.empty()) {
-    mprintf("General Commands:\n");
-    ListAllCommands( GeneralCmds );
-    mprintf("Topology Commands:\n");
-    ListAllCommands( ParmCmds );
-    mprintf("Coordinate Commands:\n");
-    ListAllCommands( CoordCmds );
-    mprintf("Action Commands:\n");
-    ListAllCommands( ActionList::DispatchArray );
-    mprintf("Analysis Commands:\n");
-    ListAllCommands( AnalysisList::DispatchArray );
-  } else {
-    DispatchObject::TokenPtr dispatchToken = SearchToken( arg );
+  if (arg.empty()) 
+    // NONE in this context means list all commands
+    Command::List(DispatchObject::NONE);
+  else if (arg.CommandIs("General"))
+    Command::List(DispatchObject::GENERAL);
+  else if (arg.CommandIs("Topology"))
+    Command::List(DispatchObject::PARM);
+  else if (arg.CommandIs("Action"))
+    Command::List(DispatchObject::ACTION);
+  else if (arg.CommandIs("Analysis"))
+    Command::List(DispatchObject::ANALYSIS);
+  else if (arg.CommandIs("Trajectory"))
+    Command::List(DispatchObject::TRAJ);
+  else {
+    DispatchObject::TokenPtr dispatchToken = Command::SearchToken( arg );
     if (dispatchToken == 0 || dispatchToken->Help == 0) 
       mprinterr("No help found for %s\n", arg.Command());
     else
@@ -268,14 +69,14 @@ enum ListType { L_ACTION = 0, L_TRAJIN, L_REF, L_TRAJOUT, L_PARM, L_ANALYSIS,
 /// Select lists from ArgList
 static std::vector<bool> ListsFromArg( ArgList& argIn, bool allowEnableAll ) {
   std::vector<bool> enabled( (int)N_LISTS );
-  enabled[L_ACTION] = argIn.hasKey("actions");
-  enabled[L_TRAJIN] = argIn.hasKey("trajin");
-  enabled[L_REF] = argIn.hasKey("ref");
-  enabled[L_TRAJOUT] = argIn.hasKey("trajout");
-  enabled[L_PARM] = argIn.hasKey("parm");
+  enabled[L_ACTION]   = argIn.hasKey("actions");
+  enabled[L_TRAJIN]   = argIn.hasKey("trajin");
+  enabled[L_REF]      = argIn.hasKey("ref");
+  enabled[L_TRAJOUT]  = argIn.hasKey("trajout");
+  enabled[L_PARM]     = argIn.hasKey("parm");
   enabled[L_ANALYSIS] = argIn.hasKey("analysis");
   enabled[L_DATAFILE] = argIn.hasKey("datafile");
-  enabled[L_DATASET] = argIn.hasKey("dataset");
+  enabled[L_DATASET]  = argIn.hasKey("dataset");
   if (!allowEnableAll) return enabled;
   // If nothing is enabled, set all enabled
   bool nothing_enabled = true;
@@ -287,45 +88,45 @@ static std::vector<bool> ListsFromArg( ArgList& argIn, bool allowEnableAll ) {
   if (nothing_enabled) enabled.assign( (int)N_LISTS, true );
   return enabled;
 }
-
-/** List all members of specified lists. */
-void Cpptraj::List(ArgList& argIn) {
-  std::vector<bool> enabled = ListsFromArg( argIn, true );
-  if ( enabled[L_ACTION] ) actionList.List();
-  if ( enabled[L_TRAJIN] ) trajinList.List();
-  if ( enabled[L_REF] ) refFrames.List();
-  if ( enabled[L_TRAJOUT] ) trajoutList.List();
-  if ( enabled[L_PARM] ) parmFileList.List();
-  if ( enabled[L_ANALYSIS] ) analysisList.List();
-  if ( enabled[L_DATAFILE] ) DFL.List();
-  if ( enabled[L_DATASET] ) DSL.List();
-}
-
-/** Set debug level of specified lists */
-void Cpptraj::Debug(ArgList& argIn) {
-  std::vector<bool> enabled = ListsFromArg( argIn, true );
-  debug_ = argIn.getNextInteger(0);
-  if ( enabled[L_ACTION] ) actionList.SetDebug( debug_ );
-  if ( enabled[L_TRAJIN] ) trajinList.SetDebug( debug_ );
-  if ( enabled[L_REF] ) refFrames.SetDebug( debug_ );
-  if ( enabled[L_TRAJOUT] ) trajoutList.SetDebug( debug_ );
-  if ( enabled[L_PARM] ) parmFileList.SetDebug( debug_ );
-  if ( enabled[L_ANALYSIS] ) analysisList.SetDebug( debug_ );
-  if ( enabled[L_DATAFILE] ) DFL.SetDebug( debug_ );
-  if ( enabled[L_DATASET] ) DSL.SetDebug( debug_ );
-}
-
-/** Clear specified lists */
-void Cpptraj::Clear(ArgList& argIn) {
-  std::vector<bool> enabled = ListsFromArg( argIn, argIn.hasKey("all") );
-  if ( enabled[L_ACTION] ) actionList.Clear();
-  if ( enabled[L_TRAJIN] ) trajinList.Clear();
-  if ( enabled[L_REF] ) refFrames.Clear();
-  if ( enabled[L_TRAJOUT] ) trajoutList.Clear();
-  if ( enabled[L_PARM] ) parmFileList.Clear();
-  if ( enabled[L_ANALYSIS] ) analysisList.Clear();
-  if ( enabled[L_DATAFILE] ) DFL.Clear();
-  if ( enabled[L_DATASET] ) DSL.Clear();
+// Cpptraj::ListAction()
+void Cpptraj::ListAction(ArgList& argIn, int cmdidx) {
+  std::vector<bool> enabled;
+  switch (cmdidx) {
+    case Command::LIST: /** List all members of specified lists. */
+      enabled = ListsFromArg( argIn, true );
+      if ( enabled[L_ACTION]   ) actionList_.List();
+      if ( enabled[L_TRAJIN]   ) trajinList_.List();
+      if ( enabled[L_REF]      ) {mprintf("\nREFERENCE COORDS:\n");refFrames_.List();}
+      if ( enabled[L_TRAJOUT]  ) {mprintf("\nOUTPUT TRAJECTORIES:\n");trajoutList_.List();}
+      if ( enabled[L_PARM]     ) parmFileList_.List();
+      if ( enabled[L_ANALYSIS] ) analysisList_.List();
+      if ( enabled[L_DATAFILE] ) DFL_.List();
+      if ( enabled[L_DATASET]  ) {mprintf("\nDATASETS:\n");DSL_.List();}
+      break;
+    case Command::DEBUG: /** Set debug level of specified lists */
+      enabled = ListsFromArg( argIn, true );
+      debug_ = argIn.getNextInteger(0);
+      if ( enabled[L_ACTION]   ) actionList_.SetDebug( debug_ );
+      if ( enabled[L_TRAJIN]   ) trajinList_.SetDebug( debug_ );
+      if ( enabled[L_REF]      ) refFrames_.SetDebug( debug_ );
+      if ( enabled[L_TRAJOUT]  ) trajoutList_.SetDebug( debug_ );
+      if ( enabled[L_PARM]     ) parmFileList_.SetDebug( debug_ );
+      if ( enabled[L_ANALYSIS] ) analysisList_.SetDebug( debug_ );
+      if ( enabled[L_DATAFILE] ) DFL_.SetDebug( debug_ );
+      if ( enabled[L_DATASET]  ) DSL_.SetDebug( debug_ );
+      break;
+    case Command::CLEAR: /** Clear specified lists */
+      enabled = ListsFromArg( argIn, argIn.hasKey("all") );
+      if ( enabled[L_ACTION]   ) actionList_.Clear();
+      if ( enabled[L_TRAJIN]   ) trajinList_.Clear();
+      if ( enabled[L_REF]      ) refFrames_.Clear();
+      if ( enabled[L_TRAJOUT]  ) trajoutList_.Clear();
+      if ( enabled[L_PARM]     ) parmFileList_.Clear();
+      if ( enabled[L_ANALYSIS] ) analysisList_.Clear();
+      if ( enabled[L_DATAFILE] ) DFL_.Clear();
+      if ( enabled[L_DATASET]  ) DSL_.Clear();
+      break;
+  }
 }
 
 /** Add DataFile to DataFileList using specified sets. */
@@ -333,17 +134,16 @@ int Cpptraj::Create_DataFile(ArgList& dataArg, int cmdidxIn) {
   // Two modes:
   //   1) create: Add a new DataFile to DFL with specified DataSets.
   //   2) write:  Immediately write DataFile with specified DataSets.
-  GeneralCmdTypes cmdidx = (GeneralCmdTypes)cmdidxIn;
+  Command::Type cmdidx = (Command::Type)cmdidxIn;
   // Next string is datafile that command pertains to.
   std::string name1 = dataArg.GetStringNext();
   if (name1.empty()) {
-    mprinterr("Error: No filename given.\nError: Usage: ");
-    Help_Create_DataFile();
+    mprinterr("Error: No filename given.\n");
     return 1;
   }
   DataFile* df = 0;
-  if ( cmdidx == CREATE )
-    df = DFL.AddDataFile(name1, dataArg);
+  if ( cmdidx == Command::CREATE )
+    df = DFL_.AddDataFile(name1, dataArg);
   else { // WRITE
     df = new DataFile();
     if (df->SetupDatafile( name1, dataArg, debug_ )) {
@@ -359,7 +159,7 @@ int Cpptraj::Create_DataFile(ArgList& dataArg, int cmdidxIn) {
   int err = 0;
   ArgList dsetArgs = dataArg.RemainingArgs();
   for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa) {
-    DataSetList Sets = DSL.GetMultipleSets( *dsa );
+    DataSetList Sets = DSL_.GetMultipleSets( *dsa );
     if (Sets.empty())
       mprintf("Warning: %s does not correspond to any data sets.\n", (*dsa).c_str());
     for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
@@ -371,7 +171,7 @@ int Cpptraj::Create_DataFile(ArgList& dataArg, int cmdidxIn) {
     }
   }
   mprintf("\n");
-  if ( cmdidx == WRITE && err == 0 ) {
+  if ( cmdidx == Command::WRITE && err == 0 ) {
     df->Write();
     delete df;
   }
@@ -383,8 +183,7 @@ int Cpptraj::Precision(ArgList& dataArg) {
   // Next string is DataSet(s)/DataFile that command pertains to.
   std::string name1 = dataArg.GetStringNext();
   if (name1.empty()) {
-    mprinterr("Error: precision: No filename/setname given.\nError: Usage: ");
-    Help_Precision();
+    mprinterr("Error: precision: No filename/setname given.\n");
     return 1;
   }
   // This will break if dataset name starts with a digit...
@@ -395,13 +194,13 @@ int Cpptraj::Precision(ArgList& dataArg) {
   }
   int precision = dataArg.getNextInteger(4);
   if (precision < 0) precision = 0;
-  DataFile* df = DFL.GetDataFile(name1);
+  DataFile* df = DFL_.GetDataFile(name1);
   if (df != 0) {
-    mprintf("\tSetting precision for all sets in %s to %i.%i\n", df->Filename(),
+    mprintf("\tSetting precision for all sets in %s to %i.%i\n", df->DataFilename().base(),
             width, precision);
     df->SetPrecision(width, precision);
   } else {
-    DataSetList dsets = DSL.GetMultipleSets( name1 );
+    DataSetList dsets = DSL_.GetMultipleSets( name1 );
     mprintf("\tSetting precision for %i sets to %i.%i\n", dsets.size(),
             width, precision);
     for (DataSetList::const_iterator set = dsets.begin(); set != dsets.end(); ++set)
@@ -413,7 +212,7 @@ int Cpptraj::Precision(ArgList& dataArg) {
 /** Read data from file into master DataSetList */
 int Cpptraj::ReadData(ArgList& argIn) {
   DataFile dataIn;
-  if (dataIn.ReadData( argIn, DSL )!=0) {
+  if (dataIn.ReadData( argIn, DSL_ )!=0) {
     mprinterr("Error: Could not read data file.\n");
     return 1;
   }
@@ -423,7 +222,7 @@ int Cpptraj::ReadData(ArgList& argIn) {
 /** Show results of DataSet selection */
 void Cpptraj::SelectDS(ArgList& argIn) {
   std::string dsarg = argIn.GetStringNext();
-  DataSetList dsets = DSL.GetMultipleSets( dsarg );
+  DataSetList dsets = DSL_.GetMultipleSets( dsarg );
   mprintf("SelectDS: Arg [%s]:", dsarg.c_str());
   dsets.List();
 }
@@ -434,29 +233,30 @@ int Cpptraj::LoadParm(ArgList& argIn) {
   std::string parmtag = argIn.getNextTag();
   bool bondsearch = !argIn.hasKey("nobondsearch");
   double offset = argIn.getKeyDouble("bondsearch", -1.0);
-  return parmFileList.AddParmFile(argIn.GetStringNext(), parmtag, bondsearch, offset);
+  return parmFileList_.AddParmFile(argIn.GetStringNext(), parmtag, bondsearch, offset);
 }
 
 /** Print information for specified parm */
 int Cpptraj::ParmInfo(ArgList& argIn, int cmdidxIn) {
-  ParmCmdTypes cmdidx = (ParmCmdTypes) cmdidxIn;
+  Command::Type cmdidx = (Command::Type) cmdidxIn;
   int pindex = argIn.getNextInteger(0);
-  Topology* parm = parmFileList.GetParm( pindex );
+  Topology* parm = parmFileList_.GetParm( pindex );
   if ( parm == 0 ) {
     mprinterr("Error: parm index %i not loaded.\n",pindex);
     return 1;
   }
   std::string maskarg = argIn.GetMaskNext();
   switch (cmdidx) {
-    case PARMINFO:
+    case Command::PARMINFO:
       if (!maskarg.empty())
         parm->PrintAtomInfo( maskarg );
       else
         parm->Summary();
       break;
-    case BONDINFO: parm->PrintBondInfo( maskarg ); break;
-    case RESINFO : parm->PrintResidueInfo( maskarg ); break;
-    case MOLINFO : parm->PrintMoleculeInfo( maskarg ); break;
+    case Command::BONDINFO  : parm->PrintBondInfo( maskarg ); break;
+    case Command::RESINFO   : parm->PrintResidueInfo( maskarg ); break;
+    case Command::MOLINFO   : parm->PrintMoleculeInfo( maskarg ); break;
+    case Command::CHARGEINFO: parm->PrintChargeInfo( maskarg ); break;
     default: return 1; // Should never get here
   }
   return 0;
@@ -470,7 +270,7 @@ int Cpptraj::ParmWrite(ArgList& argIn) {
     return 1;
   }
   int pindex = argIn.getNextInteger(0);
-  Topology* parm = parmFileList.GetParm( pindex );
+  Topology* parm = parmFileList_.GetParm( pindex );
   if ( parm == 0 ) {
     mprinterr("Error: parmwrite: parm index %i not loaded.\n",pindex);
     return 1;
@@ -485,7 +285,7 @@ int Cpptraj::ParmWrite(ArgList& argIn) {
 // Cpptraj::ParmStrip()
 int Cpptraj::ParmStrip(ArgList& argIn) {
   int pindex = argIn.getNextInteger(0);
-  Topology* parm = parmFileList.GetParm( pindex );
+  Topology* parm = parmFileList_.GetParm( pindex );
   if ( parm == 0 ) {
     mprinterr("Error: parmstrip: parm index %i not loaded.\n",pindex);
     return 1;
@@ -504,7 +304,7 @@ int Cpptraj::ParmStrip(ArgList& argIn) {
     // Replace parm with stripped version
     tempParm->ParmInfo();
     mprintf("\n");
-    parmFileList.ReplaceParm(pindex, tempParm);
+    parmFileList_.ReplaceParm(pindex, tempParm);
   }
   return 0;
 }
@@ -512,7 +312,7 @@ int Cpptraj::ParmStrip(ArgList& argIn) {
 /** Modify parm box information. */
 int Cpptraj::ParmBox(ArgList& argIn) {
   int pindex = argIn.getNextInteger(0);
-  Topology* parm = parmFileList.GetParm( pindex );
+  Topology* parm = parmFileList_.GetParm( pindex );
   if ( parm == 0 ) {
     mprinterr("Error: parmbox: parm index %i not loaded.\n",pindex);
     return 1;
@@ -543,7 +343,7 @@ int Cpptraj::ParmSolvent(ArgList& argIn) {
   }
   // Get parm index
   int pindex = argIn.getNextInteger(0);
-  Topology* parm = parmFileList.GetParm( pindex );
+  Topology* parm = parmFileList_.GetParm( pindex );
   if ( parm == 0 ) {
     mprinterr("Error: solvent: parm index %i not loaded.\n",pindex);
     return 1;
@@ -556,7 +356,7 @@ int Cpptraj::ParmSolvent(ArgList& argIn) {
 int Cpptraj::Select(ArgList& argIn) {
   AtomMask tempMask( argIn.GetMaskNext() );
   int pindex = argIn.getNextInteger(0);
-  Topology* parm = parmFileList.GetParm( pindex );
+  Topology* parm = parmFileList_.GetParm( pindex );
   if ( parm == 0 ) {
     mprinterr("Error: solvent: parm index %i not loaded.\n",pindex);
     return 1;
@@ -569,16 +369,54 @@ int Cpptraj::Select(ArgList& argIn) {
 }
 
 // -----------------------------------------------------------------------------
+// Cpptraj::LoadCrd()
+int Cpptraj::LoadCrd(ArgList& argIn) {
+  // Get parm
+  Topology* parm = parmFileList_.GetParm( argIn );
+  if (parm == 0) {
+    mprinterr("Error: loadcrd: No parm files loaded.\n");
+    return 1;
+  }
+  // Load trajectory
+  Trajin_Single trajin;
+  trajin.SetDebug( debug_ );
+  if (trajin.SetupTrajRead(argIn.GetStringNext(), &argIn, parm)) {
+    mprinterr("Error: loadcrd: Could not set up input trajectory.\n");
+    return 1;
+  }
+  // Create input frame
+  Frame frameIn;
+  frameIn.SetupFrameV(parm->Atoms(), trajin.HasVelocity());
+  // Create DataSet, use base file name as set name if none specified. 
+  // NOTE: Default name should NEVER get used.
+  std::string setname = argIn.GetStringNext();
+  if (setname.empty())
+    setname = trajin.TrajFilename().Base();
+  DataSet_Coords* coords = (DataSet_Coords*)DSL_.AddSet(DataSet::COORDS, setname, "__DCRD__");
+  if (coords == 0) {
+    mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
+    return 1;
+  }
+  coords->SetTopology( *parm );
+  // Read trajectory
+  mprintf("\tLoading trajectory %s as \"%s\"\n", trajin.TrajFilename().full(), setname.c_str());
+  trajin.BeginTraj(true);
+  trajin.PrintInfoLine();
+  while (trajin.GetNextFrame( frameIn ))
+    coords->AddFrame( frameIn );
+  trajin.EndTraj();
+  return 0;
+}
+  
 // Cpptraj::CrdAction()
 /** Perform action on given COORDS dataset */
 int Cpptraj::CrdAction(ArgList& argIn) {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
     mprinterr("Error: crdaction: Specify COORDS dataset name.\n");
-    Help_CrdAction();
     return 1;
   }
-  DataSet_Coords* CRD = (DataSet_Coords*)DSL.FindSetOfType( setname, DataSet::COORDS );
+  DataSet_Coords* CRD = (DataSet_Coords*)DSL_.FindSetOfType( setname, DataSet::COORDS );
   if (CRD == 0) {
     mprinterr("Error: crdaction: No COORDS set with name %s found.\n", setname.c_str());
     return 1;
@@ -586,16 +424,21 @@ int Cpptraj::CrdAction(ArgList& argIn) {
   // Start, stop, offset
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
   int start = crdarg.getNextInteger(1) - 1;
-  int stop = crdarg.getNextInteger(CRD->Size());
+  int stop;
+  if (crdarg.hasKey("last"))
+    stop = CRD->Size();
+  else
+    stop = crdarg.getNextInteger(CRD->Size());
   int offset = crdarg.getNextInteger(1);
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   ArgList actionargs = argIn.RemainingArgs();
   actionargs.MarkArg(0);
-  DispatchObject::TokenPtr tkn = SearchTokenArray( ActionList::DispatchArray, actionargs);
+  DispatchObject::TokenPtr tkn = Command::SearchTokenType( DispatchObject::ACTION, actionargs);
   if ( tkn == 0 ) return 1;
   Action* act = (Action*)tkn->Alloc();
   if (act == 0) return 1;
-  if ( act->Init( actionargs, &parmFileList, &refFrames, &DSL, &DFL, debug_ ) != Action::OK ) {
+  DataFileList dfl;
+  if ( act->Init( actionargs, &parmFileList_, &refFrames_, &DSL_, &dfl, debug_ ) != Action::OK ) {
     delete act;
     return 1;
   }
@@ -632,6 +475,7 @@ int Cpptraj::CrdAction(ArgList& argIn) {
       CRD->SetCRD( frame, *currentFrame );
   }
   act->Print();
+  if (worldrank == 0) dfl.Write();
   delete originalFrame;
   delete originalParm;
   delete act;
@@ -644,10 +488,9 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
     mprinterr("Error: crdout: Specify COORDS dataset name.\n");
-    Help_CrdOut();
     return 1;
   }
-  DataSet_Coords* CRD = (DataSet_Coords*)DSL.FindSetOfType( setname, DataSet::COORDS );
+  DataSet_Coords* CRD = (DataSet_Coords*)DSL_.FindSetOfType( setname, DataSet::COORDS );
   if (CRD == 0) {
     mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
     return 1;
@@ -656,7 +499,11 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   // Start, stop, offset
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
   int start = crdarg.getNextInteger(1) - 1;
-  int stop = crdarg.getNextInteger(CRD->Size());
+  int stop;
+  if (crdarg.hasKey("last"))
+    stop = CRD->Size();
+  else
+    stop = crdarg.getNextInteger(CRD->Size());
   int offset = crdarg.getNextInteger(1);
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   Trajout outtraj;
@@ -685,83 +532,21 @@ int Cpptraj::CrdOut(ArgList& argIn) {
 int Cpptraj::CrdAnalyze(ArgList& argIn) {
   ArgList analyzeargs = argIn.RemainingArgs();
   analyzeargs.MarkArg(0);
-  DispatchObject::TokenPtr tkn = SearchTokenArray( AnalysisList::DispatchArray, analyzeargs);
+  DispatchObject::TokenPtr tkn = Command::SearchTokenType( DispatchObject::ANALYSIS, analyzeargs);
   if ( tkn == 0 ) return 1;
   Analysis* ana = (Analysis*)tkn->Alloc();
   if (ana == 0) return 1;
-  if ( ana->Setup( analyzeargs, &DSL, &parmFileList, &DFL, debug_ ) != Analysis::OK ) {
+  DataFileList dfl;
+  if ( ana->Setup( analyzeargs, &DSL_, &parmFileList_, &dfl, debug_ ) != Analysis::OK ) {
     delete ana;
     return 1;
   }
   int err = 0;
-  if (ana->Analyze() == Analysis::ERR) err = 1;
+  if (ana->Analyze() == Analysis::ERR) 
+    err = 1;
+  else if (worldrank == 0) dfl.Write();
   delete ana;
   return err;
-}
-
-// -----------------------------------------------------------------------------
-// Cpptraj::ListAllCommands()
-/** List all commands in the given token array. */
-void Cpptraj::ListAllCommands(DispatchObject::TokenPtr DispatchArray) {
-  int col = 0;
-  mprintf("\t");
-  for (DispatchObject::TokenPtr token = DispatchArray;
-                                token->Type != DispatchObject::NONE; ++token)
-  {
-    mprintf("%s  ", token->Cmd);
-    ++col;
-    if (col == 8) {
-      mprintf("\n\t");
-      col = 0;
-    }
-  }
-  mprintf("\n");
-}
-
-// Cpptraj::SearchTokenArray()
-/** Search the given token array for command.
-  * \return DispatchObject associated with command or 0 if not found.
-  */
-DispatchObject::TokenPtr Cpptraj::SearchTokenArray(DispatchObject::TokenPtr DispatchArray, 
-                                                   ArgList const& arg)
-{
-  for (DispatchObject::TokenPtr token = DispatchArray;
-                                token->Type != DispatchObject::NONE; ++token)
-  {
-    if ( arg.CommandIs( token->Cmd ) ) 
-      return token;
-  }
-  return 0;
-}
-
-// Cpptraj::SearchToken()
-/** Search each token list for the given command. If the command is found in
-  * a list then dispatchToken is set by SearchTokenArray and 1 is returned.
-  * \return the token if found, 0 if not.
-  */
-DispatchObject::TokenPtr Cpptraj::SearchToken(ArgList& argIn) {
-  DispatchObject::TokenPtr tkn = 0;
-  // SPECIAL CASE: For backwards compat. remove analyze prefix
-  if (argIn.CommandIs("analyze")) {
-    argIn.RemoveFirstArg();
-    argIn.MarkArg(0); // Mark new first arg as command
-    return SearchTokenArray( AnalysisList::DispatchArray, argIn);
-  } else {
-    tkn = SearchTokenArray( GeneralCmds, argIn );
-    if (tkn != 0) return tkn;
-    tkn = SearchTokenArray( ParmCmds, argIn );
-    if (tkn != 0) return tkn;
-    tkn = SearchTokenArray( CoordCmds, argIn );
-    if (tkn != 0) return tkn;
-    tkn = SearchTokenArray( ActionList::DispatchArray, argIn);
-    if (tkn != 0) return tkn;
-    tkn = SearchTokenArray( AnalysisList::DispatchArray, argIn);
-    if (tkn != 0) return tkn;
-    tkn = SearchTokenArray( Deprecated, argIn);
-    if (tkn != 0) return tkn;
-  }
-  mprinterr("[%s]: Command not found.\n",argIn.Command());
-  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -770,9 +555,11 @@ Cpptraj::Mode Cpptraj::Interactive() {
   ReadLine inputLine;
   // By default when interactive do not exit on errors
   exitOnError_ = false;
-  // Open log file if name has been set
-  if (!logfile_.FullFileName().empty())
+  // Open log file. If no name has been set, use default.
+  if (!logfile_.Filename().empty())
     logfile_.OpenFile();
+  else
+    logfile_.OpenAppend("cpptraj.log");
   Mode readLoop = C_OK;
   while ( readLoop == C_OK ) {
     if (inputLine.GetInput()) break; 
@@ -794,18 +581,22 @@ static inline bool EndChar(char ptr) {
   return false;
 }
 
-/** Read commands from an input file. '#' indicates the beginning of a
-  * comment, backslash at the end of a line indicates continuation
-  * (otherwise indicates 'literal').
+/** Read commands from an input file, or from STDIN if given filename
+  * is empty. '#' indicates the beginning of a comment, backslash at the 
+  * end of a line indicates continuation (otherwise indicates 'literal').
   * \return 0 if successfully read, 1 on error.
   */
 Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
-  FILE *infile;
-  if (inputFilename.empty()) return C_ERR;
-  mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
-  if ( (infile=fopen(inputFilename.c_str(),"r"))==0 ) {
-    rprintf("Error: Could not open input file %s\n",inputFilename.c_str());
-    return C_ERR;
+  FILE* infile;
+  if (inputFilename.empty()) {
+    mprintf("INPUT: Reading Input from STDIN\n");
+    infile = stdin;
+  } else {
+    mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
+    if ( (infile=fopen(inputFilename.c_str(),"r"))==0 ) {
+      rprintf("Error: Could not open input file %s\n",inputFilename.c_str());
+      return C_ERR;
+    }
   }
   // Read in each line of input. Newline or null terminates. \ continues line.
   std::string inputLine;
@@ -855,7 +646,10 @@ Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
     inputLine += ptr;
     ++idx;
   }
-  fclose(infile);
+  if (!inputFilename.empty())
+    fclose(infile);
+  // If everything OK and Run has already been called, just quit.
+  if (cmode == C_OK && nrun_ > 0) return C_QUIT;
   return cmode;
 } 
 
@@ -866,9 +660,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   bool interactive = false;
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]); 
-    if ( arg == "--help" || arg == "-help" ) {
+    if ( arg == "--help" || arg == "-h" ) {
       // --help, -help: Print usage and exit
-      Usage( argv[0] );
+      Usage();
       return C_QUIT;
     }
     if ( arg == "-V" || arg == "--version" ) 
@@ -907,16 +701,20 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     else if ( arg == "-debug" && i+1 != argc) { 
       // -debug: Set overall debug level
       ArgList dbgarg( argv[++i] );
-      Debug( dbgarg );
+      ListAction( dbgarg, Command::DEBUG );
     } else if ( arg == "--log" && i+1 != argc)
       // --log: Set up log file for interactive mode
       logfile_.SetupWrite( argv[++i], debug_ );
     else if ( arg == "-p" && i+1 != argc) {
       // -p: Topology file
-      if (parmFileList.AddParmFile( argv[++i] )) return C_ERR;
-    } else if ( arg == "-x" && i+1 != argc) {
-      // -x: Trajectory file
+      if (parmFileList_.AddParmFile( argv[++i] )) return C_ERR;
+    } else if ( arg == "-y" && i+1 != argc) {
+      // -y: Trajectory file in
       if (Dispatch("trajin " + std::string(argv[++i])) == C_ERR) return C_ERR;
+    } else if ( arg == "-x" && i+1 != argc) {
+      // -x: Trajectory file out 
+      if (Dispatch("trajout " + std::string(argv[++i])) == C_ERR) return C_ERR;
+      hasInput = true;
     } else if ( arg == "-c" && i+1 != argc) {
       // -c: Reference file
       if (Dispatch("reference " + std::string(argv[++i])) == C_ERR) return C_ERR;
@@ -929,11 +727,11 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Mask string
       ArgList maskArg( argv[++i] );
-      ParmInfo( maskArg, PARMINFO );
+      ParmInfo( maskArg, Command::PARMINFO );
       return C_QUIT; 
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
-      if (parmFileList.AddParmFile( argv[i])) return C_ERR;
+      if (parmFileList_.AddParmFile( argv[i])) return C_ERR;
     } else if ( i == 2 ) {
       // For backwards compatibility with PTRAJ; Position 2 = INPUT file
       Cpptraj::Mode cmode = ProcessInput( argv[i] );
@@ -943,7 +741,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     } else {
       // Unrecognized
       mprintf("  Unrecognized input on command line: %i: %s\n", i,argv[i]);
-      Usage(argv[0]);
+      Usage();
       return C_QUIT;
     }
   }
@@ -969,90 +767,92 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
   ArgList command( inputLine );
   if ( command.empty() ) return C_OK;
   command.MarkArg(0); // Always mark the command
-  DispatchObject::TokenPtr dispatchToken = SearchToken( command );
+  DispatchObject::TokenPtr dispatchToken = Command::SearchToken( command );
   if ( dispatchToken != 0 ) {
     //mprintf("TOKEN FOUND. CMD=%s  TYPE=%i\n", dispatchToken->Cmd, (int)dispatchToken->Type);
     switch (dispatchToken->Type) {
-      case DispatchObject::PARM :
+      case DispatchObject::PARM : /** PARM COMMANDS */
         switch ( dispatchToken->Idx ) {
-          case LOADPARM : err = LoadParm( command ); break;
-          case BONDINFO :
-          case RESINFO  :
-          case MOLINFO  :
-          case PARMINFO : err = ParmInfo( command, dispatchToken->Idx ); break;
-          case PARMWRITE: err = ParmWrite( command ); break;
-          case PARMSTRIP: err = ParmStrip( command ); break;
-          case PARMBOX  : err = ParmBox( command ); break;
-          case SOLVENT  : err = ParmSolvent(command); break;
+          case Command::LOADPARM : err = LoadParm( command ); break;
+          case Command::BONDINFO :
+          case Command::RESINFO  :
+          case Command::MOLINFO  :
+          case Command::CHARGEINFO:
+          case Command::PARMINFO : err = ParmInfo( command, dispatchToken->Idx ); break;
+          case Command::PARMWRITE: err = ParmWrite( command ); break;
+          case Command::PARMSTRIP: err = ParmStrip( command ); break;
+          case Command::PARMBOX  : err = ParmBox( command ); break;
+          case Command::SOLVENT  : err = ParmSolvent(command); break;
         } 
         break;
-      case DispatchObject::COORD :
+      case DispatchObject::TRAJ : /** TRAJECTORY COMMANDS */
         switch ( dispatchToken->Idx ) {
-          case TRAJIN :
+          case Command::TRAJIN :
             // Update # of sets to be read in for master DSL
-            err = trajinList.AddTrajin(command, parmFileList); 
-            if (err == 0) DSL.SetMax( trajinList.MaxFrames() );
+            err = trajinList_.AddTrajin(command, parmFileList_); 
+            if (err == 0) DSL_.SetMax( trajinList_.MaxFrames() );
             break;
-          case TRAJOUT :
+          case Command::TRAJOUT :
             // For setting up ensemble, save trajout arg
             trajoutArgs_.push_back(command);
-            err = trajoutList.AddTrajout(command, parmFileList);
+            err = trajoutList_.AddTrajout(command, parmFileList_);
             break;
-          case REFERENCE : err = refFrames.AddReference(command, parmFileList); break;
+          case Command::REFERENCE : err = refFrames_.AddReference(command, parmFileList_); break;
         }
         break;
-      case DispatchObject::ACTION : 
+      case DispatchObject::ACTION : /** ACTION COMMANDS */ 
         // For setting up ensemble, save action arg
         actionArgs_.push_back(command);
-        err = actionList.AddAction( dispatchToken->Alloc, command, &parmFileList, 
-                                    &refFrames, &DSL, &DFL );
+        err = actionList_.AddAction( dispatchToken->Alloc, command, &parmFileList_, 
+                                    &refFrames_, &DSL_, &DFL_ );
         break;
-      case DispatchObject::ANALYSIS :
-        err = analysisList.AddAnalysis( dispatchToken->Alloc, command, &parmFileList, &DSL, &DFL );
+      case DispatchObject::ANALYSIS : /** ANALYSIS COMMANDS */
+        err = analysisList_.AddAnalysis( dispatchToken->Alloc, command, &parmFileList_, &DSL_, &DFL_ );
         break;
-      case DispatchObject::GENERAL :
+      case DispatchObject::GENERAL : /** GENERAL COMMANDS */
         switch ( dispatchToken->Idx ) {
-          case HELP      : Help(command); break;
-          case LIST      : List(command); break;
-          case DEBUG     : Debug(command); break;
-          case CLEAR     : Clear(command); break;
-          case CRDACTION : err = CrdAction(command); break;
-          case CRDOUT    : err = CrdOut(command); break;
-          case SELECT    : err = Select(command); break; 
-          case SELECTDS  : SelectDS(command); break;
-          case NOPROG    : 
+          case Command::HELP      : Help(command); break;
+          case Command::LIST      : 
+          case Command::DEBUG     : 
+          case Command::CLEAR     : ListAction(command, dispatchToken->Idx); break;
+          case Command::LOADCRD   : err = LoadCrd(command); break; 
+          case Command::CRDACTION : err = CrdAction(command); break;
+          case Command::CRDOUT    : err = CrdOut(command); break;
+          case Command::SELECT    : err = Select(command); break; 
+          case Command::SELECTDS  : SelectDS(command); break;
+          case Command::NOPROG    : 
             showProgress_ = false; 
             mprintf("\tProgress bar will not be shown.\n");
             break;
-          case NOEXITERR:
+          case Command::NOEXITERR:
             exitOnError_ = false;
             mprintf("\tcpptraj will attempt to ignore errors if possible.\n");
             break;
-          case ACTIVEREF : refFrames.SetActiveRef( command.getNextInteger(0) ); break;
-          case READDATA  : err = ReadData( command ); break;
-          case READINPUT :
+          case Command::ACTIVEREF : refFrames_.SetActiveRef( command.getNextInteger(0) ); break;
+          case Command::READDATA  : err = ReadData( command ); break;
+          case Command::READINPUT :
             switch (ProcessInput( command.GetStringNext() )) {
               case C_ERR  : if ( exitOnError_ ) return C_ERR; break;
               case C_QUIT : return C_QUIT; break;
               default     : break;
             } 
             break;
-          case WRITE       :
-          case CREATE      : err = Create_DataFile( command, dispatchToken->Idx ); break;
-          case PRECISION   : err = Precision( command ); break;
-          case DATAFILE    : err = DFL.ProcessDataFileArgs( command ); break;
-          case SYSTEM      : system( command.ArgLine() ); break;
-          case RUN         : Run(); break;
-          case RUN_ANALYSIS:
+          case Command::WRITE       :
+          case Command::CREATE      : err = Create_DataFile( command, dispatchToken->Idx ); break;
+          case Command::PRECISION   : err = Precision( command ); break;
+          case Command::DATAFILE    : err = DFL_.ProcessDataFileArgs( command ); break;
+          case Command::SYSTEM      : system( command.ArgLine() ); break;
+          case Command::RUN         : Run(); break;
+          case Command::RUN_ANALYSIS:
             // If only 1 arg (the command) run all analyses in list
-            if (command.Nargs() == 1)  
-              analysisList.DoAnalyses();
-            else
+            if (command.Nargs() == 1) { 
+              analysisList_.DoAnalyses();
+              mprintf("Analysis complete. Use 'writedata' to write datafiles to disk.\n");
+            } else
               err = CrdAnalyze(command);
-            mprintf("Analysis complete. Use 'writedata' to write datafiles to disk.\n");
             break;
-          case WRITEDATA   : if (worldrank == 0) DFL.Write(); break;
-          case QUIT        : return C_QUIT; break;
+          case Command::WRITEDATA   : if (worldrank == 0) DFL_.Write(); break;
+          case Command::QUIT        : return C_QUIT; break;
         }
         break;
       case DispatchObject::DEPRECATED: 
@@ -1075,18 +875,34 @@ int Cpptraj::Run() {
   // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
   // this means 1 or more actions has requested that a default COORDS DataSet
   // be created.
-  DataSet* default_crd = DSL.FindSetOfType("_DEFAULTCRD_", DataSet::COORDS);
+  DataSet* default_crd = DSL_.FindSetOfType("_DEFAULTCRD_", DataSet::COORDS);
   if (default_crd != 0) {
     mprintf("Warning: One or more analyses requested creation of default COORDS DataSet.\n");
-    if (Dispatch("createcrd _DEFAULTCRD_") == C_ERR) return 1;
+    // If the DataSet has already been written to do not create again.
+    if (default_crd->Size() > 0)
+      mprintf("Warning: Default COORDS DataSet has already been written to.\n");
+    else { 
+      if (Dispatch("createcrd _DEFAULTCRD_") == C_ERR) return 1;
+    }
   }
-  switch ( trajinList.Mode() ) {
-    case TrajinList::NORMAL   : err = RunNormal(); break;
+  switch ( trajinList_.Mode() ) {
+    case TrajinList::NORMAL   : 
+      err = RunNormal();
+      // Analysis has been run at this point. Clean up Analyses
+      analysisList_.Clear();
+      break;
     case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
-    default: 
-      mprinterr("No trajectories loaded. Exiting.\n");
-      err = 1; 
+    default:
+      // No trajectories loaded; If analyses are defined, try to run them.
+      if (!analysisList_.Empty())
+        analysisList_.DoAnalyses(); 
+      else {
+        mprinterr("No trajectories loaded. Exiting.\n");
+        err = 1;
+      }
   }
+  // Clean up Actions.
+  actionList_.Clear();
   return err;
 }
 
@@ -1097,7 +913,7 @@ int Cpptraj::RunEnsemble() {
   mprintf("\nINPUT ENSEMBLE:\n");
   // Ensure all ensembles are of the same size
   int ensembleSize = -1;
-  for (TrajinList::const_iterator traj = trajinList.begin(); traj != trajinList.end(); ++traj) 
+  for (TrajinList::const_iterator traj = trajinList_.begin(); traj != trajinList_.end(); ++traj) 
   {
     Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
     if (ensembleSize == -1)
@@ -1110,50 +926,58 @@ int Cpptraj::RunEnsemble() {
     // Perform ensemble setup - this also resizes FrameEnsemble
     if ( mtraj->EnsembleSetup( FrameEnsemble ) ) return 1;
   }
-  mprintf("  Ensemble size is %i\n", ensembleSize);
+  mprintf("  Ensemble size is %i\n", ensembleSize); 
+  // At this point all ensembles should match (i.e. same map etc.)
+  ((Trajin_Multi*)(trajinList_.front()))->EnsembleInfo();
 
   // Calculate frame division among trajectories
-  trajinList.List();
-  int maxFrames = trajinList.MaxFrames();
+  trajinList_.List();
+  int maxFrames = trajinList_.MaxFrames();
   // Parameter file information
-  parmFileList.List();
+  parmFileList_.List();
   // Print reference information 
   mprintf("\nREFERENCE COORDS:\n");
-  refFrames.List();
+  refFrames_.List();
 
   // Allocate an ActionList, TrajoutList, and DataSetList for each
-  // member of the ensemble.
+  // member of the ensemble. Use separate DataFileList.
   std::vector<ActionList> ActionEnsemble( ensembleSize );
   std::vector<TrajoutList> TrajoutEnsemble( ensembleSize );
   std::vector<DataSetList> DataSetEnsemble( ensembleSize );
+  DataFileList DataFileEnsemble;
 
   // Set up output trajectories for each member of the ensemble
   for (ArgsArray::iterator targ = trajoutArgs_.begin(); targ != trajoutArgs_.end(); ++targ)
   {
     for (int member = 0; member < ensembleSize; ++member) 
-      TrajoutEnsemble[member].AddEnsembleTrajout( *targ, parmFileList, member );
+      TrajoutEnsemble[member].AddEnsembleTrajout( *targ, parmFileList_, member );
   }
-  mprintf("\n");
-  for (int member = 0; member < ensembleSize; ++member) {
-    mprintf("OUTPUT TRAJECTORIES Member %i:\n", member);
-    TrajoutEnsemble[member].List();
+  mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
+  TrajoutEnsemble[0].List();
+  if (debug_ > 0) {
+    for (int member = 1; member < ensembleSize; ++member) {
+      mprintf("OUTPUT TRAJECTORIES Member %i:\n", member);
+      TrajoutEnsemble[member].List();
+    }
   }
 
   // TODO: One loop over member?
   for (int member = 0; member < ensembleSize; ++member) {
-    mprintf("***** ENSEMBLE MEMBER %i: ", member);
     // Set max frames in the data set list and allocate
     DataSetEnsemble[member].SetMax( maxFrames );
     DataSetEnsemble[member].AllocateSets();
     // Initialize actions 
+    if (!actionArgs_.empty())
+      mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
     for (ArgsArray::iterator aarg = actionArgs_.begin(); aarg != actionArgs_.end(); ++aarg)
     {
-      DispatchObject::TokenPtr dispatchToken = SearchToken( *aarg );
+      DispatchObject::TokenPtr dispatchToken = Command::SearchToken( *aarg );
       if ( dispatchToken != 0 ) {
         // Create copy of arg list so that args remain unmarked for next member
         ArgList command = *aarg;
-        if (ActionEnsemble[member].AddAction( dispatchToken->Alloc, command, &parmFileList,
-                                          &refFrames, &(DataSetEnsemble[member]), &DFL ))
+        if (ActionEnsemble[member].AddAction( dispatchToken->Alloc, command, &parmFileList_,
+                                              &refFrames_, &(DataSetEnsemble[member]), 
+                                              &DataFileEnsemble ))
           return 1;
       }
     }
@@ -1165,13 +989,13 @@ int Cpptraj::RunEnsemble() {
   int actionSet = 0;
   bool hasVelocity = false;
   // Loop over every trajectory in trajFileList
-  rprintf("BEGIN ENSEMBLE PROCESSING:\n");
-  for ( TrajinList::const_iterator traj = trajinList.begin();
-                                   traj != trajinList.end(); ++traj)
+  rprintf("\nBEGIN ENSEMBLE PROCESSING:\n");
+  for ( TrajinList::const_iterator traj = trajinList_.begin();
+                                   traj != trajinList_.end(); ++traj)
   {
     // Open up the trajectory file. If an error occurs, bail 
     if ( (*traj)->BeginTraj(showProgress_) ) {
-      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->FullTrajStr());
+      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->TrajFilename().full());
       break;
     }
     // Set current parm from current traj.
@@ -1188,7 +1012,7 @@ int Cpptraj::RunEnsemble() {
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set active reference for this parm
-      CurrentParm->SetReferenceCoords( refFrames.ActiveReference() );
+      CurrentParm->SetReferenceCoords( refFrames_.ActiveReference() );
       // Set up actions for this parm
       bool setupOK = true;
       for (int member = 0; member < ensembleSize; ++member) {
@@ -1239,23 +1063,29 @@ int Cpptraj::RunEnsemble() {
     TrajoutEnsemble[member].Close();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
+  mprintf("\nENSEMBLE ACTION OUTPUT:\n");
   for (int member = 0; member < ensembleSize; ++member)
-    actionList.Print( );
+    actionList_.Print( );
 
   // Sync DataSets and print DataSet information
   // TODO - Also have datafilelist call a sync??
+  int total_data_sets = DataSetEnsemble[0].size();
+  mprintf("\nENSEMBLE DATASETS: Each member has %i sets total.\n", total_data_sets);
   for (int member = 0; member < ensembleSize; ++member) {
     DataSetEnsemble[member].Sync();
     DataSetEnsemble[member].sort();
-    mprintf("\nENSEMBLE MEMBER %i DATASETS:\n",member);
-    DataSetEnsemble[member].List();
+    if (total_data_sets != DataSetEnsemble[member].size())
+      mprintf("Warning: Ensemble member %i # data sets (%i) does not match member 0 (%i)\n",
+              member, DataSetEnsemble[member].size(), total_data_sets);
+    if (debug_ > 0)
+      DataSetEnsemble[member].List();
   }
 
   // Print Datafile information
-  DFL.List();
+  DataFileEnsemble.List();
   // Only Master does DataFile output
   if (worldrank==0)
-    DFL.Write();
+    DataFileEnsemble.Write();
 
   return 0;
 }
@@ -1272,27 +1102,27 @@ int Cpptraj::RunNormal() {
 
   // ========== S E T U P   P H A S E ========== 
   // Parameter file information
-  parmFileList.List();
+  parmFileList_.List();
   // Input coordinate file information
-  trajinList.List();
+  trajinList_.List();
   // Print reference information 
   mprintf("\nREFERENCE COORDS:\n");
-  refFrames.List();
+  refFrames_.List();
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");
-  trajoutList.List();
+  trajoutList_.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
-  DSL.AllocateSets(); 
+  DSL_.AllocateSets(); 
   
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
-  rprintf("BEGIN TRAJECTORY PROCESSING:\n");
-  for ( TrajinList::const_iterator traj = trajinList.begin();
-                                   traj != trajinList.end(); ++traj)
+  rprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
+  for ( TrajinList::const_iterator traj = trajinList_.begin();
+                                   traj != trajinList_.end(); ++traj)
   {
     // Open up the trajectory file. If an error occurs, bail 
     if ( (*traj)->BeginTraj(showProgress_) ) {
-      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->FullTrajStr());
+      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->TrajFilename().full());
       break;
     }
     // Set current parm from current traj.
@@ -1308,9 +1138,9 @@ int Cpptraj::RunNormal() {
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set active reference for this parm
-      CurrentParm->SetReferenceCoords( refFrames.ActiveReference() );
+      CurrentParm->SetReferenceCoords( refFrames_.ActiveReference() );
       // Set up actions for this parm
-      if (actionList.SetupActions( &CurrentParm )) {
+      if (actionList_.SetupActions( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
                 CurrentParm->c_str());
         continue;
@@ -1324,10 +1154,10 @@ int Cpptraj::RunNormal() {
       // Since Frame can be modified by actions, save original and use CurrentFrame
       Frame* CurrentFrame = &TrajFrame;
       // Perform Actions on Frame
-      bool suppress_output = actionList.DoActions(&CurrentFrame, actionSet);
+      bool suppress_output = actionList_.DoActions(&CurrentFrame, actionSet);
       // Do Output
       if (!suppress_output)
-        trajoutList.Write(actionSet, CurrentParm, CurrentFrame);
+        trajoutList_.Write(actionSet, CurrentParm, CurrentFrame);
       // Increment frame counter
       ++actionSet; 
     }
@@ -1341,30 +1171,31 @@ int Cpptraj::RunNormal() {
   rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
 
   // Close output traj
-  trajoutList.Close();
+  trajoutList_.Close();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
-  actionList.Print( );
+  mprintf("\nACTION OUTPUT:\n");
+  actionList_.Print( );
 
   // Sync DataSets and print DataSet information
-  DSL.Sync();
+  DSL_.Sync();
 
   // ========== A N A L Y S I S  P H A S E ==========
   mprintf("\nDATASETS:\n");
-  if (!analysisList.Empty()) {
-    DSL.List();
-    analysisList.DoAnalyses();
+  if (!analysisList_.Empty()) {
+    DSL_.List();
+    analysisList_.DoAnalyses();
     // DEBUG: DataSets, post-Analysis
     mprintf("\nDATASETS AFTER ANALYSIS:\n");
   }
-  DSL.List();
+  DSL_.List();
 
   // ========== D A T A  W R I T E  P H A S E ==========
   // Print Datafile information
-  DFL.List();
+  DFL_.List();
   // Only Master does DataFile output
   if (worldrank==0)
-    DFL.Write();
+    DFL_.Write();
  
   return 0;
 }

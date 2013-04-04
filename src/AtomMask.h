@@ -33,30 +33,33 @@ class AtomMask {
     AtomMask(std::string const&);
     AtomMask(const AtomMask &);
     AtomMask& operator=(const AtomMask&);
-
     /// AtomMask default iterator
     typedef std::vector<int>::const_iterator const_iterator;
-    /// Iterator to the beginning of Selected
+    /// \return const iterator to the beginning of Selected
     const_iterator begin()              const { return Selected_.begin();    }
-    /// Iterator at end of Selected
+    /// \return const iterator at end of Selected
     const_iterator end()                const { return Selected_.end();      }
-    /// Return number of selected atoms
+    /// \return last selected atom
+    int back()                          const { return Selected_.back();     }
+    /// \return number of selected atoms
     int Nselected()                     const { return nselected_;           }
-    /// Return selected atom at idx
+    /// \return selected atom at idx
     const int& operator[](int idx)      const { return Selected_[idx];       }
-    /// Return original mask expression as char*
+    /// \return original mask expression as char*
     const char *MaskString()            const { return maskString_.c_str();  }
-    /// Return original mask expression as std::string
+    /// \return original mask expression as std::string
     std::string const& MaskExpression() const { return maskString_;          }
-    /// True if mask expression has been set.
+    /// \return true if mask expression has been set.
     bool MaskStringSet()                const { return !maskString_.empty(); }
-    /// Return true if no atoms selected. 
+    /// \return true if no atoms selected. 
     bool None()                         const { return (nselected_==0);      }
+    /// \return true is this is a character mask.
+    bool IsCharMask()                   const { return (!CharMask_.empty()); }
     /// Reset atom mask
     void ResetMask();
     /// Switch char used to denote selected atoms (T->F, F->T)
     void InvertMask();
-    /// Return the number of atoms mask has in common with another mask
+    /// \return the number of atoms mask has in common with another mask
     int NumAtomsInCommon(AtomMask &);
     /// Add given atom to Selected array 
     void AddAtom(int);
@@ -76,15 +79,19 @@ class AtomMask {
     void SetupIntMask(const char*,int,int);
     /// Set up CharMask based on given char mask 
     void SetupCharMask(const char*, int, int);
-    /// True if given atom is T in CharMask
+    /// \return true if given atom is T in CharMask
     bool AtomInCharMask(int) const;
-    /// True if any atoms in given range are T in CharMask.
+    /// \return true if any atoms within given range are T in CharMask.
     bool AtomsInCharMask(int,int) const;
-    /// Convert mask type (char->int, int->char)
-    int ConvertMaskType();
+    /// Convert from integer mask to char mask.
+    int ConvertToCharMask();
+    /// Convert from char mask to integer mask.
+    int ConvertToIntMask();
     /// Print mask string and number of selected atoms.
     void MaskInfo() const;
-
+    /// Print brief mask info
+    void BriefMaskInfo() const;
+    // Used by Topology to set up masks.
     typedef std::vector<MaskToken>::const_iterator token_iterator;
     inline token_iterator begintoken() const { return maskTokens_.begin(); }
     inline token_iterator endtoken()   const { return maskTokens_.end();   }
@@ -99,7 +106,7 @@ class AtomMask {
     int nselected_;              ///< Number of selected atoms in mask
     std::vector<int> Selected_;  ///< Int array of selected atom numbers, 1 for each selected atom
     std::vector<MaskToken> maskTokens_;
-
+    /// Convert mask expression to MaskTokens
     int Tokenize();
 };
 #endif

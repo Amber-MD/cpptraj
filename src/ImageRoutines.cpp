@@ -10,7 +10,7 @@
   * \param origin If true and ComMask is null use origin, otherwise use box center.
   * \return Coordinates of center.
   */
-Vec3 SetupImageTruncoct( Frame& frameIn, AtomMask* ComMask, bool useMass, bool origin)
+Vec3 SetupImageTruncoct( Frame const& frameIn, AtomMask* ComMask, bool useMass, bool origin)
 {
   if (ComMask!=0) {
     // Use center of atoms in mask
@@ -122,7 +122,7 @@ Vec3 ImageNonortho(Vec3 const& Coord, bool truncoct,
 }
 
 // SetupImageOrtho()
-/** \param frameIn Frame to image.
+/** \param boxIn Box coordinates of Frame to image.
   * \param bp Output: Box + boundary.
   * \param bm Output: Box - boundary.
   * \param origin If true, image w.r.t. coordinate origin, otherwise box center.

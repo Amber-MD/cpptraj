@@ -1,7 +1,7 @@
 #ifndef INC_TRAJ_AMBERCOORD_H
 #define INC_TRAJ_AMBERCOORD_H
 #include "TrajectoryIO.h"
-#include "BufferedFile.h"
+#include "BufferedFrame.h"
 // Class: Traj_AmberCoord
 /// Reads and writes formatted (ASCII text) amber trajectories. 
 class Traj_AmberCoord: public TrajectoryIO {
@@ -15,7 +15,7 @@ class Traj_AmberCoord: public TrajectoryIO {
     int numBoxCoords_;    ///< Number of box coords, 3 (ortho or truncoct) or 6 (triclinic)
     const char* outfmt_;  ///< Format string for writing coordinates
     bool highPrecision_;  ///< If true output format will be 8.6 instead of 8.3
-    BufferedFile file_;   ///< Buffer reads/writes
+    BufferedFrame file_;  ///< Buffer reads/writes
     double boxAngle_[3];  ///< Hold default box angles in case traj has only box lengths
 
     static const size_t REMD_HEADER_SIZE;

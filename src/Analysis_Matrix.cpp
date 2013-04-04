@@ -13,8 +13,10 @@ Analysis_Matrix::Analysis_Matrix() :
 {}
 
 void Analysis_Matrix::Help() {
-  mprintf("diagmatrix <name> [out <filename>] [thermo outthermo <filename>]\n");
-  mprintf("           [vecs <#>] [name <modesname>] [reduce]\n");
+  mprintf("\t<name> [out <filename>] [thermo outthermo <filename>]\n");
+  mprintf("\t[vecs <#>] [name <modesname>] [reduce]\n");
+  mprintf("\tDiagonalize given symmetric matrix to obtain eigenvectors\n");
+  mprintf("\tand eigenvalues.\n");
 }
 
 // Analysis_Matrix::Setup()

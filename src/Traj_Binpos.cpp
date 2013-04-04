@@ -76,7 +76,7 @@ int Traj_Binpos::setupTrajin(std::string const& fname, Topology* trajParm)
       SetSeekable( true );
     } else {
       mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
-              file_.BaseFileStr());
+              file_.Filename().base());
       mprintf("Warning: indicates a corrupted trajectory. Will attempt to read %i frames.\n",
               Frames);
       SetSeekable( false );

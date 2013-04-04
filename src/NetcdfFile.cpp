@@ -3,6 +3,7 @@
 #endif
 #include "NetcdfFile.h"
 #include "CpptrajStdio.h"
+#include "Version.h"
 
 // NetcdfFile::GetNetcdfConventions()
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
@@ -575,8 +576,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
     mprinterr("Error: Writing program.\n");
     return 1;
   }
-  // TODO: Put actual version
-  if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"programVersion",3,"1.0")) ) {
+  if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"programVersion",
+                                 CPPTRAJ_VERSION_STRLEN, CPPTRAJ_VERSION_STRING)) ) 
+  {
     mprinterr("Error: Writing program version.\n");
     return 1;
   }

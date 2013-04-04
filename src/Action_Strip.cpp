@@ -13,7 +13,12 @@ Action_Strip::Action_Strip() :
 } 
 
 void Action_Strip::Help() {
-  mprintf("strip <mask1> [outprefix <name>] [nobox]\n");
+  mprintf("\t<mask1> [outprefix <name>] [nobox]\n");
+  mprintf("\tStrip atoms in <mask1> from the system.\n");
+}
+
+void Action_Unstrip::Help() {
+  mprintf("\tReturn to original topology/coordinates.\n");
 }
 
 // DESTRUCTOR

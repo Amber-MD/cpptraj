@@ -10,8 +10,9 @@ Analysis_AutoCorr::Analysis_AutoCorr() :
 {}
 
 void Analysis_AutoCorr::Help() {
-  mprintf("autocorr [name <dsetname>] <dsetarg0> [<dsetarg1> ...] [out <filename>]\n");
-  mprintf("         [lagmax <lag>] [nocovar] [direct]\n");
+  mprintf("\t[name <dsetname>] <dsetarg0> [<dsetarg1> ...] [out <filename>]\n");
+  mprintf("\t[lagmax <lag>] [nocovar] [direct]\n");
+  mprintf("\tCalculate autocorrelation for selected data set(s)\n");
 }
 
 Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
@@ -58,7 +59,7 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
   if ( !setname.empty() )
     mprintf("\tSet name: %s\n", setname.c_str() );
   if ( outfile != 0 )
-    mprintf("\tOutfile name: %s\n", outfile->Filename());
+    mprintf("\tOutfile name: %s\n", outfile->DataFilename().base());
   if (usefft_)
     mprintf("\tUsing FFT to calculate %s.\n", calctype);
   else

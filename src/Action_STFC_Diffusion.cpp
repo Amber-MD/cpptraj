@@ -17,10 +17,11 @@ Action_STFC_Diffusion::Action_STFC_Diffusion() :
 {}
 
 void Action_STFC_Diffusion::Help() {
-  mprintf("diffusion mask <mask> [out <file>] [time <time per frame>]\n");
-  mprintf("          ([mask2 <mask>] [lower <distance>] [upper <distance>]\n");
-  mprintf("          [nwout <file>]) [avout <file>] [distances] [com]\n");
-  mprintf("          [x|y|z|xy|xz|yz|xyz]\n");
+  mprintf("\tmask <mask> [out <file>] [time <time per frame>]\n");
+  mprintf("\t[mask2 <mask>] [lower <distance>] [upper <distance>]\n");
+  mprintf("\t[nwout <file>]) [avout <file>] [distances] [com]\n");
+  mprintf("\t[x|y|z|xy|xz|yz|xyz]\n");
+  mprintf("\tCalculate diffusion of atoms in <mask>\n");
 }
 
 // Action_STFC_Diffusion::init()
@@ -110,11 +111,11 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* P
     mprintf("\t\tOnly the average");
   else
     mprintf("\t\tThe average and individual");
-  mprintf(" results will be written to %s\n", output_.FullFileStr());
+  mprintf(" results will be written to %s\n", output_.Filename().full());
 
   if (calcType_ == DIST)
     mprintf("\t\tThe number of atoms in the shell will be written to %s\n",
-            outputnw_.FullFileStr());
+            outputnw_.Filename().full());
 
   if (!outputAverDist_.empty())
     mprintf("\t\t<dr^2> will be written to %s\n", outputAverDist_.c_str());

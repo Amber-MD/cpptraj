@@ -10,7 +10,7 @@ Action_Distance::Action_Distance() :
 { } 
 
 void Action_Distance::Help() {
-  mprintf("distance [<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]\n");
+  mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]\n");
 }
 
 // Action_Distance::init()

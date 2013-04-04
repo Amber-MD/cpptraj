@@ -51,7 +51,7 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
     // If still AMBERTRAJ this means no type specified. Check to see if
     // the filename extension is recognized.
     if (writeFormat == AMBERTRAJ) {
-      writeFormat = GetTypeFromExtension( TrajName().Ext() );
+      writeFormat = GetTypeFromExtension( TrajFilename().Ext() );
       if (writeFormat == UNKNOWN_TRAJ) writeFormat = AMBERTRAJ;
     }
   }
@@ -87,7 +87,7 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
     if (!onlyframes.empty()) {
       if ( FrameRange_.SetRange(onlyframes) )
         mprintf("Warning: trajout %s: onlyframes: %s is not a valid range.\n",
-                FullTrajStr(), onlyframes.c_str());
+                TrajFilename().full(), onlyframes.c_str());
       else
         FrameRange_.PrintRange("\tSaving frames",0);
       // User frame args start from 1. Start from 0 internally.
@@ -95,7 +95,6 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
       hasRange_ = true;
     } else {
       if (frameCount_.InitFrameCounter( *argIn )) return 1;
-      frameCount_.FrameCounterInfo();
       hasRange_ = false;
     }
 
@@ -107,7 +106,7 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
     // to parm file. Options related to parm file are handled on the first
     // write in WriteFrame.
     if (trajio_->processWriteArgs(*argIn)) {
-      mprinterr("Error: trajout %s: Could not process arguments.\n",FullTrajStr());
+      mprinterr("Error: trajout %s: Could not process arguments.\n",TrajFilename().full());
       return 1;
     }
   }
@@ -143,7 +142,7 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
   // have the same pindex as the original parm.
   if (!trajIsOpen_) {
     if (debug_>0) rprintf("\tSetting up %s for WRITE, %i atoms, originally %i atoms.\n",
-                          BaseTrajStr(),tparmIn->Natom(),TrajParm()->Natom());
+                          TrajFilename().base(),tparmIn->Natom(),TrajParm()->Natom());
     SetTrajParm( tparmIn );
     // Use parm to set up box info for the traj unless nobox was specified.
     if (nobox_) 
@@ -155,7 +154,7 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
     if (hasRange_)
       NframesToWrite = FrameRange_.Size();
     // Set up write and open for the current parm file 
-    if (trajio_->setupTrajout(TrajName().Full(), TrajParm(), NframesToWrite, append_)) 
+    if (trajio_->setupTrajout(TrajFilename().Full(), TrajParm(), NframesToWrite, append_)) 
       return 1;
     trajIsOpen_ = true;
     // If a framerange is defined set it to the begining of the range
@@ -187,14 +186,17 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
 
 // Trajout::PrintInfo()
 void Trajout::PrintInfo(int showExtended) {
-  mprintf("  [%s] ",BaseTrajStr());
+  mprintf("  [%s] ",TrajFilename().base());
   trajio_->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
   if (trajio_->HasBox()) mprintf(" (with box info)");
   if (hasRange_)
     FrameRange_.PrintRange(": Writing frames",OUTPUTFRAMESHIFT);
-  else
+  else {
     mprintf(": Writing %i frames", TrajParm()->Nframes());
+    frameCount_.FrameCounterBrief();
+  }
+  
   if (append_) mprintf(", appended");
   mprintf("\n");
 }

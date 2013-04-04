@@ -10,13 +10,14 @@ Analysis_CrankShaft::Analysis_CrankShaft() :
   stop_(-1),
   offset_(1),
   type_(ANGLE),
-  angletype_(NOTYPE),
   scalar1_(0),
   scalar2_(0)
 {}
 
 void Analysis_CrankShaft::Help() {
-  mprintf("crank {angle | distance} <scalar-name1> <scalar-name2> info <string>\n");
+  mprintf("\t{angle | distance} <scalar-name1> <scalar-name2> info <string>\n");
+  mprintf("\t[out <filename>] [results <resultsfile>]\n");
+  mprintf("\t[start <start>] [stop <stop>] [offset <offset>]\n");
 }
 
 const char* Analysis_CrankShaft::CSstring[] = { "angle", "distance" };
@@ -35,6 +36,7 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
     type_ = DISTANCE;
 
   filename_ = analyzeArgs.GetStringKey("out");
+  resultsname_ = analyzeArgs.GetStringKey("results");
 
   start_ = analyzeArgs.getKeyInt("start", 1);
   --start_;
@@ -285,8 +287,10 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
     }
   }
 
-  // NOTE: In original ptraj code output was closed here. Keep using
-  // output file for easy redirection of results.
+  if (resultsname_.empty() || resultsname_ != filename_) {
+    outfile.CloseFile();
+    outfile.OpenWrite( resultsname_ );
+  }
   
   // PRINT RESULTS
   const char* initial_label = 0;
@@ -307,7 +311,9 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
   outfile.Printf("  FINAL VALUE:   %s (%6.1f, %6.1f)\n\n", final_label, final_v1, final_v2);
 
   // Supplementary information based on type of crankshaft
-  if (angletype_ == EPSILON_ZETA) {
+  if (scalar1_->ScalarType() == DataSet::EPSILON && 
+      scalar2_->ScalarType() == DataSet::ZETA) 
+  {
     // epsilon/zeta in nucleic acids!
     i1 = 0;
     i2 = 0;
@@ -326,7 +332,9 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
     outfile.Printf("      BII = (g-, t) or eps-zeta ~ +90 [currently = %.1f%%]\n\n",
                    i2*100.0 / totalFrames);
 
-  } else if (angletype_ == ALPHA_GAMMA) {
+  } else if (scalar1_->ScalarType() == DataSet::ALPHA && 
+             scalar2_->ScalarType() == DataSet::GAMMA) 
+  {
     // alpha/gamma in nucleic acids!
     outfile.Printf("    ALPHA/GAMMA crankshaft\n");
     outfile.Printf("      canonical is (g-, g+) [currently at %.1f%%]\n",

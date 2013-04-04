@@ -12,14 +12,15 @@ class Range {
   public:
     Range();
     Range(std::string const&);
+    Range(std::string const&,int);
     Range(const Range&);
     Range& operator=(const Range&);
 
     typedef std::list<int>::const_iterator const_iterator;
-    const_iterator begin() { return rangeList_.begin();      }
-    const_iterator end()   { return rangeList_.end();        }
-    bool Empty()           { return rangeList_.empty();      }
-    int Size()             { return (int) rangeList_.size(); }
+    const_iterator begin() const { return rangeList_.begin();      }
+    const_iterator end()   const { return rangeList_.end();        }
+    bool Empty()           const { return rangeList_.empty();      }
+    int Size()             const { return (int) rangeList_.size(); }
 
     int SetRange(std::string const&);
     int SetRange(int,int);

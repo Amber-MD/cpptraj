@@ -78,8 +78,8 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   std::string reftag = argIn.getNextTag();
 
   // Check and warn if filename/reftag currently in use
-  if (FindName( traj.TrajName().Full() )!=-1) {
-    mprintf("Warning: Reference with name %s already exists!\n",traj.FullTrajStr());
+  if (FindName( traj.TrajFilename().Full() )!=-1) {
+    mprintf("Warning: Reference with name %s already exists!\n",traj.TrajFilename().full());
     //return 1;
   }
   if (FindName(reftag)!=-1) {
@@ -95,12 +95,12 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   // Check number of frames to be read
   int trajFrames = traj.TotalReadFrames();
   if (trajFrames < 1) {
-    mprinterr("Error: No frames could be read for reference %s\n", traj.BaseTrajStr());
+    mprinterr("Error: No frames could be read for reference %s\n", traj.TrajFilename().base());
     return 1;
   }
   // Start trajectory read
   if ( traj.BeginTraj(false) ) {
-    mprinterr("Error: Could not open reference %s\n.", traj.BaseTrajStr());
+    mprinterr("Error: Could not open reference %s\n.", traj.TrajFilename().base());
     return 1;
   }
   traj.PrintInfo(1);
@@ -157,19 +157,21 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   }
 
   frames_.push_back( ReferenceFrame( CurrentFrame, CurrentParm, 
-                                     traj.TrajName().Base(), traj.Start() ) );
-  AddNameWithTag( traj.TrajName().Full(), traj.TrajName().Base(), reftag );
+                                     traj.TrajFilename().Base(), traj.Start() ) );
+  AddNameWithTag( traj.TrajFilename(), reftag );
+  // If the top currently has no reference coords, set them now
+  if (CurrentParm->NoRefCoords()) CurrentParm->SetReferenceCoords( CurrentFrame ); 
   return 0;
 }
 
-// FrameList::GetFrame()
+// FrameList::GetFrameFromArgs()
 /** \return ReferenceFrame based on args in argIn.
   * The keywords in order of precedence are:
   *   - 'ref <name>'  : Get reference frame by name/tag.
   *   - 'reference'   : First reference frame in list.
   *   - 'refindex <#>': Reference frame at position.
   */
-ReferenceFrame FrameList::GetFrame(ArgList& argIn) {
+ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
   int refindex;
   // By name/tag
   std::string refname = argIn.GetStringKey("ref");
@@ -202,8 +204,8 @@ ReferenceFrame FrameList::GetFrame(ArgList& argIn) {
   return ReferenceFrame();
 }
 
-// FrameList::GetFrame()
-ReferenceFrame FrameList::GetFrame(std::string const& refName) {
+// FrameList::GetFrameByName()
+ReferenceFrame FrameList::GetFrameByName(std::string const& refName) const{
   int refIndex = FindName( refName );
   if (refIndex < 0)
     return ReferenceFrame();
@@ -231,7 +233,7 @@ int FrameList::ReplaceFrame(ReferenceFrame const& refIn, Frame *newFrame, Topolo
 // FrameList::List()
 /** Print a list of trajectory names that frames have been taken from.
   */
-void FrameList::List() {
+void FrameList::List() const {
   if (frames_.empty()) {
     mprintf("  No frames defined.\n");
     return;
@@ -243,7 +245,7 @@ void FrameList::List() {
         mprintf("    %i: %s frame %i\n", fn, Tag(fn).c_str(),
                 frames_[fn].Num()+1);
       else
-        mprintf("    %i: %s frame %i\n",fn,Name(fn).c_str(),
+        mprintf("    %i: %s frame %i\n",fn,Name(fn).base(),
                 frames_[fn].Num()+1);
     }
   } else {

@@ -42,7 +42,7 @@ Action_Molsurf::~Action_Molsurf() {
 }
 
 void Action_Molsurf::Help() {
-  mprintf("molsurf [<name>] [<mask1>] [out filename] [probe <probe_rad>] [offset <rad_offset>]\n");
+  mprintf("\t[<name>] [<mask1>] [out filename] [probe <probe_rad>] [offset <rad_offset>]\n");
   mprintf("\tCalculate Connolly surface area of atoms in <mask1>\n");
 }
 

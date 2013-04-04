@@ -13,16 +13,16 @@ class DataFileList : public FileList {
     ~DataFileList();
     void Clear();
     void SetDebug(int);
-    DataFile* GetDataFile(std::string const&);
+    DataFile* GetDataFile(std::string const&) const;
     DataFile* AddDataFile(std::string const&, ArgList&);
     DataFile* AddDataFile(std::string const&);
     DataFile* AddSetToFile(std::string const&,  DataSet*);
-    void List();
+    void List() const;
     void Write();
     int ProcessDataFileArgs(ArgList&);
   private:
-    typedef std::vector<DataFile*>::iterator df_iterator;
-    std::vector<DataFile*> fileList_;
+    typedef std::vector<DataFile*> DFarray;
+    DFarray fileList_;
     int debug_;
 };
 #endif

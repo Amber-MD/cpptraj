@@ -9,9 +9,10 @@ Action_Outtraj::Action_Outtraj() :
 { } 
 
 void Action_Outtraj::Help() {
-  mprintf("outtraj <filename> [ trajout args ]\n");
-  mprintf("        [maxmin <dataset> min <min> max <max>] ...\n");
-  mprintf("        maxmindata <file>\n");
+  mprintf("\t<filename> [ trajout args ]\n");
+  mprintf("\t[maxmin <dataset> min <min> max <max>] ...\n");
+  mprintf("\tmaxmindata <file>\n");
+  mprintf("\tLike 'trajout', but coordinate output occurs during actions rather than at the end.\n");
 }
 
 // Action_Outtraj::init()
@@ -112,7 +113,7 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, Frame* currentFrame, Fram
 /** Close trajectory. Indicate how many frames were actually written.
   */
 void Action_Outtraj::Print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.BaseTrajStr(),
+  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.TrajFilename().base(),
           outtraj_.NumFramesProcessed());
   outtraj_.EndTraj();
 }

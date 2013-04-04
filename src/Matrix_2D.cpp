@@ -101,4 +101,3 @@ void Matrix_2D::GetDimensions( std::vector<int>& vIn ) {
   vIn[0] = ncols_;
   vIn[1] = nrows_;
 }
-

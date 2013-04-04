@@ -22,11 +22,13 @@ class Atom {
       TANTALUM,   THALLIUM,   VANADIUM, TUNGSTEN,  XENON,      ZIRCONIUM,
       EXTRAPT 
     };
-    static const char* AtomicElementName[];
+    static const char* AtomicElementName[]; // Needed by Topology::GetBondLength
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}
+    /// Take atom name. Attempt to determine element from name.
     Atom(NameType const&);
+    /// Take atom name, type, and charge. Attempt to determine element from name.
     Atom( NameType const&, NameType const&, double );
     Atom( NameType const&, double, int, double, int, NameType const&, double, double,int );
     Atom(const Atom &);
@@ -46,20 +48,21 @@ class Atom {
     bool NoMol();
     void SetCharge(double qin) { charge_ = qin; }
     // Inline functions returning internal vars
-    inline const char *c_str() const         { return *aname_; }
-    inline int ResNum() const                { return resnum_; }
+    inline const char *c_str()         const { return *aname_; }
+    inline int ResNum()                const { return resnum_; }
     inline AtomicElementType Element() const { return element_; }
-    inline int AtomicNumber() const          { return AtomicElementNum[element_]; }
-    inline const NameType& Name() const             { return aname_; }
-    inline const NameType& Type() const             { return atype_; }
-    inline int TypeIndex() const             { return atype_index_; }
-    inline int Mol() const                   { return mol_; }
-    inline int Nbonds() const                { return (int)bonds_.size(); }
-    inline int Nexcluded() const             { return (int)excluded_.size(); }
-    inline double Mass() const               { return mass_; }
-    inline double Charge() const             { return charge_; }
-    inline double Radius() const             { return gb_radius_; }
-    inline double Screen() const             { return gb_screen_; }
+    inline int AtomicNumber()          const { return AtomicElementNum[element_];  }
+    inline const char* ElementName()   const { return AtomicElementName[element_]; }
+    inline const NameType& Name()      const { return aname_; }
+    inline const NameType& Type()      const { return atype_; }
+    inline int TypeIndex()             const { return atype_index_; }
+    inline int Mol()                   const { return mol_; }
+    inline int Nbonds()                const { return (int)bonds_.size(); }
+    inline int Nexcluded()             const { return (int)excluded_.size(); }
+    inline double Mass()               const { return mass_; }
+    inline double Charge()             const { return charge_; }
+    inline double Radius()             const { return gb_radius_; }
+    inline double Screen()             const { return gb_screen_; }
     /// Add atom # to this atoms list of bonded atoms.
     void AddBond(int);
     void ClearBonds();

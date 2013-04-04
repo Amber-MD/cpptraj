@@ -14,6 +14,13 @@ Range::Range( std::string const& argIn ) {
     SetRange( argIn );
 }
 
+Range::Range( std::string const& argIn, int offsetIn) {
+  if (!argIn.empty()) {
+    SetRange( argIn );
+    ShiftBy( offsetIn );
+  }
+}
+
 // COPY CONSTRUCTOR
 Range::Range(const Range &rhs) :
   rangeArg_(rhs.rangeArg_),
@@ -119,7 +126,6 @@ int Range::SetRange(int start, int end) {
     mprintf("Error: Range::SetRange: end (%i) <= start (%i)\n",end,start);
     return 1;
   }
-
   for (int range=start; range < end; range++)
     rangeList_.push_back(range);
 

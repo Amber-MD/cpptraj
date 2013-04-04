@@ -78,10 +78,13 @@ int TrajinList::AddTrajin(ArgList& argIn, TopologyList& topListIn) {
   return 0;
 }
 
-void TrajinList::List() {
+void TrajinList::List() const {
   mprintf("\nINPUT TRAJECTORIES:\n");
-  for (ListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj) 
+  unsigned int trajnum = 0;
+  for (ListType::const_iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj) {
+    mprintf(" %u: ", trajnum++);
     (*traj)->PrintInfo( 1 );
+  }
   if (maxframes_ < 0)
     mprintf("  Total number of frames is unknown.\n");
   else

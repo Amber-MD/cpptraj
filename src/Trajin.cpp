@@ -26,12 +26,12 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
     return 1;
   }
   if (total_frames_>-1)
-    mprintf("\t[%s] contains %i frames.\n", BaseTrajStr(), total_frames_);
+    mprintf("\t[%s] contains %i frames.\n", TrajFilename().base(), total_frames_);
   else
-    mprintf("\t[%s] contains an unknown number of frames.\n",BaseTrajStr());
+    mprintf("\t[%s] contains an unknown number of frames.\n",TrajFilename().base());
   // Set stop based on calcd number of frames.
   if (total_frames_==0) {
-    mprinterr("Error: trajectory %s contains no frames.\n",BaseTrajStr());
+    mprinterr("Error: trajectory %s contains no frames.\n",TrajFilename().base());
     return 1;
   }
   if (total_frames_>0)
@@ -55,7 +55,7 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
         offsetArg = 1;
       } else {
         mprinterr("Error: [%s] lastframe specified but # frames could not be determined.\n",
-                  BaseTrajStr());
+                  TrajFilename().base());
         return 1;
       }
     } else {
@@ -68,18 +68,18 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
     }
     if (startArg!=1) {
       if (startArg<1) {
-        mprintf("    Warning: %s start argument %i < 1, setting to 1.\n",BaseTrajStr(),startArg);
+        mprintf("    Warning: %s start argument %i < 1, setting to 1.\n",TrajFilename().base(),startArg);
         start_ = 0; // cpptraj = ptraj - 1
       } else if (total_frames_>=0 && startArg>total_frames_) {
         // If startArg==stopArg and is greater than # frames, assume we want
         // the last frame (useful when reading for reference structure).
         if (startArg==stopArg) {
           mprintf("    Warning: %s start %i > #Frames (%i), setting to last frame.\n",
-                  BaseTrajStr(),startArg,total_frames_);
+                  TrajFilename().base(),startArg,total_frames_);
           start_ = total_frames_ - 1;
         } else {
           mprinterr("Error: [%s] start %i > #Frames (%i), no frames will be processed.\n",
-                  BaseTrajStr(),startArg,total_frames_);
+                  TrajFilename().base(),startArg,total_frames_);
           //start=startArg - 1;
           return 1;
         }
@@ -89,12 +89,12 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
     if (stopArg!=-1) {
       if ((stopArg - 1)<start_) { // cpptraj = ptraj - 1
         mprinterr("Error: [%s] stop %i < start, no frames will be processed.\n",
-                BaseTrajStr(),stopArg);
+                TrajFilename().base(),stopArg);
         //stop = start;
         return 1;
       } else if (total_frames_>=0 && stopArg>total_frames_) {
         mprintf("    Warning: %s stop %i >= #Frames (%i), setting to max.\n",
-                BaseTrajStr(),stopArg,total_frames_);
+                TrajFilename().base(),stopArg,total_frames_);
         stop_ = total_frames_;
       } else
         stop_ = stopArg;
@@ -102,18 +102,18 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
     if (offsetArg!=1) {
       if (offsetArg<1) {
         mprintf("    Warning: %s offset %i < 1, setting to 1.\n",
-                BaseTrajStr(),offsetArg);
+                TrajFilename().base(),offsetArg);
         offset_ = 1;
       } else if (stop_!=-1 && offsetArg > stop_ - start_) {
         mprintf("    Warning: %s offset %i is so large that only 1 set will be processed.\n",
-                BaseTrajStr(),offsetArg);
+                TrajFilename().base(),offsetArg);
         offset_ = offsetArg;
       } else
         offset_ = offsetArg;
     }
     if (debug_>0)
       mprintf("DEBUG [%s] SetArgs: Start %i Stop %i  Offset %i\n",
-              BaseTrajStr(),start_,stop_,offset_);
+              TrajFilename().base(),start_,stop_,offset_);
   }
   return 0;
 }
@@ -140,7 +140,7 @@ int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox)
   // If box coords present but no box info in associated parm, print
   // a warning. Set parm box from trajectory
   if (!parmBox.HasBox()) {
-    mprintf("Warning: Box info present in trajectory %s but not in\n", BaseTrajStr());
+    mprintf("Warning: Box info present in trajectory %s but not in\n", TrajFilename().base());
     mprintf("Warning: associated parm %s\n", parmName);
     mprintf("Warning: Setting parm box information from trajectory.\n");
     parmBox = trajBox;
@@ -204,7 +204,7 @@ int Trajin::setupFrameInfo() {
   stop_ = traj_end_frame;
 
   if ( total_read_frames_ == 0) {
-    mprinterr("Error: No frames will be read from %s based on start, stop,\n",BaseTrajStr());
+    mprinterr("Error: No frames will be read from %s based on start, stop,\n",TrajFilename().base());
     mprinterr("         and offset values (%i, %i, %i)\n",start_+1,stop_+1,offset_);
   }
 
@@ -222,7 +222,7 @@ void Trajin::SingleFrame() {
   // should have already been called in SetupRead (and thus any errors 
   // handled there) dont check for an error here. It should return 1.
   if ( setupFrameInfo() != 1 ) {
-    mprintf("  Warning: Single frame requested for %s but not calcd!\n",BaseTrajStr());
+    mprintf("  Warning: Single frame requested for %s but not calcd!\n",TrajFilename().base());
     mprintf("           start/stop/offset (%i, %i, %i)\n",start_+1,stop_+1,offset_);
   }
 }
@@ -247,9 +247,9 @@ void Trajin::PrepareForRead(bool useIn, bool seekable) {
 // Trajin::PrintInfoLine()
 void Trajin::PrintInfoLine() {
   if (stop_ != -1)
-    rprintf( "----- [%s] (%i-%i, %i) -----\n",BaseTrajStr(),start_+1,stop_+1,offset_);
+    rprintf( "----- [%s] (%i-%i, %i) -----\n",TrajFilename().base(),start_+1,stop_+1,offset_);
   else
-    rprintf( "----- [%s] (%i-EOF, %i) -----\n",BaseTrajStr(),start_+1,offset_);
+    rprintf( "----- [%s] (%i-EOF, %i) -----\n",TrajFilename().base(),start_+1,offset_);
 }
 
 // Trajin::PrintFrameInfo()

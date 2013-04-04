@@ -7,16 +7,21 @@
 Action_AutoImage::Action_AutoImage() :
   origin_(false),
   ortho_(false),
-  usecom_(false),
+  usecom_(true),
   truncoct_(false),
   useMass_(false),
   triclinic_(OFF)
 {}
 
 void Action_AutoImage::Help() {
-  mprintf("autoimage [<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n");
-  mprintf("          [origin] [familiar | triclinic]\n");
+  mprintf("\t[<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n");
+  mprintf("\t[origin] [firstatom] [familiar | triclinic]\n");
   mprintf("\tAutomatically center and image periodic trajectory.\n");
+  mprintf("\tThe 'anchor' molecule (default the first molecule) will be centered;\n");
+  mprintf("\tall 'fixed' molecules will be imaged only if imaging brings them closer\n");
+  mprintf("\tto the 'anchor' molecule; default for 'fixed' molecules is all\n");
+  mprintf("\tnon-solvent non-ion molecules. All other molecules (referred to as\n");
+  mprintf("\t'mobile') will be imaged freely.\n");
 }
 
 // Action_AutoImage::init()
@@ -25,7 +30,7 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, F
 {
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
-  usecom_ = actionArgs.hasKey("center");
+  usecom_ = !actionArgs.hasKey("firstatom");
   if (actionArgs.hasKey("familiar")) triclinic_ = FAMILIAR;
   if (actionArgs.hasKey("triclinic")) triclinic_ = FORCE;
   anchor_ = actionArgs.GetStringKey("anchor");

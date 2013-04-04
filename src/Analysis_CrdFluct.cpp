@@ -6,19 +6,22 @@
 
 Analysis_CrdFluct::Analysis_CrdFluct() : 
   coords_(0),
-  bfactor_(true),
+  bfactor_(false),
   windowSize_(-1)
 {}
 
 void Analysis_CrdFluct::Help() {
-  mprintf("crdfluct [crdset <crd set>] [<mask>] [out <filename>] [window <size>]\n");
-  mprintf("<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("\t[crdset <crd set>] [<mask>] [out <filename>] [window <size>] [bfactor]\n");
+  mprintf("\tCalculate atomic positional fluctuations for atoms in <mask>\n");
+  mprintf("\tover windows of specified size.\n");
+  mprintf("\t<crd set> can be created with the 'createcrd' command.\n");
 }
 
 // Analysis_CrdFluct::Setup()
 Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
+  bfactor_ = analyzeArgs.hasKey("bfactor");
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
   coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
@@ -35,7 +38,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   mprintf("    CRDFLUCT: Atomic fluctuations will be calcd for set %s, mask [%s]\n", 
           coords_->Legend().c_str(), mask_.MaskString());
   if (windowSize_ != -1) mprintf("\tWindow size = %i\n", windowSize_);
-  if (outfile != 0) mprintf("\tOutput to %s\n", outfile->Filename());
+  if (outfile != 0) mprintf("\tOutput to %s\n", outfile->DataFilename().base());
 
   // Set up data sets
   setname = analyzeArgs.GetStringNext();
@@ -48,7 +51,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   } else {
     if (setname.empty()) setname = datasetlist->GenerateDefaultName("fluct");
     // Determine how many windows will be needed
-    int nwindows = datasetlist->MaxFrames() / windowSize_;
+    int nwindows = coords_->Size() / windowSize_;
     for (int win = 0; win < nwindows; ++win) {
       int frame = (win + 1) * windowSize_;
       DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, frame );
@@ -57,8 +60,8 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
       outSets_.push_back( ds );
       if (outfile != 0) outfile->AddSet( ds );
     }
-    if ( (datasetlist->MaxFrames() % windowSize_) != 0 ) {
-      DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, datasetlist->MaxFrames() );
+    if ( (coords_->Size() % windowSize_) != 0 ) {
+      DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, coords_->Size() );
       ds->SetLegend("Final");
       outSets_.push_back( ds );
       if (outfile != 0) outfile->AddSet( ds );

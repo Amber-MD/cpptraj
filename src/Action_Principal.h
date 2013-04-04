@@ -14,6 +14,7 @@ class Action_Principal : public Action {
     bool useMass_;
     int debug_;
     AtomMask mask_;
+    CpptrajFile outfile_;
 
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);

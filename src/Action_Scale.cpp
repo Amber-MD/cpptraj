@@ -9,7 +9,8 @@ Action_Scale::Action_Scale() :
 {}
 
 void Action_Scale::Help() {
-  mprintf("scale x <sx> y <sy> z <sz> <mask>\n");
+  mprintf("\tx <sx> y <sy> z <sz> <mask>\n");
+  mprintf("\tScale the position of atoms in <mask>\n");
 }
 
 // Action_Scale::init()

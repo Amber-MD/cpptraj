@@ -2,6 +2,16 @@
 #include "DS_Math.h"
 #include "ComplexArray.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // DEGRAD, RADDEG
+
+/// \return true if DataSet is cyclic.
+static bool IsTorsionArray( DataSet const& ds ) {
+  if (ds.ScalarMode() == DataSet::M_TORSION ||
+      ds.ScalarMode() == DataSet::M_PUCKER  ||
+      ds.ScalarMode() == DataSet::M_ANGLE     )
+    return true;
+  return false;
+}
 
 /// Return true if set is an atomic type (i.e. int, double, float).
 static bool GoodCalcType(DataSet const& ds) {
@@ -27,20 +37,44 @@ double DS_Math::Avg(DataSet& ds, double* stdev) {
   double avg = 0;
   // Check if this set is a good type
   if ( GoodCalcType(ds) ) {
-    double sum = 0;
-    for ( int i = 0; i < numvalues; ++i )
-      sum += ds.Dval( i );
-    avg = sum / (double)numvalues;
-    if (stdev==0) return avg;
-    // Stdev
-    sum = 0;
-    for ( int i = 0; i < numvalues; ++i ) {
-      double diff = avg - ds.Dval( i );
-      diff *= diff;
-      sum += diff;
+    if (IsTorsionArray(ds)) {
+      // Cyclic torsion average
+      double sumy = 0.0;
+      double sumx = 0.0;
+      for ( int i = 0; i < numvalues; ++i ) {
+        double theta = ds.Dval( i ) * DEGRAD;
+        sumy += sin( theta );
+        sumx += cos( theta );
+      }
+      avg = atan2(sumy, sumx) * RADDEG;
+      // Torsion Stdev
+      sumy = 0;
+      for ( int i = 0; i < numvalues; ++i) {
+        double diff = fabs(avg - ds.Dval( i ));
+        if (diff > 180.0)
+          diff = 360.0 - diff;
+        diff *= diff;
+        sumy += diff;
+      }
+      sumy /= (double)numvalues;
+      *stdev = sqrt(sumy);
+    } else {
+      // Non-cyclic, normal average
+      double sum = 0;
+      for ( int i = 0; i < numvalues; ++i )
+        sum += ds.Dval( i );
+      avg = sum / (double)numvalues;
+      if (stdev==0) return avg;
+      // Stdev
+      sum = 0;
+      for ( int i = 0; i < numvalues; ++i ) {
+        double diff = avg - ds.Dval( i );
+        diff *= diff;
+        sum += diff;
+      }
+      sum /= (double)numvalues;
+      *stdev = sqrt(sum);
     }
-    sum /= (double)numvalues;
-    *stdev = sqrt(sum);
   }
   return avg;
 }

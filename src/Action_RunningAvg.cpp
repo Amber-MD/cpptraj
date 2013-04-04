@@ -12,7 +12,8 @@ Action_RunningAvg::Action_RunningAvg() :
 {} 
 
 void Action_RunningAvg::Help() {
-  mprintf("runningaverage [window <value>]\n");
+  mprintf("\t[window <value>]\n");
+  mprintf("\tCalculate the running average of coordinates over windows of specified size.\n");
 }
 
 // Action_RunningAvg::init()

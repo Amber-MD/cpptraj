@@ -12,17 +12,29 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
   if (recname.compare(0,6,"HEADER")==0) return true;
   if (recname.compare(0,6,"SOURCE")==0) return true;
   if (recname.compare(0,6,"AUTHOR")==0) return true;
+  if (recname.compare(0,6,"OBSLTE")==0) return true;
+  if (recname.compare(0,6,"KEYWDS")==0) return true;
+  if (recname.compare(0,6,"REVDAT")==0) return true;
   if (recname.compare(0,6,"TITLE ")==0) return true;
+  if (recname.compare(0,6,"EXPDTA")==0) return true;
+  if (recname.compare(0,6,"SPRSDE")==0) return true;
+  if (recname.compare(0,6,"SPLT  ")==0) return true;
   if (recname.compare(0,6,"NUMMDL")==0) return true;
   if (recname.compare(0,6,"JRNL  ")==0) return true;
+  if (recname.compare(0,6,"CAVEAT")==0) return true;
+  if (recname.compare(0,6,"MDLTYP")==0) return true;
   if (recname.compare(0,6,"REMARK")==0) return true;
   if (recname.compare(0,6,"COMPND")==0) return true;
   // Primary Structure Section
+  if (recname.compare(0,5,"DBREF" )==0) return true; // DBREF[|1|2]
+  if (recname.compare(0,6,"SEQADV")==0) return true;
+  if (recname.compare(0,6,"MODRES")==0) return true;
   if (recname.compare(0,6,"SEQRES")==0) return true;
   // Coordinate Section
   if (recname.compare(0,6,"MODEL ")==0) return true;
   if (recname.compare(0,6,"ATOM  ")==0) return true;
   if (recname.compare(0,6,"HETATM")==0) return true;
+  if (recname.compare(0,6,"TER   ")==0) return true;
   // Crystallographic and Coordinate Transformation Section 
   if (recname.compare(0,6,"CRYST1")==0) return true;
   if (recname.compare(0,5,"SCALE" )==0) return true; // SCALEn
@@ -120,34 +132,34 @@ void PDBfile::WriteATOM(int res, double x, double y, double z,
                         const char* resnameIn, double Occ)
 {
   WriteRec(ATOM, anum_++, "XX", resnameIn, ' ',
-           res, x, y, z, (float)Occ, 0, "", false);
+           res, x, y, z, (float)Occ, 0, "", 0, false);
 }
 
 void PDBfile::WriteATOM(const char* anameIn, int res, double x, double y, double z, 
                         const char* resnameIn, double Occ)
 {
   WriteRec(ATOM, anum_++, anameIn, resnameIn, ' ',
-           res, x, y, z, (float)Occ, 0, "", false);
+           res, x, y, z, (float)Occ, 0, "", 0, false);
 }
 
 void PDBfile::WriteTER(int anum, NameType const& resnameIn, char chain, int resnum)
 {
-  WriteRec(TER, anum, "", resnameIn, chain, resnum, 0, 0, 0, 0, 0, "", false);
+  WriteRec(TER, anum, "", resnameIn, chain, resnum, 0, 0, 0, 0, 0, "", 0, false);
 }
 
 void PDBfile::WriteRec(PDB_RECTYPE Record, int anum, NameType const& name,
                        NameType const& resnameIn, char chain, int resnum,
                        double X, double Y, double Z)
 {
-  WriteRec(Record, anum, name, resnameIn, chain, resnum, X, Y, Z, 0, 0, "", false);
+  WriteRec(Record, anum, name, resnameIn, chain, resnum, X, Y, Z, 0, 0, "", 0, false);
 }
 
 /// Write out an ATOM or HETATM record
 /** \return the number of characters written */
 void PDBfile::WriteRec(PDB_RECTYPE Record, int anum, NameType const& name,
                        NameType const& resnameIn, char chain, int resnum,
-                       double X, double Y, double Z,
-                       float Occ, float B, const char* End, bool highPrecision) 
+                       double X, double Y, double Z, float Occ, float B, 
+                       const char* Elt, int charge, bool highPrecision) 
 {
   char resName[5], atomName[5];
 
@@ -186,9 +198,9 @@ void PDBfile::WriteRec(PDB_RECTYPE Record, int anum, NameType const& name,
   if (Record == TER) 
     Printf("\n");
   else if (highPrecision)
-    Printf("    %8.3f%8.3f%8.3f%8.4f%8.4f%10s\n", X, Y, Z, Occ, B, End);
+    Printf("    %8.3f%8.3f%8.3f%8.4f%8.4f      %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
   else
-    Printf("    %8.3f%8.3f%8.3f%6.2f%6.2f%14s\n", X, Y, Z, Occ, B, End);
+    Printf("    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
 }
 
 /* Additional Values:

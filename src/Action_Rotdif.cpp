@@ -10,7 +10,6 @@
 #include "Integrate.h"
 #include "ProgressBar.h"
 #include "ComplexArray.h"
-#include "BufferedFile.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -100,15 +99,16 @@ Action_Rotdif::Action_Rotdif() :
 { } 
 // TODO: MAKE ANALYSIS
 void Action_Rotdif::Help() {
-  mprintf("rotdif [rseed <rseed>] [nvecs <nvecs>]\n");
-  mprintf("       ref <refname> | refindex <refindex> | reference\n");
-  mprintf("       [<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>\n");
-  mprintf("       [itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]\n");
-  mprintf("       [delqfrac <delqfrac>] [rvecout <randvecOut>]\n");
-  mprintf("       [rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]\n");
-  mprintf("       [corrout <corrOut>] [usefft]\n");
-  mprintf("       [rvecin <randvecIn>]\n");
-  mprintf("       [gridsearch] [nmesh <NmeshPoints>]\n");
+  mprintf("\t[rseed <rseed>] [nvecs <nvecs>]\n");
+  mprintf("\tref <refname> | refindex <refindex> | reference\n");
+  mprintf("\t[<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>\n");
+  mprintf("\t[itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]\n");
+  mprintf("\t[delqfrac <delqfrac>] [rvecout <randvecOut>]\n");
+  mprintf("\t[rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]\n");
+  mprintf("\t[corrout <corrOut>] [usefft]\n");
+  mprintf("\t[rvecin <randvecIn>]\n");
+  mprintf("\t[gridsearch] [nmesh <NmeshPoints>]\n");
+  mprintf("\tCalculate rotational diffusion tensor.\n");
 }
 
 // DESTRUCTOR
@@ -164,7 +164,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   corrOut_ = actionArgs.GetStringKey("corrout");
   do_gridsearch_ = actionArgs.hasKey("gridsearch");
   // Reference Keywords
-  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   // Get Masks
   AtomMask RefMask( actionArgs.GetMaskNext() );

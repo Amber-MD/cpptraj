@@ -3,6 +3,7 @@
 #include <sstream>   // istringstream, ostringstream
 #include <locale>    // isspace
 #include <stdexcept> // BadConversion
+#include <vector>
 #ifndef __PGI
 #  include <glob.h>  // For tilde expansion
 #endif
@@ -239,4 +240,3 @@ std::string doubleToString(double d) {
   oss << d;
   return oss.str();
 }
-

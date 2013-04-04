@@ -26,8 +26,8 @@ Action_Closest::Action_Closest() :
 {} 
 
 void Action_Closest::Help() {
-  mprintf("closest <# to keep> <mask> [noimage] [first/oxygen]\n");
-  mprintf("        [closestout <filename> [name <setname>]] [outprefix <parmprefix>]\n");
+  mprintf("\t<# to keep> <mask> [noimage] [first/oxygen]\n");
+  mprintf("\t[closestout <filename> [name <setname>]] [outprefix <parmprefix>]\n");
   mprintf("\tKeep only the closest <# to keep> molecules to atoms in <mask>\n");
 }
 
@@ -98,7 +98,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   if (firstAtom_)
     mprintf("\tOnly first atom of solvent molecule used for distance calc.\n");
   if (outFile_!=0)
-    mprintf("\tClosest molecules will be saved to %s\n",outFile_->Filename());
+    mprintf("\tClosest molecules will be saved to %s\n",outFile_->DataFilename().base());
   if (!prefix_.empty())
     mprintf("\tStripped topology file will be written with prefix %s\n",
             prefix_.c_str());
@@ -310,7 +310,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, Frame* currentFrame, Fram
   // DEBUG
 
   // Sort distances
-  sort( SolventMols_.begin(), SolventMols_.end(), moldist_cmp() );
+  std::sort( SolventMols_.begin(), SolventMols_.end(), moldist_cmp() );
 
   // Add first closestWaters solvent atoms to stripMask
   std::vector<MolDist>::iterator solventend = SolventMols_.begin() + closestWaters_;

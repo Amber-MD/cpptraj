@@ -220,14 +220,14 @@ int Traj_CharmmDcd::setupTrajin(std::string const& fname, Topology* trajParm)
     file_size = file_size - headerBytes_ - frame1Bytes_;
     if ( (file_size % frameNBytes_) != 0 ) {
       mprintf("Warning: %s: Number of frames in DCD file could not be accurately determined.\n",
-              file_.BaseFileStr());
+              file_.Filename().base());
       mprintf("Warning:\t\tFile may be corrupted.\n");
     } else
       SetSeekable(true);
     int nframes = (int)(file_size / frameNBytes_) + 1; // +1 for first frame
     if (nframes != dcdframes_) {
       mprintf("Warning: %s: Reported number of frames in DCD file is %i,\n",
-              file_.BaseFileStr(), dcdframes_);
+              file_.Filename().base(), dcdframes_);
       mprintf("Warning:\tactual number of frames is %i. Only reading %i frames.\n",
               nframes, nframes);
       dcdframes_ = nframes;

@@ -71,7 +71,7 @@ int Traj_AmberCoord::openTrajin() {
 // NOTE: There are currently NO checks for null for X, box, and T!
 int Traj_AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T) {
 #ifdef TRAJDEBUG
-  mprinterr("Reading frame %10i from %s\n",set,BaseFileStr());
+  mprinterr("Reading frame %10i from %s\n",set,Filename().base());
 #endif
   // If trajectory is not broken, seek to given frame.
   if (IsSeekable())
@@ -145,7 +145,7 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
   }
   // Read the first frame of coordinates
   if ( file_.ReadFrame() == -1 ) {
-    mprinterr("Error in read of Coords frame 1 of trajectory %s.\n", file_.BaseFileStr());
+    mprinterr("Error in read of Coords frame 1 of trajectory %s.\n", file_.Filename().base());
     return TRAJIN_ERR;
   }
   // Check for box coordinates. If present, update the frame size and
@@ -162,7 +162,7 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
       numBoxCoords_ = sscanf(nextLine.c_str(), "%8lf%8lf%8lf%8lf%8lf%8lf%8lf%8lf",
                              box, box+1, box+2, box+3, box+4, box+5, box+6, box+7);
       if (numBoxCoords_ == -1) {
-        mprinterr("Error: Could not read Box coord line of trajectory %s.",file_.BaseFileStr());
+        mprinterr("Error: Could not read Box coord line of trajectory %s.",file_.Filename().base());
         return TRAJIN_ERR;
       } else if (numBoxCoords_ == 8) {
         // Full line of coords was read, no box coords.
@@ -204,7 +204,7 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
     // EOF.
     if (uncompressed_size <= 0) {
       mprintf("Warning: %s: Uncompressed size of trajectory could not be determined.\n",
-              file_.BaseFileStr());
+              file_.Filename().base());
       if (file_.Compression() == CpptrajFile::BZIP2)
         mprintf("         (This is normal for bzipped files)\n");
       mprintf("         Number of frames could not be calculated.\n");
@@ -241,7 +241,7 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
         seekable = true;
       } else {
         mprintf("Warning: %s: Number of frames in compressed traj could not be determined.\n",
-                file_.BaseFileStr());
+                file_.Filename().base());
         mprintf("         Frames will be read until EOF.\n");
         Frames = TRAJIN_UNK;
         seekable=false;
@@ -254,7 +254,7 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
       seekable = true;
     } else {
       mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
-              file_.BaseFileStr());
+              file_.Filename().base());
       mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
               Frames);
       seekable=false;
@@ -307,7 +307,7 @@ int Traj_AmberCoord::setupTrajout(std::string const& fname, Topology* trajParm,
       // Check title length
       if (title.size() > 80) {
         mprintf("Warning: Amber traj title for %s too long: truncating.\n[%s]\n",
-                file_.BaseFileStr(), title.c_str());
+                file_.Filename().base(), title.c_str());
         title.resize(80);
       }
     }
@@ -333,7 +333,7 @@ int Traj_AmberCoord::setupTrajout(std::string const& fname, Topology* trajParm,
   file_.ResizeBuffer( numBoxCoords_ );
  
   if (debug_>0) 
-    rprintf("(%s): Each frame has %lu bytes.\n", file_.BaseFileStr(), file_.FrameSize());
+    rprintf("(%s): Each frame has %lu bytes.\n", file_.Filename().base(), file_.FrameSize());
   
   return 0;
 }

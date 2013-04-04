@@ -15,7 +15,8 @@ Action_Diffusion::Action_Diffusion() :
 }
 
 void Action_Diffusion::Help() {
-  mprintf("diffusion mask [average] [time <time per frame>]\n");
+  mprintf("\t<mask> <time per frame> [average] [<outfile prefix>]\n");
+  mprintf("\tCompute a mean square displacement plot for the atoms in the mask.\n");
 }
 
 Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
@@ -53,7 +54,7 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, F
     mprintf("\tOnly the average results will ");
   mprintf("be printed to %s_?.xmgr\n", outputNameRoot.c_str());
   mprintf("\tThe time between frames in psec is %5.3f.\n", time_);
-  mprintf("\tTo calculated diffusion constants, calculate the slope of the lines(s)\n");
+  mprintf("\tTo calculate diffusion constants, calculate the slope of the lines(s)\n");
   mprintf("\tand multiply by 10.0/6.0; this will give units of 1x10**-5 cm**2/s\n");
   mprintf("\tAtom Mask is [%s]\n", mask_.MaskString());
 

@@ -20,8 +20,9 @@ Action_AtomicCorr::Action_AtomicCorr() :
 {}
 
 void Action_AtomicCorr::Help() {
-  mprintf("atomiccorr [<mask>] out <filename>\n");
-  mprintf("\tCalculate average correlations between the motion of atoms in <mask>\n");
+  mprintf("\t[<mask>] out <filename> [cut <cutoff>] [min <min spacing>]\n");
+  mprintf("\t[byatom | byres]\n");
+  mprintf("\tCalculate average correlations between the motion of atoms in <mask>.\n");
 }
 
 const char* Action_AtomicCorr::ModeString[] = {"atom", "residue"};

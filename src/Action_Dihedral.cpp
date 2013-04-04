@@ -13,9 +13,9 @@ Action_Dihedral::Action_Dihedral() :
 { } 
 
 void Action_Dihedral::Help() {
-  mprintf("dihedral [<name>] <mask1> <mask2> <mask3> <mask4> [out filename] [mass]\n");
-  mprintf("         [type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p|h1p|phi|psi|pchi}]\n");
-  mprintf("         [range360]\n");
+  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> [out filename] [mass]\n");
+  mprintf("\t[type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p|h1p|phi|psi|pchi}]\n");
+  mprintf("\t[range360]\n");
 }
 
 // Action_Dihedral::init()
@@ -80,10 +80,12 @@ Action::RetType Action_Dihedral::Setup(Topology* currentParm, Topology** parmAdd
   if (currentParm->SetupIntegerMask(M2_)) return Action::ERR;
   if (currentParm->SetupIntegerMask(M3_)) return Action::ERR;
   if (currentParm->SetupIntegerMask(M4_)) return Action::ERR;
-  M1_.MaskInfo();
-  M2_.MaskInfo();
-  M3_.MaskInfo();
-  M4_.MaskInfo();
+  mprintf("\t");
+  M1_.BriefMaskInfo();
+  M2_.BriefMaskInfo();
+  M3_.BriefMaskInfo();
+  M4_.BriefMaskInfo();
+  mprintf("\n");
   if ( M1_.None() || M2_.None() || M3_.None() || M4_.None() ) {
     mprintf("Warning: dihedral: One or more masks have no atoms.\n");
     return Action::ERR;

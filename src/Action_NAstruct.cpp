@@ -24,10 +24,12 @@ Action_NAstruct::Action_NAstruct() :
 {}
 
 void Action_NAstruct::Help() {
-  mprintf("nastruct [resrange <range>] [naout <nafilename>]\n");
-  mprintf("         [noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n");
-  mprintf("         [hbcut <hbcut>] [origincut <origincut>]\n");
-  mprintf("         [ reference | refindex <#> | ref <REF> ]\n");
+  mprintf("\t[resrange <range>] [naout <nafilename>]\n");
+  mprintf("\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n");
+  mprintf("\t[hbcut <hbcut>] [origincut <origincut>]\n");
+  mprintf("\t[ reference | refindex <#> | ref <REF> ]\n");
+  mprintf("\tPerform nucleic acid structure analysis. Base pairing is determined\n");
+  mprintf("\tfrom specified reference or first frame.\n");
 }
 
 // DESTRUCTOR
@@ -306,9 +308,9 @@ int Action_NAstruct::determineBasePairing() {
     {
       int bp_1 = (*BP).Res1();
       int bp_2 = (*BP).Res2();
-      mprintf("        BP %i: Res %i:%s to %i:%s", nBP++,
-              bp_1+1, Bases_[bp_1].ResName(), 
-              bp_2+1, Bases_[bp_2].ResName());
+      mprintf("        BP %i: Res %i:%c to %i:%c", nBP++,
+              bp_1+1, Bases_[bp_1].BaseChar(), 
+              bp_2+1, Bases_[bp_2].BaseChar());
       if ( (*BP).IsAnti() )
         mprintf(" AntiParallel.\n");
       else
@@ -316,6 +318,8 @@ int Action_NAstruct::determineBasePairing() {
     }
   }
   // For each BP, set up a dataset for each structural parameter
+  if (dataname_.empty())
+    dataname_ = masterDSL_->GenerateDefaultName("NA");
   int dsidx = 1; // Base pair # and DataSet idx
   for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
                                       BP != BasePairAxes_.end(); ++BP)
@@ -324,9 +328,9 @@ int Action_NAstruct::determineBasePairing() {
     int bp_1 = (*BP).Res1();
     int bp_2 = (*BP).Res2();
     std::string bpname = integerToString( bp_1+1 ) +
-                         Bases_[bp_1].ResName() +
+                         Bases_[bp_1].BaseChar() +
                          integerToString( bp_2+1 ) + 
-                         Bases_[bp_2].ResName();
+                         Bases_[bp_2].BaseChar();
     // Create sets
     SHEAR_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname) );
     STRETCH_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname));
@@ -341,39 +345,41 @@ int Action_NAstruct::determineBasePairing() {
   }
   // For each BP step, set up a dataset for each structural parameter. 
   // One less than total # BP.
-  dsidx = 1; // Base pair step # and DataSet idx
-  std::vector<NA_Axis>::iterator NBPstep = BasePairAxes_.end() - 1;
-  for (std::vector<NA_Axis>::iterator BP1 = BasePairAxes_.begin();
-                                      BP1 != NBPstep; ++BP1)
-  {
-    std::vector<NA_Axis>::iterator BP2 = BP1 + 1;
-    // Create legend
-    int bp_1 = (*BP1).Res1();
-    int bp_2 = (*BP1).Res2();
-    int bp_3 = (*BP2).Res1();
-    int bp_4 = (*BP2).Res2();
-    std::string sname = integerToString( bp_1+1 ) +
-                        Bases_[bp_1].ResName()[0] +
-                        integerToString( bp_2+1 ) +
-                        Bases_[bp_2].ResName()[0] + "-" +
-                        integerToString( bp_3+1 ) +
-                        Bases_[bp_3].ResName()[0] +
-                        integerToString( bp_4+1 ) +
-                        Bases_[bp_4].ResName()[0];
-    // Create Sets
-    SHIFT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname) );
-    SLIDE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname) );
-    RISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"rise",sname) );
-    TILT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tilt",sname) );
-    ROLL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"roll",sname) );
-    TWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"twist",sname) );
-    XDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"xdisp",sname) );
-    YDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"ydisp",sname) );
-    HRISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"hrise",sname) );
-    INCL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname) );
-    TIP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname) );
-    HTWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname) );
-    ++dsidx;
+  if (BasePairAxes_.size() > 1) {
+    dsidx = 1; // Base pair step # and DataSet idx
+    std::vector<NA_Axis>::iterator NBPstep = BasePairAxes_.end() - 1;
+    for (std::vector<NA_Axis>::iterator BP1 = BasePairAxes_.begin();
+                                        BP1 != NBPstep; ++BP1)
+    {
+      std::vector<NA_Axis>::iterator BP2 = BP1 + 1;
+      // Create legend
+      int bp_1 = (*BP1).Res1();
+      int bp_2 = (*BP1).Res2();
+      int bp_3 = (*BP2).Res1();
+      int bp_4 = (*BP2).Res2();
+      std::string sname = integerToString( bp_1+1 ) +
+                          Bases_[bp_1].BaseChar() +
+                          integerToString( bp_2+1 ) +
+                          Bases_[bp_2].BaseChar() + "-" +
+                          integerToString( bp_3+1 ) +
+                          Bases_[bp_3].BaseChar() +
+                          integerToString( bp_4+1 ) +
+                          Bases_[bp_4].BaseChar();
+      // Create Sets
+      SHIFT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname) );
+      SLIDE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname) );
+      RISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"rise",sname) );
+      TILT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tilt",sname) );
+      ROLL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"roll",sname) );
+      TWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"twist",sname) );
+      XDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"xdisp",sname) );
+      YDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"ydisp",sname) );
+      HRISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"hrise",sname) );
+      INCL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname) );
+      TIP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname) );
+      HTWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname) );
+      ++dsidx;
+    }
   }
   return 0;
 }
@@ -782,6 +788,7 @@ int Action_NAstruct::determineBasepairParameters(int frameNum) {
 # ifdef NASTRUCTDEBUG
   mprintf("\n=================== Determine BPstep Parameters ===================\n");
 # endif
+  if (BasePairAxes_.size() < 2) return 0;
   int bpi = 0;
   std::vector<NA_Axis>::iterator NBPstep = BasePairAxes_.end() - 1;
   for (std::vector<NA_Axis>::iterator BP1 = BasePairAxes_.begin();
@@ -850,12 +857,13 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   double origincut = actionArgs.getKeyDouble("origincut", -1);
   if (origincut > 0)
     originCut2_ = origincut * origincut;
-  std::string resrange_arg = actionArgs.GetStringKey("resrange");
-  if (!resrange_arg.empty())
-    if (resRange_.SetRange( resrange_arg )) return Action::ERR;
+  // Get residue range
+  resRange_.SetRange(actionArgs.GetStringKey("resrange"));
+  if (!resRange_.Empty())
+    resRange_.ShiftBy(-1); // User res args start from 1
   printheader_ = !actionArgs.hasKey("noheader");
   // Reference for setting up basepairs
-  ReferenceFrame REF = FL->GetFrame( actionArgs );
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) 
     useReference_ = true;
@@ -906,8 +914,6 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Get Masks
   // Dataset
   dataname_ = actionArgs.GetStringNext();
-  if (dataname_.empty())
-    dataname_ = DSL->GenerateDefaultName("NA");
   // DataSets are added to data file list in print()
 
   mprintf("    NAstruct: ");
@@ -927,7 +933,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 
   // Use reference to determine base pairing
   if (useReference_) {
-    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.FrameName());
+    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.FrameName().c_str());
     if (Setup(REF.Parm(), 0)) return Action::ERR;
     // Set up base axes
     if ( setupBaseAxes(*(REF.Coord())) ) return Action::ERR;
@@ -945,19 +951,15 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   * the masks that correspond to the reference frame atoms.
   */
 Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAddress) {
-  Range actualRange;
   // Clear Bases and BaseAxes
   ClearLists();
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
+  Range actualRange;
   if (resRange_.Empty()) 
     actualRange.SetRange(0, currentParm->FinalSoluteRes());
-  else {
-    // If user range specified, create new range shifted by -1 since internal
-    // resnums start from 0.
+  else 
     actualRange = resRange_;
-    actualRange.ShiftBy(-1);
-  }
   // Exit if no residues specified
   if (actualRange.Empty()) {
     mprinterr("Error: NAstruct::setup: No residues specified for %s\n",currentParm->c_str());

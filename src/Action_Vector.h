@@ -16,11 +16,12 @@ class Action_Vector : public Action {
     enum vectorMode {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
       DIPOLE,    BOX,         MASK,        IRED,
-      CORRPLANE, CORR,        CORRIRED
+      CORRPLANE, CENTER 
     };
     static const char* ModeString[];
 
     DataSet_Vector* Vec_;
+    DataSet* Magnitude_;
     double* vcorr_;
     vectorMode mode_;
     bool ptrajoutput_;
@@ -37,10 +38,9 @@ class Action_Vector : public Action {
     static double solve_cubic_eq(double,double,double,double);
     static Vec3 leastSquaresPlane(int,const double*);
 
-    void Mask(Frame*);
-    void Dipole(Frame*);
-    void Principal(Frame*);
-    void CorrPlane(Frame*);
-    void Box(Frame*);
+    void Mask(Frame const&);
+    void Dipole(Frame const&);
+    void Principal(Frame const&);
+    void CorrPlane(Frame const&);
 };
 #endif

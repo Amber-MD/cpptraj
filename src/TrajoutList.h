@@ -16,7 +16,7 @@ class TrajoutList : public FileList {
     int Write(int, Topology*, Frame*);
     /// Call end for all trajectories
     void Close();
-    void List();
+    void List() const;
   private:
     typedef std::vector<Trajout*> ListType;
     ListType trajout_;

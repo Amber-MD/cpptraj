@@ -25,22 +25,23 @@ Action_Hbond::Action_Hbond() :
   NumHbonds_(0),
   NumSolvent_(0),
   NumBridge_(0),
+  BridgeID_(0),
   masterDSL_(0)
 {}
 
 void Action_Hbond::Help() {
-  mprintf("hbond [out <filename>] <mask> [angle <cut>] [dist <cut>] [series]\n");
-  mprintf("      [donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n");
-  mprintf("      [avgout <filename>]\n");
-  mprintf("      [solventdonor <mask>] [solventacceptor <mask>]\n");
-  mprintf("      [solvout <filename>] [bridgeout <filename>]\n");
-  mprintf("\tSearch for Hbonding atoms in region specified by mask.\n");
+  mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>] [series]\n");
+  mprintf("\t[donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n");
+  mprintf("\t[avgout <filename>]\n");
+  mprintf("\t[solventdonor <mask>] [solventacceptor <mask>]\n");
+  mprintf("\t[solvout <filename>] [bridgeout <filename>]\n");
+  mprintf("\tSearch for hydrogen bonds using atoms in the region specified by mask.\n");
   mprintf("\tIf just <mask> specified donors and acceptors will be automatically searched for.\n");
   mprintf("\tIf donormask is specified but not acceptormask, acceptors will be\n");
   mprintf("\tautomatically searched for in <mask>.\n");
   mprintf("\tIf acceptormask is specified but not donormask, donors will be automatically\n");
   mprintf("\tsearched for in <mask>.\n");
-  mprintf("\tIf both donormask and acceptor mask are specified no searching will occur.\n");
+  mprintf("\tIf both donormask and acceptor mask are specified no automatic searching will occur.\n");
   mprintf("\tIf donorhmask is specified atoms in that mask will be paired with atoms in\n");
   mprintf("\tdonormask instead of automatically searching for hydrogen atoms.\n");
 }
@@ -120,6 +121,9 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
     NumBridge_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "Bridge");
     if (NumBridge_ == 0) return Action::ERR;
     if (DF != 0) DF->AddSet( NumBridge_ );
+    BridgeID_ = DSL->AddSetAspect(DataSet::STRING, hbsetname_, "ID");
+    if (BridgeID_ == 0) return Action::ERR;
+    if (DF != 0) DF->AddSet( BridgeID_ );
   } 
 
   mprintf( "  HBOND: ");
@@ -145,7 +149,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
             SolventAcceptorMask_.MaskString());
   mprintf("\tDistance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*RADDEG);
   if (DF != 0) 
-    mprintf("\tDumping # Hbond v time results to %s\n", DF->Filename());
+    mprintf("\tDumping # Hbond v time results to %s\n", DF->DataFilename().base());
   if (!avgout_.empty())
     mprintf("\tDumping Hbond avgs to %s\n",avgout_.c_str());
   if (calcSolvent_ && !solvout_.empty())
@@ -472,8 +476,8 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
         HB.angle = angle;
         if (series_) {
           std::string hblegend = CurrentParm_->TruncResAtomName(*accept) + "-" +
-                                 CurrentParm_->TruncResAtomName(D) + "@" +
-                                 (*CurrentParm_)[H].c_str();
+                                 CurrentParm_->TruncResAtomName(D) + "-" +
+                                 (*CurrentParm_)[H].Name().Truncated();
           HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INT, hbsetname_,
                                                               hbidx, "solutehb" );
           //mprinterr("Created solute Hbond dataset index %i\n", hbidx);
@@ -515,9 +519,9 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
           if (AtomsAreHbonded( *currentFrame, frameNum, *accept, D, H, H, true )) {
             ++numHB;
             int soluteres = (*CurrentParm_)[D].ResNum();
-            int solventmol = (*CurrentParm_)[*accept].Mol();
+            int solventmol = (*CurrentParm_)[*accept].ResNum();
             solvent2solute[solventmol].insert( soluteres );
-            //mprintf("DBG:\t\tSolvent Mol %i bonded to solute res %i\n",solventmol+1,soluteres+1);
+            //mprintf("DBG:\t\tSolvent Res %i bonded to solute res %i\n",solventmol+1,soluteres+1);
           }
         }
       }
@@ -540,9 +544,9 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
           if (AtomsAreHbonded( *currentFrame, frameNum, *accept, D, H, *accept, false )) {
             ++numHB;
             int soluteres = (*CurrentParm_)[*accept].ResNum();
-            int solventmol = (*CurrentParm_)[D].Mol();
+            int solventmol = (*CurrentParm_)[D].ResNum();
             solvent2solute[solventmol].insert( soluteres );
-            //mprintf("DBG:\t\tSolvent Mol %i bonded to solute res %i\n",solventmol+1,soluteres+1);
+            //mprintf("DBG:\t\tSolvent Res %i bonded to solute res %i\n",solventmol+1,soluteres+1);
           }
         }
       }
@@ -553,6 +557,7 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
 
     // Determine number of bridging waters.
     numHB = 0;
+    std::string bridgeID;
     for (std::map< int, std::set<int> >::iterator bridge = solvent2solute.begin();
                                                   bridge != solvent2solute.end();
                                                   ++bridge)
@@ -561,11 +566,11 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
       // it is bridging. 
       if ( (*bridge).second.size() > 1) {
         ++numHB;
-        //mprintf("DBG:\t\tSolvent mol %i is bridging residues", (*bridge).first+1);
-        //for (std::set<int>::iterator res = (*bridge).second.begin();
-        //                             res != (*bridge).second.end(); ++res) 
-        //  mprintf(" %i", *res+1);
-        //mprintf("\n");
+        bridgeID.append(integerToString( (*bridge).first+1 ) + "("); // Bridging Solvent res 
+        for (std::set<int>::iterator res = (*bridge).second.begin();
+                                     res != (*bridge).second.end(); ++res)
+          bridgeID.append( integerToString( *res+1 ) + "+" ); // Solute res being bridged
+        bridgeID.append("),");
         // Find bridge in map based on this combo of residues (bridge.second)
         BridgeType::iterator b_it = BridgeMap_.find( (*bridge).second );
         if (b_it == BridgeMap_.end() ) // New Bridge 
@@ -574,7 +579,10 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
           (*b_it).second++;
       }
     }
+    if (bridgeID.empty())
+      bridgeID.assign("None");
     NumBridge_->Add(frameNum, &numHB);
+    BridgeID_->Add(frameNum, (char*)bridgeID.c_str()); // FIXME: Fix cast
   }
 
   ++Nframes_;

@@ -1,18 +1,18 @@
 /*
  * CPPTRAJ: Rewrite of PTRAJ in C++
- * 2010 Daniel R. Roe
+ * Copyright (c) 2010-2013 Daniel R. Roe
+ * For license information see the LICENSE file.
+ * For a full list of contributing authors see the README file.
  */
+#include <unistd.h> // isatty
 #include <cstdio>
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
-#ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V13.9.9b"
-#define CPPTRAJ_INTERNAL_VERSION "V3.7.9b"
-#endif
-
+#include "Version.h"
 // ----------========== CPPTRAJ MAIN ROUTINE ==========----------
 /// Main routine.
 int main(int argc, char **argv) {
+  int err = 0;
   Cpptraj State;
   printf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
   printf("    ___  ___  ___  ___\n");
@@ -25,16 +25,24 @@ int main(int argc, char **argv) {
 #endif
   Cpptraj::Mode cmode = State.ProcessCmdLineArgs(argc,argv);
   switch ( cmode ) {
-    case Cpptraj::C_OK          : State.Run(); break;
-    case Cpptraj::C_INTERACTIVE : 
-      if (State.Interactive() == Cpptraj::C_OK) State.Run(); 
+    case Cpptraj::C_OK          : 
+      err = State.Run(); break;
+    case Cpptraj::C_INTERACTIVE :
+      // Test if input is really from a console
+      if ( isatty(fileno(stdin)) )
+        cmode = State.Interactive();
+      else
+        cmode = State.ProcessInput(""); // "" means read from STDIN 
+      if (cmode == Cpptraj::C_OK) 
+        err = State.Run(); 
+      else if (cmode == Cpptraj::C_ERR)
+        err = 1;
       break;
-    case Cpptraj::C_ERR         : 
+    case Cpptraj::C_ERR         :
+      err = 1;
     case Cpptraj::C_QUIT        : break;
   }
-
   parallel_end();
-
   printf("\n");
-  return 0;
+  return err;
 }

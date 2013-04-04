@@ -14,10 +14,9 @@ Action_Average::Action_Average() :
 { } 
 
 void Action_Average::Help() {
-  mprintf("average <filename> [mask] ");
-  ActionFrameCounter::Help();
-  mprintf("\n        [TRAJOUT ARGS]\n");
-  mprintf("\tCalculate the average structure over input frames.\n");
+  mprintf("\t<filename> [<mask>] %s\n", ActionFrameCounter::HelpText);
+  mprintf("\t[TRAJOUT ARGS]\n");
+  mprintf("\tCalculate the average structure of atoms in <mask> over specified input frames.\n");
 }
 
 // DESTRUCTOR

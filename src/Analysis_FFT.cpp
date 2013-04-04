@@ -13,7 +13,8 @@ Analysis_FFT::Analysis_FFT() :
 {}
 
 void Analysis_FFT::Help() {
-  mprintf("fft <dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] [dt <samp_int>]\n");
+  mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] [dt <samp_int>]\n");
+  mprintf("\tPerform fast-Fourier transformation of data set(s)\n");
 }
 
 // Analysis_FFT::Setup()
@@ -67,7 +68,7 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
   if ( !setname.empty() )
     mprintf("\tSet name: %s\n", setname.c_str() );
   if ( outfile_ != 0 )
-    mprintf("\tOutfile name: %s\n", outfile_->Filename());
+    mprintf("\tOutfile name: %s\n", outfile_->DataFilename().base());
 
   return Analysis::OK;
 }

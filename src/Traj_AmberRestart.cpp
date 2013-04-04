@@ -98,7 +98,7 @@ int Traj_AmberRestart::setupTrajout(std::string const& fname, Topology* trajParm
   } else {
     if ( outTitle.size() > 80) {
       mprintf("Warning: Amber restart title for %s too long: truncating.\n[%s]\n",
-              file_.BaseFileStr(), outTitle.c_str());
+              file_.Filename().base(), outTitle.c_str());
       outTitle.resize(80);
     }
   }
@@ -126,7 +126,7 @@ int Traj_AmberRestart::getBoxAngles(std::string const& boxline, Box& trajBox) {
     // This can occur if there is an extra newline or whitespace at the end
     // of the restart. Warn the user.
     mprintf("Warning: Restart [%s] appears to have an extra newline or whitespace.\n",
-            file_.BaseFileStr());
+            file_.Filename().base());
     mprintf("         Assuming no box information present.\n");
     trajBox.SetNoBox();
     numBoxCoords_ = 0;
@@ -176,7 +176,7 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
   // Check that natoms matches parm natoms
   if (restartAtoms_ != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in Amber Restart %s (%i) does not\n",
-              file_.BaseFileStr(), restartAtoms_);
+              file_.Filename().base(), restartAtoms_);
     mprinterr("       match number in associated parmtop (%i)\n",trajParm->Natom());
     return TRAJIN_ERR;
   }
@@ -277,9 +277,9 @@ int Traj_AmberRestart::readVelocity(int set, double* V) {
 int Traj_AmberRestart::writeFrame(int set, double *X, double *V, double *box, double T) {
   // If just writing 1 frame dont modify output filename
   if (singleWrite_) {
-    if (file_.OpenWriteWithName( file_.FullFileName() )) return 1;
+    if (file_.OpenWriteWithName( file_.Filename().Full() )) return 1;
   } else {
-    if (file_.OpenWriteWithName( NumberFilename( file_.FullFileName(), set + 1 ) )) return 1;
+    if (file_.OpenWriteWithName( NumberFilename( file_.Filename().Full(), set + 1 ) )) return 1;
   }
 
   // Write out title

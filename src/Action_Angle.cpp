@@ -11,7 +11,7 @@ Action_Angle::Action_Angle() :
 { } 
 
 void Action_Angle::Help() {
-  mprintf("angle [<name>] <mask1> <mask2> <mask3> [out filename] [mass]\n");
+  mprintf("\t[<name>] <mask1> <mask2> <mask3> [out <filename>] [mass]\n");
   mprintf("\tCalculate the angle between atoms in masks 1-3\n");
 }
 
@@ -58,9 +58,11 @@ Action::RetType Action_Angle::Setup(Topology* currentParm, Topology** parmAddres
   if (currentParm->SetupIntegerMask(Mask1_)) return Action::ERR;
   if (currentParm->SetupIntegerMask(Mask2_)) return Action::ERR;
   if (currentParm->SetupIntegerMask(Mask3_)) return Action::ERR;
-  Mask1_.MaskInfo();
-  Mask2_.MaskInfo();
-  Mask3_.MaskInfo();
+  mprintf("\t");
+  Mask1_.BriefMaskInfo();
+  Mask2_.BriefMaskInfo();
+  Mask3_.BriefMaskInfo();
+  mprintf("\n");
   if (Mask1_.None() || Mask2_.None() || Mask3_.None()) {
     mprintf("Warning: angle: One or more masks contain 0 atoms.\n");
     return Action::ERR;

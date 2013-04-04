@@ -1,55 +1,8 @@
 #include "AnalysisList.h"
 #include "CpptrajStdio.h"
-// All analysis classes go here
-#include "Analysis_Hist.h"
-#include "Analysis_Corr.h"
-#include "Analysis_Matrix.h"
-#include "Analysis_Timecorr.h"
-#include "Analysis_IRED.h"
-#include "Analysis_Modes.h"
-#include "Analysis_CrankShaft.h"
-#include "Analysis_Statistics.h"
-#include "Analysis_CrossCorr.h"
-#include "Analysis_AutoCorr.h"
-#include "Analysis_Lifetime.h"
-#include "Analysis_FFT.h"
-#include "Analysis_CrdFluct.h"
-#include "Analysis_RmsAvgCorr.h"
-#include "Analysis_Rms2d.h"
-#include "Analysis_Clustering.h"
-#include "Analysis_RunningAvg.h"
-
-const DispatchObject::Token AnalysisList::DispatchArray[] = {
-  { DispatchObject::ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
-  { DispatchObject::ANALYSIS, "autocorr", Analysis_AutoCorr::Alloc, Analysis_AutoCorr::Help, 0 },
-  { DispatchObject::ANALYSIS, "cluster", Analysis_Clustering::Alloc, Analysis_Clustering::Help, 0 },
-  { DispatchObject::ANALYSIS, "corr", Analysis_Corr::Alloc, Analysis_Corr::Help, 0 },
-  { DispatchObject::ANALYSIS, "correlationcoe", Analysis_Corr::Alloc, Analysis_Corr::Help, 0 },
-  { DispatchObject::ANALYSIS, "crank", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, 0 },
-  { DispatchObject::ANALYSIS, "crankshaft", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, 0 },
-  { DispatchObject::ANALYSIS, "crdfluct", Analysis_CrdFluct::Alloc, Analysis_CrdFluct::Help, 0 },
-  { DispatchObject::ANALYSIS, "crosscorr", Analysis_CrossCorr::Alloc, Analysis_CrossCorr::Help, 0 },
-  { DispatchObject::ANALYSIS, "diagmatrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, 0 },
-  { DispatchObject::ANALYSIS, "fft", Analysis_FFT::Alloc, Analysis_FFT::Help, 0 },
-  { DispatchObject::ANALYSIS, "hist", Analysis_Hist::Alloc, Analysis_Hist::Help, 0 },
-  { DispatchObject::ANALYSIS, "histogram", Analysis_Hist::Alloc, Analysis_Hist::Help, 0 },
-  { DispatchObject::ANALYSIS, "ired", Analysis_IRED::Alloc, Analysis_IRED::Help, 0 },
-  { DispatchObject::ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, 0 },
-  { DispatchObject::ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, 0 },
-  { DispatchObject::ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, 0 },
-  { DispatchObject::ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
-  { DispatchObject::ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, 0 },
-  { DispatchObject::ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, 0 },
-  { DispatchObject::ANALYSIS, "statistics", Analysis_Statistics::Alloc, Analysis_Statistics::Help, 0 },
-  { DispatchObject::ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, 0 },
-  { DispatchObject::ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, 0 },
-  { DispatchObject::NONE,        0,                  0,                 0, 0 }
-};
 
 // CONSTRUCTOR
-AnalysisList::AnalysisList() :
-  debug_(0)
-{}
+AnalysisList::AnalysisList() : debug_(0) {}
 
 // DESTRUCTOR
 AnalysisList::~AnalysisList() {
@@ -110,11 +63,11 @@ void AnalysisList::DoAnalyses() {
   //mprintf("    ...................................................\n\n");
 }
 
-void AnalysisList::List() {
-  unsigned int ananum = 0;
-  for (aListType::iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
-  {
-    mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
-    ++ananum;
-  }
+void AnalysisList::List() const {
+  mprintf("ANALYSES:\n");
+  if (analysisList_.empty())
+    mprintf("  No Analyses.\n");
+  else
+    for (unsigned int ananum = 0; ananum < analysisList_.size(); ++ananum)
+      mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
 }

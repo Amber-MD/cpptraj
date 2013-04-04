@@ -1,7 +1,7 @@
 #ifndef INC_TRAJ_AMBERRESTART_H
 #define INC_TRAJ_AMBERRESTART_H
 #include "TrajectoryIO.h"
-#include "BufferedFile.h"
+#include "BufferedFrame.h"
 // Class: Traj_AmberRestart.h
 /// Reads and writes formatted (ASCII text) amber
 class Traj_AmberRestart : public TrajectoryIO {
@@ -19,7 +19,7 @@ class Traj_AmberRestart : public TrajectoryIO {
     double dt_;            ///< For writes, restart timestep (scaling)
     bool singleWrite_;     ///< If false, frame # will be appended to output filename
     bool readAccess_;      ///< If true, presence/absence of velocity info is known
-    BufferedFile file_;
+    BufferedFrame file_;
 
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);

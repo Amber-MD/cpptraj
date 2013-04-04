@@ -1,6 +1,7 @@
 // Analysis_RmsAvgCorr
 #include "Analysis_RmsAvgCorr.h"
 #include "CpptrajStdio.h"
+#include "ProgressBar.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -14,8 +15,12 @@ Analysis_RmsAvgCorr::Analysis_RmsAvgCorr() :
 { } 
 
 void Analysis_RmsAvgCorr::Help() {
-  mprintf("rmsavgcorr [crdset <crd set>] [<mask>] [out <filename>] [output <separatename>]\n");
-  mprintf("<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>] [mass]\n");
+  mprintf("\t[stop <maxwindow>]\n");
+  mprintf("\tCalculate the RMS average correlation, i.e. the average RMSD\n");
+  mprintf("\tof structures which have been averaged over increasing numbers\n");
+  mprintf("\tof frames.\n");
+  mprintf("\t<crd set> can be created with the 'createcrd' command.\n");
 }
 
 Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
@@ -52,7 +57,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   mprintf("    RMSAVGCORR: COORDS set [%s]", coords_->Legend().c_str());
   mprintf(", mask [%s]", mask_.MaskString());
   if (useMass_) mprintf(" (mass-weighted)");
-  if (outfile != 0) mprintf(", Output to %s",outfile->Filename());
+  if (outfile != 0) mprintf(", Output to %s",outfile->DataFilename().base());
   if (maxwindow_!=-1) mprintf(", max window %i",maxwindow_);
   mprintf(".\n");
   if (!separateName_.empty())
@@ -147,13 +152,15 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     separateDatafile.Printf("%8i %lf\n",1,avg);
 
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
+  ParallelProgress progress(WindowMax);
 # ifdef _OPENMP
-#pragma omp parallel private(window, frame, avg, frameThreshold, subtractWindow, d_Nwindow, first) firstprivate(refFrame,tgtFrame,sumFrame)
+#pragma omp parallel private(window,frame,avg,frameThreshold,subtractWindow,d_Nwindow,first) firstprivate(refFrame,tgtFrame,sumFrame,progress)
 {
-  //mythread = omp_get_thread_num();
+  progress.SetThread(omp_get_thread_num());
 #pragma omp for schedule(dynamic)
 #endif
   for (window = 2; window < WindowMax; window++ ) {
+    progress.Update(window);
     // Initialize and set up running average for this window size
     frameThreshold = window - 2;
     // TODO: Make subtractWindow a const iterator to CoordList
@@ -206,6 +213,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     Ct_->Add(window, Ct_openmp+window);
   delete[] Ct_openmp;
 #endif
+  progress.Finish();
   if (!separateName_.empty())
     separateDatafile.CloseFile();
   return Analysis::OK;

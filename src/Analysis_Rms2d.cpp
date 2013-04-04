@@ -19,12 +19,13 @@ Analysis_Rms2d::Analysis_Rms2d() :
 { } 
 
 void Analysis_Rms2d::Help() {
-  mprintf("rms2d [crdset <crd set>] [<mask>] rmsout <filename> [nofit] [mass] [dme]\n");
-  mprintf("      [reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n");
-  mprintf("      [corr <corrfilename>]\n");
+  mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>]\n");
+  mprintf("\t[dme] [mass] [nofit]\n");
+  mprintf("\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n");
+  mprintf("\t[corr <corrfilename>]\n");
   mprintf("\tCalculate RMSD between all frames in <crd set>, or between frames in\n");
-  mprintf("<crd set> and frames in <traj>.\n");
-  mprintf("<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("\t<crd set> and frames in <traj>.\n");
+  mprintf("\n\t<crd set> can be created with the 'createcrd' command.\n");
 }
 
 Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
@@ -41,13 +42,16 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   }
   // Get keywords
   nofit_ = analyzeArgs.hasKey("nofit");
-  useMass_ = analyzeArgs.hasKey("mass"); 
-  DataFile* rmsdFile = DFLin->AddDataFile(analyzeArgs.GetStringKey("rmsout"), analyzeArgs);
+  useMass_ = analyzeArgs.hasKey("mass");
+  std::string outfilename = analyzeArgs.GetStringKey("out");
+  if (outfilename.empty()) outfilename = analyzeArgs.GetStringKey("rmsout");
+  DataFile* rmsdFile = DFLin->AddDataFile(outfilename, analyzeArgs);
   std::string reftrajname = analyzeArgs.GetStringKey("reftraj");
   if (!reftrajname.empty()) {
     RefParm_ = PFLin->GetParm(analyzeArgs);
     if (RefParm_==0) {
       mprinterr("Error: Rms2d: Could not get parm for reftraj %s.\n",reftrajname.c_str());
+      mprinterr("Error:        Ensure parm has been previously loaded.\n");
       return Analysis::ERR;
     }
     mode_ = REFTRAJ; 
@@ -109,7 +113,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     mprintf(", all atoms");
   switch (mode_) {
     case REFTRAJ:
-      mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_.FullTrajStr(),
+      mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_.TrajFilename().base(),
               RefMask_.MaskString(), RefTraj_.TotalReadFrames());
       break;
     case DME: mprintf(", using DME"); break;
@@ -120,11 +124,11 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
         mprintf(" (mass-weighted)");
   }
   if (rmsdFile != 0) 
-    mprintf(" output to %s",rmsdFile->Filename());
+    mprintf(", output to %s",rmsdFile->DataFilename().base());
   mprintf("\n");
   if (corrfile != 0)
     mprintf("           RMSD auto-correlation will be calculated and output to %s\n",
-            corrfile->Filename());
+            corrfile->DataFilename().base());
 
   return Analysis::OK;
 }
@@ -182,7 +186,7 @@ int Analysis_Rms2d::Calc2drms(DataSet_Coords& coordsIn, TriangleMatrix& Distance
 #     ifdef _OPENMP
       Distances.SetElementF(nframe, nref, R);
 #     else
-      Distances.AddElement( R );
+      Distances.AddElementF( R );
 #     endif
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
@@ -237,7 +241,7 @@ int Analysis_Rms2d::CalcDME(DataSet_Coords& coordsIn, TriangleMatrix& Distances,
 #     ifdef _OPENMP
       Distances.SetElement( nframe, nref, TgtFrame.DISTRMSD(RefFrame) );
 #     else
-      Distances.AddElement( (float)TgtFrame.DISTRMSD(RefFrame) );
+      Distances.AddElement( TgtFrame.DISTRMSD(RefFrame) );
 #     endif
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
@@ -253,8 +257,8 @@ int Analysis_Rms2d::CalcDME(DataSet_Coords& coordsIn, TriangleMatrix& Distances,
   * exp[ -RMSD(framei, framei+lag) ] is used. This takes advantage of
   * the fact that 0.0 RMSD essentially means perfect correlation (1.0).
   */
-void Analysis_Rms2d::CalcAutoCorr(TriangleMatrix& Distances) {
-  int N = Distances.Nrows();
+void Analysis_Rms2d::CalcAutoCorr(TriangleMatrix const& Distances) {
+  int N = (int)Distances.Nrows();
   int lagmax = N;
   // By definition for lag == 0 RMS is 0 for all frames,
   // translates to correlation of 1.
@@ -277,7 +281,7 @@ void Analysis_Rms2d::CalcAutoCorr(TriangleMatrix& Distances) {
   * ReferenceCoords.
   */
 int Analysis_Rms2d::CalcRmsToTraj() {
-  float R;
+  double R;
 
   Matrix_2D* rmsdata = (Matrix_2D*)rmsdataset_;
   // Set up mask
@@ -309,7 +313,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
   int max = totalref * totaltgt;
   mprintf("  RMS2D: Calculating RMSDs between each input frame and each reference\n"); 
   mprintf("         trajectory %s frame (%i total).\n  ",
-          RefTraj_.BaseTrajStr(), max);
+          RefTraj_.TrajFilename().base(), max);
   rmsdata->Setup( totalref, totaltgt );
   if (RefTraj_.BeginTraj(true)) {
     mprinterr("Error: Rms2d: Could not open reference trajectory.\n");
@@ -330,10 +334,10 @@ int Analysis_Rms2d::CalcRmsToTraj() {
       SelectedTgt.SetFromCRD( (*coords_)[nframe], 0, TgtMask);
       if (nofit_) {
         // Perform no fit RMS calculation
-        R = (float) SelectedTgt.RMSD_NoFit(SelectedRef, useMass_);
+        R = SelectedTgt.RMSD_NoFit(SelectedRef, useMass_);
       } else {
         // Perform fit RMS calculation
-        R = (float) SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_);
+        R = SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_);
       }
       rmsdata->AddElement( R );
       // DEBUG

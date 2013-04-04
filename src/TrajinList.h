@@ -11,17 +11,17 @@ class TrajinList {
     ~TrajinList();
     void Clear();
     void SetDebug(int dIn) { debug_ = dIn; }
-    TrajModeType Mode() { return mode_; }
     /// Add a traj file to the list based on input from arg list
     int AddTrajin(ArgList&, TopologyList&);
 
     typedef std::vector<Trajin*> ListType;
     typedef ListType::const_iterator const_iterator;
-    const_iterator begin() { return trajin_.begin(); }
-    const_iterator end()   { return trajin_.end();   }
-    void List();
-    int MaxFrames() { return maxframes_; }
-
+    const_iterator begin() const { return trajin_.begin(); }
+    const_iterator end()   const { return trajin_.end();   }
+    TrajModeType Mode()    const { return mode_;           }
+    const Trajin* front()  const { return trajin_.front(); }
+    int MaxFrames()        const { return maxframes_;      }
+    void List() const;
   private:
     ListType trajin_;
     int debug_;

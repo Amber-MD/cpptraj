@@ -1,7 +1,7 @@
 #include <cstdio> // sscanf
 #include "DataIO_Grace.h"
 #include "CpptrajStdio.h"
-#include "BufferedFile.h"
+#include "BufferedLine.h"
 
 // CONSTRUCTOR
 DataIO_Grace::DataIO_Grace() :
@@ -12,7 +12,7 @@ DataIO_Grace::DataIO_Grace() :
 // Dont assume anything about set ordering
 int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
   ArgList dataline;
-  int setnum = 1;
+  int setnum = 0;
   int frame = 0;
   DataSet *dset = 0;
   std::vector<DataSet*> Dsets;
@@ -21,12 +21,12 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
   const char* linebuffer;
   
   // Allocate and set up read buffer
-  BufferedFile buffer;
+  BufferedLine buffer;
   if (buffer.OpenRead( fname )) return 1;
   buffer.SetupBuffer();
 
   // Read chunks from file
-  while ( (linebuffer = buffer.BufferedLine()) != 0 ) {
+  while ( (linebuffer = buffer.Line()) != 0 ) {
     if (linebuffer[0] == '@') {
       // Command: create command line without the @
       dataline.SetList(linebuffer+1, " \t");
@@ -37,9 +37,9 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
           labels.push_back( lbl );
       } else if (dataline.CommandIs("target")) {
         // Indicates dataset will be read soon. Allocate new set.
-        dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.BaseFileName(), setnum++);
+        dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.Filename().Base(), setnum++);
         if (dset == 0) {
-          mprinterr("Error: %s: Could not allocate data set.\n", buffer.FullFileStr());
+          mprinterr("Error: %s: Could not allocate data set.\n", buffer.Filename().full());
           return 1;
         }
         Dsets.push_back( dset );
@@ -49,7 +49,7 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
       // Data
       if (dset==0) {
         mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", 
-                  buffer.FullFileStr());
+                  buffer.Filename().full());
         return 1;
       }
       // FIXME: Ignoring frame for now

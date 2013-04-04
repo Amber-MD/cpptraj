@@ -1,8 +1,16 @@
+#include <cmath>   // floor
 #include <cstring> // memset
-#include "Grid.h"
+#include <cstdio>  // sscanf
+#include <cstdlib> // atof
+#include <vector>
+#include "Constants.h"
 #include "CpptrajStdio.h"
-#include "CpptrajFile.h"
+#include "Grid.h"
+#include "BufferedLine.h"
 #include "PDBfile.h"
+
+#define MIN(X, Y) ( ( (X) < (Y) ) ? (X) : (Y) )
+#define MAX(X, Y) ( ( (X) < (Y) ) ? (Y) : (X) )
 
 // CONSTRUCTOR
 Grid::Grid() :
@@ -75,9 +83,8 @@ Grid& Grid::operator=(const Grid& rhs) {
   return *this;
 }
 
-void Grid::Help() {
-  mprintf(" nx dx ny dy nz dz [box|origin|center <mask>] [negative]");
-}
+const char* Grid::HelpText = 
+  "{nx dx ny dy nz dz [box|origin|center <mask>] [negative]} | {readdx <file>}";
  
 // Grid::GridInit()
 /** Initialize grid from argument list. Expected args are:
@@ -91,7 +98,9 @@ void Grid::Help() {
 int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
   if (callingRoutineIn!=0)
     callingRoutine_.assign(callingRoutineIn);
-
+  std::string dxfilename = argIn.GetStringKey("readdx");
+  if (!dxfilename.empty()) 
+    return InitFromFile( dxfilename, "DX" );
   // Get nx, dx, ny, dy, nz, dz
   nx_ = argIn.getNextInteger(-1);
   dx_ = argIn.getNextDouble(-1);
@@ -122,10 +131,6 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
     ++nz_;
     mprintf("         Incrementing NY by 1 to %i\n", nz_);
   }
-  // Calculate half grid
-  sx_ = (double)nx_ * dx_/2.0;
-  sy_ = (double)ny_ * dy_/2.0;
-  sz_ = (double)nz_ * dz_/2.0;
   // Box/origin
   mode_ = ORIGIN;
   if (argIn.hasKey("box"))
@@ -144,17 +149,167 @@ int Grid::GridInit(const char* callingRoutineIn, ArgList& argIn) {
   // Negative
   if (argIn.hasKey("negative"))
     increment_ = -1.0;
+  // Allocate memory and calc half grid
+  if (Allocate()) return 1;
 
+  return 0;
+}
+
+// Grid::GridInitSizeRes()
+/** Initialize grid from a given size and resolution */
+int Grid::GridInitSizeRes(const char* callingRoutineIn, double size[3],
+                          double res[3], std::string const& mode) {
+  if (callingRoutineIn!=0)
+    callingRoutine_.assign(callingRoutineIn);
+  // Determine the mode
+  if (mode == "center")
+    mode_ = CENTER;
+  else if (mode == "box")
+    mode_ = BOX;
+  else
+    mode_ = ORIGIN;
+  // Set our grid spacing
+  dx_ = res[0]; dy_ = res[1]; dz_ = res[2];
+  // Determine our bin count, and make sure it's even
+  nx_ = (int) (size[0] / dx_);
+  ny_ = (int) (size[1] / dy_);
+  nz_ = (int) (size[2] / dz_);
+  if (nx_ % 2 == 1) nx_++;
+  if (ny_ % 2 == 1) ny_++;
+  if (nz_ % 2 == 1) nz_++;
+  // Now allocate the grid
+  if (Allocate())
+    return 1;
+  return 0;
+}
+
+/** Allocate the grid and calculate the half grid. */
+int Grid::Allocate() {
+  // Calculate half grid
+  sx_ = (double)nx_ * dx_/2.0;
+  sy_ = (double)ny_ * dy_/2.0;
+  sz_ = (double)nz_ * dz_/2.0;
   // Allocate memory
   gridsize_ = nx_ * ny_ * nz_;
   if (gridsize_ <= 0) {
-    mprinterr("Error: %s: Grid size <= 0 (%i)\n",gridsize_, callingRoutine_.c_str());
+    mprinterr("Error: %s: Grid size <= 0 (%i)\n",callingRoutine_.c_str(), gridsize_);
     return 1;
   }
   if (grid_!=0) delete[] grid_;
   grid_ = new float[ gridsize_ ];
   memset(grid_, 0, gridsize_ * sizeof(float));
+  return 0;
+}
 
+// Grid::InitFromFile()
+/** Initializes a grid from a density file instead of input arguments. The
+ *  filetype must be a recognized file type (case-sensitive). So far only
+ *  the following file types are recognized for input densities:
+ *      DX
+ */
+int Grid::InitFromFile(std::string const& filename, std::string const& filetype)
+{
+  if (filetype == "DX") {
+    BufferedLine infile;
+    infile.OpenRead(filename);
+    // Set some defaults
+    mode_ = ORIGIN;
+    increment_ = 1.0;
+    // Skip comments
+    std::string line = infile.GetLine();
+    while (!line.empty() && line[0] == '#') line = infile.GetLine();
+    if (line.empty()) {
+      mprinterr("Error: Unexpected EOF in DX file %s\n", filename.c_str());
+      return 1;
+    }
+    // object 1 class gridpositions counts nx ny nz
+    if (sscanf(line.c_str(), "object 1 class gridpositions counts %d %d %d",
+               &nx_, &ny_, &nz_) != 3)
+    {
+      mprinterr("Error: Reading grid counts from DX file %s\n", filename.c_str());
+      return 1;
+    }
+    // origin xmin ymin zmin (unused), make sure it says origin
+    line = infile.GetLine();
+    if (line.compare(0, 6, "origin") != 0) 
+      mprintf("Warning: DX file %s, expected 'origin ...', got [%s]\n",
+              filename.c_str(), line.c_str());
+    // 3x 'delta hx hy hz'
+    double dxyz[3];
+    for (int i = 0; i < 3; i++) {
+      line = infile.GetLine();
+      if (sscanf(line.c_str(), "delta %lg %lg %lg", dxyz, dxyz+1, dxyz+2) != 3) {
+        mprinterr("Error: Reading delta line from DX file %s\n", filename.c_str());
+        return 1;
+      }
+      // Check that only 1 of the 3 values is non-zero
+      if (dxyz[i] != (dxyz[0] + dxyz[1] + dxyz[2])) {
+        mprinterr("Error: Rotated basis in DX file %s not yet supported.\n", filename.c_str());
+        return 1;
+      }
+      switch (i) {
+        case 0: dx_ = dxyz[0]; break; 
+        case 1: dy_ = dxyz[1]; break; 
+        case 2: dz_ = dxyz[2]; break;
+      }
+    } 
+    // object 2 class gridconnections counts nx ny nz
+    int nxyz[3];
+    line = infile.GetLine();
+    if (sscanf(line.c_str(), "object 2 class gridconnections counts %d %d %d",
+               nxyz, nxyz+1, nxyz+2) != 3)
+    {
+      mprintf("Error: Reading grid connections from DX file %s\n", filename.c_str());
+      return 1; 
+    }
+    // Sanity check for conflicting grid dimensions
+    if (nxyz[0] != nx_ || nxyz[1] != ny_ || nxyz[2] != nz_) {
+      mprinterr("Error: Conflicting grid dimensions in input DX density file %s.\n",
+                filename.c_str());
+      mprinterr("Error: Grid positions: %d %d %d\n", nx_, ny_, nz_);
+      mprinterr("Error: Grid connections: %d %d %d\n", nxyz[0], nxyz[1], nxyz[2]);
+      return 1;
+    }
+    // object 3 class array type <type> rank <r> times <i>
+    // This line describes whether data will be in binary or ascii format.
+    line = infile.GetLine();
+    if (line.compare(0, 8, "object 3") != 0) {
+      mprinterr("Error: DX file %s; expected 'object 3 ...', got [%s]\n",
+                filename.c_str(), line.c_str());
+      return 1;
+    }
+    if (line.find("binary") != std::string::npos) {
+      mprinterr("Error: DX file %s; binary DX files not yet supported.\n", filename.c_str());
+      return 1;
+    }
+    // Allocate the grid and calc half grid
+    if (Allocate()) return 1;
+    // Read in data
+    int ndata = 0;
+    infile.SetupBuffer();
+    while (ndata < gridsize_) {
+      if (infile.Line() == 0) {
+        mprinterr("Error: Unexpected EOF hit in %s\n", filename.c_str());
+        infile.CloseFile();
+        return 1;
+      }
+      int nTokens = infile.TokenizeLine(" \t");
+      for (int j = 0; j < nTokens; j++) {
+        if (ndata >= gridsize_) {
+          mprinterr("Error: Too many grid points found!\n");
+          infile.CloseFile();
+          return 1;
+        }
+        grid_[ndata++] = (float)atof(infile.NextToken());
+      }
+    }
+    // Finished
+    infile.CloseFile();
+  } else {
+    mprinterr("Input density file type [%s] is not recognized\n",
+              filetype.c_str());
+    return 1;
+  }
   return 0;
 }
 
@@ -177,17 +332,17 @@ void Grid::GridInfo() {
 }
 
 // Grid::GridSetup()
-int Grid::GridSetup(Topology* currentParm) {
+int Grid::GridSetup(Topology const& currentParm) {
   // Check box
   if (mode_ == BOX) {
-    if (currentParm->BoxType()!=Box::ORTHO) {
+    if (currentParm.BoxType()!=Box::ORTHO) {
       mprintf("Warning: %s: Code to shift to the box center is not yet\n",callingRoutine_.c_str());
       mprintf("Warning:\timplemented for non-orthorhomibic unit cells.\n");
       mprintf("Warning:\tShifting to the origin instead.\n");
       mode_ = ORIGIN;
     }
   } else if (mode_ == CENTER) {
-    if ( currentParm->SetupIntegerMask( centerMask_ ) ) return 1;
+    if ( currentParm.SetupIntegerMask( centerMask_ ) ) return 1;
     centerMask_.MaskInfo();
     if ( centerMask_.None() ) {
       mprinterr("Error: No atoms selected for grid center mask [%s]\n", centerMask_.MaskString());
@@ -337,9 +492,97 @@ void Grid::PrintPDB(std::string const& filename, double cut, double normIn)
         pdbout.WriteHET(res, Xcrd(i), Ycrd(j), Zcrd(k));
 }
 
+// Grid::PrintDX
+/** Use the default lower-left corner (first bin) as the origin when printing this
+  * DX file
+  */
+void Grid::PrintDX(std::string const& filename) {
+  PrintDX(filename, Xbin(0), Ybin(0), Zbin(0));
+}
+
+// Grid::PrintDX
+/** This will print the grid in OpenDX format, commonly used by VMD, PBSA,
+ * 3D-RISM, etc.
+ */
+void Grid::PrintDX(std::string const& filename, double xorig, double yorig, double zorig)
+{
+  CpptrajFile outfile;
+  if (outfile.OpenWrite(filename)) {
+    mprinterr("Error: Could not open OpenDX output file.\n");
+    return;
+  }
+  // Print the OpenDX header
+  outfile.Printf("object 1 class gridpositions counts %d %d %d\n",
+                 nx_, ny_, nz_);
+  outfile.Printf("origin %lg %lg %lg\n", xorig, yorig, zorig);
+  outfile.Printf("delta %lg 0 0\n", dx_);
+  outfile.Printf("delta 0 %lg 0\n", dy_);
+  outfile.Printf("delta 0 0 %lg\n", dz_);
+  outfile.Printf("object 2 class gridconnections counts %d %d %d\n",
+                 nx_, ny_, nz_);
+  outfile.Printf(
+    "object 3 class array type double rank 0 items %d data follows\n",
+    gridsize_);
+  
+  // Now print out the data. It is already in row-major form (z-axis changes
+  // fastest), so no need to do any kind of data adjustment
+  for (int i = 0; i < gridsize_ - 2; i += 3)
+    outfile.Printf("%g %g %g\n", grid_[i], grid_[i+1], grid_[i+2]);
+  // Print out any points we may have missed
+  switch (gridsize_ % 3) {
+    case 2: outfile.Printf("%g %g\n", grid_[gridsize_-2], grid_[gridsize_-1]); break;
+    case 1: outfile.Printf("%g\n", grid_[gridsize_-1]); break;
+  }
+  
+  // Print tail
+  if (mode_ == CENTER)
+    outfile.Printf("\nobject \"density (%s) [A^-3]\" class field\n",
+                   centerMask_.MaskString());
+  else
+    outfile.Printf("\nobject \"density [A^-3]\" class field\n");
+
+  outfile.CloseFile();
+}
+
 // Grid::GridPrint()
 void Grid::PrintEntireGrid() {
   for (int i = 0; i < gridsize_; ++i)
     mprintf("\t%f\n", grid_[i]);
 }
 
+// Grid::ExtractPeaks()
+/** Extract peaks from the current grid and return another Grid instance. This
+  * works by taking every grid point and analyzing all grid points adjacent to
+  * it (including diagonals). If any of those grid points have a higher value
+  * (meaning there is a direction towards "increased" density) then that value
+  * is _not_ a maximum. Any density peaks less than the minimum filter are
+  * discarded
+  * \return Grid instance with all non-peak grid points zeroed-out
+  */
+Grid& Grid::ExtractPeaks(double min_filter) {
+   // Start out with a copy of myself and an integer vector for the background
+  Grid& peaks = *this;                     // _nparray
+
+  /* Zero out all points that are less than min_filter and any points whose
+   * "adjacent" points in any dimension have a greater density (meaning it's not
+   * a local max)
+   */
+  for (int i = 0; i < nx_; i++)
+  for (int j = 0; j < ny_; j++)
+  for (int k = 0; k < nz_; k++) {
+    float val = GridVal(i, j, k);
+    if (val < min_filter) {
+      peaks.SetGridVal(i, j, k, 0.0f);
+      continue;
+    }
+    for (int ii = MAX(0, i-1); ii <= MIN(nx_, i+1); ii++)
+    for (int jj = MAX(0, j-1); jj <= MIN(ny_, j+1); jj++)
+    for (int kk = MAX(0, k-1); kk <= MIN(nz_, k+1); kk++) {
+      if (ii == i && jj == j && kk == k) continue;
+      if (GridVal(ii, jj, kk) > val)
+        peaks.SetGridVal(i, j, k, 0.0f);
+    }
+  }
+
+  return peaks;
+}

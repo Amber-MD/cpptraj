@@ -48,9 +48,8 @@ void Cluster_HierAgglo::ClusteringInfo() {
   * any clustering is performed. 
   */
 void Cluster_HierAgglo::InitializeClusterDistances() {
-  ClusterDistances_.Setup( clusters_.size() );
-  // Set up the ignore array
-  ClusterDistances_.SetupIgnore();
+  // Sets up matrix and ignore array
+  ClusterDistances_.SetupMatrix( clusters_.size() );
   // Build initial cluster distances
   if (linkage_==AVERAGELINK) {
     for (cluster_it C1_it = clusters_.begin();
@@ -87,7 +86,7 @@ int Cluster_HierAgglo::Cluster() {
   mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
   ProgressBar cluster_progress(-1);
   // Build initial clusters.
-  for (int frame = 0; frame < FrameDistances_.Nrows(); frame++) {
+  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); frame++) {
     if (!FrameDistances_.IgnoringRow( frame ))
       AddCluster( std::list<int>(1, frame) );
   }

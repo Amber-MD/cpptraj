@@ -1,7 +1,7 @@
 #include <cmath> // sqrt
 #include "Action_Projection.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h"
+#include "StringRoutines.h" // integerToString
 
 // CONSTRUCTOR
 Action_Projection::Action_Projection() :
@@ -10,10 +10,9 @@ Action_Projection::Action_Projection() :
 {}
 
 void Action_Projection::Help() {
-  mprintf("projection modes <modesfile> out <outfile>\n");
-  mprintf("           [beg <beg>] [end <end>] [<mask>]\n           ");
-  ActionFrameCounter::Help();
-  mprintf("\n");
+  mprintf("\tmodes <modesfile> out <outfile> [beg <beg>] [end <end>] [<mask>]\n");
+  mprintf("\t%s\n", ActionFrameCounter::HelpText);
+  mprintf("\tCalculate projection of coordinates along given eigenmodes.\n");
 }
 
 Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,

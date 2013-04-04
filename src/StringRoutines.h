@@ -1,6 +1,7 @@
 #ifndef INC_STRINGROUTINES_H
 #define INC_STRINGROUTINES_H
 #include <string>
+#include <vector>
 /*! \file StringRoutines.h
     \brief Collection of useful string routines.
 

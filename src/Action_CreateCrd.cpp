@@ -4,7 +4,8 @@
 Action_CreateCrd::Action_CreateCrd() {}
 
 void Action_CreateCrd::Help() {
-  mprintf("createcrd [<name>] [ parm <name> | parmindex <#> ]\n");
+  mprintf("\t[<name>] [ parm <name> | parmindex <#> ]\n");
+  mprintf("\tCreate a COORDS data set named <name> for frames associated with the specified topology.\n");
 }
 
 Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
@@ -28,7 +29,7 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, F
   if (coords_ == 0) return Action::ERR;
   // Do not set topology here since it may be modified later.
 
-  mprintf("    CREATECRD: Saving coordinates from Top %s to %s\n",
+  mprintf("    CREATECRD: Saving coordinates from Top %s to \"%s\"\n",
           parm->c_str(), coords_->Legend().c_str());
   return Action::OK;
 }

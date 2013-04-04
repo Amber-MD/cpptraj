@@ -11,12 +11,14 @@ Action_LIE::Action_LIE() :
   doelec_(false),
   cut2vdw_(0.0),
   dielc_(1.0),
-  cut2elec_(0.0)
+  cut2elec_(0.0),
+  onecut2_(0.0)
 { }
 
 void Action_LIE::Help() {
-  mprintf("lie [<name>] <Ligand Mask> [<Surroundings Mask>] [out filename]\n");
-  mprintf("    [noelec] [novdw] [cutvdw <cutoff>] [cutelec <cutoff>] [diel <dielc>]\n");
+  mprintf("\t[<name>] <Ligand Mask> [<Surroundings Mask>] [out filename]\n");
+  mprintf("\t[noelec] [novdw] [cutvdw <cutoff>] [cutelec <cutoff>] [diel <dielc>]\n");
+  mprintf("\tCalculate linear interaction energy between <Ligand Mask> and <Surroundings Mask>\n");
 }
 
 // Action_LIE::init()
@@ -37,6 +39,7 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL,
   cut2vdw_ = cut * cut; // store square of cut for computational efficiency
   cut = actionArgs.getKeyDouble("cutelec", 12.0);
   cut2elec_ = cut * cut; // store square of cut for computational efficiency
+  onecut2_ = 1 / cut2elec_;
   bool has_mask2 = false;
 
   if (!doelec_ && !dovdw_) {
@@ -225,7 +228,8 @@ double Action_LIE::Calculate_Elec(Frame *frameIn, Topology *parmIn) {
       if (dist2 > cut2elec_) continue;
       // Here we add to our electrostatic energy
       double qiqj = atom_charge_[*maskatom1] * atom_charge_[*maskatom2];
-      result += qiqj / sqrt(dist2);
+      double shift = (1 - dist2 * onecut2_);
+      result += qiqj / sqrt(dist2) * shift * shift;
     }
   }
 

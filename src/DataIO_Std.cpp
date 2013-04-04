@@ -4,7 +4,7 @@
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
 #include "StringRoutines.h" // SetStringFormatString
-#include "BufferedFile.h"
+#include "BufferedLine.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() : 
@@ -28,16 +28,16 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
   //DataSet::DataType indextype = DataSet::UNKNOWN_DATA;
 
   // Buffer file
-  BufferedFile buffer;
+  BufferedLine buffer;
   if (buffer.OpenRead( fname )) return 1;
   buffer.SetupBuffer();
 
   // Read the first line. Attempt to determine the number of columns
-  const char* linebuffer = buffer.NextLine();
+  const char* linebuffer = buffer.Line();
   if (linebuffer == 0) return 1;
   int ntoken = buffer.TokenizeLine( SEPARATORS );
   if ( ntoken == 0 ) {
-    mprinterr("Error: No columns detected in %s\n", buffer.FullFileStr());
+    mprinterr("Error: No columns detected in %s\n", buffer.Filename().full());
     return 1;
   }
 
@@ -50,7 +50,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
       indexcol = 0;
     // Read in next non # line, should be data.
     while (linebuffer[0] == '#') {
-      linebuffer = buffer.NextLine();
+      linebuffer = buffer.Line();
       if (linebuffer == 0) return 1;
     }
     if (buffer.TokenizeLine( SEPARATORS ) != ntoken) {
@@ -73,10 +73,10 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
       // STRING columns cannot be index columns
       if ( col == indexcol ) {
         mprinterr("Error: DataFile %s index column %i has string values.\n", 
-                  buffer.FullFileStr(), indexcol+1);
+                  buffer.Filename().full(), indexcol+1);
         return 1;
       }
-      dset = datasetlist.AddSetIdx( DataSet::STRING, buffer.BaseFileName(), col+1 );
+      dset = datasetlist.AddSetIdx( DataSet::STRING, buffer.Filename().Base(), col+1 );
     } else if ( isdigit( token[0] ) || 
                 token[0]=='+' || 
                 token[0]=='-' ||
@@ -85,13 +85,13 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
       if ( strchr( token, '.' ) != 0 ) {
         //mprintf(" DOUBLE!\n");
         if ( col != indexcol )
-          dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.BaseFileName(), col+1 );
+          dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.Filename().Base(), col+1 );
         //else
         //  indextype = DataSet::DOUBLE;
       } else {
         //mprintf(" INTEGER!\n");
         if (col != indexcol)
-          dset = datasetlist.AddSetIdx( DataSet::INT, buffer.BaseFileName(), col+1 );
+          dset = datasetlist.AddSetIdx( DataSet::INT, buffer.Filename().Base(), col+1 );
         //else
         //  indextype = DataSet::INT;
       }
@@ -101,7 +101,8 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
       dset->SetLegend( labels[col] );
 
     if ( col != indexcol && dset == 0 ) {
-      mprinterr("Error: DataFile %s: Could not identify column %i", buffer.FullFileStr(), col+1);
+      mprinterr("Error: DataFile %s: Could not identify column %i", 
+                buffer.Filename().full(), col+1);
       mprinterr(" (token=%s)\n",token);
       return 1;
     }
@@ -148,9 +149,9 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
         default: continue; 
       }
     }
-  } while (buffer.NextLine() != 0);
+  } while (buffer.Line() != 0);
   buffer.CloseFile();
-  mprintf("\tDataFile %s has %i columns.\n", buffer.FullFileStr(), ntoken);
+  mprintf("\tDataFile %s has %i columns.\n", buffer.Filename().full(), ntoken);
   if (hasLabels) {
     mprintf("\tDataFile contains labels:\n");
     labels.PrintList();
@@ -303,7 +304,7 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet& set ) {
   set.GetDimensions(dimensions);
   if (dimensions.size() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              set.Legend().c_str(), file.FullFileStr(), dimensions.size());
+              set.Legend().c_str(), file.Filename().full(), dimensions.size());
     return 1;
   }
   

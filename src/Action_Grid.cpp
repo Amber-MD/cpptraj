@@ -7,18 +7,19 @@ Action_Grid::Action_Grid() :
   max_(0.80),
   madura_(0),
   smooth_(0),
-  invert_(false)
+  invert_(false),
+  dxform_(false)
 {}
 
 void Action_Grid::Help() {
-  mprintf("grid <filename>");
-  Grid::Help();
-  mprintf(" <mask>\n"); 
-  mprintf("     [max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");
-  mprintf("     [pdb <pdbout>]\n\n");
-  mprintf("<fraction>: Percent of max to write.\n");
-  mprintf("<madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.\n");
-  mprintf("<value>   : Used to smooth density.\n");
+  mprintf("\t<filename> %s <mask>\n", Grid::HelpText);
+  mprintf("\t[max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");
+  mprintf("\t[pdb <pdbout>] [opendx]\n");
+  mprintf("\tBin atoms in <mask> into a 3D grid.\n");
+  mprintf("\t<fraction>: Percent of max to write.\n");
+  mprintf("\t<madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.\n");
+  mprintf("\t<value>   : Used to smooth density.\n");
+  mprintf("\t[opendx]  : Write the density file in OpenDX format.\n");
 }
 
 // Action_Grid::init()
@@ -40,6 +41,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   madura_ = actionArgs.getKeyDouble("madura", 0);
   smooth_ = actionArgs.getKeyDouble("smoothdensity", 0);
   invert_ = actionArgs.hasKey("invert");
+  dxform_ = actionArgs.hasKey("opendx");
   pdbname_ = actionArgs.GetStringKey("pdb"); 
 
   // Get mask
@@ -69,7 +71,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 // Action_Grid::setup()
 Action::RetType Action_Grid::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup grid, checks box info.
-  if (grid_.GridSetup( currentParm )) return Action::ERR;
+  if (grid_.GridSetup( *currentParm )) return Action::ERR;
 
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ ))
@@ -139,8 +141,11 @@ void Action_Grid::Print() {
   } 
 
   // Write Xplor file
-  grid_.PrintXplor( filename_, "This line is ignored", 
-                    "rdparm generated grid density" );
+  if (dxform_)
+    grid_.PrintDX(filename_);
+  else
+    grid_.PrintXplor( filename_, "This line is ignored", 
+                      "rdparm generated grid density" );
 
   // PDBfile output
   mprintf("    GRID: grid max is %.3lf\n", gridMax);

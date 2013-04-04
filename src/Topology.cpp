@@ -295,11 +295,22 @@ void Topology::PrintResidueInfo(std::string const& maskString) {
                                       res != residues_.end(); res++)
   {
     if ( mask.AtomsInCharMask( (*res).FirstAtom(), (*res).LastAtom() ) ) {
-      mprintf("\tResidue %u, %s, first atom %i, last atom %i\n",
-              rnum, (*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom()+1);
+      mprintf("\tResidue %u %s first atom %i last atom %i\n",
+              rnum, (*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom());
     }
     ++rnum;
   }
+}
+
+void Topology::PrintChargeInfo(std::string const& maskString) {
+  AtomMask mask( maskString );
+  ParseMask(refCoords_, mask, true); // Int mask
+  double sumq = 0.0;
+  for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
+    sumq += atoms_[*aidx].Charge();
+  mprintf("\tSum of charges in mask");
+  mask.BriefMaskInfo();
+  mprintf(" is %f\n", sumq);
 }
 
 // -----------------------------------------------------------------------------
@@ -840,7 +851,7 @@ void Topology::VisitAtom(int atomnum, int mol) {
 int Topology::DetermineMolecules() {
   std::vector<Atom>::iterator atom;
 
-  mprintf("\t%s: determining molecule info from bonds.\n",c_str());
+  if (debug_ > 0) mprintf("\t%s: determining molecule info from bonds.\n",c_str());
   // Reset molecule info for each atom
   for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
     (*atom).SetMol( -1 );
@@ -1225,7 +1236,7 @@ void Topology::MaskSelectElements( NameType const& element, char* mask ) const {
   for (std::vector<Atom>::const_iterator atom = atoms_.begin();
                                          atom != atoms_.end(); ++atom)
   {
-    NameType atom_element( Atom::AtomicElementName[(*atom).Element()] );
+    NameType atom_element( (*atom).ElementName() );
     if ( atom_element.Match( element ) )
       mask[m] = 'T';
     ++m;

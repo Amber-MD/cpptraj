@@ -4,9 +4,8 @@
 // CONSTRUCTOR
 ActionFrameCounter::ActionFrameCounter() : start_(0), stop_(-1), offset_(1) {}
 
-void ActionFrameCounter::Help() {
-  mprintf("[start <start>] [stop <stop>] [offset <offset>]");
-}
+const char* ActionFrameCounter::HelpText = 
+  "[start <start>] [stop <stop>] [offset <offset>]";
 
 /** Expected args: [start <start>] [stop <stop>] [offset <offset>] 
   * Defaults: start = 1, stop = -1 (end frame), offset = 1
@@ -47,4 +46,11 @@ void ActionFrameCounter::FrameCounterInfo() {
   if (offset_ > 1)
     mprintf("  Offset: %i", offset_);
   mprintf("\n");
+}
+
+void ActionFrameCounter::FrameCounterBrief() {
+  if (stop_ != -1)
+    mprintf(" (%i-%i, %i)", start_+1, stop_+1, offset_);
+  else
+    mprintf(" (%i-Last, %i)", start_+1, offset_);
 }

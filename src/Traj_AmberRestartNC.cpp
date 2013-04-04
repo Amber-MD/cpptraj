@@ -22,7 +22,7 @@ Traj_AmberRestartNC::~Traj_AmberRestartNC() {
 }
 
 bool Traj_AmberRestartNC::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( GetNetcdfConventions( fileIn.FullFileStr() ) == NC_AMBERRESTART ) return true;
+  if ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERRESTART ) return true;
   return false;
 }
 
@@ -49,7 +49,7 @@ int Traj_AmberRestartNC::openTrajin() {
   */
 int Traj_AmberRestartNC::setupTrajin(std::string const& fname, Topology* trajParm)
 {
-  filename_.SetFileName( fname );
+  filename_.SetFileNameWithExpansion( fname );
   if (openTrajin()) return TRAJIN_ERR;
   // Sanity check - Make sure this is a Netcdf restart
   if ( GetNetcdfConventions() != NC_AMBERRESTART ) {
