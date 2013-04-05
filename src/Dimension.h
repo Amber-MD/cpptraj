@@ -2,6 +2,7 @@
 #define INC_DIMENSION_H
 #include <string>
 /// Holds information about a coordinate dimension.
+//TODO: Split into Dimension and HistDimension
 class Dimension {
   public:
     Dimension();
@@ -21,6 +22,8 @@ class Dimension {
     double Step()              const { return step_;   }
     int Bins()                 const { return bins_;   }
     int Offset()               const { return offset_; }
+    // TODO: Use offset in Coord calc?
+    double Coord(size_t i)     const { return ((step_ * (double)i) + min_); }
     /// Attempt to set up bins or step.
     int CalcBinsOrStep();
     void PrintDim() const;

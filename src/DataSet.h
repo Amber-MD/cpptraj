@@ -1,8 +1,9 @@
 #ifndef INC_DATASET_H
 #define INC_DATASET_H
-#include <cstddef>
-#include <vector>
-#include "Dimension.h"
+#include <cstddef> // size_t
+#include <string> // needed if Dimension not included
+//#include <vector>
+//#incl ude "Dimension.h"
 // Class: DataSet
 /// Base class that all DataSet types will inherit.
 /** DataSets are given certain attributes to make DataSet selection easier; 
@@ -16,15 +17,11 @@
   */
 class DataSet {
   public:
-    /// Type to hold coordinate info for each dimension in DataSet.
-    typedef std::vector<Dimension> DimArray;
     typedef DataSet* (*AllocatorType)();
     /// Type of data stored in DataSet
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
-      MATRIX_VEC3, COORDS, VECTOR, MODES
-      //UNKNOWN_DATA=0, DOUBLE, STRING, INT, FLOAT, VECTOR, MATRIX, MODES, 
-      //HIST, TRIMATRIX, MATRIX2D, COORDS
+      COORDS, VECTOR, MODES
     };
     /// Source of data stored in DataSet, used by Analysis_Statistics
     enum scalarMode {
@@ -48,7 +45,7 @@ class DataSet {
     // ----------===== Inheritable functions =====----------
     /// \return the number of data elements stored in the set.
     virtual size_t Size() const = 0;
-    /// Consolodate this DataSet across all threads (MPI only)
+    /// Consolidate this DataSet across all threads (MPI only)
     virtual int Sync() = 0;
     /// Print DataSet information
     virtual void Info() const = 0;
@@ -62,6 +59,8 @@ class DataSet {
     void SetLegend( std::string const& lIn ) { legend_ = lIn;     }
     /// Set scalar mode
     void SetScalar( scalarMode mIn )         { scalarmode_ = mIn; }
+    /// Set dimension.
+//    Dimension& SetDimension(unsigned int idx){ return dim_[idx];  }
     /// Set scalar mode and type
     inline void SetScalar( scalarMode, scalarType );
     /// Used to set the data and header format strings 
@@ -91,9 +90,10 @@ class DataSet {
     /// \return scalar type
     scalarType ScalarType()     const { return scalartype_;        }
     /// \return DataSet dimension array.
-    const DimArray& Dim()       const { return dim_;               }
+//    const DimArray& Dim()       const { return dim_;               }
     /// \return number of dimensions.
-    int Ndim()                  const { return (int)dim_.size();   }
+//    int Ndim()                  const { return (int)dim_.size();   }
+    size_t Ndim()               const { return dim_;               }
     /// Comparison for sorting, name/aspect/idx
     inline bool operator<(const DataSet&) const;
   protected:
@@ -106,7 +106,8 @@ class DataSet {
     std::string aspect_;      ///< DataSet aspect.
     std::string legend_;      ///< DataSet legend.
     DataType dType_;          ///< The DataSet type
-    DimArray dim_;            ///< Holds info for writing each dimension in the data set.
+//    DimArray dim_;            ///< Holds info for writing each dimension in the data set.
+    size_t dim_;              ///< Dimenisonality of the DataSet.
     int colwidth_;            ///< The total output width of a data element.
     int width_;               ///< The output width of numbers in a data element.
     int precision_;           ///< The output precision of numbers in a data element.

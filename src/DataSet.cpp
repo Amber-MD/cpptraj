@@ -8,7 +8,7 @@ DataSet::DataSet() :
   data_format_(0),
   idx_(-1),
   dType_(UNKNOWN_DATA),
-  dim_(0),
+//  dim_(0),
   colwidth_(0),
   width_(0),
   precision_(0),
@@ -27,7 +27,7 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   data_format_(0),
   idx_(-1),
   dType_(typeIn),
-  dim_(dimIn),
+//  dim_(dimIn),
   colwidth_(widthIn),
   width_(widthIn),
   precision_(precisionIn),
@@ -36,6 +36,7 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
 {
   SetDataSetFormat(false);
   // Allocate default values for dimensions
+/*
   for (unsigned int d = 0; d < dim_.size(); ++d) {
     switch (d) {
       case 0: dim_[d].SetLabel("X"); break;
@@ -44,7 +45,8 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
       default: dim_[d].SetLabel("D" + integerToString(d));
     }
     dim_[d].SetStep(1.0);
-  }   
+  }
+*/   
 }  
 
 // COPY CONSTRUCTOR
@@ -55,7 +57,7 @@ DataSet::DataSet(const DataSet& rhs) :
   aspect_(rhs.aspect_),
   legend_(rhs.legend_),
   dType_(rhs.dType_),
-  dim_(rhs.dim_),
+//  dim_(rhs.dim_),
   colwidth_(rhs.colwidth_),
   width_(rhs.width_),
   precision_(rhs.precision_),
@@ -75,7 +77,7 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
   aspect_ = rhs.aspect_;
   legend_ = rhs.legend_;
   dType_ = rhs.dType_;
-  dim_ = rhs.dim_;
+//  dim_ = rhs.dim_;
   colwidth_ = rhs.colwidth_;
   width_ = rhs.width_;
   precision_ = rhs.precision_;
@@ -144,19 +146,20 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   switch (dType_) {
 //    case HIST  :
 //    case MATRIX2D:
+//    case MATRIX_VEC3:
     case MATRIX_DBL:
-    case DOUBLE: format_ = SetDoubleFormatString(width_, precision_, 0, leftAlign); break;
+    case DOUBLE : format_ = SetDoubleFormatString(width_, precision_, 0, leftAlign); break;
 //    case TRIMATRIX:
     case MATRIX_FLT:
-    case COORDS: format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
-//    case FLOAT : format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
-//    case INT   : format_ = SetIntegerFormatString(width_, leftAlign); break;
-//    case STRING: format_ = SetStringFormatString(width_, leftAlign); break;
-//    case MODES :
+    case COORDS : 
+    case FLOAT  : format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
+    case INTEGER: format_ = SetIntegerFormatString(width_, leftAlign); break;
+    case STRING : format_ = SetStringFormatString(width_, leftAlign); break;
+    case MODES :
 //    case MATRIX:
-//    case VECTOR: // No left-align allowed for now with VECTOR.
-//      format_ = SetDoubleFormatString(width_, precision_, 0, false); 
-//      colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz
+    case VECTOR: // No left-align allowed for now with VECTOR.
+      format_ = SetDoubleFormatString(width_, precision_, 0, false); 
+      colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz
       break;
     default:
       mprinterr("Error: No format string defined for this data type (%s).\n", 
