@@ -13,7 +13,8 @@ std::string tildeExpansion(const char *);
 bool fileExists(const char *);
 
 std::string NumberFilename(std::string const &, int);
-int DigitWidth(int);
+int DigitWidth(long int);
+int FloatWidth(double);
 
 int convertToInteger(std::string const &);
 double convertToDouble(std::string const &);

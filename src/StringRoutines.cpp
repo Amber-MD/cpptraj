@@ -59,24 +59,31 @@ std::string NumberFilename(std::string const &fname, int number) {
 }
 
 // DigitWidth()
-/** Return the number of characters necessary to express the given digit. */
-int DigitWidth(int numberIn) {
-  float numf;
-  int numi;
+/** \return the number of characters necessary to express the given digit. */
+int DigitWidth(long int numberIn) {
+  double numf;
   int minusSign = 0;
 
-  if (numberIn==0) return 1;
-  if (numberIn<0) {
-    numf = (float) (-numberIn);
+  if (numberIn == 0L) return 1;
+  if (numberIn < 0L) {
+    numf = (double)(-numberIn);
     minusSign = 1;
   } else
-    numf = (float) numberIn;
+    numf = (double) numberIn;
 
   numf = log10( numf );
   ++numf;
-  // The cast back to int implicitly rounds down
-  numi = (int) numf;
+  // The cast back to long int implicitly rounds down
+  int numi = (int)numf;
   return (minusSign + numi);
+}
+
+// FloatWidth()
+/** \return the number of characters necessary to express given float. */
+int FloatWidth(double floatIn) {
+  double float_exponent = fabs( log10( floatIn ) );
+  ++float_exponent;
+  return (int)float_exponent; // Cast to int implicitly rounds down
 }
 
 // ---------- STRING CONVERSION ROUTINES --------------------------------------- 
