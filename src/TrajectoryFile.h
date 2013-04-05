@@ -19,16 +19,16 @@ class TrajectoryFile {
 
     TrajectoryFile();
     virtual ~TrajectoryFile() {}
-    /// Return string corresponding to given format.
-    static const char* FormatString( TrajFormatType );
-    /// Get format type from keyword in ArgList. 
+    /// \return format type from keyword in ArgList. 
     static TrajFormatType GetFormatFromArg(ArgList&);
-    /// Get format type from keyword.
+    /// \return format type from keyword.
     static TrajFormatType GetFormatFromString(std::string const&);
-    /// Get standard file extension for trajectory format
+    /// \return standard file extension for trajectory format.
     static std::string GetExtensionForType(TrajFormatType);
-    /// Get type from extension
+    /// \return type from extension.
     static TrajFormatType GetTypeFromExtension(std::string const&);
+    /// \return string corresponding to given format.
+    static const char* FormatString( TrajFormatType );
 
     void SetDebug(int);
     void SetTrajFileName( std::string const& );
