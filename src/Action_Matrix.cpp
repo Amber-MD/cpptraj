@@ -155,11 +155,9 @@ Action_Matrix::Darray Action_Matrix::FillMassArray(Topology const& currentParm,
                                                    AtomMask const& mask) const
 {
   Darray mass;
-  if (Mat_->Type() == DataSet_2D::MWCOVAR) {
-    mass.reserve( mask.Nselected() );
-    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) 
-      mass.push_back( currentParm[ *atom ].Mass() );
-  }
+  mass.reserve( mask.Nselected() );
+  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) 
+    mass.push_back( currentParm[ *atom ].Mass() );
   return mass;
 }
 
@@ -174,7 +172,7 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   size_t mask1tot = 0; // Will be # of columns
   size_t mask2tot = 0; // Will be # of rows if not symmetric matrix
 
-  // Set up masks. Store mass info for masks if MWCOVAR
+  // Set up masks.
   if (Mat_->Type() != DataSet_2D::IRED) {
     if (currentParm->SetupIntegerMask(mask1_)) return Action::ERR;
     mask1_.MaskInfo();
@@ -182,7 +180,6 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
       mprinterr("Error: No atoms selected for mask1.\n");
       return Action::ERR;
     }
-    mass1_ = FillMassArray(*currentParm, mask1_); // MWCOVAR only
     if (useMask2_) {
       if (currentParm->SetupIntegerMask(mask2_)) return Action::ERR;
       mask2_.MaskInfo(); 
@@ -190,7 +187,6 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
         mprinterr("Error: No atoms selected for mask2.\n");
         return Action::ERR;
       }
-      mass2_ = FillMassArray(*currentParm, mask2_); // MWCOVAR only
     }
     mask1tot = (size_t)mask1_.Nselected();
     mask2tot = (size_t)mask2_.Nselected();
@@ -208,6 +204,8 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   size_t ncols = 0;
   size_t nrows = 0;
   switch( Mat_->Type() ) {
+    case DataSet_2D::CORREL   : // Like DIST but vectors required. 
+      vectsize = (mask1tot + mask2tot) * 3;
     case DataSet_2D::DIST     : // No vectors required.
       ncols = mask1tot;
       nrows = mask2tot;
@@ -217,13 +215,12 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
       ncols = vectsize;
       if (mask2tot > 0) return PrintMask2Error();
       break;
-    case DataSet_2D::CORREL   : // TODO: Could merge above DIST case
-      vectsize = (mask1tot + mask2tot) * 3;
-      nrows = mask1tot;
-      ncols = mask2tot;
-      break;
-    case DataSet_2D::COVAR    :
     case DataSet_2D::MWCOVAR  :
+      // Mass info needed for MWCOVAR analysis, store in matrix dataset.
+      mass1_ = FillMassArray(*currentParm, mask1_);
+      mass2_ = FillMassArray(*currentParm, mask2_);
+      Mat_->StoreMass( mass1_ );
+    case DataSet_2D::COVAR    :
       vectsize = (mask1tot + mask2tot) * 3;
       ncols = mask1tot * 3;
       nrows = mask2tot * 3;
@@ -252,9 +249,6 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
     mprinterr("Error: different topology files.\n");
     return Action::ERR;
   }
-  // Mass info needed for MWCOVAR analysis, store in matrix dataset.
-  if (Mat_->Type() == DataSet_2D::MWCOVAR) 
-    Mat_->StoreMass( mass1_ );
   CurrentParm_ = currentParm;
   return Action::OK;
 }
