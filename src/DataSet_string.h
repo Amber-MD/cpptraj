@@ -1,5 +1,6 @@
 #ifndef INC_DATASET_STRING_H
 #define INC_DATASET_STRING_H
+#include <vector>
 #include <string>
 #include "DataSet_1D.h"
 // Class: DataSet_string

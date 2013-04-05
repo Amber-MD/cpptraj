@@ -1,5 +1,6 @@
 #ifndef INC_DATASET_DOUBLE_H
 #define INC_DATASET_DOUBLE_H
+#include <vector>
 #include "DataSet_1D.h"
 // Class: DataSet_double
 /// Hold an array of double values.

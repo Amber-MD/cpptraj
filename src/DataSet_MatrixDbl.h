@@ -1,10 +1,16 @@
 #ifndef INC_DATASET_MATRIXDBL_H
 #define INC_DATASET_MATRIXDBL_H
+#include <vector>
 #include "DataSet_2D.h"
 #include "Matrix.h"
 /// Double-precision two-dimensional matrix.
+/** This is the class used by Action_Matrix. */
 class DataSet_MatrixDbl : public DataSet_2D {
   public:
+    /// Types of matrix calculated by Action_Matrix.
+    enum MatrixType {
+      NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED, NMAT
+    };
     DataSet_MatrixDbl() : DataSet_2D(MATRIX_DBL, 12, 4) {}
     double& operator[](size_t idx)             { return mat_[idx];          }
     static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixDbl();     }
@@ -24,7 +30,26 @@ class DataSet_MatrixDbl : public DataSet_2D {
     // -------------------------------------------
     int AddElement(double d)                   { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,double d){ mat_.setElement(x,y,d);    }
+    // Iterator over matrix elements.
+    typedef Matrix<double>::iterator iterator;
+    iterator begin()                           { return mat_.begin();       }
+    iterator end()                             { return mat_.end();         }
+    // Iterator over diagonal vector elements.
+    typedef std::vector<double> Darray;
+    typedef Darray::iterator v_iterator;
+    v_iterator v1begin()                       { return vect_.begin();      }
+    v_iterator v1end()                         { return vect_.end();        }
+    void AllocateVector(size_t vsize)          { vect_.resize(vsize, 0.0);  }
+    // Strings used in Matrix/Eigenmode output.
+    static const char* MatrixTypeString[];
+    static const char* MatrixOutputString[];
+    void SetType(MatrixType tIn)               { type_ = tIn;               }
+    MatrixType Type()                    const { return type_;              }
+    void StoreMass(Darray const& mIn)          { mass_ = mIn;               }
   private:
-    Matrix<double> mat_;
+    Matrix<double> mat_;       ///< Matrix elements.
+    Darray vect_;              ///< Hold diagonal elements | avg coords
+    Darray mass_;              ///< Hold masses, for MWCOVAR quasiharmonic analysis. 
+    MatrixType type_;          ///< Matrix type.
 };
 #endif

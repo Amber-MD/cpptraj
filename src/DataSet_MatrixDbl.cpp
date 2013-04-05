@@ -13,3 +13,26 @@ double* DataSet_MatrixDbl::MatrixArray() const {
   std::copy( mat_.Ptr(), mat_.Ptr() + mat_.size(), matOut );
   return matOut;
 }
+
+/// Strings corresponding to MatrixType enumerated type.
+const char* DataSet_MatrixDbl::MatrixTypeString[] = {
+  "UNDEFINED",
+  "distance matrix",
+  "covar matrix",
+  "mass weighted covar matrix",
+  "correlation matrix",
+  "distance covar matrix",
+  "idea matrix",
+  "ired matrix"
+};
+
+const char* DataSet_MatrixDbl::MatrixOutputString[] = {
+  "UNKNOWN",
+  "DIST",
+  "COVAR",
+  "MWCOVAR",
+  "CORREL",
+  "DISTCOVAR",
+  "IDEA",
+  "IRED"
+};

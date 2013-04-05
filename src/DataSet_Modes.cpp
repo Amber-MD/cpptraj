@@ -273,7 +273,7 @@ int DataSet_Modes::WriteToFile(std::string const& fname) {
     outfile.Printf(" Reduced Eigenvector file: ");
   else
     outfile.Printf(" Eigenvector file: ");
-  outfile.Printf("%s", DataSet_2D::MatrixOutputString[type_]);
+  outfile.Printf("%s", DataSet_MatrixDbl::MatrixOutputString[type_]);
   // Write out # of modes on title line to not break compat. with older modes files
   outfile.Printf(" nmodes %i", nmodes_);
   // Write out col width on title line to not break compat. with older modes files
@@ -328,21 +328,21 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
   // Check if reduced
   reduced_ = title.hasKey("Reduced");
   // Determine modes file type
-  type_ = DataSet_2D::NO_OP;
-  for (int matidx = (int)DataSet_2D::NO_OP + 1; 
-           matidx != (int)DataSet_2D::NMAT; ++matidx)
+  type_ = DataSet_MatrixDbl::NO_OP;
+  for (int matidx = (int)DataSet_MatrixDbl::NO_OP + 1; 
+           matidx != (int)DataSet_MatrixDbl::NMAT; ++matidx)
   {
-    if ( title.hasKey( DataSet_2D::MatrixOutputString[matidx] ))
+    if ( title.hasKey( DataSet_MatrixDbl::MatrixOutputString[matidx] ))
     {
-      type_ = (DataSet_2D::MatrixType)matidx;
+      type_ = (DataSet_MatrixDbl::MatrixType)matidx;
       break;
     }
   }
   // For compatibility with quasih and nmode output
-  if (type_ == DataSet_2D::NO_OP) {
+  if (type_ == DataSet_MatrixDbl::NO_OP) {
     mprintf("Warning: ReadEvecFile(): Unrecognized type [%s]\n", title.ArgLine());
     mprintf("         Assuming MWCOVAR.\n");
-    type_ = DataSet_2D::MWCOVAR;
+    type_ = DataSet_MatrixDbl::MWCOVAR;
   }
   // For newer modesfiles, get # of modes in file.
   int modesInFile = title.getKeyInt("nmodes",-1);

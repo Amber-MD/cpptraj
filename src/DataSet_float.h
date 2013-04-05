@@ -1,5 +1,6 @@
 #ifndef INC_DATASET_FLOAT_H
 #define INC_DATASET_FLOAT_H
+#include <vector>
 #include "DataSet_1D.h"
 // Class: DataSet_float
 /// Hold an array of float values.

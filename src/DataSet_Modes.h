@@ -1,6 +1,6 @@
 #ifndef INC_DATASET_MODES_H
 #define INC_DATASET_MODES_H
-#include "DataSet_2D.h"
+#include "DataSet_MatrixDbl.h"
 /// Hold eigenvalues/eigenvectors and optionally averaged coords.
 class DataSet_Modes : public DataSet {
   public:
@@ -22,7 +22,7 @@ class DataSet_Modes : public DataSet {
     int ReduceCovar();
     int ReduceDistCovar(int);
 
-    void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
+    void SetType( DataSet_MatrixDbl::MatrixType typeIn ) { type_ = typeIn; }
 
     const double* AvgCrd()            { return avgcrd_;                    }
     const double* Eigenvalues()       { return evalues_;                   } 
@@ -32,7 +32,7 @@ class DataSet_Modes : public DataSet {
     int Nmodes()                      { return nmodes_;                    }
     int VectorSize()                  { return vecsize_;                   }
     int NavgCrd()                     { return navgcrd_;                   }
-    DataSet_2D::MatrixType Type() { return type_;                      }
+    DataSet_MatrixDbl::MatrixType Type() { return type_;                      }
   private:
     double* avgcrd_;
     double* evalues_;
@@ -40,7 +40,7 @@ class DataSet_Modes : public DataSet {
     int nmodes_;
     int vecsize_;
     int navgcrd_;
-    DataSet_2D::MatrixType type_;
+    DataSet_MatrixDbl::MatrixType type_;
     bool reduced_;
 };
 #endif

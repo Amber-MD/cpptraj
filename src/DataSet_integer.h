@@ -1,5 +1,6 @@
 #ifndef INC_DATASET_INTEGER_H
 #define INC_DATASET_INTEGER_H
+#include <vector>
 #include "DataSet_1D.h"
 // Class: DataSet_integer
 /// Hold an array of integer values.

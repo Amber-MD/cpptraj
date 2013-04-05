@@ -23,15 +23,15 @@ class DataSetList {
     /// DataSetList default iterator
     typedef std::vector<DataSet*>::const_iterator const_iterator;
     /// Iterator to beginning of dataset list
-    const_iterator begin() const { return DataList_.begin();     }
+    const_iterator begin() const { return DataList_.begin(); }
     /// Iterator to end of dataset list
-    const_iterator end()   const { return DataList_.end();       }
+    const_iterator end()   const { return DataList_.end();   }
     /// True if no DataSets in list.
-    bool empty()           const { return DataList_.empty();     }
+    bool empty()           const { return DataList_.empty(); }
     /// Return number of datasets in the list 
-    int size()             const { return (int)DataList_.size(); }
+    size_t size()          const { return DataList_.size();  }
     /// Return the max # expected frames
-    int MaxFrames()        const { return maxFrames_;            }
+    int MaxFrames()        const { return maxFrames_;        }
     /// Erase set from list
     void erase( const_iterator );
     /// Sort DataSets in list.
