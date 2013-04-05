@@ -5,15 +5,12 @@
 /// Read/write Grace data files.
 class DataIO_Grace : public DataIO {
   public:
-    DataIO_Grace();
-
+    DataIO_Grace() {}
+    static DataIO* Alloc() { return (DataIO*)new DataIO_Grace(); } 
     int ReadData(std::string const&,DataSetList&);
     int processWriteArgs(ArgList &);
-    int WriteData(std::string const&,DataSetList&);
-    int WriteDataInverted(std::string const&,DataSetList&);
-  private:
-    std::string y_label_;
-    double ymin_;
-    double ystep_;
+    int WriteData(std::string const&,DataSetList const&, DimArray const&);
+    int WriteDataInverted(std::string const&,DataSetList const&, DimArray const&);
+    int WriteData2D(std::string const&, DataSet const&, DimArray const&) { return 1; }
 };
 #endif

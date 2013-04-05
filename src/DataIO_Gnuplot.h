@@ -6,20 +6,19 @@
 class DataIO_Gnuplot : public DataIO {
   public:
     DataIO_Gnuplot();
-
-    int processWriteArgs(ArgList &);
-    int WriteData(std::string const&,DataSetList&);
-    //int WriteDataInverted(DataSetList&);
-    int WriteData2D( std::string const&,DataSet& );
+    static DataIO* Alloc() { return (DataIO*)new DataIO_Gnuplot(); }
+    int ReadData(std::string const&,DataSetList&) { return 1; }
+    int processWriteArgs(ArgList&);
+    int WriteData(std::string const&,DataSetList const&,DimArray const&);
+    int WriteDataInverted(std::string const&,DataSetList const&,DimArray const&) { return 1; }
+    int WriteData2D( std::string const&,DataSet const&, DimArray const&);
+    bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
-    std::string y_label_;
-    double ymin_;
-    double ystep_;
     CpptrajFile file_;
-
-    std::vector<std::string> Xlabels_;
-    std::vector<std::string> Ylabels_;
-    std::vector<std::string> Zlabels_;
+    typedef std::vector<std::string> LabelArray;
+    LabelArray Xlabels_;
+    LabelArray Ylabels_;
+    LabelArray Zlabels_;
 
     enum PM3D_OPT { OFF = 0, ON, MAP, C2C };
     static const char* BasicPalette[];
@@ -29,13 +28,14 @@ class DataIO_Gnuplot : public DataIO {
     bool jpegout_;
     bool binary_;
 
-    void LabelArg(std::vector<std::string>&, std::string const&);
-    std::string Pm3d();
-    void WriteRangeAndHeader(double, double, std::string const&);
+    static LabelArray LabelArg(std::string const&);
+    std::string Pm3d(size_t);
+    void WriteRangeAndHeader(Dimension const&, size_t, Dimension const&, size_t,
+                             std::string const&);
     void Finish();
-    void JpegOut(int,int);
+    void JpegOut(size_t,size_t);
     void WriteDefinedPalette(int);
-    int WriteDataAscii(std::string const&,DataSetList&);
-    int WriteDataBinary(std::string const&,DataSetList&);
+    int WriteDataAscii(std::string const&,DataSetList const&, DimArray const&);
+    int WriteDataBinary(std::string const&,DataSetList const&, DimArray const&);
 };
 #endif
