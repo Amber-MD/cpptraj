@@ -20,7 +20,9 @@ class DataSet_MatrixFlt : public DataSet_2D {
     double GetElement(size_t x,size_t y) const { return (float)mat_.element(x,y);}
     size_t Nrows()                       const { return mat_.Nrows();       }
     size_t Ncols()                       const { return mat_.Ncols();       }
-    double* MatrixArray()                const; 
+    double* MatrixArray()                const;
+    DataSet_2D::MType Kind()             const { return (DataSet_2D::MType)mat_.Type(); }
+    DataSet_2D::MatrixType Type()        const { return DataSet_2D::NO_OP;  }
     // -------------------------------------------
     int AddElement(float d)                    { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,float d) { mat_.setElement(x,y,d);    }

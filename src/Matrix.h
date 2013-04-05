@@ -4,7 +4,7 @@
 /// Two-dimensional matrix template.
 template <class T> class Matrix {
   public:
-    enum MType { FULL = 0, HALF, TRI }; 
+    enum MType { FULL = 0, HALF, TRIANGLE }; 
     Matrix() :
       elements_(0), ncols_(0L), nrows_(0L), nelements_(0L), 
       currentElement_(0L), type_(FULL), calcIndex(calcFullIndex) {}
@@ -175,7 +175,7 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
     nrows_ = nY;
     nelements_ = ncols_ * (ncols_ - 1L) / 2L;
     calcIndex = calcTriIndex;
-    type_ = TRI;
+    type_ = TRIANGLE;
   } else { // Both Zero, EMPTY
     return 1;
   }

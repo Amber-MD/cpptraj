@@ -7,10 +7,6 @@
 /** This is the class used by Action_Matrix. */
 class DataSet_MatrixDbl : public DataSet_2D {
   public:
-    /// Types of matrix calculated by Action_Matrix.
-    enum MatrixType {
-      NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED, NMAT
-    };
     DataSet_MatrixDbl() : DataSet_2D(MATRIX_DBL, 12, 4) {}
     double& operator[](size_t idx)             { return mat_[idx];          }
     static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixDbl();     }
@@ -27,6 +23,8 @@ class DataSet_MatrixDbl : public DataSet_2D {
     size_t Nrows()                       const { return mat_.Nrows();       }
     size_t Ncols()                       const { return mat_.Ncols();       }
     double* MatrixArray()                const;
+    DataSet_2D::MType Kind()             const { return (DataSet_2D::MType)mat_.Type(); }
+    DataSet_2D::MatrixType Type()        const { return type_;              }
     // -------------------------------------------
     int AddElement(double d)                   { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,double d){ mat_.setElement(x,y,d);    }
@@ -40,11 +38,8 @@ class DataSet_MatrixDbl : public DataSet_2D {
     v_iterator v1begin()                       { return vect_.begin();      }
     v_iterator v1end()                         { return vect_.end();        }
     void AllocateVector(size_t vsize)          { vect_.resize(vsize, 0.0);  }
-    // Strings used in Matrix/Eigenmode output.
-    static const char* MatrixTypeString[];
-    static const char* MatrixOutputString[];
+    /// Set matrix type.
     void SetType(MatrixType tIn)               { type_ = tIn;               }
-    MatrixType Type()                    const { return type_;              }
     void StoreMass(Darray const& mIn)          { mass_ = mIn;               }
   private:
     Matrix<double> mat_;       ///< Matrix elements.
