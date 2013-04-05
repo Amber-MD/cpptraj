@@ -34,6 +34,49 @@ template <class T> class Matrix {
     T* Ptr()                 { return elements_;  }
     // DEBUG
     size_t CalcIndex(size_t x, size_t y) { return calcIndex(ncols_, x, y); }
+    // Iterator over matrix elements
+    class iterator : public std::iterator<std::forward_iterator_tag, T> {
+      public:
+        iterator() : ptr_(0) {}
+        iterator(const iterator& rhs) : ptr_(rhs.ptr_) {}
+        iterator(T* pin) : ptr_(pin) {}
+        iterator& operator=(const iterator& rhs) {
+          if (this == &rhs) return *this;
+          ptr_ = rhs.ptr_;
+          return *this;
+        }
+        // Relations
+        bool operator==(const iterator& rhs) { return (ptr_==rhs.ptr_);}
+        bool operator!=(const iterator& rhs) { return (ptr_!=rhs.ptr_);}
+        // Increment
+        iterator& operator++() {
+          ++ptr_;
+          return *this;
+        }
+        iterator operator++(int) {
+          iterator tmp(*this);
+          ++(*this);
+          return tmp;
+        }
+        // Value
+        T& operator*()  { return *ptr_; }
+        // Address
+        T* operator->() { return ptr_; }
+        // Addition
+        iterator& operator+=(int offset) {
+          ptr_ += offset;
+          return *this;
+        }
+        iterator operator+(int offset) {
+          iterator tmp(*this);
+          tmp += offset;
+          return tmp;
+        }
+      private:
+        T* ptr_;
+    };
+    iterator begin() { return elements_;              }
+    iterator end()   { return elements_ + nelements_; }
   private:
     T* elements_;           ///< Array of elements
     size_t ncols_;          ///< Number of columns (X)
