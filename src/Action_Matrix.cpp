@@ -33,21 +33,21 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Get start/stop/offset
   if (InitFrameCounter(actionArgs)) return Action::ERR;
   // Determine matrix type
-  DataSet_MatrixDbl::MatrixType mtype = DataSet_MatrixDbl::DIST;
+  DataSet_2D::MatrixType mtype = DataSet_2D::DIST;
   if (actionArgs.hasKey("distcovar"))
-    mtype = DataSet_MatrixDbl::DISTCOVAR;
+    mtype = DataSet_2D::DISTCOVAR;
   else if (actionArgs.hasKey("mwcovar"))
-    mtype = DataSet_MatrixDbl::MWCOVAR;
+    mtype = DataSet_2D::MWCOVAR;
   else if (actionArgs.hasKey("dist"))
-    mtype = DataSet_MatrixDbl::DIST;
+    mtype = DataSet_2D::DIST;
   else if (actionArgs.hasKey("covar"))
-    mtype = DataSet_MatrixDbl::COVAR;
+    mtype = DataSet_2D::COVAR;
   else if (actionArgs.hasKey("correl"))
-    mtype = DataSet_MatrixDbl::CORREL;
+    mtype = DataSet_2D::CORREL;
   else if (actionArgs.hasKey("idea"))
-    mtype = DataSet_MatrixDbl::IDEA;
+    mtype = DataSet_2D::IDEA;
   else if (actionArgs.hasKey("ired"))
-    mtype = DataSet_MatrixDbl::IRED;
+    mtype = DataSet_2D::IRED;
   // Output type
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRESIDUE;
@@ -58,9 +58,9 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else
     outtype_ = BYATOM;
   // Check if output type is valid for matrix type
-  if ( outtype_ != BYATOM && (mtype == DataSet_MatrixDbl::COVAR || 
-                              mtype == DataSet_MatrixDbl::MWCOVAR || 
-                              mtype == DataSet_MatrixDbl::IRED ) )
+  if ( outtype_ != BYATOM && (mtype == DataSet_2D::COVAR || 
+                              mtype == DataSet_2D::MWCOVAR || 
+                              mtype == DataSet_2D::IRED ) )
   {
     mprinterr("Error: matrix: for COVAR, MWCOVAR, or IRED matrix only byatom output possible\n");
     return Action::ERR;
@@ -70,15 +70,15 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // UseMass
   useMass_ = actionArgs.hasKey("mass");
 
-  if (mtype != DataSet_MatrixDbl::IRED) {
+  if (mtype != DataSet_2D::IRED) {
     // Get masks if not IRED
     mask1_.SetMaskString( actionArgs.GetMaskNext() );
     std::string maskexpr = actionArgs.GetMaskNext();
     if (!maskexpr.empty()) useMask2_ = true;
-    if ( useMask2_ && (mtype == DataSet_MatrixDbl::IDEA || mtype == DataSet_MatrixDbl::DISTCOVAR) )
+    if ( useMask2_ && (mtype == DataSet_2D::IDEA || mtype == DataSet_2D::DISTCOVAR) )
     {
       mprinterr("Error: Mask 2 [%s] specified but not used for %s\n",
-                maskexpr.c_str(), DataSet_MatrixDbl::MatrixTypeString[mtype]);
+                maskexpr.c_str(), DataSet_2D::MatrixTypeString(mtype));
       useMask2_ = false;
       return Action::ERR;
     }
@@ -112,7 +112,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (outtype_ == BYATOM)
     outfile_ = DFL->AddSetToFile(filename_, Mat_);
 
-  mprintf("    MATRIX: Calculating %s, output is", DataSet_MatrixDbl::MatrixTypeString[mtype]);
+  mprintf("    MATRIX: Calculating %s, output is", DataSet_2D::MatrixTypeString(mtype));
   switch (outtype_) {
     case BYATOM:    mprintf(" by atom"); break;
     case BYRESIDUE: mprintf(" by residue"); break;
@@ -125,7 +125,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       mprintf(" using no mass weighting");
   }
   mprintf("\n");
-  if (mtype == DataSet_MatrixDbl::IRED)
+  if (mtype == DataSet_2D::IRED)
     mprintf("            %u IRED vecs, Order of Legendre polynomials: %i\n",
             IredVectors_.size(), order_);
   if (!filename_.empty()) {
@@ -139,7 +139,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf("            Storing matrix on internal stack with name: %s\n", 
             Mat_->Legend().c_str());
   FrameCounterInfo();
-  if (mtype != DataSet_MatrixDbl::IRED) {
+  if (mtype != DataSet_2D::IRED) {
     mprintf("            Mask1: %s\n",mask1_.MaskString());
     if (useMask2_)
       mprintf("            Mask2: %s\n",mask2_.MaskString());
@@ -155,7 +155,7 @@ Action_Matrix::Darray Action_Matrix::FillMassArray(Topology const& currentParm,
                                                    AtomMask const& mask) const
 {
   Darray mass;
-  if (Mat_->Type() == DataSet_MatrixDbl::MWCOVAR) {
+  if (Mat_->Type() == DataSet_2D::MWCOVAR) {
     mass.reserve( mask.Nselected() );
     for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) 
       mass.push_back( currentParm[ *atom ].Mass() );
@@ -175,7 +175,7 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   size_t mask2tot = 0; // Will be # of rows if not symmetric matrix
 
   // Set up masks. Store mass info for masks if MWCOVAR
-  if (Mat_->Type() != DataSet_MatrixDbl::IRED) {
+  if (Mat_->Type() != DataSet_2D::IRED) {
     if (currentParm->SetupIntegerMask(mask1_)) return Action::ERR;
     mask1_.MaskInfo();
     if (mask1_.None()) {
@@ -208,28 +208,28 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   size_t ncols = 0;
   size_t nrows = 0;
   switch( Mat_->Type() ) {
-    case DataSet_MatrixDbl::DIST     : // No vectors required.
+    case DataSet_2D::DIST     : // No vectors required.
       ncols = mask1tot;
       nrows = mask2tot;
       break;
-    case DataSet_MatrixDbl::DISTCOVAR: // No Full matrix possible.
+    case DataSet_2D::DISTCOVAR: // No Full matrix possible.
       vectsize = mask1tot * (mask1tot - 1) / 2;
       ncols = vectsize;
       if (mask2tot > 0) return PrintMask2Error();
       break;
-    case DataSet_MatrixDbl::CORREL   : // TODO: Could merge above DIST case
+    case DataSet_2D::CORREL   : // TODO: Could merge above DIST case
       vectsize = (mask1tot + mask2tot) * 3;
       nrows = mask1tot;
       ncols = mask2tot;
       break;
-    case DataSet_MatrixDbl::COVAR    :
-    case DataSet_MatrixDbl::MWCOVAR  :
+    case DataSet_2D::COVAR    :
+    case DataSet_2D::MWCOVAR  :
       vectsize = (mask1tot + mask2tot) * 3;
       ncols = mask1tot * 3;
       nrows = mask2tot * 3;
       break;
-    case DataSet_MatrixDbl::IDEA     :
-    case DataSet_MatrixDbl::IRED     : // No Full matrix possible.
+    case DataSet_2D::IDEA     :
+    case DataSet_2D::IRED     : // No Full matrix possible.
       vectsize = mask1tot + mask2tot;
       ncols = mask1tot;
       if (mask2tot > 0) return PrintMask2Error();
@@ -253,7 +253,7 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
     return Action::ERR;
   }
   // Mass info needed for MWCOVAR analysis, store in matrix dataset.
-  if (Mat_->Type() == DataSet_MatrixDbl::MWCOVAR) 
+  if (Mat_->Type() == DataSet_2D::MWCOVAR) 
     Mat_->StoreMass( mass1_ );
   CurrentParm_ = currentParm;
   return Action::OK;
@@ -511,13 +511,13 @@ Action::RetType Action_Matrix::DoAction(int frameNum, Frame* currentFrame, Frame
   ++snap_; 
 
   switch (Mat_->Type()) {
-    case DataSet_MatrixDbl::DIST     : CalcDistanceMatrix(*currentFrame); break;
-    case DataSet_MatrixDbl::COVAR    :
-    case DataSet_MatrixDbl::MWCOVAR  : CalcCovarianceMatrix(*currentFrame); break;
-    case DataSet_MatrixDbl::CORREL   : CalcCorrelationMatrix(*currentFrame); break;
-    case DataSet_MatrixDbl::DISTCOVAR: CalcDistanceCovarianceMatrix(*currentFrame); break;
-    case DataSet_MatrixDbl::IDEA     : CalcIdeaMatrix(*currentFrame); break;
-    case DataSet_MatrixDbl::IRED     : CalcIredMatrix(); break;
+    case DataSet_2D::DIST     : CalcDistanceMatrix(*currentFrame); break;
+    case DataSet_2D::COVAR    :
+    case DataSet_2D::MWCOVAR  : CalcCovarianceMatrix(*currentFrame); break;
+    case DataSet_2D::CORREL   : CalcCorrelationMatrix(*currentFrame); break;
+    case DataSet_2D::DISTCOVAR: CalcDistanceCovarianceMatrix(*currentFrame); break;
+    case DataSet_2D::IDEA     : CalcIdeaMatrix(*currentFrame); break;
+    case DataSet_2D::IRED     : CalcIredMatrix(); break;
     default: return Action::ERR; // Sanity check
   }
 
@@ -546,14 +546,14 @@ void Action_Matrix::FinishCovariance() {
     v_iterator v1idx2begin = Mat_->v1begin() + Mat_->Ncols();
     for (v_iterator v1idx2 = v1idx2begin; v1idx2 != Mat_->v1end(); v1idx2 += 3)
     {
-      if (Mat_->Type() == DataSet_MatrixDbl::MWCOVAR)
+      if (Mat_->Type() == DataSet_2D::MWCOVAR)
         mass2 = *(m2++);
       for (int iidx = 0; iidx < 3; ++iidx) {
         M_iterator m1 = mass1_.begin();
         double Vi = *(v1idx2 + iidx);
         for (v_iterator v1idx1 = Mat_->v1begin(); v1idx1 != v1idx2begin; v1idx1 += 3)
         {
-          if (Mat_->Type() == DataSet_MatrixDbl::MWCOVAR)
+          if (Mat_->Type() == DataSet_2D::MWCOVAR)
             Mass = sqrt( mass2 * *(m1++) );
           *mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
           ++mat;
@@ -572,14 +572,14 @@ void Action_Matrix::FinishCovariance() {
     M_iterator m2 = mass1_.begin();
     for (v_iterator v1idx2 = Mat_->v1begin(); v1idx2 != Mat_->v1end(); v1idx2 += 3)
     {
-      if (Mat_->Type() == DataSet_MatrixDbl::MWCOVAR)
+      if (Mat_->Type() == DataSet_2D::MWCOVAR)
         mass2 = *m2;
       for (int iidx = 0; iidx < 3; ++iidx) {
         M_iterator m1 = m2;
         double Vi = *(v1idx2 + iidx);
         for (v_iterator v1idx1 = v1idx2; v1idx1 != Mat_->v1end(); v1idx1 += 3)
         {
-          if (Mat_->Type() == DataSet_MatrixDbl::MWCOVAR)
+          if (Mat_->Type() == DataSet_2D::MWCOVAR)
             Mass = sqrt( mass2 * *(m1++) );
           if ( v1idx1 == v1idx2 ) {
             for (int jidx = iidx; jidx < 3; ++jidx) {
@@ -668,7 +668,7 @@ void Action_Matrix::FinishDistanceCovariance() {
 void Action_Matrix::Print() {
   // ---------- Calculate average over number of sets ------
   double norm = (double)snap_;
-  if (Mat_->Type() == DataSet_MatrixDbl::IDEA) norm *= 3.0;
+  if (Mat_->Type() == DataSet_2D::IDEA) norm *= 3.0;
   norm = 1.0 / norm;
   //Mat_->DivideBy((double)snap_);
   for (v_iterator v1 = Mat_->v1begin(); v1 != Mat_->v1end(); ++v1)
@@ -679,10 +679,10 @@ void Action_Matrix::Print() {
     *m *= norm;
 
   switch (Mat_->Type()) {
-    case DataSet_MatrixDbl::COVAR    :
-    case DataSet_MatrixDbl::MWCOVAR  : FinishCovariance(); break;
-    case DataSet_MatrixDbl::CORREL   : FinishCorrelation(); break;
-    case DataSet_MatrixDbl::DISTCOVAR: FinishDistanceCovariance(); break;
+    case DataSet_2D::COVAR    :
+    case DataSet_2D::MWCOVAR  : FinishCovariance(); break;
+    case DataSet_2D::CORREL   : FinishCorrelation(); break;
+    case DataSet_2D::DISTCOVAR: FinishDistanceCovariance(); break;
     default: break; 
   }
 
