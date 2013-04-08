@@ -10,7 +10,6 @@ class Analysis_Matrix : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Matrix(); }
     static void Help();
 
-
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:

@@ -37,10 +37,15 @@ class DataSet_MatrixDbl : public DataSet_2D {
     typedef Darray::iterator v_iterator;
     v_iterator v1begin()                       { return vect_.begin();      }
     v_iterator v1end()                         { return vect_.end();        }
+    Darray::const_iterator v1begin()     const { return vect_.begin();      }
+    Darray::const_iterator v1end()       const { return vect_.end();        }
     void AllocateVector(size_t vsize)          { vect_.resize(vsize, 0.0);  }
+    size_t VectSize()                    const { return vect_.size();       }
     /// Set matrix type.
     void SetType(MatrixType tIn)               { type_ = tIn;               }
     void StoreMass(Darray const& mIn)          { mass_ = mIn;               }
+    Darray const& Mass()                 const { return mass_;              }
+    Darray const& Vect()                 const { return vect_;              }
   private:
     Matrix<double> mat_;       ///< Matrix elements.
     Darray vect_;              ///< Hold diagonal elements | avg coords

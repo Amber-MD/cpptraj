@@ -82,6 +82,8 @@ class Frame {
     int SetupFrame(int);
     /// Allocate frame for given # atoms with mass, no velocity. 
     int SetupFrameM(std::vector<Atom> const&);
+    /// Allocate frame with given XYZ coords and masses, no velocity.
+    int SetupFrameXM(std::vector<double> const&, std::vector<double> const&);
     /// Allocate frame for given # atoms with mass and optionally velocity.
     int SetupFrameV(std::vector<Atom> const&,bool);
     /// Allocate frame for selected # atoms, coords/mass only.

@@ -1,6 +1,7 @@
 #ifndef INC_DATASET_MODES_H
 #define INC_DATASET_MODES_H
 #include "DataSet_MatrixDbl.h"
+#include "Frame.h"
 /// Hold eigenvalues/eigenvectors and optionally averaged coords.
 class DataSet_Modes : public DataSet {
   public:
@@ -12,35 +13,36 @@ class DataSet_Modes : public DataSet {
     int Sync()          { return 1;       }
     void Info()   const { return;         }
     // -------------------------------------------
-    void SetAvgCoords(int, const double*);
+    void SetAvgCoords(DataSet_2D const&);
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
     int WriteToFile(std::string const&);
     int ReadEvecFile(std::string const&, int, int);
     int EigvalToFreq();
-    int MassWtEigvect( const double* );
+    int MassWtEigvect( DataSet_MatrixDbl::Darray const& );
     int ReduceCovar();
     int ReduceDistCovar(int);
+    int Thermo(CpptrajFile&, int, double, double);
 
-    void SetType( DataSet_MatrixDbl::MatrixType typeIn ) { type_ = typeIn; }
+    void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
 
-    const double* AvgCrd()            { return avgcrd_;                    }
-    const double* Eigenvalues()       { return evalues_;                   } 
-    double Eigenvalue(int i)          { return evalues_[i];                }
-    const double* Eigenvectors()      { return evectors_;                  }
+    //const double* AvgCrd()            { return avgcrd_;                    }
+    //const double* Eigenvalues()       { return evalues_;                   } 
+    //double Eigenvalue(int i)          { return evalues_[i];                }
+    //const double* Eigenvectors()      { return evectors_;                  }
     const double* Eigenvector(int i)  { return evectors_ + (i * vecsize_); }
-    int Nmodes()                      { return nmodes_;                    }
-    int VectorSize()                  { return vecsize_;                   }
-    int NavgCrd()                     { return navgcrd_;                   }
-    DataSet_MatrixDbl::MatrixType Type() { return type_;                      }
+    //int Nmodes()                      { return nmodes_;                    }
+    //int VectorSize()                  { return vecsize_;                   }
+    //int NavgCrd()                     { return navgcrd_;                   }
+    //DataSet_2D::MatrixType Type()     { return type_;                      }
   private:
-    double* avgcrd_;
+    Frame avgcrd_;
     double* evalues_;
     double* evectors_;
     int nmodes_;
     int vecsize_;
     int navgcrd_;
-    DataSet_MatrixDbl::MatrixType type_;
+    DataSet_2D::MatrixType type_;
     bool reduced_;
 };
 #endif

@@ -5,6 +5,7 @@
 #include "CpptrajStdio.h"
 #include "BufferedFrame.h"
 #include "ArgList.h"
+#include "Constants.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -25,31 +26,26 @@ extern "C" {
 // CONSTRUCTOR
 DataSet_Modes::DataSet_Modes() :
   DataSet(MODES, 10, 5, 0), // 0 dim indicates DataSet-specific write
-  avgcrd_(0),
   evalues_(0),
   evectors_(0),
   nmodes_(0),
   vecsize_(0),
-  navgcrd_(0),
   reduced_(false)
 {}
 
 // DESTRUCTOR
 DataSet_Modes::~DataSet_Modes() {
-  if (avgcrd_ != 0) delete[] avgcrd_;
   if (evalues_!=0) delete[] evalues_;
   if (evectors_!=0) delete[] evectors_;
 }
 
 // DataSet_Modes::SetAvgCoords()
-void DataSet_Modes::SetAvgCoords(int ncoords, const double* Xin) {
-  if (avgcrd_!=0) delete[] avgcrd_;
-  navgcrd_ = ncoords;
-  if (navgcrd_ > 0) {
-    avgcrd_ = new double[ navgcrd_ ];
-    memcpy( avgcrd_, Xin, navgcrd_ * sizeof(double));
-  } else
-    avgcrd_ = 0;
+void DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
+  avgcrd_.ClearAtoms();
+  if (mIn.Type() != DataSet_2D::NO_OP) { // May have avg coords 
+    DataSet_MatrixDbl const& mat = static_cast<DataSet_MatrixDbl const&>( mIn );
+    avgcrd_.SetupFrameXM( mat.Vect(), mat.Mass() );
+  }
 }
 
 /** Get eigenvectors and eigenvalues. They will be stored in descending 
@@ -273,7 +269,7 @@ int DataSet_Modes::WriteToFile(std::string const& fname) {
     outfile.Printf(" Reduced Eigenvector file: ");
   else
     outfile.Printf(" Eigenvector file: ");
-  outfile.Printf("%s", DataSet_MatrixDbl::MatrixOutputString[type_]);
+  outfile.Printf("%s", DataSet_2D::MatrixOutputString(type_));
   // Write out # of modes on title line to not break compat. with older modes files
   outfile.Printf(" nmodes %i", nmodes_);
   // Write out col width on title line to not break compat. with older modes files
@@ -281,16 +277,16 @@ int DataSet_Modes::WriteToFile(std::string const& fname) {
   int colwidth = ColumnWidth() + 1;
   outfile.Printf(" width %i\n", colwidth);
   // First number is # avg coords, second is size of each vector
-  outfile.Printf(" %4i %4i\n", navgcrd_, vecsize_);
+  outfile.Printf(" %4i %4i\n", avgcrd_.size(), vecsize_);
   // Set up framebuffer, default 7 columns
   int bufsize;
-  if (navgcrd_ > vecsize_)
+  if (avgcrd_.size() > vecsize_)
     bufsize = navgcrd_;
   else
     bufsize = vecsize_;
   outfile.SetupFrameBuffer( bufsize, colwidth, 7 );
   // Print average coords
-  outfile.DoubleToBuffer( avgcrd_, navgcrd_, data_format_ );
+  outfile.DoubleToBuffer( avgcrd_.xAddress(), avgcrd_.size(), data_format_ );
   outfile.WriteFrame();
   // Eigenvectors and eigenvalues
   for (int mode = 0; mode < nmodes_; ++mode) {
@@ -328,21 +324,21 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
   // Check if reduced
   reduced_ = title.hasKey("Reduced");
   // Determine modes file type
-  type_ = DataSet_MatrixDbl::NO_OP;
-  for (int matidx = (int)DataSet_MatrixDbl::NO_OP + 1; 
-           matidx != (int)DataSet_MatrixDbl::NMAT; ++matidx)
+  type_ = DataSet_2D::NO_OP;
+  for (int matidx = (int)DataSet_2D::NO_OP + 1; 
+           matidx != (int)DataSet_2D::NMAT; ++matidx)
   {
-    if ( title.hasKey( DataSet_MatrixDbl::MatrixOutputString[matidx] ))
+    if ( title.hasKey( DataSet_2D::MatrixOutputString((DataSet_2D::MatrixType)matidx) ))
     {
-      type_ = (DataSet_MatrixDbl::MatrixType)matidx;
+      type_ = (DataSet_2D::MatrixType)matidx;
       break;
     }
   }
   // For compatibility with quasih and nmode output
-  if (type_ == DataSet_MatrixDbl::NO_OP) {
+  if (type_ == DataSet_2D::NO_OP) {
     mprintf("Warning: ReadEvecFile(): Unrecognized type [%s]\n", title.ArgLine());
     mprintf("         Assuming MWCOVAR.\n");
-    type_ = DataSet_MatrixDbl::MWCOVAR;
+    type_ = DataSet_2D::MWCOVAR;
   }
   // For newer modesfiles, get # of modes in file.
   int modesInFile = title.getKeyInt("nmodes",-1);
@@ -370,29 +366,29 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
               infile.Filename().full());
     return 1;
   }
-  int nvals = sscanf(buffer, "%i %i", &navgcrd_, &vecsize_);
+  int navgcrd = 0;
+  int nvals = sscanf(buffer, "%i %i", &navgcrd, &vecsize_);
   if (nvals == 0) {
     mprinterr("Error: ReadEvecFile(): sscanf on coords failed (%s)\n",infile.Filename().full());
     return 1;
   } else if (nvals == 1) {
     mprintf("Warning: ReadEvecFile(): No value for eigenvector size found in %s,\n",
             infile.Filename().full());
-    mprintf("         assuming it is equal to #average elements (%i)\n",navgcrd_);
-    vecsize_ = navgcrd_;
+    mprintf("         assuming it is equal to #average elements (%i)\n",navgcrd);
+    vecsize_ = navgcrd;
   }
   // Allocate FrameBuffer
   int bufsize;
-  if (navgcrd_ > vecsize_)
-    bufsize = navgcrd_;
+  if (navgcrd > vecsize_)
+    bufsize = navgcrd;
   else
     bufsize = vecsize_;
   infile.SetupFrameBuffer( bufsize, colwidth, 7 );
   // Allocate memory for avg coords and read in
-  if (avgcrd_ != 0) delete[] avgcrd_;
-  if (navgcrd_ > 0) {
-    avgcrd_ = new double[ navgcrd_ ];
+  avgcrd_.SetupFrame( navgcrd / 3 );
+  if (navgcrd > 0) {
     infile.ReadFrame( );
-    infile.BufferToDouble( avgcrd_, navgcrd_ );
+    infile.BufferToDouble( avgcrd_.xAddress(), avgcrd_.size() );
     infile.BufferBegin(); // Reset buffer position
   }
   // Allocate memory for eigenvalues and eigenvectors
@@ -488,12 +484,12 @@ int DataSet_Modes::EigvalToFreq() {
   * must be == number of modes (TODO: Make std::vector). The
   * ith xyz elements of each eigenvector is multiplied by mass i.
   */
-int DataSet_Modes::MassWtEigvect(const double* massIn) {
-  if (massIn == 0) return 1;
+int DataSet_Modes::MassWtEigvect(DataSet_MatrixDbl::Darray const& massIn) {
+  if (massIn.empty()) return 1;
   if (evectors_ == 0) return 0;
   mprintf("\tMass-weighting %i eigenvectors\n", nmodes_);
   int vend = nmodes_ * vecsize_; // == size of evectors array
-  const double* mptr = massIn;
+  DataSet_MatrixDbl::Darray::const_iterator mptr = massIn.begin();
   for (int vi = 0; vi < vecsize_; vi += 3) {
     double mass = 1.0 / sqrt( *(mptr++) );
     for (int modev = vi; modev < vend; modev += vecsize_) {
@@ -585,4 +581,324 @@ int DataSet_Modes::ReduceDistCovar(int nelts) {
   vecsize_ = newvecsize;
   reduced_ = true;
   return 0;
-}  
+}
+
+// DataSet_Modes::Thermo()
+/** Given the structure of a molecule and its normal mode vibrational
+  * frequencies this routine uses standard statistical mechanical
+  * formulas for an ideal gas (in the canonical ensemble, see,
+  * for example, d. a. mcquarrie, "statistical thermodynamics",
+  * harper & row, new york, 1973, chapters 5, 6, and 8) to compute
+  * the entropy, heat capacity, and internal energy.
+
+  * The si system of units is used internally. Conversion to units
+  * more familiar to most chemists is made for output.
+  *
+  * \param outfile output file, should already be open.
+  * \param temp    temperature
+  * \param patm    pressure, in atmospheres
+*/
+int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double patm)
+{
+  // avgcrd_   Frame containing coordinates in Angstroms, masses in amu.
+  // nmodes_   Number of eigenvectors (already converted to frequencies)
+  // evalues_  vibrational frequencies, in cm**-1 and in ascending order
+  double rtemp, rtemp1, rtemp2, rtemp3;
+  // ----- Constants -------------------
+  const double thresh = 900.0;        // vibrational frequency threshold
+  const double tokg   = 1.660531e-27; // kilograms per amu.
+  const double boltz  = 1.380622e-23; // boltzman constant, in joules per kelvin.
+  const double planck = 6.626196e-34; // planck constant, in joule-seconds.
+  const double avog   = 6.022169e+23; // avogadro constant, in mol**(-1).
+  const double jpcal  = 4.18674e+00;  // joules per calorie.
+  const double tomet  = 1.0e-10;      // metres per Angstrom.
+  const double hartre = 4.35981e-18;  // joules per hartree.
+  const double pstd   = 1.01325e+05;  // Standard pressure in pascals
+  //     compute the gas constant, pi, pi**2, and e.
+  //     compute the conversion factors cal per joule and kcal per joule.
+  const double gas  = avog * boltz;
+  // pi   = four * datan(one)
+  const double pipi = PI * PI;
+  const double e    = exp(1.0);
+  const double tocal  = 1.0 / jpcal;
+  const double tokcal = tocal / 1000.0;
+
+  if (!outfile.IsOpen()) {
+    mprinterr("Internal Error: DataSet_Modes::Thermo(): output file is not open.\n");
+    return 1;
+  }
+  
+  //     print the temperature and pressure.
+  outfile.Printf("\n                    *******************\n");
+  outfile.Printf(  "                    - Thermochemistry -\n");
+  outfile.Printf(  "                    *******************\n\n");
+  outfile.Printf("\n temperature %9.3f kelvin\n pressure    %9.5f atm\n",temp,patm);
+  double pressure = pstd * patm;
+  double rt = gas * temp;
+
+  //     compute and print the molecular mass in amu, then convert to
+  //     kilograms.
+  double weight = 0.0;
+  for (int iat = 0; iat < avgcrd_.Natom(); ++iat)
+    weight += avgcrd_.Mass(iat);
+  outfile.Printf(" molecular mass (principal isotopes) %11.5f amu\n", weight);
+  weight *= tokg;
+  
+  //trap non-unit multiplicities.
+  //if (multip != 1) {
+  //  outfile.Printf("\n Warning-- assumptions made about the electronic partition function\n");
+  //  outfile.Printf(  "           are not valid for multiplets!\n\n");
+  //}
+  //     compute contributions due to translation:
+  //        etran-- internal energy
+  //        ctran-- constant v heat capacity
+  //        stran-- entropy
+  double dum1 = boltz * temp;
+  double dum2 = pow(TWOPI, 1.5);
+  double arg = pow(dum1, 1.5) / planck;
+  arg = (arg / pressure) * (dum1 / planck);
+  arg = arg * dum2 * (weight / planck);
+  arg = arg * sqrt(weight) * exp(2.5);
+  double stran = gas * log(arg);
+  double etran = 1.5 * rt;
+  double ctran = 1.5 * gas;
+
+  //     Compute contributions due to electronic motion:
+  //        It is assumed that the first electronic excitation energy
+  //        is much greater than kt and that the ground state has a
+  //        degeneracy of one.  Under these conditions the electronic
+  //        partition function can be considered to be unity.  The
+  //        ground electronic state is taken to be the zero of
+  //        electronic energy.
+
+  //     for monatomics print and return.
+  if (avgcrd_.Natom() <= 1){
+    outfile.Printf("\n internal energy:   %10.3f joule/mol         %10.3f kcal/mol\n",
+           etran, etran * tokcal);
+    outfile.Printf(  " entropy:           %10.3f joule/k-mol       %10.3f cal/k-mol\n",
+           stran, stran * tocal);
+    outfile.Printf(  " heat capacity cv:  %10.3f joule/k-mol       %10.3f  cal/k-mol\n",
+           ctran, ctran * tocal);
+    return 0;
+  }
+
+  // Allocate workspace memory
+  // vtemp   vibrational temperatures, in kelvin.
+  // evibn   contribution to e from the vibration n.
+  // cvibn   contribution to cv from the vibration n.
+  // svibn   contribution to s from the vibration n.
+  double* WorkSpace = new double[ 4 * nmodes_ ];
+  double* vtemp = WorkSpace;
+  double* evibn = WorkSpace + nmodes_;
+  double* cvibn = WorkSpace + nmodes_*2;
+  double* svibn = WorkSpace + nmodes_*3;
+
+  //     compute contributions due to rotation.
+
+  //     Compute the principal moments of inertia, get the rotational
+  //     symmetry number, see if the molecule is linear, and compute
+  //     the rotational temperatures.  Note the imbedded conversion
+  //     of the moments to SI units.
+  Matrix_3x3 Inertia;
+  avgcrd_.CalculateInertia( AtomMask(0, avgcrd_.Natom()), Inertia );
+  // NOTE: Diagonalize_Sort sorts evals/evecs in descending order, but
+  //       thermo() expects ascending.
+  // pmom      principal moments of inertia, in amu-bohr**2 and in ascending order.
+  Vec3 pmom;
+  Inertia.Diagonalize_Sort( pmom );
+  rtemp = pmom[0];
+  pmom[0] = pmom[2];
+  pmom[2] = rtemp;
+  outfile.Printf("\n principal moments of inertia (nuclei only) in amu-A**2:\n");
+  outfile.Printf(  "      %12.2f%12.2f%12.2f\n", pmom[0], pmom[1], pmom[2]);
+
+  bool linear = false;
+  // Symmetry number: only for linear molecules. for others symmetry number is unity
+  double sn = 1.0;
+  if (avgcrd_.Natom() <= 2) {
+    linear = true;
+    if (avgcrd_.Mass(0) == avgcrd_.Mass(1)) sn = 2.0;
+  }
+  outfile.Printf("\n rotational symmetry number %3.0f\n", sn);
+
+  double con = planck / (boltz*8.0*pipi);
+  con = (con / tokg)  *  (planck / (tomet*tomet));
+  if (linear) {
+    rtemp = con / pmom[2];
+    if (rtemp < 0.2) {
+      outfile.Printf("\n Warning-- assumption of classical behavior for rotation\n");
+      outfile.Printf(  "           may cause significant error\n");
+    }
+    outfile.Printf("\n rotational temperature (kelvin) %12.5f\n", rtemp);
+  } else {
+    rtemp1 = con / pmom[0];
+    rtemp2 = con / pmom[1];
+    rtemp3 = con / pmom[2];
+    if (rtemp1 < 0.2) {
+      outfile.Printf("\n Warning-- assumption of classical behavior for rotation\n");
+      outfile.Printf(  "           may cause significant error\n");
+    }
+    outfile.Printf("\n rotational temperatures (kelvin) %12.5f%12.5f%12.5f\n",
+           rtemp1, rtemp2, rtemp3);
+  }
+
+  //         erot-- rotational contribution to internal energy.
+  //         crot-- rotational contribution to cv.
+  //         srot-- rotational contribution to entropy.
+  double erot, crot, srot;
+
+  if (linear) {
+     erot = rt;
+     crot = gas;
+     arg  = (temp/rtemp) * (e/sn);
+     srot = gas * log(arg);
+  } else {
+     erot = 1.5 * rt;
+     crot = 1.5 * gas;
+     arg  = sqrt(PI*e*e*e) / sn;
+     double dum  = (temp/rtemp1) * (temp/rtemp2) * (temp/rtemp3);
+     arg  = arg * sqrt(dum);
+     srot = gas * log(arg);
+  }
+
+  //     compute contributions due to vibration.
+
+  //     compute vibrational temperatures and zero point vibrational
+  //     energy.  only real frequencies are included in the analysis.
+
+  //     ndof = 3*natoms - 6 - nimag
+  //     if (nimag .ne. 0) write(iout,1210) nimag
+  //     if (linear) ndof = ndof + 1
+  int ndof = nmodes_;
+
+  //       (---iff is the first frequency to include in thermo:)
+  int iff;
+  if (ilevel != 0)
+     iff = 0;
+  else if (linear)
+     iff = 5;
+  else
+     iff = 6;
+  con = planck / boltz;
+  double ezpe = 0.0;
+  for (int i = 0; i < ndof; ++i) {
+     vtemp[i] = evalues_[i+iff] * con * 3.0e10;
+     ezpe    += evalues_[i+iff] * 3.0e10;
+  }
+  ezpe = 0.5 * planck * ezpe;
+  outfile.Printf("\n zero point vibrational energy %12.1f (joules/mol) \n",ezpe * avog);
+  outfile.Printf(  "                               %12.5f (kcal/mol)\n",ezpe * tokcal * avog);
+  outfile.Printf(  "                               %12.7f (hartree/particle)\n", ezpe / hartre);
+  //     compute the number of vibrations for which more than 5% of an
+  //     assembly of molecules would exist in vibrational excited states.
+  //     special printing for these modes is done to allow the user to
+  //     easily take internal rotations into account.  the criterion
+  //     corresponds roughly to a low frequency of 1.9(10**13) hz, or
+  //     625 cm**(-1), or a vibrational temperature of 900 k.
+
+  int lofreq = 0;
+  for (int i = 0; i < ndof; ++i)
+    if (vtemp[i] < thresh)
+      ++lofreq;
+  if (lofreq != 0) {
+    outfile.Printf("\n Warning-- %3i vibrations have low frequencies and may represent hindered \n",
+           lofreq);
+    outfile.Printf(  "         internal rotations.  The contributions printed below assume that these \n");
+    outfile.Printf(  "         really are vibrations.\n");
+  }
+
+  //     compute:
+  //        evib-- the vibrational component of the internal energy.
+  //        cvib-- the vibrational component of the heat capacity.
+  //        svib-- the vibrational component of the entropy.
+  double evib = 0.0;
+  double cvib = 0.0;
+  double svib = 0.0;
+  double scont;
+  for (int i = 0; i < ndof; ++i) {
+     //       compute some common factors.
+
+     double tovt  = vtemp[i] / temp;
+     double etovt = exp(tovt);
+     double em1   = etovt - 1.0;
+
+     //       compute contributions due to the i'th vibration.
+
+     double econt = tovt  *  (0.5 + 1.0/em1);
+     double ccont = etovt *  pow(tovt/em1,2.0);
+     double argd = 1.0 - 1.0/etovt;
+     if (argd > 1.0e-7)
+        scont = tovt/em1 - log(argd);
+     else {
+        scont = 0.0;
+        outfile.Printf(" warning: setting vibrational entropy to zero for mode %i with vtemp = %f\n",
+               i+1, vtemp[i]);
+     }
+     //       if (lofreq .ge. i) then
+     evibn[i] = econt * rt;
+     cvibn[i] = ccont * gas;
+     svibn[i] = scont * gas;
+     //       end if
+     evib += econt;
+     cvib += ccont;
+     svib += scont;
+  }
+  evib *= rt;
+  cvib *= gas;
+  svib *= gas;
+
+  //     the units are now:
+  //         e-- joules/mol
+  //         c-- joules/mol-kelvin
+  //         s-- joules/mol-kelvin
+
+  double etot = etran + erot + evib;
+  double ctot = ctran + crot + cvib;
+  double stot = stran + srot + svib;
+
+  //     print the sum of the hartree-fock energy and the thermal energy.
+
+  //     call tread(501,gen,47,1,47,1,0)
+  //     esum = gen(32) + etot/avog/hartre
+  //     write(iout,1230) esum
+
+  //     convert to the following and print
+  //         e-- kcal/mol
+  //         c-- cal/mol-kelvin
+  //         s-- cal/mol-kelvin
+  etran = etran * tokcal;
+  ctran = ctran * tocal;
+  stran = stran * tocal;
+  erot   = erot * tokcal;
+  crot   = crot * tocal;
+  srot   = srot * tocal;
+  evib   = evib * tokcal;
+  cvib   = cvib * tocal;
+  svib   = svib * tocal;
+  etot   = etran + erot + evib;
+  ctot   = ctran + crot + cvib;
+  stot   = stran + srot + svib;
+  for (int i = 0; i < ndof; ++i) {
+     evibn[i] *= tokcal;
+     cvibn[i] *= tocal;
+     svibn[i] *= tocal;
+  }
+
+  outfile.Printf("\n\n           freq.         E                  Cv                 S\n");
+  outfile.Printf(    "          cm**-1      kcal/mol        cal/mol-kelvin    cal/mol-kelvin\n");
+  outfile.Printf(    "--------------------------------------------------------------------------------\n");
+  outfile.Printf(    " Total              %11.3f        %11.3f        %11.3f\n",etot,ctot,stot);
+  outfile.Printf(    " translational      %11.3f        %11.3f        %11.3f\n",etran,ctran,stran);
+  outfile.Printf(    " rotational         %11.3f        %11.3f        %11.3f\n",erot,crot,srot);
+  outfile.Printf(    " vibrational        %11.3f        %11.3f        %11.3f\n",evib,cvib,svib);
+
+  for (int i = 0; i < iff; ++i)
+    outfile.Printf(" %5i%10.3f\n", i+1, evalues_[i]);
+
+  for (int i = 0; i < ndof; ++i) {
+    outfile.Printf(" %5i%10.3f    %11.3f        %11.3f        %11.3f\n",i+iff+1,
+           evalues_[i+iff], evibn[i], cvibn[i], svibn[i]);
+  }
+  delete[] WorkSpace;
+  return 0;
+}

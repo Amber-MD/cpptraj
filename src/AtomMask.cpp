@@ -23,6 +23,17 @@ AtomMask::AtomMask(std::string const& maskstring) :
   SetMaskString(maskstring);
 }
 
+// CONSTRUCTOR
+AtomMask::AtomMask(int beginAtom, int endAtom) :
+  debug_(0),
+  maskChar_('T'),
+  Natom_(0),
+  nselected_(0)
+{
+  AddAtomRange(beginAtom, endAtom);
+}
+
+
 // COPY CONSTRUCTOR
 AtomMask::AtomMask(const AtomMask &rhs) : 
   debug_(rhs.debug_),
