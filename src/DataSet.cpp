@@ -16,12 +16,6 @@ DataSet::DataSet() :
   scalartype_(UNDEFINED)
 { }
 
-const char* DataSet::SetStrings[] = {
-  "unknown",   "double", "string",    "integer", "float", "vector",
-  "matrix",    "modes",  "histogram", "upper-triangle matrix",
-  "2D matrix", "coords"
-};
-
 // CONSTRUCTOR
 DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   data_format_(0),

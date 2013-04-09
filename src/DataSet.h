@@ -21,7 +21,7 @@ class DataSet {
     /// Type of data stored in DataSet
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
-      COORDS, VECTOR, MODES
+      COORDS, VECTOR, MODES, GRID_FLT
     };
     /// Source of data stored in DataSet, used by Analysis_Statistics
     enum scalarMode {
@@ -83,8 +83,6 @@ class DataSet {
     int ColumnWidth()           const { return colwidth_;          }
     /// \return DataSet type.
     DataType Type()             const { return dType_;             }
-    /// \return DataSet type name.
-    const char* TypeName()      const { return SetStrings[dType_]; }
     /// \return scalar mode
     scalarMode ScalarMode()     const { return scalarmode_;        }
     /// \return scalar type
@@ -114,8 +112,6 @@ class DataSet {
     std::string format_;      ///< Output printf format string for data.
     scalarMode scalarmode_;   ///< Source of data in DataSet.
     scalarType scalartype_;   ///< Specific type of data in DataSet (if any).
-    /// Strings describing each data set type (corresponds to DataType).
-    static const char* SetStrings[];
 };
 // ---------- INLINE FUNCTIONS -------------------------------------------------
 bool DataSet::operator<(const DataSet& rhs) const {

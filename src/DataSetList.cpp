@@ -18,6 +18,7 @@
 #include "DataSet_Coords.h"
 #include "DataSet_Vector.h"
 #include "DataSet_Modes.h"
+#include "DataSet_GridFlt.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
@@ -33,6 +34,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "coordinates",   DataSet_Coords::Alloc     }, // COORDS
   { "vector",        DataSet_Vector::Alloc     }, // VECTOR
   { "eigenmodes",    DataSet_Modes::Alloc      }, // MODES
+  { "float grid",    DataSet_GridFlt::Alloc    }, // GRID_FLT
   { 0, 0 }
 };
 
@@ -386,7 +388,7 @@ void DataSetList::List() const {
     if (DataList_[ds]->Idx() != -1)
       mprintf(":%i", DataList_[ds]->Idx());
     mprintf(" \"%s\"", DataList_[ds]->Legend().c_str());
-    mprintf(" (%s)", DataList_[ds]->TypeName());
+    mprintf(" (%s)", DataArray[DataList_[ds]->Type()].Description);
     mprintf(", size is %i", DataList_[ds]->Size());
     DataList_[ds]->Info();
     mprintf("\n");

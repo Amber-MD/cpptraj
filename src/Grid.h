@@ -20,11 +20,11 @@ template <class T> class Grid {
     /// \return element at a specified grid point.
     const T& element(size_t,size_t,size_t) const;
     /// \return Size of X dimension.
-    size_t NX() { return nx_; }
+    size_t NX() const { return nx_; }
     /// \return Size of Y dimension.
-    size_t NY() { return ny_; }
+    size_t NY() const { return ny_; }
     /// \return Size of Z dimension.
-    size_t NZ() { return nz_; }
+    size_t NZ() const { return nz_; }
     /// Increment grid point.
     void increment(size_t,size_t,size_t);
     /// Increment grid point by given value.
