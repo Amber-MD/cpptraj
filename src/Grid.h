@@ -1,156 +1,114 @@
 #ifndef INC_GRID_H
 #define INC_GRID_H
-#include <string>
-#include "ArgList.h"
-#include "Topology.h"
-/// Hold a 3-dimensional grid.
-class Grid {
+#include <cstring> // memset, memcpy
+#include "ArrayIterator.h"
+/// Three-dimensional grid template.
+template <class T> class Grid {
   public:
-    Grid();
-    ~Grid();
-    Grid(const Grid&);
-    Grid& operator=(const Grid&);
-    /// Divide all elements by a constant -- no protection for div. by zero
-    void operator/=(const double fac) {
-      for (int i = 0; i < gridsize_; i++)
-        grid_[i] /= fac;
-    }
-    /// Indicate which kind of gridding to perform
-    enum GridModeType { ORIGIN = 0, BOX, CENTER };
-    static const char* HelpText;
-    GridModeType GridMode()      { return mode_;       } // TODO: Obsolete
-    AtomMask const& CenterMask() { return centerMask_; } // TODO: Obsolete
-    /// Initialize grid from argument list.
-    int GridInit(const char*, ArgList&);
-    /// Initialize the grid from a given size and resolution
-    int GridInitSizeRes(const char*, double[3], double[3], std::string const&);
-    /// Initialize grid from Density file
-    int InitFromFile(std::string const&, std::string const&);
-    /// Print information about the grid, allocate memory.
-    void GridInfo();
-    /// Setup grid based on given topology.
-    int GridSetup(Topology const&);
-    /// Grid the given XYZ point.
-    int GridPoint(Vec3 const&);
-    /// Add the given value to the density
-    void AddDensity(int i, int j, int k, double val) {
-      if (i > 0 && j > 0 && k > 0) {
-        int idx = i * ny_ * nz_ + j * nz_ + k;
-        if (idx < gridsize_) grid_[i*ny_*nz_+j*nz_+k] += val;
-      }
-    }
-    /// Grid the given frame
-    void GridFrame(Frame& currentFrame, AtomMask const& mask);
-    /// Grid point (for backwards compat. with Action_Dipole)
-    int BinPoint(double, double, double); 
-    /// Print Xplor format grid density
-    void PrintXplor(std::string const&, const char*, std::string);
-    void PrintPDB(std::string const&, double, double);
-    /// Print DX format grid density w/ either a customizable or default origin
-    void PrintDX(std::string const&);
-    void PrintDX(std::string const&, double, double, double);
-    // DEBUG
-    void PrintEntireGrid();
-    /// Return number of bins in the X dimension. 
-    int NX() { return nx_; }
-    /// Return number of bins in the Y dimension.
-    int NY() { return ny_; }
-    /// Return number of bins in the Z dimension.
-    int NZ() { return nz_; }
-    /// Return size of the grid
-    int GridSize() { return gridsize_; }
-    /// Real X coordinate of grid center.
-    double SX() { return sx_; }
-    /// Real Y coordinate of grid center.
-    double SY() { return sy_; }
-    /// Real Z coordinate of grid center.
-    double SZ() { return sz_; }
-    /// Return X coordinate of bin center
-    double Xcrd(int i) { return (double)i*dx_ - sx_ + 0.5*dx_; }
-    /// Return Y coordinate of bin center
-    double Ycrd(int j) { return (double)j*dy_ - sy_ + 0.5*dy_; }
-    /// Return Z coordinate of bin center
-    double Zcrd(int k) { return (double)k*dz_ - sz_ + 0.5*dz_; }
-    /// Return X coordinate of bin corner
-    double Xbin(int i) { return (double)i*dx_ - sx_; }
-    /// Return Y coordinate of bin corner
-    double Ybin(int j) { return (double)j*dy_ - sy_; }
-    /// Return Z coordinate of bin corner
-    double Zbin(int k) { return (double)k*dz_ - sz_; }
-    /// Return population of bin at i, j, k 
-    double GridVal(int i, int j, int k) {
-      return (double)grid_[i*ny_*nz_ + j*nz_ + k];
-    }
-    /// Allows you to assign a specific value to a particular grid point
-    void SetGridVal(int i, int j, int k, float val) {
-      grid_[i*ny_*nz_ + j*nz_ + k] = val;
-    }
-    void SetGridVal(int i, int j, int k, double val) {
-      grid_[i*ny_*nz_ + j*nz_ + k] = (float) val;
-    }
-    void SetGridVal(int i, float val) {
-      grid_[i] = val;
-    }
-    void SetGridVal(int i, double val) {
-      grid_[i] = (float) val;
-    }
-    /** Returns a grid with 0 everywhere except local maxima in density,
-      * filtering out all points whose total density is less than the filter
-      * \returns Grid instance with 0s everywhere except local maxima, which are unchanged
-      */
-    Grid& ExtractPeaks(double min_filter);
-
-    // Iterator over grid
-    class iterator : public std::iterator<std::forward_iterator_tag, float> 
-    {
-      public:
-        iterator() : ptr_(0) {}
-        iterator(const iterator& rhs) : ptr_(rhs.ptr_) {}
-        iterator(float* pin) : ptr_(pin) {}
-        iterator& operator=(const iterator& rhs) {
-          if (this == &rhs) return *this;
-          ptr_ = rhs.ptr_;
-          return *this;
-        }
-        // Relations
-        bool operator==(const iterator& rhs) { return (ptr_==rhs.ptr_);}
-        bool operator!=(const iterator& rhs) { return (ptr_!=rhs.ptr_);}
-        // Increment
-        iterator& operator++() { 
-          ++ptr_; 
-          return *this;
-        }
-        iterator operator++(int) {
-          iterator tmp(*this);
-          ++(*this);
-          return tmp;
-        }
-        // Value
-        float& operator*() { return *ptr_; }
-        // Address
-        float* operator->() { return ptr_; }
-      private:
-        float* ptr_;
-    };
-    iterator begin() { return grid_; }
-    iterator end() { return (grid_ + gridsize_); }
+    Grid() : increment_(1), nx_(0), ny_(0), nz_(0), nelements_(0), grid_(0) {}
+    ~Grid() { if (grid_ != 0) delete[] grid_; }
+    Grid( const Grid& );
+    Grid& operator=( const Grid& );
+    T& operator[](size_t idx)             { return grid_[idx];  }
+    const T& operator[](size_t idx) const { return grid_[idx];  }
+    /// \ return total number of grid points.
+    size_t size()                   const { return nelements_;  }
+    /// Set increment value.
+    void setIncrement(const T& eltIn)     { increment_ = eltIn; }
+    /// Set up grid for given X, Y, and Z dimensions.
+    int resize(size_t,size_t,size_t);
+    /// \return element at a specified grid point.
+    const T& element(size_t,size_t,size_t) const;
+    /// \return Size of X dimension.
+    size_t NX() { return nx_; }
+    /// \return Size of Y dimension.
+    size_t NY() { return ny_; }
+    /// \return Size of Z dimension.
+    size_t NZ() { return nz_; }
+    /// Increment grid point.
+    void increment(size_t,size_t,size_t);
+    /// Increment grid point by given value.
+    void incrementBy(size_t,size_t,size_t, const T&);
+    /// Set grid point.
+    void setGrid(size_t,size_t,size_t, const T&);
+    /// Convert X, Y, and Z to index.
+    size_t CalcIndex(size_t x, size_t y, size_t z) const { return (x*ny_*nz_)+(y*nz_)+z; }
+    /// Iterator over grid elements.
+    typedef ArrayIterator<T> iterator;
+    iterator begin() { return grid_;              }
+    iterator end()   { return grid_ + nelements_; }
   private:
-    int Allocate();
-
-    float increment_; ///< Set to -1 if negative, 1 if not.
-    GridModeType mode_;
-    AtomMask centerMask_;
-    double dx_;
-    double dy_;
-    double dz_;
-    double sx_;
-    double sy_;
-    double sz_;
-    int gridsize_;
-    int nx_;
-    int ny_;
-    int nz_;
-    float* grid_;
-    std::string callingRoutine_;
+    T increment_;      ///< Amount to increase grid points by.
+    size_t nx_;        ///< Grid X dimension.
+    size_t ny_;        ///< Grid Y dimension.
+    size_t nz_;        ///< Grid Z dimension.
+    size_t nelements_; ///< Total number of grid points.
+    T* grid_;          ///< Array of grid points.
 };
+// COPY CONSTRUCTOR
+template <class T> Grid<T>::Grid(const Grid& rhs) :
+  increment_(rhs.increment_),
+  nx_(rhs.nx_),
+  ny_(rhs.ny_),
+  nz_(rhs.nz_),
+  nelements_(rhs.nelements_),
+  grid_(0)
+{
+  if (nelements_ > 0L) {
+    grid_ = new T[ nelements_ ];
+    memcpy( grid_, rhs.grid_, nelements_ * sizeof(T) );
+  }
+}
+// ASSIGNMENT
+template <class T> Grid<T>& Grid<T>::operator=(const Grid& rhs) {
+  if (this == &rhs) return *this;
+  if (grid_!=0) {
+    delete[] grid_;
+    grid_ = 0;
+  }
+  increment_ = rhs.increment_;
+  nx_ = rhs.nx_;
+  ny_ = rhs.ny_;
+  nz_ = rhs.nz_;
+  nelements_ = rhs.nelements_;
+  if (nelements_ > 0L) {
+    grid_ = new T[ nelements_ ];
+    memcpy( grid_, rhs.grid_, nelements_ * sizeof(T) );
+  }
+  return *this;
+}
+// Grid::resize()
+template <class T> int Grid<T>::resize(size_t x, size_t y, size_t z) {
+  if (grid_!=0) {
+    delete[] grid_;
+    grid_ = 0;
+  }
+  nx_ = x;
+  ny_ = y;
+  nz_ = z;
+  nelements_ = nx_ * ny_ * nz_;
+  if (nelements_ > 0L) {
+    grid_ = new T[ nelements_ ];
+    memset(grid_, 0, nelements_ * sizeof(T));
+  }
+  return 0;
+}
+// Grid::increment()
+template <class T> void Grid<T>::increment(size_t x, size_t y, size_t z) {
+  size_t idx = CalcIndex(x,y,z);
+  grid_[idx] += increment_;
+}
+// Grid::incrementBy()
+template <class T> void Grid<T>::incrementBy(size_t x, size_t y, size_t z, const T& eltIn) {
+  size_t idx = CalcIndex(x,y,z);
+  grid_[idx] += eltIn;
+}
+// Grid::setGrid()
+template <class T> void Grid<T>::setGrid(size_t x, size_t y, size_t z, const T& eltIn) {
+  grid_[CalcIndex(x,y,z)] = eltIn;
+}
+// Grid::element()
+template <class T> const T& Grid<T>::element(size_t x, size_t y, size_t z) const {
+  return grid_[CalcIndex(x,y,z)];
+}
 #endif

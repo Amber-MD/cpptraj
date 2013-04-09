@@ -1,6 +1,7 @@
 #ifndef INC_MATRIX_H
 #define INC_MATRIX_H
 #include <cstring> // memset, memcpy
+#include "ArrayIterator.h"
 /// Two-dimensional matrix template.
 template <class T> class Matrix {
   public:
@@ -32,50 +33,13 @@ template <class T> class Matrix {
     /// \return pointer to internal array of elements.
     T const* Ptr()     const { return elements_;  }
     T* Ptr()                 { return elements_;  }
-    // DEBUG
+    /// Convert X and Y to index. 
     size_t CalcIndex(size_t x, size_t y) { return calcIndex(ncols_, x, y); }
-    // Iterator over matrix elements
-    class iterator : public std::iterator<std::forward_iterator_tag, T> {
-      public:
-        iterator() : ptr_(0) {}
-        iterator(const iterator& rhs) : ptr_(rhs.ptr_) {}
-        iterator(T* pin) : ptr_(pin) {}
-        iterator& operator=(const iterator& rhs) {
-          if (this == &rhs) return *this;
-          ptr_ = rhs.ptr_;
-          return *this;
-        }
-        // Relations
-        bool operator==(const iterator& rhs) { return (ptr_==rhs.ptr_);}
-        bool operator!=(const iterator& rhs) { return (ptr_!=rhs.ptr_);}
-        // Increment
-        iterator& operator++() {
-          ++ptr_;
-          return *this;
-        }
-        iterator operator++(int) {
-          iterator tmp(*this);
-          ++(*this);
-          return tmp;
-        }
-        // Value
-        T& operator*()  { return *ptr_; }
-        // Address
-        T* operator->() { return ptr_; }
-        // Addition
-        iterator& operator+=(int offset) {
-          ptr_ += offset;
-          return *this;
-        }
-        iterator operator+(int offset) {
-          iterator tmp(*this);
-          tmp += offset;
-          return tmp;
-        }
-      private:
-        T* ptr_;
-    };
+    /// Iterator over matrix elements
+    typedef ArrayIterator<T> iterator;
+    /// Iterator to beginning of matrix elements.
     iterator begin() { return elements_;              }
+    /// Iterator to end of matrix elements.
     iterator end()   { return elements_ + nelements_; }
   private:
     T* elements_;           ///< Array of elements
@@ -180,8 +144,10 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
     return 1;
   }
   currentElement_ = 0L;
-  elements_ = new T[ nelements_ ];
-  memset(elements_, 0, nelements_*sizeof(T) );
+  if (nelements_ > 0L) {
+    elements_ = new T[ nelements_ ];
+    memset(elements_, 0, nelements_*sizeof(T) );
+  }
   return 0;
 }
 // Matrix::addElement()
