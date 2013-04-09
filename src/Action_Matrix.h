@@ -19,9 +19,9 @@ class Action_Matrix : public Action, ActionFrameCounter {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
 
-    typedef DataSet_MatrixDbl::Darray Darray;
-    typedef DataSet_MatrixDbl::v_iterator v_iterator;
-    typedef Darray::const_iterator M_iterator;
+    typedef DataSet_MatrixDbl::Darray Darray;     ///< Mass/vector array type.
+    typedef Darray::iterator          v_iterator; ///< Iterator over vector.
+    typedef Darray::const_iterator    M_iterator; ///< Iterator over mass.
 
     DataSet_MatrixDbl* Mat_;
     DataFile* outfile_;

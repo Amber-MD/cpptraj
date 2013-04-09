@@ -28,24 +28,28 @@ class DataSet_MatrixDbl : public DataSet_2D {
     // -------------------------------------------
     int AddElement(double d)                   { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,double d){ mat_.setElement(x,y,d);    }
-    // Iterator over matrix elements.
+    /// Type definition of iterator over matrix elements.
     typedef Matrix<double>::iterator iterator;
     iterator begin()                           { return mat_.begin();       }
     iterator end()                             { return mat_.end();         }
-    // Iterator over diagonal vector elements.
+    /// Diagonal vector/mass array type definition. 
     typedef std::vector<double> Darray;
-    typedef Darray::iterator v_iterator;
-    v_iterator v1begin()                       { return vect_.begin();      }
-    v_iterator v1end()                         { return vect_.end();        }
-    Darray::const_iterator v1begin()     const { return vect_.begin();      }
-    Darray::const_iterator v1end()       const { return vect_.end();        }
+    /// \return diagonal vector.
+    Darray const& Vect()                 const { return vect_;              }
+    /// Allocate diagonal vector.
     void AllocateVector(size_t vsize)          { vect_.resize(vsize, 0.0);  }
+    /// \return diagonal vector size.
     size_t VectSize()                    const { return vect_.size();       }
+    /// \return iterator to beginning of diagonal vector.
+    Darray::iterator v1begin()                 { return vect_.begin();      }
+    /// \return iterator to end of diagonal vector.
+    Darray::iterator v1end()                   { return vect_.end();        }
     /// Set matrix type.
     void SetType(MatrixType tIn)               { type_ = tIn;               }
+    /// Store masses associated with columns in matrix.
     void StoreMass(Darray const& mIn)          { mass_ = mIn;               }
+    /// \return array of masses associated with columns in matrix.
     Darray const& Mass()                 const { return mass_;              }
-    Darray const& Vect()                 const { return vect_;              }
   private:
     Matrix<double> mat_;       ///< Matrix elements.
     Darray vect_;              ///< Hold diagonal elements | avg coords
