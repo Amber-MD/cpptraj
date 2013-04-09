@@ -17,7 +17,7 @@ class DataSet_MatrixFlt : public DataSet_2D {
     int AllocateHalf(size_t x)                 { return mat_.resize(x,0L);  }
     int AllocateTriangle(size_t x)             { return mat_.resize(0L,x);  }
     void Write2D(CpptrajFile&, int, int) const;
-    double GetElement(size_t x,size_t y) const { return (float)mat_.element(x,y);}
+    double GetElement(size_t x,size_t y) const { return (double)mat_.element(x,y);}
     size_t Nrows()                       const { return mat_.Nrows();       }
     size_t Ncols()                       const { return mat_.Ncols();       }
     double* MatrixArray()                const;
