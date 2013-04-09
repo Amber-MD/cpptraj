@@ -20,7 +20,7 @@ class DataSet_GridFlt : public DataSet_3D {
     size_t NY() const { return grid_.NY(); }
     size_t NZ() const { return grid_.NZ(); }
     // -------------------------------------------
-    void Increment(size_t x,size_t y,size_t z) { grid_.increment(x,y,z); }
+    void Increment(size_t x,size_t y,size_t z,float f) { grid_.incrementBy(x,y,z,f); }
   private:
     Grid<float> grid_;
 };

@@ -5,7 +5,7 @@
 /// Three-dimensional grid template.
 template <class T> class Grid {
   public:
-    Grid() : increment_(1), nx_(0), ny_(0), nz_(0), nelements_(0), grid_(0) {}
+    Grid() : nx_(0), ny_(0), nz_(0), nelements_(0), grid_(0) {}
     ~Grid() { if (grid_ != 0) delete[] grid_; }
     Grid( const Grid& );
     Grid& operator=( const Grid& );
@@ -13,8 +13,6 @@ template <class T> class Grid {
     const T& operator[](size_t idx) const { return grid_[idx];  }
     /// \ return total number of grid points.
     size_t size()                   const { return nelements_;  }
-    /// Set increment value.
-    void setIncrement(const T& eltIn)     { increment_ = eltIn; }
     /// Set up grid for given X, Y, and Z dimensions.
     int resize(size_t,size_t,size_t);
     /// \return element at a specified grid point.
@@ -38,7 +36,6 @@ template <class T> class Grid {
     iterator begin() { return grid_;              }
     iterator end()   { return grid_ + nelements_; }
   private:
-    T increment_;      ///< Amount to increase grid points by.
     size_t nx_;        ///< Grid X dimension.
     size_t ny_;        ///< Grid Y dimension.
     size_t nz_;        ///< Grid Z dimension.
@@ -47,7 +44,6 @@ template <class T> class Grid {
 };
 // COPY CONSTRUCTOR
 template <class T> Grid<T>::Grid(const Grid& rhs) :
-  increment_(rhs.increment_),
   nx_(rhs.nx_),
   ny_(rhs.ny_),
   nz_(rhs.nz_),
@@ -66,7 +62,6 @@ template <class T> Grid<T>& Grid<T>::operator=(const Grid& rhs) {
     delete[] grid_;
     grid_ = 0;
   }
-  increment_ = rhs.increment_;
   nx_ = rhs.nx_;
   ny_ = rhs.ny_;
   nz_ = rhs.nz_;
@@ -92,11 +87,6 @@ template <class T> int Grid<T>::resize(size_t x, size_t y, size_t z) {
     memset(grid_, 0, nelements_ * sizeof(T));
   }
   return 0;
-}
-// Grid::increment()
-template <class T> void Grid<T>::increment(size_t x, size_t y, size_t z) {
-  size_t idx = CalcIndex(x,y,z);
-  grid_[idx] += increment_;
 }
 // Grid::incrementBy()
 template <class T> void Grid<T>::incrementBy(size_t x, size_t y, size_t z, const T& eltIn) {
