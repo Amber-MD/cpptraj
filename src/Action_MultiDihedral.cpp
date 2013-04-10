@@ -13,7 +13,7 @@ Action_MultiDihedral::Action_MultiDihedral() :
 
 void Action_MultiDihedral::Help() {
   mprintf("\t[<name>] <dihedral types> [resrange <range>] [out <filename>]\n");
-  mprintf("\t[dihtype <name><a0>:<a1>:<a2>:<a3>[:<offset>] ...]\n");
+  mprintf("\t[dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...]\n");
   DihedralSearch::OffsetHelp();
   //mprintf("\t[range360]\n");
   mprintf("\t<dihedral types> = ");

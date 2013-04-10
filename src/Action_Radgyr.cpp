@@ -14,7 +14,7 @@ Action_Radgyr::Action_Radgyr() :
 { } 
 
 void Action_Radgyr::Help() {
-  mprintf("\t<name> <mask1> [out filename] [mass] [nomax] [tensor]\n");
+  mprintf("\t[<name>] [<mask1>] [out <filename>] [mass] [nomax] [tensor]\n");
   mprintf("\tCalculate radius of gyration of atoms in <mask>\n");
 }
 
@@ -163,4 +163,3 @@ Action::RetType Action_Radgyr::DoAction(int frameNum, Frame* currentFrame, Frame
   
   return Action::OK;
 } 
-
