@@ -152,7 +152,7 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   gridorig_[2] = gridcntr_[2] - 0.5*griddim_[2]*gridspacn_;
   mprintf("\tGIST grid origin: %5.3f %5.3f %5.3f\n", gridorig_[0],gridorig_[1],gridorig_[2]);
  
-  MAX_GRID_PT=0.0;
+  MAX_GRID_PT_ = griddim_[0] * griddim_[1] * griddim_[2];;
   return Action::OK;  
 }
 
@@ -338,7 +338,11 @@ void Action_Gist::Grid(Frame *frameIn, Topology* CurrentParm) {
 	}
       resnum++;
     }
-  
+    int solventMolecules = CurrentParm_->Nsolvent();
+    mprintf("GIST  Grid:  Found %d solvent residues \n", resnum);
+      if (solventMolecules != resnum) {
+        mprinterr("GIST  Grid  Error: No solvent molecules don't match %d %d\n", solventMolecules, resnum);
+      }  
 }
 
 void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
@@ -353,15 +357,12 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
     {
       if (!(*solvmol).IsSolvent()) continue;
 
-      if (gridwat_[resnum]>=MAX_GRID_PT) continue;
+      if (gridwat_[resnum]>=MAX_GRID_PT_) continue;
 
       int i = (*solvmol).BeginAtom();
       O_wat = Vec3(frameIn->XYZ(i));
-      i++;
-      H1_wat = Vec3(frameIn->XYZ(i));
-      i++;
-      H2_wat = Vec3(frameIn->XYZ(i));
-      
+      H1_wat = Vec3(frameIn->XYZ(i+1));
+      H2_wat = Vec3(frameIn->XYZ(i+2));
       
       // Define lab frame of reference
       x_lab[0]=1.0; x_lab[1]=0; x_lab[2]=0;
@@ -459,37 +460,29 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
 	rRy = y_res[0]*y_lab[0] + y_res[1]*y_lab[1] + y_res[2]*y_lab[2];
 	rRz = z_res[0]*z_lab[0] + z_res[1]*z_lab[1] + z_res[2]*z_lab[2];
 */
-
-
-/*	if (rRx>1+1E-6 || rRx<1-1E-6 || rRy>1+1E-6 || rRy<1-1E-6 || rRz>1+1E-6 || rRz<1-1E-6) {
-	  std::cout << "fm=" << fm << ", wat=" << wat << ", gr=" << gr_pt << ", k=" << k << " ROTATION IS BAD!" << std::endl;
-	  std::cout << "rx=" << rRx << ", ry=" << rRy << ", rz=" << rRz << std::endl;
-	  std::cout << "water new x axis: " << x_res[0] << " " << x_res[1] << " " << x_res[2] << std::endl;
-	  std::cout << "water new y axis: " << y_res[0] << " " << y_res[1] << " " << y_res[2] << std::endl;
-	  std::cout << "water new z axis: " << z_res[0] << " " << z_res[1] << " " << z_res[2] << std::endl;
-	  exit(EXIT_FAILURE);
-	}	
+	int voxel = gridwat_[resnum];
+        if (rRx>1+1E-6 || rRx<1-1E-6 || rRy>1+1E-6 || rRy<1-1E-6 || rRz>1+1E-6 || rRz<1-1E-6) {
+          std::cout  << "wat=" << resnum << ", gr=" << voxel << " ROTATION IS BAD!" << std::endl;
+          std::cout << "rx=" << rRx << ", ry=" << rRy << ", rz=" << rRz << std::endl;
+          std::cout << "water new x axis: " << x_res[0] << " " << x_res[1] << " " << x_res[2] << std::endl;
+          std::cout << "water new y axis: " << y_res[0] << " " << y_res[1] << " " << y_res[2] << std::endl;
+          std::cout << "water new z axis: " << z_res[0] << " " << z_res[1] << " " << z_res[2] << std::endl;
+          mprinterr("Error: Euler: BAD ROTATION.\n");
+	}
 	
 	if (!(theta<=PI && theta>=0 && phi<=2*PI && phi>=0 && psi<=2*PI && psi>=0)) {
-	  std::cout << "angles don't fall into range " << theta << " " << phi << " " << psi << std::endl;
-	  std::cout << h1_wat[0] << " " << h1_wat[1] << " " << h1_wat[2] << " " << h2_wat[0] << " " << h2_wat[1] << " " << h2_wat[2] << std::endl;
-	  exit(EXIT_FAILURE);
-	}
-*/
-	int voxel = gridwat_[resnum];
+          std::cout << "angles: " << theta << " " << phi << " " << psi << std::endl;
+          std::cout << H1_wat[0] << " " << H1_wat[1] << " " << H1_wat[2] << " " << H2_wat[0] << " " << H2_wat[1] << " " << H2_wat[2] << std::endl;
+          mprinterr("Error: Euler: angles don't fall into range.\n");
+        }
+
 	the_vox_[voxel].push_back(theta);
 	phi_vox_[voxel].push_back(phi);
 	psi_vox_[voxel].push_back(psi);
       }
-      //     else std::cout << fm << " " << wat << " gimbal lock problem, two z_wat paralell" << std::endl;
+      else std::cout << " " << resnum << " gimbal lock problem, two z_wat paralell" << std::endl;
       resnum++;
     }
-  // DEBUG
-  mprintf("GIST: Found %d solvent residues \n", resnum);
-  if (solventMolecules_ != resnum) {
-    mprinterr("GIST Error: No solvent molecules don't match %d %d\n", solventMolecules_, resnum);
-  }
-  
 } 
 
 

@@ -59,7 +59,7 @@ class Action_Gist: public Action  {
     //grid stuff
     int resnum;
     int resnum2;
-    double MAX_GRID_PT;
+    double MAX_GRID_PT_;
     std::vector<double> gridwat_;
     std::vector < std::vector <double> > the_vox_;
     std::vector < std::vector <double> > phi_vox_;
