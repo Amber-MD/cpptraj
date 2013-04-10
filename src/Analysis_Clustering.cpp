@@ -43,7 +43,7 @@ void Analysis_Clustering::Help() {
   mprintf("\t[sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n");
   mprintf("  Output options:\n");
   mprintf("\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n");
-  mprintf("\t[summaryhalf <halffile>] [cpopvtime <file> [normpop]] [splitframe <frame>]\n");
+  mprintf("\t[summaryhalf <halffile>] [splitframe <frame>] [cpopvtime <file> [normpop]]\n");
   mprintf("  Coordinate output options:\n");
   mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
