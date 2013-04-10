@@ -17,14 +17,17 @@ class Action_Gist: public Action  {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Gist(); }
     static void Help();
 
+    void Print();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    void Print() {}
 
-    DataSet* gist_;  ///< Will hold DataSet of calculated gist values
+    /** File containing all GIST energies for each voxel */
+    std::string datafile_;
+    /** Data set list for all data sets created here */
+    DataSetList myDSL_;
     Topology* CurrentParm_;          ///< Set to the current topology file.
     bool watermodel_;
     bool useTIP3P_;
@@ -55,13 +58,14 @@ class Action_Gist: public Action  {
 
     //grid stuff
     int resnum;
+    int resnum2;
     double MAX_GRID_PT;
     std::vector<double> gridwat_;
     std::vector < std::vector <double> > the_vox_;
     std::vector < std::vector <double> > phi_vox_;
     std::vector < std::vector <double> > psi_vox_;
 
-    void NonbondEnergy2(Frame *, Topology *, AtomMask &, AtomMask &);
+    void NonbondEnergy2(Frame *, Topology *);
     //    void Grid(Frame*, Topology *, AtomMask &);
     void Grid(Frame*, Topology *);
     void EulerAngle(Frame *, Topology *);
