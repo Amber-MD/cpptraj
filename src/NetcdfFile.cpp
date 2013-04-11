@@ -500,6 +500,19 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
       return 1;
     }
   }
+  // Replica Temperature
+  if (hasTemperature) {
+    // NOTE: Setting dimensionID should be OK for Restart, will not be used.
+    dimensionID[0] = frameDID_;
+    if (checkNCerr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM-2,dimensionID,&TempVID_))) {
+      mprinterr("NetCDF error on defining temperature.\n");
+      return 1;
+    }
+    if (checkNCerr(nc_put_att_text(ncid_,TempVID_,"units",6,"kelvin"))) {
+      mprinterr("NetCDF error on defining temperature units.\n"); 
+      return 1;
+    }
+  }
   // Box Info
   if (hasBox) {
     // Cell Spatial
@@ -599,20 +612,6 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
     return 1;
   }
   
-  // Replica Temperature
-  if (hasTemperature) {
-    // NOTE: Setting dimensionID should be OK for Restart, will not be used.
-    dimensionID[0] = frameDID_;
-    if (checkNCerr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM-2,dimensionID,&TempVID_))) {
-      mprinterr("NetCDF error on defining temperature.\n");
-      return 1;
-    }
-    if (checkNCerr(nc_put_att_text(ncid_,TempVID_,"units",6,"kelvin"))) {
-      mprinterr("NetCDF error on defining temperature units.\n"); 
-      return 1;
-    }
-  }
-
   // Set fill mode
   if (checkNCerr(nc_set_fill(ncid_, NC_NOFILL, dimensionID))) {
     mprinterr("Error: NetCDF setting fill value.\n");
