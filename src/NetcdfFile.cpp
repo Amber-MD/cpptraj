@@ -500,36 +500,36 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
       return 1;
     }
   }
-  // Cell Spatial
-  if ( checkNCerr( nc_def_dim( ncid_, NCCELL_SPATIAL, 3, &cell_spatialDID_)) ) {
-    mprinterr("Error: Defining cell spatial dimension.\n");
-    return 1;
-  }
-  dimensionID[0] = cell_spatialDID_;
-  if ( checkNCerr( nc_def_var(ncid_, NCCELL_SPATIAL, NC_CHAR, 1, dimensionID, &cell_spatialVID_)))
-  {
-    mprinterr("Error: Defining cell spatial variable.\n");
-    return 1;
-  }
-  // Cell angular
-  if ( checkNCerr( nc_def_dim( ncid_, NCLABEL, NCLABELLEN, &labelDID_)) ) {
-    mprinterr("Error: Defining label dimension.\n");
-    return 1;
-  }
-  if ( checkNCerr( nc_def_dim( ncid_, NCCELL_ANGULAR, 3, &cell_angularDID_)) ) {
-    mprinterr("Error: Defining cell angular dimension.\n"); 
-    return 1;
-  }
-  dimensionID[0] = cell_angularDID_;
-  dimensionID[1] = labelDID_;
-  if ( checkNCerr( nc_def_var( ncid_, NCCELL_ANGULAR, NC_CHAR, 2, dimensionID, 
-                               &cell_angularVID_)) )
-  {
-    mprinterr("Error: Defining cell angular variable.\n");
-    return 1;
-  }
   // Box Info
   if (hasBox) {
+    // Cell Spatial
+    if ( checkNCerr( nc_def_dim( ncid_, NCCELL_SPATIAL, 3, &cell_spatialDID_)) ) {
+      mprinterr("Error: Defining cell spatial dimension.\n");
+      return 1;
+    }
+    dimensionID[0] = cell_spatialDID_;
+    if ( checkNCerr( nc_def_var(ncid_, NCCELL_SPATIAL, NC_CHAR, 1, dimensionID, &cell_spatialVID_)))
+    {
+      mprinterr("Error: Defining cell spatial variable.\n");
+      return 1;
+    }
+    // Cell angular
+    if ( checkNCerr( nc_def_dim( ncid_, NCLABEL, NCLABELLEN, &labelDID_)) ) {
+      mprinterr("Error: Defining label dimension.\n");
+      return 1;
+    }
+    if ( checkNCerr( nc_def_dim( ncid_, NCCELL_ANGULAR, 3, &cell_angularDID_)) ) {
+      mprinterr("Error: Defining cell angular dimension.\n"); 
+      return 1;
+    }
+    dimensionID[0] = cell_angularDID_;
+    dimensionID[1] = labelDID_;
+    if ( checkNCerr( nc_def_var( ncid_, NCCELL_ANGULAR, NC_CHAR, 2, dimensionID, 
+                                 &cell_angularVID_)) )
+    {
+      mprinterr("Error: Defining cell angular variable.\n");
+      return 1;
+    }
     // Setup dimensions for Box
     // NOTE: This must be modified if more types added
     int boxdim;
@@ -626,13 +626,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
   }
 
   // Specify spatial dimension labels
-  char xyz[3];
-  char abc[15] = { 'a', 'l', 'p', 'h', 'a',
-                   'b', 'e', 't', 'a', ' ',
-                   'g', 'a', 'm', 'm', 'a' };
   start_[0] = 0;
   count_[0] = 3;
-
+  char xyz[3];
   xyz[0] = 'x'; 
   xyz[1] = 'y'; 
   xyz[2] = 'z';
@@ -640,22 +636,25 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
     mprinterr("Error on NetCDF output of spatial VID 'x', 'y' and 'z'");
     return 1;
   }
-
-  xyz[0] = 'a'; 
-  xyz[1] = 'b'; 
-  xyz[2] = 'c';
-  if (checkNCerr(nc_put_vara_text(ncid_, cell_spatialVID_, start_, count_, xyz))) {
-    mprinterr("Error on NetCDF output of cell spatial VID 'a', 'b' and 'c'");
-    return 1;
-  }
-
-  start_[0] = 0; 
-  start_[1] = 0;
-  count_[0] = 3; 
-  count_[1] = NCLABELLEN;
-  if (checkNCerr(nc_put_vara_text(ncid_, cell_angularVID_, start_, count_, abc))) {
-    mprinterr("Error on NetCDF output of cell angular VID 'alpha', 'beta ' and 'gamma'");
-    return 1;
+  if ( hasBox ) {
+    xyz[0] = 'a'; 
+    xyz[1] = 'b'; 
+    xyz[2] = 'c';
+    if (checkNCerr(nc_put_vara_text(ncid_, cell_spatialVID_, start_, count_, xyz))) {
+      mprinterr("Error on NetCDF output of cell spatial VID 'a', 'b' and 'c'");
+      return 1;
+    }
+    char abc[15] = { 'a', 'l', 'p', 'h', 'a',
+                     'b', 'e', 't', 'a', ' ',
+                     'g', 'a', 'm', 'm', 'a' };
+    start_[0] = 0; 
+    start_[1] = 0;
+    count_[0] = 3; 
+    count_[1] = NCLABELLEN;
+    if (checkNCerr(nc_put_vara_text(ncid_, cell_angularVID_, start_, count_, abc))) {
+      mprinterr("Error on NetCDF output of cell angular VID 'alpha', 'beta ' and 'gamma'");
+      return 1;
+    }
   }
 
   return 0;
