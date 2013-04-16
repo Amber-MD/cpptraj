@@ -15,7 +15,7 @@ Analysis_CrankShaft::Analysis_CrankShaft() :
 {}
 
 void Analysis_CrankShaft::Help() {
-  mprintf("\t{angle | distance} <scalar-name1> <scalar-name2> info <string>\n");
+  mprintf("\t{angle | distance} <dsetname1> <dsetname2> info <string>\n");
   mprintf("\t[out <filename>] [results <resultsfile>]\n");
   mprintf("\t[start <start>] [stop <stop>] [offset <offset>]\n");
 }
