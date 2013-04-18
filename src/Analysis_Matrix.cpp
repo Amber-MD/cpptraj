@@ -25,7 +25,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
 {
 #ifdef NO_MATHLIB
   mprinterr("Error: analyze matrix: Compiled without LAPACK routines.\n");
-  return 1;
+  return Analysis::ERR;
 #else
   // Get matrix name
   std::string mname = analyzeArgs.GetStringNext();
