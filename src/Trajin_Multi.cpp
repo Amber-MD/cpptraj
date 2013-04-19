@@ -153,7 +153,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     return 1;
   }
   // Set base trajectory filename
-  SetTrajFileName( tnameIn );
+  SetTrajFileName( tnameIn, true );
   // Process REMD-specific arguments
   if (argIn->Contains("remdtrajidx")) {
     // Looking for specific indices

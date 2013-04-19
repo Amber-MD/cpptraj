@@ -135,7 +135,7 @@ DataFile::DataFormatType DataFile::DataFormat(std::string const& fname) {
 
 // DataFile::ReadData()
 int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
-  filename_.SetFileName( argIn.GetStringNext() );
+  filename_.SetFileNameWithExpansion( argIn.GetStringNext() );
   dataio_ = DetectFormat( filename_.Full() );
   // Default to detection by extension.
   if (dataio_ == 0)

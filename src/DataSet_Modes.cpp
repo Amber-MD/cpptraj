@@ -52,6 +52,10 @@ void DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
   * order (largest eigenvalue first).
   */
 int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
+#ifdef NO_MATHLIB
+  mprinterr("Error: modes: Compiled without ARPACK/LAPACK/BLAS routines.\n");
+  return 1;
+#else
   bool eigenvaluesOnly;
   int info = 0;
   if (mIn.Nrows() > 0) {
@@ -234,6 +238,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
   if (vtmp != 0) delete[] vtmp;
 
   return 0;
+#endif
 }
 
 // DataSet_Modes::PrintModes()
