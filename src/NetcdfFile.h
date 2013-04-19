@@ -34,6 +34,7 @@ class NetcdfFile {
     inline int Ncatom()  { return ncatom_;  }
     inline int Ncatom3() { return ncatom3_; }
     inline int Ncframe() { return ncframe_; }
+    inline int FrameDID() { return frameDID_; }
     bool HasVelocities() { return (velocityVID_ != -1); } 
 
     inline void SetNcatom( int natomIn ) { ncatom_ = natomIn; }

@@ -10,7 +10,9 @@
 // CONSTRUCTOR
 Traj_AmberNetcdf::Traj_AmberNetcdf() :
   Coord_(0),
-  Veloc_(0)
+  Veloc_(0),
+  eptotVID_(-1),
+  binsVID_(-1)
 { }
 
 // DESTRUCTOR
@@ -296,6 +298,50 @@ int Traj_AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, dou
   return 0;
 }  
 
+// TODO: Formalize these, put in NetcdfFile?
+#define NCEPTOT "eptot"
+#define NCBINS "bins"
+int Traj_AmberNetcdf::createReservoir(bool hasBins) {
+  int dimensionID[1];
+  dimensionID[0] = FrameDID();
+  if (ncid_ == -1 || dimensionID[0] == -1) return 1;
+  // Place file back in define mode
+  if ( checkNCerr( nc_redef( ncid_ ) ) ) return 1;
+  if ( checkNCerr( nc_def_var(ncid_, NCEPTOT, NC_DOUBLE, 1, dimensionID, &eptotVID_)) ) {
+    mprinterr("Error: defining eptot variable ID.\n");
+    return 1;
+  }
+  if (hasBins) {
+    if ( checkNCerr( nc_def_var(ncid_, NCBINS, NC_INT, 1, dimensionID, &binsVID_)) ) {
+      mprinterr("Error: defining bins variable ID.\n");
+      return 1;
+    }
+  } else
+    binsVID_ = -1;
+  // End definitions
+  if (checkNCerr(nc_enddef(ncid_))) {
+    mprinterr("NetCDF error on ending definitions.");
+    return 1;
+  }
+  return 0;
+}
+
+int Traj_AmberNetcdf::writeReservoir(int set, double energy, int bin) {
+  start_[0] = set;
+  count_[0] = 1;
+  if ( checkNCerr( nc_put_vara_double(ncid_,eptotVID_,start_,count_,&energy)) ) {
+    mprinterr("Error: Writing eptot.\n");
+    return 1;
+  }
+  if (binsVID_ != -1) {
+    if ( checkNCerr( nc_put_vara_int(ncid_,binsVID_,start_,count_,&bin)) ) {
+      mprinterr("Error: Writing bins.\n");
+      return 1;
+    }
+  }
+  return 0;
+}
+  
 // Traj_AmberNetcdf::info()
 void Traj_AmberNetcdf::Info() {
   mprintf("is a NetCDF AMBER trajectory");

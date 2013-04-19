@@ -23,11 +23,15 @@ class Traj_AmberNetcdf : public TrajectoryIO, NetcdfFile {
     int processWriteArgs(ArgList&);
     int NreplicaDimensions() { return remd_dimension_; }
     int readIndices(int,int*);
-
+    // Reservoir functions
+    int createReservoir(bool);
+    int writeReservoir(int, double, int);
   private:
     float *Coord_;
     float *Veloc_;
     FileName filename_;
+    int eptotVID_;
+    int binsVID_;
     int processReadArgs(ArgList&) { return 0; }
 };
 #endif

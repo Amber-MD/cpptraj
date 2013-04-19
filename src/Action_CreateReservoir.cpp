@@ -12,7 +12,7 @@ Action_CreateReservoir::Action_CreateReservoir() :
 
 void Action_CreateReservoir::Help() {
   mprintf("\t<filename> ene <energy data set> [bin <cluster bin data set>]\n");
-  mprintf("\t[parm <parmfile> | parmindex <#>]\n");
+  mprintf("\t[parm <parmfile> | parmindex <#>] [title <title>]\n");
 }
 
 // Action_CreateReservoir::Init()
@@ -60,7 +60,10 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
   // Setup output reservoir file
   reservoir_.SetDebug( debugIn );
   // Set title
-  reservoir_.SetTitle( actionArgs.GetStringKey("title") );
+  std::string title = actionArgs.GetStringKey("title");
+  if (title.empty())
+    title.assign("Cpptraj generated structure reservoir");
+  reservoir_.SetTitle( title );
   // Process additional netcdf traj args
   reservoir_.processWriteArgs( actionArgs );
 
@@ -88,6 +91,12 @@ Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** 
     // Set up write and open - no append.
     if (reservoir_.setupTrajout( filename_, currentParm, currentParm->Nframes(), false))
       return Action::ERR;
+    // Add reservoir vars to netcdf traj
+    if (reservoir_.createReservoir(bin_!=0)) {
+      mprinterr("Error: Could not add reservoir variables to netcdf trajectory.\n");
+      return Action::ERR;
+    }
+
     trajIsOpen_ = true;
     nframes_ = 0;
   }
@@ -98,8 +107,12 @@ Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** 
 Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFrame, 
                                                  Frame** frameAddress) 
 {
-  if (reservoir_.writeFrame(nframes_++, currentFrame->xAddress(), currentFrame->vAddress(),
-                                        currentFrame->bAddress(), currentFrame->Temperature()))
+  int bin = -1;
+  if (reservoir_.writeFrame(nframes_, currentFrame->xAddress(), currentFrame->vAddress(),
+                                      currentFrame->bAddress(), currentFrame->Temperature()))
+    return Action::ERR;
+  //if (bin_ != 0) bin = bin_
+  if (reservoir_.writeReservoir(nframes_++, ene_->Dval(frameNum), bin))
     return Action::ERR;
   return Action::OK;
 }
