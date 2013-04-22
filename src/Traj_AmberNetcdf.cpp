@@ -307,6 +307,10 @@ int Traj_AmberNetcdf::writeReservoir(int set, Frame& frame, double energy, int b
   }
   // Velo
   if (velocityVID_ != -1) {
+    if (frame.vAddress() == 0) { // TODO: Make it so this can NEVER happen.
+      mprinterr("Error: Reservoir expects velocities, but no velocities in frame.\n");
+      return 1;
+    }
     DoubleToFloat(Coord_, frame.vAddress());
     if (checkNCerr(nc_put_vara_float(ncid_,velocityVID_,start_,count_,Coord_)) ) {
       mprinterr("Error: Netcdf writing reservoir velocities %i\n",set);
