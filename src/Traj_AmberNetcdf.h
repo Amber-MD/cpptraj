@@ -28,7 +28,6 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     int writeReservoir(int, Frame&, double, int);
   private:
     float *Coord_;
-    float *Veloc_;
     FileName filename_;
     int eptotVID_;
     int binsVID_;

@@ -10,7 +10,6 @@
 // CONSTRUCTOR
 Traj_AmberNetcdf::Traj_AmberNetcdf() :
   Coord_(0),
-  Veloc_(0),
   eptotVID_(-1),
   binsVID_(-1)
 { }
@@ -20,7 +19,6 @@ Traj_AmberNetcdf::~Traj_AmberNetcdf() {
   //fprintf(stderr,"Amber Netcdf Destructor\n");
   this->closeTraj();
   if (Coord_!=0) delete[] Coord_;
-  if (Veloc_!=0) delete[] Veloc_;
   // NOTE: Need to close file?
 }
 
@@ -101,11 +99,6 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
   // float to/from double.
   if (Coord_ != 0) delete[] Coord_;
   Coord_ = new float[ Ncatom3() ];
-  if (Veloc_ != 0) delete[] Veloc_;
-  if (velocityVID_ != -1) 
-    Veloc_ = new float[ Ncatom3() ];
-  else
-    Veloc_ = 0;
   if (debug_>1) NetcdfDebug();
   closeTraj();
   // NetCDF files are always seekable
@@ -189,11 +182,11 @@ int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double
 
   // Read Velocities
   if (velocityVID_ != -1) {
-    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Veloc_)) ) {
+    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting velocities for frame %i\n", set);
       return 1;
     }
-    FloatToDouble(V, Veloc_);
+    FloatToDouble(V, Coord_);
   }
 
   // Read box info 
@@ -223,11 +216,11 @@ int Traj_AmberNetcdf::readVelocity(int set, double* V) {
   count_[2] = 3;
   // Read Velocities
   if (velocityVID_ != -1) {
-    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Veloc_)) ) {
+    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting velocities for frame %i\n", set);
       return 1;
     }
-    FloatToDouble(V, Veloc_);
+    FloatToDouble(V, Coord_);
   }
   return 0;
 }
