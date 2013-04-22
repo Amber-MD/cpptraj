@@ -14,7 +14,7 @@ Action_CreateReservoir::Action_CreateReservoir() :
 
 void Action_CreateReservoir::Help() {
   mprintf("\t<filename> ene <energy data set> [bin <cluster bin data set>]\n");
-  mprintf("\ttemp0 <temp0> iseed <iseed>\n");
+  mprintf("\ttemp0 <temp0> iseed <iseed> [velocity]\n");
   mprintf("\t[parm <parmfile> | parmindex <#>] [title <title>]\n");
 }
 
@@ -38,6 +38,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
     mprinterr("Error: Reservoir random seed must be specified and > 0\n");
     return Action::ERR;
   }
+  reservoir_.SetVelocity( actionArgs.hasKey("velocity") );
   // Get parm for reservoir traj
   original_trajparm_ = PFL->GetParm( actionArgs );
   if (original_trajparm_ == 0) {
@@ -78,14 +79,16 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
     title.assign("Cpptraj generated structure reservoir");
   reservoir_.SetTitle( title );
   // Process additional netcdf traj args
-  reservoir_.processWriteArgs( actionArgs );
+  //reservoir_.processWriteArgs( actionArgs );
 
   mprintf("    CREATERESERVOIR: %s, energy data %s", filename_.c_str(),
           ene_->Legend().c_str());
   if (!bin_dsname.empty())
     mprintf(", bin data %s", bin_->Legend().c_str());
-  mprintf("\tReservoir temperature= %.2f, random seed= %i\n", reservoirT_, iseed_);
-  mprintf("\n\tTopology: %s\n", original_trajparm_->c_str());
+  mprintf("\n\tReservoir temperature= %.2f, random seed= %i\n", reservoirT_, iseed_);
+  if (reservoir_.HasV())
+    mprintf("\tVelocities will be written to reservoir.\n");
+  mprintf("\tTopology: %s\n", original_trajparm_->c_str());
   return Action::OK;
 }
 
