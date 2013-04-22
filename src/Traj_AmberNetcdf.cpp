@@ -328,6 +328,19 @@ int Traj_AmberNetcdf::writeReservoir(int set, Frame& frame, double energy, int b
       return 1;
     }
   }
+  // Write box
+  if (cellLengthVID_ != -1) {
+    count_[1] = 3;
+    count_[2] = 0;
+    if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frame.bAddress())) ) {
+      mprinterr("Error: Writing cell lengths.\n");
+      return 1;
+    }
+    if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frame.bAddress()+3)) ) {
+      mprinterr("Error: Writing cell angles.\n");
+      return 1;
+    }
+  }
   nc_sync(ncid_); // Necessary after every write??
   ++ncframe_;
   return 0;
