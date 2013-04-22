@@ -20,6 +20,8 @@ class Action_CreateReservoir : public Action {
     Topology* original_trajparm_;
     DataSet* ene_;
     DataSet* bin_;
+    double reservoirT_;
+    int iseed_;
     std::string filename_;
     bool trajIsOpen_;
     size_t nframes_;

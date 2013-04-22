@@ -39,6 +39,8 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #define NCREMD_DIMENSION "remd_dimension"
 #define NCREMD_DIMTYPE "remd_dimtype"
 #define NCREMD_INDICES "remd_indices"
+#define NCEPTOT "eptot"
+#define NCBINS "bins"
 
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
@@ -393,6 +395,57 @@ int NetcdfFile::NC_openWrite(std::string const& Name) {
   return 0;
 }
 
+int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {
+  if (checkNCerr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM,dimensionID,&TempVID_))) {
+    mprinterr("NetCDF error on defining temperature.\n");
+    return 1;
+  }
+  if (checkNCerr(nc_put_att_text(ncid_,TempVID_,"units",6,"kelvin"))) {
+    mprinterr("NetCDF error on defining temperature units.\n");
+    return 1;
+  }
+  return 0;
+}
+
+int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
+                                   int& eptotVID, int& binsVID) 
+{
+  int dimensionID[1];
+  dimensionID[0] = frameDID_;
+  if (ncid_ == -1 || dimensionID[0] == -1) return 1;
+  // Place file back in define mode
+  if ( checkNCerr( nc_redef( ncid_ ) ) ) return 1;
+  // Define eptot, bins, temp0
+  if ( checkNCerr( nc_def_var(ncid_, NCEPTOT, NC_DOUBLE, 1, dimensionID, &eptotVID)) ) {
+    mprinterr("Error: defining eptot variable ID.\n");
+    return 1;
+  }
+  if (hasBins) {
+    if ( checkNCerr( nc_def_var(ncid_, NCBINS, NC_INT, 1, dimensionID, &binsVID)) ) {
+      mprinterr("Error: defining bins variable ID.\n");
+      return 1;
+    }
+  } else
+    binsVID = -1;
+  if (NC_defineTemperature(dimensionID, 0)) return 1;
+  // Random seed, make global
+  if ( checkNCerr( nc_put_att_int(ncid_, NC_GLOBAL, "iseed", NC_INT, 1, &iseed) ) ) {
+    mprinterr("Error: setting random seed attribute.\n");
+    return 1;
+  }
+  // End definitions
+  if (checkNCerr(nc_enddef(ncid_))) {
+    mprinterr("NetCDF error on ending definitions.");
+    return 1;
+  }
+  // Write temperature
+  if (checkNCerr(nc_put_var_double(ncid_,TempVID_,&reservoirT)) ) {
+    mprinterr("Error: Writing reservoir temperature.\n");
+    return 1;
+  }
+  return 0;
+}
+
 // NetcdfFile::NC_create()
 int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, bool hasVelocity,
                           bool hasBox, bool hasTemperature, bool hasTime, 
@@ -430,7 +483,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
 
   ncframe_ = 0;
   if (type == NC_AMBERTRAJ) {
-    // Frame dimension and Time variable for traj
+    // Frame dimension for traj
     if ( checkNCerr( nc_def_dim( ncid_, NCFRAME, NC_UNLIMITED, &frameDID_)) ) {
       mprinterr("Error: Defining frame dimension.\n");
       return 1;
@@ -504,14 +557,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
   if (hasTemperature) {
     // NOTE: Setting dimensionID should be OK for Restart, will not be used.
     dimensionID[0] = frameDID_;
-    if (checkNCerr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM-2,dimensionID,&TempVID_))) {
-      mprinterr("NetCDF error on defining temperature.\n");
-      return 1;
-    }
-    if (checkNCerr(nc_put_att_text(ncid_,TempVID_,"units",6,"kelvin"))) {
-      mprinterr("NetCDF error on defining temperature units.\n"); 
-      return 1;
-    }
+    if ( NC_defineTemperature( dimensionID, NDIM-2 ) ) return 1;
   }
   // Box Info
   if (hasBox) {

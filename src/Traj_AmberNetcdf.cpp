@@ -298,37 +298,29 @@ int Traj_AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, dou
   return 0;
 }  
 
-// TODO: Formalize these, put in NetcdfFile?
-#define NCEPTOT "eptot"
-#define NCBINS "bins"
-int Traj_AmberNetcdf::createReservoir(bool hasBins) {
-  int dimensionID[1];
-  dimensionID[0] = FrameDID();
-  if (ncid_ == -1 || dimensionID[0] == -1) return 1;
-  // Place file back in define mode
-  if ( checkNCerr( nc_redef( ncid_ ) ) ) return 1;
-  if ( checkNCerr( nc_def_var(ncid_, NCEPTOT, NC_DOUBLE, 1, dimensionID, &eptotVID_)) ) {
-    mprinterr("Error: defining eptot variable ID.\n");
+// Traj_AmberNetcdf::writeReservoir() TODO: Make Frame const&
+int Traj_AmberNetcdf::writeReservoir(int set, Frame& frame, double energy, int bin) {
+  start_[0] = ncframe_;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 1;
+  count_[1] = Ncatom();
+  count_[2] = 3;
+  // Coords
+  DoubleToFloat(Coord_, frame.xAddress());
+  if (checkNCerr(nc_put_vara_float(ncid_,coordVID_,start_,count_,Coord_)) ) {
+    mprinterr("Error: Netcdf writing reservoir coords %i\n",set);
     return 1;
   }
-  if (hasBins) {
-    if ( checkNCerr( nc_def_var(ncid_, NCBINS, NC_INT, 1, dimensionID, &binsVID_)) ) {
-      mprinterr("Error: defining bins variable ID.\n");
+  // Velo
+  if (velocityVID_ != -1) {
+    DoubleToFloat(Coord_, frame.vAddress());
+    if (checkNCerr(nc_put_vara_float(ncid_,velocityVID_,start_,count_,Coord_)) ) {
+      mprinterr("Error: Netcdf writing reservoir velocities %i\n",set);
       return 1;
     }
-  } else
-    binsVID_ = -1;
-  // End definitions
-  if (checkNCerr(nc_enddef(ncid_))) {
-    mprinterr("NetCDF error on ending definitions.");
-    return 1;
   }
-  return 0;
-}
-
-int Traj_AmberNetcdf::writeReservoir(int set, double energy, int bin) {
-  start_[0] = set;
-  count_[0] = 1;
+  // Eptot, bins
   if ( checkNCerr( nc_put_vara_double(ncid_,eptotVID_,start_,count_,&energy)) ) {
     mprinterr("Error: Writing eptot.\n");
     return 1;
@@ -339,6 +331,8 @@ int Traj_AmberNetcdf::writeReservoir(int set, double energy, int bin) {
       return 1;
     }
   }
+  nc_sync(ncid_); // Necessary after every write??
+  ++ncframe_;
   return 0;
 }
   

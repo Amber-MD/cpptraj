@@ -6,12 +6,15 @@ Action_CreateReservoir::Action_CreateReservoir() :
   original_trajparm_(0),
   ene_(0),
   bin_(0),
+  reservoirT_(0.0),
+  iseed_(0),
   trajIsOpen_(false),
   nframes_(0)
 {}
 
 void Action_CreateReservoir::Help() {
   mprintf("\t<filename> ene <energy data set> [bin <cluster bin data set>]\n");
+  mprintf("\ttemp0 <temp0> iseed <iseed>\n");
   mprintf("\t[parm <parmfile> | parmindex <#>] [title <title>]\n");
 }
 
@@ -23,6 +26,16 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
   filename_ = actionArgs.GetStringNext();
   if (filename_.empty()) {
     mprinterr("Error: createreservoir: No filename specified.\n");
+    return Action::ERR;
+  }
+  reservoirT_ = actionArgs.getKeyDouble("temp0", -1.0);
+  if (reservoirT_ < 0.0) {
+    mprinterr("Error: Reservoir temperature must be specified and cannot be < 0.0\n");
+    return Action::ERR;
+  }
+  iseed_ = actionArgs.getKeyInt("iseed", 0);
+  if (iseed_ < 1) {
+    mprinterr("Error: Reservoir random seed must be specified and > 0\n");
     return Action::ERR;
   }
   // Get parm for reservoir traj
@@ -71,6 +84,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
           ene_->Legend().c_str());
   if (!bin_dsname.empty())
     mprintf(", bin data %s", bin_->Legend().c_str());
+  mprintf("\tReservoir temperature= %.2f, random seed= %i\n", reservoirT_, iseed_);
   mprintf("\n\tTopology: %s\n", original_trajparm_->c_str());
   return Action::OK;
 }
@@ -92,7 +106,7 @@ Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** 
     if (reservoir_.setupTrajout( filename_, currentParm, currentParm->Nframes(), false))
       return Action::ERR;
     // Add reservoir vars to netcdf traj
-    if (reservoir_.createReservoir(bin_!=0)) {
+    if (reservoir_.createReservoir((bin_!=0), reservoirT_, iseed_)) {
       mprinterr("Error: Could not add reservoir variables to netcdf trajectory.\n");
       return Action::ERR;
     }
@@ -108,11 +122,8 @@ Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFra
                                                  Frame** frameAddress) 
 {
   int bin = -1;
-  if (reservoir_.writeFrame(nframes_, currentFrame->xAddress(), currentFrame->vAddress(),
-                                      currentFrame->bAddress(), currentFrame->Temperature()))
-    return Action::ERR;
   //if (bin_ != 0) bin = bin_
-  if (reservoir_.writeReservoir(nframes_++, ene_->Dval(frameNum), bin))
+  if (reservoir_.writeReservoir(nframes_++, *currentFrame, ene_->Dval(frameNum), bin))
     return Action::ERR;
   return Action::OK;
 }

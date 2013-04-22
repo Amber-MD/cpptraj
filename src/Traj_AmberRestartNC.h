@@ -5,7 +5,7 @@
 #include "NetcdfFile.h"
 // Class: Traj_AmberRestartNC
 /// TrajectoryIO class for reading and writing Amber Netcdf Restarts
-class Traj_AmberRestartNC : public TrajectoryIO, NetcdfFile {
+class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
   public:
     Traj_AmberRestartNC();
     static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_AmberRestartNC(); }
