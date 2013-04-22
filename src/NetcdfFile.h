@@ -17,6 +17,7 @@ class NetcdfFile {
     NCTYPE GetNetcdfConventions();
     int NC_openRead(std::string const&);
     int NC_openWrite(std::string const&);
+    int NC_createReservoir(bool, double, int, int&, int&);
     int NC_create(std::string const&,NCTYPE,int,bool,bool,bool,bool,std::string const&);
     void NC_close();
 
@@ -72,6 +73,7 @@ class NetcdfFile {
 
     std::string GetAttrText(int, const char *);
     int GetDimInfo(const char *, int *);
+    int NC_defineTemperature(int*, int);
 #   endif
 };
 #endif

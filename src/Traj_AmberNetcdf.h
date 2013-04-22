@@ -5,7 +5,7 @@
 #include "NetcdfFile.h"
 // Class: Traj_AmberNetcdf
 /// Reads and writes Amber Netcdf format trajectories. 
-class Traj_AmberNetcdf : public TrajectoryIO, NetcdfFile {
+class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
   public:
     Traj_AmberNetcdf();
     static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_AmberNetcdf(); }
@@ -23,12 +23,19 @@ class Traj_AmberNetcdf : public TrajectoryIO, NetcdfFile {
     int processWriteArgs(ArgList&);
     int NreplicaDimensions() { return remd_dimension_; }
     int readIndices(int,int*);
-
+    // Reservoir functions
+    inline int createReservoir(bool,double,int);
+    int writeReservoir(int, Frame&, double, int);
   private:
     float *Coord_;
-    float *Veloc_;
     FileName filename_;
+    int eptotVID_;
+    int binsVID_;
     int processReadArgs(ArgList&) { return 0; }
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+int Traj_AmberNetcdf::createReservoir(bool hasBins, double reservoirT, int iseed) {
+  return NC_createReservoir(hasBins, reservoirT, iseed, eptotVID_, binsVID_);
+}
 #endif
 #endif
