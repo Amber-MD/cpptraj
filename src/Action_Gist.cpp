@@ -1,6 +1,7 @@
 // Gist 
 #include <cmath>
 #include <iostream> // cout
+#include <cstring> // memset
 #include "Action_Gist.h"
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
@@ -24,18 +25,14 @@ Action_Gist::Action_Gist() :
   TSNNtot_(0.0),
   max_nwat_(0),
   TStranstot_(0.0),
-  NFRAME_(0),
-  BULK_DENS_(0.0332248716)
+  griddim_(0),
+  gridindex_(0)
 {
   mprintf("\tGIST: INIT \n");
   gridcntr_[0] = -1;
   gridcntr_[1] = -1;
   gridcntr_[2] = -1;
-  
-  griddim_[0] = -1;
-  griddim_[1] = -1;
-  griddim_[2] = -1;
-  
+    
   gridorig_[0] = -1;
   gridorig_[1] = -1;
   gridorig_[2] = -1;
@@ -47,6 +44,7 @@ void Action_Gist::Help() {
   mprintf("gist <watermodel>[{tip3p|tip4p|tip4pew}] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
   mprintf("\tCalculate GIST between water molecules in selected site \n");
 }
+
 
 // Action_Gist::init()
 Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
@@ -82,6 +80,10 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (useTIP3P_) BULK_E_ = -19.0653;
   if (useTIP4P_ || useTIP4PEW_) BULK_E_ = -22.06;
   
+  // Set Bulk Density
+  BULK_DENS_ = 0.0332248716;
+
+
   if ( actionArgs.hasKey("gridcntr") ){
     gridcntr_[0] = actionArgs.getNextDouble(-1);
     gridcntr_[1] = actionArgs.getNextDouble(-1);
@@ -96,24 +98,28 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     mprintf("\tGIST grid center: %5.3f %5.3f %5.3f\n", gridcntr_[0],gridcntr_[1],gridcntr_[2]);
   }
 
-  
+  griddim_ = new int[3];
+  memset(griddim_, 0, 3 * sizeof(int));
   if ( actionArgs.hasKey("griddim") ){
-    griddim_[0] = actionArgs.getNextDouble(-1);
-    griddim_[1] = actionArgs.getNextDouble(-1);
-    griddim_[2] = actionArgs.getNextDouble(-1);
-    mprintf("\tGIST grid dimension: %5.3f %5.3f %5.3f\n", griddim_[0],griddim_[1],griddim_[2]);
+    griddim_[0] = actionArgs.getNextInteger(-1);
+    griddim_[1] = actionArgs.getNextInteger(-1);
+    griddim_[2] = actionArgs.getNextInteger(-1);
+    mprintf("\tGIST grid dimension: %d %d %d \n", griddim_[0],griddim_[1],griddim_[2]);
   }
   else{
     mprintf("\tGIST: No grid dimensiom values were found, using default (box size) \n");
-    griddim_[0] = 30.0;
-    griddim_[1] = 30.0;
-    griddim_[2] = 30.0;
-    mprintf("\tGIST grid dimension: %5.3f %5.3f %5.3f\n", griddim_[0],griddim_[1],griddim_[2]);
+    griddim_[0] = 100;
+    griddim_[1] = 100;
+    griddim_[2] = 100;
+    mprintf("\tGIST grid dimension: %d %d %d \n", griddim_[0],griddim_[1],griddim_[2]);
   }
 
 
   gridspacn_ = actionArgs.getKeyDouble("gridspacn", 0.50);
   mprintf("\tGIST grid spacing: %5.3f \n", gridspacn_);
+
+  gridindex_ = new int[3];
+  memset(gridindex_, 0, 3 * sizeof(int));
 
   return Action::OK;
 }
@@ -125,8 +131,13 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   mprintf("GIST Setup \n");
 
   CurrentParm_ = currentParm;      
+  NFRAME_=0;
+  //griddim_[0] = griddim_[0]/gridspacn_;
+  //griddim_[1] = griddim_[1]/gridspacn_;
+  //griddim_[2] = griddim_[2]/gridspacn_;
   MAX_GRID_PT_ = griddim_[0] * griddim_[1] * griddim_[2];
   Vvox_ = gridspacn_*gridspacn_*gridspacn_;
+  mprintf("\tGIST Setup: %d %d %d %d %f \n", griddim_[0],griddim_[1],griddim_[2],  MAX_GRID_PT_, Vvox_ );
 
   // Set up cumulative energy arrays
   wh_evdw_.clear();
@@ -237,10 +248,10 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   //gridwat_.assign(CurrentParm_->Natom(), 0);
 
   //select water molecules
+  NFRAME_++;
   Grid(currentFrame,  CurrentParm_);
   NonbondEnergy2( currentFrame, CurrentParm_ );
   EulerAngle( currentFrame, CurrentParm_);
-  NFRAME_ ++;
 
   return Action::OK;
 }
@@ -258,7 +269,8 @@ static void GetLJparam(Topology const& top, double& A, double& B,
 void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
   double delta2, Acoef, Bcoef, deltatest;
   
-  mprintf("GIST NonbondEnergy2  \n");
+  mprintf("GIST NonbondEnergy2 \n");
+  int voxel,voxel2;
   resnum=0;
   ELJ_ = 0.0;
   Eelec_ = 0.0;
@@ -268,10 +280,12 @@ void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
   for (Topology::mol_iterator solvmol = CurrentParm_->MolStart();
        solvmol != CurrentParm_->MolEnd(); ++solvmol)
     {
+      //mprintf("GIST NonbondEnergy2  ROMEE before %d %d \n", voxel, MAX_GRID_PT_);
       if (!(*solvmol).IsSolvent()) continue;
-      int voxel = gridwat_[resnum];
+      voxel = gridwat_[resnum];
       // if main water is outside the grid, skip
       if (voxel>=MAX_GRID_PT_) continue;
+      //mprintf("GIST NonbondEnergy2  ROMEE after\n");
       // Loop over solvent atoms
       for (int satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
 	{
@@ -334,7 +348,7 @@ void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
 	      else{ // Solvent loop
 		// skip water intearction with with itself
 		if (resnum==resnum2) continue;
-		int voxel2 = gridwat_[resnum2];
+		voxel2 = gridwat_[resnum2];
 		for (int satom2 = (*solvmol2).BeginAtom(); satom2 < (*solvmol2).EndAtom(); ++satom2)
 		  {
 		    
@@ -391,6 +405,7 @@ void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
 	    } // END Inner loop ALL molecules 
 	} // END Outer loop solvent atoms
       resnum++;
+      //mprintf("GIST NonbondEnergy2  voxel %d %d energy %f %f %f %f \n", voxel, voxel2, wh_evdw_[voxel],wh_eelec_[voxel],ww_evdw_[voxel],ww_eelec_[voxel] );
     } // END Outer loop solvent molecules
   
 }
@@ -401,25 +416,30 @@ void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
 void Action_Gist::Grid(Frame *frameIn, Topology* CurrentParm) {
 
   resnum=0;
+  int voxel=100000000, i;
+  Vec3 comp, compnew, O_wat;
+  double rij;
+
   for (Topology::mol_iterator solvmol = CurrentParm_->MolStart();
        solvmol != CurrentParm_->MolEnd(); ++solvmol)
     {
       if (!(*solvmol).IsSolvent()) continue;
-      int i = (*solvmol).BeginAtom();
-      Vec3 O_wat = Vec3(frameIn->XYZ(i));
+      i = (*solvmol).BeginAtom();
+      O_wat = Vec3(frameIn->XYZ(i));
       // get the components of the water vector
-      Vec3 comp = Vec3(O_wat) - Vec3(gridcntr_);
-      double rij = sqrt( comp.Magnitude2() );
-      Vec3 compnew = comp/gridspacn_;
-      Vec3 index;
-      index[0] = (int) compnew[0];
-      index[1] = (int) compnew[1];
-      index[2] = (int) compnew[2];
-      if (index[0]>=0 && index[1]>=0 && index[2]>=0 && (index[0]<griddim_[0]) && (index[1]<griddim_[1]) && (index[2]<griddim_[2
-]))
+      //Vec3 comp = Vec3(O_wat) - Vec3(gridcntr_);
+      comp = Vec3(O_wat) - Vec3(gridorig_);
+      rij = sqrt( comp.Magnitude2() );
+      compnew = comp/gridspacn_;
+      //      Vec3 gridindex_;
+      gridindex_[0] = (int) compnew[0];
+      gridindex_[1] = (int) compnew[1];
+      gridindex_[2] = (int) compnew[2];
+      if (gridindex_[0]>=0 && gridindex_[1]>=0 && gridindex_[2]>=0 && (gridindex_[0]<griddim_[0]) && (gridindex_[1]<griddim_[1]) && (gridindex_[2]<griddim_[2]))
         {
-	// this water belongs to grid point index[0], index[1], index[2]
-          int voxel = (index[0]*griddim_[1] + index[1])*griddim_[2] + index[2];
+	// this water belongs to grid point gridindex_[0], gridindex_[1], gridindex_[2]
+          //int voxel = (gridindex_[0]*griddim_[1] + gridindex_[1])*griddim_[2] + gridindex_[2];
+	  voxel = (((gridindex_[2]-1)*griddim_[1] + gridindex_[1])-1)*griddim_[0] + gridindex_[0];
           gridwat_[resnum] = voxel;
         }
       else gridwat_[resnum] = 100000000;
@@ -568,10 +588,10 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
 	the_vox_[voxel].push_back(theta);
 	phi_vox_[voxel].push_back(phi);
 	psi_vox_[voxel].push_back(psi);
-        nw_angle_[voxel] ++;
+        nw_angle_[voxel]++;
       }
       else std::cout << " " << resnum << " gimbal lock problem, two z_wat paralell" << std::endl;
-      nwat_[voxel] ++;
+      nwat_[voxel]++;
       if (max_nwat_<nwat_[voxel]) max_nwat_ = nwat_[voxel];
       resnum++;
     }
@@ -579,7 +599,7 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
 
 
 void Action_Gist::Print() {
-
+  
   // Implement NN to compute orientational entropy for each voxel
   TSNNtot_=0;
   for (int gr_pt=0; gr_pt<MAX_GRID_PT_; gr_pt++) {
@@ -611,7 +631,7 @@ void Action_Gist::Print() {
   TSNNtot_ *= Vvox_;
   mprintf("Max number of water = %d \n", max_nwat_);
   mprintf("Total orientational entropy of the grid: S_NN = %9.5f kcal/mol\n", TSNNtot_);
-
+  
   // Compute translational entropy for each voxel
   TStranstot_=0;
   for (int gr_pt=0; gr_pt<MAX_GRID_PT_; gr_pt++) {
@@ -626,12 +646,16 @@ void Action_Gist::Print() {
   TStranstot_ *= Vvox_;
   mprintf("Total translational entropy of the grid: S_trans = %9.5f kcal/mol\n", TStranstot_);
 
+
   // Compute average voxel energy
   for (int a=0; a<MAX_GRID_PT_; a++) {
     dEwh_dw_[a] = (wh_evdw_[a]+wh_eelec_[a])/(NFRAME_*Vvox_);
+    //writeerror
     dEww_dw_ref_[a] = ((ww_evdw_[a]+ww_eelec_[a]) - nwat_[a]*BULK_E_)/(NFRAME_*Vvox_);
     dEwh_norm_[a] = (wh_evdw_[a]+wh_eelec_[a])/nwat_[a];
+    //write error
     dEww_norm_ref_[a] = (ww_evdw_[a]+ww_eelec_[a])/nwat_[a] - BULK_E_;
+    
   }
 
   // Compute the actual voxel coordinates
@@ -698,3 +722,9 @@ void Action_Gist::PrintDX(std::string const& filename)
   outfile.CloseFile();
 }
 
+// DESTRUCTOR
+Action_Gist::~Action_Gist() {
+  //fprintf(stderr,"Gist Destructor.\n");
+  if (griddim_!=0) delete[] griddim_;
+  if (gridindex_!=0) delete[] gridindex_;
+}

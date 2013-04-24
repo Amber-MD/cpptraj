@@ -13,6 +13,7 @@
 class Action_Gist: public Action  {
   public:
     Action_Gist();
+    ~Action_Gist();
 
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Gist(); }
     static void Help();
@@ -40,9 +41,16 @@ class Action_Gist: public Action  {
 //    std::string solvname_;
 //    std::vector<Residue> solvent_residues_;
 
+    // other constants
+    int NFRAME_;
+    double BULK_DENS_;
+    double BULK_E_;
+
     //Grid Stuff   
     Vec3 gridcntr_;    
-    Vec3 griddim_; 
+    int* griddim_;
+    int* gridindex_;
+    //Vec3 griddim_; 
     Vec3 gridorig_; 
     double gridspacn_;
     Vec3 x_lab, y_lab, z_lab;
@@ -73,7 +81,7 @@ class Action_Gist: public Action  {
     std::vector<double> wh_eelec_;
     std::vector<double> ww_evdw_;
     std::vector<double> ww_eelec_;
-    std::vector < std::vector <float> > ww_Eij_;
+    std::vector < std::vector <double> > ww_Eij_;
     std::vector<double> dEwh_dw_;
     std::vector<double> dEww_dw_ref_;
     std::vector<double> dEwh_norm_;
@@ -98,11 +106,6 @@ class Action_Gist: public Action  {
     std::vector < std::vector <double> > psi_vox_;
     std::vector <double> g_;
     std::vector <double> dens_;
-
-    // other constants
-    double NFRAME_;
-    double BULK_DENS_;
-    double BULK_E_;
 
     void NonbondEnergy2(Frame *, Topology *);
     void Grid(Frame*, Topology *);
