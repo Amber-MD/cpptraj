@@ -40,7 +40,7 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
   if (argIn!=0) 
     append_ = argIn->hasKey("append");
   // Set file name 
-  SetTrajFileName( tnameIn );
+  SetTrajFileName( tnameIn, false );
   // If a write format was not specified (UNKNOWN_TRAJ) check the argument
   // list to see if format was specified there. Defaults to AMBERTRAJ.
   if (writeFormat==UNKNOWN_TRAJ) {
