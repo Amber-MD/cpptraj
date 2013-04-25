@@ -70,8 +70,8 @@ use in CPPTRAJ:
   - John Mongan (UCSD, San Diego, CA, USA)
     Original implementation of the Amber NetCDF trajectory format.
 
-  - Hannes H. Loeffler (STFC Computational Science and Engineering Department,
-                        Daresbury, Cheshire WA4 4AD, UK)
+  - Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department,
+                        Warrington, WA4 4AD, UK)
     Diffusion calculation code adapted for use in Action_STFC_Diffusion.
 
 Documentation
