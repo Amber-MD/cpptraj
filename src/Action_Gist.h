@@ -4,8 +4,6 @@
 #include "Vec3.h"
 #include "Matrix_3x3.h"
 #include "ImagedAction.h"
-//#include "Residue.h"
-//#include "Topology.h"
 
 // Class: Action_Gist
 /// Calculate water energy and entropy

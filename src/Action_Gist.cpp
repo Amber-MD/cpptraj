@@ -10,7 +10,7 @@
 #include "DataSet_integer.h"
 #include "Box.h"
 #include "StringRoutines.h" 
-//#include "Topology.cpp"
+#include "Constants.h" // GASCONSTANT
 
 // CONSTRUCTOR
 Action_Gist::Action_Gist() :
@@ -82,7 +82,6 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   
   // Set Bulk Density
   BULK_DENS_ = 0.0332248716;
-
 
   if ( actionArgs.hasKey("gridcntr") ){
     gridcntr_[0] = actionArgs.getNextDouble(-1);
@@ -284,6 +283,7 @@ void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
       if (!(*solvmol).IsSolvent()) continue;
       voxel = gridwat_[resnum];
       // if main water is outside the grid, skip
+      resnum++;
       if (voxel>=MAX_GRID_PT_) continue;
       //mprintf("GIST NonbondEnergy2  ROMEE after\n");
       // Loop over solvent atoms
@@ -404,8 +404,6 @@ void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
 	      resnum2++;
 	    } // END Inner loop ALL molecules 
 	} // END Outer loop solvent atoms
-      resnum++;
-      //mprintf("GIST NonbondEnergy2  voxel %d %d energy %f %f %f %f \n", voxel, voxel2, wh_evdw_[voxel],wh_eelec_[voxel],ww_evdw_[voxel],ww_eelec_[voxel] );
     } // END Outer loop solvent molecules
   
 }
@@ -438,8 +436,8 @@ void Action_Gist::Grid(Frame *frameIn, Topology* CurrentParm) {
       if (gridindex_[0]>=0 && gridindex_[1]>=0 && gridindex_[2]>=0 && (gridindex_[0]<griddim_[0]) && (gridindex_[1]<griddim_[1]) && (gridindex_[2]<griddim_[2]))
         {
 	// this water belongs to grid point gridindex_[0], gridindex_[1], gridindex_[2]
-          //int voxel = (gridindex_[0]*griddim_[1] + gridindex_[1])*griddim_[2] + gridindex_[2];
-	  voxel = (((gridindex_[2]-1)*griddim_[1] + gridindex_[1])-1)*griddim_[0] + gridindex_[0];
+          voxel = (gridindex_[0]*griddim_[0] + gridindex_[1])*griddim_[1] + gridindex_[2];
+	  //voxel = (((gridindex_[2]-1)*griddim_[1] + gridindex_[1])-1)*griddim_[0] + gridindex_[0];
           gridwat_[resnum] = voxel;
         }
       else gridwat_[resnum] = 100000000;
@@ -456,8 +454,8 @@ void Action_Gist::Grid(Frame *frameIn, Topology* CurrentParm) {
 
 void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
 
-  Vec3 O_wat, H1_wat, H2_wat;
-  
+  Vec3 O_wat, H1_wat, H2_wat, x_wat ,y_wat ,z_wat, node, v;
+  int voxel;
   //select water molecules
   //  int solventMolecules_ = CurrentParm_->Nsolvent();
   resnum=0;
@@ -465,7 +463,8 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
        solvmol != CurrentParm_->MolEnd(); ++solvmol)
     {
       if (!(*solvmol).IsSolvent()) continue;
-      int voxel = gridwat_[resnum];
+      voxel = gridwat_[resnum];
+      resnum++;
       if (voxel>=MAX_GRID_PT_) continue;
 
       int i = (*solvmol).BeginAtom();
@@ -480,13 +479,13 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
       
       // Define the water frame of reference - all axes must be normalized
       // make h1 the water x-axis (but first need to normalized)
-      Vec3 x_wat = H1_wat;
+      x_wat = H1_wat;
       double rR_h1 = H1_wat.Normalize();
       // the normalized z-axis is the cross product of h1 and h2 
-      Vec3 z_wat = x_wat.Cross( H2_wat );
+      z_wat = x_wat.Cross( H2_wat );
       double rR_z_wat = z_wat.Normalize();
       // make y-axis as the cross product of h1 and z-axis
-      Vec3 y_wat = z_wat.Cross( x_wat );
+      y_wat = z_wat.Cross( x_wat );
       double rR_y_wat = z_wat.Normalize();
       
       // Find the X-convention Z-X'-Z'' Euler angles between the water frame and the lab/host frame
@@ -499,7 +498,7 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
 	// line of node is where the two xy planes meet = must be perpendicular to both z axes
 	// direction of the lines of node = cross product of two normals (z axes)
 	// acos of x always gives the angle between 0 and pi, which is okay for theta since theta ranges from 0 to pi
-	Vec3 node = z_lab.Cross( z_wat );
+	node = z_lab.Cross( z_wat );
 	// Second, find the angle phi, which is between x_lab and the node
 	dp = node*( x_lab );
         if (dp<=-1.0) phi = PI;
@@ -508,7 +507,7 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
 	// check angle phi
 	if (phi>0 && phi<(2*PI)) {
 	  // method 2
-	  Vec3 v = x_lab.Cross( node );
+	  v = x_lab.Cross( node );
 	  dp = v*( z_lab );
 	  if (dp<0) phi = 2*PI - phi;
 	}
@@ -571,7 +570,7 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
 */
 //	int voxel = gridwat_[resnum];
         if (rRx>1+1E-6 || rRx<1-1E-6 || rRy>1+1E-6 || rRy<1-1E-6 || rRz>1+1E-6 || rRz<1-1E-6) {
-          std::cout  << "wat=" << resnum << ", gr=" << voxel << " ROTATION IS BAD!" << std::endl;
+          std::cout  << "wat=" << resnum-1 << ", gr=" << voxel << " ROTATION IS BAD!" << std::endl;
           std::cout << "rx=" << rRx << ", ry=" << rRy << ", rz=" << rRz << std::endl;
           std::cout << "water new x axis: " << x_res[0] << " " << x_res[1] << " " << x_res[2] << std::endl;
           std::cout << "water new y axis: " << y_res[0] << " " << y_res[1] << " " << y_res[2] << std::endl;
@@ -588,45 +587,51 @@ void Action_Gist::EulerAngle(Frame *frameIn, Topology* CurrentParm) {
 	the_vox_[voxel].push_back(theta);
 	phi_vox_[voxel].push_back(phi);
 	psi_vox_[voxel].push_back(psi);
-        nw_angle_[voxel]++;
+        nw_angle_[voxel] = nw_angle_[voxel] + 1.0;
       }
-      else std::cout << " " << resnum << " gimbal lock problem, two z_wat paralell" << std::endl;
-      nwat_[voxel]++;
+      else std::cout << " " << resnum-1 << " gimbal lock problem, two z_wat paralell" << std::endl;
+      nwat_[voxel] = nwat_[voxel] + 1.0;
       if (max_nwat_<nwat_[voxel]) max_nwat_ = nwat_[voxel];
-      resnum++;
     }
 } 
 
 
 void Action_Gist::Print() {
-  
+  int gr_pt, nwtot, n, NNr,l;
+  double rx,ry,rz, rR, dbl;
   // Implement NN to compute orientational entropy for each voxel
   TSNNtot_=0;
-  for (int gr_pt=0; gr_pt<MAX_GRID_PT_; gr_pt++) {
+  for (gr_pt=0; gr_pt<MAX_GRID_PT_; gr_pt++) {
     TSNN_[gr_pt]=0; TSwNN_[gr_pt]=0;  
-    int nwtot = nw_angle_[gr_pt];
-    for (int n=0; n<nwtot; n++) {
-       int NNr=10000;
-       for (int l=0; l<nwtot; l++) {
+    nwtot = nw_angle_[gr_pt];
+    for (n=0; n<nwtot; n++) {
+       NNr=10000;
+       for (l=0; l<nwtot; l++) {
           if (l==n) continue;
-          double rx = cos(the_vox_[gr_pt][l]) - cos(the_vox_[gr_pt][n]);
-          double ry = phi_vox_[gr_pt][l] - phi_vox_[gr_pt][n];
-          double rz = psi_vox_[gr_pt][l] - psi_vox_[gr_pt][n];
+          rx = cos(the_vox_[gr_pt][l]) - cos(the_vox_[gr_pt][n]);
+          ry = phi_vox_[gr_pt][l] - phi_vox_[gr_pt][n];
+          rz = psi_vox_[gr_pt][l] - psi_vox_[gr_pt][n];
           if (ry>PI) ry = 2*PI-ry;
           else if (ry<-PI) ry = 2*PI+ry;
           if (rz>PI) rz = 2*PI-rz;
           else if (rz<-PI) rz = 2*PI+rz;
-          double rR = sqrt(rx*rx + ry*ry + rz*rz);
+          rR = sqrt(rx*rx + ry*ry + rz*rz);
+	  // Crystal check if the next iif satement is correct, it makes NNr=0
+	  mprintf("\tGIST ROMEE check Vvox3: %f %d \n", rR, NNr);
           if (rR>0 && rR<NNr) NNr = rR;
        }
        if (NNr<9999) {
-	  double dbl = log(NNr*NNr*NNr*nwtot/(3*2*PI));
+	  dbl = log(NNr*NNr*NNr*nwtot/(3*2*PI));
 	  TSwNN_[gr_pt] += dbl;
        }	
     }
-    TSwNN_[gr_pt] = GASCONSTANT*300*0.239*(TSwNN_[gr_pt]/nwat_[gr_pt]+0.5772)/1000;
-    TSNN_[gr_pt] = TSwNN_[gr_pt]*nwat_[gr_pt]/(Vvox_);
-    TSNNtot_ += TSNN_[gr_pt];
+    if(nwat_[gr_pt]>0.0){
+      TSwNN_[gr_pt] = GASCONSTANT*300*0.239*(TSwNN_[gr_pt]/nwat_[gr_pt]+0.5772)/1000;
+      TSNN_[gr_pt] = TSwNN_[gr_pt]*nwat_[gr_pt]/(Vvox_);
+      TSNNtot_ += TSNN_[gr_pt];
+    }
+    mprintf("\tGIST ROMEE check Vvox2: %d %f %f %d %f \n", NNr, PI, rR, nwtot, dbl);
+    mprintf("\tGIST ROMEE check Vvox: %f %f %f %f %f \n", TSNNtot_,nwat_[gr_pt], TSNN_[gr_pt], TSwNN_[gr_pt], g_[gr_pt]);
   }
   TSNNtot_ *= Vvox_;
   mprintf("Max number of water = %d \n", max_nwat_);
