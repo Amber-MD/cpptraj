@@ -107,7 +107,7 @@ class Action_Gist: public Action  {
     std::vector <double> g_;
     std::vector <double> dens_;
 
-    void NonbondEnergy2(Frame *, Topology *);
+    void NonbondEnergy(Frame *, Topology *);
     void Grid(Frame*, Topology *);
     void EulerAngle(Frame *, Topology *);
 };

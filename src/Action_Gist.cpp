@@ -2,6 +2,8 @@
 #include <cmath>
 #include <iostream> // cout
 #include <cstring> // memset
+#include <fstream>
+using namespace std;
 #include "Action_Gist.h"
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
@@ -217,7 +219,7 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   //select water molecules
   NFRAME_++;
   Grid( currentFrame, CurrentParm_);
-  NonbondEnergy2( currentFrame, CurrentParm_ );
+  NonbondEnergy( currentFrame, CurrentParm_ );
   EulerAngle( currentFrame, CurrentParm_);
 
   return Action::OK;
@@ -234,10 +236,14 @@ static void GetLJparam(Topology const& top, double& A, double& B,
   B = top.LJB()[index];
 }
 
-void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
+void Action_Gist::NonbondEnergy(Frame *currentFrame, Topology *CurrentParm) {
   double delta2, Acoef, Bcoef, deltatest;
+  Vec3 XYZ,XYZ2, JI;
+  double rij2,rij,r2,r6,r12,f12,f6,e_vdw,qiqj,e_elec;
+  int satom,satom2;
   
-  if (NFRAME_==1) mprintf("GIST NonbondEnergy2 \n");
+  Topology::mol_iterator solvmol, solvmol2;
+  if (NFRAME_==1) mprintf("GIST NonbondEnergy \n");
   int voxel,voxel2;
   resnum=0;
   ELJ_ = 0.0;
@@ -246,7 +252,7 @@ void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
 
   // Loop over all molecules
   // Outer loop
-  for (Topology::mol_iterator solvmol = CurrentParm_->MolStart();
+  for (solvmol = CurrentParm_->MolStart();
        solvmol != CurrentParm_->MolEnd(); ++solvmol)
     {
       if (!(*solvmol).IsSolvent()) continue;
@@ -255,41 +261,41 @@ void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
       resnum++;
       if (voxel>=MAX_GRID_PT_) continue;
       // Loop over solvent atoms
-      for (int satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
+      for (satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
 	{
 	  // Set up coord index for this atom
-	  const double* XYZ = currentFrame->XYZ( satom );	  
+	  XYZ =  Vec3(currentFrame->XYZ( satom ));	  
 	  // Inner loop	  
 	  resnum2=0;
-	  for (Topology::mol_iterator solvmol2 = CurrentParm_->MolStart();
+	  for (solvmol2 = CurrentParm_->MolStart();
 	       solvmol2 != CurrentParm_->MolEnd(); ++solvmol2)
 	    {
 	      if (!(*solvmol2).IsSolvent()) { //notsolvent loop
-		for (int satom2 = (*solvmol2).BeginAtom(); satom2 < (*solvmol2).EndAtom(); ++satom2)
+		for (satom2 = (*solvmol2).BeginAtom(); satom2 < (*solvmol2).EndAtom(); ++satom2)
 		  {
 		    
 		    // Set up coord index for this atom
-		    const double* XYZ2 = currentFrame->XYZ( satom2 );
+		    XYZ2 = Vec3(currentFrame->XYZ( satom2 ));
 		    // Calculate the vector pointing from atom2 to atom1
-		    Vec3 JI = Vec3(XYZ) - Vec3(XYZ2);
-		    double rij2 = JI.Magnitude2();
+		    JI = Vec3(XYZ) - Vec3(XYZ2);
+		    rij2 = JI.Magnitude2();
 		    // Normalize
-		    double rij = sqrt(rij2);
+		    rij = sqrt(rij2);
 		    JI /= rij;
 		    // LJ energy 
 		    GetLJparam(*CurrentParm, Acoef, Bcoef, satom, satom2);
-		    double r2    = 1 / rij2;
-		    double r6    = r2 * r2 * r2;
-		    double r12   = r6 * r6;
-		    double f12   = Acoef * r12;  // A/r^12
-		    double f6    = Bcoef * r6;   // B/r^6
-		    double e_vdw = f12 - f6;     // (A/r^12)-(B/r^6)
+		    r2    = 1 / rij2;
+		    r6    = r2 * r2 * r2;
+		    r12   = r6 * r6;
+		    f12   = Acoef * r12;  // A/r^12
+		    f6    = Bcoef * r6;   // B/r^6
+		    e_vdw = f12 - f6;     // (A/r^12)-(B/r^6)
 		    ELJ_ = ELJ_ + e_vdw;
 		    // LJ Force 
 		    //force=((12*f12)-(6*f6))*r2; // (12A/r^13)-(6B/r^7)
 		    // Coulomb energy 
-		    double qiqj = atom_charge_[satom] * atom_charge_[satom2];
-		    double e_elec = kes_ * (qiqj/rij);
+		    qiqj = atom_charge_[satom] * atom_charge_[satom2];
+		    e_elec = kes_ * (qiqj/rij);
 		    Eelec_ = Eelec_ + e_elec;
 		    // Cumulative evdw - divide between both atoms
 //		    delta2 = e_vdw * 0.5;
@@ -308,33 +314,33 @@ void Action_Gist::NonbondEnergy2(Frame *currentFrame, Topology *CurrentParm) {
 		voxel2 = gridwat_[resnum2];
 		resnum2++;
 		if ((resnum-1)==(resnum2-1)) continue;
-		for (int satom2 = (*solvmol2).BeginAtom(); satom2 < (*solvmol2).EndAtom(); ++satom2)
+		for (satom2 = (*solvmol2).BeginAtom(); satom2 < (*solvmol2).EndAtom(); ++satom2)
 		  {
 		    
 		    // Set up coord index for this atom
-		    const double* XYZ2 = currentFrame->XYZ( satom2 );
+		    XYZ2 = Vec3(currentFrame->XYZ( satom2 ));
 		    // Calculate the vector pointing from atom2 to atom1
-		    Vec3 JI = Vec3(XYZ) - Vec3(XYZ2);
-		    double rij2 = JI.Magnitude2();
+		    JI = Vec3(XYZ) - Vec3(XYZ2);
+		    rij2 = JI.Magnitude2();
 		    // Normalize
-		    double rij = sqrt(rij2);
+		    rij = sqrt(rij2);
 		    JI /= rij;
 		    // LJ energy 
 		    GetLJparam(*CurrentParm, Acoef, Bcoef, satom, satom2);
-		    double r2    = 1 / rij2;
-		    double r6    = r2 * r2 * r2;
-		    double r12   = r6 * r6;
-		    double f12   = Acoef * r12;  // A/r^12
-		    double f6    = Bcoef * r6;   // B/r^6
-		    double e_vdw = f12 - f6;     // (A/r^12)-(B/r^6)
-		    ELJ_ = ELJ_ + e_vdw;
+		    r2    = 1 / rij2;
+		    r6    = r2 * r2 * r2;
+		    r12   = r6 * r6;
+		    f12   = Acoef * r12;  // A/r^12
+		    f6    = Bcoef * r6;   // B/r^6
+		    e_vdw = f12 - f6;     // (A/r^12)-(B/r^6)
+		    //ELJ_ = ELJ_ + e_vdw;
 		    // LJ Force 
 		    //force=((12*f12)-(6*f6))*r2; // (12A/r^13)-(6B/r^7)
 		    //scalarmult(f,JI,F);
 		    // Coulomb energy 
-		    double qiqj = atom_charge_[satom] * atom_charge_[satom2];
-		    double e_elec = kes_ * (qiqj/rij);
-		    Eelec_ = Eelec_ + e_elec;
+		    qiqj = atom_charge_[satom] * atom_charge_[satom2];
+		    e_elec = kes_ * (qiqj/rij);
+		    //Eelec_ = Eelec_ + e_elec;
 		    // Cumulative evdw - divide between both atoms
 		    // CN: Here we divide each energy pair by 1/2 because each pairs is counted twice. So it's still the full interactino. 
 		    //delta2 = e_vdw * 0.5;
@@ -679,7 +685,7 @@ void Action_Gist::PrintDX(std::string const& filename)
   // Print GIST data in dx format
 void Action_Gist::PrintOutput(std::string const& filename)
 {
-  CpptrajFile outfile;
+  /*CpptrajFile outfile;
   if (outfile.OpenWrite(filename)) {
     mprinterr("Error: Could not open Gist output file.\n");
     return;
@@ -695,6 +701,16 @@ void Action_Gist::PrintOutput(std::string const& filename)
   }
   
   outfile.CloseFile();
+  */
+  ofstream myfile;
+  myfile.open("gist-output");  
+  myfile <<"GIST Output, information printed per voxel\n";
+  myfile <<"xcoord ycoord zcoord population density normalized-density S-trans S-trans-normalized S-rot S-rot-normalized E-water-solute E-water-solute-normalized E-water-water E-water-water-normalized \n";
+  // Now print out the data. 
+  for (int i = 0; i < MAX_GRID_PT_ ; i++){
+    myfile << grid_x_[i] << " " << grid_y_[i]<< " " << grid_z_[i]<< " " << nwat_[i]<< " " << dens_[i]<< " " <<g_[i]<< " " << TStrans_dw_[i]<< " " << TStrans_norm_[i]<< " " << TSwNN_[i]<< " " << TSNN_[i]<< " " << dEwh_dw_[i]<< " " <<dEwh_norm_[i]<< " " <<dEww_dw_ref_[i]<< " " <<dEww_norm_ref_[i] << std::endl;
+  }
+  myfile.close();
 }
 
 // DESTRUCTOR
