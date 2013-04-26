@@ -18,6 +18,8 @@ class Action_Gist: public Action  {
 
     void Print();
     void PrintDX(std::string const&);
+    void PrintOutput(std::string const&);
+  
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
@@ -57,6 +59,8 @@ class Action_Gist: public Action  {
     int resnum2;
     int MAX_GRID_PT_;
     std::vector <int> gridwat_;
+    std::vector<int> nwat_;
+    std::vector<int> nw_angle_;
     double Vvox_;
     std::vector<double> grid_x_;
     std::vector<double> grid_y_;
@@ -90,14 +94,12 @@ class Action_Gist: public Action  {
 //	Eij[a] = new float [a];
 
     // entropy stuff
-    std::vector<double> nwat_;
-    std::vector<double> nw_angle_;
     std::vector<double> TSNN_;
     std::vector<double> TSwNN_;
     std::vector<double> TStrans_dw_;
     std::vector<double> TStrans_norm_;
     double TSNNtot_;
-    double max_nwat_;
+    int max_nwat_;
     double TStranstot_;
     std::vector < std::vector <double> > the_vox_;
     std::vector < std::vector <double> > phi_vox_;
