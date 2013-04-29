@@ -409,9 +409,14 @@ void DataSetList::Sync() {
 // DataSetList::FindSetOfType()
 DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn) const
 {
+  std::string attr_arg;
+  std::string idx_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
+  int idx = -1;
+  if (!idx_arg.empty()) idx = convertToInteger(idx_arg);
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
     if ( (*ds)->Type() == typeIn ) {
-      if ( (*ds)->Name() == nameIn )
+      if ( (*ds)->Matches( dsname, idx, attr_arg ) )
         return (*ds);
     }
   }

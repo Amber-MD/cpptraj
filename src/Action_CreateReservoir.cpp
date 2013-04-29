@@ -57,15 +57,12 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
     return Action::ERR;
   }
   // Get bin data set
-  std::string bin_dsname = actionArgs.GetStringKey("bin");
-  if (!bin_dsname.empty()) {
-    bin_ = DSL->GetDataSet( bin_dsname );
+  std::string binDSname = actionArgs.GetStringKey("bin");
+  if (!binDSname.empty()) {
+    bin_ = (DataSet_integer*)DSL->FindSetOfType( binDSname, DataSet::INT );
     if (bin_ == 0) {
-      mprinterr("Error: could not get bin data set %s\n", bin_dsname.c_str());
-      return Action::ERR;
-    }
-    if (bin_->Type() != DataSet::INT) {
-      mprinterr("Error: bin data set %s must be type INTEGER.\n", bin_dsname.c_str());
+      mprinterr("Error: could not get bin data set %s\n", binDSname.c_str());
+      mprinterr("Info: bin data set must be type INTEGER.\n");
       return Action::ERR;
     }
   }
@@ -83,7 +80,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
 
   mprintf("    CREATERESERVOIR: %s, energy data %s", filename_.c_str(),
           ene_->Legend().c_str());
-  if (!bin_dsname.empty())
+  if (!binDSname.empty())
     mprintf(", bin data %s", bin_->Legend().c_str());
   mprintf("\n\tReservoir temperature= %.2f, random seed= %i\n", reservoirT_, iseed_);
   if (reservoir_.HasV())
@@ -125,7 +122,7 @@ Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFra
                                                  Frame** frameAddress) 
 {
   int bin = -1;
-  //if (bin_ != 0) bin = bin_
+  if (bin_ != 0) bin = (*bin_)[frameNum];
   if (reservoir_.writeReservoir(nframes_++, *currentFrame, ene_->Dval(frameNum), bin))
     return Action::ERR;
   return Action::OK;
