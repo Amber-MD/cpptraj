@@ -13,6 +13,8 @@ class DataSet_Modes : public DataSet {
     int Sync()          { return 1;       }
     void Info()   const { return;         }
     // -------------------------------------------
+    // TODO: Remove this. Only needed by DataSet_1D.h
+    void Add(size_t,const void*) { }
     void SetAvgCoords(DataSet_2D const&);
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();

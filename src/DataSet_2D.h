@@ -34,6 +34,8 @@ class DataSet_2D : public DataSet {
     /// \return the type of matrix
     virtual MatrixType Type() const = 0;
     // -------------------------------------------
+    // TODO: Remove this. Only needed by DataSet_1D.h
+    void Add(size_t,const void*) { }
     static const char* MatrixTypeString(MatrixType m  ) { return TokenArray[m].TypeString;   }
     static const char* MatrixOutputString(MatrixType m) { return TokenArray[m].OutputString; }
   private:

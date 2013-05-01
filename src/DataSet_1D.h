@@ -17,7 +17,8 @@ class DataSet_1D : public DataSet {
       * be greater than the preceeding one (does not need to be
       * consecutive however). 
       */
-    virtual void Add( size_t, const void* ) = 0;
+    // TODO: Re-enable this. Currently put in DataSet.h t avoid massive recode.
+    //virtual void Add( size_t, const void* ) = 0;
     /// Write data at frame to file (1D)
     virtual void WriteBuffer(CpptrajFile&,size_t) const = 0;
     /// \return data from data set as double precision (1D)

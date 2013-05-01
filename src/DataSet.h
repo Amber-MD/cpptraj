@@ -50,6 +50,8 @@ class DataSet {
     /// Print DataSet information
     virtual void Info() const = 0;
     // -----------------------------------------------------
+    // TODO: Remove this. Should only be in DataSet_1D.h
+    virtual void Add( size_t, const void* ) = 0;
     // ----------===== Public functions =====---------------
     /// Set output precision
     void SetPrecision(int,int);

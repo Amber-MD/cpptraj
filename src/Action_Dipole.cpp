@@ -5,16 +5,17 @@
 
 // CONSTRUCTOR
 Action_Dipole::Action_Dipole() :
+  grid_(0),
   max_(0),
   CurrentParm_(0)
 {}
 
 void Action_Dipole::Help() {
-  mprintf("\t<filename> %s\n", Grid::HelpText);
+  mprintf("\t<filename> %s\n", GridAction::HelpText);
   mprintf("\t<mask1> {origin | box} [max <max_percent>]\n");
 }
 
-// Action_Dipole::init()
+// Action_Dipole::Init()
 Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -31,8 +32,8 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else
     max_ = actionArgs.getKeyDouble("max", 0);
   // Get grid options
-  if (grid_.GridInit( "Dipole", actionArgs ))
-    return Action::ERR;
+  grid_ = GridInit( "Dipole", actionArgs, DSL );
+  if (grid_ == 0) return Action::ERR;
   // Setup dipole x, y, and z grids
   dipolex_.resize( grid_.GridSize(), 0 );
   dipoley_.resize( grid_.GridSize(), 0 );

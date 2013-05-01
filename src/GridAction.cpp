@@ -12,8 +12,10 @@ static inline void CheckEven(int& N, std::string const& call) {
   }
 }
 
-DataSet_3D* GridAction::GridInit(const char* callingRoutineIn, ArgList& argIn, DataSetList& DSL) {
-  DataSet_3D* Grid = 0;
+DataSet_GridFlt* GridAction::GridInit(const char* callingRoutineIn, ArgList& argIn, 
+                                      DataSetList& DSL) 
+{
+  DataSet_GridFlt* Grid = 0;
   std::string callingRoutine;
   if (callingRoutineIn!=0)
     callingRoutine.assign(callingRoutineIn);
@@ -22,7 +24,7 @@ DataSet_3D* GridAction::GridInit(const char* callingRoutineIn, ArgList& argIn, D
   // Check for existing dataset
   std::string dsname = argIn.GetStringKey("data");
   if (!dsname.empty()) {
-    Grid = (DataSet_3D*)DSL.FindSetOfType( dsname, DataSet::GRID_FLT );
+    Grid = (DataSet_GridFlt*)DSL.FindSetOfType( dsname, DataSet::GRID_FLT );
     if (Grid == 0) {
       mprinterr("Error: %s: Could not find grid data set with name %s\n",
                 callingRoutine.c_str(), dsname.c_str());
@@ -50,7 +52,7 @@ DataSet_3D* GridAction::GridInit(const char* callingRoutineIn, ArgList& argIn, D
   CheckEven( ny, callingRoutine );
   CheckEven( nz, callingRoutine );
   // Allocate DataSet
-  Grid = (DataSet_3D*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
+  Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
   if (Grid->Allocate3D(nx, ny, nz)) {
     DataSetList::const_iterator last = DSL.end();
     --last;

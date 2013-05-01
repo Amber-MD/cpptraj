@@ -20,5 +20,7 @@ class DataSet_3D : public DataSet {
     virtual size_t NY() const = 0;
     /// \return size of Z dimension.
     virtual size_t NZ() const = 0;
+    // TODO: Remove this. Only needed by DataSet_1D.h
+    void Add(size_t,const void*) { }
 };
 #endif
