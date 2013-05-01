@@ -20,7 +20,24 @@ class DataSet_GridFlt : public DataSet_3D {
     size_t NY() const { return grid_.NY(); }
     size_t NZ() const { return grid_.NZ(); }
     // -------------------------------------------
-    void Increment(size_t x,size_t y,size_t z,float f) { grid_.incrementBy(x,y,z,f); }
+    /// Type definition of iterator over grid elements.
+    typedef Grid<float>::iterator iterator;
+    iterator begin() { return grid_.begin(); }
+    iterator end()   { return grid_.end();   }
+    /// Increment specified grid point by given value.
+    size_t Increment(Vec3 const& xyz, float f, bool& binned) {
+      size_t i,j,k;
+      if (CalcBins(xyz[0],xyz[1],xyz[2],i,j,k)) {
+        binned = true;
+        return grid_.incrementBy(i,j,k,f);
+      }
+      binned = false;
+      return 0UL;
+    }
+    /// \return grid index
+    size_t CalcIndex(size_t i, size_t j, size_t k) const {
+      return grid_.CalcIndex(i,j,k);
+    }
   private:
     Grid<float> grid_;
 };

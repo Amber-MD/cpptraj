@@ -1,9 +1,11 @@
 #include "GridAction.h"
 #include "CpptrajStdio.h"
 
+// GridAction::HelpText
 const char* GridAction::HelpText =
-  "{nx dx ny dy nz dz [box|origin|center <mask>] [negative]} | {readdx <file>}";
+  "{nx dx ny dy nz dz [box|origin|center <mask>] [negative]}";
 
+// CheckEven()
 static inline void CheckEven(int& N, std::string const& call) {
   if (N % 2 == 1) {
     mprintf("Warning: %s: number of grid points must be even.\n", call.c_str());
@@ -12,6 +14,7 @@ static inline void CheckEven(int& N, std::string const& call) {
   }
 }
 
+// GridAction::GridInit()
 DataSet_GridFlt* GridAction::GridInit(const char* callingRoutineIn, ArgList& argIn, 
                                       DataSetList& DSL) 
 {
@@ -51,6 +54,27 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutineIn, ArgList& arg
   CheckEven( nx, callingRoutine );
   CheckEven( ny, callingRoutine );
   CheckEven( nz, callingRoutine );
+  // Set spacing and origin
+  // FIXME: For now only allow actual origin to be consistent with previous grid.
+  Grid->setOriginAndSpacing(nx,ny,nz,0.0,0.0,0.0,dx, dy, dz);
+  // Box/origin
+  mode_ = ORIGIN;
+  if (argIn.hasKey("box"))
+    mode_ = BOX;
+  else if (argIn.hasKey("origin"))
+    mode_ = ORIGIN;
+  else if (argIn.Contains("center")) {
+    std::string maskexpr = argIn.GetStringKey("center");
+    if (maskexpr.empty()) {
+      mprinterr("Error: 'center' requires <mask>\n");
+      return 0;
+    }
+    centerMask_.SetMaskString( maskexpr );
+    mode_ = CENTER;
+  }
+  // Negative
+  if (argIn.hasKey("negative"))
+    increment_ = -1.0;
   // Allocate DataSet
   Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
   if (Grid->Allocate3D(nx, ny, nz)) {
@@ -62,5 +86,40 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutineIn, ArgList& arg
   return Grid;
 }
   
+void GridAction::GridInfo(DataSet_GridFlt const& grid) {
+  mprintf("\tGrid at");
+  if (mode_ == BOX)
+    mprintf(" box center");
+  else if (mode_ == ORIGIN)
+    mprintf(" origin");
+  else if (mode_ == CENTER)
+    mprintf(" center of atoms in mask [%s]\n", centerMask_.MaskString());
+  mprintf(" will be calculated as");
+  if (increment_ > 0)
+    mprintf(" positive density\n");
+  else
+    mprintf(" negative density\n");
+  mprintf("\tGrid points : %5i %5i %5i\n", grid.NX(), grid.NY(), grid.NZ());
+  mprintf("\tGrid spacing: %5.3f %5.3f %5.3f\n", grid.DX(), grid.DY(), grid.DZ());
+}
 
+int GridAction::GridSetup(Topology const& currentParm) {
+  // Check box
+  if (mode_ == BOX) {
+    if (currentParm.BoxType()!=Box::ORTHO) {
+      mprintf("Warning: Code to shift to the box center is not yet\n");
+      mprintf("Warning: implemented for non-orthorhomibic unit cells.\n");
+      mprintf("Warning: Shifting to the origin instead.\n");
+      mode_ = ORIGIN;
+    }
+  } else if (mode_ == CENTER) {
+    if ( currentParm.SetupIntegerMask( centerMask_ ) ) return 1;
+    centerMask_.MaskInfo();
+    if ( centerMask_.None() ) {
+      mprinterr("Error: No atoms selected for grid center mask [%s]\n", centerMask_.MaskString());
+      return 1;
+    }
+  }
+  return 0;
+}
 

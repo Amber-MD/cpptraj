@@ -15,21 +15,19 @@ template <class T> class Grid {
     size_t size()                   const { return nelements_;  }
     /// Set up grid for given X, Y, and Z dimensions.
     int resize(size_t,size_t,size_t);
-    /// \return element at a specified grid point.
-    const T& element(size_t,size_t,size_t) const;
     /// \return Size of X dimension.
     size_t NX() const { return nx_; }
     /// \return Size of Y dimension.
     size_t NY() const { return ny_; }
     /// \return Size of Z dimension.
     size_t NZ() const { return nz_; }
-    /// Increment grid point.
-    void increment(size_t,size_t,size_t);
     /// Increment grid point by given value.
-    void incrementBy(size_t,size_t,size_t, const T&);
+    size_t incrementBy(size_t,size_t,size_t, const T&);
     /// Set grid point.
     void setGrid(size_t,size_t,size_t, const T&);
-    /// Convert X, Y, and Z to index.
+    /// \return element at a specified grid point.
+    const T& element(size_t,size_t,size_t) const;
+    /// Convert X, Y, and Z bin #s to index.
     size_t CalcIndex(size_t x, size_t y, size_t z) const { return (x*ny_*nz_)+(y*nz_)+z; }
     /// Iterator over grid elements.
     typedef ArrayIterator<T> iterator;
@@ -89,9 +87,10 @@ template <class T> int Grid<T>::resize(size_t x, size_t y, size_t z) {
   return 0;
 }
 // Grid::incrementBy()
-template <class T> void Grid<T>::incrementBy(size_t x, size_t y, size_t z, const T& eltIn) {
+template <class T> size_t Grid<T>::incrementBy(size_t x, size_t y, size_t z, const T& eltIn) {
   size_t idx = CalcIndex(x,y,z);
   grid_[idx] += eltIn;
+  return idx;
 }
 // Grid::setGrid()
 template <class T> void Grid<T>::setGrid(size_t x, size_t y, size_t z, const T& eltIn) {

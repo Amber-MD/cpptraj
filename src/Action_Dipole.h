@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_DIPOLE_H
 #define INC_ACTION_DIPOLE_H
 #include "Action.h"
-#include "DataSet_Grid.h"
+#include "DataSet_GridFlt.h"
 #include "GridAction.h"
 class Action_Dipole : public Action, private GridAction {
   public:
@@ -16,9 +16,7 @@ class Action_Dipole : public Action, private GridAction {
     void Print();
 
     DataSet_GridFlt* grid_;
-    std::vector<double> dipolex_;
-    std::vector<double> dipoley_;
-    std::vector<double> dipolez_;
+    std::vector<Vec3> dipole_;
     std::string filename_;
     AtomMask mask_;
     double max_;
