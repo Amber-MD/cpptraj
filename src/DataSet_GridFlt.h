@@ -8,6 +8,7 @@ class DataSet_GridFlt : public DataSet_3D {
     DataSet_GridFlt() : DataSet_3D(GRID_FLT, 12, 4) {}
     float& operator[](size_t idx)              { return grid_[idx];          }
     static DataSet* Alloc()       { return (DataSet*)new DataSet_GridFlt();  }
+    Grid<float> const& InternalGrid()    const { return grid_; }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return grid_.size();        }
     int Sync()                                 { return 1;                   }
@@ -28,6 +29,8 @@ class DataSet_GridFlt : public DataSet_3D {
     /// Increment specified grid point by given value.
     inline size_t Increment(Vec3 const&, float, bool&);
     inline void Increment(Vec3 const&, float);
+    /// \return grid value at specified bin.
+    float GridVal(size_t x,size_t y,size_t z) const { return grid_.element(x,y,z); }
     /// \return grid index
     size_t CalcIndex(size_t i, size_t j, size_t k) const {
       return grid_.CalcIndex(i,j,k);
