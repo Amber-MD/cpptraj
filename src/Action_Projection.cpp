@@ -5,6 +5,7 @@
 
 // CONSTRUCTOR
 Action_Projection::Action_Projection() :
+  modinfo_(0),
   beg_(0),
   end_(0)
 {}
@@ -15,6 +16,7 @@ void Action_Projection::Help() {
   mprintf("\tCalculate projection of coordinates along given eigenmodes.\n");
 }
 
+// Action_Projection::Init()
 Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -24,18 +26,24 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   end_ = actionArgs.getKeyInt("end", 2);
   if (InitFrameCounter(actionArgs)) return Action::ERR;
 
-  // Get modes from file
   std::string modesname = actionArgs.GetStringKey("modes");
   if (modesname.empty()) {
     mprinterr("Error: projection: no modes file specified ('modes <filename>')\n");
     return Action::ERR;
   }
-  if (modinfo_.ReadEvecFile( modesname, beg_, end_ )) return Action::ERR;
+  // Check if DataSet exists
+  modinfo_ = (DataSet_Modes*)DSL->FindSetOfType( modesname, DataSet::MODES );
+  if (modinfo_ == 0) {
+    // Get modes from file
+    modinfo_ = (DataSet_Modes*)DSL->AddSet( DataSet::MODES, modesname, "Modes" );
+    if (modinfo_ == 0) return Action::ERR;
+    if (modinfo_->ReadEvecFile( modesname, beg_, end_ )) return Action::ERR;
+  }
 
   // Check modes type
-  if (modinfo_.Type() != DataSet_Matrix::COVAR &&
-      modinfo_.Type() != DataSet_Matrix::MWCOVAR &&
-      modinfo_.Type() != DataSet_Matrix::IDEA)
+  if (modinfo_->Type() != DataSet_2D::COVAR &&
+      modinfo_->Type() != DataSet_2D::MWCOVAR &&
+      modinfo_->Type() != DataSet_2D::IDEA)
   {
     mprinterr("Error: projection: evecs type is not COVAR, MWCOVAR, or IDEA.\n");
     return Action::ERR;
@@ -56,8 +64,8 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   if (setname.empty())
     setname = DSL->GenerateDefaultName("Proj");
   int imode = beg_;
-  for (int mode = 0; mode < modinfo_.Nmodes(); ++mode) {
-    if (modinfo_.Type() != DataSet_Matrix::IDEA) { // COVAR, MWCOVAR
+  for (int mode = 0; mode < modinfo_->Nmodes(); ++mode) {
+    if (modinfo_->Type() != DataSet_2D::IDEA) { // COVAR, MWCOVAR
       DataSet* dout = DSL->AddSetIdx( DataSet::FLOAT, setname, imode );
       if (dout == 0) {
         mprinterr("Error creating output dataset for mode %i\n",imode);
@@ -88,8 +96,8 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
     df->ProcessArgs("noemptyframes");
   }
 
-  mprintf("    PROJECTION: Calculating projection using modes %i to %i of file %s\n",
-          beg_, end_, modinfo_.Legend().c_str());
+  mprintf("    PROJECTION: Calculating projection using modes %i to %i of %s\n",
+          beg_, end_, modinfo_->Legend().c_str());
   mprintf("                Results are written to %s\n", filename_.c_str());
   FrameCounterInfo();
   mprintf("                Atom Mask: [%s]\n", mask_.MaskString());
@@ -97,7 +105,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   return Action::OK;
 }
 
-// Action_Projection::setup()
+// Action_Projection::Setup()
 Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
@@ -107,35 +115,35 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
   }
   mask_.MaskInfo();
   // Check # of selected atoms against modes info
-  if ( modinfo_.Type() == DataSet_Matrix::COVAR || 
-       modinfo_.Type() == DataSet_Matrix::MWCOVAR)
+  if ( modinfo_->Type() == DataSet_2D::COVAR || 
+       modinfo_->Type() == DataSet_2D::MWCOVAR)
   {
     // Check if (3 * number of atoms in mask) and nvectelem agree
     int natom3 = mask_.Nselected() * 3;
-    if ( natom3 != modinfo_.NavgCrd() ) {
+    if ( natom3 != modinfo_->NavgCrd() ) {
       mprinterr("Error: projection: # selected coords (%i) != # avg coords (%i) in %s\n",
-                natom3, modinfo_.NavgCrd(), modinfo_.Legend().c_str());
+                natom3, modinfo_->NavgCrd(), modinfo_->Legend().c_str());
       return Action::ERR;
     }
-    if ( natom3 != modinfo_.VectorSize() ) {
+    if ( natom3 != modinfo_->VectorSize() ) {
       mprinterr("Error: projection: # selected coords (%i) != eigenvector size (%i)\n",
-                natom3, modinfo_.VectorSize() );
+                natom3, modinfo_->VectorSize() );
       return Action::ERR;
     }
-  } else if ( modinfo_.Type() == DataSet_Matrix::IDEA ) {
+  } else if ( modinfo_->Type() == DataSet_2D::IDEA ) {
     // Check if (number of atoms in mask) and nvectelem agree
     if (//mask_.Nselected() != modinfo_.Navgelem() ||
-        mask_.Nselected() != modinfo_.VectorSize()) 
+        mask_.Nselected() != modinfo_->VectorSize()) 
     {
       mprinterr("Error: projection: # selected atoms (%i) != eigenvector size (%i)\n",
-                mask_.Nselected(), modinfo_.VectorSize() );
+                mask_.Nselected(), modinfo_->VectorSize() );
       return Action::ERR;
     }
   }
 
   // Precalc sqrt of mass for each coordinate
   sqrtmasses_.clear();
-  if ( modinfo_.Type() == DataSet_Matrix::MWCOVAR ) {
+  if ( modinfo_->Type() == DataSet_2D::MWCOVAR ) {
     sqrtmasses_.reserve( mask_.Nselected() );
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
       sqrtmasses_.push_back( sqrt( (*currentParm)[*atom].Mass() ) );
@@ -153,13 +161,13 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame,
 {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Always start at first eigenvector element of first mode.
-  const double* Vec = modinfo_.Eigenvector(0);
+  const double* Vec = modinfo_->Eigenvector(0);
   // Project snapshots on modes
-  if ( modinfo_.Type() == DataSet_Matrix::COVAR || 
-       modinfo_.Type() == DataSet_Matrix::MWCOVAR ) 
+  if ( modinfo_->Type() == DataSet_2D::COVAR || 
+       modinfo_->Type() == DataSet_2D::MWCOVAR ) 
   {
-    for (int mode = 0; mode < modinfo_.Nmodes(); ++mode) {
-      const double* Avg = modinfo_.AvgCrd();
+    for (int mode = 0; mode < modinfo_->Nmodes(); ++mode) {
+      const double* Avg = modinfo_->AvgCrd();
       double proj = 0;
       std::vector<double>::const_iterator sqrtmass = sqrtmasses_.begin();
       for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
@@ -177,7 +185,7 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame,
     }
   } else { // if modinfo_.Type() == IDEA
     int ip = 0;
-    for (int mode = 0; mode < modinfo_.Nmodes(); ++mode) {
+    for (int mode = 0; mode < modinfo_->Nmodes(); ++mode) {
       double proj1 = 0;
       double proj2 = 0;
       double proj3 = 0;

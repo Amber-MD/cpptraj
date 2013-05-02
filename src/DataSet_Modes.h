@@ -28,15 +28,15 @@ class DataSet_Modes : public DataSet {
 
     void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
 
-    //const double* AvgCrd()            { return avgcrd_;                    }
+    const double* AvgCrd()            { return (const double*)avgcrd_.xAddress(); } // Project
     //const double* Eigenvalues()       { return evalues_;                   } 
     //double Eigenvalue(int i)          { return evalues_[i];                }
     //const double* Eigenvectors()      { return evectors_;                  }
     const double* Eigenvector(int i)  { return evectors_ + (i * vecsize_); }
-    //int Nmodes()                      { return nmodes_;                    }
-    //int VectorSize()                  { return vecsize_;                   }
-    //int NavgCrd()                     { return navgcrd_;                   }
-    //DataSet_2D::MatrixType Type()     { return type_;                      }
+    int Nmodes()                      { return nmodes_;                    } // Project
+    int VectorSize()                  { return vecsize_;                   } // Project
+    int NavgCrd()                     { return navgcrd_;                   } // Project
+    DataSet_2D::MatrixType Type()     { return type_;                      } // Project
   private:
     Frame avgcrd_;
     double* evalues_;
