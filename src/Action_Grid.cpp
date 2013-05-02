@@ -61,6 +61,8 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     mprinterr("Error: grid: Could not set up output file %s\n", filename.c_str());
     return Action::ERR;
   }
+  // grid_.PrintXplor( filename_, "This line is ignored", 
+  //                      "rdparm generated grid density" );
 
   // Info
   mprintf("    GRID:\n");

@@ -22,7 +22,6 @@ class Action_Grid : public Action, private GridAction {
     double smooth_;
     bool invert_;
     AtomMask mask_;
-    std::string filename_;
     std::string pdbname_;
     DataSet_GridFlt* grid_;
 };
