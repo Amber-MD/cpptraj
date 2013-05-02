@@ -7,6 +7,7 @@
 #include "DataIO_Std.h"
 #include "DataIO_Grace.h"
 #include "DataIO_Gnuplot.h"
+#include "DataIO_Xplor.h"
 
 // TODO: Support these args:
 //       - noemptyframes: Deprecate.
@@ -28,10 +29,11 @@ DataFile::~DataFile() {
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 const DataFile::DataFileToken DataFile::DataFileArray[] = {
-  { DATAFILE,     "dat",   "Standard Data File", ".dat", DataIO_Std::Alloc     },
-  { XMGRACE,      "grace", "Grace File",         ".agr", DataIO_Grace::Alloc   },
-  { GNUPLOT,      "gnu",   "Gnuplot File",       ".gnu", DataIO_Gnuplot::Alloc },
-  { UNKNOWN_DATA, 0,       "Unknown",            0,      0                     }
+  { DATAFILE,     "dat",   "Standard Data File", ".dat",   DataIO_Std::Alloc     },
+  { XMGRACE,      "grace", "Grace File",         ".agr",   DataIO_Grace::Alloc   },
+  { GNUPLOT,      "gnu",   "Gnuplot File",       ".gnu",   DataIO_Gnuplot::Alloc },
+  { GNUPLOT,      "xplor", "Xplor File",         ".xplor", DataIO_Xplor::Alloc   },
+  { UNKNOWN_DATA, 0,       "Unknown",            0,      0                       }
 };
 
 // DataFile::GetFormatFromArg()

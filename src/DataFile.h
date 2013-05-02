@@ -8,7 +8,7 @@ class DataFile {
   public:
     /// Known data file formats.
     enum DataFormatType {
-      UNKNOWN_DATA=0, DATAFILE, XMGRACE, GNUPLOT
+      UNKNOWN_DATA=0, DATAFILE, XMGRACE, GNUPLOT, XPLOR
     };
 
     DataFile();
@@ -25,7 +25,6 @@ class DataFile {
     static const char* FormatString( DataFormatType );
 
     void SetDebug(int);
-
 
     int ReadData(ArgList&, DataSetList&);
     int SetupDatafile(std::string const&, ArgList&, int);

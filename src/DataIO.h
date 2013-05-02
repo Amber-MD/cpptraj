@@ -17,6 +17,7 @@ class DataIO {
     virtual int processWriteArgs(ArgList&) = 0;
     virtual int WriteData(std::string const&, DataSetList const&, DimArray const&) = 0;
     virtual int WriteData2D(std::string const&, DataSet const&, DimArray const&) = 0;
+    virtual int WriteData3D(std::string const&, DataSet const&, DimArray const&) = 0;
     virtual int WriteDataInverted(std::string const&, DataSetList const &, DimArray const&) = 0;
     virtual bool ID_DataFormat(CpptrajFile&);
   protected:

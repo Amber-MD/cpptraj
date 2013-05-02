@@ -12,6 +12,7 @@ class DataIO_Gnuplot : public DataIO {
     int WriteData(std::string const&,DataSetList const&,DimArray const&);
     int WriteDataInverted(std::string const&,DataSetList const&,DimArray const&) { return 1; }
     int WriteData2D( std::string const&,DataSet const&, DimArray const&);
+    int WriteData3D(std::string const&, DataSet const&, DimArray const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     CpptrajFile file_;
