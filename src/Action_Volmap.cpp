@@ -7,14 +7,11 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 
-#define MIN(X, Y) ( ( (X) < (Y) ) ? (X) : (Y) )
-#define MAX(X, Y) ( ( (X) < (Y) ) ? (Y) : (X) )
-
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
-  xcenter_(0.0),
-  ycenter_(0.0),
-  zcenter_(0.0),
+  //xcenter_(0.0),
+  //ycenter_(0.0),
+  //zcenter_(0.0),
   Nframes_(0),
   halfradii_(NULL),
   radscale_(1.0),
@@ -78,7 +75,15 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   dxform_ = !actionArgs.hasKey("xplor");
 
   // See how we are going to be setting up our grid
-  if (!sizestr.empty()) {
+  if (!dsname.empty()) {
+    // Get existing grid dataset
+    grid_ = (DataSet_GridFlt*)DSL.FindSetOfType( dsname, DataSet::GRID_FLT );
+    if (grid_ == 0) {
+      mprinterr("Error: volmap: Could not find grid data set with name %s\n",
+                dsname.c_str());
+      return Action::ERR;
+    }
+  } else if (!sizestr.empty()) {
     // Now get our size from the specified arguments
     ArgList sizeargs = ArgList(sizestr, ",");
     xsize_ = sizeargs.getNextDouble(0.0);
@@ -88,15 +93,25 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       mprinterr("Error: Volmap: Illegal grid sizes [%s]\n", sizestr.c_str());
       return Action::ERR;
     }
-    double size[3] = {xsize_, ysize_, zsize_};
-    double res[3] = {dx_, dy_, dz_};
+    //double size[3] = {xsize_, ysize_, zsize_};
+    //double res[3] = {dx_, dy_, dz_};
     std::string centerstr = actionArgs.GetStringKey("center");
     ArgList centerargs = ArgList(centerstr, ",");
     xcenter_ = centerargs.getNextDouble(0.0);
     ycenter_ = centerargs.getNextDouble(0.0);
     zcenter_ = centerargs.getNextDouble(0.0);
-    grid_.GridInitSizeRes("volmap", size, res, std::string("origin"));
- }else {
+    //grid_.GridInitSizeRes("volmap", size, res, std::string("origin"));
+    // Determine bin count, ensure its even.
+    int nx = (int) (xsize_ / dx_);
+    int ny = (int) (ysize_ / dy_);
+    int nz = (int) (zsize_ / dz_);
+    GridAction::CheckEven(nx, "volmap");
+    GridAction::CheckEven(ny, "volmap");
+    GridAction::CheckEven(nz, "volmap");
+    grid_ = GridAction::AllocateGrid(DSL, actionArgs.GetStringKey("name"),
+                                     nx, ny, nz, 0.0, 0.0, 0.0, dx_, dy_, dz_);
+    if (grid_ == 0) return Action::ERR;
+  } else {
     // Now we generate our grid around our mask. See if we have a center mask
     if (center.empty())
       centermask_.SetMaskString(reqmask);
@@ -172,7 +187,7 @@ double Action_Volmap::GetRadius_(Topology const& top, int atom) {
   return 0.5 * pow(2 * top.LJA()[idx] / top.LJB()[idx], 1.0/6.0);
 }
 
-// Action_Volmap::action()
+// Action_Volmap::DoAction()
 Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // If this is our first frame, then we may have to set up our grid from our masks
   if (Nframes_ == 0) {
@@ -180,23 +195,41 @@ Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame
       double res[3] = {dx_, dy_, dz_};
       double xmin, xmax, ymin, ymax, zmin, zmax;
       AtomMask::const_iterator it = centermask_.begin();
-      Vec3 pt = Vec3(currentFrame->XYZ(*it));
-      xmin = xmax = pt[0]; ymin = ymax = pt[1]; zmin = zmax = pt[2];
+      Vec3 cxyz = Vec3(currentFrame->XYZ(*it));
+      xmin = xmax = cxyz[0];
+      ymin = ymax = cxyz[1];
+      zmin = zmax = cxyz[2];
+      ++it;
       for (; it != centermask_.end(); it++) {
         Vec3 pt = Vec3(currentFrame->XYZ(*it));
-        xmin = MIN(xmin, pt[0]); xmax = MAX(xmax, pt[0]);
-        ymin = MIN(ymin, pt[0]); ymax = MAX(ymax, pt[0]);
-        zmin = MIN(zmin, pt[0]); zmax = MAX(zmax, pt[0]);
+        cxyz += pt;
+        xmin = std::min(xmin, pt[0]);
+        xmax = std::max(xmax, pt[0]);
+        ymin = std::min(ymin, pt[1]);
+        ymax = std::max(ymax, pt[1]);
+        zmin = std::min(zmin, pt[2]);
+        zmax = std::max(zmax, pt[2]);
       }
-      xmin -= buffer_; xmax += buffer_;
-      ymin -= buffer_; ymax += buffer_;
-      zmin -= buffer_; zmax += buffer_;
-      double size[3] = {xmax - xmin, ymax - ymin, zmax - zmin};
-      grid_.GridInitSizeRes("volmap", size, res, "origin");
+      center /= (double)centermask_.Nselected();
+      xmin -= buffer_; 
+      xmax += buffer_;
+      ymin -= buffer_; 
+      ymax += buffer_;
+      zmin -= buffer_; 
+      zmax += buffer_;
+      int nx = (int) ((xmax - xmin) / dx_);
+      int ny = (int) ((ymax - ymin) / dy_);
+      int nz = (int) ((zmax - zmin) / dz_);
+      //grid_.GridInitSizeRes("volmap", size, res, "origin");
+      grid_ = AllocateGrid(*masterDSL_, dsname_, nx, ny, nz,
+                           cxyz[0], cxyz[1], cxyz[2], dx_, dy_, dz_);
+      if (grid_ == 0) return Action::ERR;
       // Get the center from the mask and assign the 'origin'
-      Vec3 center = currentFrame->VGeometricCenter(centermask_);
-      xcenter_ = center[0]; ycenter_ = center[1]; zcenter_ = center[2];
-      xmin_ = xmin; ymin_ = ymin; zmin_ = zmin;
+      //Vec3 center = currentFrame->VGeometricCenter(centermask_);
+      //xcenter_ = center[0]; ycenter_ = center[1]; zcenter_ = center[2];
+      xmin_ = xmin; 
+      ymin_ = ymin; 
+      zmin_ = zmin;
     }
   }
   // Now calculate the density for every point
@@ -238,6 +271,21 @@ Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame
   return Action::OK;
 }
 
+inline size_t setStart(size_t xIn) {
+  if (xIn == 0)
+    return 0UL;
+  else
+    return xIn - 1L;
+}
+
+inline size_t setEnd(size_t xIn, size_t End) {
+  size_t e = xIn + 2L;
+  if (e > End)
+    return End;
+  else
+    return e;
+}
+
 // Action_Volmap::print()
 void Action_Volmap::Print() {
 
@@ -252,21 +300,48 @@ void Action_Volmap::Print() {
   
   // See if we need to write the peaks out somewhere
   if (!peakfilename_.empty()) {
-    peakgrid_ = grid_.ExtractPeaks(peakcut_);
+    // Extract peaks from the current grid, setup another Grid instance. This
+    // works by taking every grid point and analyzing all grid points adjacent
+    // to it (including diagonals). If any of those grid points have a higher 
+    // value (meaning there is a direction towards "increased" density) then 
+    // that value is _not_ a maximum. Any density peaks less than the minimum
+    // filter are discarded. The result is a Grid instance with all non-peak 
+    // grid points zeroed-out.
+    Grid<float> peakgrid = grid_->InternalGrid();
+    for (size_t i = 0; i < grid_->NX(); i++)
+      for (size_t j = 0; j < grid_->NY(); j++)
+        for (size_t k = 0; k < grid_->NZ(); k++) {
+          float val = grid_->GridVal(i, j, k);
+          if (val < peakcut_) {
+            peakgrid.setGrid(i, j, k, 0.0f);
+            continue;
+          }
+          size_t i_end = setEnd(i, grid_->NX());
+          size_t j_end = setEnd(j, grid_->NY());
+          size_t k_end = setEnd(k, grid_->NZ()); 
+          for (size_t ii = setStart(i); ii < i_end; ii++)
+            for (size_t jj = setStart(j); jj < j_end; jj++)
+              for (size_t kk = setStart(k); kk < k_end; kk++) {
+                if (ii==i && jj=j && kk=k) continue;
+                if (grid_->GridVal(ii, jj, kk) > val)
+                  peakgrid.setGrid(i,j,k,0.0f); // TODO: break after this?
+              }
+        }
+    //peakgrid_ = grid_.ExtractPeaks(peakcut_);
     int npeaks = 0;
     std::vector<double> peakdata;
-    for (int i = 0; i < peakgrid_.NX(); i++)
-    for (int j = 0; j < peakgrid_.NY(); j++)
-    for (int k = 0; k < peakgrid_.NZ(); k++) {
-      double gval = peakgrid_.GridVal(i, j, k);
-      if (gval > 0) {
-        npeaks++;
-        peakdata.push_back(xmin_+dx_*i);
-        peakdata.push_back(ymin_+dy_*j);
-        peakdata.push_back(zmin_+dz_*k);
-        peakdata.push_back(gval);
-      }
-    }
+    for (int i = 0; i < peakgrid.NX(); i++)
+      for (int j = 0; j < peakgrid.NY(); j++)
+        for (int k = 0; k < peakgrid.NZ(); k++) {
+          double gval = peakgrid.element(i, j, k);
+          if (gval > 0) {
+            npeaks++;
+            peakdata.push_back(xmin_+dx_*i);
+            peakdata.push_back(ymin_+dy_*j);
+            peakdata.push_back(zmin_+dz_*k);
+            peakdata.push_back(gval);
+          }
+        }
     // If we have peaks, open up our peak data and print it
     if (npeaks > 0) {
       CpptrajFile outfile;

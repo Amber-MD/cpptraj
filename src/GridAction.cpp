@@ -14,10 +14,22 @@ void GridAction::CheckEven(int& N, const char* call) {
   }
 }
 
+/** For even-spaced grids, origin is center - (N/2)*spacing.
+  * For odd-spaced grids, origin is center - ((N-1/2)*spacing)+half_spacing
+  */
+static double Calc_Origin(int N, double D) {
+  int odd = N % 2;
+  int half = (N - odd) / 2;
+  if (odd)
+    return -(((double)half * D) + (D * 0.5));
+  else
+    return -((double)half * D);
+}
+
 // GridAction::AllocateGrid()
 DataSet_GridFlt* GridAction::AllocateGrid(DataSetList& DSL, std::string const& dsname,
                                           int nx, int ny, int nz,
-                                          double ox, double oy, double oz,
+                                          double cx, double cy, double cz,
                                           double dx, double dy, double dz)
 {
   // Allocate DataSet
@@ -29,6 +41,10 @@ DataSet_GridFlt* GridAction::AllocateGrid(DataSetList& DSL, std::string const& d
       DSL.erase( last );
       Grid = 0;
     } else {
+      // Calculate origin from center coordinates.
+      double ox = cx + Calc_Origin(nx, dx);
+      double oy = cy + Calc_Origin(ny, dy);
+      double oz = cz + Calc_Origin(nz, dz);
       // Set spacing and origin
       Grid->setOriginAndSpacing(nx,ny,nz,ox,oy,oz,dx,dy,dz);
     }
