@@ -150,11 +150,11 @@ void Action_Pucker::Print() {
   }
   // Deal with offset and wrap values
   DataSet_double* ds = (DataSet_double*)puck_;
-  for (int i = 0; i < ds->Size(); i++) {
-    (*ds)[i] += offset_;
-    if ( (*ds)[i] > puckermax )
-      (*ds)[i] -= 360.0;
-    else if ( (*ds)[i] < puckermin )
-      (*ds)[i] += 360.0;
+  for (DataSet_double::iterator dval = ds->begin(); dval != ds->end(); ++dval) {
+    *dval += offset_;
+    if ( *dval > puckermax )
+      *dval -= 360.0;
+    else if ( *dval < puckermin )
+      *dval += 360.0;
   }
 }
