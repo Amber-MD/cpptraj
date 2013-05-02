@@ -116,7 +116,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   // Output file for # of problems
   std::string problemFile = actionArgs.GetStringKey("out");
   // Dataset to store number of problems
-  number_of_problems_ = DSL->AddSet(DataSet::INT, actionArgs.GetStringNext(),"Nprob");
+  number_of_problems_ = DSL->AddSet(DataSet::INTEGER, actionArgs.GetStringNext(),"Nprob");
   if (number_of_problems_==0) return Action::ERR;
   // Add dataset to data file list
   DFL->AddSetToFile(problemFile,number_of_problems_);

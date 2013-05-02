@@ -193,7 +193,7 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
       // Set default name if none specified
       if (dsetname_.empty()) dsetname_=masterDSL_->GenerateDefaultName("DSSP");
       // Setup dataset name for this residue
-      SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INT, dsetname_,
+      SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INTEGER, dsetname_,
                                                                 res+1, "res");
       if (SecStruct_[res].resDataSet!=0) {
         if (outfile_ != 0) outfile_->AddSet(SecStruct_[res].resDataSet);
