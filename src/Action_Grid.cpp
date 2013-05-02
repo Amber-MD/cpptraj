@@ -1,6 +1,8 @@
-#include <cmath>
+#include <cmath> // exp
+#include <algorithm> // std::max_element
 #include "Action_Grid.h"
 #include "CpptrajStdio.h"
+#include "PDBfile.h"
 
 // CONSTRUCTOR
 Action_Grid::Action_Grid() :
@@ -8,11 +10,11 @@ Action_Grid::Action_Grid() :
   madura_(0),
   smooth_(0),
   invert_(false),
-  dxform_(false)
+  grid_(0)
 {}
 
 void Action_Grid::Help() {
-  mprintf("\t<filename> %s <mask>\n", Grid::HelpText);
+  mprintf("\t<filename> %s <mask>\n", GridAction::HelpText);
   mprintf("\t[max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");
   mprintf("\t[pdb <pdbout>] [opendx]\n");
   mprintf("\tBin atoms in <mask> into a 3D grid.\n");
@@ -22,26 +24,27 @@ void Action_Grid::Help() {
   mprintf("\t[opendx]  : Write the density file in OpenDX format.\n");
 }
 
-// Action_Grid::init()
+// Action_Grid::Init()
 Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get output filename
-  filename_ = actionArgs.GetStringNext();
-  if (filename_.empty()) {
+  std::string filename = actionArgs.GetStringNext();
+  if (filename.empty()) {
     mprinterr("Error: GRID: no filename specified.\n");
     return Action::ERR;
   }
   // Get grid options
-  if (grid_.GridInit( "GRID", actionArgs ))
-    return Action::ERR;
+  grid_ = GridInit( "GRID", actionArgs, *DSL );
+  if (grid_ == 0) return Action::ERR;
 
   // Get extra options
   max_ = actionArgs.getKeyDouble("max", 0.80);
   madura_ = actionArgs.getKeyDouble("madura", 0);
   smooth_ = actionArgs.getKeyDouble("smoothdensity", 0);
   invert_ = actionArgs.hasKey("invert");
-  dxform_ = actionArgs.hasKey("opendx");
+  if (actionArgs.hasKey("opendx")) 
+    mprintf("Warning: 'opendx' is deprecated.\n");
   pdbname_ = actionArgs.GetStringKey("pdb"); 
 
   // Get mask
@@ -52,9 +55,17 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   }
   mask_.SetMaskString(maskexpr);
 
+  // Setup output file
+  DataFile* outfile = DFL->AddSetToFile(filename, (DataSet*)grid_);
+  if (outfile == 0) {
+    mprinterr("Error: grid: Could not set up output file %s\n", filename.c_str());
+    return Action::ERR;
+  }
+
   // Info
-  grid_.GridInfo();
-  mprintf("\tGrid will be printed to file %s\n",filename_.c_str());
+  mprintf("    GRID:\n");
+  GridInfo( *grid_ );
+  mprintf("\tGrid will be printed to file %s\n",filename.c_str());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   if (pdbname_.empty())
     mprintf("\tPseudo-PDB will be printed to STDOUT.\n");
@@ -62,16 +73,13 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     mprintf("\tPseudo-PDB will be printed to %s\n", pdbname_.c_str());
   // TODO: print extra options
 
-  // Allocate grid
-  //if (GridAllocate()) return 1;
-
   return Action::OK;
 }
 
-// Action_Grid::setup()
+// Action_Grid::Setup()
 Action::RetType Action_Grid::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup grid, checks box info.
-  if (grid_.GridSetup( *currentParm )) return Action::ERR;
+  if (GridSetup( *currentParm )) return Action::ERR;
 
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ ))
@@ -85,10 +93,9 @@ Action::RetType Action_Grid::Setup(Topology* currentParm, Topology** parmAddress
   return Action::OK;
 }
 
-// Action_Grid::action()
-// TODO: Combine all below
+// Action_Grid::DoAction()
 Action::RetType Action_Grid::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  grid_.GridFrame( *currentFrame, mask_ );
+  GridFrame( *currentFrame, mask_, *grid_ );
   return Action::OK;
 }
 
@@ -101,7 +108,7 @@ void Action_Grid::Print() {
 
   // Perform normalization and find max
   double gridMax = 0;
-  for (Grid::iterator gval = grid_.begin(); gval != grid_.end(); ++gval) {
+  for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
     double gridval = (double)(*gval);
     // ----- SMOOTHING -----
     if (smooth_ > 0.0) {
@@ -140,15 +147,49 @@ void Action_Grid::Print() {
       gridMax = gridval;
   } 
 
-  // Write Xplor file
-  if (dxform_)
-    grid_.PrintDX(filename_);
-  else
-    grid_.PrintXplor( filename_, "This line is ignored", 
-                      "rdparm generated grid density" );
-
   // PDBfile output
   mprintf("    GRID: grid max is %.3lf\n", gridMax);
-  grid_.PrintPDB( pdbname_, max_, gridMax );
+  PrintPDB( gridMax );
 }
 
+// Action_Grid::PrintPDB()
+void Action_Grid::PrintPDB(double normIn)
+{
+  double norm = normIn;
+  // Calculate normalization if necessary
+  if (norm <= 0) {
+    norm = (double)*std::max_element(grid_->begin(), grid_->end());
+    if (norm == 0) {
+      mprinterr("Error: Grid max is 0. No density for PDB write.\n");
+      return;
+    }
+    mprintf("\t%s: Normalizing grid by %f\n", norm);
+  }
+  norm = 1.0 / norm;
+  // Write PDB
+  PDBfile pdbout;
+  if (pdbout.OpenWrite(pdbname_)) {
+    mprinterr("Error: Cannot open PDB for grid output.\n");
+    return;
+  }
+  mprintf("\tWriting PDB of grid points > %.3f of grid max.\n", max_);
+  int res = 1;
+  for (size_t k = 0; k < grid_->NZ(); ++k) {
+    for (size_t j = 0; j < grid_->NY(); ++j) {
+      for (size_t i = 0; i < grid_->NX(); ++i) {
+        double gridval = grid_->GetElement(i, j, k) * norm;
+        if (gridval > max_) {
+          Vec3 cxyz = grid_->BinCenter(i,j,k);
+          pdbout.WriteATOM(res++, cxyz[0], cxyz[1], cxyz[2], "GRID", gridval);
+        }
+      }
+    }
+  }
+  // Write grid boundaries
+  for (size_t k = 0; k <= grid_->NZ(); k += grid_->NZ())
+    for (size_t j = 0; j <= grid_->NY(); j += grid_->NY())
+      for (size_t i = 0; i <= grid_->NX(); i += grid_->NX()) {
+        Vec3 cxyz = grid_->BinCenter(i,j,k);
+        pdbout.WriteHET(res, cxyz[0], cxyz[1], cxyz[2]);
+      }
+}
