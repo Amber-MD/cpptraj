@@ -50,7 +50,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
         return Action::ERR;
       } else {
         // Currently only allow int, float, or double datasets
-        if (dset->Type() != DataSet::INT &&
+        if (dset->Type() != DataSet::INTEGER &&
             dset->Type() != DataSet::FLOAT &&
             dset->Type() != DataSet::DOUBLE) 
         {
@@ -58,7 +58,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
                   datasetName.c_str());
           return Action::ERR;
         }
-        Dsets_.push_back( dset );
+        Dsets_.push_back( (DataSet_1D*)dset );
         Max_.push_back( actionArgs.getKeyDouble("max",0.0) );
         Min_.push_back( actionArgs.getKeyDouble("min",0.0) );
         mprintf("             maxmin: Printing trajectory frames based on %f <= %s <= %f\n",
@@ -72,7 +72,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   if (!Dsets_.empty()) {
     std::string maxmindata = actionArgs.GetStringKey("maxmindata");
     if (!maxmindata.empty()) {
-      maxmin_ = DSL->AddSet( DataSet::INT, actionArgs.GetStringNext(), "maxmin" );
+      maxmin_ = DSL->AddSet( DataSet::INTEGER, actionArgs.GetStringNext(), "maxmin" );
       if (maxmin_ == 0) return Action::ERR;
       DFL->AddSetToFile( maxmindata, maxmin_ );
       mprintf("\tMaxMin frame info will be written to %s\n", maxmindata.c_str());

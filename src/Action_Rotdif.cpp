@@ -1450,7 +1450,7 @@ int Action_Rotdif::DetermineDeffs() {
   D_eff_.reserve( nvecs_ );
   // Allocate memory to hold rotated vectors. Need +1 since the original
   // vector is stored at position 0. 
-  rotated_vectors.Allocate( itotframes + 1 );
+  rotated_vectors.Allocate1D( itotframes + 1 );
   // Allocate memory for C(t)
   p1.reserve( maxdat );
   p2.reserve( maxdat );

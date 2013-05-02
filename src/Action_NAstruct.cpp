@@ -332,15 +332,15 @@ int Action_NAstruct::determineBasePairing() {
                          integerToString( bp_2+1 ) + 
                          Bases_[bp_2].BaseChar();
     // Create sets
-    SHEAR_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname) );
-    STRETCH_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname));
-    STAGGER_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stagger",bpname));
-    BUCKLE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"buckle",bpname) );
-    PROPELLER_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"prop",bpname) );
-    OPENING_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"open",bpname) );
-    BPHBONDS_.push_back( masterDSL_->AddSetIdxAspect(DataSet::INT,dataname_,dsidx,"hb",bpname) );
-    MAJOR_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"major",bpname) );
-    MINOR_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"minor",bpname) );
+    SHEAR_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname) );
+    STRETCH_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname));
+    STAGGER_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stagger",bpname));
+    BUCKLE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"buckle",bpname) );
+    PROPELLER_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"prop",bpname) );
+    OPENING_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"open",bpname) );
+    BPHBONDS_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::INTEGER,dataname_,dsidx,"hb",bpname) );
+    MAJOR_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"major",bpname) );
+    MINOR_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"minor",bpname) );
     ++dsidx;
   }
   // For each BP step, set up a dataset for each structural parameter. 
@@ -366,18 +366,18 @@ int Action_NAstruct::determineBasePairing() {
                           integerToString( bp_4+1 ) +
                           Bases_[bp_4].BaseChar();
       // Create Sets
-      SHIFT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname) );
-      SLIDE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname) );
-      RISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"rise",sname) );
-      TILT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tilt",sname) );
-      ROLL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"roll",sname) );
-      TWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"twist",sname) );
-      XDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"xdisp",sname) );
-      YDISP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"ydisp",sname) );
-      HRISE_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"hrise",sname) );
-      INCL_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname) );
-      TIP_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname) );
-      HTWIST_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname) );
+      SHIFT_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname) );
+      SLIDE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname) );
+      RISE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"rise",sname) );
+      TILT_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tilt",sname) );
+      ROLL_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"roll",sname) );
+      TWIST_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"twist",sname) );
+      XDISP_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"xdisp",sname) );
+      YDISP_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"ydisp",sname) );
+      HRISE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"hrise",sname) );
+      INCL_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname) );
+      TIP_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname) );
+      HTWIST_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname) );
       ++dsidx;
     }
   }

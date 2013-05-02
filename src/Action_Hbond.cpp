@@ -111,14 +111,14 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   hbsetname_ = actionArgs.GetStringNext();
   if (hbsetname_.empty())
     hbsetname_ = DSL->GenerateDefaultName("HB");
-  NumHbonds_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "UU");
+  NumHbonds_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "UU");
   if (NumHbonds_==0) return Action::ERR;
   if (DF != 0) DF->AddSet( NumHbonds_ );
   if (calcSolvent_) {
-    NumSolvent_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "UV");
+    NumSolvent_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "UV");
     if (NumSolvent_ == 0) return Action::ERR;
     if (DF != 0) DF->AddSet( NumSolvent_ );
-    NumBridge_ = DSL->AddSetAspect(DataSet::INT, hbsetname_, "Bridge");
+    NumBridge_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "Bridge");
     if (NumBridge_ == 0) return Action::ERR;
     if (DF != 0) DF->AddSet( NumBridge_ );
     BridgeID_ = DSL->AddSetAspect(DataSet::STRING, hbsetname_, "ID");
@@ -413,7 +413,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
     HB.dist = dist;
     HB.angle = angle;
     if (series_) {
-      HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INT, hbsetname_, 
+      HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_, 
                                                           hbidx, "solventhb" );
       //mprinterr("Created Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,HB.data_);
       HB.data_->Resize( masterDSL_->MaxFrames() );
@@ -478,7 +478,7 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
           std::string hblegend = CurrentParm_->TruncResAtomName(*accept) + "-" +
                                  CurrentParm_->TruncResAtomName(D) + "-" +
                                  (*CurrentParm_)[H].Name().Truncated();
-          HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INT, hbsetname_,
+          HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_,
                                                               hbidx, "solutehb" );
           //mprinterr("Created solute Hbond dataset index %i\n", hbidx);
           HB.data_->Resize( masterDSL_->MaxFrames() );

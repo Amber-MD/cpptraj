@@ -6,6 +6,7 @@
 #include "Action.h"
 #include "AxisType.h"
 #include "Range.h"
+#include "DataSet_1D.h"
 /// Basic Nucleic acid structure analysis. 
 /** Calculate nucleic acid base/base pair structural parameters.
   * Algorithms for calculation of base/base pair structural parameters
@@ -54,7 +55,7 @@ class Action_NAstruct: public Action {
     typedef std::map<std::string, NA_Base::NAType> ResMapType;
     ResMapType CustomMap_;
     // Datasets - 1 entry per BP/BPstep
-    typedef std::vector<DataSet*> Darray;
+    typedef std::vector<DataSet_1D*> Darray;
     Darray SHEAR_;
     Darray STRETCH_;
     Darray STAGGER_;
