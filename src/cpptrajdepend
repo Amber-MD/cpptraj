@@ -98,13 +98,14 @@ ComplexArray.o : ComplexArray.cpp ComplexArray.h PubFFT.h
 CpptrajFile.o : CpptrajFile.cpp CpptrajFile.h CpptrajStdio.h FileIO.h FileIO_Bzip2.h FileIO_Gzip.h FileIO_Mpi.h FileIO_Std.h FileName.h MpiRoutines.h StringRoutines.h
 Cpptraj.o : Cpptraj.cpp Action.h ActionFrameCounter.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h Command.h Cpptraj.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h DataSet_1D.h DataSet_Coords.h Dimension.h DispatchObject.h FileIO.h FileList.h FileName.h Frame.h FrameArray.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h MpiRoutines.h NameType.h ParmFile.h ParmIO.h ProgressBar.h Range.h ReadLine.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h TrajinList.h Trajin_Multi.h Trajin_Single.h Trajout.h TrajoutList.h Vec3.h
 CpptrajStdio.o : CpptrajStdio.cpp MpiRoutines.h
-DataFile.o : DataFile.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataFile.h DataIO.h DataIO_Gnuplot.h DataIO_Grace.h DataIO_Std.h DataIO_Xplor.h DataSet.h DataSetList.h Dimension.h FileIO.h FileName.h
+DataFile.o : DataFile.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataFile.h DataIO.h DataIO_Gnuplot.h DataIO_Grace.h DataIO_OpenDx.h DataIO_Std.h DataIO_Xplor.h DataSet.h DataSetList.h Dimension.h FileIO.h FileName.h
 DataFileList.o : DataFileList.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h Dimension.h DispatchObject.h FileIO.h FileList.h FileName.h
 DataIO.o : DataIO.cpp ArgList.h CpptrajFile.h DataIO.h DataSet.h DataSetList.h Dimension.h FileIO.h FileName.h StringRoutines.h
 DataIO_Gnuplot.o : DataIO_Gnuplot.cpp ArgList.h Array1D.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_Gnuplot.h DataSet.h DataSetList.h DataSet_1D.h DataSet_2D.h Dimension.h FileIO.h FileName.h
 DataIO_Grace.o : DataIO_Grace.cpp ArgList.h Array1D.h BufferedLine.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_Grace.h DataSet.h DataSetList.h DataSet_1D.h Dimension.h FileIO.h FileName.h
 DataIO_Std.o : DataIO_Std.cpp ArgList.h Array1D.h BufferedLine.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_Std.h DataSet.h DataSetList.h DataSet_1D.h DataSet_2D.h Dimension.h FileIO.h FileName.h StringRoutines.h
 DataIO_Xplor.o : DataIO_Xplor.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_Xplor.h DataSet.h DataSetList.h DataSet_3D.h Dimension.h FileIO.h FileName.h Vec3.h
+DataIO_OpenDx.o : DataIO_OpenDx.cpp ArgList.h CpptrajFile.h CpptrajStdio.h DataIO.h DataIO_OpenDx.h DataSet.h DataSetList.h DataSet_3D.h Dimension.h FileIO.h FileName.h Vec3.h
 DataSet.o : DataSet.cpp CpptrajStdio.h DataSet.h StringRoutines.h
 DataSet_2D.o : DataSet_2D.cpp CpptrajFile.h DataSet.h DataSet_2D.h FileIO.h FileName.h
 DataSet_Coords.o : DataSet_Coords.cpp Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_1D.h DataSet_Coords.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h Topology.h Vec3.h

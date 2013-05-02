@@ -15,6 +15,8 @@ class DataSet_3D : public DataSet {
     virtual void Write3D(CpptrajFile&,int,int,int) const = 0;
     /// \return Data from grid at x/y/z point.
     virtual double GetElement(size_t, size_t, size_t) const = 0;
+    /// \return Data from grid.
+    virtual double operator[](size_t) const = 0;
     /// \return size of X dimension.
     virtual size_t NX() const = 0;
     /// \return size of Y dimension.
@@ -31,6 +33,9 @@ class DataSet_3D : public DataSet {
     inline double DX() const { return dx_; }
     inline double DY() const { return dy_; }
     inline double DZ() const { return dz_; }
+    inline double OX() const { return ox_; }
+    inline double OY() const { return oy_; }
+    inline double OZ() const { return oz_; }
     inline Vec3 BinCorner(size_t,size_t,size_t);
     inline Vec3 BinCenter(size_t,size_t,size_t);
   private:
