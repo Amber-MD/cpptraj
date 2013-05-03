@@ -32,7 +32,8 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp DataIO_Xplor.cpp \
         DataIO_OpenDx.cpp \
-        DataSet.cpp DataSet_2D.cpp DataSet_Coords.cpp DataSet_double.cpp DataSet_float.cpp \
+        DataSet.cpp DataSet_2D.cpp DataSet_3D.cpp DataSet_Coords.cpp DataSet_double.cpp \
+        DataSet_float.cpp \
         DataSet_integer.cpp DataSet_string.cpp DataSet_Vector.cpp \
         DataSet_MatrixDbl.cpp DataSet_MatrixFlt.cpp DataSet_GridFlt.cpp \
         DataSet_Modes.cpp DataSetList.cpp \

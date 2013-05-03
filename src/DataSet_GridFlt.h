@@ -54,7 +54,7 @@ size_t DataSet_GridFlt::Increment(Vec3 const& xyz, float f, bool& binned) {
 void DataSet_GridFlt::Increment(Vec3 const& xyz, float f) {
   size_t i,j,k;
   if (CalcBins(xyz[0],xyz[1],xyz[2],i,j,k))
-    grid_incrementBy(i,j,k,f); 
+    grid_.incrementBy(i,j,k,f); 
 }
 // DataSet_GridFlt::Increment()
 void DataSet_GridFlt::Increment(size_t i, size_t j, size_t k, float f) {
