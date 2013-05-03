@@ -38,7 +38,6 @@ class Action_LIE: public Action, ImagedAction {
 
     // Specific routines to this action
     int SetupParms(Topology*);
-    void GetLJparam(Topology const&, double&, double&, int, int);
     double Calculate_LJ(Frame*, Topology*);
     double Calculate_Elec(Frame*, Topology*);
 };

@@ -79,6 +79,7 @@ class Topology {
     inline const std::vector<int>& Join() const { return join_; }
     inline const std::vector<int>& Irotat() const { return irotat_; }
     // ----- Non-bond routines -----
+    inline void GetLJ_A_B(int,int,double&,double&) const; 
     inline const std::vector<int>& NB_index() const { return nbindex_; }
     inline const std::vector<double>& LJA() const { return lja_; }
     inline const std::vector<double>& LJB() const { return ljb_; }
@@ -213,4 +214,12 @@ class Topology {
 
     std::vector<int> SetupSequentialArray(std::vector<int>&, int, std::vector<int>&);
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+void Topology::GetLJ_A_B(int a1, int a2, double& A, double& B) const {
+  // Currently atom #s start from 1 in TypeIndex
+  int param = (ntypes_ * (atoms_[a1].TypeIndex()-1)) + atoms_[a2].TypeIndex()-1;
+  int index = nbindex_[param] - 1;
+  A = lja_[index];
+  B = ljb_[index];
+}
 #endif

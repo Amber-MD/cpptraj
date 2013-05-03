@@ -138,16 +138,6 @@ int Action_LIE::SetupParms(Topology* ParmIn) {
   return 0;
 }
 
-void Action_LIE::GetLJparam(Topology const& top, double &A, double &B,
-                            int atom1, int atom2)
-{
-  // Atom numbers start from 1, so adjust for indexing from 0
-  int param = (top.Ntypes() * (top[atom1].TypeIndex()-1)) + top[atom2].TypeIndex() - 1;
-  int idx = top.NB_index()[param] - 1;
-  A = top.LJA()[idx];
-  B = top.LJB()[idx];
-}
-
 double Action_LIE::Calculate_LJ(Frame *frameIn, Topology *parmIn) {
   double result = 0;
   double A, B; // LJ parameters
@@ -183,7 +173,7 @@ double Action_LIE::Calculate_LJ(Frame *frameIn, Topology *parmIn) {
 
       if (dist2 > cut2vdw_) continue;
       // Here we add to our nonbonded (VDW) energy
-      GetLJparam(*parmIn, A, B, *maskatom1, *maskatom2);
+      parmIn->GetLJ_A_B(*maskatom1, *maskatom2, A, B);
       double r2 = 1 / dist2;
       double r6 = r2 * r2 * r2;
       result += A * r6 * r6 - B * r6;

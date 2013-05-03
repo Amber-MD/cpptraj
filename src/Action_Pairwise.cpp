@@ -190,16 +190,6 @@ Action::RetType Action_Pairwise::Setup(Topology* currentParm, Topology** parmAdd
   return Action::OK;  
 }
 
-static void GetLJparam(Topology const& top, double& A, double& B, 
-                              int atom1, int atom2)
-{
-  // In Cpptraj, atom numbers start from 1, so subtract 1 from the NB index array
-  int param = (top.Ntypes() * (top[atom1].TypeIndex()-1)) + top[atom2].TypeIndex()-1;
-  int index = top.NB_index()[param] - 1;
-  A = top.LJA()[index];
-  B = top.LJB()[index];
-}
-
 // Action_Pairwise::NonbondEnergy()
 /** Calculate non-bonded energy using the nonbondParm array. The total
   * LJ (vdw) energy is put in ELJ, and the total Coulomb (elec) energy
@@ -248,7 +238,7 @@ void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &
         double rij = sqrt(rij2);
         JI /= rij;
         // LJ energy 
-        GetLJparam(*parmIn, Acoef, Bcoef, *maskatom1, *maskatom2);
+        parmIn->GetLJ_A_B(*maskatom1, *maskatom2, Acoef, Bcoef);
         double r2    = 1 / rij2;
         double r6    = r2 * r2 * r2;
         double r12   = r6 * r6;
