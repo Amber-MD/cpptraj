@@ -1,6 +1,6 @@
 #include <cmath> // sqrt, fabs
 #include "DS_Math.h"
-#include "ComplexArray.h"
+#include "Corr.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD, RADDEG
 
@@ -17,7 +17,7 @@ static bool IsTorsionArray( DataSet const& ds ) {
 static bool GoodCalcType(DataSet const& ds) {
   if (ds.Type() == DataSet::DOUBLE || 
       ds.Type() == DataSet::FLOAT || 
-      ds.Type() == DataSet::INT)
+      ds.Type() == DataSet::INTEGER)
     return true;
   mprinterr("Error: DataSet %s is not a valid type for this calc.\n",
             ds.Name().c_str());
@@ -27,16 +27,17 @@ static bool GoodCalcType(DataSet const& ds) {
 /** Calculate the average over values in this set (and optionally the
   * standard deviation).
   */
-double DS_Math::Avg(DataSet& ds, double* stdev) {
+double DS_Math::Avg(DataSet& dsIn, double* stdev) {
   // Check # values
-  int numvalues = ds.Size();
+  int numvalues = dsIn.Size();
   if ( numvalues < 1 ) {
     if (stdev != 0) *stdev = 0.0;
     return 0.0;
   }
   double avg = 0;
   // Check if this set is a good type
-  if ( GoodCalcType(ds) ) {
+  if ( GoodCalcType(dsIn) ) {
+    DataSet_1D& ds = static_cast<DataSet_1D&>( dsIn );
     if (IsTorsionArray(ds)) {
       // Cyclic torsion average
       double sumy = 0.0;
@@ -84,14 +85,15 @@ double DS_Math::Avg(DataSet& ds) {
 }
 
 /** Return the minimum value in the dataset.  */
-double DS_Math::Min(DataSet& ds) {
+double DS_Math::Min(DataSet& dsIn) {
   // Check # values
-  if (ds.Size()==0) return 0;
+  if (dsIn.Size()==0) return 0;
   double min = 0;
   // Check if this set is a good type
-  if ( GoodCalcType(ds) ) {
+  if ( GoodCalcType(dsIn) ) {
+    DataSet_1D& ds = static_cast<DataSet_1D&>( dsIn );
     min = ds.Dval( 0 );
-    for (int i = 1; i < ds.Size(); ++i) {
+    for (size_t i = 1; i < ds.Size(); ++i) {
       double val = ds.Dval( i );
       if (val < min) min = val;
     }
@@ -100,14 +102,15 @@ double DS_Math::Min(DataSet& ds) {
 }
 
 /** Return the maximum value in the dataset.  */
-double DS_Math::Max(DataSet& ds) {
+double DS_Math::Max(DataSet& dsIn) {
   // Check # values
-  if ( ds.Size() == 0 ) return 0;
+  if ( dsIn.Size() == 0 ) return 0;
   double max = 0;
   // Check if this set is a good type
-  if ( GoodCalcType(ds) ) {
+  if ( GoodCalcType(dsIn) ) {
+    DataSet_1D& ds = static_cast<DataSet_1D&>( dsIn );
     max = ds.Dval( 0 );
-    for (int i = 1; i < ds.Size(); ++i) {
+    for (size_t i = 1; i < ds.Size(); ++i) {
       double val = ds.Dval( i );
       if (val > max) max = val;
     }
@@ -123,20 +126,23 @@ double DS_Math::Max(DataSet& ds) {
   * \calccovar If true calculate covariance (devation from avg).
   * \return 0 on success, 1 on error.
   */
-int DS_Math::CrossCorr( DataSet& D1, DataSet& D2, DataSet& Ct, int lagmaxIn, 
+int DS_Math::CrossCorr( DataSet& D1in, DataSet& D2in, DataSet& Ct, int lagmaxIn, 
                         bool calccovar, bool usefft )
 {
   int lagmax;
   double ct;
   // Check if D1 and D2 are valid types
-  if ( !GoodCalcType(D1) ) return 1;
-  if ( !GoodCalcType(D2) ) return 1;
+  if ( !GoodCalcType(D1in) ) return 1;
+  if ( !GoodCalcType(D2in) ) return 1;
+  DataSet_1D& D1 = static_cast<DataSet_1D&>( D1in );
+  DataSet_1D& D2 = static_cast<DataSet_1D&>( D2in );
   // Check that D1 and D2 have same # data points.
-  int Nelements = D1.Size();
-  if (Nelements != D2.Size()) {
+  // TODO: size_t
+  int Nelements = (int)D1.Size();
+  if (Nelements != (int)D2.Size()) {
     mprinterr("Error: CrossCorr: # elements in dataset %s (%i) not equal to\n", 
               D1.Legend().c_str(), Nelements);
-    mprinterr("Error:            # elements in dataset %s (%i)\n", 
+    mprinterr("Error:            # elements in dataset %s (%u)\n", 
               D2.Legend().c_str(), D2.Size());
     return 1;
   }
@@ -163,8 +169,8 @@ int DS_Math::CrossCorr( DataSet& D1, DataSet& D2, DataSet& Ct, int lagmaxIn,
   double avg1 = 0;
   double avg2 = 0;
   if ( calccovar ) {
-    avg1 = Avg(D1);
-    avg2 = Avg(D2);
+    avg1 = Avg(D1in);
+    avg2 = Avg(D2in);
   }
   // Calculate correlation
   double norm = 1.0;
@@ -214,22 +220,25 @@ int DS_Math::CrossCorr( DataSet& D1, DataSet& D2, DataSet& Ct, int lagmaxIn,
   * \D2 DataSet to caclulate correlation to.
   * \return Pearson product-moment correlation coefficient.
   */
-double DS_Math::CorrCoeff( DataSet& D1, DataSet& D2 ) {
+double DS_Math::CorrCoeff( DataSet& D1in, DataSet& D2in ) {
   // Check if D1 and D2 are valid types
-  if ( !GoodCalcType(D1) ) return 0;
-  if ( !GoodCalcType(D2) ) return 0;
+  if ( !GoodCalcType(D1in) ) return 0;
+  if ( !GoodCalcType(D2in) ) return 0;
+  DataSet_1D& D1 = static_cast<DataSet_1D&>( D1in );
+  DataSet_1D& D2 = static_cast<DataSet_1D&>( D2in );
   // Check that D1 and D2 have same # data points.
-  int Nelements = D1.Size();
-  if (Nelements != D2.Size()) {
+  // TODO: size_t
+  int Nelements = (int)D1.Size();
+  if (Nelements != (int)D2.Size()) {
     mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",
               D1.Legend().c_str(), Nelements);
-    mprinterr("Error:       # elements in dataset %s (%i)\n",
+    mprinterr("Error:       # elements in dataset %s (%u)\n",
               D2.Legend().c_str(), D2.Size());
     return 0;
   }
   // Calculate averages
-  double avg1 = Avg(D1);
-  double avg2 = Avg(D2);
+  double avg1 = Avg(D1in);
+  double avg2 = Avg(D2in);
   // Calculate average deviations. 
   double sumdiff1_2 = 0.0;
   double sumdiff2_2 = 0.0;

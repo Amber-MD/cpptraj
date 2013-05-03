@@ -3,7 +3,8 @@
 /*! \file DS_Math.h
     \brief Collection of routines to perform math on datasets.
  */
-#include "DataSet.h"
+#include "DataSet_1D.h"
+// TODO: Operator on 1D data sets only
 namespace DS_Math {
   // TODO: Make const refs
   double Avg(DataSet&, double*);
