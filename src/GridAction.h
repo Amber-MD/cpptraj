@@ -10,12 +10,7 @@ class GridAction {
     /// Indicate which kind of gridding to perform
     enum GridModeType { ORIGIN = 0, BOX, CENTER };
     GridAction() {}
-    static void CheckEven(int&, const char*);
     static const char* HelpText;
-    static DataSet_GridFlt* AllocateGrid(DataSetList&,std::string const&,
-                                         int,int,int,
-                                         double,double,double,
-                                         double,double,double);
     DataSet_GridFlt* GridInit(const char*, ArgList&, DataSetList&);
     void GridInfo(DataSet_GridFlt const&);
     int GridSetup(Topology const&);

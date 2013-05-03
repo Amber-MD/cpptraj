@@ -5,61 +5,10 @@
 const char* GridAction::HelpText =
   "{nx dx ny dy nz dz | data <dsname>} [box|origin|center <mask>] [negative] [name <gridname>]";
 
-// CheckEven()
-void GridAction::CheckEven(int& N, const char* call) {
-  if (N % 2 == 1) {
-    mprintf("Warning: %s: number of grid points must be even.\n", call);
-    ++N;
-    mprintf("Warning: Incrementing NX by 1 to %u\n", N);
-  }
-}
-
-/** For even-spaced grids, origin is center - (N/2)*spacing.
-  * For odd-spaced grids, origin is center - ((N-1/2)*spacing)+half_spacing
-  */
-static double Calc_Origin(int N, double D) {
-  int odd = N % 2;
-  int half = (N - odd) / 2;
-  if (odd)
-    return -(((double)half * D) + (D * 0.5));
-  else
-    return -((double)half * D);
-}
-
-// GridAction::AllocateGrid()
-DataSet_GridFlt* GridAction::AllocateGrid(DataSetList& DSL, std::string const& dsname,
-                                          int nx, int ny, int nz,
-                                          double cx, double cy, double cz,
-                                          double dx, double dy, double dz)
-{
-  // Allocate DataSet
-  DataSet_GridFlt*  Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, dsname, "GRID" );
-  if (Grid != 0) {
-    if (Grid->Allocate3D(nx, ny, nz)) {
-      DataSetList::const_iterator last = DSL.end();
-      --last;
-      DSL.erase( last );
-      Grid = 0;
-    } else {
-      // Calculate origin from center coordinates.
-      double ox = cx + Calc_Origin(nx, dx);
-      double oy = cy + Calc_Origin(ny, dy);
-      double oz = cz + Calc_Origin(nz, dz);
-      // Set spacing and origin
-      Grid->setOriginAndSpacing(nx,ny,nz,ox,oy,oz,dx,dy,dz);
-    }
-  }
-  return Grid;
-}
-
 // GridAction::GridInit()
 DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn, 
                                       DataSetList& DSL) 
 {
-  int nx, ny, nz;
-  double dx, dy, dz;
-  nx = ny = nz = 0;
-  dx = dy = dz = 0.0;
   DataSet_GridFlt* Grid = 0; 
 
   std::string dsname = argIn.GetStringKey("data");
@@ -72,13 +21,14 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
       return 0;
     }
   } else {
+    // Create new data set.
     // Get nx, dx, ny, dy, nz, dz
-    nx = argIn.getNextInteger(-1);
-    dx = argIn.getNextDouble(-1);
-    ny = argIn.getNextInteger(-1);
-    dy = argIn.getNextDouble(-1);
-    nz = argIn.getNextInteger(-1);
-    dz = argIn.getNextDouble(-1);
+    int nx = argIn.getNextInteger(-1);
+    double dx = argIn.getNextDouble(-1);
+    int ny = argIn.getNextInteger(-1);
+    double dy = argIn.getNextDouble(-1);
+    int nz = argIn.getNextInteger(-1);
+    double dz = argIn.getNextDouble(-1);
     if (nx < 1 || ny < 1 || nz < 1 ||
         dx < 0 || dy < 0 || dz < 0)
     {
@@ -87,10 +37,16 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
                 nx, ny, nz, dx, dy, dz);
       return 0;
     }
-    // Check that # of grid points are even in each direction.
-    CheckEven( nx, callingRoutine );
-    CheckEven( ny, callingRoutine );
-    CheckEven( nz, callingRoutine );
+    Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
+    if (Grid == 0) return 0;
+    // Set up grid from dims, center, and spacing
+    // NOTE: # of grid points in each direction with be forced to be even.
+    // FIXME: For now only allow actual origin to be consistent with previous grid.
+    if (Grid->Allocate_N_C_D(nx, ny, nz, Vec3(0.0,0.0,0.0), Vec3(dx,dy,dz))) return 0;
+    //  DataSetList::const_iterator last = DSL.end();
+    //  --last;
+    //  DSL.erase( last );
+    //  Grid = 0;
   }
   // Box/origin
   mode_ = ORIGIN;
@@ -110,9 +66,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
   // Negative
   if (argIn.hasKey("negative"))
     increment_ = -1.0;
-  if (Grid == 0)
-    // FIXME: For now only allow actual origin to be consistent with previous grid.
-    Grid = AllocateGrid(DSL, argIn.GetStringKey("name"), nx, ny, nz, 0.0, 0.0, 0.0, dx, dy, dz);
+
   return Grid;
 }
 

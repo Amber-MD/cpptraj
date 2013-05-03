@@ -9,8 +9,6 @@ class DataSet_3D : public DataSet {
     DataSet_3D() {}
     DataSet_3D(DataSet::DataType tIn, int wIn, int pIn) :
       DataSet(tIn, wIn, pIn, 3) {}
-    /// Set up grid for given # x, y, and z points.
-    virtual int Allocate3D(size_t, size_t, size_t) = 0;
     /// Write 3D data to file.
     virtual void Write3D(CpptrajFile&,int,int,int) const = 0;
     /// \return Data from grid at x/y/z point.
@@ -26,8 +24,12 @@ class DataSet_3D : public DataSet {
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }
-    /// Set up grid origin and spacing (and max for binning).
-    int setOriginAndSpacing(size_t,size_t,size_t,double,double,double,double,double,double);
+    /// Set up grid from dims, origin, and spacing.
+    int Allocate_N_O_D(size_t,size_t,size_t,Vec3 const&,Vec3 const&);
+    /// Set up grid from dims, center, and spacing.
+    int Allocate_N_C_D(size_t,size_t,size_t,Vec3 const&,Vec3 const&);
+    /// Set up grid from sizes, center, and spacing.
+    int Allocate_X_C_D(Vec3 const&,Vec3 const&,Vec3 const&);
     /// Convert X, Y, and Z coords to index.
     inline bool CalcBins(double,double,double,size_t&,size_t&,size_t&) const;
     inline double DX() const { return dx_; }
@@ -39,6 +41,12 @@ class DataSet_3D : public DataSet {
     inline Vec3 BinCorner(size_t,size_t,size_t);
     inline Vec3 BinCenter(size_t,size_t,size_t);
   private:
+    /// Check if grid dimension is even; if not, increment it by 1.
+    static void CheckEven(size_t&, char);
+    /// Set up grid for given # x, y, and z points.
+    // TODO: Make public if grids will be used for other than binning.
+    virtual int Allocate3D(size_t, size_t, size_t) = 0;
+
     double dx_; ///< X grid spacing.
     double dy_; ///< Y grid spacing.
     double dz_; ///< Z grid spacing.
@@ -50,23 +58,6 @@ class DataSet_3D : public DataSet {
     double mz_; ///< Grid Z maximum. 
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
-// DataSet_3D::setOriginAndSpacing()
-int DataSet_3D::setOriginAndSpacing(size_t nx, size_t ny, size_t nz,
-                                    double ox, double oy, double oz,
-                                    double dx, double dy, double dz)
-{
-  if (nx == 0 || ny == 0 || nz == 0) return 1;
-  ox_ = ox;
-  oy_ = oy;
-  oz_ = oz;
-  dx_ = dx;
-  dy_ = dy;
-  dz_ = dz;
-  mx_ = ox_ + ((double)nx * dx_);
-  my_ = oy_ + ((double)ny * dy_);
-  mz_ = oz_ + ((double)nz * dz_);
-  return 0;
-}
 // DataSet_3D::CalcBins()
 bool DataSet_3D::CalcBins(double x, double y, double z,
                           size_t& i, size_t& j, size_t& k) const
