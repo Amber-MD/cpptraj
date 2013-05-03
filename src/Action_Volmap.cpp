@@ -111,6 +111,9 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     grid_ = GridAction::AllocateGrid(DSL, actionArgs.GetStringKey("name"),
                                      nx, ny, nz, 0.0, 0.0, 0.0, dx_, dy_, dz_);
     if (grid_ == 0) return Action::ERR;
+    xmin_ = grid_->OX();
+    ymin_ = grid_->OY();
+    zmin_ = grid_->OZ();
   } else {
     // Now we generate our grid around our mask. See if we have a center mask
     if (center.empty())
@@ -182,9 +185,9 @@ Action::RetType Action_Volmap::Setup(Topology* currentParm, Topology** parmAddre
   * \return vdW radius of the requested atom number from a Topology instance
   */
 double Action_Volmap::GetRadius_(Topology const& top, int atom) {
-  int param = (top.Ntypes() * (top[atom].TypeIndex()-1)) + top[atom].TypeIndex() - 1;
-  int idx = top.NB_index()[param] - 1;
-  return 0.5 * pow(2 * top.LJA()[idx] / top.LJB()[idx], 1.0/6.0);
+  double A, B;
+  top.GetLJ_A_B(atom, atom, A, B);
+  return 0.5 * pow(2 * A / B, 1.0/6.0);
 }
 
 // Action_Volmap::DoAction()
