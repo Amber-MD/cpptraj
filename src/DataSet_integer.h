@@ -20,6 +20,10 @@ class DataSet_integer : public DataSet_1D {
     void Add( size_t, const void* );
     double Dval(size_t idx)  const { return (double)Data_[idx]; }
     void WriteBuffer(CpptrajFile&, size_t) const;
+    // -------------------------------------------
+    typedef std::vector<int>::iterator iterator;
+    iterator begin() { return Data_.begin(); }
+    iterator end()   { return Data_.end();   }
   private:
     std::vector<int> Data_;
 };
