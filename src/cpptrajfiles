@@ -28,7 +28,7 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
         BufferedFrame.cpp BufferedLine.cpp ByteRoutines.cpp ClusterDist.cpp ClusterList.cpp \
         ClusterMatrix.cpp ClusterNode.cpp Cluster_HierAgglo.cpp \
-        Cluster_DBSCAN.cpp Command.cpp ComplexArray.cpp CpptrajFile.cpp \
+        Cluster_DBSCAN.cpp Command.cpp ComplexArray.cpp Corr.cpp CpptrajFile.cpp \
         Cpptraj.cpp CpptrajStdio.cpp DataFile.cpp DataFileList.cpp \
         DataIO.cpp DataIO_Gnuplot.cpp DataIO_Grace.cpp DataIO_Std.cpp DataIO_Xplor.cpp \
         DataIO_OpenDx.cpp \

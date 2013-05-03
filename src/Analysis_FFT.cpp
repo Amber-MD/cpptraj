@@ -1,4 +1,3 @@
-#include <cstring> // memset
 #include <cmath> // sqrt
 #include "Analysis_FFT.h"
 #include "CpptrajStdio.h"
@@ -51,18 +50,18 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
     if ( maxsize_ == 0 ) 
       maxsize_ = (*DS)->Size();
     else if ( (*DS)->Size() != maxsize_ ) {
-      mprintf("Warning: FFT: Set %s does not have same size (%i) as initial set (%i). Skipping.\n",
+      mprintf("Warning: FFT: Set %s does not have same size (%u) as initial set (%u). Skipping.\n",
               (*DS)->Legend().c_str(), (*DS)->Size(), maxsize_ );
       continue;
     }
     DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, idx++ );
     if (dsout==0) return Analysis::ERR;
     dsout->SetLegend( (*DS)->Legend() );
-    output_dsets_.push_back( dsout );
+    output_dsets_.push_back( (DataSet_1D*)dsout );
     if (outfile_ != 0) outfile_->AddSet( dsout );
   }
 
-  mprintf("    FFT: Calculating FFT for %i data sets (of size %i):\n", 
+  mprintf("    FFT: Calculating FFT for %i data sets (of size %u):\n", 
           input_dsets_.size(), maxsize_ );
   mprintf("\tTime step: %f\n", dt_);
   if ( !setname.empty() )
@@ -78,34 +77,33 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
   */
 //TODO: Deal with vectors
 Analysis::RetType Analysis_FFT::Analyze() {
-  //PubFFT pubfft( maxsize_ );
   PubFFT pubfft;
   pubfft.SetupFFTforN( maxsize_ );
   mprintf("DEBUG: FFT size is %i\n",pubfft.size());
-  int ndata = pubfft.size() * 2; // space for (real + img) per datapoint
-  double *data1 = new double[ ndata ];
+  // Set up complex number array
+  ComplexArray data1( pubfft.size() );
 
   double sr = 1.0 / dt_;              // 1 / sampling interval, sampling rate (freq)
   double fnyquist = sr / 2.0;         // Nyquist frequency
-  double total_time = dt_ * maxsize_; // Total time (fundamental period)
+  double total_time = dt_ * (double)maxsize_; // Total time (fundamental period)
   double f0 = 1.0 / total_time;       // Fundamental frequency (first harmonic)
   if (outfile_ != 0) 
     outfile_->ProcessArgs("xlabel Freq. xmin 0 xstep " + doubleToString( f0 ));
-  double norm = (double)(maxsize_ / 2);
+  double norm = (double)maxsize_ / 2;
 
-  std::vector<DataSet*>::iterator dsout = output_dsets_.begin();
+  std::vector<DataSet_1D*>::iterator dsout = output_dsets_.begin();
   for (DataSetList::const_iterator DS = input_dsets_.begin(); 
                                    DS != input_dsets_.end(); ++DS)
   {
     mprintf("\t\tCalculating FFT for set %s\n", (*DS)->Legend().c_str());
     // Reset data1 so it is padded with zeros
-    memset( data1, 0, ndata*sizeof(double) );
+    data1.PadWithZero(0);
     // Place data from DS in real spots in data1
     int datasize =  (*DS)->Size();
     mprintf("\t\t\tDT=%f ps, SR= %f ps^-1, FC= %f ps^-1, total time=%f ps, f0=%f ps^-1\n",
             dt_, sr, fnyquist, total_time, f0);
     for (int i = 0; i < datasize; ++i)
-      data1[i*2] = (*DS)->Dval(i);
+      data1[i*2] = ((DataSet_1D*)(*DS))->Dval(i);
     // DEBUG
     //for (int i = 0; i < pubfft.size()*2; i+=2)
     //  mprintf("\t\t\t%i FFTinR=%f  FFTinI=%f\n",i/2,data1[i],data1[i+1]);
@@ -124,6 +122,5 @@ Analysis::RetType Analysis_FFT::Analyze() {
     }
     ++dsout;
   }
-  delete[] data1;
   return Analysis::OK;
 }

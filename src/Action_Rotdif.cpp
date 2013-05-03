@@ -9,7 +9,7 @@
 #include "Constants.h" // TWOPI
 #include "Integrate.h"
 #include "ProgressBar.h"
-#include "ComplexArray.h"
+#include "Corr.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
