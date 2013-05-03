@@ -63,8 +63,8 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, TopologyList* PFL, 
   std::string dsname = actionArgs.GetStringNext();
   if (dsname.empty())
     dsname = DSL->GenerateDefaultName("WS");
-  lower_ = DSL->AddSetAspect(DataSet::INT, dsname, "lower");
-  upper_ = DSL->AddSetAspect(DataSet::INT, dsname, "upper");
+  lower_ = DSL->AddSetAspect(DataSet::INTEGER, dsname, "lower");
+  upper_ = DSL->AddSetAspect(DataSet::INTEGER, dsname, "upper");
   if (lower_ == 0 || upper_ == 0) return Action::ERR;
   DFL->AddSetToFile(filename, lower_);
   DFL->AddSetToFile(filename, upper_);

@@ -136,7 +136,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   maskexpr_ = analyzeArgs.GetMaskNext();
 
   // Dataset to store cluster number v time
-  cnumvtime_ = datasetlist->AddSet(DataSet::INT, analyzeArgs.GetStringNext(), "Cnum");
+  cnumvtime_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==0) return Analysis::ERR;
   if (cnumvtimefile != 0) cnumvtimefile->AddSet( cnumvtime_ ); 
   // Save master DSL for Cpopvtime
@@ -279,8 +279,7 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList ) {
   // Make all clusters start at -1. This way cluster algorithms that
   // have noise points (i.e. no cluster assigned) will be distinguished.
   if (!grace_color_)
-    for (int i = 0; i < cnum_temp->Size(); ++i)
-      (*cnum_temp)[i] = -1;
+    std::fill(cnum_temp->begin(), cnum_temp->end(), -1);
 
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); C++)
@@ -329,7 +328,7 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList ) {
   // Assumes cnumvtime has been calcd and not gracecolor!
   // TODO: Normalization
   DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
-  for (int frame = 0; frame < coords_->Size(); ++frame) {
+  for (unsigned int frame = 0; frame < coords_->Size(); ++frame) {
     int cluster_num = (*cnum_temp)[frame];
     // Noise points are -1
     if (cluster_num > -1)

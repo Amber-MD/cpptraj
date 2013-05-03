@@ -91,17 +91,17 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
 // Analysis_Corr::Analyze()
 Analysis::RetType Analysis_Corr::Analyze() {
   // Check that D1 and D2 have same # data points.
-  int Nelements = D1_->Size(); 
+  size_t Nelements = D1_->Size(); 
   if (Nelements != D2_->Size()) {
-    mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",
+    mprinterr("Error: Corr: # elements in dataset %s (%u) not equal to\n",
               D1_->Legend().c_str(), Nelements);
-    mprinterr("             # elements in dataset %s (%i)\n",
+    mprinterr("             # elements in dataset %s (%u)\n",
               D2_->Legend().c_str(), D2_->Size());
     return Analysis::ERR;
   }
-  if (lagmax_==-1) lagmax_ = Nelements;
+  if (lagmax_==-1) lagmax_ = (int)Nelements;
 
-  mprintf("    CORR: %i elements, max lag %i\n",Nelements,lagmax_);
+  mprintf("    CORR: %u elements, max lag %i\n",Nelements,lagmax_);
 
   DS_Math::CrossCorr(*D1_, *D2_, *Ct_, lagmax_, calc_covar_, usefft_ );
 

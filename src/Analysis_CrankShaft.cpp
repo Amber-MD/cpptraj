@@ -56,12 +56,12 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
   }
 
   // Get datasets
-  scalar1_ = DSLin->GetDataSet( name1 );
+  scalar1_ = (DataSet_1D*)DSLin->GetDataSet( name1 );
   if (scalar1_ == 0) {
     mprinterr("Error: crankshaft: Dataset %s not found.\n", name1.c_str());
     return Analysis::ERR;
   }
-  scalar2_ = DSLin->GetDataSet( name2 );
+  scalar2_ = (DataSet_1D*)DSLin->GetDataSet( name2 );
   if (scalar2_ == 0) {
     mprinterr("Error: crankshaft: Dataset %s not found.\n", name2.c_str());
     return Analysis::ERR;
@@ -104,18 +104,18 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
   int visits[6][6], transitions[6][6];
 
   // Check that scalar1 and scalar2 have same # data points.
-  int Nelements = scalar1_->Size();
+  size_t Nelements = scalar1_->Size();
   if (Nelements != scalar2_->Size()) {
-    mprinterr("Error: crankshaft: # elements in dataset %s (%i) not equal to\n",
+    mprinterr("Error: crankshaft: # elements in dataset %s (%u) not equal to\n",
               scalar1_->Legend().c_str(), Nelements);
-    mprinterr("                   # elements in dataset %s (%i)\n",
+    mprinterr("                   # elements in dataset %s (%u)\n",
               scalar2_->Legend().c_str(), scalar2_->Size());
     return Analysis::ERR;
   }
   if (stop_ == -1)
-    stop_ = Nelements;
-  if (start_ >= Nelements) {
-    mprinterr("Error: crankshaft: start (%i) >= total # elements.\n",start_+1, Nelements);
+    stop_ = (int)Nelements;
+  if (start_ >= (int)Nelements) {
+    mprinterr("Error: crankshaft: start (%u) >= total # elements.\n",start_+1, Nelements);
     return Analysis::ERR;
   }
   int totalFrames = (stop_ - start_) / offset_;
