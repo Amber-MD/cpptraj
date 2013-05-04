@@ -7,8 +7,7 @@
 
 // Class: Action_Gist
 /// Calculate water energy and entropy
-//class Action_Gist: public Action, ImagedAction  {
-class Action_Gist: public Action  {
+class Action_Gist: public Action, ImagedAction  {
   public:
     Action_Gist();
     ~Action_Gist();
@@ -17,9 +16,9 @@ class Action_Gist: public Action  {
     static void Help();
 
     void Print();
-    void PrintDX(std::string const&);
+    void PrintDX(std::string const&, std::vector<double>&);
     void PrintOutput(std::string const&);
-  
+
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
@@ -35,69 +34,62 @@ class Action_Gist: public Action  {
     bool useTIP3P_;
     bool useTIP4P_;
     bool useTIP4PEW_;
-//    AtomMask Mask1_;                 ///< Calculate energy for atoms in mask
-//    AtomMask Mask2_;                 ///< Calculate energy for atoms in mask
-//    AtomMask Mask3_;                 ///< Calculate energy for atoms in mask
-//    std::string solvname_;
-//    std::vector<Residue> solvent_residues_;
 
     // other constants
-    int NFRAME_;
-    double BULK_DENS_;
-    double BULK_E_;
+    int NFRAME_;		// total number of frames analyzed
+    double BULK_DENS_;		// bulk water density
+    double BULK_E_;		// bulk water energy
 
     //Grid Stuff   
-    Vec3 gridcntr_;    
-    int* griddim_;
-    int* gridindex_;
-    //Vec3 griddim_; 
-    Vec3 gridorig_; 
-    double gridspacn_;
-    Vec3 x_lab, y_lab, z_lab;
-    Vec3 x_res, y_res, z_res;
-    int resnum;
-    int resnum2;
+    Vec3 gridcntr_;    		// coordiantes of grid center
+    int* griddim_;		// grid dimension (bin number in each direction)
+    Vec3 gridorig_;		// coordinates of grid origin
+    double gridspacn_;		// grid spacing
     int MAX_GRID_PT_;
-    std::vector <int> gridwat_;
-    std::vector<int> nwat_;
-    std::vector<int> nw_angle_;
-    double Vvox_;
-    std::vector<double> grid_x_;
-    std::vector<double> grid_y_;
-    std::vector<double> grid_z_;
+    std::vector <int> gridwat_;		// voxel index of each water
+    std::vector <int> nwat_;		// total number of water found in each voxel
+    std::vector <int> nw_angle_;	// total nuber of Euler angles found in each voxel
+    std::vector <double> grid_x_;	// voxel index in x
+    std::vector <double> grid_y_;
+    std::vector <double> grid_z_;
+    double Vvox_;			// voxel volume
     /// Return X coordinate of bin center
-    double Xcrd(int i) { return (double)i*gridspacn_ - gridcntr_[0] + 0.5*gridspacn_; }
+    double Xcrd(int i) { return (double)i*gridspacn_ + gridorig_[0] + 0.5*gridspacn_; }
     /// Return Y coordinate of bin center
-    double Ycrd(int j) { return (double)j*gridspacn_ - gridcntr_[1] + 0.5*gridspacn_; }
+    double Ycrd(int j) { return (double)j*gridspacn_ + gridorig_[1] + 0.5*gridspacn_; }
     /// Return Z coordinate of bin center
-    double Zcrd(int k) { return (double)k*gridspacn_ - gridcntr_[2] + 0.5*gridspacn_; }
+    double Zcrd(int k) { return (double)k*gridspacn_ + gridorig_[2] + 0.5*gridspacn_; }
+    
+    double Lx, Ly, Lz;		// box length
+    void pbc(Vec3& r) {
+	if (r[0] < -Lx/2) r[0] += Lx;
+        else if (r[0] > Lx/2) r[0] -= Lx;
+        if (r[1] < -Ly/2) r[1] += Ly;
+        else if (r[1] > Ly/2) r[1] -= Ly;
+        if (r[2] < -Lz/2) r[2] += Lz;
+        else if (r[2] > Lz/2) r[2] -= Lz;
+    } 
 
     //non-bond energy stuff
-    double ELJ_;                     ///< Total VDW energy over all selected atoms.
-    double Eelec_;                   ///< Total elec. energy over all selected atoms.
-    double kes_;                     ///< Electrostatic constant, 1.0 when using Amber units
-    //std::vector<double> atom_evdw_;  ///< Cumulative Evdw on each atom
-    //std::vector<double> atom_eelec_; ///< Cumulative Eelec on each atom
-    std::vector<double> atom_charge_;
-    std::vector<double> wh_evdw_;
-    std::vector<double> wh_eelec_;
-    std::vector<double> ww_evdw_;
-    std::vector<double> ww_eelec_;
-    std::vector < std::vector <double> > ww_Eij_;
-    std::vector<double> dEwh_dw_;
-    std::vector<double> dEww_dw_ref_;
-    std::vector<double> dEwh_norm_;
-    std::vector<double> dEww_norm_ref_;
+    std::vector <double> wh_evdw_;
+    std::vector <double> wh_eelec_;
+    std::vector <double> ww_evdw_;
+    std::vector <double> ww_eelec_;
+    std::vector < std::vector <float> > ww_Eij_;
+    std::vector <double> dEwh_dw_;
+    std::vector <double> dEww_dw_ref_;
+    std::vector <double> dEwh_norm_;
+    std::vector <double> dEww_norm_ref_;
 //    DataSet_Matrix* ww_Eij_;	// upper left triangular matrix - not what we want
 //    float ** ww_Eij_ = new float * [MAX_GRID_PT];	//lower left triangular matrix
 //    for (a=1; a<MAX_GRID_PT; a++)
 //	Eij[a] = new float [a];
 
     // entropy stuff
-    std::vector<double> TSNN_;
-    std::vector<double> TSwNN_;
-    std::vector<double> TStrans_dw_;
-    std::vector<double> TStrans_norm_;
+    std::vector <double> TSNN_dw_;
+    std::vector <double> TSNN_norm_;
+    std::vector <double> TStrans_dw_;
+    std::vector <double> TStrans_norm_;
     double TSNNtot_;
     int max_nwat_;
     double TStranstot_;
