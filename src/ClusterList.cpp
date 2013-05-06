@@ -275,12 +275,29 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   // Base everything off of the first DataSet
   // TODO: Check all DataSet sizes?
   DataSet* dsIn = dataSets[0];
+  // Test that data set contains data
+  if (dsIn->Size() < 1) {
+    mprinterr("Error: data set %s does not contain data.\n", dsIn->Legend().c_str());
+    return 1;
+  }
   // Set up internal cluster disance calculation
   if (dsIn->Type() == DataSet::COORDS) {
+    // Test that the mask expression is valid
+    AtomMask testMask( maskexpr );
+    Topology const& dsTop = ((DataSet_Coords*)dsIn)->Top();
+    if ( dsTop.SetupIntegerMask( testMask ) ) {
+      mprinterr("Error: Could not set up mask [%s] for topology %s\n",
+                 maskexpr.c_str(), dsTop.c_str());
+      return 1;
+    }
+    if (testMask.None()) {
+      mprinterr("Error: No atoms elected for mask [%s]\n", testMask.MaskString());
+      return 1;
+    }
     if (useDME)
-      Cdist_ = new ClusterDist_DME(dsIn, maskexpr);
+      Cdist_ = new ClusterDist_DME(dsIn, testMask);
     else
-      Cdist_ = new ClusterDist_RMS(dsIn, maskexpr, nofit, useMass);
+      Cdist_ = new ClusterDist_RMS(dsIn, testMask, nofit, useMass);
   } else {
     if (dataSets.size() == 1)
       Cdist_ = new ClusterDist_Num(dsIn);
