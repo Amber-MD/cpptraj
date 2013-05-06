@@ -139,7 +139,7 @@ int Matrix_3x3::Diagonalize( Vec3& vecD )
   vecZ[2] = 0;
   // MAIN LOOP
   double tresh = 0;
-  int nrot;
+  int nrot = 0;
   for (int i = 0; i < MAX_ITERATIONS; ++i) {
     // sm = SUM of UPPER RIGHT TRIANGLE
     double sm = fabs(mat[1]) + fabs(mat[2]) + fabs(mat[5]);
