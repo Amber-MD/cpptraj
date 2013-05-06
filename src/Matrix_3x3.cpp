@@ -139,7 +139,7 @@ int Matrix_3x3::Diagonalize( Vec3& vecD )
   vecZ[2] = 0;
   // MAIN LOOP
   double tresh = 0;
-  int nrot = 0;
+  //int nrot = 0;
   for (int i = 0; i < MAX_ITERATIONS; ++i) {
     // sm = SUM of UPPER RIGHT TRIANGLE
     double sm = fabs(mat[1]) + fabs(mat[2]) + fabs(mat[5]);
@@ -191,7 +191,7 @@ int Matrix_3x3::Diagonalize( Vec3& vecD )
           for (j3=0; j3<9; j3+=3)
             ROTATE(M_,j3,ip,j3,iq)
 
-          ++nrot;
+          //++nrot;
         }
       }
     } // END INNER LOOP OVER UPPER RIGHT TRIANGLE
