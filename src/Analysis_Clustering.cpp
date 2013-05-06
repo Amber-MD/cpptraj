@@ -64,7 +64,6 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   if (coords_ == 0) {
     mprinterr("Error: clustering: Could not locate COORDS set corresponding to %s\n",
               setname.c_str());
-    Help();
     return Analysis::ERR;
   }
   // Check for DataSet(s) to cluster on, otherwise coords will be used
@@ -214,6 +213,31 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   // If no dataset specified, use COORDS
   if (cluster_dataset_.empty())
      cluster_dataset_.push_back( (DataSet*)coords_ );
+  // Test that cluster data set contains data
+  int clusterDataSetSize = cluster_dataset_[0]->Size();
+  if (clusterDataSetSize < 1) {
+    mprinterr("Error: cluster data set %s does not contain data.\n", 
+              cluster_dataset_[0]->Legend().c_str());
+    return Analysis::ERR;
+  }
+  // If more than one data set, make sure they are all the same size.
+  for (ClusterDist::DsArray::iterator ds = cluster_dataset_.begin();
+                                      ds != cluster_dataset_.end(); ++ds)
+  {
+    if ((*ds)->Size() != clusterDataSetSize) {
+      mprinterr("Error: data set %s size (%i) != first data set %s size (%i)\n",
+                (*ds)->Legend().c_str(), (*ds)->Size(), 
+                cluster_dataset_[0]->Legend().c_str(), clusterDataSetSize);
+      return Analysis::ERR;
+    }
+  }
+  // If no coordinates were specified, disable coordinate output types
+  bool has_coords = true;
+  if (coords_->Size() < 1) {
+    mprintf("Warning: Associated coordinate data set is empty.\n");
+    mprintf("Warning: Disabling coordinate output.\n");
+    has_coords = false;
+  }  
   // Calculate distances between frames
   if (CList_->CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
                                   usedme_, nofitrms_, useMass_, maskexpr_, sieve_ ))
@@ -235,47 +259,49 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 
   // Print ptraj-like cluster info
   if (!clusterinfo_.empty())
-    CList_->PrintClustersToFile(clusterinfo_, coords_->Size());
+    CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
 
   // Print a summary of clusters
   if (!summaryfile_.empty())
-    CList_->Summary(summaryfile_, coords_->Size());
+    CList_->Summary(summaryfile_, clusterDataSetSize);
 
   // Print a summary comparing first half to second half of data for clusters
   if (!halffile_.empty())
-    CList_->Summary_Half(halffile_, coords_->Size(), splitFrame_);
+    CList_->Summary_Half(halffile_, clusterDataSetSize, splitFrame_);
 
   // Create cluster v time data from clusters.
-  CreateCnumvtime( *CList_ );
+  CreateCnumvtime( *CList_, clusterDataSetSize );
 
   // Create cluster pop v time plots
   if (cpopvtimefile_ != 0)
-    CreateCpopvtime( *CList_ );
+    CreateCpopvtime( *CList_, clusterDataSetSize );
 
-  // Write clusters to trajectories
-  if (!clusterfile_.empty())
-    WriteClusterTraj( *CList_ ); 
+  if (has_coords) {
+    // Write clusters to trajectories
+    if (!clusterfile_.empty())
+      WriteClusterTraj( *CList_ ); 
 
-  // Write all representative frames to a single traj
-  if (!singlerepfile_.empty())
-    WriteSingleRepTraj( *CList_ );
+    // Write all representative frames to a single traj
+    if (!singlerepfile_.empty())
+      WriteSingleRepTraj( *CList_ );
 
-  // Write all representative frames to separate trajs
-  if (!reptrajfile_.empty())
-    WriteRepTraj( *CList_ );
+    // Write all representative frames to separate trajs
+    if (!reptrajfile_.empty())
+      WriteRepTraj( *CList_ );
+  }
   return Analysis::OK;
 }
 
 // -----------------------------------------------------------------------------
 // Analysis_Clustering::CreateCnumvtime()
 /** Put cluster number vs frame into dataset.  */
-void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList ) {
+void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, int maxFrames ) {
   // FIXME:
   // Cast generic DataSet for cnumvtime back to integer dataset to 
   // access specific integer dataset functions for resizing and []
   // operator. Should this eventually be generic to all atomic DataSets? 
   DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
-  cnum_temp->Resize( coords_->Size() );
+  cnum_temp->Resize( maxFrames );
   // Make all clusters start at -1. This way cluster algorithms that
   // have noise points (i.e. no cluster assigned) will be distinguished.
   if (!grace_color_)
@@ -306,7 +332,7 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList ) {
 
 // Analysis_Clustering::CreateCpopvtime()
 // NOTE: Should not be called if cpopvtimefile is NULL
-void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList ) {
+void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFrames ) {
   std::vector<int> Pop(CList.Nclusters(), 0);
   // Set up normalization
   std::vector<double> Norm(CList.Nclusters(), 1.0);
@@ -329,7 +355,7 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList ) {
   // Assumes cnumvtime has been calcd and not gracecolor!
   // TODO: Normalization
   DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
-  for (int frame = 0; frame < coords_->Size(); ++frame) {
+  for (int frame = 0; frame < maxFrames; ++frame) {
     int cluster_num = (*cnum_temp)[frame];
     // Noise points are -1
     if (cluster_num > -1)

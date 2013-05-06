@@ -275,11 +275,6 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   // Base everything off of the first DataSet
   // TODO: Check all DataSet sizes?
   DataSet* dsIn = dataSets[0];
-  // Test that data set contains data
-  if (dsIn->Size() < 1) {
-    mprinterr("Error: data set %s does not contain data.\n", dsIn->Legend().c_str());
-    return 1;
-  }
   // Set up internal cluster disance calculation
   if (dsIn->Type() == DataSet::COORDS) {
     // Test that the mask expression is valid
