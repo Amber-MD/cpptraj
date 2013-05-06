@@ -1,17 +1,15 @@
 #ifndef INC_DS_MATH_H
 #define INC_DS_MATH_H
 /*! \file DS_Math.h
-    \brief Collection of routines to perform math on datasets.
+    \brief Collection of routines to perform math on 1D datasets.
  */
 #include "DataSet_1D.h"
-// TODO: Operator on 1D data sets only
 namespace DS_Math {
-  // TODO: Make const refs
-  double Avg(DataSet&, double*);
-  double Avg(DataSet&);
-  double Min(DataSet&);
-  double Max(DataSet&);
-  int CrossCorr(DataSet&, DataSet&, DataSet&, int, bool, bool);
-  double CorrCoeff(DataSet&, DataSet&);
+  double Avg(DataSet_1D const&, double*);
+  double Avg(DataSet_1D const&);
+  double Min(DataSet_1D const&);
+  double Max(DataSet_1D const&);
+  int CrossCorr(DataSet_1D const&, DataSet_1D const&, DataSet_1D&, int, bool, bool);
+  double CorrCoeff(DataSet_1D const&, DataSet_1D const&);
 }
 #endif
