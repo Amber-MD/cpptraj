@@ -2,7 +2,10 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // doubleToString
 #include "DS_Math.h" // Min, Max
-// Analysis_Hist
+// DataSet types used by Analysis_Hist
+#include "DataSet_double.h"
+#include "DataSet_MatrixDbl.h"
+#include "DataSet_GridFlt.h"
 
 // CONSTRUCTOR
 Analysis_Hist::Analysis_Hist() :
@@ -12,8 +15,9 @@ Analysis_Hist::Analysis_Hist() :
   calcFreeE_(false),
   Temp_(-1.0),
   normalize_(false),
-  gnuplot_(false),
+//  gnuplot_(false),
   circular_(false),
+  N_dimensions_(0),
   minArgSet_(false),
   maxArgSet_(false)
 {}
@@ -42,9 +46,17 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
   // First argument should specify dataset name
   if (debug_>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
                        arglist.Command());
-  DataSet *dset = datasetlist->GetDataSet( arglist[0] );
+  DataSet* dset = datasetlist->GetDataSet( arglist[0] );
   if (dset == 0) {
     mprintf("\t      Dataset %s not found.\n",arglist.Command());
+    return 1;
+  }
+
+  // For now only 1D data sets can be histogrammed
+  if (dset->Ndim() != 1) {
+    mprinterr("Error: Hist: dataset %s has %u dimensions.\n",
+              dset->Legend().c_str(), dset->Ndim());
+    mprinterr("Error: Hist: Currently only 1D data sets can be histogrammed.\n");
     return 1;
   }
 
@@ -56,17 +68,17 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
   }
 
   dimensionArgs_.push_back( arglist );
-  histdata_.push_back( dset );
+  histdata_.push_back( (DataSet_1D*)dset );
   return 0;
 }
 
 // Analysis_Hist::setupDimension()
 /** Given an ArgList containing name,[min,max,step,bins,col,N], set up a 
   * coordinate with that name and parameters min, max, step, bins.
-  * If '*' or not specified, a default value will be set later.
+  * If '*' or not specified, a default value will be set.
   * \return 1 if error occurs, 0 otherwise.
   */
-int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
+int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset) {
   Dimension dim;
   bool minArg = false;
   bool maxArg = false;
@@ -95,14 +107,14 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   // If no min arg and no default min arg, get min from dataset
   if (!minArg) {
     if (!minArgSet_) 
-      dim.SetMin( DS_Math::Min(*dset) );
+      dim.SetMin( DS_Math::Min(dset) );
     else
       dim.SetMin( default_dim_.Min() );
   }
   // If no max arg and no default max arg, get max from dataset
   if (!maxArg) {
     if (!maxArgSet_)
-      dim.SetMax( DS_Math::Max(*dset) );
+      dim.SetMax( DS_Math::Max(dset) );
     else
       dim.SetMax( default_dim_.Max() );
   }
@@ -123,7 +135,20 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   if (dim.CalcBinsOrStep()!=0) return 1;
  
   dim.PrintDim();
-  hist_->AddDimension( dim );
+  dimensions_.push_back( dim );
+
+  // Recalculate offsets for all dimensions starting at farthest coord. This
+  // follows column major ordering.
+  int offset = 1;
+  for (std::vector<Dimension>::reverse_iterator rd = dimensions_.rbegin();
+                                                rd != dimensions_.rend(); ++rd)
+  {
+    if (debug_>0) mprintf("\tHistogram: %s offset is %i\n",(*rd).Label().c_str(), offset);
+    (*rd).SetOffset( offset );
+    offset *= (*rd).Bins();
+  }
+  // offset should now be equal to the total number of bins across all dimensions
+  if (debug_>0) mprintf("\tHistogram: Total Bins = %i\n",offset);
 
   return 0;
 }
@@ -134,23 +159,16 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
-
-  // Set up histogram DataSet
-  hist_ = (Histogram*) datasetlist->AddSet( DataSet::HIST, 
-                                            analyzeArgs.GetStringKey("name"), 
-                                            "Hist");
-  hist_->SetDebug(debug_);
-  //hist_ = new Histogram( );
-
   // Keywords
-  outfilename_ = analyzeArgs.GetStringKey("out");
-  if (outfilename_.empty()) {
+  std::string histname = analyzeArgs.GetStringKey("name");
+  std::string outfilename = analyzeArgs.GetStringKey("out");
+  if (outfilename.empty()) {
     mprintf("Error: Hist: No output filename specified.\n");
     return Analysis::ERR;
   }
   Temp_ = analyzeArgs.getKeyDouble("free",-1.0);
   if (Temp_!=-1.0) calcFreeE_ = true;
-  gnuplot_ = analyzeArgs.hasKey("gnu");
+  //gnuplot_ = analyzeArgs.hasKey("gnu");
   normalize_ = analyzeArgs.hasKey("norm");
   circular_ = analyzeArgs.hasKey("circular");
   if ( analyzeArgs.Contains("min") ) {
@@ -164,8 +182,8 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   default_dim_.SetStep( analyzeArgs.getKeyDouble("step",-1.0) );
   default_dim_.SetBins( analyzeArgs.getKeyInt("bins",-1) );
 
-  // Datasets
-  // Treat all remaining arguments as dataset names.
+  // Treat all remaining arguments as dataset names. Do not set up dimensions
+  // yet since the data sets may not be fully populated.
   ArgList dsetNames = analyzeArgs.RemainingArgs();
   for ( ArgList::const_iterator setname = dsetNames.begin(); 
                                 setname != dsetNames.end(); ++setname)
@@ -177,36 +195,37 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprinterr("Error: Hist: No datasets specified.\n");
     return Analysis::ERR;
   }
-  // If one or two dimensions and not gnuplot/circular, use DataFileList 
-  // for writing.
-  if (dimensionArgs_.size() < 3 && !circular_ && !gnuplot_) {
-    outfile_ = DFLin->AddDataFile(outfilename_, analyzeArgs);
-    if (outfile_ == 0) {
-      mprinterr("Error: Could not create output file %s\n", outfilename_.c_str());
+  // Total # of dimensions for the histogram is the number of sets to be binned.
+  N_dimensions_ = histdata_.size();
+  switch ( N_dimensions_ ) {
+    case 1: hist_ = datasetlist->AddSet( DataSet::DOUBLE,     histname, "Hist"); break;
+    case 2: hist_ = datasetlist->AddSet( DataSet::MATRIX_DBL, histname, "Hist"); break;
+    // TODO: GRID_DBL
+    case 3: hist_ = datasetlist->AddSet( DataSet::GRID_FLT,   histname, "Hist"); break;
+    default: // FIXME: GET N DIMENSION CASE!
+      mprinterr("Internal Error: Currently histogram beyond 3 dimensions disabled.\n");
       return Analysis::ERR;
-    }
-    // NOTE: Do not add hist DataSet to outfile here; unlike other DataSets
-    // the dimension of hist is not finalized until dimensions are set up in
-    // Analyze()
-    //outfile_->AddSet(hist_);
   }
-
+  // Set up output data file
+  outfile_ = DFLin->AddDataFile(outfilename, analyzeArgs);
+  if (outfile_==0) return Analysis::ERR;
+  
   mprintf("\tHist: %s: Set up for %zu dimensions using the following datasets:\n", 
-          outfilename_.c_str(), dimensionArgs_.size());
+          outfilename.c_str(), N_dimensions_);
   mprintf("\t      [ ");
-  for (std::vector<DataSet*>::iterator ds=histdata_.begin(); ds!=histdata_.end(); ++ds)
+  for (std::vector<DataSet_1D*>::iterator ds=histdata_.begin(); ds!=histdata_.end(); ++ds)
     mprintf("%s ",(*ds)->Legend().c_str());
   mprintf("]\n");
   if (calcFreeE_)
     mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp_);
-  if (circular_ || gnuplot_) {
+  /*if (circular_ || gnuplot_) {
     mprintf("\tWarning: gnuplot and/or circular specified; advanced grace/gnuplot\n");
     mprintf("\t         formatting disabled.\n");
     if (circular_)
       mprintf("\t      circular: Output coordinates will be wrapped.\n");
     if (gnuplot_)
       mprintf("\t      gnuplot: Output will be in gnuplot-readable format.\n");
-  }
+  }*/
   if (normalize_)
     mprintf("\t      norm: Bins will be normalized to 1.0.\n");
 
@@ -217,28 +236,68 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
 Analysis::RetType Analysis_Hist::Analyze() {
   // Set up dimensions
   // Size of histdata and dimensionArgs should be the same
-  for (unsigned int hd = 0; hd < histdata_.size(); hd++) {
-    if ( setupDimension(dimensionArgs_[hd], histdata_[hd]) ) 
+  for (unsigned int hd = 0; hd < N_dimensions_; hd++) {
+    if ( setupDimension(dimensionArgs_[hd], *(histdata_[hd])) ) 
       return Analysis::ERR;
   }
 
   // Check that the number of data points in each dimension are equal
-  int Ndata = -1;
-  for (std::vector<DataSet*>::iterator ds = histdata_.begin(); ds != histdata_.end(); ++ds)
+  std::vector<DataSet_1D*>::iterator ds = histdata_.begin();
+  size_t Ndata = (*ds)->Size();
+  ++ds;
+  for (; ds != histdata_.end(); ++ds)
   {
     //mprintf("DEBUG: DS %s size %i\n",histdata[hd]->Name(),histdata[hd]->Xmax()+1);
-    if (Ndata==-1)
-      Ndata = (*ds)->Size();
-    else {
-      if (Ndata != (*ds)->Size()) {
-        mprinterr("Error: Hist: Dataset %s has inconsistent # data points (%i), expected %i.\n",
-                  (*ds)->Legend().c_str(), (*ds)->Size(), Ndata);
-        return Analysis::ERR;
-      }
+    if (Ndata != (*ds)->Size()) {
+      mprinterr("Error: Hist: Dataset %s has inconsistent # data points (%u), expected %u.\n",
+                (*ds)->Legend().c_str(), (*ds)->Size(), Ndata);
+      return Analysis::ERR;
     }
   }
-  mprintf("\tHist: %i data points in each dimension.\n", Ndata);
+  mprintf("\tHist: %u data points in each dimension.\n", Ndata);
 
+  // Set up appropriate data set type for binning
+  DataSet_double* H1D = 0;
+  DataSet_MatrixDbl* H2D = 0;
+  DataSet_GridFlt* H3D = 0;
+  switch (N_dimensions_) {
+    case 1: H1D = (DataSet_double*)hist_; break;
+    case 2: H2D = (DataSet_MatrixDbl*)hist_; break;
+    case 3: H3D = (DataSet_GridFlt*)hist_; break;
+  }
+  // Bin data
+  for (size_t n = 0; n < Ndata; n++) {
+    int index = 0;
+    std::vector<Dimension>::iterator dim = dimensions_.begin();
+    for (std::vector<DataSet_1D*>::iterator ds = histdata_.begin();
+                                            ds != histdata_.end(); ++ds)
+    {
+      double dval = (*ds)->Dval( n );
+      // Check if data is out of bounds.
+      if (dval > (*dim).Max() || dval < (*dim).Min()) {
+        index = -1;
+        break;
+      }
+      // Calculate index for this particular dimension (idx)
+      int idx = (int)((dval - (*dim).Min()) / (*dim).Step());
+      if (debug_>1) mprintf(" [%s:%f (%i)],",(*dim).Label().c_str(), dval, idx);
+      // Calculate overall index in Bins, offset has already been calcd.
+      index += (idx * (*dim).Offset());
+    }
+    // If index was successfully calculated, populate bin
+    if (index > -1 && index < (int)hist_->Size()) {
+      if (debug_ > 1) mprintf(" |index=%i",index);
+      switch (N_dimensions_) {
+        case 1: (*H1D)[index]++; break;
+        case 2: (*H2D)[index]++; break;
+        case 3: (*H3D)[index]++; break;
+      }
+    } else {
+      mprintf("\tWarning: Frame %u Coordinates out of bounds (%i)\n", n, index);
+    }
+    if (debug_>1) mprintf("}\n");
+  }
+/*
   std::vector<double> coord( hist_->NumDimension() );
   for (int n=0; n < Ndata; n++) {
     std::vector<double>::iterator coord_it = coord.begin();
@@ -248,7 +307,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
     }
     hist_->BinData( coord );
   }
-
+*/
   // Calc free energy if requested
   if (calcFreeE_) hist_->CalcFreeE(Temp_, -1);
 
