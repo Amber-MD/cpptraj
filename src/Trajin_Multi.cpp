@@ -411,12 +411,12 @@ void Trajin_Multi::PrintInfo(int showExtended) {
   }
   if (!isEnsemble_) {
     if (remdtrajidx_.empty())
-      mprintf("\tLooking for frames at %.2lf K",remdtrajtemp_);
+      mprintf("\tLooking for frames at %.2lf K\n",remdtrajtemp_);
     else {
       mprintf("\tLooking for indices [");
       for (RemdIdxType::iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
         mprintf(" %i", *idx);
-      mprintf(" ]");
+      mprintf(" ]\n");
     }
   } else {
     mprintf("\tProcessing ensemble using");
