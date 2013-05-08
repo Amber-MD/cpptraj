@@ -636,7 +636,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
     return 1;
   }
   if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"programVersion",
-                                 CPPTRAJ_VERSION_STRLEN, CPPTRAJ_VERSION_STRING)) ) 
+                                 NETCDF_VERSION_STRLEN, NETCDF_VERSION_STRING)) ) 
   {
     mprinterr("Error: Writing program version.\n");
     return 1;

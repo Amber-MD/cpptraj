@@ -380,7 +380,7 @@ int Traj_CharmmDcd::ReadBox(double* box) {
   double boxtmp[6];
   if ( ReadBlock(48) < 0) return 1;
   file_.Read(boxtmp, sizeof(double)*6);
-  if (isBigEndian_) endian_swap8(box,6);
+  if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
   // Box lengths
   box[0] = boxtmp[0];
