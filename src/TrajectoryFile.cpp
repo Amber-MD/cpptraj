@@ -94,8 +94,11 @@ void TrajectoryFile::SetDebug(int debugIn) {
 }
 
 // TrajectoryFile::SetTrajFileName()
-void TrajectoryFile::SetTrajFileName(std::string const& full) {
-  trajName_.SetFileName( full );
+void TrajectoryFile::SetTrajFileName(std::string const& full, bool isRead) {
+  if (isRead)
+    trajName_.SetFileNameWithExpansion( full );
+  else
+    trajName_.SetFileName( full );
 } 
 
 int TrajectoryFile::SetTrajParm( Topology* tparmIn ) {

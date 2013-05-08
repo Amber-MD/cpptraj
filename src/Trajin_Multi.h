@@ -31,6 +31,7 @@ class Trajin_Multi : public Trajin {
 
     double remdtrajtemp_;     ///< Get frames with this temperature on read
     RemdIdxType remdtrajidx_; ///< Get frames with these indices on read
+    int Ndimensions_;         ///< # of dimensions in each trajectory.
     int* remd_indices_;       ///< Space for reading in REMD indices.
     IOarrayType REMDtraj_;    ///< Input replica trajectories
     int lowestRepnum_;        ///< Hold the lowest replica number
@@ -45,6 +46,8 @@ class Trajin_Multi : public Trajin {
     RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
     typedef std::map<double,int> TmapType;
     TmapType TemperatureMap_;
+    typedef std::map< std::vector<int>, int > ImapType;
+    ImapType IndicesMap_;
 
     NameListType SearchForReplicas();
     bool IsTarget(double);

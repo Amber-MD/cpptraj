@@ -59,6 +59,7 @@
 #include "Action_Volmap.h"
 #include "Action_Spam.h"
 #include "Action_Temperature.h"
+#include "Action_CreateReservoir.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -78,6 +79,7 @@
 #include "Analysis_Rms2d.h"
 #include "Analysis_Clustering.h"
 #include "Analysis_RunningAvg.h"
+#include "Analysis_MeltCurve.h"
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
 static void Help_Help() {
@@ -362,6 +364,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, 0 },
   { DispatchObject::ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, 0 },
   { DispatchObject::ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, 0 },
+  { DispatchObject::ACTION, "createreservoir", Action_CreateReservoir::Alloc, Action_CreateReservoir::Help, 0 },
   { DispatchObject::ACTION, "diffusion", Action_Diffusion::Alloc, Action_Diffusion::Help, 0 },
   { DispatchObject::ACTION, "dihedral", Action_Dihedral::Alloc, Action_Dihedral::Help, 0 },
   { DispatchObject::ACTION, "dihedralscan", Action_DihedralScan::Alloc, Action_DihedralScan::Help, 0 },
@@ -429,6 +432,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ANALYSIS, "ired", Analysis_IRED::Alloc, Analysis_IRED::Help, 0 },
   { DispatchObject::ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, 0 },
   { DispatchObject::ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, 0 },
+  { DispatchObject::ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, 0 },
   { DispatchObject::ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, 0 },
   { DispatchObject::ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
   { DispatchObject::ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, 0 },

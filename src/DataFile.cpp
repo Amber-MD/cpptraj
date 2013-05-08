@@ -53,7 +53,7 @@ int DataFile::SetupDataIO() {
 }
 
 int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
-  filename_.SetFileName( argIn.GetStringNext() );
+  filename_.SetFileNameWithExpansion( argIn.GetStringNext() );
   DetermineTypeFromExt( filename_.Ext() );
   // Set up DataIO based on format. 
   if (SetupDataIO()) return 1;

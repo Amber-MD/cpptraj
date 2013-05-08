@@ -10,7 +10,8 @@
 // CONSTRUCTOR
 Traj_AmberNetcdf::Traj_AmberNetcdf() :
   Coord_(0),
-  Veloc_(0)
+  eptotVID_(-1),
+  binsVID_(-1)
 { }
 
 // DESTRUCTOR
@@ -18,7 +19,6 @@ Traj_AmberNetcdf::~Traj_AmberNetcdf() {
   //fprintf(stderr,"Amber Netcdf Destructor\n");
   this->closeTraj();
   if (Coord_!=0) delete[] Coord_;
-  if (Veloc_!=0) delete[] Veloc_;
   // NOTE: Need to close file?
 }
 
@@ -99,11 +99,6 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
   // float to/from double.
   if (Coord_ != 0) delete[] Coord_;
   Coord_ = new float[ Ncatom3() ];
-  if (Veloc_ != 0) delete[] Veloc_;
-  if (velocityVID_ != -1) 
-    Veloc_ = new float[ Ncatom3() ];
-  else
-    Veloc_ = 0;
   if (debug_>1) NetcdfDebug();
   closeTraj();
   // NetCDF files are always seekable
@@ -187,11 +182,11 @@ int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double
 
   // Read Velocities
   if (velocityVID_ != -1) {
-    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Veloc_)) ) {
+    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting velocities for frame %i\n", set);
       return 1;
     }
-    FloatToDouble(V, Veloc_);
+    FloatToDouble(V, Coord_);
   }
 
   // Read box info 
@@ -221,11 +216,11 @@ int Traj_AmberNetcdf::readVelocity(int set, double* V) {
   count_[2] = 3;
   // Read Velocities
   if (velocityVID_ != -1) {
-    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Veloc_)) ) {
+    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting velocities for frame %i\n", set);
       return 1;
     }
-    FloatToDouble(V, Veloc_);
+    FloatToDouble(V, Coord_);
   }
   return 0;
 }
@@ -296,6 +291,61 @@ int Traj_AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, dou
   return 0;
 }  
 
+// Traj_AmberNetcdf::writeReservoir() TODO: Make Frame const&
+int Traj_AmberNetcdf::writeReservoir(int set, Frame& frame, double energy, int bin) {
+  start_[0] = ncframe_;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 1;
+  count_[1] = Ncatom();
+  count_[2] = 3;
+  // Coords
+  DoubleToFloat(Coord_, frame.xAddress());
+  if (checkNCerr(nc_put_vara_float(ncid_,coordVID_,start_,count_,Coord_)) ) {
+    mprinterr("Error: Netcdf writing reservoir coords %i\n",set);
+    return 1;
+  }
+  // Velo
+  if (velocityVID_ != -1) {
+    if (frame.vAddress() == 0) { // TODO: Make it so this can NEVER happen.
+      mprinterr("Error: Reservoir expects velocities, but no velocities in frame.\n");
+      return 1;
+    }
+    DoubleToFloat(Coord_, frame.vAddress());
+    if (checkNCerr(nc_put_vara_float(ncid_,velocityVID_,start_,count_,Coord_)) ) {
+      mprinterr("Error: Netcdf writing reservoir velocities %i\n",set);
+      return 1;
+    }
+  }
+  // Eptot, bins
+  if ( checkNCerr( nc_put_vara_double(ncid_,eptotVID_,start_,count_,&energy)) ) {
+    mprinterr("Error: Writing eptot.\n");
+    return 1;
+  }
+  if (binsVID_ != -1) {
+    if ( checkNCerr( nc_put_vara_int(ncid_,binsVID_,start_,count_,&bin)) ) {
+      mprinterr("Error: Writing bins.\n");
+      return 1;
+    }
+  }
+  // Write box
+  if (cellLengthVID_ != -1) {
+    count_[1] = 3;
+    count_[2] = 0;
+    if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frame.bAddress())) ) {
+      mprinterr("Error: Writing cell lengths.\n");
+      return 1;
+    }
+    if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frame.bAddress()+3)) ) {
+      mprinterr("Error: Writing cell angles.\n");
+      return 1;
+    }
+  }
+  nc_sync(ncid_); // Necessary after every write??
+  ++ncframe_;
+  return 0;
+}
+  
 // Traj_AmberNetcdf::info()
 void Traj_AmberNetcdf::Info() {
   mprintf("is a NetCDF AMBER trajectory");

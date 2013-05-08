@@ -31,7 +31,7 @@ class TrajectoryFile {
     static TrajFormatType GetTypeFromExtension(std::string const&);
 
     void SetDebug(int);
-    void SetTrajFileName( std::string const& );
+    void SetTrajFileName( std::string const&, bool );
     int SetTrajParm( Topology* );
 
     Topology* TrajParm()              { return trajParm_;                }
