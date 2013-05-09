@@ -67,20 +67,10 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
     //  mprintf(" INDEX");
     // Determine data type
     DataSet* dset = 0;
-    if ( isalpha( token[0] ) ) 
-    {
-      //mprintf(" STRING!\n");
-      // STRING columns cannot be index columns
-      if ( col == indexcol ) {
-        mprinterr("Error: DataFile %s index column %i has string values.\n", 
-                  buffer.Filename().full(), indexcol+1);
-        return 1;
-      }
-      dset = datasetlist.AddSetIdx( DataSet::STRING, buffer.Filename().Base(), col+1 );
-    } else if ( isdigit( token[0] ) || 
-                token[0]=='+' || 
-                token[0]=='-' ||
-                token[0]=='.'   )
+    if ( isdigit( token[0] )    || 
+                  token[0]=='+' || 
+                  token[0]=='-' ||
+                  token[0]=='.'   )
     {
       if ( strchr( token, '.' ) != 0 ) {
         //mprintf(" DOUBLE!\n");
@@ -95,7 +85,17 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
         //else
         //  indextype = DataSet::INT;
       }
-    }
+    } else {
+      // Assume string
+      //mprintf(" STRING!\n");
+      // STRING columns cannot be index columns
+      if ( col == indexcol ) {
+        mprinterr("Error: DataFile %s index column %i has string values.\n", 
+                  buffer.Filename().full(), indexcol+1);
+        return 1;
+      }
+      dset = datasetlist.AddSetIdx( DataSet::STRING, buffer.Filename().Base(), col+1 );
+    } 
     // Set legend to label if present
     if ( dset != 0 && hasLabels)
       dset->SetLegend( labels[col] );
