@@ -60,6 +60,8 @@
 #include "Action_Spam.h"
 #include "Action_Temperature.h"
 #include "Action_CreateReservoir.h"
+#include "Action_Density.h"
+#include "Action_PairDist.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -366,6 +368,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, 0 },
   { DispatchObject::ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, 0 },
   { DispatchObject::ACTION, "createreservoir", Action_CreateReservoir::Alloc, Action_CreateReservoir::Help, 0 },
+  { DispatchObject::ACTION, "density", Action_Density::Alloc, Action_Density::Help, 0 },
   { DispatchObject::ACTION, "diffusion", Action_Diffusion::Alloc, Action_Diffusion::Help, 0 },
   { DispatchObject::ACTION, "dihedral", Action_Dihedral::Alloc, Action_Dihedral::Help, 0 },
   { DispatchObject::ACTION, "dihedralscan", Action_DihedralScan::Alloc, Action_DihedralScan::Help, 0 },
@@ -387,6 +390,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, 0 },
   { DispatchObject::ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, 0 },
   { DispatchObject::ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, 0 },
+  { DispatchObject::ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, 0 },
   { DispatchObject::ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, 0 },
   { DispatchObject::ACTION, "principal", Action_Principal::Alloc, Action_Principal::Help, 0 },
   { DispatchObject::ACTION, "projection", Action_Projection::Alloc, Action_Projection::Help, 0 },

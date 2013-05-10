@@ -3,14 +3,14 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         Action_Bounds.cpp Action_Box.cpp Action_Center.cpp \
         Action_CheckStructure.cpp Action_Contacts.cpp Action_Closest.cpp \
         Action_ClusterDihedral.cpp Action_CreateCrd.cpp \
-        Action_CreateReservoir.cpp Action_Diffusion.cpp \
+        Action_CreateReservoir.cpp Action_Density.cpp Action_Diffusion.cpp \
         Action_Dihedral.cpp Action_Dipole.cpp Action_Distance.cpp \
         Action_DistRmsd.cpp Action_DihedralScan.cpp Action_DNAionTracker.cpp \
         Action_DSSP.cpp Action_Grid.cpp Action_GridFreeEnergy.cpp \
         Action_Hbond.cpp Action_Image.cpp Action_Jcoupling.cpp Action_Mask.cpp \
         Action_MakeStructure.cpp \
         Action_Matrix.cpp Action_Molsurf.cpp Action_MultiDihedral.cpp Action_NAstruct.cpp \
-        Action_Outtraj.cpp Action_Pairwise.cpp Action_Principal.cpp \
+        Action_Outtraj.cpp Action_PairDist.cpp Action_Pairwise.cpp Action_Principal.cpp \
         Action_Projection.cpp Action_Pucker.cpp Action_Radgyr.cpp \
         Action_Radial.cpp Action_RandomizeIons.cpp Action_Rmsd.cpp \
         Action_Rotate.cpp Action_Rotdif.cpp Action_RunningAvg.cpp \
