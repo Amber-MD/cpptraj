@@ -118,6 +118,41 @@ int Histogram::BinData(std::vector<double>& DataIn) {
   return 0;
 }
 
+// Histogram::BinAMD()
+int Histogram::BinAMD(std::vector<double> const& DataIn, double E_boost) {
+  int index=0;
+  // Loop over defined dimensions. 
+  // Calculate an index into Bins based on precalcd offsets for dimensions.
+  // Populate bin with boost weight.
+  std::vector<double>::const_iterator data = DataIn.begin();
+  for (std::vector<Dimension>::iterator dim = dimensions_.begin();
+                                        dim != dimensions_.end(); ++dim)
+  {
+    // Check if Data is out of bounds for this dimension 
+    if (*data > (*dim).Max() || *data < (*dim).Min()) {
+      index = -1;
+      break;
+    }
+    // Calculate index (idx) for this particular dimension 
+    double coord = *data - (*dim).Min();
+    coord = coord / (*dim).Step();
+    int idx = (int)coord;
+    // Calculate overall index in Bins, offset has already been calc.
+    index += (idx * (*dim).Offset());
+    ++data;
+  }
+  // If index was successfully calculated, populate bin with boost weight. 
+  if (index>-1 && index < (int)Bins_.size()) {
+    Bins_[index] += exp( E_boost );
+  } else {
+    mprintf("\tWarning: Coordinates out of bounds %i {",index);
+    for (data = DataIn.begin(); data != DataIn.end(); ++data) 
+      mprintf(" %f", *data);
+    mprintf(" }\n");
+  }
+
+  return 0;
+}
 // -----------------------------------------------------------------------------
 // Histogram::BinStart()
 /** Set current bin to 0 and initialize indices. If isCircularIn is true the

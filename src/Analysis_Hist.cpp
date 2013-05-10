@@ -15,7 +15,9 @@ Analysis_Hist::Analysis_Hist() :
   gnuplot_(false),
   circular_(false),
   minArgSet_(false),
-  maxArgSet_(false)
+  maxArgSet_(false),
+  calcAMD_(false),
+  amddata_(0)
 {}
 
 void Analysis_Hist::Help() {
@@ -164,6 +166,16 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   }
   default_dim_.SetStep( analyzeArgs.getKeyDouble("step",-1.0) );
   default_dim_.SetBins( analyzeArgs.getKeyInt("bins",-1) );
+  calcAMD_ = false;
+  std::string amdname = analyzeArgs.GetStringKey("amd");
+  if (!amdname.empty()) {
+    amddata_ = datasetlist->GetDataSet( amdname );
+    if (amddata_ == 0) {
+      mprinterr("Error: AMD data set %s not found.\n", amdname.c_str());
+      return Analysis::ERR;
+    }
+    calcAMD_ = true;
+  }
 
   // Datasets
   // Treat all remaining arguments as dataset names.
@@ -198,6 +210,8 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   for (std::vector<DataSet*>::iterator ds=histdata_.begin(); ds!=histdata_.end(); ++ds)
     mprintf("%s ",(*ds)->Legend().c_str());
   mprintf("]\n");
+  if (calcAMD_)
+    mprintf("\t      Populating bins using AMD boost from data set %s\n", amdname.c_str());
   if (calcFreeE_)
     mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp_);
   if (circular_ || gnuplot_) {
@@ -239,6 +253,11 @@ Analysis::RetType Analysis_Hist::Analyze() {
     }
   }
   mprintf("\tHist: %i data points in each dimension.\n", Ndata);
+  if (calcAMD_ && Ndata != amddata_->Size()) {
+    mprinterr("Error: Hist: AMD data set size (%i) does not match # expected data points (%i).\n",
+              amddata_->Size(), Ndata);
+    return Analysis::ERR;
+  }
 
   std::vector<double> coord( hist_->NumDimension() );
   for (int n=0; n < Ndata; n++) {
@@ -247,7 +266,10 @@ Analysis::RetType Analysis_Hist::Analyze() {
       *coord_it = (*ds)->Dval( n );
       ++coord_it;
     }
-    hist_->BinData( coord );
+    if (calcAMD_)
+      hist_->BinAMD( coord, amddata_->Dval(n) );
+    else
+      hist_->BinData( coord );
   }
 
   // Calc free energy if requested
