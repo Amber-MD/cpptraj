@@ -83,6 +83,7 @@
 #include "Analysis_RunningAvg.h"
 #include "Analysis_MeltCurve.h"
 #include "Analysis_Overlap.h"
+#include "Analysis_AmdBias.h"
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
 static void Help_Help() {
@@ -422,6 +423,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, 0},
   // INC_ANALYSIS: ANALYSIS COMMANDS
   { DispatchObject::ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
+  { DispatchObject::ANALYSIS, "amdbias", Analysis_AmdBias::Alloc, Analysis_AmdBias::Help, 0 },
   { DispatchObject::ANALYSIS, "autocorr", Analysis_AutoCorr::Alloc, Analysis_AutoCorr::Help, 0 },
   { DispatchObject::ANALYSIS, "cluster", Analysis_Clustering::Alloc, Analysis_Clustering::Help, 0 },
   { DispatchObject::ANALYSIS, "corr", Analysis_Corr::Alloc, Analysis_Corr::Help, 0 },
