@@ -23,7 +23,7 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         Analysis_CrankShaft.cpp Analysis_CrdFluct.cpp Analysis_CrossCorr.cpp \
         Analysis_FFT.cpp Analysis_Hist.cpp Analysis_IRED.cpp \
         Analysis_Lifetime.cpp Analysis_Matrix.cpp Analysis_MeltCurve.cpp Analysis_Modes.cpp \
-        Analysis_Timecorr.cpp Analysis_Rms2d.cpp Analysis_RmsAvgCorr.cpp \
+        Analysis_Overlap.cpp Analysis_Timecorr.cpp Analysis_Rms2d.cpp Analysis_RmsAvgCorr.cpp \
         Analysis_RunningAvg.cpp Analysis_Statistics.cpp AnalysisList.cpp \
         ArgList.cpp Atom.cpp AtomMap.cpp AtomMask.cpp AxisType.cpp Box.cpp \
         BufferedFrame.cpp BufferedLine.cpp ByteRoutines.cpp ClusterDist.cpp ClusterList.cpp \
