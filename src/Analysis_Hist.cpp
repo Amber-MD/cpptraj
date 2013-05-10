@@ -23,6 +23,7 @@ Analysis_Hist::Analysis_Hist() :
 void Analysis_Hist::Help() {
   mprintf("\t<dataset_name>[,min,max,step,bins] ...\n");
   mprintf("\t[free <temperature>] [norm] [gnu] [circular] out <filename>\n");
+  mprintf("\t[amd <amdboost_data>]\n");
   mprintf("\t[min <min>] [max <max>] [step <step>] [bins <bins>]\n");
   mprintf("\tHistogram the given data set(s)\n");
 }
