@@ -173,6 +173,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   }
   // If the command was ensemble, target args are not valid
   isEnsemble_ = false;
+  bool no_sort = argIn->hasKey("nosort");
   if ( argIn->CommandIs("ensemble") ){
     isEnsemble_ = true;
     if (targetType_ != NONE || argIn->hasKey("remdtraj")) {
@@ -285,8 +286,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     remd_indices_ = new int[ Ndimensions_ ];
   // If targetType is currently NONE these will be processed as an ensemble. 
   // If dimensions are present index by replica indices, otherwise index
-  // by temperature.
-  if (isEnsemble_) {
+  // by temperature. If nosort was specified do not sort.
+  if (isEnsemble_ && !no_sort) {
     if (Ndimensions_ > 0)
       targetType_ = INDICES;
     else
@@ -419,11 +420,12 @@ void Trajin_Multi::PrintInfo(int showExtended) {
       mprintf(" ]\n");
     }
   } else {
-    mprintf("\tProcessing ensemble using");
     if ( targetType_ == INDICES )
-      mprintf(" replica indices\n");
-    else
-      mprintf(" replica temperatures\n");
+      mprintf("\tProcessing ensemble using replica indices\n");
+    else if ( targetType_ == TEMP )
+      mprintf("\tProcessing ensemble using replica temperatures\n");
+    else // NONE 
+      mprintf("\tNot sorting ensemble.\n");
     if (debug_ > 0) EnsembleInfo();
   }
 }
@@ -436,7 +438,7 @@ void Trajin_Multi::EnsembleInfo() const {
     for (TmapType::const_iterator tmap = TemperatureMap_.begin();
                                   tmap != TemperatureMap_.end(); ++tmap)
       mprintf("\t%10.2f -> %i\n", (*tmap).first, (*tmap).second);
-  } else { // INDICES
+  } else if (targetType_ == INDICES) { // INDICES
     mprintf("  Ensemble Indices Map:\n");
     for (ImapType::const_iterator imap = IndicesMap_.begin();
                                   imap != IndicesMap_.end(); ++imap)
@@ -475,8 +477,9 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
       //std::pair<TmapType::iterator,bool> ret = 
       //  TemperatureMap_.insert(std::pair<double,int>((*frame).Temperature(),repnum++));
       if (!ret.second) {
-        mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f)\n",
-                  (*frame).Temperature());
+        mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n",
+                  (*frame).Temperature(), TrajFilename().full());
+        mprinterr("Info: If this is a H-REMD ensemble try the 'nosort' keyword.\n");
         return 1;
       }
     }
@@ -496,7 +499,8 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
       std::pair<std::set< std::vector<int> >::iterator,bool> ret = 
         iList.insert( std::vector<int>( remd_indices_, remd_indices_ + Ndimensions_ ) );
       if ( !ret.second ) {
-        mprinterr("Error: Ensemble: Duplicate indices detected:");
+        mprinterr("Error: Ensemble: Duplicate indices detected in ensemble %s:",
+                  TrajFilename().full());
         for (std::vector<int>::const_iterator idx = (*ret.first).begin(); 
                                               idx != (*ret.first).end(); ++idx)
           mprinterr(" %i", *idx);
@@ -507,7 +511,11 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
     int repnum = 0;
     for (std::set< std::vector<int> >::iterator idxs = iList.begin(); idxs != iList.end(); ++idxs)
       IndicesMap_.insert(std::pair< std::vector<int>, int >(*idxs, repnum++));
-  } 
+  } else { 
+    // NONE, no sorting 
+    for (int rnum = 0; rnum < (int) REMDtraj_.size(); ++rnum)
+      frameidx_[rnum] = rnum;
+  }
   return 0;
 }
 
@@ -534,7 +542,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
         else
           *fidx = (*tmap).second;
         //mprintf(" %.2f[%i]", (*frame).Temperature(), *fidx ); // DEBUG
-      } else { // INDICES
+      } else if (targetType_ == INDICES) { 
         if ( (*replica)->readIndices( CurrentFrame(), remd_indices_ ) ) return 1;
         ImapType::iterator imap = IndicesMap_.find( 
           std::vector<int>( remd_indices_, remd_indices_ + Ndimensions_ ) );
