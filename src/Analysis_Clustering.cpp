@@ -79,6 +79,13 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       }
       cluster_dataset_.push_back( ds );
     }
+  } else {
+    usedme_ = analyzeArgs.hasKey("dme");
+    bool userms = analyzeArgs.hasKey("rms");
+    if (usedme_ && userms) {
+      mprinterr("Error: Specify either 'dme' or 'rms' but not both.\n");
+      return Analysis::ERR;
+    }
   }
   // Get clustering algorithm
   if (CList_ != 0) delete CList_;
@@ -95,7 +102,6 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
   // Get keywords
   useMass_ = analyzeArgs.hasKey("mass");
-  usedme_ = analyzeArgs.hasKey("dme");
   sieve_ = analyzeArgs.getKeyInt("sieve",1);
   if (sieve_ < 1) {
     mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
