@@ -9,8 +9,11 @@ void Analysis_Overlap::Help() {
   mprintf("\tds1 <ds1> ds2 <ds2>\n");
 }
 
-static inline bool check_type(DataSet* ds) {
-  if (ds == 0) return true;
+static inline bool check_type(DataSet* ds, int n_ds) {
+  if (ds == 0) {
+    mprinterr("Error: Data set ds%i not found.\n", n_ds);
+    return true;
+  }
   if (ds->Type() != DataSet::HIST && 
       ds->Type() != DataSet::FLOAT &&
       ds->Type() != DataSet::DOUBLE &&
@@ -26,9 +29,9 @@ Analysis::RetType Analysis_Overlap::Setup(ArgList& analyzeArgs, DataSetList* dat
 {
   // Keywords
   ds1_ = datasetlist->GetDataSet( analyzeArgs.GetStringKey("ds1") );
-  if (check_type(ds1_)) return Analysis::ERR;
+  if (check_type(ds1_,1)) return Analysis::ERR;
   ds2_ = datasetlist->GetDataSet( analyzeArgs.GetStringKey("ds2") );
-  if (check_type(ds2_)) return Analysis::ERR;
+  if (check_type(ds2_,2)) return Analysis::ERR;
 
   mprintf("    OVERLAP: Between %s and %s\n", ds1_->Legend().c_str(),
           ds2_->Legend().c_str());
