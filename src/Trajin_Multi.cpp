@@ -173,8 +173,9 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   }
   // If the command was ensemble, target args are not valid
   isEnsemble_ = false;
-  bool no_sort = argIn->hasKey("nosort");
+  bool no_sort = false;
   if ( argIn->CommandIs("ensemble") ){
+    no_sort = argIn->hasKey("nosort");
     isEnsemble_ = true;
     if (targetType_ != NONE || argIn->hasKey("remdtraj")) {
       mprintf("Warning: 'ensemble' does not use 'remdtraj', 'remdtrajidx' or 'remdtrajtemp'\n");
@@ -273,8 +274,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     // All must be seekable or none will be
     if (isSeekable_ && !replica0->IsSeekable())
       isSeekable_ = false;
-    // Check for temperature information
-    if ( !replica0->HasT()) {
+    // Check for temperature information. Not needed if not sorting.
+    if ( !replica0->HasT() && !no_sort) {
       mprinterr("Error: RemdTraj: Replica %s does not have temperature info.\n",
                 (*repfile).c_str());
       return 1;
