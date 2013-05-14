@@ -1,8 +1,10 @@
 #include <cmath>
+
 #include "Action_PairDist.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "DistRoutines.h"
+
 
 
 /** Calculate pair distribution function P(r) between two masks.
@@ -11,9 +13,11 @@
 
 // CONSTRUCTOR
 Action_PairDist::Action_PairDist() :
-  Pr_(0),
   delta_(0.0),
-  maxbin_(-1)
+  maxbin_(0),
+  same_mask_(false),
+  ub1_(0),
+  ub2_(0)
 {}
 
 void Action_PairDist::Help()
@@ -35,6 +39,12 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs,
     outfileName = "pairdist.dat";
   }
 
+  if (output_.OpenWrite(outfileName) ) {
+    mprinterr("Error: PairDist: Could not open output file %s\n",
+	      outfileName.c_str());
+    return Action::ERR;
+  }
+
   std::string mask1 = actionArgs.GetStringKey("mask");
 
   if (mask1.empty()) {
@@ -47,25 +57,19 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs,
   std::string mask2 = actionArgs.GetStringKey("mask2");
 
   if (mask2.empty()) {
+    same_mask_ = true;
     mask2_.SetMaskString(mask1);
   } else {
     mask2_.SetMaskString(mask2);
+
+    if (mask1_.MaskExpression() != mask2_.MaskExpression() )
+      same_mask_ = false;
+    else
+      same_mask_ = true;
   }
 
   delta_ = actionArgs.getKeyDouble("delta", 0.01);
 
-  Pr_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "P(r)");
-  Pr_->SetPrecision(12, 0);
-  DataFile* outfile = DFL->AddSetToFile(outfileName, Pr_);
-
-  if (outfile == 0) {
-    mprinterr("Error: PairDist: Could not setup output file %s\n",
-	      outfileName.c_str());
-    return Action::ERR;
-  }
-
-  outfile->ProcessArgs("xmin " + doubleToString(delta_ / 2.0) + 
-		       " xstep " + doubleToString(delta_) );
 
   return Action::OK;
 }
@@ -95,9 +99,25 @@ Action::RetType Action_PairDist::Setup(Topology* currentParm,
     return Action::ERR;
   }
 
+  if (mask1_.MaskExpression() != mask2_.MaskExpression() &&
+      mask1_.NumAtomsInCommon(mask2_) > 0) {
+    mprintf("    Error: PairDist::setup: mask expressions must be either "
+	    "exactly the same\n\t(equivalent to mask2 omitted) or masks must "
+	    "be non-overlapping.\n");
+    return Action::ERR;
+  }
+
+  if (same_mask_) {
+    ub1_ = mask1_.Nselected() - 1;
+    ub2_ = mask1_.Nselected();
+  } else {
+    ub1_ = mask1_.Nselected();
+    ub2_ = mask2_.Nselected();
+  }
+
   SetupImaging(currentParm->BoxType() );
 
-  return Action::OK;  
+  return Action::OK;
 }
 
 
@@ -106,21 +126,19 @@ Action::RetType Action_PairDist::DoAction(int frameNum,
 					  Frame* currentFrame,
 					  Frame** frameAddress)
 {
-  int bin;
+  unsigned long bin, j;
   double Dist = 0.0;
   Matrix_3x3 ucell, recip;
   Vec3 a1, a2;
+  std::vector<double> tmp;	// per frame histogram
 
 
-  for (AtomMask::const_iterator atom1 = mask1_.begin();
-       atom1 != mask1_.end(); atom1++) {
-    for (AtomMask::const_iterator atom2 = mask2_.begin();
-	 atom2 != mask2_.end(); atom2++) {
+  tmp.resize(histogram_.size() );
 
-      if (*atom1 == *atom2) continue;
-
-      a1 = currentFrame->XYZ(*atom1);
-      a2 = currentFrame->XYZ(*atom2);
+  for (unsigned long i = 0; i < ub1_; i++) {
+    for (same_mask_ ? j = i + 1 : j = 0; j < ub2_; j++) {
+      a1 = currentFrame->XYZ(mask1_[i]);
+      a2 = currentFrame->XYZ(mask2_[j]);
 
       switch (ImageType() ) {
       case NONORTHO:
@@ -135,15 +153,22 @@ Action::RetType Action_PairDist::DoAction(int frameNum,
 	break;
       }
 
-      bin = (int) (sqrt(Dist) / delta_);
+      bin = (unsigned long) (sqrt(Dist) / delta_);
 
       if (bin > maxbin_) {
 	maxbin_ = bin;
+	tmp.resize(maxbin_ + 1);
 	histogram_.resize(maxbin_ + 1);
       }
 
-      histogram_[bin] += 1.0;
+      tmp[bin]++;
     }
+  }
+
+  // FIXME: may be inefficient to call accumulate() on every data point
+  // -> pass "array" to accumulate()?
+  for (unsigned long i = 0; i < tmp.size(); i++) {
+    histogram_[i].accumulate(tmp[i]);
   }
 
   return Action::OK;
@@ -153,12 +178,20 @@ Action::RetType Action_PairDist::DoAction(int frameNum,
 // Action_PairDist::print()
 void Action_PairDist::Print()
 {
-  int i;
-  std::vector<double>::iterator it;
+  double dist, Pr, sd;
 
 
-  for (i = 0, it = histogram_.begin();
-       it != histogram_.end(); ++it) {
-    Pr_->Add(i++, &(*it) );
+  output_.Printf("# pair-distance distribution P(r)\n"
+		 "#distance P(r) stddev\n");
+
+  for (unsigned long i = 0; i < histogram_.size(); i++) {
+    Pr = histogram_[i].mean() / delta_;
+
+    if (Pr > 0.0) {
+      dist = ((double) i + 0.5) * delta_;
+      sd = sqrt(histogram_[i].variance() );
+      
+      output_.Printf("%10.4f %16.2f %10.2f\n", dist, Pr, sd);
+    }
   }
 }
