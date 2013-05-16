@@ -3,6 +3,7 @@
 #define INC_ACTION_PAIRDIST_H
 #include "Action.h"
 #include "ImagedAction.h"
+#include "OnlineVarT.h"
 
 /** \author Hannes H. Loeffler
   */
@@ -22,27 +23,6 @@ class Action_PairDist : public Action, ImagedAction {
   Action::RetType Setup(Topology*, Topology**);
   Action::RetType DoAction(int, Frame*, Frame**);
   void Print();
-
-  template <class T>
-  class OnlineVar {
-    public:
-      OnlineVar() : n_(0.0), mean_(0.0), M2_(0.0) {}
-      void accumulate(const T x)
-      {
-        T delta;
-        n_++;
-        delta = x - mean_;
-        mean_ += delta / n_;
-        M2_ += delta * (x - mean_);
-      }
-      T mean() const { return mean_; };
-      T variance() const { return M2_ / (n_ - 1); };
-      T nData() const { return n_; };
-    private:
-      T n_;
-      T mean_;
-      T M2_;
-  };
 
   CpptrajFile output_;
 

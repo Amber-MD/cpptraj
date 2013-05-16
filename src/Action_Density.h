@@ -1,3 +1,5 @@
+// -*- mode: c++; -*-
+
 #ifndef INC_ACTION_DENSITY_H
 #define INC_ACTION_DENSITY_H
 
@@ -6,6 +8,8 @@
 
 #include "Action.h"
 #include "ImagedAction.h"
+#include "OnlineVarT.h"
+
 
 
 /** \author Hannes H. Loeffler
@@ -34,18 +38,21 @@ private:
   enum PropertyType {NUMBER = 0, MASS, CHARGE, ELECTRON};
 
   DirectionType direction_;
+  DirectionType area_coord_[2];
   PropertyType property_;
 
-  int frameNum_;
   double delta_;
+  OnlineVar<double> area_;
 
   CpptrajFile output_;
 
   std::vector<AtomMask> masks_;
-  std::vector<std::map<int,double> > histograms_;  // std::unordered_map may be
-						// better but is C++11, some
-						// STL's may have hash_map but
-						// not same number of params
+
+  // std::unordered_map may be better but is C++11, some STL's may have
+  // hash_map but not same number of params
+  typedef OnlineVarM<std::map<int,double>, double> statmap;
+  std::vector<statmap> histograms_;
+
   std::vector<std::vector<double> > properties_;
 };
 #endif    

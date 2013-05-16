@@ -1,4 +1,5 @@
 #include <cmath>
+#include <climits>
 
 #include "Action_Density.h"
 #include "CpptrajStdio.h"
@@ -15,10 +16,12 @@ const std::string Action_Density::emptystring = "";
 // CONSTRUCTOR
 Action_Density::Action_Density() :
   direction_(DZ),
+  //area_coord_{DZ, DY},		// this is C++11!
   property_(NUMBER),
-  frameNum_(0),
   delta_(0.0)
-{}
+{
+  area_coord_[0] = DX; area_coord_[1] = DY;
+}
 
 void Action_Density::Help()
 {
@@ -46,10 +49,19 @@ Action::RetType Action_Density::Init(ArgList& actionArgs,
     return Action::ERR;
   }
 
-  direction_ = DZ;
-  if (actionArgs.hasKey("x") ) direction_ = DX;
-  if (actionArgs.hasKey("y") ) direction_ = DY;
-  if (actionArgs.hasKey("z") ) direction_ = DZ;
+  if (actionArgs.hasKey("x") ) {
+    direction_ = DX;
+    area_coord_[0] = DY;
+    area_coord_[1] = DZ;
+  } else if (actionArgs.hasKey("y") ) {
+    direction_ = DY;
+    area_coord_[0] = DX;
+    area_coord_[1] = DZ;
+  } else if (actionArgs.hasKey("z") ) {
+    direction_ = DZ;
+    area_coord_[0] = DX;
+    area_coord_[1] = DY;
+  }
 
   property_ = NUMBER;
   if (actionArgs.hasKey("number") )   property_ = NUMBER;
@@ -58,6 +70,10 @@ Action::RetType Action_Density::Init(ArgList& actionArgs,
   if (actionArgs.hasKey("electron") ) property_ = ELECTRON;
 
   delta_ = actionArgs.getKeyDouble("delta", 0.01);
+
+  // for compatibility with ptraj, ignored because we rely on the atom code to
+  // do the right thing, see Atom.{h,cpp}
+ actionArgs.GetStringKey("efile");
 
   // read the rest of the command line as a series of masks
   std::string maskstr;
@@ -90,7 +106,7 @@ Action::RetType Action_Density::Setup(Topology* currentParm,
       const Atom& atom = (*currentParm)[*idx];
 
       switch (property_) {
-      case NUMBER:		// FIXME: probably redundant, check in DoAction
+      case NUMBER:
 	property.push_back(1.0);
 	break;
 
@@ -103,7 +119,6 @@ Action::RetType Action_Density::Setup(Topology* currentParm,
 	break;
 
       case ELECTRON:
-	// rely on the presence of AtomicNumber, ptraj reads efile
 	property.push_back(atom.AtomicNumber() - atom.Charge() );
 	break;
       }
@@ -124,38 +139,43 @@ Action::RetType Action_Density::Setup(Topology* currentParm,
 
 // Action_Density::action()
 Action::RetType Action_Density::DoAction(int frameNum,
-					  Frame* currentFrame,
-					  Frame** frameAddress)
+					 Frame* currentFrame,
+					 Frame** frameAddress)
 {
-  int slice, i, j;
+  long slice;
+  unsigned long i, j;
   Vec3 coord;
+  Box box;
 
 
   i = 0;
 
-  for (std::vector<AtomMask>::iterator mask = masks_.begin();
+  for (std::vector<AtomMask>::const_iterator mask = masks_.begin();
        mask != masks_.end();
        mask++) {
-    std::map<int,double> h = histograms_[i];
 
     j = 0;
 
-    for (AtomMask::const_iterator idx = mask->begin();
-	 idx != mask->end(); idx++) {
-      coord = currentFrame->XYZ(*idx);
-      slice = (int) (coord[direction_] / delta_);
+    std::map<int,double> tmp;
 
-      h[slice] += properties_[i][j];
+    for (AtomMask::const_iterator idx = mask->begin();
+	 idx != mask->end();
+	 idx++) {
+      coord = currentFrame->XYZ(*idx);
+      slice = (long) (coord[direction_] / delta_);
+
+      // FIXME: split 0 bin in one + and one -
+      tmp[slice] += properties_[i][j];
 
       j++;
     }
 
-    histograms_[i] = h;
-
+    histograms_[i].accumulate(tmp);
     i++;
   }
 
-  frameNum_++;			// FIXME: check if otherwise available
+  box = currentFrame->BoxCrd();
+  area_.accumulate(box[area_coord_[0]] * box[area_coord_[1]]);
 
   return Action::OK;
 }
@@ -164,22 +184,73 @@ Action::RetType Action_Density::DoAction(int frameNum,
 // Action_Density::print()
 void Action_Density::Print()
 {
-  std::map<int,double>::iterator it;
+  const unsigned int SMALL = 1.0;
+
+  bool first;
+  long minidx = LONG_MAX, maxidx = LONG_MIN;
+  double density, sd, area;
+
+  std::map<int,double>::iterator it, itv;
+  statmap curr;
 
 
-  for (unsigned int i = 0; i < histograms_.size(); i++) {
-    output_.Printf("#%s\n", masks_[i].MaskString() );
 
-    for (it = histograms_[i].begin();
-	 it != histograms_[i].end(); ++it) {
-      output_.Printf("%10.4f %10.3f\n",
-		     // FIXME: check if scaling correct, currently same as ptraj
-		     (it->first < 0 ? -delta_ : 0.0) +
-		     ((double) it->first + 0.5) * delta_,
-		     it->second / (delta_ * frameNum_ * // 0 is double counted
-				   (it->first == 0 ? 2.0 : 1.0 )) );
+  area = area_.mean();
+
+  mprintf("The average box area in %c/%c is %.2f Angstrom (sd = %.2f).\n",
+	  area_coord_[0] + 88, area_coord_[1] + 88, area,
+	  sqrt(area_.variance()) );
+
+  if (property_ == ELECTRON && area > SMALL)
+    mprintf("The electron density will be scaled by this area.\n");
+
+  // the search for minimum and maximum indices relies on ordered map
+  for (unsigned long i = 0; i < histograms_.size(); i++) {
+    it = histograms_[i].mean_begin(); 
+    if (it->first < minidx)
+      minidx = it->first;
+
+    it = histograms_[i].mean_end();
+    it--;
+    if (it->first > maxidx)
+      maxidx = it->first;
+  }
+
+  output_.Printf("#dist");
+
+  for (std::vector<AtomMask>::const_iterator mask = masks_.begin();
+       mask != masks_.end();
+       mask++) {
+    output_.Printf(" %s sd(%s)", mask->MaskString(), mask->MaskString() );
+  }
+
+  output_.Printf("\n");
+
+  for (long i = minidx; i <= maxidx; i++) {
+    first = true;
+
+    for (unsigned long j = 0; j < histograms_.size(); j++) {
+      curr = histograms_[j];
+
+      if (first) {
+        output_.Printf("%10.4f", (i < 0 ? -delta_ : 0.0) +
+                       ((double) i + (i == 0 ? 0.0 : 0.5)) * delta_);
+        first = false;
+      }
+
+      density = curr.mean(i) / (delta_ * // 0 is double counted
+				(i == 0 ? 2.0 : 1.0 ));
+      sd = sqrt(curr.variance(i) );
+
+      if (property_ == ELECTRON && area > SMALL) {
+	density /= area;
+	sd /= area;
+      }
+
+      output_.Printf(" %10.3f %10.5f", density, sd);
     }
 
     output_.Printf("\n");
   }
 }
+
