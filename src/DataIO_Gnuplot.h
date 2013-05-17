@@ -28,6 +28,7 @@ class DataIO_Gnuplot : public DataIO {
     bool useMap_;
     bool jpegout_;
     bool binary_;
+    bool writeHeader_;
 
     static LabelArray LabelArg(std::string const&);
     std::string Pm3d(size_t);

@@ -159,6 +159,7 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
+
   // Keywords
   std::string histname = analyzeArgs.GetStringKey("name");
   std::string outfilename = analyzeArgs.GetStringKey("out");

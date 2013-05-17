@@ -9,7 +9,8 @@ DataIO_Gnuplot::DataIO_Gnuplot() :
   printLabels_(true),
   useMap_(false),
   jpegout_(false),
-  binary_(false)
+  binary_(false),
+  writeHeader_(true)
 {}
 
 DataIO_Gnuplot::LabelArray DataIO_Gnuplot::LabelArg( std::string const& labelarg) 
@@ -31,7 +32,11 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   if (argIn.hasKey("nopm3d")) pm3d_ = OFF;
   if (argIn.hasKey("jpeg")) jpegout_ = true;
   if (argIn.hasKey("binary")) binary_ = true;
-
+  if (argIn.hasKey("noheader")) writeHeader_ = false;
+  if (!writeHeader_ && jpegout_) {
+    mprintf("Warning: jpeg output not supported with 'noheader' option.\n");
+    jpegout_ = false;
+  }
   // Label arguments
   Xlabels_ = LabelArg( argIn.GetStringKey( "xlabels" ) );
   Ylabels_ = LabelArg( argIn.GetStringKey( "ylabels" ) );
@@ -76,7 +81,7 @@ void DataIO_Gnuplot::WriteRangeAndHeader(Dimension const& Xdim, size_t Xmax,
 
 // DataIO_Gnuplot::Finish()
 void DataIO_Gnuplot::Finish() {
-  if (!jpegout_)
+  if (!jpegout_ && writeHeader_)
     file_.Printf("end\npause -1\n");
   file_.CloseFile();
 }
@@ -236,45 +241,45 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
             BaseName(), SetList.size());
     printLabels_ = false;
   }*/
+  if (writeHeader_) {
+    // Check for JPEG output
+    JpegOut( maxFrames, Sets.size() );
 
-  // Check for JPEG output
-  JpegOut( maxFrames, Sets.size() );
+    // PM3D command
+    std::string pm3d_cmd = Pm3d(maxFrames);
 
-  // PM3D command
-  std::string pm3d_cmd = Pm3d(maxFrames);
-
-  // Y axis Data Labels
-  if (printLabels_) {
-    // NOTE: Add option to turn on grid later?
-    //outfile->file_.Printf("set pm3d map hidden3d 100 corners2color c1\n");
-    //outfile->file_.Printf("set style line 100 lt 2 lw 0.5\n");
-    // Set up Y labels
-    file_.Printf("set ytics %8.3f,%8.3f\nset ytics(", Ydim.Min(), Ydim.Step());
-    unsigned int setnum = 0;
-    std::string label_fmt = "\"%s\" " + y_format;
-    for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
-      if (setnum>0) file_.Printf(",");
-      file_.Printf(label_fmt.c_str(), (*set)->Legend().c_str(), Ydim.Coord(setnum++));
-    }
-    file_.Printf(")\n");
-    // Set up Z labels
-    if (!Zlabels_.empty()) {
-      WriteDefinedPalette(Zlabels_.size());
-      file_.Printf("set cbtics(");
-      int iz = 0;
-      for (std::vector<std::string>::iterator label = Zlabels_.begin();
-                                              label != Zlabels_.end(); ++label)
-      {
-        if (iz > 0) file_.Printf(",");
-        file_.Printf("\"%s\" %8.3f", (*label).c_str(), (float)iz++);
+    // Y axis Data Labels
+    if (printLabels_) {
+      // NOTE: Add option to turn on grid later?
+      //outfile->file_.Printf("set pm3d map hidden3d 100 corners2color c1\n");
+      //outfile->file_.Printf("set style line 100 lt 2 lw 0.5\n");
+      // Set up Y labels
+      file_.Printf("set ytics %8.3f,%8.3f\nset ytics(", Ydim.Min(), Ydim.Step());
+      unsigned int setnum = 0;
+      std::string label_fmt = "\"%s\" " + y_format;
+      for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
+        if (setnum>0) file_.Printf(",");
+        file_.Printf(label_fmt.c_str(), (*set)->Legend().c_str(), Ydim.Coord(setnum++));
       }
       file_.Printf(")\n");
+      // Set up Z labels
+      if (!Zlabels_.empty()) {
+        WriteDefinedPalette(Zlabels_.size());
+        file_.Printf("set cbtics(");
+        int iz = 0;
+        for (std::vector<std::string>::iterator label = Zlabels_.begin();
+                                                label != Zlabels_.end(); ++label)
+        {
+          if (iz > 0) file_.Printf(",");
+          file_.Printf("\"%s\" %8.3f", (*label).c_str(), (float)iz++);
+        }
+        file_.Printf(")\n");
+      }
     }
+    // Set axis label and range, write plot command
+    // Make Yrange +1 and -1 so entire grid can be seen
+    WriteRangeAndHeader(Xdim, maxFrames, Ydim, Sets.size(), pm3d_cmd);
   }
-
-  // Set axis label and range, write plot command
-  // Make Yrange +1 and -1 so entire grid can be seen
-  WriteRangeAndHeader(Xdim, maxFrames, Ydim, Sets.size(), pm3d_cmd);
 
   // Data
   for (size_t frame = 0; frame < maxFrames; frame++) {
@@ -318,46 +323,46 @@ int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSet const& setIn,
   // Open output file
   if (file_.OpenWrite( fname )) return 1;
 
-  // Check for JPEG output
-  JpegOut( set.Ncols(), set.Nrows() );
-
-  // PM3D command
-  std::string pm3d_cmd = Pm3d(set.Size());
-
   Dimension const& Xdim = Dim[0];
   Dimension const& Ydim = Dim[1];
-  // Axes Data Labels
-  if (printLabels_) {
-    // Set up X and Y labels
-    if (!Ylabels_.empty()) {
-      if ( Ylabels_.size() != set.Nrows() )
-        mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%u)\n",
-                Ylabels_.size(), set.Nrows());
-      file_.Printf("set ytics %8.3f,%8.3f\nset ytics(",
-                   Ydim.Coord(0), Ydim.Step());
-      for (size_t iy = 0; iy < Ylabels_.size(); ++iy) {
-        if (iy>0) file_.Printf(",");
-        file_.Printf("\"%s\" %8.3f", Ylabels_[iy].c_str(), Ydim.Coord(iy));
-      }
-      file_.Printf(")\n");
-    }
-    if (!Xlabels_.empty()) {
-      if ( Xlabels_.size() != set.Ncols() )
-        mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%u)\n",
-                Xlabels_.size(), set.Ncols()); 
-      file_.Printf("set xtics %8.3f,%8.3f\nset xtics(",
-                   Xdim.Coord(0), Xdim.Step());
-      for (size_t ix = 0; ix < Xlabels_.size(); ++ix) {
-        if (ix>0) file_.Printf(",");
-        file_.Printf("\"%s\" %8.3f", Xlabels_[ix].c_str(), Xdim.Coord(ix));
-      }
-      file_.Printf(")\n");
-    }
-  }
+  if (writeHeader_) {
+    // Check for JPEG output
+    JpegOut( set.Ncols(), set.Nrows() );
 
-  // Set axis label and range, write plot command
-  // Make Yrange +1 and -1 so entire grid can be seen
-  WriteRangeAndHeader(Xdim, set.Ncols(), Ydim, set.Nrows(), pm3d_cmd);
+    // PM3D command
+    std::string pm3d_cmd = Pm3d(set.Size());
+
+    // Axes Data Labels
+    if (printLabels_) {
+      // Set up X and Y labels
+      if (!Ylabels_.empty()) {
+        if ( Ylabels_.size() != set.Nrows() )
+          mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%u)\n",
+                  Ylabels_.size(), set.Nrows());
+        file_.Printf("set ytics %8.3f,%8.3f\nset ytics(",
+                     Ydim.Coord(0), Ydim.Step());
+        for (size_t iy = 0; iy < Ylabels_.size(); ++iy) {
+          if (iy>0) file_.Printf(",");
+          file_.Printf("\"%s\" %8.3f", Ylabels_[iy].c_str(), Ydim.Coord(iy));
+        }
+        file_.Printf(")\n");
+      }
+      if (!Xlabels_.empty()) {
+        if ( Xlabels_.size() != set.Ncols() )
+          mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%u)\n",
+                  Xlabels_.size(), set.Ncols()); 
+        file_.Printf("set xtics %8.3f,%8.3f\nset xtics(",
+                     Xdim.Coord(0), Xdim.Step());
+        for (size_t ix = 0; ix < Xlabels_.size(); ++ix) {
+          if (ix>0) file_.Printf(",");
+          file_.Printf("\"%s\" %8.3f", Xlabels_[ix].c_str(), Xdim.Coord(ix));
+        }
+      }
+    }
+    // Set axis label and range, write plot command
+    // Make Yrange +1 and -1 so entire grid can be seen
+    WriteRangeAndHeader(Xdim, set.Ncols(), Ydim, set.Nrows(), pm3d_cmd);
+  }
   // Setup XY coord format
   std::string col_fmt = SetupCoordFormat( set.Ncols(), Xdim, 8, 3 ) + " " +
                         SetupCoordFormat( set.Nrows(), Ydim, 8, 3 );
