@@ -23,5 +23,16 @@ class DataSet_1D : public DataSet {
     virtual void WriteBuffer(CpptrajFile&,size_t) const = 0;
     /// \return data from data set as double precision (1D)
     virtual double Dval(size_t) const = 0;
+    // -------------------------------------------
+    double Avg()           { return Avg( 0 ); }
+    double Avg(double& sd) { return Avg(&sd); }
+    double Min();
+    double Max();
+    int CrossCorr(DataSet_1D const&, DataSet_1D&, int, bool, bool);
+    double CorrCoeff(DataSet_1D const&);
+  private:
+    double Avg(double*);
+    static inline bool IsTorsionArray( DataSet_1D const& );
+    static inline bool GoodCalcType(DataSet_1D const&);
 };
 #endif
