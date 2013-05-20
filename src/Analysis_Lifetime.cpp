@@ -40,19 +40,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   deltaAvg_ = analyzeArgs.hasKey("delta");
   cut_ = analyzeArgs.getKeyDouble("cut", 0.5);
   // Select datasets from remaining args
-  ArgList dsetArgs = analyzeArgs.RemainingArgs();
-  DataSetList input_dsl; 
-  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
-    input_dsl += datasetlist->GetMultipleSets( *dsa );
-  if (input_dsl.empty()) {
-    mprinterr("Error: lifetime: No data sets selected.\n");
-    return Analysis::ERR;
-  }
-  // Sort input datasets
-  input_dsl.sort();
-  // Add to main list
-  inputDsets_.clear();
-  if (inputDsets_.AddDataSets( input_dsl )) {
+  if (inputDsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
     mprinterr( inputDsets_.Error() );
     return Analysis::ERR;
   }
@@ -99,7 +87,8 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     mprintf("    LIFETIME: Calculating only averages");
   mprintf(" of data in %i sets\n", inputDsets_.size());
   if (debugIn > 0)
-    input_dsl.List();
+    for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
+      mprintf("\t%s\n", (*set)->Legend().c_str());
   if (windowSize_ != -1) {
     mprintf("\tAverage of data over windows will be saved to sets named %s\n",
             setname.c_str());

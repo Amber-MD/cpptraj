@@ -21,13 +21,11 @@ Analysis::RetType Analysis_MeltCurve::Setup(ArgList& analyzeArgs, DataSetList* d
     return Analysis::ERR;
   }
   // Select datasets from remaining args
-  ArgList dsetArgs = analyzeArgs.RemainingArgs();
-  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
-    input_dsets_ += datasetlist->GetMultipleSets( *dsa );
-  if (input_dsets_.empty()) {
-    mprinterr("Error: meltcurve: No data sets selected.\n");
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+    mprinterr( input_dsets_.Error() );
     return Analysis::ERR;
   }
+
   // Set up output dataset
   mcurve_ = datasetlist->AddSet(DataSet::DOUBLE, setname, "Melt");
   if (mcurve_ == 0) return Analysis::ERR;
@@ -42,20 +40,21 @@ Analysis::RetType Analysis_MeltCurve::Setup(ArgList& analyzeArgs, DataSetList* d
   if (outfile_ != 0)
     mprintf("\tOutfile name: %s", outfile_->DataFilename().base());
   mprintf("\n");
-  input_dsets_.List();
+  for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
+    mprintf("\t%s\n", (*set)->Legend().c_str());
   return Analysis::OK;
 }
 
 Analysis::RetType Analysis_MeltCurve::Analyze() {
   int idx = 0;
-  for (DataSetList::const_iterator DS = input_dsets_.begin();
-                                   DS != input_dsets_.end(); ++DS)
+  for (Array1D::const_iterator DS = input_dsets_.begin();
+                               DS != input_dsets_.end(); ++DS)
   {
     if ( (*DS)->Size() < 1)
       mprintf("Warning: Set [%i] \"%s\" has no data.\n", idx, (*DS)->Legend().c_str());
     else {
       int n_folded = 0;
-      for (int i = 0; i < (*DS)->Size(); i++) {
+      for (unsigned int i = 0; i < (*DS)->Size(); i++) {
         if ((*DS)->Dval(i) < cut_)
           ++n_folded;
       }

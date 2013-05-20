@@ -17,6 +17,7 @@ class Array1D {
     size_t size()                          const { return array_.size();     }
     void clear()                                 { array_.clear();           }
     int AddDataSets(DataSetList const&);
+    int AddSetsFromArgs(ArgList const&, DataSetList const&);
   private:
     std::vector<DataSet_1D*> array_;
     std::string errorMsg_;
@@ -39,11 +40,28 @@ int Array1D::push_back( DataSet_1D* const& val ) {
 int Array1D::AddDataSets(DataSetList const& SetList) {
   for (DataSetList::const_iterator ds = SetList.begin(); ds != SetList.end(); ++ds)
     if ( push_back( (DataSet_1D*)*ds ) ) {
-      errorMsg_.assign("Internal Error: DataIO not set up for mixed dim writes.");
+      errorMsg_.assign("Error: Only 1D data sets allowed.");
       array_.clear();
       return 1;
     }
   return 0;
+}
+// Array1D::AddSetsFromArgs()
+int Array1D::AddSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSLin) {
+  DataSetList input_dsl;
+  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
+    input_dsl += DSLin.GetMultipleSets( *dsa );
+  if (input_dsl.empty()) {
+    errorMsg_.assign("Error: No data sets selected.\n");
+    return 1;
+  }
+  // Sort input datasets
+  input_dsl.sort();
+  // Add to main list
+  array_.clear();
+  if (AddDataSets( input_dsl )) 
+    return 1;
+  return 0; 
 }
 // DetermineMax()
 size_t Array1D::DetermineMax() {

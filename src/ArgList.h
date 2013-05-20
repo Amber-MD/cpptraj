@@ -28,14 +28,14 @@ class ArgList {
     std::string const& operator[](int);
     // Iterators
     typedef std::vector<std::string>::const_iterator const_iterator;
-    const_iterator begin() { return arglist_.begin();     }
-    const_iterator end()   { return arglist_.end();       }
+    const_iterator begin() const { return arglist_.begin();     }
+    const_iterator end()   const { return arglist_.end();       }
     /// \return the number of arguments
-    int Nargs()            { return (int)arglist_.size(); }
+    int Nargs()            const { return (int)arglist_.size(); }
     /// \return true if no arguments in list.
-    bool empty()           { return arglist_.empty();     }
+    bool empty()           const { return arglist_.empty();     }
     /// \return the argument string
-    const char *ArgLine()  { return argline_.c_str();     }
+    const char *ArgLine()  const { return argline_.c_str();     }
     /// Set up argument list from string and given separators
     int SetList(std::string const&, const char *);
     /// \return an argument list of remaining unmarked args.
