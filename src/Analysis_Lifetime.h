@@ -1,6 +1,7 @@
 #ifndef INC_ANALYSIS_LIFETIME_H
 #define INC_ANALYSIS_LIFETIME_H
 #include "Analysis.h"
+#include "Array1D.h"
 class Analysis_Lifetime : public Analysis {
   public:
     Analysis_Lifetime();
@@ -11,7 +12,7 @@ class Analysis_Lifetime : public Analysis {
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
-    DataSetList inputDsets_;
+    Array1D inputDsets_;
     std::vector<DataSet*> outputDsets_;
     std::vector<DataSet*> maxDsets_;
     std::vector<DataSet*> avgDsets_;

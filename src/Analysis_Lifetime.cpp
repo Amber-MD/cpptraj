@@ -41,21 +41,28 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   cut_ = analyzeArgs.getKeyDouble("cut", 0.5);
   // Select datasets from remaining args
   ArgList dsetArgs = analyzeArgs.RemainingArgs();
+  DataSetList input_dsl; 
   for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
-    inputDsets_ += datasetlist->GetMultipleSets( *dsa );
-  if (inputDsets_.empty()) {
+    input_dsl += datasetlist->GetMultipleSets( *dsa );
+  if (input_dsl.empty()) {
     mprinterr("Error: lifetime: No data sets selected.\n");
     return Analysis::ERR;
   }
   // Sort input datasets
-  inputDsets_.sort();
+  input_dsl.sort();
+  // Add to main list
+  inputDsets_.clear();
+  if (inputDsets_.AddDataSets( input_dsl )) {
+    mprinterr( inputDsets_.Error() );
+    return Analysis::ERR;
+  }
 
   // Create output datasets
   if ( windowSize_ != -1) {
     if (setname.empty()) 
       setname = datasetlist->GenerateDefaultName( "lifetime" );
     int didx = 0;
-    for (DataSetList::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
+    for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
     {
       DataSet* outSet = datasetlist->AddSetIdx( DataSet::FLOAT, setname, didx );
       if (outSet==0) {
@@ -69,7 +76,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       if (!averageonly_) {
         // MAX
         // FIXME: CHeck for nullS
-        outSet = datasetlist->AddSetIdxAspect( DataSet::INT, setname, didx, "max" );
+        outSet = datasetlist->AddSetIdxAspect( DataSet::INTEGER, setname, didx, "max" );
         outSet->SetLegend( (*set)->Legend() );
         maxDsets_.push_back( outSet );
         if (maxfile != 0) maxfile->AddSet( outSet );
@@ -92,7 +99,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     mprintf("    LIFETIME: Calculating only averages");
   mprintf(" of data in %i sets\n", inputDsets_.size());
   if (debugIn > 0)
-    inputDsets_.List();
+    input_dsl.List();
   if (windowSize_ != -1) {
     mprintf("\tAverage of data over windows will be saved to sets named %s\n",
             setname.c_str());
@@ -120,7 +127,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
   std::vector<DataSet*>::iterator outSet = outputDsets_.begin();
   std::vector<DataSet*>::iterator maxSet = maxDsets_.begin();
   std::vector<DataSet*>::iterator avgSet = avgDsets_.begin();
-  for (DataSetList::const_iterator inSet = inputDsets_.begin(); 
+  for (Array1D::const_iterator inSet = inputDsets_.begin(); 
                                    inSet != inputDsets_.end(); ++inSet)
   {
     //mprintf("\t\tCalculating lifetimes for set %s\n", (*inSet)->Legend().c_str());
@@ -137,7 +144,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
     int Nlifetimes = 0;           // # of separate lifetimes observed
     int sumLifetimes = 0;         // sum of lifetimeCount for each lifetime observed
     for (int i = 0; i < setSize; ++i) {
-      double dval = (*inSet)->Dval(i);
+      double dval = ((DataSet_1D*)(*inSet))->Dval(i);
       //mprintf("\t\t\tValue[%i]= %.2f", i,dval);
       if (averageonly_) 
         // Average only
