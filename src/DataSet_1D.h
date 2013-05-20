@@ -24,14 +24,14 @@ class DataSet_1D : public DataSet {
     /// \return data from data set as double precision (1D)
     virtual double Dval(size_t) const = 0;
     // -------------------------------------------
-    double Avg()           { return Avg( 0 ); }
-    double Avg(double& sd) { return Avg(&sd); }
-    double Min();
-    double Max();
-    int CrossCorr(DataSet_1D const&, DataSet_1D&, int, bool, bool);
-    double CorrCoeff(DataSet_1D const&);
+    double Avg()           const { return Avg( 0 ); }
+    double Avg(double& sd) const { return Avg(&sd); }
+    double Min() const;
+    double Max() const;
+    int CrossCorr(DataSet_1D const&, DataSet_1D&, int, bool, bool) const;
+    double CorrCoeff(DataSet_1D const&) const;
   private:
-    double Avg(double*);
+    double Avg(double*) const;
     static inline bool IsTorsionArray( DataSet_1D const& );
     static inline bool GoodCalcType(DataSet_1D const&);
 };

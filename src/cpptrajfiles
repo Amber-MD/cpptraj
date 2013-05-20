@@ -37,7 +37,7 @@ SOURCES=Action_Angle.cpp Action_AtomicCorr.cpp Action_AtomicFluct.cpp \
         DataSet_integer.cpp DataSet_string.cpp DataSet_Vector.cpp \
         DataSet_MatrixDbl.cpp DataSet_MatrixFlt.cpp DataSet_GridFlt.cpp \
         DataSet_Modes.cpp DataSetList.cpp \
-        DihedralSearch.cpp DistRoutines.cpp Dimension.cpp DS_Math.cpp \
+        DihedralSearch.cpp DistRoutines.cpp Dimension.cpp \
         FileIO_Bzip2.cpp FileIO_Gzip.cpp FileIO_Mpi.cpp FileIO_Std.cpp \
         FileList.cpp FileName.cpp Frame.cpp FrameList.cpp GridAction.cpp \
         Histogram.cpp Hungarian.cpp Integrate.cpp ImageRoutines.cpp main.cpp MapAtom.cpp \

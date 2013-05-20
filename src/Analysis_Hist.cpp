@@ -1,7 +1,6 @@
 #include "Analysis_Hist.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // doubleToString
-#include "DS_Math.h" // Min, Max
 // DataSet types used by Analysis_Hist
 #include "DataSet_double.h"
 #include "DataSet_MatrixDbl.h"
@@ -107,14 +106,14 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset) {
   // If no min arg and no default min arg, get min from dataset
   if (!minArg) {
     if (!minArgSet_) 
-      dim.SetMin( DS_Math::Min(dset) );
+      dim.SetMin( dset.Min() );
     else
       dim.SetMin( default_dim_.Min() );
   }
   // If no max arg and no default max arg, get max from dataset
   if (!maxArg) {
     if (!maxArgSet_)
-      dim.SetMax( DS_Math::Max(dset) );
+      dim.SetMax( dset.Max() );
     else
       dim.SetMax( default_dim_.Max() );
   }

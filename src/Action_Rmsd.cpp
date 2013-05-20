@@ -2,7 +2,6 @@
 #include "Action_Rmsd.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
-#include "DS_Math.h" // Avg
 
 // TODO: Make all Frames non-pointers
 
@@ -188,7 +187,7 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
     // Create dataset for res - if already present this returns null 
     DataSet* prDataSet = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, rmsd_->Name(), tgtRes, "res");
     prDataSet->SetLegend( currentParm->TruncResNameNum(tgtRes-1) );
-    PerResRMSD_.push_back( prDataSet );
+    PerResRMSD_.push_back( (DataSet_1D*)prDataSet );
 
     // Setup mask strings. Note that masks are based off user residue nums
     std::string tgtArg = ":" + integerToString(tgtRes) + perresmask_;
@@ -316,7 +315,7 @@ void Action_Rmsd::Print() {
   // Per-residue output
   if (perresout_ != 0) {
     // Add data sets to perresout
-    for (std::vector<DataSet*>::iterator set = PerResRMSD_.begin();
+    for (std::vector<DataSet_1D*>::iterator set = PerResRMSD_.begin();
                                          set != PerResRMSD_.end(); ++set)
       perresout_->AddSet(*set);
     // Set output file to be inverted if requested
@@ -341,7 +340,7 @@ void Action_Rmsd::Print() {
     double stdev = 0;
     double avg = 0;
     for (int pridx = 0; pridx < Nperres; pridx++) {
-      avg = DS_Math::Avg(*PerResRMSD_[pridx], &stdev );
+      avg = PerResRMSD_[pridx]->Avg( stdev );
       int dsidx = PerResRMSD_[pridx]->Idx() - 1;
       PerResAvg->Add(dsidx, &avg);
       PerResStdev->Add(dsidx,&stdev);

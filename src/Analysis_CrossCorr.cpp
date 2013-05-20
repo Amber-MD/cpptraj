@@ -2,7 +2,7 @@
 #include "DataSet_MatrixFlt.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
-#include "DS_Math.h"
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Analysis_CrossCorr::Analysis_CrossCorr() : outfile_(0), matrix_(0) {}
@@ -63,7 +63,8 @@ Analysis::RetType Analysis_CrossCorr::Analyze() {
     for (int j = i + 1; j < Nsets; ++j) {
       //mprinterr("DBG:\tCross corr between %i (%s) and %i (%s)\n",
       //          i, dsets_[i]->Legend().c_str(), j, dsets_[j]->Legend().c_str());
-      double corr = DS_Math::CorrCoeff( *dsets_[i], *dsets_[j] );
+      DataSet_1D const& set1 = static_cast<DataSet_1D const&>( *dsets_[i] );
+      double corr = set1.CorrCoeff( *((DataSet_1D*)dsets_[j]) );
       tmatrix.AddElement( (float)corr );
     }
   }

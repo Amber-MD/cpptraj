@@ -1,6 +1,6 @@
 #include "Analysis_Corr.h"
 #include "CpptrajStdio.h"
-#include "DS_Math.h"
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Analysis_Corr::Analysis_Corr() :
@@ -103,10 +103,12 @@ Analysis::RetType Analysis_Corr::Analyze() {
 
   mprintf("    CORR: %u elements, max lag %i\n",Nelements,lagmax_);
 
-  DS_Math::CrossCorr(*D1_, *D2_, *Ct_, lagmax_, calc_covar_, usefft_ );
+  DataSet_1D const& set1 = static_cast<DataSet_1D const&>( *D1_ );
+  DataSet_1D const& set2 = static_cast<DataSet_1D const&>( *D2_ );
+  set1.CrossCorr( set2, *((DataSet_1D*)Ct_), lagmax_, calc_covar_, usefft_ );
 
   mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
-          D1_->Legend().c_str(), D2_->Legend().c_str(), DS_Math::CorrCoeff( *D1_, *D2_ ) );
+          D1_->Legend().c_str(), D2_->Legend().c_str(), set1.CorrCoeff( set2 ) );
 
   return Analysis::OK;
 }
