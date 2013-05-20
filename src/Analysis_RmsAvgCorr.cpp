@@ -71,11 +71,11 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   */ 
 Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   double avg;
-  int window, frame, WindowMax;
+  unsigned int window, frame, WindowMax;
   CpptrajFile separateDatafile;
   bool first;
 
-  int frameThreshold, subtractWindow;
+  unsigned int frameThreshold, subtractWindow;
   double d_Nwindow;
 
   // If 'output' specified open up separate datafile that will be written
@@ -102,10 +102,10 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   if (maxwindow_==-1)
     WindowMax = coords_->Size();
   else {
-    WindowMax = maxwindow_+1;
+    WindowMax = (unsigned int)maxwindow_+1;
     if (WindowMax > coords_->Size()) {
       WindowMax = coords_->Size();
-      mprintf("Warning: RmsAvgCorr: stop (%i) > max # frames (%i), using max.\n",
+      mprintf("Warning: RmsAvgCorr: stop (%u) > max # frames (%i), using max.\n",
               maxwindow_, WindowMax);
     }
   }
