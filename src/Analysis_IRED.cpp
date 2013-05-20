@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists
 #include "Constants.h" // PI
-#include "ComplexArray.h"
+#include "Corr.h"
 
 // CONSTRUCTOR
 Analysis_IRED::Analysis_IRED() :
@@ -206,7 +206,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
   { 
     if (Nframes_ == -1)
       Nframes_ = (*Vtmp)->Size();
-    else if (Nframes_ != (*Vtmp)->Size()) {
+    else if (Nframes_ != (int)(*Vtmp)->Size()) {
       mprinterr("Error: All IRED vectors must have the same size.\n");
       mprinterr("Error: Vector %s size = %i, first vector size = %i\n",
                 (*Vtmp)->Legend().c_str(), (*Vtmp)->Size(), Nframes_);

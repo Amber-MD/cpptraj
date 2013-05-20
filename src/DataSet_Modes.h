@@ -29,9 +29,9 @@ class DataSet_Modes : public DataSet {
     void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
 
     const double* AvgCrd()            { return (const double*)avgcrd_.xAddress(); } // Project
-    //const double* Eigenvalues()       { return evalues_;                   } 
-    //double Eigenvalue(int i)          { return evalues_[i];                }
-    //const double* Eigenvectors()      { return evectors_;                  }
+    const double* Eigenvalues()       { return evalues_;                   } // IRED 
+    double Eigenvalue(int i)          { return evalues_[i];                } // IRED
+    const double* Eigenvectors()      { return evectors_;                  } // IRED
     const double* Eigenvector(int i)  { return evectors_ + (i * vecsize_); }
     int Nmodes()                      { return nmodes_;                    } // Project
     int VectorSize()                  { return vecsize_;                   } // Project
