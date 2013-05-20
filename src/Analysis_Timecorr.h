@@ -2,7 +2,7 @@
 #define INC_ANALYSIS_TIMECORR_H
 #include "Analysis.h"
 #include "DataSet_Vector.h"
-#include "ComplexArray.h"
+#include "Corr.h"
 /** \author Original Code by Alrun N. Koller & H. Gohlke
   * \author Adapted by DRR
   */

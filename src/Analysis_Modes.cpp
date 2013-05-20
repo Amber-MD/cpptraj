@@ -116,8 +116,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   }
 
   // Check modes type
-  if (modinfo_->Type() != DataSet_Matrix::COVAR && 
-      modinfo_->Type() != DataSet_Matrix::MWCOVAR)
+  if (modinfo_->Type() != DataSet_2D::COVAR && 
+      modinfo_->Type() != DataSet_2D::MWCOVAR)
   {
     mprinterr("Error: analyze modes: evecs must be of type COVAR or MWCOVAR.\n");
     return Analysis::ERR;
