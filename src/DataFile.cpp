@@ -258,6 +258,15 @@ void DataFile::WriteData() {
   clock_t t0 = clock();
 #endif
   if ( dimension_ == 1 ) {
+    // Set min if not already set. 
+    if (Dim_[0].Min() == 0 && Dim_[0].Max() == 0) 
+      Dim_[0].SetMin( 1.0 );
+    // Set step if not already set.
+    if (Dim_[0].Step() < 0)
+      Dim_[0].SetStep( 1.0 );
+    // Set label if not already set.
+    if (Dim_[0].Label().empty())
+      Dim_[0].SetLabel("Frame");
     mprintf("%s: Writing 1D data.\n",filename_.base());
     if (!isInverted_)
       dataio_->WriteData(filename_.Full(), SetList_, Dim_);

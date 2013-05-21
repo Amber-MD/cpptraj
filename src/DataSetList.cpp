@@ -323,23 +323,6 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
     return 0;
   }
   DS = (DataSet*)token->Alloc();
-/*  switch (inType) {
-    case DataSet::DOUBLE       : DS = new DataSet_double(); break;
-    case DataSet::FLOAT        : DS = new DataSet_float(); break;
-    case DataSet::STRING       : DS = new DataSet_string(); break;
-    case DataSet::INT          : DS = new DataSet_integer(); break;
-    case DataSet::HIST         : DS = new Histogram(); break;
-    case DataSet::TRIMATRIX    : DS = new TriangleMatrix(); break;
-    case DataSet::MATRIX2D     : DS = new Matrix_2D(); break;
-    case DataSet::VECTOR       : DS = new DataSet_Vector(); break;
-    case DataSet::MATRIX       : DS = new DataSet_Matrix(); break;
-    case DataSet::MODES        : DS = new DataSet_Modes(); break;
-    case DataSet::COORDS       : DS = new DataSet_Coords(); break;
-    case DataSet::UNKNOWN_DATA :
-    default:
-      mprinterr("Error: DataSetList::Add: Unknown set type.\n");
-      return 0;
-  }*/
   if (DS==0) {
     mprinterr("Internal Error: DataSet %s memory allocation failed.\n", nameIn.c_str());
     return 0;

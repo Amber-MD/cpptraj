@@ -21,7 +21,7 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   data_format_(0),
   idx_(-1),
   dType_(typeIn),
-//  dim_(dimIn),
+  dim_(dimIn),
   colwidth_(widthIn),
   width_(widthIn),
   precision_(precisionIn),
