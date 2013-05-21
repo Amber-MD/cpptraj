@@ -359,7 +359,7 @@ while [[ ! -z $1 ]] ; do
     "--with-netcdf" )
       INCLUDE="$INCLUDE -I$VALUE/include"
       NETCDF_HOME="$VALUE"
-      echo "Using NETCDF in $NETCDFLIB_HOME"
+      echo "Using NETCDF in $NETCDF_HOME"
       ;;
     "--with-blas" )
       INCLUDE="$INCLUDE -I$VALUE/include"
