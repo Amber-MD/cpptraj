@@ -41,7 +41,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   cut_ = analyzeArgs.getKeyDouble("cut", 0.5);
   // Select datasets from remaining args
   if (inputDsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
-    mprinterr( inputDsets_.Error() );
+    mprinterr("Error: lifetime: Could not add data sets.\n");
     return Analysis::ERR;
   }
 

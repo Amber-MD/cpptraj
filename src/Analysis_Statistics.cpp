@@ -30,7 +30,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   } else {
     // Select datasets from remaining args
     if (datasets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *DSLin )) {
-      mprinterr( datasets_.Error() );
+      mprinterr("Error: statistics: Could not add data sets\n");
       return Analysis::ERR;
     }
   }

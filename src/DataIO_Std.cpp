@@ -203,12 +203,8 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList,
   int xcol_precision = 3;
 
   // Hold all 1D data sets.
-  // FIXME: Check that dimension of each set matches.
   Array1D Sets( SetList );
-  if (Sets.empty()) {
-    mprinterr("%s\n", Sets.Error());
-    return 1;
-  }
+  if (Sets.empty()) return 1;
   // Use X dimension of set 0 for all set dimensions.
   // TODO: Check for empty dim.
   Dimension const& Xdim = Dim[0];
@@ -273,10 +269,7 @@ int DataIO_Std::WriteDataInverted(std::string const& fname, DataSetList const& S
 {
   // Hold all 1D data sets.
   Array1D Sets( SetList );
-  if (Sets.empty()) {
-    mprinterr("%s\n", Sets.Error());
-    return 1;
-  }
+  if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
   // Open output file

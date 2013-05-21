@@ -13,5 +13,6 @@ class DataIO_Grace : public DataIO {
     int WriteDataInverted(std::string const&,DataSetList const&, DimArray const&);
     int WriteData2D(std::string const&, DataSet const&, DimArray const&) { return 1; }
     int WriteData3D(std::string const&, DataSet const&, DimArray const&) { return 1; }
+    bool ID_DataFormat(CpptrajFile&) { return false; }
 };
 #endif

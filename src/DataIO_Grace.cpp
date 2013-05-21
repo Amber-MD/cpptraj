@@ -85,12 +85,8 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
                             DimArray const& Dim)
 {
   // Hold all 1D data sets.
-  // FIXME: Check that dimension of each set matches.
   Array1D Sets( SetList );
-  if (Sets.empty()) {
-    mprinterr("%s\n", Sets.Error());
-    return 1;
-  }
+  if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
   // Open output file.
@@ -128,10 +124,7 @@ int DataIO_Grace::WriteDataInverted(std::string const& fname, DataSetList const&
 {
   // Hold all 1D data sets.
   Array1D Sets( SetList );
-  if (Sets.empty()) {
-    mprinterr("%s\n", Sets.Error());
-    return 1;
-  }
+  if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
   // Open output file

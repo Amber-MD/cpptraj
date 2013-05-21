@@ -23,7 +23,7 @@ Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* 
 
   // The remaining arguments are the data sets to take running averages of
   if (dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
-    mprinterr( dsets_.Error() );
+    mprinterr("Error: runningavg: Could not add data sets.\n");
     return Analysis::ERR;
   }
 

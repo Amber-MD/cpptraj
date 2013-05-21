@@ -126,12 +126,8 @@ int DataIO_Gnuplot::WriteDataBinary(std::string const& fname, DataSetList const&
                                     DimArray const& Dim)
 {
   // Hold all 1D data sets.
-  // FIXME: Check that dimension of each set matches.
   Array1D Sets( SetList );
-  if (Sets.empty()) {
-    mprinterr("%s\n", Sets.Error());
-    return 1;
-  }
+  if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
   size_t Ymax = SetList.size();
@@ -219,10 +215,7 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
   // Hold all 1D data sets.
   // FIXME: Check that dimension of each set matches.
   Array1D Sets( SetList );
-  if (Sets.empty()) {
-    mprinterr("%s\n", Sets.Error());
-    return 1;
-  }
+  if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
   // Use X dimension of set 0 for all set dimensions.

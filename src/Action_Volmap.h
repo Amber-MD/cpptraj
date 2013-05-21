@@ -5,7 +5,6 @@
 class Action_Volmap : public Action {
   public:
     Action_Volmap();
-   ~Action_Volmap();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Volmap(); }
     static void Help();
   private:

@@ -19,7 +19,7 @@ class DataIO {
     virtual int WriteData2D(std::string const&, DataSet const&, DimArray const&) = 0;
     virtual int WriteData3D(std::string const&, DataSet const&, DimArray const&) = 0;
     virtual int WriteDataInverted(std::string const&, DataSetList const &, DimArray const&) = 0;
-    virtual bool ID_DataFormat(CpptrajFile&);
+    virtual bool ID_DataFormat(CpptrajFile&) = 0;
   protected:
     // TODO: Move this to DataSet?
     static std::string SetupCoordFormat(size_t, Dimension const&, int, int);

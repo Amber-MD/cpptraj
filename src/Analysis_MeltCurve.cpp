@@ -22,7 +22,7 @@ Analysis::RetType Analysis_MeltCurve::Setup(ArgList& analyzeArgs, DataSetList* d
   }
   // Select datasets from remaining args
   if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
-    mprinterr( input_dsets_.Error() );
+    mprinterr("Error: meltcurve: could not add data sets.\n");
     return Analysis::ERR;
   }
 
