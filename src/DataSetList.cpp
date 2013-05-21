@@ -26,7 +26,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "unknown",     0                           }, // UNKNOWN_DATA
   { "double",        DataSet_double::Alloc     }, // DOUBLE
   { "float",         DataSet_float::Alloc      }, // FLOAT
-  { "integer",       DataSet_float::Alloc      }, // INTEGER
+  { "integer",       DataSet_integer::Alloc    }, // INTEGER
   { "string",        DataSet_string::Alloc     }, // STRING
   { "double matrix", DataSet_MatrixDbl::Alloc  }, // MATRIX_DBL
   { "float matrix",  DataSet_MatrixFlt::Alloc  }, // MATRIX_FLT

@@ -92,10 +92,10 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
   // Open output file.
   CpptrajFile file;
   if (file.OpenWrite( fname )) return 1;
-  // Grace header. Use first DataSet for axis labels.
+  // Grace header. 
   file.Printf(
     "@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",
-    Dim[0].Label().c_str(), Sets[0]->Legend().c_str()
+    Dim[0].Label().c_str(), Dim[1].Label().c_str()
   );
   // Loop over DataSets
   unsigned int setnum = 0;
@@ -133,7 +133,7 @@ int DataIO_Grace::WriteDataInverted(std::string const& fname, DataSetList const&
   // Grace header. Use first DataSet for axis labels.
   file.Printf(
     "@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",
-    Sets[0]->Legend().c_str(), Dim[0].Label().c_str() 
+    Dim[1].Label().c_str(), Dim[0].Label().c_str() 
   );
   // Setup set X coord format. 
   Dimension Xdim;

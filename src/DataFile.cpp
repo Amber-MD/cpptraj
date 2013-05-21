@@ -254,6 +254,17 @@ void DataFile::WriteData() {
   }
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);
+  // Set defaults for dimensions if not already set.
+  for (unsigned int nd = 0; nd < 3; nd++) {
+    // Set min if not already set. 
+    if (Dim_[nd].Min() == 0 && Dim_[nd].Max() == 0)
+      Dim_[nd].SetMin( 1.0 );
+    // Set step if not already set.
+    if (Dim_[nd].Step() < 0)
+      Dim_[nd].SetStep( 1.0 );
+  }
+  // Set labels if not already set.
+  if (Dim_[0].Label().empty()) Dim_[0].SetLabel("Frame");
 #ifdef DATAFILE_TIME
   clock_t t0 = clock();
 #endif
