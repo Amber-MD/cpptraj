@@ -806,7 +806,7 @@ int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>const& iar
   std::string FS;
   if (WriteSetup(fflag, iarray.size())) return 0;
   // Set up printf format string; true == no leading space
-  SetIntegerFormatString(FS, fwidth_, true);
+  FS = SetIntegerFormatString(fwidth_, true);
   const char *FORMAT = FS.c_str();
   char *ptr = buffer_;
   int col = 0;
@@ -834,7 +834,7 @@ int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& d
   std::string FS;
   if (WriteSetup(fflag, darray.size())) return 0;
   // Set up printf format string; true == no leading space
-  SetDoubleFormatString(FS, fwidth_, fprecision_, 2, true);
+  FS = SetDoubleFormatString(fwidth_, fprecision_, 2, true);
   const char *FORMAT = FS.c_str();
   char *ptr = buffer_;
   int col = 0;
@@ -862,7 +862,7 @@ int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>const& c
   std::string FS;
   if (WriteSetup(fflag, carray.size())) return 0;
   // Set up printf format string; true == no leading space
-  SetStringFormatString(FS, fwidth_, true);
+  FS = SetStringFormatString(fwidth_, true);
   const char *FORMAT = FS.c_str();
   char *ptr = buffer_;
   int col = 0;

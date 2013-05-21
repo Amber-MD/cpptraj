@@ -99,7 +99,7 @@ void DataFileList::List() const {
 void DataFileList::Write() {
   //if (worldrank!=0) return; 
   for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); it++)
-    (*it)->Write();
+    (*it)->WriteData();
 }
 
 // DataFileList::ProcessDataFileArgs()

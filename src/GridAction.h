@@ -14,7 +14,7 @@ class GridAction {
     DataSet_GridFlt* GridInit(const char*, ArgList&, DataSetList&);
     void GridInfo(DataSet_GridFlt const&);
     int GridSetup(Topology const&);
-    void GridFrame(Frame const&, AtomMask const&, DataSet_GridFlt&);
+    inline void GridFrame(Frame const&, AtomMask const&, DataSet_GridFlt&);
     GridModeType GridMode()      const { return mode_;       }
     AtomMask const& CenterMask() const { return centerMask_; }
     float Increment()            const { return increment_;  }

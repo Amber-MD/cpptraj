@@ -41,8 +41,6 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
     mprinterr("Error: Reading grid counts from DX file %s\n", filename);
     return 1;
   }
-  // Allocate grid
-  grid.Allocate3D(nx, ny, nz);
   // origin xmin ymin zmin 
   int oxyz[3];
   line = infile.GetLine();
@@ -100,8 +98,11 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
     mprinterr("Error: DX file %s; binary DX files not yet supported.\n", filename);
     return 1;
   }
-  // Set Grid origin and spacing
-  grid.setOriginAndSpacing(nx,ny,nz,oxyz[0],oxyz[1],oxyz[2],dx,dy,dz);
+  // Allocate Grid from dims, origin, and spacing
+  if (grid.Allocate_N_O_D(nx,ny,nz, Vec3(oxyz), Vec3(dx,dy,dz))) {
+    mprinterr("Error: Could not allocate grid.\n");
+    return 1;
+  }
   // Read in data
   size_t gridsize = grid.Size();
   size_t ndata = 0;

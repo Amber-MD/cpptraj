@@ -172,7 +172,7 @@ int Cpptraj::Create_DataFile(ArgList& dataArg, int cmdidxIn) {
   }
   mprintf("\n");
   if ( cmdidx == Command::WRITE && err == 0 ) {
-    df->Write();
+    df->WriteData();
     delete df;
   }
   return err;
@@ -1069,7 +1069,7 @@ int Cpptraj::RunEnsemble() {
 
   // Sync DataSets and print DataSet information
   // TODO - Also have datafilelist call a sync??
-  int total_data_sets = DataSetEnsemble[0].size();
+  unsigned int total_data_sets = DataSetEnsemble[0].size();
   mprintf("\nENSEMBLE DATASETS: Each member has %i sets total.\n", total_data_sets);
   for (int member = 0; member < ensembleSize; ++member) {
     DataSetEnsemble[member].Sync();
