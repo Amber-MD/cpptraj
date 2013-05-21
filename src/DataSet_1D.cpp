@@ -5,15 +5,6 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD, RADDEG
 
-/// \return true if DataSet is cyclic.
-bool DataSet_1D::IsTorsionArray( DataSet_1D const& ds ) {
-  if (ds.ScalarMode() == DataSet::M_TORSION ||
-      ds.ScalarMode() == DataSet::M_PUCKER  ||
-      ds.ScalarMode() == DataSet::M_ANGLE     )
-    return true;
-  return false;
-}
-
 /// Return true if set is an atomic type (i.e. int, double, float).
 bool DataSet_1D::GoodCalcType(DataSet_1D const& ds) {
   if (ds.Type() == DataSet::DOUBLE ||
@@ -38,7 +29,7 @@ double DataSet_1D::Avg(double* stdev) const {
   double avg = 0;
   // Check if this set is a good type
   if ( GoodCalcType(*this) ) {
-    if (IsTorsionArray(*this)) {
+    if (IsTorsionArray()) {
       // Cyclic torsion average
       double sumy = 0.0;
       double sumx = 0.0;

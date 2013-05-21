@@ -20,44 +20,36 @@ static double DistCalc_Std(double d1, double d2) {
   return fabs(d1 - d2);
 }
 
-static bool IsTorsionArray( DataSet const& dsIn ) {
-  if (dsIn.ScalarMode() == DataSet::M_TORSION ||
-      dsIn.ScalarMode() == DataSet::M_PUCKER  ||
-      dsIn.ScalarMode() == DataSet::M_ANGLE     )
-    return true;
-  return false;
-}
-
 // -----------------------------------------------------------------------------
 /** Calculate unambiguous average dihedral angle (in degrees) by converting to 
   * cartesian coords using x = cos(theta), y = sin(theta), and:
   *   tan(avgtheta) = avgy / avgx = SUM[sin(theta)] / SUM[cos(theta)]
   * See Eq. 2 from Altis et al., J. Chem. Phys., 126 p. 244111 (2007).
   */
-static double AvgCalc_Dih( DataSet* dsIn, ClusterDist::Cframes const& cframesIn ) {
+static double AvgCalc_Dih( DataSet_1D const& dsIn, ClusterDist::Cframes const& cframesIn ) {
   double sumy = 0.0;
   double sumx = 0.0;
   // TODO: Convert angles to radians prior to this call?
   for (ClusterDist::Cframes_it frm = cframesIn.begin(); frm != cframesIn.end(); ++frm) {
-    double theta = dsIn->Dval( *frm ) * DEGRAD;
+    double theta = dsIn.Dval( *frm ) * DEGRAD;
     sumy += sin( theta );
     sumx += cos( theta );
   }
   return atan2(sumy, sumx) * RADDEG; 
 }
 
-static double AvgCalc_Std( DataSet* dsIn, ClusterDist::Cframes const& cframesIn ) {
+static double AvgCalc_Std( DataSet_1D const& dsIn, ClusterDist::Cframes const& cframesIn ) {
   double val = 0.0;
   for (ClusterDist::Cframes_it frm = cframesIn.begin(); frm != cframesIn.end(); ++frm)
-    val += dsIn->Dval( *frm );
+    val += dsIn.Dval( *frm );
   return (val / (double)cframesIn.size());
 }
 
 // ---------- Distance calc routines for single DataSet ------------------------
 ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
-  data_(dsIn)
+  data_((DataSet_1D*)dsIn)
 {
-  if (IsTorsionArray( *dsIn ))
+  if ( data_->IsTorsionArray() )
     dcalc_ = DistCalc_Dih;
   else
     dcalc_ = DistCalc_Std;
@@ -94,10 +86,10 @@ double ClusterDist_Num::FrameCentroidDist(int f1, Centroid* c1) {
 /** Calculate avg value of given frames. */
 void ClusterDist_Num::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Num* cent = (Centroid_Num*)centIn;
-  if (IsTorsionArray(*data_))
-    cent->cval_ = AvgCalc_Dih(data_, cframesIn);
+  if (data_->IsTorsionArray())
+    cent->cval_ = AvgCalc_Dih(*data_, cframesIn);
   else
-    cent->cval_ = AvgCalc_Std(data_, cframesIn);
+    cent->cval_ = AvgCalc_Std(*data_, cframesIn);
 }
 
 /** \return A new centroid of the given frames. */
@@ -108,11 +100,11 @@ Centroid* ClusterDist_Num::NewCentroid( Cframes const& cframesIn ) {
 }
 
 // ---------- Distance calc routines for multiple DataSets (Euclid) ------------
-ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn) :
-  dsets_(dsIn)
+ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn)
 {
-  for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
-    if ( IsTorsionArray( *(*ds) ) )
+  for (D1Array::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
+    dsets_.push_back( (DataSet_1D*)*ds );
+    if ( dsets_.back()->IsTorsionArray() )
       dcalcs_.push_back( DistCalc_Dih );
     else
       dcalcs_.push_back( DistCalc_Std );
@@ -123,7 +115,7 @@ ClusterMatrix ClusterDist_Euclid::PairwiseDist(int sieve) {
   int f1, f2;
   double dist, diff;
   DcArray::iterator dcalc;
-  DsArray::iterator ds;
+  D1Array::iterator ds;
   int f2end = dsets_[0]->Size();
   ClusterMatrix frameDistances( f2end, sieve );
   int f1end = f2end - sieve;
@@ -167,7 +159,7 @@ double ClusterDist_Euclid::FrameCentroidDist(int f1, Centroid* c1) {
   double dist = 0.0;
   std::vector<double>::iterator c1val = ((Centroid_Multi*)c1)->cvals_.begin();
   DcArray::iterator dcalc = dcalcs_.begin();
-  for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
+  for (D1Array::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
     double diff = (*dcalc)((*ds)->Dval(f1), *(c1val++));
     dist += (diff * diff);
   }
@@ -177,11 +169,11 @@ double ClusterDist_Euclid::FrameCentroidDist(int f1, Centroid* c1) {
 void ClusterDist_Euclid::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Multi* cent = (Centroid_Multi*)centIn;
   cent->cvals_.clear();
-  for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
-    if (IsTorsionArray(*(*ds)))
-      cent->cvals_.push_back( AvgCalc_Dih(*ds, cframesIn) );
+  for (D1Array::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
+    if ((*ds)->IsTorsionArray())
+      cent->cvals_.push_back( AvgCalc_Dih(*(*ds), cframesIn) );
     else
-      cent->cvals_.push_back( AvgCalc_Std(*ds, cframesIn) );
+      cent->cvals_.push_back( AvgCalc_Std(*(*ds), cframesIn) );
   }
 }
 

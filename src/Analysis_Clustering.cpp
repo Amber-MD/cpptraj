@@ -77,6 +77,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
         mprinterr("Error: cluster: dataset %s not found.\n", (*name).c_str());
         return Analysis::ERR;
       }
+      // Clustering only allowed on 1D data sets.
+      if ( ds->Ndim() != 1 ) {
+        mprinterr("Error: Clustering only allowed on 1D data sets, %s is %zuD.\n",
+                  (*name).c_str(), ds->Ndim());
+        return Analysis::ERR;
+      }
       cluster_dataset_.push_back( ds );
     }
   } else {
