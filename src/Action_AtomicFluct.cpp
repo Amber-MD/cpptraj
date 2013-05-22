@@ -2,6 +2,7 @@
 #include "Action_AtomicFluct.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
+#include "DataSet_double.h"
 
 // CONSTRUCTOR
 Action_AtomicFluct::Action_AtomicFluct() :
@@ -44,10 +45,8 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return Action::ERR; 
   }
-  if (outfile_ != 0) {
+  if (outfile_ != 0) 
     outfile_->AddSet( dataout_ );
-    outfile_->ProcessArgs("noemptyframes");
-  }
   mprintf("    ATOMICFLUCT: calculating");
   if (bfactor_)
     mprintf(" B factors");
@@ -107,9 +106,6 @@ Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame,
 
 // Action_AtomicFluct::print() 
 void Action_AtomicFluct::Print() {
-  int atom, res;
-  double xi, fluct, mass;
-
   mprintf("    ATOMICFLUCT: Calculating fluctuations for %i sets.\n",sets_);
 
   double Nsets = (double)sets_;
@@ -131,7 +127,7 @@ void Action_AtomicFluct::Print() {
   if (bfactor_) {
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
-    outfile_->ProcessArgs( "ylabel B-factors" );
+    outfile_->Dim(Dimension::Y).SetLabel("B-factors");
     double bfac = (8.0/3.0)*PI*PI;
     for (int i = 0; i < SumCoords2_.size(); i+=3) {
       double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
@@ -149,54 +145,53 @@ void Action_AtomicFluct::Print() {
     }
   }
 
-  switch (outtype_) {
+  int minElt = -1;
+  DataSet_double& dset = static_cast<DataSet_double&>( *dataout_ );
+  if (outtype_ == BYATOM) {
     // By atom output
-    case BYATOM:
-      outfile_->ProcessArgs("xlabel Atom");
-      for (atom = 0; atom < (int)Results.size(); atom++ ) {
-        if (Mask.AtomInCharMask(atom)) 
-          dataout_->Add( atom, &(Results[atom]) );
+    outfile_->Dim(Dimension::X).SetLabel("Atom");
+    for (int atom = 0; atom < (int)Results.size(); atom++ ) {
+      if (Mask.AtomInCharMask(atom)) {
+        if (minElt == -1) minElt = atom;
+        dset.AddElement( Results[atom] );
       }
-      break;
+    }
+  } else if (outtype_ == BYRES) { 
     // By residue output
-    case BYRES:
-      outfile_->ProcessArgs("xlabel Res");
-      res = 0;
-      for (Topology::res_iterator residue = fluctParm_->ResStart();
-                                  residue != fluctParm_->ResEnd(); ++residue) {
-        xi = 0;
-        fluct = 0;
-        for (atom = (*residue).FirstAtom(); atom < (*residue).LastAtom(); atom++) {
-          if ( Mask.AtomInCharMask(atom) ) {
-            mass = (*fluctParm_)[atom].Mass(); 
-            xi += mass;
-            fluct += Results[atom] * mass;
-          }
-        }
-        if (xi > SMALL) {
-          mass = fluct / xi;
-          dataout_->Add( res, &mass );
-        }
-        ++res;
-      }
-      break;
-    // By mask output
-    case BYMASK:
-      outfile_->ProcessArgs( "xlabel " + Mask.MaskExpression() );
-      xi = 0;
-      fluct = 0;
-      for (atom = 0; atom < (int)Results.size(); atom++) {
-        if (Mask.AtomInCharMask(atom)) {
-          mass = (*fluctParm_)[atom].Mass();
+    outfile_->Dim(Dimension::X).SetLabel("Res");
+    for (Topology::res_iterator residue = fluctParm_->ResStart();
+                                residue != fluctParm_->ResEnd(); ++residue) {
+      double xi = 0.0;
+      double fluct = 0.0;
+      for (int atom = (*residue).FirstAtom(); atom < (*residue).LastAtom(); atom++) {
+        if ( Mask.AtomInCharMask(atom) ) {
+          double mass = (*fluctParm_)[atom].Mass(); 
           xi += mass;
           fluct += Results[atom] * mass;
         }
       }
-      if (xi > SMALL) {
-        mass = fluct / xi;
-        dataout_->Add( 0, &mass );
+      if (xi > SMALL) { 
+        dset.AddElement( fluct / xi );
+        if (minElt == -1) minElt = (int)(residue - fluctParm_->ResStart());
       }
-      break;
+    }
+  } else if (outtype_ == BYMASK) {
+    // By mask output
+    minElt = 0;
+    outfile_->Dim(Dimension::X).SetLabel( Mask.MaskExpression() );
+    double xi = 0.0;
+    double fluct = 0.0;
+    for (int atom = 0; atom < (int)Results.size(); atom++) {
+      if (Mask.AtomInCharMask(atom)) {
+        double mass = (*fluctParm_)[atom].Mass();
+        xi += mass;
+        fluct += Results[atom] * mass;
+      }
+    }
+    if (xi > SMALL) 
+      dset.AddElement( fluct / xi );
   }
+  if (minElt > -1)
+    outfile_->Dim(Dimension::X).SetMin( minElt+1 );
 }
 

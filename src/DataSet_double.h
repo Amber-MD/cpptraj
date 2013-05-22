@@ -21,6 +21,7 @@ class DataSet_double : public DataSet_1D {
     double Dval(size_t idx)  const { return Data_[idx];         }
     void WriteBuffer(CpptrajFile&, size_t) const;
     // -------------------------------------------
+    void AddElement(double d)      { Data_.push_back( d );      }
     typedef std::vector<double>::iterator iterator;
     iterator begin() { return Data_.begin(); }
     iterator end()   { return Data_.end();   }

@@ -3,7 +3,6 @@
 #include <cstring> // memset
 #include "Action_Radial.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // doubleToString
 #include "Constants.h" // FOURTHIRDSPI
 #ifdef _OPENMP
 #  include "omp.h"
@@ -115,11 +114,11 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Set DataSet legend from mask strings.
   Dset_->SetLegend(Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression());
   // Setup output datafile. Align on bin centers instead of left.
-  std::string outfile_args = "xmin " + doubleToString(spacing_ / 2.0) + 
-                             " xstep " + doubleToString(spacing_);
-  outfile->ProcessArgs(outfile_args);
-  // Set axis labels. Enclose in quotes so the label is 1 arg.
-  outfile->ProcessArgs("xlabel \"Distance (Ang)\" ylabel g(r)");
+  outfile->Dim(Dimension::X).SetMin( spacing_ / 2.0 );
+  outfile->Dim(Dimension::X).SetStep( spacing_ );
+  // Set axis labels. 
+  outfile->Dim(Dimension::X).SetLabel("Distance (Ang)");
+  outfile->Dim(Dimension::Y).SetLabel("g(r)");
   // Set up output for integral of mask2 if specified.
   if (!intrdfname.empty()) {
     intrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "int" );
@@ -130,9 +129,12 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       mprinterr("Error: Could not add intrdf set to file %s\n", intrdfname.c_str());
       return Action::ERR;
     }
-    outfile->ProcessArgs(outfile_args);
-    if (intrdfname != outfilename)
-      outfile->ProcessArgs("xlabel \"Distance (Ang)\" ylabel \" \"");
+    if (intrdfname != outfilename) {
+      outfile->Dim(Dimension::X).SetLabel("Distance (Ang)");
+      outfile->Dim(Dimension::Y).SetLabel("");
+      outfile->Dim(Dimension::X).SetMin( spacing_ / 2.0 );
+      outfile->Dim(Dimension::X).SetStep( spacing_ );
+    }
   } else
     intrdf_ = 0;
   // Set up output for raw rdf
@@ -145,9 +147,12 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       mprinterr("Error: Could not add rawrdf set to file %s\n", rawrdfname.c_str());
       return Action::ERR;
     }
-    outfile->ProcessArgs(outfile_args);
-    if (rawrdfname != outfilename)
-      outfile->ProcessArgs("xlabel \"Distance (Ang)\" ylabel \"Distrances\"");
+    if (rawrdfname != outfilename) {
+      outfile->Dim(Dimension::X).SetLabel("Distance (Ang)");
+      outfile->Dim(Dimension::Y).SetLabel("Distances");
+      outfile->Dim(Dimension::X).SetMin( spacing_ / 2.0 );
+      outfile->Dim(Dimension::X).SetStep( spacing_ );
+    }
   } else
     rawrdf_ = 0;
 

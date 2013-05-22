@@ -335,7 +335,7 @@ void Action_Rmsd::Print() {
     // Add the average and stdev datasets to the master datafile list
     perresavg_->AddSet(PerResAvg);
     perresavg_->AddSet(PerResStdev);
-    perresavg_->ProcessArgs("xlabel Residue");
+    perresavg_->Dim(Dimension::X).SetLabel("Residue");
     // For each residue, get the average rmsd
     double stdev = 0;
     double avg = 0;

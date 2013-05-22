@@ -34,8 +34,10 @@ class DataFile {
     void WriteData();
 
     void SetPrecision(int, int);
-    FileName const& DataFilename() const  { return filename_; }
-    void DataSetNames();
+    FileName const& DataFilename()    const { return filename_;      }
+    Dimension& Dim(Dimension::DimIdxType i) { return Dim_[(int)i];   }
+    void SetDim(Dimension::DimIdxType i, Dimension const& d) { Dim_[(int)i]=d; }
+    void DataSetNames() const;
   private:
     struct DataFileToken {
       DataFormatType Type;

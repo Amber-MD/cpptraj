@@ -93,7 +93,6 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
       mprinterr("Internal Error: File %s was not set up.\n", filename_.c_str());
       return Action::ERR;
     }
-    df->ProcessArgs("noemptyframes");
   }
 
   mprintf("    PROJECTION: Calculating projection using modes %i to %i of %s\n",

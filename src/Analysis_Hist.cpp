@@ -325,34 +325,23 @@ Analysis::RetType Analysis_Hist::Analyze() {
     DataSet_double& dds = static_cast<DataSet_double&>( *hist_ );
     dds.Allocate1D( dimensions_[0].Bins() );
     std::copy( Bins_.begin(), Bins_.end(), dds.begin() );
-    outfile_->ProcessArgs("xlabel " + dimensions_[0].Label() + " ylabel Count" +
-                          " xmin "  + doubleToString( dimensions_[0].Min()  ) +
-                          " xstep " + doubleToString( dimensions_[0].Step() )  );
+    outfile_->SetDim(Dimension::X, dimensions_[0]);
+    outfile_->Dim(Dimension::Y).SetLabel("Count");
   } else if (N_dimensions_ == 2) {
     DataSet_MatrixDbl& mds = static_cast<DataSet_MatrixDbl&>( *hist_ );
     mds.Allocate2D( dimensions_[0].Bins(), dimensions_[1].Bins() );
     std::copy( Bins_.begin(), Bins_.end(), mds.begin() );
-    outfile_->ProcessArgs("xlabel "  + dimensions_[0].Label() +
-                          " ylabel " + dimensions_[1].Label() +
-                          " xmin "   + doubleToString( dimensions_[0].Min()  ) +
-                          " xstep "  + doubleToString( dimensions_[0].Step() ) +
-                          " ymin "   + doubleToString( dimensions_[1].Min()  ) +
-                          " ystep "  + doubleToString( dimensions_[1].Step() ) +
-                          "noxcol usemap nolabels");
+    outfile_->SetDim(Dimension::X, dimensions_[0]);
+    outfile_->SetDim(Dimension::Y, dimensions_[1]);
+    outfile_->ProcessArgs("noxcol usemap nolabels");
   } else if (N_dimensions_ == 3) {
     DataSet_GridFlt& gds = static_cast<DataSet_GridFlt&>( *hist_ );
     gds.Allocate3D( dimensions_[0].Bins(), dimensions_[1].Bins(), dimensions_[2].Bins() );
     std::copy( Bins_.begin(), Bins_.end(), gds.begin() );
-    outfile_->ProcessArgs("xlabel "  + dimensions_[0].Label() +
-                          " ylabel " + dimensions_[1].Label() +
-                          " zlabel " + dimensions_[2].Label() + 
-                          " xmin "   + doubleToString( dimensions_[0].Min()  ) +
-                          " xstep "  + doubleToString( dimensions_[0].Step() ) +
-                          " ymin "   + doubleToString( dimensions_[1].Min()  ) +
-                          " ystep "  + doubleToString( dimensions_[1].Step() ) +
-                          " zmin "   + doubleToString( dimensions_[2].Min()  ) +
-                          " zstep "  + doubleToString( dimensions_[2].Step() ) +
-                          "noxcol usemap nolabels");
+    outfile_->SetDim(Dimension::X, dimensions_[0]);
+    outfile_->SetDim(Dimension::Y, dimensions_[1]);
+    outfile_->SetDim(Dimension::Z, dimensions_[2]);
+    outfile_->ProcessArgs("noxcol usemap nolabels");
   } else {
     // Use Histogram built-in output
     PrintBins();

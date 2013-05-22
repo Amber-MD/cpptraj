@@ -217,9 +217,9 @@ void Action_AtomicCorr::Print() {
   } // END outer loop
 
   if (acorr_mode_ == ATOM)
-    outfile_->ProcessArgs("xlabel Atom");
+    outfile_->Dim(Dimension::X).SetLabel("Atom");
   else
-    outfile_->ProcessArgs("xlabel Residue");
+    outfile_->Dim(Dimension::X).SetLabel("Residue");
   std::string ylabels = "ylabels ";
   for (ACvector::iterator atom = atom_vectors_.begin();
                           atom != atom_vectors_.end(); ++atom)

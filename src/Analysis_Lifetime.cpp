@@ -24,7 +24,6 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
 {
   // Get Keywords
   DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  if (outfile != 0) outfile->ProcessArgs("noemptyframes");
   DataFile* maxfile = 0;
   DataFile* avgfile = 0;
   std::string setname = analyzeArgs.GetStringKey("name");
@@ -32,9 +31,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   averageonly_ = analyzeArgs.hasKey("averageonly");
   if (!averageonly_ && outfile != 0) {
     maxfile = DFLin->AddDataFile("max." + outfile->DataFilename().Full(), analyzeArgs);
-    maxfile->ProcessArgs("noemptyframes");
     avgfile = DFLin->AddDataFile("avg." + outfile->DataFilename().Full(), analyzeArgs);
-    avgfile->ProcessArgs("noemptyframes");
   }
   cumulative_ = analyzeArgs.hasKey("cumulative");
   deltaAvg_ = analyzeArgs.hasKey("delta");

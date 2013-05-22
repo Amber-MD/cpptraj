@@ -71,8 +71,8 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   }
   // Setup output file
   if (bfactor_)
-    outfile->ProcessArgs("ylabel B-factors");
-  outfile->ProcessArgs("xlabel Atom noemptyframes");
+    outfile->Dim(Dimension::Y).SetLabel("B-factors");
+  outfile->Dim(Dimension::X).SetLabel("Atom");
 
   return Analysis::OK;
 }

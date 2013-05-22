@@ -5,6 +5,7 @@
 //TODO: Split into Dimension and HistDimension
 class Dimension {
   public:
+    enum DimIdxType { X = 0, Y, Z };
     Dimension();
     Dimension(const Dimension&);
     Dimension& operator=(const Dimension&);

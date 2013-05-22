@@ -2,7 +2,6 @@
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
-#include "StringRoutines.h" // integerToString
 /// Hbond energy calc prefactor
 // From ptraj actions.c:transformSecStruct 0.42*0.20*332
 const double Action_DSSP::DSSP_fac = 27.888;
@@ -419,7 +418,7 @@ void Action_DSSP::Print() {
     dsspFile_->AddSet( dsspData_[ss] ); 
   }
   // Change the X label to Residue
-  dsspFile_->ProcessArgs("xlabel Residue");
+  dsspFile_->Dim(Dimension::X).SetLabel("Residue");
   // Try not to print empty residues. Find the minimum selected residue and 
   // maximum selected residue. Output res nums start from 1.
   int min_res = -1;
@@ -434,7 +433,7 @@ void Action_DSSP::Print() {
     mprinterr("Error: dssp: No selected residues.\n");
     return;
   }
-  dsspFile_->ProcessArgs("xmin " + integerToString(min_res+1));
+  dsspFile_->Dim(Dimension::X).SetMin(min_res+1);
     
   // Calc the avg structure of each type for each selected residue
   int idx = 0; 

@@ -11,7 +11,6 @@
 #include "DataIO_OpenDx.h"
 
 // TODO: Support these args:
-//       - noemptyframes: Deprecate.
 //       - xlabel, xmin, xstep, time (all dimensions).
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -303,7 +302,7 @@ void DataFile::SetPrecision(int widthIn, int precisionIn) {
 /** Print Dataset names to one line. If the number of datasets is greater 
   * than 10 just print the first and last 4 data sets.
   */
-void DataFile::DataSetNames() {
+void DataFile::DataSetNames() const {
   DataSetList::const_iterator set = SetList_.begin();
   if (SetList_.size() > 10) {
     int setnum = 0;

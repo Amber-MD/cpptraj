@@ -1,7 +1,6 @@
 #include <cmath> // sqrt
 #include "Analysis_FFT.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // doubleToString
 #include "PubFFT.h"
 
 // CONSTRUCTOR
@@ -87,8 +86,11 @@ Analysis::RetType Analysis_FFT::Analyze() {
   double fnyquist = sr / 2.0;         // Nyquist frequency
   double total_time = dt_ * (double)maxsize_; // Total time (fundamental period)
   double f0 = 1.0 / total_time;       // Fundamental frequency (first harmonic)
-  if (outfile_ != 0) 
-    outfile_->ProcessArgs("xlabel Freq. xmin 0 xstep " + doubleToString( f0 ));
+  if (outfile_ != 0) { 
+    outfile_->Dim(Dimension::X).SetLabel("Freq.");
+    outfile_->Dim(Dimension::X).SetMin(0.0);
+    outfile_->Dim(Dimension::X).SetStep(f0);
+  }
   double norm = (double)maxsize_ / 2;
 
   std::vector<DataSet_1D*>::iterator dsout = output_dsets_.begin();
