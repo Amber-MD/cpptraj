@@ -8,7 +8,9 @@ Dimension::Dimension() :
   max_(0),
   step_(-1),
   bins_(-1),
-  offset_(0)
+  offset_(0),
+  minIsSet_(false),
+  maxIsSet_(false)
 {}
 
 // COPY CONSTRUCTOR
@@ -18,7 +20,9 @@ Dimension::Dimension(const Dimension& rhs) :
   max_(rhs.max_),
   step_(rhs.step_),
   bins_(rhs.bins_),
-  offset_(rhs.offset_)
+  offset_(rhs.offset_),
+  minIsSet_(rhs.minIsSet_),
+  maxIsSet_(rhs.maxIsSet_)
 {}
 
 // Assignment
@@ -30,6 +34,8 @@ Dimension& Dimension::operator=(const Dimension& rhs) {
   step_ = rhs.step_;
   bins_ = rhs.bins_;
   offset_ = rhs.offset_;
+  minIsSet_ = rhs.minIsSet_;
+  maxIsSet_ = rhs.maxIsSet_;
   return *this;
 }
 
@@ -39,6 +45,10 @@ Dimension& Dimension::operator=(const Dimension& rhs) {
   * step. When calculating bins from a stepsize, round up.
   */
 int Dimension::CalcBinsOrStep() {
+  if (!minIsSet_ || !maxIsSet_) {
+    mprinterr("Error: Dimension::CalcBinsOrStep: [%s] min or max not set.\n", label_.c_str());
+    return 1;
+  }
   if (bins_!=-1 && step_!=-1) {
     mprintf("\tHist: Bins and step have been specified. Recalculating step.\n");
     step_ = -1;

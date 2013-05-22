@@ -105,6 +105,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
   }
 
   // If no min arg and no default min arg, get min from dataset
+  // TODO: Use Min/MaxIsSet
   if (!minArg) {
     if (!minArgSet_) 
       dim.SetMin( dset.Min() );

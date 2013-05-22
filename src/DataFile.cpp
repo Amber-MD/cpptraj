@@ -70,7 +70,8 @@ DataFile::DataFormatType DataFile::GetTypeFromExtension( std::string const& extI
 {
   for (TokenPtr token = DataFileArray; token->Type != UNKNOWN_DATA; ++token)
     if ( extIn.compare( token->Extension ) == 0 ) return token->Type;
-  return UNKNOWN_DATA;
+  // Default to DATAFILE
+  return DATAFILE;
 }
 
 // DataFile::FormatString()
@@ -153,15 +154,17 @@ int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
   return 0;
 }
 
+inline int Error(const char* msg) { mprinterr(msg); return 1; }
+
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debugIn) {
   SetDebug( debugIn );
-  if (fnameIn.empty()) return 1;
+  if (fnameIn.empty()) return Error("Error: No data file name specified.\n");
   filename_.SetFileName( fnameIn );
   // Set up DataIO based on format.
   // FIXME: Use DetectFormat()
   dataio_ = AllocDataIO( GetTypeFromExtension(filename_.Ext()) );
-  if (dataio_ == 0) return 1;
+  if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
   if (!argIn.empty())
     ProcessArgs( argIn );
   return 0;
@@ -177,9 +180,7 @@ int DataFile::AddSet(DataSet* dataIn) {
               filename_.base(), dimension_);
     mprinterr("Error: Attempting to add set %s of dimension %u\n", 
               dataIn->Legend().c_str(), dataIn->Ndim());
-    mprinterr("Error: Adding DataSets with different dimensions to same file\n");
-    mprinterr("Error: is currently unsupported.\n");
-    return 1;
+    return Error("Error: Adding DataSets with different dimensions to same file is currently unsupported.\n");
   }
   SetList_.AddCopyOfSet( dataIn );
   return 0;
@@ -202,8 +203,8 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   if (argIn.Contains("ylabel"))
     Dim_[1].SetLabel( argIn.GetStringKey("ylabel") );
   // Axis min/step
-  Dim_[0].SetMin( argIn.getKeyDouble("xmin", Dim_[0].Min()) );
-  Dim_[1].SetMin( argIn.getKeyDouble("ymin", Dim_[1].Min()) );
+  if (argIn.Contains("xmin")) Dim_[0].SetMin( argIn.getKeyDouble("xmin",0.0) );
+  if (argIn.Contains("ymin")) Dim_[1].SetMin( argIn.getKeyDouble("ymin",0.0) );
   Dim_[0].SetStep( argIn.getKeyDouble("xstep", Dim_[0].Step()) );
   Dim_[1].SetStep( argIn.getKeyDouble("ystep", Dim_[1].Step()) );
   // ptraj 'time' keyword
@@ -254,49 +255,41 @@ void DataFile::WriteData() {
   }
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);
-  // Set defaults for dimensions if not already set.
-  for (unsigned int nd = 0; nd < 3; nd++) {
-    // Set min if not already set. 
-    if (Dim_[nd].Min() == 0 && Dim_[nd].Max() == 0)
-      Dim_[nd].SetMin( 1.0 );
-    // Set step if not already set.
-    if (Dim_[nd].Step() < 0)
-      Dim_[nd].SetStep( 1.0 );
+  // Set default min and step for all dimensions if not already set.
+  for (int nd = 0; nd < 3; nd++) {
+    if (!Dim_[nd].MinIsSet()) Dim_[nd].SetMin(1.0);
+    if (Dim_[nd].Step() < 0) Dim_[nd].SetStep(1.0);
   }
-  // Set labels if not already set.
-  if (Dim_[0].Label().empty()) Dim_[0].SetLabel("Frame");
 #ifdef DATAFILE_TIME
   clock_t t0 = clock();
 #endif
-  if ( dimension_ == 1 ) {
-    // Set min if not already set. 
-    if (Dim_[0].Min() == 0 && Dim_[0].Max() == 0) 
-      Dim_[0].SetMin( 1.0 );
-    // Set step if not already set.
-    if (Dim_[0].Step() < 0)
-      Dim_[0].SetStep( 1.0 );
-    // Set label if not already set.
-    if (Dim_[0].Label().empty())
-      Dim_[0].SetLabel("Frame");
-    mprintf("%s: Writing 1D data.\n",filename_.base());
+  int err = 0;
+  if ( dimension_ == 1 ) {       // One-dimensional
+    // Set x label if not already set
+    if (Dim_[0].Label().empty()) Dim_[0].SetLabel("Frame");
     if (!isInverted_)
-      dataio_->WriteData(filename_.Full(), SetList_, Dim_);
+      err = dataio_->WriteData(filename_.Full(), SetList_, Dim_);
     else
-      dataio_->WriteDataInverted(filename_.Full(), SetList_, Dim_);
-  } else if ( dimension_ == 2) {
-    mprintf("%s: Writing 2D data.\n",filename_.base());
-    int err = 0;
+      err = dataio_->WriteDataInverted(filename_.Full(), SetList_, Dim_);
+  } else if ( dimension_ == 2) { // Two-dimensional
     for ( DataSetList::const_iterator set = SetList_.begin();
                                       set != SetList_.end(); ++set)
       err += dataio_->WriteData2D(filename_.Full(), *(*set), Dim_ );
-    if (err > 0) 
-      mprinterr("Error writing 2D DataSets to %s\n", filename_.base());
+  } else if ( dimension_ == 3) { // Three-dimensional
+    for ( DataSetList::const_iterator set = SetList_.begin();
+                                      set != SetList_.end(); ++set)
+      err += dataio_->WriteData3D(filename_.Full(), *(*set), Dim_ );
+  } else {
+    mprinterr("Error: %iD writes not yet supported.\n", dimension_);
+    err = 1;
   }
 #ifdef DATAFILE_TIME
   clock_t tf = clock();
   mprinterr("DataFile %s Write took %f seconds.\n", filename_.base(),
             ((float)(tf - t0)) / CLOCKS_PER_SEC);
 #endif
+  if (err > 0) 
+    mprinterr("Error writing %iD Data to %s\n", dimension_, filename_.base());
 }
 
 // DataFile::SetPrecision()

@@ -2,6 +2,7 @@
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "StringRoutines.h" // integerToString
 /// Hbond energy calc prefactor
 // From ptraj actions.c:transformSecStruct 0.42*0.20*332
 const double Action_DSSP::DSSP_fac = 27.888;
@@ -189,7 +190,7 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
       }
     }
     // Set up dataset if necessary 
-    if (!printString_ && SecStruct_[res].resDataSet==0) {
+    if (!printString_ && SecStruct_[res].isSelected && SecStruct_[res].resDataSet==0) {
       // Set default name if none specified
       if (dsetname_.empty()) dsetname_=masterDSL_->GenerateDefaultName("DSSP");
       // Setup dataset name for this residue
@@ -406,33 +407,45 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
   * Prepare for output via the master data file list.
   */
 void Action_DSSP::Print() {
-  int resi, ss;
-  double avg;
   std::vector<DataSet*> dsspData_(7);
 
   if (dsspFile_ == 0) return;
   if (dsetname_.empty()) return;
 
   // Set up a dataset for each SS type
-  for (ss=1; ss<7; ss++) {
+  for (int ss=1; ss<7; ss++) {
     dsspData_[ss] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dsetname_, ss, "avgss");
     dsspData_[ss]->SetLegend( SSname[ss] );
     dsspFile_->AddSet( dsspData_[ss] ); 
   }
   // Change the X label to Residue
   dsspFile_->ProcessArgs("xlabel Residue");
-  // Dont print empty frames
-  // NOTE: Obsolete?
-  dsspFile_->ProcessArgs("noemptyframes");
-
-  // Calc the avg structure of each type for each selected residue 
-  for (resi=0; resi < Nres_; resi++) {
+  // Try not to print empty residues. Find the minimum selected residue and 
+  // maximum selected residue. Output res nums start from 1.
+  int min_res = -1;
+  int max_res = -1;
+  for (int resi=0; resi < Nres_; resi++) {
+    if (SecStruct_[resi].isSelected) {
+      if (min_res < 0) min_res = resi;
+      if (resi > max_res) max_res = resi;
+    }
+  }
+  if (min_res < 0 || max_res < min_res) {
+    mprinterr("Error: dssp: No selected residues.\n");
+    return;
+  }
+  dsspFile_->ProcessArgs("xmin " + integerToString(min_res+1));
+    
+  // Calc the avg structure of each type for each selected residue
+  int idx = 0; 
+  for (int resi=min_res; resi < max_res+1; resi++) {
     if (!SecStruct_[resi].isSelected) continue;
     // FIXME: What about ss = 0
-    for (ss=1; ss<7; ss++) {
-      avg = (double)SecStruct_[resi].SSprob[ss];
+    for (int ss=1; ss<7; ss++) {
+      double avg = (double)SecStruct_[resi].SSprob[ss];
       avg /= (double)Nframe_;
-      dsspData_[ss]->Add(resi, &avg);
+      dsspData_[ss]->Add(idx, &avg);
     }
+    ++idx;
   }
 }
