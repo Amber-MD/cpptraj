@@ -36,6 +36,7 @@ class Analysis_Hist : public Analysis {
     bool normalize_;                     ///< if true, normalize histogram.
     bool gnuplot_;                       ///< For internal write only
     bool circular_;                      ///< If true, wrap histogram dimensions.
+    bool nativeOut_;                     ///< If true, use built in output routine.
     std::string outfilename_;            ///< Stored in case internal write used (DIM > 3)
     size_t N_dimensions_;                ///< # of histogram dimensions.
 

@@ -15,8 +15,9 @@ Analysis_Hist::Analysis_Hist() :
   calcFreeE_(false),
   Temp_(-1.0),
   normalize_(false),
-//  gnuplot_(false),
+  gnuplot_(false),
   circular_(false),
+  nativeOut_(false),
   N_dimensions_(0),
   minArgSet_(false),
   maxArgSet_(false)
@@ -25,7 +26,7 @@ Analysis_Hist::Analysis_Hist() :
 void Analysis_Hist::Help() {
   mprintf("\t<dataset_name>[,min,max,step,bins] ...\n");
   mprintf("\t[free <temperature>] [norm] [gnu] [circular] out <filename>\n");
-  mprintf("\t[min <min>] [max <max>] [step <step>] [bins <bins>]\n");
+  mprintf("\t[min <min>] [max <max>] [step <step>] [bins <bins>] [nativeout]\n");
   mprintf("\tHistogram the given data set(s)\n");
 }
 
@@ -139,10 +140,10 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
   dimensions_.push_back( dim );
 
   // Recalculate offsets for all dimensions starting at farthest coord. This
-  // follows column major ordering.
+  // follows row major ordering.
   offset = 1UL;
-  for (std::vector<Dimension>::reverse_iterator rd = dimensions_.rbegin();
-                                                rd != dimensions_.rend(); ++rd)
+  for (std::vector<Dimension>::iterator rd = dimensions_.begin();
+                                        rd != dimensions_.end(); ++rd)
   {
     if (debug_>0) mprintf("\tHistogram: %s offset is %zu\n",(*rd).Label().c_str(), offset);
     (*rd).SetOffset( offset );
@@ -175,6 +176,7 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   gnuplot_ = analyzeArgs.hasKey("gnu");
   normalize_ = analyzeArgs.hasKey("norm");
   circular_ = analyzeArgs.hasKey("circular");
+  nativeOut_ = analyzeArgs.hasKey("nativeout");
   if ( analyzeArgs.Contains("min") ) {
     default_dim_.SetMin( analyzeArgs.getKeyDouble("min",0.0) );
     minArgSet_ = true;
@@ -201,18 +203,20 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   }
   // Total # of dimensions for the histogram is the number of sets to be binned.
   N_dimensions_ = histdata_.size();
-  switch ( N_dimensions_ ) {
-    case 1: hist_ = datasetlist->AddSet( DataSet::DOUBLE,     histname, "Hist"); break;
-    case 2: hist_ = datasetlist->AddSet( DataSet::MATRIX_DBL, histname, "Hist"); break;
-    // TODO: GRID_DBL
-    case 3: hist_ = datasetlist->AddSet( DataSet::GRID_FLT,   histname, "Hist"); break;
-    default: // FIXME: GET N DIMENSION CASE!
-      mprintf("Warning: Histogram dimension > 3. DataSet/DataFile output not supported.\n");
-      mprintf("Warning: Using internal routine for output.\n");
+  if (!nativeOut_) {
+    switch ( N_dimensions_ ) {
+      case 1: hist_ = datasetlist->AddSet( DataSet::DOUBLE,     histname, "Hist"); break;
+      case 2: hist_ = datasetlist->AddSet( DataSet::MATRIX_DBL, histname, "Hist"); break;
+      // TODO: GRID_DBL
+      case 3: hist_ = datasetlist->AddSet( DataSet::GRID_FLT,   histname, "Hist"); break;
+      default: // FIXME: GET N DIMENSION CASE!
+        mprintf("Warning: Histogram dimension > 3. DataSet/DataFile output not supported.\n");
+        nativeOut_ = true;
+    }
   }
   // Set up output data file
   outfile_ = 0;
-  if (N_dimensions_ < 3) {
+  if (!nativeOut_) {
     if (hist_ == 0) {
       mprinterr("Error: Could not set up histogram data set.\n");
       return Analysis::ERR;
@@ -230,6 +234,8 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   mprintf("]\n");
   if (calcFreeE_)
     mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp_);
+  if (nativeOut_)
+    mprintf("\tUsing internal routine for output. Data will not be stored on the data set list.\n");
   //if (circular_ || gnuplot_) {
   //  mprintf("\tWarning: gnuplot and/or circular specified; advanced grace/gnuplot\n");
   //  mprintf("\t         formatting disabled.\n");*/
@@ -295,11 +301,11 @@ Analysis::RetType Analysis_Hist::Analyze() {
       index += (idx * (*dim).Offset());
     }
     // If index was successfully calculated, populate bin
-    if (index > -1 && index < (int)hist_->Size()) {
+    if (index > -1 && index < (int)Bins_.size()) {
       if (debug_ > 1) mprintf(" |index=%i",index);
       Bins_[index]++;
     } else {
-      mprintf("\tWarning: Frame %u Coordinates out of bounds (%i)\n", n, index);
+      mprintf("\tWarning: Frame %u Coordinates out of bounds (%i)\n", n+1, index);
     }
     if (debug_>1) mprintf("}\n");
   }
@@ -320,34 +326,35 @@ Analysis::RetType Analysis_Hist::Analyze() {
   // Normalize if requested
   if (normalize_) Normalize();
 
-  // Using DataFileList framework, set-up labels etc.
-  if (N_dimensions_ == 1) {
-    DataSet_double& dds = static_cast<DataSet_double&>( *hist_ );
-    dds.Allocate1D( dimensions_[0].Bins() );
-    std::copy( Bins_.begin(), Bins_.end(), dds.begin() );
-    outfile_->SetDim(Dimension::X, dimensions_[0]);
-    outfile_->Dim(Dimension::Y).SetLabel("Count");
-  } else if (N_dimensions_ == 2) {
-    DataSet_MatrixDbl& mds = static_cast<DataSet_MatrixDbl&>( *hist_ );
-    mds.Allocate2D( dimensions_[0].Bins(), dimensions_[1].Bins() );
-    std::copy( Bins_.begin(), Bins_.end(), mds.begin() );
-    outfile_->SetDim(Dimension::X, dimensions_[0]);
-    outfile_->SetDim(Dimension::Y, dimensions_[1]);
-    outfile_->ProcessArgs("noxcol usemap nolabels");
-  } else if (N_dimensions_ == 3) {
-    DataSet_GridFlt& gds = static_cast<DataSet_GridFlt&>( *hist_ );
-    gds.Allocate3D( dimensions_[0].Bins(), dimensions_[1].Bins(), dimensions_[2].Bins() );
-    std::copy( Bins_.begin(), Bins_.end(), gds.begin() );
-    outfile_->SetDim(Dimension::X, dimensions_[0]);
-    outfile_->SetDim(Dimension::Y, dimensions_[1]);
-    outfile_->SetDim(Dimension::Z, dimensions_[2]);
-    outfile_->ProcessArgs("noxcol usemap nolabels");
-  } else {
+  if (nativeOut_) {
     // Use Histogram built-in output
     PrintBins();
+  } else {
+    // Using DataFileList framework, set-up labels etc.
+    if (N_dimensions_ == 1) {
+      DataSet_double& dds = static_cast<DataSet_double&>( *hist_ );
+      // Since Allocate1D only reserves data, use assignment op.
+      dds = Bins_;
+      outfile_->SetDim(Dimension::X, dimensions_[0]);
+      outfile_->Dim(Dimension::Y).SetLabel("Count");
+    } else if (N_dimensions_ == 2) {
+      DataSet_MatrixDbl& mds = static_cast<DataSet_MatrixDbl&>( *hist_ );
+      mds.Allocate2D( dimensions_[0].Bins(), dimensions_[1].Bins() );
+      std::copy( Bins_.begin(), Bins_.end(), mds.begin() );
+      outfile_->SetDim(Dimension::X, dimensions_[0]);
+      outfile_->SetDim(Dimension::Y, dimensions_[1]);
+      outfile_->ProcessArgs("noxcol usemap nolabels");
+    } else if (N_dimensions_ == 3) {
+      DataSet_GridFlt& gds = static_cast<DataSet_GridFlt&>( *hist_ );
+      gds.Allocate3D( dimensions_[0].Bins(), dimensions_[1].Bins(), dimensions_[2].Bins() );
+      std::copy( Bins_.begin(), Bins_.end(), gds.begin() );
+      outfile_->SetDim(Dimension::X, dimensions_[0]);
+      outfile_->SetDim(Dimension::Y, dimensions_[1]);
+      outfile_->SetDim(Dimension::Z, dimensions_[2]);
+      outfile_->ProcessArgs("noxcol usemap nolabels");
+    }
   }
 
-  //hist.PrintBins(false,false);
   return Analysis::OK;
 }
 
@@ -548,4 +555,3 @@ void Analysis_Hist::PrintBins() {
     outfile.Printf("end\npause -1\n");
   outfile.CloseFile();
 }
-

@@ -9,6 +9,7 @@ class DataSet_double : public DataSet_1D {
     DataSet_double() : DataSet_1D(DOUBLE, 12, 4) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_double();}
     double& operator[](size_t idx) { return Data_[idx];         }
+    void operator=(std::vector<double> const& rhs) { Data_ = rhs; }
     /// Make set size sizeIn, all values set to 0.0.
     void Resize(size_t sizeIn)     { Data_.resize(sizeIn, 0.0); }
     // ----- DataSet functions -------------------
