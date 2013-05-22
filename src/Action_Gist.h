@@ -48,10 +48,16 @@ class Action_Gist: public Action, ImagedAction  {
     int MAX_GRID_PT_;
     std::vector <int> gridwat_;		// voxel index of each water
     std::vector <int> nwat_;		// total number of water found in each voxel
+    vector <int> nH_;			// total number of hydrogen found in each voxel
     std::vector <int> nw_angle_;	// total nuber of Euler angles found in each voxel
+    std::vector <double> g_;		// normalized water density
+    vector <double> gH_;		// normalized H density
+    std::vector <double> dens_;		// water density
     std::vector <double> grid_x_;	// voxel index in x
     std::vector <double> grid_y_;
     std::vector <double> grid_z_;
+    vector <int> neighbor_;		// number of water neighbor within 3.5A
+    vector <double> qtet_;		// tetahedral order parameter
     double Vvox_;			// voxel volume
     /// Return X coordinate of bin center
     double Xcrd(int i) { return (double)i*gridspacn_ + gridorig_[0] + 0.5*gridspacn_; }
@@ -96,11 +102,16 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector < std::vector <double> > the_vox_;
     std::vector < std::vector <double> > phi_vox_;
     std::vector < std::vector <double> > psi_vox_;
-    std::vector <double> g_;
-    std::vector <double> dens_;
+
+    // dipole stuffs
+    std::vector <double> dipolex_;
+    std::vector <double> dipoley_;
+    std::vector <double> dipolez_;
 
     void NonbondEnergy(Frame *, Topology *);
-    void Grid(Frame*, Topology *);
+    void Grid(Frame *, Topology *);
     void EulerAngle(Frame *, Topology *);
+    void Dipole(Frame *, Topology *);
+    void Order(Frame *, Topology *);
 };
 #endif
