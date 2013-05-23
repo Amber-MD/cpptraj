@@ -2,6 +2,7 @@
 #include "Trajin_Multi.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, convertToInteger
+#include "MpiRoutines.h"
 
 // CONSTRUCTOR
 Trajin_Multi::Trajin_Multi() :
@@ -312,16 +313,31 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
 
 // Trajin_Multi::BeginTraj()
 int Trajin_Multi::BeginTraj(bool showProgress) {
-  // Open the trajectories
-  mprintf("\tREMD: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
-  for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
-  {
-    if ( (*replica)->openTrajin()) {
-      mprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica # %zu\n",
-                replica - REMDtraj_.begin() );
+# ifdef MPI
+  if (isEnsemble_) {
+    // For ensemble, only open trajectory this thread will be dealing with
+    rprintf("Opening %s\n", replica_filenames_[worldrank].c_str());
+    if (REMDtraj_[worldrank]->openTrajin()) {
+      rprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica %s\n",
+                replica_filenames_[worldrank].c_str());
       return 1;
     }
+  } else {
+# else
+    // Open the trajectories
+    mprintf("\tREMD: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
+    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    {
+      if ( (*replica)->openTrajin()) {
+        mprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica # %zu\n",
+                  replica - REMDtraj_.begin() );
+        return 1;
+      }
+    }
+# endif
+# ifdef MPI
   }
+# endif
   // Set progress bar, start and offset.
   PrepareForRead( showProgress, isSeekable_ );
   replicasAreOpen_ = true;
@@ -331,8 +347,14 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
 // Trajin_Multi::EndTraj()
 void Trajin_Multi::EndTraj() {
   if (replicasAreOpen_) {
-    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
-      (*replica)->closeTraj();
+#   ifdef MPI
+    if (isEnsemble_)
+      REMDtraj_[worldrank]->closeTraj();
+    else
+#   else
+      for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+        (*replica)->closeTraj();
+#   endif
     replicasAreOpen_ = false;
   }
 }
@@ -458,6 +480,7 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   std::set<double> tList;
   std::set< std::vector<int> > iList;
   // Allocate space to hold position of each incoming frame in replica space.
+  // TODO: When actually perfoming read in MPI will only need room for 1
   frameidx_.resize( REMDtraj_.size() );
   f_ensemble.resize( REMDtraj_.size() );
   f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity() );
@@ -531,11 +554,18 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
     badEnsemble_ = false;
     // Read in all replicas
     //mprintf("DBG: Ensemble frame %i:",CurrentFrame()+1); // DEBUG
+#   ifdef MPI
+    // Read REMDtraj for this rank
+    if ( REMDtraj_[worldrank]->readFrame( CurrentFrame(), (*frame).xAddress(), (*frame).vAddress(),
+                                          (*frame).bAddress(), (*frame).tAddress()) )
+      return 0;
+#   else
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
       if ( (*replica)->readFrame( CurrentFrame(), (*frame).xAddress(), (*frame).vAddress(),
                                   (*frame).bAddress(), (*frame).tAddress()) )
         return 0;
+#   endif
       if (targetType_ == TEMP) {
         TmapType::iterator tmap = TemperatureMap_.find( (*frame).Temperature() );
         if (tmap ==  TemperatureMap_.end())
@@ -543,8 +573,12 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
         else
           *fidx = (*tmap).second;
         //mprintf(" %.2f[%i]", (*frame).Temperature(), *fidx ); // DEBUG
-      } else if (targetType_ == INDICES) { 
+      } else if (targetType_ == INDICES) {
+#       ifdef MPI
+        if ( REMDtraj_[worldrank]->readIndices( CurrentFrame(), remd_indices_ ) ) return 1;
+#       else 
         if ( (*replica)->readIndices( CurrentFrame(), remd_indices_ ) ) return 1;
+#       endif
         ImapType::iterator imap = IndicesMap_.find( 
           std::vector<int>( remd_indices_, remd_indices_ + Ndimensions_ ) );
         if (imap == IndicesMap_.end())
@@ -557,9 +591,11 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
         //  mprintf(" %i", remd_indices_[idx]);
         //mprintf(" }[%i]", *fidx);
       }
+#   ifndef MPI
       ++fidx;
       ++frame;
     }
+#   endif
     //mprintf("\n"); // DEBUG
     tgtFrameFound = ProcessFrame();
   }

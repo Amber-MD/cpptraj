@@ -594,7 +594,7 @@ Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
   } else {
     mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
     if ( (infile=fopen(inputFilename.c_str(),"r"))==0 ) {
-      rprintf("Error: Could not open input file %s\n",inputFilename.c_str());
+      rprinterr("Error: Could not open input file %s\n",inputFilename.c_str());
       return C_ERR;
     }
   }
@@ -916,9 +916,17 @@ int Cpptraj::RunEnsemble() {
   for (TrajinList::const_iterator traj = trajinList_.begin(); traj != trajinList_.end(); ++traj) 
   {
     Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
-    if (ensembleSize == -1)
+    if (ensembleSize == -1) {
       ensembleSize = mtraj->EnsembleSize();
-    else if (ensembleSize != mtraj->EnsembleSize()) {
+#     ifdef MPI
+      // FIXME: Eventually try to divide ensemble among MPI threads?
+      if (worldsize != ensembleSize) {
+        mprinterr("Error: Ensemble size (%i) does not match # of MPI threads.\n",
+                  ensembleSize, worldsize);
+        return 1;
+      }
+#     endif
+    } else if (ensembleSize != mtraj->EnsembleSize()) {
       mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
                 mtraj->EnsembleSize(), ensembleSize);
       return 1;
@@ -938,7 +946,11 @@ int Cpptraj::RunEnsemble() {
   // Print reference information 
   mprintf("\nREFERENCE COORDS:\n");
   refFrames_.List();
-
+# ifdef MPI
+  // Each thread will process one member of the ensemble, so total ensemble
+  // size is effectively 1.
+  ensembleSize = 1;
+# endif
   // Allocate an ActionList, TrajoutList, and DataSetList for each
   // member of the ensemble. Use separate DataFileList.
   std::vector<ActionList> ActionEnsemble( ensembleSize );
@@ -949,8 +961,12 @@ int Cpptraj::RunEnsemble() {
   // Set up output trajectories for each member of the ensemble
   for (ArgsArray::iterator targ = trajoutArgs_.begin(); targ != trajoutArgs_.end(); ++targ)
   {
+#   ifdef MPI
+    TrajoutEnsemble[0].AddEnsembleTrajout( *targ, parmFileList_, worldrank );
+#   else
     for (int member = 0; member < ensembleSize; ++member) 
       TrajoutEnsemble[member].AddEnsembleTrajout( *targ, parmFileList_, member );
+#   endif
   }
   mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
   TrajoutEnsemble[0].List();
@@ -985,11 +1001,12 @@ int Cpptraj::RunEnsemble() {
       
   // ========== A C T I O N  P H A S E ==========
   int lastPindex=-1;          // Index of the last loaded parm file
+  int pos = 0;                // Where member should be processed by actions
   int readSets = 0;
   int actionSet = 0;
   bool hasVelocity = false;
   // Loop over every trajectory in trajFileList
-  rprintf("\nBEGIN ENSEMBLE PROCESSING:\n");
+  mprintf("\nBEGIN ENSEMBLE PROCESSING:\n");
   for ( TrajinList::const_iterator traj = trajinList_.begin();
                                    traj != trajinList_.end(); ++traj)
   {
@@ -1033,8 +1050,13 @@ int Cpptraj::RunEnsemble() {
       if (!mtraj->BadEnsemble()) {
         // Loop over all members of the ensemble
         for (int member = 0; member < ensembleSize; ++member) {
+#         ifdef MPI
+          // FIXME: Eventually need to sort!
+          pos = 0;
+#         else
           // Get this members current position
-          int pos = mtraj->EnsemblePosition( member );
+          pos = mtraj->EnsemblePosition( member );
+#         endif
           // Since Frame can be modified by actions, save original and use CurrentFrame
           Frame* CurrentFrame = &(FrameEnsemble[member]);
           // Perform Actions on Frame
@@ -1044,7 +1066,11 @@ int Cpptraj::RunEnsemble() {
             TrajoutEnsemble[pos].Write(actionSet, CurrentParm, CurrentFrame);
         } // END loop over ensemble
       } else {
+#       ifdef MPI
+        rprinterr("Error: Could not read frame %i for ensemble.\n", actionSet + 1);
+#       else
         mprinterr("Error: Could not read frame %i for ensemble.\n", actionSet + 1);
+#       endif
       }
       // Increment frame counter
       ++actionSet;
@@ -1116,7 +1142,7 @@ int Cpptraj::RunNormal() {
   
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
-  rprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
+  mprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
   for ( TrajinList::const_iterator traj = trajinList_.begin();
                                    traj != trajinList_.end(); ++traj)
   {
