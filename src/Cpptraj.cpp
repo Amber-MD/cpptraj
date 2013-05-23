@@ -984,7 +984,11 @@ int Cpptraj::RunEnsemble() {
     DataSetEnsemble[member].AllocateSets();
     // Initialize actions 
     if (!actionArgs_.empty())
+#     ifdef MPI
+      mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", worldrank);
+#     else
       mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
+#     endif
     for (ArgsArray::iterator aarg = actionArgs_.begin(); aarg != actionArgs_.end(); ++aarg)
     {
       DispatchObject::TokenPtr dispatchToken = Command::SearchToken( *aarg );
