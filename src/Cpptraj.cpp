@@ -1065,7 +1065,7 @@ int Cpptraj::RunEnsemble() {
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
   for (int member = 0; member < ensembleSize; ++member)
-    actionList_.Print( );
+    ActionEnsemble[member].Print( );
 
   // Sync DataSets and print DataSet information
   // TODO - Also have datafilelist call a sync??
