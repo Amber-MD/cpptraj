@@ -29,6 +29,7 @@ extern FILE *mpidebugfile;
 #  endif
 #endif
 
+typedef enum { PARA_INT = 0, PARA_DOUBLE, PARA_CHAR } parallelDataType;
 /// This allows abstraction of the MPI_File type so no other files need mpi.h
 typedef struct parallelStructType *parallelType;
 
@@ -56,7 +57,9 @@ char *parallel_fgets(parallelType, char *, int);
 int parallel_setSize(parallelType, long int);
 int parallel_sendMaster(void *, int, int, int);
 int parallel_allreduce(void *, void *, int, int, int);
-
+int parallel_allgather(void*, int, parallelDataType, void*, int, parallelDataType);
+int parallel_send(void*, int, parallelDataType, int, int);
+int parallel_recv(void*, int, parallelDataType, int, int);
 #ifdef __cplusplus
 }
 #endif

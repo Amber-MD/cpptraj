@@ -2,7 +2,10 @@
 #include "Trajin_Multi.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, convertToInteger
-#include "MpiRoutines.h"
+#ifdef MPI
+#  include "MpiRoutines.h"
+#endif
+
 
 // CONSTRUCTOR
 Trajin_Multi::Trajin_Multi() :
@@ -14,7 +17,11 @@ Trajin_Multi::Trajin_Multi() :
   hasVelocity_(false),
   isEnsemble_(false),
   replicasAreOpen_(false),
-  targetType_(NONE)
+  targetType_(NONE),
+  frameidx_(0)
+# ifdef MPI
+  ,ensembleFrameNum_(0)
+# endif
 {}
 
 // DESTRUCTOR
@@ -23,6 +30,7 @@ Trajin_Multi::~Trajin_Multi() {
   for (IOarrayType::iterator replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     delete *replica;
   if (remd_indices_!=0) delete[] remd_indices_;
+  if (frameidx_ != 0) delete[] frameidx_;
 }
 
 // Trajin_Multi::SearchForReplicas()
@@ -481,7 +489,9 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   std::set< std::vector<int> > iList;
   // Allocate space to hold position of each incoming frame in replica space.
   // TODO: When actually perfoming read in MPI will only need room for 1
-  frameidx_.resize( REMDtraj_.size() );
+  //frameidx_.resize( REMDtraj_.size() );
+  if (frameidx_ != 0) delete[] frameidx_;
+  frameidx_ = new int[ REMDtraj_.size() ];
   f_ensemble.resize( REMDtraj_.size() );
   f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity() );
   if (targetType_ == TEMP) {
@@ -536,9 +546,13 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
     for (std::set< std::vector<int> >::iterator idxs = iList.begin(); idxs != iList.end(); ++idxs)
       IndicesMap_.insert(std::pair< std::vector<int>, int >(*idxs, repnum++));
   } else { 
-    // NONE, no sorting 
+    // NONE, no sorting
+#   ifdef MPI
+    frameidx_[0] = worldrank;
+#   else 
     for (int rnum = 0; rnum < (int) REMDtraj_.size(); ++rnum)
       frameidx_[rnum] = rnum;
+#   endif
   }
   return 0;
 }
@@ -550,7 +564,8 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
   bool tgtFrameFound = false;
   while ( !tgtFrameFound ) {
     FrameArray::iterator frame = f_ensemble.begin();
-    RemdIdxType::iterator fidx = frameidx_.begin();
+    //RemdIdxType::iterator fidx = frameidx_.begin();
+    int* fidx = frameidx_;
     badEnsemble_ = false;
     // Read in all replicas
     //mprintf("DBG: Ensemble frame %i:",CurrentFrame()+1); // DEBUG
@@ -591,11 +606,50 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
         //  mprintf(" %i", remd_indices_[idx]);
         //mprintf(" }[%i]", *fidx);
       }
-#   ifndef MPI
+#     ifdef MPI
+      // If calculated index is not worldrank, coords need to be sent to rank fidx.
+      //rprintf("Index=%i\n", *fidx); // DEBUG
+      ensembleFrameNum_ = 0;
+      if (targetType_ != NONE) {
+        // Each rank needs to know where to send its coords, and where to receive coords from.
+        int my_idx = *fidx;
+        if (parallel_allgather( &my_idx, 1, PARA_INT, frameidx_, 1, PARA_INT))
+          rprinterr("Error: Gathering frame indices.\n");
+        //mprintf("Frame %i Table:\n", CurrentFrame()); // DEBUG
+        //for (unsigned int i = 0; i < REMDtraj_.size(); i++) // DEBUG
+        //  mprintf("Rank %i has index %i\n", i, frameidx_[i]); // DEBUG
+        // LOOP: one sendrecv at a time.
+        for (int sendrank = 0; sendrank < (int)REMDtraj_.size(); sendrank++) {
+          int recvrank = frameidx_[sendrank];
+          if (sendrank != recvrank) {
+            // TODO: Change Frame class so everything can be sent in one MPI call.
+            if (sendrank == worldrank) {
+              //rprintf("SENDING TO %i\n", recvrank); // DEBUG
+              parallel_send( (*frame).xAddress(), (*frame).size(), PARA_DOUBLE, recvrank, 1212 );
+              parallel_send( (*frame).bAddress(), 6, PARA_DOUBLE, recvrank, 1213 );
+              parallel_send( (*frame).tAddress(), 1, PARA_DOUBLE, recvrank, 1214 );
+              if (HasVelocity())
+                parallel_send( (*frame).vAddress(), (*frame).size(), PARA_DOUBLE, recvrank, 1215 );
+            } else if (recvrank == worldrank) {
+              //rprintf("RECEIVING FROM %i\n", sendrank); // DEBUG
+              parallel_recv( f_ensemble[1].xAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1212 );
+              parallel_recv( f_ensemble[1].bAddress(), 6, PARA_DOUBLE, sendrank, 1213 );
+              parallel_recv( f_ensemble[1].tAddress(), 1, PARA_DOUBLE, sendrank, 1214 );
+              if (HasVelocity())
+                parallel_recv( f_ensemble[1].vAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1215 );
+              // Since a frame was received, indicate position 1 should be used
+              ensembleFrameNum_ = 1; 
+            }
+          }
+          //else rprintf("SEND RANK == RECV RANK, NO COMM\n"); // DEBUG
+        } 
+      }
+      //rprintf("FRAME %i, FRAME RECEIVED= %i\n", CurrentFrame(), ensembleFrameNum_); // DEBUG 
+#     else
       ++fidx;
       ++frame;
     }
-#   endif
+#     endif
     //mprintf("\n"); // DEBUG
     tgtFrameFound = ProcessFrame();
   }

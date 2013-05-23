@@ -1052,15 +1052,17 @@ int Cpptraj::RunEnsemble() {
     Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
     while ( mtraj->GetNextEnsemble(FrameEnsemble) ) {
       if (!mtraj->BadEnsemble()) {
+#       ifdef MPI
+        // For MPI, each thread has one ensemble frame. member is 1 if coords
+        // had to be sorted, 0 otherwise. pos is always 0.
+        int member = mtraj->EnsembleFrameNum();
+        pos = 0;
+#       else
         // Loop over all members of the ensemble
         for (int member = 0; member < ensembleSize; ++member) {
-#         ifdef MPI
-          // FIXME: Eventually need to sort!
-          pos = 0;
-#         else
           // Get this members current position
           pos = mtraj->EnsemblePosition( member );
-#         endif
+#       endif
           // Since Frame can be modified by actions, save original and use CurrentFrame
           Frame* CurrentFrame = &(FrameEnsemble[member]);
           // Perform Actions on Frame
@@ -1068,7 +1070,9 @@ int Cpptraj::RunEnsemble() {
           // Do Output
           if (!suppress_output) 
             TrajoutEnsemble[pos].Write(actionSet, CurrentParm, CurrentFrame);
+#       ifndef MPI
         } // END loop over ensemble
+#       endif
       } else {
 #       ifdef MPI
         rprinterr("Error: Could not read frame %i for ensemble.\n", actionSet + 1);
@@ -1102,7 +1106,7 @@ int Cpptraj::RunEnsemble() {
   int total_data_sets = DataSetEnsemble[0].size();
   mprintf("\nENSEMBLE DATASETS: Each member has %i sets total.\n", total_data_sets);
   for (int member = 0; member < ensembleSize; ++member) {
-    DataSetEnsemble[member].Sync();
+    //DataSetEnsemble[member].Sync(); // SYNC only necessary when splitting up data
     DataSetEnsemble[member].sort();
     if (total_data_sets != DataSetEnsemble[member].size())
       mprintf("Warning: Ensemble member %i # data sets (%i) does not match member 0 (%i)\n",
