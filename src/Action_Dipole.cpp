@@ -146,8 +146,8 @@ Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame
     COM -= cXYZ;
     bool binned = false;
     size_t bin = grid_->Increment( COM, Increment(), binned );
-    //mprintf("CDBG: Solvent %i XYZ %8.3lf %8.3lf %8.3lf\n",i_solvent,COM[0],COM[1],COM[2]);
-    //mprintf("CDBG: Bin = %i\n", bin); 
+    //mprintf("CDBG: Solvent %i XYZ %8.3lf %8.3lf %8.3lf\n",solvmol-CurrentParm_->MolStart(),COM[0],COM[1],COM[2]);
+    //mprintf("CDBG: Bin = %u, binned=%i\n", bin, (int)binned); 
 
     // Grid dipole if COM was binned
     if (binned) 

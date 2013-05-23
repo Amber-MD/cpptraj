@@ -1072,7 +1072,9 @@ int Cpptraj::RunEnsemble() {
   unsigned int total_data_sets = DataSetEnsemble[0].size();
   mprintf("\nENSEMBLE DATASETS: Each member has %i sets total.\n", total_data_sets);
   for (int member = 0; member < ensembleSize; ++member) {
+#   ifdef MPI
     DataSetEnsemble[member].Sync();
+#   endif
     DataSetEnsemble[member].sort();
     if (total_data_sets != DataSetEnsemble[member].size())
       mprintf("Warning: Ensemble member %i # data sets (%i) does not match member 0 (%i)\n",

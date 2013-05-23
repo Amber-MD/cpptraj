@@ -66,6 +66,8 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
   // Negative
   if (argIn.hasKey("negative"))
     increment_ = -1.0;
+  else
+    increment_ = 1.0;
 
   return Grid;
 }
@@ -86,6 +88,7 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
     mprintf(" negative density\n");
   mprintf("\tGrid points : %5i %5i %5i\n", grid.NX(), grid.NY(), grid.NZ());
   mprintf("\tGrid spacing: %5.3f %5.3f %5.3f\n", grid.DX(), grid.DY(), grid.DZ());
+  mprintf("\tGrid origin : %5.3f %5.3f %5.3f\n", grid.OX(), grid.OY(), grid.OZ());
 }
 
 // GridAction::GridSetup()

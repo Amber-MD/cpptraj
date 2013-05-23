@@ -133,24 +133,21 @@ int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& a
   *        otherwise they will be preceded by a space.
   * \return 0 on success, 1 on error.
   */
+// TODO: Each data set has their own 
 int DataSet::SetDataSetFormat(bool leftAlign) {
   // Set data format string.
   // NOTE: According to C++ std 4.7/4 (int)true == 1
   colwidth_ = width_ + (int)leftAlign;
   switch (dType_) {
-//    case HIST  :
-//    case MATRIX2D:
-//    case MATRIX_VEC3:
     case MATRIX_DBL:
     case DOUBLE : format_ = SetDoubleFormatString(width_, precision_, 0, leftAlign); break;
-//    case TRIMATRIX:
     case MATRIX_FLT:
+    case GRID_FLT  :
     case COORDS : 
     case FLOAT  : format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
     case INTEGER: format_ = SetIntegerFormatString(width_, leftAlign); break;
     case STRING : format_ = SetStringFormatString(width_, leftAlign); break;
     case MODES :
-//    case MATRIX:
     case VECTOR: // No left-align allowed for now with VECTOR.
       format_ = SetDoubleFormatString(width_, precision_, 0, false); 
       colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz

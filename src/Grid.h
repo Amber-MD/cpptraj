@@ -28,8 +28,8 @@ template <class T> class Grid {
     /// \return element at a specified grid point.
     const T& element(size_t,size_t,size_t) const;
     /// Convert X, Y, and Z bin #s to index.
-    //size_t CalcIndex(size_t x, size_t y, size_t z) const { return (x*ny_*nz_)+(y*nz_)+z; }
-    size_t CalcIndex(size_t x, size_t y, size_t z) const { return (z*nx_*ny_)+(y*nx_)+x; }
+    size_t CalcIndex(size_t x, size_t y, size_t z) const { return (x*ny_*nz_)+(y*nz_)+z; }
+    //size_t CalcIndex(size_t x, size_t y, size_t z) const { return (z*nx_*ny_)+(y*nx_)+x; }
     /// Iterator over grid elements.
     typedef ArrayIterator<T> iterator;
     iterator begin() { return grid_;              }

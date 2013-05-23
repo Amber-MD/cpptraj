@@ -33,6 +33,7 @@ const DataFile::DataFileToken DataFile::DataFileArray[] = {
   { XMGRACE,      "grace",  "Grace File",         ".agr",   DataIO_Grace::Alloc   },
   { GNUPLOT,      "gnu",    "Gnuplot File",       ".gnu",   DataIO_Gnuplot::Alloc },
   { XPLOR,        "xplor",  "Xplor File",         ".xplor", DataIO_Xplor::Alloc   },
+  { XPLOR,        "xplor",  "Xplor File",         ".grid",  DataIO_Xplor::Alloc   },
   { OPENDX,       "opendx", "OpenDx File",        ".dx",    DataIO_OpenDx::Alloc  },
   { UNKNOWN_DATA, 0,        "Unknown",            0,        0                     }
 };

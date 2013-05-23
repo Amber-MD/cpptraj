@@ -63,17 +63,14 @@ bool DataSet_3D::CalcBins(double x, double y, double z,
                           size_t& i, size_t& j, size_t& k) const
 {
   // X
-  double xx = x - ox_;
-  if (xx >= 0.0 && xx < mx_) {
+  if (x >= ox_ && x < mx_) {
     // Y
-    double yy = y - oy_;
-    if (yy >= 0.0 && yy < my_) {
+    if (y >= oy_ && y < my_) {
       // Z
-      double zz = z - oz_;
-      if (zz >= 0.0 && zz < mz_) {
-        i = (size_t)(xx / dx_);
-        j = (size_t)(yy / dy_);
-        k = (size_t)(zz / dz_);
+      if (z >= oz_ && z < mz_) {
+        i = (size_t)((x-ox_) / dx_);
+        j = (size_t)((y-oy_) / dy_);
+        k = (size_t)((z-oz_) / dz_);
         return true;
       }
     }

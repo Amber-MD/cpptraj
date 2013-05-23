@@ -9,7 +9,7 @@ class GridAction {
   public:
     /// Indicate which kind of gridding to perform
     enum GridModeType { ORIGIN = 0, BOX, CENTER };
-    GridAction() {}
+    GridAction() : increment_(1.0) {}
     static const char* HelpText;
     DataSet_GridFlt* GridInit(const char*, ArgList&, DataSetList&);
     void GridInfo(DataSet_GridFlt const&);
