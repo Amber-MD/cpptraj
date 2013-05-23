@@ -957,6 +957,9 @@ int Cpptraj::RunEnsemble() {
   std::vector<TrajoutList> TrajoutEnsemble( ensembleSize );
   std::vector<DataSetList> DataSetEnsemble( ensembleSize );
   DataFileList DataFileEnsemble;
+# ifdef MPI
+  DataFileEnsemble.SetEnsembleMode( worldrank );
+# endif
 
   // Set up output trajectories for each member of the ensemble
   for (ArgsArray::iterator targ = trajoutArgs_.begin(); targ != trajoutArgs_.end(); ++targ)
