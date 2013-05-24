@@ -988,7 +988,7 @@ int Cpptraj::RunEnsemble() {
     // Initialize actions 
     if (!actionArgs_.empty())
 #     ifdef MPI
-      mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", worldrank);
+      rprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", worldrank);
 #     else
       mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
 #     endif
@@ -1041,8 +1041,13 @@ int Cpptraj::RunEnsemble() {
       bool setupOK = true;
       for (int member = 0; member < ensembleSize; ++member) {
         if (ActionEnsemble[member].SetupActions( &CurrentParm )) {
+#         ifdef MPI
+          rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
+                  worldrank,CurrentParm->c_str());
+#         else
           mprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
-                  member, CurrentParm->c_str());
+                  member,CurrentParm->c_str());
+#         endif
           setupOK = false;
         }
       }
@@ -1120,9 +1125,9 @@ int Cpptraj::RunEnsemble() {
 
   // Print Datafile information
   DataFileEnsemble.List();
-  // Only Master does DataFile output
-  if (worldrank==0)
-    DataFileEnsemble.Write();
+  // Print DataFiles. When in ensemble mode, each member of the ensemble
+  // will write data to separate files with numeric extensions. 
+  DataFileEnsemble.Write();
 
   return 0;
 }
