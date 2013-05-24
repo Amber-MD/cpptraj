@@ -324,7 +324,7 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
 # ifdef MPI
   if (isEnsemble_) {
     // For ensemble, only open trajectory this thread will be dealing with
-    rprintf("Opening %s\n", replica_filenames_[worldrank].c_str());
+    //rprintf("Opening %s\n", replica_filenames_[worldrank].c_str()); // DEBUG
     if (REMDtraj_[worldrank]->openTrajin()) {
       rprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica %s\n",
                 replica_filenames_[worldrank].c_str());

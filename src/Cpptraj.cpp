@@ -919,9 +919,9 @@ int Cpptraj::RunEnsemble() {
     if (ensembleSize == -1) {
       ensembleSize = mtraj->EnsembleSize();
 #     ifdef MPI
-      // FIXME: Eventually try to divide ensemble among MPI threads?
+      // TODO: Eventually try to divide ensemble among MPI threads?
       if (worldsize != ensembleSize) {
-        mprinterr("Error: Ensemble size (%i) does not match # of MPI threads.\n",
+        mprinterr("Error: Ensemble size (%i) does not match # of MPI threads (%i).\n",
                   ensembleSize, worldsize);
         return 1;
       }
@@ -987,11 +987,7 @@ int Cpptraj::RunEnsemble() {
     DataSetEnsemble[member].AllocateSets();
     // Initialize actions 
     if (!actionArgs_.empty())
-#     ifdef MPI
-      rprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", worldrank);
-#     else
       mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
-#     endif
     for (ArgsArray::iterator aarg = actionArgs_.begin(); aarg != actionArgs_.end(); ++aarg)
     {
       DispatchObject::TokenPtr dispatchToken = Command::SearchToken( *aarg );
@@ -1109,8 +1105,7 @@ int Cpptraj::RunEnsemble() {
   for (int member = 0; member < ensembleSize; ++member)
     ActionEnsemble[member].Print( );
 
-  // Sync DataSets and print DataSet information
-  // TODO - Also have datafilelist call a sync??
+  // Sort DataSets and print DataSet information
   int total_data_sets = DataSetEnsemble[0].size();
   mprintf("\nENSEMBLE DATASETS: Each member has %i sets total.\n", total_data_sets);
   for (int member = 0; member < ensembleSize; ++member) {
@@ -1125,8 +1120,8 @@ int Cpptraj::RunEnsemble() {
 
   // Print Datafile information
   DataFileEnsemble.List();
-  // Print DataFiles. When in ensemble mode, each member of the ensemble
-  // will write data to separate files with numeric extensions. 
+  // Print DataFiles. When in parallel ensemble mode, each member of the 
+  // ensemble will write data to separate files with numeric extensions. 
   DataFileEnsemble.Write();
 
   return 0;
