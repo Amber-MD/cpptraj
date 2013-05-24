@@ -50,6 +50,10 @@ Contributors:
   - Mark J. Williamson
     Action_GridFreeEnergy
 
+  -  Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department,
+                         Warrington, WA4 4AD, UK)
+    Action_Density, Action_OrderParameter, Action_PairDist
+
   The following people wrote code in PTRAJ which was eventually adapted for
 use in CPPTRAJ:
   - Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)
