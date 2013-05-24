@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     printf("     | \\/ | \\/ | \\/ | \n");
     printf("    _|_/\\_|_/\\_|_/\\_|_\n");
 #   ifdef MPI
-    printf("Running on %i processors\n",worldsize);
+    printf("Running on %i threads\n",worldsize);
 #   endif
   }
   Cpptraj::Mode cmode = State.ProcessCmdLineArgs(argc,argv);
