@@ -15,7 +15,7 @@ const std::string Action_Density::emptystring = "";
 
 // CONSTRUCTOR
 Action_Density::Action_Density() :
-  direction_(DZ),
+  axis_(DZ),
   //area_coord_{DZ, DY},		// this is C++11!
   property_(NUMBER),
   delta_(0.0)
@@ -26,7 +26,7 @@ Action_Density::Action_Density() :
 void Action_Density::Help()
 {
   mprintf("\tout <filename> [delta <resolution>] [x|y|z]\n"
-	  "[number|mass|charge|electron] <mask1> ... <maskN>\n");
+	  "\t[number|mass|charge|electron] <mask1> ... <maskN>\n");
 }
 
 // Action_Density::init()
@@ -50,15 +50,15 @@ Action::RetType Action_Density::Init(ArgList& actionArgs,
   }
 
   if (actionArgs.hasKey("x") ) {
-    direction_ = DX;
+    axis_ = DX;
     area_coord_[0] = DY;
     area_coord_[1] = DZ;
   } else if (actionArgs.hasKey("y") ) {
-    direction_ = DY;
+    axis_ = DY;
     area_coord_[0] = DX;
     area_coord_[1] = DZ;
   } else if (actionArgs.hasKey("z") ) {
-    direction_ = DZ;
+    axis_ = DZ;
     area_coord_[0] = DX;
     area_coord_[1] = DY;
   }
@@ -162,7 +162,7 @@ Action::RetType Action_Density::DoAction(int frameNum,
 	 idx != mask->end();
 	 idx++) {
       coord = currentFrame->XYZ(*idx);
-      slice = (long) (coord[direction_] / delta_);
+      slice = (long) (coord[axis_] / delta_);
 
       // FIXME: split 0 bin in one + and one -
       tmp[slice] += properties_[i][j];

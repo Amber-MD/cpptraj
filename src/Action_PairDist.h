@@ -1,12 +1,17 @@
 // -*- mode: c++; -*-
+
 #ifndef INC_ACTION_PAIRDIST_H
 #define INC_ACTION_PAIRDIST_H
+
 #include "Action.h"
 #include "ImagedAction.h"
 #include "OnlineVarT.h"
 
+
+
 /** \author Hannes H. Loeffler
   */
+
 class Action_PairDist : public Action, ImagedAction {
  public:
   Action_PairDist();
@@ -29,9 +34,9 @@ class Action_PairDist : public Action, ImagedAction {
   AtomMask mask1_;
   AtomMask mask2_;
 
-  double delta_;		///< resolution
+  double delta_;		// resolution
 
-  std::vector<OnlineVar<double> > histogram_;
+  std::vector<Stats<double> > histogram_;
   unsigned long maxbin_;
 
   bool same_mask_;

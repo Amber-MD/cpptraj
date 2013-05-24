@@ -37,12 +37,12 @@ private:
   enum DirectionType {DX = 0, DY, DZ};
   enum PropertyType {NUMBER = 0, MASS, CHARGE, ELECTRON};
 
-  DirectionType direction_;
+  DirectionType axis_;
   DirectionType area_coord_[2];
   PropertyType property_;
 
   double delta_;
-  OnlineVar<double> area_;
+  Stats<double> area_;
 
   CpptrajFile output_;
 
@@ -50,7 +50,7 @@ private:
 
   // std::unordered_map may be better but is C++11, some STL's may have
   // hash_map but not same number of params
-  typedef OnlineVarM<std::map<int,double>, double> statmap;
+  typedef StatsMap<int,double> statmap;
   std::vector<statmap> histograms_;
 
   std::vector<std::vector<double> > properties_;
