@@ -14,15 +14,17 @@
 int main(int argc, char **argv) {
   int err = 0;
   Cpptraj State;
-  printf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
-  printf("    ___  ___  ___  ___\n");
-  printf("     | \\/ | \\/ | \\/ | \n");
-  printf("    _|_/\\_|_/\\_|_/\\_|_\n");
   // Parallel Init: NOTE Should check for err
   parallel_init(argc,argv);
-#ifdef MPI
-  if (worldrank==0) printf("Running on %i processors\n",worldsize);
-#endif
+  if (worldrank == 0) {
+    printf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
+    printf("    ___  ___  ___  ___\n");
+    printf("     | \\/ | \\/ | \\/ | \n");
+    printf("    _|_/\\_|_/\\_|_/\\_|_\n");
+#   ifdef MPI
+    printf("Running on %i threads\n",worldsize);
+#   endif
+  }
   Cpptraj::Mode cmode = State.ProcessCmdLineArgs(argc,argv);
   switch ( cmode ) {
     case Cpptraj::C_OK          : 
@@ -42,7 +44,7 @@ int main(int argc, char **argv) {
       err = 1;
     case Cpptraj::C_QUIT        : break;
   }
+  if (worldrank==0) printf("\n");
   parallel_end();
-  printf("\n");
   return err;
 }

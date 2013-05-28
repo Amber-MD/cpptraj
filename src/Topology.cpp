@@ -890,11 +890,14 @@ int Topology::DetermineMolecules() {
       mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom.\n",
                 atom - atoms_.begin() + 1);
       mprinterr("Error: This can happen if bond information is incorrect or missing.\n");
-      mprinterr("Error: Detected # of molecules is %i. If this is incorrect and your\n",
-                mol);
+      mprinterr("Error: Detected # of molecules is %i. If this is incorrect and your\n", mol);
       mprinterr("Error: topology does not have bond information (e.g. PDB file), try\n");
       mprinterr("Error: increasing the bond search cutoff offset (currently %f).\n",offset_);
       mprinterr("Error: e.g. 'parm %s bondsearch <new offset>'\n", fileName_.c_str());
+      mprinterr("Error: This can also happen if the atoms in your molecules are not\n");
+      mprinterr("Error: sequential (e.g. molecule 1 is atoms 1-4,10-14 and molecule 2\n");
+      mprinterr("Error: is atoms 5-9,15-20). This can be fixed using the 'setMolecules'\n");
+      mprinterr("Error: command in parmed.py.\n");
       molecules_.clear();
       return 1;
     }

@@ -113,15 +113,15 @@ int DataSet_double::Sync() {
       // Get size of data on rank.
       dataSize = Data_.size();
       // Send rank size to master
-      parallel_sendMaster(&dataSize, 1, rank, 0);
+      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
       // If size is 0 on rank, skip this rank.
       if (dataSize == 0) continue;
       // Allocate space on rank
       values = new double[ dataSize ];
       frames = new int[ dataSize ];
       // Send arrays to master
-      parallel_sendMaster(frames, dataSize, rank, 0);
-      parallel_sendMaster(values, dataSize, rank, 1);
+      parallel_sendMaster(frames, dataSize, rank, PARA_INT);
+      parallel_sendMaster(values, dataSize, rank, PARA_DOUBLE);
       // Free arrays on rank
       delete[] values;
       delete[] frames;
@@ -129,7 +129,7 @@ int DataSet_double::Sync() {
     // ----- MASTER -----
     } else if (worldrank == 0) {
       // Master receives size from rank
-      parallel_sendMaster(&dataSize, 1, rank, 0);
+      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
       // If size was 0 on rank, skip rank.
       if (dataSize == 0) continue;
       // Reallocate if necessary
@@ -141,8 +141,8 @@ int DataSet_double::Sync() {
         masterSize = dataSize;
       }
       // Master receives arrays
-      parallel_sendMaster(frames, dataSize, rank, 0);
-      parallel_sendMaster(values, dataSize, rank, 1);
+      parallel_sendMaster(frames, dataSize, rank, PARA_INT);
+      parallel_sendMaster(values, dataSize, rank, PARA_DOUBLE);
       // Insert frames and values to master arrays
       for (unsigned int i = 0; i < dataSize; ++i) {
         Frames_.push_back( frames[i] );
@@ -159,4 +159,3 @@ int DataSet_double::Sync() {
 
   return 0;
 }
-

@@ -13,6 +13,9 @@ class DataFileList : public FileList {
     ~DataFileList();
     void Clear();
     void SetDebug(int);
+#   ifdef MPI
+    void SetEnsembleMode(int mIn) { ensembleMode_ = mIn; }
+#   endif
     DataFile* GetDataFile(std::string const&) const;
     DataFile* AddDataFile(std::string const&, ArgList&);
     DataFile* AddDataFile(std::string const&);
@@ -24,5 +27,8 @@ class DataFileList : public FileList {
     typedef std::vector<DataFile*> DFarray;
     DFarray fileList_;
     int debug_;
+#   ifdef MPI
+    int ensembleMode_; ///< When parallel reading, append filenames with this
+#   endif
 };
 #endif

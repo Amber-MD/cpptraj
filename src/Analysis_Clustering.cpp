@@ -449,6 +449,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: Fix cast
   Frame clusterframe( clusterparm->Natom() );
   // Loop over all clusters
+  int clusterNum = 0;
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
   {
@@ -456,7 +457,8 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     // Get centroid frame # 
     int framenum = (*C).CentroidFrame();
     // Create filename based on frame #
-    std::string cfilename = reptrajfile_ + "." + integerToString(framenum+1) + tmpExt;
+    std::string cfilename = reptrajfile_ + ".c" + integerToString(clusterNum) + 
+                            "." + integerToString(framenum+1) + tmpExt;
     // Set up trajectory file. 
     if (clusterout->SetupTrajWrite(cfilename, 0, clusterparm, reptrajfmt_)) 
     {
@@ -471,5 +473,6 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     // Close traj
     clusterout->EndTraj();
     delete clusterout;
+    ++clusterNum;
   }
 }

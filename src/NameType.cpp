@@ -120,10 +120,6 @@ bool NameType::operator!=(const char *rhs) const {
   return (*this != tmp);
 }
 
-const char* NameType::operator*() const {
-  return c_array_;
-}
-
 char NameType::operator[](int idx) const {
   if (idx < 0 || idx >= (int)NameSize_) return '\0';
   return c_array_[idx];

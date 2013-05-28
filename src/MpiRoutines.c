@@ -37,7 +37,7 @@ void printMPIerr(int err, const char *routineName) {
   // Remove newlines from MPI error string
   for (i=0; i<len; i++)
     if (buffer[i]=='\n') buffer[i]=':';
-  fprintf(stdout,"[%i] MPI ERROR %d: %s: [%s]\n",worldrank,eclass,routineName,buffer);
+  fprintf(stderr,"[%i] MPI ERROR %d: %s: [%s]\n",worldrank,eclass,routineName,buffer);
 
   return;
 }
@@ -106,9 +106,9 @@ int parallel_debug_end() {
     fclose(mpidebugfile);
   return 0;
 }
-
 #endif
 
+// -----------------------------------------------------------------------------
 // parallel_init()
 /** Initialize MPI */
 int parallel_init(int argc, char **argv) {
@@ -147,24 +147,8 @@ void parallel_barrier() {
 #endif
 }
 
-// parallel_sum()
-/** Use MPI_REDUCE to sum up the values in sendbuffer and place them in
-  * recvbuffer on master.
-  */
-int parallel_sum(double *recvBuffer, double *sendBuffer, int N) {
-#ifdef MPI
-  int err;
-
-  err=MPI_Reduce(sendBuffer, recvBuffer, N, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
-  if ( parallel_check_error(err) ) {
-    checkMPIerr(err,"parallel_sum");
-    return 1;
-  }
-#endif
-  return 0;
-}
-
+// -----------------------------------------------------------------------------
+// MPI FILE ROUTINES
 // parallel_openFile_read()
 /** Use MPI to open a file for reading.  */
 int parallel_openFile_read(parallelType pfile, const char *filename) {
@@ -380,75 +364,150 @@ int parallel_setSize(parallelType pfile, long int offset) {
   return 1;
 } 
 
+// -----------------------------------------------------------------------------
+// MPI DATA ROUTINES
+#ifdef MPI
+MPI_Datatype parallelDataMap[4] = {
+  MPI_INT, MPI_DOUBLE, MPI_CHAR, MPI_FLOAT
+};
+
+MPI_Op parallelOpMap[1] = {
+  MPI_SUM
+};
+#endif
+
+// parallel_reduce()
+/** Use MPI_REDUCE to OP the values in sendbuffer and place them in
+  * recvbuffer on master.
+  */
+int parallel_reduce(void* recvBuffer, void* sendBuffer, int N, 
+                    parallelDataType datatype, parallelOpType op) 
+{
+#ifdef MPI
+  int err;
+
+  err=MPI_Reduce(sendBuffer, recvBuffer, N, parallelDataMap[datatype], parallelOpMap[op], 0, MPI_COMM_WORLD);
+  if (err!=MPI_SUCCESS) {
+    printMPIerr(err,"Reducing data to master.");
+    MPI_Abort(MPI_COMM_WORLD, err);
+    return 1;
+  }
+  //if ( parallel_check_error(err) ) {
+  //  checkMPIerr(err,"parallel_sum");
+  //  return 1;
+  //}
+#endif
+  return 0;
+}
+
 // parallel_sendMaster()
 /** If master    : receive specified values from rank.
   * If not master: send specified values from rank to master.
-  * datatype: 0=MPI_INT
-  *           1=MPI_DOUBLE
   */
-int parallel_sendMaster(void *Buffer, int Count, int rank, int datatype) {
+int parallel_sendMaster(void *Buffer, int Count, int rank, parallelDataType datatype) {
 #ifdef MPI
   int err;
-  MPI_Datatype currentType;
 
   if (worldsize==1) return 0;
 
-  switch (datatype) {
-    case 0 : currentType = MPI_INT; break;
-    case 1 : currentType = MPI_DOUBLE; break;
-    case 2 : currentType = MPI_CHAR; break;
-    default: return 1;
-  }
-
   if (worldrank>0) {
     // Non-master
-    err = MPI_Send(Buffer, Count, currentType, 0, 1234, MPI_COMM_WORLD); 
-    if (err!=MPI_SUCCESS) printMPIerr(err,"Sending data to master.");
-
+    err = MPI_Send(Buffer, Count, parallelDataMap[datatype], 0, 1234, MPI_COMM_WORLD);
+    if (err!=MPI_SUCCESS) {
+      printMPIerr(err,"Sending data to master.");
+      MPI_Abort(MPI_COMM_WORLD, err);
+      return 1;
+    }
   } else {
     // Master
-    err = MPI_Recv(Buffer, Count, currentType, rank, 1234, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    if (err!=MPI_SUCCESS) printMPIerr(err,"Receiving data from non-master.");
+    err = MPI_Recv(Buffer, Count, parallelDataMap[datatype], rank, 1234, 
+                   MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    if (err!=MPI_SUCCESS) {
+      printMPIerr(err,"Receiving data from non-master.");
+      MPI_Abort(MPI_COMM_WORLD, err);
+      return 1;
+    }
   }
-
-  if (parallel_check_error(err)!=0) return 1;
-
+  //if (parallel_check_error(err)!=0) return 1;
   return 0;
 #endif
-  return 1;
+  return 0;
 }
 
 // parallel_allreduce()
 /** Perform an mpi allreduce. */
-int parallel_allreduce(void *Return, void *input, int count, int datatype, int op) {
+int parallel_allreduce(void *Return, void *input, int count, parallelDataType datatype, parallelOpType op) {
 #ifdef MPI
   int err;
-  MPI_Datatype currentType;
-  MPI_Op currentOp;
 
-  if (worldsize==1) return 0;
-
-  switch (datatype) {
-    case 0 : currentType = MPI_INT; break;
-    case 1 : currentType = MPI_DOUBLE; break;
-    case 2 : currentType = MPI_CHAR; break;
-    default: return 1;
-  }  
-
-  switch (op) {
-    case 0 : currentOp = MPI_SUM; break;
-    default: return 1;
-  }
-
-  err = MPI_Allreduce(input, Return, count, currentType, currentOp, MPI_COMM_WORLD);
+  err = MPI_Allreduce(input, Return, count, parallelDataMap[datatype], 
+                      parallelOpMap[op], MPI_COMM_WORLD);
   if (err!=MPI_SUCCESS) {
     printMPIerr(err, "Performing allreduce.\n");
     printf("[%i]\tError: allreduce failed for %i elements.\n",worldrank,count);
+    MPI_Abort(MPI_COMM_WORLD, err);
+    return 1; 
   }
-
-  if (parallel_check_error(err)!=0) return 1;
+  //if (parallel_check_error(err)!=0) return 1;
   return 0;
 #endif
   return 1;
 }
 
+// parallel_allgather()
+int parallel_allgather(void* sendbuffer, int sendcount, parallelDataType sendtype,
+                       void* recvbuffer, int recvcount, parallelDataType recvtype)
+{
+# ifdef MPI
+  int err;
+  err = MPI_Allgather( sendbuffer, sendcount, parallelDataMap[sendtype],
+                       recvbuffer, recvcount, parallelDataMap[recvtype],
+                       MPI_COMM_WORLD );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing allgather.\n");
+    MPI_Abort(MPI_COMM_WORLD, err);
+  }
+  //if (parallel_check_error(err)!=0) return 1;
+  return 0;
+# else
+  return 1;
+# endif
+}
+
+// parallel_send()
+int parallel_send(void* sendbuffer, int sendcount, parallelDataType sendtype,
+                  int dest, int tag)
+{
+# ifdef MPI
+  int err;
+  err = MPI_Send( sendbuffer, sendcount, parallelDataMap[sendtype], dest, tag,
+                  MPI_COMM_WORLD );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing send.\n");
+    fprintf(stderr,"[%i]\tError: send of %i elements failed to rank %i\n",
+            worldrank, sendcount, dest);
+    MPI_Abort(MPI_COMM_WORLD, err);
+  }
+  return 0; 
+# endif
+  return 1;
+}
+
+// parallel_recv()
+int parallel_recv(void* recvbuffer, int recvcount, parallelDataType recvtype,
+                  int source, int tag)
+{
+# ifdef MPI
+  int err;
+  err = MPI_Recv( recvbuffer, recvcount, parallelDataMap[recvtype], source, tag,
+                  MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing receive.\n");
+    fprintf(stderr,"[%i]\tError: receive of %i elements failed from rank %i\n",
+            worldrank, recvcount, source);
+    MPI_Abort(MPI_COMM_WORLD, err);
+  }
+  return 0;
+# endif
+  return 1;
+}
