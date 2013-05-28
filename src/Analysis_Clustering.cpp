@@ -251,11 +251,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   // Cluster
   CList_->Cluster();
   // Sort clusters and renumber; also finds centroids for printing
-  // representative frames.
-  CList_->Renumber();
-  // If sieving, add remaining frames
-  if (sieve_ > 1)
-    CList_->AddSievedFrames();
+  // representative frames. If sieving, add remaining frames.
+  CList_->Renumber( (sieve_ > 1) );
 
   // DEBUG
   if (debug_ > 0) {

@@ -99,7 +99,7 @@ int DataSet_string::Sync() {
       // Get size of data on rank.
       dataSize = Data_.size();
       // Send rank size to master
-      parallel_sendMaster(&dataSize, 1, rank, 0);
+      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
       // If size is 0 on rank, skip this rank.
       if (dataSize == 0) continue;
       // Get sum size of each string on rank (incl. null char).
@@ -107,7 +107,7 @@ int DataSet_string::Sync() {
       for ( DType::iterator str_it = Data_.begin(); str_it != Data_.end(); ++str_it)
         stringSize += ( (*str_it).size() + 1 ); // +1 for null char.
       // Send sum string size to master
-      parallel_sendMaster(&stringSize, 1, rank, 0);
+      parallel_sendMaster(&stringSize, 1, rank, PARA_INT);
       // Allocate space on rank
       values = new char[ stringSize ];
       frames = new int[ dataSize ];
@@ -118,8 +118,8 @@ int DataSet_string::Sync() {
         ptr += ( (*str_it).size() + 1 );
       }
       // Send arrays to master
-      parallel_sendMaster(frames, dataSize, rank, 0);
-      parallel_sendMaster(values, stringSize, rank, 2);
+      parallel_sendMaster(frames, dataSize, rank, PARA_INT);
+      parallel_sendMaster(values, stringSize, rank, PARA_CHAR);
       // Free arrays on rank
       delete[] values;
       delete[] frames;
@@ -127,11 +127,11 @@ int DataSet_string::Sync() {
     // ----- MASTER -----
     } else if (worldrank == 0) {
       // Master receives size from rank
-      parallel_sendMaster(&dataSize, 1, rank, 0);
+      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
       // If size was 0 on rank, skip rank.
       if (dataSize == 0) continue;
       // Master receives sum string size from rank
-      parallel_sendMaster(&stringSize, 1, rank, 0);
+      parallel_sendMaster(&stringSize, 1, rank, PARA_INT);
       // Reallocate if necessary
       if (dataSize > masterSize) {
         if ( frames != 0 ) delete[] frames;
@@ -144,8 +144,8 @@ int DataSet_string::Sync() {
         masterStringSize = stringSize;
       }
       // Master receives arrays
-      parallel_sendMaster(frames, dataSize, rank, 0);
-      parallel_sendMaster(values, stringSize, rank, 2);
+      parallel_sendMaster(frames, dataSize, rank, PARA_INT);
+      parallel_sendMaster(values, stringSize, rank, PARA_CHAR);
       // Insert frames and values to master arrays
       char* ptr = values;
       for (unsigned int i = 0; i < dataSize; ++i) {
