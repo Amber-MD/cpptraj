@@ -57,12 +57,14 @@ void ClusterList::Renumber(bool addSievedFrames) {
   }
   // Update cluster centroids.
   bool centroid_error = false;
-  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
+  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
+    (*node).SortFrameList();
     if ((*node).FindCentroidFrame( FrameDistances_ )) {
       mprinterr("Error: Could not determine centroid frame for cluster %i\n",
                 (*node).Num());
       centroid_error = true;
     }
+  }
   // Add back sieved frames based on distance to cluster centroids.
   if (addSievedFrames) {
     if (centroid_error)
