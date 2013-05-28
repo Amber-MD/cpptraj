@@ -236,13 +236,16 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   }
   SetupImaging( currentParm->BoxType() );
 
+  resnum =0;
+  voxel =0;
+
   return Action::OK;  
 }
 
 
 // Action_Gist::action()
 Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  mprintf("GIST Action %d\n", frameNum);
+
   NFRAME_ ++;
   if (NFRAME_==1) mprintf("GIST Action \n");
 
@@ -258,25 +261,24 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   for (solvmol = CurrentParm_->MolStart();
        solvmol != CurrentParm_->MolEnd(); ++solvmol)
     {
-
+      
       if (!(*solvmol).IsSolvent()) continue;
       Grid( currentFrame );
       voxel = gridwat_[resnum];
       resnum++;   
       if (voxel>=MAX_GRID_PT_) continue;
-      NonbondEnergy( currentFrame );
       EulerAngle( currentFrame );
       Dipole( currentFrame );
       Order( currentFrame );
+      NonbondEnergy( currentFrame );
+    }
   
-    }
-
-    //Debugg
-    if (NFRAME_==1) mprintf("GIST  DoAction:  Found %d solvent residues \n", resnum);
-    if (solventMolecules != resnum) {
-      mprinterr("GIST  DoAction  Error: No solvent molecules don't match %d %d\n", solventMolecules, resnum);
-    }
-
+  //Debugg
+  if (NFRAME_==1) mprintf("GIST  DoAction:  Found %d solvent residues \n", resnum);
+  if (solventMolecules != resnum) {
+    mprinterr("GIST  DoAction  Error: No solvent molecules don't match %d %d\n", solventMolecules, resnum);
+  }
+  
   return Action::OK;
 }
 
@@ -306,7 +308,7 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 
   // Setup imaging info
   Matrix_3x3 ucell, recip;
-  
+
   // Loop over solvent atoms
   for (satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
     {
@@ -315,7 +317,8 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
       // Inner loop	has both solute and solvent
       resnum2=0;
       for (solvmol2 = CurrentParm_->MolStart();
-	   solvmol2 != CurrentParm_->MolEnd(); ++solvmol2)
+	   //	       solvmol2 != CurrentParm_->MolEnd(); ++solvmol2)
+	   solvmol2 > solvmol ; ++solvmol2)
 	{
 	  if ((*solvmol2).IsSolvent()) { 
 	    // Solvent loop
@@ -337,8 +340,8 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 		rij2 = DIST2_ImageNonOrtho(XYZ, XYZ2, ucell, recip);
 		break;
 	      case ORTHO:
-		rij2 = DIST2_ImageOrtho(XYZ, XYZ2, currentFrame->BoxCrd());
-		break;
+		    rij2 = DIST2_ImageOrtho(XYZ, XYZ2, currentFrame->BoxCrd());
+		    break;
 	      default:
 		rij2 = DIST2_NoImage(XYZ, XYZ2);	          
 	      }
@@ -383,13 +386,13 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 		if (satom2==0 && satom==0 && rij<3.5) {
 		  neighbor_[voxel]++;
 		  if (voxel2<MAX_GRID_PT_) neighbor_[voxel2]++;	
-		}
+		    }
 	      }
 	    } // END Inner loop ALL atoms 
 	} // END Inner loop ALL molecules
     } // END Outer loop solvent atoms
 }
-
+  
 
 // Action_Gist::Grid()
 void Action_Gist::Grid(Frame *frameIn) {
