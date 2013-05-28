@@ -1,6 +1,6 @@
 include ../../config.h
 
-CPPTRAJ_FLAGS=-I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
+CPPTRAJ_FLAGS=-CB -debug -g -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
 # The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
 # actual locations of the arpack, lapack, blas, and netcdf libraries as 
 # installed by AmberTools. Since the NETCDFLIB / FLIBS_PTRAJ vars can now just
@@ -32,8 +32,8 @@ dependclean:
 	-/bin/rm findDepend
 
 cpptraj$(SFX): $(NETCDF) $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
-	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
-               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
+	$(CXX) $(LDFLAGS) -CB -debug -g -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
+               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE) -CB -debug -g
 
 $(INCDIR)/netcdf.mod: ../../netcdf_config.log
 	cd ../../netcdf/src && $(MAKE) install

@@ -42,22 +42,22 @@ class Action_Gist: public Action, ImagedAction  {
 
     //Grid Stuff   
     Vec3 gridcntr_;    		// coordiantes of grid center
-    int* griddim_;		// grid dimension (bin number in each direction)
+    std::vector <int> griddim_;		// grid dimension (bin number in each direction)
     Vec3 gridorig_;		// coordinates of grid origin
     double gridspacn_;		// grid spacing
     int MAX_GRID_PT_;
     std::vector <int> gridwat_;		// voxel index of each water
     std::vector <int> nwat_;		// total number of water found in each voxel
-    vector <int> nH_;			// total number of hydrogen found in each voxel
+    std::vector <int> nH_;			// total number of hydrogen found in each voxel
     std::vector <int> nw_angle_;	// total nuber of Euler angles found in each voxel
     std::vector <double> g_;		// normalized water density
-    vector <double> gH_;		// normalized H density
+    std::vector <double> gH_;		// normalized H density
     std::vector <double> dens_;		// water density
     std::vector <double> grid_x_;	// voxel index in x
     std::vector <double> grid_y_;
     std::vector <double> grid_z_;
-    vector <int> neighbor_;		// number of water neighbor within 3.5A
-    vector <double> qtet_;		// tetahedral order parameter
+    std::vector <int> neighbor_;		// number of water neighbor within 3.5A
+    std::vector <double> qtet_;		// tetahedral order parameter
     double Vvox_;			// voxel volume
     /// Return X coordinate of bin center
     double Xcrd(int i) { return (double)i*gridspacn_ + gridorig_[0] + 0.5*gridspacn_; }
@@ -76,6 +76,12 @@ class Action_Gist: public Action, ImagedAction  {
         else if (r[2] > Lz/2) r[2] -= Lz;
     } 
 
+    //general loop    
+    Topology::mol_iterator solvmol, solvmol2;
+    int voxel;
+    int resnum;
+    double theta, phi, psi;
+    
     //non-bond energy stuff
     std::vector <double> wh_evdw_;
     std::vector <double> wh_eelec_;
@@ -108,10 +114,10 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> dipoley_;
     std::vector <double> dipolez_;
 
-    void NonbondEnergy(Frame *, Topology *);
-    void Grid(Frame *, Topology *);
-    void EulerAngle(Frame *, Topology *);
-    void Dipole(Frame *, Topology *);
-    void Order(Frame *, Topology *);
+    void NonbondEnergy(Frame *);
+    void Grid(Frame *);
+    void EulerAngle(Frame *);
+    void Dipole(Frame *);
+    void Order(Frame *);
 };
 #endif
