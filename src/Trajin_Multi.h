@@ -20,7 +20,11 @@ class Trajin_Multi : public Trajin {
     int EnsembleSetup( FrameArray& );
     int GetNextEnsemble( FrameArray& );
     int EnsembleSize()               const { return (int)REMDtraj_.size(); }
+#   ifdef MPI
+    int EnsembleFrameNum()           const { return ensembleFrameNum_;     }
+#   else
     int EnsemblePosition(int member) const { return frameidx_[member];     }
+#   endif
     bool BadEnsemble()               const { return badEnsemble_;          }
   private:
     /// Define type that will hold REMD indices
@@ -31,6 +35,7 @@ class Trajin_Multi : public Trajin {
 
     double remdtrajtemp_;     ///< Get frames with this temperature on read
     RemdIdxType remdtrajidx_; ///< Get frames with these indices on read
+    int Ndimensions_;         ///< # of dimensions in each trajectory.
     int* remd_indices_;       ///< Space for reading in REMD indices.
     IOarrayType REMDtraj_;    ///< Input replica trajectories
     int lowestRepnum_;        ///< Hold the lowest replica number
@@ -42,10 +47,15 @@ class Trajin_Multi : public Trajin {
     TargetType targetType_;   ///< Hold type of REMD frame being searched for.
     NameListType replica_filenames_;
     // ENSEMBLE
-    RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
+    //RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
+    int* frameidx_;    ///< Hold position of each frame in ensemble.
     typedef std::map<double,int> TmapType;
     TmapType TemperatureMap_;
-
+    typedef std::map< std::vector<int>, int > ImapType;
+    ImapType IndicesMap_;
+#   ifdef MPI
+    int ensembleFrameNum_;    ///< Position containing coords to use in FrameArray
+#   endif
     NameListType SearchForReplicas();
     bool IsTarget(double);
 };

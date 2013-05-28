@@ -203,6 +203,7 @@ USECRAY=0
 CC=""
 CXX=""
 FC=""
+SFX=""
 CPPTRAJHOME=`pwd`
 CPPTRAJBIN=$CPPTRAJHOME/bin
 DIRECTIVES=""
@@ -359,7 +360,7 @@ while [[ ! -z $1 ]] ; do
     "--with-netcdf" )
       INCLUDE="$INCLUDE -I$VALUE/include"
       NETCDF_HOME="$VALUE"
-      echo "Using NETCDF in $NETCDFLIB_HOME"
+      echo "Using NETCDF in $NETCDF_HOME"
       ;;
     "--with-blas" )
       INCLUDE="$INCLUDE -I$VALUE/include"
@@ -517,6 +518,7 @@ if [[ $USEOPENMP -eq 1 ]] ; then
   echo "Using OPENMP"
   DIRECTIVES="$OMPFLAGS $DIRECTIVES"
   LDFLAGS="$OMPFLAGS $LDFLAGS"
+  SFX=".OMP"
 fi
 
 # For pgi on cray modify some flags
@@ -524,6 +526,16 @@ if [[ $USECRAY -eq 1 && $CC = "pgcc" ]] ; then
     OPTFLAGS="-fast"
     OMPFLAGS="-mp=nonuma"
     FOPTFLAGS="-fast"
+fi
+
+# Change to MPI compiler wrappers if specified
+if [[ $USEMPI -eq 1 ]] ; then
+  echo "Using MPI"
+  DIRECTIVES="$DIRECTIVES -DMPI"
+  CC=mpicc
+  CXX=mpicxx
+  FC=mpif90
+  SFX=".MPI"
 fi
 
 # Remove opt flags if specified
@@ -553,17 +565,6 @@ if [[ $PROFILE -eq 1 && $CXX = "g++" ]] ; then
 elif [[ $PROFILE -eq 2 && $CXX = "g++" ]] ; then
   echo "Turning on GLIBC profiling for $CXX."
   CXXFLAGS="-D_GLIBCXX_PROFILE $CXXFLAGS"
-fi
-
-# Change to MPI compiler wrappers if specified
-if [[ $USEMPI -eq 1 ]] ; then
-  echo "Using MPI"
-  DIRECTIVES="$DIRECTIVES -DMPI"
-  if [[ $USECRAY -eq 0 ]] ; then
-    CC=mpicc
-    CXX=mpicxx
-    FC=mpif90
-  fi
 fi
 
 # Use cray wrappers
@@ -600,7 +601,7 @@ READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
 
 LDFLAGS=$LDFLAGS
-SFX=
+SFX=$SFX
 EOF
 
 # Create directories if necessary

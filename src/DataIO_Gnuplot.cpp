@@ -11,6 +11,7 @@ DataIO_Gnuplot::DataIO_Gnuplot() {
   useMap_ = false;
   jpegout_ = false;
   binary_ = false;
+  writeHeader_ = true;
 }
 
 void DataIO_Gnuplot::LabelArg( std::vector<std::string>& labels, std::string const& labelarg) 
@@ -35,7 +36,11 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   if (argIn.hasKey("nopm3d")) pm3d_ = OFF;
   if (argIn.hasKey("jpeg")) jpegout_ = true;
   if (argIn.hasKey("binary")) binary_ = true;
-
+  if (argIn.hasKey("noheader")) writeHeader_ = false;
+  if (!writeHeader_ && jpegout_) {
+    mprintf("Warning: jpeg output not supported with 'noheader' option.\n");
+    jpegout_ = false;
+  }
   // Label arguments
   LabelArg( Xlabels_, argIn.GetStringKey( "xlabels" ) );
   LabelArg( Ylabels_, argIn.GetStringKey( "ylabels" ) );
@@ -78,7 +83,7 @@ void DataIO_Gnuplot::WriteRangeAndHeader(double xcoord, double ycoord,
 
 // DataIO_Gnuplot::Finish()
 void DataIO_Gnuplot::Finish() {
-  if (!jpegout_)
+  if (!jpegout_ && writeHeader_)
     file_.Printf("end\npause -1\n");
   file_.CloseFile();
 }
@@ -218,50 +223,51 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList &SetLis
             BaseName(), SetList.size());
     printLabels_ = false;
   }*/
+  if (writeHeader_) {
+    // Check for JPEG output
+    JpegOut( maxFrames_, (int)SetList.size() );
 
-  // Check for JPEG output
-  JpegOut( maxFrames_, (int)SetList.size() );
+    // PM3D command
+    std::string pm3d_cmd = Pm3d();
 
-  // PM3D command
-  std::string pm3d_cmd = Pm3d();
-
-  // Y axis Data Labels
-  if (printLabels_) {
-    // NOTE: Add option to turn on grid later?
-    //outfile->file_.Printf("set pm3d map hidden3d 100 corners2color c1\n");
-    //outfile->file_.Printf("set style line 100 lt 2 lw 0.5\n");
-    // Set up Y labels
-    file_.Printf("set ytics %8.3f,%8.3f\nset ytics(",ymin_,ystep_);
-    int setnum = 0;
-    for (set=SetList.begin(); set!=SetList.end(); set++) {
-      if (setnum>0) file_.Printf(",");
-      ycoord = (ystep_ * setnum) + ymin_;
-      file_.Printf("\"%s\" %8.3f",(*set)->Legend().c_str(),ycoord);
-      ++setnum; 
-    }
-    file_.Printf(")\n");
-    // Set up Z labels
-    if (!Zlabels_.empty()) {
-      WriteDefinedPalette(Zlabels_.size());
-      file_.Printf("set cbtics(");
-      int iz = 0;
-      for (std::vector<std::string>::iterator label = Zlabels_.begin();
-                                              label != Zlabels_.end(); ++label)
-      {
-        if (iz > 0) file_.Printf(",");
-        file_.Printf("\"%s\" %8.3f", (*label).c_str(), (float)iz++);
+    // Y axis Data Labels
+    if (printLabels_) {
+      // NOTE: Add option to turn on grid later?
+      //outfile->file_.Printf("set pm3d map hidden3d 100 corners2color c1\n");
+      //outfile->file_.Printf("set style line 100 lt 2 lw 0.5\n");
+      // Set up Y labels
+      file_.Printf("set ytics %8.3f,%8.3f\nset ytics(",ymin_,ystep_);
+      int setnum = 0;
+      for (set=SetList.begin(); set!=SetList.end(); set++) {
+        if (setnum>0) file_.Printf(",");
+        ycoord = (ystep_ * setnum) + ymin_;
+        file_.Printf("\"%s\" %8.3f",(*set)->Legend().c_str(),ycoord);
+        ++setnum; 
       }
       file_.Printf(")\n");
+      // Set up Z labels
+      if (!Zlabels_.empty()) {
+        WriteDefinedPalette(Zlabels_.size());
+        file_.Printf("set cbtics(");
+        int iz = 0;
+        for (std::vector<std::string>::iterator label = Zlabels_.begin();
+                                                label != Zlabels_.end(); ++label)
+        {
+          if (iz > 0) file_.Printf(",");
+          file_.Printf("\"%s\" %8.3f", (*label).c_str(), (float)iz++);
+        }
+        file_.Printf(")\n");
+      }
     }
+
+    // Set axis label and range, write plot command
+    // Make Yrange +1 and -1 so entire grid can be seen
+    ycoord = (ystep_ * SetList.size()) + ymin_;
+    // Make Xrange +1 and -1 as well
+    xcoord = (xstep_ * maxFrames_) + xmin_;
+  
+    WriteRangeAndHeader(xcoord, ycoord, pm3d_cmd);
   }
-
-  // Set axis label and range, write plot command
-  // Make Yrange +1 and -1 so entire grid can be seen
-  ycoord = (ystep_ * SetList.size()) + ymin_;
-  // Make Xrange +1 and -1 as well
-  xcoord = (xstep_ * maxFrames_) + xmin_;
-
-  WriteRangeAndHeader(xcoord, ycoord, pm3d_cmd);
 
   // Data
   int frame = 0;
@@ -312,6 +318,7 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList &SetLis
 
 // DataIO_Gnuplot::WriteData2D()
 int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSet& set ) {
+  double xcoord, ycoord;
   std::vector<int> dimensions;
   if (file_.OpenWrite( fname )) return 1;
   // Get dimensions
@@ -322,47 +329,49 @@ int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSet& set ) {
     return 1;
   } 
 
-  // Check for JPEG output
-  JpegOut( dimensions[0], dimensions[1] );
+  if (writeHeader_) {
+    // Check for JPEG output
+    JpegOut( dimensions[0], dimensions[1] );
 
-  // PM3D command
-  std::string pm3d_cmd = Pm3d();
+    // PM3D command
+    std::string pm3d_cmd = Pm3d();
 
-  // Axes Data Labels
-  if (printLabels_) {
-    // Set up X and Y labels
-    if (!Ylabels_.empty()) {
-      if ( (int)Ylabels_.size() != dimensions[1])
-        mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%i)\n",
-                Ylabels_.size(), dimensions[1]);
-      file_.Printf("set ytics %8.3f,%8.3f\nset ytics(",ymin_,ystep_);
-      for (int iy = 0; iy < (int)Ylabels_.size(); ++iy) {
-        if (iy>0) file_.Printf(",");
-        double ycoord = (ystep_ * (double)iy) + ymin_;
-        file_.Printf("\"%s\" %8.3f", Ylabels_[iy].c_str(), ycoord);
+    // Axes Data Labels
+    if (printLabels_) {
+      // Set up X and Y labels
+      if (!Ylabels_.empty()) {
+        if ( (int)Ylabels_.size() != dimensions[1])
+          mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%i)\n",
+                  Ylabels_.size(), dimensions[1]);
+        file_.Printf("set ytics %8.3f,%8.3f\nset ytics(",ymin_,ystep_);
+        for (int iy = 0; iy < (int)Ylabels_.size(); ++iy) {
+          if (iy>0) file_.Printf(",");
+          double ycoord = (ystep_ * (double)iy) + ymin_;
+          file_.Printf("\"%s\" %8.3f", Ylabels_[iy].c_str(), ycoord);
+        }
+        file_.Printf(")\n");
       }
-      file_.Printf(")\n");
-    }
-    if (!Xlabels_.empty()) {
-      if ( (int)Xlabels_.size() != dimensions[0])
-        mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%i)\n",
-                Xlabels_.size(), dimensions[0]); 
-      file_.Printf("set xtics %8.3f,%8.3f\nset xtics(",xmin_,xstep_);
-      for (int ix = 0; ix < (int)Xlabels_.size(); ++ix) {
-        if (ix>0) file_.Printf(",");
-        double xcoord = (xstep_ * (double)ix) + xmin_;
-        file_.Printf("\"%s\" %8.3f", Xlabels_[ix].c_str(), xcoord);
+      if (!Xlabels_.empty()) {
+        if ( (int)Xlabels_.size() != dimensions[0])
+          mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%i)\n",
+                  Xlabels_.size(), dimensions[0]); 
+        file_.Printf("set xtics %8.3f,%8.3f\nset xtics(",xmin_,xstep_);
+        for (int ix = 0; ix < (int)Xlabels_.size(); ++ix) {
+          if (ix>0) file_.Printf(",");
+          double xcoord = (xstep_ * (double)ix) + xmin_;
+          file_.Printf("\"%s\" %8.3f", Xlabels_[ix].c_str(), xcoord);
+        }
+        file_.Printf(")\n");
       }
-      file_.Printf(")\n");
     }
+
+    // Set axis label and range, write plot command
+    // Make Yrange +1 and -1 so entire grid can be seen
+    ycoord = (ystep_ * (double)dimensions[1]) + ymin_;
+    // Make Xrange +1 and -1 as well
+    xcoord = (xstep_ * (double)dimensions[0]) + xmin_;
+    WriteRangeAndHeader(xcoord, ycoord, pm3d_cmd);
   }
-
-  // Set axis label and range, write plot command
-  // Make Yrange +1 and -1 so entire grid can be seen
-  double ycoord = (ystep_ * (double)dimensions[1]) + ymin_;
-  // Make Xrange +1 and -1 as well
-  double xcoord = (xstep_ * (double)dimensions[0]) + xmin_;
-  WriteRangeAndHeader(xcoord, ycoord, pm3d_cmd);
 
   for (int ix = 0; ix < dimensions[0]; ++ix) {
     double xcoord = (xstep_ * (double)ix) + xmin_;

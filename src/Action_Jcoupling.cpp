@@ -5,7 +5,6 @@
 #include <cmath> //cos
 #include "Action_Jcoupling.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // fileExists
 #include "Constants.h" // DEGRAD, RADDEG
 #include "TorsionRoutines.h"
 
@@ -58,6 +57,7 @@ int Action_Jcoupling::loadKarplus(std::string filename) {
   if (KarplusFile.OpenRead( filename )) {
     mprinterr("Error: jcoupling: Could not read Karplus parameter file %s\n",
               filename.c_str());
+    mprinterr("Error: Ensure the file exists and is readable.\n");
     return 1;
   }
   // residue is only for reading in 4 chars for residue names
@@ -171,27 +171,22 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
 
   // Get Karplus parameters from file.
   karpluspath.clear();
-  // First look in $AMBERHOME/dat/Karplus.txt
-  char* env = getenv("AMBERHOME");
-  if (env==0) {
-    mprintf("    Warning: jcoupling: AMBERHOME not set.\n");
-  } else {
+  // Check if the KARPLUS env var is set.
+  const char* env = getenv("KARPLUS");
+  if (env != 0) {
+    mprintf("Info: using parameter file defined by $KARPLUS environment variable.\n");
     karpluspath.assign(env);
-    karpluspath += "/dat/Karplus.txt";
-    if (!fileExists(karpluspath.c_str())) {
-      mprintf("    Warning: jcoupling: %s not found\n",karpluspath.c_str());
-      karpluspath.clear(); 
-    }
-  }
-  // Second look for $KARPLUS
-  if (karpluspath.empty()) {
-    env = getenv("KARPLUS");
-    if (env==0) {
-      mprinterr("Error: jcoupling: Karplus parameters $AMBERHOME/dat/Karplus.txt not found\n");
-      mprinterr("       and KARPLUS environment variable not set.\n");
+  } else {
+    // If KARPLUS not set check for $AMBERHOME/dat/Karplus.txt
+    env = getenv("AMBERHOME");
+    if (env == 0) {
+      mprinterr("Error: jcoupling: Either AMBERHOME must be set or KARPLUS must point\n");
+      mprinterr("Error: to the file containing Karplus parameters.\n");
       return Action::ERR;
     }
+    mprintf("Info: using parameter file in '$AMBERHOME/dat/'.\n");
     karpluspath.assign(env);
+    karpluspath += "/dat/Karplus.txt";
   }
   // Load Karplus parameters
   if (loadKarplus(karpluspath)) 

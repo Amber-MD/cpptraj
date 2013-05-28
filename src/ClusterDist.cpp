@@ -192,11 +192,10 @@ Centroid* ClusterDist_Euclid::NewCentroid(Cframes const& cframesIn) {
 }
 
 // ---------- Distance calc routines for COORDS DataSet using DME --------------
-ClusterDist_DME::ClusterDist_DME(DataSet* dIn, std::string const& maskexpr) :
+ClusterDist_DME::ClusterDist_DME(DataSet* dIn, AtomMask const& maskIn) :
   coords_((DataSet_Coords*)dIn),
-  mask_(maskexpr)
+  mask_(maskIn)
 {
-  coords_->Top().SetupIntegerMask( mask_ );
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
 }
 
@@ -264,14 +263,13 @@ Centroid* ClusterDist_DME::NewCentroid( Cframes const& cframesIn ) {
 }
 
 // ---------- Distance calc routines for COORDS DataSets using RMSD ------------
-ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, std::string const& maskexpr, 
+ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, AtomMask const& maskIn, 
                                  bool nofit, bool useMass) :
   coords_((DataSet_Coords*)dIn),
-  mask_(maskexpr),
+  mask_(maskIn),
   nofit_(nofit),
   useMass_(useMass)
 {
-  coords_->Top().SetupIntegerMask( mask_ );
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
 }
 

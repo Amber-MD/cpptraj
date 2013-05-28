@@ -30,6 +30,8 @@ class Analysis_Hist : public Analysis {
     Dimension default_dim_;
     bool minArgSet_;
     bool maxArgSet_;
+    bool calcAMD_;
+    DataSet* amddata_;
 
     int CheckDimension(std::string const&, DataSetList*);
     int setupDimension(ArgList&, DataSet*);

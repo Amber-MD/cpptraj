@@ -95,7 +95,7 @@ class ClusterDist_Euclid : public ClusterDist {
 class ClusterDist_DME: public ClusterDist {
   public:
     ClusterDist_DME() : coords_(0) {}
-    ClusterDist_DME(DataSet*,std::string const&);
+    ClusterDist_DME(DataSet*,AtomMask const&);
     ClusterMatrix PairwiseDist(int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
@@ -110,7 +110,7 @@ class ClusterDist_DME: public ClusterDist {
 class ClusterDist_RMS : public ClusterDist {
   public:
     ClusterDist_RMS() : coords_(0), nofit_(false), useMass_(false) {}
-    ClusterDist_RMS(DataSet*,std::string const&,bool,bool);
+    ClusterDist_RMS(DataSet*,AtomMask const&,bool,bool);
     ClusterMatrix PairwiseDist(int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);

@@ -39,6 +39,12 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #define NCREMD_DIMENSION "remd_dimension"
 #define NCREMD_DIMTYPE "remd_dimtype"
 #define NCREMD_INDICES "remd_indices"
+#define NCEPTOT "eptot"
+#define NCBINS "bins"
+
+static const char* RemDimDesc[5] = {
+  "Unknown", "Temperature", "Partial", "Hamiltonian", "pH"
+};
 
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
@@ -267,7 +273,7 @@ int NetcdfFile::SetupMultiD() {
   }
   // Print info for each dimension
   for (int dim = 0; dim < remd_dimension_; ++dim)
-    mprintf("\tDim %i: type %i\n",dim+1, remd_dimtype[dim]);
+    mprintf("\tDim %i: type %s (%i)\n",dim+1, RemDimDesc[remd_dimtype[dim]], remd_dimtype[dim]);
   delete[] remd_dimtype;
   return 0; 
 }
@@ -393,6 +399,57 @@ int NetcdfFile::NC_openWrite(std::string const& Name) {
   return 0;
 }
 
+int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {
+  if (checkNCerr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM,dimensionID,&TempVID_))) {
+    mprinterr("NetCDF error on defining temperature.\n");
+    return 1;
+  }
+  if (checkNCerr(nc_put_att_text(ncid_,TempVID_,"units",6,"kelvin"))) {
+    mprinterr("NetCDF error on defining temperature units.\n");
+    return 1;
+  }
+  return 0;
+}
+
+int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
+                                   int& eptotVID, int& binsVID) 
+{
+  int dimensionID[1];
+  dimensionID[0] = frameDID_;
+  if (ncid_ == -1 || dimensionID[0] == -1) return 1;
+  // Place file back in define mode
+  if ( checkNCerr( nc_redef( ncid_ ) ) ) return 1;
+  // Define eptot, bins, temp0
+  if ( checkNCerr( nc_def_var(ncid_, NCEPTOT, NC_DOUBLE, 1, dimensionID, &eptotVID)) ) {
+    mprinterr("Error: defining eptot variable ID.\n");
+    return 1;
+  }
+  if (hasBins) {
+    if ( checkNCerr( nc_def_var(ncid_, NCBINS, NC_INT, 1, dimensionID, &binsVID)) ) {
+      mprinterr("Error: defining bins variable ID.\n");
+      return 1;
+    }
+  } else
+    binsVID = -1;
+  if (NC_defineTemperature(dimensionID, 0)) return 1;
+  // Random seed, make global
+  if ( checkNCerr( nc_put_att_int(ncid_, NC_GLOBAL, "iseed", NC_INT, 1, &iseed) ) ) {
+    mprinterr("Error: setting random seed attribute.\n");
+    return 1;
+  }
+  // End definitions
+  if (checkNCerr(nc_enddef(ncid_))) {
+    mprinterr("NetCDF error on ending definitions.");
+    return 1;
+  }
+  // Write temperature
+  if (checkNCerr(nc_put_var_double(ncid_,TempVID_,&reservoirT)) ) {
+    mprinterr("Error: Writing reservoir temperature.\n");
+    return 1;
+  }
+  return 0;
+}
+
 // NetcdfFile::NC_create()
 int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, bool hasVelocity,
                           bool hasBox, bool hasTemperature, bool hasTime, 
@@ -430,7 +487,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
 
   ncframe_ = 0;
   if (type == NC_AMBERTRAJ) {
-    // Frame dimension and Time variable for traj
+    // Frame dimension for traj
     if ( checkNCerr( nc_def_dim( ncid_, NCFRAME, NC_UNLIMITED, &frameDID_)) ) {
       mprinterr("Error: Defining frame dimension.\n");
       return 1;
@@ -500,36 +557,42 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
       return 1;
     }
   }
-  // Cell Spatial
-  if ( checkNCerr( nc_def_dim( ncid_, NCCELL_SPATIAL, 3, &cell_spatialDID_)) ) {
-    mprinterr("Error: Defining cell spatial dimension.\n");
-    return 1;
-  }
-  dimensionID[0] = cell_spatialDID_;
-  if ( checkNCerr( nc_def_var(ncid_, NCCELL_SPATIAL, NC_CHAR, 1, dimensionID, &cell_spatialVID_)))
-  {
-    mprinterr("Error: Defining cell spatial variable.\n");
-    return 1;
-  }
-  // Cell angular
-  if ( checkNCerr( nc_def_dim( ncid_, NCLABEL, NCLABELLEN, &labelDID_)) ) {
-    mprinterr("Error: Defining label dimension.\n");
-    return 1;
-  }
-  if ( checkNCerr( nc_def_dim( ncid_, NCCELL_ANGULAR, 3, &cell_angularDID_)) ) {
-    mprinterr("Error: Defining cell angular dimension.\n"); 
-    return 1;
-  }
-  dimensionID[0] = cell_angularDID_;
-  dimensionID[1] = labelDID_;
-  if ( checkNCerr( nc_def_var( ncid_, NCCELL_ANGULAR, NC_CHAR, 2, dimensionID, 
-                               &cell_angularVID_)) )
-  {
-    mprinterr("Error: Defining cell angular variable.\n");
-    return 1;
+  // Replica Temperature
+  if (hasTemperature) {
+    // NOTE: Setting dimensionID should be OK for Restart, will not be used.
+    dimensionID[0] = frameDID_;
+    if ( NC_defineTemperature( dimensionID, NDIM-2 ) ) return 1;
   }
   // Box Info
   if (hasBox) {
+    // Cell Spatial
+    if ( checkNCerr( nc_def_dim( ncid_, NCCELL_SPATIAL, 3, &cell_spatialDID_)) ) {
+      mprinterr("Error: Defining cell spatial dimension.\n");
+      return 1;
+    }
+    dimensionID[0] = cell_spatialDID_;
+    if ( checkNCerr( nc_def_var(ncid_, NCCELL_SPATIAL, NC_CHAR, 1, dimensionID, &cell_spatialVID_)))
+    {
+      mprinterr("Error: Defining cell spatial variable.\n");
+      return 1;
+    }
+    // Cell angular
+    if ( checkNCerr( nc_def_dim( ncid_, NCLABEL, NCLABELLEN, &labelDID_)) ) {
+      mprinterr("Error: Defining label dimension.\n");
+      return 1;
+    }
+    if ( checkNCerr( nc_def_dim( ncid_, NCCELL_ANGULAR, 3, &cell_angularDID_)) ) {
+      mprinterr("Error: Defining cell angular dimension.\n"); 
+      return 1;
+    }
+    dimensionID[0] = cell_angularDID_;
+    dimensionID[1] = labelDID_;
+    if ( checkNCerr( nc_def_var( ncid_, NCCELL_ANGULAR, NC_CHAR, 2, dimensionID, 
+                                 &cell_angularVID_)) )
+    {
+      mprinterr("Error: Defining cell angular variable.\n");
+      return 1;
+    }
     // Setup dimensions for Box
     // NOTE: This must be modified if more types added
     int boxdim;
@@ -577,7 +640,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
     return 1;
   }
   if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"programVersion",
-                                 CPPTRAJ_VERSION_STRLEN, CPPTRAJ_VERSION_STRING)) ) 
+                                 NETCDF_VERSION_STRLEN, NETCDF_VERSION_STRING)) ) 
   {
     mprinterr("Error: Writing program version.\n");
     return 1;
@@ -599,20 +662,6 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
     return 1;
   }
   
-  // Replica Temperature
-  if (hasTemperature) {
-    // NOTE: Setting dimensionID should be OK for Restart, will not be used.
-    dimensionID[0] = frameDID_;
-    if (checkNCerr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM-2,dimensionID,&TempVID_))) {
-      mprinterr("NetCDF error on defining temperature.\n");
-      return 1;
-    }
-    if (checkNCerr(nc_put_att_text(ncid_,TempVID_,"units",6,"kelvin"))) {
-      mprinterr("NetCDF error on defining temperature units.\n"); 
-      return 1;
-    }
-  }
-
   // Set fill mode
   if (checkNCerr(nc_set_fill(ncid_, NC_NOFILL, dimensionID))) {
     mprinterr("Error: NetCDF setting fill value.\n");
@@ -626,13 +675,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
   }
 
   // Specify spatial dimension labels
-  char xyz[3];
-  char abc[15] = { 'a', 'l', 'p', 'h', 'a',
-                   'b', 'e', 't', 'a', ' ',
-                   'g', 'a', 'm', 'm', 'a' };
   start_[0] = 0;
   count_[0] = 3;
-
+  char xyz[3];
   xyz[0] = 'x'; 
   xyz[1] = 'y'; 
   xyz[2] = 'z';
@@ -640,22 +685,25 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
     mprinterr("Error on NetCDF output of spatial VID 'x', 'y' and 'z'");
     return 1;
   }
-
-  xyz[0] = 'a'; 
-  xyz[1] = 'b'; 
-  xyz[2] = 'c';
-  if (checkNCerr(nc_put_vara_text(ncid_, cell_spatialVID_, start_, count_, xyz))) {
-    mprinterr("Error on NetCDF output of cell spatial VID 'a', 'b' and 'c'");
-    return 1;
-  }
-
-  start_[0] = 0; 
-  start_[1] = 0;
-  count_[0] = 3; 
-  count_[1] = NCLABELLEN;
-  if (checkNCerr(nc_put_vara_text(ncid_, cell_angularVID_, start_, count_, abc))) {
-    mprinterr("Error on NetCDF output of cell angular VID 'alpha', 'beta ' and 'gamma'");
-    return 1;
+  if ( hasBox ) {
+    xyz[0] = 'a'; 
+    xyz[1] = 'b'; 
+    xyz[2] = 'c';
+    if (checkNCerr(nc_put_vara_text(ncid_, cell_spatialVID_, start_, count_, xyz))) {
+      mprinterr("Error on NetCDF output of cell spatial VID 'a', 'b' and 'c'");
+      return 1;
+    }
+    char abc[15] = { 'a', 'l', 'p', 'h', 'a',
+                     'b', 'e', 't', 'a', ' ',
+                     'g', 'a', 'm', 'm', 'a' };
+    start_[0] = 0; 
+    start_[1] = 0;
+    count_[0] = 3; 
+    count_[1] = NCLABELLEN;
+    if (checkNCerr(nc_put_vara_text(ncid_, cell_angularVID_, start_, count_, abc))) {
+      mprinterr("Error on NetCDF output of cell angular VID 'alpha', 'beta ' and 'gamma'");
+      return 1;
+    }
   }
 
   return 0;

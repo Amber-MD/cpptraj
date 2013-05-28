@@ -247,9 +247,9 @@ void Trajin::PrepareForRead(bool useIn, bool seekable) {
 // Trajin::PrintInfoLine()
 void Trajin::PrintInfoLine() {
   if (stop_ != -1)
-    rprintf( "----- [%s] (%i-%i, %i) -----\n",TrajFilename().base(),start_+1,stop_+1,offset_);
+    mprintf( "----- [%s] (%i-%i, %i) -----\n",TrajFilename().base(),start_+1,stop_+1,offset_);
   else
-    rprintf( "----- [%s] (%i-EOF, %i) -----\n",TrajFilename().base(),start_+1,offset_);
+    mprintf( "----- [%s] (%i-EOF, %i) -----\n",TrajFilename().base(),start_+1,offset_);
 }
 
 // Trajin::PrintFrameInfo()

@@ -47,8 +47,8 @@ class Analysis_Clustering: public Analysis {
     int debug_;
     static const char* PAIRDISTFILE;
 
-    void CreateCnumvtime( ClusterList const& );
-    void CreateCpopvtime( ClusterList const& );
+    void CreateCnumvtime( ClusterList const&, int );
+    void CreateCpopvtime( ClusterList const&, int );
     void WriteClusterTraj( ClusterList const& );
     void WriteSingleRepTraj( ClusterList const& );
     void WriteRepTraj( ClusterList const& );

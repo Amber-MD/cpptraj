@@ -14,11 +14,13 @@ class Histogram : public DataSet {
     int AddDimension(Dimension&); 
     /// Bin given data. Dim must be the same as what the histogram has been set up for.
     int BinData(std::vector<double>&); 
+    int BinAMD(std::vector<double> const&, double); 
 
     void PrintBins(const char*, bool,bool);
 
     int Xmax() { return dimensions_[0].Bins()-1; }
     int Size() { return (int)Bins_.size(); }
+    double Dval(int i) { return Bins_[i]; }
     void WriteBuffer(CpptrajFile &, int);
     void Write2D(CpptrajFile&, int, int);
     void GetDimensions(std::vector<int>&);
