@@ -14,7 +14,7 @@ class ClusterList {
     int Nclusters()                  const { return (int)clusters_.size(); }
 
     void SetDebug(int);
-    void Renumber();
+    void Renumber(bool);
     void Summary(std::string const&,int);
     void Summary_Half(std::string const&,int,int);
     void PrintClustersToFile(std::string const&,int);
@@ -22,7 +22,6 @@ class ClusterList {
 
     int CalcFrameDistances(std::string const&, ClusterDist::DsArray const&, DistModeType, 
                            bool, bool, bool, std::string const&, int);
-    void AddSievedFrames();
     // Inherited by individual clustering methods
     virtual int SetupCluster(ArgList&) = 0;
     virtual void ClusteringInfo() = 0;

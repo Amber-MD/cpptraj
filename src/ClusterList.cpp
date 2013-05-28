@@ -32,7 +32,7 @@ void ClusterList::SetDebug(int debugIn) {
   * anything dependent on ClusterDistances since sorting destroys indexing 
   * into ClusterDistances.
   */
-void ClusterList::Renumber() {
+void ClusterList::Renumber(bool addSievedFrames) {
   // Before clusters are renumbered, calculate the average distance of 
   // this cluster to every other cluster.
   // Only do this if ClusterDistances has been set.
@@ -55,20 +55,51 @@ void ClusterList::Renumber() {
       (*node).SetAvgDist( avgclusterdist ); 
     }
   }
-  // Sort clusters by population 
-  clusters_.sort( );
-  // Renumber clusters and calculate some cluster properties.
-  int newNum = 0;
-  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) 
-  {
-    (*node).SetNum( newNum++ );
-    // Find the centroid frame. Since FindCentroidFrame uses FrameDistances 
-    // and not ClusterDistances its ok to call after sorting/renumbering.
+  // Update cluster centroids.
+  bool centroid_error = false;
+  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
     if ((*node).FindCentroidFrame( FrameDistances_ )) {
       mprinterr("Error: Could not determine centroid frame for cluster %i\n",
                 (*node).Num());
+      centroid_error = true;
+    }
+  // Add back sieved frames based on distance to cluster centroids.
+  if (addSievedFrames) {
+    if (centroid_error)
+      mprinterr("Error: 1 or more centroids not determined. Cannot add sieved frames.\n");
+    else {
+      mprintf("\tRestoring non-sieved frames:");
+      // Ensure cluster centroids are up-to-date
+      for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode)
+        (*Cnode).CalculateCentroid( Cdist_ );
+      for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame) {
+        if (FrameDistances_.IgnoringRow(frame)) {
+          //mprintf(" %i [", frame + 1); // DEBUG
+          // Which clusters centroid is closest to this frame?
+          double mindist = DBL_MAX;
+          cluster_it  minNode = clusters_.end();
+          for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
+            double dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
+            //mprintf(" %i:%-6.2f", (*Cnode).Num(), dist); // DEBUG
+            if (dist < mindist) {
+              mindist = dist;
+              minNode = Cnode;
+            }
+          }
+          //mprintf(" ], to cluster %i\n", (*minNode).Num()); // DEBUG
+          // Add sieved frame to the closest cluster.
+          (*minNode).AddFrameToCluster( frame );
+        }
+      }
+      mprintf("\n");
     }
   }
+  // Sort clusters by population 
+  clusters_.sort( );
+  // Renumber clusters.
+  int newNum = 0;
+  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) 
+    (*node).SetNum( newNum++ );
   // TODO: Clear ClusterDistances?
 }
 
@@ -326,34 +357,6 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   
   return 0;
 }  
-
-// ClusterList::AddSievedFrames()
-void ClusterList::AddSievedFrames() {
-  mprintf("\tRestoring non-sieved frames:");
-  // Ensure cluster centroids are up-to-date
-  for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) 
-    (*Cnode).CalculateCentroid( Cdist_ );
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame) {
-    if (FrameDistances_.IgnoringRow(frame)) {
-      //mprintf(" %i [", frame + 1); // DEBUG
-      // Which clusters centroid is closest to this frame?
-      double mindist = DBL_MAX;
-      cluster_it  minNode = clusters_.end();
-      for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
-        double dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
-        //mprintf(" %i:%-6.2f", (*Cnode).Num(), dist); // DEBUG
-        if (dist < mindist) {
-          mindist = dist;
-          minNode = Cnode;
-        }
-      }
-      //mprintf(" ], to cluster %i\n", (*minNode).Num()); // DEBUG
-      // Add sieved frame to the closest cluster.
-      (*minNode).AddFrameToCluster( frame );
-    }
-  }
-  mprintf("\n");
-}
 
 // -----------------------------------------------------------------------------
 /** The Davies-Bouldin Index (DBI) is a measure of clustering merit; the 
