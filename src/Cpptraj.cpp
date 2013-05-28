@@ -336,10 +336,13 @@ int Cpptraj::ParmBox(ArgList& argIn) {
 
 /** Modify parm solvent information */
 int Cpptraj::ParmSolvent(ArgList& argIn) {
-  std::string maskexpr = argIn.GetMaskNext();
-  if ( maskexpr.empty() ) {
-    mprinterr("Error: solvent: No mask specified.\n");
-    return 1;
+  std::string maskexpr;
+  if (!argIn.hasKey("none")) {
+    maskexpr = argIn.GetMaskNext();
+    if ( maskexpr.empty() ) {
+      mprinterr("Error: solvent: No mask specified.\n");
+      return 1;
+    }
   }
   // Get parm index
   int pindex = argIn.getNextInteger(0);

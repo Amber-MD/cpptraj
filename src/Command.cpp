@@ -249,8 +249,9 @@ static void Help_ParmBox() {
 }
 
 static void Help_Solvent() {
-  mprintf("\t[<parmindex>] <mask>\n");
-  mprintf("\tSet solvent for the specified topology (default 0) based on <mask>\n");
+  mprintf("\t[<parmindex>] { <mask> | none }\n");
+  mprintf("\tSet solvent for the specified topology (default 0) based on <mask>.\n");
+  mprintf("\tIf 'none' specified, remove all solvent information.\n");
 }
 
 static void Help_BondInfo() {
