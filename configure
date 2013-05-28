@@ -203,6 +203,7 @@ USECRAY=0
 CC=""
 CXX=""
 FC=""
+SFX=""
 CPPTRAJHOME=`pwd`
 CPPTRAJBIN=$CPPTRAJHOME/bin
 DIRECTIVES=""
@@ -517,6 +518,7 @@ if [[ $USEOPENMP -eq 1 ]] ; then
   echo "Using OPENMP"
   DIRECTIVES="$OMPFLAGS $DIRECTIVES"
   LDFLAGS="$OMPFLAGS $LDFLAGS"
+  SFX=".OMP"
 fi
 
 # For pgi on cray modify some flags
@@ -533,6 +535,7 @@ if [[ $USEMPI -eq 1 ]] ; then
   CC=mpicc
   CXX=mpicxx
   FC=mpif90
+  SFX=".MPI"
 fi
 
 # Remove opt flags if specified
@@ -598,7 +601,7 @@ READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
 
 LDFLAGS=$LDFLAGS
-SFX=
+SFX=$SFX
 EOF
 
 # Create directories if necessary
