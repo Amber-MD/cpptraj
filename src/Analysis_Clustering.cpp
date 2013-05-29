@@ -21,7 +21,7 @@ Analysis_Clustering::Analysis_Clustering() :
   usedme_(false),
   useMass_(false),
   grace_color_(false),
-  norm_pop_(false),
+  norm_pop_(NONE),
   load_pair_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -43,7 +43,8 @@ void Analysis_Clustering::Help() {
   mprintf("\t[sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n");
   mprintf("  Output options:\n");
   mprintf("\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n");
-  mprintf("\t[summaryhalf <halffile>] [splitframe <frame>] [cpopvtime <file> [normpop]]\n");
+  mprintf("\t[summaryhalf <halffile>] [splitframe <frame>]\n");
+  mprintf("\t[cpopvtime <file> [normpop | normframe]]\n");
   mprintf("  Coordinate output options:\n");
   mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
@@ -120,7 +121,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       mprintf("Warning: 'gracecolor' not compatible with 'cpopvtime' - disabling 'gracecolor'\n");
       grace_color_ = false;
     }
-    norm_pop_ = analyzeArgs.hasKey("normpop");
+    if (analyzeArgs.hasKey("normpop"))
+      norm_pop_ = CLUSTERPOP;
+    else if (analyzeArgs.hasKey("normframe"))
+      norm_pop_ = FRAME;
+    else
+      norm_pop_ = NONE;
   }
   // Options for loading/saving pairwise distance file
   load_pair_ = analyzeArgs.hasKey("loadpairdist");
@@ -173,7 +179,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->DataFilename().base());
   if (cpopvtimefile_ != 0) {
     mprintf("\tCluster pop vs time will be written to %s", cpopvtimefile_->DataFilename().base());
-    if (norm_pop_) mprintf(" (normalized)");
+    if (norm_pop_==CLUSTERPOP) mprintf(" (normalized by cluster size)");
+    else if (norm_pop_==FRAME) mprintf(" (normalized by frame)");
     mprintf("\n");
   }
   if (grace_color_)
@@ -337,14 +344,7 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, int maxFram
 // NOTE: Should not be called if cpopvtimefile is NULL
 void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFrames ) {
   std::vector<int> Pop(CList.Nclusters(), 0);
-  // Set up normalization
-  std::vector<double> Norm(CList.Nclusters(), 1.0);
-  if (norm_pop_) {
-    int cnum = 0;
-    for (ClusterList::cluster_iterator C = CList.begincluster(); 
-                                       C != CList.endcluster(); ++C)
-      Norm[cnum++] = 1.0 / (double)((*C).Nframes());
-  }
+  // Set up output data sets
   std::vector<DataSet*> DSL;
   for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) { 
     DSL.push_back(masterDSL_->AddSetIdxAspect( DataSet::FLOAT, cnumvtime_->Name(), 
@@ -355,8 +355,17 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
     }
     cpopvtimefile_->AddSet( DSL.back() );
   }
+  // Set up normalization
+  std::vector<double> Norm;
+  if (norm_pop_ == CLUSTERPOP) {
+    int cnum = 0;
+    Norm.resize(CList.Nclusters(), 1.0);
+    for (ClusterList::cluster_iterator C = CList.begincluster(); 
+                                       C != CList.endcluster(); ++C)
+      Norm[cnum++] = (double)((*C).Nframes());
+  }
   // Assumes cnumvtime has been calcd and not gracecolor!
-  // TODO: Normalization
+  double norm = 1.0;
   DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
   for (int frame = 0; frame < maxFrames; ++frame) {
     int cluster_num = (*cnum_temp)[frame];
@@ -364,7 +373,13 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
     if (cluster_num > -1)
       Pop[cluster_num]++;
     for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
-      float f = ((double)Pop[cnum] * Norm[cnum]);
+      // Normalization
+      if (norm_pop_ == CLUSTERPOP)
+        norm = Norm[cnum];
+      else if (norm_pop_ == FRAME)
+        norm = (double)(frame + 1);
+      //float f = ((double)Pop[cnum] * Norm[cnum]);
+      float f = (float)((double)Pop[cnum] / norm);
       DSL[cnum]->Add(frame, &f);
     }
   }
