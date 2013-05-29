@@ -23,6 +23,7 @@ Analysis_Clustering::Analysis_Clustering() :
   grace_color_(false),
   norm_pop_(NONE),
   load_pair_(false),
+  writeRepFrameNum_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ)
@@ -48,7 +49,7 @@ void Analysis_Clustering::Help() {
   mprintf("  Coordinate output options:\n");
   mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
-  mprintf("\t[ repout <repprefix> [repfmt <repfmt>] ]\n");
+  mprintf("\t[ repout <repprefix> [repfmt <repfmt>] [repframe] ]\n");
   mprintf("\tCluster structures based on coordinates (RMSD/DME) or given data set(s).\n");
   mprintf("\t<crd set> can be created with the 'createcrd' command.\n");
 }
@@ -143,6 +144,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   singlerepfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("singlerepfmt") );
   reptrajfile_ = analyzeArgs.GetStringKey("repout");
   reptrajfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("repfmt") );
+  writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
   // Get the mask string 
   maskexpr_ = analyzeArgs.GetMaskNext();
 
@@ -203,8 +205,10 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
             singlerepfile_.c_str(), TrajectoryFile::FormatString(singlerepfmt_));
   if (!reptrajfile_.empty()) {
     mprintf("\tCluster representatives will be written to separate trajectories,\n");
-    mprintf("\t\tprefix (%s), format %s\n",reptrajfile_.c_str(), 
+    mprintf("\t\tprefix (%s), format %s",reptrajfile_.c_str(), 
             TrajectoryFile::FormatString(reptrajfmt_));
+    if (writeRepFrameNum_) mprintf(", with frame #s");
+    mprintf("\n");
   }
 
   return Analysis::OK;
@@ -469,8 +473,9 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     // Get centroid frame # 
     int framenum = (*C).CentroidFrame();
     // Create filename based on frame #
-    std::string cfilename = reptrajfile_ + ".c" + integerToString(clusterNum) + 
-                            "." + integerToString(framenum+1) + tmpExt;
+    std::string cfilename = reptrajfile_ + ".c" + integerToString(clusterNum);
+    if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
+    cfilename += tmpExt;
     // Set up trajectory file. 
     if (clusterout->SetupTrajWrite(cfilename, 0, clusterparm, reptrajfmt_)) 
     {
