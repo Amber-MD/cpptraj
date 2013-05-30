@@ -1,9 +1,17 @@
 // DataFileList
 #include "DataFileList.h"
 #include "CpptrajStdio.h"
+#ifdef MPI
+# include "StringRoutines.h" // integerToString
+#endif
 
 // CONSTRUCTOR
-DataFileList::DataFileList() : debug_(0) {}
+DataFileList::DataFileList() : 
+  debug_(0)
+#ifdef MPI
+  ,ensembleMode_(-1)
+#endif
+{}
 
 // DESTRUCTOR
 DataFileList::~DataFileList() {
@@ -40,13 +48,19 @@ DataFile* DataFileList::GetDataFile(std::string const& nameIn) const {
 DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
+  std::string name = nameIn;
+# ifdef MPI
+  if (ensembleMode_ != -1)
+    // Ensemble mode, append rank to the output filename.
+    name += ("." + integerToString(ensembleMode_));
+# endif
   // Check if this filename already in use
-  DataFile* Current = GetDataFile(nameIn);
-  // If no DataFile associated with nameIn, create new datafile
+  DataFile* Current = GetDataFile(name);
+  // If no DataFile associated with name, create new datafile
   if (Current==0) {
     Current = new DataFile();
-    if (Current->SetupDatafile(nameIn, argIn, debug_)) {
-      mprinterr("Error setting up DataFile %s\n",nameIn.c_str());
+    if (Current->SetupDatafile(name, argIn, debug_)) {
+      mprinterr("Error setting up DataFile %s\n",name.c_str());
       delete Current;
       return 0;
     }
@@ -87,7 +101,7 @@ void DataFileList::List() const {
 
   mprintf("DATAFILE OUTPUT:\n");
   for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
-    mprintf("  %s: ",(*it)->DataFilename().base());
+    rprintf("  %s: ",(*it)->DataFilename().base());
     (*it)->DataSetNames();
     mprintf("\n");
   }

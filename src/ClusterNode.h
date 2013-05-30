@@ -10,9 +10,9 @@ class ClusterNode {
     ClusterNode(const ClusterNode&);
     ClusterNode& operator=(const ClusterNode&);
     /// Used to sort clusters by # of frames in cluster
-    bool operator<(const ClusterNode&) const;
+    inline bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
-    void MergeFrames(ClusterNode&);
+    inline void MergeFrames(ClusterNode&);
     /// Determine which frame in the cluster is centroid.
     int FindCentroidFrame(ClusterMatrix const&);
     /// Calculate eccentricity for frames in this cluster.
@@ -35,9 +35,10 @@ class ClusterNode {
     inline int CentroidFrame()   const { return centroidframe_;         }
     inline Centroid* Cent()            { return centroid_;              }
     // Set internal variables 
-    void SetAvgDist(double avg)        { avgClusterDist_ = avg; }
-    void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum ); }
-    void SetNum(int);
+    void SetAvgDist(double avg)        { avgClusterDist_ = avg;         }
+    void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum );  }
+    void SetNum(int numIn)             { num_ = numIn;                  }
+    void SortFrameList()               { frameList_.sort();             } 
   private:
     double avgClusterDist_;           ///< Avg distance of this cluster to all other clusters.
     double eccentricity_;             ///< Maximum distance between any 2 frames.
@@ -46,4 +47,13 @@ class ClusterNode {
     ClusterDist::Cframes frameList_;  ///< List of frames belonging to this cluster.
     Centroid* centroid_;              ///< Centroid of all frames in this cluster. 
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+/** Use > since we give higher priority to larger clusters. */
+bool ClusterNode::operator<(const ClusterNode& rhs) const {
+  return ( frameList_.size() > rhs.frameList_.size() );
+}
+/** Frames from rhs go to this cluster. rhs frames are removed. */
+void ClusterNode::MergeFrames( ClusterNode& rhs) {
+  frameList_.splice( frameList_.begin(), rhs.frameList_ );
+}
 #endif

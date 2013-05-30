@@ -39,9 +39,10 @@ class Analysis_Hist : public Analysis {
     bool nativeOut_;                     ///< If true, use built in output routine.
     std::string outfilename_;            ///< Stored in case internal write used (DIM > 3)
     size_t N_dimensions_;                ///< # of histogram dimensions.
-
-    Dimension default_dim_;              ///< Hold default dimensions.
-    bool minArgSet_;                     ///< True if global min arg has been specified.
-    bool maxArgSet_;                     ///< True if global max arg has been specified.
+    Dimension default_dim_;
+    bool minArgSet_;
+    bool maxArgSet_;
+    bool calcAMD_;
+    DataSet* amddata_;
 };
 #endif

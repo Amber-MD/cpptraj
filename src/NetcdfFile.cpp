@@ -42,6 +42,10 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #define NCEPTOT "eptot"
 #define NCBINS "bins"
 
+static const char* RemDimDesc[5] = {
+  "Unknown", "Temperature", "Partial", "Hamiltonian", "pH"
+};
+
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
   ncid_(-1),
@@ -269,7 +273,7 @@ int NetcdfFile::SetupMultiD() {
   }
   // Print info for each dimension
   for (int dim = 0; dim < remd_dimension_; ++dim)
-    mprintf("\tDim %i: type %i\n",dim+1, remd_dimtype[dim]);
+    mprintf("\tDim %i: type %s (%i)\n",dim+1, RemDimDesc[remd_dimtype[dim]], remd_dimtype[dim]);
   delete[] remd_dimtype;
   return 0; 
 }

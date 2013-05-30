@@ -55,22 +55,6 @@ ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   return *this;
 }
 
-/** Use > since we give higher priority to larger clusters. */
-bool ClusterNode::operator<(const ClusterNode& rhs) const {
-  return ( frameList_.size() > rhs.frameList_.size() );
-}
-
-/** Frames from rhs go to this cluster. rhs frames are removed. */
-void ClusterNode::MergeFrames( ClusterNode& rhs) {
-  frameList_.splice( frameList_.begin(), rhs.frameList_ );
-}
-
-/** Set internal cluster number, sort frame list. */
-void ClusterNode::SetNum(int numIn) {
-  num_ = numIn;
-  frameList_.sort();
-}
-
 /** Find the frame in the given cluster that is the centroid, i.e. has the
   * lowest cumulative distance to every other point in the cluster.
   */

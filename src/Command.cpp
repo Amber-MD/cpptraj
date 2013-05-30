@@ -60,6 +60,9 @@
 #include "Action_Spam.h"
 #include "Action_Temperature.h"
 #include "Action_CreateReservoir.h"
+#include "Action_Density.h"
+#include "Action_PairDist.h"
+#include "Action_OrderParameter.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -80,6 +83,8 @@
 #include "Analysis_Clustering.h"
 #include "Analysis_RunningAvg.h"
 #include "Analysis_MeltCurve.h"
+#include "Analysis_Overlap.h"
+#include "Analysis_AmdBias.h"
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
 static void Help_Help() {
@@ -249,8 +254,9 @@ static void Help_ParmBox() {
 }
 
 static void Help_Solvent() {
-  mprintf("\t[<parmindex>] <mask>\n");
-  mprintf("\tSet solvent for the specified topology (default 0) based on <mask>\n");
+  mprintf("\t[<parmindex>] { <mask> | none }\n");
+  mprintf("\tSet solvent for the specified topology (default 0) based on <mask>.\n");
+  mprintf("\tIf 'none' specified, remove all solvent information.\n");
 }
 
 static void Help_BondInfo() {
@@ -365,6 +371,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, 0 },
   { DispatchObject::ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, 0 },
   { DispatchObject::ACTION, "createreservoir", Action_CreateReservoir::Alloc, Action_CreateReservoir::Help, 0 },
+  { DispatchObject::ACTION, "density", Action_Density::Alloc, Action_Density::Help, 0 },
   { DispatchObject::ACTION, "diffusion", Action_Diffusion::Alloc, Action_Diffusion::Help, 0 },
   { DispatchObject::ACTION, "dihedral", Action_Dihedral::Alloc, Action_Dihedral::Help, 0 },
   { DispatchObject::ACTION, "dihedralscan", Action_DihedralScan::Alloc, Action_DihedralScan::Help, 0 },
@@ -385,7 +392,9 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, 0 },
   { DispatchObject::ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, 0 },
   { DispatchObject::ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, 0 },
+  { DispatchObject::ACTION, "orderparam", Action_OrderParameter::Alloc, Action_OrderParameter::Help, 0 },
   { DispatchObject::ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, 0 },
+  { DispatchObject::ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, 0 },
   { DispatchObject::ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, 0 },
   { DispatchObject::ACTION, "principal", Action_Principal::Alloc, Action_Principal::Help, 0 },
   { DispatchObject::ACTION, "projection", Action_Projection::Alloc, Action_Projection::Help, 0 },
@@ -417,6 +426,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, 0},
   // INC_ANALYSIS: ANALYSIS COMMANDS
   { DispatchObject::ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
+  { DispatchObject::ANALYSIS, "amdbias", Analysis_AmdBias::Alloc, Analysis_AmdBias::Help, 0 },
   { DispatchObject::ANALYSIS, "autocorr", Analysis_AutoCorr::Alloc, Analysis_AutoCorr::Help, 0 },
   { DispatchObject::ANALYSIS, "cluster", Analysis_Clustering::Alloc, Analysis_Clustering::Help, 0 },
   { DispatchObject::ANALYSIS, "corr", Analysis_Corr::Alloc, Analysis_Corr::Help, 0 },
@@ -434,6 +444,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, 0 },
   { DispatchObject::ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, 0 },
   { DispatchObject::ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, 0 },
+  { DispatchObject::ANALYSIS, "overlap", Analysis_Overlap::Alloc, Analysis_Overlap::Help, 0 },
   { DispatchObject::ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
   { DispatchObject::ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, 0 },
   { DispatchObject::ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, 0 },

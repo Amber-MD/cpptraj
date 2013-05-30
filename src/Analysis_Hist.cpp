@@ -20,12 +20,15 @@ Analysis_Hist::Analysis_Hist() :
   nativeOut_(false),
   N_dimensions_(0),
   minArgSet_(false),
-  maxArgSet_(false)
+  maxArgSet_(false),
+  calcAMD_(false),
+  amddata_(0)
 {}
 
 void Analysis_Hist::Help() {
   mprintf("\t<dataset_name>[,min,max,step,bins] ...\n");
   mprintf("\t[free <temperature>] [norm] [gnu] [circular] out <filename>\n");
+  mprintf("\t[amd <amdboost_data>]\n");
   mprintf("\t[min <min>] [max <max>] [step <step>] [bins <bins>] [nativeout]\n");
   mprintf("\tHistogram the given data set(s)\n");
 }
@@ -187,6 +190,16 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   }
   default_dim_.SetStep( analyzeArgs.getKeyDouble("step",-1.0) );
   default_dim_.SetBins( analyzeArgs.getKeyInt("bins",-1) );
+  calcAMD_ = false;
+  std::string amdname = analyzeArgs.GetStringKey("amd");
+  if (!amdname.empty()) {
+    amddata_ = datasetlist->GetDataSet( amdname );
+    if (amddata_ == 0) {
+      mprinterr("Error: AMD data set %s not found.\n", amdname.c_str());
+      return Analysis::ERR;
+    }
+    calcAMD_ = true;
+  }
 
   // Treat all remaining arguments as dataset names. Do not set up dimensions
   // yet since the data sets may not be fully populated.
@@ -232,6 +245,8 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   for (std::vector<DataSet_1D*>::iterator ds=histdata_.begin(); ds!=histdata_.end(); ++ds)
     mprintf("%s ",(*ds)->Legend().c_str());
   mprintf("]\n");
+  if (calcAMD_)
+    mprintf("\t      Populating bins using AMD boost from data set %s\n", amdname.c_str());
   if (calcFreeE_)
     mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp_);
   if (nativeOut_)
@@ -276,6 +291,11 @@ Analysis::RetType Analysis_Hist::Analyze() {
     }
   }
   mprintf("\tHist: %u data points in each dimension.\n", Ndata);
+  if (calcAMD_ && Ndata != amddata_->Size()) {
+    mprinterr("Error: Hist: AMD data set size (%i) does not match # expected data points (%i).\n",
+              amddata_->Size(), Ndata);
+    return Analysis::ERR;
+  }
 
   // Allocate bins
   mprintf("\tHist: Allocating histogram, total bins = %zu\n", total_bins);
@@ -317,7 +337,10 @@ Analysis::RetType Analysis_Hist::Analyze() {
       *coord_it = (*ds)->Dval( n );
       ++coord_it;
     }
-    hist_->BinData( coord );
+    if (calcAMD_)
+      hist_->BinAMD( coord, amddata_->Dval(n) );
+    else
+      hist_->BinData( coord );
   }
 */
   // Calc free energy if requested

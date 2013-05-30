@@ -71,6 +71,9 @@ void ProgressBar::Update(int current) {
   }
 }
 // -----------------------------------------------------------------------------
+ParallelProgress::ParallelProgress(const ParallelProgress& rhs) :
+  C_over_max_(rhs.C_over_max_), tgt_(rhs.tgt_), thread_(rhs.thread_) {}
+
 void ParallelProgress::printProgress(int it) {
   float currentPercent = (float)it * C_over_max_;
   if (currentPercent >= tgt_) {

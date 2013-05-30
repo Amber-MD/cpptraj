@@ -47,8 +47,13 @@ Contributors:
   - Guanglei Cui (GlaxoSmithKline, Upper Providence, PA, USA)
     Action_SPAM
 
-  - Mark J. Williamson
+  - Mark J. Williamson (Unilever Centre for Molecular Informatics, 
+      Department of Chemistry, Cambridge, UK).
     Action_GridFreeEnergy
+
+  -  Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department,
+                         Warrington, WA4 4AD, UK)
+    Action_Density, Action_OrderParameter, Action_PairDist
 
   The following people wrote code in PTRAJ which was eventually adapted for
 use in CPPTRAJ:

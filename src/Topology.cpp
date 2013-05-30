@@ -953,6 +953,16 @@ int Topology::SetSolvent(std::string const& maskexpr) {
     mprinterr("Error: SetSolvent [%s]: No molecule information.\n", c_str());
     return 1;
   }
+  // If maskexpr is empty this means remove all solvent information.
+  if (maskexpr.empty()) {
+    mprintf("Warning: Removing all solvent information from %s\n", c_str());
+    for (std::vector<Molecule>::iterator mol = molecules_.begin(); 
+                                         mol != molecules_.end(); ++mol)
+      (*mol).SetNoSolvent();
+    NsolventMolecules_ = 0;
+    finalSoluteRes_ = Nres();
+    return 0;
+  }
   // Setup mask
   AtomMask mask( maskexpr );
   SetupCharMask( mask );

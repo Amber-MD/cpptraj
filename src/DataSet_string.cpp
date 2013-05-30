@@ -54,7 +54,7 @@ int DataSet_string::Sync() {
       // Get size of data on rank.
       dataSize = Data_.size();
       // Send rank size to master
-      parallel_sendMaster(&dataSize, 1, rank, 0);
+      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
       // If size is 0 on rank, skip this rank.
       if (dataSize == 0) continue;
       // Get sum size of each string on rank (incl. null char).
@@ -63,8 +63,8 @@ int DataSet_string::Sync() {
                                           str_it != Data_.end(); ++str_it)
         stringSize += ( (*str_it).size() + 1 ); // +1 for null char.
       // Send sum string size to master
-      parallel_sendMaster(&stringSize, 1, rank, 0);
-      // Allocate space for temp array on rank, put Data_ into values.
+      parallel_sendMaster(&stringSize, 1, rank, PARA_INT);
+      // Allocate space on rank
       values = new char[ stringSize ];
       // Copy each string (incl. null char) to the char array
       char* ptr = values;
@@ -74,27 +74,34 @@ int DataSet_string::Sync() {
         size_t length = (*str_it).copy( ptr, (*str_it).size() + 1 );
         ptr += length;
       }
-      // Send temp array to master
-      parallel_sendMaster(values, stringSize, rank, 2);
-      // Free array on rank
+      // Send arrays to master
+      //parallel_sendMaster(frames, dataSize, rank, PARA_INT);
+      parallel_sendMaster(values, stringSize, rank, PARA_CHAR);
+      // Free arrays on rank
       delete[] values;
     } else if (worldrank == 0) {
       // ----- MASTER -----
       // Master receives size from rank
-      parallel_sendMaster(&dataSize, 1, rank, 0);
+      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
       // If size was 0 on rank, skip rank.
       if (dataSize == 0) continue;
       // Master receives sum string size from rank
-      parallel_sendMaster(&stringSize, 1, rank, 0);
-      // Reallocate temp array on master if necessary
+      parallel_sendMaster(&stringSize, 1, rank, PARA_INT);
+      // Reallocate if necessary
+      //if (dataSize > masterSize) {
+      //  if ( frames != 0 ) delete[] frames;
+      //  frames = new int[ dataSize ];
+      //  masterSize = dataSize;
+      //}
       if (stringSize > masterStringSize) {
         if ( values != 0 ) delete[] values;
         values = new char[ stringSize ];
         masterStringSize = stringSize;
       }
-      // Master receives temp array
-      parallel_sendMaster(values, stringSize, rank, 2);
-      // Insert values to master array
+      // Master receives arrays
+      //parallel_sendMaster(frames, dataSize, rank, PARA_INT);
+      parallel_sendMaster(values, stringSize, rank, PARA_CHAR);
+      // Insert frames and values to master arrays
       char* ptr = values;
       for (unsigned int i = 0; i < dataSize; ++i) {
         Data_.push_back( ptr );

@@ -49,21 +49,22 @@ int DataSet_double::Sync() {
       // Get size of data on rank.
       dataSize = Data_.size();
       // Send rank size to master
-      parallel_sendMaster(&dataSize, 1, rank, 0);
+      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
       // If size is 0 on rank, skip this rank.
       if (dataSize == 0) continue;
       // Allocate space for temp array on rank, put Data_ into values.
       values = new double[ dataSize ];
-      for (size_t i = 0; i < dataSize; ++i)
-        values[i] = Data_[i];
-      // Send temp array to master
-      parallel_sendMaster(values, dataSize, rank, 1);
-      // Free array on rank
+      std::copy(Data_.begin(), Data_.end(), values);
+      //frames = new int[ dataSize ];
+      // Send arrays to master
+      //parallel_sendMaster(frames, dataSize, rank, PARA_INT);
+      parallel_sendMaster(values, dataSize, rank, PARA_DOUBLE);
+      // Free arrays on rank
       delete[] values;
     } else if (worldrank == 0) {
       // ----- MASTER -----
       // Master receives size from rank
-      parallel_sendMaster(&dataSize, 1, rank, 0);
+      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
       // If size was 0 on rank, skip rank.
       if (dataSize == 0) continue;
       // Reallocate temp array on master if necessary
@@ -72,11 +73,14 @@ int DataSet_double::Sync() {
         values = new double[ dataSize ];
         masterSize = dataSize;
       }
-      // Master receives temp array
-      parallel_sendMaster(values, dataSize, rank, 1);
-      // Insert values to master array
-      for (unsigned int i = 0; i < dataSize; ++i)
+      // Master receives arrays
+      //parallel_sendMaster(frames, dataSize, rank, PARA_INT);
+      parallel_sendMaster(values, dataSize, rank, PARA_DOUBLE);
+      // Insert frames and values to master arrays
+      for (unsigned int i = 0; i < dataSize; ++i) {
+        //Frames_.push_back( frames[i] );
         Data_.push_back( values[i] );
+      }
     }
   } // End loop over ranks > 0
 
