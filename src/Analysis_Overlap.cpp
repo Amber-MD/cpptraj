@@ -2,6 +2,7 @@
 #include "Constants.h" // SMALL
 #include "Analysis_Overlap.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
 
 Analysis_Overlap::Analysis_Overlap() : ds1_(0), ds2_(0) {}
 
@@ -14,10 +15,9 @@ static inline bool check_type(DataSet* ds, int n_ds) {
     mprinterr("Error: Data set ds%i not found.\n", n_ds);
     return true;
   }
-  if (ds->Type() != DataSet::HIST && 
-      ds->Type() != DataSet::FLOAT &&
+  if (ds->Type() != DataSet::FLOAT &&
       ds->Type() != DataSet::DOUBLE &&
-      ds->Type() != DataSet::INT) {
+      ds->Type() != DataSet::INTEGER) {
     mprinterr("Error: %s: bad set type for overlap.\n", ds->Legend().c_str());
     return true;
   }
@@ -50,11 +50,13 @@ Analysis::RetType Analysis_Overlap::Analyze() {
               ds1_->Size(), ds2_->Size());
     return Analysis::ERR;
   }
+  DataSet_1D const& D1 = static_cast<DataSet_1D&>( *ds1_ );
+  DataSet_1D const& D2 = static_cast<DataSet_1D&>( *ds2_ );
   int Npoints = 0;
   double sum = 0.0;
-  for (int i = 0; i < ds1_->Size(); i++) {
-    double val1 = ds1_->Dval(i);
-    double val2 = ds2_->Dval(i);
+  for (unsigned int i = 0; i < D1.Size(); i++) {
+    double val1 = D1.Dval(i);
+    double val2 = D2.Dval(i);
     if (fabs(val1) < SMALL && fabs(val2) < SMALL) {
       // No data in either set, do not process;
       continue;
