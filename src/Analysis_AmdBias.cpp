@@ -24,7 +24,7 @@ Analysis::RetType Analysis_AmdBias::Setup(ArgList& analyzeArgs, DataSetList* dat
   }
   if (ds1_->Type() != DataSet::FLOAT &&
       ds1_->Type() != DataSet::DOUBLE &&
-      ds1_->Type() != DataSet::INT) {
+      ds1_->Type() != DataSet::INTEGER) {
     mprinterr("Error: %s: bad set type for amdbias.\n", ds1_->Legend().c_str());
     return Analysis::ERR;
   }
@@ -57,11 +57,12 @@ Analysis::RetType Analysis_AmdBias::Analyze() {
     mprinterr("Error: Data set is empty\n");
     return Analysis::ERR;
   }
+  DataSet_1D const& ds = static_cast<DataSet_1D&>( *ds1_ );
   DataSet_double& Bias = static_cast<DataSet_double&>( *bias_ );
-  Bias.Resize( ds1_->Size() );
+  Bias.Resize( ds.Size() );
   // Calculate bias according to Eboost = (Ethresh - Ex)^2 / (alpha + (Ethresh - Ex))
-  for (int i = 0; i < ds1_->Size(); i++) {
-    double dval = ds1_->Dval( i );
+  for (unsigned int i = 0; i < ds.Size(); i++) {
+    double dval = ds.Dval( i );
     if (dval < Ethresh_) {
       double EV = Ethresh_ - dval;
       double Eboost = (EV * EV) / (alpha_ + EV);
