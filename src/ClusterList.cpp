@@ -109,8 +109,7 @@ void ClusterList::Renumber(bool addSievedFrames) {
 /** Print a summary of clusters.  */
 void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
   CpptrajFile outfile;
-  std::vector<double> distances;
-  float fmax = (float)maxframesIn;
+  double fmax = (double)maxframesIn;
   if (outfile.OpenWrite(summaryfile)) {
     mprinterr("Error: ClusterList::Summary: Could not set up file.\n");
     return;
@@ -121,16 +120,14 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
   for (cluster_it node = clusters_.begin();
                   node != clusters_.end(); node++)
   {
-    // Calculate size and fraction of total size of this cluster
-    int numframes = (*node).Nframes();
-    float frac = (float)numframes / fmax;
+    // Since there may be a lot of frames do not calculate SD from the
+    // mean (which requires either storing distances or two double loops), 
+    // instead use SD = sqrt( (SUM[x^2] - ((SUM[x])^2)/N)/N )
     double internalAvg = 0.0;
     double internalSD = 0.0;
-    int ndistances = ((numframes * numframes) - numframes) / 2;
-    if (ndistances > 0) {
+    unsigned int Nelements = 0;
+    if ((*node).Nframes() > 1) {
       // Calculate average distance between all frames in this cluster
-      distances.clear();
-      distances.reserve( ndistances );
       ClusterNode::frame_iterator frame2_end = (*node).endframe();
       ClusterNode::frame_iterator frame1_end = frame2_end;
       --frame1_end;
@@ -144,28 +141,28 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
           ++frm2;
           for (; frm2 != frame2_end; ++frm2) {
             if (!FrameDistances_.IgnoringRow(*frm2)) {
-              distances.push_back( FrameDistances_.GetElement(*frm1, *frm2) );
-              internalAvg += distances.back();
+              double dist = FrameDistances_.GetElement(*frm1, *frm2);
+              internalAvg += dist;
+              internalSD += (dist * dist);
+              ++Nelements;
             }
           }
         }
       }
-      if (!distances.empty()) {
-        internalAvg /= (double)distances.size();
-        // Calculate standard deviation
-        for (std::vector<double>::iterator dval = distances.begin();
-                                           dval != distances.end(); ++dval)
-        {
-          double diff = internalAvg - *dval;
-          internalSD += (diff * diff);
-        }
-        internalSD /= (double)distances.size();
-        internalSD = sqrt(internalSD);
+      if (Nelements > 0) {
+        double norm = 1.0 / ((double)Nelements);
+        internalAvg *= norm;
+        internalSD *= norm;
+        internalSD -= (internalAvg * internalAvg);
+        if (internalSD > 0.0)
+          internalSD = sqrt( internalSD );
+        else
+          internalSD = 0.0;
       }
     }
     // OUTPUT
     outfile.Printf("%8i %8i %8.3f %8.3f %8.3f %8i %8.3f\n",
-                   (*node).Num(), numframes, frac, internalAvg, 
+                   (*node).Num(), (*node).Nframes(), (double)(*node).Nframes()/fmax, internalAvg, 
                    internalSD, (*node).CentroidFrame()+1, (*node).AvgDist() );
   } // END loop over clusters
   outfile.CloseFile();
