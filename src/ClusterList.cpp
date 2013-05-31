@@ -176,7 +176,7 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
 {
   CpptrajFile outfile;
   int half;
-  float fmax = (float)maxframesIn;
+  double fmax = (double)maxframesIn;
   if (outfile.OpenWrite(summaryfile)) {
     mprinterr("Error: ClusterList::Summary_Half: Could not set up file.\n");
     return;
@@ -198,7 +198,7 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
   {
     // Calculate size and fraction of total size of this cluster
     int numframes = (*node).Nframes();
-    float frac = (float)numframes / fmax;
+    double frac = (double)numframes / fmax;
     int numInFirstHalf = 0;
     int numInSecondHalf = 0;
     // DEBUG
@@ -214,10 +214,10 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
       else
         ++numInSecondHalf;
     }
-    float frac1 = (float) numframes;
-    frac1 = ((float) numInFirstHalf) / frac1;
-    float frac2 = (float) numframes;
-    frac2 = ((float) numInSecondHalf) / frac2;
+    double frac1 = (double)numframes;
+    frac1 = ((double)numInFirstHalf) / frac1;
+    double frac2 = (double)numframes;
+    frac2 = ((double)numInSecondHalf) / frac2;
     outfile.Printf("%-8i %8i %6.2f %2i %10s %8i %8i %6.2f %6.2f\n",
                    (*node).Num(), numframes, frac, color, XMGRACE_COLOR[color],
                    numInFirstHalf, numInSecondHalf, frac1, frac2);
