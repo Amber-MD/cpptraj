@@ -211,6 +211,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   Ndimensions_ = -1;
   isSeekable_ = true;
   hasVelocity_ = false;
+  ReplicaDimArray lowestRepDims;
   for (NameListType::iterator repfile = replica_filenames_.begin();
                               repfile != replica_filenames_.end(); ++repfile)
   {
@@ -237,13 +238,19 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
       // If lowest rep has velocity, all others must have velocity.
       hasVelocity_ = replica0->HasV();
       // If lowest rep has dimensions, all others must have same dimensions
-      Ndimensions_ = replica0->NreplicaDimensions();
+      lowestRepDims = replica0->ReplicaDimensions();
+      Ndimensions_ = lowestRepDims.Ndims();
       // Check that replica dimension valid for desired indices.
       if (targetType_ == INDICES && Ndimensions_ != (int)remdtrajidx_.size())
       {
         mprinterr("Error: RemdTraj: Replica # of dim (%i) not equal to target # dim (%zu)\n",
                   Ndimensions_, remdtrajidx_.size());
         return 1;
+      }
+      if (Ndimensions_ > 0) {
+        mprintf("\tReplica dimensions:\n");
+        for (int rd = 0; rd < Ndimensions_; rd++)
+          mprintf("\t\t%i: %s\n", rd+1, lowestRepDims.Description(rd)); 
       }
     } else {
       // Check total frames in this replica against lowest rep.
@@ -273,10 +280,13 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
                   (*repfile).c_str());
         return 1;
       }
-      // Check # dimensions against lowest rep
-      if ( replica0->NreplicaDimensions() != Ndimensions_ ) {
+      // Check # dimensions and types against lowest rep
+      if ( replica0->ReplicaDimensions() != lowestRepDims ) {
         mprinterr("Error: RemdTraj: Replica %s dimension info does not match first replica.\n",
                   (*repfile).c_str());
+        ReplicaDimArray thisRepDims = replica0->ReplicaDimensions();
+        for (int rd = 0; rd < Ndimensions_; rd++)
+          mprinterr("\t\t%i: %s\n", rd+1, thisRepDims.Description(rd)); 
         return 1;
       }
     }

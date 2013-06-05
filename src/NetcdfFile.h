@@ -1,6 +1,7 @@
 #ifndef INC_NETCDFFILE_H
 #define INC_NETCDFFILE_H
 #include <string>
+#include "ReplicaDimArray.h"
 /// The base interface to NetCDF trajectory files.
 class NetcdfFile {
   public:
@@ -44,15 +45,16 @@ class NetcdfFile {
 
     int ncid_;
     int ncframe_;
-    int TempVID_;
-    int coordVID_;
-    int velocityVID_;
-    int cellAngleVID_;
-    int cellLengthVID_;
-    int timeVID_;
+    int TempVID_;             ///< Temperature variable ID.
+    int coordVID_;            ///< Coordinates variable ID.
+    int velocityVID_;         ///< Velocity variable ID.
+    int cellAngleVID_;        ///< Box angles variable ID.
+    int cellLengthVID_;       ///< Box lengths variable ID.
+    int timeVID_;             ///< Time variable ID.
     // MultiD REMD
-    int remd_dimension_;
-    int indicesVID_;
+    int remd_dimension_;      ///< Number of replica dimensions.
+    int indicesVID_;          ///< Variable ID for replica indices.
+    ReplicaDimArray remdDim_; ///< Hold info on replica dims if present.
 
     bool checkNCerr(int);
   private:

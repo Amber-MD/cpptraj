@@ -42,10 +42,6 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #define NCEPTOT "eptot"
 #define NCBINS "bins"
 
-static const char* RemDimDesc[5] = {
-  "Unknown", "Temperature", "Partial", "Hamiltonian", "pH"
-};
-
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
   ncid_(-1),
@@ -232,7 +228,11 @@ int NetcdfFile::SetupTemperature() {
   return 1;
 }
 
-/** Determine if Netcdf file contains multi-D REMD info. */
+// NetcdfFile::SetupMultiD()
+/** Determine if Netcdf file contains multi-D REMD info. If so set the
+  * number of replica dimensions (remd_dimension_) and figure out
+  * the dimension types (remdDim_)
+  */
 int NetcdfFile::SetupMultiD() {
   int dimensionDID;
 
@@ -242,7 +242,8 @@ int NetcdfFile::SetupMultiD() {
   // Although this is a second call to dimid, makes for easier code
   if ( (dimensionDID = GetDimInfo(NCREMD_DIMENSION, &remd_dimension_))==-1 )
     return -1;
-  mprintf("\tNetcdf file has multi-D REMD info, %i dimensions.\n",remd_dimension_);
+  if (ncdebug_ > 0)
+    mprintf("\tNetcdf file has multi-D REMD info, %i dimensions.\n",remd_dimension_);
   // Ensure valid # dimensions
   if (remd_dimension_ < 1) {
     mprinterr("Error: Number of REMD dimensions is less than 1!\n");
@@ -273,7 +274,7 @@ int NetcdfFile::SetupMultiD() {
   }
   // Print info for each dimension
   for (int dim = 0; dim < remd_dimension_; ++dim)
-    mprintf("\tDim %i: type %s (%i)\n",dim+1, RemDimDesc[remd_dimtype[dim]], remd_dimtype[dim]);
+    remdDim_.AddRemdDimension( remd_dimtype[dim] );
   delete[] remd_dimtype;
   return 0; 
 }

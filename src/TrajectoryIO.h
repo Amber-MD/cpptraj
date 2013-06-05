@@ -1,6 +1,7 @@
 #ifndef INC_TRAJECTORYIO_H
 #define INC_TRAJECTORYIO_H
 #include "Topology.h" // Box
+#include "ReplicaDimArray.h"
 #include "CpptrajFile.h"
 #include "ArgList.h"
 // Class: TrajectoryIO
@@ -69,8 +70,9 @@ class TrajectoryIO {
     virtual int processWriteArgs(ArgList&) = 0; 
     /// Process arguments relevant to reading trajectory (optional)
     virtual int processReadArgs(ArgList&) = 0;
+    /// \return Array containing information on replica dims if present.
     // TODO: Replace with pure virtual
-    virtual int NreplicaDimensions() { return 0; }
+    virtual ReplicaDimArray ReplicaDimensions() { return ReplicaDimArray(); }
     // -----------------------------------------------------
     bool HasBox()              const { return box_.HasBox();               }
     const Box& TrajBox()       const { return box_;                        }

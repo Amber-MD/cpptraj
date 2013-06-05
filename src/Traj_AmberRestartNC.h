@@ -19,7 +19,7 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     int readFrame(int,double*,double*,double*,double*);
     int writeFrame(int,double*,double*,double*,double);
     int processWriteArgs(ArgList&);
-    int NreplicaDimensions() { return remd_dimension_; }
+    ReplicaDimArray ReplicaDimensions() { return remdDim_; }
     int readIndices(int,int*);
     void Info();
   private:
