@@ -272,6 +272,18 @@ while [[ ! -z $1 ]] ; do
       FOPTFLAGS="-fast -O3"
       FLIBS="-pgf90libs"
       ;;
+    "cray" )
+      echo "Using Cray compilers"
+      USECRAY=1
+      CC=cc
+      CXX=CC
+      FC=ftn
+      OPTFLAGS=""
+      OMPFLAGS=""
+      FFLAGS="-f free -emf"
+      FOPTFLAGS=""
+      FLIBS=""
+      ;;
     "-cray" )
       echo "Using cray compiler wrappers (cc/CC/ftn)"
       USECRAY=1
@@ -528,6 +540,20 @@ if [[ $USECRAY -eq 1 && $CC = "pgcc" ]] ; then
     FOPTFLAGS="-fast"
 fi
 
+# Remove opt flags if specified
+if [[ $OPT -eq 0 ]] ; then
+  OPTFLAGS=""
+  FOPTFLAGS=""
+fi
+
+# Add cray-specific flags
+if [[ $CC = "cc" ]] ; then
+  OPTFLAGS="-h gnu "$OPTFLAGS
+  if [[ $USEOPENMP -eq 0 ]] ; then
+    DIRECTIVES="-h noomp "$DIRECTIVES
+  fi
+fi
+
 # Change to MPI compiler wrappers if specified
 if [[ $USEMPI -eq 1 ]] ; then
   echo "Using MPI"
@@ -536,12 +562,6 @@ if [[ $USEMPI -eq 1 ]] ; then
   CXX=mpicxx
   FC=mpif90
   SFX=".MPI"
-fi
-
-# Remove opt flags if specified
-if [[ $OPT -eq 0 ]] ; then
-  OPTFLAGS=""
-  FOPTFLAGS=""
 fi
 
 # Set up compiler flags
