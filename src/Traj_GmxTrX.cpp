@@ -27,12 +27,14 @@ Traj_GmxTrX::Traj_GmxTrX() :
   lambda_(0.0),
   frameSize_(0),
   headerBytes_(0),
-  farray_(0) 
+  farray_(0),
+  darray_(0) 
 {}
 
 // DESTRUCTOR
 Traj_GmxTrX::~Traj_GmxTrX() {
   if (farray_ != 0) delete[] farray_;
+  if (darray_ != 0) delete[] darray_;
 }
 
 /** For debugging, print internal info. */
@@ -278,11 +280,11 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
               natoms_, trajParm->c_str(), trajParm->Natom());
     return TRAJIN_ERR;
   }
-  // If float precision, create temp array
+  // If float precision, create temp array. Temp array not needed for double reads.
   if (precision_ == sizeof(float)) {
     if (farray_ != 0) delete[] farray_;
     farray_ = new float[ natom3_ ];
-  }
+  } 
   // Set velocity info
   SetVelocity( (v_size_ > 0) );
   // Attempt to determine # of frames in traj
@@ -353,13 +355,14 @@ int Traj_GmxTrX::setupTrajout(std::string const& fname, Topology* trajParm,
     dt_ = 0.0;
     lambda_ = 0.0;
     // Allocate temp space for coords/velo
-    if (farray_ != 0) delete[] farray_;
-    if (precision_ == sizeof(float)) {
-      if (HasV())
-        farray_ = new float[2 * natom3_];
-      else
-        farray_ = new float[ natom3_ ];
-    }
+    if (farray_ != 0) {delete[] farray_; farray_ = 0;}
+    if (darray_ != 0) {delete[] darray_; darray_ = 0;}
+    size_t arraySize = (size_t)natom3_;
+    if (HasV()) arraySize *= 2;
+    if (precision_ == sizeof(float)) 
+      farray_ = new float[ arraySize ];
+    else 
+      darray_ = new double[ arraySize ];
     if (file_.SetupWrite( fname, debug_)) return 1;
     if (file_.OpenFile()) return 1;
   } else {
@@ -399,7 +402,7 @@ int Traj_GmxTrX::ReadAtomVector( double* Dout, int size ) {
   return 0;
 }
 
-int Traj_GmxTrX::readFrame(int set,double *X, double *V,double *box, double *T) {
+int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
   if (IsSeekable()) 
     file_.Seek( (frameSize_ * set) + headerBytes_ );
   else // Seek past the header
@@ -407,7 +410,7 @@ int Traj_GmxTrX::readFrame(int set,double *X, double *V,double *box, double *T) 
   //if ( ReadTrxHeader() ) return 1;
   // Read box info
   if (box_size_ > 0) {
-    if (ReadBox( box )) return 1;
+    if (ReadBox( frameIn.bAddress() )) return 1;
   }
   // Blank read past virial tensor
   if (vir_size_ > 0)
@@ -417,14 +420,14 @@ int Traj_GmxTrX::readFrame(int set,double *X, double *V,double *box, double *T) 
     file_.Seek( file_.Tell() + pres_size_ );
   // Read coordinates
   if (x_size_ > 0) {
-    if (ReadAtomVector(X, x_size_)) {
+    if (ReadAtomVector(frameIn.xAddress(), x_size_)) {
       mprinterr("Error: Reading TRX coords frame %i\n", set+1);
       return 1;
     }
   }
   // Read velocities
   if (v_size_ > 0) {
-    if (ReadAtomVector(V, v_size_)) {
+    if (ReadAtomVector(frameIn.vAddress(), v_size_)) {
       mprinterr("Error: Reading TRX velocities frame %i\n", set+1);
       return 1;
     }
@@ -436,7 +439,7 @@ int Traj_GmxTrX::readFrame(int set,double *X, double *V,double *box, double *T) 
   return 0;
 }
 
-int Traj_GmxTrX::readVelocity(int set, double* V) {
+int Traj_GmxTrX::readVelocity(int set, Frame& frameIn) {
   if (IsSeekable()) 
     file_.Seek( (frameSize_ * set) + headerBytes_ );
   else // Seek past the header
@@ -452,7 +455,7 @@ int Traj_GmxTrX::readVelocity(int set, double* V) {
   if (x_size_ > 0) file_.Seek( file_.Tell() + x_size_);
   // Read velocities
   if (v_size_ > 0) {
-    if (ReadAtomVector(V, v_size_)) {
+    if (ReadAtomVector(frameIn.vAddress(), v_size_)) {
       mprinterr("Error: Reading TRX velocities frame %i\n", set+1);
       return 1;
     }
@@ -463,7 +466,7 @@ int Traj_GmxTrX::readVelocity(int set, double* V) {
   return 0;
 }
 
-int Traj_GmxTrX::writeFrame(int set, double *X, double *V,double *box, double T) {
+int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   int tsize;
   // Write header
   file_.Write( &Magic_, 4 );
@@ -492,16 +495,16 @@ int Traj_GmxTrX::writeFrame(int set, double *X, double *V,double *box, double T)
   // NOTE: GROMACS units are nm
   if (box_size_ > 0) {
     double ucell[9];
-    double by = box[1] * 0.1;
-    double bz = box[2] * 0.1; 
-    ucell[0] = box[0] * 0.1;
+    double by = frameOut.BoxCrd().BoxY() * 0.1;
+    double bz = frameOut.BoxCrd().BoxZ() * 0.1; 
+    ucell[0] = frameOut.BoxCrd().BoxX() * 0.1;
     ucell[1] = 0.0;
     ucell[2] = 0.0;
-    ucell[3] = by*cos(DEGRAD*box[5]);
-    ucell[4] = by*sin(DEGRAD*box[5]);
+    ucell[3] = by*cos(DEGRAD*frameOut.BoxCrd().Gamma());
+    ucell[4] = by*sin(DEGRAD*frameOut.BoxCrd().Gamma());
     ucell[5] = 0.0;
-    ucell[6] = bz*cos(DEGRAD*box[4]);
-    ucell[7] = (by*bz*cos(DEGRAD*box[3]) - ucell[6]*ucell[3]) / ucell[4];
+    ucell[6] = bz*cos(DEGRAD*frameOut.BoxCrd().Beta());
+    ucell[7] = (by*bz*cos(DEGRAD*frameOut.BoxCrd().Alpha()) - ucell[6]*ucell[3]) / ucell[4];
     ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
     if (precision_ == sizeof(float)) {
       float f_ucell[9];
@@ -513,23 +516,23 @@ int Traj_GmxTrX::writeFrame(int set, double *X, double *V,double *box, double T)
   }
   // Write coords/velo
   // NOTE: GROMACS units are nm
+  const double* Xptr = frameOut.xAddress();
+  const double* Vptr = frameOut.vAddress();
+  int ix = 0;
   if (precision_ == sizeof(float)) {
-    int ix = 0;
     for (; ix < natom3_; ix++)
-      farray_[ix] = (float)(X[ix] * 0.1);
+      farray_[ix] = (float)(Xptr[ix] * 0.1);
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
-        farray_[ix] = (float)(V[iv] * 0.1);
+        farray_[ix] = (float)(Vptr[iv] * 0.1);
     file_.Write( farray_, x_size_ + v_size_ );
   } else { // double
-    for (int ix = 0; ix < natom3_; ix++)
-      X[ix] *= 0.1;
-    file_.Write( X, x_size_ );
-    if (v_size_ > 0) {
-      for (int iv = 0; iv < natom3_; iv++)
-        V[iv] *= 0.1;
-      file_.Write( V, v_size_ );
-    }
+    for (; ix < natom3_; ix++)
+      darray_[ix] = (Xptr[ix] * 0.1);
+    if (v_size_ > 0)
+      for (int iv = 0; iv < natom3_; iv++, ix++)
+        darray_[ix] = (Vptr[iv] * 0.1);
+    file_.Write( darray_, x_size_ + v_size_ );
   }
   
   return 0;

@@ -404,8 +404,7 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
       // Locate the target temp/indices out of all the replicas
-      if ( (*replica)->readFrame(CurrentFrame(), frameIn.xAddress(), frameIn.vAddress(),
-                                 frameIn.bAddress(), frameIn.tAddress()))
+      if ( (*replica)->readFrame(CurrentFrame(), frameIn))
         return 0;
       (*replica)->readIndices(CurrentFrame(),remd_indices_);
       // Check if this is the target replica
@@ -513,8 +512,7 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
       if ( (*replica)->openTrajin() ) return 1;
-      if ( (*replica)->readFrame( CurrentFrame(), (*frame).xAddress(), (*frame).vAddress(),
-                                  (*frame).bAddress(), (*frame).tAddress()) )
+      if ( (*replica)->readFrame( CurrentFrame(), *frame) )
         return 1;
       (*replica)->closeTraj();
       std::pair<std::set<double>::iterator,bool> ret = tList.insert( (*frame).Temperature() );
@@ -587,8 +585,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
 #   else
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
-      if ( (*replica)->readFrame( CurrentFrame(), (*frame).xAddress(), (*frame).vAddress(),
-                                  (*frame).bAddress(), (*frame).tAddress()) )
+      if ( (*replica)->readFrame( CurrentFrame(), *frame) )
         return 0;
 #   endif
       if (targetType_ == TEMP) {

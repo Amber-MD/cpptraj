@@ -69,7 +69,7 @@ int Traj_AmberCoord::openTrajin() {
 /** Read coordinates from Amber trajectory into Frame. */ 
 // NOTE: Precalculate the header, coord, and box offsets.
 // NOTE: There are currently NO checks for null for X, box, and T!
-int Traj_AmberCoord::readFrame(int set, double *X, double *V, double *box, double *T) {
+int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
 #ifdef TRAJDEBUG
   mprinterr("Reading frame %10i from %s\n",set,Filename().base());
 #endif
@@ -82,28 +82,25 @@ int Traj_AmberCoord::readFrame(int set, double *X, double *V, double *box, doubl
 
   // Get REMD Temperature if present
   if (hasREMD_ != 0) 
-    file_.GetDoubleAtPosition(*T, 33, 41); 
+    file_.GetDoubleAtPosition(*(frameIn.tAddress()), 33, 41); 
   // Get Coordinates; offset is hasREMD (size in bytes of REMD header)
   file_.BufferBeginAt(hasREMD_);
-  file_.BufferToDouble(X, natom3_);
+  file_.BufferToDouble(frameIn.xAddress(), natom3_);
   if (numBoxCoords_ != 0) { 
-    file_.BufferToDouble(box, numBoxCoords_);
+    file_.BufferToDouble(frameIn.bAddress(), numBoxCoords_);
     // Set box angles to parmtop default if not read in
-    if (numBoxCoords_==3) {
-      box[3] = boxAngle_[0];
-      box[4] = boxAngle_[1];
-      box[5] = boxAngle_[2];
-    }
+    if (numBoxCoords_==3)
+      frameIn.SetBoxAngles( boxAngle_ );
   }
   return 0;
 }
 
-int Traj_AmberCoord::readVelocity(int set, double* V) {
+int Traj_AmberCoord::readVelocity(int set, Frame& frameIn) {
   if (IsSeekable()) file_.SeekToFrame( set );
   // Read frame into the char buffer
   if (file_.ReadFrame() == -1) return 1;
   file_.BufferBeginAt(hasREMD_);
-  file_.BufferToDouble(V, natom3_);
+  file_.BufferToDouble(frameIn.vAddress(), natom3_);
   return 0;
 }
 
@@ -112,14 +109,14 @@ int Traj_AmberCoord::readVelocity(int set, double* V) {
   * enough to accomodate all coords in F (handled by SetupWrite).
   */
 // NOTE: The output frame size is calcd here - should it just be precalcd?
-int Traj_AmberCoord::writeFrame(int set, double *X, double *V, double *box, double T) {
+int Traj_AmberCoord::writeFrame(int set, Frame const& frameOut) {
   if (hasREMD_ != 0) 
-    file_.Printf("REMD  %8i %8i %8i %8.3f\n", 0, set+1, set+1, T);
+    file_.Printf("REMD  %8i %8i %8i %8.3f\n", 0, set+1, set+1, frameOut.Temperature());
 
   file_.BufferBegin();
-  file_.DoubleToBuffer(X, natom3_, outfmt_);
+  file_.DoubleToBuffer(frameOut.xAddress(), natom3_, outfmt_);
   if (numBoxCoords_ != 0) 
-    file_.DoubleToBuffer(box, numBoxCoords_, outfmt_);
+    file_.DoubleToBuffer(frameOut.bAddress(), numBoxCoords_, outfmt_);
 
   if (file_.WriteFrame()) return 1;
 

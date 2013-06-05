@@ -42,12 +42,12 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int setupTrajout(std::string const&, Topology*, int, bool);
     int openTrajin();
     void closeTraj();
-    int readFrame(int,double*,double*,double*,double*);
-    int writeFrame(int,double*,double*,double*,double);
+    int readFrame(int,Frame&);
+    int writeFrame(int,Frame const&);
     void Info();
     int processWriteArgs(ArgList&);
 
-    int readVelocity(int, double*) { return 1; }
+    int readVelocity(int, Frame&) { return 1; }
     int readIndices(int,int*) { return 1; }
     int processReadArgs(ArgList&) { return 0; }
 };

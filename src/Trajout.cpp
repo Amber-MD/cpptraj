@@ -177,8 +177,7 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
 
   // Write
   //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
-  if (trajio_->writeFrame(set, FrameOut.xAddress(), FrameOut.vAddress(),
-                               FrameOut.bAddress(), FrameOut.Temperature())) return 1;
+  if (trajio_->writeFrame(set, FrameOut)) return 1;
   ++numFramesProcessed_;
 
   return 0;

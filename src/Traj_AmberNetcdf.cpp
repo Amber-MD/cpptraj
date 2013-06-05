@@ -155,12 +155,12 @@ int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm,
 /** Get the specified frame from amber netcdf file
   * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
   */
-int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double *T) {
+int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   // Get temperature
   if (TempVID_!=-1) {
     start_[0] = set;
     count_[0] = 1;
-    if ( checkNCerr(nc_get_vara_double(ncid_, TempVID_, start_, count_, T)) ) {
+    if ( checkNCerr(nc_get_vara_double(ncid_, TempVID_, start_, count_, frameIn.tAddress())) ) {
       mprinterr("Error: Getting replica temperature.\n"); 
       return 1;
     }
@@ -178,7 +178,7 @@ int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double
     mprinterr("Error: Getting frame %i\n", set);
     return 1;
   }
-  FloatToDouble(X, Coord_);
+  FloatToDouble(frameIn.xAddress(), Coord_);
 
   // Read Velocities
   if (velocityVID_ != -1) {
@@ -186,18 +186,18 @@ int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double
       mprinterr("Error: Getting velocities for frame %i\n", set);
       return 1;
     }
-    FloatToDouble(V, Coord_);
+    FloatToDouble(frameIn.vAddress(), Coord_);
   }
 
   // Read box info 
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
     count_[2] = 0;
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, box)) ) {
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())) ) {
       mprinterr("Getting cell lengths.\n");
       return 1;
     }
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, box+3)) ) {
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)) ) {
       mprinterr("Getting cell angles.\n");
       return 1;
     }
@@ -207,7 +207,7 @@ int Traj_AmberNetcdf::readFrame(int set,double *X, double *V,double *box, double
   return 0;
 }
 
-int Traj_AmberNetcdf::readVelocity(int set, double* V) {
+int Traj_AmberNetcdf::readVelocity(int set, Frame& frameIn) {
   start_[0] = set;
   start_[1] = 0;
   start_[2] = 0;
@@ -220,7 +220,7 @@ int Traj_AmberNetcdf::readVelocity(int set, double* V) {
       mprinterr("Error: Getting velocities for frame %i\n", set);
       return 1;
     }
-    FloatToDouble(V, Coord_);
+    FloatToDouble(frameIn.vAddress(), Coord_);
   }
   return 0;
 }
@@ -246,9 +246,9 @@ int Traj_AmberNetcdf::readIndices(int set, int* remd_indices) {
 }
 
 // Traj_AmberNetcdf::writeFrame() 
-int Traj_AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, double T) {
+int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
 
-  DoubleToFloat(Coord_, X);
+  DoubleToFloat(Coord_, frameOut.xAddress());
 
   // Write coords
   start_[0] = ncframe_;
@@ -266,11 +266,11 @@ int Traj_AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, dou
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
     count_[2] = 0;
-    if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,box)) ) {
+    if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.bAddress())) ) {
       mprinterr("Error: Writing cell lengths.\n");
       return 1;
     }
-    if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, box+3)) ) {
+    if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frameOut.bAddress()+3)) ) {
       mprinterr("Error: Writing cell angles.\n");
       return 1;
     }
@@ -278,7 +278,7 @@ int Traj_AmberNetcdf::writeFrame(int set, double *X, double *V, double *box, dou
 
   // Write temperature
   if (TempVID_!=-1) {
-    if ( checkNCerr( nc_put_vara_double(ncid_,TempVID_,start_,count_,&T)) ) {
+    if ( checkNCerr( nc_put_vara_double(ncid_,TempVID_,start_,count_,frameOut.tAddress())) ) {
       mprinterr("Error: Writing temperature.\n");
       return 1;
     }

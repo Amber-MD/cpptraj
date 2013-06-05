@@ -107,10 +107,10 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
 
 // Traj_PDBfile::readFrame()
 /** Read frame (model) from PDB file. */
-int Traj_PDBfile::readFrame(int set,double *X, double *V,double *box, double *T) 
+int Traj_PDBfile::readFrame(int set, Frame& frameIn)
 {
   int atom = 0;
-  double *Xptr = X; 
+  double *Xptr = frameIn.xAddress(); 
   while (atom < pdbAtom_) {
     if ( file_.NextLine() == 0 ) return 1;
     // Skip non-ATOM records
@@ -175,7 +175,7 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
 
 // Traj_PDBfile::writeFrame()
 /** Write the frame (model) to PDB file. */
-int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
+int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame set up output filename and open
     if (file_.OpenWriteWithName( NumberFilename(file_.Filename().Full(), set+1) )) return 1;
@@ -192,7 +192,7 @@ int Traj_PDBfile::writeFrame(int set,double *X,double *V,double *box,double T) {
   int aidx = 0; // Atom index in topology
   Topology::mol_iterator mol = pdbTop_->MolStart();
   int lastAtomInMol = (*mol).EndAtom();
-  double *Xptr = X;
+  const double *Xptr = frameOut.xAddress();
   for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom) {
     int res = (*atom).ResNum();
     // If this atom belongs to a new molecule print a TER card

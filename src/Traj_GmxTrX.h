@@ -35,6 +35,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     size_t frameSize_;
     size_t headerBytes_;
     float* farray_;
+    double* darray_;
 
     void GmxInfo();
     bool IsTRX(CpptrajFile&);
@@ -51,10 +52,10 @@ class Traj_GmxTrX : public TrajectoryIO {
     int setupTrajout(std::string const&, Topology*, int, bool);
     int openTrajin();
     void closeTraj();
-    int readFrame(int,double*,double*,double*,double*);
-    int writeFrame(int,double*,double*,double*,double);
+    int readFrame(int,Frame&);
+    int writeFrame(int,Frame const&);
     void Info();
-    int readVelocity(int, double*);
+    int readVelocity(int, Frame&);
     int processWriteArgs(ArgList&) { return 0; }
     int processReadArgs(ArgList&)  { return 0; }
     int readIndices(int,int*)      { return 1; }

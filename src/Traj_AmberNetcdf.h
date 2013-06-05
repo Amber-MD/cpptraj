@@ -16,9 +16,9 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     int setupTrajout(std::string const&, Topology*, int, bool);
     int openTrajin();
     void closeTraj();
-    int readFrame(int,double*,double*,double*,double*);
-    int readVelocity(int, double*);
-    int writeFrame(int,double*,double*,double*,double);
+    int readFrame(int,Frame&);
+    int readVelocity(int, Frame&);
+    int writeFrame(int,Frame const&);
     void Info();
     int processWriteArgs(ArgList&);
     ReplicaDimArray ReplicaDimensions() { return remdDim_; }

@@ -74,10 +74,16 @@ class Frame {
     double Mass(int atnum)       const { return Mass_[atnum];   }
     const Box& BoxCrd()          const { return box_;           }
     // Routines for accessing internal data pointers
-    inline double* xAddress() { return X_;          }
-    inline double* vAddress() { return V_;          }
-    inline double* bAddress() { return box_.Dptr(); }
-    inline double* tAddress() { return &T_;         }
+    inline double* xAddress() { return X_;            }
+    inline double* vAddress() { return V_;            }
+    inline double* bAddress() { return box_.boxPtr(); }
+    inline double* tAddress() { return &T_;           }
+    inline const double* xAddress() const { return X_;            }
+    inline const double* vAddress() const { return V_;            }
+    inline const double* bAddress() const { return box_.boxPtr(); }
+    inline const double* tAddress() const { return &T_;           }
+    /// Set box alpha, beta, and gamma
+    inline void SetBoxAngles(const double*);
     /// Allocate frame for given # atoms, no mass or velocity.
     int SetupFrame(int);
     /// Allocate frame for given # atoms with mass, no velocity. 
@@ -173,6 +179,12 @@ class Frame {
     void ReallocateX();
 };
 // ---------- INLINE FUNCTION DEFINITIONS --------------------------------------
+void Frame::SetBoxAngles(const double* boxAngle) {
+  box_.SetAlpha( boxAngle[0] );
+  box_.SetBeta(  boxAngle[1] );
+  box_.SetGamma( boxAngle[2] );
+}
+
 bool Frame::CheckCoordsInvalid() const {
   if (natom_ > 1) {
     return (X_[0] == 0.0 && X_[1] == 0.0 && X_[2] == 0.0 &&

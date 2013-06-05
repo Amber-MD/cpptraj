@@ -231,7 +231,7 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
 // Traj_AmberRestart::readFrame()
 /** Get the restart file frame. If velocities are present, read those too.
   */
-int Traj_AmberRestart::readFrame(int set,double *X,double *V,double *box, double *T) {
+int Traj_AmberRestart::readFrame(int set, Frame& frameIn) {
   // Read restart coords into frameBuffer_
   if ( file_.ReadFrame()==-1 ) {
     mprinterr("Error: AmberRestart::readFrame(): Error reading coordinates.\n");
@@ -239,26 +239,26 @@ int Traj_AmberRestart::readFrame(int set,double *X,double *V,double *box, double
   }
   // Set frame temp
   if (HasT())
-    *T = restartTemp_;
+    *(frameIn.tAddress()) = restartTemp_;
   // Get coords from buffer
   file_.BufferBegin();
-  file_.BufferToDouble(X, natom3_);
+  file_.BufferToDouble(frameIn.xAddress(), natom3_);
   // Get velocity from buffer if present
   if (HasV()) {
-    if (V != 0)
-      file_.BufferToDouble(V, natom3_);
+    if (frameIn.HasVelocity())
+      file_.BufferToDouble(frameIn.vAddress(), natom3_);
     else
       file_.AdvanceBuffer( coordSize_ );
   }
   // Get box from buffer if present
   if (numBoxCoords_!=0) 
-    file_.BufferToDouble(box, numBoxCoords_);
+    file_.BufferToDouble(frameIn.bAddress(), numBoxCoords_);
 
   return 0;
 }
 
 // Traj_AmberRestart::readVelocity()
-int Traj_AmberRestart::readVelocity(int set, double* V) {
+int Traj_AmberRestart::readVelocity(int set, Frame& frameIn) {
   if (HasV()) {
     if ( file_.ReadFrame()==-1 ) {
       mprinterr("Error: AmberRestart::readVelocity(): Error reading file.\n");
@@ -266,7 +266,7 @@ int Traj_AmberRestart::readVelocity(int set, double* V) {
     }
     // Start buffer right after coords.
     file_.BufferBeginAt(coordSize_);
-    file_.BufferToDouble(V, natom3_);
+    file_.BufferToDouble(frameIn.vAddress(), natom3_);
     return 0;
   }
   return 1;
@@ -274,7 +274,7 @@ int Traj_AmberRestart::readVelocity(int set, double* V) {
 
 // Traj_AmberRestart::writeFrame()
 /** Write coords in Frame to file in amber restart format. */
-int Traj_AmberRestart::writeFrame(int set, double *X, double *V, double *box, double T) {
+int Traj_AmberRestart::writeFrame(int set, Frame const& frameOut) {
   // If just writing 1 frame dont modify output filename
   if (singleWrite_) {
     if (file_.OpenWriteWithName( file_.Filename().Full() )) return 1;
@@ -293,18 +293,18 @@ int Traj_AmberRestart::writeFrame(int set, double *X, double *V, double *box, do
   }
   // Write out temperature
   if (HasT())
-    file_.Printf("%15.7lE",T);
+    file_.Printf("%15.7lE",frameOut.Temperature());
   file_.Printf("\n");
 
   // Write coords to buffer
   file_.BufferBegin();
-  file_.DoubleToBuffer(X, natom3_, "%12.7f");
+  file_.DoubleToBuffer(frameOut.xAddress(), natom3_, "%12.7f");
   // Write velocity to buffer. Check V since velocity not known ahead of time
-  if (HasV() && V!=0)
-    file_.DoubleToBuffer(V, natom3_, "%12.7f");
+  if (HasV() && frameOut.HasVelocity())
+    file_.DoubleToBuffer(frameOut.vAddress(), natom3_, "%12.7f");
   // Write box to buffer
   if (numBoxCoords_!=0)
-    file_.DoubleToBuffer(box, numBoxCoords_, "%12.7f");
+    file_.DoubleToBuffer(frameOut.bAddress(), numBoxCoords_, "%12.7f");
 
   if (file_.WriteFrame()) return 1;
 

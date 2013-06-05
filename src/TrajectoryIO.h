@@ -26,7 +26,7 @@ class TrajectoryIO {
       * \return TRAJIN_ERR if an error occured during setup.
       * \return TRAJIN_UNK if the number of frames could not be determined.
       */
-    virtual int setupTrajin(std::string const&, Topology *) = 0;
+    virtual int setupTrajin(std::string const&, Topology*) = 0;
     /// Set up and open trajectory IO for WRITE/APPEND 
     /** Called on the first write call. First arg is the trajectory name.
       * Second arg is the Topology that will be associated with this
@@ -38,23 +38,22 @@ class TrajectoryIO {
     /// Open previously set-up input trajectory, prepare for IO.
     virtual int openTrajin() = 0;
     /// Read a frame from trajectory
-    /** Given a frame number, read that frame; return the coordinates in the 
-      * first array, velocities in the second array, the box lengths/angles in 
-      * the third array, and set the temperature in the last var.
+    /** Given a frame number, read that frame.
+      * \return 1 on error, 0 on success.
       */
-    virtual int readFrame(int,double*,double*,double*,double*) = 0;
-    /// Read velocity information from a trajectory. 
-    virtual int readVelocity(int, double*) = 0;
-    /// Read replica indices from a trajectory. 
+    virtual int readFrame(int,Frame&) = 0;
+    /// Read only velocity information from a trajectory. 
+    virtual int readVelocity(int, Frame&) = 0;
+    /// Read replica indices from a trajectory.
+    // TODO: Obsolete.
     virtual int readIndices(int,int*)  = 0;  
     /// Write a frame to trajectory
     /** Write to output trajectory. This routine is called from
-      * TrajectoryFile::WriteFrame with the current action set
-      * number, not the current output number, so it is up to
-      * the TrajectoryIO object to keep track of what frame it is
-      * writing. Vars are same as in readFrame.
+      * TrajectoryFile::WriteFrame with the current action set number, not the 
+      * current output number, so it is up to the TrajectoryIO object to keep 
+      * track of what frame it is writing. 
       */
-    virtual int writeFrame(int,double*,double*,double*,double) = 0;
+    virtual int writeFrame(int,Frame const&) = 0;
     /// Close trajectory
     virtual void closeTraj() = 0; 
     /// Print information on what kind of trajectory this is.
