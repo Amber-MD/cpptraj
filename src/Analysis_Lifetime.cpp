@@ -8,13 +8,14 @@ Analysis_Lifetime::Analysis_Lifetime() :
   cut_(0.5),
   averageonly_(false),
   cumulative_(false),
-  deltaAvg_(false)
+  deltaAvg_(false),
+  Compare_(Compare_GreaterThan)
 {}
 
 void Analysis_Lifetime::Help() {
   mprintf("\t[out <filename>] <dsetarg0> [ <dsetarg1> ... ]\n");
   mprintf("\t[window <windowsize> [name <setname>]] [averageonly]\n");
-  mprintf("\t[cumulative] [cut <cutoff>]\n");
+  mprintf("\t[cumulative] [cut <cutoff>] [greater | less]\n");
   mprintf("\tCalculate lifetimes for specified data set(s) (time data is > <cutoff>,\n");
   mprintf("\tdefault 0.5) over windows of given size.\n");
 }
@@ -36,6 +37,12 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   cumulative_ = analyzeArgs.hasKey("cumulative");
   deltaAvg_ = analyzeArgs.hasKey("delta");
   cut_ = analyzeArgs.getKeyDouble("cut", 0.5);
+  if (analyzeArgs.hasKey("greater"))
+    Compare_ = Compare_GreaterThan;
+  else if (analyzeArgs.hasKey("less"))
+    Compare_ = Compare_LessThan;
+  else
+    Compare_ = Compare_GreaterThan;
   // Select datasets from remaining args
   if (inputDsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
     mprinterr("Error: lifetime: Could not add data sets.\n");
@@ -86,6 +93,10 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   if (debugIn > 0)
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
       mprintf("\t%s\n", (*set)->Legend().c_str());
+  if (Compare_ == Compare_GreaterThan) 
+    mprintf("\tValues greater than %f are considered present.\n");
+  else
+    mprintf("\tValues less than %f are considered present.\n");
   if (windowSize_ != -1) {
     mprintf("\tAverage of data over windows will be saved to sets named %s\n",
             setname.c_str());
@@ -137,7 +148,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         sum += dval;
       else {
         // Lifetime calculation
-        if ( dval > cut_ ) {
+        if ( Compare_(dval, cut_) ) {
           // Value is present at time i
           ++sum;
           ++currentLifetimeCount;

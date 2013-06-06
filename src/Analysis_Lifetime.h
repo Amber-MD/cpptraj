@@ -21,6 +21,9 @@ class Analysis_Lifetime : public Analysis {
     bool averageonly_;
     bool cumulative_;
     bool deltaAvg_;
-
+    typedef bool (*CompareFxn)(double,double);
+    CompareFxn Compare_;
+    static bool Compare_GreaterThan(double l, double r) { return (l > r); }
+    static bool Compare_LessThan(double l, double r)    { return (l < r); }
 };
 #endif

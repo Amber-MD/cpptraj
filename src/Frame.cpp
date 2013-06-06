@@ -14,7 +14,9 @@ Frame::Frame( ) :
   ncoord_(0),
   T_(0.0),
   X_(0),
-  V_(0)
+  V_(0),
+  remd_indices_(0),
+  Ndimensions_(0)
 {}
 
 /// DESTRUCTOR
@@ -22,6 +24,7 @@ Frame::Frame( ) :
 Frame::~Frame( ) { 
   if (X_ != 0) delete[] X_;
   if (V_ != 0) delete[] V_;
+  if (remd_indices_!=0) delete[] remd_indices_;
 }
 
 // CONSTRUCTOR
@@ -31,7 +34,9 @@ Frame::Frame(int natomIn) :
   ncoord_(natomIn*3), 
   T_(0.0),
   X_(0),
-  V_(0)
+  V_(0),
+  remd_indices_(0),
+  Ndimensions_(0)
 {
   if (ncoord_ > 0)
     X_ = new double[ ncoord_ ];
@@ -44,7 +49,9 @@ Frame::Frame(std::vector<Atom> const& atoms) :
   ncoord_(natom_*3),
   T_(0.0),
   X_(0),
-  V_(0)
+  V_(0),
+  remd_indices_(0),
+  Ndimensions_(0)
 {
   if (ncoord_ > 0) {
     X_ = new double[ ncoord_ ];
@@ -62,7 +69,9 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   box_(frameIn.box_),
   T_( frameIn.T_ ),
   X_(0),
-  V_(0)
+  V_(0),
+  remd_indices_(0),
+  Ndimensions_(0)
 {
   if (ncoord_ > 0) {
     X_ = new double[ ncoord_ ];
@@ -110,7 +119,9 @@ Frame::Frame(const Frame& rhs) :
   T_(rhs.T_),
   X_(0),
   V_(0),
-  Mass_(rhs.Mass_) 
+  remd_indices_(0),
+  Ndimensions_(rhs.Ndimensions_),
+  Mass_(rhs.Mass_)
 {
   // Copy coords/velo; allocate for maxnatom but copy natom
   int maxncoord = maxnatom_ * 3;
@@ -121,6 +132,10 @@ Frame::Frame(const Frame& rhs) :
   if (rhs.V_!=0) {
     V_ = new double[ maxncoord ];
     memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
+  }
+  if (rhs.remd_indices_!=0) {
+    remd_indices_ = new int[ Ndimensions_ ];
+    std::copy(rhs.remd_indices_, rhs.remd_indices_+rhs.Ndimensions_, remd_indices_);
   }
 }
 
@@ -133,6 +148,8 @@ void Frame::swap(Frame &first, Frame &second) {
   swap(first.T_, second.T_);
   swap(first.X_, second.X_);
   swap(first.V_, second.V_);
+  swap(first.remd_indices_, second.remd_indices_);
+  swap(first.Ndimensions_, second.Ndimensions_);
   first.Mass_.swap(second.Mass_);
   swap( first.box_[0], second.box_[0] );
   swap( first.box_[1], second.box_[1] );
@@ -217,6 +234,7 @@ void Frame::Info(const char *msg) const {
   mprintf("%i atoms, %i coords",natom_, ncoord_);
   if (V_!=0) mprintf(" with Velocities");
   if (!Mass_.empty()) mprintf(" with Masses");
+  if (remd_indices_!=0) mprintf(" with replica indices");
   mprintf("\n");
 }
 
@@ -323,7 +341,7 @@ int Frame::SetupFrameXM(Darray const& Xin, Darray const& massIn) {
 
 
 // Frame::SetupFrameV()
-int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity) {
+int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity, int nDim) {
   bool reallocate = false;
   natom_ = (int)atoms.size();
   ncoord_ = natom_ * 3;
@@ -351,6 +369,15 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity) {
   for (std::vector<Atom>::const_iterator atom = atoms.begin();
                                          atom != atoms.end(); ++atom)
     *(mass++) = (*atom).Mass();
+  // Replica indices
+  if (Ndimensions_ != nDim) {
+    if (remd_indices_ != 0) delete[] remd_indices_;
+    Ndimensions_ = nDim;
+    if (Ndimensions_ > 0) {
+      remd_indices_ = new int[ Ndimensions_ ];
+      std::fill( remd_indices_, remd_indices_ + Ndimensions_, 0 );
+    }
+  }
   return 0;
 }
 

@@ -120,10 +120,9 @@ int Trajin_Single::GetNextFrame( Frame& frameIn ) {
   if ( CheckFinished() ) return 0;
   bool tgtFrameFound = false;
   while ( !tgtFrameFound ) {
-    if (trajio_->readFrame(CurrentFrame(), frameIn.xAddress(), frameIn.vAddress(),
-                           frameIn.bAddress(), frameIn.tAddress()))
+    if (trajio_->readFrame(CurrentFrame(), frameIn))
       return 0;
-    if (velio_ != 0 && velio_->readVelocity(CurrentFrame(), frameIn.vAddress()))
+    if (velio_ != 0 && velio_->readVelocity(CurrentFrame(), frameIn))
       return 0;
     // Check if coords in frame are valid.
     if (frameIn.CheckCoordsInvalid())
@@ -164,3 +163,9 @@ bool Trajin_Single::HasVelocity() {
   return false;
 }
 
+int Trajin_Single::NreplicaDimension() {
+  if (trajio_!=0) 
+    return trajio_->ReplicaDimensions().Ndims();
+  else
+    return 0;
+}

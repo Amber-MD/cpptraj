@@ -16,11 +16,9 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     int setupTrajout(std::string const&, Topology*, int, bool);
     int openTrajin();
     void closeTraj();
-    int readFrame(int,double*,double*,double*,double*);
-    int writeFrame(int,double*,double*,double*,double);
+    int readFrame(int,Frame&);
+    int writeFrame(int,Frame const&);
     int processWriteArgs(ArgList&);
-    int NreplicaDimensions() { return remd_dimension_; }
-    int readIndices(int,int*);
     void Info();
   private:
     double restartTime_;
@@ -29,7 +27,7 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     double dt_;
     FileName filename_;
 
-    int readVelocity(int, double*) { return 1; }
+    int readVelocity(int, Frame&) { return 1; }
     int processReadArgs(ArgList&) { return 0; }
 };
 #endif

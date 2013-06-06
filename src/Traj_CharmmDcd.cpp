@@ -404,7 +404,7 @@ int Traj_CharmmDcd::ReadBox(double* box) {
 }
 
 // Traj_CharmmDcd::readFrame()
-int Traj_CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *T) {
+int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
   if (IsSeekable()) {
     if (set == 0)
       file_.Seek( headerBytes_ );
@@ -413,7 +413,7 @@ int Traj_CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *
   }
   // Load box info
   if (boxBytes_ != 0) {
-    if (ReadBox( box )) return 1;
+    if (ReadBox( frameIn.bAddress() )) return 1;
   }
   // NOTE: Only checking for file errors on X read attempt - is this OK?
   // Read X coordinates
@@ -434,9 +434,9 @@ int Traj_CharmmDcd::readFrame(int set,double *X, double *V,double *box, double *
   // Put xyz values into coord array
   int x = 0;
   for (int n=0; n < dcdatom_; n++) {
-    X[x++] = (double) xcoord_[n];
-    X[x++] = (double) ycoord_[n];
-    X[x++] = (double) zcoord_[n];
+    frameIn[x++] = (double) xcoord_[n];
+    frameIn[x++] = (double) ycoord_[n];
+    frameIn[x++] = (double) zcoord_[n];
   }
   return 0;
 }
@@ -559,7 +559,7 @@ int Traj_CharmmDcd::writeDcdHeader() {
 }
 
 // Traj_CharmmDcd::writeFrame()
-int Traj_CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double T) {
+int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
   // Box coords - 6 doubles, 48 bytes
   if (boxBytes_ != 0) {
     /* The format for the 'box' array used in cpptraj is not the same as the
@@ -567,13 +567,13 @@ int Traj_CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double
      * for a description of the box info.
      */
     double boxtmp[6];
-    boxtmp[0] = box[0];
-    boxtmp[2] = box[1];
-    boxtmp[5] = box[2];
+    boxtmp[0] = frameOut.BoxCrd().BoxX();
+    boxtmp[2] = frameOut.BoxCrd().BoxY();
+    boxtmp[5] = frameOut.BoxCrd().BoxZ();
     // The angles must be reported in cos(angle) format
-    boxtmp[1] = cos(box[5] * DEGRAD);
-    boxtmp[3] = cos(box[4] * DEGRAD);
-    boxtmp[4] = cos(box[3] * DEGRAD);
+    boxtmp[1] = cos(frameOut.BoxCrd().Gamma() * DEGRAD);
+    boxtmp[3] = cos(frameOut.BoxCrd().Beta()  * DEGRAD);
+    boxtmp[4] = cos(frameOut.BoxCrd().Alpha() * DEGRAD);
     WriteBlock(48);
     file_.Write(boxtmp, sizeof(double)*6);
     WriteBlock(48);
@@ -581,9 +581,9 @@ int Traj_CharmmDcd::writeFrame(int set, double *X, double *V,double *box, double
   // Put X coords into xyz arrays
   int x = 0;
   for (int i = 0; i < dcdatom_; i++) {
-    xcoord_[i] = (float)X[x++];
-    ycoord_[i] = (float)X[x++];
-    zcoord_[i] = (float)X[x++];
+    xcoord_[i] = (float)frameOut[x++];
+    ycoord_[i] = (float)frameOut[x++];
+    zcoord_[i] = (float)frameOut[x++];
   }
   // Write x coords
   WriteBlock(coordinate_size_);

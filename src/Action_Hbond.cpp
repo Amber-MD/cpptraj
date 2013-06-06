@@ -12,6 +12,7 @@
 Action_Hbond::Action_Hbond() :
   debug_(0),
   Nframes_(0),
+  useAtomNum_(false),
   hasDonorMask_(false),
   hasDonorHmask_(false),
   hasAcceptorMask_(false),
@@ -32,7 +33,7 @@ Action_Hbond::Action_Hbond() :
 void Action_Hbond::Help() {
   mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>] [series]\n");
   mprintf("\t[donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n");
-  mprintf("\t[avgout <filename>]\n");
+  mprintf("\t[avgout <filename>] [printatomnum]\n");
   mprintf("\t[solventdonor <mask>] [solventacceptor <mask>]\n");
   mprintf("\t[solvout <filename>] [bridgeout <filename>]\n");
   mprintf("\tSearch for hydrogen bonds using atoms in the region specified by mask.\n");
@@ -57,6 +58,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   avgout_ = actionArgs.GetStringKey("avgout");
   solvout_ = actionArgs.GetStringKey("solvout");
   bridgeout_ = actionArgs.GetStringKey("bridgeout");
+  useAtomNum_ = actionArgs.hasKey("printatomnum");
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   // Convert angle cutoff to radians
   acut_ *= DEGRAD;
@@ -156,6 +158,8 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
     mprintf("\tDumping solute-solvent hbond avgs to %s\n", solvout_.c_str());
   if (calcSolvent_ && !bridgeout_.empty())
     mprintf("\tDumping solvent bridging info to %s\n", bridgeout_.c_str());
+  if (useAtomNum_)
+    mprintf("\tAtom numbers will be written to output.\n");
   if (series_)
     mprintf("\tTime series data for each hbond will be saved for analysis.\n");
   masterDSL_ = DSL;
@@ -602,6 +606,8 @@ void Action_Hbond::Print() {
   // Calculate necessary column width for strings based on how many residues.
   // ResName+'_'+ResNum+'@'+AtomName | NUM = 4+1+R+1+4 = R+10
   int NUM = DigitWidth( CurrentParm_->Nres() ) + 10;
+  // If useAtomNum_ +'_'+AtomNum += 1+A
+  if (useAtomNum_) NUM += ( DigitWidth( CurrentParm_->Natom() ) + 1 );
 
   // Solute Hbonds 
   if (!avgout_.empty()) { 
@@ -629,6 +635,11 @@ void Action_Hbond::Print() {
       Aname = CurrentParm_->TruncResAtomName((*hbond).A);
       Hname = CurrentParm_->TruncResAtomName((*hbond).H);
       Dname = CurrentParm_->TruncResAtomName((*hbond).D);
+      if (useAtomNum_) {
+        Aname.append("_" + integerToString((*hbond).A+1));
+        Hname.append("_" + integerToString((*hbond).H+1));
+        Dname.append("_" + integerToString((*hbond).D+1));
+      }
 
       outfile.Printf("%-*s %*s %*s %8i %12.4lf %12.4lf %12.4lf\n",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
@@ -668,14 +679,20 @@ void Action_Hbond::Print() {
 
       if ((*hbond).A==-1) // Solvent acceptor
         Aname = "SolventAcc";
-      else
+      else {
         Aname = CurrentParm_->TruncResAtomName((*hbond).A);
+        if (useAtomNum_) Aname.append("_" + integerToString((*hbond).A+1));
+      }
       if ((*hbond).D==-1) { // Solvent donor
         Dname = "SolventDnr";
         Hname = "SolventH";
       } else {
         Dname = CurrentParm_->TruncResAtomName((*hbond).D);
         Hname = CurrentParm_->TruncResAtomName((*hbond).H);
+        if (useAtomNum_) {
+          Dname.append("_" + integerToString((*hbond).D+1));
+          Hname.append("_" + integerToString((*hbond).H+1));
+        }
       }
 
       outfile.Printf("%-*s %*s %*s %8i %12.4lf %12.4lf %12.4lf\n",

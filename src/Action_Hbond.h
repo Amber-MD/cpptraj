@@ -35,6 +35,7 @@ class Action_Hbond : public Action {
     std::string avgout_;
     std::string solvout_;
     std::string bridgeout_;
+    bool useAtomNum_;
     typedef std::map<int,HbondType> HBmapType;
     HBmapType HbondMap_;   ///< Track all solute-solute hbonds found
     HBmapType SolventMap_; ///< Track all solute-solvent hbonds found
