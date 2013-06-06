@@ -5,9 +5,10 @@ class ReplicaDimArray {
   public:
     ReplicaDimArray() {}
     enum RemDimType { UNKNOWN=0, TEMPERATURE, PARTIAL, HAMILTONIAN, PH };
-    void AddRemdDimension(int d) { remDims_.push_back((RemDimType)d); }
-    void clear()                 { remDims_.clear();                  }
-    int Ndims()            const { return (int)remDims_.size();       }
+    int operator[](int idx) const { return (int)remDims_[idx];         }
+    void AddRemdDimension(int d)  { remDims_.push_back((RemDimType)d); }
+    void clear()                  { remDims_.clear();                  }
+    int Ndims()             const { return (int)remDims_.size();       }
     const char* Description(int idx) const {
       if (idx >= 0 && idx < (int)remDims_.size()) {
         switch (remDims_[idx]) {

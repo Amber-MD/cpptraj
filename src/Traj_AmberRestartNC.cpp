@@ -198,8 +198,9 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
     fname = filename_.Full();
   else
     fname = NumberFilename(filename_.Full(), set+1);
+  // TODO: Add option to write replica indices
   if ( NC_create( fname.c_str(), NC_AMBERRESTART, Ncatom(), V_present,
-                  HasBox(), HasT(), (time0_ >= 0), Title() ) )
+                  HasBox(), HasT(), (time0_ >= 0), false, ReplicaDimArray(), Title() ) )
     return 1;
   // write coords
   start_[0] = 0;
