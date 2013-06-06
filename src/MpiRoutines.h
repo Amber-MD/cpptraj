@@ -10,7 +10,7 @@ extern "C" {
     including MpiRoutines.h worldrank and worldsize should be extern.
  */
 // If debug is not defined stdio.h will be included in MpiRoutines.c
-#ifdef DEBUG
+#ifdef DEBUGMPI
 #  include <stdio.h>
 #endif
 #include <sys/types.h> // off_t
@@ -18,13 +18,13 @@ extern "C" {
 #ifdef MPIROUTINES_MODULE
 int worldrank;
 int worldsize;
-#  ifdef DEBUG
+#  ifdef DEBUGMPI
 FILE *mpidebugfile;
 #  endif
 #else
 extern int worldrank;
 extern int worldsize;
-#  ifdef DEBUG
+#  ifdef DEBUGMPI
 extern FILE *mpidebugfile;
 #  endif
 #endif
@@ -44,7 +44,7 @@ int parallel_check_error(int );
 #endif
 
 /* ========== Routines that do not require MPI ========== */
-#ifdef DEBUG
+#ifdef DEBUGMPI
 void dbgprintf(const char *, ...);
 int parallel_debug_init();
 int parallel_debug_end();
