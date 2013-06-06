@@ -44,9 +44,6 @@ class TrajectoryIO {
     virtual int readFrame(int,Frame&) = 0;
     /// Read only velocity information from a trajectory. 
     virtual int readVelocity(int, Frame&) = 0;
-    /// Read replica indices from a trajectory.
-    // TODO: Obsolete.
-    virtual int readIndices(int,int*)  = 0;  
     /// Write a frame to trajectory
     /** Write to output trajectory. This routine is called from
       * TrajectoryFile::WriteFrame with the current action set number, not the 
@@ -69,9 +66,6 @@ class TrajectoryIO {
     virtual int processWriteArgs(ArgList&) = 0; 
     /// Process arguments relevant to reading trajectory (optional)
     virtual int processReadArgs(ArgList&) = 0;
-    /// \return Array containing information on replica dims if present.
-    // TODO: Replace with pure virtual
-    virtual ReplicaDimArray ReplicaDimensions() { return ReplicaDimArray(); }
     // -----------------------------------------------------
     bool HasBox()              const { return box_.HasBox();               }
     const Box& TrajBox()       const { return box_;                        }
@@ -79,6 +73,7 @@ class TrajectoryIO {
     bool HasT()                const { return hasT_;                       }
     bool IsSeekable()          const { return seekable_;                   }
     std::string const& Title() const { return title_;                      }
+    ReplicaDimArray const& ReplicaDimensions() const { return remdDim_;    }
 
     void SetDebug(int dIn)                { debug_ = dIn;    }
     void SetBox(Box const& bIn)           { box_ = bIn;      }
@@ -86,13 +81,15 @@ class TrajectoryIO {
     void SetTemperature(bool tIn)         { hasT_ = tIn;     }
     void SetSeekable(bool sIn)            { seekable_ = sIn; }
     void SetTitle(std::string const& tIn) { title_ = tIn;    }
+    void SetReplicaDims(ReplicaDimArray const& rIn) { remdDim_ = rIn; }
   protected:
-    int debug_;           ///< Trajectory debug level.
+    int debug_;               ///< Trajectory debug level.
   private:
-    Box box_;             ///< Default box info for trajectory.
-    bool hasV_;           ///< True if trajectory has velocity info.
-    bool hasT_;           ///< True if trajectory has temperature info.
-    bool seekable_;       ///< True if trajectory is randomly seekable.
-    std::string title_;   ///< Set to trajectory title.
+    Box box_;                 ///< Default box info for trajectory.
+    bool hasV_;               ///< True if trajectory has velocity info.
+    bool hasT_;               ///< True if trajectory has temperature info.
+    bool seekable_;           ///< True if trajectory is randomly seekable.
+    std::string title_;       ///< Set to trajectory title.
+    ReplicaDimArray remdDim_; ///< Hold info on replica dims if present. 
 }; 
 #endif

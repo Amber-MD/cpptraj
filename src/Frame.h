@@ -68,6 +68,7 @@ class Frame {
     bool HasVelocity()           const { return (V_ != NULL);   }
     int Natom()                  const { return natom_;         }
     int size()                   const { return ncoord_;        }
+    int NrepDims()               const { return Ndimensions_;   }
     double Temperature()         const { return T_;             }
     const double* XYZ(int atnum) const { return X_ + (atnum*3); } 
     const double* CRD(int idx)   const { return X_ + idx;       } 
@@ -78,18 +79,20 @@ class Frame {
     inline double* vAddress() { return V_;            }
     inline double* bAddress() { return box_.boxPtr(); }
     inline double* tAddress() { return &T_;           }
+    inline int* iAddress()    { return remd_indices_; }
     inline const double* xAddress() const { return X_;            }
     inline const double* vAddress() const { return V_;            }
     inline const double* bAddress() const { return box_.boxPtr(); }
     inline const double* tAddress() const { return &T_;           }
+    inline const int* iAddress()    const { return remd_indices_; }
     /// Set box alpha, beta, and gamma
     inline void SetBoxAngles(const double*);
     /// Allocate frame for given # atoms, no mass or velocity.
     int SetupFrame(int);
     /// Allocate frame for given # atoms with mass, no velocity. 
     int SetupFrameM(std::vector<Atom> const&);
-    /// Allocate frame for given # atoms with mass and optionally velocity.
-    int SetupFrameV(std::vector<Atom> const&,bool);
+    /// Allocate frame for given # atoms with mass and opt. velocity/indices.
+    int SetupFrameV(std::vector<Atom> const&,bool,int);
     /// Allocate frame for selected # atoms, coords/mass only.
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
     /// Copy coordinates, box, and temp. from input frame according to mask. 
@@ -173,6 +176,8 @@ class Frame {
     double T_;      ///< Temperature
     double* X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     double* V_;     ///< Velocities (same arrangement as Coords).
+    int* remd_indices_; ///< replica indices.
+    int Ndimensions_;   ///< # of replica dimensions.
     Darray Mass_;   ///< Masses.
 
     void swap(Frame&, Frame&);

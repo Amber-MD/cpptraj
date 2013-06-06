@@ -163,3 +163,9 @@ bool Trajin_Single::HasVelocity() {
   return false;
 }
 
+int Trajin_Single::NreplicaDimension() {
+  if (trajio_!=0) 
+    return trajio_->ReplicaDimensions().Ndims();
+  else
+    return 0;
+}

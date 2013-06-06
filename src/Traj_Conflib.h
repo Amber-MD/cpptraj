@@ -23,7 +23,6 @@ class Traj_Conflib: public TrajectoryIO {
     int writeFrame(int,Frame const&);
     void Info();
     int readVelocity(int, Frame&) { return 1; }
-    int readIndices(int,int*) { return 1; }
     int processWriteArgs(ArgList&) { return 0; }
     int processReadArgs(ArgList&) { return 0; }
 };

@@ -231,9 +231,9 @@ int NetcdfFile::SetupTemperature() {
 // NetcdfFile::SetupMultiD()
 /** Determine if Netcdf file contains multi-D REMD info. If so set the
   * number of replica dimensions (remd_dimension_) and figure out
-  * the dimension types (remdDim_)
+  * the dimension types (remdDim)
   */
-int NetcdfFile::SetupMultiD() {
+int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
   int dimensionDID;
 
   if ( nc_inq_dimid(ncid_, NCREMD_DIMENSION, &dimensionDID) != NC_NOERR)
@@ -274,7 +274,7 @@ int NetcdfFile::SetupMultiD() {
   }
   // Print info for each dimension
   for (int dim = 0; dim < remd_dimension_; ++dim)
-    remdDim_.AddRemdDimension( remd_dimtype[dim] );
+    remdDim.AddRemdDimension( remd_dimtype[dim] );
   delete[] remd_dimtype;
   return 0; 
 }

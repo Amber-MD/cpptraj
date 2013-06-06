@@ -19,8 +19,6 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     int readFrame(int,Frame&);
     int writeFrame(int,Frame const&);
     int processWriteArgs(ArgList&);
-    ReplicaDimArray ReplicaDimensions() { return remdDim_; }
-    int readIndices(int,int*);
     void Info();
   private:
     double restartTime_;

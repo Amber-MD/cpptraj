@@ -389,7 +389,7 @@ int Cpptraj::LoadCrd(ArgList& argIn) {
   }
   // Create input frame
   Frame frameIn;
-  frameIn.SetupFrameV(parm->Atoms(), trajin.HasVelocity());
+  frameIn.SetupFrameV(parm->Atoms(), trajin.HasVelocity(), trajin.NreplicaDimension());
   // Create DataSet, use base file name as set name if none specified. 
   // NOTE: Default name should NEVER get used.
   std::string setname = argIn.GetStringNext();
@@ -1029,7 +1029,8 @@ int Cpptraj::RunEnsemble() {
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
     if (parmHasChanged || (hasVelocity != (*traj)->HasVelocity()))
-      FrameEnsemble.SetupFrames(CurrentParm->Atoms(), (*traj)->HasVelocity());
+      FrameEnsemble.SetupFrames(CurrentParm->Atoms(), (*traj)->HasVelocity(),
+                                (*traj)->NreplicaDimension());
     hasVelocity = (*traj)->HasVelocity();
 
     // If Parm has changed, reset actions for new topology.
@@ -1173,7 +1174,8 @@ int Cpptraj::RunNormal() {
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
     if (parmHasChanged || (TrajFrame.HasVelocity() != (*traj)->HasVelocity()))
-      TrajFrame.SetupFrameV(CurrentParm->Atoms(), (*traj)->HasVelocity());
+      TrajFrame.SetupFrameV(CurrentParm->Atoms(), (*traj)->HasVelocity(), 
+                            (*traj)->NreplicaDimension());
 
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {

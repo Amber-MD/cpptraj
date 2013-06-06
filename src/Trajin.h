@@ -13,6 +13,7 @@ class Trajin : public TrajectoryFile {
     virtual int GetNextFrame(Frame&) = 0;
     virtual void PrintInfo(int) = 0;
     virtual bool HasVelocity() = 0;
+    virtual int NreplicaDimension() = 0;
 
     int SetupTrajIO( std::string const&, TrajectoryIO&, ArgList* );
     int CheckBoxInfo(const char*, Box&, Box const&); 

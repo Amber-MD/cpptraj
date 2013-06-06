@@ -27,7 +27,7 @@ class NetcdfFile {
     int SetupTime();
     int SetupBox(double*,NCTYPE);
     int SetupTemperature();
-    int SetupMultiD();
+    int SetupMultiD(ReplicaDimArray&);
 
     void FloatToDouble(double*,const float*);
     void DoubleToFloat(float*,const double*); 
@@ -54,7 +54,6 @@ class NetcdfFile {
     // MultiD REMD
     int remd_dimension_;      ///< Number of replica dimensions.
     int indicesVID_;          ///< Variable ID for replica indices.
-    ReplicaDimArray remdDim_; ///< Hold info on replica dims if present.
 
     bool checkNCerr(int);
   private:

@@ -21,8 +21,6 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     int writeFrame(int,Frame const&);
     void Info();
     int processWriteArgs(ArgList&);
-    ReplicaDimArray ReplicaDimensions() { return remdDim_; }
-    int readIndices(int,int*);
     // Reservoir functions
     inline int createReservoir(bool,double,int);
     int writeReservoir(int, Frame&, double, int);

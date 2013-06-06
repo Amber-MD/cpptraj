@@ -39,7 +39,6 @@ class Traj_PDBfile: public TrajectoryIO {
     void Info();
     int processWriteArgs(ArgList&);
     int readVelocity(int, Frame&) { return 1; }
-    int readIndices(int,int*) { return 1; }
     int processReadArgs(ArgList&) { return 0; }
 };
 #endif

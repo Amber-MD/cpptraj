@@ -58,6 +58,5 @@ class Traj_GmxTrX : public TrajectoryIO {
     int readVelocity(int, Frame&);
     int processWriteArgs(ArgList&) { return 0; }
     int processReadArgs(ArgList&)  { return 0; }
-    int readIndices(int,int*)      { return 1; }
 };
 #endif

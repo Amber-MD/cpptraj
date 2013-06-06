@@ -27,7 +27,6 @@ class Traj_Binpos : public TrajectoryIO {
     CpptrajFile file_;
 
     int readVelocity(int, Frame&) { return 1; }
-    int readIndices(int,int*) { return 1; }
     int processReadArgs(ArgList&) { return 0; }
 };
 #endif

@@ -34,7 +34,6 @@ class Traj_AmberRestart : public TrajectoryIO {
     void Info();
 
     int getBoxAngles(std::string const&, Box&);
-    int readIndices(int,int*) { return 1; }
     int processReadArgs(ArgList&) { return 0; }
 };
 #endif

@@ -90,7 +90,9 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
   if (SetupTemperature() == 0)
     SetTemperature( true );
   // Replica Dimensions
-  if ( SetupMultiD() == -1 ) return TRAJIN_ERR;
+  ReplicaDimArray remdDim;
+  if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
+  SetReplicaDims( remdDim );
   // NOTE: TO BE ADDED
   // labelDID;
   //int cell_spatialDID, cell_angularDID;
@@ -189,6 +191,18 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
     FloatToDouble(frameIn.vAddress(), Coord_);
   }
 
+  // Read indices. Input array must be allocated to be size remd_dimension.
+  if (indicesVID_!=-1) {
+    count_[1] = remd_dimension_;
+    if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frameIn.iAddress())) ) {
+      mprinterr("Error: Getting replica indices.\n");
+      return 1;
+    }
+    //mprintf("DEBUG:\tReplica indices:");
+    //for (int dim=0; dim < remd_dimension_; dim++) mprintf(" %i",remd_indices[dim]);
+    //mprintf("\n");
+  }
+
   // Read box info 
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
@@ -207,6 +221,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   return 0;
 }
 
+// Traj_AmberNetcdf::readVelocity()
 int Traj_AmberNetcdf::readVelocity(int set, Frame& frameIn) {
   start_[0] = set;
   start_[1] = 0;
@@ -221,26 +236,6 @@ int Traj_AmberNetcdf::readVelocity(int set, Frame& frameIn) {
       return 1;
     }
     FloatToDouble(frameIn.vAddress(), Coord_);
-  }
-  return 0;
-}
-
-/** Read REMD indices. Input array must be allocated to be size remd_dimension
-  * by prior call to NreplicaDimensions().
-  */
-int Traj_AmberNetcdf::readIndices(int set, int* remd_indices) {
-  if (indicesVID_!=-1) {
-    start_[0] = set;
-    start_[1] = 0;
-    count_[0] = 1;
-    count_[1] = remd_dimension_;
-    if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, remd_indices)) ) {
-      mprinterr("Error: Getting replica indices.\n");
-      return 1;
-    }
-    //mprintf("DEBUG:\tReplica indices:");
-    //for (int dim=0; dim < remd_dimension_; dim++) mprintf(" %i",remd_indices[dim]);
-    //mprintf("\n");
   }
   return 0;
 }
