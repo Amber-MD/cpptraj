@@ -29,7 +29,10 @@ class Trajin : public TrajectoryFile {
     int Start()           { return start_;             }
     int NumFramesProcessed() { return numFramesProcessed_; }
 
-    void SetTotalFrames(int nfIn) { total_frames_ = nfIn; }
+    void SetTotalFrames(int nfIn) { 
+      total_frames_ = nfIn;
+      if (stop_ > total_frames_) stop_ = total_frames_;
+    }
 
     bool CheckFinished() {
       if (currentFrame_ > stop_ && stop_ != -1) return true;

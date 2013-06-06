@@ -225,8 +225,6 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     if (lowestRep) {
       // Set up the lowest for reading and get the number of frames.
       if (SetupTrajIO( *repfile, *replica0, argIn )) return 1;
-      // Check how many frames will actually be read
-      if (setupFrameInfo() == 0) return 1;
       // If lowest has box coords, check type against parm box info 
       Box parmBox = tparmIn->ParmBox();
       if (CheckBoxInfo(tparmIn->c_str(), parmBox, replica0->TrajBox())) return 1;
@@ -299,6 +297,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     }
     lowestRep = false;
   }
+  // Check how many frames will actually be read
+  if (setupFrameInfo() == 0) return 1;
   // If targetType is currently NONE these will be processed as an ensemble. 
   // If dimensions are present index by replica indices, otherwise index
   // by temperature. If nosort was specified do not sort.
