@@ -15,8 +15,8 @@ int main(int argc, char **argv) {
   Cpptraj State;
   // Parallel Init: NOTE Should check for err
   parallel_init(argc,argv);
+  Cpptraj::Intro();
   Cpptraj::Mode cmode = State.ProcessCmdLineArgs(argc,argv);
-  Cpptraj::Intro( cmode );
   switch ( cmode ) {
     case Cpptraj::C_OK          : 
       err = State.Run(); break;

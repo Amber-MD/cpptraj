@@ -29,14 +29,12 @@ void Cpptraj::Usage() {
   mprinterr("\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n");
 }
 
-void Cpptraj::Intro(Mode cmode) {
-  if ( cmode != C_QUIT ) {
-    mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
-    mprintf("    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n");
-#   ifdef MPI
-    mprintf("Running on %i threads\n",worldsize);
-#   endif
-  }
+void Cpptraj::Intro() {
+  mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
+  mprintf("    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n");
+# ifdef MPI
+  mprintf("Running on %i threads\n",worldsize);
+# endif
 }
 
 // -----------------------------------------------------------------------------
@@ -681,17 +679,17 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     }
     if ( arg == "-V" || arg == "--version" ) { 
       // -V, --version: Print version number and exit
-      mprintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
+      //mprintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
       return C_QUIT;
     }
     if ( arg == "--internal-version" ) {
       // --internal-version: Print internal version number and quit.
-      mprintf("CPPTRAJ: Internal version #: %s\n", CPPTRAJ_INTERNAL_VERSION);
+      mprintf("Internal version #: %s\n", CPPTRAJ_INTERNAL_VERSION);
       return C_QUIT;
     }
     if ( arg == "--defines" ) {
       // --defines: Print information on compiler defines used and exit
-      mprintf("CPPTRAJ: Compiled with:");
+      mprintf("Compiled with:");
 #     ifdef DEBUG
       mprintf(" -DDEBUG");
 #     endif
