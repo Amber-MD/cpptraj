@@ -5,10 +5,9 @@
  * For a full list of contributing authors see the README file.
  */
 #include <unistd.h> // isatty
-#include <cstdio>
+#include <cstdio> // stdin, fileno
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
-#include "Version.h"
 // ----------========== CPPTRAJ MAIN ROUTINE ==========----------
 /// Main routine.
 int main(int argc, char **argv) {
@@ -16,16 +15,8 @@ int main(int argc, char **argv) {
   Cpptraj State;
   // Parallel Init: NOTE Should check for err
   parallel_init(argc,argv);
-  if (worldrank == 0) {
-    printf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
-    printf("    ___  ___  ___  ___\n");
-    printf("     | \\/ | \\/ | \\/ | \n");
-    printf("    _|_/\\_|_/\\_|_/\\_|_\n");
-#   ifdef MPI
-    printf("Running on %i threads\n",worldsize);
-#   endif
-  }
   Cpptraj::Mode cmode = State.ProcessCmdLineArgs(argc,argv);
+  Cpptraj::Intro( cmode );
   switch ( cmode ) {
     case Cpptraj::C_OK          : 
       err = State.Run(); break;
@@ -44,7 +35,7 @@ int main(int argc, char **argv) {
       err = 1;
     case Cpptraj::C_QUIT        : break;
   }
-  if (worldrank==0) printf("\n");
   parallel_end();
+  printf("\n");
   return err;
 }

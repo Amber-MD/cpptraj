@@ -10,6 +10,7 @@
 #include "ParmFile.h"
 #include "DataSet_Coords.h" // CrdAction
 #include "Command.h"
+#include "Version.h"
 
 void Cpptraj::Usage() {
   mprinterr("\nUsage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n");
@@ -26,6 +27,16 @@ void Cpptraj::Usage() {
   mprinterr("\t-debug <#>     : Set global debug level to <#>; same as input 'debug <#>'.\n");
   mprinterr("\t--interactive  : Force interactive mode.\n");
   mprinterr("\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n");
+}
+
+void Cpptraj::Intro(Mode cmode) {
+  if ( cmode != C_QUIT ) {
+    mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
+    mprintf("    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n");
+#   ifdef MPI
+    mprintf("Running on %i threads\n",worldsize);
+#   endif
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -389,7 +400,7 @@ int Cpptraj::LoadCrd(ArgList& argIn) {
   }
   // Create input frame
   Frame frameIn;
-  frameIn.SetupFrameV(parm->Atoms(), trajin.HasVelocity());
+  frameIn.SetupFrameV(parm->Atoms(), trajin.HasVelocity(), trajin.NreplicaDimension());
   // Create DataSet, use base file name as set name if none specified. 
   // NOTE: Default name should NEVER get used.
   std::string setname = argIn.GetStringNext();
@@ -668,13 +679,19 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       Usage();
       return C_QUIT;
     }
-    if ( arg == "-V" || arg == "--version" ) 
+    if ( arg == "-V" || arg == "--version" ) { 
       // -V, --version: Print version number and exit
-      // Since version number should be printed before this is called, quit.
+      mprintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
       return C_QUIT;
+    }
+    if ( arg == "--internal-version" ) {
+      // --internal-version: Print internal version number and quit.
+      mprintf("CPPTRAJ: Internal version #: %s\n", CPPTRAJ_INTERNAL_VERSION);
+      return C_QUIT;
+    }
     if ( arg == "--defines" ) {
       // --defines: Print information on compiler defines used and exit
-      mprintf("\nCompiled with:");
+      mprintf("CPPTRAJ: Compiled with:");
 #     ifdef DEBUG
       mprintf(" -DDEBUG");
 #     endif
@@ -1029,7 +1046,8 @@ int Cpptraj::RunEnsemble() {
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
     if (parmHasChanged || (hasVelocity != (*traj)->HasVelocity()))
-      FrameEnsemble.SetupFrames(CurrentParm->Atoms(), (*traj)->HasVelocity());
+      FrameEnsemble.SetupFrames(CurrentParm->Atoms(), (*traj)->HasVelocity(),
+                                (*traj)->NreplicaDimension());
     hasVelocity = (*traj)->HasVelocity();
 
     // If Parm has changed, reset actions for new topology.
@@ -1173,7 +1191,8 @@ int Cpptraj::RunNormal() {
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
     if (parmHasChanged || (TrajFrame.HasVelocity() != (*traj)->HasVelocity()))
-      TrajFrame.SetupFrameV(CurrentParm->Atoms(), (*traj)->HasVelocity());
+      TrajFrame.SetupFrameV(CurrentParm->Atoms(), (*traj)->HasVelocity(), 
+                            (*traj)->NreplicaDimension());
 
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {

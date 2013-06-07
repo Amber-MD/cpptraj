@@ -42,10 +42,6 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #define NCEPTOT "eptot"
 #define NCBINS "bins"
 
-static const char* RemDimDesc[5] = {
-  "Unknown", "Temperature", "Partial", "Hamiltonian", "pH"
-};
-
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
   ncid_(-1),
@@ -232,8 +228,12 @@ int NetcdfFile::SetupTemperature() {
   return 1;
 }
 
-/** Determine if Netcdf file contains multi-D REMD info. */
-int NetcdfFile::SetupMultiD() {
+// NetcdfFile::SetupMultiD()
+/** Determine if Netcdf file contains multi-D REMD info. If so set the
+  * number of replica dimensions (remd_dimension_) and figure out
+  * the dimension types (remdDim)
+  */
+int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
   int dimensionDID;
 
   if ( nc_inq_dimid(ncid_, NCREMD_DIMENSION, &dimensionDID) != NC_NOERR)
@@ -242,7 +242,8 @@ int NetcdfFile::SetupMultiD() {
   // Although this is a second call to dimid, makes for easier code
   if ( (dimensionDID = GetDimInfo(NCREMD_DIMENSION, &remd_dimension_))==-1 )
     return -1;
-  mprintf("\tNetcdf file has multi-D REMD info, %i dimensions.\n",remd_dimension_);
+  if (ncdebug_ > 0)
+    mprintf("\tNetcdf file has multi-D REMD info, %i dimensions.\n",remd_dimension_);
   // Ensure valid # dimensions
   if (remd_dimension_ < 1) {
     mprinterr("Error: Number of REMD dimensions is less than 1!\n");
@@ -273,7 +274,7 @@ int NetcdfFile::SetupMultiD() {
   }
   // Print info for each dimension
   for (int dim = 0; dim < remd_dimension_; ++dim)
-    mprintf("\tDim %i: type %s (%i)\n",dim+1, RemDimDesc[remd_dimtype[dim]], remd_dimtype[dim]);
+    remdDim.AddRemdDimension( remd_dimtype[dim] );
   delete[] remd_dimtype;
   return 0; 
 }
@@ -399,6 +400,7 @@ int NetcdfFile::NC_openWrite(std::string const& Name) {
   return 0;
 }
 
+// NetcdfFile::NC_defineTemperature()
 int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {
   if (checkNCerr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM,dimensionID,&TempVID_))) {
     mprinterr("NetCDF error on defining temperature.\n");
@@ -411,6 +413,7 @@ int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {
   return 0;
 }
 
+// NetcdfFile::NC_createReservoir()
 int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
                                    int& eptotVID, int& binsVID) 
 {
@@ -452,8 +455,8 @@ int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
 
 // NetcdfFile::NC_create()
 int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, bool hasVelocity,
-                          bool hasBox, bool hasTemperature, bool hasTime, 
-                          std::string const& title) 
+                          bool hasBox, bool hasTemperature, bool hasTime, bool hasIndices,
+                          ReplicaDimArray const& remdDim, std::string const& title) 
 {
   if (Name.empty()) return 1;
   int dimensionID[NC_MAX_VAR_DIMS];
@@ -562,6 +565,38 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
     // NOTE: Setting dimensionID should be OK for Restart, will not be used.
     dimensionID[0] = frameDID_;
     if ( NC_defineTemperature( dimensionID, NDIM-2 ) ) return 1;
+  }
+  // Replica indices
+  if (hasIndices) {
+    // Define number of replica dimensions
+    int remDimDID = -1;
+    if ( checkNCerr(nc_def_dim( ncid_, NCREMD_DIMENSION, remdDim.Ndims(), &remDimDID )) ) {
+      mprinterr("Error: Defining replica indices dimension.\n");
+      return 1;
+    }
+    dimensionID[0] = remDimDID;
+    // For each dimension, store the type
+    int remDimTypeVID = -1;
+    if ( checkNCerr(nc_def_var(ncid_, NCREMD_DIMTYPE, NC_INT, 1, dimensionID, &remDimTypeVID)) ) 
+    {
+      mprinterr("Error: Defining replica dimension type variable.\n");
+      return 1;
+    }
+    // Need to store the indices of replica in each dimension each frame
+    // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
+    if (type == NC_AMBERTRAJ) {
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = remDimDID;
+    } else {
+      dimensionID[0] = remDimDID;
+    }
+    if (checkNCerr(nc_def_var(ncid_, NCREMD_INDICES, NC_INT, NDIM-1, dimensionID, &indicesVID_)))
+    {
+      mprinterr("Error: Defining replica indices variable ID.\n");
+      return 1;
+    }
+    // TODO: Determine if groups are really necessary for restarts. If not, 
+    // remove from AmberNetcdf.F90.
   }
   // Box Info
   if (hasBox) {
@@ -704,6 +739,21 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
       mprinterr("Error on NetCDF output of cell angular VID 'alpha', 'beta ' and 'gamma'");
       return 1;
     }
+  }
+
+  // Store the type of each replica dimension.
+  if (hasIndices) {
+    start_[0] = 0;
+    count_[0] = remdDim.Ndims();
+    int* tempDims = new int[ remdDim.Ndims() ];
+    for (int i = 0; i < remdDim.Ndims(); ++i)
+      tempDims[i] = remdDim[i];
+    if (checkNCerr(nc_put_vara_int(ncid_, indicesVID_, start_, count_, tempDims))) {
+      mprinterr("Error: writing replica dimension types.\n");
+      delete[] tempDims;
+      return 1;
+    }
+    delete[] tempDims;
   }
 
   return 0;
