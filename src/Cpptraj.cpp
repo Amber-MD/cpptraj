@@ -522,7 +522,7 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   Trajout outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
-  if (outtraj.SetupTrajWrite( setname, &argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (outtraj.InitTrajWrite( setname, &argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
     return 1;
   }

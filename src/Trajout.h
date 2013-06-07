@@ -9,16 +9,16 @@ class Trajout : public TrajectoryFile {
     Trajout();
     ~Trajout();
     /*virtual ~Trajout() {}
-    virtual int SetupTrajWrite(std::string const&, ArgList*, Topology*, 
+    virtual int InitTrajWrite(std::string const&, ArgList*, Topology*, 
                                TrajectoryFile::TrajFormatType) = 0;
     virtual int EndTraj() = 0;
     virtual int WriteFrame(int, Topology*, Frame&) = 0;
     virtual void PrintInfo(int) = 0;*/
-    int SetupTrajWrite(std::string const&, ArgList*, Topology*, TrajectoryFile::TrajFormatType);
-    int SetupTrajWriteWithArgs(std::string const&, const char*, Topology*,
+    int InitTrajWrite(std::string const&, ArgList*, Topology*, TrajectoryFile::TrajFormatType);
+    int InitTrajWriteWithArgs(std::string const&, const char*, Topology*,
                                TrajectoryFile::TrajFormatType);
     void EndTraj();
-    int WriteFrame(int, Topology*, Frame&);
+    int WriteFrame(int, Topology*, Frame const&);
     void PrintInfo(int);
     bool TrajIsOpen()        { return trajIsOpen_;         }
     int NumFramesProcessed() { return numFramesProcessed_; }

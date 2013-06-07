@@ -94,7 +94,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
     pdbout.SetDebug(debug_);
     // Set pdb output options: multi so that 1 file per frame is written; dumpq
     // so that charges are written out. 
-    if (pdbout.SetupTrajWriteWithArgs(maskpdb_,"multi dumpq",pdbParm,TrajectoryFile::PDBFILE)) 
+    if (pdbout.InitTrajWriteWithArgs(maskpdb_,"multi dumpq",pdbParm,TrajectoryFile::PDBFILE)) 
     {
       mprinterr("Error: Action_Mask: maskpdb %s: Could not set up for write of frame %i.\n",
                 maskpdb_.c_str(),frameNum);
