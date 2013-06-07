@@ -135,7 +135,8 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs,
 Action::RetType Action_OrderParameter::Setup(Topology* currentParm,
 					     Topology** parmAddress)
 {
-  int i, nlen1, nlen2;
+  int i, nlen1;
+  int nlen2 = 0;
   std::vector<AtomMask>::iterator mask;
 
 
