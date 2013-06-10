@@ -368,7 +368,7 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum,
 // Action_OrderParameter::print()
 void Action_OrderParameter::Print()
 {
-  double Sx, Sy, Sz, SCD_1, SCD_2, prob;
+  double Sx, Sy, Sz, SCD_1, SCD_2, prob, sd;
 
 
   output_.Printf("# order parameters for masks");
@@ -390,12 +390,14 @@ void Action_OrderParameter::Print()
       Sx = -orderParameter_[i][0].mean();
       Sy = -orderParameter_[i][1].mean();
 
-      output_.Printf("%3i %10.7f %10.7f %10.7f %10.7f\n",
+      output_.Printf("%3u %10.7f %10.7f %10.7f %10.7f\n",
 		     i + 1,
 		     Sx,
-		     sqrt(orderParameter_[i][0].variance() ),
+		     std::isnan(sqrt(orderParameter_[i][0].variance() ) ) ?
+		     0.0 : sqrt(orderParameter_[i][0].variance() ),
 		     Sy,
-		     sqrt(orderParameter_[i][1].variance() ) );
+		     std::isnan(sqrt(orderParameter_[i][1].variance() ) ) ?
+		     0.0 : sqrt(orderParameter_[i][1].variance() ) );
     }
   } else {
     output_.Printf("#Cn %10s %10s %10s %10s %10s %10s %10s %10s\n",
@@ -410,15 +412,18 @@ void Action_OrderParameter::Print()
       SCD_1 = 0.5 * Sz;
       SCD_2 = -(2.0 * Sx + Sy) / 3.0;
 
-      output_.Printf("%3i %10.7f %10.7f %10.7f %10.7f %10.7f %10.7f "
+      output_.Printf("%3u %10.7f %10.7f %10.7f %10.7f %10.7f %10.7f "
 		     "%10.7f %10.7f\n",
 		     i + 1,
 		     Sx,
-		     sqrt(orderParameter_[i][0].variance() ),
+		     std::isnan(sqrt(orderParameter_[i][0].variance() ) ) ?
+		     0.0 : sqrt(orderParameter_[i][0].variance() ),
 		     Sy,
-		     sqrt(orderParameter_[i][1].variance() ),
+		     std::isnan(sqrt(orderParameter_[i][1].variance() ) ) ?
+		     0.0 : sqrt(orderParameter_[i][1].variance() ),
 		     Sz,
-		     sqrt(orderParameter_[i][2].variance() ),
+		     std::isnan(sqrt(orderParameter_[i][2].variance() ) ) ?
+		     0.0 : sqrt(orderParameter_[i][2].variance() ),
 		     SCD_1,
 		     SCD_2);
     }
@@ -429,10 +434,11 @@ void Action_OrderParameter::Print()
 
     for (unsigned long i = 0; i < tailhist_.size(); i++) {
       prob = tailhist_[i].mean() / delta_;
+      sd = sqrt(tailhist_[i].variance() );
 
       if (prob > 0.0) {
 	taildist_.Printf("%10.4f %10.4f %10.7f\n", ((double) i + 0.5) * delta_,
-			 prob, sqrt(tailhist_[i].variance() ) );
+			 prob, std::isnan(sd) ? 0.0 : sd);
       }
     }
   }

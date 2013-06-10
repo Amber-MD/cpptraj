@@ -196,10 +196,11 @@ void Action_Density::Print()
 
 
   area = area_.mean();
+  sd = sqrt(area_.variance());
 
   mprintf("The average box area in %c/%c is %.2f Angstrom (sd = %.2f).\n",
 	  area_coord_[0] + 88, area_coord_[1] + 88, area,
-	  sqrt(area_.variance()) );
+	  std::isnan(sd) ? 0.0 : sd);
 
   if (property_ == ELECTRON && area > SMALL)
     mprintf("The electron density will be scaled by this area.\n");
@@ -247,7 +248,7 @@ void Action_Density::Print()
 	sd /= area;
       }
 
-      output_.Printf(" %10.3f %10.5f", density, sd);
+      output_.Printf(" %10.3f %10.5f", density, std::isnan(sd) ? 0.0 : sd);
     }
 
     output_.Printf("\n");
