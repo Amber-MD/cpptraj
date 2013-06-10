@@ -248,7 +248,7 @@ static void Help_ParmStrip() {
 }
 
 static void Help_ParmBox() {
-  mprintf("\t[<parmindex>] [x <xval>] [y <yval>] [z <zval>]");
+  mprintf("\t[<parmindex>] [x <xval>] [y <yval>] [z <zval>]\n");
   mprintf("\t              [alpha <a>] [beta <b>] [gamma <g>] [nobox]\n");
   mprintf("\tSet the specified topology box info to what is specified. If nobox, remove box info.\n");
 }
