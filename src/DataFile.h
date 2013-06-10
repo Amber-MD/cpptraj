@@ -23,11 +23,14 @@ class DataFile {
     void Write();
 
     void SetPrecision(int, int);
-    FileName const& DataFilename() const  { return filename_; }
+    void SetDFLwrite(bool fIn)           { dflWrite_ = fIn;  }
+    bool DFLwrite()                const { return dflWrite_; }
+    FileName const& DataFilename() const { return filename_; }
     void DataSetNames();
   private:
     int debug_;
     int dimension_;           ///< The dimension of all sets in the datafile.
+    bool dflWrite_;           ///< If true, write file when DataFileList::WriteAllDF called.
     DataFormatType dataType_;
     bool isInverted_;
     DataSetList SetList_; 

@@ -450,8 +450,7 @@ int Cpptraj::CrdAction(ArgList& argIn) {
   if ( tkn == 0 ) return 1;
   Action* act = (Action*)tkn->Alloc();
   if (act == 0) return 1;
-  DataFileList dfl;
-  if ( act->Init( actionargs, &parmFileList_, &refFrames_, &DSL_, &dfl, debug_ ) != Action::OK ) {
+  if ( act->Init( actionargs, &parmFileList_, &refFrames_, &DSL_, &DFL_, debug_ ) != Action::OK ) {
     delete act;
     return 1;
   }
@@ -488,7 +487,7 @@ int Cpptraj::CrdAction(ArgList& argIn) {
       CRD->SetCRD( frame, *currentFrame );
   }
   act->Print();
-  if (worldrank == 0) dfl.Write();
+  if (worldrank == 0) DFL_.WriteAllDF();
   delete originalFrame;
   delete originalParm;
   delete act;
@@ -549,15 +548,14 @@ int Cpptraj::CrdAnalyze(ArgList& argIn) {
   if ( tkn == 0 ) return 1;
   Analysis* ana = (Analysis*)tkn->Alloc();
   if (ana == 0) return 1;
-  DataFileList dfl;
-  if ( ana->Setup( analyzeargs, &DSL_, &parmFileList_, &dfl, debug_ ) != Analysis::OK ) {
+  if ( ana->Setup( analyzeargs, &DSL_, &parmFileList_, &DFL_, debug_ ) != Analysis::OK ) {
     delete ana;
     return 1;
   }
   int err = 0;
   if (ana->Analyze() == Analysis::ERR) 
     err = 1;
-  else if (worldrank == 0) dfl.Write();
+  else if (worldrank == 0) DFL_.WriteAllDF();
   delete ana;
   return err;
 }
@@ -866,11 +864,11 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
             // If only 1 arg (the command) run all analyses in list
             if (command.Nargs() == 1) { 
               analysisList_.DoAnalyses();
-              mprintf("Analysis complete. Use 'writedata' to write datafiles to disk.\n");
+              if (worldrank == 0) DFL_.WriteAllDF();
             } else
               err = CrdAnalyze(command);
             break;
-          case Command::WRITEDATA   : if (worldrank == 0) DFL_.Write(); break;
+          case Command::WRITEDATA   : if (worldrank == 0) DFL_.WriteAllDF(); break;
           case Command::QUIT        : return C_QUIT; break;
         }
         break;
@@ -913,9 +911,10 @@ int Cpptraj::Run() {
     case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
     default:
       // No trajectories loaded; If analyses are defined, try to run them.
-      if (!analysisList_.Empty())
-        analysisList_.DoAnalyses(); 
-      else {
+      if (!analysisList_.Empty()) {
+        analysisList_.DoAnalyses();
+        if (worldrank == 0) DFL_.WriteAllDF(); 
+      } else {
         mprinterr("No trajectories loaded. Exiting.\n");
         err = 1;
       }
@@ -1142,7 +1141,7 @@ int Cpptraj::RunEnsemble() {
   DataFileEnsemble.List();
   // Print DataFiles. When in parallel ensemble mode, each member of the 
   // ensemble will write data to separate files with numeric extensions. 
-  DataFileEnsemble.Write();
+  DataFileEnsemble.WriteAllDF();
 
   return 0;
 }
@@ -1253,7 +1252,7 @@ int Cpptraj::RunNormal() {
   DFL_.List();
   // Only Master does DataFile output
   if (worldrank==0)
-    DFL_.Write();
+    DFL_.WriteAllDF();
  
   return 0;
 }
