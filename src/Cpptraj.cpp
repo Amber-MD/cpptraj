@@ -326,9 +326,10 @@ int Cpptraj::ParmBox(ArgList& argIn) {
     mprinterr("Error: parmbox: parm index %i not loaded.\n",pindex);
     return 1;
   }
-  if ( argIn.hasKey("nobox") )
+  if ( argIn.hasKey("nobox") ) {
+    mprintf("\tRemoving box information from parm %i:%s\n", pindex, parm->c_str());
     parm->SetBox( Box() );
-  else {
+  } else {
     Box pbox;
     pbox.SetX( argIn.getKeyDouble("x",0) );
     pbox.SetY( argIn.getKeyDouble("y",0) );
