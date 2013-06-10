@@ -26,7 +26,10 @@ public:
   }
 
   Float mean() const { return mean_; };
-  Float variance() const { return M2_ / (n_ - 1); };
+  Float variance() const { 
+    if (n_ < 2) return 0;
+    return M2_ / (n_ - 1); 
+  };
   Float nData() const { return n_; };
 
 private:

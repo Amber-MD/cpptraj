@@ -393,11 +393,9 @@ void Action_OrderParameter::Print()
       output_.Printf("%3u %10.7f %10.7f %10.7f %10.7f\n",
 		     i + 1,
 		     Sx,
-		     std::isnan(sqrt(orderParameter_[i][0].variance() ) ) ?
-		     0.0 : sqrt(orderParameter_[i][0].variance() ),
+                     sqrt(orderParameter_[i][0].variance()),
 		     Sy,
-		     std::isnan(sqrt(orderParameter_[i][1].variance() ) ) ?
-		     0.0 : sqrt(orderParameter_[i][1].variance() ) );
+                     sqrt(orderParameter_[i][1].variance()) );
     }
   } else {
     output_.Printf("#Cn %10s %10s %10s %10s %10s %10s %10s %10s\n",
@@ -416,16 +414,13 @@ void Action_OrderParameter::Print()
 		     "%10.7f %10.7f\n",
 		     i + 1,
 		     Sx,
-		     std::isnan(sqrt(orderParameter_[i][0].variance() ) ) ?
-		     0.0 : sqrt(orderParameter_[i][0].variance() ),
+                     sqrt(orderParameter_[i][0].variance()),
 		     Sy,
-		     std::isnan(sqrt(orderParameter_[i][1].variance() ) ) ?
-		     0.0 : sqrt(orderParameter_[i][1].variance() ),
+                     sqrt(orderParameter_[i][1].variance()),
 		     Sz,
-		     std::isnan(sqrt(orderParameter_[i][2].variance() ) ) ?
-		     0.0 : sqrt(orderParameter_[i][2].variance() ),
+                     sqrt(orderParameter_[i][2].variance()),
 		     SCD_1,
-		     SCD_2);
+                     SCD_2);
     }
   }
 
@@ -438,7 +433,7 @@ void Action_OrderParameter::Print()
 
       if (prob > 0.0) {
 	taildist_.Printf("%10.4f %10.4f %10.7f\n", ((double) i + 0.5) * delta_,
-			 prob, std::isnan(sd) ? 0.0 : sd);
+			 prob, sd);
       }
     }
   }
