@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
       err = 1;
     case Cpptraj::C_QUIT        : break;
   }
+  if (worldrank==0) printf("\n");
   parallel_end();
-  printf("\n");
   return err;
 }
