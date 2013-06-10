@@ -121,7 +121,6 @@ void DataFileList::List() const {
   */
 void DataFileList::WriteAllDF() {
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
-    mprintf("DBG: File %s writeFile=%i\n", (*df)->DataFilename().base(), (int)(*df)->DFLwrite());
     if ( (*df)->DFLwrite() ) {
       (*df)->Write();
       (*df)->SetDFLwrite( false );
