@@ -392,7 +392,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, 0 },
   { DispatchObject::ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, 0 },
   { DispatchObject::ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, 0 },
-  { DispatchObject::ACTION, "orderparam", Action_OrderParameter::Alloc, Action_OrderParameter::Help, 0 },
+  { DispatchObject::ACTION, "lipidorder", Action_OrderParameter::Alloc, Action_OrderParameter::Help, 0 },
   { DispatchObject::ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, 0 },
   { DispatchObject::ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, 0 },
   { DispatchObject::ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, 0 },
