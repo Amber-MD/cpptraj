@@ -73,14 +73,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   setname = analyzeArgs.GetStringKey("data");
   if (!setname.empty()) {
     ArgList dsnames(setname, ",");
+    DataSetList inputDsets;
     for (ArgList::const_iterator name = dsnames.begin(); name != dsnames.end(); ++name) {
-      DataSet* ds = datasetlist->GetDataSet( *name );
-      if (ds == 0) {
-        mprinterr("Error: cluster: dataset %s not found.\n", (*name).c_str());
+      DataSetList tempDSL = datasetlist->GetMultipleSets( *name );
+      if (tempDSL.empty()) {
+        mprinterr("Error: cluster: %s did not correspond to any data sets.\n");
         return Analysis::ERR;
       }
-      cluster_dataset_.push_back( ds );
+      inputDsets += tempDSL;
     }
+    for (DataSetList::const_iterator ds = inputDsets.begin(); ds != inputDsets.end(); ++ds)
+      cluster_dataset_.push_back( *ds );
   } else {
     usedme_ = analyzeArgs.hasKey("dme");
     bool userms = analyzeArgs.hasKey("rms");
