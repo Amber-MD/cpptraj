@@ -83,8 +83,13 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
     // Does this token argument have a dash? Only valid for number ranges.
     size_t dashPosition = tokenString.find_first_of("-");
     if (dashPosition != std::string::npos) {
-      // Get first and second args
+      // Get first and second args. If first arg is blank negative number specified.
       std::string arg1(tokenString.begin(), tokenString.begin()+dashPosition);
+      if (arg1.empty()) {
+        mprinterr("Error: Mask expressions cannot contain negative numbers (%s)\n",
+                  tokenString.c_str());
+        return 1;
+      }
       std::string arg2(tokenString.begin()+dashPosition+1, tokenString.end());
       res1_ = convertToInteger( arg1 );
       res2_ = convertToInteger( arg2 );
