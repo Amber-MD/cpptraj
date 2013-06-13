@@ -669,6 +669,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   if (argc == 1) return C_INTERACTIVE;
   bool hasInput = false;
   bool interactive = false;
+  std::vector<std::string> inputFiles;
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]); 
     if ( arg == "--help" || arg == "-h" ) {
@@ -737,10 +738,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (Dispatch("reference " + std::string(argv[++i])) == C_ERR) return C_ERR;
     } else if (arg == "-i" && i+1 != argc) {
       // -i: Input file(s)
-      Cpptraj::Mode cmode = ProcessInput( argv[++i] );
-      if (cmode == C_ERR) return C_ERR;
-      if (cmode == C_QUIT) return C_QUIT;
-      hasInput = true;
+      inputFiles.push_back( argv[++i] );
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Mask string
       ArgList maskArg( argv[++i] );
@@ -751,15 +749,24 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (parmFileList_.AddParmFile( argv[i])) return C_ERR;
     } else if ( i == 2 ) {
       // For backwards compatibility with PTRAJ; Position 2 = INPUT file
-      Cpptraj::Mode cmode = ProcessInput( argv[i] );
-      if (cmode == C_ERR) return C_ERR;
-      if (cmode == C_QUIT) return C_QUIT;
-      hasInput = true;
+      inputFiles.push_back( argv[i] );
     } else {
       // Unrecognized
       mprintf("  Unrecognized input on command line: %i: %s\n", i,argv[i]);
       Usage();
       return C_QUIT;
+    }
+  }
+  // Process all input files specified on command line.
+  if ( !inputFiles.empty() ) {
+    hasInput = true;
+    for (std::vector<std::string>::const_iterator inputFilename = inputFiles.begin();
+                                                  inputFilename != inputFiles.end();
+                                                  ++inputFilename)
+    {
+      Cpptraj::Mode cmode = ProcessInput( *inputFilename );
+      if (cmode == C_ERR) return C_ERR;
+      if (cmode == C_QUIT) return C_QUIT;
     }
   }
   if (!hasInput || interactive) return C_INTERACTIVE;
