@@ -91,6 +91,9 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     mprintf("               SS data for each residue will be stored as integers.\n");
   mprintf("               Backbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]\n",
           *BB_N, *BB_H, *BB_C, *BB_O );
+  mprintf( "# Citation: Kabsch, W.; Sander, C., Dictionary of Protein Secondary Structure:\n"
+           "#           Pattern Recognition of Hydrogen-Bonded and Geometrical Features. \n"
+           "#           Biopolymers 1983, V.22, pp.2577-2637.\n" );
   masterDSL_ = DSL;
   return Action::OK;
 }

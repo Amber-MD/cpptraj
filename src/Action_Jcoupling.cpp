@@ -200,7 +200,8 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
     mprintf("                Writing output to %s\n",outfilename.c_str());
   else
     mprintf("                Writing output to STDOUT\n");
-
+  mprintf("# Citations: Chou et al. JACS (2003) 125 p.8959-8966\n"
+          "#            Perez et al. JACS (2001) 123 p.7081-7093\n");
   // Open output
   if ( outputfile_.OpenWrite( outfilename ) ) return Action::ERR;
 
