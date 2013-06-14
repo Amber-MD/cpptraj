@@ -108,6 +108,8 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   Mat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, name, "Mat");
   if (Mat_ == 0) return Action::ERR;
   Mat_->SetType( mtype );
+  // Set default precision for backwards compat.
+  Mat_->SetPrecision(8, 3);
   // Add set to output file if doing BYATOM output
   if (outtype_ == BYATOM)
     outfile_ = DFL->AddSetToFile(filename_, Mat_);
@@ -230,6 +232,7 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
       vectsize = mask1tot + mask2tot;
       ncols = mask1tot;
       if (mask2tot > 0) return PrintMask2Error();
+      break;
     default: return Action::ERR; // Sanity check
   }
   // Allocate vector memory.
