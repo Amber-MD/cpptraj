@@ -13,8 +13,8 @@ class ArrayIterator : public std::iterator<std::forward_iterator_tag, T> {
       return *this;
     }
     // Relations
-    bool operator==(const ArrayIterator& rhs) { return (ptr_==rhs.ptr_);}
-    bool operator!=(const ArrayIterator& rhs) { return (ptr_!=rhs.ptr_);}
+    bool operator==(const ArrayIterator& rhs) const { return (ptr_==rhs.ptr_);}
+    bool operator!=(const ArrayIterator& rhs) const { return (ptr_!=rhs.ptr_);}
     // Increment
     ArrayIterator& operator++() {
       ++ptr_;
