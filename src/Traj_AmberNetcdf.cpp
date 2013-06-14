@@ -1,19 +1,12 @@
+#ifdef BINTRAJ
 // This file contains a collection of routines designed for reading
 // netcdf trajectory files used with amber.
 // Dan Roe 10-2008
 // Original implementation of netcdf in Amber by John Mongan.
-#ifdef BINTRAJ
-#  include "netcdf.h"
-#endif
+#include "netcdf.h"
 #include "Traj_AmberNetcdf.h"
 #include "CpptrajStdio.h"
 
-bool Traj_AmberNetcdf::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERTRAJ ) return true;
-  return false;
-} 
-
-#ifdef BINTRAJ
 // CONSTRUCTOR
 Traj_AmberNetcdf::Traj_AmberNetcdf() :
   Coord_(0),
@@ -28,6 +21,11 @@ Traj_AmberNetcdf::~Traj_AmberNetcdf() {
   if (Coord_!=0) delete[] Coord_;
   // NOTE: Need to close file?
 }
+
+bool Traj_AmberNetcdf::ID_TrajFormat(CpptrajFile& fileIn) {
+  if ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERTRAJ ) return true;
+  return false;
+} 
 
 // Traj_AmberNetcdf::close()
 /** Close netcdf file. Set ncid to -1 since it can change between open
