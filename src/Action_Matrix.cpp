@@ -722,7 +722,7 @@ void Action_Matrix::Print() {
                 valnorm += mass;
                 printval = printnewline = true;
                 //mprintf("Res %i-%i row=%i col=%i\n",resi+1,resj+1,crow,ccol);
-                val += (Mat_->GetElement( crow, ccol ) * mass);
+                val += (Mat_->GetElement( ccol, crow ) * mass);
                 ++ccol;
               }
             }
@@ -770,7 +770,7 @@ void Action_Matrix::Print() {
           if (useMass_)
             mass = (*CurrentParm_)[*atomj].Mass() * (*CurrentParm_)[*atomi].Mass();
           valnorm += mass;
-          val += (Mat_->GetElement( crow, ccol ) * mass);
+          val += (Mat_->GetElement( ccol, crow ) * mass);
           ++ccol;
         }
         ++crow;
