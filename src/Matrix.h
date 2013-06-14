@@ -140,6 +140,9 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
     calcIndex = calcTriIndex;
     type_ = TRIANGLE;
   } else { // Both Zero, EMPTY
+    ncols_ = 0L;
+    nrows_ = 0L;
+    nelements_ = 0L;
     return 1;
   }
   currentElement_ = 0L;
