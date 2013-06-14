@@ -6,7 +6,9 @@ Action_CreateReservoir::Action_CreateReservoir() :
   original_trajparm_(0),
   ene_(0),
   bin_(0),
+# ifdef BINTRAJ
   reservoirT_(0.0),
+# endif
   iseed_(0),
   trajIsOpen_(false),
   nframes_(0)
@@ -22,6 +24,10 @@ void Action_CreateReservoir::Help() {
 Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+# ifndef BINTRAJ
+  mprinterr("Error: reservoir requires NetCDF. Reconfigure with NetCDF enabled.\n");
+  return Action::ERR;
+#else
   // Get keywords
   filename_ = actionArgs.GetStringNext();
   if (filename_.empty()) {
@@ -87,11 +93,15 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
     mprintf("\tVelocities will be written to reservoir.\n");
   mprintf("\tTopology: %s\n", original_trajparm_->c_str());
   return Action::OK;
+# endif
 }
 
 // Action_CreateReservoir::Setup()
 Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** parmAddress)
 {
+# ifndef BINTRAJ
+  return Action::ERR;
+# else 
   // Check that input parm matches current parm
   if (original_trajparm_->Pindex() != currentParm->Pindex()) {
     mprintf("Info: createreservoir was set up for topology %s\n", original_trajparm_->c_str());
@@ -115,22 +125,29 @@ Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** 
     nframes_ = 0;
   }
   return Action::OK;
+# endif
 }
 
 // Action_CreateReservoir::DoAction()
 Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFrame, 
                                                  Frame** frameAddress) 
 {
+# ifdef BINTRAJ
   int bin = -1;
   if (bin_ != 0) bin = (*bin_)[frameNum];
   if (reservoir_.writeReservoir(nframes_++, *currentFrame, ene_->Dval(frameNum), bin))
     return Action::ERR;
   return Action::OK;
+# else
+  return Action::ERR;
+# endif
 }
 
 // Action_CreateReservoir::Print()
 void Action_CreateReservoir::Print() {
+# ifdef BINTRAJ
   mprintf("\tReservoir %s: %u frames.\n", filename_.c_str(), nframes_);
   reservoir_.closeTraj();
   trajIsOpen_=false;
+# endif
 }
