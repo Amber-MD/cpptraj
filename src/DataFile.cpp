@@ -298,8 +298,11 @@ void DataFile::WriteData() {
 // DataFile::SetPrecision()
 /** Set precision for all DataSets in file to width.precision. */
 void DataFile::SetPrecision(int widthIn, int precisionIn) {
-  for (DataSetList::const_iterator set = SetList_.begin(); set != SetList_.end(); ++set)
-    (*set)->SetPrecision(widthIn, precisionIn);
+  if (widthIn < 1) 
+    mprinterr("Error: Invalid data width (%i)\n", widthIn);
+  else
+    for (DataSetList::const_iterator set = SetList_.begin(); set != SetList_.end(); ++set)
+      (*set)->SetPrecision(widthIn, precisionIn);
 }
 
 // DataFile::DataSetNames()
