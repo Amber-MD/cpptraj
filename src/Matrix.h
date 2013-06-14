@@ -1,6 +1,5 @@
 #ifndef INC_MATRIX_H
 #define INC_MATRIX_H
-#include <cstring> // memset, memcpy
 #include "ArrayIterator.h"
 /// Two-dimensional matrix template.
 template <class T> class Matrix {
@@ -89,7 +88,7 @@ template<class T> Matrix<T>::Matrix(const Matrix& rhs) :
 {
   if (nelements_ > 0L) {
     elements_ = new T[ nelements_ ];
-    memcpy( elements_, rhs.elements_, nelements_*sizeof(T) );
+    std::copy( rhs.elements_, rhs.elements_ + nelements_, elements_ );
   }
 }
 // ASSIGNMENT
@@ -105,7 +104,7 @@ template<class T> Matrix<T>& Matrix<T>::operator=(const Matrix& rhs) {
   currentElement_ = rhs.currentElement_;
   if (nelements_ > 0L) {
     elements_ = new T[ nelements_ ];
-    memcpy( elements_, rhs.elements_, nelements_*sizeof(T) );
+    std::copy( rhs.elements_, rhs.elements_ + nelements_, elements_ );
   }
   return *this;
 }
@@ -146,7 +145,7 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
   currentElement_ = 0L;
   if (nelements_ > 0L) {
     elements_ = new T[ nelements_ ];
-    memset(elements_, 0, nelements_*sizeof(T) );
+    std::fill(elements_, elements_ + nelements_, 0);
   }
   return 0;
 }

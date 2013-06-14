@@ -1,6 +1,5 @@
 #ifndef INC_GRID_H
 #define INC_GRID_H
-#include <cstring> // memset, memcpy
 #include "ArrayIterator.h"
 /// Three-dimensional grid template.
 template <class T> class Grid {
@@ -51,7 +50,7 @@ template <class T> Grid<T>::Grid(const Grid& rhs) :
 {
   if (nelements_ > 0L) {
     grid_ = new T[ nelements_ ];
-    memcpy( grid_, rhs.grid_, nelements_ * sizeof(T) );
+    std::copy( rhs.grid_, rhs.grid_ + nelements_, grid_ );
   }
 }
 // ASSIGNMENT
@@ -67,7 +66,7 @@ template <class T> Grid<T>& Grid<T>::operator=(const Grid& rhs) {
   nelements_ = rhs.nelements_;
   if (nelements_ > 0L) {
     grid_ = new T[ nelements_ ];
-    memcpy( grid_, rhs.grid_, nelements_ * sizeof(T) );
+    std::copy( rhs.grid_, rhs.grid_ + nelements_, grid_ );
   }
   return *this;
 }
@@ -83,7 +82,7 @@ template <class T> int Grid<T>::resize(size_t x, size_t y, size_t z) {
   nelements_ = nx_ * ny_ * nz_;
   if (nelements_ > 0L) {
     grid_ = new T[ nelements_ ];
-    memset(grid_, 0, nelements_ * sizeof(T));
+    std::fill( grid_, grid_ + nelements_, 0 );
   }
   return 0;
 }

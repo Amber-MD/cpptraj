@@ -188,7 +188,7 @@ Action::RetType Action_Molsurf::DoAction(int frameNum, Frame* currentFrame, Fram
   for (AtomMask::const_iterator maskatom = Mask1_.begin(); maskatom != Mask1_.end(); ++maskatom)
   {
     const double* XYZ = currentFrame->XYZ( *maskatom );
-    memcpy(atm_ptr->pos, XYZ, 3*sizeof(double));
+    std::copy( XYZ, XYZ+3, atm_ptr->pos );
     ++atm_ptr;
   }
 
