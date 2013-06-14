@@ -144,11 +144,8 @@ void NameType::ReplaceAsterisk() {
 
 // NameType::FormatName()
 /** For consistency with Amber names, replace any null in the first 4 chars
-  * with spaces. Remove any leading whitespace. Change any asterisk (*) to
-  * prime ('). In cpptraj asterisks are considered reserved characters for
-  * atom masks.
+  * with spaces. Remove any leading whitespace.
   */
-//void NameType::FormatName(bool replaceAsterisk) 
 void NameType::FormatName() 
 {
   // Ensure at least 4 chars long.

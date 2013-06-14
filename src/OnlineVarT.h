@@ -26,7 +26,10 @@ public:
   }
 
   Float mean() const { return mean_; };
-  Float variance() const { return M2_ / (n_ - 1); };
+  Float variance() const { 
+    if (n_ < 2) return 0;
+    return M2_ / (n_ - 1); 
+  };
   Float nData() const { return n_; };
 
 private:
@@ -65,7 +68,10 @@ public:
   }
 
   Value mean(Key i) { return mean_[i]; };
-  Value variance(Key i) { return M2_[i] / (n_ - 1); };
+  Value variance(Key i) {
+    if (n_ < 2) return 0;
+    return M2_[i] / (n_ - 1); 
+  };
 
   iterator mean_begin() { return mean_.begin(); };
   iterator mean_end() { return mean_.end(); };

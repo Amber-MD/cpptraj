@@ -73,19 +73,23 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   setname = analyzeArgs.GetStringKey("data");
   if (!setname.empty()) {
     ArgList dsnames(setname, ",");
+    DataSetList inputDsets;
     for (ArgList::const_iterator name = dsnames.begin(); name != dsnames.end(); ++name) {
-      DataSet* ds = datasetlist->GetDataSet( *name );
-      if (ds == 0) {
-        mprinterr("Error: cluster: dataset %s not found.\n", (*name).c_str());
+      DataSetList tempDSL = datasetlist->GetMultipleSets( *name );
+      if (tempDSL.empty()) {
+        mprinterr("Error: cluster: %s did not correspond to any data sets.\n");
         return Analysis::ERR;
       }
+      inputDsets += tempDSL;
+    }
+    for (DataSetList::const_iterator ds = inputDsets.begin(); ds != inputDsets.end(); ++ds) {
       // Clustering only allowed on 1D data sets.
-      if ( ds->Ndim() != 1 ) {
+      if ( (*ds)->Ndim() != 1 ) {
         mprinterr("Error: Clustering only allowed on 1D data sets, %s is %zuD.\n",
-                  (*name).c_str(), ds->Ndim());
+                  (*ds)->Legend().c_str(), (*ds)->Ndim());
         return Analysis::ERR;
       }
-      cluster_dataset_.push_back( ds );
+      cluster_dataset_.push_back( *ds );
     }
   } else {
     usedme_ = analyzeArgs.hasKey("dme");
@@ -410,7 +414,7 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
     Trajout *clusterout = new Trajout;
     ClusterNode::frame_iterator frame = (*C).beginframe();
     Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-    if (clusterout->SetupTrajWrite(cfilename, 0, clusterparm, clusterfmt_)) 
+    if (clusterout->InitTrajWrite(cfilename, 0, clusterparm, clusterfmt_)) 
     {
       mprinterr("Error: Clustering::WriteClusterTraj: Could not set up %s for write.\n",
                 cfilename.c_str());
@@ -440,7 +444,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   Trajout clusterout;
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-  if (clusterout.SetupTrajWrite(singlerepfile_, 0, clusterparm, singlerepfmt_)) 
+  if (clusterout.InitTrajWrite(singlerepfile_, 0, clusterparm, singlerepfmt_)) 
   {
     mprinterr("Error: Clustering::WriteSingleRepTraj: Could not set up %s for write.\n",
                 singlerepfile_.c_str());
@@ -483,7 +487,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
     cfilename += tmpExt;
     // Set up trajectory file. 
-    if (clusterout->SetupTrajWrite(cfilename, 0, clusterparm, reptrajfmt_)) 
+    if (clusterout->InitTrajWrite(cfilename, 0, clusterparm, reptrajfmt_)) 
     {
       mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
                 cfilename.c_str());

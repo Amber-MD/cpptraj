@@ -17,8 +17,9 @@ class Action_CreateReservoir : public Action {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
-
+#   ifdef BINTRAJ
     Traj_AmberNetcdf reservoir_;
+#   endif
     Topology* original_trajparm_;
     DataSet_1D* ene_;
     DataSet_integer* bin_;

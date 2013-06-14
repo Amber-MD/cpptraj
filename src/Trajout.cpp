@@ -22,14 +22,17 @@ Trajout::~Trajout() {
   }
 }
 
-// Trajout::SetupTrajWrite()
-int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology *tparmIn,
-                                   TrajFormatType writeFormatIn)
+// Trajout::InitTrajWrite()
+/** Initialize output trajectory with appropriate TrajectoryIO class and 
+  * process arguments.
+  */
+int Trajout::InitTrajWrite(std::string const& tnameIn, ArgList *argIn, 
+                           Topology *tparmIn, TrajFormatType writeFormatIn)
 {
   TrajectoryFile::TrajFormatType writeFormat = writeFormatIn;
   // Require a filename
   if (tnameIn.empty()) {
-    mprinterr("Internal Error: SetupTrajWrite: No filename given.\n");
+    mprinterr("Internal Error: InitTrajWrite: No filename given.\n");
     return 1;
   }
   // Check and set associated parm file
@@ -110,17 +113,16 @@ int Trajout::SetupTrajWrite(std::string const& tnameIn, ArgList *argIn, Topology
       return 1;
     }
   }
-
-  // No more setup here; Write is set up when first frame written.
+  // Write is set up for topology only when first frame written.
   return 0;
 }
 
-// Trajout::SetupTrajWriteWithArgs()
-int Trajout::SetupTrajWriteWithArgs(std::string const& tnameIn, const char *argstring,
-                                           Topology *tparmIn, TrajFormatType fmtIn)
+// Trajout::InitTrajWriteWithArgs()
+int Trajout::InitTrajWriteWithArgs(std::string const& tnameIn, const char *argstring,
+                                   Topology *tparmIn, TrajFormatType fmtIn)
 {
   ArgList tempArg(argstring, " ");
-  return SetupTrajWrite(tnameIn,&tempArg,tparmIn,fmtIn);
+  return InitTrajWrite(tnameIn,&tempArg,tparmIn,fmtIn);
 }
 
 // Trajout::EndTraj()
@@ -132,14 +134,17 @@ void Trajout::EndTraj() {
 }
 
 // Trajout::WriteFrame()
-// TODO: Make const frame&
-int Trajout::WriteFrame(int set, Topology *tparmIn, Frame &FrameOut) {
+/** Write given frame. If this is the first frame being written this routine
+  * is where the output trajectory will actually be set up for the associated 
+  * topology file since the topology may have been modified (e.g. by a 'strip'
+  * command) since the output trajectory was initialized (modified topologies
+  * will still have the same Pindex).
+  */ 
+int Trajout::WriteFrame(int set, Topology *tparmIn, Frame const& FrameOut) {
   // Check that input parm matches setup parm - if not, skip
   if (tparmIn->Pindex() != TrajParm()->Pindex()) return 0;
 
-  // First frame setup - set up for the input parm, not necessarily the setup
-  // parm; this allows things like atom strippping, etc. A stripped parm will
-  // have the same pindex as the original parm.
+  // First frame setup
   if (!trajIsOpen_) {
     if (debug_>0) rprintf("\tSetting up %s for WRITE, %i atoms, originally %i atoms.\n",
                           TrajFilename().base(),tparmIn->Natom(),TrajParm()->Natom());

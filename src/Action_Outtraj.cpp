@@ -35,7 +35,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",trajfilename.c_str());
     return Action::ERR;
   }
-  if ( outtraj_.SetupTrajWrite(trajfilename, &actionArgs, 
+  if ( outtraj_.InitTrajWrite(trajfilename, &actionArgs, 
                                tempParm, TrajectoryFile::UNKNOWN_TRAJ) ) 
     return Action::ERR;
   mprintf("    OUTTRAJ:");

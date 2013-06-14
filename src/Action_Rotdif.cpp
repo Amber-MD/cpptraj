@@ -236,6 +236,8 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else
     mprintf("            Diffusion constants and tau will be written to STDOUT.\n");
 #endif
+  mprintf( "# Citation: Wong & Case, (Evaluating rotational diffusion from protein MD\n"
+           "#           simulations, J. Phys. Chem. B 112:6013, 2008)\n");
   return Action::OK;
 }
 

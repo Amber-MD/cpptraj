@@ -38,6 +38,8 @@ class DataFile {
     Dimension& Dim(Dimension::DimIdxType i) { return Dim_[(int)i];   }
     void SetDim(Dimension::DimIdxType i, Dimension const& d) { Dim_[(int)i]=d; }
     void DataSetNames() const;
+    void SetDFLwrite(bool fIn)           { dflWrite_ = fIn;  }
+    bool DFLwrite()                const { return dflWrite_; }
   private:
     struct DataFileToken {
       DataFormatType Type;
@@ -56,6 +58,7 @@ class DataFile {
     int debug_;
     int dimension_;           ///< The dimension of all sets in the DataFile.
     DataFormatType dataType_; ///< Format of data in DataFile.
+    bool dflWrite_;           ///< If true, write file when DataFileList::WriteAllDF called.
     bool isInverted_;
     DataSetList SetList_;     ///< Array of pointers to associated DataSets.
     DataIO* dataio_;          ///< DataIO object for this DataFormatType.

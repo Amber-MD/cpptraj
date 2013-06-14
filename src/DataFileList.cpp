@@ -18,6 +18,7 @@ DataFileList::~DataFileList() {
   Clear();
 }
 
+// DataFileList::Clear()
 void DataFileList::Clear() {
   for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); it++)
     delete *it;
@@ -31,6 +32,8 @@ void DataFileList::SetDebug(int debugIn) {
   debug_ = debugIn;
   if (debug_>0)
     mprintf("DataFileList DEBUG LEVEL SET TO %i\n",debug_);
+  for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
+    (*df)->SetDebug( debug_ );
 }
 
 // DataFileList::GetDataFile()
@@ -45,6 +48,7 @@ DataFile* DataFileList::GetDataFile(std::string const& nameIn) const {
 }
 
 /** Create new DataFile, or return existing DataFile. */
+// TODO: Accept const ArgList so arguments are not reset?
 DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
@@ -83,9 +87,12 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn) {
 }
 
 // DataFileList::AddSetToFile()
+/** Add given DataSet to the specified DataFile. If the DataFile does not
+  * exist it will be created. Whenever a set is added to a data file
+  * reset its writeFile status to true.
+  */
 DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn) {
-  ArgList empty;
-  DataFile* DF = AddDataFile( nameIn, empty );
+  DataFile* DF = AddDataFile( nameIn );
   if (DF == 0) return 0;
   DF->AddSet( dsetIn );
   return DF;
@@ -101,19 +108,24 @@ void DataFileList::List() const {
 
   mprintf("DATAFILE OUTPUT:\n");
   for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
-    rprintf("  %s: ",(*it)->DataFilename().base());
+    mprintf("  %s: ",(*it)->DataFilename().base());
     (*it)->DataSetNames();
     mprintf("\n");
   }
 }
 
-// DataFileList::Write()
-/** Call write for all datafiles in list. Only master should call this.
+// DataFileList::WriteAllDF()
+/** Call write for all DataFiles in list for which writeFile is true. Once
+  * a file has been written set writeFile to false; it can be reset to
+  * true if new DataSets are added to it.
   */
-void DataFileList::Write() {
-  //if (worldrank!=0) return; 
-  for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); it++)
-    (*it)->WriteData();
+void DataFileList::WriteAllDF() {
+  for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
+    if ( (*df)->DFLwrite() ) {
+      (*df)->WriteData();
+      (*df)->SetDFLwrite( false );
+    }
+  }
 }
 
 // DataFileList::ProcessDataFileArgs()

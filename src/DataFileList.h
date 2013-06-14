@@ -21,7 +21,8 @@ class DataFileList : public FileList {
     DataFile* AddDataFile(std::string const&);
     DataFile* AddSetToFile(std::string const&,  DataSet*);
     void List() const;
-    void Write();
+    /// Write all DataFiles in list that have not yet been written.
+    void WriteAllDF();
     int ProcessDataFileArgs(ArgList&);
   private:
     typedef std::vector<DataFile*> DFarray;

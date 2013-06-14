@@ -146,12 +146,12 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   }
   // Check for deprecated args
   if (argIn->hasKey("remdout")) {
-    mprinterr("Error: 'remdout' is deprecated. To convert an entire replica ensemble\n");
-    mprinterr("Error: the correct usage is:\n");
-    mprinterr("Error:\t  ensemble <trajinfile> # (in place of 'trajin')\n");
-    mprinterr("Error:\t  trajout <trajoutfile> [<trajoutargs>]\n");
-    mprinterr("Error: Note that output trajectories will now have an integer\n");
-    mprinterr("Error: appended to them to indicate their place in the ensemble.\n");
+    mprinterr("Error: 'remdout' is deprecated. To convert an entire replica ensemble the\n"
+              "Error: correct usage is:\n"
+              "Error:\t  ensemble <trajinfile> # (in place of 'trajin')\n"
+              "Error:\t  trajout <trajoutfile> [<trajoutargs>]\n"
+              "Error: Note that output trajectories will now have an integer appended to \n"
+              "Error: them to indicate their place in the ensemble.\n");
     return 1;
   }
   // Check that base file exists
@@ -166,7 +166,9 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     // Looking for specific indices
     ArgList indicesArg(argIn->GetStringKey("remdtrajidx"), ",");
     if (indicesArg.empty()) {
-      mprinterr("Error: remdtrajidx expects comma-separated list of target indices (e.g. 1,0,1)\n");
+      mprinterr("Error: remdtrajidx expects comma-separated list of target indices in each\n"
+                "Error: dimension, '<dim1 idx>,<dim2 idx>,...,<dimN idx>'. Indices start\n"
+                "Error: from 1.\n");
       return 1;
     }
     for (ArgList::const_iterator arg = indicesArg.begin(); 

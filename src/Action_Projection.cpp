@@ -50,11 +50,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   }
 
   // Output Filename
-  std::string filename_ = actionArgs.GetStringKey("out");
-  if (filename_.empty()) {
-    mprinterr("Error: projection: No output file specified ('out <filename>')\n");
-    return Action::ERR;
-  }
+  DataFile* DF = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
 
   // Get mask
   mask_.SetMaskString( actionArgs.GetMaskNext() );
@@ -73,31 +69,24 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
       }
       dout->SetLegend("Mode"+integerToString(imode));
       project_.push_back( dout );
-      DFL->AddSetToFile( filename_, dout );
+      if (DF != 0) DF->AddSet( dout );
       imode++;
     } else { // IDEA TODO: Error check
       project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode, "X") );
-      DFL->AddSetToFile( filename_, project_.back() );
+      if (DF != 0) DF->AddSet( project_.back() );
       project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode, "Y") );
-      DFL->AddSetToFile( filename_, project_.back() );
+      if (DF != 0) DF->AddSet( project_.back() );
       project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode, "Z") );
-      DFL->AddSetToFile( filename_, project_.back() );
+      if (DF != 0) DF->AddSet( project_.back() );
       project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode++, "R") );
-      DFL->AddSetToFile( filename_, project_.back() );
+      if (DF != 0) DF->AddSet( project_.back() );
     }
   }
   // Set datafile args
-  if (!filename_.empty()) {
-    DataFile* df = DFL->GetDataFile( filename_ );
-    if (df == 0) {
-      mprinterr("Internal Error: File %s was not set up.\n", filename_.c_str());
-      return Action::ERR;
-    }
-  }
-
   mprintf("    PROJECTION: Calculating projection using modes %i to %i of %s\n",
           beg_, end_, modinfo_->Legend().c_str());
-  mprintf("                Results are written to %s\n", filename_.c_str());
+  if (DF != 0)
+    mprintf("                Results are written to %s\n", DF->DataFilename().full());
   FrameCounterInfo();
   mprintf("                Atom Mask: [%s]\n", mask_.MaskString());
 

@@ -17,6 +17,7 @@ DataFile::DataFile() :
   debug_(0),
   dimension_(-1),
   dataType_(DATAFILE),
+  dflWrite_(true),
   isInverted_(false),
   dataio_(0),
   Dim_(3) // default to X/Y/Z dims
@@ -183,6 +184,8 @@ int DataFile::AddSet(DataSet* dataIn) {
     return Error("Error: Adding DataSets with different dimensions to same file is currently unsupported.\n");
   }
   SetList_.AddCopyOfSet( dataIn );
+  // Reset dflWrite status
+  dflWrite_ = true;
   return 0;
 }
 

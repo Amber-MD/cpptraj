@@ -39,6 +39,7 @@ class DihedralSearch {
     /// \return Mask of atoms that will move upon rotation.
     static AtomMask MovingAtoms(Topology const&, int, int);
   private:
+    // -------------------------------------------------------------------------
     /// Hold dihedral atom #s, residue #, and type name.
     class DihedralMask {
       public:
@@ -55,23 +56,28 @@ class DihedralSearch {
         int a0_, a1_, a2_, a3_, res_;
         std::string name_;
     };
+    // -------------------------------------------------------------------------
     /// Hold dihedral type information used for searching.
     class DihedralToken {
+        struct DIH_TYPE;
       public:
+        static const DIH_TYPE DIH[];
+        /// Pointer to function used to search atom name/type
+        typedef int (*AtomSearchFxn)(Topology const&, int, NameType const&);
         DihedralToken();
         DihedralToken(int, NameType const&, NameType const&, NameType const&, NameType const&,
                       std::string const&);
+        DihedralToken(DIH_TYPE const&);
         /// \return mask with 4 atoms corresponding to dihedral for specified residue.
         DihedralMask FindDihedralAtoms(Topology const&, int);
-        std::string const& Name() { return name_; }
+        std::string const& Name() const { return name_; }
       private:
         int offset_;       ///< -1|0|1: Dihedral starts at prev.|stays in current|ends at next res.
-        NameType aname0_;  ///< Dihedral 1st atom name.
-        NameType aname1_;  ///< Dihedral 2nd atom name.
-        NameType aname2_;  ///< Dihedral 3rd atom name.
-        NameType aname3_;  ///< Dihedral 4th atom name.
-        std::string name_; ///< Dihedral name
+        NameType aname_[4];       ///< Dihedral atom names/types.
+        std::string name_;        ///< Dihedral name.
+        AtomSearchFxn search_[4]; ///< Functions to search for atom names/types.
     };
+    // -------------------------------------------------------------------------
     std::vector<DihedralToken> dihedralTokens_; ///< Dihedrals to search for
     std::vector<DihedralMask> dihedrals_;       ///< Contains atom #s for each found dihedral
 };

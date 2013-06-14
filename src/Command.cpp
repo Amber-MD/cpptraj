@@ -124,19 +124,19 @@ static const char TypeList[] =
 static void Help_List() {
   mprintf("\t[<type>] %s\n", TypeList);
   mprintf("\tList currently loaded objects of the specified type. If no type is given\n");
-  mprintf("\tlist all loaded objects.\n");
+  mprintf("\tthen list all loaded objects.\n");
 }
 
 static void Help_Debug() {
   mprintf("\t[<type>] <#> %s\n", TypeList);
   mprintf("\tSet debug level for new objects of the specified type. If no type is given\n");
-  mprintf("\tset debug level for all new objects. Does not affect current objects.\n");
+  mprintf("\tthen set debug level for all new objects. Does not affect current objects.\n");
 }
 
 static void Help_Clear() {
   mprintf("\t[ {all | <type>} ] %s\n", TypeList);
   mprintf("\tClear currently loaded objects of the specified type. If 'all' is specified\n");
-  mprintf("\tclear all loaded objects.\n");
+  mprintf("\tthen clear all loaded objects.\n");
 }
 
 static void Help_ActiveRef() {
@@ -179,7 +179,7 @@ static void Help_Precision() {
   mprintf("\t{<filename> | <dataset arg>} [<width>] [<precision>]\n");
   mprintf("\tSet precision for all datasets in datafile <filename> or dataset(s)\n");
   mprintf("\tspecified by <dataset arg> to <width>.<precision>. If width/precision\n");
-  mprintf("\tnot specified default to 12.4\n");
+  mprintf("\tis not specified then default to 12.4\n");
 }
 
 static void Help_Select() {
@@ -248,7 +248,7 @@ static void Help_ParmStrip() {
 }
 
 static void Help_ParmBox() {
-  mprintf("\t[<parmindex>] [x <xval>] [y <yval>] [z <zval>]");
+  mprintf("\t[<parmindex>] [x <xval>] [y <yval>] [z <zval>]\n");
   mprintf("\t              [alpha <a>] [beta <b>] [gamma <g>] [nobox]\n");
   mprintf("\tSet the specified topology box info to what is specified. If nobox, remove box info.\n");
 }
@@ -392,7 +392,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, 0 },
   { DispatchObject::ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, 0 },
   { DispatchObject::ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, 0 },
-  { DispatchObject::ACTION, "orderparam", Action_OrderParameter::Alloc, Action_OrderParameter::Help, 0 },
+  { DispatchObject::ACTION, "lipidorder", Action_OrderParameter::Alloc, Action_OrderParameter::Help, 0 },
   { DispatchObject::ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, 0 },
   { DispatchObject::ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, 0 },
   { DispatchObject::ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, 0 },
