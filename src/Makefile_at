@@ -22,14 +22,13 @@ install: cpptraj$(SFX)
 	mv cpptraj$(SFX) $(BINDIR)/ 
 
 findDepend: FindDepend.o
-	$(CXX) -Wall -o findDepend FindDepend.o
+	$(CXX) -o findDepend FindDepend.o
 
 depend: findDepend
 	./findDepend $(SOURCES) $(CSOURCES) > cpptrajdepend
 
 dependclean:
-	-/bin/rm FindDepend.o
-	-/bin/rm findDepend
+	/bin/rm -f FindDepend.o findDepend
 
 cpptraj$(SFX): $(NETCDF) $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
 	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \

@@ -1,12 +1,30 @@
 #ifndef INC_TRAJ_AMBERNETCDF_H
 #define INC_TRAJ_AMBERNETCDF_H
-#ifdef BINTRAJ
 #include "TrajectoryIO.h"
 #include "NetcdfFile.h"
 // Class: Traj_AmberNetcdf
 /// Reads and writes Amber Netcdf format trajectories. 
 class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
   public:
+#   ifndef BINTRAJ
+    Traj_AmberNetcdf() { }
+    // Inherited functions
+    bool ID_TrajFormat(CpptrajFile&);
+    int setupTrajin(std::string const&, Topology*) { return 0; }
+    int setupTrajout(std::string const&,Topology*,int,bool) { return 0; }
+    int openTrajin() { return 0; }
+    void closeTraj() { }
+    int readFrame(int,Frame&) { return 0; }
+    int readVelocity(int, Frame&) { return 0; }
+    int writeFrame(int,Frame const&) { return 0; }
+    void Info() { }
+    int processWriteArgs(ArgList&) { return 0; }
+    int processReadArgs(ArgList&) { return 0; }
+    int createReservoir(bool,double,int) { return 0; }
+    int writeReservoir(int, Frame&, double, int) { return 0; }
+};
+
+#   else 
     Traj_AmberNetcdf();
     static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_AmberNetcdf(); }
     ~Traj_AmberNetcdf();
@@ -35,5 +53,5 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
 int Traj_AmberNetcdf::createReservoir(bool hasBins, double reservoirT, int iseed) {
   return NC_createReservoir(hasBins, reservoirT, iseed, eptotVID_, binsVID_);
 }
-#endif
+#   endif
 #endif
