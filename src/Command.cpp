@@ -124,19 +124,19 @@ static const char TypeList[] =
 static void Help_List() {
   mprintf("\t[<type>] %s\n", TypeList);
   mprintf("\tList currently loaded objects of the specified type. If no type is given\n");
-  mprintf("\tlist all loaded objects.\n");
+  mprintf("\tthen list all loaded objects.\n");
 }
 
 static void Help_Debug() {
   mprintf("\t[<type>] <#> %s\n", TypeList);
   mprintf("\tSet debug level for new objects of the specified type. If no type is given\n");
-  mprintf("\tset debug level for all new objects. Does not affect current objects.\n");
+  mprintf("\tthen set debug level for all new objects. Does not affect current objects.\n");
 }
 
 static void Help_Clear() {
   mprintf("\t[ {all | <type>} ] %s\n", TypeList);
   mprintf("\tClear currently loaded objects of the specified type. If 'all' is specified\n");
-  mprintf("\tclear all loaded objects.\n");
+  mprintf("\tthen clear all loaded objects.\n");
 }
 
 static void Help_ActiveRef() {
@@ -179,7 +179,7 @@ static void Help_Precision() {
   mprintf("\t{<filename> | <dataset arg>} [<width>] [<precision>]\n");
   mprintf("\tSet precision for all datasets in datafile <filename> or dataset(s)\n");
   mprintf("\tspecified by <dataset arg> to <width>.<precision>. If width/precision\n");
-  mprintf("\tnot specified default to 12.4\n");
+  mprintf("\tis not specified then default to 12.4\n");
 }
 
 static void Help_Select() {
