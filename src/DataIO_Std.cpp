@@ -298,6 +298,9 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn,
     return 1;
   }
   DataSet_2D const& set = static_cast<DataSet_2D const&>( setIn );
+  int xcol_width = 8;
+  int xcol_precision = 3;
+  if (Dim[0].Step() == 1.0) xcol_precision = 0;
   // Open output file
   CpptrajFile file;
   if (file.OpenWrite( fname )) return 1;
@@ -311,15 +314,20 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn,
     // If file has header, top-left value will be '#<Xlabel>-<Ylabel>',
     // followed by X coordinate values.
     if (writeHeader_) {
-      std::string header = "#" + Dim[0].Label() + "-" + Dim[1].Label();
-      int col1_width = (int)header.size();
-      std::string col1_fmt = SetStringFormatString( col1_width, true );
+      ycoord_fmt = SetupCoordFormat( set.Nrows(), Dim[1], xcol_width, xcol_precision );
+      std::string header;
+      if (Dim[0].Label().empty() && Dim[1].Label().empty())
+        header = "#Frame";
+      else
+        header = "#" + Dim[0].Label() + "-" + Dim[1].Label();
+      std::string col1_fmt = SetStringFormatString( std::max((int)header.size(), xcol_width), 
+                                                    true );
       file.Printf(col1_fmt.c_str(), header.c_str());
-      std::string xcoord_fmt = SetupCoordFormat( set.Ncols(), Dim[0], set.ColumnWidth(), 3 );
+      std::string xcoord_fmt = SetupCoordFormat( set.Ncols(), Dim[0], set.ColumnWidth(), 
+                                                 xcol_precision, false );
       for (size_t ix = 0; ix < set.Ncols(); ix++)
         file.Printf(xcoord_fmt.c_str(), Dim[0].Coord( ix ));
       file.Printf("\n");
-      ycoord_fmt = SetupCoordFormat( set.Nrows(), Dim[1], col1_width, 3 );
     }
     for (size_t iy = 0; iy < set.Nrows(); iy++) {
       if (writeHeader_)
