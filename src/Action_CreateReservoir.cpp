@@ -24,10 +24,7 @@ void Action_CreateReservoir::Help() {
 Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-# ifndef BINTRAJ
-  mprinterr("Error: reservoir requires NetCDF. Reconfigure with NetCDF enabled.\n");
-  return Action::ERR;
-#else
+# ifdef BINTRAJ
   // Get keywords
   filename_ = actionArgs.GetStringNext();
   if (filename_.empty()) {
@@ -93,15 +90,16 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
     mprintf("\tVelocities will be written to reservoir.\n");
   mprintf("\tTopology: %s\n", original_trajparm_->c_str());
   return Action::OK;
+# else
+  mprinterr("Error: reservoir requires NetCDF. Reconfigure with NetCDF enabled.\n");
+  return Action::ERR;
 # endif
 }
 
 // Action_CreateReservoir::Setup()
 Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** parmAddress)
 {
-# ifndef BINTRAJ
-  return Action::ERR;
-# else 
+# ifdef BINTRAJ
   // Check that input parm matches current parm
   if (original_trajparm_->Pindex() != currentParm->Pindex()) {
     mprintf("Info: createreservoir was set up for topology %s\n", original_trajparm_->c_str());
@@ -125,7 +123,9 @@ Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** 
     nframes_ = 0;
   }
   return Action::OK;
-# endif
+# else
+  return Action::ERR;
+# endif 
 }
 
 // Action_CreateReservoir::DoAction()
