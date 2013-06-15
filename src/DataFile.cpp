@@ -12,6 +12,7 @@
 DataFile::DataFile() :
   debug_(0),
   dimension_(-1),
+  dflWrite_(true),
   dataType_(DATAFILE),
   isInverted_(false),
   dataio_(0)
@@ -93,6 +94,8 @@ int DataFile::AddSet(DataSet* dataIn) {
     return 1;
   }
   SetList_.AddCopyOfSet( dataIn );
+  // Reset dflWrite status
+  dflWrite_ = true;
   return 0;
 }
 

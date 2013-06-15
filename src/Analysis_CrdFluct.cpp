@@ -49,6 +49,12 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
     outSets_.push_back( ds );
     if (outfile != 0) outfile->AddSet( ds );
   } else {
+    if (coords_->Size() == 0) {
+      mprinterr("Error: window size > 0 and COORDS data set %s is empty.\n", 
+                 coords_->Legend().c_str());
+      mprinterr("Error: Cannot predict how many window data sets will be needed.\n");
+      return Analysis::ERR;
+    }
     if (setname.empty()) setname = datasetlist->GenerateDefaultName("fluct");
     // Determine how many windows will be needed
     int nwindows = coords_->Size() / windowSize_;

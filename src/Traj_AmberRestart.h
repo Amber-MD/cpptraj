@@ -27,14 +27,13 @@ class Traj_AmberRestart : public TrajectoryIO {
     int setupTrajout(std::string const&, Topology*, int, bool);
     int openTrajin();
     void closeTraj();
-    int readFrame(int,double*,double*,double*,double*);
-    int readVelocity(int, double*);
-    int writeFrame(int,double*,double*,double*,double);
+    int readFrame(int,Frame&);
+    int readVelocity(int, Frame&);
+    int writeFrame(int,Frame const&);
     int processWriteArgs(ArgList&);
     void Info();
 
     int getBoxAngles(std::string const&, Box&);
-    int readIndices(int,int*) { return 1; }
     int processReadArgs(ArgList&) { return 0; }
 };
 #endif

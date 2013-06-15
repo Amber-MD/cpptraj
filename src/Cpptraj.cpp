@@ -10,6 +10,7 @@
 #include "ParmFile.h"
 #include "DataSet_Coords.h" // CrdAction
 #include "Command.h"
+#include "Version.h"
 
 void Cpptraj::Usage() {
   mprinterr("\nUsage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n");
@@ -26,6 +27,14 @@ void Cpptraj::Usage() {
   mprinterr("\t-debug <#>     : Set global debug level to <#>; same as input 'debug <#>'.\n");
   mprinterr("\t--interactive  : Force interactive mode.\n");
   mprinterr("\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n");
+}
+
+void Cpptraj::Intro() {
+  mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
+  mprintf("    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n");
+# ifdef MPI
+  mprintf("Running on %i threads\n",worldsize);
+# endif
 }
 
 // -----------------------------------------------------------------------------
@@ -317,9 +326,10 @@ int Cpptraj::ParmBox(ArgList& argIn) {
     mprinterr("Error: parmbox: parm index %i not loaded.\n",pindex);
     return 1;
   }
-  if ( argIn.hasKey("nobox") )
+  if ( argIn.hasKey("nobox") ) {
+    mprintf("\tRemoving box information from parm %i:%s\n", pindex, parm->c_str());
     parm->SetBox( Box() );
-  else {
+  } else {
     Box pbox;
     pbox.SetX( argIn.getKeyDouble("x",0) );
     pbox.SetY( argIn.getKeyDouble("y",0) );
@@ -389,7 +399,7 @@ int Cpptraj::LoadCrd(ArgList& argIn) {
   }
   // Create input frame
   Frame frameIn;
-  frameIn.SetupFrameV(parm->Atoms(), trajin.HasVelocity());
+  frameIn.SetupFrameV(parm->Atoms(), trajin.HasVelocity(), trajin.NreplicaDimension());
   // Create DataSet, use base file name as set name if none specified. 
   // NOTE: Default name should NEVER get used.
   std::string setname = argIn.GetStringNext();
@@ -440,8 +450,7 @@ int Cpptraj::CrdAction(ArgList& argIn) {
   if ( tkn == 0 ) return 1;
   Action* act = (Action*)tkn->Alloc();
   if (act == 0) return 1;
-  DataFileList dfl;
-  if ( act->Init( actionargs, &parmFileList_, &refFrames_, &DSL_, &dfl, debug_ ) != Action::OK ) {
+  if ( act->Init( actionargs, &parmFileList_, &refFrames_, &DSL_, &DFL_, debug_ ) != Action::OK ) {
     delete act;
     return 1;
   }
@@ -478,7 +487,7 @@ int Cpptraj::CrdAction(ArgList& argIn) {
       CRD->SetCRD( frame, *currentFrame );
   }
   act->Print();
-  if (worldrank == 0) dfl.Write();
+  if (worldrank == 0) DFL_.WriteAllDF();
   delete originalFrame;
   delete originalParm;
   delete act;
@@ -511,7 +520,7 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   Trajout outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
-  if (outtraj.SetupTrajWrite( setname, &argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (outtraj.InitTrajWrite( setname, &argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
     return 1;
   }
@@ -539,15 +548,14 @@ int Cpptraj::CrdAnalyze(ArgList& argIn) {
   if ( tkn == 0 ) return 1;
   Analysis* ana = (Analysis*)tkn->Alloc();
   if (ana == 0) return 1;
-  DataFileList dfl;
-  if ( ana->Setup( analyzeargs, &DSL_, &parmFileList_, &dfl, debug_ ) != Analysis::OK ) {
+  if ( ana->Setup( analyzeargs, &DSL_, &parmFileList_, &DFL_, debug_ ) != Analysis::OK ) {
     delete ana;
     return 1;
   }
   int err = 0;
   if (ana->Analyze() == Analysis::ERR) 
     err = 1;
-  else if (worldrank == 0) dfl.Write();
+  else if (worldrank == 0) DFL_.WriteAllDF();
   delete ana;
   return err;
 }
@@ -661,6 +669,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   if (argc == 1) return C_INTERACTIVE;
   bool hasInput = false;
   bool interactive = false;
+  std::vector<std::string> inputFiles;
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]); 
     if ( arg == "--help" || arg == "-h" ) {
@@ -668,13 +677,19 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       Usage();
       return C_QUIT;
     }
-    if ( arg == "-V" || arg == "--version" ) 
+    if ( arg == "-V" || arg == "--version" ) { 
       // -V, --version: Print version number and exit
-      // Since version number should be printed before this is called, quit.
+      //mprintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
       return C_QUIT;
+    }
+    if ( arg == "--internal-version" ) {
+      // --internal-version: Print internal version number and quit.
+      mprintf("Internal version #: %s\n", CPPTRAJ_INTERNAL_VERSION);
+      return C_QUIT;
+    }
     if ( arg == "--defines" ) {
       // --defines: Print information on compiler defines used and exit
-      mprintf("\nCompiled with:");
+      mprintf("Compiled with:");
 #     ifdef DEBUG
       mprintf(" -DDEBUG");
 #     endif
@@ -723,10 +738,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (Dispatch("reference " + std::string(argv[++i])) == C_ERR) return C_ERR;
     } else if (arg == "-i" && i+1 != argc) {
       // -i: Input file(s)
-      Cpptraj::Mode cmode = ProcessInput( argv[++i] );
-      if (cmode == C_ERR) return C_ERR;
-      if (cmode == C_QUIT) return C_QUIT;
-      hasInput = true;
+      inputFiles.push_back( argv[++i] );
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Mask string
       ArgList maskArg( argv[++i] );
@@ -737,15 +749,24 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (parmFileList_.AddParmFile( argv[i])) return C_ERR;
     } else if ( i == 2 ) {
       // For backwards compatibility with PTRAJ; Position 2 = INPUT file
-      Cpptraj::Mode cmode = ProcessInput( argv[i] );
-      if (cmode == C_ERR) return C_ERR;
-      if (cmode == C_QUIT) return C_QUIT;
-      hasInput = true;
+      inputFiles.push_back( argv[i] );
     } else {
       // Unrecognized
       mprintf("  Unrecognized input on command line: %i: %s\n", i,argv[i]);
       Usage();
       return C_QUIT;
+    }
+  }
+  // Process all input files specified on command line.
+  if ( !inputFiles.empty() ) {
+    hasInput = true;
+    for (std::vector<std::string>::const_iterator inputFilename = inputFiles.begin();
+                                                  inputFilename != inputFiles.end();
+                                                  ++inputFilename)
+    {
+      Cpptraj::Mode cmode = ProcessInput( *inputFilename );
+      if (cmode == C_ERR) return C_ERR;
+      if (cmode == C_QUIT) return C_QUIT;
     }
   }
   if (!hasInput || interactive) return C_INTERACTIVE;
@@ -850,11 +871,11 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
             // If only 1 arg (the command) run all analyses in list
             if (command.Nargs() == 1) { 
               analysisList_.DoAnalyses();
-              mprintf("Analysis complete. Use 'writedata' to write datafiles to disk.\n");
+              if (worldrank == 0) DFL_.WriteAllDF();
             } else
               err = CrdAnalyze(command);
             break;
-          case Command::WRITEDATA   : if (worldrank == 0) DFL_.Write(); break;
+          case Command::WRITEDATA   : if (worldrank == 0) DFL_.WriteAllDF(); break;
           case Command::QUIT        : return C_QUIT; break;
         }
         break;
@@ -897,9 +918,10 @@ int Cpptraj::Run() {
     case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
     default:
       // No trajectories loaded; If analyses are defined, try to run them.
-      if (!analysisList_.Empty())
-        analysisList_.DoAnalyses(); 
-      else {
+      if (!analysisList_.Empty()) {
+        analysisList_.DoAnalyses();
+        if (worldrank == 0) DFL_.WriteAllDF(); 
+      } else {
         mprinterr("No trajectories loaded. Exiting.\n");
         err = 1;
       }
@@ -1029,7 +1051,8 @@ int Cpptraj::RunEnsemble() {
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
     if (parmHasChanged || (hasVelocity != (*traj)->HasVelocity()))
-      FrameEnsemble.SetupFrames(CurrentParm->Atoms(), (*traj)->HasVelocity());
+      FrameEnsemble.SetupFrames(CurrentParm->Atoms(), (*traj)->HasVelocity(),
+                                (*traj)->NreplicaDimension());
     hasVelocity = (*traj)->HasVelocity();
 
     // If Parm has changed, reset actions for new topology.
@@ -1125,7 +1148,7 @@ int Cpptraj::RunEnsemble() {
   DataFileEnsemble.List();
   // Print DataFiles. When in parallel ensemble mode, each member of the 
   // ensemble will write data to separate files with numeric extensions. 
-  DataFileEnsemble.Write();
+  DataFileEnsemble.WriteAllDF();
 
   return 0;
 }
@@ -1173,7 +1196,8 @@ int Cpptraj::RunNormal() {
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
     if (parmHasChanged || (TrajFrame.HasVelocity() != (*traj)->HasVelocity()))
-      TrajFrame.SetupFrameV(CurrentParm->Atoms(), (*traj)->HasVelocity());
+      TrajFrame.SetupFrameV(CurrentParm->Atoms(), (*traj)->HasVelocity(), 
+                            (*traj)->NreplicaDimension());
 
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
@@ -1235,7 +1259,7 @@ int Cpptraj::RunNormal() {
   DFL_.List();
   // Only Master does DataFile output
   if (worldrank==0)
-    DFL_.Write();
+    DFL_.WriteAllDF();
  
   return 0;
 }

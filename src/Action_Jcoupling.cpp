@@ -200,7 +200,8 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
     mprintf("                Writing output to %s\n",outfilename.c_str());
   else
     mprintf("                Writing output to STDOUT\n");
-
+  mprintf("# Citations: Chou et al. JACS (2003) 125 p.8959-8966\n"
+          "#            Perez et al. JACS (2001) 123 p.7081-7093\n");
   // Open output
   if ( outputfile_.OpenWrite( outfilename ) ) return Action::ERR;
 
@@ -235,6 +236,9 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
   // atoms involved are present in the mask.
   MaxResidues = currentParm->FinalSoluteRes();
   for (int residue=0; residue < MaxResidues; residue++) {
+    // Check if any atoms within this residue are selected
+    if (!Mask1_.AtomsInCharMask(currentParm->Res(residue).FirstAtom(),
+                                currentParm->Res(residue).LastAtom())) continue;
     resName.assign(currentParm->Res(residue).c_str());
     karplusConstantMap::iterator reslist = KarplusConstants_.find(resName);
     // If list does not exist for residue, skip it.
@@ -264,13 +268,16 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
         JC.atom[idx] = currentParm->FindAtomInResidue(residue+(*kc).offset[idx],
                                                       (*kc).atomName[idx]       );
       // Check that all atoms were found
+      bool allAtomsFound = true;
       for (int idx=0; idx < 4; idx++) {
         if (JC.atom[idx]==-1) {
-          mprinterr("Error: jcoupling::setup: Atom %4s:%i not found for residue %i\n",
-                    *((*kc).atomName[idx]), idx, residue+(*kc).offset[idx]);
-          return Action::ERR;
+          mprintf("Warning: jcoupling: Atom %4s at position %i not found for residue %i\n",
+                    *((*kc).atomName[idx]), idx, residue+(*kc).offset[idx]+1);
+          allAtomsFound = false;
+          break;
         }
       }
+      if (!allAtomsFound) continue;
       // Check that all the atoms involved in this Jcouple dihedral are
       // in the atom mask.
       if (!Mask1_.AtomInCharMask(JC.atom[0])) continue;

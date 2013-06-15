@@ -28,6 +28,6 @@ class Matrix_2D : public DataSet {
     size_t nelements_;
     size_t currentElement_;
 
-    int calcIndex(int i, int j) { return ( (i*ncols_)+j ); }
+    int calcIndex(int i, int j) { return ( (j*ncols_)+i ); }
 };
 #endif

@@ -17,6 +17,7 @@ class Cpptraj {
   public:
     enum Mode { C_OK = 0, C_ERR, C_QUIT, C_INTERACTIVE };
     Cpptraj();
+    static void Intro();
     Mode Interactive();
     Mode ProcessInput(std::string const&);
     Mode ProcessCmdLineArgs(int,char**);

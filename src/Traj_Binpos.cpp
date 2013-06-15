@@ -92,7 +92,7 @@ int Traj_Binpos::setupTrajin(std::string const& fname, Topology* trajParm)
   return Frames;
 }
 
-int Traj_Binpos::readFrame(int set, double* X, double* V, double* box, double* T) {
+int Traj_Binpos::readFrame(int set, Frame& frameIn) {
   int natoms;
   // Seek
   if (IsSeekable()) 
@@ -109,7 +109,7 @@ int Traj_Binpos::readFrame(int set, double* X, double* V, double* box, double* T
   file_.Read(bpbuffer_, frameSize_);
   // Convert float to double
   for (int i = 0; i < bpnatom3_; ++i)
-    X[i] = (double)bpbuffer_[i];
+    frameIn[i] = (double)bpbuffer_[i];
   return 0;
 }
 
@@ -144,11 +144,11 @@ int Traj_Binpos::setupTrajout(std::string const& fname, Topology* trajParm,
   return 0;
 }
 
-int Traj_Binpos::writeFrame(int set, double* X, double* V, double* box, double T) {
+int Traj_Binpos::writeFrame(int set, Frame const& frameOut) {
   file_.Write( &bpnatom_, sizeof(int) );
   // Convert double to float
   for (int i = 0; i < bpnatom3_; ++i)
-    bpbuffer_[i] = (float)X[i];
+    bpbuffer_[i] = (float)frameOut[i];
   if (file_.Write( bpbuffer_, frameSize_ )) return 1;
   return 0;
 }

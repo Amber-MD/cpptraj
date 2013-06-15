@@ -1,6 +1,7 @@
 #ifndef INC_NETCDFFILE_H
 #define INC_NETCDFFILE_H
 #include <string>
+#include "ReplicaDimArray.h"
 /// The base interface to NetCDF trajectory files.
 class NetcdfFile {
   public:
@@ -18,7 +19,8 @@ class NetcdfFile {
     int NC_openRead(std::string const&);
     int NC_openWrite(std::string const&);
     int NC_createReservoir(bool, double, int, int&, int&);
-    int NC_create(std::string const&,NCTYPE,int,bool,bool,bool,bool,std::string const&);
+    int NC_create(std::string const&,NCTYPE,int,bool,bool,bool,bool,
+                  bool, ReplicaDimArray const&, std::string const&);
     void NC_close();
 
     int SetupFrame();
@@ -26,7 +28,7 @@ class NetcdfFile {
     int SetupTime();
     int SetupBox(double*,NCTYPE);
     int SetupTemperature();
-    int SetupMultiD();
+    int SetupMultiD(ReplicaDimArray&);
 
     void FloatToDouble(double*,const float*);
     void DoubleToFloat(float*,const double*); 
@@ -44,15 +46,15 @@ class NetcdfFile {
 
     int ncid_;
     int ncframe_;
-    int TempVID_;
-    int coordVID_;
-    int velocityVID_;
-    int cellAngleVID_;
-    int cellLengthVID_;
-    int timeVID_;
+    int TempVID_;             ///< Temperature variable ID.
+    int coordVID_;            ///< Coordinates variable ID.
+    int velocityVID_;         ///< Velocity variable ID.
+    int cellAngleVID_;        ///< Box angles variable ID.
+    int cellLengthVID_;       ///< Box lengths variable ID.
+    int timeVID_;             ///< Time variable ID.
     // MultiD REMD
-    int remd_dimension_;
-    int indicesVID_;
+    int remd_dimension_;      ///< Number of replica dimensions.
+    int indicesVID_;          ///< Variable ID for replica indices.
 
     bool checkNCerr(int);
   private:

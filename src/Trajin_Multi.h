@@ -14,7 +14,8 @@ class Trajin_Multi : public Trajin {
     void EndTraj();
     int GetNextFrame( Frame& );
     void PrintInfo(int);
-    bool HasVelocity() { return hasVelocity_; }
+    bool HasVelocity()      { return hasVelocity_; }
+    int NreplicaDimension() { return Ndimensions_; }
 
     void EnsembleInfo() const;
     int EnsembleSetup( FrameArray& );
@@ -36,7 +37,6 @@ class Trajin_Multi : public Trajin {
     double remdtrajtemp_;     ///< Get frames with this temperature on read
     RemdIdxType remdtrajidx_; ///< Get frames with these indices on read
     int Ndimensions_;         ///< # of dimensions in each trajectory.
-    int* remd_indices_;       ///< Space for reading in REMD indices.
     IOarrayType REMDtraj_;    ///< Input replica trajectories
     int lowestRepnum_;        ///< Hold the lowest replica number
     bool isSeekable_;         ///< True if all trajs are seekable.
@@ -57,6 +57,6 @@ class Trajin_Multi : public Trajin {
     int ensembleFrameNum_;    ///< Position containing coords to use in FrameArray
 #   endif
     NameListType SearchForReplicas();
-    bool IsTarget(double);
+    bool IsTarget(Frame const&);
 };
 #endif

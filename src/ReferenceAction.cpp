@@ -53,7 +53,7 @@ int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool fi
         mprinterr("Error: %s: Could not set up reftraj %s\n", call, reftrajname.c_str());
         return 1;
       }
-      refFrame_.SetupFrameV(RefParm->Atoms(), refTraj_.HasVelocity());
+      refFrame_.SetupFrameV(RefParm->Atoms(), refTraj_.HasVelocity(), refTraj_.NreplicaDimension());
       if (refTraj_.BeginTraj(false)) {
         mprinterr("Error: %s: Could not open reftraj %s\n", call, reftrajname.c_str());
         return 1;

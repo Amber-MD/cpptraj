@@ -67,10 +67,10 @@ int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm)
 }
 
 // Traj_Mol2File::readFrame()
-int Traj_Mol2File::readFrame(int set,double *X, double *V,double *box, double *T) {
+int Traj_Mol2File::readFrame(int set, Frame& frameIn) {
   // Position file at next @<TRIPOS>ATOM tag
   if (file_.ScanTo(Mol2File::ATOM)) return 1;
-  double *Xptr = X; 
+  double *Xptr = frameIn.xAddress(); 
   for (int atom = 0; atom < file_.Mol2Natoms(); atom++) {
     if (file_.Mol2XYZ(Xptr)) return 1;
     //F->printAtomCoord(atom);
@@ -164,7 +164,7 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
 }
 
 // Traj_Mol2File::writeFrame()
-int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double T) {
+int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
   //mprintf("DEBUG: Calling Traj_Mol2File::writeFrame for set %i\n",set);
   if (mol2WriteMode_==MULTI) {
     if (file_.OpenWriteWithName( NumberFilename( file_.Filename().Full(), set+1) )) return 1;
@@ -173,7 +173,7 @@ int Traj_Mol2File::writeFrame(int set, double *X, double *V,double *box, double 
   file_.WriteMolecule( hasCharges_, mol2Top_->Nres() );
   //@<TRIPOS>ATOM section
   file_.WriteHeader(Mol2File::ATOM);
-  double *Xptr = X;
+  const double *Xptr = frameOut.xAddress();
   int atnum = 1;
   for (Topology::atom_iterator atom = mol2Top_->begin(); atom != mol2Top_->end(); ++atom) {
     // figure out the residue number

@@ -84,7 +84,9 @@ int Traj_AmberRestartNC::setupTrajin(std::string const& fname, Topology* trajPar
   // Replica Temperatures - allowed to fail silently 
   if (SetupTemperature() == 0)
     SetTemperature( true );
-  if ( SetupMultiD() == -1 ) return TRAJIN_ERR;
+  ReplicaDimArray remdDim;
+  if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
+  SetReplicaDims( remdDim );
   // NOTE: TO BE ADDED
   // labelDID;
   //int cell_spatialDID, cell_angularDID;
@@ -128,14 +130,14 @@ int Traj_AmberRestartNC::setupTrajout(std::string const& fname, Topology* trajPa
 /** Get the specified frame from amber netcdf file
   * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
   */
-int Traj_AmberRestartNC::readFrame(int set,double *X, double *V,double *box, double *T) {
+int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
   // Get temperature
   if (TempVID_!=-1) {
-    if ( checkNCerr(nc_get_var_double(ncid_, TempVID_, T)) ) {
+    if ( checkNCerr(nc_get_var_double(ncid_, TempVID_, frameIn.tAddress())) ) {
       mprinterr("Error: Getting replica temperature.\n");
       return 1;
     }
-    if (debug_>1) mprintf("DEBUG: %s: Replica Temperature %lf\n",filename_.base(), T);
+    if (debug_>1) mprintf("DEBUG: %s: Replica Temperature %lf\n",filename_.base(), frameIn.Temperature());
   }
 
   // Read Coords 
@@ -143,28 +145,40 @@ int Traj_AmberRestartNC::readFrame(int set,double *X, double *V,double *box, dou
   start_[1] = 0;
   count_[0] = Ncatom();
   count_[1] = 3;
-  if ( checkNCerr(nc_get_vara_double(ncid_, coordVID_, start_, count_, X)) ) {
+  if ( checkNCerr(nc_get_vara_double(ncid_, coordVID_, start_, count_, frameIn.xAddress())) ) {
     mprinterr("Error: Getting Coords\n");
     return 1;
   }
 
   // Read Velocity
-  if (velocityVID_!=-1 && V!=0) {
-    if ( checkNCerr(nc_get_vara_double(ncid_, velocityVID_, start_, count_, V)) ) {
+  if (velocityVID_!=-1 && frameIn.HasVelocity()) {
+    if ( checkNCerr(nc_get_vara_double(ncid_, velocityVID_, start_, count_, frameIn.vAddress())) ) {
       mprinterr("Error: Getting velocities\n"); 
       return 1;
     }
+  }
+
+  // Read replica indices
+  if (indicesVID_!=-1) {
+    count_[1] = remd_dimension_;
+    if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frameIn.iAddress())) ) {
+      mprinterr("Error: Getting replica indices from restart.\n");
+      return 1;
+    }
+    //mprintf("DEBUG:\tReplica Rst indices:");
+    //for (int dim=0; dim < remd_dimension_; dim++) mprintf(" %i",remd_indices[dim]);
+    //mprintf("\n");
   }
 
   // Read box info 
   if (cellLengthVID_ != -1) {
     count_[0] = 3;
     count_[1] = 0;
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, box)) ) {
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())) ) {
       mprinterr("Error: Getting cell lengths.\n"); 
       return 1;
     }
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, box+3)) ) {
+    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)) ) {
       mprinterr("Error: Getting cell angles.\n");
       return 1;
     }
@@ -173,25 +187,10 @@ int Traj_AmberRestartNC::readFrame(int set,double *X, double *V,double *box, dou
   return 0;
 }
 
-int Traj_AmberRestartNC::readIndices(int set, int* remd_indices) {
-  if (indicesVID_!=-1) {
-    start_[0] = 0;
-    count_[1] = remd_dimension_;
-    if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, remd_indices)) ) {
-      mprinterr("Error: Getting replica indices.\n");
-      return 1;
-    }
-    //mprintf("DEBUG:\tReplica Rst indices:");
-    //for (int dim=0; dim < remd_dimension_; dim++) mprintf(" %i",remd_indices[dim]);
-    //mprintf("\n");
-  }
-  return 0;
-}
-
 // Traj_AmberRestartNC::writeFrame() 
-int Traj_AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, double T) {
+int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   // Set up file for this set
-  bool V_present = (HasV() && V != 0);
+  bool V_present = (HasV() && frameOut.HasVelocity());
   std::string fname;
   // Create filename for this set
   // If just writing 1 frame dont modify output filename
@@ -199,22 +198,23 @@ int Traj_AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, d
     fname = filename_.Full();
   else
     fname = NumberFilename(filename_.Full(), set+1);
+  // TODO: Add option to write replica indices
   if ( NC_create( fname.c_str(), NC_AMBERRESTART, Ncatom(), V_present,
-                  HasBox(), HasT(), (time0_ >= 0), Title() ) )
+                  HasBox(), HasT(), (time0_ >= 0), false, ReplicaDimArray(), Title() ) )
     return 1;
   // write coords
   start_[0] = 0;
   start_[1] = 0;
   count_[0] = Ncatom(); 
   count_[1] = 3;
-  if (checkNCerr(nc_put_vara_double(ncid_,coordVID_,start_,count_,X)) ) {
+  if (checkNCerr(nc_put_vara_double(ncid_,coordVID_,start_,count_,frameOut.xAddress())) ) {
     mprinterr("Error: Netcdf restart Writing coordinates %i\n",set);
     return 1;
   }
   // write velocity
   if (V_present) {
     mprintf("DEBUG: Writing V, VID=%i\n",velocityVID_);
-    if (checkNCerr(nc_put_vara_double(ncid_,velocityVID_,start_,count_,V)) ) {
+    if (checkNCerr(nc_put_vara_double(ncid_,velocityVID_,start_,count_,frameOut.vAddress())) ) {
       mprinterr("Error: Netcdf restart writing velocity %i\n",set);
       return 1;
     }
@@ -223,11 +223,11 @@ int Traj_AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, d
   if (cellLengthVID_ != -1) {
     count_[0] = 3;
     count_[1] = 0;
-    if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,box)) ) {
+    if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.bAddress())) ) {
       mprinterr("Error: Writing cell lengths.\n");
       return 1;
     }
-    if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, box+3)) ) {
+    if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frameOut.bAddress()+3)) ) {
       mprinterr("Error: Writing cell angles.\n");
       return 1;
     }
@@ -242,7 +242,7 @@ int Traj_AmberRestartNC::writeFrame(int set, double *X, double *V,double *box, d
   }
   // write temperature
   if (TempVID_ != -1) {
-    if (checkNCerr(nc_put_var_double(ncid_,TempVID_,&T)) ) {
+    if (checkNCerr(nc_put_var_double(ncid_,TempVID_,frameOut.tAddress())) ) {
       mprinterr("Error: Writing restart temperature.\n"); 
       return 1;
     }

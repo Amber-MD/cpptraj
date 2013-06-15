@@ -1,6 +1,7 @@
 #ifndef INC_TRAJECTORYIO_H
 #define INC_TRAJECTORYIO_H
 #include "Topology.h" // Box
+#include "ReplicaDimArray.h"
 #include "CpptrajFile.h"
 #include "ArgList.h"
 // Class: TrajectoryIO
@@ -25,7 +26,7 @@ class TrajectoryIO {
       * \return TRAJIN_ERR if an error occured during setup.
       * \return TRAJIN_UNK if the number of frames could not be determined.
       */
-    virtual int setupTrajin(std::string const&, Topology *) = 0;
+    virtual int setupTrajin(std::string const&, Topology*) = 0;
     /// Set up and open trajectory IO for WRITE/APPEND 
     /** Called on the first write call. First arg is the trajectory name.
       * Second arg is the Topology that will be associated with this
@@ -37,23 +38,19 @@ class TrajectoryIO {
     /// Open previously set-up input trajectory, prepare for IO.
     virtual int openTrajin() = 0;
     /// Read a frame from trajectory
-    /** Given a frame number, read that frame; return the coordinates in the 
-      * first array, velocities in the second array, the box lengths/angles in 
-      * the third array, and set the temperature in the last var.
+    /** Given a frame number, read that frame.
+      * \return 1 on error, 0 on success.
       */
-    virtual int readFrame(int,double*,double*,double*,double*) = 0;
-    /// Read velocity information from a trajectory. 
-    virtual int readVelocity(int, double*) = 0;
-    /// Read replica indices from a trajectory. 
-    virtual int readIndices(int,int*)  = 0;  
+    virtual int readFrame(int,Frame&) = 0;
+    /// Read only velocity information from a trajectory. 
+    virtual int readVelocity(int, Frame&) = 0;
     /// Write a frame to trajectory
     /** Write to output trajectory. This routine is called from
-      * TrajectoryFile::WriteFrame with the current action set
-      * number, not the current output number, so it is up to
-      * the TrajectoryIO object to keep track of what frame it is
-      * writing. Vars are same as in readFrame.
+      * TrajectoryFile::WriteFrame with the current action set number, not the 
+      * current output number, so it is up to the TrajectoryIO object to keep 
+      * track of what frame it is writing. 
       */
-    virtual int writeFrame(int,double*,double*,double*,double) = 0;
+    virtual int writeFrame(int,Frame const&) = 0;
     /// Close trajectory
     virtual void closeTraj() = 0; 
     /// Print information on what kind of trajectory this is.
@@ -69,8 +66,6 @@ class TrajectoryIO {
     virtual int processWriteArgs(ArgList&) = 0; 
     /// Process arguments relevant to reading trajectory (optional)
     virtual int processReadArgs(ArgList&) = 0;
-    // TODO: Replace with pure virtual
-    virtual int NreplicaDimensions() { return 0; }
     // -----------------------------------------------------
     bool HasBox()              const { return box_.HasBox();               }
     const Box& TrajBox()       const { return box_;                        }
@@ -78,6 +73,7 @@ class TrajectoryIO {
     bool HasT()                const { return hasT_;                       }
     bool IsSeekable()          const { return seekable_;                   }
     std::string const& Title() const { return title_;                      }
+    ReplicaDimArray const& ReplicaDimensions() const { return remdDim_;    }
 
     void SetDebug(int dIn)                { debug_ = dIn;    }
     void SetBox(Box const& bIn)           { box_ = bIn;      }
@@ -85,13 +81,15 @@ class TrajectoryIO {
     void SetTemperature(bool tIn)         { hasT_ = tIn;     }
     void SetSeekable(bool sIn)            { seekable_ = sIn; }
     void SetTitle(std::string const& tIn) { title_ = tIn;    }
+    void SetReplicaDims(ReplicaDimArray const& rIn) { remdDim_ = rIn; }
   protected:
-    int debug_;           ///< Trajectory debug level.
+    int debug_;               ///< Trajectory debug level.
   private:
-    Box box_;             ///< Default box info for trajectory.
-    bool hasV_;           ///< True if trajectory has velocity info.
-    bool hasT_;           ///< True if trajectory has temperature info.
-    bool seekable_;       ///< True if trajectory is randomly seekable.
-    std::string title_;   ///< Set to trajectory title.
+    Box box_;                 ///< Default box info for trajectory.
+    bool hasV_;               ///< True if trajectory has velocity info.
+    bool hasT_;               ///< True if trajectory has temperature info.
+    bool seekable_;           ///< True if trajectory is randomly seekable.
+    std::string title_;       ///< Set to trajectory title.
+    ReplicaDimArray remdDim_; ///< Hold info on replica dims if present. 
 }; 
 #endif

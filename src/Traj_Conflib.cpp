@@ -57,15 +57,15 @@ int Traj_Conflib::setupTrajin(std::string const& fname, Topology* trajParm)
 }
 
 // Traj_Conflib::readFrame()
-int Traj_Conflib::readFrame(int set, double *X, double *V,double *box, double *T) {
+int Traj_Conflib::readFrame(int set, Frame& frameIn) {
 
   if (file_.Read(&energy_,sizeof(double)) < 0) return 1;
   file_.Read(&radGyr_,sizeof(double));
   file_.Read(&timesFound_,sizeof(int));
-  file_.Read(X,sizeof(double)*conflibAtom_*3); 
+  file_.Read(frameIn.xAddress(),sizeof(double)*conflibAtom_*3); 
 
   if (debug_>0) mprinterr("CONFLIB %10i: E=%10.4f RoG=%10.4f Found=%6i %12.4f %12.4f %12.4f\n",
-                         set, energy_, radGyr_, timesFound_, X[0], X[1], X[2]);
+                         set, energy_, radGyr_, timesFound_, frameIn[0], frameIn[1], frameIn[2]);
   return 0;
 }
 
@@ -78,7 +78,7 @@ int Traj_Conflib::setupTrajout(std::string const& fname, Topology* trajParm,
 }
 
 // Traj_Conflib::writeFrame()
-int Traj_Conflib::writeFrame(int set, double *X, double *V,double *box, double T) {
+int Traj_Conflib::writeFrame(int set, Frame const& frameOut) {
   mprinterr("Error: conflib writes not yet implemented.\n");
   return 1;
 }

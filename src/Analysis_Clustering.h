@@ -35,8 +35,10 @@ class Analysis_Clustering: public Analysis {
     bool usedme_;
     bool useMass_;
     bool grace_color_;          ///< If true print grace colors instead of cluster number
-    bool norm_pop_;             ///< If true cluster pops v time will be normalized to 1.0
+    enum normPopType { NONE=0, CLUSTERPOP, FRAME };
+    normPopType norm_pop_;      ///< If set cluster pops v time will be normalized 
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found
+    bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
     ClusterDist::DsArray cluster_dataset_;  ///< DataSet(s) to use for clustering.
     /// Cluster trajectory format.
     TrajectoryFile::TrajFormatType clusterfmt_;
