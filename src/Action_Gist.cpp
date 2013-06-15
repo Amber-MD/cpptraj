@@ -415,26 +415,41 @@ void Action_Gist::Grid(Frame *frameIn) {
     // get the components of the water vector
     comp = Vec3(atom) - Vec3(gridorig_);
     comp /= gridspacn_;
-    gridindex[0] = floor (comp[0]);
-    gridindex[1] = floor (comp[1]);
-    gridindex[2] = floor (comp[2]);
-    if (gridindex[0]>=0 && gridindex[1]>=0 && gridindex[2]>=0 && (gridindex[0]<griddim_[0]) && (gridindex[1]<griddim_[1]) && (gridindex[2]<griddim_[2]))
-      {
-	// this water belongs to grid point gridindex[0], gridindex[1], gridindex[2]
-	voxel = (gridindex[0]*griddim_[1] + gridindex[1])*griddim_[2] + gridindex[2];
-	if (voxel<0) {
-	  break;
-	}
-	if (a==0) {
-	  gridwat_[resnum] = voxel;
-	  nwat_[voxel]++;
-	  if (max_nwat_ < nwat_[voxel]) max_nwat_ = nwat_[voxel];
-	}
-	else nH_[voxel]++;
-	//mprintf("fm=%d, resnum=%d, voxel=%d %d\n", NFRAME_, resnum, voxel, gridwat_[resnum]);
-      }
-  }
 
+    //Crystal, comment this if and the next three lines if you want to return to old code
+    if (comp[0]>=0 && comp[1]>=0 && comp[2]>=0){
+      gridindex[0] = (int) comp[0];
+      gridindex[1] = (int) comp[1];
+      gridindex[2] = (int) comp[2];
+
+      //Crystal un comment these three lines to go back to old code
+      /*  gridindex[0] = floor (comp[0]);
+	  gridindex[1] = floor (comp[1]);
+	  gridindex[2] = floor (comp[2]);*/
+      
+      /*      gridindex[0] = rint (comp[0]);
+      gridindex[1] = rint (comp[1]);
+      gridindex[2] = rint (comp[2]); */
+
+      //Crystal uncomment the next if and comment the one after to go back to old code
+    //if (gridindex[0]>=0 && gridindex[1]>=0 && gridindex[2]>=0 && (gridindex[0]<griddim_[0]) && (gridindex[1]<griddim_[1]) && (gridindex[2]<griddim_[2]))
+      if ((gridindex[0]<griddim_[0]) && (gridindex[1]<griddim_[1]) && (gridindex[2]<griddim_[2]))
+	{
+	  // this water belongs to grid point gridindex[0], gridindex[1], gridindex[2]
+	  voxel = (gridindex[0]*griddim_[1] + gridindex[1])*griddim_[2] + gridindex[2];
+	  if (voxel<0) {
+	  break;
+	  }
+	  if (a==0) {
+	    gridwat_[resnum] = voxel;
+	    nwat_[voxel]++;
+	    if (max_nwat_ < nwat_[voxel]) max_nwat_ = nwat_[voxel];
+	  }
+	  else nH_[voxel]++;
+	  //mprintf("fm=%d, resnum=%d, voxel=%d %d\n", NFRAME_, resnum, voxel, gridwat_[resnum]);
+	}
+      }
+  } 
 }
 	
 
