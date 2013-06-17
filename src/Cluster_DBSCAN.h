@@ -8,6 +8,7 @@ class Cluster_DBSCAN : public ClusterList {
     int SetupCluster(ArgList&);
     void ClusteringInfo();
     int Cluster();
+    void AddSievedFrames();
   private:
     int minPoints_;  ///< Min # of points needed to make a cluster.
     double epsilon_; ///< Distance criterion for cluster formation.

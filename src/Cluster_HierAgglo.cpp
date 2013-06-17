@@ -115,6 +115,31 @@ int Cluster_HierAgglo::Cluster() {
   return 0;
 }
 
+// Cluster_HierAgglo::AddSievedFrames()
+void Cluster_HierAgglo::AddSievedFrames() {
+  // NOTE: All cluster centroids must be up to date.
+  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame) {
+    if (FrameDistances_.IgnoringRow(frame)) {
+      //mprintf(" %i [", frame + 1); // DEBUG
+      // Which clusters centroid is closest to this frame?
+      double mindist = DBL_MAX;
+      cluster_it  minNode = clusters_.end();
+      for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
+        double dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
+        //mprintf(" %i:%-6.2f", (*Cnode).Num(), dist); // DEBUG
+        if (dist < mindist) {
+          mindist = dist;
+          minNode = Cnode;
+        }
+      }
+      //mprintf(" ], to cluster %i\n", (*minNode).Num()); // DEBUG
+      // Add sieved frame to the closest cluster.
+      (*minNode).AddFrameToCluster( frame );
+    }
+  }
+  //mprintf("\n");
+}
+
 /** Find and merge the two closest clusters. */
 int Cluster_HierAgglo::MergeClosest() {
   int C1, C2;
