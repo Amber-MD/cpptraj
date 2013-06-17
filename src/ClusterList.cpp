@@ -58,6 +58,9 @@ void ClusterList::Renumber(bool addSievedFrames) {
   bool centroid_error = false;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
     (*node).SortFrameList();
+    // Ensure cluster centroid is up-to-date
+    (*node).CalculateCentroid( Cdist_ );
+    // Find frame that is closest to the centroid.
     if ((*node).FindCentroidFrame( FrameDistances_ )) {
       mprinterr("Error: Could not determine centroid frame for cluster %i\n",
                 (*node).Num());
@@ -69,10 +72,7 @@ void ClusterList::Renumber(bool addSievedFrames) {
     if (centroid_error)
       mprinterr("Error: 1 or more centroids not determined. Cannot add sieved frames.\n");
     else {
-      mprintf("\tRestoring non-sieved frames:");
-      // Ensure cluster centroids are up-to-date
-      for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode)
-        (*Cnode).CalculateCentroid( Cdist_ );
+      mprintf("\tRestoring non-sieved frames.\n");
       AddSievedFrames();
     }
   }

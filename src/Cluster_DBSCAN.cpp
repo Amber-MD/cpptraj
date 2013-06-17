@@ -159,6 +159,7 @@ int Cluster_DBSCAN::Cluster() {
 
 // Cluster_DBSCAN::AddSievedFrames()
 void Cluster_DBSCAN::AddSievedFrames() {
+  int n_sieved_noise = 0;
   // NOTE: All cluster centroids must be up to date!
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame) {
     if (FrameDistances_.IgnoringRow(frame)) {
@@ -179,7 +180,10 @@ void Cluster_DBSCAN::AddSievedFrames() {
       // less than epsilon.
       if ( mindist < epsilon_)
         (*minNode).AddFrameToCluster( frame );
+      else
+        n_sieved_noise++;
     }
   }
   //mprintf("\n");
+  mprintf("\t%i sieved frames were discarded as noise.\n", n_sieved_noise);
 }
