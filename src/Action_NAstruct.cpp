@@ -327,9 +327,9 @@ int Action_NAstruct::determineBasePairing() {
     // Create legend
     int bp_1 = (*BP).Res1();
     int bp_2 = (*BP).Res2();
-    std::string bpname = integerToString( bp_1+1 ) +
+    std::string bpname = integerToString( Bases_[bp_1].ResNum()+1 ) +
                          Bases_[bp_1].BaseChar() +
-                         integerToString( bp_2+1 ) + 
+                         integerToString( Bases_[bp_2].ResNum()+1 ) + 
                          Bases_[bp_2].BaseChar();
     // Create sets
     SHEAR_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname) );
@@ -357,13 +357,13 @@ int Action_NAstruct::determineBasePairing() {
       int bp_2 = (*BP1).Res2();
       int bp_3 = (*BP2).Res1();
       int bp_4 = (*BP2).Res2();
-      std::string sname = integerToString( bp_1+1 ) +
+      std::string sname = integerToString( Bases_[bp_1].ResNum()+1 ) +
                           Bases_[bp_1].BaseChar() +
-                          integerToString( bp_2+1 ) +
+                          integerToString( Bases_[bp_2].ResNum()+1 ) +
                           Bases_[bp_2].BaseChar() + "-" +
-                          integerToString( bp_3+1 ) +
+                          integerToString( Bases_[bp_3].ResNum()+1 ) +
                           Bases_[bp_3].BaseChar() +
-                          integerToString( bp_4+1 ) +
+                          integerToString( Bases_[bp_4].ResNum()+1 ) +
                           Bases_[bp_4].BaseChar();
       // Create Sets
       SHIFT_.push_back( masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname) );
