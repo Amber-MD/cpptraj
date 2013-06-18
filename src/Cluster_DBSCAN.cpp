@@ -176,9 +176,19 @@ void Cluster_DBSCAN::AddSievedFrames() {
         }
       }
       //mprintf(" ], to cluster %i\n", (*minNode).Num()); // DEBUG
+      // Check if any frames in the cluster are closer than epsilon to sieved frame.
+      bool goodFrame = false;
+      for (ClusterNode::frame_iterator cluster_frame = (*minNode).beginframe();
+                                       cluster_frame != (*minNode).endframe(); ++cluster_frame)
+      {
+        if ( Cdist_->FrameDist(frame, *cluster_frame) < epsilon_ ) {
+          goodFrame = true;
+          break;
+        }
+      }
       // Add sieved frame to the closest cluster if closest distance is
       // less than epsilon.
-      if ( mindist < epsilon_)
+      if ( goodFrame )
         (*minNode).AddFrameToCluster( frame );
       else
         n_sieved_noise++;
