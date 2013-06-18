@@ -10,9 +10,9 @@ class Cluster_DBSCAN : public ClusterList {
     int Cluster();
     void AddSievedFrames();
   private:
-    int minPoints_;  ///< Min # of points needed to make a cluster.
-    double epsilon_; ///< Distance criterion for cluster formation.
-
+    int minPoints_;        ///< Min # of points needed to make a cluster.
+    double epsilon_;       ///< Distance criterion for cluster formation.
+    bool sieveToCentroid_; ///< If true sieve only based on closeness to centroid.
     void RegionQuery(std::vector<int>&, std::vector<int> const&, int);
 };
 #endif
