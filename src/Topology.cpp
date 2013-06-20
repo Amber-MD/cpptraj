@@ -209,7 +209,7 @@ void Topology::PrintAtomInfo(std::string const& maskString) {
       mprintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f\n", 
               width, *atnum+1, atom.c_str(), 
               width, resnum+1, residues_[resnum].c_str(),
-              width, atom.Mol()+1, *(atom.Type()), atom.Charge(), atom.Mass());
+              width, atom.MolNum()+1, *(atom.Type()), atom.Charge(), atom.Mass());
     }
   }
 }
@@ -564,15 +564,17 @@ int Topology::CommonSetup(bool bondsearch) {
   if (bondsearch) {
     if (bonds_.empty() && bondsh_.empty() && !refCoords_.empty()) {
       GetBondsFromAtomCoords();
-      if (DetermineMolecules()) return 1;
+      molecules_.clear();
     }
   }
   
-  if (molecules_.empty()) 
-    if (DetermineMolecules()) return 1;
+  if (molecules_.empty())  
+    if (DetermineMolecules()) 
+      mprinterr("Error: could not determine molecule information for %s.\n", c_str());
 
   // Set up solvent information
-  if (SetSolventInfo()) return 1;
+  if (SetSolventInfo())
+    mprinterr("Error: could not determine solvent information for %s.\n", c_str());
 
   // Determine excluded atoms
   DetermineExcludedAtoms();
@@ -866,8 +868,12 @@ int Topology::DetermineMolecules() {
     }
     ++atomnum;
   }
-  if (debug_>0)
+  if (debug_>0) {
     mprintf("\t%i molecules.\n",mol);
+    if (debug_ > 1)
+    for (atom = atoms_.begin(); atom != atoms_.end(); ++atom)
+      mprintf("\t\tAtom %i assigned to molecule %i\n", atom - atoms_.begin(), (*atom).MolNum());
+  }
 
   // Update molecule information
   molecules_.resize( mol );
@@ -875,29 +881,29 @@ int Topology::DetermineMolecules() {
   std::vector<Molecule>::iterator molecule = molecules_.begin();
   (*molecule).SetFirst(0);
   atom = atoms_.begin(); 
-  int lastMol = (*atom).Mol();
+  int lastMol = (*atom).MolNum();
   int atomNum = 0;
   for (; atom != atoms_.end(); atom++)
   {
-    if ( (*atom).Mol() > lastMol ) {
+    if ( (*atom).MolNum() > lastMol ) {
       // Set last atom of molecule
       (*molecule).SetLast( atomNum );
       // Set first atom of next molecule
       ++molecule;
       (*molecule).SetFirst( atomNum );
-      lastMol = (*atom).Mol();
-    } else if ( (*atom).Mol()  < lastMol) {
-      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom.\n",
-                atom - atoms_.begin() + 1);
-      mprinterr("Error: This can happen if bond information is incorrect or missing.\n");
-      mprinterr("Error: Detected # of molecules is %i. If this is incorrect and your\n", mol);
-      mprinterr("Error: topology does not have bond information (e.g. PDB file), try\n");
-      mprinterr("Error: increasing the bond search cutoff offset (currently %f).\n",offset_);
-      mprinterr("Error: e.g. 'parm %s bondsearch <new offset>'\n", fileName_.c_str());
-      mprinterr("Error: This can also happen if the atoms in your molecules are not\n");
-      mprinterr("Error: sequential (e.g. molecule 1 is atoms 1-4,10-14 and molecule 2\n");
-      mprinterr("Error: is atoms 5-9,15-20). This can be fixed using the 'setMolecules'\n");
-      mprinterr("Error: command in parmed.py.\n");
+      lastMol = (*atom).MolNum();
+    } else if ( (*atom).MolNum()  < lastMol) {
+      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom.\n"
+                "Error: This can happen if bond information is incorrect or missing.\n"
+                "Error: Detected # of molecules is %i. If this is incorrect and your\n"
+                "Error: topology does not have bond information (e.g. PDB file), try\n"
+                "Error: increasing the bond search cutoff offset (currently %f).\n"
+                "Error: e.g. 'parm %s bondsearch <new offset>'.\n"
+                "Error: This can also happen if the atoms in your molecules are not\n"
+                "Error: sequential (e.g. molecule 1 is atoms 1-4,10-14 and molecule 2\n"
+                "Error: is atoms 5-9,15-20). This can be fixed using the 'setMolecules'\n"
+                "Error: command in parmed.py.\n",
+                atom - atoms_.begin() + 1, mol, offset_, fileName_.c_str());
       molecules_.clear();
       return 1;
     }
@@ -1406,24 +1412,24 @@ bool Topology::ParseMask(Frame const& REF, AtomMask &maskIn, bool intMask) const
   *  based on the current AmberParm (this), deleting atoms that are
   *  not in the Selected array.
   */
-Topology *Topology::modifyStateByMask(AtomMask &Mask) {
+Topology* Topology::modifyStateByMask(AtomMask const& Mask, bool setupFullParm) const {
   std::vector<int> Map;
 
-  //int newatom = 0;
   Map.reserve( Mask.Nselected() );
   for (AtomMask::const_iterator oldatom = Mask.begin(); oldatom != Mask.end(); oldatom++) 
     Map.push_back( *oldatom ); // Map[newatom] = oldatom
 
-  return ModifyByMap(Map);
+  return ModifyByMap(Map, setupFullParm);
 }
 
 // Topology::ModifyByMap()
-Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
+Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullParm) const {
   Topology *newParm = new Topology();
 
   newParm->parmName_ = parmName_;
   newParm->fileName_ = fileName_;
   newParm->radius_set_ = radius_set_;
+  newParm->debug_ = debug_;
 
   // Reverse Atom map
   // TODO: Use std::map instead
@@ -1432,8 +1438,6 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
   // Copy atoms from this parm that are in Mask to newParm.
   //int newatom = 0;
   int oldres = -1;
-  int oldmol = -1;
-  int firstSolventMol = -1;
   // TODO: Check the map size
   for (int newatom = 0; newatom < (int)MapIn.size(); newatom++) {
     int oldatom = MapIn[ newatom ];
@@ -1458,24 +1462,6 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
     newparmAtom.SetResNum( newParm->residues_.size() - 1 );
     // Place new atom in newParm
     newParm->atoms_.push_back( newparmAtom );
-    // Check if this old atom is in a different molecule than the last. If so,
-    // set molecule information.
-    int curmol = atoms_[oldatom].Mol();
-    if (curmol != oldmol) {
-      // Check if this is the first solvent mol of new parm
-      if (firstSolventMol==-1 && molecules_[curmol].IsSolvent()) {
-        firstSolventMol = (int)newParm->molecules_.size();
-        // Minus 2 since final solute residue is previous one and residues
-        // has already been incremented. 
-        newParm->finalSoluteRes_ = (int)newParm->residues_.size() - 2;
-      }
-      newParm->StartNewMol();
-      oldmol = curmol;
-    }
-    // Copy extra amber info
-    if (!itree_.empty()) newParm->itree_.push_back( itree_[oldatom] );
-    if (!join_.empty()) newParm->join_.push_back( join_[oldatom] );
-    if (!irotat_.empty()) newParm->irotat_.push_back( irotat_[oldatom] );
   }
   // Set last residue last atom
   newParm->residues_.back().SetLastAtom( newParm->atoms_.size() );
@@ -1490,15 +1476,23 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
   newParm->SetAtomBondInfo();
   newParm->bondrk_ = bondrk_;
   newParm->bondreq_ = bondreq_;
+  // Give stripped parm the same pindex as original
+  newParm->pindex_ = pindex_;
+  newParm->nframes_ = nframes_;
+  // Copy box information
+  newParm->box_ = box_;
+  // If we dont care about setting up full parm information, exit now.
+  if (!setupFullParm) return newParm;
+
   // Set new molecule information based on new bonds
   if (newParm->DetermineMolecules()) {
-    delete newParm;
-    return 0;
+    mprintf("Warning: Could not set up molecule information for stripped topology %s\n",
+            newParm->c_str());
   }
   // Set new solvent information based on new molecules
   if (newParm->SetSolventInfo()) {
-    delete newParm;
-    return 0;
+    mprintf("Warning: Could not set up solvent information for stripped topology %s\n",
+            newParm->c_str());
   } 
   // Set up new angle info
   newParm->angles_ = SetupSequentialArray(atomMap, 4, angles_);
@@ -1524,19 +1518,22 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
   newParm->asol_ = asol_;
   newParm->bsol_ = bsol_;
   newParm->hbcut_ = hbcut_;
+  // Amber extra info. Assume if one present, all present.
+  if (!itree_.empty() && !join_.empty() && !irotat_.empty()) {
+    for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
+    {
+      if (*old_it >= 0) {
+        newParm->itree_.push_back( itree_[*old_it] );
+        newParm->irotat_.push_back( irotat_[*old_it] );
+        newParm->join_.push_back( join_[*old_it] );
+      }
+    }
+  }
   // NOTE: SOLTY is currently unused 
   newParm->solty_ = solty_;
   
   // Setup excluded atoms list - Necessary?
   newParm->DetermineExcludedAtoms();
-
-  // Give stripped parm the same pindex as original
-  newParm->pindex_ = pindex_;
-
-  newParm->nframes_ = nframes_;
-
-  // Copy box information
-  newParm->box_ = box_;
 
   return newParm;
 }
@@ -1548,24 +1545,25 @@ Topology *Topology::ModifyByMap(std::vector<int>& MapIn) {
   * only entries for which all atoms are present. Can be used for the
   * bond, angle, and dihedral index arrays.
   */
-std::vector<int> Topology::SetupSequentialArray(std::vector<int> &atomMap, int Nsequence,
-                                                std::vector<int> &oldArray)
+std::vector<int> Topology::SetupSequentialArray(std::vector<int> const& atomMap, int Nsequence,
+                                                std::vector<int> const& oldArray) const
 {
   std::vector<int> newArray;
   int Nsequence1 = Nsequence - 1;
   std::vector<int> newatoms(Nsequence, 0);
   std::vector<int> newsign(Nsequence1, 1);
   // Go through old array. Use atomMap to determine what goes into newArray.
-  for (std::vector<int>::iterator oldi = oldArray.begin(); oldi != oldArray.end();
-                                                           oldi += Nsequence)
+  for (std::vector<int>::const_iterator oldi = oldArray.begin(); 
+                                        oldi != oldArray.end();
+                                        oldi += Nsequence)
   {
     // Using atomMap, check that atoms 0 to Nsequence exist in newParm. If
     // any of the atoms do not exist, bail.
     int newatm = -1;
     bool reverseOrder = false;
-    std::vector<int>::iterator endidx = oldi + Nsequence1;
+    std::vector<int>::const_iterator endidx = oldi + Nsequence1;
     unsigned int sequencei = 0;
-    for (std::vector<int>::iterator oidx = oldi; oidx != endidx; oidx++) {
+    for (std::vector<int>::const_iterator oidx = oldi; oidx != endidx; oidx++) {
       int arrayIdx = *oidx;
       // For dihedrals the atom # can be negative. Convert to positive
       // for use in the atom map.

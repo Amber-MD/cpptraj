@@ -32,6 +32,7 @@ class ClusterList {
     const cluster_iterator begincluster() const { return clusters_.begin(); }
     const cluster_iterator endcluster()   const { return clusters_.end();   }
   protected:
+    virtual void AddSievedFrames() = 0;
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
     int debug_;

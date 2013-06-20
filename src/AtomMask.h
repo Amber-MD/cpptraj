@@ -61,7 +61,7 @@ class AtomMask {
     /// Switch char used to denote selected atoms (T->F, F->T)
     void InvertMask();
     /// \return the number of atoms mask has in common with another mask
-    int NumAtomsInCommon(AtomMask &);
+    int NumAtomsInCommon(AtomMask const&);
     /// Add given atom to Selected array 
     void AddAtom(int);
     /// Add a list of atoms to mask

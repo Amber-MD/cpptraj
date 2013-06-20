@@ -24,7 +24,7 @@ void Action_AutoImage::Help() {
   mprintf("\t'mobile') will be imaged freely.\n");
 }
 
-// Action_AutoImage::init()
+// Action_AutoImage::Init()
 Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -99,14 +99,19 @@ Action_AutoImage::pairList Action_AutoImage::SetupAtomRanges( Topology* currentP
   return imageList;
 }
 
-// Action_AutoImage::setup()
+// Action_AutoImage::Setup()
 Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAddress) {
   bool fixedauto = false;
   bool mobileauto = false;
 
+  if (currentParm->Nmol() < 1) {
+    mprintf("Warning: autoimage: Parm %s does not contain molecule information\n",
+            currentParm->c_str());
+    return Action::ERR;
+  }
   // Determine Box info
   if (currentParm->BoxType()==Box::NOBOX) {
-    mprintf("Warning: Image::setup: Parm %s does not contain box information.\n",
+    mprintf("Warning: autoimage: Parm %s does not contain box information.\n",
             currentParm->c_str());
     return Action::ERR;
   }
@@ -133,8 +138,9 @@ Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAd
     return Action::ERR;
   }
   // Set up mask for centering anchor
+  anchorMask_.ResetMask();
   anchorMask_.AddAtomRange( anchorList_[0], anchorList_[1] );
-  int anchormolnum = (*currentParm)[ anchorList_[0] ].Mol();
+  int anchormolnum = (*currentParm)[ anchorList_[0] ].MolNum();
   mprintf("\tAnchor molecule is %i\n", anchormolnum+1);
   // Set up fixed region
   if (!fixed_.empty()) 
@@ -176,21 +182,21 @@ Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAd
     mprintf("\tThe following molecules are fixed to anchor:");
     for (pairList::iterator atom = fixedList_.begin(); 
                             atom != fixedList_.end(); atom += 2)
-      mprintf(" %i", (*currentParm)[ *atom ].Mol()+1 );
+      mprintf(" %i", (*currentParm)[ *atom ].MolNum()+1 );
     mprintf("\n");
   }
   mprintf("\t%zu molecules are mobile.\n", mobileList_.size() / 2 );
   //mprintf("\tThe following molecules are mobile:\n");
   //for (pairList::iterator atom = mobileList_.begin(); 
   //                        atom != mobileList_.end(); atom += 2)
-  //  mprintf("\t\t%i\n", (*currentParm)[ *atom ].Mol()+1 );
+  //  mprintf("\t\t%i\n", (*currentParm)[ *atom ].MolNum()+1 );
 
   truncoct_ = (triclinic_==FAMILIAR);
 
   return Action::OK;
 }
 
-// Action_AutoImage::action()
+// Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   Matrix_3x3 ucell, recip;
   Vec3 fcom;
