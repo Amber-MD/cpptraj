@@ -320,27 +320,30 @@ int Cpptraj::ParmStrip(ArgList& argIn) {
 
 /** Modify parm box information. */
 int Cpptraj::ParmBox(ArgList& argIn) {
-  int pindex = argIn.getNextInteger(0);
-  Topology* parm = parmFileList_.GetParm( pindex );
-  if ( parm == 0 ) {
-    mprinterr("Error: parmbox: parm index %i not loaded.\n",pindex);
-    return 1;
-  }
-  if ( argIn.hasKey("nobox") ) {
-    mprintf("\tRemoving box information from parm %i:%s\n", pindex, parm->c_str());
-    parm->SetBox( Box() );
-  } else {
-    Box pbox;
+  Box pbox;
+  bool nobox = false;
+  if ( argIn.hasKey("nobox") )
+    nobox = true;
+  else {
     pbox.SetX( argIn.getKeyDouble("x",0) );
     pbox.SetY( argIn.getKeyDouble("y",0) );
     pbox.SetZ( argIn.getKeyDouble("z",0) );
     pbox.SetAlpha( argIn.getKeyDouble("alpha",0) );
     pbox.SetBeta(  argIn.getKeyDouble("beta",0)  );
     pbox.SetGamma( argIn.getKeyDouble("gamma",0) );
-    // Fill in missing parm box information from specified parm
-    pbox.SetMissingInfo( parm->ParmBox() );
-    parm->SetBox( pbox );
   }
+  int pindex = argIn.getNextInteger(0);
+  Topology* parm = parmFileList_.GetParm( pindex );
+  if ( parm == 0 ) {
+    mprinterr("Error: parmbox: parm index %i not loaded.\n",pindex);
+    return 1;
+  }
+  if (nobox)
+    mprintf("\tRemoving box information from parm %i:%s\n", pindex, parm->c_str());
+  else
+    // Fill in missing parm box information from specified parm
+    pbox.SetMissingInfo( parm->ParmBox() ); 
+  parm->SetBox( pbox );
   return 0;
 }
 

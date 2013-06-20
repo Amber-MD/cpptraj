@@ -133,8 +133,15 @@ class Topology {
     bool SetupIntegerMask(AtomMask &, Frame const&) const;
     bool SetupCharMask(AtomMask &, Frame const&) const;
     // ----- Topology modification routines -----
-    Topology *modifyStateByMask(AtomMask &);
-    Topology *ModifyByMap(std::vector<int>&);
+    Topology* partialModifyStateByMask(AtomMask const& m) const {
+      return modifyStateByMask(m, false);
+    }
+    Topology* modifyStateByMask(AtomMask const& m) const {
+      return modifyStateByMask(m, true);
+    }
+    Topology* ModifyByMap(std::vector<int> const& m) const {
+      return ModifyByMap(m, true);
+    }
 
   private:
     std::vector<Atom> atoms_;
@@ -211,6 +218,8 @@ class Topology {
     void MaskSelectAtoms(int, int, char*) const;
     bool ParseMask(Frame const&, AtomMask &,bool) const;
 
-    std::vector<int> SetupSequentialArray(std::vector<int>&, int, std::vector<int>&);
+    Topology* modifyStateByMask(AtomMask const&, bool) const;
+    Topology* ModifyByMap(std::vector<int> const&, bool) const;
+    std::vector<int> SetupSequentialArray(std::vector<int> const&, int, std::vector<int> const&) const;
 };
 #endif

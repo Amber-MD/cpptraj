@@ -56,7 +56,7 @@ class Atom {
     inline const NameType& Name()      const { return aname_; }
     inline const NameType& Type()      const { return atype_; }
     inline int TypeIndex()             const { return atype_index_; }
-    inline int Mol()                   const { return mol_; }
+    inline int MolNum()                const { return mol_; }
     inline int Nbonds()                const { return (int)bonds_.size(); }
     inline int Nexcluded()             const { return (int)excluded_.size(); }
     inline double Mass()               const { return mass_; }
