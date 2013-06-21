@@ -1,5 +1,6 @@
 #include <cstdio> 
 #include <cstdlib> // system
+#include <unistd.h> // isatty
 #include "Cpptraj.h"
 #include "MpiRoutines.h"
 #include "CpptrajStdio.h"
@@ -320,27 +321,30 @@ int Cpptraj::ParmStrip(ArgList& argIn) {
 
 /** Modify parm box information. */
 int Cpptraj::ParmBox(ArgList& argIn) {
-  int pindex = argIn.getNextInteger(0);
-  Topology* parm = parmFileList_.GetParm( pindex );
-  if ( parm == 0 ) {
-    mprinterr("Error: parmbox: parm index %i not loaded.\n",pindex);
-    return 1;
-  }
-  if ( argIn.hasKey("nobox") ) {
-    mprintf("\tRemoving box information from parm %i:%s\n", pindex, parm->c_str());
-    parm->SetBox( Box() );
-  } else {
-    Box pbox;
+  Box pbox;
+  bool nobox = false;
+  if ( argIn.hasKey("nobox") )
+    nobox = true;
+  else {
     pbox.SetX( argIn.getKeyDouble("x",0) );
     pbox.SetY( argIn.getKeyDouble("y",0) );
     pbox.SetZ( argIn.getKeyDouble("z",0) );
     pbox.SetAlpha( argIn.getKeyDouble("alpha",0) );
     pbox.SetBeta(  argIn.getKeyDouble("beta",0)  );
     pbox.SetGamma( argIn.getKeyDouble("gamma",0) );
-    // Fill in missing parm box information from specified parm
-    pbox.SetMissingInfo( parm->ParmBox() );
-    parm->SetBox( pbox );
   }
+  int pindex = argIn.getNextInteger(0);
+  Topology* parm = parmFileList_.GetParm( pindex );
+  if ( parm == 0 ) {
+    mprinterr("Error: parmbox: parm index %i not loaded.\n",pindex);
+    return 1;
+  }
+  if (nobox)
+    mprintf("\tRemoving box information from parm %i:%s\n", pindex, parm->c_str());
+  else
+    // Fill in missing parm box information from specified parm
+    pbox.SetMissingInfo( parm->ParmBox() ); 
+  parm->SetBox( pbox );
   return 0;
 }
 
@@ -472,19 +476,21 @@ int Cpptraj::CrdAction(ArgList& argIn) {
     CRD->SetTopology( *currentParm );
   }
   // Loop over all frames in COORDS.
-  ProgressBar progress( stop );
+  ProgressBar progress( stop - start );
+  int set = 0;
   for (int frame = start; frame < stop; frame += offset) {
-    progress.Update( frame );
+    progress.Update( set );
     CRD->GetFrame( frame, *originalFrame );
     Frame* currentFrame = originalFrame;
-    if (act->DoAction( frame, currentFrame, &currentFrame ) == Action::ERR) {
-      mprinterr("Error: crdaction: Frame %i\n", frame + 1);
+    if (act->DoAction( set, currentFrame, &currentFrame ) == Action::ERR) {
+      mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
       break;
     }
     // Check if frame was modified. If so, update COORDS.
     // TODO: Have actions indicate whether they will modify coords
     //if ( currentFrame != originalFrame ) 
       CRD->SetCRD( frame, *currentFrame );
+    set++;
   }
   act->Print();
   if (worldrank == 0) DFL_.WriteAllDF();
@@ -573,7 +579,16 @@ Cpptraj::Mode Cpptraj::Interactive() {
     logfile_.OpenAppend("cpptraj.log");
   Mode readLoop = C_OK;
   while ( readLoop == C_OK ) {
-    if (inputLine.GetInput()) break; 
+    if (inputLine.GetInput()) {
+      // EOF (Ctrl-D) specified. If there are actions/analyses queued, ask 
+      // user if they really want to quit.
+      if (!actionList_.Empty() || !analysisList_.Empty()) {
+        if (inputLine.YesNoPrompt("EOF (Ctrl-D) specified but there are actions/analyses"
+                                  " queued. Really quit? [y/n]> "))
+          break; 
+      } else
+        break;
+    }
     if (!inputLine.empty()) {
       readLoop = Dispatch( *inputLine );
       if (logfile_.IsOpen())
@@ -581,9 +596,6 @@ Cpptraj::Mode Cpptraj::Interactive() {
     }
   }
   logfile_.CloseFile();
-  // If we broke out of loop because of EOF and Run has been called at least
-  // once, indicate that we can safely quit.
-  if (readLoop == C_OK && nrun_ > 0) return C_QUIT;
   return readLoop;
 }
 
@@ -659,14 +671,11 @@ Cpptraj::Mode Cpptraj::ProcessInput(std::string const& inputFilename) {
   }
   if (!inputFilename.empty())
     fclose(infile);
-  // If everything OK and Run has already been called, just quit.
-  if (cmode == C_OK && nrun_ > 0) return C_QUIT;
   return cmode;
 } 
 
 /** Read command line args. */
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
-  if (argc == 1) return C_INTERACTIVE;
   bool hasInput = false;
   bool interactive = false;
   std::vector<std::string> inputFiles;
@@ -769,9 +778,14 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (cmode == C_QUIT) return C_QUIT;
     }
   }
-  if (!hasInput || interactive) return C_INTERACTIVE;
-  // If Run has already been called, just quit.
-  if (nrun_ > 0) return C_QUIT;
+  // Determine whether to enter interactive mode
+  if (!hasInput || interactive) {
+    // Test if input is really from a console
+    if ( isatty(fileno(stdin)) )
+      return C_INTERACTIVE;
+    else
+      return ProcessInput(""); // "" means read from STDIN
+  }
   return C_OK;
 }
 

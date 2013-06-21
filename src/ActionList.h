@@ -25,6 +25,7 @@ class ActionList {
     void Print();
     /// List all actions in the action list.
     void List() const;
+    bool Empty() const { return actionlist_.empty(); }
   private:
     /// Action initialization and setup status.
     enum ActionStatusType { NO_INIT=0, INIT, SETUP, INACTIVE };

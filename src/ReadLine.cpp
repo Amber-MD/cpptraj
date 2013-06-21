@@ -42,3 +42,10 @@ int ReadLine::GetInput() {
   if (line != 0) free( line );
   return 0;
 }
+
+bool ReadLine::YesNoPrompt(const char* prompt) {
+  char* line = readline(prompt);
+  if (line == 0 || strlen( line ) < 1) return false;
+  if (line[0] == 'y' || line[0] == 'Y') return true;
+  return false;
+}

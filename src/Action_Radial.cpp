@@ -387,15 +387,12 @@ void Action_Radial::Print() {
                nmask1;
     mprintf("            Density is %f distances / Ang^3.\n",density_);
   }
-  // Calculate (average) density of atoms in mask2
-  //double mask2density = density_ / nmask1;
-  //mprintf("            Average density of atoms in mask2 is %f atoms / Ang^3\n", mask2density);
-
   // Need to normalize each bin, which holds the particle count at that
   // distance. Calculate the expected number of molecules for that 
   // volume slice. Expected # of molecules is particle density times volume 
   // of each slice:
   // Density * ( [(4/3)*PI*(R+dr)^3] - [(4/3)*PI*(dr)^3] )
+  double sum = 0.0;
   for (int bin = 0; bin < numBins_; bin++) {
     //mprintf("DBG:\tNumBins= %i\n",rdf[bin]); 
     // Number of particles in this volume slice over all frames.
@@ -404,32 +401,21 @@ void Action_Radial::Print() {
       rawrdf_->Add(bin, &N);
     // r, r + dr
     double R = spacing_ * (double)bin;
-    double Rdr = spacing_ * (double)(bin+1);
+    double Rdr = R + spacing_;
     // Volume of slice: 4/3_pi * [(r+dr)^3 - (dr)^3]
     double dv = FOURTHIRDSPI * ( (Rdr * Rdr * Rdr) - (R * R * R) );
     // Expected # distances in this volume slice
-    double norm = dv * density_;
+    double expectedD = dv * density_;
     if (debug_>0)
       mprintf("    \tBin %f->%f <Pop>=%f, V=%f, D=%f, norm %f distances.\n",
-              R,Rdr,N/numFrames_,dv,density_,norm);
+              R,Rdr,N/numFrames_,dv,density_,expectedD);
     // Divide by # frames
-    norm *= (double)numFrames_;
+    double norm = expectedD * (double)numFrames_;
     N /= norm;
     Dset_->Add(bin, &N);
-  }
-  // If specified, calc integral of # mask2 atoms as fn of distance
-  if (intrdf_ != 0) {
-    double sum = 0.0;
-    double lastBin = 0.0;
-    double binNorm = 1.0 / ((double)numFrames_ * nmask1);
-    for (int bin = 0; bin < numBins_; bin++) {
-      // Expected # mask2 atoms up to this volume slice via trapezoid integration
-      double thisBin = ((double)RDF_[bin]) * binNorm;
-      double R = spacing_ * (double)bin;
-      double Rdr = spacing_ * (double)(bin+1);
-      sum += ((Rdr - R) * (lastBin + thisBin) * 0.5);
-      lastBin = thisBin;
-      //sum += ((Rdr - R) * (Dset_->CurrentDval() + N) * 0.5);
+    // If specified, calc integral of # mask2 atoms as fn of distance
+    if (intrdf_ != 0) {
+      sum += N * expectedD;
       intrdf_->Add(bin, &sum);
     }
   }

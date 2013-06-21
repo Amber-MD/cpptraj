@@ -55,6 +55,7 @@ class ClusterDist {
     typedef std::vector<DataSet*> DsArray;
     virtual ~ClusterDist() {}
     virtual ClusterMatrix PairwiseDist(int) = 0;
+    virtual double FrameDist(int, int) = 0;
     virtual double CentroidDist( Centroid*, Centroid* ) = 0;
     virtual double FrameCentroidDist(int, Centroid* ) = 0;
     virtual void CalculateCentroid(Centroid*, Cframes const&) = 0;
@@ -68,6 +69,7 @@ class ClusterDist_Num : public ClusterDist {
     ClusterDist_Num() : data_(0), dcalc_(0) {}
     ClusterDist_Num(DataSet*);
     ClusterMatrix PairwiseDist(int);
+    double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
@@ -82,6 +84,7 @@ class ClusterDist_Euclid : public ClusterDist {
     ClusterDist_Euclid() {}
     ClusterDist_Euclid(DsArray const&);
     ClusterMatrix PairwiseDist(int);
+    double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
@@ -97,6 +100,7 @@ class ClusterDist_DME: public ClusterDist {
     ClusterDist_DME() : coords_(0) {}
     ClusterDist_DME(DataSet*,AtomMask const&);
     ClusterMatrix PairwiseDist(int);
+    double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
@@ -112,6 +116,7 @@ class ClusterDist_RMS : public ClusterDist {
     ClusterDist_RMS() : coords_(0), nofit_(false), useMass_(false) {}
     ClusterDist_RMS(DataSet*,AtomMask const&,bool,bool);
     ClusterMatrix PairwiseDist(int);
+    double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
@@ -122,5 +127,6 @@ class ClusterDist_RMS : public ClusterDist {
     bool nofit_;
     bool useMass_;
     Frame frm1_;
+    Frame frm2_;
 };
 #endif

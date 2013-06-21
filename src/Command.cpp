@@ -64,6 +64,7 @@
 #include "Action_Density.h"
 #include "Action_PairDist.h"
 #include "Action_OrderParameter.h"
+#include "Action_MinDist.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -391,6 +392,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "makestructure", Action_MakeStructure::Alloc, Action_MakeStructure::Help, 0 },
   { DispatchObject::ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, 0 },
   { DispatchObject::ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, 0 },
+  { DispatchObject::ACTION, "mindist", Action_MinDist::Alloc, Action_MinDist::Help, 0 },
   { DispatchObject::ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, 0 },
   { DispatchObject::ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, 0 },
   { DispatchObject::ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, 0 },

@@ -83,6 +83,10 @@ ClusterMatrix ClusterDist_Num::PairwiseDist(int sieve) {
   return frameDistances;
 }
 
+double ClusterDist_Num::FrameDist(int f1, int f2) {
+  return dcalc_(data_->Dval(f1), data_->Dval(f2));
+}
+
 double ClusterDist_Num::CentroidDist(Centroid* c1, Centroid* c2) {
   return dcalc_(((Centroid_Num*)c1)->cval_, ((Centroid_Num*)c2)->cval_);
 }
@@ -147,6 +151,16 @@ ClusterMatrix ClusterDist_Euclid::PairwiseDist(int sieve) {
 }
 #endif
   return frameDistances;
+}
+
+double ClusterDist_Euclid::FrameDist(int f1, int f2) {
+  double dist = 0.0;
+  DcArray::iterator dcalc = dcalcs_.begin();
+  for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds, ++dcalc) {
+    double diff = (*dcalc)((*ds)->Dval(f1), (*ds)->Dval(f2));
+    dist += (diff * diff);
+  }
+  return sqrt(dist);
 }
 
 double ClusterDist_Euclid::CentroidDist(Centroid* c1, Centroid* c2) {
@@ -226,6 +240,13 @@ ClusterMatrix ClusterDist_DME::PairwiseDist(int sieve) {
   return frameDistances;
 }
 
+double ClusterDist_DME::FrameDist(int f1, int f2) {
+  Frame frm2 = frm1_;
+  coords_->GetFrame( f1, frm1_, mask_ );
+  coords_->GetFrame( f2, frm2,  mask_ );
+  return frm1_.DISTRMSD( frm2 );
+}
+
 double ClusterDist_DME::CentroidDist(Centroid* c1, Centroid* c2) {
   return ((Centroid_Coord*)c1)->cframe_.DISTRMSD( ((Centroid_Coord*)c2)->cframe_ );
 }
@@ -271,6 +292,7 @@ ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, AtomMask const& maskIn,
   useMass_(useMass)
 {
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
+  frm2_ = frm1_;
 }
 
 ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
@@ -307,6 +329,15 @@ ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
 #endif
   progress.Finish();
   return frameDistances;
+}
+
+double ClusterDist_RMS::FrameDist(int f1, int f2) {
+  coords_->GetFrame( f1, frm1_, mask_ );
+  coords_->GetFrame( f2, frm2_,  mask_ );
+  if (nofit_)
+    return frm1_.RMSD_NoFit( frm2_, useMass_ );
+  else
+    return frm1_.RMSD( frm2_, useMass_ );
 }
 
 double ClusterDist_RMS::CentroidDist(Centroid* c1, Centroid* c2) {

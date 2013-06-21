@@ -10,6 +10,7 @@ class Cluster_HierAgglo : public ClusterList {
     int SetupCluster(ArgList&);
     void ClusteringInfo();
     int Cluster();
+    void AddSievedFrames();
   private:
     int nclusters_;       ///< Target # of clusters.
     double epsilon_;      ///< Once the min distance between clusters is > epsilon, stop.

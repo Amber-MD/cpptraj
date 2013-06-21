@@ -1,4 +1,5 @@
 // Analysis_Clustering
+#include <ctime>
 #include "Analysis_Clustering.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
@@ -217,6 +218,10 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   return Analysis::OK;
 }
 
+inline void WriteTiming(const char* label, clock_t t0, clock_t tf) {
+  mprintf("\t%15s: %12.2f seconds.\n", label, ((float)(tf - t0)) / CLOCKS_PER_SEC);
+}
+
 /** This is where the clustering is actually performed. First the distances
   * between each frame are calculated. Then the clustering routine is called.
   */
@@ -224,6 +229,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
 // NOTE: Should distances be saved only if load_pair?
 Analysis::RetType Analysis_Clustering::Analyze() {
   mprintf("\tStarting clustering.\n");
+  clock_t cluster_setup_start = clock();
   // Default: USE_FRAMES  - Calculate pair distances from frames.
   //          USE_FILE    - If pairdistfile exists, load pair distances from there.
   // Calculated distances will be saved if not loaded from file.
@@ -257,15 +263,21 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     mprintf("Warning: Associated coordinate data set is empty.\n");
     mprintf("Warning: Disabling coordinate output.\n");
     has_coords = false;
-  }  
+  }
+  clock_t cluster_setup_stop = clock();
   // Calculate distances between frames
+  clock_t cluster_pairwise_start = clock();
   if (CList_->CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
                                   usedme_, nofitrms_, useMass_, maskexpr_, sieve_ ))
     return Analysis::ERR;
+  clock_t cluster_pairwise_stop = clock();
   // Cluster
+  clock_t cluster_cluster_start = clock();
   CList_->Cluster();
+  clock_t cluster_cluster_stop = clock();
   // Sort clusters and renumber; also finds centroids for printing
   // representative frames. If sieving, add remaining frames.
+  clock_t cluster_finish_start = clock();
   CList_->Renumber( (sieve_ > 1) );
 
   // DEBUG
@@ -306,6 +318,13 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     if (!reptrajfile_.empty())
       WriteRepTraj( *CList_ );
   }
+  clock_t cluster_finish_stop = clock();
+  // Timing data
+  WriteTiming("Cluster Init.", cluster_setup_start, cluster_setup_stop);
+  WriteTiming("Pairwise Calc.", cluster_pairwise_start, cluster_pairwise_stop);
+  WriteTiming("Clustering", cluster_cluster_start, cluster_cluster_stop);
+  WriteTiming("Cluster Post.", cluster_finish_start, cluster_finish_stop);
+  WriteTiming("Total", cluster_setup_start, cluster_finish_stop);
   return Analysis::OK;
 }
 

@@ -191,7 +191,11 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   int anum = 1; // Actual PDB atom number
   int aidx = 0; // Atom index in topology
   Topology::mol_iterator mol = pdbTop_->MolStart();
-  int lastAtomInMol = (*mol).EndAtom();
+  int lastAtomInMol;
+  if (pdbTop_->Nmol() > 0)
+    lastAtomInMol = (*mol).EndAtom();
+  else
+    lastAtomInMol = -1;
   const double *Xptr = frameOut.xAddress();
   for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom) {
     int res = (*atom).ResNum();

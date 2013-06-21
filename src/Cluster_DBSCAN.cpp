@@ -1,29 +1,32 @@
+#include <cfloat> // DBL_MAX
 #include "Cluster_DBSCAN.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 
 Cluster_DBSCAN::Cluster_DBSCAN() :
   minPoints_(-1),
-  epsilon_(-1.0)
+  epsilon_(-1.0),
+  sieveToCentroid_(true)
 {}
 
 void Cluster_DBSCAN::Help() {
-  mprintf("\t[dbscan minpoints <n> epsilon <e>]\n");
+  mprintf("\t[dbscan minpoints <n> epsilon <e> [sievetoframe]]\n");
 }
 
 int Cluster_DBSCAN::SetupCluster(ArgList& analyzeArgs) {
   minPoints_ = analyzeArgs.getKeyInt("minpoints", -1);
   if (minPoints_ < 1) {
-    mprinterr("Error: DBSCAN requires minimum # of points to be set and >= 1\n");
-    mprinterr("Error: Use 'minpoints <N>'\n");
+    mprinterr("Error: DBSCAN requires minimum # of points to be set and >= 1\n"
+              "Error: Use 'minpoints <N>'\n");
     return 1;
   }
   epsilon_ = analyzeArgs.getKeyDouble("epsilon", -1.0);
   if (epsilon_ <= 0.0) {
-    mprinterr("Error: DBSCAN requires epsilon to be set and > 0.0\n");
-    mprinterr("Error: Use 'epsilon <e>'\n");
+    mprinterr("Error: DBSCAN requires epsilon to be set and > 0.0\n"
+              "Error: Use 'epsilon <e>'\n");
     return 1;
   }
+  sieveToCentroid_ = !analyzeArgs.hasKey("sievetoframe");
   return 0;
 }
 
@@ -31,6 +34,15 @@ void Cluster_DBSCAN::ClusteringInfo() {
   mprintf("\tDBSCAN:\n");
   mprintf("\t\tMinimum pts to form cluster= %i\n", minPoints_);
   mprintf("\t\tCluster distance criterion= %.3f\n", epsilon_);
+  if (sieveToCentroid_)
+    mprintf("\t\tSieved frames will be added back solely based on their"
+            " closeness to cluster centroids.\n"
+            "\t\t  (This option is less accurate but faster.)\n");
+  else
+    mprintf("\t\tSieved frames will only be added back if they are within"
+            " %.3f of a frame in an existing cluster.\n"
+            "\t\t  (This option is more accurate and will identify sieved"
+            " frames as noise but is slower.)\n", epsilon_);
 }
 
 void Cluster_DBSCAN::RegionQuery(std::vector<int>& NeighborPts,
@@ -154,4 +166,50 @@ int Cluster_DBSCAN::Cluster() {
   }
 
   return 0;
+}
+
+// Cluster_DBSCAN::AddSievedFrames()
+void Cluster_DBSCAN::AddSievedFrames() {
+  int n_sieved_noise = 0;
+  // NOTE: All cluster centroids must be up to date!
+  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame) {
+    if (FrameDistances_.IgnoringRow(frame)) {
+      //mprintf(" %i [", frame + 1); // DEBUG
+      // Which clusters centroid is closest to this frame?
+      double mindist = DBL_MAX;
+      cluster_it  minNode = clusters_.end();
+      for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
+        double dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
+        //mprintf(" %i:%-6.2f", (*Cnode).Num(), dist); // DEBUG
+        if (dist < mindist) {
+          mindist = dist;
+          minNode = Cnode;
+        }
+      }
+      //mprintf(" ], to cluster %i\n", (*minNode).Num()); // DEBUG
+      bool goodFrame = false;
+      if ( sieveToCentroid_ || mindist < epsilon_ ) {
+        // Sieving based on centroid only or frame is already within epsilon, accept.
+        goodFrame = true;
+      } else {
+        // Check if any frames in the cluster are closer than epsilon to sieved frame.
+        for (ClusterNode::frame_iterator cluster_frame = (*minNode).beginframe();
+                                         cluster_frame != (*minNode).endframe(); ++cluster_frame)
+        {
+          if ( Cdist_->FrameDist(frame, *cluster_frame) < epsilon_ ) {
+            goodFrame = true;
+            break;
+          }
+        }
+      }
+      // Add sieved frame to the closest cluster if closest distance is
+      // less than epsilon.
+      if ( goodFrame )
+        (*minNode).AddFrameToCluster( frame );
+      else
+        n_sieved_noise++;
+    }
+  }
+  //mprintf("\n");
+  mprintf("\t%i sieved frames were discarded as noise.\n", n_sieved_noise);
 }

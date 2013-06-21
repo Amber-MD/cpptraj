@@ -73,7 +73,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
       if (outfile_.IsOpen())
         outfile_.Printf("%8i %8i %4s %8i %4s %8i\n", frameNum+OUTPUTFRAMESHIFT,
                         atom+1, (*CurrentParm_)[atom].c_str(), res+1,
-                        CurrentParm_->Res(res).c_str(), (*CurrentParm_)[atom].Mol()+1);
+                        CurrentParm_->Res(res).c_str(), (*CurrentParm_)[atom].MolNum()+1);
       /*mprintf(" Type=%4s",CurrentParm_->types[atom]);
       mprintf(" Charge=%lf",CurrentParm_->charge[atom]);
       mprintf(" Mass=%lf",CurrentParm_->mass[atom]);
@@ -86,8 +86,9 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
     // Convert Mask1 to an integer mask for use in parm/frame functions
     AtomMask Mask2 = Mask1_;
     Mask2.ConvertToIntMask();
-    // Create new parm and frame based on atoms in Mask
-    Topology* pdbParm = CurrentParm_->modifyStateByMask(Mask2);
+    // Create new parm and frame based on atoms in Mask. Since we dont care
+    // about advanced parm info for PDB write just do a partial modify.
+    Topology* pdbParm = CurrentParm_->partialModifyStateByMask(Mask2);
     //pdbParm->Summary(); // DEBUG
     Frame pdbFrame(*currentFrame, Mask2);
     // Set up output file. 
