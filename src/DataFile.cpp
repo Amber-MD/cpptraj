@@ -7,6 +7,7 @@
 #include "DataIO_Std.h"
 #include "DataIO_Grace.h"
 #include "DataIO_Gnuplot.h"
+#include "DataIO_RemLog.h"
 
 // CONSTUCTOR
 DataFile::DataFile() :
@@ -35,6 +36,8 @@ void DataFile::DetermineTypeFromExt( std::string const& Ext ) {
     dataType_ = GNUPLOT;
   else if (Ext==".dat")
     dataType_ = DATAFILE;
+  else if (Ext==".log")
+    dataType_ = REMLOG;
   else
     dataType_ = DATAFILE;
 }
@@ -45,6 +48,7 @@ int DataFile::SetupDataIO() {
     case DATAFILE : dataio_ = new DataIO_Std(); break;
     case XMGRACE  : dataio_ = new DataIO_Grace(); break;
     case GNUPLOT  : dataio_ = new DataIO_Gnuplot(); break;
+    case REMLOG   : dataio_ = new DataIO_RemLog(); break;
     default       : dataio_ = new DataIO_Std(); break;
   }
   if (dataio_ == 0) return 1;

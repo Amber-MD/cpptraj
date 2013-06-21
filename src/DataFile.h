@@ -7,7 +7,7 @@
 class DataFile {
   public:
     enum DataFormatType {
-      UNKNOWN_DATA=0, DATAFILE, XMGRACE, GNUPLOT
+      UNKNOWN_DATA=0, DATAFILE, XMGRACE, GNUPLOT, REMLOG
     };
 
     DataFile();
