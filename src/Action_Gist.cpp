@@ -18,7 +18,8 @@ Action_Gist::Action_Gist() :
   watermodel_(false),
   useTIP3P_(false),
   useTIP4P_(false),
-  useTIP4PEW_(false)
+  useTIP4PEW_(false),
+  doOrder_(false)
 {
   mprintf("\tGIST: INIT \n");
   gridcntr_[0] = -1;
@@ -34,7 +35,7 @@ Action_Gist::Action_Gist() :
 
 
 void Action_Gist::Help() {
-  mprintf("gist <watermodel>[{tip3p|tip4p|tip4pew}] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
+  mprintf("gist <watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
   mprintf("\tCalculate GIST between water molecules in selected site \n");
 }
 
@@ -65,6 +66,14 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (!useTIP3P_ && !useTIP4P_ && !useTIP4PEW_) {
     mprinterr("Error: gist: Only water models supprted are TIP3P and TIP4P\n");
     return Action::ERR;
+  }
+
+  doOrder_ = actionArgs.hasKey("doorder");
+  if(doOrder_){
+    mprintf("\tGIST doing Order calculation");
+  }
+  else{
+    mprintf("\tGIST NOT doing Order calculation");
   }
 
   // Set Bulk Energy based on water model
@@ -127,6 +136,10 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
 
   MAX_GRID_PT_ = griddim_[0] * griddim_[1] * griddim_[2];
   Vvox_ = gridspacn_*gridspacn_*gridspacn_;
+  /*G_max_x = griddim_[0] * gridspacn_ + 1.5 ;
+  G_max_y = griddim_[1] * gridspacn_ + 1.5 ;
+  G_max_z = griddim_[2] * gridspacn_ + 1.5 ;
+  */
   mprintf("\tGIST Setup: %d %d %d %d %f \n", griddim_[0], griddim_[1], griddim_[2], MAX_GRID_PT_, Vvox_);
 
   // Set up grid origi
@@ -136,6 +149,12 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   mprintf("\tGIST grid origin: %5.3f %5.3f %5.3f\n", gridorig_[0], gridorig_[1], gridorig_[2]);
 
   // Set up cumulative energy arrays
+  x_.clear();
+  x_.resize(5, 0.0);
+  y_.clear();
+  y_.resize(5, 0.0);
+  z_.clear();
+  z_.resize(5, 0.0);
   wh_evdw_.clear();
   wh_evdw_.resize(MAX_GRID_PT_, 0.0);
   wh_eelec_.clear();
@@ -261,7 +280,6 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   for (solvmol = CurrentParm_->MolStart();
        solvmol != CurrentParm_->MolEnd(); ++solvmol)
     {
-      
       if (!(*solvmol).IsSolvent()) continue;
       Grid( currentFrame );
       voxel = gridwat_[resnum];
@@ -269,8 +287,9 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
       if (voxel>=MAX_GRID_PT_) continue;
       EulerAngle( currentFrame );
       Dipole( currentFrame );
-      Order( currentFrame );
       NonbondEnergy( currentFrame );
+      //if(doOrder_) Order( currentFrame );
+
     }
   
   //Debugg
@@ -298,27 +317,37 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
   double delta2, Acoef, Bcoef, deltatest;
   Vec3 XYZ, XYZ2, JI;
   double rij2, rij, r2, r6, r12, f12, f6, e_vdw, qiqj, e_elec;
-  int satom, satom2;
-  
+  int satom, satom2;//,param,index;
+
   //  Topology::mol_iterator solvmol, solvmol2;
-  if (NFRAME_==1) mprintf("GIST NonbondEnergy \n");
+  //if (NFRAME_==1) mprintf("GIST NonbondEnergy \n");
   int  voxel2,  resnum2;
   double q1, q2;
 
-
+  //variables for Order  
+  int  i,atom1,atom2,mol1,mol2;
+  double cos, sum, r_1, r_2, r_3, r_4;//, x_[5], y_[5], z_[5];
+  Vec3 O_wat1, O_wat2, O_wat3, v1, v2;
+  r_1=1000; r_2=1000; r_3=1000; r_4=1000;
+  x_[0] = 0.0; x_[1] = 0.0; x_[2] = 0.0; x_[3] = 0.0; x_[4] = 0.0;
+  y_[0] = 0.0; y_[1] = 0.0; y_[2] = 0.0; y_[3] = 0.0; y_[4] = 0.0;
+  z_[0] = 0.0; z_[1] = 0.0; z_[2] = 0.0; z_[3] = 0.0; z_[4] = 0.0;
+  //if (NFRAME_==1 && doOrder_) mprintf("GIST Order Parameter \n");
+  
   // Setup imaging info
-  Matrix_3x3 ucell, recip;
-
+  //Matrix_3x3 ucell, recip;
   // Loop over solvent atoms
+  atom1 = 0;
   for (satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
     {
       // Set up coord index for this atom
       XYZ =  Vec3(currentFrame->XYZ( satom ));	  
       // Inner loop	has both solute and solvent
       resnum2=0;
+      //initialization for order
+      
       for (solvmol2 = CurrentParm_->MolStart();
-	   //	       solvmol2 != CurrentParm_->MolEnd(); ++solvmol2)
-	   solvmol2 > solvmol ; ++solvmol2)
+	   solvmol2 != CurrentParm_->MolEnd(); ++solvmol2)
 	{
 	  if ((*solvmol2).IsSolvent()) { 
 	    // Solvent loop
@@ -328,26 +357,29 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 	    if ((resnum-1) == (resnum2-1)) continue;
 	  }
 	  
+	  
+	  atom2 = 0;
 	  for (satom2 = (*solvmol2).BeginAtom(); satom2 < (*solvmol2).EndAtom(); ++satom2)
 	    {    
 	      // Set up coord index for this atom
 	      XYZ2 = Vec3(currentFrame->XYZ( satom2 ));
 	      // Calculate the vector pointing from atom2 to atom1
-	      rij2 = DIST2_ImageOrtho(XYZ, XYZ2, currentFrame->BoxCrd());
+	      //rij2 = DIST2_ImageOrtho(XYZ, XYZ2, currentFrame->BoxCrd());
 	      switch( ImageType() ) {
 	      case NONORTHO:
 		currentFrame->BoxCrd().ToRecip(ucell, recip);
 		rij2 = DIST2_ImageNonOrtho(XYZ, XYZ2, ucell, recip);
 		break;
 	      case ORTHO:
-		    rij2 = DIST2_ImageOrtho(XYZ, XYZ2, currentFrame->BoxCrd());
-		    break;
+		rij2 = DIST2_ImageOrtho(XYZ, XYZ2, currentFrame->BoxCrd());
+		break;
 	      default:
 		rij2 = DIST2_NoImage(XYZ, XYZ2);	          
 	      }
 	      rij = sqrt(rij2);
 	      // LJ energy 
 	      GetLJparam(*CurrentParm_, Acoef, Bcoef, satom, satom2);
+	      
 	      r2    = 1 / rij2;
 	      r6    = r2 * r2 * r2;
 	      r12   = r6 * r6;
@@ -383,16 +415,55 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 		}
 		
 		// Store the water neighbor only used O-O distance
-		if (satom2==0 && satom==0 && rij<3.5) {
+		//if (satom2==0 && satom==0 && rij<3.5) {
+		if (atom1==0 && atom2==0 && rij<3.5) {
 		  neighbor_[voxel]++;
 		  if (voxel2<MAX_GRID_PT_) neighbor_[voxel2]++;	
-		    }
-	      }
+		}
+		
+		// Action_Gist::Order() 
+		if((doOrder_) && (atom1 == 0) && (atom2 == 0)) {
+		  		  
+		  O_wat2 = XYZ2;      
+		  O_wat1 = XYZ;      
+
+		  if (rij2<r_1) {
+		    r_4 = r_3; x_[4] = x_[3]; y_[4] = y_[3]; z_[4] = z_[3];
+		    r_3 = r_2; x_[3] = x_[2]; y_[3] = y_[2]; z_[3] = z_[2]; 
+		    r_2 = r_1; x_[2] = x_[1]; y_[2] = y_[1]; z_[2] = z_[1];
+		    r_1 = rij2; x_[1] = O_wat2[0]; y_[1] = O_wat2[1]; z_[1] = O_wat2[2];
+		  }
+		  
+		}// END if doOrder_
+	      }// IF solvent
+	      atom2++;
 	    } // END Inner loop ALL atoms 
 	} // END Inner loop ALL molecules
+      if((doOrder_) && (atom1 == 0) && (atom2 == 0)) {
+	
+	// Compute the tetahedral order parameter
+	sum=0;
+	for (mol1=1; mol1<=3; mol1++) {
+	  for (mol2=1; mol2<=4; mol2++) {
+	    if (mol1==mol2) continue;
+	    O_wat2[0] = x_[mol1];
+	    O_wat2[1] = y_[mol1];
+	    O_wat2[2] = z_[mol1];
+	    O_wat3[0] = x_[mol2];
+	    O_wat3[1] = y_[mol2];
+	    O_wat3[2] = z_[mol2];
+	    v1 = O_wat2 - O_wat1;
+	    v2 = O_wat3 - O_wat1; 	 
+	    cos = v1*( v2);
+	    sum += (cos + 1.0/3)*(cos + 1.0/3);
+	  }
+	}
+	qtet_[voxel] += 1 - (3.0/8)*sum;
+      }// END if doOrder_
+      atom1++;
     } // END Outer loop solvent atoms
 }
-  
+
 
 // Action_Gist::Grid()
 void Action_Gist::Grid(Frame *frameIn) {
@@ -400,7 +471,6 @@ void Action_Gist::Grid(Frame *frameIn) {
   int  i, gridindex[3];
   Vec3 comp, O_wat, atom, H1_wat, H2_wat;
   double rij;
-  
   i = (*solvmol).BeginAtom();
   O_wat = Vec3(frameIn->XYZ(i));
   H1_wat = Vec3(frameIn->XYZ(i+1));
@@ -417,29 +487,15 @@ void Action_Gist::Grid(Frame *frameIn) {
     comp /= gridspacn_;
 
     //Crystal, comment this if and the next three lines if you want to return to old code
-    if (comp[0]>=0 && comp[1]>=0 && comp[2]>=0){
+    if (comp[0]>=0 && comp[1]>=0 && comp[2]>=0 ){
       gridindex[0] = (int) comp[0];
       gridindex[1] = (int) comp[1];
       gridindex[2] = (int) comp[2];
-
-      //Crystal un comment these three lines to go back to old code
-      /*  gridindex[0] = floor (comp[0]);
-	  gridindex[1] = floor (comp[1]);
-	  gridindex[2] = floor (comp[2]);*/
       
-      /*      gridindex[0] = rint (comp[0]);
-      gridindex[1] = rint (comp[1]);
-      gridindex[2] = rint (comp[2]); */
-
-      //Crystal uncomment the next if and comment the one after to go back to old code
-    //if (gridindex[0]>=0 && gridindex[1]>=0 && gridindex[2]>=0 && (gridindex[0]<griddim_[0]) && (gridindex[1]<griddim_[1]) && (gridindex[2]<griddim_[2]))
       if ((gridindex[0]<griddim_[0]) && (gridindex[1]<griddim_[1]) && (gridindex[2]<griddim_[2]))
 	{
 	  // this water belongs to grid point gridindex[0], gridindex[1], gridindex[2]
 	  voxel = (gridindex[0]*griddim_[1] + gridindex[1])*griddim_[2] + gridindex[2];
-	  if (voxel<0) {
-	  break;
-	  }
 	  if (a==0) {
 	    gridwat_[resnum] = voxel;
 	    nwat_[voxel]++;
@@ -451,11 +507,10 @@ void Action_Gist::Grid(Frame *frameIn) {
       }
   } 
 }
-	
 
 void Action_Gist::EulerAngle(Frame *frameIn) {
 
-  if (NFRAME_==1) mprintf("GIST Euler Angles \n");
+  //if (NFRAME_==1) mprintf("GIST Euler Angles \n");
   Vec3 x_lab, y_lab, z_lab, O_wat, H1_wat, H2_wat, x_wat, y_wat, z_wat, node, v;
   double cp, dp;
 
@@ -527,55 +582,6 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
       if (dp<0) psi = 2*PI - psi;
     }
     
-    // DEBUG
-    // The total rotational matrix for transforming the water frame onto the lab frame
-    /*	float ** mat_W = new float * [3];
-	for (int a=0; a<3; a++) {
-	mat_W[a] = new float [3];
-	}
-	mat_W[0][0] = cos(psi)*cos(phi) - cos(theta)*sin(phi)*sin(psi);
-	mat_W[0][1] = cos(psi)*sin(phi) + cos(theta)*cos(phi)*sin(psi);
-	mat_W[0][2] = sin(psi)*sin(theta);
-	mat_W[1][0] = -sin(psi)*cos(phi) - cos(theta)*sin(phi)*cos(psi);
-	mat_W[1][1] = -sin(psi)*sin(phi) + cos(theta)*cos(phi)*cos(psi);
-	mat_W[1][2] = cos(psi)*sin(theta);
-	mat_W[2][0] = sin(theta)*sin(phi);
-	mat_W[2][1] = -sin(theta)*cos(phi);
-	mat_W[2][2] = cos(theta);
-	
-	// apply the rotational matrix to the water frame of reference
-	//      Vec3 x_res = x_wat*( mat_W );
-	//      Vec3 y_res = y_wat*( mat_W );
-	//      Vec3 z_res = z_wat*( mat_W );
-	//I uncommented this since it won't take a matrix * Vec3 operation and this is equivalent, right?
-	x_res[0] = x_wat[0]*mat_W[0][0] + x_wat[1]*mat_W[0][1] + x_wat[2]*mat_W[0][2];
-	x_res[1] = x_wat[0]*mat_W[1][0] + x_wat[1]*mat_W[1][1] + x_wat[2]*mat_W[1][2];
-	x_res[2] = x_wat[0]*mat_W[2][0] + x_wat[1]*mat_W[2][1] + x_wat[2]*mat_W[2][2];
-	y_res[0] = y_wat[0]*mat_W[0][0] + y_wat[1]*mat_W[0][1] + y_wat[2]*mat_W[0][2];
-	y_res[1] = y_wat[0]*mat_W[1][0] + y_wat[1]*mat_W[1][1] + y_wat[2]*mat_W[1][2];
-	y_res[2] = y_wat[0]*mat_W[2][0] + y_wat[1]*mat_W[2][1] + y_wat[2]*mat_W[2][2];
-	z_res[0] = z_wat[0]*mat_W[0][0] + z_wat[1]*mat_W[0][1] + z_wat[2]*mat_W[0][2];
-	z_res[1] = z_wat[0]*mat_W[1][0] + z_wat[1]*mat_W[1][1] + z_wat[2]*mat_W[1][2];
-	z_res[2] = z_wat[0]*mat_W[2][0] + z_wat[1]*mat_W[2][1] + z_wat[2]*mat_W[2][2];
-	
-	for (int a=0; a<3; a++) {
-	delete [] mat_W[a];
-	}
-	delete [] mat_W;
-	
-	double rRx = x_res*( x_lab );
-	double rRy = y_res*( y_lab );
-	double rRz = z_res*( z_lab );
-	if (rRx>1+1E-6 || rRx<1-1E-6 || rRy>1+1E-6 || rRy<1-1E-6 || rRz>1+1E-6 || rRz<1-1E-6) {
-        cout  << "wat=" << resnum-1 << ", gr=" << voxel << " ROTATION IS BAD!" << endl;
-        cout << "rx=" << rRx << ", ry=" << rRy << ", rz=" << rRz << endl;
-        cout << "water new x axis: " << x_res[0] << " " << x_res[1] << " " << x_res[2] << endl;
-        cout << "water new y axis: " << y_res[0] << " " << y_res[1] << " " << y_res[2] << endl;
-        cout << "water new z axis: " << z_res[0] << " " << z_res[1] << " " << z_res[2] << endl;
-        mprinterr("Error: Euler: BAD ROTATION.\n");
-        break;	
-	}
-    */	
     if (!(theta<=PI && theta>=0 && phi<=2*PI && phi>=0 && psi<=2*PI && psi>=0)) {
       cout << "angles: " << theta << " " << phi << " " << psi << endl;
       cout << H1_wat[0] << " " << H1_wat[1] << " " << H1_wat[2] << " " << H2_wat[0] << " " << H2_wat[1] << " " << H2_wat[2] << endl;
@@ -595,7 +601,7 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
 // Action_Gist::Dipole()
 void Action_Gist::Dipole(Frame *frameIn) {
   
-  if (NFRAME_==1) mprintf("GIST Dipole \n");
+  //if (NFRAME_==1) mprintf("GIST Dipole \n");
   double dipolar_vector[3];
   Vec3 XYZ, sol;
 
@@ -622,55 +628,6 @@ void Action_Gist::Dipole(Frame *frameIn) {
   dipolex_[voxel] += dipolar_vector[0];
   dipoley_[voxel] += dipolar_vector[1];
   dipolez_[voxel] += dipolar_vector[2];
-}
-
-
-// Action_Gist::Order() 
-void Action_Gist::Order(Frame *frameIn) {
-
-  if (NFRAME_==1) mprintf("GIST Order Parameter \n");
-  int  i;
-  double cos, sum, r1, r2, r3, r4, rij2, x[5], y[5], z[5];
-  Vec3 O_wat1, O_wat2, O_wat3, v1, v2;
-  
-  i = (*solvmol).BeginAtom();
-  O_wat1 = Vec3(frameIn->XYZ(i));
-  
-  r1=1000; r2=1000; r3=1000; r4=1000;
-  //    for (Topology::mol_iterator solvmol2 = CurrentParm_->MolStart();
-  for (solvmol2 = CurrentParm_->MolStart();
-       solvmol2 != CurrentParm_->MolEnd(); ++solvmol2)
-    {
-      if (!(*solvmol2).IsSolvent()) continue;
-      i = (*solvmol2).BeginAtom();
-      O_wat2 = Vec3(frameIn->XYZ(i));      
-      rij2 = DIST2_NoImage(O_wat1, O_wat2);
-      if (rij2<r1) {
-        r4 = r3; x[4] = x[3]; y[4] = y[3]; z[4] = z[3];
-	r3 = r2; x[3] = x[2]; y[3] = y[2]; z[3] = z[2]; 
-	r2 = r1; x[2] = x[1]; y[2] = y[1]; z[2] = z[1];
-	r1 = rij2; x[1] = O_wat2[0]; y[1] = O_wat2[1]; z[1] = O_wat2[2];
-      }
-    }
-  
-  // Compute the tetahedral order parameter
-  sum=0;
-  for (int mol1=1; mol1<=3; mol1++) {
-    for (int mol2=1; mol2<=4; mol2++) {
-      if (mol1==mol2) continue;
-      O_wat2[0] = x[mol1];
-      O_wat2[1] = y[mol1];
-      O_wat2[2] = z[mol1];
-      O_wat3[0] = x[mol2];
-      O_wat3[1] = y[mol2];
-      O_wat3[2] = z[mol2];
-      v1 = O_wat2 - O_wat1;
-      v2 = O_wat3 - O_wat1; 	 
-      cos = v1*( v2);
-      sum += (cos + 1.0/3)*(cos + 1.0/3);
-    }
-  }
-  qtet_[voxel] += 1 - (3.0/8)*sum;
 }
 
 

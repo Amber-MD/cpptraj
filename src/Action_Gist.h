@@ -34,6 +34,7 @@ class Action_Gist: public Action, ImagedAction  {
     bool useTIP3P_;
     bool useTIP4P_;
     bool useTIP4PEW_;
+    bool doOrder_;
 
     // other constants
     int NFRAME_;		// total number of frames analyzed
@@ -67,6 +68,7 @@ class Action_Gist: public Action, ImagedAction  {
     double Zcrd(int k) { return (double)k*gridspacn_ + gridorig_[2] + 0.5*gridspacn_; }
     
     double Lx, Ly, Lz;		// box length
+    //double G_max_x, G_max_y, G_max_z;		// grid max length
     void pbc(Vec3& r) {
 	if (r[0] < -Lx/2) r[0] += Lx;
         else if (r[0] > Lx/2) r[0] -= Lx;
@@ -83,6 +85,14 @@ class Action_Gist: public Action, ImagedAction  {
     double theta, phi, psi;
     
     //non-bond energy stuff
+    Matrix_3x3 ucell, recip;
+    /*    double x_0, x_1, x_2, x_3, x_4;
+    double y_0, y_1, y_2, y_3, y_4;
+    double z_0, z_1, z_2, z_3, z_4;*/
+    
+    std::vector <double> x_;
+    std::vector <double> y_;
+    std::vector <double> z_;
     std::vector <double> wh_evdw_;
     std::vector <double> wh_eelec_;
     std::vector <double> ww_evdw_;
@@ -118,6 +128,6 @@ class Action_Gist: public Action, ImagedAction  {
     void Grid(Frame *);
     void EulerAngle(Frame *);
     void Dipole(Frame *);
-    void Order(Frame *);
+    //void Order(Frame *);
 };
 #endif
