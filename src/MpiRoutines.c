@@ -132,6 +132,7 @@ int parallel_end() {
 #ifdef DEBUGMPI
   parallel_debug_end();
 #endif
+  if (worldrank==0) printf("\n");
 #ifdef MPI
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();

@@ -19,9 +19,9 @@ class Cpptraj {
     Cpptraj();
     static void Intro();
     Mode Interactive();
-    Mode ProcessInput(std::string const&);
     Mode ProcessCmdLineArgs(int,char**);
     int Run();
+    int Nrun() const { return nrun_; }
   private:
     static void Usage();
 
@@ -42,6 +42,8 @@ class Cpptraj {
     int CrdAction(ArgList&);
     int CrdOut(ArgList&);
     int CrdAnalyze(ArgList&);
+    /// Process input from a file or STDIN
+    Mode ProcessInput(std::string const&);
     /// Function that decides where to send commands
     Mode Dispatch(std::string const&);
     /// List of parameter files 
