@@ -22,8 +22,7 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
   
   // Allocate and set up read buffer
   BufferedLine buffer;
-  if (buffer.OpenRead( fname )) return 1;
-  buffer.SetupBuffer();
+  if (buffer.OpenFileRead( fname )) return 1;
 
   // Read chunks from file
   while ( (linebuffer = buffer.Line()) != 0 ) {
