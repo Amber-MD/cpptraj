@@ -117,6 +117,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_Coords.cpp \
         DataSet_Matrix.cpp \
         DataSet_Modes.cpp \
+        DataSet_RemLog.cpp \
         DataSet_Vector.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
