@@ -86,6 +86,7 @@
 #include "Analysis_MeltCurve.h"
 #include "Analysis_Overlap.h"
 #include "Analysis_AmdBias.h"
+#include "Analysis_RemLog.h"
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
 static void Help_Help() {
@@ -447,6 +448,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, 0 },
   { DispatchObject::ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, 0 },
   { DispatchObject::ANALYSIS, "overlap", Analysis_Overlap::Alloc, Analysis_Overlap::Help, 0 },
+  { DispatchObject::ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, 0 },
   { DispatchObject::ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
   { DispatchObject::ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, 0 },
   { DispatchObject::ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, 0 },

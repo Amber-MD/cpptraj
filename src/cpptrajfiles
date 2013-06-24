@@ -79,6 +79,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_MeltCurve.cpp \
         Analysis_Modes.cpp \
         Analysis_Overlap.cpp \
+        Analysis_RemLog.cpp \
         Analysis_Rms2d.cpp \
         Analysis_RmsAvgCorr.cpp \
         Analysis_RunningAvg.cpp \
