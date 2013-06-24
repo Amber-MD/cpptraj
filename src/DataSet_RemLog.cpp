@@ -2,7 +2,9 @@
 #include "DataSet_RemLog.h"
 #include "CpptrajStdio.h"
 
-DataSet_RemLog::DataSet_RemLog() {}
+DataSet_RemLog::DataSet_RemLog() :
+  DataSet(REMLOG, 10, 4, 0) // 0 dim indicates DataSet-specific write 
+{}
 
 void DataSet_RemLog::AllocateReplicas(int n_replicas) {
   ensemble_.clear();

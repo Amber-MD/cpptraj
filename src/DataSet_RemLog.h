@@ -23,6 +23,8 @@ class DataSet_RemLog : public DataSet {
     typedef ReplicaArray::const_iterator replica_it;
     replica_it begin(int i) const { return ensemble_[i].begin(); }
     replica_it end(int i)   const { return ensemble_[i].end();   }
+    // ----- DataSet routines --------------------
+    int Size() { return ensemble_.size(); }
   private:
     /// Hold info for all exchanges of all replicas.
     typedef std::vector<ReplicaArray> ReplicaEnsemble;
