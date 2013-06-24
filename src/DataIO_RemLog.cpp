@@ -93,7 +93,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
     mprinterr("Error: Detected less than 1 replica in remlog.\n");
     return 1;
   }
-  DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, fname, "remlog" );
+  DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, buffer.Filename().Base(), "remlog" );
   if (ds == 0) return 1;
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
   ensemble.AllocateReplicas(n_replicas);
@@ -166,6 +166,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
 
   buffer.CloseFile();
   // DEBUG - Print out replica 1 stats
+/*
   mprintf("Replica 1 Stats:\n"
           "%-10s %6s %6s %6s %12s %12s %12s S\n", "#Exchange", "RepIdx", "PrtIdx", "CrdIdx",
           "Temp0", "PE_X1", "PE_X2"); 
@@ -174,5 +175,6 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
     mprintf("%10u %6i %6i %6i %12.4f %12.4f %12.4f %1i\n", it - ensemble.begin(0) + 1,
             (*it).ReplicaIdx(), (*it).PartnerIdx(), (*it).CoordsIdx(), (*it).Temp0(), 
             (*it).PE_X1(), (*it).PE_X2(), (int)(*it).Success()); 
+*/
   return 0;
 }

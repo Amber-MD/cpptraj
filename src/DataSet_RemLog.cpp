@@ -11,6 +11,13 @@ void DataSet_RemLog::AllocateReplicas(int n_replicas) {
   ensemble_.resize( n_replicas );
 }
 
+int DataSet_RemLog::NumExchange() const {
+  if (ensemble_.empty())
+    return 0;
+  else // Each member of the ensemble should have same # exchanges.
+    return (int)ensemble_[0].size();
+}
+
 // -----------------------------------------------------------------------------
 /* Format:
  * '(i2,6f10.2,i8)'

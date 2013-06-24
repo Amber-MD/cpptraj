@@ -11,5 +11,6 @@ class Analysis_RemLog : public Analysis {
     Analysis::RetType Analyze();
   private:
     DataSet_RemLog* remlog_;
+    std::vector<DataSet*> outputDsets_;
 };
 #endif
