@@ -88,7 +88,7 @@ int Cluster_HierAgglo::Cluster() {
   // Build initial clusters.
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); frame++) {
     if (!FrameDistances_.IgnoringRow( frame ))
-      AddCluster( std::list<int>(1, frame) );
+      AddCluster( ClusterDist::Cframes(1, frame) );
   }
   mprintf("\t%i initial clusters.\n", Nclusters());
   // Build initial cluster distance matrix.

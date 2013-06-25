@@ -12,7 +12,7 @@ class ClusterNode {
     /// Used to sort clusters by # of frames in cluster
     inline bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
-    inline void MergeFrames(ClusterNode&);
+    inline void MergeFrames(ClusterNode const&);
     /// Determine which frame in the cluster is centroid.
     int FindCentroidFrame(ClusterMatrix const&);
     /// Calculate eccentricity for frames in this cluster.
@@ -38,7 +38,7 @@ class ClusterNode {
     void SetAvgDist(double avg)        { avgClusterDist_ = avg;         }
     void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum );  }
     void SetNum(int numIn)             { num_ = numIn;                  }
-    void SortFrameList()               { frameList_.sort();             } 
+    void SortFrameList();
   private:
     double avgClusterDist_;           ///< Avg distance of this cluster to all other clusters.
     double eccentricity_;             ///< Maximum distance between any 2 frames.
@@ -53,7 +53,7 @@ bool ClusterNode::operator<(const ClusterNode& rhs) const {
   return ( frameList_.size() > rhs.frameList_.size() );
 }
 /** Frames from rhs go to this cluster. rhs frames are removed. */
-void ClusterNode::MergeFrames( ClusterNode& rhs) {
-  frameList_.splice( frameList_.begin(), rhs.frameList_ );
+void ClusterNode::MergeFrames( ClusterNode const& rhs) {
+  frameList_.insert(frameList_.end(), rhs.frameList_.begin(), rhs.frameList_.end());
 }
 #endif

@@ -1,4 +1,5 @@
 #include <cfloat> // DBL_MAX
+#include <algorithm> // sort
 #include "ClusterNode.h"
 
 // CONSTRUCTOR
@@ -17,7 +18,7 @@ ClusterNode::~ClusterNode() {
 
 // Set initial centroid frame to front, even though that will probably be wrong
 // when number of frames in the list > 1
-ClusterNode::ClusterNode(ClusterDist* Cdist, std::list<int> const& frameListIn, int numIn) :
+ClusterNode::ClusterNode(ClusterDist* Cdist, ClusterDist::Cframes const& frameListIn, int numIn) :
   avgClusterDist_(0.0),
   eccentricity_(0.0),
   num_(numIn),
@@ -115,4 +116,8 @@ double ClusterNode::CalcAvgToCentroid( ClusterDist* Cdist )
     avgdist += dist;
   }
   return ( avgdist / (double)frameList_.size() );
+}
+
+void ClusterNode::SortFrameList() {
+  std::sort(frameList_.begin(), frameList_.end());
 }

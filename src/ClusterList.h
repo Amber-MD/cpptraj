@@ -1,5 +1,6 @@
 #ifndef INC_CLUSTERLIST_H
 #define INC_CLUSTERLIST_H
+#include <list>
 #include "ArgList.h"
 #include "ClusterNode.h" 
 // Class: ClusterList

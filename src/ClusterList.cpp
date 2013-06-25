@@ -271,7 +271,7 @@ void ClusterList::PrintClusters() {
 /** Add a cluster made up of frames specified by the given list of frames to 
   * the cluster list. Cluster # is current cluster list size.
   */
-int ClusterList::AddCluster( std::list<int> const& framelistIn ) {
+int ClusterList::AddCluster( ClusterDist::Cframes const& framelistIn ) {
   clusters_.push_back( ClusterNode( Cdist_, framelistIn, clusters_.size() ) );
   return 0;
 }

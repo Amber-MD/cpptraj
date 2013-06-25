@@ -1,4 +1,5 @@
 #include <cfloat> // DBL_MAX
+#include <algorithm> // sort, unique
 #include "Cluster_DBSCAN.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
@@ -131,8 +132,10 @@ int Cluster_DBSCAN::Cluster() {
         }
         // Remove duplicate frames
         // TODO: Take care of this in Renumber?
-        cluster_frames.sort();
-        cluster_frames.unique();
+        std::sort(cluster_frames.begin(), cluster_frames.end());
+        ClusterDist::Cframes::iterator it = std::unique(cluster_frames.begin(), 
+                                                        cluster_frames.end());
+        cluster_frames.resize( std::distance(cluster_frames.begin(),it) );
         // Add cluster to the list
         AddCluster( cluster_frames );
         if (debug_ > 0) {

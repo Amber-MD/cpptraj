@@ -1,6 +1,5 @@
 #ifndef INC_CLUSTERDIST_H
 #define INC_CLUSTERDIST_H
-#include <list>
 #include "Frame.h"
 #include "DataSet_Coords.h"
 #include "ClusterMatrix.h"
@@ -50,7 +49,7 @@ class Centroid_Coord : public Centroid {
   */
 class ClusterDist {
   public:
-    typedef std::list<int> Cframes;
+    typedef std::vector<int> Cframes;
     typedef Cframes::const_iterator Cframes_it;
     typedef std::vector<DataSet*> DsArray;
     virtual ~ClusterDist() {}
