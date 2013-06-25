@@ -60,6 +60,11 @@ void Cluster_DBSCAN::RegionQuery(std::vector<int>& NeighborPts,
   }
 }
 
+// Potential frame statuses.
+char Cluster_DBSCAN::UNASSIGNED = 'U';
+char Cluster_DBSCAN::NOISE = 'N';
+char Cluster_DBSCAN::INCLUSTER = 'C';
+
 /** Ester, Kriegel, Sander, Xu; Proceedings of 2nd International Conference
   * on Knowledge Discovery and Data Mining (KDD-96); pp 226-231.
   */
@@ -77,10 +82,7 @@ int Cluster_DBSCAN::Cluster() {
   // waste memory during sieving but makes code easier.
   std::vector<bool> Visited( FrameDistances_.Nframes(), false );
   // Set up array to keep track of whether points are noise or in a cluster.
-  static char UNASSIGNED = 'U';
-  static char NOISE = 'N';
-  static char INCLUSTER = 'C';
-  std::vector<char> Status( FrameDistances_.Nframes(), UNASSIGNED);
+  Status_.assign( FrameDistances_.Nframes(), UNASSIGNED);
   mprintf("\tStarting DBSCAN Clustering:\n");
   ProgressBar cluster_progress(FramesToCluster.size());
   int iteration = 0;
@@ -99,7 +101,7 @@ int Cluster_DBSCAN::Cluster() {
       // If # of neighbors less than cutoff, noise; otherwise cluster
       if ((int)NeighborPts.size() < minPoints_) {
         if (debug_ > 0) mprintf(" NOISE\n");
-        Status[*point] = NOISE;
+        Status_[*point] = NOISE;
       } else {
         // Expand cluster
         cluster_frames.clear();
@@ -122,9 +124,9 @@ int Cluster_DBSCAN::Cluster() {
             }
           }
           // If neighbor is not yet part of a cluster, add it to this one.
-          if (Status[neighbor_pt] != INCLUSTER) {
+          if (Status_[neighbor_pt] != INCLUSTER) {
             cluster_frames.push_back( neighbor_pt );
-            Status[neighbor_pt] = INCLUSTER;
+            Status_[neighbor_pt] = INCLUSTER;
           }
         }
         // Remove duplicate frames
@@ -141,16 +143,6 @@ int Cluster_DBSCAN::Cluster() {
     }
     cluster_progress.Update(iteration++);
   } // END loop over FramesToCluster
-  // Count the number of noise points
-  mprintf("\tNOISE FRAMES:");
-  unsigned int frame = 1;
-  for (std::vector<char>::iterator stat = Status.begin();
-                                   stat != Status.end(); ++stat, ++frame)
-  {
-    if ( *stat == NOISE )
-      mprintf(" %i", frame);
-  }
-  mprintf("\n");
   // Calculate the distances between each cluster based on centroids
   ClusterDistances_.SetupMatrix( clusters_.size() );
   // Make sure centroid for clusters are up to date
@@ -168,11 +160,34 @@ int Cluster_DBSCAN::Cluster() {
   return 0;
 }
 
+// Cluster_DBSCAN::ClusterResults()
+void Cluster_DBSCAN::ClusterResults(CpptrajFile& outfile) {
+  // List the number of noise points.
+  outfile.Printf("#NOISE_FRAMES:");
+  unsigned int frame = 1;
+  for (std::vector<char>::const_iterator stat = Status_.begin();
+                                         stat != Status_.end(); 
+                                       ++stat, ++frame)
+  {
+    if ( *stat == NOISE )
+      outfile.Printf(" %i", frame);
+  }
+  outfile.Printf("\n");
+}
+
 // Cluster_DBSCAN::AddSievedFrames()
 void Cluster_DBSCAN::AddSievedFrames() {
   int n_sieved_noise = 0;
+  int Nsieved = 0;
   // NOTE: All cluster centroids must be up to date!
+  if (sieveToCentroid_)
+    mprintf("\tRestoring sieved frames by closeness to existing centroids.\n");
+  else
+    mprintf("\tRestoring sieved frames if within %.3f of frame in nearest cluster.\n",
+            epsilon_);
+  ProgressBar progress( FrameDistances_.Nframes() );
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame) {
+    progress.Update( frame );
     if (FrameDistances_.IgnoringRow(frame)) {
       //mprintf(" %i [", frame + 1); // DEBUG
       // Which clusters centroid is closest to this frame?
@@ -204,6 +219,7 @@ void Cluster_DBSCAN::AddSievedFrames() {
       }
       // Add sieved frame to the closest cluster if closest distance is
       // less than epsilon.
+      ++Nsieved;
       if ( goodFrame )
         (*minNode).AddFrameToCluster( frame );
       else
@@ -211,5 +227,6 @@ void Cluster_DBSCAN::AddSievedFrames() {
     }
   }
   //mprintf("\n");
-  mprintf("\t%i sieved frames were discarded as noise.\n", n_sieved_noise);
+  mprintf("\t%i of %i sieved frames were discarded as noise.\n", 
+          n_sieved_noise, Nsieved);
 }

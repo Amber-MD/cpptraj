@@ -72,7 +72,7 @@ void ClusterList::Renumber(bool addSievedFrames) {
     if (centroid_error)
       mprinterr("Error: 1 or more centroids not determined. Cannot add sieved frames.\n");
     else {
-      mprintf("\tRestoring non-sieved frames.\n");
+      mprintf("\tRestoring sieved frames.\n");
       AddSievedFrames();
     }
   }
@@ -224,21 +224,26 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   outfile.Printf("#Clustering: %u clusters %i frames\n",
                  clusters_.size(), maxframesIn);
   ComputeDBI( outfile );
-  for (cluster_it C1_it = clusters_.begin(); 
-                  C1_it != clusters_.end(); C1_it++)
-  {
-    buffer.clear();
-    buffer.resize(maxframesIn, '.');
-    for (ClusterNode::frame_iterator frame1 = (*C1_it).beginframe();
-                                     frame1 != (*C1_it).endframe();
-                                     frame1++)
+  // Call internal info routine.
+  ClusterResults( outfile );
+  // Do not print trajectory stuff if no filename given (i.e. STDOUT output)
+  if (!filename.empty()) {
+    for (cluster_it C1_it = clusters_.begin(); 
+                    C1_it != clusters_.end(); C1_it++)
     {
-      buffer[ *frame1 ] = 'X';
+      buffer.clear();
+      buffer.resize(maxframesIn, '.');
+      for (ClusterNode::frame_iterator frame1 = (*C1_it).beginframe();
+                                       frame1 != (*C1_it).endframe();
+                                       frame1++)
+      {
+        buffer[ *frame1 ] = 'X';
+      }
+      buffer += '\n';
+      outfile.Write((void*)buffer.c_str(), buffer.size());
     }
-    buffer += '\n';
-    outfile.Write((void*)buffer.c_str(), buffer.size());
   }
-  // Print representative frames
+  // Print representative frame numbers
   outfile.Printf("#Representative frames:");
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++)
     outfile.Printf(" %i",(*C).CentroidFrame()+1);

@@ -286,9 +286,9 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     CList_->PrintClusters();
   }
 
-  // Print ptraj-like cluster info
-  if (!clusterinfo_.empty())
-    CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+  // Print ptraj-like cluster info. If no filename is written some info will
+  // still be written to STDOUT.
+  CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
 
   // Print a summary of clusters
   if (!summaryfile_.empty())
