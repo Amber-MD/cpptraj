@@ -59,6 +59,7 @@ class ClusterDist {
     virtual double FrameCentroidDist(int, Centroid* ) = 0;
     virtual void CalculateCentroid(Centroid*, Cframes const&) = 0;
     virtual Centroid* NewCentroid(Cframes const&) = 0;
+    virtual ClusterDist* Copy() = 0;
   protected:
     typedef double (*DistCalc)(double,double);
 };
@@ -73,6 +74,7 @@ class ClusterDist_Num : public ClusterDist {
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
+    ClusterDist* Copy() { return new ClusterDist_Num( *this ); }
   private:
     DataSet* data_;
     DistCalc dcalc_;
@@ -88,6 +90,7 @@ class ClusterDist_Euclid : public ClusterDist {
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
+    ClusterDist* Copy() { return new ClusterDist_Euclid( *this ); }
   private:
     DsArray dsets_;
     typedef std::vector<DistCalc> DcArray;
@@ -104,6 +107,7 @@ class ClusterDist_DME: public ClusterDist {
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
+    ClusterDist* Copy() { return new ClusterDist_DME( *this ); }
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;
@@ -120,6 +124,7 @@ class ClusterDist_RMS : public ClusterDist {
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
+    ClusterDist* Copy() { return new ClusterDist_RMS( *this ); }
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;

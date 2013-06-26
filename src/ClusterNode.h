@@ -27,6 +27,7 @@ class ClusterNode {
     typedef ClusterDist::Cframes::const_iterator frame_iterator;
     const frame_iterator beginframe() const { return frameList_.begin(); }
     const frame_iterator endframe()   const { return frameList_.end();   }
+    int ClusterFrame(int idx)         const { return frameList_[idx];    } 
     // Return internal variables
     inline double AvgDist()      const { return avgClusterDist_;        }
     inline double Eccentricity() const { return eccentricity_;          }
@@ -52,7 +53,7 @@ class ClusterNode {
 bool ClusterNode::operator<(const ClusterNode& rhs) const {
   return ( frameList_.size() > rhs.frameList_.size() );
 }
-/** Frames from rhs go to this cluster. rhs frames are removed. */
+/** Frames from rhs go to this cluster. */
 void ClusterNode::MergeFrames( ClusterNode const& rhs) {
   frameList_.insert(frameList_.end(), rhs.frameList_.begin(), rhs.frameList_.end());
 }

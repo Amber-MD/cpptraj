@@ -3,6 +3,9 @@
 #include "Cluster_DBSCAN.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 
 Cluster_DBSCAN::Cluster_DBSCAN() :
   minPoints_(-1),
@@ -188,33 +191,66 @@ void Cluster_DBSCAN::AddSievedFrames() {
   else
     mprintf("\tRestoring sieved frames if within %.3f of frame in nearest cluster.\n",
             epsilon_);
-  ProgressBar progress( FrameDistances_.Nframes() );
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame) {
+  // Vars allocated here in case of OpenMP
+  int frame, cidx;
+  int nframes = (int)FrameDistances_.Nframes();
+  double mindist, dist;
+  cluster_it minNode, Cnode;
+  bool goodFrame;
+  ParallelProgress progress( nframes );
+  // Need a temporary array to hold which frame belongs to which cluster. 
+  // Otherwise we could be comparoing sieved frames to other sieved frames.
+  std::vector<cluster_it> frameToCluster( nframes, clusters_.end() );
+# ifdef _OPENMP
+  int numthreads, mythread;
+  // Need to create a ClusterDist for every thread to ensure memory allocation and avoid clashes
+  ClusterDist** cdist_thread;
+# pragma omp parallel
+  {
+    if (omp_get_thread_num()==0)
+      numthreads = omp_get_num_threads();
+  }
+  mprintf("\tParallelizing calculation with %i threads\n", numthreads);
+  cdist_thread = new ClusterDist*[ numthreads ];
+  for (int i=0; i < numthreads; i++)
+    cdist_thread[i] = Cdist_->Copy();
+# pragma omp parallel private(mythread, frame, dist, mindist, minNode, Cnode, goodFrame, cidx) firstprivate(progress) reduction(+ : Nsieved, n_sieved_noise)
+{
+    mythread = omp_get_thread_num();
+    progress.SetThread( mythread );
+#   pragma omp for schedule(dynamic)
+# endif
+  for (frame = 0; frame < nframes; ++frame) {
     progress.Update( frame );
     if (FrameDistances_.IgnoringRow(frame)) {
-      //mprintf(" %i [", frame + 1); // DEBUG
       // Which clusters centroid is closest to this frame?
-      double mindist = DBL_MAX;
-      cluster_it  minNode = clusters_.end();
-      for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
-        double dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
-        //mprintf(" %i:%-6.2f", (*Cnode).Num(), dist); // DEBUG
+      mindist = DBL_MAX;
+      minNode = clusters_.end();
+      for (Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
+#       ifdef _OPENMP
+        dist = cdist_thread[mythread]->FrameCentroidDist(frame, (*Cnode).Cent());
+#       else
+        dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
+#       endif
         if (dist < mindist) {
           mindist = dist;
           minNode = Cnode;
         }
       }
-      //mprintf(" ], to cluster %i\n", (*minNode).Num()); // DEBUG
-      bool goodFrame = false;
-      if ( sieveToCentroid_ || mindist < epsilon_ ) {
+      goodFrame = false;
+      if ( sieveToCentroid_ || mindist < epsilon_ )
         // Sieving based on centroid only or frame is already within epsilon, accept.
         goodFrame = true;
-      } else {
+      else {
         // Check if any frames in the cluster are closer than epsilon to sieved frame.
-        for (ClusterNode::frame_iterator cluster_frame = (*minNode).beginframe();
-                                         cluster_frame != (*minNode).endframe(); ++cluster_frame)
+        for (cidx=0; cidx < (*minNode).Nframes(); cidx++)
         {
-          if ( Cdist_->FrameDist(frame, *cluster_frame) < epsilon_ ) {
+#         ifdef _OPENMP
+          if ( cdist_thread[mythread]->FrameDist(frame, (*minNode).ClusterFrame(cidx)) < epsilon_ )
+#         else
+          if ( Cdist_->FrameDist(frame, (*minNode).ClusterFrame(cidx)) < epsilon_ )
+#         endif
+          {
             goodFrame = true;
             break;
           }
@@ -224,12 +260,23 @@ void Cluster_DBSCAN::AddSievedFrames() {
       // less than epsilon.
       ++Nsieved;
       if ( goodFrame )
-        (*minNode).AddFrameToCluster( frame );
+        frameToCluster[frame] = minNode;
       else
         n_sieved_noise++;
     }
-  }
-  //mprintf("\n");
+  } // END loop over frames
+# ifdef _OPENMP
+} // END pragma omp parallel
+  // Free cdist_thread memory
+  for (int i = 0; i < numthreads; i++)
+    delete cdist_thread[i];
+  delete[] cdist_thread;
+# endif
+  progress.Finish();
+  // Now actually add sieved frames to their appropriate clusters
+  for (frame = 0; frame < nframes; frame++)
+    if (frameToCluster[frame] != clusters_.end())
+      (*frameToCluster[frame]).AddFrameToCluster( frame );
   mprintf("\t%i of %i sieved frames were discarded as noise.\n", 
           n_sieved_noise, Nsieved);
 }
