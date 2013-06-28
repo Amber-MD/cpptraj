@@ -53,7 +53,7 @@ class ClusterDist {
     typedef Cframes::const_iterator Cframes_it;
     typedef std::vector<DataSet*> DsArray;
     virtual ~ClusterDist() {}
-    virtual ClusterMatrix PairwiseDist(int) = 0;
+    virtual void PairwiseDist(ClusterMatrix&, ClusterSieve::SievedFrames const&) = 0;
     virtual double FrameDist(int, int) = 0;
     virtual double CentroidDist( Centroid*, Centroid* ) = 0;
     virtual double FrameCentroidDist(int, Centroid* ) = 0;
@@ -68,7 +68,7 @@ class ClusterDist_Num : public ClusterDist {
   public:
     ClusterDist_Num() : data_(0), dcalc_(0) {}
     ClusterDist_Num(DataSet*);
-    ClusterMatrix PairwiseDist(int);
+    void PairwiseDist(ClusterMatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
@@ -84,7 +84,7 @@ class ClusterDist_Euclid : public ClusterDist {
   public:
     ClusterDist_Euclid() {}
     ClusterDist_Euclid(DsArray const&);
-    ClusterMatrix PairwiseDist(int);
+    void PairwiseDist(ClusterMatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
@@ -101,7 +101,7 @@ class ClusterDist_DME: public ClusterDist {
   public:
     ClusterDist_DME() : coords_(0) {}
     ClusterDist_DME(DataSet*,AtomMask const&);
-    ClusterMatrix PairwiseDist(int);
+    void PairwiseDist(ClusterMatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
@@ -112,13 +112,14 @@ class ClusterDist_DME: public ClusterDist {
     DataSet_Coords* coords_;
     AtomMask mask_;
     Frame frm1_;             ///< Temporary storage for frames from coords
+    Frame frm2_;             ///< Temporary storage for frames from coords
 };
 /// RMS cluster distance calc for Coords DataSet.
 class ClusterDist_RMS : public ClusterDist {
   public:
     ClusterDist_RMS() : coords_(0), nofit_(false), useMass_(false) {}
     ClusterDist_RMS(DataSet*,AtomMask const&,bool,bool);
-    ClusterMatrix PairwiseDist(int);
+    void PairwiseDist(ClusterMatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);

@@ -59,7 +59,7 @@ void Cluster_DBSCAN::RegionQuery(std::vector<int>& NeighborPts,
                                         ++otherpoint)
   {
     if (point == *otherpoint) continue;
-    if ( FrameDistances_.GetElement(point, *otherpoint) < epsilon_ )
+    if ( FrameDistances_.GetFdist(point, *otherpoint) < epsilon_ )
       NeighborPts.push_back( *otherpoint );
   }
 }

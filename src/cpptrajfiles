@@ -97,6 +97,7 @@ SOURCES=ActionFrameCounter.cpp \
         ClusterList.cpp \
         ClusterMatrix.cpp \
         ClusterNode.cpp \
+        ClusterSieve.cpp \
         Cluster_DBSCAN.cpp \
         Cluster_HierAgglo.cpp \
         Command.cpp \

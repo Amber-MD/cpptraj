@@ -4,9 +4,7 @@
 // CONSTRUCTOR
 ClusterSieve::ClusterSieve() : type_(NONE), sieve_(1) {}
 
-// ClusterSieve::SetSieve()
-int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
-  if (maxFrames < 1) return 1;
+inline void ClusterSieve::DetermineTypeFromSieve( int sieveIn ) {
   sieve_ = sieveIn;
   // Determine sieve type from sieve value.
   if (sieve_ == -1)
@@ -16,6 +14,12 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
     sieve_ = 1;
   } else
     type_ = REGULAR;
+}
+
+// ClusterSieve::SetSieve()
+int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
+  if (maxFrames < 1) return 1;
+  DetermineTypeFromSieve( sieveIn );
   frameToIdx_.clear();
   if (type_ == NONE) 
   { // No sieving; frame == index
@@ -50,7 +54,23 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
         }
       }
     }
-    // TODO: Put frames in order?
+    // TODO: Put indices in order?
+  }
+  return 0;
+}
+
+// ClusterSieve::SetSieve()
+/** Used for loading previously saved ClusterMatrix */
+int ClusterSieve::SetSieve(int sieveIn, std::vector<bool> const& ignoreIn) {
+  DetermineTypeFromSieve( sieveIn );
+  if (ignoreIn.empty()) return 1;
+  frameToIdx_.clear();
+  frameToIdx_.assign( ignoreIn.size(), -1 );
+  unsigned int idx = 0;
+  for (unsigned int frame = 0; frame < ignoreIn.size(); ++frame)
+  {
+    if ( !ignoreIn[frame] )
+      frameToIdx_[frame] = idx++;
   }
   return 0;
 }

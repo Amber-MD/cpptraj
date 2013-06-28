@@ -46,8 +46,7 @@ void ClusterList::Renumber(bool addSievedFrames) {
         if (node == node2) continue;
         //mprintf("DBG:\t\t%i to %i %f\n",(*node).num, (*node2).num, 
         //        ClusterDistances.GetElement( (*node).num, (*node2).num ));
-        avgclusterdist += ClusterDistances_.GetElement( (*node).Num(), 
-                                                       (*node2).Num() );
+        avgclusterdist += ClusterDistances_.GetCdist( (*node).Num(), (*node2).Num() );
       }
       avgclusterdist /= numdist;
       //mprintf("DBG:\tCluster %i avg dist = %f\n",(*node).num,avgclusterdist);
@@ -121,7 +120,7 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
           ++frm2;
           for (; frm2 != frame2_end; ++frm2) {
             if (!FrameDistances_.IgnoringRow(*frm2)) {
-              double dist = FrameDistances_.GetElement(*frm1, *frm2);
+              double dist = FrameDistances_.GetFdist(*frm1, *frm2);
               internalAvg += dist;
               internalSD += (dist * dist);
               ++Nelements;
@@ -326,7 +325,12 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   // be set up to ignore sieved frames.
   if (mode == USE_FRAMES) {
     mprintf("\tCalculating pair-wise distances.\n");
-    FrameDistances_ = Cdist_->PairwiseDist(sieve);
+    // Set up ClusterMatrix with sieve. TODO: Set iseed with a var instead of 1
+    if (FrameDistances_.SetupWithSieve( dsIn->Size(), sieve, 1 )) {
+      mprinterr("Error: Could not setup matrix for pair-wise distances.\n");
+      return 1; 
+    }
+    Cdist_->PairwiseDist(FrameDistances_, FrameDistances_.Sieved() );
   }
   // Save distances if filename specified and not previously loaded.
   if (mode == USE_FRAMES && !filename.empty()) {

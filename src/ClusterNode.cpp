@@ -68,7 +68,7 @@ int ClusterNode::FindCentroidFrame(ClusterMatrix const& FrameDistancesIn) {
     for (frame_iterator frm2 = frameList_.begin(); frm2 != frameList_.end(); ++frm2)
     {
       if (frm1 == frm2) continue;
-      cdist += FrameDistancesIn.GetElement(*frm1, *frm2);
+      cdist += FrameDistancesIn.GetFdist(*frm1, *frm2);
     }
     if (cdist < mindist) {
       mindist = cdist;
@@ -93,7 +93,7 @@ void ClusterNode::CalcEccentricity(ClusterMatrix const& FrameDistancesIn) {
     frame_iterator frm2 = frm1;
     ++frm2;
     for (; frm2 != frameList_.end(); ++frm2) {
-      double fdist = FrameDistancesIn.GetElement(*frm1, *frm2);
+      double fdist = FrameDistancesIn.GetFdist(*frm1, *frm2);
       if (fdist > maxdist)
         maxdist = fdist;
     }

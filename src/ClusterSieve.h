@@ -10,6 +10,8 @@ class ClusterSieve {
     ClusterSieve();
     /// Setup no sieve, regular sieve, or random sieve.
     int SetSieve(int, size_t, int);
+    /// Setup sieve from previously obtained ignore array.
+    int SetSieve(int, std::vector<bool> const&);
     /// \return an array of sieved frame numbers.
     SievedFrames Frames() const;
     /// \return an array index corresponding to a sieved frame.
@@ -18,6 +20,7 @@ class ClusterSieve {
     inline int Sieve()               const { return sieve_;             }
     inline SieveType Type()          const { return type_;              }
   private:
+    inline void DetermineTypeFromSieve(int);
     SieveType type_;
     int sieve_;
     std::vector<int> frameToIdx_;
