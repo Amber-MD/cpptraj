@@ -27,7 +27,6 @@ class ClusterList {
     virtual int SetupCluster(ArgList&) = 0;
     virtual void ClusteringInfo() = 0;
     virtual int Cluster() = 0;
-    virtual void ClusterResults(CpptrajFile&) = 0;
 
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
@@ -35,6 +34,7 @@ class ClusterList {
     const cluster_iterator endcluster()   const { return clusters_.end();   }
   protected:
     virtual void AddSievedFrames() = 0;
+    virtual void ClusterResults(CpptrajFile&) const = 0;
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
     int debug_;

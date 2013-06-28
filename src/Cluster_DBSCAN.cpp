@@ -167,7 +167,7 @@ int Cluster_DBSCAN::Cluster() {
 }
 
 // Cluster_DBSCAN::ClusterResults()
-void Cluster_DBSCAN::ClusterResults(CpptrajFile& outfile) {
+void Cluster_DBSCAN::ClusterResults(CpptrajFile& outfile) const {
   // List the number of noise points.
   outfile.Printf("#NOISE_FRAMES:");
   unsigned int frame = 1;

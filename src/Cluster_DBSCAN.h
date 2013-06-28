@@ -9,7 +9,7 @@ class Cluster_DBSCAN : public ClusterList {
     void ClusteringInfo();
     int Cluster();
     void AddSievedFrames();
-    void ClusterResults(CpptrajFile&);
+    void ClusterResults(CpptrajFile&) const;
   private:
     static char UNASSIGNED;
     static char NOISE;
