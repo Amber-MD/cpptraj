@@ -951,7 +951,7 @@ int Cpptraj::Run() {
   actionList_.Clear();
 # ifdef TIMER
   total_time.Stop();
-  mprintf("Total execution time: %.4f seconds.\n", total_time.Total());
+  mprintf("TIME: Total Run execution time: %.4f seconds.\n", total_time.Total());
 # endif
   return err;
 }
@@ -1207,10 +1207,18 @@ int Cpptraj::RunNormal() {
   DSL_.AllocateSets();
 # ifdef TIMER
   init_time.Stop();
+  mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total());
 # endif
   
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
+# ifdef TIMER
+  Timer actions_time;
+  Timer trajin_time;
+  Timer trajout_time;
+  Timer frames_time;
+  frames_time.Start();
+# endif
   mprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
   for ( TrajinList::const_iterator traj = trajinList_.begin();
                                    traj != trajinList_.end(); ++traj)
@@ -1246,16 +1254,42 @@ int Cpptraj::RunNormal() {
 
     // Loop over every Frame in trajectory
     (*traj)->PrintInfoLine();
-    while ( (*traj)->GetNextFrame(TrajFrame) ) {
+#   ifdef TIMER
+    trajin_time.Start();
+    bool readMoreFrames = (*traj)->GetNextFrame(TrajFrame);
+    trajin_time.Stop();
+    while ( readMoreFrames )
+#   else
+    while ( (*traj)->GetNextFrame(TrajFrame) )
+#   endif
+    {
       // Since Frame can be modified by actions, save original and use CurrentFrame
       Frame* CurrentFrame = &TrajFrame;
       // Perform Actions on Frame
+#     ifdef TIMER
+      actions_time.Start();
+#     endif
       bool suppress_output = actionList_.DoActions(&CurrentFrame, actionSet);
+#     ifdef TIMER
+      actions_time.Stop();
+#     endif
       // Do Output
-      if (!suppress_output)
+      if (!suppress_output) {
+#       ifdef TIMER
+        trajout_time.Start();
+#       endif
         trajoutList_.Write(actionSet, CurrentParm, CurrentFrame);
+#       ifdef TIMER
+        trajout_time.Stop();
+#       endif
+      }
       // Increment frame counter
-      ++actionSet; 
+      ++actionSet;
+#     ifdef TIMER
+      trajin_time.Start();
+      readMoreFrames = (*traj)->GetNextFrame(TrajFrame);
+      trajin_time.Stop();
+#     endif 
     }
 
     // Close the trajectory file
@@ -1265,7 +1299,19 @@ int Cpptraj::RunNormal() {
     mprintf("\n");
   } // End loop over trajin
   rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
-
+# ifdef TIMER
+  frames_time.Stop();
+  mprintf("TIME: Trajectory processing occurred in %.4f seconds\n"
+          "TIME: Avg. throughput= %.4f frames / second.\n"
+          "TIME:\tTrajectory read took %.4f seconds (%.2f%% of processing).\n"
+          "TIME:\tActions took %.4f seconds (%.2f%% of processing).\n"
+          "TIME:\tTrajectory output took %.4f seconds (%.2f%% of processing).\n",
+          frames_time.Total(),
+          (double)readSets / frames_time.Total(),
+          trajin_time.Total(),  (trajin_time.Total() / frames_time.Total() )*100.0, 
+          actions_time.Total(), (actions_time.Total() / frames_time.Total())*100.0,
+          trajout_time.Total(), (trajout_time.Total() / frames_time.Total())*100.0 );
+# endif
   // Close output traj
   trajoutList_.Close();
 
@@ -1280,7 +1326,15 @@ int Cpptraj::RunNormal() {
   mprintf("\nDATASETS:\n");
   if (!analysisList_.Empty()) {
     DSL_.List();
+#   ifdef TIMER
+    Timer analysis_time;
+    analysis_time.Start();
+#   endif
     analysisList_.DoAnalyses();
+#   ifdef TIMER
+    analysis_time.Stop();
+    mprintf("TIME: Analyses took %.4f seconds.\n", analysis_time.Total());
+#   endif
     // DEBUG: DataSets, post-Analysis
     mprintf("\nDATASETS AFTER ANALYSIS:\n");
   }
@@ -1290,8 +1344,16 @@ int Cpptraj::RunNormal() {
   // Print Datafile information
   DFL_.List();
   // Only Master does DataFile output
-  if (worldrank==0)
+  if (worldrank==0) {
+#   ifdef TIMER
+    Timer datafile_time;
+    datafile_time.Start();
+#   endif
     DFL_.WriteAllDF();
- 
+#   ifdef TIMER
+    datafile_time.Stop();
+    mprintf("TIME: Data file write took %.4f seconds.\n", datafile_time.Total());
+#   endif
+  }
   return 0;
 }
