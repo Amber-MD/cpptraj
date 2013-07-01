@@ -23,7 +23,8 @@ class Action_Radial: public Action, ImagedAction {
     AtomMask Mask2_;          ///< Optional mask to calc RDF to atoms in Mask1.
     AtomMask OuterMask_;      ///< Mask with the most atoms.
     AtomMask InnerMask_;      ///< Mask with the fewest atoms.
-    bool center1_;            ///< If true calculate RDF of atoms in Mask2 to COM of Mask1.
+    enum RmodeType { NORMAL=0, CENTER1, CENTER2 };
+    RmodeType rmode_;         ///< Type of calculation to perform.
     bool useVolume_;          ///< If true normalize based on input volume.
     double volume_;           ///< Hold sum of volume for averaging.
     double maximum2_;         ///< Largest distance squared that can be binned.

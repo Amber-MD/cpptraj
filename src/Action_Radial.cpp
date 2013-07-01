@@ -13,7 +13,7 @@
 Action_Radial::Action_Radial() :
   RDF_(0),
   rdf_thread_(0),
-  center1_(false),
+  rmode_(NORMAL),
   useVolume_(false),
   volume_(0),
   maximum2_(0),
@@ -33,7 +33,7 @@ Action_Radial::Action_Radial() :
 
 void Action_Radial::Help() {
   mprintf("\t<outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]\n");
-  mprintf("\t[density <density> | volume] [center1] [<name>]\n");
+  mprintf("\t[density <density> | volume] [center1 | center2] [<name>]\n");
   mprintf("\t[intrdf <file>] [rawrdf <file>]\n");
   mprintf("\tCalculate the radial distribution function of atoms in <mask1>\n");
   mprintf("\tfrom all other atoms in <mask1>, or atoms in <mask2> if\n");
@@ -60,7 +60,12 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   InitImaging( !(actionArgs.hasKey("noimage")) );
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density_ = actionArgs.getKeyDouble("density",0.033456);
-  center1_ = actionArgs.hasKey("center1");
+  if (actionArgs.hasKey("center1"))
+    rmode_ = CENTER1;
+  else if (actionArgs.hasKey("center2"))
+    rmode_ = CENTER2;
+  else
+    rmode_ = NORMAL;
   useVolume_ = actionArgs.hasKey("volume");
   std::string intrdfname = actionArgs.GetStringKey("intrdf");
   std::string rawrdfname = actionArgs.GetStringKey("rawrdf");
@@ -182,8 +187,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf("            Integral of mask2 atoms will be output to %s\n", intrdfname.c_str());
   if (rawrdf_ != 0)
     mprintf("            Raw RDF bin values will be output to %s\n", rawrdfname.c_str());
-  if (center1_)
+  if (rmode_==CENTER1)
     mprintf("            Using center of atoms in mask1.\n");
+  else if (rmode_==CENTER2)
+    mprintf("            Using center of atoms in mask2.\n");
   mprintf("            Histogram max %f, spacing %f, bins %i.\n",maximum,
           spacing_,numBins_);
   if (useVolume_)
@@ -206,19 +213,19 @@ Action::RetType Action_Radial::Setup(Topology* currentParm, Topology** parmAddre
 
   if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
   if (Mask1_.None()) {
-    mprintf("    Error: Radial::setup: Masks has no atoms.\n");
+    mprintf("    Error: Radial: First mask has no atoms.\n");
     return Action::ERR;
   }
   if (currentParm->SetupIntegerMask( Mask2_ ) ) return Action::ERR;
   if (Mask2_.None()) {
-    mprintf("    Error: Radial::setup: Second mask has no atoms.\n");
+    mprintf("    Error: Radial: Second mask has no atoms.\n");
     return Action::ERR;
   }
   SetupImaging( currentParm->BoxType() );
 
-  // If not computing a center for mask 1, make the outer loop for distance 
+  // If not computing center for mask 1 or 2, make the outer loop for distance
   // calculation correspond to the mask with the most atoms.
-  if (!center1_) {
+  if (rmode_==NORMAL) {
     if (Mask1_.Nselected() > Mask2_.Nselected()) {
       OuterMask_ = Mask1_;
       InnerMask_ = Mask2_;
@@ -226,6 +233,12 @@ Action::RetType Action_Radial::Setup(Topology* currentParm, Topology** parmAddre
       OuterMask_ = Mask2_;
       InnerMask_ = Mask1_;
     }
+  } else if (rmode_ == CENTER1) {
+    OuterMask_ = Mask1_;
+    InnerMask_ = Mask2_;
+  } else if (rmode_ == CENTER2) {
+    OuterMask_ = Mask2_;
+    InnerMask_ = Mask1_;
   }
 
   // Check volume information
@@ -269,18 +282,18 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
   }
 
   mydistances = 0;
-  // Calculation of center of Mask1 to all atoms in Mask2
-  if (center1_) {
-    Vec3 coord_center = currentFrame->VGeometricCenter(Mask1_);
-    int mask2_max = Mask2_.Nselected();
+  if (rmode_ != NORMAL) {
+    // Calculation of center of one Mask to all atoms in other Mask
+    Vec3 coord_center = currentFrame->VGeometricCenter(OuterMask_);
+    int mask2_max = InnerMask_.Nselected();
 #ifdef _OPENMP
 #pragma omp parallel private(nmask2,atom2,D,idx,mythread) reduction(+:mydistances)
 {
-  mythread = omp_get_thread_num();
+    mythread = omp_get_thread_num();
 #pragma omp for
 #endif
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
-      atom2 = Mask2_[nmask2];
+      atom2 = InnerMask_[nmask2];
       D = DIST2(coord_center.Dptr(), currentFrame->XYZ(atom2), ImageType(),
                 currentFrame->BoxCrd(), ucell, recip);
       if (D <= maximum2_) {
@@ -300,15 +313,15 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif 
-  // Calculation of all atoms in Mask1 to all atoms in Mask2
   } else {
+    // Calculation of all atoms in Mask1 to all atoms in Mask2
     int outer_max = OuterMask_.Nselected();
     int inner_max = InnerMask_.Nselected();
 #ifdef _OPENMP
 #pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread) reduction(+:mydistances) 
 {
-  //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-  mythread = omp_get_thread_num();
+    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+    mythread = omp_get_thread_num();
 #pragma omp for
 #endif
     for (nmask1 = 0; nmask1 < outer_max; nmask1++) {
@@ -352,7 +365,6 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 //       if multiple prmtops are loaded and number of atoms changes from 
 //       prmtop to prmtop this will throw off normalization.
 void Action_Radial::Print() {
-  double nmask1;
   if (numFrames_==0) return;
 # ifdef _OPENMP 
   // Combine results from each rdf_thread into rdf
@@ -362,29 +374,36 @@ void Action_Radial::Print() {
 # endif
 
   mprintf("    RADIAL: %i frames, %i distances.\n",numFrames_,numDistances_);
-  // If Mask1 and Mask2 have any atoms in common distances were not calcd
-  // between them (because they are 0.0 of course); need to correct for this.
-  int numSameAtoms = Mask1_.NumAtomsInCommon( Mask2_ );
-  // If the center1 option was specified only one distance was calcd
-  // from mask 1 (the COM).
-  if (center1_) {
+  double nmask1 = (double)Mask1_.Nselected();
+  double nmask2 = (double)Mask2_.Nselected();
+  int numSameAtoms = 0;
+  if (rmode_ == NORMAL) {
+    // If Mask1 and Mask2 have any atoms in common distances were not calcd
+    // between them (because they are 0.0 of course); need to correct for this.
+    numSameAtoms = Mask1_.NumAtomsInCommon( Mask2_ );
+  } else if (rmode_ == CENTER1) {
+    // If the center1 option was specified only one distance was calcd
+    // from mask 1. Assume COM of mask 1 != atom(s) in mask2.
     nmask1 = 1.0;
-    numSameAtoms = 0; // COM of mask1 probably != atoms in mask2
-  } else
-    nmask1 = (double)Mask1_.Nselected();
-  mprintf("            # in mask1= %.0f, # in mask2 = %u, # in common = %i\n",
-          nmask1, Mask2_.Nselected(), numSameAtoms);
+    numSameAtoms = 0;
+  } else if (rmode_ == CENTER2) {
+    // If the center2 option was specified only one distance was calcd
+    // from mask 2. Assume COM of mask 2 != atom(s) in mask1.
+    nmask2 = 1.0;
+    numSameAtoms = 0;
+  }
+  mprintf("            # in mask1= %.0f, # in mask2 = %.0f, # in common = %i\n",
+          nmask1, nmask2, numSameAtoms);
   
   // If useVolume, calculate the density from the average volume
   if (useVolume_) {
     double avgVol = volume_ / numFrames_;
     mprintf("            Average volume is %f Ang^3.\n",avgVol);
-    density_ = (nmask1 * (double)Mask2_.Nselected() - (double)numSameAtoms) / avgVol;
+    density_ = (nmask1 * nmask2 - (double)numSameAtoms) / avgVol;
     mprintf("            Average density is %f distances / Ang^3.\n",density_);
   } else {
     density_ = density_ * 
-               (nmask1 * (double)Mask2_.Nselected() - (double)numSameAtoms) / 
-               nmask1;
+               (nmask1 * nmask2 - (double)numSameAtoms) / nmask1;
     mprintf("            Density is %f distances / Ang^3.\n",density_);
   }
   // Need to normalize each bin, which holds the particle count at that
