@@ -1,6 +1,5 @@
 // Action_Radial
 #include <cmath> // sqrt
-#include <cstring> // memset
 #include "Action_Radial.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // doubleToString
@@ -162,7 +161,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   temp_numbins = ceil(temp_numbins);
   numBins_ = (int) temp_numbins;
   RDF_ = new int[ numBins_ ];
-  memset(RDF_, 0, numBins_ * sizeof(int));
+  std::fill(RDF_, RDF_ + numBins_, 0);
 # ifdef _OPENMP
   // Since RDF is shared by all threads and we cant guarantee that a given
   // bin in RDF wont be accessed at the same time by the same thread,
@@ -175,7 +174,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   rdf_thread_ = new int*[ numthreads_ ];
   for (int i=0; i < numthreads_; i++) {
     rdf_thread_[i] = new int[ numBins_ ];
-    memset(rdf_thread_[i], 0, numBins_ * sizeof(int));
+    std::fill(rdf_thread_[i], rdf_thread_[i] + numBins_, 0);
   }
 # endif
   
