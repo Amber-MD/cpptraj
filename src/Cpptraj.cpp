@@ -12,6 +12,9 @@
 #include "DataSet_Coords.h" // CrdAction
 #include "Command.h"
 #include "Version.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 void Cpptraj::Usage() {
   mprinterr("\nUsage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n");
@@ -908,6 +911,10 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
 // -----------------------------------------------------------------------------
 // Cpptraj::Run()
 int Cpptraj::Run() {
+# ifdef TIMER
+  Timer total_time;
+  total_time.Start();
+# endif
   int err = 0;
   ++nrun_;
   // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
@@ -942,6 +949,10 @@ int Cpptraj::Run() {
   }
   // Clean up Actions.
   actionList_.Clear();
+# ifdef TIMER
+  total_time.Stop();
+  mprintf("Total execution time: %.4f seconds.\n", total_time.Total());
+# endif
   return err;
 }
 
@@ -1178,6 +1189,10 @@ int Cpptraj::RunNormal() {
   Frame TrajFrame;            // Original Frame read in from traj
 
   // ========== S E T U P   P H A S E ========== 
+# ifdef TIMER
+  Timer init_time;
+  init_time.Start();
+# endif
   // Parameter file information
   parmFileList_.List();
   // Input coordinate file information
@@ -1189,7 +1204,10 @@ int Cpptraj::RunNormal() {
   mprintf("\nOUTPUT TRAJECTORIES:\n");
   trajoutList_.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
-  DSL_.AllocateSets(); 
+  DSL_.AllocateSets();
+# ifdef TIMER
+  init_time.Stop();
+# endif
   
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
