@@ -199,33 +199,35 @@ int ClusterMatrix::SetupMatrix(size_t sizeIn) {
 }
 
 // ClusterMatrix::FindMin()
-/** Find the minimum; set corresponding row and column. */
+/** Find the minimum; set corresponding row and column. Cannot currently
+  * be used for sieved frames.
+  */
 double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
   iOut = -1;
   jOut = -1;
-  size_t iVal = 0L;
-  size_t jVal = sieve_;
+  int iVal = 0;
+  int jVal = 1;
   float min = FLT_MAX;
-  for (size_t idx = 0L; idx < Nelements(); ++idx) {
+  for (size_t idx = 0UL; idx < Nelements(); ++idx) {
     if (ignore_[iVal] || ignore_[jVal]) {
       // If we dont care about this row/col, just increment
-      jVal += sieve_;
-      if (jVal >= ignore_.size()) {
-        iVal += sieve_;
-        jVal = iVal + sieve_;
+      jVal++;
+      if (jVal >= (int)ignore_.size()) {
+        iVal++;
+        jVal = iVal + 1;
       }
     } else {
       // Otherwise search for minimum
       if ( Mat_[idx] < min ) {
         min = Mat_[idx];
-        iOut = (int)iVal;
-        jOut = (int)jVal;
+        iOut = iVal;
+        jOut = jVal;
       }
       // Increment indices
-      jVal += sieve_;
-      if (jVal >= ignore_.size()) {
-        iVal += sieve_;
-        jVal = iVal + sieve_;
+      jVal++;
+      if (jVal >= (int)ignore_.size()) {
+        iVal++;
+        jVal = iVal + 1;
       }
     }
   }
@@ -234,16 +236,16 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
 
 // ClusterMatrix::PrintElements()
 void ClusterMatrix::PrintElements() const {
-  size_t iVal = 0L;
-  size_t jVal = sieve_;
-  for (size_t idx = 0L; idx < Nelements(); idx++) {
+  int iVal = 0;
+  int jVal = 0;
+  for (size_t idx = 0UL; idx < Nelements(); ++idx) {
     if (!ignore_[iVal] && !ignore_[jVal])
-      mprintf("\t%u %u %8.3f\n",iVal,jVal,Mat_[idx]);
+      mprintf("\t%i %i %8.3f\n",iVal,jVal,Mat_[idx]);
     // Increment indices
-    jVal += sieve_;
-    if (jVal >= ignore_.size()) {
-      iVal += sieve_;
-      jVal = iVal + sieve_;
+    jVal++;
+    if (jVal >= (int)ignore_.size()) {
+      iVal++;
+      jVal = iVal + 1;
     }
   }
 }
