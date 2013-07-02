@@ -57,7 +57,7 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> grid_x_;	// voxel index in x
     std::vector <double> grid_y_;
     std::vector <double> grid_z_;
-    std::vector <int> neighbor_;		// number of water neighbor within 3.5A
+    std::vector <double> neighbor_;		// number of water neighbor within 3.5A
     std::vector <double> qtet_;		// tetahedral order parameter
     double Vvox_;			// voxel volume
     /// Return X coordinate of bin center
@@ -68,7 +68,7 @@ class Action_Gist: public Action, ImagedAction  {
     double Zcrd(int k) { return (double)k*gridspacn_ + gridorig_[2] + 0.5*gridspacn_; }
     
     double Lx, Ly, Lz;		// box length
-    //double G_max_x, G_max_y, G_max_z;		// grid max length
+    double G_max_x, G_max_y, G_max_z;		// grid max length
     void pbc(Vec3& r) {
 	if (r[0] < -Lx/2) r[0] += Lx;
         else if (r[0] > Lx/2) r[0] -= Lx;
@@ -81,7 +81,7 @@ class Action_Gist: public Action, ImagedAction  {
     //general loop    
     Topology::mol_iterator solvmol, solvmol2;
     int voxel;
-    int resnum;
+    int resnum,resindex1,resindex2;
     double theta, phi, psi;
     
     //non-bond energy stuff
@@ -128,6 +128,6 @@ class Action_Gist: public Action, ImagedAction  {
     void Grid(Frame *);
     void EulerAngle(Frame *);
     void Dipole(Frame *);
-    //void Order(Frame *);
+    void Order(Frame *);
 };
 #endif
