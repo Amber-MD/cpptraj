@@ -1,5 +1,6 @@
 #ifndef INC_CLUSTERLIST_H
 #define INC_CLUSTERLIST_H
+#include <list>
 #include "ArgList.h"
 #include "ClusterNode.h" 
 // Class: ClusterList
@@ -33,6 +34,7 @@ class ClusterList {
     const cluster_iterator endcluster()   const { return clusters_.end();   }
   protected:
     virtual void AddSievedFrames() = 0;
+    virtual void ClusterResults(CpptrajFile&) const = 0;
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
     int debug_;

@@ -18,24 +18,30 @@ const unsigned char ClusterMatrix::Magic_[4] = {'C', 'T', 'M', 2};
   * the sieve value. The Ignore array will be set up based on
   * the original number of frames.
   */
-ClusterMatrix::ClusterMatrix(size_t sizeIn, size_t sieveIn) : sieve_(sieveIn)
+int ClusterMatrix::SetupWithSieve(size_t sizeIn, size_t sieveIn, int iseed)
 {
-  if (sieve_ < 1) sieve_ = 1;
-  // Sieved distances should be ignored
-  if (sieve_ > 1) {
-    // Determine size of underlying TriangleMatrix
-    size_t actual_nrows = sizeIn / sieve_;
-    if ( (sizeIn % sieve_) > 0 )
-      ++actual_nrows;
-    Mat_.resize( 0L, actual_nrows );
+  if (sievedFrames_.SetSieve( sieveIn, sizeIn, iseed )) return 1;
+  sieve_ = sievedFrames_.Sieve();
+  // Sieved distances should be ignored.
+  if (sievedFrames_.Type() != ClusterSieve::NONE) {
     // Set up the ignore array to ignore sieved frames
     ignore_.assign(sizeIn, true);
-    for (size_t frame = 0; frame < sizeIn; frame += sieve_) 
-      ignore_[frame] = false;
+    size_t actual_nrows = 0;
+    for (size_t frame = 0; frame < sizeIn; frame++)
+      if (sievedFrames_.FrameToIdx(frame) != -1) {
+        ignore_[frame] = false;
+        ++actual_nrows;
+      }
+    // Set up underlying TriangleMatrix for sieved frames.
+    Mat_.resize( 0L, actual_nrows );
+    mprintf("\tPair-wise matrix set up with sieve, %zu frames, %zu sieved frames.\n",
+            sizeIn, actual_nrows);
   } else {
     Mat_.resize( 0L, sizeIn );
     ignore_.assign(sizeIn, false);
+    mprintf("\tPair-wise matrix set up, %zu frames\n", sizeIn);
   }
+  return 0;
 }
 
 // COPY CONSTRUCTOR
@@ -173,6 +179,11 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
       if (ignore_in[row] == 'T')
         ignore_[row] = true;
     delete[] ignore_in;
+  }
+  // Setup sieve class
+  if (sievedFrames_.SetSieve( sieve_, ignore_ )) {
+    mprinterr("Error: Could not set sieve from ClusterMatrix file.\n");
+    return 1;
   }
   mprintf("\tLoaded %s: %u original rows, %u actual rows, %u elements, sieve=%u\n",
           filename.c_str(), ROWS, Mat_.Nrows(), Mat_.size(), sieve_);

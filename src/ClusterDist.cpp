@@ -55,24 +55,25 @@ ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
     dcalc_ = DistCalc_Std;
 }
 
-ClusterMatrix ClusterDist_Num::PairwiseDist(int sieve) {
+void ClusterDist_Num::PairwiseDist(ClusterMatrix& frameDistances, 
+                                   ClusterSieve::SievedFrames const& frames)
+{
   int f1, f2;
-  int f2end = data_->Size();
-  ClusterMatrix frameDistances( f2end, sieve );
-  int f1end = f2end - sieve;
+  int f2end = (int)frames.size();
+  int f1end = f2end - 1;
 #ifdef _OPENMP
 #pragma omp parallel private(f1, f2)
 {
 #pragma omp for schedule(dynamic)
 #endif
-  for (f1 = 0; f1 < f1end; f1 += sieve) {
-    for (f2 = f1 + sieve; f2 < f2end; f2 += sieve)
-      frameDistances.SetElement( f1, f2, dcalc_(data_->Dval(f1), data_->Dval(f2)) );
+  for (f1 = 0; f1 < f1end; f1++) {
+    for (f2 = f1 + 1; f2 < f2end; f2++)
+      frameDistances.SetElement( f1, f2, dcalc_(data_->Dval(frames[f1]), 
+                                                data_->Dval(frames[f2])) );
   }
 #ifdef _OPENMP
 }
 #endif
-  return frameDistances;
 }
 
 double ClusterDist_Num::FrameDist(int f1, int f2) {
@@ -115,25 +116,26 @@ ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn)
   }
 }
 
-ClusterMatrix ClusterDist_Euclid::PairwiseDist(int sieve) {
+void ClusterDist_Euclid::PairwiseDist(ClusterMatrix& frameDistances,
+                                      ClusterSieve::SievedFrames const& frames)
+{
   int f1, f2;
   double dist, diff;
   DcArray::iterator dcalc;
   D1Array::iterator ds;
-  int f2end = dsets_[0]->Size();
-  ClusterMatrix frameDistances( f2end, sieve );
-  int f1end = f2end - sieve;
+  int f2end = (int)frames.size();
+  int f1end = f2end - 1;
 #ifdef _OPENMP
 #pragma omp parallel private(f1, f2, dist, diff, dcalc, ds)
 {
 #pragma omp for schedule(dynamic)
 #endif
-  for (f1 = 0; f1 < f1end; f1 += sieve) {
-    for (f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
+  for (f1 = 0; f1 < f1end; f1++) {
+    for (f2 = f1 + 1; f2 < f2end; f2++) {
       dist = 0.0;
       dcalc = dcalcs_.begin();
       for (ds = dsets_.begin(); ds != dsets_.end(); ++ds, ++dcalc) {
-        diff = (*dcalc)((*ds)->Dval(f1), (*ds)->Dval(f2));
+        diff = (*dcalc)((*ds)->Dval(frames[f1]), (*ds)->Dval(frames[f2]));
         dist += (diff * diff);
       }
       frameDistances.SetElement( f1, f2, sqrt(dist) );
@@ -142,13 +144,12 @@ ClusterMatrix ClusterDist_Euclid::PairwiseDist(int sieve) {
 #ifdef _OPENMP
 }
 #endif
-  return frameDistances;
 }
 
 double ClusterDist_Euclid::FrameDist(int f1, int f2) {
   double dist = 0.0;
   DcArray::iterator dcalc = dcalcs_.begin();
-  for (DsArray::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds, ++dcalc) {
+  for (D1Array::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds, ++dcalc) {
     double diff = (*dcalc)((*ds)->Dval(f1), (*ds)->Dval(f2));
     dist += (diff * diff);
   }
@@ -203,14 +204,16 @@ ClusterDist_DME::ClusterDist_DME(DataSet* dIn, AtomMask const& maskIn) :
   mask_(maskIn)
 {
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
+  frm2_ = frm1_;
 }
 
-ClusterMatrix ClusterDist_DME::PairwiseDist(int sieve) {
+void ClusterDist_DME::PairwiseDist(ClusterMatrix& frameDistances,
+                                   ClusterSieve::SievedFrames const& frames)
+{
   int f1, f2;
   Frame frm2 = frm1_;
-  int f2end = coords_->Size();
-  ClusterMatrix frameDistances( f2end, sieve );
-  int f1end = f2end - sieve;
+  int f2end = (int)frames.size();
+  int f1end = f2end - 1;
 #ifdef _OPENMP
   Frame frm1 = frm1_;
 # define frm1_ frm1
@@ -218,10 +221,10 @@ ClusterMatrix ClusterDist_DME::PairwiseDist(int sieve) {
 {
 #pragma omp for schedule(dynamic)
 #endif
-  for (f1 = 0; f1 < f1end; f1 += sieve) { 
-    coords_->GetFrame( f1, frm1_, mask_ );
-    for (f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
-      coords_->GetFrame( f2, frm2,  mask_ );
+  for (f1 = 0; f1 < f1end; f1++) { 
+    coords_->GetFrame( frames[f1], frm1_, mask_ );
+    for (f2 = f1 + 1; f2 < f2end; f2++) {
+      coords_->GetFrame( frames[f2], frm2,  mask_ );
       frameDistances.SetElement( f1, f2, frm1_.DISTRMSD( frm2 ) );
     }
   }
@@ -229,14 +232,12 @@ ClusterMatrix ClusterDist_DME::PairwiseDist(int sieve) {
 # undef frm1_
 } // END pragma omp parallel
 #endif
-  return frameDistances;
 }
 
 double ClusterDist_DME::FrameDist(int f1, int f2) {
-  Frame frm2 = frm1_;
   coords_->GetFrame( f1, frm1_, mask_ );
-  coords_->GetFrame( f2, frm2,  mask_ );
-  return frm1_.DISTRMSD( frm2 );
+  coords_->GetFrame( f2, frm2_, mask_ );
+  return frm1_.DISTRMSD( frm2_ );
 }
 
 double ClusterDist_DME::CentroidDist(Centroid* c1, Centroid* c2) {
@@ -287,13 +288,14 @@ ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, AtomMask const& maskIn,
   frm2_ = frm1_;
 }
 
-ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
+void ClusterDist_RMS::PairwiseDist(ClusterMatrix& frameDistances,
+                                   ClusterSieve::SievedFrames const& frames)
+{
   double rmsd;
   int f1, f2;
   Frame frm2 = frm1_;
-  int f2end = coords_->Size();
-  ClusterMatrix frameDistances( f2end, sieve );
-  int f1end = f2end - sieve;
+  int f2end = (int)frames.size();
+  int f1end = f2end - 1;
   ParallelProgress progress(f1end);
 #ifdef _OPENMP
   Frame frm1 = frm1_;
@@ -303,11 +305,11 @@ ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
   progress.SetThread(omp_get_thread_num());
 #pragma omp for schedule(dynamic)
 #endif
-  for (f1 = 0; f1 < f1end; f1 += sieve) {
+  for (f1 = 0; f1 < f1end; f1++) {
     progress.Update(f1);
-    coords_->GetFrame( f1, frm1_, mask_ );
-    for (f2 = f1 + sieve; f2 < f2end; f2 += sieve) {
-      coords_->GetFrame( f2, frm2,  mask_ );
+    coords_->GetFrame( frames[f1], frm1_, mask_ );
+    for (f2 = f1 + 1; f2 < f2end; f2++) {
+      coords_->GetFrame( frames[f2], frm2,  mask_ );
       if (nofit_) 
         rmsd = frm1_.RMSD_NoFit( frm2, useMass_ );
       else
@@ -320,12 +322,11 @@ ClusterMatrix ClusterDist_RMS::PairwiseDist(int sieve) {
 } // END pragma omp parallel
 #endif
   progress.Finish();
-  return frameDistances;
 }
 
 double ClusterDist_RMS::FrameDist(int f1, int f2) {
   coords_->GetFrame( f1, frm1_, mask_ );
-  coords_->GetFrame( f2, frm2_,  mask_ );
+  coords_->GetFrame( f2, frm2_, mask_ );
   if (nofit_)
     return frm1_.RMSD_NoFit( frm2_, useMass_ );
   else

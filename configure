@@ -198,6 +198,8 @@ ARCHITECTURE="x86_64" # TODO: Actually determine
 OPT=1
 USEMPI=0
 USEOPENMP=0
+USETIMER=0
+TIMER=""
 PROFILE=0
 USECRAY=0
 CC=""
@@ -312,6 +314,7 @@ while [[ ! -z $1 ]] ; do
       ;;
     "-profile"      ) PROFILE=1 ;;
     "-gprofile"     ) PROFILE=2 ;;
+    "-timer"        ) USETIMER=1 ;;
     "-nolfs"        )
       echo "Disabling large file support"
       LFS=""
@@ -525,6 +528,13 @@ fi
 # Set up linking flags
 LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $BZLIB $ZLIB $FLIBS"
 
+# Add options for Timer
+if [[ $USETIMER -eq 1 ]] ; then
+  TIMER="Timer.o"
+  DIRECTIVES="$DIRECTIVES -DTIMER"
+  LDFLAGS="$LDFLAGS -lrt"
+fi
+
 # Add flags for OPENMP if specified
 if [[ $USEOPENMP -eq 1 ]] ; then
   echo "Using OPENMP"
@@ -619,6 +629,8 @@ FFLAGS=$FFLAGS \$(DBGFLAGS)
 
 READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
+
+TIMER=$TIMER
 
 LDFLAGS=$LDFLAGS
 SFX=$SFX

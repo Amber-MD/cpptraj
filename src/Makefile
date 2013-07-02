@@ -3,7 +3,7 @@ include ../config.h
 
 include cpptrajfiles
 
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) 
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(TIMER)
 
 all: cpptraj$(SFX)
 
@@ -22,9 +22,10 @@ dependclean:
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(READLINE)
 	$(CXX) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
 
-
 $(READLINE): $(READLINE_HOME)/Makefile
 	cd $(READLINE_HOME) && $(MAKE)
+
+$(TIMER): Timer.cpp Timer.h
 
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
