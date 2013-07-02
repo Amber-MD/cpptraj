@@ -137,19 +137,19 @@ int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& a
 int DataSet::SetDataSetFormat(bool leftAlign) {
   // Set data format string.
   // NOTE: According to C++ std 4.7/4 (int)true == 1
-  colwidth_ = width_ + (int)leftAlign;
+  colwidth_ = width_ + (int)(!leftAlign);
   switch (dType_) {
     case MATRIX_DBL:
-    case DOUBLE : format_ = SetDoubleFormatString(width_, precision_, 0, leftAlign); break;
+    case DOUBLE : format_ = SetDoubleFormatString(width_, precision_, 0); break;
     case MATRIX_FLT:
     case GRID_FLT  :
     case COORDS : 
-    case FLOAT  : format_ = SetDoubleFormatString(width_, precision_, 1, leftAlign); break;
-    case INTEGER: format_ = SetIntegerFormatString(width_, leftAlign); break;
+    case FLOAT  : format_ = SetDoubleFormatString(width_, precision_, 1); break;
+    case INTEGER: format_ = SetIntegerFormatString(width_); break;
     case STRING : format_ = SetStringFormatString(width_, leftAlign); break;
     case MODES :
-    case VECTOR: // No left-align allowed for now with VECTOR.
-      format_ = SetDoubleFormatString(width_, precision_, 0, false); 
+    case VECTOR:
+      format_ = SetDoubleFormatString(width_, precision_, 0); 
       colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz
       break;
     default:
@@ -157,8 +157,12 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
                 Legend().c_str());
       return 1;
   }
+  // If we are not left-aligning prepend a space to the format string.
+  if (!leftAlign) format_ = " " + format_;
   // Assign format to a constant ptr to avoid continuous calls to c_str
   data_format_ = format_.c_str();
+  mprintf("DBG:\t DS %s fmt='%s' colwidth=%i width.prec=%i.%i leftAlign=%i\n",
+           Legend().c_str(), data_format_, colwidth_, width_, precision_, (int)leftAlign);
   return 0;
 }
 

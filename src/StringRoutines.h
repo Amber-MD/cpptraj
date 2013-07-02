@@ -23,7 +23,7 @@ std::string integerToString(int);
 std::string integerToString(int,int);
 std::string doubleToString(double);
 
-std::string SetDoubleFormatString(int, int, int, bool);
+std::string SetDoubleFormatString(int, int, int);
 std::string SetStringFormatString(int, bool);
-std::string SetIntegerFormatString(int, bool);
+std::string SetIntegerFormatString(int);
 #endif

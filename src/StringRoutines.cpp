@@ -159,15 +159,13 @@ std::string doubleToString(double d) {
 /** Set up a printf-style format string for float/double of given width, 
   * precision, and alignment, e.g. '%8.3lf'.
   */
-std::string SetDoubleFormatString(int width, int precision, int type, bool leftAlign)
+std::string SetDoubleFormatString(int width, int precision, int type)
 {
   std::string format;
   std::string width_arg;
   std::string prec_arg;
   std::string type_arg; // Will be f, lf, or E.
 
-  // If not left-aligned, need leading space.
-  if (!leftAlign) format.append(" ");
   // Type: 1 = float, 2 = scientific (E), otherwise double
   switch (type) {
     case 1:  type_arg = "f"; break;
@@ -194,9 +192,9 @@ std::string SetStringFormatString(int width, bool leftAlign)
   std::string width_arg;
   // If not left-aligned, need leading space.
   if (!leftAlign) 
-    format.append(" %");
+    format.assign("%");
   else
-    format.append("%-");
+    format.assign("%-");
   // Set width if applicable
   if (width > 0)
     width_arg = integerToString( width );
@@ -209,12 +207,10 @@ std::string SetStringFormatString(int width, bool leftAlign)
 /** Set up a printf-style format string for integer of given width
   * and alignment, e.g. '%8i'.
   */
-std::string SetIntegerFormatString(int width, bool leftAlign)
+std::string SetIntegerFormatString(int width)
 {
   std::string format;
   std::string width_arg;
-  // If not left-aligned, need leading space.
-  if (!leftAlign) format.append(" ");
   // Set width if applicable
   if (width > 0)
     width_arg = integerToString( width );

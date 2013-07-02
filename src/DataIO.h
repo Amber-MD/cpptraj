@@ -23,7 +23,5 @@ class DataIO {
   protected:
     // TODO: Move this to DataSet?
     static std::string SetupCoordFormat(size_t, Dimension const&, int, int);
-    static std::string SetupCoordFormat(size_t, Dimension const&, int, int,bool);
-
 };
 #endif

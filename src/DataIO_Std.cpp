@@ -172,16 +172,16 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
 
 // -----------------------------------------------------------------------------
 // WriteNameToBuffer()
-static void WriteNameToBuffer(CpptrajFile& fileIn, DataSet const& DS, bool leftAlign) 
+void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label,
+                                   int width,  bool leftAlign) 
 {
-  std::string temp_name = DS.Legend();
+  std::string temp_name = label;
   // If left aligning, add '#' to name; ensure that name will not be
   // larger than column width.
   if (leftAlign) {
     if (temp_name[0]!='#')
       temp_name.insert(0,"#");
   }
-  int width = DS.ColumnWidth();
   if ((int)temp_name.size() > width)
     temp_name.resize( width );
   // Replace any spaces with underscores
@@ -190,6 +190,7 @@ static void WriteNameToBuffer(CpptrajFile& fileIn, DataSet const& DS, bool leftA
       *tc = '_';
   // Set up header format string
   std::string header_format = SetStringFormatString(width, leftAlign);
+  mprintf("STR: olabel='%s' label='%s' fmt='%s'\n", label.c_str(), temp_name.c_str(), header_format.c_str());
   fileIn.Printf(header_format.c_str(), temp_name.c_str());
 }
 // -----------------------------------------------------------------------------
@@ -198,7 +199,7 @@ static void WriteNameToBuffer(CpptrajFile& fileIn, DataSet const& DS, bool leftA
 int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList,
                           DimArray const& Dim) 
 {
-  std::string x_col_format, x_label;
+  std::string x_col_format;
   int xcol_width = 8;
   int xcol_precision = 3;
 
@@ -214,17 +215,13 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList,
 
   // Set up X column.
   if (hasXcolumn_) {
-    // Set up x column label. Precede label with a '#'.
-    x_label = Xdim.Label();
-    x_label.insert(0, "#");
-    if ((int)x_label.size() > xcol_width) xcol_width = (int)x_label.size();
     // Create format string for X column based on dimension in first data set.
     if (Xdim.Step() == 1.0) xcol_precision = 0;
     x_col_format = SetupCoordFormat( maxFrames, Xdim, xcol_width, xcol_precision ); 
   } else {
     // If not writing an X-column, set the format for the first dataset
     // to left-aligned.
-    if (!hasXcolumn_) Sets[0]->SetDataSetFormat( true );
+    Sets[0]->SetDataSetFormat( true );
   }
 
   // Open output file.
@@ -234,19 +231,17 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList,
   // Write header to buffer
   if (writeHeader_) {
     // If x-column present, write x-label
-    if (hasXcolumn_) {
-      std::string x_header_fmt = SetStringFormatString( xcol_width, true );
-      file.Printf(x_header_fmt.c_str(), x_label.c_str());
-    }
+    if (hasXcolumn_)
+      WriteNameToBuffer( file, Xdim.Label(), xcol_width, true );
     // Write dataset names to header, left-aligning first set if no X-column
     Array1D::const_iterator set = Sets.begin();
     if (!hasXcolumn_)
-      WriteNameToBuffer( file, *(*set), true );
+      WriteNameToBuffer( file, (*set)->Legend(), (*set)->ColumnWidth(), true  );
     else
-      WriteNameToBuffer( file, *(*set), false );
+      WriteNameToBuffer( file, (*set)->Legend(), (*set)->ColumnWidth(), false );
     ++set;
     for (; set != Sets.end(); ++set) 
-      WriteNameToBuffer( file, *(*set), false );
+      WriteNameToBuffer( file, (*set)->Legend(), (*set)->ColumnWidth(), false );
     file.Printf("\n"); 
   }
 
@@ -278,7 +273,7 @@ int DataIO_Std::WriteDataInverted(std::string const& fname, DataSetList const& S
   // Write each set to a line.
   for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
     // Write dataset name as first column.
-    WriteNameToBuffer( file, *(*set), false); 
+    WriteNameToBuffer( file, (*set)->Legend(), (*set)->ColumnWidth(), false); 
     // Write each frame to subsequent columns
     for (size_t frame=0L; frame < maxFrames; frame++) 
       (*set)->WriteBuffer(file, frame);
@@ -324,7 +319,9 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn,
                                                     true );
       file.Printf(col1_fmt.c_str(), header.c_str());
       std::string xcoord_fmt = SetupCoordFormat( set.Ncols(), Dim[0], set.ColumnWidth(), 
-                                                 xcol_precision, false );
+                                                 xcol_precision );
+      // Do not want this left aligned so prepend a space.
+      xcoord_fmt = " " + xcoord_fmt;
       for (size_t ix = 0; ix < set.Ncols(); ix++)
         file.Printf(xcoord_fmt.c_str(), Dim[0].Coord( ix ));
       file.Printf("\n");

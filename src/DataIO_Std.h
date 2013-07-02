@@ -15,6 +15,7 @@ class DataIO_Std : public DataIO {
     int WriteData3D(std::string const&, DataSet const&, DimArray const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
+    static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);
     bool hasXcolumn_;
     bool writeHeader_;
     bool square2d_;

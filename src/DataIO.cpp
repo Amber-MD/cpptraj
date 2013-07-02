@@ -1,15 +1,8 @@
 #include "DataIO.h"
 #include "StringRoutines.h"
-
+// DataIO::SetupCoordFormat()
 std::string DataIO::SetupCoordFormat(size_t maxFrames, Dimension const& dim, 
                                      int default_width, int default_precision)
-{
-  return SetupCoordFormat(maxFrames, dim, default_width, default_precision, true);
-}
-
-std::string DataIO::SetupCoordFormat(size_t maxFrames, Dimension const& dim, 
-                                     int default_width, int default_precision,
-                                     bool leftAligned) 
 {
   int col_precision = default_precision;
   // Determine maximum coordinate.
@@ -32,5 +25,5 @@ std::string DataIO::SetupCoordFormat(size_t maxFrames, Dimension const& dim,
   // Default width for column is at least default_width.
   if (col_width < default_width) col_width = default_width;
   // Set column data format string, left-aligned (no leading space).
-  return SetDoubleFormatString( col_width, col_precision, 0, leftAligned );
+  return SetDoubleFormatString( col_width, col_precision, 0 );
 }
