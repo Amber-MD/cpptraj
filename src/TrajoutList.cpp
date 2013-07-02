@@ -28,6 +28,27 @@ int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList& topListI
     mprinterr("Error: TrajoutList::AddEnsemble: Called with null filename.\n");
     return 1;
   }
+  std::string onlyMembers = args.GetStringKey("onlymembers");
+  if (!onlyMembers.empty()) {
+    // Range of ensemble members to write for. If this member is
+    // not on the list, exit.
+    Range members( onlyMembers );
+    if (members.Empty()) {
+      mprinterr("Error: onlymembers: Invalid range (%s)\n", onlyMembers.c_str());
+      return 1;
+    }
+    bool is_a_member = false;
+    for (Range::const_iterator mstr = members.begin(); mstr != members.end(); ++mstr)
+      if ( member == *mstr ) {
+        is_a_member = true;
+        break;
+      }
+    if ( !is_a_member ) {
+      mprintf("trajout %s: Member %i is not on onlymembers list '%s'; will not be written to.\n",
+              filename.c_str(), member, onlyMembers.c_str());
+      return 0;
+    }
+  }
   // Modify filename by member
   filename += ("." + integerToString( member ));
   return AddTrajout( filename, args, topListIn );

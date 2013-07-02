@@ -1,7 +1,11 @@
 #include <cfloat> // DBL_MAX
+#include <algorithm> // sort, unique
 #include "Cluster_DBSCAN.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 
 Cluster_DBSCAN::Cluster_DBSCAN() :
   minPoints_(-1),
@@ -55,10 +59,15 @@ void Cluster_DBSCAN::RegionQuery(std::vector<int>& NeighborPts,
                                         ++otherpoint)
   {
     if (point == *otherpoint) continue;
-    if ( FrameDistances_.GetElement(point, *otherpoint) < epsilon_ )
+    if ( FrameDistances_.GetFdist(point, *otherpoint) < epsilon_ )
       NeighborPts.push_back( *otherpoint );
   }
 }
+
+// Potential frame statuses.
+char Cluster_DBSCAN::UNASSIGNED = 'U';
+char Cluster_DBSCAN::NOISE = 'N';
+char Cluster_DBSCAN::INCLUSTER = 'C';
 
 /** Ester, Kriegel, Sander, Xu; Proceedings of 2nd International Conference
   * on Knowledge Discovery and Data Mining (KDD-96); pp 226-231.
@@ -77,10 +86,7 @@ int Cluster_DBSCAN::Cluster() {
   // waste memory during sieving but makes code easier.
   std::vector<bool> Visited( FrameDistances_.Nframes(), false );
   // Set up array to keep track of whether points are noise or in a cluster.
-  static char UNASSIGNED = 'U';
-  static char NOISE = 'N';
-  static char INCLUSTER = 'C';
-  std::vector<char> Status( FrameDistances_.Nframes(), UNASSIGNED);
+  Status_.assign( FrameDistances_.Nframes(), UNASSIGNED);
   mprintf("\tStarting DBSCAN Clustering:\n");
   ProgressBar cluster_progress(FramesToCluster.size());
   int iteration = 0;
@@ -99,7 +105,7 @@ int Cluster_DBSCAN::Cluster() {
       // If # of neighbors less than cutoff, noise; otherwise cluster
       if ((int)NeighborPts.size() < minPoints_) {
         if (debug_ > 0) mprintf(" NOISE\n");
-        Status[*point] = NOISE;
+        Status_[*point] = NOISE;
       } else {
         // Expand cluster
         cluster_frames.clear();
@@ -122,15 +128,17 @@ int Cluster_DBSCAN::Cluster() {
             }
           }
           // If neighbor is not yet part of a cluster, add it to this one.
-          if (Status[neighbor_pt] != INCLUSTER) {
+          if (Status_[neighbor_pt] != INCLUSTER) {
             cluster_frames.push_back( neighbor_pt );
-            Status[neighbor_pt] = INCLUSTER;
+            Status_[neighbor_pt] = INCLUSTER;
           }
         }
         // Remove duplicate frames
         // TODO: Take care of this in Renumber?
-        cluster_frames.sort();
-        cluster_frames.unique();
+        std::sort(cluster_frames.begin(), cluster_frames.end());
+        ClusterDist::Cframes::iterator it = std::unique(cluster_frames.begin(), 
+                                                        cluster_frames.end());
+        cluster_frames.resize( std::distance(cluster_frames.begin(),it) );
         // Add cluster to the list
         AddCluster( cluster_frames );
         if (debug_ > 0) {
@@ -141,16 +149,6 @@ int Cluster_DBSCAN::Cluster() {
     }
     cluster_progress.Update(iteration++);
   } // END loop over FramesToCluster
-  // Count the number of noise points
-  mprintf("\tNOISE FRAMES:");
-  unsigned int frame = 1;
-  for (std::vector<char>::iterator stat = Status.begin();
-                                   stat != Status.end(); ++stat, ++frame)
-  {
-    if ( *stat == NOISE )
-      mprintf(" %i", frame);
-  }
-  mprintf("\n");
   // Calculate the distances between each cluster based on centroids
   ClusterDistances_.SetupMatrix( clusters_.size() );
   // Make sure centroid for clusters are up to date
@@ -168,35 +166,91 @@ int Cluster_DBSCAN::Cluster() {
   return 0;
 }
 
+// Cluster_DBSCAN::ClusterResults()
+void Cluster_DBSCAN::ClusterResults(CpptrajFile& outfile) const {
+  // List the number of noise points.
+  outfile.Printf("#NOISE_FRAMES:");
+  unsigned int frame = 1;
+  for (std::vector<char>::const_iterator stat = Status_.begin();
+                                         stat != Status_.end(); 
+                                       ++stat, ++frame)
+  {
+    if ( *stat == NOISE )
+      outfile.Printf(" %i", frame);
+  }
+  outfile.Printf("\n");
+}
+
 // Cluster_DBSCAN::AddSievedFrames()
 void Cluster_DBSCAN::AddSievedFrames() {
   int n_sieved_noise = 0;
+  int Nsieved = 0;
   // NOTE: All cluster centroids must be up to date!
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame) {
+  if (sieveToCentroid_)
+    mprintf("\tRestoring sieved frames by closeness to existing centroids.\n");
+  else
+    mprintf("\tRestoring sieved frames if within %.3f of frame in nearest cluster.\n",
+            epsilon_);
+  // Vars allocated here in case of OpenMP
+  int frame, cidx;
+  int nframes = (int)FrameDistances_.Nframes();
+  double mindist, dist;
+  cluster_it minNode, Cnode;
+  bool goodFrame;
+  ParallelProgress progress( nframes );
+  // Need a temporary array to hold which frame belongs to which cluster. 
+  // Otherwise we could be comparoing sieved frames to other sieved frames.
+  std::vector<cluster_it> frameToCluster( nframes, clusters_.end() );
+# ifdef _OPENMP
+  int numthreads, mythread;
+  // Need to create a ClusterDist for every thread to ensure memory allocation and avoid clashes
+  ClusterDist** cdist_thread;
+# pragma omp parallel
+  {
+    if (omp_get_thread_num()==0)
+      numthreads = omp_get_num_threads();
+  }
+  mprintf("\tParallelizing calculation with %i threads\n", numthreads);
+  cdist_thread = new ClusterDist*[ numthreads ];
+  for (int i=0; i < numthreads; i++)
+    cdist_thread[i] = Cdist_->Copy();
+# pragma omp parallel private(mythread, frame, dist, mindist, minNode, Cnode, goodFrame, cidx) firstprivate(progress) reduction(+ : Nsieved, n_sieved_noise)
+{
+    mythread = omp_get_thread_num();
+    progress.SetThread( mythread );
+#   pragma omp for schedule(dynamic)
+# endif
+  for (frame = 0; frame < nframes; ++frame) {
+    progress.Update( frame );
     if (FrameDistances_.IgnoringRow(frame)) {
-      //mprintf(" %i [", frame + 1); // DEBUG
       // Which clusters centroid is closest to this frame?
-      double mindist = DBL_MAX;
-      cluster_it  minNode = clusters_.end();
-      for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
-        double dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
-        //mprintf(" %i:%-6.2f", (*Cnode).Num(), dist); // DEBUG
+      mindist = DBL_MAX;
+      minNode = clusters_.end();
+      for (Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
+#       ifdef _OPENMP
+        dist = cdist_thread[mythread]->FrameCentroidDist(frame, (*Cnode).Cent());
+#       else
+        dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
+#       endif
         if (dist < mindist) {
           mindist = dist;
           minNode = Cnode;
         }
       }
-      //mprintf(" ], to cluster %i\n", (*minNode).Num()); // DEBUG
-      bool goodFrame = false;
-      if ( sieveToCentroid_ || mindist < epsilon_ ) {
+      goodFrame = false;
+      if ( sieveToCentroid_ || mindist < epsilon_ )
         // Sieving based on centroid only or frame is already within epsilon, accept.
         goodFrame = true;
-      } else {
+      else {
         // Check if any frames in the cluster are closer than epsilon to sieved frame.
-        for (ClusterNode::frame_iterator cluster_frame = (*minNode).beginframe();
-                                         cluster_frame != (*minNode).endframe(); ++cluster_frame)
+        for (cidx=0; cidx < (*minNode).Nframes(); cidx++)
         {
-          if ( Cdist_->FrameDist(frame, *cluster_frame) < epsilon_ ) {
+#         ifdef _OPENMP
+          if ( cdist_thread[mythread]->FrameDist(frame, (*minNode).ClusterFrame(cidx)) < epsilon_ )
+#         else
+          if ( Cdist_->FrameDist(frame, (*minNode).ClusterFrame(cidx)) < epsilon_ )
+#         endif
+          {
             goodFrame = true;
             break;
           }
@@ -204,12 +258,25 @@ void Cluster_DBSCAN::AddSievedFrames() {
       }
       // Add sieved frame to the closest cluster if closest distance is
       // less than epsilon.
+      ++Nsieved;
       if ( goodFrame )
-        (*minNode).AddFrameToCluster( frame );
+        frameToCluster[frame] = minNode;
       else
         n_sieved_noise++;
     }
-  }
-  //mprintf("\n");
-  mprintf("\t%i sieved frames were discarded as noise.\n", n_sieved_noise);
+  } // END loop over frames
+# ifdef _OPENMP
+} // END pragma omp parallel
+  // Free cdist_thread memory
+  for (int i = 0; i < numthreads; i++)
+    delete cdist_thread[i];
+  delete[] cdist_thread;
+# endif
+  progress.Finish();
+  // Now actually add sieved frames to their appropriate clusters
+  for (frame = 0; frame < nframes; frame++)
+    if (frameToCluster[frame] != clusters_.end())
+      (*frameToCluster[frame]).AddFrameToCluster( frame );
+  mprintf("\t%i of %i sieved frames were discarded as noise.\n", 
+          n_sieved_noise, Nsieved);
 }
