@@ -161,8 +161,6 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   if (!leftAlign) format_ = " " + format_;
   // Assign format to a constant ptr to avoid continuous calls to c_str
   data_format_ = format_.c_str();
-  mprintf("DBG:\t DS %s fmt='%s' colwidth=%i width.prec=%i.%i leftAlign=%i\n",
-           Legend().c_str(), data_format_, colwidth_, width_, precision_, (int)leftAlign);
   return 0;
 }
 

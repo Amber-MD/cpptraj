@@ -176,21 +176,26 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
                                    int width,  bool leftAlign) 
 {
   std::string temp_name = label;
-  // If left aligning, add '#' to name; ensure that name will not be
-  // larger than column width.
+  // If left aligning, add '#' to name; 
   if (leftAlign) {
     if (temp_name[0]!='#')
       temp_name.insert(0,"#");
   }
+  // Ensure that name will not be larger than column width.
   if ((int)temp_name.size() > width)
     temp_name.resize( width );
   // Replace any spaces with underscores
   for (std::string::iterator tc = temp_name.begin(); tc != temp_name.end(); ++tc)
     if ( *tc == ' ' )
       *tc = '_';
+  // If not left-aligning there needs to be a leading blank space.
+  // TODO: No truncation
+  if (!leftAlign && width == (int)temp_name.size()) {
+    temp_name = " " + temp_name;
+    temp_name.resize( width );
+  }
   // Set up header format string
   std::string header_format = SetStringFormatString(width, leftAlign);
-  mprintf("STR: olabel='%s' label='%s' fmt='%s'\n", label.c_str(), temp_name.c_str(), header_format.c_str());
   fileIn.Printf(header_format.c_str(), temp_name.c_str());
 }
 // -----------------------------------------------------------------------------
@@ -315,13 +320,9 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn,
         header = "#Frame";
       else
         header = "#" + Dim[0].Label() + "-" + Dim[1].Label();
-      std::string col1_fmt = SetStringFormatString( std::max((int)header.size(), xcol_width), 
-                                                    true );
-      file.Printf(col1_fmt.c_str(), header.c_str());
+      WriteNameToBuffer( file, header, xcol_width, true );
       std::string xcoord_fmt = SetupCoordFormat( set.Ncols(), Dim[0], set.ColumnWidth(), 
                                                  xcol_precision );
-      // Do not want this left aligned so prepend a space.
-      xcoord_fmt = " " + xcoord_fmt;
       for (size_t ix = 0; ix < set.Ncols(); ix++)
         file.Printf(xcoord_fmt.c_str(), Dim[0].Coord( ix ));
       file.Printf("\n");
