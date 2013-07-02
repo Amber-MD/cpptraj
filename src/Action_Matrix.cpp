@@ -109,7 +109,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (Mat_ == 0) return Action::ERR;
   Mat_->SetType( mtype );
   // Set default precision for backwards compat.
-  Mat_->SetPrecision(8, 3);
+  Mat_->SetPrecision(6, 3);
   // Add set to output file if doing BYATOM output
   if (outtype_ == BYATOM)
     outfile_ = DFL->AddSetToFile(filename_, Mat_);
