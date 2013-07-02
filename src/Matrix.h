@@ -20,7 +20,7 @@ template <class T> class Matrix {
     /// Set up matrix for given number of cols and rows.
     int resize(size_t,size_t);
     /// \return element at specified col and row.
-    const T& element(size_t,size_t) const;
+    const T& element(int,int) const;
     /// \return number of rows (Y).
     size_t Nrows()     const { return nrows_;     }
     /// \return number of cols (X).
@@ -28,12 +28,12 @@ template <class T> class Matrix {
     /// Add an element to the matrix in order.
     int addElement( const T& );
     /// Set element at col and row.
-    void setElement(size_t,size_t, const T&);
+    void setElement(int,int, const T&);
     /// \return pointer to internal array of elements.
     T const* Ptr()     const { return elements_;  }
     T* Ptr()                 { return elements_;  }
     /// Convert X and Y to index. 
-    size_t CalcIndex(size_t x, size_t y) { return calcIndex(ncols_, x, y, nelements_); }
+    size_t CalcIndex(int x, int y) const { return calcIndex(ncols_, x, y); }
     /// Iterator over matrix elements
     typedef ArrayIterator<T> iterator;
     /// Iterator to beginning of matrix elements.
@@ -42,18 +42,21 @@ template <class T> class Matrix {
     iterator end()   { return elements_ + nelements_; }
   private:
     T* elements_;           ///< Array of elements
+    T diagElt_;             ///< For TRIANGLE, the value of the diagonal.
     size_t ncols_;          ///< Number of columns (X)
     size_t nrows_;          ///< Number of rows (Y)
     size_t nelements_;      ///< Total number of elements.
     size_t currentElement_; ///< Current element (for AddElement())
     MType type_;            ///< Current matrix type.
     /// Pointer to index calculator for current matrix type
-    size_t (*calcIndex)(size_t,size_t,size_t,size_t);
+    long int (*calcIndex)(size_t,int,int);
     /// Full 2D matrix. 
-    static size_t calcFullIndex(size_t nX,size_t x,size_t y, size_t) { return ( (y*nX)+x ); }
+    static long int calcFullIndex(size_t nX,int x,int y) {
+      return (long int)( (y*(int)nX)+x );
+    }
     /// Upper-half matrix + diagonal.
-    static size_t calcHalfIndex(size_t nX, size_t xIn, size_t yIn, size_t) {
-      size_t i, j;
+    static long int calcHalfIndex(size_t nX, int xIn, int yIn) {
+      int i, j;
       if (yIn > xIn) {
         i = xIn;
         j = yIn;
@@ -61,21 +64,21 @@ template <class T> class Matrix {
         i = yIn;
         j = xIn;
       }
-      return (i * nX - (i * (i-1L) / 2L) + (j - i));
+      return (long int)(i * (int)nX - (i * (i-1) / 2) + (j - i));
     }
     /// Upper-half matrix - diagonal.
-    static size_t calcTriIndex(size_t nX, size_t xIn, size_t yIn, size_t maxIn) {
-      size_t i, j;
+    static long int calcTriIndex(size_t nX, int xIn, int yIn) {
+      int i, j;
       if (yIn > xIn) {
         i = xIn;
         j = yIn;
       } else if (xIn > yIn) {
         i = yIn;
         j = xIn;
-      } else // iIn == jIn, triangle matrix diagonal is last element
-        return maxIn - 1L;
-      size_t i1 = i + 1L;
-      return ( ( (nX * i) - ((i1 * i) / 2L) ) + j - i1 );
+      } else // iIn == jIn, triangle matrix diagonal is indicated by -1 
+        return -1L;
+      int i1 = i + 1;
+      return ( ( ((int)nX * i) - ((i1 * i) / 2) ) + j - i1 );
     }
 };
 // COPY CONSTRUCTOR
@@ -121,6 +124,7 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
     delete[] elements_;
     elements_ = 0;
   }
+  diagElt_ = 0; // Diagonal element default to zero.
   if (nX > 0L && nY > 0L) { // FULL
     ncols_ = nX;
     nrows_ = nY;
@@ -136,7 +140,7 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
   } else if (nX == 0L && nY > 0L) { // TRIANGLE
     ncols_ = nY;
     nrows_ = nY;
-    nelements_ = (ncols_ * (ncols_ - 1L) / 2L) + 1L; // Last elt will be diagonal
+    nelements_ = (ncols_ * (ncols_ - 1L) / 2L);
     calcIndex = calcTriIndex;
     type_ = TRIANGLE;
   } else { // Both Zero, EMPTY
@@ -163,13 +167,14 @@ template<class T> int Matrix<T>::addElement(const T& elementIn) {
   return 1;
 }
 // Matrix::setElement()
-template<class T> void Matrix<T>::setElement(size_t xIn, size_t yIn, const T& eltIn) {
-  size_t idx = calcIndex(ncols_, xIn, yIn, nelements_);
+template<class T> void Matrix<T>::setElement(int xIn, int yIn, const T& eltIn) {
+  long int idx = calcIndex(ncols_, xIn, yIn);
   elements_[idx] = eltIn;
 }
 // Matrix::element()
-template<class T> const T& Matrix<T>::element(size_t xIn, size_t yIn) const {
-  size_t idx = calcIndex(ncols_, xIn, yIn, nelements_);
+template<class T> const T& Matrix<T>::element(int xIn, int yIn) const {
+  long int idx = calcIndex(ncols_, xIn, yIn);
+  if (idx < 0) return diagElt_; // In case of xIn == yIn for TRIANGLE
   return elements_[idx];
 }
 #endif
