@@ -9,7 +9,11 @@ Array1D::Array1D(DataSetList const& SetList) {
 
 // Array1D::push_back()
 int Array1D::push_back( DataSet_1D* const& val ) {
-  if (val->Ndim() == 1)
+  // Save blank pointers, no error.
+  //FIXME: This is only done for DataIO_Std reads
+  if (val == 0)
+    array_.push_back( val );
+  else if (val->Ndim() == 1)
     array_.push_back( val );
   else
     return 1;
