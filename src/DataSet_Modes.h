@@ -28,22 +28,21 @@ class DataSet_Modes : public DataSet {
 
     void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
 
-    const double* AvgCrd()            { return (const double*)avgcrd_.xAddress(); } // Project
-    const double* Eigenvalues()       { return evalues_;                   } // IRED 
-    double Eigenvalue(int i)          { return evalues_[i];                } // IRED
-    const double* Eigenvectors()      { return evectors_;                  } // IRED
-    const double* Eigenvector(int i)  { return evectors_ + (i * vecsize_); }
-    int Nmodes()                      { return nmodes_;                    } // Project
-    int VectorSize()                  { return vecsize_;                   } // Project
-    int NavgCrd()                     { return navgcrd_;                   } // Project
-    DataSet_2D::MatrixType Type()     { return type_;                      } // Project
+    const double* AvgCrd()           const { return (const double*)avgcrd_.xAddress(); } // Project
+    const double* Eigenvalues()      const { return evalues_;                   } // IRED 
+    double Eigenvalue(int i)         const { return evalues_[i];                } // IRED
+    const double* Eigenvectors()     const { return evectors_;                  } // IRED
+    const double* Eigenvector(int i) const { return evectors_ + (i * vecsize_); }
+    int Nmodes()                     const { return nmodes_;                    } // Project
+    int VectorSize()                 const { return vecsize_;                   } // Project
+    int NavgCrd()                    const { return (int)avgcrd_.size();        } // Project
+    DataSet_2D::MatrixType Type()    const { return type_;                      } // Project
   private:
     Frame avgcrd_;
     double* evalues_;
     double* evectors_;
     int nmodes_;
     int vecsize_;
-    int navgcrd_;
     DataSet_2D::MatrixType type_;
     bool reduced_;
 };

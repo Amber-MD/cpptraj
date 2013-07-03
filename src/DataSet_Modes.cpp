@@ -30,6 +30,7 @@ DataSet_Modes::DataSet_Modes() :
   evectors_(0),
   nmodes_(0),
   vecsize_(0),
+  type_(DataSet_2D::NO_OP),
   reduced_(false)
 {}
 
@@ -285,7 +286,7 @@ int DataSet_Modes::WriteToFile(std::string const& fname) {
   // Set up framebuffer, default 7 columns
   int bufsize;
   if (avgcrd_.size() > vecsize_)
-    bufsize = navgcrd_;
+    bufsize = (int)avgcrd_.size();
   else
     bufsize = vecsize_;
   outfile.SetupFrameBuffer( bufsize, colwidth, 7 );
