@@ -21,8 +21,8 @@ class DataFile {
     static std::string GetExtensionForType(DataFormatType);
     /// \return type from extension.
     static DataFormatType GetTypeFromExtension(std::string const&);
-    /// \return string corresponding to given format.
-    static const char* FormatString( DataFormatType );
+    /// \return string corresponding to format.
+    const char* FormatString() const;
 
     void SetDebug(int);
 
@@ -56,9 +56,9 @@ class DataFile {
     static DataFormatType DataFormat(std::string const&);
 
     int debug_;
-    int dimension_;           ///< The dimension of all sets in the DataFile.
-    DataFormatType dataType_; ///< Format of data in DataFile.
-    bool dflWrite_;           ///< If true, write file when DataFileList::WriteAllDF called.
+    int dimension_;         ///< The dimension of all sets in the DataFile.
+    DataFormatType dfType_; ///< Format of data in DataFile.
+    bool dflWrite_;         ///< If true, write file when DataFileList::WriteAllDF called.
     bool isInverted_;
     DataSetList SetList_;     ///< Array of pointers to associated DataSets.
     DataIO* dataio_;          ///< DataIO object for this DataFormatType.

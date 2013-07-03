@@ -12,7 +12,7 @@ class DataIO_OpenDx : public DataIO {
     int WriteDataInverted(std::string const&,DataSetList const&,DimArray const&) { return 1; }
     int WriteData2D(std::string const&, DataSet const&, DimArray const&)         { return 1; }
     int WriteData3D(std::string const&, DataSet const&, DimArray const&);
-    bool ID_DataFormat(CpptrajFile&) { return false; }
+    bool ID_DataFormat(CpptrajFile&);
   private:
     int LoadGrid(const char*, DataSet&);
 };

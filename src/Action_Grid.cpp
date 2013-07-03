@@ -16,12 +16,11 @@ Action_Grid::Action_Grid() :
 void Action_Grid::Help() {
   mprintf("\t<filename> %s <mask>\n", GridAction::HelpText);
   mprintf("\t[max <fraction>] [smoothdensity <value>] [invert] [madura <madura>]\n");
-  mprintf("\t[pdb <pdbout>] [opendx]\n");
+  mprintf("\t[pdb <pdbout>]\n");
   mprintf("\tBin atoms in <mask> into a 3D grid.\n");
   mprintf("\t<fraction>: Percent of max to write.\n");
   mprintf("\t<madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.\n");
   mprintf("\t<value>   : Used to smooth density.\n");
-  mprintf("\t[opendx]  : Write the density file in OpenDX format.\n");
 }
 
 // Action_Grid::Init()
@@ -43,8 +42,6 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   madura_ = actionArgs.getKeyDouble("madura", 0);
   smooth_ = actionArgs.getKeyDouble("smoothdensity", 0);
   invert_ = actionArgs.hasKey("invert");
-  if (actionArgs.hasKey("opendx")) 
-    mprintf("Warning: 'opendx' is deprecated.\n");
   pdbname_ = actionArgs.GetStringKey("pdb"); 
 
   // Get mask
@@ -56,11 +53,12 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   mask_.SetMaskString(maskexpr);
 
   // Setup output file
-  DataFile* outfile = DFL->AddSetToFile(filename, (DataSet*)grid_);
+  DataFile* outfile = DFL->AddDataFile(filename, actionArgs);
   if (outfile == 0) {
     mprinterr("Error: grid: Could not set up output file %s\n", filename.c_str());
     return Action::ERR;
   }
+  outfile->AddSet((DataSet*)grid_);
   // grid_.PrintXplor( filename_, "This line is ignored", 
   //                      "rdparm generated grid density" );
 

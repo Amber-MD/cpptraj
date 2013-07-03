@@ -5,6 +5,17 @@
 #include "DataSet_GridFlt.h"
 #include "BufferedLine.h"
 
+bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
+  bool isDX = false;
+  if (!infile.OpenFile()) {
+    std::string firstLine = infile.GetLine();
+    if (!firstLine.empty())
+      isDX = (firstLine.compare(0, 28, "object 1 class gridpositions") == 0);
+    infile.CloseFile();
+  }
+  return isDX;
+}
+
 // DataIO_OpenDx::ReadData()
 int DataIO_OpenDx::ReadData(std::string const& fname, DataSetList& datasetlist) {
   // Add grid data set. Default to float for now.
@@ -28,7 +39,10 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   if (infile.OpenRead(filename)) return 1;
   // Skip comments
   std::string line = infile.GetLine();
-  while (!line.empty() && line[0] == '#') line = infile.GetLine();
+  while (!line.empty() && line[0] == '#') {
+    mprintf("\t%s", line.c_str());
+    line = infile.GetLine();
+  }
   if (line.empty()) {
     mprinterr("Error: Unexpected EOF in DX file %s\n", filename);
     return 1;
@@ -105,6 +119,7 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   }
   // Read in data
   size_t gridsize = grid.Size();
+  mprintf("\tReading in %zu data elements from DX file.\n", gridsize); 
   size_t ndata = 0;
   infile.SetupBuffer();
   while (ndata < gridsize) {

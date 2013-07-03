@@ -19,6 +19,7 @@ class DataFileList : public FileList {
     DataFile* GetDataFile(std::string const&) const;
     DataFile* AddDataFile(std::string const&, ArgList&);
     DataFile* AddDataFile(std::string const&);
+    // TODO: Deprecate in favor of AddDataFile
     DataFile* AddSetToFile(std::string const&,  DataSet*);
     void List() const;
     /// Write all DataFiles in list that have not yet been written.

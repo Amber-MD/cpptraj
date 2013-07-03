@@ -16,7 +16,7 @@
 DataFile::DataFile() :
   debug_(0),
   dimension_(-1),
-  dataType_(DATAFILE),
+  dfType_(DATAFILE),
   dflWrite_(true),
   isInverted_(false),
   dataio_(0),
@@ -39,15 +39,16 @@ const DataFile::DataFileToken DataFile::DataFileArray[] = {
   { UNKNOWN_DATA, 0,        "Unknown",            0,        0                     }
 };
 
+const char* DataFile::FormatString() const { return DataFileArray[dfType_].Description; }
+
 // DataFile::GetFormatFromArg()
-/** Given an ArgList, search for one of the file format keywords. Default to
-  * DATAFILE if no keywords present.
+/** Given an ArgList, search for one of the file format keywords.
   */
 DataFile::DataFormatType DataFile::GetFormatFromArg(ArgList& argIn) 
 {
   for (TokenPtr token = DataFileArray; token->Type != UNKNOWN_DATA; ++token)
     if (argIn.hasKey( token->Key )) return token->Type;
-  return DATAFILE;
+  return UNKNOWN_DATA;
 }
 
 // DataFile::GetFormatFromString()
@@ -76,12 +77,12 @@ DataFile::DataFormatType DataFile::GetTypeFromExtension( std::string const& extI
 }
 
 // DataFile::FormatString()
-const char* DataFile::FormatString( DataFile::DataFormatType tIn ) {
+/*const char* DataFile::FormatString( DataFile::DataFormatType tIn ) {
   TokenPtr token;
   for (token = DataFileArray; token->Type != UNKNOWN_DATA; ++token)
     if ( token->Type == tIn ) return token->Description;
   return token->Description; // Should be at UNKNOWN
-}
+}*/
 // -----------------------------------------------------------------------------
 
 // DataFile::SetDebug()
@@ -162,9 +163,11 @@ int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debu
   SetDebug( debugIn );
   if (fnameIn.empty()) return Error("Error: No data file name specified.\n");
   filename_.SetFileName( fnameIn );
+  dfType_ = GetFormatFromArg( argIn );
+  if (dfType_ == UNKNOWN_DATA)
+    dfType_ = GetTypeFromExtension(filename_.Ext());
   // Set up DataIO based on format.
-  // FIXME: Use DetectFormat()
-  dataio_ = AllocDataIO( GetTypeFromExtension(filename_.Ext()) );
+  dataio_ = AllocDataIO( dfType_ );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
   if (!argIn.empty())
     ProcessArgs( argIn );
@@ -195,7 +198,7 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   if (argIn.hasKey("invert")) {
     isInverted_ = true;
     // Currently GNUPLOT files cannot be inverted.
-    if (dataType_ == GNUPLOT) {
+    if (dfType_ == GNUPLOT) {
       mprintf("Warning: (%s) Gnuplot files cannot be inverted.\n",filename_.base());
       isInverted_ = false;;
     }
