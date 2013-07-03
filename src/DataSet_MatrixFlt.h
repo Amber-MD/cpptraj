@@ -13,20 +13,21 @@ class DataSet_MatrixFlt : public DataSet_2D {
     int Sync()                                 { return 1;                  }
     void Info()                          const { return;                    }
     // ----- DataSet_2D functions ----------------
-    int Allocate2D(size_t x,size_t y)          { return mat_.resize(x,y);   }
-    int AllocateHalf(size_t x)                 { return mat_.resize(x,0L);  }
-    int AllocateTriangle(size_t x)             { return mat_.resize(0L,x);  }
+    int Allocate2D(size_t x,size_t y)          { kind_=FULL; return mat_.resize(x,y); }
+    int AllocateHalf(size_t x)                 { kind_=HALF; return mat_.resize(x,0); }
+    int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
     void Write2D(CpptrajFile&, int, int) const;
     double GetElement(size_t x,size_t y) const { return (double)mat_.element(x,y);}
     size_t Nrows()                       const { return mat_.Nrows();       }
     size_t Ncols()                       const { return mat_.Ncols();       }
     double* MatrixArray()                const;
-    DataSet_2D::MType Kind()             const { return (DataSet_2D::MType)mat_.Type(); }
-    DataSet_2D::MatrixType Type()        const { return DataSet_2D::NO_OP;  }
+    MatrixKind Kind()                    const { return kind_;              }
+    MatrixType Type()                    const { return NO_OP;              }
     // -------------------------------------------
     int AddElement(float d)                    { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,float d) { mat_.setElement(x,y,d);    }
   private:
     Matrix<float> mat_;
+    MatrixKind kind_;
 };
 #endif

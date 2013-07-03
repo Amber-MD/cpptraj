@@ -70,6 +70,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // UseMass
   useMass_ = actionArgs.hasKey("mass");
 
+  DataSet_2D::MatrixKind mkind = DataSet_2D::HALF;
   if (mtype != DataSet_2D::IRED) {
     // Get masks if not IRED
     mask1_.SetMaskString( actionArgs.GetMaskNext() );
@@ -82,8 +83,10 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       useMask2_ = false;
       return Action::ERR;
     }
-    if (useMask2_)
+    if (useMask2_) {
       mask2_.SetMaskString( maskexpr );
+      mkind = DataSet_2D::FULL;
+    }
   } else {
     // Setup IRED vectors and determine Legendre order
     order_ = actionArgs.getKeyInt("order",1);
@@ -107,7 +110,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Set up matrix DataSet and type
   Mat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, name, "Mat");
   if (Mat_ == 0) return Action::ERR;
-  Mat_->SetType( mtype );
+  Mat_->SetTypeAndKind( mtype, mkind );
   // Set default precision for backwards compat.
   Mat_->SetPrecision(6, 3);
   // Add set to output file if doing BYATOM output

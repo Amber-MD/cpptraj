@@ -9,9 +9,8 @@ class DataSet_2D : public DataSet {
     enum MatrixType {
       NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED, NMAT
     };
-    /// Kind of matrix. Must correspond to Matrix::MType.
-    // NOTE: Defined here since Matrix does not exist without an instance.
-    enum MType { FULL = 0, HALF, TRIANGLE };
+    /// Kind of matrix.
+    enum MatrixKind { FULL = 0, HALF, TRI };
     DataSet_2D() {}
     DataSet_2D(DataSet::DataType tIn, int wIn, int pIn) : 
       DataSet(tIn, wIn, pIn, 2) {}
@@ -30,7 +29,7 @@ class DataSet_2D : public DataSet {
     /// \return double array containing matrix elements.
     virtual double* MatrixArray() const = 0;
     /// \return the kind of matrix, full/half/triangle.
-    virtual MType Kind() const = 0;
+    virtual MatrixKind Kind() const = 0;
     /// \return the type of matrix
     virtual MatrixType Type() const = 0;
     // -------------------------------------------

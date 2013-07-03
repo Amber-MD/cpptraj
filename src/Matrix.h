@@ -3,8 +3,9 @@
 #include "ArrayIterator.h"
 /// Two-dimensional matrix template.
 template <class T> class Matrix {
-  public:
+// TODO: Type may not be necessary here if in DataSet_2D
     enum MType { FULL = 0, HALF, TRIANGLE }; 
+  public:
     Matrix() :
       elements_(0), ncols_(0L), nrows_(0L), nelements_(0L), 
       currentElement_(0L), type_(FULL), calcIndex(calcFullIndex) {}
@@ -16,7 +17,7 @@ template <class T> class Matrix {
     /// \return total number of elements in the matrix.
     size_t size()                        const { return nelements_;      }
     /// \return current matrix type.
-    MType Type()                         const { return type_;           }
+    //MType Type()                         const { return type_;           }
     /// Set up matrix for given number of cols and rows.
     int resize(size_t,size_t);
     /// \return element at specified col and row.

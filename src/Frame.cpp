@@ -317,15 +317,9 @@ int Frame::SetupFrameM(std::vector<Atom> const& atoms) {
 
 // Frame::SetupFrameXM()
 int Frame::SetupFrameXM(Darray const& Xin, Darray const& massIn) {
-  natom_ = (int)massIn.size();
-  ncoord_ = natom_ * 3;
-  if (Xin.size() != (size_t)ncoord_) {
-    mprinterr("Error: SetupFrameXM(): # atoms (%u) != # masses (%u)\n", 
-              Xin.size() / 3, massIn.size());
-    return 1;
-  }
-  // First check if reallocation must occur. If so reallocate coords. Masses
-  // will be reallocated as well, or allocated if not already.
+  ncoord_ = (int)Xin.size();
+  natom_ = ncoord_ / 3;
+  // Check if reallocation must occur.
   if (natom_ > maxnatom_) {
     if (X_ != 0) delete[] X_;
     X_ = new double[ ncoord_ ];
@@ -333,8 +327,13 @@ int Frame::SetupFrameXM(Darray const& Xin, Darray const& massIn) {
   } 
   // Copy coords
   std::copy( Xin.begin(), Xin.end(), X_ );
-  // Copy masses
-  Mass_ = massIn;
+  // Copy masses, or set all to 1.0 if input masses are empty.
+  if (!massIn.empty())
+    Mass_ = massIn;
+  else {
+    Mass_.clear();
+    Mass_.resize( natom_, 1.0 );
+  }
   if (V_ != 0) delete[] V_;
   return 0;
 }

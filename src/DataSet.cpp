@@ -139,6 +139,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   // NOTE: According to C++ std 4.7/4 (int)true == 1
   colwidth_ = width_ + (int)(!leftAlign);
   switch (dType_) {
+    case MODES :
     case MATRIX_DBL:
     case DOUBLE : format_ = SetDoubleFormatString(width_, precision_, 0); break;
     case MATRIX_FLT:
@@ -147,7 +148,6 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
     case FLOAT  : format_ = SetDoubleFormatString(width_, precision_, 1); break;
     case INTEGER: format_ = SetIntegerFormatString(width_); break;
     case STRING : format_ = SetStringFormatString(width_, leftAlign); break;
-    case MODES :
     case VECTOR:
       format_ = SetDoubleFormatString(width_, precision_, 0); 
       colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz

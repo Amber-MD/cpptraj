@@ -58,7 +58,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
 #else
   bool eigenvaluesOnly;
   int info = 0;
-  if (mIn.Nrows() > 0) {
+  if (mIn.Kind() != DataSet_2D::HALF) {
     mprinterr("Error: DataSet_Modes: Eigenvector/value calc only for symmetric matrices.\n");
     return 1;
   }
@@ -278,8 +278,7 @@ int DataSet_Modes::WriteToFile(std::string const& fname) {
   // Write out # of modes on title line to not break compat. with older modes files
   outfile.Printf(" nmodes %i", nmodes_);
   // Write out col width on title line to not break compat. with older modes files
-  // Since data format has leading space, actual width is width + 1
-  int colwidth = ColumnWidth() + 1;
+  int colwidth = ColumnWidth();
   outfile.Printf(" width %i\n", colwidth);
   // First number is # avg coords, second is size of each vector
   outfile.Printf(" %4i %4i\n", avgcrd_.size(), vecsize_);

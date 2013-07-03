@@ -15,16 +15,16 @@ class DataSet_MatrixDbl : public DataSet_2D {
     int Sync()                                 { return 1;                  }
     void Info()                          const { return;                    }
     // ----- DataSet_2D functions ----------------
-    int Allocate2D(size_t x,size_t y)          { return mat_.resize(x,y);   }
-    int AllocateHalf(size_t x)                 { return mat_.resize(x,0L);  }
-    int AllocateTriangle(size_t x)             { return mat_.resize(0L,x);  }
+    int Allocate2D(size_t x,size_t y)          { kind_=FULL; return mat_.resize(x,y); }
+    int AllocateHalf(size_t x)                 { kind_=HALF; return mat_.resize(x,0); }
+    int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
     void Write2D(CpptrajFile&, int, int) const;
     double GetElement(size_t x,size_t y) const { return mat_.element(x,y);  }
     size_t Nrows()                       const { return mat_.Nrows();       }
     size_t Ncols()                       const { return mat_.Ncols();       }
     double* MatrixArray()                const;
-    DataSet_2D::MType Kind()             const { return (DataSet_2D::MType)mat_.Type(); }
-    DataSet_2D::MatrixType Type()        const { return type_;              }
+    MatrixKind Kind()                    const { return kind_;              }
+    MatrixType Type()                    const { return type_;              }
     // -------------------------------------------
     int AddElement(double d)                   { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,double d){ mat_.setElement(x,y,d);    }
@@ -44,8 +44,8 @@ class DataSet_MatrixDbl : public DataSet_2D {
     Darray::iterator v1begin()                 { return vect_.begin();      }
     /// \return iterator to end of diagonal vector.
     Darray::iterator v1end()                   { return vect_.end();        }
-    /// Set matrix type.
-    void SetType(MatrixType tIn)               { type_ = tIn;               }
+    /// Set matrix type and kind.
+    void SetTypeAndKind(MatrixType tIn, MatrixKind kIn) { type_ = tIn; kind_ = kIn; }
     /// Store masses associated with columns in matrix.
     void StoreMass(Darray const& mIn)          { mass_ = mIn;               }
     /// \return array of masses associated with columns in matrix.
@@ -55,5 +55,6 @@ class DataSet_MatrixDbl : public DataSet_2D {
     Darray vect_;              ///< Hold diagonal elements | avg coords
     Darray mass_;              ///< Hold masses, for MWCOVAR quasiharmonic analysis. 
     MatrixType type_;          ///< Matrix type.
+    MatrixKind kind_;          ///> Matrix kind.
 };
 #endif
