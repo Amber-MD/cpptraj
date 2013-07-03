@@ -19,12 +19,19 @@ int DataIO_Xplor::WriteData3D(std::string const& fname, DataSet const& setIn,
   }
   // Title
   outfile.Printf("%s\n", title_.c_str());
-  // Remarks - only 1
-  outfile.Printf("%8i\n%s\n",1,remark_.c_str());
-  // Header
-  outfile.Printf("%8i%8i%8i",   set.NX(), -set.NX()/2 + 1, set.NX()/2 );
-  outfile.Printf("%8i%8i%8i",   set.NY(), -set.NY()/2 + 1, set.NY()/2 );
-  outfile.Printf("%8i%8i%8i\n", set.NZ(), -set.NZ()/2 + 1, set.NZ()/2 );
+  // Remarks - Use set legend 
+  outfile.Printf("%8i\n%s\n",1,set.Legend().c_str());
+  // Header - Num grid points, start grid point, stop grid point
+  // NOTE: The commented-out section is how grid was set up in ptraj/cpptraj
+  //       before. The new method gives maps that match DX output.
+  //outfile.Printf("%8i%8i%8i",   set.NX(), -set.NX()/2 + 1, set.NX()/2 );
+  //outfile.Printf("%8i%8i%8i",   set.NY(), -set.NY()/2 + 1, set.NY()/2 );
+  //outfile.Printf("%8i%8i%8i\n", set.NZ(), -set.NZ()/2 + 1, set.NZ()/2 );
+  outfile.Printf("%8i%8i%8i%8i%8i%8i%8i%8i%8i\n",
+    set.NX(), (int)(set.OX()/set.DX()), (int)(set.MX()/set.DX())-1,
+    set.NY(), (int)(set.OY()/set.DY()), (int)(set.MY()/set.DY())-1,
+    set.NZ(), (int)(set.OZ()/set.DZ()), (int)(set.MZ()/set.DZ())-1);
+  // Header - cell x y z alpha beta gamma
   outfile.Printf("%12.3f%12.3f%12.3f%12.3f%12.3f%12.3f\n",
                  (double)set.NX() * set.DX(), 
                  (double)set.NY() * set.DY(), 
