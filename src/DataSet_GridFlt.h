@@ -16,7 +16,7 @@ class DataSet_GridFlt : public DataSet_3D {
     // ----- DataSet_3D functions ----------------
     int Allocate3D(size_t x,size_t y,size_t z) { return grid_.resize(x,y,z); }
     void Write3D(CpptrajFile&,int,int,int) const;
-    double GetElement(size_t x,size_t y,size_t z) const { return (double)grid_.element(x,y,z); }
+    double GetElement(int x,int y,int z) const { return (double)grid_.element(x,y,z); }
     double operator[](size_t idx)        const { return (double)grid_[idx];  }
     size_t NX() const { return grid_.NX(); }
     size_t NY() const { return grid_.NY(); }
@@ -26,14 +26,14 @@ class DataSet_GridFlt : public DataSet_3D {
     typedef Grid<float>::iterator iterator;
     iterator begin() { return grid_.begin(); }
     iterator end()   { return grid_.end();   }
-    /// Increment specified grid point by given value.
-    inline size_t Increment(Vec3 const&, float, bool&);
-    inline void Increment(Vec3 const&, float);
-    inline void Increment(size_t,size_t,size_t,float);
+    /// Increment grid bin corresponding to point by given value.
+    inline long int Increment(Vec3 const&, float);
+    /// Increment grid bin by given value.
+    inline long int Increment(int,int,int,float);
     /// \return grid value at specified bin.
-    float GridVal(size_t x,size_t y,size_t z) const { return grid_.element(x,y,z); }
+    float GridVal(int x,int y,int z) const { return grid_.element(x,y,z); }
     /// \return grid index
-    size_t CalcIndex(size_t i, size_t j, size_t k) const {
+    long int CalcIndex(int i, int j, int k) const {
       return grid_.CalcIndex(i,j,k);
     }
   private:
@@ -41,23 +41,14 @@ class DataSet_GridFlt : public DataSet_3D {
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 // DataSet_GridFlt::Increment()
-size_t DataSet_GridFlt::Increment(Vec3 const& xyz, float f, bool& binned) {
-  size_t i,j,k;
-  if (CalcBins(xyz[0],xyz[1],xyz[2],i,j,k)) {
-    binned = true;
-    return grid_.incrementBy(i,j,k,f);
-  }
-  binned = false;
-  return 0UL;
-}
-// DataSet_GridFlt::Increment()
-void DataSet_GridFlt::Increment(Vec3 const& xyz, float f) {
-  size_t i,j,k;
+long int DataSet_GridFlt::Increment(Vec3 const& xyz, float f) {
+  int i,j,k;
   if (CalcBins(xyz[0],xyz[1],xyz[2],i,j,k))
-    grid_.incrementBy(i,j,k,f); 
+    return grid_.incrementBy(i,j,k,f);
+  return -1L; 
 }
 // DataSet_GridFlt::Increment()
-void DataSet_GridFlt::Increment(size_t i, size_t j, size_t k, float f) {
-  grid_.incrementBy(i,j,k,f);
+long int DataSet_GridFlt::Increment(int i, int j, int k, float f) {
+  return grid_.incrementBy(i,j,k,f);
 }
 #endif

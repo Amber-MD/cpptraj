@@ -144,14 +144,15 @@ Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame
     // Grid COM
     COM /= total_mass;
     COM -= cXYZ;
-    bool binned = false;
-    size_t bin = grid_->Increment( COM, Increment(), binned );
-    //mprintf("CDBG: Solvent %i XYZ %8.3lf %8.3lf %8.3lf\n",solvmol-CurrentParm_->MolStart(),COM[0],COM[1],COM[2]);
-    //mprintf("CDBG: Bin = %u, binned=%i\n", bin, (int)binned); 
-
-    // Grid dipole if COM was binned
-    if (binned) 
+    int ix, jy, kz;
+    //mprintf("CDBG: Solvent %i XYZ %8.3f %8.3f %8.3f\n",solvmol-CurrentParm_->MolStart(),COM[0],COM[1],COM[2]);
+    if (grid_->CalcBins( COM[0], COM[1], COM[2], ix, jy, kz )) {
+      // Point COM is inside the grid. Increment grid and grid the dipole.
+      long int bin = grid_->Increment( ix, jy, kz, Increment() );
       dipole_[bin] += dipolar_vector;
+      //mprintf("CDBG: Indices %i %i %i\n", ix, jy, kz);
+      //mprintf("CDBG: Bin = %lu\n", bin); 
+    }
   } // END loop over solvent molecules
 
   return Action::OK;

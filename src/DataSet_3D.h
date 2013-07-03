@@ -12,7 +12,7 @@ class DataSet_3D : public DataSet {
     /// Write 3D data to file.
     virtual void Write3D(CpptrajFile&,int,int,int) const = 0;
     /// \return Data from grid at x/y/z point.
-    virtual double GetElement(size_t, size_t, size_t) const = 0;
+    virtual double GetElement(int, int, int) const = 0;
     /// \return Data from grid.
     virtual double operator[](size_t) const = 0;
     /// \return size of X dimension.
@@ -31,15 +31,18 @@ class DataSet_3D : public DataSet {
     /// Set up grid from sizes, center, and spacing.
     int Allocate_X_C_D(Vec3 const&,Vec3 const&,Vec3 const&);
     /// Convert X, Y, and Z coords to index.
-    inline bool CalcBins(double,double,double,size_t&,size_t&,size_t&) const;
+    inline bool CalcBins(double,double,double,int&,int&,int&) const;
     inline double DX() const { return dx_; }
     inline double DY() const { return dy_; }
     inline double DZ() const { return dz_; }
     inline double OX() const { return ox_; }
     inline double OY() const { return oy_; }
     inline double OZ() const { return oz_; }
-    inline Vec3 BinCorner(size_t,size_t,size_t);
-    inline Vec3 BinCenter(size_t,size_t,size_t);
+    inline double MX() const { return mx_; }
+    inline double MY() const { return my_; }
+    inline double MZ() const { return mz_; }
+    inline Vec3 BinCorner(int,int,int);
+    inline Vec3 BinCenter(int,int,int);
   private:
     /// Check if grid dimension is even; if not, increment it by 1.
     static void CheckEven(size_t&, char);
@@ -60,7 +63,7 @@ class DataSet_3D : public DataSet {
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 // DataSet_3D::CalcBins()
 bool DataSet_3D::CalcBins(double x, double y, double z,
-                          size_t& i, size_t& j, size_t& k) const
+                          int& i, int& j, int& k) const
 {
   // X
   if (x >= ox_ && x < mx_) {
@@ -68,9 +71,9 @@ bool DataSet_3D::CalcBins(double x, double y, double z,
     if (y >= oy_ && y < my_) {
       // Z
       if (z >= oz_ && z < mz_) {
-        i = (size_t)((x-ox_) / dx_);
-        j = (size_t)((y-oy_) / dy_);
-        k = (size_t)((z-oz_) / dz_);
+        i = (int)((x-ox_) / dx_);
+        j = (int)((y-oy_) / dy_);
+        k = (int)((z-oz_) / dz_);
         return true;
       }
     }
@@ -78,13 +81,13 @@ bool DataSet_3D::CalcBins(double x, double y, double z,
   return false;
 }
 // DataSet_3D::BinCorner()
-Vec3 DataSet_3D::BinCorner(size_t i, size_t j, size_t k) {
+Vec3 DataSet_3D::BinCorner(int i, int j, int k) {
   return Vec3( (double)i*dx_ + ox_,
                (double)j*dy_ + oy_,
                (double)k*dz_ + oz_ );
 }
 // DataSet_3D::BinCenter()
-Vec3 DataSet_3D::BinCenter(size_t i, size_t j, size_t k) {
+Vec3 DataSet_3D::BinCenter(int i, int j, int k) {
   return Vec3( (double)i*dx_ + ox_ + 0.5*dx_,
                (double)j*dy_ + oy_ + 0.5*dy_,
                (double)k*dz_ + oz_ + 0.5*dz_ );

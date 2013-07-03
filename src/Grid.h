@@ -21,14 +21,18 @@ template <class T> class Grid {
     /// \return Size of Z dimension.
     size_t NZ() const { return nz_; }
     /// Increment grid point by given value.
-    size_t incrementBy(size_t,size_t,size_t, const T&);
-    /// Set grid point.
-    void setGrid(size_t,size_t,size_t, const T&);
+    long int incrementBy(int,int,int, const T&);
+    /// Set grid point to value.
+    void setGrid(int,int,int, const T&);
     /// \return element at a specified grid point.
-    const T& element(size_t,size_t,size_t) const;
+    const T& element(int,int,int) const;
     /// Convert X, Y, and Z bin #s to index.
-    size_t CalcIndex(size_t x, size_t y, size_t z) const { return (x*ny_*nz_)+(y*nz_)+z; }
-    //size_t CalcIndex(size_t x, size_t y, size_t z) const { return (z*nx_*ny_)+(y*nx_)+x; }
+    long int CalcIndex(int x, int y, int z) const { 
+      return (long int)(x*(int)(ny_*nz_))+(y*(int)nz_)+z;
+    }
+    // NOTE: This way of calculating overall index is consistent with
+    //       how Matrix index is calcd but not used for backwards compat.
+    //long int CalcIndex(int x, int y, int z) const { return (z*nx_*ny_)+(y*nx_)+x; }
     /// Iterator over grid elements.
     typedef ArrayIterator<T> iterator;
     iterator begin() { return grid_;              }
@@ -87,17 +91,18 @@ template <class T> int Grid<T>::resize(size_t x, size_t y, size_t z) {
   return 0;
 }
 // Grid::incrementBy()
-template <class T> size_t Grid<T>::incrementBy(size_t x, size_t y, size_t z, const T& eltIn) {
-  size_t idx = CalcIndex(x,y,z);
+/** \return Index of underlying bin incremented. */
+template <class T> long int Grid<T>::incrementBy(int x, int y, int z, const T& eltIn) {
+  long int idx = CalcIndex(x,y,z);
   grid_[idx] += eltIn;
   return idx;
 }
 // Grid::setGrid()
-template <class T> void Grid<T>::setGrid(size_t x, size_t y, size_t z, const T& eltIn) {
+template <class T> void Grid<T>::setGrid(int x, int y, int z, const T& eltIn) {
   grid_[CalcIndex(x,y,z)] = eltIn;
 }
 // Grid::element()
-template <class T> const T& Grid<T>::element(size_t x, size_t y, size_t z) const {
+template <class T> const T& Grid<T>::element(int x, int y, int z) const {
   return grid_[CalcIndex(x,y,z)];
 }
 #endif
