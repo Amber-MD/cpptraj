@@ -218,8 +218,9 @@ Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame
       zmin -= buffer_; 
       zmax += buffer_;
       // Allocate grid of given size centered on mask.
-      if (grid_->Allocate_X_C_D( Vec3(xmax-xmin,ymax-ymin,zmax-zmin),
-                                 cxyz, Vec3(dx_, dy_, dz_) )) return Action::ERR;
+      if (grid_->Allocate_N_O_D( (xmax-xmin)/dx_, (ymax-ymin)/dy_, (zmax-zmin)/dz_,
+                                 Vec3(xmin, ymin, zmin), Vec3(dx_, dy_, dz_) ))
+        return Action::ERR;
       xmin_ = grid_->OX();
       ymin_ = grid_->OY();
       zmin_ = grid_->OZ();
@@ -250,7 +251,7 @@ Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame
     double exfac = -1.0 / (2.0 * halfradii_[*atom] * halfradii_[*atom]);
     if (ix < -nxstep || ix > nX + nxstep ||
         iy < -nystep || iy > nY + nystep ||
-        iz < -nzstep || iz > nZ + nzstep);
+        iz < -nzstep || iz > nZ + nzstep)
       continue;
 
     int xend = std::min(ix+nxstep, nX);
@@ -260,7 +261,7 @@ Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame
       for (int yval = std::max(iy-nystep, 0); yval < yend; yval++)
         for (int zval = std::max(iz-nzstep, 0); zval < zend; zval++) {
           Vec3 gridpt = Vec3(xmin_+xval*dx_, ymin_+yval*dy_, zmin_+zval*dz_) - pt;
-          double dist2 = sqrt(gridpt.Magnitude2()); 
+          double dist2 = gridpt.Magnitude2();
           grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
         }
   } // END loop over atoms in densitymask_
