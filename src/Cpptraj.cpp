@@ -50,6 +50,15 @@ Cpptraj::Cpptraj() :
   nrun_(0)
 {}
 
+int Cpptraj::ScaleDihedralK(ArgList& argIn) {
+  Topology* parm = parmFileList_.GetParm( argIn );
+  if (parm == 0) return 1;
+  double scale_factor = argIn.getNextDouble(1.0);
+  mprintf("\tScaling dihedral force constants in %s by %f\n", parm->c_str(), scale_factor);
+  parm->ScaleDihedralK( scale_factor );
+  return 0;
+}
+
 /** List all commands, or call help function of specific command. */
 void Cpptraj::Help(ArgList& argIn) {
   ArgList arg = argIn;
@@ -824,6 +833,7 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
           case Command::PARMSTRIP: err = ParmStrip( command ); break;
           case Command::PARMBOX  : err = ParmBox( command ); break;
           case Command::SOLVENT  : err = ParmSolvent(command); break;
+          case Command::SCALEDIHEDRALK: err = ScaleDihedralK(command); break;
         } 
         break;
       case DispatchObject::TRAJ : /** TRAJECTORY COMMANDS */

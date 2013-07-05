@@ -354,6 +354,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::PARM,    "parmstrip",     0, Help_ParmStrip,       PARMSTRIP  },
   { DispatchObject::PARM,    "parmwrite",     0, Help_ParmWrite,       PARMWRITE  },
   { DispatchObject::PARM,    "resinfo",       0, Help_ResInfo,         RESINFO    },
+  { DispatchObject::PARM,    "scaledihedralk",0, 0,                    SCALEDIHEDRALK },
   { DispatchObject::PARM,    "solvent",       0, Help_Solvent,         SOLVENT    },
   // INC_ACTION: ACTION COMMANDS
   { DispatchObject::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, 0 },

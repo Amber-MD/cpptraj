@@ -17,7 +17,8 @@ class Command {
                 REFERENCE, TRAJIN, TRAJOUT,
                 // PARM
                 LOADPARM, PARMINFO, PARMWRITE, PARMSTRIP, PARMBOX,
-                SOLVENT, BONDINFO, RESINFO, MOLINFO, CHARGEINFO };
+                SOLVENT, BONDINFO, RESINFO, MOLINFO, CHARGEINFO,
+                SCALEDIHEDRALK };
     static void List(DispatchObject::DispatchType);
     static DispatchObject::TokenPtr SearchToken(ArgList&);
     static DispatchObject::TokenPtr SearchTokenType(DispatchObject::DispatchType, ArgList&);
