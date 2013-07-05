@@ -185,8 +185,8 @@ Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame
       for (; it != centermask_.end(); it++) {
         Vec3 pt = Vec3(currentFrame->XYZ(*it));
         xmin = MIN(xmin, pt[0]); xmax = MAX(xmax, pt[0]);
-        ymin = MIN(ymin, pt[0]); ymax = MAX(ymax, pt[0]);
-        zmin = MIN(zmin, pt[0]); zmax = MAX(zmax, pt[0]);
+        ymin = MIN(ymin, pt[1]); ymax = MAX(ymax, pt[1]);
+        zmin = MIN(zmin, pt[2]); zmax = MAX(zmax, pt[2]);
       }
       xmin -= buffer_; xmax += buffer_;
       ymin -= buffer_; ymax += buffer_;
