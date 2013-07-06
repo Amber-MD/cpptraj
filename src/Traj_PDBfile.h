@@ -20,12 +20,14 @@ class Traj_PDBfile: public TrajectoryIO {
     int pdbAtom_;
     int ter_num_; ///< Amount to increment atom number for TER
     PDBWRITEMODE pdbWriteMode_;
-    bool dumpq_; ///< If true, print charges in Occupancy column
-    bool dumpr_; ///< If true, print radii in B-factor column.
+    bool dumpq_;  ///< If true, print charges in Occupancy column
+    bool dumpr_;  ///< If true, print radii in B-factor column.
+    bool pdbres_; ///< If true convert Amber res names to RSCB style.
     Topology *pdbTop_;
     PDBfile file_;
 
-    std::vector<char> chainID_;
+    std::vector<char> chainID_;      ///< Hold chainID for each atom.
+    std::vector<NameType> resNames_; ///< Hold residue names.
     char chainchar_;
 
     // Inherited functions
