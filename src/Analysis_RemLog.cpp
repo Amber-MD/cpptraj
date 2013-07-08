@@ -156,6 +156,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   } // END loop over replicas
 
   if (calculateStats_) {
+    statsout_.Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
     statsout_.Printf("#Round-trip stats:\n");
     for (std::vector<DataSet_integer>::iterator rt = roundTrip.begin();
                                                 rt != roundTrip.end(); ++rt)
