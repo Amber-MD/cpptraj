@@ -16,7 +16,7 @@ class DataIO {
  
     int ProcessCommonArgs(ArgList &); 
 
-    virtual int ReadData(std::string const&, DataSetList &)          { return 1;}
+    virtual int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) = 0; 
     virtual int processWriteArgs(ArgList &)                          { return 0;}
     virtual int WriteData(std::string const&, DataSetList &)         { return 1;}
     virtual int WriteData2D(std::string const&, DataSet&)            { return 1;}

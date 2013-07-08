@@ -6,7 +6,7 @@
 class DataIO_Gnuplot : public DataIO {
   public:
     DataIO_Gnuplot();
-
+    int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) { return 1; }
     int processWriteArgs(ArgList &);
     int WriteData(std::string const&,DataSetList&);
     //int WriteDataInverted(DataSetList&);

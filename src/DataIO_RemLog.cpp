@@ -1,7 +1,6 @@
 #include <cstdio> // sscanf
 #include "DataIO_RemLog.h"
 #include "CpptrajStdio.h" 
-#include "BufferedLine.h"
 #include "ProgressBar.h"
 #include "DataSet_RemLog.h"
 
@@ -12,21 +11,14 @@ const char* ExchgDescription[] = {
 "Unknown", "Temperature", "Hamiltonian", "MultipleDim"
 };
 
-// DataIO_RemLog::ReadData()
-int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) {
-  enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD };
-  ExchgType type = UNKNOWN;
-  int numexchg = 0;
-  //const char* SEPARATORS = " ";
-  // Buffer file
-  BufferedLine buffer;
-  if (buffer.OpenFileRead( fname )) return 1;
-
+// DataIO_RemLog::ReadRemlogHeader()
+int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
+  int numexchg = -1;
   // Read the first line. Should be '# Replica Exchange log file'
   std::string line = buffer.GetLine();
   if (line.compare(0, 27, "# Replica Exchange log file") != 0) {
     mprinterr("Error: Expected '# Replica Exchange log file', got:\n%s\n", line.c_str());
-    return 1;
+    return -1;
   }
 
   // Read past metadata. Save expected number of exchanges.
@@ -34,7 +26,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
     line = buffer.GetLine();
     if (line.empty()) {
       mprinterr("Error: No exchanges in rem log.\n");
-      return 1;
+      return -1;
     }
     ArgList columns( line );
     if (columns.hasKey("exchange")) break;
@@ -47,17 +39,38 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
       else if (columns[2] == "Velocity") type = TREMD;
     }
   }
-  mprintf("\tRem log %s should contain %i exchanges\n", fname.c_str(), numexchg);
+  mprintf("\tRem log %s should contain %i exchanges\n", buffer.Filename().full(), numexchg);
   if (numexchg < 1) {
     mprinterr("Error: Invalid number of exchanges (%i) in rem log.\n");
-    return 1;
+    return -1;
   }
-  mprintf("\tExchange type is %s\n", ExchgDescription[type]);
-  if (type == UNKNOWN) {
-    mprinterr("Error: Could not identify exchange type.\n");
-    return 1;
-  }
+  return numexchg;
+}
 
+// DataIO_RemLog::ReadData()
+int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
+                            DataSetList& datasetlist, std::string const& dsname)
+{
+  ExchgType type = UNKNOWN;
+  int numexchg = 0;
+  std::vector<std::string> logFilenames;
+  logFilenames.push_back( fname );
+  // Check if more than one log name was specified.
+  ArgList lognames(argIn.GetStringKey("lognames"), ",");
+  if (!lognames.empty()) {
+    for (int i = 0; i < lognames.Nargs(); i++)
+      logFilenames.push_back( lognames[i] );
+  }
+  mprintf("\tReading from log files:\n");
+  for (std::vector<std::string>::iterator it = logFilenames.begin();
+                                          it != logFilenames.end(); ++it)
+    mprintf("\t\t%s\n", (*it).c_str());
+  // Open first remlog as buffered file
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  // Read the first line. Should be '# Replica Exchange log file'
+  numexchg = ReadRemlogHeader(buffer, type);
+  if (numexchg == -1) return 1;
   // Should currently be positioned at the first exchange. Need to read this
   // to determine how many replicas there are (and temperature for T-REMD).
   DataSet_RemLog::TmapType TemperatureMap;
@@ -89,7 +102,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
     mprinterr("Error: Detected less than 1 replica in remlog.\n");
     return 1;
   }
-  DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, buffer.Filename().Base(), "remlog" );
+  DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
   if (ds == 0) return 1;
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
   ensemble.AllocateReplicas(n_replicas);
@@ -104,9 +117,10 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
       coordinateIndices[replica] = replica+1;
   } else if (type == TREMD)
     replicaFrames.resize(1);
-
-  // Close and reopen the file, advance back to first exchange 
+  // Close first remlog 
   buffer.CloseFile();
+
+  // Open the current remlog, advance to first exchange
   buffer.OpenFileRead( fname );
   ptr = buffer.Line();
   while (ptr[0] == '#' && ptr[2] != 'e' && ptr[3] != 'x') ptr = buffer.Line();

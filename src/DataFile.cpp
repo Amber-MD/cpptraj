@@ -60,10 +60,13 @@ int DataFile::SetupDataIO() {
 int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
   filename_.SetFileNameWithExpansion( argIn.GetStringNext() );
   DetermineTypeFromExt( filename_.Ext() );
-  // Set up DataIO based on format. 
+  // Check if user specifed DataSet name; otherwise use filename base.
+  std::string dsname = argIn.GetStringKey("name");
+  if (dsname.empty()) dsname = filename_.Base();
+  // Set up DataIO based on format.
   if (SetupDataIO()) return 1;
   // Read data
-  if ( dataio_->ReadData( filename_.Full(), datasetlist ) ) {
+  if ( dataio_->ReadData( filename_.Full(), argIn, datasetlist, dsname ) ) {
     mprinterr("Error reading datafile %s\n", filename_.Full().c_str());
     return 1;
   }

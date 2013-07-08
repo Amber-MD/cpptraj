@@ -19,7 +19,9 @@ static void PrintColumnError() {
 }
 
 // DataIO_Std::ReadData()
-int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
+int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
+                         DataSetList& datasetlist, std::string const& dsname)
+{
   ArgList labels;
   bool hasLabels = false;
   std::vector<DataSet*> DsetList;
@@ -74,13 +76,13 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
       if ( strchr( token, '.' ) != 0 ) {
         //mprintf(" DOUBLE!\n");
         if ( col != indexcol )
-          dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.Filename().Base(), col+1 );
+          dset = datasetlist.AddSetIdx( DataSet::DOUBLE, dsname, col+1 );
         //else
         //  indextype = DataSet::DOUBLE;
       } else {
         //mprintf(" INTEGER!\n");
         if (col != indexcol)
-          dset = datasetlist.AddSetIdx( DataSet::INT, buffer.Filename().Base(), col+1 );
+          dset = datasetlist.AddSetIdx( DataSet::INT, dsname, col+1 );
         //else
         //  indextype = DataSet::INT;
       }
@@ -93,7 +95,7 @@ int DataIO_Std::ReadData(std::string const& fname, DataSetList& datasetlist) {
                   buffer.Filename().full(), indexcol+1);
         return 1;
       }
-      dset = datasetlist.AddSetIdx( DataSet::STRING, buffer.Filename().Base(), col+1 );
+      dset = datasetlist.AddSetIdx( DataSet::STRING, dsname, col+1 );
     } 
     // Set legend to label if present
     if ( dset != 0 && hasLabels)
