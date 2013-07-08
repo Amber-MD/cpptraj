@@ -30,7 +30,7 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
     }
     ArgList columns( line );
     if (columns.hasKey("exchange")) break;
-    mprintf("\t%s", line.c_str());
+    if (debug_ > 0) mprintf("\t%s", line.c_str());
     if (columns.hasKey("numexchg")) {
       numexchg = columns.getNextInteger(-1);
     }
@@ -39,7 +39,6 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
       else if (columns[2] == "Velocity") type = TREMD;
     }
   }
-  mprintf("\tRem log %s should contain %i exchanges\n", buffer.Filename().full(), numexchg);
   if (numexchg < 1) {
     mprinterr("Error: Invalid number of exchanges (%i) in rem log.\n");
     return -1;
@@ -51,26 +50,25 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
 int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                             DataSetList& datasetlist, std::string const& dsname)
 {
-  ExchgType type = UNKNOWN;
-  int numexchg = 0;
+  ExchgType firstlog_type = UNKNOWN;
   std::vector<std::string> logFilenames;
   logFilenames.push_back( fname );
   // Check if more than one log name was specified.
-  ArgList lognames(argIn.GetStringKey("lognames"), ",");
+  ArgList lognames(argIn.GetStringKey("logfiles"), ",");
   if (!lognames.empty()) {
     for (int i = 0; i < lognames.Nargs(); i++)
       logFilenames.push_back( lognames[i] );
   }
-  mprintf("\tReading from log files:\n");
-  for (std::vector<std::string>::iterator it = logFilenames.begin();
+  mprintf("\tReading from log files:");
+  for (std::vector<std::string>::const_iterator it = logFilenames.begin();
                                           it != logFilenames.end(); ++it)
-    mprintf("\t\t%s\n", (*it).c_str());
+    mprintf(" %s", (*it).c_str());
+  mprintf("\n");
   // Open first remlog as buffered file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
   // Read the first line. Should be '# Replica Exchange log file'
-  numexchg = ReadRemlogHeader(buffer, type);
-  if (numexchg == -1) return 1;
+  if (ReadRemlogHeader(buffer, firstlog_type) == -1) return 1;
   // Should currently be positioned at the first exchange. Need to read this
   // to determine how many replicas there are (and temperature for T-REMD).
   DataSet_RemLog::TmapType TemperatureMap;
@@ -78,10 +76,10 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   int n_replicas = 0;
   const char* ptr = buffer.Line();
   while (ptr != 0 && ptr[0] != '#') {
-    if (type == TREMD) {
+    if (firstlog_type == TREMD) {
       // For temperature remlog create temperature map. Map temperatures to 
       // index + 1 since indices in the remlog start from 1.
-      mprintf("DEBUG: Temp0= %s", ptr+32);
+      //mprintf("DEBUG: Temp0= %s", ptr+32);
       if ( sscanf(ptr+32, "%10lf", &t0) != 1) {
         mprinterr("Error: could not read temperature from T-REMD log.\n"
                   "Error: Line: %s", ptr);
@@ -97,7 +95,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     ptr = buffer.Line();
     ++n_replicas;
   }
-  mprintf("\t%i replicas.\n", n_replicas);
+  mprintf("\t%i %s replicas.\n", n_replicas, ExchgDescription[firstlog_type]);
   if (n_replicas < 1) {
     mprinterr("Error: Detected less than 1 replica in remlog.\n");
     return 1;
@@ -108,47 +106,57 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   ensemble.AllocateReplicas(n_replicas);
   std::vector<DataSet_RemLog::ReplicaFrame> replicaFrames;
   std::vector<int> coordinateIndices;
-  if (type == HREMD) {
+  if (firstlog_type == HREMD) {
     replicaFrames.resize( n_replicas );
     // All coord indices start equal to replica indices.
     // Indices start from 1 in remlogs (H-REMD only).
     coordinateIndices.resize( n_replicas );
     for (int replica = 0; replica < n_replicas; replica++)
       coordinateIndices[replica] = replica+1;
-  } else if (type == TREMD)
+  } else if (firstlog_type == TREMD)
     replicaFrames.resize(1);
   // Close first remlog 
   buffer.CloseFile();
 
-  // Open the current remlog, advance to first exchange
-  buffer.OpenFileRead( fname );
-  ptr = buffer.Line();
-  while (ptr[0] == '#' && ptr[2] != 'e' && ptr[3] != 'x') ptr = buffer.Line();
-  // Should now be positioned at 'exchange 1'.
-
-  // Loop over all exchanges.
-  ProgressBar progress( numexchg );
-  for (int exchg = 0; exchg < numexchg; exchg++) {
-    progress.Update( exchg );
-    for (int replica = 0; replica < n_replicas; replica++) {
-      // Read remlog line.
-      ptr = buffer.Line();
-      if (ptr == 0) {
-        mprinterr("Error: reading remlog; unexpected end of file. Exchange=%i, replica=%i\n",
-                  exchg+1, replica+1);
-        return 1;
-      }
-      // ----- T-REMD ----------------------------
-      if (type == TREMD) {
+  for (std::vector<std::string>::const_iterator it = logFilenames.begin();
+                                                it != logFilenames.end(); ++it)
+  {
+    // Open the current remlog, advance to first exchange
+    buffer.OpenFileRead( *it );
+    //ptr = buffer.Line();
+    //while (ptr[0] == '#' && ptr[2] != 'e' && ptr[3] != 'x') ptr = buffer.Line();
+    ExchgType thislog_type = UNKNOWN;
+    int numexchg = ReadRemlogHeader(buffer, thislog_type);
+    if (thislog_type != firstlog_type) {
+      mprinterr("Error: rem log %s type %s does not match first rem log.\n",
+                (*it).c_str(), ExchgDescription[thislog_type]);
+      return 1;
+    }
+    mprintf("\t%s should contain %i exchanges\n", (*it).c_str(), numexchg);
+    // Should now be positioned at 'exchange 1'.
+    // Loop over all exchanges.
+    ProgressBar progress( numexchg );
+    for (int exchg = 0; exchg < numexchg; exchg++) {
+      progress.Update( exchg );
+      for (int replica = 0; replica < n_replicas; replica++) {
+        // Read remlog line.
+        ptr = buffer.Line();
+        if (ptr == 0) {
+          mprinterr("Error: reading remlog; unexpected end of file. Exchange=%i, replica=%i\n",
+                    exchg+1, replica+1);
+          return 1;
+        }
+        // ----- T-REMD ----------------------------
+        if (thislog_type == TREMD) {
           if (replicaFrames[0].SetTremdFrame( ptr, TemperatureMap )) {
-            mprinterr("Error reading TREMD line from rem log. Exchange=%i, replica=%i\n",
+          mprinterr("Error reading TREMD line from rem log. Exchange=%i, replica=%i\n",
                       exchg+1, replica+1);
             return 1;
           }
           // Add replica frame to appropriate ensemble
           ensemble.AddRepFrame( replicaFrames[0].ReplicaIdx()-1, replicaFrames[0] );
-      // ----- H-REMD ----------------------------
-      } else if (type == HREMD) {
+        // ----- H-REMD ----------------------------
+        } else if (thislog_type == HREMD) {
           if (replicaFrames[replica].SetHremdFrame( ptr, coordinateIndices[replica] )) {
             mprinterr("Error reading HREMD line from rem log. Exchange=%i, replica=%i\n",
                       exchg+1, replica+1);
@@ -156,25 +164,26 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
           }
           // Add replica frame to appropriate ensemble
           ensemble.AddRepFrame( replica, replicaFrames[replica] );
-      // -----------------------------------------
-      } else {
-        mprinterr("Error: remlog; unknown type.\n");
-      }
-    }
-    if (type == HREMD) {
-      // Determine whether exchanges occurred. Update coordinate indices accordingly.
-      for (int replica = 0; replica < n_replicas; replica++) {
-        if (replicaFrames[replica].Success()) {
-          int partner = replicaFrames[replica].PartnerIdx() - 1;
-          coordinateIndices[replica] = replicaFrames[partner].CoordsIdx();
+        // -----------------------------------------
+        } else {
+          mprinterr("Error: remlog; unknown type.\n");
         }
       }
-    }
-    // Read 'exchange N' line.
-    ptr = buffer.Line();
-  }
+      if (thislog_type == HREMD) {
+        // Determine whether exchanges occurred. Update coordinate indices accordingly.
+        for (int replica = 0; replica < n_replicas; replica++) {
+          if (replicaFrames[replica].Success()) {
+            int partner = replicaFrames[replica].PartnerIdx() - 1;
+            coordinateIndices[replica] = replicaFrames[partner].CoordsIdx();
+          }
+        }
+      }
+      // Read 'exchange N' line.
+      ptr = buffer.Line();
+    } // END loop over exchanges
+    buffer.CloseFile();
+  } // END loop over remlog files
 
-  buffer.CloseFile();
   // DEBUG - Print out replica 1 stats
 /*
   mprintf("Replica Stats:\n"

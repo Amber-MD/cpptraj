@@ -4,14 +4,15 @@
 #include "DS_Math.h"
 
 Analysis_RemLog::Analysis_RemLog() :
-  calculateStats_(false), 
+  calculateStats_(false),
+  printIndividualTrips_(false), 
   remlog_(0),
   mode_(NONE)
 {}
 
 void Analysis_RemLog::Help() {
-  mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>]"
-          " [crdidx | repidx] [stats [statsout <file>]]\n");
+  mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
+          "\t[stats [statsout <file>] printtrips]\n");
 }
 
 // Analysis_RemLog::Setup()
@@ -38,6 +39,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
   if (calculateStats_) {
     if (statsout_.OpenWrite( analyzeArgs.GetStringKey("statsout") )) return Analysis::ERR;
   }
+  printIndividualTrips_ = analyzeArgs.hasKey("printtrips");
   // Get mode
   if (analyzeArgs.hasKey("crdidx"))
     mode_ = CRDIDX;
@@ -89,6 +91,8 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
       mprintf("STDOUT\n");
     else
       mprintf("%s\n", statsout_.Filename().full());
+    if (printIndividualTrips_)
+      mprintf("\tIndividual round trips will be printed.\n");
   }
 
   return Analysis::OK;
@@ -138,8 +142,10 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         } else if (replicaStatus[crdidx-1] == HIT_TOP) {
           if (repidx == 1) {
             int rtrip = frame - replicaBottom[crdidx-1];
-            statsout_.Printf("[%i] CRDIDX %i took %i exchanges to travel up and down (exch %i to %i)\n",
-                             replica, crdidx, rtrip, replicaBottom[crdidx-1]+1, frame+1);
+            if (printIndividualTrips_)
+              statsout_.Printf("[%i] CRDIDX %i took %i exchanges to travel"
+                               " up and down (exch %i to %i)\n",
+                               replica, crdidx, rtrip, replicaBottom[crdidx-1]+1, frame+1);
             roundTrip[crdidx-1].push_back( rtrip );
             replicaStatus[crdidx-1] = HIT_BOTTOM;
             replicaBottom[crdidx-1] = frame;
