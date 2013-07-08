@@ -11,6 +11,7 @@ Traj_PDBfile::Traj_PDBfile() :
   dumpq_(false),
   dumpr_(false),
   pdbres_(false),
+  pdbatom_(false),
   pdbTop_(0),
   chainchar_(' ')
 {}
@@ -134,6 +135,11 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
    dumpr_ = true;
   }
   pdbres_ = argIn.hasKey("pdbres");
+  pdbatom_ = argIn.hasKey("pdbatom");
+  if (argIn.hasKey("pdbv3")) {
+    pdbres_ = true;
+    pdbatom_ = true;
+  }
   if (argIn.hasKey("teradvance")) ter_num_ = 1;
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
@@ -164,14 +170,14 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
   // TODO: Set different chain ID for solute mols and solvent
   chainID_.clear();
   chainID_.resize(pdbAtom_, chainchar_);
-  // Save residue names. If pdbres specified convert to RSCB residue names.
+  // Save residue names. If pdbres specified convert to PDBV3 residue names.
   resNames_.clear();
   resNames_.reserve( trajParm->Nres() );
   if (pdbres_) {
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res) {
       NameType rname = (*res).Name();
-      // convert protein residue names back to more like RSCB format:
+      // convert protein residue names back to more like PDBV3 format:
       if (rname == "HID " || rname == "HIE " ||
           rname == "HIP " || rname == "HIC "   )
         rname = "HIS ";
@@ -251,9 +257,9 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     }
     if (dumpq_) Occ = (float) (*atom).Charge();
     if (dumpr_) B = (float) (*atom).Radius();
-    // If pdbres change amber atom names to pdb v3
+    // If pdbatom change amber atom names to pdb v3
     NameType atomName = (*atom).Name();
-    if (pdbres_) {
+    if (pdbatom_) {
       if      (atomName == "H5'1") atomName = "H5'";
       else if (atomName == "H5'2") atomName = "H5''";
       else if (atomName == "H2'1") atomName = "H2'";
@@ -295,6 +301,11 @@ void Traj_PDBfile::Info() {
       mprintf(", writing GB radii to B-factor column");
     else if (dumpr_ && dumpq_)
       mprintf(", writing charges/GB radii to occupancy/B-factor columns");
-    if (pdbres_) mprintf(", using RSCB res/atom names");
+    if (pdbres_ && pdbatom_)
+      mprintf(", using PDB V3 res/atom names");
+    else if (pdbres_)
+      mprintf(", using PDB V3 residue names");
+    else if (pdbatom_)
+      mprintf(", using PDB V3 atom names");
   }
 }

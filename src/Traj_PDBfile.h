@@ -20,9 +20,10 @@ class Traj_PDBfile: public TrajectoryIO {
     int pdbAtom_;
     int ter_num_; ///< Amount to increment atom number for TER
     PDBWRITEMODE pdbWriteMode_;
-    bool dumpq_;  ///< If true, print charges in Occupancy column
-    bool dumpr_;  ///< If true, print radii in B-factor column.
-    bool pdbres_; ///< If true convert Amber res names to RSCB style.
+    bool dumpq_;   ///< If true print charges in Occupancy column
+    bool dumpr_;   ///< If true print radii in B-factor column.
+    bool pdbres_;  ///< If true convert Amber res names to PDBV3 style.
+    bool pdbatom_; ///< If true convert Amber atom names to PDBV3 style.
     Topology *pdbTop_;
     PDBfile file_;
 
