@@ -10,7 +10,11 @@ class Analysis_RemLog : public Analysis {
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
+    enum ModeType { NONE = 0, CRDIDX, REPIDX };
+    bool calculateStats_;
     DataSet_RemLog* remlog_;
+    ModeType mode_;
     std::vector<DataSet*> outputDsets_;
+    CpptrajFile statsout_;
 };
 #endif

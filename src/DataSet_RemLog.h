@@ -9,25 +9,19 @@ class DataSet_RemLog : public DataSet {
     typedef std::map<double,int> TmapType;
     /// Hold info for a single replica at one exchange.
     class ReplicaFrame;
-    /// Hold info for all exchanges of a single replica.
-    typedef std::vector<ReplicaFrame> ReplicaArray;
     /// Allocate for given # of replicas
     void AllocateReplicas(int);
-    /// \return replica in ensemble.
-    ReplicaArray& Replica(int i)  { return ensemble_[i];         }
-    /// Ensemble iterator
-    typedef std::vector<ReplicaArray>::const_iterator ensemble_it;
-    ensemble_it begin()     const { return ensemble_.begin();    }
-    ensemble_it end()       const { return ensemble_.end();      }
-    /// Iterator to replica in ensemble
-    typedef ReplicaArray::const_iterator replica_it;
-    replica_it begin(int i) const { return ensemble_[i].begin(); }
-    replica_it end(int i)   const { return ensemble_[i].end();   }
+    /// Add given replica frame to specified ensemble member.
+    void AddRepFrame(int rep, ReplicaFrame const& frm) { ensemble_[rep].push_back(frm); }
+    /// \return replica frame at exchange in specified ensemble member.
+    ReplicaFrame const& RepFrame(int exch, int rep) const { return ensemble_[rep][exch]; }
     /// \return number of exchanges
     int NumExchange() const; 
     // ----- DataSet routines --------------------
     int Size() { return ensemble_.size(); }
   private:
+    /// Hold info for all exchanges of a single replica.
+    typedef std::vector<ReplicaFrame> ReplicaArray;
     /// Hold info for all exchanges of all replicas.
     typedef std::vector<ReplicaArray> ReplicaEnsemble;
     ReplicaEnsemble ensemble_;
@@ -51,7 +45,7 @@ class DataSet_RemLog::ReplicaFrame {
     int replicaIdx_; ///< Position in ensemble.
     int partnerIdx_; ///< Position to exchange to.
     int coordsIdx_;  ///< Coordinate index.
-    bool success_;   ///< Successfully exchanged.
+    bool success_;   ///< Successfully exchanged?
     double temp0_;   ///< Replica bath temperature.
     double PE_x1_;   ///< (HREMD) Potential energy with coords 1.
     double PE_x2_;   ///< (HREMD) Potential energy with coords 2.

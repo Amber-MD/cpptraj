@@ -17,7 +17,6 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
   enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD };
   ExchgType type = UNKNOWN;
   int numexchg = 0;
-  int LineNum = 0;
   //const char* SEPARATORS = " ";
   // Buffer file
   BufferedLine buffer;
@@ -25,7 +24,6 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
 
   // Read the first line. Should be '# Replica Exchange log file'
   std::string line = buffer.GetLine();
-  ++LineNum;
   if (line.compare(0, 27, "# Replica Exchange log file") != 0) {
     mprinterr("Error: Expected '# Replica Exchange log file', got:\n%s\n", line.c_str());
     return 1;
@@ -34,7 +32,6 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
   // Read past metadata. Save expected number of exchanges.
   while (line[0] == '#') {
     line = buffer.GetLine();
-    ++LineNum;
     if (line.empty()) {
       mprinterr("Error: No exchanges in rem log.\n");
       return 1;
@@ -60,7 +57,6 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
     mprinterr("Error: Could not identify exchange type.\n");
     return 1;
   }
-  mprintf("\tFirst exchange is on line %i\n", LineNum);
 
   // Should currently be positioned at the first exchange. Need to read this
   // to determine how many replicas there are (and temperature for T-REMD).
@@ -136,7 +132,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
             return 1;
           }
           // Add replica frame to appropriate ensemble
-          ensemble.Replica(replicaFrames[0].ReplicaIdx()-1).push_back( replicaFrames[0] );
+          ensemble.AddRepFrame( replicaFrames[0].ReplicaIdx()-1, replicaFrames[0] );
       // ----- H-REMD ----------------------------
       } else if (type == HREMD) {
           if (replicaFrames[replica].SetHremdFrame( ptr, coordinateIndices[replica] )) {
@@ -145,7 +141,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
             return 1;
           }
           // Add replica frame to appropriate ensemble
-          ensemble.Replica(replica).push_back( replicaFrames[replica] );
+          ensemble.AddRepFrame( replica, replicaFrames[replica] );
       // -----------------------------------------
       } else {
         mprinterr("Error: remlog; unknown type.\n");
@@ -167,14 +163,17 @@ int DataIO_RemLog::ReadData(std::string const& fname, DataSetList& datasetlist) 
   buffer.CloseFile();
   // DEBUG - Print out replica 1 stats
 /*
-  mprintf("Replica 1 Stats:\n"
+  mprintf("Replica Stats:\n"
           "%-10s %6s %6s %6s %12s %12s %12s S\n", "#Exchange", "RepIdx", "PrtIdx", "CrdIdx",
-          "Temp0", "PE_X1", "PE_X2"); 
-  for (DataSet_RemLog::replica_it it = ensemble.begin(0);
-                                  it != ensemble.end(0); ++it)
-    mprintf("%10u %6i %6i %6i %12.4f %12.4f %12.4f %1i\n", it - ensemble.begin(0) + 1,
-            (*it).ReplicaIdx(), (*it).PartnerIdx(), (*it).CoordsIdx(), (*it).Temp0(), 
-            (*it).PE_X1(), (*it).PE_X2(), (int)(*it).Success()); 
+          "Temp0", "PE_X1", "PE_X2");
+  for (int i = 0; i < ensemble.NumExchange(); i++) {
+    for (int j = 0; j < ensemble.Size(); j++) {
+      DataSet_RemLog::ReplicaFrame const& frm = ensemble.RepFrame(i, j); 
+      mprintf("%10u %6i %6i %6i %12.4f %12.4f %12.4f %1i\n", i + 1,
+              frm.ReplicaIdx(), frm.PartnerIdx(), frm.CoordsIdx(), frm.Temp0(), 
+              frm.PE_X1(), frm.PE_X2(), (int)frm.Success());
+    }
+  } 
 */
   return 0;
 }
