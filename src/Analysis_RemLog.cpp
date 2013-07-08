@@ -81,10 +81,15 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprintf("\tGetting coordinate index vs exchange.\n");
   else if (mode_ == REPIDX)
     mprintf("\tGetting replica index vs exchange.\n");
-  if (calculateStats_)
-    mprintf("\tGetting replica exchange stats.\n");
-  if (dfout != 0)
+  if (mode_ != NONE && dfout != 0)
     mprintf("\tOutput is to %s\n", dfout->DataFilename().base());
+  if (calculateStats_) {
+    mprintf("\tGetting replica exchange stats, output to ");
+    if (statsout_.Filename().empty())
+      mprintf("STDOUT\n");
+    else
+      mprintf("%s\n", statsout_.Filename().full());
+  }
 
   return Analysis::OK;
 }
@@ -133,8 +138,8 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         } else if (replicaStatus[crdidx-1] == HIT_TOP) {
           if (repidx == 1) {
             int rtrip = frame - replicaBottom[crdidx-1];
-            mprintf("[%i] CRDIDX %i took %i exchanges to travel up and down (exch %i to %i)\n",
-                    replica, crdidx, rtrip, replicaBottom[crdidx-1]+1, frame+1);
+            statsout_.Printf("[%i] CRDIDX %i took %i exchanges to travel up and down (exch %i to %i)\n",
+                             replica, crdidx, rtrip, replicaBottom[crdidx-1]+1, frame+1);
             roundTrip[crdidx-1].push_back( rtrip );
             replicaStatus[crdidx-1] = HIT_BOTTOM;
             replicaBottom[crdidx-1] = frame;
@@ -145,26 +150,26 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   } // END loop over replicas
 
   if (calculateStats_) {
-    mprintf("#Round-trip stats:\n");
+    statsout_.Printf("#Round-trip stats:\n");
     for (std::vector<DataSet_integer>::iterator rt = roundTrip.begin();
                                                 rt != roundTrip.end(); ++rt)
     {
       double stdev = 0.0;
       double avg = DS_Math::Avg( *rt, &stdev );
-      mprintf("CRDIDX %u made %i round trips. %f +/- %f exchanges.\n", 
-              rt - roundTrip.begin() + 1, (*rt).Size(), avg, stdev);
+      statsout_.Printf("CRDIDX %u made %i round trips. %f +/- %f exchanges.\n", 
+                       rt - roundTrip.begin() + 1, (*rt).Size(), avg, stdev);
     }
    
-    mprintf("#Percent time spent at each replica:\n%-8s", "#Replica");
+    statsout_.Printf("#Percent time spent at each replica:\n%-8s", "#Replica");
     for (int crd = 0; crd < remlog_->Size(); crd++)
-      mprintf(" CRD_%04i", crd + 1);
-    mprintf("\n");
+      statsout_.Printf(" CRD_%04i", crd + 1);
+    statsout_.Printf("\n");
     double dframes = (double)remlog_->NumExchange();
     for (int replica = 0; replica < remlog_->Size(); replica++) {
-      mprintf("%8i", replica+1);
+      statsout_.Printf("%8i", replica+1);
       for (int crd = 0; crd < remlog_->Size(); crd++)
-        mprintf(" %8.3f", ((double)replicaFrac[replica][crd] / dframes) * 100.0);
-      mprintf("\n");
+        statsout_.Printf(" %8.3f", ((double)replicaFrac[replica][crd] / dframes) * 100.0);
+      statsout_.Printf("\n");
     }
   }
   return Analysis::OK;
