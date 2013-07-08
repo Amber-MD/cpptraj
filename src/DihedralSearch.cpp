@@ -50,7 +50,7 @@ const DihedralSearch::DihedralToken::DIH_TYPE DihedralSearch::DihedralToken::DIH
   { 2, "C3'", "O3'", "P"  , "O5'", "zeta"   ,ByName,ByName,ByName,ByName}, // ZETA:
   { 0, "O4'", "C1'", "C2'", "C3'", "nu1"    ,ByName,ByName,ByName,ByName}, // NU1:
   { 0, "C1'", "C2'", "C3'", "C4'", "nu2"    ,ByName,ByName,ByName,ByName}, // NU2:
-  { 0, "O4'", "C1'", "N\*", "C4" , "chin"   ,ByName,ByName,ByType,ByName}  // Nucleic CHI:
+  { 0, "O4'", "C1'", "N*",  "C4" , "chin"   ,ByName,ByName,ByType,ByName}  // Nucleic CHI:
 };
 
 // DihedralSearch::ListKnownTypes()
