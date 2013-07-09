@@ -107,7 +107,7 @@ Centroid* ClusterDist_Num::NewCentroid( Cframes const& cframesIn ) {
 // ---------- Distance calc routines for multiple DataSets (Euclid) ------------
 ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn)
 {
-  for (D1Array::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
+  for (DsArray::const_iterator ds = dsIn.begin(); ds != dsIn.end(); ++ds) {
     dsets_.push_back( (DataSet_1D*)*ds );
     if ( dsets_.back()->IsTorsionArray() )
       dcalcs_.push_back( DistCalc_Dih );
