@@ -16,7 +16,7 @@ DataSet::DataSet() :
   scalartype_(UNDEFINED)
 { }
 
-// CONSTRUCTOR
+/// CONSTRUCTOR - Take type, width, precision, and dimension
 DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   data_format_(0),
   idx_(-1),
@@ -140,6 +140,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
   colwidth_ = width_ + (int)(!leftAlign);
   switch (dType_) {
     case MODES :
+    case REMLOG:
     case MATRIX_DBL:
     case DOUBLE : format_ = SetDoubleFormatString(width_, precision_, 0); break;
     case MATRIX_FLT:

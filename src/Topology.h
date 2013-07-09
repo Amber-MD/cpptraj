@@ -134,6 +134,7 @@ class Topology {
     bool SetupIntegerMask(AtomMask &, Frame const&) const;
     bool SetupCharMask(AtomMask &, Frame const&) const;
     // ----- Topology modification routines -----
+    void ScaleDihedralK(double);
     Topology* partialModifyStateByMask(AtomMask const& m) const {
       return modifyStateByMask(m, false);
     }

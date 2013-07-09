@@ -19,6 +19,7 @@
 #include "DataSet_Vector.h"
 #include "DataSet_Modes.h"
 #include "DataSet_GridFlt.h"
+#include "DataSet_RemLog.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
@@ -35,6 +36,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "vector",        DataSet_Vector::Alloc     }, // VECTOR
   { "eigenmodes",    DataSet_Modes::Alloc      }, // MODES
   { "float grid",    DataSet_GridFlt::Alloc    }, // GRID_FLT
+  { "remlog",        DataSet_RemLog::Alloc     }, // REMLOG
   { 0, 0 }
 };
 

@@ -1407,6 +1407,12 @@ bool Topology::ParseMask(Frame const& REF, AtomMask &maskIn, bool intMask) const
 }
 
 // -----------------------------------------------------------------------------
+void Topology::ScaleDihedralK(double scale_factor) {
+  for (std::vector<double>::iterator dk = dihedralpk_.begin();
+                                     dk != dihedralpk_.end(); ++dk)
+    (*dk) *= scale_factor;
+}
+
 // Topology::modifyStateByMask()
 /**  The goal of this routine is to create a new AmberParm (newParm)
   *  based on the current AmberParm (this), deleting atoms that are

@@ -13,7 +13,7 @@ class DataIO {
     /// Type to hold coordinate info for each dimension in DataSet.
     typedef std::vector<Dimension> DimArray;
     // ----- Inherited Functions -----------------
-    virtual int ReadData(std::string const&, DataSetList&) = 0;
+    virtual int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) = 0;
     virtual int processWriteArgs(ArgList&) = 0;
     virtual int WriteData(std::string const&, DataSetList const&, DimArray const&) = 0;
     virtual int WriteData2D(std::string const&, DataSet const&, DimArray const&) = 0;

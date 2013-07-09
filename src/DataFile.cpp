@@ -9,6 +9,7 @@
 #include "DataIO_Gnuplot.h"
 #include "DataIO_Xplor.h"
 #include "DataIO_OpenDx.h"
+#include "DataIO_RemLog.h"
 
 // TODO: Support these args:
 //       - xlabel, xmin, xstep, time (all dimensions).
@@ -36,6 +37,7 @@ const DataFile::DataFileToken DataFile::DataFileArray[] = {
   { XPLOR,        "xplor",  "Xplor File",         ".xplor", DataIO_Xplor::Alloc   },
   { XPLOR,        "xplor",  "Xplor File",         ".grid",  DataIO_Xplor::Alloc   },
   { OPENDX,       "opendx", "OpenDx File",        ".dx",    DataIO_OpenDx::Alloc  },
+  { REMLOG,       "remlog", "Amber REM log",      ".log",   DataIO_RemLog::Alloc  },
   { UNKNOWN_DATA, 0,        "Unknown",            0,        0                     }
 };
 
@@ -147,8 +149,11 @@ int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
   // Default to detection by extension.
   if (dataio_ == 0)
     dataio_ = AllocDataIO( GetTypeFromExtension(filename_.Ext()) );
+  // Check if user specifed DataSet name; otherwise use filename base.
+  std::string dsname = argIn.GetStringKey("name");
+  if (dsname.empty()) dsname = filename_.Base();
   // Read data
-  if ( dataio_->ReadData( filename_.Full(), datasetlist ) ) {
+  if ( dataio_->ReadData( filename_.Full(), argIn, datasetlist, dsname ) ) {
     mprinterr("Error reading datafile %s\n", filename_.Full().c_str());
     return 1;
   }

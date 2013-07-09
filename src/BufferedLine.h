@@ -8,18 +8,22 @@ class BufferedLine : private CpptrajFile {
     BufferedLine();
     ~BufferedLine();
 
-    int SetupBuffer();
     const char* Line();
     int TokenizeLine(const char*);
     const char* NextToken();
+    /// Open file for reading, set up buffer.
+    int OpenFileRead( std::string const& fname ) {
+      if ( OpenRead( fname ) ) return 1;
+      return ResetBuffer();
+    }
 
     const char* Buffer() const { return buffer_; }
     // Members of CpptrajFile that should be public
-    using CpptrajFile::OpenRead;
     using CpptrajFile::Filename;
     using CpptrajFile::CloseFile;
     using CpptrajFile::GetLine;
   private:
+    int ResetBuffer();
     static const size_t DEFAULT_BUFFERSIZE = 16384;
 
     char* buffer_;         ///< Character buffer

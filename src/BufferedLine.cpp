@@ -16,8 +16,8 @@ BufferedLine::~BufferedLine() {
   if (buffer_!=0) delete[] buffer_;
 }
 
-// BufferedLine::SetupBuffer()
-int BufferedLine::SetupBuffer() {
+// BufferedLine::ResetBuffer()
+int BufferedLine::ResetBuffer() {
   if (buffer_!=0) delete[] buffer_;
   buffer_ = new char[ DEFAULT_BUFFERSIZE + 1];
   buffer_[ DEFAULT_BUFFERSIZE ] = '\0';

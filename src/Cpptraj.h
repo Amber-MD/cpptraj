@@ -25,6 +25,7 @@ class Cpptraj {
   private:
     static void Usage();
 
+    int ScaleDihedralK(ArgList&);
     void Help(ArgList&);
     void ListAction(ArgList&,int);
     int Create_DataFile(ArgList&,int);

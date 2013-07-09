@@ -9,6 +9,7 @@ class DataSet_integer : public DataSet_1D {
     DataSet_integer() : DataSet_1D(INTEGER, 12, 0) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_integer();}
     int& operator[](size_t idx)    { return Data_[idx];         }
+    void push_back(int i)          { Data_.push_back( i );      }
     /// Make set size sizeIn, all values set to 0.0.
     void Resize(size_t sizeIn)     { Data_.resize(sizeIn, 0);   }
     // ----- DataSet functions -------------------

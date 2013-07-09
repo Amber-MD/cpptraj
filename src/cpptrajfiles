@@ -79,6 +79,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_MeltCurve.cpp \
         Analysis_Modes.cpp \
         Analysis_Overlap.cpp \
+        Analysis_RemLog.cpp \
         Analysis_Rms2d.cpp \
         Analysis_RmsAvgCorr.cpp \
         Analysis_RunningAvg.cpp \
@@ -113,6 +114,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
         DataIO_OpenDx.cpp \
+        DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_Xplor.cpp \
         DataSet.cpp \
@@ -125,6 +127,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_MatrixDbl.cpp \
         DataSet_MatrixFlt.cpp \
         DataSet_Modes.cpp \
+        DataSet_RemLog.cpp \
         DataSet_Vector.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
