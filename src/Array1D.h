@@ -12,6 +12,7 @@ class Array1D {
     size_t DetermineMax() const;
     int push_back( DataSet_1D* const& );
     DataSet_1D* const& operator[](int idx) const { return array_[idx];       }
+    DataSet_1D* operator[](int idx)              { return array_[idx];       }
     bool empty()                           const { return array_.empty();    }
     typedef std::vector<DataSet_1D*>::const_iterator const_iterator;
     const_iterator begin()                 const { return array_.begin();    }

@@ -13,9 +13,9 @@ class Analysis_Lifetime : public Analysis {
     Analysis::RetType Analyze();
   private:
     Array1D inputDsets_;
-    std::vector<DataSet*> outputDsets_;
-    std::vector<DataSet*> maxDsets_;
-    std::vector<DataSet*> avgDsets_;
+    Array1D outputDsets_;
+    Array1D maxDsets_;
+    Array1D avgDsets_;
     int windowSize_;
     double cut_;
     bool averageonly_;
