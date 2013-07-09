@@ -18,6 +18,10 @@ class DataSet_integer : public DataSet {
 
     void Resize(int);
     int& operator[](int idx) { return Data_[idx]; }
+    void push_back(int i)    {
+      Frames_.push_back( Data_.size() );
+      Data_.push_back( i );
+    }
 
     int Allocate(int);
     int Xmax();
