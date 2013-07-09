@@ -16,7 +16,11 @@ class DataSet_RemLog : public DataSet {
     /// \return replica frame at exchange in specified ensemble member.
     ReplicaFrame const& RepFrame(int exch, int rep) const { return ensemble_[rep][exch]; }
     /// \return number of exchanges
-    int NumExchange() const; 
+    int NumExchange() const;
+    /// \return true if ensemble is valid.
+    bool ValidEnsemble() const;
+    /// Trim last replica frame.
+    void TrimLastExchange(); 
     // ----- DataSet routines --------------------
     int Size() { return ensemble_.size(); }
   private:

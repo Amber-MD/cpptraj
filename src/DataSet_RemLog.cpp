@@ -18,6 +18,33 @@ int DataSet_RemLog::NumExchange() const {
     return (int)ensemble_[0].size();
 }
 
+bool DataSet_RemLog::ValidEnsemble() const {
+  ReplicaEnsemble::const_iterator member = ensemble_.begin();
+  size_t first_size = (*member).size();
+  for (; member != ensemble_.end(); ++member) {
+    if ((*member).size() != first_size) {
+      mprinterr("Error: In remlog data set %s size of ensemble member %zu (%zu) !="
+                " size of first member (%zu)\n", Name().c_str(), // TODO: Change to legend
+                member - ensemble_.begin() + 1, (*member).size(), first_size);
+      return false;
+    }
+  }
+  return true;
+}
+
+void DataSet_RemLog::TrimLastExchange() {
+  if (ensemble_.empty()) return;
+  ReplicaEnsemble::iterator member = ensemble_.begin();
+  size_t min_size = (*member).size();
+  ++member;
+  for (; member != ensemble_.end(); ++member) {
+    if ((*member).size() < min_size) min_size = (*member).size();
+  }
+  // Resize all member arrays to minimum
+  for (member = ensemble_.begin(); member != ensemble_.end(); ++member)
+    (*member).resize( min_size );
+}
+
 // -----------------------------------------------------------------------------
 /* Format:
  * '(i2,6f10.2,i8)'

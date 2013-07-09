@@ -136,6 +136,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     // Should now be positioned at 'exchange 1'.
     // Loop over all exchanges.
     ProgressBar progress( numexchg );
+    bool fileEOF = false;
     for (int exchg = 0; exchg < numexchg; exchg++) {
       progress.Update( exchg );
       for (int replica = 0; replica < n_replicas; replica++) {
@@ -144,7 +145,10 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
         if (ptr == 0) {
           mprinterr("Error: reading remlog; unexpected end of file. Exchange=%i, replica=%i\n",
                     exchg+1, replica+1);
-          return 1;
+          fileEOF = true;
+          // If this is not the first replica remove all partial replicas
+          if (replica > 0) ensemble.TrimLastExchange();
+          break;
         }
         // ----- T-REMD ----------------------------
         if (thislog_type == TREMD) {
@@ -169,6 +173,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
           mprinterr("Error: remlog; unknown type.\n");
         }
       }
+      if ( fileEOF ) break; // Error occurred reading replicas, skip rest of exchanges.
       if (thislog_type == HREMD) {
         // Determine whether exchanges occurred. Update coordinate indices accordingly.
         for (int replica = 0; replica < n_replicas; replica++) {
@@ -183,7 +188,10 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     } // END loop over exchanges
     buffer.CloseFile();
   } // END loop over remlog files
-
+  if (!ensemble.ValidEnsemble()) {
+    mprinterr("Error: Ensemble is not valid.\n");
+    return 1;
+  }
   // DEBUG - Print out replica 1 stats
 /*
   mprintf("Replica Stats:\n"
