@@ -6,7 +6,7 @@ class DataIO_Xplor : public DataIO {
   public:
     DataIO_Xplor() {}
     static DataIO* Alloc() { return (DataIO*)new DataIO_Xplor(); }
-    int ReadData(std::string const&, DataSetList&) { return 1; }
+    int ReadData(std::string const&, ArgList&, DataSetList&, std::string const&) { return 1; }
     int processWriteArgs(ArgList&)                 { return 0; }
     int WriteData(std::string const&,DataSetList const&,DimArray const&)         { return 1; }
     int WriteDataInverted(std::string const&,DataSetList const&,DimArray const&) { return 1; }

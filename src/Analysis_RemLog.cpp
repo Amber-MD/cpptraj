@@ -1,7 +1,6 @@
 #include "Analysis_RemLog.h"
 #include "CpptrajStdio.h"
 #include "DataSet_integer.h"
-#include "DS_Math.h"
 
 Analysis_RemLog::Analysis_RemLog() :
   calculateStats_(false),
@@ -69,8 +68,8 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     std::string dsname = analyzeArgs.GetStringNext();
     if (dsname.empty())
       dsname = datasetlist->GenerateDefaultName(def_name);
-    for (int i = 0; i < remlog_->Size(); i++) {
-      DataSet_integer* ds = (DataSet_integer*)datasetlist->AddSetIdx(DataSet::INT, dsname, i+1);
+    for (int i = 0; i < (int)remlog_->Size(); i++) {
+      DataSet_integer* ds = (DataSet_integer*)datasetlist->AddSetIdx(DataSet::INTEGER, dsname, i+1);
       if (ds == 0) return Analysis::ERR;
       outputDsets_.push_back( (DataSet*)ds );
       if (dfout != 0) dfout->AddSet( (DataSet*)ds );
@@ -116,7 +115,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   }
 
   for (int frame = 0; frame < remlog_->NumExchange(); frame++) {
-    for (int replica = 0; replica < remlog_->Size(); replica++) {
+    for (int replica = 0; replica < (int)remlog_->Size(); replica++) {
       DataSet_RemLog::ReplicaFrame const& frm = remlog_->RepFrame( frame, replica );
       int crdidx = frm.CoordsIdx();
       int repidx = frm.ReplicaIdx();
@@ -137,7 +136,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
             replicaBottom[crdidx-1] = frame;
           }
         } else if (replicaStatus[crdidx-1] == HIT_BOTTOM) {
-          if (repidx == remlog_->Size())
+          if (repidx == (int)remlog_->Size())
             replicaStatus[crdidx-1] = HIT_TOP;
         } else if (replicaStatus[crdidx-1] == HIT_TOP) {
           if (repidx == 1) {
@@ -162,19 +161,19 @@ Analysis::RetType Analysis_RemLog::Analyze() {
                                                 rt != roundTrip.end(); ++rt)
     {
       double stdev = 0.0;
-      double avg = DS_Math::Avg( *rt, &stdev );
+      double avg = (*rt).Avg( stdev );
       statsout_.Printf("CRDIDX %u made %i round trips. %f +/- %f exchanges.\n", 
                        rt - roundTrip.begin() + 1, (*rt).Size(), avg, stdev);
     }
    
     statsout_.Printf("#Percent time spent at each replica:\n%-8s", "#Replica");
-    for (int crd = 0; crd < remlog_->Size(); crd++)
+    for (int crd = 0; crd < (int)remlog_->Size(); crd++)
       statsout_.Printf(" CRD_%04i", crd + 1);
     statsout_.Printf("\n");
     double dframes = (double)remlog_->NumExchange();
-    for (int replica = 0; replica < remlog_->Size(); replica++) {
+    for (int replica = 0; replica < (int)remlog_->Size(); replica++) {
       statsout_.Printf("%8i", replica+1);
-      for (int crd = 0; crd < remlog_->Size(); crd++)
+      for (int crd = 0; crd < (int)remlog_->Size(); crd++)
         statsout_.Printf(" %8.3f", ((double)replicaFrac[replica][crd] / dframes) * 100.0);
       statsout_.Printf("\n");
     }

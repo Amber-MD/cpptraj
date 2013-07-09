@@ -5,7 +5,7 @@
 #include "DataSet_RemLog.h"
 
 // CONSTRUCTOR
-DataIO_RemLog::DataIO_RemLog() {}
+DataIO_RemLog::DataIO_RemLog() : debug_(0) {}
 
 const char* ExchgDescription[] = {
 "Unknown", "Temperature", "Hamiltonian", "MultipleDim"

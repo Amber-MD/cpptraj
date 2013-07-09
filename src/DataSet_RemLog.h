@@ -1,10 +1,12 @@
 #ifndef INC_DATASET_REMLOG_H
 #define INC_DATASET_REMLOG_H
 #include <map>
+#include <vector>
 #include "DataSet.h"
 class DataSet_RemLog : public DataSet {
   public:
     DataSet_RemLog();
+    static DataSet* Alloc() { return (DataSet*)new DataSet_RemLog();}
     /// T-REMD temperature map.
     typedef std::map<double,int> TmapType;
     /// Hold info for a single replica at one exchange.
@@ -22,7 +24,11 @@ class DataSet_RemLog : public DataSet {
     /// Trim last replica frame.
     void TrimLastExchange(); 
     // ----- DataSet routines --------------------
-    int Size() { return ensemble_.size(); }
+    size_t Size() const { return ensemble_.size(); }
+    int Sync()          { return 1;                }
+    void Info()   const { return;                  }
+    // TODO: Remove
+    void Add( size_t, const void* ) { return;      }
   private:
     /// Hold info for all exchanges of a single replica.
     typedef std::vector<ReplicaFrame> ReplicaArray;

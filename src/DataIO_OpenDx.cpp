@@ -17,9 +17,11 @@ bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
 }
 
 // DataIO_OpenDx::ReadData()
-int DataIO_OpenDx::ReadData(std::string const& fname, DataSetList& datasetlist) {
+int DataIO_OpenDx::ReadData(std::string const& fname, ArgList& argIn,
+                            DataSetList& datasetlist, std::string const& dsname)
+{
   // Add grid data set. Default to float for now.
-  DataSet* ds = datasetlist.AddSet( DataSet::GRID_FLT, fname, "GRID" );
+  DataSet* ds = datasetlist.AddSet( DataSet::GRID_FLT, dsname, "GRID" );
   if (LoadGrid(fname.c_str(), *ds)) {
     // Load failed. Erase grid data set.
     DataSetList::const_iterator last = datasetlist.end();
@@ -36,7 +38,7 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   DataSet_GridFlt& grid = static_cast<DataSet_GridFlt&>( ds );
   // Open file
   BufferedLine infile;
-  if (infile.OpenRead(filename)) return 1;
+  if (infile.OpenFileRead(filename)) return 1;
   // Skip comments
   std::string line = infile.GetLine();
   while (!line.empty() && line[0] == '#') {
@@ -121,7 +123,6 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   size_t gridsize = grid.Size();
   mprintf("\tReading in %zu data elements from DX file.\n", gridsize); 
   size_t ndata = 0;
-  infile.SetupBuffer();
   while (ndata < gridsize) {
     if (infile.Line() == 0) {
       mprinterr("Error: Unexpected EOF hit in %s\n", filename);
