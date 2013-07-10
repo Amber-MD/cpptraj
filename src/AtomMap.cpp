@@ -198,12 +198,12 @@ void AtomMap::MarkAtomComplete(int atom, bool printAtoms) {
   if (mapatoms_[atom].IsUnique() && nunique==mapatoms_[atom].Nbonds())
     mapatoms_[atom].SetComplete();
   if (printAtoms) {
-    mprintf("  Atom %4i: %c-%1i |",atom+1,mapatoms_[atom].c_str(),
+    mprintf("  Atom %4i: [%s]-%1i |",atom+1,mapatoms_[atom].c_str(),
             (int)mapatoms_[atom].IsMapped());
     for (Atom::bond_iterator bondedAtom = mapatoms_[atom].bondbegin();
                            bondedAtom != mapatoms_[atom].bondend(); bondedAtom++)
     {
-      mprintf(" %4i:%c-%1i",*bondedAtom+1,mapatoms_[*bondedAtom].c_str(),
+      mprintf(" %4i:[%s]-%1i",*bondedAtom+1,mapatoms_[*bondedAtom].c_str(),
               (int)mapatoms_[*bondedAtom].IsMapped());
     }
     if (mapatoms_[atom].Complete())
