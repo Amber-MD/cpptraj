@@ -107,17 +107,15 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
 
   mprintf("    RMS2D: COORDS set [%s], mask [%s]", coords_->Legend().c_str(),
           TgtMask_.MaskString());
-  switch (mode_) {
-    case REFTRAJ:
+  if (mode_ == REFTRAJ) {
       mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_.TrajFilename().base(),
               RefMask_.MaskString(), RefTraj_.TotalReadFrames());
-      break;
-    case DME: mprintf(", using DME"); break;
-    case NORMAL: // RMSD
-      if (nofit_)
-        mprintf(" (no fitting)");
-      if (useMass_)
-        mprintf(" (mass-weighted)");
+  }
+  if (mode_ == DME) 
+    mprintf(", using DME");
+  else {
+    if (nofit_  ) mprintf(" (no fitting)");
+    if (useMass_) mprintf(" (mass-weighted)");
   }
   if (rmsdFile != 0) 
     mprintf(", output to %s",rmsdFile->DataFilename().base());
@@ -317,7 +315,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
         // Perform fit RMS calculation
         R = SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_);
       }
-      rmsdataset_->AddElement( R );
+      rmsdataset_->SetElement( nref, nframe, R );
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
     } // END loop over target frames
