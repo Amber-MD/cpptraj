@@ -52,8 +52,8 @@ class DataFile {
     typedef const DataFileToken* TokenPtr;
 
     static DataIO* AllocDataIO(DataFormatType);
-    static DataIO* DetectFormat(std::string const&);
-    static DataFormatType DataFormat(std::string const&);
+    static DataIO* DetectFormat(std::string const&, DataFormatType&);
+    //static DataFormatType DataFormat(std::string const&);
 
     int debug_;
     int dimension_;         ///< The dimension of all sets in the DataFile.

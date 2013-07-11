@@ -110,14 +110,16 @@ DataIO* DataFile::AllocDataIO(DataFormatType tformat) {
 }
 
 // DataFile::DetectFormat()
-DataIO* DataFile::DetectFormat(std::string const& fname) {
+DataIO* DataFile::DetectFormat(std::string const& fname, DataFormatType& ftype) {
   CpptrajFile file;
   if (file.SetupRead(fname, 0)) return 0;
   for (TokenPtr token = DataFileArray; token->Type != UNKNOWN_DATA; ++token) {
     if (token->Alloc != 0) {
       DataIO* io = (DataIO*)token->Alloc();
-      if ( io->ID_DataFormat( file ) )
+      if ( io->ID_DataFormat( file ) ) {
+        ftype = token->Type;
         return io;
+      }
       delete io;
     }
   }
@@ -125,7 +127,7 @@ DataIO* DataFile::DetectFormat(std::string const& fname) {
 }
 
 // DataFile::DataFormat()
-DataFile::DataFormatType DataFile::DataFormat(std::string const& fname) {
+/*DataFile::DataFormatType DataFile::DataFormat(std::string const& fname) {
   CpptrajFile file;
   if (file.SetupRead(fname, 0)) return UNKNOWN_DATA;
   for (TokenPtr token = DataFileArray; token->Type != UNKNOWN_DATA; ++token) {
@@ -139,16 +141,19 @@ DataFile::DataFormatType DataFile::DataFormat(std::string const& fname) {
     }
   }
   return UNKNOWN_DATA;
-}
+}*/
 // -----------------------------------------------------------------------------
 
 // DataFile::ReadData()
 int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
   filename_.SetFileNameWithExpansion( argIn.GetStringNext() );
-  dataio_ = DetectFormat( filename_.Full() );
+  dataio_ = DetectFormat( filename_.Full(), dfType_ );
   // Default to detection by extension.
-  if (dataio_ == 0)
-    dataio_ = AllocDataIO( GetTypeFromExtension(filename_.Ext()) );
+  if (dataio_ == 0) {
+    dfType_ = GetTypeFromExtension(filename_.Ext());
+    dataio_ = AllocDataIO( dfType_ );
+  }
+  mprintf("\tReading %s as %s\n", filename_.full(), FormatString());
   // Check if user specifed DataSet name; otherwise use filename base.
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty()) dsname = filename_.Base();

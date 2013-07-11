@@ -17,6 +17,7 @@ class DataSet_GridFlt : public DataSet_3D {
     int Allocate3D(size_t x,size_t y,size_t z) { return grid_.resize(x,y,z); }
     void Write3D(CpptrajFile&,int,int,int) const;
     double GetElement(int x,int y,int z) const { return (double)grid_.element(x,y,z); }
+    void SetElement(int x,int y,int z,float v) { grid_.setGrid(x,y,z,v);     }
     double operator[](size_t idx)        const { return (double)grid_[idx];  }
     size_t NX() const { return grid_.NX(); }
     size_t NY() const { return grid_.NY(); }

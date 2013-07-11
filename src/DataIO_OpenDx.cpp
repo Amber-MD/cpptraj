@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_GridFlt.h"
 #include "BufferedLine.h"
+#include "ProgressBar.h"
 
 bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
   bool isDX = false;
@@ -22,6 +23,7 @@ int DataIO_OpenDx::ReadData(std::string const& fname, ArgList& argIn,
 {
   // Add grid data set. Default to float for now.
   DataSet* ds = datasetlist.AddSet( DataSet::GRID_FLT, dsname, "GRID" );
+  if (ds==0) return 1;
   if (LoadGrid(fname.c_str(), *ds)) {
     // Load failed. Erase grid data set.
     DataSetList::const_iterator last = datasetlist.end();
@@ -58,9 +60,9 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
     return 1;
   }
   // origin xmin ymin zmin 
-  int oxyz[3];
+  double oxyz[3];
   line = infile.GetLine();
-  if (sscanf(line.c_str(), "origin %i %i %i", oxyz, oxyz+1, oxyz+2) != 3) {
+  if (sscanf(line.c_str(), "origin %lg %lg %lg", oxyz, oxyz+1, oxyz+2) != 3) {
     mprinterr("Error: Reading origin line from DX file %s\n", filename);
     return 1;
   }
@@ -123,6 +125,7 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   size_t gridsize = grid.Size();
   mprintf("\tReading in %zu data elements from DX file.\n", gridsize); 
   size_t ndata = 0;
+  ProgressBar progress( gridsize );
   while (ndata < gridsize) {
     if (infile.Line() == 0) {
       mprinterr("Error: Unexpected EOF hit in %s\n", filename);
@@ -138,6 +141,7 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
       }
       grid[ndata++] = (float)atof(infile.NextToken());
     }
+    progress.Update( ndata );
   }
   // Finished
   infile.CloseFile();
