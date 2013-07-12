@@ -1224,6 +1224,7 @@ int Cpptraj::RunNormal() {
   // Loop over every trajectory in trajFileList
 # ifdef TIMER
   Timer actions_time;
+  Timer setup_time;
   Timer trajin_time;
   Timer trajout_time;
   Timer frames_time;
@@ -1242,7 +1243,9 @@ int Cpptraj::RunNormal() {
     Topology* CurrentParm = (*traj)->TrajParm();
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
-
+#   ifdef TIMER
+    setup_time.Start();
+#   endif
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
     if (parmHasChanged || (TrajFrame.HasVelocity() != (*traj)->HasVelocity()))
@@ -1261,7 +1264,9 @@ int Cpptraj::RunNormal() {
       }
       lastPindex = CurrentParm->Pindex();
     }
-
+#   ifdef TIMER
+    setup_time.Stop();
+#   endif
     // Loop over every Frame in trajectory
     (*traj)->PrintInfoLine();
 #   ifdef TIMER
@@ -1314,13 +1319,15 @@ int Cpptraj::RunNormal() {
   mprintf("TIME: Trajectory processing occurred in %.4f seconds\n"
           "TIME: Avg. throughput= %.4f frames / second.\n"
           "TIME:\tTrajectory read took %.4f seconds (%.2f%% of processing).\n"
-          "TIME:\tActions took %.4f seconds (%.2f%% of processing).\n"
+          "TIME:\tAction setup took %.4f seconds (%.2f%% of processing).\n"
+          "TIME:\tAction frame processing took %.4f seconds (%.2f%% of processing).\n"
           "TIME:\tTrajectory output took %.4f seconds (%.2f%% of processing).\n",
           frames_time.Total(),
           (double)readSets / frames_time.Total(),
-          trajin_time.Total(),  (trajin_time.Total() / frames_time.Total() )*100.0, 
-          actions_time.Total(), (actions_time.Total() / frames_time.Total())*100.0,
-          trajout_time.Total(), (trajout_time.Total() / frames_time.Total())*100.0 );
+          trajin_time.Total(),  (trajin_time.Total()  / frames_time.Total() )*100.0, 
+          setup_time.Total(),   (setup_time.Total()   / frames_time.Total() )*100.0, 
+          actions_time.Total(), (actions_time.Total() / frames_time.Total() )*100.0,
+          trajout_time.Total(), (trajout_time.Total() / frames_time.Total() )*100.0 );
 # endif
   // Close output traj
   trajoutList_.Close();
