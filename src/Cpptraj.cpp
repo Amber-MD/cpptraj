@@ -17,28 +17,38 @@
 #endif
 
 void Cpptraj::Usage() {
-  mprinterr("\nUsage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n");
-  mprinterr("               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n");
-  mprinterr("               [--interactive] [--log <logfile>]\n");
-  mprinterr("       cpptraj <Top> <Input>\n");
-  mprinterr("\t-p <Top0>      : Load <Top0> as a topology file. May be specified more than once.\n");
-  mprinterr("\t-i <Input0>    : Read input from <Input0>. May be specified more than once.\n");
-  mprinterr("\t-y <trajin>    : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n");
-  mprinterr("\t-x <trajout>   : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n");
-  mprinterr("\t-h | --help    : Print command line help and exit.\n");
-  mprinterr("\t-V | --version : Print version and exit.\n");
-  mprinterr("\t--defines      : Print compiler defines and exit.\n");
-  mprinterr("\t-debug <#>     : Set global debug level to <#>; same as input 'debug <#>'.\n");
-  mprinterr("\t--interactive  : Force interactive mode.\n");
-  mprinterr("\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n");
+  mprinterr("\n"
+            "Usage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n"
+            "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
+            "               [--interactive] [--log <logfile>]\n"
+            "       cpptraj <Top> <Input>\n"
+            "\t-p <Top0>      : Load <Top0> as a topology file. May be specified more than once.\n"
+            "\t-i <Input0>    : Read input from <Input0>. May be specified more than once.\n"
+            "\t-y <trajin>    : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
+            "\t-x <trajout>   : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n"
+            "\t-h | --help    : Print command line help and exit.\n"
+            "\t-V | --version : Print version and exit.\n"
+            "\t--defines      : Print compiler defines and exit.\n"
+            "\t-debug <#>     : Set global debug level to <#>; same as input 'debug <#>'.\n"
+            "\t--interactive  : Force interactive mode.\n"
+            "\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n");
 }
 
 void Cpptraj::Intro() {
-  mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
-  mprintf("    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n");
+  mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n"
+          "    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n",
+          CPPTRAJ_VERSION_STRING);
 # ifdef MPI
   mprintf("Running on %i threads\n",worldsize);
 # endif
+}
+
+void Cpptraj::Finalize() {
+  mprintf("--------------------------------------------------------------------------------\n"
+    "To cite CPPTRAJ use:\n"
+    "Daniel R. Roe and Thomas E. Cheatham, III, \"PTRAJ and CPPTRAJ: Software for\n"
+    "  Processing and Analysis of Molecular Dynamics Trajectory Data\". J. Chem.\n"
+    "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n\n");
 }
 
 // -----------------------------------------------------------------------------
