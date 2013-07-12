@@ -24,6 +24,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Dipole.cpp \
         Action_DistRmsd.cpp \
         Action_Distance.cpp \
+        Action_FixAtomOrder.cpp \
         Action_Grid.cpp \
         Action_GridFreeEnergy.cpp \
         Action_Hbond.cpp \

@@ -195,7 +195,7 @@ class Topology {
     int nframes_;
     int ntypes_; // This is stored for the purpose of checking array sizes
 
-    void PrintBonds(std::vector<int>&, AtomMask const&);
+    void PrintBonds(std::vector<int> const&, AtomMask const&);
     void SetAtomBondInfo();
     static void WarnBondLengthDefault(Atom::AtomicElementType,
                                       Atom::AtomicElementType,double);

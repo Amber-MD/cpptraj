@@ -217,32 +217,24 @@ void Topology::PrintAtomInfo(std::string const& maskString) {
 // Topology::PrintBonds()
 /** \param maskIn AtomMask which should have already been set up as a char mask
   */
-void Topology::PrintBonds(std::vector<int>& barray, AtomMask const& maskIn) {
-  for (std::vector<int>::iterator batom = barray.begin();
-                                  batom != barray.end(); batom++)
+void Topology::PrintBonds(std::vector<int> const& barray, AtomMask const& maskIn) {
+  for (std::vector<int>::const_iterator batom = barray.begin();
+                                        batom != barray.end(); batom++)
   {
-    int atom1 = ((*batom) / 3);
-    if (!maskIn.AtomInCharMask( atom1 )) {
-      batom += 2;
-      continue;
-    }
-    ++batom;
-    int atom2 = ((*batom) / 3);
-    if (!maskIn.AtomInCharMask( atom2 )) {
-      ++batom;
-      continue;
-    }
-    mprintf("\tAtom %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
-                                     atom2+1, atoms_[atom2].c_str());
-    ++batom;
-    if (*batom==-1) {
-      double req = GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element());
-      mprintf("  EQ=%lf\n", req);
-    } else {
-      // TODO: Bond index should be -1
-      double req = bondreq_[*batom - 1];
-      double rk = bondrk_[*batom - 1];
-      mprintf("  EQ=%lf K=%lf\n", req, rk);
+    int atom1 = ((*batom++) / 3);
+    int atom2 = ((*batom++) / 3);
+    if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 )) {
+      mprintf("\tAtom %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
+                                       atom2+1, atoms_[atom2].c_str());
+      if (*batom==-1) {
+        double req = GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element());
+        mprintf("  EQ=%lf\n", req);
+      } else {
+        // TODO: Bond index should be -1
+        double req = bondreq_[*batom - 1];
+        double rk = bondrk_[*batom - 1];
+        mprintf("  EQ=%lf K=%lf\n", req, rk);
+      }
     }
   }
 }
@@ -905,6 +897,9 @@ int Topology::DetermineMolecules() {
                 "Error: command in parmed.py.\n",
                 atom - atoms_.begin() + 1, mol, offset_, fileName_.c_str());
       molecules_.clear();
+      // Reset molecule info for each atom
+      for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
+        (*atom).SetMol( -1 );
       return 1;
     }
     ++atomNum;
