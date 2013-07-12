@@ -4,7 +4,7 @@
 #include "ParmFile.h"
 
 // CONSTRUCTOR
-Action_FixAtomOrder::Action_FixAtomOrder() : newParm_(0) {} 
+Action_FixAtomOrder::Action_FixAtomOrder() : debug_(0), newParm_(0) {} 
 
 Action_FixAtomOrder::~Action_FixAtomOrder() {
   if (newParm_!=0) delete newParm_;
@@ -19,6 +19,7 @@ void Action_FixAtomOrder::Help() {
 Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  debug_ = debugIn;
   prefix_ = actionArgs.GetStringKey("outprefix");
   mprintf("    FIXATOMORDER: Will attempt to fix atom ordering when atom numbering\n"
           "                  in molecules is non-sequential.\n");
@@ -58,9 +59,10 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
     }
   }
   mprintf("\tDetected %i molecules.\n", Nmol);
-  // DEBUG
-  for (MapType::const_iterator mnum = molNums_.begin(); mnum != molNums_.end(); ++mnum)
-    mprintf("\t\tAtom %u assigned to molecule %i\n", mnum - molNums_.begin() + 1, *mnum + 1);
+  if (debug_ > 0) {
+    for (MapType::const_iterator mnum = molNums_.begin(); mnum != molNums_.end(); ++mnum)
+      mprintf("\t\tAtom %u assigned to molecule %i\n", mnum - molNums_.begin() + 1, *mnum + 1);
+  }
   // Place all atoms in molecule 0 first, molecule 1 next and so on
   atomMap_.clear();
   atomMap_.reserve( currentParm->Natom() );
@@ -71,10 +73,12 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
         atomMap_.push_back( atomnum );
     }
   }
-  mprintf("\tNew atom mapping:\n");
-  for (MapType::const_iterator atom = atomMap_.begin();
-                               atom != atomMap_.end(); ++atom)
-    mprintf("\t\tNew atom %8u => old atom %8i\n", atom - atomMap_.begin() + 1, *atom + 1);
+  if (debug_ > 0) {
+    mprintf("\tNew atom mapping:\n");
+    for (MapType::const_iterator atom = atomMap_.begin();
+                                 atom != atomMap_.end(); ++atom)
+      mprintf("\t\tNew atom %8u => old atom %8i\n", atom - atomMap_.begin() + 1, *atom + 1);
+  }
   // Create new topology based on map
   if (newParm_ != 0) delete newParm_;
   newParm_ = currentParm->ModifyByMap( atomMap_ );

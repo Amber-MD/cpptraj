@@ -18,6 +18,7 @@ class Action_FixAtomOrder: public Action {
 
     void VisitAtom(int,int,Topology const&);
 
+    int debug_;
     typedef std::vector<int> MapType;
     MapType atomMap_;
     MapType molNums_; ///< Hold molecule number for each atom.
