@@ -928,8 +928,7 @@ Action::RetType Action_AtomMap::DoAction(int frameNum, Frame* currentFrame, Fram
   }
 
   // Modify the current frame
-  // TODO: Fix this since its probably busted for unmapped atoms; also
-  //       it doesnt copy velocity/masses
+  // TODO: Fix this since its probably busted for unmapped atoms
   newFrame_->SetCoordinatesByMap(*currentFrame, AMap_);
   *frameAddress = newFrame_;
   return Action::OK;

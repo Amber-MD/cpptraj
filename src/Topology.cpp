@@ -905,6 +905,9 @@ int Topology::DetermineMolecules() {
                 "Error: command in parmed.py.\n",
                 atom - atoms_.begin() + 1, mol, offset_, fileName_.c_str());
       molecules_.clear();
+      // Reset molecule info for each atom
+      for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
+        (*atom).SetMol( -1 );
       return 1;
     }
     ++atomNum;

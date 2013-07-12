@@ -64,6 +64,7 @@
 #include "Action_PairDist.h"
 #include "Action_OrderParameter.h"
 #include "Action_MinDist.h"
+#include "Action_FixAtomOrder.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -383,6 +384,7 @@ const DispatchObject::Token Command::Commands[] = {
 //  { DispatchObject::ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, 0 },
   { DispatchObject::ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, 0 },
   { DispatchObject::ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, 0 },
+  { DispatchObject::ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, 0 },
 //  { DispatchObject::ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, 0 },
   { DispatchObject::ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, 0 },
   { DispatchObject::ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, 0 },
