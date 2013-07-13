@@ -562,11 +562,11 @@ int Topology::CommonSetup(bool bondsearch) {
   
   if (molecules_.empty())  
     if (DetermineMolecules()) 
-      mprinterr("Error: could not determine molecule information for %s.\n", c_str());
+      mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
 
   // Set up solvent information
   if (SetSolventInfo())
-    mprinterr("Error: could not determine solvent information for %s.\n", c_str());
+    mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
 
   // Determine excluded atoms
   DetermineExcludedAtoms();
@@ -885,17 +885,14 @@ int Topology::DetermineMolecules() {
       (*molecule).SetFirst( atomNum );
       lastMol = (*atom).MolNum();
     } else if ( (*atom).MolNum()  < lastMol) {
-      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom.\n"
-                "Error: This can happen if bond information is incorrect or missing.\n"
-                "Error: Detected # of molecules is %i. If this is incorrect and your\n"
-                "Error: topology does not have bond information (e.g. PDB file), try\n"
-                "Error: increasing the bond search cutoff offset (currently %f).\n"
-                "Error: e.g. 'parm %s bondsearch <new offset>'.\n"
-                "Error: This can also happen if the atoms in your molecules are not\n"
-                "Error: sequential (e.g. molecule 1 is atoms 1-4,10-14 and molecule 2\n"
-                "Error: is atoms 5-9,15-20). This can be fixed using the 'setMolecules'\n"
-                "Error: command in parmed.py.\n",
-                atom - atoms_.begin() + 1, mol, offset_, fileName_.c_str());
+      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom. This can\n"
+                "Error:   happen if 1) bond information is incorrect or missing, or 2) if the\n"
+                "Error:   atom numbering in molecules is not sequential. If topology did not\n"
+                "Error:   originally contain bond info, 1) can potentially be fixed by\n"
+                "Error:   increasing the bondsearch cutoff offset (currently %.3f). 2) can be\n"
+                "Error:   fixed by either using the 'fixatomorder' command, or using\n"
+                "Error:   the 'setMolecules' command in parmed.py.\n",
+                atom - atoms_.begin() + 1, offset_);
       molecules_.clear();
       // Reset molecule info for each atom
       for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
