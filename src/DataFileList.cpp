@@ -26,6 +26,17 @@ void DataFileList::Clear() {
   FileList::Clear();
 }
 
+// DataFileList::RemoveDataFile()
+DataFile* DataFileList::RemoveDataFile( DataFile* dfIn ) {
+  for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); ++it) {
+    if ( dfIn == *it ) {
+      delete *it;
+      return (DataFile*)0;
+    }
+  }
+  return dfIn;
+}
+
 // DataFileList::SetDebug()
 /** Set debug level for DataFileList and all datafiles in it. */
 void DataFileList::SetDebug(int debugIn) {

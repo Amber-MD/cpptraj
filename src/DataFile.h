@@ -60,9 +60,12 @@ class DataFile {
     DataFormatType dfType_; ///< Format of data in DataFile.
     bool dflWrite_;         ///< If true, write file when DataFileList::WriteAllDF called.
     bool isInverted_;
-    DataSetList SetList_;     ///< Array of pointers to associated DataSets.
-    DataIO* dataio_;          ///< DataIO object for this DataFormatType.
-    FileName filename_;       ///< DataFile file name.
-    DataIO::DimArray Dim_;    ///< Default file dimensions.
+    bool setDataSetPrecision_; ///< If true set default precision of incoming DataSets.
+    int default_width_;
+    int default_precision_;
+    DataSetList SetList_;      ///< Array of pointers to associated DataSets.
+    DataIO* dataio_;           ///< DataIO object for this DataFormatType.
+    FileName filename_;        ///< DataFile file name.
+    DataIO::DimArray Dim_;     ///< Default file dimensions.
 };
 #endif

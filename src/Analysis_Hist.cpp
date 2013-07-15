@@ -179,6 +179,10 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprintf("Error: Hist: No output filename specified.\n");
     return Analysis::ERR;
   }
+  // Create a DataFile here so any DataFile arguments can be processed. If it
+  // turns out later that native output is needed the DataFile will be removed.
+  outfile_ = DFLin->AddDataFile(outfilename_, analyzeArgs);
+  if (outfile_==0) return Analysis::ERR;
   Temp_ = analyzeArgs.getKeyDouble("free",-1.0);
   if (Temp_!=-1.0) calcFreeE_ = true;
   gnuplot_ = analyzeArgs.hasKey("gnu");
@@ -232,16 +236,16 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
         nativeOut_ = true;
     }
   }
-  // Set up output data file
-  outfile_ = 0;
   if (!nativeOut_) {
+    // DataFile output. Add DataSet to DataFile.
     if (hist_ == 0) {
       mprinterr("Error: Could not set up histogram data set.\n");
       return Analysis::ERR;
     }
-    outfile_ = DFLin->AddDataFile(outfilename_, analyzeArgs);
-    if (outfile_==0) return Analysis::ERR;
     outfile_->AddSet( hist_ );
+  } else {
+    // Native output. Remove DataFile from DataFileList
+    outfile_ = DFLin->RemoveDataFile( outfile_ );
   }
   
   mprintf("\tHist: %s: Set up for %zu dimensions using the following datasets:\n", 
