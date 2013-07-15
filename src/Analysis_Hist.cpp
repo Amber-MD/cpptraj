@@ -154,6 +154,12 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
   }
   // offset should now be equal to the total number of bins across all dimensions
   if (debug_>0) mprintf("\tHistogram: Total Bins = %zu\n",offset);
+  // If offset is somehow less than 1 it may have overflowed. 
+  if ( offset < 1UL ) {
+    mprinterr("Error: Too many bins for histogram. Try reducing the number of bins and/or\n"
+              "Error:   the number of dimensions.\n");
+    return 1;
+  }
 
   return 0;
 }
