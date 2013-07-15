@@ -3,9 +3,9 @@
 #include "CpptrajState.h"
 #include "ArgList.h"
 #include "DispatchObject.h"
-//enum CmdReturnType { C_OK = 0, C_ERR, C_QUIT, C_INTERACTIVE };
 class CommandList {
   public:
+    enum RetType { C_OK = 0, C_ERR, C_QUIT, C_INTERACTIVE };
     /// Unique command IDs TODO: Are these necessary?
     enum CommandID { 
       NO_ID = 0, LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, SYSTEM,
@@ -22,8 +22,8 @@ class CommandList {
     /// Command categories.
     enum CommandType { NONE=0, PARM, TRAJ, ACTION, ANALYSIS, GENERAL, DEPRECATED };
     /// Function pointer to command function.
-    typedef int (*CommandFxnType)(CpptrajState&, ArgList&,
-                                  DispatchObject::DispatchAllocatorType, int);
+    typedef RetType (*CommandFxnType)(CpptrajState&, ArgList&,
+                                      DispatchObject::DispatchAllocatorType, int);
     /// Function pointer to help function.
     typedef void (*CommandHelpType)();
     /// Keyword type.
@@ -43,7 +43,8 @@ class CommandList {
     static void ListCommands(CommandType);
     static TokenPtr SearchTokenType(CommandType, ArgList const& argIn);
     static TokenPtr SearchToken(ArgList&);
-    static int Dispatch(CpptrajState&, std::string const&);
+    static RetType Dispatch(CpptrajState&, std::string const&);
+    static RetType ProcessInput(CpptrajState&, std::string const&);
   private:
     
     static const char* CommandTitle[];

@@ -1,3 +1,4 @@
+#include <cstdio> // for ReadInput
 #include <cstdlib> // system
 #include "CommandList.h"
 #include "CpptrajStdio.h"
@@ -154,11 +155,89 @@ CommandList::TokenPtr CommandList::SearchToken(ArgList& argIn) {
 }
 
 /** Search for the given command and execute it. */
-int CommandList::Dispatch(CpptrajState& State, std::string const& commandIn) {
+CommandList::RetType CommandList::Dispatch(CpptrajState& State, std::string const& commandIn) {
   ArgList cmdArg( commandIn );
   TokenPtr cmdToken = SearchToken( cmdArg );
-  if (cmdToken == 0) return 1;
+  if (cmdToken == 0) return C_ERR;
   return ( cmdToken->Fxn( State, cmdArg, cmdToken->Alloc, cmdToken->Idx ) );
+}
+
+/// Used by ProcessInput to determine when line ends.
+static inline bool EndChar(char ptr) {
+  if (ptr=='\n' || ptr=='\r' || ptr=='\0' || ptr==EOF) return true;
+  return false;
+}
+
+/** Read commands from an input file, or from STDIN if given filename
+  * is empty. '#' indicates the beginning of a comment, backslash at the 
+  * end of a line indicates continuation (otherwise indicates 'literal').
+  * \return 0 if successfully read, 1 on error.
+  */
+CommandList::RetType CommandList::ProcessInput(CpptrajState& State, 
+                                               std::string const& inputFilename)
+{
+  FILE* infile; // TODO: CpptrajFile
+  if (inputFilename.empty()) {
+    mprintf("INPUT: Reading Input from STDIN\n");
+    infile = stdin;
+  } else {
+    mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
+    if ( (infile=fopen(inputFilename.c_str(),"r"))==0 ) {
+      rprinterr("Error: Could not open input file %s\n",inputFilename.c_str());
+      return C_ERR;
+    }
+  }
+  // Read in each line of input. Newline or null terminates. \ continues line.
+  std::string inputLine;
+  unsigned int idx = 0;
+  char lastchar = '0';
+  char ptr = 0;
+  RetType cmode = C_OK;
+  while ( ptr != EOF ) {
+    ptr = (char)fgetc(infile);
+    // Skip leading whitespace
+    if (idx == 0 && isspace(ptr)) {
+      while ( (ptr = (char)fgetc(infile))!=EOF )
+        if ( !isspace(ptr) ) break;
+    }
+    // If '#' is encountered, skip the rest of the line
+    if (ptr=='#')
+      while (!EndChar(ptr)) ptr=(char)fgetc(infile);
+    // newline, null, or EOF terminates the line
+    if (EndChar(ptr)) {
+      // If no chars in string continue
+      if (inputLine.empty()) continue;
+      // Print the input line that will be sent to dispatch
+      mprintf("  [%s]\n",inputLine.c_str());
+      // Call Dispatch to convert input to arglist and process.
+      cmode = CommandList::Dispatch(State, inputLine);
+      if (cmode != C_OK) break;
+      // Reset Input line
+      inputLine.clear();
+      idx = 0;
+      continue;
+    }
+    // Any consecutive whitespace is skipped
+    if (idx > 0) lastchar = inputLine[idx-1];
+    if (isspace(ptr) && isspace(lastchar)) continue;
+    // Backslash followed by newline continues to next line. Otherwise backslash
+    // followed by next char will be inserted. 
+    if (ptr=='\\') {
+      ptr = (char)fgetc(infile);
+      if ( ptr == EOF ) break;
+      if (ptr == '\n' || ptr == '\r') continue;
+      inputLine += "\\";
+      inputLine += ptr;
+      idx += 2;
+      continue;
+    }
+    // Add character to input line
+    inputLine += ptr;
+    ++idx;
+  }
+  if (!inputFilename.empty())
+    fclose(infile);
+  return cmode;
 }
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
@@ -375,46 +454,46 @@ static void Help_RunAnalysis() {
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
 /// Set active reference for distance-based masks etc.
-static int ActiveRef(CpptrajState& State, ArgList& argIn,
+CommandList::RetType ActiveRef(CpptrajState& State, ArgList& argIn,
                      DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
-  return State.FL()->SetActiveRef( argIn.getNextInteger(0) );
+  return (CommandList::RetType)State.FL()->SetActiveRef( argIn.getNextInteger(0) );
 }
 
 /// Clear data in specified lists
-static int ClearList(CpptrajState& State, ArgList& argIn,
+CommandList::RetType ClearList(CpptrajState& State, ArgList& argIn,
                      DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
-  return State.ClearList( argIn );
+  return (CommandList::RetType)State.ClearList( argIn );
 }
 
 /// Set debug value for specified list(s)
-static int SetListDebug(CpptrajState& State, ArgList& argIn,
+CommandList::RetType SetListDebug(CpptrajState& State, ArgList& argIn,
                         DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
-  return State.SetListDebug( argIn );
+  return (CommandList::RetType)State.SetListDebug( argIn );
 }
 
 /// List all members of specified list(s)
-static int ListAll(CpptrajState& State, ArgList& argIn,
+CommandList::RetType ListAll(CpptrajState& State, ArgList& argIn,
                    DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
-  return State.ListAll( argIn );
+  return (CommandList::RetType)State.ListAll( argIn );
 }
 
 /// Perform action on given COORDS dataset
-static int CrdAction(CpptrajState& State, ArgList& argIn,
+CommandList::RetType CrdAction(CpptrajState& State, ArgList& argIn,
                      DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
     mprinterr("Error: crdaction: Specify COORDS dataset name.\n");
-    return 1;
+    return CommandList::C_ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindSetOfType( setname, DataSet::COORDS );
   if (CRD == 0) {
     mprinterr("Error: crdaction: No COORDS set with name %s found.\n", setname.c_str());
-    return 1;
+    return CommandList::C_ERR;
   }
   // Start, stop, offset
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
@@ -429,12 +508,12 @@ static int CrdAction(CpptrajState& State, ArgList& argIn,
   ArgList actionargs = argIn.RemainingArgs();
   actionargs.MarkArg(0);
   CommandList::TokenPtr tkn = CommandList::SearchTokenType( CommandList::ACTION, actionargs);
-  if ( tkn == 0 ) return 1;
+  if ( tkn == 0 ) return CommandList::C_ERR;
   Action* act = (Action*)tkn->Alloc();
-  if (act == 0) return 1;
+  if (act == 0) return CommandList::C_ERR;
   if ( act->Init( actionargs, State.PFL(), State.FL(), State.DSL(), State.DFL(), State.Debug() ) != Action::OK ) {
     delete act;
-    return 1;
+    return CommandList::C_ERR;
   }
   actionargs.CheckForMoreArgs();
   // Set up frame and parm for COORDS.
@@ -445,7 +524,7 @@ static int CrdAction(CpptrajState& State, ArgList& argIn,
   Topology* currentParm = originalParm;
   if ( act->Setup( currentParm, &currentParm ) == Action::ERR ) {
     delete act;
-    return 1;
+    return CommandList::C_ERR;
   }
   // Check if parm was modified. If so, update COORDS.
   if ( currentParm != originalParm ) {
@@ -475,22 +554,22 @@ static int CrdAction(CpptrajState& State, ArgList& argIn,
   delete originalFrame;
   delete originalParm;
   delete act;
-  return 0;
+  return CommandList::C_OK;
 }
 
 /// Write out COORDS dataset
-static int CrdOut(CpptrajState& State, ArgList& argIn,
+CommandList::RetType CrdOut(CpptrajState& State, ArgList& argIn,
                   DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
     mprinterr("Error: crdout: Specify COORDS dataset name.\n");
-    return 1;
+    return CommandList::C_ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindSetOfType( setname, DataSet::COORDS );
   if (CRD == 0) {
     mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
-    return 1;
+    return CommandList::C_ERR;
   }
   setname = argIn.GetStringNext();
   // Start, stop, offset
@@ -507,7 +586,7 @@ static int CrdOut(CpptrajState& State, ArgList& argIn,
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
   if (outtraj.InitTrajWrite( setname, &argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
-    return 1;
+    return CommandList::C_ERR;
   }
   outtraj.PrintInfo( 1 );
   Frame currentFrame( CRD->Top().Natom() );
@@ -521,10 +600,12 @@ static int CrdOut(CpptrajState& State, ArgList& argIn,
       break;
     }
   }
-  return 0;
+  return CommandList::C_OK;
 }
 
 /// Add DataSets specified by arguments to given DataFile.
+// NOTE: Used byt Create_DataFile and Write_DataFile
+// TODO: Put in DataFile?
 static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList& DSL)
 {
   int err = 0;
@@ -545,78 +626,78 @@ static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList&
 }
 
 /// Add a new DataFile to DFL with specified DataSets, to be written later.
-static int Create_DataFile(CpptrajState& State, ArgList& argIn,
+CommandList::RetType Create_DataFile(CpptrajState& State, ArgList& argIn,
                            DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
   // Next string is datafile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
     mprinterr("Error: No filename given.\n");
-    return 1;
+    return CommandList::C_ERR;
   }
   DataFile* df = State.DFL()->AddDataFile(name1, argIn);
-  if (df == 0) return 1;
-  return ( AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL())) );
+  if (df == 0) return CommandList::C_ERR;
+  return (CommandList::RetType)( AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL())) );
 }
 
 /// Write DataFile with specified DataSets immediately.
-static int Write_DataFile(CpptrajState& State, ArgList& argIn,
+CommandList::RetType Write_DataFile(CpptrajState& State, ArgList& argIn,
                           DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
   // Next string is datafile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
     mprinterr("Error: No filename given.\n");
-    return 1;
+    return CommandList::C_ERR;
   }
   DataFile* df = new DataFile();
-  if (df == 0) return 1;
+  if (df == 0) return CommandList::C_ERR;
   if (df->SetupDatafile( name1, argIn, State.Debug() )) {
     delete df;
-    return 1;
+    return CommandList::C_ERR;
   }
   int err = AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL()));
   if (err == 0) df->WriteData();
   delete df;
-  return err;
+  return (CommandList::RetType)err;
 }
 
 /// Process DataFile-specific command
-static int DataFileCmd(CpptrajState& State, ArgList& argIn,
+CommandList::RetType DataFileCmd(CpptrajState& State, ArgList& argIn,
                        DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
-  return ( State.DFL()->ProcessDataFileArgs( argIn ) );
+  return (CommandList::RetType)( State.DFL()->ProcessDataFileArgs( argIn ) );
 }
 
 /// Read data from file into master DataSetList
-static int ReadData(CpptrajState& State, ArgList& argIn,
+CommandList::RetType ReadData(CpptrajState& State, ArgList& argIn,
                     DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
   DataFile dataIn;
   if (dataIn.ReadData( argIn, *State.DSL() )!=0) {
     mprinterr("Error: Could not read data file.\n");
-    return 1;
+    return CommandList::C_ERR;
   }
-  return 0;
+  return CommandList::C_OK;
 }
 
 /// Exit
-static int Quit(CpptrajState& State, ArgList& argIn,
+CommandList::RetType Quit(CpptrajState& State, ArgList& argIn,
                     DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
-  return 2;
+  return CommandList::C_QUIT;
 }
 
 /// Run a system command
-static int SystemCmd(CpptrajState& State, ArgList& argIn,
+CommandList::RetType SystemCmd(CpptrajState& State, ArgList& argIn,
                     DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
   system( argIn.ArgLine() );
-  return 0;
+  return CommandList::C_OK;
 }
 
 /// Find help for command/topic
-static int Help(CpptrajState& State, ArgList& argIn,
+CommandList::RetType Help(CpptrajState& State, ArgList& argIn,
                     DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
   ArgList arg = argIn;
@@ -641,11 +722,11 @@ static int Help(CpptrajState& State, ArgList& argIn,
     else
       dispatchToken->Help();
   }
-  return 0;
+  return CommandList::C_OK;
 }
 
 /// Run the current State
-static int RunState(CpptrajState& State, ArgList& argIn,
+CommandList::RetType RunState(CpptrajState& State, ArgList& argIn,
                     DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
   // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
@@ -661,33 +742,47 @@ static int RunState(CpptrajState& State, ArgList& argIn,
       CommandList::Dispatch( State, "createcrd _DEFAULTCRD_");
     }
   }
-  return State.Run();
+  return (CommandList::RetType)State.Run();
 }
 
+/// Read input from a file.
+CommandList::RetType ReadInput(CpptrajState& State, ArgList& argIn,
+                    DispatchObject::DispatchAllocatorType Alloc, int cmdID)
+{
+  // Next arg should be a filename. Not allowed to be blank in command.
+  std::string inputFilename = argIn.GetStringNext();
+  if (inputFilename.empty()) {
+    mprinterr("Error: No input filename given.\n");
+    return CommandList::C_ERR;
+  }
+  return CommandList::ProcessInput(State, inputFilename);
+}
 
 // ---------- DISPATCHABLE COMMANDS --------------------------------------------
 /// Add an action to the state ActionList
-static int AddAction(CpptrajState& State, ArgList& argIn, 
+CommandList::RetType AddAction(CpptrajState& State, ArgList& argIn, 
                      DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
-  return ( State.ActList().AddAction( Alloc, argIn, State.PFL(), State.FL(),
-                                      State.DSL(), State.DFL()) );
+  return ( (CommandList::RetType)
+             State.ActList().AddAction( Alloc, argIn, State.PFL(), State.FL(),
+                                        State.DSL(), State.DFL()) );
 }
 
 /// Add an action to the state AnalysisList
-static int AddAnalysis(CpptrajState& State, ArgList& argIn,
+CommandList::RetType AddAnalysis(CpptrajState& State, ArgList& argIn,
                        DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
-  return ( State.AnaList().AddAnalysis( Alloc, argIn, State.PFL(), State.DSL(), State.DFL()) );
+  return ( (CommandList::RetType)
+             State.AnaList().AddAnalysis( Alloc, argIn, State.PFL(), State.DSL(), State.DFL()) );
 }
 
 // -----------------------------------------------------------------------------
 /// Warn about deprecated commands.
-static int Deprecated(CpptrajState& State, ArgList& argIn,
+CommandList::RetType Deprecated(CpptrajState& State, ArgList& argIn,
                        DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
   mprintf("Warning: %s is deprecated.\n", argIn.Command());
-  return 1;
+  return CommandList::C_ERR;
 }
 
 // ================ LIST OF ALL COMMANDS =======================================
@@ -717,10 +812,10 @@ const CommandList::Token CommandList::Commands[] = {
   { GENERAL, "prnlev",        0, Help_Debug,           DEBUG,         SetListDebug },
   { GENERAL, "pwd",           0, Help_System,          SYSTEM,        SystemCmd },
   { GENERAL, "quit" ,         0, Help_Quit,            QUIT,          Quit      },
-  { GENERAL, "readdata",      0, Help_ReadData,        READDATA,    ReadData },
-/*  { GENERAL, "readinput",     0, Help_ReadInput,       READINPUT    },
-  { GENERAL, "run"   ,        0, Help_Run,             RUN          },
-  { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RUN_ANALYSIS },
+  { GENERAL, "readdata",      0, Help_ReadData,        READDATA,      ReadData },
+  { GENERAL, "readinput",     0, Help_ReadInput,       READINPUT,     ReadInput    },
+  { GENERAL, "run"   ,        0, Help_Run,             RUN,           RunState },
+/*  { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RUN_ANALYSIS },
   { GENERAL, "select",        0, Help_Select,          SELECT       },
   { GENERAL, "selectds",      0, Help_SelectDS,        SELECTDS     },*/
   { GENERAL, "write",         0, Help_Write_DataFile,  WRITE,       Write_DataFile },
