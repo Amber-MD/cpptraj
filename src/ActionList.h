@@ -15,13 +15,9 @@ class ActionList {
     /// Set the debug level for actions.
     void SetDebug(int);
     int Debug() const { return debug_; }
-    /// Add given action to the action list
-    int AddAction( Action* actIn, ArgList const& argIn) {
-      actionlist_.push_back( actIn );
-      actioncmd_.push_back( argIn.ArgLine() );
-      actionstatus_.push_back( INIT );
-      return 0;
-    }
+    /// Add given action to the action list and initialize.
+    int AddAction(DispatchObject::DispatchAllocatorType, ArgList&,
+                  TopologyList*,FrameList*,DataSetList*,DataFileList*);
     /// Set up actions for the given parm.
     int SetupActions(Topology **);
     /// Perform actions on the given frame.
@@ -31,6 +27,14 @@ class ActionList {
     /// List all actions in the action list.
     void List() const;
     bool Empty() const { return actionlist_.empty(); }
+    // The functions below help set up actions when ensemble processing.
+    /// \return the number of actions in the list.
+    int Naction() const { return actionlist_.size(); }
+    /// \return command string for corresponding action.
+    std::string const& CmdString(int i) const { return actioncmd_[i];              }
+    /// \return new action corresponding to existing action.
+    DispatchObject::DispatchAllocatorType
+      ActionAlloc(int i)                const { return actionAlloc_[i]; }
   private:
     /// Action initialization and setup status.
     enum ActionStatusType { NO_INIT=0, INIT, SETUP, INACTIVE };
@@ -39,6 +43,8 @@ class ActionList {
     Aarray actionlist_;
     /// List of action commands
     std::vector<std::string> actioncmd_;
+    /// List of action allocators (for ensemble).
+    std::vector<DispatchObject::DispatchAllocatorType> actionAlloc_;
     /// List of action statuses
     std::vector<ActionStatusType> actionstatus_;
     /// Default debug level for actions

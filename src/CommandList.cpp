@@ -1,7 +1,7 @@
 #include <cstdlib> // system
 #include "CommandList.h"
 #include "CpptrajStdio.h"
-#include "MpiRoutines.h"
+#include "MpiRoutines.h" // worldrank
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -90,7 +90,7 @@
 #include "Analysis_Overlap.h"
 #include "Analysis_AmdBias.h"
 #include "Analysis_RemLog.h"
-// -----------------------------------------------------------------------------
+// ---- CommandList Functions --------------------------------------------------
 /** Search Commands list for a specific type of command. */
 CommandList::TokenPtr CommandList::SearchTokenType(CommandType dtype, 
                                                    ArgList const& argIn)
@@ -111,7 +111,7 @@ const char* CommandList::CommandTitle[] = { 0, "Topology", "Trajectory", "Action
 /** List all commands of the given type, or all commands if type
   * is NONE.
   */
-void CommandList::List(CommandType dtype) {
+void CommandList::ListCommands(CommandType dtype) {
   CommandType lastType = NONE;
   int col = 0;
   for (TokenPtr token = Commands; token->Type != DEPRECATED; ++token)
@@ -151,6 +151,14 @@ CommandList::TokenPtr CommandList::SearchToken(ArgList& argIn) {
     if (argIn.CommandIs( token->Cmd )) return token;
   mprintf("[%s]: Command not found.\n", argIn.Command());
   return 0;
+}
+
+/** Search for the given command and execute it. */
+int CommandList::Dispatch(CpptrajState& State, std::string const& commandIn) {
+  ArgList cmdArg( commandIn );
+  TokenPtr cmdToken = SearchToken( cmdArg );
+  if (cmdToken == 0) return 1;
+  return ( cmdToken->Fxn( State, cmdArg, cmdToken->Alloc, cmdToken->Idx ) );
 }
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
@@ -365,7 +373,7 @@ static void Help_RunAnalysis() {
   mprintf("\tOtherwise run the specified analysis immediately.\n");
 }
 
-// -----------------------------------------------------------------------------
+// ---------- GENERAL COMMANDS -------------------------------------------------
 /// Set active reference for distance-based masks etc.
 static int ActiveRef(CpptrajState& State, ArgList& argIn,
                      DispatchObject::DispatchAllocatorType Alloc, int cmdID)
@@ -615,17 +623,17 @@ static int Help(CpptrajState& State, ArgList& argIn,
   arg.RemoveFirstArg();
   if (arg.empty())
     // NONE in this context means list all commands
-    CommandList::List(CommandList::NONE);
+    CommandList::ListCommands(CommandList::NONE);
   else if (arg.CommandIs("General"))
-    CommandList::List(CommandList::GENERAL);
+    CommandList::ListCommands(CommandList::GENERAL);
   else if (arg.CommandIs("Topology"))
-    CommandList::List(CommandList::PARM);
+    CommandList::ListCommands(CommandList::PARM);
   else if (arg.CommandIs("Action"))
-    CommandList::List(CommandList::ACTION);
+    CommandList::ListCommands(CommandList::ACTION);
   else if (arg.CommandIs("Analysis"))
-    CommandList::List(CommandList::ANALYSIS);
+    CommandList::ListCommands(CommandList::ANALYSIS);
   else if (arg.CommandIs("Trajectory"))
-    CommandList::List(CommandList::TRAJ);
+    CommandList::ListCommands(CommandList::TRAJ);
   else {
     CommandList::TokenPtr dispatchToken = CommandList::SearchToken( arg );
     if (dispatchToken == 0 || dispatchToken->Help == 0)
@@ -636,42 +644,44 @@ static int Help(CpptrajState& State, ArgList& argIn,
   return 0;
 }
 
+/// Run the current State
+static int RunState(CpptrajState& State, ArgList& argIn,
+                    DispatchObject::DispatchAllocatorType Alloc, int cmdID)
+{
+  // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
+  // this means 1 or more actions has requested that a default COORDS DataSet
+  // be created.
+  DataSet* default_crd = State.DSL()->FindSetOfType("_DEFAULTCRD_", DataSet::COORDS);
+  if (default_crd != 0) {
+    mprintf("Warning: One or more analyses requested creation of default COORDS DataSet.\n");
+    // If the DataSet has already been written to do not create again.
+    if (default_crd->Size() > 0)
+      mprintf("Warning: Default COORDS DataSet has already been written to.\n");
+    else {
+      CommandList::Dispatch( State, "createcrd _DEFAULTCRD_");
+    }
+  }
+  return State.Run();
+}
 
-// -----------------------------------------------------------------------------
+
+// ---------- DISPATCHABLE COMMANDS --------------------------------------------
 /// Add an action to the state ActionList
 static int AddAction(CpptrajState& State, ArgList& argIn, 
                      DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
-  Action* act = (Action*)Alloc();
-  // Attempt to initialize action
-  if ( act->Init( argIn, State.PFL(), State.FL(), State.DSL(), State.DFL(), State.ActList().Debug() ) != Action::OK )
-  {
-    mprinterr("Error: Could not initialize action [%s]\n", argIn.Command());
-    delete act;
-    return 1;
-  }
-  argIn.CheckForMoreArgs();
-  State.ActList().AddAction( act, argIn );
-  return 0;
+  return ( State.ActList().AddAction( Alloc, argIn, State.PFL(), State.FL(),
+                                      State.DSL(), State.DFL()) );
 }
 
 /// Add an action to the state AnalysisList
 static int AddAnalysis(CpptrajState& State, ArgList& argIn,
                        DispatchObject::DispatchAllocatorType Alloc, int cmdID)
 {
-  Analysis* ana = (Analysis*)Alloc();
-  // Attempt to set up analysis
-  if (ana->Setup( argIn, State.DSL(), State.PFL(), State.DFL(), State.AnaList().Debug() ) != Analysis::OK)
-  {
-    mprinterr("Error: Could not setup analysis [%s]\n", argIn.Command());
-    delete ana;
-    return 1;
-  }
-  argIn.CheckForMoreArgs();
-  State.AnaList().AddAnalysis( ana, argIn );
-  return 0;
+  return ( State.AnaList().AddAnalysis( Alloc, argIn, State.PFL(), State.DSL(), State.DFL()) );
 }
 
+// -----------------------------------------------------------------------------
 /// Warn about deprecated commands.
 static int Deprecated(CpptrajState& State, ArgList& argIn,
                        DispatchObject::DispatchAllocatorType Alloc, int cmdID)
@@ -695,7 +705,7 @@ const CommandList::Token CommandList::Commands[] = {
   { GENERAL, "debug",         0, Help_Debug,           DEBUG,         SetListDebug    },
   { GENERAL, "exit" ,         0, Help_Quit,            QUIT,          Quit            },
   { GENERAL, "gnuplot",       0, Help_System,          SYSTEM,        SystemCmd       },
-/*  { GENERAL, "go",            0, Help_Run,             RUN          },*/
+  { GENERAL, "go",            0, Help_Run,             RUN,           RunState        },
   { GENERAL, "head",          0, Help_System,          SYSTEM,        SystemCmd       },
   { GENERAL, "help",          0, Help_Help,            HELP,          Help         },
   { GENERAL, "list",          0, Help_List,            LIST,          ListAll },

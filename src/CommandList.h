@@ -40,9 +40,10 @@ class CommandList {
     /// Pointer to command token.
     typedef const Token* TokenPtr;
 
-    static void List(CommandType);
+    static void ListCommands(CommandType);
     static TokenPtr SearchTokenType(CommandType, ArgList const& argIn);
     static TokenPtr SearchToken(ArgList&);
+    static int Dispatch(CpptrajState&, std::string const&);
   private:
     
     static const char* CommandTitle[];

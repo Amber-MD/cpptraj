@@ -11,20 +11,21 @@
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
-    CpptrajState() : debug_(0) {}
+    CpptrajState() : debug_(0), showProgress_(true), nrun_(0) {}
     // TODO: Change to &
-    TopologyList* PFL() { return &parmFileList_; }
-    FrameList* FL()     { return &refFrames_;    }
-    DataSetList* DSL()  { return &DSL_;          }
-    DataFileList* DFL() { return &DFL_;          }
-    ActionList& ActList() { return actionList_;  }
-    AnalysisList& AnaList() { return analysisList_;}
-    int Debug() const { return debug_; }
+    TopologyList* PFL()     { return &parmFileList_; }
+    FrameList* FL()         { return &refFrames_;    }
+    DataSetList* DSL()      { return &DSL_;          }
+    DataFileList* DFL()     { return &DFL_;          }
+    ActionList& ActList()   { return actionList_;    }
+    AnalysisList& AnaList() { return analysisList_;  }
+    int Debug()       const { return debug_;         }
     //ArgsArray& TrajoutArgs() { return trajoutArgs_; }
     //ArgsArray& ActionArgs()  { return actionArgs_; }
     int ListAll(ArgList&);
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
+    int Run();
   private:
     /// Types of lists
     enum ListType {
@@ -32,6 +33,10 @@ class CpptrajState {
       L_DATAFILE, L_DATASET, N_LISTS
     };
     std::vector<bool> ListsFromArg(ArgList&, bool);
+
+    int RunNormal();
+    int RunEnsemble();
+
     /// List of parameter files 
     TopologyList parmFileList_;
     /// List of input trajectory files
@@ -54,8 +59,12 @@ class CpptrajState {
     /// Array of trajout args for setting up ensemble trajout.
     ArgsArray trajoutArgs_;
     /// Array of action args for setting up ensemble actions.
-    ArgsArray actionArgs_;
+    //ArgsArray actionArgs_;
     /// State debug level
     int debug_;
+    /// Display Progress bar during run
+    bool showProgress_;
+    /// Number of times Run() has been called.
+    int nrun_;
 };
 #endif

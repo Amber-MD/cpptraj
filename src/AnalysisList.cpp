@@ -25,6 +25,27 @@ void AnalysisList::SetDebug(int debugIn) {
     mprintf("AnalysisList DEBUG LEVEL SET TO %i\n",debug_);
 }
 
+// AnalysisList::AddAnalysis()
+/** Add specified analysis to the analysis list with given args and 
+  * DataSetList.
+  */
+int AnalysisList::AddAnalysis(DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn,
+                              TopologyList* PFLin, DataSetList* DSLin, DataFileList* DFLin)
+{
+  Analysis* ana = (Analysis*)Alloc();
+  // Attempt to set up analysis
+  if (ana->Setup( argIn, DSLin, PFLin, DFLin, debug_) != Analysis::OK) {
+    mprinterr("Error: Could not setup analysis [%s]\n", argIn.Command());
+    delete ana;
+    return 1;
+  }
+  argIn.CheckForMoreArgs();
+  analysisList_.push_back( ana );
+  analysisCmd_.push_back( argIn.ArgLine() );
+  analysisStatus_.push_back( SETUP );
+  return 0;
+}
+
 // AnalysisList::DoAnalyses()
 void AnalysisList::DoAnalyses() {
   if (analysisList_.empty()) return;
