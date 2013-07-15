@@ -104,10 +104,12 @@ SOURCES=ActionFrameCounter.cpp \
         Cluster_DBSCAN.cpp \
         Cluster_HierAgglo.cpp \
         Command.cpp \
+        CommandList.cpp \
         ComplexArray.cpp \
         Corr.cpp \
         Cpptraj.cpp \
         CpptrajFile.cpp \
+        CpptrajState.cpp \
         CpptrajStdio.cpp \
         DataFile.cpp \
         DataFileList.cpp \
