@@ -1061,16 +1061,13 @@ CommandList::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Command
 /// Add an action to the State ActionList
 CommandList::RetType AddAction(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
-  return ( (CommandList::RetType)
-             State.ActList().AddAction( Alloc, argIn, State.PFL(), State.FL(),
-                                        State.DSL(), State.DFL()) );
+  return ( (CommandList::RetType)State.AddAction( Alloc, argIn ) );
 }
 
 /// Add an action to the State AnalysisList
 CommandList::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
-  return ( (CommandList::RetType)
-             State.AnaList().AddAnalysis( Alloc, argIn, State.PFL(), State.DSL(), State.DFL()) );
+  return ( (CommandList::RetType)State.AddAnalysis( Alloc, argIn ) );
 }
 
 // -----------------------------------------------------------------------------

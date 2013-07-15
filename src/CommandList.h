@@ -5,7 +5,8 @@
 #include "DispatchObject.h"
 class CommandList {
   public:
-    enum RetType { C_OK = 0, C_ERR, C_QUIT, C_INTERACTIVE };
+    /// Possible command return types.
+    enum RetType { C_OK = 0, C_ERR, C_QUIT };
     // TODO: Make below private, make commands part of CommandList class?
     /// Command categories.
     enum CommandType { NONE=0, PARM, TRAJ, ACTION, ANALYSIS, GENERAL, DEPRECATED };

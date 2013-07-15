@@ -94,9 +94,6 @@ int CpptrajState::Run() {
       if (!analysisList_.Empty()) {
         analysisList_.DoAnalyses();
         MasterDataFileWrite();
-      } else {
-        mprinterr("No trajectories loaded. Exiting.\n");
-        err = 1;
       }
   }
   // Clean up Actions.

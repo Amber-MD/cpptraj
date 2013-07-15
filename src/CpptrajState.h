@@ -17,15 +17,17 @@ class CpptrajState {
     FrameList* FL()         { return &refFrames_;    }
     DataSetList* DSL()      { return &DSL_;          }
     DataFileList* DFL()     { return &DFL_;          }
-    ActionList& ActList()   { return actionList_;    }
-    AnalysisList& AnaList() { return analysisList_;  }
     void SetNoExitOnError() { exitOnError_ = false;  }
     void SetNoProgress()    { showProgress_ = false; }
     int Debug()       const { return debug_;         }
+    int Nrun()        const { return nrun_;          }
+    bool Empty()      const { return (actionList_.Empty() && analysisList_.Empty()); }
     void RunAnalyses()      { analysisList_.DoAnalyses(); }
     inline int AddTrajout( ArgList& );
     inline int AddTrajin( ArgList& );
     inline int AddReference( ArgList& );
+    inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
+    inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );
     int ListAll(ArgList&);
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
@@ -87,8 +89,16 @@ int CpptrajState::AddTrajin( ArgList& argIn ) {
   DSL_.SetMax( trajinList_.MaxFrames() );
   return 0;
 }
-
+// CpptrajState::AddReference()
 int CpptrajState::AddReference( ArgList& argIn ) {
   return refFrames_.AddReference(argIn, parmFileList_);
+}
+
+int CpptrajState::AddAction( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
+  return actionList_.AddAction( Alloc, argIn, &parmFileList_, &refFrames_, &DSL_, &DFL_ );
+}
+
+int CpptrajState::AddAnalysis( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
+  return analysisList_.AddAnalysis( Alloc, argIn, &parmFileList_, &DSL_, &DFL_ );
 }
 #endif

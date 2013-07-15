@@ -103,7 +103,6 @@ SOURCES=ActionFrameCounter.cpp \
         ClusterSieve.cpp \
         Cluster_DBSCAN.cpp \
         Cluster_HierAgglo.cpp \
-        Command.cpp \
         CommandList.cpp \
         ComplexArray.cpp \
         Corr.cpp \
