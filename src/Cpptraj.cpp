@@ -193,7 +193,7 @@ int Cpptraj::Interactive() {
   else
     logfile_.OpenAppend("cpptraj.log");
   CommandList::RetType readLoop = CommandList::C_OK;
-  while ( readLoop == CommandList::C_OK ) {
+  while ( readLoop != CommandList::C_QUIT ) {
     if (inputLine.GetInput()) {
       // EOF (Ctrl-D) specified. If there are actions/analyses queued, ask 
       // user if they really want to quit.
