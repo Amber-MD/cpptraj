@@ -12,6 +12,7 @@ class DataFileList : public FileList {
     DataFileList();
     ~DataFileList();
     void Clear();
+    DataFile* RemoveDataFile(DataFile*);
     void SetDebug(int);
 #   ifdef MPI
     void SetEnsembleMode(int mIn) { ensembleMode_ = mIn; }

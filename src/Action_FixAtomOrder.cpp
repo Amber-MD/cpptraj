@@ -102,7 +102,7 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
     mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),newfilename.c_str());
     ParmFile pfile;
     if ( pfile.Write( *newParm_, newfilename, ParmFile::AMBERPARM, 0 ) ) {
-      mprinterr("Error: Could not write out stripped parm file %s\n",
+      mprinterr("Error: Could not write out reordered parm file %s\n",
                 newParm_->c_str());
     }
   }

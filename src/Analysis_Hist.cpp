@@ -144,6 +144,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
 
   // Recalculate offsets for all dimensions starting at farthest coord. This
   // follows row major ordering.
+  size_t last_offset = 1UL; // For checking overflow.
   offset = 1UL;
   for (std::vector<Dimension>::iterator rd = dimensions_.begin();
                                         rd != dimensions_.end(); ++rd)
@@ -151,6 +152,13 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
     if (debug_>0) mprintf("\tHistogram: %s offset is %zu\n",(*rd).Label().c_str(), offset);
     (*rd).SetOffset( offset );
     offset *= (*rd).Bins();
+    // Check for overflow.
+    if ( offset < last_offset ) {
+      mprinterr("Error: Too many bins for histogram. Try reducing the number of bins and/or\n"
+                "Error:   the number of dimensions.\n");
+      return 1;
+    }
+    last_offset = offset;
   }
   // offset should now be equal to the total number of bins across all dimensions
   if (debug_>0) mprintf("\tHistogram: Total Bins = %zu\n",offset);
@@ -163,10 +171,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
 Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  //debug_ = debugIn; // DEBUG
-  debug_ = 1; // DEBUG - enable debug
-  mprintf("Warning: HIST DEBUG ACTIVE\n"); // DEBUG
-
+  debug_ = debugIn;
   // Keywords
   std::string histname = analyzeArgs.GetStringKey("name");
   outfilename_ = analyzeArgs.GetStringKey("out");
@@ -174,6 +179,10 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprintf("Error: Hist: No output filename specified.\n");
     return Analysis::ERR;
   }
+  // Create a DataFile here so any DataFile arguments can be processed. If it
+  // turns out later that native output is needed the DataFile will be removed.
+  outfile_ = DFLin->AddDataFile(outfilename_, analyzeArgs);
+  if (outfile_==0) return Analysis::ERR;
   Temp_ = analyzeArgs.getKeyDouble("free",-1.0);
   if (Temp_!=-1.0) calcFreeE_ = true;
   gnuplot_ = analyzeArgs.hasKey("gnu");
@@ -227,16 +236,16 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
         nativeOut_ = true;
     }
   }
-  // Set up output data file
-  outfile_ = 0;
   if (!nativeOut_) {
+    // DataFile output. Add DataSet to DataFile.
     if (hist_ == 0) {
       mprinterr("Error: Could not set up histogram data set.\n");
       return Analysis::ERR;
     }
-    outfile_ = DFLin->AddDataFile(outfilename_, analyzeArgs);
-    if (outfile_==0) return Analysis::ERR;
     outfile_->AddSet( hist_ );
+  } else {
+    // Native output. Remove DataFile from DataFileList
+    outfile_ = DFLin->RemoveDataFile( outfile_ );
   }
   
   mprintf("\tHist: %s: Set up for %zu dimensions using the following datasets:\n", 

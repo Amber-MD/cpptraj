@@ -20,6 +20,9 @@ DataFile::DataFile() :
   dfType_(DATAFILE),
   dflWrite_(true),
   isInverted_(false),
+  setDataSetPrecision_(false), //TODO: Just use default_width_ > -1?
+  default_width_(-1),
+  default_precision_(-1),
   dataio_(0),
   Dim_(3) // default to X/Y/Z dims
 {}
@@ -196,6 +199,9 @@ int DataFile::AddSet(DataSet* dataIn) {
               dataIn->Legend().c_str(), dataIn->Ndim());
     return Error("Error: Adding DataSets with different dimensions to same file is currently unsupported.\n");
   }
+  // Set default width.precision
+  if (setDataSetPrecision_)
+    dataIn->SetPrecision( default_width_, default_precision_ );
   SetList_.AddCopyOfSet( dataIn );
   // Reset dflWrite status
   dflWrite_ = true;
@@ -229,6 +235,18 @@ int DataFile::ProcessArgs(ArgList &argIn) {
     Dim_[0].SetMin( 0.0 );
     Dim_[0].SetOffset( 1 );
   }
+  // Default DataSet width/precision
+  std::string prec_str = argIn.GetStringKey("prec");
+  if (!prec_str.empty()) {
+    ArgList prec_arg(prec_str, ".");
+    default_width_ = prec_arg.getNextInteger(-1);
+    if (default_width_ < 0) {
+      mprinterr("Error: Invalid width in prec arg '%s'\n", prec_str.c_str());
+      return 1;
+    }
+    default_precision_ = prec_arg.getNextInteger(0);
+    setDataSetPrecision_ = true;
+  } 
   if (dataio_->processWriteArgs(argIn)==1) return 1;
   if (debug_ > 0) argIn.CheckForMoreArgs();
   return 0;

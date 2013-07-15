@@ -34,7 +34,7 @@ void AnalysisList::DoAnalyses() {
     if ( analysisStatus_[ananum] == SETUP ) {
       mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
       if ((*ana)->Analyze()==Analysis::ERR)
-        mprinterr("Error: in Analysis %u\n", ananum); 
+        mprinterr("Error: in Analysis # %u\n", ananum); 
     }
     ++ananum;
   }
