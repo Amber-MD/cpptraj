@@ -53,7 +53,7 @@ class FrameList : public FileList {
     /// Return the current active reference frame
     Frame* ActiveReference();
     /// Set the active reference frame
-    void SetActiveRef(int);
+    int SetActiveRef(int);
     /// Add a reference frame base on given args
     int AddReference(ArgList&, TopologyList&);
     /// Get reference frame based on given args

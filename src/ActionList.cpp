@@ -26,24 +26,6 @@ void ActionList::SetDebug(int debugIn) {
     mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug_);
 }
 
-int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn,
-                          TopologyList* PFL, FrameList* FL, DataSetList* DSL,
-                          DataFileList* DFL)
-{
-  Action* act = (Action*)Alloc();
-  // Attempt to initialize action
-  if ( act->Init( argIn, PFL, FL, DSL, DFL, debug_ ) != Action::OK ) {
-    mprinterr("Error: Could not initialize action [%s]\n", argIn.Command());
-    delete act;
-    return 1;
-  }
-  argIn.CheckForMoreArgs();
-  actionlist_.push_back( act );
-  actioncmd_.push_back( argIn.ArgLine() );
-  actionstatus_.push_back( INIT );
-  return 0;
-}
-
 // ActionList::SetupActions()
 /** Attempt to set up all actions in the action list with the given parm
   * If an action cannot be set up skip it.

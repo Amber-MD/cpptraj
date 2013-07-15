@@ -14,9 +14,14 @@ class ActionList {
     void Clear();
     /// Set the debug level for actions.
     void SetDebug(int);
-    /// Add given action to the action list and initialize.
-    int AddAction(DispatchObject::DispatchAllocatorType, ArgList&,
-                  TopologyList*,FrameList*,DataSetList*,DataFileList*);
+    int Debug() const { return debug_; }
+    /// Add given action to the action list
+    int AddAction( Action* actIn, ArgList const& argIn) {
+      actionlist_.push_back( actIn );
+      actioncmd_.push_back( argIn.ArgLine() );
+      actionstatus_.push_back( INIT );
+      return 0;
+    }
     /// Set up actions for the given parm.
     int SetupActions(Topology **);
     /// Perform actions on the given frame.

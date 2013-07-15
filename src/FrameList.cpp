@@ -41,12 +41,13 @@ Frame* FrameList::ActiveReference() {
 // FrameList::SetActiveRef()
 /** Set the given frame list number as the active reference.
   */
-void FrameList::SetActiveRef(int numIn) {
+int FrameList::SetActiveRef(int numIn) {
   if (numIn < 0 || numIn >= (int)frames_.size()) {
     mprintf("Warning: FrameList::SetActiveRef: Ref # %i out of bounds.\n",numIn);
-    return;
+    return 1;
   }
   refFrameNum_ = numIn;
+  return 0;
 }
 // -----------------------------------------------------------------------------
 /** Add Frame from the given trajectory file to the FrameList. Store trajectory 
