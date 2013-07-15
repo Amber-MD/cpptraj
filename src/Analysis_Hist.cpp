@@ -144,6 +144,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
 
   // Recalculate offsets for all dimensions starting at farthest coord. This
   // follows row major ordering.
+  size_t last_offset = 1UL; // For checking overflow.
   offset = 1UL;
   for (std::vector<Dimension>::iterator rd = dimensions_.begin();
                                         rd != dimensions_.end(); ++rd)
@@ -151,15 +152,16 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
     if (debug_>0) mprintf("\tHistogram: %s offset is %zu\n",(*rd).Label().c_str(), offset);
     (*rd).SetOffset( offset );
     offset *= (*rd).Bins();
+    // Check for overflow.
+    if ( offset < last_offset ) {
+      mprinterr("Error: Too many bins for histogram. Try reducing the number of bins and/or\n"
+                "Error:   the number of dimensions.\n");
+      return 1;
+    }
+    last_offset = offset;
   }
   // offset should now be equal to the total number of bins across all dimensions
   if (debug_>0) mprintf("\tHistogram: Total Bins = %zu\n",offset);
-  // If offset is somehow less than 1 it may have overflowed. 
-  if ( offset < 1UL ) {
-    mprinterr("Error: Too many bins for histogram. Try reducing the number of bins and/or\n"
-              "Error:   the number of dimensions.\n");
-    return 1;
-  }
 
   return 0;
 }
@@ -169,10 +171,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
 Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  //debug_ = debugIn; // DEBUG
-  debug_ = 1; // DEBUG - enable debug
-  mprintf("Warning: HIST DEBUG ACTIVE\n"); // DEBUG
-
+  debug_ = debugIn;
   // Keywords
   std::string histname = analyzeArgs.GetStringKey("name");
   outfilename_ = analyzeArgs.GetStringKey("out");
