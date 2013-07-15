@@ -21,6 +21,7 @@ class TopologyList : public FileList {
     int AddParmFile(std::string const&);
     int AddParmFile(std::string const&,std::string const&,bool,double);
     int AddParm(Topology*);
+    int WriteParm(ArgList&) const;
     void ReplaceParm(int, Topology*);
     void List() const;
   private:

@@ -25,6 +25,7 @@ class CpptrajState {
     void RunAnalyses()      { analysisList_.DoAnalyses(); }
     inline int AddTrajout( ArgList& );
     inline int AddTrajin( ArgList& );
+    inline int AddReference( ArgList& );
     int ListAll(ArgList&);
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
@@ -85,5 +86,9 @@ int CpptrajState::AddTrajin( ArgList& argIn ) {
   if ( trajinList_.AddTrajin( argIn, parmFileList_ ) ) return 1;
   DSL_.SetMax( trajinList_.MaxFrames() );
   return 0;
+}
+
+int CpptrajState::AddReference( ArgList& argIn ) {
+  return refFrames_.AddReference(argIn, parmFileList_);
 }
 #endif

@@ -481,12 +481,12 @@ CommandList::RetType CrdAction(CpptrajState& State, ArgList& argIn, CommandList:
 {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
-    mprinterr("Error: crdaction: Specify COORDS dataset name.\n");
+    mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
     return CommandList::C_ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindSetOfType( setname, DataSet::COORDS );
   if (CRD == 0) {
-    mprinterr("Error: crdaction: No COORDS set with name %s found.\n", setname.c_str());
+    mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
     return CommandList::C_ERR;
   }
   // Start, stop, offset
@@ -861,18 +861,67 @@ CommandList::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, CommandLis
   return err;
 }
 
+/// Show results of mask expression
+CommandList::RetType SelectAtoms(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+{
+  AtomMask tempMask( argIn.GetMaskNext() );
+  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  if (parm == 0) return CommandList::C_ERR;
+  parm->SetupIntegerMask( tempMask );
+  mprintf("Selected %i atoms.\n", tempMask.Nselected());
+  if (!argIn.hasKey("total"))
+    tempMask.PrintMaskAtoms("Selected");
+  return CommandList::C_OK;
+}
+
+/// Show results of DataSet expression
+CommandList::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+{
+  std::string dsarg = argIn.GetStringNext();
+  DataSetList dsets = State.DSL()->GetMultipleSets( dsarg );
+  mprintf("SelectDS: Arg [%s]:", dsarg.c_str());
+  dsets.List();
+  return CommandList::C_OK;
+}
+
+/// Write all DataFiles in State
+CommandList::RetType WriteAllData(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+{
+  State.MasterDataFileWrite();
+  return CommandList::C_OK;
+}
+
 // ---------- TRAJECTORY COMMANDS ----------------------------------------------
+/// Add output trajectory to State
 CommandList::RetType Trajout(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
   return (CommandList::RetType)State.AddTrajout( argIn );
 }
 
+/// Add input trajectory to State
 CommandList::RetType Trajin(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
   return (CommandList::RetType)State.AddTrajin( argIn );
 }
 
+/// Add reference trajectory to State
+CommandList::RetType Reference(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+{
+  return (CommandList::RetType)State.AddReference( argIn );
+}
+
 // ---------- TOPOLOGY COMMANDS ------------------------------------------------
+/// Load topology to State
+CommandList::RetType LoadParm(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+{
+  std::string parmtag = argIn.getNextTag();
+  bool bondsearch = !argIn.hasKey("nobondsearch");
+  double offset = argIn.getKeyDouble("bondsearch", -1.0);
+  return (CommandList::RetType)
+    State.PFL()->AddParmFile(argIn.GetStringNext(), parmtag, bondsearch, offset);
+}
+
+/// Print info for specified parm or atoms in specified parm.
 CommandList::RetType ParmInfo(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
@@ -885,6 +934,7 @@ CommandList::RetType ParmInfo(CpptrajState& State, ArgList& argIn, CommandList::
   return CommandList::C_OK;
 }
 
+/// Print bond info for atoms in mask.
 CommandList::RetType BondInfo(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
@@ -893,6 +943,7 @@ CommandList::RetType BondInfo(CpptrajState& State, ArgList& argIn, CommandList::
   return CommandList::C_OK;
 }
 
+/// Print residue info for atoms in mask.
 CommandList::RetType ResInfo(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
@@ -901,6 +952,7 @@ CommandList::RetType ResInfo(CpptrajState& State, ArgList& argIn, CommandList::A
   return CommandList::C_OK;
 }
 
+/// Print molecule info for atoms in mask.
 CommandList::RetType MolInfo(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
@@ -909,6 +961,7 @@ CommandList::RetType MolInfo(CpptrajState& State, ArgList& argIn, CommandList::A
   return CommandList::C_OK;
 }
 
+/// Print the total charge of atoms in mask
 CommandList::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
@@ -917,8 +970,95 @@ CommandList::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, CommandList
   return CommandList::C_OK;
 }
 
+/// Modify specified parm box info
+CommandList::RetType ParmBox(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+{
+  Box pbox;
+  bool nobox = false;
+  if ( argIn.hasKey("nobox") )
+    nobox = true;
+  else {
+    pbox.SetX( argIn.getKeyDouble("x",0) );
+    pbox.SetY( argIn.getKeyDouble("y",0) );
+    pbox.SetZ( argIn.getKeyDouble("z",0) );
+    pbox.SetAlpha( argIn.getKeyDouble("alpha",0) );
+    pbox.SetBeta(  argIn.getKeyDouble("beta",0)  );
+    pbox.SetGamma( argIn.getKeyDouble("gamma",0) );
+  }
+  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  if (parm == 0) return CommandList::C_ERR;
+  if (nobox)
+    mprintf("\tRemoving box information from parm %i:%s\n", parm->Pindex(), parm->c_str());
+  else
+    // Fill in missing parm box information from specified parm
+    pbox.SetMissingInfo( parm->ParmBox() );
+  parm->SetBox( pbox );
+  return CommandList::C_OK;
+}
+
+/// Strip atoms from specified parm
+CommandList::RetType ParmStrip(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+{
+  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  if (parm == 0) return CommandList::C_ERR;
+  AtomMask tempMask( argIn.GetMaskNext() );
+  // Since want to keep atoms outside mask, invert selection
+  tempMask.InvertMask();
+  parm->SetupIntegerMask( tempMask );
+  mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.MaskString(),
+           parm->Natom() - tempMask.Nselected(), parm->c_str());
+  Topology* tempParm = parm->modifyStateByMask(tempMask);
+  if (tempParm==0) {
+    mprinterr("Error: %s: Could not strip parm.\n", argIn.Command());
+    return CommandList::C_ERR;
+  } else {
+    // Replace parm with stripped version
+    // TODO: Implement proper assignment op for Topology
+    tempParm->ParmInfo();
+    mprintf("\n");
+    State.PFL()->ReplaceParm(parm->Pindex(), tempParm);
+  }
+  return CommandList::C_OK;
+}
+
+/// Write parm to Amber Topology file.
+CommandList::RetType ParmWrite(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+{
+  if (State.PFL()->WriteParm( argIn )) return CommandList::C_ERR;
+  return CommandList::C_OK;
+}
+
+/// Modify parm solvent information
+CommandList::RetType ParmSolvent(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+{
+  std::string maskexpr;
+  if (!argIn.hasKey("none")) {
+    maskexpr = argIn.GetMaskNext();
+    if ( maskexpr.empty() ) {
+      mprinterr("Error: solvent: No mask specified.\n");
+      return CommandList::C_ERR;
+    }
+  }
+  // Get parm index
+  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  if (parm == 0) return CommandList::C_ERR;
+  parm->SetSolvent( maskexpr );
+  return CommandList::C_OK;
+}
+
+/// Scale dihedral force constants in specfied parm by factor.
+CommandList::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+{
+  Topology* parm = State.PFL()->GetParm( argIn );
+  if (parm == 0) return CommandList::C_ERR;
+  double scale_factor = argIn.getNextDouble(1.0);
+  mprintf("\tScaling dihedral force constants in %s by %f\n", parm->c_str(), scale_factor);
+  parm->ScaleDihedralK( scale_factor );
+  return CommandList::C_OK;
+}
+
 // ---------- DISPATCHABLE COMMANDS --------------------------------------------
-/// Add an action to the state ActionList
+/// Add an action to the State ActionList
 CommandList::RetType AddAction(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
   return ( (CommandList::RetType)
@@ -926,7 +1066,7 @@ CommandList::RetType AddAction(CpptrajState& State, ArgList& argIn, CommandList:
                                         State.DSL(), State.DFL()) );
 }
 
-/// Add an action to the state AnalysisList
+/// Add an action to the State AnalysisList
 CommandList::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
 {
   return ( (CommandList::RetType)
@@ -947,10 +1087,10 @@ CommandList::RetType Deprecated(CpptrajState& State, ArgList& argIn, CommandList
   */
 const CommandList::Token CommandList::Commands[] = {
   // GENERAL COMMANDS
-  { GENERAL, "activeref",     0, Help_ActiveRef,       ActiveRef },
-  { GENERAL, "clear",         0, Help_Clear,           ClearList },
-  { GENERAL, "crdaction",     0, Help_CrdAction,       CrdAction },
-  { GENERAL, "crdout",        0, Help_CrdOut,          CrdOut    },
+  { GENERAL, "activeref",     0, Help_ActiveRef,       ActiveRef       },
+  { GENERAL, "clear",         0, Help_Clear,           ClearList       },
+  { GENERAL, "crdaction",     0, Help_CrdAction,       CrdAction       },
+  { GENERAL, "crdout",        0, Help_CrdOut,          CrdOut          },
   { GENERAL, "create",        0, Help_Create_DataFile, Create_DataFile },
   { GENERAL, "datafile",      0, Help_DataFile,        DataFileCmd     },
   { GENERAL, "debug",         0, Help_Debug,           SetListDebug    },
@@ -972,31 +1112,31 @@ const CommandList::Token CommandList::Commands[] = {
   { GENERAL, "readinput",     0, Help_ReadInput,       ReadInput       },
   { GENERAL, "run"   ,        0, Help_Run,             RunState        },
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
-/*  { GENERAL, "select",        0, Help_Select,               },
-  { GENERAL, "selectds",      0, Help_SelectDS,             },*/
-  { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile },
-/*  { GENERAL, "writedata",     0, Help_WriteData,       WRITEDATA    },*/
+  { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
+  { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
+  { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
+  { GENERAL, "writedata",     0, Help_WriteData,       WriteAllData    },
   { GENERAL, "xmgrace",       0, Help_System,          SystemCmd       },
   // TRAJECTORY COMMANDS
-/*  { TRAJ,   "ensemble",      0, Help_Ensemble,        TRAJIN     },
-  { TRAJ,   "reference",     0, Help_Reference,       REFERENCE  },*/
-  { TRAJ,   "trajin",        0, Help_Trajin,          Trajin     },
-  { TRAJ,   "trajout",       0, Help_Trajout,         Trajout    },
+  { TRAJ,    "ensemble",      0, Help_Ensemble,        Trajin          },
+  { TRAJ,    "reference",     0, Help_Reference,       Reference       },
+  { TRAJ,    "trajin",        0, Help_Trajin,          Trajin          },
+  { TRAJ,    "trajout",       0, Help_Trajout,         Trajout         },
   // TOPOLOGY COMMANDS
-  { PARM,    "bondinfo",      0, Help_BondInfo,       BondInfo   },
-  { PARM,    "charge",        0, Help_ChargeInfo,     ChargeInfo },
-  { PARM,    "molinfo",       0, Help_MolInfo,        MolInfo    },
-//  { PARM,    "parm",          0, Help_Parm,            LOADPARM   },
-  { PARM,    "parmbondinfo",  0, Help_BondInfo,       BondInfo   },
-//  { PARM,    "parmbox",       0, Help_ParmBox,         PARMBOX    },
-  { PARM,    "parminfo",      0, Help_ParmInfo,       ParmInfo   },
-  { PARM,    "parmmolinfo",   0, Help_MolInfo,        MolInfo    },
-  { PARM,    "parmresinfo",   0, Help_ResInfo,        ResInfo    },
-/*  { PARM,    "parmstrip",     0, Help_ParmStrip,       PARMSTRIP  },
-  { PARM,    "parmwrite",     0, Help_ParmWrite,       PARMWRITE  },
-  { PARM,    "resinfo",       0, Help_ResInfo,         RESINFO    },
-  { PARM,    "scaledihedralk",0, 0,                    SCALEDIHEDRALK },
-  { PARM,    "solvent",       0, Help_Solvent,         SOLVENT    },*/
+  { PARM,    "bondinfo",      0, Help_BondInfo,        BondInfo        },
+  { PARM,    "charge",        0, Help_ChargeInfo,      ChargeInfo      },
+  { PARM,    "molinfo",       0, Help_MolInfo,         MolInfo         },
+  { PARM,    "parm",          0, Help_Parm,            LoadParm        },
+  { PARM,    "parmbondinfo",  0, Help_BondInfo,        BondInfo        },
+  { PARM,    "parmbox",       0, Help_ParmBox,         ParmBox         },
+  { PARM,    "parminfo",      0, Help_ParmInfo,        ParmInfo        },
+  { PARM,    "parmmolinfo",   0, Help_MolInfo,         MolInfo         },
+  { PARM,    "parmresinfo",   0, Help_ResInfo,         ResInfo         },
+  { PARM,    "parmstrip",     0, Help_ParmStrip,       ParmStrip       },
+  { PARM,    "parmwrite",     0, Help_ParmWrite,       ParmWrite       },
+  { PARM,    "resinfo",       0, Help_ResInfo,         ResInfo         },
+  { PARM,    "scaledihedralk",0, 0,                    ScaleDihedralK  },
+  { PARM,    "solvent",       0, Help_Solvent,         ParmSolvent     },
   // INC_ACTION: ACTION COMMANDS
   { ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, AddAction },
   { ACTION, "atomiccorr", Action_AtomicCorr::Alloc, Action_AtomicCorr::Help, AddAction },

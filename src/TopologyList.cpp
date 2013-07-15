@@ -132,6 +132,23 @@ int TopologyList::AddParm(Topology *ParmIn) {
   return 0;
 }
 
+// TopologyList::WriteParm()
+int TopologyList::WriteParm(ArgList& argIn) const {
+  std::string outfilename = argIn.GetStringKey("out");
+  if (outfilename.empty()) {
+    mprinterr("Error: %s: No output filename specified (use 'out <filename>').\n", argIn.Command());
+    return 1;
+  }
+  Topology* parm = GetParmByIndex( argIn );
+  if (parm == 0) return 1;
+  mprintf("\tWriting parm %i (%s) to Amber parm %s\n",parm->Pindex(),
+          parm->c_str(), outfilename.c_str());
+  ParmFile pfile;
+  pfile.Write( *parm, outfilename, ParmFile::AMBERPARM, debug_ );
+  return 0;
+}
+
+// TopologyList::ReplaceParm()
 void TopologyList::ReplaceParm(int pindex, Topology* newParm) {
   if (pindex < 0 || pindex >= (int)TopList_.size()) {
     mprinterr("Error: ReplaceParm: parm index %i out of bounds.\n",pindex);
