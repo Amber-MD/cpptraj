@@ -29,6 +29,17 @@ Topology* TopologyList::GetParm(int num) const {
   return TopList_[num];
 }
 
+// TopologyList::GetParmByIndex()
+Topology* TopologyList::GetParmByIndex(ArgList& argIn) const {
+  int pindex = argIn.getNextInteger(0);
+  Topology* parm = GetParm( pindex );
+  if ( parm == 0 ) {
+    mprinterr("Error: parm index %i not loaded.\n",pindex);
+    return 0;
+  }
+  return parm;
+}
+
 // TopologyList::GetParm()
 /** Return the parm structure based on arguments in the given arg list. 
   *   parm <parm name>

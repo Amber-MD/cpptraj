@@ -16,6 +16,7 @@ class TopologyList : public FileList {
     ~TopologyList();
     void Clear();
     Topology* GetParm(int) const;
+    Topology* GetParmByIndex(ArgList&) const;
     Topology* GetParm(ArgList&) const;
     int AddParmFile(std::string const&);
     int AddParmFile(std::string const&,std::string const&,bool,double);

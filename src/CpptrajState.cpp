@@ -7,7 +7,6 @@
 # include "Timer.h"
 #endif
 
-
 /** Select lists from ArgList */
 std::vector<bool> CpptrajState::ListsFromArg( ArgList& argIn, bool allowEnableAll ) {
   std::vector<bool> enabled( (int)N_LISTS );
@@ -94,7 +93,7 @@ int CpptrajState::Run() {
       // No trajectories loaded; If analyses are defined, try to run them.
       if (!analysisList_.Empty()) {
         analysisList_.DoAnalyses();
-        if (worldrank == 0) DFL_.WriteAllDF();
+        MasterDataFileWrite();
       } else {
         mprinterr("No trajectories loaded. Exiting.\n");
         err = 1;
@@ -503,6 +502,12 @@ int CpptrajState::RunNormal() {
   // ========== D A T A  W R I T E  P H A S E ==========
   // Print Datafile information
   DFL_.List();
+  MasterDataFileWrite();
+
+  return 0;
+}
+
+void CpptrajState::MasterDataFileWrite() {
   // Only Master does DataFile output
   if (worldrank==0) {
 #   ifdef TIMER
@@ -515,5 +520,4 @@ int CpptrajState::RunNormal() {
     mprintf("TIME: Data file write took %.4f seconds.\n", datafile_time.Total());
 #   endif
   }
-  return 0;
 }

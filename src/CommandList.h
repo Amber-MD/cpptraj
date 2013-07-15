@@ -6,36 +6,24 @@
 class CommandList {
   public:
     enum RetType { C_OK = 0, C_ERR, C_QUIT, C_INTERACTIVE };
-    /// Unique command IDs TODO: Are these necessary?
-    enum CommandID { 
-      NO_ID = 0, LIST = 0, HELP, QUIT, RUN, DEBUG, NOPROG, NOEXITERR, SYSTEM,
-      ACTIVEREF, READDATA, CREATE, PRECISION, DATAFILE, SELECT, SELECTDS,
-      READINPUT, RUN_ANALYSIS, WRITEDATA, CLEAR, LOADCRD, CRDACTION, CRDOUT,
-      WRITE,
-      // TRAJ
-      REFERENCE, TRAJIN, TRAJOUT,
-      // PARM
-      LOADPARM, PARMINFO, PARMWRITE, PARMSTRIP, PARMBOX, SOLVENT, BONDINFO,
-      RESINFO, MOLINFO, CHARGEINFO, SCALEDIHEDRALK
-    };
     // TODO: Make below private, make commands part of CommandList class?
     /// Command categories.
     enum CommandType { NONE=0, PARM, TRAJ, ACTION, ANALYSIS, GENERAL, DEPRECATED };
+    /// Shorthand for DispatchAllocatorType
+    typedef DispatchObject::DispatchAllocatorType AllocType;
     /// Function pointer to command function.
-    typedef RetType (*CommandFxnType)(CpptrajState&, ArgList&,
-                                      DispatchObject::DispatchAllocatorType, int);
+    typedef RetType (*CommandFxnType)(CpptrajState&, ArgList&, AllocType);
     /// Function pointer to help function.
     typedef void (*CommandHelpType)();
     /// Keyword type.
     typedef const char* CommandKeywordType;
     /// Struct that describes how a command is called.
     struct Token {
-      CommandType Type;                            ///< Command type
-      CommandKeywordType Cmd;                      ///< Command keyword
-      DispatchObject::DispatchAllocatorType Alloc; ///< Allocator (Action/Analysis only)
-      CommandHelpType Help;                        ///< Help text function.
-      CommandID Idx;                               ///< Command ID (all except Action/Analysis).
-      CommandFxnType Fxn;                          ///< Command function.
+      CommandType Type;       ///< Command type
+      CommandKeywordType Cmd; ///< Command keyword
+      AllocType Alloc;        ///< Allocator (Action/Analysis only)
+      CommandHelpType Help;   ///< Help text function.
+      CommandFxnType Fxn;     ///< Command function.
     };
     /// Pointer to command token.
     typedef const Token* TokenPtr;
