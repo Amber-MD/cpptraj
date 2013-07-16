@@ -1,6 +1,6 @@
 #include <cstdio> // for ReadInput
 #include <cstdlib> // system
-#include "CommandList.h"
+#include "Command.h"
 #include "CpptrajStdio.h"
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Distance.h"
@@ -90,9 +90,9 @@
 #include "Analysis_Overlap.h"
 #include "Analysis_AmdBias.h"
 #include "Analysis_RemLog.h"
-// ---- CommandList Functions --------------------------------------------------
+// ---- Command Functions ------------------------------------------------------
 /** Search Commands list for a specific type of command. */
-CommandList::TokenPtr CommandList::SearchTokenType(CommandType dtype, 
+Command::TokenPtr Command::SearchTokenType(CommandType dtype, 
                                                    ArgList const& argIn)
 {
   for (TokenPtr token = Commands; token->Type != NONE; ++token)
@@ -105,13 +105,13 @@ CommandList::TokenPtr CommandList::SearchTokenType(CommandType dtype,
 }
 
 /// Strings that correspond to CommandType
-const char* CommandList::CommandTitle[] = { 0, "Topology", "Trajectory", "Action",
+const char* Command::CommandTitle[] = { 0, "Topology", "Trajectory", "Action",
   "Analysis", "General", "Deprecated" };
 
 /** List all commands of the given type, or all commands if type
   * is NONE.
   */
-void CommandList::ListCommands(CommandType dtype) {
+void Command::ListCommands(CommandType dtype) {
   CommandType lastType = NONE;
   int col = 0;
   for (TokenPtr token = Commands; token->Type != DEPRECATED; ++token)
@@ -139,7 +139,7 @@ void CommandList::ListCommands(CommandType dtype) {
 /** Search the Commands list for given command.
   * \return the token if found, 0 if not.
   */
-CommandList::TokenPtr CommandList::SearchToken(ArgList& argIn) {
+Command::TokenPtr Command::SearchToken(ArgList& argIn) {
   // SPECIAL CASE: For backwards compat. remove analyze prefix
   if (argIn.CommandIs("analyze")) {
     argIn.RemoveFirstArg();
@@ -154,7 +154,7 @@ CommandList::TokenPtr CommandList::SearchToken(ArgList& argIn) {
 }
 
 /** Search for the given command and execute it. */
-CommandList::RetType CommandList::Dispatch(CpptrajState& State, std::string const& commandIn) {
+Command::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn) {
   ArgList cmdArg( commandIn );
   cmdArg.MarkArg(0); // Always mark the first arg as the command 
   TokenPtr cmdToken = SearchToken( cmdArg );
@@ -173,7 +173,7 @@ static inline bool EndChar(char ptr) {
   * end of a line indicates continuation (otherwise indicates 'literal').
   * \return 0 if successfully read, 1 on error.
   */
-CommandList::RetType CommandList::ProcessInput(CpptrajState& State, 
+Command::RetType Command::ProcessInput(CpptrajState& State, 
                                                std::string const& inputFilename)
 {
   FILE* infile; // TODO: CpptrajFile
@@ -211,7 +211,7 @@ CommandList::RetType CommandList::ProcessInput(CpptrajState& State,
       // Print the input line that will be sent to dispatch
       mprintf("  [%s]\n",inputLine.c_str());
       // Call Dispatch to convert input to arglist and process.
-      cmode = CommandList::Dispatch(State, inputLine);
+      cmode = Command::Dispatch(State, inputLine);
       if (cmode == C_ERR)
         nInputErrors++;
       else if (cmode == C_QUIT)
@@ -462,41 +462,41 @@ static void Help_RunAnalysis() {
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
 /// Set active reference for distance-based masks etc.
-CommandList::RetType ActiveRef(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (CommandList::RetType)State.FL()->SetActiveRef( argIn.getNextInteger(0) );
+  return (Command::RetType)State.FL()->SetActiveRef( argIn.getNextInteger(0) );
 }
 
 /// Clear data in specified lists
-CommandList::RetType ClearList(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ClearList(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (CommandList::RetType)State.ClearList( argIn );
+  return (Command::RetType)State.ClearList( argIn );
 }
 
 /// Set debug value for specified list(s)
-CommandList::RetType SetListDebug(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType SetListDebug(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (CommandList::RetType)State.SetListDebug( argIn );
+  return (Command::RetType)State.SetListDebug( argIn );
 }
 
 /// List all members of specified list(s)
-CommandList::RetType ListAll(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ListAll(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (CommandList::RetType)State.ListAll( argIn );
+  return (Command::RetType)State.ListAll( argIn );
 }
 
 /// Perform action on given COORDS dataset
-CommandList::RetType CrdAction(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
     mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindSetOfType( setname, DataSet::COORDS );
   if (CRD == 0) {
     mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   // Start, stop, offset
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
@@ -510,13 +510,13 @@ CommandList::RetType CrdAction(CpptrajState& State, ArgList& argIn, CommandList:
   if (State.Debug() > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   ArgList actionargs = argIn.RemainingArgs();
   actionargs.MarkArg(0);
-  CommandList::TokenPtr tkn = CommandList::SearchTokenType( CommandList::ACTION, actionargs);
-  if ( tkn == 0 ) return CommandList::C_ERR;
+  Command::TokenPtr tkn = Command::SearchTokenType( Command::ACTION, actionargs);
+  if ( tkn == 0 ) return Command::C_ERR;
   Action* act = (Action*)tkn->Alloc();
-  if (act == 0) return CommandList::C_ERR;
+  if (act == 0) return Command::C_ERR;
   if ( act->Init( actionargs, State.PFL(), State.FL(), State.DSL(), State.DFL(), State.Debug() ) != Action::OK ) {
     delete act;
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   actionargs.CheckForMoreArgs();
   // Set up frame and parm for COORDS.
@@ -527,7 +527,7 @@ CommandList::RetType CrdAction(CpptrajState& State, ArgList& argIn, CommandList:
   Topology* currentParm = originalParm;
   if ( act->Setup( currentParm, &currentParm ) == Action::ERR ) {
     delete act;
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   // Check if parm was modified. If so, update COORDS.
   if ( currentParm != originalParm ) {
@@ -557,21 +557,21 @@ CommandList::RetType CrdAction(CpptrajState& State, ArgList& argIn, CommandList:
   delete originalFrame;
   delete originalParm;
   delete act;
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Write out COORDS dataset
-CommandList::RetType CrdOut(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
     mprinterr("Error: crdout: Specify COORDS dataset name.\n");
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindSetOfType( setname, DataSet::COORDS );
   if (CRD == 0) {
     mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   setname = argIn.GetStringNext();
   // Start, stop, offset
@@ -588,7 +588,7 @@ CommandList::RetType CrdOut(CpptrajState& State, ArgList& argIn, CommandList::Al
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
   if (outtraj.InitTrajWrite( setname, &argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   outtraj.PrintInfo( 1 );
   Frame currentFrame( CRD->Top().Natom() );
@@ -602,24 +602,24 @@ CommandList::RetType CrdOut(CpptrajState& State, ArgList& argIn, CommandList::Al
       break;
     }
   }
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Load single trajectory as DataSet_Coords
-CommandList::RetType LoadCrd(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   // Get parm
   Topology* parm = State.PFL()->GetParm( argIn );
   if (parm == 0) {
     mprinterr("Error: loadcrd: No parm files loaded.\n");
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   // Load trajectory
   Trajin_Single trajin;
   trajin.SetDebug( State.Debug() );
   if (trajin.SetupTrajRead(argIn.GetStringNext(), &argIn, parm)) {
     mprinterr("Error: loadcrd: Could not set up input trajectory.\n");
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   // Create input frame
   Frame frameIn;
@@ -633,7 +633,7 @@ CommandList::RetType LoadCrd(CpptrajState& State, ArgList& argIn, CommandList::A
                                                                 setname, "__DCRD__");
   if (coords == 0) {
     mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   coords->SetTopology( *parm );
   // Read trajectory
@@ -643,7 +643,7 @@ CommandList::RetType LoadCrd(CpptrajState& State, ArgList& argIn, CommandList::A
   while (trajin.GetNextFrame( frameIn ))
     coords->AddFrame( frameIn );
   trajin.EndTraj();
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Add DataSets specified by arguments to given DataFile.
@@ -669,100 +669,100 @@ static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList&
 }
 
 /// Add a new DataFile to DFL with specified DataSets, to be written later.
-CommandList::RetType Create_DataFile(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType Create_DataFile(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   // Next string is datafile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
     mprinterr("Error: No filename given.\n");
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   DataFile* df = State.DFL()->AddDataFile(name1, argIn);
-  if (df == 0) return CommandList::C_ERR;
-  return (CommandList::RetType)( AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL())) );
+  if (df == 0) return Command::C_ERR;
+  return (Command::RetType)( AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL())) );
 }
 
 /// Write DataFile with specified DataSets immediately.
-CommandList::RetType Write_DataFile(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType Write_DataFile(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   // Next string is datafile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
     mprinterr("Error: No filename given.\n");
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   DataFile* df = new DataFile();
-  if (df == 0) return CommandList::C_ERR;
+  if (df == 0) return Command::C_ERR;
   if (df->SetupDatafile( name1, argIn, State.Debug() )) {
     delete df;
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   int err = AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL()));
   if (err == 0) df->WriteData();
   delete df;
-  return (CommandList::RetType)err;
+  return (Command::RetType)err;
 }
 
 /// Process DataFile-specific command
-CommandList::RetType DataFileCmd(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType DataFileCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (CommandList::RetType)( State.DFL()->ProcessDataFileArgs( argIn ) );
+  return (Command::RetType)( State.DFL()->ProcessDataFileArgs( argIn ) );
 }
 
 /// Read data from file into master DataSetList
-CommandList::RetType ReadData(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ReadData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   DataFile dataIn;
   if (dataIn.ReadData( argIn, *State.DSL() )!=0) {
     mprinterr("Error: Could not read data file.\n");
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Exit
-CommandList::RetType Quit(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType Quit(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return CommandList::C_QUIT;
+  return Command::C_QUIT;
 }
 
 /// Run a system command
-CommandList::RetType SystemCmd(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType SystemCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   system( argIn.ArgLine() );
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Find help for command/topic
-CommandList::RetType Help(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType Help(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   ArgList arg = argIn;
   arg.RemoveFirstArg();
   if (arg.empty())
     // NONE in this context means list all commands
-    CommandList::ListCommands(CommandList::NONE);
+    Command::ListCommands(Command::NONE);
   else if (arg.CommandIs("General"))
-    CommandList::ListCommands(CommandList::GENERAL);
+    Command::ListCommands(Command::GENERAL);
   else if (arg.CommandIs("Topology"))
-    CommandList::ListCommands(CommandList::PARM);
+    Command::ListCommands(Command::PARM);
   else if (arg.CommandIs("Action"))
-    CommandList::ListCommands(CommandList::ACTION);
+    Command::ListCommands(Command::ACTION);
   else if (arg.CommandIs("Analysis"))
-    CommandList::ListCommands(CommandList::ANALYSIS);
+    Command::ListCommands(Command::ANALYSIS);
   else if (arg.CommandIs("Trajectory"))
-    CommandList::ListCommands(CommandList::TRAJ);
+    Command::ListCommands(Command::TRAJ);
   else {
-    CommandList::TokenPtr dispatchToken = CommandList::SearchToken( arg );
+    Command::TokenPtr dispatchToken = Command::SearchToken( arg );
     if (dispatchToken == 0 || dispatchToken->Help == 0)
       mprinterr("No help found for %s\n", arg.Command());
     else
       dispatchToken->Help();
   }
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Run the current State
-CommandList::RetType RunState(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType RunState(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
   // this means 1 or more actions has requested that a default COORDS DataSet
@@ -774,55 +774,55 @@ CommandList::RetType RunState(CpptrajState& State, ArgList& argIn, CommandList::
     if (default_crd->Size() > 0)
       mprintf("Warning: Default COORDS DataSet has already been written to.\n");
     else {
-      if (CommandList::Dispatch( State, "createcrd _DEFAULTCRD_") == CommandList::C_ERR)
-        return CommandList::C_ERR;
+      if (Command::Dispatch( State, "createcrd _DEFAULTCRD_") == Command::C_ERR)
+        return Command::C_ERR;
     }
   }
-  return (CommandList::RetType)State.Run();
+  return (Command::RetType)State.Run();
 }
 
 /// Read input from a file.
-CommandList::RetType ReadInput(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ReadInput(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   // Next arg should be a filename. Not allowed to be blank in command.
   std::string inputFilename = argIn.GetStringNext();
   if (inputFilename.empty()) {
     mprinterr("Error: No input filename given.\n");
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
-  return CommandList::ProcessInput(State, inputFilename);
+  return Command::ProcessInput(State, inputFilename);
 }
 
 /// Tell CpptrajState to ignore errors if possible
-CommandList::RetType NoExitOnError(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType NoExitOnError(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   State.SetNoExitOnError();
   mprintf("\tAttempting to ignore errors if possible.\n");
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Tell CpptrajState not to use a progress bar during Run.
-CommandList::RetType NoProgress(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType NoProgress(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   State.SetNoProgress();
   mprintf("\tProgress bar will not be used during Run.\n");
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 ///  Set precision for specific set or all sets in specified DataFile
-CommandList::RetType Precision(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType Precision(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   // Next string is DataSet(s)/DataFile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
     mprinterr("Error: precision: No filename/setname given.\n");
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   // This will break if dataset name starts with a digit...
   int width = argIn.getNextInteger(12);
   if (width < 1) {
     mprintf("Error: precision: Cannot set width < 1 (%i).\n", width);
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   }
   int precision = argIn.getNextInteger(4);
   if (precision < 0) precision = 0;
@@ -838,32 +838,32 @@ CommandList::RetType Precision(CpptrajState& State, ArgList& argIn, CommandList:
     for (DataSetList::const_iterator set = dsets.begin(); set != dsets.end(); ++set)
       (*set)->SetPrecision(width, precision);
   }
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Run specified analysis or all analyses in State.
-CommandList::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   // If only 1 arg (the command) run all analyses in list
   if (argIn.Nargs() == 1) {
     State.RunAnalyses();
     State.MasterDataFileWrite();
-    return CommandList::C_OK;
+    return Command::C_OK;
   }
   // Run specified analysis
   // FIXME: Use RemoveFirstArg
   ArgList analyzeargs = argIn.RemainingArgs();
   analyzeargs.MarkArg(0);
-  CommandList::TokenPtr tkn = CommandList::SearchTokenType( CommandList::ANALYSIS, analyzeargs );
-  if ( tkn == 0 ) return CommandList::C_ERR;
+  Command::TokenPtr tkn = Command::SearchTokenType( Command::ANALYSIS, analyzeargs );
+  if ( tkn == 0 ) return Command::C_ERR;
   Analysis* ana = (Analysis*)tkn->Alloc();
-  if (ana == 0) return CommandList::C_ERR;
-  CommandList::RetType err = CommandList::C_ERR;
+  if (ana == 0) return Command::C_ERR;
+  Command::RetType err = Command::C_ERR;
   if ( ana->Setup( analyzeargs, State.DSL(), State.PFL(), State.DFL(), State.Debug() ) == 
                    Analysis::OK )
   {
     if (ana->Analyze() != Analysis::ERR) {
-      err = CommandList::C_OK;
+      err = Command::C_OK;
       State.MasterDataFileWrite();
     }
   }
@@ -872,116 +872,116 @@ CommandList::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, CommandLis
 }
 
 /// Show results of mask expression
-CommandList::RetType SelectAtoms(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType SelectAtoms(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   AtomMask tempMask( argIn.GetMaskNext() );
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
-  if (parm == 0) return CommandList::C_ERR;
+  if (parm == 0) return Command::C_ERR;
   parm->SetupIntegerMask( tempMask );
   mprintf("Selected %i atoms.\n", tempMask.Nselected());
   if (!argIn.hasKey("total"))
     tempMask.PrintMaskAtoms("Selected");
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Show results of DataSet expression
-CommandList::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   std::string dsarg = argIn.GetStringNext();
   DataSetList dsets = State.DSL()->GetMultipleSets( dsarg );
   mprintf("SelectDS: Arg [%s]:", dsarg.c_str());
   dsets.List();
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Write all DataFiles in State
-CommandList::RetType WriteAllData(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType WriteAllData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   State.MasterDataFileWrite();
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 // ---------- TRAJECTORY COMMANDS ----------------------------------------------
 /// Add output trajectory to State
-CommandList::RetType Trajout(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType Trajout(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (CommandList::RetType)State.AddTrajout( argIn );
+  return (Command::RetType)State.AddTrajout( argIn );
 }
 
 /// Add input trajectory to State
-CommandList::RetType Trajin(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType Trajin(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (CommandList::RetType)State.AddTrajin( argIn );
+  return (Command::RetType)State.AddTrajin( argIn );
 }
 
 /// Add reference trajectory to State
-CommandList::RetType Reference(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType Reference(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (CommandList::RetType)State.AddReference( argIn );
+  return (Command::RetType)State.AddReference( argIn );
 }
 
 // ---------- TOPOLOGY COMMANDS ------------------------------------------------
 /// Load topology to State
-CommandList::RetType LoadParm(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType LoadParm(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   std::string parmtag = argIn.getNextTag();
   bool bondsearch = !argIn.hasKey("nobondsearch");
   double offset = argIn.getKeyDouble("bondsearch", -1.0);
-  return (CommandList::RetType)
+  return (Command::RetType)
     State.PFL()->AddParmFile(argIn.GetStringNext(), parmtag, bondsearch, offset);
 }
 
 /// Print info for specified parm or atoms in specified parm.
-CommandList::RetType ParmInfo(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ParmInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
-  if (parm == 0) return CommandList::C_ERR;
+  if (parm == 0) return Command::C_ERR;
   std::string maskarg = argIn.GetMaskNext();
   if (!maskarg.empty())
     parm->PrintAtomInfo( maskarg );
   else
     parm->Summary();
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Print bond info for atoms in mask.
-CommandList::RetType BondInfo(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType BondInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
-  if (parm == 0) return CommandList::C_ERR;
+  if (parm == 0) return Command::C_ERR;
   parm->PrintBondInfo( argIn.GetMaskNext() );
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Print residue info for atoms in mask.
-CommandList::RetType ResInfo(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ResInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
-  if (parm == 0) return CommandList::C_ERR;
+  if (parm == 0) return Command::C_ERR;
   parm->PrintResidueInfo( argIn.GetMaskNext() );
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Print molecule info for atoms in mask.
-CommandList::RetType MolInfo(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType MolInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
-  if (parm == 0) return CommandList::C_ERR;
+  if (parm == 0) return Command::C_ERR;
   parm->PrintMoleculeInfo( argIn.GetMaskNext() );
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Print the total charge of atoms in mask
-CommandList::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
-  if (parm == 0) return CommandList::C_ERR;
+  if (parm == 0) return Command::C_ERR;
   parm->PrintChargeInfo( argIn.GetMaskNext() );
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Modify specified parm box info
-CommandList::RetType ParmBox(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ParmBox(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Box pbox;
   bool nobox = false;
@@ -996,21 +996,21 @@ CommandList::RetType ParmBox(CpptrajState& State, ArgList& argIn, CommandList::A
     pbox.SetGamma( argIn.getKeyDouble("gamma",0) );
   }
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
-  if (parm == 0) return CommandList::C_ERR;
+  if (parm == 0) return Command::C_ERR;
   if (nobox)
     mprintf("\tRemoving box information from parm %i:%s\n", parm->Pindex(), parm->c_str());
   else
     // Fill in missing parm box information from specified parm
     pbox.SetMissingInfo( parm->ParmBox() );
   parm->SetBox( pbox );
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Strip atoms from specified parm
-CommandList::RetType ParmStrip(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
-  if (parm == 0) return CommandList::C_ERR;
+  if (parm == 0) return Command::C_ERR;
   AtomMask tempMask( argIn.GetMaskNext() );
   // Since want to keep atoms outside mask, invert selection
   tempMask.InvertMask();
@@ -1020,7 +1020,7 @@ CommandList::RetType ParmStrip(CpptrajState& State, ArgList& argIn, CommandList:
   Topology* tempParm = parm->modifyStateByMask(tempMask);
   if (tempParm==0) {
     mprinterr("Error: %s: Could not strip parm.\n", argIn.Command());
-    return CommandList::C_ERR;
+    return Command::C_ERR;
   } else {
     // Replace parm with stripped version
     // TODO: Implement proper assignment op for Topology
@@ -1028,71 +1028,71 @@ CommandList::RetType ParmStrip(CpptrajState& State, ArgList& argIn, CommandList:
     mprintf("\n");
     State.PFL()->ReplaceParm(parm->Pindex(), tempParm);
   }
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Write parm to Amber Topology file.
-CommandList::RetType ParmWrite(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  if (State.PFL()->WriteParm( argIn )) return CommandList::C_ERR;
-  return CommandList::C_OK;
+  if (State.PFL()->WriteParm( argIn )) return Command::C_ERR;
+  return Command::C_OK;
 }
 
 /// Modify parm solvent information
-CommandList::RetType ParmSolvent(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ParmSolvent(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   std::string maskexpr;
   if (!argIn.hasKey("none")) {
     maskexpr = argIn.GetMaskNext();
     if ( maskexpr.empty() ) {
       mprinterr("Error: solvent: No mask specified.\n");
-      return CommandList::C_ERR;
+      return Command::C_ERR;
     }
   }
   // Get parm index
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
-  if (parm == 0) return CommandList::C_ERR;
+  if (parm == 0) return Command::C_ERR;
   parm->SetSolvent( maskexpr );
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 /// Scale dihedral force constants in specfied parm by factor.
-CommandList::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParm( argIn );
-  if (parm == 0) return CommandList::C_ERR;
+  if (parm == 0) return Command::C_ERR;
   double scale_factor = argIn.getNextDouble(1.0);
   mprintf("\tScaling dihedral force constants in %s by %f\n", parm->c_str(), scale_factor);
   parm->ScaleDihedralK( scale_factor );
-  return CommandList::C_OK;
+  return Command::C_OK;
 }
 
 // ---------- DISPATCHABLE COMMANDS --------------------------------------------
 /// Add an action to the State ActionList
-CommandList::RetType AddAction(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType AddAction(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return ( (CommandList::RetType)State.AddAction( Alloc, argIn ) );
+  return ( (Command::RetType)State.AddAction( Alloc, argIn ) );
 }
 
 /// Add an action to the State AnalysisList
-CommandList::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return ( (CommandList::RetType)State.AddAnalysis( Alloc, argIn ) );
+  return ( (Command::RetType)State.AddAnalysis( Alloc, argIn ) );
 }
 
 // -----------------------------------------------------------------------------
 /// Warn about deprecated commands.
-CommandList::RetType Deprecated(CpptrajState& State, ArgList& argIn, CommandList::AllocType Alloc)
+Command::RetType Deprecated(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   mprintf("Warning: %s is deprecated.\n", argIn.Command());
-  return CommandList::C_ERR;
+  return Command::C_ERR;
 }
 
 // ================ LIST OF ALL COMMANDS =======================================
 /** Ideally keep this array first sorted by type (1st field), then 
   * alphabetically by command string (2nd field).
   */
-const CommandList::Token CommandList::Commands[] = {
+const Command::Token Command::Commands[] = {
   // GENERAL COMMANDS
   { GENERAL, "activeref",     0, Help_ActiveRef,       ActiveRef       },
   { GENERAL, "clear",         0, Help_Clear,           ClearList       },

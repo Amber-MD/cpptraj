@@ -2,7 +2,7 @@
 #include <unistd.h> // isatty
 #include "Cpptraj.h"
 #include "CpptrajStdio.h"
-#include "CommandList.h"
+#include "Command.h"
 #include "ReadLine.h"
 #include "Version.h"
 
@@ -29,7 +29,7 @@ void Cpptraj::Intro() {
           "    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
-  mprintf("Running on %i threads\n",worldsize);
+  mprintf("Running on %i threads\n",CpptrajState::WorldSize());
 # endif
 }
 
@@ -161,9 +161,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
                                                   inputFilename != inputFiles.end();
                                                   ++inputFilename)
     {
-      CommandList::RetType c_err = CommandList::ProcessInput( State_, *inputFilename );
-      if (c_err == CommandList::C_ERR) return ERROR;
-      if (c_err == CommandList::C_QUIT) return QUIT;
+      Command::RetType c_err = Command::ProcessInput( State_, *inputFilename );
+      if (c_err == Command::C_ERR) return ERROR;
+      if (c_err == Command::C_QUIT) return QUIT;
     }
   }
   // Determine whether to enter interactive mode
@@ -173,9 +173,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return INTERACTIVE;
     else {
       // "" means read from STDIN
-      CommandList::RetType c_err = CommandList::ProcessInput( State_, "" ); 
-      if (c_err == CommandList::C_ERR) return ERROR;
-      if (c_err == CommandList::C_QUIT) return QUIT;
+      Command::RetType c_err = Command::ProcessInput( State_, "" ); 
+      if (c_err == Command::C_ERR) return ERROR;
+      if (c_err == Command::C_QUIT) return QUIT;
     }
   }
   return BATCH;
@@ -192,8 +192,8 @@ int Cpptraj::Interactive() {
     logfile_.OpenWrite(logfilename_);
   else
     logfile_.OpenAppend("cpptraj.log");
-  CommandList::RetType readLoop = CommandList::C_OK;
-  while ( readLoop != CommandList::C_QUIT ) {
+  Command::RetType readLoop = Command::C_OK;
+  while ( readLoop != Command::C_QUIT ) {
     if (inputLine.GetInput()) {
       // EOF (Ctrl-D) specified. If there are actions/analyses queued, ask 
       // user if they really want to quit.
@@ -205,12 +205,12 @@ int Cpptraj::Interactive() {
         break;
     }
     if (!inputLine.empty()) {
-      readLoop = CommandList::Dispatch( State_, *inputLine );
+      readLoop = Command::Dispatch( State_, *inputLine );
       if (logfile_.IsOpen())
         logfile_.Printf("%s\n", inputLine.c_str());
     }
   }
   logfile_.CloseFile();
-  if (readLoop == CommandList::C_ERR) return 1;
+  if (readLoop == Command::C_ERR) return 1;
   return 0;
 }

@@ -7,6 +7,8 @@
 # include "Timer.h"
 #endif
 
+int CpptrajState::WorldSize() { return worldsize; }
+
 /** Select lists from ArgList */
 std::vector<bool> CpptrajState::ListsFromArg( ArgList& argIn, bool allowEnableAll ) {
   std::vector<bool> enabled( (int)N_LISTS );

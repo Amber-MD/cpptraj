@@ -1,13 +1,13 @@
-#ifndef INC_COMMANDLIST_H
-#define INC_COMMANDLIST_H
+#ifndef INC_COMMAND_H
+#define INC_COMMAND_H
 #include "CpptrajState.h"
 #include "ArgList.h"
 #include "DispatchObject.h"
-class CommandList {
+class Command {
   public:
     /// Possible command return types.
     enum RetType { C_OK = 0, C_ERR, C_QUIT };
-    // TODO: Make below private, make commands part of CommandList class?
+    // TODO: Make below private, make commands part of Command class?
     /// Command categories.
     enum CommandType { NONE=0, PARM, TRAJ, ACTION, ANALYSIS, GENERAL, DEPRECATED };
     /// Shorthand for DispatchAllocatorType
