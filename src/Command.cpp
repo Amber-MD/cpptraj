@@ -1071,7 +1071,7 @@ Command::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
 Command::RetType Deprecated(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   mprintf("Warning: %s is deprecated.\n", argIn.Command());
-  return Command::C_ERR;
+  return Command::C_OK;
 }
 
 // ================ LIST OF ALL COMMANDS =======================================
