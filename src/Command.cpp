@@ -369,8 +369,10 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "box", Action_Box::Alloc, Action_Box::Help, 0 },
   { DispatchObject::ACTION, "center", Action_Center::Alloc, Action_Center::Help, 0 },
   { DispatchObject::ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
+  { DispatchObject::ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
   { DispatchObject::ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
   { DispatchObject::ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, 0 },
+  { DispatchObject::ACTION, "closestwaters", Action_Closest::Alloc, Action_Closest::Help, 0 },
   { DispatchObject::ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, 0 },
   { DispatchObject::ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, 0 },
   { DispatchObject::ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, 0 },
@@ -459,10 +461,12 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, 0 },
   { DispatchObject::ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, 0 },
   // DEPRECATED COMMANDS
-  { DispatchObject::DEPRECATED, "molsearch",    0, 0, 0 },
-  { DispatchObject::DEPRECATED, "nomolsearch",  0, 0, 0 },
+  { DispatchObject::DEPRECATED, "acceptor",     0, 0, 0 },
   { DispatchObject::DEPRECATED, "bondsearch",   0, 0, 0 },
+  { DispatchObject::DEPRECATED, "donor",        0, 0, 0 },
+  { DispatchObject::DEPRECATED, "molsearch",    0, 0, 0 },
   { DispatchObject::DEPRECATED, "nobondsearch", 0, 0, 0 },
+  { DispatchObject::DEPRECATED, "nomolsearch",  0, 0, 0 },
   { DispatchObject::NONE      , 0,              0, 0, 0 }
 };
 
