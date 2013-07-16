@@ -145,13 +145,17 @@ Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAd
   // Set up fixed region
   if (!fixed_.empty()) 
     fixedList_ = SetupAtomRanges( currentParm, fixed_ );
-  else 
+  else { 
     fixedauto = true;
+    fixedList_.clear();
+  }
   // Set up mobile region
   if (!mobile_.empty())
     mobileList_ = SetupAtomRanges( currentParm, mobile_ );
-  else
+  else {
     mobileauto = true;
+    mobileList_.clear();
+  }
   // Automatic search through molecules for fixed/mobile
   if (fixedauto || mobileauto) {
     int molnum = 0;
