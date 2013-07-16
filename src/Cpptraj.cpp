@@ -162,7 +162,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
                                                   ++inputFilename)
     {
       Command::RetType c_err = Command::ProcessInput( State_, *inputFilename );
-      if (c_err == Command::C_ERR) return ERROR;
+      if (c_err == Command::C_ERR && State_.ExitOnError()) return ERROR;
       if (c_err == Command::C_QUIT) return QUIT;
     }
   }
@@ -174,7 +174,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     else {
       // "" means read from STDIN
       Command::RetType c_err = Command::ProcessInput( State_, "" ); 
-      if (c_err == Command::C_ERR) return ERROR;
+      if (c_err == Command::C_ERR && State_.ExitOnError()) return ERROR;
       if (c_err == Command::C_QUIT) return QUIT;
     }
   }
