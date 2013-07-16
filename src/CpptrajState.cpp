@@ -3,6 +3,7 @@
 #include "FrameArray.h" // for ensemble
 #include "Trajin_Multi.h" // for ensemble
 #include "MpiRoutines.h" // worldrank
+#include "Action_CreateCrd.h" // in case default COORDS need to be created
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -93,8 +94,25 @@ int CpptrajState::Run() {
   Timer total_time;
   total_time.Start();
 # endif
-  int err = 0;
   ++nrun_;
+  // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
+  // this means 1 or more actions has requested that a default COORDS DataSet
+  // be created.
+  DataSet* default_crd = DSL_.FindSetOfType("_DEFAULTCRD_", DataSet::COORDS);
+  if (default_crd != 0) {
+    mprintf("Warning: One or more analyses requested creation of default COORDS DataSet.\n");
+    // If the DataSet has already been written to do not create again.
+    if (default_crd->Size() > 0)
+      mprintf("Warning: Default COORDS DataSet has already been written to.\n");
+    else {
+      ArgList crdcmd("createcrd _DEFAULTCRD_");
+      crdcmd.MarkArg(0);
+      if (AddAction( Action_CreateCrd::Alloc, crdcmd ))
+        return 1;
+    }
+  }
+
+  int err = 0;
   switch ( trajinList_.Mode() ) {
     case TrajinList::NORMAL   :
       err = RunNormal();

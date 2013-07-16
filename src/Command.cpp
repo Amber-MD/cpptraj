@@ -764,20 +764,6 @@ Command::RetType Help(CpptrajState& State, ArgList& argIn, Command::AllocType Al
 /// Run the current State
 Command::RetType RunState(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
-  // this means 1 or more actions has requested that a default COORDS DataSet
-  // be created.
-  DataSet* default_crd = State.DSL()->FindSetOfType("_DEFAULTCRD_", DataSet::COORDS);
-  if (default_crd != 0) {
-    mprintf("Warning: One or more analyses requested creation of default COORDS DataSet.\n");
-    // If the DataSet has already been written to do not create again.
-    if (default_crd->Size() > 0)
-      mprintf("Warning: Default COORDS DataSet has already been written to.\n");
-    else {
-      if (Command::Dispatch( State, "createcrd _DEFAULTCRD_") == Command::C_ERR)
-        return Command::C_ERR;
-    }
-  }
   return (Command::RetType)State.Run();
 }
 
