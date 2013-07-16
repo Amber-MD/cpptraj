@@ -190,15 +190,16 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
     if (notunique_r != notunique_t) 
       mprintf("Warning: Ref and Tgt do not have the same # of nonmapped atoms.\n");
     if (debug_>0) { 
-      mprintf("  Potential Chiral center %i_%c/%i_%c: Mapped atoms=%i, non-Mapped=%i/%i\n",
-              ratom+1, Ref[ratom].CharName(), tatom+1, Tgt[tatom].CharName(),
+      mprintf("  Potential Chiral center Ref=%i:%s Tgt=%i:%s  Mapped atoms=%i, non-Mapped=%i/%i\n",
+              ratom+1, Ref[ratom].c_str(), tatom+1, Tgt[tatom].c_str(),
               nunique, notunique_r, notunique_t);
       for (int i=0; i<nunique; i++)
-        mprintf("\t   Mapped\t%4i %4i\n", uR[i], uT[i]);
+        mprintf("\t   Mapped\t%4i:%s %4i:%s\n", 
+                uR[i]+1, Ref[uR[i]].c_str(), uT[i]+1, Tgt[uT[i]].c_str());
       for (int i=0; i<notunique_r; i++)
-        mprintf("\tNotMappedRef\t%4i\n", nR[i]);
+        mprintf("\tNotMappedRef\t%4i:%s\n", nR[i]+1, Ref[nR[i]].c_str());
       for (int i=0; i<notunique_t; i++)
-        mprintf("\tNotMappedTgt\t     %4i\n", nT[i]);
+        mprintf("\tNotMappedTgt\t         %4i:%4s\n", nT[i]+1, Tgt[nT[i]].c_str());
     }
     // If all atoms are unique no need to map
     // NOTE: Should be handled by complete check above.
@@ -216,7 +217,7 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
                        RefFrame_->XYZ(uR[2]),
                        RefFrame_->XYZ(nR[i]) );
       if (debug_>1) mprintf("    Ref Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
-                           uR[0],uR[1],uR[2],nR[i],dR[i]);
+                           uR[0]+1, uR[1]+1, uR[2]+1, nR[i]+1, dR[i]+1);
     }
     // Calculate target improper dihedrals
     for (int i=0; i<notunique_t; i++) {
@@ -225,7 +226,7 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
                        TgtFrame_->XYZ(uT[2]),
                        TgtFrame_->XYZ(nT[i]) );
       if (debug_>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
-                           uR[0], uR[1], uR[2], nT[i], dT[i]);
+                           uR[0]+1, uR[1]+1, uR[2]+1, nT[i]+1, dT[i]+1);
     }
     // Match impropers to each other using a cutoff. Note that all torsions
     // are in radians.
@@ -238,10 +239,26 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
         if (delta<0.17453292519943295769236907684886) {
           if (debug_>0)
             mprintf("    Mapping tgt atom %i:%s to ref atom %i:%s based on chirality.\n",
-                    nT[j]+1, Tgt[nT[j]].c_str(), nR[i], Ref[nR[i]].c_str() );
+                    nT[j]+1, Tgt[nT[j]].c_str(), nR[i]+1, Ref[nR[i]].c_str() );
           AMap_[ nR[i] ] = nT[j];
           ++numMappedAtoms;
           // Once an atom has been mapped set its mapped flag
+          Ref[nR[i]].SetMapped();
+          Tgt[nT[j]].SetMapped();
+        } else if (notunique_r == 1 && notunique_t == 1) {
+          // This is the only non-mapped atom of the chiral center but for
+          // some reason the improper dihedral doesnt match. Map it but warn
+          // the user.
+          mprintf("Warning: Ref %i:%s and Tgt %i:%s are the only unmapped atoms of chiral\n"
+                  "Warning: centers %i:%s | %i:%s, but the improper dihedral angles do not\n"
+                  "Warning: match (%.4f rad != %.4f rad). This can indicate structural problems\n"
+                  "Warning: in either the target or reference. Mapping atoms, but it is\n"
+                  "Warning: recommended the structures be visually inspected for problems.\n",
+                  nR[i]+1, Ref[nR[i]].c_str(), nT[j]+1, Tgt[nT[j]].c_str(),
+                  ratom+1, Ref[ratom].c_str(), tatom+1, Tgt[tatom].c_str(),
+                  dR[i], dT[j]);
+          AMap_[ nR[i] ] = nT[j];
+          ++numMappedAtoms;
           Ref[nR[i]].SetMapped();
           Tgt[nT[j]].SetMapped();
         }
@@ -394,8 +411,10 @@ int Action_AtomMap::mapByIndex(AtomMap& Ref, AtomMap& Tgt) {
     // to map the unmapped reference atoms bonded to <atom> to the unmapped
     // target atoms bonded to <tatom>. 
     if (debug_>1)
-      mprintf("DBG: Checking bonds of mapped Ref %i:%s against mapped Tgt %i:%s\n",
-              ratom+1,Ref[ratom].c_str(),tatom,Tgt[tatom].c_str());
+      mprintf("DBG: Checking bonds of mapped Ref %i:%s (isChiral=%i)"
+              " against mapped Tgt %i:%s (isChiral=%i)\n",
+              ratom+1, Ref[ratom].c_str(), (int)Ref[ratom].IsChiral(),
+              tatom+1, Tgt[tatom].c_str(), (int)Tgt[tatom].IsChiral());
     for (Atom::bond_iterator r = Ref[ratom].bondbegin(); r != Ref[ratom].bondend(); r++)
     {
       if (debug_>1) 
@@ -909,8 +928,7 @@ Action::RetType Action_AtomMap::DoAction(int frameNum, Frame* currentFrame, Fram
   }
 
   // Modify the current frame
-  // TODO: Fix this since its probably busted for unmapped atoms; also
-  //       it doesnt copy velocity/masses
+  // TODO: Fix this since its probably busted for unmapped atoms
   newFrame_->SetCoordinatesByMap(*currentFrame, AMap_);
   *frameAddress = newFrame_;
   return Action::OK;

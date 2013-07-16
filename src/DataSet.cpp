@@ -18,7 +18,7 @@ DataSet::DataSet() :
 const char* DataSet::SetStrings[] = {
   "unknown",   "double", "string",    "integer", "float", "vector",
   "matrix",    "modes",  "histogram", "upper-triangle matrix",
-  "2D matrix", "coords"
+  "2D matrix", "coords", "remlog"
 };
 
 /// CONSTRUCTOR - Take type, width, precision, and dimension
@@ -91,6 +91,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
     case INT   : SetIntegerFormatString(format_, width_, leftAlign); break;
     case STRING: SetStringFormatString(format_, width_, leftAlign); break;
     case MODES :
+    case REMLOG:
     case MATRIX:
     case VECTOR: SetDoubleFormatString(format_, width_, precision_, 0, false); break;
     default:

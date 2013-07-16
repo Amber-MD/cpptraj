@@ -111,17 +111,15 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     mprintf(", mask [%s]", maskexpr_.c_str());
   else
     mprintf(", all atoms");
-  switch (mode_) {
-    case REFTRAJ:
+  if (mode_ == REFTRAJ) {
       mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_.TrajFilename().base(),
               RefMask_.MaskString(), RefTraj_.TotalReadFrames());
-      break;
-    case DME: mprintf(", using DME"); break;
-    case NORMAL: // RMSD
-      if (nofit_)
-        mprintf(" (no fitting)");
-      if (useMass_)
-        mprintf(" (mass-weighted)");
+  }
+  if (mode_ == DME) 
+    mprintf(", using DME");
+  else {
+    if (nofit_  ) mprintf(" (no fitting)");
+    if (useMass_) mprintf(" (mass-weighted)");
   }
   if (rmsdFile != 0) 
     mprintf(", output to %s",rmsdFile->DataFilename().base());
@@ -314,7 +312,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
   mprintf("  RMS2D: Calculating RMSDs between each input frame and each reference\n"); 
   mprintf("         trajectory %s frame (%i total).\n  ",
           RefTraj_.TrajFilename().base(), max);
-  rmsdata->Setup( totalref, totaltgt );
+  rmsdata->Setup( totaltgt, totalref );
   if (RefTraj_.BeginTraj(true)) {
     mprinterr("Error: Rms2d: Could not open reference trajectory.\n");
     return 1;
@@ -339,7 +337,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
         // Perform fit RMS calculation
         R = SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_);
       }
-      rmsdata->AddElement( R );
+      rmsdata->SetElement( nframe, nref, R );
       // DEBUG
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
     } // END loop over target frames

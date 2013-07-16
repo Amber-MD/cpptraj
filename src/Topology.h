@@ -133,6 +133,7 @@ class Topology {
     bool SetupIntegerMask(AtomMask &, Frame const&) const;
     bool SetupCharMask(AtomMask &, Frame const&) const;
     // ----- Topology modification routines -----
+    void ScaleDihedralK(double);
     Topology* partialModifyStateByMask(AtomMask const& m) const {
       return modifyStateByMask(m, false);
     }
@@ -193,7 +194,7 @@ class Topology {
     int nframes_;
     int ntypes_; // This is stored for the purpose of checking array sizes
 
-    void PrintBonds(std::vector<int>&, AtomMask const&);
+    void PrintBonds(std::vector<int> const&, AtomMask const&);
     void SetAtomBondInfo();
     static void WarnBondLengthDefault(Atom::AtomicElementType,
                                       Atom::AtomicElementType,double);

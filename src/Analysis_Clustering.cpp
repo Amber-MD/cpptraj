@@ -8,6 +8,9 @@
 // Clustering Algorithms
 #include "Cluster_HierAgglo.h"
 #include "Cluster_DBSCAN.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 // CONSTRUCTOR
 Analysis_Clustering::Analysis_Clustering() :
@@ -228,6 +231,10 @@ inline void WriteTiming(const char* label, clock_t t0, clock_t tf) {
 // TODO: Need to update save to indicate distance type
 // NOTE: Should distances be saved only if load_pair?
 Analysis::RetType Analysis_Clustering::Analyze() {
+# ifdef TIMER
+  Timer cluster_pairwise;
+  Timer cluster_post;
+# endif
   mprintf("\tStarting clustering.\n");
   clock_t cluster_setup_start = clock();
   // Default: USE_FRAMES  - Calculate pair distances from frames.
@@ -267,9 +274,15 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   clock_t cluster_setup_stop = clock();
   // Calculate distances between frames
   clock_t cluster_pairwise_start = clock();
+# ifdef TIMER
+  cluster_pairwise.Start();
+# endif
   if (CList_->CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
                                   usedme_, nofitrms_, useMass_, maskexpr_, sieve_ ))
     return Analysis::ERR;
+# ifdef TIMER
+  cluster_pairwise.Stop();
+# endif
   clock_t cluster_pairwise_stop = clock();
   // Cluster
   clock_t cluster_cluster_start = clock();
@@ -278,6 +291,9 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   // Sort clusters and renumber; also finds centroids for printing
   // representative frames. If sieving, add remaining frames.
   clock_t cluster_finish_start = clock();
+# ifdef TIMER
+  cluster_post.Start();
+# endif
   CList_->Renumber( (sieve_ > 1) );
 
   // DEBUG
@@ -286,9 +302,9 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     CList_->PrintClusters();
   }
 
-  // Print ptraj-like cluster info
-  if (!clusterinfo_.empty())
-    CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+  // Print ptraj-like cluster info. If no filename is written some info will
+  // still be written to STDOUT.
+  CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
 
   // Print a summary of clusters
   if (!summaryfile_.empty())
@@ -318,6 +334,9 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     if (!reptrajfile_.empty())
       WriteRepTraj( *CList_ );
   }
+# ifdef TIMER
+  cluster_post.Stop();
+# endif
   clock_t cluster_finish_stop = clock();
   // Timing data
   WriteTiming("Cluster Init.", cluster_setup_start, cluster_setup_stop);
@@ -325,6 +344,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   WriteTiming("Clustering", cluster_cluster_start, cluster_cluster_stop);
   WriteTiming("Cluster Post.", cluster_finish_start, cluster_finish_stop);
   WriteTiming("Total", cluster_setup_start, cluster_finish_stop);
+# ifdef TIMER
+  mprintf("\t%15s: %12.4f\n", "ACTUAL PAIRWISE", cluster_pairwise.Total());
+  mprintf("\t%15s: %12.4f\n", "ACTUAL POST", cluster_post.Total());
+# endif
   return Analysis::OK;
 }
 

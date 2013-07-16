@@ -46,8 +46,7 @@ void ClusterList::Renumber(bool addSievedFrames) {
         if (node == node2) continue;
         //mprintf("DBG:\t\t%i to %i %f\n",(*node).num, (*node2).num, 
         //        ClusterDistances.GetElement( (*node).num, (*node2).num ));
-        avgclusterdist += ClusterDistances_.GetElement( (*node).Num(), 
-                                                       (*node2).Num() );
+        avgclusterdist += ClusterDistances_.GetCdist( (*node).Num(), (*node2).Num() );
       }
       avgclusterdist /= numdist;
       //mprintf("DBG:\tCluster %i avg dist = %f\n",(*node).num,avgclusterdist);
@@ -72,7 +71,7 @@ void ClusterList::Renumber(bool addSievedFrames) {
     if (centroid_error)
       mprinterr("Error: 1 or more centroids not determined. Cannot add sieved frames.\n");
     else {
-      mprintf("\tRestoring non-sieved frames.\n");
+      mprintf("\tRestoring sieved frames.\n");
       AddSievedFrames();
     }
   }
@@ -121,7 +120,7 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
           ++frm2;
           for (; frm2 != frame2_end; ++frm2) {
             if (!FrameDistances_.IgnoringRow(*frm2)) {
-              double dist = FrameDistances_.GetElement(*frm1, *frm2);
+              double dist = FrameDistances_.GetFdist(*frm1, *frm2);
               internalAvg += dist;
               internalSD += (dist * dist);
               ++Nelements;
@@ -224,21 +223,26 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   outfile.Printf("#Clustering: %u clusters %i frames\n",
                  clusters_.size(), maxframesIn);
   ComputeDBI( outfile );
-  for (cluster_it C1_it = clusters_.begin(); 
-                  C1_it != clusters_.end(); C1_it++)
-  {
-    buffer.clear();
-    buffer.resize(maxframesIn, '.');
-    for (ClusterNode::frame_iterator frame1 = (*C1_it).beginframe();
-                                     frame1 != (*C1_it).endframe();
-                                     frame1++)
+  // Call internal info routine.
+  ClusterResults( outfile );
+  // Do not print trajectory stuff if no filename given (i.e. STDOUT output)
+  if (!filename.empty()) {
+    for (cluster_it C1_it = clusters_.begin(); 
+                    C1_it != clusters_.end(); C1_it++)
     {
-      buffer[ *frame1 ] = 'X';
+      buffer.clear();
+      buffer.resize(maxframesIn, '.');
+      for (ClusterNode::frame_iterator frame1 = (*C1_it).beginframe();
+                                       frame1 != (*C1_it).endframe();
+                                       frame1++)
+      {
+        buffer[ *frame1 ] = 'X';
+      }
+      buffer += '\n';
+      outfile.Write((void*)buffer.c_str(), buffer.size());
     }
-    buffer += '\n';
-    outfile.Write((void*)buffer.c_str(), buffer.size());
   }
-  // Print representative frames
+  // Print representative frame numbers
   outfile.Printf("#Representative frames:");
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++)
     outfile.Printf(" %i",(*C).CentroidFrame()+1);
@@ -266,7 +270,7 @@ void ClusterList::PrintClusters() {
 /** Add a cluster made up of frames specified by the given list of frames to 
   * the cluster list. Cluster # is current cluster list size.
   */
-int ClusterList::AddCluster( std::list<int> const& framelistIn ) {
+int ClusterList::AddCluster( ClusterDist::Cframes const& framelistIn ) {
   clusters_.push_back( ClusterNode( Cdist_, framelistIn, clusters_.size() ) );
   return 0;
 }
@@ -321,7 +325,12 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   // be set up to ignore sieved frames.
   if (mode == USE_FRAMES) {
     mprintf("\tCalculating pair-wise distances.\n");
-    FrameDistances_ = Cdist_->PairwiseDist(sieve);
+    // Set up ClusterMatrix with sieve. TODO: Set iseed with a var instead of 1
+    if (FrameDistances_.SetupWithSieve( dsIn->Size(), sieve, 1 )) {
+      mprinterr("Error: Could not setup matrix for pair-wise distances.\n");
+      return 1; 
+    }
+    Cdist_->PairwiseDist(FrameDistances_, FrameDistances_.Sieved() );
   }
   // Save distances if filename specified and not previously loaded.
   if (mode == USE_FRAMES && !filename.empty()) {

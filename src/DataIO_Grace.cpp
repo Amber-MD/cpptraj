@@ -10,7 +10,9 @@ DataIO_Grace::DataIO_Grace() :
 {}
 
 // Dont assume anything about set ordering
-int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
+int DataIO_Grace::ReadData(std::string const& fname, ArgList& argIn,
+                           DataSetList& datasetlist, std::string const& dsname)
+{
   ArgList dataline;
   int setnum = 0;
   int frame = 0;
@@ -22,8 +24,7 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
   
   // Allocate and set up read buffer
   BufferedLine buffer;
-  if (buffer.OpenRead( fname )) return 1;
-  buffer.SetupBuffer();
+  if (buffer.OpenFileRead( fname )) return 1;
 
   // Read chunks from file
   while ( (linebuffer = buffer.Line()) != 0 ) {
@@ -37,7 +38,7 @@ int DataIO_Grace::ReadData(std::string const& fname, DataSetList& datasetlist) {
           labels.push_back( lbl );
       } else if (dataline.CommandIs("target")) {
         // Indicates dataset will be read soon. Allocate new set.
-        dset = datasetlist.AddSetIdx( DataSet::DOUBLE, buffer.Filename().Base(), setnum++);
+        dset = datasetlist.AddSetIdx( DataSet::DOUBLE, dsname, setnum++);
         if (dset == 0) {
           mprinterr("Error: %s: Could not allocate data set.\n", buffer.Filename().full());
           return 1;

@@ -10,6 +10,8 @@ Traj_PDBfile::Traj_PDBfile() :
   pdbWriteMode_(NONE),
   dumpq_(false),
   dumpr_(false),
+  pdbres_(false),
+  pdbatom_(false),
   pdbTop_(0),
   chainchar_(' ')
 {}
@@ -132,6 +134,12 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
    dumpq_ = true; 
    dumpr_ = true;
   }
+  pdbres_ = argIn.hasKey("pdbres");
+  pdbatom_ = argIn.hasKey("pdbatom");
+  if (argIn.hasKey("pdbv3")) {
+    pdbres_ = true;
+    pdbatom_ = true;
+  }
   if (argIn.hasKey("teradvance")) ter_num_ = 1;
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
@@ -162,6 +170,46 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
   // TODO: Set different chain ID for solute mols and solvent
   chainID_.clear();
   chainID_.resize(pdbAtom_, chainchar_);
+  // Save residue names. If pdbres specified convert to PDBV3 residue names.
+  resNames_.clear();
+  resNames_.reserve( trajParm->Nres() );
+  if (pdbres_) {
+    for (Topology::res_iterator res = trajParm->ResStart();
+                                res != trajParm->ResEnd(); ++res) {
+      NameType rname = (*res).Name();
+      // convert protein residue names back to more like PDBV3 format:
+      if (rname == "HID " || rname == "HIE " ||
+          rname == "HIP " || rname == "HIC "   )
+        rname = "HIS ";
+      else if (rname == "CYX " || rname == "CYM ")
+        rname = "CYS ";
+      else if (rname == "MEM ") 
+        rname = "MET ";
+      else if (rname == "ASH ")
+        rname = "ASP ";
+      else if (rname == "GLH ")
+        rname = "GLU ";
+      // also for nucleic acid names:
+      else if ( rname[2] == ' ' && rname[3] == ' ' ) {
+        // RNA names
+        if      ( rname[0] == 'G' ) rname="  G ";
+        else if ( rname[0] == 'C' ) rname="  C ";
+        else if ( rname[0] == 'A' ) rname="  A ";
+        else if ( rname[0] == 'U' ) rname="  U ";
+      } else if ( rname[0] == 'D' ) {
+        // DNA names
+        if      ( rname[1] == 'G' ) rname=" DG ";
+        else if ( rname[1] == 'C' ) rname=" DC ";
+        else if ( rname[1] == 'A' ) rname=" DA ";
+        else if ( rname[1] == 'T' ) rname=" DT ";
+      }
+      resNames_.push_back( rname );
+    }
+  } else {
+    for (Topology::res_iterator res = trajParm->ResStart();
+                                res != trajParm->ResEnd(); ++res)
+      resNames_.push_back( (*res).Name() );
+  }
   // If number of frames to write > 1 and not doing 1 pdb file per frame,
   // set write mode to MODEL
   if (append || (pdbWriteMode_==SINGLE && NframesToWrite>1)) 
@@ -202,14 +250,27 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     // If this atom belongs to a new molecule print a TER card
     // Use res instead of res+1 since this TER belongs to last mol/res
     if (aidx == lastAtomInMol) {
-      file_.WriteTER( anum, pdbTop_->Res(res-1).Name(), chainID_[aidx], res );
+      file_.WriteTER( anum, resNames_[res-1], chainID_[aidx], res );
       anum += ter_num_;
       ++mol;
       lastAtomInMol = (*mol).EndAtom();
     }
     if (dumpq_) Occ = (float) (*atom).Charge();
     if (dumpr_) B = (float) (*atom).Radius();
-    file_.WriteRec(PDBfile::ATOM, anum++, (*atom).Name(), pdbTop_->Res(res).Name(),
+    // If pdbatom change amber atom names to pdb v3
+    NameType atomName = (*atom).Name();
+    if (pdbatom_) {
+      if      (atomName == "H5'1") atomName = "H5'";
+      else if (atomName == "H5'2") atomName = "H5''";
+      else if (atomName == "H2'1") atomName = "H2'";
+      else if (atomName == "H2'2") atomName = "H2''";
+      else if (atomName == "O1P ") atomName = "OP1";
+      else if (atomName == "O2P ") atomName = "OP2";
+      else if (atomName == "H5T ") atomName = "HO5'";
+      else if (atomName == "H3T ") atomName = "HO3'";
+      else if (atomName == "HO'2") atomName = "HO2'";
+    }
+    file_.WriteRec(PDBfile::ATOM, anum++, atomName, resNames_[res],
                    chainID_[aidx++], res+1, Xptr[0], Xptr[1], Xptr[2], Occ, B, 
                    (*atom).ElementName(), 0, dumpq_);
     Xptr += 3;
@@ -240,5 +301,11 @@ void Traj_PDBfile::Info() {
       mprintf(", writing GB radii to B-factor column");
     else if (dumpr_ && dumpq_)
       mprintf(", writing charges/GB radii to occupancy/B-factor columns");
+    if (pdbres_ && pdbatom_)
+      mprintf(", using PDB V3 res/atom names");
+    else if (pdbres_)
+      mprintf(", using PDB V3 residue names");
+    else if (pdbatom_)
+      mprintf(", using PDB V3 atom names");
   }
 }

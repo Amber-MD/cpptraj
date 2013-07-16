@@ -169,17 +169,20 @@ void PDBfile::WriteRec(PDB_RECTYPE Record, int anum, NameType const& name,
   while (resnum>9999) resnum-=9999;
   // Atom number in PDB format can only be 5 digits wide
   while (anum>99999) anum-=99999;
-  // Residue names in PDB format are 3 chars long starting at column 18. 
-  // However in Amber residues are 4 characters long, usually with a space
-  // at the end. If this is the case remove the space so that the residue name
-  // lines up properly.
+  // Residue names in PDB format 3 chars long start at column 18. Residue 
+  // names 2 chars long start at column 19. However in Amber residues can be 
+  // 4 characters long padded with spaces at the end; adjust accordingly.
   resName[0] = resnameIn[0];
   resName[1] = resnameIn[1];
-  resName[2] = resnameIn[2];
-  if (resnameIn[3]!=' ')
-    resName[3] = resnameIn[3];
-  else
+  if (resnameIn[2] == ' ')        // 2 chars
+    resName[2] = '\0';
+  else if (resnameIn[3] == ' ') { // 3 chars
+    resName[2] = resnameIn[2];
     resName[3] = '\0';
+  } else {                        // >= 4 chars
+    resName[2] = resnameIn[2];
+    resName[3] = resnameIn[3];
+  }
   // Atom names in PDB format start from col 14 when <= 3 chars, 13 when 4 chars.
   if (name[3]!=' ') { // 4 chars
     atomName[0] = name[0];

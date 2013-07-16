@@ -59,6 +59,12 @@ int Histogram::AddDimension(Dimension &dim) {
   }
   // offset should now be equal to the total number of bins across all dimensions
   if (debug_>0) mprintf("\tHistogram: Total Bins = %i\n",offset);
+  // If offset is < 1 it probably overflowed. 
+  if (offset < 1) {
+    mprinterr("Error: Too many bins in histogram. Try reducing the number of bins\n"
+              "Error:   or number of dimensions.\n");
+    return 1;
+  }
   // Allocate space for bins and set to 0
   Bins_.resize(offset, 0);
 

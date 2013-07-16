@@ -7,7 +7,7 @@ class DataIO_Std : public DataIO {
   public:
     DataIO_Std();
 
-    int ReadData(std::string const&,DataSetList&);
+    int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList &);
     int WriteData(std::string const&,DataSetList&);
     int WriteDataInverted(std::string const&,DataSetList&);

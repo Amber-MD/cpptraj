@@ -18,6 +18,7 @@ class Cpptraj {
     enum Mode { C_OK = 0, C_ERR, C_QUIT, C_INTERACTIVE };
     Cpptraj();
     static void Intro();
+    static void Finalize();
     Mode Interactive();
     Mode ProcessCmdLineArgs(int,char**);
     int Run();
@@ -25,6 +26,7 @@ class Cpptraj {
   private:
     static void Usage();
 
+    int ScaleDihedralK(ArgList&);
     void Help(ArgList&);
     void ListAction(ArgList&,int);
     int Create_DataFile(ArgList&,int);

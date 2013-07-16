@@ -65,6 +65,7 @@
 #include "Action_PairDist.h"
 #include "Action_OrderParameter.h"
 #include "Action_MinDist.h"
+#include "Action_FixAtomOrder.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -87,6 +88,7 @@
 #include "Analysis_MeltCurve.h"
 #include "Analysis_Overlap.h"
 #include "Analysis_AmdBias.h"
+#include "Analysis_RemLog.h"
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
 static void Help_Help() {
@@ -355,6 +357,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::PARM,    "parmstrip",     0, Help_ParmStrip,       PARMSTRIP  },
   { DispatchObject::PARM,    "parmwrite",     0, Help_ParmWrite,       PARMWRITE  },
   { DispatchObject::PARM,    "resinfo",       0, Help_ResInfo,         RESINFO    },
+  { DispatchObject::PARM,    "scaledihedralk",0, 0,                    SCALEDIHEDRALK },
   { DispatchObject::PARM,    "solvent",       0, Help_Solvent,         SOLVENT    },
   // INC_ACTION: ACTION COMMANDS
   { DispatchObject::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, 0 },
@@ -367,8 +370,10 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ACTION, "box", Action_Box::Alloc, Action_Box::Help, 0 },
   { DispatchObject::ACTION, "center", Action_Center::Alloc, Action_Center::Help, 0 },
   { DispatchObject::ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
+  { DispatchObject::ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
   { DispatchObject::ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, 0 },
   { DispatchObject::ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, 0 },
+  { DispatchObject::ACTION, "closestwaters", Action_Closest::Alloc, Action_Closest::Help, 0 },
   { DispatchObject::ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, 0 },
   { DispatchObject::ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, 0 },
   { DispatchObject::ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, 0 },
@@ -382,6 +387,7 @@ const DispatchObject::Token Command::Commands[] = {
 //  { DispatchObject::ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, 0 },
   { DispatchObject::ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, 0 },
   { DispatchObject::ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, 0 },
+  { DispatchObject::ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, 0 },
 //  { DispatchObject::ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, 0 },
   { DispatchObject::ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, 0 },
   { DispatchObject::ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, 0 },
@@ -449,6 +455,7 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, 0 },
   { DispatchObject::ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, 0 },
   { DispatchObject::ANALYSIS, "overlap", Analysis_Overlap::Alloc, Analysis_Overlap::Help, 0 },
+  { DispatchObject::ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, 0 },
   { DispatchObject::ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, 0 },
   { DispatchObject::ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, 0 },
   { DispatchObject::ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, 0 },
@@ -456,10 +463,12 @@ const DispatchObject::Token Command::Commands[] = {
   { DispatchObject::ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, 0 },
   { DispatchObject::ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, 0 },
   // DEPRECATED COMMANDS
-  { DispatchObject::DEPRECATED, "molsearch",    0, 0, 0 },
-  { DispatchObject::DEPRECATED, "nomolsearch",  0, 0, 0 },
+  { DispatchObject::DEPRECATED, "acceptor",     0, 0, 0 },
   { DispatchObject::DEPRECATED, "bondsearch",   0, 0, 0 },
+  { DispatchObject::DEPRECATED, "donor",        0, 0, 0 },
+  { DispatchObject::DEPRECATED, "molsearch",    0, 0, 0 },
   { DispatchObject::DEPRECATED, "nobondsearch", 0, 0, 0 },
+  { DispatchObject::DEPRECATED, "nomolsearch",  0, 0, 0 },
   { DispatchObject::NONE      , 0,              0, 0, 0 }
 };
 

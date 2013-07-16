@@ -12,30 +12,43 @@
 #include "DataSet_Coords.h" // CrdAction
 #include "Command.h"
 #include "Version.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 void Cpptraj::Usage() {
-  mprinterr("\nUsage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n");
-  mprinterr("               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n");
-  mprinterr("               [--interactive] [--log <logfile>]\n");
-  mprinterr("       cpptraj <Top> <Input>\n");
-  mprinterr("\t-p <Top0>      : Load <Top0> as a topology file. May be specified more than once.\n");
-  mprinterr("\t-i <Input0>    : Read input from <Input0>. May be specified more than once.\n");
-  mprinterr("\t-y <trajin>    : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n");
-  mprinterr("\t-x <trajout>   : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n");
-  mprinterr("\t-h | --help    : Print command line help and exit.\n");
-  mprinterr("\t-V | --version : Print version and exit.\n");
-  mprinterr("\t--defines      : Print compiler defines and exit.\n");
-  mprinterr("\t-debug <#>     : Set global debug level to <#>; same as input 'debug <#>'.\n");
-  mprinterr("\t--interactive  : Force interactive mode.\n");
-  mprinterr("\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n");
+  mprinterr("\n"
+            "Usage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n"
+            "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
+            "               [--interactive] [--log <logfile>]\n"
+            "       cpptraj <Top> <Input>\n"
+            "\t-p <Top0>      : Load <Top0> as a topology file. May be specified more than once.\n"
+            "\t-i <Input0>    : Read input from <Input0>. May be specified more than once.\n"
+            "\t-y <trajin>    : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
+            "\t-x <trajout>   : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n"
+            "\t-h | --help    : Print command line help and exit.\n"
+            "\t-V | --version : Print version and exit.\n"
+            "\t--defines      : Print compiler defines and exit.\n"
+            "\t-debug <#>     : Set global debug level to <#>; same as input 'debug <#>'.\n"
+            "\t--interactive  : Force interactive mode.\n"
+            "\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n");
 }
 
 void Cpptraj::Intro() {
-  mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n",CPPTRAJ_VERSION_STRING);
-  mprintf("    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n");
+  mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n"
+          "    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n",
+          CPPTRAJ_VERSION_STRING);
 # ifdef MPI
   mprintf("Running on %i threads\n",worldsize);
 # endif
+}
+
+void Cpptraj::Finalize() {
+  mprintf("--------------------------------------------------------------------------------\n"
+    "To cite CPPTRAJ use:\n"
+    "Daniel R. Roe and Thomas E. Cheatham, III, \"PTRAJ and CPPTRAJ: Software for\n"
+    "  Processing and Analysis of Molecular Dynamics Trajectory Data\". J. Chem.\n"
+    "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n\n");
 }
 
 // -----------------------------------------------------------------------------
@@ -46,6 +59,15 @@ Cpptraj::Cpptraj() :
   exitOnError_(true),
   nrun_(0)
 {}
+
+int Cpptraj::ScaleDihedralK(ArgList& argIn) {
+  Topology* parm = parmFileList_.GetParm( argIn );
+  if (parm == 0) return 1;
+  double scale_factor = argIn.getNextDouble(1.0);
+  mprintf("\tScaling dihedral force constants in %s by %f\n", parm->c_str(), scale_factor);
+  parm->ScaleDihedralK( scale_factor );
+  return 0;
+}
 
 /** List all commands, or call help function of specific command. */
 void Cpptraj::Help(ArgList& argIn) {
@@ -821,6 +843,7 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
           case Command::PARMSTRIP: err = ParmStrip( command ); break;
           case Command::PARMBOX  : err = ParmBox( command ); break;
           case Command::SOLVENT  : err = ParmSolvent(command); break;
+          case Command::SCALEDIHEDRALK: err = ScaleDihedralK(command); break;
         } 
         break;
       case DispatchObject::TRAJ : /** TRAJECTORY COMMANDS */
@@ -908,6 +931,10 @@ Cpptraj::Mode Cpptraj::Dispatch(std::string const& inputLine) {
 // -----------------------------------------------------------------------------
 // Cpptraj::Run()
 int Cpptraj::Run() {
+# ifdef TIMER
+  Timer total_time;
+  total_time.Start();
+# endif
   int err = 0;
   ++nrun_;
   // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
@@ -942,6 +969,10 @@ int Cpptraj::Run() {
   }
   // Clean up Actions.
   actionList_.Clear();
+# ifdef TIMER
+  total_time.Stop();
+  mprintf("TIME: Total Run execution time: %.4f seconds.\n", total_time.Total());
+# endif
   return err;
 }
 
@@ -1178,6 +1209,10 @@ int Cpptraj::RunNormal() {
   Frame TrajFrame;            // Original Frame read in from traj
 
   // ========== S E T U P   P H A S E ========== 
+# ifdef TIMER
+  Timer init_time;
+  init_time.Start();
+# endif
   // Parameter file information
   parmFileList_.List();
   // Input coordinate file information
@@ -1189,10 +1224,22 @@ int Cpptraj::RunNormal() {
   mprintf("\nOUTPUT TRAJECTORIES:\n");
   trajoutList_.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
-  DSL_.AllocateSets(); 
+  DSL_.AllocateSets();
+# ifdef TIMER
+  init_time.Stop();
+  mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total());
+# endif
   
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
+# ifdef TIMER
+  Timer actions_time;
+  Timer setup_time;
+  Timer trajin_time;
+  Timer trajout_time;
+  Timer frames_time;
+  frames_time.Start();
+# endif
   mprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
   for ( TrajinList::const_iterator traj = trajinList_.begin();
                                    traj != trajinList_.end(); ++traj)
@@ -1206,7 +1253,9 @@ int Cpptraj::RunNormal() {
     Topology* CurrentParm = (*traj)->TrajParm();
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
-
+#   ifdef TIMER
+    setup_time.Start();
+#   endif
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
     if (parmHasChanged || (TrajFrame.HasVelocity() != (*traj)->HasVelocity()))
@@ -1225,19 +1274,47 @@ int Cpptraj::RunNormal() {
       }
       lastPindex = CurrentParm->Pindex();
     }
-
+#   ifdef TIMER
+    setup_time.Stop();
+#   endif
     // Loop over every Frame in trajectory
     (*traj)->PrintInfoLine();
-    while ( (*traj)->GetNextFrame(TrajFrame) ) {
+#   ifdef TIMER
+    trajin_time.Start();
+    bool readMoreFrames = (*traj)->GetNextFrame(TrajFrame);
+    trajin_time.Stop();
+    while ( readMoreFrames )
+#   else
+    while ( (*traj)->GetNextFrame(TrajFrame) )
+#   endif
+    {
       // Since Frame can be modified by actions, save original and use CurrentFrame
       Frame* CurrentFrame = &TrajFrame;
       // Perform Actions on Frame
+#     ifdef TIMER
+      actions_time.Start();
+#     endif
       bool suppress_output = actionList_.DoActions(&CurrentFrame, actionSet);
+#     ifdef TIMER
+      actions_time.Stop();
+#     endif
       // Do Output
-      if (!suppress_output)
+      if (!suppress_output) {
+#       ifdef TIMER
+        trajout_time.Start();
+#       endif
         trajoutList_.Write(actionSet, CurrentParm, CurrentFrame);
+#       ifdef TIMER
+        trajout_time.Stop();
+#       endif
+      }
       // Increment frame counter
-      ++actionSet; 
+      ++actionSet;
+#     ifdef TIMER
+      trajin_time.Start();
+      readMoreFrames = (*traj)->GetNextFrame(TrajFrame);
+      trajin_time.Stop();
+#     endif 
     }
 
     // Close the trajectory file
@@ -1247,7 +1324,21 @@ int Cpptraj::RunNormal() {
     mprintf("\n");
   } // End loop over trajin
   rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
-
+# ifdef TIMER
+  frames_time.Stop();
+  mprintf("TIME: Trajectory processing occurred in %.4f seconds\n"
+          "TIME: Avg. throughput= %.4f frames / second.\n"
+          "TIME:\tTrajectory read took %.4f seconds (%.2f%% of processing).\n"
+          "TIME:\tAction setup took %.4f seconds (%.2f%% of processing).\n"
+          "TIME:\tAction frame processing took %.4f seconds (%.2f%% of processing).\n"
+          "TIME:\tTrajectory output took %.4f seconds (%.2f%% of processing).\n",
+          frames_time.Total(),
+          (double)readSets / frames_time.Total(),
+          trajin_time.Total(),  (trajin_time.Total()  / frames_time.Total() )*100.0, 
+          setup_time.Total(),   (setup_time.Total()   / frames_time.Total() )*100.0, 
+          actions_time.Total(), (actions_time.Total() / frames_time.Total() )*100.0,
+          trajout_time.Total(), (trajout_time.Total() / frames_time.Total() )*100.0 );
+# endif
   // Close output traj
   trajoutList_.Close();
 
@@ -1262,7 +1353,15 @@ int Cpptraj::RunNormal() {
   mprintf("\nDATASETS:\n");
   if (!analysisList_.Empty()) {
     DSL_.List();
+#   ifdef TIMER
+    Timer analysis_time;
+    analysis_time.Start();
+#   endif
     analysisList_.DoAnalyses();
+#   ifdef TIMER
+    analysis_time.Stop();
+    mprintf("TIME: Analyses took %.4f seconds.\n", analysis_time.Total());
+#   endif
     // DEBUG: DataSets, post-Analysis
     mprintf("\nDATASETS AFTER ANALYSIS:\n");
   }
@@ -1272,8 +1371,16 @@ int Cpptraj::RunNormal() {
   // Print Datafile information
   DFL_.List();
   // Only Master does DataFile output
-  if (worldrank==0)
+  if (worldrank==0) {
+#   ifdef TIMER
+    Timer datafile_time;
+    datafile_time.Start();
+#   endif
     DFL_.WriteAllDF();
- 
+#   ifdef TIMER
+    datafile_time.Stop();
+    mprintf("TIME: Data file write took %.4f seconds.\n", datafile_time.Total());
+#   endif
+  }
   return 0;
 }

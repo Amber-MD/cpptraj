@@ -18,6 +18,7 @@
 #include "Matrix_2D.h"
 #include "DataSet_Modes.h"
 #include "DataSet_Coords.h"
+#include "DataSet_RemLog.h"
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
@@ -308,6 +309,7 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
     case DataSet::MATRIX       : DS = new DataSet_Matrix(); break;
     case DataSet::MODES        : DS = new DataSet_Modes(); break;
     case DataSet::COORDS       : DS = new DataSet_Coords(); break;
+    case DataSet::REMLOG       : DS = new DataSet_RemLog(); break;
     case DataSet::UNKNOWN_DATA :
     default:
       mprinterr("Error: DataSetList::Add: Unknown set type.\n");

@@ -126,7 +126,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet *dset) {
   if (dim.CalcBinsOrStep()!=0) return 1;
  
   dim.PrintDim();
-  hist_->AddDimension( dim );
+  if (hist_->AddDimension( dim )) return 1;
 
   return 0;
 }

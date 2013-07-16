@@ -211,7 +211,7 @@ int Grid::InitFromFile(std::string const& filename, std::string const& filetype)
 {
   if (filetype == "DX") {
     BufferedLine infile;
-    infile.OpenRead(filename);
+    infile.OpenFileRead(filename);
     // Set some defaults
     mode_ = ORIGIN;
     increment_ = 1.0;
@@ -286,7 +286,6 @@ int Grid::InitFromFile(std::string const& filename, std::string const& filetype)
     if (Allocate()) return 1;
     // Read in data
     int ndata = 0;
-    infile.SetupBuffer();
     while (ndata < gridsize_) {
       if (infile.Line() == 0) {
         mprinterr("Error: Unexpected EOF hit in %s\n", filename.c_str());
