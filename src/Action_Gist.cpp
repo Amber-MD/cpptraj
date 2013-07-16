@@ -19,6 +19,10 @@ Action_Gist::Action_Gist() :
   useTIP3P_(false),
   useTIP4P_(false),
   useTIP4PEW_(false),
+  useTIP5P_(false),
+  useTIP3PFW_(false),
+  useSPCE_(false),
+  useSPCFW_(false),
   doOrder_(false)
 {
   mprintf("\tGIST: INIT \n");
@@ -63,8 +67,12 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   useTIP3P_ = actionArgs.hasKey("tip3p");
   useTIP4P_ = actionArgs.hasKey("tip4p");
   useTIP4PEW_ = actionArgs.hasKey("tip4pew");
-  if (!useTIP3P_ && !useTIP4P_ && !useTIP4PEW_) {
-    mprinterr("Error: gist: Only water models supprted are TIP3P and TIP4P\n");
+  useTIP5P_ = actionArgs.hasKey("tip5p");
+  useTIP3PFW_ = actionArgs.hasKey("tip3pfw");
+  useSPCE_ = actionArgs.hasKey("spce");
+  useSPCFW_ = actionArgs.hasKey("spcfw");
+  if (!useTIP3P_ && !useTIP4P_ && !useTIP4PEW_ && !useTIP5P_ && !useTIP3PFW_ && !useSPCE_ && !useSPCFW_) {
+    mprinterr("Init Error: Only water models supported are TIP3P, TIP4P, TIP4PEW, TIP5P, TIP3P/FW, SPC/E, SPC/FW\n");
     return Action::ERR;
   }
 
@@ -78,8 +86,14 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 
   // Set Bulk Energy based on water model
   if (useTIP3P_) BULK_E_ = -19.0653;
-  if (useTIP4P_ || useTIP4PEW_) BULK_E_ = -22.06;
-  mprintf("\tGIST bulk energy: %10.5f\n", BULK_E_/2.0);
+  if (useTIP4PEW_) BULK_E_ = -22.071;
+  if (useTIP4P_) BULK_E_ = -19.71152;
+  if (useTIP5P_) BULK_E_ = -19.19174;
+  if (useTIP3PFW_) BULK_E_ = -22.7374;
+  if (useSPCE_) BULK_E_ = -22.2574;
+  if (useSPCFW_) BULK_E_ = -23.7458;
+//  if (usePOL3_) BULK_E_ = -22.071;
+  mprintf("\tGIST bulk energy: %10.5f\n", BULK_E_);
   
   // Set Bulk Density 55.5M
   BULK_DENS_ = 0.033422885325;
@@ -136,10 +150,10 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
 
   MAX_GRID_PT_ = griddim_[0] * griddim_[1] * griddim_[2];
   Vvox_ = gridspacn_*gridspacn_*gridspacn_;
-  /*G_max_x = griddim_[0] * gridspacn_ + 1.5 ;
+  G_max_x = griddim_[0] * gridspacn_ + 1.5 ;
   G_max_y = griddim_[1] * gridspacn_ + 1.5 ;
   G_max_z = griddim_[2] * gridspacn_ + 1.5 ;
-  */
+  
   mprintf("\tGIST Setup: %d %d %d %d %f \n", griddim_[0], griddim_[1], griddim_[2], MAX_GRID_PT_, Vvox_);
 
   // Set up grid origi
@@ -194,15 +208,14 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   dEwh_norm_.resize(MAX_GRID_PT_, 0.0);
   dEww_norm_ref_.clear();
   dEww_norm_ref_.resize(MAX_GRID_PT_, 0.0);
+  dEww_vox_unref_.clear();
+  dEww_vox_unref_.resize(MAX_GRID_PT_, 0.0);
 
   ww_Eij_.clear();
   ww_Eij_.resize(MAX_GRID_PT_);
-  //for(int i = 0; i < MAX_GRID_PT_; i++) ww_Eij_[i].resize(MAX_GRID_PT_);
   for(int i = 1; i < MAX_GRID_PT_; i++) ww_Eij_[i].resize(i);
 
   //CN: need to initialize ww_Eij_ to 0.0 but not Euler angles
-  //for (int a=0; a<MAX_GRID_PT_; a++)
-    //for (int l=0; l<MAX_GRID_PT_; l++) ww_Eij_[a][l]=0.0;
   for (int a=1; a<MAX_GRID_PT_; a++)
     for (int l=0; l<a; l++) ww_Eij_[a][l]=0.0;  
 
@@ -241,12 +254,16 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   dipolez_.clear();
   dipolez_.resize(MAX_GRID_PT_, 0.0);
   neighbor_.clear();
-  neighbor_.resize(MAX_GRID_PT_, 0);
+  neighbor_.resize(MAX_GRID_PT_, 0.0);
+  neighbor_norm_.clear();
+  neighbor_norm_.resize(MAX_GRID_PT_, 0.0);
   qtet_.clear();
   qtet_.resize(MAX_GRID_PT_, 0.0);
+  pol_.clear();
+  pol_.resize(MAX_GRID_PT_, 0.0);
 
   gridwat_.clear();
-  gridwat_.resize( currentParm->Natom() );
+  gridwat_.resize( currentParm->Nsolvent() );
 
   // We need box info
   if (currentParm->BoxType() == Box::NOBOX) {
@@ -277,20 +294,21 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   int solventMolecules = CurrentParm_->Nsolvent();
   resnum =0;
   voxel =0;
+  resindex1 = 0;
   for (solvmol = CurrentParm_->MolStart();
        solvmol != CurrentParm_->MolEnd(); ++solvmol)
     {
+      resindex1++;
       if (!(*solvmol).IsSolvent()) continue;
       Grid( currentFrame );
       voxel = gridwat_[resnum];
       resnum++;   
+      NonbondEnergy( currentFrame );
       if (voxel>=MAX_GRID_PT_) continue;
       EulerAngle( currentFrame );
       Dipole( currentFrame );
-      NonbondEnergy( currentFrame );
-      //if(doOrder_) Order( currentFrame );
-
     }
+  if(doOrder_) Order( currentFrame );
   
   //Debugg
   if (NFRAME_==1) mprintf("GIST  DoAction:  Found %d solvent residues \n", resnum);
@@ -312,59 +330,58 @@ static void GetLJparam(Topology const& top, double& A, double& B,
   B = top.LJB()[index];
 }
 
-
 void Action_Gist::NonbondEnergy(Frame *currentFrame) {
   double delta2, Acoef, Bcoef, deltatest;
   Vec3 XYZ, XYZ2, JI;
   double rij2, rij, r2, r6, r12, f12, f6, e_vdw, qiqj, e_elec;
-  int satom, satom2;//,param,index;
-
-  //  Topology::mol_iterator solvmol, solvmol2;
-  //if (NFRAME_==1) mprintf("GIST NonbondEnergy \n");
+  int satom, satom2, atom1, atom2;
+  
   int  voxel2,  resnum2;
   double q1, q2;
-
-  //variables for Order  
-  int  i,atom1,atom2,mol1,mol2;
-  double cos, sum, r_1, r_2, r_3, r_4;//, x_[5], y_[5], z_[5];
-  Vec3 O_wat1, O_wat2, O_wat3, v1, v2;
-  r_1=1000; r_2=1000; r_3=1000; r_4=1000;
-  x_[0] = 0.0; x_[1] = 0.0; x_[2] = 0.0; x_[3] = 0.0; x_[4] = 0.0;
-  y_[0] = 0.0; y_[1] = 0.0; y_[2] = 0.0; y_[3] = 0.0; y_[4] = 0.0;
-  z_[0] = 0.0; z_[1] = 0.0; z_[2] = 0.0; z_[3] = 0.0; z_[4] = 0.0;
-  //if (NFRAME_==1 && doOrder_) mprintf("GIST Order Parameter \n");
   
   // Setup imaging info
-  //Matrix_3x3 ucell, recip;
-  // Loop over solvent atoms
-  atom1 = 0;
-  for (satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
-    {
-      // Set up coord index for this atom
-      XYZ =  Vec3(currentFrame->XYZ( satom ));	  
-      // Inner loop	has both solute and solvent
-      resnum2=0;
-      //initialization for order
+  Matrix_3x3 ucell, recip;
+
+  // Inner loop has both solute and solvent
+  resnum2=0;
+  resindex2 = 1;
+  // skip if water2 has index larger than water1 so that every pair is only evaluated once
+  solvmol2 = CurrentParm_->MolStart();
+  for (resindex2=1; resindex2<resindex1; resindex2++)
+    {	  
+      if (!(*solvmol2).IsSolvent()) {
+	// Outer loop is not water, break inner loop if water 1 is outside the grid
+	if (voxel>=MAX_GRID_PT_) {
+	  ++solvmol2;
+	  continue;
+	}
+      }
+      else { 
+	// Inner loop is water
+	voxel2 = gridwat_[resnum2];
+	resnum2++;
+	// skip if both waters are outside the grid
+	if (voxel>=MAX_GRID_PT_ && voxel2>=MAX_GRID_PT_){
+	  ++solvmol2;
+	  continue;
+	}
+      }
       
-      for (solvmol2 = CurrentParm_->MolStart();
-	   solvmol2 != CurrentParm_->MolEnd(); ++solvmol2)
+      // Loop over all solvent atoms of water 1
+      atom1=0;
+      for (satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
 	{
-	  if ((*solvmol2).IsSolvent()) { 
-	    // Solvent loop
-	    // skip water intearction with with itself
-	    voxel2 = gridwat_[resnum2];
-	    resnum2++;
-	    if ((resnum-1) == (resnum2-1)) continue;
-	  }
+	  // Set up coord index for this atom
+	  XYZ =  Vec3(currentFrame->XYZ( satom ));
 	  
-	  
-	  atom2 = 0;
+	  atom2=0;
 	  for (satom2 = (*solvmol2).BeginAtom(); satom2 < (*solvmol2).EndAtom(); ++satom2)
 	    {    
 	      // Set up coord index for this atom
 	      XYZ2 = Vec3(currentFrame->XYZ( satom2 ));
 	      // Calculate the vector pointing from atom2 to atom1
 	      //rij2 = DIST2_ImageOrtho(XYZ, XYZ2, currentFrame->BoxCrd());
+	      //rij2 = DIST2(XYZ, XYZ2, ImageType(), currentFrame->BoxCrd(), ucell, recip);
 	      switch( ImageType() ) {
 	      case NONORTHO:
 		currentFrame->BoxCrd().ToRecip(ucell, recip);
@@ -379,7 +396,6 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 	      rij = sqrt(rij2);
 	      // LJ energy 
 	      GetLJparam(*CurrentParm_, Acoef, Bcoef, satom, satom2);
-	      
 	      r2    = 1 / rij2;
 	      r6    = r2 * r2 * r2;
 	      r12   = r6 * r6;
@@ -387,107 +403,76 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 	      f6    = Bcoef * r6;   // B/r^6
 	      e_vdw = f12 - f6;     // (A/r^12)-(B/r^6)
 	      // LJ Force 
-	      //force=((12*f12)-(6*f6))*r2; // (12A/r^13)-(6B/r^7)
 	      // Coulomb energy 
 	      q1 = (*CurrentParm_)[satom].Charge() * ELECTOAMBER;
 	      q2 = (*CurrentParm_)[satom2].Charge() * ELECTOAMBER;
 	      e_elec = (q1*q2/rij);
-	      //e_elec = (qiqj/rij);
 	      if (!(*solvmol2).IsSolvent()) {
 		// solute-solvent interaction
 		wh_evdw_[voxel] +=  e_vdw;
 		wh_eelec_[voxel] += e_elec;
 	      }
 	      else {
-		// solvent-solvent interaction
-		ww_evdw_[voxel] +=  e_vdw;
-		ww_eelec_[voxel] += e_elec;
+		// solvent-solvent interaction, need to compute for all waters, even those outside the grid but only one water needs to be inside the grid. 
+		if (voxel<MAX_GRID_PT_) {
+		  ww_evdw_[voxel] +=  e_vdw;
+		  ww_eelec_[voxel] += e_elec;
+		  // Store the water neighbor using only O-O distance
+		  if (atom2==0 && atom1==0 && rij<3.5) {
+		    neighbor_[voxel] += 1.0;
+		  }
+		}
 		// CN: only store Eij[voxel1][voxel2] if both voxels lie on the grid.
 		if (voxel2<MAX_GRID_PT_) {
-		  if (voxel>voxel2) {
-		    ww_Eij_[voxel][voxel2] += e_vdw*0.5;
-		    ww_Eij_[voxel][voxel2] += e_elec*0.5;
+		  ww_evdw_[voxel2] +=  e_vdw;
+		  ww_eelec_[voxel2] += e_elec;
+		  // Store the water neighbor using only O-O distance
+		  if (atom2==0 && atom1==0 && rij<3.5) {
+	            neighbor_[voxel2] += 1.0;
 		  }
-		  else {
-		    ww_Eij_[voxel2][voxel] += e_vdw*0.5;
-		    ww_Eij_[voxel2][voxel] += e_elec*0.5;
+		  if (voxel<MAX_GRID_PT_) {
+		    if (voxel>voxel2) {
+		      ww_Eij_[voxel][voxel2] += e_vdw*0.5;
+		      ww_Eij_[voxel][voxel2] += e_elec*0.5;
+		    }
+		    else {
+		      ww_Eij_[voxel2][voxel] += e_vdw*0.5;
+		      ww_Eij_[voxel2][voxel] += e_elec*0.5;
+		    }
 		  }  
 		}
-		
-		// Store the water neighbor only used O-O distance
-		//if (satom2==0 && satom==0 && rij<3.5) {
-		if (atom1==0 && atom2==0 && rij<3.5) {
-		  neighbor_[voxel]++;
-		  if (voxel2<MAX_GRID_PT_) neighbor_[voxel2]++;	
-		}
-		
-		// Action_Gist::Order() 
-		if((doOrder_) && (atom1 == 0) && (atom2 == 0)) {
-		  		  
-		  O_wat2 = XYZ2;      
-		  O_wat1 = XYZ;      
-
-		  if (rij2<r_1) {
-		    r_4 = r_3; x_[4] = x_[3]; y_[4] = y_[3]; z_[4] = z_[3];
-		    r_3 = r_2; x_[3] = x_[2]; y_[3] = y_[2]; z_[3] = z_[2]; 
-		    r_2 = r_1; x_[2] = x_[1]; y_[2] = y_[1]; z_[2] = z_[1];
-		    r_1 = rij2; x_[1] = O_wat2[0]; y_[1] = O_wat2[1]; z_[1] = O_wat2[2];
-		  }
-		  
-		}// END if doOrder_
-	      }// IF solvent
+	      }//IF is solvent
 	      atom2++;
-	    } // END Inner loop ALL atoms 
-	} // END Inner loop ALL molecules
-      if((doOrder_) && (atom1 == 0) && (atom2 == 0)) {
-	
-	// Compute the tetahedral order parameter
-	sum=0;
-	for (mol1=1; mol1<=3; mol1++) {
-	  for (mol2=1; mol2<=4; mol2++) {
-	    if (mol1==mol2) continue;
-	    O_wat2[0] = x_[mol1];
-	    O_wat2[1] = y_[mol1];
-	    O_wat2[2] = z_[mol1];
-	    O_wat3[0] = x_[mol2];
-	    O_wat3[1] = y_[mol2];
-	    O_wat3[2] = z_[mol2];
-	    v1 = O_wat2 - O_wat1;
-	    v2 = O_wat3 - O_wat1; 	 
-	    cos = v1*( v2);
-	    sum += (cos + 1.0/3)*(cos + 1.0/3);
-	  }
-	}
-	qtet_[voxel] += 1 - (3.0/8)*sum;
-      }// END if doOrder_
-      atom1++;
-    } // END Outer loop solvent atoms
+	    } // END Inner loop ALL atoms
+	  atom1++;
+	} // END Outer loop solvent atoms
+      ++solvmol2;
+    }  // END Inner loop ALL molecules
 }
+
 
 
 // Action_Gist::Grid()
 void Action_Gist::Grid(Frame *frameIn) {
-
-  int  i, gridindex[3];
-  Vec3 comp, O_wat, atom, H1_wat, H2_wat;
+  int  i, gridindex[3], nH;
+  Vec3 comp,  atom_coord;
   double rij;
   i = (*solvmol).BeginAtom();
-  O_wat = Vec3(frameIn->XYZ(i));
-  H1_wat = Vec3(frameIn->XYZ(i+1));
-  H2_wat = Vec3(frameIn->XYZ(i+2));
-  
-  //      gridwat_[resnum] = 100000000;
-  gridwat_[resnum] = MAX_GRID_PT_ + 1;
-  for (int a=0; a<=2; a++) {
-    if (a==0) atom = O_wat;
-    else if (a==1) atom = H1_wat;
-    else atom = H2_wat;
-    // get the components of the water vector
-    comp = Vec3(atom) - Vec3(gridorig_);
-    comp /= gridspacn_;
 
-    //Crystal, comment this if and the next three lines if you want to return to old code
+  gridwat_[resnum] = MAX_GRID_PT_ + 1;
+  atom_coord = Vec3(frameIn->XYZ(i));
+  // get the components of the water vector
+  comp = Vec3(atom_coord) - Vec3(gridorig_);
+  nH=0;
+  //If Oxygen is far from grid, 1.5A or more in any durection, skip calculation
+  if (comp[0]<= G_max_x && comp[1]<= G_max_y && comp[2]<= G_max_z && comp[0]>= -1.5 && comp[1]>= -1.5 && comp[2]>= -1.5 ) {
+    //if (comp[0]<= G_max_x || comp[1]<= G_max_y || comp[2]<= G_max_z || comp[0]>= -1.5 || comp[1]>= -1.5 || comp[2]>= -1.5 ) {
+    //Water is at most 1.5A away from grid, so we need to check for H even if O is outside grid
+    nH=2;
+    
+    //O is inside grid only if comp is >=0
     if (comp[0]>=0 && comp[1]>=0 && comp[2]>=0 ){
+    comp /= gridspacn_;
       gridindex[0] = (int) comp[0];
       gridindex[1] = (int) comp[1];
       gridindex[2] = (int) comp[2];
@@ -496,16 +481,27 @@ void Action_Gist::Grid(Frame *frameIn) {
 	{
 	  // this water belongs to grid point gridindex[0], gridindex[1], gridindex[2]
 	  voxel = (gridindex[0]*griddim_[1] + gridindex[1])*griddim_[2] + gridindex[2];
-	  if (a==0) {
-	    gridwat_[resnum] = voxel;
-	    nwat_[voxel]++;
-	    if (max_nwat_ < nwat_[voxel]) max_nwat_ = nwat_[voxel];
-	  }
-	  else nH_[voxel]++;
-	  //mprintf("fm=%d, resnum=%d, voxel=%d %d\n", NFRAME_, resnum, voxel, gridwat_[resnum]);
+	  gridwat_[resnum] = voxel;
+	  nwat_[voxel]++;
+	  if (max_nwat_ < nwat_[voxel]) max_nwat_ = nwat_[voxel];
 	}
+    }
+    
+    // evaluate hydrogen atoms
+    for (int a=1; a<=nH; a++) {
+      atom_coord = Vec3(frameIn->XYZ(i+a));
+      comp = Vec3(atom_coord) - Vec3(gridorig_);
+      if (comp[0]<0 || comp[1]<0 || comp[2]<0) continue;
+      comp /= gridspacn_;
+      gridindex[0] = (int) comp[0];
+      gridindex[1] = (int) comp[1];
+      gridindex[2] = (int) comp[2];
+      if ((gridindex[0]<griddim_[0]) && (gridindex[1]<griddim_[1]) && (gridindex[2]<griddim_[2])) {
+	voxel = (gridindex[0]*griddim_[1] + gridindex[1])*griddim_[2] + gridindex[2];
+	nH_[voxel]++;
       }
-  } 
+    } 
+  }
 }
 
 void Action_Gist::EulerAngle(Frame *frameIn) {
@@ -521,10 +517,10 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
   
   // make sure the first three atoms are oxygen followed by two hydrogen
   if ((*CurrentParm_)[i].Element() != Atom::OXYGEN) {
-    cout << "Bad! coordinates do not belong to oxygen atom " << (*CurrentParm_)[i].ElementName() << endl;
+    cout << "Bad! first coordinates do not belong to oxygen atom " << (*CurrentParm_)[i].ElementName() << endl;
   }
   if ((*CurrentParm_)[i+1].Element() != Atom::HYDROGEN || (*CurrentParm_)[i+2].Element() != Atom::HYDROGEN) {
-    cout << "Bad! coordinates do not belong to oxygen atom " << (*CurrentParm_)[i+1].ElementName() << " " << (*CurrentParm_)[i+2].ElementName() << endl;
+    cout << "Bad! first coordinates do not belong to oxygen atom " << (*CurrentParm_)[i+1].ElementName() << " " << (*CurrentParm_)[i+2].ElementName() << endl;
   } 
   
   // Define lab frame of reference
@@ -594,7 +590,7 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
     psi_vox_[voxel].push_back(psi);
     nw_angle_[voxel]++;
   }
-  else cout << resnum-1 << " gimbal lock problem, two z_wat paralell" << endl;
+  //else cout << resnum-1 << " gimbal lock problem, two z_wat paralell" << endl;
 } 
 
 
@@ -602,32 +598,95 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
 void Action_Gist::Dipole(Frame *frameIn) {
   
   //if (NFRAME_==1) mprintf("GIST Dipole \n");
-  double dipolar_vector[3];
+  double dipolar_vector[3], charge;
+  int satom;
   Vec3 XYZ, sol;
 
   dipolar_vector[0] = 0.0;
   dipolar_vector[1] = 0.0;
   dipolar_vector[2] = 0.0;
   // Loop over solvent atoms
-  for (int satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
+  for (satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
     {
-      XYZ = Vec3(frameIn->XYZ( satom ));
-      sol[0] = XYZ[0] - gridorig_[0];
-      sol[1] = XYZ[1] - gridorig_[1];
-      sol[2] = XYZ[2] - gridorig_[2];
-      //cout << NFRAME_ << " " << solvmol << " " << satom << sol[0] << " " << sol[1] << " " << sol[2] << endl;
+      XYZ =  Vec3(frameIn->XYZ( satom ));
       // Calculate dipole vector. The oxygen of the solvent is used to assign the voxel index to the water.
       // NOTE: the total charge on the solvent should be neutral for this to have any meaning
       
-      double charge = (*CurrentParm_)[satom].Charge();
-      dipolar_vector[0] += (charge * sol[0]);
-      dipolar_vector[1] += (charge * sol[1]);
-      dipolar_vector[2] += (charge * sol[2]);
+      charge = (*CurrentParm_)[satom].Charge();
+      //      cout << resnum-1 << " " << charge << " " << XYZ[0] << " " << XYZ[1] << " " << XYZ[2] << endl;
+      dipolar_vector[0] += (charge * XYZ[0]);
+      dipolar_vector[1] += (charge * XYZ[1]);
+      dipolar_vector[2] += (charge * XYZ[2]);
     }
-  voxel = gridwat_[resnum-1];
   dipolex_[voxel] += dipolar_vector[0];
   dipoley_[voxel] += dipolar_vector[1];
   dipolez_[voxel] += dipolar_vector[2];
+}
+
+// Action_Gist::Order() 
+void Action_Gist::Order(Frame *frameIn) {
+  if (NFRAME_==1) mprintf("GIST Order Parameter \n");
+  int voxel, i, resnum=0, resnum2;
+  double cos, sum, r1, r2, r3, r4, rij2, x[5], y[5], z[5];
+  Vec3 O_wat1, O_wat2, O_wat3, v1, v2;
+  
+  for (Topology::mol_iterator solvmol = CurrentParm_->MolStart();
+                              solvmol != CurrentParm_->MolEnd(); ++solvmol)
+  {
+    if (!(*solvmol).IsSolvent()) continue;
+
+    // obtain 4 closest neighbors for every water
+    resnum++;
+    voxel = gridwat_[resnum-1];
+    if (voxel>=MAX_GRID_PT_) continue;
+    // assume that oxygen is the first atom
+    i = (*solvmol).BeginAtom();
+    O_wat1 = Vec3(frameIn->XYZ( i ));
+
+    r1=1000; r2=1000; r3=1000; r4=1000; resnum2=0;
+    for (int a=1; a<5; a++) {
+      x[a]=10000;
+      y[a]=10000;
+      z[a]=10000;
+    }
+    // Can't make into triangular matrix
+    for (Topology::mol_iterator solvmol2 = CurrentParm_->MolStart();
+                                solvmol2 != CurrentParm_->MolEnd(); ++solvmol2)
+    {
+      if (!(*solvmol2).IsSolvent()) continue;
+      resnum2++;
+      if (resnum == resnum2) continue;
+      i = (*solvmol2).BeginAtom();
+      O_wat2 = Vec3(frameIn->XYZ( i ));      
+      rij2 = DIST2_NoImage(O_wat1, O_wat2);
+      if (rij2<r1) {
+        r4 = r3; x[4] = x[3]; y[4] = y[3]; z[4] = z[3];
+	r3 = r2; x[3] = x[2]; y[3] = y[2]; z[3] = z[2]; 
+	r2 = r1; x[2] = x[1]; y[2] = y[1]; z[2] = z[1];
+	r1 = rij2; x[1] = O_wat2[0]; y[1] = O_wat2[1]; z[1] = O_wat2[2];
+      }
+    }
+    
+    // Compute the tetrahedral order parameter
+    sum=0;
+    for (int mol1=1; mol1<=3; mol1++) {
+      for (int mol2=mol1+1; mol2<=4; mol2++) {
+	O_wat2[0] = x[mol1];
+	O_wat2[1] = y[mol1];
+	O_wat2[2] = z[mol1];
+	O_wat3[0] = x[mol2];
+	O_wat3[1] = y[mol2];
+	O_wat3[2] = z[mol2];
+	v1 = O_wat2 - O_wat1;
+	v2 = O_wat3 - O_wat1; 	 
+	r1 = v1.Magnitude2();
+	r2 = v2.Magnitude2();
+	cos = (v1*( v2))/sqrt(r1*r2);
+	sum += (cos + 1.0/3)*(cos + 1.0/3);
+      }
+    }
+    qtet_[voxel] += (1.0 - (3.0/8)*sum);
+  }
 }
 
 
@@ -691,11 +750,22 @@ void Action_Gist::Print() {
        dEwh_dw_[a] = (wh_evdw_[a]+wh_eelec_[a])/(NFRAME_*Vvox_);
        dEww_dw_ref_[a] = ((ww_evdw_[a]+ww_eelec_[a]) - nwat_[a]*BULK_E_)/(NFRAME_*Vvox_);
        dEwh_norm_[a] = (wh_evdw_[a]+wh_eelec_[a])/nwat_[a];
-       dEww_norm_ref_[a] = (ww_evdw_[a]+ww_eelec_[a])/nwat_[a] - BULK_E_;  
+       dEww_norm_ref_[a] = (ww_evdw_[a]+ww_eelec_[a])/nwat_[a] - BULK_E_; 
+       dEww_vox_unref_[a] = (ww_evdw_[a]+ww_eelec_[a])/NFRAME_; 
     }
     else {
-       dEwh_dw_[a]=0; dEww_dw_ref_[a]=0; dEwh_norm_[a]=0; dEww_norm_ref_[a]=0;
+       dEwh_dw_[a]=0; dEww_dw_ref_[a]=0; dEwh_norm_[a]=0; dEww_norm_ref_[a]=0; dEww_vox_unref_[a]=0;
     }
+    // Compute the average number of water neighbor, average order parameter, and average dipole density 
+    if (nwat_[a]>0) {
+      qtet_[a] /= nwat_[a];
+      neighbor_norm_[a] = 1.0*neighbor_[a]/nwat_[a];
+    }
+    neighbor_[a] /= (1.0*NFRAME_);
+    dipolex_[a] /= (0.20822678*NFRAME_*Vvox_);
+    dipoley_[a] /= (0.20822678*NFRAME_*Vvox_);
+    dipolez_[a] /= (0.20822678*NFRAME_*Vvox_);
+    pol_[a] = sqrt(dipolex_[a]*dipolex_[a] + dipoley_[a]*dipoley_[a] + dipolez_[a]*dipolez_[a]);	    
   }
 
   // Print the gist info file
@@ -712,12 +782,18 @@ void Action_Gist::Print() {
     dfl.Write();
 
   }
-  PrintDX("gist-g.dx", g_);
+  PrintDX("gist-gO.dx", g_);
   PrintDX("gist-gH.dx", gH_);
-  PrintDX("gist-dEwh.dx", dEwh_dw_);
-  PrintDX("gist-dEww.dx", dEww_dw_ref_);
-  PrintDX("gist-TStrans.dx", TStrans_dw_);
-  PrintDX("gist-TSorient.dx", TSNN_dw_); 
+  PrintDX("gist-dEwh-dw.dx", dEwh_dw_);
+  PrintDX("gist-dEww-dw.dx", dEww_dw_ref_);
+  PrintDX("gist-TStrans-dw.dx", TStrans_dw_);
+  PrintDX("gist-TSorient-dw.dx", TSNN_dw_);
+  PrintDX("gist-order-norm.dx", qtet_);
+  PrintDX("gist-neighbor-norm.dx", neighbor_norm_); 
+  PrintDX("gist-dipole-dw.dx", pol_);
+  PrintDX("gist-dipolex-dw.dx", dipolex_);
+  PrintDX("gist-dipoley-dw.dx", dipoley_);
+  PrintDX("gist-dipolez-dw.dx", dipolez_);
   PrintOutput("gist-output.dat");
   
 }
@@ -727,7 +803,7 @@ void Action_Gist::PrintDX(string const& filename, std::vector<double>& data)
 {
   CpptrajFile outfile;
   if (outfile.OpenWrite(filename)) {
-    mprinterr("Error: Could not open OpenDX output file.\n");
+    mprinterr("Print Error: Could not open OpenDX output file.\n");
     return;
   }
   // Print the OpenDX header
@@ -779,15 +855,19 @@ void Action_Gist::PrintOutput(string const& filename)
   ofstream myfile;
   myfile.open("gist-output.dat");  
   myfile << "GIST Output, information printed per voxel\n";
-  myfile << "xcoord ycoord zcoord population normalized-density normalized-H_density";
-  myfile << "TStrans TStrans-normalized TSrot TSrot-normalized E-water-solute";
-  myfile << "E-water-solute-normalized E-water-water E-water-water-normalized Dipole_x Dipole_y Dipole_z neighbor\n";
+  myfile << "voxel xcoord ycoord zcoord population g_O g_H ";
+  myfile << "TStrans-dw(kcal/mol/A^3) TStrans-norm(kcal/mol) TSorient-dw(kcal/mol/A^3) TSorient-norm(kcal/mol) ";
+  myfile << "Ewh-dw(kcal/mol/A^3) Ewh-norm(kcal/mol) ";
+  myfile << "Eww-dw(kcal/mol/A^3) Eww-norm(kcal/mol) Eww-vox-unref(kcal/mol) ";
+  myfile << "Dipole_x Dipole_y Dipole_z u(D) neighbor neighbor-norm order\n";
   // Now print out the data. 
-  for (int i = 0; i < MAX_GRID_PT_ ; i++){
-    myfile << grid_x_[i] << " " << grid_y_[i]<< " " << grid_z_[i]<< " " << nwat_[i] << " " << g_[i]<< " " << gH_[i] << " ";
-    myfile <<  TStrans_dw_[i]<< " " << TStrans_norm_[i]<< " " << TSNN_dw_[i] << " " << TSNN_norm_[i]<< " " << dEwh_dw_[i]<< " ";
-    myfile << dEwh_norm_[i]<< " " << dEww_dw_ref_[i]<< " " << dEww_norm_ref_[i] << " " << dipolex_[i] << " " << dipoley_[i] << " " << dipolez_[i];
-    myfile << 1.0*neighbor_[i]/NFRAME_ << " " << endl;
+  for (int i=0; i<MAX_GRID_PT_; i++){
+    myfile << i << " " << grid_x_[i] << " " << grid_y_[i]<< " " << grid_z_[i]<< " " << nwat_[i] << " " << g_[i]<< " " << gH_[i] << " ";
+    myfile <<  TStrans_dw_[i]<< " " << TStrans_norm_[i]<< " " << TSNN_dw_[i] << " " << TSNN_norm_[i]<< " ";
+    myfile << dEwh_dw_[i]<< " " << dEwh_norm_[i] << " ";
+    myfile << dEww_dw_ref_[i]<< " " << dEww_norm_ref_[i] << " " << dEww_vox_unref_[i] << " ";
+    myfile << dipolex_[i] << " " << dipoley_[i] << " " << dipolez_[i] << " " << pol_[i] << " ";
+    myfile << neighbor_[i] << " " << neighbor_norm_[i] << " " << qtet_[i] << endl;
   }
   myfile.close();
 
@@ -811,40 +891,41 @@ void Action_Gist::PrintOutput(string const& filename)
 // DESTRUCTOR
 Action_Gist::~Action_Gist() {
   //fprintf(stderr,"Gist Destructor.\n");
-    gridwat_.clear();		// voxel index of each water
-    nwat_.clear();		// total number of water found in each voxel
-    nH_.clear();			// total number of hydrogen found in each voxel
-    nw_angle_.clear();	// total nuber of Euler angles found in each voxel
-    g_.clear();		// normalized water density
-    gH_.clear();		// normalized H density
-    dens_.clear();		// water density
-    grid_x_.clear();	// voxel index in x
-    grid_y_.clear();
-    grid_z_.clear();
-    neighbor_.clear();		// number of water neighbor within 3.5A
-    qtet_.clear();		// tetahedral order parameter
-    
-    wh_evdw_.clear();
-    wh_eelec_.clear();
-    ww_evdw_.clear();
-    ww_eelec_.clear();
-    ww_Eij_.clear();
-    dEwh_dw_.clear();
-    dEww_dw_ref_.clear();
-    dEwh_norm_.clear();
-    dEww_norm_ref_.clear();
-    
-    TSNN_dw_.clear();
-    TSNN_norm_.clear();
-    TStrans_dw_.clear();
-    TStrans_norm_.clear();
-
-    the_vox_.clear();
-    phi_vox_.clear();
-    psi_vox_.clear();
-
-    // dipole stuffs
-    dipolex_.clear();
-    dipoley_.clear();
-    dipolez_.clear();
+  griddim_.clear();
+  gridwat_.clear();		// voxel index of each water
+  nwat_.clear();		// total number of water found in each voxel
+  nH_.clear();			// total number of hydrogen found in each voxel
+  nw_angle_.clear();	// total nuber of Euler angles found in each voxel
+  g_.clear();		// normalized water density
+  gH_.clear();		// normalized H density
+  dens_.clear();		// water density
+  grid_x_.clear();	// voxel index in x
+  grid_y_.clear();
+  grid_z_.clear();
+  neighbor_.clear();		// number of water neighbor within 3.5A
+  qtet_.clear();		// tetahedral order parameter
+  
+  wh_evdw_.clear();
+  wh_eelec_.clear();
+  ww_evdw_.clear();
+  ww_eelec_.clear();
+  ww_Eij_.clear();
+  dEwh_dw_.clear();
+  dEww_dw_ref_.clear();
+  dEwh_norm_.clear();
+  dEww_norm_ref_.clear();
+  
+  TSNN_dw_.clear();
+  TSNN_norm_.clear();
+  TStrans_dw_.clear();
+  TStrans_norm_.clear();
+  
+  the_vox_.clear();
+  phi_vox_.clear();
+  psi_vox_.clear();
+  
+  // dipole stuffs
+  dipolex_.clear();
+  dipoley_.clear();
+  dipolez_.clear();
 }
