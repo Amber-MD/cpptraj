@@ -1155,8 +1155,10 @@ const Command::Token Command::Commands[] = {
   { ACTION, "box", Action_Box::Alloc, Action_Box::Help, AddAction },
   { ACTION, "center", Action_Center::Alloc, Action_Center::Help, AddAction },
   { ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
+  { ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, AddAction },
+  { ACTION, "closestwaters", Action_Closest::Alloc, Action_Closest::Help, AddAction },
   { ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, AddAction },
   { ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, AddAction },
   { ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, AddAction },
@@ -1245,9 +1247,11 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
   { ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, AddAnalysis },
   // DEPRECATED COMMANDS
-  { DEPRECATED, "molsearch",    0, 0, Deprecated },
-  { DEPRECATED, "nomolsearch",  0, 0, Deprecated },
+  { DEPRECATED, "acceptor",     0, 0, Deprecated },
   { DEPRECATED, "bondsearch",   0, 0, Deprecated },
+  { DEPRECATED, "donor",        0, 0, Deprecated },
+  { DEPRECATED, "molsearch",    0, 0, Deprecated },
   { DEPRECATED, "nobondsearch", 0, 0, Deprecated },
+  { DEPRECATED, "nomolsearch",  0, 0, Deprecated },
   { NONE      , 0,              0, 0, 0          }
 };
