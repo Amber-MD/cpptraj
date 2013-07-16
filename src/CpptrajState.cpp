@@ -73,6 +73,17 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   return 0;
 }
 
+// CpptrajState::MaskString()
+int CpptrajState::MaskString( std::string const& maskexpr ) {
+  Topology* parm = parmFileList_.GetParm( 0 );
+  if (parm == 0) {
+    mprinterr("Error: No topologies loaded.\n");
+    return 1;
+  }
+  parm->PrintAtomInfo( maskexpr );
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // CpptrajState::Run()
 int CpptrajState::Run() {
@@ -88,11 +99,16 @@ int CpptrajState::Run() {
       // Analysis has been run at this point. Clean up Analyses
       analysisList_.Clear();
       break;
-    case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
+    case TrajinList::ENSEMBLE :
+      // No Analysis will be run. Warn user if analyses are defined.
+      if (!analysisList_.Empty())
+        mprintf("Warning: In ensemble mode, Analysis will not be performed.\n");
+      err = RunEnsemble(); 
+      break;
     default:
       // No trajectories loaded; If analyses are defined, try to run them.
       if (!analysisList_.Empty()) {
-        analysisList_.DoAnalyses();
+        RunAnalyses();
         MasterDataFileWrite();
       }
   }
@@ -190,6 +206,7 @@ int CpptrajState::RunEnsemble() {
       for (int iaction = 0; iaction < actionList_.Naction(); iaction++) { 
         // Create new arg list from original command string.
         ArgList command( actionList_.CmdString(iaction) );
+        command.MarkArg(0); // TODO: Create separate CommandArg class?
         // Attempt to add same action to this ensemble. 
         if (ActionEnsemble[member].AddAction( actionList_.ActionAlloc(iaction), 
                                               command, &parmFileList_, &refFrames_,
@@ -482,15 +499,7 @@ int CpptrajState::RunNormal() {
   mprintf("\nDATASETS:\n");
   if (!analysisList_.Empty()) {
     DSL_.List();
-#   ifdef TIMER
-    Timer analysis_time;
-    analysis_time.Start();
-#   endif
-    analysisList_.DoAnalyses();
-#   ifdef TIMER
-    analysis_time.Stop();
-    mprintf("TIME: Analyses took %.4f seconds.\n", analysis_time.Total());
-#   endif
+    RunAnalyses();
     // DEBUG: DataSets, post-Analysis
     mprintf("\nDATASETS AFTER ANALYSIS:\n");
   }
@@ -517,4 +526,16 @@ void CpptrajState::MasterDataFileWrite() {
     mprintf("TIME: Data file write took %.4f seconds.\n", datafile_time.Total());
 #   endif
   }
+}
+
+void CpptrajState::RunAnalyses() {
+# ifdef TIMER
+  Timer analysis_time;
+  analysis_time.Start();
+# endif
+  analysisList_.DoAnalyses();
+# ifdef TIMER
+  analysis_time.Stop();
+  mprintf("TIME: Analyses took %.4f seconds.\n", analysis_time.Total());
+# endif
 }

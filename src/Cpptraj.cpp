@@ -139,7 +139,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       inputFiles.push_back( argv[++i] );
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Mask string
-      CommandList::Dispatch(State_, "parminfo " + std::string(argv[++i]));
+      if (State_.MaskString( std::string(argv[++i]))) return ERROR;
       return QUIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file

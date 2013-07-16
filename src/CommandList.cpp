@@ -156,6 +156,7 @@ CommandList::TokenPtr CommandList::SearchToken(ArgList& argIn) {
 /** Search for the given command and execute it. */
 CommandList::RetType CommandList::Dispatch(CpptrajState& State, std::string const& commandIn) {
   ArgList cmdArg( commandIn );
+  cmdArg.MarkArg(0); // Always mark the first arg as the command 
   TokenPtr cmdToken = SearchToken( cmdArg );
   if (cmdToken == 0) return C_ERR;
   return ( cmdToken->Fxn( State, cmdArg, cmdToken->Alloc ) );
@@ -191,6 +192,7 @@ CommandList::RetType CommandList::ProcessInput(CpptrajState& State,
   unsigned int idx = 0;
   char lastchar = '0';
   char ptr = 0;
+  int nInputErrors = 0;
   RetType cmode = C_OK;
   while ( ptr != EOF ) {
     ptr = (char)fgetc(infile);
@@ -210,7 +212,10 @@ CommandList::RetType CommandList::ProcessInput(CpptrajState& State,
       mprintf("  [%s]\n",inputLine.c_str());
       // Call Dispatch to convert input to arglist and process.
       cmode = CommandList::Dispatch(State, inputLine);
-      if (cmode != C_OK) break;
+      if (cmode == C_ERR)
+        nInputErrors++;
+      else if (cmode == C_QUIT)
+        break;
       // Reset Input line
       inputLine.clear();
       idx = 0;
@@ -236,6 +241,10 @@ CommandList::RetType CommandList::ProcessInput(CpptrajState& State,
   }
   if (!inputFilename.empty())
     fclose(infile);
+  if (nInputErrors > 0) {
+    mprinterr("\t%i errors encountered reading input.\n", nInputErrors);
+    return C_ERR;
+  }
   return cmode;
 }
 
@@ -765,7 +774,8 @@ CommandList::RetType RunState(CpptrajState& State, ArgList& argIn, CommandList::
     if (default_crd->Size() > 0)
       mprintf("Warning: Default COORDS DataSet has already been written to.\n");
     else {
-      CommandList::Dispatch( State, "createcrd _DEFAULTCRD_");
+      if (CommandList::Dispatch( State, "createcrd _DEFAULTCRD_") == CommandList::C_ERR)
+        return CommandList::C_ERR;
     }
   }
   return (CommandList::RetType)State.Run();

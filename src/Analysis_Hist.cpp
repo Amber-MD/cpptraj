@@ -52,7 +52,7 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
                        arglist.Command());
   DataSet* dset = datasetlist->GetDataSet( arglist[0] );
   if (dset == 0) {
-    mprintf("\t      Dataset %s not found.\n",arglist.Command());
+    mprinterr("Error: Dataset %s not found.\n",arglist.Command());
     return 1;
   }
 
@@ -66,7 +66,7 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
 
   // Check that dataset is not string
   if (dset->Type()==DataSet::STRING) {
-    mprintf("Error: Hist: Cannot histogram dataset %s, type STRING.\n", 
+    mprinterr("Error: Hist: Cannot histogram dataset %s, type STRING.\n", 
             dset->Legend().c_str());
     return 1;
   }
@@ -176,7 +176,7 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   std::string histname = analyzeArgs.GetStringKey("name");
   outfilename_ = analyzeArgs.GetStringKey("out");
   if (outfilename_.empty()) {
-    mprintf("Error: Hist: No output filename specified.\n");
+    mprinterr("Error: Hist: No output filename specified.\n");
     return Analysis::ERR;
   }
   // Create a DataFile here so any DataFile arguments can be processed. If it

@@ -13,16 +13,17 @@ class CpptrajState {
   public:
     CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true), nrun_(0) {}
     // TODO: Change to &
-    TopologyList* PFL()     { return &parmFileList_; }
-    FrameList* FL()         { return &refFrames_;    }
-    DataSetList* DSL()      { return &DSL_;          }
-    DataFileList* DFL()     { return &DFL_;          }
-    void SetNoExitOnError() { exitOnError_ = false;  }
-    void SetNoProgress()    { showProgress_ = false; }
-    int Debug()       const { return debug_;         }
-    int Nrun()        const { return nrun_;          }
-    bool Empty()      const { return (actionList_.Empty() && analysisList_.Empty()); }
-    void RunAnalyses()      { analysisList_.DoAnalyses(); }
+    TopologyList* PFL()      { return &parmFileList_; }
+    FrameList* FL()          { return &refFrames_;    }
+    DataSetList* DSL()       { return &DSL_;          }
+    DataFileList* DFL()      { return &DFL_;          }
+    void SetNoExitOnError()  { exitOnError_ = false;  }
+    void SetNoProgress()     { showProgress_ = false; }
+    int Debug()        const { return debug_;         }
+    int Nrun()         const { return nrun_;          }
+    bool ExitOnError() const { return exitOnError_;   } // TODO: Obsolete?
+    bool Empty()       const { return (actionList_.Empty() && analysisList_.Empty()); }
+    void RunAnalyses();
     inline int AddTrajout( ArgList& );
     inline int AddTrajin( ArgList& );
     inline int AddReference( ArgList& );
@@ -31,6 +32,7 @@ class CpptrajState {
     int ListAll(ArgList&);
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
+    int MaskString( std::string const& );
     int Run();
     /// Write all DataFiles
     void MasterDataFileWrite();
@@ -93,11 +95,11 @@ int CpptrajState::AddTrajin( ArgList& argIn ) {
 int CpptrajState::AddReference( ArgList& argIn ) {
   return refFrames_.AddReference(argIn, parmFileList_);
 }
-
+// CpptrajState::AddAction()
 int CpptrajState::AddAction( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
   return actionList_.AddAction( Alloc, argIn, &parmFileList_, &refFrames_, &DSL_, &DFL_ );
 }
-
+// CpptrajState::AddAnalysis()
 int CpptrajState::AddAnalysis( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
   return analysisList_.AddAnalysis( Alloc, argIn, &parmFileList_, &DSL_, &DFL_ );
 }
