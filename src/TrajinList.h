@@ -12,7 +12,9 @@ class TrajinList {
     void Clear();
     void SetDebug(int dIn) { debug_ = dIn; }
     /// Add a traj file to the list based on input from arg list
-    int AddTrajin(ArgList&, TopologyList&);
+    int AddTrajin(ArgList&, TopologyList const&);
+    /// Add trajectory ensemble
+    int AddEnsemble(ArgList&, TopologyList const&);
 
     typedef std::vector<Trajin*> ListType;
     typedef ListType::const_iterator const_iterator;
@@ -23,6 +25,8 @@ class TrajinList {
     int MaxFrames()        const { return maxframes_;      }
     void List() const;
   private:
+    int AddInputTraj(Trajin*, ArgList&, TopologyList const&);
+
     ListType trajin_;
     int debug_;
     int maxframes_;

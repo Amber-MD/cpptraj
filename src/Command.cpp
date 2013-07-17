@@ -902,7 +902,13 @@ Command::RetType Trajout(CpptrajState& State, ArgList& argIn, Command::AllocType
 /// Add input trajectory to State
 Command::RetType Trajin(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (Command::RetType)State.AddTrajin( argIn );
+  return (Command::RetType)State.AddTrajin( argIn, false );
+}
+
+/// Add ensemble of input trajectories to State.
+Command::RetType Ensemble(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  return (Command::RetType)State.AddTrajin( argIn, true );
 }
 
 /// Add reference trajectory to State
@@ -1116,7 +1122,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "writedata",     0, Help_WriteData,       WriteAllData    },
   { GENERAL, "xmgrace",       0, Help_System,          SystemCmd       },
   // TRAJECTORY COMMANDS
-  { TRAJ,    "ensemble",      0, Help_Ensemble,        Trajin          },
+  { TRAJ,    "ensemble",      0, Help_Ensemble,        Ensemble        },
   { TRAJ,    "reference",     0, Help_Reference,       Reference       },
   { TRAJ,    "trajin",        0, Help_Trajin,          Trajin          },
   { TRAJ,    "trajout",       0, Help_Trajout,         Trajout         },

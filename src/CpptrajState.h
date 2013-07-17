@@ -25,7 +25,7 @@ class CpptrajState {
     bool Empty()       const { return (actionList_.Empty() && analysisList_.Empty()); }
     void RunAnalyses();
     inline int AddTrajout( ArgList& );
-    inline int AddTrajin( ArgList& );
+    inline int AddTrajin( ArgList&, bool );
     inline int AddReference( ArgList& );
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
     inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );
@@ -88,9 +88,13 @@ int CpptrajState::AddTrajout( ArgList& argIn ) {
   return trajoutList_.AddTrajout( argIn, parmFileList_ );
 }
 // CpptrajState::AddTrajin()
-int CpptrajState::AddTrajin( ArgList& argIn ) {
+int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
   argIn.MarkArg(0);
-  if ( trajinList_.AddTrajin( argIn, parmFileList_ ) ) return 1;
+  if (isEnsemble) {
+    if ( trajinList_.AddEnsemble( argIn, parmFileList_ ) ) return 1;
+  } else {
+    if ( trajinList_.AddTrajin( argIn, parmFileList_ ) ) return 1;
+  }
   DSL_.SetMax( trajinList_.MaxFrames() );
   return 0;
 }

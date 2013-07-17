@@ -22,46 +22,46 @@ void TrajinList::Clear() {
   maxframes_ = 0;
 }
 
+// TrajinList::AddEnsemble()
+int TrajinList::AddEnsemble(ArgList& argIn, TopologyList const& topListIn) {
+  if (mode_ == NORMAL) {
+    mprinterr("Error: 'ensemble' and 'trajin' are mutually exclusive.\n");
+    return 1;
+  }
+  Trajin* traj = new Trajin_Multi();
+  mode_ = ENSEMBLE;
+  return AddInputTraj( traj, argIn, topListIn );
+}
+
 // TrajinList::AddTrajin()
-/** Add trajectory to the trajectory list as an input trajectory. 
-  * Associate the trajectory with one of the parm files in the 
-  * TopologyList. 
-  */
-int TrajinList::AddTrajin(ArgList& argIn, TopologyList& topListIn) {
+int TrajinList::AddTrajin(ArgList& argIn, TopologyList const& topListIn) {
   Trajin* traj = 0;
-  if ( argIn.CommandIs("trajin") ) {
-    // trajin and ensemble are currently mutually exclusive
-    if (mode_ == ENSEMBLE) {
-      mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
-      return 1;
-    }
-    if (argIn.hasKey("remdtraj"))
-      traj = new Trajin_Multi();
-    else
-      traj = new Trajin_Single();
-    mode_ = NORMAL;
-  } else if ( argIn.CommandIs("ensemble") ) {
-    if (mode_ == NORMAL) {
-      mprinterr("Error: 'ensemble' and 'trajin' are mutually exclusive.\n");
-      return 1;
-    }
+  if (mode_ == ENSEMBLE) {
+    mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
+    return 1;
+  }
+  if (argIn.hasKey("remdtraj"))
     traj = new Trajin_Multi();
-    mode_ = ENSEMBLE;
-  } else
-    return 1; // Command does not pertain to TrajinList
+  else
+    traj = new Trajin_Single();
+  mode_ = NORMAL;
+  return AddInputTraj( traj, argIn, topListIn );
+}
+
+// TrajinList::AddInputTraj()
+int TrajinList::AddInputTraj(Trajin* traj, ArgList& argIn, TopologyList const& topListIn) {
   if (traj==0) {
-    mprinterr("Error: TrajinList::Add: Could not allocate memory for traj.\n");
+    mprinterr("Error: Could not allocate memory for input trajectory.\n");
     return 1;
   }
   // Get parm from TopologyList based on args
   Topology* tempParm = topListIn.GetParm( argIn );
   traj->SetDebug(debug_);
   if ( traj->SetupTrajRead(argIn.GetStringNext(), &argIn, tempParm) ) {
-    mprinterr("Error: trajin: Could not set up trajectory.\n");
+    mprinterr("Error: Could not set up input trajectory.\n");
     delete traj;
     return 1;
   }
-
   // Add to trajectory file list
   trajin_.push_back(traj);
   // Update total # of frames

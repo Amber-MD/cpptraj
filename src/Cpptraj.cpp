@@ -124,7 +124,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     } else if ( arg == "-y" && i+1 != argc) {
       // -y: Trajectory file in
       ArgList targ("trajin " + std::string(argv[++i]));
-      if (State_.AddTrajin( targ )) return ERROR;
+      if (State_.AddTrajin( targ, false )) return ERROR;
     } else if ( arg == "-x" && i+1 != argc) {
       // -x: Trajectory file out
       ArgList targ("trajout " + std::string(argv[++i]));
