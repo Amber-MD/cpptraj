@@ -3,6 +3,11 @@
 #include "CpptrajState.h"
 #include "ArgList.h"
 #include "DispatchObject.h"
+/// This is a static class that determines how commands are handled.
+/** To add a new Action/Analysis command, add the appropriate '#include'
+  * to the top of Command.cpp and add an entry to Commands[] (search for 
+  * INC_ACTION/INC_ANALYSIS respectively).
+  */
 class Command {
   public:
     /// Possible command return types.
