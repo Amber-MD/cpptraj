@@ -39,11 +39,11 @@ int CpptrajState::ListAll( ArgList& argIn ) {
   if ( enabled[L_ACTION]   ) actionList_.List();
   if ( enabled[L_TRAJIN]   ) trajinList_.List();
   if ( enabled[L_REF]      ) refFrames_.List();//{mprintf("\nREFERENCE COORDS:\n");refFrames_.List();}
-  if ( enabled[L_TRAJOUT]  ) trajoutList_.List();//{mprintf("\nOUTPUT TRAJECTORIES:\n");trajoutList_.List();}
+  if ( enabled[L_TRAJOUT]  ) {mprintf("\nOUTPUT TRAJECTORIES:\n");trajoutList_.List();}
   if ( enabled[L_PARM]     ) parmFileList_.List();
   if ( enabled[L_ANALYSIS] ) analysisList_.List();
   if ( enabled[L_DATAFILE] ) DFL_.List();
-  if ( enabled[L_DATASET]  ) DSL_.List();//{mprintf("\nDATASETS:\n");DSL_.List();}
+  if ( enabled[L_DATASET]  ) {mprintf("\nDATASETS:\n");DSL_.List();}
   return 0;
 }
 
@@ -179,7 +179,6 @@ int CpptrajState::RunEnsemble() {
   // Parameter file information
   parmFileList_.List();
   // Print reference information 
-  mprintf("\nREFERENCE COORDS:\n");
   refFrames_.List();
 # ifdef MPI
   // Each thread will process one member of the ensemble, so total ensemble
@@ -384,7 +383,6 @@ int CpptrajState::RunNormal() {
   // Input coordinate file information
   trajinList_.List();
   // Print reference information 
-  mprintf("\nREFERENCE COORDS:\n");
   refFrames_.List();
   // Output traj
   mprintf("\nOUTPUT TRAJECTORIES:\n");

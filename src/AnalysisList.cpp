@@ -64,7 +64,7 @@ void AnalysisList::DoAnalyses() {
 }
 
 void AnalysisList::List() const {
-  mprintf("ANALYSES:\n");
+  mprintf("\nANALYSES:\n");
   if (analysisList_.empty())
     mprintf("  No Analyses.\n");
   else

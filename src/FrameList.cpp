@@ -240,7 +240,7 @@ void FrameList::List() const {
     return;
   }
   if (HasNames()) {
-    mprintf("  The following %zu frames have been defined:\n",frames_.size());
+    mprintf("\nREFERENCE FRAMES (%zu total):\n",frames_.size());
     for (int fn=0; fn < (int)frames_.size(); fn++) { 
       if (!Tag(fn).empty())
         mprintf("    %i: %s frame %i\n", fn, Tag(fn).c_str(),

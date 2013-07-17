@@ -82,14 +82,12 @@ class CpptrajState {
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 // CpptrajState::AddTrajout()
 int CpptrajState::AddTrajout( ArgList& argIn ) {
-  argIn.MarkArg(0); // TODO: Make special command arg class
   // For setting up ensemble later, save trajout arg.
   trajoutArgs_.push_back( argIn );
   return trajoutList_.AddTrajout( argIn, parmFileList_ );
 }
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
-  argIn.MarkArg(0);
   if (isEnsemble) {
     if ( trajinList_.AddEnsemble( argIn, parmFileList_ ) ) return 1;
   } else {
@@ -100,7 +98,6 @@ int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
 }
 // CpptrajState::AddReference()
 int CpptrajState::AddReference( ArgList& argIn ) {
-  argIn.MarkArg(0);
   return refFrames_.AddReference(argIn, parmFileList_);
 }
 // CpptrajState::AddAction()

@@ -136,7 +136,7 @@ void ActionList::Print() {
 }
 
 void ActionList::List() const {
-  mprintf("ACTIONS:\n");
+  mprintf("\nACTIONS:\n");
   if (actionlist_.empty())
     mprintf("  No Actions.\n");
   else
