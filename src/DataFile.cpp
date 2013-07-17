@@ -126,6 +126,7 @@ DataIO* DataFile::DetectFormat(std::string const& fname, DataFormatType& ftype) 
       delete io;
     }
   }
+  ftype = UNKNOWN_DATA;
   return 0;
 }
 
