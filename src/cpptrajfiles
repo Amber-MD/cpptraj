@@ -74,6 +74,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_CrossCorr.cpp \
         Analysis_FFT.cpp \
         Analysis_Hist.cpp \
+        Analysis_Integrate.cpp \
         Analysis_IRED.cpp \
         Analysis_Lifetime.cpp \
         Analysis_Matrix.cpp \
@@ -128,6 +129,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_GridFlt.cpp \
         DataSet_MatrixDbl.cpp \
         DataSet_MatrixFlt.cpp \
+        DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
         DataSet_RemLog.cpp \
         DataSet_Vector.cpp \

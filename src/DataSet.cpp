@@ -142,6 +142,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
     case MODES :
     case REMLOG:
     case MATRIX_DBL:
+    case XYMESH:
     case DOUBLE : format_ = SetDoubleFormatString(width_, precision_, 0); break;
     case MATRIX_FLT:
     case GRID_FLT  :

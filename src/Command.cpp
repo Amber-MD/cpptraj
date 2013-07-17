@@ -89,6 +89,7 @@
 #include "Analysis_Overlap.h"
 #include "Analysis_AmdBias.h"
 #include "Analysis_RemLog.h"
+#include "Analysis_Integrate.h"
 // ---- Command Functions ------------------------------------------------------
 /** Search Commands list for a specific type of command. */
 Command::TokenPtr Command::SearchTokenType(CommandType dtype,
@@ -1231,6 +1232,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "fft", Analysis_FFT::Alloc, Analysis_FFT::Help, AddAnalysis },
   { ANALYSIS, "hist", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
   { ANALYSIS, "histogram", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
+  { ANALYSIS, "integrate", Analysis_Integrate::Alloc, Analysis_Integrate::Help, AddAnalysis },
   { ANALYSIS, "ired", Analysis_IRED::Alloc, Analysis_IRED::Help, AddAnalysis },
   { ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, AddAnalysis },
   { ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },

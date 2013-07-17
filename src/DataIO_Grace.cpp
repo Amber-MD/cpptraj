@@ -89,7 +89,7 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
   Array1D Sets( SetList );
   if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
-  size_t maxFrames = Sets.DetermineMax();
+  //size_t maxFrames = Sets.DetermineMax();
   // Open output file.
   CpptrajFile file;
   if (file.OpenWrite( fname )) return 1;
@@ -101,6 +101,7 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
   // Loop over DataSets
   unsigned int setnum = 0;
   for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
+    size_t maxFrames = (*set)->Size();
     // Set information
     file.Printf("@  s%u legend \"%s\"\n@target G0.S%u\n@type xy\n",
                    setnum, (*set)->Legend().c_str(), setnum );
