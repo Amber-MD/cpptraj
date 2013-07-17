@@ -853,6 +853,7 @@ Command::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
   if ( ana->Setup( analyzeargs, State.DSL(), State.PFL(), State.DFL(), State.Debug() ) == 
                    Analysis::OK )
   {
+    analyzeargs.CheckForMoreArgs();
     if (ana->Analyze() != Analysis::ERR) {
       err = Command::C_OK;
       State.MasterDataFileWrite();
