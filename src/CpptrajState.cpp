@@ -510,8 +510,8 @@ int CpptrajState::RunNormal() {
   mprintf("\nACTION OUTPUT:\n");
   actionList_.Print( );
 # ifdef MPI
-  // Sync DataSets and print DataSet information
-  DSL_.Sync();
+  // Sync DataSets across all threads. 
+  DSL_.SynchronizeData();
 # endif
   // ========== A N A L Y S I S  P H A S E ==========
   mprintf("\nDATASETS:\n");

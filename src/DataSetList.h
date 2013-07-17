@@ -69,8 +69,10 @@ class DataSetList {
     void AddCopyOfSet(DataSet*);
     /// Print info on DataSets in the list
     void List() const;
+#   ifdef MPI
     /// Call sync for DataSets in the list (MPI only)
-    void Sync();
+    void SynchronizeData();
+#   endif
     /// Find next set of specified type with given name.
     DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
     /// Find COORDS DataSet or create default COORDS DataSet.

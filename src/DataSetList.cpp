@@ -379,9 +379,9 @@ void DataSetList::List() const {
     mprintf("\n");
   }
 }
-
-// DataSetList::Sync()
-void DataSetList::Sync() {
+#ifdef MPI
+// DataSetList::SynchronizeData()
+void DataSetList::SynchronizeData() {
   // Sync datasets - does nothing if worldsize is 1
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
     if ( (*ds)->Sync() ) {
@@ -390,7 +390,7 @@ void DataSetList::Sync() {
     }
   }
 }
-
+#endif
 // DataSetList::FindSetOfType()
 DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn) const
 {
