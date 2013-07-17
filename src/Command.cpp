@@ -67,7 +67,6 @@
 #include "Action_OrderParameter.h"
 #include "Action_MinDist.h"
 #include "Action_FixAtomOrder.h"
-
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -92,8 +91,8 @@
 #include "Analysis_RemLog.h"
 // ---- Command Functions ------------------------------------------------------
 /** Search Commands list for a specific type of command. */
-Command::TokenPtr Command::SearchTokenType(CommandType dtype, 
-                                                   ArgList const& argIn)
+Command::TokenPtr Command::SearchTokenType(CommandType dtype,
+                                           ArgList const& argIn)
 {
   for (TokenPtr token = Commands; token->Type != NONE; ++token)
   {
@@ -112,28 +111,32 @@ const char* Command::CommandTitle[] = { 0, "Topology", "Trajectory", "Action",
   * is NONE.
   */
 void Command::ListCommands(CommandType dtype) {
+  std::string Line;
   CommandType lastType = NONE;
-  int col = 0;
   for (TokenPtr token = Commands; token->Type != DEPRECATED; ++token)
   {
     CommandType currentType = token->Type;
     if (dtype != NONE && dtype != currentType) continue;
-    // Command type title
+    // Command group type title
     if (currentType != lastType) {
-      if (col != 0) mprintf("\n");
+      if (!Line.empty()) {
+        mprintf("%s\n", Line.c_str());
+        Line.clear();
+      }
       mprintf("%s Commands:\n", CommandTitle[currentType]);
       lastType = currentType;
-      col = 0;
     }
-    if (col == 0) mprintf("\t");
-    mprintf("%s  ", token->Cmd);
-    ++col;
-    if (col == 8) {
-      mprintf("\n");
-      col = 0;
+    if (Line.empty()) Line.assign("        ");
+    std::string Command(token->Cmd);
+    Command.append(" ");
+    if ( Line.size() + Command.size() > 80 ) {
+      mprintf("%s\n", Line.c_str());
+      Line.assign("        ");
     }
+    Line.append(Command);
   }
-  mprintf("\n");
+  if (!Line.empty())
+    mprintf("%s\n", Line.c_str());
 }
 
 /** Search the Commands list for given command.
@@ -154,7 +157,9 @@ Command::TokenPtr Command::SearchToken(ArgList& argIn) {
 }
 
 /** Search for the given command and execute it. */
-Command::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn) {
+Command::RetType Command::Dispatch(CpptrajState& State,
+                                   std::string const& commandIn)
+{
   ArgList cmdArg( commandIn );
   cmdArg.MarkArg(0); // Always mark the first arg as the command 
   TokenPtr cmdToken = SearchToken( cmdArg );
@@ -174,7 +179,7 @@ static inline bool EndChar(char ptr) {
   * \return 0 if successfully read, 1 on error.
   */
 Command::RetType Command::ProcessInput(CpptrajState& State, 
-                                               std::string const& inputFilename)
+                                       std::string const& inputFilename)
 {
   FILE* infile; // TODO: CpptrajFile
   if (inputFilename.empty()) {
