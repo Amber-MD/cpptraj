@@ -151,7 +151,6 @@ SOURCES=ActionFrameCounter.cpp \
         GridAction.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
-        Integrate.cpp \
         MapAtom.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
