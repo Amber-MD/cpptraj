@@ -503,16 +503,16 @@ int CpptrajState::RunNormal() {
           actions_time.Total(), (actions_time.Total() / frames_time.Total() )*100.0,
           trajout_time.Total(), (trajout_time.Total() / frames_time.Total() )*100.0 );
 # endif
-  // Close output traj
+  // Close output trajectories.
   trajoutList_.Close();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nACTION OUTPUT:\n");
   actionList_.Print( );
-
+# ifdef MPI
   // Sync DataSets and print DataSet information
   DSL_.Sync();
-
+# endif
   // ========== A N A L Y S I S  P H A S E ==========
   mprintf("\nDATASETS:\n");
   if (!analysisList_.Empty()) {
