@@ -30,8 +30,8 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
   // Setup output dataset
   matrix_ = datasetlist->AddSet( DataSet::MATRIX_FLT, setname, "crosscorr" );
   if (outfile_ != 0) {
+    matrix_->Dim(Dimension::X).SetLabel("DataSets");
     outfile_->AddSet( matrix_ );
-    outfile_->Dim(Dimension::X).SetLabel("DataSets");
   }
   
   mprintf("    CROSSCORR: Calculating correlation between %i data sets:\n", dsets_.size());

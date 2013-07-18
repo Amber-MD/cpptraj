@@ -789,7 +789,7 @@ void Action_Matrix::Print() {
 
   // Process output file args
   if (outfile_ != 0) {
-    outfile_->Dim(Dimension::X).SetLabel("Atom");
+    Mat_->Dim(Dimension::X).SetLabel("Atom");
     outfile_->ProcessArgs("square2d noxcol noheader");
   }
   return;

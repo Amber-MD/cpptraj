@@ -28,16 +28,6 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   scalartype_(UNDEFINED)
 {
   SetDataSetFormat(false);
-  // Allocate default values for dimensions
-/*  for (unsigned int d = 0; d < dim_.size(); ++d) {
-    switch (d) {
-      case 0: dim_[d].SetLabel("X"); break;
-      case 1: dim_[d].SetLabel("Y"); break;
-      case 2: dim_[d].SetLabel("Z"); break;
-      default: dim_[d].SetLabel("D" + integerToString(d));
-    }
-    dim_[d].SetStep(1.0);
-  }*/
 }
 
 // COPY CONSTRUCTOR

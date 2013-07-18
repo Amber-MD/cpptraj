@@ -413,15 +413,6 @@ void Action_DSSP::Print() {
 
   if (dsspFile_ == 0) return;
   if (dsetname_.empty()) return;
-
-  // Set up a dataset for each SS type
-  for (int ss=1; ss<7; ss++) {
-    dsspData_[ss] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dsetname_, ss, "avgss");
-    dsspData_[ss]->SetLegend( SSname[ss] );
-    dsspFile_->AddSet( dsspData_[ss] ); 
-  }
-  // Change the X label to Residue
-  dsspFile_->Dim(Dimension::X).SetLabel("Residue");
   // Try not to print empty residues. Find the minimum selected residue and 
   // maximum selected residue. Output res nums start from 1.
   int min_res = -1;
@@ -436,7 +427,14 @@ void Action_DSSP::Print() {
     mprinterr("Error: dssp: No selected residues.\n");
     return;
   }
-  dsspFile_->Dim(Dimension::X).SetMin(min_res+1);
+  Dimension Xdim( min_res + 1, 1, max_res - min_res + 1, "Residue" );
+  // Set up a dataset for each SS type
+  for (int ss=1; ss<7; ss++) {
+    dsspData_[ss] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dsetname_, ss, "avgss");
+    dsspData_[ss]->SetLegend( SSname[ss] );
+    dsspData_[ss]->SetDim(Dimension::X, Xdim);
+    dsspFile_->AddSet( dsspData_[ss] ); 
+  }
     
   // Calc the avg structure of each type for each selected residue
   int idx = 0; 

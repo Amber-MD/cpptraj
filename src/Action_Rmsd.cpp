@@ -330,12 +330,13 @@ void Action_Rmsd::Print() {
     int Nperres = (int)PerResRMSD_.size();
     // Use the per residue rmsd dataset list to add one more for averaging
     DataSet* PerResAvg = masterDSL_->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Avg");
+    PerResAvg->SetDim(Dimension::X, Dimension( 1, 1, Nperres, "Residue" ));
     // another for stdev
     DataSet* PerResStdev = masterDSL_->AddSetAspect(DataSet::DOUBLE, rmsd_->Name(), "Stdev");
+    PerResStdev->SetDim(Dimension::X, Dimension( 1, 1, Nperres, "Residue" ));
     // Add the average and stdev datasets to the master datafile list
     perresavg_->AddSet(PerResAvg);
     perresavg_->AddSet(PerResStdev);
-    perresavg_->Dim(Dimension::X).SetLabel("Residue");
     // For each residue, get the average rmsd
     double stdev = 0;
     double avg = 0;

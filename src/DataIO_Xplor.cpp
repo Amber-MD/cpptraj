@@ -95,8 +95,8 @@ int DataIO_Xplor::ReadData(std::string const& fname, ArgList& argIn,
   return 0;
 }
 
-int DataIO_Xplor::WriteData3D(std::string const& fname, DataSet const& setIn,
-                              DimArray const& Dim)
+int DataIO_Xplor::WriteData3D(std::string const& fname, DataSet const& setIn)
+                              
 {
   if (setIn.Ndim() != 3) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",

@@ -63,6 +63,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
       DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, frame );
       if (ds == 0) return Analysis::ERR;
       ds->SetLegend( "F_" + integerToString( frame ) );
+      ds->Dim(Dimension::X).SetLabel("Atom");
       outSets_.push_back( ds );
       if (outfile != 0) outfile->AddSet( ds );
     }
@@ -76,9 +77,9 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
       mprintf("\t%s\n", (*out)->Legend().c_str());
   }
   // Setup output file
-  if (bfactor_)
+/*  if (bfactor_)
     outfile->Dim(Dimension::Y).SetLabel("B-factors");
-  outfile->Dim(Dimension::X).SetLabel("Atom");
+  outfile->Dim(Dimension::X).SetLabel("Atom");*/
 
   return Analysis::OK;
 }

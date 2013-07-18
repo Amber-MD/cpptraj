@@ -220,7 +220,7 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
   size_t maxFrames = Sets.DetermineMax();
   // Use X dimension of set 0 for all set dimensions.
   Dimension const& Xdim = static_cast<Dimension const&>(Sets[0]->Dim(0)); 
-  Dimension const& Ydim = Dim[1];
+  Dimension Ydim( 1, 1, Sets.size() );
   std::string x_format = SetupCoordFormat( maxFrames, Xdim, 8, 3);
   std::string y_format = SetupCoordFormat( Sets.size(), Ydim, 8, 3);
   std::string xy_format_string = x_format + " " + y_format + " ";
@@ -304,8 +304,7 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
 }
 
 // DataIO_Gnuplot::WriteData2D()
-int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSet const& setIn, 
-                                 DimArray const& Dim ) 
+int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSet const& setIn) 
 {
   if (setIn.Ndim() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
@@ -316,8 +315,8 @@ int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSet const& setIn,
   // Open output file
   if (file_.OpenWrite( fname )) return 1;
 
-  Dimension const& Xdim = Dim[0];
-  Dimension const& Ydim = Dim[1];
+  Dimension const& Xdim = setIn.Dim(0);
+  Dimension const& Ydim = setIn.Dim(1);
   if (writeHeader_) {
     // Check for JPEG output
     JpegOut( set.Ncols(), set.Nrows() );

@@ -86,11 +86,12 @@ Analysis::RetType Analysis_FFT::Analyze() {
   double fnyquist = sr / 2.0;         // Nyquist frequency
   double total_time = dt_ * (double)maxsize_; // Total time (fundamental period)
   double f0 = 1.0 / total_time;       // Fundamental frequency (first harmonic)
-  if (outfile_ != 0) { 
+  Dimension Xdim(0.0, f0, maxsize_, "Freq.");
+/*  if (outfile_ != 0) { 
     outfile_->Dim(Dimension::X).SetLabel("Freq.");
     outfile_->Dim(Dimension::X).SetMin(0.0);
     outfile_->Dim(Dimension::X).SetStep(f0);
-  }
+  }*/
   double norm = (double)maxsize_ / 2;
 
   std::vector<DataSet_1D*>::iterator dsout = output_dsets_.begin();
@@ -122,6 +123,7 @@ Analysis::RetType Analysis_FFT::Analyze() {
      (*dsout)->Add( i1, &magnitude );
      i2 += 2;
     }
+    (*dsout)->SetDim(Dimension::X, Xdim);
     ++dsout;
   }
   return Analysis::OK;

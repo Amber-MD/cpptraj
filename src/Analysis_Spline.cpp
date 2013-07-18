@@ -46,18 +46,22 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
 
   // Set up output datasets
   if (outfile_ != 0) {
+    Dimension Xdim( meshmin_, (meshmax_ - meshmin_) / (double)meshsize_,
+                    meshsize_ );
     for (Array1D::const_iterator dsIn = input_dsets_.begin();
                                  dsIn != input_dsets_.end(); ++dsIn)
     {
       DataSet* ds = datasetlist->AddSet(DataSet::XYMESH, setname, "Spline");
       if (ds == 0) return Analysis::ERR;
       ds->SetLegend( "Spline(" + (*dsIn)->Legend() + ")" );
+      // TODO: Set individually based on input_dsets_
+      ds->SetDim(Dimension::X, Xdim);
       outfile_->AddSet( ds );
       output_dsets_.push_back( (DataSet_Mesh*)ds );
     }
-    outfile_->Dim(Dimension::X).SetMin( meshmin_ );
+    /*outfile_->Dim(Dimension::X).SetMin( meshmin_ );
     double meshstep = (meshmax_ - meshmin_) / (double)meshsize_;
-    outfile_->Dim(Dimension::X).SetStep( meshstep );
+    outfile_->Dim(Dimension::X).SetStep( meshstep );*/
   }
 
   mprintf("    SPLINE: Applying cubic splining to %u data sets, mesh size is %i.\n",

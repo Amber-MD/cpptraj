@@ -255,7 +255,7 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   if (argIn.Contains("time")) {
     SetDataSetStep(0, argIn.getKeyDouble("time", -1.0) );
     SetDataSetMin(0, 0.0 );
-    SetDataSetOffset( 1 );
+    SetDataSetOffset( 0, 1 );
   }
   // Default DataSet width/precision
   std::string prec_str = argIn.GetStringKey("prec");
@@ -315,7 +315,7 @@ void DataFile::WriteData() {
   // Set default min and step for all dimensions if not already set.
   for (unsigned int idx = 0; idx < SetList_.size(); ++idx) {
     DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
-    for (int nd = 0; nd < ds.Ndim(); ++nd) {
+    for (unsigned int nd = 0; nd < ds.Ndim(); ++nd) {
       Dimension& dim = ds.Dim(nd);
       if (!dim.MinIsSet()) dim.SetMin(1.0);
       if (dim.Step() < 0 ) dim.SetStep(1.0);

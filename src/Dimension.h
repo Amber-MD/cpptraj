@@ -7,6 +7,10 @@ class Dimension {
   public:
     enum DimIdxType { X = 0, Y, Z };
     Dimension();
+    /// CONSTRUCTOR - Min, step, bins
+    Dimension(double, double, int);
+    /// CONSTRUCTOR - Min, step, bins, label
+    Dimension(double, double, int, std::string const&);
     Dimension(const Dimension&);
     Dimension& operator=(const Dimension&);
  

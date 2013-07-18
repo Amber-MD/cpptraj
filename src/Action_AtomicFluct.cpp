@@ -127,7 +127,8 @@ void Action_AtomicFluct::Print() {
   if (bfactor_) {
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
-    outfile_->Dim(Dimension::Y).SetLabel("B-factors");
+    // TODO: Set Y axis label in DataFile
+    //outfile_->Dim(Dimension::Y).SetLabel("B-factors");
     double bfac = (8.0/3.0)*PI*PI;
     for (int i = 0; i < SumCoords2_.size(); i+=3) {
       double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
@@ -149,7 +150,7 @@ void Action_AtomicFluct::Print() {
   DataSet_double& dset = static_cast<DataSet_double&>( *dataout_ );
   if (outtype_ == BYATOM) {
     // By atom output
-    outfile_->Dim(Dimension::X).SetLabel("Atom");
+    dataout_->Dim(Dimension::X).SetLabel("Atom");
     for (int atom = 0; atom < (int)Results.size(); atom++ ) {
       if (Mask.AtomInCharMask(atom)) {
         if (minElt == -1) minElt = atom;
@@ -158,7 +159,7 @@ void Action_AtomicFluct::Print() {
     }
   } else if (outtype_ == BYRES) { 
     // By residue output
-    outfile_->Dim(Dimension::X).SetLabel("Res");
+    dataout_->Dim(Dimension::X).SetLabel("Res");
     for (Topology::res_iterator residue = fluctParm_->ResStart();
                                 residue != fluctParm_->ResEnd(); ++residue) {
       double xi = 0.0;
@@ -178,7 +179,7 @@ void Action_AtomicFluct::Print() {
   } else if (outtype_ == BYMASK) {
     // By mask output
     minElt = 0;
-    outfile_->Dim(Dimension::X).SetLabel( Mask.MaskExpression() );
+    dataout_->Dim(Dimension::X).SetLabel( Mask.MaskExpression() );
     double xi = 0.0;
     double fluct = 0.0;
     for (int atom = 0; atom < (int)Results.size(); atom++) {
@@ -192,6 +193,6 @@ void Action_AtomicFluct::Print() {
       dset.AddElement( fluct / xi );
   }
   if (minElt > -1)
-    outfile_->Dim(Dimension::X).SetMin( minElt+1 );
+    dataout_->Dim(Dimension::X).SetMin( minElt+1 );
 }
 

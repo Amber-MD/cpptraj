@@ -121,27 +121,26 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   Dset_->SetPrecision(12,6);
   // Set DataSet legend from mask strings.
   Dset_->SetLegend(Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression());
+  // TODO: Set Yaxis label in DataFile
+  // Calculate number of bins
+  one_over_spacing_ = 1 / spacing_;
+  double temp_numbins = maximum * one_over_spacing_;
+  temp_numbins = ceil(temp_numbins);
+  numBins_ = (int) temp_numbins;
   // Setup output datafile. Align on bin centers instead of left.
-  outfile->Dim(Dimension::X).SetMin( spacing_ / 2.0 );
-  outfile->Dim(Dimension::X).SetStep( spacing_ );
-  // Set axis labels. 
-  outfile->Dim(Dimension::X).SetLabel("Distance (Ang)");
-  outfile->Dim(Dimension::Y).SetLabel("g(r)");
+  // TODO: Use Rdim for binning?
+  Dimension Rdim( spacing_ / 2.0, spacing_, numBins_, "Distance (Ang)" ); 
+  Dset_->SetDim(Dimension::X, Rdim);
   // Set up output for integral of mask2 if specified.
   if (!intrdfname.empty()) {
     intrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "int" );
     intrdf_->SetPrecision(12,6);
     intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
+    intrdf_->SetDim(Dimension::X, Rdim);
     outfile = DFL->AddSetToFile( intrdfname, intrdf_ );
     if (outfile == 0) {
       mprinterr("Error: Could not add intrdf set to file %s\n", intrdfname.c_str());
       return Action::ERR;
-    }
-    if (intrdfname != outfilename) {
-      outfile->Dim(Dimension::X).SetLabel("Distance (Ang)");
-      outfile->Dim(Dimension::Y).SetLabel("");
-      outfile->Dim(Dimension::X).SetMin( spacing_ / 2.0 );
-      outfile->Dim(Dimension::X).SetStep( spacing_ );
     }
   } else
     intrdf_ = 0;
@@ -149,26 +148,17 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (!rawrdfname.empty()) {
     rawrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "raw" );
     rawrdf_->SetPrecision(12,6);
-    rawrdf_->SetLegend("Raw[" + Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression() + "]");
+    rawrdf_->SetLegend("Raw[" + Dset_->Legend() + "]");
+    rawrdf_->SetDim(Dimension::X, Rdim);
     outfile = DFL->AddSetToFile( rawrdfname, rawrdf_ );
     if (outfile == 0) {
       mprinterr("Error: Could not add rawrdf set to file %s\n", rawrdfname.c_str());
       return Action::ERR;
     }
-    if (rawrdfname != outfilename) {
-      outfile->Dim(Dimension::X).SetLabel("Distance (Ang)");
-      outfile->Dim(Dimension::Y).SetLabel("Distances");
-      outfile->Dim(Dimension::X).SetMin( spacing_ / 2.0 );
-      outfile->Dim(Dimension::X).SetStep( spacing_ );
-    }
   } else
     rawrdf_ = 0;
 
   // Set up histogram
-  one_over_spacing_ = 1 / spacing_;
-  double temp_numbins = maximum * one_over_spacing_;
-  temp_numbins = ceil(temp_numbins);
-  numBins_ = (int) temp_numbins;
   RDF_ = new int[ numBins_ ];
   std::fill(RDF_, RDF_ + numBins_, 0);
 # ifdef _OPENMP

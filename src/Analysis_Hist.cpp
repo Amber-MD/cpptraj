@@ -367,22 +367,21 @@ Analysis::RetType Analysis_Hist::Analyze() {
       DataSet_double& dds = static_cast<DataSet_double&>( *hist_ );
       // Since Allocate1D only reserves data, use assignment op.
       dds = Bins_;
-      outfile_->SetDim(Dimension::X, dimensions_[0]);
-      outfile_->Dim(Dimension::Y).SetLabel("Count");
+      hist_->SetDim(Dimension::X, dimensions_[0]);
     } else if (N_dimensions_ == 2) {
       DataSet_MatrixDbl& mds = static_cast<DataSet_MatrixDbl&>( *hist_ );
       mds.Allocate2D( dimensions_[0].Bins(), dimensions_[1].Bins() );
       std::copy( Bins_.begin(), Bins_.end(), mds.begin() );
-      outfile_->SetDim(Dimension::X, dimensions_[0]);
-      outfile_->SetDim(Dimension::Y, dimensions_[1]);
+      hist_->SetDim(Dimension::X, dimensions_[0]);
+      hist_->SetDim(Dimension::Y, dimensions_[1]);
       outfile_->ProcessArgs("noxcol usemap nolabels");
     } else if (N_dimensions_ == 3) {
       DataSet_GridFlt& gds = static_cast<DataSet_GridFlt&>( *hist_ );
       gds.Allocate3D( dimensions_[0].Bins(), dimensions_[1].Bins(), dimensions_[2].Bins() );
       std::copy( Bins_.begin(), Bins_.end(), gds.begin() );
-      outfile_->SetDim(Dimension::X, dimensions_[0]);
-      outfile_->SetDim(Dimension::Y, dimensions_[1]);
-      outfile_->SetDim(Dimension::Z, dimensions_[2]);
+      hist_->SetDim(Dimension::X, dimensions_[0]);
+      hist_->SetDim(Dimension::Y, dimensions_[1]);
+      hist_->SetDim(Dimension::Z, dimensions_[2]);
       outfile_->ProcessArgs("noxcol usemap nolabels");
     }
   }

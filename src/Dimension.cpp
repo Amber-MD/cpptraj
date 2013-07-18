@@ -13,6 +13,29 @@ Dimension::Dimension() :
   maxIsSet_(false)
 {}
 
+// CONSTRUCTOR
+Dimension::Dimension(double min, double step, int bins) :
+  min_(min),
+  max_(min + (double)bins * step),
+  step_(step),
+  bins_(bins),
+  offset_(0),
+  minIsSet_(true),
+  maxIsSet_(true)
+{}
+
+// CONSTRUCTOR
+Dimension::Dimension(double min, double step, int bins, std::string const& label) :
+  label_(label),
+  min_(min),
+  max_(min + (double)bins * step),
+  step_(step),
+  bins_(bins),
+  offset_(0),
+  minIsSet_(true),
+  maxIsSet_(true)
+{}
+
 // COPY CONSTRUCTOR
 Dimension::Dimension(const Dimension& rhs) :
   label_(rhs.label_),
