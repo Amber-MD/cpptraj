@@ -34,9 +34,9 @@ Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, DataSetList* d
   
   mprintf("    INTEGRATE: Calculating integral of %i data sets.\n",
           input_dsets_.size());
-  if (!setname.empty())
   if (outfile_ != 0) {
-    mprintf("\tOutput set name: %s\n", setname.c_str());
+    if (!setname.empty())
+      mprintf("\tOutput set name: %s\n", setname.c_str());
     mprintf("\tOutfile name: %s\n", outfile_->DataFilename().base());
   }
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
