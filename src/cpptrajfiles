@@ -85,6 +85,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_Rms2d.cpp \
         Analysis_RmsAvgCorr.cpp \
         Analysis_RunningAvg.cpp \
+        Analysis_Spline.cpp \
         Analysis_Statistics.cpp \
         Analysis_Timecorr.cpp \
         ArgList.cpp \
