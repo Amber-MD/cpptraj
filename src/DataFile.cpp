@@ -3,6 +3,7 @@
 #endif
 #include "DataFile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 // All DataIO classes go here
 #include "DataIO_Std.h"
 #include "DataIO_Grace.h"
@@ -23,8 +24,8 @@ DataFile::DataFile() :
   setDataSetPrecision_(false), //TODO: Just use default_width_ > -1?
   default_width_(-1),
   default_precision_(-1),
-  dataio_(0),
-  Dim_(3) // default to X/Y/Z dims
+  dataio_(0)
+  //,Dim_(3) // default to X/Y/Z dims
 {}
 
 // DESTRUCTOR
@@ -209,6 +210,26 @@ int DataFile::AddSet(DataSet* dataIn) {
   return 0;
 }
 
+void DataFile::SetDataSetLabels(int nd, std::string const& label) {
+  for (unsigned int idx = 0; idx < SetList_.size(); ++idx)
+    SetList_[idx]->Dim(nd).SetLabel( label );
+}
+
+void DataFile::SetDataSetMin(int nd, double min) {
+  for (unsigned int idx = 0; idx < SetList_.size(); ++idx)
+    SetList_[idx]->Dim(nd).SetMin( min );
+}
+
+void DataFile::SetDataSetStep(int nd, double step) {
+  for (unsigned int idx = 0; idx < SetList_.size(); ++idx)
+    SetList_[idx]->Dim(nd).SetStep( step );
+}
+
+void DataFile::SetDataSetOffset(int nd, int offset) {
+  for (unsigned int idx = 0; idx < SetList_.size(); ++idx)
+    SetList_[idx]->Dim(nd).SetOffset( offset );
+}
+
 // DataFile::ProcessArgs()
 int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
@@ -222,19 +243,19 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   }
   // Axis args.
   if (argIn.Contains("xlabel"))
-    Dim_[0].SetLabel( argIn.GetStringKey("xlabel") );
+    SetDataSetLabels(0, argIn.GetStringKey("xlabel") );
   if (argIn.Contains("ylabel"))
-    Dim_[1].SetLabel( argIn.GetStringKey("ylabel") );
+    SetDataSetLabels(1, argIn.GetStringKey("ylabel") );
   // Axis min/step
-  if (argIn.Contains("xmin")) Dim_[0].SetMin( argIn.getKeyDouble("xmin",0.0) );
-  if (argIn.Contains("ymin")) Dim_[1].SetMin( argIn.getKeyDouble("ymin",0.0) );
-  Dim_[0].SetStep( argIn.getKeyDouble("xstep", Dim_[0].Step()) );
-  Dim_[1].SetStep( argIn.getKeyDouble("ystep", Dim_[1].Step()) );
+  if (argIn.Contains("xmin")) SetDataSetMin(0, argIn.getKeyDouble("xmin",0.0) );
+  if (argIn.Contains("ymin")) SetDataSetMin(1, argIn.getKeyDouble("ymin",0.0) );
+  if (argIn.Contains("xstep")) SetDataSetStep(0, argIn.getKeyDouble("xstep", -1.0) );
+  if (argIn.Contains("ystep")) SetDataSetStep(1, argIn.getKeyDouble("ystep", -1.0) );
   // ptraj 'time' keyword
   if (argIn.Contains("time")) {
-    Dim_[0].SetStep( argIn.getKeyDouble("time", Dim_[0].Step()) );
-    Dim_[0].SetMin( 0.0 );
-    Dim_[0].SetOffset( 1 );
+    SetDataSetStep(0, argIn.getKeyDouble("time", -1.0) );
+    SetDataSetMin(0, 0.0 );
+    SetDataSetOffset( 1 );
   }
   // Default DataSet width/precision
   std::string prec_str = argIn.GetStringKey("prec");
@@ -290,30 +311,41 @@ void DataFile::WriteData() {
   }
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);
+  // Loop over all sets, set default min, step, label if not already set.
   // Set default min and step for all dimensions if not already set.
-  for (int nd = 0; nd < 3; nd++) {
-    if (!Dim_[nd].MinIsSet()) Dim_[nd].SetMin(1.0);
-    if (Dim_[nd].Step() < 0) Dim_[nd].SetStep(1.0);
+  for (unsigned int idx = 0; idx < SetList_.size(); ++idx) {
+    DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
+    for (int nd = 0; nd < ds.Ndim(); ++nd) {
+      Dimension& dim = ds.Dim(nd);
+      if (!dim.MinIsSet()) dim.SetMin(1.0);
+      if (dim.Step() < 0 ) dim.SetStep(1.0);
+      /*switch (nd) {
+        case 0: dim_[d].SetLabel("Frame"); break;
+        case 1: dim_[d].SetLabel("Y"); break;
+        case 2: dim_[d].SetLabel("Z"); break;
+        default: dim_[d].SetLabel("D" + integerToString(d));
+      }*/
+    }
+    // Set x label if not already set
+    if (ds.Ndim()==1 && ds.Dim(0).Label().empty()) ds.Dim(0).SetLabel("Frame");
   }
 #ifdef DATAFILE_TIME
   clock_t t0 = clock();
 #endif
   int err = 0;
   if ( dimension_ == 1 ) {       // One-dimensional
-    // Set x label if not already set
-    if (Dim_[0].Label().empty()) Dim_[0].SetLabel("Frame");
     if (!isInverted_)
-      err = dataio_->WriteData(filename_.Full(), SetList_, Dim_);
+      err = dataio_->WriteData(filename_.Full(), SetList_);
     else
-      err = dataio_->WriteDataInverted(filename_.Full(), SetList_, Dim_);
+      err = dataio_->WriteDataInverted(filename_.Full(), SetList_);
   } else if ( dimension_ == 2) { // Two-dimensional
     for ( DataSetList::const_iterator set = SetList_.begin();
                                       set != SetList_.end(); ++set)
-      err += dataio_->WriteData2D(filename_.Full(), *(*set), Dim_ );
+      err += dataio_->WriteData2D(filename_.Full(), *(*set) );
   } else if ( dimension_ == 3) { // Three-dimensional
     for ( DataSetList::const_iterator set = SetList_.begin();
                                       set != SetList_.end(); ++set)
-      err += dataio_->WriteData3D(filename_.Full(), *(*set), Dim_ );
+      err += dataio_->WriteData3D(filename_.Full(), *(*set) );
   } else {
     mprinterr("Error: %iD writes not yet supported.\n", dimension_);
     err = 1;

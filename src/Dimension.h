@@ -27,6 +27,7 @@ class Dimension {
     bool MaxIsSet()            const { return maxIsSet_; }
     // TODO: Use offset in Coord calc?
     double Coord(size_t i)     const { return ((step_ * (double)i) + min_); }
+    inline bool operator!=(const Dimension&) const;
     /// Attempt to set up bins or step.
     int CalcBinsOrStep();
     void PrintDim() const;
@@ -40,4 +41,10 @@ class Dimension {
     bool minIsSet_;     ///< True if SetMin has been called.
     bool maxIsSet_;     ///< True if SetMax has been called.
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+// FIXME: Check everything??
+bool Dimension::operator!=(const Dimension& rhs) const {
+  if (min_ != rhs.min_ || step_ != rhs.step_) return true;
+  return false;
+}
 #endif

@@ -4,6 +4,7 @@
 #include "BufferedLine.h"
 #include "Array1D.h"
 
+// TODO: Set dimension labels
 // Dont assume anything about set ordering
 int DataIO_Grace::ReadData(std::string const& fname, ArgList& argIn,
                            DataSetList& datasetlist, std::string const& dsname)
@@ -82,8 +83,7 @@ int DataIO_Grace::processWriteArgs(ArgList &argIn) {
 }
 
 // DataIO_Grace::WriteData()
-int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList,
-                            DimArray const& Dim)
+int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList)
 {
   // Hold all 1D data sets.
   Array1D Sets( SetList );
@@ -93,7 +93,7 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
   // Open output file.
   CpptrajFile file;
   if (file.OpenWrite( fname )) return 1;
-  // Grace header. 
+  // Grace header. Use first data set for labels 
   file.Printf(
     "@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",
     Dim[0].Label().c_str(), Dim[1].Label().c_str()

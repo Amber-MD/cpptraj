@@ -18,6 +18,7 @@ static void PrintColumnError() {
   mprinterr("Error: Number of columns in file changes.\n");
 }
 
+// TODO: Set dimension labels
 // DataIO_Std::ReadData()
 int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
                          DataSetList& datasetlist, std::string const& dsname)
@@ -202,8 +203,7 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
 // -----------------------------------------------------------------------------
 
 // DataIO_Std::WriteData()
-int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList,
-                          DimArray const& Dim) 
+int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList)
 {
   std::string x_col_format;
   int xcol_width = 8;
@@ -212,9 +212,21 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList,
   // Hold all 1D data sets.
   Array1D Sets( SetList );
   if (Sets.empty()) return 1;
+  // For this output to work the X-dimension of all sets needs to match.
+  // The most important things for output are min and step so just check that.
   // Use X dimension of set 0 for all set dimensions.
   // TODO: Check for empty dim.
-  Dimension const& Xdim = Dim[0];
+  Dimension const& Xdim = static_cast<Dimension const&>(Sets[0]->Dim(0));
+  for (unsigned int nd = 1; nd < Sets.size(); ++nd) {
+    if (Sets[nd]->Dim(0) != Xdim) {
+      mprinterr("Error: X Dimension of %s != %s\n", Sets[nd]->Legend().c_str(),
+                Sets[0]->Legend().c_str());
+      mprinterr("Error:  %s: Min=%f Step=%f\n", Sets[nd]->Legend().c_str(),
+                Sets[nd]->Dim(0).Min(), Sets[nd]->Dim(0).Step());
+      mprinterr("Error:  %s: Min=%f Step=%f\n", Sets[0]->Legend().c_str(),
+                Sets[0]->Dim(0).Min(), Sets[0]->Dim(0).Step());
+    }
+  }
 
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
@@ -265,8 +277,7 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList,
 }
 
 // DataIO_Std::WriteDataInverted()
-int DataIO_Std::WriteDataInverted(std::string const& fname, DataSetList const& SetList,
-                                  DimArray const& Dim)
+int DataIO_Std::WriteDataInverted(std::string const& fname, DataSetList const& SetList)
 {
   // Hold all 1D data sets.
   Array1D Sets( SetList );
@@ -290,8 +301,7 @@ int DataIO_Std::WriteDataInverted(std::string const& fname, DataSetList const& S
 }
 
 // DataIO_Std::WriteData2D()
-int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn, 
-                             DimArray const& Dim)
+int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn) 
 {
   if (setIn.Ndim() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
@@ -301,7 +311,9 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn,
   DataSet_2D const& set = static_cast<DataSet_2D const&>( setIn );
   int xcol_width = 8;
   int xcol_precision = 3;
-  if (Dim[0].Step() == 1.0) xcol_precision = 0;
+  Dimension const& Xdim = static_cast<Dimension const&>(set.Dim(0));
+  Dimension const& Ydim = static_cast<Dimension const&>(set.Dim(1));
+  if (Xdim.Step() == 1.0) xcol_precision = 0;
   // Open output file
   CpptrajFile file;
   if (file.OpenWrite( fname )) return 1;
@@ -315,22 +327,22 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn,
     // If file has header, top-left value will be '#<Xlabel>-<Ylabel>',
     // followed by X coordinate values.
     if (writeHeader_) {
-      ycoord_fmt = SetupCoordFormat( set.Nrows(), Dim[1], xcol_width, xcol_precision );
+      ycoord_fmt = SetupCoordFormat( set.Nrows(), Ydim, xcol_width, xcol_precision );
       std::string header;
-      if (Dim[0].Label().empty() && Dim[1].Label().empty())
+      if (Xdim.Label().empty() && Ydim.Label().empty())
         header = "#Frame";
       else
-        header = "#" + Dim[0].Label() + "-" + Dim[1].Label();
+        header = "#" + Xdim.Label() + "-" + Ydim.Label();
       WriteNameToBuffer( file, header, xcol_width, true );
-      std::string xcoord_fmt = SetupCoordFormat( set.Ncols(), Dim[0], set.ColumnWidth(), 
+      std::string xcoord_fmt = SetupCoordFormat( set.Ncols(), Xdim, set.ColumnWidth(), 
                                                  xcol_precision );
       for (size_t ix = 0; ix < set.Ncols(); ix++)
-        file.Printf(xcoord_fmt.c_str(), Dim[0].Coord( ix ));
+        file.Printf(xcoord_fmt.c_str(), Xdim.Coord( ix ));
       file.Printf("\n");
     }
     for (size_t iy = 0; iy < set.Nrows(); iy++) {
       if (writeHeader_)
-        file.Printf(ycoord_fmt.c_str(), Dim[1].Coord( iy ));
+        file.Printf(ycoord_fmt.c_str(), Ydim.Coord( iy ));
       for (size_t ix = 0; ix < set.Ncols(); ix++)
         set.Write2D( file, ix, iy );
       file.Printf("\n");
@@ -339,13 +351,13 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn,
     // Print X Y Values
     // x y val(x,y)
     if (writeHeader_)
-      file.Printf("#%s %s %s\n", Dim[0].Label().c_str(), 
-                  Dim[1].Label().c_str(), set.Legend().c_str());
-    std::string col_fmt = SetupCoordFormat( set.Ncols(), Dim[0], 8, 3 ) + " " +
-                          SetupCoordFormat( set.Nrows(), Dim[1], 8, 3 ); 
+      file.Printf("#%s %s %s\n", Xdim.Label().c_str(), 
+                  Ydim.Label().c_str(), set.Legend().c_str());
+    std::string col_fmt = SetupCoordFormat( set.Ncols(), Xdim, 8, 3 ) + " " +
+                          SetupCoordFormat( set.Nrows(), Ydim, 8, 3 ); 
     for (size_t iy = 0; iy < set.Nrows(); ++iy) {
       for (size_t ix = 0; ix < set.Ncols(); ++ix) {
-        file.Printf(col_fmt.c_str(), Dim[0].Coord( ix ), Dim[1].Coord( iy ));
+        file.Printf(col_fmt.c_str(), Xdim.Coord( ix ), Ydim.Coord( iy ));
         set.Write2D( file, ix, iy );
         file.Printf("\n");
       }

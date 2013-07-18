@@ -34,10 +34,8 @@ class DataFile {
     void WriteData();
 
     void SetPrecision(int, int);
-    FileName const& DataFilename()    const { return filename_;      }
-    Dimension& Dim(Dimension::DimIdxType i) { return Dim_[(int)i];   }
-    void SetDim(Dimension::DimIdxType i, Dimension const& d) { Dim_[(int)i]=d; }
     void DataSetNames() const;
+    FileName const& DataFilename() const { return filename_; }
     void SetDFLwrite(bool fIn)           { dflWrite_ = fIn;  }
     bool DFLwrite()                const { return dflWrite_; }
   private:
@@ -54,6 +52,10 @@ class DataFile {
     static DataIO* AllocDataIO(DataFormatType);
     static DataIO* DetectFormat(std::string const&, DataFormatType&);
     //static DataFormatType DataFormat(std::string const&);
+    void SetDataSetLabels(int, std::string const&);
+    void SetDataSetMin(int, double);
+    void SetDataSetStep(int, double);
+    void SetDataSetOffset(int, int);
 
     int debug_;
     int dimension_;         ///< The dimension of all sets in the DataFile.
@@ -66,6 +68,5 @@ class DataFile {
     DataSetList SetList_;      ///< Array of pointers to associated DataSets.
     DataIO* dataio_;           ///< DataIO object for this DataFormatType.
     FileName filename_;        ///< DataFile file name.
-    DataIO::DimArray Dim_;     ///< Default file dimensions.
 };
 #endif

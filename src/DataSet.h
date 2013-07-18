@@ -88,10 +88,12 @@ class DataSet {
     scalarMode ScalarMode()     const { return scalarmode_;        }
     /// \return scalar type
     scalarType ScalarType()     const { return scalartype_;        }
-    /// \return specified DataSet dimension.
-    Dimension const& Dim(Dimension::DimIdxType i) const { return dim_[(int)i]; }
     /// \return number of dimensions.
     size_t Ndim()               const { return dim_.size();        }
+    /// \return specified DataSet dimension.
+    Dimension& Dim(Dimension::DimIdxType i) { return dim_[(int)i]; }
+    Dimension&       Dim(int i)             { return dim_[i];      }
+    Dimension const& Dim(int i)       const { return dim_[i];      }
     /// Comparison for sorting, name/aspect/idx
     inline bool operator<(const DataSet&) const;
   protected:
