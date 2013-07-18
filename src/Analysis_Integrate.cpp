@@ -18,6 +18,10 @@ Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, DataSetList* d
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
+  if (input_dsets_.empty()) {
+    mprinterr("Error: No input data sets.\n");
+    return Analysis::ERR;
+  }
 
   // Set up output datasets
   if (outfile_ != 0) {
