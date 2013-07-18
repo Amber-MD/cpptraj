@@ -74,6 +74,7 @@ class DataSet {
     bool Empty()                const { return (Size() == 0);      }
     /// DataSet output label.
     std::string const& Legend() const { return legend_;            }
+    // TODO: Put all data set metadata into one class.
     /// \return DataSet base name.
     std::string const& Name()   const { return name_;              }
     /// \return DataSet index.

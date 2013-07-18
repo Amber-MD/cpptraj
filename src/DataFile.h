@@ -52,21 +52,19 @@ class DataFile {
     static DataIO* AllocDataIO(DataFormatType);
     static DataIO* DetectFormat(std::string const&, DataFormatType&);
     //static DataFormatType DataFormat(std::string const&);
-    void SetDataSetLabels(int, std::string const&);
-    void SetDataSetMin(int, double);
-    void SetDataSetStep(int, double);
-    void SetDataSetOffset(int, int);
 
     int debug_;
-    int dimension_;         ///< The dimension of all sets in the DataFile.
-    DataFormatType dfType_; ///< Format of data in DataFile.
-    bool dflWrite_;         ///< If true, write file when DataFileList::WriteAllDF called.
-    bool isInverted_;
+    int dimension_;            ///< The dimension of all sets in the DataFile.
+    DataFormatType dfType_;    ///< Format of data in DataFile.
+    bool dflWrite_;            ///< Write file when DataFileList::WriteAllDF called.
+    bool isInverted_;          ///< For 1D writes invert X/Y if DataIO supports it.
     bool setDataSetPrecision_; ///< If true set default precision of incoming DataSets.
-    int default_width_;
-    int default_precision_;
+    int default_width_;        ///< Default width of data sets added to this file.
+    int default_precision_;    ///< Default precision of data sets added to this file.
     DataSetList SetList_;      ///< Array of pointers to associated DataSets.
     DataIO* dataio_;           ///< DataIO object for this DataFormatType.
     FileName filename_;        ///< DataFile file name.
+    /// Hold defaults for X, Y, and Z dimensions.
+    std::vector<Dimension> defaultDim_;
 };
 #endif

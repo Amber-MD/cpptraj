@@ -3,7 +3,6 @@
 #endif
 #include "DataFile.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // integerToString
 // All DataIO classes go here
 #include "DataIO_Std.h"
 #include "DataIO_Grace.h"
@@ -24,9 +23,16 @@ DataFile::DataFile() :
   setDataSetPrecision_(false), //TODO: Just use default_width_ > -1?
   default_width_(-1),
   default_precision_(-1),
-  dataio_(0)
-  //,Dim_(3) // default to X/Y/Z dims
-{}
+  dataio_(0),
+  defaultDim_(3) // default to X/Y/Z dims
+{
+  for (std::vector<Dimension>::iterator dim = defaultDim_.begin(); 
+                                        dim!=defaultDim_.end(); ++dim)
+  {
+    (*dim).SetMin(1.0);
+    (*dim).SetStep(1.0);
+  }
+}
 
 // DESTRUCTOR
 DataFile::~DataFile() {
@@ -195,11 +201,12 @@ int DataFile::AddSet(DataSet* dataIn) {
   if (SetList_.empty())
     dimension_ = dataIn->Ndim();
   else if ((int)dataIn->Ndim() != dimension_) {
-    mprinterr("Error: DataSets in DataFile %s have dimension %i\n", 
-              filename_.base(), dimension_);
-    mprinterr("Error: Attempting to add set %s of dimension %u\n", 
+    mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
+              "Error: Attempting to add set %s of dimension %u\n", 
+              filename_.base(), dimension_,
               dataIn->Legend().c_str(), dataIn->Ndim());
-    return Error("Error: Adding DataSets with different dimensions to same file is currently unsupported.\n");
+    return Error("Error: Adding DataSets with different dimensions to same file"
+                 " is currently unsupported.\n");
   }
   // Set default width.precision
   if (setDataSetPrecision_)
@@ -208,26 +215,6 @@ int DataFile::AddSet(DataSet* dataIn) {
   // Reset dflWrite status
   dflWrite_ = true;
   return 0;
-}
-
-void DataFile::SetDataSetLabels(int nd, std::string const& label) {
-  for (unsigned int idx = 0; idx < SetList_.size(); ++idx)
-    SetList_[idx]->Dim(nd).SetLabel( label );
-}
-
-void DataFile::SetDataSetMin(int nd, double min) {
-  for (unsigned int idx = 0; idx < SetList_.size(); ++idx)
-    SetList_[idx]->Dim(nd).SetMin( min );
-}
-
-void DataFile::SetDataSetStep(int nd, double step) {
-  for (unsigned int idx = 0; idx < SetList_.size(); ++idx)
-    SetList_[idx]->Dim(nd).SetStep( step );
-}
-
-void DataFile::SetDataSetOffset(int nd, int offset) {
-  for (unsigned int idx = 0; idx < SetList_.size(); ++idx)
-    SetList_[idx]->Dim(nd).SetOffset( offset );
 }
 
 // DataFile::ProcessArgs()
@@ -242,20 +229,17 @@ int DataFile::ProcessArgs(ArgList &argIn) {
     }
   }
   // Axis args.
-  if (argIn.Contains("xlabel"))
-    SetDataSetLabels(0, argIn.GetStringKey("xlabel") );
-  if (argIn.Contains("ylabel"))
-    SetDataSetLabels(1, argIn.GetStringKey("ylabel") );
+  defaultDim_[0].SetLabel( argIn.GetStringKey("xlabel") );
+  defaultDim_[1].SetLabel( argIn.GetStringKey("ylabel") );
   // Axis min/step
-  if (argIn.Contains("xmin")) SetDataSetMin(0, argIn.getKeyDouble("xmin",0.0) );
-  if (argIn.Contains("ymin")) SetDataSetMin(1, argIn.getKeyDouble("ymin",0.0) );
-  if (argIn.Contains("xstep")) SetDataSetStep(0, argIn.getKeyDouble("xstep", -1.0) );
-  if (argIn.Contains("ystep")) SetDataSetStep(1, argIn.getKeyDouble("ystep", -1.0) );
+  defaultDim_[0].SetMin( argIn.getKeyDouble("xmin",1.0) );
+  defaultDim_[1].SetMin( argIn.getKeyDouble("ymin",1.0) );
+  defaultDim_[0].SetStep( argIn.getKeyDouble("xstep", 1.0) );
+  defaultDim_[1].SetStep( argIn.getKeyDouble("ystep", 1.0) );
   // ptraj 'time' keyword
   if (argIn.Contains("time")) {
-    SetDataSetStep(0, argIn.getKeyDouble("time", -1.0) );
-    SetDataSetMin(0, 0.0 );
-    SetDataSetOffset( 0, 1 );
+    defaultDim_[0].SetStep( argIn.getKeyDouble("time", 1.0) );
+    defaultDim_[0].SetMin( defaultDim_[0].Step() );
   }
   // Default DataSet width/precision
   std::string prec_str = argIn.GetStringKey("prec");
@@ -317,14 +301,16 @@ void DataFile::WriteData() {
     DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
     for (unsigned int nd = 0; nd < ds.Ndim(); ++nd) {
       Dimension& dim = ds.Dim(nd);
-      if (!dim.MinIsSet()) dim.SetMin(1.0);
-      if (dim.Step() < 0 ) dim.SetStep(1.0);
-      /*switch (nd) {
-        case 0: dim_[d].SetLabel("Frame"); break;
-        case 1: dim_[d].SetLabel("Y"); break;
-        case 2: dim_[d].SetLabel("Z"); break;
-        default: dim_[d].SetLabel("D" + integerToString(d));
-      }*/
+      double min, step;
+      if (nd < 3) {
+        min = defaultDim_[nd].Min();
+        step = defaultDim_[nd].Step();
+      } else {
+        min = 1.0;
+        step = 1.0;
+      }
+      if (!dim.MinIsSet()) dim.SetMin( min );
+      if (dim.Step() < 0 ) dim.SetStep( step );
     }
     // Set x label if not already set
     if (ds.Ndim()==1 && ds.Dim(0).Label().empty()) ds.Dim(0).SetLabel("Frame");

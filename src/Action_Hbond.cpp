@@ -420,6 +420,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
       HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_, 
                                                           hbidx, "solventhb" );
       //mprinterr("Created Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,HB.data_);
+      // FIXME: If # frames could not be determined this will fail.
       HB.data_->Resize( masterDSL_->MaxFrames() );
       HB.data_->SetLegend( hblegend );
       (*HB.data_)[ frameNum ] = 1;
