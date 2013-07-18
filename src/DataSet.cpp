@@ -8,7 +8,6 @@ DataSet::DataSet() :
   data_format_(0),
   idx_(-1),
   dType_(UNKNOWN_DATA),
-//  dim_(0),
   colwidth_(0),
   width_(0),
   precision_(0),
@@ -30,8 +29,7 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
 {
   SetDataSetFormat(false);
   // Allocate default values for dimensions
-/*
-  for (unsigned int d = 0; d < dim_.size(); ++d) {
+/*  for (unsigned int d = 0; d < dim_.size(); ++d) {
     switch (d) {
       case 0: dim_[d].SetLabel("X"); break;
       case 1: dim_[d].SetLabel("Y"); break;
@@ -39,9 +37,8 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
       default: dim_[d].SetLabel("D" + integerToString(d));
     }
     dim_[d].SetStep(1.0);
-  }
-*/   
-}  
+  }*/
+}
 
 // COPY CONSTRUCTOR
 DataSet::DataSet(const DataSet& rhs) :
@@ -51,7 +48,7 @@ DataSet::DataSet(const DataSet& rhs) :
   aspect_(rhs.aspect_),
   legend_(rhs.legend_),
   dType_(rhs.dType_),
-//  dim_(rhs.dim_),
+  dim_(rhs.dim_),
   colwidth_(rhs.colwidth_),
   width_(rhs.width_),
   precision_(rhs.precision_),
@@ -71,7 +68,7 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
   aspect_ = rhs.aspect_;
   legend_ = rhs.legend_;
   dType_ = rhs.dType_;
-//  dim_ = rhs.dim_;
+  dim_ = rhs.dim_;
   colwidth_ = rhs.colwidth_;
   width_ = rhs.width_;
   precision_ = rhs.precision_;

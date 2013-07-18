@@ -1,14 +1,13 @@
 #ifndef INC_DATASET_H
 #define INC_DATASET_H
 #include <cstddef> // size_t
-#include <string> // needed if Dimension not included
-//#include <vector>
-//#incl ude "Dimension.h"
+#include <vector>
+#include "Dimension.h"
 // Class: DataSet
 /// Base class that all DataSet types will inherit.
 /** DataSets are given certain attributes to make DataSet selection easier; 
   * these are name, index, and aspect. Name is typically associated with the
-  * action that creates the dataset, e.g. RMSD or distance. Index is used
+  * action that creates the DataSet, e.g. RMSD or distance. Index is used
   * when and action outputs subsets of data, e.g. with RMSD it is possible to 
   * output per-residue RMSD, where the DataSet index corresponds to the residue
   * number. Aspect is used to further subdivide output data type; e.g. with 
@@ -43,7 +42,7 @@ class DataSet {
     virtual ~DataSet() {} // Destructor - virtual since this class is inherited
 
     // ----------===== Inheritable functions =====----------
-    /// \return the number of data elements stored in the set.
+    /// \return the number of data elements stored in the DataSet.
     virtual size_t Size() const = 0;
     /// Consolidate this DataSet across all threads (MPI only)
     virtual int Sync() = 0;
@@ -61,17 +60,17 @@ class DataSet {
     void SetLegend( std::string const& lIn ) { legend_ = lIn;     }
     /// Set scalar mode
     void SetScalar( scalarMode mIn )         { scalarmode_ = mIn; }
-    /// Set dimension.
-//    Dimension& SetDimension(unsigned int idx){ return dim_[idx];  }
+    /// Set specified DataSet dimension.
+    void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i]=d; }
     /// Set scalar mode and type
     inline void SetScalar( scalarMode, scalarType );
     /// Used to set the data and header format strings 
     int SetDataSetFormat(bool);
-    /// Check if name and/or index and aspect match this dataset.
+    /// Check if name and/or index and aspect match this DataSet.
     bool Matches(std::string const&, int, std::string const&);
     // -----------------------------------------------------
     // ---===== Functions that return private vars =====----
-    /// True if set is empty. 
+    /// True if DataSet is empty. 
     bool Empty()                const { return (Size() == 0);      }
     /// DataSet output label.
     std::string const& Legend() const { return legend_;            }
@@ -89,11 +88,10 @@ class DataSet {
     scalarMode ScalarMode()     const { return scalarmode_;        }
     /// \return scalar type
     scalarType ScalarType()     const { return scalartype_;        }
-    /// \return DataSet dimension array.
-//    const DimArray& Dim()       const { return dim_;               }
+    /// \return specified DataSet dimension.
+    Dimension const& Dim(Dimension::DimIdxType i) const { return dim_[(int)i]; }
     /// \return number of dimensions.
-//    int Ndim()                  const { return (int)dim_.size();   }
-    size_t Ndim()               const { return dim_;               }
+    size_t Ndim()               const { return dim_.size();        }
     /// Comparison for sorting, name/aspect/idx
     inline bool operator<(const DataSet&) const;
   protected:
@@ -101,13 +99,14 @@ class DataSet {
     int Width()                 const { return width_;             }
     const char* data_format_; ///< Used to avoid constant calls to format_.c_str().
   private:
+    /// Type to hold coordinate info for each dimension in DataSet.
+    typedef std::vector<Dimension> DimArray;
     std::string name_;        ///< Name of the DataSet
     int idx_;                 ///< DataSet index
     std::string aspect_;      ///< DataSet aspect.
     std::string legend_;      ///< DataSet legend.
     DataType dType_;          ///< The DataSet type
-//    DimArray dim_;            ///< Holds info for writing each dimension in the data set.
-    size_t dim_;              ///< Dimenisonality of the DataSet.
+    DimArray dim_;            ///< Holds info for each dimension in the DataSet.
     int colwidth_;            ///< The total output width of a data element.
     int width_;               ///< The output width of numbers in a data element.
     int precision_;           ///< The output precision of numbers in a data element.
