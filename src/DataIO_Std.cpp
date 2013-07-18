@@ -215,18 +215,9 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList)
   // For this output to work the X-dimension of all sets needs to match.
   // The most important things for output are min and step so just check that.
   // Use X dimension of set 0 for all set dimensions.
+  Sets.CheckXDimension();
   // TODO: Check for empty dim.
   Dimension const& Xdim = static_cast<Dimension const&>(Sets[0]->Dim(0));
-  for (unsigned int nd = 1; nd < Sets.size(); ++nd) {
-    if (Sets[nd]->Dim(0) != Xdim) {
-      mprinterr("Error: X Dimension of %s != %s\n", Sets[nd]->Legend().c_str(),
-                Sets[0]->Legend().c_str());
-      mprinterr("Error:  %s: Min=%f Step=%f\n", Sets[nd]->Legend().c_str(),
-                Sets[nd]->Dim(0).Min(), Sets[nd]->Dim(0).Step());
-      mprinterr("Error:  %s: Min=%f Step=%f\n", Sets[0]->Legend().c_str(),
-                Sets[0]->Dim(0).Min(), Sets[0]->Dim(0).Step());
-    }
-  }
 
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();

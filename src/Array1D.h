@@ -21,6 +21,7 @@ class Array1D {
     void clear()                                 { array_.clear();           }
     int AddDataSets(DataSetList const&);
     int AddSetsFromArgs(ArgList const&, DataSetList const&);
+    int CheckXDimension() const;
   private:
     std::vector<DataSet_1D*> array_;
 };

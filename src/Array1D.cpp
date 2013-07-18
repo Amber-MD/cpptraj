@@ -57,3 +57,22 @@ size_t Array1D::DetermineMax() const {
       maxFrames = (*set)->Size();
   return maxFrames;
 }
+
+// Array1D::CheckXDimension()
+int Array1D::CheckXDimension() const {
+  int err = 0;
+  Dimension const& Xdim = static_cast<Dimension const&>(array_[0]->Dim(0));
+  for (std::vector<DataSet_1D*>::const_iterator set = array_.begin(); set != array_.end(); ++set)
+  {
+    if ((*set)->Dim(0) != Xdim) {
+      mprinterr("Error: X Dimension of %s != %s\n", (*set)->Legend().c_str(),
+                array_[0]->Legend().c_str());
+      mprinterr("Error:  %s: Min=%f Step=%f\n", (*set)->Legend().c_str(),
+                (*set)->Dim(0).Min(), (*set)->Dim(0).Step());
+      mprinterr("Error:  %s: Min=%f Step=%f\n", array_[0]->Legend().c_str(),
+                Xdim.Min(), Xdim.Step());
+      ++err;
+    }
+  }
+  return err;
+}

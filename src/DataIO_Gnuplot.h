@@ -9,10 +9,10 @@ class DataIO_Gnuplot : public DataIO {
     static DataIO* Alloc() { return (DataIO*)new DataIO_Gnuplot(); }
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) { return 1; }
     int processWriteArgs(ArgList&);
-    int WriteData(std::string const&,DataSetList const&,DimArray const&);
-    int WriteDataInverted(std::string const&,DataSetList const&,DimArray const&) { return 1; }
-    int WriteData2D( std::string const&,DataSet const&, DimArray const&);
-    int WriteData3D(std::string const&, DataSet const&, DimArray const&) { return 1; }
+    int WriteData(std::string const&,DataSetList const&);
+    int WriteDataInverted(std::string const&,DataSetList const&) { return 1; }
+    int WriteData2D( std::string const&,DataSet const&);
+    int WriteData3D(std::string const&, DataSet const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     CpptrajFile file_;
@@ -37,7 +37,7 @@ class DataIO_Gnuplot : public DataIO {
     void Finish();
     void JpegOut(size_t,size_t);
     void WriteDefinedPalette(int);
-    int WriteDataAscii(std::string const&,DataSetList const&, DimArray const&);
-    int WriteDataBinary(std::string const&,DataSetList const&, DimArray const&);
+    int WriteDataAscii(std::string const&,DataSetList const&);
+    //int WriteDataBinary(std::string const&,DataSetList const&);
 };
 #endif

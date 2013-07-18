@@ -105,15 +105,16 @@ void DataIO_Gnuplot::JpegOut(size_t xsize, size_t ysize) {
   }
 }
 
-int DataIO_Gnuplot::WriteData(std::string const& fname, DataSetList const& SetList, 
-                              DimArray const& Dim)
+int DataIO_Gnuplot::WriteData(std::string const& fname, DataSetList const& SetList) 
 {
   //mprintf("BINARY IS %i\n", (int)binary_);
   if (file_.OpenWrite( fname )) return 1;
-  if (binary_)
-    return WriteDataBinary( fname, SetList, Dim );
-  else
-    return WriteDataAscii( fname, SetList, Dim );
+  if (binary_) {
+    //return WriteDataBinary( fname, SetList );
+    mprinterr("Error: GNUPLOT binary write disabled.\n");
+    return 1;
+  } else
+    return WriteDataAscii( fname, SetList);
 }
 
 /** Format:
@@ -122,8 +123,7 @@ int DataIO_Gnuplot::WriteData(std::string const& fname, DataSetList const& SetLi
   *    <x1> <z1,0> <z1,1> <z1,2> ... <z1,N>
   *     :      :      :      :   ...    :
   */
-int DataIO_Gnuplot::WriteDataBinary(std::string const& fname, DataSetList const& SetList,
-                                    DimArray const& Dim)
+/*int DataIO_Gnuplot::WriteDataBinary(std::string const& fname, DataSetList const& SetList)
 {
   // Hold all 1D data sets.
   Array1D Sets( SetList );
@@ -165,7 +165,7 @@ int DataIO_Gnuplot::WriteDataBinary(std::string const& fname, DataSetList const&
   file_.CloseFile();
   return 0;
 }
-
+*/
 const char* DataIO_Gnuplot::BasicPalette[]= {
   "#000000", // Black, 0
   "#0000FF", // Blue,  1
@@ -209,17 +209,17 @@ void DataIO_Gnuplot::WriteDefinedPalette(int ncolors) {
   * However, in the interest of keeping data consistent, this is no longer
   * done. Could be added back in later as an option.
   */
-int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& SetList,
-                                   DimArray const& Dim)
+int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& SetList)
 {
   // Hold all 1D data sets.
   // FIXME: Check that dimension of each set matches.
   Array1D Sets( SetList );
   if (Sets.empty()) return 1;
+  Sets.CheckXDimension();
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
   // Use X dimension of set 0 for all set dimensions.
-  Dimension const& Xdim = Dim[0];
+  Dimension const& Xdim = static_cast<Dimension const&>(Sets[0]->Dim(0)); 
   Dimension const& Ydim = Dim[1];
   std::string x_format = SetupCoordFormat( maxFrames, Xdim, 8, 3);
   std::string y_format = SetupCoordFormat( Sets.size(), Ydim, 8, 3);

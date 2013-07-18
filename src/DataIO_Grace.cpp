@@ -93,11 +93,15 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
   // Open output file.
   CpptrajFile file;
   if (file.OpenWrite( fname )) return 1;
-  // Grace header. Use first data set for labels 
-  file.Printf(
+  // Grace header. Use first data set for labels
+  // TODO: DataFile should pass in axis information 
+/*  file.Printf(
     "@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",
     Dim[0].Label().c_str(), Dim[1].Label().c_str()
-  );
+  );*/
+  file.Printf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n"
+              "@  legend 0.2, 0.995\n@  legend char size 0.60\n",
+              Sets[0]->Dim(0).Label().c_str(), "");
   // Loop over DataSets
   unsigned int setnum = 0;
   for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
@@ -106,7 +110,7 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
     file.Printf("@  s%u legend \"%s\"\n@target G0.S%u\n@type xy\n",
                    setnum, (*set)->Legend().c_str(), setnum );
     // Setup set X coord format.
-    Dimension const& Xdim = Dim[0];
+    Dimension const& Xdim = (*set)->Dim(0);
     std::string x_col_format = SetupCoordFormat( maxFrames, Xdim, 8, 3 );
     // Write Data for set
     for (size_t frame = 0L; frame < maxFrames; frame++) {
@@ -121,8 +125,7 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
 }
 
 // DataIO_Grace::WriteDataInverted()
-int DataIO_Grace::WriteDataInverted(std::string const& fname, DataSetList const& SetList,
-                                    DimArray const& Dim)
+int DataIO_Grace::WriteDataInverted(std::string const& fname, DataSetList const& SetList)
 {
   // Hold all 1D data sets.
   Array1D Sets( SetList );
@@ -133,10 +136,14 @@ int DataIO_Grace::WriteDataInverted(std::string const& fname, DataSetList const&
   CpptrajFile file;
   if (file.OpenWrite( fname )) return 1;
   // Grace header. Use first DataSet for axis labels.
-  file.Printf(
+  // TODO: DataFile should pass in axis info.
+/*  file.Printf(
     "@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n@  legend 0.2, 0.995\n@  legend char size 0.60\n",
     Dim[1].Label().c_str(), Dim[0].Label().c_str() 
-  );
+  );*/
+  file.Printf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n"
+              "@  legend 0.2, 0.995\n@  legend char size 0.60\n",
+              "", Sets[0]->Dim(0).Label().c_str());
   // Setup set X coord format. 
   Dimension Xdim;
   Xdim.SetStep( 1 );
