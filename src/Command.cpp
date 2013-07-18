@@ -90,6 +90,7 @@
 #include "Analysis_AmdBias.h"
 #include "Analysis_RemLog.h"
 #include "Analysis_Integrate.h"
+#include "Analysis_Spline.h"
 // ---- Command Functions ------------------------------------------------------
 /** Search Commands list for a specific type of command. */
 Command::TokenPtr Command::SearchTokenType(CommandType dtype,
@@ -1242,10 +1243,11 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, AddAnalysis },
   { ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
   { ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, AddAnalysis },
+  { ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, AddAnalysis },
+  { ANALYSIS, "spline", Analysis_Spline::Alloc, Analysis_Spline::Help, AddAnalysis },
   { ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
   { ANALYSIS, "statistics", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
   { ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
-  { ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, AddAnalysis },
   // DEPRECATED COMMANDS
   { DEPRECATED, "acceptor",     0, 0, Deprecated },
   { DEPRECATED, "bondsearch",   0, 0, Deprecated },
