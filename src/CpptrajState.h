@@ -25,8 +25,11 @@ class CpptrajState {
     bool Empty()       const { return (actionList_.Empty() && analysisList_.Empty()); }
     void RunAnalyses();
     inline int AddTrajout( ArgList& );
+    inline int AddTrajout( const char* );
     inline int AddTrajin( ArgList&, bool );
+    inline int AddTrajin( const char* );
     inline int AddReference( ArgList& );
+    inline int AddReference( const char* );
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
     inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );
     static int WorldSize();
@@ -86,6 +89,10 @@ int CpptrajState::AddTrajout( ArgList& argIn ) {
   trajoutArgs_.push_back( argIn );
   return trajoutList_.AddTrajout( argIn, parmFileList_ );
 }
+int CpptrajState::AddTrajout( const char* fname ) {
+  ArgList targ(fname);
+  return AddTrajout( targ );
+}
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
   if (isEnsemble) {
@@ -96,9 +103,17 @@ int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
   DSL_.SetMax( trajinList_.MaxFrames() );
   return 0;
 }
+int CpptrajState::AddTrajin( const char* fname ) {
+  ArgList targ(fname);
+  return AddTrajin( targ, false );
+}
 // CpptrajState::AddReference()
 int CpptrajState::AddReference( ArgList& argIn ) {
   return refFrames_.AddReference(argIn, parmFileList_);
+}
+int CpptrajState::AddReference( const char* fname ) {
+  ArgList targ(fname);
+  return AddReference( targ );
 }
 // CpptrajState::AddAction()
 int CpptrajState::AddAction( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {

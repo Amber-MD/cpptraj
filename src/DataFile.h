@@ -21,10 +21,10 @@ class DataFile {
     static std::string GetExtensionForType(DataFormatType);
     /// \return type from extension.
     static DataFormatType GetTypeFromExtension(std::string const&);
-    /// \return string corresponding to format.
-    const char* FormatString() const;
 
     void SetDebug(int);
+    /// \return string corresponding to format.
+    const char* FormatString() const;
 
     int ReadData(ArgList&, DataSetList&);
     int SetupDatafile(std::string const&, ArgList&, int);
