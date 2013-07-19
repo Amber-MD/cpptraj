@@ -16,7 +16,7 @@ class BufferedLine : private CpptrajFile {
       if ( OpenRead( fname ) ) return 1;
       return ResetBuffer();
     }
-
+    int LineNumber()     const { return nline_;  }
     const char* Buffer() const { return buffer_; }
     // Members of CpptrajFile that should be public
     using CpptrajFile::Filename;
@@ -35,5 +35,6 @@ class BufferedLine : private CpptrajFile {
     char* lineEnd_;        ///< End of current line in buffer
     char endChar_;         ///< Character that was at *lineend
     char* endBuffer_;      ///< End position of buffer
+    size_t nline_;         ///< Current line number.
 };
 #endif

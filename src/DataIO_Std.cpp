@@ -14,8 +14,8 @@ DataIO_Std::DataIO_Std() :
   writeHeader_(true), 
   square2d_(false) {}
 
-static void PrintColumnError() {
-  mprinterr("Error: Number of columns in file changes.\n");
+static void PrintColumnError(int idx) {
+  mprinterr("Error: Number of columns in file changes at line %i.\n", idx);
 }
 
 // TODO: Set dimension labels
@@ -63,7 +63,7 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
       while ( *ptr != '\0' && isspace(*ptr) ) ++ptr;
     }
     if (buffer.TokenizeLine( SEPARATORS ) != ntoken) {
-      PrintColumnError();
+      PrintColumnError(buffer.LineNumber());
       return 1;
     }
   }
@@ -115,7 +115,7 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
   int indexval = 0;
   do {
     if ( buffer.TokenizeLine( SEPARATORS ) != ntoken ) {
-      PrintColumnError();
+      PrintColumnError(buffer.LineNumber());
       break;
     } 
     // Convert data in columns
@@ -144,7 +144,8 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
     ++indexval;
   } while (buffer.Line() != 0);
   buffer.CloseFile();
-  mprintf("\tDataFile %s has %i columns.\n", buffer.Filename().full(), ntoken);
+  mprintf("\tDataFile %s has %i columns, %i lines.\n", buffer.Filename().full(),
+          ntoken, buffer.LineNumber());
   if (hasLabels) {
     mprintf("\tDataFile contains labels:\n");
     labels.PrintList();

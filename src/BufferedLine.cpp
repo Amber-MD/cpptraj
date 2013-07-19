@@ -9,7 +9,8 @@ BufferedLine::BufferedLine() :
   saveChar_(0),
   lineEnd_(0),
   endChar_(0),
-  endBuffer_(0)
+  endBuffer_(0),
+  nline_(0)
 {}
 
 BufferedLine::~BufferedLine() {
@@ -24,6 +25,7 @@ int BufferedLine::ResetBuffer() {
   bufferPosition_ = buffer_;
   endBuffer_ = bufferPosition_; // This guarantees on first BufferedLine buffer will be filled
   lineEnd_= bufferPosition_;
+  nline_ = 0;
   return 0;
 } 
 
@@ -50,6 +52,7 @@ const char* BufferedLine::Line() {
       // End of the line
       endChar_ = *lineEnd_;
       *lineEnd_ = '\0';
+      ++nline_;
       return bufferPosition_;
     }
   }

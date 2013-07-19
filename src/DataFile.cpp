@@ -169,12 +169,18 @@ int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty()) dsname = filename_.Base();
   // Read data
-  if ( dataio_->ReadData( filename_.Full(), argIn, datasetlist, dsname ) ) {
+# ifdef TIMER
+  Timer dftimer;
+  dftimer.Start();
+# endif
+  int err = dataio_->ReadData( filename_.Full(), argIn, datasetlist, dsname );
+  if (err)
     mprinterr("Error reading datafile %s\n", filename_.Full().c_str());
-    return 1;
-  }
-
-  return 0;
+# ifdef TIMER
+  dftimer.Stop();
+  mprintf("TIME: DataFile read took %.4f seconds.\n", dftimer.Total());
+# endif
+  return err;
 }
 
 inline int Error(const char* msg) { mprinterr(msg); return 1; }
