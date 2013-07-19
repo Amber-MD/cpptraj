@@ -9,13 +9,13 @@ class DataIO_RemLog : public DataIO {
     DataIO_RemLog();
     static DataIO* Alloc() { return (DataIO*)new DataIO_RemLog(); }
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
-    virtual int processWriteArgs(ArgList&) { return 0; }
-    virtual int WriteData(std::string const&, DataSetList const&, DimArray const&) { return 1; }
-    virtual int WriteData2D(std::string const&, DataSet const&, DimArray const&) { return 1; }
-    virtual int WriteData3D(std::string const&, DataSet const&, DimArray const&) { return 1; }
-    virtual int WriteDataInverted(std::string const&, DataSetList const &, DimArray const&)
+    int processWriteArgs(ArgList&) { return 0; }
+    int WriteData(std::string const&, DataSetList const&, DimArray const&) { return 1; }
+    int WriteData2D(std::string const&, DataSet const&, DimArray const&) { return 1; }
+    int WriteData3D(std::string const&, DataSet const&, DimArray const&) { return 1; }
+    int WriteDataInverted(std::string const&, DataSetList const &, DimArray const&)
       { return 1; }
-    virtual bool ID_DataFormat(CpptrajFile&) { return false; }
+    bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD };
     int ReadRemlogHeader(BufferedLine&, ExchgType&);

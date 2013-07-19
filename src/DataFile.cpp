@@ -150,8 +150,20 @@ DataIO* DataFile::DetectFormat(std::string const& fname, DataFormatType& ftype) 
 
 // DataFile::ReadData()
 int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
+  if (dataio_ != 0) delete dataio_;
+  dataio_ = 0;
   filename_.SetFileNameWithExpansion( argIn.GetStringNext() );
-  dataio_ = DetectFormat( filename_.Full(), dfType_ );
+  // 'as' keyword specifies a format
+  std::string as_arg = argIn.GetStringKey("as");
+  if (!as_arg.empty()) {
+    dfType_ = GetFormatFromString( as_arg );
+    if (dfType_ == UNKNOWN_DATA) {
+      mprinterr("Error: DataFile format %s not recognized.\n", as_arg.c_str());
+      return 1;
+    }
+    dataio_ = AllocDataIO( dfType_ );
+  } else
+    dataio_ = DetectFormat( filename_.Full(), dfType_ );
   // Default to detection by extension.
   if (dataio_ == 0) {
     dfType_ = GetTypeFromExtension(filename_.Ext());
