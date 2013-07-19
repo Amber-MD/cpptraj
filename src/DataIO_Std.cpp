@@ -26,9 +26,11 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
   ArgList labels;
   bool hasLabels = false;
   Array1D DsetList;
-  int indexcol = -1;
+  int indexcol = argIn.getKeyInt("index", -1);
+  // Column user args start from 1
+  if (indexcol != -1)
+    mprintf("\tUsing column %i as index column.\n", indexcol--);
   const char* SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
-  //DataSet::DataType indextype = DataSet::UNKNOWN_DATA;
 
   // Buffer file
   BufferedLine buffer;
@@ -43,17 +45,22 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
     return 1;
   }
 
-  // If first line begins with a '#', assume it contains labels
-  if (linebuffer[0]=='#') {
-    labels.SetList(linebuffer+1, SEPARATORS );
+  // If first line begins with a '#', assume it contains labels. Ignore any
+  // leading whitespace.
+  const char* ptr = linebuffer;
+  while ( *ptr != '\0' && isspace(*ptr) ) ++ptr;
+  if (*ptr == '#') {
+    labels.SetList(ptr+1, SEPARATORS );
     hasLabels = true;
-    // If label is Frame assume it is the index column
-    if (labels[0] == "Frame") 
+    // If first label is Frame assume it is the index column
+    if (labels[0] == "Frame" && indexcol == -1) 
       indexcol = 0;
-    // Read in next non # line, should be data.
-    while (linebuffer[0] == '#') {
+    // Read in next non '#' line, should be data.
+    while (*ptr == '#') {
       linebuffer = buffer.Line();
       if (linebuffer == 0) return 1;
+      ptr = linebuffer;
+      while ( *ptr != '\0' && isspace(*ptr) ) ++ptr;
     }
     if (buffer.TokenizeLine( SEPARATORS ) != ntoken) {
       PrintColumnError();
@@ -64,9 +71,6 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
   // Determine the type of data stored in each column 
   for (int col = 0; col < ntoken; ++col) {
     const char* token = buffer.NextToken();
-    //mprintf("\t\tFirst Data in col %i = %s", col+1, token);
-    //if (col == indexcol)
-    //  mprintf(" INDEX");
     // Determine data type
     DataSet_1D* dset = 0;
     if ( isdigit( token[0] )    || 
@@ -75,21 +79,14 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
                   token[0]=='.'   )
     {
       if ( strchr( token, '.' ) != 0 ) {
-        //mprintf(" DOUBLE!\n");
         if ( col != indexcol )
           dset = (DataSet_1D*)datasetlist.AddSetIdx( DataSet::DOUBLE, dsname, col+1 );
-        //else
-        //  indextype = DataSet::DOUBLE;
       } else {
-        //mprintf(" INTEGER!\n");
         if (col != indexcol)
           dset = (DataSet_1D*)datasetlist.AddSetIdx( DataSet::INTEGER, dsname, col+1 );
-        //else
-        //  indextype = DataSet::INT;
       }
     } else {
       // Assume string
-      //mprintf(" STRING!\n");
       // STRING columns cannot be index columns
       if ( col == indexcol ) {
         mprinterr("Error: DataFile %s index column %i has string values.\n", 
@@ -101,7 +98,7 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
     // Set legend to label if present
     if ( dset != 0 && hasLabels)
       dset->SetLegend( labels[col] );
-
+    // Index column is the only one that should not have a DataSet.
     if ( col != indexcol && dset == 0 ) {
       mprinterr("Error: DataFile %s: Could not identify column %i", 
                 buffer.Filename().full(), col+1);
@@ -111,46 +108,40 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
     DsetList.push_back( dset );
   }
 
+  // Read in data.
   int ival = 0;
   double dval = 0;
-  // NOTE: Temporarily disabling index.
-  int indexval = -1; // So that when no index col first val incremented to 0
+  std::vector<double> Xvals;
+  int indexval = 0;
   do {
     if ( buffer.TokenizeLine( SEPARATORS ) != ntoken ) {
       PrintColumnError();
       break;
     } 
-    // Deal with index.
-/*    if (indexcol != -1) {
-      switch ( indextype ) {
-        case DataSet::INT   : indexval = convertToInteger( dataline[indexcol] ); break;
-        case DataSet::DOUBLE: indexval = (int)convertToDouble( dataline[indexcol] ); break;
-        default: return 1;
-      }
-      // FIXME: Subtracting 1 since everything should go from 0
-      --indexval;
-    } else {*/
-      ++indexval;
-//    }
     // Convert data in columns
     for (int i = 0; i < ntoken; ++i) {
       const char* token = buffer.NextToken();
-      if (DsetList[i] == 0) continue;
-      switch ( DsetList[i]->Type() ) {
-        case DataSet::INTEGER: 
-          ival = atoi( token ); 
-          DsetList[i]->Add( indexval, &ival );
-          break;
-        case DataSet::DOUBLE: 
-          dval = atof( token ); 
-          DsetList[i]->Add( indexval, &dval );
-          break;
-        case DataSet::STRING: 
-          DsetList[i]->Add( indexval, (char*)token ); // TODO: Fix cast
-          break;
-        default: continue; 
+      if (DsetList[i] == 0) {
+        // Index column - always read as double
+        Xvals.push_back( atof( token ) );
+      } else {
+        switch ( DsetList[i]->Type() ) {
+          case DataSet::INTEGER: 
+            ival = atoi( token ); 
+            DsetList[i]->Add( indexval, &ival );
+            break;
+          case DataSet::DOUBLE: 
+            dval = atof( token ); 
+            DsetList[i]->Add( indexval, &dval );
+            break;
+          case DataSet::STRING: 
+            DsetList[i]->Add( indexval, token );
+            break;
+          default: continue; 
+        }
       }
     }
+    ++indexval;
   } while (buffer.Line() != 0);
   buffer.CloseFile();
   mprintf("\tDataFile %s has %i columns.\n", buffer.Filename().full(), ntoken);
@@ -158,9 +149,22 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
     mprintf("\tDataFile contains labels:\n");
     labels.PrintList();
   }
-  if (indexcol != -1)
+  // Determine dimension
+  if (indexcol != -1) {
     mprintf("\tIndex column is %i\n", indexcol + 1);
-
+    if (Xvals.empty()) {
+      mprinterr("Error: No indices read.\n");
+      return 1;
+    }
+    Dimension Xdim = DataIO::DetermineXdim(Xvals);
+    for (int i = 0; i < ntoken; ++i)
+      if (DsetList[i] != 0)
+        DsetList[i]->SetDim(Dimension::X, Xdim);
+  } else {
+    for (int i = 0; i < ntoken; ++i)
+      if (DsetList[i] != 0)
+        DsetList[i]->SetDim(Dimension::X, Dimension(1.0, 1.0, DsetList[i]->Size()));
+  }
   return 0;
 }
 

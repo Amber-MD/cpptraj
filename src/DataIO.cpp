@@ -1,5 +1,6 @@
 #include "DataIO.h"
 #include "StringRoutines.h"
+#include "CpptrajStdio.h"
 // DataIO::SetupCoordFormat()
 std::string DataIO::SetupCoordFormat(size_t maxFrames, Dimension const& dim, 
                                      int default_width, int default_precision)
@@ -26,4 +27,29 @@ std::string DataIO::SetupCoordFormat(size_t maxFrames, Dimension const& dim,
   if (col_width < default_width) col_width = default_width;
   // Set column data format string, left-aligned (no leading space).
   return SetDoubleFormatString( col_width, col_precision, 0 );
+}
+
+/** Given X values, try to determine step size etc */
+Dimension DataIO::DetermineXdim( std::vector<double> const& Xvals ) {
+  if ( Xvals.empty() ) {
+    mprinterr("Error: Cannot determine X dimension - no X values.\n");
+    return Dimension();
+  }
+  if ( Xvals.size() == 1)
+    return Dimension(Xvals.front(), 1.0, 1);
+  // Determine from max/min
+  double xstep = (Xvals.back() - Xvals.front()) / (double)(Xvals.size() - 1);
+  // Check if xstep is reasonable. Check only the first few values.
+  int nerr = 0;
+  double xval = Xvals.front();
+  for (unsigned int i = 0; i < std::min(10U, (unsigned int)Xvals.size()); i++) {
+    if (xval != Xvals[i]) {
+      //mprintf("Warning: X dimension step may be off. Xval[%u] is %f, expected %f\n",
+      //        i, Xvals[i], xval);
+      ++nerr;
+    }
+    xval += xstep;
+  }
+  if (nerr > 0) mprintf("Warning: Could not accurately determine X dimension step size.\n");
+  return Dimension(Xvals.front(), xstep, Xvals.size());
 }

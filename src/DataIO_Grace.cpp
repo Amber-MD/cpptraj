@@ -15,8 +15,9 @@ int DataIO_Grace::ReadData(std::string const& fname, ArgList& argIn,
   DataSet_1D* dset = 0;
   Array1D Dsets;
   std::vector<std::string> labels;
-  double dval;
+  double dval, xval;
   const char* linebuffer;
+  std::vector<double> Xvals;
   
   // Allocate and set up read buffer
   BufferedLine buffer;
@@ -33,6 +34,11 @@ int DataIO_Grace::ReadData(std::string const& fname, ArgList& argIn,
         if (!lbl.empty())
           labels.push_back( lbl );
       } else if (dataline.CommandIs("target")) {
+        if (dset != 0) {
+          // Set was previously allocated. Figure out X dimension.
+          dset->SetDim(Dimension::X, DataIO::DetermineXdim(Xvals));
+          Xvals.clear();
+        }
         // Indicates dataset will be read soon. Allocate new set.
         dset = (DataSet_1D*)datasetlist.AddSetIdx( DataSet::DOUBLE, dsname, setnum++);
         if (dset == 0) {
@@ -49,12 +55,15 @@ int DataIO_Grace::ReadData(std::string const& fname, ArgList& argIn,
                   buffer.Filename().full());
         return 1;
       }
-      // FIXME: Ignoring frame for now
-      sscanf(linebuffer,"%*s %lf", &dval);
+      sscanf(linebuffer,"%lf %lf", &xval, &dval);
       dset->Add( frame++, &dval );
+      Xvals.push_back( xval );
     }
   } // END loop over file
   buffer.CloseFile();
+  // Figure out X dimension for last set read
+  if (dset != 0)
+    dset->SetDim(Dimension::X, DataIO::DetermineXdim(Xvals));
 
   // Set DataSet legends if specified
   if (!labels.empty()) {
