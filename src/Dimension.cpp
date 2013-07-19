@@ -4,9 +4,9 @@
 
 // CONSTRUCTOR
 Dimension::Dimension() :
-  min_(0),
-  max_(0),
-  step_(-1),
+  min_(0.0),
+  max_(0.0),
+  step_(-1.0),
   bins_(-1),
   offset_(0),
   minIsSet_(false),
@@ -72,28 +72,28 @@ int Dimension::CalcBinsOrStep() {
     mprinterr("Error: Dimension::CalcBinsOrStep: [%s] min or max not set.\n", label_.c_str());
     return 1;
   }
-  if (bins_!=-1 && step_!=-1) {
-    mprintf("\tHist: Bins and step have been specified. Recalculating step.\n");
-    step_ = -1;
+  if (bins_!=-1 && step_ > -1.0) {
+    mprintf("\tBins and step have been specified. Recalculating step.\n");
+    step_ = -1.0;
   }
 
-  if (bins_==-1 && step_==-1) {
-    mprinterr("Error: Hist: [%s] Bins and step undefined.\n", label_.c_str());
+  if (bins_==-1 && step_ < 0.0) {
+    mprinterr("Error: [%s] Bins and step undefined.\n", label_.c_str());
     return 1;
   }
 
-  if (step_==-1) {
+  if (step_ < 0.0) {
     //if (debug>0) mprintf("\t\tCalculating step.\n");
     if (bins_ <= 0) {
-      mprinterr("Error: Hist: Dimension %s: bins <=0!\n", label_.c_str());
+      mprinterr("Error: Dimension %s: bins <=0!\n", label_.c_str());
       return 1;
     }
     step_ = max_ - min_;
-    step_ = step_ / bins_;
+    step_ = step_ / (double)(bins_ - 1);
   } else if (bins_ == -1) {
     //if (debug>0) mprintf("\t\tCalculating bins.\n");
     if (step_ <= 0) {
-      mprinterr("Error: Hist: Dimension %s: step <=0!\n",label_.c_str());
+      mprinterr("Error: Dimension %s: step <=0!\n",label_.c_str());
       return 1;
     } 
     double temp = ((max_ - min_) / step_);
