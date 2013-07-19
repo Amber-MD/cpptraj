@@ -24,6 +24,7 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
   std::string setname = analyzeArgs.GetStringKey("name");
   outfile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   meshsize_ = analyzeArgs.getKeyInt("meshsize", 0);
+  meshfactor_ = -1.0;
   if (meshsize_ < 3) {
     meshfactor_ = analyzeArgs.getKeyDouble("meshfactor", -1.0);
     if (meshfactor_ < SMALL) {
