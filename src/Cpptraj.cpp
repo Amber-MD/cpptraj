@@ -123,17 +123,14 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (State_.PFL()->AddParmFile( argv[++i] )) return ERROR;
     } else if ( arg == "-y" && i+1 != argc) {
       // -y: Trajectory file in
-      ArgList targ(std::string(argv[++i]));
-      if (State_.AddTrajin( targ, false )) return ERROR;
+      if (State_.AddTrajin( argv[++i] )) return ERROR;
     } else if ( arg == "-x" && i+1 != argc) {
       // -x: Trajectory file out
-      ArgList targ(std::string(argv[++i]));
-      if (State_.AddTrajout( targ )) return ERROR;
+      if (State_.AddTrajout( argv[++i] )) return ERROR;
       hasInput = true; // NOTE: Why?
     } else if ( arg == "-c" && i+1 != argc) {
       // -c: Reference file
-      ArgList targ(std::string(argv[++i]));
-      if (State_.AddReference( targ )) return ERROR;
+      if (State_.AddReference( argv[++i] )) return ERROR;
     } else if (arg == "-i" && i+1 != argc) {
       // -i: Input file(s)
       inputFiles.push_back( argv[++i] );

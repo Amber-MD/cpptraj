@@ -51,8 +51,6 @@ const DataFile::DataFileToken DataFile::DataFileArray[] = {
   { UNKNOWN_DATA, 0,        "Unknown",            0,        0                     }
 };
 
-const char* DataFile::FormatString() const { return DataFileArray[dfType_].Description; }
-
 // DataFile::GetFormatFromArg()
 /** Given an ArgList, search for one of the file format keywords.
   */
@@ -89,12 +87,12 @@ DataFile::DataFormatType DataFile::GetTypeFromExtension( std::string const& extI
 }
 
 // DataFile::FormatString()
-/*const char* DataFile::FormatString( DataFile::DataFormatType tIn ) {
+const char* DataFile::FormatString() const {
   TokenPtr token;
   for (token = DataFileArray; token->Type != UNKNOWN_DATA; ++token)
-    if ( token->Type == tIn ) return token->Description;
+    if ( token->Type == dfType_ ) return token->Description;
   return token->Description; // Should be at UNKNOWN
-}*/
+}
 // -----------------------------------------------------------------------------
 
 // DataFile::SetDebug()
