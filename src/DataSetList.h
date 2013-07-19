@@ -45,7 +45,7 @@ class DataSetList {
     /// Allocate DataSet memory based on current maximum.
     void AllocateSets();
     /// Set width.precision of all DataSets in the list.
-    void SetPrecisionOfDatasets(int, int);
+    void SetPrecisionOfDataSets(std::string const&, int, int);
     /// Get DataSet with specified name, index, and aspect.
     DataSet* GetSet(std::string const&, int, std::string const&) const;
     /// Get DataSet matching specified argument.

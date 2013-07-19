@@ -1,5 +1,5 @@
-#ifdef DATAFILE_TIME
-#include <ctime>
+#ifdef TIMER
+#include "Timer.h" 
 #endif
 #include "DataFile.h"
 #include "CpptrajStdio.h"
@@ -315,8 +315,9 @@ void DataFile::WriteData() {
     // Set x label if not already set
     if (ds.Ndim()==1 && ds.Dim(0).Label().empty()) ds.Dim(0).SetLabel("Frame");
   }
-#ifdef DATAFILE_TIME
-  clock_t t0 = clock();
+#ifdef TIMER
+  Timer dftimer;
+  dftimer.Start();
 #endif
   int err = 0;
   if ( dimension_ == 1 ) {       // One-dimensional
@@ -336,23 +337,22 @@ void DataFile::WriteData() {
     mprinterr("Error: %iD writes not yet supported.\n", dimension_);
     err = 1;
   }
-#ifdef DATAFILE_TIME
-  clock_t tf = clock();
-  mprinterr("DataFile %s Write took %f seconds.\n", filename_.base(),
-            ((float)(tf - t0)) / CLOCKS_PER_SEC);
+#ifdef TIMER
+  dftimer.Stop();
+  mprintf("TIME: DataFile %s Write took %.4f seconds.\n", filename_.base(),
+          dftimer.Total());
 #endif
   if (err > 0) 
     mprinterr("Error writing %iD Data to %s\n", dimension_, filename_.base());
 }
 
-// DataFile::SetPrecision()
+// DataFile::SetDataFilePrecision()
 /** Set precision for all DataSets in file to width.precision. */
-void DataFile::SetPrecision(int widthIn, int precisionIn) {
-  if (widthIn < 1) 
-    mprinterr("Error: Invalid data width (%i)\n", widthIn);
-  else
-    for (DataSetList::const_iterator set = SetList_.begin(); set != SetList_.end(); ++set)
-      (*set)->SetPrecision(widthIn, precisionIn);
+void DataFile::SetDataFilePrecision(int widthIn, int precisionIn) {
+  setDataSetPrecision_ = true;
+  default_width_ = widthIn;
+  default_precision_ = precisionIn;
+  SetList_.SetPrecisionOfDataSets("*", widthIn, precisionIn);
 }
 
 // DataFile::DataSetNames()

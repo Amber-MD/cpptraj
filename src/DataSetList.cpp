@@ -111,12 +111,19 @@ void DataSetList::AllocateSets() {
   }
 }
 
-/* DataSetList::SetPrecisionOfDatasets()
+/* DataSetList::SetPrecisionOfDataSets()
  * Set the width and precision for all datasets in the list.
  */
-void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
-  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
-    (*ds)->SetPrecision(widthIn,precisionIn);
+void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
+                                         int precisionIn)
+{
+  if (widthIn < 1)
+    mprinterr("Error: Invalid data width (%i)\n", widthIn);
+  else {
+    DataSetList Sets = GetMultipleSets( nameIn );
+    for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) 
+      (*ds)->SetPrecision(widthIn, precisionIn);
+  }
 }
 
 // DataSetList::ParseArgString()

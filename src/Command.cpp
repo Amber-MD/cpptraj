@@ -808,13 +808,13 @@ Command::RetType Precision(CpptrajState& State, ArgList& argIn, Command::AllocTy
   // Next string is DataSet(s)/DataFile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
-    mprinterr("Error: precision: No filename/setname given.\n");
+    mprinterr("Error: No filename/setname given.\n");
     return Command::C_ERR;
   }
   // This will break if dataset name starts with a digit...
   int width = argIn.getNextInteger(12);
   if (width < 1) {
-    mprintf("Error: precision: Cannot set width < 1 (%i).\n", width);
+    mprintf("Error: Cannot set width < 1 (%i).\n", width);
     return Command::C_ERR;
   }
   int precision = argIn.getNextInteger(4);
@@ -823,13 +823,9 @@ Command::RetType Precision(CpptrajState& State, ArgList& argIn, Command::AllocTy
   if (df != 0) {
     mprintf("\tSetting precision for all sets in %s to %i.%i\n", df->DataFilename().base(),
             width, precision);
-    df->SetPrecision(width, precision);
+    df->SetDataFilePrecision(width, precision);
   } else {
-    DataSetList dsets = State.DSL()->GetMultipleSets( name1 );
-    mprintf("\tSetting precision for %i sets to %i.%i\n", dsets.size(),
-            width, precision);
-    for (DataSetList::const_iterator set = dsets.begin(); set != dsets.end(); ++set)
-      (*set)->SetPrecision(width, precision);
+    State.DSL()->SetPrecisionOfDataSets( name1, width, precision );
   }
   return Command::C_OK;
 }
