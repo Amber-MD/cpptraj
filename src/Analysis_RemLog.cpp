@@ -1,6 +1,7 @@
 #include "Analysis_RemLog.h"
 #include "CpptrajStdio.h"
 #include "DataSet_integer.h"
+#include "ProgressBar.h"
 
 Analysis_RemLog::Analysis_RemLog() :
   calculateStats_(false),
@@ -114,7 +115,9 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       (*it).resize( remlog_->Size(), 0 );
   }
 
+  ProgressBar progress( remlog_->NumExchange() );
   for (int frame = 0; frame < remlog_->NumExchange(); frame++) {
+    progress.Update( frame );
     for (int replica = 0; replica < (int)remlog_->Size(); replica++) {
       DataSet_RemLog::ReplicaFrame const& frm = remlog_->RepFrame( frame, replica );
       int crdidx = frm.CoordsIdx();
