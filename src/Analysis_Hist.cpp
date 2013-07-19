@@ -146,11 +146,13 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
   // follows row major ordering.
   size_t last_offset = 1UL; // For checking overflow.
   offset = 1UL;
-  for (std::vector<Dimension>::iterator rd = dimensions_.begin();
-                                        rd != dimensions_.end(); ++rd)
+  binOffsets_.resize( dimensions_.size() );
+  OffType::iterator bOff = binOffsets_.begin();
+  for (HdimType::const_iterator rd = dimensions_.begin();
+                                rd != dimensions_.end(); ++rd, ++bOff)
   {
     if (debug_>0) mprintf("\tHistogram: %s offset is %zu\n",(*rd).Label().c_str(), offset);
-    (*rd).SetOffset( offset );
+    *bOff = (long int)offset;
     offset *= (*rd).Bins();
     // Check for overflow.
     if ( offset < last_offset ) {
@@ -312,33 +314,34 @@ Analysis::RetType Analysis_Hist::Analyze() {
 
   // Bin data
   for (size_t n = 0; n < Ndata; n++) {
-    int index = 0; // TODO: Make long?
-    std::vector<Dimension>::iterator dim = dimensions_.begin();
+    long int index = 0;
+    HdimType::const_iterator dim = dimensions_.begin();
+    OffType::const_iterator bOff = binOffsets_.begin();
     for (std::vector<DataSet_1D*>::iterator ds = histdata_.begin();
-                                            ds != histdata_.end(); ++ds, ++dim)
+                                            ds != histdata_.end(); ++ds, ++dim, ++bOff)
     {
       double dval = (*ds)->Dval( n );
       // Check if data is out of bounds for this dimension.
       if (dval > (*dim).Max() || dval < (*dim).Min()) {
-        index = -1;
+        index = -1L;
         break;
       }
       // Calculate index for this particular dimension (idx)
-      int idx = (int)((dval - (*dim).Min()) / (*dim).Step());
+      long int idx = (long int)((dval - (*dim).Min()) / (*dim).Step());
       if (debug_>1) mprintf(" [%s:%f (%i)],",(*dim).Label().c_str(), dval, idx);
       // Calculate overall index in Bins, offset has already been calcd.
-      index += (idx * (*dim).Offset());
+      index += (idx * (*bOff));
     }
     // If index was successfully calculated, populate bin
-    if (index > -1 && index < (int)Bins_.size()) {
-      if (debug_ > 1) mprintf(" |index=%i",index);
+    if (index > -1L && index < (long int)Bins_.size()) {
+      if (debug_ > 1) mprintf(" |index=%li",index);
       Bins_[index]++;
     } else {
-      mprintf("\tWarning: Frame %u Coordinates out of bounds (%i)\n", n+1, index);
+      mprintf("\tWarning: Frame %u Coordinates out of bounds (%li)\n", n+1, index);
     }
     if (debug_>1) mprintf("}\n");
   }
-/*
+/* // TODO: Re-enable
   std::vector<double> coord( hist_->NumDimension() );
   for (int n=0; n < Ndata; n++) {
     std::vector<double>::iterator coord_it = coord.begin();
@@ -472,21 +475,22 @@ static inline std::vector<int> BinStart(int Ndim, bool circularIn) {
 /** Calculate index based on BinIndices, converting wrapped indices to 
   * actual indices.
   */
-int Analysis_Hist::BinIndicesToIndex(std::vector<int> const& BinIndices) {
-  int idx;
-  int index = 0;
+long int Analysis_Hist::BinIndicesToIndex(std::vector<int> const& BinIndices) {
+  long int idx;
+  long int index = 0;
   std::vector<int>::const_iterator count = BinIndices.begin();
-  for (std::vector<Dimension>::iterator dim = dimensions_.begin();
-                                        dim != dimensions_.end(); ++dim, ++count)
+  OffType::const_iterator bOff = binOffsets_.begin();
+  for (HdimType::const_iterator dim = dimensions_.begin();
+                                dim != dimensions_.end(); ++dim, ++count, ++bOff)
   {
     //mprinterr(" %i",count[n]);
     if (*count == -1)
-      idx = (*dim).Bins() - 1;
+      idx = (long int)((*dim).Bins() - 1);
     else if (*count == (*dim).Bins())
-      idx = 0;
+      idx = 0L;
     else
-      idx = *count;
-    index += (idx * (*dim).Offset());
+      idx = (long int)*count;
+    index += (idx * (*bOff));
   }
   //mprinterr(" = %i\n",index);
   return index;
@@ -503,7 +507,7 @@ bool Analysis_Hist::IncrementBinIndices(std::vector<int>& BinIndices,
   // Increment highest order coord.
   std::vector<int>::reverse_iterator rcount = BinIndices.rbegin();
   ++(*rcount);
-  std::vector<Dimension>::reverse_iterator rdim = dimensions_.rbegin();
+  HdimType::reverse_iterator rdim = dimensions_.rbegin();
   // Check if highest order coord has Cycled.
   if (*rcount == (*rdim).Bins() + isCircular)
     hasCycled = true;
@@ -570,7 +574,7 @@ void Analysis_Hist::PrintBins() {
 
   bool loop=true;
   while (loop) {
-    int index = BinIndicesToIndex(BinIndices);
+    long int index = BinIndicesToIndex(BinIndices);
     // If we dont care about zero bins or bin pop > 0, output
     for (unsigned int i=0; i < dimensions_.size(); ++i)
       outfile.Printf("%lf ",

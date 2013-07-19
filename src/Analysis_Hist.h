@@ -19,16 +19,19 @@ class Analysis_Hist : public Analysis {
     int CalcFreeE();
     int Normalize();
     // ---------------------------------
-    int BinIndicesToIndex(std::vector<int> const&);
+    long int BinIndicesToIndex(std::vector<int> const&);
     bool IncrementBinIndices(std::vector<int>&, int, bool&);
     void PrintBins();
 
     DataFile* outfile_;                  ///< Output DataFile.
     DataSet* hist_;                      ///< Histogram data set.
     std::vector<double> Bins_;           ///< Histogram data - double in case free E calculated
+    typedef std::vector<long int> OffType;
+    OffType binOffsets_;                 ///< Bin offsets for calculating index.
     std::vector<DataSet_1D*> histdata_;  ///< Array of data sets to be binned.
     std::vector<ArgList> dimensionArgs_; ///< Array of args defining histogram dims
-    std::vector<Dimension> dimensions_;  ///< Histogram dimensions.
+    typedef std::vector<Dimension> HdimType;
+    HdimType dimensions_;                ///< Histogram dimensions.
 
     int debug_;                          ///< Debug level
     bool calcFreeE_;                     ///< If true, calc free E from hist populations.
