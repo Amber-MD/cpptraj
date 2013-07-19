@@ -15,11 +15,11 @@ class Analysis_Spline : public Analysis {
     DataFile* outfile_; // FIXME: May not need to be class var
     Array1D input_dsets_;
     std::vector<DataSet_Mesh*> output_dsets_;
-    int meshsize_;   ///< Mesh size will be DataSet.Size * meshfactor
-    double meshmin_; ///< Min value of resulting mesh
-    double meshmax_; ///< Max value of resulting mesh
-    // TODO: Replace with dims from data set
-    double xmin_;    ///< Min value of input data sets 
-    double xstep_;   ///< Step of input data sets
+    int meshsize_;       ///< Mesh size will be DataSet.Size * meshfactor
+    double meshmin_;     ///< Min value of resulting mesh
+    double meshmax_;     ///< Max value of resulting mesh
+    double meshfactor_;  ///< Min value of input data sets
+    bool useDefaultMin_; ///< If true use meshmin_ for all meshes.
+    bool useDefaultMax_; ///< If true use meshmax_ for all meshes. 
 };
 #endif

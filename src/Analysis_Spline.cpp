@@ -1,18 +1,20 @@
 #include "Analysis_Spline.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // SMALL
 
 Analysis_Spline::Analysis_Spline() :
   outfile_(0),
   meshsize_(0),
   meshmin_(0.0),
   meshmax_(0.0),
-  xmin_(0.0),
-  xstep_(0.0)
+  meshfactor_(0.0),
+  useDefaultMin_(false),
+  useDefaultMax_(false)
 {}
 
 void Analysis_Spline::Help() {
-  mprintf("\t<dset0> [<dset1> ...] [out <outfile>] meshsize <x>]\n"
-          "\t[meshmin <mmin>] meshmax <mmax> [min <xmin>] [step <xstep>]\n"
+  mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [meshsize <n> | meshfactor <x>]\n"
+          "\t[meshmin <mmin>] [meshmax <mmax>]\n"
           "\tSpline the given data sets.\n");
 }
 
@@ -23,17 +25,27 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
   outfile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   meshsize_ = analyzeArgs.getKeyInt("meshsize", 0);
   if (meshsize_ < 3) {
-    mprinterr("Error: meshsize must be specified and > 2\n");
+    meshfactor_ = analyzeArgs.getKeyDouble("meshfactor", -1.0);
+    if (meshfactor_ < SMALL) {
+      mprinterr("Error: Either meshsize must be specified and > 2, or meshfactor must be\n"
+                "Error:   specified and > 0.0\n");
+      return Analysis::ERR;
+    }
+  }
+  if (analyzeArgs.Contains("meshmin")) {
+    meshmin_ = analyzeArgs.getKeyDouble("meshmin", 0.0);
+    useDefaultMin_ = true;
+  } else
+    useDefaultMin_ = false;
+  if (analyzeArgs.Contains("meshmax")) {
+    meshmax_ = analyzeArgs.getKeyDouble("meshmax", -1.0);
+    useDefaultMax_ = true;
+  } else
+    useDefaultMax_ = false;
+  if (useDefaultMin_ && useDefaultMax_ && meshmax_ < meshmin_) {
+    mprinterr("Error: meshmax must be > meshmin\n");
     return Analysis::ERR;
   }
-  meshmin_ = analyzeArgs.getKeyDouble("meshmin", 0.0);
-  meshmax_ = analyzeArgs.getKeyDouble("meshmax", -1.0);
-  if (meshmax_ < meshmin_) {
-    mprinterr("Error: meshmax must be specified and > meshmin\n");
-    return Analysis::ERR;
-  }
-  xmin_ = analyzeArgs.getKeyDouble("min", 0.0);
-  xstep_ = analyzeArgs.getKeyDouble("step", 1.0);
   // Select datasets from remaining args
   if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
     mprinterr("Error: Could not add data sets.\n");
@@ -64,10 +76,19 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
     outfile_->Dim(Dimension::X).SetStep( meshstep );*/
   }
 
-  mprintf("    SPLINE: Applying cubic splining to %u data sets, mesh size is %i.\n",
-          input_dsets_.size(), meshsize_);
-  mprintf("\tMesh min=%f, Mesh max=%f, data set xmin=%f, data set step=%f\n",
-          meshmin_, meshmax_, xmin_, xstep_);
+  mprintf("    SPLINE: Applying cubic splining to %u data sets\n", input_dsets_.size());
+  if (meshfactor_ < 0)
+    mprintf("\tMesh size= %i\n", meshsize_);
+  else
+    mprintf("\tMesh size will be input set size multiplied by %f\n", meshfactor_);
+  if (useDefaultMin_)
+    mprintf("\tMesh min= %f,", meshmin_);
+  else
+    mprintf("\tMesh min will be input set min,");
+  if (useDefaultMax_)
+    mprintf(" Mesh max= %f\n", meshmax_);
+  else
+    mprintf(" Mesh max will be input set max.\n");
   if (outfile_ != 0) {
     if (!setname.empty())
       mprintf("\tOutput set name: %s\n", setname.c_str());
@@ -80,10 +101,34 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
 
 // TODO: Each data set needs dimension information.
 Analysis::RetType Analysis_Spline::Analyze() {
+  double mmin, mmax;
+  int msize;
   for (unsigned int idx = 0; idx < input_dsets_.size(); idx++) {
-    output_dsets_[idx]->CalculateMeshX(meshsize_, meshmin_, meshmax_);
+    DataSet_1D const& ds = static_cast<DataSet_1D const&>(*input_dsets_[idx]);
+    if (useDefaultMin_)
+      mmin = meshmin_;
+    else
+      mmin = ds.Dim(0).Min();
+    if (useDefaultMax_)
+      mmax = meshmax_;
+    else
+      mmax = ds.Dim(0).Max();
+    if (meshfactor_ > 0)
+      msize = (int)((double)ds.Size() * meshfactor_);
+    else
+      msize = meshsize_;
+    // Set up output dimension
+    mprintf("\t%s: Setting mesh from %f->%f, size=%i,", ds.Legend().c_str(), mmin, mmax, msize);
+    output_dsets_[idx]->SetDim( Dimension::X,
+        Dimension(mmin, (mmax - mmin)/(double)msize, msize, ds.Dim(0).Label()) );
+    output_dsets_[idx]->CalculateMeshX(msize, mmin, mmax);
+    mprintf(" set min=%f, set step=%f\n", ds.Dim(0).Min(), ds.Dim(0).Step());
+    if (!ds.Dim(0).MinIsSet())
+      mprinterr("Internal Error: %s min is not set!\n", ds.Legend().c_str());
+    if (ds.Dim(0).Step() < 0.0)
+      mprinterr("Internal Error: %s step is not set!\n", ds.Legend().c_str());
     // Calculate mesh Y values.
-    output_dsets_[idx]->SetSplinedMesh( *input_dsets_[idx], xmin_, xstep_ );
+    output_dsets_[idx]->SetSplinedMesh( ds );
     // DEBUG
     //for (unsigned int i = 0; i < output_dsets_[idx]->Size(); i++)
     //  mprintf("\t%12.4f %12.4g\n", output_dsets_[idx]->X(i), output_dsets_[idx]->Y(i));

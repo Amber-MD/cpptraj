@@ -31,8 +31,8 @@ class DataSet_Mesh : public DataSet_1D {
     double Integrate_Trapezoid() const;
     /// Set mesh with splined values based on input X and Y values.
     int SetSplinedMeshY(std::vector<double> const&, std::vector<double> const&);
-    /// Set mesh with splined values based on input DataSet and X min/step.
-    int SetSplinedMesh(DataSet_1D const&, double, double);
+    /// Set mesh with splined values based on input DataSet.
+    int SetSplinedMesh(DataSet_1D const&);
   private:
     void cubicSpline_coeff(std::vector<double> const&, std::vector<double> const&);
     void cubicSpline_eval(std::vector<double> const&, std::vector<double> const&);

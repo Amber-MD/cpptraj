@@ -222,7 +222,7 @@ int DataSet_Mesh::SetSplinedMeshY(std::vector<double> const& x, std::vector<doub
 
 // DataSet_Mesh::SetSplinedMesh()
 /** Assumes mesh X values already set with CalculateMeshX. */
-int DataSet_Mesh::SetSplinedMesh(DataSet_1D const& dsIn, double xmin, double xstep)
+int DataSet_Mesh::SetSplinedMesh(DataSet_1D const& dsIn)
 {
   if (dsIn.Size() < 2) {
     mprinterr("Error: Requires > 1 values (%u specified).\n", dsIn.Size());
@@ -232,6 +232,8 @@ int DataSet_Mesh::SetSplinedMesh(DataSet_1D const& dsIn, double xmin, double xst
   std::vector<double> x, y;
   x.reserve( dsIn.Size() );
   y.reserve( dsIn.Size() );
+  double xmin = dsIn.Dim(0).Min();
+  double xstep = dsIn.Dim(0).Step();
   for (int i = 0; i < (int)dsIn.Size(); i++) {
     x.push_back( ((double)i * xstep) + xmin );
     y.push_back( dsIn.Dval( i ) );
