@@ -89,7 +89,7 @@ int Dimension::CalcBinsOrStep() {
       return 1;
     }
     step_ = max_ - min_;
-    step_ = step_ / (double)(bins_ - 1);
+    step_ = step_ / (double)(bins_);
   } else if (bins_ == -1) {
     //if (debug>0) mprintf("\t\tCalculating bins.\n");
     if (step_ <= 0) {
