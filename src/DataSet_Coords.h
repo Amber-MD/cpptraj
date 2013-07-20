@@ -15,6 +15,7 @@ class DataSet_Coords : public DataSet_1D {
     int Allocate1D(size_t);
     void Add( size_t, const void* )              { return;     }
     double Dval(size_t)                    const { return 0.0; }
+    double Xcrd(size_t idx)  const { return Dim(0).Coord(idx); }
     void WriteBuffer(CpptrajFile&, size_t) const { return;     }
     // -------------------------------------------
     /// Add a frame.

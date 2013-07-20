@@ -20,6 +20,7 @@ class DataSet_double : public DataSet_1D {
     int Allocate1D(size_t);
     void Add( size_t, const void* );
     double Dval(size_t idx)  const { return Data_[idx];         }
+    double Xcrd(size_t idx)  const { return Dim(0).Coord(idx);  }
     void WriteBuffer(CpptrajFile&, size_t) const;
     // -------------------------------------------
     void AddElement(double d)      { Data_.push_back( d );      }

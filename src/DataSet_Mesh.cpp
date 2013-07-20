@@ -232,10 +232,8 @@ int DataSet_Mesh::SetSplinedMesh(DataSet_1D const& dsIn)
   std::vector<double> x, y;
   x.reserve( dsIn.Size() );
   y.reserve( dsIn.Size() );
-  double xmin = dsIn.Dim(0).Min();
-  double xstep = dsIn.Dim(0).Step();
   for (int i = 0; i < (int)dsIn.Size(); i++) {
-    x.push_back( ((double)i * xstep) + xmin );
+    x.push_back( dsIn.Xcrd( i ) );
     y.push_back( dsIn.Dval( i ) );
   }
   cubicSpline_coeff(x, y);

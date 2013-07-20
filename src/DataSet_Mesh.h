@@ -17,6 +17,7 @@ class DataSet_Mesh : public DataSet_1D {
     int Allocate1D(size_t);
     void Add( size_t, const void* ) {} // TODO: Implement?
     double Dval(size_t idx)  const { return mesh_y_[idx];       }
+    double Xcrd(size_t idx)  const { return mesh_x_[idx];       }
     void WriteBuffer(CpptrajFile&, size_t) const;
     // -------------------------------------------
     double X(int i) const { return mesh_x_[i]; }

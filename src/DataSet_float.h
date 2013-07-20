@@ -19,6 +19,7 @@ class DataSet_float : public DataSet_1D {
     int Allocate1D(size_t);
     void Add( size_t, const void* );
     double Dval(size_t idx)  const { return (double)Data_[idx]; }
+    double Xcrd(size_t idx)  const { return Dim(0).Coord(idx);  }
     void WriteBuffer(CpptrajFile&, size_t) const;
   private:
     std::vector<float> Data_;

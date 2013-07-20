@@ -23,6 +23,8 @@ class DataSet_1D : public DataSet {
     virtual void WriteBuffer(CpptrajFile&,size_t) const = 0;
     /// \return data from data set as double precision (1D)
     virtual double Dval(size_t) const = 0;
+    /// \return the value of the X coordinate at position.
+    virtual double Xcrd(size_t) const = 0;
     // -------------------------------------------
     inline bool IsTorsionArray() const;
     double Avg()           const { return Avg( 0 ); }

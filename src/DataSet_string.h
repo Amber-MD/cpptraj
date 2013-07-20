@@ -20,6 +20,7 @@ class DataSet_string : public DataSet_1D {
     int Allocate1D(size_t);
     void Add( size_t, const void* );
     double Dval(size_t idx)  const { return 0.0;                }
+    double Xcrd(size_t idx)  const { return Dim(0).Coord(idx);  }
     void WriteBuffer(CpptrajFile&, size_t) const;
   private:
     std::vector<std::string> Data_;

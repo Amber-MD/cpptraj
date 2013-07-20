@@ -18,6 +18,7 @@ class DataSet_Vector : public DataSet_1D {
     int Allocate1D(size_t);
     inline void Add(size_t, const void*);
     double Dval(size_t)                 const { return 0.0;             }
+    double Xcrd(size_t idx)             const { return Dim(0).Coord(idx); }
     void WriteBuffer(CpptrajFile&, size_t) const;
     // -------------------------------------------
     double SphereHarm(int i) const { return sphereharm_[i]; } // TODO: Replace
