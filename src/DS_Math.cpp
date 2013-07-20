@@ -47,6 +47,7 @@ double DS_Math::Avg(DataSet& ds, double* stdev) {
         sumx += cos( theta );
       }
       avg = atan2(sumy, sumx) * RADDEG;
+      if (stdev==0) return avg;
       // Torsion Stdev
       sumy = 0;
       for ( int i = 0; i < numvalues; ++i) {
