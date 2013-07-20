@@ -119,11 +119,10 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
     file.Printf("@  s%u legend \"%s\"\n@target G0.S%u\n@type xy\n",
                    setnum, (*set)->Legend().c_str(), setnum );
     // Setup set X coord format.
-    Dimension const& Xdim = (*set)->Dim(0);
-    std::string x_col_format = SetupCoordFormat( maxFrames, Xdim, 8, 3 );
+    std::string x_col_format = SetupCoordFormat( maxFrames, (*set)->Dim(0), 8, 3 );
     // Write Data for set
     for (size_t frame = 0L; frame < maxFrames; frame++) {
-      file.Printf(x_col_format.c_str(), Xdim.Coord(frame));
+      file.Printf(x_col_format.c_str(), (*set)->Xcrd(frame));
       (*set)->WriteBuffer(file, frame);
       file.Printf("\n");
     }
