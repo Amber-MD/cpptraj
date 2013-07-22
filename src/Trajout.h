@@ -19,9 +19,9 @@ class Trajout : public TrajectoryFile {
                                TrajectoryFile::TrajFormatType);
     void EndTraj();
     int WriteFrame(int, Topology*, Frame const&);
-    void PrintInfo(int);
-    bool TrajIsOpen()        { return trajIsOpen_;         }
-    int NumFramesProcessed() { return numFramesProcessed_; }
+    void PrintInfo(int) const;
+    bool TrajIsOpen()        const { return trajIsOpen_;         }
+    int NumFramesProcessed() const { return numFramesProcessed_; }
   private:
     int numFramesProcessed_;
     TrajectoryIO* trajio_;

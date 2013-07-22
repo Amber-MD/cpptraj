@@ -13,9 +13,9 @@ class Trajin_Multi : public Trajin {
     int BeginTraj(bool);
     void EndTraj();
     int GetNextFrame( Frame& );
-    void PrintInfo(int);
-    bool HasVelocity()      { return hasVelocity_; }
-    int NreplicaDimension() { return Ndimensions_; }
+    void PrintInfo(int) const;
+    bool HasVelocity()      const { return hasVelocity_; }
+    int NreplicaDimension() const { return Ndimensions_; }
 
     void EnsembleInfo() const;
     int EnsembleSetup( FrameArray& );
@@ -41,7 +41,6 @@ class Trajin_Multi : public Trajin {
     int lowestRepnum_;        ///< Hold the lowest replica number
     bool isSeekable_;         ///< True if all trajs are seekable.
     bool hasVelocity_;        ///< True if all trajs have velocities.
-    bool isEnsemble_;         ///< True if this will be processed as an ensemble.
     bool replicasAreOpen_;    ///< True is replicas are open.
     bool badEnsemble_;        ///< True if problem with any frames in the ensemble
     TargetType targetType_;   ///< Hold type of REMD frame being searched for.

@@ -13,7 +13,8 @@ Trajin::Trajin() :
   targetSet_(0),
   frameskip_(1),
   numFramesProcessed_(0),
-  useProgress_(true)
+  useProgress_(true),
+  isEnsemble_(false)
 {}
 
 // Trajin::SetupTrajIO()
@@ -118,7 +119,7 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
   return 0;
 }
 
-int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox) {
+int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox) const {
   if (!trajBox.HasBox()) {
     if ( parmBox.HasBox()) {
       // No box in traj but box in parm - disable parm box.
@@ -245,7 +246,7 @@ void Trajin::PrepareForRead(bool useIn, bool seekable) {
 }
 
 // Trajin::PrintInfoLine()
-void Trajin::PrintInfoLine() {
+void Trajin::PrintInfoLine() const {
   if (stop_ != -1)
     mprintf( "----- [%s] (%i-%i, %i) -----\n",TrajFilename().base(),start_+1,stop_+1,offset_);
   else
@@ -253,7 +254,7 @@ void Trajin::PrintInfoLine() {
 }
 
 // Trajin::PrintFrameInfo()
-void Trajin::PrintFrameInfo() {
+void Trajin::PrintFrameInfo() const {
   if (stop_!=-1 && total_frames_>0)
     //mprintf(": %i-%i, %i (reading %i of %i)",start,stop,offset,total_read_frames,total_frames);
     mprintf(" (reading %i of %i)",total_read_frames_,total_frames_);

@@ -34,8 +34,8 @@ class TrajectoryFile {
     void SetTrajFileName( std::string const&, bool );
     int SetTrajParm( Topology* );
 
-    Topology* TrajParm()              { return trajParm_;                }
-    const FileName& TrajFilename()    { return trajName_;                }
+    Topology* TrajParm()           const { return trajParm_; }
+    const FileName& TrajFilename() const { return trajName_; }
   protected:
     int debug_;            ///< Trajectory debug level.
     static TrajectoryIO* AllocTrajIO(TrajFormatType);
