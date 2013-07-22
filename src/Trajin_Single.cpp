@@ -135,7 +135,7 @@ int Trajin_Single::GetNextFrame( Frame& frameIn ) {
 }
 
 // Trajin_Single::PrintInfo()
-void Trajin_Single::PrintInfo(int showExtended) {
+void Trajin_Single::PrintInfo(int showExtended) const {
   mprintf("[%s] ",TrajFilename().base());
   trajio_->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
@@ -153,7 +153,7 @@ void Trajin_Single::PrintInfo(int showExtended) {
 }
 
 // Trajin_Single::HasVelocity()
-bool Trajin_Single::HasVelocity() {
+bool Trajin_Single::HasVelocity() const {
   if (trajio_!=0) {
     if (velio_ == 0)
       return trajio_->HasV();
@@ -163,7 +163,7 @@ bool Trajin_Single::HasVelocity() {
   return false;
 }
 
-int Trajin_Single::NreplicaDimension() {
+int Trajin_Single::NreplicaDimension() const {
   if (trajio_!=0) 
     return trajio_->ReplicaDimensions().Ndims();
   else

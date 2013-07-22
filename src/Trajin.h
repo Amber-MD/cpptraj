@@ -11,47 +11,29 @@ class Trajin : public TrajectoryFile {
     virtual int BeginTraj(bool) = 0;
     virtual void EndTraj() = 0;
     virtual int GetNextFrame(Frame&) = 0;
-    virtual void PrintInfo(int) = 0;
-    virtual bool HasVelocity() = 0;
-    virtual int NreplicaDimension() = 0;
+    virtual void PrintInfo(int) const = 0;
+    virtual bool HasVelocity() const = 0;
+    virtual int NreplicaDimension() const = 0;
 
     int SetupTrajIO( std::string const&, TrajectoryIO&, ArgList* );
-    int CheckBoxInfo(const char*, Box&, Box const&); 
+    int CheckBoxInfo(const char*, Box&, Box const&) const; 
     int setupFrameInfo();
     void SingleFrame();
     void PrepareForRead(bool,bool);
-    void PrintInfoLine();
-    void PrintFrameInfo();
+    void PrintInfoLine() const;
+    void PrintFrameInfo() const;
+ 
+    int TotalFrames()        const { return total_frames_;       }
+    int TotalReadFrames()    const { return total_read_frames_;  }
+    int CurrentFrame()       const { return currentFrame_;       }
+    int Start()              const { return start_;              }
+    int NumFramesProcessed() const { return numFramesProcessed_; }
+    bool IsEnsemble()        const { return isEnsemble_;         }
+    void SetEnsemble(bool b)       { isEnsemble_ = b;            }
 
-    int TotalFrames()     { return total_frames_;      }
-    int TotalReadFrames() { return total_read_frames_; }
-    int CurrentFrame()    { return currentFrame_;      }
-    int Start()           { return start_;             }
-    int NumFramesProcessed() { return numFramesProcessed_; }
-
-    void SetTotalFrames(int nfIn) { 
-      total_frames_ = nfIn;
-      if (stop_ > total_frames_) stop_ = total_frames_;
-    }
-
-    bool CheckFinished() {
-      if (currentFrame_ > stop_ && stop_ != -1) return true;
-      if (useProgress_)
-        progress_.Update(numFramesProcessed_);
-      return false;
-    }
-
-    bool ProcessFrame() {
-      bool tgtFrameFound = false;
-      if (currentFrame_ == targetSet_) {
-        tgtFrameFound=true;
-        targetSet_ += offset_;
-      }
-      ++numFramesProcessed_;
-      currentFrame_ += frameskip_;
-      return tgtFrameFound;
-    }
-      
+    inline void SetTotalFrames(int); 
+    inline bool CheckFinished();
+    inline bool ProcessFrame();
   private:
     int start_;              ///< Frame to begin processing
     int stop_;               ///< Frame to end processing
@@ -64,5 +46,30 @@ class Trajin : public TrajectoryFile {
     int numFramesProcessed_; ///< Number of frames that have been read.
     ProgressBar progress_;   ///< Keep track of trajectory progress
     bool useProgress_;       ///< Indicate whether progress should be shown.
+    bool isEnsemble_;        ///< True if this will be processed as an ensemble.
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+// Trajin::SetTotalFrames()
+void Trajin::SetTotalFrames(int nfIn) { 
+  total_frames_ = nfIn;
+  if (stop_ > total_frames_) stop_ = total_frames_;
+}
+// Trajin::CheckFinished()
+bool Trajin::CheckFinished() {
+  if (currentFrame_ > stop_ && stop_ != -1) return true;
+  if (useProgress_)
+    progress_.Update(numFramesProcessed_);
+  return false;
+}
+// Trajin::ProcessFrame()
+bool Trajin::ProcessFrame() {
+  bool tgtFrameFound = false;
+  if (currentFrame_ == targetSet_) {
+    tgtFrameFound=true;
+    targetSet_ += offset_;
+  }
+  ++numFramesProcessed_;
+  currentFrame_ += frameskip_;
+  return tgtFrameFound;
+}
 #endif

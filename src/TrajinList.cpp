@@ -29,6 +29,7 @@ int TrajinList::AddEnsemble(ArgList& argIn, TopologyList const& topListIn) {
     return 1;
   }
   Trajin* traj = new Trajin_Multi();
+  traj->SetEnsemble(true);
   mode_ = ENSEMBLE;
   return AddInputTraj( traj, argIn, topListIn );
 }

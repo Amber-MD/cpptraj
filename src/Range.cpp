@@ -159,22 +159,16 @@ void Range::RemoveFromRange(int num) {
   }
 }
 
-// Range::RangeArg()
-/** Return the range argument */
-const char *Range::RangeArg() {
-  return rangeArg_.c_str();
-}
-
 // Range::PrintRange()
 /** Print all numbers in the range to a line. Increment by offset. */
-void Range::PrintRange(const char* header, int offset) {
+void Range::PrintRange(const char* header, int offset) const {
   if (header!=0)
     mprintf("%s",header);
-  for (std::list<int>::iterator it=rangeList_.begin(); it!=rangeList_.end(); it++)
+  for (std::list<int>::const_iterator it=rangeList_.begin(); it!=rangeList_.end(); it++)
     mprintf(" %i",(*it)+offset);
   //mprintf("\n");
 }
 
-bool Range::InRange(int idx) {
+bool Range::InRange(int idx) const {
   return ( std::find( rangeList_.begin(), rangeList_.end(), idx ) != rangeList_.end() );
 }

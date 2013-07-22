@@ -37,7 +37,7 @@ int ActionFrameCounter::InitFrameCounter(ArgList& argIn) {
   return 0;
 }
 
-void ActionFrameCounter::FrameCounterInfo() {
+void ActionFrameCounter::FrameCounterInfo() const {
   mprintf("\tStart: %i  Stop:", start_ + 1);
   if (stop_ == -1)
     mprintf(" Final frame");
@@ -48,7 +48,7 @@ void ActionFrameCounter::FrameCounterInfo() {
   mprintf("\n");
 }
 
-void ActionFrameCounter::FrameCounterBrief() {
+void ActionFrameCounter::FrameCounterBrief() const {
   if (stop_ != -1)
     mprintf(" (%i-%i, %i)", start_+1, stop_+1, offset_);
   else

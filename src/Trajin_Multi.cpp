@@ -14,7 +14,6 @@ Trajin_Multi::Trajin_Multi() :
   lowestRepnum_(0),
   isSeekable_(true),
   hasVelocity_(false),
-  isEnsemble_(false),
   replicasAreOpen_(false),
   targetType_(NONE),
   frameidx_(0)
@@ -181,11 +180,9 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
     targetType_ = TEMP;
   }
   // If the command was ensemble, target args are not valid
-  isEnsemble_ = false;
   bool no_sort = false;
-  if ( argIn->CommandIs("ensemble") ){
+  if ( IsEnsemble() ){
     no_sort = argIn->hasKey("nosort");
-    isEnsemble_ = true;
     if (targetType_ != NONE || argIn->hasKey("remdtraj")) {
       mprintf("Warning: 'ensemble' does not use 'remdtraj', 'remdtrajidx' or 'remdtrajtemp'\n");
       targetType_ = NONE;
@@ -304,7 +301,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   // If targetType is currently NONE these will be processed as an ensemble. 
   // If dimensions are present index by replica indices, otherwise index
   // by temperature. If nosort was specified do not sort.
-  if (isEnsemble_ && !no_sort) {
+  if (IsEnsemble() && !no_sort) {
     if (Ndimensions_ > 0)
       targetType_ = INDICES;
     else
@@ -329,7 +326,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
 // Trajin_Multi::BeginTraj()
 int Trajin_Multi::BeginTraj(bool showProgress) {
 # ifdef MPI
-  if (isEnsemble_) {
+  if (IsEnsemble()) {
     // For ensemble, only open trajectory this thread will be dealing with
     //rprintf("Opening %s\n", replica_filenames_[worldrank].c_str()); // DEBUG
     if (REMDtraj_[worldrank]->openTrajin()) {
@@ -363,7 +360,7 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
 void Trajin_Multi::EndTraj() {
   if (replicasAreOpen_) {
 #   ifdef MPI
-    if (isEnsemble_)
+    if (IsEnsemble())
       REMDtraj_[worldrank]->closeTraj();
     else
 #   else
@@ -431,14 +428,14 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
 }
 
 // Trajin_Multi::PrintInfo()
-void Trajin_Multi::PrintInfo(int showExtended) {
+void Trajin_Multi::PrintInfo(int showExtended) const {
   mprintf("REMD trajectories (%u total), lowest replica [%s]", REMDtraj_.size(),
           TrajFilename().base());
   if (showExtended == 1) PrintFrameInfo();
   mprintf("\n");
   if (debug_ > 0) {
     unsigned int repnum = 0;
-    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    for (IOarrayType::const_iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
       mprintf("\t%u:[%s] ", repnum, replica_filenames_[repnum].c_str());
       ++repnum;
@@ -446,12 +443,12 @@ void Trajin_Multi::PrintInfo(int showExtended) {
       mprintf("\n");
     }
   }
-  if (!isEnsemble_) {
+  if (!IsEnsemble()) {
     if (remdtrajidx_.empty())
       mprintf("\tLooking for frames at %.2lf K\n",remdtrajtemp_);
     else {
       mprintf("\tLooking for indices [");
-      for (RemdIdxType::iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
+      for (RemdIdxType::const_iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
         mprintf(" %i", *idx);
       mprintf(" ]\n");
     }

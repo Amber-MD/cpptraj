@@ -56,7 +56,6 @@ int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList& topListI
 
 // TrajoutList::AddTrajout()
 int TrajoutList::AddTrajout(ArgList& argIn, TopologyList& topListIn) {
-   if (!argIn.CommandIs("trajout")) return 1;
   // Since we need to check if this filename is in use in order to prevent
   // overwrites, determine the filename here.
   std::string filename = argIn.GetStringNext();

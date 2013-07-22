@@ -189,7 +189,7 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame const& FrameOut) {
 }
 
 // Trajout::PrintInfo()
-void Trajout::PrintInfo(int showExtended) {
+void Trajout::PrintInfo(int showExtended) const {
   mprintf("  [%s] ",TrajFilename().base());
   trajio_->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
