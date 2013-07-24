@@ -20,7 +20,7 @@ class DataSet_2D : public DataSet {
     virtual int AllocateTriangle(size_t) = 0;
     /// Write 2D data to file (2D)
     virtual void Write2D(CpptrajFile&,int,int) const = 0;
-    /// \return Data from matrix at row/col
+    /// \return Data from matrix at col/row 
     virtual double GetElement(size_t, size_t) const = 0;
     /// \return the number of rows.
     virtual size_t Nrows() const = 0;
