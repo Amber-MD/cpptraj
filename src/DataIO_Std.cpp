@@ -222,7 +222,8 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList)
   // Use X dimension of set 0 for all set dimensions.
   Sets.CheckXDimension();
   // TODO: Check for empty dim.
-  Dimension const& Xdim = static_cast<Dimension const&>(Sets[0]->Dim(0));
+  DataSet_1D const& Xdata = static_cast<DataSet_1D const&>( *Sets[0] );
+  Dimension const& Xdim = static_cast<Dimension const&>( Xdata.Dim(0) );
 
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
@@ -263,7 +264,7 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList)
   for (size_t frame=0L; frame < maxFrames; frame++) {
     // Output Frame for each set
     if (hasXcolumn_)
-      file.Printf(x_col_format.c_str(), Xdim.Coord(frame));
+      file.Printf(x_col_format.c_str(), Xdata.Xcrd(frame));
     for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) 
       (*set)->WriteBuffer(file, frame);
     file.Printf("\n"); 
