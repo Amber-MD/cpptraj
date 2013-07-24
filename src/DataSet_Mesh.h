@@ -24,8 +24,8 @@ class DataSet_Mesh : public DataSet_1D {
     double Y(int i) const { return mesh_y_[i]; }
     /// Calculate mesh X values given size, start, and end values.
     void CalculateMeshX(int,double,double);
-    /// Set mesh Y values from input data set.
-    int SetMeshY(DataSet_1D const&);
+    /// Set mesh X and Y values from input data set.
+    int SetMeshXY(DataSet_1D const&);
     /// Integrate the mesh, compute cumulative sum
     double Integrate_Trapezoid( DataSet_Mesh& ) const;
     /// Integrate the mesh

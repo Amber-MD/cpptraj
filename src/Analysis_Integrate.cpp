@@ -58,10 +58,8 @@ Analysis::RetType Analysis_Integrate::Analyze() {
       mprintf("Warning: Set [%i] \"%s\" has no data.\n", idx, (*DS)->Legend().c_str());
     else {
       DataSet_Mesh mesh;
-      // Set X mesh
-      mesh.CalculateMeshX( (*DS)->Size(), 0, (*DS)->Size() );
-      // Set Y mesh
-      mesh.SetMeshY( *(*DS) );
+      // Set XY mesh
+      mesh.SetMeshXY( *(*DS) );
       if (outfile_ != 0)
         sum = mesh.Integrate_Trapezoid( *(output_dsets_[idx]) );
       else

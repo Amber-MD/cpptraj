@@ -34,15 +34,14 @@ void DataSet_Mesh::CalculateMeshX(int sizeIn, double ti, double tf) {
     mesh_x_[i] = s + d*((double) (2*i + 1 - sizeIn)/(sizeIn - 1));
 }
 
-// DataSet_Mesh::SetMeshY()
-int DataSet_Mesh::SetMeshY(DataSet_1D const& dsIn) {
-  if (dsIn.Size() != mesh_x_.size()) {
-    mprintf("Warning: Input data set %s size %zu != mesh %s size %zu\n",
-            dsIn.Legend().c_str(), dsIn.Size(), Legend().c_str(), Size());
-  }
-  size_t maxSize = std::min( dsIn.Size(), Size() );
-  for (int i = 0; i < (int)maxSize; i++)
+// DataSet_Mesh::SetMeshXY()
+int DataSet_Mesh::SetMeshXY(DataSet_1D const& dsIn) {
+  mesh_x_.resize( dsIn.Size() );
+  mesh_y_.resize( dsIn.Size() );
+  for (unsigned int i = 0; i < dsIn.Size(); i++) {
+    mesh_x_[i] = dsIn.Xcrd(i);
     mesh_y_[i] = dsIn.Dval(i);
+  }
   return 0;
 }
 
