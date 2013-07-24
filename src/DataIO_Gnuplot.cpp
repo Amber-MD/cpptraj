@@ -219,7 +219,8 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
   // Use X dimension of set 0 for all set dimensions.
-  Dimension const& Xdim = static_cast<Dimension const&>(Sets[0]->Dim(0)); 
+  DataSet_1D const& Xdata = static_cast<DataSet_1D const&>( *Sets[0] );
+  Dimension const& Xdim = static_cast<Dimension const&>( Xdata.Dim(0) ); 
   Dimension Ydim( 1, 1, Sets.size() );
   std::string x_format = SetupCoordFormat( maxFrames, Xdim, 8, 3);
   std::string y_format = SetupCoordFormat( Sets.size(), Ydim, 8, 3);
@@ -276,9 +277,9 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
 
   // Data
   for (size_t frame = 0; frame < maxFrames; frame++) {
-    double xcoord = Xdim.Coord( frame );
+    double xcoord = Xdata.Xcrd( frame );
     for (size_t setnum = 0; setnum < Sets.size(); ++setnum) {
-      file_.Printf( xy_format, Xdim.Coord(frame), Ydim.Coord(setnum) );
+      file_.Printf( xy_format, xcoord, Ydim.Coord(setnum) );
       Sets[setnum]->WriteBuffer( file_, frame );
       file_.Printf("\n");
     }
