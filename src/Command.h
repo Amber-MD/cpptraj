@@ -39,8 +39,8 @@ class Command {
     static TokenPtr SearchToken(ArgList&);
     static RetType Dispatch(CpptrajState&, std::string const&);
     static RetType ProcessInput(CpptrajState&, std::string const&);
+    static Token const& CmdToken(int idx) { return Commands[idx]; }
   private:
-    
     static const char* CommandTitle[];
     /// Master list of commands.
     static const Token Commands[];
