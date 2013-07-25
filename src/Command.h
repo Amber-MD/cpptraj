@@ -22,6 +22,7 @@ class Command {
     static void List(DispatchObject::DispatchType);
     static DispatchObject::TokenPtr SearchToken(ArgList&);
     static DispatchObject::TokenPtr SearchTokenType(DispatchObject::DispatchType, ArgList&);
+    static DispatchObject::Token const& CmdToken(int idx) { return Commands[idx]; }
   private:
     static const DispatchObject::Token Commands[];
 };

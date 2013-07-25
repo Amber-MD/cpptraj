@@ -4,7 +4,7 @@
 /// Wrapper around GNU readline library
 class ReadLine {
   public:
-    ReadLine() {}
+    ReadLine();
     int GetInput();
     bool YesNoPrompt(const char*);
     const char* c_str()            const { return input_.c_str(); }
