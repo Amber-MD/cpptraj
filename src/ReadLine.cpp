@@ -47,7 +47,7 @@ static char* command_generator(const char* text, int state) {
 static char** cpptraj_completion(const char* text, int start, int end) {
   char** matches = 0;
   // If this word is at the start of the line, assume it is a command.
-  if (start == 0)
+  if (start == 0 || (strncmp(rl_line_buffer, "help ", 5)==0))
     matches = rl_completion_matches(text, command_generator);
   return matches;
 }
