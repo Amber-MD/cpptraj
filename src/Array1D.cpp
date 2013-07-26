@@ -1,5 +1,16 @@
 #include "Array1D.h"
 #include "CpptrajStdio.h"
+
+// COPY CONSTRUCTOR
+Array1D::Array1D(const Array1D& rhs) : array_(rhs.array_) {}
+
+// ASSIGNMENT
+Array1D& Array1D::operator=(const Array1D& rhs) {
+  if (this == &rhs) return *this;
+  array_ = rhs.array_;
+  return *this;
+}
+
 // CONSTRUCTOR
 Array1D::Array1D(DataSetList const& SetList) {
   AddDataSets( SetList );

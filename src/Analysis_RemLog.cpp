@@ -2,9 +2,12 @@
 #include "CpptrajStdio.h"
 #include "DataSet_integer.h"
 #include "ProgressBar.h"
+#include "Analysis_Lifetime.h"
+#include "StringRoutines.h" // integerToString
 
 Analysis_RemLog::Analysis_RemLog() :
   calculateStats_(false),
+  calculateLifetimes_(false),
   printIndividualTrips_(false), 
   remlog_(0),
   mode_(NONE)
@@ -12,7 +15,7 @@ Analysis_RemLog::Analysis_RemLog() :
 
 void Analysis_RemLog::Help() {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
-          "\t[stats [statsout <file>] printtrips]\n");
+          "\t[stats [statsout <file>] printtrips] [lifetime]\n");
 }
 
 // Analysis_RemLog::Setup()
@@ -35,6 +38,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprinterr("Error: remlog data set appears to be empty.\n");
     return Analysis::ERR;
   }
+  calculateLifetimes_ = analyzeArgs.hasKey("lifetime");
   calculateStats_ = analyzeArgs.hasKey("stats");
   if (calculateStats_) {
     if (statsout_.OpenWrite( analyzeArgs.GetStringKey("statsout") )) return Analysis::ERR;
@@ -94,12 +98,15 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     if (printIndividualTrips_)
       mprintf("\tIndividual round trips will be printed.\n");
   }
+  if (calculateLifetimes_)
+    mprintf("\tThe lifetime of each crd at each replica will be calculated.\n");
 
   return Analysis::OK;
 }
 
 // Analysis_RemLog::Analyze()
 Analysis::RetType Analysis_RemLog::Analyze() {
+  // Variables for calculating replica stats
   enum RepStatusType { UNKNOWN = 0, HIT_BOTTOM, HIT_TOP };
   std::vector<int> replicaStatus;
   std::vector<int> replicaBottom;
@@ -114,43 +121,66 @@ Analysis::RetType Analysis_RemLog::Analyze() {
                                                    it != replicaFrac.end(); ++it)
       (*it).resize( remlog_->Size(), 0 );
   }
+  // Variables for calculating replica lifetimes
+  Analysis_Lifetime Lifetime;
+  Array1D dsLifetime;
+  std::vector< std::vector<DataSet_integer> > series; // 2D - repidx, crdidx
+  if (calculateLifetimes_) {
+    mprintf("\tData size used for lifetime analysis= %zu bytes.\n",
+            remlog_->Size() * remlog_->Size() * remlog_->NumExchange() * sizeof(int));
+    series.resize( remlog_->Size() );
+    for (unsigned int i = 0; i < remlog_->Size(); i++) {
+      series[i].resize( remlog_->Size() );
+      for (unsigned int j = 0; j < remlog_->Size(); j++) {
+        series[i][j].Resize( remlog_->NumExchange() );
+        series[i][j].SetLegend("Rep"+integerToString(i+1)+",Crd"+integerToString(j+1));
+        dsLifetime.push_back( (DataSet_1D*)&(series[i][j]) );
+      }
+    }
+    if (Lifetime.Setup( dsLifetime ) == Analysis::ERR) {
+      mprinterr("Error: Could not set up remlog lifetime analysis.\n");
+      return Analysis::ERR;
+    }
+  }
 
   ProgressBar progress( remlog_->NumExchange() );
   for (int frame = 0; frame < remlog_->NumExchange(); frame++) {
     progress.Update( frame );
     for (int replica = 0; replica < (int)remlog_->Size(); replica++) {
       DataSet_RemLog::ReplicaFrame const& frm = remlog_->RepFrame( frame, replica );
-      int crdidx = frm.CoordsIdx();
-      int repidx = frm.ReplicaIdx();
+      int crdidx = frm.CoordsIdx() - 1;
+      int repidx = frm.ReplicaIdx() - 1;
       if (mode_ == CRDIDX) {
-        DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[repidx-1]) );
-        ds[frame] = crdidx;
+        DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[repidx]) );
+        ds[frame] = frm.CoordsIdx();
       } else if (mode_ == REPIDX) {
-        DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[crdidx-1]) );
-        ds[frame] = repidx;
+        DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[crdidx]) );
+        ds[frame] = frm.ReplicaIdx();
       }
+      if (calculateLifetimes_)
+        series[repidx][crdidx][frame] = 1;
       if (calculateStats_) {
         // Fraction spent at each replica
-        replicaFrac[repidx-1][crdidx-1]++;
+        replicaFrac[repidx][crdidx]++;
         // Replica round-trip calculation
-        if (replicaStatus[crdidx-1] == UNKNOWN) {
-          if (repidx == 1) {
-            replicaStatus[crdidx-1] = HIT_BOTTOM;
-            replicaBottom[crdidx-1] = frame;
+        if (replicaStatus[crdidx] == UNKNOWN) {
+          if (repidx == 0) {
+            replicaStatus[crdidx] = HIT_BOTTOM;
+            replicaBottom[crdidx] = frame;
           }
-        } else if (replicaStatus[crdidx-1] == HIT_BOTTOM) {
-          if (repidx == (int)remlog_->Size())
-            replicaStatus[crdidx-1] = HIT_TOP;
-        } else if (replicaStatus[crdidx-1] == HIT_TOP) {
-          if (repidx == 1) {
-            int rtrip = frame - replicaBottom[crdidx-1];
+        } else if (replicaStatus[crdidx] == HIT_BOTTOM) {
+          if (repidx == (int)remlog_->Size() - 1)
+            replicaStatus[crdidx] = HIT_TOP;
+        } else if (replicaStatus[crdidx] == HIT_TOP) {
+          if (repidx == 0) {
+            int rtrip = frame - replicaBottom[crdidx];
             if (printIndividualTrips_)
               statsout_.Printf("[%i] CRDIDX %i took %i exchanges to travel"
                                " up and down (exch %i to %i)\n",
-                               replica, crdidx, rtrip, replicaBottom[crdidx-1]+1, frame+1);
-            roundTrip[crdidx-1].push_back( rtrip );
-            replicaStatus[crdidx-1] = HIT_BOTTOM;
-            replicaBottom[crdidx-1] = frame;
+                               replica, crdidx+1, rtrip, replicaBottom[crdidx]+1, frame+1);
+            roundTrip[crdidx].push_back( rtrip );
+            replicaStatus[crdidx] = HIT_BOTTOM;
+            replicaBottom[crdidx] = frame;
           }
         }
       }
@@ -180,6 +210,10 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         statsout_.Printf(" %8.3f", ((double)replicaFrac[replica][crd] / dframes) * 100.0);
       statsout_.Printf("\n");
     }
+  }
+  if (calculateLifetimes_) {
+    mprintf("\tCalculating remlog lifetimes:\n");
+    Lifetime.Analyze();
   }
   return Analysis::OK;
 }

@@ -7,6 +7,8 @@
 class Array1D {
   public:
     Array1D() {}
+    Array1D(const Array1D&);
+    Array1D& operator=(const Array1D&);
     Array1D(DataSetList const&);
     /// \return size of largest data set in the array.
     size_t DetermineMax() const;

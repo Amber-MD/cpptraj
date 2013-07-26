@@ -12,6 +12,7 @@ class Analysis_RemLog : public Analysis {
   private:
     enum ModeType { NONE = 0, CRDIDX, REPIDX };
     bool calculateStats_;
+    bool calculateLifetimes_;
     bool printIndividualTrips_;
     DataSet_RemLog* remlog_;
     ModeType mode_;

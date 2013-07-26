@@ -10,6 +10,7 @@ Analysis_Lifetime::Analysis_Lifetime() :
   averageonly_(false),
   cumulative_(false),
   deltaAvg_(false),
+  standalone_(false),
   Compare_(Compare_GreaterThan)
 {}
 
@@ -21,9 +22,23 @@ void Analysis_Lifetime::Help() {
   mprintf("\tdefault 0.5) over windows of given size.\n");
 }
 
+Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray) {
+  if (dsArray.empty()) return Analysis::ERR;
+  inputDsets_ = dsArray;
+  windowSize_ = -1;
+  averageonly_ = false;
+  cumulative_ = false;
+  deltaAvg_ = false;
+  standalone_ = true;
+  cut_ = 0.5;
+  Compare_ = Compare_GreaterThan;
+  return Analysis::OK;
+}
+
 Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
+  standalone_ = false;
   // Get Keywords
   DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   DataFile* maxfile = 0;
@@ -128,8 +143,10 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
   int current = 0;
   ProgressBar progress( inputDsets_.size() );
   for (unsigned int setIdx = 0; setIdx < inputDsets_.size(); setIdx++) {
-    //mprintf("\t\tCalculating lifetimes for set %s\n", inputDsets_[setIdx]->Legend().c_str());
-    progress.Update( current++ );
+    if (standalone_)
+      mprintf("\t\tCalculating lifetimes for set %s\n", inputDsets_[setIdx]->Legend().c_str());
+    else
+      progress.Update( current++ );
     // Loop over all values in set.
     int setSize = (int)inputDsets_[setIdx]->Size();
     double sum = 0.0;

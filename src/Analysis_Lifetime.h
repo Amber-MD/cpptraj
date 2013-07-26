@@ -5,10 +5,9 @@
 class Analysis_Lifetime : public Analysis {
   public:
     Analysis_Lifetime();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Lifetime(); }
     static void Help();
-
+    Analysis::RetType Setup(Array1D const&);
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
@@ -21,6 +20,7 @@ class Analysis_Lifetime : public Analysis {
     bool averageonly_;
     bool cumulative_;
     bool deltaAvg_;
+    bool standalone_;
     typedef bool (*CompareFxn)(double,double);
     CompareFxn Compare_;
     static bool Compare_GreaterThan(double l, double r) { return (l > r); }
