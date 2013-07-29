@@ -2,6 +2,9 @@
 #include "Cluster_HierAgglo.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 
 Cluster_HierAgglo::Cluster_HierAgglo() :
   nclusters_(-1),
@@ -118,26 +121,69 @@ int Cluster_HierAgglo::Cluster() {
 // Cluster_HierAgglo::AddSievedFrames()
 void Cluster_HierAgglo::AddSievedFrames() {
   // NOTE: All cluster centroids must be up to date.
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame) {
+  int frame;
+  int nframes = (int)FrameDistances_.Nframes();
+  double mindist, dist;
+  cluster_it minNode, Cnode;
+  ParallelProgress progress( nframes );
+# ifdef _OPENMP
+  int numthreads, mythread;
+  // Need to create a ClusterDist for every thread to ensure memory allocation and avoid clashes
+  ClusterDist** cdist_thread;
+  // Also need a temp. array to hold which frame goes to which cluster to avoid clashes
+  std::vector<cluster_it> frameToCluster( nframes, clusters_.end() );
+# pragma omp parallel
+  {
+    if (omp_get_thread_num()==0)
+      numthreads = omp_get_num_threads();
+  }
+  mprintf("\tParallelizing calculation with %i threads\n", numthreads);
+  cdist_thread = new ClusterDist*[ numthreads ];
+  for (int i=0; i < numthreads; i++)
+    cdist_thread[i] = Cdist_->Copy();
+# pragma omp parallel private(mythread, frame, dist, mindist, minNode, Cnode) firstprivate(progress)
+{
+  mythread = omp_get_thread_num();
+  progress.SetThread( mythread );
+# pragma omp for schedule(dynamic)
+# endif
+  for (frame = 0; frame < nframes; ++frame) {
+    progress.Update( frame );
     if (FrameDistances_.IgnoringRow(frame)) {
-      //mprintf(" %i [", frame + 1); // DEBUG
       // Which clusters centroid is closest to this frame?
-      double mindist = DBL_MAX;
-      cluster_it  minNode = clusters_.end();
-      for (cluster_it Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
-        double dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
-        //mprintf(" %i:%-6.2f", (*Cnode).Num(), dist); // DEBUG
+      mindist = DBL_MAX;
+      minNode = clusters_.end();
+      for (Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
+#       ifdef _OPENMP
+        dist = cdist_thread[mythread]->FrameCentroidDist(frame, (*Cnode).Cent());
+#       else
+        dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
+#       endif
         if (dist < mindist) {
           mindist = dist;
           minNode = Cnode;
         }
       }
-      //mprintf(" ], to cluster %i\n", (*minNode).Num()); // DEBUG
       // Add sieved frame to the closest cluster.
+#     ifdef _OPENMP
+      frameToCluster[frame] = minNode;
+#     else
       (*minNode).AddFrameToCluster( frame );
+#     endif
     }
-  }
-  //mprintf("\n");
+  } // END loop over frames
+# ifdef _OPENMP
+} // END pragma omp parallel
+  // Free cdist_thread memory
+  for (int i = 0; i < numthreads; i++)
+    delete cdist_thread[i];
+  delete[] cdist_thread;
+  // Now actually add sieved frames to their appropriate clusters
+  for (frame = 0; frame < nframes; frame++)
+    if (frameToCluster[frame] != clusters_.end())
+      (*frameToCluster[frame]).AddFrameToCluster( frame );
+# endif
+  progress.Finish();
 }
 
 /** Find and merge the two closest clusters. */
