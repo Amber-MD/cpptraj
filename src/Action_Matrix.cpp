@@ -150,8 +150,6 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       mprintf("            Mask2: %s\n",mask2_.MaskString());
   }
 
-  mprintf("\n");
-
   return Action::OK;
 }
 
