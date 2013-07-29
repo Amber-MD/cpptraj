@@ -547,6 +547,7 @@ void CpptrajState::MasterDataFileWrite() {
 }
 
 void CpptrajState::RunAnalyses() {
+  ++nrun_;
 # ifdef TIMER
   Timer analysis_time;
   analysis_time.Start();
