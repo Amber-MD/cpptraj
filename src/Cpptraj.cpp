@@ -43,12 +43,14 @@ void Cpptraj::Intro() {
 # endif
 }
 
-void Cpptraj::Finalize() {
-  mprintf("--------------------------------------------------------------------------------\n"
-    "To cite CPPTRAJ use:\n"
-    "Daniel R. Roe and Thomas E. Cheatham, III, \"PTRAJ and CPPTRAJ: Software for\n"
-    "  Processing and Analysis of Molecular Dynamics Trajectory Data\". J. Chem.\n"
-    "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n\n");
+void Cpptraj::Finalize(int err) {
+  if (err == 0)
+    mprintf("--------------------------------------------------------------------------------\n"
+      "To cite CPPTRAJ use:\n"
+      "Daniel R. Roe and Thomas E. Cheatham, III, \"PTRAJ and CPPTRAJ: Software for\n"
+      "  Processing and Analysis of Molecular Dynamics Trajectory Data\". J. Chem.\n"
+      "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n");
+  mprintf("\n");
 }
 
 // -----------------------------------------------------------------------------
