@@ -46,6 +46,6 @@ class Analysis_Hist : public Analysis {
     bool minArgSet_;
     bool maxArgSet_;
     bool calcAMD_;
-    DataSet* amddata_;
+    DataSet_1D* amddata_;
 };
 #endif

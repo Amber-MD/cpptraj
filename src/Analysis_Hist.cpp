@@ -204,11 +204,16 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   calcAMD_ = false;
   std::string amdname = analyzeArgs.GetStringKey("amd");
   if (!amdname.empty()) {
-    amddata_ = datasetlist->GetDataSet( amdname );
-    if (amddata_ == 0) {
+    DataSet* ds = datasetlist->GetDataSet( amdname );
+    if (ds == 0) {
       mprinterr("Error: AMD data set %s not found.\n", amdname.c_str());
       return Analysis::ERR;
     }
+    if (ds->Ndim() != 1) {
+      mprinterr("Error: AMD data set must be 1D.\n");
+      return Analysis::ERR;
+    }
+    amddata_ = (DataSet_1D*)ds;
     calcAMD_ = true;
   }
 
@@ -335,7 +340,10 @@ Analysis::RetType Analysis_Hist::Analyze() {
     // If index was successfully calculated, populate bin
     if (index > -1L && index < (long int)Bins_.size()) {
       if (debug_ > 1) mprintf(" |index=%li",index);
-      Bins_[index]++;
+      if (calcAMD_)
+        Bins_[index] += exp( amddata_->Dval(n) );
+      else
+        Bins_[index]++;
     } else {
       mprintf("\tWarning: Frame %u Coordinates out of bounds (%li)\n", n+1, index);
     }
