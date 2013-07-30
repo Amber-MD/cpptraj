@@ -123,7 +123,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
     return Analysis::ERR;
   }
-  splitFrame_ = analyzeArgs.getKeyInt("splitframe", -1);
+  splitFrame_ = analyzeArgs.getKeyInt("splitframe", -1) - 1; // User args start at 1
   DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   cpopvtimefile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
   clusterinfo_ = analyzeArgs.GetStringKey("info");
