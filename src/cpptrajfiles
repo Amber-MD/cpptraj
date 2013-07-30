@@ -67,6 +67,7 @@ SOURCES=ActionFrameCounter.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
+        Analysis_Average.cpp \
         Analysis_Clustering.cpp \
         Analysis_Corr.cpp \
         Analysis_CrankShaft.cpp \
