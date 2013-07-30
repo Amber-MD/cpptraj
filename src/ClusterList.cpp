@@ -166,9 +166,11 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
     half = maxframesIn / 2;
   else
     half = splitFrame;
+  double max2nd = (double)(maxframesIn - half);
+  double max1st = (double)(maxframesIn - max2nd);
   // Header
   outfile.Printf("# 1st < %i <= 2nd\n", half + 1); 
-  outfile.Printf("#%-7s %8s %6s %2s %10s %8s %8s %6s %6s\n", 
+  outfile.Printf("#%-7s %8s %6s %2s %10s %8s %8s %8s %8s\n", 
                  "Cluster", "Total", "Frac", "C#", "Color", 
                  "NumIn1st", "NumIn2nd","Frac1","Frac2");
   int color = 1; // xmgrace color, 1-15
@@ -193,11 +195,9 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
       else
         ++numInSecondHalf;
     }
-    double frac1 = (double)numframes;
-    frac1 = ((double)numInFirstHalf) / frac1;
-    double frac2 = (double)numframes;
-    frac2 = ((double)numInSecondHalf) / frac2;
-    outfile.Printf("%-8i %8i %6.2f %2i %10s %8i %8i %6.2f %6.2f\n",
+    double frac1 = ((double)numInFirstHalf) / max1st;
+    double frac2 = ((double)numInSecondHalf) / max2nd;
+    outfile.Printf("%-8i %8i %6.2f %2i %10s %8i %8i %8.4f %8.4f\n",
                    (*node).Num(), numframes, frac, color, XMGRACE_COLOR[color],
                    numInFirstHalf, numInSecondHalf, frac1, frac2);
     if (color<15) ++color;
