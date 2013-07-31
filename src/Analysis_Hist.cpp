@@ -388,8 +388,19 @@ Analysis::RetType Analysis_Hist::Analyze() {
       outfile_->ProcessArgs("noxcol usemap nolabels");
     } else if (N_dimensions_ == 3) {
       DataSet_GridFlt& gds = static_cast<DataSet_GridFlt&>( *hist_ );
-      gds.Allocate3D( dimensions_[0].Bins(), dimensions_[1].Bins(), dimensions_[2].Bins() );
-      std::copy( Bins_.begin(), Bins_.end(), gds.begin() );
+      //gds.Allocate3D( dimensions_[0].Bins(), dimensions_[1].Bins(), dimensions_[2].Bins() );
+      gds.Allocate_N_O_D( dimensions_[0].Bins(), dimensions_[1].Bins(), dimensions_[2].Bins(),
+                          Vec3(dimensions_[0].Min(), dimensions_[1].Min(), dimensions_[2].Min()),
+                          Vec3(dimensions_[0].Step(), dimensions_[1].Step(), dimensions_[2].Step())
+                        );
+      //std::copy( Bins_.begin(), Bins_.end(), gds.begin() );
+      // FIXME: Copy will not work since in grids data is ordered with Z
+      // changing fastest. Should the ordering in grid be changed?
+      size_t idx = 0;
+      for (size_t z = 0; z < gds.NZ(); z++)
+        for (size_t y = 0; y < gds.NY(); y++)
+          for (size_t x = 0; x < gds.NX(); x++)
+            gds.SetElement( x, y, z, (float)Bins_[idx++] );
       hist_->SetDim(Dimension::X, dimensions_[0]);
       hist_->SetDim(Dimension::Y, dimensions_[1]);
       hist_->SetDim(Dimension::Z, dimensions_[2]);

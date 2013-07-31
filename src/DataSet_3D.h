@@ -4,6 +4,7 @@
 #include "CpptrajFile.h"
 #include "Vec3.h"
 /// Interface for 3D DataSets.
+// FIXME: Use DataSet Dims?
 class DataSet_3D : public DataSet {
   public:
     DataSet_3D() {}
