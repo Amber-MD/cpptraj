@@ -92,6 +92,7 @@
 #include "Analysis_Integrate.h"
 #include "Analysis_Spline.h"
 #include "Analysis_Average.h"
+#include "Analysis_KDE.h"
 // ---- Command Functions ------------------------------------------------------
 /** Search Commands list for a specific type of command. */
 Command::TokenPtr Command::SearchTokenType(CommandType dtype,
@@ -1233,6 +1234,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "histogram", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
   { ANALYSIS, "integrate", Analysis_Integrate::Alloc, Analysis_Integrate::Help, AddAnalysis },
   { ANALYSIS, "ired", Analysis_IRED::Alloc, Analysis_IRED::Help, AddAnalysis },
+  { ANALYSIS, "kde", Analysis_KDE::Alloc, Analysis_KDE::Help, AddAnalysis },
   { ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, AddAnalysis },
   { ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
   { ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, AddAnalysis },
