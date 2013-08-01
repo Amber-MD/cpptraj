@@ -17,6 +17,81 @@ Trajin::Trajin() :
   isEnsemble_(false)
 {}
 
+// Trajin::CheckFrameArgs()
+/** Parse argument list for trajectory-related frame args. Frame args start at
+  * 1, internal frame #s start at 0. So for a traj with 10 frames:
+  * - Internal #: 0 1 2 3 4 5 6 7 8 9
+  * - Frame Arg#: 1 2 3 4 5 6 7 8 9 10
+  * - Defaults: startArg=1, stopArg=-1, offsetArg=1
+  */
+int Trajin::CheckFrameArgs(ArgList& argIn, int maxFrames,
+                           int& startArg, int& stopArg, int& offsetArg)
+{
+  if (argIn.hasKey("lastframe")) {
+    // lastframe is a special case where only the last frame will be selected
+    if (maxFrames > 0) {
+      startArg = maxFrames;
+      stopArg = maxFrames;
+      offsetArg = 1;
+    } else {
+      mprinterr("Error: lastframe specified but # frames could not be determined.\n");
+      return 1;
+    }
+  } else {
+    startArg = argIn.getNextInteger(1);
+    // Last explicitly selects final frame as stop arg.
+    if (argIn.hasKey("last"))
+      stopArg = -1;
+    else
+      stopArg = argIn.getNextInteger(-1);
+    offsetArg = argIn.getNextInteger(1);
+  }
+  // Check that start argument is valid.
+  if (startArg != 1) {
+    if (startArg < 1) {
+      mprintf("Warning: start argument %i < 1, setting to 1.\n", startArg);
+      startArg = 1; //start_ = 0;
+    } else if (maxFrames >= 0 && startArg > maxFrames) {
+      // startArg==stopArg and greater than # frames, archaic 'lastframe'.
+      if (startArg == stopArg) {
+        mprintf("Warning: start %i > #Frames (%i), setting to last frame.\n",
+                startArg, maxFrames);
+        startArg = maxFrames; //start_ = total_frames_ - 1;
+      } else {
+        mprinterr("Error: start %i > #Frames (%i), no frames will be processed.\n",
+                  startArg, maxFrames);
+        //start=startArg - 1;
+        return 1;
+      }
+    }
+  }
+  startArg--; // Internal frame nums start from 0.
+  // Check that stop argument is valid
+  if (stopArg != -1) {
+    if ( (stopArg - 1) < startArg) { // Internal frame nums start from 0.
+      mprinterr("Error: stop %i < start, no frames will be processed.\n", stopArg);
+      //stop = start;
+      return 1;
+    } else if (maxFrames >= 0 && stopArg > maxFrames) {
+      mprintf("Warning: stop %i > #Frames (%i), setting to max.\n", stopArg, maxFrames);
+      stopArg = maxFrames;
+    } 
+  } else if (maxFrames >= 0) // -1 means use last frame
+    stopArg = maxFrames;
+  // Check that offset argument is valid.
+  if (offsetArg != 1) {
+    if (offsetArg < 1) {
+      mprintf("Warning: offset %i < 1, setting to 1.\n", offsetArg);
+      offsetArg = 1;
+    } else if (stopArg != -1 && offsetArg >= (stopArg - startArg)) {
+      mprintf("Warning: offset %i is so large that only 1 set will be processed.\n",
+              offsetArg);
+    }
+  }
+  //mprintf("DEBUG SetArgs: Start %i Stop %i  Offset %i\n", startArg, stopArg, offsetArg);
+  return 0;
+}
+
 // Trajin::SetupTrajIO()
 int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList* argIn ) {
   // -1 indicates an error.
@@ -40,82 +115,8 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
   else
     stop_ = -1;
   // Set the start, stop, and offset args based on user input. Do some bounds
-  // checking. 
-  if (argIn != 0) {
-    // Frame args start at 1. Internal frame #s start at 0. 
-    // So for a traj with 10 frames:
-    // - Internal #: 0 1 2 3 4 5 6 7 8 9
-    // - Frame Arg#: 1 2 3 4 5 6 7 8 9 10
-    // - Defaults: startArg=1, stopArg=-1, offsetArg=1
-    int startArg, stopArg, offsetArg;
-    // lastframe is a special case where only the last frame will be selected
-    if (argIn->hasKey("lastframe")) {
-      if (total_frames_>0) {
-        startArg = total_frames_;
-        stopArg = total_frames_;
-        offsetArg = 1;
-      } else {
-        mprinterr("Error: [%s] lastframe specified but # frames could not be determined.\n",
-                  TrajFilename().base());
-        return 1;
-      }
-    } else {
-      startArg = argIn->getNextInteger(1);
-      if (argIn->hasKey("last"))
-        stopArg = -1;
-      else
-        stopArg = argIn->getNextInteger(-1);
-      offsetArg = argIn->getNextInteger(1);
-    }
-    if (startArg!=1) {
-      if (startArg<1) {
-        mprintf("    Warning: %s start argument %i < 1, setting to 1.\n",TrajFilename().base(),startArg);
-        start_ = 0; // cpptraj = ptraj - 1
-      } else if (total_frames_>=0 && startArg>total_frames_) {
-        // If startArg==stopArg and is greater than # frames, assume we want
-        // the last frame (useful when reading for reference structure).
-        if (startArg==stopArg) {
-          mprintf("    Warning: %s start %i > #Frames (%i), setting to last frame.\n",
-                  TrajFilename().base(),startArg,total_frames_);
-          start_ = total_frames_ - 1;
-        } else {
-          mprinterr("Error: [%s] start %i > #Frames (%i), no frames will be processed.\n",
-                  TrajFilename().base(),startArg,total_frames_);
-          //start=startArg - 1;
-          return 1;
-        }
-      } else
-        start_ = startArg - 1;
-    }
-    if (stopArg!=-1) {
-      if ((stopArg - 1)<start_) { // cpptraj = ptraj - 1
-        mprinterr("Error: [%s] stop %i < start, no frames will be processed.\n",
-                TrajFilename().base(),stopArg);
-        //stop = start;
-        return 1;
-      } else if (total_frames_>=0 && stopArg>total_frames_) {
-        mprintf("    Warning: %s stop %i >= #Frames (%i), setting to max.\n",
-                TrajFilename().base(),stopArg,total_frames_);
-        stop_ = total_frames_;
-      } else
-        stop_ = stopArg;
-    }
-    if (offsetArg!=1) {
-      if (offsetArg<1) {
-        mprintf("    Warning: %s offset %i < 1, setting to 1.\n",
-                TrajFilename().base(),offsetArg);
-        offset_ = 1;
-      } else if (stop_!=-1 && offsetArg > stop_ - start_) {
-        mprintf("    Warning: %s offset %i is so large that only 1 set will be processed.\n",
-                TrajFilename().base(),offsetArg);
-        offset_ = offsetArg;
-      } else
-        offset_ = offsetArg;
-    }
-    if (debug_>0)
-      mprintf("DEBUG [%s] SetArgs: Start %i Stop %i  Offset %i\n",
-              TrajFilename().base(),start_,stop_,offset_);
-  }
+  // checking.
+  if ( argIn != 0) Trajin::CheckFrameArgs( *argIn, total_frames_, start_, stop_, offset_);
   return 0;
 }
 
