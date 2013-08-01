@@ -463,14 +463,9 @@ int Cpptraj::CrdAction(ArgList& argIn) {
     return 1;
   }
   // Start, stop, offset
+  int start, stop, offset;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
-  int start = crdarg.getNextInteger(1) - 1;
-  int stop;
-  if (crdarg.hasKey("last"))
-    stop = CRD->Size();
-  else
-    stop = crdarg.getNextInteger(CRD->Size());
-  int offset = crdarg.getNextInteger(1);
+  if (Trajin::CheckFrameArgs(crdarg, CRD->Size(), start, stop, offset)) return 1;
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   ArgList actionargs = argIn.RemainingArgs();
   actionargs.MarkArg(0);
@@ -539,14 +534,9 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   }
   setname = argIn.GetStringNext();
   // Start, stop, offset
+  int start, stop, offset;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
-  int start = crdarg.getNextInteger(1) - 1;
-  int stop;
-  if (crdarg.hasKey("last"))
-    stop = CRD->Size();
-  else
-    stop = crdarg.getNextInteger(CRD->Size());
-  int offset = crdarg.getNextInteger(1);
+  if (Trajin::CheckFrameArgs(crdarg, CRD->Size(), start, stop, offset)) return 1;
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   Trajout outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
