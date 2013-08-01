@@ -14,7 +14,7 @@ Analysis_Hist::Analysis_Hist() :
   debug_(0), 
   calcFreeE_(false),
   Temp_(-1.0),
-  normalize_(false),
+  normalize_(NO_NORM),
   gnuplot_(false),
   circular_(false),
   nativeOut_(false),
@@ -27,8 +27,8 @@ Analysis_Hist::Analysis_Hist() :
 
 void Analysis_Hist::Help() {
   mprintf("\t<dataset_name>[,min,max,step,bins] ...\n");
-  mprintf("\t[free <temperature>] [norm] [gnu] [circular] out <filename>\n");
-  mprintf("\t[amd <amdboost_data>]\n");
+  mprintf("\t[free <temperature>] [norm | normint] [gnu] [circular] out <filename>\n");
+  mprintf("\t[amd <amdboost_data>] [name <outputset name>\n");
   mprintf("\t[min <min>] [max <max>] [step <step>] [bins <bins>] [nativeout]\n");
   mprintf("\tHistogram the given data set(s)\n");
 }
@@ -188,7 +188,12 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   Temp_ = analyzeArgs.getKeyDouble("free",-1.0);
   if (Temp_!=-1.0) calcFreeE_ = true;
   gnuplot_ = analyzeArgs.hasKey("gnu");
-  normalize_ = analyzeArgs.hasKey("norm");
+  if (analyzeArgs.hasKey("norm"))
+    normalize_ = NORM_SUM;
+  else if (analyzeArgs.hasKey("normint"))
+    normalize_ = NORM_INT;
+  else
+    normalize_ = NO_NORM;
   circular_ = analyzeArgs.hasKey("circular");
   nativeOut_ = analyzeArgs.hasKey("nativeout");
   if ( analyzeArgs.Contains("min") ) {
@@ -275,8 +280,10 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
     if (gnuplot_ && outfile_ == 0)
       mprintf("\t      gnuplot: Output will be in gnuplot-readable format.\n");
   //}
-  if (normalize_)
-    mprintf("\t      norm: Bins will be normalized to 1.0.\n");
+  if (normalize_ == NORM_SUM)
+    mprintf("\t      norm: Sum over bins will be normalized to 1.0.\n");
+  else if (normalize_ == NORM_INT)
+    mprintf("\t      normint: Integral over bins will be normalized to 1.0.\n");
 
   return Analysis::OK;
 }
@@ -367,7 +374,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
   if (calcFreeE_) CalcFreeE();
 
   // Normalize if requested
-  if (normalize_) Normalize();
+  if (normalize_ != NO_NORM) Normalize();
 
   if (nativeOut_) {
     // Use Histogram built-in output
@@ -460,19 +467,26 @@ int Analysis_Hist::CalcFreeE() {
   return 0;
 }
 
-/** Normalize bins so that sum over all bins is 1.0 */
+/** Normalize bins so that sum or integral over all bins is 1.0 */
 int Analysis_Hist::Normalize() {
   double sum = 0.0;
   mprintf("\tHistogram: Normalizing bin populations to 1.0\n");
-  for (std::vector<double>::iterator bin = Bins_.begin(); bin != Bins_.end(); ++bin)
+  for (std::vector<double>::const_iterator bin = Bins_.begin(); bin != Bins_.end(); ++bin)
     sum += *bin;
   mprintf("\t           Sum over all bins is %lf\n",sum);
   if (sum == 0.0) {
     mprinterr("Error: Histogram::Normalize: Sum over bin populations is 0.0\n");
     return 1;
   }
+  if (normalize_ == NORM_INT) {
+    double spacing = 1.0;
+    for (HdimType::const_iterator dim = dimensions_.begin(); dim != dimensions_.end(); ++dim)
+      spacing *= ( (*dim).Step() );
+    sum = 1.0 / (sum * spacing);
+  } else if (normalize_ == NORM_SUM)
+    sum = 1.0 / sum;
   for (std::vector<double>::iterator bin = Bins_.begin(); bin != Bins_.end(); ++bin)
-    *bin /= sum;
+    *bin *= sum;
   return 0;
 }
 

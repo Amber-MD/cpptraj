@@ -36,7 +36,8 @@ class Analysis_Hist : public Analysis {
     int debug_;                          ///< Debug level
     bool calcFreeE_;                     ///< If true, calc free E from hist populations.
     double Temp_;                        ///< temperature to calc free E at.
-    bool normalize_;                     ///< if true, normalize histogram.
+    enum NormMode { NO_NORM = 0, NORM_SUM, NORM_INT };
+    NormMode normalize_;                 ///< Normalize histogram
     bool gnuplot_;                       ///< For internal write only
     bool circular_;                      ///< If true, wrap histogram dimensions.
     bool nativeOut_;                     ///< If true, use built in output routine.
