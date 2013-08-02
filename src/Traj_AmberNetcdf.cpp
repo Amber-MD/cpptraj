@@ -207,11 +207,13 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
     count_[2] = 0;
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())) ) {
+    if (checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())))
+    {
       mprinterr("Getting cell lengths.\n");
       return 1;
     }
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)) ) {
+    if (checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)))
+    {
       mprinterr("Getting cell angles.\n");
       return 1;
     }
