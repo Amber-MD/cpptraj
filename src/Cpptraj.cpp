@@ -1339,7 +1339,7 @@ int Cpptraj::RunNormal() {
   actionList_.Print( );
 
   // Sync DataSets and print DataSet information
-  DSL_.Sync();
+  //DSL_.Sync(); // NOTE: Disabled, trajs are not currently divided.
 
   // ========== A N A L Y S I S  P H A S E ==========
   mprintf("\nDATASETS:\n");
