@@ -511,7 +511,7 @@ int CpptrajState::RunNormal() {
   actionList_.Print( );
 # ifdef MPI
   // Sync DataSets across all threads. 
-  DSL_.SynchronizeData();
+  //DSL_.SynchronizeData(); // NOTE: Disabled, trajs are not currently divided.
 # endif
   // ========== A N A L Y S I S  P H A S E ==========
   mprintf("\nDATASETS:\n");
