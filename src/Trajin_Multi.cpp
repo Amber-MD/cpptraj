@@ -6,7 +6,6 @@
 #  include "MpiRoutines.h"
 #endif
 
-
 // CONSTRUCTOR
 Trajin_Multi::Trajin_Multi() :
   remdtrajtemp_(0.0),
@@ -52,11 +51,10 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
   if (debug_>1)
     mprintf("\tREMDTRAJ: FileName=[%s]\n",TrajFilename().full());
   if ( TrajFilename().Ext().empty() ) {
-    mprinterr("Error: Traj %s has no numerical extension, required for automatic\n",
-              TrajFilename().base());
-    mprinterr("Error: detection of replica trajectories. Expected filename format is\n");
-    mprinterr("Error: <Prefix>.<#> (with optional compression extension, examples:\n");
-    mprinterr("Error: Rep.traj.nc.000,  remd.x.01.gz etc.\n");
+    mprinterr("Error: Traj %s has no numerical extension, required for automatic\n"
+              "Error:   detection of replica trajectories. Expected filename format is\n"
+              "Error:   <Prefix>.<#> (with optional compression extension), examples:\n"
+              "Error:   Rep.traj.nc.000,  remd.x.01.gz etc.\n", TrajFilename().base());
     return ReplicaNames;
   }
   // Split off everything before replica extension
@@ -102,9 +100,9 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
                                  integerToString(lowestRepnum_ - 1, ExtWidth) +
                                  CompressExt;
   if (fileExists(replica_filename.c_str())) {
-    mprintf("Warning: RemdTraj: Replica# found lower than file specified with trajin!\n");
-    mprintf("Warning:           (Found %s)\n",replica_filename.c_str());
-    mprintf("Warning:           trajin <file> remdtraj requires lowest # replica!\n");
+    mprintf("Warning: Replica# found lower than file specified with trajin.\n"
+            "Warning:   Found \"%s\"; 'trajin remdtraj' requires lowest # replica.\n",
+            replica_filename.c_str());
   }
 
   // Add lowest filename, search for and add all replicas higher than it.
@@ -410,9 +408,9 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
       }
     } // END loop over replicas
     if (!replicaFound) {
-      mprinterr("Error: Target replica not found. Check that all replica trajectories\n");
-      mprinterr("Error: were found and that the target temperature or indices are valid\n");
-      mprinterr("Error: for this ensemble.\n");
+      mprinterr("Error: Target replica not found. Check that all replica trajectories\n"
+                "Error:   were found and that the target temperature or indices are valid\n"
+                "Error:   for this ensemble.\n");
       return 0; 
     }
     // Check if coords in frame are valid.
@@ -510,9 +508,9 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
       //std::pair<TmapType::iterator,bool> ret = 
       //  TemperatureMap_.insert(std::pair<double,int>((*frame).Temperature(),repnum++));
       if (!ret.second) {
-        mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n",
-                  (*frame).Temperature(), TrajFilename().full());
-        mprinterr("Info: If this is a H-REMD ensemble try the 'nosort' keyword.\n");
+        mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n"
+                  "Error:   If this is an H-REMD ensemble try the 'nosort' keyword.\n",
+                   (*frame).Temperature(), TrajFilename().full());
         return 1;
       }
     }
