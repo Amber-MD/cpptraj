@@ -116,8 +116,6 @@ int CpptrajState::Run() {
   switch ( trajinList_.Mode() ) {
     case TrajinList::NORMAL   :
       err = RunNormal();
-      // Analysis has been run at this point. Clean up Analyses
-      analysisList_.Clear();
       break;
     case TrajinList::ENSEMBLE :
       // No Analysis will be run. Warn user if analyses are defined.
@@ -531,6 +529,7 @@ int CpptrajState::RunNormal() {
   return 0;
 }
 
+// CpptrajState::MasterDataFileWrite()
 void CpptrajState::MasterDataFileWrite() {
   // Only Master does DataFile output
   if (worldrank==0) {
@@ -546,15 +545,20 @@ void CpptrajState::MasterDataFileWrite() {
   }
 }
 
-void CpptrajState::RunAnalyses() {
+// CpptrajState::RunAnalyses()
+int CpptrajState::RunAnalyses() {
   ++nrun_;
 # ifdef TIMER
   Timer analysis_time;
   analysis_time.Start();
 # endif
-  analysisList_.DoAnalyses();
+  int err = analysisList_.DoAnalyses();
 # ifdef TIMER
   analysis_time.Stop();
   mprintf("TIME: Analyses took %.4f seconds.\n", analysis_time.Total());
 # endif
+  // If all Analyses completed successfully, clean up analyses.
+  if ( err == 0) 
+    analysisList_.Clear();
+  return err;
 }

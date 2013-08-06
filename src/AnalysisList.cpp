@@ -9,6 +9,7 @@ AnalysisList::~AnalysisList() {
   Clear();
 }
 
+// AnalysisList::Clear()
 void AnalysisList::Clear() {
   for (aListType::iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
     delete *ana;
@@ -47,22 +48,26 @@ int AnalysisList::AddAnalysis(DispatchObject::DispatchAllocatorType Alloc, ArgLi
 }
 
 // AnalysisList::DoAnalyses()
-void AnalysisList::DoAnalyses() {
-  if (analysisList_.empty()) return;
+int AnalysisList::DoAnalyses() {
+  if (analysisList_.empty()) return 0;
+  int err = 0;
   mprintf("\nANALYSIS: Performing %zu analyses:\n",analysisList_.size());
   unsigned int ananum = 0;
   for (aListType::iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana) {
     if ( analysisStatus_[ananum] == SETUP ) {
       mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
-      if ((*ana)->Analyze()==Analysis::ERR)
-        mprinterr("Error: in Analysis # %u\n", ananum); 
+      if ((*ana)->Analyze()==Analysis::ERR) {
+        mprinterr("Error: in Analysis # %u\n", ananum);
+        ++err;
+      }
     }
     ++ananum;
   }
   mprintf("\n");
-  //mprintf("    ...................................................\n\n");
+  return err;
 }
 
+// AnalysisList::List()
 void AnalysisList::List() const {
   mprintf("\nANALYSES:\n");
   if (analysisList_.empty())

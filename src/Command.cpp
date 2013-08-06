@@ -827,9 +827,12 @@ Command::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
 {
   // If only 1 arg (the command) run all analyses in list
   if (argIn.Nargs() == 1) {
-    State.RunAnalyses();
+    int eval = State.RunAnalyses();
     State.MasterDataFileWrite();
-    return Command::C_OK;
+    if (eval == 0)
+      return Command::C_OK;
+    else
+      return Command::C_ERR;
   }
   // Run specified analysis
   // FIXME: Use RemoveFirstArg

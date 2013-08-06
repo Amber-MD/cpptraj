@@ -21,9 +21,9 @@ class CpptrajState {
     void SetNoProgress()     { showProgress_ = false; }
     int Debug()        const { return debug_;         }
     int Nrun()         const { return nrun_;          }
-    bool ExitOnError() const { return exitOnError_;   } // TODO: Obsolete?
+    bool ExitOnError() const { return exitOnError_;   }
     bool Empty()       const { return (actionList_.Empty() && analysisList_.Empty()); }
-    void RunAnalyses();
+    int RunAnalyses();
     inline int AddTrajout( ArgList& );
     inline int AddTrajout( const char* );
     inline int AddTrajin( ArgList&, bool );

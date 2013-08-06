@@ -2,7 +2,6 @@
 #define INC_DIMENSION_H
 #include <string>
 /// Holds information about a coordinate dimension.
-//TODO: Split into Dimension and HistDimension
 class Dimension {
   public:
     enum DimIdxType { X = 0, Y, Z };
