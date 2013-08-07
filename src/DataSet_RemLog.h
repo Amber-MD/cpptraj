@@ -3,6 +3,9 @@
 #include <map>
 #include <vector>
 #include "DataSet.h"
+/** Store data from Amber REMD log. For each exchange, the replica index and
+  * coordinates index for each replica is stored. These indices start from 1.
+  */
 class DataSet_RemLog : public DataSet {
   public:
     DataSet_RemLog();

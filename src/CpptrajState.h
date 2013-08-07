@@ -24,7 +24,7 @@ class CpptrajState {
     bool ExitOnError() const { return exitOnError_;   }
     bool Empty()       const { return (actionList_.Empty() && analysisList_.Empty()); }
     int RunAnalyses();
-    inline int AddTrajout( ArgList& );
+    inline int AddTrajout( ArgList const& );
     inline int AddTrajout( const char* );
     inline int AddTrajin( ArgList&, bool );
     inline int AddTrajin( const char* );
@@ -70,9 +70,6 @@ class CpptrajState {
     /// List of analyses to be performed on datasets
     AnalysisList analysisList_;
     
-    typedef std::vector<ArgList> ArgsArray;
-    /// Array of trajout args for setting up ensemble trajout.
-    ArgsArray trajoutArgs_;
     /// State debug level
     int debug_;
     /// Display Progress bar during run
@@ -84,14 +81,11 @@ class CpptrajState {
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 // CpptrajState::AddTrajout()
-int CpptrajState::AddTrajout( ArgList& argIn ) {
-  // For setting up ensemble later, save trajout arg.
-  trajoutArgs_.push_back( argIn );
+int CpptrajState::AddTrajout( ArgList const& argIn ) {
   return trajoutList_.AddTrajout( argIn, parmFileList_ );
 }
 int CpptrajState::AddTrajout( const char* fname ) {
-  ArgList targ(fname);
-  return AddTrajout( targ );
+  return AddTrajout( ArgList(fname) );
 }
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {

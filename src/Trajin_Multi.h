@@ -3,6 +3,7 @@
 #include <map>
 #include "Trajin.h"
 #include "FrameArray.h"
+#include "DataSet_RemLog.h"
 /// Class for reading in multiple trajectories at the same time (e.g. REMD ensemble)
 class Trajin_Multi : public Trajin {
   public:
@@ -32,7 +33,7 @@ class Trajin_Multi : public Trajin {
     typedef std::vector<int> RemdIdxType;
     typedef std::vector<TrajectoryIO*> IOarrayType;
     typedef std::vector<std::string> NameListType;
-    enum TargetType { NONE = 0, TEMP, INDICES };
+    enum TargetType { NONE = 0, TEMP, INDICES, CRDIDX };
 
     double remdtrajtemp_;     ///< Get frames with this temperature on read
     RemdIdxType remdtrajidx_; ///< Get frames with these indices on read
@@ -53,8 +54,9 @@ class Trajin_Multi : public Trajin {
     typedef std::map< std::vector<int>, int > ImapType;
     ImapType IndicesMap_;
 #   ifdef MPI
-    int ensembleFrameNum_;    ///< Position containing coords to use in FrameArray
+    int ensembleFrameNum_;      ///< Position containing coords to use in FrameArray
 #   endif
+    DataSet_RemLog remlogData_; ///< For sorting by CRDIDX from remlog.
     NameListType SearchForReplicas();
     bool IsTarget(Frame const&);
 };

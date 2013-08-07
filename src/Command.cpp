@@ -712,7 +712,7 @@ Command::RetType DataFileCmd(CpptrajState& State, ArgList& argIn, Command::Alloc
 Command::RetType ReadData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   DataFile dataIn;
-  if (dataIn.ReadData( argIn, *State.DSL() )!=0) {
+  if (dataIn.ReadDataIn( argIn.GetStringNext(), argIn, *State.DSL() )!=0) {
     mprinterr("Error: Could not read data file.\n");
     return Command::C_ERR;
   }

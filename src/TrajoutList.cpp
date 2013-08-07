@@ -15,10 +15,12 @@ void TrajoutList::Clear() {
     delete *traj;
   trajout_.clear();
   FileList::Clear();
+  trajoutArgs_.clear();
 }
 
 // TrajoutList::AddEnsembleTrajout()
-int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList& topListIn, int member)
+int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList const& topListIn,
+                                    int member)
 {
   // Make a copy of input arg list so that args remain unmarked for the next
   // member of the ensemble.
@@ -55,23 +57,28 @@ int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList& topListI
 }
 
 // TrajoutList::AddTrajout()
-int TrajoutList::AddTrajout(ArgList& argIn, TopologyList& topListIn) {
+int TrajoutList::AddTrajout(ArgList const& argIn, TopologyList const& topListIn) {
   // Since we need to check if this filename is in use in order to prevent
   // overwrites, determine the filename here.
-  std::string filename = argIn.GetStringNext();
+  ArgList args = argIn;
+  std::string filename = args.GetStringNext();
   if (filename.empty()) {
     mprinterr("Error: TrajoutList::Add: Called with null filename.\n");
     return 1;
   }
-  return AddTrajout( filename, argIn, topListIn );
-} 
+  int err = AddTrajout( filename, args, topListIn );
+  // For setting up ensemble later, save trajout arg.
+  if (err == 0) trajoutArgs_.push_back( argIn );
+  return err;
+}
 
 // TrajoutList::AddTrajout()
 /** Add trajectory to the trajectory list as an output trajectory. 
   * Associate the trajectory with one of the parm files in the 
   * TopologyList. 
   */
-int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn, TopologyList& topListIn) 
+int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn, 
+                            TopologyList const& topListIn) 
 {
   // Check if filename is in use
   if (FindName(filename) != -1) {

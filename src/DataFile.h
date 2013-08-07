@@ -27,8 +27,8 @@ class DataFile {
     void SetDebug(int);
     /// Set precision for all DataSets in DataFile
     void SetDataFilePrecision(int, int);
-    /// Read data into DataFile.
-    int ReadData(ArgList&, DataSetList&);
+    /// Read data from DataFile to DataSets.
+    int ReadDataIn(std::string const&, ArgList const&, DataSetList&);
     /// Set up DataFile for writing.
     int SetupDatafile(std::string const&, ArgList&, int);
     /// Add a previously set-up DataSet to DataFile.
@@ -46,6 +46,8 @@ class DataFile {
     void SetDFLwrite(bool fIn)           { dflWrite_ = fIn;  }
     /// \return True if DataFile needs to be written.
     bool DFLwrite()                const { return dflWrite_; }
+    /// \return DataFile format type.
+    DataFormatType Type()          const { return dfType_;   }
   private:
     struct DataFileToken {
       DataFormatType Type;

@@ -194,7 +194,7 @@ int CpptrajState::RunEnsemble() {
 # endif
 
   // Set up output trajectories for each member of the ensemble
-  for (ArgsArray::iterator targ = trajoutArgs_.begin(); targ != trajoutArgs_.end(); ++targ)
+  for (TrajoutList::ArgIt targ = trajoutList_.argbegin(); targ != trajoutList_.argend(); ++targ)
   {
 #   ifdef MPI
     TrajoutEnsemble[0].AddEnsembleTrajout( *targ, parmFileList_, worldrank );

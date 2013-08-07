@@ -153,11 +153,19 @@ DataIO* DataFile::DetectFormat(std::string const& fname, DataFormatType& ftype) 
 }*/
 // -----------------------------------------------------------------------------
 
-// DataFile::ReadData()
-int DataFile::ReadData(ArgList& argIn, DataSetList& datasetlist) {
+// DataFile::ReadDataIn()
+// TODO: Should this read to internal DataSetList?
+int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn, 
+                         DataSetList& datasetlist)
+{
+  if (fnameIn.empty()) {
+    mprinterr("Error: No input data file name given.\n");
+    return 1;
+  }
+  ArgList argIn = argListIn;
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
-  filename_.SetFileNameWithExpansion( argIn.GetStringNext() );
+  filename_.SetFileNameWithExpansion( fnameIn );
   // 'as' keyword specifies a format
   std::string as_arg = argIn.GetStringKey("as");
   if (!as_arg.empty()) {
