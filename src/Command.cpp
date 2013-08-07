@@ -328,7 +328,7 @@ static void Help_DataFile() {
 }
 
 static void Help_ReadData() {
-  mprintf("\t<filename>\n");
+  mprintf("\t<filename> [name <dsname>] [as <fmt>]\n");
   mprintf("\tRead data from <filename> into data sets.\n");
 }
 
