@@ -86,7 +86,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
   for (int i = 1; i < (int)N_FIELDTYPES; i++) { // Do not store NSTEP
     Esets[i] = datasetlist.AddSetAspect( DataSet::DOUBLE, dsname, Enames[i] );
     // Make legend same as aspect.
-    Esets[i]->SetLegend( Enames[i] );
+    Esets[i]->SetLegend( dsname + "_" + Enames[i] );
   }
 
   // LOOP OVER ALL MDOUT FILES
