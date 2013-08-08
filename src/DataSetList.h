@@ -34,6 +34,7 @@ class DataSetList {
     int MaxFrames()        const { return maxFrames_;        }
     /// Erase set from list
     void erase( const_iterator );
+    void erase( DataSet* );
     /// Sort DataSets in list.
     void sort();
     /// Return DataSet at didx.

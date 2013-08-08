@@ -62,9 +62,20 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
                                           it != mdoutFilenames.end(); ++it)
     mprintf(" %s", (*it).c_str());
   mprintf("\n");
+
+  // ----- CREATE DATASETS FOR ENERGIES -----
+  // TODO: Set it up so blank data sets can be REMOVED.
+  std::vector<DataSet*> Esets( N_FIELDTYPES, 0 );
+  for (int i = 1; i < (int)N_FIELDTYPES; i++) { // Do not store NSTEP
+    Esets[i] = datasetlist.AddSetAspect( DataSet::DOUBLE, dsname, Enames[i] );
+    // Make legend same as aspect.
+    Esets[i]->SetLegend( Enames[i] );
+  }
+
   // LOOP OVER ALL MDOUT FILES
   BufferedLine buffer;
   double lastx = 0.0;
+  int count = 0;
   for (std::vector<std::string>::const_iterator mdoutname = mdoutFilenames.begin();
                                                 mdoutname != mdoutFilenames.end();
                                                 ++mdoutname)
@@ -77,10 +88,10 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       mprinterr("Error: Nothing in MDOUT file: %s\n", (*mdoutname).c_str());
       return 1;
     }
-    int imin = -1;
+    int imin = -1;           // imin for this file
     const char* Trigger = 0; // Trigger must be 8 chars long.
-    int frame = 0;
-    double dt = 1.0;
+    int frame = 0;           // Frame counter for this file
+    double dt = 1.0;         // Timestep for this file
     // ----- PARSE THE INPUT SECTION ----- 
     while ( ptr != 0 && strncmp(ptr, " Here is the input", 18) != 0 )
       ptr = buffer.Line();
@@ -122,9 +133,9 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
     while ( ptr != 0 && strncmp(ptr, "   4.  RESULTS", 14) != 0 )
       ptr = buffer.Line();
     if (ptr == 0) return EOF_ERROR();
-    CpptrajFile TestOut; // DEBUG
+/*    CpptrajFile TestOut; // DEBUG
     TestOut.OpenWrite("TestOut.dat"); // DEBUG
-    bool printHeader = true; // DEBUG
+    bool printHeader = true; // DEBUG*/
     bool finalE = false;
     int set = 0;
     double Energy[N_FIELDTYPES];
@@ -148,7 +159,9 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       if ( strncmp(ptr, Trigger, 8) == 0 || finalE ) {
         if (frame > -1) {
           // Data storage should go here
-          // DEBUG
+          for (int i = 1; i < (int)N_FIELDTYPES; i++) // skip NSTEP
+            if (EnergyExists[i]) Esets[i]->Add( count, Energy + i );
+/*          // DEBUG
           if (printHeader) {
             TestOut.Printf("%-14s", "#Time");
             for (int i = 1; i < (int)N_FIELDTYPES; i++) // skip NSTEP
@@ -160,7 +173,8 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
           for (int i = 1; i < (int)N_FIELDTYPES; i++) // skip NSTEP
             if (EnergyExists[i]) TestOut.Printf(" %14.4f", Energy[i]);
           TestOut.Printf("\n");
-          // DEBUG
+          // DEBUG*/
+          count++;
         }
         frame++;
         if (finalE) break;
@@ -211,10 +225,16 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       // Read in next line
       ptr = buffer.Line();
     }
-    TestOut.CloseFile(); // DEBUG
+/*    TestOut.CloseFile(); // DEBUG*/
     mprintf("\t%i frames\n", frame);
     lastx = time;
     buffer.CloseFile();
   } // END loop over mdout files
+  
+  // ----- REMOVE EMPTY DATASETS -----
+  for (int i = 1; i < (int)N_FIELDTYPES; i++) { // Do not store NSTEP
+    if (Esets[i]->Empty())
+      datasetlist.erase( Esets[i] );
+  }
   return 0;
 }

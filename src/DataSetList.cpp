@@ -83,6 +83,18 @@ void DataSetList::erase( const_iterator posIn ) {
   DataList_.erase( pos ); 
 } 
 
+// DataSetList::erase()
+void DataSetList::erase( DataSet* dsIn ) {
+  for (std::vector<DataSet*>::iterator pos = DataList_.begin();
+                                       pos != DataList_.end(); ++pos)
+  {
+    if ( (*pos) == dsIn ) {
+      DataList_.erase( pos );
+      break;
+    }
+  }
+}
+
 // DataSetList::sort()
 void DataSetList::sort() {
   std::sort( DataList_.begin(), DataList_.end(), dsl_cmp() );
