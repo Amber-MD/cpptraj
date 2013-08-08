@@ -14,7 +14,7 @@ class DataIO_Mdout : public DataIO {
     int WriteData3D(std::string const&, DataSet const&) { return 1; }
     int WriteDataInverted(std::string const&, DataSetList const &)
       { return 1; }
-    bool ID_DataFormat(CpptrajFile&) { return false; }
+    bool ID_DataFormat(CpptrajFile&);
   private:
     enum FieldType { NSTEP = 0, Etot, EPtot, GMAX, BOND,
                      ANGLE, DIHED, VDWAALS, EEL, EGB,
