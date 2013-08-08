@@ -93,6 +93,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
   BufferedLine buffer;
   double lastx = 0.0;
   int count = 0;
+  std::vector<double> TimeVals;
   for (std::vector<std::string>::const_iterator mdoutname = mdoutFilenames.begin();
                                                 mdoutname != mdoutFilenames.end();
                                                 ++mdoutname)
@@ -191,6 +192,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
             if (EnergyExists[i]) TestOut.Printf(" %14.4f", Energy[i]);
           TestOut.Printf("\n");
           // DEBUG*/
+          TimeVals.push_back( time );
           count++;
         }
         frame++;
@@ -247,11 +249,14 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
     lastx = time;
     buffer.CloseFile();
   } // END loop over mdout files
-  
+ 
+  Dimension Xdim = DataIO::DetermineXdim( TimeVals ); 
   // ----- REMOVE EMPTY DATASETS -----
   for (int i = 1; i < (int)N_FIELDTYPES; i++) { // Do not store NSTEP
     if (Esets[i]->Empty())
       datasetlist.erase( Esets[i] );
+    else
+      Esets[i]->SetDim(Dimension::X, Xdim);
   }
   return 0;
 }
