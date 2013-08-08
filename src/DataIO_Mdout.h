@@ -21,5 +21,6 @@ class DataIO_Mdout : public DataIO {
                      VDW14, EEL14, RESTRAINT, EAMBER, Density,
                      RMS, EKtot, ESURF, EAMD_BOOST, N_FIELDTYPES };
     static FieldType getEindex(std::vector<std::string> const&);
+    static const char* Enames[];
 };
 #endif

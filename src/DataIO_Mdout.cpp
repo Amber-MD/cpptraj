@@ -13,6 +13,13 @@ static inline int EOF_ERROR() {
   return 1;
 }
 
+const char* DataIO_Mdout::Enames[] = {
+  "NSTEP",  "Etot",   "EPtot", "GMAX",   "BOND", 
+  "ANGLE",  "DIHED",  "VDW",   "EELEC",  "EGB",
+  "VDW1-4", "EEL1-4", "RST",   "EAMBER", "Density",
+  "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", 0
+};
+
 /// \return index of name in Energy[] array, N_FIELDTYPES if not recognized.
 DataIO_Mdout::FieldType DataIO_Mdout::getEindex(std::vector<std::string> const& Name) {
   //mprintf("DEBUG:\tgetEindex(%s,%s)\n", Name[0].c_str(), Name[1].c_str());
@@ -117,10 +124,12 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
     if (ptr == 0) return EOF_ERROR();
     CpptrajFile TestOut; // DEBUG
     TestOut.OpenWrite("TestOut.dat"); // DEBUG
+    bool printHeader = true; // DEBUG
     bool finalE = false;
     int set = 0;
     double Energy[N_FIELDTYPES];
     std::fill( Energy, Energy+N_FIELDTYPES, 0.0 );
+    std::vector<bool> EnergyExists(N_FIELDTYPES, false);
     std::vector<std::string> Name(2);
     double time = 0.0;
     while (ptr != 0) {
@@ -140,9 +149,16 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
         if (frame > -1) {
           // Data storage should go here
           // DEBUG
+          if (printHeader) {
+            TestOut.Printf("%-14s", "#Time");
+            for (int i = 1; i < (int)N_FIELDTYPES; i++) // skip NSTEP
+              if (EnergyExists[i]) TestOut.Printf(" %14s", Enames[i]);
+            TestOut.Printf("\n");
+            printHeader = false;
+          }
           TestOut.Printf(" %14.4f", time);
-          for (int i = 0; i < (int)N_FIELDTYPES; i++)
-            TestOut.Printf(" %14.4f", Energy[i]);
+          for (int i = 1; i < (int)N_FIELDTYPES; i++) // skip NSTEP
+            if (EnergyExists[i]) TestOut.Printf(" %14.4f", Energy[i]);
           TestOut.Printf("\n");
           // DEBUG
         }
@@ -155,6 +171,10 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
         ptr = buffer.Line(); // Get next line
         sscanf(ptr, " %6lf    %13lE  %13lE  %13lE", Energy+NSTEP, Energy+EPtot,
                Energy+RMS, Energy+GMAX);
+        EnergyExists[NSTEP] = true;
+        EnergyExists[EPtot] = true;
+        EnergyExists[RMS] = true;
+        EnergyExists[GMAX] = true;
         ptr = buffer.Line();
       }
       // Tokenize line, scan through until '=' is reached; value after is target.
@@ -169,8 +189,10 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
             FieldType Eindex = getEindex(Name);
             tkn = buffer.NextToken();
             ++tidx;
-            if (Eindex != N_FIELDTYPES)
+            if (Eindex != N_FIELDTYPES) {
               Energy[Eindex] = atof( tkn );
+              EnergyExists[Eindex] = true;
+            }
             nidx = 0;
             Name[0].clear();
             Name[1].clear();
