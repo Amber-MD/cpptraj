@@ -16,7 +16,8 @@ class Action_Gist: public Action, ImagedAction  {
     static void Help();
 
     void Print();
-    void PrintDX(std::string const&, std::vector<double>&);
+    void PrintDX(std::string const&, std::vector<float>&);
+    void PrintDX_double(std::string const&, std::vector<double>&);
     void PrintOutput(std::string const&);
 
   private:
@@ -39,6 +40,11 @@ class Action_Gist: public Action, ImagedAction  {
     bool useSPCE_;
     bool useSPCFW_;
     bool doOrder_;
+    bool printEij_;
+
+    //time 
+    clock_t gist_t_begin,gist_t_end;
+    double gist_t_diff;
 
     // other constants
     int NFRAME_;		// total number of frames analyzed
@@ -55,13 +61,13 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <int> nwat_;		// total number of water found in each voxel
     std::vector <int> nH_;			// total number of hydrogen found in each voxel
     std::vector <int> nw_angle_;	// total nuber of Euler angles found in each voxel
-    std::vector <double> g_;		// normalized water density
-    std::vector <double> gH_;		// normalized H density
-    std::vector <double> dens_;		// water density
-    std::vector <double> grid_x_;	// voxel index in x
-    std::vector <double> grid_y_;
-    std::vector <double> grid_z_;
-    std::vector <double> neighbor_;		// number of water neighbor within 3.5A
+    std::vector <float> g_;		// normalized water density
+    std::vector <float> gH_;		// normalized H density
+    std::vector <float> dens_;		// water density
+    std::vector <float> grid_x_;	// voxel index in x
+    std::vector <float> grid_y_;
+    std::vector <float> grid_z_;
+    std::vector <float> neighbor_;		// number of water neighbor within 3.5A
     std::vector <double> qtet_;		// tetahedral order parameter
     double Vvox_;			// voxel volume
     /// Return X coordinate of bin center
@@ -85,7 +91,7 @@ class Action_Gist: public Action, ImagedAction  {
     //general loop    
     Topology::mol_iterator solvmol, solvmol2;
     int voxel;
-    int resnum,resindex1,resindex2;
+    int resnum,resnum2,resindex1,resindex2;
     double theta, phi, psi;
     
     //non-bond energy stuff
@@ -94,21 +100,21 @@ class Action_Gist: public Action, ImagedAction  {
     double y_0, y_1, y_2, y_3, y_4;
     double z_0, z_1, z_2, z_3, z_4;*/
     
-    std::vector <double> x_;
+    /*    std::vector <double> x_;
     std::vector <double> y_;
-    std::vector <double> z_;
+    std::vector <double> z_;*/
     std::vector <double> wh_evdw_;
     std::vector <double> wh_eelec_;
     std::vector <double> ww_evdw_;
     std::vector <double> ww_eelec_;
     std::vector < std::vector <float> > ww_Eij_;
-    std::vector <double> dEwh_dw_;
-    std::vector <double> dEww_dw_ref_;
-    std::vector <double> dEwh_norm_;
-    std::vector <double> dEww_norm_ref_;
-    std::vector <double> dEww_vox_unref_;
-    std::vector <double> neighbor_norm_;
-    std::vector <double> pol_;
+    std::vector <float> dEwh_dw_;
+    std::vector <float> dEww_dw_ref_;
+    std::vector <float> dEwh_norm_;
+    std::vector <float> dEww_norm_ref_;
+    std::vector <float> dEww_dw_unref_;
+    std::vector <float> neighbor_norm_;
+    std::vector <float> pol_;
 
 //    DataSet_Matrix* ww_Eij_;	// upper left triangular matrix - not what we want
 //    float ** ww_Eij_ = new float * [MAX_GRID_PT];	//lower left triangular matrix
@@ -116,16 +122,16 @@ class Action_Gist: public Action, ImagedAction  {
 //	Eij[a] = new float [a];
 
     // entropy stuff
-    std::vector <double> TSNN_dw_;
+    std::vector <float> TSNN_dw_;
     std::vector <double> TSNN_norm_;
-    std::vector <double> TStrans_dw_;
-    std::vector <double> TStrans_norm_;
+    std::vector <float> TStrans_dw_;
+    std::vector <float> TStrans_norm_;
     double TSNNtot_;
     int max_nwat_;
     double TStranstot_;
-    std::vector < std::vector <double> > the_vox_;
-    std::vector < std::vector <double> > phi_vox_;
-    std::vector < std::vector <double> > psi_vox_;
+    std::vector < std::vector <float> > the_vox_;
+    std::vector < std::vector <float> > phi_vox_;
+    std::vector < std::vector <float> > psi_vox_;
 
     // dipole stuffs
     std::vector <double> dipolex_;

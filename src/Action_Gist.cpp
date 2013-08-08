@@ -3,6 +3,7 @@
 #include <iostream> // cout
 #include <cstring> // memset
 #include <fstream>
+#include <time.h>
 using namespace std;
 #include "Action_Gist.h"
 #include "CpptrajFile.h"
@@ -23,7 +24,8 @@ Action_Gist::Action_Gist() :
   useTIP3PFW_(false),
   useSPCE_(false),
   useSPCFW_(false),
-  doOrder_(false)
+  doOrder_(false),
+  printEij_(false)
 {
   mprintf("\tGIST: INIT \n");
   gridcntr_[0] = -1;
@@ -39,9 +41,27 @@ Action_Gist::Action_Gist() :
 
 
 void Action_Gist::Help() {
-  mprintf("gist <watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
-  mprintf("\tCalculate GIST between water molecules in selected site \n");
+  mprintf("gist <watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [printeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
+  mprintf("\tGIST needs the specification of the water model being used. Supported water models are: \n");
+  mprintf("\ta) TIP3P specified as tip3p. \n");
+  mprintf("\tb) TIP4P specified as tip4p. \n");
+  mprintf("\tc) TIP4PEW specified as tip4pew. \n");
+  mprintf("\td) TIP5P specified as tip5p. \n");
+  mprintf("\te) TIP3PFW specified as tip3pfw. \n");
+  mprintf("\tf) SPCE specified as spce. \n");
+  mprintf("\tg) SPCFW specified as spcfw. \n");
+  mprintf("\tPlease cite these papaer when using GIST: \n");
+  mprintf("\tCrystal Nguyen, Michael K. Gilson, and Tom Young,  arXiv:1108.4876v1 (2011)  \n");
+  mprintf("\tCrystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson, J. Chem. Phys. 137, 044101 (2012) \n");
+  mprintf("\tCalculate GIST between water molecules in selected region \n");
 }
+
+static double diffclock(clock_t clock1,clock_t clock2)
+{
+	double diffticks=clock1-clock2;
+	double diffms=(diffticks*1000)/CLOCKS_PER_SEC;
+	return diffms;
+} 
 
 
 // Action_Gist::init()
@@ -51,6 +71,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   mprintf("\tGIST: init \n");
   // Get keywords
   
+  gist_t_begin=clock();
   // Dataset to store gist results
   datafile_ = actionArgs.GetStringKey("out");
   // Generate the data set name, and hold onto the master data set list
@@ -78,10 +99,18 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 
   doOrder_ = actionArgs.hasKey("doorder");
   if(doOrder_){
-    mprintf("\tGIST doing Order calculation");
+    mprintf("\tGIST doing Order calculation \n");
   }
   else{
-    mprintf("\tGIST NOT doing Order calculation");
+    mprintf("\tGIST NOT doing Order calculation \n");
+  }
+
+  printEij_ = actionArgs.hasKey("printeij");
+  if(printEij_){
+    mprintf("\tGIST printing water-water Eij matrix \n");
+  }
+  else{
+    mprintf("\tGIST NOT printing water-water Eij matrix \n");
   }
 
   // Set Bulk Energy based on water model
@@ -163,12 +192,12 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   mprintf("\tGIST grid origin: %5.3f %5.3f %5.3f\n", gridorig_[0], gridorig_[1], gridorig_[2]);
 
   // Set up cumulative energy arrays
-  x_.clear();
+  /*  x_.clear();
   x_.resize(5, 0.0);
   y_.clear();
   y_.resize(5, 0.0);
   z_.clear();
-  z_.resize(5, 0.0);
+  z_.resize(5, 0.0);*/
   wh_evdw_.clear();
   wh_evdw_.resize(MAX_GRID_PT_, 0.0);
   wh_eelec_.clear();
@@ -208,17 +237,18 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   dEwh_norm_.resize(MAX_GRID_PT_, 0.0);
   dEww_norm_ref_.clear();
   dEww_norm_ref_.resize(MAX_GRID_PT_, 0.0);
-  dEww_vox_unref_.clear();
-  dEww_vox_unref_.resize(MAX_GRID_PT_, 0.0);
+  dEww_dw_unref_.clear();
+  dEww_dw_unref_.resize(MAX_GRID_PT_, 0.0);
 
-  ww_Eij_.clear();
-  ww_Eij_.resize(MAX_GRID_PT_);
-  for(int i = 1; i < MAX_GRID_PT_; i++) ww_Eij_[i].resize(i);
-
-  //CN: need to initialize ww_Eij_ to 0.0 but not Euler angles
-  for (int a=1; a<MAX_GRID_PT_; a++)
-    for (int l=0; l<a; l++) ww_Eij_[a][l]=0.0;  
-
+  if(printEij_){
+    ww_Eij_.clear();
+    ww_Eij_.resize(MAX_GRID_PT_);
+    for(int i = 1; i < MAX_GRID_PT_; i++) ww_Eij_[i].resize(i);
+    
+    //CN: need to initialize ww_Eij_ to 0.0 but not Euler angles
+    for (int a=1; a<MAX_GRID_PT_; a++)
+      for (int l=0; l<a; l++) ww_Eij_[a][l]=0.0;  
+  }
   the_vox_.clear();
   the_vox_.resize(MAX_GRID_PT_);
   phi_vox_.clear();
@@ -336,7 +366,7 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
   double rij2, rij, r2, r6, r12, f12, f6, e_vdw, qiqj, e_elec;
   int satom, satom2, atom1, atom2;
   
-  int  voxel2,  resnum2;
+  int  voxel2;
   double q1, q2;
   
   // Setup imaging info
@@ -430,7 +460,8 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 		  if (atom2==0 && atom1==0 && rij<3.5) {
 	            neighbor_[voxel2] += 1.0;
 		  }
-		  if (voxel<MAX_GRID_PT_) {
+		  if(printEij_ && (voxel<MAX_GRID_PT_) ){
+		    //if (voxel<MAX_GRID_PT_) {
 		    if (voxel>voxel2) {
 		      ww_Eij_[voxel][voxel2] += e_vdw*0.5;
 		      ww_Eij_[voxel][voxel2] += e_elec*0.5;
@@ -439,7 +470,8 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 		      ww_Eij_[voxel2][voxel] += e_vdw*0.5;
 		      ww_Eij_[voxel2][voxel] += e_elec*0.5;
 		    }
-		  }  
+		    //}  
+		  }//print Eij && voxel<MAX_GRID_PT_
 		}
 	      }//IF is solvent
 	      atom2++;
@@ -543,7 +575,8 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
   // First, theta = angle between the water z-axis of the two frames
   dp = z_lab*( z_wat);
   theta = acos(dp);
-  if (theta>0 && theta<PI) {
+  //  if (theta>0 && theta<PI) {
+  if (theta>1E-5 && theta<PI-1E-5) {
     // phi = angle between the projection of the water x-axis and the node
     // line of node is where the two xy planes meet = must be perpendicular to both z axes
     // direction of the lines of node = cross product of two normals (z axes)
@@ -626,11 +659,12 @@ void Action_Gist::Dipole(Frame *frameIn) {
 // Action_Gist::Order() 
 void Action_Gist::Order(Frame *frameIn) {
   if (NFRAME_==1) mprintf("GIST Order Parameter \n");
-  int voxel, i, resnum=0, resnum2;
+  int i;
   double cos, sum, r1, r2, r3, r4, rij2, x[5], y[5], z[5];
   Vec3 O_wat1, O_wat2, O_wat3, v1, v2;
-  
-  for (Topology::mol_iterator solvmol = CurrentParm_->MolStart();
+  resnum=0;
+
+  for (solvmol = CurrentParm_->MolStart();
                               solvmol != CurrentParm_->MolEnd(); ++solvmol)
   {
     if (!(*solvmol).IsSolvent()) continue;
@@ -650,7 +684,7 @@ void Action_Gist::Order(Frame *frameIn) {
       z[a]=10000;
     }
     // Can't make into triangular matrix
-    for (Topology::mol_iterator solvmol2 = CurrentParm_->MolStart();
+    for (solvmol2 = CurrentParm_->MolStart();
                                 solvmol2 != CurrentParm_->MolEnd(); ++solvmol2)
     {
       if (!(*solvmol2).IsSolvent()) continue;
@@ -751,55 +785,66 @@ void Action_Gist::Print() {
        dEww_dw_ref_[a] = ((ww_evdw_[a]+ww_eelec_[a]) - nwat_[a]*BULK_E_)/(NFRAME_*Vvox_);
        dEwh_norm_[a] = (wh_evdw_[a]+wh_eelec_[a])/nwat_[a];
        dEww_norm_ref_[a] = (ww_evdw_[a]+ww_eelec_[a])/nwat_[a] - BULK_E_; 
-       dEww_vox_unref_[a] = (ww_evdw_[a]+ww_eelec_[a])/NFRAME_; 
+       dEww_dw_unref_[a] = (ww_evdw_[a]+ww_eelec_[a])/(NFRAME_*Vvox_); 
     }
     else {
-       dEwh_dw_[a]=0; dEww_dw_ref_[a]=0; dEwh_norm_[a]=0; dEww_norm_ref_[a]=0; dEww_vox_unref_[a]=0;
+       dEwh_dw_[a]=0; dEww_dw_ref_[a]=0; dEwh_norm_[a]=0; dEww_norm_ref_[a]=0; dEww_dw_unref_[a]=0;
     }
     // Compute the average number of water neighbor, average order parameter, and average dipole density 
     if (nwat_[a]>0) {
       qtet_[a] /= nwat_[a];
       neighbor_norm_[a] = 1.0*neighbor_[a]/nwat_[a];
     }
-    neighbor_[a] /= (1.0*NFRAME_);
+    neighbor_[a] /= (1.0*NFRAME_*Vvox_);
     dipolex_[a] /= (0.20822678*NFRAME_*Vvox_);
     dipoley_[a] /= (0.20822678*NFRAME_*Vvox_);
     dipolez_[a] /= (0.20822678*NFRAME_*Vvox_);
     pol_[a] = sqrt(dipolex_[a]*dipolex_[a] + dipoley_[a]*dipoley_[a] + dipolez_[a]*dipolez_[a]);	    
   }
-
+  
   // Print the gist info file
   // Print the energy data
-  if (!datafile_.empty()) {
-    // Now write the data file with all of the GIST energies
-    DataFile dfl;
-    ArgList dummy;
-    dfl.SetupDatafile(datafile_, dummy, 0);
-    for (int i = 0; i < myDSL_.size(); i++) {
-      dfl.AddSet(myDSL_[i]);
-    }
-
-    dfl.Write();
-
+  /*if (!datafile_.empty()) {
+  // Now write the data file with all of the GIST energies
+  DataFile dfl;
+  ArgList dummy;
+  dfl.SetupDatafile(datafile_, dummy, 0);
+  for (int i = 0; i < myDSL_.size(); i++) {
+  dfl.AddSet(myDSL_[i]);
   }
+  
+  dfl.Write();
+  
+  }*/
+  //stored as float
   PrintDX("gist-gO.dx", g_);
   PrintDX("gist-gH.dx", gH_);
   PrintDX("gist-dEwh-dw.dx", dEwh_dw_);
   PrintDX("gist-dEww-dw.dx", dEww_dw_ref_);
   PrintDX("gist-TStrans-dw.dx", TStrans_dw_);
   PrintDX("gist-TSorient-dw.dx", TSNN_dw_);
-  PrintDX("gist-order-norm.dx", qtet_);
   PrintDX("gist-neighbor-norm.dx", neighbor_norm_); 
   PrintDX("gist-dipole-dw.dx", pol_);
-  PrintDX("gist-dipolex-dw.dx", dipolex_);
-  PrintDX("gist-dipoley-dw.dx", dipoley_);
-  PrintDX("gist-dipolez-dw.dx", dipolez_);
-  PrintOutput("gist-output.dat");
+  //stored as doubles
+  PrintDX_double("gist-order-norm.dx", qtet_);
+  PrintDX_double("gist-dipolex-dw.dx", dipolex_);
+  PrintDX_double("gist-dipoley-dw.dx", dipoley_);
+  PrintDX_double("gist-dipolez-dw.dx", dipolez_);
   
+
+  if (!datafile_.empty()) {
+    PrintOutput(datafile_);
+  }
+  else{
+    PrintOutput("gist-output.dat");
+  }
+  gist_t_end=clock();
+  gist_t_diff = diffclock(gist_t_end,gist_t_begin);
+  cout << "GIST Time elapsed: " << gist_t_diff << " ms"<< endl;
 }
 
   // Print GIST data in dx format
-void Action_Gist::PrintDX(string const& filename, std::vector<double>& data)
+void Action_Gist::PrintDX_double(string const& filename, std::vector<double>& data)
 {
   CpptrajFile outfile;
   if (outfile.OpenWrite(filename)) {
@@ -833,28 +878,67 @@ void Action_Gist::PrintDX(string const& filename, std::vector<double>& data)
 }
 
   // Print GIST data in dx format
-void Action_Gist::PrintOutput(string const& filename)
+void Action_Gist::PrintDX(string const& filename, std::vector<float>& data)
 {
-  /*CpptrajFile outfile;
+  CpptrajFile outfile;
   if (outfile.OpenWrite(filename)) {
-    mprinterr("Error: Could not open Gist output file.\n");
+    mprinterr("Print Error: Could not open OpenDX output file.\n");
     return;
   }
-  // Print the Output header
-  outfile.Printf("GIST Output, information printed per voxel\n");
-  outfile.Printf("xcoord ycoord zcoord population density normalized-density S-trans S-trans-normalized S-rot S-rot-normalized E-water-solute E-water-solute-normalized E-water-water E-water-water-normalized \n");
-  
-  // Now print out the data. 
-  for (int i = 0; i < MAX_GRID_PT_ ; i++){
-    outfile.Printf(" %10.5f %10.5f %10.5f\n %10.5f %10.5f %10.5f\n %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n",
-		   grid_x_[i] , grid_y_[i], grid_z_[i], nwat_[i], dens_[i],g_[i], TStrans_dw_[i], TStrans_norm_[i], TSNN_dw_[i], TSNN_norm_[i], dEwh_dw_[i],dEwh_norm_[i],dEww_dw_ref_[i],dEww_norm_ref_[i]);
+  // Print the OpenDX header
+  outfile.Printf("object 1 class gridpositions counts %d %d %d\n",
+                 griddim_[0], griddim_[1], griddim_[2]);
+  outfile.Printf("origin %lg %lg %lg\n", gridorig_[0], gridorig_[1], gridorig_[2]);
+  outfile.Printf("delta %lg 0 0\n", gridspacn_);
+  outfile.Printf("delta 0 %lg 0\n", gridspacn_);
+  outfile.Printf("delta 0 0 %lg\n", gridspacn_);
+  outfile.Printf("object 2 class gridconnections counts %d %d %d\n",
+                 griddim_[0], griddim_[1], griddim_[2]);
+  outfile.Printf(
+    "object 3 class array type float rank 0 items %d data follows\n",
+    MAX_GRID_PT_);
+
+  // Now print out the data. It is already in row-major form (z-axis changes
+  // fastest), so no need to do any kind of data adjustment
+  for (int i = 0; i < MAX_GRID_PT_ - 2; i += 3)
+    outfile.Printf("%g %g %g\n", data[i], data[i+1], data[i+2]);
+  // Print out any points we may have missed
+  switch (MAX_GRID_PT_ % 3) {
+    case 2: outfile.Printf("%g %g\n", data[MAX_GRID_PT_-2], data[MAX_GRID_PT_-1]); break;
+    case 1: outfile.Printf("%g\n", data[MAX_GRID_PT_-1]); break;
   }
-  
+
   outfile.CloseFile();
-  */
-  ofstream myfile;
-  myfile.open("gist-output.dat");  
-  myfile << "GIST Output, information printed per voxel\n";
+}
+
+  // Print GIST data in dx format
+void Action_Gist::PrintOutput(string const& filename)
+{
+  CpptrajFile outfile;
+  if (outfile.OpenWrite(filename)) {
+    mprinterr("Print Error: Could not open GISToutput file.\n");
+    return;
+  }
+  //ofstream myfile;
+  //  myfile.open("gist-output.dat");  
+  //myfile.open(filename);  
+  outfile.Printf("GIST Output, information printed per voxel\n");
+  outfile.Printf("GIST Output, information printed per voxel\n");
+  outfile.Printf("voxel xcoord ycoord zcoord population g_O g_H ");
+  outfile.Printf("TStrans-dw(kcal/mol/A^3) TStrans-norm(kcal/mol) TSorient-dw(kcal/mol/A^3) TSorient-norm(kcal/mol) ");
+  outfile.Printf("Ewh-dw(kcal/mol/A^3) Ewh-norm(kcal/mol) ");
+  outfile.Printf("Eww-dw(kcal/mol/A^3) Eww-norm(kcal/mol) Eww-dw-unref(kcal/mol/A^3) ");
+  outfile.Printf("Dipole_x(D/A^3) Dipole_y(D/A^3) Dipole_z(D/A^3) Dipole-dw(D/A^3) neighbor-dw(1/A^3) neighbor-norm order-norm\n");
+  // Now print out the data. 
+  for (int i=0; i<MAX_GRID_PT_; i++){
+    outfile.Printf( "%d %g %g %g %g %g %g ",i , grid_x_[i] , grid_y_[i], grid_z_[i], nwat_[i] , g_[i], gH_[i] );
+    outfile.Printf( "%g %g %g %g ",TStrans_dw_[i], TStrans_norm_[i], TSNN_dw_[i] , TSNN_norm_[i]);
+    outfile.Printf( "%g %g ",dEwh_dw_[i], dEwh_norm_[i] );
+    outfile.Printf( "%g %g %g ",dEww_dw_ref_[i], dEww_norm_ref_[i] , dEww_dw_unref_[i] );
+    outfile.Printf( "%g %g %g %g ",dipolex_[i] , dipoley_[i] , dipolez_[i] , pol_[i] );
+    outfile.Printf( "%g %g %g \n",neighbor_[i] , neighbor_norm_[i] , qtet_[i]);
+    }
+  /*myfile << "GIST Output, information printed per voxel\n";
   myfile << "voxel xcoord ycoord zcoord population g_O g_H ";
   myfile << "TStrans-dw(kcal/mol/A^3) TStrans-norm(kcal/mol) TSorient-dw(kcal/mol/A^3) TSorient-norm(kcal/mol) ";
   myfile << "Ewh-dw(kcal/mol/A^3) Ewh-norm(kcal/mol) ";
@@ -865,27 +949,30 @@ void Action_Gist::PrintOutput(string const& filename)
     myfile << i << " " << grid_x_[i] << " " << grid_y_[i]<< " " << grid_z_[i]<< " " << nwat_[i] << " " << g_[i]<< " " << gH_[i] << " ";
     myfile <<  TStrans_dw_[i]<< " " << TStrans_norm_[i]<< " " << TSNN_dw_[i] << " " << TSNN_norm_[i]<< " ";
     myfile << dEwh_dw_[i]<< " " << dEwh_norm_[i] << " ";
-    myfile << dEww_dw_ref_[i]<< " " << dEww_norm_ref_[i] << " " << dEww_vox_unref_[i] << " ";
+    myfile << dEww_dw_ref_[i]<< " " << dEww_norm_ref_[i] << " " << dEww_dw_unref_[i] << " ";
     myfile << dipolex_[i] << " " << dipoley_[i] << " " << dipolez_[i] << " " << pol_[i] << " ";
     myfile << neighbor_[i] << " " << neighbor_norm_[i] << " " << qtet_[i] << endl;
-  }
-  myfile.close();
+    }*/
+  //  myfile.close();
+  outfile.CloseFile();
 
-  ofstream outfile;
-  outfile.open("ww_Eij.dat");
-  double dbl;
-  for (int a=1; a<MAX_GRID_PT_; a++) {
-    for (int l=0; l<a; l++) {
-      dbl = ww_Eij_[a][l];
-      if (dbl!=0) {
-        dbl /= NFRAME_;
-        //outfile.printf("%10d %10d %10.5f\n", a, l, dbl);
-        //outfile << left << setw(12) << a << l << setprecision(7) << dbl << endl;
-        outfile << a << " " << l << " " << dbl << endl;
+  if(printEij_){
+    ofstream outfile;
+    outfile.open("ww_Eij.dat");
+    double dbl;
+    for (int a=1; a<MAX_GRID_PT_; a++) {
+      for (int l=0; l<a; l++) {
+	dbl = ww_Eij_[a][l];
+	if (dbl!=0) {
+	  dbl /= NFRAME_;
+	  //outfile.printf("%10d %10d %10.5f\n", a, l, dbl);
+	  //outfile << left << setw(12) << a << l << setprecision(7) << dbl << endl;
+	  outfile << a << " " << l << " " << dbl << endl;
+	}
       }
     }
+    outfile.close();
   }
-  outfile.close();
 }
 
 // DESTRUCTOR
@@ -909,7 +996,9 @@ Action_Gist::~Action_Gist() {
   wh_eelec_.clear();
   ww_evdw_.clear();
   ww_eelec_.clear();
-  ww_Eij_.clear();
+  if(printEij_){
+    ww_Eij_.clear();
+  }
   dEwh_dw_.clear();
   dEww_dw_ref_.clear();
   dEwh_norm_.clear();
