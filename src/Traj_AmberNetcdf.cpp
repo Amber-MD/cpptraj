@@ -129,7 +129,7 @@ int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm,
       SetTitle("Cpptraj Generated trajectory");
     // Create NetCDF file. TODO: Add option to set up replica indices.
     if ( NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), HasV(),
-                    HasBox(), HasT(), true, false, ReplicaDimArray(), Title() ) )
+                    false, HasBox(), HasT(), true, false, ReplicaDimArray(), Title() ) )
       return 1;
     if (debug_>1) NetcdfDebug();
     // Close Netcdf file. It will be reopened write.
@@ -207,11 +207,13 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
     count_[2] = 0;
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())) ) {
+    if (checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())))
+    {
       mprinterr("Getting cell lengths.\n");
       return 1;
     }
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)) ) {
+    if (checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)))
+    {
       mprinterr("Getting cell angles.\n");
       return 1;
     }

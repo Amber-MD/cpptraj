@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
       err = 1;
     case Cpptraj::C_QUIT        : break;
   }
-  Cpptraj::Finalize();
+  Cpptraj::Finalize(err);
   parallel_end();
   return err;
 }

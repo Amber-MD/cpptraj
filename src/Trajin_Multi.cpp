@@ -338,7 +338,7 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
       return 1;
     }
   } else {
-# else
+# endif 
     // Open the trajectories
     mprintf("\tREMD: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
@@ -349,7 +349,6 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
         return 1;
       }
     }
-# endif
 # ifdef MPI
   }
 # endif
@@ -366,10 +365,9 @@ void Trajin_Multi::EndTraj() {
     if (isEnsemble_)
       REMDtraj_[worldrank]->closeTraj();
     else
-#   else
+#   endif 
       for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
         (*replica)->closeTraj();
-#   endif
     replicasAreOpen_ = false;
   }
 }

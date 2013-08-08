@@ -4,16 +4,14 @@
 class Action_AutoImage : public Action {
   public:
     Action_AutoImage();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_AutoImage(); }
     static void Help();
-
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     AtomMask anchorMask_; ///< Used to center anchor region.
     std::string anchor_;  ///< Mask expression for anchor region.

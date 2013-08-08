@@ -43,12 +43,14 @@ void Cpptraj::Intro() {
 # endif
 }
 
-void Cpptraj::Finalize() {
-  mprintf("--------------------------------------------------------------------------------\n"
-    "To cite CPPTRAJ use:\n"
-    "Daniel R. Roe and Thomas E. Cheatham, III, \"PTRAJ and CPPTRAJ: Software for\n"
-    "  Processing and Analysis of Molecular Dynamics Trajectory Data\". J. Chem.\n"
-    "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n\n");
+void Cpptraj::Finalize(int err) {
+  if (err == 0)
+    mprintf("--------------------------------------------------------------------------------\n"
+      "To cite CPPTRAJ use:\n"
+      "Daniel R. Roe and Thomas E. Cheatham, III, \"PTRAJ and CPPTRAJ: Software for\n"
+      "  Processing and Analysis of Molecular Dynamics Trajectory Data\". J. Chem.\n"
+      "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n");
+  mprintf("\n");
 }
 
 // -----------------------------------------------------------------------------
@@ -461,14 +463,9 @@ int Cpptraj::CrdAction(ArgList& argIn) {
     return 1;
   }
   // Start, stop, offset
+  int start, stop, offset;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
-  int start = crdarg.getNextInteger(1) - 1;
-  int stop;
-  if (crdarg.hasKey("last"))
-    stop = CRD->Size();
-  else
-    stop = crdarg.getNextInteger(CRD->Size());
-  int offset = crdarg.getNextInteger(1);
+  if (Trajin::CheckFrameArgs(crdarg, CRD->Size(), start, stop, offset)) return 1;
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   ArgList actionargs = argIn.RemainingArgs();
   actionargs.MarkArg(0);
@@ -537,14 +534,9 @@ int Cpptraj::CrdOut(ArgList& argIn) {
   }
   setname = argIn.GetStringNext();
   // Start, stop, offset
+  int start, stop, offset;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
-  int start = crdarg.getNextInteger(1) - 1;
-  int stop;
-  if (crdarg.hasKey("last"))
-    stop = CRD->Size();
-  else
-    stop = crdarg.getNextInteger(CRD->Size());
-  int offset = crdarg.getNextInteger(1);
+  if (Trajin::CheckFrameArgs(crdarg, CRD->Size(), start, stop, offset)) return 1;
   if (debug_ > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   Trajout outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
@@ -1347,7 +1339,7 @@ int Cpptraj::RunNormal() {
   actionList_.Print( );
 
   // Sync DataSets and print DataSet information
-  DSL_.Sync();
+  //DSL_.Sync(); // NOTE: Disabled, trajs are not currently divided.
 
   // ========== A N A L Y S I S  P H A S E ==========
   mprintf("\nDATASETS:\n");

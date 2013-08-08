@@ -32,6 +32,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #define NCCELL_ANGLES "cell_angles"
 #define NCCOORDS "coordinates"
 #define NCVELO "velocities"
+#define NCFRC "forces"
 #define NCTEMPERATURE "temp0"
 #define NCTIME "time"
 #define NCLABEL "label"
@@ -66,7 +67,8 @@ NetcdfFile::NetcdfFile() :
   spatialVID_(-1),
   cell_spatialVID_(-1),
   cell_angularVID_(-1),
-  velocityScale_(20.455) 
+  velocityScale_(20.455),
+  frcScale_(velocityScale_ * velocityScale_)
 {
   start_[0] = 0;
   start_[1] = 0;
@@ -454,8 +456,9 @@ int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
 }
 
 // NetcdfFile::NC_create()
-int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, bool hasVelocity,
-                          bool hasBox, bool hasTemperature, bool hasTime, bool hasIndices,
+int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
+                          bool hasVelocity, bool hasFrc, bool hasBox, 
+                          bool hasTemperature, bool hasTime, bool hasIndices,
                           ReplicaDimArray const& remdDim, std::string const& title) 
 {
   if (Name.empty()) return 1;
@@ -557,6 +560,24 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn, boo
                                         &velocityScale_)) )
     {
       mprinterr("Error: Writing velocities scale factor.\n");
+      return 1;
+    }
+  }
+  // Force variable
+  if (hasFrc) {
+    if ( checkNCerr( nc_def_var( ncid_, NCFRC, dataType, NDIM, dimensionID, &frcVID_)) ) {
+      mprinterr("Error: Defining forces variable\n");
+      return 1;
+    }
+    if ( checkNCerr( nc_put_att_text( ncid_, frcVID_, "units", 25, "amu*angstrom/picosecond^2")) )
+    {
+      mprinterr("Error: Writing forces variable units.\n");
+      return 1;
+    }
+    if ( checkNCerr( nc_put_att_double( ncid_, frcVID_, "scale_factor", NC_DOUBLE, 1,
+                                        &frcScale_)) )
+    {
+      mprinterr("Error: Writing forces scale factor.\n");
       return 1;
     }
   }

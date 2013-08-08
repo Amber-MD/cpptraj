@@ -19,7 +19,7 @@ class NetcdfFile {
     int NC_openRead(std::string const&);
     int NC_openWrite(std::string const&);
     int NC_createReservoir(bool, double, int, int&, int&);
-    int NC_create(std::string const&,NCTYPE,int,bool,bool,bool,bool,
+    int NC_create(std::string const&,NCTYPE,int,bool,bool,bool,bool,bool,
                   bool, ReplicaDimArray const&, std::string const&);
     void NC_close();
 
@@ -49,6 +49,7 @@ class NetcdfFile {
     int TempVID_;             ///< Temperature variable ID.
     int coordVID_;            ///< Coordinates variable ID.
     int velocityVID_;         ///< Velocity variable ID.
+    int frcVID_;              ///< Force variable ID.
     int cellAngleVID_;        ///< Box angles variable ID.
     int cellLengthVID_;       ///< Box lengths variable ID.
     int timeVID_;             ///< Time variable ID.
@@ -72,6 +73,7 @@ class NetcdfFile {
     int cell_angularVID_;
 
     double velocityScale_;
+    double frcScale_;
 
     std::string GetAttrText(int, const char *);
     int GetDimInfo(const char *, int *);

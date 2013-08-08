@@ -15,6 +15,7 @@ class Trajin : public TrajectoryFile {
     virtual bool HasVelocity() = 0;
     virtual int NreplicaDimension() = 0;
 
+    static int CheckFrameArgs(ArgList&, int, int&, int&, int&);
     int SetupTrajIO( std::string const&, TrajectoryIO&, ArgList* );
     int CheckBoxInfo(const char*, Box&, Box const&); 
     int setupFrameInfo();
