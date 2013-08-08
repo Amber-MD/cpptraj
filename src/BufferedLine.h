@@ -7,10 +7,14 @@ class BufferedLine : private CpptrajFile {
   public:
     BufferedLine();
     ~BufferedLine();
-
+    /// Get the next line in the buffer.
     const char* Line();
+    /// Convert current line into tokens
     int TokenizeLine(const char*);
+    /// \return next token, null-delimited.
     const char* NextToken();
+    /// \return specified token, not null-delimited.
+    inline const char* Token(int);
     /// Open file for reading, set up buffer.
     int OpenFileRead( std::string const& fname ) {
       if ( OpenRead( fname ) ) return 1;
@@ -21,7 +25,7 @@ class BufferedLine : private CpptrajFile {
     // Members of CpptrajFile that should be public
     using CpptrajFile::Filename;
     using CpptrajFile::CloseFile;
-    using CpptrajFile::GetLine;
+    using CpptrajFile::GetLine; // TODO: Use internal buffer
   private:
     int ResetBuffer();
     static const size_t DEFAULT_BUFFERSIZE = 16384;
@@ -37,4 +41,9 @@ class BufferedLine : private CpptrajFile {
     char* endBuffer_;      ///< End position of buffer
     size_t nline_;         ///< Current line number.
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+const char* BufferedLine::Token(int idx) {
+  if (idx < 0 || idx >= (int)tokens_.size()) return 0;
+  return tokens_[idx];
+}
 #endif

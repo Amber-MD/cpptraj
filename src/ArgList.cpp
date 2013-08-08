@@ -272,10 +272,24 @@ bool ArgList::ValidInteger(int idx) {
   return validInteger(arglist_[idx]);
 }
 
+int ArgList::IntegerAt(int idx) {
+  if (ValidInteger(idx))
+    return convertToInteger(arglist_[idx]);
+  mprinterr("Error: Argument %i is not a valid integer\n", idx);
+  return 0;
+}
+
 bool ArgList::ValidDouble(int idx) {
   if (idx < 0 || idx >= (int)arglist_.size())
     return false;
   return validDouble(arglist_[idx]);
+}
+
+double ArgList::DoubleAt(int idx) {
+  if (ValidDouble(idx))
+    return convertToDouble(arglist_[idx]);
+  mprinterr("Error: Argument %i is not a valid double\n", idx);
+  return 0.0;
 }
 
 // ArgList::getNextInteger()

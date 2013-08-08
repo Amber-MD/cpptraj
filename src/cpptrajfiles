@@ -120,6 +120,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
         DataIO_OpenDx.cpp \
+        DataIO_Mdout.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_Xplor.cpp \

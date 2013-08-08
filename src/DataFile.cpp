@@ -10,6 +10,7 @@
 #include "DataIO_Xplor.h"
 #include "DataIO_OpenDx.h"
 #include "DataIO_RemLog.h"
+#include "DataIO_Mdout.h"
 
 // TODO: Support these args:
 //       - xlabel, xmin, xstep, time (all dimensions).
@@ -48,6 +49,7 @@ const DataFile::DataFileToken DataFile::DataFileArray[] = {
   { XPLOR,        "xplor",  "Xplor File",         ".grid",  DataIO_Xplor::Alloc   },
   { OPENDX,       "opendx", "OpenDx File",        ".dx",    DataIO_OpenDx::Alloc  },
   { REMLOG,       "remlog", "Amber REM log",      ".log",   DataIO_RemLog::Alloc  },
+  { MDOUT,        "mdout",  "Amber MDOUT file",   ".out",   DataIO_Mdout::Alloc   },
   { UNKNOWN_DATA, 0,        "Unknown",            0,        0                     }
 };
 
