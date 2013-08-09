@@ -111,14 +111,15 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
     int frame = 0;           // Frame counter for this file
     double dt = 1.0;         // Timestep for this file
     // ----- PARSE THE INPUT SECTION ----- 
-    while ( ptr != 0 && strncmp(ptr, " Here is the input", 18) != 0 )
+    while ( ptr != 0 && strncmp(ptr, "   2.  CONTROL  DATA", 20) != 0 )
       ptr = buffer.Line();
     if (ptr == 0) return EOF_ERROR();
     // Determine whether this is dynamics or minimization, get dt
-    ptr = buffer.Line(); // Blank line
+    ptr = buffer.Line(); // Dashes 
+    ptr = buffer.Line(); // Blank 
     ptr = buffer.Line(); // title line
-    mprintf("DEBUG:\tProcessing MD input: %s", ptr);
-    while ( strncmp(ptr, "   1.  RESOURCE", 15) != 0 ) 
+    mprintf("\tProcessing MDOUT: %s", ptr);
+    while ( strncmp(ptr, "   3.  ATOMIC", 13) != 0 ) 
     {
       ArgList mdin_args( ptr, " ,=" ); // Remove commas, equal signs
       // Scan for stuff we want
@@ -141,6 +142,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
         }
       }
       ptr = buffer.Line();
+      if (ptr == 0) return EOF_ERROR();
     }
     if (Trigger == 0) {
       mprinterr("Error: Could not determine whether MDOUT is md, min, or post-process.\n");
