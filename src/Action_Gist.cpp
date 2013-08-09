@@ -25,7 +25,7 @@ Action_Gist::Action_Gist() :
   useSPCE_(false),
   useSPCFW_(false),
   doOrder_(false),
-  printEij_(false)
+  doEij_(false)
 {
   mprintf("\tGIST: INIT \n");
   gridcntr_[0] = -1;
@@ -41,7 +41,7 @@ Action_Gist::Action_Gist() :
 
 
 void Action_Gist::Help() {
-  mprintf("gist <watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [printeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
+  mprintf("gist <watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [doeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
   mprintf("\tGIST needs the specification of the water model being used. Supported water models are: \n");
   mprintf("\ta) TIP3P specified as tip3p. \n");
   mprintf("\tb) TIP4P specified as tip4p. \n");
@@ -105,8 +105,8 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     mprintf("\tGIST NOT doing Order calculation \n");
   }
 
-  printEij_ = actionArgs.hasKey("printeij");
-  if(printEij_){
+  doEij_ = actionArgs.hasKey("doeij");
+  if(doEij_){
     mprintf("\tGIST printing water-water Eij matrix \n");
   }
   else{
@@ -240,7 +240,7 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   dEww_dw_unref_.clear();
   dEww_dw_unref_.resize(MAX_GRID_PT_, 0.0);
 
-  if(printEij_){
+  if(doEij_){
     ww_Eij_.clear();
     ww_Eij_.resize(MAX_GRID_PT_);
     for(int i = 1; i < MAX_GRID_PT_; i++) ww_Eij_[i].resize(i);
@@ -460,7 +460,7 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 		  if (atom2==0 && atom1==0 && rij<3.5) {
 	            neighbor_[voxel2] += 1.0;
 		  }
-		  if(printEij_ && (voxel<MAX_GRID_PT_) ){
+		  if(doEij_ && (voxel<MAX_GRID_PT_) ){
 		    //if (voxel<MAX_GRID_PT_) {
 		    if (voxel>voxel2) {
 		      ww_Eij_[voxel][voxel2] += e_vdw*0.5;
@@ -956,7 +956,7 @@ void Action_Gist::PrintOutput(string const& filename)
   //  myfile.close();
   outfile.CloseFile();
 
-  if(printEij_){
+  if(doEij_){
     ofstream outfile;
     outfile.open("ww_Eij.dat");
     double dbl;
@@ -996,7 +996,7 @@ Action_Gist::~Action_Gist() {
   wh_eelec_.clear();
   ww_evdw_.clear();
   ww_eelec_.clear();
-  if(printEij_){
+  if(doEij_){
     ww_Eij_.clear();
   }
   dEwh_dw_.clear();

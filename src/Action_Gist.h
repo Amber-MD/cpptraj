@@ -40,7 +40,7 @@ class Action_Gist: public Action, ImagedAction  {
     bool useSPCE_;
     bool useSPCFW_;
     bool doOrder_;
-    bool printEij_;
+    bool doEij_;
 
     //time 
     clock_t gist_t_begin,gist_t_end;
