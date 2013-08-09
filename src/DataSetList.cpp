@@ -206,11 +206,14 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
   std::string idx_arg;
   std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
   //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str());
+  // If index arg is empty make wildcard (-1)
   if (idx_arg.empty())
     idxrange.SetRange( -1, 0 ); 
   else
     idxrange.SetRange( idx_arg );
-
+  // If attribute arg not set and name is wildcard, make attribute wildcard.
+  if (attr_arg.empty() && dsname == "*")
+    attr_arg.assign("*");
   // All start selected
   std::vector<char> SelectedSets(DataList_.size(), 'T');
   // First check name
