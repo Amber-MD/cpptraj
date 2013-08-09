@@ -54,8 +54,8 @@ class Topology {
     inline const std::vector<int>& BondsH() const { return bondsh_; }
     inline const std::vector<double>& BondRk() const { return bondrk_; }
     inline const std::vector<double>& BondReq() const { return bondreq_; }
-    int GetBondParamIdx( int, double &, double &);
-    double GetBondedCutoff(int, int);
+    int GetBondParamIdx( int, double &, double &) const;
+    double GetBondedCutoff(int, int) const;
     // ----- Angle-specific routines -----
     inline const std::vector<int>& Angles() const { return angles_; }
     inline const std::vector<int>& AnglesH() const { return anglesh_; }
@@ -84,24 +84,24 @@ class Topology {
     inline const std::vector<double>& LJA() const { return lja_; }
     inline const std::vector<double>& LJB() const { return ljb_; }
     // ----- Misc routines -----
-    std::string TruncResAtomName(int);
-    std::string TruncResNameNum(int);
+    std::string TruncResAtomName(int) const;
+    std::string TruncResNameNum(int) const;
     int FindAtomInResidue(int, NameType const&) const;
     int FindResidueMaxNatom() const;
-    int SoluteAtoms();
+    int SoluteAtoms() const;
     int SetSolvent(std::string const&);
     // ----- Print topology info -----
     void Summary() const;
     void ParmInfo() const;
-    void PrintAtomInfo(std::string const&);
-    void PrintBondInfo(std::string const&);
-    void PrintMoleculeInfo(std::string const&);
-    void PrintResidueInfo(std::string const&);
-    void PrintChargeInfo(std::string const&);
+    void PrintAtomInfo(std::string const&) const;
+    void PrintBondInfo(std::string const&) const;
+    void PrintMoleculeInfo(std::string const&) const;
+    void PrintResidueInfo(std::string const&) const;
+    void PrintChargeMassInfo(std::string const&, int) const;
     // ----- Routines to Access/Modify Box info -----
     inline Box const& ParmBox()   const { return box_;        }
     inline Box::BoxType BoxType() const { return box_.Type(); }
-    void SetBox( Box const& bIn )     { box_ = bIn;         }
+    void SetBox( Box const& bIn )       { box_ = bIn;         }
     // ----- PDB/Mol2 etc setup routines -----
     void AddTopAtom(Atom, NameType const&, int, int&, const double*);
     void StartNewMol();
@@ -144,7 +144,6 @@ class Topology {
     Topology* ModifyByMap(std::vector<int> const& m) const {
       return ModifyByMap(m, true);
     }
-
   private:
     std::vector<Atom> atoms_;
     std::vector<Residue> residues_;
@@ -195,7 +194,7 @@ class Topology {
     int nframes_;
     int ntypes_; // This is stored for the purpose of checking array sizes
 
-    void PrintBonds(std::vector<int> const&, AtomMask const&);
+    void PrintBonds(std::vector<int> const&, AtomMask const&) const;
     void SetAtomBondInfo();
     static void WarnBondLengthDefault(Atom::AtomicElementType,
                                       Atom::AtomicElementType,double);
@@ -204,7 +203,7 @@ class Topology {
     void GetBondsFromAtomCoords();
     void VisitAtom(int, int);
     int DetermineMolecules();
-    void AtomDistance(int, int, int, std::set<int>&);
+    void AtomDistance(int, int, int, std::set<int>&) const;
     void DetermineExcludedAtoms();
     int SetSolventInfo();
 

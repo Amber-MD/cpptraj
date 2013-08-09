@@ -440,6 +440,11 @@ static void Help_ChargeInfo() {
   mprintf("\tPrint the total charge of atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
+static void Help_MassInfo() {
+  mprintf("\t[<parmindex>] <mask>\n");
+  mprintf("\tPrint the total mass of atoms in <mask> for topology <parmindex> (0 by default).\n");
+}
+
 static void Help_ResInfo() {
   mprintf("\t[<parmindex>] [<mask>]\n");
   mprintf("\tPrint information for residues in <mask> for topology <parmindex> (0 by default).\n");
@@ -967,7 +972,16 @@ Command::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, Command::AllocT
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
-  parm->PrintChargeInfo( argIn.GetMaskNext() );
+  parm->PrintChargeMassInfo( argIn.GetMaskNext(), 0 );
+  return Command::C_OK;
+}
+
+/// Print the total charge of atoms in mask
+Command::RetType MassInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  if (parm == 0) return Command::C_ERR;
+  parm->PrintChargeMassInfo( argIn.GetMaskNext(), 1 );
   return Command::C_OK;
 }
 
@@ -1123,6 +1137,7 @@ const Command::Token Command::Commands[] = {
   // TOPOLOGY COMMANDS
   { PARM,    "bondinfo",      0, Help_BondInfo,        BondInfo        },
   { PARM,    "charge",        0, Help_ChargeInfo,      ChargeInfo      },
+  { PARM,    "mass",          0, Help_MassInfo,        MassInfo        },
   { PARM,    "molinfo",       0, Help_MolInfo,         MolInfo         },
   { PARM,    "parm",          0, Help_Parm,            LoadParm        },
   { PARM,    "parmbondinfo",  0, Help_BondInfo,        BondInfo        },
