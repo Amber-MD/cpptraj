@@ -176,11 +176,14 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
       if ( fileEOF ) break; // Error occurred reading replicas, skip rest of exchanges.
       if (thislog_type == HREMD) {
         // Determine whether exchanges occurred. Update coordinate indices accordingly.
+        //mprintf("DEBUG: exchange= %i:\n", exchg + 1);
         for (int replica = 0; replica < n_replicas; replica++) {
+          //mprintf("DEBUG:\tReplica %i crdidx %i =>", replica+1, coordinateIndices[replica]);
           if (replicaFrames[replica].Success()) {
             int partner = replicaFrames[replica].PartnerIdx() - 1;
             coordinateIndices[replica] = replicaFrames[partner].CoordsIdx();
           }
+          //mprintf(" %i\n", coordinateIndices[replica]); // DEBUG
         }
       }
       // Read 'exchange N' line.
