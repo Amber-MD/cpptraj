@@ -1061,8 +1061,8 @@ void Frame::SwapAtoms(int at1, int at2) {
   Mass_[at1] = Mass_[at2]; Mass_[at2] = x;
 }
 
-// Frame::Temperature
-double Frame::Temperature(AtomMask const& mask, int deg_of_freedom) const {
+// Frame::CalcTemperature
+double Frame::CalcTemperature(AtomMask const& mask, int deg_of_freedom) const {
   if (V_==0) return 0.0;
   if (mask.None()) return 0.0;
   //double boltz2 = 0.00831441 * 0.5 / 4.184;
