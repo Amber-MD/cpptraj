@@ -165,7 +165,7 @@ class Frame {
     /// Calculate inertia matrix.
     Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&) const;
     /// Calculate temperature of atoms in mask.
-    double Temperature(AtomMask const&,int) const;
+    double CalcTemperature(AtomMask const&,int) const;
   private:
     typedef std::vector<double> Darray;
     static const size_t COORDSIZE_;
