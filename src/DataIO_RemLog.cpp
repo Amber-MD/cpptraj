@@ -171,7 +171,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
           ensemble.AddRepFrame( replicaFrames[0].ReplicaIdx()-1, replicaFrames[0] );
         // ----- H-REMD ----------------------------
         } else if (thislog_type == HREMD) {
-          if (replicaFrames[replica].SetHremdFrame( ptr, coordinateIndices[replica] )) {
+          if (replicaFrames[replica].SetHremdFrame( ptr, coordinateIndices )) {
             mprinterr("Error reading HREMD line from rem log. Exchange=%i, replica=%i\n",
                       exchg+1, replica+1);
             return 1;
@@ -185,14 +185,11 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
       }
       if ( fileEOF ) break; // Error occurred reading replicas, skip rest of exchanges.
       if (thislog_type == HREMD) {
-        // Determine whether exchanges occurred. Update coordinate indices accordingly.
+        // Update coordinate indices.
         //mprintf("DEBUG: exchange= %i:\n", exchg + 1);
         for (int replica = 0; replica < n_replicas; replica++) {
           //mprintf("DEBUG:\tReplica %i crdidx %i =>", replica+1, coordinateIndices[replica]);
-          if (replicaFrames[replica].Success()) {
-            int partner = replicaFrames[replica].PartnerIdx() - 1;
-            coordinateIndices[replica] = replicaFrames[partner].CoordsIdx();
-          }
+          coordinateIndices[replica] = replicaFrames[replica].CoordsIdx();
           //mprintf(" %i\n", coordinateIndices[replica]); // DEBUG
         }
       }

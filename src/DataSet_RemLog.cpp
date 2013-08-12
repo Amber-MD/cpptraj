@@ -76,17 +76,26 @@ int DataSet_RemLog::ReplicaFrame::SetTremdFrame(const char* ptr, TmapType const&
 
 /* Format:
  * '(2i6,5f10.2,4x,a,2x,f10.2)'
+# Rep#, Neibr#, Temp0, PotE(x_1), PotE(x_2), left_fe, right_fe, Success, Success rate (i,i+1)
      1     8    300.00 -25011.03 -24959.58    -27.48      0.00    F        0.00
  */
-int DataSet_RemLog::ReplicaFrame::SetHremdFrame( const char* ptr, int currentCoordIdx ) {
+int DataSet_RemLog::ReplicaFrame::SetHremdFrame( const char* ptr,
+                                                 std::vector<int> const& coordinateIndices)
+{
   if ( sscanf(ptr, "%6i%6i%10lf%10lf%10lf", &replicaIdx_, &partnerIdx_,
               &temp0_, &PE_x1_, &PE_x2_) != 5 )
     return 1;
-  coordsIdx_ = currentCoordIdx;
   // Check if an exchange occured this frame.
+  // If an exchange occurred, coordsIdx will be that of the partner replica.
   switch ( ptr[66] ) {
-    case 'T': success_ = true;  break;
-    case 'F': success_ = false; break;
+    case 'T':
+      success_ = true;
+      coordsIdx_ = coordinateIndices[ partnerIdx_ - 1 ];
+      break;
+    case 'F':
+      success_ = false;
+      coordsIdx_ = coordinateIndices[ replicaIdx_ - 1 ];
+      break;
     default: // Should only get here with malformed HREMD log file.
       mprinterr("Error: expected only 'T' or 'F' at character 67, got %c\n", ptr[66]);
       return 1;
