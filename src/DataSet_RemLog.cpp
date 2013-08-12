@@ -48,13 +48,16 @@ void DataSet_RemLog::TrimLastExchange() {
 // -----------------------------------------------------------------------------
 /* Format:
  * '(i2,6f10.2,i8)'
+# Rep#, Velocity Scaling, T, Eptot, Temp0, NewTemp0, Success rate (i,i+1), ResStruct#
  1     -1.00      0.00   -433.24    300.00    300.00      0.00      -1
+ * Order during REMD is exchange -> MD, so NewTemp0 is the temp. that gets
+ * simulated.
  */
 int DataSet_RemLog::ReplicaFrame::SetTremdFrame(const char* ptr, TmapType const& TemperatureMap)
 {
-  double scaling, newTemp0;
-  if ( sscanf(ptr, "%2i%10lf%*10f%10lf%10lf%10lf", &coordsIdx_, &scaling, &PE_x1_,
-              &temp0_, &newTemp0) != 5 )
+  double scaling;
+  if ( sscanf(ptr, "%2i%10lf%*10f%10lf%*10f%10lf", &coordsIdx_, &scaling, &PE_x1_,
+              &temp0_) != 4 )
     return 1;
   // Figure out replica index from temperature map.
   TmapType::const_iterator tmap = TemperatureMap.find( temp0_ );
@@ -63,19 +66,10 @@ int DataSet_RemLog::ReplicaFrame::SetTremdFrame(const char* ptr, TmapType const&
     return 1;
   }
   replicaIdx_ = (*tmap).second;
-  // Figure out partner index from temperature map.
-  tmap = TemperatureMap.find( newTemp0 );
-  if (tmap == TemperatureMap.end()) {
-    mprinterr("Error: partner replica temperature %.2f not found in temperature map.\n",
-              newTemp0);
-    return 1;
-  }
-  partnerIdx_ = (*tmap).second;
+  // Partner index is not used in T-REMD.
+  partnerIdx_ = 0; 
   // Exchange occurred if velocity scaling is > 0
-  if (scaling > 0.0)
-    success_ = true;
-  else
-    success_ = false;
+  success_ = (scaling > 0.0);
 
   return 0;
 }

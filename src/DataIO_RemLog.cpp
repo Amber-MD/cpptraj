@@ -1,4 +1,5 @@
 #include <cstdio> // sscanf
+#include <set> // for TREMD temperature sorting
 #include "DataIO_RemLog.h"
 #include "CpptrajStdio.h" 
 #include "ProgressBar.h"
@@ -72,21 +73,20 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   // Should currently be positioned at the first exchange. Need to read this
   // to determine how many replicas there are (and temperature for T-REMD).
   DataSet_RemLog::TmapType TemperatureMap;
+  std::set<double> tList;
   double t0;
   int n_replicas = 0;
   const char* ptr = buffer.Line();
   while (ptr != 0 && ptr[0] != '#') {
     if (firstlog_type == TREMD) {
-      // For temperature remlog create temperature map. Map temperatures to 
-      // index + 1 since indices in the remlog start from 1.
+      // For temperature remlog create temperature map.
       //mprintf("DEBUG: Temp0= %s", ptr+32);
       if ( sscanf(ptr+32, "%10lf", &t0) != 1) {
         mprinterr("Error: could not read temperature from T-REMD log.\n"
                   "Error: Line: %s", ptr);
         return 1;
       }
-      std::pair<DataSet_RemLog::TmapType::iterator,bool> ret =
-        TemperatureMap.insert(std::pair<double,int>( t0, n_replicas+1 ));
+      std::pair<std::set<double>::iterator,bool> ret = tList.insert( t0 );
       if (!ret.second) {
         mprinterr("Error: duplicate temperature %.2f detected in T-REMD remlog\n", t0);
         return 1;
@@ -99,6 +99,16 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   if (n_replicas < 1) {
     mprinterr("Error: Detected less than 1 replica in remlog.\n");
     return 1;
+  }
+  if (firstlog_type == TREMD) {
+    // Temperatures are already sorted lowest to highest in set. Map 
+    // temperatures to index + 1 since indices in the remlog start from 1.
+    int repnum = 1;
+    for (std::set<double>::const_iterator temp0 = tList.begin(); temp0 != tList.end(); ++temp0)
+      TemperatureMap.insert(std::pair<double,int>(*temp0, repnum++));
+    for (DataSet_RemLog::TmapType::const_iterator tmap = TemperatureMap.begin();
+                                                  tmap != TemperatureMap.end(); ++tmap)
+      mprintf("\t\t%i => %f\n", (*tmap).second, (*tmap).first);
   }
   DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
   if (ds == 0) return 1;
@@ -201,7 +211,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
           "%-10s %6s %6s %6s %12s %12s %12s S\n", "#Exchange", "RepIdx", "PrtIdx", "CrdIdx",
           "Temp0", "PE_X1", "PE_X2");
   for (int i = 0; i < ensemble.NumExchange(); i++) {
-    for (int j = 0; j < ensemble.Size(); j++) {
+    for (int j = 0; j < (int)ensemble.Size(); j++) {
       DataSet_RemLog::ReplicaFrame const& frm = ensemble.RepFrame(i, j); 
       mprintf("%10u %6i %6i %6i %12.4f %12.4f %12.4f %1i\n", i + 1,
               frm.ReplicaIdx(), frm.PartnerIdx(), frm.CoordsIdx(), frm.Temp0(), 
