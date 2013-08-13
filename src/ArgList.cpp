@@ -128,16 +128,16 @@ ArgList ArgList::RemainingArgs() {
 }
 
 // ArgList::AddArg()
-/** \param input null terminated string to add to argument list
+/** \param input string of space-delimited args to add to argument list.
   */
 void ArgList::AddArg(std::string const& input) {
-  // Dont store blank tokens
-  if (input.empty()) return;
-  if (input[0]=='\n') return;
-  arglist_.push_back(input);
-  argline_.append(input);
-  argline_.append(" ");
-  marked_.push_back(false);
+  ArgList inputArgs( input );
+  for (int i = 0; i < inputArgs.Nargs(); i++) {
+    arglist_.push_back( inputArgs[i] );
+    argline_.append(" ");
+    argline_.append( inputArgs[i] );
+    marked_.push_back( false );
+  }
 }
 
 // ArgList::MarkArg()
