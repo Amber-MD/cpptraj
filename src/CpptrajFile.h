@@ -38,8 +38,6 @@ class CpptrajFile {
     void CloseFile();
     /// Printf using the files Write routine.
     void Printf(const char*, ...);
-    /// Printf using the files Write routine for the given rank.
-    void Rank_printf(int, const char *, ...);
     /// Get next line as a string
     std::string GetLine();
     /// Get next line and return pointer to raw buffer

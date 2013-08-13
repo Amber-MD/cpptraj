@@ -523,7 +523,7 @@ void Trajin_Multi::EnsembleInfo() const {
       mprintf(" } -> %i\n", (*imap).second);
     }
   } else if (targetType_ == CRDIDX) {
-    mprintf("  Ensemble will be sorted by coordinate indices.\n");
+    mprintf("  Ensemble will be sorted by coordinate indices from remlog data.\n");
   } 
 }
 

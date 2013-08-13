@@ -309,7 +309,7 @@ int Traj_AmberCoord::setupTrajout(std::string const& fname, Topology* trajParm,
       }
     }
     if (file_.OpenFile()) return 1;
-    file_.Rank_printf(0,"%-s\n", title.c_str());
+    file_.Printf("%-s\n", title.c_str());
   } else {
     // Just set up for append
     if (file_.SetupAppend( fname, debug_ )) return 1;

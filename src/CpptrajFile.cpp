@@ -12,7 +12,6 @@
 #  include "FileIO_Gzip.h"
 #endif
 #ifdef MPI
-#  include "MpiRoutines.h" // For worldrank in Rank_printf
 #  include "FileIO_Mpi.h"
 #endif
 #ifdef HASBZ2
@@ -174,21 +173,6 @@ void CpptrajFile::Printf(const char *format, ...) {
   va_start(args, format);
   vsprintf(linebuffer_,format,args);
   IO_->Write(linebuffer_, strlen(linebuffer_));
-  va_end(args);
-}
-
-// CpptrajFile::Rank_printf()
-/** When MPI, printf only for the specified rank. If no MPI, behaves just
-  * like above Printf.
-  */
-void CpptrajFile::Rank_printf(int rank, const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  vsprintf(linebuffer_,format,args);
-#ifdef MPI
-    if (worldrank==rank)
-#endif
-      IO_->Write(linebuffer_, strlen(linebuffer_));
   va_end(args);
 }
 
