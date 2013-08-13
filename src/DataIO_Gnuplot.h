@@ -7,6 +7,7 @@ class DataIO_Gnuplot : public DataIO {
   public:
     DataIO_Gnuplot();
     static DataIO* Alloc() { return (DataIO*)new DataIO_Gnuplot(); }
+    static void WriteHelp();
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) { return 1; }
     int processWriteArgs(ArgList&);
     int WriteData(std::string const&,DataSetList const&);

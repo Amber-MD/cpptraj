@@ -18,6 +18,10 @@ static void PrintColumnError(int idx) {
   mprinterr("Error: Number of columns in file changes at line %i.\n", idx);
 }
 
+void DataIO_Std::ReadHelp() {
+  mprintf("\tindex <col>: Use column # (starting from 1) as index column.\n");
+}
+
 // TODO: Set dimension labels
 // DataIO_Std::ReadData()
 int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
@@ -167,6 +171,12 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
         DsetList[i]->SetDim(Dimension::X, Dimension(1.0, 1.0, DsetList[i]->Size()));
   }
   return 0;
+}
+
+void DataIO_Std::WriteHelp() {
+  mprintf("\tnoxcol:   Do not print X (index) column.\n"
+          "\tnoheader: Do not print header line.\n"
+          "\tsquare2d: Write 2D data sets in matrix-like format.\n");
 }
 
 // DataIO_Std::processWriteArgs()

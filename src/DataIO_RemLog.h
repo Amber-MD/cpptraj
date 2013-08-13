@@ -8,6 +8,7 @@ class DataIO_RemLog : public DataIO {
   public:
     DataIO_RemLog();
     static DataIO* Alloc() { return (DataIO*)new DataIO_RemLog(); }
+    static void ReadHelp();
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList&) { return 0; }
     int WriteData(std::string const&, DataSetList const&) { return 1; }

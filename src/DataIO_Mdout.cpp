@@ -62,6 +62,11 @@ DataIO_Mdout::FieldType DataIO_Mdout::getEindex(std::vector<std::string> const& 
   return N_FIELDTYPES;
 }
 
+void DataIO_Mdout::ReadHelp() {
+  mprintf("\tmdoutfiles <filelist>: Read in additional MDOUT files in a comma-\n"
+          "\t                       separated list, e.g. 'mdoutfiles md2,md3'\n");
+}
+
 // DataIO_Mdout::ReadData()
 int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
                             DataSetList& datasetlist, std::string const& dsname)

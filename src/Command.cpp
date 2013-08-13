@@ -328,8 +328,9 @@ static void Help_DataFile() {
 }
 
 static void Help_ReadData() {
-  mprintf("\t<filename> [name <dsname>] [as <fmt>]\n");
+  mprintf("\t<filename> [name <dsname>] [as <fmt>] [<format options>]\n");
   mprintf("\tRead data from <filename> into data sets.\n");
+  DataFile::ReadOptions();
 }
 
 static void Help_ReadInput() {

@@ -8,7 +8,10 @@
 class DataIO {
   public:
     virtual ~DataIO() {}
+    /// Used to allocate DataIO object in DataFile.
     typedef DataIO* (*AllocatorType)();
+    /// Used for help text.
+    typedef void (*HelpType)();
     // ----- Inherited Functions -----------------
     virtual int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) = 0;
     virtual int processWriteArgs(ArgList&) = 0;

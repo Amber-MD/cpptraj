@@ -13,6 +13,10 @@ class DataFile {
 
     DataFile();
     ~DataFile();
+    /// List read options for each format.
+    static void ReadOptions();
+    /// List write options for each format.
+    static void WriteOptions();
     /// \return format type from keyword in ArgList.
     static DataFormatType GetFormatFromArg(ArgList&);
     /// \return format type from keyword.
@@ -58,6 +62,13 @@ class DataFile {
     };
     static const DataFileToken DataFileArray[];
     typedef const DataFileToken* TokenPtr;
+    /// For displaying help for different formats.
+    struct DF_HelpToken {
+      const char* Description;
+      DataIO::HelpType ReadHelp;
+      DataIO::HelpType WriteHelp;
+    };
+    static const DF_HelpToken DF_HelpArray[];
 
     static DataIO* AllocDataIO(DataFormatType);
     static DataIO* DetectFormat(std::string const&, DataFormatType&);

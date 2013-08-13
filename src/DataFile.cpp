@@ -53,6 +53,35 @@ const DataFile::DataFileToken DataFile::DataFileArray[] = {
   { UNKNOWN_DATA, 0,        "Unknown",            0,        0                     }
 };
 
+// NOTE: Must be in same order as DataFormatType
+const DataFile::DF_HelpToken DataFile::DF_HelpArray[] = {
+  { "Standard Data File", DataIO_Std::ReadHelp,    DataIO_Std::WriteHelp     },
+  { "Grace File",         0,                       0                         },
+  { "Gnuplot File",       0,                       DataIO_Gnuplot::WriteHelp },
+  { "Xplor File",         0,                       0                         },
+  { "OpenDX File",        0,                       0                         },
+  { "Amber REM log",      DataIO_RemLog::ReadHelp, 0                         },
+  { "Amber MDOUT file",   DataIO_Mdout::ReadHelp,  0                         }
+};
+
+void DataFile::ReadOptions() {
+  for (int i = 0; i < (int)UNKNOWN_DATA; i++) {
+    if (DF_HelpArray[i].ReadHelp != 0) {
+      mprintf("  Options for %s:\n", DF_HelpArray[i].Description);
+      DF_HelpArray[i].ReadHelp();
+    }
+  }
+}
+
+void DataFile::WriteOptions() {
+  for (int i = 0; i < (int)UNKNOWN_DATA; i++) {
+    if (DF_HelpArray[i].WriteHelp != 0) {
+      mprintf("  Options for %s:\n", DF_HelpArray[i].Description);
+      DF_HelpArray[i].WriteHelp();
+    }
+  }
+}
+
 // DataFile::GetFormatFromArg()
 /** Given an ArgList, search for one of the file format keywords.
   */

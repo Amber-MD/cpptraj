@@ -47,6 +47,11 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
   return numexchg;
 }
 
+void DataIO_RemLog::ReadHelp() {
+  mprintf("\tlogfiles <filelist>: Read in additional REM log files in a comma-\n"
+          "\t                     separated list, e.g. 'logfiles rem2.log,rem3.log'\n");
+}
+
 // DataIO_RemLog::ReadData()
 int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                             DataSetList& datasetlist, std::string const& dsname)
