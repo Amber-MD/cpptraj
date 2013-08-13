@@ -30,7 +30,9 @@ class TrajinList {
     ListType trajin_;
     int debug_;
     int maxframes_;
-    TrajModeType mode_; ///< Trajectory processing mode 
+    TrajModeType mode_; ///< Trajectory processing mode
+    /// CRDIDXARG: Used when processing ensemble and sorting by CRDIDX
+    std::string finalCrdIndicesArg_;
 };
 #endif
 

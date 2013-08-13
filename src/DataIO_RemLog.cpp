@@ -48,8 +48,10 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
 }
 
 void DataIO_RemLog::ReadHelp() {
-  mprintf("\tlogfiles <filelist>: Read in additional REM log files in a comma-\n"
-          "\t                     separated list, e.g. 'logfiles rem2.log,rem3.log'\n");
+  mprintf("\tlogfiles <filelist>:  Read in additional REM log files in a comma-\n"
+          "\t                      separated list, e.g. 'logfiles rem2.log,rem3.log'\n"
+          "\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
+          "\t                      coordinate indices (H-REMD only).\n");
 }
 
 // DataIO_RemLog::ReadData()
@@ -123,11 +125,24 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   std::vector<int> coordinateIndices;
   if (firstlog_type == HREMD) {
     replicaFrames.resize( n_replicas );
+    ArgList idxArgs( argIn.GetStringKey("crdidx"), "," );
+    if (!idxArgs.empty() && idxArgs.Nargs() != n_replicas) {
+      mprinterr("Error: crdidx: Ensemble size is %i but only %i indices given!\n",
+                n_replicas, idxArgs.Nargs());
+      return 1;
+    }
     // All coord indices start equal to replica indices.
     // Indices start from 1 in remlogs (H-REMD only).
     coordinateIndices.resize( n_replicas );
-    for (int replica = 0; replica < n_replicas; replica++)
-      coordinateIndices[replica] = replica+1;
+    mprintf("\tInitial H-REMD coordinate indices:");
+    for (int replica = 0; replica < n_replicas; replica++) {
+      if (idxArgs.empty())
+        coordinateIndices[replica] = replica+1;
+      else // TODO: Check replica index range
+        coordinateIndices[replica] = idxArgs.getNextInteger(0);
+      mprintf(" %i", coordinateIndices[replica]);
+    }
+    mprintf("\n");
   } else if (firstlog_type == TREMD)
     replicaFrames.resize(1);
   // Close first remlog 

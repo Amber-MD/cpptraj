@@ -192,6 +192,11 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
       return 1;
     }
   }
+  // CRDIDXARG: Parse out 'crdidx <indices list>' now so it is not processed
+  //            by SetupTrajIO.
+  ArgList crdidxarg;
+  if (argIn->Contains("crdidx"))
+    crdidxarg.SetList( "crdidx " + argIn->GetStringKey("crdidx"), " " );
   // Check if replica trajectories are explicitly listed
   ArgList remdtraj_list( argIn->GetStringKey("trajnames"), "," );
   if (remdtraj_list.Nargs()==0) {
@@ -308,7 +313,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
       // Sort according to remlog data.
       DataFile remlogFile;
       DataSetList tempDSL;
-      if (remlogFile.ReadDataIn( argIn->GetStringKey("remlog"), "", tempDSL ) ||
+      // CRDIDXARG: TODO: Come up with a way to do this that doesnt require ArgLists.
+      if (remlogFile.ReadDataIn( argIn->GetStringKey("remlog"), crdidxarg, tempDSL ) ||
           tempDSL.empty())
       {
         mprinterr("Error: Could not read remlog data.\n");
@@ -640,6 +646,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
         //mprintf(" }[%i]", *fidx);
       } else if (targetType_ == CRDIDX) {
         *fidx = remlogData_.RepFrame( CurrentFrame(), repIdx++).CoordsIdx() - 1;
+        //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", CurrentFrame(), fidx - frameidx_, *fidx);
       }
 #     ifdef MPI
       // If calculated index is not worldrank, coords need to be sent to rank fidx.
@@ -689,4 +696,19 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
     tgtFrameFound = ProcessFrame();
   }
   return 1;
+}
+
+/** CRDIDXARG:
+  * \return A string containing the coordinate indices (comma separated) of the
+  *         final exchange in remlogData_.
+  */
+std::string Trajin_Multi::FinalCrdIndices() const {
+  if (remlogData_.Empty()) return std::string();
+  std::string arg("crdidx ");
+  int finalExchg = remlogData_.NumExchange() - 1;
+  for (unsigned int rep = 0; rep < remlogData_.Size(); rep++) {
+    if (rep > 0) arg += ",";
+    arg += ( integerToString( remlogData_.RepFrame(finalExchg, rep).CoordsIdx() ) );
+  }
+  return arg;
 }

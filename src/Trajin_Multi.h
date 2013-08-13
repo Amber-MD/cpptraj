@@ -28,12 +28,15 @@ class Trajin_Multi : public Trajin {
     int EnsemblePosition(int member) const { return frameidx_[member];     }
 #   endif
     bool BadEnsemble()               const { return badEnsemble_;          }
+    // CRDIDXARG: NOTE: This is public for CRDIDX in TrajinList
+    enum TargetType { NONE = 0, TEMP, INDICES, CRDIDX };
+    TargetType TargetMode()          const { return targetType_;           }
+    std::string FinalCrdIndices()    const;
   private:
     /// Define type that will hold REMD indices
     typedef std::vector<int> RemdIdxType;
     typedef std::vector<TrajectoryIO*> IOarrayType;
     typedef std::vector<std::string> NameListType;
-    enum TargetType { NONE = 0, TEMP, INDICES, CRDIDX };
 
     double remdtrajtemp_;     ///< Get frames with this temperature on read
     RemdIdxType remdtrajidx_; ///< Get frames with these indices on read

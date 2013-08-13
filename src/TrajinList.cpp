@@ -58,11 +58,28 @@ int TrajinList::AddInputTraj(Trajin* traj, ArgList& argIn, TopologyList const& t
   // Get parm from TopologyList based on args
   Topology* tempParm = topListIn.GetParm( argIn );
   traj->SetDebug(debug_);
+  // CRDIDXARG: Append coordinate indices arg if there is one
+  argIn.AddArg( finalCrdIndicesArg_ ); 
   if ( traj->SetupTrajRead(argIn.GetStringNext(), &argIn, tempParm) ) {
     mprinterr("Error: Could not set up input trajectory.\n");
     delete traj;
     return 1;
   }
+  // CRDIDXARG: If trajectory is REMD ensemble and sorting by CRDIDX, need to
+  //            save final CRDIDX for next ensemble command.
+  if ( traj->IsEnsemble() ) {
+    Trajin_Multi const& mTraj = static_cast<Trajin_Multi const&>( *traj );
+    if ( mTraj.TargetMode() == Trajin_Multi::CRDIDX ) {
+      finalCrdIndicesArg_ = mTraj.FinalCrdIndices();
+      if (finalCrdIndicesArg_.empty()) {
+        mprinterr("Error: Could not obtain final remlog indices.\n");
+        delete traj;
+        return 1;
+      }
+      //mprintf("DEBUG: Final crd indices arg: %s\n", finalCrdIndicesArg_.c_str());
+    }
+  } else
+    finalCrdIndicesArg_.clear();
   // Add to trajectory file list
   trajin_.push_back(traj);
   // Update total # of frames
