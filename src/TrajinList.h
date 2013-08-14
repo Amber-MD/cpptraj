@@ -25,7 +25,7 @@ class TrajinList {
     int MaxFrames()        const { return maxframes_;      }
     void List() const;
   private:
-    int AddInputTraj(std::string const&, Trajin*, ArgList&, TopologyList const&);
+    int AddInputTraj(std::string const&, Trajin*, ArgList, TopologyList const&);
 
     ListType trajin_;
     int debug_;

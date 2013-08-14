@@ -142,7 +142,7 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
   }
   // Read the first frame of coordinates
   if ( file_.ReadFrame() == -1 ) {
-    mprinterr("Error in read of Coords frame 1 of trajectory %s.\n", file_.Filename().base());
+    mprinterr("Error: in read of Coords frame 1 of trajectory %s.\n", file_.Filename().base());
     return TRAJIN_ERR;
   }
   // Check for box coordinates. If present, update the frame size and
@@ -174,8 +174,9 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
         // General triclinic. Set lengths and angles.
         boxInfo.SetBox( box );
       } else {
-        mprinterr("Error: Expect only 3 or 6 box coords, got %i\n", numBoxCoords_);
-        mprinterr("Error: Box line=[%s]\n", nextLine.c_str());
+        mprinterr("Error: In %s, expect only 3 or 6 box coords, got %i\n" 
+                  "Error:   Box line=[%s]\n", 
+                  file_.Filename().base(), numBoxCoords_, nextLine.c_str());
         return TRAJIN_ERR;
       }
     }

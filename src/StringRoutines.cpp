@@ -7,6 +7,7 @@
 #ifndef __PGI
 #  include <glob.h>  // For tilde expansion
 #endif
+#include "StringRoutines.h"
 
 // tildeExpansion()
 /** Use glob.h to perform tilde expansion on a filename, returning the 
@@ -18,12 +19,12 @@ std::string tildeExpansion(const char *filenameIn) {
     fprintf(stderr,"Error: tildeExpansion: null filename specified.\n");
     return std::string("");
   }
-#ifdef __PGI
+# ifdef __PGI
   // NOTE: It seems some PGI compilers do not function correctly when glob.h
   //       is included and large file flags are set. Just disable globbing
   //       for PGI and return a copy of filenameIn.
   return std::string(filenameIn);
-#else
+# else
   glob_t globbuf;
   globbuf.gl_offs = 1;
   if ( glob(filenameIn, GLOB_TILDE, NULL, &globbuf)!=0 )
@@ -32,7 +33,35 @@ std::string tildeExpansion(const char *filenameIn) {
   std::string returnFilename( globbuf.gl_pathv[0] );
   globfree(&globbuf);
   return returnFilename;
-#endif
+# endif
+}
+
+// ExpandToFilenames()
+StrArray ExpandToFilenames(std::string const& fnameArg) {
+  StrArray fnames;
+  if (fnameArg.empty()) return fnames;
+# ifdef __PGI
+  // NOTE: It seems some PGI compilers do not function correctly when glob.h
+  //       is included and large file flags are set. Just disable globbing
+  //       for PGI and return a copy of filenameIn.
+  // Check for any wildcards in fnameArg
+  if ( fnameArg.find_first_of("*?[]") != std::string::npos )
+    fprintf(stdout,"Warning: Currently wildcards in filenames not supported with PGI compilers.\n");
+  fnames.push_back( fnameArg );
+# else
+  glob_t globbuf;
+  int err = glob(fnameArg.c_str(), GLOB_TILDE, NULL, &globbuf );
+  //printf("DEBUG: %s matches %zu files.\n", fnameArg.c_str(), (size_t)globbuf.gl_pathc);
+  if ( err == 0 ) { 
+    for (unsigned int i = 0; i < (size_t)globbuf.gl_pathc; i++)
+      fnames.push_back( globbuf.gl_pathv[i] );
+  } else if (err == GLOB_NOMATCH )
+    fprintf(stderr,"Error: %s matches no files.\n", fnameArg.c_str());
+  else
+    fprintf(stderr,"Error: occurred trying to find %s\n", fnameArg.c_str());
+  if ( globbuf.gl_pathc > 0 ) globfree(&globbuf);
+# endif
+  return fnames;
 }
 
 // fileExists()

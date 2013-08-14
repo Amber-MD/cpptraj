@@ -10,6 +10,8 @@
     printf-type format strings, etc.
  */
 std::string tildeExpansion(const char *);
+typedef std::vector<std::string> StrArray;
+StrArray ExpandToFilenames(std::string const&);
 bool fileExists(const char *);
 
 std::string NumberFilename(std::string const &, int);

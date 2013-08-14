@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Trajin_Single.h"
 #include "Trajin_Multi.h"
+#include "StringRoutines.h" // ExpandToFilenames
 
 TrajinList::TrajinList() : 
   debug_(0),
@@ -29,10 +30,16 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList& argIn, TopologyLi
     mprinterr("Error: 'ensemble' and 'trajin' are mutually exclusive.\n");
     return 1;
   }
-  Trajin* traj = new Trajin_Multi();
-  traj->SetEnsemble(true);
   mode_ = ENSEMBLE;
-  return AddInputTraj( fname, traj, argIn, topListIn );
+  int err = 0;
+  StrArray fnames = ExpandToFilenames( fname );
+  if (fnames.empty()) return 1;
+  for (StrArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
+    Trajin* traj = new Trajin_Multi();
+    traj->SetEnsemble(true);
+    err += AddInputTraj( *fn, traj, argIn, topListIn );
+  }
+  return err;
 }
 
 // TrajinList::AddTrajin()
@@ -43,16 +50,25 @@ int TrajinList::AddTrajin(std::string const& fname, ArgList& argIn, TopologyList
     mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
     return 1;
   }
-  if (argIn.hasKey("remdtraj"))
-    traj = new Trajin_Multi();
-  else
-    traj = new Trajin_Single();
   mode_ = NORMAL;
-  return AddInputTraj( fname, traj, argIn, topListIn );
+  bool isRemdtraj = argIn.hasKey("remdtraj");
+  int err = 0;
+  StrArray fnames = ExpandToFilenames( fname );
+  if (fnames.empty()) return 1;
+  for (StrArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
+    if (isRemdtraj)
+      traj = new Trajin_Multi();
+    else
+      traj = new Trajin_Single();
+    err += AddInputTraj( *fn, traj, argIn, topListIn );
+  }
+  return err;
 }
 
 // TrajinList::AddInputTraj()
-int TrajinList::AddInputTraj(std::string const& fname, Trajin* traj, ArgList& argIn, 
+// NOTE: Pass in a copy of ArgList so the arguments arent modified in case
+//       multiple files passed to trajin/ensemble.
+int TrajinList::AddInputTraj(std::string const& fname, Trajin* traj, ArgList argIn, 
                              TopologyList const& topListIn)
 {
   if (traj==0) {
