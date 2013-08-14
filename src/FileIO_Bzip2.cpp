@@ -175,10 +175,10 @@ off_t FileIO_Bzip2::Size(const char *filename) {
   // NOTE: Use sizeof(char)??
   // NOTE: Larger buffer? Dynamically allocate?
 //  bufIn = (char*) malloc(10240 * sizeof(char));
-  while ( (numread = (off_t) this->Read(bufIn, 1, BUFINSIZE))!=-1 )
+  while ( (numread = (off_t) this->Read(bufIn, 1, BUFINSIZE)) > 0 )
     fileSize += numread;
 //  free(bufIn);
-//  while ( this->Read(&Scan, 1, 1)!=-1 )
+//  while ( this->Read(&Scan, 1, 1) > 0 )
 //    fileSize = fileSize + 1L;
 
   // Close file
@@ -192,52 +192,33 @@ off_t FileIO_Bzip2::Size(const char *filename) {
 //#undef BUFINSIZE
 
 // FileIO_Bzip2::Read()
-/** Read size*count bytes from bzip2file stream. Return number of bytes read.
-  * If an error occurs or no more bytes to be read return -1;
-  * Dont attempt to read if error bit is set.
+/** Read num_bytes from bzip2file stream.  
+  * \return number of bytes read on success.
+  * \return -1 on error.
   */
 int FileIO_Bzip2::Read(void *buffer, size_t num_bytes) {
-  //if (err!=BZ_OK) return -1;
-  // Should never be able to call Read when fp is NULL.
-  //if (fp==NULL) {
-  //  mprintf("Error: FileIO_Bzip2::Read: Attempted to read NULL file pointer.\n");
-  //  return 1;
-  //}
-  size_t numread = (size_t) BZ2_bzRead(&err_, infile_, buffer, num_bytes);
-
+  int numread = BZ2_bzRead(&err_, infile_, buffer, num_bytes);
   // Update position
   position_ += ((off_t) numread);
-
-  if (numread != num_bytes) {
-    if (err_!=BZ_OK && err_!=BZ_STREAM_END) {
-      mprintf( "Error: FileIO_Bzip2::Read: BZ2_bzRead error: [%s]\n",this->BZerror());
-      mprintf( "                        size=%lu expected=%lu\n",numread,num_bytes);
-    }
+  if (err_!=BZ_OK && err_!=BZ_STREAM_END) {
+    mprinterr("Error: FileIO_Bzip2::Read: BZ2_bzRead error: [%s]\n"
+              "Error:                     size=%i expected=%zu\n",
+               this->BZerror(), numread, num_bytes);
     return -1;
   }
-  //mprintf( "DEBUG: After FileIO_Bzip2::Read: [%s] position %li\n",this->BZerror(),position);
-
-  return (int)numread;
+  return numread;
 }
 
 // FileIO_Bzip2::Write()
 int FileIO_Bzip2::Write(const void *buffer, size_t num_bytes) {
-  // Should never be able to call Write when fp is NULL.
-  //if (fp==NULL) {
-  //  mprintf("Error: FileIO_Bzip2::Write: Attempted to write to NULL file pointer.\n");
-  //  return 1;
-  //}
   // NOTE: The bzip2 library requires the void* cast
   BZ2_bzWrite ( &err_, infile_, (void*)buffer, num_bytes );
-
   // Update position
   position_ += ((off_t)num_bytes);
-
   if (err_ == BZ_IO_ERROR) { 
     mprintf( "Error: FileIO_Bzip2::Write: BZ2_bzWrite error\n");
     return 1;
   }
-
   return 0;
 }
 
@@ -266,8 +247,8 @@ int FileIO_Bzip2::Seek(off_t offset) {
     this->Rewind();
 
   // Read chars until position achieved
-  while (position_<seekTo) {
-    if (this->Read(&Scan,1)==-1) break;
+  while (position_ < seekTo) {
+    if (this->Read(&Scan,1) < 1) break;
   }
 
   //mprintf("%li\n",position);
@@ -306,7 +287,7 @@ int FileIO_Bzip2::Gets(char *str, int num) {
   // Try to read num chars. If newline encountered exit
   if (num<=1) return 1;
   i=0;
-  while ( this->Read(str+i, 1)!=-1 ) {
+  while ( this->Read(str+i, 1) > 0 ) {
     i++;
     if (i==num-1) break;
     if (str[i-1]=='\n') break;

@@ -185,16 +185,21 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
   file_.SetupFrameBuffer( natom3_, 12, 6 );
   coordSize_ = file_.FrameSize();
   // Read past restart coords 
-  if ( file_.ReadFrame() == -1 ) {
+  if ( file_.ReadFrame() ) {
     mprinterr("Error: AmberRestart::setupTrajin(): Error reading coordinates.\n");
     return TRAJIN_ERR; 
   }
   // Attempt a second read to get velocities or box coords
   Box boxInfo;
-  size_t readSize = (size_t)file_.ReadFrame();
+  nread = file_.AttemptReadFrame();
+  if ( nread < 0 ) {
+    mprinterr("Error: Error attempting to read box line of Amber restart file.\n");
+    return TRAJIN_ERR;
+  }
+  size_t readSize = (size_t)nread;
   //mprintf("DEBUG: Restart readSize on second read = %i\n",readSize);
-  if (readSize <= 0) {
-    // If 0 or -1 no box or velo 
+  if (readSize == 0) {
+    // If 0 no box or velo 
     SetVelocity( false );
   } else if (readSize == file_.FrameSize()) {
     // If filled framebuffer again, has velocity info. 
@@ -233,7 +238,7 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
   */
 int Traj_AmberRestart::readFrame(int set, Frame& frameIn) {
   // Read restart coords into frameBuffer_
-  if ( file_.ReadFrame()==-1 ) {
+  if ( file_.ReadFrame() ) {
     mprinterr("Error: AmberRestart::readFrame(): Error reading coordinates.\n");
     return 1;
   }
@@ -260,7 +265,7 @@ int Traj_AmberRestart::readFrame(int set, Frame& frameIn) {
 // Traj_AmberRestart::readVelocity()
 int Traj_AmberRestart::readVelocity(int set, Frame& frameIn) {
   if (HasV()) {
-    if ( file_.ReadFrame()==-1 ) {
+    if ( file_.ReadFrame() ) {
       mprinterr("Error: AmberRestart::readVelocity(): Error reading file.\n");
       return 1;
     }

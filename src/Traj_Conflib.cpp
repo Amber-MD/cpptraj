@@ -59,7 +59,7 @@ int Traj_Conflib::setupTrajin(std::string const& fname, Topology* trajParm)
 // Traj_Conflib::readFrame()
 int Traj_Conflib::readFrame(int set, Frame& frameIn) {
 
-  if (file_.Read(&energy_,sizeof(double)) < 0) return 1;
+  if (file_.Read(&energy_,sizeof(double)) < 1) return 1;
   file_.Read(&radGyr_,sizeof(double));
   file_.Read(&timesFound_,sizeof(int));
   file_.Read(frameIn.xAddress(),sizeof(double)*conflibAtom_*3); 
