@@ -78,7 +78,7 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
     file_.SeekToFrame( set ); 
 
   // Read frame into the char buffer
-  if (file_.ReadFrame() == -1) return 1;
+  if (file_.ReadFrame()) return 1;
 
   // Get REMD Temperature if present
   if (hasREMD_ != 0) 
@@ -98,7 +98,7 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
 int Traj_AmberCoord::readVelocity(int set, Frame& frameIn) {
   if (IsSeekable()) file_.SeekToFrame( set );
   // Read frame into the char buffer
-  if (file_.ReadFrame() == -1) return 1;
+  if (file_.ReadFrame()) return 1;
   file_.BufferBeginAt(hasREMD_);
   file_.BufferToDouble(frameIn.vAddress(), natom3_);
   return 0;
@@ -141,7 +141,7 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
     mprintf(".\n");
   }
   // Read the first frame of coordinates
-  if ( file_.ReadFrame() == -1 ) {
+  if ( file_.ReadFrame() ) {
     mprinterr("Error in read of Coords frame 1 of trajectory %s.\n", file_.Filename().base());
     return TRAJIN_ERR;
   }

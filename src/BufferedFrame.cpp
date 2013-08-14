@@ -91,8 +91,19 @@ int BufferedFrame::SeekToFrame(size_t set) {
   return Seek( (off_t)((set * frameSize_) + offset_) );
 }
 
-int BufferedFrame::ReadFrame() {
+/** Attempt to read in the next frameSize_ bytes.
+  * \return the actual number of bytes read.
+  */
+int BufferedFrame::AttemptReadFrame() {
   return Read( buffer_, frameSize_ );
+}
+
+/** Read the next frameSize_ bytes.
+  * \return true if the number of bytes read was less than frameSize_.
+  * \return false if read was successful.
+  */
+bool BufferedFrame::ReadFrame() {
+  return ( Read( buffer_, frameSize_ ) != (int)frameSize_ );
 }
 
 int BufferedFrame::WriteFrame() {

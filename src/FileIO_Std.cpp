@@ -40,32 +40,16 @@ int FileIO_Std::Close() {
 
 // FileIO_Std::Read()
 int FileIO_Std::Read(void *buffer, size_t num_bytes) {
-  // Should never be able to call Read when fp is NULL.
-  //if (fp==NULL) {
-  //  fprintf(stdout,"Error: FileIO_Std::Read: Attempted to read NULL file pointer.\n");
-  //  return 1;
-  //}
-  if (feof(fp_)) return -1;
   size_t numread = fread(buffer, 1, num_bytes, fp_);
-  // NOTE: Check for errors here?
   if (ferror(fp_)) {
     perror("Error during FileIO_Std::Read");
     return -1;
   }
-  //if (numread!=(size*count)) return 1;
   return (int) numread;
 }
 
 // FileIO_Std::Write()
 int FileIO_Std::Write(const void *buffer, size_t num_bytes) {
-  // Should never be able to call Write when fp is NULL.
-  //if (fp==NULL) {
-  //  fprintf(stdout,"Error: FileIO_Std::Write: Attempted to write to NULL file pointer.\n");
-  //  return 1;
-  //}
-  //fprintf(stderr,"DBG:Std:Write(Buf=%p, Size=%zu, File=%p\n",buffer,num_bytes,fp_);
-  //fprintf(stderr,"DBG:Std:Write[%s]\n",(char*)buffer);
-
   size_t numwrite = fwrite(buffer, 1, num_bytes, fp_);
   // NOTE: Check for errors here.
   if (numwrite != num_bytes) return 1;

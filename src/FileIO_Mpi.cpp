@@ -35,28 +35,12 @@ int FileIO_Mpi::Close() {
 
 // FileIO_Mpi::Read()
 int FileIO_Mpi::Read(void *buffer, size_t num_bytes) {
-  // Should never be able to call Read when fp is NULL.
-  //if (fp==NULL) {
-  //  fprintf(stdout,"Error: FileIO_Mpi::Read: Attempted to read NULL file pointer.\n");
-  //  return 1;
-  //}
-  int numread = parallel_fread(pfile_, buffer, num_bytes);
-  if (numread == -1) return -1;
-
-  // NOTE: Check for errors here.
-  return numread;
+  return (parallel_fread(pfile_, buffer, num_bytes));
 }
 
 // FileIO_Mpi::Write()
 int FileIO_Mpi::Write(const void *buffer, size_t num_bytes) {
-  //size_t numwrite;
-  // Should never be able to call Write when fp is NULL.
-  //if (fp==NULL) {
-  //  fprintf(stdout,"Error: FileIO_Mpi::Write: Attempted to write to NULL file pointer.\n");
-  //  return 1;
-  //}
   if ( parallel_fwrite(pfile_, buffer, num_bytes) ) return 1;
-
   // NOTE: Check for errors here.
   return 0;
 }

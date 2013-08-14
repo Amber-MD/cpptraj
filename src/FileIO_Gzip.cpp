@@ -81,27 +81,11 @@ off_t FileIO_Gzip::Size(const char *filename) {
 // FileIO_Gzip::Read()
 // NOTE: gzread returns 0 on EOF, -1 on error
 int FileIO_Gzip::Read(void *buffer, size_t num_bytes) {
-  // Should never be able to call Read when fp is NULL.
-  //if (fp_==NULL) {
-  //  fprintf(stdout,"Error: FileIO_Gzip::Read: Attempted to read NULL file pointer.\n");
-  //  return 1;
-  //}
-  size_t numread = (size_t) gzread(fp_, buffer, num_bytes);
-  if (numread != num_bytes) return -1;
-  //if (numread < 1 ) return -1;
-
-  // NOTE: Check for errors here.
-  return (int)numread;
+  return (gzread(fp_, buffer, num_bytes));
 }
 
 // FileIO_Gzip::Write()
 int FileIO_Gzip::Write(const void *buffer, size_t num_bytes) {
-  //size_t numwrite;
-  // Should never be able to call Write when fp is NULL.
-  //if (fp==NULL) {
-  //  fprintf(stdout,"Error: FileIO_Gzip::Write: Attempted to write to NULL file pointer.\n");
-  //  return 1;
-  //}
   if ( gzwrite(fp_, buffer, num_bytes)==0 ) return 1;
   // NOTE: Check for errors here.
   return 0;
