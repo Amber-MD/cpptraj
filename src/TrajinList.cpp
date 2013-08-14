@@ -60,7 +60,7 @@ int TrajinList::AddInputTraj(Trajin* traj, ArgList& argIn, TopologyList const& t
   traj->SetDebug(debug_);
   // CRDIDXARG: Append coordinate indices arg if there is one
   argIn.AddArg( finalCrdIndicesArg_ ); 
-  if ( traj->SetupTrajRead(argIn.GetStringNext(), &argIn, tempParm) ) {
+  if ( traj->SetupTrajRead(argIn.GetStringNext(), argIn, tempParm) ) {
     mprinterr("Error: Could not set up input trajectory.\n");
     delete traj;
     return 1;

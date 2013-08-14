@@ -93,7 +93,7 @@ int Trajin::CheckFrameArgs(ArgList& argIn, int maxFrames,
 }
 
 // Trajin::SetupTrajIO()
-int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList* argIn ) {
+int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList& argIn ) {
   // -1 indicates an error.
   // -2 indicates the number of frames could not be determined, read to EOF.
   total_frames_ = trajio.setupTrajin(fname, TrajParm());
@@ -116,7 +116,7 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
     stop_ = -1;
   // Set the start, stop, and offset args based on user input. Do some bounds
   // checking.
-  if ( argIn != 0) Trajin::CheckFrameArgs( *argIn, total_frames_, start_, stop_, offset_);
+  Trajin::CheckFrameArgs( argIn, total_frames_, start_, stop_, offset_);
   return 0;
 }
 

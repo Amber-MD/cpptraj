@@ -6,10 +6,10 @@ class Trajin_Single : public Trajin {
   public:
     Trajin_Single();
     ~Trajin_Single();
-
-    int SetupTrajRead(std::string const&, ArgList *, Topology *, bool);
-
-    int SetupTrajRead(std::string const&, ArgList *, Topology *);
+    /// Set up trajectory for reading, optionally checking box info.
+    int SetupTrajRead(std::string const&, ArgList&, Topology*, bool);
+    /// Set up trajectory for reading, check box info.
+    int SetupTrajRead(std::string const&, ArgList&, Topology*);
     int BeginTraj(bool);
     void EndTraj();
     int GetNextFrame(Frame&);

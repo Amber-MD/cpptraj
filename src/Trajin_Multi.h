@@ -10,7 +10,7 @@ class Trajin_Multi : public Trajin {
     Trajin_Multi();
     ~Trajin_Multi();
 
-    int SetupTrajRead(std::string const&, ArgList *, Topology *);
+    int SetupTrajRead(std::string const&, ArgList&, Topology*);
     int BeginTraj(bool);
     void EndTraj();
     int GetNextFrame( Frame& );

@@ -7,7 +7,7 @@ class Trajin : public TrajectoryFile {
   public:
     Trajin();
     virtual ~Trajin() {}
-    virtual int SetupTrajRead(std::string const&, ArgList*, Topology *) = 0;
+    virtual int SetupTrajRead(std::string const&, ArgList&, Topology *) = 0;
     virtual int BeginTraj(bool) = 0;
     virtual void EndTraj() = 0;
     virtual int GetNextFrame(Frame&) = 0;
@@ -16,7 +16,7 @@ class Trajin : public TrajectoryFile {
     virtual int NreplicaDimension() const = 0;
 
     static int CheckFrameArgs(ArgList&, int, int&, int&, int&);
-    int SetupTrajIO( std::string const&, TrajectoryIO&, ArgList* );
+    int SetupTrajIO( std::string const&, TrajectoryIO&, ArgList& );
     int CheckBoxInfo(const char*, Box&, Box const&) const; 
     int setupFrameInfo();
     void SingleFrame();

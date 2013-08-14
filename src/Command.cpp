@@ -622,7 +622,7 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   // Load trajectory
   Trajin_Single trajin;
   trajin.SetDebug( State.Debug() );
-  if (trajin.SetupTrajRead(argIn.GetStringNext(), &argIn, parm)) {
+  if (trajin.SetupTrajRead(argIn.GetStringNext(), argIn, parm)) {
     mprinterr("Error: loadcrd: Could not set up input trajectory.\n");
     return Command::C_ERR;
   }

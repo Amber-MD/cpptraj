@@ -18,14 +18,14 @@ Trajin_Single::~Trajin_Single() {
   if (velio_!=0) delete velio_;
 }
 
-int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topology *tparmIn)
+int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topology* tparmIn)
 {
   return SetupTrajRead(tnameIn, argIn, tparmIn, true);
 }
 
 // Trajin_Single::SetupTrajRead()
-int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, 
-                                 Topology *tparmIn, bool checkBox) 
+int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, 
+                                 Topology* tparmIn, bool checkBox) 
 {
   // Require a filename
   if (tnameIn.empty()) {
@@ -59,8 +59,8 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn,
     tparmIn->SetBox( parmBox );
   }
   // Check if a separate mdvel file will be read
-  if (argIn!=0 && argIn->Contains("mdvel")) {
-    std::string mdvelname = argIn->GetStringKey("mdvel");
+  if (argIn.Contains("mdvel")) {
+    std::string mdvelname = argIn.GetStringKey("mdvel");
     if (mdvelname.empty()) {
       mprinterr("Error: mdvel: Usage 'mdvel <velocity filename>'\n");
       return 1;

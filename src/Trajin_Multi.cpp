@@ -127,7 +127,7 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
 // Trajin_Multi::SetupTrajRead()
 /** 'remdtraj' should have already been parsed out of the argIn list.
   */
-int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topology *tparmIn)
+int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topology *tparmIn)
 {
   replica_filenames_.clear();
   // Require a base filename
@@ -137,13 +137,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   }
   // Check and set associated parm file
   if ( SetTrajParm( tparmIn ) ) return 1;
-  // Parallel Trajectory processing currenly requires some args to set up
-  if (argIn == 0) {
-    mprinterr("Internal Error: Trajin_Multi: No arguments given.\n");
-    return 1;
-  }
   // Check for deprecated args
-  if (argIn->hasKey("remdout")) {
+  if (argIn.hasKey("remdout")) {
     mprinterr("Error: 'remdout' is deprecated. To convert an entire replica ensemble the\n"
               "Error: correct usage is:\n"
               "Error:\t  ensemble <trajinfile> # (in place of 'trajin')\n"
@@ -160,9 +155,9 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   // Set base trajectory filename
   SetTrajFileName( tnameIn, true );
   // Process REMD-specific arguments
-  if (argIn->Contains("remdtrajidx")) {
+  if (argIn.Contains("remdtrajidx")) {
     // Looking for specific indices
-    ArgList indicesArg(argIn->GetStringKey("remdtrajidx"), ",");
+    ArgList indicesArg(argIn.GetStringKey("remdtrajidx"), ",");
     if (indicesArg.empty()) {
       mprinterr("Error: remdtrajidx expects comma-separated list of target indices in each\n"
                 "Error: dimension, '<dim1 idx>,<dim2 idx>,...,<dimN idx>'. Indices start\n"
@@ -173,21 +168,21 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
                                  arg != indicesArg.end(); ++arg)
       remdtrajidx_.push_back( convertToInteger( *arg ) );
     targetType_ = INDICES;
-  } else if (argIn->Contains("remdtrajtemp")) {
+  } else if (argIn.Contains("remdtrajtemp")) {
     // Looking for target temperature
-    remdtrajtemp_ = argIn->getKeyDouble("remdtrajtemp",0.0);
+    remdtrajtemp_ = argIn.getKeyDouble("remdtrajtemp",0.0);
     targetType_ = TEMP;
   }
   // If the command was ensemble, target args are not valid
   bool no_sort = false;
   if ( IsEnsemble() ){
-    no_sort = argIn->hasKey("nosort");
-    if (targetType_ != NONE || argIn->hasKey("remdtraj")) {
+    no_sort = argIn.hasKey("nosort");
+    if (targetType_ != NONE || argIn.hasKey("remdtraj")) {
       mprintf("Warning: 'ensemble' does not use 'remdtraj', 'remdtrajidx' or 'remdtrajtemp'\n");
       targetType_ = NONE;
     }
   } else {
-    if (argIn->Contains("remlog")) {
+    if (argIn.Contains("remlog")) {
       mprinterr("Error: 'remlog' is only for ensemble processing.\n");
       return 1;
     }
@@ -195,10 +190,10 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   // CRDIDXARG: Parse out 'crdidx <indices list>' now so it is not processed
   //            by SetupTrajIO.
   ArgList crdidxarg;
-  if (argIn->Contains("crdidx"))
-    crdidxarg.SetList( "crdidx " + argIn->GetStringKey("crdidx"), " " );
+  if (argIn.Contains("crdidx"))
+    crdidxarg.SetList( "crdidx " + argIn.GetStringKey("crdidx"), " " );
   // Check if replica trajectories are explicitly listed
-  ArgList remdtraj_list( argIn->GetStringKey("trajnames"), "," );
+  ArgList remdtraj_list( argIn.GetStringKey("trajnames"), "," );
   if (remdtraj_list.Nargs()==0) {
     // Automatically scan for additional REMD traj files.
     replica_filenames_ = SearchForReplicas();
@@ -309,12 +304,12 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   // Unless nosort was specified, figure out target type if this will be 
   // processed as an ensemble.
   if (IsEnsemble() && !no_sort) {
-    if ( argIn->Contains("remlog") ) {
+    if ( argIn.Contains("remlog") ) {
       // Sort according to remlog data.
       DataFile remlogFile;
       DataSetList tempDSL;
       // CRDIDXARG: TODO: Come up with a way to do this that doesnt require ArgLists.
-      if (remlogFile.ReadDataIn( argIn->GetStringKey("remlog"), crdidxarg, tempDSL ) ||
+      if (remlogFile.ReadDataIn( argIn.GetStringKey("remlog"), crdidxarg, tempDSL ) ||
           tempDSL.empty())
       {
         mprinterr("Error: Could not read remlog data.\n");
