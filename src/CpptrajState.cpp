@@ -8,6 +8,27 @@
 # include "Timer.h"
 #endif
 
+// CpptrajState::AddTrajin()
+int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
+  std::string fname = argIn.GetStringNext();
+  if (isEnsemble) {
+    if ( trajinList_.AddEnsemble( fname, argIn, parmFileList_ ) ) return 1;
+  } else {
+    if ( trajinList_.AddTrajin( fname, argIn, parmFileList_ ) ) return 1;
+  }
+  DSL_.SetMax( trajinList_.MaxFrames() );
+  return 0;
+}
+
+// CpptrajState::AddTrajin()
+int CpptrajState::AddTrajin( std::string const& fname ) {
+  ArgList targ;
+  if ( trajinList_.AddTrajin( fname, targ, parmFileList_ ) ) return 1;
+  DSL_.SetMax( trajinList_.MaxFrames() );
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 int CpptrajState::WorldSize() { return worldsize; }
 
 /** Select lists from ArgList */

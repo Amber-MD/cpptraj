@@ -23,7 +23,8 @@ void TrajinList::Clear() {
 }
 
 // TrajinList::AddEnsemble()
-int TrajinList::AddEnsemble(ArgList& argIn, TopologyList const& topListIn) {
+int TrajinList::AddEnsemble(std::string const& fname, ArgList& argIn, TopologyList const& topListIn)
+{
   if (mode_ == NORMAL) {
     mprinterr("Error: 'ensemble' and 'trajin' are mutually exclusive.\n");
     return 1;
@@ -31,11 +32,12 @@ int TrajinList::AddEnsemble(ArgList& argIn, TopologyList const& topListIn) {
   Trajin* traj = new Trajin_Multi();
   traj->SetEnsemble(true);
   mode_ = ENSEMBLE;
-  return AddInputTraj( traj, argIn, topListIn );
+  return AddInputTraj( fname, traj, argIn, topListIn );
 }
 
 // TrajinList::AddTrajin()
-int TrajinList::AddTrajin(ArgList& argIn, TopologyList const& topListIn) {
+int TrajinList::AddTrajin(std::string const& fname, ArgList& argIn, TopologyList const& topListIn)
+{
   Trajin* traj = 0;
   if (mode_ == ENSEMBLE) {
     mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
@@ -46,11 +48,13 @@ int TrajinList::AddTrajin(ArgList& argIn, TopologyList const& topListIn) {
   else
     traj = new Trajin_Single();
   mode_ = NORMAL;
-  return AddInputTraj( traj, argIn, topListIn );
+  return AddInputTraj( fname, traj, argIn, topListIn );
 }
 
 // TrajinList::AddInputTraj()
-int TrajinList::AddInputTraj(Trajin* traj, ArgList& argIn, TopologyList const& topListIn) {
+int TrajinList::AddInputTraj(std::string const& fname, Trajin* traj, ArgList& argIn, 
+                             TopologyList const& topListIn)
+{
   if (traj==0) {
     mprinterr("Error: Could not allocate memory for input trajectory.\n");
     return 1;
@@ -60,7 +64,7 @@ int TrajinList::AddInputTraj(Trajin* traj, ArgList& argIn, TopologyList const& t
   traj->SetDebug(debug_);
   // CRDIDXARG: Append coordinate indices arg if there is one
   argIn.AddArg( finalCrdIndicesArg_ ); 
-  if ( traj->SetupTrajRead(argIn.GetStringNext(), argIn, tempParm) ) {
+  if ( traj->SetupTrajRead(fname, argIn, tempParm) ) {
     mprinterr("Error: Could not set up input trajectory.\n");
     delete traj;
     return 1;

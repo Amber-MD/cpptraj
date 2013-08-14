@@ -23,11 +23,11 @@ class CpptrajState {
     int Nrun()         const { return nrun_;          }
     bool ExitOnError() const { return exitOnError_;   }
     bool Empty()       const { return (actionList_.Empty() && analysisList_.Empty()); }
+    int AddTrajin( ArgList&, bool );
+    int AddTrajin( std::string const& );
     int RunAnalyses();
     inline int AddTrajout( ArgList const& );
     inline int AddTrajout( const char* );
-    inline int AddTrajin( ArgList&, bool );
-    inline int AddTrajin( const char* );
     inline int AddReference( ArgList& );
     inline int AddReference( const char* );
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
@@ -86,20 +86,6 @@ int CpptrajState::AddTrajout( ArgList const& argIn ) {
 }
 int CpptrajState::AddTrajout( const char* fname ) {
   return AddTrajout( ArgList(fname) );
-}
-// CpptrajState::AddTrajin()
-int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
-  if (isEnsemble) {
-    if ( trajinList_.AddEnsemble( argIn, parmFileList_ ) ) return 1;
-  } else {
-    if ( trajinList_.AddTrajin( argIn, parmFileList_ ) ) return 1;
-  }
-  DSL_.SetMax( trajinList_.MaxFrames() );
-  return 0;
-}
-int CpptrajState::AddTrajin( const char* fname ) {
-  ArgList targ(fname);
-  return AddTrajin( targ, false );
 }
 // CpptrajState::AddReference()
 int CpptrajState::AddReference( ArgList& argIn ) {
