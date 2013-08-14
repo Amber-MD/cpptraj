@@ -20,12 +20,10 @@ class TopologyList : public FileList {
     Topology* GetParm(ArgList&) const;
     int AddParmFile(std::string const&);
     int AddParmFile(std::string const&,std::string const&,bool,double);
-    int AddParm(Topology*);
     int WriteParm(ArgList&) const;
     void ReplaceParm(int, Topology*);
     void List() const;
   private:
     std::vector<Topology*> TopList_;
-    bool hasCopies_;  ///< true: List contains addresses of topologies, do not delete
 };
 #endif

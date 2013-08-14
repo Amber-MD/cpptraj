@@ -74,9 +74,9 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
   SetVelocity( HasVelocities() );
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
-    mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n",
-              filename_.base(),Ncatom());
-    mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
+    mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n"
+              "Error:   match number in associated parmtop (%i)!\n", 
+              filename_.base(), Ncatom(), trajParm->Natom());
     return TRAJIN_ERR;
   }
   // Setup Time

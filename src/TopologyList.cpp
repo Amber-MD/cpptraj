@@ -4,7 +4,7 @@
 #include "ParmFile.h"
 
 // CONSTRUCTOR 
-TopologyList::TopologyList() : hasCopies_(false) {}
+TopologyList::TopologyList() {}
 
 // DESTRUCTOR
 TopologyList::~TopologyList() {
@@ -12,13 +12,10 @@ TopologyList::~TopologyList() {
 }
 
 void TopologyList::Clear() {
-  if (!hasCopies_) {
-    for (std::vector<Topology*>::iterator top = TopList_.begin();
-                                          top != TopList_.end(); top++)
-      delete *top;
-  }
+  for (std::vector<Topology*>::iterator top = TopList_.begin();
+                                        top != TopList_.end(); top++)
+    delete *top;
   TopList_.clear();
-  hasCopies_ = false;
   FileList::Clear();
 }
 
@@ -75,14 +72,6 @@ int TopologyList::AddParmFile(std::string const& filename) {
 int TopologyList::AddParmFile(std::string const& filename, std::string const& ParmTag,
                               bool bondsearch, double offset) 
 {
-  // Dont let a list that has copies add a new file
-  if (hasCopies_) {
-    mprintf("Warning: Attempting to add parm %s to a list that already\n",filename.c_str());
-    mprintf("Warning: has copies of parm files. This should not occur.\n");
-    mprintf("Warning: Skipping.\n");
-    return 0;
-  }
-
   // Check if this file has already been loaded
   if (FindName(filename)!=-1) {
     mprintf("Warning: Parm %s already loaded, skipping.\n",filename.c_str());
@@ -115,23 +104,6 @@ int TopologyList::AddParmFile(std::string const& filename, std::string const& Pa
   return 0;
 }
 
-// TopologyList::AddParm()
-/** Add an existing AmberParm to parm file list. Currently used to keep track
-  * of parm files corresponding to frames in the reference frame list.
-  */
-int TopologyList::AddParm(Topology *ParmIn) {
-  if (ParmIn==0) return 1;
-  if (!hasCopies_ && !TopList_.empty()) {
-    mprinterr("Error: Attempting to add copy of parm to list with non-copies!\n");
-    return 1;
-  }
-  // Set the hasCopies flag so we know not to try and delete these parms
-  hasCopies_=true;
-  //P->pindex=Nparm; // pindex should already be set
-  TopList_.push_back(ParmIn);
-  return 0;
-}
-
 // TopologyList::WriteParm()
 int TopologyList::WriteParm(ArgList& argIn) const {
   std::string outfilename = argIn.GetStringKey("out");
@@ -149,12 +121,13 @@ int TopologyList::WriteParm(ArgList& argIn) const {
 }
 
 // TopologyList::ReplaceParm()
+// TODO: Use mem address instead of pindex?
 void TopologyList::ReplaceParm(int pindex, Topology* newParm) {
   if (pindex < 0 || pindex >= (int)TopList_.size()) {
     mprinterr("Error: ReplaceParm: parm index %i out of bounds.\n",pindex);
     return;
   }
-  if (!hasCopies_) delete TopList_[pindex];
+  delete TopList_[pindex];
   TopList_[pindex] = newParm;
 }
 

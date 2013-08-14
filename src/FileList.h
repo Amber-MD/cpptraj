@@ -2,6 +2,7 @@
 #define INC_FILELIST_H
 #include <vector>
 #include "FileName.h"
+// TODO: Replace with instances of FileName
 class FileList {
   public:
     FileList();
