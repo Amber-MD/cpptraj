@@ -38,6 +38,11 @@ Action::RetType Action_CreateCrd::Setup(Topology* currentParm, Topology** parmAd
   // Set COORDS topology now if not already set.
   if (currentParm->Pindex() == pindex_ && coords_->Top().Natom() == 0)
     coords_->SetTopology( *currentParm );
+  // If # atoms in currentParm does not match coords, warn user.
+  if (currentParm->Natom() != coords_->Top().Natom())
+    mprintf("Warning: # atoms in current topology (%i) != # atoms in coords set \"%s\" (%i)\n"
+            "Warning:   The resulting COORDS data set may have problems.\n",
+            currentParm->Natom(), coords_->Legend().c_str(), coords_->Top().Natom());
   return Action::OK;
 }
 
