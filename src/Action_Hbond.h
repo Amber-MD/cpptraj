@@ -58,6 +58,7 @@ class Action_Hbond : public Action {
     bool hasSolventDonor_;
     bool hasSolventAcceptor_;
     bool calcSolvent_;
+    bool noIntramol_;
     double acut_;
     double dcut2_;
     Topology* CurrentParm_;
