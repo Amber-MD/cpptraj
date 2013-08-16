@@ -38,6 +38,7 @@ class Analysis_Clustering: public Analysis {
     enum normPopType { NONE=0, CLUSTERPOP, FRAME };
     normPopType norm_pop_;      ///< If set cluster pops v time will be normalized 
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found
+    bool calc_lifetimes_;       ///< If true calculate DataSets for use in lifetime analysis.
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
     ClusterDist::DsArray cluster_dataset_;  ///< DataSet(s) to use for clustering.
     /// Cluster trajectory format.
@@ -51,6 +52,7 @@ class Analysis_Clustering: public Analysis {
 
     void CreateCnumvtime( ClusterList const&, int );
     void CreateCpopvtime( ClusterList const&, int );
+    void ClusterLifetimes( ClusterList const&, int );
     void WriteClusterTraj( ClusterList const& );
     void WriteSingleRepTraj( ClusterList const& );
     void WriteRepTraj( ClusterList const& );

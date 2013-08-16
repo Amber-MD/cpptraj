@@ -27,6 +27,7 @@ Analysis_Clustering::Analysis_Clustering() :
   grace_color_(false),
   norm_pop_(NONE),
   load_pair_(false),
+  calc_lifetimes_(false),
   writeRepFrameNum_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -49,7 +50,7 @@ void Analysis_Clustering::Help() {
   mprintf("  Output options:\n");
   mprintf("\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n");
   mprintf("\t[summaryhalf <halffile>] [splitframe <frame>]\n");
-  mprintf("\t[cpopvtime <file> [normpop | normframe]]\n");
+  mprintf("\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n");
   mprintf("  Coordinate output options:\n");
   mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
@@ -131,6 +132,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   halffile_ = analyzeArgs.GetStringKey("summaryhalf");
   nofitrms_ = analyzeArgs.hasKey("nofit");
   grace_color_ = analyzeArgs.hasKey("gracecolor");
+  calc_lifetimes_ = analyzeArgs.hasKey("lifetime");
   if (cpopvtimefile_ != 0) {
     if (grace_color_) {
       mprintf("Warning: 'gracecolor' not compatible with 'cpopvtime' - disabling 'gracecolor'\n");
@@ -201,6 +203,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   }
   if (grace_color_)
     mprintf("\tGrace color instead of cluster number (1-15) will be saved.\n");
+  if (calc_lifetimes_)
+    mprintf("\tCluster lifetime data sets will be calculated.\n");
   if (load_pair_)
     mprintf("\tPreviously calcd pair distances %s will be used if found.\n",
             pairdistfile_.c_str());
@@ -329,6 +333,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   if (cpopvtimefile_ != 0)
     CreateCpopvtime( *CList_, clusterDataSetSize );
 
+  // Create cluster lifetime DataSets
+  if (calc_lifetimes_)
+    ClusterLifetimes( *CList_, clusterDataSetSize );
+
   if (has_coords) {
     // Write clusters to trajectories
     if (!clusterfile_.empty())
@@ -438,6 +446,30 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
       float f = (float)((double)Pop[cnum] / norm);
       DSL[cnum]->Add(frame, &f);
     }
+  }
+}
+
+// Analysis_Clustering::ClusterLifetimes()
+void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFrames ) {
+  // Set up output data sets. TODO: use ChildDSL
+  std::vector<DataSet_integer*> DSL;
+  for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) { 
+    DSL.push_back((DataSet_integer*)
+                  masterDSL_->AddSetIdxAspect( DataSet::INTEGER, cnumvtime_->Name(), 
+                                               cnum, "Lifetime" ));
+    if (DSL.back() == 0) {
+      mprinterr("Error: Could not allocate cluster lifetime DataSet.\n");
+      return;
+    }
+    DSL.back()->Resize( maxFrames );
+  }
+  // For each frame, assign cluster frame belongs to 1.
+  DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>(*cnumvtime_);
+  for (int frame = 0; frame < maxFrames; ++frame) {
+    int cluster_num = cnum_temp[frame];
+    // Noise points are -1
+    if (cluster_num > -1)
+      (*DSL[ cluster_num ])[ frame ] = 1;
   }
 }
 

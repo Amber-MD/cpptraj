@@ -10,7 +10,6 @@ Analysis_Lifetime::Analysis_Lifetime() :
   averageonly_(false),
   cumulative_(false),
   deltaAvg_(false),
-  standalone_(false),
   Compare_(Compare_GreaterThan)
 {}
 
@@ -29,7 +28,6 @@ Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray) {
   averageonly_ = false;
   cumulative_ = false;
   deltaAvg_ = false;
-  standalone_ = true;
   cut_ = 0.5;
   Compare_ = Compare_GreaterThan;
   return Analysis::OK;
@@ -38,7 +36,6 @@ Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray) {
 Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  standalone_ = false;
   // Get Keywords
   DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   DataFile* maxfile = 0;
@@ -141,9 +138,10 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
 Analysis::RetType Analysis_Lifetime::Analyze() {
   float favg;
   int current = 0;
+  bool standalone = (!averageonly_ && windowSize_ == -1);
   ProgressBar progress( inputDsets_.size() );
   for (unsigned int setIdx = 0; setIdx < inputDsets_.size(); setIdx++) {
-    if (standalone_)
+    if (standalone)
       mprintf("\t\tCalculating lifetimes for set %s\n", inputDsets_[setIdx]->Legend().c_str());
     else
       progress.Update( current++ );
@@ -242,8 +240,8 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         favg = 0.0;
       else
         favg = (float)sumLifetimes / (float)Nlifetimes;
+      mprintf("\t\t\t#lifetimes: %i\n", Nlifetimes);
       mprintf("\t\t\tMax lifetime observed: %i frames\n", maximumLifetimeCount);
-      //mprintf("\t\tSumLifeTimes=%i  Nlifetimes=%i\n",sumLifetimes,Nlifetimes);
       mprintf("\t\t\tAvg lifetime: %f frames\n", favg);
     }
   }
