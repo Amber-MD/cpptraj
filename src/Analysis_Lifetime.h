@@ -15,6 +15,7 @@ class Analysis_Lifetime : public Analysis {
     Array1D outputDsets_;
     Array1D maxDsets_;
     Array1D avgDsets_;
+    std::string outfileName_;
     int windowSize_;
     double cut_;
     bool averageonly_;

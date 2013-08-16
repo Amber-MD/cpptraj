@@ -23,6 +23,7 @@ void Analysis_Lifetime::Help() {
 
 Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray) {
   if (dsArray.empty()) return Analysis::ERR;
+  outfileName_.clear();
   inputDsets_ = dsArray;
   windowSize_ = -1;
   averageonly_ = false;
@@ -37,16 +38,10 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   // Get Keywords
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  DataFile* maxfile = 0;
-  DataFile* avgfile = 0;
+  outfileName_ = analyzeArgs.GetStringKey("out");
   std::string setname = analyzeArgs.GetStringKey("name");
   windowSize_ = analyzeArgs.getKeyInt("window", -1);
   averageonly_ = analyzeArgs.hasKey("averageonly");
-  if (!averageonly_ && outfile != 0) {
-    maxfile = DFLin->AddDataFile("max." + outfile->DataFilename().Full(), analyzeArgs);
-    avgfile = DFLin->AddDataFile("avg." + outfile->DataFilename().Full(), analyzeArgs);
-  }
   cumulative_ = analyzeArgs.hasKey("cumulative");
   deltaAvg_ = analyzeArgs.hasKey("delta");
   cut_ = analyzeArgs.getKeyDouble("cut", 0.5);
@@ -63,7 +58,15 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   }
 
   // Create output datasets
+  DataFile* outfile = 0;
+  DataFile* maxfile = 0;
+  DataFile* avgfile = 0;
   if ( windowSize_ != -1) {
+    outfile = DFLin->AddDataFile(outfileName_, analyzeArgs);
+    if (!averageonly_ && outfile != 0) {
+      maxfile = DFLin->AddDataFile("max." + outfile->DataFilename().Full(), analyzeArgs);
+      avgfile = DFLin->AddDataFile("avg." + outfile->DataFilename().Full(), analyzeArgs);
+    }
     if (setname.empty()) 
       setname = datasetlist->GenerateDefaultName( "lifetime" );
     int didx = 0;
@@ -98,9 +101,6 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     if (outfile != 0) outfile->ProcessArgs( fileArgs );
     if (maxfile != 0) maxfile->ProcessArgs( fileArgs );
     if (avgfile != 0) avgfile->ProcessArgs( fileArgs );
-  } else if (outfile != 0) {
-    mprinterr("Error: Output file name specified but no window size given ('window <N>')\n");
-    return Analysis::ERR;
   }
 
   if (!averageonly_)
@@ -112,9 +112,9 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
       mprintf("\t%s\n", (*set)->Legend().c_str());
   if (Compare_ == Compare_GreaterThan) 
-    mprintf("\tValues greater than %f are considered present.\n");
+    mprintf("\tValues greater than %f are considered present.\n", cut_);
   else
-    mprintf("\tValues less than %f are considered present.\n");
+    mprintf("\tValues less than %f are considered present.\n", cut_);
   if (windowSize_ != -1) {
     mprintf("\tAverage of data over windows will be saved to sets named %s\n",
             setname.c_str());
@@ -123,13 +123,14 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       mprintf("\tCumulative averages will be saved.\n");
     if (deltaAvg_)
       mprintf("\tChange of average from previous average will be saved.\n");
-    if (outfile != 0) {
-      mprintf("\tOutfile: %s", outfile->DataFilename().base());
-      if (!averageonly_)
-        mprintf(", %s, %s", maxfile->DataFilename().base(), avgfile->DataFilename().base());
-      mprintf("\n");
-    }
   }
+  if (!outfileName_.empty()) {
+    mprintf("\tOutfile: %s", outfileName_.c_str());
+    if (!averageonly_ && outfile != 0)
+      mprintf(", %s, %s", maxfile->DataFilename().base(), avgfile->DataFilename().base());
+    mprintf("\n");
+  }
+
 
   return Analysis::OK;
 }
@@ -138,11 +139,17 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
 Analysis::RetType Analysis_Lifetime::Analyze() {
   float favg;
   int current = 0;
+  CpptrajFile standalone_out;
   bool standalone = (!averageonly_ && windowSize_ == -1);
+  if (standalone) {
+    if (standalone_out.OpenWrite( outfileName_ ))
+      return Analysis::ERR;
+  }
   ProgressBar progress( inputDsets_.size() );
   for (unsigned int setIdx = 0; setIdx < inputDsets_.size(); setIdx++) {
     if (standalone)
-      mprintf("\t\tCalculating lifetimes for set %s\n", inputDsets_[setIdx]->Legend().c_str());
+      standalone_out.Printf("\t\tCalculating lifetimes for set %s\n",
+                            inputDsets_[setIdx]->Legend().c_str());
     else
       progress.Update( current++ );
     // Loop over all values in set.
@@ -240,9 +247,10 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         favg = 0.0;
       else
         favg = (float)sumLifetimes / (float)Nlifetimes;
-      mprintf("\t\t\t#lifetimes: %i\n", Nlifetimes);
-      mprintf("\t\t\tMax lifetime observed: %i frames\n", maximumLifetimeCount);
-      mprintf("\t\t\tAvg lifetime: %f frames\n", favg);
+      standalone_out.Printf("\t\t\t#lifetimes: %i\n"
+                            "\t\t\tMax lifetime observed: %i frames\n"
+                            "\t\t\tAvg lifetime: %f frames\n",
+                            Nlifetimes, maximumLifetimeCount, favg);
     }
   }
   return Analysis::OK;
