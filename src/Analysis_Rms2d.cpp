@@ -138,51 +138,48 @@ int Analysis_Rms2d::Calc2drms()
   int totalref = coords_->Size();
   rmsdataset_->AllocateTriangle( coords_->Size() );
   mprintf("  RMS2D: Calculating RMSDs between each frame (%lu total).\n  ", rmsdataset_->Size());
-# ifndef _OPENMP
-  // Set up progress Bar
-  ProgressBar progress(totalref - 1);
-# endif
   // Set up target and reference frames basd on mask
   Frame RefFrame;
   RefFrame.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
   Frame TgtFrame = RefFrame;
   int endref = totalref - 1;
+  ParallelProgress progress( endref );
   // LOOP OVER REFERENCE FRAMES
-#ifdef _OPENMP
-#pragma omp parallel private(nref, nframe, R) firstprivate(TgtFrame, RefFrame)
-{
-#pragma omp for schedule(dynamic)
-#endif
-  for (nref=0; nref < endref; nref++) {
-#   ifndef _OPENMP
-    progress.Update(nref);
-#   endif
-    // Get the current reference frame - no box crd
-    // TODO: Use coords_->GetFrame instead?
-    RefFrame.SetFromCRD( (*coords_)[nref], 0, TgtMask_);
-    // Select and pre-center reference atoms (if fitting)
-    if (!nofit_)
-      RefFrame.CenterOnOrigin(useMass_);
-    // LOOP OVER TARGET FRAMES
-    for (nframe = nref + 1; nframe < totalref; nframe++) {
-      // Get the current target frame
-      TgtFrame.SetFromCRD( (*coords_)[nframe], 0, TgtMask_);
-      if (nofit_) // Perform no fit RMS calculation
-        R = (float)TgtFrame.RMSD_NoFit(RefFrame, useMass_);
-      else         // Perform fit RMS calculation
-        R = (float)TgtFrame.RMSD_CenteredRef(RefFrame, useMass_);
-#     ifdef _OPENMP
-      rmsdataset_->SetElement(nframe, nref, R);
-#     else
-      rmsdataset_->AddElement( R );
-#     endif
-      // DEBUG
-      //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
-    } // END loop over target frames
-  } // END loop over reference frames
-#ifdef _OPENMP
-}
-#endif
+# ifdef _OPENMP
+# pragma omp parallel private(nref, nframe, R) firstprivate(TgtFrame, RefFrame, progress)
+  {
+    progress.SetThread(omp_get_thread_num());
+#   pragma omp for schedule(dynamic)
+# endif
+    for (nref=0; nref < endref; nref++) {
+      progress.Update(nref);
+      // Get the current reference frame - no box crd
+      // TODO: Use coords_->GetFrame instead?
+      RefFrame.SetFromCRD( (*coords_)[nref], 0, TgtMask_);
+      // Select and pre-center reference atoms (if fitting)
+      if (!nofit_)
+        RefFrame.CenterOnOrigin(useMass_);
+      // LOOP OVER TARGET FRAMES
+      for (nframe = nref + 1; nframe < totalref; nframe++) {
+        // Get the current target frame
+        TgtFrame.SetFromCRD( (*coords_)[nframe], 0, TgtMask_);
+        if (nofit_) // Perform no fit RMS calculation
+          R = (float)TgtFrame.RMSD_NoFit(RefFrame, useMass_);
+        else         // Perform fit RMS calculation
+          R = (float)TgtFrame.RMSD_CenteredRef(RefFrame, useMass_);
+#       ifdef _OPENMP
+        rmsdataset_->SetElement(nframe, nref, R);
+#       else
+        rmsdataset_->AddElement( R );
+#       endif
+        // DEBUG
+        //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
+      } // END loop over target frames
+    } // END loop over reference frames
+# ifdef _OPENMP
+  }
+# endif
+  progress.Finish();
   return 0;
 }
 
@@ -193,44 +190,41 @@ int Analysis_Rms2d::CalcDME()
   int totalref = coords_->Size();
   rmsdataset_->AllocateTriangle( coords_->Size() );
   mprintf("  RMS2D: Calculating DMEs between each frame (%lu total).\n  ", rmsdataset_->Size());
-# ifndef _OPENMP
-  // Set up progress Bar
-  ProgressBar progress(totalref - 1);
-# endif
   // Set up target and reference frames basd on mask
   Frame RefFrame;
   RefFrame.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
   Frame TgtFrame = RefFrame;
   int endref = totalref - 1;
+  ParallelProgress progress(endref);
   // LOOP OVER REFERENCE FRAMES
-#ifdef _OPENMP
-#pragma omp parallel private(nref, nframe) firstprivate(TgtFrame, RefFrame)
-{
-#pragma omp for schedule(dynamic)
-#endif
-  for (nref=0; nref < endref; nref++) {
-#   ifndef _OPENMP
-    progress.Update(nref);
+# ifdef _OPENMP
+# pragma omp parallel private(nref, nframe) firstprivate(TgtFrame, RefFrame, progress)
+  {
+    progress.SetThread(omp_get_thread_num());
+#   pragma omp for schedule(dynamic)
 #   endif
-    // Get the current reference frame - no box crd
-    RefFrame.SetFromCRD( (*coords_)[nref], 0, TgtMask_);
-    // LOOP OVER TARGET FRAMES
-    for (nframe=nref+1; nframe < totalref; nframe++) {
-      // Get the current target frame
-      TgtFrame.SetFromCRD( (*coords_)[nframe], 0, TgtMask_);
-      // Perform DME calc
-#     ifdef _OPENMP
-      rmsdataset_->SetElement( nframe, nref, TgtFrame.DISTRMSD(RefFrame) );
-#     else
-      rmsdataset_->AddElement( TgtFrame.DISTRMSD(RefFrame) );
-#     endif
-      // DEBUG
-      //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
-    } // END loop over target frames
-  } // END loop over reference frames
-#ifdef _OPENMP
-}
-#endif
+    for (nref=0; nref < endref; nref++) {
+      progress.Update(nref);
+      // Get the current reference frame - no box crd
+      RefFrame.SetFromCRD( (*coords_)[nref], 0, TgtMask_);
+      // LOOP OVER TARGET FRAMES
+      for (nframe=nref+1; nframe < totalref; nframe++) {
+        // Get the current target frame
+        TgtFrame.SetFromCRD( (*coords_)[nframe], 0, TgtMask_);
+        // Perform DME calc
+#       ifdef _OPENMP
+        rmsdataset_->SetElement( nframe, nref, TgtFrame.DISTRMSD(RefFrame) );
+#       else
+        rmsdataset_->AddElement( TgtFrame.DISTRMSD(RefFrame) );
+#       endif
+        // DEBUG
+        //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
+      } // END loop over target frames
+    } // END loop over reference frames
+# ifdef _OPENMP
+  }
+# endif
+  progress.Finish();
   return 0;
 }
 
