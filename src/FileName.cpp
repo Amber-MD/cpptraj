@@ -1,11 +1,38 @@
 #include "FileName.h"
 #include "StringRoutines.h" // tildeExpansion
 
+// CONSTRUCTOR
+FileName::FileName( FileName const& rhs, std::string const& tagIn ) :
+  fullPathName_( rhs.fullPathName_ ),
+  baseName_( rhs.baseName_ ),
+  extension_( rhs.extension_ ),
+  compressExt_( rhs.compressExt_ ),
+  tag_( tagIn )
+{}
+
+// COPY CONSTRUCTOR
+FileName::FileName( const FileName& rhs ) : fullPathName_(rhs.fullPathName_),
+  baseName_(rhs.baseName_), extension_(rhs.extension_),
+  compressExt_(rhs.compressExt_), tag_(rhs.tag_) {}
+
+// ASSIGNMENT
+FileName& FileName::operator=(const FileName& rhs) {
+  if (this == &rhs) return *this;
+  fullPathName_ = rhs.fullPathName_;
+  baseName_ = rhs.baseName_;
+  extension_ = rhs.extension_;
+  compressExt_ = rhs.compressExt_;
+  tag_ = rhs.tag_;
+  return *this;
+}
+
+// FileName::clear()
 void FileName::clear() {
   fullPathName_.clear();
   baseName_.clear();
   extension_.clear();
   compressExt_.clear();
+  tag_.clear();
 }
 
 /** Main routine for setting file name. Assume nameIn is the full path
@@ -72,4 +99,22 @@ int FileName::SetFileName( std::string const& nameIn, bool isCompressed ) {
 
 int FileName::SetFileNameWithExpansion( std::string const& nameIn ) {
   return SetFileName( tildeExpansion( nameIn.c_str() ), UNKNOWN );
+}
+
+// FileName::IsMatch()
+bool FileName::IsMatch(std::string const& nameIn) const {
+  if (nameIn.empty()) return false;
+  // If first char of name is a bracket, assume tag.
+  if ( !tag_.empty() && nameIn[0]=='[' ) {
+    if ( tag_ == nameIn ) return true;
+  }
+  // If not a tag, prefer full filename match over base filename
+  if ( !fullPathName_.empty() ) {
+    if ( fullPathName_ == nameIn ) return true;
+  }
+  // Last, try Base filename.
+  if ( !baseName_.empty() ) {
+    if ( baseName_ == nameIn ) return true;
+  }
+  return false;
 }

@@ -32,7 +32,7 @@ void Topology::SetDebug(int debugIn) {
 }
 
 // Topology::SetParmName()
-void Topology::SetParmName(std::string const& title, std::string const& filename) {
+void Topology::SetParmName(std::string const& title, FileName const& filename) {
   parmName_ = title;
   fileName_ = filename;
 }
@@ -70,8 +70,10 @@ int Topology::FinalSoluteRes() const {
   * name (title) if the parm filename is empty.
   */
 const char *Topology::c_str() const {
-  if (!fileName_.empty()) 
-    return fileName_.c_str();
+  if (!fileName_.Tag().empty())
+    return (fileName_.Tag().c_str());
+  else if (!fileName_.empty()) 
+    return fileName_.full();
   return parmName_.c_str();
 }
 
@@ -182,9 +184,11 @@ void Topology::Summary() const {
             bonds_.size()/3);*/
 }
 
-// Topology::ParmInfo()
-void Topology::ParmInfo() const {
-  mprintf(" %s, %zu atoms, %zu res, box: %s, %zu mol", c_str(),
+// Topology::Brief()
+void Topology::Brief() const {
+  if (!fileName_.Tag().empty())
+    mprintf(" %s", fileName_.Tag().c_str());
+  mprintf(" '%s', %zu atoms, %zu res, box: %s, %zu mol", fileName_.full(),
           atoms_.size(), residues_.size(), box_.TypeName(), molecules_.size());
   if (NsolventMolecules_>0)
     mprintf(", %i solvent", NsolventMolecules_);

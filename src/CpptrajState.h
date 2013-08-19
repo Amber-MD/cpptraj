@@ -89,7 +89,7 @@ int CpptrajState::AddTrajout( const char* fname ) {
 }
 // CpptrajState::AddReference()
 int CpptrajState::AddReference( ArgList& argIn ) {
-  return refFrames_.AddReference(argIn, parmFileList_);
+  return refFrames_.AddRefFrame(argIn, parmFileList_);
 }
 int CpptrajState::AddReference( const char* fname ) {
   ArgList targ(fname);

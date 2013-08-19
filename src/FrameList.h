@@ -4,10 +4,11 @@
 class ReferenceFrame {
   public:
     ReferenceFrame() : frame_(0), parm_(0), num_(0) {}
-    ReferenceFrame(Frame* fIn, Topology* pIn, std::string const& nameIn, int nIn ) :
+    ReferenceFrame(Frame* fIn, Topology* pIn, FileName const& nameIn, 
+                   std::string const& tagIn, int nIn ) :
       frame_(fIn),
       parm_(pIn),
-      name_(nameIn),
+      name_(nameIn, tagIn),
       num_(nIn)
     {}
     /*~ReferenceFrame() {
@@ -25,16 +26,16 @@ class ReferenceFrame {
       frame_ = newFrame;
       parm_ = newParm;
     }
-    bool error()      const { return num_ == -1;    }
-    bool empty()      const { return frame_ == 0;   }
-    Frame* Coord()          { return frame_;        }
-    Topology* Parm()        { return parm_;         }
-    int Num()         const { return num_;          }
-    std::string const& FrameName() const { return name_;   }
+    Frame* Coord()                    { return frame_;      }
+    Topology* Parm()                  { return parm_;       }
+    bool error()                const { return num_ == -1;  }
+    bool empty()                const { return frame_ == 0; }
+    int Num()                   const { return num_;        }
+    FileName const& FrameName() const { return name_;       }
   private:
     Frame* frame_;     ///< Reference coords, allocated.
     Topology* parm_;   ///< Pointer to assiociated parm in TopologyList.
-    std::string name_; ///< Unique name assigned to this ref structure (filename/tag).
+    FileName name_;    ///< Ref structure filename/tag.
     int num_;          ///< Frame number.
 };
 
@@ -45,17 +46,18 @@ class ReferenceFrame {
   * file and the frame number). 
   */
 // TODO: Eventually store a vector of Frames, not Frame*s
-class FrameList : public FileList {
+class FrameList {
   public:
     FrameList();
     ~FrameList();
     void Clear();
+    void SetDebug(int);
     /// Return the current active reference frame
     Frame* ActiveReference();
     /// Set the active reference frame
     int SetActiveRef(int);
-    /// Add a reference frame base on given args
-    int AddReference(ArgList&, TopologyList&);
+    /// Add a reference frame based on given args
+    int AddRefFrame(ArgList&, TopologyList const&);
     /// Get reference frame based on given args
     ReferenceFrame GetFrameFromArgs(ArgList&) const;
     /// Get reference frame with given name.
@@ -71,5 +73,6 @@ class FrameList : public FileList {
     std::vector<Topology*> StrippedRefParms_;
     int refFrameNum_;
     static const ReferenceFrame ErrorFrame_;
+    int debug_;
 };
 #endif

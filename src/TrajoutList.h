@@ -4,11 +4,12 @@
 #include "TopologyList.h"
 // Class: TrajoutList
 /// Hold trajectories for output
-class TrajoutList : public FileList {
+class TrajoutList {
   public:
     TrajoutList();
     ~TrajoutList();
     void Clear();
+    void SetDebug(int);
     int AddEnsembleTrajout(ArgList const&, TopologyList const&, int);
     /// Add a traj file to the list with given access and associate with a parm
     int AddTrajout(ArgList const&, TopologyList const&);
@@ -23,6 +24,7 @@ class TrajoutList : public FileList {
     ArgIt argbegin() const { return trajoutArgs_.begin(); }
     ArgIt argend()   const { return trajoutArgs_.end();   }
   private:
+    int debug_;
     typedef std::vector<Trajout*> ListType;
     ListType trajout_;
     /// Array of trajout args for setting up ensemble trajout.

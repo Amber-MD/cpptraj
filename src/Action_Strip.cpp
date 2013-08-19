@@ -92,7 +92,7 @@ Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddres
   if (!prefix_.empty()) {
     std::string newfilename(prefix_);
     newfilename += ".";
-    newfilename += oldParm_->OriginalFilename();
+    newfilename += oldParm_->OriginalFilename().Base();
     mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),newfilename.c_str());
     ParmFile pfile;
     if ( pfile.Write( *newParm_, newfilename, ParmFile::AMBERPARM, 0 ) ) {

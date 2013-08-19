@@ -23,7 +23,6 @@ void DataFileList::Clear() {
   for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); it++)
     delete *it;
   fileList_.clear();
-  FileList::Clear();
 }
 
 // DataFileList::RemoveDataFile()
@@ -53,9 +52,9 @@ void DataFileList::SetDebug(int debugIn) {
   */
 DataFile* DataFileList::GetDataFile(std::string const& nameIn) const {
   if (nameIn.empty()) return 0;
-  int idx = FindName( nameIn );
-  if (idx == -1) return 0;
-  return fileList_[idx];
+  for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
+    if ((*df)->DataFilename().IsMatch( nameIn )) return *df;
+  return 0;
 }
 
 /** Create new DataFile, or return existing DataFile. */
@@ -80,7 +79,6 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
       return 0;
     }
     fileList_.push_back(Current);
-    AddFilename( Current->DataFilename() );
   } else {
     // Set debug level
     Current->SetDebug(debug_);

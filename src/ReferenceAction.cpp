@@ -72,7 +72,7 @@ int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool fi
   else if (refmode_==REFTRAJ)
     modeString_ = "trajectory " + refTraj_.TrajFilename().Full();
   else // REFFRAME
-    modeString_ = "reference frame " + REF.FrameName();
+    modeString_ = "reference frame " + REF.FrameName().Base();
   modeString_ += " (" + refMask_.MaskExpression() + ")";
 
   return 0;

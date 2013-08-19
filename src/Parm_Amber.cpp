@@ -413,7 +413,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     Npointers = 30;
   }
   mprintf("\tAmberParm Title: [%s]\n",title.c_str());
-  TopIn.SetParmName( title, file_.Filename().Base() );
+  TopIn.SetParmName( title, file_.Filename() );
   // POINTERS
   std::vector<int> values = GetFlagInteger(F_POINTERS, Npointers);
   if (values.empty()) {

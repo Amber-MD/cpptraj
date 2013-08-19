@@ -1030,7 +1030,7 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
   } else {
     // Replace parm with stripped version
     // TODO: Implement proper assignment op for Topology
-    tempParm->ParmInfo();
+    tempParm->Brief();
     mprintf("\n");
     State.PFL()->ReplaceParm(parm->Pindex(), tempParm);
   }

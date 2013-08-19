@@ -69,10 +69,9 @@ int AnalysisList::DoAnalyses() {
 
 // AnalysisList::List()
 void AnalysisList::List() const {
-  mprintf("\nANALYSES:\n");
-  if (analysisList_.empty())
-    mprintf("  No Analyses.\n");
-  else
+  if (!analysisList_.empty()) {
+    mprintf("\nANALYSES:\n");
     for (unsigned int ananum = 0; ananum < analysisList_.size(); ++ananum)
       mprintf("  %u: [%s]\n", ananum, analysisCmd_[ananum].c_str());
+  }
 }

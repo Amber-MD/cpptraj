@@ -117,14 +117,16 @@ int TrajinList::AddInputTraj(std::string const& fname, Trajin* traj, ArgList arg
 }
 
 void TrajinList::List() const {
-  mprintf("\nINPUT TRAJECTORIES:\n");
-  unsigned int trajnum = 0;
-  for (ListType::const_iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj) {
-    mprintf(" %u: ", trajnum++);
-    (*traj)->PrintInfo( 1 );
+  if (!trajin_.empty()) {
+    mprintf("\nINPUT TRAJECTORIES:\n");
+    unsigned int trajnum = 0;
+    for (ListType::const_iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj) {
+      mprintf(" %u: ", trajnum++);
+      (*traj)->PrintInfo( 1 );
+    }
+    if (maxframes_ < 0)
+      mprintf("  Total number of frames is unknown.\n");
+    else
+      mprintf("  Coordinate processing will occur on %i frames.\n", maxframes_);
   }
-  if (maxframes_ < 0)
-    mprintf("  Total number of frames is unknown.\n");
-  else
-    mprintf("  Coordinate processing will occur on %i frames.\n", maxframes_);
 }

@@ -4,17 +4,22 @@
 #include "StringRoutines.h" // integerToString 
 //#incl ude "MpiRoutines.h" //worldsize
 
-TrajoutList::TrajoutList() { }
+TrajoutList::TrajoutList() : debug_(0) { }
 
 TrajoutList::~TrajoutList() {
   Clear();
+}
+
+void TrajoutList::SetDebug(int debugIn) {
+  debug_ = debugIn;
+  if (debug_ > 0)
+    mprintf("TrajoutList debug level set to %i\n", debug_);
 }
 
 void TrajoutList::Clear() {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj) 
     delete *traj;
   trajout_.clear();
-  FileList::Clear();
   trajoutArgs_.clear();
 }
 
@@ -81,9 +86,13 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn,
                             TopologyList const& topListIn) 
 {
   // Check if filename is in use
-  if (FindName(filename) != -1) {
-    mprinterr("Error: trajout: Filename %s already in use.\n",filename.c_str());
-    return 1;
+  for (ListType::const_iterator to = trajout_.begin();
+                                to != trajout_.end(); ++to)
+  {
+    if ( (*to)->TrajFilename().Full() == filename ) { 
+      mprinterr("Error: trajout: Filename %s already in use.\n",filename.c_str());
+      return 1;
+    }
   }
   // Create trajout.
   Trajout *traj = new Trajout();
@@ -103,8 +112,6 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn,
 
   // Add to trajectory file list
   trajout_.push_back(traj);
-  // Add filename to filename list
-  AddFilename( traj->TrajFilename() ); 
 
   return 0;
 }
@@ -135,9 +142,8 @@ void TrajoutList::Close() {
 
 // TrajoutList::List()
 void TrajoutList::List() const {
-  if (trajout_.empty()) {
-    mprintf("  No files.\n");
-  } else {
+  if (!trajout_.empty()) {
+    mprintf("\nOUTPUT TRAJECTORIES:\n");
     for (ListType::const_iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
       (*traj)->PrintInfo( 1 );
   }

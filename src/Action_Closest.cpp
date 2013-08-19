@@ -220,7 +220,7 @@ Action::RetType Action_Closest::Setup(Topology* currentParm, Topology** parmAddr
 
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {
-    std::string newfilename = prefix_ + "." + currentParm->OriginalFilename();
+    std::string newfilename = prefix_ + "." + currentParm->OriginalFilename().Base();
     mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),
             newfilename.c_str());
     ParmFile pfile;

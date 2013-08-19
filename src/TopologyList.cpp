@@ -4,11 +4,17 @@
 #include "ParmFile.h"
 
 // CONSTRUCTOR 
-TopologyList::TopologyList() {}
+TopologyList::TopologyList() : debug_(0) {}
 
 // DESTRUCTOR
 TopologyList::~TopologyList() {
   Clear();
+}
+
+void TopologyList::SetDebug(int debugIn) {
+  debug_ = debugIn;
+  if (debug_ > 0)
+    mprintf("TopologyList debug level set to %i\n", debug_);
 }
 
 void TopologyList::Clear() {
@@ -16,7 +22,6 @@ void TopologyList::Clear() {
                                         top != TopList_.end(); top++)
     delete *top;
   TopList_.clear();
-  FileList::Clear();
 }
 
 // TopologyList::GetParm()
@@ -45,19 +50,27 @@ Topology* TopologyList::GetParmByIndex(ArgList& argIn) const {
   * \return parm specified by 'parm' or 'parmindex', or the first parm. null on error.
   */
 Topology* TopologyList::GetParm(ArgList &argIn) const {
+  Topology* ParmOut = 0;
   // Get any parm keywords if present
-  std::string parmfilename = argIn.GetStringKey("parm");
   int pindex = argIn.getKeyInt("parmindex",0);
-  // Associate trajectory with parameter file. Associate with default parm if none specified
-  if (!parmfilename.empty())
-    pindex = FindName(parmfilename);
-  Topology *ParmOut = GetParm(pindex);
+  std::string parmfilename = argIn.GetStringKey("parm");
+  if (!parmfilename.empty()) {
+    for (std::vector<Topology*>::const_iterator tf = TopList_.begin();
+                                              tf != TopList_.end(); ++tf)
+    {
+      if ((*tf)->OriginalFilename().IsMatch( parmfilename )) {
+        ParmOut = *tf;
+        break;
+      }
+    }
+  } else {
+    ParmOut = GetParm(pindex);
+  }
   if (ParmOut==0) {
     mprintf("Warning: Could not get parameter file:\n");
     mprintf("Warning: parmname=%s, pindex=%i\n",parmfilename.c_str(),pindex);
     return 0;
   }
-
   return ParmOut;
 }
 
@@ -72,22 +85,25 @@ int TopologyList::AddParmFile(std::string const& filename) {
 int TopologyList::AddParmFile(std::string const& filename, std::string const& ParmTag,
                               bool bondsearch, double offset) 
 {
-  // Check if this file has already been loaded
-  if (FindName(filename)!=-1) {
-    mprintf("Warning: Parm %s already loaded, skipping.\n",filename.c_str());
-    return 0;
-  }
-
-  // If tag specified, check if tag already in use
-  if (FindName(ParmTag)!=-1) {
-    mprinterr("Error: Parm tag [%s] already in use.\n",ParmTag.c_str());
-    return 1;
+  // Check if filename/parmtag already in use
+  for (std::vector<Topology*>::const_iterator tf = TopList_.begin();
+                                              tf != TopList_.end(); ++tf)
+  {
+    if ( (*tf)->OriginalFilename().Full() == filename ) {
+      mprintf("Warning: Parm '%s' already loaded, skipping.\n",filename.c_str());
+      return 0;
+    }
+    if ( !ParmTag.empty() && (*tf)->OriginalFilename().Tag() == ParmTag ) {
+      mprinterr("Error: Parm tag '%s' already in use.\n",ParmTag.c_str());
+      return 1;
+    }
   }
 
   Topology *parm = new Topology();
   parm->SetDebug( debug_ );
   parm->SetOffset( offset );
   ParmFile pfile;
+  // TODO: Pass in FileName
   int err = pfile.Read(*parm, filename, bondsearch, debug_);
   if (err!=0) {
     mprinterr("Error: Could not open parm %s\n",filename.c_str());
@@ -100,7 +116,7 @@ int TopologyList::AddParmFile(std::string const& filename, std::string const& Pa
   // pindex is used for quick identification of the parm file
   parm->SetPindex( TopList_.size() );
   TopList_.push_back(parm);
-  AddNameWithTag( pfile.ParmFilename(), ParmTag );
+  parm->SetTag( ParmTag );
   return 0;
 }
 
@@ -134,17 +150,16 @@ void TopologyList::ReplaceParm(int pindex, Topology* newParm) {
 // TopologyList::List()
 /** Print list of loaded parameter files */
 void TopologyList::List() const {
-  mprintf("\nPARAMETER FILES:\n");
-  if (TopList_.empty()) {
-    mprintf("  No parameter files defined.\n");
-    return;
-  }
-  for (std::vector<Topology*>::const_iterator top = TopList_.begin(); top != TopList_.end(); top++)
-  {
-    mprintf(" %i:", (*top)->Pindex());
-    (*top)->ParmInfo();
-    if ((*top)->Nframes() > 0)
-      mprintf(", %i frames", (*top)->Nframes());
-    mprintf("\n");
+  if (!TopList_.empty()) {
+    mprintf("\nPARAMETER FILES:\n");
+    for (std::vector<Topology*>::const_iterator top = TopList_.begin();
+                                                top != TopList_.end(); top++)
+    {
+      mprintf(" %i:", (*top)->Pindex());
+      (*top)->Brief();
+      if ((*top)->Nframes() > 0)
+        mprintf(", %i frames", (*top)->Nframes());
+      mprintf("\n");
+    }
   }
 }

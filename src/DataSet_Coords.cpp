@@ -12,7 +12,7 @@ int DataSet_Coords::Allocate1D( size_t sizeIn ) {
 }
 
 void DataSet_Coords::Info() const {
-  top_.ParmInfo();
+  top_.Brief();
 }
 
 void DataSet_Coords::SetTopology(Topology const& topIn) {

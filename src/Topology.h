@@ -6,6 +6,7 @@
 #include "Molecule.h"
 #include "AtomMask.h"
 #include "Frame.h"
+#include "FileName.h"
 // Class: Topology
 /// Hold information for all atoms
 class Topology {
@@ -14,11 +15,12 @@ class Topology {
     // ----- Set internal variables -----
     void SetOffset(double oIn);
     void SetDebug(int);
-    void SetParmName(std::string const&, std::string const&);
+    void SetParmName(std::string const&, FileName const&);
     void SetGBradiiSet(std::string const&);
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
     void IncreaseFrames(int);
+    void SetTag(std::string const& t) { fileName_.SetTag(t); } // TODO: deprecate
     // ----- Return internal variables -----
     int Pindex()                   const { return pindex_;                }
     int Natom()                    const { return (int)atoms_.size();     }
@@ -28,7 +30,7 @@ class Topology {
     int Nframes()                  const { return nframes_;               }
     int Ntypes()                   const { return ntypes_;                }
     std::string const& ParmName()         const { return parmName_;       }
-    std::string const& OriginalFilename() const { return fileName_;       }
+    FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
     bool NoRefCoords()                    const { return (refCoords_.empty()); }
     int FinalSoluteRes() const;
@@ -92,7 +94,7 @@ class Topology {
     int SetSolvent(std::string const&);
     // ----- Print topology info -----
     void Summary() const;
-    void ParmInfo() const;
+    void Brief() const;
     void PrintAtomInfo(std::string const&) const;
     void PrintBondInfo(std::string const&) const;
     void PrintMoleculeInfo(std::string const&) const;
@@ -148,7 +150,7 @@ class Topology {
     std::vector<Atom> atoms_;
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
-    std::string fileName_;
+    FileName fileName_;
     std::string parmName_;
     std::string radius_set_;
 

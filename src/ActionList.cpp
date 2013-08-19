@@ -136,10 +136,9 @@ void ActionList::Print() {
 }
 
 void ActionList::List() const {
-  mprintf("\nACTIONS:\n");
-  if (actionlist_.empty())
-    mprintf("  No Actions.\n");
-  else
+  if (!actionlist_.empty()) {
+    mprintf("\nACTIONS:\n");
     for (unsigned int actnum = 0; actnum < actionlist_.size(); ++actnum)
-      mprintf("  %u: [%s]\n", actnum, actioncmd_[actnum].c_str());   
+      mprintf("  %u: [%s]\n", actnum, actioncmd_[actnum].c_str());
+  }
 }

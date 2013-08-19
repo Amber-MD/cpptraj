@@ -379,14 +379,17 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   * that will be written to.
   */
 void DataSetList::List() const {
-  if (DataList_.empty())
+  if (!hasCopies_) { // No copies; this is a Master DSL.
+    if (DataList_.empty()) return;
+    mprintf("\nDATASETS:\n");
+  } else if (DataList_.empty()) {
     mprintf("  No data sets.");
-  else if (DataList_.size()==1)
-    mprintf("  1 data set: ");
+    return;
+  }
+  if (DataList_.size()==1)
+    mprintf("  1 data set:\n");
   else
-    mprintf("  %zu data sets: ", DataList_.size());
-
-  mprintf("\n");
+    mprintf("  %zu data sets:\n", DataList_.size());
   for (unsigned int ds=0; ds<DataList_.size(); ds++) {
     mprintf("\t%s", DataList_[ds]->Name().c_str());
     if (!DataList_[ds]->Aspect().empty())

@@ -1,13 +1,11 @@
 #ifndef INC_DATAFILELIST_H
 #define INC_DATAFILELIST_H
-#include "DispatchObject.h"
-#include "FileList.h"
 #include "DataFile.h"
 #include "DataSet.h"
 #include "ArgList.h"
 // Class: DataFileList
 /// Holds a list of DataFile classes. 
-class DataFileList : public FileList {
+class DataFileList {
   public:
     DataFileList();
     ~DataFileList();

@@ -3,12 +3,10 @@
 #include "Trajin_Single.h"
 #include "CpptrajStdio.h"
 
-const ReferenceFrame FrameList::ErrorFrame_(0,0,"",-1);
+const ReferenceFrame FrameList::ErrorFrame_(0,0,FileName(),"",-1);
 
 // CONSTRUCTOR
-FrameList::FrameList() : 
-  refFrameNum_(0)
-{}
+FrameList::FrameList() : refFrameNum_(0), debug_(0) {}
 
 // DESTRUCTOR
 FrameList::~FrameList() {
@@ -26,7 +24,12 @@ void FrameList::Clear() {
     delete *parm;
   StrippedRefParms_.clear();
   refFrameNum_ = 0;
-  FileList::Clear();
+}
+
+void FrameList::SetDebug(int debugIn) {
+  debug_ = debugIn;
+  if (debug_ > 0)
+    mprintf("ReferenceList debug level set to %i\n", debug_);
 }
 
 // -----------------------------------------------------------------------------
@@ -54,13 +57,14 @@ int FrameList::SetActiveRef(int numIn) {
   * name and frame number that this frame came from in frameNames and frameNums 
   * respectively. Store the associated parm in FrameParm. 
   */
-int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
+int FrameList::AddRefFrame(ArgList& argIn, TopologyList const& topListIn) {
   Trajin_Single traj;
 
   traj.SetDebug(debug_);
   // Get associated parmtop
   Topology* parmIn = topListIn.GetParm( argIn );
   // Check if we want to obtain the average structure
+  // TODO: deprecate
   bool average = argIn.hasKey("average");
 
   // Set up trajectory - false = do not modify box info
@@ -79,13 +83,16 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   std::string reftag = argIn.getNextTag();
 
   // Check and warn if filename/reftag currently in use
-  if (FindName( traj.TrajFilename().Full() )!=-1) {
-    mprintf("Warning: Reference with name %s already exists!\n",traj.TrajFilename().full());
-    //return 1;
-  }
-  if (FindName(reftag)!=-1) {
-    mprintf("Warning: Reference with tag %s already exists!\n",reftag.c_str());
-    //return 1;
+  // TODO: Check for base filename?
+  for (std::vector<ReferenceFrame>::const_iterator rf = frames_.begin();
+                                                   rf != frames_.end(); ++rf)
+  {
+    if ( (*rf).FrameName().Full() == traj.TrajFilename().Full() )
+      mprintf("Warning: Reference with name '%s' already exists!\n",traj.TrajFilename().full());
+    if (  !reftag.empty() && (*rf).FrameName().Tag() == reftag ) {
+      mprintf("Error: Reference with tag '%s' already exists!\n",reftag.c_str());
+      return 1;
+    }
   }
 
   // If not obtaining average structure, tell trajectory to only process
@@ -158,8 +165,7 @@ int FrameList::AddReference(ArgList& argIn, TopologyList& topListIn) {
   }
 
   frames_.push_back( ReferenceFrame( CurrentFrame, CurrentParm, 
-                                     traj.TrajFilename().Base(), traj.Start() ) );
-  AddNameWithTag( traj.TrajFilename(), reftag );
+                                     traj.TrajFilename(), reftag, traj.Start() ) );
   // If the top currently has no reference coords, set them now
   if (CurrentParm->NoRefCoords()) CurrentParm->SetReferenceCoords( CurrentFrame ); 
   return 0;
@@ -177,12 +183,12 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
   // By name/tag
   std::string refname = argIn.GetStringKey("ref");
   if (!refname.empty()) {
-    refindex = FindName( refname );
-    if (refindex == -1) {
+    ReferenceFrame rf = GetFrameByName( refname );
+    if (rf.empty()) {
       mprinterr("Error: Could not get reference with name %s\n", refname.c_str());
       return ErrorFrame_;
     }
-    return frames_[refindex];
+    return rf; 
   }
   // First defined reference
   if (argIn.hasKey("reference")) {
@@ -206,11 +212,14 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
 }
 
 // FrameList::GetFrameByName()
-ReferenceFrame FrameList::GetFrameByName(std::string const& refName) const{
-  int refIndex = FindName( refName );
-  if (refIndex < 0)
-    return ReferenceFrame();
-  return frames_[refIndex];
+ReferenceFrame FrameList::GetFrameByName(std::string const& refName) const {
+  for (std::vector<ReferenceFrame>::const_iterator rf = frames_.begin();
+                                                   rf != frames_.end(); ++rf)
+  {
+    if ( (*rf).FrameName().IsMatch( refName ) )
+      return *rf;
+  }
+  return ReferenceFrame();
 }
 
 // FrameList::ReplaceFrame()
@@ -235,22 +244,16 @@ int FrameList::ReplaceFrame(ReferenceFrame const& refIn, Frame *newFrame, Topolo
 /** Print a list of trajectory names that frames have been taken from.
   */
 void FrameList::List() const {
-  if (frames_.empty()) {
-    mprintf("  No frames defined.\n");
-    return;
-  }
-  if (HasNames()) {
-    mprintf("\nREFERENCE FRAMES (%zu total):\n",frames_.size());
-    for (int fn=0; fn < (int)frames_.size(); fn++) { 
-      if (!Tag(fn).empty())
-        mprintf("    %i: %s frame %i\n", fn, Tag(fn).c_str(),
-                frames_[fn].Num()+1);
-      else
-        mprintf("    %i: %s frame %i\n",fn,Name(fn).base(),
-                frames_[fn].Num()+1);
+  if (!frames_.empty()) {
+    mprintf("\nREFERENCE FRAMES (%zu total):\n", frames_.size());
+    for (std::vector<ReferenceFrame>::const_iterator rf = frames_.begin();
+                                                     rf != frames_.end(); ++rf)
+    {
+      mprintf("    %u:", rf - frames_.begin());
+      if (!(*rf).FrameName().Tag().empty())
+        mprintf(" %s", (*rf).FrameName().Tag().c_str());
+      mprintf(" '%s', frame %i\n", (*rf).FrameName().full(), (*rf).Num()+1);
     }
-  } else {
-    mprintf("  %zu frames have been defined.\n",frames_.size());
+    mprintf("\tActive reference frame for masks is %i\n",refFrameNum_);
   }
-  mprintf("\tActive reference frame for masks is %i\n",refFrameNum_);
 }

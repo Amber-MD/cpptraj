@@ -148,7 +148,6 @@ SOURCES=ActionFrameCounter.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
         FileIO_Std.cpp \
-        FileList.cpp \
         FileName.cpp \
         Frame.cpp \
         FrameList.cpp \
