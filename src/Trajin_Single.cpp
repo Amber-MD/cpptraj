@@ -136,7 +136,7 @@ int Trajin_Single::GetNextFrame( Frame& frameIn ) {
 
 // Trajin_Single::PrintInfo()
 void Trajin_Single::PrintInfo(int showExtended) const {
-  mprintf("[%s] ",TrajFilename().base());
+  mprintf("'%s' ",TrajFilename().base());
   trajio_->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
   if (trajio_->HasBox()) mprintf(" (%s box)", trajio_->TrajBox().TypeName());

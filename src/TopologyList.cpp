@@ -58,7 +58,9 @@ Topology* TopologyList::GetParm(ArgList &argIn) const {
     for (std::vector<Topology*>::const_iterator tf = TopList_.begin();
                                               tf != TopList_.end(); ++tf)
     {
-      if ((*tf)->OriginalFilename().IsMatch( parmfilename )) {
+      if ( (*tf)->Tag()==parmfilename || 
+           (*tf)->OriginalFilename().MatchFullOrBase( parmfilename ) )
+      {
         ParmOut = *tf;
         break;
       }
@@ -93,7 +95,7 @@ int TopologyList::AddParmFile(std::string const& filename, std::string const& Pa
       mprintf("Warning: Parm '%s' already loaded, skipping.\n",filename.c_str());
       return 0;
     }
-    if ( !ParmTag.empty() && (*tf)->OriginalFilename().Tag() == ParmTag ) {
+    if ( !ParmTag.empty() && (*tf)->Tag() == ParmTag ) {
       mprinterr("Error: Parm tag '%s' already in use.\n",ParmTag.c_str());
       return 1;
     }

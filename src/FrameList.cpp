@@ -89,7 +89,7 @@ int FrameList::AddRefFrame(ArgList& argIn, TopologyList const& topListIn) {
   {
     if ( (*rf).FrameName().Full() == traj.TrajFilename().Full() )
       mprintf("Warning: Reference with name '%s' already exists!\n",traj.TrajFilename().full());
-    if (  !reftag.empty() && (*rf).FrameName().Tag() == reftag ) {
+    if ( !reftag.empty() && (*rf).Tag() == reftag ) {
       mprintf("Error: Reference with tag '%s' already exists!\n",reftag.c_str());
       return 1;
     }
@@ -215,8 +215,8 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
 ReferenceFrame FrameList::GetFrameByName(std::string const& refName) const {
   for (std::vector<ReferenceFrame>::const_iterator rf = frames_.begin();
                                                    rf != frames_.end(); ++rf)
-  {
-    if ( (*rf).FrameName().IsMatch( refName ) )
+  { // OK if name matches tag, full path, or base file name.
+    if ( (*rf).Tag()==refName || (*rf).FrameName().MatchFullOrBase( refName ) )
       return *rf;
   }
   return ReferenceFrame();
@@ -250,8 +250,8 @@ void FrameList::List() const {
                                                      rf != frames_.end(); ++rf)
     {
       mprintf("    %u:", rf - frames_.begin());
-      if (!(*rf).FrameName().Tag().empty())
-        mprintf(" %s", (*rf).FrameName().Tag().c_str());
+      if (!(*rf).Tag().empty())
+        mprintf(" %s", (*rf).Tag().c_str());
       mprintf(" '%s', frame %i\n", (*rf).FrameName().full(), (*rf).Num()+1);
     }
     mprintf("\tActive reference frame for masks is %i\n",refFrameNum_);

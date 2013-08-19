@@ -20,8 +20,9 @@ class Topology {
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
     void IncreaseFrames(int);
-    void SetTag(std::string const& t) { fileName_.SetTag(t); } // TODO: deprecate
+    void SetTag(std::string const& t)    { parmTag_ = t;                  }
     // ----- Return internal variables -----
+    std::string const& Tag()       const { return parmTag_;               }
     int Pindex()                   const { return pindex_;                }
     int Natom()                    const { return (int)atoms_.size();     }
     int Nres()                     const { return (int)residues_.size();  }
@@ -151,6 +152,7 @@ class Topology {
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
     FileName fileName_;
+    std::string parmTag_;
     std::string parmName_;
     std::string radius_set_;
 

@@ -70,8 +70,8 @@ int Topology::FinalSoluteRes() const {
   * name (title) if the parm filename is empty.
   */
 const char *Topology::c_str() const {
-  if (!fileName_.Tag().empty())
-    return (fileName_.Tag().c_str());
+  if (!parmTag_.empty())
+    return (parmTag_.c_str());
   else if (!fileName_.empty()) 
     return fileName_.full();
   return parmName_.c_str();
@@ -186,8 +186,8 @@ void Topology::Summary() const {
 
 // Topology::Brief()
 void Topology::Brief() const {
-  if (!fileName_.Tag().empty())
-    mprintf(" %s", fileName_.Tag().c_str());
+  if (!parmTag_.empty())
+    mprintf(" %s", parmTag_.c_str());
   mprintf(" '%s', %zu atoms, %zu res, box: %s, %zu mol", fileName_.full(),
           atoms_.size(), residues_.size(), box_.TypeName(), molecules_.size());
   if (NsolventMolecules_>0)
@@ -1441,6 +1441,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
 
   newParm->parmName_ = parmName_;
   newParm->fileName_ = fileName_;
+  // NOTE: Do NOT copy tag to avoid duplication.
   newParm->radius_set_ = radius_set_;
   newParm->debug_ = debug_;
 

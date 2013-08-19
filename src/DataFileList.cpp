@@ -48,12 +48,12 @@ void DataFileList::SetDebug(int debugIn) {
 
 // DataFileList::GetDataFile()
 /** Return DataFile specified by given file name if it exists in the list,
-  * otherwise return null.
+  * otherwise return null. Must match full path.
   */
 DataFile* DataFileList::GetDataFile(std::string const& nameIn) const {
   if (nameIn.empty()) return 0;
   for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
-    if ((*df)->DataFilename().IsMatch( nameIn )) return *df;
+    if (nameIn == (*df)->DataFilename().Full()) return *df;
   return 0;
 }
 

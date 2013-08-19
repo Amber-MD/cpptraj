@@ -462,7 +462,7 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
 
 // Trajin_Multi::PrintInfo()
 void Trajin_Multi::PrintInfo(int showExtended) const {
-  mprintf("REMD trajectories (%u total), lowest replica [%s]", REMDtraj_.size(),
+  mprintf("REMD trajectories (%u total), lowest replica '%s'", REMDtraj_.size(),
           TrajFilename().base());
   if (showExtended == 1) PrintFrameInfo();
   mprintf("\n");
