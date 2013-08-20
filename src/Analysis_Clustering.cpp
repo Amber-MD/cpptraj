@@ -294,46 +294,49 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 # ifdef TIMER
   cluster_post.Start();
 # endif
-  CList_->Renumber( (sieve_ > 1) );
+  if (CList_->Nclusters() > 0) {
+    CList_->Renumber( (sieve_ > 1) );
 
-  // DEBUG
-  if (debug_ > 0) {
-    mprintf("\nFINAL CLUSTERS:\n");
-    CList_->PrintClusters();
-  }
+    // DEBUG
+    if (debug_ > 0) {
+      mprintf("\nFINAL CLUSTERS:\n");
+      CList_->PrintClusters();
+    }
 
-  // Print ptraj-like cluster info. If no filename is written some info will
-  // still be written to STDOUT.
-  CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+    // Print ptraj-like cluster info. If no filename is written some info will
+    // still be written to STDOUT.
+    CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
 
-  // Print a summary of clusters
-  if (!summaryfile_.empty())
-    CList_->Summary(summaryfile_, clusterDataSetSize);
+    // Print a summary of clusters
+    if (!summaryfile_.empty())
+      CList_->Summary(summaryfile_, clusterDataSetSize);
 
-  // Print a summary comparing first half to second half of data for clusters
-  if (!halffile_.empty())
-    CList_->Summary_Half(halffile_, clusterDataSetSize, splitFrame_);
+    // Print a summary comparing first half to second half of data for clusters
+    if (!halffile_.empty())
+      CList_->Summary_Half(halffile_, clusterDataSetSize, splitFrame_);
 
-  // Create cluster v time data from clusters.
-  CreateCnumvtime( *CList_, clusterDataSetSize );
+    // Create cluster v time data from clusters.
+    CreateCnumvtime( *CList_, clusterDataSetSize );
 
-  // Create cluster pop v time plots
-  if (cpopvtimefile_ != 0)
-    CreateCpopvtime( *CList_, clusterDataSetSize );
+    // Create cluster pop v time plots
+    if (cpopvtimefile_ != 0)
+      CreateCpopvtime( *CList_, clusterDataSetSize );
 
-  if (has_coords) {
-    // Write clusters to trajectories
-    if (!clusterfile_.empty())
-      WriteClusterTraj( *CList_ ); 
+    if (has_coords) {
+      // Write clusters to trajectories
+      if (!clusterfile_.empty())
+        WriteClusterTraj( *CList_ ); 
 
-    // Write all representative frames to a single traj
-    if (!singlerepfile_.empty())
-      WriteSingleRepTraj( *CList_ );
+      // Write all representative frames to a single traj
+      if (!singlerepfile_.empty())
+        WriteSingleRepTraj( *CList_ );
 
-    // Write all representative frames to separate trajs
-    if (!reptrajfile_.empty())
-      WriteRepTraj( *CList_ );
-  }
+      // Write all representative frames to separate trajs
+      if (!reptrajfile_.empty())
+        WriteRepTraj( *CList_ );
+    }
+  } else
+    mprintf("\tNo clusters found.\n");
 # ifdef TIMER
   cluster_post.Stop();
 # endif
