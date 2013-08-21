@@ -60,6 +60,21 @@ void DataSetList::Clear() {
   maxFrames_ = 0;
 } 
 
+// DataSetList::Remove()
+void DataSetList::Remove(std::string const& dsarg) {
+  DataSetList tempDSL = GetMultipleSets( dsarg );
+  if (tempDSL.empty())
+    mprintf("Warning: \"%s\" does not correspond to any data sets.\n", dsarg.c_str());
+  else {
+    for (DataSetList::const_iterator ds = tempDSL.begin();
+                                     ds != tempDSL.end(); ++ds)
+    {
+      mprintf("\tRemoving \"%s\"\n", (*ds)->Legend().c_str());
+      erase( *ds );
+    }
+  }
+}
+
 DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   // It is OK if rhs does not have copies, but this should have copies.
   // For now just set hasCopies to true.
@@ -79,7 +94,8 @@ DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
 //       to be passed to erase(), but this is currently not portable.
 /** Erase element pointed to by posIn from the list. */
 void DataSetList::erase( const_iterator posIn ) {
-  std::vector<DataSet*>::iterator pos = DataList_.begin() + (posIn - DataList_.begin());  
+  std::vector<DataSet*>::iterator pos = DataList_.begin() + (posIn - DataList_.begin());
+  if (!hasCopies_) delete *pos;
   DataList_.erase( pos ); 
 } 
 
@@ -89,6 +105,7 @@ void DataSetList::erase( DataSet* dsIn ) {
                                        pos != DataList_.end(); ++pos)
   {
     if ( (*pos) == dsIn ) {
+      if (!hasCopies_) delete *pos;
       DataList_.erase( pos );
       break;
     }

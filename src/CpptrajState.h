@@ -36,6 +36,7 @@ class CpptrajState {
     int ListAll(ArgList&);
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
+    int RemoveFromList(ArgList&);
     int MaskString( std::string const& );
     int Run();
     /// Write all DataFiles

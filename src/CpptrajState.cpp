@@ -97,6 +97,26 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   return 0;
 }
 
+static inline int RemoveError() {
+  mprinterr("Error: Remove not yet supported for this list type.\n");
+  return 1;
+}
+
+/** Remove something from specified list */
+int CpptrajState::RemoveFromList( ArgList& argIn ) {
+  std::vector<bool> enabled = ListsFromArg( argIn, false );
+  std::string removeArg = argIn.GetStringNext();
+  if ( enabled[L_ACTION]   ) return RemoveError(); //actionList_.Clear();
+  if ( enabled[L_TRAJIN]   ) return RemoveError(); //trajinList_.Clear();
+  if ( enabled[L_REF]      ) return RemoveError(); //refFrames_.Clear();
+  if ( enabled[L_TRAJOUT]  ) return RemoveError(); //trajoutList_.Clear();
+  if ( enabled[L_PARM]     ) return RemoveError(); //parmFileList_.Clear();
+  if ( enabled[L_ANALYSIS] ) return RemoveError(); //analysisList_.Clear();
+  if ( enabled[L_DATAFILE] ) return RemoveError(); //DFL_.Clear();
+  if ( enabled[L_DATASET]  ) DSL_.Remove( removeArg );
+  return 0;
+}
+
 // CpptrajState::MaskString()
 int CpptrajState::MaskString( std::string const& maskexpr ) {
   Topology* parm = parmFileList_.GetParm( 0 );

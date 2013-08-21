@@ -310,6 +310,11 @@ static void Help_Clear() {
   mprintf("\tthen clear all loaded objects.\n");
 }
 
+static void Help_Remove() {
+  mprintf("\t[ <type> <arg> ] %s\n", TypeList);
+  mprintf("\tRemove objects corresponding to <arg> from specified list.\n");
+}
+
 static void Help_ActiveRef() {
   mprintf("\t<#>\n");
   mprintf("\tSet the reference structure to be used for coordinate-based mask parsing.\n");
@@ -486,6 +491,11 @@ Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocTy
 Command::RetType ClearList(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   return (Command::RetType)State.ClearList( argIn );
+}
+
+Command::RetType RemoveFromList(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  return (Command::RetType)State.RemoveFromList( argIn );
 }
 
 /// Set debug value for specified list(s)
@@ -1123,6 +1133,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "quit" ,         0, Help_Quit,            Quit            },
   { GENERAL, "readdata",      0, Help_ReadData,        ReadData        },
   { GENERAL, "readinput",     0, Help_ReadInput,       ReadInput       },
+  { GENERAL, "remove",        0, Help_Remove,          RemoveFromList  },
   { GENERAL, "run"   ,        0, Help_Run,             RunState        },
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
   { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
