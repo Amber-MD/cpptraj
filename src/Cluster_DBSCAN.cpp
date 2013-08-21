@@ -3,6 +3,7 @@
 #include "Cluster_DBSCAN.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#include "StringRoutines.h" // integerToString
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -81,7 +82,8 @@ void Cluster_DBSCAN::ComputeKdist( int Kval, std::vector<int> const& FramesToClu
   std::vector<double> Kdist;
   dists.reserve( FramesToCluster.size() ); 
   Kdist.reserve( FramesToCluster.size() );
-  mprintf("\tDBSCAN: Calculating Kdist(%i), output to Kdist.dat\n", Kval);
+  std::string outfilename = "Kdist." + integerToString(Kval) + ".dat";
+  mprintf("\tDBSCAN: Calculating Kdist(%i), output to %s\n", Kval, outfilename.c_str());
   for (std::vector<int>::const_iterator point = FramesToCluster.begin();
                                         point != FramesToCluster.end();
                                         ++point)
@@ -99,7 +101,7 @@ void Cluster_DBSCAN::ComputeKdist( int Kval, std::vector<int> const& FramesToClu
   std::sort( Kdist.begin(), Kdist.end() );
   std::reverse( Kdist.begin(), Kdist.end() );
   CpptrajFile Outfile;
-  Outfile.OpenWrite("Kdist.dat");
+  Outfile.OpenWrite(outfilename);
   Outfile.Printf("%-8s %1i%-11s\n", "#Point", Kval,"-dist");
   for (std::vector<double>::const_iterator k = Kdist.begin(); k != Kdist.end(); ++k)
     Outfile.Printf("%8i %12.4f\n", k - Kdist.begin(), *k);

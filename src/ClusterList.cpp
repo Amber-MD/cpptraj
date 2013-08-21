@@ -205,6 +205,11 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
   outfile.CloseFile();
 }
 
+void ClusterList::SummarySplit(std::string const& summaryfile, int maxframesIn,
+                               std::vector<int> const& splitFrames)
+{
+}  
+
 // ClusterList::PrintClustersToFile()
 /** Print list of clusters in a style similar to ptraj; each cluster is
   * given a line maxframes characters long, with X for each frame that is
