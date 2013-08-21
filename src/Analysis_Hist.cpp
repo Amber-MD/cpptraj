@@ -512,7 +512,10 @@ int Analysis_Hist::CalcFreeE() {
 /** Normalize bins so that sum or integral over all bins is 1.0 */
 int Analysis_Hist::Normalize() {
   double sum = 0.0;
-  mprintf("\tHistogram: Normalizing bin populations to 1.0\n");
+  if (normalize_ == NORM_SUM)
+    mprintf("\tHistogram: Normalizing sum of bin populations to 1.0\n");
+  else
+    mprintf("\tHistogram: Normalizing integral over bin populations to 1.0\n");
   for (std::vector<double>::const_iterator bin = Bins_.begin(); bin != Bins_.end(); ++bin)
     sum += *bin;
   mprintf("\t           Sum over all bins is %lf\n",sum);
