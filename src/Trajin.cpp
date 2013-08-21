@@ -102,9 +102,9 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
     return 1;
   }
   if (total_frames_>-1)
-    mprintf("\t[%s] contains %i frames.\n", TrajFilename().base(), total_frames_);
+    mprintf("\t'%s' contains %i frames.\n", TrajFilename().base(), total_frames_);
   else
-    mprintf("\t[%s] contains an unknown number of frames.\n",TrajFilename().base());
+    mprintf("\t'%s' contains an unknown number of frames.\n",TrajFilename().base());
   // Set stop based on calcd number of frames.
   if (total_frames_==0) {
     mprinterr("Error: trajectory %s contains no frames.\n",TrajFilename().base());
@@ -125,7 +125,7 @@ int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox)
     if ( parmBox.HasBox()) {
       // No box in traj but box in parm - disable parm box.
       mprintf("Warning: Box information present in parm but not in trajectory.\n");
-      mprintf("Warning: DISABLING BOX in parm [%s]!\n", parmName);
+      mprintf("Warning: DISABLING BOX in parm '%s'!\n", parmName);
       parmBox.SetNoBox();
       return 0;
     } else
@@ -135,7 +135,7 @@ int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox)
   // Check for zero box lengths
   if ( trajBox.BoxX() < SMALL || trajBox.BoxY() < SMALL || trajBox.BoxZ() < SMALL ) {
     mprintf("Warning: Box information present in trajectory but lengths are zero.\n");
-    mprintf("Warning: DISABLING BOX in parm [%s]!\n", parmName);
+    mprintf("Warning: DISABLING BOX in parm '%s'!\n", parmName);
     parmBox.SetNoBox();
     return 0;
   }
@@ -249,9 +249,9 @@ void Trajin::PrepareForRead(bool useIn, bool seekable) {
 // Trajin::PrintInfoLine()
 void Trajin::PrintInfoLine() const {
   if (stop_ != -1)
-    mprintf( "----- [%s] (%i-%i, %i) -----\n",TrajFilename().base(),start_+1,stop_+1,offset_);
+    mprintf( "----- %s (%i-%i, %i) -----\n",TrajFilename().base(),start_+1,stop_+1,offset_);
   else
-    mprintf( "----- [%s] (%i-EOF, %i) -----\n",TrajFilename().base(),start_+1,offset_);
+    mprintf( "----- %s (%i-EOF, %i) -----\n",TrajFilename().base(),start_+1,offset_);
 }
 
 // Trajin::PrintFrameInfo()

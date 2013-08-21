@@ -81,7 +81,7 @@ int TrajinList::AddInputTraj(std::string const& fname, Trajin* traj, ArgList arg
   // CRDIDXARG: Append coordinate indices arg if there is one
   argIn.AddArg( finalCrdIndicesArg_ ); 
   if ( traj->SetupTrajRead(fname, argIn, tempParm) ) {
-    mprinterr("Error: Could not set up input trajectory.\n");
+    mprinterr("Error: Could not set up input trajectory '%s'.\n", fname.c_str());
     delete traj;
     return 1;
   }
