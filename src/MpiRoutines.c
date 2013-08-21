@@ -174,6 +174,16 @@ int parallel_openFile_read(parallelType pfile, const char *filename) {
   return 1;
 }
 
+// parallel_flush()
+/** Cause all previous writes to be transferred to storage device. */
+int parallel_flush(parallelType pfile) {
+# ifdef MPI
+  return MPI_File_sync( *(pfile->mfp) );
+#else
+  return 1;
+#endif
+}
+
 off_t parallel_position( parallelType pfile ) {
 #ifdef MPI
   int err;

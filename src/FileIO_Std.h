@@ -11,7 +11,8 @@ class FileIO_Std : public FileIO {
     int Open(const char *, const char *);    
     int Close();
     int Read(void *, size_t );
-    int Write(const void *, size_t);  
+    int Write(const void *, size_t);
+    int Flush()             { return fflush(fp_); }
     int Seek(off_t);
     int Rewind();  
     off_t Tell();  // NOTE: Tell may be unnecessary if only for size reporting.

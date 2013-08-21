@@ -203,8 +203,10 @@ int Cpptraj::Interactive() {
     }
     if (!inputLine.empty()) {
       readLoop = Command::Dispatch( State_, *inputLine );
-      if (logfile_.IsOpen())
+      if (logfile_.IsOpen()) {
         logfile_.Printf("%s\n", inputLine.c_str());
+        logfile_.Flush();
+      }
     }
   }
   logfile_.CloseFile();

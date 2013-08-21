@@ -61,6 +61,7 @@ class CpptrajFile {
     int Read(void* buf, size_t num)        { return IO_->Read(buf, num);  }
     int Seek(off_t offset)                 { return IO_->Seek(offset);    }
     int Rewind()                           { return IO_->Rewind();        }
+    int Flush()                            { return IO_->Flush();         }
     off_t Tell()                           { return IO_->Tell();          }
   protected: // Protected for PDBfile/Mol2File
     static const size_t BUF_SIZE = 1024;

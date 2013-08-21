@@ -45,6 +45,10 @@ int FileIO_Mpi::Write(const void *buffer, size_t num_bytes) {
   return 0;
 }
 
+int FileIO_Mpi::Flush() {
+  return parallel_flush( pfile_ );
+}
+
 // FileIO_Mpi::Seek()
 int FileIO_Mpi::Seek(off_t offset) {
 

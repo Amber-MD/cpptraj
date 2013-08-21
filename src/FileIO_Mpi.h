@@ -12,7 +12,8 @@ class FileIO_Mpi : public FileIO {
     int Open(const char *, const char *);    
     int Close();
     int Read(void *, size_t );
-    int Write(const void *, size_t);  
+    int Write(const void *, size_t);
+    int Flush();
     int Seek(off_t);
     int Rewind();  
     off_t Tell();
