@@ -6,11 +6,14 @@
 /// Create an N-dimensional histogram from N input datasets
 class Analysis_Hist : public Analysis {
   public :
+    enum NormMode { NO_NORM = 0, NORM_SUM, NORM_INT };
     Analysis_Hist();
 
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Hist(); }
     static void Help();
-
+    Analysis::RetType Setup(DataSet_1D*, std::string const&, std::string const&,
+                            bool, double, bool, double, double, int, NormMode,
+                            DataSetList&, DataFileList&);
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
@@ -36,7 +39,6 @@ class Analysis_Hist : public Analysis {
     int debug_;                          ///< Debug level
     bool calcFreeE_;                     ///< If true, calc free E from hist populations.
     double Temp_;                        ///< temperature to calc free E at.
-    enum NormMode { NO_NORM = 0, NORM_SUM, NORM_INT };
     NormMode normalize_;                 ///< Normalize histogram
     bool gnuplot_;                       ///< For internal write only
     bool circular_;                      ///< If true, wrap histogram dimensions.

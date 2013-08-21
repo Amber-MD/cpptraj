@@ -93,6 +93,7 @@
 #include "Analysis_Spline.h"
 #include "Analysis_Average.h"
 #include "Analysis_KDE.h"
+#include "Analysis_MultiHist.h"
 // ---- Command Functions ------------------------------------------------------
 /** Search Commands list for a specific type of command. */
 Command::TokenPtr Command::SearchTokenType(CommandType dtype,
@@ -1259,6 +1260,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
   { ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, AddAnalysis },
   { ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, AddAnalysis },
+  { ANALYSIS, "multihist", Analysis_MultiHist::Alloc, Analysis_MultiHist::Help, AddAnalysis },
   { ANALYSIS, "overlap", Analysis_Overlap::Alloc, Analysis_Overlap::Help, AddAnalysis },
   { ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, AddAnalysis },
   { ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },

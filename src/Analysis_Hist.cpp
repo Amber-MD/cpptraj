@@ -26,11 +26,11 @@ Analysis_Hist::Analysis_Hist() :
 {}
 
 void Analysis_Hist::Help() {
-  mprintf("\t<dataset_name>[,min,max,step,bins] ...\n");
-  mprintf("\t[free <temperature>] [norm | normint] [gnu] [circular] out <filename>\n");
-  mprintf("\t[amd <amdboost_data>] [name <outputset name>\n");
-  mprintf("\t[min <min>] [max <max>] [step <step>] [bins <bins>] [nativeout]\n");
-  mprintf("\tHistogram the given data set(s)\n");
+  mprintf("\t<dataset_name>[,min,max,step,bins] ...\n"
+          "\t[free <temperature>] [norm | normint] [gnu] [circular] out <filename>\n"
+          "\t[amd <amdboost_data>] [name <outputset name>\n"
+          "\t[min <min>] [max <max>] [step <step>] [bins <bins>] [nativeout]\n"
+          "\tHistogram the given data set(s)\n");
 }
 
 // Analysis_Hist::CheckDimension()
@@ -169,6 +169,48 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
 }
 
 // Analysis_Hist::Setup()
+Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& histname,
+                                       std::string const& outfilenameIn,
+                                       bool minArgSetIn, double minIn,
+                                       bool maxArgSetIn, double maxIn,
+                                       double stepIn, int binsIn, NormMode normIn,
+                                       DataSetList& datasetlist, DataFileList& DFLin)
+{
+  debug_ = 0;
+  if (dsIn == 0) return Analysis::ERR;
+  outfilename_ = outfilenameIn;
+  outfile_ = DFLin.AddDataFile(outfilename_);
+  Temp_ = -1.0;
+  calcFreeE_ = false;
+  gnuplot_ = false;
+  normalize_ = normIn;
+  circular_ = false;
+  nativeOut_ = false;
+  minArgSet_ = minArgSetIn;
+  if (minArgSet_)
+    default_dim_.SetMin( minIn );
+  maxArgSet_ = maxArgSetIn;
+  if (maxArgSet_)
+    default_dim_.SetMax( maxIn );
+  default_dim_.SetStep( stepIn );
+  default_dim_.SetBins( binsIn );
+  calcAMD_ = false;
+  amddata_ = 0;
+
+  dimensionArgs_.push_back( ArgList(dsIn->Legend()) ); // Needed for dim label
+  histdata_.push_back( dsIn );
+  N_dimensions_ = 1;
+  std::string setname;
+  if (histname.empty())
+    setname="Hist_";
+  setname += dsIn->Legend();
+  hist_ = datasetlist.AddSet( DataSet::DOUBLE, setname, "MHist" );
+  if (hist_ == 0) return Analysis::ERR;
+  if (outfile_ != 0) outfile_->AddSet( hist_ );
+  return Analysis::OK;
+}
+
+// Analysis_Hist::Setup()
 /** Set up histogram with specified data sets. */
 Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
@@ -259,7 +301,7 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
     // Native output. Remove DataFile from DataFileList
     outfile_ = DFLin->RemoveDataFile( outfile_ );
   }
-  
+
   mprintf("\tHist: %s: Set up for %zu dimensions using the following datasets:\n", 
           outfilename_.c_str(), N_dimensions_);
   mprintf("\t      [ ");
@@ -267,7 +309,8 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprintf("%s ",(*ds)->Legend().c_str());
   mprintf("]\n");
   if (calcAMD_)
-    mprintf("\t      Populating bins using AMD boost from data set %s\n", amdname.c_str());
+    mprintf("\t      Populating bins using AMD boost from data set %s\n", 
+            amddata_->Legend().c_str());
   if (calcFreeE_)
     mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp_);
   if (nativeOut_)
@@ -284,7 +327,6 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprintf("\t      norm: Sum over bins will be normalized to 1.0.\n");
   else if (normalize_ == NORM_INT)
     mprintf("\t      normint: Integral over bins will be normalized to 1.0.\n");
-
   return Analysis::OK;
 }
 

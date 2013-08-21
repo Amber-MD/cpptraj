@@ -82,6 +82,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_Matrix.cpp \
         Analysis_MeltCurve.cpp \
         Analysis_Modes.cpp \
+        Analysis_MultiHist.cpp \
         Analysis_Overlap.cpp \
         Analysis_RemLog.cpp \
         Analysis_Rms2d.cpp \
