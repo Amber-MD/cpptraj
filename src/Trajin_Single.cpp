@@ -34,12 +34,8 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   }
   // Check and set associated parm file
   if ( SetTrajParm( tparmIn ) ) return 1;
-  // Check that file exists
-  // FIXME: Is this necessary? Just let cpptrajfile check this?
-  if (!fileExists(tnameIn.c_str())) {
-    mprinterr("Error: File %s does not exist.\n",tnameIn.c_str());
-    return 1;
-  }
+  // Check that file can be opened. 
+  if (!fileExists(tnameIn.c_str())) return 1; 
   // Detect file format
   if ( (trajio_ = DetectFormat( tnameIn )) == 0 ) {
     mprinterr("Error: Could not determine trajectory %s format.\n", tnameIn.c_str());

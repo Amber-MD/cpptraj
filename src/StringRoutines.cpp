@@ -1,5 +1,7 @@
 #include <cstdio>    // fprintf, fopen, fclose, sprintf
 #include <cmath>     // log10
+#include <cerrno>
+#include <cstring>   // strerror
 #include <sstream>   // istringstream, ostringstream
 #include <locale>    // isspace
 #include <stdexcept> // BadConversion
@@ -8,15 +10,17 @@
 #  include <glob.h>  // For tilde expansion
 #endif
 #include "StringRoutines.h"
+#include "CpptrajStdio.h"
 
 // tildeExpansion()
-/** Use glob.h to perform tilde expansion on a filename, returning the 
-  * expanded filename. The calling function is responsible for freeing
-  * memory allocated with tildeExpansion.
+/** Use glob.h to perform tilde expansion on a filename, returning the
+  * expanded filename. If the file does not exist or globbing fails return an
+  * empty string. Do not print an error message if the file does not exist
+  * so that this routine and fileExists() can be used to silently check files.
   */
 std::string tildeExpansion(const char *filenameIn) {
   if (filenameIn==0) {
-    fprintf(stderr,"Error: tildeExpansion: null filename specified.\n");
+    mprinterr("Error: tildeExpansion: null filename specified.\n");
     return std::string("");
   }
 # ifdef __PGI
@@ -27,11 +31,17 @@ std::string tildeExpansion(const char *filenameIn) {
 # else
   glob_t globbuf;
   globbuf.gl_offs = 1;
-  if ( glob(filenameIn, GLOB_TILDE, NULL, &globbuf)!=0 )
-    return std::string("");
-  //mprintf("DEBUG\tGLOB(0): [%s]\n", globbuf.gl_pathv[0]);
-  std::string returnFilename( globbuf.gl_pathv[0] );
-  globfree(&globbuf);
+  std::string returnFilename;
+  int err = glob(filenameIn, GLOB_TILDE, NULL, &globbuf);
+  if ( err == GLOB_NOMATCH )
+    //mprinterr("Error: '%s' does not exist.\n", filenameIn); // Make silent
+    return returnFilename;
+  else if ( err != 0 )
+    mprinterr("Internal Error: glob() failed for '%s' (%i)\n", filenameIn, err);
+  else {
+    returnFilename.assign( globbuf.gl_pathv[0] );
+    globfree(&globbuf);
+  }
   return returnFilename;
 # endif
 }
@@ -71,7 +81,10 @@ bool fileExists(const char *filenameIn) {
   std::string fname = tildeExpansion(filenameIn);
   if (fname.empty()) return false;
   FILE *infile = fopen(fname.c_str(), "rb");
-  if (infile==0) return false;
+  if (infile==0) {
+    mprinterr("Error: File '%s': %s\n", fname.c_str(), strerror( errno ));
+    return false;
+  }
   fclose(infile);
   return true;
 }
@@ -79,7 +92,6 @@ bool fileExists(const char *filenameIn) {
 // NumberFilename()
 /** Given a filename and a number, append number to filename, i.e.
   * filename.number.
-  * The buffer should have enough space to handle the append.
   */
 std::string NumberFilename(std::string const &fname, int number) {
   std::ostringstream oss;
