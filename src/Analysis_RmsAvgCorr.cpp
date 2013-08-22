@@ -1,6 +1,7 @@
 // Analysis_RmsAvgCorr
 #include "Analysis_RmsAvgCorr.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // FIXME: Remove in cpptraj-dev
 #include "ProgressBar.h"
 #ifdef _OPENMP
 #  include "omp.h"
@@ -11,16 +12,17 @@ Analysis_RmsAvgCorr::Analysis_RmsAvgCorr() :
   coords_(0),
   Ct_(0),
   maxwindow_(-1),
+  lagOffset_(1),
   useMass_(false)
 { } 
 
 void Analysis_RmsAvgCorr::Help() {
-  mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>] [mass]\n");
-  mprintf("\t[stop <maxwindow>]\n");
-  mprintf("\tCalculate the RMS average correlation, i.e. the average RMSD\n");
-  mprintf("\tof structures which have been averaged over increasing numbers\n");
-  mprintf("\tof frames.\n");
-  mprintf("\t<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>] [mass]\n"
+          "\t[stop <maxwindow>] [offset <offset>]\n"
+          "\tCalculate the RMS average correlation, i.e. the average RMSD\n"
+          "\tof structures which have been averaged over increasing numbers\n"
+          "\tof frames.\n"
+          "\t<crd set> can be created with the 'createcrd' command.\n");
 }
 
 Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
@@ -35,6 +37,8 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
     return Analysis::ERR;
   }
   // Get Keywords
+  lagOffset_ = analyzeArgs.getKeyInt("offset", 1);
+  if (lagOffset_ < 1) lagOffset_ = 1;
   DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
 # ifdef _OPENMP
   if (analyzeArgs.hasKey("output")) {
@@ -52,14 +56,19 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   // Set up dataset to hold correlation 
   Ct_ = datasetlist->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringNext(),"RACorr");
   if (Ct_==0) return Analysis::ERR;
-  if (outfile != 0) outfile->AddSet( Ct_ );
+  if (outfile != 0) {
+    outfile->AddSet( Ct_ );
+    // FIXME: This will have to be changed in cpptraj-dev
+    outfile->ProcessArgs("xstep " + integerToString(lagOffset_));
+  }
 
-  mprintf("    RMSAVGCORR: COORDS set [%s]", coords_->Legend().c_str());
-  mprintf(", mask [%s]", mask_.MaskString());
+  mprintf("    RMSAVGCORR: COORDS set [%s], mask [%s]", coords_->Legend().c_str(),
+          mask_.MaskString());
   if (useMass_) mprintf(" (mass-weighted)");
-  if (outfile != 0) mprintf(", Output to %s",outfile->DataFilename().base());
-  if (maxwindow_!=-1) mprintf(", max window %i",maxwindow_);
-  mprintf(".\n");
+  mprintf("\n");
+  if (maxwindow_!=-1) mprintf("\tMax window size %i\n",maxwindow_);
+  if (lagOffset_ > 1) mprintf("\tWindow size offset %i\n", lagOffset_);
+  if (outfile != 0) mprintf("\tOutput to %s\n",outfile->DataFilename().base());
   if (!separateName_.empty())
     mprintf("\tSeparate datafile will be written to %s\n",separateName_.c_str());
   return Analysis::OK;
@@ -71,7 +80,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   */ 
 Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   double avg;
-  int window, frame, WindowMax;
+  int window, frame, WindowMax, widx, widx_end;
   CpptrajFile separateDatafile;
   bool first;
 
@@ -111,19 +120,10 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   }
 
   // Print calc summary
-  mprintf("    RMSAVGCORR: Performing RMSD calcs over running avg of coords with window\n");
-  mprintf("                sizes ranging from 1 to %i",WindowMax-1);
+  mprintf("    RMSAVGCORR: Performing RMSD calcs over running avg of coords with window\n"
+          "                sizes ranging from 1 to %i, offset %i", WindowMax-1, lagOffset_);
   if (useMass_) mprintf(", mass-weighted");
   mprintf(".\n");
-# ifdef _OPENMP
-  // Currently DataSet is not thread-safe. Use temp storage.
-  double *Ct_openmp = new double[ WindowMax - 1 ];
-#pragma omp parallel
-{
-  if (omp_get_thread_num()==0)
-    mprintf("                Parallelizing calculation with %i threads.\n",omp_get_num_threads());
-}
-#endif
 
   // First value for Ct (window==1) is just the avg RMSD with no running 
   // averaging. Since all non-rms atoms have been stripped, all atoms in
@@ -151,17 +151,31 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   if (!separateName_.empty())
     separateDatafile.Printf("%8i %lf\n",1,avg);
 
-  // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES 
-  ParallelProgress progress(WindowMax);
+  // Create an array with window sizes to be calcd.
+  std::vector<int> w_sizes;
+  int startWindow = 1 + lagOffset_; 
+  int total_windows = (WindowMax - startWindow)  / lagOffset_;
+  if ( (total_windows % lagOffset_) > 0 ) ++total_windows;
+  w_sizes.reserve( total_windows );
+  for (int ws = startWindow; ws < WindowMax; ws += lagOffset_)
+    w_sizes.push_back( ws );
+  // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES
+  widx_end = (int)w_sizes.size();
+  ParallelProgress progress(widx_end);
 # ifdef _OPENMP
-#pragma omp parallel private(window,frame,avg,frameThreshold,subtractWindow,d_Nwindow,first) firstprivate(refFrame,tgtFrame,sumFrame,progress)
+  // Currently DataSet is not thread-safe. Use temp storage.
+  double* Ct_openmp = new double[ widx_end ];
+#pragma omp parallel private(widx,window,frame,avg,frameThreshold,subtractWindow,d_Nwindow,first) firstprivate(refFrame,tgtFrame,sumFrame,progress)
 {
   progress.SetThread(omp_get_thread_num());
+  if (omp_get_thread_num()==0)
+    mprintf("\t\tParallelizing calculation with %i threads.\n",omp_get_num_threads());
 #pragma omp for schedule(dynamic)
 #endif
-  for (window = 2; window < WindowMax; window++ ) {
-    progress.Update(window);
+  for (widx = 0; widx < widx_end; widx++) {
+    progress.Update(widx);
     // Initialize and set up running average for this window size
+    window = w_sizes[widx];
     frameThreshold = window - 2;
     // TODO: Make subtractWindow a const iterator to CoordList
     subtractWindow = 0;
@@ -199,9 +213,9 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     d_Nwindow = (double)coords_->Size() - (double)window + 1;
     avg /= d_Nwindow;
 #   ifdef _OPENMP
-    Ct_openmp[window-1] = avg;
+    Ct_openmp[widx] = avg;
 #   else 
-    Ct_->Add(window-1, &avg);
+    Ct_->Add(widx+1, &avg);
     if (!separateName_.empty())
       separateDatafile.Printf("%8i %lf\n",window, avg);
 #   endif
@@ -209,8 +223,8 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
 #ifdef _OPENMP
 } // END pragma omp parallel
   // Put Ct_openmp into Ct dataset
-  for (window = 1; window < WindowMax-1; window++)
-    Ct_->Add(window, Ct_openmp+window);
+  for (window = 0; window < widx_end; window++)
+    Ct_->Add(window+1, Ct_openmp+window);
   delete[] Ct_openmp;
 #endif
   progress.Finish();

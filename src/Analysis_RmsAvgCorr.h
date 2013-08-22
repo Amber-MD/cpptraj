@@ -19,6 +19,7 @@ class Analysis_RmsAvgCorr: public Analysis {
     DataSet_Coords* coords_;
     DataSet* Ct_;
     int maxwindow_;
+    int lagOffset_;
     bool useMass_;
 };
 #endif  
