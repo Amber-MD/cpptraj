@@ -36,6 +36,13 @@ DataFile* DataFileList::RemoveDataFile( DataFile* dfIn ) {
   return dfIn;
 }
 
+// DataFileList::RemoveDataSet()
+/** Remove given DataSet from any DataFiles in list. */
+void DataFileList::RemoveDataSet( DataSet* dsIn ) {
+  for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
+    (*df)->RemoveSet( dsIn );
+}
+
 // DataFileList::SetDebug()
 /** Set debug level for DataFileList and all datafiles in it. */
 void DataFileList::SetDebug(int debugIn) {

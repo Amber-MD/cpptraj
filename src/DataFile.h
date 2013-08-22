@@ -37,6 +37,8 @@ class DataFile {
     int SetupDatafile(std::string const&, ArgList&, int);
     /// Add a previously set-up DataSet to DataFile.
     int AddSet(DataSet*);
+    /// Remove a set from the DataFile.
+    int RemoveSet(DataSet*);
     /// Process DataFile-related arguments
     int ProcessArgs(ArgList&);
     int ProcessArgs(std::string const&);

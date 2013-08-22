@@ -261,7 +261,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
   // ----- REMOVE EMPTY DATASETS -----
   for (int i = 1; i < (int)N_FIELDTYPES; i++) { // Do not store NSTEP
     if (Esets[i]->Empty())
-      datasetlist.erase( Esets[i] );
+      datasetlist.RemoveSet( Esets[i] );
     else
       Esets[i]->SetDim(Dimension::X, Xdim);
   }

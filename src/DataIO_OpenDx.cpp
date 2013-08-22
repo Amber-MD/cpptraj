@@ -28,7 +28,7 @@ int DataIO_OpenDx::ReadData(std::string const& fname, ArgList& argIn,
     // Load failed. Erase grid data set.
     DataSetList::const_iterator last = datasetlist.end();
     --last;
-    datasetlist.erase( last );
+    datasetlist.RemoveSet( last );
     return 1;
   }
   return 0;

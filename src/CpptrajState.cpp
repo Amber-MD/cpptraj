@@ -113,7 +113,24 @@ int CpptrajState::RemoveFromList( ArgList& argIn ) {
   if ( enabled[L_PARM]     ) return RemoveError(); //parmFileList_.Clear();
   if ( enabled[L_ANALYSIS] ) return RemoveError(); //analysisList_.Clear();
   if ( enabled[L_DATAFILE] ) return RemoveError(); //DFL_.Clear();
-  if ( enabled[L_DATASET]  ) DSL_.Remove( removeArg );
+  if ( enabled[L_DATASET]  ) {
+    // For DataSets, need to first make sure they are removed from
+    // DataFiles etc as well.
+    // FIXME: Currently no good way to check if Actions/Analyses will be
+    //        made invalid by DataSet removal.
+    DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
+    if (tempDSL.empty())
+      mprintf("Warning: \"%s\" does not correspond to any data sets.\n", removeArg.c_str());
+    else {
+      for (DataSetList::const_iterator ds = tempDSL.begin();
+                                     ds != tempDSL.end(); ++ds)
+      {
+        mprintf("\tRemoving \"%s\"\n", (*ds)->Legend().c_str());
+        DFL_.RemoveDataSet( *ds );
+        DSL_.RemoveSet( *ds );
+      }
+    }
+  }
   return 0;
 }
 

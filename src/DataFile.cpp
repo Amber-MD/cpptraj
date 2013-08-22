@@ -272,6 +272,13 @@ int DataFile::AddSet(DataSet* dataIn) {
   return 0;
 }
 
+// DataFile::RemoveSet()
+int DataFile::RemoveSet(DataSet* dataIn) {
+  if (dataIn == 0) return 1;
+  SetList_.RemoveSet( dataIn );
+  return 0;
+}
+
 // DataFile::ProcessArgs()
 int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
@@ -331,14 +338,14 @@ void DataFile::WriteData() {
     if ( (*Dset)->Empty() ) {
       // If set has no data, remove it
       mprintf("Warning: Set %s contains no data. Skipping.\n",(*Dset)->Legend().c_str());
-      SetList_.erase( Dset );
+      SetList_.RemoveSet( Dset );
       Dset = SetList_.end();
     } else {
       // If set has data, set its format to right-aligned initially.
       if ( (*Dset)->SetDataSetFormat(false) ) {
         mprinterr("Error: could not set format string for set %s. Skipping.\n", 
                   (*Dset)->Legend().c_str());
-        SetList_.erase( Dset );
+        SetList_.RemoveSet( Dset );
         Dset = SetList_.end();
       } 
     }

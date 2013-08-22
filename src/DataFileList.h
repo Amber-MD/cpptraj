@@ -11,6 +11,7 @@ class DataFileList {
     ~DataFileList();
     void Clear();
     DataFile* RemoveDataFile(DataFile*);
+    void RemoveDataSet(DataSet*);
     void SetDebug(int);
 #   ifdef MPI
     void SetEnsembleMode(int mIn) { ensembleMode_ = mIn; }

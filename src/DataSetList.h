@@ -19,7 +19,6 @@ class DataSetList {
     DataSetList();
     ~DataSetList();
     void Clear();
-    void Remove(std::string const&);
     DataSetList& operator+=(DataSetList const&);
     /// DataSetList default iterator
     typedef std::vector<DataSet*>::const_iterator const_iterator;
@@ -33,9 +32,10 @@ class DataSetList {
     size_t size()          const { return DataList_.size();  }
     /// Return the max # expected frames
     int MaxFrames()        const { return maxFrames_;        }
-    /// Erase set from list
-    void erase( const_iterator );
-    void erase( DataSet* );
+    /// Remove set from list - used in DataFile
+    void RemoveSet( const_iterator );
+    /// Remove set from the list.
+    void RemoveSet( DataSet* );
     /// Sort DataSets in list.
     void sort();
     /// Return DataSet at didx.
