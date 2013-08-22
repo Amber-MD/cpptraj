@@ -23,6 +23,7 @@ class DataFileList {
     void List() const;
     /// Write all DataFiles in list that have not yet been written.
     void WriteAllDF();
+    void ResetWriteStatus();
     int ProcessDataFileArgs(ArgList&);
   private:
     typedef std::vector<DataFile*> DFarray;

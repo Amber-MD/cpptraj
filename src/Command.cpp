@@ -896,9 +896,10 @@ Command::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, Command::Al
   return Command::C_OK;
 }
 
-/// Write all DataFiles in State
+/// Force write of all DataFiles in State
 Command::RetType WriteAllData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
+  State.DFL()->ResetWriteStatus();
   State.MasterDataFileWrite();
   return Command::C_OK;
 }

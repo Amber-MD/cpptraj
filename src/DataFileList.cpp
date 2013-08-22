@@ -137,6 +137,12 @@ void DataFileList::WriteAllDF() {
   }
 }
 
+/** Reset writeFile status for all files in list to true. */
+void DataFileList::ResetWriteStatus() {
+  for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
+    (*df)->SetDFLwrite( true );
+}
+
 // DataFileList::ProcessDataFileArgs()
 /** Process command relating to data files. */
 int DataFileList::ProcessDataFileArgs(ArgList& dataArg) {
