@@ -34,6 +34,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_MakeStructure.cpp \
         Action_Mask.cpp \
         Action_Matrix.cpp \
+        Action_MaxDist.cpp \
         Action_MinDist.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \

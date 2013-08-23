@@ -67,6 +67,8 @@
 #include "Action_OrderParameter.h"
 #include "Action_MinDist.h"
 #include "Action_FixAtomOrder.h"
+#include "Action_MaxDist.h"
+
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -1202,6 +1204,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "makestructure", Action_MakeStructure::Alloc, Action_MakeStructure::Help, AddAction },
   { ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, AddAction },
   { ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, AddAction },
+  { ACTION, "maxdist", Action_MaxDist::Alloc, Action_MaxDist::Help, AddAction },
   { ACTION, "mindist", Action_MinDist::Alloc, Action_MinDist::Help, AddAction },
   { ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, AddAction },
   { ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, AddAction },
