@@ -18,6 +18,7 @@ class Analysis_RmsAvgCorr: public Analysis {
     std::string separateName_;
     DataSet_Coords* coords_;
     DataSet* Ct_;
+    Frame refFrame_;
     int maxwindow_;
     int lagOffset_;
     bool useMass_;
