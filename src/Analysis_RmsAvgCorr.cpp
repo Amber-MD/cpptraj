@@ -1,4 +1,5 @@
 // Analysis_RmsAvgCorr
+#include <cmath> // sqrt
 #include "Analysis_RmsAvgCorr.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // FIXME: Remove in cpptraj-dev
@@ -12,6 +13,7 @@
 Analysis_RmsAvgCorr::Analysis_RmsAvgCorr() :
   coords_(0),
   Ct_(0),
+  Csd_(0),
   maxwindow_(-1),
   lagOffset_(1),
   useMass_(false)
@@ -100,8 +102,11 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   // Set up dataset to hold correlation 
   Ct_ = datasetlist->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringNext(),"RACorr");
   if (Ct_==0) return Analysis::ERR;
+  Csd_ = datasetlist->AddSetAspect(DataSet::DOUBLE, Ct_->Name(), "SD");
+  if (Csd_==0) return Analysis::ERR;
   if (outfile != 0) {
     outfile->AddSet( Ct_ );
+    outfile->AddSet( Csd_ );
     // FIXME: This will have to be changed in cpptraj-dev
     outfile->ProcessArgs("xstep " + integerToString(lagOffset_));
   }
@@ -124,11 +129,10 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   * window size will be the "correlation" value.
   */ 
 Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
-  double avg;
+  double avg, stdev, rmsd, d_Nwindow;
   int window, frame, WindowMax, widx, widx_end;
   CpptrajFile separateDatafile;
   int frameThreshold, subtractWindow;
-  double d_Nwindow;
 
   mprintf("    RMSAVGCORR:\n");
   // If 'output' specified open up separate datafile that will be written
@@ -181,9 +185,12 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   // Pre-center reference
   // Calc initial RMSD
   avg = 0.0;
+  stdev = 0.0;
   for (frame = 0; frame < coords_->Size(); frame++) {
     tgtFrame.SetFromCRD( (*coords_)[frame], 0, mask_);
-    avg += tgtFrame.RMSD_CenteredRef(refFrame_, useMass_);
+    rmsd = tgtFrame.RMSD_CenteredRef(refFrame_, useMass_); 
+    avg += rmsd;
+    stdev += (rmsd * rmsd);
   }
   // DEBUG
 /*
@@ -193,10 +200,18 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   debug_data->Write();
   delete debug_data;
 */
-  avg /= coords_->Size(); 
+  d_Nwindow = 1.0 / (double)coords_->Size();
+  avg *= d_Nwindow;
+  stdev *= d_Nwindow;
+  stdev -= (avg * avg);
+  if (stdev > 0.0)
+    stdev = sqrt( stdev );
+  else
+    stdev = 0.0;
   Ct_->Add(0, &avg);
+  Csd_->Add(0, &stdev);
   if (!separateName_.empty())
-    separateDatafile.Printf("%8i %lf\n",1,avg);
+    separateDatafile.Printf("%8i %f %f\n",1,avg,stdev);
 
   // Create an array with window sizes to be calcd.
   std::vector<int> w_sizes;
@@ -212,7 +227,8 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
 # ifdef _OPENMP
   // Currently DataSet is not thread-safe. Use temp storage.
   double* Ct_openmp = new double[ widx_end ];
-#pragma omp parallel private(widx,window,frame,avg,frameThreshold,subtractWindow,d_Nwindow) firstprivate(tgtFrame,sumFrame,progress)
+  double* Csd_openmp = new double[ widx_end ];
+#pragma omp parallel private(widx,window,frame,avg,stdev,rmsd,frameThreshold,subtractWindow,d_Nwindow) firstprivate(tgtFrame,sumFrame,progress)
 {
   progress.SetThread(omp_get_thread_num());
   if (omp_get_thread_num()==0)
@@ -230,6 +246,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     sumFrame.ZeroCoords();
     // LOOP OVER FRAMES
     avg = 0.0;
+    stdev = 0.0;
     for (frame = 0; frame < coords_->Size(); frame++) {
       tgtFrame.SetFromCRD( (*coords_)[frame], 0, mask_);
       // Add current coordinates to sumFrame
@@ -238,7 +255,9 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
       // If so, start calculating RMSDs
       if ( frame > frameThreshold ) {
         tgtFrame.Divide( sumFrame, d_Nwindow );
-        avg += tgtFrame.RMSD_CenteredRef(refFrame_, useMass_);
+        rmsd = tgtFrame.RMSD_CenteredRef(refFrame_, useMass_);
+        avg += rmsd;
+        stdev += (rmsd * rmsd);
         // Subtract frame at subtractWindow from sumFrame 
         tgtFrame.SetFromCRD( (*coords_)[subtractWindow], 0, mask_);
         sumFrame -= tgtFrame;
@@ -247,22 +266,33 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     } // END LOOP OVER FRAMES
     // Take average rmsd for this window size. The number of frames for which
     // RMSD was calculated is (Total#frames) - (window size) + 1
-    d_Nwindow = (double)coords_->Size() - (double)window + 1;
-    avg /= d_Nwindow;
+    d_Nwindow = 1.0 / ((double)coords_->Size() - (double)window + 1.0);
+    avg *= d_Nwindow;
+    stdev *= d_Nwindow;
+    stdev -= (avg * avg);
+    if (stdev > 0.0)
+      stdev = sqrt( stdev );
+    else
+      stdev = 0.0;
 #   ifdef _OPENMP
     Ct_openmp[widx] = avg;
+    Csd_openmp[widx] = stdev;
 #   else 
     Ct_->Add(widx+1, &avg);
+    Csd_->Add(widx+1, &stdev);
     if (!separateName_.empty())
-      separateDatafile.Printf("%8i %lf\n",window, avg);
+      separateDatafile.Printf("%8i %f %f\n",window, avg, stdev);
 #   endif
   } // END LOOP OVER WINDOWS
 #ifdef _OPENMP
 } // END pragma omp parallel
   // Put Ct_openmp into Ct dataset
-  for (window = 0; window < widx_end; window++)
+  for (window = 0; window < widx_end; window++) {
     Ct_->Add(window+1, Ct_openmp+window);
+    Csd_->Add(window+1, Csd_openmp+window);
+  }
   delete[] Ct_openmp;
+  delete[] Csd_openmp;
 #endif
   progress.Finish();
   if (!separateName_.empty())
