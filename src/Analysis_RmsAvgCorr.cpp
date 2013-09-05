@@ -254,7 +254,10 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   // Currently DataSet is not thread-safe. Use temp storage.
   double* Ct_openmp = new double[ widx_end ];
   double* Csd_openmp = new double[ widx_end ];
-#pragma omp parallel private(widx,window,frame,avg,stdev,rmsd,frameThreshold,subtractWindow,d_Nwindow,first) firstprivate(tgtFrame,sumFrame,progress)
+  // NOTE: It appears that OpenMP does not like non-atomic class vars
+  //       in the firstprivate clause. Thus, refFrame needs to be duplicated.
+  Frame ompRefFrame = refFrame_;
+#pragma omp parallel private(widx,window,frame,avg,stdev,rmsd,frameThreshold,subtractWindow,d_Nwindow,first) firstprivate(tgtFrame,ompRefFrame,sumFrame,progress)
 {
   progress.SetThread(omp_get_thread_num());
   if (omp_get_thread_num()==0)
@@ -285,13 +288,22 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
         // If first, this is the first running-avgd frame, use as reference
         // for RMSD calc for this window size.
         if (first) {
-          // Set coords only for speed (everything else is same anyway)
+          // Set coords only for speed (everything else is same anyway).
+          // Then pre-center reference.
+#         ifdef _OPENMP
+          ompRefFrame.SetCoordinates( tgtFrame );
+          ompRefFrame.CenterOnOrigin(useMass_);
+#         else
           refFrame_.SetCoordinates( tgtFrame );
-          // Pre-center reference
           refFrame_.CenterOnOrigin(useMass_);
+#         endif
           first = false;
         }
+#       ifdef _OPENMP
+        rmsd = tgtFrame.RMSD_CenteredRef(ompRefFrame, useMass_);
+#       else
         rmsd = tgtFrame.RMSD_CenteredRef(refFrame_, useMass_);
+#       endif
         avg += rmsd;
         stdev += (rmsd * rmsd);
         // Subtract frame at subtractWindow from sumFrame 
