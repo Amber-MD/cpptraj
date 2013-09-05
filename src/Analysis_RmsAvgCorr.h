@@ -23,5 +23,6 @@ class Analysis_RmsAvgCorr: public Analysis {
     int maxwindow_;
     int lagOffset_;
     bool useMass_;
+    bool useFirst_; ///< If true, use first running-avgd frame as reference.
 };
 #endif  
