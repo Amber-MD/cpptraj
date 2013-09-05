@@ -137,7 +137,8 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
       mprinterr("Error: Getting replica temperature.\n");
       return 1;
     }
-    if (debug_>1) mprintf("DEBUG: %s: Replica Temperature %lf\n",filename_.base(), frameIn.Temperature());
+    if (debug_ > 1)
+      mprintf("DEBUG: %s: Replica Temperature %lf\n",filename_.base(), frameIn.Temperature());
   }
 
   // Read Coords 
@@ -213,7 +214,7 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   }
   // write velocity
   if (V_present) {
-    mprintf("DEBUG: Writing V, VID=%i\n",velocityVID_);
+    //mprintf("DEBUG: Writing V, VID=%i\n",velocityVID_);
     if (checkNCerr(nc_put_vara_double(ncid_,velocityVID_,start_,count_,frameOut.vAddress())) ) {
       mprinterr("Error: Netcdf restart writing velocity %i\n",set);
       return 1;

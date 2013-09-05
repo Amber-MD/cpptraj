@@ -111,7 +111,7 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
 // Traj_AmberNetcdf::processWriteArgs()
 int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn) {
   SetTemperature(argIn.hasKey("remdtraj"));
-  SetVelocity(argIn.hasKey("velo"));
+  SetVelocity(argIn.hasKey("velocity"));
   return 0;
 }
 
@@ -255,8 +255,17 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   count_[1] = Ncatom();
   count_[2] = 3;
   if (checkNCerr(nc_put_vara_float(ncid_,coordVID_,start_,count_,Coord_)) ) {
-    mprinterr("Error: Netcdf Writing frame %i\n",set);
+    mprinterr("Error: Netcdf Writing coords frame %i\n", set+1);
     return 1;
+  }
+
+  // Write velocity.
+  if (HasV() && frameOut.HasVelocity()) {
+    DoubleToFloat(Coord_, frameOut.vAddress());
+    if (checkNCerr(nc_put_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: Netcdf writing velocity frame %i\n", set+1);
+      return 1;
+    }
   }
 
   // Write box
@@ -264,11 +273,11 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
     count_[1] = 3;
     count_[2] = 0;
     if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.bAddress())) ) {
-      mprinterr("Error: Writing cell lengths.\n");
+      mprinterr("Error: Writing cell lengths frame %i.\n", set+1);
       return 1;
     }
     if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frameOut.bAddress()+3)) ) {
-      mprinterr("Error: Writing cell angles.\n");
+      mprinterr("Error: Writing cell angles frame %i.\n", set+1);
       return 1;
     }
   }
@@ -276,11 +285,11 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   // Write temperature
   if (TempVID_!=-1) {
     if ( checkNCerr( nc_put_vara_double(ncid_,TempVID_,start_,count_,frameOut.tAddress())) ) {
-      mprinterr("Error: Writing temperature.\n");
+      mprinterr("Error: Writing temperature frame %i.\n", set+1);
       return 1;
     }
   }
-  
+    
   nc_sync(ncid_); // Necessary after every write??
 
   ++ncframe_;
