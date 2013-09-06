@@ -398,20 +398,6 @@ Analysis::RetType Analysis_Hist::Analyze() {
     }
     if (debug_>1) mprintf("}\n");
   }
-/* // TODO: Re-enable
-  std::vector<double> coord( hist_->NumDimension() );
-  for (int n=0; n < Ndata; n++) {
-    std::vector<double>::iterator coord_it = coord.begin();
-    for (std::vector<DataSet*>::iterator ds = histdata_.begin(); ds != histdata_.end(); ++ds) {
-      *coord_it = (*ds)->Dval( n );
-      ++coord_it;
-    }
-    if (calcAMD_)
-      hist_->BinAMD( coord, amddata_->Dval(n) );
-    else
-      hist_->BinData( coord );
-  }
-*/
   // Calc free energy if requested
   if (calcFreeE_) CalcFreeE();
 
