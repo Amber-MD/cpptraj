@@ -27,6 +27,10 @@ std::string tildeExpansion(const char *filenameIn) {
   // NOTE: It seems some PGI compilers do not function correctly when glob.h
   //       is included and large file flags are set. Just disable globbing
   //       for PGI and return a copy of filenameIn.
+  // Since not globbing, check if file exists before returning filename.
+  FILE *infile = fopen(filenameIn, "rb");
+  if (infile == 0) return std::string("");
+  fclose(infile);
   return std::string(filenameIn);
 # else
   glob_t globbuf;
