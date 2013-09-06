@@ -15,9 +15,11 @@ class Analysis_KDE : public Analysis {
 
     double GaussianKernel(double) const;
 
-    DataSet* data_;
-    double bandwidth_;
-    DataSet* output_;
-    fxnptr Kernel_;
+    DataSet* data_;    ///< Data set to histogram.
+    DataSet* q_data_;  ///< Second set if calculating KL divergence.
+    double bandwidth_; ///< Bandwidth for KDE.
+    DataSet* output_;  ///< Output Histogram.
+    DataSet* kldiv_;   ///< KL divergence vs time.
+    fxnptr Kernel_;    ///< Kernel to use.
 };
 #endif
