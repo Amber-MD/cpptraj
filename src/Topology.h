@@ -27,6 +27,7 @@ class Topology {
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int Nframes()                  const { return nframes_;               }
     int Ntypes()                   const { return ntypes_;                }
+    int NextraPts()                const { return n_extra_pts_;           }
     std::string const& ParmName()         const { return parmName_;       }
     std::string const& OriginalFilename() const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
@@ -193,6 +194,7 @@ class Topology {
     int pindex_;
     int nframes_;
     int ntypes_; // This is stored for the purpose of checking array sizes
+    int n_extra_pts_;
 
     void PrintBonds(std::vector<int> const&, AtomMask const&);
     void SetAtomBondInfo();
@@ -205,6 +207,7 @@ class Topology {
     int DetermineMolecules();
     void AtomDistance(int, int, int, std::set<int>&);
     void DetermineExcludedAtoms();
+    void DetermineNumExtraPoints();
     int SetSolventInfo();
 
     void Mask_SelectDistance( Frame const&, char*, bool, bool, double ) const;
