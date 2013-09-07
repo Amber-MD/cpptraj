@@ -22,8 +22,7 @@ class DataSet_Modes : public DataSet {
     int ReadEvecFile(std::string const&, int, int);
     int EigvalToFreq();
     int MassWtEigvect( DataSet_MatrixDbl::Darray const& );
-    int ReduceCovar();
-    int ReduceDistCovar(int);
+    int Reduce();
     int Thermo(CpptrajFile&, int, double, double);
 
     void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
@@ -38,6 +37,9 @@ class DataSet_Modes : public DataSet {
     int NavgCrd()                    const { return (int)avgcrd_.size();        } // Project
     DataSet_2D::MatrixType Type()    const { return type_;                      } // Project
   private:
+    int ReduceCovar();
+    int ReduceDistCovar();
+
     Frame avgcrd_;
     double* evalues_;
     double* evectors_;

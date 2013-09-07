@@ -69,15 +69,6 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   }
   // Reduce flag
   reduce_ = analyzeArgs.hasKey("reduce");
-  if ( reduce_ && matrix_->Type() != DataSet_2D::MWCOVAR &&
-                  matrix_->Type() != DataSet_2D::COVAR   &&
-                  matrix_->Type() != DataSet_2D::DISTCOVAR  )
-  {
-    mprinterr("Error: analyze matrix: reduce not supported for %s\n", 
-              DataSet_2D::MatrixTypeString(matrix_->Type()));
-    mprinterr("Error: reduce only works for covariance and distance covariance matrices.\n");
-    return Analysis::ERR;
-  }
   // Set up DataSet_Modes
   std::string modesname = analyzeArgs.GetStringKey("name");
   modes_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesname, "Modes" );
@@ -132,11 +123,7 @@ Analysis::RetType Analysis_Matrix::Analyze() {
     }
   }
   if (reduce_) {
-    if ( matrix_->Type() == DataSet_2D::COVAR ||
-         matrix_->Type() == DataSet_2D::MWCOVAR )
-      modes_->ReduceCovar();
-    else if ( matrix_->Type() == DataSet_2D::DISTCOVAR )
-      modes_->ReduceDistCovar( matrix_->Ncols() ); // NOTE: Was Nelts
+    if (modes_->Reduce()) return Analysis::ERR;
   }
   //modes_->PrintModes(); // DEBUG
   if (!outfilename_.empty())

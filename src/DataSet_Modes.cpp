@@ -508,15 +508,27 @@ int DataSet_Modes::MassWtEigvect(DataSet_MatrixDbl::Darray const& massIn) {
   return 0;
 }
 
+// DataSet_Modes::Reduce() 
+int DataSet_Modes::Reduce() {
+  if (evectors_ == 0) {
+    mprintf("Warning: Cannot 'reduce', no eigenvectors present.\n");
+    return 0;
+  }
+  if ( type_ == DataSet_2D::COVAR || type_ == DataSet_2D::MWCOVAR )
+    return ReduceCovar();
+  else if ( type_ == DataSet_2D::DISTCOVAR )
+    return ReduceDistCovar();
+  else
+    mprintf("Warning: 'reduce' not supported for matrix type %s\n",
+            DataSet_2D::MatrixTypeString(type_));
+  return 0;
+}
+
 /** Reduce covariance eigenvectors. Each eigenvector is assumed to have
   * X, Y, and Z components. Each eigenvector element is reduced via
   * Ei = Eix^2 + Eiy^2 + Eiz^2. See Abseher & Nilges, JMB 1998, 279, 911-920.
   */
 int DataSet_Modes::ReduceCovar() {
-  if (evectors_ == 0) {
-    mprinterr("Error: reduce: No eigenvectors present.\n");
-    return 1;
-  }
   int newvecsize = vecsize_ / 3;
   mprintf("\tReducing size of %i eigenvectors from %i to %i\n",nmodes_,vecsize_,newvecsize);
   double* newEvectors = new double[ nmodes_ * newvecsize ];
@@ -547,22 +559,23 @@ int DataSet_Modes::ReduceCovar() {
   * Eigenvectors are reduced by taking the sum of the squares of each row:
   * 0[0^2 + 1^2 + 2^2], 1[0^2 + 3^2 + 4^2], 2[1^2 + 3^2 + 5^2], etc
   */
-int DataSet_Modes::ReduceDistCovar(int nelts) {
+int DataSet_Modes::ReduceDistCovar() {
   int i, j;
-  if (evectors_ == 0) {
-    mprinterr("Error: reduce: No eigenvectors present.\n");
+  // Calculate original number of atoms; positive root only.
+  double dVecsize = (double)vecsize_;
+  int newvecsize = (int)( 0.5 + sqrt( (2.0*dVecsize)+.25 ) );
+  if (newvecsize < 1) {
+    mprinterr("Error: reduced size of distance covariance < 1.\n");
     return 1;
   }
-  // TODO: Check that nelts * (nelts-1) / 2 == vecsize
-  int newvecsize = nelts;
   mprintf("\tReducing size of %i eigenvectors from %i to %i\n",nmodes_,vecsize_,newvecsize);
   double* newEvectors = new double[ nmodes_ * newvecsize ];
   double* newVec = newEvectors;
   for (int mode = 0; mode < nmodes_; ++mode) {
     const double* Vec = Eigenvector(mode);
-    for (int row = 0; row < nelts; ++row) {
+    for (int row = 0; row < newvecsize; ++row) {
       *newVec = 0.0;
-      for (int col = 0; col < nelts; ++col) {
+      for (int col = 0; col < newvecsize; ++col) {
         if (row != col) {
           // Calculate distance index into half-matrix w.o. diagonal,
           // see TriangleMatrix::calcIndex
@@ -574,7 +587,7 @@ int DataSet_Modes::ReduceDistCovar(int nelts) {
             j = col;
           }
           int i1 = i + 1;
-          double v = Vec[ ( (nelts * i) - ((i1 * i) / 2) ) + j - i1 ];
+          double v = Vec[ ( (newvecsize * i) - ((i1 * i) / 2) ) + j - i1 ];
           *newVec += (v * v);
         }
       }
