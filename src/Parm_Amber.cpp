@@ -266,6 +266,7 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   values[NPHB] = (int)parmIn.Asol().size();
   values[IFBOX] = AmberIfbox( parmIn.ParmBox() );
   values[NMXRS] = parmIn.FindResidueMaxNatom();
+  values[NEXTRA] = parmIn.NextraPts();
     
   // Write parm
   if (file_.OpenWrite( fname )) return 1;
@@ -420,6 +421,10 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     mprinterr("Error: [%s] Could not get POINTERS from Amber Topology.\n",file_.Filename().base());
     return 1;
   }
+  // Warn about LES
+  if (values[NPARM] > 0)
+    mprintf("Warning: '%s' is an LES-type topology.\n"
+            "Warning:  Cpptraj currently cannot split or write LES-type topology files.\n", file_.Filename().base());
   // DEBUG
   //for (std::vector<int>::iterator val = values.begin(); val != values.end(); ++val)
   //  mprintf("\t%i\n", *val);

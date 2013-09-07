@@ -18,7 +18,8 @@ Topology::Topology() :
   finalSoluteRes_(-1),
   pindex_(0),
   nframes_(0),
-  ntypes_(0)
+  ntypes_(0),
+  n_extra_pts_(0)
 { }
 
 // Topology::SetOffset()
@@ -586,6 +587,9 @@ int Topology::CommonSetup(bool bondsearch) {
   // Determine excluded atoms
   DetermineExcludedAtoms();
 
+  // Determine # of extra points.
+  DetermineNumExtraPoints();
+
   return 0;
 }
 
@@ -955,6 +959,14 @@ void Topology::DetermineExcludedAtoms() {
     //  mprintf(" %i",*ei + 1);
     //mprintf("\n");
   } // END loop over atomi
+}
+
+// Topology::DetermineNumExtraPoints()
+void Topology::DetermineNumExtraPoints() {
+  n_extra_pts_ = 0;
+  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
+                                         atom != atoms_.end(); ++atom)
+    if ( (*atom).Element() == Atom::EXTRAPT ) ++n_extra_pts_;
 }
 
 // -----------------------------------------------------------------------------
@@ -1548,6 +1560,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   
   // Setup excluded atoms list - Necessary?
   newParm->DetermineExcludedAtoms();
+
+  // Determine number of extra points
+  newParm->DetermineNumExtraPoints();
 
   return newParm;
 }
