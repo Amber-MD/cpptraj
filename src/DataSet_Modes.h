@@ -23,7 +23,7 @@ class DataSet_Modes : public DataSet {
     int EigvalToFreq();
     int MassWtEigvect( DataSet_MatrixDbl::Darray const& );
     int Reduce();
-    int Thermo(CpptrajFile&, int, double, double);
+    int Thermo(CpptrajFile&, int, double, double) const;
 
     void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
 

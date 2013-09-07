@@ -616,7 +616,7 @@ int DataSet_Modes::ReduceDistCovar() {
   * \param temp    temperature
   * \param patm    pressure, in atmospheres
 */
-int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double patm)
+int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double patm) const
 {
   // avgcrd_   Frame containing coordinates in Angstroms, masses in amu.
   // nmodes_   Number of eigenvectors (already converted to frequencies)
