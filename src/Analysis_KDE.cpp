@@ -147,10 +147,6 @@ Analysis::RetType Analysis_KDE::Analyze() {
     bool Pzero, Qzero;
     // Loop over input P and Q data
     unsigned int nInvalid = 0;
-#ifdef _OPENMP
-#pragma omp parallel private(frame, bin, increment, total, val_p, val_q, norm, xcrd, Pnorm, Qnorm, Pzero, Qzero) shared(KL, validPoint)
-{
-#endif
     for (frame = 0; frame < dataSize; frame++) {
       //mprintf("Frame %i\n", i); // DEBUG
       increment = 1.0;
@@ -168,6 +164,8 @@ Analysis::RetType Analysis_KDE::Analyze() {
       //       is ~2E-05.
       norm = Xdim.Step() / (total * bandwidth_);
 #     ifdef _OPENMP
+#     pragma omp parallel private(bin, xcrd, Pnorm, Qnorm, Pzero, Qzero) reduction(+:KL, validPoint)
+{
 #     pragma omp for
 #     endif
       for (bin = 0; bin < Out.Size(); bin++) {
@@ -185,17 +183,14 @@ Analysis::RetType Analysis_KDE::Analyze() {
           Pzero = (Pnorm == 0.0);
           Qzero = (Qnorm == 0.0);
           if (!Pzero && !Qzero)
-#           ifdef _OPENMP
-#           pragma omp atomic
-#           endif
             KL += ( log( Pnorm / Qnorm ) * Pnorm );
           else if ( Pzero != Qzero )
-#           ifdef _OPENMP
-#           pragma omp atomic
-#           endif
             validPoint++;
         }
       }
+#ifdef _OPENMP
+}
+#endif
       //mprintf("  KL= %f\n", KL); // DEBUG
       if (validPoint == 0) {
         //mprintf("  POINT IS VALID.\n"); // DEBUG
@@ -207,9 +202,6 @@ Analysis::RetType Analysis_KDE::Analyze() {
       }
 //      mprintf("DEBUG: sum_over_p = %f   sum_over_q = %f\n", tempP, tempQ); // DEBUG
     }
-#ifdef _OPENMP
-}
-#endif
     if (nInvalid > 0)
       mprintf("Warning:\tKullback-Leibler divergence was undefined for %u frames.\n", nInvalid);
   }
