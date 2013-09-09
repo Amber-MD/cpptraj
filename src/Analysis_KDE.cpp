@@ -141,48 +141,65 @@ Analysis::RetType Analysis_KDE::Analyze() {
     DataSet_float& klOut = static_cast<DataSet_float&>( *kldiv_ );
     std::vector<double> Qhist( Xdim.Bins(), 0.0 ); // Raw Q histogram.
     klOut.Resize( dataSize ); // Hold KL div vs time
+    // Declare vars here in case of OPENMP
+    unsigned int frame, bin, validPoint;
+    double increment, val_p, val_q, KL, norm, xcrd, Pnorm, Qnorm;
+    bool Pzero, Qzero;
     // Loop over input P and Q data
     unsigned int nInvalid = 0;
-    for (unsigned int i = 0; i < dataSize; i++) {
+#ifdef _OPENMP
+#pragma omp parallel private(frame, bin, increment, total, val_p, val_q, norm, xcrd, Pnorm, Qnorm, Pzero, Qzero) shared(KL, validPoint)
+{
+#endif
+    for (frame = 0; frame < dataSize; frame++) {
       //mprintf("Frame %i\n", i); // DEBUG
-      double increment = 1.0;
+      increment = 1.0;
       total += increment;
       // Apply kernel across P and Q, calculate KL divergence as we go. 
-      double val_p = In.Dval(i);
-      double val_q = Qdata.Dval(i);
-      double KL = 0.0;
-      bool validPoint = true;
+      val_p = In.Dval(frame);
+      val_q = Qdata.Dval(frame);
+      KL = 0.0;
+      validPoint = 0; // 0 in this context means true
 //      double tempP = 0.0; // DEBUG
 //      double tempQ = 0.0; // DEBUG
       // NOTE: This normalization is subject to precision loss.
       //       For a calculation between 2 sets of ~850000 frames the max
       //       precision loss is on the order of 0.001, and the avg. deviation
       //       is ~2E-05.
-      double norm = Xdim.Step() / (total * bandwidth_);
-      for (unsigned int j = 0; j < Out.Size(); j++) {
-        double xcrd = Xdim.Coord(j);
-        Out[j]   += (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
-        Qhist[j] += (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
+      norm = Xdim.Step() / (total * bandwidth_);
+#     ifdef _OPENMP
+#     pragma omp for
+#     endif
+      for (bin = 0; bin < Out.Size(); bin++) {
+        xcrd = Xdim.Coord(bin);
+        Out[bin]   += (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
+        Qhist[bin] += (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
         //mprintf("\tBin %i: P=%f\tQ=%f\n", j, Out[j], Qhist[j]); // DEBUG
         // KL only defined when Q and P are non-zero, or both zero.
-        if (validPoint) {
+        if (validPoint == 0) {
           // Normalize for this frame
-          double Pnorm = Out[j] * norm;
-          double Qnorm = Qhist[j] * norm;
+          Pnorm = Out[bin] * norm;
+          Qnorm = Qhist[bin] * norm;
 //          tempP += Pnorm; // DEBUG
 //          tempQ += Qnorm; // DEBUG
-          bool Pzero = (Pnorm == 0.0);
-          bool Qzero = (Qnorm == 0.0);
+          Pzero = (Pnorm == 0.0);
+          Qzero = (Qnorm == 0.0);
           if (!Pzero && !Qzero)
+#           ifdef _OPENMP
+#           pragma omp atomic
+#           endif
             KL += ( log( Pnorm / Qnorm ) * Pnorm );
           else if ( Pzero != Qzero )
-            validPoint = false;
+#           ifdef _OPENMP
+#           pragma omp atomic
+#           endif
+            validPoint++;
         }
       }
       //mprintf("  KL= %f\n", KL); // DEBUG
-      if (validPoint) {
+      if (validPoint == 0) {
         //mprintf("  POINT IS VALID.\n"); // DEBUG
-        klOut[i] = (float)KL;
+        klOut[frame] = (float)KL;
       } else {
         //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", i+1);
         //mprintf("  POINT IS NOT VALID.\n"); // DEBUG
@@ -190,6 +207,9 @@ Analysis::RetType Analysis_KDE::Analyze() {
       }
 //      mprintf("DEBUG: sum_over_p = %f   sum_over_q = %f\n", tempP, tempQ); // DEBUG
     }
+#ifdef _OPENMP
+}
+#endif
     if (nInvalid > 0)
       mprintf("Warning:\tKullback-Leibler divergence was undefined for %u frames.\n", nInvalid);
   }
