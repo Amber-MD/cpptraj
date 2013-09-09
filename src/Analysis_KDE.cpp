@@ -172,17 +172,21 @@ Analysis::RetType Analysis_KDE::Analyze() {
         //mprintf("\tBin %i: P=%f\tQ=%f\n", j, Out[j], Qhist[j]); // DEBUG
         // KL only defined when Q and P are non-zero, or both zero.
         if (validPoint) {
+#         ifdef KL_FULL_PRECISION
           if ( (Out[j] == 0.0) != (Qhist[j] == 0.0) )
             validPoint = false;
-#         ifndef KL_FULL_PRECISION
-          else {
-            // Normalize for this frame
-            double Pnorm = Out[j] * norm;
-            double Qnorm = Qhist[j] * norm;
-//            tempP += Pnorm; // DEBUG
-//            tempQ += Qnorm; // DEBUG
+#         else
+          // Normalize for this frame
+          double Pnorm = Out[j] * norm;
+          double Qnorm = Qhist[j] * norm;
+//          tempP += Pnorm; // DEBUG
+//          tempQ += Qnorm; // DEBUG
+          bool Pzero = (Pnorm == 0.0);
+          bool Qzero = (Qnorm == 0.0);
+          if (!Pzero && !Qzero)
             KL += ( log( Pnorm / Qnorm ) * Pnorm );
-          }
+          else if ( Pzero != Qzero )
+            validPoint = false;
 #         endif
         }
       }
