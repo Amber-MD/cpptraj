@@ -148,7 +148,6 @@ Analysis::RetType Analysis_KDE::Analyze() {
     // Loop over input P and Q data
     unsigned int nInvalid = 0;
     for (frame = 0; frame < dataSize; frame++) {
-      //mprintf("Frame %i\n", i); // DEBUG
       increment = 1.0;
       total += increment;
       // Apply kernel across P and Q, calculate KL divergence as we go. 
@@ -156,8 +155,6 @@ Analysis::RetType Analysis_KDE::Analyze() {
       val_q = Qdata.Dval(frame);
       KL = 0.0;
       validPoint = 0; // 0 in this context means true
-//      double tempP = 0.0; // DEBUG
-//      double tempQ = 0.0; // DEBUG
       // NOTE: This normalization is subject to precision loss.
       //       For a calculation between 2 sets of ~850000 frames the max
       //       precision loss is on the order of 0.001, and the avg. deviation
@@ -172,14 +169,11 @@ Analysis::RetType Analysis_KDE::Analyze() {
         xcrd = Xdim.Coord(bin);
         Out[bin]   += (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
         Qhist[bin] += (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
-        //mprintf("\tBin %i: P=%f\tQ=%f\n", j, Out[j], Qhist[j]); // DEBUG
         // KL only defined when Q and P are non-zero, or both zero.
         if (validPoint == 0) {
           // Normalize for this frame
           Pnorm = Out[bin] * norm;
           Qnorm = Qhist[bin] * norm;
-//          tempP += Pnorm; // DEBUG
-//          tempQ += Qnorm; // DEBUG
           Pzero = (Pnorm == 0.0);
           Qzero = (Qnorm == 0.0);
           if (!Pzero && !Qzero)
@@ -191,16 +185,12 @@ Analysis::RetType Analysis_KDE::Analyze() {
 #ifdef _OPENMP
 }
 #endif
-      //mprintf("  KL= %f\n", KL); // DEBUG
       if (validPoint == 0) {
-        //mprintf("  POINT IS VALID.\n"); // DEBUG
         klOut[frame] = (float)KL;
       } else {
         //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", i+1);
-        //mprintf("  POINT IS NOT VALID.\n"); // DEBUG
         nInvalid++;
       }
-//      mprintf("DEBUG: sum_over_p = %f   sum_over_q = %f\n", tempP, tempQ); // DEBUG
     }
     if (nInvalid > 0)
       mprintf("Warning:\tKullback-Leibler divergence was undefined for %u frames.\n", nInvalid);
