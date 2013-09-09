@@ -152,38 +152,61 @@ Analysis::RetType Analysis_KDE::Analyze() {
       double val_q = Qdata.Dval(i);
       double KL = 0.0;
       bool validPoint = true;
+//      double tempP = 0.0; // DEBUG
+//      double tempQ = 0.0; // DEBUG
+#     ifdef KL_FULL_PRECISION
+      double sum_over_p = 0.0;
+      double sum_over_q = 0.0;
+#     else
+      // NOTE: This normalization is subject to precision loss.
+      double norm = Xdim.Step() / (total * bandwidth_);
+#     endif
       for (unsigned int j = 0; j < Out.Size(); j++) {
         double xcrd = Xdim.Coord(j);
         Out[j]   += (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
         Qhist[j] += (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
+#       ifdef KL_FULL_PRECISION
+        sum_over_p += Out[j];
+        sum_over_q += Qhist[j];
+#       endif
         //mprintf("\tBin %i: P=%f\tQ=%f\n", j, Out[j], Qhist[j]); // DEBUG
+        // KL only defined when Q and P are non-zero, or both zero.
         if (validPoint) {
-          // Normalize for this frame
-          double Pnorm = Out[j]   / (total * bandwidth_);
-          double Qnorm = Qhist[j] / (total * bandwidth_);
-          // Q and P must either both be zero or both > 0.
-          // If Q and P are both 0, interpret as 0 because lim(x->0){(x * ln(x)) = 0}
-          // Otherwise, point is not valid and will be skipped.
-          if (Pnorm != 0.0 && Qnorm != 0.0) {
+          if ( (Out[j] == 0.0) != (Qhist[j] == 0.0) )
+            validPoint = false;
+#         ifndef KL_FULL_PRECISION
+          else {
+            // Normalize for this frame
+            double Pnorm = Out[j] * norm;
+            double Qnorm = Qhist[j] * norm;
+//            tempP += Pnorm; // DEBUG
+//            tempQ += Qnorm; // DEBUG
             KL += ( log( Pnorm / Qnorm ) * Pnorm );
-            validPoint = true;
-          } else {
-            if (Pnorm == 0.0 && Qnorm == 0.0)
-              validPoint = true;
-            else
-              validPoint = false;
           }
+#         endif
         }
       }
       //mprintf("  KL= %f\n", KL); // DEBUG
       if (validPoint) {
         //mprintf("  POINT IS VALID.\n"); // DEBUG
+#       ifdef KL_FULL_PRECISION
+        // Normalize sums to 1.0
+        for (unsigned int j = 0; j < Out.Size(); j++) {
+          double Pnorm = Out[j] / sum_over_p;
+          double Qnorm = Qhist[j] / sum_over_q;
+//          tempP += Pnorm; // DEBUG
+//          tempQ += Qnorm; // DEBUG
+          if (Pnorm != 0.0 && Qnorm != 0.0) 
+            KL += ( log( Pnorm / Qnorm ) * Pnorm );
+        }
+#       endif
         klOut[i] = (float)KL;
       } else {
         //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", i+1);
         //mprintf("  POINT IS NOT VALID.\n"); // DEBUG
         nInvalid++;
       }
+//      mprintf("DEBUG: sum_over_p = %f   sum_over_q = %f\n", tempP, tempQ); // DEBUG
     }
     if (nInvalid > 0)
       mprintf("Warning:\tKullback-Leibler divergence was undefined for %u frames.\n", nInvalid);

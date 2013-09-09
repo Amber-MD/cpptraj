@@ -49,7 +49,7 @@ const {
   DataSet_1D const& ds = static_cast<DataSet_1D const&>( dsIn );
   for (unsigned int i = 0; i < maxSize; i++)
     sum += ds.Dval(i);
-  double norm = 1.0 / (sum * ds.Dim(0).Step() );
+  double norm = 1.0 / sum;
   for (unsigned int i = 0; i < maxSize; i++)
     setOut[i] = ds.Dval(i) * norm;
   return setOut;
