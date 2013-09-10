@@ -9,6 +9,7 @@ Action_Matrix::Action_Matrix() :
   outfile_(0),
   outtype_(BYATOM),
   snap_(0),
+  debug_(0),
   order_(2),
   useMask2_(false),
   useMass_(false),
@@ -28,6 +29,7 @@ void Action_Matrix::Help() {
 Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  debug_ = debugIn;
   // Get Keywords
   filename_ = actionArgs.GetStringKey("out");
   // Get start/stop/offset
@@ -344,6 +346,53 @@ void Action_Matrix::StoreVec(v_iterator& v1, v_iterator& v2, const double* XYZ) 
 
 /** Calc Covariance Matrix */
 void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
+# ifdef _OPENMP
+  DataSet_MatrixDbl::Darray& vect1 = Mat_->Vect1();
+  if (useMask2_) { // FULL MATRIX
+    return;
+  } else {         // HALF MATRIX
+    int idx2, idx1, vidx, ni, nj, mat_x, mat_y;
+    const double *XYZi;
+    const double *XYZj;
+    double Vi;
+#   pragma omp parallel private(idx2, idx1, vidx, ni, nj, mat_x, mat_y, XYZi, XYZj, Vi)
+    {
+#   pragma omp for schedule(dynamic)
+    for (idx2 = 0; idx2 < mask1_.Nselected(); idx2++) {
+      XYZi = currentFrame.XYZ( mask1_[idx2] );
+      // Store veci and veci^2
+      vidx = idx2 * 3;
+      vect1[vidx  ]  += XYZi[0];
+      vect2_[vidx  ] += (XYZi[0] * XYZi[0]);
+      vect1[vidx+1]  += XYZi[1];
+      vect2_[vidx+1] += (XYZi[1] * XYZi[1]);
+      vect1[vidx+2]  += XYZi[2];
+      vect2_[vidx+2] += (XYZi[2] * XYZi[2]);
+      // Loop over X, Y, and Z of veci
+      for (ni = 0; ni < 3; ni++) {
+        Vi = XYZi[ni];
+        mat_y = vidx + ni;
+        // INNER LOOP
+        for (idx1 = idx2; idx1 < mask1_.Nselected(); idx1++) {
+          XYZj = currentFrame.XYZ( mask1_[idx1] );
+          // NOTE: This conditional is present to avoid double-counting
+          //       elements below the diagonal.
+          if (idx2 == idx1) {
+            mat_x = (idx1 * 3) + ni;
+            for (nj = ni; nj < 3; nj++)
+              Mat_->Element(mat_x++, mat_y) += (Vi * XYZj[nj]);
+          } else {
+            mat_x = idx1 * 3;
+            Mat_->Element(mat_x  , mat_y) += (Vi * XYZj[0]);
+            Mat_->Element(mat_x+1, mat_y) += (Vi * XYZj[1]);
+            Mat_->Element(mat_x+2, mat_y) += (Vi * XYZj[2]);
+          }
+        }
+      }
+    }
+    } // END PARALLEL BLOCK
+  }
+# else
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
   v_iterator v1idx1 = Mat_->v1begin();
   v_iterator v2idx1 = vect2_.begin();
@@ -391,7 +440,7 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
         for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
         {
           const double* XYZj = currentFrame.XYZ( *atom1 );
-          if ( atom1 == atom2 ) { // TODO: This saves 3 doubles / frame. Worth it?
+          if ( atom1 == atom2 ) {
             for (int jidx = iidx; jidx < 3; ++jidx)
               *(mat++) += Vi * XYZj[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
           } else {
@@ -403,6 +452,7 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
       }
     }
   }
+# endif
 }
 
 /** Calc Isotropically distributed ensemble matrix.
@@ -664,6 +714,17 @@ void Action_Matrix::FinishDistanceCovariance() {
 
 // Action_Matrix::print()
 void Action_Matrix::Print() {
+  if (debug_ > 1) {
+    mprintf("Raw Matrix Elements:\n");
+    for (unsigned int i = 0; i < Mat_->Size(); i++)
+      mprintf("\t%u\t%f\n", i, (*Mat_)[i]);
+    mprintf("Raw Vect1 Elements:\n");
+    for (unsigned int i = 0; i < Mat_->Vect().size(); i++)
+      mprintf("\t%u\t%f\n", i, Mat_->Vect()[i]);
+    mprintf("Raw Vect2 Elements:\n");
+    for (unsigned int i = 0; i < vect2_.size(); i++)
+      mprintf("\t%u\t%f\n", i, vect2_[i]);
+  }
   // ---------- Calculate average over number of sets ------
   double norm = (double)snap_;
   if (Mat_->Type() == DataSet_2D::IDEA) norm *= 3.0;

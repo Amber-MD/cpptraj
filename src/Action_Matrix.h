@@ -31,6 +31,7 @@ class Action_Matrix : public Action, ActionFrameCounter {
     enum OutputType { BYATOM=0, BYRESIDUE, BYMASK };
     OutputType outtype_;
     int snap_;
+    int debug_;
     // IRED only
     int order_;
     std::vector<DataSet_Vector*> IredVectors_;
