@@ -4,6 +4,9 @@
 #include "DataSet_double.h"
 #include "DataSet_float.h"
 #include "Constants.h" // TWOPI
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 
 // CONSTRUCTOR
 Analysis_KDE::Analysis_KDE() : 
@@ -120,14 +123,51 @@ Analysis::RetType Analysis_KDE::Analyze() {
   double total = 0.0;
   if (q_data_ == 0) {
     // Calculate KDE, loop over input data
-    for (unsigned int i = 0; i < In.Size(); i++) {
-      double val = In.Dval(i);
-      double increment = 1.0;
-      total += increment;
-      // Apply kernel across histogram
+    unsigned int frame, bin;
+    double val, increment;
+#ifdef _OPENMP
+    int numthreads, mythread;
+    double** out_thread;
+#   pragma omp parallel private(frame, bin, val, increment, mythread) reduction(+:total)
+    {
+      mythread = omp_get_thread_num();
+      // Prevent race conditions by giving each thread its own histogram.
+#     pragma omp master
+      {
+        numthreads = omp_get_num_threads();
+        mprintf("\tParallelizing calculation with %i threads\n", numthreads);
+        out_thread = new double*[ numthreads ];
+        for (int i = 0; i < numthreads; i++) {
+          out_thread[i] = new double[ Out.Size() ]; 
+          std::fill(out_thread[i], out_thread[i] + Out.Size(), 0.0);
+        }
+      }
+#     pragma omp barrier
+#     pragma omp for
+# endif
+      for (frame = 0; frame < In.Size(); frame++) {
+        val = In.Dval(frame);
+        increment = 1.0;
+        total += increment;
+        // Apply kernel across histogram
+        for (bin = 0; bin < Out.Size(); bin++)
+#         ifdef _OPENMP
+          out_thread[mythread][bin] +=
+#         else
+          Out[bin] += 
+#         endif
+            (increment * (this->*Kernel_)( (Xdim.Coord(bin) - val) / bandwidth_ ));
+      }
+#ifdef _OPENMP
+    } // END parallel block
+    // Combine results from each thread histogram into Out
+    for (int i = 0; i < numthreads; i++) {
       for (unsigned int j = 0; j < Out.Size(); j++)
-        Out[j] += (increment * (this->*Kernel_)( (Xdim.Coord(j) - val) / bandwidth_ ));
+        Out[j] += out_thread[i][j];
+      delete[] out_thread[i];
     }
+    delete[] out_thread;
+#endif
   } else {
     // Calculate Kullback-Leibler divergence vs time
     DataSet_1D const& Qdata = static_cast<DataSet_1D const&>( *q_data_ );
