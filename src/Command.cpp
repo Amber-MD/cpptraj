@@ -643,20 +643,34 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   // Create input frame
   Frame frameIn;
   frameIn.SetupFrameV(parm->Atoms(), trajin.HasVelocity(), trajin.NreplicaDimension());
-  // Create DataSet, use base file name as set name if none specified. 
+  // Get output set name; use base file name as set name if none specified. 
   // NOTE: Default name should NEVER get used.
   std::string setname = argIn.GetStringNext();
   if (setname.empty())
     setname = trajin.TrajFilename().Base();
-  DataSet_Coords* coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, 
-                                                                setname, "__DCRD__");
+  // Check if set already present
+  DataSet_Coords* coords = (DataSet_Coords*)State.DSL()->FindSetOfType(setname, DataSet::COORDS);
   if (coords == 0) {
-    mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
-    return Command::C_ERR;
+    // Create Set 
+    coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, setname, "__DCRD__");
+    if (coords == 0) {
+      mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
+      return Command::C_ERR;
+    }
+    coords->SetTopology( *parm );
+    mprintf("\tLoading trajectory '%s' as '%s'\n", trajin.TrajFilename().full(), setname.c_str());
+  } else {
+    // Check that topology matches. For now just check # atoms.
+    if (parm->Natom() != coords->Top().Natom()) {
+      mprinterr("Error: Trajectory '%s' # atoms %i does not match COORDS data set '%s' (%i)\n",
+                trajin.TrajFilename().full(), parm->Natom(),
+                coords->Legend().c_str(), coords->Top().Natom());
+      return Command::C_ERR;
+    }
+    mprintf("\tAppending trajectory '%s' to COORDS data set '%s'\n", 
+            trajin.TrajFilename().full(), coords->Legend().c_str());
   }
-  coords->SetTopology( *parm );
   // Read trajectory
-  mprintf("\tLoading trajectory %s as \"%s\"\n", trajin.TrajFilename().full(), setname.c_str());
   trajin.BeginTraj(true);
   trajin.PrintInfoLine();
   while (trajin.GetNextFrame( frameIn ))
