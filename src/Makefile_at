@@ -19,7 +19,10 @@ OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) 
-	mv cpptraj$(SFX) $(BINDIR)/ 
+	mv cpptraj$(SFX) $(BINDIR)/
+
+install_openmp: cpptraj$(SFX)
+	mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX) 
 
 findDepend: FindDepend.o
 	$(CXX) -o findDepend FindDepend.o
