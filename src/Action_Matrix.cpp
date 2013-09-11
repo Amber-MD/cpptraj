@@ -247,6 +247,51 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
     Mat_->Allocate2D( ncols, nrows );
   else           // "Upper right half" matrix, including main diagonal.
     Mat_->AllocateHalf( ncols );
+# ifdef _OPENMP
+  if (
+       ( Mat_->Type() == DataSet_2D::COVAR ||
+         Mat_->Type() == DataSet_2D::MWCOVAR ))
+  {
+    if (Mat_->Kind() == DataSet_2D::HALF) { 
+      // Store coordinate indices.
+      crd_indices_.clear();
+      crd_indices_.reserve( Mat_->Size()*2 );
+      // Outer loop
+      for (int ny = 0; ny < mask1_.Nselected(); ny++) {
+        int crd_i = mask1_[ny] * 3;
+        // Loop over X Y and Z of Veci
+        for (int vi = 0; vi < 3; vi++) {
+          // Inner loop
+          for (int nx = ny; nx < mask1_.Nselected(); nx++) {
+            int crd_j = mask1_[nx] * 3;
+            int startv;
+            if (nx == ny)
+              startv = vi;
+            else
+              startv = 0;
+            for (int vj = startv; vj < 3; vj++) {
+              crd_indices_.push_back( crd_j+vj );
+              crd_indices_.push_back( crd_i+vi );
+            }
+          }
+        }
+      }
+    } else {
+      // Store mask1 and mask2 for diagonal
+      crd_indices_.clear();
+      crd_indices_.reserve( mask1_.Nselected() * mask2_.Nselected() );
+      for (AtomMask::const_iterator at = mask1_.begin(); at != mask1_.end(); ++at)
+        crd_indices_.push_back( *at * 3 );
+      for (AtomMask::const_iterator at = mask2_.begin(); at != mask2_.end(); ++at)
+        crd_indices_.push_back( *at * 3 );
+    }
+    if (debug_ > 1) {
+      mprintf("DEBUG: Coordinate indices:\n");
+      for (unsigned int i = 0; i < crd_indices_.size(); i += 2)
+        mprintf("%u:\t%i %i\n", i/2, crd_indices_[i], crd_indices_[i+1]);
+    }
+  }
+# endif
   // If matrix has already been allocated, make sure size did not change.
   if (previous_size > 0 && previous_size != Mat_->Size()) {
     mprinterr("Error: Attempting to reallocate matrix with different size.\n");
@@ -349,48 +394,64 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
 # ifdef _OPENMP
   DataSet_MatrixDbl::Darray& vect1 = Mat_->Vect1();
   if (useMask2_) { // FULL MATRIX
-    return;
-  } else {         // HALF MATRIX
-    int idx2, idx1, vidx, ni, nj, mat_x, mat_y;
-    const double *XYZi;
-    const double *XYZj;
-    double Vi;
-#   pragma omp parallel private(idx2, idx1, vidx, ni, nj, mat_x, mat_y, XYZi, XYZj, Vi)
+    int m1_idx, m2_idx, mat_x, mat_y;
+    unsigned int x, y;
+    const double* XYZi;
+    const double* XYZj;
+#   pragma omp parallel private(m1_idx, m2_idx, x, y, mat_x, mat_y, XYZi, XYZj)
     {
-#   pragma omp for schedule(dynamic)
-    for (idx2 = 0; idx2 < mask1_.Nselected(); idx2++) {
-      XYZi = currentFrame.XYZ( mask1_[idx2] );
-      // Store veci and veci^2
-      vidx = idx2 * 3;
-      vect1[vidx  ]  += XYZi[0];
-      vect2_[vidx  ] += (XYZi[0] * XYZi[0]);
-      vect1[vidx+1]  += XYZi[1];
-      vect2_[vidx+1] += (XYZi[1] * XYZi[1]);
-      vect1[vidx+2]  += XYZi[2];
-      vect2_[vidx+2] += (XYZi[2] * XYZi[2]);
-      // Loop over X, Y, and Z of veci
-      for (ni = 0; ni < 3; ni++) {
-        Vi = XYZi[ni];
-        mat_y = vidx + ni;
-        // INNER LOOP
-        for (idx1 = idx2; idx1 < mask1_.Nselected(); idx1++) {
-          XYZj = currentFrame.XYZ( mask1_[idx1] );
-          // NOTE: This conditional is present to avoid double-counting
-          //       elements below the diagonal.
-          if (idx2 == idx1) {
-            mat_x = (idx1 * 3) + ni;
-            for (nj = ni; nj < 3; nj++)
-              Mat_->Element(mat_x++, mat_y) += (Vi * XYZj[nj]);
-          } else {
-            mat_x = idx1 * 3;
-            Mat_->Element(mat_x  , mat_y) += (Vi * XYZj[0]);
-            Mat_->Element(mat_x+1, mat_y) += (Vi * XYZj[1]);
-            Mat_->Element(mat_x+2, mat_y) += (Vi * XYZj[2]);
-          }
-        }
+    #pragma omp for
+    for (m2_idx = 0; m2_idx < mask2_.Nselected(); m2_idx++) {
+      XYZj = currentFrame.XYZ( mask2_[m2_idx] );
+      mat_y = m2_idx * 3;
+      for (m1_idx = 0; m1_idx < mask1_.Nselected(); m1_idx++) {
+        XYZi = currentFrame.XYZ( mask1_[m1_idx] );
+        mat_x = m1_idx * 3;
+        for (y = 0; y < 3; y++)
+          for (x = 0; x < 3; x++)
+            Mat_->Element(mat_x+x, mat_y+y) += XYZi[x] * XYZj[y];
       }
     }
-    } // END PARALLEL BLOCK
+    // Mask1/Mask2 diagonal
+    #   pragma omp for
+    for (x = 0; x < crd_indices_.size(); x++) {
+      m1_idx = x * 3; // Index into vect/vect2
+      XYZi = currentFrame.CRD( crd_indices_[x] );
+      vect1[m1_idx   ] += XYZi[0];
+      vect2_[m1_idx  ] += (XYZi[0] * XYZi[0]);
+      vect1[m1_idx+1 ] += XYZi[1];
+      vect2_[m1_idx+1] += (XYZi[1] * XYZi[1]);
+      vect1[m1_idx+2 ] += XYZi[2];
+      vect2_[m1_idx+2] += (XYZi[2] * XYZi[2]);
+    }
+    } // END PARALLEL BLOCK FULL
+    return;
+  } else {         // HALF MATRIX
+    unsigned int idx, cidx;
+    int idx1, idx2;
+    double crdi, crdj;
+    const double* XYZi;
+#   pragma omp parallel private(idx, cidx, idx1, idx2, crdi, crdj, XYZi)
+    {
+#   pragma omp for
+    for (idx = 0; idx < Mat_->Size(); idx++) {
+      cidx = idx * 2;
+      idx1 = crd_indices_[cidx  ];
+      idx2 = crd_indices_[cidx+1];
+      crdi = currentFrame[idx1];
+      crdj = currentFrame[idx2];
+      (*Mat_)[idx] += (crdi * crdj);
+    }
+    // Diagonal
+#   pragma omp for
+    for (idx1 = 0; idx1 < mask1_.Nselected(); idx1++) {
+      idx2 = idx1 * 3;
+      XYZi = currentFrame.XYZ( mask1_[idx1] );
+      vect1[idx2  ] += XYZi[0];
+      vect1[idx2+1] += XYZi[1];
+      vect1[idx2+2] += XYZi[2];
+    }
+    } // END PARALLEL BLOCK HALF
   }
 # else
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
@@ -725,6 +786,16 @@ void Action_Matrix::Print() {
     for (unsigned int i = 0; i < vect2_.size(); i++)
       mprintf("\t%u\t%f\n", i, vect2_[i]);
   }
+# ifdef _OPENMP
+  if (Mat_->Kind() == DataSet_2D::HALF &&
+       ( Mat_->Type() == DataSet_2D::COVAR ||
+         Mat_->Type() == DataSet_2D::MWCOVAR ))
+  {
+    // Fill vect2
+    for (unsigned int idx = 0; idx < Mat_->Ncols(); idx++)
+      vect2_[idx] = Mat_->GetElement(idx, idx);
+  }
+# endif
   // ---------- Calculate average over number of sets ------
   double norm = (double)snap_;
   if (Mat_->Type() == DataSet_2D::IDEA) norm *= 3.0;
