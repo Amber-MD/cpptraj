@@ -394,22 +394,27 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
 # ifdef _OPENMP
   DataSet_MatrixDbl::Darray& vect1 = Mat_->Vect1();
   if (useMask2_) { // FULL MATRIX
-    int m1_idx, m2_idx, mat_x, mat_y;
+    int m1_idx, m2_idx;
     unsigned int x, y;
     const double* XYZi;
     const double* XYZj;
-#   pragma omp parallel private(m1_idx, m2_idx, x, y, mat_x, mat_y, XYZi, XYZj)
+    double Vj;
+    DataSet_MatrixDbl::iterator mat;
+    int NX = (int)Mat_->Ncols();
+#   pragma omp parallel private(m1_idx, m2_idx, x, y, XYZi, XYZj, Vj, mat)
     {
     #pragma omp for
     for (m2_idx = 0; m2_idx < mask2_.Nselected(); m2_idx++) {
+      mat = Mat_->begin() + ((m2_idx*3)*NX);
       XYZj = currentFrame.XYZ( mask2_[m2_idx] );
-      mat_y = m2_idx * 3;
-      for (m1_idx = 0; m1_idx < mask1_.Nselected(); m1_idx++) {
-        XYZi = currentFrame.XYZ( mask1_[m1_idx] );
-        mat_x = m1_idx * 3;
-        for (y = 0; y < 3; y++)
-          for (x = 0; x < 3; x++)
-            Mat_->Element(mat_x+x, mat_y+y) += XYZi[x] * XYZj[y];
+      for (y = 0; y < 3; y++) {
+        Vj = XYZj[y];
+        for (m1_idx = 0; m1_idx < mask1_.Nselected(); m1_idx++) {
+          XYZi = currentFrame.XYZ( mask1_[m1_idx] );
+          *(mat++) += Vj * XYZi[0];
+          *(mat++) += Vj * XYZi[1];
+          *(mat++) += Vj * XYZi[2];
+        }
       }
     }
     // Mask1/Mask2 diagonal
