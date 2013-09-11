@@ -28,7 +28,6 @@ class DataSet_MatrixDbl : public DataSet_2D {
     // -------------------------------------------
     int AddElement(double d)                   { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,double d){ mat_.setElement(x,y,d);    }
-    double& Element(size_t x,size_t y)         { return mat_.element(x,y);  }
     /// Type definition of iterator over matrix elements.
     typedef Matrix<double>::iterator iterator;
     iterator begin()                           { return mat_.begin();       }
@@ -37,9 +36,6 @@ class DataSet_MatrixDbl : public DataSet_2D {
     typedef std::vector<double> Darray;
     /// \return diagonal vector.
     Darray const& Vect()                 const { return vect_;              }
-#   ifdef _OPENMP
-    Darray& Vect1()                            { return vect_;              }
-#   endif
     /// Allocate diagonal vector.
     void AllocateVector(size_t vsize)          { vect_.resize(vsize, 0.0);  }
     /// \return diagonal vector size.

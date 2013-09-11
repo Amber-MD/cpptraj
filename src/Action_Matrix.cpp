@@ -252,41 +252,17 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
        ( Mat_->Type() == DataSet_2D::COVAR ||
          Mat_->Type() == DataSet_2D::MWCOVAR ))
   {
-    if (Mat_->Kind() == DataSet_2D::HALF) { 
-      // Store coordinate indices.
+    if (Mat_->Kind() == DataSet_2D::FULL) {
+      // Store combined mask1 and mask2 for diagonal.
       crd_indices_.clear();
-      crd_indices_.reserve( Mat_->Size()*2 );
-      // Outer loop
-      for (int ny = 0; ny < mask1_.Nselected(); ny++) {
-        int crd_i = mask1_[ny] * 3;
-        // Loop over X Y and Z of Veci
-        for (int vi = 0; vi < 3; vi++) {
-          // Inner loop
-          for (int nx = ny; nx < mask1_.Nselected(); nx++) {
-            int crd_j = mask1_[nx] * 3;
-            int startv;
-            if (nx == ny)
-              startv = vi;
-            else
-              startv = 0;
-            for (int vj = startv; vj < 3; vj++) {
-              crd_indices_.push_back( crd_j+vj );
-              crd_indices_.push_back( crd_i+vi );
-            }
-          }
-        }
-      }
-    } else {
-      // Store mask1 and mask2 for diagonal
-      crd_indices_.clear();
-      crd_indices_.reserve( mask1_.Nselected() * mask2_.Nselected() );
+      crd_indices_.reserve( mask1_.Nselected() + mask2_.Nselected() );
       for (AtomMask::const_iterator at = mask1_.begin(); at != mask1_.end(); ++at)
         crd_indices_.push_back( *at * 3 );
       for (AtomMask::const_iterator at = mask2_.begin(); at != mask2_.end(); ++at)
         crd_indices_.push_back( *at * 3 );
     }
     if (debug_ > 1) {
-      mprintf("DEBUG: Coordinate indices:\n");
+      mprintf("DEBUG: Combined mask1+mask2 coordinate indices:\n");
       for (unsigned int i = 0; i < crd_indices_.size(); i += 2)
         mprintf("%u:\t%i %i\n", i/2, crd_indices_[i], crd_indices_[i+1]);
     }
@@ -392,23 +368,24 @@ void Action_Matrix::StoreVec(v_iterator& v1, v_iterator& v2, const double* XYZ) 
 /** Calc Covariance Matrix */
 void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
 # ifdef _OPENMP
-  DataSet_MatrixDbl::Darray& vect1 = Mat_->Vect1();
+  int m1_idx, m2_idx;
+  double Vj;
+  const double* XYZi;
+  const double* XYZj;
+  unsigned int ny;
+  DataSet_MatrixDbl::iterator mat;
+  v_iterator v1, v2;
   if (useMask2_) { // FULL MATRIX
-    int m1_idx, m2_idx;
-    unsigned int x, y;
-    const double* XYZi;
-    const double* XYZj;
-    double Vj;
-    DataSet_MatrixDbl::iterator mat;
     int NX = (int)Mat_->Ncols();
-#   pragma omp parallel private(m1_idx, m2_idx, x, y, XYZi, XYZj, Vj, mat)
+    int crd_max = (int)crd_indices_.size();
+#   pragma omp parallel private(m1_idx, m2_idx, XYZi, XYZj, Vj, mat, v1, v2, ny)
     {
     #pragma omp for
     for (m2_idx = 0; m2_idx < mask2_.Nselected(); m2_idx++) {
       mat = Mat_->begin() + ((m2_idx*3)*NX);
       XYZj = currentFrame.XYZ( mask2_[m2_idx] );
-      for (y = 0; y < 3; y++) {
-        Vj = XYZj[y];
+      for (ny = 0; ny < 3; ny++) {
+        Vj = XYZj[ny];
         for (m1_idx = 0; m1_idx < mask1_.Nselected(); m1_idx++) {
           XYZi = currentFrame.XYZ( mask1_[m1_idx] );
           *(mat++) += Vj * XYZi[0];
@@ -419,42 +396,41 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
     }
     // Mask1/Mask2 diagonal
     #   pragma omp for
-    for (x = 0; x < crd_indices_.size(); x++) {
-      m1_idx = x * 3; // Index into vect/vect2
-      XYZi = currentFrame.CRD( crd_indices_[x] );
-      vect1[m1_idx   ] += XYZi[0];
-      vect2_[m1_idx  ] += (XYZi[0] * XYZi[0]);
-      vect1[m1_idx+1 ] += XYZi[1];
-      vect2_[m1_idx+1] += (XYZi[1] * XYZi[1]);
-      vect1[m1_idx+2 ] += XYZi[2];
-      vect2_[m1_idx+2] += (XYZi[2] * XYZi[2]);
+    for (m1_idx = 0; m1_idx < crd_max; m1_idx++) {
+      v1 = Mat_->v1begin() + (m1_idx * 3); // Index into vect/vect2
+      v2 = vect2_.begin()  + (m1_idx * 3);
+      StoreVec(v1, v2, currentFrame.CRD( crd_indices_[m1_idx] ));
     }
     } // END PARALLEL BLOCK FULL
     return;
   } else {         // HALF MATRIX
-    unsigned int idx, cidx;
-    int idx1, idx2;
-    double crdi, crdj;
-    const double* XYZi;
-#   pragma omp parallel private(idx, cidx, idx1, idx2, crdi, crdj, XYZi)
+    int v_idx;
+    unsigned int nx;
+    double d_m2_idx;
+    double TwoN = (double)( Mat_->Ncols() * 2 );
+#   pragma omp parallel private(m1_idx, m2_idx, d_m2_idx, v_idx, XYZi, XYZj, Vj, mat, v1, v2, ny, nx)
     {
-#   pragma omp for
-    for (idx = 0; idx < Mat_->Size(); idx++) {
-      cidx = idx * 2;
-      idx1 = crd_indices_[cidx  ];
-      idx2 = crd_indices_[cidx+1];
-      crdi = currentFrame[idx1];
-      crdj = currentFrame[idx2];
-      (*Mat_)[idx] += (crdi * crdj);
-    }
-    // Diagonal
-#   pragma omp for
-    for (idx1 = 0; idx1 < mask1_.Nselected(); idx1++) {
-      idx2 = idx1 * 3;
-      XYZi = currentFrame.XYZ( mask1_[idx1] );
-      vect1[idx2  ] += XYZi[0];
-      vect1[idx2+1] += XYZi[1];
-      vect1[idx2+2] += XYZi[2];
+    #pragma omp for schedule(dynamic)
+    for (m2_idx = 0; m2_idx < mask1_.Nselected(); m2_idx++) {
+      v_idx = m2_idx * 3;
+      d_m2_idx = (double)v_idx;
+      mat = Mat_->begin() + (int)(0.5*d_m2_idx*(TwoN-d_m2_idx-1.0)+d_m2_idx);
+      v1 = Mat_->v1begin() + v_idx;
+      v2 = vect2_.begin() + v_idx;
+      XYZj = currentFrame.XYZ( mask1_[m2_idx] );
+      StoreVec(v1, v2, XYZj);
+      for (ny = 0; ny < 3; ny++) {
+        Vj = XYZj[ny];
+        // m1_idx = m2_idx, diagonal
+        for (nx = ny; nx < 3; nx++)
+          *(mat++) += Vj * XYZj[nx]; // Vj * i{0,1,2}, Vj * i{1,2}, Vj * i{2}
+        for (m1_idx = m2_idx+1; m1_idx < mask1_.Nselected(); m1_idx++) {
+          XYZi = currentFrame.XYZ( mask1_[m1_idx] );
+          *(mat++) += Vj * XYZi[0];
+          *(mat++) += Vj * XYZi[1];
+          *(mat++) += Vj * XYZi[2];
+        }
+      }
     }
     } // END PARALLEL BLOCK HALF
   }
@@ -502,18 +478,16 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
       // Loop over X, Y, and Z of veci
       for (int iidx = 0; iidx < 3; ++iidx) {
         double Vi = XYZi[iidx];
+        // Diagonal
+        for (int jidx = iidx; jidx < 3; jidx++)
+          *(mat++) += Vi * XYZi[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
         // INNER LOOP
-        for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
+        for (AtomMask::const_iterator atom1 = atom2 + 1; atom1 != mask1_.end(); ++atom1)
         {
           const double* XYZj = currentFrame.XYZ( *atom1 );
-          if ( atom1 == atom2 ) {
-            for (int jidx = iidx; jidx < 3; ++jidx)
-              *(mat++) += Vi * XYZj[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
-          } else {
-            *(mat++) += Vi * XYZj[0];
-            *(mat++) += Vi * XYZj[1];
-            *(mat++) += Vi * XYZj[2];
-          }
+          *(mat++) += Vi * XYZj[0];
+          *(mat++) += Vi * XYZj[1];
+          *(mat++) += Vi * XYZj[2];
         }
       }
     }
