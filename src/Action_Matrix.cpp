@@ -765,7 +765,7 @@ void Action_Matrix::Print() {
     for (unsigned int i = 0; i < vect2_.size(); i++)
       mprintf("\t%u\t%f\n", i, vect2_[i]);
   }
-# ifdef _OPENMP
+/*# ifdef _OPENMP
   if (Mat_->Kind() == DataSet_2D::HALF &&
        ( Mat_->Type() == DataSet_2D::COVAR ||
          Mat_->Type() == DataSet_2D::MWCOVAR ))
@@ -774,7 +774,7 @@ void Action_Matrix::Print() {
     for (unsigned int idx = 0; idx < Mat_->Ncols(); idx++)
       vect2_[idx] = Mat_->GetElement(idx, idx);
   }
-# endif
+# endif*/
   // ---------- Calculate average over number of sets ------
   double norm = (double)snap_;
   if (Mat_->Type() == DataSet_2D::IDEA) norm *= 3.0;
