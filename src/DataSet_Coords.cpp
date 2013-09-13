@@ -12,6 +12,12 @@ int DataSet_Coords::Allocate1D( size_t sizeIn ) {
 }
 
 void DataSet_Coords::Info() const {
+  size_t sze = (((coords_.size() * (size_t)top_.Natom() * 3UL) + numBoxCrd_) * sizeof(float))
+               / 1048576UL;
+  if (sze == 0)
+    mprintf(" (<1 MB)");
+  else
+    mprintf(" (%zu MB)", sze); 
   top_.Brief();
 }
 
