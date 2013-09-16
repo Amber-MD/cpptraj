@@ -316,7 +316,8 @@ int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend
     mprinterr("Error: Specified # of modes to read (%i) must be > 0\n",modesToRead);
     return 1;
   }
-
+  mprintf("\tAttempting to read %i modes (%i to %i) from %s\n", modesToRead,
+          ibeg, iend, modesfile.c_str());
   BufferedFrame infile;
   if (infile.OpenRead( modesfile)) return 1;
   // Read title line, convert to arg list
