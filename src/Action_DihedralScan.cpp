@@ -152,7 +152,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   }
   // Setup output trajectory
   if (!outfilename_.empty()) {
-    if (outtraj_.InitTrajWrite(outfilename_, 0, outtop, outfmt)) return Action::ERR;
+    if (outtraj_.InitTrajWrite(outfilename_, outtop, outfmt)) return Action::ERR;
     outframe_ = 0;
   } 
   // Square cutoffs to compare to dist^2 instead of dist
@@ -344,7 +344,7 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
   // DEBUG
   int debugframenum=0;
   Trajout DebugTraj;
-  DebugTraj.InitTrajWrite("debugtraj.nc",0,currentParm,TrajectoryFile::AMBERNETCDF);
+  DebugTraj.InitTrajWrite("debugtraj.nc",currentParm,TrajectoryFile::AMBERNETCDF);
   DebugTraj.WriteFrame(debugframenum++,currentParm,currentFrame);
 #endif
   int next_resnum;

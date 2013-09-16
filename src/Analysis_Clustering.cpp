@@ -491,7 +491,7 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
     Trajout *clusterout = new Trajout;
     ClusterNode::frame_iterator frame = (*C).beginframe();
     Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-    if (clusterout->InitTrajWrite(cfilename, 0, clusterparm, clusterfmt_)) 
+    if (clusterout->InitTrajWrite(cfilename, clusterparm, clusterfmt_)) 
     {
       mprinterr("Error: Clustering::WriteClusterTraj: Could not set up %s for write.\n",
                 cfilename.c_str());
@@ -521,7 +521,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   Trajout clusterout;
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-  if (clusterout.InitTrajWrite(singlerepfile_, 0, clusterparm, singlerepfmt_)) 
+  if (clusterout.InitTrajWrite(singlerepfile_, clusterparm, singlerepfmt_)) 
   {
     mprinterr("Error: Clustering::WriteSingleRepTraj: Could not set up %s for write.\n",
                 singlerepfile_.c_str());
@@ -564,7 +564,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
     cfilename += tmpExt;
     // Set up trajectory file. 
-    if (clusterout->InitTrajWrite(cfilename, 0, clusterparm, reptrajfmt_)) 
+    if (clusterout->InitTrajWrite(cfilename, clusterparm, reptrajfmt_)) 
     {
       mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
                 cfilename.c_str());

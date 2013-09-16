@@ -136,7 +136,7 @@ void Action_Average::Print() {
 
   mprintf("    AVERAGE: [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
 
-  if (outfile.InitTrajWrite(avgfilename_, &trajArgs_, AvgParm_, TrajectoryFile::UNKNOWN_TRAJ)) 
+  if (outfile.InitTrajWrite(avgfilename_, trajArgs_, AvgParm_, TrajectoryFile::UNKNOWN_TRAJ)) 
   {
     mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename_.c_str());
     return;

@@ -14,7 +14,9 @@ class Trajout : public TrajectoryFile {
     virtual int EndTraj() = 0;
     virtual int WriteFrame(int, Topology*, Frame&) = 0;
     virtual void PrintInfo(int) = 0;*/
-    int InitTrajWrite(std::string const&, ArgList*, Topology*, TrajectoryFile::TrajFormatType);
+    inline int InitTrajWrite(std::string const&, ArgList&, Topology*,
+                             TrajectoryFile::TrajFormatType);
+    inline int InitTrajWrite(std::string const&, Topology*, TrajectoryFile::TrajFormatType);
     int InitTrajWriteWithArgs(std::string const&, const char*, Topology*,
                                TrajectoryFile::TrajFormatType);
     void EndTraj();
@@ -23,6 +25,8 @@ class Trajout : public TrajectoryFile {
     bool TrajIsOpen()        const { return trajIsOpen_;         }
     int NumFramesProcessed() const { return numFramesProcessed_; }
   private:
+    int InitTrajWrite(std::string const&, ArgList*, Topology*, TrajectoryFile::TrajFormatType);
+
     int numFramesProcessed_;
     TrajectoryIO* trajio_;
     bool trajIsOpen_;                  ///< If true trajectory has been opened.
@@ -33,4 +37,14 @@ class Trajout : public TrajectoryFile {
     Range::const_iterator rangeframe_; ///< If frame range defined, this is next frame in range.
     ActionFrameCounter frameCount_;    ///< Hold start/stop/offset values
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+int Trajout::InitTrajWrite(std::string const& n, ArgList& a, Topology* p,
+                           TrajectoryFile::TrajFormatType t)
+{
+  return InitTrajWrite( n, &a, p, t );
+}
+int Trajout::InitTrajWrite(std::string const& n, Topology* p, TrajectoryFile::TrajFormatType t)
+{
+  return InitTrajWrite( n, 0, p, t );
+}
 #endif

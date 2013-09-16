@@ -104,7 +104,7 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn,
   Topology* tempParm = topListIn.GetParm( argIn );
   traj->SetDebug(debug_);
   // Default to AMBERTRAJ; format can be changed via args in the arg list
-  if (traj->InitTrajWrite(filename, &argIn, tempParm, TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (traj->InitTrajWrite(filename, argIn, tempParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: trajout: Could not set up trajectory.\n");
     delete traj;
     return 1;
