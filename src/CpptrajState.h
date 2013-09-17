@@ -27,9 +27,9 @@ class CpptrajState {
     int AddTrajin( std::string const& );
     int RunAnalyses();
     inline int AddTrajout( ArgList const& );
-    inline int AddTrajout( const char* );
+    inline int AddTrajout( std::string const& );
     inline int AddReference( ArgList& );
-    inline int AddReference( const char* );
+    inline int AddReference( std::string const& );
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
     inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );
     static int WorldSize();
@@ -37,7 +37,8 @@ class CpptrajState {
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
     int RemoveFromList(ArgList&);
-    int MaskString( std::string const& );
+    int ProcessMask(std::string const&, std::string const&);
+    int TrajLength( std::string const&, std::vector<std::string> const&);
     int Run();
     /// Write all DataFiles
     void MasterDataFileWrite();
@@ -85,14 +86,14 @@ class CpptrajState {
 int CpptrajState::AddTrajout( ArgList const& argIn ) {
   return trajoutList_.AddTrajout( argIn, parmFileList_ );
 }
-int CpptrajState::AddTrajout( const char* fname ) {
+int CpptrajState::AddTrajout( std::string const& fname ) {
   return AddTrajout( ArgList(fname) );
 }
 // CpptrajState::AddReference()
 int CpptrajState::AddReference( ArgList& argIn ) {
   return refFrames_.AddRefFrame(argIn, parmFileList_);
 }
-int CpptrajState::AddReference( const char* fname ) {
+int CpptrajState::AddReference( std::string const& fname ) {
   ArgList targ(fname);
   return AddReference( targ );
 }

@@ -4,6 +4,7 @@
 #include "Trajin_Multi.h" // for ensemble
 #include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
+#include "ParmFile.h" // ProcessMask
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -134,14 +135,25 @@ int CpptrajState::RemoveFromList( ArgList& argIn ) {
   return 0;
 }
 
-// CpptrajState::MaskString()
-int CpptrajState::MaskString( std::string const& maskexpr ) {
-  Topology* parm = parmFileList_.GetParm( 0 );
-  if (parm == 0) {
-    mprinterr("Error: No topologies loaded.\n");
-    return 1;
-  }
-  parm->PrintAtomInfo( maskexpr );
+// CpptrajState::ProcessMask()
+int CpptrajState::ProcessMask( std::string const& topname, std::string const& maskexpr ) {
+  ParmFile pfile;
+  Topology parm;
+  if (pfile.Read(parm, topname, true, debug_)) return 1;
+  parm.PrintAtomInfo( maskexpr );
+  return 0;
+}
+
+// CpptrajState::TrajLength()
+int CpptrajState::TrajLength( std::string const& topname, 
+                              std::vector<std::string> const& trajinFiles)
+{
+  if (parmFileList_.AddParmFile( topname )) return 1;
+  for (std::vector<std::string>::const_iterator trajinName = trajinFiles.begin();
+                                                trajinName != trajinFiles.end();
+                                                ++trajinName)
+    if (AddTrajin( *trajinName )) return 1;
+  mprintf("%i\n", trajinList_.MaxFrames());
   return 0;
 }
 

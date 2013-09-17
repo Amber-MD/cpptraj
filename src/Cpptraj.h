@@ -11,7 +11,7 @@ class Cpptraj {
     Cpptraj() {}
     int RunCpptraj(int, char**);
   private:
-    enum Mode { BATCH = 0, ERROR, QUIT, INTERACTIVE };
+    enum Mode { BATCH = 0, ERROR, QUIT, INTERACTIVE, SILENT_EXIT };
     static void Usage();
     static void Intro();
     static void Finalize();

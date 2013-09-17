@@ -395,16 +395,16 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
   }
   // ATOMIC_NUMBER may not be present
   if (at_num.empty()) {
-    mprintf("Warning: [%s] ATOMIC_NUMBER not present in topology.\n", c_str());
+    if (debug_>0) mprintf("Warning: [%s] ATOMIC_NUMBER not present in topology.\n", c_str());
     at_num.resize(natom, 0);
   }
   // GB params may be empty in old amber parm
   if (gb_radii.empty()) {
-    mprintf("Warning: [%s] GB RADII not present in topology.\n", c_str());
+    if (debug_>0) mprintf("Warning: [%s] GB RADII not present in topology.\n", c_str());
     gb_radii.resize(natom, 0);
   }
   if (gb_screen.empty()) {
-    mprintf("Warning: [%s] GB SCREEN not present in topology.\n", c_str());
+    if (debug_>0) mprintf("Warning: [%s] GB SCREEN not present in topology.\n", c_str());
     gb_screen.resize(natom, 0);
   }
   // Create atom information

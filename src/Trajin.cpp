@@ -101,10 +101,12 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
     mprinterr("Error: Could not set up %s for reading.\n", fname.c_str());
     return 1;
   }
-  if (total_frames_>-1)
-    mprintf("\t'%s' contains %i frames.\n", TrajFilename().base(), total_frames_);
-  else
-    mprintf("\t'%s' contains an unknown number of frames.\n",TrajFilename().base());
+  if (debug_ > 0) {
+    if (total_frames_>-1)
+      mprintf("\t'%s' contains %i frames.\n", TrajFilename().base(), total_frames_);
+    else
+      mprintf("\t'%s' contains an unknown number of frames.\n",TrajFilename().base());
+  }
   // Set stop based on calcd number of frames.
   if (total_frames_==0) {
     mprinterr("Error: trajectory %s contains no frames.\n",TrajFilename().base());

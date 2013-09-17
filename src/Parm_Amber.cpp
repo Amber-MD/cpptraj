@@ -230,11 +230,11 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   if ( (!Bonds.empty() || !BondsH.empty()) &&
        (BondRk.empty() && BondReq.empty())    )
   {
-    mprintf("Warning: [%s] Bond information present but no bond parameters.\n",
+    mprintf("Warning: [%s] Bond information present but no bond parameters.\n"
+            "Warning: This can occur e.g. when bonds are determined from PDB.\n"
+            "Warning: Dummy parameters will be created as placeholders.\n"
+            "Warning: DO NOT USE THIS AMBER TOPOLOGY FOR SIMULATIONS!\n",
             file_.Filename().base());
-    mprintf("Warning: This can occur e.g. when bonds are determined from PDB.\n");
-    mprintf("Warning: Dummy parameters will be created as placeholders.\n");
-    mprintf("Warning: DO NOT USE THIS AMBER TOPOLOGY FOR SIMULATIONS!\n");
     BondRk.push_back(1.0);
     BondReq.push_back(1.0);
     for (unsigned int idx = 2; idx < Bonds.size(); idx += 3)
@@ -404,7 +404,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
         chamber = true;
       } else {
         // No TITLE or CTITLE, weird, but dont crash out yet.
-        mprintf("Warning: [%s] No TITLE in Amber Parm.\n",file_.Filename().base());
+        mprintf("Warning: '%s' No TITLE in Amber Parm.\n",file_.Filename().base());
       }
     }
   } else {
@@ -413,18 +413,19 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     // One less POINTERS (no NEXTRA)
     Npointers = 30;
   }
-  mprintf("\tAmberParm Title: [%s]\n",title.c_str());
+  if (debug_>0) mprintf("\tAmberParm Title: \"%s\"\n",title.c_str());
   TopIn.SetParmName( title, file_.Filename() );
   // POINTERS
   std::vector<int> values = GetFlagInteger(F_POINTERS, Npointers);
   if (values.empty()) {
-    mprinterr("Error: [%s] Could not get POINTERS from Amber Topology.\n",file_.Filename().base());
+    mprinterr("Error: '%s' Could not get POINTERS from Amber Topology.\n",file_.Filename().base());
     return 1;
   }
   // Warn about LES
   if (values[NPARM] > 0)
     mprintf("Warning: '%s' is an LES-type topology.\n"
-            "Warning:  Cpptraj currently cannot split or write LES-type topology files.\n", file_.Filename().base());
+            "Warning:  Cpptraj currently cannot split or write LES-type topology files.\n",
+            file_.Filename().base());
   // DEBUG
   //for (std::vector<int>::iterator val = values.begin(); val != values.end(); ++val)
   //  mprintf("\t%i\n", *val);
@@ -483,7 +484,8 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   if (values[IFBOX]>0) {
     std::vector<int> solvent_pointer = GetFlagInteger(F_SOLVENT_POINTER,3);
     if (solvent_pointer.empty()) {
-      mprintf("Could not get %s from Amber Topology file.\n",AmberParmFlag[F_SOLVENT_POINTER]);
+      mprinterr("Error: Could not get %s from Amber Topology file.\n",
+                AmberParmFlag[F_SOLVENT_POINTER]);
       return 1;
     }
     //finalSoluteRes = solvent_pointer[0] - 1;
@@ -518,7 +520,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   if (newParm_) {
     if (PositionFileAtFlag(F_RADSET)) {
       std::string radius_set = GetLine();
-      mprintf("\tRadius Set: %s\n",radius_set.c_str());
+      if (debug_ > 0) mprintf("\tRadius Set: %s\n",radius_set.c_str());
       TopIn.SetGBradiiSet( radius_set );
     }
     gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
@@ -772,7 +774,7 @@ bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
 
   // If we reached here Key was not found.
   if (debug_>0)
-    mprintf("Warning: [%s] Could not find Key %s in file.\n",file_.Filename().base(),Key);
+    mprintf("Warning: '%s' Could not find Key %s in file.\n",file_.Filename().base(),Key);
   fformat_.clear();
   return false;
 }

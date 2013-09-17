@@ -43,7 +43,6 @@ void Cpptraj::Finalize() {
 
 int Cpptraj::RunCpptraj(int argc, char** argv) {
   int err = 0;
-  Cpptraj::Intro();
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
     // If run has not yet been called, run now.
@@ -54,9 +53,10 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   } else if ( cmode == ERROR ) {
     err = 1;
   }
-  if (err == 0)
-    Cpptraj::Finalize();
-  mprintf("\n");
+  if (cmode != SILENT_EXIT) {
+    if (err == 0) Cpptraj::Finalize();
+    mprintf("\n");
+  }
   return err;
 }
 
@@ -64,23 +64,28 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   bool hasInput = false;
   bool interactive = false;
-  std::vector<std::string> inputFiles;
+  typedef std::vector<std::string> Sarray;
+  Sarray inputFiles;
+  Sarray topFiles;
+  Sarray trajinFiles;
+  Sarray trajoutFiles;
+  Sarray refFiles;
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]);
     if ( arg == "--help" || arg == "-h" ) {
       // --help, -help: Print usage and exit
       Usage();
-      return QUIT;
+      return SILENT_EXIT;
     }
     if ( arg == "-V" || arg == "--version" ) {
       // -V, --version: Print version number and exit
-      //mprintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
-      return QUIT;
+      mprintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
+      return SILENT_EXIT;
     }
     if ( arg == "--internal-version" ) {
       // --internal-version: Print internal version number and quit.
-      mprintf("Internal version #: %s\n", CPPTRAJ_INTERNAL_VERSION);
-      return QUIT;
+      mprintf("CPPTRAJ: Internal version # %s\n", CPPTRAJ_INTERNAL_VERSION);
+      return SILENT_EXIT;
     }
     if ( arg == "--defines" ) {
       // --defines: Print information on compiler defines used and exit
@@ -106,8 +111,20 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
 #     ifdef NO_MATHLIB
       mprintf(" -DNO_MATHLIB");
 #     endif
+#     ifdef TIMER
+      mprintf(" -DTIMER");
+#     endif
       mprintf("\n");
-      return QUIT;
+      return SILENT_EXIT;
+    }
+    if (arg == "-tl") {
+      // -tl: Trajectory length
+      if (topFiles.empty()) {
+        mprinterr("Error: No topology file specified.\n");
+        return ERROR;
+      }
+      if (State_.TrajLength( topFiles[0], trajinFiles )) return ERROR;
+      return SILENT_EXIT;
     }
     if ( arg == "--interactive" )
       interactive = true;
@@ -120,27 +137,30 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       logfilename_ = argv[++i];
     else if ( arg == "-p" && i+1 != argc) {
       // -p: Topology file
-      if (State_.PFL()->AddParmFile( argv[++i] )) return ERROR;
+      topFiles.push_back( argv[++i] );
     } else if ( arg == "-y" && i+1 != argc) {
       // -y: Trajectory file in
-      if (State_.AddTrajin( argv[++i] )) return ERROR;
+      trajinFiles.push_back( argv[++i] );
     } else if ( arg == "-x" && i+1 != argc) {
       // -x: Trajectory file out
-      if (State_.AddTrajout( argv[++i] )) return ERROR;
-      hasInput = true; // NOTE: Why?
+      trajoutFiles.push_back( argv[++i] );
     } else if ( arg == "-c" && i+1 != argc) {
       // -c: Reference file
-      if (State_.AddReference( argv[++i] )) return ERROR;
+      refFiles.push_back( argv[++i] );
     } else if (arg == "-i" && i+1 != argc) {
       // -i: Input file(s)
       inputFiles.push_back( argv[++i] );
     } else if (arg == "-ms" && i+1 != argc) {
-      // -ms: Mask string
-      if (State_.MaskString( std::string(argv[++i]))) return ERROR;
-      return QUIT;
+      // -ms: Parse mask string
+      if (topFiles.empty()) {
+        mprinterr("Error: No topology file specified.\n");
+        return ERROR;
+      }
+      if (State_.ProcessMask( topFiles[0], std::string(argv[++i]))) return ERROR;
+      return SILENT_EXIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
-      if (State_.PFL()->AddParmFile( argv[i])) return ERROR;
+      topFiles.push_back( argv[i] );
     } else if ( i == 2 ) {
       // For backwards compatibility with PTRAJ; Position 2 = INPUT file
       inputFiles.push_back( argv[i] );
@@ -148,15 +168,39 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // Unrecognized
       mprintf("  Unrecognized input on command line: %i: %s\n", i,argv[i]);
       Usage();
-      return QUIT;
+      return ERROR;
     }
+  }
+  Cpptraj::Intro();
+  // Add all topology files specified on command line.
+  for (Sarray::const_iterator topFilename = topFiles.begin();
+                              topFilename != topFiles.end();
+                              ++topFilename)
+    if (State_.PFL()->AddParmFile( *topFilename )) return ERROR;
+  // Add all reference trajectories specified on command line.
+  for (Sarray::const_iterator refName = refFiles.begin();
+                              refName != refFiles.end();
+                              ++refName)
+    if (State_.AddReference( *refName )) return ERROR;
+  // Add all input trajectories specified on command line.
+  for (Sarray::const_iterator trajinName = trajinFiles.begin();
+                              trajinName != trajinFiles.end();
+                              ++trajinName)
+    if (State_.AddTrajin( *trajinName )) return ERROR;
+  // Add all output trajectories specified on command line.
+  if (!trajoutFiles.empty()) {
+    hasInput = true; // This allows direct traj conversion with no other input 
+    for (Sarray::const_iterator trajoutName = trajoutFiles.begin();
+                                trajoutName != trajoutFiles.end();
+                                ++trajoutName)
+      if (State_.AddTrajout( *trajoutName )) return ERROR;
   }
   // Process all input files specified on command line.
   if ( !inputFiles.empty() ) {
     hasInput = true;
-    for (std::vector<std::string>::const_iterator inputFilename = inputFiles.begin();
-                                                  inputFilename != inputFiles.end();
-                                                  ++inputFilename)
+    for (Sarray::const_iterator inputFilename = inputFiles.begin();
+                                inputFilename != inputFiles.end();
+                                ++inputFilename)
     {
       Command::RetType c_err = Command::ProcessInput( State_, *inputFilename );
       if (c_err == Command::C_ERR && State_.ExitOnError()) return ERROR;
