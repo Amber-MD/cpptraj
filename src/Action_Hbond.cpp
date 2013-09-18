@@ -405,7 +405,8 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
                        currentFrame.XYZ(h_atom),
                        currentFrame.XYZ(d_atom) );
     if (angle < acut_) return 0;
-  }
+  } else
+    angle = 0.0;
   double dist = sqrt(dist2);
   //mprintf( "A-D HBOND[%6i]: %6i@%-4s ... %6i@%-4s-%6i@%-4s Dst=%6.2lf Ang=%6.2lf\n", hbidx, 
   //        a_atom, (*currentParm)[a_atom].c_str(),
