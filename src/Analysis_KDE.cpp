@@ -16,7 +16,8 @@ Analysis_KDE::Analysis_KDE() :
 void Analysis_KDE::Help() {
   mprintf("\t<dataset> [bandwidth <bw>] [out <file>] [name <dsname>]\n"
           "\t[min <min>] [max <max] [step <step>] [bins <bins>]\n"
-          "\t[kldiv <dsname2> [klout <outfile>]]\n");
+          "\t[kldiv <dsname2> [klout <outfile>]] [amd <amdboost_data>]\n"
+          "\tHistogram 1D data set using a kernel density estimator.\n");
 }
 
 // Analysis_KDE::Setup()
@@ -55,6 +56,20 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
     q_data_ = 0;
     kldiv_ = 0;
   }
+  // Get AMD boost data set
+  std::string amdname = analyzeArgs.GetStringKey("amd");
+  if (!amdname.empty()) {
+    amddata_ = datasetlist->GetDataSet( amdname );
+    if (amddata_ == 0) {
+      mprinterr("Error: AMD data set %s not found.\n", amdname.c_str());
+      return Analysis::ERR;
+    }
+    if (amddata_->Ndim() != 1) {
+      mprinterr("Error: AMD data set must be 1D.\n");
+      return Analysis::ERR;
+    }
+  } else
+    amddata_ = 0;
 
   // Get data set
   data_ = datasetlist->GetDataSet( analyzeArgs.GetStringNext() );
@@ -78,6 +93,9 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
   }
 
   mprintf("    KDE: Using gaussian KDE to histogram set \"%s\"\n", data_->Legend().c_str());
+  if (amddata_!=0)
+    mprintf("\tPopulating bins using AMD boost from data set %s\n",
+            amddata_->Legend().c_str());
   if (q_data_ != 0) {
     mprintf("\tCalculating Kullback-Leibler divergence with set \"%s\"\n", 
             q_data_->Legend().c_str());
@@ -119,6 +137,24 @@ Analysis::RetType Analysis_KDE::Analyze() {
     bandwidth_ = 1.06 * stdev * N_to_1_over_5;
     mprintf("\tDetermined bandwidth from normal distribution approximation: %f\n", bandwidth_);
   }
+
+  // Set up increments
+  std::vector<double> Increments(In.Size(), 1.0);
+  if (amddata_ != 0) {
+    DataSet_1D& AMD = static_cast<DataSet_1D&>( *amddata_ );
+    if (AMD.Size() != In.Size()) {
+      if (AMD.Size() < In.Size()) {
+        mprinterr("Error: Size of AMD data set %zu < input data set %zu\n",
+                  AMD.Size(), In.Size());
+        return Analysis::ERR;
+      } else {
+        mprintf("Warning: Size of AMD data set %zu > input data set %zu\n",
+                AMD.Size(), In.Size());
+      }
+    }
+    for (unsigned int i = 0; i < In.Size(); i++)
+      Increments[i] = exp( AMD.Dval(i) );
+  }
  
   double total = 0.0;
   if (q_data_ == 0) {
@@ -147,7 +183,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
 # endif
       for (frame = 0; frame < In.Size(); frame++) {
         val = In.Dval(frame);
-        increment = 1.0;
+        increment = Increments[frame];
         total += increment;
         // Apply kernel across histogram
         for (bin = 0; bin < Out.Size(); bin++)
@@ -188,7 +224,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
     // Loop over input P and Q data
     unsigned int nInvalid = 0;
     for (frame = 0; frame < dataSize; frame++) {
-      increment = 1.0;
+      increment = Increments[frame];
       total += increment;
       // Apply kernel across P and Q, calculate KL divergence as we go. 
       val_p = In.Dval(frame);

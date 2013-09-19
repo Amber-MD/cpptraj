@@ -20,6 +20,7 @@ class Analysis_KDE : public Analysis {
     double bandwidth_; ///< Bandwidth for KDE.
     DataSet* output_;  ///< Output Histogram.
     DataSet* kldiv_;   ///< KL divergence vs time.
+    DataSet* amddata_; ///< Optional AMD boost data set.
     fxnptr Kernel_;    ///< Kernel to use.
 };
 #endif
