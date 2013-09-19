@@ -11,6 +11,7 @@
 // CONSTRUCTOR
 Analysis_KDE::Analysis_KDE() : 
   data_(0), q_data_(0), bandwidth_(0.0), output_(0), kldiv_(0),
+  amddata_(0), calcFreeE_(false),
   Kernel_(&Analysis_KDE::GaussianKernel) {}
 
 void Analysis_KDE::Help() {
@@ -70,6 +71,7 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
     }
   } else
     amddata_ = 0;
+  calcFreeE_ = analyzeArgs.hasKey("free");
 
   // Get data set
   data_ = datasetlist->GetDataSet( analyzeArgs.GetStringNext() );
@@ -275,6 +277,20 @@ Analysis::RetType Analysis_KDE::Analyze() {
   // Normalize
   for (unsigned int j = 0; j < Out.Size(); j++)
     Out[j] /= (total * bandwidth_);
+
+  // Calc free E
+  if (calcFreeE_) {
+    double minFreeE = 0.0;
+    for (unsigned int j = 0; j < Out.Size(); j++) {
+      Out[j] = -log( Out[j] );
+      if (j == 0)
+        minFreeE = Out[j];
+      else if (Out[j] < minFreeE)
+        minFreeE = Out[j];
+    }
+    for (unsigned int j = 0; j < Out.Size(); j++)
+      Out[j] -= minFreeE;
+  }
 
   return Analysis::OK;
 }

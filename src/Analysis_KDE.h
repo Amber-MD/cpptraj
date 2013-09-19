@@ -21,6 +21,7 @@ class Analysis_KDE : public Analysis {
     DataSet* output_;  ///< Output Histogram.
     DataSet* kldiv_;   ///< KL divergence vs time.
     DataSet* amddata_; ///< Optional AMD boost data set.
+    bool calcFreeE_;
     fxnptr Kernel_;    ///< Kernel to use.
 };
 #endif
