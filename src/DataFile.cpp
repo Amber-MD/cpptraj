@@ -329,38 +329,25 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
 
 // DataFile::WriteData()
 void DataFile::WriteData() {
-  // Remove data sets that do not contain data.
-  // All DataSets should have same dimension (enforced by AddSet()).
-  DataSetList::const_iterator Dset = SetList_.end();
-  while (Dset != SetList_.begin()) {
-    --Dset;
-    // Check if set has no data.
-    if ( (*Dset)->Empty() ) {
-      // If set has no data, remove it
-      mprintf("Warning: Set %s contains no data. Skipping.\n",(*Dset)->Legend().c_str());
-      SetList_.RemoveSet( Dset );
-      Dset = SetList_.end();
-    } else {
-      // If set has data, set its format to right-aligned initially.
-      if ( (*Dset)->SetDataSetFormat(false) ) {
-        mprinterr("Error: could not set format string for set %s. Skipping.\n", 
-                  (*Dset)->Legend().c_str());
-        SetList_.RemoveSet( Dset );
-        Dset = SetList_.end();
-      } 
-    }
-  }
-  // If all data sets are empty no need to write
-  if (SetList_.empty()) {
-    mprintf("Warning: file %s has no sets containing data.\n", filename_.base());
-    return;
-  }
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);
-  // Loop over all sets, set default min, step, label if not already set.
-  // Set default min and step for all dimensions if not already set.
+  // Loop over all sets, decide which ones should be written.
+  // All DataSets should have same dimension (enforced by AddSet()).
+  DataSetList setsToWrite;
   for (unsigned int idx = 0; idx < SetList_.size(); ++idx) {
     DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
+    // Check if set has no data.
+    if ( ds.Empty() ) {
+      mprintf("Warning: Set '%s' contains no data.\n", ds.Legend().c_str());
+      continue;
+    }
+    // Set the format to right-aligned initially.
+    if ( ds.SetDataSetFormat(false) ) {
+      mprinterr("Error: Could not set format string for set %s. Skipping.\n",
+                ds.Legend().c_str());
+      continue;
+    }
+    // Set default min and step for all dimensions if not already set.
     for (unsigned int nd = 0; nd < ds.Ndim(); ++nd) {
       Dimension& dim = ds.Dim(nd);
       double min, step;
@@ -376,6 +363,11 @@ void DataFile::WriteData() {
     }
     // Set x label if not already set
     if (ds.Ndim()==1 && ds.Dim(0).Label().empty()) ds.Dim(0).SetLabel("Frame");
+    setsToWrite.AddCopyOfSet( SetList_[idx] );
+  }
+  if (setsToWrite.empty()) {
+    mprintf("Warning: File '%s' has no sets containing data.\n", filename_.base());
+    return;
   }
 #ifdef TIMER
   Timer dftimer;
@@ -384,16 +376,16 @@ void DataFile::WriteData() {
   int err = 0;
   if ( dimension_ == 1 ) {       // One-dimensional
     if (!isInverted_)
-      err = dataio_->WriteData(filename_.Full(), SetList_);
+      err = dataio_->WriteData(filename_.Full(), setsToWrite);
     else
-      err = dataio_->WriteDataInverted(filename_.Full(), SetList_);
+      err = dataio_->WriteDataInverted(filename_.Full(), setsToWrite);
   } else if ( dimension_ == 2) { // Two-dimensional
-    for ( DataSetList::const_iterator set = SetList_.begin();
-                                      set != SetList_.end(); ++set)
+    for ( DataSetList::const_iterator set = setsToWrite.begin();
+                                      set != setsToWrite.end(); ++set)
       err += dataio_->WriteData2D(filename_.Full(), *(*set) );
   } else if ( dimension_ == 3) { // Three-dimensional
-    for ( DataSetList::const_iterator set = SetList_.begin();
-                                      set != SetList_.end(); ++set)
+    for ( DataSetList::const_iterator set = setsToWrite.begin();
+                                      set != setsToWrite.end(); ++set)
       err += dataio_->WriteData3D(filename_.Full(), *(*set) );
   } else {
     mprinterr("Error: %iD writes not yet supported.\n", dimension_);
