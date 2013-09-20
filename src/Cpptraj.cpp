@@ -1157,7 +1157,7 @@ int Cpptraj::RunEnsemble() {
     readSets += (*traj)->NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
-  rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
+  mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
 
   // Close output trajectories
   for (int member = 0; member < ensembleSize; ++member)
@@ -1315,7 +1315,7 @@ int Cpptraj::RunNormal() {
     readSets += (*traj)->NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
-  rprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
+  mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
 # ifdef TIMER
   frames_time.Stop();
   mprintf("TIME: Trajectory processing occurred in %.4f seconds\n"
