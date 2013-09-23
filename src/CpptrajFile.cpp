@@ -310,7 +310,11 @@ int CpptrajFile::SetupWrite(std::string const& filenameIn, FileType typeIn, int 
 
 // CpptrajFile::OpenAppend()
 int CpptrajFile::OpenAppend(std::string const& nameIn) {
-  if (SetupAppend(nameIn, debug_)) return 1;
+  if (nameIn.empty()) {
+    if (SetupWrite(nameIn, debug_)) return 1;
+  } else {
+    if (SetupAppend(nameIn, debug_)) return 1;
+  }
   if (OpenFile()) return 1;
   return 0;
 }

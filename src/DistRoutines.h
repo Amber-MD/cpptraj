@@ -12,6 +12,7 @@ double DIST2_ImageNonOrthoRecip(Vec3 const&, Vec3 const&, double, int*, Matrix_3
 double DIST2_ImageOrtho(Vec3 const&, Vec3 const&, Box const&);
 double DIST2_NoImage(const double*, const double*);
 double DIST2_NoImage( Vec3 const&, Vec3 const& );
+double DIST_NoImage( Vec3 const&, Vec3 const& );
 double DIST2(const double*, const double*, ImagingType, Box const&, 
              Matrix_3x3 const&, Matrix_3x3 const&);
 #endif
