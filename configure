@@ -293,9 +293,7 @@ while [[ ! -z $1 ]] ; do
       ;; 
     "-debug" | "-d" ) 
       echo "Turning on compiler debug info"
-      echo "Turning off optimization"
-      DBGFLAGS="-g -O0"
-      OPT=0
+      DBGFLAGS="-g"
       ;;
     "-debugon"      ) 
       echo "Turning on cpptraj internal debug info"
@@ -556,6 +554,7 @@ fi
 if [[ $OPT -eq 0 ]] ; then
   OPTFLAGS=""
   FOPTFLAGS=""
+  DBGFLAGS="$DBGFLAGS -O0"
 fi
 
 # Add cray-specific flags
