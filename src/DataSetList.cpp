@@ -42,8 +42,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
 // CONSTRUCTOR
 DataSetList::DataSetList() :
   debug_(0),
-  hasCopies_(false), 
-  maxFrames_(0)
+  hasCopies_(false) 
 {}
 
 // DESTRUCTOR
@@ -57,7 +56,6 @@ void DataSetList::Clear() {
       delete *ds;
   DataList_.clear();
   hasCopies_ = false;
-  maxFrames_ = 0;
 } 
 
 DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
@@ -67,9 +65,6 @@ DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   // Append rhs entries to here
   for (DataListType::const_iterator DS = rhs.begin(); DS != rhs.end(); ++DS)
     DataList_.push_back( *DS );
-  // Update maxframes
-  if (rhs.maxFrames_ > maxFrames_)
-    maxFrames_ = rhs.maxFrames_;
   return *this;
 }
 
@@ -109,19 +104,13 @@ void DataSetList::SetDebug(int debugIn) {
     mprintf("DataSetList Debug Level set to %i\n",debug_);
 }
 
-// DataSetList::SetMax()
-void DataSetList::SetMax(int expectedMax) {
-  maxFrames_ = expectedMax;
-  if (maxFrames_<0) maxFrames_ = 0;
-}
-
-/** Call Allocate for each DataSet in the list. */
-void DataSetList::AllocateSets() {
-  if (maxFrames_ == 0) return;
+/** Call Allocate for each 1D DataSet in the list. */
+void DataSetList::AllocateSets(long int maxFrames) {
+  if (maxFrames < 1L) return;
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
   {
     if ((*ds)->Ndim() == 1)
-      ((DataSet_1D*)(*ds))->Allocate1D( maxFrames_ );
+      ((DataSet_1D*)(*ds))->Allocate1D( (size_t)maxFrames );
   }
 }
 

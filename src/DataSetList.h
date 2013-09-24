@@ -30,8 +30,6 @@ class DataSetList {
     bool empty()           const { return DataList_.empty(); }
     /// Return number of datasets in the list 
     size_t size()          const { return DataList_.size();  }
-    /// Return the max # expected frames
-    int MaxFrames()        const { return maxFrames_;        }
     /// Remove set from list - used in DataFile
     void RemoveSet( const_iterator );
     /// Remove set from the list.
@@ -42,10 +40,8 @@ class DataSetList {
     DataSet* operator[](int didx) { return DataList_[didx]; } // FIXME: No bounds check
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
-    /// Set maximum # elements expected to be read in.
-    void SetMax(int);
-    /// Allocate DataSet memory based on current maximum.
-    void AllocateSets();
+    /// Allocate 1D DataSet memory based on current max# expected frames.
+    void AllocateSets(long int);
     /// Set width.precision of all DataSets in the list.
     void SetPrecisionOfDataSets(std::string const&, int, int);
     /// Get DataSet with specified name, index, and aspect.
@@ -90,8 +86,7 @@ class DataSetList {
     bool hasCopies_;
     /// List of DataSets
     DataListType DataList_;
-    /// Expected number of frames to be read in.
-    int maxFrames_;
+    /// Hold descriptions and allocators for all DataSet types.
     struct DataToken {
       const char* Description;
       DataSet::AllocatorType Alloc;

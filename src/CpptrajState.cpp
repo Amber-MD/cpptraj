@@ -17,7 +17,6 @@ int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
   } else {
     if ( trajinList_.AddTrajin( fname, argIn, parmFileList_ ) ) return 1;
   }
-  DSL_.SetMax( trajinList_.MaxFrames() );
   return 0;
 }
 
@@ -25,7 +24,6 @@ int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
 int CpptrajState::AddTrajin( std::string const& fname ) {
   ArgList targ;
   if ( trajinList_.AddTrajin( fname, targ, parmFileList_ ) ) return 1;
-  DSL_.SetMax( trajinList_.MaxFrames() );
   return 0;
 }
 
@@ -243,7 +241,6 @@ int CpptrajState::RunEnsemble() {
 
   // Calculate frame division among trajectories
   trajinList_.List();
-  int maxFrames = trajinList_.MaxFrames();
   // Parameter file information
   parmFileList_.List();
   // Print reference information 
@@ -283,10 +280,10 @@ int CpptrajState::RunEnsemble() {
   }
 
   // TODO: One loop over member?
+  int maxFrames = trajinList_.MaxFrames();
   for (int member = 0; member < ensembleSize; ++member) {
     // Set max frames in the data set list and allocate
-    DataSetEnsemble[member].SetMax( maxFrames );
-    DataSetEnsemble[member].AllocateSets();
+    DataSetEnsemble[member].AllocateSets( maxFrames );
     // Initialize actions for this ensemble member based on original actionList_
     if (!actionList_.Empty()) {
       mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
@@ -455,7 +452,7 @@ int CpptrajState::RunNormal() {
   // Output traj
   trajoutList_.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
-  DSL_.AllocateSets();
+  DSL_.AllocateSets( trajinList_.MaxFrames() );
 # ifdef TIMER
   init_time.Stop();
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total());
