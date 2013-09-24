@@ -86,7 +86,7 @@ Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddres
   newParm_->Summary();
 
   // Allocate space for new frame
-  newFrame_.SetupFrameM(newParm_->Atoms());
+  newFrame_.SetupFrameV(newParm_->Atoms(), newParm_->HasVelInfo(), newParm_->NrepDim());
 
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {

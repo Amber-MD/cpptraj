@@ -19,7 +19,9 @@ Topology::Topology() :
   pindex_(0),
   nframes_(0),
   ntypes_(0),
-  n_extra_pts_(0)
+  n_extra_pts_(0),
+  hasVelInfo_(false),
+  nRepDim_(0)
 { }
 
 // Topology::SetOffset()
@@ -1440,6 +1442,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->fileName_ = fileName_;
   newParm->radius_set_ = radius_set_;
   newParm->debug_ = debug_;
+  newParm->hasVelInfo_ = hasVelInfo_;
+  newParm->nRepDim_ = nRepDim_;
 
   // Reverse Atom map
   // TODO: Use std::map instead

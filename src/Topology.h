@@ -19,6 +19,8 @@ class Topology {
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
     void IncreaseFrames(int);
+    void SetVelInfo(bool v)              { hasVelInfo_ = v;               }
+    void SetNrepDim(int n)               { nRepDim_ = n;                  }
     // ----- Return internal variables -----
     int Pindex()                   const { return pindex_;                }
     int Natom()                    const { return (int)atoms_.size();     }
@@ -28,6 +30,8 @@ class Topology {
     int Nframes()                  const { return nframes_;               }
     int Ntypes()                   const { return ntypes_;                }
     int NextraPts()                const { return n_extra_pts_;           }
+    bool HasVelInfo()              const { return hasVelInfo_;            }
+    int NrepDim()                  const { return nRepDim_;               }
     std::string const& ParmName()         const { return parmName_;       }
     std::string const& OriginalFilename() const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
@@ -195,6 +199,8 @@ class Topology {
     int nframes_;
     int ntypes_; // This is stored for the purpose of checking array sizes
     int n_extra_pts_;
+    bool hasVelInfo_; // TODO: This information should be passed separate from Topology
+    int nRepDim_;     // TODO: This information should be passed separate from Topology
 
     void PrintBonds(std::vector<int> const&, AtomMask const&);
     void SetAtomBondInfo();

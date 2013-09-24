@@ -1248,6 +1248,8 @@ int Cpptraj::RunNormal() {
 #   ifdef TIMER
     setup_time.Start();
 #   endif
+    CurrentParm->SetVelInfo( (*traj)->HasVelocity() );
+    CurrentParm->SetNrepDim( (*traj)->NreplicaDimension() );
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
     if (parmHasChanged || (TrajFrame.HasVelocity() != (*traj)->HasVelocity()))
