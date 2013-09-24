@@ -434,10 +434,8 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
       HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_, 
                                                           hbidx, "solventhb" );
       //mprinterr("Created Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,HB.data_);
-      // FIXME: If # frames could not be determined this will fail.
-      HB.data_->Resize( masterDSL_->MaxFrames() );
       HB.data_->SetLegend( hblegend );
-      (*HB.data_)[ frameNum ] = 1;
+      HB.data_->AddVal( frameNum, 1 );
     }
     SolventMap_.insert( entry, std::pair<int,HbondType>(hbidx, HB) );
   } else {
@@ -446,7 +444,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
     (*entry).second.angle += angle;
     if (series_) {
       //mprinterr("Adding Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,(*entry).second.data_);
-      (*(*entry).second.data_)[ frameNum ] = 1;
+      (*entry).second.data_->AddVal( frameNum, 1 );
     }
   }     
   return 1;
@@ -480,9 +478,8 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
                              (*CurrentParm_)[h_atom].Name().Truncated(); \
       HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_, \
                                                           hbidx, "solutehb" ); \
-      HB.data_->Resize( masterDSL_->MaxFrames() ); \
       HB.data_->SetLegend( hblegend ); \
-      (*HB.data_)[ frameNum ] = 1 ; \
+      HB.data_->AddVal( frameNum, 1 ); \
     } \
     HbondMap_.insert( it, std::pair<int,HbondType>(hbidx, HB) ); \
   } else { \
@@ -490,7 +487,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
     (*it).second.dist += dist; \
     (*it).second.angle += angle; \
     if (series_) \
-      (*(*it).second.data_)[ frameNum ] = 1; \
+      (*it).second.data_->AddVal( frameNum, 1 ); \
   } \
 } 
 
@@ -637,6 +634,22 @@ void Action_Hbond::Print() {
   std::vector<HbondType> HbondList; // For sorting
   std::string Aname, Hname, Dname;
   CpptrajFile outfile;
+
+  // Ensure all series have been updated for all frames.
+  if (series_) {
+    for (HBmapType::iterator hb = HbondMap_.begin(); hb != HbondMap_.end(); ++hb)
+    {
+      DataSet_integer& ds = static_cast<DataSet_integer&>( *((*hb).second.data_) );
+      if ( (int)ds.Size() < Nframes_ )
+        ds.AddVal( Nframes_ - 1, 0 );
+    }
+    for (HBmapType::iterator hb = SolventMap_.begin(); hb != SolventMap_.end(); ++hb)
+    {
+      DataSet_integer& ds = static_cast<DataSet_integer&>( *((*hb).second.data_) );
+      if ( (int)ds.Size() < Nframes_ )
+        ds.AddVal( Nframes_ - 1, 0 );
+    }
+  }
 
   if (CurrentParm_ == 0) return;
   // Calculate necessary column width for strings based on how many residues.

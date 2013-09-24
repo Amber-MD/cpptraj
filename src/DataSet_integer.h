@@ -13,6 +13,7 @@ class DataSet_integer : public DataSet_1D {
     void push_back(int i)             { Data_.push_back( i );      }
     /// Make set size sizeIn, all values set to 0.0.
     void Resize(size_t sizeIn)        { Data_.resize(sizeIn, 0);   }
+    inline void AddVal(size_t, int);
     // ----- DataSet functions -------------------
     size_t Size()               const { return Data_.size();       }
     int Sync();
@@ -30,4 +31,9 @@ class DataSet_integer : public DataSet_1D {
   private:
     std::vector<int> Data_;
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+void DataSet_integer::AddVal(size_t frame, int ival) {
+  if (frame > Data_.size()) Data_.resize( frame, 0 );
+  Data_.push_back( ival );
+}
 #endif
