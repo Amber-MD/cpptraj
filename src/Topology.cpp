@@ -286,12 +286,13 @@ void Topology::PrintResidueInfo(std::string const& maskString) {
   ParseMask(refCoords_, mask, false); // Char mask
   mprintf("RESIDUES:\n");
   unsigned int rnum = 1;
-  for (std::vector<Residue>::iterator res = residues_.begin();
-                                      res != residues_.end(); res++)
+  for (std::vector<Residue>::const_iterator res = residues_.begin();
+                                            res != residues_.end(); res++)
   {
     if ( mask.AtomsInCharMask( (*res).FirstAtom(), (*res).LastAtom() ) ) {
-      mprintf("\tResidue %u %s first atom %i last atom %i\n",
-              rnum, (*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom());
+      mprintf("\tResidue %u %s atoms %i-%i (%i), original#=%i\n",
+              rnum, (*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom(),
+              (*res).NumAtoms(), (*res).OriginalResNum());
     }
     ++rnum;
   }
@@ -319,7 +320,7 @@ void Topology::AddTopAtom(Atom atomIn, NameType const& resname, int current_res,
     if (!residues_.empty())
       residues_.back().SetLastAtom( atoms_.size() );
     // First atom of new residue is == current # atoms.
-    residues_.push_back( Residue(resname, atoms_.size()) );
+    residues_.push_back( Residue(current_res, resname, atoms_.size()) );
     last_res = current_res;
   }
   // Set this atoms residue number 
@@ -412,8 +413,8 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
   size_t nres = resnames.size();
   residues_.reserve( nres );
   for (size_t res = 0; res < nres - 1; res++) 
-    residues_.push_back( Residue( resnames[res], resnums[res], resnums[res+1] ) );
-  residues_.push_back( Residue( resnames[nres-1], resnums[nres-1], atoms_.size() ) );
+    residues_.push_back( Residue( res+1, resnames[res], resnums[res], resnums[res+1] ) );
+  residues_.push_back( Residue( nres, resnames[nres-1], resnums[nres-1], atoms_.size() ) );
 
   return 0;
 }
@@ -1467,7 +1468,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     if ( curres != oldres ) {
       if (!newParm->residues_.empty())
         newParm->residues_.back().SetLastAtom( newatom );
-      newParm->residues_.push_back( Residue(residues_[curres].Name(), newatom) );
+      newParm->residues_.push_back( Residue(residues_[curres].OriginalResNum(),
+                                            residues_[curres].Name(), newatom) );
       oldres = curres;
     }
     // Clear bond information from new atom
