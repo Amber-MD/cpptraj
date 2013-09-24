@@ -101,9 +101,9 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   if (debugIn > 0)
     inputDsets_.List();
   if (Compare_ == Compare_GreaterThan) 
-    mprintf("\tValues greater than %f are considered present.\n");
+    mprintf("\tValues greater than %f are considered present.\n", cut_);
   else
-    mprintf("\tValues less than %f are considered present.\n");
+    mprintf("\tValues less than %f are considered present.\n", cut_);
   if (windowSize_ != -1) {
     mprintf("\tAverage of data over windows will be saved to sets named %s\n",
             setname.c_str());
