@@ -14,7 +14,7 @@ int DataSet_integer::Allocate1D( size_t sizeIn ) {
 /** Insert data vIn at frame. */
 void DataSet_integer::Add(size_t frame, const void* vIn) {
   if (frame > Data_.size())
-    Data_.resize( frame, 0.0 );
+    Data_.resize( frame, 0 );
   // Always insert at the end
   // NOTE: No check for duplicate frame values.
   Data_.push_back( *((int*)vIn) );
