@@ -215,8 +215,7 @@ Action::RetType Action_Closest::Setup(Topology* currentParm, Topology** parmAddr
   newParm_->Summary();
 
   // Allocate space for new frame
-  // FIXME: Should this be set up for velocity as well?
-  newFrame_.SetupFrameM( newParm_->Atoms() );
+  newFrame_.SetupFrameV( newParm_->Atoms(), newParm_->HasVelInfo(), newParm_->NrepDim() );
 
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {

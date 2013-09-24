@@ -51,7 +51,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
 Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** parmAddress) {
   // Target setup
   if (SetupRmsMask(*currentParm, "symmrmsd")) return Action::ERR;
-  // Target remap setup
+  // Target remap setup: TODO: If ever passed out of DoAction setup Velocity
   remapFrame_.SetupFrameM( currentParm->Atoms() );
   // Reference setup
   if (SetupRef(*currentParm, TgtMask().Nselected(), "symmrmsd"))

@@ -479,6 +479,8 @@ int CpptrajState::RunNormal() {
     }
     // Set current parm from current traj.
     Topology* CurrentParm = (*traj)->TrajParm();
+    CurrentParm->SetVelInfo( (*traj)->HasVelocity() );
+    CurrentParm->SetNrepDim( (*traj)->NreplicaDimension() );
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
 #   ifdef TIMER
