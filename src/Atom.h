@@ -26,8 +26,8 @@ class Atom {
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}
-    /// Take atom name. Attempt to determine element from name.
-    Atom(NameType const&);
+    /// Take atom name, chain ID. Attempt to determine element from name.
+    Atom(NameType const&, char);
     /// Take atom name, type, and charge. Attempt to determine element from name.
     Atom( NameType const&, NameType const&, double );
     Atom( NameType const&, double, int, double, int, NameType const&, double, double,int );
@@ -37,17 +37,17 @@ class Atom {
     // Iterator over bonded atom #s
     typedef std::vector<int>::const_iterator bond_iterator;
     inline bond_iterator bondbegin() const { return bonds_.begin(); }
-    inline bond_iterator bondend() const   { return bonds_.end();   }
+    inline bond_iterator bondend()   const { return bonds_.end();   }
     // Iterator over excluded atoms
     typedef std::vector<int>::const_iterator excluded_iterator;
     inline excluded_iterator excludedbegin() const { return excluded_.begin(); }
-    inline excluded_iterator excludedend() const   { return excluded_.end();   }
+    inline excluded_iterator excludedend()   const { return excluded_.end();   }
     // Functions that set internal vars
-    void SetResNum(int);
-    void SetMol(int);
-    bool NoMol();
-    void SetCharge(double qin) { charge_ = qin; }
+    void SetResNum(int resnumIn)             { resnum_ = resnumIn;  }
+    void SetMol(int molIn)                   { mol_ = molIn;        }
+    void SetCharge(double qin)               { charge_ = qin;       }
     // Inline functions returning internal vars
+    inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }
     inline int ResNum()                const { return resnum_; }
     inline AtomicElementType Element() const { return element_; }
@@ -57,6 +57,7 @@ class Atom {
     inline const NameType& Type()      const { return atype_; }
     inline int TypeIndex()             const { return atype_index_; }
     inline int MolNum()                const { return mol_; }
+    inline char ChainID()              const { return chainID_; }
     inline int Nbonds()                const { return (int)bonds_.size(); }
     inline int Nexcluded()             const { return (int)excluded_.size(); }
     inline double Mass()               const { return mass_; }
@@ -83,6 +84,7 @@ class Atom {
     AtomicElementType element_;
     int resnum_;
     int mol_;
+    char chainID_;
     std::vector<int> bonds_;
     std::vector<int> excluded_;
 

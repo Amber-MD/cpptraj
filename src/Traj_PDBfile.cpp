@@ -169,7 +169,16 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
   // Set a chainID for each atom
   // TODO: Set different chain ID for solute mols and solvent
   chainID_.clear();
-  chainID_.resize(pdbAtom_, chainchar_);
+  if (chainchar_ == ' ') {
+    chainID_.reserve( pdbAtom_ );
+    for (Topology::atom_iterator atom = trajParm->begin(); atom != trajParm->end(); ++atom)
+      if ( (*atom).ChainID() == 0 )
+        chainID_.push_back(' ');
+      else
+        chainID_.push_back( (*atom).ChainID() );
+  } else
+    chainID_.resize(pdbAtom_, chainchar_);
+        
   // Save residue names. If pdbres specified convert to PDBV3 residue names.
   resNames_.clear();
   resNames_.reserve( trajParm->Nres() );
@@ -250,7 +259,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     // If this atom belongs to a new molecule print a TER card
     // Use res instead of res+1 since this TER belongs to last mol/res
     if (aidx == lastAtomInMol) {
-      file_.WriteTER( anum, resNames_[res-1], chainID_[aidx], res );
+      file_.WriteTER( anum, resNames_[res-1], chainID_[aidx-1], res );
       anum += ter_num_;
       ++mol;
       lastAtomInMol = (*mol).EndAtom();
@@ -271,7 +280,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       else if (atomName == "HO'2") atomName = "HO2'";
     }
     file_.WriteRec(PDBfile::ATOM, anum++, atomName, resNames_[res],
-                   chainID_[aidx++], res+1, Xptr[0], Xptr[1], Xptr[2], Occ, B, 
+                   chainID_[aidx++], pdbTop_->Res(res).OriginalResNum(), 
+                    Xptr[0], Xptr[1], Xptr[2], Occ, B, 
                    (*atom).ElementName(), 0, dumpq_);
     Xptr += 3;
   }
