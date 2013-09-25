@@ -326,8 +326,8 @@ void Topology::PrintChargeMassInfo(std::string const& maskString, int type) cons
 
 // -----------------------------------------------------------------------------
 // Topology::AddTopAtom()
-void Topology::AddTopAtom(Atom atomIn, NameType const& resname, int current_res, int& last_res, 
-                       const double* XYZin) 
+void Topology::AddTopAtom(Atom const& atomIn, NameType const& resname, int current_res, 
+                          int& last_res, const double* XYZin) 
 {
   // Check if this is a new residue
   if (residues_.empty() || current_res != last_res) {
@@ -338,9 +338,9 @@ void Topology::AddTopAtom(Atom atomIn, NameType const& resname, int current_res,
     residues_.push_back( Residue(current_res, resname, atoms_.size()) );
     last_res = current_res;
   }
-  // Set this atoms residue number 
-  atomIn.SetResNum( residues_.size()-1 );
   atoms_.push_back(atomIn);
+  // Set this atoms residue number 
+  atoms_.back().SetResNum( residues_.size()-1 );
   // Add coordinate if given
   refCoords_.AddXYZ( XYZin );
 }

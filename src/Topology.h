@@ -111,7 +111,7 @@ class Topology {
     inline Box::BoxType BoxType() const { return box_.Type(); }
     void SetBox( Box const& bIn )       { box_ = bIn;         }
     // ----- PDB/Mol2 etc setup routines -----
-    void AddTopAtom(Atom, NameType const&, int, int&, const double*);
+    void AddTopAtom(Atom const&, NameType const&, int, int&, const double*);
     void StartNewMol();
     // ----- Amber setup routines -----
     int CreateAtomArray(std::vector<NameType>&, std::vector<double>&,
