@@ -51,6 +51,11 @@ Action_Radial::~Action_Radial() {
   }
 }
 
+inline Action::RetType RDF_ERR(const char* msg) {
+  mprinterr("Error: %s\n", msg);
+  return Action::ERR;
+}
+
 // Action_Radial::Init()
 Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
@@ -112,6 +117,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 
   // Set up output dataset. 
   Dset_ = DSL->AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");
+  if (Dset_ == 0) return RDF_ERR("Could not allocate RDF data set.");
   DataFile* outfile = DFL->AddSetToFile(outfilename, Dset_);
   if (outfile==0) {
     mprinterr("Error: Radial: Could not setup output file %s\n",outfilename.c_str());
@@ -134,6 +140,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Set up output for integral of mask2 if specified.
   if (!intrdfname.empty()) {
     intrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "int" );
+    if (intrdf_ == 0) return RDF_ERR("Could not allocate RDF integral data set.");
     intrdf_->SetPrecision(12,6);
     intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
     intrdf_->SetDim(Dimension::X, Rdim);
@@ -147,6 +154,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Set up output for raw rdf
   if (!rawrdfname.empty()) {
     rawrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "raw" );
+    if (rawrdf_ == 0) return RDF_ERR("Could not allocate raw RDF data set.");
     rawrdf_->SetPrecision(12,6);
     rawrdf_->SetLegend("Raw[" + Dset_->Legend() + "]");
     rawrdf_->SetDim(Dimension::X, Rdim);
