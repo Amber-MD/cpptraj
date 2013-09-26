@@ -292,7 +292,10 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
   // Check if DataSet with same attributes already present.
   DataSet* DS = GetSet(nameIn, idxIn, aspectIn);
   if (DS != 0) {
-    mprintf("Warning: DataSet %s:%i already present.\n", nameIn.c_str(), idxIn);
+    mprintf("Warning: DataSet '%s", nameIn.c_str());
+    if (!aspectIn.empty()) mprintf("[%s]", aspectIn.c_str());
+    if (idxIn != -1) mprintf(":%i", idxIn);
+    mprintf("' already present.\n");
     // NOTE: Should return found dataset?
     return 0; 
   }
