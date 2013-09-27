@@ -300,7 +300,7 @@ void Topology::PrintResidueInfo(std::string const& maskString) {
 
 void Topology::PrintChargeInfo(std::string const& maskString) {
   AtomMask mask( maskString );
-  ParseMask(refCoords_, mask, true); // Int mask
+  if (ParseMask(refCoords_, mask, true)) return; // Int mask
   double sumq = 0.0;
   for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
     sumq += atoms_[*aidx].Charge();

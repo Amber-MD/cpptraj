@@ -91,6 +91,10 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
         return 1;
       }
       std::string arg2(tokenString.begin()+dashPosition+1, tokenString.end());
+      if (arg2.empty()) {
+        mprinterr("Error: Incomplete number range given (%s).\n", tokenString.c_str());
+        return 1;
+      }
       res1_ = convertToInteger( arg1 );
       res2_ = convertToInteger( arg2 );
     } else {
