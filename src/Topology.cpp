@@ -303,9 +303,9 @@ void Topology::PrintResidueInfo(std::string const& maskString) const {
 }
 
 // Topology::PrintChargeMassInfo()
-void Topology::PrintChargeMassInfo(std::string const& maskString, int type) const {
+int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const {
   AtomMask mask( maskString );
-  ParseMask(refCoords_, mask, true); // Int mask
+  if (ParseMask(refCoords_, mask, true)) return 1; // Int mask
   if (type == 0 || type == 2) {
     mprintf("\tSum of charges in mask");
     mask.BriefMaskInfo();
@@ -321,7 +321,8 @@ void Topology::PrintChargeMassInfo(std::string const& maskString, int type) cons
     for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
       summ += atoms_[*aidx].Mass();
     mprintf(" is %f\n", summ);
-  } 
+  }
+  return 0; 
 }
 
 // -----------------------------------------------------------------------------
