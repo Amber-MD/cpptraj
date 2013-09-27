@@ -1140,7 +1140,7 @@ Command::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, Command::AllocT
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
-  parm->PrintChargeMassInfo( argIn.GetMaskNext(), 0 );
+  if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 0 )) return Command::C_ERR;
   return Command::C_OK;
 }
 
@@ -1149,7 +1149,7 @@ Command::RetType MassInfo(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
-  parm->PrintChargeMassInfo( argIn.GetMaskNext(), 1 );
+  if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 1 )) return Command::C_ERR;
   return Command::C_OK;
 }
 
