@@ -218,18 +218,18 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
   // Setup imaging, and image everything in currentFrame 
   // according to mobileList. 
   if (ortho_) {
-    if (SetupImageOrtho(currentFrame->BoxCrd(), bp, bm, origin_)) {
+    if (Image::SetupOrtho(currentFrame->BoxCrd(), bp, bm, origin_)) {
       mprintf("Warning: autoimage: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
       return Action::OK;
     }
-    ImageOrtho(*currentFrame, bp, bm, usecom_, useMass_, mobileList_);
+    Image::Ortho(*currentFrame, bp, bm, usecom_, useMass_, mobileList_);
   } else {
     currentFrame->BoxCrd().ToRecip(ucell, recip);
     if (truncoct_)
-      fcom = SetupImageTruncoct( *currentFrame, 0, useMass_, origin_ );
-    ImageNonortho(*currentFrame, origin_, fcom, ucell, recip, truncoct_,
-                                usecom_, useMass_, mobileList_);
+      fcom = Image::SetupTruncoct( *currentFrame, 0, useMass_, origin_ );
+    Image::Nonortho(*currentFrame, origin_, fcom, ucell, recip, truncoct_,
+                    usecom_, useMass_, mobileList_);
   }  
 
   // For each molecule defined by atom pairs in fixedList, determine if the
@@ -250,9 +250,9 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
     //imagedcenter[1] = framecenter[1];
     //imagedcenter[2] = framecenter[2];
     if (ortho_)
-      Trans = ImageOrtho(framecenter, bp, bm, currentFrame->BoxCrd());
+      Trans = Image::Ortho(framecenter, bp, bm, currentFrame->BoxCrd());
     else
-      Trans = ImageNonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
+      Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
     // If molecule was imaged, determine whether imaged position is closer to anchor.
     if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
       imagedcenter = framecenter;
