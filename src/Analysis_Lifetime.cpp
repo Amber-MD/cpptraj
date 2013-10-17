@@ -249,8 +249,9 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         favg = (float)sumLifetimes / (float)Nlifetimes;
       standalone_out.Printf("\t\t\t#lifetimes: %i\n"
                             "\t\t\tMax lifetime observed: %i frames\n"
-                            "\t\t\tAvg lifetime: %f frames\n",
-                            Nlifetimes, maximumLifetimeCount, favg);
+                            "\t\t\tAvg lifetime: %f frames\n"
+                            "\t\t\t# frames satisfying cutoff: %.0f\n",
+                            Nlifetimes, maximumLifetimeCount, favg, sum);
     }
   }
   return Analysis::OK;
