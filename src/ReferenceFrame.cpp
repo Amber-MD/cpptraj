@@ -116,5 +116,5 @@ int ReferenceFrame::StripRef(AtomMask const& stripMask) {
 void ReferenceFrame::RefInfo() const {
   if (!tag_.empty())
     mprintf(" %s", tag_.c_str());
-  mprintf(" '%s', frame %i\n", name_.full(), num_);
+  mprintf(" '%s', frame %i\n", name_.full(), num_ + 1);
 }
