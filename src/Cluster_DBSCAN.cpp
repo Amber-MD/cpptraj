@@ -47,14 +47,14 @@ void Cluster_DBSCAN::ClusteringInfo() {
     mprintf("\t\tMinimum pts to form cluster= %i\n", minPoints_);
     mprintf("\t\tCluster distance criterion= %.3f\n", epsilon_);
     if (sieveToCentroid_)
-      mprintf("\t\tSieved frames will be added back solely based on their"
-              " closeness to cluster centroids.\n"
+      mprintf("\t\tSieved frames will be added back solely based on their\n"
+              "\t\t  closeness to cluster centroids.\n"
               "\t\t  (This option is less accurate but faster.)\n");
     else
-      mprintf("\t\tSieved frames will only be added back if they are within"
-              " %.3f of a frame in an existing cluster.\n"
-              "\t\t  (This option is more accurate and will identify sieved"
-              " frames as noise but is slower.)\n", epsilon_);
+      mprintf("\t\tSieved frames will only be added back if they are within\n"
+              "\t\t  %.3f of a frame in an existing cluster.\n"
+              "\t\t  (This option is more accurate and will identify sieved\n"
+              "\t\t  frames as noise but is slower.)\n", epsilon_);
   }
 }
 
