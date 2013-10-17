@@ -20,17 +20,13 @@ class FrameList {
     ReferenceFrame GetFrameFromArgs(ArgList&) const;
     /// Get reference frame with given name.
     ReferenceFrame GetFrameByName(std::string const&) const;
-    /// Replace the given reference frame with given Frame/Topology.
-    int ReplaceFrame(ReferenceFrame const&, Frame*, Topology*);
     /// Print all reference frames.
     void List() const;
     /// \return the number of reference frames.
     int NumFrames() const { return (int)frames_.size(); }
   private:
     std::vector<ReferenceFrame> frames_;
-    std::vector<Topology*> StrippedRefParms_;
-    int refFrameNum_;
-    static const ReferenceFrame ErrorFrame_;
+    int activeRefNum_;
     int debug_;
 };
 #endif

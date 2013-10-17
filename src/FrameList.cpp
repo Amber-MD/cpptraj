@@ -1,12 +1,9 @@
 // FrameList
 #include "FrameList.h"
-#include "Trajin_Single.h"
 #include "CpptrajStdio.h"
 
-const ReferenceFrame FrameList::ErrorFrame_(0,0,FileName(),"",-1);
-
 // CONSTRUCTOR
-FrameList::FrameList() : refFrameNum_(0), debug_(0) {}
+FrameList::FrameList() : activeRefNum_(0), debug_(0) {}
 
 // DESTRUCTOR
 FrameList::~FrameList() {
@@ -19,11 +16,7 @@ void FrameList::Clear() {
                                              ref != frames_.end(); ++ref)
     delete (*ref).Coord();
   frames_.clear();
-  for (std::vector<Topology*>::iterator parm = StrippedRefParms_.begin();
-                                        parm != StrippedRefParms_.end(); parm++)
-    delete *parm;
-  StrippedRefParms_.clear();
-  refFrameNum_ = 0;
+  activeRefNum_ = 0;
 }
 
 void FrameList::SetDebug(int debugIn) {
@@ -34,11 +27,11 @@ void FrameList::SetDebug(int debugIn) {
 
 // -----------------------------------------------------------------------------
 // FrameList::ActiveReference()
-/** Return the address of the frame pointed to by refFrameNum_.
+/** Return the address of the frame pointed to by activeRefNum_.
   */
 Frame* FrameList::ActiveReference() {
   if (frames_.empty()) return 0;
-  return frames_[refFrameNum_].Coord();
+  return frames_[activeRefNum_].Coord();
 }
 
 // FrameList::SetActiveRef()
@@ -49,7 +42,7 @@ int FrameList::SetActiveRef(int numIn) {
     mprintf("Warning: FrameList::SetActiveRef: Ref # %i out of bounds.\n",numIn);
     return 1;
   }
-  refFrameNum_ = numIn;
+  activeRefNum_ = numIn;
   return 0;
 }
 // -----------------------------------------------------------------------------
@@ -58,116 +51,28 @@ int FrameList::SetActiveRef(int numIn) {
   * respectively. Store the associated parm in FrameParm. 
   */
 int FrameList::AddRefFrame(ArgList& argIn, TopologyList const& topListIn) {
-  Trajin_Single traj;
+  ReferenceFrame refFrame;
 
-  traj.SetDebug(debug_);
   // Get associated parmtop
   Topology* parmIn = topListIn.GetParm( argIn );
-  // Check if we want to obtain the average structure
-  // TODO: deprecate
-  bool average = argIn.hasKey("average");
-
-  // Set up trajectory - false = do not modify box info
-  if ( traj.SetupTrajRead( argIn.GetStringNext(), argIn, parmIn, false ) ) {
-    mprinterr("Error: reference: Could not set up trajectory.\n");
+  // Load reference frame.
+  if (refFrame.LoadRef( argIn.GetStringNext(), argIn, parmIn, debug_ ))
     return 1;
-  }
-
-  // Check for mask expression
-  // TODO: This is done after SetupTrajRead because forward slash is a valid
-  //       mask operand for element, so getNextMask will unfortunately pick up 
-  //       filenames as well as masks.
-  std::string maskexpr = argIn.GetMaskNext();
-
-  // Check for tag - done after SetupTrajRead so traj can process args
-  std::string reftag = argIn.getNextTag();
-
   // Check and warn if filename/reftag currently in use
   // TODO: Check for base filename?
   for (std::vector<ReferenceFrame>::const_iterator rf = frames_.begin();
                                                    rf != frames_.end(); ++rf)
   {
-    if ( (*rf).FrameName().Full() == traj.TrajFilename().Full() )
-      mprintf("Warning: Reference with name '%s' already exists!\n",traj.TrajFilename().full());
-    if ( !reftag.empty() && (*rf).Tag() == reftag ) {
-      mprintf("Error: Reference with tag '%s' already exists!\n",reftag.c_str());
-      return 1;
-    }
+    if ( (*rf).FrameName().Full() == refFrame.FrameName().Full() )
+      mprintf("Warning: Reference with name '%s' already exists!\n",
+              refFrame.FrameName().full());
+    if ( !refFrame.Tag().empty() && (*rf).Tag() == refFrame.Tag() )
+      mprintf("Error: Reference with tag [%s] already exists!\n",
+              refFrame.Tag().c_str());
   }
+  // Add reference frame to list.
+  frames_.push_back( refFrame );
 
-  // If not obtaining average structure, tell trajectory to only process
-  // the start frame.
-  if (!average)
-    traj.SingleFrame();
-
-  // Check number of frames to be read
-  int trajFrames = traj.TotalReadFrames();
-  if (trajFrames < 1) {
-    mprinterr("Error: No frames could be read for reference %s\n", traj.TrajFilename().base());
-    return 1;
-  }
-  // Start trajectory read
-  if ( traj.BeginTraj(false) ) {
-    mprinterr("Error: Could not open reference %s\n.", traj.TrajFilename().base());
-    return 1;
-  }
-  traj.PrintInfo(1);
-  // Set up input frame
-  // NOTE: If ever need ref velocity change this alloc
-  Frame *CurrentFrame = new Frame( parmIn->Atoms() );
-  // If averaging requested, loop over specified frames and avg coords.
-  if (average) {
-    mprintf("    Averaging over %i frames.\n",trajFrames);
-    Frame *AvgFrame = new Frame( parmIn->Atoms() );
-    AvgFrame->ZeroCoords();
-    while ( traj.GetNextFrame( *CurrentFrame ) ) {
-      *AvgFrame += *CurrentFrame;
-    }
-    AvgFrame->Divide( (double)trajFrames );
-    delete CurrentFrame;
-    CurrentFrame = AvgFrame;
-  } else {
-    // Not averaging, get the one frame from traj
-    traj.GetNextFrame( *CurrentFrame );
-  }
-  traj.EndTraj();
-
-  // If a mask expression was specified, strip to match the expression.
-  Topology *CurrentParm = parmIn;
-  if (!maskexpr.empty()) {
-    AtomMask stripMask( maskexpr );
-    mprintf("    reference: Keeping atoms in mask [%s]\n",stripMask.MaskString());
-    if (parmIn->SetupIntegerMask(stripMask, *CurrentFrame)) {
-      delete CurrentFrame;
-      return 1;
-    }
-    if (stripMask.None()) {
-      mprinterr("Error: No atoms kept for reference.\n");
-      delete CurrentFrame;
-      return 1;
-    }
-    // Create new stripped frame
-    Frame *strippedRefFrame = new Frame( *CurrentFrame, stripMask );
-    mprintf("\tKept %i atoms.\n", strippedRefFrame->Natom());
-    // Create new stripped parm
-    Topology *strippedRefParm = CurrentParm->modifyStateByMask( stripMask );
-    if (strippedRefParm==0) {
-      mprinterr("Error: could not strip reference.\n");
-      return 1;
-    }
-    strippedRefParm->Summary();
-    // Store the new stripped parm in this class so it can be freed later
-    StrippedRefParms_.push_back( strippedRefParm );
-    delete CurrentFrame;
-    CurrentFrame = strippedRefFrame;
-    // No need to free CurrentParm since it exists in the parm file list.
-    CurrentParm = strippedRefParm;
-  }
-
-  frames_.push_back( ReferenceFrame( CurrentFrame, CurrentParm, 
-                                     traj.TrajFilename(), reftag, traj.Start() ) );
-  // If the top currently has no reference coords, set them now
-  if (CurrentParm->NoRefCoords()) CurrentParm->SetReferenceCoords( CurrentFrame ); 
   return 0;
 }
 
@@ -186,7 +91,7 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
     ReferenceFrame rf = GetFrameByName( refname );
     if (rf.empty()) {
       mprinterr("Error: Could not get reference with name %s\n", refname.c_str());
-      return ErrorFrame_;
+      return ReferenceFrame();
     }
     return rf; 
   }
@@ -194,7 +99,7 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
   if (argIn.hasKey("reference")) {
     if (frames_.empty()) {
       mprinterr("Error: No reference frames defined.\n");
-      return ErrorFrame_;
+      return ReferenceFrame();
     }
     return frames_[0];
   }
@@ -203,7 +108,7 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
   if (refindex != -1) {
     if (refindex < 0 || refindex >= (int)frames_.size()) {
       mprinterr("Error: reference index %i is out of bounds.\n", refindex);
-      return ErrorFrame_;
+      return ReferenceFrame();
     }
     return frames_[refindex];
   }
@@ -222,24 +127,6 @@ ReferenceFrame FrameList::GetFrameByName(std::string const& refName) const {
   return ReferenceFrame();
 }
 
-// FrameList::ReplaceFrame()
-/** Replace the frame/parm at the given position with the given frame/parm.
-  * The old frame is deleted. 
-  */
-int FrameList::ReplaceFrame(ReferenceFrame const& refIn, Frame *newFrame, Topology *newParm) {
-  if (newFrame==0 || newParm==0) return 1;
-  for (std::vector<ReferenceFrame>::iterator ref = frames_.begin(); 
-                                             ref != frames_.end(); ++ref) 
-  {
-    if ( *ref == refIn ) {
-      delete (*ref).Coord();
-      (*ref).SetRef( newFrame, newParm );
-      return 0;
-    }
-  }
-  return 1;
-}
-
 // FrameList::List()
 /** Print a list of trajectory names that frames have been taken from.
   */
@@ -254,6 +141,6 @@ void FrameList::List() const {
         mprintf(" %s", (*rf).Tag().c_str());
       mprintf(" '%s', frame %i\n", (*rf).FrameName().full(), (*rf).Num()+1);
     }
-    mprintf("\tActive reference frame for masks is %i\n",refFrameNum_);
+    mprintf("\tActive reference frame for masks is %i\n",activeRefNum_);
   }
 }
