@@ -5,7 +5,7 @@
 // DESTRUCTOR
 ReferenceFrame::~ReferenceFrame() {
   if (strippedParm_ && parm_ != 0) delete parm_;
-  //if (frame_ != 0) delete frame_; // TODO: Enable.
+  //if (frame_ != 0) delete frame_; // TODO: Enable
 }
 
 int ReferenceFrame::LoadRef(std::string const& fname, Topology* parmIn, int debugIn)
@@ -30,13 +30,19 @@ int ReferenceFrame::LoadRef(std::string const& fname, ArgList& argIn,
     mprinterr("Error: reference: Could not set up trajectory.\n");
     return 1;
   }
+  // 'average' keyword is deprecated
+  if ( argIn.hasKey("average") ) {
+    mprinterr("Error: 'average' for reference is deprecated. Please use\n"
+              "Error:   the 'average' action to create averaged coordinates.\n");
+    return 1;
+  }
   // Check for mask expression
   // NOTE: This is done after SetupTrajRead because forward slash is a valid
   //       mask operand for element, so getNextMask will unfortunately pick up 
   //       filenames as well as masks.
   std::string maskexpr = argIn.GetMaskNext();
   // Check for tag - done after SetupTrajRead so traj can process args
-  std::string tag_ = argIn.getNextTag();
+  tag_ = argIn.getNextTag();
   // Tell trajectory to only process the start frame.
   traj.SingleFrame();
   // Check number of frames to be read

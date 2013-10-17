@@ -12,6 +12,10 @@ FrameList::~FrameList() {
 
 /** Clear the FrameList. */
 void FrameList::Clear() {
+  // NOTE: Because ref frames are currently passed around by pointers they
+  //       are deleted here instead of in ReferenceFrame; this avoids double
+  //       frees when e.g. a ReferenceFrame is destroyed in an Action.
+  // TODO: ReferenceFrame should be passed by const reference. 
   for (std::vector<ReferenceFrame>::iterator ref = frames_.begin();
                                              ref != frames_.end(); ++ref)
     delete (*ref).Coord();
@@ -91,7 +95,7 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
     ReferenceFrame rf = GetFrameByName( refname );
     if (rf.empty()) {
       mprinterr("Error: Could not get reference with name %s\n", refname.c_str());
-      return ReferenceFrame();
+      return ReferenceFrame(-1);
     }
     return rf; 
   }
@@ -99,7 +103,7 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
   if (argIn.hasKey("reference")) {
     if (frames_.empty()) {
       mprinterr("Error: No reference frames defined.\n");
-      return ReferenceFrame();
+      return ReferenceFrame(-1);
     }
     return frames_[0];
   }
@@ -108,7 +112,7 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
   if (refindex != -1) {
     if (refindex < 0 || refindex >= (int)frames_.size()) {
       mprinterr("Error: reference index %i is out of bounds.\n", refindex);
-      return ReferenceFrame();
+      return ReferenceFrame(-1);
     }
     return frames_[refindex];
   }

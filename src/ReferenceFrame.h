@@ -4,7 +4,8 @@
 #include "ArgList.h"
 class ReferenceFrame {
   public:
-    ReferenceFrame() : frame_(0), parm_(0), num_(-1), strippedParm_(false) {}
+    ReferenceFrame() : frame_(0), parm_(0), num_(0), strippedParm_(false) {}
+    ReferenceFrame(int) : frame_(0), parm_(0), num_(-1), strippedParm_(false) {}
     ~ReferenceFrame();
     Frame* Coord()                    { return frame_;      }
     Topology* Parm()                  { return parm_;       }
