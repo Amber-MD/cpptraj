@@ -153,7 +153,7 @@ FileIO_Mpi.o : FileIO_Mpi.cpp FileIO.h FileIO_Mpi.h MpiRoutines.h
 FileIO_Std.o : FileIO_Std.cpp FileIO.h FileIO_Std.h
 FileName.o : FileName.cpp FileName.h StringRoutines.h
 Frame.o : Frame.cpp Atom.h AtomMask.h Box.h Constants.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
-FrameList.o : FrameList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ProgressBar.h ReferenceFrame.h ReplicaDimArray.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
+FrameList.o : FrameList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajStdio.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ReferenceFrame.h Residue.h Topology.h TopologyList.h Vec3.h
 GridAction.o : GridAction.cpp ArgList.h ArrayIterator.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_3D.h DataSet_GridFlt.h Dimension.h FileIO.h FileName.h Frame.h Grid.h GridAction.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h Topology.h Vec3.h
 Hungarian.o : Hungarian.cpp ArrayIterator.h Constants.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_2D.h DataSet_MatrixDbl.h Dimension.h FileIO.h FileName.h Hungarian.h Matrix.h
 ImageRoutines.o : ImageRoutines.cpp Atom.h AtomMask.h Box.h DistRoutines.h FileName.h Frame.h ImageRoutines.h ImageTypes.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h Topology.h Vec3.h
@@ -175,6 +175,7 @@ Random.o : Random.cpp CpptrajStdio.h Random.h
 Range.o : Range.cpp ArgList.h CpptrajStdio.h Range.h
 ReadLine.o : ReadLine.cpp Action.h ActionFrameCounter.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h Box.h Command.h CpptrajFile.h CpptrajState.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h Dimension.h DispatchObject.h FileIO.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ProgressBar.h Range.h ReadLine.h ReferenceFrame.h ReplicaDimArray.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h TrajinList.h Trajout.h TrajoutList.h Vec3.h
 ReferenceAction.o : ReferenceAction.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ProgressBar.h ReferenceAction.h ReferenceFrame.h ReplicaDimArray.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
+ReferenceFrame.o : ReferenceFrame.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ProgressBar.h ReferenceFrame.h ReplicaDimArray.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
 RmsAction.o : RmsAction.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajStdio.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h RmsAction.h Topology.h Vec3.h
 StringRoutines.o : StringRoutines.cpp CpptrajStdio.h StringRoutines.h
 Topology.o : Topology.cpp Atom.h AtomMask.h Box.h CpptrajStdio.h DistRoutines.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h StringRoutines.h Topology.h Vec3.h

@@ -175,6 +175,7 @@ SOURCES=ActionFrameCounter.cpp \
         Range.cpp \
         ReadLine.cpp \
         ReferenceAction.cpp \
+        ReferenceFrame.cpp \
         RmsAction.cpp \
         StringRoutines.cpp \
         Topology.cpp \
