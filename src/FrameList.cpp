@@ -137,9 +137,7 @@ void FrameList::List() const {
                                                      rf != frames_.end(); ++rf)
     {
       mprintf("    %u:", rf - frames_.begin());
-      if (!(*rf).Tag().empty())
-        mprintf(" %s", (*rf).Tag().c_str());
-      mprintf(" '%s', frame %i\n", (*rf).FrameName().full(), (*rf).Num()+1);
+      (*rf).RefInfo();
     }
     mprintf("\tActive reference frame for masks is %i\n",activeRefNum_);
   }

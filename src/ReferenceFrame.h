@@ -10,13 +10,13 @@ class ReferenceFrame {
     Topology* Parm()                  { return parm_;       }
     bool error()                const { return num_ == -1;  }
     bool empty()                const { return frame_ == 0; }
-    int Num()                   const { return num_;        }
     FileName const& FrameName() const { return name_;       }
     std::string const& Tag()    const { return tag_;        }
     int LoadRef(std::string const&, Topology*, int);
     int LoadRef(std::string const&, ArgList&, Topology*, int);
     int StripRef( std::string const& );
     int StripRef( AtomMask const& );
+    void RefInfo() const;
   private:
     Frame* frame_;      ///< Reference coords, allocated.
     Topology* parm_;    ///< Pointer to assiociated parm in TopologyList.

@@ -45,6 +45,12 @@ int ReferenceFrame::LoadRef(std::string const& fname, ArgList& argIn,
     mprinterr("Error: No frames could be read for reference '%s'\n", traj.TrajFilename().full());
     return 1;
   }
+  // Start trajectory read
+  if ( traj.BeginTraj(false) ) {
+    mprinterr("Error: Could not open reference '%s'\n.", traj.TrajFilename().full());
+    return 1;
+  }
+  mprintf("\t");
   traj.PrintInfo(1);
   // Set up input frame
   if (frame_ == 0) frame_ = new Frame();
@@ -99,4 +105,10 @@ int ReferenceFrame::StripRef(AtomMask const& stripMask) {
   if (strippedParm_ && parm_ != 0) delete parm_;
   parm_ = strippedRefParm;
   return 0;
+}
+
+void ReferenceFrame::RefInfo() const {
+  if (!tag_.empty())
+    mprintf(" %s", tag_.c_str());
+  mprintf(" '%s', frame %i\n", name_.full(), num_);
 }
