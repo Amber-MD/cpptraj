@@ -102,10 +102,6 @@ Analysis::RetType Analysis_Statistics::Analyze() {
     // Output average/stddev
     outfile_.Printf("__________________________________________________________________\n\n");
     outfile_.Printf("STATISTICS %6s\n", data_set.Legend().c_str());
-    if ( mode == DataSet::M_DISTANCE ) {
-      DataSet_double const& DblDS = static_cast<DataSet_double const&>( data_set );
-      outfile_.Printf("              DISTANCE between %s\n", DblDS.MaskExpressions());
-    }
     outfile_.Printf("   AVERAGE: %8.4f (%.4f stddev)\n", average, stddev);
     outfile_.Printf("   INITIAL: %8.4f\n   FINAL:   %8.4f\n",
                     data_set.Dval( 0 ), data_set.Dval( Nelements-1 ) );

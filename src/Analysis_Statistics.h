@@ -21,6 +21,9 @@ class Analysis_Statistics : public Analysis {
     CpptrajFile outfile_;
     double shift_;
     int debug_;
+    DataSet* NOE_r6_;
+    DataSet* NOE_violations_;
+    DataSet* NOE_avgViolations_;
 
     static const char* pucker_ss[];
     void PuckerAnalysis( DataSet_1D const&, int );

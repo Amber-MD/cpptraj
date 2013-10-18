@@ -60,10 +60,10 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Dis");
   if (dist_==0) return Action::ERR;
   dist_->SetScalar( DataSet::M_DISTANCE, stype );
-  ((DataSet_double*)dist_)->SetMaskExpressions(Mask1_.MaskExpression(),
-                                               Mask2_.MaskExpression() );
-  if ( stype == DataSet::NOE )
+  if ( stype == DataSet::NOE ) {
     ((DataSet_double*)dist_)->SetNOE(noe_bound, noe_boundh, noe_rexp);
+    dist_->SetLegend(Mask1_.MaskExpression() + " and " + Mask2_.MaskExpression());
+  }
   // Add dataset to data file
   if (outfile != 0) outfile->AddSet( dist_ );
 

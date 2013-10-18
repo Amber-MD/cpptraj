@@ -29,11 +29,6 @@ class DataSet_double : public DataSet_1D {
     iterator begin() { return Data_.begin(); }
     iterator end()   { return Data_.end();   }
     // For Analysis_Statistics DISTANCE NOE
-    void SetMaskExpressions(std::string const&, std::string const&);
-    const char* MaskExpressions() const {
-      if (maskExpressions_.empty()) return 0;
-      return maskExpressions_.c_str();
-    }
     void SetNOE(double b, double bh, double r) { bound_=b; boundh_=bh; rexp_=r;}
     double NOE_bound()  const { return bound_;  }
     double NOE_boundH() const { return boundh_; }
@@ -44,6 +39,5 @@ class DataSet_double : public DataSet_1D {
     double bound_;
     double boundh_;
     double rexp_;
-    std::string maskExpressions_;
 };
 #endif
