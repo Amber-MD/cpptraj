@@ -134,10 +134,6 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   grace_color_ = analyzeArgs.hasKey("gracecolor");
   calc_lifetimes_ = analyzeArgs.hasKey("lifetime");
   if (cpopvtimefile_ != 0) {
-    if (grace_color_) {
-      mprintf("Warning: 'gracecolor' not compatible with 'cpopvtime' - disabling 'gracecolor'\n");
-      grace_color_ = false;
-    }
     if (analyzeArgs.hasKey("normpop"))
       norm_pop_ = CLUSTERPOP;
     else if (analyzeArgs.hasKey("normframe"))
@@ -338,15 +334,24 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     if (calc_lifetimes_)
       ClusterLifetimes( *CList_, clusterDataSetSize );
 
+    // Change cluster num v time to grace-compatible colors if specified.
+    if (grace_color_) {
+      DataSet_integer& cnum_temp = static_cast<DataSet_integer&>( *cnumvtime_ );
+      for (DataSet_integer::iterator ival = cnum_temp.begin();
+                                     ival != cnum_temp.end(); ++ival)
+      {
+        *ival += 1;
+        if (*ival > 15) *ival = 15;
+      }
+    }
+    // Coordinate output.
     if (has_coords) {
       // Write clusters to trajectories
       if (!clusterfile_.empty())
         WriteClusterTraj( *CList_ ); 
-
       // Write all representative frames to a single traj
       if (!singlerepfile_.empty())
         WriteSingleRepTraj( *CList_ );
-
       // Write all representative frames to separate trajs
       if (!reptrajfile_.empty())
         WriteRepTraj( *CList_ );
@@ -378,29 +383,23 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, int maxFram
   // Cast generic DataSet for cnumvtime back to integer dataset to 
   // access specific integer dataset functions for resizing and []
   // operator. Should this eventually be generic to all atomic DataSets? 
-  DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
-  cnum_temp->Resize( maxFrames );
+  DataSet_integer& cnum_temp = static_cast<DataSet_integer&>( *cnumvtime_ );
+  cnum_temp.Resize( maxFrames );
   // Make all clusters start at -1. This way cluster algorithms that
   // have noise points (i.e. no cluster assigned) will be distinguished.
-  if (!grace_color_)
-    std::fill(cnum_temp->begin(), cnum_temp->end(), -1);
+  std::fill(cnum_temp.begin(), cnum_temp.end(), -1);
 
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); C++)
   {
     //mprinterr("Cluster %i:\n",CList->CurrentNum());
     int cnum = (*C).Num();
-    // If grace colors, return integer in range from 1 to 15 (1 most populated)
-    if (grace_color_) {
-      cnum = cnum + 1;
-      if (cnum > 15) cnum = 15;
-    } 
     // Loop over all frames in the cluster
     for (ClusterNode::frame_iterator frame = (*C).beginframe();
                                      frame != (*C).endframe(); frame++)
     {
       //mprinterr("%i,",*frame);
-      (*cnum_temp)[ *frame ] = cnum;
+      cnum_temp[ *frame ] = cnum;
     }
     //mprinterr("\n");
     //break;
@@ -433,9 +432,9 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
   }
   // Assumes cnumvtime has been calcd and not gracecolor!
   double norm = 1.0;
-  DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
+  DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>( *cnumvtime_ );
   for (int frame = 0; frame < maxFrames; ++frame) {
-    int cluster_num = (*cnum_temp)[frame];
+    int cluster_num = cnum_temp[frame];
     // Noise points are -1
     if (cluster_num > -1)
       Pop[cluster_num]++;
