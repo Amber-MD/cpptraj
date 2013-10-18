@@ -18,7 +18,7 @@ void Action_Distance::Help() {
 Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  double noe_bound = 0.0, noe_boundh = 0.0;
+  double noe_bound = 0.0, noe_boundh = 0.0, noe_rexp = -1.0;
   // Get Keywords
   InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
@@ -31,6 +31,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     stype = DataSet::NOE;
     noe_bound = actionArgs.getKeyDouble("bound", 0.0);
     noe_boundh = actionArgs.getKeyDouble("bound", 0.0);
+    noe_rexp = actionArgs.getKeyDouble("rexp", -1.0);
   }
   // Get Masks
   std::string mask1 = actionArgs.GetMaskNext();
@@ -47,7 +48,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   if (dist_==0) return Action::ERR;
   dist_->SetScalar( DataSet::M_DISTANCE, stype );
   if ( stype == DataSet::NOE )
-    ((DataSet_double*)dist_)->SetNOE_bounds(noe_bound, noe_boundh);
+    ((DataSet_double*)dist_)->SetNOE(noe_bound, noe_boundh, noe_rexp);
   // Add dataset to data file
   if (outfile != 0) outfile->AddSet( dist_ );
 

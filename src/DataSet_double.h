@@ -6,7 +6,8 @@
 /// Hold an array of double values.
 class DataSet_double : public DataSet_1D {
   public:
-    DataSet_double() : DataSet_1D(DOUBLE, 12, 4), bound_(0.0), boundh_(0.0) {}
+    DataSet_double() : DataSet_1D(DOUBLE, 12, 4), bound_(0.0), 
+                       boundh_(0.0), rexp_(-1.0) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_double();}
     double& operator[](size_t idx) { return Data_[idx];         }
     void operator=(std::vector<double> const& rhs) { Data_ = rhs; }
@@ -28,13 +29,15 @@ class DataSet_double : public DataSet_1D {
     iterator begin() { return Data_.begin(); }
     iterator end()   { return Data_.end();   }
     // For Analysis_Statistics DISTANCE NOE
-    void SetNOE_bounds(double b, double bh) { bound_ = b; boundh_ = bh; }
+    void SetNOE(double b, double bh, double r) { bound_=b; boundh_=bh; rexp_=r;}
     double NOE_bound()  const { return bound_;  }
     double NOE_boundH() const { return boundh_; }
+    double NOE_rexp()   const { return rexp_;   }
   private:
     std::vector<double> Data_;
     // For Analysis_Statistics DISTANCE NOE
     double bound_;
     double boundh_;
+    double rexp_;
 };
 #endif

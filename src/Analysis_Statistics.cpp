@@ -453,7 +453,7 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
   int distance_transitions[6][6];
   double distance_avg[6];
   double distance_sd[6];
-  double average, bound, boundh;
+  double average, bound, boundh, rexp;
   int prevbin, curbin, Nb, Nh;
 
   for (int j=0;j<6;j++) {
@@ -474,12 +474,17 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
     DataSet_double const& DsDbl = static_cast<DataSet_double const&>( ds );
     bound = DsDbl.NOE_bound();
     boundh = DsDbl.NOE_boundH();
+    rexp = DsDbl.NOE_rexp();
+    if (rexp < 0.0)
+      rexp = (bound + boundh) / 2.0;
   }
 
   // Get bin for first value
   prevbin = distbin( ds.Dval(0) );
   // Loop over all frames
   double r6_avg = 0.0;
+  int NlowViolations = 0;
+  int NhighViolations = 0;
   for (int i = 0; i < totalFrames; ++i) {
     double value = ds.Dval( i );
     curbin = distbin( value );
@@ -496,8 +501,15 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
       int j = totalFrames / 50.0;
       if (j < 1) j = 1;
 
-      if (value < bound) ++Nb;
-      if (value < boundh) ++Nh;
+      if (value < bound) {
+        ++Nb;
+        ++NlowViolations;
+      }
+      if (value < boundh)
+        ++Nh;
+      else
+        ++NhighViolations;
+
       average += value;
       if (j == 1 || i % j == 1) {
         average /= j;
@@ -515,20 +527,24 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
     }
   }
 
+  double d_total = (double)totalFrames;
   // NOE printout
   if (isNOE) {
     outfile_.Printf("|\n");
     if (bound > 0.0) {
       outfile_.Printf("   NOE < %.2f for %.2f%% of the time\n",
-              bound, (double) Nb / totalFrames * 100.0);
+              bound, (double)Nb / d_total * 100.0);
     }
     if (boundh > 0.0) {
       outfile_.Printf("   NOE < %.2f for %.2f%% of the time\n",
-              boundh, (double) Nh / totalFrames * 100.0);
+              boundh, (double)Nh / d_total * 100.0);
     }
-    r6_avg /= (double)totalFrames;
+    r6_avg /= d_total;
     r6_avg = pow( r6_avg, -1.0/6.0 );
     outfile_.Printf("   NOE <r^-6>^(-1/6)= %.4f\n", r6_avg);
+    outfile_.Printf("   #Violations: Low= %i High= %i Total=%i\n",
+                    NlowViolations, NhighViolations, NlowViolations+NhighViolations);
+    outfile_.Printf("   Rexp= %.4f <Violation>= %.4f\n", rexp, r6_avg - rexp);
   }
 
   // OUTPUT
@@ -549,7 +565,7 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
   outfile_.Printf(" %%occupied |");
   for (int j=0; j < 6; j++) {
     if (distance_visits[j] > 0) {
-      double value = distance_visits[j]*100.0/totalFrames;
+      double value = distance_visits[j]*100.0/d_total;
       outfile_.Printf(" %6.1f |", value);
     } else
       outfile_.Printf("        |");
