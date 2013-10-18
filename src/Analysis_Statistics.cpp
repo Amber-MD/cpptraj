@@ -127,6 +127,7 @@ const char* Analysis_Statistics::pucker_ss[] = {
   "C4'-endo", "O4'-exo ", "C1'-endo", "C2'-exo "
 };
 
+// Analysis_Statistics::PuckerAnalysis()
 void Analysis_Statistics::PuckerAnalysis( DataSet_1D const& ds, int totalFrames ) {
   int pucker_visits[10];
   int pucker_transitions[10][10];
@@ -238,6 +239,7 @@ const double Analysis_Statistics::torsion_offset[] = {
   0.0, 0.0, 0.0, 0.0, 0.0, 180.0 
 };
 
+// Analysis_Statistics::TorsionAnalysis()
 void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames) {
   int torsion_visits[6];
   int torsion_transitions[6][6];
@@ -444,6 +446,7 @@ static inline int distbin(double val) {
   return bin;
 }
 
+// Analysis_Statistics::DistanceAnalysis()
 void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrames )
 {
   int distance_visits[6];
@@ -476,6 +479,7 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
   // Get bin for first value
   prevbin = distbin( ds.Dval(0) );
   // Loop over all frames
+  double r6_avg = 0.0;
   for (int i = 0; i < totalFrames; ++i) {
     double value = ds.Dval( i );
     curbin = distbin( value );
@@ -488,6 +492,7 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
 
     // NOE calc
     if (isNOE) {
+      r6_avg += pow( value, -6.0 );
       int j = totalFrames / 50.0;
       if (j < 1) j = 1;
 
@@ -521,6 +526,9 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
       outfile_.Printf("   NOE < %.2f for %.2f%% of the time\n",
               boundh, (double) Nh / totalFrames * 100.0);
     }
+    r6_avg /= (double)totalFrames;
+    r6_avg = pow( r6_avg, -1.0/6.0 );
+    outfile_.Printf("   NOE <r^-6>^(-1/6)= %.4f\n", r6_avg);
   }
 
   // OUTPUT
