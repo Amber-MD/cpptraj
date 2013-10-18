@@ -1,6 +1,7 @@
 // Action_Distance
 #include <cmath>
 #include "Action_Distance.h"
+#include "DataSet_double.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -17,15 +18,20 @@ void Action_Distance::Help() {
 Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  double noe_bound = 0.0, noe_boundh = 0.0;
   // Get Keywords
   InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
-  if      ( stypename == "hbond" ) stype = DataSet::HBOND;
-  else if (stypename == "noe"    ) stype = DataSet::NOE; // TODO: Grab bound and boundh
-
+  if      ( stypename == "hbond" )
+    stype = DataSet::HBOND;
+  else if ( stypename == "noe" ) {
+    stype = DataSet::NOE;
+    noe_bound = actionArgs.getKeyDouble("bound", 0.0);
+    noe_boundh = actionArgs.getKeyDouble("bound", 0.0);
+  }
   // Get Masks
   std::string mask1 = actionArgs.GetMaskNext();
   std::string mask2 = actionArgs.GetMaskNext();
@@ -40,6 +46,8 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Dis");
   if (dist_==0) return Action::ERR;
   dist_->SetScalar( DataSet::M_DISTANCE, stype );
+  if ( stype == DataSet::NOE )
+    ((DataSet_double*)dist_)->SetNOE_bounds(noe_bound, noe_boundh);
   // Add dataset to data file
   if (outfile != 0) outfile->AddSet( dist_ );
 

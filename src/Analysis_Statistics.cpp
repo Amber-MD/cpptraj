@@ -1,8 +1,7 @@
 #include <cmath> // sqrt
 #include "Analysis_Statistics.h"
+#include "DataSet_double.h" // for DISTANCE NOE
 #include "CpptrajStdio.h"
-
-// TODO: Define bound and boundh for DISTANCE NOE
 
 // CONSTRUCTOR
 Analysis_Statistics::Analysis_Statistics() :
@@ -23,7 +22,9 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   shift_ = analyzeArgs.getKeyDouble("shift", 0);
   filename_ = analyzeArgs.GetStringKey("out");
   // Get dataset or all datasets
+  bool useAllSets = false;
   if (analyzeArgs.hasKey("all")) {
+    useAllSets = true;
     for (DataSetList::const_iterator ds = DSLin->begin(); ds != DSLin->end(); ++ds)
       if ( (*ds)->Ndim() == 1)
         datasets_.push_back( ((DataSet_1D*)*ds) );
@@ -39,12 +40,16 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
     return Analysis::ERR;
   }
   // INFO
-  mprintf("    ANALYZE STATISTICS: ");
-  for (Array1D::const_iterator set = datasets_.begin(); set != datasets_.end(); ++set)
+  mprintf("    ANALYZE STATISTICS:");
+  if (useAllSets)
+    mprintf(" Using all data sets (%zu total).\n", datasets_.size());
+  else {
+    mprintf(" Using %zu data sets:\n", datasets_.size());
+    for (Array1D::const_iterator set = datasets_.begin(); set != datasets_.end(); ++set)
       mprintf("\t%s\n", (*set)->Legend().c_str());
+  }
   if (shift_ != 0)
-    mprintf("shift (about %.2f) is begin applied.", shift_);
-  mprintf("\n");
+    mprintf("\tShift (about %.2f) is begin applied.\n", shift_);
   if (!filename_.empty())
     mprintf("\tOutput to file %s\n", filename_.c_str());
 
@@ -110,7 +115,7 @@ Analysis::RetType Analysis_Statistics::Analyze() {
     else if ( mode == DataSet::M_TORSION)
       TorsionAnalysis( data_set, Nelements );
     else if ( mode == DataSet::M_DISTANCE)
-      DistanceAnalysis( data_set, Nelements, 0, 0);
+      DistanceAnalysis( data_set, Nelements );
 
   } // END loop over DataSets
 
@@ -439,14 +444,13 @@ static inline int distbin(double val) {
   return bin;
 }
 
-void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrames,
-                                            double bound, double boundh ) 
+void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrames )
 {
   int distance_visits[6];
   int distance_transitions[6][6];
   double distance_avg[6];
   double distance_sd[6];
-  double average;
+  double average, bound, boundh;
   int prevbin, curbin, Nb, Nh;
 
   for (int j=0;j<6;j++) {
@@ -464,6 +468,9 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
     average = 0;
     Nb = 0;
     Nh = 0;
+    DataSet_double const& DsDbl = static_cast<DataSet_double const&>( ds );
+    bound = DsDbl.NOE_bound();
+    boundh = DsDbl.NOE_boundH();
   }
 
   // Get bin for first value
