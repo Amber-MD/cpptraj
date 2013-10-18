@@ -89,3 +89,10 @@ int DataSet_double::Sync() {
 
   return 0;
 }
+
+// Only used in Analysis_Statistics DISTANCE
+void DataSet_double::SetMaskExpressions(std::string const& m1, std::string const& m2)
+{
+  if (!m1.empty() && !m2.empty())
+    maskExpressions_ = "'" + m1 + "' and '" + m2 + "'";
+}
