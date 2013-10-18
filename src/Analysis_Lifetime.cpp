@@ -144,16 +144,18 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
   if (standalone) {
     if (standalone_out.OpenWrite( outfileName_ ))
       return Analysis::ERR;
+    standalone_out.Printf("%-10s %10s %10s %10s %10s %s\n","#Set","Nlifetimes",
+                          "MaxLT","AvgLT","TotFrames","SetName");
   }
   ProgressBar progress( inputDsets_.size() );
   for (unsigned int setIdx = 0; setIdx < inputDsets_.size(); setIdx++) {
+    DataSet_1D const& DS = static_cast<DataSet_1D const&>( *inputDsets_[setIdx] );
     if (standalone)
-      standalone_out.Printf("\t\tCalculating lifetimes for set %s\n",
-                            inputDsets_[setIdx]->Legend().c_str());
+      mprintf("\t\tCalculating lifetimes for set %s\n", DS.Legend().c_str());
     else
       progress.Update( current++ );
     // Loop over all values in set.
-    int setSize = (int)inputDsets_[setIdx]->Size();
+    int setSize = (int)DS.Size();
     double sum = 0.0;
     double previous_windowavg = 0.0;
     int windowcount = 0; // Used to trigger averaging
@@ -164,7 +166,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
     int Nlifetimes = 0;           // # of separate lifetimes observed
     int sumLifetimes = 0;         // sum of lifetimeCount for each lifetime observed
     for (int i = 0; i < setSize; ++i) {
-      double dval = inputDsets_[setIdx]->Dval(i);
+      double dval = DS.Dval(i);
       //mprintf("\t\t\tValue[%i]= %.2f", i,dval);
       if (averageonly_) 
         // Average only
@@ -247,11 +249,9 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         favg = 0.0;
       else
         favg = (float)sumLifetimes / (float)Nlifetimes;
-      standalone_out.Printf("\t\t\t#lifetimes: %i\n"
-                            "\t\t\tMax lifetime observed: %i frames\n"
-                            "\t\t\tAvg lifetime: %f frames\n"
-                            "\t\t\t# frames satisfying cutoff: %.0f\n",
-                            Nlifetimes, maximumLifetimeCount, favg, sum);
+      standalone_out.Printf("%10u %10i %10i %10.4f %10.0f %s\n",setIdx,
+                            Nlifetimes, maximumLifetimeCount, favg, sum,
+                            DS.Legend().c_str());
     }
   }
   return Analysis::OK;
