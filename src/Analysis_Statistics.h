@@ -2,6 +2,9 @@
 #define INC_ANALYSIS_STATISTICS_H
 #include "Analysis.h"
 #include "Array1D.h"
+#include "DataSet_integer.h"
+#include "DataSet_float.h"
+#include "DataSet_string.h"
 class Analysis_Statistics : public Analysis {
   public:
     // The following 2 are also used in Analysis_Crankshaft
@@ -21,9 +24,10 @@ class Analysis_Statistics : public Analysis {
     CpptrajFile outfile_;
     double shift_;
     int debug_;
-    DataSet* NOE_r6_;
-    DataSet* NOE_violations_;
-    DataSet* NOE_avgViolations_;
+    DataSet_float* NOE_r6_;
+    DataSet_integer* NOE_violations_;
+    DataSet_float* NOE_avgViolations_;
+    DataSet_string* NOE_names_;
 
     static const char* pucker_ss[];
     void PuckerAnalysis( DataSet_1D const&, int );

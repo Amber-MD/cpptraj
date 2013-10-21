@@ -180,7 +180,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
               statsout_.Printf("[%i] CRDIDX %i took %i exchanges to travel"
                                " up and down (exch %i to %i)\n",
                                replica, crdidx+1, rtrip, replicaBottom[crdidx]+1, frame+1);
-            roundTrip[crdidx].push_back( rtrip );
+            roundTrip[crdidx].AddElement( rtrip );
             replicaStatus[crdidx] = HIT_BOTTOM;
             replicaBottom[crdidx] = frame;
           }

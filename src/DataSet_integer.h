@@ -10,7 +10,7 @@ class DataSet_integer : public DataSet_1D {
     static DataSet* Alloc() { return (DataSet*)new DataSet_integer();}
     int& operator[](size_t idx)       { return Data_[idx];         }
     int  operator[](size_t idx) const { return Data_[idx];         }
-    void push_back(int i)             { Data_.push_back( i );      }
+    void AddElement(int i)            { Data_.push_back( i );      }
     /// Make set size sizeIn, all values set to 0.0.
     void Resize(size_t sizeIn)        { Data_.resize(sizeIn, 0);   }
     inline void AddVal(size_t, int);
@@ -26,8 +26,8 @@ class DataSet_integer : public DataSet_1D {
     void WriteBuffer(CpptrajFile&, size_t) const;
     // -------------------------------------------
     typedef std::vector<int>::iterator iterator;
-    iterator begin() { return Data_.begin(); }
-    iterator end()   { return Data_.end();   }
+    iterator begin()                  { return Data_.begin();      }
+    iterator end()                    { return Data_.end();        }
   private:
     std::vector<int> Data_;
 };

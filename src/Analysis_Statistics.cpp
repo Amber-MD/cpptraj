@@ -10,7 +10,7 @@ Analysis_Statistics::Analysis_Statistics() :
 {}
 
 void Analysis_Statistics::Help() {
-  mprintf("\t{<name> | all} [shift <value>] [out <filename>]\n");
+  mprintf("\t{<name> | all} [shift <value>] [out <filename>] [noeout <filename>]\n");
 }
 
 // Analysis_Statistics::Setup()
@@ -21,6 +21,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   // Get keywords.
   shift_ = analyzeArgs.getKeyDouble("shift", 0);
   filename_ = analyzeArgs.GetStringKey("out");
+  DataFile* NOE_out = DFLin->AddDataFile(analyzeArgs.GetStringKey("noeout"), analyzeArgs);
   // Get dataset or all datasets
   bool useAllSets = false;
   if (analyzeArgs.hasKey("all")) {
@@ -38,6 +39,32 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   if (datasets_.empty()) {
     mprinterr("Error: analyze statistics: No 1D datasets to analyze.\n");
     return Analysis::ERR;
+  }
+  // Count number of NOE data sets
+  int numNOEsets = 0;
+  for (Array1D::const_iterator set = datasets_.begin(); set != datasets_.end(); ++set)
+    if ( (*set)->ScalarMode() == DataSet::M_DISTANCE && (*set)->ScalarType() == DataSet::NOE)
+     numNOEsets++;
+  if (numNOEsets > 0) {
+    std::string dsetName = analyzeArgs.GetStringKey("name");
+    if (dsetName.empty())
+      dsetName = DSLin->GenerateDefaultName("NOE");
+    NOE_r6_ = (DataSet_float*)DSLin->AddSetAspect(DataSet::FLOAT, dsetName, "R6");
+    NOE_violations_ = (DataSet_integer*)DSLin->AddSetAspect(DataSet::INTEGER, dsetName, 
+                                                            "NViolations");
+    NOE_avgViolations_ = (DataSet_float*)DSLin->AddSetAspect(DataSet::FLOAT, dsetName, 
+                                                             "AvgViolation");
+    NOE_names_ = (DataSet_string*)DSLin->AddSetAspect(DataSet::STRING, dsetName, "NOEnames");
+    if (NOE_r6_==0 || NOE_violations_==0 || NOE_avgViolations_==0 || NOE_names_==0) {
+      mprinterr("Error: Could not set up NOE data sets.\n");
+      return Analysis::ERR;
+    }
+    if (NOE_out != 0) {
+      NOE_out->AddSet( NOE_r6_ );
+      NOE_out->AddSet( NOE_violations_ );
+      NOE_out->AddSet( NOE_avgViolations_ );
+      NOE_out->AddSet( NOE_names_ );
+    }
   }
   // INFO
   mprintf("    ANALYZE STATISTICS:");
@@ -62,23 +89,17 @@ Analysis::RetType Analysis_Statistics::Analyze() {
   for (Array1D::const_iterator ds = datasets_.begin(); ds != datasets_.end(); ++ds)
   {
     DataSet_1D const& data_set = static_cast<DataSet_1D const&>( *(*ds) );
-    double average = 0;
-    double stddev = 0;
-    bool periodic = false;
     int Nelements = data_set.Size();
     if (Nelements < 1) {
       mprintf("Warning: analyze statistics: No data in dataset %s, skipping.\n",
               data_set.Legend().c_str());
       continue;
     }
-    DataSet::scalarMode mode = data_set.ScalarMode();
 
-    if (mode == DataSet::M_ANGLE ||
-        mode == DataSet::M_TORSION ||
-        mode == DataSet::M_PUCKER)
-      periodic = true;
-
-    // ----- Compute average and standard deviation ------------------
+    // Compute average and standard deviation with optional shift.
+    bool periodic = data_set.IsTorsionArray();
+    double average = 0.0;
+    double stddev = 0.0;
     for (int i = 0; i < Nelements; ++i) {
       double value = data_set.Dval( i ) - shift_;
       if (periodic) {
@@ -107,6 +128,7 @@ Analysis::RetType Analysis_Statistics::Analyze() {
                     data_set.Dval( 0 ), data_set.Dval( Nelements-1 ) );
 
     // More specific analysis based on MODE
+    DataSet::scalarMode mode = data_set.ScalarMode();
     if ( mode == DataSet::M_PUCKER) 
       PuckerAnalysis( data_set, Nelements ); 
     else if ( mode == DataSet::M_TORSION)
@@ -539,11 +561,21 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
     r6_avg /= d_total;
     r6_avg = pow( r6_avg, -1.0/6.0 );
     outfile_.Printf("   NOE <r^-6>^(-1/6)= %.4f\n", r6_avg);
-    if (bound > 0.0 && boundh > 0.0)
+    NOE_r6_->AddElement( (float)r6_avg );
+    int total_violations = 0;
+    if (bound > 0.0 && boundh > 0.0) {
+      total_violations = NlowViolations+NhighViolations;
       outfile_.Printf("   #Violations: Low= %i High= %i Total= %i\n",
-                      NlowViolations, NhighViolations, NlowViolations+NhighViolations);
-    if (rexp > 0.0)
-      outfile_.Printf("   Rexp= %.4f <Violation>= %.4f\n", rexp, r6_avg - rexp);
+                      NlowViolations, NhighViolations, total_violations);
+    }
+    NOE_violations_->AddElement( total_violations );
+    double avg_violation = 0.0;
+    if (rexp > 0.0) {
+      avg_violation = r6_avg - rexp;
+      outfile_.Printf("   Rexp= %.4f <Violation>= %.4f\n", rexp, avg_violation);
+    }
+    NOE_avgViolations_->AddElement( (float)avg_violation );
+    NOE_names_->AddElement( "\"" + ds.Legend() + "\"" );
   }
 
   // OUTPUT

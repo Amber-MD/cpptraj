@@ -9,25 +9,26 @@ class DataSet_double : public DataSet_1D {
     DataSet_double() : DataSet_1D(DOUBLE, 12, 4), bound_(0.0), 
                        boundh_(0.0), rexp_(-1.0) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_double();}
-    double& operator[](size_t idx) { return Data_[idx];         }
-    void operator=(std::vector<double> const& rhs) { Data_ = rhs; }
+    double& operator[](size_t idx)       { return Data_[idx];         }
+    double  operator[](size_t idx) const { return Data_[idx];         }
+    void operator=(std::vector<double> const& rhs) { Data_ = rhs;     }
+    void AddElement(double d)            { Data_.push_back( d );      }
     /// Make set size sizeIn, all values set to 0.0.
-    void Resize(size_t sizeIn)     { Data_.resize(sizeIn, 0.0); }
+    void Resize(size_t sizeIn)           { Data_.resize(sizeIn, 0.0); }
     // ----- DataSet functions -------------------
-    size_t Size()            const { return Data_.size();       }
+    size_t Size()                  const { return Data_.size();       }
     int Sync();
-    void Info()              const { return;                    }
+    void Info()                    const { return;                    }
     // ----- DataSet_1D functions ----------------
     int Allocate1D(size_t);
     void Add( size_t, const void* );
-    double Dval(size_t idx)  const { return Data_[idx];         }
-    double Xcrd(size_t idx)  const { return Dim(0).Coord(idx);  }
+    double Dval(size_t idx)        const { return Data_[idx];         }
+    double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }
     void WriteBuffer(CpptrajFile&, size_t) const;
     // -------------------------------------------
-    void AddElement(double d)      { Data_.push_back( d );      }
     typedef std::vector<double>::iterator iterator;
-    iterator begin() { return Data_.begin(); }
-    iterator end()   { return Data_.end();   }
+    iterator begin()                     { return Data_.begin();      }
+    iterator end()                       { return Data_.end();        }
     // For Analysis_Statistics DISTANCE NOE
     void SetNOE(double b, double bh, double r) { bound_=b; boundh_=bh; rexp_=r;}
     double NOE_bound()  const { return bound_;  }
