@@ -6,7 +6,11 @@
 // CONSTRUCTOR
 Analysis_Statistics::Analysis_Statistics() :
   shift_(0),
-  debug_(0)
+  debug_(0),
+  NOE_r6_(0),
+  NOE_violations_(0),
+  NOE_avgViolations_(0),
+  NOE_names_(0)
 {}
 
 void Analysis_Statistics::Help() {
