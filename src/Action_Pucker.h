@@ -9,7 +9,8 @@ class Action_Pucker: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Pucker(); }
     static void Help();
   private:
-    DataSet *puck_;
+    DataSet *pucker_;
+    DataSet* amplitude_;
     AtomMask M1_;
     AtomMask M2_;
     AtomMask M3_;
@@ -17,7 +18,6 @@ class Action_Pucker: public Action {
     AtomMask M5_;
     enum PmethodType { ALTONA=0, CREMER };
     PmethodType puckerMethod_;
-    bool amplitude_;
     bool useMass_;
     bool range360_;
     double offset_;

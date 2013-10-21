@@ -7,9 +7,9 @@
 
 // CONSTRUCTOR
 Action_Pucker::Action_Pucker() :
-  puck_(0),
+  pucker_(0),
+  amplitude_(0),
   puckerMethod_(ALTONA),
-  amplitude_(false),
   useMass_(true),
   range360_(false),
   offset_(0.0)
@@ -29,7 +29,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
   if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
-  amplitude_ = actionArgs.hasKey("amplitude");
+  bool calc_amp = actionArgs.hasKey("amplitude");
   offset_ = actionArgs.getKeyDouble("offset",0.0);
   range360_ = actionArgs.hasKey("range360");
   DataSet::scalarType stype = DataSet::UNDEFINED;
@@ -53,11 +53,16 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   M5_.SetMaskString(mask5);
 
   // Setup dataset
-  puck_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Pucker");
-  if (puck_ == 0) return Action::ERR;
-  puck_->SetScalar( DataSet::M_PUCKER, stype );
+  pucker_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Pucker");
+  if (pucker_ == 0) return Action::ERR;
+  pucker_->SetScalar( DataSet::M_PUCKER, stype );
+  if (calc_amp)
+    amplitude_ = DSL->AddSetAspect(DataSet::DOUBLE, pucker_->Name(), "Amp");
   // Add dataset to datafile list
-  if (outfile != 0) outfile->AddSet( puck_ );
+  if (outfile != 0) {
+    outfile->AddSet( pucker_ );
+    if (amplitude_ != 0) outfile->AddSet( amplitude_ );
+  }
 
   mprintf("    PUCKER: [%s]-[%s]-[%s]-[%s]-[%s]\n", M1_.MaskString(),M2_.MaskString(),
           M3_.MaskString(), M4_.MaskString(), M5_.MaskString());
@@ -67,8 +72,8 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf("            Using Cremer & Pople method.\n");
   if (outfile != 0) 
     mprintf("            Data will be written to %s\n", outfile->DataFilename().base());
-  if (amplitude_)
-    mprintf("            Amplitudes will be stored instead of psuedorotation.\n");
+  if (amplitude_!=0)
+    mprintf("            Amplitudes will be stored.\n");
   if (offset_!=0)
     mprintf("            Offset: %lf will be added to values.\n");
   if (range360_)
@@ -105,7 +110,7 @@ Action::RetType Action_Pucker::Setup(Topology* currentParm, Topology** parmAddre
 // Action_Pucker::action()
 Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   Vec3 a1, a2, a3, a4, a5;
-  double pval, amp;
+  double pval, aval;
 
   if (useMass_) {
     a1 = currentFrame->VCenterOfMass( M1_ );  
@@ -123,18 +128,16 @@ Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame
 
   switch (puckerMethod_) {
     case ALTONA: 
-      pval = Pucker_AS( a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr(), a5.Dptr(), &amp );
+      pval = Pucker_AS( a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr(), a5.Dptr(), aval );
       break;
     case CREMER:
-      pval = Pucker_CP( a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr(), a5.Dptr(), &amp );
+      pval = Pucker_CP( a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr(), a5.Dptr(), aval );
       break;
   }
-  if ( amplitude_ )
-    pval = amp;
-  
+  if ( amplitude_ != 0 )
+    amplitude_->Add(frameNum, &aval);
   pval *= RADDEG;
-
-  puck_->Add(frameNum, &pval);
+  pucker_->Add(frameNum, &pval);
 
   return Action::OK;
 } 
@@ -149,8 +152,8 @@ void Action_Pucker::Print() {
     puckermin = -180.0;
   }
   // Deal with offset and wrap values
-  DataSet_double* ds = (DataSet_double*)puck_;
-  for (DataSet_double::iterator dval = ds->begin(); dval != ds->end(); ++dval) {
+  DataSet_double& ds = static_cast<DataSet_double&>( *pucker_ );
+  for (DataSet_double::iterator dval = ds.begin(); dval != ds.end(); ++dval) {
     *dval += offset_;
     if ( *dval > puckermax )
       *dval -= 360.0;

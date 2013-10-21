@@ -49,13 +49,13 @@ static const double pi_over_5 = PI * one_over_five;
   * Altona & Sundaralingam method.
   */
 double Pucker_AS(const double* a1, const double* a2, const double* a3, 
-                 const double* a4, const double* a5, double* amp) 
+                 const double* a4, const double* a5, double& amp) 
 {
   double pucker;
   double v1, v2, v3, v4, v5, a, b;
 
   pucker = 0.0;
-  *amp = 0.0;
+  amp = 0.0;
 
   v4 = Torsion(a4,a5,a1,a2);
   v5 = Torsion(a5,a1,a2,a3);
@@ -75,9 +75,9 @@ double Pucker_AS(const double* a1, const double* a2, const double* a3,
        v4*sin(12.0*pi_over_5) +
        v5*sin(16.0*pi_over_5))*-0.4;
 
-  *amp = sqrt(a*a + b*b);
+  amp = sqrt(a*a + b*b);
 
-  if (*amp != 0.0)
+  if (amp != 0.0)
     pucker = atan2(b,a);
   if (pucker < 0) pucker += TWOPI;
 
@@ -89,7 +89,7 @@ double Pucker_AS(const double* a1, const double* a2, const double* a3,
   * Cremer & Pople.
   */
 double Pucker_CP(const double* a1, const double* a2, const double* a3, 
-                 const double* a4, const double* a5, double* amplitude) 
+                 const double* a4, const double* a5, double& amplitude) 
 {
   double pucker, norm;
   double x1, y1, z1;
@@ -104,7 +104,7 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
   double sum1, sum2;
 
   pucker = 0.0;
-  *amplitude = 0.0;
+  amplitude = 0.0;
 
   x2 = a1[0]; y2 = a1[1]; z2 = a1[2];
   x3 = a2[0]; y3 = a2[1]; z3 = a2[2];
@@ -116,14 +116,13 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
   rcx = (x1 + x2 + x3 + x4 + x5)*one_over_five;
   rcy = (y1 + y2 + y3 + y4 + y5)*one_over_five;
   rcz = (z1 + z2 + z3 + z4 + z5)*one_over_five;
-
+  // Translate to center
   x1 -= rcx; y1 -= rcy; z1 -=rcz;
   x2 -= rcx; y2 -= rcy; z2 -=rcz;
   x3 -= rcx; y3 -= rcy; z3 -=rcz;
   x4 -= rcx; y4 -= rcy; z4 -=rcz;
   x5 -= rcx; y5 -= rcy; z5 -=rcz;
-
-  // Calculate normal vectors
+  // Calculate position vectors
   r1x = x1 * sin(0.0) +
         x2 * sin(2.0*pi_over_5) +
         x3 * sin(4.0*pi_over_5) +
@@ -160,7 +159,7 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
   nx = (r1y*r2z) - (r1z*r2y); 
   ny = (r1z*r2x) - (r1x*r2z); 
   nz = (r1x*r2y) - (r1y*r2x);
-
+  // Normalize
   norm = sqrt(nx*nx + ny*ny + nz*nz);
   nx /= norm;
   ny /= norm;
@@ -185,7 +184,7 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
            z5 * sin(16.0*pi_over_5));
 
   norm = sqrt(sum1*sum1 + sum2*sum2);
-  *amplitude = norm * sqrt(2.0*one_over_five);
+  amplitude = norm * sqrt(2.0*one_over_five);
   pucker = asin( sum2 / norm );
   if (sum1 < 0.0)
     pucker = PI - pucker;
