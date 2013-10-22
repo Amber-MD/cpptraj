@@ -50,6 +50,10 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
               Masks_.size());
     return Action::ERR;
   }
+  if (Masks_.size() > 5 && puckerMethod_ != CREMER) {
+    mprinterr("Error: Pucker with %zu masks only supported with 'cremer'\n");
+    return Action::ERR;
+  }
   // Set up array to hold coordinate vectors.
   AX_.resize( Masks_.size() );
 

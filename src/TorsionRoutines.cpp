@@ -40,10 +40,8 @@ double Torsion(const double *a1, const double *a2, const double *a3, const doubl
   return angle;
 }
 
-/// Constant used in CP pucker calc
-static const double one_over_five = 1.0 / 5.0;
-/// Constant used in AS and CP pucker calcs
-static const double pi_over_5 = PI * one_over_five;
+/// Constant used in AS pucker calc
+static const double pi_over_5 = PI / 5.0;
 
 // Pucker_AS()
 /** Return the pucker (in radians) of coords stored in a1-a5 based on 
