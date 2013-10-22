@@ -11,6 +11,7 @@ class Action_Pucker: public Action {
   private:
     DataSet *pucker_;
     DataSet* amplitude_;
+    DataSet* theta_;
     std::vector<AtomMask> Masks_;
     std::vector<Vec3> AX_;
     enum PmethodType { ALTONA=0, CREMER };

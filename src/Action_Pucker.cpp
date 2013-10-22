@@ -9,6 +9,7 @@
 Action_Pucker::Action_Pucker() :
   pucker_(0),
   amplitude_(0),
+  theta_(0),
   puckerMethod_(ALTONA),
   useMass_(true),
   range360_(false),
@@ -17,8 +18,8 @@ Action_Pucker::Action_Pucker() :
 
 void Action_Pucker::Help() {
   mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> <mask5> [<mask6>] out <filename>\n");
-  mprintf("\t[range360] [amplitude] [altona | cremer] [offset <offset>]\n");
-  mprintf("\tCalculate pucker of atoms in masks 1-5.\n");
+  mprintf("\t[range360] [amplitude] [theta] [altona | cremer] [offset <offset>]\n");
+  mprintf("\tCalculate pucker of atoms in masks 1-5 (or 6).\n");
 }
 
 // Action_Pucker::init()
@@ -30,6 +31,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
   bool calc_amp = actionArgs.hasKey("amplitude");
+  bool calc_theta = actionArgs.hasKey("theta");
   offset_ = actionArgs.getKeyDouble("offset",0.0);
   range360_ = actionArgs.hasKey("range360");
   DataSet::scalarType stype = DataSet::UNDEFINED;
@@ -55,12 +57,21 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   pucker_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Pucker");
   if (pucker_ == 0) return Action::ERR;
   pucker_->SetScalar( DataSet::M_PUCKER, stype );
+  amplitude_ = 0;
+  theta_ = 0;
   if (calc_amp)
     amplitude_ = DSL->AddSetAspect(DataSet::DOUBLE, pucker_->Name(), "Amp");
+  if (calc_theta) {
+    if ( Masks_.size() < 6 )
+      mprintf("Warning: 'theta' calc. not supported for < 6 masks.\n");
+    else
+      theta_ = DSL->AddSetAspect(DataSet::DOUBLE, pucker_->Name(), "Theta");
+  }
   // Add dataset to datafile list
   if (outfile != 0) {
     outfile->AddSet( pucker_ );
     if (amplitude_ != 0) outfile->AddSet( amplitude_ );
+    if (theta_ != 0) outfile->AddSet( theta_ );
   }
 
   mprintf("    PUCKER: ");
@@ -79,6 +90,8 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf("            Data will be written to %s\n", outfile->DataFilename().base());
   if (amplitude_!=0)
     mprintf("            Amplitudes will be stored.\n");
+  if (theta_!=0)
+    mprintf("            Thetas will be stored.\n");
   if (offset_!=0)
     mprintf("            Offset: %lf will be added to values.\n");
   if (range360_)
@@ -110,7 +123,7 @@ Action::RetType Action_Pucker::Setup(Topology* currentParm, Topology** parmAddre
 
 // Action_Pucker::action()
 Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double pval, aval;
+  double pval, aval, tval;
   std::vector<Vec3>::iterator ax = AX_.begin(); 
 
   if (useMass_) {
@@ -125,14 +138,21 @@ Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame
 
   switch (puckerMethod_) {
     case ALTONA: 
-      pval = Pucker_AS( AX_[0].Dptr(), AX_[1].Dptr(), AX_[2].Dptr(), AX_[3].Dptr(), AX_[4].Dptr(), aval );
+      pval = Pucker_AS( AX_[0].Dptr(), AX_[1].Dptr(), AX_[2].Dptr(), 
+                        AX_[3].Dptr(), AX_[4].Dptr(), aval );
       break;
     case CREMER:
-      pval = Pucker_CP( AX_[0].Dptr(), AX_[1].Dptr(), AX_[2].Dptr(), AX_[3].Dptr(), AX_[4].Dptr(), AX_[5].Dptr(), AX_.size(), aval );
+      pval = Pucker_CP( AX_[0].Dptr(), AX_[1].Dptr(), AX_[2].Dptr(), 
+                        AX_[3].Dptr(), AX_[4].Dptr(), AX_[5].Dptr(), 
+                        AX_.size(), aval, tval );
       break;
   }
   if ( amplitude_ != 0 )
     amplitude_->Add(frameNum, &aval);
+  if ( theta_ != 0 ) {
+    tval *= RADDEG;
+    theta_->Add(frameNum, &tval);
+  }
   pval *= RADDEG;
   pucker_->Add(frameNum, &pval);
 
