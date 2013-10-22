@@ -5,9 +5,6 @@
 #include "TorsionRoutines.h"
 #include "Constants.h" // PI, TWOPI
 #include "Vec3.h"
-#ifdef NEW_PUCKER_CODE
-#  include "CpptrajStdio.h" // DEBUG
-#endif
 
 // Torsion()
 /** Given 4 sets of XYZ coords, calculate the torsion (in radians) between the 
@@ -136,54 +133,38 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
   Vec3 NXYZ = R1.Cross( R2 );
   // Normalize
   NXYZ.Normalize();
-  // Rotate around Z axis
+  // Calculate sums for determining q2/phi2
+  // NOTE: Total amplitude Q should = sqrt(SUM[ Zn*Zn ])
   double sum1 = 0.0;
   double sum2 = 0.0;
   double Zn[6];
-  //double sumZ = 0.0; // DEBUG
-  //mprintf("Z=");
   for (int i = 0; i < N; i++) {
     double factor = 2.0 * twopi_over_N * (double)i;
     double cos_val = cos( factor );
     double sin_val = sin( factor ); 
     Zn[i] = XYZ[i] * NXYZ;
-    //sumZ += Zn[i] * Zn[i]; // DEBUG
-    //mprintf("DEBUG:\t Z[%i]= %f\n", i+1, Zn[i]);
     sum1 += Zn[i] * cos_val;
     sum2 -= Zn[i] * sin_val;
   }
-  //mprintf("DEBUG: sqrt(sumZ^2)= %f\n", sqrt(sumZ));
-  //mprintf("\n");
-  //mprintf("DEBUG: sum1= %f   sum2= %f\n", sum1, sum2);
   // Calculate amplitude (q2, ==Q for N==5)
   double norm = sqrt(sum1*sum1 + sum2*sum2);
   amplitude = norm * sqrt( 2.0 / dN );
-  //mprintf("DEBUG: q2= %f\n", amplitude);
   // For even # coords (only 6 currently) calc extra pucker coord (q3)
-  double q3 = 0.0;
   if (N == 6) {
+    double q3 = 0.0;
     double mult = 1.0;
     for (int i = 0; i < N; i++) {
       q3 += mult * Zn[i]; // mult ~ pow( -1.0, i )
       mult = -mult;
     }
     q3 /= sqrt( dN );
-    //mprintf("DEBUG: q3= %f\n", q3);
     // Calculate theta
     theta = atan2( amplitude, q3 );
-    //mprintf("DEBUG: N=6 theta= %f\n", theta * RADDEG);
     // Update amplitude (Q for N==6)
     amplitude = sqrt( amplitude*amplitude + q3*q3 );
   }
   // Calculate pucker (phi2)
   double pucker = asin( sum2 / norm );
-  // DEBUG - Recover Zn values
-/*  for (int i = 0; i < N; i++) {
-    double q2 = (sqrt(2/dN)) * sum1 / cos(pucker);
-    double Zi = sqrt(2/dN) * q2 * cos(pucker + ((FOURPI * (double)i)/dN));
-    if (N == 6) Zi += (1.0/sqrt(dN)) * q3 * pow(-1.0, i);
-    mprintf("DEBUG: q2= %f\tCalcd. Zn[%i]= %f\n", q2, i+1, Zi);
-  }*/
   if (sum1 < 0.0)
     pucker = PI - pucker;
   else if (pucker < 0.0)
