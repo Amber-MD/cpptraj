@@ -11,11 +11,8 @@ class Action_Pucker: public Action {
   private:
     DataSet *pucker_;
     DataSet* amplitude_;
-    AtomMask M1_;
-    AtomMask M2_;
-    AtomMask M3_;
-    AtomMask M4_;
-    AtomMask M5_;
+    std::vector<AtomMask> Masks_;
+    std::vector<Vec3> AX_;
     enum PmethodType { ALTONA=0, CREMER };
     PmethodType puckerMethod_;
     bool useMass_;

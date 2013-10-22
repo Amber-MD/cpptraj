@@ -4,6 +4,10 @@
 #include <cmath>
 #include "TorsionRoutines.h"
 #include "Constants.h" // PI, TWOPI
+#include "Vec3.h"
+#ifdef NEW_PUCKER_CODE
+#  include "CpptrajStdio.h" // DEBUG
+#endif
 
 // Torsion()
 /** Given 4 sets of XYZ coords, calculate the torsion (in radians) between the 
@@ -89,8 +93,10 @@ double Pucker_AS(const double* a1, const double* a2, const double* a3,
   * Cremer & Pople.
   */
 double Pucker_CP(const double* a1, const double* a2, const double* a3, 
-                 const double* a4, const double* a5, double& amplitude) 
+                 const double* a4, const double* a5, const double* a6,
+                 int N, double& amplitude) 
 {
+# ifndef NEW_PUCKER_CODE
   double pucker, norm;
   double x1, y1, z1;
   double x2, y2, z2;
@@ -105,7 +111,6 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
 
   pucker = 0.0;
   amplitude = 0.0;
-
   x2 = a1[0]; y2 = a1[1]; z2 = a1[2];
   x3 = a2[0]; y3 = a2[1]; z3 = a2[2];
   x4 = a3[0]; y4 = a3[1]; z4 = a3[2];
@@ -154,7 +159,6 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
         z3 * cos(4.0*pi_over_5) +
         z4 * cos(6.0*pi_over_5) +
         z5 * cos(8.0*pi_over_5);
-
   // Calculate vector normal to plane
   nx = (r1y*r2z) - (r1z*r2y); 
   ny = (r1z*r2x) - (r1x*r2z); 
@@ -164,7 +168,6 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
   nx /= norm;
   ny /= norm;
   nz /= norm;
-
   // Rotate around Z axis
   z1 = x1*nx + y1*ny + z1*nz;
   z2 = x2*nx + y2*ny + z2*nz;
@@ -182,10 +185,101 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
            z3 * sin( 8.0*pi_over_5) +
            z4 * sin(12.0*pi_over_5) +
            z5 * sin(16.0*pi_over_5));
-
   norm = sqrt(sum1*sum1 + sum2*sum2);
   amplitude = norm * sqrt(2.0*one_over_five);
   pucker = asin( sum2 / norm );
+# else
+// -------------------------------------
+  double dN = (double)N;
+  double twopi_over_N = TWOPI / dN;
+  Vec3 XYZ[6];
+  XYZ[1].Assign( a1 ); 
+  XYZ[2].Assign( a2 ); 
+  XYZ[3].Assign( a3 ); 
+  XYZ[4].Assign( a4 );
+  if (N == 5) {
+    XYZ[0].Assign( a5 ); // Ring apex
+  } else if (N == 6) {
+    XYZ[0].Assign( a6 ); // Ring apex
+    XYZ[5].Assign( a5 );
+  } else
+    return -1.0; // Internal error
+  // Calculate geometric center
+  Vec3 Center(0.0, 0.0, 0.0);
+  for (int i = 0; i < N; i++)
+    Center += XYZ[i];
+  Center /= dN;
+  //Center.Print("RCXYZ");
+  // Translate to center
+  for (int i = 0; i < N; i++)
+    XYZ[i] -= Center;
+  //XYZ[0].Print("Trans[0]");
+  //XYZ[1].Print("Trans[1]");
+  //XYZ[2].Print("Trans[2]");
+  //XYZ[3].Print("Trans[3]");
+  //XYZ[4].Print("Trans[4]");
+  // Calculate position vectors
+  Vec3 R1(0.0, 0.0, 0.0);
+  Vec3 R2(0.0, 0.0, 0.0);
+  for (int i = 0; i < N; i++) {
+    double factor = twopi_over_N * (double)i;
+    double sin_val = sin( factor );
+    double cos_val = cos( factor );
+    R1[0] += XYZ[i][0] * sin_val;
+    R2[0] += XYZ[i][0] * cos_val;
+    R1[1] += XYZ[i][1] * sin_val;
+    R2[1] += XYZ[i][1] * cos_val;
+    R1[2] += XYZ[i][2] * sin_val; 
+    R2[2] += XYZ[i][2] * cos_val;
+  }
+  //R1.Print("R1");
+  //R2.Print("R2");
+  // Calculate vector normal to plane
+  Vec3 NXYZ = R1.Cross( R2 );
+  // Normalize
+  NXYZ.Normalize();
+  //NXYZ.Print("normN");
+  // Rotate around Z axis
+  double sum1 = 0.0;
+  double sum2 = 0.0;
+  double sum3 = 0.0;
+  double Zn[6];
+  double sumZ = 0.0; // DEBUG
+  //mprintf("Z=");
+  for (int i = 0; i < N; i++) {
+    double factor = 2.0 * twopi_over_N * (double)i;
+    double cos_val = cos( factor );
+    double sin_val = sin( factor ); 
+    Zn[i] = XYZ[i] * NXYZ;
+    sumZ += Zn[i] * Zn[i]; // DEBUG
+    mprintf("DEBUG:\t Z[%i]= %f\n", i+1, Zn[i]);
+    sum1 += Zn[i] * cos_val;
+    sum2 -= Zn[i] * sin_val;
+  }
+  mprintf("DEBUG: sqrt(sumZ^2)= %f\n", sqrt(sumZ));
+  // For even # coords (only 6 currently) calc extra pucker coord
+  if (N == 6) {
+    double mult = 1.0;
+    for (int i = 0; i < N; i++) {
+      sum3 += mult * Zn[i]; // mult ~ pow( -1.0, i )
+      mult = -mult;
+    }
+    sum3 /= sqrt( dN );
+    mprintf("DEBUG: sum3= %f\n", sum3);
+  }
+  //mprintf("\n");
+  mprintf("DEBUG: sum1= %f   sum2= %f\n", sum1, sum2);
+  double norm = sqrt(sum1*sum1 + sum2*sum2);
+  amplitude = norm * sqrt( 2.0 / dN );
+  double pucker = asin( sum2 / norm );
+  // DEBUG - Recover Zn values
+  for (int i = 0; i < N; i++) {
+    double Zi = sqrt(2.0/dN) * ((sqrt(2.0/dN)*sum1)/cos(pucker)) * 
+                cos(pucker + ((FOURPI * (double)i)/dN));
+    if (N == 6) Zi += (1.0/sqrt(dN)) * sum3 * pow(-1.0, i);
+    mprintf("DEBUG:\tCalcd. Zn[%i]= %f\n", i+1, Zi);
+  }
+# endif    
   if (sum1 < 0.0)
     pucker = PI - pucker;
   else if (pucker < 0.0)

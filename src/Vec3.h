@@ -29,6 +29,7 @@ class Vec3 {
       V_[1] = (double)XYZ[1];
       V_[2] = (double)XYZ[2];
     }
+    /// Assignment
     Vec3& operator=(const Vec3& rhs) {
       if (this == &rhs) return *this;
       V_[0] = rhs.V_[0];
@@ -36,6 +37,8 @@ class Vec3 {
       V_[2] = rhs.V_[2];
       return *this;
     }
+    /// Assign const double[3] values to X Y and Z
+    void Assign(const double* XYZ) { V_[0] = XYZ[0]; V_[1] = XYZ[1]; V_[2] = XYZ[2]; }
     // Vector OP scalar
     void operator/=(double xIn) {
       V_[0] /= xIn;
