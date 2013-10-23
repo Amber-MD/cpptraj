@@ -151,28 +151,52 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
 /** Print a summary of the first half of the data to the second half.
   */
 void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
-                               int splitFrame) 
+                               std::vector<int> const& splitFrames)
 {
+  const char* nExt[] = {"st", "nd", "rd", "th"};
+  if (splitFrames.empty()) return; // Sanity check.
   CpptrajFile outfile;
-  int half;
   double fmax = (double)maxframesIn;
   if (outfile.OpenWrite(summaryfile)) {
-    mprinterr("Error: ClusterList::Summary_Half: Could not set up file.\n");
+    mprinterr("Error: Could not open file '%s'.\n", summaryfile.c_str());
     return;
   }
 
-  // Calculate halfway point
-  if (splitFrame < 0)
-    half = maxframesIn / 2;
-  else
-    half = splitFrame;
-  double max2nd = (double)(maxframesIn - half);
-  double max1st = (double)(maxframesIn - max2nd);
+  // Determine number of frames in each part.
+  outfile.Printf("# 1st");
+  std::vector<double> partMax;
+  partMax.reserve( splitFrames.size() + 1 );
+  int lastMax = 0;
+  unsigned int eidx = 1;
+  for (unsigned int sf = 0; sf < splitFrames.size(); sf++)
+  {
+    partMax.push_back( (double)(splitFrames[sf] - lastMax) );
+    outfile.Printf(" <= %.0f < %u%s", partMax.back(), sf+2, nExt[eidx]);
+    if (eidx < 2) ++eidx;
+    lastMax = splitFrames[sf];
+  }
+  partMax.push_back( (double)(maxframesIn - lastMax) );
+  outfile.Printf("\n");
+  // DEBUG
+  mprintf("DEBUG: # Frames:");
+  for (std::vector<double>::const_iterator it = partMax.begin();
+                                           it != partMax.end(); ++it)
+    mprintf(" %.0f", *it);
+  mprintf("\n");
+  // Set up bins
+  std::vector<int> numInPart(  splitFrames.size() + 1, 0 );
+
   // Header
-  outfile.Printf("# 1st < %i <= 2nd\n", half + 1); 
-  outfile.Printf("#%-7s %8s %6s %2s %10s %8s %8s %8s %8s\n", 
-                 "Cluster", "Total", "Frac", "C#", "Color", 
-                 "NumIn1st", "NumIn2nd","Frac1","Frac2");
+  outfile.Printf("#%-7s %8s %6s %2s %10s", "Cluster", "Total", "Frac", "C#", "Color");
+  eidx = 0;
+  for (unsigned int pm = 1; pm <= partMax.size(); ++pm) {
+    outfile.Printf(" %5s%u%2s", "NumIn", pm, nExt[eidx]);
+    if (eidx < 2) ++eidx;
+  }
+  for (unsigned int pm = 1; pm <= partMax.size(); ++pm)
+    outfile.Printf(" %7s%u", "Frac", pm);
+  outfile.Printf("\n");
+  // LOOP OVER CLUSTERS
   int color = 1; // xmgrace color, 1-15
   for (cluster_it node = clusters_.begin();
                   node != clusters_.end(); node++)
@@ -180,8 +204,7 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
     // Calculate size and fraction of total size of this cluster
     int numframes = (*node).Nframes();
     double frac = (double)numframes / fmax;
-    int numInFirstHalf = 0;
-    int numInSecondHalf = 0;
+    std::fill( numInPart.begin(), numInPart.end(), 0 );
     // DEBUG
     //mprintf("\tCluster %i\n",(*node).num);
     // Count how many frames are in the first half and how many 
@@ -190,25 +213,27 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
                                      frame1 != (*node).endframe();
                                      frame1++)
     {
-      if (*frame1 < half)
-        ++numInFirstHalf;
-      else
-        ++numInSecondHalf;
+      unsigned int bin = splitFrames.size();
+      for (unsigned int sf = 0; sf < splitFrames.size(); ++sf) {
+        if ( *frame1 < splitFrames[sf] ) {
+          bin = sf;
+          break;
+        }
+      }
+      ++numInPart[ bin ];
     }
-    double frac1 = ((double)numInFirstHalf) / max1st;
-    double frac2 = ((double)numInSecondHalf) / max2nd;
-    outfile.Printf("%-8i %8i %6.2f %2i %10s %8i %8i %8.4f %8.4f\n",
-                   (*node).Num(), numframes, frac, color, XMGRACE_COLOR[color],
-                   numInFirstHalf, numInSecondHalf, frac1, frac2);
+    outfile.Printf("%-8i %8i %6.2f %2i %10s", (*node).Num(), numframes, frac,
+                   color, XMGRACE_COLOR[color]);
+    for (std::vector<int>::const_iterator np = numInPart.begin();
+                                          np != numInPart.end(); ++np)
+      outfile.Printf(" %8i", *np);
+    for (unsigned int pm = 0; pm < partMax.size(); ++pm)
+      outfile.Printf(" %8.4f", ((double)numInPart[pm]) / partMax[pm]);
+    outfile.Printf("\n");
     if (color<15) ++color;
   }
   outfile.CloseFile();
 }
-
-void ClusterList::SummarySplit(std::string const& summaryfile, int maxframesIn,
-                               std::vector<int> const& splitFrames)
-{
-}  
 
 // ClusterList::PrintClustersToFile()
 /** Print list of clusters in a style similar to ptraj; each cluster is

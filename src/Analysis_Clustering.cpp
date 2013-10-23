@@ -18,7 +18,6 @@ Analysis_Clustering::Analysis_Clustering() :
   coords_(0),
   CList_(0),
   sieve_(1),
-  splitFrame_(-1),
   cnumvtime_(0),
   cpopvtimefile_(0),
   nofitrms_(false),
@@ -124,7 +123,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
     return Analysis::ERR;
   }
-  splitFrame_ = analyzeArgs.getKeyInt("splitframe", -1) - 1; // User args start at 1
+  ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
+  if (!splits.empty()) {
+    for (int a = 0; a < splits.Nargs(); a++) {
+      if ( splits.ValidInteger(a) )
+        splitFrames_.push_back( splits.IntegerAt(a) ); // User frame #s start at 1
+      else {
+        mprinterr("Error: Inavlid split frame argument '%s'\n", splits[a].c_str());
+        return Analysis::ERR;
+      }
+    }
+  }
   DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   cpopvtimefile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
   clusterinfo_ = analyzeArgs.GetStringKey("info");
@@ -320,8 +329,12 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       CList_->Summary(summaryfile_, clusterDataSetSize);
 
     // Print a summary comparing first half to second half of data for clusters
-    if (!halffile_.empty())
-      CList_->Summary_Half(halffile_, clusterDataSetSize, splitFrame_);
+    if (!halffile_.empty()) {
+      // If no split frames were specified, use halfway point.
+      if (splitFrames_.empty())
+        splitFrames_.push_back( clusterDataSetSize / 2 );
+      CList_->Summary_Half(halffile_, clusterDataSetSize, splitFrames_);
+    }
 
     // Create cluster v time data from clusters.
     CreateCnumvtime( *CList_, clusterDataSetSize );
