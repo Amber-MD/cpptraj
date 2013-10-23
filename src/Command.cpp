@@ -72,6 +72,7 @@
 #include "Action_MinDist.h"
 #include "Action_FixAtomOrder.h"
 #include "Action_MaxDist.h"
+#include "Action_NMRrst.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1363,6 +1364,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, AddAction },
   { ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, AddAction },
   { ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, AddAction },
+  { ACTION, "nmrrst", Action_NMRrst::Alloc, Action_NMRrst::Help, AddAction },
   { ACTION, "lipidorder", Action_OrderParameter::Alloc, Action_OrderParameter::Help, AddAction },
   { ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, AddAction },
   { ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, AddAction },
