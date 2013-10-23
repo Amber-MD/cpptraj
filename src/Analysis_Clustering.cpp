@@ -123,14 +123,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
     return Analysis::ERR;
   }
-  ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
-  if (!splits.empty()) {
-    for (int a = 0; a < splits.Nargs(); a++) {
-      if ( splits.ValidInteger(a) )
-        splitFrames_.push_back( splits.IntegerAt(a) ); // User frame #s start at 1
-      else {
-        mprinterr("Error: Inavlid split frame argument '%s'\n", splits[a].c_str());
-        return Analysis::ERR;
+  halffile_ = analyzeArgs.GetStringKey("summaryhalf");
+  if (!halffile_.empty()) {
+    ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
+    if (!splits.empty()) {
+      for (int a = 0; a < splits.Nargs(); a++) {
+        if ( splits.ValidInteger(a) )
+          splitFrames_.push_back( splits.IntegerAt(a) ); // User frame #s start at 1
+        else {
+          mprinterr("Error: Inavlid split frame argument '%s'\n", splits[a].c_str());
+          return Analysis::ERR;
+        }
       }
     }
   }
@@ -138,7 +141,6 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   cpopvtimefile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
   clusterinfo_ = analyzeArgs.GetStringKey("info");
   summaryfile_ = analyzeArgs.GetStringKey("summary");
-  halffile_ = analyzeArgs.GetStringKey("summaryhalf");
   nofitrms_ = analyzeArgs.hasKey("nofit");
   grace_color_ = analyzeArgs.hasKey("gracecolor");
   calc_lifetimes_ = analyzeArgs.hasKey("lifetime");
@@ -217,9 +219,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
   if (!summaryfile_.empty())
     mprintf("\tSummary of cluster results will be written to %s\n",summaryfile_.c_str());
-  if (!halffile_.empty())
-    mprintf("\tSummary comparing first/second half of data for clusters will be written to %s\n",
+  if (!halffile_.empty()) {
+    mprintf("\tSummary comparing parts of trajectory data for clusters will be written to %s\n",
             halffile_.c_str());
+    if (!splitFrames_.empty()) {
+      mprintf("\t\tFrames will be split at:");
+      for (std::vector<int>::const_iterator f = splitFrames_.begin(); f != splitFrames_.end(); ++f)
+        mprintf(" %i", *f);
+      mprintf("\n");
+    } else
+      mprintf("\t\tFrames will be split at the halfway point.\n");
+  }
   if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
             clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
@@ -333,7 +343,15 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       // If no split frames were specified, use halfway point.
       if (splitFrames_.empty())
         splitFrames_.push_back( clusterDataSetSize / 2 );
-      CList_->Summary_Half(halffile_, clusterDataSetSize, splitFrames_);
+      // Check that none of the split values are invalid.
+      std::vector<int> actualSplitFrames;
+      for (std::vector<int>::const_iterator f = splitFrames_.begin();
+                                            f != splitFrames_.end(); ++f)
+        if ( *f < 1 || *f >= clusterDataSetSize )
+          mprintf("Warning: split frame %i is out of bounds; ignoring.\n", *f);
+        else
+          actualSplitFrames.push_back( *f );
+      CList_->Summary_Half(halffile_, clusterDataSetSize, actualSplitFrames);
     }
 
     // Create cluster v time data from clusters.

@@ -172,13 +172,13 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
   {
     partMax.push_back( (double)(splitFrames[sf] - lastMax) );
     outfile.Printf(" <= %.0f < %u%s", partMax.back(), sf+2, nExt[eidx]);
-    if (eidx < 2) ++eidx;
+    if (eidx < 3) ++eidx;
     lastMax = splitFrames[sf];
   }
   partMax.push_back( (double)(maxframesIn - lastMax) );
   outfile.Printf("\n");
   // DEBUG
-  mprintf("DEBUG: # Frames:");
+  //mprintf("DEBUG: # Frames:");
   for (std::vector<double>::const_iterator it = partMax.begin();
                                            it != partMax.end(); ++it)
     mprintf(" %.0f", *it);
@@ -191,7 +191,7 @@ void ClusterList::Summary_Half(std::string const& summaryfile, int maxframesIn,
   eidx = 0;
   for (unsigned int pm = 1; pm <= partMax.size(); ++pm) {
     outfile.Printf(" %5s%u%2s", "NumIn", pm, nExt[eidx]);
-    if (eidx < 2) ++eidx;
+    if (eidx < 3) ++eidx;
   }
   for (unsigned int pm = 1; pm <= partMax.size(); ++pm)
     outfile.Printf(" %7s%u", "Frac", pm);
