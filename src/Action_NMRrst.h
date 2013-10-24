@@ -20,6 +20,10 @@ class Action_NMRrst: public Action {
     int ReadAmber( BufferedLine& );
     /// Type to hold NOE data.
     struct noeDataType {
+      int resNum1_;     ///< First residue number.
+      int resNum2_;     ///< Second residue number.
+      std::string aName1_; ///< First atom name.
+      std::string aName2_; ///< Second atom name.
       AtomMask dMask1_; ///< First mask for distance pair.
       AtomMask dMask2_; ///< Second mask for distance pair.
       double bound_;    ///< Lower bound.

@@ -17,6 +17,15 @@ static inline bool SkipChar( const char* ptr ) {
   return (ptr != 0 && (*ptr == '#' || *ptr == '!' || *ptr == '\n' || *ptr == '\r'));
 }
 
+static inline std::string MaskExpression(int resnum, std::string& aname) {
+  return std::string( ":" + integerToString(resnum) + "@" + aname);
+}
+
+static void TranslateAmbiguous(std::string& aname) {
+  if (aname == "QA") // Gly a-methylene
+    aname.assign("HA=");
+}
+
 // Action_NMRrst::Init()
 Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
@@ -69,12 +78,19 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Set up distances.
   int num_noe = 1;
   for (noeArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe, ++num_noe) {
+     // Translate any ambiguous atom names
+     TranslateAmbiguous( (*noe).aName1_ ); 
+     TranslateAmbiguous( (*noe).aName2_ );
+     // Create mask expressions from resnum/atom name
+     (*noe).dMask1_.SetMaskString( MaskExpression( (*noe).resNum1_, (*noe).aName1_ ) ); 
+     (*noe).dMask2_.SetMaskString( MaskExpression( (*noe).resNum2_, (*noe).aName2_ ) ); 
      // Dataset to store distances
     (*noe).dist_ = DSL->AddSetIdxAspect(DataSet::DOUBLE, setname, num_noe, "NOE");
     if ((*noe).dist_==0) return Action::ERR;
     (*noe).dist_->SetScalar( DataSet::M_DISTANCE, DataSet::NOE );
     ((DataSet_double*)(*noe).dist_)->SetNOE((*noe).bound_, (*noe).boundh_, (*noe).rexp_);
-    (*noe).dist_->SetLegend((*noe).dMask1_.MaskExpression() + " and " + (*noe).dMask2_.MaskExpression());
+    (*noe).dist_->SetLegend( (*noe).dMask1_.MaskExpression() + " and " + 
+                             (*noe).dMask2_.MaskExpression());
     // Add dataset to data file
     if (outfile != 0) outfile->AddSet( (*noe).dist_ );
   }
@@ -83,8 +99,8 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   mprintf("\tShifting residue numbers in restraint file by %i\n", resOffset_);
   // DEBUG - print NOEs
   for (noeArray::const_iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe)
-    mprintf("\t'%s' to '%s'  %f < %f < %f\n", (*noe).dMask1_.MaskString(),
-            (*noe).dMask2_.MaskString(), (*noe).bound_, (*noe).rexp_, (*noe).boundh_);
+    mprintf("\t'%s'  %f < %f < %f\n", (*noe).dist_->Legend().c_str(),
+            (*noe).bound_, (*noe).rexp_, (*noe).boundh_);
   if (!Image_.UseImage()) 
     mprintf("\tNon-imaged");
   else
@@ -97,14 +113,6 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   return Action::OK;
 }
 // -----------------------------------------------------------------------------
-static inline std::string ReplaceQ(const char* ptr) {
-  if (ptr == 0) return std::string("");
-  std::string output( ptr );
-  for (std::string::iterator c = output.begin(); c != output.end(); ++c)
-    if ( *c == 'Q' ) *c = 'C';
-  return output;
-}
-
 /** Read Amber/DIANA style restraints. */
 int Action_NMRrst::ReadAmber( BufferedLine& infile ) {
   noeDataType NOE;
@@ -113,19 +121,18 @@ int Action_NMRrst::ReadAmber( BufferedLine& infile ) {
     mprinterr("Error: Unexpected end of Amber restraint file.\n");
     return 1;
   }
-  int rnum1, rnum2;
-  char rname1[16], aname1[16], rname2[16], aname2[16];
+  char rname1[16], rname2[16], aname1[16], aname2[16];
   double l_bound, u_bound;
   while (ptr != 0) {
     if (!SkipChar(ptr)) {
       int cols = sscanf( ptr, "%d %s %s %d %s %s %lf %lf",
-                         &rnum1, rname1, aname1,
-                         &rnum2, rname2, aname2,
+                         &NOE.resNum1_, rname1, aname1,
+                         &NOE.resNum2_, rname2, aname2,
                          &l_bound, &u_bound );
       if (cols == 7) { // 7-column, upper-bound only
         NOE.bound_ = 0.0;
         NOE.boundh_ = l_bound;
-      } else if (cols == 8) { // 8-colun, lower/upper bounds
+      } else if (cols == 8) { // 8-column, lower/upper bounds
         NOE.bound_ = l_bound;
         NOE.boundh_ = u_bound;
       } else {
@@ -134,21 +141,14 @@ int Action_NMRrst::ReadAmber( BufferedLine& infile ) {
       }
       NOE.rexp_ = -1.0;
       NOE.dist_ = 0;
-      rnum1 += resOffset_;
-      rnum2 += resOffset_;
-      if (rnum1 < 1 || rnum2 < 1) {
+      NOE.resNum1_ += resOffset_;
+      NOE.resNum2_ += resOffset_;
+      if (NOE.resNum1_ < 1 || NOE.resNum2_ < 1) {
         mprinterr("Error: One or both residue numbers are out of bounds (%i, %i)\n"
-                  "Error: Line: %s", rnum1, rnum2, ptr);
+                  "Error: Line: %s", NOE.resNum1_, NOE.resNum2_, ptr);
       } else {
-        // Fix up atom names. Replace Q with C.
-        // FIXME: Is that a legit thing to do?
-        
-        std::string maskExpression = ":" + integerToString(rnum1) +
-                                     "@" + ReplaceQ(aname1);
-        NOE.dMask1_.SetMaskString( maskExpression );
-        maskExpression = ":" + integerToString(rnum2) +
-                         "@" + ReplaceQ(aname2);
-        NOE.dMask2_.SetMaskString( maskExpression );
+        NOE.aName1_.assign( aname1 );
+        NOE.aName2_.assign( aname2 );
         NOEs_.push_back( NOE );
       }
     }
@@ -157,24 +157,13 @@ int Action_NMRrst::ReadAmber( BufferedLine& infile ) {
   return 0;
 }
 // -----------------------------------------------------------------------------
-/// Replace any '#' with '='
-// FIXME: Is this legitimate?
-inline void ReplaceChars( std::string& maskExpression ) {
-  for (std::string::iterator c = maskExpression.begin();
-                             c != maskExpression.end(); ++c)
-    if (*c == '#') *c = '=';
-}
-
-/// Convert next Xplor-style selection 'resid X name A' to mask expression.
-static inline std::string GetSelection(ArgList& line, int offset) {
-  std::string maskExpression = ":";
+/// Convert next Xplor-style selection 'resid X name A' resnum/atom name 
+static inline int GetAssignSelection(std::string& aName, ArgList& line, int offset)
+{
   int resnum = line.getKeyInt("resid",0) + offset;
-  if (resnum < 1) return std::string("");
-  maskExpression += integerToString(resnum);
-  maskExpression += "@";
-  maskExpression += line.GetStringKey("name");
-  ReplaceChars( maskExpression );
-  return maskExpression;
+  if (resnum < 1) return -1;
+  aName = line.GetStringKey("name");
+  return resnum;
 }
 
 /** Read Xplor-style restraint file. */
@@ -196,14 +185,12 @@ int Action_NMRrst::ReadXplor( BufferedLine& infile ) {
       } else {
         line.MarkArg(0); // Mark 'assign'
         // Get 2 Masks
-        std::string maskExpression1 = GetSelection( line, resOffset_ );
-        std::string maskExpression2 = GetSelection( line, resOffset_ );
-        if (maskExpression1.empty() || maskExpression2.empty()) {
+        NOE.resNum1_ = GetAssignSelection( NOE.aName1_, line, resOffset_ );
+        NOE.resNum2_ = GetAssignSelection( NOE.aName2_, line, resOffset_ );
+        if (NOE.resNum1_ < 1 || NOE.resNum2_ < 1) {
           mprinterr("Error: Could not get masks from line:\n\t%s", ptr);
           mprinterr("Error: Check if residue number + offset is out of bounds.\n");
         } else {
-          NOE.dMask1_.SetMaskString( maskExpression1 );
-          NOE.dMask2_.SetMaskString( maskExpression2 );
           // Check for noe bounds
           NOE.rexp_ = line.getNextDouble(-1.0);
           if ( NOE.rexp_ < 0.0 ) {
