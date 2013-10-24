@@ -1,13 +1,14 @@
 #include <cmath>
 #include "Action_NMRrst.h"
 #include "DataSet_double.h"
+#include "StringRoutines.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Action_NMRrst::Action_NMRrst() : useMass_(false) {} 
+Action_NMRrst::Action_NMRrst() : useMass_(false), resOffset_(0) {} 
 
 void Action_NMRrst::Help() {
-  mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage]\n");
+  mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n");
 }
 
 /// \return true if character is not a 'skippable' one.
@@ -22,6 +23,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Get Keywords
   Image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
+  resOffset_ = actionArgs.getKeyInt("resoffset", 0);
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   std::string rstfilename = actionArgs.GetStringKey("file");
   if (rstfilename.empty()) {
@@ -63,9 +65,10 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   }
 
   // Set up distances.
-  for (noeArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
+  int num_noe = 1;
+  for (noeArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe, ++num_noe) {
      // Dataset to store distances
-    (*noe).dist_ = DSL->AddSetAspect(DataSet::DOUBLE, setname, "NOE");
+    (*noe).dist_ = DSL->AddSetIdxAspect(DataSet::DOUBLE, setname, num_noe, "NOE");
     if ((*noe).dist_==0) return Action::ERR;
     (*noe).dist_->SetScalar( DataSet::M_DISTANCE, DataSet::NOE );
     ((DataSet_double*)(*noe).dist_)->SetNOE((*noe).bound_, (*noe).boundh_, (*noe).rexp_);
@@ -75,6 +78,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   }
  
   mprintf("    NMRRST: %zu NOEs\n", NOEs_.size());
+  mprintf("\tShifting residue numbers in restraint file by %i\n", resOffset_);
   // DEBUG - print NOEs
   for (noeArray::const_iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe)
     mprintf("\t'%s' to '%s'  %f < %f < %f\n", (*noe).dMask1_.MaskString(),
@@ -91,6 +95,29 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   return Action::OK;
 }
 // -----------------------------------------------------------------------------
+int Action_NMRrst::ReadAmber( BufferedLine& infile ) {
+  return 1;
+}
+
+/// Replace any '#' with '='
+// FIXME: Is this legitimate?
+inline void ReplaceChars( std::string& maskExpression ) {
+  for (std::string::iterator c = maskExpression.begin();
+                             c != maskExpression.end(); ++c)
+    if (*c == '#') *c = '=';
+}
+
+static inline std::string GetSelection(ArgList& line, int offset) {
+  std::string maskExpression = ":";
+  int resnum = line.getKeyInt("resid",0) + offset;
+  if (resnum < 1) return std::string("");
+  maskExpression += integerToString(resnum);
+  maskExpression += "@";
+  maskExpression += line.GetStringKey("name");
+  ReplaceChars( maskExpression );
+  return maskExpression;
+}
+
 int Action_NMRrst::ReadXplor( BufferedLine& infile ) {
   noeDataType NOE;
   const char* ptr = infile.Line();
@@ -105,28 +132,32 @@ int Action_NMRrst::ReadXplor( BufferedLine& infile ) {
       // 'assign' statement
       ArgList line(ptr, " ()");
       if (line.empty()) {
-        mprinterr("Error: Could not parse XPLOR 'assign' line:\n\t'%s'\n",ptr);
+        mprinterr("Error: Could not parse XPLOR 'assign' line:\n\t%s",ptr);
       } else {
-        // Mask
-        std::string maskExpression = ":";
-        maskExpression += line.GetStringKey("resid");
-        maskExpression += "@";
-        maskExpression += line.GetStringKey("name");
-        NOE.dMask1_.SetMaskString( maskExpression );
-        maskExpression = ":";
-        maskExpression += line.GetStringKey("resid");
-        maskExpression += "@";
-        maskExpression += line.GetStringKey("name");
-        NOE.dMask2_.SetMaskString( maskExpression );
-        // Bounds
-        NOE.rexp_ = line.getNextDouble(-1.0);
-        if ( NOE.rexp_ < 0.0 ) {
-          mprinterr("Error: XPLOR NOE distance is < 0.0 (%f)\n", NOE.rexp_);
+        line.MarkArg(0); // Mark 'assign'
+        // Get 2 Masks
+        std::string maskExpression1 = GetSelection( line, resOffset_ );
+        std::string maskExpression2 = GetSelection( line, resOffset_ );
+        if (maskExpression1.empty() || maskExpression2.empty()) {
+          mprinterr("Error: Could not get masks from line:\n\t%s", ptr);
+          mprinterr("Error: Check if residue number + offset is out of bounds.\n");
         } else {
-          NOE.boundh_ = NOE.rexp_ + line.getNextDouble(0.0);
-          NOE.bound_ = NOE.rexp_ - line.getNextDouble(0.0);
-          NOE.dist_ = 0;
-          NOEs_.push_back( NOE );
+          NOE.dMask1_.SetMaskString( maskExpression1 );
+          NOE.dMask2_.SetMaskString( maskExpression2 );
+          // Check for noe bounds
+          NOE.rexp_ = line.getNextDouble(-1.0);
+          if ( NOE.rexp_ < 0.0 ) {
+            // No more on this line, assume jcoupling
+            ptr = infile.Line();
+            line.SetList(ptr, " ()");
+            // Get 2 more masks and jcoupling values 
+          } else {
+            // NOE
+            NOE.boundh_ = NOE.rexp_ + line.getNextDouble(0.0);
+            NOE.bound_ = NOE.rexp_ - line.getNextDouble(0.0);
+            NOE.dist_ = 0;
+            NOEs_.push_back( NOE );
+          }
         }
       }
     }
@@ -146,9 +177,12 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
     //mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1_.MaskString(), Mask1_.Nselected(),
     //        Mask2_.MaskString(),Mask2_.Nselected());
     if ((*noe).dMask1_.None() || (*noe).dMask2_.None()) {
-      mprintf("\nWarning: One or both masks for NOE have no atoms.\n");
-      return Action::ERR;
-    }
+      mprintf("Warning: One or both masks for NOE '%s' have no atoms (%i and %i).\n",
+              (*noe).dist_->Legend().c_str(), (*noe).dMask1_.Nselected(),
+              (*noe).dMask2_.Nselected());
+      (*noe).active_ = false; 
+    } else
+      (*noe).active_ = true;
   }
   // Set up imaging info for this parm
   Image_.SetupImaging( currentParm->BoxType() );
@@ -167,29 +201,30 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, Frame* currentFrame, Frame
   Vec3 a1, a2;
 
   for (noeArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
-    if (useMass_) {
-      a1 = currentFrame->VCenterOfMass( (*noe).dMask1_ );
-      a2 = currentFrame->VCenterOfMass( (*noe).dMask2_ );
-    } else {
-      a1 = currentFrame->VGeometricCenter( (*noe).dMask1_ );
-      a2 = currentFrame->VGeometricCenter( (*noe).dMask2_ );
-    }
+    if ( (*noe).active_ ) {
+      if (useMass_) {
+        a1 = currentFrame->VCenterOfMass( (*noe).dMask1_ );
+        a2 = currentFrame->VCenterOfMass( (*noe).dMask2_ );
+      } else {
+        a1 = currentFrame->VGeometricCenter( (*noe).dMask1_ );
+        a2 = currentFrame->VGeometricCenter( (*noe).dMask2_ );
+      }
 
-    switch ( Image_.ImageType() ) {
-      case NONORTHO:
-        currentFrame->BoxCrd().ToRecip(ucell, recip);
-        Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);
-        break;
-      case ORTHO:
-        Dist = DIST2_ImageOrtho(a1, a2, currentFrame->BoxCrd());
-        break;
-      case NOIMAGE:
-        Dist = DIST2_NoImage(a1, a2);
-        break;
+      switch ( Image_.ImageType() ) {
+        case NONORTHO:
+          currentFrame->BoxCrd().ToRecip(ucell, recip);
+          Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);
+          break;
+        case ORTHO:
+          Dist = DIST2_ImageOrtho(a1, a2, currentFrame->BoxCrd());
+          break;
+        case NOIMAGE:
+          Dist = DIST2_NoImage(a1, a2);
+          break;
+      }
+      Dist = sqrt(Dist);
+      (*noe).dist_->Add(frameNum, &Dist);
     }
-    Dist = sqrt(Dist);
-    (*noe).dist_->Add(frameNum, &Dist);
   }
-  
   return Action::OK;
 } 

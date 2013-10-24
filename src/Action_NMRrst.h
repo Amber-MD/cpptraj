@@ -26,11 +26,13 @@ class Action_NMRrst: public Action {
       double boundh_;   ///< Upper bound.
       double rexp_;     ///< Expected distance
       DataSet* dist_;   ///< Distance DataSet.
+      bool active_;     ///< True if NOE was properly set up.
     };
     typedef std::vector<noeDataType> noeArray;
     noeArray NOEs_;
     
     ImagedAction Image_;
     bool useMass_;
+    int resOffset_;
 };
 #endif
