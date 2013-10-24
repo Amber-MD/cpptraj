@@ -16,8 +16,8 @@ Action_Jcoupling::Action_Jcoupling() :
 { } 
 
 void Action_Jcoupling::Help() {
-  mprintf("\t<mask1> [outfile <filename>]\n");
-  mprintf("\tCalculate J-coupling values for all dihedrals found in <mask1>.\n");
+  mprintf("\t<mask1> [outfile <filename>] [kfile <param file>]\n"
+          "\tCalculate J-coupling values for all dihedrals found in <mask1>.\n");
 }
 
 // DESTRUCTOR
@@ -153,49 +153,48 @@ int Action_Jcoupling::loadKarplus(std::string filename) {
 }
 
 // -----------------------------------------------------------------------------
-// Action_Jcoupling::init()
+// Action_Jcoupling::Init()
 Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
-  std::string karpluspath;
-
   // Get Keywords
   std::string outfilename = actionArgs.GetStringKey("outfile");
-
+  std::string karpluspath = actionArgs.GetStringKey("kfile");
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Dataset setup 
   // Add dataset to data file list
 
-  // Get Karplus parameters from file.
-  karpluspath.clear();
-  // Check if the KARPLUS env var is set.
-  const char* env = getenv("KARPLUS");
-  if (env != 0) {
-    mprintf("Info: using parameter file defined by $KARPLUS environment variable.\n");
-    karpluspath.assign(env);
-  } else {
-    // If KARPLUS not set check for $AMBERHOME/dat/Karplus.txt
-    env = getenv("AMBERHOME");
-    if (env == 0) {
-      mprinterr("Error: jcoupling: Either AMBERHOME must be set or KARPLUS must point\n");
-      mprinterr("Error: to the file containing Karplus parameters.\n");
-      return Action::ERR;
+  // If no Karplus params specified check environment vars. 
+  if (karpluspath.empty()) {
+    // Check if the KARPLUS env var is set.
+    const char* env = getenv("KARPLUS");
+    if (env != 0) {
+      mprintf("Info: Using parameter file defined by $KARPLUS environment variable.\n");
+      karpluspath.assign(env);
+    } else {
+      // If KARPLUS not set check for $AMBERHOME/dat/Karplus.txt
+      env = getenv("AMBERHOME");
+      if (env == 0) {
+        mprinterr("Error: Either AMBERHOME must be set or KARPLUS must point\n"
+                  "Error:   to the file containing Karplus parameters.\n");
+        return Action::ERR;
+      }
+      mprintf("Info: Using parameter file in '$AMBERHOME/dat/'.\n");
+      karpluspath.assign(env);
+      karpluspath += "/dat/Karplus.txt";
     }
-    mprintf("Info: using parameter file in '$AMBERHOME/dat/'.\n");
-    karpluspath.assign(env);
-    karpluspath += "/dat/Karplus.txt";
   }
   // Load Karplus parameters
   if (loadKarplus(karpluspath)) 
     return Action::ERR;
 
-  mprintf("    J-COUPLING: Searching for dihedrals in mask [%s].\n",Mask1_.MaskString());
-  mprintf("                Using Karplus parameters in \"%s\"\n",karpluspath.c_str());
-  mprintf("                %i parameters found for %zu residues.\n",Nconstants_,
-          KarplusConstants_.size());
+  mprintf("    J-COUPLING: Searching for dihedrals in mask [%s].\n"
+          "                Using Karplus parameters in \"%s\"\n"
+          "                %i parameters found for %zu residues.\n",
+          Mask1_.MaskString(), karpluspath.c_str(), Nconstants_, KarplusConstants_.size());
   if (!outfilename.empty())
     mprintf("                Writing output to %s\n",outfilename.c_str());
   else
@@ -208,7 +207,7 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
   return Action::OK;
 }
 
-// Action_Jcoupling::setup()
+// Action_Jcoupling::Setup()
 /** Set up a j-coupling calculation for dihedrals defined by atoms within
   * the mask.
   */
@@ -220,14 +219,14 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
 
   if ( currentParm->SetupCharMask(Mask1_) ) return Action::ERR;
   if (Mask1_.None()) {
-    mprinterr("    Error: Jcoupling::setup: Mask specifies no atoms.\n");
+    mprinterr("Error: Mask specifies no atoms.\n");
     return Action::ERR;
   }
   // If JcouplingInfo has already been set up, print a warning and reset for
   // new parm.
   if (!JcouplingInfo_.empty()) {
-    mprintf("    Warning: Jcoupling has been set up for another parm.\n");
-    mprintf("             Resetting jcoupling info for new parm %s\n",currentParm->c_str());
+    mprintf("Warning: Jcoupling has been set up for another parm.\n"
+            "Warning:   Resetting jcoupling info for new parm %s\n",currentParm->c_str());
     JcouplingInfo_.clear();
   }
 
@@ -236,56 +235,49 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
   // atoms involved are present in the mask.
   MaxResidues = currentParm->FinalSoluteRes();
   for (int residue=0; residue < MaxResidues; residue++) {
-    // Check if any atoms within this residue are selected
+    // Skip residue if no atoms within residue are selected.
     if (!Mask1_.AtomsInCharMask(currentParm->Res(residue).FirstAtom(),
                                 currentParm->Res(residue).LastAtom())) continue;
     resName.assign(currentParm->Res(residue).c_str());
     karplusConstantMap::iterator reslist = KarplusConstants_.find(resName);
     // If list does not exist for residue, skip it.
     if (reslist == KarplusConstants_.end() ) {
-      mprintf("    Warning: Jcoupling::setup: Karplus parameters not found for residue [%i:%s]\n",
+      mprintf("Warning: Karplus parameters not found for residue [%i:%s]\n",
               residue+1, resName.c_str());
       continue;
     }
     currentResList = (*reslist).second;
     // For each parameter set in the list find the corresponding atoms.
     for (karplusConstantList::iterator kc = currentResList->begin();
-                                                kc != currentResList->end();
-                                                kc++) 
+                                       kc != currentResList->end(); ++kc) 
     {
-      // Init jcoupling info
-      // Constants will point inside KarplusConstants
+      // Init jcoupling info. Constants will point inside KarplusConstants.
       JC.residue = residue;
       JC.atom[0] = -1;
       JC.atom[1] = -1;
       JC.atom[2] = -1;
       JC.atom[3] = -1;
-      JC.C=(*kc).C;
-      JC.type=(*kc).type;
+      JC.C = (*kc).C;
+      JC.type = (*kc).type;
       // For each atom in the dihedral specified in this Karplus constant, find
-      // corresponding atoms in parm. 
-      for (int idx=0; idx < 4; idx++) 
-        JC.atom[idx] = currentParm->FindAtomInResidue(residue+(*kc).offset[idx],
-                                                      (*kc).atomName[idx]       );
-      // Check that all atoms were found
+      // corresponding atoms in parm.
       bool allAtomsFound = true;
       for (int idx=0; idx < 4; idx++) {
-        if (JC.atom[idx]==-1) {
-          mprintf("Warning: jcoupling: Atom %4s at position %i not found for residue %i\n",
+        JC.atom[idx] = currentParm->FindAtomInResidue(residue+(*kc).offset[idx],
+                                                      (*kc).atomName[idx]       );
+        if (JC.atom[idx] == -1) {
+          mprintf("Warning: Atom '%s' at position %i not found for residue %i\n",
                     *((*kc).atomName[idx]), idx, residue+(*kc).offset[idx]+1);
           allAtomsFound = false;
-          break;
         }
       }
-      if (!allAtomsFound) continue;
-      // Check that all the atoms involved in this Jcouple dihedral are
-      // in the atom mask.
-      if (!Mask1_.AtomInCharMask(JC.atom[0])) continue;
-      if (!Mask1_.AtomInCharMask(JC.atom[1])) continue;
-      if (!Mask1_.AtomInCharMask(JC.atom[2])) continue;
-      if (!Mask1_.AtomInCharMask(JC.atom[3])) continue;
-      // Add this jcoupling info to the list
-      JcouplingInfo_.push_back(JC);
+      if (allAtomsFound) { 
+        // Check that all the atoms involved in this Jcouple dihedral are
+        // in the atom mask. If so, add jcoupling info to the list.
+        if (Mask1_.AtomInCharMask(JC.atom[0]) && Mask1_.AtomInCharMask(JC.atom[1]) &&
+            Mask1_.AtomInCharMask(JC.atom[2]) && Mask1_.AtomInCharMask(JC.atom[3]))
+          JcouplingInfo_.push_back(JC);
+      }
     } // END loop over karplus parameters for this residue
   } // END loop over all residues
 
@@ -293,19 +285,19 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
   mprintf("    J-COUPLING: [%s] Will calculate J-coupling for %zu dihedrals.\n",
           Mask1_.MaskString(), JcouplingInfo_.size());
   if (JcouplingInfo_.empty()) {
-    mprintf("    Warning: No dihedrals found for J-coupling calculation!\n");
-    mprintf("             Check that all atoms of dihedrals are included in mask [%s]\n",
+    mprintf("Warning: No dihedrals found for J-coupling calculation!\n"
+            "Warning:   Check that all atoms of dihedrals are included in mask [%s]\n"
+            "Warning:   and/or that dihedrals are defined in Karplus parameter file.\n",
             Mask1_.MaskString());
-    mprintf("             and/or that dihedrals are defined in Karplus parameter file.\n");
     return Action::ERR;
   }
   // DEBUG
   if (debug_>0) {
-    MaxResidues=0;
+    MaxResidues=1;
     for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
-                                              jc !=JcouplingInfo_.end(); ++jc) 
+                                              jc != JcouplingInfo_.end(); ++jc) 
     {
-      mprintf("%8i [%i:%4s]",MaxResidues+1,(*jc).residue, currentParm->Res((*jc).residue).c_str());
+      mprintf("%8i [%i:%4s]",MaxResidues,(*jc).residue, currentParm->Res((*jc).residue).c_str());
       mprintf(" %6i:%-4s",(*jc).atom[0],(*currentParm)[(*jc).atom[0]].c_str());
       mprintf(" %6i:%-4s",(*jc).atom[1],(*currentParm)[(*jc).atom[1]].c_str());
       mprintf(" %6i:%-4s",(*jc).atom[2],(*currentParm)[(*jc).atom[2]].c_str());

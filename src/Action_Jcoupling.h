@@ -50,15 +50,15 @@ class Action_Jcoupling: public Action {
     /// Hold info for single j-coupling calculation
     struct jcouplingInfo {
       int residue; ///< Residue number
-      int atom[4]; ///< Atom #s of the diehdral
+      int atom[4]; ///< Atom #s of the dihedral
       double *C;   ///< Pointer to C in associated karplusConstant structure
       int type;    ///< Calculation type (0=Chou, 1=Perez)
     };
     /// Hold info for all j-coupling calcs
     std::vector<jcouplingInfo> JcouplingInfo_;
 
-    AtomMask Mask1_;
-    int debug_;
+    AtomMask Mask1_;         ///< Mask to search for dihedrals in.
+    int debug_;              ///< Debug level.
     int Nconstants_;
     Topology* CurrentParm_;
     CpptrajFile outputfile_;
