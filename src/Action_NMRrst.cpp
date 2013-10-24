@@ -75,6 +75,10 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   }
  
   mprintf("    NMRRST: %zu NOEs\n", NOEs_.size());
+  // DEBUG - print NOEs
+  for (noeArray::const_iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe)
+    mprintf("\t'%s' to '%s'  %f < %f < %f\n", (*noe).dMask1_.MaskString(),
+            (*noe).dMask2_.MaskString(), (*noe).bound_, (*noe).rexp_, (*noe).boundh_);
   if (!Image_.UseImage()) 
     mprintf("\tNon-imaged");
   else
