@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdio> // sscanf
 #include "Action_NMRrst.h"
 #include "DataSet_double.h"
 #include "StringRoutines.h"
@@ -11,9 +12,9 @@ void Action_NMRrst::Help() {
   mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n");
 }
 
-/// \return true if character is not a 'skippable' one.
-static inline bool NotSkipChar( const char* ptr ) {
-  return (ptr != 0 && *ptr != '#' && *ptr != '!' && *ptr != '\n' && *ptr != '\r');
+/// \return true if first character is a 'skippable' one.
+static inline bool SkipChar( const char* ptr ) {
+  return (ptr != 0 && (*ptr == '#' || *ptr == '!' || *ptr == '\n' || *ptr == '\r'));
 }
 
 // Action_NMRrst::Init()
@@ -40,7 +41,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Try to determine what kind of file.
   const char* ptr = infile.Line();
   // Try to skip past any blank lines and comments
-  while ( NotSkipChar( ptr ) )
+  while ( SkipChar( ptr ) )
     ptr = infile.Line();
   if (ptr == 0) {
     mprinterr("Error: Unexpected end of restraint file.\n");
@@ -51,14 +52,15 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Re-open file
   if (infile.OpenFileRead( rstfilename )) return Action::ERR;
   int err = 0;
-  if ( inputLine.compare(0, 7, "*HEADER") ||
-       inputLine.compare(0, 6, "*TITLE") ||
-       inputLine.compare(0, 6, "assign") )
+  if ( inputLine.compare(0, 7, "*HEADER")==0 ||
+       inputLine.compare(0, 6, "*TITLE")==0 ||
+       inputLine.compare(0, 6, "assign")==0 )
     // XPLOR
     err = ReadXplor( infile );
   else
     // Assume DIANA/Amber
     err = ReadAmber( infile );
+  infile.CloseFile();
   if (err != 0) {
     mprinterr("Error: Could not parse restraint file.\n");
     return Action::ERR;
@@ -95,10 +97,66 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   return Action::OK;
 }
 // -----------------------------------------------------------------------------
-int Action_NMRrst::ReadAmber( BufferedLine& infile ) {
-  return 1;
+static inline std::string ReplaceQ(const char* ptr) {
+  if (ptr == 0) return std::string("");
+  std::string output( ptr );
+  for (std::string::iterator c = output.begin(); c != output.end(); ++c)
+    if ( *c == 'Q' ) *c = 'C';
+  return output;
 }
 
+/** Read Amber/DIANA style restraints. */
+int Action_NMRrst::ReadAmber( BufferedLine& infile ) {
+  noeDataType NOE;
+  const char* ptr = infile.Line();
+  if (ptr == 0) {
+    mprinterr("Error: Unexpected end of Amber restraint file.\n");
+    return 1;
+  }
+  int rnum1, rnum2;
+  char rname1[16], aname1[16], rname2[16], aname2[16];
+  double l_bound, u_bound;
+  while (ptr != 0) {
+    if (!SkipChar(ptr)) {
+      int cols = sscanf( ptr, "%d %s %s %d %s %s %lf %lf",
+                         &rnum1, rname1, aname1,
+                         &rnum2, rname2, aname2,
+                         &l_bound, &u_bound );
+      if (cols == 7) { // 7-column, upper-bound only
+        NOE.bound_ = 0.0;
+        NOE.boundh_ = l_bound;
+      } else if (cols == 8) { // 8-colun, lower/upper bounds
+        NOE.bound_ = l_bound;
+        NOE.boundh_ = u_bound;
+      } else {
+        mprinterr("Error: Expected only 7 or 8 columns in Amber restraint file, got %i.\n", cols);
+        return 1;
+      }
+      NOE.rexp_ = -1.0;
+      NOE.dist_ = 0;
+      rnum1 += resOffset_;
+      rnum2 += resOffset_;
+      if (rnum1 < 1 || rnum2 < 1) {
+        mprinterr("Error: One or both residue numbers are out of bounds (%i, %i)\n"
+                  "Error: Line: %s", rnum1, rnum2, ptr);
+      } else {
+        // Fix up atom names. Replace Q with C.
+        // FIXME: Is that a legit thing to do?
+        
+        std::string maskExpression = ":" + integerToString(rnum1) +
+                                     "@" + ReplaceQ(aname1);
+        NOE.dMask1_.SetMaskString( maskExpression );
+        maskExpression = ":" + integerToString(rnum2) +
+                         "@" + ReplaceQ(aname2);
+        NOE.dMask2_.SetMaskString( maskExpression );
+        NOEs_.push_back( NOE );
+      }
+    }
+    ptr = infile.Line();
+  }
+  return 0;
+}
+// -----------------------------------------------------------------------------
 /// Replace any '#' with '='
 // FIXME: Is this legitimate?
 inline void ReplaceChars( std::string& maskExpression ) {
@@ -107,6 +165,7 @@ inline void ReplaceChars( std::string& maskExpression ) {
     if (*c == '#') *c = '=';
 }
 
+/// Convert next Xplor-style selection 'resid X name A' to mask expression.
 static inline std::string GetSelection(ArgList& line, int offset) {
   std::string maskExpression = ":";
   int resnum = line.getKeyInt("resid",0) + offset;
@@ -118,6 +177,7 @@ static inline std::string GetSelection(ArgList& line, int offset) {
   return maskExpression;
 }
 
+/** Read Xplor-style restraint file. */
 int Action_NMRrst::ReadXplor( BufferedLine& infile ) {
   noeDataType NOE;
   const char* ptr = infile.Line();
@@ -163,7 +223,6 @@ int Action_NMRrst::ReadXplor( BufferedLine& infile ) {
     }
     ptr = infile.Line();
   }
-  infile.CloseFile();
   return 0;
 }
 // -----------------------------------------------------------------------------

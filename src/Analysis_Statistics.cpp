@@ -10,11 +10,13 @@ Analysis_Statistics::Analysis_Statistics() :
   NOE_r6_(0),
   NOE_violations_(0),
   NOE_avgViolations_(0),
-  NOE_names_(0)
+  NOE_names_(0),
+  ignore_negative_violations_(true)
 {}
 
 void Analysis_Statistics::Help() {
-  mprintf("\t{<name> | all} [shift <value>] [out <filename>] [noeout <filename>]\n");
+  mprintf("\t{<name> | all} [shift <value>] [out <filename>] [noeout <filename>]\n"
+          "\t [reportnv]\n");
 }
 
 // Analysis_Statistics::Setup()
@@ -25,6 +27,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   // Get keywords.
   shift_ = analyzeArgs.getKeyDouble("shift", 0);
   filename_ = analyzeArgs.GetStringKey("out");
+  ignore_negative_violations_ = !analyzeArgs.hasKey("reportnv");
   DataFile* NOE_out = DFLin->AddDataFile(analyzeArgs.GetStringKey("noeout"), analyzeArgs);
   // Get dataset or all datasets
   bool useAllSets = false;
@@ -83,6 +86,8 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tShift (about %.2f) is begin applied.\n", shift_);
   if (!filename_.empty())
     mprintf("\tOutput to file %s\n", filename_.c_str());
+  if (!ignore_negative_violations_)
+    mprintf("\tReporting negative NOE violations.\n");
 
   return Analysis::OK;
 }
@@ -476,7 +481,7 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
   int distance_transitions[6][6];
   double distance_avg[6];
   double distance_sd[6];
-  double average, bound, boundh, rexp;
+  double average, bound=0.0, boundh=0.0, rexp=0.0;
   int prevbin, curbin, Nb, Nh;
 
   for (int j=0;j<6;j++) {
@@ -498,8 +503,13 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
     bound = DsDbl.NOE_bound();
     boundh = DsDbl.NOE_boundH();
     rexp = DsDbl.NOE_rexp();
-    if (rexp < 0.0)
-      rexp = (bound + boundh) / 2.0;
+    if (rexp < 0.0) {
+      // If lower bound is zero just use boundh, otherwise use avg.
+      if (bound > 0.0)
+        rexp = (bound + boundh) / 2.0;
+      else
+        rexp = boundh;
+    }
   }
 
   // Get bin for first value
@@ -567,7 +577,7 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
     outfile_.Printf("   NOE <r^-6>^(-1/6)= %.4f\n", r6_avg);
     NOE_r6_->AddElement( (float)r6_avg );
     int total_violations = 0;
-    if (bound > 0.0 && boundh > 0.0) {
+    if (bound >= 0.0 && boundh > 0.0) {
       total_violations = NlowViolations+NhighViolations;
       outfile_.Printf("   #Violations: Low= %i High= %i Total= %i\n",
                       NlowViolations, NhighViolations, total_violations);
@@ -576,6 +586,8 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
     double avg_violation = 0.0;
     if (rexp > 0.0) {
       avg_violation = r6_avg - rexp;
+      if (ignore_negative_violations_ && avg_violation < 0.0)
+        avg_violation = 0.0;
       outfile_.Printf("   Rexp= %.4f <Violation>= %.4f\n", rexp, avg_violation);
     }
     NOE_avgViolations_->AddElement( (float)avg_violation );

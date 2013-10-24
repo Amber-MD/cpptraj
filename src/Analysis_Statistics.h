@@ -28,6 +28,7 @@ class Analysis_Statistics : public Analysis {
     DataSet_integer* NOE_violations_;
     DataSet_float* NOE_avgViolations_;
     DataSet_string* NOE_names_;
+    bool ignore_negative_violations_;
 
     static const char* pucker_ss[];
     void PuckerAnalysis( DataSet_1D const&, int );
