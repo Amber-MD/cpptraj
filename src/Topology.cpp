@@ -326,6 +326,68 @@ void Topology::PrintAngleInfo(std::string const& maskString) const {
   }
 }
 
+// Topology::PrintDihedrals()
+void Topology::PrintDihedrals(std::vector<int> const& darray, AtomMask const& maskIn) const {
+  int atom3, atom4;
+  int rwidth = DigitWidth(residues_.size()) + 7;
+  int awidth = DigitWidth(atoms_.size());
+  if (awidth < 5) awidth = 5;
+  for (std::vector<int>::const_iterator datom = darray.begin();
+                                        datom != darray.end(); ++datom)
+  {
+    int atom1 = ((*datom++) / 3);
+    int atom2 = ((*datom++) / 3);
+    int iatom3 = atom3 = ((*datom++) / 3);
+    int iatom4 = atom4 = ((*datom++) / 3);
+    // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
+    char type = ' ';
+    if (iatom3 < 0) { // End atoms shouldn't have nonbonds between them
+      type = 'E';
+      atom3 = -iatom3;
+    }
+    if (iatom4 < 0) { // Improper dihedral
+      type = 'I';
+      atom4 = -iatom4;
+    }
+    if (iatom3 < 0 && iatom4 < 0) type = 'B';
+    if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
+        maskIn.AtomInCharMask( atom3 ) || maskIn.AtomInCharMask( atom4 )   )
+    {
+      //mprintf("\tAtom %i:%s to %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
+      //        atom2+1, atoms_[atom2].c_str(), atom3+1, atoms_[atom3].c_str());
+      mprintf("%c %-*s %*i %-*s %*i %-*s %*i %-*s %*i", type,
+              rwidth, AtomMaskName(atom1).c_str(), awidth, atom1+1,
+              rwidth, AtomMaskName(atom2).c_str(), awidth, atom2+1,
+              rwidth, AtomMaskName(atom3).c_str(), awidth, atom3+1,
+              rwidth, AtomMaskName(atom4).c_str(), awidth, atom4+1);
+      if (*datom==-1) {
+        // No guess at dihedral param.
+        mprintf("\n");
+      } else {
+        // TODO: Dihedral index should be -1
+        int didx = *datom - 1;
+        mprintf(" %6.3f %4.2f %4.1f\n", dihedralpk_[didx], dihedralphase_[didx],
+                dihedralpn_[didx]);
+      }
+    }
+  }
+}
+
+// Topology::PrintDihedralInfo()
+void Topology::PrintDihedralInfo(std::string const& maskString) const {
+  AtomMask mask( maskString );
+  ParseMask(refCoords_, mask, false); // Char mask
+  if (!dihedralsh_.empty()) {
+    mprintf("%zu DIHEDRALS WITH HYDROGEN:\n", dihedralsh_.size()/5);
+    PrintDihedrals( dihedralsh_, mask );
+  }
+  if (!dihedrals_.empty()) {
+    mprintf("%zu DIHEDRALS WITHOUT HYDROGEN:\n", dihedrals_.size()/5);
+    PrintDihedrals( dihedrals_, mask );
+  }
+}
+
+
 // Topology::PrintMoleculeInfo()
 void Topology::PrintMoleculeInfo(std::string const& maskString) const {
   if (molecules_.empty())

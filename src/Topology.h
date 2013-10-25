@@ -105,6 +105,7 @@ class Topology {
     void PrintAtomInfo(std::string const&) const;
     void PrintBondInfo(std::string const&) const;
     void PrintAngleInfo(std::string const&) const;
+    void PrintDihedralInfo(std::string const&) const;
     void PrintMoleculeInfo(std::string const&) const;
     void PrintResidueInfo(std::string const&) const;
     int PrintChargeMassInfo(std::string const&, int) const;
@@ -210,6 +211,7 @@ class Topology {
 
     void PrintBonds(std::vector<int> const&, AtomMask const&) const;
     void PrintAngles(std::vector<int> const&, AtomMask const&) const;
+    void PrintDihedrals(std::vector<int> const&, AtomMask const&) const;
     void SetAtomBondInfo();
     static void WarnBondLengthDefault(Atom::AtomicElementType,
                                       Atom::AtomicElementType,double);
