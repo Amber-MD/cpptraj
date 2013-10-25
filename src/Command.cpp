@@ -427,9 +427,8 @@ static void Help_Parm() {
   mprintf("\tAdd <filename> to the topology list.\n");
 }
 static void Help_ParmInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n");
-  mprintf("\tPrint information on topology <parmindex> (0 by default). If <mask> is given\n");
-  mprintf("\tprint info on atoms in mask. If no mask given print overall information.\n");
+  mprintf("\t[<parmindex>] [<mask>]\n"
+          "\tPrint information on topology <parmindex> (0 by default).\n");
 }
 
 static void Help_ParmWrite() {
@@ -452,6 +451,11 @@ static void Help_Solvent() {
   mprintf("\t[<parmindex>] { <mask> | none }\n"
           "\tSet solvent for the specified topology (default 0) based on <mask>.\n"
           "\tIf 'none' specified, remove all solvent information.\n");
+}
+
+static void Help_AtomInfo() {
+  mprintf("\t[<parmindex>] [<mask>]\n"
+          "\tPrint information on atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
 static void Help_BondInfo() {
@@ -1111,11 +1115,16 @@ Command::RetType ParmInfo(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
-  std::string maskarg = argIn.GetMaskNext();
-  if (!maskarg.empty())
-    parm->PrintAtomInfo( maskarg );
-  else
-    parm->Summary();
+  parm->Summary();
+  return Command::C_OK;
+}
+
+/// Print info for atoms in mask.
+Command::RetType AtomInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  if (parm == 0) return Command::C_ERR;
+  parm->PrintAtomInfo( argIn.GetMaskNext() );
   return Command::C_OK;
 }
 
@@ -1336,6 +1345,8 @@ const Command::Token Command::Commands[] = {
   // TOPOLOGY COMMANDS
   { PARM,    "angleinfo",     0, Help_AngleInfo,       AngleInfo       },
   { PARM,    "angles",        0, Help_AngleInfo,       AngleInfo       },
+  { PARM,    "atominfo",      0, Help_AtomInfo,        AtomInfo        },
+  { PARM,    "atoms",         0, Help_AtomInfo,        AtomInfo        },
   { PARM,    "bondinfo",      0, Help_BondInfo,        BondInfo        },
   { PARM,    "bonds",         0, Help_BondInfo,        BondInfo        },
   { PARM,    "charge",        0, Help_ChargeInfo,      ChargeInfo      },
@@ -1349,6 +1360,7 @@ const Command::Token Command::Commands[] = {
   { PARM,    "parmstrip",     0, Help_ParmStrip,       ParmStrip       },
   { PARM,    "parmwrite",     0, Help_ParmWrite,       ParmWrite       },
   { PARM,    "printangles",   0, Help_AngleInfo,       AngleInfo       },
+  { PARM,    "printatoms",    0, Help_AtomInfo,        AtomInfo        },
   { PARM,    "printbonds",    0, Help_BondInfo,        BondInfo        },
   { PARM,    "printdihedrals",0, Help_DihedralInfo,    DihedralInfo    },
   { PARM,    "resinfo",       0, Help_ResInfo,         ResInfo         },
