@@ -93,6 +93,7 @@ class Topology {
     inline const std::vector<double>& LJB() const { return ljb_; }
     // ----- Misc routines -----
     std::string TruncResAtomName(int) const;
+    std::string AtomMaskName(int atom) const;
     std::string TruncResNameNum(int) const;
     int FindAtomInResidue(int, NameType const&) const;
     int FindResidueMaxNatom() const;
@@ -103,6 +104,7 @@ class Topology {
     void Brief() const;
     void PrintAtomInfo(std::string const&) const;
     void PrintBondInfo(std::string const&) const;
+    void PrintAngleInfo(std::string const&) const;
     void PrintMoleculeInfo(std::string const&) const;
     void PrintResidueInfo(std::string const&) const;
     int PrintChargeMassInfo(std::string const&, int) const;
@@ -207,6 +209,7 @@ class Topology {
     int nRepDim_;     // TODO: This information should be passed separate from Topology
 
     void PrintBonds(std::vector<int> const&, AtomMask const&) const;
+    void PrintAngles(std::vector<int> const&, AtomMask const&) const;
     void SetAtomBondInfo();
     static void WarnBondLengthDefault(Atom::AtomicElementType,
                                       Atom::AtomicElementType,double);

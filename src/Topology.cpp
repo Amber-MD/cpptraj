@@ -7,6 +7,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
 #include "DistRoutines.h"
+#include "Constants.h"
 // DEBUG
 //#include <cmath> // sqrt
 
@@ -118,6 +119,19 @@ std::string Topology::TruncResAtomName(int atom) const {
   return res_name;
 }
 
+// Topology::AtomMaskName()
+/** \return A string of format :r@a where r is atoms residue number and
+  *         a is atoms name.
+  */
+std::string Topology::AtomMaskName(int atom) const {
+  if (atom < 0 || atom >= (int)atoms_.size()) return std::string(""); 
+  std::string maskName = ":";
+  maskName += integerToString( atoms_[atom].ResNum() + 1 );
+  maskName += "@";
+  maskName += atoms_[atom].Name().Truncated();
+  return maskName;
+}
+
 // Topology::TruncResNameNum()
 /** Given a residue number (starting from 0), return a string containing 
   * residue name and number (starting from 1) with format: 
@@ -225,22 +239,27 @@ void Topology::PrintAtomInfo(std::string const& maskString) const {
 /** \param maskIn AtomMask which should have already been set up as a char mask
   */
 void Topology::PrintBonds(std::vector<int> const& barray, AtomMask const& maskIn) const {
+  int rwidth = DigitWidth(residues_.size()) + 7;
+  int awidth = DigitWidth(atoms_.size());
   for (std::vector<int>::const_iterator batom = barray.begin();
-                                        batom != barray.end(); batom++)
+                                        batom != barray.end(); ++batom)
   {
     int atom1 = ((*batom++) / 3);
     int atom2 = ((*batom++) / 3);
     if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 )) {
-      mprintf("\tAtom %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
-                                       atom2+1, atoms_[atom2].c_str());
+//      mprintf("\tAtom %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
+//                                       atom2+1, atoms_[atom2].c_str());
+      mprintf("%-*s %*i %-*s %*i",
+              rwidth, AtomMaskName(atom1).c_str(), awidth, atom1+1,
+              rwidth, AtomMaskName(atom2).c_str(), awidth, atom2+1);
       if (*batom==-1) {
         double req = GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element());
-        mprintf("  EQ=%lf\n", req);
+        mprintf(" %6.2f\n", req);
       } else {
         // TODO: Bond index should be -1
         double req = bondreq_[*batom - 1];
         double rk = bondrk_[*batom - 1];
-        mprintf("  EQ=%lf K=%lf\n", req, rk);
+        mprintf(" %6.2f %6.3f\n", req, rk);
       }
     }
   }
@@ -257,6 +276,53 @@ void Topology::PrintBondInfo(std::string const& maskString) const {
   if (!bonds_.empty()) {
     mprintf("%zu BONDS TO NON-HYDROGEN:\n",bonds_.size()/3);
     PrintBonds( bonds_, mask );
+  }
+}
+
+// Topology::PrintAngles()
+void Topology::PrintAngles(std::vector<int> const& aarray, AtomMask const& maskIn) const {
+  int rwidth = DigitWidth(residues_.size()) + 7;
+  int awidth = DigitWidth(atoms_.size());
+  if (awidth < 5) awidth = 5;
+  for (std::vector<int>::const_iterator aatom = aarray.begin();
+                                        aatom != aarray.end(); ++aatom)
+  {
+    int atom1 = ((*aatom++) / 3);
+    int atom2 = ((*aatom++) / 3);
+    int atom3 = ((*aatom++) / 3);
+    if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
+        maskIn.AtomInCharMask( atom3 ))
+    {
+      //mprintf("\tAtom %i:%s to %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
+      //        atom2+1, atoms_[atom2].c_str(), atom3+1, atoms_[atom3].c_str());
+      mprintf("%-*s %*i %-*s %*i %-*s %*i",
+              rwidth, AtomMaskName(atom1).c_str(), awidth, atom1+1,
+              rwidth, AtomMaskName(atom2).c_str(), awidth, atom2+1,
+              rwidth, AtomMaskName(atom3).c_str(), awidth, atom3+1);
+      if (*aatom==-1) {
+        // No guess at angle param.
+        mprintf("\n");
+      } else {
+        // TODO: Angle index should be -1
+        double teq = angleteq_[*aatom - 1];
+        double tk = angletk_[*aatom - 1];
+        mprintf(" %6.2f %6.3f\n", teq * RADDEG, tk);
+      }
+    }
+  }
+}
+
+// Topology::PrintAngleInfo()
+void Topology::PrintAngleInfo(std::string const& maskString) const {
+  AtomMask mask( maskString );
+  ParseMask(refCoords_, mask, false); // Char mask
+  if (!anglesh_.empty()) {
+    mprintf("%zu ANGLES WITH HYDROGEN:\n", anglesh_.size()/4);
+    PrintAngles( anglesh_, mask );
+  }
+  if (!angles_.empty()) {
+    mprintf("%zu ANGLES WITHOUT HYDROGEN:\n", angles_.size()/4);
+    PrintAngles( angles_, mask );
   }
 }
 

@@ -449,14 +449,19 @@ static void Help_ParmBox() {
 }
 
 static void Help_Solvent() {
-  mprintf("\t[<parmindex>] { <mask> | none }\n");
-  mprintf("\tSet solvent for the specified topology (default 0) based on <mask>.\n");
-  mprintf("\tIf 'none' specified, remove all solvent information.\n");
+  mprintf("\t[<parmindex>] { <mask> | none }\n"
+          "\tSet solvent for the specified topology (default 0) based on <mask>.\n"
+          "\tIf 'none' specified, remove all solvent information.\n");
 }
 
 static void Help_BondInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n");
-  mprintf("\tPrint bond information of atoms in <mask> for topology <parmindex> (0 by default).\n");
+  mprintf("\t[<parmindex>] [<mask>]\n"
+          "\tPrint bond information of atoms in <mask> for topology <parmindex> (0 by default).\n");
+}
+
+static void Help_AngleInfo() {
+  mprintf("\t[<parmindex>] [<mask>]\n"
+      "\tPrint angle information of atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
 static void Help_ChargeInfo() {
@@ -1118,6 +1123,15 @@ Command::RetType BondInfo(CpptrajState& State, ArgList& argIn, Command::AllocTyp
   return Command::C_OK;
 }
 
+/// Print angle info for atoms in mask.
+Command::RetType AngleInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  if (parm == 0) return Command::C_ERR;
+  parm->PrintAngleInfo( argIn.GetMaskNext() );
+  return Command::C_OK;
+}
+
 /// Print residue info for atoms in mask.
 Command::RetType ResInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1306,18 +1320,20 @@ const Command::Token Command::Commands[] = {
   { TRAJ,    "trajin",        0, Help_Trajin,          Trajin          },
   { TRAJ,    "trajout",       0, Help_Trajout,         Trajout         },
   // TOPOLOGY COMMANDS
+  { PARM,    "angleinfo",     0, Help_AngleInfo,       AngleInfo       },
+  { PARM,    "angles",        0, Help_AngleInfo,       AngleInfo       },
   { PARM,    "bondinfo",      0, Help_BondInfo,        BondInfo        },
+  { PARM,    "bonds",         0, Help_BondInfo,        BondInfo        },
   { PARM,    "charge",        0, Help_ChargeInfo,      ChargeInfo      },
   { PARM,    "mass",          0, Help_MassInfo,        MassInfo        },
   { PARM,    "molinfo",       0, Help_MolInfo,         MolInfo         },
   { PARM,    "parm",          0, Help_Parm,            LoadParm        },
-  { PARM,    "parmbondinfo",  0, Help_BondInfo,        BondInfo        },
   { PARM,    "parmbox",       0, Help_ParmBox,         ParmBox         },
   { PARM,    "parminfo",      0, Help_ParmInfo,        ParmInfo        },
-  { PARM,    "parmmolinfo",   0, Help_MolInfo,         MolInfo         },
-  { PARM,    "parmresinfo",   0, Help_ResInfo,         ResInfo         },
   { PARM,    "parmstrip",     0, Help_ParmStrip,       ParmStrip       },
   { PARM,    "parmwrite",     0, Help_ParmWrite,       ParmWrite       },
+  { PARM,    "printangles",   0, Help_AngleInfo,       AngleInfo       },
+  { PARM,    "printbonds",    0, Help_BondInfo,        BondInfo        },
   { PARM,    "resinfo",       0, Help_ResInfo,         ResInfo         },
   { PARM,    "scaledihedralk",0, 0,                    ScaleDihedralK  },
   { PARM,    "solvent",       0, Help_Solvent,         ParmSolvent     },
@@ -1438,5 +1454,8 @@ const Command::Token Command::Commands[] = {
   { DEPRECATED, "molsearch",    0, 0, Deprecated },
   { DEPRECATED, "nobondsearch", 0, 0, Deprecated },
   { DEPRECATED, "nomolsearch",  0, 0, Deprecated },
+  { DEPRECATED, "parmbondinfo", 0, 0, Deprecated },
+  { DEPRECATED, "parmmolinfo",  0, 0, Deprecated },
+  { DEPRECATED, "parmresinfo",  0, 0, Deprecated },
   { NONE      , 0,              0, 0, 0          }
 };
