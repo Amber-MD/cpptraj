@@ -13,6 +13,7 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   bool setTorsion = analyzeArgs.hasKey("torsion");
+  std::string outname = analyzeArgs.GetStringKey("out");
   // Select datasets from remaining args
   if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
     mprinterr("Error: Could not add data sets.\n");
@@ -25,6 +26,8 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
 
   mprintf("    AVERAGE: Calculating average of %i data sets.\n",
           input_dsets_.size());
+  if (!outname.empty())
+    mprintf("\tWriting results to %s\n", outname.c_str());
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
   //  mprintf("\t%s\n", (*set)->Legend().c_str());
   // Change mode to torsion is not yet a torsion array
@@ -37,6 +40,7 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
         input_dsets_[idx]->SetScalar( DataSet::M_TORSION );
       }
   }
+  if (outfile_.OpenWrite( outname )) return Analysis::ERR;
 
   return Analysis::OK;
 }
@@ -44,6 +48,7 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
 // Analysis_Average::Analyze()
 Analysis::RetType Analysis_Average::Analyze() {
   double stdev, avg;
+  outfile_.Printf("#SetNum\tAverage\tStdev\n");
   for (Array1D::const_iterator DS = input_dsets_.begin();
                                DS != input_dsets_.end(); ++DS)
   {
@@ -51,7 +56,7 @@ Analysis::RetType Analysis_Average::Analyze() {
       mprintf("Warning: Set \"%s\" has no data.\n", (*DS)->Legend().c_str());
     else {
       avg = (*DS)->Avg( stdev );
-      mprintf("\tAverage of %s is %f ( %f )\n", (*DS)->Legend().c_str(), avg, stdev);
+      outfile_.Printf("%s\t%f\t%f\n", (*DS)->Legend().c_str(), avg, stdev);
     }
   }
   return Analysis::OK;

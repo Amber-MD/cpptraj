@@ -12,5 +12,6 @@ class Analysis_Average : public Analysis {
     Analysis::RetType Analyze();
   private:
     Array1D input_dsets_;
+    CpptrajFile outfile_;
 };
 #endif
