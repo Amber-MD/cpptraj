@@ -209,9 +209,9 @@ class Topology {
     bool hasVelInfo_; // TODO: This information should be passed separate from Topology
     int nRepDim_;     // TODO: This information should be passed separate from Topology
 
-    void PrintBonds(std::vector<int> const&, AtomMask const&) const;
-    void PrintAngles(std::vector<int> const&, AtomMask const&) const;
-    void PrintDihedrals(std::vector<int> const&, AtomMask const&) const;
+    void PrintBonds(std::vector<int> const&, AtomMask const&, int&) const;
+    void PrintAngles(std::vector<int> const&, AtomMask const&, int&) const;
+    void PrintDihedrals(std::vector<int> const&, AtomMask const&, int&) const;
     void SetAtomBondInfo();
     static void WarnBondLengthDefault(Atom::AtomicElementType,
                                       Atom::AtomicElementType,double);

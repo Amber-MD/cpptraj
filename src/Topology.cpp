@@ -238,52 +238,48 @@ void Topology::PrintAtomInfo(std::string const& maskString) const {
 // Topology::PrintBonds()
 /** \param maskIn AtomMask which should have already been set up as a char mask
   */
-void Topology::PrintBonds(std::vector<int> const& barray, AtomMask const& maskIn) const {
+void Topology::PrintBonds(std::vector<int> const& barray, AtomMask const& maskIn, int& nb) const
+{
   int rwidth = DigitWidth(residues_.size()) + 7;
-  int awidth = DigitWidth(atoms_.size());
   for (std::vector<int>::const_iterator batom = barray.begin();
                                         batom != barray.end(); ++batom)
   {
     int atom1 = ((*batom++) / 3);
     int atom2 = ((*batom++) / 3);
     if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 )) {
-//      mprintf("\tAtom %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
-//                                       atom2+1, atoms_[atom2].c_str());
-      mprintf("%-*s %*i %-*s %*i",
-              rwidth, AtomMaskName(atom1).c_str(), awidth, atom1+1,
-              rwidth, AtomMaskName(atom2).c_str(), awidth, atom2+1);
-      if (*batom==-1) {
-        double req = GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element());
-        mprintf(" %6.2f\n", req);
-      } else {
-        // TODO: Bond index should be -1
-        double req = bondreq_[*batom - 1];
-        double rk = bondrk_[*batom - 1];
-        mprintf(" %6.2f %6.3f\n", req, rk);
-      }
+      mprintf("%8i:", nb);
+      int bidx = *batom - 1; // TODO: Bond index should already be -1
+      if ( bidx < 0 )
+        mprintf(" %6.3f", GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element()));
+      else
+        mprintf(" %6.2f %6.3f", bondrk_[bidx], bondreq_[bidx]);
+      mprintf(" %-*s %-*s (%i,%i)\n",
+              rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(),
+              atom1+1, atom2+1);
     }
+    nb++;
   }
+  mprintf("\n");
 }
 
 // Topology::PrintBondInfo()
 void Topology::PrintBondInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
   ParseMask(refCoords_, mask, false); // Char mask
-  if (!bondsh_.empty()) {
-    mprintf("%zu BONDS TO HYDROGEN:\n",bondsh_.size()/3);
-    PrintBonds( bondsh_, mask );
-  }
-  if (!bonds_.empty()) {
-    mprintf("%zu BONDS TO NON-HYDROGEN:\n",bonds_.size()/3);
-    PrintBonds( bonds_, mask );
-  }
+  mprintf("# %zu BONDS TO HYDROGEN:\n",bondsh_.size()/3);
+  mprintf("# %zu BONDS TO NON-HYDROGEN:\n",bonds_.size()/3);
+  mprintf("#   Bond     Kb     Req       atom names   (numbers)\n");
+  int nb = 1;
+  if (!bondsh_.empty())
+    PrintBonds( bondsh_, mask, nb );
+  if (!bonds_.empty())
+    PrintBonds( bonds_, mask, nb );
 }
 
 // Topology::PrintAngles()
-void Topology::PrintAngles(std::vector<int> const& aarray, AtomMask const& maskIn) const {
+void Topology::PrintAngles(std::vector<int> const& aarray, AtomMask const& maskIn, int& na) const
+{
   int rwidth = DigitWidth(residues_.size()) + 7;
-  int awidth = DigitWidth(atoms_.size());
-  if (awidth < 5) awidth = 5;
   for (std::vector<int>::const_iterator aatom = aarray.begin();
                                         aatom != aarray.end(); ++aatom)
   {
@@ -293,45 +289,39 @@ void Topology::PrintAngles(std::vector<int> const& aarray, AtomMask const& maskI
     if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
         maskIn.AtomInCharMask( atom3 ))
     {
-      //mprintf("\tAtom %i:%s to %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
-      //        atom2+1, atoms_[atom2].c_str(), atom3+1, atoms_[atom3].c_str());
-      mprintf("%-*s %*i %-*s %*i %-*s %*i",
-              rwidth, AtomMaskName(atom1).c_str(), awidth, atom1+1,
-              rwidth, AtomMaskName(atom2).c_str(), awidth, atom2+1,
-              rwidth, AtomMaskName(atom3).c_str(), awidth, atom3+1);
-      if (*aatom==-1) {
-        // No guess at angle param.
-        mprintf("\n");
-      } else {
-        // TODO: Angle index should be -1
-        double teq = angleteq_[*aatom - 1];
-        double tk = angletk_[*aatom - 1];
-        mprintf(" %6.2f %6.3f\n", teq * RADDEG, tk);
-      }
+      mprintf("%8i:", na);
+      int aidx = *aatom - 1; // TODO: Angle index should be -1
+      if ( aidx > -1 )     // No guessing at angle params
+        mprintf(" %6.3f %6.2f", angletk_[aidx], angleteq_[aidx] * RADDEG);
+      mprintf(" %-*s %-*s %-*s (%i,%i,%i)\n", rwidth, AtomMaskName(atom1).c_str(), 
+              rwidth, AtomMaskName(atom2).c_str(), rwidth, AtomMaskName(atom3).c_str(),
+              atom1+1, atom2+1, atom3+1); 
     }
+    na++;
   }
+  mprintf("\n");
 }
 
 // Topology::PrintAngleInfo()
 void Topology::PrintAngleInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
   ParseMask(refCoords_, mask, false); // Char mask
-  if (!anglesh_.empty()) {
-    mprintf("%zu ANGLES WITH HYDROGEN:\n", anglesh_.size()/4);
-    PrintAngles( anglesh_, mask );
-  }
-  if (!angles_.empty()) {
-    mprintf("%zu ANGLES WITHOUT HYDROGEN:\n", angles_.size()/4);
-    PrintAngles( angles_, mask );
-  }
+  mprintf("# %zu ANGLES WITH HYDROGEN:\n", anglesh_.size()/4);
+  mprintf("# %zu ANGLES WITHOUT HYDROGEN:\n", angles_.size()/4);
+  mprintf("# Angle   Kthet  degrees        atom names        (numbers)\n");
+  int na = 1;
+  if (!anglesh_.empty())
+    PrintAngles( anglesh_, mask, na );
+  if (!angles_.empty())
+    PrintAngles( angles_, mask, na );
 }
 
 // Topology::PrintDihedrals()
-void Topology::PrintDihedrals(std::vector<int> const& darray, AtomMask const& maskIn) const {
+void Topology::PrintDihedrals(std::vector<int> const& darray, AtomMask const& maskIn, 
+                              int& nd) const
+{
   int atom3, atom4;
   int rwidth = DigitWidth(residues_.size()) + 7;
-  int awidth = DigitWidth(atoms_.size());
-  if (awidth < 5) awidth = 5;
   for (std::vector<int>::const_iterator datom = darray.begin();
                                         datom != darray.end(); ++datom)
   {
@@ -353,38 +343,32 @@ void Topology::PrintDihedrals(std::vector<int> const& darray, AtomMask const& ma
     if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
         maskIn.AtomInCharMask( atom3 ) || maskIn.AtomInCharMask( atom4 )   )
     {
-      //mprintf("\tAtom %i:%s to %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
-      //        atom2+1, atoms_[atom2].c_str(), atom3+1, atoms_[atom3].c_str());
-      mprintf("%c %-*s %*i %-*s %*i %-*s %*i %-*s %*i", type,
-              rwidth, AtomMaskName(atom1).c_str(), awidth, atom1+1,
-              rwidth, AtomMaskName(atom2).c_str(), awidth, atom2+1,
-              rwidth, AtomMaskName(atom3).c_str(), awidth, atom3+1,
-              rwidth, AtomMaskName(atom4).c_str(), awidth, atom4+1);
-      if (*datom==-1) {
-        // No guess at dihedral param.
-        mprintf("\n");
-      } else {
-        // TODO: Dihedral index should be -1
-        int didx = *datom - 1;
-        mprintf(" %6.3f %4.2f %4.1f\n", dihedralpk_[didx], dihedralphase_[didx],
-                dihedralpn_[didx]);
-      }
+      mprintf("%c %8i:", type, nd);
+      int didx = *datom - 1; // TODO:  Dihedral index should be -1
+      if ( didx > -1 )       // No guess for dihedral params
+        mprintf(" %6.3f %4.2f %4.1f", dihedralpk_[didx], dihedralphase_[didx], dihedralpn_[didx]);
+      mprintf(" %-*s %-*s %-*s %-*s (%i,%i,%i,%i)\n",
+              rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(), 
+              rwidth, AtomMaskName(atom3).c_str(), rwidth, AtomMaskName(atom4).c_str(),
+              atom1+1, atom2+1, atom3+1, atom4+1);
     }
+    nd++;
   }
+  mprintf("\n");
 }
 
 // Topology::PrintDihedralInfo()
 void Topology::PrintDihedralInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
   ParseMask(refCoords_, mask, false); // Char mask
-  if (!dihedralsh_.empty()) {
-    mprintf("%zu DIHEDRALS WITH HYDROGEN:\n", dihedralsh_.size()/5);
-    PrintDihedrals( dihedralsh_, mask );
-  }
-  if (!dihedrals_.empty()) {
-    mprintf("%zu DIHEDRALS WITHOUT HYDROGEN:\n", dihedrals_.size()/5);
-    PrintDihedrals( dihedrals_, mask );
-  }
+  mprintf("# %zu DIHEDRALS WITH HYDROGEN:\n", dihedralsh_.size()/5);
+  mprintf("# %zu DIHEDRALS WITHOUT HYDROGEN:\n", dihedrals_.size()/5);
+  mprintf("#Dihedral    pk     phase pn                atoms\n");
+  int nd = 1;
+  if (!dihedralsh_.empty())
+    PrintDihedrals( dihedralsh_, mask, nd );
+  if (!dihedrals_.empty())
+    PrintDihedrals( dihedrals_, mask, nd );
 }
 
 
