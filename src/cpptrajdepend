@@ -179,7 +179,7 @@ ReferenceAction.o : ReferenceAction.cpp ArgList.h Atom.h AtomMask.h Box.h Cpptra
 ReferenceFrame.o : ReferenceFrame.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ProgressBar.h ReferenceFrame.h ReplicaDimArray.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
 RmsAction.o : RmsAction.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajStdio.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h RmsAction.h Topology.h Vec3.h
 StringRoutines.o : StringRoutines.cpp CpptrajStdio.h StringRoutines.h
-Topology.o : Topology.cpp Atom.h AtomMask.h Box.h CpptrajStdio.h DistRoutines.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h StringRoutines.h Topology.h Vec3.h
+Topology.o : Topology.cpp Atom.h AtomMask.h Box.h Constants.h CpptrajStdio.h DistRoutines.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Residue.h StringRoutines.h Topology.h Vec3.h
 TopologyList.o : TopologyList.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParmFile.h ParmIO.h Residue.h Topology.h TopologyList.h Vec3.h
 TorsionRoutines.o : TorsionRoutines.cpp Constants.h TorsionRoutines.h Vec3.h
 Traj_AmberCoord.o : Traj_AmberCoord.cpp ArgList.h Atom.h AtomMask.h Box.h BufferedFrame.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ReplicaDimArray.h Residue.h Topology.h Traj_AmberCoord.h TrajectoryIO.h Vec3.h

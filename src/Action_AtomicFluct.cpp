@@ -8,6 +8,7 @@
 Action_AtomicFluct::Action_AtomicFluct() :
   sets_(0),
   bfactor_(false),
+  calc_adp_(false),
   fluctParm_(0),
   outtype_(BYATOM),
   dataout_(0),
@@ -28,6 +29,8 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   if (InitFrameCounter(actionArgs)) return Action::ERR;
   // Get other keywords
   bfactor_ = actionArgs.hasKey("bfactor");
+  calc_adp_ = actionArgs.hasKey("calcadp");
+  if (calc_adp_ && !bfactor_) bfactor_ = true;
   outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs ); 
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRES;
@@ -36,7 +39,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   else if (actionArgs.hasKey("byatom") || actionArgs.hasKey("byatm"))
     outtype_ = BYATOM;
   // Get Mask
-  Mask.SetMaskString( actionArgs.GetMaskNext()  );
+  Mask_.SetMaskString( actionArgs.GetMaskNext()  );
   // Get DataSet name
   std::string setname = actionArgs.GetStringNext();
   // Add output dataset
@@ -54,8 +57,10 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
     mprintf(" atomic positional fluctuations");
   if (outfile_ != 0)
     mprintf(", output to file %s",outfile_->DataFilename().base());
-  mprintf("\n                 Atom mask: [%s]\n",Mask.MaskString());
+  mprintf("\n                 Atom mask: [%s]\n",Mask_.MaskString());
   FrameCounterInfo();
+  if (calc_adp_)
+    mprintf("\tCalculating anisotropic displacement parameters.\n");
   if (!setname.empty())
     mprintf("\tData will be saved to set named %s\n", setname.c_str());
 
@@ -74,12 +79,13 @@ Action::RetType Action_AtomicFluct::Setup(Topology* currentParm, Topology** parm
     // This is the parm that will be used for this calc
     fluctParm_ = currentParm;
     // Set up atom mask
-    if (currentParm->SetupCharMask( Mask )) {
-      mprinterr("Error: AtomicFluct: Could not set up mask [%s]\n",Mask.MaskString());
+    if (currentParm->SetupCharMask( Mask_ )) {
+      mprinterr("Error: Could not set up mask [%s]\n",Mask_.MaskString());
       return Action::ERR;
     }
-    if (Mask.None()) {
-      mprinterr("Error: AtomicFluct: No atoms selected [%s]\n",Mask.MaskString());
+    Mask_.MaskInfo();
+    if (Mask_.None()) {
+      mprinterr("Error: AtomicFluct: No atoms selected [%s]\n",Mask_.MaskString());
       return Action::ERR;
     }
   } else if (currentParm->Natom() != SumCoords_.Natom()) {
@@ -135,6 +141,17 @@ void Action_AtomicFluct::Print() {
       if (fluct > 0) 
         *result = bfac * fluct;
       ++result;
+      if (calc_adp_) {
+        int u11 = (int)(SumCoords2_[i  ] * 10000);
+        int u22 = (int)(SumCoords2_[i+1] * 10000);
+        int u33 = (int)(SumCoords2_[i+2] * 10000);
+        int u12 = (int)((SumCoords2_[i  ] + SumCoords2_[i+1]) * 10000);
+        int u13 = (int)((SumCoords2_[i  ] + SumCoords2_[i+2]) * 10000);
+        int u23 = (int)((SumCoords2_[i+1] + SumCoords2_[i+2]) * 10000);
+        mprintf("ANISOU%5i %4s%4s %c%4i%c %7i%7i%7i%7i%7i%7i      %2s%2i\n",
+                (i/3)+1, "ANME", "RES", ' ', 1, ' ', u11, u22, u33, u12, u13, u23,
+                "  ", 0);
+      }
     }
   } else {
     // Atomic fluctuations
@@ -152,7 +169,7 @@ void Action_AtomicFluct::Print() {
     // By atom output
     dataout_->Dim(Dimension::X).SetLabel("Atom");
     for (int atom = 0; atom < (int)Results.size(); atom++ ) {
-      if (Mask.AtomInCharMask(atom)) {
+      if (Mask_.AtomInCharMask(atom)) {
         if (minElt == -1) minElt = atom;
         dset.AddElement( Results[atom] );
       }
@@ -165,7 +182,7 @@ void Action_AtomicFluct::Print() {
       double xi = 0.0;
       double fluct = 0.0;
       for (int atom = (*residue).FirstAtom(); atom < (*residue).LastAtom(); atom++) {
-        if ( Mask.AtomInCharMask(atom) ) {
+        if ( Mask_.AtomInCharMask(atom) ) {
           double mass = (*fluctParm_)[atom].Mass(); 
           xi += mass;
           fluct += Results[atom] * mass;
@@ -179,11 +196,11 @@ void Action_AtomicFluct::Print() {
   } else if (outtype_ == BYMASK) {
     // By mask output
     minElt = 0;
-    dataout_->Dim(Dimension::X).SetLabel( Mask.MaskExpression() );
+    dataout_->Dim(Dimension::X).SetLabel( Mask_.MaskExpression() );
     double xi = 0.0;
     double fluct = 0.0;
     for (int atom = 0; atom < (int)Results.size(); atom++) {
-      if (Mask.AtomInCharMask(atom)) {
+      if (Mask_.AtomInCharMask(atom)) {
         double mass = (*fluctParm_)[atom].Mass();
         xi += mass;
         fluct += Results[atom] * mass;
@@ -195,4 +212,3 @@ void Action_AtomicFluct::Print() {
   if (minElt > -1)
     dataout_->Dim(Dimension::X).SetMin( minElt+1 );
 }
-

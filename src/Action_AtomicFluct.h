@@ -20,9 +20,10 @@ class Action_AtomicFluct : public Action, ActionFrameCounter {
 
     Frame SumCoords_;
     Frame SumCoords2_;
-    AtomMask Mask;
+    AtomMask Mask_;
     int sets_;
     bool bfactor_;
+    bool calc_adp_;
     std::string outfilename_;
     Topology *fluctParm_;
     outputType outtype_;
