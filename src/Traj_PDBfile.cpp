@@ -172,10 +172,7 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
   if (chainchar_ == ' ') {
     chainID_.reserve( pdbAtom_ );
     for (Topology::atom_iterator atom = trajParm->begin(); atom != trajParm->end(); ++atom)
-      if ( (*atom).ChainID() == 0 )
-        chainID_.push_back(' ');
-      else
-        chainID_.push_back( (*atom).ChainID() );
+      chainID_.push_back( (*atom).ChainID() );
   } else
     chainID_.resize(pdbAtom_, chainchar_);
         

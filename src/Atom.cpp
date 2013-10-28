@@ -49,7 +49,7 @@ Atom::Atom() :
   element_(UNKNOWN_ELEMENT),
   resnum_(0),
   mol_(0),
-  chainID_(0)
+  chainID_(' ')
 { }
 
 /** CONSTRUCTOR - used for PDB files. */
@@ -81,7 +81,7 @@ Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   element_(UNKNOWN_ELEMENT),
   resnum_(0),
   mol_(0),
-  chainID_(0)
+  chainID_(' ')
 {
   SetElementFromName();
 }
@@ -105,7 +105,7 @@ Atom::Atom( NameType const& name, double charge, int atomicnum, double mass, int
   element_(UNKNOWN_ELEMENT),
   resnum_(resnum),
   mol_(0),
-  chainID_(0)
+  chainID_(' ')
 {
   // Determine atomic element
   if (atomicnum>0) {

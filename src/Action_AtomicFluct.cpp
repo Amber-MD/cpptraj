@@ -159,8 +159,8 @@ void Action_AtomicFluct::Print() {
           int u23 = (int)((SumCoords2_[i+1] + SumCoords2_[i+2]) * 10000);
           adpout.Printf("ANISOU%5i %4s%4s %c%4i%c %7i%7i%7i%7i%7i%7i      %2s%2i\n",
                         atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
-                        ' ', resnum+1, ' ', u11, u22, u33, u12, u13, u23,
-                        (*fluctParm_)[atom].ElementName(), 0);
+                        (*fluctParm_)[atom].ChainID(), fluctParm_->Res(resnum).OriginalResNum(),
+                        ' ', u11, u22, u33, u12, u13, u23, (*fluctParm_)[atom].ElementName(), 0);
         }
       }
     }
