@@ -16,12 +16,13 @@ Action_AtomicFluct::Action_AtomicFluct() :
 {}
 
 void Action_AtomicFluct::Help() {
-  mprintf("\t[out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]\n");
-  mprintf("\t%s\n", ActionFrameCounter::HelpText);
-  mprintf("\tCalculate atomic fluctuations of atoms in <mask>\n");
+  mprintf("\t[out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]\n"
+          "\t[calcadp [adpout <file>]]\n"
+          "\t%s\n\tCalculate atomic fluctuations of atoms in <mask>\n",
+          ActionFrameCounter::HelpText);
 }
 
-// Action_AtomicFluct::init()
+// Action_AtomicFluct::Init()
 Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -30,7 +31,10 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   // Get other keywords
   bfactor_ = actionArgs.hasKey("bfactor");
   calc_adp_ = actionArgs.hasKey("calcadp");
-  if (calc_adp_ && !bfactor_) bfactor_ = true;
+  if (calc_adp_) {
+     adpoutname_ = actionArgs.GetStringKey("adpout");
+     if (!bfactor_) bfactor_ = true;
+  }
   outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs ); 
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRES;
@@ -67,7 +71,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   return Action::OK;
 }
 
-// Action_AtomicFluct::setup()
+// Action_AtomicFluct::Setup()
 Action::RetType Action_AtomicFluct::Setup(Topology* currentParm, Topology** parmAddress) {
 
   if (SumCoords_.Natom()==0) {
@@ -99,7 +103,7 @@ Action::RetType Action_AtomicFluct::Setup(Topology* currentParm, Topology** parm
   return Action::OK;
 }
 
-// Action_AtomicFluct::action()
+// Action_AtomicFluct::DoAction()
 Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame, 
                                              Frame** frameAddress) 
 {
@@ -110,7 +114,7 @@ Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame,
   return Action::OK;
 }
 
-// Action_AtomicFluct::print() 
+// Action_AtomicFluct::Print() 
 void Action_AtomicFluct::Print() {
   mprintf("    ATOMICFLUCT: Calculating fluctuations for %i sets.\n",sets_);
 
@@ -131,6 +135,8 @@ void Action_AtomicFluct::Print() {
   std::vector<double>::iterator result = Results.begin();
 
   if (bfactor_) {
+    CpptrajFile adpout;
+    if (calc_adp_) adpout.OpenWrite( adpoutname_ );
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
     // TODO: Set Y axis label in DataFile
@@ -142,15 +148,20 @@ void Action_AtomicFluct::Print() {
         *result = bfac * fluct;
       ++result;
       if (calc_adp_) {
-        int u11 = (int)(SumCoords2_[i  ] * 10000);
-        int u22 = (int)(SumCoords2_[i+1] * 10000);
-        int u33 = (int)(SumCoords2_[i+2] * 10000);
-        int u12 = (int)((SumCoords2_[i  ] + SumCoords2_[i+1]) * 10000);
-        int u13 = (int)((SumCoords2_[i  ] + SumCoords2_[i+2]) * 10000);
-        int u23 = (int)((SumCoords2_[i+1] + SumCoords2_[i+2]) * 10000);
-        mprintf("ANISOU%5i %4s%4s %c%4i%c %7i%7i%7i%7i%7i%7i      %2s%2i\n",
-                (i/3)+1, "ANME", "RES", ' ', 1, ' ', u11, u22, u33, u12, u13, u23,
-                "  ", 0);
+        int atom = (i/3);
+        if (Mask_.AtomInCharMask(atom)) {
+          int resnum = (*fluctParm_)[atom].ResNum();
+          int u11 = (int)(SumCoords2_[i  ] * 10000);
+          int u22 = (int)(SumCoords2_[i+1] * 10000);
+          int u33 = (int)(SumCoords2_[i+2] * 10000);
+          int u12 = (int)((SumCoords2_[i  ] + SumCoords2_[i+1]) * 10000);
+          int u13 = (int)((SumCoords2_[i  ] + SumCoords2_[i+2]) * 10000);
+          int u23 = (int)((SumCoords2_[i+1] + SumCoords2_[i+2]) * 10000);
+          adpout.Printf("ANISOU%5i %4s%4s %c%4i%c %7i%7i%7i%7i%7i%7i      %2s%2i\n",
+                        atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
+                        ' ', resnum+1, ' ', u11, u22, u33, u12, u13, u23,
+                        (*fluctParm_)[atom].ElementName(), 0);
+        }
       }
     }
   } else {
