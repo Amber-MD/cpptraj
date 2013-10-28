@@ -20,6 +20,7 @@ class DataSet_Mesh : public DataSet_1D {
     double Xcrd(size_t idx)  const { return mesh_x_[idx];       }
     void WriteBuffer(CpptrajFile&, size_t) const;
     // -------------------------------------------
+    inline void AddXY(double,double);
     double X(int i) const { return mesh_x_[i]; }
     double Y(int i) const { return mesh_y_[i]; }
     /// Calculate mesh X values given size, start, and end values.
@@ -45,4 +46,9 @@ class DataSet_Mesh : public DataSet_1D {
     std::vector<double> c;
     std::vector<double> d;
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+void DataSet_Mesh::AddXY(double x, double y) {
+  mesh_x_.push_back( x );
+  mesh_y_.push_back( y );
+}
 #endif

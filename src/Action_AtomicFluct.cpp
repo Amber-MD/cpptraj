@@ -2,7 +2,7 @@
 #include "Action_AtomicFluct.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
-#include "DataSet_double.h"
+#include "DataSet_Mesh.h"
 
 // CONSTRUCTOR
 Action_AtomicFluct::Action_AtomicFluct() :
@@ -47,7 +47,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   // Get DataSet name
   std::string setname = actionArgs.GetStringNext();
   // Add output dataset
-  dataout_ = DSL->AddSet( DataSet::DOUBLE, setname, "Fluct" );
+  dataout_ = DSL->AddSet( DataSet::XYMESH, setname, "Fluct" );
   if (dataout_ == 0) {
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return Action::ERR; 
@@ -141,6 +141,7 @@ void Action_AtomicFluct::Print() {
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
     // TODO: Set Y axis label in DataFile
     //outfile_->Dim(Dimension::Y).SetLabel("B-factors");
+    dataout_->SetLegend("B-factors");
     double bfac = (8.0/3.0)*PI*PI;
     for (int i = 0; i < SumCoords2_.size(); i+=3) {
       double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
@@ -166,6 +167,7 @@ void Action_AtomicFluct::Print() {
     }
   } else {
     // Atomic fluctuations
+    dataout_->SetLegend("AtomicFlx");
     for (int i = 0; i < SumCoords2_.size(); i+=3) {
       double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
       if (fluct > 0)
@@ -174,20 +176,17 @@ void Action_AtomicFluct::Print() {
     }
   }
 
-  int minElt = -1;
-  DataSet_double& dset = static_cast<DataSet_double&>( *dataout_ );
+  DataSet_Mesh& dset = static_cast<DataSet_Mesh&>( *dataout_ );
   if (outtype_ == BYATOM) {
     // By atom output
-    dataout_->Dim(Dimension::X).SetLabel("Atom");
+    dset.Dim(Dimension::X).SetLabel("Atom");
     for (int atom = 0; atom < (int)Results.size(); atom++ ) {
-      if (Mask_.AtomInCharMask(atom)) {
-        if (minElt == -1) minElt = atom;
-        dset.AddElement( Results[atom] );
-      }
+      if (Mask_.AtomInCharMask(atom))
+        dset.AddXY( atom+1, Results[atom] );
     }
   } else if (outtype_ == BYRES) { 
     // By residue output
-    dataout_->Dim(Dimension::X).SetLabel("Res");
+    dset.Dim(Dimension::X).SetLabel("Res");
     for (Topology::res_iterator residue = fluctParm_->ResStart();
                                 residue != fluctParm_->ResEnd(); ++residue) {
       double xi = 0.0;
@@ -199,15 +198,12 @@ void Action_AtomicFluct::Print() {
           fluct += Results[atom] * mass;
         }
       }
-      if (xi > SMALL) { 
-        dset.AddElement( fluct / xi );
-        if (minElt == -1) minElt = (int)(residue - fluctParm_->ResStart());
-      }
+      if (xi > SMALL) 
+        dset.AddXY( residue - fluctParm_->ResStart() + 1, fluct / xi );
     }
   } else if (outtype_ == BYMASK) {
     // By mask output
-    minElt = 0;
-    dataout_->Dim(Dimension::X).SetLabel( Mask_.MaskExpression() );
+    dset.Dim(Dimension::X).SetLabel( Mask_.MaskExpression() );
     double xi = 0.0;
     double fluct = 0.0;
     for (int atom = 0; atom < (int)Results.size(); atom++) {
@@ -218,8 +214,6 @@ void Action_AtomicFluct::Print() {
       }
     }
     if (xi > SMALL) 
-      dset.AddElement( fluct / xi );
+      dset.AddXY( 1, fluct / xi );
   }
-  if (minElt > -1)
-    dataout_->Dim(Dimension::X).SetMin( minElt+1 );
 }
