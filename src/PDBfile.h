@@ -25,9 +25,6 @@ class PDBfile : public CpptrajFile {
     /// Set XYZ based on current line.
     void pdb_XYZ(double*);
 
-    /// Write PDB record header.
-    void WriteRecordHeader(PDB_RECTYPE, int, NameType const&,
-                           NameType const&, char, int);
     /// Write TER record
     void WriteTER(int, NameType const&, char, int);
     /// Write HETATM record using internal atom numbering
@@ -46,6 +43,10 @@ class PDBfile : public CpptrajFile {
     void WriteANISOU(int, NameType const&, NameType const&, char, int,
                      int, int, int, int, int, int, const char *, int);
   private:
+    /// Write PDB record header.
+    void WriteRecordHeader(PDB_RECTYPE, int, NameType const&,
+                           NameType const&, char, int);
+
     int anum_;
     static const char* PDB_RECNAME[];
 };
