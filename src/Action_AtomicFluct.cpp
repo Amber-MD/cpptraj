@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
 #include "DataSet_Mesh.h"
+#include "PDBfile.h"
 
 // CONSTRUCTOR
 Action_AtomicFluct::Action_AtomicFluct() :
@@ -144,7 +145,7 @@ void Action_AtomicFluct::Print() {
   std::vector<double>::iterator result = Results.begin();
 
   if (bfactor_) {
-    CpptrajFile adpout;
+    PDBfile adpout;
     if (calc_adp_) adpout.OpenWrite( adpoutname_ );
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
@@ -166,10 +167,10 @@ void Action_AtomicFluct::Print() {
           int u12 = (int)((Cross_[i  ] - SumCoords_[i  ] * SumCoords_[i+1]) * 10000);
           int u13 = (int)((Cross_[i+1] - SumCoords_[i  ] * SumCoords_[i+2]) * 10000);
           int u23 = (int)((Cross_[i+2] - SumCoords_[i+1] * SumCoords_[i+2]) * 10000);
-          adpout.Printf("ANISOU%5i %4s%4s %c%4i%c %7i%7i%7i%7i%7i%7i      %2s%2i\n",
-                        atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
-                        (*fluctParm_)[atom].ChainID(), fluctParm_->Res(resnum).OriginalResNum(),
-                        ' ', u11, u22, u33, u12, u13, u23, (*fluctParm_)[atom].ElementName(), 0);
+          adpout.WriteANISOU(
+            atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
+            (*fluctParm_)[atom].ChainID(), fluctParm_->Res(resnum).OriginalResNum(),
+            u11, u22, u33, u12, u13, u23, (*fluctParm_)[atom].ElementName(), 0 );
         }
       }
     }

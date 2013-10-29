@@ -4,7 +4,7 @@
 
 /// PDB record types
 // NOTE: Must correspond with PDB_RECTYPE
-const char* PDBfile::PDB_RECNAME[] = { "ATOM  ", "HETATM", "TER   " };
+const char* PDBfile::PDB_RECNAME[] = { "ATOM  ", "HETATM", "TER   ", "ANISOU" };
 
 // PDBfile::IsPDBkeyword()
 bool PDBfile::IsPDBkeyword(std::string const& recname) {
@@ -33,8 +33,9 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
   // Coordinate Section
   if (recname.compare(0,6,"MODEL ")==0) return true;
   if (recname.compare(0,6,"ATOM  ")==0) return true;
-  if (recname.compare(0,6,"HETATM")==0) return true;
+  if (recname.compare(0,6,"ANISOU")==0) return true;
   if (recname.compare(0,3,"TER"   )==0) return true; // To recognize blank TER cards.
+  if (recname.compare(0,6,"HETATM")==0) return true;
   // Crystallographic and Coordinate Transformation Section 
   if (recname.compare(0,6,"CRYST1")==0) return true;
   if (recname.compare(0,5,"SCALE" )==0) return true; // SCALEn
@@ -124,43 +125,10 @@ void PDBfile::pdb_XYZ(double *Xout) {
   Xout[2] = atof( linebuffer_+46 );
   linebuffer_[54] = savechar;
 }
-
-void PDBfile::WriteHET(int res, double x, double y, double z) {
-  WriteRec(HETATM, anum_++, "XX", "XXX", ' ', res, x, y, z);
-}
-
-void PDBfile::WriteATOM(int res, double x, double y, double z, 
-                        const char* resnameIn, double Occ)
-{
-  WriteRec(ATOM, anum_++, "XX", resnameIn, ' ',
-           res, x, y, z, (float)Occ, 0, "", 0, false);
-}
-
-void PDBfile::WriteATOM(const char* anameIn, int res, double x, double y, double z, 
-                        const char* resnameIn, double Occ)
-{
-  WriteRec(ATOM, anum_++, anameIn, resnameIn, ' ',
-           res, x, y, z, (float)Occ, 0, "", 0, false);
-}
-
-void PDBfile::WriteTER(int anum, NameType const& resnameIn, char chain, int resnum)
-{
-  WriteRec(TER, anum, "", resnameIn, chain, resnum, 0, 0, 0, 0, 0, "", 0, false);
-}
-
-void PDBfile::WriteRec(PDB_RECTYPE Record, int anum, NameType const& name,
-                       NameType const& resnameIn, char chain, int resnum,
-                       double X, double Y, double Z)
-{
-  WriteRec(Record, anum, name, resnameIn, chain, resnum, X, Y, Z, 0, 0, "", 0, false);
-}
-
-/// Write out an ATOM or HETATM record
-/** \return the number of characters written */
-void PDBfile::WriteRec(PDB_RECTYPE Record, int anum, NameType const& name,
-                       NameType const& resnameIn, char chain, int resnum,
-                       double X, double Y, double Z, float Occ, float B, 
-                       const char* Elt, int charge, bool highPrecision) 
+// -----------------------------------------------------------------------------
+// PDBfile::WriteRecordHeader()
+void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
+                                NameType const& resnameIn, char chain, int resnum)
 {
   char resName[5], atomName[5];
 
@@ -197,14 +165,70 @@ void PDBfile::WriteRec(PDB_RECTYPE Record, int anum, NameType const& name,
     atomName[3] = name[2];
   }
 
-  Printf("%-6s%5i %-4s%4s %c%4i",PDB_RECNAME[Record], anum, atomName, 
+  Printf("%-6s%5i %-4s%4s %c%4i",PDB_RECNAME[Record], anum, atomName,
                resName, chain, resnum);
-  if (Record == TER) 
-    Printf("\n");
-  else if (highPrecision)
+}
+
+// PDBfile::WriteTER()
+void PDBfile::WriteTER(int anum, NameType const& resnameIn, char chain, int resnum)
+{
+  WriteRecordHeader(TER, anum, "", resnameIn, chain, resnum);
+  Printf("\n"); 
+}
+
+// PDBfile::WriteHET()
+void PDBfile::WriteHET(int res, double x, double y, double z) {
+  WriteCoord(HETATM, anum_++, "XX", "XXX", ' ', 
+             res, x, y, z, 0.0, 0.0, "", 0, false);
+}
+
+// PDBfile::WriteATOM()
+void PDBfile::WriteATOM(int res, double x, double y, double z, 
+                        const char* resnameIn, double Occ)
+{
+  WriteCoord(ATOM, anum_++, "XX", resnameIn, ' ',
+             res, x, y, z, (float)Occ, 0.0, "", 0, false);
+}
+
+// PDBfile::WriteATOM()
+void PDBfile::WriteATOM(const char* anameIn, int res, double x, double y, double z, 
+                        const char* resnameIn, double Occ)
+{
+  WriteCoord(ATOM, anum_++, anameIn, resnameIn, ' ',
+             res, x, y, z, (float)Occ, 0.0, "", 0, false);
+}
+
+// PDBfile::WriteCoord()
+void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
+                         NameType const& resnameIn, char chain, int resnum,
+                         double X, double Y, double Z)
+{
+  WriteCoord(Record, anum, name, resnameIn, chain, 
+             resnum, X, Y, Z, 0.0, 0.0, "", 0, false);
+}
+
+// PDBfile::WriteCoord()
+void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
+                         NameType const& resnameIn, char chain, int resnum,
+                         double X, double Y, double Z, float Occ, float B, 
+                         const char* Elt, int charge, bool highPrecision) 
+{
+  WriteRecordHeader(Record, anum, name, resnameIn, chain, resnum);
+  if (highPrecision)
     Printf("    %8.3f%8.3f%8.3f%8.4f%8.4f      %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
   else
     Printf("    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
+}
+
+// PDBfile::WriteANISOU()
+void PDBfile::WriteANISOU(int anum, NameType const& name, 
+                          NameType const& resnameIn, char chain, int resnum,
+                          int u11, int u22, int u33, int u12, int u13, int u23,
+                          const char* Elt, int charge)
+{
+  WriteRecordHeader(ANISOU, anum, name, resnameIn, chain, resnum);
+  Printf("%c %7i%7i%7i%7i%7i%7i      %2s%2i\n", ' ', u11, u22, u33, 
+         u12, u13, u23, Elt, charge);
 }
 
 /* Additional Values:

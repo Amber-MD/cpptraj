@@ -276,10 +276,10 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       else if (atomName == "H3T ") atomName = "HO3'";
       else if (atomName == "HO'2") atomName = "HO2'";
     }
-    file_.WriteRec(PDBfile::ATOM, anum++, atomName, resNames_[res],
-                   chainID_[aidx++], pdbTop_->Res(res).OriginalResNum(), 
-                    Xptr[0], Xptr[1], Xptr[2], Occ, B, 
-                   (*atom).ElementName(), 0, dumpq_);
+    file_.WriteCoord(PDBfile::ATOM, anum++, atomName, resNames_[res],
+                     chainID_[aidx++], pdbTop_->Res(res).OriginalResNum(), 
+                     Xptr[0], Xptr[1], Xptr[2], Occ, B, 
+                     (*atom).ElementName(), 0, dumpq_);
     Xptr += 3;
   }
   if (pdbWriteMode_==MULTI) {
