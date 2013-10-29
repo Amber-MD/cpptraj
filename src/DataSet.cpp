@@ -82,7 +82,7 @@ void DataSet::SetWidth(int widthIn) {
 }
 
 // DataSet::SetPrecision()
-/** Set dataset width and precision and recalc output format string.
+/** Set DataSet width and precision; recalc. output format string.
   */
 void DataSet::SetPrecision(int widthIn, int precisionIn) {
   width_ = widthIn;
@@ -91,15 +91,17 @@ void DataSet::SetPrecision(int widthIn, int precisionIn) {
 }
 
 // DataSet::SetupSet()
-/** Set up common to all data sets. The dataset name should be unique and is
-  * checked for in DataSetList prior to this call. Nin is the expected size 
-  * of the dataset. 
+/** Set up DataSet name and optionally index and/or aspect. Also create
+  * default legend if not already set.
+  * \param nameIn The DataSet name; should be unique and not empty.
+  * \param idxIn DataSet index; if no index should be -1.
+  * \param aspectIn DataSet aspect; if no aspect should be empty.
   */
 int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& aspectIn)
 {
   // Dataset name
   if (nameIn.empty()) {
-    mprintf("Dataset has no name.\n");
+    mprinterr("Internal Error: DataSet has no name.\n");
     return 1;
   }
   name_ = nameIn;
