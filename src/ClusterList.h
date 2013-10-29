@@ -17,7 +17,7 @@ class ClusterList {
     void SetDebug(int);
     void Renumber(bool);
     void Summary(std::string const&,int);
-    void Summary_Half(std::string const&,int,std::vector<int> const&);
+    void Summary_Part(std::string const&,int,std::vector<int> const&);
     void PrintClustersToFile(std::string const&,int);
     void PrintClusters();
 

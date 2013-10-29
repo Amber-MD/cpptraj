@@ -351,7 +351,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
           mprintf("Warning: split frame %i is out of bounds; ignoring.\n", *f);
         else
           actualSplitFrames.push_back( *f );
-      CList_->Summary_Half(halffile_, clusterDataSetSize, actualSplitFrames);
+      CList_->Summary_Part(halffile_, clusterDataSetSize, actualSplitFrames);
     }
 
     // Create cluster v time data from clusters.
