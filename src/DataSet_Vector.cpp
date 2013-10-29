@@ -1,4 +1,3 @@
-#include <cstring> // memcpy
 #include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include <cmath> // sqrt
 #include "DataSet_Vector.h"
@@ -25,10 +24,10 @@ void DataSet_Vector::IncreaseSize() {
   size_t newsize = totalidx_ + 3000L; // 500 frames * 6
   double* newxyz = new double[ newsize ];
   if (totalidx_ > 0L) {
-    memcpy(newxyz,        xyz_, totalidx_ * sizeof(double));
+    std::copy( xyz_, xyz_ + totalidx_, newxyz );
     delete[] xyz_;
   }
-  memset(newxyz+totalidx_, 0,      3000 * sizeof(double));
+  std::fill( newxyz+totalidx_, newxyz+newsize, 0 );
   totalidx_ = newsize;
   xyz_ = newxyz;
 }
@@ -43,7 +42,7 @@ int DataSet_Vector::Allocate1D(size_t Nin) {
   } else {
     totalidx_ = 6L * Nin;
     xyz_ = new double[ totalidx_ ];
-    memset( xyz_, 0, totalidx_ * sizeof(double) );
+    std::fill( xyz_, xyz_ + totalidx_, 0 );
   }
   currentidx_ = 0L;
     

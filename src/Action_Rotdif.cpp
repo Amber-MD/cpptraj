@@ -2,7 +2,6 @@
 #include <cmath>
 #include <cfloat> // DBL_MAX
 #include <cstdio> //sscanf
-#include <cstring> // memset
 #include "Action_Rotdif.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // NumberFilename
