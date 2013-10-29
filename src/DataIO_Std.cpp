@@ -258,6 +258,12 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList)
     // If x-column present, write x-label
     if (hasXcolumn_)
       WriteNameToBuffer( file, Xdim.Label(), xcol_width, true );
+    // To prevent truncation of DataSet legends, adjust the width of each
+    // DataSet if necessary.
+    for (Array1D::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {
+      if ( (int)(*ds)->Legend().size() > (*ds)->ColumnWidth() )
+        (*ds)->SetWidth( (*ds)->Legend().size() );
+    }
     // Write dataset names to header, left-aligning first set if no X-column
     Array1D::const_iterator set = Sets.begin();
     if (!hasXcolumn_)

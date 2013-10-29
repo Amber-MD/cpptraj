@@ -11,6 +11,7 @@ DataSet::DataSet() :
   colwidth_(0),
   width_(0),
   precision_(0),
+  leftAlign_(false),
   scalarmode_(UNKNOWN_MODE),
   scalartype_(UNDEFINED)
 { }
@@ -24,10 +25,11 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   colwidth_(widthIn),
   width_(widthIn),
   precision_(precisionIn),
+  leftAlign_(false),
   scalarmode_(UNKNOWN_MODE),
   scalartype_(UNDEFINED)
 {
-  SetDataSetFormat(false);
+  SetDataSetFormat(leftAlign_);
 }
 
 // COPY CONSTRUCTOR
@@ -42,6 +44,7 @@ DataSet::DataSet(const DataSet& rhs) :
   colwidth_(rhs.colwidth_),
   width_(rhs.width_),
   precision_(rhs.precision_),
+  leftAlign_(rhs.leftAlign_),
   format_(rhs.format_),
   scalarmode_(rhs.scalarmode_),
   scalartype_(rhs.scalartype_)
@@ -62,6 +65,7 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
   colwidth_ = rhs.colwidth_;
   width_ = rhs.width_;
   precision_ = rhs.precision_;
+  leftAlign_ = rhs.leftAlign_;
   format_ = rhs.format_;
   if (!format_.empty()) 
     data_format_ = format_.c_str();
@@ -70,15 +74,21 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
   return *this;
 }
 
+// DataSet::SetWidth()
+/** Set only DataSet width */
+void DataSet::SetWidth(int widthIn) {
+  width_ = widthIn;
+  SetDataSetFormat( leftAlign_ );
+}
+
 // DataSet::SetPrecision()
 /** Set dataset width and precision and recalc output format string.
   */
 void DataSet::SetPrecision(int widthIn, int precisionIn) {
   width_ = widthIn;
   precision_ = precisionIn;
-  SetDataSetFormat(false);
+  SetDataSetFormat( leftAlign_ );
 }
-
 
 // DataSet::SetupSet()
 /** Set up common to all data sets. The dataset name should be unique and is
@@ -121,10 +131,11 @@ int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& a
   * \return 0 on success, 1 on error.
   */
 // TODO: Each data set has their own 
-int DataSet::SetDataSetFormat(bool leftAlign) {
+int DataSet::SetDataSetFormat(bool leftAlignIn) {
+  leftAlign_ = leftAlignIn;
   // Set data format string.
   // NOTE: According to C++ std 4.7/4 (int)true == 1
-  colwidth_ = width_ + (int)(!leftAlign);
+  colwidth_ = width_ + (int)(!leftAlign_);
   switch (dType_) {
     case MODES :
     case REMLOG:
@@ -136,7 +147,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
     case COORDS : 
     case FLOAT  : format_ = SetDoubleFormatString(width_, precision_, 1); break;
     case INTEGER: format_ = SetIntegerFormatString(width_); break;
-    case STRING : format_ = SetStringFormatString(width_, leftAlign); break;
+    case STRING : format_ = SetStringFormatString(width_, leftAlign_); break;
     case VECTOR:
       format_ = SetDoubleFormatString(width_, precision_, 0); 
       colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz
@@ -147,7 +158,7 @@ int DataSet::SetDataSetFormat(bool leftAlign) {
       return 1;
   }
   // If we are not left-aligning prepend a space to the format string.
-  if (!leftAlign) format_ = " " + format_;
+  if (!leftAlign_) format_ = " " + format_;
   // Assign format to a constant ptr to avoid continuous calls to c_str
   data_format_ = format_.c_str();
   return 0;

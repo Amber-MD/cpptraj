@@ -52,7 +52,9 @@ class DataSet {
     // TODO: Remove this. Should only be in DataSet_1D.h
     virtual void Add( size_t, const void* ) = 0;
     // ----------===== Public functions =====---------------
-    /// Set output precision
+    /// Set output width.
+    void SetWidth(int);
+    /// Set output width and precision
     void SetPrecision(int,int);
     /// Set up DataSet with given name, index, and aspect.
     int SetupSet(std::string const&,int,std::string const&);
@@ -113,6 +115,7 @@ class DataSet {
     int colwidth_;            ///< The total output width of a data element.
     int width_;               ///< The output width of numbers in a data element.
     int precision_;           ///< The output precision of numbers in a data element.
+    bool leftAlign_;          ///< If true output will be left-aligned (no leading space).
     std::string format_;      ///< Output printf format string for data.
     scalarMode scalarmode_;   ///< Source of data in DataSet.
     scalarType scalartype_;   ///< Specific type of data in DataSet (if any).
