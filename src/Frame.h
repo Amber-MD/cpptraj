@@ -115,6 +115,7 @@ class Frame {
     Frame& operator-=(const Frame&);
     Frame& operator*=(const Frame&);
     const Frame operator*(const Frame&) const;
+    const Frame operator-(const Frame&) const;
     int Divide(Frame const&, double); 
     void Divide(double);
     void AddByMask(Frame const&, AtomMask const&); 

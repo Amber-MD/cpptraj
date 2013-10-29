@@ -80,6 +80,10 @@ Action::RetType Action_AtomicFluct::Setup(Topology* currentParm, Topology** parm
     SumCoords2_.SetupFrame(currentParm->Natom());
     SumCoords_.ZeroCoords();
     SumCoords2_.ZeroCoords();
+    if (calc_adp_) {
+      Cross_.SetupFrame(currentParm->Natom());
+      Cross_.ZeroCoords();
+    }
     // This is the parm that will be used for this calc
     fluctParm_ = currentParm;
     // Set up atom mask
@@ -110,6 +114,13 @@ Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame,
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   SumCoords_ += *currentFrame;
   SumCoords2_ += ( (*currentFrame) * (*currentFrame) ) ;
+  if (calc_adp_) {
+    for (int i = 0; i < SumCoords_.size(); i+=3) {
+      Cross_[i  ] += (*currentFrame)[i  ] * (*currentFrame)[i+1]; // U12
+      Cross_[i+1] += (*currentFrame)[i  ] * (*currentFrame)[i+2]; // U13
+      Cross_[i+2] += (*currentFrame)[i+1] * (*currentFrame)[i+2]; // U23
+    }
+  }
   ++sets_;
   return Action::OK;
 }
@@ -119,16 +130,14 @@ void Action_AtomicFluct::Print() {
   mprintf("    ATOMICFLUCT: Calculating fluctuations for %i sets.\n",sets_);
 
   double Nsets = (double)sets_;
+  // SumCoords will hold the average: <R>
   SumCoords_.Divide(Nsets);
+  // SumCoords2 will hold the variance: <R^2> - <R>^2
   SumCoords2_.Divide(Nsets);
-  //SumCoords2_ = SumCoords2_ - (SumCoords_ * SumCoords);
-  SumCoords_ *= SumCoords_;
-  SumCoords2_ -= SumCoords_;
-
-  // DEBUG
-  //mprintf("DEBUG: Converting to double: Original first coord:\n");
-  //SumCoords2_.printAtomCoord(0);
-  //mprintf("       Converted first coord: %lf %lf %lf\n",XYZ[0],XYZ[1],XYZ[2]);
+  SumCoords2_ = SumCoords2_ - (SumCoords_ * SumCoords_);
+  // Cross terms: XY, XZ, YZ
+  if (calc_adp_)
+    Cross_.Divide(Nsets);
 
   // Hold fluctuation results - initialize to 0
   std::vector<double> Results( SumCoords2_.Natom(), 0 );
@@ -139,8 +148,6 @@ void Action_AtomicFluct::Print() {
     if (calc_adp_) adpout.OpenWrite( adpoutname_ );
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
-    // TODO: Set Y axis label in DataFile
-    //outfile_->Dim(Dimension::Y).SetLabel("B-factors");
     dataout_->SetLegend("B-factors");
     double bfac = (8.0/3.0)*PI*PI;
     for (int i = 0; i < SumCoords2_.size(); i+=3) {
@@ -155,9 +162,10 @@ void Action_AtomicFluct::Print() {
           int u11 = (int)(SumCoords2_[i  ] * 10000);
           int u22 = (int)(SumCoords2_[i+1] * 10000);
           int u33 = (int)(SumCoords2_[i+2] * 10000);
-          int u12 = (int)((SumCoords2_[i  ] * SumCoords2_[i+1]) * 10000);
-          int u13 = (int)((SumCoords2_[i  ] * SumCoords2_[i+2]) * 10000);
-          int u23 = (int)((SumCoords2_[i+1] * SumCoords2_[i+2]) * 10000);
+          // Calculate covariance: <XY> - <X><Y> etc.
+          int u12 = (int)((Cross_[i  ] - SumCoords_[i  ] * SumCoords_[i+1]) * 10000);
+          int u13 = (int)((Cross_[i+1] - SumCoords_[i  ] * SumCoords_[i+2]) * 10000);
+          int u23 = (int)((Cross_[i+2] - SumCoords_[i+1] * SumCoords_[i+2]) * 10000);
           adpout.Printf("ANISOU%5i %4s%4s %c%4i%c %7i%7i%7i%7i%7i%7i      %2s%2i\n",
                         atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
                         (*fluctParm_)[atom].ChainID(), fluctParm_->Res(resnum).OriginalResNum(),

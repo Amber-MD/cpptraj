@@ -635,6 +635,10 @@ const Frame Frame::operator*(const Frame& rhs) const {
   return (Frame(*this) *= rhs);
 }
 
+const Frame Frame::operator-(const Frame& rhs) const {
+  return (Frame(*this) -= rhs);
+}
+
 // Frame::Divide()
 /** Divide all coord values of dividend by divisor and store in this frame.
   */
