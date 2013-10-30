@@ -74,6 +74,9 @@ void ClusterList::Renumber(bool addSievedFrames) {
       mprintf("\tRestoring sieved frames.\n");
       AddSievedFrames();
     }
+    // Re-sort cluster frame lists.
+    for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
+      (*node).SortFrameList();
   }
   // Sort clusters by population 
   clusters_.sort( );
