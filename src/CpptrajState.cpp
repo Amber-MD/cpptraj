@@ -181,14 +181,19 @@ int CpptrajState::Run() {
   }
 
   int err = 0;
+# ifdef MPI
+  // Only ensemble mode allowed with MPI for now.
+  if ( trajinList_.Mode() != TrajinList::ENSEMBLE ) {
+    mprinterr("Error: Only 'ensemble' mode supported in parallel.\n");
+    err = 1;
+  } else
+    err = RunEnsemble();
+# else
   switch ( trajinList_.Mode() ) {
     case TrajinList::NORMAL   :
       err = RunNormal();
       break;
     case TrajinList::ENSEMBLE :
-      // No Analysis will be run. Warn user if analyses are defined.
-      if (!analysisList_.Empty())
-        mprintf("Warning: In ensemble mode, Analysis will not be performed.\n");
       err = RunEnsemble(); 
       break;
     default:
@@ -198,6 +203,7 @@ int CpptrajState::Run() {
         MasterDataFileWrite();
       }
   }
+# endif
   // Clean up Actions.
   actionList_.Clear();
 # ifdef TIMER
@@ -210,6 +216,10 @@ int CpptrajState::Run() {
 // CpptrajState::RunEnsemble()
 int CpptrajState::RunEnsemble() {
   FrameArray FrameEnsemble;
+
+  // No Analysis will be run. Warn user if analyses are defined.
+  if (!analysisList_.Empty())
+    mprintf("Warning: In ensemble mode, Analysis will not be performed.\n");
 
   mprintf("\nINPUT ENSEMBLE:\n");
   // Ensure all ensembles are of the same size
