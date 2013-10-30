@@ -22,7 +22,10 @@ install: cpptraj$(SFX)
 	mv cpptraj$(SFX) $(BINDIR)/
 
 install_openmp: cpptraj$(SFX)
-	mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX) 
+	mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX)
+
+install_mpi: cpptraj$(SFX)
+	mv cpptraj$(SFX) $(BINDIR)/cpptraj.MPI$(SFX) 
 
 findDepend: FindDepend.o
 	$(CXX) -o findDepend FindDepend.o

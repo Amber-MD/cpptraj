@@ -18,6 +18,10 @@ install:
 install_openmp:
 	cd src && $(MAKE) -f Makefile_at install_openmp
 
+# Create MPI cpptraj binary within AmberTools
+install_mpi:
+	cd src && $(MAKE) -f Makefile_at install_mpi
+
 # Run Tests
 check:
 	cd ../../test/cpptraj/ && $(MAKE) test
