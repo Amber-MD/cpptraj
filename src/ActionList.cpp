@@ -38,11 +38,11 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& 
     delete act;
     return 1;
   }
-  argIn.CheckForMoreArgs();
   actionlist_.push_back( act );
   actioncmd_.push_back( argIn.ArgLine() );
   actionAlloc_.push_back( Alloc );
   actionstatus_.push_back( INIT );
+  if (argIn.CheckForMoreArgs()) return 1;
   return 0;
 }
 

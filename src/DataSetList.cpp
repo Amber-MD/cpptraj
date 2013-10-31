@@ -235,6 +235,8 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
   selected = SelectedSets.begin();
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ( *(selected++) == 'T' ) dsetOut.DataList_.push_back( *ds );
+  if ( dsetOut.empty() )
+    mprintf("Warning: '%s' selects no data sets.\n", nameIn.c_str());
   return dsetOut;
 }
 

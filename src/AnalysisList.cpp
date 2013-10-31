@@ -40,10 +40,10 @@ int AnalysisList::AddAnalysis(DispatchObject::DispatchAllocatorType Alloc, ArgLi
     delete ana;
     return 1;
   }
-  argIn.CheckForMoreArgs();
   analysisList_.push_back( ana );
   analysisCmd_.push_back( argIn.ArgLine() );
   analysisStatus_.push_back( SETUP );
+  if (argIn.CheckForMoreArgs()) return 1;
   return 0;
 }
 

@@ -45,7 +45,7 @@ class ArgList {
     /// Mark given argument
     void MarkArg(int);
     /// Print a warning if not all arguments are marked
-    void CheckForMoreArgs();
+    bool CheckForMoreArgs() const;
     /// Print the argument list
     void PrintList();
     /// Print detailed info for arg list

@@ -150,15 +150,18 @@ void ArgList::MarkArg(int arg) {
 /** Check if all arguments have been processed. If not print a warning along
   * with all unprocessed arguments.
   */
-void ArgList::CheckForMoreArgs() {
+bool ArgList::CheckForMoreArgs() const {
   std::string notmarked;
   for (unsigned int arg=0; arg < arglist_.size(); arg++) {
     if (!marked_[arg]) 
       notmarked.append(arglist_[arg] + " ");
   }
-  if (!notmarked.empty())  
-    mprintf("Warning: [%s] Not all arguments handled: [ %s]\n",
-            arglist_[0].c_str(), notmarked.c_str());
+  if (!notmarked.empty()) { 
+    mprinterr("Error: [%s] Not all arguments handled: [ %s]\n",
+              arglist_[0].c_str(), notmarked.c_str());
+    return true;
+  }
+  return false;
 }
 
 // ArgList::PrintList()
