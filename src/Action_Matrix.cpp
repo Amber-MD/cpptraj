@@ -623,6 +623,11 @@ void Action_Matrix::Vect2MinusVect() {
 void Action_Matrix::FinishCovariance() {
   double Mass = 1.0;
   double mass2 = 1.0;
+  if (snap_ < (int)Mat_->Ncols())
+    mprintf("Warning: In covariance matrix '%s', # of frames %i is less than\n"
+            "Warning:   # of columns %zu. If diagonalized, the max # of non-zero\n"
+            "Warning:   eigenvalues will be %i\n", Mat_->Legend().c_str(),
+            snap_, Mat_->Ncols(), snap_);
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
   // Calc <riri> - <ri><ri>
   Vect2MinusVect(); // Is vect2 used?
