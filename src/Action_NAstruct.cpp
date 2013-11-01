@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 #include "DistRoutines.h"
+#include "TorsionRoutines.h"
 #include "Constants.h" // RADDEG
 #ifdef NASTRUCTDEBUG
 #include "PDBfile.h"
@@ -10,6 +11,7 @@
 
 // CONSTRUCTOR
 Action_NAstruct::Action_NAstruct() :
+  puckerMethod_(ALTONA),
   HBdistCut2_(12.25),  // Hydrogen Bond distance cutoff^2: 3.5^2
   // NOTE: Is this too big?
   originCut2_(6.25),   // Origin cutoff^2 for base-pairing: 2.5^2
@@ -327,10 +329,22 @@ int Action_NAstruct::determineBasePairing() {
     // Create legend
     int bp_1 = (*BP).Res1();
     int bp_2 = (*BP).Res2();
-    std::string bpname = integerToString( Bases_[bp_1].ResNum()+1 ) +
-                         Bases_[bp_1].BaseChar() +
-                         integerToString( Bases_[bp_2].ResNum()+1 ) + 
+    std::string b1name = integerToString( Bases_[bp_1].ResNum()+1 ) +
+                         Bases_[bp_1].BaseChar();
+    std::string b2name = integerToString( Bases_[bp_2].ResNum()+1 ) + 
                          Bases_[bp_2].BaseChar();
+    std::string bpname = b1name + b2name;
+    // Create pucker Data Sets
+    PUCKER_.push_back( 
+      (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT, dataname_,
+                                               Bases_[bp_1].ResNum()+1, "pucker",
+                                               b1name) );
+    PUCKER_.back()->SetScalar( DataSet::M_PUCKER, DataSet::PUCKER );
+    PUCKER_.push_back( 
+      (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT, dataname_,
+                                               Bases_[bp_2].ResNum()+1, "pucker",
+                                               b2name) );
+    PUCKER_.back()->SetScalar( DataSet::M_PUCKER, DataSet::PUCKER );
     // Create sets
     SHEAR_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname) );
     STRETCH_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname));
@@ -687,6 +701,24 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   return 0;
 }
 
+/// Calculate nucleic acid sugar pucker.
+void Action_NAstruct::CalcPucker( NA_Base const& base, int framenum, int nbase ) {
+  double pval=0.0, aval, tval;
+  switch (puckerMethod_) {
+    case ALTONA:
+      pval = Pucker_AS( base.C1xyz(), base.C2xyz(), base.C3xyz(),
+                        base.C4xyz(), base.O4xyz(), aval );
+      break;
+    case CREMER:
+      pval = Pucker_CP( base.C1xyz(), base.C2xyz(), base.C3xyz(),
+                        base.C4xyz(), base.O4xyz(), 0,
+                        5, aval, tval );
+      break;
+  }
+  float fval = (float)(pval * RADDEG);
+  PUCKER_[nbase]->Add(framenum, &fval);
+}
+
 // Action_NAstruct::determineBaseParameters()
 /** For each base in a base pair, get the values of buckle, propeller twist,
   * opening, shear, stretch, and stagger. Also determine the origin and 
@@ -742,6 +774,10 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
       DO4 = sqrt(DO4);
       dOtoO = (float)DO4;
     }
+    if (base1.HasSugarAtoms())
+      CalcPucker( base1, frameNum, nbasepair*2 );
+    if (base2.HasSugarAtoms())
+      CalcPucker( base2, frameNum, (nbasepair*2) + 1 );
     //mprintf("\n");
     // Calc BP parameters, set up basepair axes
     //calculateParameters(BaseAxes[base1],BaseAxes[base2],&BasePairAxes[nbasepair],Param);

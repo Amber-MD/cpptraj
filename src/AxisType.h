@@ -7,8 +7,10 @@
 /// Hold information for NA base.
 class NA_Base {
   public:
-     /// Type for each standard NA base.
+    /// Type for each standard NA base.
     enum NAType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
+    /// Type for phosphate/sugar atoms
+    enum PSType { PHOS, O4p, C1p, C2p, C3p, C4p };
     NA_Base();
     NA_Base(const NA_Base&);
     NA_Base& operator=(const NA_Base&);
@@ -24,16 +26,21 @@ class NA_Base {
     AtomMask const& InputFitMask() const { return inpFitMask_;     }
     AtomMask const& RefFitMask()   const { return refFitMask_;     }
     const char* AtomName(int i)    const { return *(anames_[i]);   }
-    bool HasPatom()                const { return patomidx_ != -1; }
-    bool HasO4atom()               const { return o4atomidx_ != -1;}
+    bool HasPatom()                const { return atomIdx_[PHOS] != -1; }
+    bool HasO4atom()               const { return atomIdx_[O4p] != -1;  }
+    bool HasSugarAtoms()           const;
 #   ifdef NASTRUCTDEBUG
     const char* ResName()       const { return *rname_;         }
     const char* RefName(int i)  const { return *(refnames_[i]); }
     int HBidx(int i)            const { return hbidx_[i];       }
 #   endif
-    const double* HBxyz(int i) const { return Inp_.XYZ(hbidx_[i]); }
-    const double* Pxyz()       const { return Inp_.XYZ(patomidx_); }
-    const double* O4xyz()      const { return Inp_.XYZ(o4atomidx_);}
+    const double* HBxyz(int i) const { return Inp_.XYZ(hbidx_[i]);      }
+    const double* Pxyz()       const { return Inp_.XYZ(atomIdx_[PHOS]); }
+    const double* O4xyz()      const { return Inp_.XYZ(atomIdx_[O4p]);  }
+    const double* C1xyz()      const { return Inp_.XYZ(atomIdx_[C1p]);  }
+    const double* C2xyz()      const { return Inp_.XYZ(atomIdx_[C2p]);  }
+    const double* C3xyz()      const { return Inp_.XYZ(atomIdx_[C3p]);  }
+    const double* C4xyz()      const { return Inp_.XYZ(atomIdx_[C4p]);  }
   private:
     int rnum_;                      ///< Original residue number
     char bchar_;                    ///< 1 char base name.
@@ -46,8 +53,7 @@ class NA_Base {
 #   endif  
     Frame Inp_;                     ///< Input coords.
     int hbidx_[3];                  ///< Indices of h-bonding atoms
-    int patomidx_;                  ///< Index of phosphorous atom if present
-    int o4atomidx_;                 ///< Index of O4' atom if present
+    int atomIdx_[6];                ///< Indices of phosphate/sugar agoms.
     AtomMask parmMask_;             ///< Mask corresponding to atoms in parm.
     AtomMask inpFitMask_;           ///< Mask of input atoms to be used in RMS fit.
     AtomMask refFitMask_;           ///< Mask of ref atoms to be used in RMS fit.
