@@ -19,17 +19,15 @@
 class Action_Jcoupling: public Action {
   public:
     Action_Jcoupling();
-
+    ~Action_Jcoupling();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Jcoupling(); }
     static void Help();
-
-    ~Action_Jcoupling();
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     /// Load Karplus parameters from a file
     int loadKarplus(std::string);
@@ -50,17 +48,23 @@ class Action_Jcoupling: public Action {
     /// Hold info for single j-coupling calculation
     struct jcouplingInfo {
       int residue; ///< Residue number
-      int atom[4]; ///< Atom #s of the diehdral
+      int atom[4]; ///< Atom #s of the dihedral
       double *C;   ///< Pointer to C in associated karplusConstant structure
       int type;    ///< Calculation type (0=Chou, 1=Perez)
+      DataSet* data_; ///< Hold Jcoupling vs frame
     };
     /// Hold info for all j-coupling calcs
     std::vector<jcouplingInfo> JcouplingInfo_;
 
-    AtomMask Mask1_;
-    int debug_;
+    AtomMask Mask1_;         ///< Mask to search for dihedrals in.
+    int debug_;              ///< Debug level.
     int Nconstants_;
     Topology* CurrentParm_;
     CpptrajFile outputfile_;
+    DataFile* outfile_;
+    // TODO: Replace these with new DataSet type
+    DataSetList* masterDSL_;
+    std::string setname_;
+    int setcount_;
 };
 #endif  

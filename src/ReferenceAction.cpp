@@ -49,7 +49,7 @@ int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool fi
       // Reference trajectory
       if (SetRefMask( *RefParm, call )!=0) return 1;
       // Attempt to open reference traj.
-      if (refTraj_.SetupTrajRead( reftrajname, &actionArgs, RefParm)) {
+      if (refTraj_.SetupTrajRead( reftrajname, actionArgs, RefParm)) {
         mprinterr("Error: %s: Could not set up reftraj %s\n", call, reftrajname.c_str());
         return 1;
       }
@@ -72,7 +72,7 @@ int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool fi
   else if (refmode_==REFTRAJ)
     modeString_ = "trajectory " + refTraj_.TrajFilename().Full();
   else // REFFRAME
-    modeString_ = "reference frame " + REF.FrameName();
+    modeString_ = "reference frame " + REF.FrameName().Base();
   modeString_ += " (" + refMask_.MaskExpression() + ")";
 
   return 0;

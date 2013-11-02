@@ -39,46 +39,49 @@ const char* Atom::AtomicElementName[NUMELEMENTS] = { "??",
 
 // CONSTRUCTOR
 Atom::Atom() : 
-  charge_(0),
-  mass_(1),
-  gb_radius_(0),
-  gb_screen_(0),
+  charge_(0.0),
+  mass_(1.0),
+  gb_radius_(0.0),
+  gb_screen_(0.0),
   aname_(""),
   atype_(""),
   atype_index_(0),
   element_(UNKNOWN_ELEMENT),
   resnum_(0),
-  mol_(0)
+  mol_(0),
+  chainID_(' ')
 { }
 
-// CONSTRUCTOR
-Atom::Atom(NameType const& aname) :
-  charge_(0),
-  mass_(1),
-  gb_radius_(0),
-  gb_screen_(0),
+/** CONSTRUCTOR - used for PDB files. */
+Atom::Atom(NameType const& aname, char cid) :
+  charge_(0.0),
+  mass_(1.0),
+  gb_radius_(0.0),
+  gb_screen_(0.0),
   aname_(aname),
   atype_(""),
   atype_index_(0),
   element_(UNKNOWN_ELEMENT),
   resnum_(0),
-  mol_(0)
+  mol_(0),
+  chainID_(cid)
 {
   SetElementFromName();
 }
 
-// CONSTRUCTOR
+/** CONSTRUCTOR - used for Mol2 files. */
 Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   charge_(q),
-  mass_(1),
-  gb_radius_(0),
-  gb_screen_(0),
+  mass_(1.0),
+  gb_radius_(0.0),
+  gb_screen_(0.0),
   aname_(aname),
   atype_(atype),
   atype_index_(0),
   element_(UNKNOWN_ELEMENT),
   resnum_(0),
-  mol_(0)
+  mol_(0),
+  chainID_(' ')
 {
   SetElementFromName();
 }
@@ -101,7 +104,8 @@ Atom::Atom( NameType const& name, double charge, int atomicnum, double mass, int
   atype_index_(atidx),
   element_(UNKNOWN_ELEMENT),
   resnum_(resnum),
-  mol_(0)
+  mol_(0),
+  chainID_(' ')
 {
   // Determine atomic element
   if (atomicnum>0) {
@@ -124,6 +128,7 @@ Atom::Atom( NameType const& name, double charge, int atomicnum, double mass, int
 }
 
 // COPY CONSTRUCTOR
+// TODO: Does excluded need to be copied as well?
 Atom::Atom(const Atom &rhs) :
   charge_(rhs.charge_),
   mass_(rhs.mass_),
@@ -135,6 +140,7 @@ Atom::Atom(const Atom &rhs) :
   element_(rhs.element_),
   resnum_(rhs.resnum_),
   mol_(rhs.mol_),
+  chainID_(rhs.chainID_),
   bonds_(rhs.bonds_)
 { }
 
@@ -151,6 +157,7 @@ void Atom::swap(Atom &first, Atom &second) {
   swap(first.element_, second.element_);
   swap(first.resnum_, second.resnum_);
   swap(first.mol_, second.mol_);
+  swap(first.chainID_, second.chainID_);
   swap(first.bonds_, second.bonds_);
 }
 
@@ -158,21 +165,6 @@ void Atom::swap(Atom &first, Atom &second) {
 Atom &Atom::operator=(Atom other) {
   swap(*this, other);
   return *this;
-}
-
-// Atom::SetResNum()
-void Atom::SetResNum(int resnumIn) {
-  resnum_ = resnumIn;
-}
-
-// Atom::SetMol()
-void Atom::SetMol(int molIn) {
-  mol_ = molIn;
-}
-
-// Atom::NoMol()
-bool Atom::NoMol() {
-  return ( mol_ < 0 );
 }
 
 // Atom::AddBond()

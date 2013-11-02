@@ -19,7 +19,13 @@ OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) 
-	mv cpptraj$(SFX) $(BINDIR)/ 
+	mv cpptraj$(SFX) $(BINDIR)/
+
+install_openmp: cpptraj$(SFX)
+	mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX)
+
+install_mpi: cpptraj$(SFX)
+	mv cpptraj$(SFX) $(BINDIR)/cpptraj.MPI$(SFX) 
 
 findDepend: FindDepend.o
 	$(CXX) -o findDepend FindDepend.o
@@ -30,12 +36,12 @@ depend: findDepend
 dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
-cpptraj$(SFX): $(NETCDF) $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
-	$(CXX) $(LDFLAGS)  -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
-               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)  
+cpptraj$(SFX): $(NETCDFLIB) $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
+	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
+               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
 
-$(INCDIR)/netcdf.mod: ../../netcdf_config.log
-	cd ../../netcdf/src && $(MAKE) install
+$(NETCDFLIB):
+	@../../netcdf-build-message.sh $(NETCDFLIB)
 
 $(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install

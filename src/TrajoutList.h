@@ -4,24 +4,32 @@
 #include "TopologyList.h"
 // Class: TrajoutList
 /// Hold trajectories for output
-class TrajoutList : public FileList {
+class TrajoutList {
   public:
     TrajoutList();
     ~TrajoutList();
     void Clear();
-    int AddEnsembleTrajout(ArgList const&, TopologyList&, int);
+    void SetDebug(int);
+    int AddEnsembleTrajout(ArgList const&, TopologyList const&, int);
     /// Add a traj file to the list with given access and associate with a parm
-    int AddTrajout(ArgList&, TopologyList&);
+    int AddTrajout(ArgList const&, TopologyList const&);
     /// Call write for all trajectories
     int Write(int, Topology*, Frame*);
     /// Call end for all trajectories
     void Close();
     void List() const;
+    // The definitions below are for ensemble processing.
+    typedef std::vector<ArgList> ArgsArray;
+    typedef std::vector<ArgList>::const_iterator ArgIt;
+    ArgIt argbegin() const { return trajoutArgs_.begin(); }
+    ArgIt argend()   const { return trajoutArgs_.end();   }
   private:
+    int debug_;
     typedef std::vector<Trajout*> ListType;
     ListType trajout_;
+    /// Array of trajout args for setting up ensemble trajout.
+    ArgsArray trajoutArgs_;
 
-    int AddTrajout(std::string const&, ArgList&, TopologyList&);
+    int AddTrajout(std::string const&, ArgList&, TopologyList const&);
 };
 #endif
-

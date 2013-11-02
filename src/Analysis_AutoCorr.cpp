@@ -1,6 +1,6 @@
 #include "Analysis_AutoCorr.h"
 #include "CpptrajStdio.h"
-#include "DS_Math.h"
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Analysis_AutoCorr::Analysis_AutoCorr() :
@@ -69,12 +69,11 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
 }
 
 Analysis::RetType Analysis_AutoCorr::Analyze() {
-  std::vector<DataSet*>::iterator dsout = outputData_.begin();
-  for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS)
-  {
-    mprintf("\t\tCalculating AutoCorrelation for set %s\n", (*DS)->Legend().c_str());
-    DS_Math::CrossCorr(*(*DS), *(*DS), *(*dsout), lagmax_, calc_covar_, usefft_ );
-    ++dsout;
+  for (unsigned int ids = 0; ids < dsets_.size(); ids++) {
+    DataSet_1D const& set = static_cast<DataSet_1D const&>( *dsets_[ids] );
+    mprintf("\t\tCalculating AutoCorrelation for set %s\n", set.Legend().c_str());
+    set.CrossCorr( set, static_cast<DataSet_1D&>( *((DataSet_1D*)outputData_[ids]) ),
+                   lagmax_, calc_covar_, usefft_ );
   }
 
   return Analysis::OK;

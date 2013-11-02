@@ -1,8 +1,8 @@
 #include "Analysis_CrossCorr.h"
-#include "TriangleMatrix.h"
+#include "DataSet_MatrixFlt.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
-#include "DS_Math.h"
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Analysis_CrossCorr::Analysis_CrossCorr() : outfile_(0), matrix_(0) {}
@@ -13,6 +13,7 @@ void Analysis_CrossCorr::Help() {
   mprintf("\tcoefficients between selected data sets.\n");
 }
 
+// Analysis_CrossCorr::Setup()
 Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
@@ -27,10 +28,10 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
     return Analysis::ERR;
   }
   // Setup output dataset
-  matrix_ = datasetlist->AddSet( DataSet::TRIMATRIX, setname, "crosscorr" );
+  matrix_ = datasetlist->AddSet( DataSet::MATRIX_FLT, setname, "crosscorr" );
   if (outfile_ != 0) {
+    matrix_->Dim(Dimension::X).SetLabel("DataSets");
     outfile_->AddSet( matrix_ );
-    outfile_->ProcessArgs("xlabel DataSets");
   }
   
   mprintf("    CROSSCORR: Calculating correlation between %i data sets:\n", dsets_.size());
@@ -43,8 +44,9 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
   return Analysis::OK;
 }
 
+// Analysis_CrossCorr::Analyze()
 Analysis::RetType Analysis_CrossCorr::Analyze() {
-  TriangleMatrix* tmatrix = (TriangleMatrix*)matrix_;
+  DataSet_MatrixFlt& tmatrix = static_cast<DataSet_MatrixFlt&>( *matrix_ );
 
   int Nsets = dsets_.size();
   mprintf("\tDataSet Legend:\n");
@@ -56,13 +58,14 @@ Analysis::RetType Analysis_CrossCorr::Analyze() {
   }
   Ylabels += "\"";
   int Nsets1 = Nsets - 1;
-  tmatrix->Setup(Nsets);
+  if (tmatrix.AllocateTriangle(Nsets)) return Analysis::ERR;
   for (int i = 0; i < Nsets1; ++i) {
     for (int j = i + 1; j < Nsets; ++j) {
       //mprinterr("DBG:\tCross corr between %i (%s) and %i (%s)\n",
       //          i, dsets_[i]->Legend().c_str(), j, dsets_[j]->Legend().c_str());
-      double corr = DS_Math::CorrCoeff( *dsets_[i], *dsets_[j] );
-      tmatrix->AddElement( corr );
+      DataSet_1D const& set1 = static_cast<DataSet_1D const&>( *dsets_[i] );
+      double corr = set1.CorrCoeff( *((DataSet_1D*)dsets_[j]) );
+      tmatrix.AddElement( (float)corr );
     }
   }
   if (outfile_ != 0)

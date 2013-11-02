@@ -51,7 +51,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
 Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** parmAddress) {
   // Target setup
   if (SetupRmsMask(*currentParm, "symmrmsd")) return Action::ERR;
-  // Target remap setup
+  // Target remap setup: TODO: If ever passed out of DoAction setup Velocity
   remapFrame_.SetupFrameM( currentParm->Atoms() );
   // Reference setup
   if (SetupRef(*currentParm, TgtMask().Nselected(), "symmrmsd"))
@@ -139,7 +139,7 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
 Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame, 
                                                Frame** frameAddress) 
 {
-  Matrix_2D cost_matrix;
+  DataSet_MatrixDbl cost_matrix;
   // Perform any needed reference actions
   ActionRef( *currentFrame, Fit(), UseMass() );
   // Calculate initial best-fit RMSD
@@ -151,7 +151,7 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame
                                 symmatoms != SymmetricAtomIndices_.end(); ++symmatoms)
   {
     // For each array of symmetric atoms, determine the lowest distance score
-    cost_matrix.Setup((*symmatoms).size(), (*symmatoms).size());
+    cost_matrix.Allocate2D((*symmatoms).size(), (*symmatoms).size());
     for (Iarray::iterator tgtatom = (*symmatoms).begin(); 
                           tgtatom != (*symmatoms).end(); ++tgtatom)
     {

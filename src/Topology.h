@@ -6,6 +6,7 @@
 #include "Molecule.h"
 #include "AtomMask.h"
 #include "Frame.h"
+#include "FileName.h"
 // Class: Topology
 /// Hold information for all atoms
 class Topology {
@@ -14,12 +15,16 @@ class Topology {
     // ----- Set internal variables -----
     void SetOffset(double oIn);
     void SetDebug(int);
-    void SetParmName(std::string const&, std::string const&);
+    void SetParmName(std::string const&, FileName const&);
     void SetGBradiiSet(std::string const&);
     void SetPindex(int);
     void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
     void IncreaseFrames(int);
+    void SetTag(std::string const& t)    { parmTag_ = t;                  }
+    void SetVelInfo(bool v)              { hasVelInfo_ = v;               }
+    void SetNrepDim(int n)               { nRepDim_ = n;                  }
     // ----- Return internal variables -----
+    std::string const& Tag()       const { return parmTag_;               }
     int Pindex()                   const { return pindex_;                }
     int Natom()                    const { return (int)atoms_.size();     }
     int Nres()                     const { return (int)residues_.size();  }
@@ -27,8 +32,11 @@ class Topology {
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int Nframes()                  const { return nframes_;               }
     int Ntypes()                   const { return ntypes_;                }
+    int NextraPts()                const { return n_extra_pts_;           }
+    bool HasVelInfo()              const { return hasVelInfo_;            }
+    int NrepDim()                  const { return nRepDim_;               }
     std::string const& ParmName()         const { return parmName_;       }
-    std::string const& OriginalFilename() const { return fileName_;       }
+    FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
     bool NoRefCoords()                    const { return (refCoords_.empty()); }
     int FinalSoluteRes() const;
@@ -54,8 +62,8 @@ class Topology {
     inline const std::vector<int>& BondsH() const { return bondsh_; }
     inline const std::vector<double>& BondRk() const { return bondrk_; }
     inline const std::vector<double>& BondReq() const { return bondreq_; }
-    int GetBondParamIdx( int, double &, double &);
-    double GetBondedCutoff(int, int);
+    int GetBondParamIdx( int, double &, double &) const;
+    double GetBondedCutoff(int, int) const;
     // ----- Angle-specific routines -----
     inline const std::vector<int>& Angles() const { return angles_; }
     inline const std::vector<int>& AnglesH() const { return anglesh_; }
@@ -79,30 +87,34 @@ class Topology {
     inline const std::vector<int>& Join() const { return join_; }
     inline const std::vector<int>& Irotat() const { return irotat_; }
     // ----- Non-bond routines -----
+    inline void GetLJ_A_B(int,int,double&,double&) const; 
     inline const std::vector<int>& NB_index() const { return nbindex_; }
     inline const std::vector<double>& LJA() const { return lja_; }
     inline const std::vector<double>& LJB() const { return ljb_; }
     // ----- Misc routines -----
-    std::string TruncResAtomName(int);
-    std::string TruncResNameNum(int);
+    std::string TruncResAtomName(int) const;
+    std::string AtomMaskName(int atom) const;
+    std::string TruncResNameNum(int) const;
     int FindAtomInResidue(int, NameType const&) const;
     int FindResidueMaxNatom() const;
-    int SoluteAtoms();
+    int SoluteAtoms() const;
     int SetSolvent(std::string const&);
     // ----- Print topology info -----
-    void Summary();
-    void ParmInfo();
-    void PrintAtomInfo(std::string const&);
-    void PrintBondInfo(std::string const&);
-    void PrintMoleculeInfo(std::string const&);
-    void PrintResidueInfo(std::string const&);
-    void PrintChargeInfo(std::string const&);
+    void Summary() const;
+    void Brief() const;
+    void PrintAtomInfo(std::string const&) const;
+    void PrintBondInfo(std::string const&) const;
+    void PrintAngleInfo(std::string const&) const;
+    void PrintDihedralInfo(std::string const&) const;
+    void PrintMoleculeInfo(std::string const&) const;
+    void PrintResidueInfo(std::string const&) const;
+    int PrintChargeMassInfo(std::string const&, int) const;
     // ----- Routines to Access/Modify Box info -----
     inline Box const& ParmBox()   const { return box_;        }
     inline Box::BoxType BoxType() const { return box_.Type(); }
-    void SetBox( Box const& bIn )     { box_ = bIn;         }
+    void SetBox( Box const& bIn )       { box_ = bIn;         }
     // ----- PDB/Mol2 etc setup routines -----
-    void AddTopAtom(Atom, NameType const&, int, int&, const double*);
+    void AddTopAtom(Atom const&, NameType const&, int, int&, const double*);
     void StartNewMol();
     // ----- Amber setup routines -----
     int CreateAtomArray(std::vector<NameType>&, std::vector<double>&,
@@ -143,12 +155,12 @@ class Topology {
     Topology* ModifyByMap(std::vector<int> const& m) const {
       return ModifyByMap(m, true);
     }
-
   private:
     std::vector<Atom> atoms_;
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
-    std::string fileName_;
+    FileName fileName_;
+    std::string parmTag_;
     std::string parmName_;
     std::string radius_set_;
 
@@ -193,8 +205,13 @@ class Topology {
     int pindex_;
     int nframes_;
     int ntypes_; // This is stored for the purpose of checking array sizes
+    int n_extra_pts_;
+    bool hasVelInfo_; // TODO: This information should be passed separate from Topology
+    int nRepDim_;     // TODO: This information should be passed separate from Topology
 
-    void PrintBonds(std::vector<int> const&, AtomMask const&);
+    void PrintBonds(std::vector<int> const&, AtomMask const&, int&) const;
+    void PrintAngles(std::vector<int> const&, AtomMask const&, int&) const;
+    void PrintDihedrals(std::vector<int> const&, AtomMask const&, int&) const;
     void SetAtomBondInfo();
     static void WarnBondLengthDefault(Atom::AtomicElementType,
                                       Atom::AtomicElementType,double);
@@ -203,8 +220,9 @@ class Topology {
     void GetBondsFromAtomCoords();
     void VisitAtom(int, int);
     int DetermineMolecules();
-    void AtomDistance(int, int, int, std::set<int>&);
+    void AtomDistance(int, int, int, std::set<int>&) const;
     void DetermineExcludedAtoms();
+    void DetermineNumExtraPoints();
     int SetSolventInfo();
 
     void Mask_SelectDistance( Frame const&, char*, bool, bool, double ) const;
@@ -223,4 +241,12 @@ class Topology {
     Topology* ModifyByMap(std::vector<int> const&, bool) const;
     std::vector<int> SetupSequentialArray(std::vector<int> const&, int, std::vector<int> const&) const;
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+void Topology::GetLJ_A_B(int a1, int a2, double& A, double& B) const {
+  // Currently atom #s start from 1 in TypeIndex
+  int param = (ntypes_ * (atoms_[a1].TypeIndex()-1)) + atoms_[a2].TypeIndex()-1;
+  int index = nbindex_[param] - 1;
+  A = lja_[index];
+  B = ljb_[index];
+}
 #endif

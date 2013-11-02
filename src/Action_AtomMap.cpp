@@ -833,26 +833,18 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     // frame to only include mapped atoms
     if (numMappedAtoms<RefMap_.Natom() && numMappedAtoms==TgtMap_.Natom()) {
       // Create mask that includes only reference atoms that could be mapped
-      AtomMask* M1 = new AtomMask();
-      for (refatom=0; refatom<RefMap_.Natom(); refatom++) {
-        if (AMap_[refatom]!=-1) M1->AddAtom(refatom);
+      AtomMask M1;
+      for (refatom = 0; refatom < RefMap_.Natom(); refatom++) {
+        if (AMap_[refatom] != -1) M1.AddAtom(refatom);
       }
       // Strip reference parm
-      mprintf("    Modifying reference %s topology and frame to match mapped atoms.\n",
-              REF.FrameName().c_str());
-      stripParm_ = RefParm_->modifyStateByMask(*M1);
-      // Strip reference frame
-      newFrame_ = new Frame(*RefFrame_, *M1);
-      delete M1;
-      // Replace reference with stripped versions
-      if (FL->ReplaceFrame(REF, newFrame_, stripParm_)) {
-        mprintf("Error: AtomMap: Could not strip reference.\n");
-        return Action::ERR;
-      }
+      mprintf("    Modifying reference '%s' topology and frame to match mapped atoms.\n",
+              REF.FrameName().base());
+      if (REF.StripRef( M1 )) return Action::ERR;
       // Since AMap[ ref ] = tgt but ref is now missing any stripped atoms,
       // the indices of AMap must be shifted to match
-      int refIndex=0; // The new index
-      for (refatom=0; refatom<RefMap_.Natom(); refatom++) {
+      int refIndex = 0; // The new index
+      for (refatom = 0; refatom < RefMap_.Natom(); refatom++) {
         targetatom = AMap_[refatom];
         if (targetatom<0)
           continue;

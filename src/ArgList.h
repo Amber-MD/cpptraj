@@ -28,14 +28,14 @@ class ArgList {
     std::string const& operator[](int);
     // Iterators
     typedef std::vector<std::string>::const_iterator const_iterator;
-    const_iterator begin() { return arglist_.begin();     }
-    const_iterator end()   { return arglist_.end();       }
+    const_iterator begin() const { return arglist_.begin();     }
+    const_iterator end()   const { return arglist_.end();       }
     /// \return the number of arguments
-    int Nargs()            { return (int)arglist_.size(); }
+    int Nargs()            const { return (int)arglist_.size(); }
     /// \return true if no arguments in list.
-    bool empty()           { return arglist_.empty();     }
+    bool empty()           const { return arglist_.empty();     }
     /// \return the argument string
-    const char *ArgLine()  { return argline_.c_str();     }
+    const char *ArgLine()  const { return argline_.c_str();     }
     /// Set up argument list from string and given separators
     int SetList(std::string const&, const char *);
     /// \return an argument list of remaining unmarked args.
@@ -45,7 +45,7 @@ class ArgList {
     /// Mark given argument
     void MarkArg(int);
     /// Print a warning if not all arguments are marked
-    void CheckForMoreArgs();
+    bool CheckForMoreArgs() const;
     /// Print the argument list
     void PrintList();
     /// Print detailed info for arg list
@@ -64,8 +64,12 @@ class ArgList {
     std::string const& getNextTag();
     /// \return true if arg at position is valid integer.
     bool ValidInteger(int);
+    /// \return Integer at position.
+    int IntegerAt(int);
     /// \return true if arg at position is valid double.
     bool ValidDouble(int);
+    /// \return Double at position.
+    double DoubleAt(int);
     /// Return the next unmarked integer
     int getNextInteger(int);
     /// Return the next unmarked double

@@ -61,10 +61,10 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     if (dsetName.empty())
       dsetName = DSL->GenerateDefaultName("CLOSEST");
     // Set up datasets
-    framedata_ = DSL->AddSetAspect(DataSet::INT,    dsetName, "Frame");
-    moldata_   = DSL->AddSetAspect(DataSet::INT,    dsetName, "Mol");
-    distdata_  = DSL->AddSetAspect(DataSet::DOUBLE, dsetName, "Dist");
-    atomdata_  = DSL->AddSetAspect(DataSet::INT,    dsetName, "FirstAtm");
+    framedata_ = DSL->AddSetAspect(DataSet::INTEGER, dsetName, "Frame");
+    moldata_   = DSL->AddSetAspect(DataSet::INTEGER, dsetName, "Mol");
+    distdata_  = DSL->AddSetAspect(DataSet::DOUBLE,  dsetName, "Dist");
+    atomdata_  = DSL->AddSetAspect(DataSet::INTEGER, dsetName, "FirstAtm");
     if (framedata_==0 || moldata_==0 || distdata_==0 || atomdata_==0) {
       mprinterr("Error: closest: Could not setup data sets for output file %s\n",
                 filename.c_str());
@@ -215,12 +215,11 @@ Action::RetType Action_Closest::Setup(Topology* currentParm, Topology** parmAddr
   newParm_->Summary();
 
   // Allocate space for new frame
-  // FIXME: Should this be set up for velocity as well?
-  newFrame_.SetupFrameM( newParm_->Atoms() );
+  newFrame_.SetupFrameV( newParm_->Atoms(), newParm_->HasVelInfo(), newParm_->NrepDim() );
 
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {
-    std::string newfilename = prefix_ + "." + currentParm->OriginalFilename();
+    std::string newfilename = prefix_ + "." + currentParm->OriginalFilename().Base();
     mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),
             newfilename.c_str());
     ParmFile pfile;

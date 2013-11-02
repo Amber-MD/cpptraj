@@ -320,6 +320,11 @@ double DIST2_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
   return vec.Magnitude2();
 }
 
+double DIST_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
+  Vec3 vec = a1 - a2;
+  return sqrt( vec.Magnitude2() );
+}
+
 double DIST2(const double* a1, const double* a2, ImagingType itype,
              Box const& box, Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
 {

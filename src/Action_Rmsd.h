@@ -4,6 +4,7 @@
 #include "Range.h"
 #include "ReferenceAction.h"
 #include "RmsAction.h" 
+#include "DataSet_1D.h"
 // Class: Action_Rmsd
 /// Action to calculate the RMSD between frame and a reference frame.
 class Action_Rmsd: public Action, RmsAction, ReferenceAction {
@@ -22,7 +23,7 @@ class Action_Rmsd: public Action, RmsAction, ReferenceAction {
     // PerResRMSD -------------
     bool perres_;                      ///< If true calculate per-residue rmsd
     int NumResidues_;                  ///< Total # of residues to calculate per res rmsd for
-    std::vector<DataSet*> PerResRMSD_; ///< Hold residue RMSDs
+    std::vector<DataSet_1D*> PerResRMSD_; ///< Hold residue RMSDs
     std::vector<AtomMask> tgtResMask_; ///< Hold target masks for each res in ResRange
     std::vector<AtomMask> refResMask_; ///< Hold reference masks for each res in ResRange
     std::vector<bool> resIsActive_;    ///< True if residue was set up correctly

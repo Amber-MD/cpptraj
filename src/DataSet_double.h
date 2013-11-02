@@ -1,35 +1,44 @@
 #ifndef INC_DATASET_DOUBLE_H
 #define INC_DATASET_DOUBLE_H
 #include <vector>
-#include "DataSet.h"
+#include "DataSet_1D.h"
 // Class: DataSet_double
 /// Hold an array of double values.
-/** Actually 2 arrays; one for data and one for frame indices. This allows 
-  * Y values with non-consecutive X values to be stored, which can happen 
-  * e.g. when an action is not active for a certain trajectory because it 
-  * is not valid for that topology.
-  */
-class DataSet_double : public DataSet {
+class DataSet_double : public DataSet_1D {
   public:
-    DataSet_double();
-    double& operator[](int idx) { return Data_[idx]; }
-    void Resize(int);
-
-    int Allocate(int);
-    int Xmax();
-    int Size();
-    int FrameIsEmpty(int);
-    void Add( int, void * );
-    double CurrentDval();
-    double Dval(int);
-    void WriteBuffer(CpptrajFile&, int);
+    DataSet_double() : DataSet_1D(DOUBLE, 12, 4), bound_(0.0), 
+                       boundh_(0.0), rexp_(-1.0) {}
+    static DataSet* Alloc() { return (DataSet*)new DataSet_double();}
+    double& operator[](size_t idx)       { return Data_[idx];         }
+    double  operator[](size_t idx) const { return Data_[idx];         }
+    void operator=(std::vector<double> const& rhs) { Data_ = rhs;     }
+    void AddElement(double d)            { Data_.push_back( d );      }
+    /// Make set size sizeIn, all values set to 0.0.
+    void Resize(size_t sizeIn)           { Data_.resize(sizeIn, 0.0); }
+    // ----- DataSet functions -------------------
+    size_t Size()                  const { return Data_.size();       }
     int Sync();
+    void Info()                    const { return;                    }
+    // ----- DataSet_1D functions ----------------
+    int Allocate1D(size_t);
+    void Add( size_t, const void* );
+    double Dval(size_t idx)        const { return Data_[idx];         }
+    double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }
+    void WriteBuffer(CpptrajFile&, size_t) const;
+    // -------------------------------------------
+    typedef std::vector<double>::iterator iterator;
+    iterator begin()                     { return Data_.begin();      }
+    iterator end()                       { return Data_.end();        }
+    // For Analysis_Statistics DISTANCE NOE
+    void SetNOE(double b, double bh, double r) { bound_=b; boundh_=bh; rexp_=r;}
+    double NOE_bound()  const { return bound_;  }
+    double NOE_boundH() const { return boundh_; }
+    double NOE_rexp()   const { return rexp_;   }
   private:
-    typedef std::vector<double> DType;
-    typedef std::vector<int> IType;
-    DType Data_;
-    DType::iterator datum_;
-    IType Frames_;
-    IType::iterator frame_;
+    std::vector<double> Data_;
+    // For Analysis_Statistics DISTANCE NOE
+    double bound_;
+    double boundh_;
+    double rexp_;
 };
 #endif

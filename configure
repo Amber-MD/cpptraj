@@ -13,6 +13,7 @@ Usage() {
   echo "    --help     : Display this message."
   echo "    -d, -debug : Turn on compiler debugging info"
   echo "    -openmp    : Use openmp for parallelization of certain routines."
+  echo "    -mpi       : Use mpicc/mpicxx to compile."
   echo "    -cray      : Use cray compiler wrappers (cc/CC/ftn)."
   echo "    -debugon   : Add -DDEBUG flag to activate internal debugging"
   echo "    -noopt     : Do not use optimized compiler flags (default when -d specified)"
@@ -35,7 +36,7 @@ Usage() {
   echo "  EXPERIMENTAL OPTIONS:"
   echo "    -profile   : Use Gnu compiler profiling (>= V4.5)"
   echo "    -gprofile  : Use Gnu compiler GLIBC profiling (>= V4.5)"
-  echo "    -mpi       : Use mpicc/mpicxx to compile."
+  echo "    -vtune     : Enable options for use with Intel Vtune"
   echo "    NOTE: -openmp and -mpi are mutually exclusive, as are -profile and -gprofile."
 #  echo "   --with-hdf5=<DIR>"
 }
@@ -292,9 +293,7 @@ while [[ ! -z $1 ]] ; do
       ;; 
     "-debug" | "-d" ) 
       echo "Turning on compiler debug info"
-      echo "Turning off optimization"
-      DBGFLAGS="-g -O0"
-      OPT=0
+      DBGFLAGS="-g"
       ;;
     "-debugon"      ) 
       echo "Turning on cpptraj internal debug info"
@@ -314,6 +313,7 @@ while [[ ! -z $1 ]] ; do
       ;;
     "-profile"      ) PROFILE=1 ;;
     "-gprofile"     ) PROFILE=2 ;;
+    "-vtune"        ) PROFILE=3 ;;
     "-timer"        ) USETIMER=1 ;;
     "-nolfs"        )
       echo "Disabling large file support"
@@ -554,6 +554,7 @@ fi
 if [[ $OPT -eq 0 ]] ; then
   OPTFLAGS=""
   FOPTFLAGS=""
+  DBGFLAGS="$DBGFLAGS -O0"
 fi
 
 # Add cray-specific flags
@@ -595,6 +596,15 @@ if [[ $PROFILE -eq 1 && $CXX = "g++" ]] ; then
 elif [[ $PROFILE -eq 2 && $CXX = "g++" ]] ; then
   echo "Turning on GLIBC profiling for $CXX."
   CXXFLAGS="-D_GLIBCXX_PROFILE $CXXFLAGS"
+elif [[ $PROFILE -eq 3 ]] ; then
+  echo "Turning on flags for Intel Vtune"
+  VTUNEFLAGS=""
+  if [[ $CXX = "icpc" ]] ; then
+    VTUNEFLAGS=$VTUNEFLAGS" -debug inline-debug-info"
+  fi
+  CFLAGS="-g $VTUNEFLAGS $CFLAGS"
+  CXXFLAGS="-g $VTUNEFLAGS $CXXFLAGS"
+  LDFLAGS="-shared-intel -shared-libgcc $LDFLAGS"
 fi
 
 # Use cray wrappers

@@ -1,20 +1,22 @@
 #include <cmath> // sqrt
+#include <algorithm> // std::max_element
 #include "Action_Dipole.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // SMALL
 
 // CONSTRUCTOR
 Action_Dipole::Action_Dipole() :
+  grid_(0),
   max_(0),
   CurrentParm_(0)
 {}
 
 void Action_Dipole::Help() {
-  mprintf("\t<filename> %s\n", Grid::HelpText);
+  mprintf("\t<filename> %s\n", GridAction::HelpText);
   mprintf("\t<mask1> {origin | box} [max <max_percent>]\n");
 }
 
-// Action_Dipole::init()
+// Action_Dipole::Init()
 Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -31,12 +33,10 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else
     max_ = actionArgs.getKeyDouble("max", 0);
   // Get grid options
-  if (grid_.GridInit( "Dipole", actionArgs ))
-    return Action::ERR;
+  grid_ = GridInit( "Dipole", actionArgs, *DSL );
+  if (grid_ == 0) return Action::ERR;
   // Setup dipole x, y, and z grids
-  dipolex_.resize( grid_.GridSize(), 0 );
-  dipoley_.resize( grid_.GridSize(), 0 );
-  dipolez_.resize( grid_.GridSize(), 0 );
+  dipole_.resize( grid_->Size(), Vec3(0.0,0.0,0.0) );
 
   // Get mask
   std::string maskexpr = actionArgs.GetMaskNext();
@@ -47,7 +47,8 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   mask_.SetMaskString(maskexpr);
 
   // Info
-  grid_.GridInfo();
+  mprintf("    DIPOLE:\n");
+  GridInfo( *grid_ );
   mprintf("\tGrid will be printed to file %s\n",filename_.c_str());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   if (max_ > 0)
@@ -78,7 +79,7 @@ Action::RetType Action_Dipole::Setup(Topology* currentParm, Topology** parmAddre
   mprintf("\tLargest solvent mol is %i atoms.\n", NsolventAtoms);
 
   // Setup grid, checks box info.
-  if (grid_.GridSetup( *currentParm )) return Action::ERR;
+  if (GridSetup( *currentParm )) return Action::ERR;
 
   // Setup mask
   if (currentParm->SetupCharMask( mask_ ))
@@ -94,16 +95,14 @@ Action::RetType Action_Dipole::Setup(Topology* currentParm, Topology** parmAddre
 
 // Action_Dipole::action()
 Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double sol[3];
-  Vec3 cXYZ;
-  double dipolar_vector[3], COM[3];
+  Vec3 cXYZ, dipolar_vector, COM;
 
   // Set up center to origin or box center
-  if (grid_.GridMode() == Grid::BOX) 
+  if (GridMode() == GridAction::BOX) 
     cXYZ = currentFrame->BoxCrd().Center();
-  else if (grid_.GridMode() == Grid::CENTER)
-    cXYZ = currentFrame->VGeometricCenter( grid_.CenterMask() );
-  else
+  else if (GridMode() == GridAction::CENTER)
+    cXYZ = currentFrame->VGeometricCenter( CenterMask() );
+  else // GridAction::ORIGIN
     cXYZ.Zero();
 
   // Traverse over solvent molecules.
@@ -113,22 +112,16 @@ Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame
   {
     if (!(*solvmol).IsSolvent()) continue;
     //++i_solvent; // DEBUG
-    dipolar_vector[0] = 0.0;
-    dipolar_vector[1] = 0.0;
-    dipolar_vector[2] = 0.0;
-    COM[0] = 0.0;
-    COM[1] = 0.0;
-    COM[2] = 0.0;
+    dipolar_vector.Zero();
+    COM.Zero();
     double total_mass = 0;
     // Loop over solvent atoms
     for (int satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
     {
       if ( mask_.AtomInCharMask(satom) ) {
         // Get coordinates and shift to origin and then to appropriate spacing
-        const double* XYZ = currentFrame->XYZ( satom );
-        sol[0] = XYZ[0] + grid_.SX() - cXYZ[0];
-        sol[1] = XYZ[1] + grid_.SY() - cXYZ[1];
-        sol[2] = XYZ[2] + grid_.SZ() - cXYZ[2];
+        // NOTE: Do not shift into grid coords until the very end.
+        const double* sol = currentFrame->XYZ( satom );
         // Calculate dipole vector. The center of mass of the solvent is used 
         // as the "origin" for the vector.
         // NOTE: the total charge on the solvent should be neutral for this 
@@ -149,18 +142,16 @@ Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame
     if (total_mass < SMALL) continue;
 
     // Grid COM
-    COM[0] /= total_mass;
-    COM[1] /= total_mass;
-    COM[2] /= total_mass;
-    int bin = grid_.BinPoint( COM[0], COM[1], COM[2] );
-    //mprintf("CDBG: Solvent %i XYZ %8.3lf %8.3lf %8.3lf\n",i_solvent,COM[0],COM[1],COM[2]);
-    //mprintf("CDBG: Bin = %i\n", bin); 
-
-    // Grid dipole if COM was binned
-    if (bin != -1) {
-      dipolex_[bin] += dipolar_vector[0] ;
-      dipoley_[bin] += dipolar_vector[1] ;
-      dipolez_[bin] += dipolar_vector[2] ;
+    COM /= total_mass;
+    COM -= cXYZ;
+    int ix, jy, kz;
+    //mprintf("CDBG: Solvent %i XYZ %8.3f %8.3f %8.3f\n",solvmol-CurrentParm_->MolStart(),COM[0],COM[1],COM[2]);
+    if (grid_->CalcBins( COM[0], COM[1], COM[2], ix, jy, kz )) {
+      // Point COM is inside the grid. Increment grid and grid the dipole.
+      long int bin = grid_->Increment( ix, jy, kz, Increment() );
+      dipole_[bin] += dipolar_vector;
+      //mprintf("CDBG: Indices %i %i %i\n", ix, jy, kz);
+      //mprintf("CDBG: Bin = %lu\n", bin); 
     }
   } // END loop over solvent molecules
 
@@ -184,11 +175,7 @@ void Action_Dipole::Print() {
   outfile.Printf("field 8\nsize 1\nnside 3\nnlayer 1\ndirectional\nvector\ndata\n");
 
   // Determine max density
-  float maxF = 0;
-  for (Grid::iterator gval = grid_.begin(); gval != grid_.end(); ++gval) {
-    if ( maxF < *gval )
-      maxF = *gval;
-  }
+  float maxF = *std::max_element(grid_->begin(), grid_->end());
   mprintf("\tDipole: maximum density is %f\n", maxF);
 
   if ( max_ > 0) {
@@ -198,22 +185,22 @@ void Action_Dipole::Print() {
     max_density = 1.0;
 
   // Write data
-  for (int k = 0; k < grid_.NZ(); ++k) {
-    for (int j = 0; j < grid_.NY(); ++j) {
-      for (int i = 0; i < grid_.NX(); ++i) {
-        double density = grid_.GridVal(i, j, k);
+  for (size_t k = 0; k < grid_->NZ(); ++k) {
+    for (size_t j = 0; j < grid_->NY(); ++j) {
+      for (size_t i = 0; i < grid_->NX(); ++i) {
+        double density = grid_->GetElement(i, j, k);
         //mprintf("CDBG: %5i %5i %5i %lf\n",i,j,k,density);
         if ( density >= max_density ) {
           // Print Bin Coords
-          outfile.Printf("%8.3f %8.3f %8.3f", grid_.Xbin(i), grid_.Ybin(j), grid_.Zbin(k));
+          Vec3 binCorner = grid_->BinCorner(i, j, k);
+          outfile.Printf("%8.3f %8.3f %8.3f", binCorner[0], binCorner[1], binCorner[2]);
           // Normalize dipoles by density
-          int idx = i*grid_.NY()*grid_.NZ() + j*grid_.NZ() + k;
-          double dx = dipolex_[idx] / density; 
-          double dy = dipoley_[idx] / density; 
-          double dz = dipolez_[idx] / density;
+          size_t idx = grid_->CalcIndex(i,j,k);
+          dipole_[idx] /= density;
           // Write dipole components and length
-          outfile.Printf(" %8.3f %8.3f %8.3f", dx, dy, dz);
-          outfile.Printf(" %8.3f %8.3f\n", sqrt(dx*dx+dy*dy+dz*dz), density);
+          outfile.Printf(" %8.3f %8.3f %8.3f", 
+                         dipole_[idx][0], dipole_[idx][1], dipole_[idx][2]);
+          outfile.Printf(" %8.3f %8.3f\n", sqrt(dipole_[idx].Magnitude2()), density);
         }
       }
     }

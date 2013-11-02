@@ -1,6 +1,7 @@
 #ifndef INC_ANALYSIS_CRANKSHAFT_H
 #define INC_ANALYSIS_CRANKSHAFT_H
 #include "Analysis.h"
+#include "DataSet_1D.h"
 class Analysis_CrankShaft : public Analysis {
   public: 
     Analysis_CrankShaft();
@@ -23,8 +24,8 @@ class Analysis_CrankShaft : public Analysis {
     int stop_;
     int offset_;
     CStype type_;
-    DataSet *scalar1_;
-    DataSet *scalar2_;
+    DataSet_1D* scalar1_;
+    DataSet_1D* scalar2_;
     std::string info_;
 };
 #endif

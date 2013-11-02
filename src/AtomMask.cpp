@@ -23,6 +23,17 @@ AtomMask::AtomMask(std::string const& maskstring) :
   SetMaskString(maskstring);
 }
 
+// CONSTRUCTOR
+AtomMask::AtomMask(int beginAtom, int endAtom) :
+  debug_(0),
+  maskChar_('T'),
+  Natom_(0),
+  nselected_(0)
+{
+  AddAtomRange(beginAtom, endAtom);
+}
+
+
 // COPY CONSTRUCTOR
 AtomMask::AtomMask(const AtomMask &rhs) : 
   debug_(rhs.debug_),
@@ -413,6 +424,30 @@ void AtomMask::InvertMask() {
     maskChar_ = 'F';
   else
     maskChar_ = 'T';
+  if (!Selected_.empty()) {
+    // Invert the integer mask.
+    std::vector<int> invert;
+    invert.reserve( Natom_ - nselected_ );
+    const_iterator selected_atom = Selected_.begin();
+    for (int idx = 0; idx < Natom_; idx++) {
+      if (idx == *selected_atom) // Atom was selected, ignore.
+        ++selected_atom;
+      else                       // Atom was not selected, add.
+        invert.push_back( idx );
+    }
+    Selected_ = invert;
+    nselected_ = (int)Selected_.size();
+  }
+  if (!CharMask_.empty()) {
+    // Invert the character mask.
+    for (std::vector<char>::iterator atchar = CharMask_.begin();
+                                     atchar != CharMask_.end(); ++atchar)
+      if ( *atchar == 'T' )
+        *atchar = 'F';
+      else
+        *atchar = 'T';
+    nselected_ = Natom_ - nselected_;
+  }
 }
 
 // AtomMask::NumAtomsInCommon()

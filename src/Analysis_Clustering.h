@@ -21,7 +21,7 @@ class Analysis_Clustering: public Analysis {
     ClusterList* CList_;        ///< Hold specified clustering algorithm.
     std::string maskexpr_;      ///< If RMSD, Atoms to cluster on
     int sieve_;                 ///< If > 1, frames to skip on initial clustering pass.
-    int splitFrame_;            ///< Frame to split at when comparing 1st to 2nd half.
+    std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
     DataFile* cpopvtimefile_;   ///< Cluster pop v time file.
     std::string summaryfile_;   ///< Summary file name
@@ -38,6 +38,7 @@ class Analysis_Clustering: public Analysis {
     enum normPopType { NONE=0, CLUSTERPOP, FRAME };
     normPopType norm_pop_;      ///< If set cluster pops v time will be normalized 
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found
+    bool calc_lifetimes_;       ///< If true calculate DataSets for use in lifetime analysis.
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
     ClusterDist::DsArray cluster_dataset_;  ///< DataSet(s) to use for clustering.
     /// Cluster trajectory format.
@@ -51,6 +52,7 @@ class Analysis_Clustering: public Analysis {
 
     void CreateCnumvtime( ClusterList const&, int );
     void CreateCpopvtime( ClusterList const&, int );
+    void ClusterLifetimes( ClusterList const&, int );
     void WriteClusterTraj( ClusterList const& );
     void WriteSingleRepTraj( ClusterList const& );
     void WriteRepTraj( ClusterList const& );

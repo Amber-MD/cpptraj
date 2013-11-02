@@ -8,23 +8,41 @@
 #include "Range.h"
 // Data types go here
 #include "DataSet_double.h"
-#include "DataSet_string.h"
-#include "DataSet_integer.h"
 #include "DataSet_float.h"
-#include "DataSet_Vector.h"
-#include "DataSet_Matrix.h"
-#include "Histogram.h"
-#include "TriangleMatrix.h"
-#include "Matrix_2D.h"
-#include "DataSet_Modes.h"
+#include "DataSet_integer.h"
+#include "DataSet_string.h"
+#include "DataSet_MatrixDbl.h"
+#include "DataSet_MatrixFlt.h"
 #include "DataSet_Coords.h"
+#include "DataSet_Vector.h"
+#include "DataSet_Modes.h"
+#include "DataSet_GridFlt.h"
 #include "DataSet_RemLog.h"
+#include "DataSet_Mesh.h"
+
+// ----- STATIC VARS / ROUTINES ------------------------------------------------
+// IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
+const DataSetList::DataToken DataSetList::DataArray[] = {
+  { "unknown",     0                           }, // UNKNOWN_DATA
+  { "double",        DataSet_double::Alloc     }, // DOUBLE
+  { "float",         DataSet_float::Alloc      }, // FLOAT
+  { "integer",       DataSet_integer::Alloc    }, // INTEGER
+  { "string",        DataSet_string::Alloc     }, // STRING
+  { "double matrix", DataSet_MatrixDbl::Alloc  }, // MATRIX_DBL
+  { "float matrix",  DataSet_MatrixFlt::Alloc  }, // MATRIX_FLT
+  { "coordinates",   DataSet_Coords::Alloc     }, // COORDS
+  { "vector",        DataSet_Vector::Alloc     }, // VECTOR
+  { "eigenmodes",    DataSet_Modes::Alloc      }, // MODES
+  { "float grid",    DataSet_GridFlt::Alloc    }, // GRID_FLT
+  { "remlog",        DataSet_RemLog::Alloc     }, // REMLOG
+  { "X-Y mesh",      DataSet_Mesh::Alloc       }, // XYMESH
+  { 0, 0 }
+};
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
   debug_(0),
-  hasCopies_(false), 
-  maxFrames_(0)
+  hasCopies_(false) 
 {}
 
 // DESTRUCTOR
@@ -38,7 +56,6 @@ void DataSetList::Clear() {
       delete *ds;
   DataList_.clear();
   hasCopies_ = false;
-  maxFrames_ = 0;
 } 
 
 DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
@@ -48,21 +65,32 @@ DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   // Append rhs entries to here
   for (DataListType::const_iterator DS = rhs.begin(); DS != rhs.end(); ++DS)
     DataList_.push_back( *DS );
-  // Update maxframes
-  if (rhs.maxFrames_ > maxFrames_)
-    maxFrames_ = rhs.maxFrames_;
   return *this;
 }
 
-// DataSetList::erase()
+// DataSetList::RemoveSet()
 // NOTE: In order to call erase, must use iterator and not const_iterator.
 //       Hence, the conversion. The new standard *should* allow const_iterator
 //       to be passed to erase(), but this is currently not portable.
 /** Erase element pointed to by posIn from the list. */
-void DataSetList::erase( const_iterator posIn ) {
-  std::vector<DataSet*>::iterator pos = DataList_.begin() + (posIn - DataList_.begin());  
+void DataSetList::RemoveSet( const_iterator posIn ) {
+  std::vector<DataSet*>::iterator pos = DataList_.begin() + (posIn - DataList_.begin());
+  if (!hasCopies_) delete *pos;
   DataList_.erase( pos ); 
 } 
+
+// DataSetList::RemoveSet()
+void DataSetList::RemoveSet( DataSet* dsIn ) {
+  for (std::vector<DataSet*>::iterator pos = DataList_.begin();
+                                       pos != DataList_.end(); ++pos)
+  {
+    if ( (*pos) == dsIn ) {
+      if (!hasCopies_) delete *pos;
+      DataList_.erase( pos );
+      break;
+    }
+  }
+}
 
 // DataSetList::sort()
 void DataSetList::sort() {
@@ -76,25 +104,29 @@ void DataSetList::SetDebug(int debugIn) {
     mprintf("DataSetList Debug Level set to %i\n",debug_);
 }
 
-// DataSetList::SetMax()
-void DataSetList::SetMax(int expectedMax) {
-  maxFrames_ = expectedMax;
-  if (maxFrames_<0) maxFrames_ = 0;
-}
-
-/** Call Allocate for each DataSet in the list. */
-void DataSetList::AllocateSets() {
-  if (maxFrames_ == 0) return;
+/** Call Allocate for each 1D DataSet in the list. */
+void DataSetList::AllocateSets(long int maxFrames) {
+  if (maxFrames < 1L) return;
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    (*ds)->Allocate( maxFrames_ );
+  {
+    if ((*ds)->Ndim() == 1)
+      ((DataSet_1D*)(*ds))->Allocate1D( (size_t)maxFrames );
+  }
 }
 
-/* DataSetList::SetPrecisionOfDatasets()
+/* DataSetList::SetPrecisionOfDataSets()
  * Set the width and precision for all datasets in the list.
  */
-void DataSetList::SetPrecisionOfDatasets(int widthIn, int precisionIn) {
-  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
-    (*ds)->SetPrecision(widthIn,precisionIn);
+void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
+                                         int precisionIn)
+{
+  if (widthIn < 1)
+    mprinterr("Error: Invalid data width (%i)\n", widthIn);
+  else {
+    DataSetList Sets = GetMultipleSets( nameIn );
+    for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) 
+      (*ds)->SetPrecision(widthIn, precisionIn);
+  }
 }
 
 // DataSetList::ParseArgString()
@@ -165,11 +197,14 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
   std::string idx_arg;
   std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
   //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str());
+  // If index arg is empty make wildcard (-1)
   if (idx_arg.empty())
     idxrange.SetRange( -1, 0 ); 
   else
     idxrange.SetRange( idx_arg );
-
+  // If attribute arg not set and name is wildcard, make attribute wildcard.
+  if (attr_arg.empty() && dsname == "*")
+    attr_arg.assign("*");
   // All start selected
   std::vector<char> SelectedSets(DataList_.size(), 'T');
   // First check name
@@ -200,6 +235,8 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
   selected = SelectedSets.begin();
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ( *(selected++) == 'T' ) dsetOut.DataList_.push_back( *ds );
+  if ( dsetOut.empty() )
+    mprintf("Warning: '%s' selects no data sets.\n", nameIn.c_str());
   return dsetOut;
 }
 
@@ -292,29 +329,19 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
   // Check if DataSet with same attributes already present.
   DataSet* DS = GetSet(nameIn, idxIn, aspectIn);
   if (DS != 0) {
-    mprintf("Warning: DataSet %s:%i already present.\n", nameIn.c_str(), idxIn);
+    mprintf("Warning: DataSet '%s", nameIn.c_str());
+    if (!aspectIn.empty()) mprintf("[%s]", aspectIn.c_str());
+    if (idxIn != -1) mprintf(":%i", idxIn);
+    mprintf("' already present.\n");
     // NOTE: Should return found dataset?
     return 0; 
   }
-
-  switch (inType) {
-    case DataSet::DOUBLE       : DS = new DataSet_double(); break;
-    case DataSet::FLOAT        : DS = new DataSet_float(); break;
-    case DataSet::STRING       : DS = new DataSet_string(); break;
-    case DataSet::INT          : DS = new DataSet_integer(); break;
-    case DataSet::HIST         : DS = new Histogram(); break;
-    case DataSet::TRIMATRIX    : DS = new TriangleMatrix(); break;
-    case DataSet::MATRIX2D     : DS = new Matrix_2D(); break;
-    case DataSet::VECTOR       : DS = new DataSet_Vector(); break;
-    case DataSet::MATRIX       : DS = new DataSet_Matrix(); break;
-    case DataSet::MODES        : DS = new DataSet_Modes(); break;
-    case DataSet::COORDS       : DS = new DataSet_Coords(); break;
-    case DataSet::REMLOG       : DS = new DataSet_RemLog(); break;
-    case DataSet::UNKNOWN_DATA :
-    default:
-      mprinterr("Error: DataSetList::Add: Unknown set type.\n");
-      return 0;
+  TokenPtr token = &(DataArray[inType]);
+  if ( token->Alloc == 0) {
+    mprinterr("Internal Error: No allocator for DataSet type [%s]\n", token->Description);
+    return 0;
   }
+  DS = (DataSet*)token->Alloc();
   if (DS==0) {
     mprinterr("Internal Error: DataSet %s memory allocation failed.\n", nameIn.c_str());
     return 0;
@@ -348,14 +375,17 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   * that will be written to.
   */
 void DataSetList::List() const {
-  if (DataList_.empty())
+  if (!hasCopies_) { // No copies; this is a Master DSL.
+    if (DataList_.empty()) return;
+    mprintf("\nDATASETS:\n");
+  } else if (DataList_.empty()) {
     mprintf("  No data sets.");
-  else if (DataList_.size()==1)
-    mprintf("  1 data set: ");
+    return;
+  }
+  if (DataList_.size()==1)
+    mprintf("  1 data set:\n");
   else
-    mprintf("  %zu data sets: ", DataList_.size());
-
-  mprintf("\n");
+    mprintf("  %zu data sets:\n", DataList_.size());
   for (unsigned int ds=0; ds<DataList_.size(); ds++) {
     mprintf("\t%s", DataList_[ds]->Name().c_str());
     if (!DataList_[ds]->Aspect().empty())
@@ -363,15 +393,15 @@ void DataSetList::List() const {
     if (DataList_[ds]->Idx() != -1)
       mprintf(":%i", DataList_[ds]->Idx());
     mprintf(" \"%s\"", DataList_[ds]->Legend().c_str());
-    mprintf(" (%s)", DataList_[ds]->TypeName());
+    mprintf(" (%s)", DataArray[DataList_[ds]->Type()].Description);
     mprintf(", size is %i", DataList_[ds]->Size());
     DataList_[ds]->Info();
     mprintf("\n");
   }
 }
-
-// DataSetList::Sync()
-void DataSetList::Sync() {
+#ifdef MPI
+// DataSetList::SynchronizeData()
+void DataSetList::SynchronizeData() {
   // Sync datasets - does nothing if worldsize is 1
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
     if ( (*ds)->Sync() ) {
@@ -380,7 +410,7 @@ void DataSetList::Sync() {
     }
   }
 }
-
+#endif
 // DataSetList::FindSetOfType()
 DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn) const
 {

@@ -12,12 +12,14 @@
 Action_Jcoupling::Action_Jcoupling() :
   debug_(0),
   Nconstants_(0),
-  CurrentParm_(0)
-{ } 
+  CurrentParm_(0),
+  masterDSL_(0),
+  setcount_(1)
+{} 
 
 void Action_Jcoupling::Help() {
-  mprintf("\t<mask1> [outfile <filename>]\n");
-  mprintf("\tCalculate J-coupling values for all dihedrals found in <mask1>.\n");
+  mprintf("\t<mask1> [outfile <filename>] [kfile <param file>] [out <filename>]\n"
+          "\tCalculate J-coupling values for all dihedrals found in <mask1>.\n");
 }
 
 // DESTRUCTOR
@@ -153,62 +155,69 @@ int Action_Jcoupling::loadKarplus(std::string filename) {
 }
 
 // -----------------------------------------------------------------------------
-// Action_Jcoupling::init()
+// Action_Jcoupling::Init()
 Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
-  std::string karpluspath;
-
+  outfile_ = 0;
   // Get Keywords
-  std::string outfilename = actionArgs.GetStringKey("outfile");
-
+  std::string outfilename = actionArgs.GetStringKey("out");
+  if (outfilename.empty())
+    outfilename = actionArgs.GetStringKey("outfile");
+  else
+    outfile_ = DFL->AddDataFile( outfilename, actionArgs );
+  std::string karpluspath = actionArgs.GetStringKey("kfile");
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
-  // Dataset setup 
-  // Add dataset to data file list
-
-  // Get Karplus parameters from file.
-  karpluspath.clear();
-  // Check if the KARPLUS env var is set.
-  const char* env = getenv("KARPLUS");
-  if (env != 0) {
-    mprintf("Info: using parameter file defined by $KARPLUS environment variable.\n");
-    karpluspath.assign(env);
-  } else {
-    // If KARPLUS not set check for $AMBERHOME/dat/Karplus.txt
-    env = getenv("AMBERHOME");
-    if (env == 0) {
-      mprinterr("Error: jcoupling: Either AMBERHOME must be set or KARPLUS must point\n");
-      mprinterr("Error: to the file containing Karplus parameters.\n");
-      return Action::ERR;
+  // If no Karplus params specified check environment vars. 
+  if (karpluspath.empty()) {
+    // Check if the KARPLUS env var is set.
+    const char* env = getenv("KARPLUS");
+    if (env != 0) {
+      mprintf("Info: Using parameter file defined by $KARPLUS environment variable.\n");
+      karpluspath.assign(env);
+    } else {
+      // If KARPLUS not set check for $AMBERHOME/dat/Karplus.txt
+      env = getenv("AMBERHOME");
+      if (env == 0) {
+        mprinterr("Error: Either AMBERHOME must be set or KARPLUS must point\n"
+                  "Error:   to the file containing Karplus parameters.\n");
+        return Action::ERR;
+      }
+      mprintf("Info: Using parameter file in '$AMBERHOME/dat/'.\n");
+      karpluspath.assign(env);
+      karpluspath += "/dat/Karplus.txt";
     }
-    mprintf("Info: using parameter file in '$AMBERHOME/dat/'.\n");
-    karpluspath.assign(env);
-    karpluspath += "/dat/Karplus.txt";
   }
   // Load Karplus parameters
   if (loadKarplus(karpluspath)) 
     return Action::ERR;
 
-  mprintf("    J-COUPLING: Searching for dihedrals in mask [%s].\n",Mask1_.MaskString());
-  mprintf("                Using Karplus parameters in \"%s\"\n",karpluspath.c_str());
-  mprintf("                %i parameters found for %zu residues.\n",Nconstants_,
-          KarplusConstants_.size());
-  if (!outfilename.empty())
-    mprintf("                Writing output to %s\n",outfilename.c_str());
-  else
-    mprintf("                Writing output to STDOUT\n");
+  mprintf("    J-COUPLING: Searching for dihedrals in mask [%s].\n"
+          "\tUsing Karplus parameters in \"%s\"\n"
+          "\t%i parameters found for %zu residues.\n",
+          Mask1_.MaskString(), karpluspath.c_str(), Nconstants_, KarplusConstants_.size());
+  if (outfile_ != 0)
+    mprintf("\tDataSets will be written to %s\n", outfile_->DataFilename().full());
+  else {
+    if (!outfilename.empty())
+      mprintf("                Writing output to %s\n",outfilename.c_str());
+    else
+      mprintf("                Writing output to STDOUT\n");
+  }
   mprintf("# Citations: Chou et al. JACS (2003) 125 p.8959-8966\n"
           "#            Perez et al. JACS (2001) 123 p.7081-7093\n");
   // Open output
-  if ( outputfile_.OpenWrite( outfilename ) ) return Action::ERR;
-
+  if (outfile_ == 0) {
+    if ( outputfile_.OpenWrite( outfilename ) ) return Action::ERR;
+  }
+  masterDSL_ = DSL;
   return Action::OK;
 }
 
-// Action_Jcoupling::setup()
+// Action_Jcoupling::Setup()
 /** Set up a j-coupling calculation for dihedrals defined by atoms within
   * the mask.
   */
@@ -220,15 +229,15 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
 
   if ( currentParm->SetupCharMask(Mask1_) ) return Action::ERR;
   if (Mask1_.None()) {
-    mprinterr("    Error: Jcoupling::setup: Mask specifies no atoms.\n");
+    mprinterr("Error: Mask specifies no atoms.\n");
     return Action::ERR;
   }
   // If JcouplingInfo has already been set up, print a warning and reset for
   // new parm.
   if (!JcouplingInfo_.empty()) {
-    mprintf("    Warning: Jcoupling has been set up for another parm.\n");
-    mprintf("             Resetting jcoupling info for new parm %s\n",currentParm->c_str());
-    JcouplingInfo_.clear();
+    mprintf("Warning: Jcoupling has been set up for another parm.\n"
+            "Warning:   Resetting jcoupling info for new parm %s\n",currentParm->c_str());
+    //JcouplingInfo_.clear();
   }
 
   // For each residue, set up 1 jcoupling calc for each parameter defined in
@@ -236,56 +245,67 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
   // atoms involved are present in the mask.
   MaxResidues = currentParm->FinalSoluteRes();
   for (int residue=0; residue < MaxResidues; residue++) {
-    // Check if any atoms within this residue are selected
+    // Skip residue if no atoms within residue are selected.
     if (!Mask1_.AtomsInCharMask(currentParm->Res(residue).FirstAtom(),
                                 currentParm->Res(residue).LastAtom())) continue;
     resName.assign(currentParm->Res(residue).c_str());
     karplusConstantMap::iterator reslist = KarplusConstants_.find(resName);
     // If list does not exist for residue, skip it.
     if (reslist == KarplusConstants_.end() ) {
-      mprintf("    Warning: Jcoupling::setup: Karplus parameters not found for residue [%i:%s]\n",
+      mprintf("Warning: Karplus parameters not found for residue [%i:%s]\n",
               residue+1, resName.c_str());
       continue;
     }
     currentResList = (*reslist).second;
     // For each parameter set in the list find the corresponding atoms.
     for (karplusConstantList::iterator kc = currentResList->begin();
-                                                kc != currentResList->end();
-                                                kc++) 
+                                       kc != currentResList->end(); ++kc) 
     {
-      // Init jcoupling info
-      // Constants will point inside KarplusConstants
+      // Init jcoupling info. Constants will point inside KarplusConstants.
       JC.residue = residue;
       JC.atom[0] = -1;
       JC.atom[1] = -1;
       JC.atom[2] = -1;
       JC.atom[3] = -1;
-      JC.C=(*kc).C;
-      JC.type=(*kc).type;
+      JC.C = (*kc).C;
+      JC.type = (*kc).type;
       // For each atom in the dihedral specified in this Karplus constant, find
-      // corresponding atoms in parm. 
-      for (int idx=0; idx < 4; idx++) 
-        JC.atom[idx] = currentParm->FindAtomInResidue(residue+(*kc).offset[idx],
-                                                      (*kc).atomName[idx]       );
-      // Check that all atoms were found
+      // corresponding atoms in parm.
       bool allAtomsFound = true;
       for (int idx=0; idx < 4; idx++) {
-        if (JC.atom[idx]==-1) {
-          mprintf("Warning: jcoupling: Atom %4s at position %i not found for residue %i\n",
+        JC.atom[idx] = currentParm->FindAtomInResidue(residue+(*kc).offset[idx],
+                                                      (*kc).atomName[idx]       );
+        if (JC.atom[idx] == -1) {
+          mprintf("Warning: Atom '%s' at position %i not found for residue %i\n",
                     *((*kc).atomName[idx]), idx, residue+(*kc).offset[idx]+1);
           allAtomsFound = false;
-          break;
         }
       }
-      if (!allAtomsFound) continue;
-      // Check that all the atoms involved in this Jcouple dihedral are
-      // in the atom mask.
-      if (!Mask1_.AtomInCharMask(JC.atom[0])) continue;
-      if (!Mask1_.AtomInCharMask(JC.atom[1])) continue;
-      if (!Mask1_.AtomInCharMask(JC.atom[2])) continue;
-      if (!Mask1_.AtomInCharMask(JC.atom[3])) continue;
-      // Add this jcoupling info to the list
-      JcouplingInfo_.push_back(JC);
+      if (allAtomsFound) { 
+        // Check that all the atoms involved in this Jcouple dihedral are
+        // in the atom mask. If so, add jcoupling info to the list.
+        if (Mask1_.AtomInCharMask(JC.atom[0]) && Mask1_.AtomInCharMask(JC.atom[1]) &&
+            Mask1_.AtomInCharMask(JC.atom[2]) && Mask1_.AtomInCharMask(JC.atom[3]))
+        {
+          // TODO: Look for previously set up matching data set
+          if (setname_.empty())
+            setname_ = masterDSL_->GenerateDefaultName("JC");
+          JC.data_ = masterDSL_->AddSetIdx( DataSet::FLOAT, setname_, setcount_++ );
+          if ( JC.data_ != 0 ) {
+            JC.data_->SetLegend( currentParm->TruncResNameNum(JC.residue) + "_" +
+                                 (*currentParm)[JC.atom[0]].Name().Truncated() + "-" +
+                                 (*currentParm)[JC.atom[1]].Name().Truncated() + "-" +
+                                 (*currentParm)[JC.atom[2]].Name().Truncated() + "-" +
+                                 (*currentParm)[JC.atom[3]].Name().Truncated()  );
+            if (outfile_ != 0)
+              outfile_->AddSet( JC.data_ ); 
+            JcouplingInfo_.push_back(JC);
+          } else {
+            mprinterr("Internal Error: Could not set up Jcoupling data set for res %i\n",
+                      JC.residue+1);
+          }
+        }
+      }
     } // END loop over karplus parameters for this residue
   } // END loop over all residues
 
@@ -293,19 +313,19 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
   mprintf("    J-COUPLING: [%s] Will calculate J-coupling for %zu dihedrals.\n",
           Mask1_.MaskString(), JcouplingInfo_.size());
   if (JcouplingInfo_.empty()) {
-    mprintf("    Warning: No dihedrals found for J-coupling calculation!\n");
-    mprintf("             Check that all atoms of dihedrals are included in mask [%s]\n",
+    mprintf("Warning: No dihedrals found for J-coupling calculation!\n"
+            "Warning:   Check that all atoms of dihedrals are included in mask [%s]\n"
+            "Warning:   and/or that dihedrals are defined in Karplus parameter file.\n",
             Mask1_.MaskString());
-    mprintf("             and/or that dihedrals are defined in Karplus parameter file.\n");
     return Action::ERR;
   }
   // DEBUG
   if (debug_>0) {
-    MaxResidues=0;
+    MaxResidues=1;
     for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
-                                              jc !=JcouplingInfo_.end(); ++jc) 
+                                              jc != JcouplingInfo_.end(); ++jc) 
     {
-      mprintf("%8i [%i:%4s]",MaxResidues+1,(*jc).residue, currentParm->Res((*jc).residue).c_str());
+      mprintf("%8i [%i:%4s]",MaxResidues,(*jc).residue, currentParm->Res((*jc).residue).c_str());
       mprintf(" %6i:%-4s",(*jc).atom[0],(*currentParm)[(*jc).atom[0]].c_str());
       mprintf(" %6i:%-4s",(*jc).atom[1],(*currentParm)[(*jc).atom[1]].c_str());
       mprintf(" %6i:%-4s",(*jc).atom[2],(*currentParm)[(*jc).atom[2]].c_str());
@@ -319,47 +339,43 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
   return Action::OK;  
 }
 
-// Action_Jcoupling::action()
+// Action_Jcoupling::DoAction()
 /** For each dihedral defined in JcouplingInfo, perform the dihedral and
   * Jcoupling calculation.
   */
 Action::RetType Action_Jcoupling::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double phi, Jval;
-  double phitemp, C0, C1, C2, C3;
-  int residue;
+  double Jval;
 
-  outputfile_.Printf("#Frame %i\n",frameNum+OUTPUTFRAMESHIFT);
+  if (outfile_==0)
+    outputfile_.Printf("#Frame %i\n",frameNum+OUTPUTFRAMESHIFT);
 
   for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
                                             jc !=JcouplingInfo_.end(); ++jc)
   {
-    phi = Torsion(currentFrame->XYZ((*jc).atom[0]),
-                  currentFrame->XYZ((*jc).atom[1]),
-                  currentFrame->XYZ((*jc).atom[2]),
-                  currentFrame->XYZ((*jc).atom[3]) );
-    C0 = (*jc).C[0];
-    C1 = (*jc).C[1];
-    C2 = (*jc).C[2];
-    C3 = (*jc).C[3];
+    double phi = Torsion(currentFrame->XYZ((*jc).atom[0]),
+                         currentFrame->XYZ((*jc).atom[1]),
+                         currentFrame->XYZ((*jc).atom[2]),
+                         currentFrame->XYZ((*jc).atom[3]) );
     if ((*jc).type==1) {
-      //J = JcouplingC((*jc).C, phi);
-      //phitemp = phi + C3; // Only necessary if offsets become used in perez-type calc
-      Jval = C0 + (C1 * cos(phi)) + (C2 * cos(phi * 2.0)); 
+      //phitemp = phi + (*jc).C[3]; // Only necessary if offsets become used in perez-type calc
+      Jval = (*jc).C[0] + ((*jc).C[1] * cos(phi)) + ((*jc).C[2] * cos(phi * 2.0)); 
     } else {
-      //J = JcouplingABC((*jc).C, phi);
-      phitemp = cos( phi + C3 );
-      Jval = (C0 * phitemp * phitemp) + (C1 * phitemp) + C2;
+      double phitemp = cos( phi + (*jc).C[3] );
+      Jval = ((*jc).C[0] * phitemp * phitemp) + ((*jc).C[1] * phitemp) + (*jc).C[2];
     }
+    float fval = (float)Jval;
+    (*jc).data_->Add(frameNum, &fval);
 
-    residue = (*jc).residue;
+    int residue = (*jc).residue;
     // Output
-    outputfile_.Printf("%5i %4s%4s%4s%4s%4s%12lf%12lf\n",
-                       residue+1, CurrentParm_->Res(residue).c_str(),
-                       (*CurrentParm_)[(*jc).atom[0]].c_str(), 
-                       (*CurrentParm_)[(*jc).atom[1]].c_str(),
-                       (*CurrentParm_)[(*jc).atom[2]].c_str(), 
-                       (*CurrentParm_)[(*jc).atom[3]].c_str(),
-                       phi*RADDEG, Jval);
+    if (outfile_==0)
+      outputfile_.Printf("%5i %4s%4s%4s%4s%4s%12f%12f\n",
+                         residue+1, CurrentParm_->Res(residue).c_str(),
+                         (*CurrentParm_)[(*jc).atom[0]].c_str(), 
+                         (*CurrentParm_)[(*jc).atom[1]].c_str(),
+                         (*CurrentParm_)[(*jc).atom[2]].c_str(), 
+                         (*CurrentParm_)[(*jc).atom[3]].c_str(),
+                         phi*RADDEG, Jval);
   }
 
   return Action::OK;

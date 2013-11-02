@@ -8,7 +8,7 @@ class ActionFrameCounter {
     static const char* HelpText;
     int InitFrameCounter(ArgList&);
     /// \return true if frame should not be processed.
-    bool CheckFrameCounter(int frameNum) {
+    bool CheckFrameCounter(int frameNum) const {
 /*      if (start_ == -1) return true;
       // Need this in case frames were skipped
       while (start_ < frameNum)
@@ -23,8 +23,8 @@ class ActionFrameCounter {
       if ( ((frameNum + start_) % offset_) != 0 ) return true;
       return false;
     }
-    void FrameCounterInfo();
-    void FrameCounterBrief();
+    void FrameCounterInfo() const;
+    void FrameCounterBrief() const;
   private:
     int start_;
     int stop_;

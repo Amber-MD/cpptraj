@@ -1,6 +1,7 @@
 #ifndef INC_ANALYSIS_MELTCURVE_H
 #define INC_ANALYSIS_MELTCURVE_H
 #include "Analysis.h"
+#include "Array1D.h"
 class Analysis_MeltCurve : public Analysis {
   public:
     Analysis_MeltCurve();
@@ -11,7 +12,7 @@ class Analysis_MeltCurve : public Analysis {
     Analysis::RetType Analyze();
   private:
     DataFile* outfile_; // FIXME: May not need to be class var
-    DataSetList input_dsets_;
+    Array1D input_dsets_;
     DataSet* mcurve_;
     double cut_;
 };

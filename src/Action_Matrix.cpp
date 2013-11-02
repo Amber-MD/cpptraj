@@ -8,8 +8,8 @@ Action_Matrix::Action_Matrix() :
   Mat_(0),
   outfile_(0),
   outtype_(BYATOM),
-  type_(DataSet_Matrix::NO_OP),
   snap_(0),
+  debug_(0),
   order_(2),
   useMask2_(false),
   useMass_(false),
@@ -25,16 +25,31 @@ void Action_Matrix::Help() {
   mprintf("\tCalculate a matrix of the specified type from input coordinates.\n");
 }
 
-// Action_Matrix::init()
+// Action_Matrix::Init()
 Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  debug_ = debugIn;
   // Get Keywords
   filename_ = actionArgs.GetStringKey("out");
   // Get start/stop/offset
   if (InitFrameCounter(actionArgs)) return Action::ERR;
   // Determine matrix type
-  type_ = DataSet_Matrix::TypeFromArg(actionArgs);
+  DataSet_2D::MatrixType mtype = DataSet_2D::DIST;
+  if (actionArgs.hasKey("distcovar"))
+    mtype = DataSet_2D::DISTCOVAR;
+  else if (actionArgs.hasKey("mwcovar"))
+    mtype = DataSet_2D::MWCOVAR;
+  else if (actionArgs.hasKey("dist"))
+    mtype = DataSet_2D::DIST;
+  else if (actionArgs.hasKey("covar"))
+    mtype = DataSet_2D::COVAR;
+  else if (actionArgs.hasKey("correl"))
+    mtype = DataSet_2D::CORREL;
+  else if (actionArgs.hasKey("idea"))
+    mtype = DataSet_2D::IDEA;
+  else if (actionArgs.hasKey("ired"))
+    mtype = DataSet_2D::IRED;
   // Output type
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRESIDUE;
@@ -45,9 +60,9 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else
     outtype_ = BYATOM;
   // Check if output type is valid for matrix type
-  if ( outtype_ != BYATOM && (type_ == DataSet_Matrix::COVAR || 
-                              type_ == DataSet_Matrix::MWCOVAR || 
-                              type_ == DataSet_Matrix::IRED ) )
+  if ( outtype_ != BYATOM && (mtype == DataSet_2D::COVAR || 
+                              mtype == DataSet_2D::MWCOVAR || 
+                              mtype == DataSet_2D::IRED ) )
   {
     mprinterr("Error: matrix: for COVAR, MWCOVAR, or IRED matrix only byatom output possible\n");
     return Action::ERR;
@@ -57,20 +72,23 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // UseMass
   useMass_ = actionArgs.hasKey("mass");
 
-  if (type_ != DataSet_Matrix::IRED) {
+  DataSet_2D::MatrixKind mkind = DataSet_2D::HALF;
+  if (mtype != DataSet_2D::IRED) {
     // Get masks if not IRED
     mask1_.SetMaskString( actionArgs.GetMaskNext() );
     std::string maskexpr = actionArgs.GetMaskNext();
     if (!maskexpr.empty()) useMask2_ = true;
-    if ( useMask2_ && (type_ == DataSet_Matrix::IDEA || type_ == DataSet_Matrix::DISTCOVAR) )
+    if ( useMask2_ && (mtype == DataSet_2D::IDEA || mtype == DataSet_2D::DISTCOVAR) )
     {
       mprinterr("Error: Mask 2 [%s] specified but not used for %s\n",
-                maskexpr.c_str(), DataSet_Matrix::MatrixTypeString[type_]);
+                maskexpr.c_str(), DataSet_2D::MatrixTypeString(mtype));
       useMask2_ = false;
       return Action::ERR;
     }
-    if (useMask2_)
+    if (useMask2_) {
       mask2_.SetMaskString( maskexpr );
+      mkind = DataSet_2D::FULL;
+    }
   } else {
     // Setup IRED vectors and determine Legendre order
     order_ = actionArgs.getKeyInt("order",1);
@@ -92,14 +110,16 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   }
  
   // Set up matrix DataSet and type
-  Mat_ = (DataSet_Matrix*)DSL->AddSet(DataSet::MATRIX, name, "Mat");
+  Mat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, name, "Mat");
   if (Mat_ == 0) return Action::ERR;
-  Mat_->SetType( type_ );
+  Mat_->SetTypeAndKind( mtype, mkind );
+  // Set default precision for backwards compat.
+  Mat_->SetPrecision(6, 3);
   // Add set to output file if doing BYATOM output
   if (outtype_ == BYATOM)
     outfile_ = DFL->AddSetToFile(filename_, Mat_);
 
-  mprintf("    MATRIX: Calculating %s, output is", DataSet_Matrix::MatrixTypeString[type_]);
+  mprintf("    MATRIX: Calculating %s, output is", DataSet_2D::MatrixTypeString(mtype));
   switch (outtype_) {
     case BYATOM:    mprintf(" by atom"); break;
     case BYRESIDUE: mprintf(" by residue"); break;
@@ -112,7 +132,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       mprintf(" using no mass weighting");
   }
   mprintf("\n");
-  if (type_ == DataSet_Matrix::IRED)
+  if (mtype == DataSet_2D::IRED)
     mprintf("            %u IRED vecs, Order of Legendre polynomials: %i\n",
             IredVectors_.size(), order_);
   if (!filename_.empty()) {
@@ -126,7 +146,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf("            Storing matrix on internal stack with name: %s\n", 
             Mat_->Legend().c_str());
   FrameCounterInfo();
-  if (type_ != DataSet_Matrix::IRED) {
+  if (mtype != DataSet_2D::IRED) {
     mprintf("            Mask1: %s\n",mask1_.MaskString());
     if (useMask2_)
       mprintf("            Mask2: %s\n",mask2_.MaskString());
@@ -136,30 +156,35 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 }
 
 // Action_Matrix::FillMassArray()
-void Action_Matrix::FillMassArray(Topology* currentParm, std::vector<double>& mass, AtomMask& mask)
+Action_Matrix::Darray Action_Matrix::FillMassArray(Topology const& currentParm, 
+                                                   AtomMask const& mask) const
 {
-  mass.clear();
-  if (type_ == DataSet_Matrix::MWCOVAR) {
-    mass.reserve( mask.Nselected() );
-    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) 
-      mass.push_back( (*currentParm)[ *atom ].Mass() );
-  }
+  Darray mass;
+  mass.reserve( mask.Nselected() );
+  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) 
+    mass.push_back( currentParm[ *atom ].Mass() );
+  return mass;
 }
 
-// Action_Matrix::setup()
+static Action::RetType PrintMask2Error() {
+  mprinterr("Error: Second mask (full matrix) not supported for DISTCOVAR,\n");
+  mprinterr("Error: IDEA, or IRED matrix.\n");
+  return Action::ERR;
+}
+
+// Action_Matrix::Setup()
 Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddress) {
   size_t mask1tot = 0; // Will be # of columns
   size_t mask2tot = 0; // Will be # of rows if not symmetric matrix
 
-  // Set up masks. Store mass info for masks if MWCOVAR
-  if (type_ != DataSet_Matrix::IRED) {
+  // Set up masks.
+  if (Mat_->Type() != DataSet_2D::IRED) {
     if (currentParm->SetupIntegerMask(mask1_)) return Action::ERR;
     mask1_.MaskInfo();
     if (mask1_.None()) {
       mprinterr("Error: No atoms selected for mask1.\n");
       return Action::ERR;
     }
-    FillMassArray(currentParm, mass1_, mask1_); // MWCOVAR only
     if (useMask2_) {
       if (currentParm->SetupIntegerMask(mask2_)) return Action::ERR;
       mask2_.MaskInfo(); 
@@ -167,7 +192,6 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
         mprinterr("Error: No atoms selected for mask2.\n");
         return Action::ERR;
       }
-      FillMassArray(currentParm, mass2_, mask2_); // MWCOVAR only
     }
     mask1tot = (size_t)mask1_.Nselected();
     mask2tot = (size_t)mask2_.Nselected();
@@ -176,69 +200,82 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
     mask1tot = IredVectors_.size();
   }
   if (mask1tot < mask2tot) {
-    mprinterr("Error: DataSet_Matrix: # of atoms in mask1 < # of atoms in mask2\n");
+    mprinterr("Error: # of atoms in mask1 < # of atoms in mask2\n");
     return Action::ERR;
   }
 
-  // Allocate vector memory
+  // Determine matrix/vector dimensions. 
   size_t vectsize = 0;
-  switch( type_ ) {
-    case DataSet_Matrix::DIST     : break;
-    case DataSet_Matrix::DISTCOVAR: vectsize = mask1tot * (mask1tot - 1) / 2; break;
-    case DataSet_Matrix::CORREL   :
-    case DataSet_Matrix::COVAR    :
-    case DataSet_Matrix::MWCOVAR  : vectsize = (mask1tot + mask2tot) * 3; break;
-    default                       : vectsize = mask1tot + mask2tot;
-  }
-  if (Mat_->AllocateVectors( vectsize )) return Action::ERR;
-
-  // Allocate matrix memory.
-  size_t matrixSize = 0;
-  size_t nrows = 0;
   size_t ncols = 0;
-  if (mask2tot == 0) {
-    // "Upper right half" matrix, including main diagonal.
-    switch( type_ ) {
-      case DataSet_Matrix::DISTCOVAR:
-        ncols = vectsize;
-        matrixSize = mask1tot * (mask1tot - 1) * (ncols + 1) / 4;
-        break;
-      case DataSet_Matrix::COVAR:
-      case DataSet_Matrix::MWCOVAR:
-        ncols = mask1tot * 3;
-        matrixSize = 3 * ncols * (mask1tot + 1) / 2;
-        break;
-      default:
-        ncols = mask1tot;
-        matrixSize = ncols * (mask1tot + 1) / 2;
+  size_t nrows = 0;
+  switch( Mat_->Type() ) {
+    case DataSet_2D::CORREL   : // Like DIST but vectors required. 
+      vectsize = (mask1tot + mask2tot) * 3;
+    case DataSet_2D::DIST     : // No vectors required.
+      ncols = mask1tot;
+      nrows = mask2tot;
+      break;
+    case DataSet_2D::DISTCOVAR: // No Full matrix possible.
+      vectsize = mask1tot * (mask1tot - 1) / 2;
+      ncols = vectsize;
+      if (mask2tot > 0) return PrintMask2Error();
+      break;
+    case DataSet_2D::MWCOVAR  :
+      // Mass info needed for MWCOVAR analysis, store in matrix dataset.
+      mass1_ = FillMassArray(*currentParm, mask1_);
+      mass2_ = FillMassArray(*currentParm, mask2_);
+      Mat_->StoreMass( mass1_ );
+    case DataSet_2D::COVAR    :
+      vectsize = (mask1tot + mask2tot) * 3;
+      ncols = mask1tot * 3;
+      nrows = mask2tot * 3;
+      break;
+    case DataSet_2D::IDEA     :
+    case DataSet_2D::IRED     : // No Full matrix possible.
+      vectsize = mask1tot + mask2tot;
+      ncols = mask1tot;
+      if (mask2tot > 0) return PrintMask2Error();
+      break;
+    default: return Action::ERR; // Sanity check
+  }
+  // Allocate vector memory.
+  Mat_->AllocateVector( vectsize );
+  vect2_.resize( vectsize, 0.0 );
+  // Allocate matrix memory.
+  size_t previous_size = Mat_->Size();
+  if (nrows > 0) // Full matrix - no DISTCOVAR, IDEA, or IRED possible
+    Mat_->Allocate2D( ncols, nrows );
+  else           // "Upper right half" matrix, including main diagonal.
+    Mat_->AllocateHalf( ncols );
+# ifdef _OPENMP
+  if (
+       ( Mat_->Type() == DataSet_2D::COVAR ||
+         Mat_->Type() == DataSet_2D::MWCOVAR ))
+  {
+    if (Mat_->Kind() == DataSet_2D::FULL) {
+      // Store combined mask1 and mask2 for diagonal.
+      crd_indices_.clear();
+      crd_indices_.reserve( mask1_.Nselected() + mask2_.Nselected() );
+      for (AtomMask::const_iterator at = mask1_.begin(); at != mask1_.end(); ++at)
+        crd_indices_.push_back( *at * 3 );
+      for (AtomMask::const_iterator at = mask2_.begin(); at != mask2_.end(); ++at)
+        crd_indices_.push_back( *at * 3 );
     }
-  } else {
-    // Full matrix - no DISTCOVAR, IDEA, or IRED possible
-    switch( type_ ) {
-      case DataSet_Matrix::DISTCOVAR:
-      case DataSet_Matrix::IDEA:
-      case DataSet_Matrix::IRED:
-        mprinterr("Error: Second mask (full matrix) not supported for DISTCOVAR,\n");
-        mprinterr("Error: IDEA, or IRED matrix.\n");
-        return Action::ERR;
-        break;
-      case DataSet_Matrix::COVAR:
-      case DataSet_Matrix::MWCOVAR:
-        matrixSize = 9 * mask1tot * mask2tot;
-        ncols = mask1tot * 3;
-        nrows = mask2tot * 3;
-        break;
-      default:
-        matrixSize = mask1tot * mask2tot;
-        ncols = mask1tot;
-        nrows = mask2tot;
+    if (debug_ > 1) {
+      mprintf("DEBUG: Combined mask1+mask2 coordinate indices:\n");
+      for (unsigned int i = 0; i < crd_indices_.size(); i += 2)
+        mprintf("%u:\t%i %i\n", i/2, crd_indices_[i], crd_indices_[i+1]);
     }
   }
-  if (Mat_->AllocateMatrix(ncols, nrows, mask1tot, matrixSize)) return Action::ERR;
-
-  // Mass info needed for MWCOVAR analysis, store in matrix dataset.
-  if (type_ == DataSet_Matrix::MWCOVAR) 
-    Mat_->StoreMass( mass1_ );
+# endif
+  // If matrix has already been allocated, make sure size did not change.
+  if (previous_size > 0 && previous_size != Mat_->Size()) {
+    mprinterr("Error: Attempting to reallocate matrix with different size.\n");
+    mprinterr("Error: Original size= %u, new size= %u\n", previous_size, Mat_->Size());
+    mprinterr("Error: This can occur when different #s of atoms are selected in\n");
+    mprinterr("Error: different topology files.\n");
+    return Action::ERR;
+  }
   CurrentParm_ = currentParm;
   return Action::OK;
 }
@@ -273,21 +310,21 @@ static double LegendrePoly(int order, double val) {
   * CAVEAT: omegaK-omegaL is not "just" the intra molecular angle there.
   */
 void Action_Matrix::CalcIredMatrix() {
-  DataSet_Matrix::iterator v2idx1 = Mat_->v2begin();
+  v_iterator v2idx1 = vect2_.begin();
   // Store length of IRED vectors in vect2
   for (std::vector<DataSet_Vector*>::iterator Vtmp = IredVectors_.begin();
                                               Vtmp != IredVectors_.end(); ++Vtmp)
     *(v2idx1++) = sqrt( (*Vtmp)->Dot( *(*Vtmp) ) );
 
   // Loop over all pairs of IRED vectors.
-  DataSet_Matrix::iterator mat = Mat_->begin();
-  DataSet_Matrix::iterator v1idx = Mat_->v1begin();
-  v2idx1 = Mat_->v2begin();
+  DataSet_MatrixDbl::iterator mat = Mat_->begin();
+  v_iterator v1idx = Mat_->v1begin();
+  v2idx1 = vect2_.begin();
   for (std::vector<DataSet_Vector*>::iterator Vtmp = IredVectors_.begin();
                                               Vtmp != IredVectors_.end(); ++Vtmp)
   {
     double len1 = *v2idx1;
-    DataSet_Matrix::iterator v2idx2 = v2idx1;
+    v_iterator v2idx2 = v2idx1;
     for (std::vector<DataSet_Vector*>::iterator Vtmp2 = Vtmp;
                                                 Vtmp2 != IredVectors_.end(); ++Vtmp2)
     {
@@ -302,24 +339,23 @@ void Action_Matrix::CalcIredMatrix() {
 }
 
 /** Calc Distance Matrix */
-void Action_Matrix::CalcDistanceMatrix(Frame* currentFrame) {
-  DataSet_Matrix::iterator mat = Mat_->begin();
+void Action_Matrix::CalcDistanceMatrix(Frame const& currentFrame) {
+  DataSet_MatrixDbl::iterator mat = ((DataSet_MatrixDbl*)Mat_)->begin();
   if (!useMask2_) {
     // Upper Triangle
     for (AtomMask::const_iterator atom2 = mask1_.begin(); atom2 != mask1_.end(); ++atom2)
       for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
-        *(mat++) += sqrt(DIST2_NoImage(currentFrame->XYZ(*atom2), currentFrame->XYZ(*atom1)));
+        *(mat++) += sqrt(DIST2_NoImage(currentFrame.XYZ(*atom2), currentFrame.XYZ(*atom1)));
   } else {
     // Full matrix
     for (AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
       for (AtomMask::const_iterator atom1 = mask1_.begin(); atom1 != mask1_.end(); ++atom1)
-        *(mat++) += sqrt(DIST2_NoImage(currentFrame->XYZ(*atom2), currentFrame->XYZ(*atom1)));
+        *(mat++) += sqrt(DIST2_NoImage(currentFrame.XYZ(*atom2), currentFrame.XYZ(*atom1)));
   }
 }
 
 // Action_Matrix::StoreVec()
-void Action_Matrix::StoreVec(DataSet_Matrix::iterator& v1, DataSet_Matrix::iterator& v2,
-                             const double* XYZ) 
+void Action_Matrix::StoreVec(v_iterator& v1, v_iterator& v2, const double* XYZ) const 
 {
   *(v1++) += XYZ[0];
   *(v2++) += (XYZ[0] * XYZ[0]);
@@ -330,20 +366,88 @@ void Action_Matrix::StoreVec(DataSet_Matrix::iterator& v1, DataSet_Matrix::itera
 }
 
 /** Calc Covariance Matrix */
-void Action_Matrix::CalcCovarianceMatrix(Frame* currentFrame) {
-  DataSet_Matrix::iterator mat = Mat_->begin();
-  DataSet_Matrix::iterator v1idx1 = Mat_->v1begin();
-  DataSet_Matrix::iterator v2idx1 = Mat_->v2begin();
+void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
+# ifdef _OPENMP
+  int m1_idx, m2_idx;
+  double Vj;
+  const double* XYZi;
+  const double* XYZj;
+  unsigned int ny;
+  DataSet_MatrixDbl::iterator mat;
+  v_iterator v1, v2;
+  if (useMask2_) { // FULL MATRIX
+    int NX = (int)Mat_->Ncols();
+    int crd_max = (int)crd_indices_.size();
+#   pragma omp parallel private(m1_idx, m2_idx, XYZi, XYZj, Vj, mat, v1, v2, ny)
+    {
+    #pragma omp for
+    for (m2_idx = 0; m2_idx < mask2_.Nselected(); m2_idx++) {
+      mat = Mat_->begin() + ((m2_idx*3)*NX);
+      XYZj = currentFrame.XYZ( mask2_[m2_idx] );
+      for (ny = 0; ny < 3; ny++) {
+        Vj = XYZj[ny];
+        for (m1_idx = 0; m1_idx < mask1_.Nselected(); m1_idx++) {
+          XYZi = currentFrame.XYZ( mask1_[m1_idx] );
+          *(mat++) += Vj * XYZi[0];
+          *(mat++) += Vj * XYZi[1];
+          *(mat++) += Vj * XYZi[2];
+        }
+      }
+    }
+    // Mask1/Mask2 diagonal
+    #   pragma omp for
+    for (m1_idx = 0; m1_idx < crd_max; m1_idx++) {
+      v1 = Mat_->v1begin() + (m1_idx * 3); // Index into vect/vect2
+      v2 = vect2_.begin()  + (m1_idx * 3);
+      StoreVec(v1, v2, currentFrame.CRD( crd_indices_[m1_idx] ));
+    }
+    } // END PARALLEL BLOCK FULL
+    return;
+  } else {         // HALF MATRIX
+    int v_idx;
+    unsigned int nx;
+    double d_m2_idx;
+    double TwoN = (double)( Mat_->Ncols() * 2 );
+#   pragma omp parallel private(m1_idx, m2_idx, d_m2_idx, v_idx, XYZi, XYZj, Vj, mat, v1, v2, ny, nx)
+    {
+    #pragma omp for schedule(dynamic)
+    for (m2_idx = 0; m2_idx < mask1_.Nselected(); m2_idx++) {
+      v_idx = m2_idx * 3;
+      d_m2_idx = (double)v_idx;
+      mat = Mat_->begin() + (int)(0.5*d_m2_idx*(TwoN-d_m2_idx-1.0)+d_m2_idx);
+      v1 = Mat_->v1begin() + v_idx;
+      v2 = vect2_.begin() + v_idx;
+      XYZj = currentFrame.XYZ( mask1_[m2_idx] );
+      StoreVec(v1, v2, XYZj);
+      for (ny = 0; ny < 3; ny++) {
+        Vj = XYZj[ny];
+        // m1_idx = m2_idx, diagonal
+        for (nx = ny; nx < 3; nx++)
+          *(mat++) += Vj * XYZj[nx]; // Vj * i{0,1,2}, Vj * i{1,2}, Vj * i{2}
+        for (m1_idx = m2_idx+1; m1_idx < mask1_.Nselected(); m1_idx++) {
+          XYZi = currentFrame.XYZ( mask1_[m1_idx] );
+          *(mat++) += Vj * XYZi[0];
+          *(mat++) += Vj * XYZi[1];
+          *(mat++) += Vj * XYZi[2];
+        }
+      }
+    }
+    } // END PARALLEL BLOCK HALF
+  }
+# else
+  DataSet_MatrixDbl::iterator mat = Mat_->begin();
+  v_iterator v1idx1 = Mat_->v1begin();
+  v_iterator v2idx1 = vect2_.begin();
   if (useMask2_) {
     // Full Matrix
     // Position for mask2 halfway through vect/vect2
-    DataSet_Matrix::iterator v1idx2 = Mat_->v1begin() + (mask1_.Nselected() * 3); 
-    DataSet_Matrix::iterator v2idx2 = Mat_->v2begin() + (mask1_.Nselected() * 3); 
+    v_iterator v1idx2 = Mat_->v1begin() + (mask1_.Nselected() * 3); 
+    v_iterator v2idx2 = vect2_.begin()  + (mask1_.Nselected() * 3); 
     bool storeVecj = true; // Only store vecj|vecj^2 first time through inner loop
     // OUTER LOOP
     for (AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
     {
-      const double* XYZi = currentFrame->XYZ( *atom2 );
+      const double* XYZi = currentFrame.XYZ( *atom2 );
       // Store veci and veci^2
       StoreVec(v1idx2, v2idx2, XYZi);
       // Loop over X, Y, and Z of veci
@@ -352,7 +456,7 @@ void Action_Matrix::CalcCovarianceMatrix(Frame* currentFrame) {
         // INNER LOOP
         for (AtomMask::const_iterator atom1 = mask1_.begin(); atom1 != mask1_.end(); ++atom1)
         {
-          const double* XYZj = currentFrame->XYZ( *atom1 );
+          const double* XYZj = currentFrame.XYZ( *atom1 );
           // Store vecj and vecj^2, first time through only
           if (storeVecj) 
             StoreVec(v1idx1, v2idx1, XYZj);
@@ -368,48 +472,47 @@ void Action_Matrix::CalcCovarianceMatrix(Frame* currentFrame) {
     // OUTER LOOP
     for (AtomMask::const_iterator atom2 = mask1_.begin(); atom2 != mask1_.end(); ++atom2)
     {
-      const double* XYZi = currentFrame->XYZ( *atom2 );
+      const double* XYZi = currentFrame.XYZ( *atom2 );
       // Store veci and veci^2
       StoreVec(v1idx1, v2idx1, XYZi);
       // Loop over X, Y, and Z of veci
       for (int iidx = 0; iidx < 3; ++iidx) {
         double Vi = XYZi[iidx];
+        // Diagonal
+        for (int jidx = iidx; jidx < 3; jidx++)
+          *(mat++) += Vi * XYZi[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
         // INNER LOOP
-        for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
+        for (AtomMask::const_iterator atom1 = atom2 + 1; atom1 != mask1_.end(); ++atom1)
         {
-          const double* XYZj = currentFrame->XYZ( *atom1 );
-          if ( atom1 == atom2 ) { // TODO: This saves 3 doubles / frame. Worth it?
-            for (int jidx = iidx; jidx < 3; ++jidx)
-              *(mat++) += Vi * XYZj[jidx]; // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
-          } else {
-            *(mat++) += Vi * XYZj[0];
-            *(mat++) += Vi * XYZj[1];
-            *(mat++) += Vi * XYZj[2];
-          }
+          const double* XYZj = currentFrame.XYZ( *atom1 );
+          *(mat++) += Vi * XYZj[0];
+          *(mat++) += Vi * XYZj[1];
+          *(mat++) += Vi * XYZj[2];
         }
       }
     }
   }
+# endif
 }
 
 /** Calc Isotropically distributed ensemble matrix.
   * See Proteins 2002, 46, 177; eq. 7 
   */
-void Action_Matrix::CalcIdeaMatrix(Frame* currentFrame) {
-  DataSet_Matrix::iterator mat = Mat_->begin();
-  DataSet_Matrix::iterator v1idx1 = Mat_->v1begin();
-  DataSet_Matrix::iterator v2idx1 = Mat_->v2begin();
+void Action_Matrix::CalcIdeaMatrix(Frame const& currentFrame) {
+  DataSet_MatrixDbl::iterator mat = Mat_->begin();
+  v_iterator v1idx1 = Mat_->v1begin();
+  v_iterator v2idx1 = vect2_.begin();
   // Get COM
-  Vec3 COM = currentFrame->VCenterOfMass( mask1_ );
+  Vec3 COM = currentFrame.VCenterOfMass( mask1_ );
   // Get ri, rj, and calc ri*rj
   // Matrix IDEA only uses 1 mask.
   for (AtomMask::const_iterator atomi = mask1_.begin(); atomi != mask1_.end(); ++atomi)
   {
-    Vec3 ri = currentFrame->XYZ(*atomi);
+    Vec3 ri = currentFrame.XYZ(*atomi);
     ri -= COM;
     for (AtomMask::const_iterator atomj = atomi; atomj != mask1_.end(); ++atomj)
     {
-      Vec3 rj = currentFrame->XYZ(*atomj);
+      Vec3 rj = currentFrame.XYZ(*atomj);
       rj -= COM;
       double val = ri * rj;
       *(mat++) += val;
@@ -422,26 +525,26 @@ void Action_Matrix::CalcIdeaMatrix(Frame* currentFrame) {
 }
 
 /** Calc correlation matrix. */
-void Action_Matrix::CalcCorrelationMatrix(Frame* currentFrame) {
-  DataSet_Matrix::iterator mat = Mat_->begin();
-  DataSet_Matrix::iterator v1idx1 = Mat_->v1begin();
-  DataSet_Matrix::iterator v2idx1 = Mat_->v2begin();
+void Action_Matrix::CalcCorrelationMatrix(Frame const& currentFrame) {
+  DataSet_MatrixDbl::iterator mat = Mat_->begin();
+  v_iterator v1idx1 = Mat_->v1begin();
+  v_iterator v2idx1 = vect2_.begin();
   if (useMask2_) {
     // Full Matrix
     // Position for mask2 halfway through vect/vect2
-    DataSet_Matrix::iterator v1idx2 = Mat_->v1begin() + (mask1_.Nselected() * 3);
-    DataSet_Matrix::iterator v2idx2 = Mat_->v2begin() + (mask1_.Nselected() * 3);
+    v_iterator v1idx2 = Mat_->v1begin() + (mask1_.Nselected() * 3);
+    v_iterator v2idx2 = vect2_.begin() + (mask1_.Nselected() * 3);
     bool storeVecj = true; // Only store vecj|vecj^2 first time through inner loop
     // OUTER LOOP
     for (AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
     {
-      const double* XYZi = currentFrame->XYZ( *atom2 );
+      const double* XYZi = currentFrame.XYZ( *atom2 );
       // Store veci and veci^2
       StoreVec(v1idx2, v2idx2, XYZi);
       // INNER LOOP
       for (AtomMask::const_iterator atom1 = mask1_.begin(); atom1 != mask1_.end(); ++atom1)
       {
-        const double* XYZj = currentFrame->XYZ( *atom1 );
+        const double* XYZj = currentFrame.XYZ( *atom1 );
         // Store vecj and vecj^2, first time through only
         if (storeVecj)
           StoreVec(v1idx1, v2idx1, XYZj);
@@ -454,12 +557,12 @@ void Action_Matrix::CalcCorrelationMatrix(Frame* currentFrame) {
     // OUTER LOOP
     for (AtomMask::const_iterator atom2 = mask1_.begin(); atom2 != mask1_.end(); ++atom2)
     {
-      const double* XYZi = currentFrame->XYZ( *atom2 );
+      const double* XYZi = currentFrame.XYZ( *atom2 );
       // Store veci and veci^2
       StoreVec(v1idx1, v2idx1, XYZi);
       for (AtomMask::const_iterator atom1 = atom2; atom1 != mask1_.end(); ++atom1)
       {
-        const double* XYZj = currentFrame->XYZ( *atom1 );
+        const double* XYZj = currentFrame.XYZ( *atom1 );
         *(mat++) += (XYZi[0]*XYZj[0] + XYZi[1]*XYZj[1] + XYZi[2]*XYZj[2]);
       }
     }
@@ -467,20 +570,20 @@ void Action_Matrix::CalcCorrelationMatrix(Frame* currentFrame) {
 }
 
 /** Calculate distance covariance matrix. */
-void Action_Matrix::CalcDistanceCovarianceMatrix(Frame* currentFrame) {
+void Action_Matrix::CalcDistanceCovarianceMatrix(Frame const& currentFrame) {
   // Calculate all distance pairs for mask 1
-  DataSet_Matrix::iterator pair_j = Mat_->v2begin();
+  v_iterator pair_j = vect2_.begin();
   AtomMask::const_iterator mask1end = mask1_.end() - 1;
   for (AtomMask::const_iterator atom1 = mask1_.begin(); atom1 != mask1end; ++atom1)
     for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != mask1_.end(); ++atom2)
-      *(pair_j++) = sqrt(DIST2_NoImage(currentFrame->XYZ(*atom1), currentFrame->XYZ(*atom2)));
+      *(pair_j++) = sqrt(DIST2_NoImage(currentFrame.XYZ(*atom1), currentFrame.XYZ(*atom2)));
   // Create matrix from all distance pairs
-  DataSet_Matrix::iterator mat = Mat_->begin();
-  DataSet_Matrix::iterator v1idx = Mat_->v1begin();
-  for (DataSet_Matrix::iterator pair_i = Mat_->v2begin();
-                                pair_i != Mat_->v2end(); ++pair_i)
+  DataSet_MatrixDbl::iterator mat = Mat_->begin();
+  v_iterator v1idx = Mat_->v1begin();
+  for (v_iterator pair_i = vect2_.begin(); pair_i != vect2_.end(); ++pair_i)
   {
-    for (pair_j = pair_i; pair_j != Mat_->v2end(); ++pair_j) {
+    for (pair_j = pair_i; pair_j != vect2_.end(); ++pair_j) 
+    {
       *(mat++) += ( (*pair_i) * (*pair_j) );
       if (pair_i == pair_j)
         *(v1idx++) += (*pair_i);
@@ -488,53 +591,62 @@ void Action_Matrix::CalcDistanceCovarianceMatrix(Frame* currentFrame) {
   }
 }
 
-// Action_Matrix::action()
+// Action_Matrix::DoAction()
 Action::RetType Action_Matrix::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Check if this frame should be processed
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Increment number of snapshots
   ++snap_; 
 
-  switch (type_) {
-    case DataSet_Matrix::DIST     : CalcDistanceMatrix(currentFrame); break;
-    case DataSet_Matrix::COVAR    :
-    case DataSet_Matrix::MWCOVAR  : CalcCovarianceMatrix(currentFrame); break;
-    case DataSet_Matrix::CORREL   : CalcCorrelationMatrix(currentFrame); break;
-    case DataSet_Matrix::DISTCOVAR: CalcDistanceCovarianceMatrix(currentFrame); break;
-    case DataSet_Matrix::IDEA     : CalcIdeaMatrix(currentFrame); break;
-    case DataSet_Matrix::IRED     : CalcIredMatrix(); break;
-    default: return Action::ERR;
+  switch (Mat_->Type()) {
+    case DataSet_2D::DIST     : CalcDistanceMatrix(*currentFrame); break;
+    case DataSet_2D::COVAR    :
+    case DataSet_2D::MWCOVAR  : CalcCovarianceMatrix(*currentFrame); break;
+    case DataSet_2D::CORREL   : CalcCorrelationMatrix(*currentFrame); break;
+    case DataSet_2D::DISTCOVAR: CalcDistanceCovarianceMatrix(*currentFrame); break;
+    case DataSet_2D::IDEA     : CalcIdeaMatrix(*currentFrame); break;
+    case DataSet_2D::IRED     : CalcIredMatrix(); break;
+    default: return Action::ERR; // Sanity check
   }
 
   return Action::OK;
 }
 
 // -----------------------------------------------------------------------------
+void Action_Matrix::Vect2MinusVect() {
+  v_iterator v2 = vect2_.begin();
+  for (v_iterator v1 = Mat_->v1begin(); v1 != Mat_->v1end(); ++v1)
+    *(v2++) -= ( *v1 * *v1 );
+}
+
 // Action_Matrix::FinishCovariance()
 void Action_Matrix::FinishCovariance() {
   double Mass = 1.0;
   double mass2 = 1.0;
-  DataSet_Matrix::iterator mat = Mat_->begin();
+  if (snap_ < (int)Mat_->Ncols())
+    mprintf("Warning: In covariance matrix '%s', # of frames %i is less than\n"
+            "Warning:   # of columns %zu. If diagonalized, the max # of non-zero\n"
+            "Warning:   eigenvalues will be %i\n", Mat_->Legend().c_str(),
+            snap_, Mat_->Ncols(), snap_);
+  DataSet_MatrixDbl::iterator mat = Mat_->begin();
   // Calc <riri> - <ri><ri>
-  Mat_->Vect2MinusVect(); // TODO: Is this ever used??
+  Vect2MinusVect(); // Is vect2 used?
   // Calc <rirj> - <ri><rj>
   if (useMask2_) {
     // Full Matrix
-    std::vector<double>::iterator m2 = mass2_.begin();
+    M_iterator m2 = mass2_.begin();
     // Position for mask2 halfway through vect/vect2
-    DataSet_Matrix::iterator v1idx2begin = Mat_->v1begin() + Mat_->Ncols();
-    for (DataSet_Matrix::iterator v1idx2 = v1idx2begin; 
-                                  v1idx2 != Mat_->v1end(); v1idx2 += 3)
+    v_iterator v1idx2begin = Mat_->v1begin() + Mat_->Ncols();
+    for (v_iterator v1idx2 = v1idx2begin; v1idx2 != Mat_->v1end(); v1idx2 += 3)
     {
-      if (type_ == DataSet_Matrix::MWCOVAR)
+      if (Mat_->Type() == DataSet_2D::MWCOVAR)
         mass2 = *(m2++);
       for (int iidx = 0; iidx < 3; ++iidx) {
-        std::vector<double>::iterator m1 = mass1_.begin();
+        M_iterator m1 = mass1_.begin();
         double Vi = *(v1idx2 + iidx);
-        for (DataSet_Matrix::iterator v1idx1 = Mat_->v1begin();
-                                      v1idx1 != v1idx2begin; v1idx1 += 3)
+        for (v_iterator v1idx1 = Mat_->v1begin(); v1idx1 != v1idx2begin; v1idx1 += 3)
         {
-          if (type_ == DataSet_Matrix::MWCOVAR)
+          if (Mat_->Type() == DataSet_2D::MWCOVAR)
             Mass = sqrt( mass2 * *(m1++) );
           *mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
           ++mat;
@@ -550,19 +662,17 @@ void Action_Matrix::FinishCovariance() {
     }
   } else {
     // Half Matrix
-    std::vector<double>::iterator m2 = mass1_.begin();
-    for (DataSet_Matrix::iterator v1idx2 = Mat_->v1begin();
-                                  v1idx2 != Mat_->v1end(); v1idx2 += 3)
+    M_iterator m2 = mass1_.begin();
+    for (v_iterator v1idx2 = Mat_->v1begin(); v1idx2 != Mat_->v1end(); v1idx2 += 3)
     {
-      if (type_ == DataSet_Matrix::MWCOVAR)
+      if (Mat_->Type() == DataSet_2D::MWCOVAR)
         mass2 = *m2;
       for (int iidx = 0; iidx < 3; ++iidx) {
-        std::vector<double>::iterator m1 = m2;
+        M_iterator m1 = m2;
         double Vi = *(v1idx2 + iidx);
-        for (DataSet_Matrix::iterator v1idx1 = v1idx2;
-                                      v1idx1 != Mat_->v1end(); v1idx1 += 3)
+        for (v_iterator v1idx1 = v1idx2; v1idx1 != Mat_->v1end(); v1idx1 += 3)
         {
-          if (type_ == DataSet_Matrix::MWCOVAR)
+          if (Mat_->Type() == DataSet_2D::MWCOVAR)
             Mass = sqrt( mass2 * *(m1++) );
           if ( v1idx1 == v1idx2 ) {
             for (int jidx = iidx; jidx < 3; ++jidx) {
@@ -586,12 +696,12 @@ void Action_Matrix::FinishCovariance() {
 }
 
 // DotProdAndNorm()
-static inline void DotProdAndNorm(DataSet_Matrix::iterator& mat,
-                                  DataSet_Matrix::iterator& vecti, 
-                                  DataSet_Matrix::iterator& vectj,
-                                  DataSet_Matrix::iterator& vect2i,
-                                  DataSet_Matrix::iterator& vect2j)
-{
+void Action_Matrix::DotProdAndNorm(DataSet_MatrixDbl::iterator& mat,
+                                   v_iterator& vecti, 
+                                   v_iterator& vectj,
+                                   v_iterator& vect2i,
+                                   v_iterator& vect2j)
+const {
   *(mat) -= ( *(vectj  ) * *(vecti  ) +
               *(vectj+1) * *(vecti+1) +
               *(vectj+2) * *(vecti+2)   );
@@ -602,23 +712,21 @@ static inline void DotProdAndNorm(DataSet_Matrix::iterator& mat,
 
 // Action_Matrix::FinishCorrelation()
 void Action_Matrix::FinishCorrelation() {
-  DataSet_Matrix::iterator mat = Mat_->begin();
+  DataSet_MatrixDbl::iterator mat = Mat_->begin();
   // Calc <ri * ri> - <ri> * <ri>
-  Mat_->Vect2MinusVect(); // TODO: Is this only for Correlation? 
+  Vect2MinusVect();
   // Calc <ri * rj> - <ri> * <rj>
   if (useMask2_) {
     // Full Matrix
     // Position for mask2 halfway through vect/vect2
     // Vect has 3 entries per atom, but matrix only has 1 (as opposed to 
     // COVAR/MWCOVAR which has 3 for vect and matrix).
-    DataSet_Matrix::iterator v1idx2begin = Mat_->v1begin() + Mat_->Ncols() * 3;
-    DataSet_Matrix::iterator v2idx2      = Mat_->v2begin() + Mat_->Ncols() * 3;
-    for (DataSet_Matrix::iterator v1idx2 = v1idx2begin;
-                                  v1idx2 != Mat_->v1end(); v1idx2 += 3)
+    v_iterator v1idx2begin = Mat_->v1begin() + Mat_->Ncols() * 3;
+    v_iterator v2idx2      = vect2_.begin()  + Mat_->Ncols() * 3;
+    for (v_iterator v1idx2 = v1idx2begin; v1idx2 != Mat_->v1end(); v1idx2 += 3)
     {
-      DataSet_Matrix::iterator v2idx1 = Mat_->v2begin();
-      for (DataSet_Matrix::iterator v1idx1 = Mat_->v1begin();
-                                    v1idx1 != v1idx2begin; v1idx1 += 3)
+      v_iterator v2idx1 = vect2_.begin();
+      for (v_iterator v1idx1 = Mat_->v1begin(); v1idx1 != v1idx2begin; v1idx1 += 3)
       {
         DotProdAndNorm( mat, v1idx2, v1idx1, v2idx2, v2idx1 );
         v2idx1 += 3;
@@ -627,13 +735,11 @@ void Action_Matrix::FinishCorrelation() {
     }
   } else {
     // Half Matrix
-    DataSet_Matrix::iterator v2idx2 = Mat_->v2begin();
-    for (DataSet_Matrix::iterator v1idx2 = Mat_->v1begin();
-                                  v1idx2 != Mat_->v1end(); v1idx2 += 3)
+    v_iterator v2idx2 = vect2_.begin();
+    for (v_iterator v1idx2 = Mat_->v1begin(); v1idx2 != Mat_->v1end(); v1idx2 += 3)
     {
-      DataSet_Matrix::iterator v2idx1 = v2idx2;
-      for (DataSet_Matrix::iterator v1idx1 = v1idx2;
-                                    v1idx1 != Mat_->v1end(); v1idx1 += 3)
+      v_iterator v2idx1 = v2idx2;
+      for (v_iterator v1idx1 = v1idx2; v1idx1 != Mat_->v1end(); v1idx1 += 3)
       {
         DotProdAndNorm( mat, v1idx2, v1idx1, v2idx2, v2idx1 );
         v2idx1 += 3;
@@ -645,25 +751,52 @@ void Action_Matrix::FinishCorrelation() {
 
 // Action_Matrix::FinishDistanceCovariance()
 void Action_Matrix::FinishDistanceCovariance() {
-  DataSet_Matrix::iterator mat = Mat_->begin();
-  for (DataSet_Matrix::iterator pair_i = Mat_->v1begin();
-                                pair_i != Mat_->v1end(); ++pair_i)
-    for (DataSet_Matrix::iterator pair_j = pair_i; 
-                                  pair_j != Mat_->v1end(); ++pair_j) 
+  DataSet_MatrixDbl::iterator mat = Mat_->begin();
+  for (v_iterator pair_i = Mat_->v1begin(); pair_i != Mat_->v1end(); ++pair_i)
+    for (v_iterator pair_j = pair_i; pair_j != Mat_->v1end(); ++pair_j) 
       *(mat++) -= ((*pair_i) * (*pair_j));
 }
 
 // Action_Matrix::print()
 void Action_Matrix::Print() {
+  if (debug_ > 1) {
+    mprintf("Raw Matrix Elements:\n");
+    for (unsigned int i = 0; i < Mat_->Size(); i++)
+      mprintf("\t%u\t%f\n", i, (*Mat_)[i]);
+    mprintf("Raw Vect1 Elements:\n");
+    for (unsigned int i = 0; i < Mat_->Vect().size(); i++)
+      mprintf("\t%u\t%f\n", i, Mat_->Vect()[i]);
+    mprintf("Raw Vect2 Elements:\n");
+    for (unsigned int i = 0; i < vect2_.size(); i++)
+      mprintf("\t%u\t%f\n", i, vect2_[i]);
+  }
+/*# ifdef _OPENMP
+  if (Mat_->Kind() == DataSet_2D::HALF &&
+       ( Mat_->Type() == DataSet_2D::COVAR ||
+         Mat_->Type() == DataSet_2D::MWCOVAR ))
+  {
+    // Fill vect2
+    for (unsigned int idx = 0; idx < Mat_->Ncols(); idx++)
+      vect2_[idx] = Mat_->GetElement(idx, idx);
+  }
+# endif*/
   // ---------- Calculate average over number of sets ------
-  Mat_->DivideBy((double)snap_);
+  double norm = (double)snap_;
+  if (Mat_->Type() == DataSet_2D::IDEA) norm *= 3.0;
+  norm = 1.0 / norm;
+  //Mat_->DivideBy((double)snap_);
+  for (v_iterator v1 = Mat_->v1begin(); v1 != Mat_->v1end(); ++v1)
+    *v1 *= norm;
+  for (v_iterator v2 = vect2_.begin();  v2 != vect2_.end();  ++v2)
+    *v2 *= norm;
+  for (DataSet_MatrixDbl::iterator m = Mat_->begin(); m != Mat_->end(); ++m)
+    *m *= norm;
 
-  switch (type_) {
-    case DataSet_Matrix::COVAR    :
-    case DataSet_Matrix::MWCOVAR  : FinishCovariance(); break;
-    case DataSet_Matrix::CORREL   : FinishCorrelation(); break;
-    case DataSet_Matrix::DISTCOVAR: FinishDistanceCovariance(); break;
-    case DataSet_Matrix::IDEA     : Mat_->DivideBy(3.0); break;
+  switch (Mat_->Type()) {
+    case DataSet_2D::COVAR    :
+    case DataSet_2D::MWCOVAR  : FinishCovariance(); break;
+    case DataSet_2D::CORREL   : FinishCorrelation(); break;
+    case DataSet_2D::DISTCOVAR: FinishDistanceCovariance(); break;
     default: break; 
   }
 
@@ -709,7 +842,7 @@ void Action_Matrix::Print() {
                 valnorm += mass;
                 printval = printnewline = true;
                 //mprintf("Res %i-%i row=%i col=%i\n",resi+1,resj+1,crow,ccol);
-                val += (Mat_->GetElement( crow, ccol ) * mass);
+                val += (Mat_->GetElement( ccol, crow ) * mass);
                 ++ccol;
               }
             }
@@ -757,7 +890,7 @@ void Action_Matrix::Print() {
           if (useMass_)
             mass = (*CurrentParm_)[*atomj].Mass() * (*CurrentParm_)[*atomi].Mass();
           valnorm += mass;
-          val += (Mat_->GetElement( crow, ccol ) * mass);
+          val += (Mat_->GetElement( ccol, crow ) * mass);
           ++ccol;
         }
         ++crow;
@@ -770,7 +903,7 @@ void Action_Matrix::Print() {
 
   // Process output file args
   if (outfile_ != 0) {
-    outfile_->ProcessArgs("xlabel Atom");
+    Mat_->Dim(Dimension::X).SetLabel("Atom");
     outfile_->ProcessArgs("square2d noxcol noheader");
   }
   return;

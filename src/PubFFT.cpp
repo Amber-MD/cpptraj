@@ -83,13 +83,13 @@ PubFFT& PubFFT::operator=(const PubFFT& rhs) {
 }
 
 // PubFFT::Forward()
-void PubFFT::Forward(double* fft_array) {
-  cfftf_( fft_size_, fft_array, saved_work_, saved_factors_ );
+void PubFFT::Forward(ComplexArray& fft_array) {
+  cfftf_( fft_size_, fft_array.CAptr(), saved_work_, saved_factors_ );
 }
 
 // PubFFT::Back()
-void PubFFT::Back(double* fft_array) {
-  cfftb_( fft_size_, fft_array, saved_work_, saved_factors_);
+void PubFFT::Back(ComplexArray& fft_array) {
+  cfftb_( fft_size_, fft_array.CAptr(), saved_work_, saved_factors_);
 }
 
 // PubFFT::Allocate()

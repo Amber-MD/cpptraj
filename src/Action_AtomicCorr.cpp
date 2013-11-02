@@ -3,7 +3,7 @@
 #include "Action_AtomicCorr.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
-#include "TriangleMatrix.h"
+#include "DataSet_MatrixDbl.h"
 #include "ProgressBar.h"
 #ifdef _OPENMP
 #  include "omp.h"
@@ -50,7 +50,7 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, TopologyList* PFL, 
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   
   // Set up DataSet
-  dset_ = DSL->AddSet( DataSet::TRIMATRIX, actionArgs.GetStringNext(), "ACorr" );
+  dset_ = DSL->AddSet( DataSet::MATRIX_FLT, actionArgs.GetStringNext(), "ACorr" );
   if (dset_ == 0) {
     mprinterr("Error: atomiccorr: Could not allocate output dataset.\n");
     return Action::ERR;
@@ -161,8 +161,8 @@ void Action_AtomicCorr::Print() {
     mprinterr("Error: atomiccorr: No vectors calcd.\n");
     return;
   }
-  TriangleMatrix* tmatrix = (TriangleMatrix*)dset_;
-  tmatrix->Setup( atom_vectors_.size() );
+  DataSet_MatrixDbl* tmatrix = static_cast<DataSet_MatrixDbl*>( dset_ );
+  tmatrix->AllocateTriangle( atom_vectors_.size() );
   // Calculate correlation coefficient of each atomic vector to each other
   ACvector::iterator av_end = atom_vectors_.end();
   ACvector::iterator av_end1 = av_end - 1;
@@ -217,13 +217,12 @@ void Action_AtomicCorr::Print() {
   } // END outer loop
 
   if (acorr_mode_ == ATOM)
-    outfile_->ProcessArgs("xlabel Atom");
+    dset_->Dim(Dimension::X).SetLabel("Atom");
   else
-    outfile_->ProcessArgs("xlabel Residue");
+    dset_->Dim(Dimension::X).SetLabel("Residue");
   std::string ylabels = "ylabels ";
   for (ACvector::iterator atom = atom_vectors_.begin();
                           atom != atom_vectors_.end(); ++atom)
     ylabels += ( (*atom).Label() + "," );
   outfile_->ProcessArgs( ylabels );
 }
-

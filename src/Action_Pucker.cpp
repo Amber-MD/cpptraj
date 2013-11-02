@@ -7,18 +7,19 @@
 
 // CONSTRUCTOR
 Action_Pucker::Action_Pucker() :
-  puck_(0),
+  pucker_(0),
+  amplitude_(0),
+  theta_(0),
   puckerMethod_(ALTONA),
-  amplitude_(false),
   useMass_(true),
   range360_(false),
   offset_(0.0)
 { } 
 
 void Action_Pucker::Help() {
-  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> <mask5> out <filename>\n");
-  mprintf("\t[range360] [amplitude] [altona | cremer] [offset <offset>]\n");
-  mprintf("\tCalculate pucker of atoms in masks 1-5.\n");
+  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> <mask5> [<mask6>] out <filename>\n");
+  mprintf("\t[range360] [amplitude] [theta] [altona | cremer] [offset <offset>]\n");
+  mprintf("\tCalculate pucker of atoms in masks 1-5 (or 6).\n");
 }
 
 // Action_Pucker::init()
@@ -29,7 +30,8 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
   if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
-  amplitude_ = actionArgs.hasKey("amplitude");
+  bool calc_amp = actionArgs.hasKey("amplitude");
+  bool calc_theta = actionArgs.hasKey("theta");
   offset_ = actionArgs.getKeyDouble("offset",0.0);
   range360_ = actionArgs.hasKey("range360");
   DataSet::scalarType stype = DataSet::UNDEFINED;
@@ -37,38 +39,63 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if ( stypename == "pucker" ) stype = DataSet::PUCKER;
 
   // Get Masks
-  std::string mask1 = actionArgs.GetMaskNext();
-  std::string mask2 = actionArgs.GetMaskNext();
-  std::string mask3 = actionArgs.GetMaskNext();
-  std::string mask4 = actionArgs.GetMaskNext();
-  std::string mask5 = actionArgs.GetMaskNext();
-  if (mask1.empty() || mask2.empty() || mask3.empty() || mask4.empty() || mask5.empty()) {
-    mprinterr("Error: pucker: Requires 5 masks\n");
+  Masks_.clear();
+  std::string mask_expression = actionArgs.GetMaskNext();
+  while (!mask_expression.empty()) {
+    Masks_.push_back( AtomMask( mask_expression ) );
+    mask_expression = actionArgs.GetMaskNext();
+  }
+  if (Masks_.size() < 5 || Masks_.size() > 6) {
+    mprinterr("Error: Pucker can only be calculated for 5 or 6 masks, %zu specified.\n",
+              Masks_.size());
     return Action::ERR;
   }
-  M1_.SetMaskString(mask1);
-  M2_.SetMaskString(mask2);
-  M3_.SetMaskString(mask3);
-  M4_.SetMaskString(mask4);
-  M5_.SetMaskString(mask5);
+  if (Masks_.size() > 5 && puckerMethod_ != CREMER) {
+    mprinterr("Error: Pucker with %zu masks only supported with 'cremer'\n");
+    return Action::ERR;
+  }
+  // Set up array to hold coordinate vectors.
+  AX_.resize( Masks_.size() );
 
   // Setup dataset
-  puck_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Pucker");
-  if (puck_ == 0) return Action::ERR;
-  puck_->SetScalar( DataSet::M_PUCKER, stype );
+  pucker_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Pucker");
+  if (pucker_ == 0) return Action::ERR;
+  pucker_->SetScalar( DataSet::M_PUCKER, stype );
+  amplitude_ = 0;
+  theta_ = 0;
+  if (calc_amp)
+    amplitude_ = DSL->AddSetAspect(DataSet::DOUBLE, pucker_->Name(), "Amp");
+  if (calc_theta) {
+    if ( Masks_.size() < 6 )
+      mprintf("Warning: 'theta' calc. not supported for < 6 masks.\n");
+    else
+      theta_ = DSL->AddSetAspect(DataSet::DOUBLE, pucker_->Name(), "Theta");
+  }
   // Add dataset to datafile list
-  if (outfile != 0) outfile->AddSet( puck_ );
+  if (outfile != 0) {
+    outfile->AddSet( pucker_ );
+    if (amplitude_ != 0) outfile->AddSet( amplitude_ );
+    if (theta_ != 0) outfile->AddSet( theta_ );
+  }
 
-  mprintf("    PUCKER: [%s]-[%s]-[%s]-[%s]-[%s]\n", M1_.MaskString(),M2_.MaskString(),
-          M3_.MaskString(), M4_.MaskString(), M5_.MaskString());
+  mprintf("    PUCKER: ");
+  for (std::vector<AtomMask>::const_iterator MX = Masks_.begin();
+                                             MX != Masks_.end(); ++MX)
+  {
+    if (MX != Masks_.begin()) mprintf("-");
+    mprintf("[%s]", (*MX).MaskString());
+  }
+  mprintf("\n");
   if (puckerMethod_==ALTONA) 
     mprintf("            Using Altona & Sundaralingam method.\n");
   else if (puckerMethod_==CREMER)
     mprintf("            Using Cremer & Pople method.\n");
   if (outfile != 0) 
     mprintf("            Data will be written to %s\n", outfile->DataFilename().base());
-  if (amplitude_)
-    mprintf("            Amplitudes will be stored instead of psuedorotation.\n");
+  if (amplitude_!=0)
+    mprintf("            Amplitudes will be stored.\n");
+  if (theta_!=0)
+    mprintf("            Thetas will be stored.\n");
   if (offset_!=0)
     mprintf("            Offset: %lf will be added to values.\n");
   if (range360_)
@@ -81,60 +108,57 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 
 // Action_Pucker::setup
 Action::RetType Action_Pucker::Setup(Topology* currentParm, Topology** parmAddress) {
-  if ( currentParm->SetupIntegerMask( M1_ ) ) return Action::ERR;
-  if ( currentParm->SetupIntegerMask( M2_ ) ) return Action::ERR;
-  if ( currentParm->SetupIntegerMask( M3_ ) ) return Action::ERR;
-  if ( currentParm->SetupIntegerMask( M4_ ) ) return Action::ERR;
-  if ( currentParm->SetupIntegerMask( M5_ ) ) return Action::ERR;
   mprintf("\t");
-  M1_.BriefMaskInfo();
-  M2_.BriefMaskInfo();
-  M3_.BriefMaskInfo();
-  M4_.BriefMaskInfo();
-  M5_.BriefMaskInfo();
-  mprintf("\n");
-
-  if ( M1_.None() || M2_.None() || M3_.None() || M4_.None() || M5_.None() ) {
-    mprintf("Warning: pucker: One or more masks have no atoms.\n");
-    return Action::ERR;
+  for (std::vector<AtomMask>::iterator MX = Masks_.begin();
+                                       MX != Masks_.end(); ++MX)
+  {
+    if ( currentParm->SetupIntegerMask( *MX ) ) return Action::ERR;
+    (*MX).BriefMaskInfo();
+    if ((*MX).None()) {
+      mprintf("\nWarning: pucker: Mask '%s' selects no atoms for topology '%s'\n",
+              (*MX).MaskString(), currentParm->c_str());
+      return Action::ERR;
+    }
   }
+  mprintf("\n");
 
   return Action::OK;  
 }
 
 // Action_Pucker::action()
 Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  Vec3 a1, a2, a3, a4, a5;
-  double pval, amp;
+  double pval, aval, tval;
+  std::vector<Vec3>::iterator ax = AX_.begin(); 
 
   if (useMass_) {
-    a1 = currentFrame->VCenterOfMass( M1_ );  
-    a2 = currentFrame->VCenterOfMass( M2_ );  
-    a3 = currentFrame->VCenterOfMass( M3_ );  
-    a4 = currentFrame->VCenterOfMass( M4_ );  
-    a5 = currentFrame->VCenterOfMass( M5_ );
+    for (std::vector<AtomMask>::const_iterator MX = Masks_.begin();
+                                               MX != Masks_.end(); ++MX, ++ax)
+      *ax = currentFrame->VCenterOfMass( *MX );
   } else {
-    a1 = currentFrame->VGeometricCenter( M1_ );
-    a2 = currentFrame->VGeometricCenter( M2_ );
-    a3 = currentFrame->VGeometricCenter( M3_ );
-    a4 = currentFrame->VGeometricCenter( M4_ );
-    a5 = currentFrame->VGeometricCenter( M5_ );
+     for (std::vector<AtomMask>::const_iterator MX = Masks_.begin();
+                                               MX != Masks_.end(); ++MX, ++ax)
+      *ax = currentFrame->VGeometricCenter( *MX );
   }
 
   switch (puckerMethod_) {
     case ALTONA: 
-      pval = Pucker_AS( a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr(), a5.Dptr(), &amp );
+      pval = Pucker_AS( AX_[0].Dptr(), AX_[1].Dptr(), AX_[2].Dptr(), 
+                        AX_[3].Dptr(), AX_[4].Dptr(), aval );
       break;
     case CREMER:
-      pval = Pucker_CP( a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr(), a5.Dptr(), &amp );
+      pval = Pucker_CP( AX_[0].Dptr(), AX_[1].Dptr(), AX_[2].Dptr(), 
+                        AX_[3].Dptr(), AX_[4].Dptr(), AX_[5].Dptr(), 
+                        AX_.size(), aval, tval );
       break;
   }
-  if ( amplitude_ )
-    pval = amp;
-  
+  if ( amplitude_ != 0 )
+    amplitude_->Add(frameNum, &aval);
+  if ( theta_ != 0 ) {
+    tval *= RADDEG;
+    theta_->Add(frameNum, &tval);
+  }
   pval *= RADDEG;
-
-  puck_->Add(frameNum, &pval);
+  pucker_->Add(frameNum, &pval);
 
   return Action::OK;
 } 
@@ -149,12 +173,12 @@ void Action_Pucker::Print() {
     puckermin = -180.0;
   }
   // Deal with offset and wrap values
-  DataSet_double* ds = (DataSet_double*)puck_;
-  for (int i = 0; i < ds->Size(); i++) {
-    (*ds)[i] += offset_;
-    if ( (*ds)[i] > puckermax )
-      (*ds)[i] -= 360.0;
-    else if ( (*ds)[i] < puckermin )
-      (*ds)[i] += 360.0;
+  DataSet_double& ds = static_cast<DataSet_double&>( *pucker_ );
+  for (DataSet_double::iterator dval = ds.begin(); dval != ds.end(); ++dval) {
+    *dval += offset_;
+    if ( *dval > puckermax )
+      *dval -= 360.0;
+    else if ( *dval < puckermin )
+      *dval += 360.0;
   }
 }

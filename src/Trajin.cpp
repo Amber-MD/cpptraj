@@ -13,7 +13,8 @@ Trajin::Trajin() :
   targetSet_(0),
   frameskip_(1),
   numFramesProcessed_(0),
-  useProgress_(true)
+  useProgress_(true),
+  isEnsemble_(false)
 {}
 
 // Trajin::CheckFrameArgs()
@@ -92,7 +93,7 @@ int Trajin::CheckFrameArgs(ArgList& argIn, int maxFrames,
 }
 
 // Trajin::SetupTrajIO()
-int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList* argIn ) {
+int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList& argIn ) {
   // -1 indicates an error.
   // -2 indicates the number of frames could not be determined, read to EOF.
   total_frames_ = trajio.setupTrajin(fname, TrajParm());
@@ -100,10 +101,12 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
     mprinterr("Error: Could not set up %s for reading.\n", fname.c_str());
     return 1;
   }
-  if (total_frames_>-1)
-    mprintf("\t[%s] contains %i frames.\n", TrajFilename().base(), total_frames_);
-  else
-    mprintf("\t[%s] contains an unknown number of frames.\n",TrajFilename().base());
+  if (debug_ > 0) {
+    if (total_frames_>-1)
+      mprintf("\t'%s' contains %i frames.\n", TrajFilename().base(), total_frames_);
+    else
+      mprintf("\t'%s' contains an unknown number of frames.\n",TrajFilename().base());
+  }
   // Set stop based on calcd number of frames.
   if (total_frames_==0) {
     mprinterr("Error: trajectory %s contains no frames.\n",TrajFilename().base());
@@ -115,16 +118,16 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
     stop_ = -1;
   // Set the start, stop, and offset args based on user input. Do some bounds
   // checking.
-  if ( argIn != 0) Trajin::CheckFrameArgs( *argIn, total_frames_, start_, stop_, offset_);
+  Trajin::CheckFrameArgs( argIn, total_frames_, start_, stop_, offset_);
   return 0;
 }
 
-int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox) {
+int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox) const {
   if (!trajBox.HasBox()) {
     if ( parmBox.HasBox()) {
       // No box in traj but box in parm - disable parm box.
       mprintf("Warning: Box information present in parm but not in trajectory.\n");
-      mprintf("Warning: DISABLING BOX in parm [%s]!\n", parmName);
+      mprintf("Warning: DISABLING BOX in parm '%s'!\n", parmName);
       parmBox.SetNoBox();
       return 0;
     } else
@@ -134,7 +137,7 @@ int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox)
   // Check for zero box lengths
   if ( trajBox.BoxX() < SMALL || trajBox.BoxY() < SMALL || trajBox.BoxZ() < SMALL ) {
     mprintf("Warning: Box information present in trajectory but lengths are zero.\n");
-    mprintf("Warning: DISABLING BOX in parm [%s]!\n", parmName);
+    mprintf("Warning: DISABLING BOX in parm '%s'!\n", parmName);
     parmBox.SetNoBox();
     return 0;
   }
@@ -246,15 +249,15 @@ void Trajin::PrepareForRead(bool useIn, bool seekable) {
 }
 
 // Trajin::PrintInfoLine()
-void Trajin::PrintInfoLine() {
+void Trajin::PrintInfoLine() const {
   if (stop_ != -1)
-    mprintf( "----- [%s] (%i-%i, %i) -----\n",TrajFilename().base(),start_+1,stop_+1,offset_);
+    mprintf( "----- %s (%i-%i, %i) -----\n",TrajFilename().base(),start_+1,stop_+1,offset_);
   else
-    mprintf( "----- [%s] (%i-EOF, %i) -----\n",TrajFilename().base(),start_+1,offset_);
+    mprintf( "----- %s (%i-EOF, %i) -----\n",TrajFilename().base(),start_+1,offset_);
 }
 
 // Trajin::PrintFrameInfo()
-void Trajin::PrintFrameInfo() {
+void Trajin::PrintFrameInfo() const {
   if (stop_!=-1 && total_frames_>0)
     //mprintf(": %i-%i, %i (reading %i of %i)",start,stop,offset,total_read_frames,total_frames);
     mprintf(" (reading %i of %i)",total_read_frames_,total_frames_);

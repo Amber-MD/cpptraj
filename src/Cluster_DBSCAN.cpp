@@ -3,6 +3,7 @@
 #include "Cluster_DBSCAN.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#include "StringRoutines.h" // integerToString
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -10,45 +11,54 @@
 Cluster_DBSCAN::Cluster_DBSCAN() :
   minPoints_(-1),
   epsilon_(-1.0),
+  kdist_(0),
   sieveToCentroid_(true)
 {}
 
 void Cluster_DBSCAN::Help() {
-  mprintf("\t[dbscan minpoints <n> epsilon <e> [sievetoframe]]\n");
+  mprintf("\t[dbscan minpoints <n> epsilon <e> [sievetoframe] [kdist <k>]]\n");
 }
 
 int Cluster_DBSCAN::SetupCluster(ArgList& analyzeArgs) {
-  minPoints_ = analyzeArgs.getKeyInt("minpoints", -1);
-  if (minPoints_ < 1) {
-    mprinterr("Error: DBSCAN requires minimum # of points to be set and >= 1\n"
-              "Error: Use 'minpoints <N>'\n");
-    return 1;
+  kdist_ = analyzeArgs.getKeyInt( "kdist", 0 );
+  if (kdist_ < 1) {
+    minPoints_ = analyzeArgs.getKeyInt("minpoints", -1);
+    if (minPoints_ < 1) {
+      mprinterr("Error: DBSCAN requires minimum # of points to be set and >= 1\n"
+                "Error: Use 'minpoints <N>'\n");
+      return 1;
+    }
+    epsilon_ = analyzeArgs.getKeyDouble("epsilon", -1.0);
+    if (epsilon_ <= 0.0) {
+      mprinterr("Error: DBSCAN requires epsilon to be set and > 0.0\n"
+                "Error: Use 'epsilon <e>'\n");
+      return 1;
+    }
+    sieveToCentroid_ = !analyzeArgs.hasKey("sievetoframe");
   }
-  epsilon_ = analyzeArgs.getKeyDouble("epsilon", -1.0);
-  if (epsilon_ <= 0.0) {
-    mprinterr("Error: DBSCAN requires epsilon to be set and > 0.0\n"
-              "Error: Use 'epsilon <e>'\n");
-    return 1;
-  }
-  sieveToCentroid_ = !analyzeArgs.hasKey("sievetoframe");
   return 0;
 }
 
 void Cluster_DBSCAN::ClusteringInfo() {
   mprintf("\tDBSCAN:\n");
-  mprintf("\t\tMinimum pts to form cluster= %i\n", minPoints_);
-  mprintf("\t\tCluster distance criterion= %.3f\n", epsilon_);
-  if (sieveToCentroid_)
-    mprintf("\t\tSieved frames will be added back solely based on their"
-            " closeness to cluster centroids.\n"
-            "\t\t  (This option is less accurate but faster.)\n");
-  else
-    mprintf("\t\tSieved frames will only be added back if they are within"
-            " %.3f of a frame in an existing cluster.\n"
-            "\t\t  (This option is more accurate and will identify sieved"
-            " frames as noise but is slower.)\n", epsilon_);
+  if (kdist_ > 0)
+    mprintf("\t\tOnly calculating Kdist graph for K=%i\n", kdist_);
+  else {
+    mprintf("\t\tMinimum pts to form cluster= %i\n", minPoints_);
+    mprintf("\t\tCluster distance criterion= %.3f\n", epsilon_);
+    if (sieveToCentroid_)
+      mprintf("\t\tSieved frames will be added back solely based on their\n"
+              "\t\t  closeness to cluster centroids.\n"
+              "\t\t  (This option is less accurate but faster.)\n");
+    else
+      mprintf("\t\tSieved frames will only be added back if they are within\n"
+              "\t\t  %.3f of a frame in an existing cluster.\n"
+              "\t\t  (This option is more accurate and will identify sieved\n"
+              "\t\t  frames as noise but is slower.)\n", epsilon_);
+  }
 }
 
+// Cluster_DBSCAN::RegionQuery()
 void Cluster_DBSCAN::RegionQuery(std::vector<int>& NeighborPts,
                                  std::vector<int> const& FramesToCluster,
                                  int point)
@@ -62,6 +72,40 @@ void Cluster_DBSCAN::RegionQuery(std::vector<int>& NeighborPts,
     if ( FrameDistances_.GetFdist(point, *otherpoint) < epsilon_ )
       NeighborPts.push_back( *otherpoint );
   }
+}
+
+/** For each point p, calculate function Kdist(p) which is the distance of
+  * the Kth farthest point from p.
+  */
+void Cluster_DBSCAN::ComputeKdist( int Kval, std::vector<int> const& FramesToCluster ) const {
+  std::vector<double> dists;
+  std::vector<double> Kdist;
+  dists.reserve( FramesToCluster.size() ); 
+  Kdist.reserve( FramesToCluster.size() );
+  std::string outfilename = "Kdist." + integerToString(Kval) + ".dat";
+  mprintf("\tDBSCAN: Calculating Kdist(%i), output to %s\n", Kval, outfilename.c_str());
+  for (std::vector<int>::const_iterator point = FramesToCluster.begin();
+                                        point != FramesToCluster.end();
+                                        ++point)
+  {
+    // Store distances from this point
+    dists.clear();
+    for (std::vector<int>::const_iterator otherpoint = FramesToCluster.begin();
+                                          otherpoint != FramesToCluster.end();
+                                          ++otherpoint)
+      dists.push_back( FrameDistances_.GetFdist(*point, *otherpoint) );
+    // Sort distances - first dist should always be 0
+    std::sort(dists.begin(), dists.end());
+    Kdist.push_back( dists[Kval] );
+  }
+  std::sort( Kdist.begin(), Kdist.end() );
+  std::reverse( Kdist.begin(), Kdist.end() );
+  CpptrajFile Outfile;
+  Outfile.OpenWrite(outfilename);
+  Outfile.Printf("%-8s %1i%-11s\n", "#Point", Kval,"-dist");
+  for (std::vector<double>::const_iterator k = Kdist.begin(); k != Kdist.end(); ++k)
+    Outfile.Printf("%8i %12.4f\n", k - Kdist.begin(), *k);
+  Outfile.CloseFile();
 }
 
 // Potential frame statuses.
@@ -81,6 +125,11 @@ int Cluster_DBSCAN::Cluster() {
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
     if (!FrameDistances_.IgnoringRow( frame ))
       FramesToCluster.push_back( frame );
+  // Calculate Kdist function
+  if (kdist_ > 0) {
+    ComputeKdist( kdist_, FramesToCluster );
+    return 0;
+  }
   // Set up array to keep track of points that have been visited.
   // Make it the size of FrameDistances so we can index into it. May
   // waste memory during sieving but makes code easier.

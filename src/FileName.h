@@ -5,6 +5,8 @@
 class FileName {
   public:
     FileName() {}
+    FileName(const FileName&);
+    FileName& operator=(const FileName&);
     /// Set file name and extensions; only name is known.
     int SetFileName(std::string const&);
     /// Set file name and extension; perform tilde expansion.
@@ -13,6 +15,8 @@ class FileName {
     int SetFileName(std::string const&, bool);
     /// Clear FileName
     void clear();
+    /// \return true if string matches full or base file name.
+    bool MatchFullOrBase(std::string const&) const;
 
     const std::string& Full()     const { return fullPathName_;         }
     const std::string& Base()     const { return baseName_;             }

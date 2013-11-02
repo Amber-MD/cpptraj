@@ -1,11 +1,36 @@
 #include "FileName.h"
 #include "StringRoutines.h" // tildeExpansion
 
+// COPY CONSTRUCTOR
+FileName::FileName( const FileName& rhs ) : fullPathName_(rhs.fullPathName_),
+  baseName_(rhs.baseName_), extension_(rhs.extension_),
+  compressExt_(rhs.compressExt_) {}
+
+// ASSIGNMENT
+FileName& FileName::operator=(const FileName& rhs) {
+  if (this == &rhs) return *this;
+  fullPathName_ = rhs.fullPathName_;
+  baseName_ = rhs.baseName_;
+  extension_ = rhs.extension_;
+  compressExt_ = rhs.compressExt_;
+  return *this;
+}
+
+// FileName::clear()
 void FileName::clear() {
   fullPathName_.clear();
   baseName_.clear();
   extension_.clear();
   compressExt_.clear();
+}
+
+bool FileName::MatchFullOrBase(std::string const& rhs) const {
+  if (!fullPathName_.empty()) {
+    // Prefer full filename match.
+    if (fullPathName_ == rhs) return true;
+    if (baseName_     == rhs) return true;
+  }
+  return false;
 }
 
 /** Main routine for setting file name. Assume nameIn is the full path

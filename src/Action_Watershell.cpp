@@ -1,7 +1,6 @@
 #include "Action_Watershell.h"
 #include "CpptrajStdio.h"
 #ifdef _OPENMP
-#  include <cstring> // memset
 #  include "omp.h"
 #endif
 
@@ -63,8 +62,8 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, TopologyList* PFL, 
   std::string dsname = actionArgs.GetStringNext();
   if (dsname.empty())
     dsname = DSL->GenerateDefaultName("WS");
-  lower_ = DSL->AddSetAspect(DataSet::INT, dsname, "lower");
-  upper_ = DSL->AddSetAspect(DataSet::INT, dsname, "upper");
+  lower_ = DSL->AddSetAspect(DataSet::INTEGER, dsname, "lower");
+  upper_ = DSL->AddSetAspect(DataSet::INTEGER, dsname, "upper");
   if (lower_ == 0 || upper_ == 0) return Action::ERR;
   DFL->AddSetToFile(filename, lower_);
   DFL->AddSetToFile(filename, upper_);
@@ -146,7 +145,7 @@ Action::RetType Action_Watershell::Setup(Topology* currentParm, Topology** parmA
     // Allocate each thread
     for (int i = 0; i < numthreads_; ++i) {
       activeResidues_thread_[i] = new int[ currentParm->Nres() ];
-      memset(activeResidues_thread_[i], 0, currentParm->Nres() * sizeof(int));
+      std::fill( activeResidues_thread_[i], activeResidues_thread_[i] + currentParm->Nres(), 0 );
     }
   }
   NactiveResidues_ = currentParm->Nres();
@@ -223,7 +222,7 @@ Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame,
     for (int thread = 0; thread < numthreads_; thread++) {
       if (activeResidues_thread_[thread][res] > shell)
         shell = activeResidues_thread_[thread][res];
-      // Dont break here so we can reset counts. Could also do with a memset
+      // Dont break here so we can reset counts. Could also do with a fill 
       activeResidues_thread_[thread][res] = 0;
     }
     if (shell > 0) {

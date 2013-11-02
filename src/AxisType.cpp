@@ -99,15 +99,15 @@ static const char* NAbaseName[] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
 NA_Base::NA_Base() :
   rnum_(0),
   bchar_('?'),
-  type_(UNKNOWN_BASE),
-  patomidx_(-1),
-  o4atomidx_(-1)
+  type_(UNKNOWN_BASE)
 {
   hbidx_[0] = -1;
   hbidx_[1] = -1;
   hbidx_[2] = -1;
+  std::fill( atomIdx_, atomIdx_+6, -1 );
 }
 
+// COPY CONSTRUCTOR
 NA_Base::NA_Base(const NA_Base& rhs) :
   rnum_(rhs.rnum_),
   bchar_(rhs.bchar_),
@@ -119,8 +119,6 @@ NA_Base::NA_Base(const NA_Base& rhs) :
   refnames_(rhs.refnames_),
 # endif
   Inp_(rhs.Inp_),
-  patomidx_(rhs.patomidx_),
-  o4atomidx_(rhs.o4atomidx_),
   parmMask_(rhs.parmMask_),
   inpFitMask_(rhs.inpFitMask_),
   refFitMask_(rhs.refFitMask_)
@@ -128,8 +126,10 @@ NA_Base::NA_Base(const NA_Base& rhs) :
   hbidx_[0] = rhs.hbidx_[0];
   hbidx_[1] = rhs.hbidx_[1];
   hbidx_[2] = rhs.hbidx_[2];
+  std::copy( rhs.atomIdx_, rhs.atomIdx_+6, atomIdx_ );
 }
 
+// ASSIGNMENT
 NA_Base& NA_Base::operator=(const NA_Base& rhs) {
   if (this == &rhs) return *this;
   rnum_ = rhs.rnum_;
@@ -142,11 +142,10 @@ NA_Base& NA_Base::operator=(const NA_Base& rhs) {
   refnames_ = rhs.refnames_;
 # endif
   Inp_ = rhs.Inp_;
-  patomidx_ = rhs.patomidx_;
-  o4atomidx_ = rhs.o4atomidx_;
   hbidx_[0] = rhs.hbidx_[0];
   hbidx_[1] = rhs.hbidx_[1];
   hbidx_[2] = rhs.hbidx_[2];
+  std::copy( rhs.atomIdx_, rhs.atomIdx_+6, atomIdx_ );
   parmMask_ = rhs.parmMask_;
   inpFitMask_ = rhs.inpFitMask_;
   refFitMask_ = rhs.refFitMask_;
@@ -233,17 +232,25 @@ NA_Base::NA_Base(Topology const& currentParm, int resnum, NA_Base::NAType baseTy
     // Allocate space to hold input coords
     Inp_.SetupFrame( parmMask_.Nselected() );
     // Save atom names for input coords. Look for specific atom names for
-    // calculating things like groove width, (TODO: Pucker)
+    // calculating things like groove width and pucker.
     int inpatom = 0;
-    patomidx_ = -1;
-    o4atomidx_ = -1;
+    std::fill( atomIdx_, atomIdx_+6, -1 );
     for (int atom = resstart; atom < resstop; ++atom) {
       anames_.push_back( currentParm[atom].Name() );
       // Is this atom P?
-      if (anames_.back() == "P   ") patomidx_ = inpatom;
+      if (anames_.back() == "P   ")
+        atomIdx_[PHOS] = inpatom;
       // Is this atom O4'/O4*?
-      if (anames_.back() == "O4' " || anames_.back() == "O4* ")
-        o4atomidx_ = inpatom;
+      else if (anames_.back() == "O4' " || anames_.back() == "O4* ")
+        atomIdx_[O4p] = inpatom;
+      else if (anames_.back() == "C1' " || anames_.back() == "C1* ")
+        atomIdx_[C1p] = inpatom;
+      else if (anames_.back() == "C2' " || anames_.back() == "C2* ")
+        atomIdx_[C2p] = inpatom;
+      else if (anames_.back() == "C3' " || anames_.back() == "C3* ")
+        atomIdx_[C3p] = inpatom;
+      else if (anames_.back() == "C4' " || anames_.back() == "C4* ")
+        atomIdx_[C4p] = inpatom;
       inpatom++;
     }
     // For each atom defined as a reference atom for this base, find the
@@ -319,7 +326,7 @@ NA_Base::NA_Base(Topology const& currentParm, int resnum, NA_Base::NAType baseTy
         for (int atom = 0; atom < (int)anames_.size(); ++atom)
           mprintf("\t\t%s: %i\n", *(anames_[atom]), atom+1);
         mprintf("\tHBidxs={%i, %i, %i}  P=%i  O4'=%i\n",
-                hbidx_[0]+1, hbidx_[1]+1, hbidx_[2]+1, patomidx_+1, o4atomidx_+1);
+                hbidx_[0]+1, hbidx_[1]+1, hbidx_[2]+1, atomIdx_[PHOS]+1, atomIdx_[O4p]+1);
         parmMask_.PrintMaskAtoms("ParmMask");
         inpFitMask_.PrintMaskAtoms("InputFitMask");
         refFitMask_.PrintMaskAtoms("RefFitMask");
@@ -342,6 +349,11 @@ void NA_Base::PrintAtomNames() const {
   mprintf("\n");
 }
 
+bool NA_Base::HasSugarAtoms() const {
+  for (int i = 1; i < 6; i++)
+    if (atomIdx_[i] < 0) return false;
+  return true;
+}
 // ---------- NA_Axis ----------------------------------------------------------
 // CONSTRUCTOR
 NA_Axis::NA_Axis() : residue_number_(0), second_resnum_(-1), isAnti_(false) {}

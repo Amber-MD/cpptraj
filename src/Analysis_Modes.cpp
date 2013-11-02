@@ -7,29 +7,36 @@
 
 // CONSTRUCTOR
 Analysis_Modes::Analysis_Modes() :
+  debug_(0),
   type_(FLUCT),
   beg_(0),
   end_(0),
   bose_(false),
   factor_(0),
   modinfo_(0),
-  results_(0)
+  results_(0),
+  tOutParm_(0),
+  tMode_(0),
+  pcmin_(0.0),
+  pcmax_(0.0)
 {}
 
 void Analysis_Modes::Help() {
-  mprintf("\t{fluct|displ|corr} name <modesname>\n"); 
-  mprintf("\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n");
-  mprintf("\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n");
-  mprintf("\tPerform one of the following analysis on calculated Eigenmodes.\n");
-  mprintf("\tfluct: rms fluctations from normal modes\n");
-  mprintf("\tdispl: displacement of cartesian coordinates along normal mode directions\n");
-  mprintf(" Results vector usage:\n");
-  mprintf("   fluct:\n");
-  mprintf("\t[rmsx(at1), rmsy(at1), rmsz(at1), rms(at1), ..., rmsx(atN), ..., rms(atN)]\n");
-  mprintf("   displ:\n");
-  mprintf("\t[displx(at1), disply(at1), displz(at1), ..., displx(atN), ..., displz(atN)]\n");
-  mprintf("   corr:\n");
-  mprintf("\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n");
+  mprintf("\t{fluct|displ|corr} name <modesname>\n" 
+          "\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n"
+          "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
+          "\t[trajout <name> [<parm arg>] [trajoutfmt <format>] [trajoutmask <mask>]\n"
+          "\t  [pcmin <pcmin>] [pcmax <pcmax>] [trajmode <mode>]]\n"
+          "\tPerform one of the following analysis on calculated Eigenmodes.\n"
+          "\tfluct: rms fluctations from normal modes\n"
+          "\tdispl: displacement of cartesian coordinates along normal mode directions\n"
+          " Results vector usage:\n"
+          "   fluct:\n"
+          "\t[rmsx(at1), rmsy(at1), rmsz(at1), rms(at1), ..., rmsx(atN), ..., rms(atN)]\n"
+          "   displ:\n"
+          "\t[displx(at1), disply(at1), displz(at1), ..., displx(atN), ..., displz(atN)]\n"
+          "   corr:\n"
+          "\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n");
 }
 
 //#define TWOPI 6.2832
@@ -48,13 +55,16 @@ const double Analysis_Modes::CONT  = CMTOA / TWOPI;
 const char* Analysis_Modes::analysisTypeString[] = {
   "rms fluctuations",
   "displacements",
-  "correlation functions"
+  "correlation functions",
+  "coordinate projection"
 };
 
 // DESTRUCTOR
 Analysis_Modes::~Analysis_Modes() {
   if (results_!=0)
     delete[] results_;
+  if (tOutParm_ != 0)
+    delete tOutParm_;
 }
 
 // Analysis_Modes::CheckDeprecated()
@@ -72,6 +82,7 @@ void Analysis_Modes::CheckDeprecated(ArgList& analyzeArgs, std::string& modesnam
 Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
+  debug_ = debugIn;
   // Analysis type
   if (analyzeArgs.hasKey("fluct"))
     type_ = FLUCT;
@@ -79,14 +90,12 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     type_ = DISPLACE;
   else if (analyzeArgs.hasKey("corr"))
     type_ = CORR;
+  else if (analyzeArgs.Contains("trajout"))
+    type_ = TRAJ;
   else {
     mprinterr("Error: analyze modes: no analysis type specified.\n");
     return Analysis::ERR;
   }
-
-  // Get beg, end, factor, bose
-  bose_ = analyzeArgs.hasKey("bose");
-  factor_ = analyzeArgs.getKeyDouble("factor",1.0);
 
   // Get modes name
   std::string modesfile = analyzeArgs.GetStringKey("name");
@@ -99,8 +108,56 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       return Analysis::ERR;
     }
   }
-  beg_ = analyzeArgs.getKeyInt("beg",7) - 1; // Args start at 1
+
+  // Get trajectory format args for projected traj
+  if (type_ == TRAJ ) {
+    beg_ = analyzeArgs.getKeyInt("beg",1) - 1; // Args start at 1
+    std::string tOutName = analyzeArgs.GetStringKey("trajout");
+    if (tOutName.empty()) {
+      mprinterr("Error: Require output trajectory filename, 'trajout <name>'\n");
+      return Analysis::ERR;
+    }
+    TrajectoryFile::TrajFormatType tOutFmt = 
+      TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
+    Topology* parm = PFLin->GetParm( analyzeArgs );
+    if (parm == 0) {
+      mprinterr("Error: Could not get topology for output trajectory.\n");
+      return Analysis::ERR;
+    }
+    AtomMask tOutMask( analyzeArgs.GetStringKey("trajoutmask") );
+    if ( parm->SetupIntegerMask( tOutMask ) || tOutMask.None() ) {
+      mprinterr("Error: Could not setup output trajectory mask.\n");
+      return Analysis::ERR;
+    }
+    tOutMask.MaskInfo();
+    // Strip topology to match mask.
+    if (tOutParm_ != 0) delete tOutParm_;
+    tOutParm_ = parm->modifyStateByMask( tOutMask );
+    if (tOutParm_ == 0) {
+      mprinterr("Error: Could not create topology to match mask.\n");
+      return Analysis::ERR;
+    }
+    // Setup output traj
+    if (trajout_.InitTrajWrite( tOutName, tOutParm_, tOutFmt ) != 0) {
+      mprinterr("Error: Could not setup output trajectory.\n");
+      return Analysis::ERR;
+    }
+    // Get min and max for PC
+    pcmin_ = analyzeArgs.getKeyDouble("pcmin", -10.0);
+    pcmax_ = analyzeArgs.getKeyDouble("pcmax",  10.0);
+    if (pcmax_ < pcmin_ || pcmax_ - pcmin_ < SMALL) {
+      mprinterr("Error: pcmin must be less than pcmax\n");
+      return Analysis::ERR;
+    }
+    tMode_ = analyzeArgs.getKeyInt("tmode", 1);
+  } else {
+    beg_ = analyzeArgs.getKeyInt("beg",7) - 1; // Args start at 1
+    // Get factor, bose
+    bose_ = analyzeArgs.hasKey("bose");
+    factor_ = analyzeArgs.getKeyDouble("factor",1.0);
+  }
   end_ = analyzeArgs.getKeyInt("end", 50);
+
   // Check if modes name exists on the stack
   modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
@@ -116,8 +173,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   }
 
   // Check modes type
-  if (modinfo_->Type() != DataSet_Matrix::COVAR && 
-      modinfo_->Type() != DataSet_Matrix::MWCOVAR)
+  if (modinfo_->Type() != DataSet_2D::COVAR && 
+      modinfo_->Type() != DataSet_2D::MWCOVAR)
   {
     mprinterr("Error: analyze modes: evecs must be of type COVAR or MWCOVAR.\n");
     return Analysis::ERR;
@@ -163,25 +220,33 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   }
 
   // Status
-  mprintf("    ANALYZE MODES: Calculating %s using modes %i to %i from %s\n",
-          analysisTypeString[type_], beg_+1, end_, modinfo_->Legend().c_str());
-  mprintf("\tResults are written to");
-  if (filename_.empty())
-    mprintf(" STDOUT\n");
-  else
-    mprintf(" %s\n", filename_.c_str());
-  if (bose_)
-    mprintf("\tBose statistics used.\n");
-  else
-    mprintf("\tBoltzmann statistics used.\n");
-  if (type_ == DISPLACE)
-    mprintf("\tFactor for displacement: %lf\n", factor_);
-  if (type_ == CORR) {
-    mprintf("\tUsing the following atom pairs:");
-    for (modestack_it apair = atompairStack_.begin();
-                      apair != atompairStack_.end(); ++apair)
-      mprintf(" (%i,%i)", (*apair).first+1, (*apair).second+1 );
-    mprintf("\n");
+  mprintf("    ANALYZE MODES: Calculating %s using modes from %s", 
+          analysisTypeString[type_], modinfo_->Legend().c_str());
+  if ( type_ != TRAJ ) {
+    mprintf(", modes %i to %i\n", beg_+1, end_);
+    mprintf("\tResults are written to");
+    if (filename_.empty())
+      mprintf(" STDOUT\n");
+    else
+      mprintf(" %s\n", filename_.c_str());
+    if (bose_)
+      mprintf("\tBose statistics used.\n");
+    else
+      mprintf("\tBoltzmann statistics used.\n");
+    if (type_ == DISPLACE)
+      mprintf("\tFactor for displacement: %lf\n", factor_);
+    if (type_ == CORR) {
+      mprintf("\tUsing the following atom pairs:");
+      for (modestack_it apair = atompairStack_.begin();
+                        apair != atompairStack_.end(); ++apair)
+        mprintf(" (%i,%i)", (*apair).first+1, (*apair).second+1 );
+      mprintf("\n");
+    }
+  } else {
+    mprintf("\n\tCreating trajectory for mode %i\n"
+              "\tWriting to trajectory %s\n"
+              "\tPC range: %f to %f\n", tMode_, 
+            trajout_.TrajFilename().full(), pcmin_, pcmax_);
   }
 
   return Analysis::OK;
@@ -191,18 +256,20 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
 Analysis::RetType Analysis_Modes::Analyze() {
   CpptrajFile outfile;
   // Check # of modes
-  if (beg_ < 0 || beg_ >= modinfo_->Nmodes()) {
-    mprinterr("Error: analyze modes: 'beg %i' is out of bounds.\n", beg_+1);
-    return Analysis::ERR;
-  }
-  if (end_ > modinfo_->Nmodes()) {
-    mprintf("Warning: analyze modes: 'end %i' is > # of modes, setting to %i\n",
-            end_, modinfo_->Nmodes());
-    end_ = modinfo_->Nmodes();
-  }
-  if (end_ <= beg_) {
-    mprinterr("Warning: analyze modes: beg must be <= end, (%i -- %i)\n", beg_+1, end_);
-    return Analysis::ERR;
+  if (type_ != TRAJ) {
+    if (beg_ < 0 || beg_ >= modinfo_->Nmodes()) {
+      mprinterr("Error: analyze modes: 'beg %i' is out of bounds.\n", beg_+1);
+      return Analysis::ERR;
+    }
+    if (end_ > modinfo_->Nmodes()) {
+      mprintf("Warning: analyze modes: 'end %i' is > # of modes, setting to %i\n",
+              end_, modinfo_->Nmodes());
+      end_ = modinfo_->Nmodes();
+    }
+    if (end_ <= beg_) {
+      mprinterr("Warning: analyze modes: beg must be <= end, (%i -- %i)\n", beg_+1, end_);
+      return Analysis::ERR;
+    }
   }
 
   // ----- FLUCT PRINT -----
@@ -313,6 +380,8 @@ Analysis::RetType Analysis_Modes::Analyze() {
         }
       }
     } // END loop over CORR atom pairs
+  } else if (type_ == TRAJ) {
+    ProjectCoords();
   } else // SANITY CHECK
     return Analysis::ERR;
   outfile.CloseFile();
@@ -394,4 +463,58 @@ void Analysis_Modes::CalcDipoleCorr() {
       } // END if positive definite eigenvalue
     } // END loop over modes
   } // END loop over atom pairs
+}
+
+// Calculate projection of coords along given mode.
+void Analysis_Modes::CalculateProjection(int set, Frame const& Crd, int mode) {
+  double proj = 0.0;
+  const double* Avg = modinfo_->AvgCrd();
+  const double* Vec = modinfo_->Eigenvector(mode);
+  for (int idx = 0; idx < Crd.size(); ++idx)
+    proj += (Crd[idx] - Avg[idx]) * 1.0 * Vec[idx];
+  mprintf("\tFrame %i mode %i projection = %f\n", set, mode, proj);
+}
+
+/** Project average coords along eigenvectors */
+int Analysis_Modes::ProjectCoords() {
+  double scale = 1.0; // TODO: read in or calculate - use factor?
+  int max_it = (int)(pcmax_ - pcmin_);
+  // Check that size of eigenvectors match # coords
+  int ncoord = tOutParm_->Natom() * 3;
+  if (ncoord != modinfo_->NavgCrd()) {
+    mprinterr("Error: # selected coords (%i) != eigenvector size (%i)\n",
+               ncoord, modinfo_->NavgCrd());
+    return 1;
+  }
+  // Check that mode is valid.
+  if (tMode_ < 1 || tMode_ > modinfo_->Nmodes() ) {
+    mprinterr("Error: mode %i is out of bounds.\n", tMode_);
+    return Analysis::ERR;
+  }
+  // Setup frame to hold output coords, initalized to avg coords.
+  Frame outframe = modinfo_->AvgFrame();
+  // Point to correct eigenvector
+  const double* Vec = modinfo_->Eigenvector(tMode_-1);
+  // Initialize coords to pcmin
+  for (int idx = 0; idx < ncoord; idx++)
+    outframe[idx] += pcmin_ * Vec[idx];
+  if (debug_>0) CalculateProjection(0, outframe, tMode_-1);
+  // Write first frame with coords at pcmin.
+  int set = 0;
+  trajout_.WriteFrame(set++, tOutParm_, outframe);
+  // Main loop
+  for (int it = 0; it < max_it; it++) {
+    double* crd = outframe.xAddress();
+    // Move coordinates along eigenvector.
+    for (int idx = 0; idx < ncoord; ++idx)
+      crd[idx] += scale * Vec[idx];
+    if (debug_>0) CalculateProjection(set, outframe, tMode_-1);
+    // DEBUG: calc PC projection for first 3 modes
+    //for (int m = 0; m < 3; m++)
+    //  CalculateProjection(set, outframe, m);
+    // Write frame
+    trajout_.WriteFrame(set++, tOutParm_, outframe);
+  }
+  trajout_.EndTraj();
+  return 0;
 }

@@ -31,6 +31,7 @@ class AtomMask {
   public:
     AtomMask();
     AtomMask(std::string const&);
+    AtomMask(int,int);
     AtomMask(const AtomMask &);
     AtomMask& operator=(const AtomMask&);
     /// AtomMask default iterator

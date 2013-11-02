@@ -1,10 +1,15 @@
 #ifndef INC_DATASET_REMLOG_H
 #define INC_DATASET_REMLOG_H
 #include <map>
+#include <vector>
 #include "DataSet.h"
+/** Store data from Amber REMD log. For each exchange, the replica index and
+  * coordinates index for each replica is stored. These indices start from 1.
+  */
 class DataSet_RemLog : public DataSet {
   public:
     DataSet_RemLog();
+    static DataSet* Alloc() { return (DataSet*)new DataSet_RemLog();}
     /// T-REMD temperature map.
     typedef std::map<double,int> TmapType;
     /// Hold info for a single replica at one exchange.
@@ -22,7 +27,11 @@ class DataSet_RemLog : public DataSet {
     /// Trim last replica frame.
     void TrimLastExchange(); 
     // ----- DataSet routines --------------------
-    int Size() { return ensemble_.size(); }
+    size_t Size() const { return ensemble_.size(); }
+    int Sync()          { return 1;                }
+    void Info()   const { return;                  }
+    // TODO: Remove
+    void Add( size_t, const void* ) { return;      }
   private:
     /// Hold info for all exchanges of a single replica.
     typedef std::vector<ReplicaFrame> ReplicaArray;
@@ -37,7 +46,7 @@ class DataSet_RemLog::ReplicaFrame {
                      success_(false), temp0_(0.0),
                      PE_x1_(0.0), PE_x2_(0.0) {}
     int SetTremdFrame( const char*, TmapType const& );
-    int SetHremdFrame( const char*, int );
+    int SetHremdFrame( const char*, std::vector<int> const& );
     int ReplicaIdx() const { return replicaIdx_; }
     int PartnerIdx() const { return partnerIdx_; }
     int CoordsIdx()  const { return coordsIdx_;  }

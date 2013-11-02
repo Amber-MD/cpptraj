@@ -12,7 +12,6 @@
 #  include "FileIO_Gzip.h"
 #endif
 #ifdef MPI
-#  include "MpiRoutines.h" // For worldrank in Rank_printf
 #  include "FileIO_Mpi.h"
 #endif
 #ifdef HASBZ2
@@ -177,21 +176,6 @@ void CpptrajFile::Printf(const char *format, ...) {
   va_end(args);
 }
 
-// CpptrajFile::Rank_printf()
-/** When MPI, printf only for the specified rank. If no MPI, behaves just
-  * like above Printf.
-  */
-void CpptrajFile::Rank_printf(int rank, const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  vsprintf(linebuffer_,format,args);
-#ifdef MPI
-    if (worldrank==rank)
-#endif
-      IO_->Write(linebuffer_, strlen(linebuffer_));
-  va_end(args);
-}
-
 std::string CpptrajFile::GetLine() {
   if (IO_->Gets(linebuffer_, BUF_SIZE) != 0) {
     //mprinterr("Error: Getting line from %s\n", Filename().full());
@@ -326,7 +310,11 @@ int CpptrajFile::SetupWrite(std::string const& filenameIn, FileType typeIn, int 
 
 // CpptrajFile::OpenAppend()
 int CpptrajFile::OpenAppend(std::string const& nameIn) {
-  if (SetupAppend(nameIn, debug_)) return 1;
+  if (nameIn.empty()) {
+    if (SetupWrite(nameIn, debug_)) return 1;
+  } else {
+    if (SetupAppend(nameIn, debug_)) return 1;
+  }
   if (OpenFile()) return 1;
   return 0;
 }

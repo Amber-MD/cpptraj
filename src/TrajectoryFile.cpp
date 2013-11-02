@@ -38,8 +38,8 @@ const TrajectoryFile::TrajToken TrajectoryFile::TrajArray[] = {
 };
 
 // TrajectoryFile::GetFormatFromArg()
-/** Given an arglist, search for one of the file format keywords.
-  * Default to AmberTraj if no arglist given or no keywords present. 
+/** Given an ArgList, search for one of the file format keywords.
+  * Default to AMBERTRAJ if no keywords present. 
   */
 TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromArg(ArgList& argIn)
 {
@@ -48,6 +48,7 @@ TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromArg(ArgList& argIn)
   return AMBERTRAJ;
 }
 
+// TrajectoryFile::GetFormatFromString()
 TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromString(std::string const& fmt)
 {
   for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token)
@@ -144,6 +145,9 @@ TrajectoryIO* TrajectoryFile::DetectFormat(std::string const& fname) {
 }
 
 // TrajectoryFile::TrajFormat()
+/** \return format of existing file.
+  * Useful when e.g. appending to a file.
+  */
 TrajectoryFile::TrajFormatType TrajectoryFile::TrajFormat(std::string const& fname) {
   CpptrajFile file;
   if (file.SetupRead(fname, 0)) return UNKNOWN_TRAJ;

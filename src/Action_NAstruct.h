@@ -6,6 +6,7 @@
 #include "Action.h"
 #include "AxisType.h"
 #include "Range.h"
+#include "DataSet_1D.h"
 /// Basic Nucleic acid structure analysis. 
 /** Calculate nucleic acid base/base pair structural parameters.
   * Algorithms for calculation of base/base pair structural parameters
@@ -24,19 +25,34 @@
 class Action_NAstruct: public Action {
   public:
     Action_NAstruct();
-
+    ~Action_NAstruct();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_NAstruct(); }
     static void Help();
-
-    ~Action_NAstruct();
-
-    void Print();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
+    // Functions
+    void ClearLists();
+
+    int setupBaseAxes(Frame const&);
+
+    int GCpair(NA_Base const&, NA_Base const&);
+    int ATpair(NA_Base const&, NA_Base const&);
+    int CalcNumHB(NA_Base const&, NA_Base const&);
+    int determineBasePairing();
+
+    int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
+    int helicalParameters(NA_Axis const&, NA_Axis const&, double *);
+    int determineBaseParameters(int);
+    void CalcPucker(NA_Base const&, int, int);
+    int determineBasepairParameters(int);
+
     // Variables
+    enum PmethodType { ALTONA=0, CREMER };
+    PmethodType puckerMethod_;
     std::vector<NA_Base> Bases_;        ///< Hold ref/input coordinates for each base
     std::vector<NA_Axis> BaseAxes_;     ///< Hold axis coordinates for each base
     std::vector<NA_Axis> BasePairAxes_; ///< Hold axis coordinates for each base pair
@@ -54,7 +70,8 @@ class Action_NAstruct: public Action {
     typedef std::map<std::string, NA_Base::NAType> ResMapType;
     ResMapType CustomMap_;
     // Datasets - 1 entry per BP/BPstep
-    typedef std::vector<DataSet*> Darray;
+    typedef std::vector<DataSet_1D*> Darray;
+    Darray PUCKER_;
     Darray SHEAR_;
     Darray STRETCH_;
     Darray STAGGER_;
@@ -78,20 +95,6 @@ class Action_NAstruct: public Action {
     Darray HTWIST_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
-    // Functions
-    void ClearLists();
-
-    int setupBaseAxes(Frame const&);
-
-    int GCpair(NA_Base const&, NA_Base const&);
-    int ATpair(NA_Base const&, NA_Base const&);
-    int CalcNumHB(NA_Base const&, NA_Base const&);
-    int determineBasePairing();
-
-    int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
-    int helicalParameters(NA_Axis const&, NA_Axis const&, double *);
-    int determineBaseParameters(int);
-    int determineBasepairParameters(int);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - used to trigger AxisPDBwriter for first call of calculateParameters
     bool calcparam_;

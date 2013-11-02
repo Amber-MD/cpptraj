@@ -54,6 +54,7 @@ int parallel_end();
 void parallel_barrier();
 // ----- File Routines ---------------------------
 int parallel_openFile_read(parallelType, const char*);
+int parallel_flush(parallelType);
 off_t parallel_position( parallelType );
 int parallel_open_file_write(parallelType, const char*);
 int parallel_closeFile(parallelType);

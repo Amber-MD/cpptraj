@@ -12,5 +12,6 @@ class Analysis_Overlap : public Analysis {
   private:
     DataSet* ds1_;
     DataSet* ds2_;
+    bool useDeviation_;
 };
 #endif

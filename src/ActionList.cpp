@@ -26,6 +26,7 @@ void ActionList::SetDebug(int debugIn) {
     mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug_);
 }
 
+// ActionList::AddAction()
 int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn,
                           TopologyList* PFL, FrameList* FL, DataSetList* DSL,
                           DataFileList* DFL)
@@ -37,10 +38,11 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& 
     delete act;
     return 1;
   }
-  argIn.CheckForMoreArgs();
   actionlist_.push_back( act );
   actioncmd_.push_back( argIn.ArgLine() );
+  actionAlloc_.push_back( Alloc );
   actionstatus_.push_back( INIT );
+  if (argIn.CheckForMoreArgs()) return 1;
   return 0;
 }
 
@@ -134,10 +136,9 @@ void ActionList::Print() {
 }
 
 void ActionList::List() const {
-  mprintf("ACTIONS:\n");
-  if (actionlist_.empty())
-    mprintf("  No Actions.\n");
-  else
+  if (!actionlist_.empty()) {
+    mprintf("\nACTIONS:\n");
     for (unsigned int actnum = 0; actnum < actionlist_.size(); ++actnum)
-      mprintf("  %u: [%s]\n", actnum, actioncmd_[actnum].c_str());   
+      mprintf("  %u: [%s]\n", actnum, actioncmd_[actnum].c_str());
+  }
 }

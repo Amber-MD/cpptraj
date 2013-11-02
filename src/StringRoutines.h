@@ -10,13 +10,13 @@
     printf-type format strings, etc.
  */
 std::string tildeExpansion(const char *);
+typedef std::vector<std::string> StrArray;
+StrArray ExpandToFilenames(std::string const&);
 bool fileExists(const char *);
 
 std::string NumberFilename(std::string const &, int);
-int DigitWidth(int);
-void SetDoubleFormatString(std::string &, int, int, int, bool);
-void SetStringFormatString(std::string &, int, bool);
-void SetIntegerFormatString(std::string &, int, bool);
+int DigitWidth(long int);
+int FloatWidth(double);
 
 int convertToInteger(std::string const &);
 double convertToDouble(std::string const &);
@@ -24,4 +24,8 @@ void RemoveTrailingWhitespace(std::string &);
 std::string integerToString(int);
 std::string integerToString(int,int);
 std::string doubleToString(double);
+
+std::string SetDoubleFormatString(int, int, int);
+std::string SetStringFormatString(int, bool);
+std::string SetIntegerFormatString(int);
 #endif

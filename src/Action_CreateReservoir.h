@@ -3,6 +3,7 @@
 #include "Action.h"
 #include "Traj_AmberNetcdf.h"
 #include "DataSet_integer.h"
+#include "DataSet_1D.h"
 // Class: Action_CreateReservoir
 /// Create a RREMD structure reservoir.
 class Action_CreateReservoir : public Action {
@@ -20,7 +21,7 @@ class Action_CreateReservoir : public Action {
     Traj_AmberNetcdf reservoir_;
 #   endif
     Topology* original_trajparm_;
-    DataSet* ene_;
+    DataSet_1D* ene_;
     DataSet_integer* bin_;
     double reservoirT_;
     int iseed_;

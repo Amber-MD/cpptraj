@@ -509,10 +509,10 @@ void Action_Spam::Print() {
     DataFile dfl;
     ArgList dummy;
     dfl.SetupDatafile(datafile_, dummy, 0);
-    for (int i = 0; i < myDSL_.size(); i++) {
+    for (int i = 0; i < (int)myDSL_.size(); i++) {
       dfl.AddSet(myDSL_[i]);
     }
-    dfl.Write();
+    dfl.WriteData();
   }
 }
 

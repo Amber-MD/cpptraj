@@ -24,15 +24,14 @@ class Range {
 
     int SetRange(std::string const&);
     int SetRange(int,int);
-
-    const char *RangeArg();
-    void PrintRange(const char*,int);
+    /// \return the range argument
+    const char *RangeArg() const { return rangeArg_.c_str(); }
+    void PrintRange(const char*,int) const;
 
     void ShiftBy(int);
     void AddToRange(int);
     void RemoveFromRange(int);
-    bool InRange(int);
-
+    bool InRange(int) const;
   private:
     std::string rangeArg_;
     std::list<int> rangeList_;

@@ -2,7 +2,6 @@
 #include <cmath> // sqrt
 #include "Action_Radial.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // doubleToString
 #include "Constants.h" // FOURTHIRDSPI
 #ifdef _OPENMP
 #  include "omp.h"
@@ -33,12 +32,12 @@ Action_Radial::Action_Radial() :
 {} 
 
 void Action_Radial::Help() {
-  mprintf("\t<outfilename> <spacing> <maximum> <mask1> [<mask2>] [noimage]\n");
-  mprintf("\t[density <density> | volume] [center1 | center2 | nointramol] [<name>]\n");
-  mprintf("\t[intrdf <file>] [rawrdf <file>]\n");
-  mprintf("\tCalculate the radial distribution function of atoms in <mask1>\n");
-  mprintf("\tfrom all other atoms in <mask1>, or atoms in <mask2> if\n");
-  mprintf("\tspecified.\n");
+  mprintf("\t<outfilename> <spacing> <maximum> <solvent mask1> [<solute mask2>] [noimage]\n"
+          "\t[density <density> | volume] [center1 | center2 | nointramol] [<name>]\n"
+          "\t[intrdf <file>] [rawrdf <file>]\n"
+          "\tCalculate the radial distribution function (RDF) of atoms in <solvent mask1>.\n"
+          "\tIf <solute mask2> is given calculate RDF of all atoms in <solvent mask1>\n"
+          "\tto each atom in <solute mask2>.\n");
 }
 
 // DESTRUCTOR
@@ -50,6 +49,11 @@ Action_Radial::~Action_Radial() {
       delete[] rdf_thread_[i];
     delete[] rdf_thread_;
   }
+}
+
+inline Action::RetType RDF_ERR(const char* msg) {
+  mprinterr("Error: %s\n", msg);
+  return Action::ERR;
 }
 
 // Action_Radial::Init()
@@ -113,6 +117,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 
   // Set up output dataset. 
   Dset_ = DSL->AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");
+  if (Dset_ == 0) return RDF_ERR("Could not allocate RDF data set.");
   DataFile* outfile = DFL->AddSetToFile(outfilename, Dset_);
   if (outfile==0) {
     mprinterr("Error: Radial: Could not setup output file %s\n",outfilename.c_str());
@@ -122,48 +127,46 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   Dset_->SetPrecision(12,6);
   // Set DataSet legend from mask strings.
   Dset_->SetLegend(Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression());
+  // TODO: Set Yaxis label in DataFile
+  // Calculate number of bins
+  one_over_spacing_ = 1 / spacing_;
+  double temp_numbins = maximum * one_over_spacing_;
+  temp_numbins = ceil(temp_numbins);
+  numBins_ = (int) temp_numbins;
   // Setup output datafile. Align on bin centers instead of left.
-  std::string outfile_args = "xmin " + doubleToString(spacing_ / 2.0) + 
-                             " xstep " + doubleToString(spacing_);
-  outfile->ProcessArgs(outfile_args);
-  // Set axis labels. Enclose in quotes so the label is 1 arg.
-  outfile->ProcessArgs("xlabel \"Distance (Ang)\" ylabel g(r)");
+  // TODO: Use Rdim for binning?
+  Dimension Rdim( spacing_ / 2.0, spacing_, numBins_, "Distance (Ang)" ); 
+  Dset_->SetDim(Dimension::X, Rdim);
   // Set up output for integral of mask2 if specified.
   if (!intrdfname.empty()) {
     intrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "int" );
+    if (intrdf_ == 0) return RDF_ERR("Could not allocate RDF integral data set.");
     intrdf_->SetPrecision(12,6);
     intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
+    intrdf_->SetDim(Dimension::X, Rdim);
     outfile = DFL->AddSetToFile( intrdfname, intrdf_ );
     if (outfile == 0) {
       mprinterr("Error: Could not add intrdf set to file %s\n", intrdfname.c_str());
       return Action::ERR;
     }
-    outfile->ProcessArgs(outfile_args);
-    if (intrdfname != outfilename)
-      outfile->ProcessArgs("xlabel \"Distance (Ang)\" ylabel \" \"");
   } else
     intrdf_ = 0;
   // Set up output for raw rdf
   if (!rawrdfname.empty()) {
     rawrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "raw" );
+    if (rawrdf_ == 0) return RDF_ERR("Could not allocate raw RDF data set.");
     rawrdf_->SetPrecision(12,6);
-    rawrdf_->SetLegend("Raw[" + Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression() + "]");
+    rawrdf_->SetLegend("Raw[" + Dset_->Legend() + "]");
+    rawrdf_->SetDim(Dimension::X, Rdim);
     outfile = DFL->AddSetToFile( rawrdfname, rawrdf_ );
     if (outfile == 0) {
       mprinterr("Error: Could not add rawrdf set to file %s\n", rawrdfname.c_str());
       return Action::ERR;
     }
-    outfile->ProcessArgs(outfile_args);
-    if (rawrdfname != outfilename)
-      outfile->ProcessArgs("xlabel \"Distance (Ang)\" ylabel \"Distrances\"");
   } else
     rawrdf_ = 0;
 
   // Set up histogram
-  one_over_spacing_ = 1 / spacing_;
-  double temp_numbins = maximum * one_over_spacing_;
-  temp_numbins = ceil(temp_numbins);
-  numBins_ = (int) temp_numbins;
   RDF_ = new int[ numBins_ ];
   std::fill(RDF_, RDF_ + numBins_, 0);
 # ifdef _OPENMP

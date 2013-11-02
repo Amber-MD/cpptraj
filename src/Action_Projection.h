@@ -20,7 +20,7 @@ class Action_Projection : public Action, ActionFrameCounter {
 
     typedef std::vector<DataSet*> Darray;
     Darray project_;
-    DataSet_Modes modinfo_;
+    DataSet_Modes* modinfo_;
     int beg_;
     int end_;
     std::vector<double> sqrtmasses_;

@@ -2,6 +2,7 @@
 #define INC_CLUSTERDIST_H
 #include "Frame.h"
 #include "DataSet_Coords.h"
+#include "DataSet_1D.h"
 #include "ClusterMatrix.h"
 /// Abstract Base Class for Cluster centroid.
 class Centroid { 
@@ -76,7 +77,7 @@ class ClusterDist_Num : public ClusterDist {
     Centroid* NewCentroid(Cframes const&);
     ClusterDist* Copy() { return new ClusterDist_Num( *this ); }
   private:
-    DataSet* data_;
+    DataSet_1D* data_;
     DistCalc dcalc_;
 };
 /// Cluster distance calc using Euclid distance
@@ -92,7 +93,8 @@ class ClusterDist_Euclid : public ClusterDist {
     Centroid* NewCentroid(Cframes const&);
     ClusterDist* Copy() { return new ClusterDist_Euclid( *this ); }
   private:
-    DsArray dsets_;
+    typedef std::vector<DataSet_1D*> D1Array;
+    D1Array dsets_;
     typedef std::vector<DistCalc> DcArray;
     DcArray dcalcs_;
 };

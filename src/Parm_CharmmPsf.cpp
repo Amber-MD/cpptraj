@@ -41,7 +41,7 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
     buffer = infile.NextLine();
     psftitle.assign( buffer );
   }
-  parmOut.SetParmName( psftitle, infile.Filename().Base() );
+  parmOut.SetParmName( psftitle, infile.Filename() );
   // Advance to <natom> !NATOM
   int natom = 0;
   while (strncmp(tag,"!NATOM",6)!=0) {

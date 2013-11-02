@@ -18,14 +18,14 @@ Trajin_Single::~Trajin_Single() {
   if (velio_!=0) delete velio_;
 }
 
-int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topology *tparmIn)
+int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topology* tparmIn)
 {
   return SetupTrajRead(tnameIn, argIn, tparmIn, true);
 }
 
 // Trajin_Single::SetupTrajRead()
-int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, 
-                                 Topology *tparmIn, bool checkBox) 
+int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, 
+                                 Topology* tparmIn, bool checkBox) 
 {
   // Require a filename
   if (tnameIn.empty()) {
@@ -34,12 +34,8 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn,
   }
   // Check and set associated parm file
   if ( SetTrajParm( tparmIn ) ) return 1;
-  // Check that file exists
-  // FIXME: Is this necessary? Just let cpptrajfile check this?
-  if (!fileExists(tnameIn.c_str())) {
-    mprinterr("Error: File %s does not exist.\n",tnameIn.c_str());
-    return 1;
-  }
+  // Check that file can be opened. 
+  if (!fileExists(tnameIn.c_str())) return 1; 
   // Detect file format
   if ( (trajio_ = DetectFormat( tnameIn )) == 0 ) {
     mprinterr("Error: Could not determine trajectory %s format.\n", tnameIn.c_str());
@@ -59,8 +55,8 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList *argIn,
     tparmIn->SetBox( parmBox );
   }
   // Check if a separate mdvel file will be read
-  if (argIn!=0 && argIn->Contains("mdvel")) {
-    std::string mdvelname = argIn->GetStringKey("mdvel");
+  if (argIn.Contains("mdvel")) {
+    std::string mdvelname = argIn.GetStringKey("mdvel");
     if (mdvelname.empty()) {
       mprinterr("Error: mdvel: Usage 'mdvel <velocity filename>'\n");
       return 1;
@@ -135,8 +131,8 @@ int Trajin_Single::GetNextFrame( Frame& frameIn ) {
 }
 
 // Trajin_Single::PrintInfo()
-void Trajin_Single::PrintInfo(int showExtended) {
-  mprintf("[%s] ",TrajFilename().base());
+void Trajin_Single::PrintInfo(int showExtended) const {
+  mprintf("'%s' ",TrajFilename().base());
   trajio_->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
   if (trajio_->HasBox()) mprintf(" (%s box)", trajio_->TrajBox().TypeName());
@@ -153,7 +149,7 @@ void Trajin_Single::PrintInfo(int showExtended) {
 }
 
 // Trajin_Single::HasVelocity()
-bool Trajin_Single::HasVelocity() {
+bool Trajin_Single::HasVelocity() const {
   if (trajio_!=0) {
     if (velio_ == 0)
       return trajio_->HasV();
@@ -163,7 +159,7 @@ bool Trajin_Single::HasVelocity() {
   return false;
 }
 
-int Trajin_Single::NreplicaDimension() {
+int Trajin_Single::NreplicaDimension() const {
   if (trajio_!=0) 
     return trajio_->ReplicaDimensions().Ndims();
   else

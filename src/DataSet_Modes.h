@@ -1,47 +1,52 @@
 #ifndef INC_DATASET_MODES_H
 #define INC_DATASET_MODES_H
-#include "DataSet.h"
+#include "DataSet_MatrixDbl.h"
 #include "Frame.h"
-#include "DataSet_Matrix.h"
 /// Hold eigenvalues/eigenvectors and optionally averaged coords.
 class DataSet_Modes : public DataSet {
   public:
     DataSet_Modes();
     ~DataSet_Modes();
-
-    // ---------- DataSet routines
-    int Size() { return nmodes_; }
-    // ---------------------------
-
-    void SetAvgCoords(int, const double*);
-    int CalcEigen(DataSet_Matrix&,int); // TODO: Make const ref
+    static DataSet* Alloc() { return (DataSet*)new DataSet_Modes();}
+    // ----- DataSet functions -------------------
+    size_t Size() const { return nmodes_; }
+    int Sync()          { return 1;       }
+    void Info()   const { return;         }
+    // -------------------------------------------
+    // TODO: Remove this. Only needed by DataSet_1D.h
+    void Add(size_t,const void*) { }
+    void SetAvgCoords(DataSet_2D const&);
+    int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
     int WriteToFile(std::string const&);
     int ReadEvecFile(std::string const&, int, int);
     int EigvalToFreq();
-    int MassWtEigvect( const double* );
-    int ReduceCovar();
-    int ReduceDistCovar(int);
+    int MassWtEigvect( DataSet_MatrixDbl::Darray const& );
+    int Reduce();
+    int Thermo(CpptrajFile&, int, double, double) const;
 
-    void SetType( DataSet_Matrix::MatrixType typeIn ) { type_ = typeIn; }
+    void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
 
-    const double* AvgCrd()            { return avgcrd_;                    }
-    const double* Eigenvalues()       { return evalues_;                   } 
-    double Eigenvalue(int i)          { return evalues_[i];                }
-    const double* Eigenvectors()      { return evectors_;                  }
-    const double* Eigenvector(int i)  { return evectors_ + (i * vecsize_); }
-    int Nmodes()                      { return nmodes_;                    }
-    int VectorSize()                  { return vecsize_;                   }
-    int NavgCrd()                     { return navgcrd_;                   }
-    DataSet_Matrix::MatrixType Type() { return type_;                      }
+    const Frame& AvgFrame()          const { return avgcrd_;                    }
+    const double* AvgCrd()           const { return (const double*)avgcrd_.xAddress(); } // Project
+    const double* Eigenvalues()      const { return evalues_;                   } // IRED 
+    double Eigenvalue(int i)         const { return evalues_[i];                } // IRED
+    const double* Eigenvectors()     const { return evectors_;                  } // IRED
+    const double* Eigenvector(int i) const { return evectors_ + (i * vecsize_); }
+    int Nmodes()                     const { return nmodes_;                    } // Project
+    int VectorSize()                 const { return vecsize_;                   } // Project
+    int NavgCrd()                    const { return (int)avgcrd_.size();        } // Project
+    DataSet_2D::MatrixType Type()    const { return type_;                      } // Project
   private:
-    double* avgcrd_;
+    int ReduceCovar();
+    int ReduceDistCovar();
+
+    Frame avgcrd_;
     double* evalues_;
     double* evectors_;
     int nmodes_;
     int vecsize_;
-    int navgcrd_;
-    DataSet_Matrix::MatrixType type_;
+    DataSet_2D::MatrixType type_;
     bool reduced_;
 };
 #endif

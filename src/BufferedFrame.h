@@ -11,7 +11,10 @@ class BufferedFrame : public CpptrajFile {
     size_t SetupFrameBuffer(int, int, int, size_t, int);
     size_t ResizeBuffer(int);
     int SeekToFrame(size_t);
-    int ReadFrame();
+    /// Attempt to read frameSize_ bytes.
+    int AttemptReadFrame();
+    /// Read frameSize_ bytes.
+    bool ReadFrame();
     int WriteFrame();
     void GetDoubleAtPosition(double&,size_t,size_t);
     void BufferBegin();

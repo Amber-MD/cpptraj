@@ -91,6 +91,10 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
         return 1;
       }
       std::string arg2(tokenString.begin()+dashPosition+1, tokenString.end());
+      if (arg2.empty()) {
+        mprinterr("Error: Incomplete number range given (%s).\n", tokenString.c_str());
+        return 1;
+      }
       res1_ = convertToInteger( arg1 );
       res2_ = convertToInteger( arg2 );
     } else {
@@ -105,7 +109,8 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
     }
     // It is expected that number args will start from 1
     if (res1_ < 1 || res2_ < 1) {
-      mprinterr("Error: One or both numbers of mask arg < 1 (%i, %i)\n",res1_,res2_);
+      mprinterr("Error: One or both numbers of mask arg (%s) < 1 (%i, %i)\n",
+                tokenString.c_str(), res1_,res2_);
       return 1;
     }
   } else {

@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists
 #include "Constants.h" // PI
-#include "ComplexArray.h"
+#include "Corr.h"
 
 // CONSTRUCTOR
 Analysis_IRED::Analysis_IRED() :
@@ -54,7 +54,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     }
   }
   if (IredVectors_.empty()) {
-    mprinterr("Error: analyze ired: corrired: No IRED vectors defined.\n");
+    mprinterr("Error: No IRED vectors defined.\n");
     return Analysis::ERR;
   }
   // Get order for Legendre polynomial
@@ -66,24 +66,25 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   // Get modes name
   std::string modesfile = analyzeArgs.GetStringKey("modes");
   if (modesfile.empty()) {
-    mprinterr("Error: analyze ired: No 'modes <name>' arg given, needed for 'corrired'.\n");
+    mprinterr("Error: No modes data specified: use 'modes <name>'.\n");
     return Analysis::ERR;
   }
+  // Get 'beg' and 'end' args.
+  ibeg = analyzeArgs.getKeyInt("beg",1);
+  iend = analyzeArgs.getKeyInt("end", 50);
   // Check if modes name exists on the stack
   bool modesFromFile = false;
   modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
     // If not on stack, check for file.
     if ( fileExists(modesfile.c_str()) ) {
-      ibeg = analyzeArgs.getKeyInt("beg",1);
-      iend = analyzeArgs.getKeyInt("end", 50);
       modinfo_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesfile, "Modes" );
       if (modinfo_->ReadEvecFile( modesfile, ibeg, iend )) return Analysis::ERR;
       modesFromFile = true;
     }
   }
   if (modinfo_ == 0) {
-    mprinterr("Error: analyze ired: Modes %s DataSet/file not found.\n",modesfile.c_str());
+    mprinterr("Error: Modes '%s' DataSet/file not found.\n",modesfile.c_str());
     return Analysis::ERR;
   }
   // TODO: Check that number of evecs match number of IRED vecs
@@ -95,7 +96,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   noeFilename_ = analyzeArgs.GetStringKey("noefile");
   filename_ = analyzeArgs.GetStringKey("out");
   if (filename_.empty()) {
-    mprinterr("Error: analyze ired: No outfile given ('out <filename>').\n");
+    mprinterr("Error: No outfile given ('out <filename>').\n");
     return Analysis::ERR;
   }
 
@@ -109,8 +110,8 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     // Get freq, NH distance
     freq_ = analyzeArgs.getKeyDouble("freq", -1.0);
     if (freq_ == -1.0) {
-      mprinterr("Error: analyze ired: No frequency for calculation of relaxation\n");
-      mprinterr("       parameters given ('freq <frequency>').\n");
+      mprinterr("Error: No frequency for calculation of relaxation\n"
+                "Error:   parameters given ('freq <frequency>').\n");
       return Analysis::ERR;
     }
     // 1.02 * 10**(-10) in Angstroms
@@ -133,9 +134,9 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   else
     mprintf(" FFT approach.\n");
   if (modesFromFile) 
-    mprintf("\tIRED modes %i to %i are read from %s,\n", ibeg, iend, modesfile.c_str());
+    mprintf("\tIRED modes %i to %i read from %s,\n", ibeg, iend, modesfile.c_str());
   else
-    mprintf("\tIRED modes taken from DataSet %s\n", modinfo_->Legend().c_str());
+    mprintf("\tIRED modes will be taken from DataSet %s\n", modinfo_->Legend().c_str());
   if (relax_) {
     mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n");
     mprintf("\t\t  approach using an NH distance of %lf and a frequency of %lf\n",
@@ -165,6 +166,7 @@ double Analysis_IRED::calc_spectral_density(int vi, double omega) {
 Analysis::RetType Analysis_IRED::Analyze() {
   CorrF_FFT pubfft_;
   CorrF_Direct corfdir_;
+  mprintf("\t'%s' has %zu modes.\n", modinfo_->Legend().c_str(), modinfo_->Size());
   if (!orderparamfile_.empty()) {
     // Calculation of S2 order parameters according to 
     //   Prompers & Brüschweiler, JACS  124, 4522, 2002; 
@@ -194,7 +196,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
   }
 
   if (modinfo_->Nmodes() != (int)IredVectors_.size()) {
-    mprinterr("Error: analyze ired: # Modes in %s (%i) does not match # of Ired Vecs (%u)\n",
+    mprinterr("Error: # Modes in %s (%i) does not match # of Ired Vecs (%u)\n",
               modinfo_->Legend().c_str(), modinfo_->Nmodes(), IredVectors_.size());
     return Analysis::ERR;
   }
@@ -206,9 +208,9 @@ Analysis::RetType Analysis_IRED::Analyze() {
   { 
     if (Nframes_ == -1)
       Nframes_ = (*Vtmp)->Size();
-    else if (Nframes_ != (*Vtmp)->Size()) {
-      mprinterr("Error: All IRED vectors must have the same size.\n");
-      mprinterr("Error: Vector %s size = %i, first vector size = %i\n",
+    else if (Nframes_ != (int)(*Vtmp)->Size()) {
+      mprinterr("Error: All IRED vectors must have the same size.\n"
+                "Error:   Vector %s size = %i, first vector size = %i\n",
                 (*Vtmp)->Legend().c_str(), (*Vtmp)->Size(), Nframes_);
       return Analysis::ERR;
     }
@@ -349,8 +351,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
     // Conversion to picoseconds
     double deltat = tstep_ * 1.0E-12;
     if (nvectelem != nvect) {
-      mprinterr("Error: analyze ired: Different number of eigenmodes (%i) and\n", nvect);
-      mprinterr("       eigenmode elements (%i)\n", nvectelem);
+      mprinterr("Error: Different number of eigenmodes (%i) and\n"
+                "Error:   eigenmode elements (%i)\n", nvect, nvectelem);
       return Analysis::ERR;
     }
     // consider only first third of the correlation curve to avoid fitting errors
@@ -383,7 +385,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     else
       err = noefile.SetupWrite(noeFilename_, debug_);
     if (err != 0) {
-      mprinterr("Error: analyze ired: Could not open NOE file for write.\n");
+      mprinterr("Error: Could not open NOE file for write.\n");
       return Analysis::ERR;
     }
     noefile.OpenFile();

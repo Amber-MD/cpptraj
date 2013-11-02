@@ -1,11 +1,12 @@
 #include <cstdio> // sscanf
+#include <set> // for TREMD temperature sorting
 #include "DataIO_RemLog.h"
 #include "CpptrajStdio.h" 
 #include "ProgressBar.h"
 #include "DataSet_RemLog.h"
 
 // CONSTRUCTOR
-DataIO_RemLog::DataIO_RemLog() {}
+DataIO_RemLog::DataIO_RemLog() : debug_(0) {}
 
 const char* ExchgDescription[] = {
 "Unknown", "Temperature", "Hamiltonian", "MultipleDim"
@@ -46,6 +47,13 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
   return numexchg;
 }
 
+void DataIO_RemLog::ReadHelp() {
+  mprintf("\tlogfiles <filelist>:  Read in additional REM log files in a comma-\n"
+          "\t                      separated list, e.g. 'logfiles rem2.log,rem3.log'\n"
+          "\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
+          "\t                      coordinate indices (H-REMD only).\n");
+}
+
 // DataIO_RemLog::ReadData()
 int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                             DataSetList& datasetlist, std::string const& dsname)
@@ -72,21 +80,20 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   // Should currently be positioned at the first exchange. Need to read this
   // to determine how many replicas there are (and temperature for T-REMD).
   DataSet_RemLog::TmapType TemperatureMap;
+  std::set<double> tList;
   double t0;
   int n_replicas = 0;
   const char* ptr = buffer.Line();
   while (ptr != 0 && ptr[0] != '#') {
     if (firstlog_type == TREMD) {
-      // For temperature remlog create temperature map. Map temperatures to 
-      // index + 1 since indices in the remlog start from 1.
+      // For temperature remlog create temperature map.
       //mprintf("DEBUG: Temp0= %s", ptr+32);
       if ( sscanf(ptr+32, "%10lf", &t0) != 1) {
         mprinterr("Error: could not read temperature from T-REMD log.\n"
                   "Error: Line: %s", ptr);
         return 1;
       }
-      std::pair<DataSet_RemLog::TmapType::iterator,bool> ret =
-        TemperatureMap.insert(std::pair<double,int>( t0, n_replicas+1 ));
+      std::pair<std::set<double>::iterator,bool> ret = tList.insert( t0 );
       if (!ret.second) {
         mprinterr("Error: duplicate temperature %.2f detected in T-REMD remlog\n", t0);
         return 1;
@@ -100,6 +107,16 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     mprinterr("Error: Detected less than 1 replica in remlog.\n");
     return 1;
   }
+  if (firstlog_type == TREMD) {
+    // Temperatures are already sorted lowest to highest in set. Map 
+    // temperatures to index + 1 since indices in the remlog start from 1.
+    int repnum = 1;
+    for (std::set<double>::const_iterator temp0 = tList.begin(); temp0 != tList.end(); ++temp0)
+      TemperatureMap.insert(std::pair<double,int>(*temp0, repnum++));
+    for (DataSet_RemLog::TmapType::const_iterator tmap = TemperatureMap.begin();
+                                                  tmap != TemperatureMap.end(); ++tmap)
+      mprintf("\t\t%i => %f\n", (*tmap).second, (*tmap).first);
+  }
   DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
   if (ds == 0) return 1;
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
@@ -108,11 +125,24 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   std::vector<int> coordinateIndices;
   if (firstlog_type == HREMD) {
     replicaFrames.resize( n_replicas );
+    ArgList idxArgs( argIn.GetStringKey("crdidx"), "," );
+    if (!idxArgs.empty() && idxArgs.Nargs() != n_replicas) {
+      mprinterr("Error: crdidx: Ensemble size is %i but only %i indices given!\n",
+                n_replicas, idxArgs.Nargs());
+      return 1;
+    }
     // All coord indices start equal to replica indices.
     // Indices start from 1 in remlogs (H-REMD only).
     coordinateIndices.resize( n_replicas );
-    for (int replica = 0; replica < n_replicas; replica++)
-      coordinateIndices[replica] = replica+1;
+    mprintf("\tInitial H-REMD coordinate indices:");
+    for (int replica = 0; replica < n_replicas; replica++) {
+      if (idxArgs.empty())
+        coordinateIndices[replica] = replica+1;
+      else // TODO: Check replica index range
+        coordinateIndices[replica] = idxArgs.getNextInteger(0);
+      mprintf(" %i", coordinateIndices[replica]);
+    }
+    mprintf("\n");
   } else if (firstlog_type == TREMD)
     replicaFrames.resize(1);
   // Close first remlog 
@@ -161,7 +191,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
           ensemble.AddRepFrame( replicaFrames[0].ReplicaIdx()-1, replicaFrames[0] );
         // ----- H-REMD ----------------------------
         } else if (thislog_type == HREMD) {
-          if (replicaFrames[replica].SetHremdFrame( ptr, coordinateIndices[replica] )) {
+          if (replicaFrames[replica].SetHremdFrame( ptr, coordinateIndices )) {
             mprinterr("Error reading HREMD line from rem log. Exchange=%i, replica=%i\n",
                       exchg+1, replica+1);
             return 1;
@@ -175,12 +205,12 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
       }
       if ( fileEOF ) break; // Error occurred reading replicas, skip rest of exchanges.
       if (thislog_type == HREMD) {
-        // Determine whether exchanges occurred. Update coordinate indices accordingly.
+        // Update coordinate indices.
+        //mprintf("DEBUG: exchange= %i:\n", exchg + 1);
         for (int replica = 0; replica < n_replicas; replica++) {
-          if (replicaFrames[replica].Success()) {
-            int partner = replicaFrames[replica].PartnerIdx() - 1;
-            coordinateIndices[replica] = replicaFrames[partner].CoordsIdx();
-          }
+          //mprintf("DEBUG:\tReplica %i crdidx %i =>", replica+1, coordinateIndices[replica]);
+          coordinateIndices[replica] = replicaFrames[replica].CoordsIdx();
+          //mprintf(" %i\n", coordinateIndices[replica]); // DEBUG
         }
       }
       // Read 'exchange N' line.
@@ -198,7 +228,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
           "%-10s %6s %6s %6s %12s %12s %12s S\n", "#Exchange", "RepIdx", "PrtIdx", "CrdIdx",
           "Temp0", "PE_X1", "PE_X2");
   for (int i = 0; i < ensemble.NumExchange(); i++) {
-    for (int j = 0; j < ensemble.Size(); j++) {
+    for (int j = 0; j < (int)ensemble.Size(); j++) {
       DataSet_RemLog::ReplicaFrame const& frm = ensemble.RepFrame(i, j); 
       mprintf("%10u %6i %6i %6i %12.4f %12.4f %12.4f %1i\n", i + 1,
               frm.ReplicaIdx(), frm.PartnerIdx(), frm.CoordsIdx(), frm.Temp0(), 

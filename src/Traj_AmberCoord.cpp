@@ -78,7 +78,7 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
     file_.SeekToFrame( set ); 
 
   // Read frame into the char buffer
-  if (file_.ReadFrame() == -1) return 1;
+  if (file_.ReadFrame()) return 1;
 
   // Get REMD Temperature if present
   if (hasREMD_ != 0) 
@@ -98,7 +98,7 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
 int Traj_AmberCoord::readVelocity(int set, Frame& frameIn) {
   if (IsSeekable()) file_.SeekToFrame( set );
   // Read frame into the char buffer
-  if (file_.ReadFrame() == -1) return 1;
+  if (file_.ReadFrame()) return 1;
   file_.BufferBeginAt(hasREMD_);
   file_.BufferToDouble(frameIn.vAddress(), natom3_);
   return 0;
@@ -141,8 +141,8 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
     mprintf(".\n");
   }
   // Read the first frame of coordinates
-  if ( file_.ReadFrame() == -1 ) {
-    mprinterr("Error in read of Coords frame 1 of trajectory %s.\n", file_.Filename().base());
+  if ( file_.ReadFrame() ) {
+    mprinterr("Error: in read of Coords frame 1 of trajectory %s.\n", file_.Filename().base());
     return TRAJIN_ERR;
   }
   // Check for box coordinates. If present, update the frame size and
@@ -174,8 +174,9 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
         // General triclinic. Set lengths and angles.
         boxInfo.SetBox( box );
       } else {
-        mprinterr("Error: Expect only 3 or 6 box coords, got %i\n", numBoxCoords_);
-        mprinterr("Error: Box line=[%s]\n", nextLine.c_str());
+        mprinterr("Error: In %s, expect only 3 or 6 box coords, got %i\n" 
+                  "Error:   Box line=[%s]\n", 
+                  file_.Filename().base(), numBoxCoords_, nextLine.c_str());
         return TRAJIN_ERR;
       }
     }
@@ -309,7 +310,7 @@ int Traj_AmberCoord::setupTrajout(std::string const& fname, Topology* trajParm,
       }
     }
     if (file_.OpenFile()) return 1;
-    file_.Rank_printf(0,"%-s\n", title.c_str());
+    file_.Printf("%-s\n", title.c_str());
   } else {
     // Just set up for append
     if (file_.SetupAppend( fname, debug_ )) return 1;

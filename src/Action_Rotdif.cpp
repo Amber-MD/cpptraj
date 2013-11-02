@@ -2,14 +2,13 @@
 #include <cmath>
 #include <cfloat> // DBL_MAX
 #include <cstdio> //sscanf
-#include <cstring> // memset
 #include "Action_Rotdif.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // NumberFilename
 #include "Constants.h" // TWOPI
-#include "Integrate.h"
+#include "DataSet_Mesh.h"
 #include "ProgressBar.h"
-#include "ComplexArray.h"
+#include "Corr.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -1452,7 +1451,7 @@ int Action_Rotdif::DetermineDeffs() {
   D_eff_.reserve( nvecs_ );
   // Allocate memory to hold rotated vectors. Need +1 since the original
   // vector is stored at position 0. 
-  rotated_vectors.Allocate( itotframes + 1 );
+  rotated_vectors.Allocate1D( itotframes + 1 );
   // Allocate memory for C(t)
   p1.reserve( maxdat );
   p2.reserve( maxdat );
@@ -1466,7 +1465,7 @@ int Action_Rotdif::DetermineDeffs() {
   else
     meshSize = maxdat * NmeshPoints_;
   // spline will be used to interpolate C(t) for better intergration
-  Interpolate spline( ti_, tf_, meshSize );
+  DataSet_Mesh spline( meshSize, ti_, tf_ );
   // Check order of legendre polynomial to determine whether we use p1 or p2
   if (olegendre_==1)
     pY = &p1;
@@ -1505,7 +1504,7 @@ int Action_Rotdif::DetermineDeffs() {
     else
       compute_corr(rotated_vectors, maxdat, p2, p1);
     // Calculate mesh Y values
-    spline.SetMesh_Y(pX, *pY);
+    spline.SetSplinedMeshY(pX, *pY);
     // Integrate
     double integral = spline.Integrate_Trapezoid();
     // Solve for deff
@@ -1528,7 +1527,7 @@ int Action_Rotdif::DetermineDeffs() {
         if (debug_>3) {
           namebuffer = NumberFilename( "mesh.dat", nvec );
           outfile.OpenWrite(namebuffer);
-          for (int i=0; i < spline.Mesh_Size(); i++)
+          for (int i=0; i < (int)spline.Size(); i++)
             outfile.Printf("%f %f\n", spline.X(i), spline.Y(i));
           outfile.CloseFile();
         }

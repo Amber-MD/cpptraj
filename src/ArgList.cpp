@@ -128,16 +128,16 @@ ArgList ArgList::RemainingArgs() {
 }
 
 // ArgList::AddArg()
-/** \param input null terminated string to add to argument list
+/** \param input string of space-delimited args to add to argument list.
   */
 void ArgList::AddArg(std::string const& input) {
-  // Dont store blank tokens
-  if (input.empty()) return;
-  if (input[0]=='\n') return;
-  arglist_.push_back(input);
-  argline_.append(input);
-  argline_.append(" ");
-  marked_.push_back(false);
+  ArgList inputArgs( input );
+  for (int i = 0; i < inputArgs.Nargs(); i++) {
+    arglist_.push_back( inputArgs[i] );
+    argline_.append(" ");
+    argline_.append( inputArgs[i] );
+    marked_.push_back( false );
+  }
 }
 
 // ArgList::MarkArg()
@@ -150,15 +150,18 @@ void ArgList::MarkArg(int arg) {
 /** Check if all arguments have been processed. If not print a warning along
   * with all unprocessed arguments.
   */
-void ArgList::CheckForMoreArgs() {
+bool ArgList::CheckForMoreArgs() const {
   std::string notmarked;
   for (unsigned int arg=0; arg < arglist_.size(); arg++) {
     if (!marked_[arg]) 
       notmarked.append(arglist_[arg] + " ");
   }
-  if (!notmarked.empty())  
-    mprintf("Warning: [%s] Not all arguments handled: [ %s]\n",
-            arglist_[0].c_str(), notmarked.c_str());
+  if (!notmarked.empty()) { 
+    mprinterr("Error: [%s] Not all arguments handled: [ %s]\n",
+              arglist_[0].c_str(), notmarked.c_str());
+    return true;
+  }
+  return false;
 }
 
 // ArgList::PrintList()
@@ -272,10 +275,24 @@ bool ArgList::ValidInteger(int idx) {
   return validInteger(arglist_[idx]);
 }
 
+int ArgList::IntegerAt(int idx) {
+  if (ValidInteger(idx))
+    return convertToInteger(arglist_[idx]);
+  mprinterr("Error: Argument %i is not a valid integer\n", idx);
+  return 0;
+}
+
 bool ArgList::ValidDouble(int idx) {
   if (idx < 0 || idx >= (int)arglist_.size())
     return false;
   return validDouble(arglist_[idx]);
+}
+
+double ArgList::DoubleAt(int idx) {
+  if (ValidDouble(idx))
+    return convertToDouble(arglist_[idx]);
+  mprinterr("Error: Argument %i is not a valid double\n", idx);
+  return 0.0;
 }
 
 // ArgList::getNextInteger()

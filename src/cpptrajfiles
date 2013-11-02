@@ -35,10 +35,12 @@ SOURCES=ActionFrameCounter.cpp \
         Action_MakeStructure.cpp \
         Action_Mask.cpp \
         Action_Matrix.cpp \
+        Action_MaxDist.cpp \
         Action_MinDist.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
         Action_NAstruct.cpp \
+        Action_NMRrst.cpp \
         Action_OrderParameter.cpp \
         Action_Outtraj.cpp \
         Action_PairDist.cpp \
@@ -68,26 +70,33 @@ SOURCES=ActionFrameCounter.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
+        Analysis_Average.cpp \
         Analysis_Clustering.cpp \
         Analysis_Corr.cpp \
         Analysis_CrankShaft.cpp \
         Analysis_CrdFluct.cpp \
         Analysis_CrossCorr.cpp \
+        Analysis_Divergence.cpp \
         Analysis_FFT.cpp \
         Analysis_Hist.cpp \
+        Analysis_Integrate.cpp \
         Analysis_IRED.cpp \
+        Analysis_KDE.cpp \
         Analysis_Lifetime.cpp \
         Analysis_Matrix.cpp \
         Analysis_MeltCurve.cpp \
         Analysis_Modes.cpp \
+        Analysis_MultiHist.cpp \
         Analysis_Overlap.cpp \
         Analysis_RemLog.cpp \
         Analysis_Rms2d.cpp \
         Analysis_RmsAvgCorr.cpp \
         Analysis_RunningAvg.cpp \
+        Analysis_Spline.cpp \
         Analysis_Statistics.cpp \
         Analysis_Timecorr.cpp \
         ArgList.cpp \
+        Array1D.cpp \
         Atom.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
@@ -105,21 +114,31 @@ SOURCES=ActionFrameCounter.cpp \
         Cluster_HierAgglo.cpp \
         Command.cpp \
         ComplexArray.cpp \
+        Corr.cpp \
         Cpptraj.cpp \
         CpptrajFile.cpp \
+        CpptrajState.cpp \
         CpptrajStdio.cpp \
-        DS_Math.cpp \
         DataFile.cpp \
         DataFileList.cpp \
         DataIO.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
+        DataIO_OpenDx.cpp \
+        DataIO_Mdout.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
+        DataIO_Xplor.cpp \
         DataSet.cpp \
         DataSetList.cpp \
+        DataSet_1D.cpp \
+        DataSet_2D.cpp \
+        DataSet_3D.cpp \
         DataSet_Coords.cpp \
-        DataSet_Matrix.cpp \
+        DataSet_GridFlt.cpp \
+        DataSet_MatrixDbl.cpp \
+        DataSet_MatrixFlt.cpp \
+        DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
         DataSet_RemLog.cpp \
         DataSet_Vector.cpp \
@@ -134,18 +153,14 @@ SOURCES=ActionFrameCounter.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
         FileIO_Std.cpp \
-        FileList.cpp \
         FileName.cpp \
         Frame.cpp \
         FrameList.cpp \
-        Grid.cpp \
-        Histogram.cpp \
+        GridAction.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
-        Integrate.cpp \
         MapAtom.cpp \
         MaskToken.cpp \
-        Matrix_2D.cpp \
         Matrix_3x3.cpp \
         Mol2File.cpp \
         NameType.cpp \
@@ -162,9 +177,9 @@ SOURCES=ActionFrameCounter.cpp \
         Range.cpp \
         ReadLine.cpp \
         ReferenceAction.cpp \
+        ReferenceFrame.cpp \
         RmsAction.cpp \
         StringRoutines.cpp \
-        Thermo.cpp \
         Topology.cpp \
         TopologyList.cpp \
         TorsionRoutines.cpp \
@@ -185,7 +200,6 @@ SOURCES=ActionFrameCounter.cpp \
         Trajin_Single.cpp \
         Trajout.cpp \
         TrajoutList.cpp \
-        TriangleMatrix.cpp \
         Vec3.cpp \
         main.cpp
 

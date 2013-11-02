@@ -49,20 +49,25 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
     return Action::ERR;
   }
   // Get energy data set
-  std::string ene_dsname = actionArgs.GetStringKey("ene");
-  ene_ = DSL->GetDataSet( ene_dsname );
-  if (ene_ == 0) {
-    mprinterr("Error: could not get energy data set %s\n", ene_dsname.c_str());
+  std::string eneDsname = actionArgs.GetStringKey("ene");
+  DataSet* dstmp = DSL->GetDataSet( eneDsname );
+  if (dstmp == 0) {
+    mprinterr("Error: could not get energy data set %s\n", eneDsname.c_str());
     return Action::ERR;
   }
-  if (ene_->Type() != DataSet::FLOAT && ene_->Type() != DataSet::DOUBLE) {
-    mprinterr("Error: energy data set %s must be type FLOAT or DOUBLE.\n", ene_dsname.c_str());
+  if (dstmp->Type() != DataSet::FLOAT && dstmp->Type() != DataSet::DOUBLE) {
+    mprinterr("Error: energy data set %s must be type FLOAT or DOUBLE.\n", eneDsname.c_str());
     return Action::ERR;
   }
+  if (dstmp->Ndim() != 1) {
+    mprinterr("Error: energy data set is not 1D (%u)\n", dstmp->Ndim());
+    return Action::ERR;
+  }
+  ene_ = static_cast<DataSet_1D*>( dstmp );
   // Get bin data set
   std::string binDSname = actionArgs.GetStringKey("bin");
   if (!binDSname.empty()) {
-    bin_ = (DataSet_integer*)DSL->FindSetOfType( binDSname, DataSet::INT );
+    bin_ = (DataSet_integer*)DSL->FindSetOfType( binDSname, DataSet::INTEGER );
     if (bin_ == 0) {
       mprinterr("Error: could not get bin data set %s\n", binDSname.c_str());
       mprinterr("Info: bin data set must be type INTEGER.\n");

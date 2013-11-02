@@ -1,6 +1,6 @@
 #include "Analysis_Matrix.h"
 #include "CpptrajStdio.h"
-#include "Thermo.h"
+#include "DataSet_MatrixDbl.h"
 
 // CONSTRUCTOR
 Analysis_Matrix::Analysis_Matrix() :
@@ -34,13 +34,15 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
     return Analysis::ERR;
   }
   // Find matrix in DataSetList.
-  matrix_ = (DataSet_Matrix*)DSLin->FindSetOfType( mname, DataSet::MATRIX );
+  matrix_ = (DataSet_2D*)DSLin->FindSetOfType( mname, DataSet::MATRIX_DBL );
+  if (matrix_ == 0)
+    matrix_ = (DataSet_2D*)DSLin->FindSetOfType( mname, DataSet::MATRIX_FLT );
   if (matrix_ == 0) {
     mprinterr("Error: analyze matrix: Could not find matrix named %s\n",mname.c_str());
     return Analysis::ERR;
   }
   // Check that matrix is symmetric (half-matrix incl. diagonal).
-  if (matrix_->Nrows() > 0) {
+  if (matrix_->Kind() != DataSet_2D::HALF) {
     mprinterr("Error: analyze matrix: Only works for symmetric matrices (i.e. no mask2)\n");
     return Analysis::ERR;
   }
@@ -50,7 +52,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   thermopt_ = analyzeArgs.hasKey("thermo");
   if (thermopt_)
     outthermo_ = analyzeArgs.GetStringKey("outthermo");
-  if (thermopt_ && matrix_->Type()!=DataSet_Matrix::MWCOVAR) {
+  if (thermopt_ && matrix_->Type()!=DataSet_2D::MWCOVAR) {
     mprinterr("Error: analyze matrix: parameter 'thermo' only works for\n");
     mprinterr("       mass-weighted covariance matrix ('mwcovar').\n");
     return Analysis::ERR;
@@ -67,15 +69,6 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   }
   // Reduce flag
   reduce_ = analyzeArgs.hasKey("reduce");
-  if ( reduce_ && matrix_->Type() != DataSet_Matrix::MWCOVAR &&
-                  matrix_->Type() != DataSet_Matrix::COVAR   &&
-                  matrix_->Type() != DataSet_Matrix::DISTCOVAR  )
-  {
-    mprinterr("Error: analyze matrix: reduce not supported for %s\n", 
-              DataSet_Matrix::MatrixTypeString[matrix_->Type()]);
-    mprinterr("Error: reduce only works for covariance and distance covariance matrices.\n");
-    return Analysis::ERR;
-  }
   // Set up DataSet_Modes
   std::string modesname = analyzeArgs.GetStringKey("name");
   modes_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesname, "Modes" );
@@ -106,36 +99,31 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
 #endif
 }
 
+// Analysis_Matrix::Analyze()
 Analysis::RetType Analysis_Matrix::Analyze() {
-  modes_->SetAvgCoords( matrix_->VectSize(), matrix_->Vect() );
+  modes_->SetAvgCoords( *matrix_ );
   // Calculate eigenvalues / eigenvectors
   if (modes_->CalcEigen( *matrix_, nevec_ )) return Analysis::ERR;
-  if (matrix_->Type() == DataSet_Matrix::MWCOVAR) {
-    if ( matrix_->Mass() == 0) {
+  if (matrix_->Type() == DataSet_2D::MWCOVAR) {
+    DataSet_MatrixDbl* Dmatrix = static_cast<DataSet_MatrixDbl*>( matrix_ );
+    if ( Dmatrix->Mass().empty() ) {
       mprinterr("Error: MWCOVAR Matrix %s does not have mass info.\n", matrix_->Legend().c_str());
       return Analysis::ERR;
     }
     // Convert eigenvalues to cm^-1
     if (modes_->EigvalToFreq()) return Analysis::ERR;
     // Mass-wt eigenvectors
-    if (modes_->MassWtEigvect( matrix_->Mass() )) return Analysis::ERR;
+    if (modes_->MassWtEigvect( Dmatrix->Mass() )) return Analysis::ERR;
     // Calc thermo-chemistry if specified
     if (thermopt_) {
-      // # of atoms - currently assuming COVAR (i.e. 3 matrix elts / coord)
-      int natoms = matrix_->Nelts();
       CpptrajFile outfile;
       outfile.OpenWrite(outthermo_);
-      thermo( outfile, natoms, modes_->Nmodes(), 1, matrix_->Vect(), 
-              matrix_->Mass(), modes_->Eigenvalues(), 298.15, 1.0 );
+      modes_->Thermo( outfile, 1, 298.15, 1.0 );
       outfile.CloseFile();
     }
   }
   if (reduce_) {
-    if ( matrix_->Type() == DataSet_Matrix::COVAR ||
-         matrix_->Type() == DataSet_Matrix::MWCOVAR )
-      modes_->ReduceCovar();
-    else if ( matrix_->Type() == DataSet_Matrix::DISTCOVAR )
-      modes_->ReduceDistCovar( matrix_->Nelts() );
+    if (modes_->Reduce()) return Analysis::ERR;
   }
   //modes_->PrintModes(); // DEBUG
   if (!outfilename_.empty())

@@ -6,21 +6,20 @@
 class DataIO_Std : public DataIO {
   public:
     DataIO_Std();
-
+    static DataIO* Alloc() { return (DataIO*)new DataIO_Std(); }
+    static void ReadHelp();
+    static void WriteHelp();
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
-    int processWriteArgs(ArgList &);
-    int WriteData(std::string const&,DataSetList&);
-    int WriteDataInverted(std::string const&,DataSetList&);
-    int WriteData2D(std::string const&, DataSet& set );
+    int processWriteArgs(ArgList&);
+    int WriteData(std::string const&,DataSetList const&);
+    int WriteDataInverted(std::string const&,DataSetList const&);
+    int WriteData2D(std::string const&, DataSet const&);
+    int WriteData3D(std::string const&, DataSet const&) { return 1; }
+    bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
+    static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);
+    bool hasXcolumn_;
     bool writeHeader_;
     bool square2d_;
-
-    // FIXME: Use dimension for this in DataIO
-    std::string y_label_;
-    double ymin_;
-    double ystep_;
-
-    void WriteNameToBuffer(CpptrajFile&, DataSet*, bool);
 };
 #endif

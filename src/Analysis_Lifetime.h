@@ -1,20 +1,21 @@
 #ifndef INC_ANALYSIS_LIFETIME_H
 #define INC_ANALYSIS_LIFETIME_H
 #include "Analysis.h"
+#include "Array1D.h"
 class Analysis_Lifetime : public Analysis {
   public:
     Analysis_Lifetime();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Lifetime(); }
     static void Help();
-
+    Analysis::RetType Setup(Array1D const&);
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
-    DataSetList inputDsets_;
-    std::vector<DataSet*> outputDsets_;
-    std::vector<DataSet*> maxDsets_;
-    std::vector<DataSet*> avgDsets_;
+    Array1D inputDsets_;
+    Array1D outputDsets_;
+    Array1D maxDsets_;
+    Array1D avgDsets_;
+    std::string outfileName_;
     int windowSize_;
     double cut_;
     bool averageonly_;

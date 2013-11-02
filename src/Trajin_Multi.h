@@ -3,19 +3,20 @@
 #include <map>
 #include "Trajin.h"
 #include "FrameArray.h"
+#include "DataSet_RemLog.h"
 /// Class for reading in multiple trajectories at the same time (e.g. REMD ensemble)
 class Trajin_Multi : public Trajin {
   public:
     Trajin_Multi();
     ~Trajin_Multi();
 
-    int SetupTrajRead(std::string const&, ArgList *, Topology *);
+    int SetupTrajRead(std::string const&, ArgList&, Topology*);
     int BeginTraj(bool);
     void EndTraj();
     int GetNextFrame( Frame& );
-    void PrintInfo(int);
-    bool HasVelocity()      { return hasVelocity_; }
-    int NreplicaDimension() { return Ndimensions_; }
+    void PrintInfo(int) const;
+    bool HasVelocity()      const { return hasVelocity_; }
+    int NreplicaDimension() const { return Ndimensions_; }
 
     void EnsembleInfo() const;
     int EnsembleSetup( FrameArray& );
@@ -27,12 +28,15 @@ class Trajin_Multi : public Trajin {
     int EnsemblePosition(int member) const { return frameidx_[member];     }
 #   endif
     bool BadEnsemble()               const { return badEnsemble_;          }
+    // CRDIDXARG: NOTE: This is public for CRDIDX in TrajinList
+    enum TargetType { NONE = 0, TEMP, INDICES, CRDIDX };
+    TargetType TargetMode()          const { return targetType_;           }
+    std::string FinalCrdIndices()    const;
   private:
     /// Define type that will hold REMD indices
     typedef std::vector<int> RemdIdxType;
     typedef std::vector<TrajectoryIO*> IOarrayType;
     typedef std::vector<std::string> NameListType;
-    enum TargetType { NONE = 0, TEMP, INDICES };
 
     double remdtrajtemp_;     ///< Get frames with this temperature on read
     RemdIdxType remdtrajidx_; ///< Get frames with these indices on read
@@ -41,7 +45,6 @@ class Trajin_Multi : public Trajin {
     int lowestRepnum_;        ///< Hold the lowest replica number
     bool isSeekable_;         ///< True if all trajs are seekable.
     bool hasVelocity_;        ///< True if all trajs have velocities.
-    bool isEnsemble_;         ///< True if this will be processed as an ensemble.
     bool replicasAreOpen_;    ///< True is replicas are open.
     bool badEnsemble_;        ///< True if problem with any frames in the ensemble
     TargetType targetType_;   ///< Hold type of REMD frame being searched for.
@@ -54,8 +57,9 @@ class Trajin_Multi : public Trajin {
     typedef std::map< std::vector<int>, int > ImapType;
     ImapType IndicesMap_;
 #   ifdef MPI
-    int ensembleFrameNum_;    ///< Position containing coords to use in FrameArray
+    int ensembleFrameNum_;      ///< Position containing coords to use in FrameArray
 #   endif
+    DataSet_RemLog remlogData_; ///< For sorting by CRDIDX from remlog.
     NameListType SearchForReplicas();
     bool IsTarget(Frame const&);
 };

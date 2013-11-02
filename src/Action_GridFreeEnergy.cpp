@@ -9,11 +9,12 @@
 // CONSTRUCTOR
 Action_GridFreeEnergy::Action_GridFreeEnergy() :
   maxVoxelOccupancyCount_(600), // NOTE: See header for comments.
-  tempInKevin_(293.0)
+  tempInKevin_(293.0),
+  grid_(0)
 {}
 
 void Action_GridFreeEnergy::Help() {
-  mprintf("\t<filename> %s <mask>\n", Grid::HelpText);
+  mprintf("\t<filename> %s <mask>\n", GridAction::HelpText);
 }
 
 // Action_GridFreeEnergy::init()
@@ -21,14 +22,14 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* P
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get output filename
-  filename_ = actionArgs.GetStringNext();
-  if (filename_.empty()) {
+  std::string filename = actionArgs.GetStringNext();
+  if (filename.empty()) {
     mprinterr("Error: GridFreeEnergy: no output filename specified.\n");
     return Action::ERR;
   }
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
-  if (grid_.GridInit( "GridFreeEnergy", actionArgs ))
-    return Action::ERR;
+  grid_ = GridInit( "GridFreeEnergy", actionArgs, *DSL );
+  if (grid_ == 0) return Action::ERR;
 
   // Get mask
   std::string maskexpr = actionArgs.GetMaskNext();
@@ -41,9 +42,18 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* P
   // Get extra args
   tempInKevin_ = actionArgs.getKeyDouble("temp", 293.0);
 
+  // Setup output file
+  DataFile* outfile = DFL->AddSetToFile(filename, (DataSet*)grid_);
+  if (outfile == 0) {
+    mprinterr("Error: GridFreeEnergy: Could not set up output file %s\n", filename.c_str());
+    return Action::ERR;
+  }
+  //grid_.PrintXplor( filename_, "", "REMARKS Change in Free energy from bulk solvent with bin normalisation of " + integerToString(currentLargestVoxelOccupancyCount) );
+
   // Info
-  grid_.GridInfo();
-  mprintf("\tGrid will be printed to file %s\n",filename_.c_str());
+  mprintf("    GridFreeEnergy\n");
+  GridInfo( *grid_ );
+  mprintf("\tGrid will be printed to file %s\n",filename.c_str());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   mprintf("\tTemp is : %f K\n",tempInKevin_);
 
@@ -56,7 +66,7 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* P
 // Action_GridFreeEnergy::setup()
 Action::RetType Action_GridFreeEnergy::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup grid, checks box info.
-  if (grid_.GridSetup( *currentParm )) return Action::ERR;
+  if (GridSetup( *currentParm )) return Action::ERR;
 
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ ))
@@ -71,8 +81,10 @@ Action::RetType Action_GridFreeEnergy::Setup(Topology* currentParm, Topology** p
 }
 
 // Action_GridFreeEnergy::action()
-Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  grid_.GridFrame( *currentFrame, mask_ );
+Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, Frame* currentFrame, 
+                                                Frame** frameAddress) 
+{
+  GridFrame( *currentFrame, mask_, *grid_ );
   return Action::OK;
 }
 
@@ -103,7 +115,7 @@ void Action_GridFreeEnergy::Print() {
   voxelOccupancyCount.assign(maxVoxelOccupancyCount_, 0);
 
   // Determine the frequency the bin populations
-  for (Grid::iterator gval = grid_.begin(); gval != grid_.end(); ++gval) {
+  for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
         int bincount = (int) *gval;
 
         // Increase the array size if needs be
@@ -145,25 +157,14 @@ void Action_GridFreeEnergy::Print() {
           currentLargestVoxelOccupancyCount);
   // The assumption here is that mostFrequentVoxelOccupancy corresponds to the
   // the occupancy count of bulk solvent
-
-  for (int k = 0; k < grid_.NZ(); ++k) {
-    for (int j = 0; j < grid_.NY(); ++j) {
-      for (int i = 0; i < grid_.NX(); ++i) {
-        float value = grid_.GridVal(i, j, k);
-        // Avoid log(0) values since this will result in an inf
-        if ( (value / mostFrequentVoxelOccupancy) < SMALL){
-           grid_.SetGridVal(i, j, k, 0.0);
-        }else{
-           grid_.SetGridVal(i, j, k, (-1.0 * JOULESTOKCAL * tempInKevin_ *  GASCONSTANT * 
-                                        log ((value / mostFrequentVoxelOccupancy))) );
-        }
-      }
+  for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
+    float value = *gval;
+    // Avoid log(0) values since this will result in an inf
+    if ( (value / mostFrequentVoxelOccupancy) < SMALL){
+      *gval = 0.0;
+    } else {
+      *gval = (-1.0 * JOULESTOKCAL * tempInKevin_ *  GASCONSTANT *
+                log ((value / mostFrequentVoxelOccupancy)));
     }
   }
-
-
-
-
-  grid_.PrintXplor( filename_, "", "REMARKS Change in Free energy from bulk solvent with bin normalisation of " + integerToString(currentLargestVoxelOccupancyCount) );
 }
-

@@ -91,8 +91,10 @@ int Trajout::InitTrajWrite(std::string const& tnameIn, ArgList *argIn,
       if ( FrameRange_.SetRange(onlyframes) )
         mprintf("Warning: trajout %s: onlyframes: %s is not a valid range.\n",
                 TrajFilename().full(), onlyframes.c_str());
-      else
+      else {
         FrameRange_.PrintRange("\tSaving frames",0);
+        mprintf("\n");
+      }
       // User frame args start from 1. Start from 0 internally.
       FrameRange_.ShiftBy(-1);
       hasRange_ = true;
@@ -189,7 +191,7 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame const& FrameOut) {
 }
 
 // Trajout::PrintInfo()
-void Trajout::PrintInfo(int showExtended) {
+void Trajout::PrintInfo(int showExtended) const {
   mprintf("  [%s] ",TrajFilename().base());
   trajio_->Info();
   mprintf(", Parm %s",TrajParm()->c_str());

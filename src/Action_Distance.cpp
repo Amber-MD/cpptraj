@@ -1,6 +1,7 @@
 // Action_Distance
 #include <cmath>
 #include "Action_Distance.h"
+#include "DataSet_double.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -10,22 +11,41 @@ Action_Distance::Action_Distance() :
 { } 
 
 void Action_Distance::Help() {
-  mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]\n");
+  mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]\n"
+          "\t[type {noe | hbond}\n"
+          "\tOptions for 'type noe': [bound <lower>] [bound <upper>] [rexp <expected>]\n"
+          "\t                        [noe_strong] [noe_medium] [noe_weak]\n");
 }
 
 // Action_Distance::init()
 Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  double noe_bound = 0.0, noe_boundh = 0.0, noe_rexp = -1.0;
   // Get Keywords
   InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
-  if      ( stypename == "hbond" ) stype = DataSet::HBOND;
-  else if (stypename == "noe"    ) stype = DataSet::NOE; // TODO: Grab bound and boundh
-
+  if      ( stypename == "hbond" )
+    stype = DataSet::HBOND;
+  else if ( stypename == "noe" ) {
+    stype = DataSet::NOE;
+    noe_bound = actionArgs.getKeyDouble("bound", 0.0);
+    noe_boundh = actionArgs.getKeyDouble("bound", 0.0);
+    noe_rexp = actionArgs.getKeyDouble("rexp", -1.0);
+    if (actionArgs.hasKey("noe_weak")) {
+      noe_bound = 3.5;
+      noe_boundh = 5.0;
+    } else if (actionArgs.hasKey("noe_medium")) {
+      noe_bound = 2.9;
+      noe_boundh = 5.0;
+    } else if (actionArgs.hasKey("noe_strong")) {
+      noe_bound = 1.8;
+      noe_boundh = 2.9;
+    } 
+  }
   // Get Masks
   std::string mask1 = actionArgs.GetMaskNext();
   std::string mask2 = actionArgs.GetMaskNext();
@@ -40,6 +60,10 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Dis");
   if (dist_==0) return Action::ERR;
   dist_->SetScalar( DataSet::M_DISTANCE, stype );
+  if ( stype == DataSet::NOE ) {
+    ((DataSet_double*)dist_)->SetNOE(noe_bound, noe_boundh, noe_rexp);
+    dist_->SetLegend(Mask1_.MaskExpression() + " and " + Mask2_.MaskExpression());
+  }
   // Add dataset to data file
   if (outfile != 0) outfile->AddSet( dist_ );
 

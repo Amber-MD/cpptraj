@@ -4,21 +4,28 @@
 #include "StringRoutines.h" // integerToString 
 //#incl ude "MpiRoutines.h" //worldsize
 
-TrajoutList::TrajoutList() { }
+TrajoutList::TrajoutList() : debug_(0) { }
 
 TrajoutList::~TrajoutList() {
   Clear();
+}
+
+void TrajoutList::SetDebug(int debugIn) {
+  debug_ = debugIn;
+  if (debug_ > 0)
+    mprintf("TrajoutList debug level set to %i\n", debug_);
 }
 
 void TrajoutList::Clear() {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj) 
     delete *traj;
   trajout_.clear();
-  FileList::Clear();
+  trajoutArgs_.clear();
 }
 
 // TrajoutList::AddEnsembleTrajout()
-int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList& topListIn, int member)
+int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList const& topListIn,
+                                    int member)
 {
   // Make a copy of input arg list so that args remain unmarked for the next
   // member of the ensemble.
@@ -55,29 +62,37 @@ int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList& topListI
 }
 
 // TrajoutList::AddTrajout()
-int TrajoutList::AddTrajout(ArgList& argIn, TopologyList& topListIn) {
-   if (!argIn.CommandIs("trajout")) return 1;
+int TrajoutList::AddTrajout(ArgList const& argIn, TopologyList const& topListIn) {
   // Since we need to check if this filename is in use in order to prevent
   // overwrites, determine the filename here.
-  std::string filename = argIn.GetStringNext();
+  ArgList args = argIn;
+  std::string filename = args.GetStringNext();
   if (filename.empty()) {
     mprinterr("Error: TrajoutList::Add: Called with null filename.\n");
     return 1;
   }
-  return AddTrajout( filename, argIn, topListIn );
-} 
+  int err = AddTrajout( filename, args, topListIn );
+  // For setting up ensemble later, save trajout arg.
+  if (err == 0) trajoutArgs_.push_back( argIn );
+  return err;
+}
 
 // TrajoutList::AddTrajout()
 /** Add trajectory to the trajectory list as an output trajectory. 
   * Associate the trajectory with one of the parm files in the 
   * TopologyList. 
   */
-int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn, TopologyList& topListIn) 
+int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn, 
+                            TopologyList const& topListIn) 
 {
   // Check if filename is in use
-  if (FindName(filename) != -1) {
-    mprinterr("Error: trajout: Filename %s already in use.\n",filename.c_str());
-    return 1;
+  for (ListType::const_iterator to = trajout_.begin();
+                                to != trajout_.end(); ++to)
+  {
+    if ( (*to)->TrajFilename().Full() == filename ) { 
+      mprinterr("Error: trajout: Filename %s already in use.\n",filename.c_str());
+      return 1;
+    }
   }
   // Create trajout.
   Trajout *traj = new Trajout();
@@ -89,7 +104,7 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn, Topolog
   Topology* tempParm = topListIn.GetParm( argIn );
   traj->SetDebug(debug_);
   // Default to AMBERTRAJ; format can be changed via args in the arg list
-  if (traj->InitTrajWrite(filename, &argIn, tempParm, TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (traj->InitTrajWrite(filename, argIn, tempParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: trajout: Could not set up trajectory.\n");
     delete traj;
     return 1;
@@ -97,8 +112,6 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn, Topolog
 
   // Add to trajectory file list
   trajout_.push_back(traj);
-  // Add filename to filename list
-  AddFilename( traj->TrajFilename() ); 
 
   return 0;
 }
@@ -129,9 +142,8 @@ void TrajoutList::Close() {
 
 // TrajoutList::List()
 void TrajoutList::List() const {
-  if (trajout_.empty()) {
-    mprintf("  No files.\n");
-  } else {
+  if (!trajout_.empty()) {
+    mprintf("\nOUTPUT TRAJECTORIES:\n");
     for (ListType::const_iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
       (*traj)->PrintInfo( 1 );
   }

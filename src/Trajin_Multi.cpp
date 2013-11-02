@@ -2,10 +2,10 @@
 #include "Trajin_Multi.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, convertToInteger
+#include "DataFile.h" // For CRDIDX
 #ifdef MPI
 #  include "MpiRoutines.h"
 #endif
-
 
 // CONSTRUCTOR
 Trajin_Multi::Trajin_Multi() :
@@ -14,7 +14,6 @@ Trajin_Multi::Trajin_Multi() :
   lowestRepnum_(0),
   isSeekable_(true),
   hasVelocity_(false),
-  isEnsemble_(false),
   replicasAreOpen_(false),
   targetType_(NONE),
   frameidx_(0)
@@ -53,11 +52,10 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
   if (debug_>1)
     mprintf("\tREMDTRAJ: FileName=[%s]\n",TrajFilename().full());
   if ( TrajFilename().Ext().empty() ) {
-    mprinterr("Error: Traj %s has no numerical extension, required for automatic\n",
-              TrajFilename().base());
-    mprinterr("Error: detection of replica trajectories. Expected filename format is\n");
-    mprinterr("Error: <Prefix>.<#> (with optional compression extension, examples:\n");
-    mprinterr("Error: Rep.traj.nc.000,  remd.x.01.gz etc.\n");
+    mprinterr("Error: Traj %s has no numerical extension, required for automatic\n"
+              "Error:   detection of replica trajectories. Expected filename format is\n"
+              "Error:   <Prefix>.<#> (with optional compression extension), examples:\n"
+              "Error:   Rep.traj.nc.000,  remd.x.01.gz etc.\n", TrajFilename().base());
     return ReplicaNames;
   }
   // Split off everything before replica extension
@@ -103,9 +101,9 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
                                  integerToString(lowestRepnum_ - 1, ExtWidth) +
                                  CompressExt;
   if (fileExists(replica_filename.c_str())) {
-    mprintf("Warning: RemdTraj: Replica# found lower than file specified with trajin!\n");
-    mprintf("Warning:           (Found %s)\n",replica_filename.c_str());
-    mprintf("Warning:           trajin <file> remdtraj requires lowest # replica!\n");
+    mprintf("Warning: Replica# found lower than file specified with trajin.\n"
+            "Warning:   Found \"%s\"; 'trajin remdtraj' requires lowest # replica.\n",
+            replica_filename.c_str());
   }
 
   // Add lowest filename, search for and add all replicas higher than it.
@@ -129,7 +127,7 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
 // Trajin_Multi::SetupTrajRead()
 /** 'remdtraj' should have already been parsed out of the argIn list.
   */
-int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topology *tparmIn)
+int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topology *tparmIn)
 {
   replica_filenames_.clear();
   // Require a base filename
@@ -139,13 +137,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   }
   // Check and set associated parm file
   if ( SetTrajParm( tparmIn ) ) return 1;
-  // Parallel Trajectory processing currenly requires some args to set up
-  if (argIn == 0) {
-    mprinterr("Internal Error: Trajin_Multi: No arguments given.\n");
-    return 1;
-  }
   // Check for deprecated args
-  if (argIn->hasKey("remdout")) {
+  if (argIn.hasKey("remdout")) {
     mprinterr("Error: 'remdout' is deprecated. To convert an entire replica ensemble the\n"
               "Error: correct usage is:\n"
               "Error:\t  ensemble <trajinfile> # (in place of 'trajin')\n"
@@ -162,9 +155,9 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   // Set base trajectory filename
   SetTrajFileName( tnameIn, true );
   // Process REMD-specific arguments
-  if (argIn->Contains("remdtrajidx")) {
+  if (argIn.Contains("remdtrajidx")) {
     // Looking for specific indices
-    ArgList indicesArg(argIn->GetStringKey("remdtrajidx"), ",");
+    ArgList indicesArg(argIn.GetStringKey("remdtrajidx"), ",");
     if (indicesArg.empty()) {
       mprinterr("Error: remdtrajidx expects comma-separated list of target indices in each\n"
                 "Error: dimension, '<dim1 idx>,<dim2 idx>,...,<dimN idx>'. Indices start\n"
@@ -175,25 +168,32 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
                                  arg != indicesArg.end(); ++arg)
       remdtrajidx_.push_back( convertToInteger( *arg ) );
     targetType_ = INDICES;
-  } else if (argIn->Contains("remdtrajtemp")) {
+  } else if (argIn.Contains("remdtrajtemp")) {
     // Looking for target temperature
-    remdtrajtemp_ = argIn->getKeyDouble("remdtrajtemp",0.0);
+    remdtrajtemp_ = argIn.getKeyDouble("remdtrajtemp",0.0);
     targetType_ = TEMP;
   }
   // If the command was ensemble, target args are not valid
-  isEnsemble_ = false;
   bool no_sort = false;
-  if ( argIn->CommandIs("ensemble") ){
-    no_sort = argIn->hasKey("nosort");
-    isEnsemble_ = true;
-    if (targetType_ != NONE || argIn->hasKey("remdtraj")) {
+  if ( IsEnsemble() ){
+    no_sort = argIn.hasKey("nosort");
+    if (targetType_ != NONE || argIn.hasKey("remdtraj")) {
       mprintf("Warning: 'ensemble' does not use 'remdtraj', 'remdtrajidx' or 'remdtrajtemp'\n");
       targetType_ = NONE;
     }
+  } else {
+    if (argIn.Contains("remlog")) {
+      mprinterr("Error: 'remlog' is only for ensemble processing.\n");
+      return 1;
+    }
   }
-
+  // CRDIDXARG: Parse out 'crdidx <indices list>' now so it is not processed
+  //            by SetupTrajIO.
+  ArgList crdidxarg;
+  if (argIn.Contains("crdidx"))
+    crdidxarg.SetList( "crdidx " + argIn.GetStringKey("crdidx"), " " );
   // Check if replica trajectories are explicitly listed
-  ArgList remdtraj_list( argIn->GetStringKey("trajnames"), "," );
+  ArgList remdtraj_list( argIn.GetStringKey("trajnames"), "," );
   if (remdtraj_list.Nargs()==0) {
     // Automatically scan for additional REMD traj files.
     replica_filenames_ = SearchForReplicas();
@@ -301,14 +301,44 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
   }
   // Check how many frames will actually be read
   if (setupFrameInfo() == 0) return 1;
-  // If targetType is currently NONE these will be processed as an ensemble. 
-  // If dimensions are present index by replica indices, otherwise index
-  // by temperature. If nosort was specified do not sort.
-  if (isEnsemble_ && !no_sort) {
-    if (Ndimensions_ > 0)
-      targetType_ = INDICES;
-    else
-      targetType_ = TEMP;
+  // Unless nosort was specified, figure out target type if this will be 
+  // processed as an ensemble.
+  if (IsEnsemble() && !no_sort) {
+    if ( argIn.Contains("remlog") ) {
+      // Sort according to remlog data.
+      DataFile remlogFile;
+      DataSetList tempDSL;
+      // CRDIDXARG: TODO: Come up with a way to do this that doesnt require ArgLists.
+      if (remlogFile.ReadDataIn( argIn.GetStringKey("remlog"), crdidxarg, tempDSL ) ||
+          tempDSL.empty())
+      {
+        mprinterr("Error: Could not read remlog data.\n");
+        return 1;
+      }
+      if (remlogFile.Type() != DataFile::REMLOG) {
+        mprinterr("Error: remlog: File was not of type remlog.\n");
+        return 1;
+      }
+      if ( REMDtraj_.size() != tempDSL[0]->Size() ) {
+        mprinterr("Error: ensemble size %zu does not match remlog ensemble size %zu\n",
+                  REMDtraj_.size(), tempDSL[0]->Size());
+        return 1;
+      }
+      remlogData_ = *((DataSet_RemLog*)tempDSL[0]); // FIXME: This feels clunky. Can we read direct?
+      if ( TotalFrames() != remlogData_.NumExchange() ) {
+        mprinterr("Error: length of REMD ensemble %i does not match # exchanges in remlog %i.\n",
+                  TotalFrames(), remlogData_.NumExchange());
+        return 1;
+      } 
+      targetType_ = CRDIDX;
+    } else {
+      // If dimensions are present index by replica indices, otherwise index
+      // by temperature. 
+      if (Ndimensions_ > 0)
+        targetType_ = INDICES;
+      else
+        targetType_ = TEMP;
+    }
   }
   if (REMDtraj_.empty()) {
     mprinterr("Error: No replica trajectories set up.\n");
@@ -329,7 +359,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList *argIn, Topo
 // Trajin_Multi::BeginTraj()
 int Trajin_Multi::BeginTraj(bool showProgress) {
 # ifdef MPI
-  if (isEnsemble_) {
+  if (IsEnsemble()) {
     // For ensemble, only open trajectory this thread will be dealing with
     //rprintf("Opening %s\n", replica_filenames_[worldrank].c_str()); // DEBUG
     if (REMDtraj_[worldrank]->openTrajin()) {
@@ -362,7 +392,7 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
 void Trajin_Multi::EndTraj() {
   if (replicasAreOpen_) {
 #   ifdef MPI
-    if (isEnsemble_)
+    if (IsEnsemble())
       REMDtraj_[worldrank]->closeTraj();
     else
 #   endif 
@@ -373,6 +403,8 @@ void Trajin_Multi::EndTraj() {
 }
 
 // Trajin_Multi::IsTarget()
+/** Determine if given frame is target. GetNextFrame (i.e. non-ensemble) only.
+   */
 bool Trajin_Multi::IsTarget(Frame const& fIn) {
   if ( targetType_ == TEMP ) {
     if ( fIn.Temperature() == remdtrajtemp_ ) return true;
@@ -413,9 +445,9 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
       }
     } // END loop over replicas
     if (!replicaFound) {
-      mprinterr("Error: Target replica not found. Check that all replica trajectories\n");
-      mprinterr("Error: were found and that the target temperature or indices are valid\n");
-      mprinterr("Error: for this ensemble.\n");
+      mprinterr("Error: Target replica not found. Check that all replica trajectories\n"
+                "Error:   were found and that the target temperature or indices are valid\n"
+                "Error:   for this ensemble.\n");
       return 0; 
     }
     // Check if coords in frame are valid.
@@ -429,14 +461,14 @@ int Trajin_Multi::GetNextFrame( Frame& frameIn ) {
 }
 
 // Trajin_Multi::PrintInfo()
-void Trajin_Multi::PrintInfo(int showExtended) {
-  mprintf("REMD trajectories (%u total), lowest replica [%s]", REMDtraj_.size(),
+void Trajin_Multi::PrintInfo(int showExtended) const {
+  mprintf("REMD trajectories (%u total), lowest replica '%s'", REMDtraj_.size(),
           TrajFilename().base());
   if (showExtended == 1) PrintFrameInfo();
   mprintf("\n");
   if (debug_ > 0) {
     unsigned int repnum = 0;
-    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+    for (IOarrayType::const_iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
       mprintf("\t%u:[%s] ", repnum, replica_filenames_[repnum].c_str());
       ++repnum;
@@ -444,12 +476,12 @@ void Trajin_Multi::PrintInfo(int showExtended) {
       mprintf("\n");
     }
   }
-  if (!isEnsemble_) {
+  if (!IsEnsemble()) {
     if (remdtrajidx_.empty())
       mprintf("\tLooking for frames at %.2lf K\n",remdtrajtemp_);
     else {
       mprintf("\tLooking for indices [");
-      for (RemdIdxType::iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
+      for (RemdIdxType::const_iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
         mprintf(" %i", *idx);
       mprintf(" ]\n");
     }
@@ -458,6 +490,8 @@ void Trajin_Multi::PrintInfo(int showExtended) {
       mprintf("\tProcessing ensemble using replica indices\n");
     else if ( targetType_ == TEMP )
       mprintf("\tProcessing ensemble using replica temperatures\n");
+    else if ( targetType_ == CRDIDX )
+      mprintf("\tProcessing ensemble using remlog data, sorting by coordinate index.\n");
     else // NONE 
       mprintf("\tNot sorting ensemble.\n");
     if (debug_ > 0) EnsembleInfo();
@@ -472,7 +506,7 @@ void Trajin_Multi::EnsembleInfo() const {
     for (TmapType::const_iterator tmap = TemperatureMap_.begin();
                                   tmap != TemperatureMap_.end(); ++tmap)
       mprintf("\t%10.2f -> %i\n", (*tmap).first, (*tmap).second);
-  } else if (targetType_ == INDICES) { // INDICES
+  } else if (targetType_ == INDICES) { 
     mprintf("  Ensemble Indices Map:\n");
     for (ImapType::const_iterator imap = IndicesMap_.begin();
                                   imap != IndicesMap_.end(); ++imap)
@@ -483,7 +517,9 @@ void Trajin_Multi::EnsembleInfo() const {
         mprintf(" %i", *idx);
       mprintf(" } -> %i\n", (*imap).second);
     }
-  }
+  } else if (targetType_ == CRDIDX) {
+    mprintf("  Ensemble will be sorted by coordinate indices from remlog data.\n");
+  } 
 }
 
 // Trajin_Multi::EnsembleSetup()
@@ -513,9 +549,9 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
       //std::pair<TmapType::iterator,bool> ret = 
       //  TemperatureMap_.insert(std::pair<double,int>((*frame).Temperature(),repnum++));
       if (!ret.second) {
-        mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n",
-                  (*frame).Temperature(), TrajFilename().full());
-        mprinterr("Info: If this is a H-REMD ensemble try the 'nosort' keyword.\n");
+        mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n"
+                  "Error:   If this is an H-REMD ensemble try the 'nosort' keyword.\n",
+                   (*frame).Temperature(), TrajFilename().full());
         return 1;
       }
     }
@@ -573,10 +609,12 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
     // Read in all replicas
     //mprintf("DBG: Ensemble frame %i:",CurrentFrame()+1); // DEBUG
 #   ifdef MPI
+    int repIdx = worldrank; // for targetType==CRDIDX
     // Read REMDtraj for this rank
     if ( REMDtraj_[worldrank]->readFrame( CurrentFrame(), *frame) )
       return 0;
 #   else
+    int repIdx = 0; // for targetType==CRDIDX
     for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     {
       if ( (*replica)->readFrame( CurrentFrame(), *frame) )
@@ -601,6 +639,9 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
         //for (int idx = 0; idx < Ndimensions_; ++idx)
         //  mprintf(" %i", remd_indices_[idx]);
         //mprintf(" }[%i]", *fidx);
+      } else if (targetType_ == CRDIDX) {
+        *fidx = remlogData_.RepFrame( CurrentFrame(), repIdx++).CoordsIdx() - 1;
+        //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", CurrentFrame(), fidx - frameidx_, *fidx);
       }
 #     ifdef MPI
       // If calculated index is not worldrank, coords need to be sent to rank fidx.
@@ -650,4 +691,19 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
     tgtFrameFound = ProcessFrame();
   }
   return 1;
+}
+
+/** CRDIDXARG:
+  * \return A string containing the coordinate indices (comma separated) of the
+  *         final exchange in remlogData_.
+  */
+std::string Trajin_Multi::FinalCrdIndices() const {
+  if (remlogData_.Empty()) return std::string();
+  std::string arg("crdidx ");
+  int finalExchg = remlogData_.NumExchange() - 1;
+  for (unsigned int rep = 0; rep < remlogData_.Size(); rep++) {
+    if (rep > 0) arg += ",";
+    arg += ( integerToString( remlogData_.RepFrame(finalExchg, rep).CoordsIdx() ) );
+  }
+  return arg;
 }

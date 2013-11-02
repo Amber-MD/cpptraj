@@ -315,6 +315,30 @@ int Frame::SetupFrameM(std::vector<Atom> const& atoms) {
   return 0;
 }
 
+// Frame::SetupFrameXM()
+int Frame::SetupFrameXM(Darray const& Xin, Darray const& massIn) {
+  ncoord_ = (int)Xin.size();
+  natom_ = ncoord_ / 3;
+  // Check if reallocation must occur.
+  if (natom_ > maxnatom_) {
+    if (X_ != 0) delete[] X_;
+    X_ = new double[ ncoord_ ];
+    maxnatom_ = natom_;
+  } 
+  // Copy coords
+  std::copy( Xin.begin(), Xin.end(), X_ );
+  // Copy masses, or set all to 1.0 if input masses are empty.
+  if (!massIn.empty())
+    Mass_ = massIn;
+  else {
+    Mass_.clear();
+    Mass_.resize( natom_, 1.0 );
+  }
+  if (V_ != 0) delete[] V_;
+  return 0;
+}
+
+
 // Frame::SetupFrameV()
 int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity, int nDim) {
   bool reallocate = false;
@@ -609,6 +633,10 @@ Frame &Frame::operator*=(const Frame& rhs) {
 //       nonsense statements like (a * b) = c
 const Frame Frame::operator*(const Frame& rhs) const {
   return (Frame(*this) *= rhs);
+}
+
+const Frame Frame::operator-(const Frame& rhs) const {
+  return (Frame(*this) -= rhs);
 }
 
 // Frame::Divide()
@@ -1061,8 +1089,8 @@ void Frame::SwapAtoms(int at1, int at2) {
   Mass_[at1] = Mass_[at2]; Mass_[at2] = x;
 }
 
-// Frame::Temperature
-double Frame::Temperature(AtomMask const& mask, int deg_of_freedom) const {
+// Frame::CalcTemperature
+double Frame::CalcTemperature(AtomMask const& mask, int deg_of_freedom) const {
   if (V_==0) return 0.0;
   if (mask.None()) return 0.0;
   //double boltz2 = 0.00831441 * 0.5 / 4.184;

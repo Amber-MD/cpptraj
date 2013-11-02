@@ -1,4 +1,3 @@
-#include <cstring> // memcpy
 #include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include <cmath> // sqrt
 #include "DataSet_Vector.h"
@@ -6,9 +5,9 @@
 
 // CONSTRUCTOR
 DataSet_Vector::DataSet_Vector() :
-  DataSet(VECTOR, 8, 4, 1),
-  totalidx_(0),
-  currentidx_(0),
+  DataSet_1D(VECTOR, 8, 4),
+  totalidx_(0L),
+  currentidx_(0L),
   order_(0),
   xyz_(0),
   writeSum_(false),
@@ -22,41 +21,41 @@ DataSet_Vector::~DataSet_Vector() {
 
 // DataSet_Vector::IncreaseSize()
 void DataSet_Vector::IncreaseSize() {
-  int newsize = totalidx_ + 3000; // 500 frames * 6
+  size_t newsize = totalidx_ + 3000L; // 500 frames * 6
   double* newxyz = new double[ newsize ];
-  if (totalidx_ > 0) {
-    memcpy(newxyz,        xyz_, totalidx_ * sizeof(double));
+  if (totalidx_ > 0L) {
+    std::copy( xyz_, xyz_ + totalidx_, newxyz );
     delete[] xyz_;
   }
-  memset(newxyz+totalidx_, 0,      3000 * sizeof(double));
+  std::fill( newxyz+totalidx_, newxyz+newsize, 0 );
   totalidx_ = newsize;
   xyz_ = newxyz;
 }
 
-// DataSet_Vector::Allocate()  
-int DataSet_Vector::Allocate(int Nin) {
+// DataSet_Vector::Allocate1D()  
+int DataSet_Vector::Allocate1D(size_t Nin) {
   if (xyz_!=0) delete[] xyz_;
-  if (Nin < 1) {
+  if (Nin < 1L) {
     // # of frames is not known. Allocation will happen via IncreaseSize( )
-    totalidx_ = 0;
+    totalidx_ = 0L;
     xyz_ = 0;
   } else {
-    totalidx_ = 6 * Nin;
+    totalidx_ = 6L * Nin;
     xyz_ = new double[ totalidx_ ];
-    memset( xyz_, 0, totalidx_ * sizeof(double) );
+    std::fill( xyz_, xyz_ + totalidx_, 0 );
   }
-  currentidx_ = 0;
+  currentidx_ = 0L;
     
   return 0;
 }
 
 // DataSet_Vector::WriteBuffer()
-void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, int frameIn) {
-  int idx = frameIn * 6;
-  if (idx < 0 || frameIn >= currentidx_) {
+void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, size_t frameIn) const {
+  if (frameIn >= currentidx_) {
     mprinterr("Error: DataSet_Vector: Frame %i is out of range.\n",frameIn);
     return;
   }
+  size_t idx = frameIn * 6;
   cbuffer.Printf(data_format_, xyz_[idx  ]);
   cbuffer.Printf(data_format_, xyz_[idx+1]);
   cbuffer.Printf(data_format_, xyz_[idx+2]);
@@ -159,7 +158,7 @@ void DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
 }
 
 // DataSet_Vector::FillData()
-int DataSet_Vector::FillData(ComplexArray& dest, int midx) {
+int DataSet_Vector::FillData(ComplexArray& dest, int midx) const {
   if ( abs(midx) > order_ ) {
     mprinterr("Internal Error: Vector %s: FillData called with m=%i (max order= %i)\n",
               Legend().c_str(), midx, order_);
@@ -167,9 +166,9 @@ int DataSet_Vector::FillData(ComplexArray& dest, int midx) {
   }
   int p2blocksize = 2 * (2 * order_ + 1);
   double *CF = dest.CAptr();
-  for ( std::vector<double>::iterator sidx = sphereharm_.begin() + 2 * (midx + order_);
-                                      sidx < sphereharm_.end();
-                                      sidx += p2blocksize)
+  for ( std::vector<double>::const_iterator sidx = sphereharm_.begin() + 2 * (midx + order_);
+                                            sidx < sphereharm_.end();
+                                            sidx += p2blocksize)
   {
     *(CF++) = *sidx;
     *(CF++) = *(sidx+1);

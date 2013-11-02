@@ -1,5 +1,7 @@
 #include <cstdio>    // fprintf, fopen, fclose, sprintf
 #include <cmath>     // log10
+#include <cerrno>
+#include <cstring>   // strerror
 #include <sstream>   // istringstream, ostringstream
 #include <locale>    // isspace
 #include <stdexcept> // BadConversion
@@ -7,32 +9,73 @@
 #ifndef __PGI
 #  include <glob.h>  // For tilde expansion
 #endif
+#include "StringRoutines.h"
+#include "CpptrajStdio.h"
 
 // tildeExpansion()
-/** Use glob.h to perform tilde expansion on a filename, returning the 
-  * expanded filename. The calling function is responsible for freeing
-  * memory allocated with tildeExpansion.
+/** Use glob.h to perform tilde expansion on a filename, returning the
+  * expanded filename. If the file does not exist or globbing fails return an
+  * empty string. Do not print an error message if the file does not exist
+  * so that this routine and fileExists() can be used to silently check files.
   */
 std::string tildeExpansion(const char *filenameIn) {
   if (filenameIn==0) {
-    fprintf(stderr,"Error: tildeExpansion: null filename specified.\n");
+    mprinterr("Error: tildeExpansion: null filename specified.\n");
     return std::string("");
   }
-#ifdef __PGI
+# ifdef __PGI
   // NOTE: It seems some PGI compilers do not function correctly when glob.h
   //       is included and large file flags are set. Just disable globbing
   //       for PGI and return a copy of filenameIn.
+  // Since not globbing, check if file exists before returning filename.
+  FILE *infile = fopen(filenameIn, "rb");
+  if (infile == 0) return std::string("");
+  fclose(infile);
   return std::string(filenameIn);
-#else
+# else
   glob_t globbuf;
   globbuf.gl_offs = 1;
-  if ( glob(filenameIn, GLOB_TILDE, NULL, &globbuf)!=0 )
-    return std::string("");
-  //mprintf("DEBUG\tGLOB(0): [%s]\n", globbuf.gl_pathv[0]);
-  std::string returnFilename( globbuf.gl_pathv[0] );
-  globfree(&globbuf);
+  std::string returnFilename;
+  int err = glob(filenameIn, GLOB_TILDE, NULL, &globbuf);
+  if ( err == GLOB_NOMATCH )
+    //mprinterr("Error: '%s' does not exist.\n", filenameIn); // Make silent
+    return returnFilename;
+  else if ( err != 0 )
+    mprinterr("Internal Error: glob() failed for '%s' (%i)\n", filenameIn, err);
+  else {
+    returnFilename.assign( globbuf.gl_pathv[0] );
+    globfree(&globbuf);
+  }
   return returnFilename;
-#endif
+# endif
+}
+
+// ExpandToFilenames()
+StrArray ExpandToFilenames(std::string const& fnameArg) {
+  StrArray fnames;
+  if (fnameArg.empty()) return fnames;
+# ifdef __PGI
+  // NOTE: It seems some PGI compilers do not function correctly when glob.h
+  //       is included and large file flags are set. Just disable globbing
+  //       for PGI and return a copy of filenameIn.
+  // Check for any wildcards in fnameArg
+  if ( fnameArg.find_first_of("*?[]") != std::string::npos )
+    fprintf(stdout,"Warning: Currently wildcards in filenames not supported with PGI compilers.\n");
+  fnames.push_back( fnameArg );
+# else
+  glob_t globbuf;
+  int err = glob(fnameArg.c_str(), GLOB_TILDE, NULL, &globbuf );
+  //printf("DEBUG: %s matches %zu files.\n", fnameArg.c_str(), (size_t)globbuf.gl_pathc);
+  if ( err == 0 ) { 
+    for (unsigned int i = 0; i < (size_t)globbuf.gl_pathc; i++)
+      fnames.push_back( globbuf.gl_pathv[i] );
+  } else if (err == GLOB_NOMATCH )
+    fprintf(stderr,"Error: %s matches no files.\n", fnameArg.c_str());
+  else
+    fprintf(stderr,"Error: occurred trying to find %s\n", fnameArg.c_str());
+  if ( globbuf.gl_pathc > 0 ) globfree(&globbuf);
+# endif
+  return fnames;
 }
 
 // fileExists()
@@ -42,7 +85,10 @@ bool fileExists(const char *filenameIn) {
   std::string fname = tildeExpansion(filenameIn);
   if (fname.empty()) return false;
   FILE *infile = fopen(fname.c_str(), "rb");
-  if (infile==0) return false;
+  if (infile==0) {
+    mprinterr("Error: File '%s': %s\n", fname.c_str(), strerror( errno ));
+    return false;
+  }
   fclose(infile);
   return true;
 }
@@ -50,7 +96,6 @@ bool fileExists(const char *filenameIn) {
 // NumberFilename()
 /** Given a filename and a number, append number to filename, i.e.
   * filename.number.
-  * The buffer should have enough space to handle the append.
   */
 std::string NumberFilename(std::string const &fname, int number) {
   std::ostringstream oss;
@@ -59,118 +104,31 @@ std::string NumberFilename(std::string const &fname, int number) {
 }
 
 // DigitWidth()
-/** Return the number of characters necessary to express the given digit. */
-int DigitWidth(int numberIn) {
-  float numf;
-  int numi;
+/** \return the number of characters necessary to express the given digit. */
+int DigitWidth(long int numberIn) {
+  double numf;
   int minusSign = 0;
 
-  if (numberIn==0) return 1;
-  if (numberIn<0) {
-    numf = (float) (-numberIn);
+  if (numberIn == 0L) return 1;
+  if (numberIn < 0L) {
+    numf = (double)(-numberIn);
     minusSign = 1;
   } else
-    numf = (float) numberIn;
+    numf = (double) numberIn;
 
   numf = log10( numf );
   ++numf;
-  // The cast back to int implicitly rounds down
-  numi = (int) numf;
+  // The cast back to long int implicitly rounds down
+  int numi = (int)numf;
   return (minusSign + numi);
 }
 
-// ---------- STRING FORMAT ROUTINES -------------------------------------------
-// NOTE: In the following format routines, 2 char arrays are used
-// since a 1 char null terminates the format string.
-
-// SetDoubleFormatString()
-/** Set up a printf-style format string for float/double of given width, 
-  * precision, and alignment.
-  */
-void SetDoubleFormatString(std::string &formatString, int width, int precision,
-                           int type, bool leftAlign)
-{
-  char leftSpace[2];
-  char typestring[3];
-  // If left-aligned, no leading space.
-  if (leftAlign)
-    leftSpace[0]='\0';
-  else {
-    leftSpace[0]=' ';
-    leftSpace[1]='\0';
-  }
-  // Type: 1 = float, 2 = scientific (E), otherwise double
-  if (type == 1) {
-    typestring[0]='f';
-    typestring[1]='\0';
-  } else if (type == 2) {
-    typestring[0] = 'l';
-    typestring[1] = 'E';
-    typestring[2] = '\0';
-  } else {
-    typestring[0] = 'l';
-    typestring[1] = 'f';
-    typestring[2] = '\0';
-  }
-  // # chars necessary to hold width arg
-  int wWidth = DigitWidth( width );
-  // # chars necessary to hold precision arg
-  int pWidth = DigitWidth( precision );
-  // String fmt: "%w.plf\0"
-  char *format = new char[ pWidth + wWidth + 6 ];
-  sprintf(format, "%s%%%i.%i%s", leftSpace, width, precision, typestring);
-  formatString.assign( format );
-  //mprintf("DEBUG: Double Format string: [%s]\n",format);
-  delete[] format;
-}
-
-// SetStringFormatString()
-/** Set up a printf-style format string for string (char*) of given
-  * width and alignment.
-  */
-void SetStringFormatString(std::string &formatString, int width, bool leftAlign)
-{
-  char leftSpace[2];
-  char alignChar[2];
-  // If left-aligned, no leading space, set alignment char
-  if (leftAlign) {
-    leftSpace[0]='\0';
-    alignChar[0]='-';
-    alignChar[1]='\0';
-  } else {
-    leftSpace[0]=' ';
-    leftSpace[1]='\0';
-    alignChar[0]='\0';
-  }
-  // # chars necessary to hold width arg
-  int wWidth = DigitWidth( width );
-  // String fmt: " %-ws"
-  char *format = new char[ wWidth + 5 ];
-  sprintf(format, "%s%%%s%is", leftSpace, alignChar, width);
-  formatString.assign( format );
-  //mprintf("DEBUG: String Format string: [%s]\n",format);
-  delete[] format;
-}
-
-// SetIntegerFormatString()
-void SetIntegerFormatString(std::string &formatString, int width, bool leftAlign)
-{
-  char leftSpace[2];
-  // If left-aligned, no leading space.
-  if (leftAlign)
-    leftSpace[0]='\0';
-  else {
-    leftSpace[0]=' ';
-    leftSpace[1]='\0';
-  }
-  // # chars necessary to hold width arg
-  int wWidth = DigitWidth( width );
-  // String fmt: " %wi"
-  char *format = new char[ wWidth + 4 ];
-  sprintf(format, "%s%%%ii", leftSpace, width);
-  formatString.assign( format );
-  //mprinterr("DEBUG: Integer Format string: [%s]\n",format);
-  delete[] format;
+// FloatWidth()
+/** \return the number of characters necessary to express given float. */
+int FloatWidth(double floatIn) {
+  double float_exponent = fabs( log10( floatIn ) );
+  ++float_exponent;
+  return (int)float_exponent; // Cast to int implicitly rounds down
 }
 
 // ---------- STRING CONVERSION ROUTINES --------------------------------------- 
@@ -239,4 +197,69 @@ std::string doubleToString(double d) {
   std::ostringstream oss;
   oss << d;
   return oss.str();
+}
+
+// ---------- STRING FORMAT ROUTINES -------------------------------------------
+// SetDoubleFormatString()
+/** Set up a printf-style format string for float/double of given width, 
+  * precision, and alignment, e.g. '%8.3lf'.
+  */
+std::string SetDoubleFormatString(int width, int precision, int type)
+{
+  std::string format;
+  std::string width_arg;
+  std::string prec_arg;
+  std::string type_arg; // Will be f, lf, or E.
+
+  // Type: 1 = float, 2 = scientific (E), otherwise double
+  switch (type) {
+    case 1:  type_arg = "f"; break;
+    case 2:  type_arg = "E"; break;
+    default: type_arg = "lf"; break;
+  }
+  // Set width and/or precision if applicable.
+  if (width > 0)
+    width_arg = integerToString( width );
+  if (precision > -1)
+    prec_arg = "." + integerToString( precision );
+  // Set format string.
+  format.append( "%" + width_arg + prec_arg + type_arg );
+  return format; 
+}
+
+// SetStringFormatString()
+/** Set up a printf-style format string for string (char*) of given
+  * width and alignment, e.g. '%20s'.
+  */
+std::string SetStringFormatString(int width, bool leftAlign)
+{
+  std::string format;
+  std::string width_arg;
+  // If not left-aligned, need leading space.
+  if (!leftAlign) 
+    format.assign("%");
+  else
+    format.assign("%-");
+  // Set width if applicable
+  if (width > 0)
+    width_arg = integerToString( width );
+  // Set format string.
+  format.append( width_arg + "s" );
+  return format;
+}
+
+// SetIntegerFormatString()
+/** Set up a printf-style format string for integer of given width
+  * and alignment, e.g. '%8i'.
+  */
+std::string SetIntegerFormatString(int width)
+{
+  std::string format;
+  std::string width_arg;
+  // Set width if applicable
+  if (width > 0)
+    width_arg = integerToString( width );
+  // Set format string.
+  format.append( "%" + width_arg + "i" );
+  return format;
 }

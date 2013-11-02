@@ -23,29 +23,27 @@ class DataSetList {
     /// DataSetList default iterator
     typedef std::vector<DataSet*>::const_iterator const_iterator;
     /// Iterator to beginning of dataset list
-    const_iterator begin() const { return DataList_.begin();     }
+    const_iterator begin() const { return DataList_.begin(); }
     /// Iterator to end of dataset list
-    const_iterator end()   const { return DataList_.end();       }
+    const_iterator end()   const { return DataList_.end();   }
     /// True if no DataSets in list.
-    bool empty()           const { return DataList_.empty();     }
+    bool empty()           const { return DataList_.empty(); }
     /// Return number of datasets in the list 
-    int size()             const { return (int)DataList_.size(); }
-    /// Return the max # expected frames
-    int MaxFrames()        const { return maxFrames_;            }
-    /// Erase set from list
-    void erase( const_iterator );
+    size_t size()          const { return DataList_.size();  }
+    /// Remove set from list - used in DataFile
+    void RemoveSet( const_iterator );
+    /// Remove set from the list.
+    void RemoveSet( DataSet* );
     /// Sort DataSets in list.
     void sort();
     /// Return DataSet at didx.
     DataSet* operator[](int didx) { return DataList_[didx]; } // FIXME: No bounds check
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
-    /// Set maximum # elements expected to be read in.
-    void SetMax(int);
-    /// Allocate DataSet memory based on current maximum.
-    void AllocateSets();
+    /// Allocate 1D DataSet memory based on current max# expected frames.
+    void AllocateSets(long int);
     /// Set width.precision of all DataSets in the list.
-    void SetPrecisionOfDatasets(int, int);
+    void SetPrecisionOfDataSets(std::string const&, int, int);
     /// Get DataSet with specified name, index, and aspect.
     DataSet* GetSet(std::string const&, int, std::string const&) const;
     /// Get DataSet matching specified argument.
@@ -69,8 +67,10 @@ class DataSetList {
     void AddCopyOfSet(DataSet*);
     /// Print info on DataSets in the list
     void List() const;
+#   ifdef MPI
     /// Call sync for DataSets in the list (MPI only)
-    void Sync();
+    void SynchronizeData();
+#   endif
     /// Find next set of specified type with given name.
     DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
     /// Find COORDS DataSet or create default COORDS DataSet.
@@ -86,9 +86,13 @@ class DataSetList {
     bool hasCopies_;
     /// List of DataSets
     DataListType DataList_;
-    /// Expected number of frames to be read in.
-    int maxFrames_;
-
+    /// Hold descriptions and allocators for all DataSet types.
+    struct DataToken {
+      const char* Description;
+      DataSet::AllocatorType Alloc;
+    };
+    static const DataToken DataArray[];
+    typedef const DataToken* TokenPtr;
     /// Used to sort DataSets
     struct dsl_cmp {
       inline bool operator()(DataSet* first, DataSet* second) const {

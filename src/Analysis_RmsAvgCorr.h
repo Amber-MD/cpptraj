@@ -18,7 +18,11 @@ class Analysis_RmsAvgCorr: public Analysis {
     std::string separateName_;
     DataSet_Coords* coords_;
     DataSet* Ct_;
+    DataSet* Csd_;
+    Frame refFrame_;
     int maxwindow_;
+    int lagOffset_;
     bool useMass_;
+    bool useFirst_; ///< If true, use first running-avgd frame as reference.
 };
 #endif  

@@ -18,7 +18,6 @@ Analysis_Clustering::Analysis_Clustering() :
   coords_(0),
   CList_(0),
   sieve_(1),
-  splitFrame_(-1),
   cnumvtime_(0),
   cpopvtimefile_(0),
   nofitrms_(false),
@@ -27,6 +26,7 @@ Analysis_Clustering::Analysis_Clustering() :
   grace_color_(false),
   norm_pop_(NONE),
   load_pair_(false),
+  calc_lifetimes_(false),
   writeRepFrameNum_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -49,7 +49,7 @@ void Analysis_Clustering::Help() {
   mprintf("  Output options:\n");
   mprintf("\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n");
   mprintf("\t[summaryhalf <halffile>] [splitframe <frame>]\n");
-  mprintf("\t[cpopvtime <file> [normpop | normframe]]\n");
+  mprintf("\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n");
   mprintf("  Coordinate output options:\n");
   mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
   mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
@@ -86,8 +86,15 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       }
       inputDsets += tempDSL;
     }
-    for (DataSetList::const_iterator ds = inputDsets.begin(); ds != inputDsets.end(); ++ds)
+    for (DataSetList::const_iterator ds = inputDsets.begin(); ds != inputDsets.end(); ++ds) {
+      // Clustering only allowed on 1D data sets.
+      if ( (*ds)->Ndim() != 1 ) {
+        mprinterr("Error: Clustering only allowed on 1D data sets, %s is %zuD.\n",
+                  (*ds)->Legend().c_str(), (*ds)->Ndim());
+        return Analysis::ERR;
+      }
       cluster_dataset_.push_back( *ds );
+    }
   } else {
     usedme_ = analyzeArgs.hasKey("dme");
     bool userms = analyzeArgs.hasKey("rms");
@@ -116,19 +123,28 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
     return Analysis::ERR;
   }
-  splitFrame_ = analyzeArgs.getKeyInt("splitframe", -1) - 1; // User args start at 1
+  halffile_ = analyzeArgs.GetStringKey("summaryhalf");
+  if (!halffile_.empty()) {
+    ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
+    if (!splits.empty()) {
+      for (int a = 0; a < splits.Nargs(); a++) {
+        if ( splits.ValidInteger(a) )
+          splitFrames_.push_back( splits.IntegerAt(a) ); // User frame #s start at 1
+        else {
+          mprinterr("Error: Inavlid split frame argument '%s'\n", splits[a].c_str());
+          return Analysis::ERR;
+        }
+      }
+    }
+  }
   DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   cpopvtimefile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
   clusterinfo_ = analyzeArgs.GetStringKey("info");
   summaryfile_ = analyzeArgs.GetStringKey("summary");
-  halffile_ = analyzeArgs.GetStringKey("summaryhalf");
   nofitrms_ = analyzeArgs.hasKey("nofit");
   grace_color_ = analyzeArgs.hasKey("gracecolor");
+  calc_lifetimes_ = analyzeArgs.hasKey("lifetime");
   if (cpopvtimefile_ != 0) {
-    if (grace_color_) {
-      mprintf("Warning: 'gracecolor' not compatible with 'cpopvtime' - disabling 'gracecolor'\n");
-      grace_color_ = false;
-    }
     if (analyzeArgs.hasKey("normpop"))
       norm_pop_ = CLUSTERPOP;
     else if (analyzeArgs.hasKey("normframe"))
@@ -156,7 +172,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   maskexpr_ = analyzeArgs.GetMaskNext();
 
   // Dataset to store cluster number v time
-  cnumvtime_ = datasetlist->AddSet(DataSet::INT, analyzeArgs.GetStringNext(), "Cnum");
+  cnumvtime_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==0) return Analysis::ERR;
   if (cnumvtimefile != 0) cnumvtimefile->AddSet( cnumvtime_ ); 
   // Save master DSL for Cpopvtime
@@ -194,6 +210,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   }
   if (grace_color_)
     mprintf("\tGrace color instead of cluster number (1-15) will be saved.\n");
+  if (calc_lifetimes_)
+    mprintf("\tCluster lifetime data sets will be calculated.\n");
   if (load_pair_)
     mprintf("\tPreviously calcd pair distances %s will be used if found.\n",
             pairdistfile_.c_str());
@@ -201,9 +219,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
   if (!summaryfile_.empty())
     mprintf("\tSummary of cluster results will be written to %s\n",summaryfile_.c_str());
-  if (!halffile_.empty())
-    mprintf("\tSummary comparing first/second half of data for clusters will be written to %s\n",
+  if (!halffile_.empty()) {
+    mprintf("\tSummary comparing parts of trajectory data for clusters will be written to %s\n",
             halffile_.c_str());
+    if (!splitFrames_.empty()) {
+      mprintf("\t\tFrames will be split at:");
+      for (std::vector<int>::const_iterator f = splitFrames_.begin(); f != splitFrames_.end(); ++f)
+        mprintf(" %i", *f);
+      mprintf("\n");
+    } else
+      mprintf("\t\tFrames will be split at the halfway point.\n");
+  }
   if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
             clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
@@ -247,7 +273,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   if (cluster_dataset_.empty())
      cluster_dataset_.push_back( (DataSet*)coords_ );
   // Test that cluster data set contains data
-  int clusterDataSetSize = cluster_dataset_[0]->Size();
+  // FIXME make unsigned
+  int clusterDataSetSize = (int)cluster_dataset_[0]->Size();
   if (clusterDataSetSize < 1) {
     mprinterr("Error: cluster data set %s does not contain data.\n", 
               cluster_dataset_[0]->Legend().c_str());
@@ -257,7 +284,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   for (ClusterDist::DsArray::iterator ds = cluster_dataset_.begin();
                                       ds != cluster_dataset_.end(); ++ds)
   {
-    if ((*ds)->Size() != clusterDataSetSize) {
+    if ((int)(*ds)->Size() != clusterDataSetSize) {
       mprinterr("Error: data set %s size (%i) != first data set %s size (%i)\n",
                 (*ds)->Legend().c_str(), (*ds)->Size(), 
                 cluster_dataset_[0]->Legend().c_str(), clusterDataSetSize);
@@ -294,46 +321,74 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 # ifdef TIMER
   cluster_post.Start();
 # endif
-  CList_->Renumber( (sieve_ > 1) );
+  if (CList_->Nclusters() > 0) {
+    CList_->Renumber( (sieve_ > 1) );
 
-  // DEBUG
-  if (debug_ > 0) {
-    mprintf("\nFINAL CLUSTERS:\n");
-    CList_->PrintClusters();
-  }
+    // DEBUG
+    if (debug_ > 0) {
+      mprintf("\nFINAL CLUSTERS:\n");
+      CList_->PrintClusters();
+    }
 
-  // Print ptraj-like cluster info. If no filename is written some info will
-  // still be written to STDOUT.
-  CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+    // Print ptraj-like cluster info. If no filename is written some info will
+    // still be written to STDOUT.
+    CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
 
-  // Print a summary of clusters
-  if (!summaryfile_.empty())
-    CList_->Summary(summaryfile_, clusterDataSetSize);
+    // Print a summary of clusters
+    if (!summaryfile_.empty())
+      CList_->Summary(summaryfile_, clusterDataSetSize);
 
-  // Print a summary comparing first half to second half of data for clusters
-  if (!halffile_.empty())
-    CList_->Summary_Half(halffile_, clusterDataSetSize, splitFrame_);
+    // Print a summary comparing first half to second half of data for clusters
+    if (!halffile_.empty()) {
+      // If no split frames were specified, use halfway point.
+      if (splitFrames_.empty())
+        splitFrames_.push_back( clusterDataSetSize / 2 );
+      // Check that none of the split values are invalid.
+      std::vector<int> actualSplitFrames;
+      for (std::vector<int>::const_iterator f = splitFrames_.begin();
+                                            f != splitFrames_.end(); ++f)
+        if ( *f < 1 || *f >= clusterDataSetSize )
+          mprintf("Warning: split frame %i is out of bounds; ignoring.\n", *f);
+        else
+          actualSplitFrames.push_back( *f );
+      CList_->Summary_Part(halffile_, clusterDataSetSize, actualSplitFrames);
+    }
 
-  // Create cluster v time data from clusters.
-  CreateCnumvtime( *CList_, clusterDataSetSize );
+    // Create cluster v time data from clusters.
+    CreateCnumvtime( *CList_, clusterDataSetSize );
 
-  // Create cluster pop v time plots
-  if (cpopvtimefile_ != 0)
-    CreateCpopvtime( *CList_, clusterDataSetSize );
+    // Create cluster pop v time plots
+    if (cpopvtimefile_ != 0)
+      CreateCpopvtime( *CList_, clusterDataSetSize );
 
-  if (has_coords) {
-    // Write clusters to trajectories
-    if (!clusterfile_.empty())
-      WriteClusterTraj( *CList_ ); 
+    // Create cluster lifetime DataSets
+    if (calc_lifetimes_)
+      ClusterLifetimes( *CList_, clusterDataSetSize );
 
-    // Write all representative frames to a single traj
-    if (!singlerepfile_.empty())
-      WriteSingleRepTraj( *CList_ );
-
-    // Write all representative frames to separate trajs
-    if (!reptrajfile_.empty())
-      WriteRepTraj( *CList_ );
-  }
+    // Change cluster num v time to grace-compatible colors if specified.
+    if (grace_color_) {
+      DataSet_integer& cnum_temp = static_cast<DataSet_integer&>( *cnumvtime_ );
+      for (DataSet_integer::iterator ival = cnum_temp.begin();
+                                     ival != cnum_temp.end(); ++ival)
+      {
+        *ival += 1;
+        if (*ival > 15) *ival = 15;
+      }
+    }
+    // Coordinate output.
+    if (has_coords) {
+      // Write clusters to trajectories
+      if (!clusterfile_.empty())
+        WriteClusterTraj( *CList_ ); 
+      // Write all representative frames to a single traj
+      if (!singlerepfile_.empty())
+        WriteSingleRepTraj( *CList_ );
+      // Write all representative frames to separate trajs
+      if (!reptrajfile_.empty())
+        WriteRepTraj( *CList_ );
+    }
+  } else
+    mprintf("\tNo clusters found.\n");
 # ifdef TIMER
   cluster_post.Stop();
 # endif
@@ -359,30 +414,23 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, int maxFram
   // Cast generic DataSet for cnumvtime back to integer dataset to 
   // access specific integer dataset functions for resizing and []
   // operator. Should this eventually be generic to all atomic DataSets? 
-  DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
-  cnum_temp->Resize( maxFrames );
+  DataSet_integer& cnum_temp = static_cast<DataSet_integer&>( *cnumvtime_ );
+  cnum_temp.Resize( maxFrames );
   // Make all clusters start at -1. This way cluster algorithms that
   // have noise points (i.e. no cluster assigned) will be distinguished.
-  if (!grace_color_)
-    for (int i = 0; i < cnum_temp->Size(); ++i)
-      (*cnum_temp)[i] = -1;
+  std::fill(cnum_temp.begin(), cnum_temp.end(), -1);
 
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); C++)
   {
     //mprinterr("Cluster %i:\n",CList->CurrentNum());
     int cnum = (*C).Num();
-    // If grace colors, return integer in range from 1 to 15 (1 most populated)
-    if (grace_color_) {
-      cnum = cnum + 1;
-      if (cnum > 15) cnum = 15;
-    } 
     // Loop over all frames in the cluster
     for (ClusterNode::frame_iterator frame = (*C).beginframe();
                                      frame != (*C).endframe(); frame++)
     {
       //mprinterr("%i,",*frame);
-      (*cnum_temp)[ *frame ] = cnum;
+      cnum_temp[ *frame ] = cnum;
     }
     //mprinterr("\n");
     //break;
@@ -415,9 +463,9 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
   }
   // Assumes cnumvtime has been calcd and not gracecolor!
   double norm = 1.0;
-  DataSet_integer* cnum_temp = (DataSet_integer*)cnumvtime_;
+  DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>( *cnumvtime_ );
   for (int frame = 0; frame < maxFrames; ++frame) {
-    int cluster_num = (*cnum_temp)[frame];
+    int cluster_num = cnum_temp[frame];
     // Noise points are -1
     if (cluster_num > -1)
       Pop[cluster_num]++;
@@ -431,6 +479,30 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
       float f = (float)((double)Pop[cnum] / norm);
       DSL[cnum]->Add(frame, &f);
     }
+  }
+}
+
+// Analysis_Clustering::ClusterLifetimes()
+void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFrames ) {
+  // Set up output data sets. TODO: use ChildDSL
+  std::vector<DataSet_integer*> DSL;
+  for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) { 
+    DSL.push_back((DataSet_integer*)
+                  masterDSL_->AddSetIdxAspect( DataSet::INTEGER, cnumvtime_->Name(), 
+                                               cnum, "Lifetime" ));
+    if (DSL.back() == 0) {
+      mprinterr("Error: Could not allocate cluster lifetime DataSet.\n");
+      return;
+    }
+    DSL.back()->Resize( maxFrames );
+  }
+  // For each frame, assign cluster frame belongs to 1.
+  DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>(*cnumvtime_);
+  for (int frame = 0; frame < maxFrames; ++frame) {
+    int cluster_num = cnum_temp[frame];
+    // Noise points are -1
+    if (cluster_num > -1)
+      (*DSL[ cluster_num ])[ frame ] = 1;
   }
 }
 
@@ -449,7 +521,7 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
     Trajout *clusterout = new Trajout;
     ClusterNode::frame_iterator frame = (*C).beginframe();
     Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-    if (clusterout->InitTrajWrite(cfilename, 0, clusterparm, clusterfmt_)) 
+    if (clusterout->InitTrajWrite(cfilename, clusterparm, clusterfmt_)) 
     {
       mprinterr("Error: Clustering::WriteClusterTraj: Could not set up %s for write.\n",
                 cfilename.c_str());
@@ -479,7 +551,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   Trajout clusterout;
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-  if (clusterout.InitTrajWrite(singlerepfile_, 0, clusterparm, singlerepfmt_)) 
+  if (clusterout.InitTrajWrite(singlerepfile_, clusterparm, singlerepfmt_)) 
   {
     mprinterr("Error: Clustering::WriteSingleRepTraj: Could not set up %s for write.\n",
                 singlerepfile_.c_str());
@@ -522,7 +594,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
     cfilename += tmpExt;
     // Set up trajectory file. 
-    if (clusterout->InitTrajWrite(cfilename, 0, clusterparm, reptrajfmt_)) 
+    if (clusterout->InitTrajWrite(cfilename, clusterparm, reptrajfmt_)) 
     {
       mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
                 cfilename.c_str());

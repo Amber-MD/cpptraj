@@ -8,9 +8,10 @@ class AnalysisList {
     ~AnalysisList();
     void Clear(); 
     void SetDebug(int);
+    int Debug() const { return debug_; }
     int AddAnalysis(DispatchObject::DispatchAllocatorType, ArgList&,
                     TopologyList*, DataSetList*, DataFileList*);
-    void DoAnalyses();
+    int DoAnalyses();
     void List() const;
     bool Empty() const { return analysisList_.empty(); }
   private:

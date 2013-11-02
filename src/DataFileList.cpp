@@ -23,7 +23,24 @@ void DataFileList::Clear() {
   for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); it++)
     delete *it;
   fileList_.clear();
-  FileList::Clear();
+}
+
+// DataFileList::RemoveDataFile()
+DataFile* DataFileList::RemoveDataFile( DataFile* dfIn ) {
+  for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); ++it) {
+    if ( dfIn == *it ) {
+      delete *it;
+      return (DataFile*)0;
+    }
+  }
+  return dfIn;
+}
+
+// DataFileList::RemoveDataSet()
+/** Remove given DataSet from any DataFiles in list. */
+void DataFileList::RemoveDataSet( DataSet* dsIn ) {
+  for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
+    (*df)->RemoveSet( dsIn );
 }
 
 // DataFileList::SetDebug()
@@ -38,13 +55,13 @@ void DataFileList::SetDebug(int debugIn) {
 
 // DataFileList::GetDataFile()
 /** Return DataFile specified by given file name if it exists in the list,
-  * otherwise return null.
+  * otherwise return null. Must match full path.
   */
 DataFile* DataFileList::GetDataFile(std::string const& nameIn) const {
   if (nameIn.empty()) return 0;
-  int idx = FindName( nameIn );
-  if (idx == -1) return 0;
-  return fileList_[idx];
+  for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
+    if (nameIn == (*df)->DataFilename().Full()) return *df;
+  return 0;
 }
 
 /** Create new DataFile, or return existing DataFile. */
@@ -69,7 +86,6 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
       return 0;
     }
     fileList_.push_back(Current);
-    AddFilename( Current->DataFilename() );
   } else {
     // Set debug level
     Current->SetDebug(debug_);
@@ -108,7 +124,7 @@ void DataFileList::List() const {
 
   mprintf("DATAFILE OUTPUT:\n");
   for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
-    mprintf("  %s: ",(*it)->DataFilename().base());
+    mprintf("  %s (%s): ",(*it)->DataFilename().base(), (*it)->FormatString());
     (*it)->DataSetNames();
     mprintf("\n");
   }
@@ -122,10 +138,16 @@ void DataFileList::List() const {
 void DataFileList::WriteAllDF() {
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
     if ( (*df)->DFLwrite() ) {
-      (*df)->Write();
+      (*df)->WriteData();
       (*df)->SetDFLwrite( false );
     }
   }
+}
+
+/** Reset writeFile status for all files in list to true. */
+void DataFileList::ResetWriteStatus() {
+  for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
+    (*df)->SetDFLwrite( true );
 }
 
 // DataFileList::ProcessDataFileArgs()

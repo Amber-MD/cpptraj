@@ -7,6 +7,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
 #include "DistRoutines.h"
+#include "Constants.h"
 // DEBUG
 //#include <cmath> // sqrt
 
@@ -18,7 +19,10 @@ Topology::Topology() :
   finalSoluteRes_(-1),
   pindex_(0),
   nframes_(0),
-  ntypes_(0)
+  ntypes_(0),
+  n_extra_pts_(0),
+  hasVelInfo_(false),
+  nRepDim_(0)
 { }
 
 // Topology::SetOffset()
@@ -32,7 +36,7 @@ void Topology::SetDebug(int debugIn) {
 }
 
 // Topology::SetParmName()
-void Topology::SetParmName(std::string const& title, std::string const& filename) {
+void Topology::SetParmName(std::string const& title, FileName const& filename) {
   parmName_ = title;
   fileName_ = filename;
 }
@@ -70,19 +74,21 @@ int Topology::FinalSoluteRes() const {
   * name (title) if the parm filename is empty.
   */
 const char *Topology::c_str() const {
-  if (!fileName_.empty()) 
-    return fileName_.c_str();
+  if (!parmTag_.empty())
+    return (parmTag_.c_str());
+  else if (!fileName_.empty()) 
+    return fileName_.full();
   return parmName_.c_str();
 }
 
 // -----------------------------------------------------------------------------
-int Topology::GetBondParamIdx( int idx, double &Rk, double &Req) {
+int Topology::GetBondParamIdx( int idx, double &Rk, double &Req) const {
   if (idx < 0 || idx > (int)bondrk_.size()) return 1;
   Rk = bondrk_[idx];
   Req = bondreq_[idx];
   return 0;
 }
-double Topology::GetBondedCutoff(int atom1, int atom2) {
+double Topology::GetBondedCutoff(int atom1, int atom2) const {
   if (atom1 < 0 || atom2 < 0) return -1;
   if (atom1 >= Natom() || atom2 >= Natom()) return -1;
   return GetBondLength( atoms_[atom1].Element(), atoms_[atom2].Element() );
@@ -96,7 +102,7 @@ double Topology::GetBondedCutoff(int atom1, int atom2) {
   * "<resname><resnum>@<atomname>", e.g. "ARG_11@CA".
   * Truncate the residue and atom names so there are no blanks.
   */
-std::string Topology::TruncResAtomName(int atom) {
+std::string Topology::TruncResAtomName(int atom) const {
   std::string res_name;
   if (atom < 0 || atom >= (int)atoms_.size()) return res_name;
   // Atom name with no trailing spaces.
@@ -113,6 +119,19 @@ std::string Topology::TruncResAtomName(int atom) {
   return res_name;
 }
 
+// Topology::AtomMaskName()
+/** \return A string of format :r@a where r is atoms residue number and
+  *         a is atoms name.
+  */
+std::string Topology::AtomMaskName(int atom) const {
+  if (atom < 0 || atom >= (int)atoms_.size()) return std::string(""); 
+  std::string maskName = ":";
+  maskName += integerToString( atoms_[atom].ResNum() + 1 );
+  maskName += "@";
+  maskName += atoms_[atom].Name().Truncated();
+  return maskName;
+}
+
 // Topology::TruncResNameNum()
 /** Given a residue number (starting from 0), return a string containing 
   * residue name and number (starting from 1) with format: 
@@ -120,7 +139,7 @@ std::string Topology::TruncResAtomName(int atom) {
   * Truncate residue name so there are no blanks.
   */
 // FIXME: Add residue bounds check.
-std::string Topology::TruncResNameNum(int res) {
+std::string Topology::TruncResNameNum(int res) const {
   // Residue name with no trailing spaces.
   return residues_[res].Name().Truncated() + ":" + integerToString( res+1 );
 }
@@ -158,7 +177,7 @@ int Topology::FindResidueMaxNatom() const {
 // Topology::SoluteAtoms()
 // TODO: do not rely on finalsoluteres since it makes assumptions about
 //       system layout
-int Topology::SoluteAtoms() {
+int Topology::SoluteAtoms() const {
   if (NsolventMolecules_ == 0)
     return (int)atoms_.size();
   return ( residues_[finalSoluteRes_].LastAtom() );
@@ -166,7 +185,7 @@ int Topology::SoluteAtoms() {
 
 // -----------------------------------------------------------------------------
 // Topology::Summary()
-void Topology::Summary() {
+void Topology::Summary() const {
   mprintf("\t\tTopology %s contains %zu atoms.\n", c_str(), atoms_.size());
   mprintf("\t\t                  %zu residues.\n", residues_.size());
   mprintf("\t\t                  %zu bonds.\n", (bonds_.size()+bondsh_.size()) / 3 );
@@ -182,16 +201,18 @@ void Topology::Summary() {
             bonds_.size()/3);*/
 }
 
-// Topology::ParmInfo()
-void Topology::ParmInfo() {
-  mprintf(" %s, %zu atoms, %zu res, box: %s, %zu mol", c_str(),
+// Topology::Brief()
+void Topology::Brief() const {
+  if (!parmTag_.empty())
+    mprintf(" %s", parmTag_.c_str());
+  mprintf(" '%s', %zu atoms, %zu res, box: %s, %zu mol", fileName_.full(),
           atoms_.size(), residues_.size(), box_.TypeName(), molecules_.size());
   if (NsolventMolecules_>0)
     mprintf(", %i solvent", NsolventMolecules_);
 }
 
 // Topology::PrintAtomInfo()
-void Topology::PrintAtomInfo(std::string const& maskString) {
+void Topology::PrintAtomInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
   ParseMask(refCoords_, mask, true); // integer mask
   if ( mask.None() )
@@ -217,44 +238,142 @@ void Topology::PrintAtomInfo(std::string const& maskString) {
 // Topology::PrintBonds()
 /** \param maskIn AtomMask which should have already been set up as a char mask
   */
-void Topology::PrintBonds(std::vector<int> const& barray, AtomMask const& maskIn) {
+void Topology::PrintBonds(std::vector<int> const& barray, AtomMask const& maskIn, int& nb) const
+{
+  int rwidth = DigitWidth(residues_.size()) + 7;
   for (std::vector<int>::const_iterator batom = barray.begin();
-                                        batom != barray.end(); batom++)
+                                        batom != barray.end(); ++batom)
   {
     int atom1 = ((*batom++) / 3);
     int atom2 = ((*batom++) / 3);
     if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 )) {
-      mprintf("\tAtom %i:%s to %i:%s", atom1+1, atoms_[atom1].c_str(),
-                                       atom2+1, atoms_[atom2].c_str());
-      if (*batom==-1) {
-        double req = GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element());
-        mprintf("  EQ=%lf\n", req);
-      } else {
-        // TODO: Bond index should be -1
-        double req = bondreq_[*batom - 1];
-        double rk = bondrk_[*batom - 1];
-        mprintf("  EQ=%lf K=%lf\n", req, rk);
-      }
+      mprintf("%8i:", nb);
+      int bidx = *batom - 1; // TODO: Bond index should already be -1
+      if ( bidx < 0 )
+        mprintf(" %6.3f", GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element()));
+      else
+        mprintf(" %6.2f %6.3f", bondrk_[bidx], bondreq_[bidx]);
+      mprintf(" %-*s %-*s (%i,%i)\n",
+              rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(),
+              atom1+1, atom2+1);
     }
+    nb++;
   }
+  mprintf("\n");
 }
 
 // Topology::PrintBondInfo()
-void Topology::PrintBondInfo(std::string const& maskString) {
+void Topology::PrintBondInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
   ParseMask(refCoords_, mask, false); // Char mask
-  if (!bondsh_.empty()) {
-    mprintf("%zu BONDS TO HYDROGEN:\n",bondsh_.size()/3);
-    PrintBonds( bondsh_, mask );
-  }
-  if (!bonds_.empty()) {
-    mprintf("%zu BONDS TO NON-HYDROGEN:\n",bonds_.size()/3);
-    PrintBonds( bonds_, mask );
-  }
+  mprintf("# %zu BONDS TO HYDROGEN:\n",bondsh_.size()/3);
+  mprintf("# %zu BONDS TO NON-HYDROGEN:\n",bonds_.size()/3);
+  mprintf("#   Bond     Kb     Req       atom names   (numbers)\n");
+  int nb = 1;
+  if (!bondsh_.empty())
+    PrintBonds( bondsh_, mask, nb );
+  if (!bonds_.empty())
+    PrintBonds( bonds_, mask, nb );
 }
 
+// Topology::PrintAngles()
+void Topology::PrintAngles(std::vector<int> const& aarray, AtomMask const& maskIn, int& na) const
+{
+  int rwidth = DigitWidth(residues_.size()) + 7;
+  for (std::vector<int>::const_iterator aatom = aarray.begin();
+                                        aatom != aarray.end(); ++aatom)
+  {
+    int atom1 = ((*aatom++) / 3);
+    int atom2 = ((*aatom++) / 3);
+    int atom3 = ((*aatom++) / 3);
+    if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
+        maskIn.AtomInCharMask( atom3 ))
+    {
+      mprintf("%8i:", na);
+      int aidx = *aatom - 1; // TODO: Angle index should be -1
+      if ( aidx > -1 )     // No guessing at angle params
+        mprintf(" %6.3f %6.2f", angletk_[aidx], angleteq_[aidx] * RADDEG);
+      mprintf(" %-*s %-*s %-*s (%i,%i,%i)\n", rwidth, AtomMaskName(atom1).c_str(), 
+              rwidth, AtomMaskName(atom2).c_str(), rwidth, AtomMaskName(atom3).c_str(),
+              atom1+1, atom2+1, atom3+1); 
+    }
+    na++;
+  }
+  mprintf("\n");
+}
+
+// Topology::PrintAngleInfo()
+void Topology::PrintAngleInfo(std::string const& maskString) const {
+  AtomMask mask( maskString );
+  ParseMask(refCoords_, mask, false); // Char mask
+  mprintf("# %zu ANGLES WITH HYDROGEN:\n", anglesh_.size()/4);
+  mprintf("# %zu ANGLES WITHOUT HYDROGEN:\n", angles_.size()/4);
+  mprintf("# Angle   Kthet  degrees        atom names        (numbers)\n");
+  int na = 1;
+  if (!anglesh_.empty())
+    PrintAngles( anglesh_, mask, na );
+  if (!angles_.empty())
+    PrintAngles( angles_, mask, na );
+}
+
+// Topology::PrintDihedrals()
+void Topology::PrintDihedrals(std::vector<int> const& darray, AtomMask const& maskIn, 
+                              int& nd) const
+{
+  int atom3, atom4;
+  int rwidth = DigitWidth(residues_.size()) + 7;
+  for (std::vector<int>::const_iterator datom = darray.begin();
+                                        datom != darray.end(); ++datom)
+  {
+    int atom1 = ((*datom++) / 3);
+    int atom2 = ((*datom++) / 3);
+    int iatom3 = atom3 = ((*datom++) / 3);
+    int iatom4 = atom4 = ((*datom++) / 3);
+    // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
+    char type = ' ';
+    if (iatom3 < 0) { // End atoms shouldn't have nonbonds between them
+      type = 'E';
+      atom3 = -iatom3;
+    }
+    if (iatom4 < 0) { // Improper dihedral
+      type = 'I';
+      atom4 = -iatom4;
+    }
+    if (iatom3 < 0 && iatom4 < 0) type = 'B';
+    if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
+        maskIn.AtomInCharMask( atom3 ) || maskIn.AtomInCharMask( atom4 )   )
+    {
+      mprintf("%c %8i:", type, nd);
+      int didx = *datom - 1; // TODO:  Dihedral index should be -1
+      if ( didx > -1 )       // No guess for dihedral params
+        mprintf(" %6.3f %4.2f %4.1f", dihedralpk_[didx], dihedralphase_[didx], dihedralpn_[didx]);
+      mprintf(" %-*s %-*s %-*s %-*s (%i,%i,%i,%i)\n",
+              rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(), 
+              rwidth, AtomMaskName(atom3).c_str(), rwidth, AtomMaskName(atom4).c_str(),
+              atom1+1, atom2+1, atom3+1, atom4+1);
+    }
+    nd++;
+  }
+  mprintf("\n");
+}
+
+// Topology::PrintDihedralInfo()
+void Topology::PrintDihedralInfo(std::string const& maskString) const {
+  AtomMask mask( maskString );
+  ParseMask(refCoords_, mask, false); // Char mask
+  mprintf("# %zu DIHEDRALS WITH HYDROGEN:\n", dihedralsh_.size()/5);
+  mprintf("# %zu DIHEDRALS WITHOUT HYDROGEN:\n", dihedrals_.size()/5);
+  mprintf("#Dihedral    pk     phase pn                atoms\n");
+  int nd = 1;
+  if (!dihedralsh_.empty())
+    PrintDihedrals( dihedralsh_, mask, nd );
+  if (!dihedrals_.empty())
+    PrintDihedrals( dihedrals_, mask, nd );
+}
+
+
 // Topology::PrintMoleculeInfo()
-void Topology::PrintMoleculeInfo(std::string const& maskString) {
+void Topology::PrintMoleculeInfo(std::string const& maskString) const {
   if (molecules_.empty())
     mprintf("\t[%s] No molecule info.\n",c_str());
   else {
@@ -262,8 +381,8 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) {
     ParseMask(refCoords_, mask, false); // Char mask
     mprintf("MOLECULES:\n");
     unsigned int mnum = 1;
-    for (std::vector<Molecule>::iterator mol = molecules_.begin(); 
-                                         mol != molecules_.end(); mol++)
+    for (std::vector<Molecule>::const_iterator mol = molecules_.begin(); 
+                                               mol != molecules_.end(); mol++)
     {
       if ( mask.AtomsInCharMask( (*mol).BeginAtom(), (*mol).EndAtom() ) ) {
         int firstres = atoms_[ (*mol).BeginAtom() ].ResNum();
@@ -278,37 +397,50 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) {
 }
 
 // Topology::PrintResidueInfo()
-void Topology::PrintResidueInfo(std::string const& maskString) {
+void Topology::PrintResidueInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
   ParseMask(refCoords_, mask, false); // Char mask
   mprintf("RESIDUES:\n");
   unsigned int rnum = 1;
-  for (std::vector<Residue>::iterator res = residues_.begin();
-                                      res != residues_.end(); res++)
+  for (std::vector<Residue>::const_iterator res = residues_.begin();
+                                            res != residues_.end(); res++)
   {
     if ( mask.AtomsInCharMask( (*res).FirstAtom(), (*res).LastAtom() ) ) {
-      mprintf("\tResidue %u %s first atom %i last atom %i\n",
-              rnum, (*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom());
+      mprintf("\tResidue %u %s atoms %i-%i (%i), original#=%i\n",
+              rnum, (*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom(),
+              (*res).NumAtoms(), (*res).OriginalResNum());
     }
     ++rnum;
   }
 }
 
-void Topology::PrintChargeInfo(std::string const& maskString) {
+// Topology::PrintChargeMassInfo()
+int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const {
   AtomMask mask( maskString );
-  ParseMask(refCoords_, mask, true); // Int mask
-  double sumq = 0.0;
-  for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
-    sumq += atoms_[*aidx].Charge();
-  mprintf("\tSum of charges in mask");
-  mask.BriefMaskInfo();
-  mprintf(" is %f\n", sumq);
+  if (ParseMask(refCoords_, mask, true)) return 1; // Int mask
+  if (type == 0 || type == 2) {
+    mprintf("\tSum of charges in mask");
+    mask.BriefMaskInfo();
+    double sumq = 0.0;
+    for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
+      sumq += atoms_[*aidx].Charge();
+    mprintf(" is %f\n", sumq);
+  }
+  if (type == 1 || type == 2) {
+    mprintf("\tSum of masses in mask");
+    mask.BriefMaskInfo();
+    double summ = 0.0;
+    for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
+      summ += atoms_[*aidx].Mass();
+    mprintf(" is %f\n", summ);
+  }
+  return 0; 
 }
 
 // -----------------------------------------------------------------------------
 // Topology::AddTopAtom()
-void Topology::AddTopAtom(Atom atomIn, NameType const& resname, int current_res, int& last_res, 
-                       const double* XYZin) 
+void Topology::AddTopAtom(Atom const& atomIn, NameType const& resname, int current_res, 
+                          int& last_res, const double* XYZin) 
 {
   // Check if this is a new residue
   if (residues_.empty() || current_res != last_res) {
@@ -316,12 +448,12 @@ void Topology::AddTopAtom(Atom atomIn, NameType const& resname, int current_res,
     if (!residues_.empty())
       residues_.back().SetLastAtom( atoms_.size() );
     // First atom of new residue is == current # atoms.
-    residues_.push_back( Residue(resname, atoms_.size()) );
+    residues_.push_back( Residue(current_res, resname, atoms_.size()) );
     last_res = current_res;
   }
-  // Set this atoms residue number 
-  atomIn.SetResNum( residues_.size()-1 );
   atoms_.push_back(atomIn);
+  // Set this atoms residue number 
+  atoms_.back().SetResNum( residues_.size()-1 );
   // Add coordinate if given
   refCoords_.AddXYZ( XYZin );
 }
@@ -379,16 +511,16 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
   }
   // ATOMIC_NUMBER may not be present
   if (at_num.empty()) {
-    mprintf("Warning: [%s] ATOMIC_NUMBER not present in topology.\n", c_str());
+    if (debug_>0) mprintf("Warning: [%s] ATOMIC_NUMBER not present in topology.\n", c_str());
     at_num.resize(natom, 0);
   }
   // GB params may be empty in old amber parm
   if (gb_radii.empty()) {
-    mprintf("Warning: [%s] GB RADII not present in topology.\n", c_str());
+    if (debug_>0) mprintf("Warning: [%s] GB RADII not present in topology.\n", c_str());
     gb_radii.resize(natom, 0);
   }
   if (gb_screen.empty()) {
-    mprintf("Warning: [%s] GB SCREEN not present in topology.\n", c_str());
+    if (debug_>0) mprintf("Warning: [%s] GB SCREEN not present in topology.\n", c_str());
     gb_screen.resize(natom, 0);
   }
   // Create atom information
@@ -409,8 +541,8 @@ int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>&
   size_t nres = resnames.size();
   residues_.reserve( nres );
   for (size_t res = 0; res < nres - 1; res++) 
-    residues_.push_back( Residue( resnames[res], resnums[res], resnums[res+1] ) );
-  residues_.push_back( Residue( resnames[nres-1], resnums[nres-1], atoms_.size() ) );
+    residues_.push_back( Residue( res+1, resnames[res], resnums[res], resnums[res+1] ) );
+  residues_.push_back( Residue( nres, resnames[nres-1], resnums[nres-1], atoms_.size() ) );
 
   return 0;
 }
@@ -570,6 +702,9 @@ int Topology::CommonSetup(bool bondsearch) {
 
   // Determine excluded atoms
   DetermineExcludedAtoms();
+
+  // Determine # of extra points.
+  DetermineNumExtraPoints();
 
   return 0;
 }
@@ -906,7 +1041,7 @@ int Topology::DetermineMolecules() {
 }
 
 // Topology::AtomDistance()
-void Topology::AtomDistance(int originalAtom, int atom, int dist, std::set<int> &excluded) 
+void Topology::AtomDistance(int originalAtom, int atom, int dist, std::set<int> &excluded) const 
 {
   // If this atom is already too far away return
   if (dist==4) return;
@@ -940,6 +1075,14 @@ void Topology::DetermineExcludedAtoms() {
     //  mprintf(" %i",*ei + 1);
     //mprintf("\n");
   } // END loop over atomi
+}
+
+// Topology::DetermineNumExtraPoints()
+void Topology::DetermineNumExtraPoints() {
+  n_extra_pts_ = 0;
+  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
+                                         atom != atoms_.end(); ++atom)
+    if ( (*atom).Element() == Atom::EXTRAPT ) ++n_extra_pts_;
 }
 
 // -----------------------------------------------------------------------------
@@ -1426,8 +1569,11 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
 
   newParm->parmName_ = parmName_;
   newParm->fileName_ = fileName_;
+  // NOTE: Do NOT copy tag to avoid duplication.
   newParm->radius_set_ = radius_set_;
   newParm->debug_ = debug_;
+  newParm->hasVelInfo_ = hasVelInfo_;
+  newParm->nRepDim_ = nRepDim_;
 
   // Reverse Atom map
   // TODO: Use std::map instead
@@ -1451,7 +1597,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     if ( curres != oldres ) {
       if (!newParm->residues_.empty())
         newParm->residues_.back().SetLastAtom( newatom );
-      newParm->residues_.push_back( Residue(residues_[curres].Name(), newatom) );
+      newParm->residues_.push_back( Residue(residues_[curres].OriginalResNum(),
+                                            residues_[curres].Name(), newatom) );
       oldres = curres;
     }
     // Clear bond information from new atom
@@ -1532,6 +1679,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   
   // Setup excluded atoms list - Necessary?
   newParm->DetermineExcludedAtoms();
+
+  // Determine number of extra points
+  newParm->DetermineNumExtraPoints();
 
   return newParm;
 }

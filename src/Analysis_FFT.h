@@ -1,6 +1,7 @@
 #ifndef INC_ANALYSIS_FFT_H
 #define INC_ANALYSIS_FFT_H
 #include "Analysis.h"
+#include "DataSet_1D.h"
 /// Calculate FFT of dataset(s)
 class Analysis_FFT : public Analysis {
   public:
@@ -14,8 +15,8 @@ class Analysis_FFT : public Analysis {
   private:
     DataFile* outfile_;
     DataSetList input_dsets_;
-    std::vector<DataSet*> output_dsets_;
-    int maxsize_;
+    std::vector<DataSet_1D*> output_dsets_;
+    size_t maxsize_;
     double dt_;
 };
 #endif

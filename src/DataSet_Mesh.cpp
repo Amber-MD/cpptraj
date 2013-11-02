@@ -1,24 +1,82 @@
-#include "Integrate.h"
+#include "DataSet_Mesh.h"
 #include "CpptrajStdio.h"
 
-/// CONSTRUCTOR - Set up X mesh
-Interpolate::Interpolate(double ti, double tf, int n) :
-  mesh_size_(n),
-  mesh_x_(n),
-  mesh_y_(n)
+// CONSTRUCTOR - Create X mesh
+DataSet_Mesh::DataSet_Mesh(int sizeIn, double ti, double tf) :
+  DataSet_1D(XYMESH, 12, 4)
 {
-  CalcMeshX(ti, tf);
+  CalculateMeshX(sizeIn, ti, tf);
 }
 
-// Interpolate::CalcMeshX()
-void Interpolate::CalcMeshX(double ti, double tf) {
+// DataSet_Mesh::Allocate1D()
+int DataSet_Mesh::Allocate1D( size_t sizeIn ) {
+  mesh_x_.reserve( sizeIn );
+  mesh_y_.reserve( sizeIn );
+  return 0;
+}
+
+// DataSet_Mesh::WriteBuffer()
+void DataSet_Mesh::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
+  if (frame >= mesh_x_.size())
+    cbuffer.Printf(data_format_, 0.0);
+  else
+    cbuffer.Printf(data_format_, mesh_y_[frame]);
+}
+
+// -----------------------------------------------------------------------------
+// DataSet_Mesh::CalculateMeshX()
+void DataSet_Mesh::CalculateMeshX(int sizeIn, double ti, double tf) {
+  mesh_x_.resize( sizeIn, 0 );
+  mesh_y_.resize( sizeIn, 0 );
   double s = (ti + tf)/2;
   double d = (tf - ti)/2;
-  for (int i = 0; i < mesh_size_; i++)
-    mesh_x_[i] = s + d*((double) (2*i + 1 - mesh_size_)/(mesh_size_ - 1));
+  for (int i = 0; i < sizeIn; i++)
+    mesh_x_[i] = s + d*((double) (2*i + 1 - sizeIn)/(sizeIn - 1));
 }
 
-// Interpolate::cubicSpline_coeff()
+// DataSet_Mesh::SetMeshXY()
+int DataSet_Mesh::SetMeshXY(DataSet_1D const& dsIn) {
+  mesh_x_.resize( dsIn.Size() );
+  mesh_y_.resize( dsIn.Size() );
+  for (unsigned int i = 0; i < dsIn.Size(); i++) {
+    mesh_x_[i] = dsIn.Xcrd(i);
+    mesh_y_[i] = dsIn.Dval(i);
+  }
+  return 0;
+}
+
+// ---------- Integration routines ---------------------------------------------
+// DataSet_Mesh::Integrate_Trapezoid()
+double DataSet_Mesh::Integrate_Trapezoid( DataSet_Mesh& sumOut ) const {
+  double sum = 0.0;
+  int mesh_size = (int)mesh_x_.size();
+  if (mesh_size < 2) return 0.0;
+  // Give output data set the same X mesh
+  sumOut.mesh_x_ = mesh_x_;
+  sumOut.mesh_y_.resize( mesh_x_.size() );
+  sumOut.mesh_y_[0] = 0.0;
+  for (int i = 1; i < mesh_size; i++) {
+      double b_minus_a = (mesh_x_[i] - mesh_x_[i - 1]);
+      sum += (b_minus_a * (mesh_y_[i - 1] + mesh_y_[i]) * 0.5);
+      sumOut.mesh_y_[i] = sum;
+  }
+  return sum;
+}
+
+// DataSet_Mesh::Integrate_Trapezoid()
+double DataSet_Mesh::Integrate_Trapezoid() const {
+  double sum = 0.0;
+  int mesh_size = (int)mesh_x_.size();
+  if (mesh_size < 2) return 0.0;
+  for (int i = 1; i < mesh_size; i++) {
+      double b_minus_a = (mesh_x_[i] - mesh_x_[i - 1]);
+      sum += (b_minus_a * (mesh_y_[i - 1] + mesh_y_[i]) * 0.5);
+  }
+  return sum;
+}
+
+// ---------- Cubic Spline Routines --------------------------------------------
+// DataSet_Mesh::cubicSpline_coeff()
 /** Given a set of x and y values of size n, compute the b, c, and d
   * coefficients for n interpolating cubic splines of form:
   *
@@ -35,7 +93,7 @@ void Interpolate::CalcMeshX(double ti, double tf) {
   * \param x Input X values
   * \param y Corresponding Y values
   */
-void Interpolate::cubicSpline_coeff(std::vector<double> const& x, std::vector<double> const& y) 
+void DataSet_Mesh::cubicSpline_coeff(std::vector<double> const& x, std::vector<double> const& y) 
 {
   int n = (int)x.size();
 
@@ -106,18 +164,19 @@ void Interpolate::cubicSpline_coeff(std::vector<double> const& x, std::vector<do
   }
 }
 
-// Interpolate::cubicSpline_eval() 
+// DataSet_Mesh::cubicSpline_eval() 
 /** Evaluate cubic spline function with pre-calcd coefficients in b, c, and
   * d from coordinates x/y for all points in mesh.
   * \param x Input X coordinates
   * \param y Input Y coordinates
   */
-void Interpolate::cubicSpline_eval(std::vector<double> const& x, std::vector<double> const& y)
+void DataSet_Mesh::cubicSpline_eval(std::vector<double> const& x, std::vector<double> const& y)
 {
   int xidx;  
   int n = (int)x.size();
+  int mesh_size = (int)mesh_x_.size();
 
-  for (int uidx = 0; uidx < mesh_size_; uidx++) {
+  for (int uidx = 0; uidx < mesh_size; uidx++) {
     double U = mesh_x_[uidx];
     // Search for U in x
     if (U < x[0])
@@ -143,46 +202,40 @@ void Interpolate::cubicSpline_eval(std::vector<double> const& x, std::vector<dou
   }
 }
 
-// Interpolate::SetMesh_X() 
-/** Given a start, stop, and size, set up mesh x values. */
-void Interpolate::SetMesh_X(double ti, double tf, int n) {
-  mesh_size_ = n;
-  mesh_x_.resize( mesh_size_ );
-  mesh_y_.resize( mesh_size_ );
-  CalcMeshX(ti, tf);
-}
-
-// Interpolate::SetMesh_Y()
-/** Set mesh Y values based on input X and Y and previously set up
-  * mesh X.
-  */
-int Interpolate::SetMesh_Y(std::vector<double> const& x, std::vector<double> const& y) {
+// DataSet_Mesh::SetSplinedMeshY()
+/** Assumes mesh X values already set with CalculateMeshX. */
+int DataSet_Mesh::SetSplinedMeshY(std::vector<double> const& x, std::vector<double> const& y) {
   if (x.size() != y.size()) {
-    mprinterr("Error: Interpolate::SetMesh: X size (%u) != Y size (%u)\n",
-              x.size(), y.size());
+    mprinterr("Error: X size (%u) != Y size (%u)\n", x.size(), y.size());
     return 1;
   }
   // No point if 1 or less values
   if (x.size() < 2) {
-    mprinterr("Error: Interpolate::SetMesh: Requires > 1 values (%u specified).\n",
-              x.size());
+    mprinterr("Error: Requires > 1 values (%u specified).\n", x.size());
     return 1;
   }
-  cubicSpline_coeff(x, y); 
+  cubicSpline_coeff(x, y);
   cubicSpline_eval(x, y);
   return 0;
 }
 
-// Interpolate::Integrate_Trapezoid() 
-/** Integrate the mesh using the trapezoid rule. */
-double Interpolate::Integrate_Trapezoid() {
-  double sum = 0.0;
-
-  if (mesh_size_ < 2) return 0.0;
-  
-  for (int i = 1; i < mesh_size_; i++) {
-      double b_minus_a = (mesh_x_[i] - mesh_x_[i - 1]);
-      sum += (b_minus_a * (mesh_y_[i - 1] + mesh_y_[i]) * 0.5);
+// DataSet_Mesh::SetSplinedMesh()
+/** Assumes mesh X values already set with CalculateMeshX. */
+int DataSet_Mesh::SetSplinedMesh(DataSet_1D const& dsIn)
+{
+  if (dsIn.Size() < 2) {
+    mprinterr("Error: Requires > 1 values (%u specified).\n", dsIn.Size());
+    return 1;
   }
-  return sum;
+  // Create X and Y values for dsIn
+  std::vector<double> x, y;
+  x.reserve( dsIn.Size() );
+  y.reserve( dsIn.Size() );
+  for (int i = 0; i < (int)dsIn.Size(); i++) {
+    x.push_back( dsIn.Xcrd( i ) );
+    y.push_back( dsIn.Dval( i ) );
+  }
+  cubicSpline_coeff(x, y);
+  cubicSpline_eval(x, y);
+  return 0;
 }

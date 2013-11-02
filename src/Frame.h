@@ -91,6 +91,8 @@ class Frame {
     int SetupFrame(int);
     /// Allocate frame for given # atoms with mass, no velocity. 
     int SetupFrameM(std::vector<Atom> const&);
+    /// Allocate frame with given XYZ coords and masses, no velocity.
+    int SetupFrameXM(std::vector<double> const&, std::vector<double> const&);
     /// Allocate frame for given # atoms with mass and opt. velocity/indices.
     int SetupFrameV(std::vector<Atom> const&,bool,int);
     /// Allocate frame for selected # atoms, coords/mass only.
@@ -113,6 +115,7 @@ class Frame {
     Frame& operator-=(const Frame&);
     Frame& operator*=(const Frame&);
     const Frame operator*(const Frame&) const;
+    const Frame operator-(const Frame&) const;
     int Divide(Frame const&, double); 
     void Divide(double);
     void AddByMask(Frame const&, AtomMask const&); 
@@ -163,7 +166,7 @@ class Frame {
     /// Calculate inertia matrix.
     Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&) const;
     /// Calculate temperature of atoms in mask.
-    double Temperature(AtomMask const&,int) const;
+    double CalcTemperature(AtomMask const&,int) const;
   private:
     typedef std::vector<double> Darray;
     static const size_t COORDSIZE_;

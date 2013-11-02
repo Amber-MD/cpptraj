@@ -16,6 +16,7 @@ class Action_Temperature : public Action {
     void Print() {}
 
     DataSet* Tdata_;
+    bool getTempFromFrame_;
     AtomMask Mask_;
     ShakeType shakeType_;
     int degrees_of_freedom_;

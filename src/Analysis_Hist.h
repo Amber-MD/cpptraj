@@ -1,39 +1,54 @@
 #ifndef INC_ANALYSIS_HIST_H
 #define INC_ANALYSIS_HIST_H
 #include "Analysis.h"
-#include "Histogram.h"
+#include "DataSet_1D.h"
 // Class: Analysis_Hist
 /// Create an N-dimensional histogram from N input datasets
 class Analysis_Hist : public Analysis {
   public :
+    enum NormMode { NO_NORM = 0, NORM_SUM, NORM_INT };
     Analysis_Hist();
 
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Hist(); }
     static void Help();
-
+    Analysis::RetType Setup(DataSet_1D*, std::string const&, std::string const&,
+                            bool, double, bool, double, double, int, NormMode,
+                            DataSetList&, DataFileList&);
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
-    DataFile* outfile_;                  ///< Output DataFile for 1 or 2 dims.
-    Histogram* hist_;
-    std::vector<DataSet*> histdata_;
-    std::vector<ArgList> dimensionArgs_;
+    int CheckDimension(std::string const&, DataSetList*);
+    int setupDimension(ArgList&, DataSet_1D const&, size_t&);
+    int CalcFreeE();
+    int Normalize();
+    // ---------------------------------
+    long int BinIndicesToIndex(std::vector<int> const&);
+    bool IncrementBinIndices(std::vector<int>&, int, bool&);
+    void PrintBins();
 
-    int debug_;
-    bool calcFreeE_;
-    double Temp_;
-    bool normalize_;
-    bool gnuplot_;
-    bool circular_;
-    std::string outfilename_;
+    DataFile* outfile_;                  ///< Output DataFile.
+    DataSet* hist_;                      ///< Histogram data set.
+    std::vector<double> Bins_;           ///< Histogram data - double in case free E calculated
+    typedef std::vector<long int> OffType;
+    OffType binOffsets_;                 ///< Bin offsets for calculating index.
+    std::vector<DataSet_1D*> histdata_;  ///< Array of data sets to be binned.
+    std::vector<ArgList> dimensionArgs_; ///< Array of args defining histogram dims
+    typedef std::vector<Dimension> HdimType;
+    HdimType dimensions_;                ///< Histogram dimensions.
 
+    int debug_;                          ///< Debug level
+    bool calcFreeE_;                     ///< If true, calc free E from hist populations.
+    double Temp_;                        ///< temperature to calc free E at.
+    NormMode normalize_;                 ///< Normalize histogram
+    bool gnuplot_;                       ///< For internal write only
+    bool circular_;                      ///< If true, wrap histogram dimensions.
+    bool nativeOut_;                     ///< If true, use built in output routine.
+    std::string outfilename_;            ///< Stored in case internal write used (DIM > 3)
+    size_t N_dimensions_;                ///< # of histogram dimensions.
     Dimension default_dim_;
     bool minArgSet_;
     bool maxArgSet_;
     bool calcAMD_;
-    DataSet* amddata_;
-
-    int CheckDimension(std::string const&, DataSetList*);
-    int setupDimension(ArgList&, DataSet*);
+    DataSet_1D* amddata_;
 };
 #endif

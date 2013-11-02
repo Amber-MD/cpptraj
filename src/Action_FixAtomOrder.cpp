@@ -94,11 +94,11 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
   }
   newParm_->Summary();
   // Allocate space for new frame
-  newFrame_.SetupFrameM( newParm_->Atoms() );
+  newFrame_.SetupFrameV( newParm_->Atoms(), newParm_->HasVelInfo(), newParm_->NrepDim() );
 
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {
-    std::string newfilename = prefix_ + "." + currentParm->OriginalFilename();
+    std::string newfilename = prefix_ + "." + currentParm->OriginalFilename().Base();
     mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),newfilename.c_str());
     ParmFile pfile;
     if ( pfile.Write( *newParm_, newfilename, ParmFile::AMBERPARM, 0 ) ) {

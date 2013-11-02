@@ -29,6 +29,7 @@ class Vec3 {
       V_[1] = (double)XYZ[1];
       V_[2] = (double)XYZ[2];
     }
+    /// Assignment
     Vec3& operator=(const Vec3& rhs) {
       if (this == &rhs) return *this;
       V_[0] = rhs.V_[0];
@@ -36,13 +37,15 @@ class Vec3 {
       V_[2] = rhs.V_[2];
       return *this;
     }
+    /// Assign const double[3] values to X Y and Z
+    void Assign(const double* XYZ) { V_[0] = XYZ[0]; V_[1] = XYZ[1]; V_[2] = XYZ[2]; }
     // Vector OP scalar
     void operator/=(double xIn) {
       V_[0] /= xIn;
       V_[1] /= xIn;
       V_[2] /= xIn;
     }
-    Vec3 operator/(double xIn) {
+    Vec3 operator/(double xIn) const {
       return Vec3( V_[0] / xIn, V_[1] / xIn, V_[2] / xIn);
     }
     void operator*=(double xIn) {
@@ -50,7 +53,7 @@ class Vec3 {
       V_[1] *= xIn;
       V_[2] *= xIn;
     }
-    Vec3 operator*(double xIn) {
+    Vec3 operator*(double xIn) const {
       return Vec3( V_[0] * xIn, V_[1] * xIn, V_[2] * xIn);
     }
     void operator+=(double xIn) {
@@ -58,7 +61,7 @@ class Vec3 {
       V_[1] += xIn;
       V_[2] += xIn;
     }
-    Vec3 operator+(double xIn) {
+    Vec3 operator+(double xIn) const {
       return Vec3( V_[0] + xIn, V_[1] + xIn, V_[2] + xIn);
     }
     // Vector OP vector
@@ -89,7 +92,7 @@ class Vec3 {
     // TODO: Make const ref only?
     double  operator[](int idx) const { return V_[idx]; }
     double& operator[](int idx)       { return V_[idx]; }
-    double Magnitude2() {
+    double Magnitude2() const {
       double x = V_[0] * V_[0];
       double y = V_[1] * V_[1];
       double z = V_[2] * V_[2];
@@ -100,7 +103,7 @@ class Vec3 {
       V_[1] = 0.0;
       V_[2] = 0.0;
     }
-    bool IsZero() {
+    bool IsZero() const {
       return (V_[0]==0.0 && V_[1]==0.0 && V_[2]==0.0);
     }
     void Neg() {
@@ -116,7 +119,7 @@ class Vec3 {
     double Normalize();
     void Print(const char*) const;
     double Angle(Vec3 const&) const;
-    double SignedAngle(Vec3 const&, Vec3 const&);
+    double SignedAngle(Vec3 const&, Vec3 const&) const;
     // TODO: Eliminate this routine
     const double* Dptr() const { return V_; }
     double* Dptr() { return V_; }
