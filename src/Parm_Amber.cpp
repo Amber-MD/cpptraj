@@ -174,13 +174,21 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
 
   // Create arrays of atom info
   std::vector<NameType> names;
+  names.reserve( parmIn.Natom() );
   std::vector<double> charge;
+  charge.reserve( parmIn.Natom() );
   std::vector<int> at_num;
+  at_num.reserve( parmIn.Natom() );
   std::vector<double> mass;
+  mass.reserve( parmIn.Natom() );
   std::vector<int> atype_index;
+  atype_index.reserve( parmIn.Natom() );
   std::vector<NameType> types;
+  types.reserve( parmIn.Natom() );
   std::vector<double> gb_radii;
+  gb_radii.reserve( parmIn.Natom() );
   std::vector<double> gb_screen;
+  gb_screen.reserve( parmIn.Natom() );
   std::vector<int> numex;
   std::vector<int> excluded;
   for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++) 
@@ -193,7 +201,7 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
     atype_index.push_back( (*atom).TypeIndex() );
     types.push_back( (*atom).Type() );
     CheckNameWidth("Type",types.back());
-    gb_radii.push_back( (*atom).Radius() );
+    gb_radii.push_back( (*atom).GBRadius() );
     gb_screen.push_back( (*atom).Screen() );
     // Amber atom exclusion list prints a 0 placeholder for atoms with
     // no exclusions, so always print at least 1 for numex

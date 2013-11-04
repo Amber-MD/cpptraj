@@ -62,7 +62,7 @@ class Atom {
     inline int Nexcluded()             const { return (int)excluded_.size(); }
     inline double Mass()               const { return mass_; }
     inline double Charge()             const { return charge_; }
-    inline double Radius()             const { return gb_radius_; }
+    inline double GBRadius()           const { return gb_radius_; }
     inline double Screen()             const { return gb_screen_; }
     /// Add atom # to this atoms list of bonded atoms.
     void AddBond(int);

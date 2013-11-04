@@ -262,7 +262,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       lastAtomInMol = (*mol).EndAtom();
     }
     if (dumpq_) Occ = (float) (*atom).Charge();
-    if (dumpr_) B = (float) (*atom).Radius();
+    if (dumpr_) B = (float) (*atom).GBRadius();
     // If pdbatom change amber atom names to pdb v3
     NameType atomName = (*atom).Name();
     if (pdbatom_) {

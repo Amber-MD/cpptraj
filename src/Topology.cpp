@@ -196,6 +196,8 @@ void Topology::Summary() const {
     if (finalSoluteRes_>-1)
       mprintf("\t\t                  Final solute residue is %i\n", finalSoluteRes_+1);
   }
+  if (!radius_set_.empty())
+    mprintf("\t\t                  GB radii set: %s\n", radius_set_.c_str());
   /*if (!bondsh_.empty() || !bonds_.empty())
     mprintf("  %zu bonds to hydrogen, %zu other bonds.\n",bondsh_.size()/3,
             bonds_.size()/3);*/
@@ -220,17 +222,18 @@ void Topology::PrintAtomInfo(std::string const& maskString) const {
   else {
     int width = DigitWidth(atoms_.size());
     if (width < 5) width = 5;
-    mprintf("%-*s %4s %*s %4s %*s %4s %8s %8s\n", 
+    mprintf("%-*s %4s %*s %4s %*s %4s %8s %8s %8s\n", 
             width, "#Atom", "Name", 
             width, "#Res",  "Name",
-            width, "#Mol",  "Type", "Charge", "Mass");
+            width, "#Mol",  "Type", "Charge", "Mass", "GBradius");
     for (AtomMask::const_iterator atnum = mask.begin(); atnum != mask.end(); atnum++) {
       const Atom& atom = atoms_[*atnum];
       int resnum = atom.ResNum();
-      mprintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f\n", 
+      mprintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f %8.4f\n", 
               width, *atnum+1, atom.c_str(), 
               width, resnum+1, residues_[resnum].c_str(),
-              width, atom.MolNum()+1, *(atom.Type()), atom.Charge(), atom.Mass());
+              width, atom.MolNum()+1, *(atom.Type()), atom.Charge(), 
+              atom.Mass(), atom.GBRadius());
     }
   }
 }
