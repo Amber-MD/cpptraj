@@ -117,11 +117,11 @@ double Analysis_KDE::GaussianKernel(double u) const {
 
 Analysis::RetType Analysis_KDE::Analyze() {
   // Declare variables here in case of OPENMP
-  unsigned int frame, bin, validPoint, nt;
+  unsigned int frame, bin, validPoint;
   double val, increment;
   bool Pzero, Qzero;
 # ifdef _OPENMP
-  int numthreads, mythread;
+  int numthreads, mythread, nt;
   double** out_thread;
 # endif
 
