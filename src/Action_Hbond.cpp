@@ -619,7 +619,7 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
     if (bridgeID.empty())
       bridgeID.assign("None");
     NumBridge_->Add(frameNum, &numHB);
-    BridgeID_->Add(frameNum, (char*)bridgeID.c_str()); // FIXME: Fix cast
+    BridgeID_->Add(frameNum, bridgeID.c_str());
   }
 
   ++Nframes_;
@@ -627,9 +627,16 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
   return Action::OK;
 }
 
-// Action_Hbond::print()
-/** Print average occupancies over all frames for all detected Hbonds
-  */
+/** Calculate average distance and angle for hbond. */
+void Action_Hbond::HbondTypeCalcAvg(HbondType& hb) {
+  double dFrames = (double)hb.Frames;
+  hb.dist /= dFrames;
+  hb.angle /= dFrames;
+  hb.angle *= RADDEG;
+}
+
+// Action_Hbond::Print()
+/** Print average occupancies over all frames for all detected Hbonds. */
 void Action_Hbond::Print() {
   std::vector<HbondType> HbondList; // For sorting
   std::string Aname, Hname, Dname;
@@ -662,13 +669,10 @@ void Action_Hbond::Print() {
   if (!avgout_.empty()) { 
     if (outfile.OpenWrite( avgout_ )) return;
     // Place all detected Hbonds in a list and sort.
-    for (HBmapType::iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) {
-      // Calculate average distance and angle for this hbond.
-      double dFrames = (double)(*it).second.Frames;
-      (*it).second.dist /= dFrames;
-      (*it).second.angle /= dFrames;
-      (*it).second.angle *= RADDEG;
+    for (HBmapType::const_iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) {
       HbondList.push_back( (*it).second );
+      // Calculate average distance and angle for this hbond.
+      HbondTypeCalcAvg( HbondList.back() );
     }
     HbondMap_.clear();
     // Sort and Print 

@@ -10,15 +10,14 @@
 class Action_Hbond : public Action {
   public:
     Action_Hbond();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Hbond(); }
     static void Help();
-    void Print();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 
     struct HbondType {
       int A;        ///< Acceptor atom#
@@ -79,12 +78,10 @@ class Action_Hbond : public Action {
       */
     struct hbond_cmp {
       inline bool operator()(HbondType first, HbondType second) const {
-        if (first.Frames > second.Frames)
-          return true;
-        else if (first.Frames < second.Frames)
-          return false;
+        if (first.Frames == second.Frames)
+          return (first.dist < second.dist);
         else
-          return (first.A < second.A);
+          return (first.Frames > second.Frames);
       }
     };
     /// Return true if first bridge has more frames than second.
@@ -104,5 +101,6 @@ class Action_Hbond : public Action {
     void SearchAcceptor(HBlistType&,AtomMask&,bool);
     void SearchDonor(HBlistType&,AtomMask&,bool,bool);
     inline int AtomsAreHbonded(Frame const&, int, int, int, int, int,bool);
+    inline void HbondTypeCalcAvg(HbondType&);
 };
 #endif
