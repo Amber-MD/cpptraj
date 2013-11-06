@@ -661,26 +661,24 @@ void Action_Hbond::Print() {
   // Solute Hbonds 
   if (!avgout_.empty()) { 
     if (outfile.OpenWrite( avgout_ )) return;
-    // Place all detected Hbonds in a list and sort. Free memory as we go. 
-    for (HBmapType::iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) 
+    // Place all detected Hbonds in a list and sort.
+    for (HBmapType::iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) {
+      // Calculate average distance and angle for this hbond.
+      double dFrames = (double)(*it).second.Frames;
+      (*it).second.dist /= dFrames;
+      (*it).second.angle /= dFrames;
+      (*it).second.angle *= RADDEG;
       HbondList.push_back( (*it).second );
+    }
     HbondMap_.clear();
+    // Sort and Print 
     sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
-    // Calculate averages and print
-    //outfile.Printf("#Solute Hbonds:\n");
     outfile.Printf("%-*s %*s %*s %8s %12s %12s %12s\n", NUM, "#Acceptor", 
                    NUM, "DonorH", NUM, "Donor", "Frames", "Frac", "AvgDist", "AvgAng");
-    for (std::vector<HbondType>::iterator hbond = HbondList.begin(); 
-                                          hbond!=HbondList.end(); ++hbond ) 
+    for (std::vector<HbondType>::const_iterator hbond = HbondList.begin(); 
+                                                hbond != HbondList.end(); ++hbond ) 
     {
-      double avg = (double) (*hbond).Frames;
-      avg = avg / ((double) Nframes_);
-      double dist = (double) (*hbond).dist;
-      dist = dist / ((double) (*hbond).Frames);
-      double angle = (double) (*hbond).angle;
-      angle = angle / ((double) (*hbond).Frames);
-      angle *= RADDEG;
-
+      double avg = ((double)(*hbond).Frames) / ((double) Nframes_);
       Aname = CurrentParm_->TruncResAtomName((*hbond).A);
       Hname = CurrentParm_->TruncResAtomName((*hbond).H);
       Dname = CurrentParm_->TruncResAtomName((*hbond).D);
@@ -689,10 +687,9 @@ void Action_Hbond::Print() {
         Hname.append("_" + integerToString((*hbond).H+1));
         Dname.append("_" + integerToString((*hbond).D+1));
       }
-
-      outfile.Printf("%-*s %*s %*s %8i %12.4lf %12.4lf %12.4lf\n",
+      outfile.Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
-                     (*hbond).Frames, avg, dist, angle);
+                     (*hbond).Frames, avg, (*hbond).dist, (*hbond).angle);
     }
     outfile.CloseFile();
   }
