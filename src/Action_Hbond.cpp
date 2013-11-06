@@ -706,8 +706,11 @@ void Action_Hbond::Print() {
       if (outfile.OpenWrite( solvout_)) return;
     }
     HbondList.clear();
-    for (HBmapType::iterator it = SolventMap_.begin(); it != SolventMap_.end(); ++it)
+    for (HBmapType::const_iterator it = SolventMap_.begin(); it != SolventMap_.end(); ++it) {
       HbondList.push_back( (*it).second );
+      // Calculate average distance and angle for this hbond.
+      HbondTypeCalcAvg( HbondList.back() );
+    }
     SolventMap_.clear();
     sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
     // Calc averages and print
@@ -719,14 +722,7 @@ void Action_Hbond::Print() {
     {
       // Average has slightly diff meaning since for any given frame multiple
       // solvent can bond to the same solute.
-      double avg = (double) (*hbond).Frames;
-      avg = avg / ((double) Nframes_);
-      double dist = (double) (*hbond).dist;
-      dist = dist / ((double) (*hbond).Frames);
-      double angle = (double) (*hbond).angle;
-      angle = angle / ((double) (*hbond).Frames);
-      angle *= RADDEG;
-
+      double avg = ((double)(*hbond).Frames) / ((double) Nframes_);
       if ((*hbond).A==-1) // Solvent acceptor
         Aname = "SolventAcc";
       else {
@@ -744,10 +740,9 @@ void Action_Hbond::Print() {
           Hname.append("_" + integerToString((*hbond).H+1));
         }
       }
-
-      outfile.Printf("%-*s %*s %*s %8i %12.4lf %12.4lf %12.4lf\n",
+      outfile.Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
-                     (*hbond).Frames, avg, dist, angle);
+                     (*hbond).Frames, avg, (*hbond).dist, (*hbond).angle);
     }
     outfile.CloseFile();
   }
