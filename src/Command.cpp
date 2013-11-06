@@ -230,9 +230,10 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
       mprintf("  [%s]\n",inputLine.c_str());
       // Call Dispatch to convert input to arglist and process.
       cmode = Command::Dispatch(State, inputLine);
-      if (cmode == C_ERR)
+      if (cmode == C_ERR) {
         nInputErrors++;
-      else if (cmode == C_QUIT)
+        if (State.ExitOnError()) return C_ERR;
+      } else if (cmode == C_QUIT)
         break;
       // Reset Input line
       inputLine.clear();
