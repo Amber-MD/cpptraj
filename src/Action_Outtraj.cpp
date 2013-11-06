@@ -19,10 +19,10 @@ void Action_Outtraj::Help() {
 Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-#ifdef MPI
+# ifdef MPI
   mprintf("ERROR: OUTTRAJ currently not functional with MPI.\n");
   return Action::ERR;
-#endif
+# else
   outtraj_.SetDebug(debugIn);
   std::string trajfilename = actionArgs.GetStringNext();
   if (trajfilename.empty()) {
@@ -79,6 +79,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     }
   }
   return Action::OK;
+# endif
 } 
 
 Action::RetType Action_Outtraj::Setup(Topology* currentParm, Topology** parmAddress) {

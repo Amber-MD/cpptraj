@@ -344,7 +344,7 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
     case PRINCIPAL_Z : Principal(*currentFrame); break;
     case CORRPLANE   : CorrPlane(*currentFrame); break;
     case BOX         : Vec_->AddVxyz( currentFrame->BoxCrd().Lengths() ); break; 
-    default          : return Action::ERR; break; // NO_OP
+    default          : return Action::ERR; // NO_OP
   } // END switch over vectorMode
   if (Magnitude_ != 0) {
     float mag = (float)(sqrt(Vec_->CurrentVec().Magnitude2()));
