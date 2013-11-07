@@ -49,29 +49,39 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
     return 1;
   }
 
-  // If first line begins with a '#', assume it contains labels. Ignore any
-  // leading whitespace.
+  // Try to skip past any comments. If line begins with a '#', assume it
+  // contains labels. 
+  bool isCommentLine = true;
   const char* ptr = linebuffer;
-  while ( *ptr != '\0' && isspace(*ptr) ) ++ptr;
-  if (*ptr == '#') {
-    labels.SetList(ptr+1, SEPARATORS );
-    hasLabels = true;
-    // If first label is Frame assume it is the index column
-    if (labels[0] == "Frame" && indexcol == -1) 
-      indexcol = 0;
-    // Read in next non '#' line, should be data.
-    while (*ptr == '#') {
+  while (isCommentLine) {
+    // Skip past any whitespace
+    while ( *ptr != '\0' && isspace(*ptr) ) ++ptr;
+    // Assume these are column labels until proven otherwise.
+    if (*ptr == '#') {
+      labels.SetList(ptr+1, SEPARATORS );
+      if (!labels.empty()) {
+        hasLabels = true;
+        // If first label is Frame assume it is the index column
+        if (labels[0] == "Frame" && indexcol == -1)
+          indexcol = 0;
+      }
       linebuffer = buffer.Line();
-      if (linebuffer == 0) return 1;
       ptr = linebuffer;
-      while ( *ptr != '\0' && isspace(*ptr) ) ++ptr;
-    }
-    if (buffer.TokenizeLine( SEPARATORS ) != ntoken) {
-      PrintColumnError(buffer.LineNumber());
-      return 1;
-    }
+      if (ptr == 0) {
+        mprinterr("Error: No data found in file.\n");
+        return 1;
+      }
+    } else 
+      // Not a recognized comment character, assume data.
+      isCommentLine = false;
   }
-
+  // Should be at first data line. Tokenize the line.
+  ntoken = buffer.TokenizeLine( SEPARATORS );
+  // If # of data columns does not match # labels, clear labels.
+  if ( !labels.empty() && ntoken != labels.Nargs() ) {
+    labels.ClearList();
+    hasLabels = false;
+  }
   // Determine the type of data stored in each column 
   for (int col = 0; col < ntoken; ++col) {
     const char* token = buffer.NextToken();

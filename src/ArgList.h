@@ -36,6 +36,8 @@ class ArgList {
     bool empty()           const { return arglist_.empty();     }
     /// \return the argument string
     const char *ArgLine()  const { return argline_.c_str();     }
+    /// Clear list
+    void ClearList();
     /// Set up argument list from string and given separators
     int SetList(std::string const&, const char *);
     /// \return an argument list of remaining unmarked args.
