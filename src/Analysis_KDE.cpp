@@ -2,7 +2,6 @@
 #include "Analysis_KDE.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
-#include "DataSet_float.h"
 #include "Constants.h" // TWOPI
 #ifdef _OPENMP
 #  include "omp.h"
@@ -90,7 +89,7 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
   if (outfile != 0) outfile->AddSet( output_ );
   // Output for KL divergence calc.
   if ( q_data_ != 0 ) {
-    kldiv_ = datasetlist->AddSetAspect(DataSet::FLOAT, output_->Name(), "kld");
+    kldiv_ = datasetlist->AddSetAspect(DataSet::DOUBLE, output_->Name(), "kld");
     if (klOutfile != 0) klOutfile->AddSet( kldiv_ );
   }
 
@@ -222,7 +221,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
       inSize = std::min( inSize, Qdata.Size() );
       mprintf("Warning:  Only using %zu data points.\n", inSize);
     }
-    DataSet_float& klOut = static_cast<DataSet_float&>( *kldiv_ );
+    DataSet_double& klOut = static_cast<DataSet_double&>( *kldiv_ );
     std::vector<double> Qhist( Xdim.Bins(), 0.0 ); // Raw Q histogram.
     klOut.Resize( inSize ); // Hold KL div vs time
     double val_p, val_q, KL, norm, xcrd, Pnorm, Qnorm;
@@ -267,7 +266,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
 }
 #endif
       if (validPoint == 0) {
-        klOut[frame] = (float)KL;
+        klOut[frame] = KL;
       } else {
         //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", i+1);
         nInvalid++;

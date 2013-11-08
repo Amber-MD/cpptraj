@@ -155,8 +155,10 @@ int Parm_Amber::ReadParm(std::string const& fname, Topology &TopIn ) {
   *   2: Truncated octahedral box
   */
 int Parm_Amber::AmberIfbox(const Box& boxIn) {
-  if (boxIn.Type() == Box::NOBOX) return 0;
+  if      (boxIn.Type() == Box::NOBOX   ) return 0;
+  else if (boxIn.Type() == Box::ORTHO   ) return 1; 
   else if (boxIn.Type() == Box::TRUNCOCT) return 2;
+  else                                    return 3;
   return 1;
 }
 
