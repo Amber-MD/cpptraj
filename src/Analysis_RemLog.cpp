@@ -192,12 +192,13 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   if (calculateStats_) {
     statsout_.Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
     statsout_.Printf("#Round-trip stats:\n");
+    statsout_.Printf("#%-8s %8s %12s %12s\n", "CRDIDX", "RndTrips", "AvgExch.", "SD_Exch.");
     for (std::vector<DataSet_integer>::iterator rt = roundTrip.begin();
                                                 rt != roundTrip.end(); ++rt)
     {
       double stdev = 0.0;
       double avg = (*rt).Avg( stdev );
-      statsout_.Printf("CRDIDX %u made %i round trips. %f +/- %f exchanges.\n", 
+      statsout_.Printf("%-8u %8i %12.4f %12.4f\n", 
                        rt - roundTrip.begin() + 1, (*rt).Size(), avg, stdev);
     }
    
