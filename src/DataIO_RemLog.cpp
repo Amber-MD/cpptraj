@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h" 
 #include "ProgressBar.h"
 #include "DataSet_RemLog.h"
+#include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
 DataIO_RemLog::DataIO_RemLog() : debug_(0) {}
@@ -54,18 +55,26 @@ void DataIO_RemLog::ReadHelp() {
           "\t                      coordinate indices (H-REMD only).\n");
 }
 
+inline static int FileNotExist( std::string const& fname ) {
+  mprinterr("Error: File '%s' does not exist.\n", fname.c_str());
+  return 1;
+}
+
 // DataIO_RemLog::ReadData()
 int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                             DataSetList& datasetlist, std::string const& dsname)
 {
   ExchgType firstlog_type = UNKNOWN;
   std::vector<std::string> logFilenames;
+  if (!fileExists( fname.c_str() )) return FileNotExist( fname );
   logFilenames.push_back( fname );
   // Check if more than one log name was specified.
   ArgList lognames(argIn.GetStringKey("logfiles"), ",");
   if (!lognames.empty()) {
-    for (int i = 0; i < lognames.Nargs(); i++)
+    for (int i = 0; i < lognames.Nargs(); i++) {
       logFilenames.push_back( lognames[i] );
+      if (!fileExists( logFilenames.back().c_str() )) return FileNotExist(logFilenames.back());
+    }
   }
   mprintf("\tReading from log files:");
   for (std::vector<std::string>::const_iterator it = logFilenames.begin();
@@ -152,7 +161,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                                                 it != logFilenames.end(); ++it)
   {
     // Open the current remlog, advance to first exchange
-    buffer.OpenFileRead( *it );
+    if (buffer.OpenFileRead( *it )) return 1;
     //ptr = buffer.Line();
     //while (ptr[0] == '#' && ptr[2] != 'e' && ptr[3] != 'x') ptr = buffer.Line();
     ExchgType thislog_type = UNKNOWN;
