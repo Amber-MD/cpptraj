@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
 #include "Constants.h" // TWOPI
+#include <limits> // Minimum double val for checking zero
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -254,8 +255,8 @@ Analysis::RetType Analysis_KDE::Analyze() {
           // Normalize for this frame
           Pnorm = Out[bin] * norm;
           Qnorm = Qhist[bin] * norm;
-          Pzero = (Pnorm == 0.0);
-          Qzero = (Qnorm == 0.0);
+          Pzero = (Pnorm <= std::numeric_limits<double>::min());
+          Qzero = (Qnorm <= std::numeric_limits<double>::min());
           if (!Pzero && !Qzero)
             KL += ( log( Pnorm / Qnorm ) * Pnorm );
           else if ( Pzero != Qzero )
@@ -268,7 +269,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
       if (validPoint == 0) {
         klOut[frame] = KL;
       } else {
-        //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", i+1);
+        //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", frame+1);
         nInvalid++;
       }
     }
