@@ -52,9 +52,9 @@ void Topology::SetPindex(int pindexIn) {
 }
 
 // Topology::SetReferenceCoords()
-void Topology::SetReferenceCoords( Frame* frameptr ) {
-  if (frameptr == 0) return;
-  refCoords_ = *frameptr;
+void Topology::SetReferenceCoords( Frame const& frameIn ) {
+  if (!frameIn.empty())
+    refCoords_ = frameIn;
 }
 
 // Topology::IncreaseFrames()

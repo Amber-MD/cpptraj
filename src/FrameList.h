@@ -10,8 +10,8 @@ class FrameList {
     ~FrameList();
     void Clear();
     void SetDebug(int);
-    /// Return the current active reference frame
-    Frame* ActiveReference();
+    /// \return the current active reference frame
+    Frame ActiveReference() const;
     /// Set the active reference frame
     int SetActiveRef(int);
     /// Add a reference frame based on given args
