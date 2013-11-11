@@ -18,7 +18,7 @@ class Topology {
     void SetParmName(std::string const&, FileName const&);
     void SetGBradiiSet(std::string const&);
     void SetPindex(int);
-    void SetReferenceCoords( Frame* ); // TODO: Pass in frame reference
+    void SetReferenceCoords( Frame const& );
     void IncreaseFrames(int);
     void SetTag(std::string const& t)    { parmTag_ = t;                  }
     void SetVelInfo(bool v)              { hasVelInfo_ = v;               }

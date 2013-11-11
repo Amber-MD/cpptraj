@@ -33,9 +33,9 @@ void FrameList::SetDebug(int debugIn) {
 // FrameList::ActiveReference()
 /** Return the address of the frame pointed to by activeRefNum_.
   */
-Frame* FrameList::ActiveReference() {
-  if (frames_.empty()) return 0;
-  return frames_[activeRefNum_].Coord();
+Frame FrameList::ActiveReference() const {
+  if (frames_.empty()) return Frame();
+  return *(frames_[activeRefNum_].Coord());
 }
 
 // FrameList::SetActiveRef()
