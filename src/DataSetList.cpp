@@ -13,7 +13,7 @@
 #include "DataSet_string.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_MatrixFlt.h"
-#include "DataSet_Coords.h"
+#include "DataSet_Coords_CRD.h"
 #include "DataSet_Vector.h"
 #include "DataSet_Modes.h"
 #include "DataSet_GridFlt.h"
@@ -30,7 +30,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "string",        DataSet_string::Alloc     }, // STRING
   { "double matrix", DataSet_MatrixDbl::Alloc  }, // MATRIX_DBL
   { "float matrix",  DataSet_MatrixFlt::Alloc  }, // MATRIX_FLT
-  { "coordinates",   DataSet_Coords::Alloc     }, // COORDS
+  { "coordinates",   DataSet_Coords_CRD::Alloc     }, // COORDS
   { "vector",        DataSet_Vector::Alloc     }, // VECTOR
   { "eigenmodes",    DataSet_Modes::Alloc      }, // MODES
   { "float grid",    DataSet_GridFlt::Alloc    }, // GRID_FLT
