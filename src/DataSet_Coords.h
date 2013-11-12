@@ -25,27 +25,25 @@ class DataSet_Coords : public DataSet_1D {
       return f;
     }
     /// Add a frame.
-    void AddFrame(Frame const& fIn) { 
+    inline void AddFrame(Frame const& fIn) { 
       coords_.push_back( fIn.ConvertToCRD(numVel_, numBoxCrd_) ); 
     }
     /// Get a frame at position.
-    void GetFrame(int idx, Frame& fIn) const { 
+    inline void GetFrame(int idx, Frame& fIn) const { 
       fIn.SetFromCRD( coords_[idx] ); 
     }
     /// Get a frame at position corresponding to mask.
-    void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) const {
+    inline void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) const {
       fIn.SetFromCRD( coords_[idx], mIn );
     }
     /// Set CRD at position with frame.
-    void SetCRD(int idx, Frame const& fIn) {
+    inline void SetCRD(int idx, Frame const& fIn) {
       coords_[idx] = fIn.ConvertToCRD(numVel_, numBoxCrd_);
     }
     /// Set topology and number of box coords.
     void SetTopology(Topology const&);
     /// \return Topology corresponding to coords.
-    Topology const& Top()                     const { return top_;          }
-    /// \return CRD at position.
-    const CRDtype& operator[](int idx) const { return coords_[idx];  }
+    inline Topology const& Top() const { return top_; }
   private:
     typedef std::vector<CRDtype> CRDarray;
     CRDarray coords_;                  ///< Array of coordinate frames.

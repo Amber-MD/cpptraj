@@ -169,7 +169,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     // If using first running avgd frames as ref, set up reference frame.
     // Use coords of first COORDS frame for window=1.
     refFrame_ = tgtFrame;
-    refFrame_.SetFromCRD( (*coords_)[0], mask_ );
+    coords_->GetFrame( 0, refFrame_, mask_ );
     refFrame_.CenterOnOrigin( useMass_ );
   } else {
     // Ensure # target atoms equals # ref atoms.
@@ -210,7 +210,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   avg = 0.0;
   stdev = 0.0;
   for (frame = 0; frame < maxFrame; frame++) {
-    tgtFrame.SetFromCRD( (*coords_)[frame], mask_);
+    coords_->GetFrame( frame, tgtFrame, mask_ );
     rmsd = tgtFrame.RMSD_CenteredRef(refFrame_, useMass_); 
     avg += rmsd;
     stdev += (rmsd * rmsd);
@@ -278,7 +278,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     stdev = 0.0;
     first = useFirst_;
     for (frame = 0; frame < maxFrame; frame++) {
-      tgtFrame.SetFromCRD( (*coords_)[frame], mask_);
+      coords_->GetFrame( frame, tgtFrame, mask_);
       // Add current coordinates to sumFrame
       sumFrame += tgtFrame;
       // Do we have enough frames to start calculating a running avg?
@@ -307,7 +307,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
         avg += rmsd;
         stdev += (rmsd * rmsd);
         // Subtract frame at subtractWindow from sumFrame 
-        tgtFrame.SetFromCRD( (*coords_)[subtractWindow], mask_);
+        coords_->GetFrame(subtractWindow, tgtFrame, mask_);
         sumFrame -= tgtFrame;
         ++subtractWindow;
       }
