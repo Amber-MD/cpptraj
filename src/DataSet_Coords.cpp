@@ -3,7 +3,8 @@
 
 DataSet_Coords::DataSet_Coords() :
   DataSet_1D(COORDS, 8, 3),
-  numBoxCrd_(0)
+  numBoxCrd_(0),
+  numVel_(0)
 {}
 
 int DataSet_Coords::Allocate1D( size_t sizeIn ) {
@@ -17,7 +18,9 @@ void DataSet_Coords::Info() const {
   if (sze == 0)
     mprintf(" (<1 MB)");
   else
-    mprintf(" (%zu MB)", sze); 
+    mprintf(" (%zu MB)", sze);
+  // DEBUG
+  mprintf(" box=%zu vel=%zu", numBoxCrd_, numVel_); 
   top_.Brief();
 }
 
@@ -27,4 +30,8 @@ void DataSet_Coords::SetTopology(Topology const& topIn) {
     numBoxCrd_ = 6;
   else
     numBoxCrd_ = 0;
+  if (top_.HasVelInfo())
+    numVel_ = top_.Natom() * 3;
+  else
+    numVel_ = 0;
 }

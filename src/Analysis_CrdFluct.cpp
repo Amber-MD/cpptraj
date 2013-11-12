@@ -131,7 +131,7 @@ Analysis::RetType Analysis_CrdFluct::Analyze() {
   int w_count = 0;
   SetList::iterator out = outSets_.begin();
   for (int frame = 0; frame < end; frame++) {
-    currentFrame.SetFromCRD( (*coords_)[ frame ], 0, mask_);
+    currentFrame.SetFromCRD( (*coords_)[ frame ], mask_);
     SumCoords += currentFrame;
     SumCoords2 += ( currentFrame * currentFrame );
     ++w_count;

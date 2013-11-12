@@ -155,14 +155,14 @@ int Analysis_Rms2d::Calc2drms()
       progress.Update(nref);
       // Get the current reference frame - no box crd
       // TODO: Use coords_->GetFrame instead?
-      RefFrame.SetFromCRD( (*coords_)[nref], 0, TgtMask_);
+      RefFrame.SetFromCRD( (*coords_)[nref], TgtMask_);
       // Select and pre-center reference atoms (if fitting)
       if (!nofit_)
         RefFrame.CenterOnOrigin(useMass_);
       // LOOP OVER TARGET FRAMES
       for (nframe = nref + 1; nframe < totalref; nframe++) {
         // Get the current target frame
-        TgtFrame.SetFromCRD( (*coords_)[nframe], 0, TgtMask_);
+        TgtFrame.SetFromCRD( (*coords_)[nframe], TgtMask_);
         if (nofit_) // Perform no fit RMS calculation
           R = (float)TgtFrame.RMSD_NoFit(RefFrame, useMass_);
         else         // Perform fit RMS calculation
@@ -206,11 +206,11 @@ int Analysis_Rms2d::CalcDME()
     for (nref=0; nref < endref; nref++) {
       progress.Update(nref);
       // Get the current reference frame - no box crd
-      RefFrame.SetFromCRD( (*coords_)[nref], 0, TgtMask_);
+      RefFrame.SetFromCRD( (*coords_)[nref], TgtMask_);
       // LOOP OVER TARGET FRAMES
       for (nframe=nref+1; nframe < totalref; nframe++) {
         // Get the current target frame
-        TgtFrame.SetFromCRD( (*coords_)[nframe], 0, TgtMask_);
+        TgtFrame.SetFromCRD( (*coords_)[nframe], TgtMask_);
         // Perform DME calc
 #       ifdef _OPENMP
         rmsdataset_->SetElement( nframe, nref, TgtFrame.DISTRMSD(RefFrame) );
@@ -301,7 +301,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
     // LOOP OVER TARGET FRAMES
     for (int nframe=0; nframe < totaltgt; nframe++) {
       // Get selected atoms of the current target frame
-      SelectedTgt.SetFromCRD( (*coords_)[nframe], 0, TgtMask_);
+      SelectedTgt.SetFromCRD( (*coords_)[nframe], TgtMask_);
       if (nofit_) {
         // Perform no fit RMS calculation
         R = SelectedTgt.RMSD_NoFit(SelectedRef, useMass_);

@@ -647,7 +647,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
     return Command::C_ERR;
   }
   outtraj.PrintInfo( 1 );
-  Frame currentFrame( CRD->Top().Natom() );
+  Frame currentFrame = CRD->AllocateFrame(); 
   ProgressBar progress( stop );
   for (int frame = start; frame < stop; frame += offset) {
     progress.Update( frame );
