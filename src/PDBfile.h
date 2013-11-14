@@ -42,6 +42,8 @@ class PDBfile : public CpptrajFile {
     /// Write ANISOU record.
     void WriteANISOU(int, NameType const&, NameType const&, char, int,
                      int, int, int, int, int, int, const char *, int);
+    /// Write TITLE
+    void WriteTITLE(std::string const&);
   private:
     /// Write PDB record header.
     void WriteRecordHeader(PDB_RECTYPE, int, NameType const&,
