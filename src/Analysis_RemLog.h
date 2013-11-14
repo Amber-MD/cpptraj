@@ -18,5 +18,6 @@ class Analysis_RemLog : public Analysis {
     ModeType mode_;
     std::vector<DataSet*> outputDsets_;
     CpptrajFile statsout_;
+    CpptrajFile reptime_;
 };
 #endif

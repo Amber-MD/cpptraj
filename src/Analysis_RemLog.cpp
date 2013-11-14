@@ -15,7 +15,7 @@ Analysis_RemLog::Analysis_RemLog() :
 
 void Analysis_RemLog::Help() {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
-          "\t[stats [statsout <file>] printtrips] [lifetime]\n"
+          "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime]\n"
           "\tcrdidx: Print coordinate index vs exchange; output sets contain replica indices.\n"
           "\trepidx: Print replica index vs exchange; output sets contain coordinate indices.\n");
 }
@@ -44,6 +44,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
   calculateStats_ = analyzeArgs.hasKey("stats");
   if (calculateStats_) {
     if (statsout_.OpenWrite( analyzeArgs.GetStringKey("statsout") )) return Analysis::ERR;
+    if (reptime_.OpenWrite( analyzeArgs.GetStringKey("reptime") )) return Analysis::ERR;
   }
   printIndividualTrips_ = analyzeArgs.hasKey("printtrips");
   // Get mode
@@ -99,6 +100,11 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
       mprintf("%s\n", statsout_.Filename().full());
     if (printIndividualTrips_)
       mprintf("\tIndividual round trips will be printed.\n");
+    mprintf("\tWriting time spent at each replica to ");
+    if (reptime_.Filename().empty())
+      mprintf("STDOUT\n");
+    else
+      mprintf("%s\n", reptime_.Filename().full());
   }
   if (calculateLifetimes_)
     mprintf("\tThe lifetime of each crd at each replica will be calculated.\n");
@@ -202,16 +208,16 @@ Analysis::RetType Analysis_RemLog::Analyze() {
                        rt - roundTrip.begin() + 1, (*rt).Size(), avg, stdev);
     }
    
-    statsout_.Printf("#Percent time spent at each replica:\n%-8s", "#Replica");
+    reptime_.Printf("#Percent time spent at each replica:\n%-8s", "#Replica");
     for (int crd = 0; crd < (int)remlog_->Size(); crd++)
-      statsout_.Printf(" CRD_%04i", crd + 1);
-    statsout_.Printf("\n");
+      reptime_.Printf(" CRD_%04i", crd + 1);
+    reptime_.Printf("\n");
     double dframes = (double)remlog_->NumExchange();
     for (int replica = 0; replica < (int)remlog_->Size(); replica++) {
-      statsout_.Printf("%8i", replica+1);
+      reptime_.Printf("%8i", replica+1);
       for (int crd = 0; crd < (int)remlog_->Size(); crd++)
-        statsout_.Printf(" %8.3f", ((double)replicaFrac[replica][crd] / dframes) * 100.0);
-      statsout_.Printf("\n");
+        reptime_.Printf(" %8.3f", ((double)replicaFrac[replica][crd] / dframes) * 100.0);
+      reptime_.Printf("\n");
     }
   }
   if (calculateLifetimes_) {
