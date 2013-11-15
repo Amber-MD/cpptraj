@@ -1,0 +1,153 @@
+#include <cstring>
+#include "CIFfile.h"
+#include "ArgList.h"
+#include "CpptrajStdio.h"
+
+static inline int LineError(const char* msg, int num, const char* ptr) {
+  mprinterr("Error: CIF line %i: %s\n", num, msg);
+  if (ptr != 0) mprinterr("Error: '%s'\n", ptr);
+  return 1;
+}
+
+int CIFfile::DataBlock::ParseData( std::string const& sIn, std::string& Header, 
+                                   std::string& ID)
+{
+  size_t found = sIn.find_first_of(".");
+  if (found == std::string::npos) {
+    mprinterr("Error: No '.' in data record: %s\n", sIn.c_str());
+    return 1;
+  }
+  ID = sIn.substr(found+1);
+  Header = sIn.substr(0, found);
+  mprintf("DEBUG:\t\t\tHeader=%s  ID=%s", Header.c_str(), ID.c_str());
+  return 0;
+}
+
+int CIFfile::DataBlock::AddHeader(std::string const& Header) {
+  if (dataHeader_.empty()) { // First entry in this data block
+    dataHeader_ = Header;
+    columnData_.resize( 1 );
+  } else if (dataHeader_ != Header) {
+    mprinterr("Error: Data header in CIF file changes from %s to %s\n",
+              dataHeader_.c_str(), Header.c_str());
+    return 1;
+  }
+  return 0;
+}
+
+int CIFfile::DataBlock::AddSerialDataRecord( const char* ptr ) {
+  if (ptr == 0) return 1;
+  // Expect header.id data
+  ArgList serialData( ptr, " " );
+  if ( serialData.Nargs() < 2 ) {
+    mprinterr("Error: Data record expected to have ID and data.\n"
+              "Error: '%s'\n", ptr);
+    return 1;
+  }
+  std::string ID, Header;
+  if (ParseData( serialData[0], Header, ID )) return 1;
+  mprintf("  Ndata=%i  Data=%s\n", serialData.Nargs(), serialData[1].c_str());
+  if (AddHeader( Header )) return 1;
+
+  columnHeaders_.push_back( ID );
+  columnData_[0].push_back( serialData[1] ); 
+    
+  return 0;
+}
+
+int CIFfile::DataBlock::AddLoopColumn( const char* ptr ) {
+  if (ptr == 0) return 1;
+  // Expect header.id
+  ArgList loopData( ptr, " " );
+  if ( loopData.Nargs() > 1 ) {
+    mprinterr("Error: Data record expected to have ID only.\n"
+              "Error: '%s'\n", ptr);
+    return 1;
+  }
+  std::string ID, Header;
+  if (ParseData( loopData[0], Header, ID )) return 1;
+  mprintf("\n");
+  if (AddHeader( Header )) return 1;
+  columnHeaders_.push_back( ID );
+
+  return 0;
+}  
+
+int CIFfile::DataBlock::AddLoopData( const char* ptr ) {
+  // Should be as much data as there are column headers
+  ArgList loopData( ptr, " " );
+  if ( loopData.Nargs() != (int)columnHeaders_.size()) {
+    mprinterr("Error: # of columns in loop data (%i) != # column headers (%zu)\n"
+              "Error: '%s'\n", loopData.Nargs(), columnHeaders_.size(), ptr);
+    return 1;
+  }
+  columnData_.push_back( loopData.List() );
+  return 0;
+} 
+
+void CIFfile::DataBlock::ListData() const {
+  for (Sarray::const_iterator colname = columnHeaders_.begin();
+                              colname != columnHeaders_.end(); ++colname)
+    mprintf("\t\t%s\n", (*colname).c_str());
+  for (std::vector<Sarray>::const_iterator rec = columnData_.begin();
+                                           rec != columnData_.end(); ++rec)
+  {
+    mprintf("\t");
+    for (Sarray::const_iterator col = (*rec).begin();
+                                col != (*rec).end(); ++col)
+      mprintf(" %s", (*col).c_str());
+    mprintf("\n");
+  }
+}
+
+// -----------------------------------------------------------------------------
+int CIFfile::Read(std::string const& fnameIn) {
+  if (file_.OpenFileRead( fnameIn )) return 1;
+  const char* ptr = file_.Line();
+  mode currentMode = UNKNOWN;
+  while (ptr != 0) {
+    /// There are 3 places we can be; a data block, a looped data block,
+    /// or unknown.
+    if ( currentMode == UNKNOWN ) {
+      // Are we at a data block yet?
+      if (ptr[0] == '_')
+        currentMode = SERIAL;
+      else if ( strncmp(ptr, "loop_", 5) == 0 )
+        currentMode = LOOP;
+      else
+        ptr = file_.Line();
+
+    } else if ( currentMode == SERIAL ) {
+      // SERIAL data block
+      DataBlock serial;
+      while ( ptr != 0 && ptr[0] == '_' ) {
+        serial.AddSerialDataRecord(ptr);
+        ptr = file_.Line();
+      }
+      mprintf("DEBUG:\tAt serial block: %s\n", serial.Header().c_str());
+      serial.ListData();
+      currentMode = UNKNOWN;
+    } else if ( currentMode == LOOP ) {
+      DataBlock loop;
+      mprintf("DEBUG:\tIn loop block.\n");
+      ptr = file_.Line();
+      if (ptr == 0 || ptr[0] != '_')
+        return LineError("In CIF file, malformed loop.", file_.LineNumber(), ptr);
+      while (ptr != 0 && ptr[0] == '_') {
+        loop.AddLoopColumn(ptr);
+        ptr = file_.Line();
+      }
+      // Should now be positioned at loop data
+      if (ptr == 0)
+        return LineError("In CIF file, no loop data.", file_.LineNumber(), ptr);
+      while (ptr != 0 && ptr[0] != '_' && ptr[0] != '#') {
+        loop.AddLoopData(ptr);
+        ptr = file_.Line();
+      }
+      loop.ListData();
+      currentMode = UNKNOWN;
+    }
+  }       
+  mprintf("\tCIF file '%s', %i lines.\n", file_.Filename().full(), file_.LineNumber());
+  return 0;
+}    
