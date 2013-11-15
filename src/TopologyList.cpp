@@ -138,17 +138,6 @@ int TopologyList::WriteParm(ArgList& argIn) const {
   return 0;
 }
 
-// TopologyList::ReplaceParm()
-// TODO: Use mem address instead of pindex?
-void TopologyList::ReplaceParm(int pindex, Topology* newParm) {
-  if (pindex < 0 || pindex >= (int)TopList_.size()) {
-    mprinterr("Error: ReplaceParm: parm index %i out of bounds.\n",pindex);
-    return;
-  }
-  delete TopList_[pindex];
-  TopList_[pindex] = newParm;
-}
-
 // TopologyList::List()
 /** Print list of loaded parameter files */
 void TopologyList::List() const {

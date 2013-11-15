@@ -26,6 +26,7 @@ class CpptrajState {
     int AddTrajin( ArgList&, bool );
     int AddTrajin( std::string const& );
     int RunAnalyses();
+    TrajinList const& InputTrajList() const { return trajinList_; }
     inline int AddTrajout( ArgList const& );
     inline int AddTrajout( std::string const& );
     inline int AddReference( ArgList& );
