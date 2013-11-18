@@ -255,7 +255,7 @@ int Analysis_Rms2d::Calculate_2D() {
   ParallelProgress progress( totalref );
   // LOOP OVER REFERENCE FRAMES
 # ifdef _OPENMP
-# pragma omp parallel private(nref, ntgt, tgtstart, R) firstprivate(SelectedTgt, SelectedRef, progress)
+# pragma omp parallel private(nref, ntgt, tgtstart) firstprivate(R, SelectedTgt, SelectedRef, progress)
   {
     progress.SetThread(omp_get_thread_num());
 #   pragma omp for schedule(dynamic)
