@@ -8,7 +8,7 @@ class DataFile {
   public:
     /// Known data file formats.
     enum DataFormatType {
-      DATAFILE, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, UNKNOWN_DATA 
+      DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, UNKNOWN_DATA 
     };
 
     DataFile();
@@ -55,6 +55,14 @@ class DataFile {
     /// \return DataFile format type.
     DataFormatType Type()          const { return dfType_;   }
   private:
+    /// For displaying help for different formats.
+    struct DF_HelpToken {
+      const char* Description;
+      DataIO::HelpType ReadHelp;
+      DataIO::HelpType WriteHelp;
+    };
+    static const DF_HelpToken DF_HelpArray[];
+    /// For allocating data files from keywords.
     struct DataFileToken {
       DataFormatType Type;
       const char* Key;
@@ -64,13 +72,6 @@ class DataFile {
     };
     static const DataFileToken DataFileArray[];
     typedef const DataFileToken* TokenPtr;
-    /// For displaying help for different formats.
-    struct DF_HelpToken {
-      const char* Description;
-      DataIO::HelpType ReadHelp;
-      DataIO::HelpType WriteHelp;
-    };
-    static const DF_HelpToken DF_HelpArray[];
 
     static DataIO* AllocDataIO(DataFormatType);
     static DataIO* DetectFormat(std::string const&, DataFormatType&);
