@@ -18,15 +18,16 @@ Analysis_Rms2d::Analysis_Rms2d() :
 { } 
 
 void Analysis_Rms2d::Help() {
-  mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>]\n");
-  mprintf("\t[dme] [mass] [nofit]\n");
-  mprintf("\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n");
-  mprintf("\t[corr <corrfilename>]\n");
-  mprintf("\tCalculate RMSD between all frames in <crd set>, or between frames in\n");
-  mprintf("\t<crd set> and frames in <traj>.\n");
-  mprintf("\n\t<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>]\n"
+          "\t[dme] [mass] [nofit]\n"
+          "\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n"
+          "\t[corr <corrfilename>]\n"
+          "\tCalculate RMSD between all frames in <crd set>, or between frames in\n"
+          "\t<crd set> and frames in <traj>.\n"
+          "\n\t<crd set> can be created with the 'createcrd' command.\n");
 }
 
+// Analysis_Rms2d::Setup()
 Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
@@ -68,28 +69,13 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     Help();
     return Analysis::ERR;
   }
-  // Get mask
+  // Get target mask.
   TgtMask_.SetMaskString( analyzeArgs.GetMaskNext() );
-  // If reference is trajectory, get mask and open traj
-  if (mode_ == REFTRAJ) {
-    // Get RMS mask string for reference trajectory
-    std::string refmaskexpr = analyzeArgs.GetMaskNext();
-    if (refmaskexpr.empty())
-      refmaskexpr = TgtMask_.MaskExpression();
-    RefMask_.SetMaskString( refmaskexpr );
-    // Attempt to set up reference trajectory
-    if (RefTraj_.SetupTrajRead(reftrajname, analyzeArgs, RefParm_)) {
-      mprinterr("Error: Rms2d: Could not set up reftraj %s.\n", reftrajname.c_str());
-      return Analysis::ERR;
-    }
-  } else {
-    // Set up DataSet and DataFile for correlate if specified
-    if (corrfile != 0 && rmsdataset_ != 0) {
-      Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, rmsdataset_->Name(), "Corr" );
-      if (Ct_ == 0) return Analysis::ERR;
-      corrfile->AddSet( Ct_ );
-    }
-  }
+  // Get reference mask. 
+  std::string refmaskexpr = analyzeArgs.GetMaskNext();
+  if (refmaskexpr.empty())
+    refmaskexpr = TgtMask_.MaskExpression();
+  RefMask_.SetMaskString( refmaskexpr );
   // Set up output DataSet
   rmsdataset_ = (DataSet_MatrixFlt*)datasetlist->AddSet( DataSet::MATRIX_FLT, 
                                                          analyzeArgs.GetStringNext(), "Rms2d" );
@@ -104,25 +90,41 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     rmsdFile->AddSet( rmsdataset_ );
     rmsdFile->ProcessArgs("square2d");
   }
+  // If reference is trajectory, open traj
+  if (mode_ == REFTRAJ) {
+    // Attempt to set up reference trajectory
+    if (RefTraj_.SetupTrajRead(reftrajname, analyzeArgs, RefParm_)) {
+      mprinterr("Error: Rms2d: Could not set up reftraj %s.\n", reftrajname.c_str());
+      return Analysis::ERR;
+    }
+  } else {
+    // Set up DataSet and DataFile for correlate if specified
+    if (corrfile != 0 && rmsdataset_ != 0) {
+      Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, rmsdataset_->Name(), "Corr" );
+      if (Ct_ == 0) return Analysis::ERR;
+      corrfile->AddSet( Ct_ );
+    }
+  }
 
   mprintf("    RMS2D: COORDS set [%s], mask [%s]", coords_->Legend().c_str(),
           TgtMask_.MaskString());
-  if (mode_ == REFTRAJ) {
-      mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_.TrajFilename().base(),
-              RefMask_.MaskString(), RefTraj_.TotalReadFrames());
-  }
+  if ( TgtMask_.MaskExpression() != RefMask_.MaskExpression() )
+    mprintf(" ref mask [%s]", RefMask_.MaskString());
   if (mode_ == DME) 
     mprintf(", using DME");
   else {
     if (nofit_  ) mprintf(" (no fitting)");
     if (useMass_) mprintf(" (mass-weighted)");
   }
-  if (rmsdFile != 0) 
-    mprintf(", output to %s",rmsdFile->DataFilename().base());
   mprintf("\n");
+  if (mode_ == REFTRAJ)
+    mprintf("\tReference trajectory '%s', %i frames",
+            RefTraj_.TrajFilename().base(), RefTraj_.TotalReadFrames());
+  if (rmsdFile != 0) 
+    mprintf("\tOutput to '%s'\n",rmsdFile->DataFilename().full());
   if (corrfile != 0)
-    mprintf("           RMSD auto-correlation will be calculated and output to %s\n",
-            corrfile->DataFilename().base());
+    mprintf("\tRMSD auto-correlation will be calculated and output to '%s'\n",
+            corrfile->DataFilename().full());
 
   return Analysis::OK;
 }
@@ -138,10 +140,10 @@ int Analysis_Rms2d::Calc2drms()
   int totalref = coords_->Size();
   rmsdataset_->AllocateTriangle( coords_->Size() );
   mprintf("  RMS2D: Calculating RMSDs between each frame (%lu total).\n  ", rmsdataset_->Size());
-  // Set up target and reference frames basd on mask
-  Frame RefFrame;
-  RefFrame.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
-  Frame TgtFrame = RefFrame;
+  // Set up target and reference frames based on mask. Both have same topology.
+  Frame RefFrame, TgtFrame;
+  RefFrame.SetupFrameFromMask( RefMask_, coords_->Top().Atoms() );
+  TgtFrame.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
   int endref = totalref - 1;
   ParallelProgress progress( endref );
   // LOOP OVER REFERENCE FRAMES
@@ -155,7 +157,7 @@ int Analysis_Rms2d::Calc2drms()
       progress.Update(nref);
       // Get the current reference frame - no box crd
       // TODO: Use coords_->GetFrame instead?
-      RefFrame.SetFromCRD( (*coords_)[nref], 0, TgtMask_);
+      RefFrame.SetFromCRD( (*coords_)[nref], 0, RefMask_);
       // Select and pre-center reference atoms (if fitting)
       if (!nofit_)
         RefFrame.CenterOnOrigin(useMass_);
@@ -191,9 +193,9 @@ int Analysis_Rms2d::CalcDME()
   rmsdataset_->AllocateTriangle( coords_->Size() );
   mprintf("  RMS2D: Calculating DMEs between each frame (%lu total).\n  ", rmsdataset_->Size());
   // Set up target and reference frames basd on mask
-  Frame RefFrame;
-  RefFrame.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
-  Frame TgtFrame = RefFrame;
+  Frame RefFrame, TgtFrame;
+  RefFrame.SetupFrameFromMask( RefMask_, coords_->Top().Atoms() );
+  TgtFrame.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
   int endref = totalref - 1;
   ParallelProgress progress(endref);
   // LOOP OVER REFERENCE FRAMES
@@ -206,7 +208,7 @@ int Analysis_Rms2d::CalcDME()
     for (nref=0; nref < endref; nref++) {
       progress.Update(nref);
       // Get the current reference frame - no box crd
-      RefFrame.SetFromCRD( (*coords_)[nref], 0, TgtMask_);
+      RefFrame.SetFromCRD( (*coords_)[nref], 0, RefMask_);
       // LOOP OVER TARGET FRAMES
       for (nframe=nref+1; nframe < totalref; nframe++) {
         // Get the current target frame
@@ -258,19 +260,6 @@ void Analysis_Rms2d::CalcAutoCorr() {
 int Analysis_Rms2d::CalcRmsToTraj() {
   double R;
 
-  // Set up reference mask for reference parm
-  if (RefParm_->SetupIntegerMask(RefMask_)) {
-    mprinterr("Error: Could not set up reference mask [%s] for parm %s\n",
-              RefMask_.MaskString(), RefParm_->c_str());
-    return 1;
-  }
-  RefMask_.MaskInfo();
-  // Ensure # ref atoms == # tgt atoms
-  if (RefMask_.Nselected() != TgtMask_.Nselected()) {
-    mprinterr("Error: # Selected atoms in ref traj not equal to selected # atoms in\n");
-    mprinterr("Error: %s (%i)\n", coords_->Legend().c_str(), TgtMask_.Nselected());
-    return 1;
-  }
   // Setup reference frame for selected reference atoms
   Frame RefFrame( RefParm_->Atoms() );
   Frame SelectedRef( RefFrame, RefMask_ );
@@ -328,6 +317,25 @@ Analysis::RetType Analysis_Rms2d::Analyze() {
     mprinterr("Error: No atoms selected for [%s]\n", TgtMask_.MaskString());
     return Analysis::ERR;
   }
+  // Set up reference mask. If no reference parm use target parm.
+  if (RefParm_ == 0)
+    err = coords_->Top().SetupIntegerMask( RefMask_ );
+  else
+    err = RefParm_->SetupIntegerMask(RefMask_);
+  if (err != 0) {
+    mprinterr("Error: Could not set up reference mask [%s] for parm %s\n",
+              RefMask_.MaskString(), RefParm_->c_str());
+    return Analysis::ERR;
+  }
+  if (TgtMask_.MaskExpression() != RefMask_.MaskExpression())
+    RefMask_.MaskInfo();
+  // Ensure # ref atoms == # tgt atoms
+  if (RefMask_.Nselected() != TgtMask_.Nselected()) {
+    mprinterr("Error: # Selected atoms in '%s' not equal to selected # atoms in\n"
+              "Error:   '%s' (%i)\n", TgtMask_.MaskString(), RefMask_.MaskString());
+    return Analysis::ERR;
+  }
+
   switch (mode_) {
     case NORMAL:
       err = Calc2drms( );
