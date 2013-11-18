@@ -519,7 +519,15 @@ static void Help_RunAnalysis() {
 Command::RetType DEBUG_CIF(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   CIFfile cifIn;
-  return (Command::RetType)cifIn.Read( argIn.GetStringNext() );
+  int err = cifIn.Read( argIn.GetStringNext() );
+  if (err == 0) {
+    CIFfile::DataBlock const& block = cifIn.GetDataBlock("_atom_site");
+    if (block.empty())
+      err = 1;
+    else
+      mprintf("DEBUG: Got block '%s'\n", block.Header().c_str());
+  }
+  return (Command::RetType)err;
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------

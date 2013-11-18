@@ -6,27 +6,37 @@
 /// Used to access CIF files
 class CIFfile {
   public:
+    class DataBlock;
+
     CIFfile() {}
     int Read(std::string const&);
+    DataBlock const& GetDataBlock(std::string const&) const;
   private:
+    int AddDataBlock(DataBlock const&);
 
     BufferedLine file_;
     enum mode { UNKNOWN = 0, SERIAL, LOOP };
     typedef std::vector<std::string> Sarray;
 
-    class DataBlock;
     typedef std::map<std::string, DataBlock> CIF_DataType;
+    CIF_DataType cifdata_;
+    static const DataBlock emptyblock;
 };
 
 class CIFfile::DataBlock {
   public:
     DataBlock() {}
-    std::string const& Header() const { return dataHeader_; }
+    std::string const& Header() const { return dataHeader_;         }
+    bool empty()                const { return dataHeader_.empty(); }
     int AddHeader(std::string const&);
     int AddSerialDataRecord(const char*, BufferedLine&);
     int AddLoopColumn(const char*);
     int AddLoopData(const char*, BufferedLine&);
     void ListData() const;
+    // Iterators
+    typedef std::vector<Sarray>::const_iterator data_it;
+    data_it begin() const { return columnData_.begin(); }
+    data_it end()   const { return columnData_.end();   }
   private:
     static int ParseData(std::string const&, std::string&, std::string&);
 

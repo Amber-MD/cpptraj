@@ -152,6 +152,10 @@ void CIFfile::DataBlock::ListData() const {
 }
 
 // -----------------------------------------------------------------------------
+/// Used to return empty block for GetDataBlock
+const CIFfile::DataBlock CIFfile::emptyblock = DataBlock();
+
+// CIFfile::Read()
 int CIFfile::Read(std::string const& fnameIn) {
   if (file_.OpenFileRead( fnameIn )) return 1;
   const char* ptr = file_.Line();
@@ -179,6 +183,7 @@ int CIFfile::Read(std::string const& fnameIn) {
       serial.ListData();
       currentMode = UNKNOWN;
       mprintf("\n"); // DEBUG
+      if (AddDataBlock( serial )) return 1;
     } else if ( currentMode == LOOP ) {
       DataBlock loop;
       ptr = file_.Line();
@@ -199,8 +204,34 @@ int CIFfile::Read(std::string const& fnameIn) {
       loop.ListData();
       currentMode = UNKNOWN;
       mprintf("\n"); // DEBUG
+      if (AddDataBlock( loop )) return 1;
     }
   }       
   mprintf("\tCIF file '%s', %i lines.\n", file_.Filename().full(), file_.LineNumber());
   return 0;
-}    
+}
+
+// CIFfile::GetDataBlock()
+CIFfile::DataBlock const& CIFfile::GetDataBlock(std::string const& header) const {
+  CIF_DataType::const_iterator it = cifdata_.find( header );
+  if (it == cifdata_.end()) {
+    mprinterr("Error: CIF data block '%s' not found.\n", header.c_str());
+    return emptyblock;
+  }
+  return (*it).second;
+}
+
+// CIFfile::AddDataBlock()
+int CIFfile::AddDataBlock( DataBlock const& block ) {
+  if (block.Header().empty()) {
+    mprinterr("Internal Error: Attempting to add empty CIF data block.\n");
+    return 1;
+  }
+  CIF_DataType::const_iterator it = cifdata_.find( block.Header() );
+  if (it != cifdata_.end()) {
+    mprinterr("Error: Duplicate CIF block found: '%s'\n", block.Header().c_str());
+    return 1;
+  }
+  cifdata_.insert( std::pair<std::string, DataBlock>(block.Header(), block) );
+  return 0;
+}
