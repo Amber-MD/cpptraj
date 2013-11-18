@@ -26,6 +26,7 @@ class ArgList {
     ArgList& operator=(const ArgList &);
     /// Return the argument at the given position
     std::string const& operator[](int);
+    std::vector<std::string> const& List() const { return arglist_; }
     // Iterators
     typedef std::vector<std::string>::const_iterator const_iterator;
     const_iterator begin() const { return arglist_.begin();     }

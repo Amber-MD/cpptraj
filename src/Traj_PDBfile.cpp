@@ -222,8 +222,10 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
     pdbWriteMode_ = MODEL;
   // TODO: Setup title
   // Open here if writing to single file
-  if (pdbWriteMode_ != MULTI)
-    return file_.OpenFile();
+  if (pdbWriteMode_ != MULTI) {
+    if ( file_.OpenFile() ) return 1;
+    if (!Title().empty()) file_.WriteTITLE( Title() );
+  }
   return 0;
 }
 
@@ -233,6 +235,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame set up output filename and open
     if (file_.OpenWriteWithName( NumberFilename(file_.Filename().Full(), set+1) )) return 1;
+    if (!Title().empty()) 
+      file_.WriteTITLE( Title() );
   } else if (pdbWriteMode_==MODEL) {
     // If specified, write MODEL keyword
     // 1-6 MODEL, 11-14 model serial #

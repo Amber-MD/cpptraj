@@ -18,10 +18,12 @@
 const TrajectoryFile::TrajToken TrajectoryFile::TrajArray[] = {
 # ifdef BINTRAJ
   { AMBERNETCDF,    "netcdf",    "Amber NetCDF",     ".nc",      Traj_AmberNetcdf::Alloc    },
+  { AMBERNETCDF,    "cdf",       "Amber NetCDF",     ".nc",      Traj_AmberNetcdf::Alloc    },
   { AMBERRESTARTNC, "ncrestart", "Amber NC Restart", ".ncrst",   Traj_AmberRestartNC::Alloc },
   { AMBERRESTARTNC, "restartnc", "Amber NC Restart", ".ncrst",   Traj_AmberRestartNC::Alloc },
 # else
   { AMBERNETCDF,    "netcdf",    "Amber NetCDF",     ".nc",      0                          },
+  { AMBERNETCDF,    "cdf",       "Amber NetCDF",     ".nc",      0                          },
   { AMBERRESTARTNC, "ncrestart", "Amber NC Restart", ".ncrst",   0                          },
   { AMBERRESTARTNC, "restartnc", "Amber NC Restart", ".ncrst",   0                          },
 # endif
@@ -32,6 +34,8 @@ const TrajectoryFile::TrajToken TrajectoryFile::TrajArray[] = {
   { GMXTRX,         "trr",       "Gromacs TRX",      ".trr",     Traj_GmxTrX::Alloc         },
   { BINPOS,         "binpos",    "BINPOS",           ".binpos",  Traj_Binpos::Alloc         },
   { AMBERRESTART,   "restart",   "Amber Restart",    ".rst7",    Traj_AmberRestart::Alloc   },
+  { AMBERRESTART,   "restrt",    "Amber Restart",    ".rst7",    Traj_AmberRestart::Alloc   },
+  { AMBERRESTART,   "rest",      "Amber Restart",    ".rst7",    Traj_AmberRestart::Alloc   },
   { AMBERTRAJ,      "crd",       "Amber Trajectory", ".crd",     Traj_AmberCoord::Alloc     },
   { CONFLIB,        "conflib",   "LMOD conflib",     ".conflib", Traj_Conflib::Alloc        },
   { UNKNOWN_TRAJ,   0,           "Unknown" ,         0,          0                          }

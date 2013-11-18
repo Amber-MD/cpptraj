@@ -104,6 +104,7 @@ SOURCES=ActionFrameCounter.cpp \
         BufferedFrame.cpp \
         BufferedLine.cpp \
         ByteRoutines.cpp \
+        CIFfile.cpp \
         ClusterDist.cpp \
         ClusterList.cpp \
         ClusterMatrix.cpp \

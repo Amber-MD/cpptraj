@@ -231,6 +231,31 @@ void PDBfile::WriteANISOU(int anum, NameType const& name,
          u12, u13, u23, Elt, charge);
 }
 
+// PDBfile::WriteTITLE()
+void PDBfile::WriteTITLE(std::string const& titleIn) {
+  std::string titleOut;
+  titleOut.reserve(70);
+  int lineNum = 1;
+  for (std::string::const_iterator t = titleIn.begin(); t != titleIn.end(); ++t) {
+    if (titleOut.empty()) { // Start of a new line
+      if (lineNum > 1) // Need to write continuation
+        Printf("TITLE   %2i ", lineNum);
+      else
+        Printf("TITLE      ");
+    }
+    titleOut.push_back( *t );
+    if (titleOut.size() == 69) {
+      // Flush line
+      Printf("%-69s\n", titleOut.c_str());
+      lineNum++;
+      titleOut.clear();
+    }
+  }
+  // Flush any unwritten chars.
+  if (!titleOut.empty())
+    Printf("%-69s\n", titleOut.c_str());
+}
+
 /* Additional Values:
  *  Chain ID : buffer[21]
  *  Occupancy: buffer[54] to buffer[59]

@@ -6,6 +6,8 @@
 #ifdef TIMER
 # include "Timer.h"
 #endif
+// DEBUG
+#include "CIFfile.h"
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -232,7 +234,7 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
       cmode = Command::Dispatch(State, inputLine);
       if (cmode == C_ERR) {
         nInputErrors++;
-        if (State.ExitOnError()) return C_ERR;
+        if (State.ExitOnError()) break;
       } else if (cmode == C_QUIT)
         break;
       // Reset Input line
@@ -511,6 +513,13 @@ static void Help_RunAnalysis() {
   mprintf("\t[<analysis> [<analysis args>]]\n");
   mprintf("\tIf specified alone, run all analyses in the analysis list.\n");
   mprintf("\tOtherwise run the specified analysis immediately.\n");
+}
+
+// ---------- DEBUG ------------------------------------------------------------
+Command::RetType DEBUG_CIF(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  CIFfile cifIn;
+  return (Command::RetType)cifIn.Read( argIn.GetStringNext() );
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
@@ -1223,6 +1232,16 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
+  // Check if this topology has already been used to set up an input
+  // trajectory, as this will break the traj read.
+  for (TrajinList::const_iterator tIn = State.InputTrajList().begin();
+                                  tIn != State.InputTrajList().end(); ++tIn)
+    if ( (*tIn)->TrajParm() == parm ) {
+      mprinterr("Error: Topology '%s' has already been used to set up trajectory '%s'.\n"
+                "Error:   To strip this topology use the 'strip' action.\n",
+                parm->c_str(), (*tIn)->TrajFilename().full());
+      return Command::C_ERR;
+    }
   AtomMask tempMask( argIn.GetMaskNext() );
   // Since want to keep atoms outside mask, invert selection
   tempMask.InvertMask();
@@ -1235,10 +1254,10 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
     return Command::C_ERR;
   } else {
     // Replace parm with stripped version
-    // TODO: Implement proper assignment op for Topology
-    tempParm->Brief();
+    *parm = *tempParm;
+    parm->Brief();
     mprintf("\n");
-    State.PFL()->ReplaceParm(parm->Pindex(), tempParm);
+    delete tempParm;
   }
   return Command::C_OK;
 }
@@ -1313,6 +1332,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "create",        0, Help_Create_DataFile, Create_DataFile },
   { GENERAL, "datafile",      0, Help_DataFile,        DataFileCmd     },
   { GENERAL, "debug",         0, Help_Debug,           SetListDebug    },
+  { GENERAL, "debugcif",      0, 0,                    DEBUG_CIF    }, // DEBUG
   { GENERAL, "exit" ,         0, Help_Quit,            Quit            },
   { GENERAL, "gnuplot",       0, Help_System,          SystemCmd       },
   { GENERAL, "go",            0, Help_Run,             RunState        },

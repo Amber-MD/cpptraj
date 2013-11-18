@@ -14,7 +14,7 @@ class DataIO_Std : public DataIO {
     int WriteData(std::string const&,DataSetList const&);
     int WriteDataInverted(std::string const&,DataSetList const&);
     int WriteData2D(std::string const&, DataSet const&);
-    int WriteData3D(std::string const&, DataSet const&) { return 1; }
+    int WriteData3D(std::string const&, DataSet const&);
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);

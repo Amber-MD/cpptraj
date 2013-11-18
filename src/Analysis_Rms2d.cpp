@@ -8,9 +8,9 @@
 
 // CONSTRUCTOR
 Analysis_Rms2d::Analysis_Rms2d() :
-  mode_(NORMAL),
+  mode_(RMS_FIT),
   coords_(0),
-  nofit_(false),
+  useReferenceTraj_(false),
   useMass_(false),
   RefParm_(0),
   rmsdataset_(0),
@@ -18,15 +18,20 @@ Analysis_Rms2d::Analysis_Rms2d() :
 { } 
 
 void Analysis_Rms2d::Help() {
-  mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>]\n");
-  mprintf("\t[dme] [mass] [nofit]\n");
-  mprintf("\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n");
-  mprintf("\t[corr <corrfilename>]\n");
-  mprintf("\tCalculate RMSD between all frames in <crd set>, or between frames in\n");
-  mprintf("\t<crd set> and frames in <traj>.\n");
-  mprintf("\n\t<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>]\n"
+          "\t[dme] [mass] [nofit]\n"
+          "\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n"
+          "\t[corr <corrfilename>]\n"
+          "\tCalculate RMSD between all frames in <crd set>, or between frames in\n"
+          "\t<crd set> and frames in <traj>.\n"
+          "\n\t<crd set> can be created with the 'createcrd' command.\n");
 }
 
+const char* Analysis_Rms2d::ModeStrings_[] = {
+  "RMSD (fit)", "RMSD (no fitting)", "DME"
+};
+
+// Analysis_Rms2d::Setup()
 Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
@@ -40,54 +45,60 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     return Analysis::ERR;
   }
   // Get keywords
-  nofit_ = analyzeArgs.hasKey("nofit");
+  if (analyzeArgs.hasKey("nofit"))
+    mode_ = RMS_NOFIT;
+  else if (analyzeArgs.hasKey("dme"))
+    mode_ = DME;
+  else
+    mode_ = RMS_FIT;
   useMass_ = analyzeArgs.hasKey("mass");
   std::string outfilename = analyzeArgs.GetStringKey("out");
-  if (outfilename.empty()) outfilename = analyzeArgs.GetStringKey("rmsout");
+  if (outfilename.empty()) outfilename = analyzeArgs.GetStringKey("rmsout"); // DEPRECATED
   DataFile* rmsdFile = DFLin->AddDataFile(outfilename, analyzeArgs);
   std::string reftrajname = analyzeArgs.GetStringKey("reftraj");
   if (!reftrajname.empty()) {
     RefParm_ = PFLin->GetParm(analyzeArgs);
     if (RefParm_==0) {
-      mprinterr("Error: Rms2d: Could not get parm for reftraj %s.\n",reftrajname.c_str());
-      mprinterr("Error:        Ensure parm has been previously loaded.\n");
+      mprinterr("Error: Could not get parm for reftraj %s.\n"
+                "Error:   Ensure parm has been previously loaded.\n",reftrajname.c_str());
       return Analysis::ERR;
     }
-    mode_ = REFTRAJ; 
-  }
-  if (analyzeArgs.hasKey("dme")) mode_ = DME;
-  // Check for correlation; if so, reftraj not supported
+    useReferenceTraj_ = true;
+  } else
+    useReferenceTraj_ = false;
+  // Check for correlation. 
   DataFile* corrfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("corr"), analyzeArgs);
-  if (corrfile != 0 && mode_ == REFTRAJ) {
-    mprinterr("Error: Rms2d: Keyword 'corr' not supported with 'reftraj'\n");
-    return Analysis::ERR;
-  }
   // Require an output filename if corr not specified
   if (rmsdFile == 0 && corrfile == 0) {
     mprinterr("Error: Rms2d: No output filename specified.\n");
     Help();
     return Analysis::ERR;
   }
-  // Get mask
+  // Get target mask.
   TgtMask_.SetMaskString( analyzeArgs.GetMaskNext() );
-  // If reference is trajectory, get mask and open traj
-  if (mode_ == REFTRAJ) {
-    // Get RMS mask string for reference trajectory
-    std::string refmaskexpr = analyzeArgs.GetMaskNext();
-    if (refmaskexpr.empty())
-      refmaskexpr = TgtMask_.MaskExpression();
-    RefMask_.SetMaskString( refmaskexpr );
+  // Get reference mask. 
+  std::string refmaskexpr = analyzeArgs.GetMaskNext();
+  if (refmaskexpr.empty())
+    refmaskexpr = TgtMask_.MaskExpression();
+  RefMask_.SetMaskString( refmaskexpr );
+  // When 'corr', reftraj or coords with different mask not supported
+  if (corrfile != 0 ) {
+    if (useReferenceTraj_) {
+      mprinterr("Error: Keyword 'corr' not supported with 'reftraj'\n");
+      return Analysis::ERR;
+    } else {
+      if (TgtMask_.MaskExpression() != RefMask_.MaskExpression()) {
+        mprinterr("Error: Keyword 'corr' not supported when masks differ if not using 'reftraj'\n");
+        return Analysis::ERR;
+      }
+    }
+  }
+  // If reference is trajectory, open traj
+  if (useReferenceTraj_) {
     // Attempt to set up reference trajectory
     if (RefTraj_.SetupTrajRead(reftrajname, analyzeArgs, RefParm_)) {
       mprinterr("Error: Rms2d: Could not set up reftraj %s.\n", reftrajname.c_str());
       return Analysis::ERR;
-    }
-  } else {
-    // Set up DataSet and DataFile for correlate if specified
-    if (corrfile != 0 && rmsdataset_ != 0) {
-      Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, rmsdataset_->Name(), "Corr" );
-      if (Ct_ == 0) return Analysis::ERR;
-      corrfile->AddSet( Ct_ );
     }
   }
   // Set up output DataSet
@@ -104,130 +115,188 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     rmsdFile->AddSet( rmsdataset_ );
     rmsdFile->ProcessArgs("square2d");
   }
+  // Set up DataSet for corr if specified
+  if (corrfile != 0) {
+    Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, rmsdataset_->Name(), "Corr" );
+    if (Ct_ == 0) return Analysis::ERR;
+    corrfile->AddSet( Ct_ );
+  }
 
   mprintf("    RMS2D: COORDS set [%s], mask [%s]", coords_->Legend().c_str(),
           TgtMask_.MaskString());
-  if (mode_ == REFTRAJ) {
-      mprintf(", ref traj %s (mask [%s]) %i frames", RefTraj_.TrajFilename().base(),
-              RefMask_.MaskString(), RefTraj_.TotalReadFrames());
-  }
-  if (mode_ == DME) 
-    mprintf(", using DME");
-  else {
-    if (nofit_  ) mprintf(" (no fitting)");
-    if (useMass_) mprintf(" (mass-weighted)");
-  }
-  if (rmsdFile != 0) 
-    mprintf(", output to %s",rmsdFile->DataFilename().base());
+  if ( TgtMask_.MaskExpression() != RefMask_.MaskExpression() )
+    mprintf(" ref mask [%s]", RefMask_.MaskString());
+  mprintf(", using %s", ModeStrings_[mode_]);
+  if (useMass_) mprintf(", mass-weighted");
   mprintf("\n");
+  if (useReferenceTraj_)
+    mprintf("\tReference trajectory '%s', %i frames",
+            RefTraj_.TrajFilename().base(), RefTraj_.TotalReadFrames());
+  if (rmsdFile != 0) 
+    mprintf("\tOutput to '%s'\n",rmsdFile->DataFilename().full());
   if (corrfile != 0)
-    mprintf("           RMSD auto-correlation will be calculated and output to %s\n",
-            corrfile->DataFilename().base());
+    mprintf("\tRMSD auto-correlation will be calculated and output to '%s'\n",
+            corrfile->DataFilename().full());
 
   return Analysis::OK;
 }
 
-/** Calculate the RMSD of each frame in ReferenceCoords to each other frame.
-  * Since this results in a symmetric matrix use TriangleMatrix to store
-  * results.
+// Analysis_Rms2d::Analyze()
+Analysis::RetType Analysis_Rms2d::Analyze() {
+  int err = 0;
+  // Set up target mask
+  if (coords_->Top().SetupIntegerMask( TgtMask_ )) return Analysis::ERR;
+  TgtMask_.MaskInfo();
+  if (TgtMask_.None()) { 
+    mprinterr("Error: No atoms selected for [%s]\n", TgtMask_.MaskString());
+    return Analysis::ERR;
+  }
+  // Set up reference mask. If no reference parm use target parm.
+  if (RefParm_ == 0)
+    err = coords_->Top().SetupIntegerMask( RefMask_ );
+  else
+    err = RefParm_->SetupIntegerMask(RefMask_);
+  if (err != 0) {
+    mprinterr("Error: Could not set up reference mask [%s] for parm %s\n",
+              RefMask_.MaskString(), RefParm_->c_str());
+    return Analysis::ERR;
+  }
+  if (TgtMask_.MaskExpression() != RefMask_.MaskExpression())
+    RefMask_.MaskInfo();
+  // Ensure # ref atoms == # tgt atoms
+  if (RefMask_.Nselected() != TgtMask_.Nselected()) {
+    mprinterr("Error: # Selected atoms in '%s' not equal to selected # atoms in\n"
+              "Error:   '%s' (%i)\n", TgtMask_.MaskString(), RefMask_.MaskString());
+    return Analysis::ERR;
+  }
+
+  if (useReferenceTraj_)
+    err = CalcRmsToTraj();
+  else
+    err = Calculate_2D();
+  if (err != 0) return Analysis::ERR;
+  return Analysis::OK;
+}
+
+/** Perform specified calculation of every frame in reference traj to every
+  * frame in Coords.
   */
-int Analysis_Rms2d::Calc2drms() 
-{
-  float R;
-  int nref, nframe; 
+int Analysis_Rms2d::CalcRmsToTraj() {
+  float R = 0.0;
+
+  // Setup reference frame for selected reference atoms
+  Frame RefFrame( RefParm_->Atoms() );
+  Frame SelectedRef( RefFrame, RefMask_ );
+  int totalref = RefTraj_.TotalReadFrames();
+  // Setup target from from Coords
+  Frame SelectedTgt;
+  SelectedTgt.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
+  int totaltgt = coords_->Size();
+  // Set up output matrix
+  int max = totalref * totaltgt;
+  mprintf("  RMS2D: Calculating %s between each input frame and each reference\n" 
+          "         trajectory '%s' frame (%i total).\n  ",
+          ModeStrings_[mode_], RefTraj_.TrajFilename().base(), max);
+  rmsdataset_->Allocate2D( totalref, totaltgt );
+  if (RefTraj_.BeginTraj(true)) {
+    mprinterr("Error: Rms2d: Could not open reference trajectory.\n");
+    return 1;
+  }
+
+  // LOOP OVER REFERENCE FRAMES
+  for (int nref=0; nref < totalref; nref++) {
+    // Get the current reference frame from trajectory
+    RefTraj_.GetNextFrame(RefFrame);
+    // Set reference atoms and pre-center if fitting
+    SelectedRef.SetCoordinates(RefFrame, RefMask_);
+    if (mode_ == RMS_FIT)
+      SelectedRef.CenterOnOrigin(useMass_);
+    // LOOP OVER TARGET FRAMES
+    for (int nframe=0; nframe < totaltgt; nframe++) {
+      // Get selected atoms of the current target frame
+      coords_->GetFrame( nframe, SelectedTgt, TgtMask_ );
+      switch (mode_) {
+        case RMS_FIT:   R = (float)SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_); break;
+        case RMS_NOFIT: R = (float)SelectedTgt.RMSD_NoFit(SelectedRef, useMass_); break;
+        case DME:       R = (float)SelectedTgt.DISTRMSD(SelectedRef); break;
+      }
+      rmsdataset_->SetElement( nref, nframe, R );
+      // DEBUG
+      //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
+    } // END loop over target frames
+  } // END loop over reference frames
+  RefTraj_.EndTraj();
+  return 0;
+}
+
+// Analysis_Rms2d::Calculate_2D()
+/** Perform specified calculation between each frame in Coords to each other
+  * frame. If reference and target masks are equal this results in a symmetric
+  * matrix, otherwise a full matrix is needed.
+  */
+int Analysis_Rms2d::Calculate_2D() {
+  float R = 0.0;
+  int nref, ntgt, tgtstart; 
   int totalref = coords_->Size();
-  rmsdataset_->AllocateTriangle( coords_->Size() );
-  mprintf("  RMS2D: Calculating RMSDs between each frame (%lu total).\n  ", rmsdataset_->Size());
-  // Set up target and reference frames basd on mask
-  Frame RefFrame;
-  RefFrame.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
-  Frame TgtFrame = RefFrame;
-  int endref = totalref - 1;
-  ParallelProgress progress( endref );
+  bool calculateFullMatrix = (TgtMask_.MaskExpression() != RefMask_.MaskExpression());
+  // If tgt and ref masks are the same, only need an upper-triangle matrix,
+  // otherwise need a full one.
+  if (calculateFullMatrix)
+    rmsdataset_->Allocate2D( coords_->Size(), coords_->Size() );
+  else
+    rmsdataset_->AllocateTriangle( coords_->Size() );
+  mprintf("  RMS2D: Calculating %s between each frame (%zu total).\n", 
+          ModeStrings_[mode_], rmsdataset_->Size());
+  // Set up target and reference frames based on mask. Both have same topology.
+  Frame SelectedRef, SelectedTgt;
+  SelectedRef.SetupFrameFromMask( RefMask_, coords_->Top().Atoms() );
+  SelectedTgt.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
+  ParallelProgress progress( totalref );
   // LOOP OVER REFERENCE FRAMES
 # ifdef _OPENMP
-# pragma omp parallel private(nref, nframe, R) firstprivate(TgtFrame, RefFrame, progress)
+# pragma omp parallel private(nref, ntgt, tgtstart) firstprivate(R, SelectedTgt, SelectedRef, progress)
   {
     progress.SetThread(omp_get_thread_num());
 #   pragma omp for schedule(dynamic)
 # endif
-    for (nref=0; nref < endref; nref++) {
+    for (nref=0; nref < totalref; nref++) {
       progress.Update(nref);
-      // Get the current reference frame - no box crd
-      coords_->GetFrame( nref, RefFrame, TgtMask_ );
+      // Get the current reference frame
+      coords_->GetFrame( nref, SelectedRef, RefMask_ );
       // Select and pre-center reference atoms (if fitting)
-      if (!nofit_)
-        RefFrame.CenterOnOrigin(useMass_);
+      if (mode_ == RMS_FIT)
+        SelectedRef.CenterOnOrigin(useMass_);
       // LOOP OVER TARGET FRAMES
-      for (nframe = nref + 1; nframe < totalref; nframe++) {
+      if (calculateFullMatrix)
+        tgtstart = 0;
+      else
+        tgtstart = nref + 1;
+      for (ntgt = tgtstart; ntgt < totalref; ntgt++) {
         // Get the current target frame
-        coords_->GetFrame( nframe, TgtFrame, TgtMask_ );
-        if (nofit_) // Perform no fit RMS calculation
-          R = (float)TgtFrame.RMSD_NoFit(RefFrame, useMass_);
-        else         // Perform fit RMS calculation
-          R = (float)TgtFrame.RMSD_CenteredRef(RefFrame, useMass_);
+        coords_->GetFrame( ntgt, SelectedTgt, TgtMask_ );
+        switch (mode_) {
+          case RMS_FIT:   R = (float)SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_); break;
+          case RMS_NOFIT: R = (float)SelectedTgt.RMSD_NoFit(SelectedRef, useMass_); break;
+          case DME:       R = (float)SelectedTgt.DISTRMSD(SelectedRef); break;
+        }
 #       ifdef _OPENMP
-        rmsdataset_->SetElement(nframe, nref, R);
+        rmsdataset_->SetElement(ntgt, nref, R);
 #       else
         rmsdataset_->AddElement( R );
 #       endif
         // DEBUG
-        //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
+        //mprinterr("%12i %12i %12.4lf\n",nref,ntgt,R);
       } // END loop over target frames
     } // END loop over reference frames
 # ifdef _OPENMP
   }
 # endif
   progress.Finish();
+  if (Ct_ != 0) CalcAutoCorr( );
   return 0;
 }
 
-// Analysis_Rms2d::CalcDME()
-int Analysis_Rms2d::CalcDME() 
-{
-  int nref, nframe;
-  int totalref = coords_->Size();
-  rmsdataset_->AllocateTriangle( coords_->Size() );
-  mprintf("  RMS2D: Calculating DMEs between each frame (%lu total).\n  ", rmsdataset_->Size());
-  // Set up target and reference frames basd on mask
-  Frame RefFrame;
-  RefFrame.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
-  Frame TgtFrame = RefFrame;
-  int endref = totalref - 1;
-  ParallelProgress progress(endref);
-  // LOOP OVER REFERENCE FRAMES
-# ifdef _OPENMP
-# pragma omp parallel private(nref, nframe) firstprivate(TgtFrame, RefFrame, progress)
-  {
-    progress.SetThread(omp_get_thread_num());
-#   pragma omp for schedule(dynamic)
-#   endif
-    for (nref=0; nref < endref; nref++) {
-      progress.Update(nref);
-      // Get the current reference frame - no box crd
-      coords_->GetFrame( nref, RefFrame, TgtMask_ );
-      // LOOP OVER TARGET FRAMES
-      for (nframe=nref+1; nframe < totalref; nframe++) {
-        // Get the current target frame
-        coords_->GetFrame( nframe, TgtFrame, TgtMask_ );
-        // Perform DME calc
-#       ifdef _OPENMP
-        rmsdataset_->SetElement( nframe, nref, TgtFrame.DISTRMSD(RefFrame) );
-#       else
-        rmsdataset_->AddElement( TgtFrame.DISTRMSD(RefFrame) );
-#       endif
-        // DEBUG
-        //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
-      } // END loop over target frames
-    } // END loop over reference frames
-# ifdef _OPENMP
-  }
-# endif
-  progress.Finish();
-  return 0;
-}
-
-/** Calculate the autocorrelation of the RMSDs. For proper weighting
+/** Calculate the pseudo-autocorrelation of the RMSDs. For proper weighting
   * exp[ -RMSD(framei, framei+lag) ] is used. This takes advantage of
   * the fact that 0.0 RMSD essentially means perfect correlation (1.0).
   */
@@ -249,97 +318,4 @@ void Analysis_Rms2d::CalcAutoCorr() {
     ct /= jmax;
     Ct_->Add(i, &ct);
   }
-}
-
-/** Calc RMSD of every frame in reference traj to every frame in 
-  * ReferenceCoords.
-  */
-int Analysis_Rms2d::CalcRmsToTraj() {
-  double R;
-
-  // Set up reference mask for reference parm
-  if (RefParm_->SetupIntegerMask(RefMask_)) {
-    mprinterr("Error: Could not set up reference mask [%s] for parm %s\n",
-              RefMask_.MaskString(), RefParm_->c_str());
-    return 1;
-  }
-  RefMask_.MaskInfo();
-  // Ensure # ref atoms == # tgt atoms
-  if (RefMask_.Nselected() != TgtMask_.Nselected()) {
-    mprinterr("Error: # Selected atoms in ref traj not equal to selected # atoms in\n");
-    mprinterr("Error: %s (%i)\n", coords_->Legend().c_str(), TgtMask_.Nselected());
-    return 1;
-  }
-  // Setup reference frame for selected reference atoms
-  Frame RefFrame( RefParm_->Atoms() );
-  Frame SelectedRef( RefFrame, RefMask_ );
-  int totalref = RefTraj_.TotalReadFrames();
-  // Setup target from from Coords
-  Frame SelectedTgt;
-  SelectedTgt.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
-  int totaltgt = coords_->Size();
-  // Set up output matrix
-  int max = totalref * totaltgt;
-  mprintf("  RMS2D: Calculating RMSDs between each input frame and each reference\n"); 
-  mprintf("         trajectory %s frame (%i total).\n  ",
-          RefTraj_.TrajFilename().base(), max);
-  rmsdataset_->Allocate2D( totalref, totaltgt );
-  if (RefTraj_.BeginTraj(true)) {
-    mprinterr("Error: Rms2d: Could not open reference trajectory.\n");
-    return 1;
-  }
-
-  // LOOP OVER REFERENCE FRAMES
-  for (int nref=0; nref < totalref; nref++) {
-    // Get the current reference frame from trajectory
-    RefTraj_.GetNextFrame(RefFrame);
-    // Set reference atoms and pre-center if fitting
-    SelectedRef.SetCoordinates(RefFrame, RefMask_);
-    if (!nofit_)
-      SelectedRef.CenterOnOrigin(useMass_);
-    // LOOP OVER TARGET FRAMES
-    for (int nframe=0; nframe < totaltgt; nframe++) {
-      // Get selected atoms of the current target frame
-      coords_->GetFrame( nframe, SelectedTgt, TgtMask_ );
-      if (nofit_) {
-        // Perform no fit RMS calculation
-        R = SelectedTgt.RMSD_NoFit(SelectedRef, useMass_);
-      } else {
-        // Perform fit RMS calculation
-        R = SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_);
-      }
-      rmsdataset_->SetElement( nref, nframe, R );
-      // DEBUG
-      //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
-    } // END loop over target frames
-  } // END loop over reference frames
-  RefTraj_.EndTraj();
-  return 0;
-}
-
-/** Perform the rms calculation of each frame to each other frame. */
-Analysis::RetType Analysis_Rms2d::Analyze() {
-  int err = 0;
-  // Set up target mask
-  if (coords_->Top().SetupIntegerMask( TgtMask_ )) return Analysis::ERR;
-  TgtMask_.MaskInfo();
-  if (TgtMask_.None()) { 
-    mprinterr("Error: No atoms selected for [%s]\n", TgtMask_.MaskString());
-    return Analysis::ERR;
-  }
-  switch (mode_) {
-    case NORMAL:
-      err = Calc2drms( );
-      if (Ct_ != 0) CalcAutoCorr( );
-      break;
-    case REFTRAJ: 
-      err = CalcRmsToTraj( ); 
-      break;
-    case DME: 
-      err = CalcDME( ); 
-      if (Ct_ != 0) CalcAutoCorr( );
-      break;
-  }
-  if (err != 0) return Analysis::ERR;
-  return Analysis::OK;
 }
