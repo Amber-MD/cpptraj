@@ -81,20 +81,6 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   if (refmaskexpr.empty())
     refmaskexpr = TgtMask_.MaskExpression();
   RefMask_.SetMaskString( refmaskexpr );
-  // Set up output DataSet
-  rmsdataset_ = (DataSet_MatrixFlt*)datasetlist->AddSet( DataSet::MATRIX_FLT, 
-                                                         analyzeArgs.GetStringNext(), "Rms2d" );
-  if (rmsdataset_ == 0) {
-    mprinterr("Error: Could not set up DataSet for calculating 2DRMS.\n");
-    return Analysis::ERR;
-  }
-  // Format DataSet 
-  rmsdataset_->SetPrecision(8,3);
-  // Add to output file
-  if (rmsdFile != 0) {
-    rmsdFile->AddSet( rmsdataset_ );
-    rmsdFile->ProcessArgs("square2d");
-  }
   // When 'corr', reftraj or coords with different mask not supported
   if (corrfile != 0 ) {
     if (useReferenceTraj_) {
@@ -114,13 +100,26 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
       mprinterr("Error: Rms2d: Could not set up reftraj %s.\n", reftrajname.c_str());
       return Analysis::ERR;
     }
-  } else {
-    // Set up DataSet and DataFile for correlate if specified
-    if (corrfile != 0 && rmsdataset_ != 0) {
-      Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, rmsdataset_->Name(), "Corr" );
-      if (Ct_ == 0) return Analysis::ERR;
-      corrfile->AddSet( Ct_ );
-    }
+  }
+  // Set up output DataSet
+  rmsdataset_ = (DataSet_MatrixFlt*)datasetlist->AddSet( DataSet::MATRIX_FLT, 
+                                                         analyzeArgs.GetStringNext(), "Rms2d" );
+  if (rmsdataset_ == 0) {
+    mprinterr("Error: Could not set up DataSet for calculating 2DRMS.\n");
+    return Analysis::ERR;
+  }
+  // Format DataSet 
+  rmsdataset_->SetPrecision(8,3);
+  // Add to output file
+  if (rmsdFile != 0) {
+    rmsdFile->AddSet( rmsdataset_ );
+    rmsdFile->ProcessArgs("square2d");
+  }
+  // Set up DataSet for corr if specified
+  if (corrfile != 0) {
+    Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, rmsdataset_->Name(), "Corr" );
+    if (Ct_ == 0) return Analysis::ERR;
+    corrfile->AddSet( Ct_ );
   }
 
   mprintf("    RMS2D: COORDS set [%s], mask [%s]", coords_->Legend().c_str(),
