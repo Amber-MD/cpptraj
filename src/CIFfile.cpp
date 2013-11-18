@@ -38,16 +38,39 @@ int CIFfile::DataBlock::AddHeader(std::string const& Header) {
   return 0;
 }
 
+static inline bool IsQuoteChar(char qc) {
+  return (qc == '\'' || qc == '"' || qc == ';');
+}
+
 /** Add entries to a serial data block. */
-int CIFfile::DataBlock::AddSerialDataRecord( const char* ptr ) {
+int CIFfile::DataBlock::AddSerialDataRecord( const char* ptr, BufferedLine& infile ) {
   if (ptr == 0) return 1;
   // Expect header.id data
   ArgList serialData( ptr, " " );
+  std::string dataLine;
   if ( serialData.Nargs() < 2 ) {
-    mprintf("Error: Data record expected to have ID and data.\n" // TODO: mprinterr
-              "Error: '%s'\n", ptr);
-    return 1;
-  }
+    // Could be the data is spread across several lines. Expect that it
+    // starts and ends with quote chars.
+    const char* nextLine = infile.Line();
+    if (nextLine == 0 || !IsQuoteChar(nextLine[0])) {
+      mprinterr("Error: Line %i: Data '%s', expected quote character.\n",
+                infile.LineNumber(), dataHeader_.c_str());
+      return 1;
+    }
+    bool readMoreLines = true;
+    while (readMoreLines) {
+      if (nextLine == 0 || strncmp(nextLine, "loop_", 5) == 0) {
+        mprinterr("Error: Line %i: Data '%s' record expected to have ID and data.\n",
+                  infile.LineNumber(), dataHeader_.c_str());
+        return 1;
+      }
+      dataLine.append( nextLine );
+      const char* nextLine = infile.Line();
+      if (nextLine!=0 && IsQuoteChar(nextLine[0])) // Terminal quote
+        readMoreLines = false;
+    }
+  } else
+    dataLine.assign( serialData[1]);
   std::string ID, Header;
   if (ParseData( serialData[0], Header, ID )) return 1;
   //mprintf("  Ndata=%i  Data=%s\n", serialData.Nargs(), serialData[1].c_str());
@@ -55,7 +78,7 @@ int CIFfile::DataBlock::AddSerialDataRecord( const char* ptr ) {
 
   columnHeaders_.push_back( ID );
   if (columnData_.empty()) columnData_.resize( 1 );
-  columnData_[0].push_back( serialData[1] ); 
+  columnData_[0].push_back( dataLine ); 
     
   return 0;
 }
@@ -80,13 +103,33 @@ int CIFfile::DataBlock::AddLoopColumn( const char* ptr ) {
 }  
 
 /** Add loop data. */
-int CIFfile::DataBlock::AddLoopData( const char* ptr ) {
+int CIFfile::DataBlock::AddLoopData( const char* ptr, BufferedLine& infile ) {
   // Should be as much data as there are column headers
   ArgList loopData( ptr, " " );
   if ( loopData.Nargs() != (int)columnHeaders_.size()) {
-    mprintf("Error: # of columns in loop data (%i) != # column headers (%zu)\n" // TODO mprinterr
-              "Error: '%s'\n", loopData.Nargs(), columnHeaders_.size(), ptr);
-    return 1;
+    // Could be there are more lines of data. As long as we dont hit
+    // another loop or data, add until we reach the correct number of
+    // columns.
+    int columns_read = loopData.Nargs();
+    while (columns_read < (int)columnHeaders_.size()) {
+      const char* nextLine = infile.Line();
+      if (nextLine == 0 || nextLine[0] == '_' || strncmp(nextLine, "loop_", 5) == 0) {
+        mprinterr("Error: Line %i: # of columns in loop data '%s' (%i) < # column headers (%zu)\n",
+                  infile.LineNumber(), dataHeader_.c_str(),
+                  loopData.Nargs(), columnHeaders_.size());
+        return 1;
+      }
+      ArgList nextData( nextLine, " " );
+      columns_read += nextData.Nargs();
+      if (columns_read > (int)columnHeaders_.size()) {
+        mprinterr("Error: Line %i: # of columns in loop data '%s' (%i) > # column headers (%zu)\n",
+                  infile.LineNumber(), dataHeader_.c_str(),
+                  loopData.Nargs(), columnHeaders_.size());
+        return 1;
+      }
+      for (ArgList::const_iterator ia = nextData.begin(); ia != nextData.end(); ++ia)
+        loopData.AddArg( *ia );
+    }
   }
   columnData_.push_back( loopData.List() );
   return 0;
@@ -129,7 +172,7 @@ int CIFfile::Read(std::string const& fnameIn) {
       // SERIAL data block
       DataBlock serial;
       while ( ptr != 0 && ptr[0] == '_' ) {
-        serial.AddSerialDataRecord(ptr);
+        serial.AddSerialDataRecord(ptr, file_);
         ptr = file_.Line();
       }
       mprintf("DEBUG:\tAt serial block: %s\n", serial.Header().c_str());
@@ -149,7 +192,7 @@ int CIFfile::Read(std::string const& fnameIn) {
       if (ptr == 0)
         return LineError("In CIF file, no loop data.", file_.LineNumber(), ptr);
       while (ptr != 0 && ptr[0] != '_' && ptr[0] != '#') {
-        loop.AddLoopData(ptr);
+        loop.AddLoopData(ptr, file_);
         ptr = file_.Line();
       }
       mprintf("DEBUG:\tAt loop block: %s\n", loop.Header().c_str());

@@ -23,9 +23,9 @@ class CIFfile::DataBlock {
     DataBlock() {}
     std::string const& Header() const { return dataHeader_; }
     int AddHeader(std::string const&);
-    int AddSerialDataRecord(const char*);
+    int AddSerialDataRecord(const char*, BufferedLine&);
     int AddLoopColumn(const char*);
-    int AddLoopData(const char*);
+    int AddLoopData(const char*, BufferedLine&);
     void ListData() const;
   private:
     static int ParseData(std::string const&, std::string&, std::string&);
