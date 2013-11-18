@@ -18,20 +18,20 @@ class Analysis_Rms2d: public Analysis {
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
-    int Calc2drms();
-    int CalcDME();
     int CalcRmsToTraj();
+    int Calculate_2D();
     void CalcAutoCorr();
 
-    enum ModeType { NORMAL = 0, REFTRAJ, DME };
+    static const char* ModeStrings_[];
+    enum ModeType { RMS_FIT = 0, RMS_NOFIT, DME };
     ModeType mode_;
     DataSet_Coords* coords_;   ///< Hold coords from input frames.
-    bool nofit_;               ///< Do not perform rms fitting
-    bool useMass_;
-    AtomMask TgtMask_;         ///< Target atom mask
-    AtomMask RefMask_;         ///< Reference Traj atom mask
-    Trajin_Single RefTraj_;    ///< Reference trajectory, each frame used in turn
-    Topology* RefParm_;        ///< Reference trajectory Parm
+    bool useReferenceTraj_;    ///< If true read from reference trajectory.
+    bool useMass_;             ///< If true, mass-weight.
+    AtomMask TgtMask_;         ///< Target atom mask.
+    AtomMask RefMask_;         ///< Reference atom mask.
+    Trajin_Single RefTraj_;    ///< Reference trajectory, each frame used in turn.
+    Topology* RefParm_;        ///< Reference trajectory Parm.
     DataSet_MatrixFlt* rmsdataset_;
     DataSet* Ct_;
 };
