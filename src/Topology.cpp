@@ -187,6 +187,8 @@ int Topology::SoluteAtoms() const {
 // Topology::Summary()
 void Topology::Summary() const {
   mprintf("\t\tTopology %s contains %zu atoms.\n", c_str(), atoms_.size());
+  if (!parmName_.empty())
+    mprintf("\t\t                  Title: %s\n", parmName_.c_str());
   mprintf("\t\t                  %zu residues.\n", residues_.size());
   mprintf("\t\t                  %zu molecules.\n", molecules_.size());
   size_t s1 = bondsh_.size()/3;
@@ -261,7 +263,8 @@ void Topology::PrintBonds(std::vector<int> const& barray, AtomMask const& maskIn
       mprintf("%8i:", nb);
       int bidx = *batom - 1; // TODO: Bond index should already be -1
       if ( bidx < 0 )
-        mprintf(" %6.3f", GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element()));
+        mprintf(" %6s %6.3f", "n/a", 
+                GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element()));
       else
         mprintf(" %6.2f %6.3f", bondrk_[bidx], bondreq_[bidx]);
       mprintf(" %-*s %-*s (%i,%i)\n",
