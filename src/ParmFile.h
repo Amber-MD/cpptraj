@@ -3,8 +3,8 @@
 #include "ParmIO.h"
 class ParmFile {
   public :
-    enum ParmFormatType { UNKNOWN_PARM=0, PDBFILE, AMBERPARM, MOL2FILE, CHARMMPSF };
-
+    enum ParmFormatType { UNKNOWN_PARM=0, PDBFILE, AMBERPARM, MOL2FILE,
+                          CHARMMPSF, CIFFILE };
     ParmFile() {}
     int Read(Topology&, std::string const&, bool,int);
     int Write(Topology const&, std::string const&, ParmFormatType,int);

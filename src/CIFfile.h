@@ -9,15 +9,16 @@ class CIFfile {
     class DataBlock;
 
     CIFfile() {}
+    static bool ID_CIF( CpptrajFile& );
     int Read(std::string const&);
     DataBlock const& GetDataBlock(std::string const&) const;
+    FileName const& CIFname() const { return file_.Filename(); }
   private:
     int AddDataBlock(DataBlock const&);
 
-    BufferedLine file_;
     enum mode { UNKNOWN = 0, SERIAL, LOOP };
     typedef std::vector<std::string> Sarray;
-
+    BufferedLine file_;
     typedef std::map<std::string, DataBlock> CIF_DataType;
     CIF_DataType cifdata_;
     static const DataBlock emptyblock;
@@ -33,6 +34,9 @@ class CIFfile::DataBlock {
     int AddLoopColumn(const char*);
     int AddLoopData(const char*, BufferedLine&);
     void ListData() const;
+    int ColumnIndex(std::string const&) const;
+    /// \return Serial data for given ID
+    std::string Data(std::string const&) const;
     // Iterators
     typedef std::vector<Sarray>::const_iterator data_it;
     data_it begin() const { return columnData_.begin(); }

@@ -11,4 +11,3 @@ class Parm_PDB : public ParmIO {
     void SetDebug(int) {}
 };
 #endif
-

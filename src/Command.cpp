@@ -524,8 +524,13 @@ Command::RetType DEBUG_CIF(CpptrajState& State, ArgList& argIn, Command::AllocTy
     CIFfile::DataBlock const& block = cifIn.GetDataBlock("_atom_site");
     if (block.empty())
       err = 1;
-    else
+    else {
       mprintf("DEBUG: Got block '%s'\n", block.Header().c_str());
+      int xcol = block.ColumnIndex("Cartn_x");
+      mprintf("DEBUG: Cartn_x index is %i\n", xcol);
+      for (CIFfile::DataBlock::data_it it = block.begin(); it != block.end(); ++it)
+        mprintf("\t%s\n", (*it)[xcol].c_str());
+    }
   }
   return (Command::RetType)err;
 }

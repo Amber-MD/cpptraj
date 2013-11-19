@@ -151,9 +151,45 @@ void CIFfile::DataBlock::ListData() const {
   }
 }
 
+/** \return the index of the specified column, -1 if not present. */
+int CIFfile::DataBlock::ColumnIndex(std::string const& headerIn) const {
+  for (Sarray::const_iterator col = columnHeaders_.begin();
+                              col != columnHeaders_.end(); ++col)
+    if (headerIn == *col)
+      return (int)(col - columnHeaders_.begin());
+  return -1;
+}
+
+std::string CIFfile::DataBlock::Data(std::string const& idIn) const {
+  if (columnHeaders_.empty() || columnData_.empty()) return std::string("");
+  int colnum = ColumnIndex( idIn );
+  if (colnum == -1) return std::string("");
+  return columnData_[0][colnum];
+}
+
 // -----------------------------------------------------------------------------
 /// Used to return empty block for GetDataBlock
 const CIFfile::DataBlock CIFfile::emptyblock = DataBlock();
+
+/** Determine if fileIn is a CIF file. Look for entries beginning with 
+  * an underscore (indicating data block), and a 'loop_' keyword or
+  * '_entry.id' block.
+  */
+bool CIFfile::ID_CIF(CpptrajFile& fileIn) {
+  // NOTE: ASSUME FILE SET UP FOR READ
+  if (fileIn.OpenFile()) return false;
+  int ndata = 0; // Number of '_XXX' entries seen
+  bool foundLoop = false;
+  bool foundEntryID = false;
+  for (int i = 0; i < 10; i++) {
+    std::string lineIn = fileIn.GetLine();
+    if (lineIn[0] == '_') ndata++;
+    if (lineIn.compare(0,5,"loop_")==0) foundLoop = true;
+    if (lineIn.compare(0,9,"_entry.id")==0) foundEntryID = true;
+  }
+  fileIn.CloseFile();
+  return ( ndata > 2 && (foundLoop || foundEntryID) );
+}
 
 // CIFfile::Read()
 int CIFfile::Read(std::string const& fnameIn) {
