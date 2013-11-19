@@ -254,6 +254,7 @@ void Atom::SetElementFromName() {
     case 'S' : element_ = SULFUR; break;
     case 'M' :
       if (c2=='g' || c2=='G') element_ = MAGNESIUM;
+      if (c2=='n' || c2 =='N') element_ = MANGANESE;
       break;
     case 'Z' :
       if (c2=='n' || c2 =='N') element_ = ZINC;
@@ -266,7 +267,26 @@ void Atom::SetElementFromName() {
       if (c2=='b') element_ = RUBIDIUM;
       break;
     default:
-      mprintf("Warning: Could not determine atomic number from name [%s]\n",*aname_);
+      // Attempt to match up 2 char element name
+      char en[2];
+      en[0] = tolower(c1);
+      en[1] = tolower(c2);
+      for (int i = 1; i < (int)NUMELEMENTS; i++) {
+        if (AtomicElementName[i][1]=='\0') { // 1 char
+          if ( en[0] == AtomicElementName[i][0] ) {
+            element_ = (AtomicElementType)i;
+            break;
+          }
+        } else {                             // 2 char
+          if ( en[0] == AtomicElementName[i][0] &&
+               en[1] == AtomicElementName[i][1] ) {
+            element_ = (AtomicElementType)i;
+            break;
+          }
+        }
+      }
+      if (element_ == UNKNOWN_ELEMENT)
+        mprintf("Warning: Could not determine atomic number from name [%s]\n",*aname_);
   }
 }
 
@@ -380,6 +400,8 @@ void Atom::SetElementFromMass() {
     case 'L':
        if(mass_ > 6.0 && mass_ <= 8.0) 
           element_ = LITHIUM; //3 !Lithium
+       if (mass_ > 173.0 && mass_ < 177.0)
+          element_ = LUTETIUM; // 71 !Lutetium
        break;
 
     case 'm':
@@ -493,6 +515,12 @@ void Atom::SetElementFromMass() {
        if (mass_ > 127.0 && mass_ < 136.0)
           element_ = XENON; // 54 !Xenon 
        break;
+
+    case 'y':
+    case 'Y':
+       if (mass_ > 87.0 && mass_ < 91.0)
+          element_ = YTTRIUM; // 39 !Yttrium
+      break;
 
     case 'z':
     case 'Z':
