@@ -16,6 +16,7 @@ const int Atom::AtomicElementNum[NUMELEMENTS] = { 0,
  75, 86, 88, 14, 21, 34,
  38, 50, 51, 22, 43, 52,
  73, 81, 23, 74, 54, 40,
+ 39, 71,
  0
 };
 
@@ -34,8 +35,27 @@ const char* Atom::AtomicElementName[NUMELEMENTS] = { "??",
   "RE", "RN", "RA", "SI", "SC", "SE",
   "SR", "SN", "SB", "TI", "TC", "TE",
   "TA", "TL", "V",  "W",  "XE", "ZR",
+  "Y",  "LU",
   "XP"
 };
+
+/** Values taken from 'http://www.webelements.com/' */
+const double Atom::AtomicElementMass[NUMELEMENTS] = { 1.0,
+    1.00794,   10.811,     12.0107,     14.0067,    15.9994,   18.9984032,
+   30.973762,  32.065,     35.453,      79.904,     55.845,    40.078,
+  126.90447,   24.3050,    63.546,       6.941,     39.0983,   85.4678,
+  132.9054519, 65.38,      22.98976928, 26.9815386, 39.948,    74.92160,
+  107.8682,   196.966569, 210,           9.012182, 137.327,   208.98040,
+   51.9961,    58.933195, 112.411,     223,         69.723,    72.64,
+    4.002602, 178.49,     200.59,      114.818,    192.217,    83.798,
+   54.938045,  95.96,      20.1797,     58.6934,    92.90638, 190.23,
+  106.42,     195.084,    207.2,       209,        101.07,    102.90550,
+  186.207,    222,        226,          28.0855,    44.955912, 78.96,
+   87.62,     118.710,    121.760,      47.867,     98,       127.60,
+  180.94788,  204.3833,    50.9415,    183.84,     131.293,    91.224,
+   88.90585,  174.9668,
+    0.0
+};  
 
 // CONSTRUCTOR
 Atom::Atom() : 
@@ -67,6 +87,7 @@ Atom::Atom(NameType const& aname, char cid) :
   chainID_(cid)
 {
   SetElementFromName();
+  mass_ = AtomicElementMass[ element_ ];
 }
 
 /** CONSTRUCTOR - used for Mol2 files. */
@@ -84,6 +105,7 @@ Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   chainID_(' ')
 {
   SetElementFromName();
+  mass_ = AtomicElementMass[ element_ ];
 }
 
 // CONSTRUCTOR

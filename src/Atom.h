@@ -20,6 +20,7 @@ class Atom {
       RHENIUM,    RADON,      RADIUM,   SILICON,   SCANDIUM,   SELENIUM,
       STRONTIUM,  TIN,        ANTIMONY, TITANIUM,  TECHNETIUM, TELLURIUM,
       TANTALUM,   THALLIUM,   VANADIUM, TUNGSTEN,  XENON,      ZIRCONIUM,
+      YTTRIUM,    LUTETIUM,
       EXTRAPT 
     };
     static const char* AtomicElementName[]; // Needed by Topology::GetBondLength
@@ -71,9 +72,10 @@ class Atom {
     /// Create exclusion list from input set.
     void AddExclusionList(std::set<int>&);
   protected:
-    static const size_t NUMELEMENTS = 74;
+    static const size_t NUMELEMENTS = 76;
   private:
     static const int AtomicElementNum[];
+    static const double AtomicElementMass[];
     double charge_;
     double mass_;
     double gb_radius_;
