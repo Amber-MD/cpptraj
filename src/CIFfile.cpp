@@ -137,13 +137,14 @@ int CIFfile::DataBlock::AddLoopData( const char* ptr, BufferedLine& infile ) {
 
 /** List data currently stored in the block. */
 void CIFfile::DataBlock::ListData() const {
+  mprintf("DataBlock: %s\n", dataHeader_.c_str());
   for (Sarray::const_iterator colname = columnHeaders_.begin();
                               colname != columnHeaders_.end(); ++colname)
-    mprintf("Col %u name: %s\n", colname - columnHeaders_.begin(), (*colname).c_str());
+    mprintf("  Col %u name: %s\n", colname - columnHeaders_.begin(), (*colname).c_str());
   for (std::vector<Sarray>::const_iterator rec = columnData_.begin();
                                            rec != columnData_.end(); ++rec)
   {
-    mprintf("[%u] ", rec - columnData_.begin());
+    mprintf("    [%u] ", rec - columnData_.begin());
     for (Sarray::const_iterator col = (*rec).begin();
                                 col != (*rec).end(); ++col)
       mprintf(" %s", (*col).c_str());
@@ -192,7 +193,7 @@ bool CIFfile::ID_CIF(CpptrajFile& fileIn) {
 }
 
 // CIFfile::Read()
-int CIFfile::Read(std::string const& fnameIn) {
+int CIFfile::Read(std::string const& fnameIn, int debugIn) {
   if (file_.OpenFileRead( fnameIn )) return 1;
   const char* ptr = file_.Line();
   mode currentMode = UNKNOWN;
@@ -215,10 +216,8 @@ int CIFfile::Read(std::string const& fnameIn) {
         serial.AddSerialDataRecord(ptr, file_);
         ptr = file_.Line();
       }
-      mprintf("DEBUG:\tAt serial block: %s\n", serial.Header().c_str());
-      serial.ListData();
+      if (debugIn > 1) serial.ListData();
       currentMode = UNKNOWN;
-      mprintf("\n"); // DEBUG
       if (AddDataBlock( serial )) return 1;
     } else if ( currentMode == LOOP ) {
       DataBlock loop;
@@ -236,14 +235,13 @@ int CIFfile::Read(std::string const& fnameIn) {
         loop.AddLoopData(ptr, file_);
         ptr = file_.Line();
       }
-      mprintf("DEBUG:\tAt loop block: %s\n", loop.Header().c_str());
-      loop.ListData();
+      if (debugIn > 1) loop.ListData();
       currentMode = UNKNOWN;
-      mprintf("\n"); // DEBUG
       if (AddDataBlock( loop )) return 1;
     }
-  }       
-  mprintf("\tCIF file '%s', %i lines.\n", file_.Filename().full(), file_.LineNumber());
+  }
+  if (debugIn > 0)    
+    mprintf("\tCIF file '%s', %i lines.\n", file_.Filename().full(), file_.LineNumber());
   return 0;
 }
 

@@ -3,14 +3,15 @@
 #include "ParmIO.h"
 class Parm_CIF : public ParmIO {
   public :
-    Parm_CIF() { }
+    Parm_CIF() : debug_(0) { }
     static ParmIO* Alloc() { return (ParmIO*)new Parm_CIF(); }
     bool ID_ParmFormat(CpptrajFile&);
     int ReadParm(std::string const&, Topology&);
-    int WriteParm(std::string const&, Topology const&) { return 1; }
-    void SetDebug(int) {}
+    int WriteParm(std::string const&, Topology const&) { return 1;   }
+    void SetDebug(int i)                               { debug_ = i; }
   private:
     enum EntryType { ANAME=0, RNAME, X, Y, Z, RNUM, CHAINID, NENTRY };
     static const char* Entries[];
+    int debug_;
 };
 #endif

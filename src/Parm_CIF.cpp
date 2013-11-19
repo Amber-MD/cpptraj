@@ -14,7 +14,7 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
   CIFfile infile;
   CIFfile::DataBlock::data_it line;
 
-  if (infile.Read( fname )) return 1;
+  if (infile.Read( fname, debug_ )) return 1;
   CIFfile::DataBlock const& block = infile.GetDataBlock("_atom_site");
   if (block.empty()) return 1;
   // Does this CIF contain multiple models?
@@ -37,7 +37,7 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
                 fname.c_str(), Entries[i], block.Header().c_str());
       return 1;
     }
-    mprintf("DEBUG: '%s' column = %i\n", Entries[i], COL[i]);
+    if (debug_>0) mprintf("DEBUG: '%s' column = %i\n", Entries[i], COL[i]);
   }
 
   // Loop over all atom sites

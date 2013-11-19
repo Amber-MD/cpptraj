@@ -10,7 +10,7 @@ class CIFfile {
 
     CIFfile() {}
     static bool ID_CIF( CpptrajFile& );
-    int Read(std::string const&);
+    int Read(std::string const&,int);
     DataBlock const& GetDataBlock(std::string const&) const;
     FileName const& CIFname() const { return file_.Filename(); }
   private:
@@ -23,7 +23,7 @@ class CIFfile {
     CIF_DataType cifdata_;
     static const DataBlock emptyblock;
 };
-
+/// Used to hold CIF data blocks
 class CIFfile::DataBlock {
   public:
     DataBlock() {}
