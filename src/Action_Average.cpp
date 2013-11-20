@@ -14,9 +14,9 @@ Action_Average::Action_Average() :
 { } 
 
 void Action_Average::Help() {
-  mprintf("\t<filename> [<mask>] %s\n", ActionFrameCounter::HelpText);
-  mprintf("\t[TRAJOUT ARGS]\n");
-  mprintf("\tCalculate the average structure of atoms in <mask> over specified input frames.\n");
+  mprintf("\t<filename> [<mask>] %s\n\t[TRAJOUT ARGS]\n"
+          "\tCalculate the average structure of atoms in <mask> over specified input frames.\n",
+          ActionFrameCounter::HelpText);
 }
 
 // DESTRUCTOR
@@ -26,7 +26,7 @@ Action_Average::~Action_Average() {
   if (parmStripped_ && AvgParm_!=0) delete AvgParm_;
 }
 
-// Action_Average::init()
+// Action_Average::Init()
 Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -55,7 +55,7 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   return Action::OK;
 }
 
-// Action_Average::setup()
+// Action_Average::Setup()
 /** On first call, set up Frame according to first parmtop. This will be
   * used for coordinate output.
   * On subsequent calls, determine if the number of atoms is greater than or
@@ -67,14 +67,12 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
   if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
 
   if (Mask1_.None()) {
-    mprintf("    Error: Average::setup: No Atoms in mask.\n");
+    mprinterr("Error: Cannot create average: No Atoms in mask.\n");
     return Action::ERR;
   }
 
-  mprintf("    AVERAGE:");
-
   if (AvgFrame_==0) {
-    mprintf(" Averaging over %i atoms.\n",Mask1_.Nselected());
+    mprintf("\tAveraging over %i atoms.\n",Mask1_.Nselected());
     AvgFrame_ = new Frame(Mask1_.Nselected());
     AvgFrame_->ZeroCoords();
     Natom_ = AvgFrame_->Natom(); // Initiially equal to Mask1.Nselected
@@ -82,7 +80,7 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
     // If the number of selected atoms is less than the current parm, strip
     // the parm for output purposes.
     if (Mask1_.Nselected()<currentParm->Natom()) {
-      mprintf("             Atom selection < natom, stripping parm for averaging only:\n");
+      mprintf("Warning: Atom selection < natom, stripping parm for averaging only:\n");
       AvgParm_ = currentParm->modifyStateByMask(Mask1_);
       parmStripped_=true;
       if (debug_ > 0)
@@ -98,23 +96,23 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
       mprintf("Warning: Average [%s]: Parm %s selected # atoms (%i) > original parm %s\n",
               avgfilename_.c_str(), currentParm->c_str(),
               Mask1_.Nselected(), AvgParm_->c_str());
-      mprintf("         selected# atoms (%i).\n",AvgFrame_->Natom());
+      mprintf("Warning:   selected# atoms (%i).\n",AvgFrame_->Natom());
     } else if (Mask1_.Nselected() < AvgFrame_->Natom()) {
       Natom_ = Mask1_.Nselected();
       mprintf("Warning: Average[%s]: Parm %s selected # atoms (%i) < original parm %s\n",
               avgfilename_.c_str(), currentParm->c_str(), 
               Mask1_.Nselected(), AvgParm_->c_str());
-      mprintf("         selected # atoms (%i).\n",AvgFrame_->Natom());
+      mprintf("Warning:   selected # atoms (%i).\n",AvgFrame_->Natom());
     } else {
       Natom_ = AvgFrame_->Natom();
     }
-    mprintf("    AVERAGE: %i atoms will be averaged for this parm.\n",Natom_);
+    mprintf("\t%i atoms will be averaged for '%s'.\n",Natom_, currentParm->c_str());
   }
         
   return Action::OK;  
 }
 
-// Action_Average::action()
+// Action_Average::DoAction()
 Action::RetType Action_Average::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
@@ -125,7 +123,7 @@ Action::RetType Action_Average::DoAction(int frameNum, Frame* currentFrame, Fram
   return Action::OK;
 } 
 
-// Action_Average::print()
+// Action_Average::Print()
 void Action_Average::Print() {
   Trajout outfile;
   double d_Nframes;
