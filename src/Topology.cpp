@@ -187,9 +187,22 @@ int Topology::SoluteAtoms() const {
 // Topology::Summary()
 void Topology::Summary() const {
   mprintf("\t\tTopology %s contains %zu atoms.\n", c_str(), atoms_.size());
+  if (!parmName_.empty())
+    mprintf("\t\t                  Title: %s\n", parmName_.c_str());
   mprintf("\t\t                  %zu residues.\n", residues_.size());
-  mprintf("\t\t                  %zu bonds.\n", (bonds_.size()+bondsh_.size()) / 3 );
   mprintf("\t\t                  %zu molecules.\n", molecules_.size());
+  size_t s1 = bondsh_.size()/3;
+  size_t s2 = bonds_.size()/3;
+  if (s1 + s2 > 0)
+    mprintf("\t\t                  %zu bonds (%zu to H, %zu other).\n", s1+s2, s1, s2);
+  s1 = anglesh_.size()/4;
+  s2 = angles_.size()/4;
+  if (s1 + s2 > 0)
+    mprintf("\t\t                  %zu angles (%zu to H, %zu other).\n", s1+s2, s1 ,s2);
+  s1 = dihedralsh_.size()/5;
+  s2 = dihedrals_.size()/5;
+  if (s1 + s2 > 0)
+    mprintf("\t\t                  %zu dihedrals (%zu to H, %zu other).\n", s1+s2, s1, s2);
   mprintf("\t\t                  Box: %s\n",box_.TypeName());
   if (NsolventMolecules_>0) {
     mprintf("\t\t                  %i solvent molecules.\n", NsolventMolecules_);
@@ -198,9 +211,6 @@ void Topology::Summary() const {
   }
   if (!radius_set_.empty())
     mprintf("\t\t                  GB radii set: %s\n", radius_set_.c_str());
-  /*if (!bondsh_.empty() || !bonds_.empty())
-    mprintf("  %zu bonds to hydrogen, %zu other bonds.\n",bondsh_.size()/3,
-            bonds_.size()/3);*/
 }
 
 // Topology::Brief()
@@ -222,18 +232,18 @@ void Topology::PrintAtomInfo(std::string const& maskString) const {
   else {
     int width = DigitWidth(atoms_.size());
     if (width < 5) width = 5;
-    mprintf("%-*s %4s %*s %4s %*s %4s %8s %8s %8s\n", 
+    mprintf("%-*s %4s %*s %4s %*s %4s %8s %8s %8s %2s\n", 
             width, "#Atom", "Name", 
             width, "#Res",  "Name",
-            width, "#Mol",  "Type", "Charge", "Mass", "GBradius");
+            width, "#Mol",  "Type", "Charge", "Mass", "GBradius", "El");
     for (AtomMask::const_iterator atnum = mask.begin(); atnum != mask.end(); atnum++) {
       const Atom& atom = atoms_[*atnum];
       int resnum = atom.ResNum();
-      mprintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f %8.4f\n", 
+      mprintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f %8.4f %2s\n", 
               width, *atnum+1, atom.c_str(), 
               width, resnum+1, residues_[resnum].c_str(),
               width, atom.MolNum()+1, *(atom.Type()), atom.Charge(), 
-              atom.Mass(), atom.GBRadius());
+              atom.Mass(), atom.GBRadius(), atom.ElementName());
     }
   }
 }
@@ -253,7 +263,8 @@ void Topology::PrintBonds(std::vector<int> const& barray, AtomMask const& maskIn
       mprintf("%8i:", nb);
       int bidx = *batom - 1; // TODO: Bond index should already be -1
       if ( bidx < 0 )
-        mprintf(" %6.3f", GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element()));
+        mprintf(" %6s %6.3f", "n/a", 
+                GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element()));
       else
         mprintf(" %6.2f %6.3f", bondrk_[bidx], bondreq_[bidx]);
       mprintf(" %-*s %-*s (%i,%i)\n",
@@ -268,9 +279,10 @@ void Topology::PrintBonds(std::vector<int> const& barray, AtomMask const& maskIn
 // Topology::PrintBondInfo()
 void Topology::PrintBondInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
-  ParseMask(refCoords_, mask, false); // Char mask
-  mprintf("# %zu BONDS TO HYDROGEN:\n",bondsh_.size()/3);
-  mprintf("# %zu BONDS TO NON-HYDROGEN:\n",bonds_.size()/3);
+  if (ParseMask(refCoords_, mask, false)) return; // Char mask
+  mprintf("#");
+  mask.MaskInfo();
+  if (mask.None()) return;
   mprintf("#   Bond     Kb     Req       atom names   (numbers)\n");
   int nb = 1;
   if (!bondsh_.empty())
@@ -308,9 +320,10 @@ void Topology::PrintAngles(std::vector<int> const& aarray, AtomMask const& maskI
 // Topology::PrintAngleInfo()
 void Topology::PrintAngleInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
-  ParseMask(refCoords_, mask, false); // Char mask
-  mprintf("# %zu ANGLES WITH HYDROGEN:\n", anglesh_.size()/4);
-  mprintf("# %zu ANGLES WITHOUT HYDROGEN:\n", angles_.size()/4);
+  if (ParseMask(refCoords_, mask, false)) return; // Char mask
+  mprintf("#");
+  mask.MaskInfo();
+  if (mask.None()) return;
   mprintf("# Angle   Kthet  degrees        atom names        (numbers)\n");
   int na = 1;
   if (!anglesh_.empty())
@@ -363,9 +376,10 @@ void Topology::PrintDihedrals(std::vector<int> const& darray, AtomMask const& ma
 // Topology::PrintDihedralInfo()
 void Topology::PrintDihedralInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
-  ParseMask(refCoords_, mask, false); // Char mask
-  mprintf("# %zu DIHEDRALS WITH HYDROGEN:\n", dihedralsh_.size()/5);
-  mprintf("# %zu DIHEDRALS WITHOUT HYDROGEN:\n", dihedrals_.size()/5);
+  if (ParseMask(refCoords_, mask, false)) return; // Char mask
+  mprintf("#");
+  mask.MaskInfo();
+  if (mask.None()) return;
   mprintf("#Dihedral    pk     phase pn                atoms\n");
   int nd = 1;
   if (!dihedralsh_.empty())
@@ -716,9 +730,8 @@ int Topology::CommonSetup(bool bondsearch) {
 // WarnBondLengthDefault()
 void Topology::WarnBondLengthDefault(Atom::AtomicElementType atom1,
                                      Atom::AtomicElementType atom2, double cut) {
-  mprintf("Warning: GetBondLength: Bond length not found for %s - %s\n",
-          Atom::AtomicElementName[atom1], Atom::AtomicElementName[atom2]);
-  mprintf("                        Using default length of %f\n", cut);
+  mprintf("Warning: Bond length not found for %s - %s, using default= %f\n",
+          Atom::AtomicElementName[atom1], Atom::AtomicElementName[atom2], cut);
 }
 
 // Topology::GetBondLength() 

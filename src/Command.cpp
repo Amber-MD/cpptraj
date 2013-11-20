@@ -6,8 +6,6 @@
 #ifdef TIMER
 # include "Timer.h"
 #endif
-// DEBUG
-#include "CIFfile.h"
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -513,13 +511,6 @@ static void Help_RunAnalysis() {
   mprintf("\t[<analysis> [<analysis args>]]\n");
   mprintf("\tIf specified alone, run all analyses in the analysis list.\n");
   mprintf("\tOtherwise run the specified analysis immediately.\n");
-}
-
-// ---------- DEBUG ------------------------------------------------------------
-Command::RetType DEBUG_CIF(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
-{
-  CIFfile cifIn;
-  return (Command::RetType)cifIn.Read( argIn.GetStringNext() );
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
@@ -1332,7 +1323,6 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "create",        0, Help_Create_DataFile, Create_DataFile },
   { GENERAL, "datafile",      0, Help_DataFile,        DataFileCmd     },
   { GENERAL, "debug",         0, Help_Debug,           SetListDebug    },
-  { GENERAL, "debugcif",      0, 0,                    DEBUG_CIF    }, // DEBUG
   { GENERAL, "exit" ,         0, Help_Quit,            Quit            },
   { GENERAL, "gnuplot",       0, Help_System,          SystemCmd       },
   { GENERAL, "go",            0, Help_Run,             RunState        },

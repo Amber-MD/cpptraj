@@ -13,6 +13,7 @@ const char MapAtom::AtomicElementChar[Atom::NUMELEMENTS] = { 0,
     0,    0,    0,    0,    0,   0,
     0,    0,    0,    0,    0,   0,
     0,    0,    0,    0,    0,   0,
+    0,    0,
     0
 };
 

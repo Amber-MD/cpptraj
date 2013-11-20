@@ -187,15 +187,15 @@ int Analysis_Rms2d::CalcRmsToTraj() {
   // Setup reference frame for selected reference atoms
   Frame RefFrame( RefParm_->Atoms() );
   Frame SelectedRef( RefFrame, RefMask_ );
-  int totalref = RefTraj_.TotalReadFrames();
+  size_t totalref = (size_t)RefTraj_.TotalReadFrames();
   // Setup target from from Coords
   Frame SelectedTgt;
   SelectedTgt.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
-  int totaltgt = coords_->Size();
+  size_t totaltgt = coords_->Size();
   // Set up output matrix
-  int max = totalref * totaltgt;
+  size_t max = totalref * totaltgt;
   mprintf("  RMS2D: Calculating %s between each input frame and each reference\n" 
-          "         trajectory '%s' frame (%i total).\n  ",
+          "         trajectory '%s' frame (%zu total).\n  ",
           ModeStrings_[mode_], RefTraj_.TrajFilename().base(), max);
   rmsdataset_->Allocate2D( totalref, totaltgt );
   if (RefTraj_.BeginTraj(true)) {
@@ -204,7 +204,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
   }
 
   // LOOP OVER REFERENCE FRAMES
-  for (int nref=0; nref < totalref; nref++) {
+  for (size_t nref=0; nref < totalref; nref++) {
     // Get the current reference frame from trajectory
     RefTraj_.GetNextFrame(RefFrame);
     // Set reference atoms and pre-center if fitting
@@ -212,7 +212,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
     if (mode_ == RMS_FIT)
       SelectedRef.CenterOnOrigin(useMass_);
     // LOOP OVER TARGET FRAMES
-    for (int nframe=0; nframe < totaltgt; nframe++) {
+    for (size_t nframe=0; nframe < totaltgt; nframe++) {
       // Get selected atoms of the current target frame
       coords_->GetFrame( nframe, SelectedTgt, TgtMask_ );
       switch (mode_) {

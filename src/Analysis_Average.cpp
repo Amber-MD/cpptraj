@@ -5,7 +5,7 @@ Analysis_Average::Analysis_Average() {}
 
 void Analysis_Average::Help() {
   mprintf("\t<dset0> [<dset1> ...] [torsion]\n"
-          "\tCalculate the average and standard deviation of given data sets.\n");
+          "\tCalculate the average, standard deviation, min, and max of given data sets.\n");
 }
 
 // Analysis_Average::Setup()
@@ -48,7 +48,7 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
 // Analysis_Average::Analyze()
 Analysis::RetType Analysis_Average::Analyze() {
   double stdev, avg;
-  outfile_.Printf("#SetNum\tAverage\tStdev\n");
+  outfile_.Printf("#SetNum\tAverage\tStdev\tMin\tMax\tName\n");
   for (Array1D::const_iterator DS = input_dsets_.begin();
                                DS != input_dsets_.end(); ++DS)
   {
@@ -56,7 +56,10 @@ Analysis::RetType Analysis_Average::Analyze() {
       mprintf("Warning: Set \"%s\" has no data.\n", (*DS)->Legend().c_str());
     else {
       avg = (*DS)->Avg( stdev );
-      outfile_.Printf("%s\t%f\t%f\n", (*DS)->Legend().c_str(), avg, stdev);
+      double min = (*DS)->Min();
+      double max = (*DS)->Max();
+      outfile_.Printf("%u\t%f\t%f\t%f\t%f\t\"%s\"\n", DS - input_dsets_.begin(),
+                       avg, stdev, min, max, (*DS)->Legend().c_str());
     }
   }
   return Analysis::OK;

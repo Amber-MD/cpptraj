@@ -5,12 +5,14 @@
 #include "Parm_PDB.h"
 #include "Parm_Mol2.h"
 #include "Parm_CharmmPsf.h"
+#include "Parm_CIF.h"
 
 const ParmFile::ParmToken ParmFile::ParmArray[] = {
   { AMBERPARM,    "amber", Parm_Amber::Alloc     },
   { PDBFILE,      "pdb",   Parm_PDB::Alloc       },
   { MOL2FILE,     "mol2",  Parm_Mol2::Alloc      },
   { CHARMMPSF,    "psf",   Parm_CharmmPsf::Alloc },
+  { CIFFILE,      "cif",   Parm_CIF::Alloc       },
   { UNKNOWN_PARM, 0,       0                     }
 };
 
