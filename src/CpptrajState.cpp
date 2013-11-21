@@ -607,17 +607,8 @@ int CpptrajState::RunNormal() {
 // CpptrajState::MasterDataFileWrite()
 void CpptrajState::MasterDataFileWrite() {
   // Only Master does DataFile output
-  if (worldrank==0) {
-#   ifdef TIMER
-    Timer datafile_time;
-    datafile_time.Start();
-#   endif
+  if (worldrank==0)
     DFL_.WriteAllDF();
-#   ifdef TIMER
-    datafile_time.Stop();
-    mprintf("TIME: Write of all data files took %.4f seconds.\n", datafile_time.Total());
-#   endif
-  }
 }
 
 // CpptrajState::RunAnalyses()
