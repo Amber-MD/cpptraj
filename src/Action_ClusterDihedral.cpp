@@ -289,7 +289,7 @@ void Action_ClusterDihedral::Print() {
       output.Printf(" ]\n");
       for (DCnode::frame_it frame = (*DC).framebegin(); frame != (*DC).frameend(); ++frame)
       {
-        output.Printf("%i ", *frame + OUTPUTFRAMESHIFT);
+        output.Printf("%i ", *frame + 1);
         // store which cluster each frame belongs to. Not neccesary if user
         // didn't specify this option, but avoids a second loop if they did.
         framecluster[ *frame ] = num;

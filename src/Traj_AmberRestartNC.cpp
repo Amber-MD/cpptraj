@@ -11,7 +11,7 @@
 Traj_AmberRestartNC::Traj_AmberRestartNC() :
   restartTime_(0),
   singleWrite_(false),
-  time0_(OUTPUTFRAMESHIFT),
+  time0_(1.0),
   dt_(1.0)
 { }
 

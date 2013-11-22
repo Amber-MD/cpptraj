@@ -197,7 +197,7 @@ void Trajout::PrintInfo(int showExtended) const {
   mprintf(", Parm %s",TrajParm()->c_str());
   if (trajio_->HasBox()) mprintf(" (with box info)");
   if (hasRange_)
-    FrameRange_.PrintRange(": Writing frames",OUTPUTFRAMESHIFT);
+    FrameRange_.PrintRange(": Writing frames", 1);
   else {
     mprintf(": Writing %i frames", TrajParm()->Nframes());
     frameCount_.FrameCounterBrief();
