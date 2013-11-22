@@ -23,7 +23,7 @@ int ParmFile::Read(Topology& Top, std::string const& fname, bool bondsearch, int
   CpptrajFile basicParm;
   int err = basicParm.SetupRead(fname, debugIn);
   if (err != 0) {
-    mprinterr("Error: Could not set up parm file %s for reading.\n",fname.c_str());
+    mprinterr("Error: Could not set up topology file '%s' for reading.\n",fname.c_str());
     return 1;
   }
   
@@ -39,13 +39,13 @@ int ParmFile::Read(Topology& Top, std::string const& fname, bool bondsearch, int
       if (err == 0) 
         err = Top.CommonSetup(bondsearch);
       else
-        mprinterr("Error reading parm file %s\n", basicParm.Filename().full());
+        mprinterr("Error reading topology file '%s'\n", basicParm.Filename().full());
       delete parmio;
       return err;
     }
     delete parmio;
   }
-  mprinterr("Error: Read: Format of parm [%s] not recognized.\n",fname.c_str());
+  mprinterr("Error: Format of topology '%s' not recognized.\n",fname.c_str());
   return 1;
 }
 
@@ -59,11 +59,11 @@ int ParmFile::Write(Topology const& Top, std::string const& fname, ParmFormatTyp
       parmio->SetDebug( debugIn );
       int err = parmio->WriteParm( fname, Top );
       if (err != 0 ) 
-        mprinterr("Error writing parm file %s\n",fname.c_str());
+        mprinterr("Error writing topology file '%s'\n",fname.c_str());
       delete parmio;
       return err;
     }
   }
-  mprinterr("Error: Write: Format of parm [%s] not recognized.\n",fname.c_str());
+  mprinterr("Error: Format of topology '%s' not recognized.\n",fname.c_str());
   return 1;
 }

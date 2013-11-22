@@ -347,7 +347,7 @@ Action::RetType Action_Jcoupling::DoAction(int frameNum, Frame* currentFrame, Fr
   double Jval;
 
   if (outfile_==0)
-    outputfile_.Printf("#Frame %i\n",frameNum+OUTPUTFRAMESHIFT);
+    outputfile_.Printf("#Frame %i\n",frameNum+1);
 
   for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
                                             jc !=JcouplingInfo_.end(); ++jc)

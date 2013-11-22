@@ -71,7 +71,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
     if (Mask1_.AtomInCharMask(atom)) {
       int res = (*CurrentParm_)[atom].ResNum();
       if (outfile_.IsOpen())
-        outfile_.Printf("%8i %8i %4s %8i %4s %8i\n", frameNum+OUTPUTFRAMESHIFT,
+        outfile_.Printf("%8i %8i %4s %8i %4s %8i\n", frameNum+1,
                         atom+1, (*CurrentParm_)[atom].c_str(), res+1,
                         CurrentParm_->Res(res).c_str(), (*CurrentParm_)[atom].MolNum()+1);
       /*mprintf(" Type=%4s",CurrentParm_->types[atom]);

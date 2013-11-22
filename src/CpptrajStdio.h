@@ -9,7 +9,6 @@
     that during parallel runs messages are only printed to the master
     thread, etc.
  */
-#define OUTPUTFRAMESHIFT 1 ///< Used for output in DataFile and some TrajFiles
 void mflush();
 void mprintf(const char *, ...);
 void mprinterr(const char *, ...);

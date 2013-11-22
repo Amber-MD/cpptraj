@@ -2,6 +2,7 @@
 #include "TopologyList.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
+#include "StringRoutines.h" // ExpandToFilenames
 
 // CONSTRUCTOR 
 TopologyList::TopologyList() : debug_(0) {}
@@ -84,41 +85,52 @@ int TopologyList::AddParmFile(std::string const& filename) {
 
 // TopologyList::AddParmFile()
 /** Add a parameter file to the parm file list with optional tag. */
-int TopologyList::AddParmFile(std::string const& filename, std::string const& ParmTag,
+int TopologyList::AddParmFile(std::string const& filenameIn, std::string const& ParmTag,
                               bool bondsearch, double offset) 
 {
-  // Check if filename/parmtag already in use
-  for (std::vector<Topology*>::const_iterator tf = TopList_.begin();
-                                              tf != TopList_.end(); ++tf)
+  StrArray fnames = ExpandToFilenames( filenameIn );
+  if (fnames.empty()) return 1;
+  int numErr = 0;
+  for (StrArray::const_iterator fn = fnames.begin();
+                                fn != fnames.end(); ++fn)
   {
-    if ( (*tf)->OriginalFilename().Full() == filename ) {
-      mprintf("Warning: Parm '%s' already loaded, skipping.\n",filename.c_str());
-      return 0;
+    // Check if filename/parmtag already in use
+    bool skipFile = false;
+    for (std::vector<Topology*>::const_iterator tf = TopList_.begin();
+                                                tf != TopList_.end(); ++tf)
+    {
+      if ( (*tf)->OriginalFilename().Full() == *fn ) {
+        mprintf("Warning: Parm '%s' already loaded, skipping.\n",(*fn).c_str());
+        skipFile = true;
+      }
+      if ( !ParmTag.empty() && (*tf)->Tag() == ParmTag ) {
+        mprinterr("Error: Parm tag '%s' already in use.\n",ParmTag.c_str());
+        numErr++;
+        skipFile = true;
+      }
     }
-    if ( !ParmTag.empty() && (*tf)->Tag() == ParmTag ) {
-      mprinterr("Error: Parm tag '%s' already in use.\n",ParmTag.c_str());
-      return 1;
+    if (skipFile) continue;
+
+    Topology *parm = new Topology();
+    parm->SetDebug( debug_ );
+    parm->SetOffset( offset );
+    ParmFile pfile;
+    // TODO: Pass in FileName
+    if (pfile.Read(*parm, *fn, bondsearch, debug_)) {
+      mprinterr("Error: Could not open topology '%s'\n",(*fn).c_str());
+      delete parm;
+      numErr++;
+      continue;
     }
-  }
 
-  Topology *parm = new Topology();
-  parm->SetDebug( debug_ );
-  parm->SetOffset( offset );
-  ParmFile pfile;
-  // TODO: Pass in FileName
-  int err = pfile.Read(*parm, filename, bondsearch, debug_);
-  if (err!=0) {
-    mprinterr("Error: Could not open parm %s\n",filename.c_str());
-    delete parm;
-    return 1;
+    if (debug_>0) 
+      mprintf("    PARAMETER FILE %zu: %s\n",TopList_.size(),(*fn).c_str());
+    // pindex is used for quick identification of the parm file
+    parm->SetPindex( TopList_.size() );
+    TopList_.push_back(parm);
+    parm->SetTag( ParmTag );
   }
-
-  if (debug_>0) 
-    mprintf("    PARAMETER FILE %zu: %s\n",TopList_.size(),filename.c_str());
-  // pindex is used for quick identification of the parm file
-  parm->SetPindex( TopList_.size() );
-  TopList_.push_back(parm);
-  parm->SetTag( ParmTag );
+  if (numErr > 0) return 1;
   return 0;
 }
 
@@ -131,7 +143,7 @@ int TopologyList::WriteParm(ArgList& argIn) const {
   }
   Topology* parm = GetParmByIndex( argIn );
   if (parm == 0) return 1;
-  mprintf("\tWriting parm %i (%s) to Amber parm %s\n",parm->Pindex(),
+  mprintf("\tWriting topology %i (%s) to Amber parm '%s'\n",parm->Pindex(),
           parm->c_str(), outfilename.c_str());
   ParmFile pfile;
   pfile.Write( *parm, outfilename, ParmFile::AMBERPARM, debug_ );
