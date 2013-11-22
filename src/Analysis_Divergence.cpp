@@ -2,6 +2,7 @@
 #include "Analysis_Divergence.h"
 #include "DataSet_1D.h"
 #include "CpptrajStdio.h"
+#include <limits> // Minimum double val for checking zero
 
 // CONSTRUCTOR
 Analysis_Divergence::Analysis_Divergence() : ds1_(0), ds2_(0) {}
@@ -76,8 +77,8 @@ Analysis::RetType Analysis_Divergence::Analyze() {
   double divergence = 0.0;
   int nInvalid = 0;
   for (unsigned int i = 0; i < setP.size(); i++) {
-    bool Pzero = (setP[i] == 0.0);
-    bool Qzero = (setQ[i] == 0.0);
+    bool Pzero = (setP[i] <= std::numeric_limits<double>::min());
+    bool Qzero = (setQ[i] <= std::numeric_limits<double>::min());
     if (!Pzero && !Qzero)
       divergence += (log( setP[i] / setQ[i] ) * setP[i]);
     else if ( Pzero != Qzero ) {
@@ -87,7 +88,7 @@ Analysis::RetType Analysis_Divergence::Analyze() {
   }
   if (nInvalid > 0)
     mprintf("Warning:\tEncountered %i invalid points when calculating divergence.\n", nInvalid);
-  mprintf("\tDivergence between %s and %s is %f\n", ds1_->Legend().c_str(),
+  mprintf("\tDivergence between %s and %s is %g\n", ds1_->Legend().c_str(),
           ds2_->Legend().c_str(), divergence);
   return Analysis::OK;
 }

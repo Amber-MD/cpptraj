@@ -4,6 +4,9 @@
 #ifdef MPI
 # include "StringRoutines.h" // integerToString
 #endif
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 // CONSTRUCTOR
 DataFileList::DataFileList() : 
@@ -136,12 +139,21 @@ void DataFileList::List() const {
   * true if new DataSets are added to it.
   */
 void DataFileList::WriteAllDF() {
+  if (fileList_.empty()) return;
+# ifdef TIMER
+  Timer datafile_time;
+  datafile_time.Start();
+# endif
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
     if ( (*df)->DFLwrite() ) {
       (*df)->WriteData();
       (*df)->SetDFLwrite( false );
     }
   }
+# ifdef TIMER
+  datafile_time.Stop();
+  mprintf("TIME: Write of all data files took %.4f seconds.\n", datafile_time.Total());
+# endif
 }
 
 /** Reset writeFile status for all files in list to true. */

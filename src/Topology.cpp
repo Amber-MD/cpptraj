@@ -186,31 +186,31 @@ int Topology::SoluteAtoms() const {
 // -----------------------------------------------------------------------------
 // Topology::Summary()
 void Topology::Summary() const {
-  mprintf("\t\tTopology %s contains %zu atoms.\n", c_str(), atoms_.size());
+  mprintf("\tTopology %s contains %zu atoms.\n", c_str(), atoms_.size());
   if (!parmName_.empty())
-    mprintf("\t\t                  Title: %s\n", parmName_.c_str());
-  mprintf("\t\t                  %zu residues.\n", residues_.size());
-  mprintf("\t\t                  %zu molecules.\n", molecules_.size());
+    mprintf("\t\tTitle: %s\n", parmName_.c_str());
+  mprintf("\t\t%zu residues.\n", residues_.size());
+  mprintf("\t\t%zu molecules.\n", molecules_.size());
   size_t s1 = bondsh_.size()/3;
   size_t s2 = bonds_.size()/3;
   if (s1 + s2 > 0)
-    mprintf("\t\t                  %zu bonds (%zu to H, %zu other).\n", s1+s2, s1, s2);
+    mprintf("\t\t%zu bonds (%zu to H, %zu other).\n", s1+s2, s1, s2);
   s1 = anglesh_.size()/4;
   s2 = angles_.size()/4;
   if (s1 + s2 > 0)
-    mprintf("\t\t                  %zu angles (%zu to H, %zu other).\n", s1+s2, s1 ,s2);
+    mprintf("\t\t%zu angles (%zu to H, %zu other).\n", s1+s2, s1 ,s2);
   s1 = dihedralsh_.size()/5;
   s2 = dihedrals_.size()/5;
   if (s1 + s2 > 0)
-    mprintf("\t\t                  %zu dihedrals (%zu to H, %zu other).\n", s1+s2, s1, s2);
-  mprintf("\t\t                  Box: %s\n",box_.TypeName());
+    mprintf("\t\t%zu dihedrals (%zu to H, %zu other).\n", s1+s2, s1, s2);
+  mprintf("\t\tBox: %s\n",box_.TypeName());
   if (NsolventMolecules_>0) {
-    mprintf("\t\t                  %i solvent molecules.\n", NsolventMolecules_);
+    mprintf("\t\t%i solvent molecules.\n", NsolventMolecules_);
     if (finalSoluteRes_>-1)
-      mprintf("\t\t                  Final solute residue is %i\n", finalSoluteRes_+1);
+      mprintf("\t\tFinal solute residue is %i\n", finalSoluteRes_+1);
   }
   if (!radius_set_.empty())
-    mprintf("\t\t                  GB radii set: %s\n", radius_set_.c_str());
+    mprintf("\t\tGB radii set: %s\n", radius_set_.c_str());
 }
 
 // Topology::Brief()
