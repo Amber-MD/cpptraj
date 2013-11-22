@@ -73,6 +73,7 @@
 #include "Action_FixAtomOrder.h"
 #include "Action_MaxDist.h"
 #include "Action_NMRrst.h"
+#include "Action_FilterByData.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1405,6 +1406,7 @@ const Command::Token Command::Commands[] = {
 //  { ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, AddAction },
   { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
+  { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
   { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
 //  { ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, AddAction },
   { ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, AddAction },

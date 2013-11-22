@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 
 void Action_FilterByData::Help() {
-  mprintf("\t<dataset arg> min <min> max <max> [maxmindata <file> [name <setname>]]\n"
+  mprintf("\t<dataset arg> min <min> max <max> [out <file> [name <setname>]]\n"
           "\tFor all following actions, only allow frames that are between <min>\n"
           "\t  and <max> of data sets in <dataset arg>. There must be at least\n"
           "\t  one <min> and <max> argument, and can be as many as there are\n"
@@ -13,12 +13,11 @@ void Action_FilterByData::Help() {
 Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  DataFile* maxminfile = DFL->AddDataFile( actionArgs.GetStringKey("maxmindata"), actionArgs );
-  if (maxminfile != 0) {
-    maxmin_ = DSL->AddSet( DataSet::INTEGER, actionArgs.GetStringKey("name"), "Filter" );
-    if (maxmin_ == 0) return Action::ERR;
+  maxmin_ = DSL->AddSet( DataSet::INTEGER, actionArgs.GetStringKey("name"), "Filter" );
+  if (maxmin_ == 0) return Action::ERR;
+  DataFile* maxminfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  if (maxminfile != 0)
     maxminfile->AddSet( maxmin_ );
-  }
   // Get min and max args.
   while (actionArgs.Contains("min"))
     Min_.push_back( actionArgs.getKeyDouble("min", 0.0) );
@@ -38,7 +37,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
     return Action::ERR;
   }
   // Get DataSets from remaining arguments
-  Dsets_.AddSetsFromArgs( actionArgs, *DSL );
+  Dsets_.AddSetsFromArgs( actionArgs.RemainingArgs(), *DSL );
   if (Dsets_.empty()) {
     mprinterr("Error: No data sets specified.\n");
     return Action::ERR;
@@ -64,8 +63,8 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
 
   mprintf("    FILTER: Filtering out frames using %zu data sets.\n", Dsets_.size());
   for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
-    mprintf("\t\t%12.4f < '%s' < %12.4f\n", Min_[ds], Dsets_[ds]->Legend().c_str(), Max_[ds]);
-  if (maxmin_ != 0)
+    mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->Legend().c_str(), Max_[ds]);
+  if (maxminfile != 0)
     mprintf("\tFilter frame info will be written to %s\n", maxminfile->DataFilename().full());
 
   return Action::OK;
@@ -76,15 +75,18 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, Frame* currentFrame,
                                               Frame** frameAddress)
 {
   static int ONE = 1;
+  static int ZERO = 0;
   // Check if frame is within max/min
   for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
   {
     double dVal = Dsets_[ds]->Dval(frameNum);
     //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
     // If value from dataset not within min/max, exit now.
-    if (dVal < Min_[ds] || dVal > Max_[ds]) return Action::SUPPRESSCOORDOUTPUT;
+    if (dVal < Min_[ds] || dVal > Max_[ds]) {
+      maxmin_->Add( frameNum, &ZERO );
+      return Action::SUPPRESSCOORDOUTPUT;
+    }
   }
-  if (maxmin_ != 0)
-    maxmin_->Add( frameNum, &ONE );
+  maxmin_->Add( frameNum, &ONE );
   return Action::OK;
 }
