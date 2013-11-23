@@ -1,7 +1,6 @@
 // Traj_Mol2File
 #include "Traj_Mol2File.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // NumberFilename
 
 // CONSTRUCTOR
 Traj_Mol2File::Traj_Mol2File() : 
@@ -167,7 +166,7 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
 int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
   //mprintf("DEBUG: Calling Traj_Mol2File::writeFrame for set %i\n",set);
   if (mol2WriteMode_==MULTI) {
-    if (file_.OpenWriteWithName( NumberFilename( file_.Filename().Full(), set+1) )) return 1;
+    if (file_.OpenWriteNumbered( set + 1 )) return 1;
   }
   //@<TRIPOS>MOLECULE section
   file_.WriteMolecule( hasCharges_, mol2Top_->Nres() );

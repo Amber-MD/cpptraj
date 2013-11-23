@@ -13,6 +13,7 @@
 #include "Traj_CharmmDcd.h"
 #include "Traj_Binpos.h"
 #include "Traj_GmxTrX.h"
+#include "Traj_SQM.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 const TrajectoryFile::TrajToken TrajectoryFile::TrajArray[] = {
@@ -38,6 +39,7 @@ const TrajectoryFile::TrajToken TrajectoryFile::TrajArray[] = {
   { AMBERRESTART,   "rest",      "Amber Restart",    ".rst7",    Traj_AmberRestart::Alloc   },
   { AMBERTRAJ,      "crd",       "Amber Trajectory", ".crd",     Traj_AmberCoord::Alloc     },
   { CONFLIB,        "conflib",   "LMOD conflib",     ".conflib", Traj_Conflib::Alloc        },
+  { SQM,            "sqm",       "SQM Input",        ".sqm",     Traj_SQM::Alloc            },
   { UNKNOWN_TRAJ,   0,           "Unknown" ,         0,          0                          }
 };
 

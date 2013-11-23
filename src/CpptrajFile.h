@@ -19,7 +19,7 @@ class CpptrajFile {
     /// Prepare file for reading. 
     int SetupRead(std::string const&, int);
     /// Open file as set up for write except use a new name
-    int OpenWriteWithName(std::string const&);
+    int OpenWriteNumbered(int);
     /// Set up and open file for writing
     int OpenWrite(std::string const&);
     /// Prepare file for writing.
