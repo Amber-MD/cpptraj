@@ -1,11 +1,18 @@
 #include "Traj_SQM.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 
 // Traj_SQM::processWriteArgs()
 int Traj_SQM::processWriteArgs(ArgList& argIn) {
+  if (argIn.Contains("charge")) {
+    charge_ = argIn.getKeyInt( "charge", 0 );
+    chargeIsSet_ = true;
+  } else
+    chargeIsSet_ = false;
   return 0;
 }
 
+// Traj_SQM::setupTrajout()
 int Traj_SQM::setupTrajout(std::string const& fname, Topology* trajParm,
                            int NframesToWrite, bool append)
 {
@@ -29,7 +36,20 @@ int Traj_SQM::setupTrajout(std::string const& fname, Topology* trajParm,
     }
   }
   SetTitle( outTitle );
-
+  // If charge not set, try to determine charge.
+  // TODO: Warn if not integer charge
+  if (!chargeIsSet_) {
+    mprintf("Warning: No charge specified; attempting to calculate charge.\n");
+    double qtotal = 0.0;
+    for (int i = 0; i < sqmParm_->Natom(); i++)
+      qtotal += (*sqmParm_)[i].Charge();
+    charge_ = (int)qtotal;
+  }
+  // Set up header
+  header_.assign(" &qmmm\n"
+                 "  qm_theory='AM1', qmcharge = "+integerToString(charge_)+", maxcyc = 0,\n"
+                 "  tight_p_conv = 1, scfconv = 1.0e-10, pseudo_diag = 0, errconv = 1.0e-10\n"
+                 " /\n");
   return 0;
 }
 
@@ -41,6 +61,8 @@ int Traj_SQM::writeFrame(int set, Frame const& frameOut) {
   } else {
     if (outfile_.OpenWriteNumbered( set + 1 )) return 1;
   }
+  outfile_.Printf("%s\n", Title().c_str());
+  outfile_.Printf("%s", header_.c_str());
   const Topology& parm = static_cast<const Topology&>( *sqmParm_ );
   for (int atom = 0; atom < parm.Natom(); atom++) {
     const double* XYZ = frameOut.XYZ( atom );

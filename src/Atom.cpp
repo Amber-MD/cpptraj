@@ -73,7 +73,7 @@ Atom::Atom() :
 { }
 
 /** CONSTRUCTOR - used for PDB files. */
-Atom::Atom(NameType const& aname, char cid) :
+Atom::Atom(NameType const& aname, char cid, const char* elt) :
   charge_(0.0),
   mass_(1.0),
   gb_radius_(0.0),
@@ -86,7 +86,10 @@ Atom::Atom(NameType const& aname, char cid) :
   mol_(0),
   chainID_(cid)
 {
-  SetElementFromName();
+  if (elt ==0 || elt[0] == ' ')
+    SetElementFromName();
+  else
+    SetElementFromSymbol(elt[0], elt[1]);
   mass_ = AtomicElementMass[ element_ ];
 }
 
@@ -267,26 +270,32 @@ void Atom::SetElementFromName() {
       if (c2=='b') element_ = RUBIDIUM;
       break;
     default:
-      // Attempt to match up 2 char element name
-      char en[2];
-      en[0] = tolower(c1);
-      en[1] = tolower(c2);
-      for (int i = 1; i < (int)NUMELEMENTS; i++) {
-        if (AtomicElementName[i][1]=='\0') { // 1 char
-          if ( en[0] == AtomicElementName[i][0] ) {
-            element_ = (AtomicElementType)i;
-            break;
-          }
-        } else {                             // 2 char
-          if ( en[0] == AtomicElementName[i][0] &&
-               en[1] == AtomicElementName[i][1] ) {
-            element_ = (AtomicElementType)i;
-            break;
-          }
-        }
-      }
+      SetElementFromSymbol(c1, c2);
       if (element_ == UNKNOWN_ELEMENT)
         mprintf("Warning: Could not determine atomic number from name [%s]\n",*aname_);
+  }
+}
+
+// Atom::SetElementFromSymbol()
+void Atom::SetElementFromSymbol(char c1, char c2) {
+  if (element_ != UNKNOWN_ELEMENT) return;
+  // Attempt to match up 2 char element name
+  char en[2];
+  en[0] = tolower(c1);
+  en[1] = tolower(c2);
+  for (int i = 1; i < (int)NUMELEMENTS; i++) {
+    if (AtomicElementName[i][1]=='\0') { // 1 char
+      if ( en[0] == AtomicElementName[i][0] ) {
+        element_ = (AtomicElementType)i;
+        break;
+      }
+    } else {                             // 2 char
+      if ( en[0] == AtomicElementName[i][0] &&
+           en[1] == AtomicElementName[i][1] ) {
+        element_ = (AtomicElementType)i;
+        break;
+      }
+    }
   }
 }
 

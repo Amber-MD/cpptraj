@@ -4,7 +4,7 @@
 /// Write out sqm input file.
 class Traj_SQM : public TrajectoryIO {
   public:
-    Traj_SQM() : singleWrite_(false), sqmParm_(0) {}
+    Traj_SQM() : singleWrite_(false), chargeIsSet_(false), charge_(0), sqmParm_(0) {}
     static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_SQM(); }
   private:
     // Inherited functions
@@ -21,7 +21,10 @@ class Traj_SQM : public TrajectoryIO {
     void Info();
 
     bool singleWrite_;
+    bool chargeIsSet_;
+    int charge_;
     Topology* sqmParm_;
     CpptrajFile outfile_;
+    std::string header_;
 };
 #endif

@@ -80,13 +80,14 @@ Atom PDBfile::pdb_Atom() {
   // Atom number (6-11)
   // Atom name (12-16)
   // Chain ID (21)
+  // Element  (76-77)
   char savechar = linebuffer_[16];
   linebuffer_[16] = '\0';
   NameType aname(linebuffer_+12);
   // Replace asterisks with single quotes
   aname.ReplaceAsterisk();
   linebuffer_[16] = savechar;
-  return Atom(aname, linebuffer_[21]);
+  return Atom(aname, linebuffer_[21], linebuffer_+76);
 }
 
 // PDBfile::pdb_Residue()
