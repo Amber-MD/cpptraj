@@ -7,7 +7,7 @@ class DataSet_2D : public DataSet {
   public:
     /// Types of matrix calculated by Action_Matrix.
     enum MatrixType {
-      NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED, NMAT
+      NO_OP=0, DIST, COVAR, MWCOVAR, CORREL, DISTCOVAR, IDEA, IRED, DIHCOVAR, NMAT
     };
     /// Kind of matrix.
     enum MatrixKind { FULL = 0, HALF, TRI };

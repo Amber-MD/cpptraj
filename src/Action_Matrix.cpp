@@ -2,6 +2,7 @@
 #include "Action_Matrix.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "Constants.h" // DEGRAD
 
 // CONSTRUCTOR
 Action_Matrix::Action_Matrix() :
@@ -50,6 +51,8 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mtype = DataSet_2D::IDEA;
   else if (actionArgs.hasKey("ired"))
     mtype = DataSet_2D::IRED;
+  else if (actionArgs.hasKey("dihcovar"))
+    mtype = DataSet_2D::DIHCOVAR;
   // Output type
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRESIDUE;
@@ -73,23 +76,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   useMass_ = actionArgs.hasKey("mass");
 
   DataSet_2D::MatrixKind mkind = DataSet_2D::HALF;
-  if (mtype != DataSet_2D::IRED) {
-    // Get masks if not IRED
-    mask1_.SetMaskString( actionArgs.GetMaskNext() );
-    std::string maskexpr = actionArgs.GetMaskNext();
-    if (!maskexpr.empty()) useMask2_ = true;
-    if ( useMask2_ && (mtype == DataSet_2D::IDEA || mtype == DataSet_2D::DISTCOVAR) )
-    {
-      mprinterr("Error: Mask 2 [%s] specified but not used for %s\n",
-                maskexpr.c_str(), DataSet_2D::MatrixTypeString(mtype));
-      useMask2_ = false;
-      return Action::ERR;
-    }
-    if (useMask2_) {
-      mask2_.SetMaskString( maskexpr );
-      mkind = DataSet_2D::FULL;
-    }
-  } else {
+  if (mtype == DataSet_2D::IRED) { // IRED matrix
     // Setup IRED vectors and determine Legendre order
     order_ = actionArgs.getKeyInt("order",1);
     if (order_ <= 0) {
@@ -107,11 +94,52 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       mprinterr("Error: matrix: no vectors defined for IRED\n");
       return Action::ERR;
     }
+  } else if (mtype == DataSet_2D::DIHCOVAR) { // Dihedral Covariance
+    // Get data set mask for dihedral covariance
+    DataSetList dihedralSets = DSL->GetMultipleSets( actionArgs.GetStringKey("dihedrals") );
+    if (dihedralSets.empty()) {
+      mprinterr("Error: No dihedral data sets specified.\n");
+      return Action::ERR;
+    }
+    // Ensure data sets are periodic
+    DihedralSets_.clear();
+    for (DataSetList::const_iterator ds = dihedralSets.begin(); ds != dihedralSets.end(); ++ds)
+    {
+      if ( (*ds)->Ndim() == 1 ) {
+        DataSet_1D* ds1 = (DataSet_1D*)(*ds);
+        if ( ds1->IsTorsionArray() )
+          DihedralSets_.push_back( ds1 );
+        else
+          mprintf("Warning: Set '%s' is not periodic, skipping.\n", (*ds)->Legend().c_str());
+      } else
+        mprintf("Warning: Set '%s' is not 1D, skipping.\n", (*ds)->Legend().c_str());
+    }
+    if ( DihedralSets_.empty() ) {
+      mprinterr("Error: No valid data sets found.\n");
+      return Action::ERR;
+    }
+  } else {
+    // Get masks if not IRED/DIHCOVAR
+    mask1_.SetMaskString( actionArgs.GetMaskNext() );
+    std::string maskexpr = actionArgs.GetMaskNext();
+    if (!maskexpr.empty()) useMask2_ = true;
+    if ( useMask2_ && (mtype == DataSet_2D::IDEA || mtype == DataSet_2D::DISTCOVAR) )
+    {
+      mprinterr("Error: Mask 2 [%s] specified but not used for %s\n",
+                maskexpr.c_str(), DataSet_2D::MatrixTypeString(mtype));
+      useMask2_ = false;
+      return Action::ERR;
+    }
+    if (useMask2_) {
+      mask2_.SetMaskString( maskexpr );
+      mkind = DataSet_2D::FULL;
+    }
   }
  
   // Set up matrix DataSet and type
   Mat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, name, "Mat");
   if (Mat_ == 0) return Action::ERR;
+  // NOTE: Kind is set here so subsequent analyses/actions know about it.
   Mat_->SetTypeAndKind( mtype, mkind );
   // Set default precision for backwards compat.
   Mat_->SetPrecision(6, 3);
@@ -135,6 +163,8 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (mtype == DataSet_2D::IRED)
     mprintf("            %u IRED vecs, Order of Legendre polynomials: %i\n",
             IredVectors_.size(), order_);
+  else if (mtype == DataSet_2D::DIHCOVAR)
+    mprintf("            %u data sets.\n", DihedralSets_.size());
   if (!filename_.empty()) {
     mprintf("            Printing to file %s\n",filename_.c_str());
     if (outtype_ != BYATOM) {
@@ -167,8 +197,8 @@ Action_Matrix::Darray Action_Matrix::FillMassArray(Topology const& currentParm,
 }
 
 static Action::RetType PrintMask2Error() {
-  mprinterr("Error: Second mask (full matrix) not supported for DISTCOVAR,\n");
-  mprinterr("Error: IDEA, or IRED matrix.\n");
+  mprinterr("Error: Second mask (full matrix) not supported for DISTCOVAR,\n"
+            "Error:   IDEA, or IRED matrix.\n");
   return Action::ERR;
 }
 
@@ -178,7 +208,13 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   size_t mask2tot = 0; // Will be # of rows if not symmetric matrix
 
   // Set up masks.
-  if (Mat_->Type() != DataSet_2D::IRED) {
+  if (Mat_->Type() == DataSet_2D::IRED) {
+    // IRED - matrix # cols = # of IRED vectors
+    mask1tot = IredVectors_.size();
+  } else if (Mat_->Type() == DataSet_2D::DIHCOVAR) {
+    // Dihedral covariance - matrix # cols = # data sets
+    mask1tot = DihedralSets_.size();
+  } else {
     if (currentParm->SetupIntegerMask(mask1_)) return Action::ERR;
     mask1_.MaskInfo();
     if (mask1_.None()) {
@@ -195,9 +231,6 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
     }
     mask1tot = (size_t)mask1_.Nselected();
     mask2tot = (size_t)mask2_.Nselected();
-  } else {
-    // IRED - matrix # cols = # of IRED vectors
-    mask1tot = IredVectors_.size();
   }
   if (mask1tot < mask2tot) {
     mprinterr("Error: # of atoms in mask1 < # of atoms in mask2\n");
@@ -229,6 +262,11 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
       vectsize = (mask1tot + mask2tot) * 3;
       ncols = mask1tot * 3;
       nrows = mask2tot * 3;
+      break;
+    case DataSet_2D::DIHCOVAR: // Dihedral covariance
+      vectsize = (mask1tot + mask2tot) * 2;
+      ncols = mask1tot * 2;
+      nrows = mask2tot * 2;
       break;
     case DataSet_2D::IDEA     :
     case DataSet_2D::IRED     : // No Full matrix possible.
@@ -270,10 +308,10 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
 # endif
   // If matrix has already been allocated, make sure size did not change.
   if (previous_size > 0 && previous_size != Mat_->Size()) {
-    mprinterr("Error: Attempting to reallocate matrix with different size.\n");
-    mprinterr("Error: Original size= %u, new size= %u\n", previous_size, Mat_->Size());
-    mprinterr("Error: This can occur when different #s of atoms are selected in\n");
-    mprinterr("Error: different topology files.\n");
+    mprinterr("Error: Attempting to reallocate matrix with different size.\n"
+              "Error:   Original size= %u, new size= %u\n"
+              "Error:   This can occur when different #s of atoms are selected in\n"
+              "Error:   different topology files.\n", previous_size, Mat_->Size());
     return Action::ERR;
   }
   CurrentParm_ = currentParm;
@@ -495,6 +533,50 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
 # endif
 }
 
+// Action_Matrix::StoreXY()
+void Action_Matrix::StoreXY(v_iterator& v1, v_iterator& v2, const double* XY) const 
+{
+  *(v1++) += XY[0];
+  *(v2++) += (XY[0] * XY[0]);
+  *(v1++) += XY[1];
+  *(v2++) += (XY[1] * XY[1]);
+}
+
+/** Dihedral covariance. */
+void Action_Matrix::CalcDihedralCovariance( int frameNum ) {
+  double XY2[2];
+  DataSet_MatrixDbl::iterator mat = Mat_->begin();
+  v_iterator v1idx1 = Mat_->v1begin();
+  v_iterator v2idx1 = vect2_.begin();
+    // TODO: Pre-calculate thetas
+    // FIXME: Only Half Matrix for Now
+    // OUTER LOOP
+    for (Array1D::const_iterator ds2 = DihedralSets_.begin(); 
+                                 ds2 != DihedralSets_.end(); ++ds2)
+    {
+      double theta2 = (*ds2)->Dval( frameNum ) * DEGRAD;
+      XY2[0] = cos( theta2 );
+      XY2[1] = sin( theta2 );
+      // Store X and X^2
+      StoreXY( v1idx1, v2idx1, XY2 );
+      // Loop over X and Y of XY2
+      for (int iidx = 0; iidx < 2; ++iidx) {
+        double Vi = XY2[iidx];
+        // Diagonal
+        for (int jidx = iidx; jidx < 2; jidx++)
+          *(mat++) += Vi * XY2[jidx]; // Vi * j{0,1}, Vi * j{1}
+        // INNER LOOP
+        for (Array1D::const_iterator ds1 = ds2 + 1; 
+                                     ds1 != DihedralSets_.end(); ++ds1)
+        {
+          double theta1 = (*ds1)->Dval( frameNum ) * DEGRAD;
+          *(mat++) += Vi * cos( theta1 );
+          *(mat++) += Vi * sin( theta1 );
+        }
+      }
+    }
+}
+
 /** Calc Isotropically distributed ensemble matrix.
   * See Proteins 2002, 46, 177; eq. 7 
   */
@@ -603,6 +685,7 @@ Action::RetType Action_Matrix::DoAction(int frameNum, Frame* currentFrame, Frame
     case DataSet_2D::COVAR    :
     case DataSet_2D::MWCOVAR  : CalcCovarianceMatrix(*currentFrame); break;
     case DataSet_2D::CORREL   : CalcCorrelationMatrix(*currentFrame); break;
+    case DataSet_2D::DIHCOVAR : CalcDihedralCovariance(frameNum); break;
     case DataSet_2D::DISTCOVAR: CalcDistanceCovarianceMatrix(*currentFrame); break;
     case DataSet_2D::IDEA     : CalcIdeaMatrix(*currentFrame); break;
     case DataSet_2D::IRED     : CalcIredMatrix(); break;
@@ -620,7 +703,7 @@ void Action_Matrix::Vect2MinusVect() {
 }
 
 // Action_Matrix::FinishCovariance()
-void Action_Matrix::FinishCovariance() {
+void Action_Matrix::FinishCovariance(size_t element_size) {
   double Mass = 1.0;
   double mass2 = 1.0;
   if (snap_ < (int)Mat_->Ncols())
@@ -637,23 +720,27 @@ void Action_Matrix::FinishCovariance() {
     M_iterator m2 = mass2_.begin();
     // Position for mask2 halfway through vect/vect2
     v_iterator v1idx2begin = Mat_->v1begin() + Mat_->Ncols();
-    for (v_iterator v1idx2 = v1idx2begin; v1idx2 != Mat_->v1end(); v1idx2 += 3)
+    for (v_iterator v1idx2 = v1idx2begin; v1idx2 != Mat_->v1end(); v1idx2 += element_size)
     {
       if (Mat_->Type() == DataSet_2D::MWCOVAR)
         mass2 = *(m2++);
-      for (int iidx = 0; iidx < 3; ++iidx) {
+      for (unsigned int iidx = 0; iidx < element_size; ++iidx) {
         M_iterator m1 = mass1_.begin();
         double Vi = *(v1idx2 + iidx);
-        for (v_iterator v1idx1 = Mat_->v1begin(); v1idx1 != v1idx2begin; v1idx1 += 3)
+        for (v_iterator v1idx1 = Mat_->v1begin(); v1idx1 != v1idx2begin; v1idx1 += element_size)
         {
           if (Mat_->Type() == DataSet_2D::MWCOVAR)
             Mass = sqrt( mass2 * *(m1++) );
-          *mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
-          ++mat;
-          *mat = (*mat - (Vi * *(v1idx1+1))) * Mass;
-          ++mat;
-          *mat = (*mat - (Vi * *(v1idx1+2))) * Mass;
-          ++mat;
+          for (unsigned int idx = 0; idx < element_size; ++idx) {
+            *mat = (*mat - (Vi * *(v1idx1+idx))) * Mass;
+            ++mat;
+          }
+          //*mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
+          //++mat;
+          //*mat = (*mat - (Vi * *(v1idx1+1))) * Mass;
+          //++mat;
+          //*mat = (*mat - (Vi * *(v1idx1+2))) * Mass;
+          //++mat;
           //*(mat++) -= Vi * *(v1idx1  );
           //*(mat++) -= Vi * *(v1idx1+1);
           //*(mat++) -= Vi * *(v1idx1+2);
@@ -663,30 +750,34 @@ void Action_Matrix::FinishCovariance() {
   } else {
     // Half Matrix
     M_iterator m2 = mass1_.begin();
-    for (v_iterator v1idx2 = Mat_->v1begin(); v1idx2 != Mat_->v1end(); v1idx2 += 3)
+    for (v_iterator v1idx2 = Mat_->v1begin(); v1idx2 != Mat_->v1end(); v1idx2 += element_size)
     {
       if (Mat_->Type() == DataSet_2D::MWCOVAR)
         mass2 = *m2;
-      for (int iidx = 0; iidx < 3; ++iidx) {
+      for (unsigned int iidx = 0; iidx < element_size; ++iidx) {
         M_iterator m1 = m2;
         double Vi = *(v1idx2 + iidx);
-        for (v_iterator v1idx1 = v1idx2; v1idx1 != Mat_->v1end(); v1idx1 += 3)
+        for (v_iterator v1idx1 = v1idx2; v1idx1 != Mat_->v1end(); v1idx1 += element_size)
         {
           if (Mat_->Type() == DataSet_2D::MWCOVAR)
             Mass = sqrt( mass2 * *(m1++) );
           if ( v1idx1 == v1idx2 ) {
-            for (int jidx = iidx; jidx < 3; ++jidx) {
+            for (unsigned int jidx = iidx; jidx < element_size; ++jidx) {
               *mat = (*mat - (Vi * *(v1idx1 + jidx))) * Mass;
               ++mat;
               //*(mat++) -= Vi * *(v1idx1 + jidx); // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
             }
           } else {
-            *mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
-            ++mat;
-            *mat = (*mat - (Vi * *(v1idx1+1))) * Mass;
-            ++mat;
-            *mat = (*mat - (Vi * *(v1idx1+2))) * Mass;
-            ++mat;
+            for (unsigned int idx = 0; idx < element_size; ++idx) {
+              *mat = (*mat - (Vi * *(v1idx1+idx))) * Mass;
+              ++mat;
+            }
+            //*mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
+            //++mat;
+            //*mat = (*mat - (Vi * *(v1idx1+1))) * Mass;
+            //++mat;
+            //*mat = (*mat - (Vi * *(v1idx1+2))) * Mass;
+            //++mat;
           }
         }
       }
@@ -794,7 +885,8 @@ void Action_Matrix::Print() {
 
   switch (Mat_->Type()) {
     case DataSet_2D::COVAR    :
-    case DataSet_2D::MWCOVAR  : FinishCovariance(); break;
+    case DataSet_2D::MWCOVAR  : FinishCovariance(3); break;
+    case DataSet_2D::DIHCOVAR : FinishCovariance(2); break;
     case DataSet_2D::CORREL   : FinishCorrelation(); break;
     case DataSet_2D::DISTCOVAR: FinishDistanceCovariance(); break;
     default: break; 

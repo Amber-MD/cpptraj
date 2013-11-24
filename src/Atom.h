@@ -20,14 +20,15 @@ class Atom {
       RHENIUM,    RADON,      RADIUM,   SILICON,   SCANDIUM,   SELENIUM,
       STRONTIUM,  TIN,        ANTIMONY, TITANIUM,  TECHNETIUM, TELLURIUM,
       TANTALUM,   THALLIUM,   VANADIUM, TUNGSTEN,  XENON,      ZIRCONIUM,
+      YTTRIUM,    LUTETIUM,
       EXTRAPT 
     };
     static const char* AtomicElementName[]; // Needed by Topology::GetBondLength
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}
-    /// Take atom name, chain ID. Attempt to determine element from name.
-    Atom(NameType const&, char);
+    /// Take atom name, chain ID. Attempt to determine element from name if no elt.
+    Atom(NameType const&, char, const char*);
     /// Take atom name, type, and charge. Attempt to determine element from name.
     Atom( NameType const&, NameType const&, double );
     Atom( NameType const&, double, int, double, int, NameType const&, double, double,int );
@@ -62,7 +63,7 @@ class Atom {
     inline int Nexcluded()             const { return (int)excluded_.size(); }
     inline double Mass()               const { return mass_; }
     inline double Charge()             const { return charge_; }
-    inline double Radius()             const { return gb_radius_; }
+    inline double GBRadius()           const { return gb_radius_; }
     inline double Screen()             const { return gb_screen_; }
     /// Add atom # to this atoms list of bonded atoms.
     void AddBond(int);
@@ -71,9 +72,10 @@ class Atom {
     /// Create exclusion list from input set.
     void AddExclusionList(std::set<int>&);
   protected:
-    static const size_t NUMELEMENTS = 74;
+    static const size_t NUMELEMENTS = 76;
   private:
     static const int AtomicElementNum[];
+    static const double AtomicElementMass[];
     double charge_;
     double mass_;
     double gb_radius_;
@@ -89,6 +91,7 @@ class Atom {
     std::vector<int> excluded_;
 
     void SetElementFromName();
+    void SetElementFromSymbol(char,char);
     void SetElementFromMass();
 };
 #endif

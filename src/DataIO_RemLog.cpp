@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h" 
 #include "ProgressBar.h"
 #include "DataSet_RemLog.h"
+#include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
 DataIO_RemLog::DataIO_RemLog() : debug_(0) {}
@@ -48,9 +49,7 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
 }
 
 void DataIO_RemLog::ReadHelp() {
-  mprintf("\tlogfiles <filelist>:  Read in additional REM log files in a comma-\n"
-          "\t                      separated list, e.g. 'logfiles rem2.log,rem3.log'\n"
-          "\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
+  mprintf("\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
           "\t                      coordinate indices (H-REMD only).\n");
 }
 
@@ -60,12 +59,21 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
 {
   ExchgType firstlog_type = UNKNOWN;
   std::vector<std::string> logFilenames;
+  if (!fileExists( fname.c_str() )) {
+    mprinterr("Error: File '%s' does not exist.\n", fname.c_str());
+    return 1;
+  }
   logFilenames.push_back( fname );
+  // Get crdidx arg
+  ArgList idxArgs( argIn.GetStringKey("crdidx"), "," );
   // Check if more than one log name was specified.
-  ArgList lognames(argIn.GetStringKey("logfiles"), ",");
-  if (!lognames.empty()) {
-    for (int i = 0; i < lognames.Nargs(); i++)
-      logFilenames.push_back( lognames[i] );
+  std::string log_name = argIn.GetStringNext();
+  while (!log_name.empty()) {
+    if (!fileExists( log_name.c_str() ))
+      mprintf("Warning: '%s' does not exist.\n", log_name.c_str());
+    else
+      logFilenames.push_back( log_name );
+    log_name = argIn.GetStringNext();
   }
   mprintf("\tReading from log files:");
   for (std::vector<std::string>::const_iterator it = logFilenames.begin();
@@ -125,7 +133,6 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   std::vector<int> coordinateIndices;
   if (firstlog_type == HREMD) {
     replicaFrames.resize( n_replicas );
-    ArgList idxArgs( argIn.GetStringKey("crdidx"), "," );
     if (!idxArgs.empty() && idxArgs.Nargs() != n_replicas) {
       mprinterr("Error: crdidx: Ensemble size is %i but only %i indices given!\n",
                 n_replicas, idxArgs.Nargs());
@@ -152,7 +159,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                                                 it != logFilenames.end(); ++it)
   {
     // Open the current remlog, advance to first exchange
-    buffer.OpenFileRead( *it );
+    if (buffer.OpenFileRead( *it )) return 1;
     //ptr = buffer.Line();
     //while (ptr[0] == '#' && ptr[2] != 'e' && ptr[3] != 'x') ptr = buffer.Line();
     ExchgType thislog_type = UNKNOWN;

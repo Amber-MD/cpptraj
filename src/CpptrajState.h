@@ -26,6 +26,7 @@ class CpptrajState {
     int AddTrajin( ArgList&, bool );
     int AddTrajin( std::string const& );
     int RunAnalyses();
+    TrajinList const& InputTrajList() const { return trajinList_; }
     inline int AddTrajout( ArgList const& );
     inline int AddTrajout( std::string const& );
     inline int AddReference( ArgList& );
@@ -33,11 +34,11 @@ class CpptrajState {
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
     inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );
     static int WorldSize();
-    int ListAll(ArgList&);
+    int ListAll(ArgList&) const;
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
     int RemoveFromList(ArgList&);
-    int ProcessMask(std::string const&, std::string const&);
+    int ProcessMask(std::string const&, std::string const&) const;
     int TrajLength( std::string const&, std::vector<std::string> const&);
     int Run();
     /// Write all DataFiles
@@ -48,7 +49,7 @@ class CpptrajState {
       L_ACTION = 0, L_TRAJIN, L_REF, L_TRAJOUT, L_PARM, L_ANALYSIS,
       L_DATAFILE, L_DATASET, N_LISTS
     };
-    std::vector<bool> ListsFromArg(ArgList&, bool);
+    std::vector<bool> ListsFromArg(ArgList&, bool) const;
 
     int RunNormal();
     int RunEnsemble();

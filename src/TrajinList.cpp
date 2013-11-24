@@ -39,7 +39,8 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList& argIn, TopologyLi
     traj->SetEnsemble(true);
     err += AddInputTraj( *fn, traj, argIn, topListIn );
   }
-  return err;
+  if (err > 0) return 1;
+  return 0;
 }
 
 // TrajinList::AddTrajin()
@@ -62,7 +63,8 @@ int TrajinList::AddTrajin(std::string const& fname, ArgList& argIn, TopologyList
       traj = new Trajin_Single();
     err += AddInputTraj( *fn, traj, argIn, topListIn );
   }
-  return err;
+  if (err > 0) return 1;
+  return 0;
 }
 
 // TrajinList::AddInputTraj()

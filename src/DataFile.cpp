@@ -41,18 +41,6 @@ DataFile::~DataFile() {
 }
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
-const DataFile::DataFileToken DataFile::DataFileArray[] = {
-  { DATAFILE,     "dat",    "Standard Data File", ".dat",   DataIO_Std::Alloc     },
-  { XMGRACE,      "grace",  "Grace File",         ".agr",   DataIO_Grace::Alloc   },
-  { GNUPLOT,      "gnu",    "Gnuplot File",       ".gnu",   DataIO_Gnuplot::Alloc },
-  { XPLOR,        "xplor",  "Xplor File",         ".xplor", DataIO_Xplor::Alloc   },
-  { XPLOR,        "xplor",  "Xplor File",         ".grid",  DataIO_Xplor::Alloc   },
-  { OPENDX,       "opendx", "OpenDx File",        ".dx",    DataIO_OpenDx::Alloc  },
-  { REMLOG,       "remlog", "Amber REM log",      ".log",   DataIO_RemLog::Alloc  },
-  { MDOUT,        "mdout",  "Amber MDOUT file",   ".mdout", DataIO_Mdout::Alloc   },
-  { UNKNOWN_DATA, 0,        "Unknown",            0,        0                     }
-};
-
 // NOTE: Must be in same order as DataFormatType
 const DataFile::DF_HelpToken DataFile::DF_HelpArray[] = {
   { "Standard Data File", DataIO_Std::ReadHelp,    DataIO_Std::WriteHelp     },
@@ -62,6 +50,18 @@ const DataFile::DF_HelpToken DataFile::DF_HelpArray[] = {
   { "OpenDX File",        0,                       0                         },
   { "Amber REM log",      DataIO_RemLog::ReadHelp, 0                         },
   { "Amber MDOUT file",   DataIO_Mdout::ReadHelp,  0                         }
+};
+
+const DataFile::DataFileToken DataFile::DataFileArray[] = {
+  { DATAFILE,     "dat",    DF_HelpArray[DATAFILE].Description, ".dat",   DataIO_Std::Alloc     },
+  { XMGRACE,      "grace",  DF_HelpArray[XMGRACE].Description,  ".agr",   DataIO_Grace::Alloc   },
+  { GNUPLOT,      "gnu",    DF_HelpArray[GNUPLOT].Description,  ".gnu",   DataIO_Gnuplot::Alloc },
+  { XPLOR,        "xplor",  DF_HelpArray[XPLOR].Description,    ".xplor", DataIO_Xplor::Alloc   },
+  { XPLOR,        "xplor",  DF_HelpArray[XPLOR].Description,    ".grid",  DataIO_Xplor::Alloc   },
+  { OPENDX,       "opendx", DF_HelpArray[OPENDX].Description,   ".dx",    DataIO_OpenDx::Alloc  },
+  { REMLOG,       "remlog", DF_HelpArray[REMLOG].Description,   ".log",   DataIO_RemLog::Alloc  },
+  { MDOUT,        "mdout",  DF_HelpArray[MDOUT].Description,    ".mdout", DataIO_Mdout::Alloc   },
+  { UNKNOWN_DATA, 0,        "Unknown",            0,        0                     }
 };
 
 void DataFile::ReadOptions() {

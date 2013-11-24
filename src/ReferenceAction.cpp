@@ -4,6 +4,7 @@
 // ReferenceAction::SetRefMask()
 int ReferenceAction::SetRefMask(Topology const& topIn, const char* call) {
   if (topIn.SetupIntegerMask( refMask_ )) return 1;
+  refMask_.MaskInfo();
   if (refMask_.None()) {
     mprinterr("Error: %s: No reference atoms selected for parm %s, [%s]\n",
               call, topIn.c_str(), refMask_.MaskString());

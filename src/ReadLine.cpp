@@ -7,8 +7,8 @@
 #include "ReadLine.h"
 #include "Command.h"
 
-// dupstr()
-static char* dupstr(const char* s) {
+// duplicate_string()
+static char* duplicate_string(const char* s) {
   char* r = (char*)malloc(strlen(s) + 1);
   strcpy(r, s);
   return r;
@@ -36,7 +36,7 @@ static char* command_generator(const char* text, int state) {
   {
     list_index++;
     if (strncmp(name, text, len) == 0)
-      return (dupstr(name));
+      return (duplicate_string(name));
   }
 
   // If no names matched, then return NULL.

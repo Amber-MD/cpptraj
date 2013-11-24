@@ -31,7 +31,7 @@ int CpptrajState::AddTrajin( std::string const& fname ) {
 int CpptrajState::WorldSize() { return worldsize; }
 
 /** Select lists from ArgList */
-std::vector<bool> CpptrajState::ListsFromArg( ArgList& argIn, bool allowEnableAll ) {
+std::vector<bool> CpptrajState::ListsFromArg( ArgList& argIn, bool allowEnableAll ) const {
   std::vector<bool> enabled( (int)N_LISTS );
   enabled[L_ACTION]   = argIn.hasKey("actions");
   enabled[L_TRAJIN]   = argIn.hasKey("trajin");
@@ -54,7 +54,7 @@ std::vector<bool> CpptrajState::ListsFromArg( ArgList& argIn, bool allowEnableAl
 }
 
 /** List all members of specified lists */
-int CpptrajState::ListAll( ArgList& argIn ) {
+int CpptrajState::ListAll( ArgList& argIn ) const {
   std::vector<bool> enabled = ListsFromArg( argIn, true );
   if ( enabled[L_ACTION]   ) actionList_.List();
   if ( enabled[L_TRAJIN]   ) trajinList_.List();
@@ -134,7 +134,7 @@ int CpptrajState::RemoveFromList( ArgList& argIn ) {
 }
 
 // CpptrajState::ProcessMask()
-int CpptrajState::ProcessMask( std::string const& topname, std::string const& maskexpr ) {
+int CpptrajState::ProcessMask( std::string const& topname, std::string const& maskexpr ) const {
   ParmFile pfile;
   Topology parm;
   if (pfile.Read(parm, topname, true, debug_)) return 1;
@@ -607,17 +607,8 @@ int CpptrajState::RunNormal() {
 // CpptrajState::MasterDataFileWrite()
 void CpptrajState::MasterDataFileWrite() {
   // Only Master does DataFile output
-  if (worldrank==0) {
-#   ifdef TIMER
-    Timer datafile_time;
-    datafile_time.Start();
-#   endif
+  if (worldrank==0)
     DFL_.WriteAllDF();
-#   ifdef TIMER
-    datafile_time.Stop();
-    mprintf("TIME: Write of all data files took %.4f seconds.\n", datafile_time.Total());
-#   endif
-  }
 }
 
 // CpptrajState::RunAnalyses()

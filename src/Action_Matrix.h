@@ -3,6 +3,7 @@
 #include "Action.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_Vector.h"
+#include "Array1D.h"
 #include "ActionFrameCounter.h"
 /// Calculate various types of matrices
 class Action_Matrix : public Action, ActionFrameCounter {
@@ -35,6 +36,8 @@ class Action_Matrix : public Action, ActionFrameCounter {
     // IRED only
     int order_;
     std::vector<DataSet_Vector*> IredVectors_;
+    // DIHCOVAR only
+    Array1D DihedralSets_;
     // MWcovar only
     Darray mass1_;
     Darray mass2_;
@@ -53,11 +56,13 @@ class Action_Matrix : public Action, ActionFrameCounter {
     void CalcDistanceMatrix(Frame const&);
     inline void StoreVec(v_iterator&, v_iterator&, const double*) const;
     void CalcCovarianceMatrix(Frame const&);
+    void StoreXY(v_iterator&, v_iterator&, const double*) const;
+    void CalcDihedralCovariance( int );
     void CalcIdeaMatrix(Frame const&);
     void CalcCorrelationMatrix(Frame const&);
     void CalcDistanceCovarianceMatrix(Frame const&);
     void Vect2MinusVect();
-    void FinishCovariance();
+    void FinishCovariance(size_t);
     inline void DotProdAndNorm(DataSet_MatrixDbl::iterator&, v_iterator&,
                                v_iterator&, v_iterator&, v_iterator&) const;
     void FinishCorrelation();

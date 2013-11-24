@@ -20,7 +20,6 @@ class TopologyList {
     int AddParmFile(std::string const&);
     int AddParmFile(std::string const&,std::string const&,bool,double);
     int WriteParm(ArgList&) const;
-    void ReplaceParm(int, Topology*);
     void List() const;
   private:
     std::vector<Topology*> TopList_;

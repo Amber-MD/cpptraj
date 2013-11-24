@@ -1,7 +1,6 @@
 // Traj_PDBfile
 #include "Traj_PDBfile.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // NumberFilename
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
@@ -222,8 +221,10 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
     pdbWriteMode_ = MODEL;
   // TODO: Setup title
   // Open here if writing to single file
-  if (pdbWriteMode_ != MULTI)
-    return file_.OpenFile();
+  if (pdbWriteMode_ != MULTI) {
+    if ( file_.OpenFile() ) return 1;
+    if (!Title().empty()) file_.WriteTITLE( Title() );
+  }
   return 0;
 }
 
@@ -232,7 +233,9 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
 int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame set up output filename and open
-    if (file_.OpenWriteWithName( NumberFilename(file_.Filename().Full(), set+1) )) return 1;
+    if (file_.OpenWriteNumbered( set + 1 )) return 1;
+    if (!Title().empty()) 
+      file_.WriteTITLE( Title() );
   } else if (pdbWriteMode_==MODEL) {
     // If specified, write MODEL keyword
     // 1-6 MODEL, 11-14 model serial #
@@ -262,7 +265,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       lastAtomInMol = (*mol).EndAtom();
     }
     if (dumpq_) Occ = (float) (*atom).Charge();
-    if (dumpr_) B = (float) (*atom).Radius();
+    if (dumpr_) B = (float) (*atom).GBRadius();
     // If pdbatom change amber atom names to pdb v3
     NameType atomName = (*atom).Name();
     if (pdbatom_) {

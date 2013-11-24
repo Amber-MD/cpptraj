@@ -43,6 +43,13 @@ std::string const& ArgList::operator[](int idx) {
   return arglist_[idx];
 }
 
+// ArgList::ClearList()
+void ArgList::ClearList() {
+  argline_.clear();
+  arglist_.clear();
+  marked_.clear();
+}
+
 // ArgList::SetList()
 /** Separate input by the characters in separator and store as separate args.
   * This overwrites any existing args and completely resets the list.

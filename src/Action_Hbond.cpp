@@ -619,7 +619,7 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
     if (bridgeID.empty())
       bridgeID.assign("None");
     NumBridge_->Add(frameNum, &numHB);
-    BridgeID_->Add(frameNum, (char*)bridgeID.c_str()); // FIXME: Fix cast
+    BridgeID_->Add(frameNum, bridgeID.c_str());
   }
 
   ++Nframes_;
@@ -627,9 +627,16 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
   return Action::OK;
 }
 
-// Action_Hbond::print()
-/** Print average occupancies over all frames for all detected Hbonds
-  */
+/** Calculate average distance and angle for hbond. */
+void Action_Hbond::HbondTypeCalcAvg(HbondType& hb) {
+  double dFrames = (double)hb.Frames;
+  hb.dist /= dFrames;
+  hb.angle /= dFrames;
+  hb.angle *= RADDEG;
+}
+
+// Action_Hbond::Print()
+/** Print average occupancies over all frames for all detected Hbonds. */
 void Action_Hbond::Print() {
   std::vector<HbondType> HbondList; // For sorting
   std::string Aname, Hname, Dname;
@@ -661,26 +668,21 @@ void Action_Hbond::Print() {
   // Solute Hbonds 
   if (!avgout_.empty()) { 
     if (outfile.OpenWrite( avgout_ )) return;
-    // Place all detected Hbonds in a list and sort. Free memory as we go. 
-    for (HBmapType::iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) 
+    // Place all detected Hbonds in a list and sort.
+    for (HBmapType::const_iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) {
       HbondList.push_back( (*it).second );
+      // Calculate average distance and angle for this hbond.
+      HbondTypeCalcAvg( HbondList.back() );
+    }
     HbondMap_.clear();
+    // Sort and Print 
     sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
-    // Calculate averages and print
-    //outfile.Printf("#Solute Hbonds:\n");
     outfile.Printf("%-*s %*s %*s %8s %12s %12s %12s\n", NUM, "#Acceptor", 
                    NUM, "DonorH", NUM, "Donor", "Frames", "Frac", "AvgDist", "AvgAng");
-    for (std::vector<HbondType>::iterator hbond = HbondList.begin(); 
-                                          hbond!=HbondList.end(); ++hbond ) 
+    for (std::vector<HbondType>::const_iterator hbond = HbondList.begin(); 
+                                                hbond != HbondList.end(); ++hbond ) 
     {
-      double avg = (double) (*hbond).Frames;
-      avg = avg / ((double) Nframes_);
-      double dist = (double) (*hbond).dist;
-      dist = dist / ((double) (*hbond).Frames);
-      double angle = (double) (*hbond).angle;
-      angle = angle / ((double) (*hbond).Frames);
-      angle *= RADDEG;
-
+      double avg = ((double)(*hbond).Frames) / ((double) Nframes_);
       Aname = CurrentParm_->TruncResAtomName((*hbond).A);
       Hname = CurrentParm_->TruncResAtomName((*hbond).H);
       Dname = CurrentParm_->TruncResAtomName((*hbond).D);
@@ -689,10 +691,9 @@ void Action_Hbond::Print() {
         Hname.append("_" + integerToString((*hbond).H+1));
         Dname.append("_" + integerToString((*hbond).D+1));
       }
-
-      outfile.Printf("%-*s %*s %*s %8i %12.4lf %12.4lf %12.4lf\n",
+      outfile.Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
-                     (*hbond).Frames, avg, dist, angle);
+                     (*hbond).Frames, avg, (*hbond).dist, (*hbond).angle);
     }
     outfile.CloseFile();
   }
@@ -705,8 +706,11 @@ void Action_Hbond::Print() {
       if (outfile.OpenWrite( solvout_)) return;
     }
     HbondList.clear();
-    for (HBmapType::iterator it = SolventMap_.begin(); it != SolventMap_.end(); ++it)
+    for (HBmapType::const_iterator it = SolventMap_.begin(); it != SolventMap_.end(); ++it) {
       HbondList.push_back( (*it).second );
+      // Calculate average distance and angle for this hbond.
+      HbondTypeCalcAvg( HbondList.back() );
+    }
     SolventMap_.clear();
     sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
     // Calc averages and print
@@ -718,14 +722,7 @@ void Action_Hbond::Print() {
     {
       // Average has slightly diff meaning since for any given frame multiple
       // solvent can bond to the same solute.
-      double avg = (double) (*hbond).Frames;
-      avg = avg / ((double) Nframes_);
-      double dist = (double) (*hbond).dist;
-      dist = dist / ((double) (*hbond).Frames);
-      double angle = (double) (*hbond).angle;
-      angle = angle / ((double) (*hbond).Frames);
-      angle *= RADDEG;
-
+      double avg = ((double)(*hbond).Frames) / ((double) Nframes_);
       if ((*hbond).A==-1) // Solvent acceptor
         Aname = "SolventAcc";
       else {
@@ -743,10 +740,9 @@ void Action_Hbond::Print() {
           Hname.append("_" + integerToString((*hbond).H+1));
         }
       }
-
-      outfile.Printf("%-*s %*s %*s %8i %12.4lf %12.4lf %12.4lf\n",
+      outfile.Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
-                     (*hbond).Frames, avg, dist, angle);
+                     (*hbond).Frames, avg, (*hbond).dist, (*hbond).angle);
     }
     outfile.CloseFile();
   }

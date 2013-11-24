@@ -74,6 +74,7 @@
 #include "Action_FixAtomOrder.h"
 #include "Action_MaxDist.h"
 #include "Action_NMRrst.h"
+#include "Action_FilterByData.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -231,9 +232,10 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
       mprintf("  [%s]\n",inputLine.c_str());
       // Call Dispatch to convert input to arglist and process.
       cmode = Command::Dispatch(State, inputLine);
-      if (cmode == C_ERR)
+      if (cmode == C_ERR) {
         nInputErrors++;
-      else if (cmode == C_QUIT)
+        if (State.ExitOnError()) break;
+      } else if (cmode == C_QUIT)
         break;
       // Reset Input line
       inputLine.clear();
@@ -1223,6 +1225,16 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
+  // Check if this topology has already been used to set up an input
+  // trajectory, as this will break the traj read.
+  for (TrajinList::const_iterator tIn = State.InputTrajList().begin();
+                                  tIn != State.InputTrajList().end(); ++tIn)
+    if ( (*tIn)->TrajParm() == parm ) {
+      mprinterr("Error: Topology '%s' has already been used to set up trajectory '%s'.\n"
+                "Error:   To strip this topology use the 'strip' action.\n",
+                parm->c_str(), (*tIn)->TrajFilename().full());
+      return Command::C_ERR;
+    }
   AtomMask tempMask( argIn.GetMaskNext() );
   // Since want to keep atoms outside mask, invert selection
   tempMask.InvertMask();
@@ -1235,10 +1247,10 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
     return Command::C_ERR;
   } else {
     // Replace parm with stripped version
-    // TODO: Implement proper assignment op for Topology
-    tempParm->Brief();
+    *parm = *tempParm;
+    parm->Brief();
     mprintf("\n");
-    State.PFL()->ReplaceParm(parm->Pindex(), tempParm);
+    delete tempParm;
   }
   return Command::C_OK;
 }
@@ -1395,6 +1407,7 @@ const Command::Token Command::Commands[] = {
 //  { ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, AddAction },
   { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
+  { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
   { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
   { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
 //  { ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, AddAction },

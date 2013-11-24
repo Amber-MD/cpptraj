@@ -26,6 +26,7 @@ class ArgList {
     ArgList& operator=(const ArgList &);
     /// Return the argument at the given position
     std::string const& operator[](int);
+    std::vector<std::string> const& List() const { return arglist_; }
     // Iterators
     typedef std::vector<std::string>::const_iterator const_iterator;
     const_iterator begin() const { return arglist_.begin();     }
@@ -36,6 +37,8 @@ class ArgList {
     bool empty()           const { return arglist_.empty();     }
     /// \return the argument string
     const char *ArgLine()  const { return argline_.c_str();     }
+    /// Clear list
+    void ClearList();
     /// Set up argument list from string and given separators
     int SetList(std::string const&, const char *);
     /// \return an argument list of remaining unmarked args.

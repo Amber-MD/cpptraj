@@ -307,9 +307,9 @@ void Action_Volmap::Print() {
             peakgrid.setGrid(i, j, k, 0.0f);
             continue;
           }
-          size_t i_end = std::min(i+2L, grid_->NX());
-          size_t j_end = std::min(j+2L, grid_->NY());
-          size_t k_end = std::min(k+2L, grid_->NZ()); 
+          size_t i_end = std::min(i+2, grid_->NX());
+          size_t j_end = std::min(j+2, grid_->NY());
+          size_t k_end = std::min(k+2, grid_->NZ()); 
           for (size_t ii = setStart(i); ii < i_end; ii++)
             for (size_t jj = setStart(j); jj < j_end; jj++)
               for (size_t kk = setStart(k); kk < k_end; kk++) {

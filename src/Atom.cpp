@@ -16,6 +16,7 @@ const int Atom::AtomicElementNum[NUMELEMENTS] = { 0,
  75, 86, 88, 14, 21, 34,
  38, 50, 51, 22, 43, 52,
  73, 81, 23, 74, 54, 40,
+ 39, 71,
  0
 };
 
@@ -34,8 +35,27 @@ const char* Atom::AtomicElementName[NUMELEMENTS] = { "??",
   "RE", "RN", "RA", "SI", "SC", "SE",
   "SR", "SN", "SB", "TI", "TC", "TE",
   "TA", "TL", "V",  "W",  "XE", "ZR",
+  "Y",  "LU",
   "XP"
 };
+
+/** Values taken from 'http://www.webelements.com/' */
+const double Atom::AtomicElementMass[NUMELEMENTS] = { 1.0,
+    1.00794,   10.811,     12.0107,     14.0067,    15.9994,   18.9984032,
+   30.973762,  32.065,     35.453,      79.904,     55.845,    40.078,
+  126.90447,   24.3050,    63.546,       6.941,     39.0983,   85.4678,
+  132.9054519, 65.38,      22.98976928, 26.9815386, 39.948,    74.92160,
+  107.8682,   196.966569, 210,           9.012182, 137.327,   208.98040,
+   51.9961,    58.933195, 112.411,     223,         69.723,    72.64,
+    4.002602, 178.49,     200.59,      114.818,    192.217,    83.798,
+   54.938045,  95.96,      20.1797,     58.6934,    92.90638, 190.23,
+  106.42,     195.084,    207.2,       209,        101.07,    102.90550,
+  186.207,    222,        226,          28.0855,    44.955912, 78.96,
+   87.62,     118.710,    121.760,      47.867,     98,       127.60,
+  180.94788,  204.3833,    50.9415,    183.84,     131.293,    91.224,
+   88.90585,  174.9668,
+    0.0
+};  
 
 // CONSTRUCTOR
 Atom::Atom() : 
@@ -53,7 +73,7 @@ Atom::Atom() :
 { }
 
 /** CONSTRUCTOR - used for PDB files. */
-Atom::Atom(NameType const& aname, char cid) :
+Atom::Atom(NameType const& aname, char cid, const char* elt) :
   charge_(0.0),
   mass_(1.0),
   gb_radius_(0.0),
@@ -66,7 +86,11 @@ Atom::Atom(NameType const& aname, char cid) :
   mol_(0),
   chainID_(cid)
 {
-  SetElementFromName();
+  if (elt ==0 || elt[0] == ' ')
+    SetElementFromName();
+  else
+    SetElementFromSymbol(elt[0], elt[1]);
+  mass_ = AtomicElementMass[ element_ ];
 }
 
 /** CONSTRUCTOR - used for Mol2 files. */
@@ -84,6 +108,7 @@ Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   chainID_(' ')
 {
   SetElementFromName();
+  mass_ = AtomicElementMass[ element_ ];
 }
 
 // CONSTRUCTOR
@@ -232,6 +257,7 @@ void Atom::SetElementFromName() {
     case 'S' : element_ = SULFUR; break;
     case 'M' :
       if (c2=='g' || c2=='G') element_ = MAGNESIUM;
+      if (c2=='n' || c2 =='N') element_ = MANGANESE;
       break;
     case 'Z' :
       if (c2=='n' || c2 =='N') element_ = ZINC;
@@ -244,7 +270,32 @@ void Atom::SetElementFromName() {
       if (c2=='b') element_ = RUBIDIUM;
       break;
     default:
-      mprintf("Warning: Could not determine atomic number from name [%s]\n",*aname_);
+      SetElementFromSymbol(c1, c2);
+      if (element_ == UNKNOWN_ELEMENT)
+        mprintf("Warning: Could not determine atomic number from name [%s]\n",*aname_);
+  }
+}
+
+// Atom::SetElementFromSymbol()
+void Atom::SetElementFromSymbol(char c1, char c2) {
+  if (element_ != UNKNOWN_ELEMENT) return;
+  // Attempt to match up 2 char element name
+  char en[2];
+  en[0] = tolower(c1);
+  en[1] = tolower(c2);
+  for (int i = 1; i < (int)NUMELEMENTS; i++) {
+    if (AtomicElementName[i][1]=='\0') { // 1 char
+      if ( en[0] == AtomicElementName[i][0] ) {
+        element_ = (AtomicElementType)i;
+        break;
+      }
+    } else {                             // 2 char
+      if ( en[0] == AtomicElementName[i][0] &&
+           en[1] == AtomicElementName[i][1] ) {
+        element_ = (AtomicElementType)i;
+        break;
+      }
+    }
   }
 }
 
@@ -358,6 +409,8 @@ void Atom::SetElementFromMass() {
     case 'L':
        if(mass_ > 6.0 && mass_ <= 8.0) 
           element_ = LITHIUM; //3 !Lithium
+       if (mass_ > 173.0 && mass_ < 177.0)
+          element_ = LUTETIUM; // 71 !Lutetium
        break;
 
     case 'm':
@@ -471,6 +524,12 @@ void Atom::SetElementFromMass() {
        if (mass_ > 127.0 && mass_ < 136.0)
           element_ = XENON; // 54 !Xenon 
        break;
+
+    case 'y':
+    case 'Y':
+       if (mass_ > 87.0 && mass_ < 91.0)
+          element_ = YTTRIUM; // 39 !Yttrium
+      break;
 
     case 'z':
     case 'Z':

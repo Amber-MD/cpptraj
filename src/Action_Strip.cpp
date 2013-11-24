@@ -67,7 +67,14 @@ Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddres
     mprintf("Warning: strip: Mask [%s] has no atoms.\n",M1_.MaskString());
     return Action::ERR;
   }
-  mprintf("\tStripping %i atoms.\n",currentParm->Natom() - M1_.Nselected());
+  int numStripped = currentParm->Natom() - M1_.Nselected();
+  mprintf("\tStripping %i atoms.\n", numStripped);
+  // If no atoms will be stripped, no need to use this command. SKIP
+  if ( numStripped == 0 ) {
+    mprintf("Warning: No atoms to strip. Skipping 'strip' for topology '%s'\n",
+            currentParm->c_str());
+    return Action::ERR;
+  }
 
   // Store old parm
   oldParm_ = currentParm;

@@ -177,12 +177,20 @@ void ClusterList::Summary_Part(std::string const& summaryfile, int maxframesIn,
   for (unsigned int sf = 0; sf < splitFrames.size(); sf++)
   {
     partMax.push_back( (double)(splitFrames[sf] - lastMax) );
-    outfile.Printf(" <= %.0f < %u%s", partMax.back(), sf+2, nExt[eidx]);
-    if (eidx < 3) ++eidx;
     lastMax = splitFrames[sf];
     trajOffset.push_back( lastMax );
+    outfile.Printf(" <= %i < %u%s", trajOffset.back(), sf+2, nExt[eidx]);
+    if (eidx < 3) ++eidx;
   }
   partMax.push_back( (double)(maxframesIn - lastMax) );
+  outfile.Printf("\n# ");
+  // Print # of frames in each section
+  eidx=0;
+  for (std::vector<double>::const_iterator pm = partMax.begin(); pm != partMax.end(); ++pm) {
+    if (pm != partMax.begin()) outfile.Printf("  ");
+    outfile.Printf("%u%s= %.0f", pm - partMax.begin() + 1, nExt[eidx], *pm);
+    if (eidx < 3) ++eidx;
+  }
   outfile.Printf("\n");
   // DEBUG
   //mprintf("DEBUG: # Frames (offset):");

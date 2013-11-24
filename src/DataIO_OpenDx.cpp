@@ -143,6 +143,11 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
     }
     progress.Update( ndata );
   }
+  // Set dimensions
+  // FIXME: This should be integrated with allocation
+  grid.SetDim(Dimension::X, Dimension(oxyz[0], dx, nx, "X"));
+  grid.SetDim(Dimension::Y, Dimension(oxyz[1], dy, ny, "Y"));
+  grid.SetDim(Dimension::Z, Dimension(oxyz[2], dz, nz, "Z"));
   // Finished
   infile.CloseFile();
   return 0;

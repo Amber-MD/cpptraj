@@ -7,8 +7,8 @@ class ReferenceFrame {
     ReferenceFrame() : frame_(0), parm_(0), num_(0), strippedParm_(false) {}
     ReferenceFrame(int) : frame_(0), parm_(0), num_(-1), strippedParm_(false) {}
     ~ReferenceFrame();
-    Frame* Coord()                    { return frame_;      }
-    Topology* Parm()                  { return parm_;       }
+    Frame* Coord()              const { return frame_;      }
+    Topology* Parm()            const { return parm_;       }
     bool error()                const { return num_ == -1;  }
     bool empty()                const { return frame_ == 0; }
     FileName const& FrameName() const { return name_;       }

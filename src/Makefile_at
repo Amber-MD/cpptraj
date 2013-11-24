@@ -36,12 +36,9 @@ depend: findDepend
 dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
-cpptraj$(SFX): $(NETCDFLIB) $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
+cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
 	$(CXX) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
-
-$(NETCDFLIB):
-	@../../netcdf-build-message.sh $(NETCDFLIB)
 
 $(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install

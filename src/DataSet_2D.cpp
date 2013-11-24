@@ -9,5 +9,6 @@ const DataSet_2D::MatrixToken DataSet_2D::TokenArray[] = {
   { "distance covariance matrix",      "DISTCOVAR" },
   { "IDEA matrix",                     "IDEA"      },
   { "IRED matrix",                     "IRED"      },
+  { "dihedral covariance matrix",      "DIHCOVAR"  },
   { 0,                                 0           }
 };

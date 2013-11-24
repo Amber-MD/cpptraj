@@ -25,8 +25,8 @@ class ClusterNode {
     double CalcAvgToCentroid( ClusterDist*);
     // Iterator over frame numbers
     typedef ClusterDist::Cframes::const_iterator frame_iterator;
-    const frame_iterator beginframe() const { return frameList_.begin(); }
-    const frame_iterator endframe()   const { return frameList_.end();   }
+    frame_iterator beginframe() const { return frameList_.begin(); }
+    frame_iterator endframe()   const { return frameList_.end();   }
     int ClusterFrame(int idx)         const { return frameList_[idx];    } 
     // Return internal variables
     inline double AvgDist()      const { return avgClusterDist_;        }

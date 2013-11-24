@@ -7,6 +7,7 @@
 #include "BufferedLine.h"
 #include "Array1D.h"
 #include "DataSet_2D.h"
+#include "DataSet_3D.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() : 
@@ -49,29 +50,39 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
     return 1;
   }
 
-  // If first line begins with a '#', assume it contains labels. Ignore any
-  // leading whitespace.
+  // Try to skip past any comments. If line begins with a '#', assume it
+  // contains labels. 
+  bool isCommentLine = true;
   const char* ptr = linebuffer;
-  while ( *ptr != '\0' && isspace(*ptr) ) ++ptr;
-  if (*ptr == '#') {
-    labels.SetList(ptr+1, SEPARATORS );
-    hasLabels = true;
-    // If first label is Frame assume it is the index column
-    if (labels[0] == "Frame" && indexcol == -1) 
-      indexcol = 0;
-    // Read in next non '#' line, should be data.
-    while (*ptr == '#') {
+  while (isCommentLine) {
+    // Skip past any whitespace
+    while ( *ptr != '\0' && isspace(*ptr) ) ++ptr;
+    // Assume these are column labels until proven otherwise.
+    if (*ptr == '#') {
+      labels.SetList(ptr+1, SEPARATORS );
+      if (!labels.empty()) {
+        hasLabels = true;
+        // If first label is Frame assume it is the index column
+        if (labels[0] == "Frame" && indexcol == -1)
+          indexcol = 0;
+      }
       linebuffer = buffer.Line();
-      if (linebuffer == 0) return 1;
       ptr = linebuffer;
-      while ( *ptr != '\0' && isspace(*ptr) ) ++ptr;
-    }
-    if (buffer.TokenizeLine( SEPARATORS ) != ntoken) {
-      PrintColumnError(buffer.LineNumber());
-      return 1;
-    }
+      if (ptr == 0) {
+        mprinterr("Error: No data found in file.\n");
+        return 1;
+      }
+    } else 
+      // Not a recognized comment character, assume data.
+      isCommentLine = false;
   }
-
+  // Should be at first data line. Tokenize the line.
+  ntoken = buffer.TokenizeLine( SEPARATORS );
+  // If # of data columns does not match # labels, clear labels.
+  if ( !labels.empty() && ntoken != labels.Nargs() ) {
+    labels.ClearList();
+    hasLabels = false;
+  }
   // Determine the type of data stored in each column 
   for (int col = 0; col < ntoken; ++col) {
     const char* token = buffer.NextToken();
@@ -372,6 +383,43 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn)
       for (size_t ix = 0; ix < set.Ncols(); ++ix) {
         file.Printf(col_fmt.c_str(), Xdim.Coord( ix ), Ydim.Coord( iy ));
         set.Write2D( file, ix, iy );
+        file.Printf("\n");
+      }
+    }
+  }
+  return 0;
+}
+
+// DataIO_Std::WriteData3D()
+int DataIO_Std::WriteData3D( std::string const& fname, DataSet const& setIn) 
+{
+  if (setIn.Ndim() != 3) {
+    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
+              setIn.Legend().c_str(), fname.c_str(), setIn.Ndim());
+    return 1;
+  }
+  DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
+  Dimension const& Xdim = static_cast<Dimension const&>(set.Dim(0));
+  Dimension const& Ydim = static_cast<Dimension const&>(set.Dim(1));
+  Dimension const& Zdim = static_cast<Dimension const&>(set.Dim(2));
+  //if (Xdim.Step() == 1.0) xcol_precision = 0;
+  // Open output file
+  CpptrajFile file;
+  if (file.OpenWrite( fname )) return 1;
+  
+  // Print X Y Z Values
+  // x y z val(x,y,z)
+  if (writeHeader_)
+    file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
+                Ydim.Label().c_str(), Zdim.Label().c_str(), set.Legend().c_str());
+  std::string col_fmt = SetupCoordFormat( set.NX(), Xdim, 8, 3 ) + " " +
+                        SetupCoordFormat( set.NY(), Ydim, 8, 3 ) + " " +
+                        SetupCoordFormat( set.NZ(), Zdim, 8, 3 );
+  for (size_t iz = 0; iz < set.NZ(); ++iz) {
+    for (size_t iy = 0; iy < set.NY(); ++iy) {
+      for (size_t ix = 0; ix < set.NX(); ++ix) {
+        file.Printf(col_fmt.c_str(), Xdim.Coord( ix ), Ydim.Coord( iy ), Zdim.Coord( iz ));
+        set.Write3D( file, ix, iy, iz );
         file.Printf("\n");
       }
     }

@@ -2,7 +2,6 @@
 #include <cstdio> // sscanf
 #include "Traj_AmberRestart.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // NumberFilename
 
 // CONSTRUCTOR
 Traj_AmberRestart::Traj_AmberRestart() :
@@ -282,9 +281,9 @@ int Traj_AmberRestart::readVelocity(int set, Frame& frameIn) {
 int Traj_AmberRestart::writeFrame(int set, Frame const& frameOut) {
   // If just writing 1 frame dont modify output filename
   if (singleWrite_) {
-    if (file_.OpenWriteWithName( file_.Filename().Full() )) return 1;
+    if (file_.OpenFile()) return 1;
   } else {
-    if (file_.OpenWriteWithName( NumberFilename( file_.Filename().Full(), set + 1 ) )) return 1;
+    if (file_.OpenWriteNumbered( set + 1 ) ) return 1;
   }
 
   // Write out title

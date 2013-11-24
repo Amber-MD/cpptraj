@@ -148,7 +148,7 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
     return Action::ERR;
   }
   // Set up parm info for atoms in mask
-  if ( (*currentParm)[0].Radius() == 0 ) {
+  if ( (*currentParm)[0].GBRadius() == 0 ) {
     mprinterr("Error: Molsurf::Setup: Molsurf requires radii, but no radii in %s\n",
               currentParm->c_str());
     return Action::ERR;
@@ -168,7 +168,7 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
     atm_ptr->pos[1] = 0;
     atm_ptr->pos[2] = 0;
     atm_ptr->q = patom.Charge();
-    atm_ptr->rad = patom.Radius() + rad_offset_;
+    atm_ptr->rad = patom.GBRadius() + rad_offset_;
     ++atm_ptr;
   }
 

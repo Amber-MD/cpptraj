@@ -2,8 +2,8 @@
 #include "Analysis_KDE.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
-#include "DataSet_float.h"
 #include "Constants.h" // TWOPI
+#include <limits> // Minimum double val for checking zero
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -90,7 +90,7 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
   if (outfile != 0) outfile->AddSet( output_ );
   // Output for KL divergence calc.
   if ( q_data_ != 0 ) {
-    kldiv_ = datasetlist->AddSetAspect(DataSet::FLOAT, output_->Name(), "kld");
+    kldiv_ = datasetlist->AddSetAspect(DataSet::DOUBLE, output_->Name(), "kld");
     if (klOutfile != 0) klOutfile->AddSet( kldiv_ );
   }
 
@@ -116,8 +116,18 @@ double Analysis_KDE::GaussianKernel(double u) const {
 }
 
 Analysis::RetType Analysis_KDE::Analyze() {
+  // Declare variables here in case of OPENMP
+  unsigned int frame, bin, validPoint;
+  double val, increment;
+  bool Pzero, Qzero;
+# ifdef _OPENMP
+  int numthreads, mythread, nt;
+  double** out_thread;
+# endif
+
   Dimension& Xdim = output_->Dim(0);
   DataSet_1D const& In = static_cast<DataSet_1D const&>( *data_ );
+  size_t inSize = In.Size();
   // Set output set dimensions from input set if necessary.
   if (!Xdim.MinIsSet())
     Xdim.SetMin( In.Min() );
@@ -130,42 +140,39 @@ Analysis::RetType Analysis_KDE::Analyze() {
   // Allocate output set
   DataSet_double& Out = static_cast<DataSet_double&>( *output_ );
   Out.Resize( Xdim.Bins() );
+  size_t outSize = Out.Size();
 
   // Estimate bandwidth from normal distribution approximation if necessary.
   if (bandwidth_ < 0.0) {
     double stdev;
     In.Avg( stdev );
-    double N_to_1_over_5 = pow( (double)In.Size(), (-1.0/5.0) );
+    double N_to_1_over_5 = pow( (double)inSize, (-1.0/5.0) );
     bandwidth_ = 1.06 * stdev * N_to_1_over_5;
     mprintf("\tDetermined bandwidth from normal distribution approximation: %f\n", bandwidth_);
   }
 
   // Set up increments
-  std::vector<double> Increments(In.Size(), 1.0);
+  std::vector<double> Increments(inSize, 1.0);
   if (amddata_ != 0) {
     DataSet_1D& AMD = static_cast<DataSet_1D&>( *amddata_ );
-    if (AMD.Size() != In.Size()) {
-      if (AMD.Size() < In.Size()) {
+    if (AMD.Size() != inSize) {
+      if (AMD.Size() < inSize) {
         mprinterr("Error: Size of AMD data set %zu < input data set %zu\n",
-                  AMD.Size(), In.Size());
+                  AMD.Size(), inSize);
         return Analysis::ERR;
       } else {
         mprintf("Warning: Size of AMD data set %zu > input data set %zu\n",
-                AMD.Size(), In.Size());
+                AMD.Size(), inSize);
       }
     }
-    for (unsigned int i = 0; i < In.Size(); i++)
+    for (unsigned int i = 0; i < inSize; i++)
       Increments[i] = exp( AMD.Dval(i) );
   }
  
   double total = 0.0;
   if (q_data_ == 0) {
     // Calculate KDE, loop over input data
-    unsigned int frame, bin;
-    double val, increment;
 #ifdef _OPENMP
-    int numthreads, mythread;
-    double** out_thread;
 #   pragma omp parallel private(frame, bin, val, increment, mythread) reduction(+:total)
     {
       mythread = omp_get_thread_num();
@@ -175,20 +182,20 @@ Analysis::RetType Analysis_KDE::Analyze() {
         numthreads = omp_get_num_threads();
         mprintf("\tParallelizing calculation with %i threads\n", numthreads);
         out_thread = new double*[ numthreads ];
-        for (int i = 0; i < numthreads; i++) {
-          out_thread[i] = new double[ Out.Size() ]; 
-          std::fill(out_thread[i], out_thread[i] + Out.Size(), 0.0);
+        for (nt = 0; nt < numthreads; nt++) {
+          out_thread[nt] = new double[ outSize ]; 
+          std::fill(out_thread[nt], out_thread[nt] + outSize, 0.0);
         }
       }
 #     pragma omp barrier
 #     pragma omp for
 # endif
-      for (frame = 0; frame < In.Size(); frame++) {
+      for (frame = 0; frame < inSize; frame++) {
         val = In.Dval(frame);
         increment = Increments[frame];
         total += increment;
         // Apply kernel across histogram
-        for (bin = 0; bin < Out.Size(); bin++)
+        for (bin = 0; bin < outSize; bin++)
 #         ifdef _OPENMP
           out_thread[mythread][bin] +=
 #         else
@@ -200,7 +207,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
     } // END parallel block
     // Combine results from each thread histogram into Out
     for (int i = 0; i < numthreads; i++) {
-      for (unsigned int j = 0; j < Out.Size(); j++)
+      for (unsigned int j = 0; j < outSize; j++)
         Out[j] += out_thread[i][j];
       delete[] out_thread[i];
     }
@@ -209,23 +216,19 @@ Analysis::RetType Analysis_KDE::Analyze() {
   } else {
     // Calculate Kullback-Leibler divergence vs time
     DataSet_1D const& Qdata = static_cast<DataSet_1D const&>( *q_data_ );
-    size_t dataSize = In.Size();
-    if (dataSize != Qdata.Size()) {
+    if (inSize != Qdata.Size()) {
       mprintf("Warning: Size of %s (%zu) != size of %s (%zu)\n",
                 In.Legend().c_str(), In.Size(), Qdata.Legend().c_str(), Qdata.Size());
-      dataSize = std::min( dataSize, Qdata.Size() );
-      mprintf("Warning:  Only using %zu data points.\n", dataSize);
+      inSize = std::min( inSize, Qdata.Size() );
+      mprintf("Warning:  Only using %zu data points.\n", inSize);
     }
-    DataSet_float& klOut = static_cast<DataSet_float&>( *kldiv_ );
+    DataSet_double& klOut = static_cast<DataSet_double&>( *kldiv_ );
     std::vector<double> Qhist( Xdim.Bins(), 0.0 ); // Raw Q histogram.
-    klOut.Resize( dataSize ); // Hold KL div vs time
-    // Declare vars here in case of OPENMP
-    unsigned int frame, bin, validPoint;
-    double increment, val_p, val_q, KL, norm, xcrd, Pnorm, Qnorm;
-    bool Pzero, Qzero;
+    klOut.Resize( inSize ); // Hold KL div vs time
+    double val_p, val_q, KL, norm, xcrd, Pnorm, Qnorm;
     // Loop over input P and Q data
     unsigned int nInvalid = 0;
-    for (frame = 0; frame < dataSize; frame++) {
+    for (frame = 0; frame < inSize; frame++) {
       increment = Increments[frame];
       total += increment;
       // Apply kernel across P and Q, calculate KL divergence as we go. 
@@ -243,7 +246,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
 {
 #     pragma omp for
 #     endif
-      for (bin = 0; bin < Out.Size(); bin++) {
+      for (bin = 0; bin < outSize; bin++) {
         xcrd = Xdim.Coord(bin);
         Out[bin]   += (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
         Qhist[bin] += (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
@@ -252,8 +255,8 @@ Analysis::RetType Analysis_KDE::Analyze() {
           // Normalize for this frame
           Pnorm = Out[bin] * norm;
           Qnorm = Qhist[bin] * norm;
-          Pzero = (Pnorm == 0.0);
-          Qzero = (Qnorm == 0.0);
+          Pzero = (Pnorm <= std::numeric_limits<double>::min());
+          Qzero = (Qnorm <= std::numeric_limits<double>::min());
           if (!Pzero && !Qzero)
             KL += ( log( Pnorm / Qnorm ) * Pnorm );
           else if ( Pzero != Qzero )
@@ -264,9 +267,9 @@ Analysis::RetType Analysis_KDE::Analyze() {
 }
 #endif
       if (validPoint == 0) {
-        klOut[frame] = (float)KL;
+        klOut[frame] = KL;
       } else {
-        //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", i+1);
+        //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", frame+1);
         nInvalid++;
       }
     }

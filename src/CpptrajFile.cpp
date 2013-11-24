@@ -256,8 +256,9 @@ int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
   return 0;
 }
 
-// CpptrajFile::OpenWriteWithName()
-int CpptrajFile::OpenWriteWithName(std::string const& newName) {
+// CpptrajFile::OpenWriteNumbered()
+int CpptrajFile::OpenWriteNumbered(int numIn) {
+  std::string newName = NumberFilename( Filename().Full(), numIn );
   if (IO_->Open( newName.c_str(), "wb")) return 1;
   isOpen_ = true;
   return 0;

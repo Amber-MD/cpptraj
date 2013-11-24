@@ -77,7 +77,7 @@ int ReferenceFrame::LoadRef(std::string const& fname, ArgList& argIn,
   name_ = traj.TrajFilename();
   num_ = traj.Start();
   // If the top currently has no reference coords, set them now
-  if (parm_->NoRefCoords()) parm_->SetReferenceCoords( frame_ );
+  if (parm_->NoRefCoords()) parm_->SetReferenceCoords( *frame_ );
   return 0;
 }
 

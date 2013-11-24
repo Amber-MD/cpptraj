@@ -111,9 +111,11 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
       if (outfile_ != 0)
         outfile_->AddSet( ds );
     }
-    // TODO: SetScalar
-    if (ds != 0)
+    // TODO: Set scalar type
+    if (ds != 0) {
+      ds->SetScalar( DataSet::M_TORSION );
       data_.push_back( ds );
+    }
     if (debug_ > 0) {
       mprintf("\tDIH [%s]:", ds->Legend().c_str());
       mprintf(" :%i@%i",   (*currentParm)[(*dih).A0()].ResNum()+1, (*dih).A0() + 1);
