@@ -7,7 +7,7 @@
 class DataIO_RemLog : public DataIO {
   public:
     DataIO_RemLog();
-    static DataIO* Alloc() { return (DataIO*)new DataIO_RemLog(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_RemLog(); }
     static void ReadHelp();
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList&) { return 0; }

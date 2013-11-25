@@ -155,6 +155,7 @@ SOURCES=ActionFrameCounter.cpp \
         FileIO_Mpi.cpp \
         FileIO_Std.cpp \
         FileName.cpp \
+        FileTypes.cpp \
         Frame.cpp \
         FrameList.cpp \
         GridAction.cpp \

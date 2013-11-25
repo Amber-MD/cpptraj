@@ -6,7 +6,7 @@
 class DataIO_Std : public DataIO {
   public:
     DataIO_Std();
-    static DataIO* Alloc() { return (DataIO*)new DataIO_Std(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Std(); }
     static void ReadHelp();
     static void WriteHelp();
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);

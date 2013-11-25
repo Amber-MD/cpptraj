@@ -5,7 +5,7 @@
 class DataIO_OpenDx : public DataIO {
   public:
     DataIO_OpenDx() {}
-    static DataIO* Alloc() { return (DataIO*)new DataIO_OpenDx(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_OpenDx(); }
     int ReadData(std::string const&, ArgList&, DataSetList&, std::string const&);
     int processWriteArgs(ArgList&)                               { return 0; }
     int WriteData(std::string const&,DataSetList const&)         { return 1; }
