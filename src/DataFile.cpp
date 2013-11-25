@@ -42,42 +42,43 @@ DataFile::~DataFile() {
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as DataFormatType
-const DataFile::DF_HelpToken DataFile::DF_HelpArray[] = {
-  { "Standard Data File", DataIO_Std::ReadHelp,    DataIO_Std::WriteHelp     },
-  { "Grace File",         0,                       0                         },
-  { "Gnuplot File",       0,                       DataIO_Gnuplot::WriteHelp },
-  { "Xplor File",         0,                       0                         },
-  { "OpenDX File",        0,                       0                         },
-  { "Amber REM log",      DataIO_RemLog::ReadHelp, 0                         },
-  { "Amber MDOUT file",   DataIO_Mdout::ReadHelp,  0                         }
+const DataFile::DF_AllocToken DataFile::DF_AllocArray[] = {
+  { "Standard Data File", DataIO_Std::ReadHelp,    DataIO_Std::WriteHelp,    DataIO_Std::Alloc    },
+  { "Grace File",         0,                       0,                        DataIO_Grace::Alloc  },
+  { "Gnuplot File",       0,                       DataIO_Gnuplot::WriteHelp,DataIO_Gnuplot::Alloc},
+  { "Xplor File",         0,                       0,                        DataIO_Xplor::Alloc  },
+  { "OpenDX File",        0,                       0,                        DataIO_OpenDx::Alloc },
+  { "Amber REM log",      DataIO_RemLog::ReadHelp, 0,                        DataIO_RemLog::Alloc },
+  { "Amber MDOUT file",   DataIO_Mdout::ReadHelp,  0,                        DataIO_Mdout::Alloc  },
+  { "Unknown Data file",  0,                       0,                        0                    }
 };
 
-const DataFile::DataFileToken DataFile::DataFileArray[] = {
-  { DATAFILE,     "dat",    DF_HelpArray[DATAFILE].Description, ".dat",   DataIO_Std::Alloc     },
-  { XMGRACE,      "grace",  DF_HelpArray[XMGRACE].Description,  ".agr",   DataIO_Grace::Alloc   },
-  { GNUPLOT,      "gnu",    DF_HelpArray[GNUPLOT].Description,  ".gnu",   DataIO_Gnuplot::Alloc },
-  { XPLOR,        "xplor",  DF_HelpArray[XPLOR].Description,    ".xplor", DataIO_Xplor::Alloc   },
-  { XPLOR,        "xplor",  DF_HelpArray[XPLOR].Description,    ".grid",  DataIO_Xplor::Alloc   },
-  { OPENDX,       "opendx", DF_HelpArray[OPENDX].Description,   ".dx",    DataIO_OpenDx::Alloc  },
-  { REMLOG,       "remlog", DF_HelpArray[REMLOG].Description,   ".log",   DataIO_RemLog::Alloc  },
-  { MDOUT,        "mdout",  DF_HelpArray[MDOUT].Description,    ".mdout", DataIO_Mdout::Alloc   },
-  { UNKNOWN_DATA, 0,        "Unknown",            0,        0                     }
+const DataFile::DF_KeyToken DataFile::DF_KeyArray[] = {
+  { DATAFILE,     "dat",    ".dat",   },
+  { XMGRACE,      "grace",  ".agr",   },
+  { GNUPLOT,      "gnu",    ".gnu",   },
+  { XPLOR,        "xplor",  ".xplor", },
+  { XPLOR,        "xplor",  ".grid",  },
+  { OPENDX,       "opendx", ".dx",    },
+  { REMLOG,       "remlog", ".log",   },
+  { MDOUT,        "mdout",  ".mdout", },
+  { UNKNOWN_DATA, 0,        0         }
 };
 
 void DataFile::ReadOptions() {
   for (int i = 0; i < (int)UNKNOWN_DATA; i++) {
-    if (DF_HelpArray[i].ReadHelp != 0) {
-      mprintf("  Options for %s:\n", DF_HelpArray[i].Description);
-      DF_HelpArray[i].ReadHelp();
+    if (DF_AllocArray[i].ReadHelp != 0) {
+      mprintf("  Options for %s:\n", DF_AllocArray[i].Description);
+      DF_AllocArray[i].ReadHelp();
     }
   }
 }
 
 void DataFile::WriteOptions() {
   for (int i = 0; i < (int)UNKNOWN_DATA; i++) {
-    if (DF_HelpArray[i].WriteHelp != 0) {
-      mprintf("  Options for %s:\n", DF_HelpArray[i].Description);
-      DF_HelpArray[i].WriteHelp();
+    if (DF_AllocArray[i].WriteHelp != 0) {
+      mprintf("  Options for %s:\n", DF_AllocArray[i].Description);
+      DF_AllocArray[i].WriteHelp();
     }
   }
 }
@@ -87,31 +88,34 @@ void DataFile::WriteOptions() {
   */
 DataFile::DataFormatType DataFile::GetFormatFromArg(ArgList& argIn) 
 {
-  for (TokenPtr token = DataFileArray; token->Type != UNKNOWN_DATA; ++token)
+  for (KeyPtr token = DF_KeyArray; token->Type != UNKNOWN_DATA; ++token)
     if (argIn.hasKey( token->Key )) return token->Type;
   return UNKNOWN_DATA;
 }
 
 // DataFile::GetFormatFromString()
+/** Search for matching file format keyword. */
 DataFile::DataFormatType DataFile::GetFormatFromString(std::string const& fmt)
 {
-  for (TokenPtr token = DataFileArray; token->Type != UNKNOWN_DATA; ++token)
+  for (KeyPtr token = DF_KeyArray; token->Type != UNKNOWN_DATA; ++token)
     if ( fmt.compare( token->Key )==0 ) return token->Type;
   return DATAFILE;
 }
 
 // DataFile::GetExtensionForType()
+/** Return the first extension for given type. */
 std::string DataFile::GetExtensionForType(DataFormatType typeIn) {
-  for (TokenPtr token = DataFileArray; token->Type != UNKNOWN_DATA; ++token)
+  for (KeyPtr token = DF_KeyArray; token->Type != UNKNOWN_DATA; ++token)
     if ( token->Type == typeIn )
       return std::string( token->Extension );
   return std::string();
 }
 
 // DataFile::GetTypeFromExtension()
+/** \return type that matches extension. */
 DataFile::DataFormatType DataFile::GetTypeFromExtension( std::string const& extIn)
 {
-  for (TokenPtr token = DataFileArray; token->Type != UNKNOWN_DATA; ++token)
+  for (KeyPtr token = DF_KeyArray; token->Type != UNKNOWN_DATA; ++token)
     if ( extIn.compare( token->Extension ) == 0 ) return token->Type;
   // Default to DATAFILE
   return DATAFILE;
@@ -119,47 +123,34 @@ DataFile::DataFormatType DataFile::GetTypeFromExtension( std::string const& extI
 
 // DataFile::FormatString()
 const char* DataFile::FormatString() const {
-  TokenPtr token;
-  for (token = DataFileArray; token->Type != UNKNOWN_DATA; ++token)
-    if ( token->Type == dfType_ ) return token->Description;
-  return token->Description; // Should be at UNKNOWN
-}
-// -----------------------------------------------------------------------------
-
-// DataFile::SetDebug()
-void DataFile::SetDebug(int debugIn) {
-  debug_ = debugIn;
-  if (debug_ > 0) mprintf("\tDataFile debug level set to %i\n", debug_);
+  KeyPtr token;
+  for (token = DF_KeyArray; token->Type != UNKNOWN_DATA; ++token)
+    if ( token->Type == dfType_ ) return DF_AllocArray[dfType_].Description;
+  return DF_AllocArray[UNKNOWN_DATA].Description;
 }
 
 // ----- DATA FILE ALLOCATION / DETECTION ROUTINES -----------------------------
 // DataFile::AllocDataIO()
-DataIO* DataFile::AllocDataIO(DataFormatType tformat) {
-  for (TokenPtr token = DataFileArray; token->Type != UNKNOWN_DATA; ++token) {
-    if (token->Type == tformat) {
-      if (token->Alloc == 0) {
-        mprinterr("Error: CPPTRAJ was compiled without support for %s files.\n",
-                  token->Description);
-        return 0;
-      } else
-        return (DataIO*)token->Alloc();
-    }
+DataIO* DataFile::AllocDataIO(DataFormatType tformat, bool silent) {
+  if (DF_AllocArray[tformat].Alloc == 0) {
+    if (!silent)
+      mprinterr("Error: CPPTRAJ was compiled without support for %s files.\n",
+                DF_AllocArray[tformat].Description);
+    return 0;
   }
-  return 0;
+  return (DataIO*)DF_AllocArray[tformat].Alloc();
 }
 
 // DataFile::DetectFormat()
 DataIO* DataFile::DetectFormat(std::string const& fname, DataFormatType& ftype) {
   CpptrajFile file;
-  if (file.SetupRead(fname, 0)) return 0;
-  for (TokenPtr token = DataFileArray; token->Type != UNKNOWN_DATA; ++token) {
-    if (token->Alloc != 0) {
-      DataIO* io = (DataIO*)token->Alloc();
-      if ( io->ID_DataFormat( file ) ) {
-        ftype = token->Type;
-        return io;
-      }
-      delete io;
+  if (file.SetupRead(fname, 0) == 0) {
+    for (int i = 0; i < (int)UNKNOWN_DATA; i++) {
+      ftype = (DataFormatType)i;
+      DataIO* IO = AllocDataIO( ftype, true );
+      if (IO != 0 && IO->ID_DataFormat( file ))
+        return IO;
+      delete IO; 
     }
   }
   ftype = UNKNOWN_DATA;
@@ -183,6 +174,11 @@ DataIO* DataFile::DetectFormat(std::string const& fname, DataFormatType& ftype) 
   return UNKNOWN_DATA;
 }*/
 // -----------------------------------------------------------------------------
+// DataFile::SetDebug()
+void DataFile::SetDebug(int debugIn) {
+  debug_ = debugIn;
+  if (debug_ > 0) mprintf("\tDataFile debug level set to %i\n", debug_);
+}
 
 // DataFile::ReadDataIn()
 // TODO: Should this read to internal DataSetList?
@@ -205,13 +201,13 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
       mprinterr("Error: DataFile format %s not recognized.\n", as_arg.c_str());
       return 1;
     }
-    dataio_ = AllocDataIO( dfType_ );
+    dataio_ = AllocDataIO( dfType_, false );
   } else
     dataio_ = DetectFormat( filename_.Full(), dfType_ );
   // Default to detection by extension.
   if (dataio_ == 0) {
     dfType_ = GetTypeFromExtension(filename_.Ext());
-    dataio_ = AllocDataIO( dfType_ );
+    dataio_ = AllocDataIO( dfType_, false );
   }
   mprintf("\tReading %s as %s\n", filename_.full(), FormatString());
   // Check if user specifed DataSet name; otherwise use filename base.
@@ -243,7 +239,7 @@ int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debu
   if (dfType_ == UNKNOWN_DATA)
     dfType_ = GetTypeFromExtension(filename_.Ext());
   // Set up DataIO based on format.
-  dataio_ = AllocDataIO( dfType_ );
+  dataio_ = AllocDataIO( dfType_, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
   if (!argIn.empty())
     ProcessArgs( argIn );

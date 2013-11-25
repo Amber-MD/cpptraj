@@ -13,6 +13,7 @@ class DataFile {
 
     DataFile();
     ~DataFile();
+    // -------------------------------------------
     /// List read options for each format.
     static void ReadOptions();
     /// List write options for each format.
@@ -27,6 +28,7 @@ class DataFile {
     static DataFormatType GetTypeFromExtension(std::string const&);
     /// \return string corresponding to format.
     const char* FormatString() const;
+    // -------------------------------------------
     /// Set debug level.
     void SetDebug(int);
     /// Set precision for all DataSets in DataFile
@@ -55,25 +57,24 @@ class DataFile {
     /// \return DataFile format type.
     DataFormatType Type()          const { return dfType_;   }
   private:
-    /// For displaying help for different formats.
-    struct DF_HelpToken {
+    /// Allocator and description for file types. 
+    struct DF_AllocToken {
       const char* Description;
       DataIO::HelpType ReadHelp;
       DataIO::HelpType WriteHelp;
-    };
-    static const DF_HelpToken DF_HelpArray[];
-    /// For allocating data files from keywords.
-    struct DataFileToken {
-      DataFormatType Type;
-      const char* Key;
-      const char* Description;
-      const char* Extension;
       DataIO::AllocatorType Alloc;
     };
-    static const DataFileToken DataFileArray[];
-    typedef const DataFileToken* TokenPtr;
+    static const DF_AllocToken DF_AllocArray[];
+    /// For associating keywords/extensions with file types. 
+    struct DF_KeyToken {
+      DataFormatType Type;
+      const char* Key;
+      const char* Extension;
+    };
+    static const DF_KeyToken DF_KeyArray[];
+    typedef const DF_KeyToken* KeyPtr;
 
-    static DataIO* AllocDataIO(DataFormatType);
+    static DataIO* AllocDataIO(DataFormatType, bool);
     static DataIO* DetectFormat(std::string const&, DataFormatType&);
     //static DataFormatType DataFormat(std::string const&);
 
