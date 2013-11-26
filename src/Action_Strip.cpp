@@ -13,8 +13,8 @@ Action_Strip::Action_Strip() :
 } 
 
 void Action_Strip::Help() {
-  mprintf("\t<mask1> [outprefix <name>] [nobox]\n");
-  mprintf("\tStrip atoms in <mask1> from the system.\n");
+  mprintf("\t<mask1> [outprefix <name>] [nobox]\n"
+          "\tStrip atoms in <mask1> from the system.\n");
 }
 
 void Action_Unstrip::Help() {
@@ -28,7 +28,7 @@ Action_Strip::~Action_Strip() {
   if (newParm_!=0) delete newParm_;
 }
 
-// Action_Strip::init()
+// Action_Strip::Init()
 Action::RetType Action_Strip::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -40,7 +40,7 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   std::string mask1 = actionArgs.GetMaskNext();
   //mprintf("    Mask 1: %s\n",mask1);
   if (mask1.empty()) {
-    mprinterr("Error: strip: Requires atom mask.\n");
+    mprinterr("Error: Requires atom mask.\n");
     return Action::ERR;
   }
   M1_.SetMaskString(mask1);
@@ -83,29 +83,21 @@ Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddres
   if (newParm_!=0) delete newParm_;
   newParm_ = currentParm->modifyStateByMask(M1_);
   if (newParm_==0) {
-    mprinterr("Error: strip: Could not create new parmtop.\n");
+    mprinterr("Error: Could not create new parmtop.\n");
     return Action::ERR;
   }
   // Remove box information if asked
   if (removeBoxInfo_)
     newParm_->SetBox( Box() ); 
-
-  newParm_->Summary();
-
+  newParm_->Brief("Stripped parm:");
   // Allocate space for new frame
   newFrame_.SetupFrameV(newParm_->Atoms(), newParm_->HasVelInfo(), newParm_->NrepDim());
 
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {
-    std::string newfilename(prefix_);
-    newfilename += ".";
-    newfilename += oldParm_->OriginalFilename().Base();
-    mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),newfilename.c_str());
     ParmFile pfile;
-    if ( pfile.Write( *newParm_, newfilename, ParmFile::AMBERPARM, 0 ) ) {
-      mprinterr("Error: STRIP: Could not write out stripped parm file %s\n",
-                newParm_->c_str());
-    }
+    if ( pfile.WritePrefixTopology( *newParm_, prefix_, ParmFile::AMBERPARM, 0 ) )
+      mprinterr("Error: Could not write out stripped parm file.\n");
   }
 
   // Set parm
@@ -114,7 +106,7 @@ Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddres
   return Action::OK;  
 }
 
-// Action_Strip::action()
+// Action_Strip::DoAction()
 /** Modify the coordinate frame to reflect stripped parmtop. */
 Action::RetType Action_Strip::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
 

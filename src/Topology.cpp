@@ -214,13 +214,17 @@ void Topology::Summary() const {
 }
 
 // Topology::Brief()
-void Topology::Brief() const {
+void Topology::Brief(const char* heading) const {
+  if (heading != 0)
+    mprintf("\t%s", heading);
   if (!parmTag_.empty())
     mprintf(" %s", parmTag_.c_str());
   mprintf(" '%s', %zu atoms, %zu res, box: %s, %zu mol", fileName_.full(),
           atoms_.size(), residues_.size(), box_.TypeName(), molecules_.size());
   if (NsolventMolecules_>0)
     mprintf(", %i solvent", NsolventMolecules_);
+  if (heading != 0)
+    mprintf("\n");
 }
 
 // Topology::PrintAtomInfo()
