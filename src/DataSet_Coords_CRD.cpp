@@ -15,5 +15,5 @@ void DataSet_Coords_CRD::Info() const {
     mprintf(" (%zu MB)", sze);
   // DEBUG
   mprintf(" box=%zu vel=%zu", numBoxCrd_, numVel_); 
-  top_.Brief();
+  top_.Brief(0);
 }

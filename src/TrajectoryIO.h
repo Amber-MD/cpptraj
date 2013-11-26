@@ -4,16 +4,16 @@
 #include "ReplicaDimArray.h"
 #include "CpptrajFile.h"
 #include "ArgList.h"
+#include "BaseIOtype.h"
 // Class: TrajectoryIO
 /// Abstract base class for performing trajectory reading and writing.
 /** This is the generic interface for a trajectory format used by 
   * TrajectoryFile-derived classes.
   */
-class TrajectoryIO {
+class TrajectoryIO : public BaseIOtype {
   public:
     TrajectoryIO() : debug_(0), hasV_(false), hasT_(false), seekable_(false) {}
     virtual ~TrajectoryIO() {} // virtual since this class is inherited.
-    typedef TrajectoryIO* (*AllocatorType)();
     // -----------===== Inherited functions =====-----------
     /// Return true if file format matches trajectory type.
     virtual bool ID_TrajFormat(CpptrajFile&) = 0;

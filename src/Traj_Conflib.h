@@ -6,7 +6,7 @@
 class Traj_Conflib: public TrajectoryIO {
   public:
     Traj_Conflib();
-    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_Conflib(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_Conflib(); }
   private:
     double energy_;
     double radGyr_;

@@ -137,7 +137,7 @@ int CpptrajState::RemoveFromList( ArgList& argIn ) {
 int CpptrajState::ProcessMask( std::string const& topname, std::string const& maskexpr ) const {
   ParmFile pfile;
   Topology parm;
-  if (pfile.Read(parm, topname, true, debug_)) return 1;
+  if (pfile.ReadTopology(parm, topname, debug_)) return 1;
   parm.PrintAtomInfo( maskexpr );
   return 0;
 }

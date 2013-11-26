@@ -63,7 +63,7 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
         current_res = TopIn.Nres() + 1;
     } else
       current_res = convertToInteger( (*line)[ COL[RNUM] ] );
-    TopIn.AddTopAtom( Atom((*line)[ COL[ANAME] ], (*line)[ COL[CHAINID] ][0]),
+    TopIn.AddTopAtom( Atom((*line)[ COL[ANAME] ], (*line)[ COL[CHAINID] ][0], "  "),
                       currentResName, current_res, last_res, XYZ );
   }
   // Get title. 

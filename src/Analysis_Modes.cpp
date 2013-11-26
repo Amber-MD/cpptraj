@@ -162,7 +162,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
     // If not on stack, check for file.
-    if ( fileExists(modesfile.c_str()) ) {
+    if ( fileExists(modesfile) ) {
       modinfo_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesfile, "Modes" );
       if (modinfo_->ReadEvecFile( modesfile, beg_+1, end_ )) return Analysis::ERR;
     }

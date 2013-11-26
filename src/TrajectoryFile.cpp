@@ -13,83 +13,53 @@
 #include "Traj_CharmmDcd.h"
 #include "Traj_Binpos.h"
 #include "Traj_GmxTrX.h"
+#include "Traj_SQM.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
-const TrajectoryFile::TrajToken TrajectoryFile::TrajArray[] = {
+// NOTE: Must be in same order as TrajFormatType
+const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # ifdef BINTRAJ
-  { AMBERNETCDF,    "netcdf",    "Amber NetCDF",     ".nc",      Traj_AmberNetcdf::Alloc    },
-  { AMBERNETCDF,    "cdf",       "Amber NetCDF",     ".nc",      Traj_AmberNetcdf::Alloc    },
-  { AMBERRESTARTNC, "ncrestart", "Amber NC Restart", ".ncrst",   Traj_AmberRestartNC::Alloc },
-  { AMBERRESTARTNC, "restartnc", "Amber NC Restart", ".ncrst",   Traj_AmberRestartNC::Alloc },
+  { "Amber NetCDF",       0, 0, Traj_AmberNetcdf::Alloc    },
+  { "Amber NC Restart",   0, 0, Traj_AmberRestartNC::Alloc },
 # else
-  { AMBERNETCDF,    "netcdf",    "Amber NetCDF",     ".nc",      0                          },
-  { AMBERNETCDF,    "cdf",       "Amber NetCDF",     ".nc",      0                          },
-  { AMBERRESTARTNC, "ncrestart", "Amber NC Restart", ".ncrst",   0                          },
-  { AMBERRESTARTNC, "restartnc", "Amber NC Restart", ".ncrst",   0                          },
+  { "Amber NetCDF",       0, 0, 0                          },
+  { "Amber NC Restart",   0, 0, 0                          },
 # endif
-  { PDBFILE,        "pdb",       "PDB",              ".pdb",     Traj_PDBfile::Alloc        },
-  { MOL2FILE,       "mol2",      "Mol2",             ".mol2",    Traj_Mol2File::Alloc       },
-  { CHARMMDCD,      "dcd",       "Charmm DCD",       ".dcd",     Traj_CharmmDcd::Alloc      },
-  { CHARMMDCD,      "charmm",    "Charmm DCD",       ".dcd",     Traj_CharmmDcd::Alloc      },
-  { GMXTRX,         "trr",       "Gromacs TRX",      ".trr",     Traj_GmxTrX::Alloc         },
-  { BINPOS,         "binpos",    "BINPOS",           ".binpos",  Traj_Binpos::Alloc         },
-  { AMBERRESTART,   "restart",   "Amber Restart",    ".rst7",    Traj_AmberRestart::Alloc   },
-  { AMBERRESTART,   "restrt",    "Amber Restart",    ".rst7",    Traj_AmberRestart::Alloc   },
-  { AMBERRESTART,   "rest",      "Amber Restart",    ".rst7",    Traj_AmberRestart::Alloc   },
-  { AMBERTRAJ,      "crd",       "Amber Trajectory", ".crd",     Traj_AmberCoord::Alloc     },
-  { CONFLIB,        "conflib",   "LMOD conflib",     ".conflib", Traj_Conflib::Alloc        },
-  { UNKNOWN_TRAJ,   0,           "Unknown" ,         0,          0                          }
+  { "PDB",                0, 0, Traj_PDBfile::Alloc        },
+  { "Mol2",               0, 0, Traj_Mol2File::Alloc       },
+  { "Charmm DCD",         0, 0, Traj_CharmmDcd::Alloc      },
+  { "Gromacs TRX",        0, 0, Traj_GmxTrX::Alloc         },
+  { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
+  { "Amber Restart",      0, 0, Traj_AmberRestart::Alloc   },
+  { "Amber Trajectory",   0, 0, Traj_AmberCoord::Alloc     },
+  { "SQM Input",          0, 0, Traj_SQM::Alloc            },
+  { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
+  { "Unknown trajectory", 0, 0, 0                          }
 };
 
-// TrajectoryFile::GetFormatFromArg()
-/** Given an ArgList, search for one of the file format keywords.
-  * Default to AMBERTRAJ if no keywords present. 
-  */
-TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromArg(ArgList& argIn)
-{
-  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token)
-    if (argIn.hasKey( token->Key )) return token->Type;
-  return AMBERTRAJ;
-}
-
-// TrajectoryFile::GetFormatFromString()
-TrajectoryFile::TrajFormatType TrajectoryFile::GetFormatFromString(std::string const& fmt)
-{
-  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token)
-    if ( fmt.compare( token->Key )==0 ) return token->Type;
-  return AMBERTRAJ;
-}
-
-// TrajectoryFile::GetExtensionForType()
-std::string TrajectoryFile::GetExtensionForType(TrajFormatType typeIn) {
-  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token)
-    if ( token->Type == typeIn )
-      return std::string( token->Extension );
-  return std::string();
-}
-
-// TrajectoryFile::GetTypeFromExtension()
-TrajectoryFile::TrajFormatType TrajectoryFile::GetTypeFromExtension( std::string const& extIn)
-{
-  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token)
-    if ( extIn.compare( token->Extension ) == 0 ) return token->Type;
-  return UNKNOWN_TRAJ;
-}
-
-// TrajectoryFile::FormatString()
-const char* TrajectoryFile::FormatString( TrajectoryFile::TrajFormatType tIn ) {
-  TokenPtr token;
-  for (token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token)
-    if ( token->Type == tIn ) return token->Description; 
-  return token->Description; // Should be at UNKNOWN
-}
+const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
+  { AMBERNETCDF,    "netcdf",    ".nc"      },
+  { AMBERNETCDF,    "cdf",       ".nc"      },
+  { AMBERRESTARTNC, "ncrestart", ".ncrst"   },
+  { AMBERRESTARTNC, "restartnc", ".ncrst"   },
+  { PDBFILE,        "pdb",       ".pdb"     },
+  { MOL2FILE,       "mol2",      ".mol2"    },
+  { CHARMMDCD,      "dcd",       ".dcd"     },
+  { CHARMMDCD,      "charmm",    ".dcd"     },
+  { GMXTRX,         "trr",       ".trr"     },
+  { BINPOS,         "binpos",    ".binpos"  },
+  { AMBERRESTART,   "restart",   ".rst7"    },
+  { AMBERRESTART,   "restrt",    ".rst7"    },
+  { AMBERRESTART,   "rest",      ".rst7"    },
+  { AMBERTRAJ,      "crd",       ".crd"     },
+  { CONFLIB,        "conflib",   ".conflib" },
+  { SQM,            "sqm",       ".sqm"     },
+  { UNKNOWN_TRAJ,   0,           0          }
+};
 // -----------------------------------------------------------------------------
 
 // CONSTRUCTOR
-TrajectoryFile::TrajectoryFile() :
-  debug_(0),
-  trajParm_(0)
-{}
+TrajectoryFile::TrajectoryFile() : debug_(0), trajParm_(0) {}
 
 // TrajectoryFile::SetDebug()
 /** Set debug level. */
@@ -115,55 +85,18 @@ int TrajectoryFile::SetTrajParm( Topology* tparmIn ) {
   return 0;
 }
 
-// TrajectoryFile::AllocTrajIO()
-/** \param tformat Trajectory format to set up for.
-  * \return TrajectoryIO class based on tformat. 0 on error.
-  */
-TrajectoryIO* TrajectoryFile::AllocTrajIO(TrajFormatType tformat) {
-  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token) {
-    if (token->Type == tformat) {
-      if (token->Alloc == 0) {
-        mprinterr("Error: CPPTRAJ was compiled without support for %s files.\n",
-                  token->Description);
-        return 0;
-      } else 
-        return (TrajectoryIO*)token->Alloc();
-    }
-  }
-  return 0;
-}
-
 // TrajectoryFile::DetectFormat()
-TrajectoryIO* TrajectoryFile::DetectFormat(std::string const& fname) {
+TrajectoryIO* TrajectoryFile::DetectFormat(std::string const& fname, TrajFormatType& ttype) {
   CpptrajFile file;
-  if (file.SetupRead(fname, 0)) return 0;
-  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token) {
-    if (token->Alloc != 0) {
-      TrajectoryIO* trajio = (TrajectoryIO*)token->Alloc();
-      if ( trajio->ID_TrajFormat( file ) ) 
-        return trajio;
-      delete trajio;
+  if (file.SetupRead(fname, 0) == 0) {
+    for (int i = 0; i < (int)UNKNOWN_TRAJ; i++) {
+      ttype = (TrajFormatType)i;
+      TrajectoryIO* IO = (TrajectoryIO*)FileTypes::AllocIO(TF_AllocArray, ttype, true );
+      if (IO != 0 && IO->ID_TrajFormat( file ))
+        return IO;
+      delete IO;
     }
   }
+  ttype = UNKNOWN_TRAJ;
   return 0;
-}
-
-// TrajectoryFile::TrajFormat()
-/** \return format of existing file.
-  * Useful when e.g. appending to a file.
-  */
-TrajectoryFile::TrajFormatType TrajectoryFile::TrajFormat(std::string const& fname) {
-  CpptrajFile file;
-  if (file.SetupRead(fname, 0)) return UNKNOWN_TRAJ;
-  for (TokenPtr token = TrajArray; token->Type != UNKNOWN_TRAJ; ++token) {
-    if (token->Alloc != 0) {
-      TrajectoryIO* trajio = (TrajectoryIO*)token->Alloc();
-      if ( trajio->ID_TrajFormat( file ) ) {
-        delete trajio;
-        return token->Type;
-      }
-      delete trajio;
-    }
-  }
-  return UNKNOWN_TRAJ;
 }

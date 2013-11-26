@@ -92,19 +92,15 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
     mprinterr("Error: Could not create re-ordered topology.\n");
     return Action::ERR;
   }
-  newParm_->Summary();
+  newParm_->Brief("Re-ordered parm:");
   // Allocate space for new frame
   newFrame_.SetupFrameV( newParm_->Atoms(), newParm_->HasVelInfo(), newParm_->NrepDim() );
 
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {
-    std::string newfilename = prefix_ + "." + currentParm->OriginalFilename().Base();
-    mprintf("\tWriting out amber topology file %s to %s\n",newParm_->c_str(),newfilename.c_str());
     ParmFile pfile;
-    if ( pfile.Write( *newParm_, newfilename, ParmFile::AMBERPARM, 0 ) ) {
-      mprinterr("Error: Could not write out reordered parm file %s\n",
-                newParm_->c_str());
-    }
+    if ( pfile.WritePrefixTopology( *newParm_, prefix_, ParmFile::AMBERPARM, debug_ ) )
+      mprinterr("Error: Could not write out reordered parm file.\n");
   }
 
   // Set parm

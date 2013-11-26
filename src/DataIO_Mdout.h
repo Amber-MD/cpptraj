@@ -6,7 +6,7 @@
 class DataIO_Mdout : public DataIO {
   public:
     DataIO_Mdout();
-    static DataIO* Alloc() { return (DataIO*)new DataIO_Mdout(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Mdout(); }
     static void ReadHelp();
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList&) { return 0; }

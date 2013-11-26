@@ -27,8 +27,8 @@ class Atom {
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}
-    /// Take atom name, chain ID. Attempt to determine element from name.
-    Atom(NameType const&, char);
+    /// Take atom name, chain ID. Attempt to determine element from name if no elt.
+    Atom(NameType const&, char, const char*);
     /// Take atom name, type, and charge. Attempt to determine element from name.
     Atom( NameType const&, NameType const&, double );
     Atom( NameType const&, double, int, double, int, NameType const&, double, double,int );
@@ -47,6 +47,7 @@ class Atom {
     void SetResNum(int resnumIn)             { resnum_ = resnumIn;  }
     void SetMol(int molIn)                   { mol_ = molIn;        }
     void SetCharge(double qin)               { charge_ = qin;       }
+    void SetGBradius(double rin)             { gb_radius_ = rin;    }
     // Inline functions returning internal vars
     inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }
@@ -91,6 +92,7 @@ class Atom {
     std::vector<int> excluded_;
 
     void SetElementFromName();
+    void SetElementFromSymbol(char,char);
     void SetElementFromMass();
 };
 #endif

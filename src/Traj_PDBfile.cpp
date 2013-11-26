@@ -1,7 +1,6 @@
 // Traj_PDBfile
 #include "Traj_PDBfile.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // NumberFilename
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
@@ -234,7 +233,7 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
 int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame set up output filename and open
-    if (file_.OpenWriteWithName( NumberFilename(file_.Filename().Full(), set+1) )) return 1;
+    if (file_.OpenWriteNumbered( set + 1 )) return 1;
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
   } else if (pdbWriteMode_==MODEL) {

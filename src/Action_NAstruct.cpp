@@ -1116,7 +1116,7 @@ void Action_NAstruct::Print() {
           int bp_2 = (*BP).Res2();
           // FIXME: Hack for integer
           int n_of_hb = (int)BPHBONDS_[nbp]->Dval(frame);
-          outfile.Printf(BP_OUTPUT_FMT, frame+OUTPUTFRAMESHIFT, 
+          outfile.Printf(BP_OUTPUT_FMT, frame+1, 
                          Bases_[bp_1].ResNum()+1, Bases_[bp_2].ResNum()+1,
                          SHEAR_[nbp]->Dval(frame), STRETCH_[nbp]->Dval(frame),
                          STAGGER_[nbp]->Dval(frame), BUCKLE_[nbp]->Dval(frame),
@@ -1170,13 +1170,13 @@ void Action_NAstruct::Print() {
           int bp2_1 = Bases_[(*BP2).Res1()].ResNum() + 1;
           int bp2_2 = Bases_[(*BP2).Res2()].ResNum() + 1;
           // BPstep write
-          outfile.Printf(NA_OUTPUT_FMT, frame+OUTPUTFRAMESHIFT, 
+          outfile.Printf(NA_OUTPUT_FMT, frame+1, 
                          bp1_1, bp1_2, bp2_1, bp2_2,
                          SHIFT_[nstep]->Dval(frame), SLIDE_[nstep]->Dval(frame),
                          RISE_[nstep]->Dval(frame), TILT_[nstep]->Dval(frame),
                          ROLL_[nstep]->Dval(frame), TWIST_[nstep]->Dval(frame));
           // Helix write
-          outfile2.Printf(NA_OUTPUT_FMT, frame+OUTPUTFRAMESHIFT,
+          outfile2.Printf(NA_OUTPUT_FMT, frame+1,
                           bp1_1, bp1_2, bp2_1, bp2_2,
                           XDISP_[nstep]->Dval(frame), YDISP_[nstep]->Dval(frame),
                           HRISE_[nstep]->Dval(frame), INCL_[nstep]->Dval(frame),

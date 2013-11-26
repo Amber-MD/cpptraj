@@ -6,7 +6,7 @@
 class Traj_Binpos : public TrajectoryIO {
   public:
     Traj_Binpos();
-    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_Binpos(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_Binpos(); }
     ~Traj_Binpos();
   private:
     // Inherited functions

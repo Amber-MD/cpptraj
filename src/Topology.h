@@ -101,7 +101,7 @@ class Topology {
     int SetSolvent(std::string const&);
     // ----- Print topology info -----
     void Summary() const;
-    void Brief() const;
+    void Brief(const char*) const;
     void PrintAtomInfo(std::string const&) const;
     void PrintBondInfo(std::string const&) const;
     void PrintAngleInfo(std::string const&) const;

@@ -1,9 +1,7 @@
-#include <locale>  // isdigit, 
-#include <stdexcept> // ArgList[]
 #include <cstring> //strtok, strchr
 #include "ArgList.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h"
+#include "StringRoutines.h" //validDouble, validInteger, convertToX
 
 const std::string ArgList::emptystring = "";
 
@@ -37,9 +35,11 @@ ArgList &ArgList::operator=(const ArgList &rhs) {
 }
 
 // ArgList::operator[]
-std::string const& ArgList::operator[](int idx) {
-  if (idx < 0 || idx >= (int)arglist_.size())
-    throw std::out_of_range("ArgList[]");
+std::string const& ArgList::operator[](int idx) const {
+  if (idx < 0 || idx >= (int)arglist_.size()) {
+    mprinterr("Internal Error: Position %i out of range for Argument List.\n",idx);
+    return emptystring;
+  }
   return arglist_[idx];
 }
 
@@ -123,6 +123,7 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
   return 0;
 }
 
+// ArgList::RemainingArgs()
 ArgList ArgList::RemainingArgs() {
   ArgList remain;
   for (unsigned int arg = 0; arg < arglist_.size(); ++arg) {
@@ -172,13 +173,13 @@ bool ArgList::CheckForMoreArgs() const {
 }
 
 // ArgList::PrintList()
-void ArgList::PrintList() {
+void ArgList::PrintList() const {
   for (unsigned int arg = 0; arg < arglist_.size(); arg++) 
     mprintf("  %u: %s\n",arg+1,arglist_[arg].c_str());
 }
 
 // ArgList::PrintDebug()
-void ArgList::PrintDebug() {
+void ArgList::PrintDebug() const {
   mprintf("ArgLine: %s\n",argline_.c_str());
   for (unsigned int arg = 0; arg < arglist_.size(); arg++)
     mprintf("\tArg %u: %s (%i)\n",arg+1,arglist_[arg].c_str(),(int)marked_[arg]);
@@ -258,48 +259,6 @@ std::string const& ArgList::getNextTag() {
     }
   }
   return emptystring;
-}
-
-// validInteger()
-/// Brief check that the passed in string begins with a digit or '-'
-static inline bool validInteger(std::string const &argument) {
-  std::locale loc;
-  if (isdigit(argument[0],loc) || argument[0]=='-') return true;
-  return false;
-}
-
-// validDouble()
-/// Brief check that the passed in string begins with a digit, '-', or '.'
-static inline bool validDouble(std::string const &argument) {
-  std::locale loc;
-  if (isdigit(argument[0],loc) || argument[0]=='-' || argument[0]=='.' ) return true;
-  return false;
-}
-
-bool ArgList::ValidInteger(int idx) {
-  if (idx < 0 || idx >= (int)arglist_.size())
-    return false;
-  return validInteger(arglist_[idx]);
-}
-
-int ArgList::IntegerAt(int idx) {
-  if (ValidInteger(idx))
-    return convertToInteger(arglist_[idx]);
-  mprinterr("Error: Argument %i is not a valid integer\n", idx);
-  return 0;
-}
-
-bool ArgList::ValidDouble(int idx) {
-  if (idx < 0 || idx >= (int)arglist_.size())
-    return false;
-  return validDouble(arglist_[idx]);
-}
-
-double ArgList::DoubleAt(int idx) {
-  if (ValidDouble(idx))
-    return convertToDouble(arglist_[idx]);
-  mprinterr("Error: Argument %i is not a valid double\n", idx);
-  return 0.0;
 }
 
 // ArgList::getNextInteger()
@@ -422,7 +381,7 @@ bool ArgList::hasKey(const char *key) {
   * \return true if key is found, false if not.
   */
 // NOTE: Should this be ignoring previously marked strings?
-bool ArgList::Contains(const char *key) {
+bool ArgList::Contains(const char *key) const {
   for (unsigned int arg = 0; arg < arglist_.size(); arg++) 
     if (!marked_[arg]) {
       if (arglist_[arg].compare(key)==0) {

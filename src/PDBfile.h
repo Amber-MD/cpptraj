@@ -19,7 +19,8 @@ class PDBfile : public CpptrajFile {
     /// \return true if current line has END keyword.
     bool IsPDB_END();
     /// \return Atom based on current line.
-    Atom pdb_Atom();
+    Atom pdb_Atom(bool);
+    Atom pdb_Atom() { return pdb_Atom(false); }
     /// \return Residue based on current line.
     NameType pdb_Residue(int&);
     /// Set XYZ based on current line.

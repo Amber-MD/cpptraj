@@ -11,7 +11,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #ifdef BINTRAJ
   // NOTE: Do not use checkNCerr so this fails silently. Allows routine to
   //       be used in file autodetection.
-  if ( nc_open( fname, NC_NOWRITE, &ncid_ )!=NC_NOERR )
+  if ( nc_open( fname, NC_NOWRITE, &ncid_ ) != NC_NOERR )
     return NC_UNKNOWN;
   nctype = GetNetcdfConventions();
   NC_close();
@@ -127,7 +127,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions() {
   else {
     mprinterr("Error: Netcdf file: Unrecognized conventions \"%s\".\n",
               attrText.c_str());
-    mprinterr("       Expected \"AMBER\" or \"AMBERRESTART\".\n");
+    mprinterr("Error:   Expected \"AMBER\" or \"AMBERRESTART\".\n");
   }
   return nctype;
 }

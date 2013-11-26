@@ -24,8 +24,9 @@ class ArgList {
     // Copy/Assignment
     ArgList(const ArgList&);
     ArgList& operator=(const ArgList &);
-    /// Return the argument at the given position
-    std::string const& operator[](int);
+    /// \return the argument at the given position
+    std::string const& operator[](int) const;
+    /// \return Internal argument list as vector of strings
     std::vector<std::string> const& List() const { return arglist_; }
     // Iterators
     typedef std::vector<std::string>::const_iterator const_iterator;
@@ -50,43 +51,41 @@ class ArgList {
     /// Print a warning if not all arguments are marked
     bool CheckForMoreArgs() const;
     /// Print the argument list
-    void PrintList();
+    void PrintList() const;
     /// Print detailed info for arg list
-    void PrintDebug();
+    void PrintDebug() const;
     /// Remove the first argument
     void RemoveFirstArg();
     /// \return the first argument
     const char *Command() const;
     /// \return true if the first argument matches key
     bool CommandIs(const char*) const;
-    /// Return the next unmarked string
+    /// \return the next unmarked string
     std::string const& GetStringNext();
-    /// Return the next unmarked mask
+    /// \return the next unmarked mask
     std::string const& GetMaskNext();
-    /// Return the next unmarked tag
+    /// \return the next unmarked tag
     std::string const& getNextTag();
     /// \return true if arg at position is valid integer.
-    bool ValidInteger(int);
+    bool ValidInteger(int) const;
     /// \return Integer at position.
-    int IntegerAt(int);
+    int IntegerAt(int) const;
     /// \return true if arg at position is valid double.
-    bool ValidDouble(int);
-    /// \return Double at position.
-    double DoubleAt(int);
-    /// Return the next unmarked integer
+    bool ValidDouble(int) const;
+    /// \return the next unmarked integer
     int getNextInteger(int);
-    /// Return the next unmarked double
+    /// \return the next unmarked double
     double getNextDouble(double);
-    /// Return the string following the given key
+    /// \return the string following the given key
     std::string const& GetStringKey(const char *);
-    /// Return the integer following the given key 
+    /// \return the integer following the given key 
     int getKeyInt(const char *, int);
-    /// Return the double following the given key
+    /// \return the double following the given key
     double getKeyDouble(const char*, double);
-    /// Return true if the key is present in the list
+    /// \return true if the key is present in the list
     bool hasKey(const char*);
-    /// Return true if they key is in the list but do not mark.
-    bool Contains(const char*);
+    /// \return true if they key is in the list but do not mark.
+    bool Contains(const char*) const;
   private:
     /// Empty string to return when args not found
     static const std::string emptystring;

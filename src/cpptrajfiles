@@ -24,7 +24,9 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Dipole.cpp \
         Action_DistRmsd.cpp \
         Action_Distance.cpp \
+        Action_FilterByData.cpp \
         Action_FixAtomOrder.cpp \
+        Action_Gist.cpp \
         Action_Grid.cpp \
         Action_GridFreeEnergy.cpp \
         Action_Hbond.cpp \
@@ -155,6 +157,7 @@ SOURCES=ActionFrameCounter.cpp \
         FileIO_Mpi.cpp \
         FileIO_Std.cpp \
         FileName.cpp \
+        FileTypes.cpp \
         Frame.cpp \
         FrameList.cpp \
         GridAction.cpp \
@@ -195,6 +198,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_GmxTrX.cpp \
         Traj_Mol2File.cpp \
         Traj_PDBfile.cpp \
+        Traj_SQM.cpp \
         TrajectoryFile.cpp \
         Trajin.cpp \
         TrajinList.cpp \

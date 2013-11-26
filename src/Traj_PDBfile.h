@@ -15,7 +15,7 @@ class Traj_PDBfile: public TrajectoryIO {
     enum PDBWRITEMODE {NONE = 0, SINGLE, MODEL, MULTI};
 
     Traj_PDBfile();
-    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_PDBfile(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_PDBfile(); }
   private:
     int pdbAtom_;
     int ter_num_; ///< Amount to increment atom number for TER

@@ -25,10 +25,10 @@ Analysis_IRED::Analysis_IRED() :
 {}
 
 void Analysis_IRED::Help() {
-  mprintf("\t[relax freq <hz> [NHdist <distnh>]] [order <order>]\n");
-  mprintf("\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n");
-  mprintf("\tmodes <modesname> [beg <ibeg> end <iend>]\n");
-  mprintf("\tPerform isotropic reorientational Eigenmode dynamics analysis.\n");
+  mprintf("\t[relax freq <hz> [NHdist <distnh>]] [order <order>]\n"
+          "\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n"
+          "\tmodes <modesname> [beg <ibeg> end <iend>]\n"
+          "\tPerform isotropic reorientational Eigenmode dynamics analysis.\n");
 }
 
 // DESTRUCTOR
@@ -77,7 +77,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
     // If not on stack, check for file.
-    if ( fileExists(modesfile.c_str()) ) {
+    if ( fileExists(modesfile) ) {
       modinfo_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesfile, "Modes" );
       if (modinfo_->ReadEvecFile( modesfile, ibeg, iend )) return Analysis::ERR;
       modesFromFile = true;

@@ -65,6 +65,7 @@
 #include "Action_Volmap.h"
 #include "Action_Spam.h"
 #include "Action_Temperature.h"
+#include "Action_Gist.h"
 #include "Action_CreateReservoir.h"
 #include "Action_Density.h"
 #include "Action_PairDist.h"
@@ -73,6 +74,7 @@
 #include "Action_FixAtomOrder.h"
 #include "Action_MaxDist.h"
 #include "Action_NMRrst.h"
+#include "Action_FilterByData.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -365,6 +367,7 @@ static void Help_ReadInput() {
 static void Help_Write_DataFile() {
   mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
   mprintf("\tWrite specified data sets to <filename> immediately.\n");
+  DataFile::WriteOptions();
 }
 
 static void Help_WriteData() {
@@ -400,6 +403,7 @@ static void Help_Trajin() {
   mprintf("\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n");
   mprintf("\t           [trajnames <rep1>,<rep2>,...,<repN> ] ]\n");
   mprintf("\tLoad trajectory specified by <filename> to the input trajectory list.\n");
+  TrajectoryFile::ReadOptions();
 }
 
 static void Help_Ensemble() {
@@ -415,6 +419,7 @@ static void Help_Trajout() {
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
   mprintf("\t           [ <Format Options> ]\n");
   mprintf("\tSpecify output trajectory.\n");
+  TrajectoryFile::WriteOptions();
 }
 
 static void Help_Reference() {
@@ -1104,11 +1109,7 @@ Command::RetType Reference(CpptrajState& State, ArgList& argIn, Command::AllocTy
 /// Load topology to State
 Command::RetType LoadParm(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  std::string parmtag = argIn.getNextTag();
-  bool bondsearch = !argIn.hasKey("nobondsearch");
-  double offset = argIn.getKeyDouble("bondsearch", -1.0);
-  return (Command::RetType)
-    State.PFL()->AddParmFile(argIn.GetStringNext(), parmtag, bondsearch, offset);
+  return (Command::RetType)State.PFL()->AddParmFile(argIn.GetStringNext(), argIn);
 }
 
 /// Print info for specified parm or atoms in specified parm.
@@ -1246,8 +1247,7 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
   } else {
     // Replace parm with stripped version
     *parm = *tempParm;
-    parm->Brief();
-    mprintf("\n");
+    parm->Brief("Stripped parm:");
     delete tempParm;
   }
   return Command::C_OK;
@@ -1405,7 +1405,9 @@ const Command::Token Command::Commands[] = {
 //  { ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, AddAction },
   { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
+  { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
   { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
+  { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
 //  { ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, AddAction },
   { ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, AddAction },
   { ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, AddAction },

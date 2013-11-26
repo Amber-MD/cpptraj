@@ -7,21 +7,10 @@
 class Traj_AmberRestart : public TrajectoryIO {
   public:
     Traj_AmberRestart();
-    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_AmberRestart(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_AmberRestart(); }
   private:
-    int restartAtoms_;     ///< Number of atoms in restart file
-    int natom3_;           ///< Number of coords
-    int numBoxCoords_;     ///< Number of box coords (3 or 6)
-    size_t coordSize_;     ///< Size of coords in bytes, for reading past coords.
-    double restartTime_;   ///< Time in restart file, read in
-    double restartTemp_;   ///< (Optional) replica temperature, read in.
-    double time0_;         ///< For writes, restart time offset
-    double dt_;            ///< For writes, restart timestep (scaling)
-    bool singleWrite_;     ///< If false, frame # will be appended to output filename
-    bool readAccess_;      ///< If true, presence/absence of velocity info is known
-    BufferedFrame file_;
-
     // Inherited functions
+    int processReadArgs(ArgList&) { return 0; }
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(std::string const&, Topology*);
     int setupTrajout(std::string const&, Topology*, int, bool);
@@ -34,6 +23,17 @@ class Traj_AmberRestart : public TrajectoryIO {
     void Info();
 
     int getBoxAngles(std::string const&, Box&);
-    int processReadArgs(ArgList&) { return 0; }
+
+    int restartAtoms_;     ///< Number of atoms in restart file
+    int natom3_;           ///< Number of coords
+    int numBoxCoords_;     ///< Number of box coords (3 or 6)
+    size_t coordSize_;     ///< Size of coords in bytes, for reading past coords.
+    double restartTime_;   ///< Time in restart file, read in
+    double restartTemp_;   ///< (Optional) replica temperature, read in.
+    double time0_;         ///< For writes, restart time offset
+    double dt_;            ///< For writes, restart timestep (scaling)
+    bool singleWrite_;     ///< If false, frame # will be appended to output filename
+    bool readAccess_;      ///< If true, presence/absence of velocity info is known
+    BufferedFrame file_;
 };
 #endif

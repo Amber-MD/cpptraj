@@ -1,32 +1,28 @@
 #ifndef INC_DATAFILE_H
 #define INC_DATAFILE_H
 #include "DataIO.h"
-#include "FileName.h"
-// Class: DataFile
+#include "FileTypes.h"
 /// Write DataSets to a file with specific format.
 class DataFile {
+    /// Allocator and description for file types. 
+    static const FileTypes::AllocToken DF_AllocArray[];
+    /// For associating keywords/extensions with file types. 
+    static const FileTypes::KeyToken DF_KeyArray[];
   public:
     /// Known data file formats.
     enum DataFormatType {
       DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, UNKNOWN_DATA 
     };
-
     DataFile();
     ~DataFile();
+    // -------------------------------------------
     /// List read options for each format.
-    static void ReadOptions();
+    static void ReadOptions() { FileTypes::ReadOptions(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA); }
     /// List write options for each format.
-    static void WriteOptions();
-    /// \return format type from keyword in ArgList.
-    static DataFormatType GetFormatFromArg(ArgList&);
-    /// \return format type from keyword.
-    static DataFormatType GetFormatFromString(std::string const&);
-    /// \return standard file extension for data file format.
-    static std::string GetExtensionForType(DataFormatType);
-    /// \return type from extension.
-    static DataFormatType GetTypeFromExtension(std::string const&);
+    static void WriteOptions(){ FileTypes::WriteOptions(DF_KeyArray,DF_AllocArray,UNKNOWN_DATA); }
     /// \return string corresponding to format.
-    const char* FormatString() const;
+    const char* FormatString() const { return FileTypes::FormatDescription(DF_AllocArray,dfType_);}
+    // -------------------------------------------
     /// Set debug level.
     void SetDebug(int);
     /// Set precision for all DataSets in DataFile
@@ -55,27 +51,7 @@ class DataFile {
     /// \return DataFile format type.
     DataFormatType Type()          const { return dfType_;   }
   private:
-    /// For displaying help for different formats.
-    struct DF_HelpToken {
-      const char* Description;
-      DataIO::HelpType ReadHelp;
-      DataIO::HelpType WriteHelp;
-    };
-    static const DF_HelpToken DF_HelpArray[];
-    /// For allocating data files from keywords.
-    struct DataFileToken {
-      DataFormatType Type;
-      const char* Key;
-      const char* Description;
-      const char* Extension;
-      DataIO::AllocatorType Alloc;
-    };
-    static const DataFileToken DataFileArray[];
-    typedef const DataFileToken* TokenPtr;
-
-    static DataIO* AllocDataIO(DataFormatType);
     static DataIO* DetectFormat(std::string const&, DataFormatType&);
-    //static DataFormatType DataFormat(std::string const&);
 
     int debug_;
     int dimension_;            ///< The dimension of all sets in the DataFile.

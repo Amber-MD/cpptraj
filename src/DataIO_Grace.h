@@ -6,7 +6,7 @@
 class DataIO_Grace : public DataIO {
   public:
     DataIO_Grace() {}
-    static DataIO* Alloc() { return (DataIO*)new DataIO_Grace(); } 
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Grace(); } 
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
 
     int processWriteArgs(ArgList &);
