@@ -48,8 +48,24 @@ BaseIOtype* FileTypes::AllocIO(AllocPtr allocArray, FileFormatType typeIn, bool 
   }
   return allocArray[typeIn].Alloc();
 }
+// FileTypes::FormatKeywords()
+void FileTypes::FormatKeywords(KeyPtr begin) {
+  mprintf("  Recognized keywords:");
+  for (KeyPtr token = begin; token->Key != 0; ++token)
+    mprintf(" %s", token->Key);
+  mprintf("\n");
+}
+// FileTypes::FormatExtensions()
+void FileTypes::FormatExtensions(KeyPtr begin) {
+  mprintf("  Recognized extensions:");
+  for (KeyPtr token = begin; token->Extension != 0; ++token)
+    mprintf(" %s", token->Extension);
+  mprintf("\n");
+}
 // FileTypes::ReadOptions()
-void FileTypes::ReadOptions(AllocPtr allocArray, FileFormatType UNK) {
+void FileTypes::ReadOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
+  FormatKeywords( begin );
+  FormatExtensions( begin );
   for (int i = 0; i < UNK; i++) {
     if (allocArray[i].ReadHelp != 0) {
       mprintf("  Options for %s:\n", allocArray[i].Description);
@@ -58,7 +74,9 @@ void FileTypes::ReadOptions(AllocPtr allocArray, FileFormatType UNK) {
   }
 }
 // FileTypes::WriteOptions()
-void FileTypes::WriteOptions(AllocPtr allocArray, FileFormatType UNK) {
+void FileTypes::WriteOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
+  FormatKeywords( begin );
+  FormatExtensions( begin );
   for (int i = 0; i < UNK; i++) {
     if (allocArray[i].WriteHelp != 0) {
       mprintf("  Options for %s:\n", allocArray[i].Description);

@@ -17,9 +17,9 @@ class DataFile {
     ~DataFile();
     // -------------------------------------------
     /// List read options for each format.
-    static void ReadOptions() { FileTypes::ReadOptions(DF_AllocArray, UNKNOWN_DATA); }
+    static void ReadOptions() { FileTypes::ReadOptions(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA); }
     /// List write options for each format.
-    static void WriteOptions(){ FileTypes::WriteOptions(DF_AllocArray,UNKNOWN_DATA); }
+    static void WriteOptions(){ FileTypes::WriteOptions(DF_KeyArray,DF_AllocArray,UNKNOWN_DATA); }
     /// \return string corresponding to format.
     const char* FormatString() const { return FileTypes::FormatDescription(DF_AllocArray,dfType_);}
     // -------------------------------------------

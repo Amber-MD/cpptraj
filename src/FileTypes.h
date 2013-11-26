@@ -45,9 +45,11 @@ class FileTypes {
     /// \return Allocator for given type. MUST BE CAST TO PROPER TYPE.
     static BaseIOtype* AllocIO(AllocPtr, FileFormatType, bool);
     /// List all defined read options.
-    static void ReadOptions(AllocPtr, FileFormatType);
+    static void ReadOptions(KeyPtr, AllocPtr, FileFormatType);
     /// List all defined write options.
-    static void WriteOptions(AllocPtr, FileFormatType);
+    static void WriteOptions(KeyPtr, AllocPtr, FileFormatType);
   private:
+    static void FormatKeywords(KeyPtr);
+    static void FormatExtensions(KeyPtr);
 };
 #endif

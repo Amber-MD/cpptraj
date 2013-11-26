@@ -367,6 +367,7 @@ static void Help_ReadInput() {
 static void Help_Write_DataFile() {
   mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
   mprintf("\tWrite specified data sets to <filename> immediately.\n");
+  DataFile::WriteOptions();
 }
 
 static void Help_WriteData() {
@@ -402,6 +403,7 @@ static void Help_Trajin() {
   mprintf("\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n");
   mprintf("\t           [trajnames <rep1>,<rep2>,...,<repN> ] ]\n");
   mprintf("\tLoad trajectory specified by <filename> to the input trajectory list.\n");
+  TrajectoryFile::ReadOptions();
 }
 
 static void Help_Ensemble() {
@@ -417,6 +419,7 @@ static void Help_Trajout() {
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
   mprintf("\t           [ <Format Options> ]\n");
   mprintf("\tSpecify output trajectory.\n");
+  TrajectoryFile::WriteOptions();
 }
 
 static void Help_Reference() {

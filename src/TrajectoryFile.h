@@ -24,6 +24,10 @@ class TrajectoryFile {
 
     TrajectoryFile();
     virtual ~TrajectoryFile() {}
+    /// List read options for each format.
+    static void ReadOptions() { FileTypes::ReadOptions(TF_KeyArray,TF_AllocArray, UNKNOWN_TRAJ); }
+    /// List write options for each format.
+    static void WriteOptions(){ FileTypes::WriteOptions(TF_KeyArray,TF_AllocArray,UNKNOWN_TRAJ); }
     /// \return format type from keyword in ArgList. 
     static TrajFormatType GetFormatFromArg(ArgList& a) {
       return (TrajFormatType)FileTypes::GetFormatFromArg(TF_KeyArray, a, AMBERTRAJ);
