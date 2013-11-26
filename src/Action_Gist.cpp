@@ -1,7 +1,6 @@
 // Gist 
 #include <cmath>
 #include <iostream> // cout
-#include <cstring> // memset
 #include <fstream>
 #include <time.h>
 using namespace std;
