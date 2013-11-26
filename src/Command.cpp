@@ -65,6 +65,7 @@
 #include "Action_Volmap.h"
 #include "Action_Spam.h"
 #include "Action_Temperature.h"
+#include "Action_Gist.h"
 #include "Action_CreateReservoir.h"
 #include "Action_Density.h"
 #include "Action_PairDist.h"
@@ -1403,6 +1404,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
   { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
+  { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
 //  { ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, AddAction },
   { ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, AddAction },
   { ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, AddAction },

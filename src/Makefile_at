@@ -1,6 +1,6 @@
 include ../../config.h
 
-CPPTRAJ_FLAGS=-I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
+CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
 # The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
 # actual locations of the arpack, lapack, blas, and netcdf libraries as 
 # installed by AmberTools. Since the NETCDFLIB / FLIBS_PTRAJ vars can now just

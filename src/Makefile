@@ -20,7 +20,7 @@ dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(READLINE)
-	$(CXX) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
+	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS) 
 
 $(READLINE): $(READLINE_HOME)/Makefile
 	cd $(READLINE_HOME) && $(MAKE)
