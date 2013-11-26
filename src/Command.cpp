@@ -1105,11 +1105,7 @@ Command::RetType Reference(CpptrajState& State, ArgList& argIn, Command::AllocTy
 /// Load topology to State
 Command::RetType LoadParm(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  std::string parmtag = argIn.getNextTag();
-  bool bondsearch = !argIn.hasKey("nobondsearch");
-  double offset = argIn.getKeyDouble("bondsearch", -1.0);
-  return (Command::RetType)
-    State.PFL()->AddParmFile(argIn.GetStringNext(), parmtag, bondsearch, offset);
+  return (Command::RetType)State.PFL()->AddParmFile(argIn.GetStringNext(), argIn);
 }
 
 /// Print info for specified parm or atoms in specified parm.
@@ -1247,8 +1243,7 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
   } else {
     // Replace parm with stripped version
     *parm = *tempParm;
-    parm->Brief();
-    mprintf("\n");
+    parm->Brief("Stripped parm:");
     delete tempParm;
   }
   return Command::C_OK;
