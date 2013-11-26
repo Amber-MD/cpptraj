@@ -41,7 +41,7 @@ Action_Gist::Action_Gist() :
 
 
 void Action_Gist::Help() {
-  mprintf("gist <watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [doeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
+  mprintf("<watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [doeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
   mprintf("\tGIST needs the specification of the water model being used. Supported water models are: \n");
   mprintf("\ta) TIP3P specified as tip3p. \n");
   mprintf("\tb) TIP4P specified as tip4p. \n");
@@ -361,12 +361,12 @@ static void GetLJparam(Topology const& top, double& A, double& B,
 }
 
 void Action_Gist::NonbondEnergy(Frame *currentFrame) {
-  double delta2, Acoef, Bcoef, deltatest;
+  double Acoef, Bcoef;
   Vec3 XYZ, XYZ2, JI;
-  double rij2, rij, r2, r6, r12, f12, f6, e_vdw, qiqj, e_elec;
+  double rij2, rij, r2, r6, r12, f12, f6, e_vdw, e_elec;
   int satom, satom2, atom1, atom2;
   
-  int  voxel2;
+  int  voxel2 = 0;
   double q1, q2;
   
   // Setup imaging info
@@ -488,7 +488,6 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 void Action_Gist::Grid(Frame *frameIn) {
   int  i, gridindex[3], nH;
   Vec3 comp,  atom_coord;
-  double rij;
   i = (*solvmol).BeginAtom();
 
   gridwat_[resnum] = MAX_GRID_PT_ + 1;
@@ -540,7 +539,7 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
 
   //if (NFRAME_==1) mprintf("GIST Euler Angles \n");
   Vec3 x_lab, y_lab, z_lab, O_wat, H1_wat, H2_wat, x_wat, y_wat, z_wat, node, v;
-  double cp, dp;
+  double dp;
 
   int i = (*solvmol).BeginAtom();
   O_wat = Vec3(frameIn->XYZ(i));
@@ -563,13 +562,13 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
   // Define the water frame of reference - all axes must be normalized
   // make h1 the water x-axis (but first need to normalized)
   x_wat = H1_wat;
-  cp = x_wat.Normalize();
+  x_wat.Normalize();
   // the normalized z-axis is the cross product of h1 and h2 
   z_wat = x_wat.Cross( H2_wat );
-  cp = z_wat.Normalize();
+  z_wat.Normalize();
   // make y-axis as the cross product of h1 and z-axis
   y_wat = z_wat.Cross( x_wat );
-  cp = y_wat.Normalize();
+  y_wat.Normalize();
   
   // Find the X-convention Z-X'-Z'' Euler angles between the water frame and the lab/host frame
   // First, theta = angle between the water z-axis of the two frames
@@ -582,7 +581,7 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
     // direction of the lines of node = cross product of two normals (z axes)
     // acos of x always gives the angle between 0 and pi, which is okay for theta since theta ranges from 0 to pi
     node = z_lab.Cross( z_wat );
-    cp = node.Normalize();
+    node.Normalize();
     
     // Second, find the angle phi, which is between x_lab and the node
     dp = node*( x_lab );
@@ -660,7 +659,7 @@ void Action_Gist::Dipole(Frame *frameIn) {
 void Action_Gist::Order(Frame *frameIn) {
   if (NFRAME_==1) mprintf("GIST Order Parameter \n");
   int i;
-  double cos, sum, r1, r2, r3, r4, rij2, x[5], y[5], z[5];
+  double cos, sum, r1, r2, rij2, x[5], y[5], z[5];
   Vec3 O_wat1, O_wat2, O_wat3, v1, v2;
   resnum=0;
 
@@ -677,7 +676,7 @@ void Action_Gist::Order(Frame *frameIn) {
     i = (*solvmol).BeginAtom();
     O_wat1 = Vec3(frameIn->XYZ( i ));
 
-    r1=1000; r2=1000; r3=1000; r4=1000; resnum2=0;
+    r1=1000; r2=1000; resnum2=0;
     for (int a=1; a<5; a++) {
       x[a]=10000;
       y[a]=10000;
@@ -694,10 +693,19 @@ void Action_Gist::Order(Frame *frameIn) {
       O_wat2 = Vec3(frameIn->XYZ( i ));      
       rij2 = DIST2_NoImage(O_wat1, O_wat2);
       if (rij2<r1) {
-        r4 = r3; x[4] = x[3]; y[4] = y[3]; z[4] = z[3];
-	r3 = r2; x[3] = x[2]; y[3] = y[2]; z[3] = z[2]; 
-	r2 = r1; x[2] = x[1]; y[2] = y[1]; z[2] = z[1];
-	r1 = rij2; x[1] = O_wat2[0]; y[1] = O_wat2[1]; z[1] = O_wat2[2];
+        x[4] = x[3];
+        y[4] = y[3];
+        z[4] = z[3];
+	x[3] = x[2];
+        y[3] = y[2];
+        z[3] = z[2];
+        x[2] = x[1];
+        y[2] = y[1];
+        z[2] = z[1];
+	r1 = rij2;
+        x[1] = O_wat2[0];
+        y[1] = O_wat2[1];
+        z[1] = O_wat2[2];
       }
     }
     
