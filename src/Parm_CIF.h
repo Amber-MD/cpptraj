@@ -6,6 +6,7 @@ class Parm_CIF : public ParmIO {
     Parm_CIF() : debug_(0) { }
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_CIF(); }
     bool ID_ParmFormat(CpptrajFile&);
+    int processReadArgs(ArgList&) { return 0; }
     int ReadParm(std::string const&, Topology&);
     int WriteParm(std::string const&, Topology const&) { return 1;   }
     void SetDebug(int i)                               { debug_ = i; }

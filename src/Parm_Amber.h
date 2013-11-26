@@ -7,6 +7,7 @@ class Parm_Amber : public ParmIO {
     ~Parm_Amber();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_Amber(); }
     bool ID_ParmFormat(CpptrajFile&);
+    int processReadArgs(ArgList&) { return 0; }
     int ReadParm(std::string const&, Topology&);
     int WriteParm(std::string const&, Topology const&);
     void SetDebug(int debugIn) { debug_ = debugIn; }

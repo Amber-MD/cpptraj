@@ -47,6 +47,7 @@ class Atom {
     void SetResNum(int resnumIn)             { resnum_ = resnumIn;  }
     void SetMol(int molIn)                   { mol_ = molIn;        }
     void SetCharge(double qin)               { charge_ = qin;       }
+    void SetGBradius(double rin)             { gb_radius_ = rin;    }
     // Inline functions returning internal vars
     inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }
