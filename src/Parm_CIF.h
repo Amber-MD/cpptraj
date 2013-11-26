@@ -4,7 +4,7 @@
 class Parm_CIF : public ParmIO {
   public :
     Parm_CIF() : debug_(0) { }
-    static ParmIO* Alloc() { return (ParmIO*)new Parm_CIF(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_CIF(); }
     bool ID_ParmFormat(CpptrajFile&);
     int ReadParm(std::string const&, Topology&);
     int WriteParm(std::string const&, Topology const&) { return 1;   }

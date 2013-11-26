@@ -38,23 +38,23 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 };
 
 const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
-  { AMBERNETCDF,    "netcdf",    ".nc",      },
-  { AMBERNETCDF,    "cdf",       ".nc",      },
-  { AMBERRESTARTNC, "ncrestart", ".ncrst",   },
-  { AMBERRESTARTNC, "restartnc", ".ncrst",   },
-  { PDBFILE,        "pdb",       ".pdb",     },
-  { MOL2FILE,       "mol2",      ".mol2",    },
-  { CHARMMDCD,      "dcd",       ".dcd",     },
-  { CHARMMDCD,      "charmm",    ".dcd",     },
-  { GMXTRX,         "trr",       ".trr",     },
-  { BINPOS,         "binpos",    ".binpos",  },
-  { AMBERRESTART,   "restart",   ".rst7",    },
-  { AMBERRESTART,   "restrt",    ".rst7",    },
-  { AMBERRESTART,   "rest",      ".rst7",    },
-  { AMBERTRAJ,      "crd",       ".crd",     },
-  { CONFLIB,        "conflib",   ".conflib", },
-  { SQM,            "sqm",       ".sqm",     },
-  { UNKNOWN_TRAJ,   0,           0,          }
+  { AMBERNETCDF,    "netcdf",    ".nc"      },
+  { AMBERNETCDF,    "cdf",       ".nc"      },
+  { AMBERRESTARTNC, "ncrestart", ".ncrst"   },
+  { AMBERRESTARTNC, "restartnc", ".ncrst"   },
+  { PDBFILE,        "pdb",       ".pdb"     },
+  { MOL2FILE,       "mol2",      ".mol2"    },
+  { CHARMMDCD,      "dcd",       ".dcd"     },
+  { CHARMMDCD,      "charmm",    ".dcd"     },
+  { GMXTRX,         "trr",       ".trr"     },
+  { BINPOS,         "binpos",    ".binpos"  },
+  { AMBERRESTART,   "restart",   ".rst7"    },
+  { AMBERRESTART,   "restrt",    ".rst7"    },
+  { AMBERRESTART,   "rest",      ".rst7"    },
+  { AMBERTRAJ,      "crd",       ".crd"     },
+  { CONFLIB,        "conflib",   ".conflib" },
+  { SQM,            "sqm",       ".sqm"     },
+  { UNKNOWN_TRAJ,   0,           0          }
 };
 // -----------------------------------------------------------------------------
 

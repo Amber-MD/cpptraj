@@ -54,15 +54,15 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
 };
 
 const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
-  { DATAFILE,     "dat",    ".dat",   },
-  { XMGRACE,      "grace",  ".agr",   },
-  { GNUPLOT,      "gnu",    ".gnu",   },
-  { XPLOR,        "xplor",  ".xplor", },
-  { XPLOR,        "xplor",  ".grid",  },
-  { OPENDX,       "opendx", ".dx",    },
-  { REMLOG,       "remlog", ".log",   },
-  { MDOUT,        "mdout",  ".mdout", },
-  { UNKNOWN_DATA, 0,        0         }
+  { DATAFILE,     "dat",    ".dat"   },
+  { XMGRACE,      "grace",  ".agr"   },
+  { GNUPLOT,      "gnu",    ".gnu"   },
+  { XPLOR,        "xplor",  ".xplor" },
+  { XPLOR,        "xplor",  ".grid"  },
+  { OPENDX,       "opendx", ".dx"    },
+  { REMLOG,       "remlog", ".log"   },
+  { MDOUT,        "mdout",  ".mdout" },
+  { UNKNOWN_DATA, 0,        0        }
 };
 
 // DataFile::DetectFormat()
@@ -118,7 +118,7 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
                                                               DATAFILE);
     dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   }
-  mprintf("\tReading %s as %s\n", filename_.full(), 
+  mprintf("\tReading '%s' as %s\n", filename_.full(), 
           FileTypes::FormatDescription(DF_AllocArray,dfType_));
   // Check if user specifed DataSet name; otherwise use filename base.
   std::string dsname = argIn.GetStringKey("name");

@@ -4,7 +4,6 @@
 #include "DataSetList.h"
 #include "CpptrajFile.h"
 #include "BaseIOtype.h"
-// Class: DataIO
 /// Base class that all DataIO objects inherit from.
 class DataIO : public BaseIOtype {
   public:

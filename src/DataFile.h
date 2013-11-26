@@ -1,7 +1,6 @@
 #ifndef INC_DATAFILE_H
 #define INC_DATAFILE_H
 #include "DataIO.h"
-#include "FileName.h"
 #include "FileTypes.h"
 /// Write DataSets to a file with specific format.
 class DataFile {
