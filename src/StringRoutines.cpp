@@ -18,8 +18,8 @@
   * empty string. Do not print an error message if the file does not exist
   * so that this routine and fileExists() can be used to silently check files.
   */
-std::string tildeExpansion(const char *filenameIn) {
-  if (filenameIn==0) {
+std::string tildeExpansion(std::string const& filenameIn) {
+  if (filenameIn.empty()) {
     mprinterr("Error: tildeExpansion: null filename specified.\n");
     return std::string("");
   }
@@ -28,20 +28,20 @@ std::string tildeExpansion(const char *filenameIn) {
   //       is included and large file flags are set. Just disable globbing
   //       for PGI and return a copy of filenameIn.
   // Since not globbing, check if file exists before returning filename.
-  FILE *infile = fopen(filenameIn, "rb");
+  FILE *infile = fopen(filenameIn.c_str(), "rb");
   if (infile == 0) return std::string("");
   fclose(infile);
-  return std::string(filenameIn);
+  return filenameIn;
 # else
   glob_t globbuf;
   globbuf.gl_offs = 1;
   std::string returnFilename;
-  int err = glob(filenameIn, GLOB_TILDE, NULL, &globbuf);
+  int err = glob(filenameIn.c_str(), GLOB_TILDE, NULL, &globbuf);
   if ( err == GLOB_NOMATCH )
     //mprinterr("Error: '%s' does not exist.\n", filenameIn); // Make silent
     return returnFilename;
   else if ( err != 0 )
-    mprinterr("Internal Error: glob() failed for '%s' (%i)\n", filenameIn, err);
+    mprinterr("Internal Error: glob() failed for '%s' (%i)\n", filenameIn.c_str(), err);
   else {
     returnFilename.assign( globbuf.gl_pathv[0] );
     globfree(&globbuf);
@@ -80,7 +80,7 @@ StrArray ExpandToFilenames(std::string const& fnameArg) {
 
 // fileExists()
 /** Return true if file can be opened "r".  */
-bool fileExists(const char *filenameIn) {
+bool fileExists(std::string const& filenameIn) {
   // Perform tilde expansion
   std::string fname = tildeExpansion(filenameIn);
   if (fname.empty()) return false;
@@ -179,12 +179,14 @@ void RemoveTrailingWhitespace(std::string &line) {
     line.resize( lastSpace );
 }
 
+// integerToString()
 std::string integerToString(int i) {
   std::ostringstream oss;
   oss << i;
   return oss.str();
 }
 
+// integerToString()
 std::string integerToString(int i, int width) {
   std::ostringstream oss;
   oss.fill('0');
@@ -193,10 +195,25 @@ std::string integerToString(int i, int width) {
   return oss.str();
 }
 
+// doubleToString()
 std::string doubleToString(double d) {
   std::ostringstream oss;
   oss << d;
   return oss.str();
+}
+
+// validInteger()
+bool validInteger(std::string const &argument) {
+  std::locale loc;
+  if (isdigit(argument[0],loc) || argument[0]=='-') return true;
+  return false;
+}
+
+// validDouble()
+bool validDouble(std::string const &argument) {
+  std::locale loc;
+  if (isdigit(argument[0],loc) || argument[0]=='-' || argument[0]=='.' ) return true;
+  return false;
 }
 
 // ---------- STRING FORMAT ROUTINES -------------------------------------------

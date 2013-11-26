@@ -60,7 +60,7 @@ int Trajout::InitTrajWrite(std::string const& tnameIn, ArgList *argIn,
   }
   // If appending, file must exist and must match the current format.
   if (append_) {
-    if (fileExists(tnameIn.c_str())) { 
+    if (fileExists(tnameIn)) { 
       TrajectoryFile::TrajFormatType appendFormat;
       trajio_ = DetectFormat( tnameIn, appendFormat );
       if (appendFormat == TrajectoryFile::UNKNOWN_TRAJ)

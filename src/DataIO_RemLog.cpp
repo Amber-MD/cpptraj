@@ -59,7 +59,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
 {
   ExchgType firstlog_type = UNKNOWN;
   std::vector<std::string> logFilenames;
-  if (!fileExists( fname.c_str() )) {
+  if (!fileExists( fname )) {
     mprinterr("Error: File '%s' does not exist.\n", fname.c_str());
     return 1;
   }
@@ -69,7 +69,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   // Check if more than one log name was specified.
   std::string log_name = argIn.GetStringNext();
   while (!log_name.empty()) {
-    if (!fileExists( log_name.c_str() ))
+    if (!fileExists( log_name ))
       mprintf("Warning: '%s' does not exist.\n", log_name.c_str());
     else
       logFilenames.push_back( log_name );

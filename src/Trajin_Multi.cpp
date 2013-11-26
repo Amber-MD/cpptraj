@@ -1,4 +1,4 @@
-#include <locale> // isdigit
+#include <locale> // isdigit TODO: Use validInteger
 #include "Trajin_Multi.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, convertToInteger
@@ -100,7 +100,7 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
   std::string replica_filename = Prefix + "." + 
                                  integerToString(lowestRepnum_ - 1, ExtWidth) +
                                  CompressExt;
-  if (fileExists(replica_filename.c_str())) {
+  if (fileExists(replica_filename)) {
     mprintf("Warning: Replica# found lower than file specified with trajin.\n"
             "Warning:   Found \"%s\"; 'trajin remdtraj' requires lowest # replica.\n",
             replica_filename.c_str());
@@ -114,7 +114,7 @@ Trajin_Multi::NameListType Trajin_Multi::SearchForReplicas() {
     ++current_repnum;
     replica_filename = Prefix + "." + integerToString(current_repnum, ExtWidth) + CompressExt;
     //mprintf("\t\tChecking for %s\n",replica_filename.c_str());
-    if (fileExists(replica_filename.c_str()))
+    if (fileExists(replica_filename))
       ReplicaNames.push_back( replica_filename );
     else
       search_for_files = false;
@@ -148,7 +148,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
     return 1;
   }
   // Check that base file exists
-  if (!fileExists(tnameIn.c_str())) {
+  if (!fileExists(tnameIn)) {
     mprinterr("Error: File %s does not exist.\n",tnameIn.c_str());
     return 1;
   }
