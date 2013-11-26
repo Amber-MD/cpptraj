@@ -6,7 +6,7 @@ class Traj_GmxTrX : public TrajectoryIO {
   public:
     Traj_GmxTrX();
     ~Traj_GmxTrX();
-    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_GmxTrX(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_GmxTrX(); }
   private:
     enum FormatType { TRR = 0, TRJ };
     static const int Magic_;

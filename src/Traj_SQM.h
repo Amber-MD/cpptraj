@@ -5,7 +5,7 @@
 class Traj_SQM : public TrajectoryIO {
   public:
     Traj_SQM() : singleWrite_(false), chargeIsSet_(false), charge_(0), sqmParm_(0) {}
-    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_SQM(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_SQM(); }
   private:
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&)               { return false; }

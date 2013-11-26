@@ -211,12 +211,13 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
   Ndimensions_ = -1;
   isSeekable_ = true;
   hasVelocity_ = false;
+  TrajFormatType rep0format = TrajectoryFile::UNKNOWN_TRAJ;
   ReplicaDimArray lowestRepDims;
   for (NameListType::iterator repfile = replica_filenames_.begin();
                               repfile != replica_filenames_.end(); ++repfile)
   {
     // Detect format
-    TrajectoryIO* replica0 = DetectFormat( *repfile );
+    TrajectoryIO* replica0 = DetectFormat( *repfile, rep0format );
     if ( replica0 == 0 ) {
       mprinterr("Error: RemdTraj: Could not set up replica file %s\n", (*repfile).c_str());
       return 1;
