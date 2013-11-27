@@ -10,75 +10,105 @@
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
 
 // ---------- Constants and Enumerated types -----------------------------------
-/// Enumerated type for FLAG_POINTERS section
 const int Parm_Amber::AMBERPOINTERS=31;
+/// Enumerated type for FLAG_POINTERS section
+/** These variables are part of the POINTERS section of the topology.
+  NATOM;    total number of atoms in the system
+  NTYPES;   number of AMBER atom types used, max is 60
+  NBONH;    number of bonds containing hydrogen
+  NBONA;    number of bonds without hydrogen
+  NTHETH;   number of angles containing hydrogen
+  NTHETA;   number of angles not containing hydrogen
+  NPHIH;    number of dihedrals containing hydrogen
+  NPHIA;    number of dihedrals not containing hydrogen
+  NHPARM;   NOT USED
+  NPARM;    1 for LES parm
+  NNB;      total number of excluded atoms
+  NTOTRS;   total number of residues
+  MBONA;    NBONA + number of constraint bonds
+  MTHETA;   NTHETA + number of constraint angles
+  MPHIA;    NPHIA + number of constraint dihedral angles
+  NUMBND;   total number of unique bond types
+  NUMANG;   total number of unique angle types
+  NPTRA;    total number of unique dihedral types
+  NATYP;    number of "atoms" defined in parameter file
+  NPHB;     number of types of hydrogen bonded pair interactions
+  IFPERT;   =1 if perturbation info is to be read =0 otherwise
+  NBPER;    number of bonds to be perturbed
+  NGPER;    number of angles to be perturbed
+  NDPER;    number of dihedrals to be perturbed
+  MBPER;    num of pert bonds across boundary to non-pert groups
+  MGPER;    num of pert angles across boundary to non-pert groups
+  MDPER;    num of pert dihedrals across bndry to non-pert groups
+  IFBOX;    >0 if periodic box info to be read =0 otherwise
+  NMXRS;    number of atoms in the largest residue
+  IFCAP;    =1 if CAP option was used in edit, =0 otherwise
+  NUMEXTRA; number of extra points (aka lone pairs)
+*/
 enum topValues {
 //0         1       2      3       4       5       6       7      8       9
-  NATOM=0,  NTYPES, NBONH, MBONA,  NTHETH, MTHETA, NPHIH,  MPHIA, NHPARM, NPARM,
-  NNB,      NRES,   NBONA, NTHETA, NPHIA,  NUMBND, NUMANG, NPTRA, NATYP,  NPHB,
+  NATOM=0,  NTYPES, NBONH, NBONA,  NTHETH, NTHETA, NPHIH,  NPHIA, NHPARM, NPARM,
+  NNB,      NRES,   MBONA, MTHETA, MPHIA,  NUMBND, NUMANG, NPTRA, NATYP,  NPHB,
   IFPERT,   NBPER,  NGPER, NDPER,  MBPER,  MGPER,  MDPER,  IFBOX, NMXRS,  IFCAP,
   NEXTRA
 };
-/// Number of unique amber parm FLAGs
-const int Parm_Amber::NUMAMBERPARMFLAGS=44;
-/// Constant strings for fortran formats corresponding to Amber parm flags
-const char* Parm_Amber::AmberParmFmt[NUMAMBERPARMFLAGS] = {
-"%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",
-"%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(3I8)",
-"%FORMAT(10I8)",   "%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",
-"%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(10I8)",   "%FORMAT(5E16.8)", "%FORMAT(5E16.8)",
-"%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)",
-"%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(5E16.8)",
-"%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",   "%FORMAT(5E16.8)",
-"%FORMAT(5E16.8)", "%FORMAT(5E16.8)", "%FORMAT(20a4)",   "%FORMAT(10I8)",   "%FORMAT(10I8)",
-"%FORMAT(10I8)",   "%FORMAT(20a4)",   "%FORMAT(20a4)",   "%FORMAT(1a80)"
-};
-/// Constant strings for Amber parm flags
-const char* Parm_Amber::AmberParmFlag[NUMAMBERPARMFLAGS] = {
-  "POINTERS",
-  "ATOM_NAME",
-  "CHARGE",
-  "MASS",
-  "RESIDUE_LABEL",
-  "RESIDUE_POINTER",
-  "AMBER_ATOM_TYPE",
-  "BONDS_INC_HYDROGEN",
-  "BONDS_WITHOUT_HYDROGEN",
-  "SOLVENT_POINTERS",
-  "ATOMS_PER_MOLECULE",
-  "BOX_DIMENSIONS",
-  "ATOM_TYPE_INDEX",
-  "NUMBER_EXCLUDED_ATOMS",
-  "NONBONDED_PARM_INDEX",
-  "LENNARD_JONES_ACOEF",
-  "LENNARD_JONES_BCOEF",
-  "EXCLUDED_ATOMS_LIST",
-  "RADII",
-  "SCREEN",
-  "BOND_FORCE_CONSTANT",
-  "BOND_EQUIL_VALUE",
-  "ANGLE_FORCE_CONSTANT",
-  "ANGLE_EQUIL_VALUE",
-  "DIHEDRAL_FORCE_CONSTANT",
-  "DIHEDRAL_PERIODICITY",
-  "DIHEDRAL_PHASE",
-  "SCEE_SCALE_FACTOR",
-  "SCNB_SCALE_FACTOR",
-  "SOLTY",
-  "ANGLES_INC_HYDROGEN",
-  "ANGLES_WITHOUT_HYDROGEN",
-  "DIHEDRALS_INC_HYDROGEN",
-  "DIHEDRALS_WITHOUT_HYDROGEN",
-  "HBOND_ACOEF",
-  "HBOND_BCOEF",
-  "HBCUT",
-  "TREE_CHAIN_CLASSIFICATION",
-  "JOIN_ARRAY",
-  "IROTAT",
-  "ATOMIC_NUMBER",
-  "TITLE",
-  "CTITLE",
-  "RADIUS_SET"
+// FORTRAN format strings
+static const char* F10I8 = "%FORMAT(10I8)";
+static const char* F20a4 = "%FORMAT(20a4)";
+static const char* F5E16 = "%FORMAT(5E16.8)";
+static const char* F3I8  = "%FORMAT(3I8)";
+static const char* F1a80 = "%FORMAT(1a80)";
+/// Constant strings for Amber parm flags and fortran formats.
+const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
+  { "POINTERS",                   F10I8 },
+  { "ATOM_NAME",                  F20a4 },
+  { "CHARGE",                     F5E16 },
+  { "MASS",                       F5E16 },
+  { "RESIDUE_LABEL",              F20a4 },
+  { "RESIDUE_POINTER",            F10I8 },
+  { "AMBER_ATOM_TYPE",            F20a4 },
+  { "BONDS_INC_HYDROGEN",         F10I8 },
+  { "BONDS_WITHOUT_HYDROGEN",     F10I8 },
+  { "SOLVENT_POINTERS",           F3I8  },
+  { "ATOMS_PER_MOLECULE",         F10I8 },
+  { "BOX_DIMENSIONS",             F5E16 },
+  { "ATOM_TYPE_INDEX",            F10I8 },
+  { "NUMBER_EXCLUDED_ATOMS",      F10I8 },
+  { "NONBONDED_PARM_INDEX",       F10I8 },
+  { "LENNARD_JONES_ACOEF",        F5E16 },
+  { "LENNARD_JONES_BCOEF",        F5E16 },
+  { "EXCLUDED_ATOMS_LIST",        F10I8 },
+  { "RADII",                      F5E16 },
+  { "SCREEN",                     F5E16 },
+  { "BOND_FORCE_CONSTANT",        F5E16 },
+  { "BOND_EQUIL_VALUE",           F5E16 },
+  { "ANGLE_FORCE_CONSTANT",       F5E16 },
+  { "ANGLE_EQUIL_VALUE",          F5E16 },
+  { "DIHEDRAL_FORCE_CONSTANT",    F5E16 },
+  { "DIHEDRAL_PERIODICITY",       F5E16 },
+  { "DIHEDRAL_PHASE",             F5E16 },
+  { "SCEE_SCALE_FACTOR",          F5E16 },
+  { "SCNB_SCALE_FACTOR",          F5E16 },
+  { "SOLTY",                      F5E16 },
+  { "ANGLES_INC_HYDROGEN",        F10I8 },
+  { "ANGLES_WITHOUT_HYDROGEN",    F10I8 },
+  { "DIHEDRALS_INC_HYDROGEN",     F10I8 },
+  { "DIHEDRALS_WITHOUT_HYDROGEN", F10I8 },
+  { "HBOND_ACOEF",                F5E16 },
+  { "HBOND_BCOEF",                F5E16 },
+  { "HBCUT",                      F5E16 },
+  { "TREE_CHAIN_CLASSIFICATION",  F20a4 },
+  { "JOIN_ARRAY",                 F10I8 },
+  { "IROTAT",                     F10I8 },
+  { "ATOMIC_NUMBER",              F10I8 },
+  { "TITLE",                      F20a4 },
+  { "CTITLE",                     F20a4 },
+  { "RADIUS_SET",                 F1a80 },
+  { "LES_NTYP",                   F10I8 }, // Number of LES regions
+  { "LES_TYPE",                   F10I8 }, // LES type for each atom
+  { "LES_FAC",                    F5E16 }, // Scaling factor for typeA * typeB  
+  { "LES_CNUM",                   F10I8 }, // Copy number for each atom; 0==in all
+  { "LES_ID",                     F10I8 }  // LES region ID
 };
 
 // -----------------------------------------------------------------------------
@@ -149,17 +179,17 @@ int Parm_Amber::ReadParm(std::string const& fname, Topology &TopIn ) {
 }
 
 // Parm_Amber::AmberIfbox()
-/** Return Amber IFBOX type:
+/** \return Amber IFBOX type:
   *   0: No box
-  *   1: Box
-  *   2: Truncated octahedral box
+  *   1: Orthogonal
+  *   2: Truncated octahedral
+  *   3: General triclinic
   */
 int Parm_Amber::AmberIfbox(const Box& boxIn) {
   if      (boxIn.Type() == Box::NOBOX   ) return 0;
   else if (boxIn.Type() == Box::ORTHO   ) return 1; 
   else if (boxIn.Type() == Box::TRUNCOCT) return 2;
-  else                                    return 3;
-  return 1;
+  return 3;
 }
 
 void Parm_Amber::CheckNameWidth(const char* typeIn, NameType const& nameIn) {
@@ -258,17 +288,17 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   values[NATOM] = parmIn.Natom();
   values[NTYPES] = parmIn.Ntypes();
   values[NBONH] = (int)BondsH.size() / 3; // NOTE: Check divisible by 3?
-  values[MBONA] = (int)Bonds.size() / 3; // NOTE: Check divisible by 3?
+  values[NBONA] = (int)Bonds.size() / 3; // NOTE: Check divisible by 3?
   values[NTHETH] = (int)parmIn.AnglesH().size() / 4;
-  values[MTHETA] = (int)parmIn.Angles().size() / 4;
+  values[NTHETA] = (int)parmIn.Angles().size() / 4;
   values[NPHIH] = (int)parmIn.DihedralsH().size() / 5; 
-  values[MPHIA] = (int)parmIn.Dihedrals().size() / 5;
+  values[NPHIA] = (int)parmIn.Dihedrals().size() / 5;
   values[NNB] = (int)excluded.size();
   values[NRES] = parmIn.Nres();
   //   NOTE: Assuming NBONA == MBONA etc
-  values[NBONA] = values[MBONA];
-  values[NTHETA] = values[MTHETA];
-  values[NPHIA] = values[MPHIA];
+  values[MBONA] = values[NBONA];
+  values[MTHETA] = values[NTHETA];
+  values[MPHIA] = values[NPHIA];
   values[NUMBND] = (int)BondRk.size();
   values[NUMANG] = (int)parmIn.AngleTk().size();
   values[NPTRA] = (int)parmIn.DihedralPk().size();
@@ -394,9 +424,6 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
 // -----------------------------------------------------------------------------
 // Parm_Amber::ReadParmAmber()
 int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
-  std::vector<int> atomsPerMol;
-  //int finalSoluteRes = -1;
-  //int firstSolvMol = -1;
   Box parmbox;
   bool chamber = false; // True if this top is a chamber-created top file.
   std::string title;
@@ -505,13 +532,13 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     std::vector<int> solvent_pointer = GetFlagInteger(F_SOLVENT_POINTER,3);
     if (solvent_pointer.empty()) {
       mprinterr("Error: Could not get %s from Amber Topology file.\n",
-                AmberParmFlag[F_SOLVENT_POINTER]);
+                FLAGS[F_SOLVENT_POINTER].Flag);
       return 1;
     }
     //finalSoluteRes = solvent_pointer[0] - 1;
     int molecules = solvent_pointer[1];
     //firstSolvMol = solvent_pointer[2] - 1;
-    atomsPerMol = GetFlagInteger(F_ATOMSPERMOL,molecules);
+    std::vector<int> atomsPerMol = GetFlagInteger(F_ATOMSPERMOL,molecules);
     // boxFromParm = {OLDBETA, BOX(1), BOX(2), BOX(3)}
     std::vector<double> boxFromParm = GetFlagDouble(F_PARMBOX,4);
     // If no box information present in the parm (such as with Chamber prmtops)
@@ -545,6 +572,21 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     }
     gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
     gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]); 
+  }
+  // LES parameters
+  if (values[NPARM] == 1) {
+    std::vector<int> LES_array = GetFlagInteger(F_LES_NTYP, 1);
+    if (LES_array.empty()) return 1;
+    int nlestyp = LES_array[0];
+    mprintf("DEBUG: %i LES region types in topology.\n", nlestyp);
+    // LES_TYPE: int[ natom ]
+    LES_array = GetFlagInteger(F_LES_TYPE, values[NATOM]);
+    // LES_FAC:  double[ nlestyp * nlestyp ]
+    std::vector<double> LES_fac = GetFlagDouble(F_LES_FAC, nlestyp * nlestyp);
+    // LES_CNUM: int[ natom ]
+    std::vector<int> LES_cnum = GetFlagInteger(F_LES_CNUM, values[NATOM]);
+    // LES_ID:   int[ natom ]
+    std::vector<int> LES_id = GetFlagInteger(F_LES_ID, values[NATOM]);
   }
   // Done reading. Set up topology. 
   if (error_count_==0) {
@@ -686,7 +728,7 @@ std::vector<int> Parm_Amber::GetFlagInteger(AmberParmFlagType fflag, int maxval)
     iarray = GetInteger( 6, 12, maxval );
   }
   if ((int)iarray.size() != maxval)
-    mprinterr("Error: Reading INTEGER section %s\n",AmberParmFlag[fflag]);
+    mprinterr("Error: Reading INTEGER section %s\n",FLAGS[fflag].Flag);
   return iarray;
 }
 
@@ -702,7 +744,7 @@ std::vector<double> Parm_Amber::GetFlagDouble(AmberParmFlagType fflag, int maxva
     darray = GetDouble( 16, 5, maxval );
   }
   if ((int)darray.size() != maxval)
-    mprinterr("Error: Reading DOUBLE section %s\n",AmberParmFlag[fflag]); 
+    mprinterr("Error: Reading DOUBLE section %s\n",FLAGS[fflag].Flag); 
   return darray;
 }
 
@@ -718,7 +760,7 @@ std::vector<NameType> Parm_Amber::GetFlagName(AmberParmFlagType fflag, int maxva
     carray = GetName( 4, 20, maxval );
   }
   if ((int)carray.size() != maxval)
-    mprinterr("Error: Reading CHAR section %s\n",AmberParmFlag[fflag]);
+    mprinterr("Error: Reading CHAR section %s\n",FLAGS[fflag].Flag);
   return carray;
 }
 
@@ -756,7 +798,7 @@ int Parm_Amber::AllocateAndRead(int width, int ncols, int maxval) {
 
 // Parm_Amber::PositionFileAtFlag()
 bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
-  const char *Key = AmberParmFlag[flag];
+  const char *Key = FLAGS[flag].Flag;
   char value[BUF_SIZE];
   bool searchFile = true;
   bool hasLooped = false;
@@ -803,12 +845,12 @@ bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
 // Parm_Amber::WriteSetup()
 int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
   // Assign format string
-  fformat_.assign( AmberParmFmt[fflag] );
+  fformat_.assign( FLAGS[fflag].Fmt );
   //mprintf("DEBUG: FlagFormat[%s], Nelements=%zu\n",fformat_.c_str(),Nelements);
   // Set type, cols, width, and precision from format string
   if (!SetFortranType()) return 1;
   // Write FLAG and FORMAT lines
-  file_.Printf("%%FLAG %-74s\n%-80s\n",AmberParmFlag[fflag],AmberParmFmt[fflag]);
+  file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS[fflag].Flag, FLAGS[fflag].Fmt);
   // If Nelements is 0 just print newline and exit
   if (Nelements == 0) {
     file_.Printf("\n");
