@@ -436,6 +436,16 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     mprintf("Warning: '%s' is an LES-type topology.\n"
             "Warning:  Cpptraj currently cannot split or write LES-type topology files.\n",
             file_.Filename().base());
+  // Warn about IFCAP
+  if (values[IFCAP] > 0)
+    mprintf("Warning: '%s' contains CAP information.\n"
+            "Warning:  Cpptraj currently does not read or write CAP information.\n",
+            file_.Filename().base());
+  // Warn about IFPERT
+  if (values[IFPERT] > 0)
+    mprintf("Warning: '%s' contains perturbation information.\n"
+            "Warning:  Cpptraj currently does not read of write perturbation information.\n",
+            file_.Filename().base());
   // DEBUG
   //for (std::vector<int>::iterator val = values.begin(); val != values.end(); ++val)
   //  mprintf("\t%i\n", *val);
@@ -536,7 +546,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
     gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]); 
   }
- 
+  // Done reading. Set up topology. 
   if (error_count_==0) {
     // Convert Amber Charge to elec
     for (std::vector<double>::iterator q = charge.begin(); q != charge.end(); q++)
