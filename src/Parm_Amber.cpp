@@ -8,6 +8,7 @@
 #include "StringRoutines.h" // RemoveTrailingWhitespace, SetIntegerFormatString etc
 #include "Box.h"
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
+#include "ParameterTypes.h" // DEBUG
 
 // ---------- Constants and Enumerated types -----------------------------------
 const int Parm_Amber::AMBERPOINTERS=31;
@@ -512,11 +513,11 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<double> LJ_A = GetFlagDouble(F_LJ_A,nlj);
   std::vector<double> LJ_B = GetFlagDouble(F_LJ_B,nlj);
   std::vector<int> bondsh = GetFlagInteger(F_BONDSH,values[NBONH]*3);
-  std::vector<int> bonds = GetFlagInteger(F_BONDS,values[NBONA]*3);
+  std::vector<int> bonds = GetFlagInteger(F_BONDS,values[MBONA]*3);
   std::vector<int> anglesh = GetFlagInteger(F_ANGLESH, values[NTHETH]*4);
-  std::vector<int> angles = GetFlagInteger(F_ANGLES, values[NTHETA]*4);
+  std::vector<int> angles = GetFlagInteger(F_ANGLES, values[MTHETA]*4);
   std::vector<int> dihedralsh = GetFlagInteger(F_DIHH, values[NPHIH]*5);
-  std::vector<int> dihedrals = GetFlagInteger(F_DIH, values[NPHIA]*5);
+  std::vector<int> dihedrals = GetFlagInteger(F_DIH, values[MPHIA]*5);
   // For old parm need to read past EXCLUDE
   if (!newParm_)
     GetFlagInteger(F_EXCLUDE, values[NNB]);
@@ -587,6 +588,9 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     std::vector<int> LES_cnum = GetFlagInteger(F_LES_CNUM, values[NATOM]);
     // LES_ID:   int[ natom ]
     std::vector<int> LES_id = GetFlagInteger(F_LES_ID, values[NATOM]);
+    LES_ParmType les_parameters( values[NATOM], nlestyp, LES_fac );
+    for (int i = 0; i < values[NATOM]; i++)
+      les_parameters.AddLES_Atom( LES_AtomType(LES_array[i], LES_cnum[i], LES_id[i]) );
   }
   // Done reading. Set up topology. 
   if (error_count_==0) {
