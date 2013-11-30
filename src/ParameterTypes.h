@@ -2,6 +2,7 @@
 #define INC_PARAMETERTYPES_H
 #include <vector>
 #include "NameType.h" // FIXME: Needed?
+// ----- BOND/ANGLE/DIHEDRAL PARAMETERS ----------------------------------------
 /// Hold bond parameters
 class BondParmType {
   public:
@@ -22,6 +23,7 @@ class BondType {
     inline int A1()  const { return a1_;  }
     inline int A2()  const { return a2_;  }
     inline int Idx() const { return idx_; }
+    void SetIdx(int i)     { idx_ = i;    }
   private:
     int a1_;
     int a2_;
@@ -64,10 +66,13 @@ class DihedralParmType {
     DihedralParmType(double k, double n, double p, double e, double b) :
                          pk_(k), pn_(n), phase_(p), scee_(e), scnb_(b) {}
     inline double Pk()    const { return pk_;    }
+    inline double& Pk()         { return pk_;    }
     inline double Pn()    const { return pn_;    }
     inline double Phase() const { return phase_; }
     inline double SCEE()  const { return scee_;  }
     inline double SCNB()  const { return scnb_;  }
+    void SetSCEE(double s)      { scee_ = s;     }
+    void SetSCNB(double s)      { scnb_ = s;     }
   private:
     double pk_;
     double pn_;
@@ -82,6 +87,7 @@ class DihedralType {
     /// Dihedral type; a3_ < 0 = E, a4_ < 0 = I
     enum Dtype { NORMAL=0, IMPROPER, END, BOTH };
     DihedralType() : a1_(0), a2_(0), a3_(0), a4_(0), type_(NORMAL), idx_(0) {}
+    /// For use with Amber-style dihedral array
     DihedralType(int a1, int a2, int a3, int a4, int idx) :
                   a1_(a1), a2_(a2), a3_(a3), a4_(a4), idx_(idx)
     {
@@ -90,6 +96,8 @@ class DihedralType {
       else if (a4_ < 0)       { a4_ = -a4;              type_ = IMPROPER;}
       else                                              type_ = NORMAL;
     }
+    DihedralType(int a1, int a2, int a3, int a4, Dtype t, int i) :
+                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), type_(t), idx_(i) {}
     inline int A1()     const { return a1_;   }
     inline int A2()     const { return a2_;   }
     inline int A3()     const { return a3_;   }
@@ -105,15 +113,7 @@ class DihedralType {
     int idx_;
 };
 typedef std::vector<DihedralType> DihedralArray;
-/*/// Hold atoms/param index for bonds(3), angles(4), or dihedrals(5)
-class ParmArrayType {
-  public:
-    ParmArrayType() : elementSize_(0) {}
-    ParmArrayType(int s, int n) : elementSize_(s), array_(s * n, 0) {}
-  private:
-    unsigned int elementSize_; ///< Length of each entry
-    std::vector<int> array_;   ///< Hold atom indices followed by parm index
-};*/
+// ----- NON-BONDED PARAMETERS -------------------------------------------------
 /// Hold LJ 10-12 hbond params
 class HB_ParmType {
   public:
@@ -148,14 +148,19 @@ class NonbondParmType {
     inline int Ntypes()           const { return ntypes_;  }
     std::vector<int> NBindex()    const { return nbindex_; }
     NonbondArray const& NBarray() const { return nbarray_; }
-    NonbondType const& GetLJ(int type1, int type2) const {
-      return nbarray_[ nbindex_[ ntypes_ * type1 + type2 ] ];
+    /// In Amber, index < 0 means HB, otherwise LJ 6-12
+    int GetLJindex(int type1, int type2) const {
+      return nbindex_[ ntypes_ * type1 + type2 ];
     }
+    NonbondType const& NBarray(int i) const { return nbarray_[i]; }
+    HB_ParmType const& HBarray(int i) const { return hbarray_[i]; }
   private:
     int ntypes_;               ///< Number of unique atom types
     std::vector<int> nbindex_; ///< Hold indices into Lennard-Jones array nbarray
     NonbondArray nbarray_;     ///< Hold Lennard-Jones 6-12 A and B parameters for all pairs.
+    HB_ParmArray hbarray_;     ///< Hold 10-12 Amber HBond params for all pairs.
 };
+// ----- LES PARAMETERS --------------------------------------------------------
 /// Hold LES atom parameters
 class LES_AtomType {
   public:
@@ -186,6 +191,7 @@ class LES_ParmType {
     LES_Array array_;         ///< LES parameters for each atom
     std::vector<double> fac_; ///< Scaling factor for typeA * typeB
 };
+// ----- PERTURBATION PARAMETERS -----------------------------------------------
 /// Hold perturbed atom parameters
 class PertAtom {
   public:
@@ -208,49 +214,5 @@ class PertParmType {
     std::vector<int> pdih_;          ///< {AtomIdx1, AtomIdx2, AtomIdx3, AtomIdx4, ParmIdx0, ParmIdx1}
     std::vector<NameType> resnames_; ///< residue names at lambda = 1 (labper)
     std::vector<PertAtom> patoms_;   ///< Perturbed atom array
-};
-/// Hold all parameters
-class ParameterSet {
-  public:
-    ParameterSet() {}
-    BondArray         const& Bonds()        const { return bonds_;        }
-    BondArray         const& BondsH()       const { return bondsh_;       }
-    BondParmArray     const& BondParm()     const { return bondparm_;     }
-    AngleArray        const& Angles()       const { return angles_;       }
-    AngleArray        const& AnglesH()      const { return anglesh_;      }
-    AngleParmArray    const& AngleParm()    const { return angleparm_;    }
-    DihedralArray     const& Dihedrals()    const { return dihedrals_;    }
-    DihedralArray     const& DihedralsH()   const { return dihedralsh_;   }
-    DihedralParmArray const& DihedralParm() const { return dihedralparm_; }
-    NonbondParmType   const& Nonbond()      const { return nonbond_;      }
-    HB_ParmArray      const& HBparm()       const { return hbparm_;       }
-    LES_ParmType      const& LES()          const { return lesparm_;      }
-    PertParmType      const& Pert()         const { return pert_;         }
-    // TODO: Should these be consolidated?
-    std::vector<double>   const& Solty()  const { return solty_;  }
-    std::vector<NameType> const& Itree()  const { return itree_;  }
-    std::vector<int>      const& Join()   const { return join_;   }
-    std::vector<int>      const& Irotat() const { return irotat_; }
-  private:
-    BondArray bonds_;
-    BondArray bondsh_;
-    BondParmArray bondparm_;
-    AngleArray angles_;
-    AngleArray anglesh_;
-    AngleParmArray angleparm_;
-    DihedralArray dihedrals_;
-    DihedralArray dihedralsh_;
-    DihedralParmArray dihedralparm_;
-    // Non-bonded parameters
-    NonbondParmType nonbond_;
-    // Amber-only parameters
-    HB_ParmArray hbparm_;            ///< Lennard Jones 10-12 hbond parameters (now obsolete).
-    LES_ParmType lesparm_;           ///< LES parameters
-    PertParmType pert_;              ///< Atom perturbation info
-    // Obsolete Amber parameters
-    std::vector<double> solty_;
-    std::vector<NameType> itree_;
-    std::vector<int> join_;
-    std::vector<int> irotat_;
 };
 #endif
