@@ -231,6 +231,7 @@ Action::RetType Action_Spam::Setup(Topology* currentParm, Topology** parmAddress
   if (SetupParms(currentParm)) return Action::ERR;
 
   // Back up the parm
+  // NOTE: This is a full copy - use reference instead?
   CurrentParm_ = *currentParm;
 
   return Action::OK;
@@ -247,7 +248,7 @@ int Action_Spam::SetupParms(Topology* ParmIn) {
   for (Topology::atom_iterator atom = ParmIn->begin();
        atom != ParmIn->end(); ++atom)
     atom_charge_.push_back( atom->Charge() * ELECTOAMBER );
-  if (ParmIn->LJA().empty() || ParmIn->LJB().empty()) {
+  if (!ParmIn->HasNonbond()) {
     mprinterr("Error: SPAM: Parm does not have LJ information.\n");
     return 1;
   }
@@ -282,13 +283,12 @@ double Action_Spam::Calculate_Energy(Frame *frameIn, Residue const& res) {
       }
       if (dist2 < cut2_) {
         double qiqj = atom_charge_[i] * atom_charge_[j];
-        double A, B;
-        GetLJparam(CurrentParm_, A, B, i, j);
+        NonbondType const& LJ = CurrentParm_.GetLJparam(i, j);
         double r2 = 1 / dist2;
         double r6 = r2 * r2 * r2;
                   // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
         double shift = (1 - dist2 * onecut2_);
-        result += qiqj / sqrt(dist2) * shift * shift + A * r6 * r6 - B * r6;
+        result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
       }
     }
   }

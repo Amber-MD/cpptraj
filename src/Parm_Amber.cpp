@@ -6,9 +6,7 @@
 #include "Parm_Amber.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // RemoveTrailingWhitespace, SetIntegerFormatString etc
-#include "Box.h"
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
-#include "ParameterTypes.h" // DEBUG
 
 // ---------- Constants and Enumerated types -----------------------------------
 const int Parm_Amber::AMBERPOINTERS=31;
@@ -61,15 +59,15 @@ static const char* F3I8  = "%FORMAT(3I8)";
 static const char* F1a80 = "%FORMAT(1a80)";
 /// Constant strings for Amber parm flags and fortran formats.
 const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
-  { "POINTERS",                   F10I8 },
-  { "ATOM_NAME",                  F20a4 },
-  { "CHARGE",                     F5E16 },
-  { "MASS",                       F5E16 },
-  { "RESIDUE_LABEL",              F20a4 },
-  { "RESIDUE_POINTER",            F10I8 },
-  { "AMBER_ATOM_TYPE",            F20a4 },
-  { "BONDS_INC_HYDROGEN",         F10I8 },
-  { "BONDS_WITHOUT_HYDROGEN",     F10I8 },
+  { "POINTERS",                   F10I8 }, ///< Described above in topValues
+  { "ATOM_NAME",                  F20a4 }, ///< Atom names
+  { "CHARGE",                     F5E16 }, ///< Atom charges
+  { "MASS",                       F5E16 }, ///< Atom masses
+  { "RESIDUE_LABEL",              F20a4 }, ///< Residue names
+  { "RESIDUE_POINTER",            F10I8 }, ///< Residue boundaries (atoms)
+  { "AMBER_ATOM_TYPE",            F20a4 }, ///< Atom types
+  { "BONDS_INC_HYDROGEN",         F10I8 }, ///< Bonds to hydrogen
+  { "BONDS_WITHOUT_HYDROGEN",     F10I8 }, ///< Bonds not including hydrogen
   { "SOLVENT_POINTERS",           F3I8  },
   { "ATOMS_PER_MOLECULE",         F10I8 },
   { "BOX_DIMENSIONS",             F5E16 },
@@ -178,7 +176,7 @@ int Parm_Amber::ReadParm(std::string const& fname, Topology &TopIn ) {
   file_.CloseFile();
   return err;
 }
-
+// ----- AMBER WRITE ROUTINES --------------------------------------------------
 // Parm_Amber::AmberIfbox()
 /** \return Amber IFBOX type:
   *   0: No box
@@ -193,11 +191,59 @@ int Parm_Amber::AmberIfbox(const Box& boxIn) {
   return 3;
 }
 
+/** Determine if name needs to be truncated. */
 void Parm_Amber::CheckNameWidth(const char* typeIn, NameType const& nameIn) {
   if (nameIn[4] != '\0')
     mprintf("Warning: Parm_Amber: %s name (%s) is too large and will be truncated (4 chars max).\n",
             typeIn, *nameIn);
 }
+
+/** Convert internal bond type to integer array. */
+static std::vector<int> BondArrayToIndex(BondArray const& bondIn) {
+  std::vector<int> arrayOut;
+  arrayOut.reserve( bondIn.size() * 3 );
+  for (BondArray::const_iterator bnd = bondIn.begin(); bnd != bondIn.end(); ++bnd) {
+    arrayOut.push_back( bnd->A1()*3 );
+    arrayOut.push_back( bnd->A2()*3 );
+    arrayOut.push_back( bnd->Idx() + 1 );
+  }
+  return arrayOut;
+}
+
+/** Convert internal angle type to integer array. */
+static std::vector<int> AngleArrayToIndex(AngleArray const& angleIn) {
+  std::vector<int> arrayOut;
+  arrayOut.reserve( angleIn.size() * 4 );
+  for (AngleArray::const_iterator ang = angleIn.begin(); ang != angleIn.end(); ++ang) {
+    arrayOut.push_back( ang->A1()*3 );
+    arrayOut.push_back( ang->A2()*3 );
+    arrayOut.push_back( ang->A3()*3 );
+    arrayOut.push_back( ang->Idx() + 1 );
+  }
+  return arrayOut;
+}
+
+/** Convert internal dihedral type to integer array. End/Improper dihedrals
+  * have 3rd and 4th atoms respectively as negative numbers.
+  */
+static std::vector<int> DihedralArrayToIndex(DihedralArray const& dihedralIn) {
+  std::vector<int> arrayOut;
+  arrayOut.reserve( dihedralIn.size() * 5 );
+  for (DihedralArray::const_iterator dih = dihedralIn.begin(); dih != dihedralIn.end(); ++dih) {
+    arrayOut.push_back( dih->A1()*3 );
+    arrayOut.push_back( dih->A2()*3 );
+    if ( dih->Type() == DihedralType::BOTH || dih->Type() == DihedralType::END)
+      arrayOut.push_back( -(dih->A3()*3) );
+    else
+      arrayOut.push_back( dih->A3()*3 );
+    if ( dih->Type() == DihedralType::BOTH || dih->Type() == DihedralType::IMPROPER)
+      arrayOut.push_back( -(dih->A4()*3) );
+    else
+      arrayOut.push_back( dih->A4()*3 );
+    arrayOut.push_back( dih->Idx() + 1 );
+  }
+  return arrayOut;
+} 
 
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
@@ -231,7 +277,8 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
     charge.push_back( (*atom).Charge() * ELECTOAMBER );
     at_num.push_back( (*atom).AtomicNumber() );
     mass.push_back( (*atom).Mass() );
-    atype_index.push_back( (*atom).TypeIndex() );
+    // TypeIndex needs to be shifted +1 for fortran
+    atype_index.push_back( (*atom).TypeIndex() + 1 );
     types.push_back( (*atom).Type() );
     CheckNameWidth("Type",types.back());
     gb_radii.push_back( (*atom).GBRadius() );
@@ -261,54 +308,31 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
     resnums.push_back( (*res).FirstAtom()+1 );
   }
 
-  // Get bond information. If atom bonding info is present but bond
-  // parameters are not, create placeholder since other programs
-  // may expect bond parameters if bonds/bondsh arrays defined.
-  std::vector<int> Bonds = parmIn.Bonds();
-  std::vector<int> BondsH = parmIn.BondsH();
-  std::vector<double> BondRk = parmIn.BondRk();
-  std::vector<double> BondReq = parmIn.BondReq();
-  if ( (!Bonds.empty() || !BondsH.empty()) &&
-       (BondRk.empty() && BondReq.empty())    )
-  {
-    mprintf("Warning: [%s] Bond information present but no bond parameters.\n"
-            "Warning: This can occur e.g. when bonds are determined from PDB.\n"
-            "Warning: Dummy parameters will be created as placeholders.\n"
-            "Warning: DO NOT USE THIS AMBER TOPOLOGY FOR SIMULATIONS!\n",
-            file_.Filename().base());
-    BondRk.push_back(1.0);
-    BondReq.push_back(1.0);
-    for (unsigned int idx = 2; idx < Bonds.size(); idx += 3)
-      Bonds[idx] = 1;
-    for (unsigned int idx = 2; idx < BondsH.size(); idx += 3)
-      BondsH[idx] = 1;
-  }
-
   // Create pointer array
   std::vector<int> values(AMBERPOINTERS, 0);
   values[NATOM] = parmIn.Natom();
-  values[NTYPES] = parmIn.Ntypes();
-  values[NBONH] = (int)BondsH.size() / 3; // NOTE: Check divisible by 3?
-  values[NBONA] = (int)Bonds.size() / 3; // NOTE: Check divisible by 3?
-  values[NTHETH] = (int)parmIn.AnglesH().size() / 4;
-  values[NTHETA] = (int)parmIn.Angles().size() / 4;
-  values[NPHIH] = (int)parmIn.DihedralsH().size() / 5; 
-  values[NPHIA] = (int)parmIn.Dihedrals().size() / 5;
+  values[NTYPES] = parmIn.Nonbond().Ntypes();
+  values[NBONH] = (int)parmIn.BondsH().size();
+  values[NBONA] = (int)parmIn.Bonds().size(); 
+  values[NTHETH] = (int)parmIn.AnglesH().size();
+  values[NTHETA] = (int)parmIn.Angles().size();
+  values[NPHIH] = (int)parmIn.DihedralsH().size(); 
+  values[NPHIA] = (int)parmIn.Dihedrals().size();
   values[NNB] = (int)excluded.size();
   values[NRES] = parmIn.Nres();
-  //   NOTE: Assuming NBONA == MBONA etc
+  //   NOTE: Assuming MBONA == NBONA etc
   values[MBONA] = values[NBONA];
   values[MTHETA] = values[NTHETA];
   values[MPHIA] = values[NPHIA];
-  values[NUMBND] = (int)BondRk.size();
-  values[NUMANG] = (int)parmIn.AngleTk().size();
-  values[NPTRA] = (int)parmIn.DihedralPk().size();
+  values[NUMBND] = (int)parmIn.BondParm().size();
+  values[NUMANG] = (int)parmIn.AngleParm().size();
+  values[NPTRA] = (int)parmIn.DihedralParm().size();
   values[NATYP] = (int)parmIn.Solty().size(); // Only for SOLTY
-  values[NPHB] = (int)parmIn.Asol().size();
+  values[NPHB] = (int)parmIn.Nonbond().HBarray().size();
   values[IFBOX] = AmberIfbox( parmIn.ParmBox() );
   values[NMXRS] = parmIn.FindResidueMaxNatom();
   values[NEXTRA] = parmIn.NextraPts();
-    
+ 
   // Write parm
   if (file_.OpenWrite( fname )) return 1;
   // HEADER AND TITLE (4 lines, version, flag, format, title)
@@ -332,38 +356,110 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteDouble(F_MASS, mass);
   WriteInteger(F_ATYPEIDX, atype_index);
   WriteInteger(F_NUMEX, numex);
-  WriteInteger(F_NB_INDEX, parmIn.NB_index());
+  // NONBONDED INDICES - positive needs to be shifted by +1 for fortran
+  std::vector<int> nbindex;
+  nbindex.reserve( parmIn.Nonbond().NBindex().size() );
+  for (std::vector<int>::const_iterator it = parmIn.Nonbond().NBindex().begin();
+                                        it != parmIn.Nonbond().NBindex().end(); ++it)
+    if (*it > -1)
+      nbindex.push_back( *it + 1 );
+    else
+      nbindex.push_back( *it );
+  WriteInteger(F_NB_INDEX, nbindex);
   // RESIDUE NAME, POINTER
   WriteName(F_RESNAMES, resnames);
   WriteInteger(F_RESNUMS, resnums);
   // BOND, ANGLE, and DIHEDRAL FORCE CONSTANT and EQUIL VALUES
-  WriteDouble(F_BONDRK, BondRk);
-  WriteDouble(F_BONDREQ, BondReq);
-  WriteDouble(F_ANGLETK, parmIn.AngleTk());
-  WriteDouble(F_ANGLETEQ, parmIn.AngleTeq());
-  WriteDouble(F_DIHPK, parmIn.DihedralPk());
-  WriteDouble(F_DIHPN, parmIn.DihedralPn());
-  WriteDouble(F_DIHPHASE, parmIn.DihedralPhase());
-  WriteDouble(F_SCEE, parmIn.SCEE());
-  WriteDouble(F_SCNB, parmIn.SCNB());
+  std::vector<double> Rk;
+  std::vector<double> Req;
+  // Bond params
+  Rk.reserve( parmIn.BondParm().size() );
+  Req.reserve( parmIn.BondParm().size() );
+  for (BondParmArray::const_iterator parm = parmIn.BondParm().begin(); 
+                                    parm != parmIn.BondParm().end(); ++parm)
+  {
+    Rk.push_back( parm->Rk() );
+    Req.push_back( parm->Req() );
+  }
+  WriteDouble(F_BONDRK,  Rk);
+  WriteDouble(F_BONDREQ, Req);
+  Rk.clear();
+  Req.clear();
+  // Angle params
+  Rk.reserve( parmIn.AngleParm().size() );
+  Req.reserve( parmIn.AngleParm().size() );
+  for (AngleParmArray::const_iterator parm = parmIn.AngleParm().begin(); 
+                                      parm != parmIn.AngleParm().end(); ++parm)
+  {
+    Rk.push_back( parm->Tk() );
+    Req.push_back( parm->Teq() );
+  }
+  WriteDouble(F_ANGLETK, Rk);
+  WriteDouble(F_ANGLETEQ, Req);
+  Rk.clear();
+  Req.clear();
+  // Dihedral params
+  Rk.reserve( parmIn.DihedralParm().size() );
+  Req.reserve( parmIn.DihedralParm().size() );
+  std::vector<double> phase, scee, scnb;
+  phase.reserve( parmIn.DihedralParm().size() );
+  scee.reserve( parmIn.DihedralParm().size() ); 
+  scnb.reserve( parmIn.DihedralParm().size() ); 
+  for (DihedralParmArray::const_iterator parm = parmIn.DihedralParm().begin(); 
+                                         parm != parmIn.DihedralParm().end(); ++parm)
+  {
+    Rk.push_back( parm->Pk() );
+    Req.push_back( parm->Pn() );
+    phase.push_back( parm->Phase() );
+    scee.push_back( parm->SCEE() );
+    scnb.push_back( parm->SCNB() );
+  }
+  WriteDouble(F_DIHPK, Rk);
+  WriteDouble(F_DIHPN, Req);
+  WriteDouble(F_DIHPHASE, phase);
+  WriteDouble(F_SCEE, scee);
+  WriteDouble(F_SCNB, scnb);
   // SOLTY - Currently unused
   WriteDouble(F_SOLTY, parmIn.Solty());
   // LJ params
-  WriteDouble(F_LJ_A, parmIn.LJA());
-  WriteDouble(F_LJ_B, parmIn.LJB());
+  Rk.clear();
+  Req.clear();
+  Rk.reserve( parmIn.Nonbond().NBarray().size() );
+  Req.reserve( parmIn.Nonbond().NBarray().size() );
+  for (NonbondArray::const_iterator nb = parmIn.Nonbond().NBarray().begin();
+                                    nb != parmIn.Nonbond().NBarray().end(); ++nb)
+  {
+    Rk.push_back( nb->A() );
+    Req.push_back( nb->B() );
+  }
+  WriteDouble(F_LJ_A, Rk);
+  WriteDouble(F_LJ_B, Req);
   // BONDS/ANGLES/DIHEDRAL INDICES WITH AND WITHOUT HYDROGEN
-  WriteInteger(F_BONDSH, BondsH); 
-  WriteInteger(F_BONDS, Bonds);
-  WriteInteger(F_ANGLESH, parmIn.AnglesH());
-  WriteInteger(F_ANGLES, parmIn.Angles());
-  WriteInteger(F_DIHH, parmIn.DihedralsH());
-  WriteInteger(F_DIH, parmIn.Dihedrals());
+  WriteInteger(F_BONDSH, BondArrayToIndex(parmIn.BondsH())); 
+  WriteInteger(F_BONDS, BondArrayToIndex(parmIn.Bonds()));
+  WriteInteger(F_ANGLESH, AngleArrayToIndex(parmIn.AnglesH()));
+  WriteInteger(F_ANGLES, AngleArrayToIndex(parmIn.Angles()));
+  WriteInteger(F_DIHH, DihedralArrayToIndex(parmIn.DihedralsH()));
+  WriteInteger(F_DIH, DihedralArrayToIndex(parmIn.Dihedrals()));
   // EXCLUDED ATOMS LIST
   WriteInteger(F_EXCLUDE, excluded);
   // HBOND
-  WriteDouble(F_ASOL, parmIn.Asol());
-  WriteDouble(F_BSOL, parmIn.Bsol());
-  WriteDouble(F_HBCUT, parmIn.HBcut());
+  Rk.clear();
+  Req.clear();
+  phase.clear();
+  Rk.reserve( parmIn.Nonbond().HBarray().size() );
+  Req.reserve( parmIn.Nonbond().HBarray().size() );
+  phase.reserve( parmIn.Nonbond().HBarray().size() );
+  for (HB_ParmArray::const_iterator hb = parmIn.Nonbond().HBarray().begin();
+                                    hb != parmIn.Nonbond().HBarray().end(); ++hb)
+  {
+    Rk.push_back( hb->Asol() );
+    Req.push_back( hb->Bsol() );
+    phase.push_back( hb->HBcut() );
+  }
+  WriteDouble(F_ASOL, Rk);
+  WriteDouble(F_BSOL, Req);
+  WriteDouble(F_HBCUT, phase);
   // AMBER ATOM TYPE
   WriteName(F_TYPES, types);
   // TREE CHAIN CLASSIFICATION, JOIN, IROTAT
@@ -423,6 +519,48 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
 }
 
 // -----------------------------------------------------------------------------
+static BondArray BondIndexToArray(std::vector<int> bondIdx) {
+  BondArray bonds;
+  if ( (bondIdx.size() % 3) != 0 ) {
+    mprinterr("Internal Error: Size of Amber bonds array not divisible by 3.\n");
+    return bonds;
+  }
+  bonds.reserve(bondIdx.size() / 3);
+  for (std::vector<int>::const_iterator it = bondIdx.begin(); it != bondIdx.end(); it += 3)
+    bonds.push_back( BondType( *it / 3, *(it+1) / 3, *(it+2) - 1 ) );
+  return bonds;
+}
+
+static AngleArray AngleIndexToArray(std::vector<int> angleIdx) {
+  AngleArray angles;
+  if ( (angleIdx.size() % 4) != 0 ) {
+    mprinterr("Internal Error: Size of Amber angles array not divisible by 4.\n");
+    return angles;
+  }
+  angles.reserve(angleIdx.size() / 4);
+  for (std::vector<int>::const_iterator it = angleIdx.begin(); it != angleIdx.end(); it += 4)
+    angles.push_back( AngleType( *it / 3, *(it+1) / 3, *(it+2) / 3, *(it+3) - 1 ) );
+  return angles;
+}
+
+static DihedralArray DihedralIndexToArray(std::vector<int> dihedralIdx) {
+  DihedralArray dihedrals;
+  if ( (dihedralIdx.size() % 5) != 0 ) {
+    mprinterr("Internal Error: Size of Amber dihedrals array not divisible by 5.\n");
+    return dihedrals;
+  }
+  dihedrals.reserve(dihedralIdx.size() / 5);
+  for (std::vector<int>::const_iterator it = dihedralIdx.begin(); it != dihedralIdx.end(); it += 5)
+    dihedrals.push_back( DihedralType( *it / 3, *(it+1) / 3, *(it+2) / 3,
+                                       *(it+3) / 3, *(it+4) - 1 ) );
+  return dihedrals;
+}
+
+static int ParmArrayErr(const char* msg) {
+  mprinterr("Error: Size of %s parm arrays inconsistent.\n");
+  return 1;
+}
+
 // Parm_Amber::ReadParmAmber()
 int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   Box parmbox;
@@ -591,28 +729,68 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     LES_ParmType les_parameters( values[NATOM], nlestyp, LES_fac );
     for (int i = 0; i < values[NATOM]; i++)
       les_parameters.AddLES_Atom( LES_AtomType(LES_array[i], LES_cnum[i], LES_id[i]) );
+    TopIn.SetLES( les_parameters );
   }
   // Done reading. Set up topology. 
   if (error_count_==0) {
-    // Convert Amber Charge to elec
-    for (std::vector<double>::iterator q = charge.begin(); q != charge.end(); q++)
-      *q *= (AMBERTOELEC);
-    // Shift atom #s in resnums by -1 so they start from 0
-    for (std::vector<int>::iterator r = resnums.begin(); r != resnums.end(); r++)
-      --(*r);
-    // If ever used, shift atom #s in excludedAtoms by -1 so they start from 0 
-    error_count_ += TopIn.CreateAtomArray( names, charge, at_num, mass, atype_index, 
-                                           types, gb_radii, gb_screen,
-                                           resnames, resnums );
-    // Shift indices in parm arrays?
-    error_count_ += TopIn.SetBondInfo(bonds, bondsh, bond_rk, bond_req);
-    error_count_ += TopIn.SetAngleInfo(angles, anglesh, angle_tk, angle_teq);
-    error_count_ += TopIn.SetDihedralInfo(dihedrals, dihedralsh, dihedral_pk,
-                                          dihedral_pn, dihedral_phase,
-                                          scee_scale, scnb_scale);
-    error_count_ += TopIn.SetAmberHbond(asol, bsol, hbcut);
+    // Add total # atoms to resnums.
+    resnums.push_back( values[NATOM]+1 ); 
+    int ri = 1;
+    // If any optional arrays are empty, fill with zeros.
+    if (at_num.empty()) at_num.resize(values[NATOM], 0);
+    if (gb_radii.empty()) gb_radii.resize(values[NATOM], 0);
+    if (gb_screen.empty()) gb_screen.resize(values[NATOM], 0);
+    for (int ai = 0; ai < values[NATOM]; ai++) {
+      if (ai + 1 == resnums[ri]) ++ri;
+      // Add atom. Convert Amber charge to elec and shift type index by -1.
+      // NOTE: If ever used, shift atom #s in excludedAtoms by -1 so they start from 0 
+      TopIn.AddTopAtom( Atom(names[ai], charge[ai] * (AMBERTOELEC), at_num[ai],
+                             mass[ai], atype_index[ai] - 1, types[ai],
+                             gb_radii[ai], gb_screen[ai]),
+                        ri, resnames[ri-1], 0 );
+    }
+    // NOTE: Shift indices in parm arrays by -1
+    if (bond_rk.size() != bond_req.size()) return ParmArrayErr("Bond");
+    BondParmArray BPA;
+    BPA.reserve( bond_rk.size() );
+    for (unsigned int i = 0; i < bond_rk.size(); i++)
+      BPA.push_back( BondParmType(bond_rk[i], bond_req[i]) );
+    error_count_ += TopIn.SetBondInfo(BondIndexToArray(bonds), 
+                                      BondIndexToArray(bondsh), BPA);
+    if (angle_tk.size() != angle_teq.size()) return ParmArrayErr("Angle");
+    AngleParmArray APA;
+    APA.reserve( angle_tk.size() );
+    for (unsigned int i = 0; i < angle_tk.size(); i++)
+      APA.push_back( AngleParmType(angle_tk[i], angle_teq[i]) );
+    error_count_ += TopIn.SetAngleInfo(AngleIndexToArray(angles),
+                                       AngleIndexToArray(anglesh), APA);
+    if (dihedral_pk.size() != dihedral_pn.size() || 
+        dihedral_pk.size() != dihedral_phase.size())
+      return ParmArrayErr("Dihedral");
+    DihedralParmArray DPA;
+    DPA.reserve( dihedral_pk.size() );
+    // Set default SCEE and SCNB if not already set
+    if (scee_scale.empty()) scee_scale.resize(dihedral_pk.size(), 1.2);
+    if (scnb_scale.empty()) scnb_scale.resize(dihedral_pk.size(), 2.0);
+    for (unsigned int i = 0; i < dihedral_pk.size(); i++)
+      DPA.push_back( DihedralParmType(dihedral_pk[i], dihedral_pn[i], dihedral_phase[i],
+                                      scee_scale[i], scnb_scale[i]) );
+    error_count_ += TopIn.SetDihedralInfo(DihedralIndexToArray(dihedrals),
+                                          DihedralIndexToArray(dihedralsh), DPA);
+    HB_ParmArray HBA;
+    HBA.reserve( asol.size() );
+    for (unsigned int i = 0; i < asol.size(); i++)
+      HBA.push_back( HB_ParmType(asol[i], bsol[i], hbcut[i]) );
+    NonbondArray NBA;
+    NBA.reserve( LJ_A.size() );
+    for (unsigned int i = 0; i < LJ_A.size(); i++)
+      NBA.push_back( NonbondType(LJ_A[i], LJ_B[i]) );
+    // Shift positive indices in NONBONDED index array by -1.
+    for (std::vector<int>::iterator it = NB_index.begin(); it != NB_index.end(); ++it)
+      if (*it > 0)
+        *it -= 1;
+    error_count_ += TopIn.SetNonbondInfo( NonbondParmType(values[NTYPES], NB_index, NBA, HBA) );
     error_count_ += TopIn.SetAmberExtra(solty, itree, join_array, irotat);
-    error_count_ += TopIn.SetNonbondInfo(values[NTYPES], NB_index, LJ_A, LJ_B);
     if (values[IFBOX]>0) 
       TopIn.SetBox( parmbox );
   }

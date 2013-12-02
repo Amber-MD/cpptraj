@@ -15,18 +15,17 @@ Action_CheckStructure::Action_CheckStructure() :
 {} 
 
 void Action_CheckStructure::Help() {
-  mprintf("\t[<mask1>] [reportfile <report>] [noimage]\n");
-  mprintf("\t[offset <offset>] [cut <cut>] [nobondcheck]\n");
-  mprintf("\tCheck frames for atomic overlaps and unusual bond lengths\n");
+  mprintf("\t[<mask1>] [reportfile <report>] [noimage]\n"
+          "\t[offset <offset>] [cut <cut>] [nobondcheck]\n"
+          "\tCheck frames for atomic overlaps and unusual bond lengths\n");
 }
 
 // DESTRUCTOR
 Action_CheckStructure::~Action_CheckStructure() {
-  //fprintf(stderr,"CheckStructure Destructor.\n");
   outfile_.CloseFile();
 }
 
-// Action_CheckStructure::init()
+// Action_CheckStructure::Init()
 Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -72,26 +71,28 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   * the mask. It is expected that BndLst has 2 atom indices (i.e.
   * atom# * 3) followed by parameter index that starts from 1.
   */
-void Action_CheckStructure::SetupBondlist(std::vector<int> const& BndLst) {
+void Action_CheckStructure::SetupBondlist(BondArray const& BndLst, BondParmArray const& Parm) {
   bond_list bnd;
-  for (std::vector<int>::const_iterator bondatom = BndLst.begin();
-                                        bondatom != BndLst.end();
-                                        bondatom++) 
+  for (BondArray::const_iterator bondatom = BndLst.begin();
+                                 bondatom != BndLst.end(); ++bondatom) 
   {
-    bnd.atom1 = *bondatom / 3;
-    ++bondatom;
-    if ( !Mask1_.AtomInCharMask(bnd.atom1) ) { ++bondatom; continue; }
-    bnd.atom2 = *bondatom / 3;
-    ++bondatom;
-    if ( !Mask1_.AtomInCharMask(bnd.atom2) ) { continue; }
-    bnd.param = *bondatom - 1; // Amber indices start from 1
-    bondL_.push_back(bnd); 
+    bnd.atom1 = (*bondatom).A1();
+    if ( !Mask1_.AtomInCharMask(bnd.atom1) ) continue;
+    bnd.atom2 = (*bondatom).A2();
+    if ( !Mask1_.AtomInCharMask(bnd.atom2) ) continue;
+    if ( (*bondatom).Idx() < 0 ) // sanity check
+      mprinterr("Internal Error: Bond parameters not present.\n");
+    else {
+      bnd.req = Parm[ (*bondatom).Idx() ].Req() + bondoffset_;
+      bnd.req *= bnd.req; // Store squared values.
+      bondL_.push_back(bnd);
+    }
   }
   if (bondL_.empty())
     mprintf("Warning: No bond info in parm %s, will not check bonds.\n",CurrentParm_->c_str());
 }
 
-// Action_CheckStructure::setup()
+// Action_CheckStructure::Setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   * Also determine whether imaging should be performed. Check if parm
   * has bonds. If so, set up a list of the bonds between atoms in mask,
@@ -99,8 +100,6 @@ void Action_CheckStructure::SetupBondlist(std::vector<int> const& BndLst) {
   * (req + bondoffset)^2 for easy comparison with calculated distance^2.
   */
 Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** parmAddress) {
-  double req = 0;
-  double rk = 0;
   unsigned int totalbonds;
 
   CurrentParm_ = currentParm;      
@@ -118,28 +117,18 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
   bondL_.clear();
     totalbonds = 0;
   if (bondcheck_) {
-    SetupBondlist( currentParm->Bonds() );
-    SetupBondlist( currentParm->BondsH() );
+    SetupBondlist( currentParm->Bonds(),  currentParm->BondParm() );
+    SetupBondlist( currentParm->BondsH(), currentParm->BondParm() );
   }
   if (!bondL_.empty()) {
     // Since in the loop atom1 always < atom2, enforce this with parameters.
     // Sort by atom1, then by atom2
     std::sort( bondL_.begin(), bondL_.end(), bond_list_cmp() );
-    // Fill in (req + offset)^2 values
-    for (std::vector<bond_list>::iterator it = bondL_.begin(); it!=bondL_.end(); it++) {
-      if ( currentParm->GetBondParamIdx((*it).param, rk, req) ) {
-        // If no parameters exist for bond. Get cutoff from atom names.
-        req = currentParm->GetBondedCutoff( (*it).atom1, (*it).atom2 );
-      }
-      req += bondoffset_;
-      req *= req;
-      (*it).req = req;
-    }
     // DEBUG
     if (debug_>0) {
       mprintf("DEBUG:\tSorted bond list:\n");
       for (std::vector<bond_list>::iterator it = bondL_.begin(); it!=bondL_.end(); it++)
-        mprintf("\t%8i %8i %8i %6.2lf\n",(*it).atom1,(*it).atom2,(*it).param, (*it).req);
+        mprintf("\t%8i %8i %6.2lf\n",(*it).atom1,(*it).atom2, (*it).req);
     }
     totalbonds = bondL_.size();
   }
@@ -211,8 +200,10 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
   return Nproblems;
 }
 
-// Action_CheckStructure::action()
-Action::RetType Action_CheckStructure::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+// Action_CheckStructure::DoAction()
+Action::RetType Action_CheckStructure::DoAction(int frameNum, Frame* 
+                                                currentFrame, Frame** frameAddress)
+{
   CheckFrame(frameNum+1, *currentFrame);
   return Action::OK;
 }

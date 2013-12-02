@@ -128,34 +128,8 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
   if (Title().empty())
     SetTitle("Cpptraj generated mol2 file.");
   file_.SetMol2Title( Title() );
-  // Setup output array for bonds. Bonds in parm are stored as:
-  //   0_idx1 0_idx2 0_pidx 1_idx1 1_idx2 1_pidx ...
-  // where idx is the atom index, i.e. atom# * 3, and pidx is the index
-  // into the bond parm array. Create an array with atom #s only starting
-  // from 1.
-  trajBonds_.clear();
-  for (std::vector<int>::const_iterator bidx = mol2Top_->Bonds().begin();
-                                        bidx != mol2Top_->Bonds().end(); bidx++)
-  {
-    trajBonds_.push_back( ((*bidx)/3) + 1 );
-    ++bidx;
-    trajBonds_.push_back( ((*bidx)/3) + 1 );
-    ++bidx;
-  }
-  for (std::vector<int>::const_iterator bidx = mol2Top_->BondsH().begin();
-                                        bidx != mol2Top_->BondsH().end(); bidx++)
-  {
-    trajBonds_.push_back( ((*bidx)/3) + 1 );
-    ++bidx;
-    trajBonds_.push_back( ((*bidx)/3) + 1 );
-    ++bidx;
-  }
-  // Check number of bonds
-  if (trajBonds_.empty()) 
-    mprintf("Warning: %s: topology does not contain bond information.\n",
-            file_.Filename().base());
-  else
-    file_.SetMol2Nbonds( trajBonds_.size() / 2 );
+  // Set up number of bonds
+  file_.SetMol2Nbonds( mol2Top_->Bonds().size() + mol2Top_->BondsH().size() );
   // Open here if writing to a single file
   if ( mol2WriteMode_ != MULTI )
     return file_.OpenFile(); 
@@ -187,17 +161,15 @@ int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
     Xptr += 3;
   }
   //@<TRIPOS>BOND section
-  if (!trajBonds_.empty()) {
-    file_.WriteHeader(Mol2File::BOND); 
+  if (file_.Mol2Nbonds() > 0) {
+    file_.WriteHeader(Mol2File::BOND);
     int bondnum = 1;
-    for (std::vector<int>::iterator bond = trajBonds_.begin();
-                                    bond != trajBonds_.end();
-                                    bond++)
-    {
-      int firstBondAtom = *bond;
-      ++bond;
-      file_.Printf("%5d %5d %5d 1\n",bondnum++,firstBondAtom, *bond);
-    }
+    for (BondArray::const_iterator bidx = mol2Top_->Bonds().begin();
+                                   bidx != mol2Top_->Bonds().end(); ++bidx)
+      file_.Printf("%5d %5d %5d 1\n", bondnum++, bidx->A1()+1, bidx->A2()+1);
+    for (BondArray::const_iterator bidx = mol2Top_->BondsH().begin();
+                                   bidx != mol2Top_->BondsH().end(); ++bidx)
+      file_.Printf("%5d %5d %5d 1\n", bondnum++, bidx->A1()+1, bidx->A2()+1);
   }
   //@<TRIPOS>SUBSTRUCTURE section
   file_.WriteHeader(Mol2File::SUBSTRUCT);

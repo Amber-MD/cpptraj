@@ -126,9 +126,9 @@ int Action_Pairwise::SetupNonbondParm(AtomMask &maskIn, Topology *ParmIn) {
   for (Topology::atom_iterator atom = ParmIn->begin(); atom != ParmIn->end(); ++atom)
     atom_charge_.push_back( (*atom).Charge() * ELECTOAMBER );
   // Check if LJ parameters present - need at least 2 atoms for it to matter.
-  if (ParmIn->Natom() > 1 && (ParmIn->LJA().empty() || ParmIn->LJB().empty())) {
-    mprinterr("Error: Pairwise::setup(): Parm does not have LJ information.\n");
-    return -1;
+  if (ParmIn->Natom() > 1 && !ParmIn->HasNonbond()) {
+    mprinterr("Error: Topology does not have LJ information.\n");
+    return 1;
   }
 
   // Determine the actual number of pairwise interactions that will be calcd.
@@ -200,7 +200,7 @@ Action::RetType Action_Pairwise::Setup(Topology* currentParm, Topology** parmAdd
   * the cutoffs are printed.
   */
 void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &maskIn) {
-  double delta2, Acoef, Bcoef;
+  double delta2;
   std::vector<NonbondEnergyType>::iterator refpair;
   NonbondEnergyType refE;
 
@@ -237,13 +237,13 @@ void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &
         // Normalize
         double rij = sqrt(rij2);
         JI /= rij;
-        // LJ energy 
-        parmIn->GetLJ_A_B(*maskatom1, *maskatom2, Acoef, Bcoef);
+        // LJ energy
+        NonbondType const& LJ = parmIn->GetLJparam(*maskatom1, *maskatom2);
         double r2    = 1 / rij2;
         double r6    = r2 * r2 * r2;
         double r12   = r6 * r6;
-        double f12   = Acoef * r12;  // A/r^12
-        double f6    = Bcoef * r6;   // B/r^6
+        double f12   = LJ.A() * r12;  // A/r^12
+        double f6    = LJ.B() * r6;   // B/r^6
         double e_vdw = f12 - f6;     // (A/r^12)-(B/r^6)
         ELJ_ += e_vdw;
         // LJ Force 
@@ -323,7 +323,6 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
   }
   Frame CutFrame(frame, CutMask);
   Topology CutParm;
-  int last_res = -1;
   // Dont use modifyStateByMask so we can set new charges. This means no
   // bond/molecule information (could add with call to CommonSetup).
   std::vector<double>::const_iterator Qi = CutCharges.begin();
@@ -331,7 +330,7 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
     Atom cutatom = Parm[*atnum];
     int resnum = cutatom.ResNum(); 
     cutatom.SetCharge( *(Qi++) );
-    CutParm.AddTopAtom( cutatom, Parm.Res(resnum).Name(), resnum, last_res, 0 );
+    CutParm.AddTopAtom( cutatom, resnum, Parm.Res(resnum).Name(), 0 );
   } 
     
   Trajout tout;

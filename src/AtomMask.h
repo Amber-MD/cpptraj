@@ -34,6 +34,8 @@ class AtomMask {
     AtomMask(int,int);
     AtomMask(const AtomMask &);
     AtomMask& operator=(const AtomMask&);
+    /// \return Internal selected atom array.
+    std::vector<int> const& Selected()  const { return Selected_;            }
     /// AtomMask default iterator
     typedef std::vector<int>::const_iterator const_iterator;
     /// \return const iterator to the beginning of Selected

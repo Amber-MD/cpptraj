@@ -117,9 +117,8 @@ Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   * atomic number if set, otherwise determine from mass. Determine element 
   * from name if all else fails.
   */
-// TODO: Necessary to set resnum here?
 Atom::Atom( NameType const& name, double charge, int atomicnum, double mass, int atidx,
-            NameType const& type, double rad, double screen, int resnum ) :
+            NameType const& type, double rad, double screen ) :
   charge_(charge),
   mass_(mass),
   gb_radius_(rad),
@@ -128,7 +127,7 @@ Atom::Atom( NameType const& name, double charge, int atomicnum, double mass, int
   atype_(type),
   atype_index_(atidx),
   element_(UNKNOWN_ELEMENT),
-  resnum_(resnum),
+  resnum_(0),
   mol_(0),
   chainID_(' ')
 {
@@ -208,9 +207,9 @@ void Atom::SortBonds() {
 }
 
 // Atom::AddExclusionList()
-void Atom::AddExclusionList(std::set<int>& elist) {
+void Atom::AddExclusionList(std::set<int> const& elist) {
   excluded_.clear();
-  for (std::set<int>::iterator ei = elist.begin(); ei != elist.end(); ei++)
+  for (std::set<int>::const_iterator ei = elist.begin(); ei != elist.end(); ei++)
     excluded_.push_back( *ei );
 }
 
@@ -544,3 +543,114 @@ void Atom::SetElementFromMass() {
               mass_, *aname_);
   }
 }
+
+// WarnBondLengthDefault()
+void Atom::WarnBondLengthDefault(AtomicElementType atom1, AtomicElementType atom2, double cut) {
+  mprintf("Warning: Bond length not found for %s - %s, using default= %f\n",
+          AtomicElementName[atom1], AtomicElementName[atom2], cut);
+}
+
+/** Return optimal covalent bond distance based on the element types of atom1 
+  * and atom2. When multiple hybridizations are possible the longest possible 
+  * bond length is used.
+  * Unless otherwise noted values taken from:
+  * - Huheey, pps. A-21 to A-34; T.L. Cottrell, "The Strengths of Chemical Bonds," 
+  *       2nd ed., Butterworths, London, 1958; 
+  * - B. deB. Darwent, "National Standard Reference Data Series," National Bureau of Standards, 
+  *       No. 31, Washington, DC, 1970; S.W. Benson, J. Chem. Educ., 42, 502 (1965).
+  * Can be found on the web at:
+  * - http://www.wiredchemist.com/chemistry/data/bond_energies_lengths.html
+  */
+// NOTE: Store cut^2 instead??
+double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
+  // Default cutoff
+  double cut = 1.60;
+  if (atom1==atom2) {
+    // Self
+    switch (atom1) {
+      case HYDROGEN  : cut=0.74; break;
+      case CARBON    : cut=1.54; break;
+      case NITROGEN  : cut=1.45; break;
+      case OXYGEN    : cut=1.48; break;
+      case PHOSPHORUS: cut=2.21; break;
+      case SULFUR    : cut=2.05; break; // S-S gas-phase value; S=S is 1.49
+      default: WarnBondLengthDefault(atom1,atom2,cut);
+    }
+  } else {
+    AtomicElementType e1, e2;
+    if (atom1 < atom2) {
+      e1 = atom1;
+      e2 = atom2;
+    } else {
+      e1 = atom2;
+      e2 = atom1;
+    }
+    switch (e1) {
+      case HYDROGEN: // Bonds to H
+        switch (e2) {
+          case CARBON    : cut=1.09; break;
+          case NITROGEN  : cut=1.01; break;
+          case OXYGEN    : cut=0.96; break;
+          case PHOSPHORUS: cut=1.44; break;
+          case SULFUR    : cut=1.34; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case CARBON: // Bonds to C
+        switch (e2) {
+          case NITROGEN  : cut=1.47; break;
+          case OXYGEN    : cut=1.43; break;
+          case FLUORINE  : cut=1.35; break;
+          case PHOSPHORUS: cut=1.84; break;
+          case SULFUR    : cut=1.82; break;
+          case CHLORINE  : cut=1.77; break;
+          case BROMINE   : cut=1.94; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case NITROGEN: // Bonds to N
+        switch (e2) {
+          case OXYGEN    : cut=1.40; break;
+          case FLUORINE  : cut=1.36; break;
+          case PHOSPHORUS: cut=1.71; // Avg over all nX-pX from gaff.dat
+          case SULFUR    : cut=1.68; break; // Postma & Vos, Acta Cryst. (1973) B29, 915
+          case CHLORINE  : cut=1.75; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case OXYGEN: // Bonds to O
+        switch (e2) {
+          case FLUORINE  : cut=1.42; break;
+          case PHOSPHORUS: cut=1.63; break;
+          case SULFUR    : cut=1.48; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case FLUORINE: // Bonds to F
+        switch (e2) {
+          case PHOSPHORUS: cut=1.54; break;
+          case SULFUR    : cut=1.56; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case PHOSPHORUS: // Bonds to P
+        switch (e2) {
+          case SULFUR  : cut=1.86; break;
+          case CHLORINE: cut=2.03; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case SULFUR: // Bonds to S
+        switch (e2) {
+          case CHLORINE: cut=2.07; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      default: WarnBondLengthDefault(e1,e2,cut);
+    } // END switch(e1)
+  }
+  //mprintf("\t\tCUTOFF: [%s] -- [%s] = %lf\n",AtomicElementName[atom1],
+  //        AtomicElementName[atom2],cut);
+  return cut;
+}
+

@@ -1,7 +1,7 @@
 #ifndef INC_PARAMETERTYPES_H
 #define INC_PARAMETERTYPES_H
 #include <vector>
-#include "NameType.h" // FIXME: Needed?
+#include "NameType.h" // For perturbed atom info
 // ----- BOND/ANGLE/DIHEDRAL PARAMETERS ----------------------------------------
 /// Hold bond parameters
 class BondParmType {
@@ -84,10 +84,9 @@ typedef std::vector<DihedralParmType> DihedralParmArray;
 /// Hold dihedral atom indices and parameter index
 class DihedralType {
   public:
-    /// Dihedral type; a3_ < 0 = E, a4_ < 0 = I
     enum Dtype { NORMAL=0, IMPROPER, END, BOTH };
     DihedralType() : a1_(0), a2_(0), a3_(0), a4_(0), type_(NORMAL), idx_(0) {}
-    /// For use with Amber-style dihedral array
+    /// For use with Amber-style dihedral array; a3_ < 0 = E, a4_ < 0 = I
     DihedralType(int a1, int a2, int a3, int a4, int idx) :
                   a1_(a1), a2_(a2), a3_(a3), a4_(a4), idx_(idx)
     {
@@ -133,7 +132,7 @@ typedef std::vector<HB_ParmType> HB_ParmArray;
 class NonbondType {
   public:
     NonbondType() : A_(0), B_(0) {}
-    NonbondType(double rk, double req) : A_(rk), B_(req) {}
+    NonbondType(double a, double b) : A_(a), B_(b) {}
     inline double A() const { return A_; }
     inline double B() const { return B_; }
   private:
@@ -142,21 +141,28 @@ class NonbondType {
 };
 typedef std::vector<NonbondType> NonbondArray;
 /// Hold nonbonded interaction parameters
+/** The nbindex array holds indices into nbarray (>=0) or hbarray (<0).
+  * nbarray size should be (ntypes*(ntypes+1))/2 (half matrix).
+  */
 class NonbondParmType {
   public:
     NonbondParmType() : ntypes_(0) {}
-    inline int Ntypes()           const { return ntypes_;  }
-    std::vector<int> NBindex()    const { return nbindex_; }
-    NonbondArray const& NBarray() const { return nbarray_; }
+    NonbondParmType(int n, std::vector<int> const& nbi, NonbondArray const& nba,
+                    HB_ParmArray const& hba) :
+                      ntypes_(n), nbindex_(nbi), nbarray_(nba), hbarray_(hba) {}
+    inline int Ntypes()                  const { return ntypes_;     }
+    std::vector<int> const& NBindex()    const { return nbindex_;    }
+    NonbondArray     const& NBarray()    const { return nbarray_;    }
+    HB_ParmArray     const& HBarray()    const { return hbarray_;    }
+    NonbondType const& NBarray(int i)    const { return nbarray_[i]; }
+    HB_ParmType const& HBarray(int i)    const { return hbarray_[i]; }
     /// In Amber, index < 0 means HB, otherwise LJ 6-12
     int GetLJindex(int type1, int type2) const {
       return nbindex_[ ntypes_ * type1 + type2 ];
     }
-    NonbondType const& NBarray(int i) const { return nbarray_[i]; }
-    HB_ParmType const& HBarray(int i) const { return hbarray_[i]; }
   private:
     int ntypes_;               ///< Number of unique atom types
-    std::vector<int> nbindex_; ///< Hold indices into Lennard-Jones array nbarray
+    std::vector<int> nbindex_; ///< Hold indices into arrays nbarray/hbarray for atom type pairs
     NonbondArray nbarray_;     ///< Hold Lennard-Jones 6-12 A and B parameters for all pairs.
     HB_ParmArray hbarray_;     ///< Hold 10-12 Amber HBond params for all pairs.
 };
@@ -184,7 +190,7 @@ class LES_ParmType {
     }
     inline int Ntypes()                 const { return ntypes_;          }
     std::vector<double> const& FAC()    const { return fac_;             }
-    LES_Array const& Array()            const { return array_;           }
+    LES_Array           const& Array()  const { return array_;           }
     void AddLES_Atom(LES_AtomType const& lat) { array_.push_back( lat ); }
   private:
     int ntypes_;              ///< Number of LES regions
@@ -208,11 +214,11 @@ class PertAtom {
 class PertParmType {
   public:
     PertParmType() {}
-  private:                           // Original: ixper, jxper, (kxper,( lpper,)) icxper{0,1}
-    std::vector<int> pbond_;         ///< {AtomIdx1, AtomIdx2, ParmIdx0, ParmIdx1}
-    std::vector<int> pangle_;        ///< {AtomIdx1, AtomIdx2, AtomIdx3, ParmIdx0, ParmIdx1}
-    std::vector<int> pdih_;          ///< {AtomIdx1, AtomIdx2, AtomIdx3, AtomIdx4, ParmIdx0, ParmIdx1}
-    std::vector<NameType> resnames_; ///< residue names at lambda = 1 (labper)
+  private:                    // Original: ixper, jxper, (kxper,( lpper,)) icxper{1,0}
+    std::vector<int> pbond_;  ///< {AtomIdx1, AtomIdx2, ParmIdx1, ParmIdx0}
+    std::vector<int> pangle_; ///< {AtomIdx1, AtomIdx2, AtomIdx3, ParmIdx1, ParmIdx0}
+    std::vector<int> pdih_;   ///< {AtomIdx1, AtomIdx2, AtomIdx3, AtomIdx4, ParmIdx1, ParmIdx0}
+    std::vector<NameType> resnames_; ///< residue names at lambda = 0 (labper)
     std::vector<PertAtom> patoms_;   ///< Perturbed atom array
 };
 #endif
