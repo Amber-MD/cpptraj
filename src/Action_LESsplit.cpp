@@ -68,7 +68,7 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
       // Copy trajArgs so they are the same for each.
       // FIXME: Should InitTrajWrite take const?
       ArgList targ = trajArgs_;
-      if ( lesTraj_.back()->InitTrajWrite(NumberFilename( trajfilename_, i ), targ,
+      if ( lesTraj_.back()->InitTrajWrite(NumberFilename( trajfilename_, i+1 ), targ,
                                           lesParm_, TrajectoryFile::UNKNOWN_TRAJ) )
         return Action::ERR;
       lesTraj_.back()->PrintInfo(1);
