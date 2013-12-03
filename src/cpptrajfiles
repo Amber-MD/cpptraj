@@ -32,6 +32,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Hbond.cpp \
         Action_Image.cpp \
         Action_Jcoupling.cpp \
+        Action_LESsplit.cpp \
         Action_LIE.cpp \
         Action_MakeStructure.cpp \
         Action_Mask.cpp \

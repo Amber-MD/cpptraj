@@ -75,6 +75,7 @@
 #include "Action_MaxDist.h"
 #include "Action_NMRrst.h"
 #include "Action_FilterByData.h"
+#include "Action_LESsplit.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1413,6 +1414,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, AddAction },
   { ACTION, "image", Action_Image::Alloc, Action_Image::Help, AddAction },
   { ACTION, "jcoupling", Action_Jcoupling::Alloc, Action_Jcoupling::Help, AddAction },
+  { ACTION, "lessplit", Action_LESsplit::Alloc, Action_LESsplit::Help, AddAction },
   { ACTION, "lie", Action_LIE::Alloc, Action_LIE::Help, AddAction },
   { ACTION, "makestructure", Action_MakeStructure::Alloc, Action_MakeStructure::Help, AddAction },
   { ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, AddAction },

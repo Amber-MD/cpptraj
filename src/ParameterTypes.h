@@ -176,24 +176,34 @@ class LES_AtomType {
     inline int Copy() const { return cnum_; }
     inline int ID()   const { return id_;   }
   private:
-    int type_;
-    int cnum_;
-    int id_;
+    int type_; ///< LES atom type
+    int cnum_; ///< LES copy #
+    int id_;   ///< LES region ID
 };
 typedef std::vector<LES_AtomType> LES_Array;
 /// Hold LES parameters
 class LES_ParmType {
   public:
-    LES_ParmType() : ntypes_(0) {}
-    LES_ParmType(int na, int nt, std::vector<double> const& fac) : ntypes_(nt), fac_(fac) {
+    LES_ParmType() : ntypes_(0), ncopies_(0) {}
+    LES_ParmType(int na, int nt, std::vector<double> const& fac) : 
+                     ntypes_(nt), ncopies_(0), fac_(fac)
+    {
       array_.reserve( na );
     }
     inline int Ntypes()                 const { return ntypes_;          }
+    inline int Ncopies()                const { return ncopies_;         }
     std::vector<double> const& FAC()    const { return fac_;             }
     LES_Array           const& Array()  const { return array_;           }
-    void AddLES_Atom(LES_AtomType const& lat) { array_.push_back( lat ); }
+    // FIXME: It seems that ncopies is not correctly reported in LES
+    //        topology files. Do a manual count until this is fixed.
+    void AddLES_Atom(LES_AtomType const& lat) {
+      array_.push_back( lat );
+      if (array_.back().Copy() > ncopies_ )
+        ncopies_ = array_.back().Copy();
+    }
   private:
-    int ntypes_;              ///< Number of LES regions
+    int ntypes_;              ///< Total number of LES types 
+    int ncopies_;             ///< Total number of LES copies.
     LES_Array array_;         ///< LES parameters for each atom
     std::vector<double> fac_; ///< Scaling factor for typeA * typeB
 };

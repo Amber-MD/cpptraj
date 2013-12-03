@@ -318,6 +318,9 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   values[NTHETA] = (int)parmIn.Angles().size();
   values[NPHIH] = (int)parmIn.DihedralsH().size(); 
   values[NPHIA] = (int)parmIn.Dihedrals().size();
+  // FIXME: Currently LES info not 100% correct, in particular the excluded list
+  if (parmIn.LES().Ntypes() > 0)
+    values[NPARM] = 1;
   values[NNB] = (int)excluded.size();
   values[NRES] = parmIn.Nres();
   //   NOTE: Assuming MBONA == NBONA etc
@@ -512,13 +515,40 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   }
   WriteDouble(F_RADII, gb_radii);
   WriteDouble(F_SCREEN, gb_screen);
+  // LES parameters - FIXME: Not completely correct yet
+  if (values[NPARM] == 1) {
+    std::vector<int> LES_array(1, parmIn.LES().Ntypes());
+    WriteInteger(F_LES_NTYP, LES_array);
+    LES_array.clear();
+    // Sanity check.
+    if ( (int)parmIn.LES().Array().size() != parmIn.Natom() ) {
+      mprinterr("Internal Error: # LES atoms (%zu) != # atoms in topology (%i).\n",
+                parmIn.LES().Array().size(), parmIn.Natom());
+      return 1;
+    }
+    LES_array.reserve( parmIn.LES().Array().size() );
+    std::vector<int> LES_cnum, LES_id;
+    LES_cnum.reserve( LES_array.size() );
+    LES_id.reserve( LES_id.size() );
+    for (LES_Array::const_iterator les = parmIn.LES().Array().begin();
+                                   les != parmIn.LES().Array().end(); ++les)
+    {
+      LES_array.push_back( les->Type() );
+      LES_cnum.push_back( les->Copy() );
+      LES_id.push_back( les->ID() );
+    }
+    WriteInteger(F_LES_TYPE, LES_array);
+    WriteDouble(F_LES_FAC, parmIn.LES().FAC());
+    WriteInteger(F_LES_CNUM, LES_cnum);
+    WriteInteger(F_LES_ID, LES_id);
+  }
  
   file_.CloseFile();
 
   return 0;
 }
 
-// -----------------------------------------------------------------------------
+// ---- AMBER READ ROUTINES ----------------------------------------------------
 static BondArray BondIndexToArray(std::vector<int> bondIdx) {
   BondArray bonds;
   if ( (bondIdx.size() % 3) != 0 ) {
@@ -729,6 +759,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     LES_ParmType les_parameters( values[NATOM], nlestyp, LES_fac );
     for (int i = 0; i < values[NATOM]; i++)
       les_parameters.AddLES_Atom( LES_AtomType(LES_array[i], LES_cnum[i], LES_id[i]) );
+    mprintf("DEBUG: %i LES copies.\n", les_parameters.Ncopies());
     TopIn.SetLES( les_parameters );
   }
   // Done reading. Set up topology. 
