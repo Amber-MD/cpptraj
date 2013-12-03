@@ -89,6 +89,7 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
       // NOTE: This will use up all traj args
       if (avgTraj_.InitTrajWrite( avgfilename_, trajArgs_, lesParm_, TrajectoryFile::UNKNOWN_TRAJ ))
         return Action::ERR;
+      avgTraj_.PrintInfo(1);
     }
   } else {
     if (lesParm_->Pindex() != currentParm->Pindex()) {

@@ -103,7 +103,7 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
   { "TITLE",                      F20a4 },
   { "CTITLE",                     F20a4 },
   { "RADIUS_SET",                 F1a80 },
-  { "LES_NTYP",                   F10I8 }, // Number of LES regions
+  { "LES_NTYP",                   F10I8 }, // Number of LES region types
   { "LES_TYPE",                   F10I8 }, // LES type for each atom
   { "LES_FAC",                    F5E16 }, // Scaling factor for typeA * typeB  
   { "LES_CNUM",                   F10I8 }, // Copy number for each atom; 0==in all
@@ -627,11 +627,6 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     mprinterr("Error: '%s' Could not get POINTERS from Amber Topology.\n",file_.Filename().base());
     return 1;
   }
-  // Warn about LES
-  if (values[NPARM] > 0)
-    mprintf("Warning: '%s' is an LES-type topology.\n"
-            "Warning:  Cpptraj currently cannot split or write LES-type topology files.\n",
-            file_.Filename().base());
   // Warn about IFCAP
   if (values[IFCAP] > 0)
     mprintf("Warning: '%s' contains CAP information.\n"
@@ -747,19 +742,13 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     std::vector<int> LES_array = GetFlagInteger(F_LES_NTYP, 1);
     if (LES_array.empty()) return 1;
     int nlestyp = LES_array[0];
-    mprintf("DEBUG: %i LES region types in topology.\n", nlestyp);
-    // LES_TYPE: int[ natom ]
     LES_array = GetFlagInteger(F_LES_TYPE, values[NATOM]);
-    // LES_FAC:  double[ nlestyp * nlestyp ]
     std::vector<double> LES_fac = GetFlagDouble(F_LES_FAC, nlestyp * nlestyp);
-    // LES_CNUM: int[ natom ]
     std::vector<int> LES_cnum = GetFlagInteger(F_LES_CNUM, values[NATOM]);
-    // LES_ID:   int[ natom ]
     std::vector<int> LES_id = GetFlagInteger(F_LES_ID, values[NATOM]);
     LES_ParmType les_parameters( values[NATOM], nlestyp, LES_fac );
     for (int i = 0; i < values[NATOM]; i++)
       les_parameters.AddLES_Atom( LES_AtomType(LES_array[i], LES_cnum[i], LES_id[i]) );
-    mprintf("DEBUG: %i LES copies.\n", les_parameters.Ncopies());
     TopIn.SetLES( les_parameters );
   }
   // Done reading. Set up topology. 
