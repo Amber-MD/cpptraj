@@ -26,10 +26,11 @@ class Atom {
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}
-    /// Take atom name, chain ID. Attempt to determine element from name if no elt.
+    /// Take atom name, chain ID, and (optional) 2 character element name.
     Atom(NameType const&, char, const char*);
-    /// Take atom name, type, and charge. Attempt to determine element from name.
+    /// Take atom name, type name, and charge.
     Atom( NameType const&, NameType const&, double );
+    /// Atom name, charge, atomic num, mass, type index, type name, gb radius and screen parameter.
     Atom( NameType const&, double, int, double, int, NameType const&, double, double );
     Atom(const Atom &);
     void swap(Atom &, Atom &);

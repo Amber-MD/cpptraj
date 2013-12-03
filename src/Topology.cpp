@@ -680,11 +680,17 @@ void Topology::GetBondsFromAtomCoords() {
   * For bonds to H always insert the H second.
   */
 void Topology::AddBond(int atom1, int atom2) {
+  // Check for duplicate bond
+  for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
+                           ba != atoms_[atom1].bondend(); ++ba)
+    if ( *ba == atom2 ) {
+      mprintf("Warning: Bond between atoms %i and %i already exists.\n", atom1+1, atom2+1);
+      return;
+    }
   bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
   bool a2H = (atoms_[atom2].Element() == Atom::HYDROGEN);
   //mprintf("\t\t\tAdding bond %i to %i (isH=%i)\n",atom1+1,atom2+1,(int)isH);
   // Update bonds arrays
-  // TODO: Check for duplicates
   if (a1H || a2H) {
     if (a1H)
       bondsh_.push_back( BondType(atom2, atom1, -1) );

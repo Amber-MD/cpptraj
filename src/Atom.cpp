@@ -72,7 +72,7 @@ Atom::Atom() :
   chainID_(' ')
 { }
 
-/** CONSTRUCTOR - used for PDB files. */
+/** If no 2 char element name provided, try to guess from name. */ 
 Atom::Atom(NameType const& aname, char cid, const char* elt) :
   charge_(0.0),
   mass_(1.0),
@@ -93,7 +93,7 @@ Atom::Atom(NameType const& aname, char cid, const char* elt) :
   mass_ = AtomicElementMass[ element_ ];
 }
 
-/** CONSTRUCTOR - used for Mol2 files. */
+/** Attempt to guess element from name. */ 
 Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   charge_(q),
   mass_(1.0),
@@ -112,10 +112,8 @@ Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
 }
 
 // CONSTRUCTOR
-/** Take name, charge, atomic#, mass, atom type index (AMBER), type (AMBER), 
-  * GB radius, GB screen param, and residue number. Determine element from
-  * atomic number if set, otherwise determine from mass. Determine element 
-  * from name if all else fails.
+/** Determine element from atomic number if set, otherwise determine from mass. 
+  * Determine element from name if all else fails.
   */
 Atom::Atom( NameType const& name, double charge, int atomicnum, double mass, int atidx,
             NameType const& type, double rad, double screen ) :
