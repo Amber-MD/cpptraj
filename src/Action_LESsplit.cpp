@@ -6,10 +6,13 @@
 Action_LESsplit::~Action_LESsplit() {
   for (TrajoutArray::iterator tout = lesTraj_.begin(); tout != lesTraj_.end(); ++tout)
     delete *tout;
+  if (lesParm_ != 0) delete lesParm_;
 }
 
 void Action_LESsplit::Help() {
-  mprintf("\tout <filename prefix> <trajout args>\n");
+  mprintf("\t[out <filename prefix>] [average <avg filename>] <trajout args>\n"
+          "\t  Split and/or average LES trajectory. At least one of 'out' or 'average'\n"
+          "\tmust be specified. If both are specified they share <trajout args>.\n");
 }
 
 // Action_LESsplit::Init()
@@ -17,13 +20,18 @@ Action::RetType Action_LESsplit::Init(ArgList& actionArgs, TopologyList* PFL, Fr
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   trajfilename_ = actionArgs.GetStringKey("out");
-  if (trajfilename_.empty()) {
-    mprinterr("Error: Must specify output traj name prefix ('out <prefix>')\n");
+  avgfilename_ = actionArgs.GetStringKey("average");
+  lesSplit_ = !trajfilename_.empty();
+  lesAverage_ = !avgfilename_.empty();
+  if (!lesSplit_ && !lesAverage_) {
+    mprinterr("Error: Must specify at least 'out <prefix>' or 'average <name>'.\n");
     return Action::ERR;
   }
   trajArgs_ = actionArgs.RemainingArgs();
   
-  mprintf("    LESSPLIT: Output to '%s.X'\n", trajfilename_.c_str());
+  mprintf("    LESSPLIT:\n");
+  if (lesSplit_) mprintf("\tSplit output to '%s.X'\n", trajfilename_.c_str());
+  if (lesAverage_) mprintf("\tAverage output to '%s'\n", avgfilename_.c_str());
   return Action::OK;
 }
 
@@ -60,18 +68,27 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
     if (lesParm_ == 0) return Action::ERR;
     // Set up frame to hold individual copy
     lesFrame_.SetupFrameV(lesParm_->Atoms(), lesParm_->HasVelInfo(), lesParm_->NrepDim());
-    // Set up output trajectories
-    lesTraj_.clear();
-    lesTraj_.reserve( lesMasks_.size() );
-    for (unsigned int i = 0; i < lesMasks_.size(); i++) {
-      lesTraj_.push_back( new Trajout() );
-      // Copy trajArgs so they are the same for each.
-      // FIXME: Should InitTrajWrite take const?
-      ArgList targ = trajArgs_;
-      if ( lesTraj_.back()->InitTrajWrite(NumberFilename( trajfilename_, i+1 ), targ,
-                                          lesParm_, TrajectoryFile::UNKNOWN_TRAJ) )
+    if (lesSplit_) {
+      // Set up output trajectories
+      lesTraj_.clear();
+      lesTraj_.reserve( lesMasks_.size() );
+      for (unsigned int i = 0; i < lesMasks_.size(); i++) {
+        lesTraj_.push_back( new Trajout() );
+        // Copy trajArgs so they are the same for each.
+        // FIXME: Should InitTrajWrite take const?
+        ArgList targ = trajArgs_;
+        if ( lesTraj_.back()->InitTrajWrite(NumberFilename( trajfilename_, i+1 ), targ,
+                                            lesParm_, TrajectoryFile::UNKNOWN_TRAJ) )
+          return Action::ERR;
+        lesTraj_.back()->PrintInfo(1);
+      }
+    }
+    if (lesAverage_) {
+      // For average only care about coords.
+      avgFrame_.SetupFrame( lesParm_->Natom() );
+      // NOTE: This will use up all traj args
+      if (avgTraj_.InitTrajWrite( avgfilename_, trajArgs_, lesParm_, TrajectoryFile::UNKNOWN_TRAJ ))
         return Action::ERR;
-      lesTraj_.back()->PrintInfo(1);
     }
   } else {
     if (lesParm_->Pindex() != currentParm->Pindex()) {
@@ -88,9 +105,19 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
 Action::RetType Action_LESsplit::DoAction(int frameNum, Frame* currentFrame, 
                                           Frame** frameAddress)
 {
+  if (lesAverage_)
+    avgFrame_.ZeroCoords();
   for (unsigned int i = 0; i < lesMasks_.size(); i++) {
     lesFrame_.SetFrame(*currentFrame, lesMasks_[i]);
-    if ( lesTraj_[i]->WriteFrame(frameNum, lesParm_, lesFrame_) != 0 )
+    if (lesAverage_)
+      avgFrame_ += lesFrame_;
+    if (lesSplit_)
+      if ( lesTraj_[i]->WriteFrame(frameNum, lesParm_, lesFrame_) != 0 )
+        return Action::ERR;
+  }
+  if (lesAverage_) {
+    avgFrame_.Divide( lesMasks_.size() );
+    if ( avgTraj_.WriteFrame(frameNum, lesParm_, avgFrame_) != 0 )
       return Action::ERR;
   }
   return Action::OK;
