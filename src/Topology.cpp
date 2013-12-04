@@ -1393,7 +1393,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     }
   }
   // CAP info - dont support stripping such topologies right now
-  
+  if (HasWaterCap())
+    mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
   // Amber extra info. Assume if one present, all present.
   if (!itree_.empty() && !join_.empty() && !irotat_.empty()) {
     for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
