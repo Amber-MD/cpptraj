@@ -86,6 +86,8 @@ class Topology {
     // ----- Amber perturbed parm info -----
     PertParmType      const& Pert()         const { return pert_;         }
     // ----- Amber extra info ----- TODO: Generate automatically, consolidate
+    CapParmType       const& Cap()          const { return cap_;          }
+    void SetCap(CapParmType const& c)             { cap_ = c;             }
     inline const std::vector<double>& Solty()   const { return solty_;  }
     inline const std::vector<NameType>& Itree() const { return itree_;  }
     inline const std::vector<int>& Join()       const { return join_;   }
@@ -194,6 +196,7 @@ class Topology {
     // Non-bonded parameters
     NonbondParmType nonbond_;
     // Amber-only parameters
+    CapParmType cap_;                ///< Water cap information
     LES_ParmType lesparm_;           ///< LES parameters
     PertParmType pert_;              ///< Atom perturbation info
     // Amber extra info

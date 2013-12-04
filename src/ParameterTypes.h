@@ -207,6 +207,24 @@ class LES_ParmType {
     LES_Array array_;         ///< LES parameters for each atom
     std::vector<double> fac_; ///< Scaling factor for typeA * typeB
 };
+// ----- CAP INFO --------------------------------------------------------------
+class CapParmType {
+  public:
+    CapParmType() : natcap_(0), cutcap_(0), xcap_(0), ycap_(0), zcap_(0) {}
+    CapParmType(int n, double c, double x, double y, double z) :
+                    natcap_(n), cutcap_(c), xcap_(x), ycap_(y), zcap_(z) {}
+    inline int NatCap()    const { return natcap_; }
+    inline double CutCap() const { return cutcap_; }
+    inline double xCap()   const { return xcap_;   }
+    inline double yCap()   const { return ycap_;   }
+    inline double zCap()   const { return zcap_;   }
+  private:
+    int natcap_;    ///< last atom before the start of the cap of waters
+    double cutcap_; ///< the distance from the center of the cap to the outside
+    double xcap_;   ///< X coordinate for the center of the cap
+    double ycap_;   ///< Y coordinate for the center of the cap
+    double zcap_;   ///< Z coordinate for the center of the cap
+};
 // ----- PERTURBATION PARAMETERS -----------------------------------------------
 /// Hold perturbed atom parameters
 class PertAtom {

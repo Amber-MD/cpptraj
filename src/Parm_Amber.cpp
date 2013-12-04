@@ -107,7 +107,9 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
   { "LES_TYPE",                   F10I8 }, // LES type for each atom
   { "LES_FAC",                    F5E16 }, // Scaling factor for typeA * typeB  
   { "LES_CNUM",                   F10I8 }, // Copy number for each atom; 0==in all
-  { "LES_ID",                     F10I8 }  // LES region ID
+  { "LES_ID",                     F10I8 }, // LES region ID
+  { "CAP_INFO",                   F10I8 },
+  { "CAP_INFO2",                  F5E16 }
 };
 
 // -----------------------------------------------------------------------------
@@ -334,6 +336,8 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   values[NPHB] = (int)parmIn.Nonbond().HBarray().size();
   values[IFBOX] = AmberIfbox( parmIn.ParmBox() );
   values[NMXRS] = parmIn.FindResidueMaxNatom();
+  if (parmIn.Cap().NatCap() > 0)
+    values[IFCAP] = 1;
   values[NEXTRA] = parmIn.NextraPts();
  
   // Write parm
@@ -505,6 +509,17 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
     betaLengths[3] = parmIn.ParmBox().BoxZ();
     WriteDouble(F_PARMBOX, betaLengths);
   }
+  // CAP info
+  if (values[IFCAP] == 1) {
+    std::vector<int> CI(1, parmIn.Cap().NatCap());
+    WriteInteger(F_CAP_INFO, CI);
+    std::vector<double> CD(4);
+    CD[0] = parmIn.Cap().CutCap();
+    CD[1] = parmIn.Cap().xCap();
+    CD[2] = parmIn.Cap().yCap();
+    CD[3] = parmIn.Cap().zCap();
+    WriteDouble(F_CAP_INFO2, CD);
+  }
   // GB RADIUS SET, RADII, SCREENING PARAMETERS
   std::string radius_set = parmIn.GBradiiSet();
   if (!radius_set.empty()) {
@@ -627,11 +642,6 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     mprinterr("Error: '%s' Could not get POINTERS from Amber Topology.\n",file_.Filename().base());
     return 1;
   }
-  // Warn about IFCAP
-  if (values[IFCAP] > 0)
-    mprintf("Warning: '%s' contains CAP information.\n"
-            "Warning:  Cpptraj currently does not read or write CAP information.\n",
-            file_.Filename().base());
   // Warn about IFPERT
   if (values[IFPERT] > 0)
     mprintf("Warning: '%s' contains perturbation information.\n"
@@ -724,6 +734,16 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
       mprintf("         but BOX_DIMENSIONS indicate %s - may cause imaging problems.\n",
               parmbox.TypeName());
     }
+  }
+  // Water Cap Info
+  if (values[IFCAP]) {
+    std::vector<int> CI = GetFlagInteger(F_CAP_INFO, 1);
+    std::vector<double> CD = GetFlagDouble(F_CAP_INFO2, 4);
+    if (CI.size() != 1 || CD.size() != 4) {
+      mprinterr("Error: Could not read Cap info.\n");
+      return 1;
+    }
+    TopIn.SetCap( CapParmType(CI[0], CD[0], CD[1], CD[2], CD[3]) );
   }
   // New Parm only: GB parameters; radius set, radii, and screening parameters
   std::vector<double> gb_radii;
