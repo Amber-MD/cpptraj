@@ -109,9 +109,8 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> ww_eelec_;
     std::vector < std::vector <float> > ww_Eij_;
     std::vector <float> dEwh_dw_;
-    std::vector <float> dEww_dw_ref_;
     std::vector <float> dEwh_norm_;
-    std::vector <float> dEww_norm_ref_;
+    std::vector <float> dEww_norm_unref_;
     std::vector <float> dEww_dw_unref_;
     std::vector <float> neighbor_norm_;
     std::vector <float> pol_;

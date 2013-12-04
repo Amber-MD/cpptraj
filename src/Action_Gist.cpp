@@ -1,7 +1,6 @@
 // Gist 
 #include <cmath>
 #include <iostream> // cout
-#include <cstring> // memset
 #include <fstream>
 #include <time.h>
 using namespace std;
@@ -41,7 +40,7 @@ Action_Gist::Action_Gist() :
 
 
 void Action_Gist::Help() {
-  mprintf("gist <watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [doeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
+  mprintf("<watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [doeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
   mprintf("\tGIST needs the specification of the water model being used. Supported water models are: \n");
   mprintf("\ta) TIP3P specified as tip3p. \n");
   mprintf("\tb) TIP4P specified as tip4p. \n");
@@ -231,16 +230,14 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
 
   dEwh_dw_.clear();
   dEwh_dw_.resize(MAX_GRID_PT_, 0.0);
-  dEww_dw_ref_.clear();
-  dEww_dw_ref_.resize(MAX_GRID_PT_, 0.0);
   dEwh_norm_.clear();
   dEwh_norm_.resize(MAX_GRID_PT_, 0.0);
-  dEww_norm_ref_.clear();
-  dEww_norm_ref_.resize(MAX_GRID_PT_, 0.0);
+  dEww_norm_unref_.clear();
+  dEww_norm_unref_.resize(MAX_GRID_PT_, 0.0);
   dEww_dw_unref_.clear();
   dEww_dw_unref_.resize(MAX_GRID_PT_, 0.0);
 
-  if(doEij_){
+  if(doEij_) {
     ww_Eij_.clear();
     ww_Eij_.resize(MAX_GRID_PT_);
     for(int i = 1; i < MAX_GRID_PT_; i++) ww_Eij_[i].resize(i);
@@ -361,12 +358,12 @@ static void GetLJparam(Topology const& top, double& A, double& B,
 }
 
 void Action_Gist::NonbondEnergy(Frame *currentFrame) {
-  double delta2, Acoef, Bcoef, deltatest;
+  double Acoef, Bcoef;
   Vec3 XYZ, XYZ2, JI;
-  double rij2, rij, r2, r6, r12, f12, f6, e_vdw, qiqj, e_elec;
+  double rij2, rij, r2, r6, r12, f12, f6, e_vdw, e_elec;
   int satom, satom2, atom1, atom2;
   
-  int  voxel2;
+  int  voxel2 = 0;
   double q1, q2;
   
   // Setup imaging info
@@ -488,7 +485,6 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 void Action_Gist::Grid(Frame *frameIn) {
   int  i, gridindex[3], nH;
   Vec3 comp,  atom_coord;
-  double rij;
   i = (*solvmol).BeginAtom();
 
   gridwat_[resnum] = MAX_GRID_PT_ + 1;
@@ -540,7 +536,7 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
 
   //if (NFRAME_==1) mprintf("GIST Euler Angles \n");
   Vec3 x_lab, y_lab, z_lab, O_wat, H1_wat, H2_wat, x_wat, y_wat, z_wat, node, v;
-  double cp, dp;
+  double dp;
 
   int i = (*solvmol).BeginAtom();
   O_wat = Vec3(frameIn->XYZ(i));
@@ -563,13 +559,13 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
   // Define the water frame of reference - all axes must be normalized
   // make h1 the water x-axis (but first need to normalized)
   x_wat = H1_wat;
-  cp = x_wat.Normalize();
+  x_wat.Normalize();
   // the normalized z-axis is the cross product of h1 and h2 
   z_wat = x_wat.Cross( H2_wat );
-  cp = z_wat.Normalize();
+  z_wat.Normalize();
   // make y-axis as the cross product of h1 and z-axis
   y_wat = z_wat.Cross( x_wat );
-  cp = y_wat.Normalize();
+  y_wat.Normalize();
   
   // Find the X-convention Z-X'-Z'' Euler angles between the water frame and the lab/host frame
   // First, theta = angle between the water z-axis of the two frames
@@ -582,7 +578,7 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
     // direction of the lines of node = cross product of two normals (z axes)
     // acos of x always gives the angle between 0 and pi, which is okay for theta since theta ranges from 0 to pi
     node = z_lab.Cross( z_wat );
-    cp = node.Normalize();
+    node.Normalize();
     
     // Second, find the angle phi, which is between x_lab and the node
     dp = node*( x_lab );
@@ -660,7 +656,7 @@ void Action_Gist::Dipole(Frame *frameIn) {
 void Action_Gist::Order(Frame *frameIn) {
   if (NFRAME_==1) mprintf("GIST Order Parameter \n");
   int i;
-  double cos, sum, r1, r2, r3, r4, rij2, x[5], y[5], z[5];
+  double cos, sum, r1, r2, rij2, x[5], y[5], z[5];
   Vec3 O_wat1, O_wat2, O_wat3, v1, v2;
   resnum=0;
 
@@ -677,7 +673,7 @@ void Action_Gist::Order(Frame *frameIn) {
     i = (*solvmol).BeginAtom();
     O_wat1 = Vec3(frameIn->XYZ( i ));
 
-    r1=1000; r2=1000; r3=1000; r4=1000; resnum2=0;
+    r1=1000; r2=1000; resnum2=0;
     for (int a=1; a<5; a++) {
       x[a]=10000;
       y[a]=10000;
@@ -694,10 +690,19 @@ void Action_Gist::Order(Frame *frameIn) {
       O_wat2 = Vec3(frameIn->XYZ( i ));      
       rij2 = DIST2_NoImage(O_wat1, O_wat2);
       if (rij2<r1) {
-        r4 = r3; x[4] = x[3]; y[4] = y[3]; z[4] = z[3];
-	r3 = r2; x[3] = x[2]; y[3] = y[2]; z[3] = z[2]; 
-	r2 = r1; x[2] = x[1]; y[2] = y[1]; z[2] = z[1];
-	r1 = rij2; x[1] = O_wat2[0]; y[1] = O_wat2[1]; z[1] = O_wat2[2];
+        x[4] = x[3];
+        y[4] = y[3];
+        z[4] = z[3];
+	x[3] = x[2];
+        y[3] = y[2];
+        z[3] = z[2];
+        x[2] = x[1];
+        y[2] = y[1];
+        z[2] = z[1];
+	r1 = rij2;
+        x[1] = O_wat2[0];
+        y[1] = O_wat2[1];
+        z[1] = O_wat2[2];
       }
     }
     
@@ -782,13 +787,12 @@ void Action_Gist::Print() {
   for (int a=0; a<MAX_GRID_PT_; a++) {
     if (nwat_[a]>1) {
        dEwh_dw_[a] = (wh_evdw_[a]+wh_eelec_[a])/(NFRAME_*Vvox_);
-       dEww_dw_ref_[a] = ((ww_evdw_[a]+ww_eelec_[a]) - nwat_[a]*BULK_E_)/(NFRAME_*Vvox_);
        dEwh_norm_[a] = (wh_evdw_[a]+wh_eelec_[a])/nwat_[a];
-       dEww_norm_ref_[a] = (ww_evdw_[a]+ww_eelec_[a])/nwat_[a] - BULK_E_; 
-       dEww_dw_unref_[a] = (ww_evdw_[a]+ww_eelec_[a])/(NFRAME_*Vvox_); 
+       dEww_norm_unref_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*nwat_[a]); 
+       dEww_dw_unref_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*NFRAME_*Vvox_); 
     }
     else {
-       dEwh_dw_[a]=0; dEww_dw_ref_[a]=0; dEwh_norm_[a]=0; dEww_norm_ref_[a]=0; dEww_dw_unref_[a]=0;
+       dEwh_dw_[a]=0; dEwh_norm_[a]=0; dEww_norm_unref_[a]=0; dEww_dw_unref_[a]=0;
     }
     // Compute the average number of water neighbor, average order parameter, and average dipole density 
     if (nwat_[a]>0) {
@@ -820,7 +824,7 @@ void Action_Gist::Print() {
   PrintDX("gist-gO.dx", g_);
   PrintDX("gist-gH.dx", gH_);
   PrintDX("gist-dEwh-dw.dx", dEwh_dw_);
-  PrintDX("gist-dEww-dw.dx", dEww_dw_ref_);
+  PrintDX("gist-dEww-dw.dx", dEww_dw_unref_);
   PrintDX("gist-TStrans-dw.dx", TStrans_dw_);
   PrintDX("gist-TSorient-dw.dx", TSNN_dw_);
   PrintDX("gist-neighbor-norm.dx", neighbor_norm_); 
@@ -927,14 +931,14 @@ void Action_Gist::PrintOutput(string const& filename)
   outfile.Printf("voxel xcoord ycoord zcoord population g_O g_H ");
   outfile.Printf("TStrans-dw(kcal/mol/A^3) TStrans-norm(kcal/mol) TSorient-dw(kcal/mol/A^3) TSorient-norm(kcal/mol) ");
   outfile.Printf("Ewh-dw(kcal/mol/A^3) Ewh-norm(kcal/mol) ");
-  outfile.Printf("Eww-dw(kcal/mol/A^3) Eww-norm(kcal/mol) Eww-dw-unref(kcal/mol/A^3) ");
+  outfile.Printf("Eww-norm-unref(kcal/mol) Eww-dw-unref(kcal/mol/A^3) ");
   outfile.Printf("Dipole_x(D/A^3) Dipole_y(D/A^3) Dipole_z(D/A^3) Dipole-dw(D/A^3) neighbor-dw(1/A^3) neighbor-norm order-norm\n");
   // Now print out the data. 
   for (int i=0; i<MAX_GRID_PT_; i++){
     outfile.Printf( "%d %g %g %g %g %g %g ",i , grid_x_[i] , grid_y_[i], grid_z_[i], nwat_[i] , g_[i], gH_[i] );
     outfile.Printf( "%g %g %g %g ",TStrans_dw_[i], TStrans_norm_[i], TSNN_dw_[i] , TSNN_norm_[i]);
     outfile.Printf( "%g %g ",dEwh_dw_[i], dEwh_norm_[i] );
-    outfile.Printf( "%g %g %g ",dEww_dw_ref_[i], dEww_norm_ref_[i] , dEww_dw_unref_[i] );
+    outfile.Printf( "%g %g ",dEww_norm_unref_[i] , dEww_dw_unref_[i] );
     outfile.Printf( "%g %g %g %g ",dipolex_[i] , dipoley_[i] , dipolez_[i] , pol_[i] );
     outfile.Printf( "%g %g %g \n",neighbor_[i] , neighbor_norm_[i] , qtet_[i]);
     }
@@ -942,14 +946,14 @@ void Action_Gist::PrintOutput(string const& filename)
   myfile << "voxel xcoord ycoord zcoord population g_O g_H ";
   myfile << "TStrans-dw(kcal/mol/A^3) TStrans-norm(kcal/mol) TSorient-dw(kcal/mol/A^3) TSorient-norm(kcal/mol) ";
   myfile << "Ewh-dw(kcal/mol/A^3) Ewh-norm(kcal/mol) ";
-  myfile << "Eww-dw(kcal/mol/A^3) Eww-norm(kcal/mol) Eww-vox-unref(kcal/mol) ";
+  myfile << "Eww-norm-unref(kcal/mol) Eww-vox-unref(kcal/mol) ";
   myfile << "Dipole_x Dipole_y Dipole_z u(D) neighbor neighbor-norm order\n";
   // Now print out the data. 
   for (int i=0; i<MAX_GRID_PT_; i++){
     myfile << i << " " << grid_x_[i] << " " << grid_y_[i]<< " " << grid_z_[i]<< " " << nwat_[i] << " " << g_[i]<< " " << gH_[i] << " ";
     myfile <<  TStrans_dw_[i]<< " " << TStrans_norm_[i]<< " " << TSNN_dw_[i] << " " << TSNN_norm_[i]<< " ";
     myfile << dEwh_dw_[i]<< " " << dEwh_norm_[i] << " ";
-    myfile << dEww_dw_ref_[i]<< " " << dEww_norm_ref_[i] << " " << dEww_dw_unref_[i] << " ";
+    myfile << dEww_norm_unref_[i] << " " << dEww_dw_unref_[i] << " ";
     myfile << dipolex_[i] << " " << dipoley_[i] << " " << dipolez_[i] << " " << pol_[i] << " ";
     myfile << neighbor_[i] << " " << neighbor_norm_[i] << " " << qtet_[i] << endl;
     }*/
@@ -1000,9 +1004,9 @@ Action_Gist::~Action_Gist() {
     ww_Eij_.clear();
   }
   dEwh_dw_.clear();
-  dEww_dw_ref_.clear();
+  dEww_dw_unref_.clear();
   dEwh_norm_.clear();
-  dEww_norm_ref_.clear();
+  dEww_norm_unref_.clear();
   
   TSNN_dw_.clear();
   TSNN_norm_.clear();
