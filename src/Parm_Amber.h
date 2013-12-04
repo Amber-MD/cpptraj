@@ -43,7 +43,8 @@ class Parm_Amber : public ParmIO {
     static const size_t BUF_SIZE = 256;
     char lineBuffer_[BUF_SIZE];
     int debug_;
-    bool newParm_;
+    enum ParmType { OLDPARM = 0, NEWPARM, CHAMBER };
+    ParmType ptype_;
     std::string fformat_;
     FortranType ftype_;
     int fncols_;

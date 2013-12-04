@@ -119,7 +119,7 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
 // CONSTRUCTOR
 Parm_Amber::Parm_Amber() :
   debug_(0), 
-  newParm_(false),
+  ptype_(OLDPARM),
   ftype_(UNKNOWN_FTYPE),
   fncols_(0),
   fprecision_(0),
@@ -148,7 +148,7 @@ bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
     // Check for %FLAG
     if (strncmp(lineBuf,"%FLAG",5)==0) {
       if (debug_>0) mprintf("  AMBER TOPOLOGY file\n");
-      newParm_ = true;
+      ptype_ = NEWPARM;
       fileIn.CloseFile();
       return true;
     }
@@ -165,6 +165,7 @@ bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
                   iamber+8, iamber+9, iamber+10, iamber+11) == 12 )
       {
         if (debug_>0) mprintf("  AMBER TOPOLOGY, OLD FORMAT\n");
+        ptype_ = OLDPARM;
         fileIn.CloseFile();
         return true;
       }
@@ -616,11 +617,10 @@ static int ParmArrayErr(const char* msg) {
 // Parm_Amber::ReadParmAmber()
 int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   Box parmbox;
-  bool chamber = false; // True if this top is a chamber-created top file.
   std::string title;
   int Npointers = AMBERPOINTERS; 
 
-  if (newParm_) {
+  if (ptype_ == NEWPARM) {
     if (debug_>0) 
       mprintf("\tReading Amber Topology file %s\n",file_.Filename().base());
     // Title. If not found check for CTITLE (chamber)
@@ -629,7 +629,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     } else {
       if (PositionFileAtFlag(F_CTITLE)) {
         title = GetLine();
-        chamber = true;
+        ptype_ = CHAMBER;
       } else {
         // No TITLE or CTITLE, weird, but dont crash out yet.
         mprintf("Warning: '%s' No TITLE in Amber Parm.\n",file_.Filename().base());
@@ -663,12 +663,12 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<double> charge = GetFlagDouble(F_CHARGE,values[NATOM]);
   // New parm only: ATOMICNUM
   std::vector<int> at_num;
-  if (newParm_)
+  if (ptype_ != OLDPARM)
     at_num = GetFlagInteger(F_ATOMICNUM,values[NATOM]);
   std::vector<double> mass = GetFlagDouble(F_MASS,values[NATOM]);
   std::vector<int> atype_index = GetFlagInteger(F_ATYPEIDX,values[NATOM]);
   // For old parm need to read past NUMEX
-  if (!newParm_)
+  if (ptype_ == OLDPARM)
     GetFlagInteger(F_NUMEX,values[NATOM]);
   std::vector<int> NB_index = GetFlagInteger(F_NB_INDEX,values[NTYPES]*values[NTYPES]);
   std::vector<NameType> resnames = GetFlagName(F_RESNAMES,values[NRES]);
@@ -683,7 +683,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   // New parm only: SCEE and SCNB
   std::vector<double> scee_scale;
   std::vector<double> scnb_scale;
-  if (newParm_) {
+  if (ptype_ != OLDPARM) {
     scee_scale = GetFlagDouble(F_SCEE,values[NPTRA]);
     scnb_scale = GetFlagDouble(F_SCNB,values[NPTRA]);
   }
@@ -699,7 +699,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<int> dihedralsh = GetFlagInteger(F_DIHH, values[NPHIH]*5);
   std::vector<int> dihedrals = GetFlagInteger(F_DIH, values[MPHIA]*5);
   // For old parm need to read past EXCLUDE
-  if (!newParm_)
+  if (ptype_ == OLDPARM)
     GetFlagInteger(F_EXCLUDE, values[NNB]);
   std::vector<double> asol = GetFlagDouble(F_ASOL,values[NPHB]);
   std::vector<double> bsol = GetFlagDouble(F_BSOL,values[NPHB]);
@@ -727,7 +727,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     // will eventually be set by angles from the first trajectory associated 
     // with this parm.
     if (boxFromParm.empty()) {
-      if (not chamber) mprintf("Warning: Prmtop missing Box information.\n");
+      if (ptype_ != CHAMBER) mprintf("Warning: Prmtop missing Box information.\n");
       // ifbox 2: truncated octahedron for certain
       if (values[IFBOX] == 2) 
         parmbox.SetTruncOct(); 
@@ -755,7 +755,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   // New Parm only: GB parameters; radius set, radii, and screening parameters
   std::vector<double> gb_radii;
   std::vector<double> gb_screen;
-  if (newParm_) {
+  if (ptype_ != OLDPARM) {
     if (PositionFileAtFlag(F_RADSET)) {
       std::string radius_set = GetLine();
       if (debug_ > 0) mprintf("\tRadius Set: %s\n",radius_set.c_str());
@@ -766,7 +766,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   }
   // Polarizability - new topology only
   std::vector<double> polar;
-  if (newParm_) {
+  if (ptype_ != OLDPARM) {
     std::vector<int> IPOL = GetFlagInteger(F_IPOL, 1);
     if (!IPOL.empty()) TopIn.SetIpol( IPOL[0] );
     if (TopIn.Ipol() > 0)
@@ -957,7 +957,7 @@ std::vector<NameType> Parm_Amber::GetName(int width, int ncols, int maxval) {
 // Parm_Amber::GetFlagInteger()
 std::vector<int> Parm_Amber::GetFlagInteger(AmberParmFlagType fflag, int maxval) {
   std::vector<int> iarray;
-  if (newParm_) {
+  if (ptype_ != OLDPARM) {
     // Seek to flag and set up fncols, fwidth
     if (!SeekToFlag(fflag)) return iarray;
     // NOTE: Check that type matches?
@@ -973,7 +973,7 @@ std::vector<int> Parm_Amber::GetFlagInteger(AmberParmFlagType fflag, int maxval)
 // Parm_Amber::GetFlagDouble()
 std::vector<double> Parm_Amber::GetFlagDouble(AmberParmFlagType fflag, int maxval) {
   std::vector<double> darray;
-  if (newParm_) {
+  if (ptype_ != OLDPARM) {
     // Seek to flag and set up fncols, fwidth
     if (!SeekToFlag(fflag)) return darray;
     // NOTE: Check that type matches?
@@ -989,7 +989,7 @@ std::vector<double> Parm_Amber::GetFlagDouble(AmberParmFlagType fflag, int maxva
 // Parm_Amber::GetFlagName()
 std::vector<NameType> Parm_Amber::GetFlagName(AmberParmFlagType fflag, int maxval) {
   std::vector<NameType> carray;
-  if (newParm_) {
+  if (ptype_ != OLDPARM) {
     // Seek to flag and set up fncols, fwidth
     if (!SeekToFlag(fflag)) return carray;
     // NOTE: Check that type matches?
