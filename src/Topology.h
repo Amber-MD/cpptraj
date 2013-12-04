@@ -83,6 +83,7 @@ class Topology {
     // ----- Amber LES info -----
     LES_ParmType      const& LES()          const { return lesparm_;      }
     void SetLES(LES_ParmType const& l)            { lesparm_ = l;         }
+    bool HasLES()                           const { return lesparm_.Ntypes() > 0; }
     // ----- Amber perturbed parm info -----
     PertParmType      const& Pert()         const { return pert_;         }
     // ----- Amber extra info ----- TODO: Generate automatically, consolidate

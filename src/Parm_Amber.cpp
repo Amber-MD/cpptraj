@@ -321,8 +321,10 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   values[NPHIH] = (int)parmIn.DihedralsH().size(); 
   values[NPHIA] = (int)parmIn.Dihedrals().size();
   // FIXME: Currently LES info not 100% correct, in particular the excluded list
-  if (parmIn.LES().Ntypes() > 0)
+  if (parmIn.HasLES()) {
+    mprintf("Warning: Excluded atom list for LES info is not correct.\n");
     values[NPARM] = 1;
+  }
   values[NNB] = (int)excluded.size();
   values[NRES] = parmIn.Nres();
   //   NOTE: Assuming MBONA == NBONA etc

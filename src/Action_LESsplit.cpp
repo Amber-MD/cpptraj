@@ -37,7 +37,7 @@ Action::RetType Action_LESsplit::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 
 // Action_LESsplit::Setup()
 Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAddress) {
-  if ( currentParm->LES().Ntypes() < 1 ) {
+  if ( currentParm->HasLES() ) {
     mprintf("Warning: No LES parameters in '%s', skipping.\n");
     return Action::ERR;
   }

@@ -173,6 +173,8 @@ void Topology::Summary() const {
   }
   if (!radius_set_.empty())
     mprintf("\t\tGB radii set: %s\n", radius_set_.c_str());
+  if (HasLES() > 0)
+    mprintf("\t\tLES info: %i types, %i copies\n", lesparm_.Ntypes(), lesparm_.Ncopies());
 }
 
 // Topology::Brief()
@@ -1307,11 +1309,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->nRepDim_ = nRepDim_;
 
   // Reverse Atom map
-  // TODO: Use std::map instead
   std::vector<int> atomMap( atoms_.size(),-1 );
 
   // Copy atoms from this parm that are in Mask to newParm.
-  //int newatom = 0;
   int oldres = -1;
   // TODO: Check the map size
   for (int newatom = 0; newatom < (int)MapIn.size(); newatom++) {
@@ -1382,6 +1382,18 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Since nbindex depends on the atom type index and those entries were 
   // not changed this is still valid. May want to cull unused parms later.
   newParm->nonbond_ = nonbond_;
+  // LES info - FIXME: Not sure if stripping this is valid so print a warning.
+  if (HasLES()) {
+    mprintf("Warning: LES info present. Stripped topology may not have correct LES info.\n");
+    newParm->lesparm_.SetTypes( lesparm_.Ntypes(), lesparm_.FAC() );
+    for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
+    {
+      if (*old_it >= 0)
+        newParm->lesparm_.AddLES_Atom( lesparm_.Array()[*old_it] );
+    }
+  }
+  // CAP info - dont support stripping such topologies right now
+  
   // Amber extra info. Assume if one present, all present.
   if (!itree_.empty() && !join_.empty() && !irotat_.empty()) {
     for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)

@@ -194,6 +194,10 @@ class LES_ParmType {
     inline int Ncopies()                const { return ncopies_;         }
     std::vector<double> const& FAC()    const { return fac_;             }
     LES_Array           const& Array()  const { return array_;           }
+    void SetTypes(int n, std::vector<double> const& f) {
+      ntypes_ = n;
+      fac_ = f;
+    }
     // FIXME: It seems that ncopies is not correctly reported in LES
     //        topology files. Do a manual count until this is fixed.
     void AddLES_Atom(LES_AtomType const& lat) {
