@@ -25,7 +25,7 @@ Analysis_IRED::Analysis_IRED() :
 {}
 
 void Analysis_IRED::Help() {
-  mprintf("\t[relax freq <hz> [NHdist <distnh>]] [order <order>]\n"
+  mprintf("\t[relax freq <MHz> [NHdist <distnh>]] [order <order>]\n"
           "\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n"
           "\tmodes <modesname> [beg <ibeg> end <iend>]\n"
           "\tPerform isotropic reorientational Eigenmode dynamics analysis.\n");
@@ -122,7 +122,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   mprintf("    ANALYZE IRED: IRED calculation, %u vectors.\n", IredVectors_.size());
   if (!orderparamfile_.empty())
     mprintf("\tOrder parameters will be written to %s\n",orderparamfile_.c_str());
-  mprintf("\tCorrelation time %lf, time step %lf\n", tcorr_, tstep_);
+  mprintf("\tCorrelation time %f, time step %lf\n", tcorr_, tstep_);
   mprintf("\tCorrelation functions are");
   if (norm_)
     mprintf(" normalized.\n");
@@ -137,11 +137,10 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprintf("\tIRED modes %i to %i read from %s,\n", ibeg, iend, modesfile.c_str());
   else
     mprintf("\tIRED modes will be taken from DataSet %s\n", modinfo_->Legend().c_str());
-  if (relax_) {
-    mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n");
-    mprintf("\t\t  approach using an NH distance of %lf and a frequency of %lf\n",
+  if (relax_)
+    mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n"
+            "\t\t  approach using an NH distance of %lf Ang. and a frequency of %lf MHz\n",
             distnh_, freq_);
-  }
   if (!noeFilename_.empty())
     mprintf("\t\tNOEs and relaxation rates will be written to %s\n",
             noeFilename_.c_str());
@@ -176,10 +175,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
       mprinterr("Error: Could not set up order parameter file.\n");
       return Analysis::ERR;
     }
-    orderout.Printf("\n\t************************************\n");
-    orderout.Printf("\t- Calculated iRed order parameters -\n");
-    orderout.Printf("\t************************************\n\n");
-    orderout.Printf("vector    S2\n----------------------\n");
+    orderout.Printf("\n\t************************************\n"
+                    "\t- Calculated iRed order parameters -\n"
+                    "\t************************************\n\n"
+                    "vector    S2\n----------------------\n");
     // Loop over all vector elements
     for (int vi = 0; vi < modinfo_->VectorSize(); ++vi) {
       // Sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
@@ -389,10 +388,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
       return Analysis::ERR;
     }
     noefile.OpenFile();
-    noefile.Printf("\n\t****************************************");
-    noefile.Printf("\n\t- Calculated relaxation rates and NOEs -");
-    noefile.Printf("\n\t****************************************\n\n");
-    noefile.Printf("vector   %10s   %10s   %10s\n","R1","R2","NOE");
+    noefile.Printf("\n\t****************************************"
+                   "\n\t- Calculated relaxation rates and NOEs -"
+                   "\n\t****************************************\n\n"
+                   "vector   %10s   %10s   %10s\n","R1","R2","NOE");
     // conversion from Angstrom to meter
     double rnh = distnh_ * 1.0E-10;
     // ---------- CONSTANTS ----------
