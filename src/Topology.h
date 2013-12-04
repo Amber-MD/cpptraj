@@ -16,6 +16,7 @@ class Topology {
     // ----- Set internal variables --------------
     void SetOffset(double oIn)           { if (oIn > 0.0) offset_ = oIn;  }
     void SetDebug(int dIn)               { debug_ = dIn;                  }
+    void SetIpol(int iIn)                { ipol_ = iIn;                   }
     void SetPindex(int pIn)              { pindex_ = pIn;                 }
     void IncreaseFrames(int fIn)         { nframes_ += fIn;               }
     void SetTag(std::string const& t)    { parmTag_ = t;                  }
@@ -26,6 +27,7 @@ class Topology {
     void SetReferenceCoords( Frame const& );
     // ----- Return internal variables -----------
     std::string const& Tag()       const { return parmTag_;               }
+    int Ipol()                     const { return ipol_;                  }
     int Pindex()                   const { return pindex_;                }
     int Natom()                    const { return (int)atoms_.size();     }
     int Nres()                     const { return (int)residues_.size();  }
@@ -88,8 +90,6 @@ class Topology {
     LES_ParmType      const& LES()          const { return lesparm_;      }
     void SetLES(LES_ParmType const& l)            { lesparm_ = l;         }
     bool HasLES()                           const { return lesparm_.Ntypes() > 0; }
-    // ----- Amber perturbed parm info -----------
-    PertParmType      const& Pert()         const { return pert_;         }
     // ----- Amber extra info ----- TODO: Generate automatically, consolidate
     inline const std::vector<double>& Solty()   const { return solty_;  }
     inline const std::vector<NameType>& Itree() const { return itree_;  }
@@ -201,7 +201,6 @@ class Topology {
     // Amber-only parameters
     CapParmType cap_;                ///< Water cap information
     LES_ParmType lesparm_;           ///< LES parameters
-    PertParmType pert_;              ///< Atom perturbation info
     // Amber extra info
     std::vector<double> solty_;
     std::vector<NameType> itree_;
@@ -213,6 +212,7 @@ class Topology {
 
     double offset_;         ///< Offset used when searching for bonds
     int debug_;
+    int ipol_;              ///< 0 if fixed charge, 1 if polarizable
     int NsolventMolecules_;
     int finalSoluteRes_; ///< TODO: Get rid of
     int pindex_;

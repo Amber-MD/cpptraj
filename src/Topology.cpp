@@ -15,6 +15,7 @@ const NonbondType Topology::LJ_EMPTY = NonbondType();
 Topology::Topology() :
   offset_(0.20),
   debug_(0),
+  ipol_(0),
   NsolventMolecules_(0),
   finalSoluteRes_(-1),
   pindex_(0),
@@ -173,7 +174,7 @@ void Topology::Summary() const {
   }
   if (!radius_set_.empty())
     mprintf("\t\tGB radii set: %s\n", radius_set_.c_str());
-  if (HasLES() > 0)
+  if (HasLES())
     mprintf("\t\tLES info: %i types, %i copies\n", lesparm_.Ntypes(), lesparm_.Ncopies());
 }
 

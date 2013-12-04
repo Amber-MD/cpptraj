@@ -70,8 +70,7 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
     // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
     sscanf(buffer,"%*i %*s %i %s %s %s %lf %lf",&psfresnum, psfresname, 
            psfname, psftype, &psfcharge, &psfmass);
-    parmOut.AddTopAtom( Atom( psfname, psfcharge, 0, psfmass, 0, psftype, 0, 0),
-                        psfresnum, psfresname, 0 );
+    parmOut.AddTopAtom( Atom( psfname, psfcharge, psfmass, psftype), psfresnum, psfresname, 0 );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int nbond = 0;

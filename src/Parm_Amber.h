@@ -28,7 +28,7 @@ class Parm_Amber : public ParmIO {
       F_BSOL,         F_HBCUT,   F_ITREE,    F_JOIN,    F_IROTAT,
       F_ATOMICNUM,    F_TITLE,   F_CTITLE,   F_RADSET,  F_LES_NTYP,
       F_LES_TYPE,     F_LES_FAC, F_LES_CNUM, F_LES_ID,  F_CAP_INFO,
-      F_CAP_INFO2
+      F_CAP_INFO2,    F_IPOL,    F_POLAR
     };
     static const int AMBERPOINTERS;
     struct ParmFlag {

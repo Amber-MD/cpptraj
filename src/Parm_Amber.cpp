@@ -57,6 +57,7 @@ static const char* F20a4 = "%FORMAT(20a4)";
 static const char* F5E16 = "%FORMAT(5E16.8)";
 static const char* F3I8  = "%FORMAT(3I8)";
 static const char* F1a80 = "%FORMAT(1a80)";
+static const char* F1I8  = "%FORMAT(1I8)";
 /// Constant strings for Amber parm flags and fortran formats.
 const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
   { "POINTERS",                   F10I8 }, ///< Described above in topValues
@@ -109,7 +110,9 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
   { "LES_CNUM",                   F10I8 }, // Copy number for each atom; 0==in all
   { "LES_ID",                     F10I8 }, // LES region ID
   { "CAP_INFO",                   F10I8 },
-  { "CAP_INFO2",                  F5E16 }
+  { "CAP_INFO2",                  F5E16 },
+  { "IPOL",                       F1I8  }, // 0 for fixed charge, 1 for polarizable
+  { "POLARIZABILITY",             F5E16 }  // Hold atom polarazabilities in Ang^3
 };
 
 // -----------------------------------------------------------------------------
@@ -254,47 +257,42 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   struct tm *timeinfo;
 
   // Create arrays of atom info
-  std::vector<NameType> names;
-  names.reserve( parmIn.Natom() );
-  std::vector<double> charge;
-  charge.reserve( parmIn.Natom() );
-  std::vector<int> at_num;
-  at_num.reserve( parmIn.Natom() );
-  std::vector<double> mass;
-  mass.reserve( parmIn.Natom() );
-  std::vector<int> atype_index;
+  std::vector<NameType> names, types;
+  std::vector<double> charge, mass, gb_radii, gb_screen, polar;
+  std::vector<int> at_num, atype_index, numex, excluded;
+  names.reserve(       parmIn.Natom() );
+  types.reserve(       parmIn.Natom() );
+  charge.reserve(      parmIn.Natom() );
+  polar.reserve(       parmIn.Natom() );
+  mass.reserve(        parmIn.Natom() );
+  gb_radii.reserve(    parmIn.Natom() );
+  gb_screen.reserve(   parmIn.Natom() );
+  at_num.reserve(      parmIn.Natom() );
   atype_index.reserve( parmIn.Natom() );
-  std::vector<NameType> types;
-  types.reserve( parmIn.Natom() );
-  std::vector<double> gb_radii;
-  gb_radii.reserve( parmIn.Natom() );
-  std::vector<double> gb_screen;
-  gb_screen.reserve( parmIn.Natom() );
-  std::vector<int> numex;
-  std::vector<int> excluded;
-  for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++) 
+  for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); ++atom) 
   {
-    names.push_back( (*atom).Name() );
+    names.push_back( atom->Name() );
     CheckNameWidth("Atom",names.back());
-    charge.push_back( (*atom).Charge() * ELECTOAMBER );
-    at_num.push_back( (*atom).AtomicNumber() );
-    mass.push_back( (*atom).Mass() );
+    charge.push_back( atom->Charge() * ELECTOAMBER );
+    polar.push_back( atom->Polar() );
+    at_num.push_back( atom->AtomicNumber() );
+    mass.push_back( atom->Mass() );
     // TypeIndex needs to be shifted +1 for fortran
-    atype_index.push_back( (*atom).TypeIndex() + 1 );
-    types.push_back( (*atom).Type() );
+    atype_index.push_back( atom->TypeIndex() + 1 );
+    types.push_back( atom->Type() );
     CheckNameWidth("Type",types.back());
-    gb_radii.push_back( (*atom).GBRadius() );
-    gb_screen.push_back( (*atom).Screen() );
+    gb_radii.push_back( atom->GBRadius() );
+    gb_screen.push_back( atom->Screen() );
     // Amber atom exclusion list prints a 0 placeholder for atoms with
     // no exclusions, so always print at least 1 for numex
-    int nex = (*atom).Nexcluded();
+    int nex = atom->Nexcluded();
     if (nex == 0) {
       numex.push_back( 1 );
       excluded.push_back( 0 );
     } else {
       numex.push_back( nex );
-      for (Atom::excluded_iterator ex = (*atom).excludedbegin();
-                                   ex != (*atom).excludedend(); ex++)
+      for (Atom::excluded_iterator ex = atom->excludedbegin();
+                                   ex != atom->excludedend(); ex++)
         // Amber atom #s start from 1
         excluded.push_back( (*ex) + 1 );
     }
@@ -303,11 +301,13 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   // Create arrays of residue info
   std::vector<int> resnums;
   std::vector<NameType> resnames;
-  for (Topology::res_iterator res = parmIn.ResStart(); res != parmIn.ResEnd(); res++)
+  resnums.reserve(  parmIn.Nres() );
+  resnames.reserve( parmIn.Nres() );
+  for (Topology::res_iterator res = parmIn.ResStart(); res != parmIn.ResEnd(); ++res)
   {
-    resnames.push_back( (*res).Name() );
+    resnames.push_back( res->Name() );
     // Amber atom #s start from 1
-    resnums.push_back( (*res).FirstAtom()+1 );
+    resnums.push_back( res->FirstAtom()+1 );
   }
 
   // Create pointer array
@@ -532,6 +532,11 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   }
   WriteDouble(F_RADII, gb_radii);
   WriteDouble(F_SCREEN, gb_screen);
+  // Polarizability - only write if it needs to be there
+  if (parmIn.Ipol() > 0) {
+    WriteInteger(F_IPOL, std::vector<int>(1, parmIn.Ipol()));
+    WriteDouble(F_POLAR, polar);
+  }
   // LES parameters - FIXME: Not completely correct yet
   if (values[NPARM] == 1) {
     std::vector<int> LES_array(1, parmIn.LES().Ntypes());
@@ -759,6 +764,14 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
     gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]); 
   }
+  // Polarizability - new topology only
+  std::vector<double> polar;
+  if (newParm_) {
+    std::vector<int> IPOL = GetFlagInteger(F_IPOL, 1);
+    if (!IPOL.empty()) TopIn.SetIpol( IPOL[0] );
+    if (TopIn.Ipol() > 0)
+      polar = GetFlagDouble(F_POLAR, values[NATOM]);
+  }
   // LES parameters
   if (values[NPARM] == 1) {
     std::vector<int> LES_array = GetFlagInteger(F_LES_NTYP, 1);
@@ -782,12 +795,13 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     if (at_num.empty()) at_num.resize(values[NATOM], 0);
     if (gb_radii.empty()) gb_radii.resize(values[NATOM], 0);
     if (gb_screen.empty()) gb_screen.resize(values[NATOM], 0);
+    if (polar.empty()) polar.resize(values[NATOM], 0);
     for (int ai = 0; ai < values[NATOM]; ai++) {
       if (ai + 1 == resnums[ri]) ++ri;
       // Add atom. Convert Amber charge to elec and shift type index by -1.
       // NOTE: If ever used, shift atom #s in excludedAtoms by -1 so they start from 0 
-      TopIn.AddTopAtom( Atom(names[ai], charge[ai] * (AMBERTOELEC), at_num[ai],
-                             mass[ai], atype_index[ai] - 1, types[ai],
+      TopIn.AddTopAtom( Atom(names[ai], charge[ai] * (AMBERTOELEC), polar[ai],
+                             at_num[ai], mass[ai], atype_index[ai] - 1, types[ai],
                              gb_radii[ai], gb_screen[ai]),
                         ri, resnames[ri-1], 0 );
     }

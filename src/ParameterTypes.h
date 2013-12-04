@@ -229,28 +229,4 @@ class CapParmType {
     double ycap_;   ///< Y coordinate for the center of the cap
     double zcap_;   ///< Z coordinate for the center of the cap
 };
-// ----- PERTURBATION PARAMETERS -----------------------------------------------
-/// Hold perturbed atom parameters
-class PertAtom {
-  public:
-    PertAtom() : atname_(""), atsym_(""), lambda_(0), isPert_(0), atype_(0), charge_(0) {}
-  private:
-    NameType atname_; ///< atom name at lambda = 1 (igrper)
-    NameType atsym_;  ///< atomic symbol at lambda = 1 (ismper)
-    double lambda_;   ///< value of lambda for atom (almper)
-    int isPert_;      ///< = 1 if atom is being perturbed (iaper)
-    int atype_;       ///< atom type at lambda = 1 (iacper)
-    double charge_;   ///< atom charge at lambda = 1 (cgper)
-};
-/// Hold perturbation parameters
-class PertParmType {
-  public:
-    PertParmType() {}
-  private:                    // Original: ixper, jxper, (kxper,( lpper,)) icxper{1,0}
-    std::vector<int> pbond_;  ///< {AtomIdx1, AtomIdx2, ParmIdx1, ParmIdx0}
-    std::vector<int> pangle_; ///< {AtomIdx1, AtomIdx2, AtomIdx3, ParmIdx1, ParmIdx0}
-    std::vector<int> pdih_;   ///< {AtomIdx1, AtomIdx2, AtomIdx3, AtomIdx4, ParmIdx1, ParmIdx0}
-    std::vector<NameType> resnames_; ///< residue names at lambda = 0 (labper)
-    std::vector<PertAtom> patoms_;   ///< Perturbed atom array
-};
 #endif
