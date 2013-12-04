@@ -348,19 +348,7 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   return Action::OK;
 }
 
-
-static void GetLJparam(Topology const& top, double& A, double& B, 
-                              int atom1, int atom2)
-{
-  // In Cpptraj, atom numbers start from 1, so subtract 1 from the NB index array
-  int param = (top.Ntypes() * (top[atom1].TypeIndex()-1)) + top[atom2].TypeIndex()-1;
-  int index = top.NB_index()[param] - 1;
-  A = top.LJA()[index];
-  B = top.LJB()[index];
-}
-
 void Action_Gist::NonbondEnergy(Frame *currentFrame) {
-  double Acoef, Bcoef;
   Vec3 XYZ, XYZ2, JI;
   double rij2, rij, r2, r6, r12, f12, f6, e_vdw, e_elec;
   int satom, satom2, atom1, atom2;
@@ -423,13 +411,13 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 		rij2 = DIST2_NoImage(XYZ, XYZ2);	          
 	      }
 	      rij = sqrt(rij2);
-	      // LJ energy 
-	      GetLJparam(*CurrentParm_, Acoef, Bcoef, satom, satom2);
+	      // LJ energy
+              NonbondType const& LJ = CurrentParm_->GetLJparam(satom, satom2); 
 	      r2    = 1 / rij2;
 	      r6    = r2 * r2 * r2;
 	      r12   = r6 * r6;
-	      f12   = Acoef * r12;  // A/r^12
-	      f6    = Bcoef * r6;   // B/r^6
+	      f12   = LJ.A() * r12;  // A/r^12
+	      f6    = LJ.B() * r6;   // B/r^6
 	      e_vdw = f12 - f6;     // (A/r^12)-(B/r^6)
 	      // LJ Force 
 	      // Coulomb energy 

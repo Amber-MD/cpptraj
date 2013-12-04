@@ -18,20 +18,23 @@ class Parm_Amber : public ParmIO {
     };
     /// Enumerated type for Amber Parmtop Flags
     enum AmberParmFlagType {
-      F_POINTERS = 0, F_NAMES,   F_CHARGE,  F_MASS,    F_RESNAMES,
-      F_RESNUMS,      F_TYPES,   F_BONDSH,  F_BONDS,   F_SOLVENT_POINTER,
-      F_ATOMSPERMOL,  F_PARMBOX, F_ATYPEIDX,F_NUMEX,   F_NB_INDEX,
-      F_LJ_A,         F_LJ_B,    F_EXCLUDE, F_RADII,   F_SCREEN,
-      F_BONDRK,       F_BONDREQ, F_ANGLETK, F_ANGLETEQ,F_DIHPK,
-      F_DIHPN,        F_DIHPHASE,F_SCEE,    F_SCNB,    F_SOLTY,
-      F_ANGLESH,      F_ANGLES,  F_DIHH,    F_DIH,     F_ASOL,
-      F_BSOL,         F_HBCUT,   F_ITREE,   F_JOIN,    F_IROTAT,
-      F_ATOMICNUM,    F_TITLE,   F_CTITLE,  F_RADSET
+      F_POINTERS = 0, F_NAMES,   F_CHARGE,   F_MASS,    F_RESNAMES,
+      F_RESNUMS,      F_TYPES,   F_BONDSH,   F_BONDS,   F_SOLVENT_POINTER,
+      F_ATOMSPERMOL,  F_PARMBOX, F_ATYPEIDX, F_NUMEX,   F_NB_INDEX,
+      F_LJ_A,         F_LJ_B,    F_EXCLUDE,  F_RADII,   F_SCREEN,
+      F_BONDRK,       F_BONDREQ, F_ANGLETK,  F_ANGLETEQ,F_DIHPK,
+      F_DIHPN,        F_DIHPHASE,F_SCEE,     F_SCNB,    F_SOLTY,
+      F_ANGLESH,      F_ANGLES,  F_DIHH,     F_DIH,     F_ASOL,
+      F_BSOL,         F_HBCUT,   F_ITREE,    F_JOIN,    F_IROTAT,
+      F_ATOMICNUM,    F_TITLE,   F_CTITLE,   F_RADSET,  F_LES_NTYP,
+      F_LES_TYPE,     F_LES_FAC, F_LES_CNUM, F_LES_ID
     };
-    static const int NUMAMBERPARMFLAGS;
     static const int AMBERPOINTERS;
-    static const char* AmberParmFmt[];
-    static const char* AmberParmFlag[];
+    struct ParmFlag {
+      const char* Flag; ///< %FLAG name in topology.
+      const char* Fmt;  ///< Fortran format string for writing.
+    };
+    static const ParmFlag FLAGS[];
 
     // NOTE: Although amber topology files should only ever require 83 chars
     //       to read each line (80 chars + newline + CR (if dos) + NULL)

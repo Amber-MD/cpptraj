@@ -28,12 +28,12 @@ class Mol2File : public CpptrajFile {
     /// Convert current line to Residue
     NameType Mol2Residue(int&);
 
-    void SetMol2Natoms(int nIn)               { mol2atoms_ = nIn; }
-    void SetMol2Nbonds(int nIn)               { mol2bonds_ = nIn; }
-    void SetMol2Title(std::string const& tIn) { mol2title_ = tIn; }
-    int Mol2Natoms()               { return mol2atoms_; }
-    int Mol2Nbonds()               { return mol2bonds_; }
-    std::string const& Mol2Title() { return mol2title_; }
+    void SetMol2Natoms(int nIn)               { mol2atoms_ = nIn;  }
+    void SetMol2Nbonds(int nIn)               { mol2bonds_ = nIn;  }
+    void SetMol2Title(std::string const& tIn) { mol2title_ = tIn;  }
+    int Mol2Natoms()                    const { return mol2atoms_; }
+    int Mol2Nbonds()                    const { return mol2bonds_; }
+    std::string const& Mol2Title()      const { return mol2title_; }
   private:
     static const char* TRIPOSTAGTEXT[];
     int mol2debug_;

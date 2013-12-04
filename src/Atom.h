@@ -23,15 +23,15 @@ class Atom {
       YTTRIUM,    LUTETIUM,
       EXTRAPT 
     };
-    static const char* AtomicElementName[]; // Needed by Topology::GetBondLength
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}
-    /// Take atom name, chain ID. Attempt to determine element from name if no elt.
+    /// Take atom name, chain ID, and (optional) 2 character element name.
     Atom(NameType const&, char, const char*);
-    /// Take atom name, type, and charge. Attempt to determine element from name.
+    /// Take atom name, type name, and charge.
     Atom( NameType const&, NameType const&, double );
-    Atom( NameType const&, double, int, double, int, NameType const&, double, double,int );
+    /// Atom name, charge, atomic num, mass, type index, type name, gb radius and screen parameter.
+    Atom( NameType const&, double, int, double, int, NameType const&, double, double );
     Atom(const Atom &);
     void swap(Atom &, Atom &);
     Atom &operator=(Atom);
@@ -71,11 +71,14 @@ class Atom {
     void ClearBonds();
     void SortBonds();
     /// Create exclusion list from input set.
-    void AddExclusionList(std::set<int>&);
+    void AddExclusionList(std::set<int> const&);
+    /// \return Optimal bond length based on element types
+    static double GetBondLength(AtomicElementType, AtomicElementType);
   protected:
     static const size_t NUMELEMENTS = 76;
   private:
     static const int AtomicElementNum[];
+    static const char* AtomicElementName[];
     static const double AtomicElementMass[];
     double charge_;
     double mass_;
@@ -91,6 +94,7 @@ class Atom {
     std::vector<int> bonds_;
     std::vector<int> excluded_;
 
+    static void WarnBondLengthDefault(AtomicElementType, AtomicElementType, double);
     void SetElementFromName();
     void SetElementFromSymbol(char,char);
     void SetElementFromMass();

@@ -65,6 +65,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   // Convert angle cutoff to radians
   acut_ *= DEGRAD;
   double dcut = actionArgs.getKeyDouble("dist",3.0);
+  dcut = actionArgs.getKeyDouble("distance", dcut); // for PTRAJ compat.
   dcut2_ = dcut * dcut;
   // Get donor mask
   std::string mask = actionArgs.GetStringKey("donormask");

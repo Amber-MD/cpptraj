@@ -9,10 +9,6 @@ class Residue {
     Residue(int onum, NameType const& resname, int firstAtomIn) :
       firstAtom_(firstAtomIn), originalResNum_(onum), resname_(resname)
     {}
-    Residue(int onum, NameType const& resname, int firstAtomIn, int lastAtomIn) :
-      firstAtom_(firstAtomIn), lastAtom_(lastAtomIn), originalResNum_(onum), 
-      resname_(resname)
-    {}
     inline void SetLastAtom(int i)      { lastAtom_ = i;          }
     inline void SetOriginalNum(int i)   { originalResNum_ = i;    }
     /// \return First atom in residue, indexing from 0
@@ -23,6 +19,9 @@ class Residue {
     inline const char *c_str()    const { return *resname_;       }
     inline NameType const& Name() const { return resname_;        }
     inline int NumAtoms()         const { return (lastAtom_ - firstAtom_); }
+    inline bool NameIsSolvent()   const {
+      return (resname_=="WAT " || resname_=="HOH " || resname_=="TIP3");
+    }
   private:
     /// The first atom in the residue, atom numbering starts from 0
     int firstAtom_;

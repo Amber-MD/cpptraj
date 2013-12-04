@@ -42,7 +42,6 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
 
   // Loop over all atom sites
   int current_res = 0;
-  int last_res = -1;
   double XYZ[3];
   for (line = block.begin(); line != block.end(); ++line) {
     // If more than 1 model check if we are done.
@@ -64,7 +63,7 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
     } else
       current_res = convertToInteger( (*line)[ COL[RNUM] ] );
     TopIn.AddTopAtom( Atom((*line)[ COL[ANAME] ], (*line)[ COL[CHAINID] ][0], "  "),
-                      currentResName, current_res, last_res, XYZ );
+                      current_res, currentResName, XYZ );
   }
   // Get title. 
   CIFfile::DataBlock const& entryblock = infile.GetDataBlock("_entry");

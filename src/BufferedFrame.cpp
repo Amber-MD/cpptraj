@@ -1,6 +1,5 @@
 #include <cstdio>  // sprintf
 #include <cstdlib> // atof
-#include <cstring> // memset
 #include "BufferedFrame.h"
 #include "CpptrajStdio.h"
 
@@ -29,8 +28,8 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   * \param Nelts Total expected number of elements to read.
   * \param eltWidth Width in chars of each element.
   * \param eltsPerLine Number of elements per line (columns).
-  * \param additionalBytes Any additional bytes in the frame.
-  * \param offsetIn Offset to be used in seeking.
+  * \param additionalBytes Any additional bytes in a frame.
+  * \param offsetIn Offset (not part of frame) to be used in seeking.
   * \return Size of set-up frame.
   */
 size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLine, 
@@ -45,7 +44,7 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
     buffer_ = 0;
   else {
     buffer_ = new char[ frameSize_ ];
-    memset(buffer_, 0, frameSize_);
+    std::fill(buffer_, buffer_ + frameSize_, 0);
   }
   bufferPosition_ = buffer_;
   return frameSize_;
@@ -54,7 +53,7 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
 /** Based on the current values of Ncols and eltWidth, calculate size
   * in bytes necessary to buffer Nelts.
   */
-size_t BufferedFrame::CalcFrameSize( int Nelts ) {
+size_t BufferedFrame::CalcFrameSize( int Nelts ) const {
   int frame_lines = Nelts / Ncols_;
   if ((Nelts % Ncols_) > 0) 
     ++frame_lines;
@@ -78,8 +77,8 @@ size_t BufferedFrame::ResizeBuffer(int delta) {
   }
   size_t newsize = frameSize_ + CalcFrameSize( delta );
   char* newbuffer = new char[ newsize ];
-  memcpy(newbuffer, buffer_, frameSize_);
-  memset(newbuffer+frameSize_, 0, newsize - frameSize_);
+  std::copy(buffer_, buffer_+frameSize_, newbuffer);
+  std::fill(newbuffer+frameSize_, newbuffer+newsize, 0);
   delete[] buffer_;
   buffer_ = newbuffer;
   bufferPosition_ = buffer_;

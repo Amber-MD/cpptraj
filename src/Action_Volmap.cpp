@@ -180,9 +180,8 @@ Action::RetType Action_Volmap::Setup(Topology* currentParm, Topology** parmAddre
   * \return vdW radius of the requested atom number from a Topology instance
   */
 double Action_Volmap::GetRadius_(Topology const& top, int atom) {
-  double A, B;
-  top.GetLJ_A_B(atom, atom, A, B);
-  return 0.5 * pow(2 * A / B, one_over_6);
+  NonbondType const& LJ = top.GetLJparam(atom, atom);
+  return 0.5 * pow(2 * LJ.A() / LJ.B(), one_over_6);
 }
 
 // Action_Volmap::DoAction()

@@ -8,8 +8,8 @@
 #include "StringRoutines.h" // integerToString 
 #include "DistRoutines.h"
 #include "Constants.h"
-// DEBUG
-//#include <cmath> // sqrt
+
+const NonbondType Topology::LJ_EMPTY = NonbondType();
 
 // CONSTRUCTOR
 Topology::Topology() :
@@ -19,21 +19,10 @@ Topology::Topology() :
   finalSoluteRes_(-1),
   pindex_(0),
   nframes_(0),
-  ntypes_(0),
   n_extra_pts_(0),
   hasVelInfo_(false),
   nRepDim_(0)
 { }
-
-// Topology::SetOffset()
-void Topology::SetOffset( double oIn ) {
-  if (oIn > 0.0) offset_ = oIn;
-}
-
-// Topology::SetDebug()
-void Topology::SetDebug(int debugIn) {
-  debug_ = debugIn;
-}
 
 // Topology::SetParmName()
 void Topology::SetParmName(std::string const& title, FileName const& filename) {
@@ -41,25 +30,10 @@ void Topology::SetParmName(std::string const& title, FileName const& filename) {
   fileName_ = filename;
 }
 
-// Topology::SetGBradiiSet()
-void Topology::SetGBradiiSet(std::string const& gbset) {
-  radius_set_ = gbset;
-}  
-
-// Topology::SetPindex()
-void Topology::SetPindex(int pindexIn) {
-  pindex_ = pindexIn;
-}
-
 // Topology::SetReferenceCoords()
 void Topology::SetReferenceCoords( Frame const& frameIn ) {
   if (!frameIn.empty())
     refCoords_ = frameIn;
-}
-
-// Topology::IncreaseFrames()
-void Topology::IncreaseFrames(int frames) {
-  nframes_ += frames;
 }
 
 // -----------------------------------------------------------------------------
@@ -81,18 +55,6 @@ const char *Topology::c_str() const {
   return parmName_.c_str();
 }
 
-// -----------------------------------------------------------------------------
-int Topology::GetBondParamIdx( int idx, double &Rk, double &Req) const {
-  if (idx < 0 || idx > (int)bondrk_.size()) return 1;
-  Rk = bondrk_[idx];
-  Req = bondreq_[idx];
-  return 0;
-}
-double Topology::GetBondedCutoff(int atom1, int atom2) const {
-  if (atom1 < 0 || atom2 < 0) return -1;
-  if (atom1 >= Natom() || atom2 >= Natom()) return -1;
-  return GetBondLength( atoms_[atom1].Element(), atoms_[atom2].Element() );
-}
 // -----------------------------------------------------------------------------
 
 // Topology::TruncResAtomName()
@@ -191,18 +153,18 @@ void Topology::Summary() const {
     mprintf("\t\tTitle: %s\n", parmName_.c_str());
   mprintf("\t\t%zu residues.\n", residues_.size());
   mprintf("\t\t%zu molecules.\n", molecules_.size());
-  size_t s1 = bondsh_.size()/3;
-  size_t s2 = bonds_.size()/3;
+  size_t s1 = bondsh_.size();
+  size_t s2 = bonds_.size();
   if (s1 + s2 > 0)
     mprintf("\t\t%zu bonds (%zu to H, %zu other).\n", s1+s2, s1, s2);
-  s1 = anglesh_.size()/4;
-  s2 = angles_.size()/4;
+  s1 = anglesh_.size();
+  s2 = angles_.size();
   if (s1 + s2 > 0)
-    mprintf("\t\t%zu angles (%zu to H, %zu other).\n", s1+s2, s1 ,s2);
-  s1 = dihedralsh_.size()/5;
-  s2 = dihedrals_.size()/5;
+    mprintf("\t\t%zu angles (%zu with H, %zu other).\n", s1+s2, s1 ,s2);
+  s1 = dihedralsh_.size();
+  s2 = dihedrals_.size();
   if (s1 + s2 > 0)
-    mprintf("\t\t%zu dihedrals (%zu to H, %zu other).\n", s1+s2, s1, s2);
+    mprintf("\t\t%zu dihedrals (%zu with H, %zu other).\n", s1+s2, s1, s2);
   mprintf("\t\tBox: %s\n",box_.TypeName());
   if (NsolventMolecules_>0) {
     mprintf("\t\t%i solvent molecules.\n", NsolventMolecules_);
@@ -255,22 +217,19 @@ void Topology::PrintAtomInfo(std::string const& maskString) const {
 // Topology::PrintBonds()
 /** \param maskIn AtomMask which should have already been set up as a char mask
   */
-void Topology::PrintBonds(std::vector<int> const& barray, AtomMask const& maskIn, int& nb) const
+void Topology::PrintBonds(BondArray const& barray, AtomMask const& maskIn, int& nb) const
 {
   int rwidth = DigitWidth(residues_.size()) + 7;
-  for (std::vector<int>::const_iterator batom = barray.begin();
-                                        batom != barray.end(); ++batom)
+  for (BondArray::const_iterator batom = barray.begin();
+                                 batom != barray.end(); ++batom)
   {
-    int atom1 = ((*batom++) / 3);
-    int atom2 = ((*batom++) / 3);
+    int atom1 = (*batom).A1();
+    int atom2 = (*batom).A2();
     if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 )) {
       mprintf("%8i:", nb);
-      int bidx = *batom - 1; // TODO: Bond index should already be -1
-      if ( bidx < 0 )
-        mprintf(" %6s %6.3f", "n/a", 
-                GetBondLength(atoms_[atom1].Element(),atoms_[atom2].Element()));
-      else
-        mprintf(" %6.2f %6.3f", bondrk_[bidx], bondreq_[bidx]);
+      int bidx = (*batom).Idx();
+      if ( bidx > -1 )
+        mprintf(" %6.2f %6.3f", bondparm_[bidx].Rk(), bondparm_[bidx].Req());
       mprintf(" %-*s %-*s (%i,%i)\n",
               rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(),
               atom1+1, atom2+1);
@@ -296,22 +255,22 @@ void Topology::PrintBondInfo(std::string const& maskString) const {
 }
 
 // Topology::PrintAngles()
-void Topology::PrintAngles(std::vector<int> const& aarray, AtomMask const& maskIn, int& na) const
+void Topology::PrintAngles(AngleArray const& aarray, AtomMask const& maskIn, int& na) const
 {
   int rwidth = DigitWidth(residues_.size()) + 7;
-  for (std::vector<int>::const_iterator aatom = aarray.begin();
-                                        aatom != aarray.end(); ++aatom)
+  for (AngleArray::const_iterator aatom = aarray.begin();
+                                  aatom != aarray.end(); ++aatom)
   {
-    int atom1 = ((*aatom++) / 3);
-    int atom2 = ((*aatom++) / 3);
-    int atom3 = ((*aatom++) / 3);
+    int atom1 = (*aatom).A1();
+    int atom2 = (*aatom).A2();
+    int atom3 = (*aatom).A3();
     if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
         maskIn.AtomInCharMask( atom3 ))
     {
       mprintf("%8i:", na);
-      int aidx = *aatom - 1; // TODO: Angle index should be -1
-      if ( aidx > -1 )     // No guessing at angle params
-        mprintf(" %6.3f %6.2f", angletk_[aidx], angleteq_[aidx] * RADDEG);
+      int aidx = (*aatom).Idx();
+      if ( aidx > -1 )
+        mprintf(" %6.3f %6.2f", angleparm_[aidx].Tk(), angleparm_[aidx].Teq() * RADDEG);
       mprintf(" %-*s %-*s %-*s (%i,%i,%i)\n", rwidth, AtomMaskName(atom1).c_str(), 
               rwidth, AtomMaskName(atom2).c_str(), rwidth, AtomMaskName(atom3).c_str(),
               atom1+1, atom2+1, atom3+1); 
@@ -337,36 +296,30 @@ void Topology::PrintAngleInfo(std::string const& maskString) const {
 }
 
 // Topology::PrintDihedrals()
-void Topology::PrintDihedrals(std::vector<int> const& darray, AtomMask const& maskIn, 
+void Topology::PrintDihedrals(DihedralArray const& darray, AtomMask const& maskIn, 
                               int& nd) const
 {
-  int atom3, atom4;
   int rwidth = DigitWidth(residues_.size()) + 7;
-  for (std::vector<int>::const_iterator datom = darray.begin();
-                                        datom != darray.end(); ++datom)
+  for (DihedralArray::const_iterator datom = darray.begin();
+                                     datom != darray.end(); ++datom)
   {
-    int atom1 = ((*datom++) / 3);
-    int atom2 = ((*datom++) / 3);
-    int iatom3 = atom3 = ((*datom++) / 3);
-    int iatom4 = atom4 = ((*datom++) / 3);
-    // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
-    char type = ' ';
-    if (iatom3 < 0) { // End atoms shouldn't have nonbonds between them
-      type = 'E';
-      atom3 = -iatom3;
-    }
-    if (iatom4 < 0) { // Improper dihedral
-      type = 'I';
-      atom4 = -iatom4;
-    }
-    if (iatom3 < 0 && iatom4 < 0) type = 'B';
+    int atom1 = (*datom).A1();
+    int atom2 = (*datom).A2();
+    int atom3 = (*datom).A3();
+    int atom4 = (*datom).A4();
     if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
         maskIn.AtomInCharMask( atom3 ) || maskIn.AtomInCharMask( atom4 )   )
     {
+      // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
+      char type = ' ';
+      if ((*datom).Type() == DihedralType::END) type = 'E';
+      else if ((*datom).Type() == DihedralType::IMPROPER) type = 'I';
+      else if ((*datom).Type() == DihedralType::BOTH) type = 'B';
       mprintf("%c %8i:", type, nd);
-      int didx = *datom - 1; // TODO:  Dihedral index should be -1
-      if ( didx > -1 )       // No guess for dihedral params
-        mprintf(" %6.3f %4.2f %4.1f", dihedralpk_[didx], dihedralphase_[didx], dihedralpn_[didx]);
+      int didx = (*datom).Idx();
+      if ( didx > -1 )
+        mprintf(" %6.3f %4.2f %4.1f", dihedralparm_[didx].Pk(), dihedralparm_[didx].Phase(),
+                 dihedralparm_[didx].Pn());
       mprintf(" %-*s %-*s %-*s %-*s (%i,%i,%i,%i)\n",
               rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(), 
               rwidth, AtomMaskName(atom3).c_str(), rwidth, AtomMaskName(atom4).c_str(),
@@ -460,23 +413,24 @@ int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const
 
 // -----------------------------------------------------------------------------
 // Topology::AddTopAtom()
-void Topology::AddTopAtom(Atom const& atomIn, NameType const& resname, int current_res, 
-                          int& last_res, const double* XYZin) 
+int Topology::AddTopAtom(Atom const& atomIn, int o_resnum, 
+                         NameType const& resname, const double* XYZin)
 {
-  // Check if this is a new residue
-  if (residues_.empty() || current_res != last_res) {
+  // If no residues or res num has changed, this is a new residue.
+  if ( residues_.empty() || residues_.back().OriginalResNum() != o_resnum )
+  {
     // Last atom of old residue is == current # atoms.
     if (!residues_.empty())
       residues_.back().SetLastAtom( atoms_.size() );
     // First atom of new residue is == current # atoms.
-    residues_.push_back( Residue(current_res, resname, atoms_.size()) );
-    last_res = current_res;
+    residues_.push_back( Residue(o_resnum, resname, atoms_.size()) );
   }
   atoms_.push_back(atomIn);
-  // Set this atoms residue number 
+  // Set this atoms internal residue number 
   atoms_.back().SetResNum( residues_.size()-1 );
   // Add coordinate if given
   refCoords_.AddXYZ( XYZin );
+  return 0;
 }
 
 // Topology::StartNewMol()
@@ -498,148 +452,55 @@ void Topology::StartNewMol() {
   }
 }
 
-// Topology::CreateAtomArray()
-int Topology::CreateAtomArray(std::vector<NameType>& names, std::vector<double>& charge,
-                        std::vector<int>& at_num, std::vector<double>& mass,
-                        std::vector<int>& atype_index, std::vector<NameType>& types,
-                        std::vector<double>& gb_radii, std::vector<double>& gb_screen, 
-                        std::vector<NameType>& resnames, std::vector<int>& resnums)
-{
-  if (names.empty() || resnames.empty()) {
-    mprinterr("Error: Topology: Cannot create Atom/Residue arrays from empty input arrays.\n");
-    return 1;
-  }
-  size_t natom = names.size();
-  if ( natom != charge.size() ||
-       natom != mass.size() ||
-       natom != atype_index.size() ||
-       natom != types.size()
-     )
-  {
-    mprinterr("Error: Topology: Array sizes for #atoms from input parm do not match.\n");
-    mprinterr("\tNames = %zu\n",names.size());
-    mprinterr("\tCharges = %zu\n",charge.size());
-    mprinterr("\tMass = %zu\n",mass.size());
-    mprinterr("\tAtomType Index = %zu\n",atype_index.size());
-    mprinterr("\tTypes = %zu\n",types.size());
-    return 1;
-  }
-  if (resnames.size() != resnums.size()) {
-    mprinterr("Error: Topology: Array sizes for #residues from input parm do not match.\n");
-    mprinterr("\tResNames = %zu\n",resnames.size());
-    mprinterr("\tResNums = %zu\n",resnums.size());
-    return 1;
-  }
-  // ATOMIC_NUMBER may not be present
-  if (at_num.empty()) {
-    if (debug_>0) mprintf("Warning: [%s] ATOMIC_NUMBER not present in topology.\n", c_str());
-    at_num.resize(natom, 0);
-  }
-  // GB params may be empty in old amber parm
-  if (gb_radii.empty()) {
-    if (debug_>0) mprintf("Warning: [%s] GB RADII not present in topology.\n", c_str());
-    gb_radii.resize(natom, 0);
-  }
-  if (gb_screen.empty()) {
-    if (debug_>0) mprintf("Warning: [%s] GB SCREEN not present in topology.\n", c_str());
-    gb_screen.resize(natom, 0);
-  }
-  // Create atom information
-  atoms_.reserve( natom );
-  int resnum = 0;
-  std::vector<int>::iterator Res = resnums.begin() + 1;
-  for (size_t atom = 0; atom < natom; atom++) {
-    if (Res!=resnums.end() && atom >= (size_t)*Res) {
-      ++resnum;
-      ++Res;
-    }
-    atoms_.push_back( Atom( names[atom], charge[atom], at_num[atom],
-                            mass[atom], atype_index[atom], types[atom],
-                            gb_radii[atom], gb_screen[atom], resnum)
-                    );
-  }
-  // Create residue information
-  size_t nres = resnames.size();
-  residues_.reserve( nres );
-  for (size_t res = 0; res < nres - 1; res++) 
-    residues_.push_back( Residue( res+1, resnames[res], resnums[res], resnums[res+1] ) );
-  residues_.push_back( Residue( nres, resnames[nres-1], resnums[nres-1], atoms_.size() ) );
-
-  return 0;
+static inline int NoAtomsErr(const char* msg) {
+  mprinterr("Error: Cannot set up %s, no atoms present.\n");
+  return 1;
 }
 
 // Topology::SetBondInfo()
-int Topology::SetBondInfo(std::vector<int> &bonds, std::vector<int> &bondsh,
-                          std::vector<double> &bond_rk, std::vector<double> &bond_req) 
+int Topology::SetBondInfo(BondArray const& bondsIn, BondArray const& bondshIn,
+                          BondParmArray const& bondparmIn)
 {
-  if (bonds.empty() && bondsh.empty())
-    mprinterr("Warning: Topology: Input bonds and bondsh are empty.\n");
-
-  if (atoms_.empty()) {
-    mprinterr("Error: Topology: Cannot set up bonds, no atoms present.\n");
-    return 1;
-  }
-  // NOTE: Clear any previous bond info here?
-  bonds_ = bonds;
-  bondsh_ = bondsh;
-  SetAtomBondInfo();
-  // Create bond parameter arrays
-  if (bond_rk.size() != bond_req.size()) {
-    mprinterr("Error: Topology: Bond parameters have different lengths (%zu != %zu)\n",
-              bond_rk.size(), bond_req.size());
-    return 1;
-  }
-  bondrk_ = bond_rk;
-  bondreq_ = bond_req;
+  if (atoms_.empty()) return NoAtomsErr("bonds");
+  // Clear away bond info from atoms array.
+  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
+    atom->ClearBonds();
+  bonds_ = bondsIn;
+  bondsh_ = bondshIn;
+  // Create bonds in atom array.
+  SetAtomBondInfo( bonds_ );
+  SetAtomBondInfo( bondsh_ );
+  bondparm_ = bondparmIn;
 
   return 0;
 }
 
 // Topology::SetAngleInfo()
-int Topology::SetAngleInfo(std::vector<int>& angles, std::vector<int>& anglesh,
-                           std::vector<double>& tk, std::vector<double>& teq)
+int Topology::SetAngleInfo(AngleArray const& anglesIn, AngleArray const& angleshIn,
+                           AngleParmArray const& angleparmIn)
 {
-  angles_ = angles;
-  anglesh_ = anglesh;
-  angletk_ = tk;
-  angleteq_ = teq;
+  if (atoms_.empty()) return NoAtomsErr("angles"); 
+  angles_ = anglesIn;
+  anglesh_ = angleshIn;
+  angleparm_ = angleparmIn;
   return 0;
 }
 
 // Topology::SetDihedralInfo()
-int Topology::SetDihedralInfo(std::vector<int>& dihedrals, std::vector<int>& dihedralsh,
-                              std::vector<double>& pk, std::vector<double>& pn,
-                              std::vector<double>& phase,
-                              std::vector<double>& scee, std::vector<double>& scnb)
+int Topology::SetDihedralInfo(DihedralArray const& dihedralsIn, DihedralArray const& dihedralshIn,
+                              DihedralParmArray const& dihedralparmIn)
 {
-  dihedrals_ = dihedrals;
-  dihedralsh_ = dihedralsh;
-  dihedralpk_ = pk;
-  dihedralpn_ = pn;
-  dihedralphase_ = phase;
-  scee_ = scee;
-  scnb_ = scnb;
-  if (scee_.empty())
-    scee_.resize( dihedralpk_.size(), 1.2);
-  if (scnb.empty())
-    scnb_.resize( dihedralpk_.size(), 2.0);
-  return 0;
-}
-
-// Topology::SetAmberHbond()
-int Topology::SetAmberHbond(std::vector<double>& asol, std::vector<double>& bsol,
-                            std::vector<double>& hbcut)
-{
-  asol_ = asol;
-  bsol_ = bsol;
-  hbcut_ = hbcut;
+  if (atoms_.empty()) return NoAtomsErr("dihedrals"); 
+  dihedrals_ = dihedralsIn;
+  dihedralsh_ = dihedralshIn;
+  dihedralparm_ = dihedralparmIn;
   return 0;
 }
 
 // Topology::SetAmberExtra()
 // TODO: Auto generate
-int Topology::SetAmberExtra(std::vector<double>& solty, std::vector<NameType>& itree, 
-                            std::vector<int>& join, std::vector<int>& irotat)
+int Topology::SetAmberExtra(std::vector<double> const& solty, std::vector<NameType> const& itree, 
+                            std::vector<int> const& join, std::vector<int> const& irotat)
 {
   solty_ = solty;
   itree_ = itree;
@@ -649,55 +510,19 @@ int Topology::SetAmberExtra(std::vector<double>& solty, std::vector<NameType>& i
 }
 
 // Topology::SetNonbondInfo()
-int Topology::SetNonbondInfo(int ntypesIn, std::vector<int>& nbindex, 
-                             std::vector<double>& lja, std::vector<double>& ljb)
-{
-  ntypes_ = ntypesIn;
-  int nbsize = ntypes_ * ntypes_;
-  if ((int)nbindex.size() != nbsize) {
-    mprinterr("Error: Topology: Size of NB_index (%zu) does not match ntypes*ntypes (%i)\n",
-              nbindex.size(), nbsize);
-    return 1;
-  }
-  int ljsize = (ntypes_ * (ntypes_+1)) / 2;
-  if (ljsize != (int)lja.size() ||
-      ljsize != (int)ljb.size()) 
-  {
-    mprinterr("Error: Topology: LJ parameters have wrong size, %i != (%zu | %zu)\n",
-              ljsize, lja.size(), ljb.size());
-    return 1;
-  }
-  nbindex_ = nbindex;
-  lja_ = lja;
-  ljb_ = ljb;
-/*  std::vector<double>::iterator A = lja.begin();
-  for (std::vector<double>::iterator B = ljb.begin(); B != ljb.end(); ljb++) {
-    nonbondParm_.push_back( ParmNonbondType( *A, *B ) );
-    ++A;
-  }*/
+int Topology::SetNonbondInfo(NonbondParmType const& nonbondIn) {
+  nonbond_ = nonbondIn;
   return 0;
 }
 
 // Topology::SetAtomBondInfo()
-/** Set up bond information in the atoms array based on bonds and bondsh.
+/** Set up bond information in the atoms array based on given BondArray.
   */
-void Topology::SetAtomBondInfo() {
-  for (std::vector<int>::iterator bond = bonds_.begin(); bond != bonds_.end(); bond++) {
-    int atom1 = *bond / 3;
-    ++bond;
-    int atom2 = *bond / 3;
-    ++bond;
-    atoms_[atom1].AddBond( atom2 );
-    atoms_[atom2].AddBond( atom1 );
-  }
-
-  for (std::vector<int>::iterator bond = bondsh_.begin(); bond != bondsh_.end(); bond++) {
-    int atom1 = *bond / 3;
-    ++bond;
-    int atom2 = *bond / 3;
-    ++bond;
-    atoms_[atom1].AddBond( atom2 );
-    atoms_[atom2].AddBond( atom1 );
+void Topology::SetAtomBondInfo(BondArray const& bonds) {
+  // Add bonds based on array 
+  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
+    atoms_[ (*bnd).A1() ].AddBond( (*bnd).A2() );
+    atoms_[ (*bnd).A2() ].AddBond( (*bnd).A1() );
   }
 }
 
@@ -712,18 +537,18 @@ int Topology::CommonSetup(bool bondsearch) {
       molecules_.clear();
     }
   }
-  
+  // Assign default lengths if necessary (for e.g. CheckStructure)
+  if (bondparm_.empty())
+    AssignBondParameters();
+  // Determine molecule info
   if (molecules_.empty())  
     if (DetermineMolecules()) 
       mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
-
   // Set up solvent information
   if (SetSolventInfo())
     mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
-
   // Determine excluded atoms
   DetermineExcludedAtoms();
-
   // Determine # of extra points.
   DetermineNumExtraPoints();
 
@@ -731,127 +556,41 @@ int Topology::CommonSetup(bool bondsearch) {
 }
 
 // -----------------------------------------------------------------------------
-// WarnBondLengthDefault()
-void Topology::WarnBondLengthDefault(Atom::AtomicElementType atom1,
-                                     Atom::AtomicElementType atom2, double cut) {
-  mprintf("Warning: Bond length not found for %s - %s, using default= %f\n",
-          Atom::AtomicElementName[atom1], Atom::AtomicElementName[atom2], cut);
-}
-
-// Topology::GetBondLength() 
-/** Return optimal covalent bond distance based on the element types of atom1 
-  * and atom2. When multiple hybridizations are possible the longest possible 
-  * bond length is used.
-  * Unless otherwise noted values taken from:
-  * - Huheey, pps. A-21 to A-34; T.L. Cottrell, "The Strengths of Chemical Bonds," 
-  *       2nd ed., Butterworths, London, 1958; 
-  * - B. deB. Darwent, "National Standard Reference Data Series," National Bureau of Standards, 
-  *       No. 31, Washington, DC, 1970; S.W. Benson, J. Chem. Educ., 42, 502 (1965).
-  * Can be found on the web at:
-  * - http://www.wiredchemist.com/chemistry/data/bond_energies_lengths.html
-  */
-// NOTE: Store cut^2 instead??
-double Topology::GetBondLength(Atom::AtomicElementType atom1, Atom::AtomicElementType atom2) 
+// Topology::AddBondParam()
+/** Create parameters for given bond based on element types. */
+void Topology::AddBondParam(BondType& bnd, BP_mapType& bpMap)
 {
-  // Default cutoff
-  double cut = 1.60;
-  if (atom1==atom2) {
-    // Self
-    switch (atom1) {
-      case Atom::HYDROGEN  : cut=0.74; break;
-      case Atom::CARBON    : cut=1.54; break;
-      case Atom::NITROGEN  : cut=1.45; break;
-      case Atom::OXYGEN    : cut=1.48; break;
-      case Atom::PHOSPHORUS: cut=2.21; break;
-      case Atom::SULFUR    : cut=2.05; break; // S-S gas-phase value; S=S is 1.49
-      default: WarnBondLengthDefault(atom1,atom2,cut);
-    }
-  } else {
-    Atom::AtomicElementType e1, e2;
-    if (atom1 < atom2) {
-      e1 = atom1;
-      e2 = atom2;
-    } else {
-      e1 = atom2;
-      e2 = atom1;
-    }
-    switch (e1) {
-      case Atom::HYDROGEN: // Bonds to H
-        switch (e2) {
-          case Atom::CARBON    : cut=1.09; break;
-          case Atom::NITROGEN  : cut=1.01; break;
-          case Atom::OXYGEN    : cut=0.96; break;
-          case Atom::PHOSPHORUS: cut=1.44; break;
-          case Atom::SULFUR    : cut=1.34; break;
-          default: WarnBondLengthDefault(e1,e2,cut);
-        }
-        break;
-      case Atom::CARBON: // Bonds to C
-        switch (e2) {
-          case Atom::NITROGEN  : cut=1.47; break;
-          case Atom::OXYGEN    : cut=1.43; break;
-          case Atom::FLUORINE  : cut=1.35; break;
-          case Atom::PHOSPHORUS: cut=1.84; break;
-          case Atom::SULFUR    : cut=1.82; break;
-          case Atom::CHLORINE  : cut=1.77; break;
-          case Atom::BROMINE   : cut=1.94; break;
-          default: WarnBondLengthDefault(e1,e2,cut);
-        }
-        break;
-      case Atom::NITROGEN: // Bonds to N
-        switch (e2) {
-          case Atom::OXYGEN    : cut=1.40; break;
-          case Atom::FLUORINE  : cut=1.36; break;
-          case Atom::PHOSPHORUS: cut=1.71; // Avg over all nX-pX from gaff.dat
-          case Atom::SULFUR    : cut=1.68; break; // Postma & Vos, Acta Cryst. (1973) B29, 915
-          case Atom::CHLORINE  : cut=1.75; break;
-          default: WarnBondLengthDefault(e1,e2,cut);
-        }
-        break;
-      case Atom::OXYGEN: // Bonds to O
-        switch (e2) {
-          case Atom::FLUORINE  : cut=1.42; break;
-          case Atom::PHOSPHORUS: cut=1.63; break;
-          case Atom::SULFUR    : cut=1.48; break;
-          default: WarnBondLengthDefault(e1,e2,cut);
-        }
-        break;
-      case Atom::FLUORINE: // Bonds to F
-        switch (e2) {
-          case Atom::PHOSPHORUS: cut=1.54; break;
-          case Atom::SULFUR    : cut=1.56; break;
-          default: WarnBondLengthDefault(e1,e2,cut);
-        }
-        break;  
-      case Atom::PHOSPHORUS: // Bonds to P
-        switch (e2) {
-          case Atom::SULFUR  : cut=1.86; break;
-          case Atom::CHLORINE: cut=2.03; break;
-          default: WarnBondLengthDefault(e1,e2,cut);
-        }
-        break;
-      case Atom::SULFUR: // Bonds to S
-        switch (e2) {
-          case Atom::CHLORINE: cut=2.07; break;
-          default: WarnBondLengthDefault(e1,e2,cut);
-        }
-        break;
-      default: WarnBondLengthDefault(e1,e2,cut);
-    } // END switch(e1)
-  }
-  //mprintf("\t\tCUTOFF: [%s] -- [%s] = %lf\n",AtomicElementName[atom1],
-  //        AtomicElementName[atom2],cut);
-  return cut;
+  unsigned int bp_idx;
+  Atom::AtomicElementType a1Elt = atoms_[bnd.A1()].Element();
+  Atom::AtomicElementType a2Elt = atoms_[bnd.A2()].Element();
+  std::set<Atom::AtomicElementType> Eset;
+  Eset.insert( a1Elt );
+  Eset.insert( a2Elt );
+  // Has this bond parameter been defined?
+  BP_mapType::iterator bp = std::find(bpMap.begin(), bpMap.end(), Eset);
+  if (bp == bpMap.end()) { // Bond parameter Not defined
+    bp_idx = bondparm_.size();
+    bpMap.push_back( Eset );
+    bondparm_.push_back( BondParmType(0.0, Atom::GetBondLength(a1Elt, a2Elt)) );
+  } else
+    bp_idx = bp - bpMap.begin();
+  //mprintf("DEBUG:\t\t%i:[%s] -- %i:[%s] Cut=%f BPidx=%u\n",
+  //        bnd.A1()+1, atoms_[bnd.A1()].c_str(), bnd.A2()+1, atoms_[bnd.A2()].c_str(),
+  //        bondparm_[bp_idx].Req(), bp_idx);
+  bnd.SetIdx( bp_idx );
 }
 
-bool Topology::NameIsSolvent(NameType const& resname) {
-  if (resname == "WAT " ||
-      resname == "HOH " ||
-      resname == "TIP3"
-     )
-    return true;
-  return false;
-}
+// Topology::AssignBondParameters()
+void Topology::AssignBondParameters() {
+  mprintf("Warning: %s: Determining default bond distances from element types.\n", c_str());
+  bondparm_.clear();
+  // Hold indices into bondparm for unique element pairs
+  BP_mapType bpMap;
+  for (BondArray::iterator bnd = bondsh_.begin(); bnd != bondsh_.end(); ++bnd)
+    AddBondParam( *bnd, bpMap ); 
+  for (BondArray::iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
+    AddBondParam( *bnd, bpMap );
+} 
 
 // Topology::GetBondsFromAtomCoords()
 void Topology::GetBondsFromAtomCoords() {
@@ -864,31 +603,25 @@ void Topology::GetBondsFromAtomCoords() {
     int startatom = (*res).FirstAtom();
     // Get residue end atom.
     int stopatom = (*res).LastAtom();
-    // DEBUG
-    //mprintf("\tRes %i Start atom %zu coords: ",resnum+1, startatom+1);
-    //atoms_[startatom].PrintXYZ();
-    //mprintf("\n");
     // Check for bonds between each atom in the residue.
     for (int atom1 = startatom; atom1 < stopatom - 1; ++atom1) {
+      Atom::AtomicElementType a1Elt = atoms_[atom1].Element();
       // If this is a hydrogen and it already has a bond, move on.
-      if (atoms_[atom1].Element()==Atom::HYDROGEN &&
-          atoms_[atom1].Nbonds() > 0 )
+      if (a1Elt==Atom::HYDROGEN && atoms_[atom1].Nbonds() > 0 )
         continue;
       for (int atom2 = atom1 + 1; atom2 < stopatom; ++atom2) {
+        Atom::AtomicElementType a2Elt = atoms_[atom2].Element();
         double D2 = DIST2_NoImage(refCoords_.XYZ(atom1), refCoords_.XYZ(atom2) );
-        double cutoff2 = GetBondLength(atoms_[atom1].Element(), atoms_[atom2].Element()) + offset_;
-        //mprintf("\t\t%i:[%s] -- %i:[%s] D=%lf  Cut=%lf\n",atom1+1,atoms_[atom1].c_str(),
-        //         atom2+1,atoms_[atom2].c_str(),sqrt(D2),cutoff2);
+        double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
         cutoff2 *= cutoff2;
         if (D2 < cutoff2) {
           AddBond(atom1, atom2);
           // Once a bond has been made to hydrogen move on.
-          if (atoms_[atom1].Element()==Atom::HYDROGEN) break;
+          if (a1Elt==Atom::HYDROGEN) break;
         }
       }
     }
   }
-
   // ----- STEP 2: Determine bonds between adjacent residues
   std::vector<Molecule>::iterator nextmol = molecules_.begin();
   if (!molecules_.empty())
@@ -907,7 +640,7 @@ void Topology::GetBondsFromAtomCoords() {
     }
     // If this residue is recognized as solvent, no need to check previous or
     // next residue
-    if ( NameIsSolvent((*res).Name()) ) {
+    if ( (*res).NameIsSolvent() ) {
       ++res;
       if (res == residues_.end()) break;
       continue;
@@ -915,40 +648,31 @@ void Topology::GetBondsFromAtomCoords() {
     // Get previous residue
     std::vector<Residue>::iterator previous_res = res - 1;
     // If previous residue is recognized as solvent, no need to check previous.
-    if ( NameIsSolvent((*previous_res).Name()) ) continue;
+    if ( (*previous_res).NameIsSolvent() ) continue;
     // Get previous residue start atom
     int startatom = (*previous_res).FirstAtom();
     // Previous residue stop atom, this residue start atom
     int midatom = (*res).FirstAtom();
     // This residue stop atom
     int stopatom = (*res).LastAtom();
-    //mprintf("\tBonds between residues %s and %s\n",(*previous_res).c_str(),(*res).c_str());
     // Check for bonds between adjacent residues
     for (int atom1 = startatom; atom1 < midatom; atom1++) {
-      if (atoms_[atom1].Element()==Atom::HYDROGEN) continue;
+      Atom::AtomicElementType a1Elt = atoms_[atom1].Element();
+      if (a1Elt==Atom::HYDROGEN) continue;
       for (int atom2 = midatom; atom2 < stopatom; atom2++) {
-        if (atoms_[atom2].Element()==Atom::HYDROGEN) continue;
+        Atom::AtomicElementType a2Elt = atoms_[atom2].Element();
+        if (a2Elt==Atom::HYDROGEN) continue;
         double D2 = DIST2_NoImage(refCoords_.XYZ(atom1), refCoords_.XYZ(atom2) );
-        double cutoff2 = GetBondLength(atoms_[atom1].Element(), atoms_[atom2].Element()) + offset_;
-        //mprintf("\t\t%i:[%s] -- %i:[%s] D=%lf  Cut=%lf\n",atom1+1,atoms_[atom1].c_str(),
-        //         atom2+1,atoms_[atom2].c_str(),sqrt(D2),cutoff2);
+        double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
         cutoff2 *= cutoff2;
         if (D2 < cutoff2) 
           AddBond(atom1, atom2);
       }
     }
   }
-
-  mprintf("\t%s: %zu bonds to hydrogen, %zu other bonds.\n",c_str(),
-          bondsh_.size()/3, bonds_.size()/3);
-}
-
-// Topology::ClearBondInfo()
-void Topology::ClearBondInfo() {
-  bonds_.clear();
-  bondsh_.clear();
-  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
-    (*atom).ClearBonds();
+  if (debug_>0)
+    mprintf("\t%s: %zu bonds to hydrogen, %zu other bonds.\n",c_str(), 
+            bondsh_.size(), bonds_.size());
 }
 
 // Topology::AddBond()
@@ -956,25 +680,24 @@ void Topology::ClearBondInfo() {
   * For bonds to H always insert the H second.
   */
 void Topology::AddBond(int atom1, int atom2) {
+  // Check for duplicate bond
+  for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
+                           ba != atoms_[atom1].bondend(); ++ba)
+    if ( *ba == atom2 ) {
+      mprintf("Warning: Bond between atoms %i and %i already exists.\n", atom1+1, atom2+1);
+      return;
+    }
   bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
   bool a2H = (atoms_[atom2].Element() == Atom::HYDROGEN);
   //mprintf("\t\t\tAdding bond %i to %i (isH=%i)\n",atom1+1,atom2+1,(int)isH);
   // Update bonds arrays
-  // TODO: Check for duplicates
   if (a1H || a2H) {
-    if (a1H) {
-      bondsh_.push_back(atom2*3);
-      bondsh_.push_back(atom1*3);
-    } else {
-      bondsh_.push_back(atom1*3);
-      bondsh_.push_back(atom2*3);
-    }
-    bondsh_.push_back(-1);
-  } else  {
-    bonds_.push_back(atom1*3);
-    bonds_.push_back(atom2*3);
-    bonds_.push_back(-1);
-  }
+    if (a1H)
+      bondsh_.push_back( BondType(atom2, atom1, -1) );
+    else
+      bondsh_.push_back( BondType(atom1, atom2, -1) );
+  } else
+    bonds_.push_back( BondType( atom1, atom2, -1 ) );
   // Update atoms
   atoms_[atom1].AddBond( atom2 );
   atoms_[atom2].AddBond( atom1 );
@@ -999,8 +722,8 @@ void Topology::VisitAtom(int atomnum, int mol) {
   */
 int Topology::DetermineMolecules() {
   std::vector<Atom>::iterator atom;
-
-  if (debug_ > 0) mprintf("\t%s: determining molecule info from bonds.\n",c_str());
+  // Since this is always done only print when debugging
+  if (debug_>0) mprintf("\t%s: determining molecule info from bonds.\n",c_str());
   // Reset molecule info for each atom
   for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
     (*atom).SetMol( -1 );
@@ -1185,7 +908,7 @@ int Topology::SetSolventInfo() {
                                        mol != molecules_.end(); mol++)
   {
     int firstRes = atoms_[ (*mol).BeginAtom() ].ResNum();
-    if ( NameIsSolvent(residues_[firstRes].Name()) ) {
+    if ( residues_[firstRes].NameIsSolvent() ) {
       (*mol).SetSolvent();
       ++NsolventMolecules_;
       numSolvAtoms += (*mol).NumAtoms();
@@ -1563,27 +1286,15 @@ bool Topology::ParseMask(Frame const& REF, AtomMask &maskIn, bool intMask) const
 
 // -----------------------------------------------------------------------------
 void Topology::ScaleDihedralK(double scale_factor) {
-  for (std::vector<double>::iterator dk = dihedralpk_.begin();
-                                     dk != dihedralpk_.end(); ++dk)
-    (*dk) *= scale_factor;
-}
-
-// Topology::modifyStateByMask()
-/**  The goal of this routine is to create a new AmberParm (newParm)
-  *  based on the current AmberParm (this), deleting atoms that are
-  *  not in the Selected array.
-  */
-Topology* Topology::modifyStateByMask(AtomMask const& Mask, bool setupFullParm) const {
-  std::vector<int> Map;
-
-  Map.reserve( Mask.Nselected() );
-  for (AtomMask::const_iterator oldatom = Mask.begin(); oldatom != Mask.end(); oldatom++) 
-    Map.push_back( *oldatom ); // Map[newatom] = oldatom
-
-  return ModifyByMap(Map, setupFullParm);
+  for (DihedralParmArray::iterator dk = dihedralparm_.begin();
+                                   dk != dihedralparm_.end(); ++dk)
+    (*dk).Pk() *= scale_factor;
 }
 
 // Topology::ModifyByMap()
+/** \return Pointer to new Topology based on this Topology, deleting atoms
+  *         that are not in the given map (Map[newatom] = oldatom).
+  */
 Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullParm) const {
   Topology *newParm = new Topology();
 
@@ -1636,11 +1347,11 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   //       parameter arrays for now. May want to cull unused params later.
 
   // Set up new bond information
-  newParm->bonds_ = SetupSequentialArray(atomMap, 3, bonds_);
-  newParm->bondsh_ = SetupSequentialArray(atomMap, 3, bondsh_);
-  newParm->SetAtomBondInfo();
-  newParm->bondrk_ = bondrk_;
-  newParm->bondreq_ = bondreq_;
+  newParm->bonds_ = StripBondArray( bonds_, atomMap );
+  newParm->bondsh_ = StripBondArray( bondsh_, atomMap );
+  newParm->SetAtomBondInfo( newParm->bonds_ );
+  newParm->SetAtomBondInfo( newParm->bondsh_ );
+  newParm->bondparm_ = bondparm_;
   // Give stripped parm the same pindex as original
   newParm->pindex_ = pindex_;
   newParm->nframes_ = nframes_;
@@ -1660,29 +1371,17 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
             newParm->c_str());
   } 
   // Set up new angle info
-  newParm->angles_ = SetupSequentialArray(atomMap, 4, angles_);
-  newParm->anglesh_ = SetupSequentialArray(atomMap, 4, anglesh_);
-  newParm->angletk_ = angletk_;
-  newParm->angleteq_ = angleteq_;
+  newParm->angles_ = StripAngleArray( angles_, atomMap );
+  newParm->anglesh_ = StripAngleArray( anglesh_, atomMap );
+  newParm->angleparm_ = angleparm_;
   // Set up new dihedral info
-  newParm->dihedrals_ = SetupSequentialArray(atomMap, 5, dihedrals_);
-  newParm->dihedralsh_ = SetupSequentialArray(atomMap, 5, dihedralsh_);
-  newParm->dihedralpk_ = dihedralpk_;
-  newParm->dihedralpn_ = dihedralpn_;
-  newParm->dihedralphase_ = dihedralphase_;
-  newParm->scee_ = scee_;
-  newParm->scnb_ = scnb_;
+  newParm->dihedrals_ = StripDihedralArray( dihedrals_, atomMap );
+  newParm->dihedralsh_ = StripDihedralArray( dihedralsh_, atomMap );
+  newParm->dihedralparm_ = dihedralparm_;
   // Set up nonbond info
   // Since nbindex depends on the atom type index and those entries were 
   // not changed this is still valid. May want to cull unused parms later.
-  newParm->ntypes_ = ntypes_;
-  newParm->nbindex_ = nbindex_;
-  newParm->lja_ = lja_;
-  newParm->ljb_ = ljb_;
-  // Hbond info
-  newParm->asol_ = asol_;
-  newParm->bsol_ = bsol_;
-  newParm->hbcut_ = hbcut_;
+  newParm->nonbond_ = nonbond_;
   // Amber extra info. Assume if one present, all present.
   if (!itree_.empty() && !join_.empty() && !irotat_.empty()) {
     for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
@@ -1706,68 +1405,68 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   return newParm;
 }
 
-// Topology::SetupSequentialArray()
-/** Given an array with format [I0J0...X0][I1J1...] where the entries up to
-  * X are atom# * 3 and entry X is an index, and an atom map array
-  * with format Map[oldAtom]=newAtom, create a new array that contains
-  * only entries for which all atoms are present. Can be used for the
-  * bond, angle, and dihedral index arrays.
+/** \return BondArray with bonds for which both atoms are still present.
+  * \param atomMap format Map[oldAtom]=newAtom
   */
-std::vector<int> Topology::SetupSequentialArray(std::vector<int> const& atomMap, int Nsequence,
-                                                std::vector<int> const& oldArray) const
-{
-  std::vector<int> newArray;
-  int Nsequence1 = Nsequence - 1;
-  std::vector<int> newatoms(Nsequence, 0);
-  std::vector<int> newsign(Nsequence1, 1);
+BondArray Topology::StripBondArray(BondArray const& bondsIn, std::vector<int> const& atomMap) const {
+  BondArray bondsOut;
   // Go through old array. Use atomMap to determine what goes into newArray.
-  for (std::vector<int>::const_iterator oldi = oldArray.begin(); 
-                                        oldi != oldArray.end();
-                                        oldi += Nsequence)
-  {
-    // Using atomMap, check that atoms 0 to Nsequence exist in newParm. If
-    // any of the atoms do not exist, bail.
-    int newatm = -1;
-    bool reverseOrder = false;
-    std::vector<int>::const_iterator endidx = oldi + Nsequence1;
-    unsigned int sequencei = 0;
-    for (std::vector<int>::const_iterator oidx = oldi; oidx != endidx; oidx++) {
-      int arrayIdx = *oidx;
-      // For dihedrals the atom # can be negative. Convert to positive
-      // for use in the atom map.
-      if (arrayIdx < 0) {
-        newatm = atomMap[ -arrayIdx / 3 ];
-        newsign[sequencei] = -1;
-        // For improper/multi-term dihedrals atom index 0 cannot be the 3rd
-        // or 4th position since there is no such thing as -0.
-        if (newatm == 0 && (sequencei == 2 || sequencei == 3))
-          reverseOrder = true;
-      } else {
-        newatm = atomMap[ arrayIdx / 3 ];
-        newsign[sequencei] = 1;
-      }
-      // New atom # of -1 means atom was removed - exit loop now.
-      if (newatm == -1) break;
-      // Atom exists - store.
-      newatoms[sequencei++] = newatm;
+  for (BondArray::const_iterator oldbond = bondsIn.begin(); oldbond != bondsIn.end(); ++oldbond) {
+    int newA1 = atomMap[ oldbond->A1() ];
+    if (newA1 != -1) {
+      int newA2 = atomMap[ oldbond->A2() ];
+      if (newA2 != -1)
+        bondsOut.push_back( BondType(newA1, newA2, oldbond->Idx() ) );
     }
-    // If newatm is -1 here that means it didnt exist in newParm for this
-    // sequence. Skip the entire sequence.
-    if (newatm==-1) continue;
-    // Store the final number of the sequence, which is an index
-    newatoms[Nsequence1] = *endidx;
-    // Place the atoms in newatoms in newArray
-    if (!reverseOrder) {
-      for (int sequencei = 0; sequencei < Nsequence1; sequencei++)
-        newArray.push_back( newatoms[sequencei] * 3 * newsign[sequencei] );
-    } else {
-      int ridx = Nsequence1 - 1;
-      for (int sequencei = 0; sequencei < Nsequence1; sequencei++)
-        newArray.push_back( newatoms[ridx--] * 3 * newsign[sequencei] );
-    }
-    // Place the index in newatoms in newArray
-    newArray.push_back( newatoms[Nsequence1] );
   }
-  return newArray;
+  return bondsOut;
 }
 
+/** \return AngleArray with angles for which all atoms are still present.
+  * \param atomMap format Map[oldAtom]=newAtom
+  */
+AngleArray Topology::StripAngleArray(AngleArray const& anglesIn, std::vector<int> const& atomMap) const {
+  AngleArray anglesOut;
+  for (AngleArray::const_iterator oldangle = anglesIn.begin(); oldangle != anglesIn.end(); ++oldangle) {
+    int newA1 = atomMap[ oldangle->A1() ];
+    if (newA1 != -1) {
+      int newA2 = atomMap[ oldangle->A2() ];
+      if (newA2 != -1) {
+        int newA3 = atomMap[ oldangle->A3() ];
+        if (newA3 != -1)
+          anglesOut.push_back( AngleType(newA1, newA2, newA3, oldangle->Idx()) );
+      }
+    }
+  }
+  return anglesOut;
+}
+
+/** \return DihedralArray with dihedrals for which all atoms are still present.
+  * \param atomMap format Map[oldAtom]=newAtom
+  */
+DihedralArray Topology::StripDihedralArray(DihedralArray const& dihIn, std::vector<int> const& atomMap) const {
+  DihedralArray dihOut;
+  for (DihedralArray::const_iterator olddih = dihIn.begin(); olddih != dihIn.end(); ++olddih) {
+    int newA1 = atomMap[ olddih->A1() ];
+    if (newA1 != -1) {
+      int newA2 = atomMap[ olddih->A2() ];
+      if (newA2 != -1) {
+        int newA3 = atomMap[ olddih->A3() ];
+        if (newA3 != -1) {
+          int newA4 = atomMap[ olddih->A4() ];
+          if (newA4 != -1) {
+            // Since in Amber improper/end dihedrals are stored as negative #s,
+            // atom index 0 cannot be in 3rd or 4th position. Reverse.
+            if (olddih->Type() != DihedralType::NORMAL && (newA3 == 0 || newA4 == 0))
+              dihOut.push_back( DihedralType( newA4, newA3, newA2, newA1, 
+                                              olddih->Type(), olddih->Idx() ) );
+            else
+              dihOut.push_back( DihedralType( newA1, newA2, newA3, newA4, 
+                                              olddih->Type(), olddih->Idx() ) );
+          }
+        }
+      }
+    }
+  }
+  return dihOut;
+}

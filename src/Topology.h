@@ -4,6 +4,7 @@
 #include "Atom.h"
 #include "Residue.h"
 #include "Molecule.h"
+#include "ParameterTypes.h"
 #include "AtomMask.h"
 #include "Frame.h"
 #include "FileName.h"
@@ -13,16 +14,16 @@ class Topology {
   public:
     Topology();
     // ----- Set internal variables -----
-    void SetOffset(double oIn);
-    void SetDebug(int);
-    void SetParmName(std::string const&, FileName const&);
-    void SetGBradiiSet(std::string const&);
-    void SetPindex(int);
-    void SetReferenceCoords( Frame const& );
-    void IncreaseFrames(int);
+    void SetOffset(double oIn)           { if (oIn > 0.0) offset_ = oIn;  }
+    void SetDebug(int dIn)               { debug_ = dIn;                  }
+    void SetPindex(int pIn)              { pindex_ = pIn;                 }
+    void IncreaseFrames(int fIn)         { nframes_ += fIn;               }
     void SetTag(std::string const& t)    { parmTag_ = t;                  }
     void SetVelInfo(bool v)              { hasVelInfo_ = v;               }
     void SetNrepDim(int n)               { nRepDim_ = n;                  }
+    void SetGBradiiSet(std::string const& s) { radius_set_ = s;           }
+    void SetParmName(std::string const&, FileName const&);
+    void SetReferenceCoords( Frame const& );
     // ----- Return internal variables -----
     std::string const& Tag()       const { return parmTag_;               }
     int Pindex()                   const { return pindex_;                }
@@ -31,7 +32,6 @@ class Topology {
     int Nmol()                     const { return (int)molecules_.size(); }
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int Nframes()                  const { return nframes_;               }
-    int Ntypes()                   const { return ntypes_;                }
     int NextraPts()                const { return n_extra_pts_;           }
     bool HasVelInfo()              const { return hasVelInfo_;            }
     int NrepDim()                  const { return nRepDim_;               }
@@ -39,7 +39,7 @@ class Topology {
     FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
     bool NoRefCoords()                    const { return (refCoords_.empty()); }
-    int FinalSoluteRes() const;
+    int FinalSoluteRes() const; // TODO: Replace
     const char *c_str() const;
     // ---- Atom-specific routines -----
     typedef std::vector<Atom>::const_iterator atom_iterator;
@@ -58,39 +58,38 @@ class Topology {
     inline mol_iterator MolEnd()   const { return molecules_.end();   }
     const Molecule& Mol(int idx)   const { return molecules_[idx];    }
     // ----- Bond-specific routines -----
-    inline const std::vector<int>& Bonds() const { return bonds_; }
-    inline const std::vector<int>& BondsH() const { return bondsh_; }
-    inline const std::vector<double>& BondRk() const { return bondrk_; }
-    inline const std::vector<double>& BondReq() const { return bondreq_; }
-    int GetBondParamIdx( int, double &, double &) const;
-    double GetBondedCutoff(int, int) const;
+    BondArray         const& Bonds()        const { return bonds_;        }
+    BondArray         const& BondsH()       const { return bondsh_;       }
+    BondParmArray     const& BondParm()     const { return bondparm_;     }
+    void AddBond(int,int);
+    int SetBondInfo(BondArray const&, BondArray const&, BondParmArray const&);
     // ----- Angle-specific routines -----
-    inline const std::vector<int>& Angles() const { return angles_; }
-    inline const std::vector<int>& AnglesH() const { return anglesh_; }
-    inline const std::vector<double>& AngleTk() const { return angletk_; }
-    inline const std::vector<double>& AngleTeq() const { return angleteq_; }
+    AngleArray        const& Angles()       const { return angles_;       }
+    AngleArray        const& AnglesH()      const { return anglesh_;      }
+    AngleParmArray    const& AngleParm()    const { return angleparm_;    }
+    int SetAngleInfo(AngleArray const&, AngleArray const&, AngleParmArray const&);
     // ----- Dihedral-specific routines -----
-    inline const std::vector<int>& Dihedrals() const { return dihedrals_; }
-    inline const std::vector<int>& DihedralsH() const { return dihedralsh_; }
-    inline const std::vector<double>& DihedralPk() const { return dihedralpk_; }
-    inline const std::vector<double>& DihedralPn() const { return dihedralpn_; }
-    inline const std::vector<double>& DihedralPhase() const { return dihedralphase_; }
-    inline const std::vector<double>& SCEE() const { return scee_; }
-    inline const std::vector<double>& SCNB() const { return scnb_; }
-    // ----- Amber Hbond info -----
-    inline const std::vector<double>& Asol() const { return asol_; }
-    inline const std::vector<double>& Bsol() const { return bsol_; }
-    inline const std::vector<double>& HBcut() const { return hbcut_; }
-    // ----- Amber extra info ----- TODO: Generate automatically
-    inline const std::vector<double>& Solty() const { return solty_; }
-    inline const std::vector<NameType>& Itree() const { return itree_; }
-    inline const std::vector<int>& Join() const { return join_; }
-    inline const std::vector<int>& Irotat() const { return irotat_; }
+    DihedralArray     const& Dihedrals()    const { return dihedrals_;    }
+    DihedralArray     const& DihedralsH()   const { return dihedralsh_;   }
+    DihedralParmArray const& DihedralParm() const { return dihedralparm_; }
+    int SetDihedralInfo(DihedralArray const&, DihedralArray const&, DihedralParmArray const&);
     // ----- Non-bond routines -----
-    inline void GetLJ_A_B(int,int,double&,double&) const; 
-    inline const std::vector<int>& NB_index() const { return nbindex_; }
-    inline const std::vector<double>& LJA() const { return lja_; }
-    inline const std::vector<double>& LJB() const { return ljb_; }
+    NonbondParmType   const& Nonbond()      const { return nonbond_;      }
+    int SetNonbondInfo(NonbondParmType const&);
+    /// \return True if nonbond parameters present.
+    bool HasNonbond()                       const { return nonbond_.Ntypes() > 0; }
+    /// \return Lennard-Jones 6-12 parameters for given pair of atoms
+    inline NonbondType const& GetLJparam(int, int) const;
+    // ----- Amber LES info -----
+    LES_ParmType      const& LES()          const { return lesparm_;      }
+    void SetLES(LES_ParmType const& l)            { lesparm_ = l;         }
+    // ----- Amber perturbed parm info -----
+    PertParmType      const& Pert()         const { return pert_;         }
+    // ----- Amber extra info ----- TODO: Generate automatically, consolidate
+    inline const std::vector<double>& Solty()   const { return solty_;  }
+    inline const std::vector<NameType>& Itree() const { return itree_;  }
+    inline const std::vector<int>& Join()       const { return join_;   }
+    inline const std::vector<int>& Irotat()     const { return irotat_; }
     // ----- Misc routines -----
     std::string TruncResAtomName(int) const;
     std::string AtomMaskName(int atom) const;
@@ -113,32 +112,14 @@ class Topology {
     inline Box const& ParmBox()   const { return box_;        }
     inline Box::BoxType BoxType() const { return box_.Type(); }
     void SetBox( Box const& bIn )       { box_ = bIn;         }
-    // ----- PDB/Mol2 etc setup routines -----
-    void AddTopAtom(Atom const&, NameType const&, int, int&, const double*);
+    // ----- Setup routines -----
+    int AddTopAtom(Atom const&, int, NameType const&, const double*);
     void StartNewMol();
     // ----- Amber setup routines -----
-    int CreateAtomArray(std::vector<NameType>&, std::vector<double>&,
-                        std::vector<int>&, std::vector<double>&,
-                        std::vector<int>&, std::vector<NameType>&,
-                        std::vector<double>&,std::vector<double>&, 
-                        std::vector<NameType>&, std::vector<int>&);
-    int SetBondInfo(std::vector<int> &, std::vector<int> &,
-                    std::vector<double>&,std::vector<double>&);
-    int SetAngleInfo(std::vector<int> &, std::vector<int> &,
-                    std::vector<double>&,std::vector<double>&);
-    int SetDihedralInfo(std::vector<int> &, std::vector<int> &,
-                    std::vector<double>&,std::vector<double>&,
-                    std::vector<double>&,
-                    std::vector<double>&,std::vector<double>&);
-    int SetAmberHbond(std::vector<double>&,std::vector<double>&,std::vector<double>&);
-    int SetAmberExtra(std::vector<double>&,std::vector<NameType> &,
-                      std::vector<int> &,std::vector<int> &);
-    int SetNonbondInfo(int, std::vector<int>& nbindex, 
-                       std::vector<double>&, std::vector<double>&);
+    int SetAmberExtra(std::vector<double> const&,std::vector<NameType> const&,
+                      std::vector<int> const&,std::vector<int> const&);
     // ----- Common Setup Routines -----
     int CommonSetup(bool);
-    void ClearBondInfo();
-    void AddBond(int,int);
     // ----- Mask Routines -----
     bool SetupIntegerMask(AtomMask &) const;
     bool SetupCharMask(AtomMask &) const;
@@ -146,77 +127,27 @@ class Topology {
     bool SetupCharMask(AtomMask &, Frame const&) const;
     // ----- Topology modification routines -----
     void ScaleDihedralK(double);
+    /// Strip atoms outside given mask, do not keep parameters.
     Topology* partialModifyStateByMask(AtomMask const& m) const {
-      return modifyStateByMask(m, false);
+      return ModifyByMap(m.Selected(), false);
     }
+    /// Strip atoms outside given mask.
     Topology* modifyStateByMask(AtomMask const& m) const {
-      return modifyStateByMask(m, true);
+      return ModifyByMap(m.Selected(), true);
     }
+    /// Rearrange atoms from given map, Map[newatom]=oldatom
     Topology* ModifyByMap(std::vector<int> const& m) const {
       return ModifyByMap(m, true);
     }
   private:
-    std::vector<Atom> atoms_;
-    std::vector<Residue> residues_;
-    std::vector<Molecule> molecules_;
-    FileName fileName_;
-    std::string parmTag_;
-    std::string parmName_;
-    std::string radius_set_;
-
-    std::vector<int> bonds_;
-    std::vector<int> bondsh_;
-    std::vector<double> bondrk_;
-    std::vector<double> bondreq_;
-
-    std::vector<int> angles_;
-    std::vector<int> anglesh_;
-    std::vector<double> angletk_;
-    std::vector<double> angleteq_;
-
-    std::vector<int> dihedrals_;
-    std::vector<int> dihedralsh_;
-    std::vector<double> dihedralpk_;
-    std::vector<double> dihedralpn_;
-    std::vector<double> dihedralphase_;
-    std::vector<double> scee_;
-    std::vector<double> scnb_;
-
-    std::vector<double> asol_;
-    std::vector<double> bsol_;
-    std::vector<double> hbcut_;
-
-    std::vector<double> solty_;
-    std::vector<NameType> itree_;
-    std::vector<int> join_;
-    std::vector<int> irotat_;
-
-    std::vector<int> nbindex_;
-    std::vector<double> lja_;
-    std::vector<double> ljb_;
-
-    Box box_;
-    Frame refCoords_;
-
-    double offset_;         ///< Offset used when searching for bonds
-    int debug_;
-    int NsolventMolecules_;
-    int finalSoluteRes_;
-    int pindex_;
-    int nframes_;
-    int ntypes_; // This is stored for the purpose of checking array sizes
-    int n_extra_pts_;
-    bool hasVelInfo_; // TODO: This information should be passed separate from Topology
-    int nRepDim_;     // TODO: This information should be passed separate from Topology
-
-    void PrintBonds(std::vector<int> const&, AtomMask const&, int&) const;
-    void PrintAngles(std::vector<int> const&, AtomMask const&, int&) const;
-    void PrintDihedrals(std::vector<int> const&, AtomMask const&, int&) const;
-    void SetAtomBondInfo();
-    static void WarnBondLengthDefault(Atom::AtomicElementType,
-                                      Atom::AtomicElementType,double);
-    static double GetBondLength(Atom::AtomicElementType, Atom::AtomicElementType);
-    static bool NameIsSolvent(NameType const&);
+    void PrintBonds(BondArray const&, AtomMask const&, int&) const;
+    void PrintAngles(AngleArray const&, AtomMask const&, int&) const;
+    void PrintDihedrals(DihedralArray const&, AtomMask const&, int&) const;
+    void SetAtomBondInfo(BondArray const&);
+    // NOTE: Use set so that elements are always sorted.
+    typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
+    void AddBondParam(BondType&, BP_mapType&);
+    void AssignBondParameters();
     void GetBondsFromAtomCoords();
     void VisitAtom(int, int);
     int DetermineMolecules();
@@ -237,16 +168,58 @@ class Topology {
     void MaskSelectAtoms(int, int, char*) const;
     bool ParseMask(Frame const&, AtomMask &,bool) const;
 
-    Topology* modifyStateByMask(AtomMask const&, bool) const;
     Topology* ModifyByMap(std::vector<int> const&, bool) const;
-    std::vector<int> SetupSequentialArray(std::vector<int> const&, int, std::vector<int> const&) const;
+    BondArray StripBondArray(BondArray const&, std::vector<int> const&) const;
+    AngleArray StripAngleArray(AngleArray const&, std::vector<int> const&) const;
+    DihedralArray StripDihedralArray(DihedralArray const&, std::vector<int> const&) const;
+
+    static const NonbondType LJ_EMPTY;
+    std::vector<Atom> atoms_;
+    std::vector<Residue> residues_;
+    std::vector<Molecule> molecules_;
+    FileName fileName_;
+    std::string parmTag_;
+    std::string parmName_;
+    std::string radius_set_;
+
+    BondArray bonds_;
+    BondArray bondsh_;
+    BondParmArray bondparm_;
+    AngleArray angles_;
+    AngleArray anglesh_;
+    AngleParmArray angleparm_;
+    DihedralArray dihedrals_;
+    DihedralArray dihedralsh_;
+    DihedralParmArray dihedralparm_;
+    // Non-bonded parameters
+    NonbondParmType nonbond_;
+    // Amber-only parameters
+    LES_ParmType lesparm_;           ///< LES parameters
+    PertParmType pert_;              ///< Atom perturbation info
+    // Amber extra info
+    std::vector<double> solty_;
+    std::vector<NameType> itree_;
+    std::vector<int> join_;
+    std::vector<int> irotat_;
+
+    Box box_;
+    Frame refCoords_;
+
+    double offset_;         ///< Offset used when searching for bonds
+    int debug_;
+    int NsolventMolecules_;
+    int finalSoluteRes_; ///< TODO: Get rid of
+    int pindex_;
+    int nframes_;
+    int n_extra_pts_;
+    bool hasVelInfo_; // TODO: This information should be passed separate from Topology
+    int nRepDim_;     // TODO: This information should be passed separate from Topology
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
-void Topology::GetLJ_A_B(int a1, int a2, double& A, double& B) const {
-  // Currently atom #s start from 1 in TypeIndex
-  int param = (ntypes_ * (atoms_[a1].TypeIndex()-1)) + atoms_[a2].TypeIndex()-1;
-  int index = nbindex_[param] - 1;
-  A = lja_[index];
-  B = ljb_[index];
+NonbondType const& Topology::GetLJparam(int a1, int a2) const {
+  int nbindex = nonbond_.GetLJindex( atoms_[a1].TypeIndex(), atoms_[a2].TypeIndex() );
+  if (nbindex < 0) // Means Amber Hbond, return A = B = 0.0
+    return LJ_EMPTY;
+  return nonbond_.NBarray( nbindex );
 }
 #endif
