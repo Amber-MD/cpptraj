@@ -21,5 +21,9 @@ class Analysis_Matrix : public Analysis {
     bool thermopt_;
     bool reduce_;
     bool eigenvaluesOnly_;
+    bool nmwizopt_;
+    int nmwizvecs_;
+    std::string nmwizfile_;
+    Topology* parmIn_;
 };
 #endif

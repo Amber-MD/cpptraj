@@ -921,3 +921,49 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   delete[] WorkSpace;
   return 0;
 }
+
+int DataSet_Modes::NMWiz(CpptrajFile& outfile, int nvecs, std::string filename, Topology const& parmIn) {
+  outfile.Printf("nmwiz_load %s\n", filename.c_str());
+
+  outfile.Printf("name default_name\n");  //TODO: get from optionally provided pdb file
+
+  outfile.Printf("atomnames ");
+  std::vector<NameType> atomnames;
+  for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++)
+    atomnames.push_back( (*atom).Name() );
+  for (int i=0; i<atomnames.size(); ++i)
+	outfile.Printf("%s ", *atomnames[i]);
+  outfile.Printf("\n");
+
+  outfile.Printf("resnames ");
+  std::vector<NameType> resnames;
+  for (Topology::res_iterator res = parmIn.ResStart(); res != parmIn.ResEnd(); res++)
+    resnames.push_back( (*res).Name() );
+  for (int i=0; i<resnames.size(); ++i)
+    outfile.Printf("%s ", *resnames[i]);
+  outfile.Printf("\n");
+  
+  outfile.Printf("resids ");  
+  for (int i = 0; i<resnames.size(); ++i)
+    outfile.Printf("%i ", i+1);
+  outfile.Printf("\n");
+  
+  outfile.Printf("chainids \n");    //TODO: get from optionally provided pdb file
+
+  outfile.Printf("bfactors \n");    //TODO: get from optionally provided pdb file
+
+  outfile.Printf("coordinates ");
+  for (int i = 0; i<avgcrd_.size(); ++i)
+	  outfile.Printf("%8.3f ", avgcrd_.xAddress()[i]);
+  outfile.Printf("\n");
+  
+  for (int vec = 0; vec<nvecs; ++vec){
+	const double* Vec = Eigenvector(vec);  
+	outfile.Printf("mode %i %12.10f ", vec+1, 1/evalues_[vec]);
+	for (int i = 0 ; i<vecsize_; ++i)
+		outfile.Printf("%12.5f ", Vec[i]);		
+	outfile.Printf("\n");
+  }
+  	
+  return 0;
+}
