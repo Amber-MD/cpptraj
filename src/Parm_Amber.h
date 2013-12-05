@@ -14,7 +14,7 @@ class Parm_Amber : public ParmIO {
   private :
     /// Enumerated type for Fortran data type
     enum FortranType {
-      UNKNOWN_FTYPE, FINT, FDOUBLE, FCHAR, FFLOAT
+      UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT
     };
     /// Enumerated type for Amber Parmtop Flags
     enum AmberParmFlagType {
@@ -75,6 +75,7 @@ class Parm_Amber : public ParmIO {
 
     static void CheckNameWidth(const char*, NameType const&);
     int AmberIfbox(const Box&);
+    int WriteFlagAndFormat(const char*, size_t);
     int WriteSetup(AmberParmFlagType,size_t);
     int WriteInteger(AmberParmFlagType,std::vector<int>const&);
     int WriteDouble(AmberParmFlagType,std::vector<double>const&);

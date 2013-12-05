@@ -664,11 +664,10 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
       // Assign format string
       fformat_.assign( FLAGS[F_CHM_CMAPP].Fmt );
       // Set type, cols, width, and precision from format string
-      if (!SetFortranType()) return 1;
       // Write FLAG and FORMAT lines
       std::string fflag(FLAGS[F_CHM_CMAPP].Flag);
       fflag.append( integerToString(ngrid, 2) );
-      file_.Printf("%%FLAG %-74s\n%-80s\n", fflag.c_str(), fformat_.c_str()); 
+      if (WriteFlagAndFormat(fflag.c_str(), grid->Grid().size())) return 1;
       WriteDoubleArray(grid->Grid());
     }
   }
@@ -1350,22 +1349,13 @@ bool Parm_Amber::PositionFileAtFlag(const char* Key) {
 }
 
 // -----------------------------------------------------------------------------
-// Parm_Amber::WriteSetup()
-int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
-  // Assign format string
-  fformat_.assign( FLAGS[fflag].Fmt );
-  // For chamber, certain flags have different format (boo).
-  if (ptype_ == CHAMBER) {
-    if      (fflag == F_CHARGE  ) fformat_.assign("%FORMAT(3E24.16)");
-    else if (fflag == F_ANGLETEQ) fformat_.assign("%FORMAT(3E25.17)");
-    else if (fflag == F_LJ_A    ) fformat_.assign("%FORMAT(3E24.16)");
-    else if (fflag == F_LJ_B    ) fformat_.assign("%FORMAT(3E24.16)");
-  } 
+int Parm_Amber::WriteFlagAndFormat(const char* flag, size_t Nelements)
+{
   //mprintf("DEBUG: FlagFormat[%s], Nelements=%zu\n",fformat_.c_str(),Nelements);
   // Set type, cols, width, and precision from format string
   if (!SetFortranType()) return 1;
   // Write FLAG and FORMAT lines
-  file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS[fflag].Flag, fformat_.c_str());
+  file_.Printf("%%FLAG %-74s\n%-80s\n", flag, fformat_.c_str());
   // If Nelements is 0 just print newline and exit
   if (Nelements == 0) {
     file_.Printf("\n");
@@ -1382,6 +1372,20 @@ int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
   }
   buffer_size_ = bufsize;
   return 0;
+}
+
+// Parm_Amber::WriteSetup()
+int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
+  // Assign format string
+  fformat_.assign( FLAGS[fflag].Fmt );
+  // For chamber, certain flags have different format (boo).
+  if (ptype_ == CHAMBER) {
+    if      (fflag == F_CHARGE  ) fformat_.assign("%FORMAT(3E24.16)");
+    else if (fflag == F_ANGLETEQ) fformat_.assign("%FORMAT(3E25.17)");
+    else if (fflag == F_LJ_A    ) fformat_.assign("%FORMAT(3E24.16)");
+    else if (fflag == F_LJ_B    ) fformat_.assign("%FORMAT(3E24.16)");
+  }
+  return WriteFlagAndFormat(FLAGS[fflag].Flag, Nelements);
 }
 
 // Parm_Amber::WriteInteger()
@@ -1422,7 +1426,11 @@ int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& d
 int Parm_Amber::WriteDoubleArray(std::vector<double>const& darray)
 {
   // Set up printf format string
-  std::string FS = SetDoubleFormatString(fwidth_, fprecision_, 2);
+  std::string FS;
+  if (ftype_ == FDOUBLE)
+    FS = SetDoubleFormatString(fwidth_, fprecision_, 2);
+  else
+    FS = SetDoubleFormatString(fwidth_, fprecision_, 1);
   const char *FORMAT = FS.c_str();
   char *ptr = buffer_;
   int col = 0;
