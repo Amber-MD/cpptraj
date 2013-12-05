@@ -102,7 +102,6 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
   { "IROTAT",                     F10I8 },
   { "ATOMIC_NUMBER",              F10I8 },
   { "TITLE",                      F20a4 },
-  { "CTITLE",                     F20a4 },
   { "RADIUS_SET",                 F1a80 },
   { "LES_NTYP",                   F10I8 }, // Number of LES region types
   { "LES_TYPE",                   F10I8 }, // LES type for each atom
@@ -112,7 +111,25 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
   { "CAP_INFO",                   F10I8 },
   { "CAP_INFO2",                  F5E16 },
   { "IPOL",                       F1I8  }, // 0 for fixed charge, 1 for polarizable
-  { "POLARIZABILITY",             F5E16 }  // Hold atom polarazabilities in Ang^3
+  { "POLARIZABILITY",             F5E16 }, // Hold atom polarazabilities in Ang^3
+  // CHAMBER parameters
+  { "CTITLE",                             "%FORMAT(a80)" },
+  { "CHARMM_UREY_BRADLEY_COUNT",          "%FORMAT(2I8)" }, // # UB terms and types
+  { "CHARMM_UREY_BRADLEY",                F10I8          }, // UB: 2 atoms and param index
+  { "CHARMM_UREY_BRADLEY_FORCE_CONSTANT", F5E16          }, 
+  { "CHARMM_UREY_BRADLEY_EQUIL_VALUE",    F5E16          },
+  { "CHARMM_NUM_IMPROPERS",               F10I8          }, // # improper terms
+  { "CHARMM_IMPROPERS",                   F10I8          }, // Imp: 4 atoms and param index
+  { "CHARMM_NUM_IMPR_TYPES",              "%FORMAT(I8)"  }, // # improper types
+  { "CHARMM_IMPROPER_FORCE_CONSTANT",     F5E16          }, 
+  { "CHARMM_IMPROPER_PHASE",              F5E16          },
+  { "LENNARD_JONES_14_ACOEF",             "%FORMAT(3E24.16" },
+  { "LENNARD_JONES_14_BCOEF",             "%FORMAT(3E24.16" },
+  { "CHARMM_CMAP_COUNT",                  "%FORMAT(2I8)" }, // # CMAP terms, # unique CMAP params
+  { "CHARMM_CMAP_RESOLUTION",             "%FORMAT(20I4)"}, // # steps along each Phi/Psi CMAP axis
+  { "CHARMM_CMAP_PARAMETER_",             "%FORMAT(8(F9.5))"}, // CMAP grid
+  { "CHARMM_CMAP_INDEX",                  "%FORMAT(6I8)" }, // Atom i,j,k,l,m of cross term and idx
+  { "FORCE_FIELD_TYPE",                   "%FORMAT(i2,a78)"} // NOTE: Cannot use with SetFortranType
 };
 
 // -----------------------------------------------------------------------------
@@ -178,7 +195,7 @@ bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
 // Parm_Amber::ReadParm()
 int Parm_Amber::ReadParm(std::string const& fname, Topology &TopIn ) {
   if (file_.OpenRead( fname )) return 1;
-  int err = ReadParmAmber( TopIn );
+  int err = ReadAmberParm( TopIn );
   file_.CloseFile();
   return err;
 }
@@ -205,12 +222,18 @@ void Parm_Amber::CheckNameWidth(const char* typeIn, NameType const& nameIn) {
 }
 
 /** Convert internal bond type to integer array. */
-static std::vector<int> BondArrayToIndex(BondArray const& bondIn) {
+static std::vector<int> BondArrayToIndex(BondArray const& bondIn, bool chamber) {
   std::vector<int> arrayOut;
   arrayOut.reserve( bondIn.size() * 3 );
+  int amult = 3;
+  int aoff = 0;
+  if (chamber) {
+    amult = 1;
+    aoff = 1;
+  }
   for (BondArray::const_iterator bnd = bondIn.begin(); bnd != bondIn.end(); ++bnd) {
-    arrayOut.push_back( bnd->A1()*3 );
-    arrayOut.push_back( bnd->A2()*3 );
+    arrayOut.push_back( (bnd->A1()*amult)+aoff );
+    arrayOut.push_back( (bnd->A2()*amult)+aoff );
     arrayOut.push_back( bnd->Idx() + 1 );
   }
   return arrayOut;
@@ -232,20 +255,26 @@ static std::vector<int> AngleArrayToIndex(AngleArray const& angleIn) {
 /** Convert internal dihedral type to integer array. End/Improper dihedrals
   * have 3rd and 4th atoms respectively as negative numbers.
   */
-static std::vector<int> DihedralArrayToIndex(DihedralArray const& dihedralIn) {
+static std::vector<int> DihedralArrayToIndex(DihedralArray const& dihedralIn, bool chamber) {
   std::vector<int> arrayOut;
   arrayOut.reserve( dihedralIn.size() * 5 );
+  int amult = 3;
+  int aoff = 0;
+  if (chamber) {
+    amult = 1;
+    aoff = 1;
+  }
   for (DihedralArray::const_iterator dih = dihedralIn.begin(); dih != dihedralIn.end(); ++dih) {
-    arrayOut.push_back( dih->A1()*3 );
-    arrayOut.push_back( dih->A2()*3 );
+    arrayOut.push_back( (dih->A1()*amult)+aoff );
+    arrayOut.push_back( (dih->A2()*amult)+aoff );
     if ( dih->Type() == DihedralType::BOTH || dih->Type() == DihedralType::END)
-      arrayOut.push_back( -(dih->A3()*3) );
+      arrayOut.push_back( -((dih->A3()*amult)+aoff) );
     else
-      arrayOut.push_back( dih->A3()*3 );
+      arrayOut.push_back( (dih->A3()*amult)+aoff );
     if ( dih->Type() == DihedralType::BOTH || dih->Type() == DihedralType::IMPROPER)
-      arrayOut.push_back( -(dih->A4()*3) );
+      arrayOut.push_back( -((dih->A4()*amult)+aoff) );
     else
-      arrayOut.push_back( dih->A4()*3 );
+      arrayOut.push_back( (dih->A4()*amult)+aoff );
     arrayOut.push_back( dih->Idx() + 1 );
   }
   return arrayOut;
@@ -253,6 +282,7 @@ static std::vector<int> DihedralArrayToIndex(DihedralArray const& dihedralIn) {
 
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
+  ptype_ = NEWPARM;
   // For date and time
   time_t rawtime;
   struct tm *timeinfo;
@@ -270,6 +300,8 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   gb_screen.reserve(   parmIn.Natom() );
   at_num.reserve(      parmIn.Natom() );
   atype_index.reserve( parmIn.Natom() );
+  // Will not write GB params if all are zero.
+  bool hasGB = false;
   for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); ++atom) 
   {
     names.push_back( atom->Name() );
@@ -284,6 +316,8 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
     CheckNameWidth("Type",types.back());
     gb_radii.push_back( atom->GBRadius() );
     gb_screen.push_back( atom->Screen() );
+    if (gb_radii.back() > 0.0 || gb_screen.back() > 0.0)
+      hasGB = true;
     // Amber atom exclusion list prints a 0 placeholder for atoms with
     // no exclusions, so always print at least 1 for numex
     int nex = atom->Nexcluded();
@@ -322,7 +356,7 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   values[NPHIH] = (int)parmIn.DihedralsH().size(); 
   values[NPHIA] = (int)parmIn.Dihedrals().size();
   // FIXME: Currently LES info not 100% correct, in particular the excluded list
-  if (parmIn.HasLES()) {
+  if (parmIn.LES().HasLES()) {
     mprintf("Warning: Excluded atom list for LES info is not correct.\n");
     values[NPARM] = 1;
   }
@@ -342,6 +376,13 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   if (parmIn.Cap().NatCap() > 0)
     values[IFCAP] = 1;
   values[NEXTRA] = parmIn.NextraPts();
+
+  // Determine if this is a CHAMBER topology
+  AmberParmFlagType titleFlag = F_TITLE;
+  if (parmIn.Chamber().HasChamber()) {
+    titleFlag = F_CTITLE;
+    ptype_ = CHAMBER;
+  }
  
   // Write parm
   if (file_.OpenWrite( fname )) return 1;
@@ -356,9 +397,15 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   // Resize title to max 80 char
   if (title.size() > 80)
     title.resize(80);
-  file_.Printf("%-80s\n%-80s\n%-80s\n","%FLAG TITLE","%FORMAT(20a4)",title.c_str());
+  file_.Printf("%%FLAG %-74s\n%-80s\n%-80s\n", FLAGS[titleFlag].Flag, 
+               FLAGS[titleFlag].Fmt, title.c_str());
   // POINTERS
   WriteInteger(F_POINTERS, values);
+  // CHAMBER only - Version and FF type
+  if (ptype_ == CHAMBER)
+    file_.Printf("%%FLAG %-74s\n%-80s\n%2i%-78s\n",FLAGS[F_FF_TYPE].Flag,
+                 FLAGS[F_FF_TYPE].Fmt, parmIn.Chamber().FF_Version(),
+                 parmIn.Chamber().FF_Type().c_str());
   // NAMES, CHARGE, ATOMIC NUMBER, MASS, TYPE INDEX, EXCLUDED, NB INDEX
   WriteName(F_NAMES, names);
   WriteDouble(F_CHARGE, charge);
@@ -366,6 +413,9 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteDouble(F_MASS, mass);
   WriteInteger(F_ATYPEIDX, atype_index);
   WriteInteger(F_NUMEX, numex);
+  // CHAMBER only - Write Excluded atoms list here (boo)
+  if (ptype_ == CHAMBER) 
+    WriteInteger(F_EXCLUDE, excluded);
   // NONBONDED INDICES - positive needs to be shifted by +1 for fortran
   std::vector<int> nbindex;
   nbindex.reserve( parmIn.Nonbond().NBindex().size() );
@@ -380,19 +430,19 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteName(F_RESNAMES, resnames);
   WriteInteger(F_RESNUMS, resnums);
   // BOND, ANGLE, and DIHEDRAL FORCE CONSTANT and EQUIL VALUES
-  std::vector<double> Rk;
-  std::vector<double> Req;
+  std::vector<double> Rk, Req;
   // Bond params
   Rk.reserve( parmIn.BondParm().size() );
   Req.reserve( parmIn.BondParm().size() );
   for (BondParmArray::const_iterator parm = parmIn.BondParm().begin(); 
-                                    parm != parmIn.BondParm().end(); ++parm)
+                                     parm != parmIn.BondParm().end(); ++parm)
   {
     Rk.push_back( parm->Rk() );
     Req.push_back( parm->Req() );
   }
   WriteDouble(F_BONDRK,  Rk);
   WriteDouble(F_BONDREQ, Req);
+  // TODO: Use resize(0) instead?
   Rk.clear();
   Req.clear();
   // Angle params
@@ -408,6 +458,26 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteDouble(F_ANGLETEQ, Req);
   Rk.clear();
   Req.clear();
+  // CHARMM only - Urey-Bradley
+  if (ptype_ == CHAMBER) {
+    std::vector<int> UBC(2);
+    UBC[0] = parmIn.Chamber().UB().size();
+    UBC[1] = parmIn.Chamber().UBparm().size();
+    Rk.reserve(  UBC[1] );
+    Req.reserve( UBC[1] );
+    for (BondParmArray::const_iterator parm = parmIn.Chamber().UBparm().begin();
+                                       parm != parmIn.Chamber().UBparm().end(); ++parm)
+    {
+      Rk.push_back( parm->Rk() );
+      Req.push_back( parm->Req() );
+    }
+    WriteInteger(F_CHM_UBC, UBC);
+    WriteInteger(F_CHM_UB, BondArrayToIndex(parmIn.Chamber().UB(), true));
+    WriteDouble(F_CHM_UBFC, Rk);
+    WriteDouble(F_CHM_UBEQ, Req);
+    Rk.clear();
+    Req.clear();
+  }
   // Dihedral params
   Rk.reserve( parmIn.DihedralParm().size() );
   Req.reserve( parmIn.DihedralParm().size() );
@@ -429,11 +499,34 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteDouble(F_DIHPHASE, phase);
   WriteDouble(F_SCEE, scee);
   WriteDouble(F_SCNB, scnb);
+  Rk.clear();
+  Req.clear();
+  phase.clear();
+  scee.clear();
+  scnb.clear();
+  // CHAMBER only - Impropers
+  if (ptype_ == CHAMBER) {
+    std::vector<int> NIMP(1, parmIn.Chamber().Impropers().size());
+    WriteInteger(F_CHM_NIMP, NIMP);
+    WriteInteger(F_CHM_IMP, DihedralArrayToIndex(parmIn.Chamber().Impropers(),true));
+    NIMP[0] = parmIn.Chamber().ImproperParm().size();
+    Rk.reserve( NIMP[0] );
+    phase.reserve( NIMP[0] );
+    for (DihedralParmArray::const_iterator parm = parmIn.Chamber().ImproperParm().begin();
+                                           parm != parmIn.Chamber().ImproperParm().end(); ++parm)
+    {
+      Rk.push_back( parm->Pk() );
+      phase.push_back( parm->Phase() );
+    }
+    WriteInteger(F_CHM_NIMPT, NIMP);
+    WriteDouble(F_CHM_IMPFC, Rk);
+    WriteDouble(F_CHM_IMPP, phase);
+    Rk.clear();
+    phase.clear();
+  }
   // SOLTY - Currently unused
   WriteDouble(F_SOLTY, parmIn.Solty());
   // LJ params
-  Rk.clear();
-  Req.clear();
   Rk.reserve( parmIn.Nonbond().NBarray().size() );
   Req.reserve( parmIn.Nonbond().NBarray().size() );
   for (NonbondArray::const_iterator nb = parmIn.Nonbond().NBarray().begin();
@@ -444,19 +537,32 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   }
   WriteDouble(F_LJ_A, Rk);
   WriteDouble(F_LJ_B, Req);
-  // BONDS/ANGLES/DIHEDRAL INDICES WITH AND WITHOUT HYDROGEN
-  WriteInteger(F_BONDSH, BondArrayToIndex(parmIn.BondsH())); 
-  WriteInteger(F_BONDS, BondArrayToIndex(parmIn.Bonds()));
-  WriteInteger(F_ANGLESH, AngleArrayToIndex(parmIn.AnglesH()));
-  WriteInteger(F_ANGLES, AngleArrayToIndex(parmIn.Angles()));
-  WriteInteger(F_DIHH, DihedralArrayToIndex(parmIn.DihedralsH()));
-  WriteInteger(F_DIH, DihedralArrayToIndex(parmIn.Dihedrals()));
-  // EXCLUDED ATOMS LIST
-  WriteInteger(F_EXCLUDE, excluded);
-  // HBOND
   Rk.clear();
   Req.clear();
-  phase.clear();
+  // CHAMBER only - LJ 1-4: Same size as LJ arrays above, no need to reserve.
+  if (ptype_ == CHAMBER) {
+    for (NonbondArray::const_iterator nb = parmIn.Chamber().LJ14().begin();
+                                      nb != parmIn.Chamber().LJ14().end(); ++nb)
+    {
+      Rk.push_back( nb->A() );
+      Req.push_back( nb->B() );
+    }
+    WriteDouble(F_LJ14A, Rk);
+    WriteDouble(F_LJ14B, Req);
+    Rk.clear();
+    Req.clear();
+  } 
+  // BONDS/ANGLES/DIHEDRAL INDICES WITH AND WITHOUT HYDROGEN
+  WriteInteger(F_BONDSH,  BondArrayToIndex(parmIn.BondsH(), false)); 
+  WriteInteger(F_BONDS,   BondArrayToIndex(parmIn.Bonds(), false));
+  WriteInteger(F_ANGLESH, AngleArrayToIndex(parmIn.AnglesH()));
+  WriteInteger(F_ANGLES,  AngleArrayToIndex(parmIn.Angles()));
+  WriteInteger(F_DIHH,    DihedralArrayToIndex(parmIn.DihedralsH(),false));
+  WriteInteger(F_DIH,     DihedralArrayToIndex(parmIn.Dihedrals(),false));
+  // EXCLUDED ATOMS LIST - only if not CHAMBER
+  if (ptype_ != CHAMBER)
+    WriteInteger(F_EXCLUDE, excluded);
+  // HBOND
   Rk.reserve( parmIn.Nonbond().HBarray().size() );
   Req.reserve( parmIn.Nonbond().HBarray().size() );
   phase.reserve( parmIn.Nonbond().HBarray().size() );
@@ -470,6 +576,9 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteDouble(F_ASOL, Rk);
   WriteDouble(F_BSOL, Req);
   WriteDouble(F_HBCUT, phase);
+  Rk.clear();
+  Req.clear();
+  phase.clear();
   // AMBER ATOM TYPE
   WriteName(F_TYPES, types);
   // TREE CHAIN CLASSIFICATION, JOIN, IROTAT
@@ -514,7 +623,7 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   }
   // CAP info
   if (values[IFCAP] == 1) {
-    std::vector<int> CI(1, parmIn.Cap().NatCap());
+    std::vector<int> CI(1, parmIn.Cap().NatCap()+1);
     WriteInteger(F_CAP_INFO, CI);
     std::vector<double> CD(4);
     CD[0] = parmIn.Cap().CutCap();
@@ -524,15 +633,45 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
     WriteDouble(F_CAP_INFO2, CD);
   }
   // GB RADIUS SET, RADII, SCREENING PARAMETERS
-  std::string radius_set = parmIn.GBradiiSet();
-  if (!radius_set.empty()) {
-    WriteSetup(F_RADSET, 1);
-    if (radius_set.size()>80)
-      radius_set.resize(80);
-    file_.Printf("%-80s\n",radius_set.c_str());
+  if (hasGB) {
+    std::string radius_set = parmIn.GBradiiSet();
+    if (!radius_set.empty()) {
+      WriteSetup(F_RADSET, 1);
+      if (radius_set.size()>80)
+        radius_set.resize(80);
+      file_.Printf("%-80s\n",radius_set.c_str());
+    }
+    WriteDouble(F_RADII, gb_radii);
+    WriteDouble(F_SCREEN, gb_screen);
   }
-  WriteDouble(F_RADII, gb_radii);
-  WriteDouble(F_SCREEN, gb_screen);
+  // CHAMBER only - Write out CMAP parameters
+  if (ptype_ == CHAMBER && parmIn.Chamber().HasCmap()) {
+    std::vector<int> CMAP(2);
+    CMAP[0] = parmIn.Chamber().Cmap().size(); // CMAP terms
+    CMAP[1] = parmIn.Chamber().CmapGrid().size(); // CMAP grids
+    WriteInteger(F_CHM_CMAPC, CMAP);
+    std::vector<int> CMAP_RES;
+    CMAP_RES.reserve( CMAP[1] );
+    for (CmapGridArray::const_iterator grid = parmIn.Chamber().CmapGrid().begin();
+                                       grid != parmIn.Chamber().CmapGrid().end(); ++grid)
+      CMAP_RES.push_back( grid->Resolution() );
+    WriteInteger(F_CHM_CMAPR, CMAP_RES);
+    int ngrid = 1;
+    for (CmapGridArray::const_iterator grid = parmIn.Chamber().CmapGrid().begin();
+                                       grid != parmIn.Chamber().CmapGrid().end();
+                                       ++grid, ++ngrid)
+    {
+      // Assign format string
+      fformat_.assign( FLAGS[F_CHM_CMAPP].Fmt );
+      // Set type, cols, width, and precision from format string
+      if (!SetFortranType()) return 1;
+      // Write FLAG and FORMAT lines
+      std::string fflag(FLAGS[F_CHM_CMAPP].Flag);
+      fflag.append( integerToString(ngrid, 2) );
+      file_.Printf("%%FLAG %-74s\n%-80s\n", fflag.c_str(), fformat_.c_str()); 
+      WriteDoubleArray(grid->Grid());
+    }
+  }
   // Polarizability - only write if it needs to be there
   if (parmIn.Ipol() > 0) {
     WriteInteger(F_IPOL, std::vector<int>(1, parmIn.Ipol()));
@@ -572,22 +711,47 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
 }
 
 // ---- AMBER READ ROUTINES ----------------------------------------------------
-static BondArray BondIndexToArray(std::vector<int> bondIdx) {
+// BondIndexToArray()
+static BondArray BondIndexToArray(std::vector<int> const& bondIdx, bool chamber, int& err) {
   BondArray bonds;
   if ( (bondIdx.size() % 3) != 0 ) {
     mprinterr("Internal Error: Size of Amber bonds array not divisible by 3.\n");
+    err++;
     return bonds;
+  }
+  int adiv = 3;
+  int aoff = 0;
+  if (chamber) {
+    adiv = 1;
+    aoff = 1;
   }
   bonds.reserve(bondIdx.size() / 3);
   for (std::vector<int>::const_iterator it = bondIdx.begin(); it != bondIdx.end(); it += 3)
-    bonds.push_back( BondType( *it / 3, *(it+1) / 3, *(it+2) - 1 ) );
+    bonds.push_back( BondType( (*it / adiv) - aoff, (*(it+1) / adiv) - aoff, *(it+2) - 1 ) );
   return bonds;
 }
-
-static AngleArray AngleIndexToArray(std::vector<int> angleIdx) {
+// BondParmToArray()
+static BondParmArray BondParmToArray(std::vector<double> const& bondk,
+                                     std::vector<double> const& bondeq, int& err)
+{
+  BondParmArray bp;
+  if (bondk.size() != bondeq.size()) {
+    mprinterr("Error: Size of bond parm arrays inconsistent.\n");
+    err++;
+    return bp;
+  }
+  if (bondk.empty()) return bp;
+  bp.reserve( bondk.size() );
+  for (unsigned int i = 0; i < bondk.size(); i++)
+    bp.push_back( BondParmType( bondk[i], bondeq[i] ) );
+  return bp;
+}
+// AngleIndexToArray()
+static AngleArray AngleIndexToArray(std::vector<int> const& angleIdx, int& err) {
   AngleArray angles;
   if ( (angleIdx.size() % 4) != 0 ) {
     mprinterr("Internal Error: Size of Amber angles array not divisible by 4.\n");
+    err++;
     return angles;
   }
   angles.reserve(angleIdx.size() / 4);
@@ -595,30 +759,61 @@ static AngleArray AngleIndexToArray(std::vector<int> angleIdx) {
     angles.push_back( AngleType( *it / 3, *(it+1) / 3, *(it+2) / 3, *(it+3) - 1 ) );
   return angles;
 }
-
-static DihedralArray DihedralIndexToArray(std::vector<int> dihedralIdx) {
+// AngleParmToArray()
+static AngleParmArray AngleParmToArray(std::vector<double> const& anglek,
+                                       std::vector<double> const& angleeq, int& err)
+{
+  AngleParmArray ap;
+  if (anglek.size() != angleeq.size()) {
+    mprinterr("Error: Size of angle parm arrays inconsistent.\n");
+    err++;
+    return ap;
+  }
+  if (anglek.empty()) return ap;
+  ap.reserve( anglek.size() );
+  for (unsigned int i = 0; i < anglek.size(); i++)
+    ap.push_back( AngleParmType( anglek[i], angleeq[i] ) );
+  return ap;
+}
+// DihedralIndexToArray()
+static DihedralArray DihedralIndexToArray(std::vector<int> const& dihedralIdx,
+                                          bool chamber, int& err)
+{
   DihedralArray dihedrals;
   if ( (dihedralIdx.size() % 5) != 0 ) {
     mprinterr("Internal Error: Size of Amber dihedrals array not divisible by 5.\n");
+    err++;
     return dihedrals;
+  }
+  int adiv = 3;
+  int aoff = 0;
+  if (chamber) {
+    adiv = 1;
+    aoff = 1;
   }
   dihedrals.reserve(dihedralIdx.size() / 5);
   for (std::vector<int>::const_iterator it = dihedralIdx.begin(); it != dihedralIdx.end(); it += 5)
-    dihedrals.push_back( DihedralType( *it / 3, *(it+1) / 3, *(it+2) / 3,
-                                       *(it+3) / 3, *(it+4) - 1 ) );
+    dihedrals.push_back( DihedralType( (*it/adiv)-aoff, (*(it+1)/adiv)-aoff, (*(it+2)/adiv)-aoff,
+                                       (*(it+3)/adiv)-aoff, *(it+4) - 1 ) );
   return dihedrals;
 }
-
-static int ParmArrayErr(const char* msg) {
-  mprinterr("Error: Size of %s parm arrays inconsistent.\n");
-  return 1;
+// NonbondParmToArray()
+static NonbondArray NonbondParmToArray(std::vector<double> const& LJ_A,
+                                       std::vector<double> const& LJ_B)
+{
+  NonbondArray NBA;
+  NBA.reserve( LJ_A.size() );
+  for (unsigned int i = 0; i < LJ_A.size(); i++)
+    NBA.push_back( NonbondType(LJ_A[i], LJ_B[i]) );
+  return NBA;
 }
 
-// Parm_Amber::ReadParmAmber()
-int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
+// Parm_Amber::ReadAmberParm()
+int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
   Box parmbox;
   std::string title;
-  int Npointers = AMBERPOINTERS; 
+  int Npointers = AMBERPOINTERS;
+  ChamberParmType chamberParm; 
 
   if (ptype_ == NEWPARM) {
     if (debug_>0) 
@@ -654,10 +849,22 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     mprintf("Warning: '%s' contains perturbation information.\n"
             "Warning:  Cpptraj currently does not read of write perturbation information.\n",
             file_.Filename().base());
-  // DEBUG
-  //for (std::vector<int>::iterator val = values.begin(); val != values.end(); ++val)
-  //  mprintf("\t%i\n", *val);
-
+  // CHAMBER only - read force field type
+  if (ptype_ == CHAMBER) {
+    if (PositionFileAtFlag(F_FF_TYPE)) {
+      file_.Gets(lineBuffer_, BUF_SIZE);
+      int ff_verno;
+      sscanf(lineBuffer_, "%i", &ff_verno);
+      std::string fftype(lineBuffer_+2);
+      RemoveTrailingWhitespace(fftype);
+      chamberParm.SetChamber( ff_verno, fftype );
+      mprintf("\tCHAMBER topology: %i: %s\n", ff_verno, fftype.c_str());
+    } else {
+      mprinterr("Error: CHAMBER topology missing FORCE_FIELD_TYPE\n");
+      return 1;
+    }
+  }
+      
   // Read parm variables
   std::vector<NameType> names = GetFlagName(F_NAMES, values[NATOM]);
   std::vector<double> charge = GetFlagDouble(F_CHARGE,values[NATOM]);
@@ -673,10 +880,26 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
   std::vector<int> NB_index = GetFlagInteger(F_NB_INDEX,values[NTYPES]*values[NTYPES]);
   std::vector<NameType> resnames = GetFlagName(F_RESNAMES,values[NRES]);
   std::vector<int> resnums = GetFlagInteger(F_RESNUMS,values[NRES]);
-  std::vector<double> bond_rk = GetFlagDouble(F_BONDRK, values[NUMBND]);
-  std::vector<double> bond_req = GetFlagDouble(F_BONDREQ, values[NUMBND]);
-  std::vector<double> angle_tk = GetFlagDouble(F_ANGLETK, values[NUMANG]);
-  std::vector<double> angle_teq = GetFlagDouble(F_ANGLETEQ, values[NUMANG]);
+  // Bond and angle parameters
+  BondParmArray BPA = BondParmToArray(GetFlagDouble(F_BONDRK, values[NUMBND]),
+                                      GetFlagDouble(F_BONDREQ,values[NUMBND]), error_count_);
+  AngleParmArray APA = AngleParmToArray(GetFlagDouble(F_ANGLETK, values[NUMANG]),
+                                        GetFlagDouble(F_ANGLETEQ,values[NUMANG]), error_count_);
+  // CHAMBER only - read Urey-Bradley info
+  if (ptype_ == CHAMBER) {
+    std::vector<int> UBC = GetFlagInteger(F_CHM_UBC, 2); // terms, types
+    if (UBC.size() != 2) {
+      mprinterr("Error: Could not get CHARMM_UREY_BRADLEY_COUNT in CHAMBER topology.\n");
+      return 1;
+    }
+    BondArray UB = BondIndexToArray( GetFlagInteger(F_CHM_UB, UBC[0]*3), true, error_count_ );
+    std::vector<double> UBFC = GetFlagDouble(F_CHM_UBFC, UBC[1]);
+    std::vector<double> UBEQ = GetFlagDouble(F_CHM_UBEQ, UBC[1]);
+    BondParmArray UBparm = BondParmToArray(GetFlagDouble(F_CHM_UBFC, UBC[1]),
+                                           GetFlagDouble(F_CHM_UBEQ, UBC[1]), error_count_);
+    chamberParm.SetUB( UB, UBparm );
+  }
+  // Dihedral parameters
   std::vector<double> dihedral_pk = GetFlagDouble(F_DIHPK, values[NPTRA]);
   std::vector<double> dihedral_pn = GetFlagDouble(F_DIHPN, values[NPTRA]);
   std::vector<double> dihedral_phase = GetFlagDouble(F_DIHPHASE, values[NPTRA]);
@@ -687,17 +910,46 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     scee_scale = GetFlagDouble(F_SCEE,values[NPTRA]);
     scnb_scale = GetFlagDouble(F_SCNB,values[NPTRA]);
   }
+  // CHAMBER only - read Impropers
+  if (ptype_ == CHAMBER) {
+    std::vector<int> NIMP = GetFlagInteger(F_CHM_NIMP, 1);
+    if (NIMP.empty()) {
+      mprinterr("Error: Could not get CHARMM_NUM_IMPROPERS in CHAMBER topology.\n");
+      return 1;
+    }
+    DihedralArray IMP = DihedralIndexToArray(GetFlagInteger(F_CHM_IMP,NIMP[0]*5),true,error_count_);
+    NIMP = GetFlagInteger(F_CHM_NIMPT, 1);
+    if (NIMP.empty()) {
+      mprinterr("Error: Could not get CHARMM_NUM_IMPR_TYPES in CHAMBER topology.\n");
+      return 1;
+    }
+    std::vector<double> imp_fc    = GetFlagDouble(F_CHM_IMPFC,NIMP[0]);
+    std::vector<double> imp_phase = GetFlagDouble(F_CHM_IMPP, NIMP[0]);
+    DihedralParmArray IMPparm;
+    IMPparm.reserve( NIMP[0] );
+    for (unsigned int i = 0; i < imp_fc.size(); i++)
+      IMPparm.push_back( DihedralParmType(imp_fc[i], imp_phase[i]) );
+    chamberParm.SetImproper( IMP, IMPparm );
+  }
   // SOLTY: currently unused
   std::vector<double> solty = GetFlagDouble(F_SOLTY, values[NATYP]);
+  // Lennard-Jones A and B parameters
   int nlj = values[NTYPES] * (values[NTYPES]+1) / 2;
-  std::vector<double> LJ_A = GetFlagDouble(F_LJ_A,nlj);
-  std::vector<double> LJ_B = GetFlagDouble(F_LJ_B,nlj);
-  std::vector<int> bondsh = GetFlagInteger(F_BONDSH,values[NBONH]*3);
-  std::vector<int> bonds = GetFlagInteger(F_BONDS,values[MBONA]*3);
-  std::vector<int> anglesh = GetFlagInteger(F_ANGLESH, values[NTHETH]*4);
-  std::vector<int> angles = GetFlagInteger(F_ANGLES, values[MTHETA]*4);
-  std::vector<int> dihedralsh = GetFlagInteger(F_DIHH, values[NPHIH]*5);
-  std::vector<int> dihedrals = GetFlagInteger(F_DIH, values[MPHIA]*5);
+  NonbondArray NBA = NonbondParmToArray(GetFlagDouble(F_LJ_A, nlj),
+                                        GetFlagDouble(F_LJ_B, nlj));
+  // CHAMBER only - read LJ 1-4 terms
+  if (ptype_ == CHAMBER)
+    chamberParm.SetLJ14(NonbondParmToArray(GetFlagDouble(F_LJ14A, nlj),
+                                           GetFlagDouble(F_LJ14B, nlj)));
+  // Bonds, angles, dihedrals
+  BondArray bondsh = BondIndexToArray(GetFlagInteger(F_BONDSH,values[NBONH]*3),false,error_count_);
+  BondArray bonds  = BondIndexToArray(GetFlagInteger(F_BONDS, values[MBONA]*3),false,error_count_);
+  AngleArray anglesh = AngleIndexToArray(GetFlagInteger(F_ANGLESH,values[NTHETH]*4), error_count_);
+  AngleArray angles  = AngleIndexToArray(GetFlagInteger(F_ANGLES, values[MTHETA]*4), error_count_);
+  DihedralArray dihedralsh = DihedralIndexToArray(GetFlagInteger(F_DIHH,values[NPHIH]*5),
+                                                  false, error_count_);
+  DihedralArray dihedrals  = DihedralIndexToArray(GetFlagInteger(F_DIH, values[MPHIA]*5),
+                                                  false, error_count_);
   // For old parm need to read past EXCLUDE
   if (ptype_ == OLDPARM)
     GetFlagInteger(F_EXCLUDE, values[NNB]);
@@ -750,7 +1002,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
       mprinterr("Error: Could not read Cap info.\n");
       return 1;
     }
-    TopIn.SetCap( CapParmType(CI[0], CD[0], CD[1], CD[2], CD[3]) );
+    TopIn.SetCap( CapParmType(CI[0]-1, CD[0], CD[1], CD[2], CD[3]) );
   }
   // New Parm only: GB parameters; radius set, radii, and screening parameters
   std::vector<double> gb_radii;
@@ -763,6 +1015,34 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     }
     gb_radii = GetFlagDouble(F_RADII,values[NATOM]);
     gb_screen = GetFlagDouble(F_SCREEN,values[NATOM]); 
+  }
+  // CHAMBER only - read CMAP info
+  if (ptype_ == CHAMBER) {
+    std::vector<int> CMAP = GetFlagInteger(F_CHM_CMAPC, 2); // cmap terms, cmap grids
+    if (!CMAP.empty()) {
+      // Get CMAP resolutions for each grid
+      std::vector<int> CMAP_RES = GetFlagInteger(F_CHM_CMAPR, CMAP[1]);
+      // Read CMAP grids.
+      for (int i = 0; i < CMAP[1]; i++) {
+        // Find flag for CMAP grid, set format line
+        std::string fflag(FLAGS[F_CHM_CMAPP].Flag);
+        fflag.append( integerToString(i+1, 2) );
+        if (!PositionFileAtFlag(fflag.c_str())) {
+          mprinterr("Error: Could not find CMAP grid %s\n", fflag.c_str());
+          return 1;
+        }
+        // Set up cols, width, etc from format
+        if (!SetFortranType()) return 1;
+        // Add Grid
+        chamberParm.AddCmapGrid( CmapGridType(CMAP_RES[i], 
+                                              GetDouble(fwidth_,fncols_,CMAP_RES[i]*CMAP_RES[i])));
+      }
+      // Read CMAP parameters
+      CMAP_RES = GetFlagInteger(F_CHM_CMAPI, CMAP[0]*6);
+      for (std::vector<int>::const_iterator it = CMAP_RES.begin(); it != CMAP_RES.end(); it+=6)
+        chamberParm.AddCmapTerm( CmapType(*it-1,     *(it+1)-1, *(it+2)-1,
+                                          *(it+3)-1, *(it+4)-1, *(it+5)-1) );
+    }
   }
   // Polarizability - new topology only
   std::vector<double> polar;
@@ -786,7 +1066,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
       les_parameters.AddLES_Atom( LES_AtomType(LES_array[i], LES_cnum[i], LES_id[i]) );
     TopIn.SetLES( les_parameters );
   }
-  // Done reading. Set up topology. 
+  // Done reading. Set up topology if no errors encountered. 
   if (error_count_==0) {
     // Add total # atoms to resnums.
     resnums.push_back( values[NATOM]+1 ); 
@@ -806,23 +1086,14 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
                         ri, resnames[ri-1], 0 );
     }
     // NOTE: Shift indices in parm arrays by -1
-    if (bond_rk.size() != bond_req.size()) return ParmArrayErr("Bond");
-    BondParmArray BPA;
-    BPA.reserve( bond_rk.size() );
-    for (unsigned int i = 0; i < bond_rk.size(); i++)
-      BPA.push_back( BondParmType(bond_rk[i], bond_req[i]) );
-    error_count_ += TopIn.SetBondInfo(BondIndexToArray(bonds), 
-                                      BondIndexToArray(bondsh), BPA);
-    if (angle_tk.size() != angle_teq.size()) return ParmArrayErr("Angle");
-    AngleParmArray APA;
-    APA.reserve( angle_tk.size() );
-    for (unsigned int i = 0; i < angle_tk.size(); i++)
-      APA.push_back( AngleParmType(angle_tk[i], angle_teq[i]) );
-    error_count_ += TopIn.SetAngleInfo(AngleIndexToArray(angles),
-                                       AngleIndexToArray(anglesh), APA);
+    error_count_ += TopIn.SetBondInfo(bonds, bondsh, BPA);
+    error_count_ += TopIn.SetAngleInfo(angles, anglesh, APA);
     if (dihedral_pk.size() != dihedral_pn.size() || 
         dihedral_pk.size() != dihedral_phase.size())
-      return ParmArrayErr("Dihedral");
+    {
+      mprinterr("Error: Size of dihedral parm arrays inconsistent.\n");
+      return 1;
+    }
     DihedralParmArray DPA;
     DPA.reserve( dihedral_pk.size() );
     // Set default SCEE and SCNB if not already set
@@ -831,16 +1102,11 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     for (unsigned int i = 0; i < dihedral_pk.size(); i++)
       DPA.push_back( DihedralParmType(dihedral_pk[i], dihedral_pn[i], dihedral_phase[i],
                                       scee_scale[i], scnb_scale[i]) );
-    error_count_ += TopIn.SetDihedralInfo(DihedralIndexToArray(dihedrals),
-                                          DihedralIndexToArray(dihedralsh), DPA);
+    error_count_ += TopIn.SetDihedralInfo(dihedrals, dihedralsh, DPA);
     HB_ParmArray HBA;
     HBA.reserve( asol.size() );
     for (unsigned int i = 0; i < asol.size(); i++)
       HBA.push_back( HB_ParmType(asol[i], bsol[i], hbcut[i]) );
-    NonbondArray NBA;
-    NBA.reserve( LJ_A.size() );
-    for (unsigned int i = 0; i < LJ_A.size(); i++)
-      NBA.push_back( NonbondType(LJ_A[i], LJ_B[i]) );
     // Shift positive indices in NONBONDED index array by -1.
     for (std::vector<int>::iterator it = NB_index.begin(); it != NB_index.end(); ++it)
       if (*it > 0)
@@ -849,6 +1115,7 @@ int Parm_Amber::ReadParmAmber( Topology &TopIn ) {
     error_count_ += TopIn.SetAmberExtra(solty, itree, join_array, irotat);
     if (values[IFBOX]>0) 
       TopIn.SetBox( parmbox );
+    TopIn.SetChamber( chamberParm );
   }
 
   return error_count_;
@@ -1034,9 +1301,12 @@ int Parm_Amber::AllocateAndRead(int width, int ncols, int maxval) {
   return err;
 }
 
-// Parm_Amber::PositionFileAtFlag()
 bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
-  const char *Key = FLAGS[flag].Flag;
+  return PositionFileAtFlag( FLAGS[flag].Flag );
+}
+
+// Parm_Amber::PositionFileAtFlag()
+bool Parm_Amber::PositionFileAtFlag(const char* Key) {
   char value[BUF_SIZE];
   bool searchFile = true;
   bool hasLooped = false;
@@ -1084,11 +1354,18 @@ bool Parm_Amber::PositionFileAtFlag(AmberParmFlagType flag) {
 int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
   // Assign format string
   fformat_.assign( FLAGS[fflag].Fmt );
+  // For chamber, certain flags have different format (boo).
+  if (ptype_ == CHAMBER) {
+    if      (fflag == F_CHARGE  ) fformat_.assign("%FORMAT(3E24.16)");
+    else if (fflag == F_ANGLETEQ) fformat_.assign("%FORMAT(3E25.17)");
+    else if (fflag == F_LJ_A    ) fformat_.assign("%FORMAT(3E24.16)");
+    else if (fflag == F_LJ_B    ) fformat_.assign("%FORMAT(3E24.16)");
+  } 
   //mprintf("DEBUG: FlagFormat[%s], Nelements=%zu\n",fformat_.c_str(),Nelements);
   // Set type, cols, width, and precision from format string
   if (!SetFortranType()) return 1;
   // Write FLAG and FORMAT lines
-  file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS[fflag].Flag, FLAGS[fflag].Fmt);
+  file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS[fflag].Flag, fformat_.c_str());
   // If Nelements is 0 just print newline and exit
   if (Nelements == 0) {
     file_.Printf("\n");
@@ -1136,12 +1413,16 @@ int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>const& iar
 }
 
 // Parm_Amber::WriteDouble()
-int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& darray)
-{
-  std::string FS;
+int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& darray) {
   if (WriteSetup(fflag, darray.size())) return 0;
+  return WriteDoubleArray( darray );
+}
+
+// NOTE: Needs to be separate to write CHARMM_CMAP_PARAMETER_
+int Parm_Amber::WriteDoubleArray(std::vector<double>const& darray)
+{
   // Set up printf format string
-  FS = SetDoubleFormatString(fwidth_, fprecision_, 2);
+  std::string FS = SetDoubleFormatString(fwidth_, fprecision_, 2);
   const char *FORMAT = FS.c_str();
   char *ptr = buffer_;
   int col = 0;
@@ -1228,8 +1509,8 @@ bool Parm_Amber::SetFortranType() {
   // Advance past left parentheses
   std::string::iterator ptr = fformat_.begin() + 7;
   while (*ptr=='(') ++ptr;
-  // If digit, have number of data columns
-  fncols_ = 0;
+  // If digit, have number of data columns. Min # is 1
+  fncols_ = 1;
   if (isdigit(*ptr, loc)) {
     while (ptr!=fformat_.end() && isdigit(*ptr, loc)) {
       arg += *ptr;

@@ -174,8 +174,19 @@ void Topology::Summary() const {
   }
   if (!radius_set_.empty())
     mprintf("\t\tGB radii set: %s\n", radius_set_.c_str());
-  if (HasLES())
+  if (chamber_.HasChamber()) {
+    mprintf("\t\tCHAMBER: %zu Urey-Bradley terms, %zu Impropers\n",
+            chamber_.UB().size(), chamber_.Impropers().size());
+    if (chamber_.HasCmap())
+      mprintf("\t\t         %zu CMAP grids, %zu CMAP terms.\n", 
+              chamber_.CmapGrid().size(), chamber_.Cmap().size());
+  }
+  if (lesparm_.HasLES())
     mprintf("\t\tLES info: %i types, %i copies\n", lesparm_.Ntypes(), lesparm_.Ncopies());
+  if (cap_.HasWaterCap())
+    mprintf("\t\tCAP info: Last atom before cap = %s, Cut= %g, X= %g, Y= %g, Z= %g\n",
+            AtomMaskName(cap_.NatCap()).c_str(), cap_.CutCap(), 
+            cap_.xCap(), cap_.yCap(), cap_.zCap());
 }
 
 // Topology::Brief()
@@ -1384,7 +1395,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // not changed this is still valid. May want to cull unused parms later.
   newParm->nonbond_ = nonbond_;
   // LES info - FIXME: Not sure if stripping this is valid so print a warning.
-  if (HasLES()) {
+  if (lesparm_.HasLES()) {
     mprintf("Warning: LES info present. Stripped topology may not have correct LES info.\n");
     newParm->lesparm_.SetTypes( lesparm_.Ntypes(), lesparm_.FAC() );
     for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
@@ -1394,7 +1405,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     }
   }
   // CAP info - dont support stripping such topologies right now
-  if (HasWaterCap())
+  if (cap_.HasWaterCap())
     mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
   // Amber extra info. Assume if one present, all present.
   if (!itree_.empty() && !join_.empty() && !irotat_.empty()) {

@@ -486,10 +486,9 @@ void Action_DihedralScan::IntervalAngles(Frame& currentFrame) {
     // Calculate rotation matrix for interval 
     rotationMatrix.CalcRotationMatrix(axisOfRotation, theta_in_radians);
     if (debug_ > 0) {
-      std::string a1name = CurrentParm_->TruncResAtomName( (*dih).atom1 );
-      std::string a2name = CurrentParm_->TruncResAtomName( (*dih).atom2 );
       mprintf("\tRotating Dih %s-%s by %.2f deg %i times.\n",
-               a1name.c_str(), a2name.c_str(), interval_, maxVal_); 
+               CurrentParm_->TruncResAtomName( (*dih).atom1 ).c_str(), 
+               CurrentParm_->TruncResAtomName( (*dih).atom2 ).c_str(), interval_, maxVal_); 
     }
     for (int rot = 0; rot < maxVal_; ++rot) {
       // Rotate around axis

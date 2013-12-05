@@ -78,18 +78,17 @@ class Topology {
     // ----- Non-bond routines -------------------
     NonbondParmType   const& Nonbond()      const { return nonbond_;      }
     int SetNonbondInfo(NonbondParmType const&);
-    /// \return True if nonbond parameters present.
-    bool HasNonbond()                       const { return nonbond_.Ntypes() > 0; }
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
     // ----- Water Cap Info ----------------------
     CapParmType       const& Cap()          const { return cap_;          }
     void SetCap(CapParmType const& c)             { cap_ = c;             }
-    bool HasWaterCap()                      const { return cap_.CutCap() > 0.0; }
     // ----- Amber LES info ----------------------
     LES_ParmType      const& LES()          const { return lesparm_;      }
     void SetLES(LES_ParmType const& l)            { lesparm_ = l;         }
-    bool HasLES()                           const { return lesparm_.Ntypes() > 0; }
+    // ----- CHAMBER info ------------------------
+    ChamberParmType const& Chamber()        const { return chamber_;      }
+    void SetChamber(ChamberParmType const& c)     { chamber_ = c;         }
     // ----- Amber extra info ----- TODO: Generate automatically, consolidate
     inline const std::vector<double>& Solty()   const { return solty_;  }
     inline const std::vector<NameType>& Itree() const { return itree_;  }
@@ -196,11 +195,11 @@ class Topology {
     DihedralArray dihedrals_;
     DihedralArray dihedralsh_;
     DihedralParmArray dihedralparm_;
-    // Non-bonded parameters
-    NonbondParmType nonbond_;
+    NonbondParmType nonbond_;        ///< Non-bonded parameters
     // Amber-only parameters
     CapParmType cap_;                ///< Water cap information
     LES_ParmType lesparm_;           ///< LES parameters
+    ChamberParmType chamber_;        ///< CHAMBER parameters
     // Amber extra info
     std::vector<double> solty_;
     std::vector<NameType> itree_;

@@ -125,7 +125,7 @@ Action::RetType Action_LIE::Setup(Topology* currentParm, Topology** parmAddress)
   * parameters in our topology to calculate nonbonded energy terms
   */
 int Action_LIE::SetupParms(Topology const& ParmIn) {
-  if (!ParmIn.HasNonbond()) {
+  if (!ParmIn.Nonbond().HasNonbond()) {
     mprinterr("Error: Topology does not have LJ information.\n");
     return 1;
   }

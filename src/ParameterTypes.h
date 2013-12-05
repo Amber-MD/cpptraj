@@ -65,6 +65,8 @@ class DihedralParmType {
     DihedralParmType() : pk_(0), pn_(0), phase_(0), scee_(0), scnb_(0) {}
     DihedralParmType(double k, double n, double p, double e, double b) :
                          pk_(k), pn_(n), phase_(p), scee_(e), scnb_(b) {}
+    DihedralParmType(double k, double p) :
+                         pk_(k), pn_(0), phase_(p), scee_(0), scnb_(0) {}
     inline double Pk()    const { return pk_;    }
     inline double& Pk()         { return pk_;    }
     inline double Pn()    const { return pn_;    }
@@ -150,6 +152,7 @@ class NonbondParmType {
     NonbondParmType(int n, std::vector<int> const& nbi, NonbondArray const& nba,
                     HB_ParmArray const& hba) :
                       ntypes_(n), nbindex_(nbi), nbarray_(nba), hbarray_(hba) {}
+    inline bool HasNonbond()             const { return ntypes_ > 0; }
     inline int Ntypes()                  const { return ntypes_;     }
     std::vector<int> const& NBindex()    const { return nbindex_;    }
     NonbondArray     const& NBarray()    const { return nbarray_;    }
@@ -190,6 +193,7 @@ class LES_ParmType {
     {
       array_.reserve( na );
     }
+    inline bool HasLES()                const { return ntypes_ > 0;      }
     inline int Ntypes()                 const { return ntypes_;          }
     inline int Ncopies()                const { return ncopies_;         }
     std::vector<double> const& FAC()    const { return fac_;             }
@@ -217,16 +221,93 @@ class CapParmType {
     CapParmType() : natcap_(0), cutcap_(0), xcap_(0), ycap_(0), zcap_(0) {}
     CapParmType(int n, double c, double x, double y, double z) :
                     natcap_(n), cutcap_(c), xcap_(x), ycap_(y), zcap_(z) {}
-    inline int NatCap()    const { return natcap_; }
-    inline double CutCap() const { return cutcap_; }
-    inline double xCap()   const { return xcap_;   }
-    inline double yCap()   const { return ycap_;   }
-    inline double zCap()   const { return zcap_;   }
+    inline bool HasWaterCap() const { return cutcap_ > 0.0; }
+    inline int NatCap()       const { return natcap_; }
+    inline double CutCap()    const { return cutcap_; }
+    inline double xCap()      const { return xcap_;   }
+    inline double yCap()      const { return ycap_;   }
+    inline double zCap()      const { return zcap_;   }
   private:
     int natcap_;    ///< last atom before the start of the cap of waters
     double cutcap_; ///< the distance from the center of the cap to the outside
     double xcap_;   ///< X coordinate for the center of the cap
     double ycap_;   ///< Y coordinate for the center of the cap
     double zcap_;   ///< Z coordinate for the center of the cap
+};
+// ----- CHAMBER PARAMETERS ----------------------------------------------------
+/// Hold CMAP grid parameters
+class CmapGridType {
+  public:
+    CmapGridType() : resolution_(0) {}
+    CmapGridType(int r, std::vector<double> const& g) :
+                     resolution_(r), grid_(g) {}
+    inline int Resolution()                  const { return resolution_; }
+    inline std::vector<double> const& Grid() const { return grid_;       }
+  private:
+    int resolution_;           ///< Number of steps along each phi/psi CMAP axis
+    std::vector<double> grid_; ///< CMAP grid
+};
+typedef std::vector<CmapGridType> CmapGridArray;
+/// Hold CMAP atom indices and corresponding grid index
+class CmapType {
+  public:
+    CmapType() : a1_(0), a2_(0), a3_(0), a4_(0), a5_(0), idx_(0) {}
+    CmapType(int a1, int a2, int a3, int a4, int a5, int i) :
+                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), a5_(a5), idx_(i) {}
+    inline int A1()     const { return a1_;   }
+    inline int A2()     const { return a2_;   }
+    inline int A3()     const { return a3_;   }
+    inline int A4()     const { return a4_;   }
+    inline int A5()     const { return a5_;   }
+    inline int Idx()    const { return idx_;  }
+  private:
+    int a1_;
+    int a2_;
+    int a3_;
+    int a4_;
+    int a5_;
+    int idx_;
+};
+typedef std::vector<CmapType> CmapArray;
+/// Hold CHAMBER parameters
+class ChamberParmType {
+  public:
+    ChamberParmType() : chmff_verno_(-1) {}
+    bool                     HasChamber()   const { return chmff_verno_ > -1; }
+    bool                     HasCmap()      const { return !cmapGrid_.empty(); }
+    int                      FF_Version()   const { return chmff_verno_;  }
+    std::string       const& FF_Type()      const { return chmff_type_;   }
+    BondArray         const& UB()           const { return ub_;           }
+    BondParmArray     const& UBparm()       const { return ubparm_;       }
+    DihedralArray     const& Impropers()    const { return impropers_;    }
+    DihedralParmArray const& ImproperParm() const { return improperparm_; }
+    NonbondArray      const& LJ14()         const { return lj14_;         }
+    CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
+    CmapArray         const& Cmap()         const { return cmap_;         }
+    void SetLJ14(NonbondArray const& nb)          { lj14_ = nb;           }
+    void SetChamber(int i, std::string const& s)  { 
+      chmff_verno_ = i;
+      chmff_type_ = s;
+    }
+    void SetUB(BondArray const& ub, BondParmArray const& ubp) {
+      ub_ = ub;
+      ubparm_ = ubp;
+    }
+    void SetImproper(DihedralArray const& im, DihedralParmArray const& imp) {
+      impropers_ = im;
+      improperparm_ = imp;
+    }
+    void AddCmapGrid(CmapGridType const& g) { cmapGrid_.push_back(g); }
+    void AddCmapTerm(CmapType const& c)     { cmap_.push_back(c);     }
+  private:
+    int chmff_verno_;                ///< CHARMM FF version number
+    std::string chmff_type_;         ///< CHARMM FF type 
+    BondArray ub_;                   ///< Urey-Bradley terms
+    BondParmArray ubparm_;           ///< Urey-Bradley parameters
+    DihedralArray impropers_;        ///< Improper terms
+    DihedralParmArray improperparm_; ///< Improper parameters
+    NonbondArray lj14_;              ///< Lennard-Jones 1-4 parameters
+    CmapGridArray cmapGrid_;         ///< Hold CMAP grids
+    CmapArray cmap_;                 ///< Hold atom indices and CMAP grid index
 };
 #endif

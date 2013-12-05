@@ -126,7 +126,7 @@ int Action_Pairwise::SetupNonbondParm(AtomMask &maskIn, Topology *ParmIn) {
   for (Topology::atom_iterator atom = ParmIn->begin(); atom != ParmIn->end(); ++atom)
     atom_charge_.push_back( (*atom).Charge() * ELECTOAMBER );
   // Check if LJ parameters present - need at least 2 atoms for it to matter.
-  if (ParmIn->Natom() > 1 && !ParmIn->HasNonbond()) {
+  if (ParmIn->Natom() > 1 && !ParmIn->Nonbond().HasNonbond()) {
     mprinterr("Error: Topology does not have LJ information.\n");
     return 1;
   }

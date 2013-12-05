@@ -32,20 +32,20 @@ Action_Hbond::Action_Hbond() :
 {}
 
 void Action_Hbond::Help() {
-  mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>] [series]\n");
-  mprintf("\t[donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n");
-  mprintf("\t[avgout <filename>] [printatomnum] [nointramol]\n");
-  mprintf("\t[solventdonor <mask>] [solventacceptor <mask>]\n");
-  mprintf("\t[solvout <filename>] [bridgeout <filename>]\n");
-  mprintf("\tSearch for hydrogen bonds using atoms in the region specified by mask.\n");
-  mprintf("\tIf just <mask> specified donors and acceptors will be automatically searched for.\n");
-  mprintf("\tIf donormask is specified but not acceptormask, acceptors will be\n");
-  mprintf("\tautomatically searched for in <mask>.\n");
-  mprintf("\tIf acceptormask is specified but not donormask, donors will be automatically\n");
-  mprintf("\tsearched for in <mask>.\n");
-  mprintf("\tIf both donormask and acceptor mask are specified no automatic searching will occur.\n");
-  mprintf("\tIf donorhmask is specified atoms in that mask will be paired with atoms in\n");
-  mprintf("\tdonormask instead of automatically searching for hydrogen atoms.\n");
+  mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>] [series]\n"
+          "\t[donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n"
+          "\t[avgout <filename>] [printatomnum] [nointramol]\n"
+          "\t[solventdonor <mask>] [solventacceptor <mask>]\n"
+          "\t[solvout <filename>] [bridgeout <filename>]\n"
+          "\t  Search for hydrogen bonds using atoms in the region specified by mask.\n"
+          "\tIf just <mask> specified donors and acceptors will be automatically searched for.\n"
+          "\tIf donormask is specified but not acceptormask, acceptors will be\n"
+          "\tautomatically searched for in <mask>.\n"
+          "\tIf acceptormask is specified but not donormask, donors will be automatically\n"
+          "\tsearched for in <mask>.\n"
+          "\tIf both donormask and acceptor mask are specified no automatic searching will occur.\n"
+          "\tIf donorhmask is specified atoms in that mask will be paired with atoms in\n"
+          "\tdonormask instead of automatically searching for hydrogen atoms.\n");
 }
 
 // Action_Hbond::Init()
