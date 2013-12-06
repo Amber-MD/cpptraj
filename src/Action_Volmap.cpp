@@ -4,7 +4,7 @@
 #include "Constants.h" // PI
 #include "CpptrajStdio.h"
 
-const double Action_Volmap::sqrt_8_pi_cubed = sqrt( 8.0 * PI*PI*PI );
+const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
 const double Action_Volmap::one_over_6 = 1.0 / 6.0;
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :

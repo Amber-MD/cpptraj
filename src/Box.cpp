@@ -172,15 +172,15 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   double u31x,u31y,u31z;
   double volume,onevolume;
 
-  ucell[0] = box_[0]; // ucell(1,1)
-  ucell[1] = 0.0;     // ucell(2,1)
-  ucell[2] = 0.0;     // ucell(3,1)
-  ucell[3] = box_[1]*cos(DEGRAD*box_[5]); // ucell(1,2)
-  ucell[4] = box_[1]*sin(DEGRAD*box_[5]); // ucell(2,2)
-  ucell[5] = 0.0;                         // ucell(3,2)
-  ucell[6] = box_[2]*cos(DEGRAD*box_[4]);                                          // ucell(1,3)
-  ucell[7] = (box_[1]*box_[2]*cos(DEGRAD*box_[3]) - ucell[6]*ucell[3]) / ucell[4]; // ucell(2,3)
-  ucell[8] = sqrt(box_[2]*box_[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);        // ucell(3,3)
+  ucell[0] = box_[0]; // u(1,1)
+  ucell[1] = 0.0;     // u(2,1)
+  ucell[2] = 0.0;     // u(3,1)
+  ucell[3] = box_[1]*cos(Constants::DEGRAD*box_[5]); // u(1,2)
+  ucell[4] = box_[1]*sin(Constants::DEGRAD*box_[5]); // u(2,2)
+  ucell[5] = 0.0;                                    // u(3,2)
+  ucell[6] = box_[2]*cos(Constants::DEGRAD*box_[4]);
+  ucell[7] = (box_[1]*box_[2]*cos(Constants::DEGRAD*box_[3]) - ucell[6]*ucell[3]) / ucell[4];
+  ucell[8] = sqrt(box_[2]*box_[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
 
   // Get reciprocal vectors
   u23x = ucell[4]*ucell[8] - ucell[5]*ucell[7];

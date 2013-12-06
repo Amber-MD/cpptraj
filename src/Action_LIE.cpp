@@ -134,7 +134,7 @@ int Action_LIE::SetupParms(Topology const& ParmIn) {
   atom_charge_.reserve( ParmIn.Natom() );
   for (Topology::atom_iterator atom = ParmIn.begin();
                                atom != ParmIn.end(); ++atom)
-    atom_charge_.push_back( atom->Charge() * ELECTOAMBER / dielc_ );
+    atom_charge_.push_back( atom->Charge() * Constants::ELECTOAMBER / dielc_ );
   return 0;
 }
 

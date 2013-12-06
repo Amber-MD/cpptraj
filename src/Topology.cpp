@@ -284,7 +284,7 @@ void Topology::PrintAngles(AngleArray const& aarray, AtomMask const& maskIn, int
       mprintf("%8i:", na);
       int aidx = (*aatom).Idx();
       if ( aidx > -1 )
-        mprintf(" %6.3f %6.2f", angleparm_[aidx].Tk(), angleparm_[aidx].Teq() * RADDEG);
+        mprintf(" %6.3f %6.2f", angleparm_[aidx].Tk(), angleparm_[aidx].Teq() * Constants::RADDEG);
       mprintf(" %-*s %-*s %-*s (%i,%i,%i)\n", rwidth, AtomMaskName(atom1).c_str(), 
               rwidth, AtomMaskName(atom2).c_str(), rwidth, AtomMaskName(atom3).c_str(),
               atom1+1, atom2+1, atom3+1); 

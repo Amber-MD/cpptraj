@@ -637,7 +637,7 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   //     compute the conversion factors cal per joule and kcal per joule.
   const double gas  = avog * boltz;
   // pi   = four * datan(one)
-  const double pipi = PI * PI;
+  const double pipi = Constants::PI * Constants::PI;
   const double e    = exp(1.0);
   const double tocal  = 1.0 / jpcal;
   const double tokcal = tocal / 1000.0;
@@ -673,7 +673,7 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   //        ctran-- constant v heat capacity
   //        stran-- entropy
   double dum1 = boltz * temp;
-  double dum2 = pow(TWOPI, 1.5);
+  double dum2 = pow(Constants::TWOPI, 1.5);
   double arg = pow(dum1, 1.5) / planck;
   arg = (arg / pressure) * (dum1 / planck);
   arg = arg * dum2 * (weight / planck);
@@ -774,7 +774,7 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   } else {
      erot = 1.5 * rt;
      crot = 1.5 * gas;
-     arg  = sqrt(PI*e*e*e) / sn;
+     arg  = sqrt(Constants::PI*e*e*e) / sn;
      double dum  = (temp/rtemp1) * (temp/rtemp2) * (temp/rtemp3);
      arg  = arg * sqrt(dum);
      srot = gas * log(arg);

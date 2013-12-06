@@ -554,7 +554,7 @@ void Action_Matrix::CalcDihedralCovariance( int frameNum ) {
     for (Array1D::const_iterator ds2 = DihedralSets_.begin(); 
                                  ds2 != DihedralSets_.end(); ++ds2)
     {
-      double theta2 = (*ds2)->Dval( frameNum ) * DEGRAD;
+      double theta2 = (*ds2)->Dval( frameNum ) * Constants::DEGRAD;
       XY2[0] = cos( theta2 );
       XY2[1] = sin( theta2 );
       // Store X and X^2
@@ -569,7 +569,7 @@ void Action_Matrix::CalcDihedralCovariance( int frameNum ) {
         for (Array1D::const_iterator ds1 = ds2 + 1; 
                                      ds1 != DihedralSets_.end(); ++ds1)
         {
-          double theta1 = (*ds1)->Dval( frameNum ) * DEGRAD;
+          double theta1 = (*ds1)->Dval( frameNum ) * Constants::DEGRAD;
           *(mat++) += Vi * cos( theta1 );
           *(mat++) += Vi * sin( theta1 );
         }

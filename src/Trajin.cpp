@@ -135,7 +135,10 @@ int Trajin::CheckBoxInfo(const char* parmName, Box& parmBox, Box const& trajBox)
       return 0;
   }
   // Check for zero box lengths
-  if ( trajBox.BoxX() < SMALL || trajBox.BoxY() < SMALL || trajBox.BoxZ() < SMALL ) {
+  if ( trajBox.BoxX() < Constants::SMALL || 
+       trajBox.BoxY() < Constants::SMALL || 
+       trajBox.BoxZ() < Constants::SMALL )
+  {
     mprintf("Warning: Box information present in trajectory but lengths are zero.\n");
     mprintf("Warning: DISABLING BOX in parm '%s'!\n", parmName);
     parmBox.SetNoBox();

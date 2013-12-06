@@ -207,7 +207,7 @@ Action::RetType Action_ClusterDihedral::DoAction(int frameNum, Frame* currentFra
                           currentFrame->XYZ((*dih).A3()),
                           currentFrame->XYZ((*dih).A4()) );
     // NOTE: Torsion is in radians; should bins be converted to rads as well?
-    PHI *= RADDEG;
+    PHI *= Constants::RADDEG;
     //mprintf("[%6i]Dihedral=%8.3f", (*dih).A1(), PHI); // DEBUG
     PHI -= (*dih).Min();
     //mprintf(" Shifted=%8.3f", PHI); // DEBUG

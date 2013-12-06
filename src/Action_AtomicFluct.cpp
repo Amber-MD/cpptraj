@@ -150,7 +150,7 @@ void Action_AtomicFluct::Print() {
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
     dataout_->SetLegend("B-factors");
-    double bfac = (8.0/3.0)*PI*PI;
+    double bfac = (8.0/3.0)*Constants::PI*Constants::PI;
     for (int i = 0; i < SumCoords2_.size(); i+=3) {
       double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
       if (fluct > 0) 
@@ -207,7 +207,7 @@ void Action_AtomicFluct::Print() {
           fluct += Results[atom] * mass;
         }
       }
-      if (xi > SMALL) 
+      if (xi > Constants::SMALL) 
         dset.AddXY( residue - fluctParm_->ResStart() + 1, fluct / xi );
     }
   } else if (outtype_ == BYMASK) {
@@ -222,7 +222,7 @@ void Action_AtomicFluct::Print() {
         fluct += Results[atom] * mass;
       }
     }
-    if (xi > SMALL) 
+    if (xi > Constants::SMALL) 
       dset.AddXY( 1, fluct / xi );
   }
 }

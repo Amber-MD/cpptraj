@@ -269,7 +269,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
             return Action::ERR;
           }
           int res1num = (*dih).ResNum();
-          (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
+          (*ss).thetas_.push_back((float)(myType.phi * Constants::DEGRAD));
           (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
                                    (*dih).A1(), (*dih).A2()) );
           ++dih;
@@ -279,7 +279,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
             mprinterr("Error: Assigning turn SS requires 2nd dihedral be psi and consecutive.\n");
             return Action::ERR;
           }
-          (*ss).thetas_.push_back((float)(myType.psi * DEGRAD));
+          (*ss).thetas_.push_back((float)(myType.psi * Constants::DEGRAD));
           (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
                                    (*dih).A1(), (*dih).A2()) );
           ++dih;
@@ -289,7 +289,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
             mprinterr("Error: Assigning turn SS requires 3rd dihedral be phi and consecutive.\n");
             return Action::ERR;
           }
-          (*ss).thetas_.push_back((float)(myType.phi2 * DEGRAD));
+          (*ss).thetas_.push_back((float)(myType.phi2 * Constants::DEGRAD));
           (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
                                    (*dih).A1(), (*dih).A2()) );
           ++dih;
@@ -299,7 +299,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
             mprinterr("Error: Assigning turn SS requires 4th dihedral be psi and consecutive.\n");
             return Action::ERR;
           }
-          (*ss).thetas_.push_back((float)(myType.psi2 * DEGRAD));
+          (*ss).thetas_.push_back((float)(myType.psi2 * Constants::DEGRAD));
           (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
                                    (*dih).A1(), (*dih).A2()) );
         }
@@ -309,7 +309,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
                                      dih != (*ss).dihSearch_.end(); ++dih)
         {
           if (debug_>0) mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
-          (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
+          (*ss).thetas_.push_back((float)(myType.phi * Constants::DEGRAD));
           (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
                                    (*dih).A1(), (*dih).A2()) );
         }
@@ -320,11 +320,11 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
         {
           if (debug_>0) mprintf(" %i:%s", (*dih).ResNum()+1, (*dih).Name().c_str());
           if ((*dih).Name() == "phi") {
-            (*ss).thetas_.push_back((float)(myType.phi * DEGRAD));
+            (*ss).thetas_.push_back((float)(myType.phi * Constants::DEGRAD));
             (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
                                      (*dih).A1(), (*dih).A2()) );
           } else {
-            (*ss).thetas_.push_back((float)(myType.psi * DEGRAD));
+            (*ss).thetas_.push_back((float)(myType.psi * Constants::DEGRAD));
             (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm, 
                                      (*dih).A1(), (*dih).A2()) );
           }
@@ -342,7 +342,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
       for (DihedralSearch::mask_it dih = (*ss).dihSearch_.begin();
                                    dih != (*ss).dihSearch_.end(); ++dih)
       {
-        mprintf("\tDihedral in residue %i = %f\n", (*dih).ResNum()+1, *(theta++)*RADDEG);
+        mprintf("\tDihedral in residue %i = %f\n", (*dih).ResNum()+1, *(theta++)*Constants::RADDEG);
         (*ss).Rmasks_.push_back( DihedralSearch::MovingAtoms(*currentParm,
                                  (*dih).A1(), (*dih).A2()) );
       }
@@ -387,7 +387,7 @@ Action::RetType Action_MakeStructure::DoAction(int frameNum, Frame* currentFrame
 //          mprintf("\tRotating Dih %i:%s (%i-%i-%i-%i) (@%.2f) by %.2f deg to get to %.2f.\n",
 //                  (*dih).ResNum()+1, (*dih).Name().c_str(),
 //                  (*dih).A0() + 1, (*dih).A1() + 1, (*dih).A2() + 1, (*dih).A3() + 1, 
-//                  torsion*RADDEG, delta*RADDEG, theta_in_radians*RADDEG);
+//                  torsion*Constants::RADDEG, delta*Constants::RADDEG, theta_in_radians*Constants::RADDEG);
 //      }
     // Rotate around axis
       currentFrame->Rotate(rotationMatrix, *Rmask);

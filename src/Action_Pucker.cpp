@@ -154,10 +154,10 @@ Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame
   if ( amplitude_ != 0 )
     amplitude_->Add(frameNum, &aval);
   if ( theta_ != 0 ) {
-    tval *= RADDEG;
+    tval *= Constants::RADDEG;
     theta_->Add(frameNum, &tval);
   }
-  pval *= RADDEG;
+  pval *= Constants::RADDEG;
   pucker_->Add(frameNum, &pval);
 
   return Action::OK;

@@ -311,7 +311,7 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   {
     names.push_back( atom->Name() );
     CheckNameWidth("Atom",names.back());
-    charge.push_back( atom->Charge() * ELECTOAMBER );
+    charge.push_back( atom->Charge() * Constants::ELECTOAMBER );
     polar.push_back( atom->Polar() );
     at_num.push_back( atom->AtomicNumber() );
     mass.push_back( atom->Mass() );
@@ -1092,7 +1092,7 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
       if (ai + 1 == resnums[ri]) ++ri;
       // Add atom. Convert Amber charge to elec and shift type index by -1.
       // NOTE: If ever used, shift atom #s in excludedAtoms by -1 so they start from 0 
-      TopIn.AddTopAtom( Atom(names[ai], charge[ai] * (AMBERTOELEC), polar[ai],
+      TopIn.AddTopAtom( Atom(names[ai], charge[ai] * Constants::AMBERTOELEC, polar[ai],
                              at_num[ai], mass[ai], atype_index[ai] - 1, types[ai],
                              gb_radii[ai], gb_screen[ai]),
                         ri, resnames[ri-1], 0 );

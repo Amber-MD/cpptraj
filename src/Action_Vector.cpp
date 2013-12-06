@@ -200,8 +200,8 @@ double Action_Vector::solve_cubic_eq(double a, double b, double c, double d) {
   /* three real solutions (d < 0) | one real solution + one real double solution or 
                                                      one real triple solution (d = 0) */
     dtmp[0] = 2.0 * pow(rho, one3) * cos(phi * one3) - r * one3;
-    dtmp[1] = 2.0 * pow(rho, one3) * cos((phi + 2.0 * PI) * one3) - r * one3;
-    dtmp[2] = 2.0 * pow(rho, one3) * cos((phi + 4.0 * PI) * one3) - r * one3;
+    dtmp[1] = 2.0 * pow(rho, one3) * cos((phi + Constants::TWOPI ) * one3) - r * one3;
+    dtmp[2] = 2.0 * pow(rho, one3) * cos((phi + Constants::FOURPI) * one3) - r * one3;
 
     sort(dtmp.begin(), dtmp.end());
 

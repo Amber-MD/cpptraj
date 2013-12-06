@@ -39,7 +39,6 @@ void Analysis_Modes::Help() {
           "\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n");
 }
 
-//#define TWOPI 6.2832
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
 const double Analysis_Modes::CONSQ = 2.39805E-3;
 const double Analysis_Modes::TKBC2 = 0.46105E-34;
@@ -48,7 +47,7 @@ const double Analysis_Modes::AVO   = 6.023E23;
 const double Analysis_Modes::CNST  = TKBC2 * AVO;
 // cm to angstroms
 const double Analysis_Modes::CMTOA = 1.000E8;
-const double Analysis_Modes::CONT  = CMTOA / TWOPI;
+const double Analysis_Modes::CONT  = CMTOA / Constants::TWOPI;
 // NOTE: Original TWOPI was 6.2832, results in small roundoff diffs from ptraj
 
 /// Strings describing modes calculation types.
@@ -145,7 +144,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     // Get min and max for PC
     pcmin_ = analyzeArgs.getKeyDouble("pcmin", -10.0);
     pcmax_ = analyzeArgs.getKeyDouble("pcmax",  10.0);
-    if (pcmax_ < pcmin_ || pcmax_ - pcmin_ < SMALL) {
+    if (pcmax_ < pcmin_ || pcmax_ - pcmin_ < Constants::SMALL) {
       mprinterr("Error: pcmin must be less than pcmax\n");
       return Analysis::ERR;
     }

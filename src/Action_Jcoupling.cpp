@@ -102,7 +102,7 @@ int Action_Jcoupling::loadKarplus(std::string filename) {
       mprintf("       Line: [%s]\n",buffer);
       return 1;
     } else if (i==3) KC.C[3]=0.0;
-    KC.C[3]*=DEGRAD;
+    KC.C[3]*=Constants::DEGRAD;
     // Place the read-in karplus constants in a map indexed by residue name 
     // so that all karplus constants for a given residue are in one place. 
     KarplusFile.Gets(buffer,512);
@@ -375,7 +375,7 @@ Action::RetType Action_Jcoupling::DoAction(int frameNum, Frame* currentFrame, Fr
                          (*CurrentParm_)[(*jc).atom[1]].c_str(),
                          (*CurrentParm_)[(*jc).atom[2]].c_str(), 
                          (*CurrentParm_)[(*jc).atom[3]].c_str(),
-                         phi*RADDEG, Jval);
+                         phi*Constants::RADDEG, Jval);
   }
 
   return Action::OK;

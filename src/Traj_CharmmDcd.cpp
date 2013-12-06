@@ -372,7 +372,7 @@ int Traj_CharmmDcd::readDcdHeader() {
 static inline double BoxInDeg( double BoxInRad ) {
   if ( BoxInRad == 0 )
     return 90.0;
-  return acos( BoxInRad ) * RADDEG;
+  return acos( BoxInRad ) * Constants::RADDEG;
 }
 
 // Traj_CharmmDcd::ReadBox()
@@ -571,9 +571,9 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
     boxtmp[2] = frameOut.BoxCrd().BoxY();
     boxtmp[5] = frameOut.BoxCrd().BoxZ();
     // The angles must be reported in cos(angle) format
-    boxtmp[1] = cos(frameOut.BoxCrd().Gamma() * DEGRAD);
-    boxtmp[3] = cos(frameOut.BoxCrd().Beta()  * DEGRAD);
-    boxtmp[4] = cos(frameOut.BoxCrd().Alpha() * DEGRAD);
+    boxtmp[1] = cos(frameOut.BoxCrd().Gamma() * Constants::DEGRAD);
+    boxtmp[3] = cos(frameOut.BoxCrd().Beta()  * Constants::DEGRAD);
+    boxtmp[4] = cos(frameOut.BoxCrd().Alpha() * Constants::DEGRAD);
     WriteBlock(48);
     file_.Write(boxtmp, sizeof(double)*6);
     WriteBlock(48);

@@ -4,7 +4,7 @@
 #include "Action_GridFreeEnergy.h"
 #include "CpptrajStdio.h" // mprintf, mprinterr
 #include "StringRoutines.h" // integerToString
-#include "Constants.h" // GASCONSTANT, SMALL
+#include "Constants.h" // GASK_KCAL, SMALL
 
 // CONSTRUCTOR
 Action_GridFreeEnergy::Action_GridFreeEnergy() :
@@ -160,10 +160,10 @@ void Action_GridFreeEnergy::Print() {
   for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
     float value = *gval;
     // Avoid log(0) values since this will result in an inf
-    if ( (value / mostFrequentVoxelOccupancy) < SMALL){
+    if ( (value / mostFrequentVoxelOccupancy) < Constants::SMALL){
       *gval = 0.0;
     } else {
-      *gval = (-1.0 * JOULESTOKCAL * tempInKevin_ *  GASCONSTANT *
+      *gval = (-1.0 * Constants::GASK_KCAL * tempInKevin_ *
                 log ((value / mostFrequentVoxelOccupancy)));
     }
   }

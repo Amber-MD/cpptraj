@@ -19,7 +19,8 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Calc rotation matrix
-  RotMatrix_.CalcRotationMatrix( xrot * DEGRAD, yrot * DEGRAD, zrot * DEGRAD );
+  RotMatrix_.CalcRotationMatrix( xrot * Constants::DEGRAD, yrot * Constants::DEGRAD, 
+                                 zrot * Constants::DEGRAD );
 
   mprintf("    ROTATE: Rotating atoms in mask %s\n", mask_.MaskString());
   mprintf("\t%f degrees around X, %f degrees around Y, %f degrees around Z\n",

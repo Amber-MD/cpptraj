@@ -295,8 +295,8 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
       for (int i = 0; i < nsteps; ++i)
         outfile.Printf("%10.3f %10.4f %10.4f %10.4f\n",
                        (double)i * tstep_,
-                       FOURFIFTHSPI * cf_[i]   / (frame - i),
-                       FOURFIFTHSPI * p2cf_[i] / (frame - i),
+                       Constants::FOURFIFTHSPI * cf_[i]   / (frame - i),
+                       Constants::FOURFIFTHSPI * p2cf_[i] / (frame - i),
                        rcf_[i]  / (frame - i));
     }
   } else {
@@ -311,7 +311,7 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
       for (int i = 0; i < nsteps; ++i)
         outfile.Printf("%10.3f %10.4f\n",
                        (double)i * tstep_,
-                       FOURFIFTHSPI * p2cf_[i] / (frame - i));
+                       Constants::FOURFIFTHSPI * p2cf_[i] / (frame - i));
     }
   }
   outfile.CloseFile();

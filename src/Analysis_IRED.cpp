@@ -396,7 +396,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     double rnh = distnh_ * 1.0E-10;
     // ---------- CONSTANTS ----------
     // in H m^-1; permeability
-    const double mu_zero = 4.0 * PI * 1.0E-7;
+    const double mu_zero = Constants::FOURPI * 1.0E-7;
     // in m^2 kg s1-1 ; Js ; Planck's constant
     const double ha = 6.626176 * 1.0E-34;
     // in rad s^-1 T^-1 ; gyromagnetic ratio; T = absolut temperature in K
@@ -407,12 +407,13 @@ Analysis::RetType Analysis_IRED::Analyze() {
     // conversion from MHz to rad s^-1
     //double spec_freq = freq_ * TWOPI * 1.0E6;
     // in T (Tesla)
-    double b_zero = TWOPI * freq_ * 1.0E6 / gamma_h;
+    double b_zero = Constants::TWOPI * freq_ * 1.0E6 / gamma_h;
     // Next two both in rad s^-1
     const double lamfreqh = -1 * gamma_h * b_zero;
     const double lamfreqn = -1 * gamma_n * b_zero;
     double c2 = lamfreqn*lamfreqn * csa*csa;
-    double d2 = (mu_zero * ha * gamma_n * gamma_h)/( 8.0 * (PI*PI) * (rnh*rnh*rnh));
+    double d2 = (mu_zero * ha * gamma_n * gamma_h)/( 8.0 * (Constants::PI*Constants::PI) *
+                                                     (rnh*rnh*rnh) );
     d2 = d2*d2; // fix from Junchao
     // -------------------------------
     // loop over all vector elements --> have only one element/vector here; nvectelem = nelem
@@ -498,8 +499,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
         cjtfile.Printf("%12.8f", cf_cjt_[nsteps*j + i] / cf_cjt_[nsteps*j]);
       } else {
         // 4/5*PI due to spherical harmonics addition theorem
-        cmtfile.Printf("%12.8f", FOURFIFTHSPI * cf_[nsteps*j + i] / (Nframes_ - i));
-        cjtfile.Printf("%12.8f", FOURFIFTHSPI * cf_cjt_[nsteps*j + i]);
+        cmtfile.Printf("%12.8f", Constants::FOURFIFTHSPI * cf_[nsteps*j + i] / (Nframes_ - i));
+        cjtfile.Printf("%12.8f", Constants::FOURFIFTHSPI * cf_cjt_[nsteps*j + i]);
       }
     }
     cmtfile.Printf("\n");

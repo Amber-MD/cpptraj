@@ -323,7 +323,7 @@ std::vector<Vec3> Action_Rotdif::RandomVectors() {
   // ----- Generate nvecs vectors
   } else {
     for (int i = 0; i < nvecs_; i++) {
-      double phi = TWOPI * RNgen_.rn_gen();
+      double phi = Constants::TWOPI * RNgen_.rn_gen();
       // XYZ[i+2] is cos(theta)
       double costheta = 1 - RNgen_.rn_gen();
       double theta = acos( costheta );
@@ -412,9 +412,9 @@ int Action_Rotdif::fft_compute_corr(DataSet_Vector& rotated_vectors, int nsteps,
   // 4/3*PI and 4/5*PI due to spherical harmonics addition theorem
   double norm = 1.0;
   if (order==1)
-    norm = FOURTHIRDSPI;
+    norm = Constants::FOURTHIRDSPI;
   else if (order==2)
-    norm = FOURFIFTHSPI;
+    norm = Constants::FOURFIFTHSPI;
   for (int i = 0; i < nsteps; ++i) {
     p2[i] *= (norm / (n_of_vecs - i));
   }
@@ -592,7 +592,7 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
   // propogating throughout the calc. Set to SMALL instead; will get 
   // very large numbers but should still not overflow.
   for (int i = 0; i < 8; i++) 
-    if (lambda[i] < SMALL) lambda[i] = SMALL;
+    if (lambda[i] < Constants::SMALL) lambda[i] = Constants::SMALL;
 
   // Loop over all random vectors
   int nvec = 0; // index into tau1, tau2, sumc2
@@ -663,7 +663,7 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
     double dot3_4 = dot3_2 * dot3_2;
     double da = 0.25 * ( 3*(dot1_4 + dot2_4 + dot3_4) - 1);
     double ea = 0;
-    if ( delta > SMALL) { 
+    if ( delta > Constants::SMALL) { 
       double epsx = 3*(dx-Dav)/delta;
       double epsy = 3*(dy-Dav)/delta;
       double epsz = 3*(dz-Dav)/delta;
