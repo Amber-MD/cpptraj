@@ -1,7 +1,5 @@
 #ifndef INC_PARAMETERTYPES_H
 #define INC_PARAMETERTYPES_H
-#include <vector>
-#include "NameType.h" // For perturbed atom info
 // ----- BOND/ANGLE/DIHEDRAL PARAMETERS ----------------------------------------
 /// Hold bond parameters
 class BondParmType {
