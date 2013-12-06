@@ -5,7 +5,10 @@
 
     The constants here are stored in as high precision as possible for
     double. Certain constants may have larger than 52 bit fraction,
-    which may result in some small precision loss.
+    which may result in some small precision loss. The number of digits
+    chosen in those cases (all PI-related) was done so using the criterion
+    that the conversion back to PI matches within roundoff (e.g.
+    TWOPI / 2 = 3.141592653589793).
  */
 namespace Constants {
   // Various incarnations of PI
