@@ -123,8 +123,8 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
   { "CHARMM_NUM_IMPR_TYPES",              "%FORMAT(I8)"  }, // # improper types
   { "CHARMM_IMPROPER_FORCE_CONSTANT",     F5E16          }, 
   { "CHARMM_IMPROPER_PHASE",              F5E16          },
-  { "LENNARD_JONES_14_ACOEF",             "%FORMAT(3E24.16" },
-  { "LENNARD_JONES_14_BCOEF",             "%FORMAT(3E24.16" },
+  { "LENNARD_JONES_14_ACOEF",             "%FORMAT(3E24.16)" },
+  { "LENNARD_JONES_14_BCOEF",             "%FORMAT(3E24.16)" },
   { "CHARMM_CMAP_COUNT",                  "%FORMAT(2I8)" }, // # CMAP terms, # unique CMAP params
   { "CHARMM_CMAP_RESOLUTION",             "%FORMAT(20I4)"}, // # steps along each Phi/Psi CMAP axis
   { "CHARMM_CMAP_PARAMETER_",             "%FORMAT(8(F9.5))"}, // CMAP grid
@@ -281,6 +281,11 @@ static std::vector<int> DihedralArrayToIndex(DihedralArray const& dihedralIn, bo
 } 
 
 // Parm_Amber::WriteParm()
+/** CHAMBER writes out topologies in slightly different order than LEaP,
+  * namely the EXCLUDED and SOLVENT_POINTERS sections are in different
+  * places. The LEaP order is used here since the ReadAmberParm routine
+  * is optimized for that order.
+  */
 int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   ptype_ = NEWPARM;
   // For date and time
@@ -413,9 +418,6 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteDouble(F_MASS, mass);
   WriteInteger(F_ATYPEIDX, atype_index);
   WriteInteger(F_NUMEX, numex);
-  // CHAMBER only - Write Excluded atoms list here (boo)
-  if (ptype_ == CHAMBER) 
-    WriteInteger(F_EXCLUDE, excluded);
   // NONBONDED INDICES - positive needs to be shifted by +1 for fortran
   std::vector<int> nbindex;
   nbindex.reserve( parmIn.Nonbond().NBindex().size() );
@@ -559,9 +561,8 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteInteger(F_ANGLES,  AngleArrayToIndex(parmIn.Angles()));
   WriteInteger(F_DIHH,    DihedralArrayToIndex(parmIn.DihedralsH(),false));
   WriteInteger(F_DIH,     DihedralArrayToIndex(parmIn.Dihedrals(),false));
-  // EXCLUDED ATOMS LIST - only if not CHAMBER
-  if (ptype_ != CHAMBER)
-    WriteInteger(F_EXCLUDE, excluded);
+  // EXCLUDED ATOMS LIST
+  WriteInteger(F_EXCLUDE, excluded);
   // HBOND
   Rk.reserve( parmIn.Nonbond().HBarray().size() );
   Req.reserve( parmIn.Nonbond().HBarray().size() );
@@ -663,13 +664,26 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
     {
       // Assign format string
       fformat_.assign( FLAGS[F_CHM_CMAPP].Fmt );
-      // Set type, cols, width, and precision from format string
-      // Write FLAG and FORMAT lines
       std::string fflag(FLAGS[F_CHM_CMAPP].Flag);
       fflag.append( integerToString(ngrid, 2) );
+      // Set type, cols, width, and precision from format string
+      // Write FLAG and FORMAT lines
       if (WriteFlagAndFormat(fflag.c_str(), grid->Grid().size())) return 1;
       WriteDoubleArray(grid->Grid());
     }
+    CMAP_RES.clear();
+    CMAP_RES.reserve( parmIn.Chamber().Cmap().size()*6 );
+    for (CmapArray::const_iterator c = parmIn.Chamber().Cmap().begin();
+                                   c != parmIn.Chamber().Cmap().end(); ++c)
+    {
+      CMAP_RES.push_back( c->A1()+1  );
+      CMAP_RES.push_back( c->A2()+1  );
+      CMAP_RES.push_back( c->A3()+1  );
+      CMAP_RES.push_back( c->A4()+1  );
+      CMAP_RES.push_back( c->A5()+1  );
+      CMAP_RES.push_back( c->Idx()+1 );
+    }
+    WriteInteger(F_CHM_CMAPI, CMAP_RES);
   }
   // Polarizability - only write if it needs to be there
   if (parmIn.Ipol() > 0) {
@@ -863,21 +877,20 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
       return 1;
     }
   }
-      
   // Read parm variables
-  std::vector<NameType> names = GetFlagName(F_NAMES, values[NATOM]);
-  std::vector<double> charge = GetFlagDouble(F_CHARGE,values[NATOM]);
+  std::vector<NameType> names  = GetFlagName(F_NAMES, values[NATOM]);
+  std::vector<double>   charge = GetFlagDouble(F_CHARGE, values[NATOM]);
   // New parm only: ATOMICNUM
   std::vector<int> at_num;
   if (ptype_ != OLDPARM)
-    at_num = GetFlagInteger(F_ATOMICNUM,values[NATOM]);
-  std::vector<double> mass = GetFlagDouble(F_MASS,values[NATOM]);
-  std::vector<int> atype_index = GetFlagInteger(F_ATYPEIDX,values[NATOM]);
+    at_num = GetFlagInteger(F_ATOMICNUM, values[NATOM]);
+  std::vector<double> mass = GetFlagDouble(F_MASS, values[NATOM]);
+  std::vector<int> atype_index = GetFlagInteger(F_ATYPEIDX, values[NATOM]);
   // For old parm need to read past NUMEX
   if (ptype_ == OLDPARM)
-    GetFlagInteger(F_NUMEX,values[NATOM]);
-  std::vector<int> NB_index = GetFlagInteger(F_NB_INDEX,values[NTYPES]*values[NTYPES]);
-  std::vector<NameType> resnames = GetFlagName(F_RESNAMES,values[NRES]);
+    GetFlagInteger(F_NUMEX, values[NATOM]);
+  std::vector<int> NB_index = GetFlagInteger(F_NB_INDEX, values[NTYPES]*values[NTYPES]);
+  std::vector<NameType> resnames = GetFlagName(F_RESNAMES, values[NRES]);
   std::vector<int> resnums = GetFlagInteger(F_RESNUMS,values[NRES]);
   // Bond and angle parameters
   BondParmArray BPA = BondParmToArray(GetFlagDouble(F_BONDRK, values[NUMBND]),
