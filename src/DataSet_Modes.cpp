@@ -929,23 +929,27 @@ int DataSet_Modes::NMWiz(CpptrajFile& outfile, int nvecs, std::string filename, 
 
   outfile.Printf("atomnames ");
   std::vector<NameType> atomnames;
-  for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++)
+  std::vector<int> ResNums;
+  for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++){
     atomnames.push_back( (*atom).Name() );
+    ResNums.push_back( (*atom).ResNum() );}
   for (int i=0; i<atomnames.size(); ++i)
 	outfile.Printf("%s ", *atomnames[i]);
   outfile.Printf("\n");
 
   outfile.Printf("resnames ");
+  std::vector<int> resnums;
   std::vector<NameType> resnames;
-  for (Topology::res_iterator res = parmIn.ResStart(); res != parmIn.ResEnd(); res++)
-    resnames.push_back( (*res).Name() );
-  for (int i=0; i<resnames.size(); ++i)
-    outfile.Printf("%s ", *resnames[i]);
+  for (Topology::res_iterator res = parmIn.ResStart(); res != parmIn.ResEnd(); res++) {
+    resnums.push_back( (*res).FirstAtom()+1 );
+    resnames.push_back( (*res).Name() ); }  
+  for (int i=0; i<atomnames.size(); ++i)
+    outfile.Printf("%s ", *resnames[ResNums[i]] );  
   outfile.Printf("\n");
-  
+ 
   outfile.Printf("resids ");  
-  for (int i = 0; i<resnames.size(); ++i)
-    outfile.Printf("%i ", i+1);
+  for (int i=0; i<atomnames.size(); ++i)
+    outfile.Printf("%d ", ResNums[i]+1);
   outfile.Printf("\n");
   
   outfile.Printf("chainids \n");    //TODO: get from optionally provided pdb file
