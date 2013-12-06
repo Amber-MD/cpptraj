@@ -1407,6 +1407,42 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // CAP info - dont support stripping such topologies right now
   if (cap_.HasWaterCap())
     mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
+  // CHAMBER info - Parameters remain intact
+  if (chamber_.HasChamber()) {
+    newParm->chamber_.SetChamber( chamber_.FF_Version(), chamber_.FF_Type() );
+    newParm->chamber_.SetUB( StripBondArray(chamber_.UB(),atomMap), chamber_.UBparm() );
+    newParm->chamber_.SetImproper( StripDihedralArray(chamber_.Impropers(),atomMap),
+                                   chamber_.ImproperParm() );
+    newParm->chamber_.SetLJ14( chamber_.LJ14() );
+    if (chamber_.HasCmap()) {
+      for (CmapArray::const_iterator cmap = chamber_.Cmap().begin();
+                                     cmap != chamber_.Cmap().end(); ++cmap)
+      {
+        int newA1 = atomMap[ cmap->A1() ];
+        if (newA1 != -1) {
+          int newA2 = atomMap[ cmap->A2() ];
+          if (newA2 != -1) {
+            int newA3 = atomMap[ cmap->A3() ];
+            if (newA3 != -1) {
+              int newA4 = atomMap[ cmap->A4() ];
+              if (newA4 != -1) {
+                int newA5 = atomMap[ cmap->A5() ];
+                if (newA5 != -1)
+                  newParm->chamber_.AddCmapTerm( CmapType(newA1,newA2,newA3,
+                                                          newA4,newA5,cmap->Idx()) );
+              }
+            }
+          }
+        }
+      }
+      // Only add CMAP grids if there are CMAP terms left.
+      if (!newParm->chamber_.Cmap().empty()) {
+        for (CmapGridArray::const_iterator g = chamber_.CmapGrid().begin();
+                                           g != chamber_.CmapGrid().end(); ++g)
+          newParm->chamber_.AddCmapGrid( *g );
+      }
+    }
+  }
   // Amber extra info. Assume if one present, all present.
   if (!itree_.empty() && !join_.empty() && !irotat_.empty()) {
     for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
