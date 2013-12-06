@@ -2,6 +2,7 @@
 #define INC_DATASET_MODES_H
 #include "DataSet_MatrixDbl.h"
 #include "Frame.h"
+#include "Analysis.h"
 /// Hold eigenvalues/eigenvectors and optionally averaged coords.
 class DataSet_Modes : public DataSet {
   public:
@@ -24,6 +25,7 @@ class DataSet_Modes : public DataSet {
     int MassWtEigvect( DataSet_MatrixDbl::Darray const& );
     int Reduce();
     int Thermo(CpptrajFile&, int, double, double) const;
+	int NMWiz(CpptrajFile&, int, std::string, Topology const& );
 
     void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
 

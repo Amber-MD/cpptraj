@@ -9,7 +9,8 @@ Analysis_Matrix::Analysis_Matrix() :
   nevec_(0),
   thermopt_(false),
   reduce_(false),
-  eigenvaluesOnly_(false)
+  eigenvaluesOnly_(false),
+  nmwizopt_(false)
 {}
 
 void Analysis_Matrix::Help() {
@@ -46,6 +47,15 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
     mprinterr("Error: analyze matrix: Only works for symmetric matrices (i.e. no mask2)\n");
     return Analysis::ERR;
   }
+  
+  //nmwiz flag
+  nmwizopt_ = analyzeArgs.hasKey("nmwiz");
+  if (nmwizopt_) 
+	nmwizvecs_ = analyzeArgs.getKeyInt("nmwizvecs", 20);
+	nmwizfile_ = analyzeArgs.GetStringKey("nmwizfile");
+	parmIn_ = PFLin ->GetParm( analyzeArgs);
+
+  
   // Filenames
   outfilename_ = analyzeArgs.GetStringKey("out");
   // Thermo flag
@@ -90,6 +100,13 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
     else
       mprintf(" STDOUT");
   }
+  if (nmwizopt_) {
+    mprintf(" and  writing %i modes to NMWiz file", nmwizvecs_);
+    if (!nmwizfile_.empty())
+      mprintf(" %s", nmwizfile_.c_str());
+    else
+      mprintf(" STDOUT");
+  }
   mprintf("\n");
   if (nevec_>0 && reduce_)
     mprintf("      Eigenvectors will be reduced\n");
@@ -121,6 +138,15 @@ Analysis::RetType Analysis_Matrix::Analyze() {
       modes_->Thermo( outfile, 1, 298.15, 1.0 );
       outfile.CloseFile();
     }
+    // Print nmwiz file if specified
+    if (nmwizopt_) {
+      CpptrajFile nmwiz_outfile;
+      nmwiz_outfile.OpenWrite(nmwizfile_);
+      modes_->NMWiz( nmwiz_outfile, nmwizvecs_, nmwizfile_, *parmIn_);
+      nmwiz_outfile.CloseFile();
+	}
+    
+    
   }
   if (reduce_) {
     if (modes_->Reduce()) return Analysis::ERR;
