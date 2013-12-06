@@ -112,6 +112,7 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <float> dEwh_norm_;
     std::vector <float> dEww_norm_unref_;
     std::vector <float> dEww_dw_unref_;
+    std::vector <float> neighbor_dw_;
     std::vector <float> neighbor_norm_;
     std::vector <float> pol_;
 

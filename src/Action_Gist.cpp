@@ -282,6 +282,8 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   dipolez_.resize(MAX_GRID_PT_, 0.0);
   neighbor_.clear();
   neighbor_.resize(MAX_GRID_PT_, 0.0);
+  neighbor_dw_.clear();
+  neighbor_dw_.resize(MAX_GRID_PT_, 0.0);
   neighbor_norm_.clear();
   neighbor_norm_.resize(MAX_GRID_PT_, 0.0);
   qtet_.clear();
@@ -788,8 +790,8 @@ void Action_Gist::Print() {
     if (nwat_[a]>1) {
        dEwh_dw_[a] = (wh_evdw_[a]+wh_eelec_[a])/(NFRAME_*Vvox_);
        dEwh_norm_[a] = (wh_evdw_[a]+wh_eelec_[a])/nwat_[a];
+       dEww_dw_unref_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*NFRAME_*Vvox_);
        dEww_norm_unref_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*nwat_[a]); 
-       dEww_dw_unref_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*NFRAME_*Vvox_); 
     }
     else {
        dEwh_dw_[a]=0; dEwh_norm_[a]=0; dEww_norm_unref_[a]=0; dEww_dw_unref_[a]=0;
@@ -799,7 +801,7 @@ void Action_Gist::Print() {
       qtet_[a] /= nwat_[a];
       neighbor_norm_[a] = 1.0*neighbor_[a]/nwat_[a];
     }
-    neighbor_[a] /= (1.0*NFRAME_*Vvox_);
+    neighbor_dw_[a] = 1.0*neighbor_[a]/(NFRAME_*Vvox_);
     dipolex_[a] /= (0.20822678*NFRAME_*Vvox_);
     dipoley_[a] /= (0.20822678*NFRAME_*Vvox_);
     dipolez_[a] /= (0.20822678*NFRAME_*Vvox_);
@@ -927,33 +929,32 @@ void Action_Gist::PrintOutput(string const& filename)
   //  myfile.open("gist-output.dat");  
   //myfile.open(filename);  
   outfile.Printf("GIST Output, information printed per voxel\n");
-  outfile.Printf("GIST Output, information printed per voxel\n");
   outfile.Printf("voxel xcoord ycoord zcoord population g_O g_H ");
   outfile.Printf("TStrans-dw(kcal/mol/A^3) TStrans-norm(kcal/mol) TSorient-dw(kcal/mol/A^3) TSorient-norm(kcal/mol) ");
   outfile.Printf("Ewh-dw(kcal/mol/A^3) Ewh-norm(kcal/mol) ");
-  outfile.Printf("Eww-norm-unref(kcal/mol) Eww-dw-unref(kcal/mol/A^3) ");
-  outfile.Printf("Dipole_x(D/A^3) Dipole_y(D/A^3) Dipole_z(D/A^3) Dipole-dw(D/A^3) neighbor-dw(1/A^3) neighbor-norm order-norm\n");
+  outfile.Printf("Eww-dw-unref(kcal/mol/A^3) Eww-norm-unref(kcal/mol) ");
+  outfile.Printf("Dipole_x-dw(D/A^3) Dipole_y-dw(D/A^3) Dipole_z-dw(D/A^3) Dipole-dw(D/A^3) neighbor-dw(1/A^3) neighbor-norm order-norm\n");
   // Now print out the data. 
   for (int i=0; i<MAX_GRID_PT_; i++){
-    outfile.Printf( "%d %g %g %g %g %g %g ",i , grid_x_[i] , grid_y_[i], grid_z_[i], nwat_[i] , g_[i], gH_[i] );
+    outfile.Printf( "%d %g %g %g %d %g %g ",i , grid_x_[i] , grid_y_[i], grid_z_[i], nwat_[i] , g_[i], gH_[i] );
     outfile.Printf( "%g %g %g %g ",TStrans_dw_[i], TStrans_norm_[i], TSNN_dw_[i] , TSNN_norm_[i]);
     outfile.Printf( "%g %g ",dEwh_dw_[i], dEwh_norm_[i] );
-    outfile.Printf( "%g %g ",dEww_norm_unref_[i] , dEww_dw_unref_[i] );
+    outfile.Printf( "%g %g ",dEww_dw_unref_[i] , dEww_norm_unref_[i] );
     outfile.Printf( "%g %g %g %g ",dipolex_[i] , dipoley_[i] , dipolez_[i] , pol_[i] );
-    outfile.Printf( "%g %g %g \n",neighbor_[i] , neighbor_norm_[i] , qtet_[i]);
+    outfile.Printf( "%g %g %g \n",neighbor_dw_[i] , neighbor_norm_[i] , qtet_[i]);
     }
   /*myfile << "GIST Output, information printed per voxel\n";
   myfile << "voxel xcoord ycoord zcoord population g_O g_H ";
   myfile << "TStrans-dw(kcal/mol/A^3) TStrans-norm(kcal/mol) TSorient-dw(kcal/mol/A^3) TSorient-norm(kcal/mol) ";
   myfile << "Ewh-dw(kcal/mol/A^3) Ewh-norm(kcal/mol) ";
-  myfile << "Eww-norm-unref(kcal/mol) Eww-vox-unref(kcal/mol) ";
+  myfile << "Eww-dw-unref(kcal/mol/A^3) Eww-norm-unref(kcal/mol) ";
   myfile << "Dipole_x Dipole_y Dipole_z u(D) neighbor neighbor-norm order\n";
   // Now print out the data. 
   for (int i=0; i<MAX_GRID_PT_; i++){
     myfile << i << " " << grid_x_[i] << " " << grid_y_[i]<< " " << grid_z_[i]<< " " << nwat_[i] << " " << g_[i]<< " " << gH_[i] << " ";
     myfile <<  TStrans_dw_[i]<< " " << TStrans_norm_[i]<< " " << TSNN_dw_[i] << " " << TSNN_norm_[i]<< " ";
     myfile << dEwh_dw_[i]<< " " << dEwh_norm_[i] << " ";
-    myfile << dEww_norm_unref_[i] << " " << dEww_dw_unref_[i] << " ";
+    myfile << dEww_dw_unref_[i] << " " << dEww_norm_unref_[i] << " ";
     myfile << dipolex_[i] << " " << dipoley_[i] << " " << dipolez_[i] << " " << pol_[i] << " ";
     myfile << neighbor_[i] << " " << neighbor_norm_[i] << " " << qtet_[i] << endl;
     }*/
