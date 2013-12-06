@@ -9,15 +9,15 @@
  */
 namespace Constants {
   // Various incarnations of PI
-  const double PI           = 3.1415926535897932384626433832795; 
-  const double TWOPI        = 6.2831853071795864769252867665590; 
-  const double FOURPI       = 12.566370614359172953850573533118; 
-  const double FOURTHIRDSPI = 4.1887902047863909846168578443727; 
-  const double FOURFIFTHSPI = 2.5132741228718345907701147066236; 
-  const double PIOVER2      = 1.5707963267948966192313216916398; 
+  const double PI           = 3.141592653589793; 
+  const double TWOPI        = 6.283185307179586;  // may have precision loss
+  const double FOURPI       = 12.566370614359172; // may have precision loss
+  const double FOURTHIRDSPI = 4.1887902047863909; // may have precision loss 
+  const double FOURFIFTHSPI = 2.5132741228718345; // may have precision loss
+  const double PIOVER2      = 1.5707963267948966; // may have precision loss 
   // Convert degrees <-> radians
-  const double DEGRAD       = 0.017453292519943295769236907684886; 
-  const double RADDEG       =   57.295779513082320876798154814105; 
+  const double DEGRAD       = 0.017453292519943295; // may have precision loss 
+  const double RADDEG       =   57.29577951308232;  // may have precision loss
   // For checking floating point zero
   const double SMALL        = 0.00000000000001;
   /// Gas constant in J/mol*K
