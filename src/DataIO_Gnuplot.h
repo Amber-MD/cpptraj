@@ -11,7 +11,6 @@ class DataIO_Gnuplot : public DataIO {
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) { return 1; }
     int processWriteArgs(ArgList&);
     int WriteData(std::string const&,DataSetList const&);
-    int WriteDataInverted(std::string const&,DataSetList const&) { return 1; }
     int WriteData2D( std::string const&,DataSet const&);
     int WriteData3D(std::string const&, DataSet const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }

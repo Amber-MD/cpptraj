@@ -20,7 +20,6 @@ DataFile::DataFile() :
   dimension_(-1),
   dfType_(DATAFILE),
   dflWrite_(true),
-  isInverted_(false),
   setDataSetPrecision_(false), //TODO: Just use default_width_ > -1?
   default_width_(-1),
   default_precision_(-1),
@@ -44,7 +43,7 @@ DataFile::~DataFile() {
 // NOTE: Must be in same order as DataFormatType
 const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Standard Data File", DataIO_Std::ReadHelp,    DataIO_Std::WriteHelp,    DataIO_Std::Alloc    },
-  { "Grace File",         0,                       0,                        DataIO_Grace::Alloc  },
+  { "Grace File",         0,                       DataIO_Grace::WriteHelp,  DataIO_Grace::Alloc  },
   { "Gnuplot File",       0,                       DataIO_Gnuplot::WriteHelp,DataIO_Gnuplot::Alloc},
   { "Xplor File",         0,                       0,                        DataIO_Xplor::Alloc  },
   { "OpenDX File",        0,                       0,                        DataIO_OpenDx::Alloc },
@@ -197,14 +196,6 @@ int DataFile::RemoveSet(DataSet* dataIn) {
 // DataFile::ProcessArgs()
 int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
-  if (argIn.hasKey("invert")) {
-    isInverted_ = true;
-    // Currently GNUPLOT files cannot be inverted.
-    if (dfType_ == GNUPLOT) {
-      mprintf("Warning: (%s) Gnuplot files cannot be inverted.\n",filename_.base());
-      isInverted_ = false;;
-    }
-  }
   // Axis args.
   defaultDim_[0].SetLabel( argIn.GetStringKey("xlabel") );
   defaultDim_[1].SetLabel( argIn.GetStringKey("ylabel") );
@@ -295,11 +286,8 @@ void DataFile::WriteData() {
   dftimer.Start();
 #endif
   int err = 0;
-  if ( dimension_ == 1 ) {       // One-dimensional
-    if (!isInverted_)
-      err = dataio_->WriteData(filename_.Full(), setsToWrite);
-    else
-      err = dataio_->WriteDataInverted(filename_.Full(), setsToWrite);
+  if ( dimension_ < 2 ) {        // One-dimensional/DataSet-specific write
+    err = dataio_->WriteData(filename_.Full(), setsToWrite);
   } else if ( dimension_ == 2) { // Two-dimensional
     for ( DataSetList::const_iterator set = setsToWrite.begin();
                                       set != setsToWrite.end(); ++set)

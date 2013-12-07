@@ -5,6 +5,11 @@
 #include "CpptrajFile.h"
 #include "BaseIOtype.h"
 /// Base class that all DataIO objects inherit from.
+/** Reading in data occurs as soon as ReadData is called, so any read-specific
+  * arguments are passed in with ReadData. Writing data can occur any time
+  * after a DataFile is set up for write, so write arguments are processed
+  * separately with processWriteArgs.
+  */
 class DataIO : public BaseIOtype {
   public:
     DataIO() : valid1d_(false), valid2d_(false), valid3d_(false) {}
@@ -17,7 +22,6 @@ class DataIO : public BaseIOtype {
     virtual int WriteData(std::string const&, DataSetList const&) = 0;
     virtual int WriteData2D(std::string const&, DataSet const&) = 0;
     virtual int WriteData3D(std::string const&, DataSet const&) = 0;
-    virtual int WriteDataInverted(std::string const&, DataSetList const &) = 0;
     virtual bool ID_DataFormat(CpptrajFile&) = 0; // TODO: -> BaseIOtype?
     /// \return True if this DataIO valid for given DataSet
     bool CheckValidFor(DataSet const&) const;
