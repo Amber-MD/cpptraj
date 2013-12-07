@@ -928,18 +928,18 @@ int DataSet_Modes::NMWiz(CpptrajFile& outfile, int nvecs, std::string filename, 
   outfile.Printf("name default_name\n");  //TODO: get from optionally provided pdb file
 
   outfile.Printf("atomnames ");
-  for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); atom++)
-	outfile.Printf("%s ", *(atom->Name()));
+  for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); ++atom)
+	outfile.Printf("%s ", atom->c_str());
   outfile.Printf("\n");
 
   outfile.Printf("resnames ");
-  for (Topology::res_iterator res = parmIn.ResStart(); res != parmIn.ResEnd(); res++)
-    outfile.Printf("%s ", *(res->Name()));
+  for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); ++atom)
+    outfile.Printf("%s ", parmIn.Res(atom->ResNum()).c_str());
   outfile.Printf("\n");
-  
+ 
   outfile.Printf("resids ");  
-  for (int i = 0; i < parmIn.Nres(); ++i)
-    outfile.Printf("%i ", i+1);
+  for (Topology::atom_iterator atom = parmIn.begin(); atom != parmIn.end(); ++atom)
+    outfile.Printf("%d ", atom->ResNum()+1);
   outfile.Printf("\n");
   
   outfile.Printf("chainids \n");    //TODO: get from optionally provided pdb file
@@ -948,7 +948,7 @@ int DataSet_Modes::NMWiz(CpptrajFile& outfile, int nvecs, std::string filename, 
 
   outfile.Printf("coordinates ");
   for (int i = 0; i<avgcrd_.size(); ++i)
-	  outfile.Printf("%8.3f ", avgcrd_.xAddress()[i]);
+	  outfile.Printf("%8.3f ", avgcrd_[i]);
   outfile.Printf("\n");
   
   for (int vec = 0; vec<nvecs; ++vec){
