@@ -158,6 +158,7 @@ int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debu
 }
 
 // DataFile::AddSet()
+// TODO: Make this an error if no dataio present.
 int DataFile::AddSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
   if (SetList_.empty())
@@ -169,6 +170,13 @@ int DataFile::AddSet(DataSet* dataIn) {
               dataIn->Legend().c_str(), dataIn->Ndim());
     return Error("Error: Adding DataSets with different dimensions to same file"
                  " is currently unsupported.\n");
+  }
+  if (dataio_ != 0) {
+    if (!dataio_->CheckValidFor( *dataIn)) {
+      mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
+                 dataIn->Legend().c_str(), filename_.base());
+      return 1;
+    }
   }
   // Set default width.precision
   if (setDataSetPrecision_)
@@ -252,6 +260,12 @@ void DataFile::WriteData() {
     if ( ds.SetDataSetFormat(false) ) {
       mprinterr("Error: Could not set format string for set %s. Skipping.\n",
                 ds.Legend().c_str());
+      continue;
+    }
+    // Ensure current DataIO is valid for this set.
+    if (!dataio_->CheckValidFor( ds )) {
+      mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
+                 ds.Legend().c_str(), filename_.base());
       continue;
     }
     // Set default min and step for all dimensions if not already set.

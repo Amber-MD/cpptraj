@@ -10,7 +10,8 @@
 #include "DataSet_3D.h"
 
 // CONSTRUCTOR
-DataIO_Std::DataIO_Std() : 
+DataIO_Std::DataIO_Std() :
+  DataIO(true, true, true), // Valid for 1D, 2D, 3D 
   hasXcolumn_(true), 
   writeHeader_(true), 
   square2d_(false) {}

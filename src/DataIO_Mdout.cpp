@@ -6,9 +6,6 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ConvertToDouble
 
-// CONSTRUCTOR
-DataIO_Mdout::DataIO_Mdout() {}
-
 // DataIO_Mdout::ID_DataFormat()
 bool DataIO_Mdout::ID_DataFormat(CpptrajFile& infile) {
   if (infile.OpenFile()) return false;

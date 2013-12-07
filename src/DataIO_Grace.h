@@ -5,7 +5,7 @@
 /// Read/write Grace data files.
 class DataIO_Grace : public DataIO {
   public:
-    DataIO_Grace() {}
+    DataIO_Grace() : DataIO(true, false, false) {} // Valid for 1D only
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Grace(); } 
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
 

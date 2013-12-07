@@ -5,7 +5,7 @@
 /// Read energies from Amber MDOUT files.
 class DataIO_Mdout : public DataIO {
   public:
-    DataIO_Mdout();
+    DataIO_Mdout() {}
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Mdout(); }
     static void ReadHelp();
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);

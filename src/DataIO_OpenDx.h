@@ -4,7 +4,7 @@
 /// Write OpenDx format data files.
 class DataIO_OpenDx : public DataIO {
   public:
-    DataIO_OpenDx() {}
+    DataIO_OpenDx() : DataIO(false, false, true) {} // Valid for 3D only
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_OpenDx(); }
     int ReadData(std::string const&, ArgList&, DataSetList&, std::string const&);
     int processWriteArgs(ArgList&)                               { return 0; }

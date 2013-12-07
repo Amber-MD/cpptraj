@@ -7,7 +7,9 @@
 #include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
-DataIO_RemLog::DataIO_RemLog() : debug_(0) {}
+DataIO_RemLog::DataIO_RemLog() : debug_(0) {
+  SetValid( DataSet::REMLOG );
+}
 
 const char* ExchgDescription[] = {
 "Unknown", "Temperature", "Hamiltonian", "MultipleDim"
