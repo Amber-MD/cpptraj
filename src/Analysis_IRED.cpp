@@ -237,7 +237,6 @@ Analysis::RetType Analysis_IRED::Analyze() {
   // Store Modes Info
   int nvect = modinfo_->Nmodes();
   int nvectelem = modinfo_->VectorSize();
-  const double* eigval = modinfo_->Eigenvalues();
   const double* vout = modinfo_->Eigenvectors();
   // Initialize memory
   cf_ = new double[ nvect * nsteps ];
@@ -335,7 +334,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
         //        j, eigval[j],
         //        j * nvectelem + i, vout[j * nvectelem + i],
         //        nsteps * j + k, cf_[nsteps * j + k], frame - k);
-        sum += (eigval[j] * (vout[j * nvectelem + i] * vout[j * nvectelem + i])) *
+        sum += (modinfo_->Eigenvalue(j) * (vout[j * nvectelem + i] * vout[j * nvectelem + i])) *
                (cf_[nsteps * j + k] / (Nframes_ - k));
       }
       //mprintf("CDBG:\tVec=%i Step=%i sum=%lf\n",i,k,sum);

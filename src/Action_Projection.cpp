@@ -155,7 +155,7 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame,
        modinfo_->Type() == DataSet_2D::MWCOVAR ) 
   {
     for (int mode = 0; mode < modinfo_->Nmodes(); ++mode) {
-      const double* Avg = modinfo_->AvgCrd();
+      const double* Avg = modinfo_->AvgFrame().xAddress();
       double proj = 0;
       std::vector<double>::const_iterator sqrtmass = sqrtmasses_.begin();
       for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)

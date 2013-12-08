@@ -149,7 +149,7 @@ Analysis::RetType Analysis_Matrix::Analyze() {
     
   }
   if (reduce_) {
-    if (modes_->Reduce()) return Analysis::ERR;
+    if (modes_->ReduceVectors()) return Analysis::ERR;
   }
   //modes_->PrintModes(); // DEBUG
   if (!outfilename_.empty())

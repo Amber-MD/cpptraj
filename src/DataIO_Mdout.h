@@ -1,7 +1,6 @@
 #ifndef INC_DATAIO_MDOUT_H
 #define INC_DATAIO_MDOUT_H
 #include "DataIO.h"
-// Class: DataIO_Mdout
 /// Read energies from Amber MDOUT files.
 class DataIO_Mdout : public DataIO {
   public:

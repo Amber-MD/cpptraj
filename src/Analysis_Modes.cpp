@@ -396,7 +396,7 @@ void Analysis_Modes::CalcDipoleCorr() {
   memset(results_, 0, rsize*sizeof(double));
   // Loop over atom pairs 
   double* Res = results_;
-  const double* Avg = modinfo_->AvgCrd();
+  const double* Avg = modinfo_->AvgFrame().xAddress();
   for (modestack_it apair = atompairStack_.begin(); apair != atompairStack_.end(); ++apair)
   {
     int idx1 = (*apair).first  * 3;
@@ -467,7 +467,7 @@ void Analysis_Modes::CalcDipoleCorr() {
 // Calculate projection of coords along given mode.
 void Analysis_Modes::CalculateProjection(int set, Frame const& Crd, int mode) {
   double proj = 0.0;
-  const double* Avg = modinfo_->AvgCrd();
+  const double* Avg = modinfo_->AvgFrame().xAddress();
   const double* Vec = modinfo_->Eigenvector(mode);
   for (int idx = 0; idx < Crd.size(); ++idx)
     proj += (Crd[idx] - Avg[idx]) * 1.0 * Vec[idx];

@@ -1,7 +1,6 @@
 #ifndef INC_DATAIO_GRACE_H
 #define INC_DATAIO_GRACE_H
 #include "DataIO.h"
-// Class: DataIO_Grace
 /// Read/write Grace data files.
 class DataIO_Grace : public DataIO {
   public:

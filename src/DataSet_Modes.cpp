@@ -49,6 +49,33 @@ void DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
   }
 }
 
+int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn, 
+                            const double* evalsIn, const double* evecsIn)
+{
+  if (evalues_!=0) delete[] evalues_;
+  evalues_ = 0;
+  if (evectors_!=0) delete[] evectors_;
+  evectors_ = 0;
+  nmodes_ = nmodesIn;
+  vecsize_ = vecsizeIn;
+  if (evalsIn == 0) {
+    mprinterr("Internal Error: Null value for eigenvalues.\n");
+    return 1;
+  }
+  evalues_ = new double[ nmodes_ ];
+  std::copy( evalsIn, evalsIn + nmodes_, evalues_ );
+  if (vecsize_ > 0) {
+    if (evecsIn == 0) {
+      mprinterr("Internal Error: Null values for eigenvectors.\n");
+      return 1;
+    }
+    evectors_ = new double[ nmodes_ * vecsize_ ];
+    std::copy( evecsIn, evecsIn + nmodes_ * vecsize_, evectors_ );
+  }
+  reduced_ = reducedIn;
+  return 0;
+}
+
 /** Get eigenvectors and eigenvalues. They will be stored in descending 
   * order (largest eigenvalue first).
   */
@@ -509,8 +536,8 @@ int DataSet_Modes::MassWtEigvect(DataSet_MatrixDbl::Darray const& massIn) {
   return 0;
 }
 
-// DataSet_Modes::Reduce() 
-int DataSet_Modes::Reduce() {
+// DataSet_Modes::ReduceVectors() 
+int DataSet_Modes::ReduceVectors() {
   if (evectors_ == 0) {
     mprintf("Warning: Cannot 'reduce', no eigenvectors present.\n");
     return 0;

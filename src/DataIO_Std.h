@@ -1,7 +1,6 @@
 #ifndef INC_DATAIO_STD_H
 #define INC_DATAIO_STD_H
 #include "DataIO.h"
-// Class: DataIO_Std
 /// Read/write standard data files.
 class DataIO_Std : public DataIO {
   public:

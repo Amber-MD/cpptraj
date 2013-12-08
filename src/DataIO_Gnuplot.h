@@ -1,7 +1,6 @@
 #ifndef INC_DATAIO_GNUPLOT_H
 #define INC_DATAIO_GNUPLOT_H
 #include "DataIO.h"
-// Class: DataIO_Gnuplot
 /// Read/write gnuplot data files.
 class DataIO_Gnuplot : public DataIO {
   public:

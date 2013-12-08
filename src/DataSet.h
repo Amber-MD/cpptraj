@@ -99,6 +99,7 @@ class DataSet {
     Dimension const& Dim(int i)       const { return dim_[i];      }
     /// Comparison for sorting, name/aspect/idx
     inline bool operator<(const DataSet&) const;
+    const char* DataFormat()    const { return data_format_;       }
   protected:
     /// Width of numbers in output elements.
     int Width()                 const { return width_;             }
