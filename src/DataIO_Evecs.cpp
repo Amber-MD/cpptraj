@@ -9,8 +9,16 @@ DataIO_Evecs::DataIO_Evecs() {
   SetValid( DataSet::MODES );
 }
 
+bool DataIO_Evecs::ID_DataFormat(CpptrajFile& infile) {
+  if (infile.OpenFile()) return false;
+  std::string firstLine = infile.GetLine();
+  infile.CloseFile();
+  return ( firstLine.compare(0, 18," Eigenvector file:") == 0 );
+}
+
 void DataIO_Evecs::ReadHelp() {
-  mprintf("\t[ibeg <firstmode>] [iend <lastmode>]\n");
+  mprintf("\t[ibeg <firstmode>] [iend <lastmode>]\n"
+          "\tDefaults: ibeg=1, iend=50\n");
 }
 
 // DataIO_Evecs::ReadData()

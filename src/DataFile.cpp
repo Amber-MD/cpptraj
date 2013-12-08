@@ -11,6 +11,7 @@
 #include "DataIO_OpenDx.h"
 #include "DataIO_RemLog.h"
 #include "DataIO_Mdout.h"
+#include "DataIO_Evecs.h"
 
 // TODO: Support these args:
 //       - xlabel, xmin, xstep, time (all dimensions).
@@ -49,18 +50,21 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "OpenDX File",        0,                       0,                        DataIO_OpenDx::Alloc },
   { "Amber REM log",      DataIO_RemLog::ReadHelp, 0,                        DataIO_RemLog::Alloc },
   { "Amber MDOUT file",   DataIO_Mdout::ReadHelp,  0,                        DataIO_Mdout::Alloc  },
+  { "Evecs file",         DataIO_Evecs::ReadHelp,  0,                        DataIO_Evecs::Alloc  },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
 const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { DATAFILE,     "dat",    ".dat"   },
   { XMGRACE,      "grace",  ".agr"   },
+  { XMGRACE,      "grace",  ".xmgr"  },
   { GNUPLOT,      "gnu",    ".gnu"   },
   { XPLOR,        "xplor",  ".xplor" },
   { XPLOR,        "xplor",  ".grid"  },
   { OPENDX,       "opendx", ".dx"    },
   { REMLOG,       "remlog", ".log"   },
   { MDOUT,        "mdout",  ".mdout" },
+  { EVECS,        "evecs",  ".evecs" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -117,11 +121,11 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
                                                               DATAFILE);
     dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   }
-  mprintf("\tReading '%s' as %s\n", filename_.full(), 
-          FileTypes::FormatDescription(DF_AllocArray,dfType_));
   // Check if user specifed DataSet name; otherwise use filename base.
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty()) dsname = filename_.Base();
+  mprintf("\tReading '%s' as %s with name '%s'\n", filename_.full(), 
+          FileTypes::FormatDescription(DF_AllocArray,dfType_), dsname.c_str());
   // Read data
 # ifdef TIMER
   Timer dftimer;
@@ -157,21 +161,40 @@ int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debu
 }
 
 // DataFile::AddSet()
-// TODO: Make this an error if no dataio present.
 int DataFile::AddSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
-  if (SetList_.empty())
-    dimension_ = dataIn->Ndim();
-  else if ((int)dataIn->Ndim() != dimension_) {
-    mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
-              "Error: Attempting to add set %s of dimension %u\n", 
-              filename_.base(), dimension_,
-              dataIn->Legend().c_str(), dataIn->Ndim());
-    return Error("Error: Adding DataSets with different dimensions to same file"
-                 " is currently unsupported.\n");
+  if (dataio_ == 0) {
+    mprinterr("Internal Error: Attempting to add set to DataFile that is not set up.\n");
+    return 1;
   }
-  if (dataio_ != 0) {
-    if (!dataio_->CheckValidFor( *dataIn)) {
+  if (SetList_.empty()) {
+    dimension_ = dataIn->Ndim();
+    // If current format not valid for first set, attempt to find valid format
+    if (!dataio_->CheckValidFor(*dataIn)) {
+      delete dataio_;
+      for (int dft = 0; dft != (int)UNKNOWN_DATA; dft++) {
+        dfType_ = (DataFormatType)dft;
+        dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
+        if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+        if (dataio_->CheckValidFor(*dataIn)) break;
+        delete dataio_;
+        dataio_ = 0;
+      }
+      if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+      mprintf("\tChanged DataFile '%s' type to %s for set %s\n", filename_.base(),
+              FileTypes::FormatDescription(DF_AllocArray, dfType_),
+              dataIn->Legend().c_str());
+    }
+  } else {
+    if ((int)dataIn->Ndim() != dimension_) {
+      mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
+                "Error: Attempting to add set %s of dimension %u\n", 
+                filename_.base(), dimension_,
+                dataIn->Legend().c_str(), dataIn->Ndim());
+      return Error("Error: Adding DataSets with different dimensions to same file"
+                   " is currently unsupported.\n");
+    }
+    if (!dataio_->CheckValidFor(*dataIn)) {
       mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
                  dataIn->Legend().c_str(), filename_.base());
       return 1;

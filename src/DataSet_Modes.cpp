@@ -1,11 +1,8 @@
 #include <cmath> // sqrt
-#include <cstdio> // sscanf
-#include <cstring> // memcpy, memset
 #include "DataSet_Modes.h"
 #include "CpptrajStdio.h"
-#include "BufferedFrame.h"
 #include "ArgList.h"
-#include "Constants.h"
+#include "Constants.h" // PI, TWOPI
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -22,6 +19,8 @@ extern "C" {
                int&, int&);
 }
 #endif
+
+const char* DataSet_Modes::DeprecateFileMsg = "Modes should be read in prior to this command with 'readdata'\n";
 
 // CONSTRUCTOR
 DataSet_Modes::DataSet_Modes() :
@@ -179,7 +178,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     int ido = 0; // Reverse comm. flag; 0 = first call
     // The iparam array is used to set parameters for the calc.
     int iparam[11];
-    memset(iparam, 0, 11 * sizeof(int));
+    std::fill( iparam, iparam + 11, 0 );
     iparam[0] = 1;   // Method for selecting implicit shifts; 1 = exact
     iparam[2] = 300; // Max # of iterations allowed
     iparam[3] = 1;   // blocksize to be used in the recurrence (code works with only 1).
@@ -192,7 +191,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     // The ipntr array will hold starting locations in workd and workl arrays
     // for matrices/vectors used by the Lanczos iteration.
     int ipntr[11];
-    memset(ipntr, 0, 11 * sizeof(int));
+    std::fill( ipntr, ipntr + 11, 0 );
     // Create copy of matrix since it will be modified 
     double* mat = mIn.MatrixArray();
     // LOOP
@@ -202,7 +201,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
         // Dot products
         double* target = workd + (ipntr[1] - 1); // -1 since fortran indexing starts at 1
         double* vec    = workd + (ipntr[0] - 1);
-        memset(target, 0, nelem*sizeof(double));
+        std::fill( target, target + nelem, 0 );
         for(int i = 0; i < nelem; i++) {
           for(int j = i; j < nelem; j++) {
             int ind = nelem * i + j - (i * (i + 1)) / 2;
@@ -257,9 +256,9 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     if (vtmp != 0) {
       double* Vec0 = evectors_ + (mode  * vecsize_);
       double* Vec1 = evectors_ + (nmode * vecsize_);
-      memcpy( vtmp, Vec0, vecsize_ * sizeof(double) );
-      memcpy( Vec0, Vec1, vecsize_ * sizeof(double) );
-      memcpy( Vec1, vtmp, vecsize_ * sizeof(double) );
+      std::copy( Vec0, Vec0 + vecsize_, vtmp );
+      std::copy( Vec1, Vec1 + vecsize_, Vec0 );
+      std::copy( vtmp, vtmp + vecsize_, Vec1 );
     }
     --nmode;
   }
@@ -283,213 +282,6 @@ void DataSet_Modes::PrintModes() {
     }
   }
   //printMatrix("Eigenvectors (Rows):", evectors_, nmodes_, vecsize_);
-}
-
-/** Write eigenvalues and if present eigenvectors/avg coords to file
-  * in PTRAJ-compatible format.
-  */
-int DataSet_Modes::WriteToFile(std::string const& fname) {
-  if (fname.empty()) {
-    mprinterr("Internal Error: DataSet_Modes::WriteToFile: No filename given.\n");
-    return 1;
-  }
-  BufferedFrame outfile;
-  if (outfile.OpenWrite( fname )) {
-    mprinterr("Error: Could not open %s for writing.\n", fname.c_str());
-    return 1;
-  }
-  if (reduced_)
-    outfile.Printf(" Reduced Eigenvector file: ");
-  else
-    outfile.Printf(" Eigenvector file: ");
-  outfile.Printf("%s", DataSet_2D::MatrixOutputString(type_));
-  // Write out # of modes on title line to not break compat. with older modes files
-  outfile.Printf(" nmodes %i", nmodes_);
-  // Write out col width on title line to not break compat. with older modes files
-  int colwidth = ColumnWidth();
-  outfile.Printf(" width %i\n", colwidth);
-  // First number is # avg coords, second is size of each vector
-  outfile.Printf(" %4i %4i\n", avgcrd_.size(), vecsize_);
-  // Set up framebuffer, default 7 columns
-  int bufsize;
-  if (avgcrd_.size() > vecsize_)
-    bufsize = (int)avgcrd_.size();
-  else
-    bufsize = vecsize_;
-  outfile.SetupFrameBuffer( bufsize, colwidth, 7 );
-  // Print average coords
-  outfile.DoubleToBuffer( avgcrd_.xAddress(), avgcrd_.size(), data_format_ );
-  outfile.WriteFrame();
-  // Eigenvectors and eigenvalues
-  for (int mode = 0; mode < nmodes_; ++mode) {
-    outfile.Printf(" ****\n %4i ", mode+1);
-    outfile.Printf(data_format_, evalues_[mode]);
-    outfile.Printf("\n");
-    if (evectors_ != 0) {
-      const double* Vec = Eigenvector(mode);
-      outfile.BufferBegin();
-      outfile.DoubleToBuffer( Vec, vecsize_, data_format_ );
-      outfile.WriteFrame(); 
-    }
-  }
-  outfile.CloseFile();
-  return 0;
-}
-
-// DataSet_Modes::ReadEvecFile()
-int DataSet_Modes::ReadEvecFile(std::string const& modesfile, int ibeg, int iend) {
-  int modesToRead = iend - ibeg + 1;
-  if (modesToRead < 1) {
-    mprinterr("Error: Specified # of modes to read (%i) must be > 0\n",modesToRead);
-    return 1;
-  }
-  mprintf("\tAttempting to read %i modes (%i to %i) from %s\n", modesToRead,
-          ibeg, iend, modesfile.c_str());
-  BufferedFrame infile;
-  if (infile.OpenRead( modesfile)) return 1;
-  // Read title line, convert to arg list
-  const char* buffer = 0;
-  if ( (buffer = infile.NextLine())==0 ) {
-    mprinterr("Error: ReadEvecFile(): error while reading title (%s)\n",infile.Filename().full());
-    return 1;
-  }
-  ArgList title(buffer);
-  // Check if reduced
-  reduced_ = title.hasKey("Reduced");
-  // Determine modes file type
-  type_ = DataSet_2D::NO_OP;
-  for (int matidx = (int)DataSet_2D::NO_OP + 1; 
-           matidx != (int)DataSet_2D::NMAT; ++matidx)
-  {
-    if ( title.hasKey( DataSet_2D::MatrixOutputString((DataSet_2D::MatrixType)matidx) ))
-    {
-      type_ = (DataSet_2D::MatrixType)matidx;
-      break;
-    }
-  }
-  // For compatibility with quasih and nmode output
-  if (type_ == DataSet_2D::NO_OP) {
-    mprintf("Warning: ReadEvecFile(): Unrecognized type [%s]\n", title.ArgLine());
-    mprintf("         Assuming MWCOVAR.\n");
-    type_ = DataSet_2D::MWCOVAR;
-  }
-  // For newer modesfiles, get # of modes in file.
-  int modesInFile = title.getKeyInt("nmodes",-1);
-  if (modesInFile == -1) {
-    modesInFile = modesToRead; 
-    mprintf("Warning: Older modes file, # of modes not known.\n");
-    mprintf("Warning: Will try to read at least %i modes.\n", modesToRead);
-  } else {
-    mprintf("\tFile contains %i modes.\n", modesInFile);
-    if (modesToRead > modesInFile) {
-      mprintf("Warning: # modes to read (%i) > modes in file. Only reading %i modes.\n",
-              modesToRead, modesInFile);
-      modesToRead = modesInFile;
-    }
-  }
-  // For newer modesfiles, get width of data elts
-  int colwidth = title.getKeyInt("width", -1);
-  if (colwidth == -1) 
-    colwidth = 11; // Default, 10 + 1 space
-  SetPrecision(colwidth - 1, 5);
-  SetDataSetFormat(false);
-  // Read number of elements in avg coords and eigenvectors
-  if ( (buffer = infile.NextLine())==0 ) {
-    mprinterr("Error: ReadEvecFile(): error while reading number of atoms (%s)\n",
-              infile.Filename().full());
-    return 1;
-  }
-  int navgcrd = 0;
-  int nvals = sscanf(buffer, "%i %i", &navgcrd, &vecsize_);
-  if (nvals == 0) {
-    mprinterr("Error: ReadEvecFile(): sscanf on coords failed (%s)\n",infile.Filename().full());
-    return 1;
-  } else if (nvals == 1) {
-    mprintf("Warning: ReadEvecFile(): No value for eigenvector size found in %s,\n",
-            infile.Filename().full());
-    mprintf("         assuming it is equal to #average elements (%i)\n",navgcrd);
-    vecsize_ = navgcrd;
-  }
-  // Allocate FrameBuffer
-  int bufsize;
-  if (navgcrd > vecsize_)
-    bufsize = navgcrd;
-  else
-    bufsize = vecsize_;
-  infile.SetupFrameBuffer( bufsize, colwidth, 7 );
-  // Allocate memory for avg coords and read in
-  avgcrd_.SetupFrame( navgcrd / 3 );
-  if (navgcrd > 0) {
-    infile.ReadFrame( );
-    infile.BufferToDouble( avgcrd_.xAddress(), avgcrd_.size() );
-    infile.BufferBegin(); // Reset buffer position
-  }
-  // Allocate memory for eigenvalues and eigenvectors
-  if (evalues_!=0) delete[] evalues_;
-  evalues_ = 0;
-  if (evectors_!=0) delete[] evectors_;
-  evectors_ = 0;
-  evalues_ = new double[ modesToRead ];
-  if (vecsize_ > 0) 
-    evectors_ = new double[ modesToRead * vecsize_ ];
-  nmodes_ = 0;
-  int currentMode = 0;
-  int nno = 0;
-  bool firstRead = true;
-  while ( (buffer = infile.NextLine())!=0 ) { // This should read in ' ****'
-    if (strncmp(buffer," ****", 5)!=0) {
-      mprinterr("Error: ReadEvecFile(): When reading eigenvector %i, expected ' ****',\n",
-                currentMode+1);
-      mprinterr("Error: got %s [%s]\n", buffer, infile.Filename().full());
-      return 1;
-    }
-    // Read number and eigenvalue 
-    if ( (buffer = infile.NextLine())==0 ) {
-      mprinterr("Error: ReadEvecFile(): error while reading number and eigenvalue (%s)\n",
-                infile.Filename().full());
-      return 1;
-    }
-    if (sscanf(buffer, "%i%lf", &nno, evalues_ + nmodes_) != 2) {
-      mprinterr("Error: ReadEvecFile(): error while scanning number and eigenvalue (%s)\n",
-                infile.Filename().full());
-      return 1;
-    }
-    if (vecsize_ > 0) {
-      // Read eigenvector
-      // Older modesfiles could have vecsize > 0 but no eigenvectors, only 
-      // blanks. If this is the case set vecsize to -1 to indicate a blank
-      // read is needed after reading eigenvalues.
-      double* Vec = evectors_ + (nmodes_ * vecsize_);
-      int vi = 0;
-      while (vi < vecsize_) {
-        buffer = infile.NextLine();
-        if (firstRead && (buffer[0] == '\n' || buffer[0] == '\r')) {
-          mprintf("Warning: Old modes file with vecsize > 0 but no eigenvectors.\n");
-          vecsize_ = -1;
-          delete[] evectors_;
-          evectors_ = 0;
-          break;
-        }
-        double tmpval[7];
-        int nvals = sscanf(buffer, "%lf %lf %lf %lf %lf %lf %lf", tmpval, 
-                           tmpval+1, tmpval+2, tmpval+3, tmpval+4, tmpval+5, tmpval+6);
-        for (int ti = 0; ti < nvals; ++ti)
-          Vec[vi++] = tmpval[ti];
-      }
-      // Check if mode read was between ibeg and iend (which start from 1).
-      // If so, increment number of modes.
-      if (currentMode+1 >= ibeg && currentMode < iend) ++nmodes_;
-      if (nmodes_ == modesToRead) break; 
-      ++currentMode;
-    } else if (vecsize_ == -1) {
-      // Blank read past empty eigenvector
-      buffer = infile.NextLine();
-    }
-    firstRead = false;
-  }
-  if (nmodes_ != modesToRead) 
-    mprintf("Warning: Number of read modes is %i, requested %i\n", nmodes_, modesToRead);
-  return 0;
 }
 
 /** Convert eigenvalues to cm^-1. 

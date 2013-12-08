@@ -9,6 +9,7 @@ class DataSet_Modes : public DataSet {
     DataSet_Modes();
     ~DataSet_Modes();
     static DataSet* Alloc() { return (DataSet*)new DataSet_Modes();}
+    static const char* DeprecateFileMsg;
     // ----- DataSet functions -------------------
     size_t Size() const { return nmodes_; }
     int Sync()          { return 1;       }
@@ -19,19 +20,17 @@ class DataSet_Modes : public DataSet {
     void AllocateAvgCoords(int n)          { avgcrd_.SetupFrame( n / 3 ); }
     const Frame& AvgFrame()          const { return avgcrd_;              } // Project, Modes
     int NavgCrd()                    const { return (int)avgcrd_.size();  } // Project
-    // For reading directly into avgcrd buffer
+    /// For reading directly into avgcrd buffer
     double* AvgFramePtr()                  { return avgcrd_.xAddress();   }
 
     int SetModes(bool, int, int, const double*, const double*);
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
-    int WriteToFile(std::string const&);
-    int ReadEvecFile(std::string const&, int, int);
     int EigvalToFreq();
     int MassWtEigvect( DataSet_MatrixDbl::Darray const& );
     int ReduceVectors();
     int Thermo(CpptrajFile&, int, double, double) const;
-	int NMWiz(CpptrajFile&, int, std::string, Topology const& );
+    int NMWiz(CpptrajFile&, int, std::string, Topology const& );
 
     void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
 

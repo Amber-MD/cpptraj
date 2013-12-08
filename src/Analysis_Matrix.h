@@ -15,7 +15,6 @@ class Analysis_Matrix : public Analysis {
   private:
     DataSet_2D* matrix_;
     DataSet_Modes* modes_;
-    std::string outfilename_;
     std::string outthermo_;
     int nevec_;
     bool thermopt_;

@@ -1,7 +1,5 @@
-#include <cstring> // memset
 #include "Analysis_IRED.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // fileExists
 #include "Constants.h" // PI
 #include "Corr.h"
 
@@ -27,7 +25,7 @@ Analysis_IRED::Analysis_IRED() :
 void Analysis_IRED::Help() {
   mprintf("\t[relax freq <MHz> [NHdist <distnh>]] [order <order>]\n"
           "\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n"
-          "\tmodes <modesname> [beg <ibeg> end <iend>]\n"
+          "\tmodes <modesname>\n"
           "\tPerform isotropic reorientational Eigenmode dynamics analysis.\n");
 }
 
@@ -44,7 +42,6 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
-  int ibeg=0, iend=0;
   // Count and store the number of previously defined IRED vectors.
   for ( DataSetList::const_iterator DS = DSLin->begin(); DS != DSLin->end(); ++DS) {
     if ( (*DS)->Type() == DataSet::VECTOR ) {
@@ -69,22 +66,10 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprinterr("Error: No modes data specified: use 'modes <name>'.\n");
     return Analysis::ERR;
   }
-  // Get 'beg' and 'end' args.
-  ibeg = analyzeArgs.getKeyInt("beg",1);
-  iend = analyzeArgs.getKeyInt("end", 50);
   // Check if modes name exists on the stack
-  bool modesFromFile = false;
   modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
-    // If not on stack, check for file.
-    if ( fileExists(modesfile) ) {
-      modinfo_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesfile, "Modes" );
-      if (modinfo_->ReadEvecFile( modesfile, ibeg, iend )) return Analysis::ERR;
-      modesFromFile = true;
-    }
-  }
-  if (modinfo_ == 0) {
-    mprinterr("Error: Modes '%s' DataSet/file not found.\n",modesfile.c_str());
+    mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
     return Analysis::ERR;
   }
   // TODO: Check that number of evecs match number of IRED vecs
@@ -133,10 +118,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprintf(" direct approach.\n");
   else
     mprintf(" FFT approach.\n");
-  if (modesFromFile) 
-    mprintf("\tIRED modes %i to %i read from %s,\n", ibeg, iend, modesfile.c_str());
-  else
-    mprintf("\tIRED modes will be taken from DataSet %s\n", modinfo_->Legend().c_str());
+  mprintf("\tIRED modes will be taken from DataSet %s\n", modinfo_->Legend().c_str());
   if (relax_)
     mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n"
             "\t\t  approach using an NH distance of %lf Ang. and a frequency of %lf MHz\n",
@@ -260,7 +242,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
   int nsphereharm = Nframes_ * p2blocksize;  // Spherical Harmonics for each frame
   int ntotal = nvect * nsphereharm;          // Each vector has set of spherical harmonics
   double *cftmp1 = new double[ ntotal ];
-  memset(cftmp1, 0, ntotal * sizeof(double));
+  std::fill(cftmp1, cftmp1 + ntotal, 0);
   // Project spherical harmonics for each IRED vector on eigenmodes
   int n_ivec = 0;
   for (std::vector<DataSet_Vector*>::iterator ivec = IredVectors_.begin();

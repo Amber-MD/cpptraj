@@ -11,9 +11,9 @@ Action_Projection::Action_Projection() :
 {}
 
 void Action_Projection::Help() {
-  mprintf("\tmodes <modesfile> out <outfile> [beg <beg>] [end <end>] [<mask>]\n");
-  mprintf("\t%s\n", ActionFrameCounter::HelpText);
-  mprintf("\tCalculate projection of coordinates along given eigenmodes.\n");
+  mprintf("\tmodes <modesname> out <outfile> [beg <beg>] [end <end>] [<mask>]\n"
+          "\t%s\n\tCalculate projection of coordinates along given eigenmodes.\n", 
+          ActionFrameCounter::HelpText);
 }
 
 // Action_Projection::Init()
@@ -22,22 +22,30 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
 {
   // Get ibeg, iend, start, stop, offset
   // NOTE: Must get 'end' before InitFrameCounter since the latter checks for 'end'
-  beg_ = actionArgs.getKeyInt("beg", 1);
+  beg_ = actionArgs.getKeyInt("beg", 1) - 1;
   end_ = actionArgs.getKeyInt("end", 2);
   if (InitFrameCounter(actionArgs)) return Action::ERR;
 
   std::string modesname = actionArgs.GetStringKey("modes");
   if (modesname.empty()) {
-    mprinterr("Error: projection: no modes file specified ('modes <filename>')\n");
+    mprinterr("Error: projection: no modes file specified ('modes <name>')\n");
     return Action::ERR;
   }
   // Check if DataSet exists
   modinfo_ = (DataSet_Modes*)DSL->FindSetOfType( modesname, DataSet::MODES );
   if (modinfo_ == 0) {
-    // Get modes from file
-    modinfo_ = (DataSet_Modes*)DSL->AddSet( DataSet::MODES, modesname, "Modes" );
-    if (modinfo_ == 0) return Action::ERR;
-    if (modinfo_->ReadEvecFile( modesname, beg_, end_ )) return Action::ERR;
+    mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
+    return Action::ERR;
+  }
+  // Check if beg and end are in bounds.
+  if (end_ > modinfo_->Nmodes()) {
+    mprintf("Warning: 'end' %i is greater than # modes (%i); setting end to %i\n",
+            end_, modinfo_->Nmodes(), modinfo_->Nmodes());
+    end_ = modinfo_->Nmodes();
+  }
+  if (beg_ < 0 || beg_ >= end_) {
+    mprinterr("Error: 'beg' %i out of bounds.\n", beg_+1);
+    return Action::ERR;
   }
 
   // Check modes type
@@ -59,18 +67,17 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   std::string setname = actionArgs.GetStringNext();
   if (setname.empty())
     setname = DSL->GenerateDefaultName("Proj");
-  int imode = beg_;
-  for (int mode = 0; mode < modinfo_->Nmodes(); ++mode) {
+  for (int mode = beg_; mode < end_; ++mode) {
+    int imode = mode + 1;
     if (modinfo_->Type() != DataSet_2D::IDEA) { // COVAR, MWCOVAR
       DataSet* dout = DSL->AddSetIdx( DataSet::FLOAT, setname, imode );
       if (dout == 0) {
-        mprinterr("Error creating output dataset for mode %i\n",imode);
+        mprinterr("Error creating output dataset for mode %i\n", imode);
         return Action::ERR;
       }
       dout->SetLegend("Mode"+integerToString(imode));
       project_.push_back( dout );
       if (DF != 0) DF->AddSet( dout );
-      imode++;
     } else { // IDEA TODO: Error check
       project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode, "X") );
       if (DF != 0) DF->AddSet( project_.back() );
@@ -78,17 +85,17 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
       if (DF != 0) DF->AddSet( project_.back() );
       project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode, "Z") );
       if (DF != 0) DF->AddSet( project_.back() );
-      project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode++, "R") );
+      project_.push_back( DSL->AddSetIdxAspect( DataSet::FLOAT, setname, imode, "R") );
       if (DF != 0) DF->AddSet( project_.back() );
     }
   }
   // Set datafile args
   mprintf("    PROJECTION: Calculating projection using modes %i to %i of %s\n",
-          beg_, end_, modinfo_->Legend().c_str());
+          beg_+1, end_, modinfo_->Legend().c_str());
   if (DF != 0)
-    mprintf("                Results are written to %s\n", DF->DataFilename().full());
+    mprintf("\tResults are written to %s\n", DF->DataFilename().full());
   FrameCounterInfo();
-  mprintf("                Atom Mask: [%s]\n", mask_.MaskString());
+  mprintf("\tAtom Mask: [%s]\n", mask_.MaskString());
 
   return Action::OK;
 }
@@ -143,18 +150,18 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
   return Action::OK;
 }
 
-// Action_Projection::action()
+// Action_Projection::DoAction()
 Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, 
                                             Frame** frameAddress)
 {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Always start at first eigenvector element of first mode.
-  const double* Vec = modinfo_->Eigenvector(0);
+  const double* Vec = modinfo_->Eigenvector(beg_);
   // Project snapshots on modes
   if ( modinfo_->Type() == DataSet_2D::COVAR || 
        modinfo_->Type() == DataSet_2D::MWCOVAR ) 
   {
-    for (int mode = 0; mode < modinfo_->Nmodes(); ++mode) {
+    for (int mode = beg_; mode < end_; ++mode) {
       const double* Avg = modinfo_->AvgFrame().xAddress();
       double proj = 0;
       std::vector<double>::const_iterator sqrtmass = sqrtmasses_.begin();
@@ -173,7 +180,7 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame,
     }
   } else { // if modinfo_.Type() == IDEA
     int ip = 0;
-    for (int mode = 0; mode < modinfo_->Nmodes(); ++mode) {
+    for (int mode = beg_; mode < end_; ++mode) {
       double proj1 = 0;
       double proj2 = 0;
       double proj3 = 0;

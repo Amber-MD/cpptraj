@@ -11,7 +11,8 @@ class DataFile {
   public:
     /// Known data file formats.
     enum DataFormatType {
-      DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, UNKNOWN_DATA 
+      DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, EVECS,
+      UNKNOWN_DATA 
     };
     DataFile();
     ~DataFile();

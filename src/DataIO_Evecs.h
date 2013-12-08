@@ -8,10 +8,10 @@ class DataIO_Evecs : public DataIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Evecs(); }
     static void ReadHelp();
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
-    int processWriteArgs(ArgList &);
+    int processWriteArgs(ArgList &)                     { return 0; }
     int WriteData(std::string const&,DataSetList const&);
     int WriteData2D(std::string const&, DataSet const&) { return 1; }
     int WriteData3D(std::string const&, DataSet const&) { return 1; }
-    bool ID_DataFormat(CpptrajFile&) { return false; }
+    bool ID_DataFormat(CpptrajFile&);
 };
 #endif
