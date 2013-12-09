@@ -72,8 +72,8 @@ int DataIO_Evecs::ReadData(std::string const& modesfile, ArgList& argIn,
   int modesInFile = title.getKeyInt("nmodes",-1);
   if (modesInFile == -1) {
     modesInFile = modesToRead;
-    mprintf("Warning: Older modes file, # of modes not known.\n");
-    mprintf("Warning: Will try to read at least %i modes.\n", modesToRead);
+    mprintf("Warning: Older modes file, # of modes not known.\n"
+            "Warning: Will try to read at least %i modes.\n", modesToRead);
   } else {
     mprintf("\tFile contains %i modes.\n", modesInFile);
     if (modesToRead > modesInFile) {
@@ -127,23 +127,27 @@ int DataIO_Evecs::ReadData(std::string const& modesfile, ArgList& argIn,
   int nmodes = 0;      // Mode currently in memory
   int currentMode = 0; // Modes currently reading in from file
   bool firstRead = true;
+  int error_status = 0;
   while ( (buffer = infile.NextLine())!=0 ) { // This should read in ' ****'
     if (buffer[0] != ' ' || buffer[1] != '*' || buffer[2] != '*') {
       mprinterr("Error: ReadEvecFile(): When reading eigenvector %i, expected ' ****',\n",
                 currentMode+1);
       mprinterr("Error: got %s [%s]\n", buffer, infile.Filename().full());
-      return 1;
+      error_status = 1;
+      break;
     }
     // Read number and eigenvalue 
     if ( (buffer = infile.NextLine())==0 ) {
       mprinterr("Error: ReadEvecFile(): error while reading number and eigenvalue (%s)\n",
                 infile.Filename().full());
-      return 1;
+      error_status = 2;
+      break;
     }
     if (sscanf(buffer, "%*i%lf", evalues + nmodes) != 1) {
       mprinterr("Error: ReadEvecFile(): error while scanning number and eigenvalue (%s)\n",
                 infile.Filename().full());
-      return 1;
+      error_status = 3;
+      break;
     }
     if (vecsize > 0) {
       // Read eigenvector
@@ -178,11 +182,18 @@ int DataIO_Evecs::ReadData(std::string const& modesfile, ArgList& argIn,
     }
     firstRead = false;
   }
-  if (nmodes != modesToRead)
-    mprintf("Warning: Number of read modes is %i, requested %i\n", nmodes, modesToRead);
-  return modesData.SetModes( reduced, nmodes, vecsize, evalues, evectors );
+  infile.CloseFile();
+  if (error_status == 0) {
+    if (nmodes != modesToRead)
+      mprintf("Warning: Number of read modes is %i, requested %i\n", nmodes, modesToRead);
+    error_status = modesData.SetModes( reduced, nmodes, vecsize, evalues, evectors );
+  }
+  delete[] evalues;
+  if (evectors != 0) delete[] evectors;
+  return error_status;
 }
 
+// DataIO_Evecs::WriteData()
 int DataIO_Evecs::WriteData(std::string const& fname, DataSetList const& SetList) {
   if (SetList.empty()) return 1;
   if (SetList.size() > 1)
