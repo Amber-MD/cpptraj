@@ -38,8 +38,6 @@ class DataSet_MatrixDbl : public DataSet_2D {
     Darray const& Vect()                 const { return vect_;              }
     /// Allocate diagonal vector.
     void AllocateVector(size_t vsize)          { vect_.resize(vsize, 0.0);  }
-    /// \return diagonal vector size.
-    size_t VectSize()                    const { return vect_.size();       }
     /// \return iterator to beginning of diagonal vector.
     Darray::iterator v1begin()                 { return vect_.begin();      }
     /// \return iterator to end of diagonal vector.

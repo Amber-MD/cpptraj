@@ -848,7 +848,7 @@ void Action_Matrix::FinishDistanceCovariance() {
       *(mat++) -= ((*pair_i) * (*pair_j));
 }
 
-// Action_Matrix::print()
+// Action_Matrix::Print()
 void Action_Matrix::Print() {
   if (debug_ > 1) {
     mprintf("Raw Matrix Elements:\n");
@@ -875,7 +875,6 @@ void Action_Matrix::Print() {
   double norm = (double)snap_;
   if (Mat_->Type() == DataSet_2D::IDEA) norm *= 3.0;
   norm = 1.0 / norm;
-  //Mat_->DivideBy((double)snap_);
   for (v_iterator v1 = Mat_->v1begin(); v1 != Mat_->v1end(); ++v1)
     *v1 *= norm;
   for (v_iterator v2 = vect2_.begin();  v2 != vect2_.end();  ++v2)

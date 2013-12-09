@@ -125,7 +125,7 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
     delete[] elements_;
     elements_ = 0;
   }
-  diagElt_ = 0; // Diagonal element default to zero.
+  diagElt_ = T(); // Diagonal element default to zero.
   if (nX > 0L && nY > 0L) { // FULL
     ncols_ = nX;
     nrows_ = nY;
@@ -153,7 +153,7 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
   currentElement_ = 0L;
   if (nelements_ > 0L) {
     elements_ = new T[ nelements_ ];
-    std::fill(elements_, elements_ + nelements_, 0);
+    std::fill(elements_, elements_ + nelements_, T());
   }
   return 0;
 }
