@@ -19,11 +19,11 @@ Action_Matrix::Action_Matrix() :
 
 void Action_Matrix::Help() {
   mprintf("\t[out <filename>] %s\n", ActionFrameCounter::HelpText);
-  mprintf("\t[name <name>] [ byatom | byres [mass] | bymask [mass] ]\n");
-  mprintf("\t[ ired [order <#>] ]\n");
-  mprintf("\t[ {distcovar | idea} <mask1> ]\n");
-  mprintf("\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n");
-  mprintf("\tCalculate a matrix of the specified type from input coordinates.\n");
+  mprintf("\t[name <name>] [ byatom | byres [mass] | bymask [mass] ]\n"
+          "\t[ ired [order <#>] ]\n"
+          "\t[ {distcovar | idea} <mask1> ]\n"
+          "\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n"
+          "\tCalculate a matrix of the specified type from input coordinates.\n");
 }
 
 // Action_Matrix::Init()
@@ -735,15 +735,6 @@ void Action_Matrix::FinishCovariance(size_t element_size) {
             *mat = (*mat - (Vi * *(v1idx1+idx))) * Mass;
             ++mat;
           }
-          //*mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
-          //++mat;
-          //*mat = (*mat - (Vi * *(v1idx1+1))) * Mass;
-          //++mat;
-          //*mat = (*mat - (Vi * *(v1idx1+2))) * Mass;
-          //++mat;
-          //*(mat++) -= Vi * *(v1idx1  );
-          //*(mat++) -= Vi * *(v1idx1+1);
-          //*(mat++) -= Vi * *(v1idx1+2);
         }
       }
     }
@@ -765,19 +756,12 @@ void Action_Matrix::FinishCovariance(size_t element_size) {
             for (unsigned int jidx = iidx; jidx < element_size; ++jidx) {
               *mat = (*mat - (Vi * *(v1idx1 + jidx))) * Mass;
               ++mat;
-              //*(mat++) -= Vi * *(v1idx1 + jidx); // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
             }
           } else {
             for (unsigned int idx = 0; idx < element_size; ++idx) {
               *mat = (*mat - (Vi * *(v1idx1+idx))) * Mass;
               ++mat;
             }
-            //*mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
-            //++mat;
-            //*mat = (*mat - (Vi * *(v1idx1+1))) * Mass;
-            //++mat;
-            //*mat = (*mat - (Vi * *(v1idx1+2))) * Mass;
-            //++mat;
           }
         }
       }
@@ -861,16 +845,6 @@ void Action_Matrix::Print() {
     for (unsigned int i = 0; i < vect2_.size(); i++)
       mprintf("\t%u\t%f\n", i, vect2_[i]);
   }
-/*# ifdef _OPENMP
-  if (Mat_->Kind() == DataSet_2D::HALF &&
-       ( Mat_->Type() == DataSet_2D::COVAR ||
-         Mat_->Type() == DataSet_2D::MWCOVAR ))
-  {
-    // Fill vect2
-    for (unsigned int idx = 0; idx < Mat_->Ncols(); idx++)
-      vect2_[idx] = Mat_->GetElement(idx, idx);
-  }
-# endif*/
   // ---------- Calculate average over number of sets ------
   double norm = (double)snap_;
   if (Mat_->Type() == DataSet_2D::IDEA) norm *= 3.0;

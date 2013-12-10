@@ -359,8 +359,8 @@ void Action_Vector::Print() {
     CpptrajFile outfile;
     if (outfile.OpenWrite(filename_)) return;
     mprintf("    VECTOR: writing ptraj-style vector information for %s\n", Vec_->Legend().c_str());
-    outfile.Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n");
-    outfile.Printf("# FORMAT where v? is vector, c? is center of mass...\n");
+    outfile.Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n"
+                   "# FORMAT where v? is vector, c? is center of mass...\n");
     int totalFrames = Vec_->Size();
     for (int i=0; i < totalFrames; ++i) {
       Vec3 const& vxyz = (*Vec_)[i];
@@ -373,4 +373,3 @@ void Action_Vector::Print() {
     outfile.CloseFile();
   }
 }
-
