@@ -7,7 +7,7 @@ class Parm_CharmmPsf : public ParmIO {
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
     int ReadParm(std::string const&, Topology&);
-    int WriteParm(std::string const&, Topology const&) { return 1; }
+    int WriteParm(std::string const&, Topology const&);
     void SetDebug(int) {}
 };
 #endif
