@@ -15,14 +15,14 @@ using namespace std;
 // CONSTRUCTOR
 Action_Gist::Action_Gist() :
   CurrentParm_(0),
-  watermodel_(false),
-  useTIP3P_(false),
-  useTIP4P_(false),
-  useTIP4PEW_(false),
-  useTIP5P_(false),
-  useTIP3PFW_(false),
-  useSPCE_(false),
-  useSPCFW_(false),
+//  watermodel_(false),
+//  useTIP3P_(false),
+//  useTIP4P_(false),
+//  useTIP4PEW_(false),
+//  useTIP5P_(false),
+//  useTIP3PFW_(false),
+//  useSPCE_(false),
+//  useSPCFW_(false),
   doOrder_(false),
   doEij_(false)
 {
@@ -40,8 +40,9 @@ Action_Gist::Action_Gist() :
 
 
 void Action_Gist::Help() {
-  mprintf("<watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [doeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
-  mprintf("\tGIST needs the specification of the water model being used. Supported water models are: \n");
+//  mprintf("<watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [doeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
+  mprintf("[doorder] [doeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
+/*  mprintf("\tGIST needs the specification of the water model being used. Supported water models are: \n");
   mprintf("\ta) TIP3P specified as tip3p. \n");
   mprintf("\tb) TIP4P specified as tip4p. \n");
   mprintf("\tc) TIP4PEW specified as tip4pew. \n");
@@ -49,7 +50,7 @@ void Action_Gist::Help() {
   mprintf("\te) TIP3PFW specified as tip3pfw. \n");
   mprintf("\tf) SPCE specified as spce. \n");
   mprintf("\tg) SPCFW specified as spcfw. \n");
-  mprintf("\tPlease cite these papaer when using GIST: \n");
+*/  mprintf("\tPlease cite these papaer when using GIST: \n");
   mprintf("\tCrystal Nguyen, Michael K. Gilson, and Tom Young,  arXiv:1108.4876v1 (2011)  \n");
   mprintf("\tCrystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson, J. Chem. Phys. 137, 044101 (2012) \n");
   mprintf("\tCalculate GIST between water molecules in selected region \n");
@@ -84,7 +85,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 			}
   //  myDSL_.AddSet(DataSet::DOUBLE, ds_name, NULL);
   */  
-  useTIP3P_ = actionArgs.hasKey("tip3p");
+/*  useTIP3P_ = actionArgs.hasKey("tip3p");
   useTIP4P_ = actionArgs.hasKey("tip4p");
   useTIP4PEW_ = actionArgs.hasKey("tip4pew");
   useTIP5P_ = actionArgs.hasKey("tip5p");
@@ -95,7 +96,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     mprinterr("Init Error: Only water models supported are TIP3P, TIP4P, TIP4PEW, TIP5P, TIP3P/FW, SPC/E, SPC/FW\n");
     return Action::ERR;
   }
-
+*/
   doOrder_ = actionArgs.hasKey("doorder");
   if(doOrder_){
     mprintf("\tGIST doing Order calculation \n");
@@ -113,7 +114,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   }
 
   // Set Bulk Energy based on water model
-  if (useTIP3P_) BULK_E_ = -19.0653;
+/*  if (useTIP3P_) BULK_E_ = -19.0653;
   if (useTIP4PEW_) BULK_E_ = -22.071;
   if (useTIP4P_) BULK_E_ = -19.71152;
   if (useTIP5P_) BULK_E_ = -19.19174;
@@ -122,10 +123,10 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (useSPCFW_) BULK_E_ = -23.7458;
 //  if (usePOL3_) BULK_E_ = -22.071;
   mprintf("\tGIST bulk energy: %10.5f\n", BULK_E_);
-  
+*/  
   // Set Bulk Density 55.5M
   BULK_DENS_ = 0.033422885325;
-  mprintf("\tGIST bulk densiy: %15.12f\n", BULK_DENS_);
+  mprintf("\tGIST bulk densiy: %15.12f, equivalent to 55.5M\n", BULK_DENS_);
 
   if ( actionArgs.hasKey("gridcntr") ){
     gridcntr_[0] = actionArgs.getNextDouble(-1);
