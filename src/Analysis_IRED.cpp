@@ -104,7 +104,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   }
 
   // Print Status
-  mprintf("    ANALYZE IRED: IRED calculation, %u vectors.\n", IredVectors_.size());
+  mprintf("    IRED: %u IRED vectors.\n", IredVectors_.size());
   if (!orderparamfile_.empty())
     mprintf("\tOrder parameters will be written to %s\n",orderparamfile_.c_str());
   mprintf("\tCorrelation time %f, time step %lf\n", tcorr_, tstep_);
@@ -256,10 +256,9 @@ Analysis::RetType Analysis_IRED::Analyze() {
       // Loop over all m = -L, ...., L
       for (int midx = -order_; midx <= order_; ++midx) {
         // Loop over spherical harmonic coords for this m (Complex, [Real][Img])
-        for ( int sidx = 2 * (midx + order_); sidx < nsphereharm; sidx += p2blocksize) {
-          *(CF++) += (Qvec * (*ivec)->SphereHarm(sidx  ));
-          *(CF++) += (Qvec * (*ivec)->SphereHarm(sidx+1));
-        }
+        for (ComplexArray::iterator sh = (*ivec)->SphericalHarmonics(midx).begin();
+                                    sh != (*ivec)->SphericalHarmonics(midx).end(); ++sh)
+          *(CF++) += (Qvec * (*sh));
       }
     }
     ++n_ivec;

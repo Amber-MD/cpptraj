@@ -105,7 +105,7 @@ void Traj_CharmmDcd::closeTraj() {
     file_.Seek( blockSize_+4 );
     framecount.i[1] = 0;
     framecount.i[0] = dcdframes_;
-    mprintf("\tDEBUG: Updated DCD frame count is %i\n", dcdframes_);
+    if (debug_>0) mprintf("\tDEBUG: Updated DCD frame count is %i\n", dcdframes_);
     // NOTE: Here we are ensuring that ONLY 4 bytes are written. This could
     //       overflow for large # of frames.
     file_.Write(framecount.c,sizeof(unsigned char)*4); 

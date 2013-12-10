@@ -15,10 +15,10 @@ Action_Vector::Action_Vector() :
 {}
 
 void Action_Vector::Help() {
-  mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n");
-  mprintf("\t[magnitude] [ired]\n");
-  mprintf("\t<Type> = { principal [x|y|z] | dipole | box | center | corrplane }\n");
-  mprintf("\tCalculate the specified coordinate vector.\n");
+  mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
+          "\t[magnitude] [ired]\n"
+          "\t<Type> = { principal [x|y|z] | dipole | box | center | corrplane }\n"
+          "\tCalculate the specified coordinate vector.\n");
 }
 
 // DESTRUCTOR
@@ -33,14 +33,14 @@ const char* Action_Vector::ModeString[] = {
 };
 
 static Action::RetType WarnDeprecated() {
-  mprinterr("Error: Vector: 'corrired' and 'corr' are deprecated.\n");
-  mprinterr("Error: 'corrired' functionality is now part of the\n");
-  mprinterr("Error: IRED analysis. 'corr' can now be done with a normal 2-mask\n");
-  mprinterr("Error: vector and TIMECORR analysis.\n");
+  mprinterr("Error: Vector: 'corrired' and 'corr' are deprecated.\n"
+            "Error: 'corrired' functionality is now part of the\n"
+            "Error: IRED analysis. 'corr' can now be done with a normal 2-mask\n"
+            "Error: vector and TIMECORR analysis.\n");
   return Action::ERR;
 }
 
-// Action_Vector::init()
+// Action_Vector::Init()
 Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -88,7 +88,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (mode_ == MASK) {
     std::string maskexpr = actionArgs.GetMaskNext();
     if (maskexpr.empty()) {
-      mprinterr("Error: vector: Specified vector mode requires a second mask.\n");
+      mprinterr("Error: Specified vector mode requires a second mask.\n");
       return Action::ERR;
     }
     mask2_.SetMaskString( maskexpr );
@@ -129,7 +129,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   return Action::OK;
 }
 
-// Action_Vector::setup()
+// Action_Vector::Setup()
 Action::RetType Action_Vector::Setup(Topology* currentParm, Topology** parmAddress) {
   if (mode_ == BOX) {
     // Check for box info
@@ -333,7 +333,7 @@ void Action_Vector::CorrPlane(Frame const& currentFrame) {
   Vec_->AddVxyz(VXYZ, CXYZ);
 }
 
-// Action_Vector::action()
+// Action_Vector::DoAction()
 Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   switch ( mode_ ) {
     case MASK        : Mask(*currentFrame); break;
@@ -347,24 +347,24 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
     default          : return Action::ERR; // NO_OP
   } // END switch over vectorMode
   if (Magnitude_ != 0) {
-    float mag = (float)(sqrt(Vec_->CurrentVec().Magnitude2()));
+    float mag = (float)(sqrt(Vec_->Back().Magnitude2()));
     Magnitude_->Add(frameNum, &mag);
   }
   return Action::OK;
 }
 
-// Action_Vector::print()
+// Action_Vector::Print()
 void Action_Vector::Print() {
   if (ptrajoutput_) {
     CpptrajFile outfile;
     if (outfile.OpenWrite(filename_)) return;
-    mprintf("CPPTRAJ VECTOR: dumping vector information %s\n", Vec_->Legend().c_str());
+    mprintf("    VECTOR: writing ptraj-style vector information for %s\n", Vec_->Legend().c_str());
     outfile.Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n");
     outfile.Printf("# FORMAT where v? is vector, c? is center of mass...\n");
     int totalFrames = Vec_->Size();
     for (int i=0; i < totalFrames; ++i) {
-      Vec3 vxyz = Vec_->VXYZ(i);
-      Vec3 cxyz = Vec_->CXYZ(i);
+      Vec3 const& vxyz = (*Vec_)[i];
+      Vec3 const& cxyz = Vec_->OXYZ(i);
       Vec3 txyz  = cxyz + vxyz;
       outfile.Printf("%i %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n",
               i+1, vxyz[0], vxyz[1], vxyz[2], cxyz[0], cxyz[1], cxyz[2],

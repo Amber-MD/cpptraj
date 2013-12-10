@@ -86,16 +86,16 @@ class Action_Rotdif: public Action {
     Random_Number RNgen_;
 
     std::vector<Matrix_3x3> Rmatrices_; ///< Store rotation matrices
-    std::vector<Vec3> random_vectors_;  ///< Hold nvecs random vectors
+    DataSet_Vector random_vectors_;     ///< Hold nvecs random vectors
     std::vector<double> D_eff_;         ///< Hold calculated effective D values for each vector
     std::vector<double> tau1_;          ///< Hold tau for l=1, full anisotropy
     std::vector<double> tau2_;          ///< Hold tau for l=2, full anisotropy
     std::vector<double> *Tau_;          ///> Hold tau being compared based on olegendre
     std::vector<double> sumc2_;      
 
-    std::vector<Vec3> RandomVectors();
-    int compute_corr(DataSet_Vector&, int, std::vector<double>&, std::vector<double>&);
-    int fft_compute_corr(DataSet_Vector&, int, std::vector<double>&, int);
+    DataSet_Vector RandomVectors();
+    int compute_corr(DataSet_Vector const&, int, std::vector<double>&, std::vector<double>&);
+    int fft_compute_corr(DataSet_Vector const&, int, std::vector<double>&, int);
     double calcEffectiveDiffusionConst(double );
 
     static void PrintMatrix(CpptrajFile&, const char*, Matrix_3x3 const&);

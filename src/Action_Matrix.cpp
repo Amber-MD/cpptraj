@@ -352,7 +352,7 @@ void Action_Matrix::CalcIredMatrix() {
   // Store length of IRED vectors in vect2
   for (std::vector<DataSet_Vector*>::iterator Vtmp = IredVectors_.begin();
                                               Vtmp != IredVectors_.end(); ++Vtmp)
-    *(v2idx1++) = sqrt( (*Vtmp)->Dot( *(*Vtmp) ) );
+    *(v2idx1++) = sqrt( (*Vtmp)->Back() * (*Vtmp)->Back() );
 
   // Loop over all pairs of IRED vectors.
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
@@ -367,7 +367,7 @@ void Action_Matrix::CalcIredMatrix() {
                                                 Vtmp2 != IredVectors_.end(); ++Vtmp2)
     {
       double len2 = *(v2idx2++);
-      double legendre = LegendrePoly(order_, (*Vtmp)->Dot( *(*Vtmp2) ) / (len1 * len2) );
+      double legendre = LegendrePoly(order_, (*Vtmp)->Back() * (*Vtmp2)->Back()  / (len1 * len2) );
       *(mat++) += legendre;
       if (Vtmp == Vtmp2)
         *(v1idx++) += legendre;
