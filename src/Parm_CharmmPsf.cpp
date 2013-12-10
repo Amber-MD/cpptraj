@@ -120,17 +120,22 @@ int Parm_CharmmPsf::WriteParm(std::string const& fname, Topology const& parm) {
   segid[1] = '\0';
   mprintf("Warning: Assigning single letter segment IDs.\n");
   int currentMol = 0;
+  bool inSolvent = false;
   for (Topology::atom_iterator atom = parm.begin(); atom != parm.end(); ++atom, ++idx) {
     int resnum = atom->ResNum();
+    if (atom->MolNum() != currentMol) {
+      if (!inSolvent) {
+        inSolvent = parm.Mol(atom->MolNum()).IsSolvent();
+        currentMol = atom->MolNum();
+        segid[0]++;
+      } else
+        inSolvent = parm.Mol(atom->MolNum()).IsSolvent();
+    }
     // TODO: Print type name for xplor-like PSF
     outfile.Printf("%8i %-4s %4i %4s %4s %4i %14.6G %14.6g %8i\n", idx, segid,
                    parm.Res(resnum).OriginalResNum(), parm.Res(resnum).c_str(),
                    atom->c_str(), atom->TypeIndex()+1, atom->Charge(),
                    atom->Mass(), 0);
-    if (atom->MolNum() != currentMol && !(parm.Mol(atom->MolNum()).IsSolvent())) {
-      currentMol = atom->MolNum();
-      segid[0]++;
-    }
   }
   outfile.Printf("\n");
   // Write NBOND section
