@@ -31,7 +31,7 @@ class Action_CheckStructure: public Action, ImagedAction {
     std::vector<bond_list> bondL_;
     /// Sort first by atom1, then by atom2
     struct bond_list_cmp {
-      inline bool operator()(bond_list first, bond_list second) const {
+      inline bool operator()(bond_list const& first, bond_list const& second) const {
         if (first.atom1 < second.atom1) {
           return true;
         } else if (first.atom1 == second.atom1) {
