@@ -5,6 +5,9 @@
 #include "Command.h"
 #include "ReadLine.h"
 #include "Version.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 void Cpptraj::Usage() {
   mprinterr("\n"
@@ -43,6 +46,10 @@ void Cpptraj::Finalize() {
 
 int Cpptraj::RunCpptraj(int argc, char** argv) {
   int err = 0;
+# ifdef TIMER
+  Timer total_time;
+  total_time.Start();
+# endif
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
     // If run has not yet been called, run now.
@@ -53,6 +60,10 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   } else if ( cmode == ERROR ) {
     err = 1;
   }
+# ifdef TIMER
+  total_time.Stop();
+  mprintf("TIME: Total execution time: %.4f seconds.\n", total_time.Total());
+# endif
   if (cmode != SILENT_EXIT) {
     if (err == 0) Cpptraj::Finalize();
     mprintf("\n");

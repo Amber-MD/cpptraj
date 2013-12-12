@@ -158,10 +158,6 @@ int CpptrajState::TrajLength( std::string const& topname,
 // -----------------------------------------------------------------------------
 // CpptrajState::Run()
 int CpptrajState::Run() {
-# ifdef TIMER
-  Timer total_time;
-  total_time.Start();
-# endif
   ++nrun_;
   // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
   // this means 1 or more actions has requested that a default COORDS DataSet
@@ -206,10 +202,6 @@ int CpptrajState::Run() {
 # endif
   // Clean up Actions.
   actionList_.Clear();
-# ifdef TIMER
-  total_time.Stop();
-  mprintf("TIME: Total Run execution time: %.4f seconds.\n", total_time.Total());
-# endif
   return err;
 }
 
