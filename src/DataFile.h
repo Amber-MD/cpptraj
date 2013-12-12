@@ -17,6 +17,7 @@ class DataFile {
     DataFile();
     ~DataFile();
     // -------------------------------------------
+    static void WriteHelp();
     /// List read options for each format.
     static void ReadOptions() { FileTypes::ReadOptions(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA); }
     /// List write options for each format.

@@ -68,6 +68,11 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { UNKNOWN_DATA, 0,        0        }
 };
 
+void DataFile::WriteHelp() {
+  mprintf("\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>]\n"
+          "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n");
+}
+
 // DataFile::DetectFormat()
 DataIO* DataFile::DetectFormat(std::string const& fname, DataFormatType& ftype) {
   CpptrajFile file;
@@ -222,11 +227,14 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   // Axis args.
   defaultDim_[0].SetLabel( argIn.GetStringKey("xlabel") );
   defaultDim_[1].SetLabel( argIn.GetStringKey("ylabel") );
+  defaultDim_[2].SetLabel( argIn.GetStringKey("zlabel") );
   // Axis min/step
   defaultDim_[0].SetMin( argIn.getKeyDouble("xmin",1.0) );
   defaultDim_[1].SetMin( argIn.getKeyDouble("ymin",1.0) );
+  defaultDim_[2].SetMin( argIn.getKeyDouble("zmin",1.0) );
   defaultDim_[0].SetStep( argIn.getKeyDouble("xstep", 1.0) );
   defaultDim_[1].SetStep( argIn.getKeyDouble("ystep", 1.0) );
+  defaultDim_[2].SetStep( argIn.getKeyDouble("zstep", 1.0) );
   // ptraj 'time' keyword
   if (argIn.Contains("time")) {
     defaultDim_[0].SetStep( argIn.getKeyDouble("time", 1.0) );

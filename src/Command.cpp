@@ -347,6 +347,8 @@ static void Help_Create_DataFile() {
   mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
   mprintf("\tAdd a file with specified data sets to the data file list. Does not\n");
   mprintf("\timmediately write the data.\n");
+  DataFile::WriteHelp();
+  DataFile::WriteOptions();
 }
 
 static void Help_DataFile() {
@@ -368,6 +370,7 @@ static void Help_ReadInput() {
 static void Help_Write_DataFile() {
   mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
   mprintf("\tWrite specified data sets to <filename> immediately.\n");
+  DataFile::WriteHelp();
   DataFile::WriteOptions();
 }
 
