@@ -1,6 +1,7 @@
 #ifndef INC_IMAGEDACTION_H
 #define INC_IMAGEDACTION_H
 #include "DistRoutines.h"
+// TODO: Add ucell and recip to here
 class ImagedAction {
   public:
     ImagedAction() : imageType_(NOIMAGE), useImage_(false) {}

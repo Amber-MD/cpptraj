@@ -33,6 +33,7 @@ class AtomMask {
     AtomMask(std::string const&);
     ///< Create mask selecting atoms from begin to end.
     AtomMask(int,int);
+    AtomMask(int);
     AtomMask(const AtomMask &);
     AtomMask& operator=(const AtomMask&);
     /// \return Internal selected atom array.

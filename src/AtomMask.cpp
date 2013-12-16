@@ -33,6 +33,9 @@ AtomMask::AtomMask(int beginAtom, int endAtom) :
   AddAtomRange(beginAtom, endAtom);
 }
 
+AtomMask::AtomMask(int atomNum) : debug_(0), maskChar_('T'), Natom_(1),
+  nselected_(1), Selected_(1, atomNum)
+{}
 
 // COPY CONSTRUCTOR
 AtomMask::AtomMask(const AtomMask &rhs) : 

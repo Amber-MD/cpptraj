@@ -42,6 +42,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
         Action_NAstruct.cpp \
+        Action_NativeContacts.cpp \
         Action_NMRrst.cpp \
         Action_OrderParameter.cpp \
         Action_Outtraj.cpp \
