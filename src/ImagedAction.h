@@ -24,9 +24,9 @@ class ImagedAction {
     }
 
     /// Return true if imaging is currently enabled.
-    bool ImagingEnabled()   { return (imageType_ != NOIMAGE); }
-    bool UseImage()         { return useImage_;  } ///< True if imaging is desired.
-    ImagingType ImageType() { return imageType_; } ///< Return type of imaging.
+    bool ImagingEnabled()   const { return (imageType_ != NOIMAGE); }
+    bool UseImage()         const { return useImage_;  } ///< True if imaging is desired.
+    ImagingType ImageType() const { return imageType_; } ///< Return type of imaging.
   private:
     ImagingType imageType_; ///< Type of imaging to be performed.
     bool useImage_;         ///< If true, use imaging.
