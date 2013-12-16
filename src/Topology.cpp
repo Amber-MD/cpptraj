@@ -958,11 +958,13 @@ bool Topology::SetupCharMask(AtomMask &mask) const {
 
 // Topology::SetupIntegerMask()
 bool Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
+  if (frame.empty()) return ParseMask(refCoords_, mask, true);
   return ParseMask( frame, mask, true );
 }
 
 // Topology::SetupCharMask()
 bool Topology::SetupCharMask(AtomMask &mask, Frame const& frame) const {
+  if (frame.empty()) return ParseMask(refCoords_, mask, false);
   return ParseMask( frame, mask, false );
 }
 
