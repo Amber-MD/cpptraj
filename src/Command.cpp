@@ -549,19 +549,19 @@ static void Deprecate_Hbond() {
 }
 
 static void Deprecate_TopSearch() {
-  mprintf("\tBonds and/or molecules are automatically searched for if needed.\n");
+  mprinterr("\tBonds and/or molecules are automatically searched for if needed.\n");
 }
 
 static void Deprecate_ParmBondInfo() {
-  mprintf("\tUse bonds, bondinfo, or printbonds instead.\n");
+  mprinterr("\tUse bonds, bondinfo, or printbonds instead.\n");
 }
 
 static void Deprecate_ParmResInfo() {
-  mprintf("\tUse resinfo instead.\n");
+  mprinterr("\tUse resinfo instead.\n");
 }
 
 static void Deprecate_ParmMolInfo() {
-  mprintf("\tUse molinfo instead.\n");
+  mprinterr("\tUse molinfo instead.\n");
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
