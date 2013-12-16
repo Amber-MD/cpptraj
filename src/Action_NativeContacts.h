@@ -48,7 +48,7 @@ class Action_NativeContacts : public Action {
     Matrix_3x3 ucell_, recip_;
     /// Define contact, either atom or residue number pair.
     typedef std::pair<int,int> contactType;
-    /// Define list of contacts, stored as a multimap for efficiency.
+    /// Define list of contacts, stored as a set for lookup efficiency.
     typedef std::set<contactType> contactListType;
     contactListType nativeContacts_; ///< List of native contacts.
 };

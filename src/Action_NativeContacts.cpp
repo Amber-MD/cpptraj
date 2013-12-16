@@ -16,7 +16,7 @@ Action_NativeContacts::Action_NativeContacts() :
   maxdist_(0),
   CurrentParm_(0)
 {}
-
+// TODO: mapout, avg contacts over traj, 1=native, -1=nonnative
 void Action_NativeContacts::Help() {
   mprintf("\t[<mask1> [<mask2>]] [writecontacts <outfile>]\n"
           "\t[noimage] [distance <cut>] [first] [out <filename>]\n"
@@ -93,7 +93,8 @@ int Action_NativeContacts::SetupContactLists(Marray& CL1, Marray& CL2,
     // Warn if masks overlap
     int nOverlap = Mask1_.NumAtomsInCommon( Mask2_ );
     if (nOverlap > 0) {
-      mprintf("Warning: Masks '%s' and '%s' overlap by %i atoms.\n", 
+      mprintf("Warning: Masks '%s' and '%s' overlap by %i atoms.\n"
+              "Warning: Some contacts may be double-counted.\n", 
               Mask1_.MaskString(), Mask2_.MaskString(), nOverlap);
       if (mindist_ != 0)
         mprintf("Warning: Minimum distance will always be 0.0\n");
@@ -327,18 +328,12 @@ Action::RetType Action_NativeContacts::DoAction(int frameNum, Frame* currentFram
       {
         double Dist2 = GetMinMax(contactList1_[c1], contactList1_[c2],
                                  *currentFrame, maxDist2);
-        //mprintf("DEBUG: Dist for %s <-> %s: %f", 
-        //        CurrentParm_->AtomMaskName(contactList1_[c1][0]).c_str(),
-        //        CurrentParm_->AtomMaskName(contactList1_[c2][0]).c_str(), sqrt(Dist2));
         if (Dist2 < distance_) { // Potential contact
           if (nativeContacts_.find( contactType(contactIdx1_[c1], contactIdx1_[c2]) ) != 
-              nativeContacts_.end()) {
+              nativeContacts_.end())
             ++Nnative;    // Native contact
-            //mprintf(" NATIVE");
-          } else {
+          else
             ++NnonNative; // Non-native contact
-            //mprintf(" NON-NATIVE");
-          }
         }
         if (Dist2 < minDist2) minDist2 = Dist2;
         //mprintf("\n");
