@@ -70,9 +70,7 @@
 #include "Action_Density.h"
 #include "Action_PairDist.h"
 #include "Action_OrderParameter.h"
-#include "Action_MinDist.h"
 #include "Action_FixAtomOrder.h"
-#include "Action_MaxDist.h"
 #include "Action_NMRrst.h"
 #include "Action_FilterByData.h"
 #include "Action_LESsplit.h"
@@ -107,16 +105,28 @@
 #include "Analysis_MultiHist.h"
 #include "Analysis_Divergence.h"
 // ---- Command Functions ------------------------------------------------------
+/// Warn about deprecated commands.
+void Command::WarnDeprecated(TokenPtr token)
+{
+  mprinterr("Error: '%s' is deprecated.\n", token->Cmd);
+  if (token->Help != 0)
+    token->Help();
+}
+
 /** Search Commands list for a specific type of command. */
 Command::TokenPtr Command::SearchTokenType(CommandType dtype,
                                            ArgList const& argIn)
 {
   for (TokenPtr token = Commands; token->Type != NONE; ++token)
   {
+    if (token->Type == DEPRECATED && argIn.CommandIs( token->Cmd )) {
+      WarnDeprecated( token );
+      return 0;
+    }
     if (dtype != token->Type) continue;
     if (argIn.CommandIs( token->Cmd )) return token;
   }
-  mprintf("[%s]: Command not found.\n", argIn.Command());
+  mprintf("'%s': Command not found.\n", argIn.Command());
   return 0;
 }
 
@@ -168,8 +178,14 @@ Command::TokenPtr Command::SearchToken(ArgList& argIn) {
   }
   // Search for command.
   for (TokenPtr token = Commands; token->Type != NONE; ++token)
-    if (argIn.CommandIs( token->Cmd )) return token;
-  mprintf("[%s]: Command not found.\n", argIn.Command());
+    if (argIn.CommandIs( token->Cmd )) {
+      if (token->Type == DEPRECATED) {
+        WarnDeprecated( token );
+        return 0; 
+      } else
+        return token;
+    }
+  mprintf("'%s': Command not found.\n", argIn.Command());
   return 0;
 }
 
@@ -521,6 +537,31 @@ static void Help_RunAnalysis() {
   mprintf("\t[<analysis> [<analysis args>]]\n");
   mprintf("\tIf specified alone, run all analyses in the analysis list.\n");
   mprintf("\tOtherwise run the specified analysis immediately.\n");
+}
+
+// ---------- Information on Deprecated commands -------------------------------
+static void Deprecate_MinDist() {
+  mprinterr("\tUse the 'nativecontacts' action instead.\n");
+}
+
+static void Deprecate_Hbond() {
+  mprinterr("\tHydrogen bond acceptors and donors are defined within the 'hbond' action.\n");
+}
+
+static void Deprecate_TopSearch() {
+  mprintf("\tBonds and/or molecules are automatically searched for if needed.\n");
+}
+
+static void Deprecate_ParmBondInfo() {
+  mprintf("\tUse bonds, bondinfo, or printbonds instead.\n");
+}
+
+static void Deprecate_ParmResInfo() {
+  mprintf("\tUse resinfo instead.\n");
+}
+
+static void Deprecate_ParmMolInfo() {
+  mprintf("\tUse molinfo instead.\n");
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
@@ -1307,14 +1348,6 @@ Command::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
   return ( (Command::RetType)State.AddAnalysis( Alloc, argIn ) );
 }
 
-// -----------------------------------------------------------------------------
-/// Warn about deprecated commands.
-Command::RetType Deprecated(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
-{
-  mprintf("Warning: %s is deprecated.\n", argIn.Command());
-  return Command::C_OK;
-}
-
 // ================ LIST OF ALL COMMANDS =======================================
 /** Ideally keep this array first sorted by type (1st field), then 
   * alphabetically by command string (2nd field).
@@ -1423,8 +1456,6 @@ const Command::Token Command::Commands[] = {
   { ACTION, "makestructure", Action_MakeStructure::Alloc, Action_MakeStructure::Help, AddAction },
   { ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, AddAction },
   { ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, AddAction },
-  { ACTION, "maxdist", Action_MaxDist::Alloc, Action_MaxDist::Help, AddAction },
-  { ACTION, "mindist", Action_MinDist::Alloc, Action_MinDist::Help, AddAction },
   { ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, AddAction },
   { ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, AddAction },
   { ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, AddAction },
@@ -1497,14 +1528,16 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "statistics", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
   { ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
   // DEPRECATED COMMANDS
-  { DEPRECATED, "acceptor",     0, 0, Deprecated },
-  { DEPRECATED, "bondsearch",   0, 0, Deprecated },
-  { DEPRECATED, "donor",        0, 0, Deprecated },
-  { DEPRECATED, "molsearch",    0, 0, Deprecated },
-  { DEPRECATED, "nobondsearch", 0, 0, Deprecated },
-  { DEPRECATED, "nomolsearch",  0, 0, Deprecated },
-  { DEPRECATED, "parmbondinfo", 0, 0, Deprecated },
-  { DEPRECATED, "parmmolinfo",  0, 0, Deprecated },
-  { DEPRECATED, "parmresinfo",  0, 0, Deprecated },
-  { NONE      , 0,              0, 0, 0          }
+  { DEPRECATED, "acceptor",     0, Deprecate_Hbond,        0 },
+  { DEPRECATED, "bondsearch",   0, Deprecate_TopSearch,    0 },
+  { DEPRECATED, "donor",        0, Deprecate_Hbond,        0 },
+  { DEPRECATED, "maxdist",      0, Deprecate_MinDist,      0 },
+  { DEPRECATED, "mindist",      0, Deprecate_MinDist,      0 },
+  { DEPRECATED, "molsearch",    0, Deprecate_TopSearch,    0 },
+  { DEPRECATED, "nobondsearch", 0, Deprecate_TopSearch,    0 },
+  { DEPRECATED, "nomolsearch",  0, Deprecate_TopSearch,    0 },
+  { DEPRECATED, "parmbondinfo", 0, Deprecate_ParmBondInfo, 0 },
+  { DEPRECATED, "parmmolinfo",  0, Deprecate_ParmMolInfo,  0 },
+  { DEPRECATED, "parmresinfo",  0, Deprecate_ParmResInfo,  0 },
+  { NONE      , 0,              0, 0,                      0 }
 };

@@ -217,20 +217,20 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   std::string name = actionArgs.GetStringKey("name");
   if (name.empty())
     name = DSL->GenerateDefaultName("Contacts");
-  numnative_ = DSL->AddSetAspect(DataSet::INTEGER, name, "Native");
-  nonnative_ = DSL->AddSetAspect(DataSet::INTEGER, name, "NonNative");
+  numnative_ = DSL->AddSetAspect(DataSet::INTEGER, name, "native");
+  nonnative_ = DSL->AddSetAspect(DataSet::INTEGER, name, "nonnative");
   if (outfile != 0) {
     outfile->AddSet(numnative_);
     outfile->AddSet(nonnative_);
   }
   if (numnative_ == 0 || nonnative_ == 0) return Action::ERR;
   if (actionArgs.hasKey("mindist")) {
-    mindist_ = DSL->AddSetAspect(DataSet::DOUBLE, name, "MinDist");
+    mindist_ = DSL->AddSetAspect(DataSet::DOUBLE, name, "mindist");
     if (mindist_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddSet(mindist_);
   }
   if (actionArgs.hasKey("maxdist")) {
-    maxdist_ = DSL->AddSetAspect(DataSet::DOUBLE, name, "MaxDist");
+    maxdist_ = DSL->AddSetAspect(DataSet::DOUBLE, name, "maxdist");
     if (maxdist_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddSet(maxdist_);
   }
