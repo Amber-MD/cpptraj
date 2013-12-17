@@ -50,6 +50,11 @@ void ArgList::ClearList() {
   marked_.clear();
 }
 
+static inline char stringBack(std::string const& str) {
+  if (str.empty()) return 0;
+  return str[ str.size() - 1];
+}
+
 // ArgList::SetList()
 /** Separate input by the characters in separator and store as separate args.
   * This overwrites any existing args and completely resets the list.
@@ -77,18 +82,18 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
   char* pch = strtok(tempString, separator);
   if (pch != 0) {
     while (pch != 0) {
-      //if (debug>1) mprintf("getArgList:  Arg %i, Token [%s], ",nargs,pch);
       // If the argument is not quoted add it to the list
-      if (pch[0] != '"' && pch[0] != '\'') 
+      if (pch[0] != '\"' && pch[0] != '\'') 
         arglist_.push_back( std::string(pch) );
       else {
         char quotechar = pch[0];
         // If the argument begins with a quote, place this and all subsequent
-        // arguments ending with another quote into this argument
+        // arguments this argument until closing quote reached.
         std::string argument(pch);
+        // Erase beginning quote.
+        argument.erase(0, 1);
         // Make sure this argument doesnt just end with a quote.
-        unsigned int arg_size = argument.size();
-        if (arg_size == 1 || argument[arg_size-1] != quotechar) {
+        if (stringBack(argument) != quotechar) {
           while (pch != 0) {
             argument.append(" ");
             pch = strtok(0, separator);
@@ -100,25 +105,19 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
             }
             argument.append(pch);
             // Check if this argument has the closing quote.
-            if (argument[argument.size()-1] == quotechar) break;
+            if (stringBack(argument) == quotechar) break;
           }
         }
-        // Remove quotes from the argument
-        std::string::iterator character = argument.begin();
-        while (character < argument.end())
-          if (*character == quotechar)
-            character = argument.erase(character);
-          else
-            ++character;
+        // Remove final quote from the argument. If there was no closing quote
+        // this removes the final space.
+        if (!argument.empty()) argument.resize( argument.size() - 1 );
         if (!argument.empty()) arglist_.push_back(argument);
       }
-      //if (debug>1) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
       pch = strtok(0,separator); // Next argument
     } // END while loop
     // Set up marked array
     marked_.resize( arglist_.size(), false );
   }
-  // if (debug>0) mprintf("getArgList: Processed %i args\n",nargs);
   delete[] tempString;
   return 0;
 }
@@ -128,10 +127,13 @@ ArgList ArgList::RemainingArgs() {
   ArgList remain;
   for (unsigned int arg = 0; arg < arglist_.size(); ++arg) {
     if ( !marked_[arg] ) {
-      remain.AddArg( arglist_[arg] );
+      remain.arglist_.push_back( arglist_[arg] );
+      if (!remain.argline_.empty()) remain.argline_.append(" ");
+      remain.argline_.append( arglist_[arg] );
       marked_[arg] = true;
     }
   }
+  remain.marked_.resize( remain.arglist_.size(), false );
   return remain;
 }
 
