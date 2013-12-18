@@ -43,6 +43,8 @@ Topology* TopologyList::GetParmByIndex(ArgList& argIn) const {
   return parm;
 }
 
+const char* TopologyList::ParmArgs = "[parm <parmfile / tag> | parmindex <#>]";
+
 // TopologyList::GetParm()
 /** Return the parm structure based on arguments in the given arg list. 
   *   parm <parm name>

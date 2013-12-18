@@ -289,52 +289,49 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
 static void Help_Help() {
-  mprintf("\t{[<cmd>] | General | Action | Analysis | Topology | Trajectory}\n");
-  mprintf("\tWith no arguments list all known commands, otherwise display help for\n");
-  mprintf("\tcommand <cmd>. If General/Action/Analysis/Topology/Trajectory specified\n");
-  mprintf("\tlist commands only in that category.\n");
+  mprintf("\t{[<cmd>] | General | Action | Analysis | Topology | Trajectory}\n"
+          "\tWith no arguments list all known commands, otherwise display help for\n"
+          "\tcommand <cmd>. If General/Action/Analysis/Topology/Trajectory specified\n"
+          "\tlist commands only in that category.\n");
 }
 
-static void Help_System() {
-  mprintf("\tCall command from system.\n");
-}
+static void Help_System() { mprintf("\tCall command from system.\n"); }
 
 static void Help_NoProgress() {
   mprintf("\tDo not print progress while reading in trajectories.\n");
 }
 
 static void Help_NoExitOnError() {
-  mprintf("\tDo not exit when errors are encountered. This is the default\n");
-  mprintf("\tin interactive mode.\n");
+  mprintf("\tDo not exit when errors are encountered. This is the default\n"
+          "\tin interactive mode.\n");
 }
 
 static void Help_GenerateAmberRst() {
   mprintf("\t<mask1> <mask2> [<mask3>] [<mask4>]\n"
           "\tr1 <r1> r2 <r2> r3 <r3> r4 <r4> rk2 <rk2> rk3 <rk3>\n"
-          "\t{[parm <parmname>] | parmindex <#>}\n"
+          "\t{%s}\n"
           "\t[{ref <refname> | refindex <#> | reference} [offset <off>] [width <width>]\n"
           "\t[out <outfile>] [overwrite]\n"
-          "\tGenerate Amber-format restraint from 2 or more mask expressions.\n");
+          "\tGenerate Amber-format restraint from 2 or more mask expressions.\n",
+          TopologyList::ParmArgs);
 }
 
 static void Help_Run() {
-  mprintf("\tProcess all trajectories currently in input trajectory list.\n");
-  mprintf("\tAll actions in action list will be run on each frame.\n");
-  mprintf("\tIf not processing ensemble input, all analyses in analysis\n");
-  mprintf("\tlist will be run after trajectory processing.\n");
+  mprintf("\tProcess all trajectories currently in input trajectory list.\n"
+          "\tAll actions in action list will be run on each frame.\n"
+          "\tIf not processing ensemble input, all analyses in analysis\n"
+          "\tlist will be run after trajectory processing.\n");
 }
 
-static void Help_Quit() {
-  mprintf("\tExit CPPTRAJ\n");
-}
+static void Help_Quit() { mprintf("\tExit CPPTRAJ\n"); }
 
 static const char TypeList[] =
   "(<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)";
 
 static void Help_List() {
-  mprintf("\t[<type>] %s\n", TypeList);
-  mprintf("\tList currently loaded objects of the specified type. If no type is given\n");
-  mprintf("\tthen list all loaded objects.\n");
+  mprintf("\t[<type>] %s\n"
+          "\tList currently loaded objects of the specified type. If no type is given\n"
+          "\tthen list all loaded objects.\n", TypeList);
 }
 
 static void Help_Debug() {
@@ -423,7 +420,7 @@ static void Help_SelectDS() {
 
 static void Help_Trajin() {
   mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n");
-  mprintf("\t           [parm <parmfile> | parmindex <#>]\n");
+  mprintf("\t           %s\n", TopologyList::ParmArgs);
   mprintf("\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n");
   mprintf("\t           [trajnames <rep1>,<rep2>,...,<repN> ] ]\n");
   mprintf("\tLoad trajectory specified by <filename> to the input trajectory list.\n");
@@ -432,14 +429,14 @@ static void Help_Trajin() {
 
 static void Help_Ensemble() {
   mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n");
-  mprintf("\t        [parm <parmfile> | parmindex <#>]\n");
+  mprintf("\t        %s\n", TopologyList::ParmArgs);
   mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>\n");
   mprintf("\tLoad an ensemble of trajectories starting with <file0> that will be processed together.\n");
 }
 
 static void Help_Trajout() {
   mprintf("\t<filename> [<fileformat>] [append] [nobox]\n");
-  mprintf("\t           [parm <parmfile> | parmindex <#>] [onlyframes <range>] [title <title>]\n");
+  mprintf("\t           %s [onlyframes <range>] [title <title>]\n", TopologyList::ParmArgs);
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
   mprintf("\t           [ <Format Options> ]\n");
   mprintf("\tSpecify output trajectory.\n");
@@ -447,9 +444,8 @@ static void Help_Trajout() {
 }
 
 static void Help_Reference() {
-  mprintf("\t<filename> [<frame#>] [<mask>] [TAG] [lastframe]\n");
-  mprintf("\t           [average [<stop>] [<offset>]]\n");
-  mprintf("\tLoad trajectory <filename> as a reference frame.\n");
+  mprintf("\t<filename> [<frame#>] [<mask>] [TAG] [lastframe]\n"
+          "\tLoad trajectory <filename> as a reference frame.\n");
 }
 
 static void Help_Parm() {
@@ -523,7 +519,7 @@ static void Help_MolInfo() {
 }
 
 static void Help_LoadCrd() {
-  mprintf("\t<filename> [parm <parm> | parmindex<#>] [<trajin args>] [<name>]\n");
+  mprintf("\t<filename> %s [<trajin args>] [<name>]\n", TopologyList::ParmArgs);
   mprintf("\tLoad trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
 }
 static void Help_CrdAction() {
