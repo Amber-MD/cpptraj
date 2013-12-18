@@ -26,6 +26,7 @@ class DataSet_MatrixDbl : public DataSet_2D {
     MatrixKind Kind()                    const { return kind_;              }
     MatrixType Type()                    const { return type_;              }
     // -------------------------------------------
+    double& Element(size_t x, size_t y)        { return mat_.element(x,y);  }
     int AddElement(double d)                   { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,double d){ mat_.setElement(x,y,d);    }
     /// Type definition of iterator over matrix elements.

@@ -3,6 +3,7 @@
 #include <set>
 #include "Action.h"
 #include "ImagedAction.h"
+#include "DataSet_MatrixDbl.h"
 /// Calculate the number of native/non-native contacts based on distance
 /** Intended to combine and replace contacts, mindist, and maxdist actions.
   * Go through AtomMask arrays and calculate 
@@ -19,7 +20,7 @@ class Action_NativeContacts : public Action {
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    void Print() {}
+    void Print();
 
     Marray SetupList(Topology const&, AtomMask const&, Iarray&) const;
     int SetupContactLists(Marray&, Marray&, Iarray&, Iarray&, 
@@ -30,6 +31,7 @@ class Action_NativeContacts : public Action {
 
     double distance_;     ///< Cutoff distance
     int debug_;           ///< Action debug level.
+    unsigned int nframes_;///< Number of frames, for normalizing map
     bool first_;          ///< If true use first frame as reference
     bool byResidue_;      ///< If true calculate distances by residue
     ImagedAction image_;  ///< Hold imaging-related info/routines.
@@ -44,6 +46,7 @@ class Action_NativeContacts : public Action {
     DataSet* nonnative_;  ///< Hold # of non-native contacts
     DataSet* mindist_;    ///< Hold minimum observed distance among contacts
     DataSet* maxdist_;    ///< Hold maximum observed distance among contacts
+    DataSet_MatrixDbl* map_; ///< Hold contacts map
     Topology* CurrentParm_;
     Matrix_3x3 ucell_, recip_;
     /// Define contact, either atom or residue number pair.
