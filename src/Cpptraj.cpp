@@ -12,19 +12,24 @@
 void Cpptraj::Usage() {
   mprinterr("\n"
             "Usage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n"
+            "               [-c <reference>]\n"
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
-            "               [--interactive] [--log <logfile>]\n"
+            "               [--interactive] [--log <logfile>] [-tl] [-ms] [--mask]\n"
             "       cpptraj <Top> <Input>\n"
             "\t-p <Top0>      : Load <Top0> as a topology file. May be specified more than once.\n"
             "\t-i <Input0>    : Read input from <Input0>. May be specified more than once.\n"
             "\t-y <trajin>    : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
             "\t-x <trajout>   : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n"
+            "\t-c <reference> : Read <reference> as reference coordinates; same as input 'reference <reference>'.\n"
             "\t-h | --help    : Print command line help and exit.\n"
             "\t-V | --version : Print version and exit.\n"
             "\t--defines      : Print compiler defines and exit.\n"
             "\t-debug <#>     : Set global debug level to <#>; same as input 'debug <#>'.\n"
             "\t--interactive  : Force interactive mode.\n"
-            "\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n");
+            "\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n"
+            "\t-tl            : Print length of trajectories specified with '-y' to STDOUT.\n"
+            "\t-ms <mask>     : Print selected atom numbers to STDOUT.\n"
+            "\t--mask <mask>  : Print detailed atom selection to STDOUT.\n");
 }
 
 void Cpptraj::Intro() {
@@ -167,7 +172,15 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
         mprinterr("Error: No topology file specified.\n");
         return ERROR;
       }
-      if (State_.ProcessMask( topFiles[0], std::string(argv[++i]))) return ERROR;
+      if (State_.ProcessMask( topFiles[0], std::string(argv[++i]), false )) return ERROR;
+      return SILENT_EXIT;
+    } else if (arg == "--mask" && i+1 != argc) {
+      // --mask: detailed mask
+      if (topFiles.empty()) {
+        mprinterr("Error: No topology file specified.\n");
+        return ERROR;
+      }
+      if (State_.ProcessMask( topFiles[0], std::string(argv[++i]), true )) return ERROR;
       return SILENT_EXIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file

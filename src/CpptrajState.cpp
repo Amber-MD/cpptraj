@@ -134,11 +134,18 @@ int CpptrajState::RemoveFromList( ArgList& argIn ) {
 }
 
 // CpptrajState::ProcessMask()
-int CpptrajState::ProcessMask( std::string const& topname, std::string const& maskexpr ) const {
+int CpptrajState::ProcessMask( std::string const& topname, std::string const& maskexpr,
+                               bool verbose ) const
+{
   ParmFile pfile;
   Topology parm;
   if (pfile.ReadTopology(parm, topname, debug_)) return 1;
-  parm.PrintAtomInfo( maskexpr );
+  if (!verbose) {
+    AtomMask tempMask( maskexpr );
+    if (parm.SetupIntegerMask( tempMask )) return 1;
+    tempMask.PrintMaskAtoms("Selected");
+  } else
+    parm.PrintAtomInfo( maskexpr );
   return 0;
 }
 
@@ -151,7 +158,7 @@ int CpptrajState::TrajLength( std::string const& topname,
                                                 trajinName != trajinFiles.end();
                                                 ++trajinName)
     if (AddTrajin( *trajinName )) return 1;
-  mprintf("%i\n", trajinList_.MaxFrames());
+  mprintf("Frames: %i\n", trajinList_.MaxFrames());
   return 0;
 }
 
