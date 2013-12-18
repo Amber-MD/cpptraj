@@ -19,11 +19,11 @@ Action_Matrix::Action_Matrix() :
 
 void Action_Matrix::Help() {
   mprintf("\t[out <filename>] %s\n", ActionFrameCounter::HelpText);
-  mprintf("\t[name <name>] [ byatom | byres [mass] | bymask [mass] ]\n");
-  mprintf("\t[ ired [order <#>] ]\n");
-  mprintf("\t[ {distcovar | idea} <mask1> ]\n");
-  mprintf("\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n");
-  mprintf("\tCalculate a matrix of the specified type from input coordinates.\n");
+  mprintf("\t[name <name>] [ byatom | byres [mass] | bymask [mass] ]\n"
+          "\t[ ired [order <#>] ]\n"
+          "\t[ {distcovar | idea} <mask1> ]\n"
+          "\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n"
+          "\tCalculate a matrix of the specified type from input coordinates.\n");
 }
 
 // Action_Matrix::Init()
@@ -352,7 +352,7 @@ void Action_Matrix::CalcIredMatrix() {
   // Store length of IRED vectors in vect2
   for (std::vector<DataSet_Vector*>::iterator Vtmp = IredVectors_.begin();
                                               Vtmp != IredVectors_.end(); ++Vtmp)
-    *(v2idx1++) = sqrt( (*Vtmp)->Dot( *(*Vtmp) ) );
+    *(v2idx1++) = sqrt( (*Vtmp)->Back() * (*Vtmp)->Back() );
 
   // Loop over all pairs of IRED vectors.
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
@@ -367,7 +367,7 @@ void Action_Matrix::CalcIredMatrix() {
                                                 Vtmp2 != IredVectors_.end(); ++Vtmp2)
     {
       double len2 = *(v2idx2++);
-      double legendre = LegendrePoly(order_, (*Vtmp)->Dot( *(*Vtmp2) ) / (len1 * len2) );
+      double legendre = LegendrePoly(order_, (*Vtmp)->Back() * (*Vtmp2)->Back()  / (len1 * len2) );
       *(mat++) += legendre;
       if (Vtmp == Vtmp2)
         *(v1idx++) += legendre;
@@ -554,7 +554,7 @@ void Action_Matrix::CalcDihedralCovariance( int frameNum ) {
     for (Array1D::const_iterator ds2 = DihedralSets_.begin(); 
                                  ds2 != DihedralSets_.end(); ++ds2)
     {
-      double theta2 = (*ds2)->Dval( frameNum ) * DEGRAD;
+      double theta2 = (*ds2)->Dval( frameNum ) * Constants::DEGRAD;
       XY2[0] = cos( theta2 );
       XY2[1] = sin( theta2 );
       // Store X and X^2
@@ -569,7 +569,7 @@ void Action_Matrix::CalcDihedralCovariance( int frameNum ) {
         for (Array1D::const_iterator ds1 = ds2 + 1; 
                                      ds1 != DihedralSets_.end(); ++ds1)
         {
-          double theta1 = (*ds1)->Dval( frameNum ) * DEGRAD;
+          double theta1 = (*ds1)->Dval( frameNum ) * Constants::DEGRAD;
           *(mat++) += Vi * cos( theta1 );
           *(mat++) += Vi * sin( theta1 );
         }
@@ -735,15 +735,6 @@ void Action_Matrix::FinishCovariance(size_t element_size) {
             *mat = (*mat - (Vi * *(v1idx1+idx))) * Mass;
             ++mat;
           }
-          //*mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
-          //++mat;
-          //*mat = (*mat - (Vi * *(v1idx1+1))) * Mass;
-          //++mat;
-          //*mat = (*mat - (Vi * *(v1idx1+2))) * Mass;
-          //++mat;
-          //*(mat++) -= Vi * *(v1idx1  );
-          //*(mat++) -= Vi * *(v1idx1+1);
-          //*(mat++) -= Vi * *(v1idx1+2);
         }
       }
     }
@@ -765,19 +756,12 @@ void Action_Matrix::FinishCovariance(size_t element_size) {
             for (unsigned int jidx = iidx; jidx < element_size; ++jidx) {
               *mat = (*mat - (Vi * *(v1idx1 + jidx))) * Mass;
               ++mat;
-              //*(mat++) -= Vi * *(v1idx1 + jidx); // Vi * j{0,1,2}, Vi * j{1,2}, Vi * j{2}
             }
           } else {
             for (unsigned int idx = 0; idx < element_size; ++idx) {
               *mat = (*mat - (Vi * *(v1idx1+idx))) * Mass;
               ++mat;
             }
-            //*mat = (*mat - (Vi * *(v1idx1  ))) * Mass;
-            //++mat;
-            //*mat = (*mat - (Vi * *(v1idx1+1))) * Mass;
-            //++mat;
-            //*mat = (*mat - (Vi * *(v1idx1+2))) * Mass;
-            //++mat;
           }
         }
       }
@@ -848,7 +832,7 @@ void Action_Matrix::FinishDistanceCovariance() {
       *(mat++) -= ((*pair_i) * (*pair_j));
 }
 
-// Action_Matrix::print()
+// Action_Matrix::Print()
 void Action_Matrix::Print() {
   if (debug_ > 1) {
     mprintf("Raw Matrix Elements:\n");
@@ -861,21 +845,10 @@ void Action_Matrix::Print() {
     for (unsigned int i = 0; i < vect2_.size(); i++)
       mprintf("\t%u\t%f\n", i, vect2_[i]);
   }
-/*# ifdef _OPENMP
-  if (Mat_->Kind() == DataSet_2D::HALF &&
-       ( Mat_->Type() == DataSet_2D::COVAR ||
-         Mat_->Type() == DataSet_2D::MWCOVAR ))
-  {
-    // Fill vect2
-    for (unsigned int idx = 0; idx < Mat_->Ncols(); idx++)
-      vect2_[idx] = Mat_->GetElement(idx, idx);
-  }
-# endif*/
   // ---------- Calculate average over number of sets ------
   double norm = (double)snap_;
   if (Mat_->Type() == DataSet_2D::IDEA) norm *= 3.0;
   norm = 1.0 / norm;
-  //Mat_->DivideBy((double)snap_);
   for (v_iterator v1 = Mat_->v1begin(); v1 != Mat_->v1end(); ++v1)
     *v1 *= norm;
   for (v_iterator v2 = vect2_.begin();  v2 != vect2_.end();  ++v2)

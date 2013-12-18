@@ -23,15 +23,17 @@ class Atom {
       YTTRIUM,    LUTETIUM,
       EXTRAPT 
     };
-    static const char* AtomicElementName[]; // Needed by Topology::GetBondLength
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}
-    /// Take atom name, chain ID. Attempt to determine element from name if no elt.
+    /// Take atom name, chain ID, and (optional) 2 character element name.
     Atom(NameType const&, char, const char*);
-    /// Take atom name, type, and charge. Attempt to determine element from name.
-    Atom( NameType const&, NameType const&, double );
-    Atom( NameType const&, double, int, double, int, NameType const&, double, double,int );
+    /// Take atom name, type name, and charge.
+    Atom(NameType const&, NameType const&, double);
+    /// Take atom name, charge, mass, and type name
+    Atom(NameType const&, double, double, NameType const&);
+    /// Atom name, charge, polarizability atomic num, mass, type index, type name, gb radius and screen parameter.
+    Atom(NameType const&, double, double, int, double, int, NameType const&, double, double);
     Atom(const Atom &);
     void swap(Atom &, Atom &);
     Atom &operator=(Atom);
@@ -47,6 +49,7 @@ class Atom {
     void SetResNum(int resnumIn)             { resnum_ = resnumIn;  }
     void SetMol(int molIn)                   { mol_ = molIn;        }
     void SetCharge(double qin)               { charge_ = qin;       }
+    void SetGBradius(double rin)             { gb_radius_ = rin;    }
     // Inline functions returning internal vars
     inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }
@@ -63,6 +66,7 @@ class Atom {
     inline int Nexcluded()             const { return (int)excluded_.size(); }
     inline double Mass()               const { return mass_; }
     inline double Charge()             const { return charge_; }
+    inline double Polar()              const { return polar_; }
     inline double GBRadius()           const { return gb_radius_; }
     inline double Screen()             const { return gb_screen_; }
     /// Add atom # to this atoms list of bonded atoms.
@@ -70,19 +74,23 @@ class Atom {
     void ClearBonds();
     void SortBonds();
     /// Create exclusion list from input set.
-    void AddExclusionList(std::set<int>&);
+    void AddExclusionList(std::set<int> const&);
+    /// \return Optimal bond length based on element types
+    static double GetBondLength(AtomicElementType, AtomicElementType);
   protected:
     static const size_t NUMELEMENTS = 76;
   private:
     static const int AtomicElementNum[];
+    static const char* AtomicElementName[];
     static const double AtomicElementMass[];
-    double charge_;
-    double mass_;
-    double gb_radius_;
-    double gb_screen_;
-    NameType aname_;
-    NameType atype_;
-    int atype_index_;
+    double charge_;    ///< Charge in e-
+    double polar_;     ///< Atomic polarizability in Ang^3
+    double mass_;      ///< mass in amu
+    double gb_radius_; ///< GB radius in Ang
+    double gb_screen_; ///< GB screening parameter
+    NameType aname_;   ///< Atom name
+    NameType atype_;   ///< Atom type name
+    int atype_index_;  ///< Atom type index for nonbond params
     AtomicElementType element_;
     int resnum_;
     int mol_;
@@ -90,6 +98,8 @@ class Atom {
     std::vector<int> bonds_;
     std::vector<int> excluded_;
 
+    static void WarnBondLengthDefault(AtomicElementType, AtomicElementType, double);
+    void DetermineElement(int);
     void SetElementFromName();
     void SetElementFromSymbol(char,char);
     void SetElementFromMass();

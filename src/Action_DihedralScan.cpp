@@ -91,11 +91,11 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
     increment_ = actionArgs.getKeyInt("increment",1);
     max_factor_ = actionArgs.getKeyInt("maxfactor",2);
     // Check validity of args
-    if (cutoff_ < SMALL) {
+    if (cutoff_ < Constants::SMALL) {
       mprinterr("Error: cutoff too small.\n");
       return Action::ERR;
     }
-    if (rescutoff_ < SMALL) {
+    if (rescutoff_ < Constants::SMALL) {
       mprinterr("Error: rescutoff too small.\n");
       return Action::ERR;
     }
@@ -370,7 +370,7 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
     // NOTE: could potentially rotate 360 - prevent?
     // FIXME: Just use 2PI and rn_gen, get everything in radians
     double theta_in_degrees = ((int)(RN_.rn_gen()*100000) % 360) + 1;
-    double theta_in_radians = theta_in_degrees * DEGRAD;
+    double theta_in_radians = theta_in_degrees * Constants::DEGRAD;
     // Calculate rotation matrix for random theta
     rotationMatrix.CalcRotationMatrix(axisOfRotation, theta_in_radians);
     int loop_count = 0;
@@ -417,7 +417,7 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
           mprintf("\tTrying dihedral increments of +%i\n",increment_);
         // Instead of a new random dihedral, try increments
         theta_in_degrees = (double)increment_;
-        theta_in_radians = theta_in_degrees * DEGRAD;
+        theta_in_radians = theta_in_degrees * Constants::DEGRAD;
         // Calculate rotation matrix for new theta
         rotationMatrix.CalcRotationMatrix(axisOfRotation, theta_in_radians);
       }
@@ -437,7 +437,7 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
         // Calculate how much to rotate back in order to get to best clash
         /*int num_back = bestLoop - 359;
         theta_in_degrees = (double) num_back;
-        theta_in_radians = theta_in_degrees * DEGRAD;
+        theta_in_radians = theta_in_degrees * Constants::DEGRAD;
         // Calculate rotation matrix for theta
         calcRotationMatrix(rotationMatrix, axisOfRotation, theta_in_radians);
         // Rotate back to best clash
@@ -473,7 +473,7 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
 // Action_DihedralScan::IntervalAngles()
 void Action_DihedralScan::IntervalAngles(Frame& currentFrame) {
   Matrix_3x3 rotationMatrix;
-  double theta_in_radians = interval_ * DEGRAD;
+  double theta_in_radians = interval_ * Constants::DEGRAD;
   // Write original frame
   if (!outfilename_.empty())
     outtraj_.WriteFrame(outframe_++, CurrentParm_, currentFrame);
@@ -486,10 +486,9 @@ void Action_DihedralScan::IntervalAngles(Frame& currentFrame) {
     // Calculate rotation matrix for interval 
     rotationMatrix.CalcRotationMatrix(axisOfRotation, theta_in_radians);
     if (debug_ > 0) {
-      std::string a1name = CurrentParm_->TruncResAtomName( (*dih).atom1 );
-      std::string a2name = CurrentParm_->TruncResAtomName( (*dih).atom2 );
       mprintf("\tRotating Dih %s-%s by %.2f deg %i times.\n",
-               a1name.c_str(), a2name.c_str(), interval_, maxVal_); 
+               CurrentParm_->TruncResAtomName( (*dih).atom1 ).c_str(), 
+               CurrentParm_->TruncResAtomName( (*dih).atom2 ).c_str(), interval_, maxVal_); 
     }
     for (int rot = 0; rot < maxVal_; ++rot) {
       // Rotate around axis

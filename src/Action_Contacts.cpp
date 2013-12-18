@@ -195,7 +195,7 @@ Action::RetType Action_Contacts::DoAction(int frameNum, Frame* currentFrame, Fra
       if (d2 < distance_) {
         ++numcontacts;
         int res2 = (*CurrentParm_)[*atom2].ResNum();
-        mprintf("CONTACT: %i res %i to %i res %i [%i]",*atom1,res1,*atom2,res2,numcontacts);
+        mprintf("CONTACT: %i res %i to %i res %i [%i]",*atom1+1,res1+1,*atom2+1,res2+1,numcontacts);
         ++residueContacts_[res1];
         ++residueContacts_[res2];
         // Is this a native contact?

@@ -18,7 +18,7 @@ void DataSet_Coords::Info() const {
     mprintf(" (<1 MB)");
   else
     mprintf(" (%zu MB)", sze); 
-  top_.Brief();
+  top_.Brief(0);
 }
 
 void DataSet_Coords::SetTopology(Topology const& topIn) {

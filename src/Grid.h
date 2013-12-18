@@ -86,7 +86,7 @@ template <class T> int Grid<T>::resize(size_t x, size_t y, size_t z) {
   nelements_ = nx_ * ny_ * nz_;
   if (nelements_ > 0L) {
     grid_ = new T[ nelements_ ];
-    std::fill( grid_, grid_ + nelements_, 0 );
+    std::fill( grid_, grid_ + nelements_, T() );
   }
   return 0;
 }

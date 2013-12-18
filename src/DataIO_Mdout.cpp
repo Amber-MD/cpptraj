@@ -4,9 +4,7 @@
 #include "DataIO_Mdout.h"
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
-
-// CONSTRUCTOR
-DataIO_Mdout::DataIO_Mdout() {}
+#include "StringRoutines.h" // ConvertToDouble
 
 // DataIO_Mdout::ID_DataFormat()
 bool DataIO_Mdout::ID_DataFormat(CpptrajFile& infile) {
@@ -132,7 +130,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       for (int col=0; col < mdin_args.Nargs(); col += 2) {
         int col1 = col + 1;
         if (mdin_args[col] == "imin") {
-          imin = mdin_args.IntegerAt( col1 );
+          imin = convertToInteger( mdin_args[ col1 ] );
           mprintf("\tMDIN: imin is %i\n", imin);
           // Set a trigger for printing. For imin5 this is the word minimization.
           // For imin0 or imin1 this is NSTEP.
@@ -142,7 +140,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
           // Since imin0 and imin1 first trigger has no data, set frame 1 lower.
           if (imin==1 || imin==0) frame = -1;
         } else if (mdin_args[col] == "dt") {
-          dt = mdin_args.DoubleAt( col1 );
+          dt = convertToDouble( mdin_args[ col1 ] );
           mprintf("\tMDIN: dt is %f\n", dt);
         }
       }

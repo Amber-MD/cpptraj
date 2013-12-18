@@ -21,17 +21,17 @@ class Action_CheckStructure: public Action, ImagedAction {
   private:
     Action::RetType DoAction(int, Frame*, Frame**);
 
+    void SetupBondlist(BondArray const&, BondParmArray const&);
     /// Used to cache bond parameters
     struct bond_list {
-      double req;
+      double req; ///< Hold (req + bondoffset)^2
       int atom1;
       int atom2;
-      int param;
     };
     std::vector<bond_list> bondL_;
-    // Sort first by atom1, then by atom2
+    /// Sort first by atom1, then by atom2
     struct bond_list_cmp {
-      inline bool operator()(bond_list first, bond_list second) const {
+      inline bool operator()(bond_list const& first, bond_list const& second) const {
         if (first.atom1 < second.atom1) {
           return true;
         } else if (first.atom1 == second.atom1) {
@@ -49,7 +49,5 @@ class Action_CheckStructure: public Action, ImagedAction {
     CpptrajFile outfile_;
     Topology* CurrentParm_;
     int debug_;
-
-    void SetupBondlist(std::vector<int> const&);
 };
 #endif  

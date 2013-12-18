@@ -15,12 +15,11 @@ class Traj_Mol2File : public TrajectoryIO {
     enum MOL2WRITEMODE { NONE = 0, SINGLE, MOL, MULTI };
 
     Traj_Mol2File();
-    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_Mol2File(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_Mol2File(); }
   private:
     MOL2WRITEMODE mol2WriteMode_;
     Topology* mol2Top_;
     bool hasCharges_;
-    std::vector<int> trajBonds_;
     Mol2File file_; 
 
     // Inherited functions

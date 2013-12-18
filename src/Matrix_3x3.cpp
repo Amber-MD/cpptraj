@@ -1,7 +1,7 @@
 #include <cmath>
 #include "Matrix_3x3.h"
 #include "CpptrajStdio.h"
-#include "Constants.h" // PI
+#include "Constants.h" // PI, RADDEG
 
 // COPY CONSTRUCTOR
 Matrix_3x3::Matrix_3x3(const Matrix_3x3& rhs) {
@@ -479,7 +479,7 @@ void Matrix_3x3::CalcRotationMatrix(double psiX, double psiY, double psiZ) {
   Vec3 V(psiX, psiY, psiZ);
   double Psi = V.Normalize(); 
   //mprintf("\t\tcalcRotationMatrix(%.2lf,%.2lf,%.2lf) Psi=%lf\n",
-  //        psiX*RADDEG,psiY*RADDEG,psiZ*RADDEG,Psi*RADDEG);
+  //        psiX*Constants::RADDEG,psiY*Constants::RADDEG,psiZ*Constants::RADDEG,Psi*Constants::RADDEG);
   CalcRotationMatrix(V, Psi);
 }
 
@@ -503,7 +503,7 @@ double Matrix_3x3::RotationAngle() {
   *    -y  x  0
   */
 Vec3 Matrix_3x3::AxisOfRotation(double theta) {
-  if (theta > 0 && theta < PI) {
+  if (theta > 0 && theta < Constants::PI) {
     double dx = 1 / (2 * sin(theta));
     Vec3 result( (M_[5] - M_[7]) * dx,
                  (M_[6] - M_[2]) * dx,
@@ -512,7 +512,7 @@ Vec3 Matrix_3x3::AxisOfRotation(double theta) {
     return result;
   } else {
     mprintf("Error: axis_of_rotation: Could not extract axis of rotation, angle is %lf\n",
-            RADDEG*theta);
+            Constants::RADDEG*theta);
   }
   return Vec3(0.0, 0.0, 0.0);
 }

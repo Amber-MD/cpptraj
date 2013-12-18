@@ -152,7 +152,7 @@ Action::RetType Action_Surf::DoAction(int frameNum, Frame* currentFrame, Frame**
 
     // Calculate surface area of atom i
     double vdwi2 = vdwi * vdwi;
-    double Si = vdwi2 * FOURPI;
+    double Si = vdwi2 * Constants::FOURPI;
 
     // Loop over all neighbors of atomi (j)
     // NOTE: Factor through the 2 in aij and ajk?
@@ -166,7 +166,7 @@ Action::RetType Action_Surf::DoAction(int frameNum, Frame* currentFrame, Frame**
       double vdwj2 = vdwj * vdwj;
       double dij = *Dij;
       double tmpaij = vdwi - (dij * 0.5) - ( (vdwi2 - vdwj2)/(2.0 * dij) );
-      double aij = TWOPI * vdwi * tmpaij;
+      double aij = Constants::TWOPI * vdwi * tmpaij;
       sumaij += aij;
 
       // Find which neighbors of atom i (j and k) are themselves neighbors
@@ -184,7 +184,7 @@ Action::RetType Action_Surf::DoAction(int frameNum, Frame* currentFrame, Frame**
         if ( (vdwj + vdwk) > djk ) {
           double vdw2dif = vdwj2 - (vdwk * vdwk);
           double tmpajk = (2.0*vdwj) - djk - (vdw2dif / djk);
-          double ajk = PI*vdwj*tmpajk;
+          double ajk = Constants::PI*vdwj*tmpajk;
           //tmpajk = vdwj - (djk *0.5) - ( (vdwj2 - (vdwk * vdwk))/(2.0 * djk) );
           //ajk = 2.0 * PI * vdwi * tmpajk;
           //printf("%4s%6i%6i%12.8lf%12.8lf%12.8lf\n","AJK ",(*jt)+1,(*kt)+1,ajk,vdw2dif,tmpajk);
@@ -218,7 +218,7 @@ Action::RetType Action_Surf::DoAction(int frameNum, Frame* currentFrame, Frame**
     double vdwi = VDW_[*atomj];
     // Calculate surface area of atom i
     double vdwi2 = vdwi * vdwi;
-    double Si = vdwi2 * FOURPI; 
+    double Si = vdwi2 * Constants::FOURPI; 
     SA += (SurfaceInfo_noNeighbor_[idxj++].P1 * Si);
   }
 

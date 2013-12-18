@@ -35,15 +35,17 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   // Check and set associated parm file
   if ( SetTrajParm( tparmIn ) ) return 1;
   // Check that file can be opened. 
-  if (!fileExists(tnameIn.c_str())) return 1; 
+  if (!fileExists(tnameIn)) return 1; 
   // Detect file format
-  if ( (trajio_ = DetectFormat( tnameIn )) == 0 ) {
+  TrajFormatType tformat;
+  if ( (trajio_ = DetectFormat( tnameIn, tformat )) == 0 ) {
     mprinterr("Error: Could not determine trajectory %s format.\n", tnameIn.c_str());
     return 1;
   }
   trajio_->SetDebug( debug_ );
   // Set trajectory filename
   SetTrajFileName( tnameIn, true );
+  mprintf("\tReading '%s' as %s\n", TrajFilename().full(), TrajectoryFile::FormatString(tformat));
   // Set up the format for reading and get the number of frames.
   if (SetupTrajIO( tnameIn, *trajio_, argIn )) return 1;
   // Check how many frames will actually be read
@@ -62,7 +64,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
       return 1;
     }
     // Detect mdvel format
-    if ( (velio_ = DetectFormat( mdvelname )) == 0 ) {
+    if ( (velio_ = DetectFormat( mdvelname, tformat )) == 0 ) {
       mprinterr("Error: Could not set up velocity file %s for reading.\n",mdvelname.c_str());
       return 1;
     }

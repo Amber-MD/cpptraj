@@ -1,8 +1,6 @@
 #include <cmath> // tanh, sqrt
-#include <cstring> // memset
 #include "Analysis_Modes.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // fileExists
 #include "Constants.h" // TWOPI
 
 // CONSTRUCTOR
@@ -39,7 +37,6 @@ void Analysis_Modes::Help() {
           "\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n");
 }
 
-//#define TWOPI 6.2832
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
 const double Analysis_Modes::CONSQ = 2.39805E-3;
 const double Analysis_Modes::TKBC2 = 0.46105E-34;
@@ -48,7 +45,7 @@ const double Analysis_Modes::AVO   = 6.023E23;
 const double Analysis_Modes::CNST  = TKBC2 * AVO;
 // cm to angstroms
 const double Analysis_Modes::CMTOA = 1.000E8;
-const double Analysis_Modes::CONT  = CMTOA / TWOPI;
+const double Analysis_Modes::CONT  = CMTOA / Constants::TWOPI;
 // NOTE: Original TWOPI was 6.2832, results in small roundoff diffs from ptraj
 
 /// Strings describing modes calculation types.
@@ -72,7 +69,7 @@ void Analysis_Modes::CheckDeprecated(ArgList& analyzeArgs, std::string& modesnam
                                      const char* key) {
   std::string arg = analyzeArgs.GetStringKey( key );
   if (!arg.empty()) {
-    mprintf("Warning: analyze modes: Argument '%s' is deprecated, use 'name <modes>' instead.\n",
+    mprintf("Warning: Argument '%s' is deprecated, use 'name <modes>' instead.\n",
             key);
     if (modesname.empty()) modesname = arg;
   }
@@ -93,7 +90,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   else if (analyzeArgs.Contains("trajout"))
     type_ = TRAJ;
   else {
-    mprinterr("Error: analyze modes: no analysis type specified.\n");
+    mprinterr("Error: No analysis type specified.\n");
     return Analysis::ERR;
   }
 
@@ -104,7 +101,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     CheckDeprecated(analyzeArgs, modesfile, "file");
     CheckDeprecated(analyzeArgs, modesfile, "stack");
     if (modesfile.empty()) {
-      mprinterr("Error: analyze modes: No 'modes <name>' arg given.\n");
+      mprinterr("Error: No 'modes <name>' argument given.\n");
       return Analysis::ERR;
     }
   }
@@ -145,7 +142,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     // Get min and max for PC
     pcmin_ = analyzeArgs.getKeyDouble("pcmin", -10.0);
     pcmax_ = analyzeArgs.getKeyDouble("pcmax",  10.0);
-    if (pcmax_ < pcmin_ || pcmax_ - pcmin_ < SMALL) {
+    if (pcmax_ < pcmin_ || pcmax_ - pcmin_ < Constants::SMALL) {
       mprinterr("Error: pcmin must be less than pcmax\n");
       return Analysis::ERR;
     }
@@ -161,14 +158,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   // Check if modes name exists on the stack
   modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
-    // If not on stack, check for file.
-    if ( fileExists(modesfile.c_str()) ) {
-      modinfo_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesfile, "Modes" );
-      if (modinfo_->ReadEvecFile( modesfile, beg_+1, end_ )) return Analysis::ERR;
-    }
-  }
-  if (modinfo_ == 0) {
-    mprinterr("Error: analyze modes: Modes %s DataSet/file not found.\n");
+    mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
     return Analysis::ERR;
   }
 
@@ -176,7 +166,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   if (modinfo_->Type() != DataSet_2D::COVAR && 
       modinfo_->Type() != DataSet_2D::MWCOVAR)
   {
-    mprinterr("Error: analyze modes: evecs must be of type COVAR or MWCOVAR.\n");
+    mprinterr("Error: Modes must be of type COVAR or MWCOVAR.\n");
     return Analysis::ERR;
   }
 
@@ -187,7 +177,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   if ( type_ == CORR ) {
     Topology* analyzeParm = PFLin->GetParm( analyzeArgs );
     if (analyzeParm == 0) {
-      mprinterr("Error: analyze modes: corr requires topology (parm <file>, parmindex <#>).\n");
+      mprinterr("Error: 'corr' requires topology (parm <file>, parmindex <#>).\n");
       return Analysis::ERR;
     }
     while (analyzeArgs.hasKey("maskp")) {
@@ -195,7 +185,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       std::string a1mask = analyzeArgs.GetMaskNext();
       std::string a2mask = analyzeArgs.GetMaskNext();
       if (a1mask.empty() || a2mask.empty()) {
-        mprinterr("Error: analyze modes: For 'corr' two 1-atom masks are expected.\n");
+        mprinterr("Error: For 'corr' two 1-atom masks are expected.\n");
         return Analysis::ERR;
       }
       // Check that each mask is just 1 atom
@@ -207,14 +197,14 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
         // Store atom pair
         atompairStack_.push_back( std::pair<int,int>( m1[0], m2[0] ) );
       else {
-        mprinterr("Error: analyze modes: For 'corr', masks should specify only one atom.\n");
-        mprinterr("\tM1[%s]=%i atoms, M2[%s]=%i atoms.\n", m1.MaskString(), m1.Nselected(),
+        mprinterr("Error: For 'corr', masks should specify only one atom.\n"
+                  "\tM1[%s]=%i atoms, M2[%s]=%i atoms.\n", m1.MaskString(), m1.Nselected(),
                   m2.MaskString(), m2.Nselected());
         return Analysis::ERR;
       }
     }
     if ( atompairStack_.empty() ) {
-      mprinterr("Error: analyze modes: no atom pairs found (use 'maskp <mask1> <mask2>')\n");
+      mprinterr("Error: No atom pairs found (use 'maskp <mask1> <mask2>')\n");
       return Analysis::ERR;
     }
   }
@@ -258,16 +248,16 @@ Analysis::RetType Analysis_Modes::Analyze() {
   // Check # of modes
   if (type_ != TRAJ) {
     if (beg_ < 0 || beg_ >= modinfo_->Nmodes()) {
-      mprinterr("Error: analyze modes: 'beg %i' is out of bounds.\n", beg_+1);
+      mprinterr("Error: 'beg %i' is out of bounds.\n", beg_+1);
       return Analysis::ERR;
     }
     if (end_ > modinfo_->Nmodes()) {
-      mprintf("Warning: analyze modes: 'end %i' is > # of modes, setting to %i\n",
+      mprintf("Warning: 'end %i' is > # of modes, setting to %i\n",
               end_, modinfo_->Nmodes());
       end_ = modinfo_->Nmodes();
     }
     if (end_ <= beg_) {
-      mprinterr("Warning: analyze modes: beg must be <= end, (%i -- %i)\n", beg_+1, end_);
+      mprinterr("Warning: beg must be <= end, (%i -- %i)\n", beg_+1, end_);
       return Analysis::ERR;
     }
   }
@@ -277,7 +267,7 @@ Analysis::RetType Analysis_Modes::Analyze() {
     // Calc rms atomic fluctuations
     int natoms = modinfo_->NavgCrd() / 3; // Possible because COVAR/MWCOVAR
     results_ = new double[ natoms * 4 ];
-    memset(results_, 0, natoms * 4 * sizeof(double));
+    std::fill(results_, results_ + natoms * 4, 0);
     double* Ri = results_;
     for (int vi = 0; vi < natoms; ++vi) {
       double sumx = 0.0;
@@ -324,7 +314,7 @@ Analysis::RetType Analysis_Modes::Analyze() {
   } else if (type_ == DISPLACE) {
     // Calc displacement of coordinates along normal mode directions
     results_ = new double[ modinfo_->NavgCrd() ];
-    memset(results_, 0, modinfo_->NavgCrd()*sizeof(double));
+    std::fill(results_, results_ + modinfo_->NavgCrd(), 0);
     double sqrtcnst = sqrt(CNST) * CONT * factor_;
     // Loop over all modes
     for (int mode = beg_; mode < end_; ++mode) {
@@ -394,10 +384,10 @@ void Analysis_Modes::CalcDipoleCorr() {
   double qcorr = 1.0; // For when bose is false
   int rsize = atompairStack_.size() * (end_ - beg_ + 1);
   results_ = new double[ rsize ];
-  memset(results_, 0, rsize*sizeof(double));
+  std::fill(results_, results_ + rsize, 0);
   // Loop over atom pairs 
   double* Res = results_;
-  const double* Avg = modinfo_->AvgCrd();
+  const double* Avg = modinfo_->AvgFrame().xAddress();
   for (modestack_it apair = atompairStack_.begin(); apair != atompairStack_.end(); ++apair)
   {
     int idx1 = (*apair).first  * 3;
@@ -468,7 +458,7 @@ void Analysis_Modes::CalcDipoleCorr() {
 // Calculate projection of coords along given mode.
 void Analysis_Modes::CalculateProjection(int set, Frame const& Crd, int mode) {
   double proj = 0.0;
-  const double* Avg = modinfo_->AvgCrd();
+  const double* Avg = modinfo_->AvgFrame().xAddress();
   const double* Vec = modinfo_->Eigenvector(mode);
   for (int idx = 0; idx < Crd.size(); ++idx)
     proj += (Crd[idx] - Avg[idx]) * 1.0 * Vec[idx];

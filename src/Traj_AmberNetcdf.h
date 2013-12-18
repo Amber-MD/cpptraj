@@ -8,7 +8,7 @@
 class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
   public:
     Traj_AmberNetcdf();
-    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_AmberNetcdf(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_AmberNetcdf(); }
     ~Traj_AmberNetcdf();
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);

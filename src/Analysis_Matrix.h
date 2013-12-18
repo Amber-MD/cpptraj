@@ -15,11 +15,14 @@ class Analysis_Matrix : public Analysis {
   private:
     DataSet_2D* matrix_;
     DataSet_Modes* modes_;
-    std::string outfilename_;
     std::string outthermo_;
     int nevec_;
     bool thermopt_;
     bool reduce_;
     bool eigenvaluesOnly_;
+    bool nmwizopt_;
+    int nmwizvecs_;
+    std::string nmwizfile_;
+    Topology* parmIn_;
 };
 #endif

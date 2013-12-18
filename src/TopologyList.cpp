@@ -43,6 +43,8 @@ Topology* TopologyList::GetParmByIndex(ArgList& argIn) const {
   return parm;
 }
 
+const char* TopologyList::ParmArgs = "[parm <parmfile / tag> | parmindex <#>]";
+
 // TopologyList::GetParm()
 /** Return the parm structure based on arguments in the given arg list. 
   *   parm <parm name>
@@ -80,16 +82,17 @@ Topology* TopologyList::GetParm(ArgList &argIn) const {
 // TopologyList::AddParmFile()
 /** Add a parameter file to the parm file list. */
 int TopologyList::AddParmFile(std::string const& filename) {
-  return AddParmFile(filename, std::string(), true, -1.0);
+  ArgList arg;
+  return AddParmFile(filename, arg);
 }
 
 // TopologyList::AddParmFile()
 /** Add a parameter file to the parm file list with optional tag. */
-int TopologyList::AddParmFile(std::string const& filenameIn, std::string const& ParmTag,
-                              bool bondsearch, double offset) 
+int TopologyList::AddParmFile(std::string const& filenameIn, ArgList& argIn) 
 {
   StrArray fnames = ExpandToFilenames( filenameIn );
   if (fnames.empty()) return 1;
+  std::string ParmTag = argIn.getNextTag();
   int numErr = 0;
   for (StrArray::const_iterator fn = fnames.begin();
                                 fn != fnames.end(); ++fn)
@@ -111,12 +114,10 @@ int TopologyList::AddParmFile(std::string const& filenameIn, std::string const& 
     }
     if (skipFile) continue;
 
-    Topology *parm = new Topology();
-    parm->SetDebug( debug_ );
-    parm->SetOffset( offset );
+    Topology* parm = new Topology();
     ParmFile pfile;
-    // TODO: Pass in FileName
-    if (pfile.Read(*parm, *fn, bondsearch, debug_)) {
+    // NOTE: Arg list will not be modified for multiple parms 
+    if (pfile.ReadTopology(*parm, *fn, argIn, debug_)) {
       mprinterr("Error: Could not open topology '%s'\n",(*fn).c_str());
       delete parm;
       numErr++;
@@ -129,6 +130,8 @@ int TopologyList::AddParmFile(std::string const& filenameIn, std::string const& 
     parm->SetPindex( TopList_.size() );
     TopList_.push_back(parm);
     parm->SetTag( ParmTag );
+    // Only allow the first parm to be tagged.
+    ParmTag.clear();
   }
   if (numErr > 0) return 1;
   return 0;
@@ -138,16 +141,13 @@ int TopologyList::AddParmFile(std::string const& filenameIn, std::string const& 
 int TopologyList::WriteParm(ArgList& argIn) const {
   std::string outfilename = argIn.GetStringKey("out");
   if (outfilename.empty()) {
-    mprinterr("Error: %s: No output filename specified (use 'out <filename>').\n", argIn.Command());
+    mprinterr("Error: No output filename specified (use 'out <filename>').\n");
     return 1;
   }
   Topology* parm = GetParmByIndex( argIn );
   if (parm == 0) return 1;
-  mprintf("\tWriting topology %i (%s) to Amber parm '%s'\n",parm->Pindex(),
-          parm->c_str(), outfilename.c_str());
   ParmFile pfile;
-  pfile.Write( *parm, outfilename, ParmFile::AMBERPARM, debug_ );
-  return 0;
+  return pfile.WriteTopology( *parm, outfilename, argIn, ParmFile::UNKNOWN_PARM, debug_ );
 }
 
 // TopologyList::List()
@@ -159,7 +159,7 @@ void TopologyList::List() const {
                                                 top != TopList_.end(); top++)
     {
       mprintf(" %i:", (*top)->Pindex());
-      (*top)->Brief();
+      (*top)->Brief(0);
       if ((*top)->Nframes() > 0)
         mprintf(", %i frames", (*top)->Nframes());
       mprintf("\n");

@@ -139,7 +139,7 @@ Action::RetType Action_MultiDihedral::DoAction(int frameNum, Frame* currentFrame
                               currentFrame->XYZ((*dih).A1()),
                               currentFrame->XYZ((*dih).A2()),
                               currentFrame->XYZ((*dih).A3()) );
-    torsion *= RADDEG;
+    torsion *= Constants::RADDEG;
     (*ds)->Add(frameNum, &torsion);
   }
   return Action::OK;

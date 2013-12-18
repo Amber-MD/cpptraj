@@ -58,104 +58,80 @@ const double Atom::AtomicElementMass[NUMELEMENTS] = { 1.0,
 };  
 
 // CONSTRUCTOR
-Atom::Atom() : 
-  charge_(0.0),
-  mass_(1.0),
-  gb_radius_(0.0),
-  gb_screen_(0.0),
-  aname_(""),
-  atype_(""),
-  atype_index_(0),
-  element_(UNKNOWN_ELEMENT),
-  resnum_(0),
-  mol_(0),
-  chainID_(' ')
-{ }
+Atom::Atom() : charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0),
+               gb_screen_(0.0), aname_(""), atype_(""), atype_index_(0),
+               element_(UNKNOWN_ELEMENT), resnum_(0), mol_(0), chainID_(' ')
+{}
 
-/** CONSTRUCTOR - used for PDB files. */
+/** If no 2 char element name provided, try to guess from name. */ 
 Atom::Atom(NameType const& aname, char cid, const char* elt) :
-  charge_(0.0),
-  mass_(1.0),
-  gb_radius_(0.0),
-  gb_screen_(0.0),
-  aname_(aname),
-  atype_(""),
-  atype_index_(0),
-  element_(UNKNOWN_ELEMENT),
-  resnum_(0),
-  mol_(0),
-  chainID_(cid)
+  charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  aname_(aname), atype_(""), atype_index_(0), element_(UNKNOWN_ELEMENT),
+  resnum_(0), mol_(0), chainID_(cid)
 {
-  if (elt ==0 || elt[0] == ' ')
+  if (elt ==0 || (elt[0]==' ' && elt[1]==' '))
     SetElementFromName();
   else
     SetElementFromSymbol(elt[0], elt[1]);
   mass_ = AtomicElementMass[ element_ ];
 }
 
-/** CONSTRUCTOR - used for Mol2 files. */
+/** Attempt to guess element from atom name. */ 
 Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
-  charge_(q),
-  mass_(1.0),
-  gb_radius_(0.0),
-  gb_screen_(0.0),
-  aname_(aname),
-  atype_(atype),
-  atype_index_(0),
-  element_(UNKNOWN_ELEMENT),
-  resnum_(0),
-  mol_(0),
-  chainID_(' ')
+  charge_(q), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  aname_(aname), atype_(atype), atype_index_(0), element_(UNKNOWN_ELEMENT),
+  resnum_(0), mol_(0), chainID_(' ')
 {
   SetElementFromName();
   mass_ = AtomicElementMass[ element_ ];
 }
 
-// CONSTRUCTOR
-/** Take name, charge, atomic#, mass, atom type index (AMBER), type (AMBER), 
-  * GB radius, GB screen param, and residue number. Determine element from
-  * atomic number if set, otherwise determine from mass. Determine element 
-  * from name if all else fails.
-  */
-// TODO: Necessary to set resnum here?
-Atom::Atom( NameType const& name, double charge, int atomicnum, double mass, int atidx,
-            NameType const& type, double rad, double screen, int resnum ) :
-  charge_(charge),
-  mass_(mass),
-  gb_radius_(rad),
-  gb_screen_(screen),
-  aname_(name),
-  atype_(type),
-  atype_index_(atidx),
-  element_(UNKNOWN_ELEMENT),
-  resnum_(resnum),
-  mol_(0),
-  chainID_(' ')
-{
-  // Determine atomic element
+// Atom::DetermineElement()
+/// Determine element from atomic number, mass, or atom name.
+void Atom::DetermineElement(int atomicnum) {
   if (atomicnum>0) {
     // Determine element from atomic number
     for (int i = 1; i < (int)NUMELEMENTS; i++)
-      if (AtomicElementNum[i] == atomicnum)
+      if (AtomicElementNum[i] == atomicnum) {
         element_ = (AtomicElementType) i;
+        break;
+      }
   } else {
-    // Determine element from mass. If mass is 0 this is probably an
-    // extra point.
+    // Determine element from mass. No mass means extra point.
     if ( mass_ == 0 )
       element_ = EXTRAPT;
     else
       SetElementFromMass();
   }
-  
   // If element still unknown attempt to determine from name
   if (element_ == UNKNOWN_ELEMENT)
     SetElementFromName();
+}
+
+// CONSTRUCTOR
+Atom::Atom(NameType const& aname, double charge, double mass, NameType const& atype) :
+  charge_(charge), polar_(0.0), mass_(mass), gb_radius_(0.0), gb_screen_(0.0),
+  aname_(aname), atype_(atype), atype_index_(0), element_(UNKNOWN_ELEMENT),
+  resnum_(0), mol_(0), chainID_(' ')
+{
+  DetermineElement(0);
+}
+
+// CONSTRUCTOR
+Atom::Atom( NameType const& name, double charge, double polar, int atomicnum, 
+            double mass, int atidx, NameType const& type, double rad, double screen ) :
+  charge_(charge), polar_(polar), mass_(mass), gb_radius_(rad), gb_screen_(screen),
+  aname_(name), atype_(type), atype_index_(atidx), element_(UNKNOWN_ELEMENT),
+  resnum_(0), mol_(0), chainID_(' ')
+{
+  DetermineElement(atomicnum);
 }
 
 // COPY CONSTRUCTOR
 // TODO: Does excluded need to be copied as well?
 Atom::Atom(const Atom &rhs) :
   charge_(rhs.charge_),
+  polar_(rhs.polar_),
   mass_(rhs.mass_),
   gb_radius_(rhs.gb_radius_),
   gb_screen_(rhs.gb_screen_),
@@ -173,6 +149,7 @@ Atom::Atom(const Atom &rhs) :
 void Atom::swap(Atom &first, Atom &second) {
   using std::swap;
   swap(first.charge_, second.charge_);
+  swap(first.polar_, second.polar_);
   swap(first.mass_, second.mass_);
   swap(first.gb_radius_, second.gb_radius_);
   swap(first.gb_screen_, second.gb_screen_);
@@ -208,9 +185,9 @@ void Atom::SortBonds() {
 }
 
 // Atom::AddExclusionList()
-void Atom::AddExclusionList(std::set<int>& elist) {
+void Atom::AddExclusionList(std::set<int> const& elist) {
   excluded_.clear();
-  for (std::set<int>::iterator ei = elist.begin(); ei != elist.end(); ei++)
+  for (std::set<int>::const_iterator ei = elist.begin(); ei != elist.end(); ei++)
     excluded_.push_back( *ei );
 }
 
@@ -281,8 +258,13 @@ void Atom::SetElementFromSymbol(char c1, char c2) {
   if (element_ != UNKNOWN_ELEMENT) return;
   // Attempt to match up 2 char element name
   char en[2];
-  en[0] = tolower(c1);
-  en[1] = tolower(c2);
+  if (c1 != ' ') {
+    en[0] = toupper(c1);
+    en[1] = toupper(c2);
+  } else {
+    en[0] = toupper(c2);
+    en[1] = ' ';
+  }
   for (int i = 1; i < (int)NUMELEMENTS; i++) {
     if (AtomicElementName[i][1]=='\0') { // 1 char
       if ( en[0] == AtomicElementName[i][0] ) {
@@ -544,3 +526,114 @@ void Atom::SetElementFromMass() {
               mass_, *aname_);
   }
 }
+
+// WarnBondLengthDefault()
+void Atom::WarnBondLengthDefault(AtomicElementType atom1, AtomicElementType atom2, double cut) {
+  mprintf("Warning: Bond length not found for %s - %s, using default= %f\n",
+          AtomicElementName[atom1], AtomicElementName[atom2], cut);
+}
+
+/** Return optimal covalent bond distance based on the element types of atom1 
+  * and atom2. When multiple hybridizations are possible the longest possible 
+  * bond length is used.
+  * Unless otherwise noted values taken from:
+  * - Huheey, pps. A-21 to A-34; T.L. Cottrell, "The Strengths of Chemical Bonds," 
+  *       2nd ed., Butterworths, London, 1958; 
+  * - B. deB. Darwent, "National Standard Reference Data Series," National Bureau of Standards, 
+  *       No. 31, Washington, DC, 1970; S.W. Benson, J. Chem. Educ., 42, 502 (1965).
+  * Can be found on the web at:
+  * - http://www.wiredchemist.com/chemistry/data/bond_energies_lengths.html
+  */
+// NOTE: Store cut^2 instead??
+double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
+  // Default cutoff
+  double cut = 1.60;
+  if (atom1==atom2) {
+    // Self
+    switch (atom1) {
+      case HYDROGEN  : cut=0.74; break;
+      case CARBON    : cut=1.54; break;
+      case NITROGEN  : cut=1.45; break;
+      case OXYGEN    : cut=1.48; break;
+      case PHOSPHORUS: cut=2.21; break;
+      case SULFUR    : cut=2.05; break; // S-S gas-phase value; S=S is 1.49
+      default: WarnBondLengthDefault(atom1,atom2,cut);
+    }
+  } else {
+    AtomicElementType e1, e2;
+    if (atom1 < atom2) {
+      e1 = atom1;
+      e2 = atom2;
+    } else {
+      e1 = atom2;
+      e2 = atom1;
+    }
+    switch (e1) {
+      case HYDROGEN: // Bonds to H
+        switch (e2) {
+          case CARBON    : cut=1.09; break;
+          case NITROGEN  : cut=1.01; break;
+          case OXYGEN    : cut=0.96; break;
+          case PHOSPHORUS: cut=1.44; break;
+          case SULFUR    : cut=1.34; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case CARBON: // Bonds to C
+        switch (e2) {
+          case NITROGEN  : cut=1.47; break;
+          case OXYGEN    : cut=1.43; break;
+          case FLUORINE  : cut=1.35; break;
+          case PHOSPHORUS: cut=1.84; break;
+          case SULFUR    : cut=1.82; break;
+          case CHLORINE  : cut=1.77; break;
+          case BROMINE   : cut=1.94; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case NITROGEN: // Bonds to N
+        switch (e2) {
+          case OXYGEN    : cut=1.40; break;
+          case FLUORINE  : cut=1.36; break;
+          case PHOSPHORUS: cut=1.71; // Avg over all nX-pX from gaff.dat
+          case SULFUR    : cut=1.68; break; // Postma & Vos, Acta Cryst. (1973) B29, 915
+          case CHLORINE  : cut=1.75; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case OXYGEN: // Bonds to O
+        switch (e2) {
+          case FLUORINE  : cut=1.42; break;
+          case PHOSPHORUS: cut=1.63; break;
+          case SULFUR    : cut=1.48; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case FLUORINE: // Bonds to F
+        switch (e2) {
+          case PHOSPHORUS: cut=1.54; break;
+          case SULFUR    : cut=1.56; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case PHOSPHORUS: // Bonds to P
+        switch (e2) {
+          case SULFUR  : cut=1.86; break;
+          case CHLORINE: cut=2.03; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      case SULFUR: // Bonds to S
+        switch (e2) {
+          case CHLORINE: cut=2.07; break;
+          default: WarnBondLengthDefault(e1,e2,cut);
+        }
+        break;
+      default: WarnBondLengthDefault(e1,e2,cut);
+    } // END switch(e1)
+  }
+  //mprintf("\t\tCUTOFF: [%s] -- [%s] = %lf\n",AtomicElementName[atom1],
+  //        AtomicElementName[atom2],cut);
+  return cut;
+}
+

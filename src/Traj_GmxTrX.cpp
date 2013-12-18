@@ -255,11 +255,11 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
   } else {
     // Get angles between x+y(gamma), x+z(beta), and y+z(alpha)
     boxOut[5] = acos( (xyz[0]*xyz[3] + xyz[1]*xyz[4] + xyz[2]*xyz[5]) * 
-                      100.0 / (boxOut[0]* boxOut[1]) ) * 90.0/PIOVER2;
+                      100.0 / (boxOut[0]* boxOut[1]) ) * 90.0/Constants::PIOVER2;
     boxOut[4] = acos( (xyz[0]*xyz[6] + xyz[1]*xyz[7] + xyz[2]*xyz[8]) *
-                      100.0 / (boxOut[0]* boxOut[2]) ) * 90.0/PIOVER2;
+                      100.0 / (boxOut[0]* boxOut[2]) ) * 90.0/Constants::PIOVER2;
     boxOut[3] = acos( (xyz[3]*xyz[6] + xyz[4]*xyz[7] + xyz[5]*xyz[8]) *
-                      100.0 / (boxOut[1]* boxOut[2]) ) * 90.0/PIOVER2;
+                      100.0 / (boxOut[1]* boxOut[2]) ) * 90.0/Constants::PIOVER2;
   }
   //mprintf("DEBUG:\tTRX Box Angles: %f %f %f\n", boxOut[3], boxOut[4], boxOut[5]);
   return 0;
@@ -500,11 +500,12 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
     ucell[0] = frameOut.BoxCrd().BoxX() * 0.1;
     ucell[1] = 0.0;
     ucell[2] = 0.0;
-    ucell[3] = by*cos(DEGRAD*frameOut.BoxCrd().Gamma());
-    ucell[4] = by*sin(DEGRAD*frameOut.BoxCrd().Gamma());
+    ucell[3] = by*cos(Constants::DEGRAD*frameOut.BoxCrd().Gamma());
+    ucell[4] = by*sin(Constants::DEGRAD*frameOut.BoxCrd().Gamma());
     ucell[5] = 0.0;
-    ucell[6] = bz*cos(DEGRAD*frameOut.BoxCrd().Beta());
-    ucell[7] = (by*bz*cos(DEGRAD*frameOut.BoxCrd().Alpha()) - ucell[6]*ucell[3]) / ucell[4];
+    ucell[6] = bz*cos(Constants::DEGRAD*frameOut.BoxCrd().Beta());
+    ucell[7] = (by*bz*cos(Constants::DEGRAD*frameOut.BoxCrd().Alpha()) - ucell[6]*ucell[3]) / 
+                ucell[4];
     ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
     if (precision_ == sizeof(float)) {
       float f_ucell[9];

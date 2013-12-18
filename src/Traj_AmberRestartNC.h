@@ -8,7 +8,7 @@
 class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
   public:
     Traj_AmberRestartNC();
-    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_AmberRestartNC(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_AmberRestartNC(); }
     ~Traj_AmberRestartNC();
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);

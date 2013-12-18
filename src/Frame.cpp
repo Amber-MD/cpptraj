@@ -643,7 +643,7 @@ const Frame Frame::operator-(const Frame& rhs) const {
 /** Divide all coord values of dividend by divisor and store in this frame.
   */
 int Frame::Divide(Frame const& dividend, double divisor) {
-  if (divisor < SMALL) {
+  if (divisor < Constants::SMALL) {
     mprinterr("Error: Frame::Divide(Frame,divisor): Detected divide by 0.\n");
     return 1;
   }
@@ -661,7 +661,7 @@ int Frame::Divide(Frame const& dividend, double divisor) {
 /** Divide all coord values of this frame by divisor.
   */
 void Frame::Divide(double divisor) {
-  if (divisor < SMALL) {
+  if (divisor < Constants::SMALL) {
     mprinterr("Error: Frame::Divide(divisor): Detected divide by 0.\n");
     return;
   }
@@ -814,7 +814,7 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
       Trans[2] += X_[ix+2];
     }
   }
-  if (total_mass<SMALL) {
+  if (total_mass<Constants::SMALL) {
     mprinterr("Error: Frame::RMSD: Divide by zero.\n");
     return -1;
   }
@@ -950,7 +950,7 @@ double Frame::RMSD_NoFit( Frame const& Ref, bool useMass) const {
     rms_return += (atom_mass * (xx*xx + yy*yy + zz*zz));
   }
 
-  if (total_mass<SMALL) {
+  if (total_mass<Constants::SMALL) {
     mprinterr("Error: no-fit RMSD: Divide by zero.\n");
     return -1;
   }
@@ -1093,8 +1093,7 @@ void Frame::SwapAtoms(int at1, int at2) {
 double Frame::CalcTemperature(AtomMask const& mask, int deg_of_freedom) const {
   if (V_==0) return 0.0;
   if (mask.None()) return 0.0;
-  //double boltz2 = 0.00831441 * 0.5 / 4.184;
-  double fac = BOLTZ2 * deg_of_freedom; // Estimate for DoF
+  double fac = (Constants::GASK_KCAL/2.0) * deg_of_freedom; // Estimate for DoF
   double total_KE = 0.0;
   //mprintf("|DEBUG: vxyz0 %10.4f%10.4f%10.4f\n", V_[0], V_[1], V_[2]);
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {

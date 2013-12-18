@@ -127,13 +127,16 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   if (!halffile_.empty()) {
     ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
     if (!splits.empty()) {
-      for (int a = 0; a < splits.Nargs(); a++) {
-        if ( splits.ValidInteger(a) )
-          splitFrames_.push_back( splits.IntegerAt(a) ); // User frame #s start at 1
-        else {
-          mprinterr("Error: Inavlid split frame argument '%s'\n", splits[a].c_str());
-          return Analysis::ERR;
-        }
+      splitFrames_.clear();
+      int sf = splits.getNextInteger(-1); // User frame #s start at 1
+      while (sf > 0) {
+        splitFrames_.push_back( sf );
+        sf = splits.getNextInteger(-1);
+      }
+      if ((int)splitFrames_.size() < splits.Nargs()) {
+        mprinterr("Error: Invalid split frame arguments.\n");
+        splits.CheckForMoreArgs();
+        return Analysis::ERR;
       }
     }
   }
@@ -267,7 +270,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   //          USE_FILE    - If pairdistfile exists, load pair distances from there.
   // Calculated distances will be saved if not loaded from file.
   ClusterList::DistModeType pairdist_mode = ClusterList::USE_FRAMES; 
-  if (load_pair_ && fileExists(pairdistfile_.c_str()))
+  if (load_pair_ && fileExists(pairdistfile_))
     pairdist_mode = ClusterList::USE_FILE;
   // If no dataset specified, use COORDS
   if (cluster_dataset_.empty())

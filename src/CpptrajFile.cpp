@@ -233,7 +233,7 @@ int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
     return 1;
   }
   // Check if file exists. If not, fail silently
-  if (!fileExists( nameIn.c_str() )) return 1;
+  if (!fileExists( nameIn )) return 1;
   // Clear file, set debug level
   Reset();
   debug_ = debugIn;
@@ -242,7 +242,7 @@ int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
   if (debug_>0)
     mprintf("CpptrajFile: Setting up %s for READ.\n", nameIn.c_str());
   // Perform tilde-expansion
-  std::string expandedName = tildeExpansion( nameIn.c_str() );
+  std::string expandedName = tildeExpansion( nameIn );
   if (expandedName.empty()) {
     mprinterr("Interal Error: CpptrajFile: Tilde-expansion failed.\n");
     return 1;
@@ -332,7 +332,7 @@ int CpptrajFile::SetupAppend(std::string const& filenameIn, int debugIn) {
     return 1;
   }
   // NOTE: File will be cleared and debug set by either SetupRead/SetupWrite
-  if (fileExists(filenameIn.c_str())) {
+  if (fileExists(filenameIn)) {
     // If file exists, first set up for read to determine type and format.
     if (SetupRead(filenameIn, debugIn)!=0) return 1;
     access_ = APPEND;

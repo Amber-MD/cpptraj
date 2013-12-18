@@ -83,18 +83,6 @@ class Action_Spam: public Action, ImagedAction {
 
     // ------------------- Functions -------------------
     int SetupParms(Topology*);
-    inline void GetLJparam(Topology const& top, double& A, double& B, int at1, int at2) {
-      int param = (top.Ntypes() * (top[at1].TypeIndex()-1)) + top[at2].TypeIndex() - 1;
-      int idx = top.NB_index()[param] - 1;
-      // Zero-out HB coefficients
-      if (idx < 0) {
-        A = 0.0;
-        B = 0.0;
-     }else{
-        A = top.LJA()[idx];
-        B = top.LJB()[idx];
-      }
-    }
     double Calculate_Energy(Frame*, Residue const&);
 
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,

@@ -1,7 +1,5 @@
-#include <cstring> // memset
 #include "Analysis_IRED.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // fileExists
 #include "Constants.h" // PI
 #include "Corr.h"
 
@@ -25,10 +23,10 @@ Analysis_IRED::Analysis_IRED() :
 {}
 
 void Analysis_IRED::Help() {
-  mprintf("\t[relax freq <hz> [NHdist <distnh>]] [order <order>]\n");
-  mprintf("\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n");
-  mprintf("\tmodes <modesname> [beg <ibeg> end <iend>]\n");
-  mprintf("\tPerform isotropic reorientational Eigenmode dynamics analysis.\n");
+  mprintf("\t[relax freq <MHz> [NHdist <distnh>]] [order <order>]\n"
+          "\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n"
+          "\tmodes <modesname>\n"
+          "\tPerform isotropic reorientational Eigenmode dynamics analysis.\n");
 }
 
 // DESTRUCTOR
@@ -44,7 +42,6 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
-  int ibeg=0, iend=0;
   // Count and store the number of previously defined IRED vectors.
   for ( DataSetList::const_iterator DS = DSLin->begin(); DS != DSLin->end(); ++DS) {
     if ( (*DS)->Type() == DataSet::VECTOR ) {
@@ -69,22 +66,10 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprinterr("Error: No modes data specified: use 'modes <name>'.\n");
     return Analysis::ERR;
   }
-  // Get 'beg' and 'end' args.
-  ibeg = analyzeArgs.getKeyInt("beg",1);
-  iend = analyzeArgs.getKeyInt("end", 50);
   // Check if modes name exists on the stack
-  bool modesFromFile = false;
   modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
-    // If not on stack, check for file.
-    if ( fileExists(modesfile.c_str()) ) {
-      modinfo_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesfile, "Modes" );
-      if (modinfo_->ReadEvecFile( modesfile, ibeg, iend )) return Analysis::ERR;
-      modesFromFile = true;
-    }
-  }
-  if (modinfo_ == 0) {
-    mprinterr("Error: Modes '%s' DataSet/file not found.\n",modesfile.c_str());
+    mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
     return Analysis::ERR;
   }
   // TODO: Check that number of evecs match number of IRED vecs
@@ -119,10 +104,10 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   }
 
   // Print Status
-  mprintf("    ANALYZE IRED: IRED calculation, %u vectors.\n", IredVectors_.size());
+  mprintf("    IRED: %u IRED vectors.\n", IredVectors_.size());
   if (!orderparamfile_.empty())
     mprintf("\tOrder parameters will be written to %s\n",orderparamfile_.c_str());
-  mprintf("\tCorrelation time %lf, time step %lf\n", tcorr_, tstep_);
+  mprintf("\tCorrelation time %f, time step %lf\n", tcorr_, tstep_);
   mprintf("\tCorrelation functions are");
   if (norm_)
     mprintf(" normalized.\n");
@@ -133,15 +118,11 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprintf(" direct approach.\n");
   else
     mprintf(" FFT approach.\n");
-  if (modesFromFile) 
-    mprintf("\tIRED modes %i to %i read from %s,\n", ibeg, iend, modesfile.c_str());
-  else
-    mprintf("\tIRED modes will be taken from DataSet %s\n", modinfo_->Legend().c_str());
-  if (relax_) {
-    mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n");
-    mprintf("\t\t  approach using an NH distance of %lf and a frequency of %lf\n",
+  mprintf("\tIRED modes will be taken from DataSet %s\n", modinfo_->Legend().c_str());
+  if (relax_)
+    mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n"
+            "\t\t  approach using an NH distance of %lf Ang. and a frequency of %lf MHz\n",
             distnh_, freq_);
-  }
   if (!noeFilename_.empty())
     mprintf("\t\tNOEs and relaxation rates will be written to %s\n",
             noeFilename_.c_str());
@@ -176,10 +157,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
       mprinterr("Error: Could not set up order parameter file.\n");
       return Analysis::ERR;
     }
-    orderout.Printf("\n\t************************************\n");
-    orderout.Printf("\t- Calculated iRed order parameters -\n");
-    orderout.Printf("\t************************************\n\n");
-    orderout.Printf("vector    S2\n----------------------\n");
+    orderout.Printf("\n\t************************************\n"
+                    "\t- Calculated iRed order parameters -\n"
+                    "\t************************************\n\n"
+                    "vector    S2\n----------------------\n");
     // Loop over all vector elements
     for (int vi = 0; vi < modinfo_->VectorSize(); ++vi) {
       // Sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
@@ -238,7 +219,6 @@ Analysis::RetType Analysis_IRED::Analyze() {
   // Store Modes Info
   int nvect = modinfo_->Nmodes();
   int nvectelem = modinfo_->VectorSize();
-  const double* eigval = modinfo_->Eigenvalues();
   const double* vout = modinfo_->Eigenvectors();
   // Initialize memory
   cf_ = new double[ nvect * nsteps ];
@@ -262,7 +242,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
   int nsphereharm = Nframes_ * p2blocksize;  // Spherical Harmonics for each frame
   int ntotal = nvect * nsphereharm;          // Each vector has set of spherical harmonics
   double *cftmp1 = new double[ ntotal ];
-  memset(cftmp1, 0, ntotal * sizeof(double));
+  std::fill(cftmp1, cftmp1 + ntotal, 0);
   // Project spherical harmonics for each IRED vector on eigenmodes
   int n_ivec = 0;
   for (std::vector<DataSet_Vector*>::iterator ivec = IredVectors_.begin();
@@ -276,10 +256,9 @@ Analysis::RetType Analysis_IRED::Analyze() {
       // Loop over all m = -L, ...., L
       for (int midx = -order_; midx <= order_; ++midx) {
         // Loop over spherical harmonic coords for this m (Complex, [Real][Img])
-        for ( int sidx = 2 * (midx + order_); sidx < nsphereharm; sidx += p2blocksize) {
-          *(CF++) += (Qvec * (*ivec)->SphereHarm(sidx  ));
-          *(CF++) += (Qvec * (*ivec)->SphereHarm(sidx+1));
-        }
+        for (ComplexArray::iterator sh = (*ivec)->SphericalHarmonics(midx).begin();
+                                    sh != (*ivec)->SphericalHarmonics(midx).end(); ++sh)
+          *(CF++) += (Qvec * (*sh));
       }
     }
     ++n_ivec;
@@ -336,7 +315,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
         //        j, eigval[j],
         //        j * nvectelem + i, vout[j * nvectelem + i],
         //        nsteps * j + k, cf_[nsteps * j + k], frame - k);
-        sum += (eigval[j] * (vout[j * nvectelem + i] * vout[j * nvectelem + i])) *
+        sum += (modinfo_->Eigenvalue(j) * (vout[j * nvectelem + i] * vout[j * nvectelem + i])) *
                (cf_[nsteps * j + k] / (Nframes_ - k));
       }
       //mprintf("CDBG:\tVec=%i Step=%i sum=%lf\n",i,k,sum);
@@ -389,15 +368,15 @@ Analysis::RetType Analysis_IRED::Analyze() {
       return Analysis::ERR;
     }
     noefile.OpenFile();
-    noefile.Printf("\n\t****************************************");
-    noefile.Printf("\n\t- Calculated relaxation rates and NOEs -");
-    noefile.Printf("\n\t****************************************\n\n");
-    noefile.Printf("vector   %10s   %10s   %10s\n","R1","R2","NOE");
+    noefile.Printf("\n\t****************************************"
+                   "\n\t- Calculated relaxation rates and NOEs -"
+                   "\n\t****************************************\n\n"
+                   "vector   %10s   %10s   %10s\n","R1","R2","NOE");
     // conversion from Angstrom to meter
     double rnh = distnh_ * 1.0E-10;
     // ---------- CONSTANTS ----------
     // in H m^-1; permeability
-    const double mu_zero = 4.0 * PI * 1.0E-7;
+    const double mu_zero = Constants::FOURPI * 1.0E-7;
     // in m^2 kg s1-1 ; Js ; Planck's constant
     const double ha = 6.626176 * 1.0E-34;
     // in rad s^-1 T^-1 ; gyromagnetic ratio; T = absolut temperature in K
@@ -408,12 +387,13 @@ Analysis::RetType Analysis_IRED::Analyze() {
     // conversion from MHz to rad s^-1
     //double spec_freq = freq_ * TWOPI * 1.0E6;
     // in T (Tesla)
-    double b_zero = TWOPI * freq_ * 1.0E6 / gamma_h;
+    double b_zero = Constants::TWOPI * freq_ * 1.0E6 / gamma_h;
     // Next two both in rad s^-1
     const double lamfreqh = -1 * gamma_h * b_zero;
     const double lamfreqn = -1 * gamma_n * b_zero;
     double c2 = lamfreqn*lamfreqn * csa*csa;
-    double d2 = (mu_zero * ha * gamma_n * gamma_h)/( 8.0 * (PI*PI) * (rnh*rnh*rnh));
+    double d2 = (mu_zero * ha * gamma_n * gamma_h)/( 8.0 * (Constants::PI*Constants::PI) *
+                                                     (rnh*rnh*rnh) );
     d2 = d2*d2; // fix from Junchao
     // -------------------------------
     // loop over all vector elements --> have only one element/vector here; nvectelem = nelem
@@ -499,8 +479,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
         cjtfile.Printf("%12.8f", cf_cjt_[nsteps*j + i] / cf_cjt_[nsteps*j]);
       } else {
         // 4/5*PI due to spherical harmonics addition theorem
-        cmtfile.Printf("%12.8f", FOURFIFTHSPI * cf_[nsteps*j + i] / (Nframes_ - i));
-        cjtfile.Printf("%12.8f", FOURFIFTHSPI * cf_cjt_[nsteps*j + i]);
+        cmtfile.Printf("%12.8f", Constants::FOURFIFTHSPI * cf_[nsteps*j + i] / (Nframes_ - i));
+        cjtfile.Printf("%12.8f", Constants::FOURFIFTHSPI * cf_cjt_[nsteps*j + i]);
       }
     }
     cmtfile.Printf("\n");

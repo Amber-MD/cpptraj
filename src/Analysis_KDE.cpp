@@ -109,7 +109,7 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
   return Analysis::OK;
 }
 
-const double Analysis_KDE::ONE_OVER_ROOT_TWOPI = 1.0 / sqrt( TWOPI );
+const double Analysis_KDE::ONE_OVER_ROOT_TWOPI = 1.0 / sqrt( Constants::TWOPI );
 
 double Analysis_KDE::GaussianKernel(double u) const {
   return ( ONE_OVER_ROOT_TWOPI * exp( -0.5 * u * u ) );

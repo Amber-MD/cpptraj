@@ -48,7 +48,7 @@ int Hungarian::Assign() {
         int elt = row * ncols_;
         int nzeros = 0;
         for (int col = 0; col < ncols_; ++col, ++elt) {
-          if (!lineThroughCol_[col] && matrix_[elt] < SMALL) ++nzeros;
+          if (!lineThroughCol_[col] && matrix_[elt] < Constants::SMALL) ++nzeros;
         }
         if (nzeros != 0 && nzeros < minRowZeros) {
           minRowZeros = nzeros;
@@ -64,7 +64,7 @@ int Hungarian::Assign() {
         int elt = col;
         int nzeros = 0;
         for (int row = 0; row < nrows_; ++row, elt += ncols_) {
-          if (!lineThroughRow_[row] && matrix_[elt] < SMALL) ++nzeros;
+          if (!lineThroughRow_[row] && matrix_[elt] < Constants::SMALL) ++nzeros;
         }
         if (nzeros != 0 && nzeros < minColZeros) {
           minColZeros = nzeros;
@@ -85,7 +85,7 @@ int Hungarian::Assign() {
       // Assign column to the first unassigned row whose elt is zero.
       int elt = minCol; 
       for (int row = 0; row < nrows_; ++row, elt += ncols_) {
-        if (matrix_[elt] < SMALL && !lineThroughRow_[row]) {
+        if (matrix_[elt] < Constants::SMALL && !lineThroughRow_[row]) {
           lineThroughRow_[row] = true;
           lineThroughCol_[minCol] = true;
           assignRowToCol_[minCol] = row;
@@ -104,7 +104,7 @@ int Hungarian::Assign() {
       // Assign row to the first unassigned col whose elt is zero.
       int elt = minRow * ncols_;
       for (int col = 0; col < ncols_; ++col, ++elt) {
-        if (matrix_[elt] < SMALL && !lineThroughCol_[col]) {
+        if (matrix_[elt] < Constants::SMALL && !lineThroughCol_[col]) {
           lineThroughRow_[minRow] = true;
           lineThroughCol_[col] = true;
           assignRowToCol_[col] = minRow;
@@ -263,7 +263,7 @@ int Hungarian::CoverZeroElements() {
       if (lineThroughRow_[row]) {
         int elt = row * ncols_;
         for (int col = 0; col < ncols_; ++col, ++elt) {
-          if (matrix_.GetElement(row, col) < SMALL)
+          if (matrix_.GetElement(row, col) < Constants::SMALL)
             lineThroughCol_[col] = true;
         }
       }

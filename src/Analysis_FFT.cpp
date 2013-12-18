@@ -11,8 +11,8 @@ Analysis_FFT::Analysis_FFT() :
 {}
 
 void Analysis_FFT::Help() {
-  mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] [dt <samp_int>]\n");
-  mprintf("\tPerform fast-Fourier transformation of data set(s)\n");
+  mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] [dt <samp_int>]\n"
+          "\tPerform fast-Fourier transformation of data set(s)\n");
 }
 
 // Analysis_FFT::Setup()
@@ -27,7 +27,7 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
   for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
     input_dsets_ += datasetlist->GetMultipleSets( *dsa );
   if (input_dsets_.empty()) {
-    mprinterr("Error: FFT: No data sets selected.\n");
+    mprinterr("Error: No data sets selected.\n");
     return Analysis::ERR;
   }
   // If setname is empty generate a default name
@@ -43,13 +43,13 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
   {
     // Check for empty set
     if ( (*DS)->Empty() ) {
-      mprintf("Warning: FFT: Set %s is empty, skipping.\n", (*DS)->Legend().c_str() );
+      mprintf("Warning: Set %s is empty, skipping.\n", (*DS)->Legend().c_str() );
       continue;
     }
     if ( maxsize_ == 0 ) 
       maxsize_ = (*DS)->Size();
     else if ( (*DS)->Size() != maxsize_ ) {
-      mprintf("Warning: FFT: Set %s does not have same size (%u) as initial set (%u). Skipping.\n",
+      mprintf("Warning: Set %s does not have same size (%u) as initial set (%u). Skipping.\n",
               (*DS)->Legend().c_str(), (*DS)->Size(), maxsize_ );
       continue;
     }
@@ -78,7 +78,7 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
 Analysis::RetType Analysis_FFT::Analyze() {
   PubFFT pubfft;
   pubfft.SetupFFTforN( maxsize_ );
-  mprintf("DEBUG: FFT size is %i\n",pubfft.size());
+  //mprintf("DEBUG: FFT size is %i\n",pubfft.size());
   // Set up complex number array
   ComplexArray data1( pubfft.size() );
 

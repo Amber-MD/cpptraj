@@ -9,14 +9,15 @@ Analysis_Matrix::Analysis_Matrix() :
   nevec_(0),
   thermopt_(false),
   reduce_(false),
-  eigenvaluesOnly_(false)
+  eigenvaluesOnly_(false),
+  nmwizopt_(false)
 {}
 
 void Analysis_Matrix::Help() {
-  mprintf("\t<name> [out <filename>] [thermo outthermo <filename>]\n");
-  mprintf("\t[vecs <#>] [name <modesname>] [reduce]\n");
-  mprintf("\tDiagonalize given symmetric matrix to obtain eigenvectors\n");
-  mprintf("\tand eigenvalues.\n");
+  mprintf("\t<name> [out <filename>] [thermo outthermo <filename>]\n"
+          "\t[vecs <#>] [name <modesname>] [reduce]\n"
+          "\tDiagonalize given symmetric matrix to obtain eigenvectors\n"
+          "\tand eigenvalues.\n");
 }
 
 // Analysis_Matrix::Setup()
@@ -24,13 +25,13 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
 #ifdef NO_MATHLIB
-  mprinterr("Error: analyze matrix: Compiled without LAPACK routines.\n");
+  mprinterr("Error: Compiled without LAPACK routines.\n");
   return Analysis::ERR;
 #else
   // Get matrix name
   std::string mname = analyzeArgs.GetStringNext();
   if (mname.empty()) {
-    mprinterr("Error: analyze matrix: missing matrix name (first argument).\n");
+    mprinterr("Error: Missing matrix name (first argument).\n");
     return Analysis::ERR;
   }
   // Find matrix in DataSetList.
@@ -38,23 +39,31 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   if (matrix_ == 0)
     matrix_ = (DataSet_2D*)DSLin->FindSetOfType( mname, DataSet::MATRIX_FLT );
   if (matrix_ == 0) {
-    mprinterr("Error: analyze matrix: Could not find matrix named %s\n",mname.c_str());
+    mprinterr("Error: Could not find matrix named %s\n",mname.c_str());
     return Analysis::ERR;
   }
   // Check that matrix is symmetric (half-matrix incl. diagonal).
   if (matrix_->Kind() != DataSet_2D::HALF) {
-    mprinterr("Error: analyze matrix: Only works for symmetric matrices (i.e. no mask2)\n");
+    mprinterr("Error: Only works for symmetric matrices (i.e. no mask2)\n");
     return Analysis::ERR;
   }
+  
+  //nmwiz flag
+  nmwizopt_ = analyzeArgs.hasKey("nmwiz");
+  if (nmwizopt_) 
+	nmwizvecs_ = analyzeArgs.getKeyInt("nmwizvecs", 20);
+	nmwizfile_ = analyzeArgs.GetStringKey("nmwizfile");
+	parmIn_ = PFLin ->GetParm( analyzeArgs);
+
+  
   // Filenames
-  outfilename_ = analyzeArgs.GetStringKey("out");
+  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Thermo flag
   thermopt_ = analyzeArgs.hasKey("thermo");
   if (thermopt_)
     outthermo_ = analyzeArgs.GetStringKey("outthermo");
   if (thermopt_ && matrix_->Type()!=DataSet_2D::MWCOVAR) {
-    mprinterr("Error: analyze matrix: parameter 'thermo' only works for\n");
-    mprinterr("       mass-weighted covariance matrix ('mwcovar').\n");
+    mprinterr("Error: Parameter 'thermo' only works for mass-weighted covariance matrix ('mwcovar').\n");
     return Analysis::ERR;
   }
   // Number of eigenvectors; allow "0" only in case of 'thermo'
@@ -75,20 +84,26 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   if (modes_==0) return Analysis::ERR;
   // Output string for writing modes file.
   modes_->SetType( matrix_->Type() );
+  if (outfile != 0) outfile->AddSet( modes_ );
 
   // Print Status
-  mprintf("    ANALYZE MATRIX: Analyzing matrix %s",matrix_->Legend().c_str());
-  if (!outfilename_.empty())
-    mprintf(" and dumping results to %s\n", outfilename_.c_str());
-  else
-    mprintf(" and printing results to STDOUT\n");
-  mprintf("      Calculating %i eigenvectors", nevec_);
+  mprintf("    DIAGMATRIX: Diagonalizing matrix %s",matrix_->Legend().c_str());
+  if (outfile != 0)
+    mprintf(" and writing modes to %s", outfile->DataFilename().full());
+  mprintf("\n\tCalculating %i eigenvectors", nevec_);
   if (thermopt_) {
     mprintf(" and thermodynamic data, output to");
     if (!outthermo_.empty())
       mprintf(" %s", outthermo_.c_str());
     else
       mprintf(" STDOUT");
+  }
+  if (nmwizopt_) {
+    mprintf("\tWriting %i modes to NMWiz file", nmwizvecs_);
+    if (!nmwizfile_.empty())
+      mprintf(" %s\n", nmwizfile_.c_str());
+    else
+      mprintf(" STDOUT\n");
   }
   mprintf("\n");
   if (nevec_>0 && reduce_)
@@ -121,13 +136,18 @@ Analysis::RetType Analysis_Matrix::Analyze() {
       modes_->Thermo( outfile, 1, 298.15, 1.0 );
       outfile.CloseFile();
     }
+    // Print nmwiz file if specified
+    if (nmwizopt_) {
+      CpptrajFile nmwiz_outfile;
+      nmwiz_outfile.OpenWrite(nmwizfile_);
+      modes_->NMWiz( nmwiz_outfile, nmwizvecs_, nmwizfile_, *parmIn_);
+      nmwiz_outfile.CloseFile();
+    }
   }
   if (reduce_) {
-    if (modes_->Reduce()) return Analysis::ERR;
+    if (modes_->ReduceVectors()) return Analysis::ERR;
   }
   //modes_->PrintModes(); // DEBUG
-  if (!outfilename_.empty())
-    modes_->WriteToFile( outfilename_ ); 
 
   return Analysis::OK;
 }

@@ -25,22 +25,22 @@ Action_Spam::Action_Spam() :
 { }
 
 void Action_Spam::Help() {
-  mprintf("\t<filename> [solv <solvname>] [reorder] [name <name>] [bulk <value>]\n");
-  mprintf("\t[purewater] [cut <cut>] [info <infofile>] [summary <summary>]\n");
-  mprintf("\t[site_size <size>] [sphere] [out <datafile>]\n\n");
-  mprintf("\t<filename> : File with the peak locations present (XYZ- format)\n");
-  mprintf("\t<solvname> : Name of the solvent residues\n");
-  mprintf("\t<cut>      : Non-bonded cutoff for energy evaluation\n");
-  mprintf("\t<value>    : SPAM free energy of the bulk solvent\n");
-  mprintf("\t<infofile> : File with stats about which sites are occupied when.\n");
-  mprintf("\t<size>     : Size of the water site around each density peak.\n");
-  mprintf("\t[sphere]   : Treat each site like a sphere.\n");
-  mprintf("\t[purewater]: The system is pure water---used to parametrize the bulk values.\n");
-  mprintf("\t[reorder]  : The solvent should be re-ordered so the same solvent molecule\n");
-  mprintf("\t             is always in the same site.\n");
-  mprintf("\t<summary>  : File with the summary of all SPAM results. If not specified,\n");
-  mprintf("\t             no SPAM energies will be calculated.\n");
-  mprintf("\t<datafile> : Data file with all SPAM energies for each snapshot.\n");
+  mprintf("\t<filename> [solv <solvname>] [reorder] [name <name>] [bulk <value>]\n"
+          "\t[purewater] [cut <cut>] [info <infofile>] [summary <summary>]\n"
+          "\t[site_size <size>] [sphere] [out <datafile>]\n\n"
+          "\t<filename> : File with the peak locations present (XYZ- format)\n"
+          "\t<solvname> : Name of the solvent residues\n"
+          "\t<cut>      : Non-bonded cutoff for energy evaluation\n"
+          "\t<value>    : SPAM free energy of the bulk solvent\n"
+          "\t<infofile> : File with stats about which sites are occupied when.\n"
+          "\t<size>     : Size of the water site around each density peak.\n"
+          "\t[sphere]   : Treat each site like a sphere.\n"
+          "\t[purewater]: The system is pure water---used to parametrize the bulk values.\n"
+          "\t[reorder]  : The solvent should be re-ordered so the same solvent molecule\n"
+          "\t             is always in the same site.\n"
+          "\t<summary>  : File with the summary of all SPAM results. If not specified,\n"
+          "\t             no SPAM energies will be calculated.\n"
+          "\t<datafile> : Data file with all SPAM energies for each snapshot.\n");
 }
 
 // Action_Spam::init()
@@ -78,7 +78,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL,
     // Get the file name with the peaks defined in it
     filename = actionArgs.GetStringNext();
 
-    if (filename.empty() || !fileExists(filename.c_str())) {
+    if (filename.empty() || !fileExists(filename)) {
       mprinterr("Spam: Error: Peak file [%s] does not exist!\n", filename.c_str());
       return Action::ERR;
     }
@@ -231,6 +231,7 @@ Action::RetType Action_Spam::Setup(Topology* currentParm, Topology** parmAddress
   if (SetupParms(currentParm)) return Action::ERR;
 
   // Back up the parm
+  // NOTE: This is a full copy - use reference instead?
   CurrentParm_ = *currentParm;
 
   return Action::OK;
@@ -246,8 +247,8 @@ int Action_Spam::SetupParms(Topology* ParmIn) {
   atom_charge_.reserve( ParmIn->Natom() );
   for (Topology::atom_iterator atom = ParmIn->begin();
        atom != ParmIn->end(); ++atom)
-    atom_charge_.push_back( atom->Charge() * ELECTOAMBER );
-  if (ParmIn->LJA().empty() || ParmIn->LJB().empty()) {
+    atom_charge_.push_back( atom->Charge() * Constants::ELECTOAMBER );
+  if (!ParmIn->Nonbond().HasNonbond()) {
     mprinterr("Error: SPAM: Parm does not have LJ information.\n");
     return 1;
   }
@@ -282,13 +283,12 @@ double Action_Spam::Calculate_Energy(Frame *frameIn, Residue const& res) {
       }
       if (dist2 < cut2_) {
         double qiqj = atom_charge_[i] * atom_charge_[j];
-        double A, B;
-        GetLJparam(CurrentParm_, A, B, i, j);
+        NonbondType const& LJ = CurrentParm_.GetLJparam(i, j);
         double r2 = 1 / dist2;
         double r6 = r2 * r2 * r2;
                   // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
         double shift = (1 - dist2 * onecut2_);
-        result += qiqj / sqrt(dist2) * shift * shift + A * r6 * r6 - B * r6;
+        result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
       }
     }
   }

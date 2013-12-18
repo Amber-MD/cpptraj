@@ -111,7 +111,7 @@ Action::RetType Action_LIE::Setup(Topology* currentParm, Topology** parmAddress)
     return Action::ERR;
   }
 
-  if (SetupParms(currentParm))
+  if (SetupParms(*currentParm))
     return Action::ERR;
 
   // Back up the parm
@@ -124,23 +124,22 @@ Action::RetType Action_LIE::Setup(Topology* currentParm, Topology** parmAddress)
 /** Sets the temporary charge array and makes sure that we have the necessary
   * parameters in our topology to calculate nonbonded energy terms
   */
-int Action_LIE::SetupParms(Topology* ParmIn) {
-  // Store the charges
-  atom_charge_.clear();
-  atom_charge_.reserve( ParmIn->Natom() );
-  for (Topology::atom_iterator atom = ParmIn->begin();
-       atom != ParmIn->end(); ++atom)
-    atom_charge_.push_back( atom->Charge() * ELECTOAMBER / dielc_ );
-  if (ParmIn->LJA().empty() || ParmIn->LJB().empty()) {
-    mprinterr("Error: LIE: Parm does not have LJ information.\n");
+int Action_LIE::SetupParms(Topology const& ParmIn) {
+  if (!ParmIn.Nonbond().HasNonbond()) {
+    mprinterr("Error: Topology does not have LJ information.\n");
     return 1;
   }
+  // Store the charges
+  atom_charge_.clear();
+  atom_charge_.reserve( ParmIn.Natom() );
+  for (Topology::atom_iterator atom = ParmIn.begin();
+                               atom != ParmIn.end(); ++atom)
+    atom_charge_.push_back( atom->Charge() * Constants::ELECTOAMBER / dielc_ );
   return 0;
 }
 
 double Action_LIE::Calculate_LJ(Frame *frameIn, Topology *parmIn) {
   double result = 0;
-  double A, B; // LJ parameters
   // Loop over ligand atoms
   AtomMask::const_iterator mask1_end = Mask1_.end();
   AtomMask::const_iterator mask2_end = Mask2_.end();
@@ -173,10 +172,10 @@ double Action_LIE::Calculate_LJ(Frame *frameIn, Topology *parmIn) {
 
       if (dist2 > cut2vdw_) continue;
       // Here we add to our nonbonded (VDW) energy
-      parmIn->GetLJ_A_B(*maskatom1, *maskatom2, A, B);
+      NonbondType const& LJ = parmIn->GetLJparam(*maskatom1, *maskatom2);
       double r2 = 1 / dist2;
       double r6 = r2 * r2 * r2;
-      result += A * r6 * r6 - B * r6;
+      result += LJ.A() * r6 * r6 - LJ.B() * r6;
     }
   }
 

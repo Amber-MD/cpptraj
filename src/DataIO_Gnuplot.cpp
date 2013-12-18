@@ -4,7 +4,8 @@
 #include "DataSet_2D.h"
 
 // CONSTRUCTOR
-DataIO_Gnuplot::DataIO_Gnuplot() : 
+DataIO_Gnuplot::DataIO_Gnuplot() :
+  DataIO(true, true, false), // Valid for 1D and 2D 
   pm3d_(C2C),
   printLabels_(true),
   useMap_(false),

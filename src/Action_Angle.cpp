@@ -85,7 +85,7 @@ Action::RetType Action_Angle::DoAction(int frameNum, Frame* currentFrame, Frame*
   }
   double aval = CalcAngle( a1.Dptr(), a2.Dptr(), a3.Dptr() );
 
-  aval *= RADDEG;
+  aval *= Constants::RADDEG;
 
   ang_->Add(frameNum, &aval);
 

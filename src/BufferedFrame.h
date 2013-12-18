@@ -26,7 +26,7 @@ class BufferedFrame : public CpptrajFile {
     size_t FrameSize()   const { return frameSize_; }
     const char* Buffer() const { return buffer_;    }
   private:
-    size_t CalcFrameSize(int);
+    size_t CalcFrameSize(int) const;
 
     char* buffer_;         ///< Character buffer.
     char* bufferPosition_; ///< Position in buffer.

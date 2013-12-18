@@ -70,11 +70,11 @@
 #include "Action_Density.h"
 #include "Action_PairDist.h"
 #include "Action_OrderParameter.h"
-#include "Action_MinDist.h"
 #include "Action_FixAtomOrder.h"
-#include "Action_MaxDist.h"
 #include "Action_NMRrst.h"
 #include "Action_FilterByData.h"
+#include "Action_LESsplit.h"
+#include "Action_NativeContacts.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -105,16 +105,28 @@
 #include "Analysis_MultiHist.h"
 #include "Analysis_Divergence.h"
 // ---- Command Functions ------------------------------------------------------
+/// Warn about deprecated commands.
+void Command::WarnDeprecated(TokenPtr token)
+{
+  mprinterr("Error: '%s' is deprecated.\n", token->Cmd);
+  if (token->Help != 0)
+    token->Help();
+}
+
 /** Search Commands list for a specific type of command. */
 Command::TokenPtr Command::SearchTokenType(CommandType dtype,
                                            ArgList const& argIn)
 {
   for (TokenPtr token = Commands; token->Type != NONE; ++token)
   {
+    if (token->Type == DEPRECATED && argIn.CommandIs( token->Cmd )) {
+      WarnDeprecated( token );
+      return 0;
+    }
     if (dtype != token->Type) continue;
     if (argIn.CommandIs( token->Cmd )) return token;
   }
-  mprintf("[%s]: Command not found.\n", argIn.Command());
+  mprintf("'%s': Command not found.\n", argIn.Command());
   return 0;
 }
 
@@ -166,8 +178,14 @@ Command::TokenPtr Command::SearchToken(ArgList& argIn) {
   }
   // Search for command.
   for (TokenPtr token = Commands; token->Type != NONE; ++token)
-    if (argIn.CommandIs( token->Cmd )) return token;
-  mprintf("[%s]: Command not found.\n", argIn.Command());
+    if (argIn.CommandIs( token->Cmd )) {
+      if (token->Type == DEPRECATED) {
+        WarnDeprecated( token );
+        return 0; 
+      } else
+        return token;
+    }
+  mprintf("'%s': Command not found.\n", argIn.Command());
   return 0;
 }
 
@@ -271,52 +289,49 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
 static void Help_Help() {
-  mprintf("\t{[<cmd>] | General | Action | Analysis | Topology | Trajectory}\n");
-  mprintf("\tWith no arguments list all known commands, otherwise display help for\n");
-  mprintf("\tcommand <cmd>. If General/Action/Analysis/Topology/Trajectory specified\n");
-  mprintf("\tlist commands only in that category.\n");
+  mprintf("\t{[<cmd>] | General | Action | Analysis | Topology | Trajectory}\n"
+          "\tWith no arguments list all known commands, otherwise display help for\n"
+          "\tcommand <cmd>. If General/Action/Analysis/Topology/Trajectory specified\n"
+          "\tlist commands only in that category.\n");
 }
 
-static void Help_System() {
-  mprintf("\tCall command from system.\n");
-}
+static void Help_System() { mprintf("\tCall command from system.\n"); }
 
 static void Help_NoProgress() {
   mprintf("\tDo not print progress while reading in trajectories.\n");
 }
 
 static void Help_NoExitOnError() {
-  mprintf("\tDo not exit when errors are encountered. This is the default\n");
-  mprintf("\tin interactive mode.\n");
+  mprintf("\tDo not exit when errors are encountered. This is the default\n"
+          "\tin interactive mode.\n");
 }
 
 static void Help_GenerateAmberRst() {
   mprintf("\t<mask1> <mask2> [<mask3>] [<mask4>]\n"
           "\tr1 <r1> r2 <r2> r3 <r3> r4 <r4> rk2 <rk2> rk3 <rk3>\n"
-          "\t{[parm <parmname>] | parmindex <#>}\n"
+          "\t{%s}\n"
           "\t[{ref <refname> | refindex <#> | reference} [offset <off>] [width <width>]\n"
           "\t[out <outfile>] [overwrite]\n"
-          "\tGenerate Amber-format restraint from 2 or more mask expressions.\n");
+          "\tGenerate Amber-format restraint from 2 or more mask expressions.\n",
+          TopologyList::ParmArgs);
 }
 
 static void Help_Run() {
-  mprintf("\tProcess all trajectories currently in input trajectory list.\n");
-  mprintf("\tAll actions in action list will be run on each frame.\n");
-  mprintf("\tIf not processing ensemble input, all analyses in analysis\n");
-  mprintf("\tlist will be run after trajectory processing.\n");
+  mprintf("\tProcess all trajectories currently in input trajectory list.\n"
+          "\tAll actions in action list will be run on each frame.\n"
+          "\tIf not processing ensemble input, all analyses in analysis\n"
+          "\tlist will be run after trajectory processing.\n");
 }
 
-static void Help_Quit() {
-  mprintf("\tExit CPPTRAJ\n");
-}
+static void Help_Quit() { mprintf("\tExit CPPTRAJ\n"); }
 
 static const char TypeList[] =
   "(<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)";
 
 static void Help_List() {
-  mprintf("\t[<type>] %s\n", TypeList);
-  mprintf("\tList currently loaded objects of the specified type. If no type is given\n");
-  mprintf("\tthen list all loaded objects.\n");
+  mprintf("\t[<type>] %s\n"
+          "\tList currently loaded objects of the specified type. If no type is given\n"
+          "\tthen list all loaded objects.\n", TypeList);
 }
 
 static void Help_Debug() {
@@ -346,27 +361,34 @@ static void Help_Create_DataFile() {
   mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
   mprintf("\tAdd a file with specified data sets to the data file list. Does not\n");
   mprintf("\timmediately write the data.\n");
+  DataFile::WriteHelp();
+  DataFile::WriteOptions();
 }
 
 static void Help_DataFile() {
-  mprintf("\t<data filename> <datafile cmd>\n");
-  mprintf("\tPass <datafile cmd> to specified data file currently in data file list.\n");
+  mprintf("\t<data filename> <datafile cmd>\n"
+          "\tPass <datafile cmd> to specified data file currently in data file list.\n"
+          "Write Options:\n");
+  DataFile::WriteHelp();
+  DataFile::WriteOptions();
 }
 
 static void Help_ReadData() {
-  mprintf("\t<filename> [name <dsname>] [as <fmt>] [<format options>]\n");
-  mprintf("\tRead data from <filename> into data sets.\n");
+  mprintf("\t<filename> [name <dsname>] [as <fmt>] [<format options>]\n"
+          "\tRead data from <filename> into data sets.\n");
   DataFile::ReadOptions();
 }
 
 static void Help_ReadInput() {
-  mprintf("\t<filename>\n");
-  mprintf("\tRead commands from <filename>\n");
+  mprintf("\t<filename>\n"
+          "\tRead commands from <filename>\n");
 }
 
 static void Help_Write_DataFile() {
-  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
-  mprintf("\tWrite specified data sets to <filename> immediately.\n");
+  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n"
+          "\tWrite specified data sets to <filename> immediately.\n");
+  DataFile::WriteHelp();
+  DataFile::WriteOptions();
 }
 
 static void Help_WriteData() {
@@ -398,31 +420,32 @@ static void Help_SelectDS() {
 
 static void Help_Trajin() {
   mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n");
-  mprintf("\t           [parm <parmfile> | parmindex <#>]\n");
+  mprintf("\t           %s\n", TopologyList::ParmArgs);
   mprintf("\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n");
   mprintf("\t           [trajnames <rep1>,<rep2>,...,<repN> ] ]\n");
   mprintf("\tLoad trajectory specified by <filename> to the input trajectory list.\n");
+  TrajectoryFile::ReadOptions();
 }
 
 static void Help_Ensemble() {
   mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n");
-  mprintf("\t        [parm <parmfile> | parmindex <#>]\n");
+  mprintf("\t        %s\n", TopologyList::ParmArgs);
   mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>\n");
   mprintf("\tLoad an ensemble of trajectories starting with <file0> that will be processed together.\n");
 }
 
 static void Help_Trajout() {
   mprintf("\t<filename> [<fileformat>] [append] [nobox]\n");
-  mprintf("\t           [parm <parmfile> | parmindex <#>] [onlyframes <range>] [title <title>]\n");
+  mprintf("\t           %s [onlyframes <range>] [title <title>]\n", TopologyList::ParmArgs);
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
   mprintf("\t           [ <Format Options> ]\n");
   mprintf("\tSpecify output trajectory.\n");
+  TrajectoryFile::WriteOptions();
 }
 
 static void Help_Reference() {
-  mprintf("\t<filename> [<frame#>] [<mask>] [TAG] [lastframe]\n");
-  mprintf("\t           [average [<stop>] [<offset>]]\n");
-  mprintf("\tLoad trajectory <filename> as a reference frame.\n");
+  mprintf("\t<filename> [<frame#>] [<mask>] [TAG] [lastframe]\n"
+          "\tLoad trajectory <filename> as a reference frame.\n");
 }
 
 static void Help_Parm() {
@@ -496,7 +519,7 @@ static void Help_MolInfo() {
 }
 
 static void Help_LoadCrd() {
-  mprintf("\t<filename> [parm <parm> | parmindex<#>] [<trajin args>] [<name>]\n");
+  mprintf("\t<filename> %s [<trajin args>] [<name>]\n", TopologyList::ParmArgs);
   mprintf("\tLoad trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
 }
 static void Help_CrdAction() {
@@ -513,6 +536,31 @@ static void Help_RunAnalysis() {
   mprintf("\t[<analysis> [<analysis args>]]\n");
   mprintf("\tIf specified alone, run all analyses in the analysis list.\n");
   mprintf("\tOtherwise run the specified analysis immediately.\n");
+}
+
+// ---------- Information on Deprecated commands -------------------------------
+static void Deprecate_MinDist() {
+  mprinterr("\tUse the 'nativecontacts' action instead.\n");
+}
+
+static void Deprecate_Hbond() {
+  mprinterr("\tHydrogen bond acceptors and donors are defined within the 'hbond' action.\n");
+}
+
+static void Deprecate_TopSearch() {
+  mprinterr("\tBonds and/or molecules are automatically searched for if needed.\n");
+}
+
+static void Deprecate_ParmBondInfo() {
+  mprinterr("\tUse bonds, bondinfo, or printbonds instead.\n");
+}
+
+static void Deprecate_ParmResInfo() {
+  mprinterr("\tUse resinfo instead.\n");
+}
+
+static void Deprecate_ParmMolInfo() {
+  mprinterr("\tUse molinfo instead.\n");
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
@@ -1106,11 +1154,7 @@ Command::RetType Reference(CpptrajState& State, ArgList& argIn, Command::AllocTy
 /// Load topology to State
 Command::RetType LoadParm(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  std::string parmtag = argIn.getNextTag();
-  bool bondsearch = !argIn.hasKey("nobondsearch");
-  double offset = argIn.getKeyDouble("bondsearch", -1.0);
-  return (Command::RetType)
-    State.PFL()->AddParmFile(argIn.GetStringNext(), parmtag, bondsearch, offset);
+  return (Command::RetType)State.PFL()->AddParmFile(argIn.GetStringNext(), argIn);
 }
 
 /// Print info for specified parm or atoms in specified parm.
@@ -1248,8 +1292,7 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
   } else {
     // Replace parm with stripped version
     *parm = *tempParm;
-    parm->Brief();
-    mprintf("\n");
+    parm->Brief("Stripped parm:");
     delete tempParm;
   }
   return Command::C_OK;
@@ -1302,14 +1345,6 @@ Command::RetType AddAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
 Command::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   return ( (Command::RetType)State.AddAnalysis( Alloc, argIn ) );
-}
-
-// -----------------------------------------------------------------------------
-/// Warn about deprecated commands.
-Command::RetType Deprecated(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
-{
-  mprintf("Warning: %s is deprecated.\n", argIn.Command());
-  return Command::C_OK;
 }
 
 // ================ LIST OF ALL COMMANDS =======================================
@@ -1415,15 +1450,15 @@ const Command::Token Command::Commands[] = {
   { ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, AddAction },
   { ACTION, "image", Action_Image::Alloc, Action_Image::Help, AddAction },
   { ACTION, "jcoupling", Action_Jcoupling::Alloc, Action_Jcoupling::Help, AddAction },
+  { ACTION, "lessplit", Action_LESsplit::Alloc, Action_LESsplit::Help, AddAction },
   { ACTION, "lie", Action_LIE::Alloc, Action_LIE::Help, AddAction },
   { ACTION, "makestructure", Action_MakeStructure::Alloc, Action_MakeStructure::Help, AddAction },
   { ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, AddAction },
   { ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, AddAction },
-  { ACTION, "maxdist", Action_MaxDist::Alloc, Action_MaxDist::Help, AddAction },
-  { ACTION, "mindist", Action_MinDist::Alloc, Action_MinDist::Help, AddAction },
   { ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, AddAction },
   { ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, AddAction },
   { ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, AddAction },
+  { ACTION, "nativecontacts", Action_NativeContacts::Alloc, Action_NativeContacts::Help, AddAction },
   { ACTION, "nmrrst", Action_NMRrst::Alloc, Action_NMRrst::Help, AddAction },
   { ACTION, "lipidorder", Action_OrderParameter::Alloc, Action_OrderParameter::Help, AddAction },
   { ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, AddAction },
@@ -1492,14 +1527,16 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "statistics", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
   { ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
   // DEPRECATED COMMANDS
-  { DEPRECATED, "acceptor",     0, 0, Deprecated },
-  { DEPRECATED, "bondsearch",   0, 0, Deprecated },
-  { DEPRECATED, "donor",        0, 0, Deprecated },
-  { DEPRECATED, "molsearch",    0, 0, Deprecated },
-  { DEPRECATED, "nobondsearch", 0, 0, Deprecated },
-  { DEPRECATED, "nomolsearch",  0, 0, Deprecated },
-  { DEPRECATED, "parmbondinfo", 0, 0, Deprecated },
-  { DEPRECATED, "parmmolinfo",  0, 0, Deprecated },
-  { DEPRECATED, "parmresinfo",  0, 0, Deprecated },
-  { NONE      , 0,              0, 0, 0          }
+  { DEPRECATED, "acceptor",     0, Deprecate_Hbond,        0 },
+  { DEPRECATED, "bondsearch",   0, Deprecate_TopSearch,    0 },
+  { DEPRECATED, "donor",        0, Deprecate_Hbond,        0 },
+  { DEPRECATED, "maxdist",      0, Deprecate_MinDist,      0 },
+  { DEPRECATED, "mindist",      0, Deprecate_MinDist,      0 },
+  { DEPRECATED, "molsearch",    0, Deprecate_TopSearch,    0 },
+  { DEPRECATED, "nobondsearch", 0, Deprecate_TopSearch,    0 },
+  { DEPRECATED, "nomolsearch",  0, Deprecate_TopSearch,    0 },
+  { DEPRECATED, "parmbondinfo", 0, Deprecate_ParmBondInfo, 0 },
+  { DEPRECATED, "parmmolinfo",  0, Deprecate_ParmMolInfo,  0 },
+  { DEPRECATED, "parmresinfo",  0, Deprecate_ParmResInfo,  0 },
+  { NONE      , 0,              0, 0,                      0 }
 };

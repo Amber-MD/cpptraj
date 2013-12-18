@@ -96,5 +96,5 @@ int FileName::SetFileName( std::string const& nameIn, bool isCompressed ) {
 }
 
 int FileName::SetFileNameWithExpansion( std::string const& nameIn ) {
-  return SetFileName( tildeExpansion( nameIn.c_str() ), UNKNOWN );
+  return SetFileName( tildeExpansion( nameIn ), UNKNOWN );
 }

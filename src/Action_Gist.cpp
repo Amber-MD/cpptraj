@@ -10,7 +10,7 @@ using namespace std;
 #include "DataSet_integer.h"
 #include "Box.h"
 #include "StringRoutines.h" 
-#include "Constants.h" // GASCONSTANT and SMALL
+#include "Constants.h" // GASK_J and SMALL
 
 // CONSTRUCTOR
 Action_Gist::Action_Gist() :
@@ -349,19 +349,7 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   return Action::OK;
 }
 
-
-static void GetLJparam(Topology const& top, double& A, double& B, 
-                              int atom1, int atom2)
-{
-  // In Cpptraj, atom numbers start from 1, so subtract 1 from the NB index array
-  int param = (top.Ntypes() * (top[atom1].TypeIndex()-1)) + top[atom2].TypeIndex()-1;
-  int index = top.NB_index()[param] - 1;
-  A = top.LJA()[index];
-  B = top.LJB()[index];
-}
-
 void Action_Gist::NonbondEnergy(Frame *currentFrame) {
-  double Acoef, Bcoef;
   Vec3 XYZ, XYZ2, JI;
   double rij2, rij, r2, r6, r12, f12, f6, e_vdw, e_elec;
   int satom, satom2, atom1, atom2;
@@ -424,18 +412,18 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 		rij2 = DIST2_NoImage(XYZ, XYZ2);	          
 	      }
 	      rij = sqrt(rij2);
-	      // LJ energy 
-	      GetLJparam(*CurrentParm_, Acoef, Bcoef, satom, satom2);
+	      // LJ energy
+              NonbondType const& LJ = CurrentParm_->GetLJparam(satom, satom2); 
 	      r2    = 1 / rij2;
 	      r6    = r2 * r2 * r2;
 	      r12   = r6 * r6;
-	      f12   = Acoef * r12;  // A/r^12
-	      f6    = Bcoef * r6;   // B/r^6
+	      f12   = LJ.A() * r12;  // A/r^12
+	      f6    = LJ.B() * r6;   // B/r^6
 	      e_vdw = f12 - f6;     // (A/r^12)-(B/r^6)
 	      // LJ Force 
 	      // Coulomb energy 
-	      q1 = (*CurrentParm_)[satom].Charge() * ELECTOAMBER;
-	      q2 = (*CurrentParm_)[satom2].Charge() * ELECTOAMBER;
+	      q1 = (*CurrentParm_)[satom].Charge() * Constants::ELECTOAMBER;
+	      q2 = (*CurrentParm_)[satom2].Charge() * Constants::ELECTOAMBER;
 	      e_elec = (q1*q2/rij);
 	      if (!(*solvmol2).IsSolvent()) {
 		// solute-solvent interaction
@@ -575,7 +563,7 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
   dp = z_lab*( z_wat);
   theta = acos(dp);
   //  if (theta>0 && theta<PI) {
-  if (theta>1E-5 && theta<PI-1E-5) {
+  if (theta>1E-5 && theta<Constants::PI-1E-5) {
     // phi = angle between the projection of the water x-axis and the node
     // line of node is where the two xy planes meet = must be perpendicular to both z axes
     // direction of the lines of node = cross product of two normals (z axes)
@@ -585,32 +573,34 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
     
     // Second, find the angle phi, which is between x_lab and the node
     dp = node*( x_lab );
-    if (dp <= -1.0) phi = PI;
-    else if (dp >= 1.0) phi = PI;
+    if (dp <= -1.0) phi = Constants::PI;
+    else if (dp >= 1.0) phi = Constants::PI;
     else phi = acos(dp);
     // check angle phi
-    if (phi>0 && phi<(2*PI)) {
+    if (phi>0 && phi<(Constants::TWOPI)) {
       // method 2
       v = x_lab.Cross( node );
       dp = v*( z_lab );
-      if (dp<0) phi = 2*PI - phi;
+      if (dp<0) phi = Constants::TWOPI - phi;
     }
     
     // Third, rotate the node to x_wat about the z_wat axis by an angle psi
     // psi = angle between x_wat and the node 
     dp = x_wat*( node );
-    if (dp<=-1.0) psi = PI;
+    if (dp<=-1.0) psi = Constants::PI;
     else if (dp>=1.0) psi = 0;
     else psi = acos(dp);
     // check angle psi
-    if (psi>0 && psi<(2*PI)) {
+    if (psi>0 && psi<(Constants::TWOPI)) {
       // method 2
       Vec3 v = node.Cross( x_wat );
       dp = v*( z_wat );
-      if (dp<0) psi = 2*PI - psi;
+      if (dp<0) psi = Constants::TWOPI - psi;
     }
     
-    if (!(theta<=PI && theta>=0 && phi<=2*PI && phi>=0 && psi<=2*PI && psi>=0)) {
+    if (!(theta<=Constants::PI && theta>=0 && 
+          phi<=Constants::TWOPI && phi>=0 && psi<=Constants::TWOPI && psi>=0))
+    {
       cout << "angles: " << theta << " " << phi << " " << psi << endl;
       cout << H1_wat[0] << " " << H1_wat[1] << " " << H1_wat[2] << " " << H2_wat[0] << " " << H2_wat[1] << " " << H2_wat[2] << endl;
       mprinterr("Error: Euler: angles don't fall into range.\n");
@@ -748,19 +738,19 @@ void Action_Gist::Print() {
         rx = cos(the_vox_[gr_pt][l]) - cos(the_vox_[gr_pt][n]);
         ry = phi_vox_[gr_pt][l] - phi_vox_[gr_pt][n];
         rz = psi_vox_[gr_pt][l] - psi_vox_[gr_pt][n];
-        if (ry>PI) ry = 2*PI-ry;
-        else if (ry<-PI) ry = 2*PI+ry;
-        if (rz>PI) rz = 2*PI-rz;
-        else if (rz<-PI) rz = 2*PI+rz;
+        if (ry>Constants::PI) ry = Constants::TWOPI-ry;
+        else if (ry<-Constants::PI) ry = Constants::TWOPI+ry;
+        if (rz>Constants::PI) rz = Constants::TWOPI-rz;
+        else if (rz<-Constants::PI) rz = Constants::TWOPI+rz;
         rR = sqrt(rx*rx + ry*ry + rz*rz);
         if (rR>0 && rR<NNr) NNr = rR;
       }
       if (NNr<9999 && NNr>0) {
-	dbl = log(NNr*NNr*NNr*nwtot/(3.0*2*PI));
+	dbl = log(NNr*NNr*NNr*nwtot/(3.0*Constants::TWOPI));
 	TSNN_norm_[gr_pt] += dbl;
       }	
     }
-    TSNN_norm_[gr_pt] = GASCONSTANT*0.3*0.239*(TSNN_norm_[gr_pt]/nwtot+0.5772);
+    TSNN_norm_[gr_pt] = Constants::GASK_J*0.3*0.239*(TSNN_norm_[gr_pt]/nwtot+0.5772);
     TSNN_dw_[gr_pt] = TSNN_norm_[gr_pt]*nwat_[gr_pt]/(NFRAME_*Vvox_);
     TSNNtot_ += TSNN_dw_[gr_pt];
   }
@@ -775,7 +765,7 @@ void Action_Gist::Print() {
     g_[a] = dens_[a]/BULK_DENS_;
     gH_[a] = 1.0*nH_[a]/(NFRAME_*Vvox_*2*BULK_DENS_);
     if (nwat_[a]>1) {
-       TStrans_dw_[a] = -GASCONSTANT*BULK_DENS_*0.3*0.239*g_[a]*log(g_[a]);
+       TStrans_dw_[a] = -Constants::GASK_J*BULK_DENS_*0.3*0.239*g_[a]*log(g_[a]);
        TStrans_norm_[a] = TStrans_dw_[a]/dens_[a];
        TStranstot_ += TStrans_dw_[a];
     }

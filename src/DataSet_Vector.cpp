@@ -1,177 +1,110 @@
 #include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include <cmath> // sqrt
 #include "DataSet_Vector.h"
-#include "CpptrajStdio.h"
 
-// CONSTRUCTOR
-DataSet_Vector::DataSet_Vector() :
-  DataSet_1D(VECTOR, 8, 4),
-  totalidx_(0L),
-  currentidx_(0L),
-  order_(0),
-  xyz_(0),
-  writeSum_(false),
-  isIred_(false)
-{ }
+const Vec3 DataSet_Vector::ZERO = Vec3(0,0,0);
+const ComplexArray DataSet_Vector::COMPLEXBLANK = ComplexArray(0);
 
-// DESTRUCTOR
-DataSet_Vector::~DataSet_Vector() {
-  if (xyz_!=0) delete[] xyz_;
-}
+DataSet_Vector::DataSet_Vector() : DataSet_1D(VECTOR, 8, 4),
+ order_(0), isIred_(false), writeSum_(false) {}
 
-// DataSet_Vector::IncreaseSize()
-void DataSet_Vector::IncreaseSize() {
-  size_t newsize = totalidx_ + 3000L; // 500 frames * 6
-  double* newxyz = new double[ newsize ];
-  if (totalidx_ > 0L) {
-    std::copy( xyz_, xyz_ + totalidx_, newxyz );
-    delete[] xyz_;
-  }
-  std::fill( newxyz+totalidx_, newxyz+newsize, 0 );
-  totalidx_ = newsize;
-  xyz_ = newxyz;
-}
-
-// DataSet_Vector::Allocate1D()  
 int DataSet_Vector::Allocate1D(size_t Nin) {
-  if (xyz_!=0) delete[] xyz_;
-  if (Nin < 1L) {
-    // # of frames is not known. Allocation will happen via IncreaseSize( )
-    totalidx_ = 0L;
-    xyz_ = 0;
-  } else {
-    totalidx_ = 6L * Nin;
-    xyz_ = new double[ totalidx_ ];
-    std::fill( xyz_, xyz_ + totalidx_, 0 );
-  }
-  currentidx_ = 0L;
-    
+  vectors_.reserve( Nin );
+  origins_.reserve( Nin ); // TODO: check if this needs allocation
   return 0;
 }
 
-// DataSet_Vector::WriteBuffer()
 void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, size_t frameIn) const {
-  if (frameIn >= currentidx_) {
-    mprinterr("Error: DataSet_Vector: Frame %i is out of range.\n",frameIn);
-    return;
-  }
-  size_t idx = frameIn * 6;
-  cbuffer.Printf(data_format_, xyz_[idx  ]);
-  cbuffer.Printf(data_format_, xyz_[idx+1]);
-  cbuffer.Printf(data_format_, xyz_[idx+2]);
-  cbuffer.Printf(data_format_, xyz_[idx+3]);
-  cbuffer.Printf(data_format_, xyz_[idx+4]);
-  cbuffer.Printf(data_format_, xyz_[idx+5]);
-  if (writeSum_) {
-    cbuffer.Printf(data_format_, xyz_[idx  ] + xyz_[idx+3]);
-    cbuffer.Printf(data_format_, xyz_[idx+1] + xyz_[idx+4]);
-    cbuffer.Printf(data_format_, xyz_[idx+2] + xyz_[idx+5]);
+  int zmax;
+  if (frameIn >= vectors_.size()) {
+    if (writeSum_)
+      zmax = 9;
+    else
+      zmax = 6;
+    for (int i = 0; i < zmax; i++)
+      cbuffer.Printf(data_format_, 0.0);
+  } else {
+    Vec3 const& Vxyz = vectors_[frameIn];
+    Vec3 const& Oxyz = OXYZ(frameIn);
+    cbuffer.Printf(data_format_, Vxyz[0]);
+    cbuffer.Printf(data_format_, Vxyz[1]);
+    cbuffer.Printf(data_format_, Vxyz[2]);
+    cbuffer.Printf(data_format_, Oxyz[0]);
+    cbuffer.Printf(data_format_, Oxyz[1]);
+    cbuffer.Printf(data_format_, Oxyz[2]);
+    if (writeSum_) {
+      cbuffer.Printf(data_format_, Oxyz[0]+Vxyz[0]);
+      cbuffer.Printf(data_format_, Oxyz[1]+Vxyz[1]);
+      cbuffer.Printf(data_format_, Oxyz[2]+Vxyz[2]);
+    }
   }
 }
 
-// DataSet_Vector::sphericalHarmonics()
-/** Calc spherical harmonics of order l=0,1,2
-  * and -l<=m<=l with cartesian coordinates as input
-  * (see e.g. Merzbacher, Quantum Mechanics, p. 186)
-  * D[0] is the real part, D[1] is the imaginary part.
+void DataSet_Vector::reset() {
+  vectors_.clear();
+  origins_.clear();
+  sphericalHarmonics_.clear();
+  order_ = 0;
+  isIred_ = false;
+  writeSum_ = false;
+}
+
+/** Calc spherical harmonics of order l=0,1,2 and -l<=m<=l for stored vectors 
+  * (see e.g. Merzbacher, Quantum Mechanics, p. 186).
   */
-void DataSet_Vector::sphericalHarmonics(int l, int m, const double* XYZ, double r, double D[2])
-{
+void DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
   const double SH00=0.28209479;
   const double SH10=0.48860251;
   const double SH11=0.34549415;
   const double SH20=0.31539157;
   const double SH21=0.77254840;
   const double SH22=0.38627420;
-
-  double ri;
-  double x = XYZ[0];
-  double y = XYZ[1];
-  double z = XYZ[2];
-  //mprintf("CDBG: x=%.10lE y=%.10lE z=%.10lE\n",x,y,z);
-
-  D[0] = 0.0;
-  D[1] = 0.0;
-  ri = 1.0 / r;
-
-  if (l == 0 && m == 0) {
-    D[0] = SH00;
-  } else if (l == 1) {
-    if (m == 0) {
-      D[0] = SH10 * z * ri;
-    } else {
-      D[0] = -m * SH11 * x * ri;
-      D[1] =     -SH11 * y * ri;
-    }
-  } else if(l == 2) {
-    if (m == 0) {
-      D[0] = SH20 * (2.0*z*z - x*x - y*y) * ri * ri;
-    } else if (abs(m) == 1) {
-      D[0] = -m * SH21 * x * z * ri * ri;
-      D[1] =     -SH21 * y * z * ri * ri;
-    } else {
-      D[0] = SH22 * (x*x - y*y) * ri * ri;
-      D[1] = m * SH22 * x * y * ri * ri;
-    }
-  }
-  //mprintf("CDBG: dreal=%.10lE dimg=%.10lE\n",D[0],D[1]);
-}
-
-// DataSet_Vector::CalcSphericalHarmonics()
-/** Calculate spherical harmonics for all vectors in DataSet for the
-  * specified order. Spherical harmonics will be stored internally
-  * in the sphereharm array, which will speed up any subsequent calcs
-  * at the expense of memory. The layout is currently e.g. (order 2):
-  *   V0[m-2R], V0[m-2C], V0[m-1R], V0[m-1C], ... V0[m+2C], V1[m-2R], ...
-  */
-// TODO: Just return an array?
-// TODO: Change memory layout so all values for a given order for each 
-//       vector follow each other, i.e. order 2: 
-//    V0[m-2R], V0[m-2C], ... VN[m-2R], VN[m-2C], V0[m-1R], V0[m-1C], ...
-void DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
-  double Dcomplex[2];
-  // If sphereharm is not empty assume SphericalHarmonics was already called.
-  if (!sphereharm_.empty()) return;
-  // Store order for checking calls to FillData
+  if (order_ == orderIn) return;
   order_ = orderIn;
-  // Allocate space to hold complex numbers. Each frame has 2 doubles
-  // (real + imaginary)  for each m = -olegendre -> +olegendre
-  int n_of_vecs = Size();
-  int p2blocksize = 2 * ((order_ * 2) + 1);
-  int p2size = (p2blocksize * n_of_vecs);
-  sphereharm_.reserve( p2size );
-   // Loop over all vectors, convert to spherical harmonics
-  double* VXYZ = xyz_;
-  // TODO: Use iterator?
-  for (int i = 0; i < n_of_vecs; ++i) {
-    // Calc vector length
-    double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
-    // Loop over m = -olegendre, ..., +olegendre
+  sphericalHarmonics_.clear();
+  // Allocate and init complex arrays
+  sphericalHarmonics_.resize( (order_ * 2) + 1, ComplexArray(Size()) );
+  //Loop over all vectors, convert to spherical harmonics
+  unsigned int cidx = 0; // Index into complex arrays
+  for (Varray::const_iterator vec = vectors_.begin(); 
+                              vec != vectors_.end(); ++vec, cidx += 2)
+  {
+    const Vec3& Vxyz = *vec;
+    double len = sqrt( Vxyz.Magnitude2() );
+    // Loop over m = -legendre order, ..., +legendre_order
     for (int midx = -order_; midx <= order_; ++midx) {
-      sphericalHarmonics(order_, midx, VXYZ, len, Dcomplex);
-      //mprinterr("DBG: Vec %i sphereHarm[%u](m=%i) = %f + %fi\n",i,P2-sphereharm_.begin(),midx,Dcomplex[0],Dcomplex[1]);
-      sphereharm_.push_back(Dcomplex[0]);
-      sphereharm_.push_back(Dcomplex[1]);
+      ComplexArray& D = sphericalHarmonics_[midx + order_];
+       // D[cidx] is the real part, D[cidx+1] is the imaginary part.
+      double ri = 1.0 / len;
+      if (order_ == 0 && midx == 0) {
+        D[cidx] = SH00;
+      } else if (order_ == 1) {
+        if (midx == 0) {
+          D[cidx] = SH10 * Vxyz[2] * ri;
+        } else {
+          D[cidx  ] = -midx * SH11 * Vxyz[0] * ri;
+          D[cidx+1] =        -SH11 * Vxyz[1] * ri;
+        }
+      } else if (order_ == 2) {
+        if (midx == 0) {
+          D[cidx] = SH20 * (2.0*Vxyz[2]*Vxyz[2] - Vxyz[0]*Vxyz[0] - Vxyz[1]*Vxyz[1]) * ri * ri;
+        } else if (abs(midx) == 1) {
+          D[cidx  ] = -midx * SH21 * Vxyz[0] * Vxyz[2] * ri * ri;
+          D[cidx+1] =        -SH21 * Vxyz[1] * Vxyz[2] * ri * ri;
+        } else {
+          D[cidx  ] = SH22 * (Vxyz[0]*Vxyz[0] - Vxyz[1]*Vxyz[1]) * ri * ri;
+          D[cidx+1] = midx * SH22 * Vxyz[0] * Vxyz[1] * ri * ri;
+        }
+      }
+      //mprintf("DBG: Vec %zu sphereHarm(m=%i) = %f + %fi\n",vec-vectors_.begin(), midx,
+      //        D[cidx], D[cidx+1]);
     }
-    VXYZ += 6;
-  }
+  } 
 }
 
-// DataSet_Vector::FillData()
-int DataSet_Vector::FillData(ComplexArray& dest, int midx) const {
-  if ( abs(midx) > order_ ) {
-    mprinterr("Internal Error: Vector %s: FillData called with m=%i (max order= %i)\n",
-              Legend().c_str(), midx, order_);
-    return 1;
-  }
-  int p2blocksize = 2 * (2 * order_ + 1);
-  double *CF = dest.CAptr();
-  for ( std::vector<double>::const_iterator sidx = sphereharm_.begin() + 2 * (midx + order_);
-                                            sidx < sphereharm_.end();
-                                            sidx += p2blocksize)
-  {
-    *(CF++) = *sidx;
-    *(CF++) = *(sidx+1);
-  }
-  return 0;
+// DataSet_Vector::SphericalHarmonics()
+const ComplexArray& DataSet_Vector::SphericalHarmonics(int midx) const {
+  if (sphericalHarmonics_.empty() || abs(midx) > order_)
+   return COMPLEXBLANK;
+  return sphericalHarmonics_[midx + order_];
 }

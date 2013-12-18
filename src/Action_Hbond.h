@@ -77,7 +77,7 @@ class Action_Hbond : public Action {
       * of Acceptor.
       */
     struct hbond_cmp {
-      inline bool operator()(HbondType first, HbondType second) const {
+      inline bool operator()(HbondType const& first, HbondType const& second) const {
         if (first.Frames == second.Frames)
           return (first.dist < second.dist);
         else
@@ -86,8 +86,8 @@ class Action_Hbond : public Action {
     };
     /// Return true if first bridge has more frames than second.
     struct bridge_cmp {
-      inline bool operator()(std::pair< std::set<int>, int> first, 
-                             std::pair< std::set<int>, int> second) const
+      inline bool operator()(std::pair< std::set<int>, int> const& first, 
+                             std::pair< std::set<int>, int> const& second) const
       {
         if (first.second > second.second)
           return true;

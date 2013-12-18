@@ -56,7 +56,6 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
   }
   // Read the next natom lines
   int psfresnum = 0;
-  int last_res = -1;
   char psfresname[6];
   char psfname[6];
   char psftype[6];
@@ -71,8 +70,7 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
     // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
     sscanf(buffer,"%*i %*s %i %s %s %s %lf %lf",&psfresnum, psfresname, 
            psfname, psftype, &psfcharge, &psfmass);
-    parmOut.AddTopAtom( Atom( psfname, psfcharge, 0, psfmass, 0, psftype, 0, 0, psfresnum),
-                     psfresname, psfresnum, last_res, 0 );
+    parmOut.AddTopAtom( Atom( psfname, psfcharge, psfmass, psftype), psfresnum, psfresname, 0 );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int nbond = 0;
@@ -103,3 +101,61 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
   return 0;
 }
 
+int Parm_CharmmPsf::WriteParm(std::string const& fname, Topology const& parm) {
+  // TODO: CMAP etc info
+  CpptrajFile outfile;
+  if (outfile.OpenWrite(fname)) return 1;
+  // Write PSF
+  outfile.Printf("PSF\n\n");
+  // Write title
+  std::string titleOut = parm.ParmName();
+  titleOut.resize(78);
+  outfile.Printf("%8i !NTITLE\n* %-78s\n\n", 1, titleOut.c_str());
+  // Write NATOM section
+  outfile.Printf("%8i !NATOM\n", parm.Natom());
+  unsigned int idx = 1;
+  // Make fake segment ids for now.
+  char segid[2];
+  segid[0] = 'A';
+  segid[1] = '\0';
+  mprintf("Warning: Assigning single letter segment IDs.\n");
+  int currentMol = 0;
+  bool inSolvent = false;
+  for (Topology::atom_iterator atom = parm.begin(); atom != parm.end(); ++atom, ++idx) {
+    int resnum = atom->ResNum();
+    if (atom->MolNum() != currentMol) {
+      if (!inSolvent) {
+        inSolvent = parm.Mol(atom->MolNum()).IsSolvent();
+        currentMol = atom->MolNum();
+        segid[0]++;
+      } else
+        inSolvent = parm.Mol(atom->MolNum()).IsSolvent();
+    }
+    // TODO: Print type name for xplor-like PSF
+    outfile.Printf("%8i %-4s %4i %4s %4s %4i %14.6G %14.6g %8i\n", idx, segid,
+                   parm.Res(resnum).OriginalResNum(), parm.Res(resnum).c_str(),
+                   atom->c_str(), atom->TypeIndex()+1, atom->Charge(),
+                   atom->Mass(), 0);
+  }
+  outfile.Printf("\n");
+  // Write NBOND section
+  outfile.Printf("%8u !NBOND: bonds\n", parm.Bonds().size() + parm.BondsH().size());
+  idx = 1;
+  for (BondArray::const_iterator bond = parm.BondsH().begin();
+                                 bond != parm.BondsH().end(); ++bond, ++idx)
+  {
+    outfile.Printf("%8i%8i", bond->A1()+1, bond->A2()+1);
+    if ((idx % 4)==0) outfile.Printf("\n"); 
+  }
+  for (BondArray::const_iterator bond = parm.Bonds().begin();
+                                 bond != parm.Bonds().end(); ++bond, ++idx)
+  {
+    outfile.Printf("%8i%8i", bond->A1()+1, bond->A2()+1);
+    if ((idx % 4)==0) outfile.Printf("\n"); 
+  }
+  if ((idx % 4)!=0) outfile.Printf("\n");
+  outfile.Printf("\n");
+
+  outfile.CloseFile();
+  return 0;
+}

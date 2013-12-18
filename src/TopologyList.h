@@ -10,6 +10,7 @@
   */
 class TopologyList {
   public:
+    static const char* ParmArgs;
     TopologyList();
     ~TopologyList();
     void Clear();
@@ -18,7 +19,7 @@ class TopologyList {
     Topology* GetParmByIndex(ArgList&) const;
     Topology* GetParm(ArgList&) const;
     int AddParmFile(std::string const&);
-    int AddParmFile(std::string const&,std::string const&,bool,double);
+    int AddParmFile(std::string const&,ArgList&);
     int WriteParm(ArgList&) const;
     void List() const;
   private:

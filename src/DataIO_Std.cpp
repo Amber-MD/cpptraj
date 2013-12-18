@@ -10,7 +10,9 @@
 #include "DataSet_3D.h"
 
 // CONSTRUCTOR
-DataIO_Std::DataIO_Std() : 
+DataIO_Std::DataIO_Std() :
+  DataIO(true, true, true), // Valid for 1D, 2D, 3D
+  isInverted_(false), 
   hasXcolumn_(true), 
   writeHeader_(true), 
   square2d_(false) {}
@@ -184,21 +186,23 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 void DataIO_Std::WriteHelp() {
-  mprintf("\tnoxcol:   Do not print X (index) column.\n"
+  mprintf("\tinvert:   Flip X/Y axes.\n"
+          "\tnoxcol:   Do not print X (index) column.\n"
           "\tnoheader: Do not print header line.\n"
           "\tsquare2d: Write 2D data sets in matrix-like format.\n");
 }
 
 // DataIO_Std::processWriteArgs()
 int DataIO_Std::processWriteArgs(ArgList &argIn) {
+  isInverted_ = argIn.hasKey("invert");
   hasXcolumn_ = !argIn.hasKey("noxcol");
   writeHeader_ = !argIn.hasKey("noheader");
   square2d_ = argIn.hasKey("square2d");
   return 0;
 }
 
-// -----------------------------------------------------------------------------
 // WriteNameToBuffer()
 void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label,
                                    int width,  bool leftAlign) 
@@ -226,11 +230,24 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
   std::string header_format = SetStringFormatString(width, leftAlign);
   fileIn.Printf(header_format.c_str(), temp_name.c_str());
 }
-// -----------------------------------------------------------------------------
 
 // DataIO_Std::WriteData()
 int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList)
 {
+  int err = 0;
+  // Open output file.
+  CpptrajFile file;
+  if (file.OpenWrite( fname )) return 1;
+  if (isInverted_)
+    err = WriteDataInverted(file, SetList);
+  else
+    err = WriteDataNormal(file, SetList);
+  file.CloseFile();
+  return err;
+}
+
+// DataIO_Std::WriteDataNormal()
+int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& SetList) {
   std::string x_col_format;
   int xcol_width = 8;
   int xcol_precision = 3;
@@ -259,10 +276,6 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList)
     // to left-aligned.
     Sets[0]->SetDataSetFormat( true );
   }
-
-  // Open output file.
-  CpptrajFile file;
-  if (file.OpenWrite( fname )) return 1;
 
   // Write header to buffer
   if (writeHeader_) {
@@ -296,21 +309,17 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList)
       (*set)->WriteBuffer(file, frame);
     file.Printf("\n"); 
   }
-  file.CloseFile();
   return 0;
 }
 
 // DataIO_Std::WriteDataInverted()
-int DataIO_Std::WriteDataInverted(std::string const& fname, DataSetList const& SetList)
+int DataIO_Std::WriteDataInverted(CpptrajFile& file, DataSetList const& SetList)
 {
   // Hold all 1D data sets.
   Array1D Sets( SetList );
   if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
-  // Open output file
-  CpptrajFile file;
-  if (file.OpenWrite( fname )) return 1;
   // Write each set to a line.
   for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
     // Write dataset name as first column.
@@ -320,7 +329,6 @@ int DataIO_Std::WriteDataInverted(std::string const& fname, DataSetList const& S
       (*set)->WriteBuffer(file, frame);
     file.Printf("\n");
   }
-  file.CloseFile();
   return 0;
 }
 

@@ -4,7 +4,7 @@
 #include "Constants.h" // PI
 #include "CpptrajStdio.h"
 
-const double Action_Volmap::sqrt_8_pi_cubed = sqrt( 8.0 * PI*PI*PI );
+const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
 const double Action_Volmap::one_over_6 = 1.0 / 6.0;
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
@@ -180,9 +180,8 @@ Action::RetType Action_Volmap::Setup(Topology* currentParm, Topology** parmAddre
   * \return vdW radius of the requested atom number from a Topology instance
   */
 double Action_Volmap::GetRadius_(Topology const& top, int atom) {
-  double A, B;
-  top.GetLJ_A_B(atom, atom, A, B);
-  return 0.5 * pow(2 * A / B, one_over_6);
+  NonbondType const& LJ = top.GetLJparam(atom, atom);
+  return 0.5 * pow(2 * LJ.A() / LJ.B(), one_over_6);
 }
 
 // Action_Volmap::DoAction()

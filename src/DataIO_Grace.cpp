@@ -85,23 +85,39 @@ int DataIO_Grace::ReadData(std::string const& fname, ArgList& argIn,
     
   return 0;
 }
+// -----------------------------------------------------------------------------
+void DataIO_Grace::WriteHelp() {
+  mprintf("\tinvert:   Flip X/Y axes.\n");
+}
 
 // DataIO_Grace::processWriteArgs()
 int DataIO_Grace::processWriteArgs(ArgList &argIn) {
+  isInverted_ = argIn.hasKey("invert");
   return 0;
 }
 
 // DataIO_Grace::WriteData()
 int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList)
 {
+  int err = 0;
+  // Open output file.
+  CpptrajFile file;
+  if (file.OpenWrite( fname )) return 1;
+  if (isInverted_)
+    err = WriteDataInverted(file, SetList);
+  else
+    err = WriteDataNormal(file, SetList);
+  file.CloseFile();
+  return err;
+}
+
+// DataIO_Grace::WriteDataNormal()
+int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& SetList) {
   // Hold all 1D data sets.
   Array1D Sets( SetList );
   if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
   //size_t maxFrames = Sets.DetermineMax();
-  // Open output file.
-  CpptrajFile file;
-  if (file.OpenWrite( fname )) return 1;
   // Grace header. Use first data set for labels
   // TODO: DataFile should pass in axis information 
 /*  file.Printf(
@@ -128,21 +144,17 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
     }
     ++setnum;
   }
-  file.CloseFile();
   return 0;
 }
 
 // DataIO_Grace::WriteDataInverted()
-int DataIO_Grace::WriteDataInverted(std::string const& fname, DataSetList const& SetList)
+int DataIO_Grace::WriteDataInverted(CpptrajFile& file, DataSetList const& SetList)
 {
   // Hold all 1D data sets.
   Array1D Sets( SetList );
   if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
-  // Open output file
-  CpptrajFile file;
-  if (file.OpenWrite( fname )) return 1;
   // Grace header. Use first DataSet for axis labels.
   // TODO: DataFile should pass in axis info.
 /*  file.Printf(
@@ -162,12 +174,11 @@ int DataIO_Grace::WriteDataInverted(std::string const& fname, DataSetList const&
     file.Printf("@target G0.S%u\n@type xy\n",frame);
     // Loop over all Set Data for this frame
     unsigned int setnum = 0;
-    for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
+    for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set, ++setnum) {
       file.Printf(x_col_format.c_str(), Xdim.Coord( setnum ));
       (*set)->WriteBuffer(file, frame);
-      file.Printf("\"%s\"\n", (*set)->Legend().c_str());
+      file.Printf(" \"%s\"\n", (*set)->Legend().c_str());
     }
   }
-  file.CloseFile();
   return 0;
 }

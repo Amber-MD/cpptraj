@@ -1,17 +1,15 @@
 #ifndef INC_DATAIO_GNUPLOT_H
 #define INC_DATAIO_GNUPLOT_H
 #include "DataIO.h"
-// Class: DataIO_Gnuplot
 /// Read/write gnuplot data files.
 class DataIO_Gnuplot : public DataIO {
   public:
     DataIO_Gnuplot();
-    static DataIO* Alloc() { return (DataIO*)new DataIO_Gnuplot(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Gnuplot(); }
     static void WriteHelp();
     int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) { return 1; }
     int processWriteArgs(ArgList&);
     int WriteData(std::string const&,DataSetList const&);
-    int WriteDataInverted(std::string const&,DataSetList const&) { return 1; }
     int WriteData2D( std::string const&,DataSet const&);
     int WriteData3D(std::string const&, DataSet const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }

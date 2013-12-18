@@ -139,7 +139,7 @@ Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame
       }
     }
     // If no atoms selected for this solvent molecule, skip.
-    if (total_mass < SMALL) continue;
+    if (total_mass < Constants::SMALL) continue;
 
     // Grid COM
     COM /= total_mass;

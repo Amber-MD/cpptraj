@@ -1,3 +1,4 @@
+#include <cstdio>  // sscanf
 #include <cstdlib> // atoi, atof
 #include <cstring> // strncmp
 #include "PDBfile.h"
@@ -76,18 +77,28 @@ bool PDBfile::IsPDB_END() {
 }
 
 // PDBfile::pdb_Atom()
-Atom PDBfile::pdb_Atom() {
+Atom PDBfile::pdb_Atom(bool readPQR) {
   // Atom number (6-11)
   // Atom name (12-16)
   // Chain ID (21)
+  // Occupancy (54-59)
+  // B-factor (60-65)
   // Element  (76-77)
   char savechar = linebuffer_[16];
   linebuffer_[16] = '\0';
   NameType aname(linebuffer_+12);
+  linebuffer_[16] = savechar;
   // Replace asterisks with single quotes
   aname.ReplaceAsterisk();
-  linebuffer_[16] = savechar;
-  return Atom(aname, linebuffer_[21], linebuffer_+76);
+  Atom outAtom(aname, linebuffer_[21], linebuffer_+76);
+  // If the file has charges/radii, format of the occ./b-factor cols may differ
+  if (readPQR) {
+    double charge = 0.0, radius = 0.0;
+    sscanf(linebuffer_+54, "%lf %lf", &charge, &radius);
+    outAtom.SetCharge( charge );
+    outAtom.SetGBradius( radius );
+  }
+  return outAtom;
 }
 
 // PDBfile::pdb_Residue()
@@ -259,8 +270,6 @@ void PDBfile::WriteTITLE(std::string const& titleIn) {
 
 /* Additional Values:
  *  Chain ID : buffer[21]
- *  Occupancy: buffer[54] to buffer[59]
- *  B-factor : buffer[60] to buffer[65]
  *  10 chars between Bfactor and element: buffer[66] to buffer[75]
  *  Element  : buffer[76] and buffer[77]
  *  Charge   : buffer[78] and buffer[79]

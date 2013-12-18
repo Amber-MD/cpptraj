@@ -7,7 +7,7 @@
 class Traj_AmberRestart : public TrajectoryIO {
   public:
     Traj_AmberRestart();
-    static TrajectoryIO* Alloc() { return (TrajectoryIO*)new Traj_AmberRestart(); }
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_AmberRestart(); }
   private:
     // Inherited functions
     int processReadArgs(ArgList&) { return 0; }

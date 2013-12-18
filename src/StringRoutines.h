@@ -9,10 +9,10 @@
     includes converting to/from numbers, string modification, setting
     printf-type format strings, etc.
  */
-std::string tildeExpansion(const char *);
+std::string tildeExpansion(std::string const&);
 typedef std::vector<std::string> StrArray;
 StrArray ExpandToFilenames(std::string const&);
-bool fileExists(const char *);
+bool fileExists(std::string const&);
 
 std::string NumberFilename(std::string const &, int);
 int DigitWidth(long int);
@@ -24,6 +24,10 @@ void RemoveTrailingWhitespace(std::string &);
 std::string integerToString(int);
 std::string integerToString(int,int);
 std::string doubleToString(double);
+/// Brief check that the passed in string begins with a digit or '-'
+bool validInteger(std::string const&);
+/// Brief check that the passed in string begins with a digit, '-', or '.'
+bool validDouble(std::string const&);
 
 std::string SetDoubleFormatString(int, int, int);
 std::string SetStringFormatString(int, bool);

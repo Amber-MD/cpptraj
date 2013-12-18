@@ -1,9 +1,7 @@
-#include <locale>  // isdigit, 
-#include <stdexcept> // ArgList[]
 #include <cstring> //strtok, strchr
 #include "ArgList.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h"
+#include "StringRoutines.h" //validDouble, validInteger, convertToX
 
 const std::string ArgList::emptystring = "";
 
@@ -37,9 +35,11 @@ ArgList &ArgList::operator=(const ArgList &rhs) {
 }
 
 // ArgList::operator[]
-std::string const& ArgList::operator[](int idx) {
-  if (idx < 0 || idx >= (int)arglist_.size())
-    throw std::out_of_range("ArgList[]");
+std::string const& ArgList::operator[](int idx) const {
+  if (idx < 0 || idx >= (int)arglist_.size()) {
+    mprinterr("Internal Error: Position %i out of range for Argument List.\n",idx);
+    return emptystring;
+  }
   return arglist_[idx];
 }
 
@@ -48,6 +48,11 @@ void ArgList::ClearList() {
   argline_.clear();
   arglist_.clear();
   marked_.clear();
+}
+
+static inline char stringBack(std::string const& str) {
+  if (str.empty()) return 0;
+  return str[ str.size() - 1];
 }
 
 // ArgList::SetList()
@@ -77,18 +82,18 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
   char* pch = strtok(tempString, separator);
   if (pch != 0) {
     while (pch != 0) {
-      //if (debug>1) mprintf("getArgList:  Arg %i, Token [%s], ",nargs,pch);
       // If the argument is not quoted add it to the list
-      if (pch[0] != '"' && pch[0] != '\'') 
+      if (pch[0] != '\"' && pch[0] != '\'') 
         arglist_.push_back( std::string(pch) );
       else {
         char quotechar = pch[0];
         // If the argument begins with a quote, place this and all subsequent
-        // arguments ending with another quote into this argument
+        // arguments this argument until closing quote reached.
         std::string argument(pch);
+        // Erase beginning quote.
+        argument.erase(0, 1);
         // Make sure this argument doesnt just end with a quote.
-        unsigned int arg_size = argument.size();
-        if (arg_size == 1 || argument[arg_size-1] != quotechar) {
+        if (stringBack(argument) != quotechar) {
           while (pch != 0) {
             argument.append(" ");
             pch = strtok(0, separator);
@@ -100,37 +105,35 @@ int ArgList::SetList(std::string const& inputString, const char *separator) {
             }
             argument.append(pch);
             // Check if this argument has the closing quote.
-            if (argument[argument.size()-1] == quotechar) break;
+            if (stringBack(argument) == quotechar) break;
           }
         }
-        // Remove quotes from the argument
-        std::string::iterator character = argument.begin();
-        while (character < argument.end())
-          if (*character == quotechar)
-            character = argument.erase(character);
-          else
-            ++character;
+        // Remove final quote from the argument. If there was no closing quote
+        // this removes the final space.
+        if (!argument.empty()) argument.resize( argument.size() - 1 );
         if (!argument.empty()) arglist_.push_back(argument);
       }
-      //if (debug>1) mprintf("Arglist[%i]= [%s]\n",nargs-1,arglist[nargs-1]);
       pch = strtok(0,separator); // Next argument
     } // END while loop
     // Set up marked array
     marked_.resize( arglist_.size(), false );
   }
-  // if (debug>0) mprintf("getArgList: Processed %i args\n",nargs);
   delete[] tempString;
   return 0;
 }
 
+// ArgList::RemainingArgs()
 ArgList ArgList::RemainingArgs() {
   ArgList remain;
   for (unsigned int arg = 0; arg < arglist_.size(); ++arg) {
     if ( !marked_[arg] ) {
-      remain.AddArg( arglist_[arg] );
+      remain.arglist_.push_back( arglist_[arg] );
+      if (!remain.argline_.empty()) remain.argline_.append(" ");
+      remain.argline_.append( arglist_[arg] );
       marked_[arg] = true;
     }
   }
+  remain.marked_.resize( remain.arglist_.size(), false );
   return remain;
 }
 
@@ -172,13 +175,13 @@ bool ArgList::CheckForMoreArgs() const {
 }
 
 // ArgList::PrintList()
-void ArgList::PrintList() {
+void ArgList::PrintList() const {
   for (unsigned int arg = 0; arg < arglist_.size(); arg++) 
     mprintf("  %u: %s\n",arg+1,arglist_[arg].c_str());
 }
 
 // ArgList::PrintDebug()
-void ArgList::PrintDebug() {
+void ArgList::PrintDebug() const {
   mprintf("ArgLine: %s\n",argline_.c_str());
   for (unsigned int arg = 0; arg < arglist_.size(); arg++)
     mprintf("\tArg %u: %s (%i)\n",arg+1,arglist_[arg].c_str(),(int)marked_[arg]);
@@ -258,48 +261,6 @@ std::string const& ArgList::getNextTag() {
     }
   }
   return emptystring;
-}
-
-// validInteger()
-/// Brief check that the passed in string begins with a digit or '-'
-static inline bool validInteger(std::string const &argument) {
-  std::locale loc;
-  if (isdigit(argument[0],loc) || argument[0]=='-') return true;
-  return false;
-}
-
-// validDouble()
-/// Brief check that the passed in string begins with a digit, '-', or '.'
-static inline bool validDouble(std::string const &argument) {
-  std::locale loc;
-  if (isdigit(argument[0],loc) || argument[0]=='-' || argument[0]=='.' ) return true;
-  return false;
-}
-
-bool ArgList::ValidInteger(int idx) {
-  if (idx < 0 || idx >= (int)arglist_.size())
-    return false;
-  return validInteger(arglist_[idx]);
-}
-
-int ArgList::IntegerAt(int idx) {
-  if (ValidInteger(idx))
-    return convertToInteger(arglist_[idx]);
-  mprinterr("Error: Argument %i is not a valid integer\n", idx);
-  return 0;
-}
-
-bool ArgList::ValidDouble(int idx) {
-  if (idx < 0 || idx >= (int)arglist_.size())
-    return false;
-  return validDouble(arglist_[idx]);
-}
-
-double ArgList::DoubleAt(int idx) {
-  if (ValidDouble(idx))
-    return convertToDouble(arglist_[idx]);
-  mprinterr("Error: Argument %i is not a valid double\n", idx);
-  return 0.0;
 }
 
 // ArgList::getNextInteger()
@@ -422,7 +383,7 @@ bool ArgList::hasKey(const char *key) {
   * \return true if key is found, false if not.
   */
 // NOTE: Should this be ignoring previously marked strings?
-bool ArgList::Contains(const char *key) {
+bool ArgList::Contains(const char *key) const {
   for (unsigned int arg = 0; arg < arglist_.size(); arg++) 
     if (!marked_[arg]) {
       if (arglist_[arg].compare(key)==0) {

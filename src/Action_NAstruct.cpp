@@ -278,7 +278,7 @@ int Action_NAstruct::determineBasePairing() {
       bool AntiParallel;
       double dist2 = BaseAxes_[base1].Rz().Angle( BaseAxes_[minBaseNum].Rz() );
       //mprintf("    Dot product of Z vectors: %f\n", dist2);
-      if (dist2 > PIOVER2) { // If theta(Z) > 90 deg.
+      if (dist2 > Constants::PIOVER2) { // If theta(Z) > 90 deg.
 #       ifdef NASTRUCTDEBUG
         mprintf("      %s is anti-parallel to %s\n", Bases_[base1].ResName(),
                 Bases_[minBaseNum].ResName());
@@ -451,7 +451,7 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
   // Roll/Tilt is Angle between Z1 and Z2
   double rolltilt = Axis1.Rz().Angle( Axis2.Rz() );
 # ifdef NASTRUCTDEBUG
-  mprintf("\tAngle between Z1 and Z2= %f\n",rolltilt*RADDEG);
+  mprintf("\tAngle between Z1 and Z2= %f\n",rolltilt*Constants::RADDEG);
 # endif
   // Calculate forward and backwards half rolltilt rotation around
   // hinge axis.
@@ -523,7 +523,7 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
   Vec3 Y2 = RotatedR2.Col2();
   double twistopen = Y1.SignedAngle(Y2, Z1);
 # ifdef NASTRUCTDEBUG
-  mprintf("\tFinal Twist/Opening is %10.4f\n",twistopen*RADDEG);
+  mprintf("\tFinal Twist/Opening is %10.4f\n",twistopen*Constants::RADDEG);
 # endif
   Param[3] = twistopen;
 
@@ -535,7 +535,7 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
   double sinphi = sin( phi );
   double cosphi = cos( phi );
 # ifdef NASTRUCTDEBUG
-  mprintf("\tPhase angle is %f, sinphi is %f, cosphi is %f\n",phi*RADDEG,sinphi,cosphi);
+  mprintf("\tPhase angle is %f, sinphi is %f, cosphi is %f\n",phi*Constants::RADDEG,sinphi,cosphi);
 # endif
 
   // Roll / Propeller
@@ -547,8 +547,8 @@ int Action_NAstruct::calculateParameters(NA_Axis const& Axis1, NA_Axis const& Ax
   Param[5] = tiltbuck;
 
 # ifdef NASTRUCTDEBUG
-  mprintf("\tRoll/Propeller %10.4f\n",rollprop*RADDEG);
-  mprintf("\tTilt/Buckle %10.4f\n",tiltbuck*RADDEG);
+  mprintf("\tRoll/Propeller %10.4f\n",rollprop*Constants::RADDEG);
+  mprintf("\tTilt/Buckle %10.4f\n",tiltbuck*Constants::RADDEG);
   if (calcparam_) calcparam_=false;
 # endif
   return 0;
@@ -583,13 +583,13 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   R.CalcRotationMatrix(hingeAxis, -tipinc);
   Matrix_3x3 RotatedR1 = R * Axis1.Rot();
 # ifdef NASTRUCTDEBUG
-  mprintf("\tTip/Inclination: %f\n",tipinc*RADDEG);
+  mprintf("\tTip/Inclination: %f\n",tipinc*Constants::RADDEG);
   hingeAxis.Print("Hinge axis 1");
   RotatedR1.Print("Rotated R1");
 # endif
 
   // Tip/inclination should be same for z2
-  //mprintf("\tTipCheck= %f\n",dot_product_angle(helicalAxis, Z2)*RADDEG);
+  //mprintf("\tTipCheck= %f\n",dot_product_angle(helicalAxis, Z2)*Constants::RADDEG);
   // Hinge axis (Vec) is normalized cross product from h to z2
   Vec3 Vec = helicalAxis.Cross( Axis2.Rz() );
   Vec.Normalize();
@@ -618,7 +618,7 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   Param[2] = Rise;
 # ifdef NASTRUCTDEBUG
   R.Print("Hm");
-  mprintf("\tTwist is %f\n",Twist*RADDEG);
+  mprintf("\tTwist is %f\n",Twist*Constants::RADDEG);
   mprintf("\tRise is %f\n",Rise);
 # endif
 
@@ -633,9 +633,9 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   double Inc = tipinc * sin( phase );
   Param[3] = Inc;
 # ifdef NASTRUCTDEBUG
-  mprintf("\tPhase angle is %f\n",phase*RADDEG);
-  mprintf("\tTip is %f\n",Tip*RADDEG);
-  mprintf("\tInclination is %f\n",Inc*RADDEG);
+  mprintf("\tPhase angle is %f\n",phase*Constants::RADDEG);
+  mprintf("\tTip is %f\n",Tip*Constants::RADDEG);
+  mprintf("\tInclination is %f\n",Inc*Constants::RADDEG);
 # endif
 
   Vec3 Z1 = helicalAxis * Rise;
@@ -644,7 +644,7 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   O1 = Vec - Z1; 
 
   // Calc vector AD
-  double AD_angle = PIOVER2 - (0.5 * Twist);
+  double AD_angle = Constants::PIOVER2 - (0.5 * Twist);
   // rotation of AD_angle around helicalAxis
   // NOTE: Assuming we dont need RotatedR2 anymore
   RotatedR2.CalcRotationMatrix(helicalAxis, AD_angle);
@@ -653,7 +653,7 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   O2.Normalize();
 # ifdef NASTRUCTDEBUG
   O1.Print("AB");
-  mprintf("\tAD_angle is %f\n",AD_angle*RADDEG);
+  mprintf("\tAD_angle is %f\n",AD_angle*Constants::RADDEG);
   O2.Print("AD");
 # endif
 
@@ -715,7 +715,7 @@ void Action_NAstruct::CalcPucker( NA_Base const& base, int framenum, int nbase )
                         5, aval, tval );
       break;
   }
-  float fval = (float)(pval * RADDEG);
+  float fval = (float)(pval * Constants::RADDEG);
   PUCKER_[nbase]->Add(framenum, &fval);
 }
 
@@ -783,9 +783,9 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
     //calculateParameters(BaseAxes[base1],BaseAxes[base2],&BasePairAxes[nbasepair],Param);
     calculateParameters(BaseAxes_[b2], BaseAxes_[b1], &(*BP), Param);
     // Store data
-    Param[3] *= RADDEG;
-    Param[4] *= RADDEG;
-    Param[5] *= RADDEG;
+    Param[3] *= Constants::RADDEG;
+    Param[4] *= Constants::RADDEG;
+    Param[5] *= Constants::RADDEG;
     //mprintf("DBG: BP %i # hbonds = %i\n", nbasepair+1, NumberOfHbonds_[nbasepair]);
     // Convert everything to float to save space
     float shear = (float)Param[0];
@@ -837,9 +837,9 @@ int Action_NAstruct::determineBasepairParameters(int frameNum) {
     // Calc step parameters
     calculateParameters(*BP1, *BP2, 0, Param);
     // Store data
-    Param[3] *= RADDEG;
-    Param[4] *= RADDEG;
-    Param[5] *= RADDEG;
+    Param[3] *= Constants::RADDEG;
+    Param[4] *= Constants::RADDEG;
+    Param[5] *= Constants::RADDEG;
     // Convert everything to float to save space
     float shift = (float)Param[0];
     float slide = (float)Param[1];
@@ -855,9 +855,9 @@ int Action_NAstruct::determineBasepairParameters(int frameNum) {
     TILT_[bpi]->Add(frameNum, &tilt);
     // Calc helical parameters
     helicalParameters(*BP1, *BP2, Param);
-    Param[3] *= RADDEG;
-    Param[4] *= RADDEG;
-    Param[5] *= RADDEG;
+    Param[3] *= Constants::RADDEG;
+    Param[4] *= Constants::RADDEG;
+    Param[5] *= Constants::RADDEG;
     // Convert to float
     float xdisp = (float)Param[0];
     float ydisp = (float)Param[1];

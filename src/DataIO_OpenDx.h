@@ -4,12 +4,11 @@
 /// Write OpenDx format data files.
 class DataIO_OpenDx : public DataIO {
   public:
-    DataIO_OpenDx() {}
-    static DataIO* Alloc() { return (DataIO*)new DataIO_OpenDx(); }
+    DataIO_OpenDx() : DataIO(false, false, true) {} // Valid for 3D only
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_OpenDx(); }
     int ReadData(std::string const&, ArgList&, DataSetList&, std::string const&);
     int processWriteArgs(ArgList&)                               { return 0; }
     int WriteData(std::string const&,DataSetList const&)         { return 1; }
-    int WriteDataInverted(std::string const&,DataSetList const&) { return 1; }
     int WriteData2D(std::string const&, DataSet const&)          { return 1; }
     int WriteData3D(std::string const&, DataSet const&);
     bool ID_DataFormat(CpptrajFile&);
