@@ -369,24 +369,27 @@ static void Help_Create_DataFile() {
 }
 
 static void Help_DataFile() {
-  mprintf("\t<data filename> <datafile cmd>\n");
-  mprintf("\tPass <datafile cmd> to specified data file currently in data file list.\n");
+  mprintf("\t<data filename> <datafile cmd>\n"
+          "\tPass <datafile cmd> to specified data file currently in data file list.\n"
+          "Write Options:\n");
+  DataFile::WriteHelp();
+  DataFile::WriteOptions();
 }
 
 static void Help_ReadData() {
-  mprintf("\t<filename> [name <dsname>] [as <fmt>] [<format options>]\n");
-  mprintf("\tRead data from <filename> into data sets.\n");
+  mprintf("\t<filename> [name <dsname>] [as <fmt>] [<format options>]\n"
+          "\tRead data from <filename> into data sets.\n");
   DataFile::ReadOptions();
 }
 
 static void Help_ReadInput() {
-  mprintf("\t<filename>\n");
-  mprintf("\tRead commands from <filename>\n");
+  mprintf("\t<filename>\n"
+          "\tRead commands from <filename>\n");
 }
 
 static void Help_Write_DataFile() {
-  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
-  mprintf("\tWrite specified data sets to <filename> immediately.\n");
+  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n"
+          "\tWrite specified data sets to <filename> immediately.\n");
   DataFile::WriteHelp();
   DataFile::WriteOptions();
 }
