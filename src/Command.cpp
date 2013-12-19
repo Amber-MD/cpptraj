@@ -385,14 +385,11 @@ static void Help_ReadInput() {
 }
 
 static void Help_Write_DataFile() {
-  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n"
-          "\tWrite specified data sets to <filename> immediately.\n");
+  mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n"
+          "\tWith no arguments, write all files currently in the data file list.\n"
+          "\tOtherwise, write specified data sets to <filename> immediately.\n");
   DataFile::WriteHelp();
   DataFile::WriteOptions();
-}
-
-static void Help_WriteData() {
-  mprintf("\tWrite all files currently in the data file list.\n");
 }
 
 static void Help_Precision() {
@@ -911,14 +908,15 @@ Command::RetType Create_DataFile(CpptrajState& State, ArgList& argIn, Command::A
   return (Command::RetType)( AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL())) );
 }
 
-/// Write DataFile with specified DataSets immediately.
+/// Write DataFile with specified DataSets immediately, or force write of all DataFiles in State
 Command::RetType Write_DataFile(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   // Next string is datafile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
-    mprinterr("Error: No filename given.\n");
-    return Command::C_ERR;
+    State.DFL()->ResetWriteStatus();
+    State.MasterDataFileWrite();
+    return Command::C_OK;
   }
   DataFile* df = new DataFile();
   if (df == 0) return Command::C_ERR;
@@ -1114,14 +1112,6 @@ Command::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, Command::Al
   DataSetList dsets = State.DSL()->GetMultipleSets( dsarg );
   mprintf("SelectDS: Arg [%s]:", dsarg.c_str());
   dsets.List();
-  return Command::C_OK;
-}
-
-/// Force write of all DataFiles in State
-Command::RetType WriteAllData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
-{
-  State.DFL()->ResetWriteStatus();
-  State.MasterDataFileWrite();
   return Command::C_OK;
 }
 
@@ -1383,7 +1373,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
   { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
-  { GENERAL, "writedata",     0, Help_WriteData,       WriteAllData    },
+  { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "xmgrace",       0, Help_System,          SystemCmd       },
   // TRAJECTORY COMMANDS
   { TRAJ,    "ensemble",      0, Help_Ensemble,        Ensemble        },
