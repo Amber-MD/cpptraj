@@ -180,8 +180,10 @@ void Frame::SetFromCRD(CRDtype const& crdIn) {
   for (CRDtype::const_iterator xi = crdIn.CrdBegin(); xi != crdIn.CrdEnd(); ++xi)
     X_[ix++] = (double)*xi;
   ix = 0;
-  for (CRDtype::const_iterator vi = crdIn.VelBegin(); vi != crdIn.VelEnd(); ++vi)
-    V_[ix++] = (double)*vi;
+  if (crdIn.HasVelocities()) {
+    for (CRDtype::const_iterator vi = crdIn.VelBegin(); vi != crdIn.VelEnd(); ++vi)
+      V_[ix++] = (double)*vi;
+  }
   ix = 0;
   for (CRDtype::const_iterator bi = crdIn.BoxBegin(); bi != crdIn.BoxEnd(); ++bi)
     box_[ix++] = (double)*bi;
@@ -196,19 +198,19 @@ void Frame::SetFromCRD(CRDtype const& crdIn, AtomMask const& mask) {
   }
   natom_ = mask.Nselected();
   ncoord_ = natom_ * 3;
-  int ix = 0;
-  int iv = 0;
+  unsigned int ix = 0;
+  unsigned int iv = 0;
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
-    int offset = *atom * 3;
-    X_[ix++] = (double)crdIn[offset  ];
-    X_[ix++] = (double)crdIn[offset+1];
-    X_[ix++] = (double)crdIn[offset+2];
+    unsigned int xoffset = ((unsigned int)(*atom)) * 3;
+    X_[ix++] = (double)crdIn[xoffset  ];
+    X_[ix++] = (double)crdIn[xoffset+1];
+    X_[ix++] = (double)crdIn[xoffset+2];
     if (crdIn.HasVelocities()) {
-      CRDtype::const_iterator vi = crdIn.VelBegin() + offset;
-      V_[iv++] = *(vi++); 
-      V_[iv++] = *(vi++); 
-      V_[iv++] = *(vi  );
-    } 
+      unsigned int voffset = crdIn.NumCoords() + xoffset;
+      V_[iv++] = (double)crdIn[voffset  ]; 
+      V_[iv++] = (double)crdIn[voffset+1]; 
+      V_[iv++] = (double)crdIn[voffset+2]; 
+    }
   }
   ix = 0;
   for (CRDtype::const_iterator bi = crdIn.BoxBegin(); bi != crdIn.BoxEnd(); ++bi)

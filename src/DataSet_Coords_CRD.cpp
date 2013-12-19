@@ -13,7 +13,7 @@ void DataSet_Coords_CRD::Info() const {
     mprintf(" (<1 MB)");
   else
     mprintf(" (%zu MB)", sze);
-  // DEBUG
-  mprintf(" box=%zu vel=%zu", numBoxCrd_, numVel_); 
-  top_.Brief(0);
+  if (numBoxCrd_ > 0) mprintf(" Box Coords,");
+  if (numVel_    > 0) mprintf(" Velocities,");
+  mprintf(" %i atoms", top_.Natom());
 }
