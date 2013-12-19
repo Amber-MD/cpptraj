@@ -77,12 +77,12 @@ Analysis::RetType Analysis_Overlap::Analyze() {
     for (unsigned int i = 0; i < D1.Size(); i++) {
       double val1 = D1.Dval(i);
       double val2 = D2.Dval(i);
-      if (fabs(val1) < SMALL && fabs(val2) < SMALL) {
+      if (fabs(val1) < Constants::SMALL && fabs(val2) < Constants::SMALL) {
         // No data in either set, do not process;
         continue;
       }
       double denominator = val1 + val2;
-      if (fabs(denominator) < SMALL) {
+      if (fabs(denominator) < Constants::SMALL) {
         // Complete opposite, no overlap, but process
         ++Npoints;
         continue;

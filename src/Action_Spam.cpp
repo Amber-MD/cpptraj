@@ -247,8 +247,8 @@ int Action_Spam::SetupParms(Topology* ParmIn) {
   atom_charge_.reserve( ParmIn->Natom() );
   for (Topology::atom_iterator atom = ParmIn->begin();
        atom != ParmIn->end(); ++atom)
-    atom_charge_.push_back( atom->Charge() * ELECTOAMBER );
-  if (!ParmIn->HasNonbond()) {
+    atom_charge_.push_back( atom->Charge() * Constants::ELECTOAMBER );
+  if (!ParmIn->Nonbond().HasNonbond()) {
     mprinterr("Error: SPAM: Parm does not have LJ information.\n");
     return 1;
   }

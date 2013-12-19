@@ -10,6 +10,7 @@
   */
 class TopologyList {
   public:
+    static const char* ParmArgs;
     TopologyList();
     ~TopologyList();
     void Clear();

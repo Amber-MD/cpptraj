@@ -45,6 +45,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   trajio_->SetDebug( debug_ );
   // Set trajectory filename
   SetTrajFileName( tnameIn, true );
+  mprintf("\tReading '%s' as %s\n", TrajFilename().full(), TrajectoryFile::FormatString(tformat));
   // Set up the format for reading and get the number of frames.
   if (SetupTrajIO( tnameIn, *trajio_, argIn )) return 1;
   // Check how many frames will actually be read

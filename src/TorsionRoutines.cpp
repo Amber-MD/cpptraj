@@ -41,7 +41,7 @@ double Torsion(const double *a1, const double *a2, const double *a3, const doubl
 }
 
 /// Constant used in AS pucker calc
-static const double pi_over_5 = PI / 5.0;
+static const double pi_over_5 = Constants::PI / 5.0;
 
 // Pucker_AS()
 /** Return the pucker (in radians) of coords stored in a1-a5 based on 
@@ -78,7 +78,7 @@ double Pucker_AS(const double* a1, const double* a2, const double* a3,
 
   if (amp != 0.0)
     pucker = atan2(b,a);
-  if (pucker < 0) pucker += TWOPI;
+  if (pucker < 0) pucker += Constants::TWOPI;
 
   return pucker;
 }
@@ -92,7 +92,7 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
                  int N, double& amplitude, double& theta) 
 {
   double dN = (double)N;
-  double twopi_over_N = TWOPI / dN;
+  double twopi_over_N = Constants::TWOPI / dN;
   Vec3 XYZ[6];
   XYZ[1].Assign( a1 );
   XYZ[2].Assign( a2 );
@@ -164,9 +164,9 @@ double Pucker_CP(const double* a1, const double* a2, const double* a3,
   // Calculate pucker (phi2)
   double pucker = asin( sum2 / norm );
   if (sum1 < 0.0)
-    pucker = PI - pucker;
+    pucker = Constants::PI - pucker;
   else if (pucker < 0.0)
-    pucker += TWOPI;
+    pucker += Constants::TWOPI;
 
   return pucker;
 }
@@ -186,7 +186,7 @@ double CalcAngle(const double* V1, const double* V2, const double* V3)
   double rij = xij*xij + yij*yij + zij*zij;
   double rkj = xkj*xkj + ykj*ykj + zkj*zkj;
 
-  if (rij > SMALL && rkj > SMALL) {
+  if (rij > Constants::SMALL && rkj > Constants::SMALL) {
     angle = (xij*xkj + yij*ykj + zij*zkj) / sqrt(rij*rkj);
     if (angle > 1.0)
       angle = 1.0;

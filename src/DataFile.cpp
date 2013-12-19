@@ -11,6 +11,7 @@
 #include "DataIO_OpenDx.h"
 #include "DataIO_RemLog.h"
 #include "DataIO_Mdout.h"
+#include "DataIO_Evecs.h"
 
 // TODO: Support these args:
 //       - xlabel, xmin, xstep, time (all dimensions).
@@ -20,7 +21,6 @@ DataFile::DataFile() :
   dimension_(-1),
   dfType_(DATAFILE),
   dflWrite_(true),
-  isInverted_(false),
   setDataSetPrecision_(false), //TODO: Just use default_width_ > -1?
   default_width_(-1),
   default_precision_(-1),
@@ -44,26 +44,34 @@ DataFile::~DataFile() {
 // NOTE: Must be in same order as DataFormatType
 const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Standard Data File", DataIO_Std::ReadHelp,    DataIO_Std::WriteHelp,    DataIO_Std::Alloc    },
-  { "Grace File",         0,                       0,                        DataIO_Grace::Alloc  },
+  { "Grace File",         0,                       DataIO_Grace::WriteHelp,  DataIO_Grace::Alloc  },
   { "Gnuplot File",       0,                       DataIO_Gnuplot::WriteHelp,DataIO_Gnuplot::Alloc},
   { "Xplor File",         0,                       0,                        DataIO_Xplor::Alloc  },
   { "OpenDX File",        0,                       0,                        DataIO_OpenDx::Alloc },
   { "Amber REM log",      DataIO_RemLog::ReadHelp, 0,                        DataIO_RemLog::Alloc },
   { "Amber MDOUT file",   DataIO_Mdout::ReadHelp,  0,                        DataIO_Mdout::Alloc  },
+  { "Evecs file",         DataIO_Evecs::ReadHelp,  0,                        DataIO_Evecs::Alloc  },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
 const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { DATAFILE,     "dat",    ".dat"   },
   { XMGRACE,      "grace",  ".agr"   },
+  { XMGRACE,      "grace",  ".xmgr"  },
   { GNUPLOT,      "gnu",    ".gnu"   },
   { XPLOR,        "xplor",  ".xplor" },
   { XPLOR,        "xplor",  ".grid"  },
   { OPENDX,       "opendx", ".dx"    },
   { REMLOG,       "remlog", ".log"   },
   { MDOUT,        "mdout",  ".mdout" },
+  { EVECS,        "evecs",  ".evecs" },
   { UNKNOWN_DATA, 0,        0        }
 };
+
+void DataFile::WriteHelp() {
+  mprintf("\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>]\n"
+          "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n");
+}
 
 // DataFile::DetectFormat()
 DataIO* DataFile::DetectFormat(std::string const& fname, DataFormatType& ftype) {
@@ -118,11 +126,11 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
                                                               DATAFILE);
     dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   }
-  mprintf("\tReading '%s' as %s\n", filename_.full(), 
-          FileTypes::FormatDescription(DF_AllocArray,dfType_));
   // Check if user specifed DataSet name; otherwise use filename base.
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty()) dsname = filename_.Base();
+  mprintf("\tReading '%s' as %s with name '%s'\n", filename_.full(), 
+          FileTypes::FormatDescription(DF_AllocArray,dfType_), dsname.c_str());
   // Read data
 # ifdef TIMER
   Timer dftimer;
@@ -160,15 +168,42 @@ int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debu
 // DataFile::AddSet()
 int DataFile::AddSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
-  if (SetList_.empty())
+  if (dataio_ == 0) {
+    mprinterr("Internal Error: Attempting to add set to DataFile that is not set up.\n");
+    return 1;
+  }
+  if (SetList_.empty()) {
     dimension_ = dataIn->Ndim();
-  else if ((int)dataIn->Ndim() != dimension_) {
-    mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
-              "Error: Attempting to add set %s of dimension %u\n", 
-              filename_.base(), dimension_,
-              dataIn->Legend().c_str(), dataIn->Ndim());
-    return Error("Error: Adding DataSets with different dimensions to same file"
-                 " is currently unsupported.\n");
+    // If current format not valid for first set, attempt to find valid format
+    if (!dataio_->CheckValidFor(*dataIn)) {
+      delete dataio_;
+      for (int dft = 0; dft != (int)UNKNOWN_DATA; dft++) {
+        dfType_ = (DataFormatType)dft;
+        dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
+        if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+        if (dataio_->CheckValidFor(*dataIn)) break;
+        delete dataio_;
+        dataio_ = 0;
+      }
+      if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+      mprintf("\tChanged DataFile '%s' type to %s for set %s\n", filename_.base(),
+              FileTypes::FormatDescription(DF_AllocArray, dfType_),
+              dataIn->Legend().c_str());
+    }
+  } else {
+    if ((int)dataIn->Ndim() != dimension_) {
+      mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
+                "Error: Attempting to add set %s of dimension %u\n", 
+                filename_.base(), dimension_,
+                dataIn->Legend().c_str(), dataIn->Ndim());
+      return Error("Error: Adding DataSets with different dimensions to same file"
+                   " is currently unsupported.\n");
+    }
+    if (!dataio_->CheckValidFor(*dataIn)) {
+      mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
+                 dataIn->Legend().c_str(), filename_.base());
+      return 1;
+    }
   }
   // Set default width.precision
   if (setDataSetPrecision_)
@@ -189,22 +224,17 @@ int DataFile::RemoveSet(DataSet* dataIn) {
 // DataFile::ProcessArgs()
 int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
-  if (argIn.hasKey("invert")) {
-    isInverted_ = true;
-    // Currently GNUPLOT files cannot be inverted.
-    if (dfType_ == GNUPLOT) {
-      mprintf("Warning: (%s) Gnuplot files cannot be inverted.\n",filename_.base());
-      isInverted_ = false;;
-    }
-  }
   // Axis args.
   defaultDim_[0].SetLabel( argIn.GetStringKey("xlabel") );
   defaultDim_[1].SetLabel( argIn.GetStringKey("ylabel") );
+  defaultDim_[2].SetLabel( argIn.GetStringKey("zlabel") );
   // Axis min/step
   defaultDim_[0].SetMin( argIn.getKeyDouble("xmin",1.0) );
   defaultDim_[1].SetMin( argIn.getKeyDouble("ymin",1.0) );
+  defaultDim_[2].SetMin( argIn.getKeyDouble("zmin",1.0) );
   defaultDim_[0].SetStep( argIn.getKeyDouble("xstep", 1.0) );
   defaultDim_[1].SetStep( argIn.getKeyDouble("ystep", 1.0) );
+  defaultDim_[2].SetStep( argIn.getKeyDouble("zstep", 1.0) );
   // ptraj 'time' keyword
   if (argIn.Contains("time")) {
     defaultDim_[0].SetStep( argIn.getKeyDouble("time", 1.0) );
@@ -254,6 +284,12 @@ void DataFile::WriteData() {
                 ds.Legend().c_str());
       continue;
     }
+    // Ensure current DataIO is valid for this set.
+    if (!dataio_->CheckValidFor( ds )) {
+      mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
+                 ds.Legend().c_str(), filename_.base());
+      continue;
+    }
     // Set default min and step for all dimensions if not already set.
     for (unsigned int nd = 0; nd < ds.Ndim(); ++nd) {
       Dimension& dim = ds.Dim(nd);
@@ -281,11 +317,8 @@ void DataFile::WriteData() {
   dftimer.Start();
 #endif
   int err = 0;
-  if ( dimension_ == 1 ) {       // One-dimensional
-    if (!isInverted_)
-      err = dataio_->WriteData(filename_.Full(), setsToWrite);
-    else
-      err = dataio_->WriteDataInverted(filename_.Full(), setsToWrite);
+  if ( dimension_ < 2 ) {        // One-dimensional/DataSet-specific write
+    err = dataio_->WriteData(filename_.Full(), setsToWrite);
   } else if ( dimension_ == 2) { // Two-dimensional
     for ( DataSetList::const_iterator set = setsToWrite.begin();
                                       set != setsToWrite.end(); ++set)

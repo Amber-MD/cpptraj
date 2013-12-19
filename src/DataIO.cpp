@@ -1,6 +1,17 @@
 #include "DataIO.h"
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
+// DataIO::CheckValidFor()
+bool DataIO::CheckValidFor( DataSet const& dataIn ) const {
+  if (valid1d_ && dataIn.Ndim() == 1) return true; 
+  if (valid2d_ && dataIn.Ndim() == 2) return true; 
+  if (valid3d_ && dataIn.Ndim() == 3) return true;
+  for (std::vector<DataSet::DataType>::const_iterator dt = valid_.begin(); 
+                                                      dt != valid_.end(); ++dt)
+    if (dataIn.Type() == *dt) return true;
+  return false;
+}
+
 // DataIO::SetupCoordFormat()
 std::string DataIO::SetupCoordFormat(size_t maxFrames, Dimension const& dim, 
                                      int default_width, int default_precision)

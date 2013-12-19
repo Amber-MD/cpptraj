@@ -111,7 +111,7 @@ Action::RetType Action_Dihedral::DoAction(int frameNum, Frame* currentFrame, Fra
   }
   double torsion = Torsion(a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr());
 
-  torsion *= RADDEG;
+  torsion *= Constants::RADDEG;
 
   dih_->Add(frameNum, &torsion);
 

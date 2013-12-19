@@ -31,7 +31,7 @@ class Action_Gist: public Action, ImagedAction  {
     /** Data set list for all data sets created here */
     DataSetList myDSL_;
     Topology* CurrentParm_;          ///< Set to the current topology file.
-    bool watermodel_;
+/*    bool watermodel_;
     bool useTIP3P_;
     bool useTIP4P_;
     bool useTIP4PEW_;
@@ -39,7 +39,7 @@ class Action_Gist: public Action, ImagedAction  {
     bool useTIP3PFW_;
     bool useSPCE_;
     bool useSPCFW_;
-    bool doOrder_;
+*/    bool doOrder_;
     bool doEij_;
 
     //time 
@@ -49,7 +49,7 @@ class Action_Gist: public Action, ImagedAction  {
     // other constants
     int NFRAME_;		// total number of frames analyzed
     double BULK_DENS_;		// bulk water density
-    double BULK_E_;		// bulk water energy
+//    double BULK_E_;		// bulk water energy
 
     //Grid Stuff   
     Vec3 gridcntr_;    		// coordiantes of grid center
@@ -109,10 +109,10 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> ww_eelec_;
     std::vector < std::vector <float> > ww_Eij_;
     std::vector <float> dEwh_dw_;
-    std::vector <float> dEww_dw_ref_;
     std::vector <float> dEwh_norm_;
-    std::vector <float> dEww_norm_ref_;
+    std::vector <float> dEww_norm_unref_;
     std::vector <float> dEww_dw_unref_;
+    std::vector <float> neighbor_dw_;
     std::vector <float> neighbor_norm_;
     std::vector <float> pol_;
 

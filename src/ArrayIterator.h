@@ -1,5 +1,6 @@
 #ifndef INC_ARRAYITERATOR_H
 #define INC_ARRAYITERATOR_H
+#include <iterator>
 /// Template for iterator over C-type array.
 template <class T>
 class ArrayIterator : public std::iterator<std::forward_iterator_tag, T> {

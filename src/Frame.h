@@ -217,7 +217,7 @@ Vec3 Frame::VCenterOfMass( AtomMask const& Mask ) const {
     Coord1 += ( X_[xidx+1] * mass );
     Coord2 += ( X_[xidx+2] * mass );
   }
-  if (sumMass == 0.0) return Vec3();
+  if (sumMass == 0.0) return Vec3(0,0,0);
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 
@@ -233,7 +233,7 @@ Vec3 Frame::VGeometricCenter( AtomMask const& Mask ) const {
     Coord2 += X_[xidx+2];
   }
   double sumMass = (double)Mask.Nselected();
-  if (sumMass == 0) return Vec3();
+  if (sumMass == 0) return Vec3(0,0,0);
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 
@@ -252,7 +252,7 @@ Vec3 Frame::VCenterOfMass(int startAtom, int stopAtom) const {
     Coord2 += ( X_[i+2] * (*mass) );
     ++mass;
   }
-  if (sumMass == 0.0) return Vec3();
+  if (sumMass == 0.0) return Vec3(0,0,0);
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 
@@ -268,7 +268,7 @@ Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
     Coord2 += X_[i+2];
   }
   double sumMass = (double)(stopAtom - startAtom);
-  if (sumMass == 0) return Vec3();
+  if (sumMass == 0) return Vec3(0,0,0);
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 

@@ -37,11 +37,10 @@ SOURCES=ActionFrameCounter.cpp \
         Action_MakeStructure.cpp \
         Action_Mask.cpp \
         Action_Matrix.cpp \
-        Action_MaxDist.cpp \
-        Action_MinDist.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
         Action_NAstruct.cpp \
+        Action_NativeContacts.cpp \
         Action_NMRrst.cpp \
         Action_OrderParameter.cpp \
         Action_Outtraj.cpp \
@@ -125,6 +124,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataFile.cpp \
         DataFileList.cpp \
         DataIO.cpp \
+        DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
         DataIO_OpenDx.cpp \

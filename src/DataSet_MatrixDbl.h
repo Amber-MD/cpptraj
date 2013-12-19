@@ -26,6 +26,7 @@ class DataSet_MatrixDbl : public DataSet_2D {
     MatrixKind Kind()                    const { return kind_;              }
     MatrixType Type()                    const { return type_;              }
     // -------------------------------------------
+    double& Element(size_t x, size_t y)        { return mat_.element(x,y);  }
     int AddElement(double d)                   { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,double d){ mat_.setElement(x,y,d);    }
     /// Type definition of iterator over matrix elements.
@@ -38,8 +39,6 @@ class DataSet_MatrixDbl : public DataSet_2D {
     Darray const& Vect()                 const { return vect_;              }
     /// Allocate diagonal vector.
     void AllocateVector(size_t vsize)          { vect_.resize(vsize, 0.0);  }
-    /// \return diagonal vector size.
-    size_t VectSize()                    const { return vect_.size();       }
     /// \return iterator to beginning of diagonal vector.
     Darray::iterator v1begin()                 { return vect_.begin();      }
     /// \return iterator to end of diagonal vector.

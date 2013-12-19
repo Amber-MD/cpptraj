@@ -27,7 +27,7 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
   meshfactor_ = -1.0;
   if (meshsize_ < 3) {
     meshfactor_ = analyzeArgs.getKeyDouble("meshfactor", -1.0);
-    if (meshfactor_ < SMALL) {
+    if (meshfactor_ < Constants::SMALL) {
       mprinterr("Error: Either meshsize must be specified and > 2, or meshfactor must be\n"
                 "Error:   specified and > 0.0\n");
       return Analysis::ERR;

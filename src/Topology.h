@@ -13,9 +13,10 @@
 class Topology {
   public:
     Topology();
-    // ----- Set internal variables -----
+    // ----- Set internal variables --------------
     void SetOffset(double oIn)           { if (oIn > 0.0) offset_ = oIn;  }
     void SetDebug(int dIn)               { debug_ = dIn;                  }
+    void SetIpol(int iIn)                { ipol_ = iIn;                   }
     void SetPindex(int pIn)              { pindex_ = pIn;                 }
     void IncreaseFrames(int fIn)         { nframes_ += fIn;               }
     void SetTag(std::string const& t)    { parmTag_ = t;                  }
@@ -24,8 +25,9 @@ class Topology {
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;           }
     void SetParmName(std::string const&, FileName const&);
     void SetReferenceCoords( Frame const& );
-    // ----- Return internal variables -----
+    // ----- Return internal variables -----------
     std::string const& Tag()       const { return parmTag_;               }
+    int Ipol()                     const { return ipol_;                  }
     int Pindex()                   const { return pindex_;                }
     int Natom()                    const { return (int)atoms_.size();     }
     int Nres()                     const { return (int)residues_.size();  }
@@ -41,56 +43,58 @@ class Topology {
     bool NoRefCoords()                    const { return (refCoords_.empty()); }
     int FinalSoluteRes() const; // TODO: Replace
     const char *c_str() const;
-    // ---- Atom-specific routines -----
+    // ---- Atom-specific routines ---------------
     typedef std::vector<Atom>::const_iterator atom_iterator;
     atom_iterator begin()            const { return atoms_.begin(); }
     atom_iterator end()              const { return atoms_.end();   }
     const Atom &operator[](int idx)  const { return atoms_[idx];    }
     std::vector<Atom> const& Atoms() const { return atoms_;         }
-    // ----- Residue-specific routines -----
+    // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
     inline res_iterator ResEnd()   const { return residues_.end();   }
     const Residue& Res(int idx)    const { return residues_[idx];    }
-    // ----- Molecule-specific routines -----
+    // ----- Molecule-specific routines ----------
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const { return molecules_.begin(); }
     inline mol_iterator MolEnd()   const { return molecules_.end();   }
     const Molecule& Mol(int idx)   const { return molecules_[idx];    }
-    // ----- Bond-specific routines -----
+    // ----- Bond-specific routines --------------
     BondArray         const& Bonds()        const { return bonds_;        }
     BondArray         const& BondsH()       const { return bondsh_;       }
     BondParmArray     const& BondParm()     const { return bondparm_;     }
     void AddBond(int,int);
     int SetBondInfo(BondArray const&, BondArray const&, BondParmArray const&);
-    // ----- Angle-specific routines -----
+    // ----- Angle-specific routines -------------
     AngleArray        const& Angles()       const { return angles_;       }
     AngleArray        const& AnglesH()      const { return anglesh_;      }
     AngleParmArray    const& AngleParm()    const { return angleparm_;    }
     int SetAngleInfo(AngleArray const&, AngleArray const&, AngleParmArray const&);
-    // ----- Dihedral-specific routines -----
+    // ----- Dihedral-specific routines ----------
     DihedralArray     const& Dihedrals()    const { return dihedrals_;    }
     DihedralArray     const& DihedralsH()   const { return dihedralsh_;   }
     DihedralParmArray const& DihedralParm() const { return dihedralparm_; }
     int SetDihedralInfo(DihedralArray const&, DihedralArray const&, DihedralParmArray const&);
-    // ----- Non-bond routines -----
+    // ----- Non-bond routines -------------------
     NonbondParmType   const& Nonbond()      const { return nonbond_;      }
     int SetNonbondInfo(NonbondParmType const&);
-    /// \return True if nonbond parameters present.
-    bool HasNonbond()                       const { return nonbond_.Ntypes() > 0; }
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
-    // ----- Amber LES info -----
+    // ----- Water Cap Info ----------------------
+    CapParmType       const& Cap()          const { return cap_;          }
+    void SetCap(CapParmType const& c)             { cap_ = c;             }
+    // ----- Amber LES info ----------------------
     LES_ParmType      const& LES()          const { return lesparm_;      }
     void SetLES(LES_ParmType const& l)            { lesparm_ = l;         }
-    // ----- Amber perturbed parm info -----
-    PertParmType      const& Pert()         const { return pert_;         }
+    // ----- CHAMBER info ------------------------
+    ChamberParmType const& Chamber()        const { return chamber_;      }
+    void SetChamber(ChamberParmType const& c)     { chamber_ = c;         }
     // ----- Amber extra info ----- TODO: Generate automatically, consolidate
     inline const std::vector<double>& Solty()   const { return solty_;  }
     inline const std::vector<NameType>& Itree() const { return itree_;  }
     inline const std::vector<int>& Join()       const { return join_;   }
     inline const std::vector<int>& Irotat()     const { return irotat_; }
-    // ----- Misc routines -----
+    // ----- Misc routines -----------------------
     std::string TruncResAtomName(int) const;
     std::string AtomMaskName(int atom) const;
     std::string TruncResNameNum(int) const;
@@ -98,7 +102,7 @@ class Topology {
     int FindResidueMaxNatom() const;
     int SoluteAtoms() const;
     int SetSolvent(std::string const&);
-    // ----- Print topology info -----
+    // ----- Print topology info -----------------
     void Summary() const;
     void Brief(const char*) const;
     void PrintAtomInfo(std::string const&) const;
@@ -108,24 +112,24 @@ class Topology {
     void PrintMoleculeInfo(std::string const&) const;
     void PrintResidueInfo(std::string const&) const;
     int PrintChargeMassInfo(std::string const&, int) const;
-    // ----- Routines to Access/Modify Box info -----
+    // ----- Routines to Access/Modify Box info --
     inline Box const& ParmBox()   const { return box_;        }
     inline Box::BoxType BoxType() const { return box_.Type(); }
     void SetBox( Box const& bIn )       { box_ = bIn;         }
-    // ----- Setup routines -----
+    // ----- Setup routines ----------------------
     int AddTopAtom(Atom const&, int, NameType const&, const double*);
     void StartNewMol();
-    // ----- Amber setup routines -----
+    // ----- Amber setup routines ----------------
     int SetAmberExtra(std::vector<double> const&,std::vector<NameType> const&,
                       std::vector<int> const&,std::vector<int> const&);
-    // ----- Common Setup Routines -----
+    // ----- Common Setup Routines ---------------
     int CommonSetup(bool);
-    // ----- Mask Routines -----
+    // ----- Mask Routines -----------------------
     bool SetupIntegerMask(AtomMask &) const;
     bool SetupCharMask(AtomMask &) const;
     bool SetupIntegerMask(AtomMask &, Frame const&) const;
     bool SetupCharMask(AtomMask &, Frame const&) const;
-    // ----- Topology modification routines -----
+    // ----- Topology modification routines ------
     void ScaleDihedralK(double);
     /// Strip atoms outside given mask, do not keep parameters.
     Topology* partialModifyStateByMask(AtomMask const& m) const {
@@ -191,11 +195,11 @@ class Topology {
     DihedralArray dihedrals_;
     DihedralArray dihedralsh_;
     DihedralParmArray dihedralparm_;
-    // Non-bonded parameters
-    NonbondParmType nonbond_;
+    NonbondParmType nonbond_;        ///< Non-bonded parameters
     // Amber-only parameters
+    CapParmType cap_;                ///< Water cap information
     LES_ParmType lesparm_;           ///< LES parameters
-    PertParmType pert_;              ///< Atom perturbation info
+    ChamberParmType chamber_;        ///< CHAMBER parameters
     // Amber extra info
     std::vector<double> solty_;
     std::vector<NameType> itree_;
@@ -207,6 +211,7 @@ class Topology {
 
     double offset_;         ///< Offset used when searching for bonds
     int debug_;
+    int ipol_;              ///< 0 if fixed charge, 1 if polarizable
     int NsolventMolecules_;
     int finalSoluteRes_; ///< TODO: Get rid of
     int pindex_;

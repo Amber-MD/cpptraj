@@ -15,6 +15,7 @@ const NonbondType Topology::LJ_EMPTY = NonbondType();
 Topology::Topology() :
   offset_(0.20),
   debug_(0),
+  ipol_(0),
   NsolventMolecules_(0),
   finalSoluteRes_(-1),
   pindex_(0),
@@ -173,6 +174,19 @@ void Topology::Summary() const {
   }
   if (!radius_set_.empty())
     mprintf("\t\tGB radii set: %s\n", radius_set_.c_str());
+  if (chamber_.HasChamber()) {
+    mprintf("\t\tCHAMBER: %zu Urey-Bradley terms, %zu Impropers\n",
+            chamber_.UB().size(), chamber_.Impropers().size());
+    if (chamber_.HasCmap())
+      mprintf("\t\t         %zu CMAP grids, %zu CMAP terms.\n", 
+              chamber_.CmapGrid().size(), chamber_.Cmap().size());
+  }
+  if (lesparm_.HasLES())
+    mprintf("\t\tLES info: %i types, %i copies\n", lesparm_.Ntypes(), lesparm_.Ncopies());
+  if (cap_.HasWaterCap())
+    mprintf("\t\tCAP info: Last atom before cap = %s, Cut= %g, X= %g, Y= %g, Z= %g\n",
+            AtomMaskName(cap_.NatCap()).c_str(), cap_.CutCap(), 
+            cap_.xCap(), cap_.yCap(), cap_.zCap());
 }
 
 // Topology::Brief()
@@ -270,7 +284,7 @@ void Topology::PrintAngles(AngleArray const& aarray, AtomMask const& maskIn, int
       mprintf("%8i:", na);
       int aidx = (*aatom).Idx();
       if ( aidx > -1 )
-        mprintf(" %6.3f %6.2f", angleparm_[aidx].Tk(), angleparm_[aidx].Teq() * RADDEG);
+        mprintf(" %6.3f %6.2f", angleparm_[aidx].Tk(), angleparm_[aidx].Teq() * Constants::RADDEG);
       mprintf(" %-*s %-*s %-*s (%i,%i,%i)\n", rwidth, AtomMaskName(atom1).c_str(), 
               rwidth, AtomMaskName(atom2).c_str(), rwidth, AtomMaskName(atom3).c_str(),
               atom1+1, atom2+1, atom3+1); 
@@ -944,11 +958,13 @@ bool Topology::SetupCharMask(AtomMask &mask) const {
 
 // Topology::SetupIntegerMask()
 bool Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
+  if (frame.empty()) return ParseMask(refCoords_, mask, true);
   return ParseMask( frame, mask, true );
 }
 
 // Topology::SetupCharMask()
 bool Topology::SetupCharMask(AtomMask &mask, Frame const& frame) const {
+  if (frame.empty()) return ParseMask(refCoords_, mask, false);
   return ParseMask( frame, mask, false );
 }
 
@@ -1307,11 +1323,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->nRepDim_ = nRepDim_;
 
   // Reverse Atom map
-  // TODO: Use std::map instead
   std::vector<int> atomMap( atoms_.size(),-1 );
 
   // Copy atoms from this parm that are in Mask to newParm.
-  //int newatom = 0;
   int oldres = -1;
   // TODO: Check the map size
   for (int newatom = 0; newatom < (int)MapIn.size(); newatom++) {
@@ -1382,6 +1396,55 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Since nbindex depends on the atom type index and those entries were 
   // not changed this is still valid. May want to cull unused parms later.
   newParm->nonbond_ = nonbond_;
+  // LES info - FIXME: Not sure if stripping this is valid so print a warning.
+  if (lesparm_.HasLES()) {
+    mprintf("Warning: LES info present. Stripped topology may not have correct LES info.\n");
+    newParm->lesparm_.SetTypes( lesparm_.Ntypes(), lesparm_.FAC() );
+    for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
+    {
+      if (*old_it >= 0)
+        newParm->lesparm_.AddLES_Atom( lesparm_.Array()[*old_it] );
+    }
+  }
+  // CAP info - dont support stripping such topologies right now
+  if (cap_.HasWaterCap())
+    mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
+  // CHAMBER info - Parameters remain intact
+  if (chamber_.HasChamber()) {
+    newParm->chamber_.SetChamber( chamber_.FF_Version(), chamber_.FF_Type() );
+    newParm->chamber_.SetUB( StripBondArray(chamber_.UB(),atomMap), chamber_.UBparm() );
+    newParm->chamber_.SetImproper( StripDihedralArray(chamber_.Impropers(),atomMap),
+                                   chamber_.ImproperParm() );
+    newParm->chamber_.SetLJ14( chamber_.LJ14() );
+    if (chamber_.HasCmap()) {
+      for (CmapArray::const_iterator cmap = chamber_.Cmap().begin();
+                                     cmap != chamber_.Cmap().end(); ++cmap)
+      {
+        int newA1 = atomMap[ cmap->A1() ];
+        if (newA1 != -1) {
+          int newA2 = atomMap[ cmap->A2() ];
+          if (newA2 != -1) {
+            int newA3 = atomMap[ cmap->A3() ];
+            if (newA3 != -1) {
+              int newA4 = atomMap[ cmap->A4() ];
+              if (newA4 != -1) {
+                int newA5 = atomMap[ cmap->A5() ];
+                if (newA5 != -1)
+                  newParm->chamber_.AddCmapTerm( CmapType(newA1,newA2,newA3,
+                                                          newA4,newA5,cmap->Idx()) );
+              }
+            }
+          }
+        }
+      }
+      // Only add CMAP grids if there are CMAP terms left.
+      if (!newParm->chamber_.Cmap().empty()) {
+        for (CmapGridArray::const_iterator g = chamber_.CmapGrid().begin();
+                                           g != chamber_.CmapGrid().end(); ++g)
+          newParm->chamber_.AddCmapGrid( *g );
+      }
+    }
+  }
   // Amber extra info. Assume if one present, all present.
   if (!itree_.empty() && !join_.empty() && !irotat_.empty()) {
     for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)

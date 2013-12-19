@@ -297,9 +297,9 @@ Action::RetType Action_Rotdif::DoAction(int frameNum, Frame* currentFrame, Frame
   */
 // NOTE: Theta could also be generated in the same way as phi. Currently done
 //       to be consistent with the original implementation in randvec.F90
-std::vector<Vec3> Action_Rotdif::RandomVectors() {
-  std::vector<Vec3> XYZ;
-  XYZ.reserve( nvecs_ );
+DataSet_Vector Action_Rotdif::RandomVectors() {
+  DataSet_Vector XYZ;
+  XYZ.ReserveVecs( nvecs_ );
   // ----- Read nvecs vectors from a file
   if (!randvecIn_.empty()) {
     CpptrajFile vecIn;
@@ -308,27 +308,28 @@ std::vector<Vec3> Action_Rotdif::RandomVectors() {
       return XYZ;
     }
     //vecIn.SetupBuffer(); // NOTE: Use CpptrajFile internal buffer (1024 chars)
-    double xIn[3];
+    Vec3 xIn;
     for (int i = 0; i < nvecs_; i++) {
       const char* buffer = vecIn.NextLine();
       if ( buffer == 0 ) {
         mprinterr("Error: Could not read vector %i from file %s\n", i+1,randvecIn_.c_str());
-        XYZ.clear();
+        XYZ.reset();
         return XYZ;
       }
-      sscanf(buffer,"%*i %lf %lf %lf", xIn, xIn+1, xIn+2);
-      XYZ.push_back( xIn );
+      sscanf(buffer,"%*i %lf %lf %lf", xIn.Dptr(), xIn.Dptr()+1, xIn.Dptr()+2);
+      xIn.Normalize();
+      XYZ.AddVxyz( xIn );
     }
     vecIn.CloseFile();
-  // ----- Generate nvecs vectors
+  // ----- Generate nvecs normalized vectors
   } else {
     for (int i = 0; i < nvecs_; i++) {
-      double phi = TWOPI * RNgen_.rn_gen();
+      double phi = Constants::TWOPI * RNgen_.rn_gen();
       // XYZ[i+2] is cos(theta)
       double costheta = 1 - RNgen_.rn_gen();
       double theta = acos( costheta );
       double sintheta = sin( theta );
-      XYZ.push_back( Vec3(sintheta*cos(phi), sintheta*sin(phi), costheta) );
+      XYZ.AddVxyz( Vec3(sintheta*cos(phi), sintheta*sin(phi), costheta) );
     }
   }
   // Print vectors
@@ -338,7 +339,7 @@ std::vector<Vec3> Action_Rotdif::RandomVectors() {
       mprinterr("Error: Rotdif: Could not set up %s for writing.\n",randvecOut_.c_str());
     } else {
       int idx = 1;
-      for (std::vector<Vec3>::iterator vec = XYZ.begin(); vec != XYZ.end(); ++vec)
+      for (DataSet_Vector::iterator vec = XYZ.begin(); vec != XYZ.end(); ++vec)
         rvout.Printf("%6i  %15.8lf  %15.8lf  %15.8lf\n",
                      idx++, (*vec)[0], (*vec)[1], (*vec)[2]);
       rvout.CloseFile();
@@ -357,7 +358,7 @@ std::vector<Vec3> Action_Rotdif::RandomVectors() {
   * \param p1 Will be set with values for correlation function, l=1
   */
 // TODO: Make rotated_vectors const&
-int Action_Rotdif::compute_corr(DataSet_Vector& rotated_vectors, int maxdat,
+int Action_Rotdif::compute_corr(DataSet_Vector const& rotated_vectors, int maxdat,
                                 std::vector<double>& p2, std::vector<double>& p1)
 {
   // Initialize p1 and p2
@@ -384,22 +385,19 @@ int Action_Rotdif::compute_corr(DataSet_Vector& rotated_vectors, int maxdat,
 }
 
 // Action_Rotdif::fft_compute_corr()
-int Action_Rotdif::fft_compute_corr(DataSet_Vector& rotated_vectors, int nsteps, 
+int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int nsteps, 
                                     std::vector<double>& p2, int order)
 {
   int n_of_vecs = rotated_vectors.Size();
   // Zero output array
   p2.assign(nsteps, 0.0);
 
-  // Calculate spherical harmonics for each vector.
-  rotated_vectors.CalcSphericalHarmonics( order );
-
   // Calculate correlation fn
   CorrF_FFT pubfft( n_of_vecs );
   ComplexArray data1 = pubfft.Array();
   // Loop over m = -olegendre, ..., +olegendre
   for (int midx = -order; midx <= order; ++midx) { 
-    rotated_vectors.FillData( data1, midx );
+    data1.Assign(rotated_vectors.SphericalHarmonics(midx));
     // Pad with zeros at the end
     // TODO: Does this always have to be done or can it just be done once
     data1.PadWithZero( n_of_vecs );
@@ -412,9 +410,9 @@ int Action_Rotdif::fft_compute_corr(DataSet_Vector& rotated_vectors, int nsteps,
   // 4/3*PI and 4/5*PI due to spherical harmonics addition theorem
   double norm = 1.0;
   if (order==1)
-    norm = FOURTHIRDSPI;
+    norm = Constants::FOURTHIRDSPI;
   else if (order==2)
-    norm = FOURFIFTHSPI;
+    norm = Constants::FOURFIFTHSPI;
   for (int i = 0; i < nsteps; ++i) {
     p2[i] *= (norm / (n_of_vecs - i));
   }
@@ -592,12 +590,12 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
   // propogating throughout the calc. Set to SMALL instead; will get 
   // very large numbers but should still not overflow.
   for (int i = 0; i < 8; i++) 
-    if (lambda[i] < SMALL) lambda[i] = SMALL;
+    if (lambda[i] < Constants::SMALL) lambda[i] = Constants::SMALL;
 
   // Loop over all random vectors
   int nvec = 0; // index into tau1, tau2, sumc2
-  for (std::vector<Vec3>::iterator randvec = random_vectors_.begin();
-                                   randvec != random_vectors_.end(); ++randvec)
+  for (DataSet_Vector::iterator randvec = random_vectors_.begin();
+                                randvec != random_vectors_.end(); ++randvec)
   {
     // Rotate vector i into D frame
     // This is an inverse rotation. Since matrix_D is in column major order
@@ -663,7 +661,7 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
     double dot3_4 = dot3_2 * dot3_2;
     double da = 0.25 * ( 3*(dot1_4 + dot2_4 + dot3_4) - 1);
     double ea = 0;
-    if ( delta > SMALL) { 
+    if ( delta > Constants::SMALL) { 
       double epsx = 3*(dx-Dav)/delta;
       double epsy = 3*(dy-Dav)/delta;
       double epsz = 3*(dz-Dav)/delta;
@@ -1135,8 +1133,8 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
   int A5 = m_rows * 5;
   double* At = matrix_At;
   int nvec = 0;
-  for (std::vector<Vec3>::iterator randvec = random_vectors_.begin();
-                                   randvec != random_vectors_.end(); ++randvec)
+  for (DataSet_Vector::iterator randvec = random_vectors_.begin();
+                                randvec != random_vectors_.end(); ++randvec)
   {
     // Transpose of matrix A
     double *A = matrix_A + nvec;
@@ -1451,7 +1449,7 @@ int Action_Rotdif::DetermineDeffs() {
   D_eff_.reserve( nvecs_ );
   // Allocate memory to hold rotated vectors. Need +1 since the original
   // vector is stored at position 0. 
-  rotated_vectors.Allocate1D( itotframes + 1 );
+  rotated_vectors.ReserveVecs( itotframes + 1 );
   // Allocate memory for C(t)
   p1.reserve( maxdat );
   p2.reserve( maxdat );
@@ -1475,14 +1473,14 @@ int Action_Rotdif::DetermineDeffs() {
     return 1; // Should never get here, olegendre is checked in init
   // LOOP OVER RANDOM VECTORS
   int nvec = 0;
-  for (std::vector<Vec3>::iterator rndvec = random_vectors_.begin();
-                                   rndvec != random_vectors_.end(); ++rndvec)
+  for (DataSet_Vector::iterator rndvec = random_vectors_.begin();
+                                rndvec != random_vectors_.end(); ++rndvec)
   {
     progress.Update( nvec );
     // Reset rotated_vectors to the beginning 
     rotated_vectors.reset();
     // Normalize vector
-    (*rndvec).Normalize();
+    //rndvec->Normalize(); // FIXME: Should already be normalized
     // Assign normalized vector to rotated_vectors position 0
     rotated_vectors.AddVxyz( *rndvec );
    
@@ -1499,9 +1497,11 @@ int Action_Rotdif::DetermineDeffs() {
       //        current[0], current[1], current[2]); 
     }
     // Calculate time correlation function for this vector
-    if (usefft_)
+    if (usefft_) {
+      // Calculate spherical harmonics for each vector.
+      rotated_vectors.CalcSphericalHarmonics( olegendre_ );
       fft_compute_corr(rotated_vectors, maxdat, *pY, olegendre_);
-    else
+    } else
       compute_corr(rotated_vectors, maxdat, p2, p1);
     // Calculate mesh Y values
     spline.SetSplinedMeshY(pX, *pY);
@@ -1566,7 +1566,7 @@ void Action_Rotdif::Print() {
  
   // Read/Generate nvecs random vectors
   random_vectors_ = RandomVectors();
-  if (random_vectors_.empty()) return;
+  if (random_vectors_.Size() < 1) return;
 
   // If no rotation matrices generated, exit
   if (Rmatrices_.empty()) return;

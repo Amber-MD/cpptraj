@@ -34,11 +34,11 @@ double DataSet_1D::Avg(double* stdev) const {
       double sumy = 0.0;
       double sumx = 0.0;
       for ( int i = 0; i < numvalues; ++i ) {
-        double theta = Dval( i ) * DEGRAD;
+        double theta = Dval( i ) * Constants::DEGRAD;
         sumy += sin( theta );
         sumx += cos( theta );
       }
-      avg = atan2(sumy, sumx) * RADDEG;
+      avg = atan2(sumy, sumx) * Constants::RADDEG;
       if (stdev==0) return avg;
       // Torsion Stdev
       sumy = 0;

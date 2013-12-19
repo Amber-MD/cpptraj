@@ -487,7 +487,7 @@ void Action_Radial::Print() {
     double R = spacing_ * (double)bin;
     double Rdr = R + spacing_;
     // Volume of slice: 4/3_pi * [(r+dr)^3 - (dr)^3]
-    double dv = FOURTHIRDSPI * ( (Rdr * Rdr * Rdr) - (R * R * R) );
+    double dv = Constants::FOURTHIRDSPI * ( (Rdr * Rdr * Rdr) - (R * R * R) );
     // Expected # distances in this volume slice
     double expectedD = dv * density_;
     if (debug_>0)

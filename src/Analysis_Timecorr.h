@@ -40,7 +40,7 @@ class Analysis_Timecorr : public Analysis {
     CorrF_FFT pubfft_;
     CorrF_Direct corfdir_;
     
-    std::vector<double> CalculateAverages(DataSet_Vector&, AvgResults&);
+    std::vector<double> CalculateAverages(DataSet_Vector const&, AvgResults&);
     void CalcCorr(int);
 };
 #endif

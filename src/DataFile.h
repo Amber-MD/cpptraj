@@ -11,11 +11,13 @@ class DataFile {
   public:
     /// Known data file formats.
     enum DataFormatType {
-      DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, UNKNOWN_DATA 
+      DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, EVECS,
+      UNKNOWN_DATA 
     };
     DataFile();
     ~DataFile();
     // -------------------------------------------
+    static void WriteHelp();
     /// List read options for each format.
     static void ReadOptions() { FileTypes::ReadOptions(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA); }
     /// List write options for each format.
@@ -57,7 +59,6 @@ class DataFile {
     int dimension_;            ///< The dimension of all sets in the DataFile.
     DataFormatType dfType_;    ///< Format of data in DataFile.
     bool dflWrite_;            ///< Write file when DataFileList::WriteAllDF called.
-    bool isInverted_;          ///< For 1D writes invert X/Y if DataIO supports it.
     bool setDataSetPrecision_; ///< If true set default precision of incoming DataSets.
     int default_width_;        ///< Default width of data sets added to this file.
     int default_precision_;    ///< Default precision of data sets added to this file.

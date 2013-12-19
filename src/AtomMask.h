@@ -31,7 +31,9 @@ class AtomMask {
   public:
     AtomMask();
     AtomMask(std::string const&);
+    ///< Create mask selecting atoms from begin to end.
     AtomMask(int,int);
+    AtomMask(int);
     AtomMask(const AtomMask &);
     AtomMask& operator=(const AtomMask&);
     /// \return Internal selected atom array.
@@ -71,7 +73,7 @@ class AtomMask {
     /// Add minAtom <= atom < maxAtom to mask
     void AddAtomRange(int,int);
     /// Add atoms in given mask to this mask at positon, update position
-    void AddMaskAtPosition(AtomMask&, int);
+    void AddMaskAtPosition(AtomMask const&, int);
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*) const;
     /// Set the mask string. If NULL, set * (all)

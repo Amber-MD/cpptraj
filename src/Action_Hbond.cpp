@@ -32,20 +32,20 @@ Action_Hbond::Action_Hbond() :
 {}
 
 void Action_Hbond::Help() {
-  mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>] [series]\n");
-  mprintf("\t[donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n");
-  mprintf("\t[avgout <filename>] [printatomnum] [nointramol]\n");
-  mprintf("\t[solventdonor <mask>] [solventacceptor <mask>]\n");
-  mprintf("\t[solvout <filename>] [bridgeout <filename>]\n");
-  mprintf("\tSearch for hydrogen bonds using atoms in the region specified by mask.\n");
-  mprintf("\tIf just <mask> specified donors and acceptors will be automatically searched for.\n");
-  mprintf("\tIf donormask is specified but not acceptormask, acceptors will be\n");
-  mprintf("\tautomatically searched for in <mask>.\n");
-  mprintf("\tIf acceptormask is specified but not donormask, donors will be automatically\n");
-  mprintf("\tsearched for in <mask>.\n");
-  mprintf("\tIf both donormask and acceptor mask are specified no automatic searching will occur.\n");
-  mprintf("\tIf donorhmask is specified atoms in that mask will be paired with atoms in\n");
-  mprintf("\tdonormask instead of automatically searching for hydrogen atoms.\n");
+  mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>] [series]\n"
+          "\t[donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n"
+          "\t[avgout <filename>] [printatomnum] [nointramol]\n"
+          "\t[solventdonor <mask>] [solventacceptor <mask>]\n"
+          "\t[solvout <filename>] [bridgeout <filename>]\n"
+          "\t  Search for hydrogen bonds using atoms in the region specified by mask.\n"
+          "\tIf just <mask> specified donors and acceptors will be automatically searched for.\n"
+          "\tIf donormask is specified but not acceptormask, acceptors will be\n"
+          "\tautomatically searched for in <mask>.\n"
+          "\tIf acceptormask is specified but not donormask, donors will be automatically\n"
+          "\tsearched for in <mask>.\n"
+          "\tIf both donormask and acceptor mask are specified no automatic searching will occur.\n"
+          "\tIf donorhmask is specified atoms in that mask will be paired with atoms in\n"
+          "\tdonormask instead of automatically searching for hydrogen atoms.\n");
 }
 
 // Action_Hbond::Init()
@@ -63,7 +63,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
   // Convert angle cutoff to radians
-  acut_ *= DEGRAD;
+  acut_ *= Constants::DEGRAD;
   double dcut = actionArgs.getKeyDouble("dist",3.0);
   dcut = actionArgs.getKeyDouble("distance", dcut); // for PTRAJ compat.
   dcut2_ = dcut * dcut;
@@ -154,7 +154,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   if (hasSolventAcceptor_)
     mprintf("\tWill search for hbonds between solute and solvent acceptors in [%s]\n",
             SolventAcceptorMask_.MaskString());
-  mprintf("\tDistance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*RADDEG);
+  mprintf("\tDistance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*Constants::RADDEG);
   if (DF != 0) 
     mprintf("\tDumping # Hbond v time results to %s\n", DF->DataFilename().base());
   if (!avgout_.empty())
@@ -412,7 +412,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
   //mprintf( "A-D HBOND[%6i]: %6i@%-4s ... %6i@%-4s-%6i@%-4s Dst=%6.2lf Ang=%6.2lf\n", hbidx, 
   //        a_atom, (*currentParm)[a_atom].c_str(),
   //        h_atom, (*currentParm)[h_atom].c_str(), 
-  //        d_atom, (*currentParm)[d_atom].c_str(), dist, angle*RADDEG);
+  //        d_atom, (*currentParm)[d_atom].c_str(), dist, angle*Constants::RADDEG);
   // Find hbond in map
   HBmapType::iterator entry = SolventMap_.find( hbidx );
   if (entry == SolventMap_.end() ) {
@@ -633,7 +633,7 @@ void Action_Hbond::HbondTypeCalcAvg(HbondType& hb) {
   double dFrames = (double)hb.Frames;
   hb.dist /= dFrames;
   hb.angle /= dFrames;
-  hb.angle *= RADDEG;
+  hb.angle *= Constants::RADDEG;
 }
 
 // Action_Hbond::Print()

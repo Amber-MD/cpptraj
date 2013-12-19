@@ -33,6 +33,9 @@ AtomMask::AtomMask(int beginAtom, int endAtom) :
   AddAtomRange(beginAtom, endAtom);
 }
 
+AtomMask::AtomMask(int atomNum) : debug_(0), maskChar_('T'), Natom_(1),
+  nselected_(1), Selected_(1, atomNum)
+{}
 
 // COPY CONSTRUCTOR
 AtomMask::AtomMask(const AtomMask &rhs) : 
@@ -549,7 +552,7 @@ void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
   * Currently only used by Closest for modifying the original stripped
   * mask with the calculated closest waters.
   */
-void AtomMask::AddMaskAtPosition(AtomMask& maskIn, int idx) {
+void AtomMask::AddMaskAtPosition(AtomMask const& maskIn, int idx) {
   // NOTE: NO BOUNDS CHECK!
   for (const_iterator atom = maskIn.begin(); atom != maskIn.end(); atom++) 
     Selected_[idx++] = *atom;

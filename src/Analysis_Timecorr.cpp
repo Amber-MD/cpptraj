@@ -20,21 +20,19 @@ Analysis_Timecorr::Analysis_Timecorr() :
 {}
 
 void Analysis_Timecorr::Help() {
-  mprintf("\tvec1 <vecname1> [vec2 <vecname2>] out <filename>\n");
-  mprintf("\t[order <order>] tstep <tstep> tcorr <tcorr>\n");
-  mprintf("\t[dplr] [norm] [drct]\n");
-  mprintf("\tCalculate auto or cross-correlation function for specified vectors.\n");
+  mprintf("\tvec1 <vecname1> [vec2 <vecname2>] out <filename>\n"
+          "\t[order <order>] tstep <tstep> tcorr <tcorr>\n"
+          "\t[dplr] [norm] [drct]\n"
+          "\tCalculate auto or cross-correlation function for specified vectors.\n");
 }
 
 // Analysis_TimeCorr::CalculateAverages()
-std::vector<double> Analysis_Timecorr::CalculateAverages(DataSet_Vector& vIn, 
+std::vector<double> Analysis_Timecorr::CalculateAverages(DataSet_Vector const& vIn, 
                                                          AvgResults& avgOut) 
 {
   std::vector<double> R3i;
   R3i.reserve(vIn.Size());
-  double avgx = 0.0;
-  double avgy = 0.0;
-  double avgz = 0.0;
+  Vec3 avg(0.0, 0.0, 0.0);
   avgOut.rave_ = 0.0;
   avgOut.r3iave_ = 0.0;
   avgOut.r6iave_ = 0.0;
@@ -42,13 +40,11 @@ std::vector<double> Analysis_Timecorr::CalculateAverages(DataSet_Vector& vIn,
   for (DataSet_Vector::iterator vec = vIn.begin();
                                 vec != vIn.end(); ++vec)
   {
-    const double* VXYZ = *vec;
+    const Vec3& VXYZ = *vec;
     // Calc vector length
-    double len = sqrt(VXYZ[0]*VXYZ[0] + VXYZ[1]*VXYZ[1] + VXYZ[2]*VXYZ[2]);
+    double len = sqrt( VXYZ.Magnitude2() );
     // Update avgcrd, rave, r3iave, r6iave
-    avgx += VXYZ[0];
-    avgy += VXYZ[1];
-    avgz += VXYZ[2];
+    avg += VXYZ;
     avgOut.rave_ += len;
     double r3i = 1.0 / (len*len*len);
     avgOut.r3iave_ += r3i;
@@ -60,7 +56,7 @@ std::vector<double> Analysis_Timecorr::CalculateAverages(DataSet_Vector& vIn,
   avgOut.rave_ *= dnorm;
   avgOut.r3iave_ *= dnorm;
   avgOut.r6iave_ *= dnorm;
-  avgOut.avgr_ = sqrt(avgx*avgx + avgy*avgy + avgz*avgz) * dnorm;
+  avgOut.avgr_ = sqrt(avg.Magnitude2()) * dnorm;
   return R3i;
 }
 
@@ -91,12 +87,12 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   // Get Vectors
   std::string vec1name = analyzeArgs.GetStringKey("vec1");
   if (vec1name.empty()) {
-    mprinterr("Error: analyze timecorr: no vec1 given, ignoring command\n");
+    mprinterr("Error: no vec1 given, ignoring command\n");
     return Analysis::ERR;
   }
   vinfo1_ = (DataSet_Vector*)DSLin->FindSetOfType( vec1name, DataSet::VECTOR );
   if (vinfo1_==0) {
-    mprinterr("Error: analyze timecorr: vec1: no vector with name %s found.\n", 
+    mprinterr("Error: vec1: no vector with name %s found.\n", 
               vec1name.c_str());
     return Analysis::ERR;
   }
@@ -104,7 +100,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   if (!vec2name.empty()) {
     vinfo2_ = (DataSet_Vector*)DSLin->FindSetOfType( vec2name, DataSet::VECTOR );
     if (vinfo2_==0) {
-      mprinterr("Error: analyze timecorr: vec2: no vector with name %s found.\n", 
+      mprinterr("Error: vec2: no vector with name %s found.\n", 
                 vec2name.c_str());
       return Analysis::ERR;
     }
@@ -129,7 +125,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   tcorr_ = analyzeArgs.getKeyDouble("tcorr", 10000.0);
   filename_ = analyzeArgs.GetStringKey("out");
   if (filename_.empty()) {
-    mprinterr("Error: analyze timecorr: No outfile given ('out <filename>').\n");
+    mprinterr("Error: No outfile given ('out <filename>').\n");
     return Analysis::ERR;
   }
 
@@ -139,26 +135,26 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   drct_ = analyzeArgs.hasKey("drct");
 
   // Print Status
-  mprintf("    ANALYZE TIMECORR: Calculating");
+  mprintf("    TIMECORR: Calculating");
   if (mode_ == AUTO)
     mprintf(" auto-correlation function of vector %s", vinfo1_->Legend().c_str());
   else if (mode_ == CROSS)
     mprintf(" cross-correlation function of vectors %s and %s", vinfo1_->Legend().c_str(),
             vinfo2_->Legend().c_str());
-  mprintf("\n\t\tCorrelation time %lf, time step %lf\n", tcorr_, tstep_);
-  mprintf("\t\tCorr. func. are");
+  mprintf("\n\tCorrelation time %lf, time step %lf\n", tcorr_, tstep_);
+  mprintf("\tCorr. func. are");
   if (dplr_)
     mprintf(" for dipolar interactions and");
   if (norm_)
     mprintf(" normalized.\n");
   else
     mprintf(" not normalized.\n");
-  mprintf("\t\tCorr. func. are calculated using the");
+  mprintf("\tCorr. func. are calculated using the");
   if (drct_)
     mprintf(" direct approach.\n");
   else
     mprintf(" FFT approach.\n");
-  mprintf("\t\tResults are written to %s\n", filename_.c_str());
+  mprintf("\tResults are written to %s\n", filename_.c_str());
 
   return Analysis::OK;
 }
@@ -216,9 +212,9 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
 
   // P2
   for (int midx = -order_; midx <= order_; ++midx) {
-    vinfo1_->FillData( data1_, midx );
+    data1_.Assign( vinfo1_->SphericalHarmonics( midx ) );
     if (vinfo2_ != 0)
-      vinfo2_->FillData( data2_, midx);
+      data2_.Assign( vinfo2_->SphericalHarmonics( midx ) );
     CalcCorr( frame );
     for (int k = 0; k < nsteps; ++k)
       p2cf_[k] += data1_[2 * k];
@@ -233,9 +229,9 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
       R3i_2 = CalculateAverages(*vinfo2_, Avg2);
     // C
     for (int midx = -order_; midx <= order_; ++midx) {
-      vinfo1_->FillData( data1_, midx );
+      data1_.Assign( vinfo1_->SphericalHarmonics( midx ) );
       if (vinfo2_ != 0)
-        vinfo2_->FillData( data2_, midx);
+        data2_.Assign( vinfo2_->SphericalHarmonics( midx ) );
       int i2 = 0;
       for (int i = 0; i < frame; ++i) {
         double r3i = R3i_1[ i ]; 
@@ -295,8 +291,8 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
       for (int i = 0; i < nsteps; ++i)
         outfile.Printf("%10.3f %10.4f %10.4f %10.4f\n",
                        (double)i * tstep_,
-                       FOURFIFTHSPI * cf_[i]   / (frame - i),
-                       FOURFIFTHSPI * p2cf_[i] / (frame - i),
+                       Constants::FOURFIFTHSPI * cf_[i]   / (frame - i),
+                       Constants::FOURFIFTHSPI * p2cf_[i] / (frame - i),
                        rcf_[i]  / (frame - i));
     }
   } else {
@@ -311,7 +307,7 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
       for (int i = 0; i < nsteps; ++i)
         outfile.Printf("%10.3f %10.4f\n",
                        (double)i * tstep_,
-                       FOURFIFTHSPI * p2cf_[i] / (frame - i));
+                       Constants::FOURFIFTHSPI * p2cf_[i] / (frame - i));
     }
   }
   outfile.CloseFile();

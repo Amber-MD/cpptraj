@@ -58,101 +58,80 @@ const double Atom::AtomicElementMass[NUMELEMENTS] = { 1.0,
 };  
 
 // CONSTRUCTOR
-Atom::Atom() : 
-  charge_(0.0),
-  mass_(1.0),
-  gb_radius_(0.0),
-  gb_screen_(0.0),
-  aname_(""),
-  atype_(""),
-  atype_index_(0),
-  element_(UNKNOWN_ELEMENT),
-  resnum_(0),
-  mol_(0),
-  chainID_(' ')
-{ }
+Atom::Atom() : charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0),
+               gb_screen_(0.0), aname_(""), atype_(""), atype_index_(0),
+               element_(UNKNOWN_ELEMENT), resnum_(0), mol_(0), chainID_(' ')
+{}
 
 /** If no 2 char element name provided, try to guess from name. */ 
 Atom::Atom(NameType const& aname, char cid, const char* elt) :
-  charge_(0.0),
-  mass_(1.0),
-  gb_radius_(0.0),
-  gb_screen_(0.0),
-  aname_(aname),
-  atype_(""),
-  atype_index_(0),
-  element_(UNKNOWN_ELEMENT),
-  resnum_(0),
-  mol_(0),
-  chainID_(cid)
+  charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  aname_(aname), atype_(""), atype_index_(0), element_(UNKNOWN_ELEMENT),
+  resnum_(0), mol_(0), chainID_(cid)
 {
-  if (elt ==0 || elt[0] == ' ')
+  if (elt ==0 || (elt[0]==' ' && elt[1]==' '))
     SetElementFromName();
   else
     SetElementFromSymbol(elt[0], elt[1]);
   mass_ = AtomicElementMass[ element_ ];
 }
 
-/** Attempt to guess element from name. */ 
+/** Attempt to guess element from atom name. */ 
 Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
-  charge_(q),
-  mass_(1.0),
-  gb_radius_(0.0),
-  gb_screen_(0.0),
-  aname_(aname),
-  atype_(atype),
-  atype_index_(0),
-  element_(UNKNOWN_ELEMENT),
-  resnum_(0),
-  mol_(0),
-  chainID_(' ')
+  charge_(q), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  aname_(aname), atype_(atype), atype_index_(0), element_(UNKNOWN_ELEMENT),
+  resnum_(0), mol_(0), chainID_(' ')
 {
   SetElementFromName();
   mass_ = AtomicElementMass[ element_ ];
 }
 
-// CONSTRUCTOR
-/** Determine element from atomic number if set, otherwise determine from mass. 
-  * Determine element from name if all else fails.
-  */
-Atom::Atom( NameType const& name, double charge, int atomicnum, double mass, int atidx,
-            NameType const& type, double rad, double screen ) :
-  charge_(charge),
-  mass_(mass),
-  gb_radius_(rad),
-  gb_screen_(screen),
-  aname_(name),
-  atype_(type),
-  atype_index_(atidx),
-  element_(UNKNOWN_ELEMENT),
-  resnum_(0),
-  mol_(0),
-  chainID_(' ')
-{
-  // Determine atomic element
+// Atom::DetermineElement()
+/// Determine element from atomic number, mass, or atom name.
+void Atom::DetermineElement(int atomicnum) {
   if (atomicnum>0) {
     // Determine element from atomic number
     for (int i = 1; i < (int)NUMELEMENTS; i++)
-      if (AtomicElementNum[i] == atomicnum)
+      if (AtomicElementNum[i] == atomicnum) {
         element_ = (AtomicElementType) i;
+        break;
+      }
   } else {
-    // Determine element from mass. If mass is 0 this is probably an
-    // extra point.
+    // Determine element from mass. No mass means extra point.
     if ( mass_ == 0 )
       element_ = EXTRAPT;
     else
       SetElementFromMass();
   }
-  
   // If element still unknown attempt to determine from name
   if (element_ == UNKNOWN_ELEMENT)
     SetElementFromName();
+}
+
+// CONSTRUCTOR
+Atom::Atom(NameType const& aname, double charge, double mass, NameType const& atype) :
+  charge_(charge), polar_(0.0), mass_(mass), gb_radius_(0.0), gb_screen_(0.0),
+  aname_(aname), atype_(atype), atype_index_(0), element_(UNKNOWN_ELEMENT),
+  resnum_(0), mol_(0), chainID_(' ')
+{
+  DetermineElement(0);
+}
+
+// CONSTRUCTOR
+Atom::Atom( NameType const& name, double charge, double polar, int atomicnum, 
+            double mass, int atidx, NameType const& type, double rad, double screen ) :
+  charge_(charge), polar_(polar), mass_(mass), gb_radius_(rad), gb_screen_(screen),
+  aname_(name), atype_(type), atype_index_(atidx), element_(UNKNOWN_ELEMENT),
+  resnum_(0), mol_(0), chainID_(' ')
+{
+  DetermineElement(atomicnum);
 }
 
 // COPY CONSTRUCTOR
 // TODO: Does excluded need to be copied as well?
 Atom::Atom(const Atom &rhs) :
   charge_(rhs.charge_),
+  polar_(rhs.polar_),
   mass_(rhs.mass_),
   gb_radius_(rhs.gb_radius_),
   gb_screen_(rhs.gb_screen_),
@@ -170,6 +149,7 @@ Atom::Atom(const Atom &rhs) :
 void Atom::swap(Atom &first, Atom &second) {
   using std::swap;
   swap(first.charge_, second.charge_);
+  swap(first.polar_, second.polar_);
   swap(first.mass_, second.mass_);
   swap(first.gb_radius_, second.gb_radius_);
   swap(first.gb_screen_, second.gb_screen_);
@@ -278,8 +258,13 @@ void Atom::SetElementFromSymbol(char c1, char c2) {
   if (element_ != UNKNOWN_ELEMENT) return;
   // Attempt to match up 2 char element name
   char en[2];
-  en[0] = tolower(c1);
-  en[1] = tolower(c2);
+  if (c1 != ' ') {
+    en[0] = toupper(c1);
+    en[1] = toupper(c2);
+  } else {
+    en[0] = toupper(c2);
+    en[1] = ' ';
+  }
   for (int i = 1; i < (int)NUMELEMENTS; i++) {
     if (AtomicElementName[i][1]=='\0') { // 1 char
       if ( en[0] == AtomicElementName[i][0] ) {

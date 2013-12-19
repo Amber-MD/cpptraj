@@ -31,11 +31,11 @@ static double AvgCalc_Dih( DataSet_1D const& dsIn, ClusterDist::Cframes const& c
   double sumx = 0.0;
   // TODO: Convert angles to radians prior to this call?
   for (ClusterDist::Cframes_it frm = cframesIn.begin(); frm != cframesIn.end(); ++frm) {
-    double theta = dsIn.Dval( *frm ) * DEGRAD;
+    double theta = dsIn.Dval( *frm ) * Constants::DEGRAD;
     sumy += sin( theta );
     sumx += cos( theta );
   }
-  return atan2(sumy, sumx) * RADDEG; 
+  return atan2(sumy, sumx) * Constants::RADDEG; 
 }
 
 static double AvgCalc_Std( DataSet_1D const& dsIn, ClusterDist::Cframes const& cframesIn ) {

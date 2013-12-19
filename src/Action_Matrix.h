@@ -9,16 +9,14 @@
 class Action_Matrix : public Action, ActionFrameCounter {
   public:
     Action_Matrix();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Matrix(); }
     static void Help();
-
-    void Print();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 
     typedef DataSet_MatrixDbl::Darray Darray;     ///< Mass/vector array type.
     typedef Darray::iterator          v_iterator; ///< Iterator over vector.
@@ -34,8 +32,8 @@ class Action_Matrix : public Action, ActionFrameCounter {
     int snap_;
     int debug_;
     // IRED only
-    int order_;
-    std::vector<DataSet_Vector*> IredVectors_;
+    int order_;                                ///< Legendre order
+    std::vector<DataSet_Vector*> IredVectors_; ///< IRED vectors
     // DIHCOVAR only
     Array1D DihedralSets_;
     // MWcovar only

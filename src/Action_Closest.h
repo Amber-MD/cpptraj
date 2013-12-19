@@ -48,7 +48,7 @@ class Action_Closest: public Action, ImagedAction {
     };
     /// Return true if the first molecule is closer than the second
     struct moldist_cmp {
-      inline bool operator()(MolDist first, MolDist second) const {
+      inline bool operator()(MolDist const& first, MolDist const& second) const {
         return (first.D < second.D);
       }
     };

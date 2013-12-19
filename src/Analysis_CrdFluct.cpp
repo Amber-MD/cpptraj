@@ -97,7 +97,7 @@ void Analysis_CrdFluct::CalcBfactors( Frame SumCoords, Frame SumCoords2, double 
   if (bfactor_) {
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
-    double bfac = (8.0/3.0)*PI*PI;
+    double bfac = (8.0/3.0)*Constants::PI*Constants::PI;
     for (int i = 0; i < SumCoords2.size(); i+=3) {
       double fluct = (SumCoords2[i] + SumCoords2[i+1] + SumCoords2[i+2]) * bfac;
       outset.Add( *maskat, &fluct );

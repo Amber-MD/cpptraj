@@ -22,6 +22,7 @@ template <class T> class Matrix {
     int resize(size_t,size_t);
     /// \return element at specified col and row.
     const T& element(int,int) const;
+    T&       element(int,int);
     /// \return number of rows (Y).
     size_t Nrows()     const { return nrows_;     }
     /// \return number of cols (X).
@@ -125,7 +126,7 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
     delete[] elements_;
     elements_ = 0;
   }
-  diagElt_ = 0; // Diagonal element default to zero.
+  diagElt_ = T(); // Diagonal element default to zero.
   if (nX > 0L && nY > 0L) { // FULL
     ncols_ = nX;
     nrows_ = nY;
@@ -153,7 +154,7 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
   currentElement_ = 0L;
   if (nelements_ > 0L) {
     elements_ = new T[ nelements_ ];
-    std::fill(elements_, elements_ + nelements_, 0);
+    std::fill(elements_, elements_ + nelements_, T());
   }
   return 0;
 }
@@ -174,6 +175,11 @@ template<class T> void Matrix<T>::setElement(int xIn, int yIn, const T& eltIn) {
 }
 // Matrix::element()
 template<class T> const T& Matrix<T>::element(int xIn, int yIn) const {
+  long int idx = calcIndex(ncols_, xIn, yIn);
+  if (idx < 0) return diagElt_; // In case of xIn == yIn for TRIANGLE
+  return elements_[idx];
+}
+template<class T> T& Matrix<T>::element(int xIn, int yIn) {
   long int idx = calcIndex(ncols_, xIn, yIn);
   if (idx < 0) return diagElt_; // In case of xIn == yIn for TRIANGLE
   return elements_[idx];
