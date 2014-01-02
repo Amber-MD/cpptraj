@@ -89,8 +89,9 @@ int ReferenceAction::SetupRef(Topology const& topIn, int Ntgt, const char* call)
   }
   // Check that num atoms in target mask from this parm match ref parm mask
   if ( refMask_.Nselected() != Ntgt ) {
-    mprintf( "Warning: Number of atoms in target mask (%i) does not \n", Ntgt);
-    mprintf( "         equal number of atoms in Ref mask (%i).\n",refMask_.Nselected());
+    mprintf("Warning: Number of atoms in target mask (%i) does not equal\n"
+            "Warning:   number of atoms in reference mask (%i).\n", 
+            Ntgt, refMask_.Nselected());
     return 1;
   }
   return 0;
