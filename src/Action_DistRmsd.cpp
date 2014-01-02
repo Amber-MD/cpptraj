@@ -6,9 +6,9 @@
 Action_DistRmsd::Action_DistRmsd() : drmsd_(0) {}
 
 void Action_DistRmsd::Help() {
-  mprintf("\t[<name>] [<mask>] [<refmask>] [out filename]\n");
-  mprintf("\t[ first | ref <filename> | refindex <#> |\n");
-  mprintf("\t[ reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"); 
+  mprintf("\t[<name>] [<mask>] [<refmask>] [out filename]\n"
+          "\t[ first | %s |\n"
+          "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n", FrameList::RefArgs); 
 }
 
 // Action_DistRmsd::Init()

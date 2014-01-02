@@ -80,6 +80,8 @@ int FrameList::AddRefFrame(ArgList& argIn, TopologyList const& topListIn) {
   return 0;
 }
 
+const char* FrameList::RefArgs = "reference | ref <name> | refindex <#>";
+
 // FrameList::GetFrameFromArgs()
 /** \return ReferenceFrame based on args in argIn.
   * The keywords in order of precedence are:

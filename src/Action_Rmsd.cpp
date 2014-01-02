@@ -17,12 +17,12 @@ Action_Rmsd::Action_Rmsd() :
 
 void Action_Rmsd::Help() {
   mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n"
-          "\t[ first | ref <filename> | refindex <#> |\n"
+          "\t[ first | %s |\n"
           "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
           "\t [range <resRange>] [refrange <refRange>]\n"
-          "\t [perresmask <additional mask>] [perrescenter] [perresinvert]\n"
-          "\tCalculate coordinate root-mean-squared deviation of atoms in <mask>\n");
+          "\t [perresmask <additional mask>] [perrescenter] [perresinvert]\n", FrameList::RefArgs);
+  mprintf("\tCalculate coordinate root-mean-squared deviation of atoms in <mask>\n");
 }
 
 // Action_Rmsd::Init()

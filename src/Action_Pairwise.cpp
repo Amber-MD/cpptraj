@@ -22,9 +22,9 @@ Action_Pairwise::Action_Pairwise() :
 {} 
 
 void Action_Pairwise::Help() {
-  mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <cute>] [cutevdw <cutv>]\n");
-  mprintf("\t[ref <reffilename> | refindex <ref#>] [cutout <cutmol2name>]\n");
-  mprintf("\tCalculate pairwise (non-bonded) energy for atoms in <mask>.\n");
+  mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <ecut>] [cutevdw <vcut>]\n"
+          "\t[ %s ] [cutout <cutmol2name>]\n"
+          "\tCalculate pairwise (non-bonded) energy for atoms in <mask>.\n", FrameList::RefArgs);
 }
 
 // DESTRUCTOR

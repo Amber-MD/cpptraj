@@ -310,10 +310,10 @@ static void Help_GenerateAmberRst() {
   mprintf("\t<mask1> <mask2> [<mask3>] [<mask4>]\n"
           "\tr1 <r1> r2 <r2> r3 <r3> r4 <r4> rk2 <rk2> rk3 <rk3>\n"
           "\t{%s}\n"
-          "\t[{ref <refname> | refindex <#> | reference} [offset <off>] [width <width>]\n"
+          "\t[{%s} [offset <off>] [width <width>]\n"
           "\t[out <outfile>] [overwrite]\n"
           "\tGenerate Amber-format restraint from 2 or more mask expressions.\n",
-          TopologyList::ParmArgs);
+          TopologyList::ParmArgs, FrameList::RefArgs);
 }
 
 static void Help_Run() {

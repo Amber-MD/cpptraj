@@ -21,9 +21,10 @@ Action_NativeContacts::Action_NativeContacts() :
 // TODO: mapout, avg contacts over traj, 1=native, -1=nonnative
 void Action_NativeContacts::Help() {
   mprintf("\t[<mask1> [<mask2>]] [writecontacts <outfile>]\n"
-          "\t[noimage] [distance <cut>] [first] [out <filename>]\n"
+          "\t[noimage] [distance <cut>] [out <filename>]\n"
+          "\t[ first | %s ]\n"
           "\t[name <dsname>] [mindist] [maxdist] [byresidue]\n"
-          "\t[map [mapout <mapfile>]]\n");
+          "\t[map [mapout <mapfile>]]\n", FrameList::RefArgs);
 }
 
 // Action_NativeContacts::SetupList()
