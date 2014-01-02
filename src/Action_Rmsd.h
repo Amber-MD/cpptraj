@@ -7,7 +7,7 @@
 #include "DataSet_1D.h"
 // Class: Action_Rmsd
 /// Action to calculate the RMSD between frame and a reference frame.
-class Action_Rmsd: public Action, RmsAction {
+class Action_Rmsd: public Action {
   public:
     Action_Rmsd();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rmsd(); }
@@ -44,7 +44,8 @@ class Action_Rmsd: public Action, RmsAction {
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     // ------------------------
-    ReferenceAction REF;               ///< Hold reference frame/traj/options 
+    ReferenceAction REF_;              ///< Hold reference frame/traj/options
+    RmsAction RMS_;                    ///< RMSD-related options/actions
     DataSet* rmsd_;
 };
 #endif

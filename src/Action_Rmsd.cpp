@@ -1,4 +1,3 @@
-// RMSD
 #include "Action_Rmsd.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
@@ -32,7 +31,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Check for keywords
-  GetRmsKeywords( actionArgs );
+  RMS_.GetRmsKeywords( actionArgs );
   DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
@@ -59,9 +58,9 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     perresavg_ = DFL->AddDataFile( actionArgs.GetStringKey("perresavg") );
   }
   // Get the RMS mask string for target
-  std::string mask1 = GetRmsMasks(actionArgs); 
+  std::string mask1 = RMS_.GetRmsMasks(actionArgs); 
   // Initialize reference
-  if (REF.InitRef(previous, first, UseMass(), Fit(), reftrajname, refFrm, 
+  if (REF_.InitRef(previous, first, RMS_.UseMass(), RMS_.Fit(), reftrajname, refFrm, 
                   RefParm_, mask1, actionArgs, "rmsd"))
     return Action::ERR;
   // Set RefParm for perres if not empty
@@ -75,9 +74,9 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   // Add dataset to data file list
   if (outfile != 0) outfile->AddSet( rmsd_ );
 
-  mprintf("    RMSD: (%s), reference is %s",TgtMask().MaskString(),
-          REF.RefModeString());
-  PrintRmsStatus();
+  mprintf("    RMSD: (%s), reference is %s", RMS_.TgtMask().MaskString(),
+          REF_.RefModeString());
+  RMS_.PrintRmsStatus();
   // Per-residue RMSD info.
   if (perres_) {
     mprintf("          No-fit RMSD will also be calculated for ");
@@ -220,9 +219,9 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
   */
 Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress) {
   // Target setup
-  if (SetupRmsMask(*currentParm, "rmsd")) return Action::ERR;
+  if (RMS_.SetupRmsMask(*currentParm, "rmsd")) return Action::ERR;
   // Reference setup
-  if (REF.SetupRef(*currentParm, TgtMask().Nselected(), "rmsd"))
+  if (REF_.SetupRef(*currentParm, RMS_.TgtMask().Nselected(), "rmsd"))
     return Action::ERR;
  
   // Per residue rmsd setup
@@ -239,9 +238,9 @@ Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress
 // Action_Rmsd::DoAction()
 Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Perform any needed reference actions
-  REF.ActionRef( *currentFrame, Fit(), UseMass() );
+  REF_.ActionRef( *currentFrame, RMS_.Fit(), RMS_.UseMass() );
   // Calculate RMSD
-  double rmsdval = CalcRmsd( *currentFrame, REF.SelectedRef(), REF.RefTrans() );
+  double rmsdval = RMS_.CalcRmsd( *currentFrame, REF_.SelectedRef(), REF_.RefTrans() );
   rmsd_->Add(frameNum, &rmsdval);
 
   // ---=== Per Residue RMSD ===---
@@ -253,20 +252,20 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
                                      PerRes != ResidueRMS_.end(); ++PerRes)
     {
       if ( PerRes->isActive_ ) {
-        ResRefFrame_.SetFrame(REF.RefFrame(), PerRes->refResMask_);
+        ResRefFrame_.SetFrame(REF_.RefFrame(), PerRes->refResMask_);
         ResTgtFrame_.SetFrame(*currentFrame,  PerRes->tgtResMask_);
         if (perrescenter_) {
-          ResTgtFrame_.CenterOnOrigin( UseMass() );
-          ResRefFrame_.CenterOnOrigin( UseMass() );
+          ResTgtFrame_.CenterOnOrigin( RMS_.UseMass() );
+          ResRefFrame_.CenterOnOrigin( RMS_.UseMass() );
         }
-        double R = ResTgtFrame_.RMSD_NoFit(ResRefFrame_, UseMass());
+        double R = ResTgtFrame_.RMSD_NoFit(ResRefFrame_, RMS_.UseMass());
         PerRes->data_->Add(frameNum, &R);
       }
     }
   }
 
-  if (REF.Previous())
-    REF.SetRefStructure( *currentFrame, Fit(), UseMass() );
+  if (REF_.Previous())
+    REF_.SetRefStructure( *currentFrame, RMS_.Fit(), RMS_.UseMass() );
 
   return Action::OK;
 }
