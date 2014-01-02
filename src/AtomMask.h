@@ -62,10 +62,14 @@ class AtomMask {
     bool IsCharMask()                   const { return (!CharMask_.empty()); }
     /// Reset atom mask
     void ResetMask();
+    /// Clear any selected atoms in mask.
+    void ClearSelected();
     /// Switch char used to denote selected atoms (T->F, F->T)
     void InvertMask();
     /// \return the number of atoms mask has in common with another mask
     int NumAtomsInCommon(AtomMask const&);
+    /// Add atom to Selected array; assumes atoms will be in order.
+    void AddSelectedAtom(int i)               { Selected_.push_back( i );    }
     /// Add given atom to Selected array 
     void AddAtom(int);
     /// Add a list of atoms to mask

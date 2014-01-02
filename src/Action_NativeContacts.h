@@ -34,6 +34,7 @@ class Action_NativeContacts : public Action {
     unsigned int nframes_;///< Number of frames, for normalizing map
     bool first_;          ///< If true use first frame as reference
     bool byResidue_;      ///< If true calculate distances by residue
+    bool includeSolvent_; ///< If true include solvent residues
     ImagedAction image_;  ///< Hold imaging-related info/routines.
     AtomMask Mask1_;      ///< First mask in which to search
     AtomMask Mask2_;      ///< Second mask in which to search
