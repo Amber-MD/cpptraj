@@ -14,6 +14,6 @@ void DataSet_Coords_CRD::Info() const {
   else
     mprintf(" (%zu MB)", sze);
   if (numBoxCrd_ > 0) mprintf(" Box Coords,");
-  if (numVel_    > 0) mprintf(" Velocities,");
+  if (hasVel_)        mprintf(" Velocities,");
   mprintf(" %i atoms", top_.Natom());
 }

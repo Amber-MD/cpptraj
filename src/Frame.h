@@ -3,7 +3,6 @@
 #include "Atom.h"
 #include "AtomMask.h"
 #include "Box.h"
-#include "CRDtype.h"
 // Class: Frame
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,
@@ -43,12 +42,14 @@ class Frame {
     Frame(const Frame&);
     Frame& operator=(Frame);
     // -------------------------------------------
+    /// This type interfaces with DataSet_Coords_CRD
+    typedef std::vector<float> CRDtype;
     /// Assign given CRDtype to this frame.
-    void SetFromCRD(CRDtype const&);
+    void SetFromCRD(CRDtype const&, int, int, bool);
     /// Assign selected atoms from given CRDtype to this frame.
-    void SetFromCRD(CRDtype const&, AtomMask const&);
+    void SetFromCRD(CRDtype const&, AtomMask const&, int, int, bool);
     /// Convert this frame to CRDtype.
-    CRDtype ConvertToCRD(int, int) const;
+    CRDtype ConvertToCRD(int, bool) const;
     // -------------------------------------------
     /// Print XYZ coordinates for given atom.
     void printAtomCoord(int) const;

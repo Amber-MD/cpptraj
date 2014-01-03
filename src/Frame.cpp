@@ -168,29 +168,29 @@ Frame &Frame::operator=(Frame rhs) {
 
 // ---------- CONVERT TO/FROM CRDtype ------------------------------------------
 // Frame::SetFromCRD()
-void Frame::SetFromCRD(CRDtype const& crdIn) {
-  if ((int)crdIn.NumCoords() > maxnatom_ * 3) {
-    mprinterr("Internal Error: # atoms in float array (%zu) > max #atoms in frame (%i)\n",
-              crdIn.NumCoords() / 3, maxnatom_);
+void Frame::SetFromCRD(CRDtype const& farray, int numCrd, int numBoxCrd, bool hasVel) {
+  int f_ncoord = numCrd;
+  if (f_ncoord > maxnatom_*3) {
+    mprinterr("Error: Float array size (%i) > max #coords in frame (%i)\n",
+              f_ncoord, maxnatom_*3);
     return;
   }
-  ncoord_ = (int)crdIn.NumCoords(); // FIXME: Is this necessary if frame is properly set?
+  ncoord_ = f_ncoord;
   natom_ = ncoord_ / 3;
-  unsigned int ix = 0;
-  for (CRDtype::const_iterator xi = crdIn.CrdBegin(); xi != crdIn.CrdEnd(); ++xi)
-    X_[ix++] = (double)*xi;
-  ix = 0;
-  if (crdIn.HasVelocities()) {
-    for (CRDtype::const_iterator vi = crdIn.VelBegin(); vi != crdIn.VelEnd(); ++vi)
-      V_[ix++] = (double)*vi;
+  for (int ix = 0; ix < ncoord_; ++ix)
+    X_[ix] = (double)farray[ix];
+  if (hasVel && V_ != 0) {
+    for (int iv = 0; iv < ncoord_; ++iv)
+      V_[iv] = (double)farray[f_ncoord++];
   }
-  ix = 0;
-  for (CRDtype::const_iterator bi = crdIn.BoxBegin(); bi != crdIn.BoxEnd(); ++bi)
-    box_[ix++] = (double)*bi;
+  for (int ib = 0; ib < numBoxCrd; ++ib)
+    box_[ib] = (double)farray[f_ncoord++];
 }
 
 // Frame::SetFromCRD()
-void Frame::SetFromCRD(CRDtype const& crdIn, AtomMask const& mask) {
+void Frame::SetFromCRD(CRDtype const& crdIn, AtomMask const& mask, int numCrd,
+                       int numBoxCrd, bool hasVel)
+{
   if (mask.Nselected() > maxnatom_) {
     mprinterr("Internal Error: Selected # atoms in float array (%i) > max #atoms in frame (%i)\n",
               mask.Nselected(), maxnatom_);
@@ -205,28 +205,33 @@ void Frame::SetFromCRD(CRDtype const& crdIn, AtomMask const& mask) {
     X_[ix++] = (double)crdIn[xoffset  ];
     X_[ix++] = (double)crdIn[xoffset+1];
     X_[ix++] = (double)crdIn[xoffset+2];
-    if (crdIn.HasVelocities()) {
-      unsigned int voffset = crdIn.NumCoords() + xoffset;
+    if (hasVel) {
+      unsigned int voffset = numCrd + xoffset;
       V_[iv++] = (double)crdIn[voffset  ]; 
       V_[iv++] = (double)crdIn[voffset+1]; 
       V_[iv++] = (double)crdIn[voffset+2]; 
     }
   }
-  ix = 0;
-  for (CRDtype::const_iterator bi = crdIn.BoxBegin(); bi != crdIn.BoxEnd(); ++bi)
-    box_[ix++] = (double)*bi;
+  int f_ncoord = (int)crdIn.size() - numBoxCrd;
+  for (int ib = 0; ib < numBoxCrd; ++ib)
+    box_[ib] = (double)crdIn[f_ncoord++];
 }
 
 // Frame::ConvertToCRD()
-CRDtype Frame::ConvertToCRD(int nvel, int numBoxCrd) const {
+Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd, bool hasVel) const {
+  int nvel;
+  if (hasVel)
+    nvel = ncoord_;
+  else
+    nvel = 0;
   CRDtype farray;
-  farray.reserve( ncoord_, nvel, numBoxCrd );
+  farray.reserve( ncoord_ + nvel + numBoxCrd );
   for (int ix = 0; ix < ncoord_; ++ix)
-    farray.push_back( X_[ix]   );
+    farray.push_back( (float)X_[ix]   );
   for (int iv = 0; iv < nvel; ++iv )
-    farray.push_back( V_[iv]   );
+    farray.push_back( (float)V_[iv]   );
   for (int ib = 0; ib < numBoxCrd; ++ib)
-    farray.push_back( box_[ib] );
+    farray.push_back( (float)box_[ib] );
   return farray;
 }
 

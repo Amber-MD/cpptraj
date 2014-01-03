@@ -6,7 +6,7 @@
 /// Interface to COORDS data sets
 class DataSet_Coords : public DataSet_1D {
   public:
-    DataSet_Coords() : DataSet_1D(COORDS, 8, 3), numBoxCrd_(0), numVel_(0) {}
+    DataSet_Coords() : DataSet_1D(COORDS, 8, 3), numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
     virtual ~DataSet_Coords() {}
     /// Allocate a Frame that can be used to store COORDS 
     Frame AllocateFrame() const;
@@ -22,8 +22,10 @@ class DataSet_Coords : public DataSet_1D {
     void SetTopology(Topology const&);
     inline Topology const& Top() const { return top_; }
   protected:
-    Topology top_;                     ///< Topology corresponding to coordinates.
-    size_t numBoxCrd_;                 ///< Number of box coords (0 or 6).
-    size_t numVel_;                    ///< Number of velocities.
+    // TODO: Make unsigned
+    int numCrd_;    ///< Number of coordinates
+    int numBoxCrd_; ///< Number of box coords (0 or 6).
+    bool hasVel_;   ///< Coordinates contain velocities.
+    Topology top_;  ///< Topology corresponding to coordinates.
 };
 #endif

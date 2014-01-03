@@ -18,22 +18,22 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     // -------------------------------------------
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { 
-      coords_.push_back( fIn.ConvertToCRD(numVel_, numBoxCrd_) ); 
+      coords_.push_back( fIn.ConvertToCRD(numBoxCrd_, hasVel_) ); 
     }
     /// Get a frame at position.
     inline void GetFrame(int idx, Frame& fIn) const { 
-      fIn.SetFromCRD( coords_[idx] ); 
+      fIn.SetFromCRD( coords_[idx], numCrd_, numBoxCrd_, hasVel_ ); 
     }
     /// Get a frame at position corresponding to mask.
     inline void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) const {
-      fIn.SetFromCRD( coords_[idx], mIn );
+      fIn.SetFromCRD( coords_[idx], mIn, numCrd_, numBoxCrd_, hasVel_ );
     }
     /// Set CRD at position with frame.
     inline void SetCRD(int idx, Frame const& fIn) {
-      coords_[idx] = fIn.ConvertToCRD(numVel_, numBoxCrd_);
+      coords_[idx] = fIn.ConvertToCRD(numBoxCrd_, hasVel_);
     }
   private:
-    typedef std::vector<CRDtype> CRDarray;
+    typedef std::vector<Frame::CRDtype> CRDarray;
     CRDarray coords_;                  ///< Array of coordinate frames.
 };
 #endif
