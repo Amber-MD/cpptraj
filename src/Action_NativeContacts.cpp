@@ -11,6 +11,7 @@ Action_NativeContacts::Action_NativeContacts() :
   nframes_(0),
   first_(false),
   byResidue_(false),
+  includeSolvent_(false),
   numnative_(0),
   nonnative_(0),
   mindist_(0),
@@ -21,9 +22,10 @@ Action_NativeContacts::Action_NativeContacts() :
 // TODO: mapout, avg contacts over traj, 1=native, -1=nonnative
 void Action_NativeContacts::Help() {
   mprintf("\t[<mask1> [<mask2>]] [writecontacts <outfile>]\n"
-          "\t[noimage] [distance <cut>] [first] [out <filename>]\n"
+          "\t[noimage] [distance <cut>] [out <filename>] [includesolvent]\n"
+          "\t[ first | %s ]\n"
           "\t[name <dsname>] [mindist] [maxdist] [byresidue]\n"
-          "\t[map [mapout <mapfile>]]\n");
+          "\t[map [mapout <mapfile>]]\n", FrameList::RefArgs);
 }
 
 // Action_NativeContacts::SetupList()
@@ -72,6 +74,18 @@ static void DebugContactList(std::vector<AtomMask> const& clist, Topology const&
   }
 }
 
+/** Remove any selected solvent atoms from mask. */
+static void removeSelectedSolvent( Topology const& parmIn, AtomMask& mask ) {
+  AtomMask newMask = mask;
+  newMask.ClearSelected();
+  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
+    int molnum = parmIn[*atom].MolNum();
+    if (!parmIn.Mol(molnum).IsSolvent())
+      newMask.AddSelectedAtom( *atom );
+  }
+  mask = newMask;
+}
+
 /** Based on selected atoms in Mask1 (and optionally Mask2), set up
   * potential contact lists. Also set up atom/residue indices corresponding
   * to each potential contact.
@@ -81,6 +95,7 @@ int Action_NativeContacts::SetupContactLists(Marray& CL1, Marray& CL2,
                                              Topology const& parmIn, Frame const& frameIn)
 {
   if ( parmIn.SetupIntegerMask( Mask1_, frameIn ) ) return 1;
+  if (!includeSolvent_) removeSelectedSolvent( parmIn, Mask1_ );
   Mask1_.MaskInfo();
   // Setup first contact list
   CL1 = SetupList(parmIn, Mask1_, CI1);
@@ -92,6 +107,7 @@ int Action_NativeContacts::SetupContactLists(Marray& CL1, Marray& CL2,
   // Setup second contact list if necessary
   if ( Mask2_.MaskStringSet() ) {
     if (parmIn.SetupIntegerMask( Mask2_, frameIn ) ) return 1;
+    if (!includeSolvent_) removeSelectedSolvent( parmIn, Mask2_ );
     Mask2_.MaskInfo();
     // Warn if masks overlap
     int nOverlap = Mask1_.NumAtomsInCommon( Mask2_ );
@@ -225,6 +241,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   double dist = actionArgs.getKeyDouble("distance", 7.0);
   byResidue_ = actionArgs.hasKey("byresidue");
+  includeSolvent_ = actionArgs.hasKey("includesolvent");
   distance_ = dist * dist; // Square the cutoff
   first_ = actionArgs.hasKey("first");
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -284,6 +301,10 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
     mprintf(" imaging is off.\n");
   else
     mprintf(" imaging is on.\n");
+  if (includeSolvent_)
+    mprintf("\tMask selection will including solvent.\n");
+  else
+    mprintf("\tMask selection will not include solvent.\n");
   mprintf("\tData set name: %s\n", name.c_str());
   if (maxdist_ != 0)
     mprintf("\tSaving maximum observed distances in set '%s'\n", maxdist_->Legend().c_str());

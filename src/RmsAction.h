@@ -18,23 +18,7 @@ class RmsAction {
     bool Fit()                const { return fit_;     }
     bool UseMass()            const { return useMass_; }
     /// Perform fit/nofit [non-]mass-weighted calc with/without rotation.
-    double CalcRmsd(Frame& TGT, Frame const& REF, Vec3 const& refTrans) {
-      double R;
-      // Set selected frame atoms. Masses have already been set.
-      tgtFrame_.SetCoordinates(TGT, tgtMask_);
-      if (!fit_) {
-        R = tgtFrame_.RMSD_NoFit(REF, useMass_);
-      } else {
-        R = tgtFrame_.RMSD_CenteredRef(REF, rot_, tgtTrans_, useMass_);
-        if (rotate_)
-          TGT.Trans_Rot_Trans(tgtTrans_, rot_, refTrans);
-        else {
-          tgtTrans_ += refTrans;
-          TGT.Translate(tgtTrans_);
-        }
-      }
-      return R;
-    }
+    inline double CalcRmsd(Frame&, Frame const&, Vec3 const&);
   private:
     AtomMask tgtMask_; ///< Mask of selected target atoms.
     bool fit_;         ///< If true, best-fit RMS.
@@ -44,4 +28,22 @@ class RmsAction {
     Matrix_3x3 rot_;   ///< Hold best-fit rotation matrix.
     Frame tgtFrame_;   ///< Hold selected target atoms.
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+double RmsAction::CalcRmsd(Frame& TGT, Frame const& REF, Vec3 const& refTrans) {
+  double R;
+  // Set selected frame atoms. Masses have already been set.
+  tgtFrame_.SetCoordinates(TGT, tgtMask_);
+  if (!fit_) {
+    R = tgtFrame_.RMSD_NoFit(REF, useMass_);
+  } else {
+    R = tgtFrame_.RMSD_CenteredRef(REF, rot_, tgtTrans_, useMass_);
+    if (rotate_)
+      TGT.Trans_Rot_Trans(tgtTrans_, rot_, refTrans);
+    else {
+      tgtTrans_ += refTrans;
+      TGT.Translate(tgtTrans_);
+    }
+  }
+  return R;
+}
 #endif

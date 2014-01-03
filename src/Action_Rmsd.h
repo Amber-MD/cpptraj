@@ -7,12 +7,11 @@
 #include "DataSet_1D.h"
 // Class: Action_Rmsd
 /// Action to calculate the RMSD between frame and a reference frame.
-class Action_Rmsd: public Action, RmsAction, ReferenceAction {
+class Action_Rmsd: public Action {
   public:
     Action_Rmsd();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rmsd(); }
     static void Help();
-    ~Action_Rmsd();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
@@ -21,29 +20,32 @@ class Action_Rmsd: public Action, RmsAction, ReferenceAction {
     void Print();
 
     // PerResRMSD -------------
+    /// Set up per-residue RMSD calc
+    int perResSetup(Topology*,Topology*);
     bool perres_;                      ///< If true calculate per-residue rmsd
-    int NumResidues_;                  ///< Total # of residues to calculate per res rmsd for
-    std::vector<DataSet_1D*> PerResRMSD_; ///< Hold residue RMSDs
-    std::vector<AtomMask> tgtResMask_; ///< Hold target masks for each res in ResRange
-    std::vector<AtomMask> refResMask_; ///< Hold reference masks for each res in ResRange
-    std::vector<bool> resIsActive_;    ///< True if residue was set up correctly
-    Range ResRange_;                   ///< Residues to calculate perRes rmsd for
+    struct perResType {
+      AtomMask tgtResMask_; ///< Target mask for residue
+      AtomMask refResMask_; ///< Reference mask for residue
+      DataSet_1D* data_;    ///< Hold residue RMSD for each frame
+      bool isActive_;       ///< If true both masks were successfully set up.
+    };
+    typedef std::vector<perResType> perResArray;
+    perResArray ResidueRMS_;           ///< Hold residue RMSDs
+    Range TgtRange_;                   ///< Residues to calculate perRes rmsd for
     Range RefRange_;                   ///< Residues in reference corresponding to those in ResRange
     DataFile* perresout_;              ///< Per res RMSD data output file
     std::string perresmask_;           ///< Additional mask to apply to residue masks
     bool perrescenter_;                ///< Move residues to common COM before rms calc
     bool perresinvert_;                ///< If true rows will contain set info instead of cols
     DataFile* perresavg_;              ///< Hold per residue average filename
-    Frame *ResFrame_;                  ///< Hold residue target coords
-    Frame *ResRefFrame_;               ///< Hold residue reference coords.
+    Frame ResTgtFrame_;                ///< Hold residue target coords
+    Frame ResRefFrame_;                ///< Hold residue reference coords.
     Topology* RefParm_;                ///< Needed for mask setup in PerResSetup
-    // ------------------------ 
-    DataSet* rmsd_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
-    /// Resize per-residue RMSD masks
-    void resizeResMasks();
-    /// Set up per-residue RMSD calc
-    int perResSetup(Topology*,Topology*);
+    // ------------------------
+    ReferenceAction REF_;              ///< Hold reference frame/traj/options
+    RmsAction RMS_;                    ///< RMSD-related options/actions
+    DataSet* rmsd_;
 };
 #endif

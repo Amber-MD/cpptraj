@@ -4,7 +4,7 @@
 #include "ReferenceAction.h"
 #include "RmsAction.h"
 /// Action to calculate symmetry-corrected RMSD
-class Action_SymmetricRmsd : public Action, ReferenceAction, RmsAction {
+class Action_SymmetricRmsd : public Action {
   public:
     Action_SymmetricRmsd();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_SymmetricRmsd(); }
@@ -20,10 +20,12 @@ class Action_SymmetricRmsd : public Action, ReferenceAction, RmsAction {
     typedef std::vector<Iarray> AtomIndexArray;
     /// Array of groups of potentially symmetric atoms
     AtomIndexArray SymmetricAtomIndices_;
-
     int debug_;
-    Iarray AMap_;       /// AMap_[ref] = tgt
-    DataSet* rmsd_;     /// Output DataSet
-    Frame remapFrame_;  /// Frame that will contained target re-mapped for symmetry
+    bool remap_;          ///< If true remap symmetric atoms
+    Iarray AMap_;         ///< AMap_[ref] = tgt
+    DataSet* rmsd_;       ///< Output DataSet
+    Frame remapFrame_;    ///< Target frame re-mapped for symmetry
+    ReferenceAction REF_; ///< Hold reference frame/traj/options
+    RmsAction RMS_;       ///< RMSD-related options/actions
 };
 #endif
