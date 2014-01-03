@@ -3,7 +3,7 @@
 #include "DataSet_Coords.h"
 class DataSet_Coords_CRD : public DataSet_Coords {
   public:
-    DataSet_Coords_CRD() {}
+    DataSet_Coords_CRD() : DataSet_Coords(COORDS) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_Coords_CRD();    }
     // ----- DataSet functions -------------------
     size_t Size() const { return coords_.size(); }

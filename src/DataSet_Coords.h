@@ -6,7 +6,9 @@
 /// Interface to COORDS data sets
 class DataSet_Coords : public DataSet_1D {
   public:
-    DataSet_Coords() : DataSet_1D(COORDS, 8, 3), numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
+    DataSet_Coords() : numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
+    DataSet_Coords(DataSet::DataType t) : 
+      DataSet_1D(t, 8, 3), numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
     virtual ~DataSet_Coords() {}
     /// Allocate a Frame that can be used to store COORDS 
     Frame AllocateFrame() const;
