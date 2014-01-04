@@ -160,7 +160,7 @@ class Topology {
     void DetermineNumExtraPoints();
     int SetSolventInfo();
 
-    void Mask_SelectDistance( Frame const&, char*, bool, bool, double ) const;
+    int Mask_SelectDistance( Frame const&, char*, bool, bool, double ) const;
     void Mask_AND(char*,char*) const;
     void Mask_OR(char*,char*) const;
     void Mask_NEG(char*) const;

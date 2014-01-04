@@ -969,7 +969,7 @@ bool Topology::SetupCharMask(AtomMask &mask, Frame const& frame) const {
 }
 
 // Topology::Mask_SelectDistance()
-void Topology::Mask_SelectDistance( Frame const& REF, char *mask, bool within, 
+int Topology::Mask_SelectDistance( Frame const& REF, char *mask, bool within, 
                                     bool byAtom, double distance ) const 
 {
   int endatom, resi;
@@ -980,7 +980,7 @@ void Topology::Mask_SelectDistance( Frame const& REF, char *mask, bool within,
 
   if (REF.empty()) {
     mprinterr("Error: No reference set for [%s], cannot select by distance.\n",c_str());
-    return;
+    return 1;
   }
   // Distance has been pre-squared.
   // Create temporary array of atom #s currently selected in mask. Also
@@ -993,8 +993,8 @@ void Topology::Mask_SelectDistance( Frame const& REF, char *mask, bool within,
     }
   }
   if (selected.empty()) {
-    mprinterr("Error: SelectAtomsWithin(%lf): No atoms in prior selection.\n",distance);
-    return;
+    mprinterr("Error: SelectAtomsWithin(%f): No atoms in prior selection.\n",distance);
+    return 1;
   }
 /*  if (debug_ > 1) {
     mprintf("\t\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
@@ -1074,6 +1074,7 @@ void Topology::Mask_SelectDistance( Frame const& REF, char *mask, bool within,
 } // END pragma omp parallel
 #endif
   }
+  return 0;
 }
 
 // Topology::Mask_AND()
@@ -1208,33 +1209,34 @@ bool Topology::ParseMask(Frame const& REF, AtomMask &maskIn, bool intMask) const
   std::stack<char*> Stack;
   char *pMask = 0; 
   char *pMask2 = 0;
+  int err = 0;
 
   for (AtomMask::token_iterator token = maskIn.begintoken();
-                                token != maskIn.endtoken(); token++)
+                                token != maskIn.endtoken(); ++token)
   {
     if (pMask==0) {
       // Create new blank mask
       pMask = new char[ atoms_.size() ];
       std::fill(pMask, pMask + atoms_.size(), 'F');
     }
-    switch ( (*token).Type() ) {
+    switch ( token->Type() ) {
       case MaskToken::ResNum : 
-        MaskSelectResidues( (*token).Res1(), (*token).Res2(), pMask );
+        MaskSelectResidues( token->Res1(), token->Res2(), pMask );
         break;
       case MaskToken::ResName :
-        MaskSelectResidues( (*token).Name(), pMask );
+        MaskSelectResidues( token->Name(), pMask );
         break;
       case MaskToken::AtomNum :
-        MaskSelectAtoms( (*token).Res1(), (*token).Res2(), pMask );
+        MaskSelectAtoms( token->Res1(), token->Res2(), pMask );
         break;
       case MaskToken::AtomName :
-        MaskSelectAtoms( (*token).Name(), pMask );
+        MaskSelectAtoms( token->Name(), pMask );
         break;
       case MaskToken::AtomType :
-        MaskSelectTypes( (*token).Name(), pMask );
+        MaskSelectTypes( token->Name(), pMask );
         break;
       case MaskToken::AtomElement :
-        MaskSelectElements( (*token).Name(), pMask );
+        MaskSelectElements( token->Name(), pMask );
         break;
       case MaskToken::SelectAll :
         std::fill(pMask, pMask + atoms_.size(), 'T');
@@ -1255,16 +1257,18 @@ bool Topology::ParseMask(Frame const& REF, AtomMask &maskIn, bool intMask) const
         Mask_NEG( Stack.top() );
         break;
       case MaskToken::OP_DIST :
-        Mask_SelectDistance( REF, Stack.top(), (*token).Within(), (*token).ByAtom(), 
-                             (*token).Distance() );
+        err = Mask_SelectDistance( REF, Stack.top(), token->Within(), 
+                                   token->ByAtom(), token->Distance() );
         break;
       default:
         mprinterr("Error: Invalid mask token (Mask [%s], type [%s]).\n",
-                  maskIn.MaskString(), (*token).TypeName() );
+                  maskIn.MaskString(), token->TypeName() );
     }
+    // If an error occurred, exit the loop.
+    if (err != 0 ) break;
     // Check if this mask should now go on the stack
-    if ( (*token).OnStack() ) {
-      //mprintf("Pushing Mask on stack, last Token [%s]\n",(*token).TypeName());
+    if ( token->OnStack() ) {
+      //mprintf("Pushing Mask on stack, last Token [%s]\n",token->TypeName());
       Stack.push( pMask );
       pMask = 0;
     }
@@ -1291,13 +1295,14 @@ bool Topology::ParseMask(Frame const& REF, AtomMask &maskIn, bool intMask) const
     delete[] pMask;
     return true;
   }
-
-  if (intMask)
-    maskIn.SetupIntMask( pMask, atoms_.size(), debug_ );
-  else
-    maskIn.SetupCharMask( pMask, atoms_.size(), debug_);
+  if (err == 0) {
+    if (intMask)
+      maskIn.SetupIntMask( pMask, atoms_.size(), debug_ );
+    else
+      maskIn.SetupCharMask( pMask, atoms_.size(), debug_);
+  }
   delete[] pMask;
-  return false;
+  return (err != 0); // false if no error occurred
 }
 
 // -----------------------------------------------------------------------------
