@@ -21,11 +21,11 @@ class DataSet_Coords_CRD : public DataSet_Coords {
       coords_.push_back( fIn.ConvertToCRD(numBoxCrd_, hasVel_) ); 
     }
     /// Get a frame at position.
-    inline void GetFrame(int idx, Frame& fIn) const { 
+    inline void GetFrame(int idx, Frame& fIn) { 
       fIn.SetFromCRD( coords_[idx], numCrd_, numBoxCrd_, hasVel_ ); 
     }
     /// Get a frame at position corresponding to mask.
-    inline void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) const {
+    inline void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) {
       fIn.SetFromCRD( coords_[idx], mIn, numCrd_, numBoxCrd_, hasVel_ );
     }
     /// Set CRD at position with frame.

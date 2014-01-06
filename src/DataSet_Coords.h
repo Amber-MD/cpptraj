@@ -17,9 +17,9 @@ class DataSet_Coords : public DataSet_1D {
     /// Set COORDS at specified position with Frame
     virtual void SetCRD(int, Frame const&) = 0;
     /// Set given Frame with COORDS at specified position
-    virtual void GetFrame(int, Frame&) const = 0;
+    virtual void GetFrame(int, Frame&) = 0;
     /// Set given Frame with COORDS at specified position according to mask
-    virtual void GetFrame(int, Frame&, AtomMask const&) const = 0;
+    virtual void GetFrame(int, Frame&, AtomMask const&) = 0;
     /// Set main topology that will be associated with frames to/from this COORDS
     void SetTopology(Topology const&);
     inline Topology const& Top() const { return top_; }
