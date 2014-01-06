@@ -519,6 +519,12 @@ static void Help_LoadCrd() {
   mprintf("\t<filename> %s [<trajin args>] [<name>]\n", TopologyList::ParmArgs);
   mprintf("\tLoad trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
 }
+
+static void Help_LoadTraj() {
+  mprintf("\tname <setname>\n"
+          "\tConvert currently loaded input trajectories to TRAJ data set named <setname>\n");
+}
+
 static void Help_CrdAction() {
   mprintf("\t<crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n");
   mprintf("\tPerform action <actioncmd> on COORDS data set <crd set>.\n");
@@ -761,6 +767,12 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
     coords->AddFrame( frameIn );
   trajin.EndTraj();
   return Command::C_OK;
+}
+
+/// Convert input traj list to TRAJ data set
+Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  return (Command::RetType)State.InputTrajListToData(argIn);
 }
 
 /// Generate amber restraints from given masks.
@@ -1357,6 +1369,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "help",          0, Help_Help,            Help            },
   { GENERAL, "list",          0, Help_List,            ListAll         },
   { GENERAL, "loadcrd",       0, Help_LoadCrd,         LoadCrd         },
+  { GENERAL, "loadtraj",      0, Help_LoadTraj,        LoadTraj        },
   { GENERAL, "ls",            0, Help_System,          SystemCmd       },
   { GENERAL, "noexitonerror", 0, Help_NoExitOnError,   NoExitOnError   },
   { GENERAL, "noprogress",    0, Help_NoProgress,      NoProgress      },

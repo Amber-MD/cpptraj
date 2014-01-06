@@ -139,6 +139,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_3D.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
+        DataSet_Coords_TRJ.cpp \
         DataSet_GridFlt.cpp \
         DataSet_MatrixDbl.cpp \
         DataSet_MatrixFlt.cpp \

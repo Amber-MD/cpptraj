@@ -19,6 +19,7 @@
 #include "DataSet_GridFlt.h"
 #include "DataSet_RemLog.h"
 #include "DataSet_Mesh.h"
+#include "DataSet_Coords_TRJ.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
@@ -30,12 +31,13 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "string",        DataSet_string::Alloc     }, // STRING
   { "double matrix", DataSet_MatrixDbl::Alloc  }, // MATRIX_DBL
   { "float matrix",  DataSet_MatrixFlt::Alloc  }, // MATRIX_FLT
-  { "coordinates",   DataSet_Coords_CRD::Alloc     }, // COORDS
+  { "coordinates",   DataSet_Coords_CRD::Alloc }, // COORDS
   { "vector",        DataSet_Vector::Alloc     }, // VECTOR
   { "eigenmodes",    DataSet_Modes::Alloc      }, // MODES
   { "float grid",    DataSet_GridFlt::Alloc    }, // GRID_FLT
   { "remlog",        DataSet_RemLog::Alloc     }, // REMLOG
   { "X-Y mesh",      DataSet_Mesh::Alloc       }, // XYMESH
+  { "trajectories",  DataSet_Coords_TRJ::Alloc }, // TRAJ
   { 0, 0 }
 };
 
@@ -443,6 +445,9 @@ DataSet* DataSetList::FindCoordsSet(std::string const& setname) {
   } else {
     // crdset specified
     outset = FindSetOfType(setname, DataSet::COORDS);
+    // If COORDS not found look for TRAJ
+    if (outset == 0)
+      outset = FindSetOfType(setname, DataSet::TRAJ);
   }
   return outset;
 }

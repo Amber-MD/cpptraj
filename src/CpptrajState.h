@@ -38,6 +38,7 @@ class CpptrajState {
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
     int RemoveFromList(ArgList&);
+    int InputTrajListToData(ArgList&);
     int ProcessMask(std::string const&, std::string const&, bool) const;
     int TrajLength( std::string const&, std::vector<std::string> const&);
     int Run();

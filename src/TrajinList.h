@@ -20,6 +20,7 @@ class TrajinList {
     typedef ListType::const_iterator const_iterator;
     const_iterator begin() const { return trajin_.begin(); }
     const_iterator end()   const { return trajin_.end();   }
+    bool empty()           const { return trajin_.empty(); }
     TrajModeType Mode()    const { return mode_;           }
     const Trajin* front()  const { return trajin_.front(); }
     int MaxFrames()        const { return maxframes_;      }
