@@ -28,6 +28,7 @@ class Trajin : public TrajectoryFile {
     int TotalReadFrames()    const { return total_read_frames_;  }
     int CurrentFrame()       const { return currentFrame_;       }
     int Start()              const { return start_;              }
+    int Offset()             const { return offset_;             }
     int NumFramesProcessed() const { return numFramesProcessed_; }
     bool IsEnsemble()        const { return isEnsemble_;         }
     void SetEnsemble(bool b)       { isEnsemble_ = b;            }
