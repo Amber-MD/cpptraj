@@ -19,6 +19,7 @@ class Traj_Mol2File : public TrajectoryIO {
   private:
     MOL2WRITEMODE mol2WriteMode_;
     Topology* mol2Top_;
+    int currentSet_;
     bool hasCharges_;
     Mol2File file_; 
 

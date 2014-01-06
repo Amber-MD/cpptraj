@@ -205,7 +205,6 @@ int Traj_CharmmDcd::setupTrajin(std::string const& fname, Topology* trajParm)
   // Check the file size against the reported number of frames.
   size_t extraBytes;
   size_t file_size = (size_t)file_.UncompressedSize();
-  SetSeekable(false);
   if (file_size > 0) {
     size_t dimBytes = dcd_dim_ * sizeof(float);
     if (is64bit_)
@@ -219,11 +218,9 @@ int Traj_CharmmDcd::setupTrajin(std::string const& fname, Topology* trajParm)
     headerBytes_ = (size_t)file_.Tell();
     file_size = file_size - headerBytes_ - frame1Bytes_;
     if ( (file_size % frameNBytes_) != 0 ) {
-      mprintf("Warning: %s: Number of frames in DCD file could not be accurately determined.\n",
-              file_.Filename().base());
-      mprintf("Warning:\t\tFile may be corrupted.\n");
-    } else
-      SetSeekable(true);
+      mprintf("Warning: %s: Number of frames in DCD file could not be accurately determined.\n"
+              "Warning:  File may be corrupted.\n", file_.Filename().base());
+    }
     int nframes = (int)(file_size / frameNBytes_) + 1; // +1 for first frame
     if (nframes != dcdframes_) {
       mprintf("Warning: %s: Reported number of frames in DCD file is %i,\n",
@@ -405,12 +402,10 @@ int Traj_CharmmDcd::ReadBox(double* box) {
 
 // Traj_CharmmDcd::readFrame()
 int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
-  if (IsSeekable()) {
-    if (set == 0)
-      file_.Seek( headerBytes_ );
-    else 
-      file_.Seek( headerBytes_ + frame1Bytes_ + ((size_t)(set - 1) * frameNBytes_) );
-  }
+  if (set == 0)
+    file_.Seek( headerBytes_ );
+  else 
+    file_.Seek( headerBytes_ + frame1Bytes_ + ((size_t)(set - 1) * frameNBytes_) );
   // Load box info
   if (boxBytes_ != 0) {
     if (ReadBox( frameIn.bAddress() )) return 1;

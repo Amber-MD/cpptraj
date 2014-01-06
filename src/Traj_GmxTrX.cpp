@@ -273,7 +273,7 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
   // Open and read in header
   if ( file_.OpenFile() ) return TRAJIN_ERR;
   ReadTrxHeader();
-  GmxInfo(); // DEBUG
+  if (debug_ > 0) GmxInfo(); // DEBUG
   // Warn if # atoms in parm does not match
   if (trajParm->Natom() != natoms_) {
     mprinterr("Error: # atoms in TRX file (%i) does not match # atoms in parm %s (%i)\n",
@@ -288,7 +288,6 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
   // Set velocity info
   SetVelocity( (v_size_ > 0) );
   // Attempt to determine # of frames in traj
-  SetSeekable(false);
   headerBytes_ = (size_t)file_.Tell();
   frameSize_ = headerBytes_ + (size_t)box_size_ + (size_t)vir_size_ + (size_t)pres_size_ +
                               (size_t)x_size_   + (size_t)v_size_ +   (size_t)f_size_;
@@ -298,11 +297,9 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
   if (file_size > 0) {
     nframes = (int)(file_size / frameSize_);
     if ( (file_size % frameSize_) != 0 ) {
-      mprintf("Warning: %s: Number of frames in TRX file could not be accurately determined.\n",
-              file_.Filename().base());
-      mprintf("Warning: Will attempt to read %i frames.\n", nframes);
-    } else
-      SetSeekable(true);
+      mprintf("Warning: %s: Number of frames in TRX file could not be accurately determined.\n"
+              "Warning:   Will attempt to read %i frames.\n", file_.Filename().base(), nframes);
+    }
   } else {
     mprintf("Warning: Uncompressed size could not be determined. This is normal for\n");
     mprintf("Warning: bzip2 files. Cannot check # of frames. Frames will be read until EOF.\n");
@@ -403,21 +400,13 @@ int Traj_GmxTrX::ReadAtomVector( double* Dout, int size ) {
 }
 
 int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
-  if (IsSeekable()) 
-    file_.Seek( (frameSize_ * set) + headerBytes_ );
-  else // Seek past the header
-    file_.Seek( file_.Tell() + headerBytes_ );
-  //if ( ReadTrxHeader() ) return 1;
+  file_.Seek( (frameSize_ * set) + headerBytes_ );
   // Read box info
   if (box_size_ > 0) {
     if (ReadBox( frameIn.bAddress() )) return 1;
   }
-  // Blank read past virial tensor
-  if (vir_size_ > 0)
-    file_.Seek( file_.Tell() + vir_size_ );
-  // Blank read past pressure tensor
-  if (pres_size_ > 0)
-    file_.Seek( file_.Tell() + pres_size_ );
+  // Blank read past virial/pressure tensor
+  file_.Seek( file_.Tell() + vir_size_ + pres_size_ );
   // Read coordinates
   if (x_size_ > 0) {
     if (ReadAtomVector(frameIn.xAddress(), x_size_)) {
@@ -432,27 +421,14 @@ int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
       return 1;
     }
   }
-  // If not seekable need a blank read past forces
-  if (!IsSeekable())
-    file_.Seek( file_.Tell() + f_size_ );
 
   return 0;
 }
 
 int Traj_GmxTrX::readVelocity(int set, Frame& frameIn) {
-  if (IsSeekable()) 
-    file_.Seek( (frameSize_ * set) + headerBytes_ );
-  else // Seek past the header
-    file_.Seek( file_.Tell() + headerBytes_ );
-  //if ( ReadTrxHeader() ) return 1;
-  // Blank read past box
-  if (box_size_ > 0) file_.Seek( file_.Tell() + box_size_ );
-  // Blank read past virial tensor
-  if (vir_size_ > 0) file_.Seek( file_.Tell() + vir_size_ );
-  // Blank read past pressure tensor
-  if (pres_size_ > 0) file_.Seek( file_.Tell() + pres_size_ );
-  // Blank read past coords
-  if (x_size_ > 0) file_.Seek( file_.Tell() + x_size_);
+  // Seek to frame and past box, virial, pressure, coords
+  file_.Seek( (frameSize_ * set) + headerBytes_ + box_size_ + vir_size_ +
+                                   pres_size_ + x_size_ );
   // Read velocities
   if (v_size_ > 0) {
     if (ReadAtomVector(frameIn.vAddress(), v_size_)) {
@@ -460,9 +436,6 @@ int Traj_GmxTrX::readVelocity(int set, Frame& frameIn) {
       return 1;
     }
   }
-  // If not seekable need a blank read past forces
-  if (!IsSeekable())
-    file_.Seek( file_.Tell() + f_size_ );
   return 0;
 }
 

@@ -46,9 +46,9 @@ bool Mol2File::ID_Mol2(CpptrajFile& fileIn) {
 /** \return 0 if the tag was found, 1 if not found. */
 int Mol2File::ScanTo( TRIPOSTAG tag ) {
   int tagSize = (int)strlen(TRIPOSTAGTEXT[tag]);
+  //mprintf("DEBUG: SCANNING TO MOL2 TAG '%s'\n", TRIPOSTAGTEXT[tag]);
   while ( Gets(linebuffer_, BUF_SIZE)==0 ) {
-    //mprintf("DEBUG: Line [%s]\n",buffer);
-    //mprintf("DEBUG: Targ [%s]\n",TRIPOSTAGTEXT[tag]); 
+    //mprintf("DEBUG: Line [%s]\n",linebuffer_);
     if (strncmp(linebuffer_, TRIPOSTAGTEXT[tag], tagSize)==0) return 0;
   }
   // Suppress this warning so routine can be used to scan # frames

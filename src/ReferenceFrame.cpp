@@ -43,14 +43,13 @@ int ReferenceFrame::LoadRef(std::string const& fname, ArgList& argIn,
   std::string maskexpr = argIn.GetMaskNext();
   // Check for tag - done after SetupTrajRead so traj can process args
   tag_ = argIn.getNextTag();
-  // Tell trajectory to only process the start frame.
-  traj.SingleFrame();
   // Check number of frames to be read
   int trajFrames = traj.TotalReadFrames();
   if (trajFrames < 1) {
     mprinterr("Error: No frames could be read for reference '%s'\n", traj.TrajFilename().full());
     return 1;
-  }
+  } else if (trajFrames > 1)
+    mprintf("Warning: %i frames specified for reference, only reading frame %i\n", traj.Start()+1);
   // Start trajectory read
   if ( traj.BeginTraj(false) ) {
     mprinterr("Error: Could not open reference '%s'\n.", traj.TrajFilename().full());
@@ -62,9 +61,7 @@ int ReferenceFrame::LoadRef(std::string const& fname, ArgList& argIn,
   if (frame_ == 0) frame_ = new Frame();
   frame_->SetupFrameV( parm_->Atoms(), traj.HasVelocity(), traj.NreplicaDimension() );
   // Read reference frame
-  traj.GetNextFrame( *frame_ );
-  if ( frame_->CheckCoordsInvalid() )
-    mprintf("Warning: reference frame coords 1 & 2 overlap at origin; may be corrupt.\n");
+  traj.ReadTrajFrame( traj.Start(), *frame_ );
   // If a mask expression was specified, strip to match the expression.
   if (!maskexpr.empty()) {
     if ( StripRef( maskexpr ) ) {

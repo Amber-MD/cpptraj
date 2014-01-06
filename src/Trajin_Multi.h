@@ -13,7 +13,7 @@ class Trajin_Multi : public Trajin {
     int SetupTrajRead(std::string const&, ArgList&, Topology*);
     int BeginTraj(bool);
     void EndTraj();
-    int GetNextFrame( Frame& );
+    int ReadTrajFrame( int, Frame& );
     void PrintInfo(int) const;
     bool HasVelocity()      const { return hasVelocity_; }
     int NreplicaDimension() const { return Ndimensions_; }
@@ -43,7 +43,6 @@ class Trajin_Multi : public Trajin {
     int Ndimensions_;         ///< # of dimensions in each trajectory.
     IOarrayType REMDtraj_;    ///< Input replica trajectories
     int lowestRepnum_;        ///< Hold the lowest replica number
-    bool isSeekable_;         ///< True if all trajs are seekable.
     bool hasVelocity_;        ///< True if all trajs have velocities.
     bool replicasAreOpen_;    ///< True is replicas are open.
     bool badEnsemble_;        ///< True if problem with any frames in the ensemble

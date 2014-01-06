@@ -5,6 +5,7 @@
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
   pdbAtom_(0),
+  currentSet_(0),
   ter_num_(0),
   pdbWriteMode_(NONE),
   dumpq_(false),
@@ -32,6 +33,7 @@ void Traj_PDBfile::closeTraj() {
 
 // Traj_PDBfile::openTrajin()
 int Traj_PDBfile::openTrajin() {
+  currentSet_ = 0;
   return file_.OpenFile();
 }
 
@@ -110,7 +112,21 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
 /** Read frame (model) from PDB file. */
 int Traj_PDBfile::readFrame(int set, Frame& frameIn)
 {
-  int atom = 0;
+  int atom;
+  if (set < currentSet_) {
+    file_.Rewind();
+    currentSet_ = 0;
+  }
+  // Position file at group of ATOM keywords for specified set
+  while (currentSet_ < set) {
+    atom = 0;
+    while (atom < pdbAtom_) {
+      if ( file_.NextLine() == 0 ) return 1;
+      if (file_.IsPDBatomKeyword()) ++atom;
+    }
+    currentSet_++;
+  }
+  atom = 0;
   double *Xptr = frameIn.xAddress(); 
   while (atom < pdbAtom_) {
     if ( file_.NextLine() == 0 ) return 1;
@@ -122,6 +138,7 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
       Xptr += 3;
     }
   }
+  currentSet_++;
 
   return 0;
 }

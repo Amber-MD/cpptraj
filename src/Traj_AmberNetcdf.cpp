@@ -103,8 +103,6 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
   Coord_ = new float[ Ncatom3() ];
   if (debug_>1) NetcdfDebug();
   closeTraj();
-  // NetCDF files are always seekable
-  SetSeekable( true );
   return Ncframe();
 }
 

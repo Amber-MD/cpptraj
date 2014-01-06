@@ -12,10 +12,10 @@
   */
 class TrajectoryIO : public BaseIOtype {
   public:
-    TrajectoryIO() : debug_(0), hasV_(false), hasT_(false), seekable_(false) {}
+    TrajectoryIO() : debug_(0), hasV_(false), hasT_(false) {}
     virtual ~TrajectoryIO() {} // virtual since this class is inherited.
     // -----------===== Inherited functions =====-----------
-    /// Return true if file format matches trajectory type.
+    /// \return true if file format matches trajectory type.
     virtual bool ID_TrajFormat(CpptrajFile&) = 0;
     static const int TRAJIN_ERR = -1;
     static const int TRAJIN_UNK = -2;
@@ -71,7 +71,6 @@ class TrajectoryIO : public BaseIOtype {
     const Box& TrajBox()       const { return box_;                        }
     bool HasV()                const { return hasV_;                       }
     bool HasT()                const { return hasT_;                       }
-    bool IsSeekable()          const { return seekable_;                   }
     std::string const& Title() const { return title_;                      }
     ReplicaDimArray const& ReplicaDimensions() const { return remdDim_;    }
 
@@ -79,7 +78,6 @@ class TrajectoryIO : public BaseIOtype {
     void SetBox(Box const& bIn)           { box_ = bIn;      }
     void SetVelocity(bool vIn)            { hasV_ = vIn;     }
     void SetTemperature(bool tIn)         { hasT_ = tIn;     }
-    void SetSeekable(bool sIn)            { seekable_ = sIn; }
     void SetTitle(std::string const& tIn) { title_ = tIn;    }
     void SetReplicaDims(ReplicaDimArray const& rIn) { remdDim_ = rIn; }
   protected:
@@ -88,7 +86,6 @@ class TrajectoryIO : public BaseIOtype {
     Box box_;                 ///< Default box info for trajectory.
     bool hasV_;               ///< True if trajectory has velocity info.
     bool hasT_;               ///< True if trajectory has temperature info.
-    bool seekable_;           ///< True if trajectory is randomly seekable.
     std::string title_;       ///< Set to trajectory title.
     ReplicaDimArray remdDim_; ///< Hold info on replica dims if present. 
 }; 

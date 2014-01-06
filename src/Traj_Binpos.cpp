@@ -72,14 +72,11 @@ int Traj_Binpos::setupTrajin(std::string const& fname, Topology* trajParm)
   } else { 
     filesize -= 4; // Subtract 4 byte header
     Frames = (int)(filesize / framesize);
-    if ( (filesize % framesize) == 0 ) {
-      SetSeekable( true );
-    } else {
-      mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
-              file_.Filename().base());
-      mprintf("Warning: indicates a corrupted trajectory. Will attempt to read %i frames.\n",
-              Frames);
-      SetSeekable( false );
+    if ( (filesize % framesize) != 0 ) {
+      mprintf("Warning: %s: Could not accurately predict # frames. This usually\n",
+              "Warning:  indicates a corrupted trajectory or topology/trajectory\n"
+              "Warning:  mismatch. Will attempt to read %i frames.\n",
+              file_.Filename().base(), Frames);
     }
   }
   mprintf("\t%i atoms, framesize=%lu, filesize=%lu, #Frames=%i\n", 
@@ -95,8 +92,7 @@ int Traj_Binpos::setupTrajin(std::string const& fname, Topology* trajParm)
 int Traj_Binpos::readFrame(int set, Frame& frameIn) {
   int natoms;
   // Seek
-  if (IsSeekable()) 
-    file_.Seek( ((off_t)set * (frameSize_ + sizeof(int))) + 4 );
+  file_.Seek( ((off_t)set * (frameSize_ + sizeof(int))) + 4 );
   // Read past natom
   if (file_.Read(&natoms, sizeof(int))<1)
     return 1;
