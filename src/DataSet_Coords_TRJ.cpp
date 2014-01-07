@@ -13,6 +13,15 @@ int DataSet_Coords_TRJ::AddInputTraj(Trajin* tIn) {
   if (tIn == 0) return 1;
   if (trajinList_.empty())
     SetTopology( *(tIn->TrajParm()) );
+  else {
+    if ( tIn->TrajParm()->Natom() != Topology().Natom() ) {
+      mprinterr("Error: For TRAJ data set currently all trajectories must have same number\n"
+                "Error:  of atoms (%i != %i). Recommended course of action is to create a\n"
+                "Error:  trajectory where all frames have been stripped to the same number of"
+                "Error:  atoms first.\n");
+      return 1;
+    }
+  }
   // TODO: Need some way of enforcing topology sameness
   if (tIn->TotalReadFrames() > 0)
     maxFrames_ += tIn->TotalReadFrames();

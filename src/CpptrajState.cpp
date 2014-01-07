@@ -5,7 +5,6 @@
 #include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "ParmFile.h" // ProcessMask
-#include "DataSet_Coords_TRJ.h" // InputTrajListToData
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -131,37 +130,6 @@ int CpptrajState::RemoveFromList( ArgList& argIn ) {
       }
     }
   }
-  return 0;
-}
-
-/** Convert input traj list to TRAJ data set. */
-int CpptrajState::InputTrajListToData(ArgList& argIn) {
-  if (trajinList_.empty()) {
-    mprinterr("Error: No input trajectories loaded.\n");
-    return 1;
-  }
-  if (trajinList_.Mode() != TrajinList::NORMAL) {
-    mprinterr("Error: Cannot convert ensemble input trajectories to data.\n");
-    return 1;
-  }
-  std::string setname = argIn.GetStringKey("name");
-  if (setname.empty()) {
-    mprinterr("Error: Must provide data set name ('name <setname>')\n");
-    return 1;
-  }
-  DataSet_Coords_TRJ* trj = (DataSet_Coords_TRJ*)DSL_.FindSetOfType(setname, DataSet::TRAJ);
-  if (trj == 0)
-    trj = (DataSet_Coords_TRJ*)DSL_.AddSet(DataSet::TRAJ, setname, "__DTRJ__");
-  if (trj == 0) {
-    mprinterr("Error: Could not set up TRAJ data set.\n");
-    return 1;
-  }
-  mprintf("\tSaving currently loaded input trajectories as data set with name '%s'\n",
-          setname.c_str());
-  for (TrajinList::const_iterator Trajin = trajinList_.begin();
-                                  Trajin != trajinList_.end(); ++Trajin)
-    if (trj->AddInputTraj( *Trajin )) return 1;
-  // TODO: Clear input trajectories from trajinList?
   return 0;
 }
 

@@ -3,6 +3,7 @@
 #include "Command.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // GenerateAmberRst
+#include "DataSet_Coords_TRJ.h" // LoadTraj
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -772,7 +773,35 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
 /// Convert input traj list to TRAJ data set
 Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (Command::RetType)State.InputTrajListToData(argIn);
+  if (State.InputTrajList().empty()) {
+    mprinterr("Error: No input trajectories loaded.\n");
+    return Command::C_ERR;
+  }
+  if (State.InputTrajList().Mode() != TrajinList::NORMAL) {
+    mprinterr("Error: Cannot convert ensemble input trajectories to data.\n");
+    return Command::C_ERR;
+  }
+  std::string setname = argIn.GetStringKey("name");
+  if (setname.empty()) {
+    mprinterr("Error: Must provide data set name ('name <setname>')\n");
+    return Command::C_ERR;
+  }
+  DataSet_Coords_TRJ* trj = (DataSet_Coords_TRJ*)
+                            State.DSL()->FindSetOfType(setname, DataSet::TRAJ);
+  if (trj == 0)
+    trj = (DataSet_Coords_TRJ*)
+          State.DSL()->AddSet(DataSet::TRAJ, setname, "__DTRJ__");
+  if (trj == 0) {
+    mprinterr("Error: Could not set up TRAJ data set.\n");
+    return Command::C_ERR;
+  }
+  mprintf("\tSaving currently loaded input trajectories as data set with name '%s'\n",
+          setname.c_str());
+  for (TrajinList::const_iterator Trajin = State.InputTrajList().begin();
+                                  Trajin != State.InputTrajList().end(); ++Trajin)
+    if (trj->AddInputTraj( *Trajin )) return Command::C_ERR;
+  // TODO: Clear input trajectories from trajinList?
+  return Command::C_OK;
 }
 
 /// Generate amber restraints from given masks.
