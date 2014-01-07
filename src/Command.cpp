@@ -1151,8 +1151,10 @@ Command::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, Command::Al
 {
   std::string dsarg = argIn.GetStringNext();
   DataSetList dsets = State.DSL()->GetMultipleSets( dsarg );
-  mprintf("SelectDS: Arg [%s]:", dsarg.c_str());
-  dsets.List();
+  if (!dsets.empty()) {
+    mprintf("SelectDS: Arg '%s':", dsarg.c_str());
+    dsets.List();
+  }
   return Command::C_OK;
 }
 
