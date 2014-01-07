@@ -5,7 +5,7 @@ Analysis_Average::Analysis_Average() {}
 
 void Analysis_Average::Help() {
   mprintf("\t<dset0> [<dset1> ...] [torsion]\n"
-          "\tCalculate the average, standard deviation, min, and max of given data sets.\n");
+          "  Calculate the average, standard deviation, min, and max of given data sets.\n");
 }
 
 // Analysis_Average::Setup()

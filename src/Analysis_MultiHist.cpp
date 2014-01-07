@@ -13,7 +13,7 @@ void Analysis_MultiHist::Help() {
   mprintf("\t[out <filename>] [name <dsname>] [norm | normint]\n"
           "\t[min <min>] [max <max>] [step <step>] [bins <bins>]\n"
           "\t <dsetarg0> [ <dsetarg1> ... ]\n"
-          "\tHistogram each data set separately in 1D.\n");
+          "  Histogram each data set separately in 1D.\n");
 }
 
 Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,

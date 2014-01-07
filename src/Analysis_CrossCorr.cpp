@@ -8,9 +8,9 @@
 Analysis_CrossCorr::Analysis_CrossCorr() : outfile_(0), matrix_(0) {}
 
 void Analysis_CrossCorr::Help() {
-  mprintf("\t[name <dsetname>] <dsetarg0> [<dsetarg1> ...] [out <filename>]\n");
-  mprintf("\tCalculate matrix of Pearson product-moment correlation\n");
-  mprintf("\tcoefficients between selected data sets.\n");
+  mprintf("\t[name <dsetname>] <dsetarg0> [<dsetarg1> ...] [out <filename>]\n"
+          "  Calculate matrix of Pearson product-moment correlation\n"
+          "  coefficients between selected data sets.\n");
 }
 
 // Analysis_CrossCorr::Setup()

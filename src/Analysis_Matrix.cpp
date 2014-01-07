@@ -16,8 +16,8 @@ Analysis_Matrix::Analysis_Matrix() :
 void Analysis_Matrix::Help() {
   mprintf("\t<name> [out <filename>] [thermo outthermo <filename>]\n"
           "\t[vecs <#>] [name <modesname>] [reduce]\n"
-          "\tDiagonalize given symmetric matrix to obtain eigenvectors\n"
-          "\tand eigenvalues.\n");
+          "  Diagonalize given symmetric matrix to obtain eigenvectors\n"
+          "  and eigenvalues.\n");
 }
 
 // Analysis_Matrix::Setup()

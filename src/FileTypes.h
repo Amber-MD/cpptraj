@@ -49,7 +49,7 @@ class FileTypes {
     /// List all defined write options.
     static void WriteOptions(KeyPtr, AllocPtr, FileFormatType);
   private:
-    static void FormatKeywords(KeyPtr);
-    static void FormatExtensions(KeyPtr);
+    static void FormatKeywords(KeyPtr, FileFormatType);
+    static void FormatExtensions(KeyPtr, FileFormatType);
 };
 #endif

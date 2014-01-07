@@ -8,7 +8,8 @@
 Analysis_Divergence::Analysis_Divergence() : ds1_(0), ds2_(0) {}
 
 void Analysis_Divergence::Help() {
-  mprintf("\tds1 <ds1> ds2 <ds2>\n");
+  mprintf("\tds1 <ds1> ds2 <ds2>\n"
+          "  Calculate Kullback-Liebler divergence between specified data sets.\n");
 }
 
 /// Ensure set is of valid type for divergence calc.

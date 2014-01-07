@@ -291,20 +291,20 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
 // ====================== CPPTRAJ COMMANDS HELP ================================
 static void Help_Help() {
   mprintf("\t{[<cmd>] | General | Action | Analysis | Topology | Trajectory}\n"
-          "\tWith no arguments list all known commands, otherwise display help for\n"
-          "\tcommand <cmd>. If General/Action/Analysis/Topology/Trajectory specified\n"
-          "\tlist commands only in that category.\n");
+          "  With no arguments list all known commands, otherwise display help for\n"
+          "  command <cmd>. If General/Action/Analysis/Topology/Trajectory specified\n"
+          "  list commands only in that category.\n");
 }
 
-static void Help_System() { mprintf("\tCall command from system.\n"); }
+static void Help_System() { mprintf("  Call command from system.\n"); }
 
 static void Help_NoProgress() {
-  mprintf("\tDo not print progress while reading in trajectories.\n");
+  mprintf("  Do not print progress while reading in trajectories.\n");
 }
 
 static void Help_NoExitOnError() {
-  mprintf("\tDo not exit when errors are encountered. This is the default\n"
-          "\tin interactive mode.\n");
+  mprintf("  Do not exit when errors are encountered. This is the default\n"
+          "  in interactive mode.\n");
 }
 
 static void Help_GenerateAmberRst() {
@@ -313,258 +313,259 @@ static void Help_GenerateAmberRst() {
           "\t{%s}\n"
           "\t[{%s} [offset <off>] [width <width>]\n"
           "\t[out <outfile>] [overwrite]\n"
-          "\tGenerate Amber-format restraint from 2 or more mask expressions.\n",
+          "  Generate Amber-format restraint from 2 or more mask expressions.\n",
           TopologyList::ParmArgs, FrameList::RefArgs);
 }
 
 static void Help_Run() {
-  mprintf("\tProcess all trajectories currently in input trajectory list.\n"
-          "\tAll actions in action list will be run on each frame.\n"
-          "\tIf not processing ensemble input, all analyses in analysis\n"
-          "\tlist will be run after trajectory processing.\n");
+  mprintf("  Process all trajectories currently in input trajectory list.\n"
+          "  All actions in action list will be run on each frame.\n"
+          "  If not processing ensemble input, all analyses in analysis\n"
+          "  list will be run after trajectory processing.\n");
 }
 
-static void Help_Quit() { mprintf("\tExit CPPTRAJ\n"); }
+static void Help_Quit() { mprintf("  Exit CPPTRAJ\n"); }
 
 static const char TypeList[] =
   "(<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)";
 
 static void Help_List() {
   mprintf("\t[<type>] %s\n"
-          "\tList currently loaded objects of the specified type. If no type is given\n"
-          "\tthen list all loaded objects.\n", TypeList);
+          "  List currently loaded objects of the specified type. If no type is given\n"
+          "  then list all loaded objects.\n", TypeList);
 }
 
 static void Help_Debug() {
   mprintf("\t[<type>] <#> %s\n", TypeList);
-  mprintf("\tSet debug level for new objects of the specified type. If no type is given\n");
-  mprintf("\tthen set debug level for all new objects. Does not affect current objects.\n");
+  mprintf("  Set debug level for new objects of the specified type. If no type is given\n"
+          "  then set debug level for all new objects. Does not affect current objects.\n");
 }
 
 static void Help_Clear() {
   mprintf("\t[ {all | <type>} ] %s\n", TypeList);
-  mprintf("\tClear currently loaded objects of the specified type. If 'all' is specified\n");
-  mprintf("\tthen clear all loaded objects.\n");
+  mprintf("  Clear currently loaded objects of the specified type. If 'all' is specified\n"
+          "  then clear all loaded objects.\n");
 }
 
-static void Help_Remove() {
-  mprintf("\t[ <type> <arg> ] %s\n", TypeList);
-  mprintf("\tRemove objects corresponding to <arg> from specified list.\n");
+static void Help_RemoveData() {
+  mprintf("\t[<arg>]\n"
+          "  Remove data sets(s) corresponding to <arg> from data set list.\n");
 }
 
 static void Help_ActiveRef() {
-  mprintf("\t<#>\n");
-  mprintf("\tSet the reference structure to be used for coordinate-based mask parsing.\n");
-  mprintf("\t<#> starts from 0 (first loaded reference).\n");
+  mprintf("\t<#>\n"
+          "  Set the reference structure to be used for coordinate-based mask parsing.\n"
+          "  <#> starts from 0 (first loaded reference).\n");
 }
 
 static void Help_Create_DataFile() {
-  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n");
-  mprintf("\tAdd a file with specified data sets to the data file list. Does not\n");
-  mprintf("\timmediately write the data.\n");
+  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n"
+          "  Add a file with specified data sets to the data file list. Does not\n"
+          "  immediately write the data.\n");
   DataFile::WriteHelp();
   DataFile::WriteOptions();
 }
 
 static void Help_DataFile() {
   mprintf("\t<data filename> <datafile cmd>\n"
-          "\tPass <datafile cmd> to specified data file currently in data file list.\n"
-          "Write Options:\n");
+          "  Pass <datafile cmd> to specified data file currently in data file list.\n");
   DataFile::WriteHelp();
   DataFile::WriteOptions();
 }
 
 static void Help_ReadData() {
   mprintf("\t<filename> [name <dsname>] [as <fmt>] [<format options>]\n"
-          "\tRead data from <filename> into data sets.\n");
+          "  Read data from <filename> into data sets.\n");
   DataFile::ReadOptions();
 }
 
 static void Help_ReadInput() {
   mprintf("\t<filename>\n"
-          "\tRead commands from <filename>\n");
+          "  Read commands from input file <filename>\n");
 }
 
 static void Help_Write_DataFile() {
   mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n"
-          "\tWith no arguments, write all files currently in the data file list.\n"
-          "\tOtherwise, write specified data sets to <filename> immediately.\n");
+          "  With no arguments, write all files currently in the data file list.\n"
+          "  Otherwise, write specified data sets to <filename> immediately.\n");
   DataFile::WriteHelp();
   DataFile::WriteOptions();
 }
 
 static void Help_Precision() {
-  mprintf("\t{<filename> | <dataset arg>} [<width>] [<precision>]\n");
-  mprintf("\tSet precision for all datasets in datafile <filename> or dataset(s)\n");
-  mprintf("\tspecified by <dataset arg> to <width>.<precision>. If width/precision\n");
-  mprintf("\tis not specified then default to 12.4\n");
+  mprintf("\t{<filename> | <dataset arg>} [<width>] [<precision>]\n"
+          "  Set precision for all datasets in datafile <filename> or dataset(s)\n"
+          "  specified by <dataset arg> to <width>.<precision>. If width/precision\n"
+          "  is not specified then default to 12.4\n");
 }
 
 static void Help_Select() {
-  mprintf("\t[<parmindex>] <mask>\n");
-  mprintf("\tShow atom numbers selected by <mask> for parm <parmindex>\n");
-  mprintf("\t(default first parm)\n");
+  mprintf("\t[<parmindex>] <mask>\n"
+          "  Show atom numbers selected by <mask> for parm <parmindex>\n"
+          "  (default first parm)\n");
 }
 
 static void Help_SelectDS() {
-  mprintf("\t<dataset selection>\n");
-  mprintf("\tShow results of data set selection. Data set selection format is:\n");
-  mprintf("\t\t<name>[<aspect]:<idx range>\n");
-  mprintf("\tWhere '<name>' is the data set name, '[<aspect>]' is the data set aspect,\n");
-  mprintf("\tand <idx range> is a numerical range specifying data set indices (i.e. 2-5,7 etc).\n");
-  mprintf("\tThe aspect and index portions may be optional. An asterisk '*' may be used as\n");
-  mprintf("\ta wildcard. E.g. 'selectds R2', 'selectds RoG[Max]', 'selectds PR[res]:2-12'\n");
+  mprintf("\t<dataset selection>\n"
+          "  Show results of data set selection. Data set selection format is:\n"
+          "\t<name>[<aspect]:<idx range>\n"
+          "  Where '<name>' is the data set name, '[<aspect>]' is the data set aspect,\n"
+          "  and <idx range> is a numerical range specifying data set indices (i.e. 2-5,7 etc).\n"
+          "  The aspect and index portions may be optional. An asterisk '*' may be used as\n"
+          "  a wildcard. E.g. 'selectds R2', 'selectds RoG[Max]', 'selectds PR[res]:2-12'\n");
 }
 
 static void Help_Trajin() {
-  mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n");
-  mprintf("\t           %s\n", TopologyList::ParmArgs);
-  mprintf("\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n");
-  mprintf("\t           [trajnames <rep1>,<rep2>,...,<repN> ] ]\n");
-  mprintf("\tLoad trajectory specified by <filename> to the input trajectory list.\n");
+  mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
+          "\t           %s\n", TopologyList::ParmArgs);
+  mprintf("\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
+          "\t             [trajnames <rep1>,<rep2>,...,<repN> ] ]\n"
+          "  Load trajectory specified by <filename> to the input trajectory list.\n");
   TrajectoryFile::ReadOptions();
 }
 
 static void Help_Ensemble() {
-  mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n");
-  mprintf("\t        %s\n", TopologyList::ParmArgs);
-  mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>\n");
-  mprintf("\tLoad an ensemble of trajectories starting with <file0> that will be processed together.\n");
+  mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n"
+          "\t        %s\n", TopologyList::ParmArgs);
+  mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>\n"
+          "  Load an ensemble of trajectories starting with <file0> that will be\n"
+          "  processed together as an ensemble.\n");
 }
 
 static void Help_Trajout() {
-  mprintf("\t<filename> [<fileformat>] [append] [nobox]\n");
-  mprintf("\t           %s [onlyframes <range>] [title <title>]\n", TopologyList::ParmArgs);
+  mprintf("\t<filename> [<fileformat>] [append] [nobox]\n"
+          "\t           %s [onlyframes <range>] [title <title>]\n", TopologyList::ParmArgs);
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
   mprintf("\t           [ <Format Options> ]\n");
-  mprintf("\tSpecify output trajectory.\n");
+  mprintf("  Specify output trajectory.\n");
   TrajectoryFile::WriteOptions();
 }
 
 static void Help_Reference() {
   mprintf("\t<filename> [<frame#>] [<mask>] [TAG] [lastframe]\n"
-          "\tLoad trajectory <filename> as a reference frame.\n");
+          "  Load trajectory <filename> as a reference frame.\n");
 }
 
 static void Help_Parm() {
-  mprintf("\t<filename> [<tag>] [nobondsearch | bondsearch [<offset>]]\n");
-  mprintf("\tAdd <filename> to the topology list.\n");
+  mprintf("\t<filename> [<tag>] [nobondsearch | bondsearch [<offset>]]\n"
+          "  Add <filename> to the topology list.\n");
 }
 static void Help_ParmInfo() {
   mprintf("\t[<parmindex>] [<mask>]\n"
-          "\tPrint information on topology <parmindex> (0 by default).\n");
+          "  Print information on topology <parmindex> (0 by default).\n");
 }
 
 static void Help_ParmWrite() {
-  mprintf("\tout <filename> [<parmindex>]\n");
-  mprintf("\tWrite topology <parmindex> to <filename> as an Amber Topology file.\n");
+  mprintf("\tout <filename> [<parmindex>]\n"
+          "  Write topology <parmindex> to <filename>.\n");
 }
 
 static void Help_ParmStrip() {
-  mprintf("\t<mask> [<parmindex>]\n");
-  mprintf("\tStrip atoms in mask from topology <parmindex>.\n");
+  mprintf("\t<mask> [<parmindex>]\n"
+          "  Strip atoms in mask from topology <parmindex>.\n");
 }
 
 static void Help_ParmBox() {
-  mprintf("\t[<parmindex>] [x <xval>] [y <yval>] [z <zval>]\n");
-  mprintf("\t              [alpha <a>] [beta <b>] [gamma <g>] [nobox]\n");
-  mprintf("\tSet the specified topology box info to what is specified. If nobox, remove box info.\n");
+  mprintf("\t[<parmindex>] [x <xval>] [y <yval>] [z <zval>]\n"
+          "\t              [alpha <a>] [beta <b>] [gamma <g>] [nobox]\n"
+          "  Set the specified topology box info to what is specified. If nobox is\n"
+          "  specified, remove box info.\n");
 }
 
 static void Help_Solvent() {
   mprintf("\t[<parmindex>] { <mask> | none }\n"
-          "\tSet solvent for the specified topology (default 0) based on <mask>.\n"
-          "\tIf 'none' specified, remove all solvent information.\n");
+          "  Set solvent for the specified topology (default 0) based on <mask>.\n"
+          "  If 'none' specified, remove all solvent information.\n");
 }
 
 static void Help_AtomInfo() {
   mprintf("\t[<parmindex>] [<mask>]\n"
-          "\tPrint information on atoms in <mask> for topology <parmindex> (0 by default).\n");
+          "  Print information on atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
 static void Help_BondInfo() {
   mprintf("\t[<parmindex>] [<mask>]\n"
-          "\tPrint bond information of atoms in <mask> for topology <parmindex> (0 by default).\n");
+          "  Print bond information of atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
 static void Help_AngleInfo() {
   mprintf("\t[<parmindex>] [<mask>]\n"
-      "\tPrint angle information of atoms in <mask> for topology <parmindex> (0 by default).\n");
+      "  Print angle information of atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
 static void Help_DihedralInfo() {
   mprintf("\t[<parmindex>] [<mask>]\n"
-      "\tPrint dihedral information of atoms in <mask> for topology <parmindex> (0 by default).\n");
+      "  Print dihedral information of atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
 static void Help_ChargeInfo() {
-  mprintf("\t[<parmindex>] <mask>\n");
-  mprintf("\tPrint the total charge of atoms in <mask> for topology <parmindex> (0 by default).\n");
+  mprintf("\t[<parmindex>] <mask>\n"
+          "  Print the total charge of atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
 static void Help_MassInfo() {
-  mprintf("\t[<parmindex>] <mask>\n");
-  mprintf("\tPrint the total mass of atoms in <mask> for topology <parmindex> (0 by default).\n");
+  mprintf("\t[<parmindex>] <mask>\n"
+          "  Print the total mass of atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
 static void Help_ResInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n");
-  mprintf("\tPrint information for residues in <mask> for topology <parmindex> (0 by default).\n");
+  mprintf("\t[<parmindex>] [<mask>]\n"
+          "  Print information for residues in <mask> for topology <parmindex> (0 by default).\n");
 }
 static void Help_MolInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n");
-  mprintf("\tPrint information for molecules in <mask> for topology <parmindex> (0 by default).\n");
+  mprintf("\t[<parmindex>] [<mask>]\n"
+          "  Print information for molecules in <mask> for topology <parmindex> (0 by default).\n");
 }
 
 static void Help_LoadCrd() {
   mprintf("\t<filename> %s [<trajin args>] [<name>]\n", TopologyList::ParmArgs);
-  mprintf("\tLoad trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
+  mprintf("  Load trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
 }
 
 static void Help_LoadTraj() {
   mprintf("\tname <setname>\n"
-          "\tConvert currently loaded input trajectories to TRAJ data set named <setname>\n");
+          "  Convert currently loaded input trajectories to TRAJ data set named <setname>\n");
 }
 
 static void Help_CrdAction() {
-  mprintf("\t<crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n");
-  mprintf("\tPerform action <actioncmd> on COORDS data set <crd set>.\n");
+  mprintf("\t<crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n"
+          "  Perform action <actioncmd> on COORDS data set <crd set>.\n");
 }
 
 static void Help_CrdOut() {
-  mprintf("\t<crd set> <filename> [<trajout args>] [crdframes <start>,<stop>,<offset>]\n");
-  mprintf("\tWrite COORDS data set <crd set> to trajectory file <filename>\n");
+  mprintf("\t<crd set> <filename> [<trajout args>] [crdframes <start>,<stop>,<offset>]\n"
+          "  Write COORDS data set <crd set> to trajectory file <filename>\n");
 }
 
 static void Help_RunAnalysis() {
-  mprintf("\t[<analysis> [<analysis args>]]\n");
-  mprintf("\tIf specified alone, run all analyses in the analysis list.\n");
-  mprintf("\tOtherwise run the specified analysis immediately.\n");
+  mprintf("\t[<analysis> [<analysis args>]]\n"
+          "  If specified alone, run all analyses in the analysis list.\n"
+          "  Otherwise run the specified analysis immediately.\n");
 }
 
 // ---------- Information on Deprecated commands -------------------------------
 static void Deprecate_MinDist() {
-  mprinterr("\tUse the 'nativecontacts' action instead.\n");
+  mprinterr("  Use the 'nativecontacts' action instead.\n");
 }
 
 static void Deprecate_Hbond() {
-  mprinterr("\tHydrogen bond acceptors and donors are defined within the 'hbond' action.\n");
+  mprinterr("  Hydrogen bond acceptors and donors are defined within the 'hbond' action.\n");
 }
 
 static void Deprecate_TopSearch() {
-  mprinterr("\tBonds and/or molecules are automatically searched for if needed.\n");
+  mprinterr("  Bonds and/or molecules are automatically searched for if needed.\n");
 }
 
 static void Deprecate_ParmBondInfo() {
-  mprinterr("\tUse bonds, bondinfo, or printbonds instead.\n");
+  mprinterr("  Use bonds, bondinfo, or printbonds instead.\n");
 }
 
 static void Deprecate_ParmResInfo() {
-  mprinterr("\tUse resinfo instead.\n");
+  mprinterr("  Use resinfo instead.\n");
 }
 
 static void Deprecate_ParmMolInfo() {
-  mprinterr("\tUse molinfo instead.\n");
+  mprinterr("  Use molinfo instead.\n");
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
@@ -580,9 +581,9 @@ Command::RetType ClearList(CpptrajState& State, ArgList& argIn, Command::AllocTy
   return (Command::RetType)State.ClearList( argIn );
 }
 
-Command::RetType RemoveFromList(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Command::RetType RemoveData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (Command::RetType)State.RemoveFromList( argIn );
+  return (Command::RetType)State.RemoveDataSet( argIn );
 }
 
 /// Set debug value for specified list(s)
@@ -1410,7 +1411,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "quit" ,         0, Help_Quit,            Quit            },
   { GENERAL, "readdata",      0, Help_ReadData,        ReadData        },
   { GENERAL, "readinput",     0, Help_ReadInput,       ReadInput       },
-  { GENERAL, "remove",        0, Help_Remove,          RemoveFromList  },
+  { GENERAL, "removedata",    0, Help_RemoveData,      RemoveData      },
   { GENERAL, "rst"   ,        0, Help_GenerateAmberRst,GenerateAmberRst},
   { GENERAL, "run"   ,        0, Help_Run,             RunState        },
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },

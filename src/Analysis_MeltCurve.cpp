@@ -3,9 +3,9 @@
 
 void Analysis_MeltCurve::Help() {
   mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] cut <cut>\n"
-          "\tCalculate melting curve from input data sets assuming a simple 2-state\n"
-          "\ttransition model, using data below <cut>as 'folded' and data above <cut>\n"
-          "\tas 'unfolded'\n");
+          "  Calculate melting curve from input data sets assuming a simple 2-state\n"
+          "  transition model, using data below <cut>as 'folded' and data above <cut>\n"
+          "  as 'unfolded'\n");
 }
 
 // Analysis_MeltCurve::Setup()

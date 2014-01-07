@@ -16,8 +16,9 @@ Analysis_RemLog::Analysis_RemLog() :
 void Analysis_RemLog::Help() {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
           "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime]\n"
-          "\tcrdidx: Print coordinate index vs exchange; output sets contain replica indices.\n"
-          "\trepidx: Print replica index vs exchange; output sets contain coordinate indices.\n");
+          "    crdidx: Print coordinate index vs exchange; output sets contain replica indices.\n"
+          "    repidx: Print replica index vs exchange; output sets contain coordinate indices.\n"
+          "  Analyze previously read in replica log data.\n");
 }
 
 // Analysis_RemLog::Setup()

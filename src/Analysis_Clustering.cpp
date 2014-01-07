@@ -43,19 +43,19 @@ void Analysis_Clustering::Help() {
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
-  mprintf("  Distance options:\n");
-  mprintf("\t{[[rms] [<mask>] [mass] [nofit]] | [dme [<mask>]] | [data <dset0>[,<dset1>,...]]}\n");
-  mprintf("\t[sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n");
-  mprintf("  Output options:\n");
-  mprintf("\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n");
-  mprintf("\t[summaryhalf <halffile>] [splitframe <frame>]\n");
-  mprintf("\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n");
-  mprintf("  Coordinate output options:\n");
-  mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
-  mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
-  mprintf("\t[ repout <repprefix> [repfmt <repfmt>] [repframe] ]\n");
-  mprintf("\tCluster structures based on coordinates (RMSD/DME) or given data set(s).\n");
-  mprintf("\t<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("  Distance options:\n"
+          "\t{[[rms] [<mask>] [mass] [nofit]] | [dme [<mask>]] | [data <dset0>[,<dset1>,...]]}\n"
+          "\t[sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n"
+          "  Output options:\n"
+          "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
+          "\t[summaryhalf <halffile>] [splitframe <frame>]\n"
+          "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
+          "  Coordinate output options:\n"
+          "\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n"
+          "\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n"
+          "\t[ repout <repprefix> [repfmt <repfmt>] [repframe] ]\n"
+          "  Cluster structures based on coordinates (RMSD/DME) or given data set(s).\n"
+          "  <crd set> can be created with the 'createcrd' command.\n");
 }
 
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";

@@ -22,9 +22,9 @@ void Analysis_Rms2d::Help() {
           "\t[dme] [mass] [nofit]\n"
           "\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n"
           "\t[corr <corrfilename>]\n"
-          "\tCalculate RMSD between all frames in <crd set>, or between frames in\n"
-          "\t<crd set> and frames in <traj>.\n"
-          "\n\t<crd set> can be created with the 'createcrd' command.\n");
+          "  Calculate RMSD between all frames in <crd set>, or between frames in\n"
+          "  <crd set> and frames in <traj>.\n"
+          "  <crd set> can be created with the 'createcrd' command.\n");
 }
 
 const char* Analysis_Rms2d::ModeStrings_[] = {

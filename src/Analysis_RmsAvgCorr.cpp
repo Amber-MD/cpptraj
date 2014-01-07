@@ -23,10 +23,10 @@ void Analysis_RmsAvgCorr::Help() {
   mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>] [mass]\n"
           "\t[stop <maxwindow>] [offset <offset>]\n"
           "\t{reference <ref file> parm <parmfile> | first}\n"
-          "\tCalculate the RMS average correlation, i.e. the average RMSD\n"
-          "\tof structures which have been averaged over increasing numbers\n"
-          "\tof frames.\n"
-          "\t<crd set> can be created with the 'createcrd' command.\n");
+          "  Calculate the RMS average correlation, i.e. the average RMSD\n"
+          "  of structures which have been averaged over increasing numbers\n"
+          "  of frames.\n"
+          "  <crd set> can be created with the 'createcrd' command.\n");
 }
 
 Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,

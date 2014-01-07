@@ -96,38 +96,24 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   return 0;
 }
 
-static inline int RemoveError() {
-  mprinterr("Error: Remove not yet supported for this list type.\n");
-  return 1;
-}
-
-/** Remove something from specified list */
-int CpptrajState::RemoveFromList( ArgList& argIn ) {
-  std::vector<bool> enabled = ListsFromArg( argIn, false );
+/** Remove DataSet from State */
+int CpptrajState::RemoveDataSet( ArgList& argIn ) {
+  // Need to first make sure they are removed from DataFiles etc also.
+  // FIXME: Currently no good way to check if Actions/Analyses will be
+  //        made invalid by DataSet removal.
   std::string removeArg = argIn.GetStringNext();
-  if ( enabled[L_ACTION]   ) return RemoveError(); //actionList_.Clear();
-  if ( enabled[L_TRAJIN]   ) return RemoveError(); //trajinList_.Clear();
-  if ( enabled[L_REF]      ) return RemoveError(); //refFrames_.Clear();
-  if ( enabled[L_TRAJOUT]  ) return RemoveError(); //trajoutList_.Clear();
-  if ( enabled[L_PARM]     ) return RemoveError(); //parmFileList_.Clear();
-  if ( enabled[L_ANALYSIS] ) return RemoveError(); //analysisList_.Clear();
-  if ( enabled[L_DATAFILE] ) return RemoveError(); //DFL_.Clear();
-  if ( enabled[L_DATASET]  ) {
-    // For DataSets, need to first make sure they are removed from
-    // DataFiles etc as well.
-    // FIXME: Currently no good way to check if Actions/Analyses will be
-    //        made invalid by DataSet removal.
-    DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
-    if (tempDSL.empty())
-      mprintf("Warning: \"%s\" does not correspond to any data sets.\n", removeArg.c_str());
-    else {
-      for (DataSetList::const_iterator ds = tempDSL.begin();
+  if (removeArg.empty()) {
+    mprinterr("Error: No data set(s) specified for removal.\n");
+    return 1;
+  }
+  DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
+  if (!tempDSL.empty()) {
+    for (DataSetList::const_iterator ds = tempDSL.begin();
                                      ds != tempDSL.end(); ++ds)
-      {
-        mprintf("\tRemoving \"%s\"\n", (*ds)->Legend().c_str());
-        DFL_.RemoveDataSet( *ds );
-        DSL_.RemoveSet( *ds );
-      }
+    {
+      mprintf("\tRemoving \"%s\"\n", (*ds)->Legend().c_str());
+      DFL_.RemoveDataSet( *ds );
+      DSL_.RemoveSet( *ds );
     }
   }
   return 0;

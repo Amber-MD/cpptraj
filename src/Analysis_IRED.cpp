@@ -26,7 +26,7 @@ void Analysis_IRED::Help() {
   mprintf("\t[relax freq <MHz> [NHdist <distnh>]] [order <order>]\n"
           "\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n"
           "\tmodes <modesname>\n"
-          "\tPerform isotropic reorientational Eigenmode dynamics analysis.\n");
+          "  Perform isotropic reorientational Eigenmode dynamics analysis.\n");
 }
 
 // DESTRUCTOR
@@ -127,6 +127,10 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprintf("\t\tNOEs and relaxation rates will be written to %s\n",
             noeFilename_.c_str());
   mprintf("\t\tResults are written to %s\n", filename_.c_str());
+  mprintf("#Citation: Prompers, J. J.; Brüschweiler, R.; \"General framework for\n"
+          "#          studying the dynamics of folded and nonfolded proteins by\n"
+          "#          NMR relaxation spectroscopy and MD simulation\"\n"
+          "#          J. Am. Chem. Soc. (2002) V.124 pp.4522-4534\n");
 
   return Analysis::OK;
 }

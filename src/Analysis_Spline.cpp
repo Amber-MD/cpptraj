@@ -15,7 +15,7 @@ Analysis_Spline::Analysis_Spline() :
 void Analysis_Spline::Help() {
   mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [meshsize <n> | meshfactor <x>]\n"
           "\t[meshmin <mmin>] [meshmax <mmax>]\n"
-          "\tSpline the given data sets.\n");
+          "  Cubic spline the given data sets.\n");
 }
 
 Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,

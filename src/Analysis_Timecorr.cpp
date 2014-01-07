@@ -23,7 +23,7 @@ void Analysis_Timecorr::Help() {
   mprintf("\tvec1 <vecname1> [vec2 <vecname2>] out <filename>\n"
           "\t[order <order>] tstep <tstep> tcorr <tcorr>\n"
           "\t[dplr] [norm] [drct]\n"
-          "\tCalculate auto or cross-correlation function for specified vectors.\n");
+          "  Calculate auto or cross-correlation function for specified vectors.\n");
 }
 
 // Analysis_TimeCorr::CalculateAverages()

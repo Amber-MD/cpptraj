@@ -11,10 +11,10 @@ Analysis_CrdFluct::Analysis_CrdFluct() :
 {}
 
 void Analysis_CrdFluct::Help() {
-  mprintf("\t[crdset <crd set>] [<mask>] [out <filename>] [window <size>] [bfactor]\n");
-  mprintf("\tCalculate atomic positional fluctuations for atoms in <mask>\n");
-  mprintf("\tover windows of specified size.\n");
-  mprintf("\t<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("\t[crdset <crd set>] [<mask>] [out <filename>] [window <size>] [bfactor]\n"
+          "  Calculate atomic positional fluctuations for atoms in <mask>\n"
+          "  over windows of specified size.\n"
+          "  <crd set> can be created with the 'createcrd' command.\n");
 }
 
 // Analysis_CrdFluct::Setup()

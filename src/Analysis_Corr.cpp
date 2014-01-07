@@ -12,10 +12,10 @@ Analysis_Corr::Analysis_Corr() :
 {}
 
 void Analysis_Corr::Help() {
-  mprintf("\tout <outfilename> <Dataset1> [<Dataset2>] [name <name>]\n");
-  mprintf("\t[lagmax <lag>] [nocovar] [direct]\n");
-  mprintf("\tCalculate auto-correlation for <Dataset1>, or cross -correlation\n");
-  mprintf("\tbetween <Dataset1> and <Dataset2>\n");
+  mprintf("\tout <outfilename> <Dataset1> [<Dataset2>] [name <name>]\n"
+          "\t[lagmax <lag>] [nocovar] [direct]\n"
+          "  Calculate auto-correlation for <Dataset1>, or cross -correlation\n"
+          "  between <Dataset1> and <Dataset2>\n");
 }
 
 // Analysis_Corr::Setup()
