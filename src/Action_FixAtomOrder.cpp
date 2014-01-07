@@ -12,7 +12,7 @@ Action_FixAtomOrder::~Action_FixAtomOrder() {
 
 void Action_FixAtomOrder::Help() {
   mprintf("\t[outprefix <name>]\n"
-          "\tFix atom ordering so that all atoms in molecules are sequential.\n");
+          "  Fix atom ordering so that all atoms in molecules are sequential.\n");
 }
 
 // Action_FixAtomOrder::init()

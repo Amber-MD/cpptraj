@@ -10,9 +10,9 @@ Action_Principal::Action_Principal() :
 { }
 
 void Action_Principal::Help() {
-  mprintf("\t[<mask>] [dorotation] [mass] [out <filename>]\n");
-  mprintf("\tCalculate principal axes of atoms in <mask>. Align the system along\n");
-  mprintf("\tprincipal axes if 'dorotation' specified.\n");
+  mprintf("\t[<mask>] [dorotation] [mass] [out <filename>]\n"
+          "  Calculate principal axes of atoms in <mask>. Align the system along\n"
+          "  principal axes if 'dorotation' specified.\n");
 }
 
 // Action_Principal::init()

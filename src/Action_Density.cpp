@@ -26,7 +26,8 @@ Action_Density::Action_Density() :
 void Action_Density::Help()
 {
   mprintf("\tout <filename> [delta <resolution>] [x|y|z]\n"
-	  "\t[number|mass|charge|electron] <mask1> ... <maskN>\n");
+	  "\t[number|mass|charge|electron] <mask1> ... <maskN>\n"
+          "  Calculate density along a coordinate.\n");
 }
 
 // Action_Density::init()

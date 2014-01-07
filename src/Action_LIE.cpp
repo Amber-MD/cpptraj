@@ -16,9 +16,9 @@ Action_LIE::Action_LIE() :
 { }
 
 void Action_LIE::Help() {
-  mprintf("\t[<name>] <Ligand Mask> [<Surroundings Mask>] [out filename]\n");
-  mprintf("\t[noelec] [novdw] [cutvdw <cutoff>] [cutelec <cutoff>] [diel <dielc>]\n");
-  mprintf("\tCalculate linear interaction energy between <Ligand Mask> and <Surroundings Mask>\n");
+  mprintf("\t[<name>] <Ligand Mask> [<Surroundings Mask>] [out filename]\n"
+          "\t[noelec] [novdw] [cutvdw <cutoff>] [cutelec <cutoff>] [diel <dielc>]\n"
+          "  Calculate linear interaction energy between <Ligand Mask> and <Surroundings Mask>\n");
 }
 
 // Action_LIE::init()

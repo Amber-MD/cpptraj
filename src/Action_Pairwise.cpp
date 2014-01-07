@@ -24,7 +24,7 @@ Action_Pairwise::Action_Pairwise() :
 void Action_Pairwise::Help() {
   mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <ecut>] [cutevdw <vcut>]\n"
           "\t[ %s ] [cutout <cutmol2name>]\n"
-          "\tCalculate pairwise (non-bonded) energy for atoms in <mask>.\n", FrameList::RefArgs);
+          "  Calculate pairwise (non-bonded) energy for atoms in <mask>.\n", FrameList::RefArgs);
 }
 
 // DESTRUCTOR

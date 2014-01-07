@@ -17,9 +17,9 @@ Action_Pucker::Action_Pucker() :
 { } 
 
 void Action_Pucker::Help() {
-  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> <mask5> [<mask6>] out <filename>\n");
-  mprintf("\t[range360] [amplitude] [theta] [altona | cremer] [offset <offset>]\n");
-  mprintf("\tCalculate pucker of atoms in masks 1-5 (or 6).\n");
+  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> <mask5> [<mask6>] out <filename>\n"
+          "\t[range360] [amplitude] [theta] [altona | cremer] [offset <offset>]\n"
+          "\tCalculate pucker of atoms in masks 1-5 (or 6, 'cremer' only).\n");
 }
 
 // Action_Pucker::init()

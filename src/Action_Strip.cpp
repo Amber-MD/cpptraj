@@ -14,7 +14,7 @@ Action_Strip::Action_Strip() :
 
 void Action_Strip::Help() {
   mprintf("\t<mask1> [outprefix <name>] [nobox]\n"
-          "\tStrip atoms in <mask1> from the system.\n");
+          "  Strip atoms in <mask1> from the system.\n");
 }
 
 void Action_Unstrip::Help() {

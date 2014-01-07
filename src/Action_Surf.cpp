@@ -12,8 +12,8 @@
 Action_Surf::Action_Surf() : surf_(0) {} 
 
 void Action_Surf::Help() {
-  mprintf("\t<name> <mask1> [out filename]\n");
-  mprintf("\tCalculate LCPO surface area of atoms in <mask1>\n");
+  mprintf("\t<name> <mask1> [out filename]\n"
+          "  Calculate LCPO surface area of atoms in <mask1>\n");
 }
 
 // Action_Surf::init()
@@ -33,6 +33,9 @@ Action::RetType Action_Surf::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (outfile != 0) outfile->AddSet( surf_ );
 
   mprintf("    SURF: Calculating surface area for atoms in mask [%s]\n",Mask1_.MaskString());
+  mprintf("#Citation: Weiser, J.; Shenkin, P. S.; Still, W. C.; \"Approximate atomic\n"
+          "#          surfaces from linear combinations of pairwise overlaps (LCPO).\"\n"
+          "#          J. Comp. Chem. (1999), V.20, pp.217-230.\n");
 
   return Action::OK;
 }

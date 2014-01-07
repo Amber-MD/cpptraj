@@ -11,8 +11,8 @@ Action_LESsplit::~Action_LESsplit() {
 
 void Action_LESsplit::Help() {
   mprintf("\t[out <filename prefix>] [average <avg filename>] <trajout args>\n"
-          "\t  Split and/or average LES trajectory. At least one of 'out' or 'average'\n"
-          "\tmust be specified. If both are specified they share <trajout args>.\n");
+          "  Split and/or average LES trajectory. At least one of 'out' or 'average'\n"
+          "  must be specified. If both are specified they share <trajout args>.\n");
 }
 
 // Action_LESsplit::Init()

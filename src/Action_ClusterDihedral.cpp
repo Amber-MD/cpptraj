@@ -19,11 +19,11 @@ Action_ClusterDihedral::Action_ClusterDihedral() :
 {}
 
 void Action_ClusterDihedral::Help() {
-  mprintf("\t[phibins <N>] [psibins <M>] [out <outfile>]\n");
-  mprintf("\t[framefile <framefile>] [clusterinfo <infofile>]\n");
-  mprintf("\t[clustervtime <cvtfile>] [cut <CUT>]\n");
-  mprintf("\t[dihedralfile <dfile> | <mask>] [min <minimum>]\n");
-  mprintf("\tAssign input structures a cluster based on binning dihedral angles.\n");
+  mprintf("\t[phibins <N>] [psibins <M>] [out <outfile>]\n"
+          "\t[framefile <framefile>] [clusterinfo <infofile>]\n"
+          "\t[clustervtime <cvtfile>] [cut <CUT>]\n"
+          "\t[dihedralfile <dfile> | <mask>] [min <minimum>]\n"
+          "  Assign input structures a cluster based on binning dihedral angles.\n");
 }
 
 // Action_ClusterDihedral::ReadDihedrals()

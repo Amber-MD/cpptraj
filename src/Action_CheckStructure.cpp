@@ -17,7 +17,7 @@ Action_CheckStructure::Action_CheckStructure() :
 void Action_CheckStructure::Help() {
   mprintf("\t[<mask1>] [reportfile <report>] [noimage]\n"
           "\t[offset <offset>] [cut <cut>] [nobondcheck]\n"
-          "\tCheck frames for atomic overlaps and unusual bond lengths\n");
+          "  Check frames for atomic overlaps and unusual bond lengths\n");
 }
 
 // DESTRUCTOR

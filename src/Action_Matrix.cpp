@@ -23,7 +23,7 @@ void Action_Matrix::Help() {
           "\t[ ired [order <#>] ]\n"
           "\t[ {distcovar | idea} <mask1> ]\n"
           "\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n"
-          "\tCalculate a matrix of the specified type from input coordinates.\n");
+          "  Calculate a matrix of the specified type from input coordinates.\n");
 }
 
 // Action_Matrix::Init()

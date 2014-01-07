@@ -11,7 +11,8 @@ void Action_SymmetricRmsd::Help() {
   mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [nofit | norotate] [mass] [remap]\n"
           "\t[ first | %s |\n"
           "\t  reftraj <trajname> [parm <parmname> | parmindex <#>] ]\n"
-          "\tPerform symmetry-corrected RMSD calculation.\n", FrameList::RefArgs);
+          "  Perform symmetry-corrected RMSD calculation. If 'remap' is specified\n"
+          "  frames will be modified for symmetry as well.\n", FrameList::RefArgs);
 }
 
 // Action_SymmetricRmsd::Init()

@@ -37,15 +37,15 @@ void Action_Hbond::Help() {
           "\t[avgout <filename>] [printatomnum] [nointramol]\n"
           "\t[solventdonor <mask>] [solventacceptor <mask>]\n"
           "\t[solvout <filename>] [bridgeout <filename>]\n"
-          "\t  Search for hydrogen bonds using atoms in the region specified by mask.\n"
-          "\tIf just <mask> specified donors and acceptors will be automatically searched for.\n"
-          "\tIf donormask is specified but not acceptormask, acceptors will be\n"
-          "\tautomatically searched for in <mask>.\n"
-          "\tIf acceptormask is specified but not donormask, donors will be automatically\n"
-          "\tsearched for in <mask>.\n"
-          "\tIf both donormask and acceptor mask are specified no automatic searching will occur.\n"
-          "\tIf donorhmask is specified atoms in that mask will be paired with atoms in\n"
-          "\tdonormask instead of automatically searching for hydrogen atoms.\n");
+          "  Search for hydrogen bonds using atoms in the region specified by mask.\n"
+          "  If just <mask> specified donors and acceptors will be automatically searched for.\n"
+          "  If donormask is specified but not acceptormask, acceptors will be\n"
+          "  automatically searched for in <mask>.\n"
+          "  If acceptormask is specified but not donormask, donors will be automatically\n"
+          "  searched for in <mask>.\n"
+          "  If both donormask and acceptor mask are specified no automatic searching will occur.\n"
+          "  If donorhmask is specified atoms in that mask will be paired with atoms in\n"
+          "  donormask instead of automatically searching for hydrogen atoms.\n");
 }
 
 // Action_Hbond::Init()

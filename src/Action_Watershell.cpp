@@ -28,9 +28,11 @@ Action_Watershell::~Action_Watershell() {
 #endif
 
 void Action_Watershell::Help() {
-  mprintf("\t<solutemask> <filename> [lower <lower cut>] [upper <upper cut>]\n");
-  mprintf("\t[noimage] [<solventmask>]\n");
-  mprintf("\tCalculate # of waters in 1st and 2nd solvation shells.\n");
+  mprintf("\t<solutemask> <filename> [lower <lower cut>] [upper <upper cut>]\n"
+          "\t[noimage] [<solventmask>]\n"
+          "  Calculate # of waters in 1st and 2nd solvation shells (defined by\n"
+          "  <lower cut> (default 3.4 Ang.) and <upper cut> (default 5.0 Ang.)\n"
+          "  distance cut-offs respectively.\n");
 }
 
 // Action_Watershell::init()

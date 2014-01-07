@@ -35,9 +35,9 @@ void Action_Radial::Help() {
   mprintf("\t<outfilename> <spacing> <maximum> <solvent mask1> [<solute mask2>] [noimage]\n"
           "\t[density <density> | volume] [center1 | center2 | nointramol] [<name>]\n"
           "\t[intrdf <file>] [rawrdf <file>]\n"
-          "\tCalculate the radial distribution function (RDF) of atoms in <solvent mask1>.\n"
-          "\tIf <solute mask2> is given calculate RDF of all atoms in <solvent mask1>\n"
-          "\tto each atom in <solute mask2>.\n");
+          "  Calculate the radial distribution function (RDF) of atoms in <solvent mask1>.\n"
+          "  If <solute mask2> is given calculate RDF of all atoms in <solvent mask1>\n"
+          "  to each atom in <solute mask2>.\n");
 }
 
 // DESTRUCTOR

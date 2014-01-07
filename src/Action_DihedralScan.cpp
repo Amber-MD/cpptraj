@@ -35,11 +35,11 @@ Action_DihedralScan::~Action_DihedralScan() {
 void Action_DihedralScan::Help() {
   mprintf("\tresrange <range> [{interval*|random}]");
   DihedralSearch::ListKnownTypes();
-  mprintf("\t'*' denotes default.\n");
-  mprintf("\tOptions for 'random': [rseed <rseed>]\n");
-  mprintf("\t\t[ check [cutoff <cutoff>] [rescutoff <rescutoff>]\n");
-  mprintf("\t\t  [backtrack <backtrack>] [increment <increment>] [maxfactor <max_factor>] ]\n");
-  mprintf("\tOptions for 'interval': <interval deg> [outtraj <filename> [<outfmt>]]\n");
+  mprintf("\t'*' denotes default.\n"
+          "\tOptions for 'random': [rseed <rseed>]\n"
+          "\t\t[ check [cutoff <cutoff>] [rescutoff <rescutoff>]\n"
+          "\t\t  [backtrack <backtrack>] [increment <increment>] [maxfactor <max_factor>] ]\n"
+          "\tOptions for 'interval': <interval deg> [outtraj <filename> [<outfmt>]]\n");
 }
 
 // Action_DihedralScan::Init()

@@ -98,16 +98,16 @@ Action_Rotdif::Action_Rotdif() :
 { } 
 // TODO: MAKE ANALYSIS
 void Action_Rotdif::Help() {
-  mprintf("\t[rseed <rseed>] [nvecs <nvecs>]\n");
-  mprintf("\tref <refname> | refindex <refindex> | reference\n");
-  mprintf("\t[<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>\n");
-  mprintf("\t[itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]\n");
-  mprintf("\t[delqfrac <delqfrac>] [rvecout <randvecOut>]\n");
-  mprintf("\t[rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]\n");
-  mprintf("\t[corrout <corrOut>] [usefft]\n");
-  mprintf("\t[rvecin <randvecIn>]\n");
-  mprintf("\t[gridsearch] [nmesh <NmeshPoints>]\n");
-  mprintf("\tCalculate rotational diffusion tensor.\n");
+  mprintf("\t[rseed <rseed>] [nvecs <nvecs>]\n"
+          "\tref <refname> | refindex <refindex> | reference\n"
+          "\t[<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>\n"
+          "\t[itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]\n"
+          "\t[delqfrac <delqfrac>] [rvecout <randvecOut>]\n"
+          "\t[rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]\n"
+          "\t[corrout <corrOut>] [usefft]\n"
+          "\t[rvecin <randvecIn>]\n"
+          "\t[gridsearch] [nmesh <NmeshPoints>]\n"
+          "  Calculate rotational diffusion tensor.\n");
 }
 
 // DESTRUCTOR
@@ -230,13 +230,14 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   mprintf("------------------------------------------------------\n");
 #else
   if (!outfilename.empty())
-    mprintf("            Diffusion constants and tau will be written to %s\n",
+    mprintf("\tDiffusion constants and tau will be written to %s\n",
             outfilename.c_str());
   else
-    mprintf("            Diffusion constants and tau will be written to STDOUT.\n");
+    mprintf("\tDiffusion constants and tau will be written to STDOUT.\n");
 #endif
-  mprintf( "# Citation: Wong & Case, (Evaluating rotational diffusion from protein MD\n"
-           "#           simulations, J. Phys. Chem. B 112:6013, 2008)\n");
+  mprintf("# Citation: Wong V.; Case, D. A.; \"Evaluating rotational diffusion from\n"
+          "#           protein MD simulations.\"\n"
+          "#           J. Phys. Chem. B (2008) V.112 pp.6013-6024.\n");
   return Action::OK;
 }
 

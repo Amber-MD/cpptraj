@@ -28,7 +28,7 @@ Action_Closest::Action_Closest() :
 void Action_Closest::Help() {
   mprintf("\t<# to keep> <mask> [noimage] [first/oxygen]\n"
           "\t[closestout <filename> [name <setname>]] [outprefix <parmprefix>]\n"
-          "\tKeep only the closest <# to keep> molecules to atoms in <mask>\n");
+          "  Keep only the closest <# to keep> molecules to atoms in <mask>\n");
 }
 
 // DESTRUCTOR

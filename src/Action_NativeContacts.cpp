@@ -25,7 +25,13 @@ void Action_NativeContacts::Help() {
           "\t[noimage] [distance <cut>] [out <filename>] [includesolvent]\n"
           "\t[ first | %s ]\n"
           "\t[name <dsname>] [mindist] [maxdist] [byresidue]\n"
-          "\t[map [mapout <mapfile>]]\n", FrameList::RefArgs);
+          "\t[map [mapout <mapfile>]]\n"
+          "  Calculate number of contacts in <mask1>, or between <mask1> and <mask2>\n"
+          "  if both are specified. Native contacts are determined based on the given\n"
+          "  reference structure (or first frame if not specified) and the specified\n"
+          "  distance cut-off (7.0 Ang. default). If [byresidue] is specified a contact\n"
+          "  between two residues is considered formed if any selected atom pair between\n"
+          "  two residues satisfies the cut-off.", FrameList::RefArgs);
 }
 
 // Action_NativeContacts::SetupList()

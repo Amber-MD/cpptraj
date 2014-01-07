@@ -15,7 +15,7 @@ Action_Average::Action_Average() :
 
 void Action_Average::Help() {
   mprintf("\t<filename> [<mask>] %s\n\t[TRAJOUT ARGS]\n"
-          "\tCalculate the average structure of atoms in <mask> over specified input frames.\n",
+          "  Calculate the average structure of atoms in <mask> over specified input frames.\n",
           ActionFrameCounter::HelpText);
 }
 

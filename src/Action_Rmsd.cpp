@@ -22,7 +22,7 @@ void Action_Rmsd::Help() {
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
           "\t [range <resRange>] [refrange <refRange>]\n"
           "\t [perresmask <additional mask>] [perrescenter] [perresinvert]\n", FrameList::RefArgs);
-  mprintf("\tCalculate coordinate root-mean-squared deviation of atoms in <mask>\n");
+  mprintf("  Calculate coordinate root-mean-squared deviation of atoms in <mask>\n");
 }
 
 // Action_Rmsd::Init()

@@ -13,8 +13,9 @@ Action_Mask::Action_Mask() :
 
 void Action_Mask::Help() {
   mprintf("\t<mask1> [maskout <filename>] [maskpdb <filename> | maskmol2 <filename>]\n"
-          "\tPrint atoms selected by <mask1> to file specified by 'maskout' and/or\n"
-          "\tthe PDB file specified by 'maskpdb'. Good for distance-based masks.\n");
+          "  Print atoms selected by <mask1> to file specified by 'maskout' and/or\n"
+          "  the PDB or Mol2 file specified by 'maskpdb' or 'maskmol2'. Good for\n"
+          "  distance-based masks.\n");
 }
 
 // Action_Mask::Init()

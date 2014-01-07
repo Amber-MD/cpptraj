@@ -17,11 +17,11 @@ Action_STFC_Diffusion::Action_STFC_Diffusion() :
 {}
 
 void Action_STFC_Diffusion::Help() {
-  mprintf("\tmask <mask> [out <file>] [time <time per frame>]\n");
-  mprintf("\t[mask2 <mask>] [lower <distance>] [upper <distance>]\n");
-  mprintf("\t[nwout <file>]) [avout <file>] [distances] [com]\n");
-  mprintf("\t[x|y|z|xy|xz|yz|xyz]\n");
-  mprintf("\tCalculate diffusion of atoms in <mask>\n");
+  mprintf("\tmask <mask> [out <file>] [time <time per frame>]\n"
+          "\t[mask2 <mask>] [lower <distance>] [upper <distance>]\n"
+          "\t[nwout <file>]) [avout <file>] [distances] [com]\n"
+          "\t[x|y|z|xy|xz|yz|xyz]\n"
+          "  Calculate diffusion of atoms in <mask>\n");
 }
 
 // Action_STFC_Diffusion::init()

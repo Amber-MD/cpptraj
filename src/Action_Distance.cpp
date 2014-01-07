@@ -14,7 +14,8 @@ void Action_Distance::Help() {
   mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]\n"
           "\t[type {noe | hbond}\n"
           "\tOptions for 'type noe': [bound <lower>] [bound <upper>] [rexp <expected>]\n"
-          "\t                        [noe_strong] [noe_medium] [noe_weak]\n");
+          "\t                        [noe_strong] [noe_medium] [noe_weak]\n"
+          "  Calculate distance between atoms in <mask1> and <mask2>\n");
 }
 
 // Action_Distance::init()

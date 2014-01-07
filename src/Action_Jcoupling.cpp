@@ -19,7 +19,7 @@ Action_Jcoupling::Action_Jcoupling() :
 
 void Action_Jcoupling::Help() {
   mprintf("\t<mask1> [outfile <filename>] [kfile <param file>] [out <filename>]\n"
-          "\tCalculate J-coupling values for all dihedrals found in <mask1>.\n");
+          "  Calculate J-coupling values for all dihedrals found in <mask1>.\n");
 }
 
 // DESTRUCTOR

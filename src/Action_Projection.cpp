@@ -12,7 +12,7 @@ Action_Projection::Action_Projection() :
 
 void Action_Projection::Help() {
   mprintf("\tmodes <modesname> out <outfile> [beg <beg>] [end <end>] [<mask>]\n"
-          "\t%s\n\tCalculate projection of coordinates along given eigenmodes.\n", 
+          "\t%s\n  Calculate projection of coordinates along given eigenmodes.\n", 
           ActionFrameCounter::HelpText);
 }
 

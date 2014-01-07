@@ -19,8 +19,8 @@ Action_AtomicFluct::Action_AtomicFluct() :
 void Action_AtomicFluct::Help() {
   mprintf("\t[out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]\n"
           "\t[calcadp [adpout <file>]]\n"
-          "\t%s\n\tCalculate atomic fluctuations of atoms in <mask>\n",
-          ActionFrameCounter::HelpText);
+          "\t%s\n"
+          "  Calculate atomic fluctuations of atoms in <mask>\n", ActionFrameCounter::HelpText);
 }
 
 // Action_AtomicFluct::Init()

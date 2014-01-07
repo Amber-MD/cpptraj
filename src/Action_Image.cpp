@@ -17,15 +17,16 @@ Action_Image::Action_Image() :
 { } 
 
 void Action_Image::Help() {
-  mprintf("\t[origin] [center] [triclinic | familiar [com <mask>]] <mask>\n"); 
-  mprintf("\t[ bymol | byres | byatom ]\n");
-  mprintf("\t- origin: center at 0.0, 0.0, 0.0, otherwise center at box center.\n");
-  mprintf("\t- center: Use center of mass for imaging, otherwise use first atom.\n");
-  mprintf("\t- triclinic: Force imaging with triclinic code.\n");
-  mprintf("\t- familiar: Image with triclinic code and shape into familiar trunc. oct. shape.\n");
-  mprintf("\t- com <mask>: If familiar, center based on COM of atoms in mask, otherwise use\n");
-  mprintf("\t              origin/box.\n");
-  mprintf("\t- <mask>: Only image atoms in <mask>. If no mask given all atoms are imaged.\n");
+  mprintf("\t[origin] [center] [triclinic | familiar [com <commask>]] <mask>\n" 
+          "\t[ bymol | byres | byatom ]\n"
+          "  Image atoms in <mask> into the primary unit cell.\n"
+          "    origin: center at 0.0, 0.0, 0.0, otherwise center at box center.\n"
+          "    center: Use center of mass for imaging, otherwise use first atom.\n"
+          "    triclinic: Force imaging with triclinic code.\n"
+          "    familiar: Image with triclinic code and shape into familiar trunc. oct. shape.\n"
+          "    com <commask>: If familiar, center based on COM of atoms in mask, otherwise use\n"
+          "                   origin/box.\n"
+          "    <mask>: Only image atoms in <mask>. If no mask given all atoms are imaged.\n");
 }
 
 // DESTRUCTOR

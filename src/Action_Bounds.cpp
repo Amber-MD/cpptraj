@@ -6,8 +6,8 @@
 Action_Bounds::Action_Bounds() {}
 
 void Action_Bounds::Help() {
-  mprintf("\t[<mask>] [out <filename>]\n");
-  mprintf("\tCalcuate the max/min coordinates (X,Y,Z) of atoms in <mask>.\n");
+  mprintf("\t[<mask>] [out <filename>]\n"
+          "  Calcuate the max/min coordinates (X,Y,Z) of atoms in <mask>.\n");
 }
 
 Action::RetType Action_Bounds::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,

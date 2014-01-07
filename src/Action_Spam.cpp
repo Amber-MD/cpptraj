@@ -28,19 +28,19 @@ void Action_Spam::Help() {
   mprintf("\t<filename> [solv <solvname>] [reorder] [name <name>] [bulk <value>]\n"
           "\t[purewater] [cut <cut>] [info <infofile>] [summary <summary>]\n"
           "\t[site_size <size>] [sphere] [out <datafile>]\n\n"
-          "\t<filename> : File with the peak locations present (XYZ- format)\n"
-          "\t<solvname> : Name of the solvent residues\n"
-          "\t<cut>      : Non-bonded cutoff for energy evaluation\n"
-          "\t<value>    : SPAM free energy of the bulk solvent\n"
-          "\t<infofile> : File with stats about which sites are occupied when.\n"
-          "\t<size>     : Size of the water site around each density peak.\n"
-          "\t[sphere]   : Treat each site like a sphere.\n"
-          "\t[purewater]: The system is pure water---used to parametrize the bulk values.\n"
-          "\t[reorder]  : The solvent should be re-ordered so the same solvent molecule\n"
-          "\t             is always in the same site.\n"
-          "\t<summary>  : File with the summary of all SPAM results. If not specified,\n"
-          "\t             no SPAM energies will be calculated.\n"
-          "\t<datafile> : Data file with all SPAM energies for each snapshot.\n");
+          "    <filename> : File with the peak locations present (XYZ- format)\n"
+          "    <solvname> : Name of the solvent residues\n"
+          "    <cut>      : Non-bonded cutoff for energy evaluation\n"
+          "    <value>    : SPAM free energy of the bulk solvent\n"
+          "    <infofile> : File with stats about which sites are occupied when.\n"
+          "    <size>     : Size of the water site around each density peak.\n"
+          "    [sphere]   : Treat each site like a sphere.\n"
+          "    [purewater]: The system is pure water---used to parametrize the bulk values.\n"
+          "    [reorder]  : The solvent should be re-ordered so the same solvent molecule\n"
+          "                 is always in the same site.\n"
+          "    <summary>  : File with the summary of all SPAM results. If not specified,\n"
+          "                 no SPAM energies will be calculated.\n"
+          "    <datafile> : Data file with all SPAM energies for each snapshot.\n");
 }
 
 // Action_Spam::init()

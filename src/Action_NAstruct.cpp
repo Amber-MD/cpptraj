@@ -30,8 +30,8 @@ void Action_NAstruct::Help() {
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>]\n"
           "\t[ %s ]\n"
-          "\tPerform nucleic acid structure analysis. Base pairing is determined\n"
-          "\tfrom specified reference or first frame.\n", FrameList::RefArgs);
+          "  Perform nucleic acid structure analysis. Base pairing is determined\n"
+          "  from specified reference or first frame.\n", FrameList::RefArgs);
 }
 
 // DESTRUCTOR

@@ -20,19 +20,19 @@ Action_Volmap::Action_Volmap() :
 
 void Action_Volmap::Help() {
   RawHelp();
-  mprintf("filename   -- Output file name\n");
-  mprintf("dx, dy, dz -- grid spacing in the x-, y-, and z-dimensions, respectively.\n\n");
-  mprintf("The grid size can be determined either by the size (x,y,z in Angstroms)\n");
-  mprintf("or by a rectangular prism enclosing a mask with <buffer> clearance\n");
-  mprintf("in every dimension. The density is calculated from the atoms in the\n");
-  mprintf("required <mask>. If a <buffer> is given, the grid is centered on the\n");
-  mprintf("centermask if provided, or the required mask if not.\n");
+  mprintf("    filename  : Output file name\n"
+          "    dx, dy, dz: grid spacing in the x-, y-, and z-dimensions, respectively.\n"
+          "  The grid size can be determined either by the size (x,y,z in Angstroms)\n"
+          "  or by a rectangular prism enclosing a mask with <buffer> clearance\n"
+          "  in every dimension. The density is calculated from the atoms in the\n"
+          "  required <mask>. If a <buffer> is given, the grid is centered on the\n"
+          "  centermask if provided, or the required mask if not.\n");
 }
 
 void Action_Volmap::RawHelp() {
-  mprintf("\tfilename dx dy dz <mask> [xplor] [radscale <factor>]\n");
-  mprintf("\t[ [[buffer <buffer>] [centermask <mask>]] | [center <x,y,z>] [size <x,y,z>] ]\n");
-  mprintf("\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");
+  mprintf("\tfilename dx dy dz <mask> [xplor] [radscale <factor>]\n"
+          "\t[ [[buffer <buffer>] [centermask <mask>]] | [center <x,y,z>] [size <x,y,z>] ]\n"
+          "\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");
 }
 
 // Action_Volmap::Init()

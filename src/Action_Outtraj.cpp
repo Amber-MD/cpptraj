@@ -7,7 +7,7 @@ Action_Outtraj::Action_Outtraj() : CurrentParm_(0) {}
 
 void Action_Outtraj::Help() {
   mprintf("\t<filename> [ trajout args ]\n"
-          "\tLike 'trajout', but coordinate output occurs during actions rather than at the end.\n");
+          "  Like 'trajout', but coordinate output occurs during actions rather than at the end.\n");
 }
 
 // Action_Outtraj::Init()

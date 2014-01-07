@@ -13,8 +13,8 @@ Action_Unwrap::Action_Unwrap() :
 void Action_Unwrap::Help() {
   mprintf("\t[center] [{bymol | byres | byatom}]\n"
           "\t[ %s ] [<mask>]\n", FrameList::RefArgs);
-  mprintf("\tReverse of 'image'; unwrap coordinates in <mask> according\n"
-          "\tto a reference structure.\n");
+  mprintf("  Reverse of 'image'; unwrap coordinates in <mask> according\n"
+          "  to a reference structure.\n");
 }
 
 // Action_Unwrap::Init()

@@ -13,9 +13,10 @@ Action_Dihedral::Action_Dihedral() :
 { } 
 
 void Action_Dihedral::Help() {
-  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> [out filename] [mass]\n");
-  mprintf("\t[type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p|h1p|phi|psi|pchi}]\n");
-  mprintf("\t[range360]\n");
+  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> [out filename] [mass]\n"
+          "\t[type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p|h1p|phi|psi|pchi}]\n"
+          "\t[range360]\n"
+          "  Calculate dihedral angle for atoms in masks 1-4.\n");
 }
 
 // Action_Dihedral::init()

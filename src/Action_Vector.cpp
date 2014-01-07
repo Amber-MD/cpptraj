@@ -18,7 +18,7 @@ void Action_Vector::Help() {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
           "\t[magnitude] [ired]\n"
           "\t<Type> = { principal [x|y|z] | dipole | box | center | corrplane }\n"
-          "\tCalculate the specified coordinate vector.\n");
+          "  Calculate the specified coordinate vector.\n");
 }
 
 // DESTRUCTOR
