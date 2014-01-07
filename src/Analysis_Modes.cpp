@@ -20,20 +20,21 @@ Analysis_Modes::Analysis_Modes() :
 {}
 
 void Analysis_Modes::Help() {
-  mprintf("\t{fluct|displ|corr} name <modesname>\n" 
+  mprintf("\t{fluct|displ|corr|trajout} name <modesname>\n" 
           "\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n"
           "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
+          "    Options for 'trajout':\n"
           "\t[trajout <name> [<parm arg>] [trajoutfmt <format>] [trajoutmask <mask>]\n"
           "\t  [pcmin <pcmin>] [pcmax <pcmax>] [trajmode <mode>]]\n"
-          "\tPerform one of the following analysis on calculated Eigenmodes.\n"
-          "\tfluct: rms fluctations from normal modes\n"
-          "\tdispl: displacement of cartesian coordinates along normal mode directions\n"
-          " Results vector usage:\n"
-          "   fluct:\n"
+          "  Perform one of the following analysis on calculated Eigenmodes.\n"
+          "    fluct: rms fluctations from normal modes\n"
+          "    displ: displacement of cartesian coordinates along normal mode directions\n"
+          "  Results vector usage:\n"
+          "    fluct:\n"
           "\t[rmsx(at1), rmsy(at1), rmsz(at1), rms(at1), ..., rmsx(atN), ..., rms(atN)]\n"
-          "   displ:\n"
+          "    displ:\n"
           "\t[displx(at1), disply(at1), displz(at1), ..., displx(atN), ..., displz(atN)]\n"
-          "   corr:\n"
+          "    corr:\n"
           "\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n");
 }
 
