@@ -6,6 +6,7 @@
 class RmsAction {
   public:
     RmsAction();
+    static const char* RmsArgs;
     /// Get nofit, norotate, and mass keywords.
     void GetRmsKeywords(ArgList&);
     /// Get target and reference masks.

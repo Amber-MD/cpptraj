@@ -16,8 +16,8 @@ Action_Rmsd::Action_Rmsd() :
 { }
 
 void Action_Rmsd::Help() {
-  mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n"
-          "\t[ first | %s |\n"
+  mprintf("\t[<name>] <mask> [<refmask>] [out filename] %s\n", RmsAction::RmsArgs);
+  mprintf("\t[ first | %s |\n"
           "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
           "\t [range <resRange>] [refrange <refRange>]\n"

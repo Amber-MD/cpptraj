@@ -8,8 +8,8 @@
 Action_SymmetricRmsd::Action_SymmetricRmsd() : debug_(0), remap_(false) {}
 
 void Action_SymmetricRmsd::Help() {
-  mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [nofit | norotate] [mass] [remap]\n"
-          "\t[ first | %s |\n"
+  mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] %s [remap]\n", RmsAction::RmsArgs);
+  mprintf("\t[ first | %s |\n"
           "\t  reftraj <trajname> [parm <parmname> | parmindex <#>] ]\n"
           "  Perform symmetry-corrected RMSD calculation. If 'remap' is specified\n"
           "  frames will be modified for symmetry as well.\n", FrameList::RefArgs);

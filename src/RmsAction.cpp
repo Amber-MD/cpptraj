@@ -7,6 +7,8 @@ RmsAction::RmsAction() :
   useMass_(false)
 {}
 
+const char* RmsAction::RmsArgs = "[nofit | norotate] [mass]";
+
 void RmsAction::GetRmsKeywords(ArgList &actionArgs) {
   fit_ = !actionArgs.hasKey("nofit");
   if (fit_)
