@@ -127,7 +127,7 @@ Command::TokenPtr Command::SearchTokenType(CommandType dtype,
     if (dtype != token->Type) continue;
     if (argIn.CommandIs( token->Cmd )) return token;
   }
-  mprintf("'%s': Command not found.\n", argIn.Command());
+  mprinterr("'%s': Command not found.\n", argIn.Command());
   return 0;
 }
 
@@ -186,7 +186,7 @@ Command::TokenPtr Command::SearchToken(ArgList& argIn) {
       } else
         return token;
     }
-  mprintf("'%s': Command not found.\n", argIn.Command());
+  mprinterr("'%s': Command not found.\n", argIn.Command());
   return 0;
 }
 

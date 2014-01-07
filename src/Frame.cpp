@@ -36,7 +36,8 @@ Frame::Frame(int natomIn) :
   X_(0),
   V_(0),
   remd_indices_(0),
-  Ndimensions_(0)
+  Ndimensions_(0),
+  Mass_(natomIn, 1.0)
 {
   if (ncoord_ > 0)
     X_ = new double[ ncoord_ ];
@@ -74,37 +75,29 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   Ndimensions_(0)
 {
   if (ncoord_ > 0) {
+    Mass_.reserve(natom_);
     X_ = new double[ ncoord_ ];
     double* newX = X_;
-    if ( !frameIn.Mass_.empty() ) {
-      if ( frameIn.V_ != 0 ) {
-        // Copy coords/mass/velo
-        V_ = new double[ ncoord_ ];
-        double* newV = V_;
-        for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-        {
-          int oldcrd = ((*atom) * 3);
-          memcpy(newX, frameIn.X_ + oldcrd, COORDSIZE_);
-          newX += 3;
-          memcpy(newV, frameIn.V_ + oldcrd, COORDSIZE_);
-          newV += 3;
-          Mass_.push_back( frameIn.Mass_[*atom] );
-        }
-      } else {
-        // Copy coords/mass
-        for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-        {
-          memcpy(newX, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
-          newX += 3;
-          Mass_.push_back( frameIn.Mass_[*atom] );
-        }
+    if ( frameIn.V_ != 0 ) {
+      // Copy coords/mass/velo
+      V_ = new double[ ncoord_ ];
+      double* newV = V_;
+      for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+      {
+        int oldcrd = ((*atom) * 3);
+        memcpy(newX, frameIn.X_ + oldcrd, COORDSIZE_);
+        newX += 3;
+        memcpy(newV, frameIn.V_ + oldcrd, COORDSIZE_);
+        newV += 3;
+        Mass_.push_back( frameIn.Mass_[*atom] );
       }
     } else {
-      // Copy coords only
+      // Copy coords/mass
       for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
       {
         memcpy(newX, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
         newX += 3;
+        Mass_.push_back( frameIn.Mass_[*atom] );
       }
     }
   }
@@ -250,9 +243,8 @@ void Frame::Info(const char *msg) const {
   else
     mprintf("\tFrame:");
   mprintf("%i atoms, %i coords",natom_, ncoord_);
-  if (V_!=0) mprintf(" with Velocities");
-  if (!Mass_.empty()) mprintf(" with Masses");
-  if (remd_indices_!=0) mprintf(" with replica indices");
+  if (V_!=0) mprintf(", with Velocities");
+  if (remd_indices_!=0) mprintf(", with replica indices");
   mprintf("\n");
 }
 
@@ -313,7 +305,7 @@ bool Frame::ReallocateX(int natomIn) {
 int Frame::SetupFrame(int natomIn) {
   ReallocateX( natomIn );
   if (V_ != 0) delete[] V_;
-  Mass_.clear();
+  Mass_.assign(natomIn, 1.0);
   return 0;
 }
 
@@ -330,10 +322,8 @@ int Frame::SetupFrameXM(Darray const& Xin, Darray const& massIn) {
   // Copy masses, or set all to 1.0 if input masses are empty.
   if (!massIn.empty())
     Mass_ = massIn;
-  else {
-    Mass_.clear();
-    Mass_.resize( natom_, 1.0 );
-  }
+  else 
+    Mass_.assign( natom_, 1.0 );
   if (V_ != 0) delete[] V_;
   return 0;
 }
