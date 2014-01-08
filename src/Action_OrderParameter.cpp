@@ -49,7 +49,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs,
     outfileName = "orderparam.dat";
   }
 
-  if (output_.OpenWrite(outfileName) ) {
+  if (output_.OpenEnsembleWrite(outfileName, DSL->EnsembleNum()) ) {
     mprinterr("Error: OrderParameter: Could not open output file %s\n",
 	      outfileName.c_str());
     return Action::ERR;
@@ -66,7 +66,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs,
   std::string taildistName = actionArgs.GetStringKey("taildist");
 
   if (!taildistName.empty()) {
-    if (taildist_.OpenWrite(taildistName) ) {
+    if (taildist_.OpenEnsembleWrite(taildistName, DSL->EnsembleNum()) ) {
       mprinterr("Error: OrderParameter: Could not open output file %s\n",
 		outfileName.c_str());
       return Action::ERR;

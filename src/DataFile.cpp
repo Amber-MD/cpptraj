@@ -317,17 +317,13 @@ void DataFile::WriteData() {
   dftimer.Start();
 #endif
   int err = 0;
-  if ( dimension_ < 2 ) {        // One-dimensional/DataSet-specific write
+  if ( dimension_ < 2 )        // One-dimensional/DataSet-specific write
     err = dataio_->WriteData(filename_.Full(), setsToWrite);
-  } else if ( dimension_ == 2) { // Two-dimensional
-    for ( DataSetList::const_iterator set = setsToWrite.begin();
-                                      set != setsToWrite.end(); ++set)
-      err += dataio_->WriteData2D(filename_.Full(), *(*set) );
-  } else if ( dimension_ == 3) { // Three-dimensional
-    for ( DataSetList::const_iterator set = setsToWrite.begin();
-                                      set != setsToWrite.end(); ++set)
-      err += dataio_->WriteData3D(filename_.Full(), *(*set) );
-  } else {
+  else if ( dimension_ == 2) // Two-dimensional
+    err = dataio_->WriteData2D(filename_.Full(), setsToWrite);
+  else if ( dimension_ == 3) // Three-dimensional
+    err = dataio_->WriteData3D(filename_.Full(), setsToWrite);
+  else {
     mprinterr("Error: %iD writes not yet supported.\n", dimension_);
     err = 1;
   }

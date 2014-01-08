@@ -34,7 +34,7 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, TopologyList* PFL, F
   mprintf("    PRINCIPAL:");
   if (!filename.empty()) {
     mprintf(" output eigenvectors/eigenvalues to %s,", filename.c_str());
-    if (outfile_.OpenWrite(filename)) return Action::ERR;
+    if (outfile_.OpenEnsembleWrite(filename, DSL->EnsembleNum())) return Action::ERR;
   }
   if (doRotation_)
     mprintf(" with rotation by");

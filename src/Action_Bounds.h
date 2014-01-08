@@ -19,5 +19,6 @@ class Action_Bounds : public Action {
     std::string outfilename_;
     double max_[3];
     double min_[3];
+    int ensembleNum_;
 };
 #endif

@@ -44,7 +44,7 @@ Action::RetType Action_Density::Init(ArgList& actionArgs,
     outfileName = "density.dat";
   }
 
-  if (output_.OpenWrite(outfileName) ) {
+  if (output_.OpenEnsembleWrite(outfileName, DSL->EnsembleNum()) ) {
     mprinterr("Error: Density: Could not open output file %s\n",
 	      outfileName.c_str());
     return Action::ERR;

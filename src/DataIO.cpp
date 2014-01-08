@@ -1,6 +1,7 @@
 #include "DataIO.h"
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
+#include "Constants.h"
 // DataIO::CheckValidFor()
 bool DataIO::CheckValidFor( DataSet const& dataIn ) const {
   if (valid1d_ && dataIn.Ndim() == 1) return true; 
@@ -54,7 +55,7 @@ Dimension DataIO::DetermineXdim( std::vector<double> const& Xvals ) {
   int nerr = 0;
   double xval = Xvals.front();
   for (unsigned int i = 0; i < std::min(10U, (unsigned int)Xvals.size()); i++) {
-    if (xval != Xvals[i]) {
+    if (xval - Xvals[i] > Constants::SMALL) {
       //mprintf("Warning: X dimension step may be off. Xval[%u] is %f, expected %f\n",
       //        i, Xvals[i], xval);
       ++nerr;

@@ -8,15 +8,11 @@ class Trajout : public TrajectoryFile {
   public:
     Trajout();
     ~Trajout();
-    /*virtual ~Trajout() {}
-    virtual int InitTrajWrite(std::string const&, ArgList*, Topology*, 
-                               TrajectoryFile::TrajFormatType) = 0;
-    virtual int EndTraj() = 0;
-    virtual int WriteFrame(int, Topology*, Frame&) = 0;
-    virtual void PrintInfo(int) = 0;*/
     inline int InitTrajWrite(std::string const&, ArgList&, Topology*,
                              TrajectoryFile::TrajFormatType);
     inline int InitTrajWrite(std::string const&, Topology*, TrajectoryFile::TrajFormatType);
+    int InitEnsembleTrajWrite(std::string const&, ArgList const&,
+                              Topology*, TrajFormatType, int);
     int InitTrajWriteWithArgs(std::string const&, const char*, Topology*,
                                TrajectoryFile::TrajFormatType);
     void EndTraj();

@@ -11,6 +11,7 @@ Action_Matrix::Action_Matrix() :
   outtype_(BYATOM),
   snap_(0),
   debug_(0),
+  ensembleNum_(-1),
   order_(2),
   useMask2_(false),
   useMass_(false),
@@ -30,6 +31,7 @@ void Action_Matrix::Help() {
 Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
   filename_ = actionArgs.GetStringKey("out");
@@ -872,7 +874,7 @@ void Action_Matrix::Print() {
   if (!filename_.empty() && outtype_ == BYRESIDUE) {
     // ---------- Print out BYRESIDUE
     CpptrajFile outfile;
-    outfile.OpenWrite(filename_);
+    outfile.OpenEnsembleWrite(filename_, ensembleNum_);
     // Convert masks to char masks in order to check whether an atom
     // is selected.
     mask1_.ConvertToCharMask();
@@ -922,7 +924,7 @@ void Action_Matrix::Print() {
   } else if (!filename_.empty() && outtype_ == BYMASK) {
     // ---------- Print out BYMASK
     CpptrajFile outfile;
-    outfile.OpenWrite(filename_);
+    outfile.OpenEnsembleWrite(filename_, ensembleNum_);
     // If only 1 mask, internal average over mask1, otherwise
     //   i==0: mask1/mask1 
     //   i==1: mask1/mask2 

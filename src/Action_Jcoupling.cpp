@@ -211,7 +211,7 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
           "#            Perez et al. JACS (2001) 123 p.7081-7093\n");
   // Open output
   if (outfile_ == 0) {
-    if ( outputfile_.OpenWrite( outfilename ) ) return Action::ERR;
+    if ( outputfile_.OpenEnsembleWrite( outfilename, DSL->EnsembleNum() ) ) return Action::ERR;
   }
   masterDSL_ = DSL;
   return Action::OK;

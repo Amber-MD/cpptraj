@@ -122,6 +122,10 @@ Action_Rotdif::~Action_Rotdif() {
 Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  if (DSL->EnsembleNum() > -1) {
+    mprinterr("Error: Rotational Diffusion calc. currently cannot be used in ensemble mode.\n");
+    return Action::ERR;
+  }
   debug_ = debugIn;
   // Get Keywords
   usefft_ = actionArgs.hasKey("usefft");
@@ -187,7 +191,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   SelectedRef_.CenterOnOrigin(useMass_); 
 
   // Open output file. Defaults to stdout if no name specified
-  if (outfile_.OpenWrite(outfilename)) {
+  if (outfile_.OpenEnsembleWrite(outfilename, DSL->EnsembleNum())) {
     mprinterr("Error opening Rotdif output file %s.\n", outfilename.c_str());
     return Action::ERR;
   }

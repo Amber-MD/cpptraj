@@ -30,6 +30,7 @@ class TrajoutList {
     /// Array of trajout args for setting up ensemble trajout.
     ArgsArray trajoutArgs_;
 
-    int AddTrajout(std::string const&, ArgList&, TopologyList const&);
+    int AddTrajout(std::string const&, ArgList&, TopologyList const&,
+                   TrajectoryFile::TrajFormatType);
 };
 #endif

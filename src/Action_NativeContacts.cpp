@@ -8,6 +8,7 @@
 Action_NativeContacts::Action_NativeContacts() :
   distance_(7.0),
   debug_(0),
+  ensembleNum_(-1),
   nframes_(0),
   first_(false),
   byResidue_(false),
@@ -210,7 +211,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
   //        sqrt(minDist2), sqrt(maxDist2));
   // Print contacts
   CpptrajFile outfile;
-  if (outfile.OpenWrite(cfile_)) return 1;
+  if (outfile.OpenEnsembleWrite(cfile_, ensembleNum_)) return 1;
   if (!cfile_.empty()) {
     outfile.Printf("#Native contacts determine from mask '%s'", Mask1_.MaskString());
     if (Mask2_.MaskStringSet())
@@ -242,6 +243,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
 Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );

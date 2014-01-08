@@ -28,18 +28,22 @@ class DataSetList {
     const_iterator end()   const { return DataList_.end();   }
     /// True if no DataSets in list.
     bool empty()           const { return DataList_.empty(); }
-    /// Return number of datasets in the list 
+    /// \return number of datasets in the list 
     size_t size()          const { return DataList_.size();  }
+    /// \return Ensemble number; -1 if not an ensemble
+    int EnsembleNum()      const { return ensembleNum_;      }
     /// Remove set from list - used in DataFile
     void RemoveSet( const_iterator );
     /// Remove set from the list.
     void RemoveSet( DataSet* );
     /// Sort DataSets in list.
     void sort();
-    /// Return DataSet at didx.
+    /// \return DataSet at didx.
     DataSet* operator[](int didx) { return DataList_[didx]; } // FIXME: No bounds check
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
+    /// Set current ensemble number.
+    void SetEnsembleNum(int i)   { ensembleNum_ = i;        }
     /// Allocate 1D DataSet memory based on current max# expected frames.
     void AllocateSets(long int);
     /// Set width.precision of all DataSets in the list.
@@ -82,6 +86,8 @@ class DataSetList {
     typedef std::vector<DataSet*> DataListType;
     /// DataSet debug level
     int debug_;
+    /// Ensemble member number
+    int ensembleNum_;
     /// True if list contains copies that should not be freed in destructor.
     bool hasCopies_;
     /// List of DataSets

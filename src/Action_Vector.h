@@ -30,6 +30,7 @@ class Action_Vector : public Action {
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
 
+    int ensembleNum_;
     DataSet_Vector* Vec_;   ///< Hold vector values
     DataSet* Magnitude_;    ///< Hold vector magnitudes if requested
     double* vcorr_;         ///< Temp. space for calculating CorrPlane

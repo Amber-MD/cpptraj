@@ -129,14 +129,12 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   while (ndata < gridsize) {
     if (infile.Line() == 0) {
       mprinterr("Error: Unexpected EOF hit in %s\n", filename);
-      infile.CloseFile();
       return 1;
     }
     int nTokens = infile.TokenizeLine(" \t");
     for (int j = 0; j < nTokens; j++) {
       if (ndata >= gridsize) {
         mprinterr("Error: Too many grid points found!\n");
-        infile.CloseFile();
         return 1;
       }
       grid[ndata++] = (float)atof(infile.NextToken());
@@ -148,27 +146,36 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   grid.SetDim(Dimension::X, Dimension(oxyz[0], dx, nx, "X"));
   grid.SetDim(Dimension::Y, Dimension(oxyz[1], dy, ny, "Y"));
   grid.SetDim(Dimension::Z, Dimension(oxyz[2], dz, nz, "Z"));
-  // Finished
-  infile.CloseFile();
   return 0;
 }
 
 // DataIO_OpenDx::WriteData3D()
-int DataIO_OpenDx::WriteData3D(std::string const& fname, DataSet const& setIn)
-                               
+int DataIO_OpenDx::WriteData3D(std::string const& fname, DataSetList const& setList)
 {
-  if (setIn.Ndim() != 3) {
-    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
-              setIn.Legend().c_str(), fname.c_str(), setIn.Ndim());
-    return 1;
-  }
-  DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
   // Open output file
   CpptrajFile outfile;
   if (outfile.OpenWrite(fname)) {
     mprinterr("Error: Could not open OpenDX output file.\n");
     return 1;
   }
+  // Warn about writing multiple sets
+  if (setList.size() > 1)
+    mprintf("Warning: %s: Writing multiple 3D sets in OpenDX format may result in unexpected behavior\n", fname.c_str());
+  int err = 0;
+  for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
+    err += WriteSet3D( *(*set), outfile );
+  return err;
+}
+
+// DataIO_OpenDx::WriteSet3D()
+int DataIO_OpenDx::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
+  if (setIn.Ndim() != 3) {
+    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
+              setIn.Legend().c_str(), outfile.Filename().full(), setIn.Ndim());
+    return 1;
+  }
+  DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
+
   // Print the OpenDX header
   size_t gridsize = set.Size();
   outfile.Printf("object 1 class gridpositions counts %d %d %d\n",
@@ -200,6 +207,5 @@ int DataIO_OpenDx::WriteData3D(std::string const& fname, DataSet const& setIn)
   //                 centerMask_.MaskString());
   //else
     outfile.Printf("\nobject \"density [A^-3]\" class field\n");
-  outfile.CloseFile();
   return 0;
 }

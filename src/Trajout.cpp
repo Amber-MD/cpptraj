@@ -1,6 +1,6 @@
 #include "Trajout.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // fileExists
+#include "StringRoutines.h" // fileExists, NumberFilename
 
 // CONSTRUCTOR
 Trajout::Trajout() :
@@ -127,6 +127,23 @@ int Trajout::InitTrajWriteWithArgs(std::string const& tnameIn, const char *argst
 {
   ArgList tempArg(argstring, " ");
   return InitTrajWrite(tnameIn,&tempArg,tparmIn,fmtIn);
+}
+
+// Trajout::InitEnsembleTrajWrite()
+int Trajout::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList const& argIn,
+                                   Topology* tparmIn, TrajFormatType fmtIn,
+                                   int ensembleNum)
+{
+  ArgList tempArg = argIn;
+  FileName tempName;
+  tempName.SetFileName( tnameIn );
+  TrajFormatType extFmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
+  if (extFmt != UNKNOWN_TRAJ)
+    fmtIn = extFmt;
+  if (ensembleNum > -1)
+    return InitTrajWrite( NumberFilename(tnameIn, ensembleNum), &tempArg, tparmIn, extFmt );
+  else
+    return InitTrajWrite( tnameIn, &tempArg, tparmIn, extFmt );
 }
 
 // Trajout::EndTraj()

@@ -7,6 +7,7 @@
 
 // CONSTRUCTOR
 Action_AtomicFluct::Action_AtomicFluct() :
+  ensembleNum_(-1),
   sets_(0),
   bfactor_(false),
   calc_adp_(false),
@@ -27,15 +28,15 @@ void Action_AtomicFluct::Help() {
 Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   // Get frame # keywords
   if (InitFrameCounter(actionArgs)) return Action::ERR;
   // Get other keywords
   bfactor_ = actionArgs.hasKey("bfactor");
   calc_adp_ = actionArgs.hasKey("calcadp");
-  if (calc_adp_) {
-     adpoutname_ = actionArgs.GetStringKey("adpout");
-     if (!bfactor_) bfactor_ = true;
-  }
+  adpoutname_ = actionArgs.GetStringKey("adpout");
+  if (!adpoutname_.empty()) calc_adp_ = true; // adpout implies calcadp
+  if (calc_adp_ && !bfactor_) bfactor_ = true;
   outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs ); 
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRES;
@@ -146,7 +147,7 @@ void Action_AtomicFluct::Print() {
 
   if (bfactor_) {
     PDBfile adpout;
-    if (calc_adp_) adpout.OpenWrite( adpoutname_ );
+    if (calc_adp_) adpout.OpenEnsembleWrite( adpoutname_, ensembleNum_ );
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
     dataout_->SetLegend("B-factors");

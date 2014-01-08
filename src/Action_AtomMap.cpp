@@ -793,7 +793,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
 
   // Print atom map and count # mapped atoms
   numMappedAtoms = 0;
-  outputfile.OpenWrite(outputname);
+  outputfile.OpenEnsembleWrite(outputname, DSL->EnsembleNum());
   outputfile.Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
   for (refatom=0; refatom < RefMap_.Natom(); refatom++) {
     targetatom = AMap_[refatom];

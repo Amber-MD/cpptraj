@@ -333,11 +333,26 @@ int DataIO_Std::WriteDataInverted(CpptrajFile& file, DataSetList const& SetList)
 }
 
 // DataIO_Std::WriteData2D()
-int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn) 
+int DataIO_Std::WriteData2D( std::string const& fname, DataSetList const& setList) 
 {
+  // Open output file
+  CpptrajFile file;
+  if (file.OpenWrite( fname )) return 1;
+  int err = 0;
+  for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
+  {
+    if (set != setList.begin()) file.Printf("\n");
+    err += WriteSet2D( *(*set), file );
+  }
+  file.CloseFile();
+  return err;
+}
+
+// DataIO_Std::WriteSet2D()
+int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
   if (setIn.Ndim() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              setIn.Legend().c_str(), fname.c_str(), setIn.Ndim());
+              setIn.Legend().c_str(), file.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_2D const& set = static_cast<DataSet_2D const&>( setIn );
@@ -346,9 +361,6 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn)
   Dimension const& Xdim = static_cast<Dimension const&>(set.Dim(0));
   Dimension const& Ydim = static_cast<Dimension const&>(set.Dim(1));
   if (Xdim.Step() == 1.0) xcol_precision = 0;
-  // Open output file
-  CpptrajFile file;
-  if (file.OpenWrite( fname )) return 1;
   
   if (square2d_) {
     std::string ycoord_fmt;
@@ -399,11 +411,27 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSet const& setIn)
 }
 
 // DataIO_Std::WriteData3D()
-int DataIO_Std::WriteData3D( std::string const& fname, DataSet const& setIn) 
+int DataIO_Std::WriteData3D( std::string const& fname, DataSetList const& setList) 
 {
+  // Open output file
+  CpptrajFile file;
+  if (file.OpenWrite( fname )) return 1;
+  int err = 0;
+  for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
+  {
+    if (set != setList.begin()) file.Printf("\n");
+    err += WriteSet3D( *(*set), file );
+  }
+  file.CloseFile();
+  return err;
+
+}
+
+// DataIO_Std::WriteSet3D()
+int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   if (setIn.Ndim() != 3) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
-              setIn.Legend().c_str(), fname.c_str(), setIn.Ndim());
+              setIn.Legend().c_str(), file.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
@@ -411,9 +439,6 @@ int DataIO_Std::WriteData3D( std::string const& fname, DataSet const& setIn)
   Dimension const& Ydim = static_cast<Dimension const&>(set.Dim(1));
   Dimension const& Zdim = static_cast<Dimension const&>(set.Dim(2));
   //if (Xdim.Step() == 1.0) xcol_precision = 0;
-  // Open output file
-  CpptrajFile file;
-  if (file.OpenWrite( fname )) return 1;
   
   // Print X Y Z Values
   // x y z val(x,y,z)

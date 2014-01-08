@@ -3,7 +3,7 @@
 
 // GridAction::HelpText
 const char* GridAction::HelpText =
-  "{nx dx ny dy nz dz | data <dsname>} [box|origin|center <mask>] [negative] [name <gridname>]";
+  "{nx dx ny dy nz dz | data <dsname>} [box|origin|center <mask>]\n\t[negative] [name <gridname>]";
 
 // GridAction::GridInit()
 DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn, 

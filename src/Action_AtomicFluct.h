@@ -18,6 +18,7 @@ class Action_AtomicFluct : public Action, ActionFrameCounter {
 
     enum outputType { BYATOM = 0, BYRES, BYMASK };
 
+    int ensembleNum_;
     Frame SumCoords_;         ///< Hold the average coordinates.
     Frame SumCoords2_;        ///< Hold the variance of coordinates.
     Frame Cross_;             ///< Hold cross-terms for calculating covariance.

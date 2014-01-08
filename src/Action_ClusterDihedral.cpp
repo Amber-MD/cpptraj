@@ -15,7 +15,8 @@ Action_ClusterDihedral::Action_ClusterDihedral() :
   dcparm_(0),
   CVT_(0),
   minimum_(-180.0),
-  debug_(0)
+  debug_(0),
+  ensembleNum_(-1)
 {}
 
 void Action_ClusterDihedral::Help() {
@@ -60,6 +61,7 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
 Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // # of phi and psi bins
   phibins_ = actionArgs.getKeyInt("phibins", 10);
@@ -248,7 +250,7 @@ Action::RetType Action_ClusterDihedral::DoAction(int frameNum, Frame* currentFra
 void Action_ClusterDihedral::Print() {
   // Setup output file
   CpptrajFile output;
-  if (output.OpenWrite( outfile_ )) return;
+  if (output.OpenEnsembleWrite( outfile_, ensembleNum_ )) return;
   mprintf("\tPrinting Dihedral Clustering Results.\n");
   // Print bin information
   output.Printf("DIHEDRAL CLUSTER RESULTS");
@@ -312,7 +314,7 @@ void Action_ClusterDihedral::Print() {
 
   // Print cluster for each frame
   if (!framefile_.empty()) {
-    if (output.OpenWrite( framefile_ )) return;
+    if (output.OpenEnsembleWrite( framefile_, ensembleNum_ )) return;
     mprintf("\tPrinting cluster number for each frame.\n");
     num = 1;
     for (std::vector<long int>::iterator cnum = framecluster.begin(); 
@@ -331,7 +333,7 @@ void Action_ClusterDihedral::Print() {
 
   // Print cluster information file
   if (!infofile_.empty()) {
-    if (output.OpenWrite( infofile_ )) return;
+    if (output.OpenEnsembleWrite( infofile_, ensembleNum_ )) return;
     mprintf("\tPrinting cluster information.\n");
     output.Printf("%zu\n", DCmasks_.size());
     for (std::vector<DCmask>::iterator dih = DCmasks_.begin();

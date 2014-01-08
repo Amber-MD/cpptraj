@@ -8,7 +8,8 @@
 Action_Dipole::Action_Dipole() :
   grid_(0),
   max_(0),
-  CurrentParm_(0)
+  CurrentParm_(0),
+  ensembleNum_(-1)
 {}
 
 void Action_Dipole::Help() {
@@ -20,6 +21,7 @@ void Action_Dipole::Help() {
 Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   // Get output filename
   filename_ = actionArgs.GetStringNext();
   if (filename_.empty()) {
@@ -166,7 +168,7 @@ void Action_Dipole::Print() {
   double max_density;
   CpptrajFile outfile;
 
-  if (outfile.OpenWrite(filename_)) {
+  if (outfile.OpenEnsembleWrite(filename_, ensembleNum_)) {
     mprinterr("Error: Dipole: Cannot open output file.\n");
     return;
   }

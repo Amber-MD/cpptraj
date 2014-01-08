@@ -95,26 +95,37 @@ int DataIO_Xplor::ReadData(std::string const& fname, ArgList& argIn,
   grid.SetDim(Dimension::X, Dimension(origin[0], spacing[0], GridPts[0], "X"));
   grid.SetDim(Dimension::Y, Dimension(origin[1], spacing[1], GridPts[1], "Y"));
   grid.SetDim(Dimension::Z, Dimension(origin[2], spacing[2], GridPts[2], "Z"));
-  infile.CloseFile();
 
   return 0;
 }
 
-int DataIO_Xplor::WriteData3D(std::string const& fname, DataSet const& setIn)
+// DataIO_Xplor::WriteData3D()
+int DataIO_Xplor::WriteData3D(std::string const& fname, DataSetList const& setList)
                               
 {
-  if (setIn.Ndim() != 3) {
-    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
-              setIn.Legend().c_str(), fname.c_str(), setIn.Ndim());
-    return 1;
-  }
-  DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
   // Open output file
   CpptrajFile outfile;
   if (outfile.OpenWrite( fname )) {
     mprinterr("Error: Could not open Xplor output file.\n");
     return 1;
   }
+  // Warn about writing multiple sets
+  if (setList.size() > 1)
+    mprintf("Warning: %s: Writing multiple 3D sets in XPLOR format may result in unexpected behavior\n", fname.c_str());
+  int err = 0;
+  for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
+    err += WriteSet3D( *(*set), outfile );
+  return err;
+}
+
+// DataIO_Xplor::WriteSet3D()
+int DataIO_Xplor::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
+  if (setIn.Ndim() != 3) {
+    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
+              setIn.Legend().c_str(), outfile.Filename().full(), setIn.Ndim());
+    return 1;
+  }
+  DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
   // Title
   outfile.Printf("%s\n", title_.c_str());
   // Remarks - Use set legend 
@@ -152,6 +163,5 @@ int DataIO_Xplor::WriteData3D(std::string const& fname, DataSet const& setIn)
         outfile.Printf("\n");
     }
   }
-  outfile.CloseFile();
   return 0;
 }

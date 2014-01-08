@@ -17,6 +17,7 @@ class Action_Grid : public Action, private GridAction {
 
     void PrintPDB(double);
 
+    int ensembleNum_;
     double max_;
     double madura_;
     double smooth_;

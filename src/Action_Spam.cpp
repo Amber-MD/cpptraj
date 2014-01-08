@@ -12,6 +12,7 @@
 
 // CONSTRUCTOR
 Action_Spam::Action_Spam() :
+  ensembleNum_(-1),
   bulk_(0.0),
   purewater_(false),
   reorder_(false),
@@ -48,9 +49,9 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL,
                       FrameList *FL, DataSetList *DSL, DataFileList *DFL,
                       int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   // Always use imaged distances
   InitImaging(true);
-
   // This is needed everywhere in this function scope
   std::string filename;
 
@@ -463,7 +464,7 @@ void Action_Spam::Print() {
   // Print the spam info file if we didn't do pure water
   if (!purewater_) {
     CpptrajFile info;
-    if (info.OpenWrite(infoname_)) {
+    if (info.OpenEnsembleWrite(infoname_, ensembleNum_)) {
       mprinterr("Error: SPAM: Could not open %s for writing.\n",
                 infoname_.c_str());
       return;

@@ -92,6 +92,12 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
   } else {
     // Set debug level
     Current->SetDebug(debug_);
+    // Check for keywords that do not match file type
+    DataFile::DataFormatType kType = DataFile::GetFormatFromArg( argIn );
+    if (kType != DataFile::UNKNOWN_DATA && kType != Current->Type())
+      mprintf("Warning: %s is type %s but type %s keyword specified; ignoring keyword.\n",
+              Current->DataFilename().full(), Current->FormatString(),
+              DataFile::FormatString( kType ));
     // Process Arguments
     if (!argIn.empty())
       Current->ProcessArgs( argIn );

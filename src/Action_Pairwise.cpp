@@ -89,7 +89,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 
   // Output for individual atom energy | dEnergy
   if (!eout.empty()) {
-    if (Eout_.OpenWrite(eout)) {
+    if (Eout_.OpenEnsembleWrite(eout, DSL->EnsembleNum())) {
       mprinterr("Error: Pairwise: Could not set up file %s for eout.\n",eout.c_str());
       return Action::ERR;
     }

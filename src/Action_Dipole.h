@@ -21,5 +21,6 @@ class Action_Dipole : public Action, private GridAction {
     AtomMask mask_;
     double max_;
     Topology* CurrentParm_;
+    int ensembleNum_;
 };
 #endif

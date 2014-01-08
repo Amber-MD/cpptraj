@@ -90,7 +90,6 @@ Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, Frame* currentFram
 
 // Action_GridFreeEnergy::print()
 void Action_GridFreeEnergy::Print() {
-  CpptrajFile outfile;
   /* How times does this occupancy count value arise?
    *    i.e. if  
    *                 voxelOccupancyCount[50] = 10 

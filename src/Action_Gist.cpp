@@ -68,6 +68,10 @@ static double diffclock(clock_t clock1,clock_t clock2)
 Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
 				  DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  if (DSL->EnsembleNum() > -1) {
+    mprinterr("Error: GIST currently cannot be used in ensemble mode.\n");
+    return Action::ERR;
+  }
   mprintf("\tGIST: init \n");
   // Get keywords
   

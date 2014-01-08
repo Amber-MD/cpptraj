@@ -279,6 +279,11 @@ int CpptrajState::RunEnsemble() {
   for (int member = 0; member < ensembleSize; ++member) {
     // Set max frames in the data set list and allocate
     DataSetEnsemble[member].AllocateSets( maxFrames );
+#   ifdef MPI
+    DataSetEnsemble[member].SetEnsembleNum( worldrank );
+#   else
+    DataSetEnsemble[member].SetEnsembleNum( member );
+#   endif
     // Initialize actions for this ensemble member based on original actionList_
     if (!actionList_.Empty()) {
       mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);

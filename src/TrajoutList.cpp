@@ -56,9 +56,13 @@ int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList const& to
       return 0;
     }
   }
+  // Before filename is modified see if extension is recognized
+  FileName tempName;
+  tempName.SetFileName( filename );
+  TrajectoryFile::TrajFormatType extFmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
   // Modify filename by member
   filename += ("." + integerToString( member ));
-  return AddTrajout( filename, args, topListIn );
+  return AddTrajout( filename, args, topListIn, extFmt );
 }
 
 // TrajoutList::AddTrajout()
@@ -68,10 +72,10 @@ int TrajoutList::AddTrajout(ArgList const& argIn, TopologyList const& topListIn)
   ArgList args = argIn;
   std::string filename = args.GetStringNext();
   if (filename.empty()) {
-    mprinterr("Error: TrajoutList::Add: Called with null filename.\n");
+    mprinterr("Internal Error: TrajoutList::Add() called with empty filename.\n");
     return 1;
   }
-  int err = AddTrajout( filename, args, topListIn );
+  int err = AddTrajout( filename, args, topListIn, TrajectoryFile::UNKNOWN_TRAJ );
   // For setting up ensemble later, save trajout arg.
   if (err == 0) trajoutArgs_.push_back( argIn );
   return err;
@@ -83,7 +87,8 @@ int TrajoutList::AddTrajout(ArgList const& argIn, TopologyList const& topListIn)
   * TopologyList. 
   */
 int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn, 
-                            TopologyList const& topListIn) 
+                            TopologyList const& topListIn,
+                            TrajectoryFile::TrajFormatType fmtIn) 
 {
   // Check if filename is in use
   for (ListType::const_iterator to = trajout_.begin();
@@ -104,7 +109,7 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn,
   Topology* tempParm = topListIn.GetParm( argIn );
   traj->SetDebug(debug_);
   // Default to AMBERTRAJ; format can be changed via args in the arg list
-  if (traj->InitTrajWrite(filename, argIn, tempParm, TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (traj->InitTrajWrite(filename, argIn, tempParm, fmtIn)) {
     mprinterr("Error: trajout: Could not set up trajectory.\n");
     delete traj;
     return 1;

@@ -8,6 +8,7 @@ const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::
 const double Action_Volmap::one_over_6 = 1.0 / 6.0;
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
+  ensembleNum_(-1),
   dx_(0.0), dy_(0.0), dz_(0.0),
   xmin_(0.0), ymin_(0.0), zmin_(0.0),
   Nframes_(0),
@@ -39,6 +40,7 @@ void Action_Volmap::RawHelp() {
 Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();
   if (reqmask.empty()) {
@@ -334,7 +336,7 @@ void Action_Volmap::Print() {
     // If we have peaks, open up our peak data and print it
     if (npeaks > 0) {
       CpptrajFile outfile;
-      if(outfile.OpenWrite(peakfilename_)) {
+      if(outfile.OpenEnsembleWrite(peakfilename_, ensembleNum_)) {
         mprinterr("Error: Could not open %s for writing.\n", peakfilename_.c_str());
         return;
       }

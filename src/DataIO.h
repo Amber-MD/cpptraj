@@ -20,8 +20,8 @@ class DataIO : public BaseIOtype {
     virtual int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) = 0;
     virtual int processWriteArgs(ArgList&) = 0;
     virtual int WriteData(std::string const&, DataSetList const&) = 0;
-    virtual int WriteData2D(std::string const&, DataSet const&) = 0;
-    virtual int WriteData3D(std::string const&, DataSet const&) = 0;
+    virtual int WriteData2D(std::string const&, DataSetList const&) = 0;
+    virtual int WriteData3D(std::string const&, DataSetList const&) = 0;
     virtual bool ID_DataFormat(CpptrajFile&) = 0; // TODO: -> BaseIOtype?
     /// \return True if this DataIO valid for given DataSet
     bool CheckValidFor(DataSet const&) const;

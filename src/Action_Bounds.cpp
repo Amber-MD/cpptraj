@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Action_Bounds::Action_Bounds() {}
+Action_Bounds::Action_Bounds() : ensembleNum_(-1) {}
 
 void Action_Bounds::Help() {
   mprintf("\t[<mask>] [out <filename>]\n"
@@ -13,8 +13,8 @@ void Action_Bounds::Help() {
 Action::RetType Action_Bounds::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   outfilename_ = actionArgs.GetStringKey("out");
-  
   mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   min_[0] = DBL_MAX;
@@ -56,12 +56,8 @@ Action::RetType Action_Bounds::DoAction(int frameNum, Frame* currentFrame, Frame
 
 void Action_Bounds::Print() {
   CpptrajFile outfile;
-
-  if ( outfile.OpenWrite( outfilename_ ) ) return;
-  outfile.Printf("%f < X < %f\n", min_[0], max_[0]);
-  outfile.Printf("%f < Y < %f\n", min_[1], max_[1]);
-  outfile.Printf("%f < Z < %f\n", min_[2], max_[2]);
+  if ( outfile.OpenEnsembleWrite( outfilename_, ensembleNum_ ) ) return;
+  outfile.Printf("%f < X < %f\n%f < Y < %f\n%f < Z < %f\n",
+                 min_[0], max_[0], min_[1], max_[1], min_[2], max_[2]);
   outfile.CloseFile();
 }
-
-

@@ -7,6 +7,7 @@
 
 // CONSTRUCTOR
 Action_Vector::Action_Vector() :
+  ensembleNum_(-1),
   Vec_(0),
   Magnitude_(0),
   vcorr_(0),
@@ -44,6 +45,7 @@ static Action::RetType WarnDeprecated() {
 Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   // filename is saved in case ptraj-compatible output is desired
   filename_ = actionArgs.GetStringKey("out");
   ptrajoutput_ = actionArgs.hasKey("ptrajoutput");
@@ -357,7 +359,7 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
 void Action_Vector::Print() {
   if (ptrajoutput_) {
     CpptrajFile outfile;
-    if (outfile.OpenWrite(filename_)) return;
+    if (outfile.OpenEnsembleWrite(filename_, ensembleNum_)) return;
     mprintf("    VECTOR: writing ptraj-style vector information for %s\n", Vec_->Legend().c_str());
     outfile.Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n"
                    "# FORMAT where v? is vector, c? is center of mass...\n");

@@ -5,6 +5,7 @@
 
 // CONSTRUCTOR
 Action_Average::Action_Average() :
+  ensembleNum_(-1),
   debug_(0),
   AvgFrame_(0),
   AvgParm_(0),
@@ -30,6 +31,7 @@ Action_Average::~Action_Average() {
 Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
   avgfilename_ = actionArgs.GetStringNext();
@@ -134,7 +136,8 @@ void Action_Average::Print() {
 
   mprintf("    AVERAGE: [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
 
-  if (outfile.InitTrajWrite(avgfilename_, trajArgs_, AvgParm_, TrajectoryFile::UNKNOWN_TRAJ)) 
+  if (outfile.InitEnsembleTrajWrite(avgfilename_, trajArgs_, AvgParm_, 
+                                    TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 
   {
     mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename_.c_str());
     return;

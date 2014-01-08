@@ -69,14 +69,14 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   std::string outfilename = actionArgs.GetStringKey("out"); 
-  if (outfile_.OpenWrite(outfilename))
+  if (outfile_.OpenEnsembleWrite(outfilename, DSL->EnsembleNum()))
     return Action::ERR;
   if (byResidue_) {
     if (outfilename.empty()) {
       mprinterr("Error: Contacts 'byresidue' requires output filename.\n");
       return Action::ERR;
     }
-    if (outfile2_.OpenWrite( outfilename + ".native" ))
+    if (outfile2_.OpenEnsembleWrite( outfilename + ".native", DSL->EnsembleNum() ))
       return Action::ERR;
   }
 

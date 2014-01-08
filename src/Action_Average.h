@@ -20,6 +20,7 @@ class Action_Average: public Action, ActionFrameCounter {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
 
+    int ensembleNum_;
     int debug_;
     AtomMask Mask1_;
     Frame* AvgFrame_;

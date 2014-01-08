@@ -14,10 +14,6 @@ void Action_Outtraj::Help() {
 Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-# ifdef MPI
-  mprintf("ERROR: OUTTRAJ currently not functional with MPI.\n");
-  return Action::ERR;
-# else
   // maxmin now deprecated, functionality is in Action_FilterByData
   if (actionArgs.Contains("maxmin") || actionArgs.Contains("max") ||
       actionArgs.Contains("min") || actionArgs.Contains("maxmindata")) {
@@ -37,14 +33,14 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",trajfilename.c_str());
     return Action::ERR;
   }
-  if ( outtraj_.InitTrajWrite(trajfilename, actionArgs, 
-                               tempParm, TrajectoryFile::UNKNOWN_TRAJ) ) 
+  if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(), 
+                                      tempParm, TrajectoryFile::UNKNOWN_TRAJ,
+                                      DSL->EnsembleNum()) ) 
     return Action::ERR;
   mprintf("    OUTTRAJ:");
   outtraj_.PrintInfo(1);
 
   return Action::OK;
-# endif
 } 
 
 // Action_Outtraj::Setup()

@@ -5,6 +5,7 @@
 
 // CONSTRUCTOR
 Action_STFC_Diffusion::Action_STFC_Diffusion() :
+  ensembleNum_(-1),
   printDistances_(false),
   calcType_(DEFAULT),
   direction_(DX),
@@ -28,6 +29,7 @@ void Action_STFC_Diffusion::Help() {
 Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   std::string maskarg = actionArgs.GetStringKey("mask");
   if (maskarg.empty()) {
     mprinterr("Error: diffusion: No mask specified.\n");
@@ -38,7 +40,7 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* P
   std::string outfileName = actionArgs.GetStringKey("out");
   if (outfileName.empty())
     outfileName = "diffusion.dat";
-  if ( output_.OpenWrite( outfileName ) ) {
+  if ( output_.OpenEnsembleWrite( outfileName, DSL->EnsembleNum() ) ) {
     mprinterr("Error: diffusion: Could not open output file %s\n", outfileName.c_str());
     return Action::ERR;
   }
@@ -78,7 +80,7 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* P
     outputNumWat_ = actionArgs.GetStringKey("nwout");
     if (outputNumWat_.empty())
       outputNumWat_ = "nw.dat";
-    if ( outputnw_.OpenWrite( outputNumWat_ ) ) {
+    if ( outputnw_.OpenEnsembleWrite( outputNumWat_, DSL->EnsembleNum() ) ) {
       mprinterr("Error: diffusion: Could not open nwout file %s\n", 
                 outputNumWat_.c_str());
       return Action::ERR;
@@ -435,7 +437,7 @@ void Action_STFC_Diffusion::Print() {
   CpptrajFile outputad;
 
   if (!outputAverDist_.empty()) {
-    if ( outputad.OpenWrite( outputAverDist_ ) ) {
+    if ( outputad.OpenEnsembleWrite( outputAverDist_, ensembleNum_ ) ) {
       mprinterr("Error: diffusion: Could not open average distance file %s\n", 
                 outputAverDist_.c_str()); 
       return;

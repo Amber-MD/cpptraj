@@ -37,15 +37,15 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, F
   
   // Open output files
   std::string fname = outputNameRoot + "_x.xmgr";
-  if (outputx_.OpenWrite( fname )) return Action::ERR;
+  if (outputx_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
   fname = outputNameRoot + "_y.xmgr";
-  if (outputy_.OpenWrite( fname )) return Action::ERR;
+  if (outputy_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
   fname = outputNameRoot + "_z.xmgr";
-  if (outputz_.OpenWrite( fname )) return Action::ERR;
+  if (outputz_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
   fname = outputNameRoot + "_r.xmgr";
-  if (outputr_.OpenWrite( fname )) return Action::ERR;
+  if (outputr_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
   fname = outputNameRoot + "_a.xmgr";
-  if (outputa_.OpenWrite( fname )) return Action::ERR;
+  if (outputa_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
 
   mprintf("    DIFFUSION:\n");
   if (printIndividual_)

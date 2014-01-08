@@ -59,9 +59,8 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   }
   nonbondcut2_ = nonbondcut * nonbondcut;
 
-  if (outfile_.SetupWrite(reportFile, debug_))
+  if (outfile_.OpenEnsembleWrite(reportFile, DSL->EnsembleNum()))
     return Action::ERR;
-  outfile_.OpenFile();
 
   return Action::OK;
 }

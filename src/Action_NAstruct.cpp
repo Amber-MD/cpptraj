@@ -17,6 +17,7 @@ Action_NAstruct::Action_NAstruct() :
   originCut2_(6.25),   // Origin cutoff^2 for base-pairing: 2.5^2
   maxResSize_(0),
   debug_(0),
+  ensembleNum_(-1),
   printheader_(true),
   useReference_(false),
   masterDSL_(0)
@@ -884,7 +885,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 {
   debug_ = debugIn;
   masterDSL_ = DSL;
-
+  ensembleNum_ = DSL->EnsembleNum();
   // Get keywords
   outputsuffix_ = actionArgs.GetStringKey("naout");
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
@@ -1098,7 +1099,7 @@ void Action_NAstruct::Print() {
   if ( SHEAR_.empty() || SHEAR_[0]->Empty() )
     mprinterr("Error: nastruct: Could not write BP file %s: No BP data.\n",outfilename.c_str()); 
   else {
-    if (outfile.OpenWrite( outfilename ) == 0) {
+    if (outfile.OpenEnsembleWrite( outfilename, ensembleNum_ ) == 0) {
       // Determine number of frames from SHEAR[0] DataSet
       nframes = SHEAR_[0]->Size();
       mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
@@ -1139,15 +1140,15 @@ void Action_NAstruct::Print() {
   // Check that there is actually data
   // TODO: Check helix data as well
   if ( SHIFT_.empty() || SHIFT_[0]->Empty() )
-    mprintf("Warning: nastruct: Could not write BPstep / helix files: No data.\n"); 
+    mprinterr("Error: nastruct: Could not write BPstep / helix files: No data.\n"); 
   else {
     int err = 0;
-    err += outfile.OpenWrite( outfilename );
-    err += outfile2.OpenWrite( outfilename2 );
+    err += outfile.OpenEnsembleWrite( outfilename, ensembleNum_ );
+    err += outfile2.OpenEnsembleWrite( outfilename2, ensembleNum_ );
     if (err == 0) {
       // Determine number of frames from SHIFT[0] DataSet. Should be same as SHEAR.
       nframes = SHIFT_[0]->Size();
-      mprintf("\tBase pair step output file %s;",outfilename.c_str());
+      mprintf("\tBase pair step output file %s; ",outfilename.c_str());
       mprintf("Helix output file %s; %i frames, %zu base pair steps.\n", outfilename2.c_str(),
               nframes, BasePairAxes_.size() - 1);
       //  File headers

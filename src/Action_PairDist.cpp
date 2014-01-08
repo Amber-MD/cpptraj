@@ -40,7 +40,7 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs,
     outfileName = "pairdist.dat";
   }
 
-  if (output_.OpenWrite(outfileName) ) {
+  if (output_.OpenEnsembleWrite(outfileName, DSL->EnsembleNum()) ) {
     mprinterr("Error: PairDist: Could not open output file %s\n",
 	      outfileName.c_str());
     return Action::ERR;

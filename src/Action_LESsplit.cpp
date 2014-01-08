@@ -19,6 +19,10 @@ void Action_LESsplit::Help() {
 Action::RetType Action_LESsplit::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  if (DSL->EnsembleNum() > -1) {
+    mprinterr("Error: LESSPLIT currently cannot be used in ensemble mode.\n");
+    return Action::ERR;
+  }
   trajfilename_ = actionArgs.GetStringKey("out");
   avgfilename_ = actionArgs.GetStringKey("average");
   lesSplit_ = !trajfilename_.empty();

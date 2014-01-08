@@ -44,6 +44,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
 // CONSTRUCTOR
 DataSetList::DataSetList() :
   debug_(0),
+  ensembleNum_(-1),
   hasCopies_(false) 
 {}
 

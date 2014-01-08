@@ -53,7 +53,7 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 
   // Open output file
   if (!maskFilename.empty()) {
-    if ( outfile_.OpenWrite( maskFilename ) )
+    if ( outfile_.OpenEnsembleWrite( maskFilename, DSL->EnsembleNum() ) )
       return Action::ERR;
       // Header
     outfile_.Printf("%-8s %8s %4s %8s %4s %8s\n","#Frame","AtomNum","Atom",
