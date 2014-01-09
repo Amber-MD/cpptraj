@@ -4,6 +4,9 @@
 #include "Vec3.h"
 #include "Matrix_3x3.h"
 #include "ImagedAction.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 // Class: Action_Gist
 /// Calculate water energy and entropy
@@ -37,6 +40,12 @@ class Action_Gist: public Action, ImagedAction  {
     bool doEij_;
     //time 
     clock_t gist_t_begin_;
+#   ifdef TIMER
+    Timer gist_grid_;
+    Timer gist_nonbond_;
+    Timer gist_euler_;
+    Timer gist_dipole_;
+#   endif
     // other constants
     int NFRAME_;                   ///< total number of frames analyzed
     double BULK_DENS_;             ///< bulk water density

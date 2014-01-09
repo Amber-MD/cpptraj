@@ -316,13 +316,37 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   {
     resindex1_++;
     if (!solvmol_->IsSolvent()) continue;
+#   ifdef TIMER
+    gist_grid_.Start();
+#   endif
     Grid( currentFrame );
+#   ifdef TIMER
+    gist_grid_.Stop();
+#   endif
     voxel_ = gridwat_[resnum_];
-    resnum_++;   
+    resnum_++;
+#   ifdef TIMER
+    gist_nonbond_.Start();
+#   endif
     NonbondEnergy( currentFrame );
+#   ifdef TIMER
+    gist_nonbond_.Stop();
+#   endif
     if (voxel_ >= MAX_GRID_PT_) continue;
+#   ifdef TIMER
+    gist_euler_.Start();
+#   endif
     EulerAngle( currentFrame );
+#   ifdef TIMER
+    gist_euler_.Stop();
+#   endif
+#   ifdef TIMER
+    gist_dipole_.Start();
+#   endif
     Dipole( currentFrame );
+#   ifdef TIMER
+    gist_dipole_.Stop();
+#   endif
   }
   if(doOrder_) Order( currentFrame );
   
@@ -699,7 +723,20 @@ void Action_Gist::Order(Frame *frameIn) {
 
 
 void Action_Gist::Print() {
-  
+# ifdef TIMER
+  double total = gist_grid_.Total() + gist_nonbond_.Total() + 
+                 gist_euler_.Total() + gist_dipole_.Total();
+  mprintf("TIME: GIST timings:\n"
+          "\tGrid:    %.4f (%.2f%%)\n"
+          "\tNonbond: %.4f (%.2f%%)\n"
+          "\tEuler:   %.4f (%.2f%%)\n"
+          "\tDipole:  %.4f (%.2f%%)\n"
+          "\tTotal:   %.4f\n",
+          gist_grid_.Total(),    gist_grid_.Total() / total,
+          gist_nonbond_.Total(), gist_nonbond_.Total() / total,
+          gist_euler_.Total(),   gist_euler_.Total() / total,
+          gist_dipole_.Total(),  gist_dipole_.Total() / total, total);
+# endif
   // Implement NN to compute orientational entropy for each voxel
   double NNr, rx, ry, rz, rR, dbl;
   TSNNtot_=0;
