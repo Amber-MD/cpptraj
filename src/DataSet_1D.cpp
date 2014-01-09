@@ -104,6 +104,15 @@ double DataSet_1D::Max() const {
   return max;
 }
 
+static inline double PeriodicDiff(double v1, double v2) {
+  double diff = v1 - v2;
+  if (diff > 180.0)
+    diff = 360.0 - diff;
+  else if (diff < -180.0)
+    diff = 360.0 + diff;
+  return diff;
+}
+
 /** Calculate time correlation between two DataSets.
   * \D2 DataSet to calculate correlation to.
   * \Ct DataSet to store time correlation fn, must be DOUBLE.
@@ -162,16 +171,26 @@ int DataSet_1D::CrossCorr( DataSet_1D const& D2, DataSet_1D& Ct,
     CorrF_FFT pubfft1(Nelements);
     ComplexArray data1 = pubfft1.Array();
     data1.PadWithZero(Nelements);
-    for (int i = 0; i < Nelements; ++i)
-      data1[i*2] = Dval(i) - avg1;
+    if (IsTorsionArray()) {
+      for (int i = 0; i < Nelements; ++i)
+        data1[i*2] = PeriodicDiff(avg1, Dval( i ));
+    } else {
+      for (int i = 0; i < Nelements; ++i)
+        data1[i*2] = Dval(i) - avg1;
+    }
     if (&D2 == this)
       pubfft1.AutoCorr(data1);
     else {
       // Populate second dataset if different
       ComplexArray data2 = pubfft1.Array();
       data2.PadWithZero(Nelements);
-      for (int i = 0; i < Nelements; ++i)
-        data2[i*2] = D2.Dval(i) - avg2;
+      if (D2.IsTorsionArray()) {
+        for (int i = 0; i < Nelements; ++i)
+          data2[i*2] = PeriodicDiff(avg2, D2.Dval( i ));
+      } else {
+        for (int i = 0; i < Nelements; ++i)
+          data2[i*2] = D2.Dval(i) - avg2;
+      }
       pubfft1.CrossCorr(data1, data2);
     }
     // Put real components of data1 in output DataSet
@@ -182,11 +201,21 @@ int DataSet_1D::CrossCorr( DataSet_1D const& D2, DataSet_1D& Ct,
     }
   } else {
     // Direct calc
+    double diff1, diff2;
     for (int lag = 0; lag < lagmax; ++lag) {
       ct = 0;
       int jmax = Nelements - lag;
-      for (int j = 0; j < jmax; ++j)
-        ct += ((Dval(j) - avg1) * (D2.Dval(j+lag) - avg2));
+      for (int j = 0; j < jmax; ++j) {
+        if (IsTorsionArray())
+          diff1 = PeriodicDiff(Dval(j), avg1);
+        else
+          diff1 = Dval(j) - avg1;
+        if (D2.IsTorsionArray())
+          diff2 = PeriodicDiff(D2.Dval(j+lag), avg2);
+        else   
+          diff2 = D2.Dval(j+lag) - avg2;
+        ct += (diff1 * diff2);
+      }
       if (lag == 0) {
         if (ct != 0)
           norm = fabs( ct );
