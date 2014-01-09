@@ -18,6 +18,7 @@ Analysis_Clustering::Analysis_Clustering() :
   coords_(0),
   CList_(0),
   sieve_(1),
+  sieveSeed_(-1),
   cnumvtime_(0),
   cpopvtimefile_(0),
   nofitrms_(false),
@@ -45,7 +46,7 @@ void Analysis_Clustering::Help() {
   Cluster_DBSCAN::Help();
   mprintf("  Distance options:\n"
           "\t{[[rms] [<mask>] [mass] [nofit]] | [dme [<mask>]] | [data <dset0>[,<dset1>,...]]}\n"
-          "\t[sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n"
+          "\t[sieve <#> [random]] [loadpairdist] [savepairdist] [pairdist <file>]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summaryhalf <halffile>] [splitframe <frame>]\n"
@@ -118,11 +119,14 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
   // Get keywords
   useMass_ = analyzeArgs.hasKey("mass");
-  sieve_ = analyzeArgs.getKeyInt("sieve",1);
+  sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
+  sieve_ = analyzeArgs.getKeyInt("sieve", 1);
   if (sieve_ < 1) {
     mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
     return Analysis::ERR;
   }
+  if (analyzeArgs.hasKey("random") && sieve_ > 1)
+    sieve_ = -sieve_; // negative # indicates random sieve
   halffile_ = analyzeArgs.GetStringKey("summaryhalf");
   if (!halffile_.empty()) {
     ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
@@ -203,6 +207,11 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   CList_->ClusteringInfo();
   if (sieve_ > 1)
     mprintf("\tInitial clustering sieve value is %i frames.\n", sieve_);
+  else if (sieve_ < -1) {
+    mprintf("\tInitial clustering will be randomly sieved (with value %i)", -sieve_);
+    if (sieveSeed_ > 0) mprintf(" using random seed %i", sieveSeed_);
+    mprintf(".\n");
+  }
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->DataFilename().base());
   if (cpopvtimefile_ != 0) {
@@ -297,8 +306,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   // If no coordinates were specified, disable coordinate output types
   bool has_coords = true;
   if (coords_->Size() < 1) {
-    mprintf("Warning: Associated coordinate data set is empty.\n");
-    mprintf("Warning: Disabling coordinate output.\n");
+    mprintf("Warning: Associated coordinate data set is empty.\n"
+            "Warning: Disabling coordinate output.\n");
     has_coords = false;
   }
   clock_t cluster_setup_stop = clock();
@@ -308,7 +317,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_pairwise.Start();
 # endif
   if (CList_->CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
-                                  usedme_, nofitrms_, useMass_, maskexpr_, sieve_ ))
+                                  usedme_, nofitrms_, useMass_, maskexpr_, 
+                                  sieve_, sieveSeed_ ))
     return Analysis::ERR;
 # ifdef TIMER
   cluster_pairwise.Stop();
@@ -325,8 +335,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_post.Start();
 # endif
   if (CList_->Nclusters() > 0) {
-    CList_->Renumber( (sieve_ > 1) );
-
+    CList_->Renumber( (sieve_ != 1) );
     // DEBUG
     if (debug_ > 0) {
       mprintf("\nFINAL CLUSTERS:\n");

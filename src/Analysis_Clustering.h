@@ -21,6 +21,7 @@ class Analysis_Clustering: public Analysis {
     ClusterList* CList_;        ///< Hold specified clustering algorithm.
     std::string maskexpr_;      ///< If RMSD, Atoms to cluster on
     int sieve_;                 ///< If > 1, frames to skip on initial clustering pass.
+    int sieveSeed_;             ///< Used to seed random number gen for sieve
     std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
     DataFile* cpopvtimefile_;   ///< Cluster pop v time file.

@@ -22,7 +22,7 @@ class ClusterSieve {
   private:
     inline void DetermineTypeFromSieve(int);
     SieveType type_;
-    int sieve_;
+    int sieve_; ///< Sieve value; > 1 is regular, < -1 is random.
     std::vector<int> frameToIdx_;
 };
 #endif

@@ -7,7 +7,7 @@
 // NOTE: This only needs to inherit directly if going on DataSetList.
 class ClusterMatrix {
   public:
-    ClusterMatrix() : sieve_(1) {}
+    ClusterMatrix() {}
     /// Set up matrix with sieve value.
     int SetupWithSieve(size_t, size_t, int);
     ClusterMatrix(const ClusterMatrix&);
@@ -24,6 +24,8 @@ class ClusterMatrix {
     size_t Nframes()          const { return ignore_.size(); }
     /// \return An array containing sieved frame numbers.
     ClusterSieve::SievedFrames Sieved() const { return sievedFrames_.Frames(); }
+    /// \return Sieve value
+    int SieveValue()                    const { return sievedFrames_.Sieve();  }
     /// Set the row and column of the smallest element.
     double FindMin(int&, int&) const;
     void PrintElements() const;
@@ -36,11 +38,12 @@ class ClusterMatrix {
     int AddElement(double d)        { return Mat_.addElement((float)d); }
   private:
     static const unsigned char Magic_[];
-    /// For reading/writing 8 byte integers
+    /// For reading/writing 8 byte unsigned integers
     typedef unsigned long long int uint_8;
+    /// For reading/writing 8 byte signed integers
+    typedef long long int sint_8;
     /// If true, ignore the row/col when printing/searching etc
     std::vector<bool> ignore_;
-    size_t sieve_;
     Matrix<float> Mat_;
     ClusterSieve sievedFrames_;
 };

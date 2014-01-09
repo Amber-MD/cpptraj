@@ -22,7 +22,7 @@ class ClusterList {
     void PrintClusters();
 
     int CalcFrameDistances(std::string const&, ClusterDist::DsArray const&, DistModeType, 
-                           bool, bool, bool, std::string const&, int);
+                           bool, bool, bool, std::string const&, int, int);
     // Inherited by individual clustering methods
     virtual int SetupCluster(ArgList&) = 0;
     virtual void ClusteringInfo() = 0;

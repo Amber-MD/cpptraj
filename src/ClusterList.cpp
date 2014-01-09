@@ -301,7 +301,18 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++)
     outfile.Printf(" %i",(*C).CentroidFrame()+1);
   outfile.Printf("\n");
-  
+  // Print sieve info if present
+  if (FrameDistances_.SieveValue() != 1) {
+    if (FrameDistances_.SieveValue() < -1) {
+      outfile.Printf("#Sieve value: %i\n#Sieved frames:", -FrameDistances_.SieveValue());
+      ClusterSieve::SievedFrames sFrames = FrameDistances_.Sieved();
+      for (ClusterSieve::SievedFrames::const_iterator sfrm = sFrames.begin();
+                                                      sfrm != sFrames.end(); ++sfrm)
+        outfile.Printf(" %i", *sfrm + 1);
+      outfile.Printf("\n");
+    } else
+      outfile.Printf("#Sieve value: %i\n", FrameDistances_.SieveValue());
+  } 
   outfile.CloseFile();
 }
 
@@ -334,7 +345,7 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
                                     ClusterDist::DsArray const& dataSets,
                                     DistModeType mode, bool useDME, bool nofit, 
                                     bool useMass, std::string const& maskexpr,
-                                    int sieve) 
+                                    int sieve, int sieveSeed) 
 {
   if (dataSets.empty()) {
     mprinterr("Internal Error: CalcFrameDistances: No DataSets given.\n");
@@ -379,8 +390,8 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   // be set up to ignore sieved frames.
   if (mode == USE_FRAMES) {
     mprintf("\tCalculating pair-wise distances.\n");
-    // Set up ClusterMatrix with sieve. TODO: Set iseed with a var instead of 1
-    if (FrameDistances_.SetupWithSieve( dsIn->Size(), sieve, 1 )) {
+    // Set up ClusterMatrix with sieve.
+    if (FrameDistances_.SetupWithSieve( dsIn->Size(), sieve, sieveSeed )) {
       mprinterr("Error: Could not setup matrix for pair-wise distances.\n");
       return 1; 
     }
