@@ -932,7 +932,7 @@ void Action_Gist::PrintOutput(string const& filename)
           dbl = ww_Eij_[a][l];
           if (dbl != 0) {
             dbl /= NFRAME_;
-           outfile.Printf("%10d %10d %10.5f\n", a, l, dbl);
+           outfile.Printf("%10d %10d %12.5E\n", a, l, dbl);
           }
         }
       }
