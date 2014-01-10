@@ -180,7 +180,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Setup reference mask
   if (REF.Parm()->SetupIntegerMask( RefMask )) return Action::ERR;
   if (RefMask.None()) {
-    mprintf("Error: Rotdif::init: No atoms in reference mask.\n");
+    mprinterr("Error: Rotdif: No atoms in reference mask.\n");
     return Action::ERR;
   }
   // Allocate frame for selected reference atoms
@@ -192,7 +192,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 
   // Open output file. Defaults to stdout if no name specified
   if (outfile_.OpenEnsembleWrite(outfilename, DSL->EnsembleNum())) {
-    mprinterr("Error opening Rotdif output file %s.\n", outfilename.c_str());
+    mprinterr("Error: Could not open Rotdif output file %s.\n", outfilename.c_str());
     return Action::ERR;
   }
 
@@ -253,7 +253,7 @@ Action::RetType Action_Rotdif::Setup(Topology* currentParm, Topology** parmAddre
 
   if ( currentParm->SetupIntegerMask( TargetMask_ ) ) return Action::ERR;
   if ( TargetMask_.None() ) {
-    mprintf("    Error: Rotdif::setup: No atoms in mask.\n");
+    mprinterr("Error: Rotdif: No atoms in mask.\n");
     return Action::ERR;
   }
   // Allocate space for selected atoms in the frame. This will also put the
@@ -261,8 +261,8 @@ Action::RetType Action_Rotdif::Setup(Topology* currentParm, Topology** parmAddre
   SelectedTgt_.SetupFrameFromMask(TargetMask_, currentParm->Atoms());
   // Check that num atoms in frame mask from this parm match ref parm mask
   if ( SelectedRef_.Natom() != TargetMask_.Nselected() ) {
-    mprintf( "    Error: Number of atoms in RMS mask (%i) does not \n",TargetMask_.Nselected());
-    mprintf( "           equal number of atoms in Ref mask (%i).\n",SelectedRef_.Natom());
+    mprinterr("Error: Number of atoms in RMS mask (%i) does not \n",TargetMask_.Nselected());
+    mprinterr("Error:   equal number of atoms in Ref mask (%i).\n",SelectedRef_.Natom());
     return Action::ERR;
   }
   
@@ -1585,7 +1585,7 @@ void Action_Rotdif::Print() {
   if (!rmOut_.empty()) {
     CpptrajFile rmout;
     if (rmout.SetupWrite(rmOut_,debug_)) {
-      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",rmOut_.c_str());
+      mprinterr("Error: Rotdif: Could not set up %s for writing.\n",rmOut_.c_str());
     } else {
       rmout.OpenFile();
       int rmframe=1;
@@ -1609,7 +1609,7 @@ void Action_Rotdif::Print() {
   if (!deffOut_.empty()) {
     CpptrajFile dout;
     if (dout.SetupWrite(deffOut_,debug_)) {
-      mprinterr("    Error: Rotdif: Could not set up file %s\n",deffOut_.c_str());
+      mprinterr("Error: Rotdif: Could not set up file %s\n",deffOut_.c_str());
     } else {
       dout.OpenFile();
       for (int vec = 0; vec < nvecs_; vec++)
