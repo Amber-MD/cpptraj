@@ -28,10 +28,17 @@ void GridAction::GridFrame(Frame const& currentFrame, AtomMask const& mask,
                            DataSet_GridFlt& grid) 
 {
   Vec3 offset;
-  if      (mode_==BOX)        offset = currentFrame.BoxCrd().Center(); 
-  else if (mode_==MASKCENTER) offset = currentFrame.VGeometricCenter( centerMask_ );
-  else                        offset.Zero(); // mode_==ORIGIN/SPECIFIEDCENTER
-  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
-    grid.Increment( Vec3(currentFrame.XYZ(*atom)) - offset, increment_ );
+  if (mode_==BOX) {
+    Vec3 offset = currentFrame.BoxCrd().Center();
+    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
+      grid.Increment( Vec3(currentFrame.XYZ(*atom)) - offset, increment_ );
+  } else if (mode_==MASKCENTER) {
+    Vec3 offset = currentFrame.VGeometricCenter( centerMask_ );
+    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
+      grid.Increment( Vec3(currentFrame.XYZ(*atom)) - offset, increment_ );
+  } else {// mode_==ORIGIN/SPECIFIEDCENTER, no offset
+    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
+      grid.Increment( currentFrame.XYZ(*atom), increment_ );
+  }
 }
 #endif

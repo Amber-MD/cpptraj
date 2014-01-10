@@ -29,6 +29,7 @@ class DataSet_GridFlt : public DataSet_3D {
     iterator end()   { return grid_.end();   }
     /// Increment grid bin corresponding to point by given value.
     inline long int Increment(Vec3 const&, float);
+    inline long int Increment(const double*, float);
     /// Increment grid bin by given value.
     inline long int Increment(int,int,int,float);
     /// \return grid value at specified bin.
@@ -47,6 +48,13 @@ long int DataSet_GridFlt::Increment(Vec3 const& xyz, float f) {
   if (CalcBins(xyz[0],xyz[1],xyz[2],i,j,k))
     return grid_.incrementBy(i,j,k,f);
   return -1L; 
+}
+// DataSet_GridFlt::Increment()
+long int DataSet_GridFlt::Increment(const double* xyz, float f) {
+  int i,j,k;
+  if (CalcBins(xyz[0],xyz[1],xyz[2],i,j,k))
+    return grid_.incrementBy(i,j,k,f);
+  return -1L;
 }
 // DataSet_GridFlt::Increment()
 long int DataSet_GridFlt::Increment(int i, int j, int k, float f) {
