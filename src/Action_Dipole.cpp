@@ -102,9 +102,9 @@ Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame
   // Set up center to origin or box center
   if (GridMode() == GridAction::BOX) 
     cXYZ = currentFrame->BoxCrd().Center();
-  else if (GridMode() == GridAction::CENTER)
+  else if (GridMode() == GridAction::MASKCENTER)
     cXYZ = currentFrame->VGeometricCenter( CenterMask() );
-  else // GridAction::ORIGIN
+  else // GridAction::ORIGIN/SPECIFIEDCENTER
     cXYZ.Zero();
 
   // Traverse over solvent molecules.

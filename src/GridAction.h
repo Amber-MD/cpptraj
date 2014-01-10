@@ -8,7 +8,7 @@
 class GridAction {
   public:
     /// Indicate which kind of gridding to perform
-    enum GridModeType { ORIGIN = 0, BOX, CENTER };
+    enum GridModeType { ORIGIN = 0, BOX, MASKCENTER, SPECIFIEDCENTER };
     GridAction() : increment_(1.0) {}
     static const char* HelpText;
     DataSet_GridFlt* GridInit(const char*, ArgList&, DataSetList&);
@@ -27,11 +27,11 @@ class GridAction {
 void GridAction::GridFrame(Frame const& currentFrame, AtomMask const& mask, 
                            DataSet_GridFlt& grid) 
 {
-  Vec3 center;
-  if      (mode_==BOX)    center = currentFrame.BoxCrd().Center(); 
-  else if (mode_==CENTER) center = currentFrame.VGeometricCenter( centerMask_ );
-  else                    center.Zero(); // mode_==ORIGIN
+  Vec3 offset;
+  if      (mode_==BOX)        offset = currentFrame.BoxCrd().Center(); 
+  else if (mode_==MASKCENTER) offset = currentFrame.VGeometricCenter( centerMask_ );
+  else                        offset.Zero(); // mode_==ORIGIN/SPECIFIEDCENTER
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
-    grid.Increment( Vec3(currentFrame.XYZ(*atom)) - center, increment_ );
+    grid.Increment( Vec3(currentFrame.XYZ(*atom)) - offset, increment_ );
 }
 #endif
