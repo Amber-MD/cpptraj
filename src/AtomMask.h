@@ -92,6 +92,8 @@ class AtomMask {
     bool AtomInCharMask(int) const;
     /// \return true if any atoms within given range are T in CharMask.
     bool AtomsInCharMask(int,int) const;
+    /// Set number of atoms, needed for integer to char mask conversion.
+    void SetNatom( int a) { Natom_ = a; }
     /// Convert from integer mask to char mask.
     int ConvertToCharMask();
     /// Convert from char mask to integer mask.

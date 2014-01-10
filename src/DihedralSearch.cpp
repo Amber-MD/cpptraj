@@ -255,6 +255,8 @@ AtomMask DihedralSearch::MovingAtoms(Topology const& topIn, int atom0, int atom1
   }
   // Everything marked T will move.
   AtomMask Rmask;
+  // Needed for conversion to atom mask
+  Rmask.SetNatom( topIn.Natom() );
   for (int maskatom = 0; maskatom < (int)Visited.size(); maskatom++) {
     if (Visited[maskatom])
       Rmask.AddAtom(maskatom);
