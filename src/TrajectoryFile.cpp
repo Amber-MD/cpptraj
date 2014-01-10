@@ -14,6 +14,7 @@
 #include "Traj_Binpos.h"
 #include "Traj_GmxTrX.h"
 #include "Traj_SQM.h"
+#include "Traj_CIF.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -27,6 +28,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # endif
   { "PDB",                0, 0, Traj_PDBfile::Alloc        },
   { "Mol2",               0, 0, Traj_Mol2File::Alloc       },
+  { "CIF",                0, 0, Traj_CIF::Alloc            },
   { "Charmm DCD",         0, 0, Traj_CharmmDcd::Alloc      },
   { "Gromacs TRX",        0, 0, Traj_GmxTrX::Alloc         },
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
@@ -44,6 +46,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { AMBERRESTARTNC, "restartnc", ".ncrst"   },
   { PDBFILE,        "pdb",       ".pdb"     },
   { MOL2FILE,       "mol2",      ".mol2"    },
+  { CIF,            "cif",       ".cif"     },
   { CHARMMDCD,      "dcd",       ".dcd"     },
   { CHARMMDCD,      "charmm",    ".dcd"     },
   { GMXTRX,         "trr",       ".trr"     },

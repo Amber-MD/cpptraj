@@ -196,6 +196,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_AmberRestartNC.cpp \
         Traj_Binpos.cpp \
         Traj_CharmmDcd.cpp \
+        Traj_CIF.cpp \
         Traj_Conflib.cpp \
         Traj_GmxTrX.cpp \
         Traj_Mol2File.cpp \
