@@ -46,7 +46,7 @@ void Analysis_Clustering::Help() {
   Cluster_DBSCAN::Help();
   mprintf("  Distance options:\n"
           "\t{[[rms] [<mask>] [mass] [nofit]] | [dme [<mask>]] | [data <dset0>[,<dset1>,...]]}\n"
-          "\t[sieve <#> [random]] [loadpairdist] [savepairdist] [pairdist <file>]\n"
+          "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <file>]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summaryhalf <halffile>] [splitframe <frame>]\n"
