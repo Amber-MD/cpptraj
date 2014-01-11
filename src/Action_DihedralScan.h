@@ -69,7 +69,7 @@ class Action_DihedralScan: public Action {
 
     int GetDihedralIdxs(int*, Topology const&,int, NameType const&, 
                          NameType const&, NameType const&);
-    int CheckResidue( Frame const&, DihedralScanType&,int,double*);
+    int CheckResidue( Frame const&, DihedralScanType const&,int,double*);
     void RandomizeAngles(Frame&);
     void IntervalAngles(Frame&);
     void ImposeAngles(Frame&);

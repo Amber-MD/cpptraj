@@ -271,10 +271,10 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
 }
 
 // Action_DihedralScan::CheckResidue()
-/** \return 1 if a new dihedral should be tried, 0 if no clashes, -1 if
-  * \return further rotations will not help.
+/** \return 1 if a new dihedral should be tried, 0 if no clashes
+  * \return -1 if further rotations will not help.
   */
-int Action_DihedralScan::CheckResidue( Frame const& FrameIn, DihedralScanType &dih, 
+int Action_DihedralScan::CheckResidue( Frame const& FrameIn, DihedralScanType const& dih, 
                                        int nextres, double *clash ) 
 {
   int resnumIn = dih.resnum;
@@ -288,15 +288,25 @@ int Action_DihedralScan::CheckResidue( Frame const& FrameIn, DihedralScanType &d
 #endif
   for (int atom1 = rstart; atom1 < rstop - 1; atom1++) {
     for (int atom2 = atom1 + 1; atom2 < rstop; atom2++) {
-      double atomD2 = DIST2_NoImage(FrameIn.XYZ(atom1), FrameIn.XYZ(atom2));
-      if (atomD2 < cutoff_) {
-#ifdef DEBUG_DIHEDRALSCAN 
-        mprintf("\t\tRes %i Atoms %i@%s and %i@%s are close (%.3lf)\n", resnumIn+1, 
-                atom1+1, currentParm->AtomName(atom1),
-                atom2+1, currentParm->AtomName(atom2), sqrt(atomD2));
-#endif
-        *clash = atomD2;
-        return 1;
+      // Skip bonded atoms
+      bool isBonded = false;
+      for (Atom::bond_iterator bndatm = (*CurrentParm_)[atom1].bondbegin();
+                               bndatm != (*CurrentParm_)[atom1].bondend(); ++bndatm)
+        if (*bndatm == atom2) {
+          isBonded = true;
+          break;
+        }
+      if (!isBonded) {
+        double atomD2 = DIST2_NoImage(FrameIn.XYZ(atom1), FrameIn.XYZ(atom2));
+        if (atomD2 < cutoff_) {
+#         ifdef DEBUG_DIHEDRALSCAN 
+          mprintf("\t\tCurrent Res %i Atoms %s and %s are close (%.3lf)\n", resnumIn+1, 
+                  CurrentParm_->AtomMaskName(atom1).c_str(),
+                  CurrentParm_->AtomMaskName(atom2).c_str(), sqrt(atomD2));
+#         endif
+          *clash = atomD2;
+          return 1;
+        }
       }
     }
   }
@@ -318,17 +328,17 @@ int Action_DihedralScan::CheckResidue( Frame const& FrameIn, DihedralScanType &d
           double D2 = DIST2_NoImage(FrameIn.XYZ(atom1), FrameIn.XYZ(atom2));
           if (D2 < cutoff_) {
 #ifdef DEBUG_DIHEDRALSCAN
-            mprintf("\t\tRes %i atom %i@%s and res %i atom %i@%s are close (%.3lf)\n", resnumIn+1,
-                    atom1+1, currentParm->AtomName(atom1), res+1,
-                    atom2+1, currentParm->AtomName(atom2), sqrt(D2));
+            mprintf("\t\tResCheck %i Atoms %s and %s are close (%.3lf)\n", res+1,
+                    CurrentParm_->TruncResAtomName(atom1).c_str(),
+                    CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
 #endif
             *clash = D2;
             // If the clash involves any atom that will not be moved by further
             // rotation, indicate it is not possible to resolve clash by
             // more rotation by returning -1.
             //if (atom1 == dih.atom2 || atom1 == dih.atom1) return -1;
-            for (std::vector<int>::iterator ca = dih.checkAtoms.begin();
-                                            ca != dih.checkAtoms.end(); ca++) 
+            for (std::vector<int>::const_iterator ca = dih.checkAtoms.begin();
+                                                  ca != dih.checkAtoms.end(); ca++) 
             {
               if (atom1 == *ca) return -1;
             }
@@ -348,27 +358,28 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
   // DEBUG
   int debugframenum=0;
   Trajout DebugTraj;
-  DebugTraj.InitTrajWrite("debugtraj.nc",currentParm,TrajectoryFile::AMBERNETCDF);
-  DebugTraj.WriteFrame(debugframenum++,currentParm,currentFrame);
+  DebugTraj.InitTrajWrite("debugtraj.nc",CurrentParm_,TrajectoryFile::AMBERNETCDF);
+  DebugTraj.WriteFrame(debugframenum++,CurrentParm_,currentFrame);
 #endif
   int next_resnum;
   int bestLoop = 0;
   int number_of_rotations = 0;
 
-  std::vector<DihedralScanType>::iterator next_dih = BB_dihedrals_.begin();
+  std::vector<DihedralScanType>::const_iterator next_dih = BB_dihedrals_.begin();
   next_dih++;
-  for (std::vector<DihedralScanType>::iterator dih = BB_dihedrals_.begin();
-                                               dih != BB_dihedrals_.end(); ++dih)
+  for (std::vector<DihedralScanType>::const_iterator dih = BB_dihedrals_.begin();
+                                                     dih != BB_dihedrals_.end(); 
+                                                     ++dih, ++next_dih)
   {
     ++number_of_rotations;
     // Get the residue atom of the next dihedral. Residues up to and
     // including this residue will be checked for bad clashes 
     if (next_dih!=BB_dihedrals_.end()) 
-      next_resnum = (*next_dih).resnum;
+      next_resnum = next_dih->resnum;
     else
-      next_resnum = (*dih).resnum-1;
+      next_resnum = dih->resnum-1;
     // Set axis of rotation
-    Vec3 axisOfRotation = currentFrame.SetAxisOfRotation((*dih).atom1, (*dih).atom2);
+    Vec3 axisOfRotation = currentFrame.SetAxisOfRotation(dih->atom1, dih->atom2);
     // Generate random value to rotate by in radians
     // Guaranteed to rotate by at least 1 degree.
     // NOTE: could potentially rotate 360 - prevent?
@@ -380,20 +391,21 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
     int loop_count = 0;
     double clash = 0;
     double bestClash = 0;
-    if (debug_>0) mprintf("DEBUG: Rotating res %8i:\n",(*dih).resnum+1);
+    if (debug_>0) mprintf("DEBUG: Rotating dihedral %zu res %8i:\n",dih - BB_dihedrals_.begin(),
+                          dih->resnum+1);
     bool rotate_dihedral = true;
     while (rotate_dihedral) {
       if (debug_>0) {
-        mprintf("\t%8i %8i%4s %8i%4s, +%.2lf degrees (%i).\n",(*dih).resnum+1,
-                (*dih).atom1+1, (*CurrentParm_)[(*dih).atom1].c_str(),
-                (*dih).atom2+1, (*CurrentParm_)[(*dih).atom2].c_str(),
+        mprintf("\t%8i %12s %12s, +%.2lf degrees (%i).\n",dih->resnum+1,
+                CurrentParm_->AtomMaskName(dih->atom1).c_str(),
+                CurrentParm_->AtomMaskName(dih->atom2).c_str(),
                 theta_in_degrees,loop_count);
       }
       // Rotate around axis
-      currentFrame.Rotate(rotationMatrix, (*dih).Rmask);
+      currentFrame.Rotate(rotationMatrix, dih->Rmask);
 #ifdef DEBUG_DIHEDRALSCAN
       // DEBUG
-      DebugTraj.WriteFrame(debugframenum++,currentParm,*currentFrame);
+      DebugTraj.WriteFrame(debugframenum++,CurrentParm_,currentFrame);
 #endif
       // If we dont care about sterics exit here
       if (!check_for_clashes_) break;
@@ -402,12 +414,17 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
       if (checkresidue==0)
         rotate_dihedral = false;
       else if (checkresidue==-1) {
-        dih--; //  0
-        dih--; // -1
-        next_dih = dih;
-        next_dih++;
-        if (debug_>0)
-          mprintf("\tCannot resolve clash with further rotations, trying previous again.\n");
+        if (dih - BB_dihedrals_.begin() < 2) {
+          mprinterr("Error: Cannot backtrack; initial structure already has clashes.\n");
+          number_of_rotations = max_rotations_ + 1;
+        } else {
+          dih--; //  0
+          dih--; // -1
+          next_dih = dih;
+          next_dih++;
+          if (debug_>0)
+            mprintf("\tCannot resolve clash with further rotations, trying previous again.\n");
+        }
         break;
       }
       if (clash > bestClash) {bestClash = clash; bestLoop = loop_count;}
@@ -430,13 +447,18 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
         if (debug_>0)
           mprintf("%i iterations! Best clash= %.3lf at %i\n",max_increment_,
                   sqrt(bestClash),bestLoop);
-        for (int bt = 0; bt < backtrack_; bt++)
-          dih--;
-        next_dih = dih;
-        next_dih++;
-        if (debug_>0)
-          mprintf("\tCannot resolve clash with further rotations, trying previous %i again.\n",
-                  backtrack_ - 1);
+        if (dih - BB_dihedrals_.begin() < backtrack_) {
+          mprinterr("Error: Cannot backtrack; initial structure already has clashes.\n");
+          number_of_rotations = max_rotations_ + 1;
+        } else { 
+          for (int bt = 0; bt < backtrack_; bt++)
+            dih--;
+          next_dih = dih;
+          next_dih++;
+          if (debug_>0)
+            mprintf("\tCannot resolve clash with further rotations, trying previous %i again.\n",
+                    backtrack_ - 1);
+        }
         break;
         // Calculate how much to rotate back in order to get to best clash
         /*int num_back = bestLoop - 359;
@@ -445,7 +467,7 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
         // Calculate rotation matrix for theta
         calcRotationMatrix(rotationMatrix, axisOfRotation, theta_in_radians);
         // Rotate back to best clash
-        currentFrame->RotateAroundAxis(rotationMatrix, theta_in_radians, (*dih).Rmask);
+        currentFrame->RotateAroundAxis(rotationMatrix, theta_in_radians, dih->Rmask);
         // DEBUG
         DebugTraj.WriteFrame(debugframenum++,currentParm,*currentFrame);
         // Sanity check
@@ -455,8 +477,7 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
         //return 1;
       }
     } // End dihedral rotation loop
-    next_dih++;
-    // Safety valve - number of defined dihedrals times 2
+    // Safety valve - number of defined dihedrals times * maxfactor
     if (number_of_rotations > max_rotations_) {
       mprinterr("Error: DihedralScan: # of rotations (%i) exceeds max rotations (%i), exiting.\n",
                 number_of_rotations, max_rotations_);
