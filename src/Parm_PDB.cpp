@@ -1,5 +1,10 @@
 #include "Parm_PDB.h"
 #include "PDBfile.h"
+#include "CpptrajStdio.h"
+
+void Parm_PDB::ReadHelp() {
+  mprintf("\t[pqr]\n");
+}
 
 int Parm_PDB::processReadArgs(ArgList& argIn) {
   readAsPQR_ = argIn.hasKey("pqr");

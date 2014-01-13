@@ -9,5 +9,6 @@ class Parm_Mol2 : public ParmIO {
     int ReadParm(std::string const&, Topology&);
     int WriteParm(std::string const&, Topology const&) { return 1; }
     void SetDebug(int) {}
+    int processWriteArgs(ArgList&) { return 0; }
 };
 #endif

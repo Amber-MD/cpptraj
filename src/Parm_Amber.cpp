@@ -135,7 +135,8 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
 Parm_Amber::Parm_Amber() :
-  debug_(0), 
+  debug_(0),
+  nochamber_(false), 
   ptype_(OLDPARM),
   ftype_(UNKNOWN_FTYPE),
   fncols_(0),
@@ -280,6 +281,15 @@ static std::vector<int> DihedralArrayToIndex(DihedralArray const& dihedralIn, bo
   return arrayOut;
 } 
 
+void Parm_Amber::WriteHelp() {
+  mprintf("\t[nochamber]\n");
+}
+
+int Parm_Amber::processWriteArgs(ArgList& argIn) {
+  nochamber_ = argIn.hasKey("nochamber");
+  return 0;
+}
+
 // Parm_Amber::WriteParm()
 /** CHAMBER writes out topologies in slightly different order than LEaP,
   * namely the EXCLUDED and SOLVENT_POINTERS sections are in different
@@ -385,8 +395,12 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   // Determine if this is a CHAMBER topology
   AmberParmFlagType titleFlag = F_TITLE;
   if (parmIn.Chamber().HasChamber()) {
-    titleFlag = F_CTITLE;
-    ptype_ = CHAMBER;
+    if (nochamber_) 
+      mprintf("\tnochamber: Removing CHAMBER info from topology.\n");
+    else {
+      titleFlag = F_CTITLE;
+      ptype_ = CHAMBER;
+    }
   }
  
   // Write parm

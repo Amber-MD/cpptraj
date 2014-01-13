@@ -6,9 +6,11 @@ class Parm_Amber : public ParmIO {
     Parm_Amber();
     ~Parm_Amber();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_Amber(); }
+    static void WriteHelp();
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
     int ReadParm(std::string const&, Topology&);
+    int processWriteArgs(ArgList&);
     int WriteParm(std::string const&, Topology const&);
     void SetDebug(int debugIn) { debug_ = debugIn; }
   private :
@@ -46,6 +48,7 @@ class Parm_Amber : public ParmIO {
     static const size_t BUF_SIZE = 256;
     char lineBuffer_[BUF_SIZE];
     int debug_;
+    bool nochamber_; ///< For writes when true do not print chamber info
     enum ParmType { OLDPARM = 0, NEWPARM, CHAMBER };
     ParmType ptype_;
     std::string fformat_;

@@ -9,5 +9,6 @@ class Parm_CharmmPsf : public ParmIO {
     int ReadParm(std::string const&, Topology&);
     int WriteParm(std::string const&, Topology const&);
     void SetDebug(int) {}
+    int processWriteArgs(ArgList&) { return 0; }
 };
 #endif

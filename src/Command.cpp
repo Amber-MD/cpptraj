@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // GenerateAmberRst
 #include "DataSet_Coords_TRJ.h" // LoadTraj
+#include "ParmFile.h" // ReadOptions, WriteOptions
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -449,6 +450,7 @@ static void Help_Reference() {
 static void Help_Parm() {
   mprintf("\t<filename> [<tag>] [nobondsearch | bondsearch [<offset>]]\n"
           "  Add <filename> to the topology list.\n");
+  ParmFile::ReadOptions();
 }
 static void Help_ParmInfo() {
   mprintf("\t[<parmindex>] [<mask>]\n"
@@ -458,6 +460,7 @@ static void Help_ParmInfo() {
 static void Help_ParmWrite() {
   mprintf("\tout <filename> [<parmindex>]\n"
           "  Write topology <parmindex> to <filename>.\n");
+  ParmFile::WriteOptions();
 }
 
 static void Help_ParmStrip() {
