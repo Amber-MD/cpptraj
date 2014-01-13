@@ -75,14 +75,14 @@ void Action_CheckStructure::SetupBondlist(BondArray const& BndLst, BondParmArray
   for (BondArray::const_iterator bondatom = BndLst.begin();
                                  bondatom != BndLst.end(); ++bondatom) 
   {
-    bnd.atom1 = (*bondatom).A1();
+    bnd.atom1 = bondatom->A1();
     if ( !Mask1_.AtomInCharMask(bnd.atom1) ) continue;
-    bnd.atom2 = (*bondatom).A2();
+    bnd.atom2 = bondatom->A2();
     if ( !Mask1_.AtomInCharMask(bnd.atom2) ) continue;
-    if ( (*bondatom).Idx() < 0 ) // sanity check
+    if ( bondatom->Idx() < 0 ) // sanity check
       mprinterr("Internal Error: Bond parameters not present.\n");
     else {
-      bnd.req = Parm[ (*bondatom).Idx() ].Req() + bondoffset_;
+      bnd.req = Parm[ bondatom->Idx() ].Req() + bondoffset_;
       bnd.req *= bnd.req; // Store squared values.
       bondL_.push_back(bnd);
     }
