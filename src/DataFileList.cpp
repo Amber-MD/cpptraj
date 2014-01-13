@@ -188,5 +188,7 @@ int DataFileList::ProcessDataFileArgs(ArgList& dataArg) {
     return 1;
   }
   // Process command
-  return df->ProcessArgs( dataArg );
+  int err = df->ProcessArgs( dataArg );
+  if (err != 0 || dataArg.CheckForMoreArgs()) return 1;
+  return 0;
 }

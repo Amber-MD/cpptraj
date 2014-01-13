@@ -32,6 +32,7 @@ class Action_NativeContacts : public Action {
     double distance_;     ///< Cutoff distance
     int debug_;           ///< Action debug level.
     int ensembleNum_;
+    int matrix_min_;      ///< Used for map output
     unsigned int nframes_;///< Number of frames, for normalizing map
     bool first_;          ///< If true use first frame as reference
     bool byResidue_;      ///< If true calculate distances by residue

@@ -69,7 +69,7 @@ class AtomMask {
     /// \return the number of atoms mask has in common with another mask
     int NumAtomsInCommon(AtomMask const&);
     /// Add atom to Selected array; assumes atoms will be in order.
-    void AddSelectedAtom(int i)               { Selected_.push_back( i );    }
+    void AddSelectedAtom(int i) { Selected_.push_back( i ); nselected_=(int)Selected_.size(); }
     /// Add given atom to Selected array 
     void AddAtom(int);
     /// Add a list of atoms to mask
