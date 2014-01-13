@@ -14,7 +14,6 @@ Analysis_IRED::Analysis_IRED() :
   relax_(false),
   norm_(false),
   drct_(false),
-  data1_(0),
   cf_(0),
   cf_cjt_(0),
   cfinf_(0),
@@ -72,7 +71,6 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
     return Analysis::ERR;
   }
-  // TODO: Check that number of evecs match number of IRED vecs
   orderparamfile_ = analyzeArgs.GetStringKey("orderparamfile");
 
   // Get tstep, tcorr, filenames
@@ -151,7 +149,11 @@ double Analysis_IRED::calc_spectral_density(int vi, double omega) {
 Analysis::RetType Analysis_IRED::Analyze() {
   CorrF_FFT pubfft_;
   CorrF_Direct corfdir_;
+  ComplexArray data1_;
   mprintf("\t'%s' has %zu modes.\n", modinfo_->Legend().c_str(), modinfo_->Size());
+  if ( modinfo_->Size() != IredVectors_.size() )
+    mprintf("Warning: Number of IRED vectors (%zu) does not equal number of modes (%zu).\n",
+            IredVectors_.size(), modinfo_->Size());
   if (!orderparamfile_.empty()) {
     // Calculation of S2 order parameters according to 
     //   Prompers & Brüschweiler, JACS  124, 4522, 2002; 
@@ -188,8 +190,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
 
   // All IRED vectors must have the same size
   int Nframes_ = -1;
-  for (std::vector<DataSet_Vector*>::iterator Vtmp = IredVectors_. begin();
-                                              Vtmp != IredVectors_.end(); ++Vtmp)
+  for (std::vector<DataSet_Vector*>::const_iterator Vtmp = IredVectors_.begin();
+                                                    Vtmp != IredVectors_.end(); ++Vtmp)
   { 
     if (Nframes_ == -1)
       Nframes_ = (*Vtmp)->Size();
@@ -249,8 +251,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
   std::fill(cftmp1, cftmp1 + ntotal, 0);
   // Project spherical harmonics for each IRED vector on eigenmodes
   int n_ivec = 0;
-  for (std::vector<DataSet_Vector*>::iterator ivec = IredVectors_.begin();
-                                              ivec != IredVectors_.end(); ++ivec)
+  for (std::vector<DataSet_Vector*>::const_iterator ivec = IredVectors_.begin();
+                                                    ivec != IredVectors_.end(); ++ivec)
   {
     double* CF = cftmp1;
     (*ivec)->CalcSphericalHarmonics( order_ );
@@ -362,16 +364,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
 
     // Relaxation calculation. Added by Alrun N. Koller & H. Gohlke
     CpptrajFile noefile;
-    int err = 0;
-    if (noeFilename_.empty())
-      err = noefile.SetupWrite(0, debug_);
-    else
-      err = noefile.SetupWrite(noeFilename_, debug_);
-    if (err != 0) {
+    if (noefile.OpenWrite(noeFilename_) != 0) {
       mprinterr("Error: Could not open NOE file for write.\n");
       return Analysis::ERR;
     }
-    noefile.OpenFile();
     noefile.Printf("\n\t****************************************"
                    "\n\t- Calculated relaxation rates and NOEs -"
                    "\n\t****************************************\n\n"
