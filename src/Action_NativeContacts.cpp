@@ -32,7 +32,7 @@ void Action_NativeContacts::Help() {
           "  reference structure (or first frame if not specified) and the specified\n"
           "  distance cut-off (7.0 Ang. default). If [byresidue] is specified a contact\n"
           "  between two residues is considered formed if any selected atom pair between\n"
-          "  two residues satisfies the cut-off.", FrameList::RefArgs);
+          "  two residues satisfies the cut-off.\n", FrameList::RefArgs);
 }
 
 // Action_NativeContacts::SetupList()
