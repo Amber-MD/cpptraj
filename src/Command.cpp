@@ -571,6 +571,10 @@ static void Deprecate_ParmMolInfo() {
   mprinterr("  Use molinfo instead.\n");
 }
 
+static void Deprecate_AvgCoord() {
+  mprinterr("  Use 'vector center' (optionally with keyword 'magnitude') instead.\n");
+}
+
 // ---------- GENERAL COMMANDS -------------------------------------------------
 /// Set active reference for distance-based masks etc.
 Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
@@ -1490,6 +1494,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "jcoupling", Action_Jcoupling::Alloc, Action_Jcoupling::Help, AddAction },
   { ACTION, "lessplit", Action_LESsplit::Alloc, Action_LESsplit::Help, AddAction },
   { ACTION, "lie", Action_LIE::Alloc, Action_LIE::Help, AddAction },
+  { ACTION, "lipidorder", Action_OrderParameter::Alloc, Action_OrderParameter::Help, AddAction },
   { ACTION, "makestructure", Action_MakeStructure::Alloc, Action_MakeStructure::Help, AddAction },
   { ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, AddAction },
   { ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, AddAction },
@@ -1498,7 +1503,6 @@ const Command::Token Command::Commands[] = {
   { ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, AddAction },
   { ACTION, "nativecontacts", Action_NativeContacts::Alloc, Action_NativeContacts::Help, AddAction },
   { ACTION, "nmrrst", Action_NMRrst::Alloc, Action_NMRrst::Help, AddAction },
-  { ACTION, "lipidorder", Action_OrderParameter::Alloc, Action_OrderParameter::Help, AddAction },
   { ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, AddAction },
   { ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, AddAction },
   { ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, AddAction },
@@ -1566,6 +1570,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
   // DEPRECATED COMMANDS
   { DEPRECATED, "acceptor",     0, Deprecate_Hbond,        0 },
+  { DEPRECATED, "avgcoord",     0, Deprecate_AvgCoord,     0 },
   { DEPRECATED, "bondsearch",   0, Deprecate_TopSearch,    0 },
   { DEPRECATED, "donor",        0, Deprecate_Hbond,        0 },
   { DEPRECATED, "maxdist",      0, Deprecate_MinDist,      0 },
