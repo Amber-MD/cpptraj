@@ -60,6 +60,11 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
     // If run has not yet been called, run now.
     if (State_.Nrun() < 1)
       err = State_.Run();
+    // If there are analyses remaining, run them.
+    if (!State_.Empty()) {
+      State_.RunAnalyses();
+      State_.MasterDataFileWrite();
+    } 
   } else if ( cmode == INTERACTIVE ) {
     err = Interactive();
   } else if ( cmode == ERROR ) {

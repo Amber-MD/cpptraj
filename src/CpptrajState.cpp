@@ -185,12 +185,7 @@ int CpptrajState::Run() {
     case TrajinList::ENSEMBLE :
       err = RunEnsemble(); 
       break;
-    default:
-      // No trajectories loaded; If analyses are defined, try to run them.
-      if (!analysisList_.Empty()) {
-        RunAnalyses();
-        MasterDataFileWrite();
-      }
+    case TrajinList::UNDEFINED: break;
   }
 # endif
   // Clean up Actions.
