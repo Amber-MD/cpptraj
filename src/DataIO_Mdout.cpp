@@ -61,8 +61,7 @@ DataIO_Mdout::FieldType DataIO_Mdout::getEindex(std::vector<std::string> const& 
 }
 
 void DataIO_Mdout::ReadHelp() {
-  mprintf("\tmdoutfiles <filelist>: Read in additional MDOUT files in a comma-\n"
-          "\t                       separated list, e.g. 'mdoutfiles md2,md3'\n");
+  mprintf("\tMultiple MDOUT files may be specified.\n");
 }
 
 // DataIO_Mdout::ReadData()
@@ -72,7 +71,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
   std::vector<std::string> mdoutFilenames;
   mdoutFilenames.push_back( fname );
   // Check if more than one mdout name was specified.
-  ArgList mdoutnames(argIn.GetStringKey("mdoutfiles"), ",");
+  ArgList mdoutnames = argIn.RemainingArgs();
   if (!mdoutnames.empty()) {
     for (int i = 0; i < mdoutnames.Nargs(); i++)
       mdoutFilenames.push_back( mdoutnames[i] );

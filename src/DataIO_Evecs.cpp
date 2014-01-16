@@ -27,14 +27,18 @@ int DataIO_Evecs::ReadData(std::string const& modesfile, ArgList& argIn,
 {
   // Process Arguments
   int ibeg = argIn.getKeyInt("ibeg",1);
+  bool hasIend = argIn.Contains("iend");
   int iend = argIn.getKeyInt("iend",50);
   int modesToRead = iend - ibeg + 1;
   if (modesToRead < 1) {
     mprinterr("Error: Specified # of modes to read (%i) must be > 0\n",modesToRead);
     return 1;
   }
-  mprintf("\tAttempting to read %i modes (%i to %i) from %s\n", modesToRead,
-          ibeg, iend, modesfile.c_str());
+  if (hasIend)
+    mprintf("\tAttempting to read %i modes (%i to %i) from %s\n", modesToRead,
+            ibeg, iend, modesfile.c_str());
+  else
+    mprintf("\tReading modes from %s\n", modesfile.c_str());
   BufferedFrame infile;
   if (infile.OpenRead( modesfile)) return 1;
   // Read title line, convert to arg list
@@ -80,6 +84,9 @@ int DataIO_Evecs::ReadData(std::string const& modesfile, ArgList& argIn,
       mprintf("Warning: # modes to read (%i) > modes in file. Only reading %i modes.\n",
               modesToRead, modesInFile);
       modesToRead = modesInFile;
+    } else if (!hasIend && modesToRead < modesInFile) {
+      modesToRead = modesInFile;
+      iend = modesInFile;
     }
   }
   // For newer modesfiles, get width of data elts
