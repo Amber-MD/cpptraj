@@ -458,7 +458,7 @@ static void Help_ParmInfo() {
 }
 
 static void Help_ParmWrite() {
-  mprintf("\tout <filename> [<parmindex>]\n"
+  mprintf("\tout <filename> [<parmindex>] [<fmt>] [nochamber]\n"
           "  Write topology <parmindex> to <filename>.\n");
   ParmFile::WriteOptions();
 }
