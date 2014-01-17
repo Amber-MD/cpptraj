@@ -19,6 +19,7 @@ Action_Jcoupling::Action_Jcoupling() :
 
 void Action_Jcoupling::Help() {
   mprintf("\t<mask1> [outfile <filename>] [kfile <param file>] [out <filename>]\n"
+          "\t[name <dsname>]\n"
           "  Calculate J-coupling values for all dihedrals found in <mask1>.\n");
 }
 
@@ -162,12 +163,10 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
   debug_ = debugIn;
   outfile_ = 0;
   // Get Keywords
-  std::string outfilename = actionArgs.GetStringKey("out");
-  if (outfilename.empty())
-    outfilename = actionArgs.GetStringKey("outfile");
-  else
-    outfile_ = DFL->AddDataFile( outfilename, actionArgs );
+  std::string outfilename = actionArgs.GetStringKey("outfile");
+  outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   std::string karpluspath = actionArgs.GetStringKey("kfile");
+  setname_ = actionArgs.GetStringKey("name");
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
@@ -201,16 +200,12 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
           Mask1_.MaskString(), karpluspath.c_str(), Nconstants_, KarplusConstants_.size());
   if (outfile_ != 0)
     mprintf("\tDataSets will be written to %s\n", outfile_->DataFilename().full());
-  else {
-    if (!outfilename.empty())
-      mprintf("                Writing output to %s\n",outfilename.c_str());
-    else
-      mprintf("                Writing output to STDOUT\n");
-  }
+  if (!outfilename.empty())
+    mprintf("                Writing fixed-format output to %s\n",outfilename.c_str());
   mprintf("# Citations: Chou et al. JACS (2003) 125 p.8959-8966\n"
           "#            Perez et al. JACS (2001) 123 p.7081-7093\n");
   // Open output
-  if (outfile_ == 0) {
+  if (!outfilename.empty()) {
     if ( outputfile_.OpenEnsembleWrite( outfilename, DSL->EnsembleNum() ) ) return Action::ERR;
   }
   masterDSL_ = DSL;
@@ -346,7 +341,7 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
 Action::RetType Action_Jcoupling::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double Jval;
 
-  if (outfile_==0)
+  if (outputfile_.IsOpen())
     outputfile_.Printf("#Frame %i\n",frameNum+1);
 
   for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
@@ -368,7 +363,7 @@ Action::RetType Action_Jcoupling::DoAction(int frameNum, Frame* currentFrame, Fr
 
     int residue = (*jc).residue;
     // Output
-    if (outfile_==0)
+    if (outputfile_.IsOpen())
       outputfile_.Printf("%5i %4s%4s%4s%4s%4s%12f%12f\n",
                          residue+1, CurrentParm_->Res(residue).c_str(),
                          (*CurrentParm_)[(*jc).atom[0]].c_str(), 

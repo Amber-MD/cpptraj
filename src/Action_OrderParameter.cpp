@@ -25,7 +25,7 @@ Action_OrderParameter::Action_OrderParameter() :
 
 void Action_OrderParameter::Help()
 {
-  mprintf("\tout <filename> [unsat <mask>] [scd]\n"
+  mprintf("\tout <filename> [unsat <mask>] [scd] [unsat]\n"
 	  "\t[taildist <filename> delta <resolution>\n"
 	  "\ttailstart <mask> tailend <mask>]\n"
 	  "\t<mask0> ... <maskN>\n");
