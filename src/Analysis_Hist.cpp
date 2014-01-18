@@ -28,7 +28,7 @@ Analysis_Hist::Analysis_Hist() :
 void Analysis_Hist::Help() {
   mprintf("\t<dataset_name>[,min,max,step,bins] ...\n"
           "\t[free <temperature>] [norm | normint] [gnu] [circular] out <filename>\n"
-          "\t[amd <amdboost_data>] [name <outputset name>\n"
+          "\t[amd <amdboost_data>] [name <outputset name>]\n"
           "\t[min <min>] [max <max>] [step <step>] [bins <bins>] [nativeout]\n"
           "  Histogram the given data set(s)\n");
 }
