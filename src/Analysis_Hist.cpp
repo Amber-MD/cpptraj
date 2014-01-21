@@ -2,6 +2,8 @@
 #include "Analysis_Hist.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // doubleToString
+#include "Trajout.h" // for traj3d
+#include "ParmFile.h" // for traj3d
 // DataSet types used by Analysis_Hist
 #include "DataSet_double.h"
 #include "DataSet_MatrixDbl.h"
@@ -29,6 +31,7 @@ void Analysis_Hist::Help() {
   mprintf("\t<dataset_name>[,min,max,step,bins] ...\n"
           "\t[free <temperature>] [norm | normint] [gnu] [circular] out <filename>\n"
           "\t[amd <amdboost_data>] [name <outputset name>]\n"
+          "\t[traj3d <file> [trajfmt <format>] [parmout <file>]]\n"
           "\t[min <min>] [max <max>] [step <step>] [bins <bins>] [nativeout]\n"
           "  Histogram the given data set(s)\n");
 }
@@ -223,6 +226,9 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprinterr("Error: Hist: No output filename specified.\n");
     return Analysis::ERR;
   }
+  traj3dName_ = analyzeArgs.GetStringKey("traj3d");
+  traj3dFmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajfmt") );
+  parmoutName_ = analyzeArgs.GetStringKey("parmout");
   // Create a DataFile here so any DataFile arguments can be processed. If it
   // turns out later that native output is needed the DataFile will be removed.
   outfile_ = DFLin->AddDataFile(outfilename_, analyzeArgs);
@@ -290,6 +296,12 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
         nativeOut_ = true;
     }
   }
+  // traj3d only supported with 3D histograms
+  if (!traj3dName_.empty() && N_dimensions_ != 3) {
+    mprintf("Warning: 'traj3d' only supported with 3D histograms.\n");
+    traj3dName_.clear();
+    parmoutName_.clear();
+  }
   if (!nativeOut_) {
     // DataFile output. Add DataSet to DataFile.
     if (hist_ == 0) {
@@ -327,6 +339,14 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprintf("\t      norm: Sum over bins will be normalized to 1.0.\n");
   else if (normalize_ == NORM_INT)
     mprintf("\t      normint: Integral over bins will be normalized to 1.0.\n");
+  if (!traj3dName_.empty()) {
+    mprintf("\tPseudo-trajectory will be written to '%s' with format %s\n",
+            traj3dName_.c_str(), TrajectoryFile::FormatString(traj3dFmt_));
+    if (!parmoutName_.empty())
+      mprintf("\tCorresponding pseudo-topology will be written to '%s'\n",
+              parmoutName_.c_str());
+  }
+
   return Analysis::OK;
 }
 
@@ -440,6 +460,30 @@ Analysis::RetType Analysis_Hist::Analyze() {
       hist_->SetDim(Dimension::Y, dimensions_[1]);
       hist_->SetDim(Dimension::Z, dimensions_[2]);
       outfile_->ProcessArgs("noxcol usemap nolabels");
+      // Create pseudo-topology/trajectory
+      if (!traj3dName_.empty()) {
+        Topology pseudo;
+        pseudo.AddTopAtom(Atom("H3D", ' ', 0), 1, "H3D", 0);
+        pseudo.CommonSetup(false);
+        if (!parmoutName_.empty()) {
+          ParmFile pfile;
+          if (pfile.WriteTopology( pseudo, parmoutName_, ParmFile::UNKNOWN_PARM, 0 ))
+            mprinterr("Error: Could not write pseudo topology to '%s'\n", parmoutName_.c_str());
+        }
+        Trajout out;
+        if (out.InitTrajWrite(traj3dName_, &pseudo, traj3dFmt_) == 0) {
+          Frame outFrame(1);
+          for (size_t i = 0; i < Ndata; ++i) {
+            outFrame.ClearAtoms();
+            outFrame.AddVec3( Vec3(histdata_[0]->Dval(i), 
+                                   histdata_[1]->Dval(i), 
+                                   histdata_[2]->Dval(i)) );
+            out.WriteFrame(i, &pseudo, outFrame);
+          }
+          out.EndTraj();
+        } else
+          mprinterr("Error: Could not set up '%s' for write.\n", traj3dName_.c_str());
+      }
     }
   }
 

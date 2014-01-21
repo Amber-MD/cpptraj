@@ -2,6 +2,7 @@
 #define INC_ANALYSIS_HIST_H
 #include "Analysis.h"
 #include "DataSet_1D.h"
+#include "TrajectoryFile.h" // traj3d
 // Class: Analysis_Hist
 /// Create an N-dimensional histogram from N input datasets
 class Analysis_Hist : public Analysis {
@@ -50,5 +51,8 @@ class Analysis_Hist : public Analysis {
     bool maxArgSet_;
     bool calcAMD_;
     DataSet_1D* amddata_;
+    std::string traj3dName_;
+    std::string parmoutName_;
+    TrajectoryFile::TrajFormatType traj3dFmt_;
 };
 #endif
