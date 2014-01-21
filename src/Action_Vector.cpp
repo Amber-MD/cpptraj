@@ -132,6 +132,13 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf(" %s", filename_.c_str());
   }
   mprintf("\n");
+  if (!trajoutName_.empty()) {
+    mprintf("\tVector pseudo-trajectory will be written to '%s' with format %s\n",
+            trajoutName_.c_str(), TrajectoryFile::FormatString(trajoutFmt_));
+    if (!parmoutName_.empty())
+      mprintf("\tCorresponding pseudo-topology will be written to '%s'\n",
+              parmoutName_.c_str());
+  }
 
   return Action::OK;
 }
@@ -306,22 +313,20 @@ void Action_Vector::Dipole(Frame const& currentFrame) {
 
 void Action_Vector::Principal(Frame const& currentFrame) {
   Matrix_3x3 Inertia;
-  Vec3 Eval; 
+  Vec3 Eval;
 
-  Vec3 CXYZ = currentFrame.CalculateInertia( mask_, Inertia );
+  // Origin is center of atoms in mask_ 
+  Vec3 OXYZ = currentFrame.CalculateInertia( mask_, Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
   Inertia.Diagonalize_Sort_Chirality( Eval, 0 );
-  /*if (debug > 2) {
-    printVector("PRINCIPAL EIGENVALUES", Eval );
-    //TEMP.Print("GENERAL");
-    printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
-  }*/
+  // Eval.Print("PRINCIPAL EIGENVALUES");
+  // Inertia.Print("PRINCIPAL EIGENVECTORS (Rows)");
   if ( mode_ == PRINCIPAL_X ) 
-    Vec_->AddVxyz( Inertia.Row1(), CXYZ.Dptr() ); // First row = first eigenvector
+    Vec_->AddVxyz( Inertia.Row1(), OXYZ ); // First row = first eigenvector
   else if ( mode_ == PRINCIPAL_Y )
-    Vec_->AddVxyz( Inertia.Row2(), CXYZ.Dptr() ); // Second row = second eigenvector
+    Vec_->AddVxyz( Inertia.Row2(), OXYZ ); // Second row = second eigenvector
   else // PRINCIPAL_Z
-    Vec_->AddVxyz( Inertia.Row3(), CXYZ.Dptr() ); // Third row = third eigenvector
+    Vec_->AddVxyz( Inertia.Row3(), OXYZ ); // Third row = third eigenvector
 }
 
 void Action_Vector::CorrPlane(Frame const& currentFrame) {
@@ -397,8 +402,9 @@ void Action_Vector::Print() {
       Frame outFrame(2);
       for (int i = 0; i < totalFrames; ++i) {
         outFrame.ClearAtoms();
-        outFrame.AddVec3( Vec_->OXYZ(i) );
-        outFrame.AddVec3( (*Vec_)[i] );
+        Vec3 const& OXYZ = Vec_->OXYZ(i);
+        outFrame.AddVec3( OXYZ );
+        outFrame.AddVec3( (*Vec_)[i] + OXYZ );
         out.WriteFrame(i+1, &pseudo, outFrame);
       }
       out.EndTraj();
