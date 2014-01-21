@@ -8,7 +8,8 @@
 Action_MultiDihedral::Action_MultiDihedral() :
   debug_(0),
   range360_(false),
-  outfile_(0)
+  outfile_(0),
+  masterDSL_(0)
 {}
 
 void Action_MultiDihedral::Help() {
@@ -95,33 +96,50 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
   mprintf(", %i dihedrals.\n", dihSearch_.Ndihedrals());
 
   // Print selected dihedrals, set up DataSets
-  data_.clear();
   if (dsetname_.empty())
     dsetname_ = masterDSL_->GenerateDefaultName("MDIH");
-  for (DihedralSearch::mask_it dih = dihSearch_.begin();
-                               dih != dihSearch_.end(); ++dih)
+  for (DihedralSearch::setup_it dih = dihSearch_.setupBegin();
+                                dih != dihSearch_.setupEnd(); ++dih)
   {
-    int resNum = (*dih).ResNum() + 1;
+    int resNum = dih->ResNum() + 1;
     // See if Dataset already present
-    DataSet* ds = masterDSL_->GetSet(dsetname_, resNum, (*dih).Name());
-    if (ds == 0) {
+    DataSet* ds = masterDSL_->GetSet(dsetname_, resNum, dih->Name());
+    if (ds == 0 && dih->Data() == 0) {
       // Create new DataSet
-      ds = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, dsetname_, resNum, (*dih).Name());
+      ds = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, dsetname_, resNum, dih->Name());
+      if (ds == 0) return Action::ERR;
+      // FIXME: Dihedral types in DihedralSearch.h and DataSet.h should be
+      //        consolidated.
+      DataSet::scalarType dstype = DataSet::UNDEFINED;
+      switch (dih->Type()) {
+        case DihedralSearch::PHI: dstype = DataSet::PHI; break;
+        case DihedralSearch::PSI: dstype = DataSet::PSI; break;
+        case DihedralSearch::CHIP: dstype = DataSet::PCHI; break;
+        case DihedralSearch::ALPHA: dstype = DataSet::ALPHA; break;
+        case DihedralSearch::BETA: dstype = DataSet::BETA; break;
+        case DihedralSearch::GAMMA: dstype = DataSet::GAMMA; break;
+        case DihedralSearch::DELTA: dstype = DataSet::DELTA; break;
+        case DihedralSearch::EPSILON: dstype = DataSet::EPSILON; break;
+        case DihedralSearch::ZETA: dstype = DataSet::ZETA; break;
+        case DihedralSearch::CHIN: dstype = DataSet::CHI; break;
+        default: dstype = DataSet::UNDEFINED;
+      }
+      ds->SetScalar( DataSet::M_TORSION, dstype );
+      dih->SetDataSet( ds );
       // Add to outfile
       if (outfile_ != 0)
         outfile_->AddSet( ds );
-    }
-    // TODO: Set scalar type
-    if (ds != 0) {
-      ds->SetScalar( DataSet::M_TORSION );
-      data_.push_back( ds );
+    } else if (ds != 0 && dih->Data() == 0) {
+      mprinterr("Error: Data set '%s' has already been set up for previous Action.\n",
+                ds->Legend().c_str());
+      return Action::ERR;
     }
     if (debug_ > 0) {
       mprintf("\tDIH [%s]:", ds->Legend().c_str());
-      mprintf(" :%i@%i",   (*currentParm)[(*dih).A0()].ResNum()+1, (*dih).A0() + 1);
-      mprintf(" :%i@%i",   (*currentParm)[(*dih).A1()].ResNum()+1, (*dih).A1() + 1);
-      mprintf(" :%i@%i",   (*currentParm)[(*dih).A2()].ResNum()+1, (*dih).A2() + 1);
-      mprintf(" :%i@%i\n", (*currentParm)[(*dih).A3()].ResNum()+1, (*dih).A3() + 1);
+      mprintf(" :%i@%i",   (*currentParm)[dih->A0()].ResNum()+1, dih->A0() + 1);
+      mprintf(" :%i@%i",   (*currentParm)[dih->A1()].ResNum()+1, dih->A1() + 1);
+      mprintf(" :%i@%i",   (*currentParm)[dih->A2()].ResNum()+1, dih->A2() + 1);
+      mprintf(" :%i@%i\n", (*currentParm)[dih->A3()].ResNum()+1, dih->A3() + 1);
     }
   }
   return Action::OK;
@@ -131,20 +149,15 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
 Action::RetType Action_MultiDihedral::DoAction(int frameNum, Frame* currentFrame, 
                                                Frame** frameAddress)
 {
-  std::vector<DataSet*>::iterator ds = data_.begin();
   for (DihedralSearch::mask_it dih = dihSearch_.begin();
-                               dih != dihSearch_.end(); ++dih, ++ds)
+                               dih != dihSearch_.end(); ++dih)
   {
-    double torsion = Torsion( currentFrame->XYZ((*dih).A0()),
-                              currentFrame->XYZ((*dih).A1()),
-                              currentFrame->XYZ((*dih).A2()),
-                              currentFrame->XYZ((*dih).A3()) );
+    double torsion = Torsion( currentFrame->XYZ(dih->A0()),
+                              currentFrame->XYZ(dih->A1()),
+                              currentFrame->XYZ(dih->A2()),
+                              currentFrame->XYZ(dih->A3()) );
     torsion *= Constants::RADDEG;
-    (*ds)->Add(frameNum, &torsion);
+    dih->Data()->Add(frameNum, &torsion);
   }
   return Action::OK;
-}
-
-void Action_MultiDihedral::Print() {
-
 }

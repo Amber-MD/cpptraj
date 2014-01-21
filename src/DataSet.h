@@ -70,6 +70,8 @@ class DataSet {
     int SetDataSetFormat(bool);
     /// Check if name and/or index and aspect match this DataSet.
     bool Matches(std::string const&, int, std::string const&);
+    /// Write scalar mode/type description
+    void ScalarDescription() const;
     // -----------------------------------------------------
     // ---===== Functions that return private vars =====----
     /// True if DataSet is empty. 

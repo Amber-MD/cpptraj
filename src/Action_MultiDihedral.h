@@ -12,11 +12,10 @@ class Action_MultiDihedral : public Action {
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    void Print();
+    void Print() {}
 
     int debug_;
     DihedralSearch dihSearch_;    ///< Used to search for specified dihedrals
-    std::vector<DataSet*> data_;  ///< Output DataSets, 1 per dihedral
     bool range360_;
     Range resRange_;              ///< Residues to search for dihedrals.
     std::string dsetname_;

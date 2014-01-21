@@ -390,15 +390,17 @@ void DataSetList::List() const {
   else
     mprintf("  %zu data sets:\n", DataList_.size());
   for (unsigned int ds=0; ds<DataList_.size(); ds++) {
-    mprintf("\t%s", DataList_[ds]->Name().c_str());
-    if (!DataList_[ds]->Aspect().empty())
-      mprintf("[%s]", DataList_[ds]->Aspect().c_str());
-    if (DataList_[ds]->Idx() != -1)
-      mprintf(":%i", DataList_[ds]->Idx());
-    mprintf(" \"%s\"", DataList_[ds]->Legend().c_str());
-    mprintf(" (%s)", DataArray[DataList_[ds]->Type()].Description);
-    mprintf(", size is %i", DataList_[ds]->Size());
-    DataList_[ds]->Info();
+    DataSet const& dset = static_cast<DataSet const&>(*DataList_[ds]);
+    mprintf("\t%s", dset.Name().c_str());
+    if (!dset.Aspect().empty())
+      mprintf("[%s]", dset.Aspect().c_str());
+    if (dset.Idx() != -1)
+      mprintf(":%i", dset.Idx());
+    mprintf(" \"%s\"", dset.Legend().c_str());
+    mprintf(" (%s", DataArray[dset.Type()].Description);
+    dset.ScalarDescription();
+    mprintf("), size is %i", dset.Size());
+    dset.Info();
     mprintf("\n");
   }
 }
