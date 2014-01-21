@@ -1342,7 +1342,16 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
 /// Write parm to Amber Topology file.
 Command::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  if (State.PFL()->WriteParm( argIn )) return Command::C_ERR;
+  std::string outfilename = argIn.GetStringKey("out");
+  if (outfilename.empty()) {
+    mprinterr("Error: No output filename specified (use 'out <filename>').\n");
+    return Command::C_ERR;
+  }
+  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  if (parm == 0) return Command::C_ERR;
+  ParmFile pfile;
+  if (pfile.WriteTopology( *parm, outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug() ))
+    return Command::C_ERR;
   return Command::C_OK;
 }
 
