@@ -2,7 +2,7 @@
 #define INC_ACTION_VECTOR_H
 #include "Action.h"
 #include "DataSet_Vector.h"
-#include "TrajectoryFile.h"
+#include "TrajectoryFile.h" // trajout
 class Action_Vector : public Action {
   public:
     Action_Vector();
