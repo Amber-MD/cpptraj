@@ -385,7 +385,7 @@ void Action_Vector::Print() {
     outfile.CloseFile();
   }
   if (!trajoutName_.empty()) {
-    // Create psuedo-topology.
+    // Create pseudo-topology.
     Topology pseudo;
     pseudo.AddTopAtom(Atom("OXYZ", ' ', 0), 1, "VEC", 0);
     pseudo.AddTopAtom(Atom("VXYZ", ' ', 0), 1, "VEC", 0);
@@ -405,7 +405,7 @@ void Action_Vector::Print() {
         Vec3 const& OXYZ = Vec_->OXYZ(i);
         outFrame.AddVec3( OXYZ );
         outFrame.AddVec3( (*Vec_)[i] + OXYZ );
-        out.WriteFrame(i+1, &pseudo, outFrame);
+        out.WriteFrame(i, &pseudo, outFrame);
       }
       out.EndTraj();
     } else
