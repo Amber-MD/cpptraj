@@ -466,6 +466,35 @@ void Topology::StartNewMol() {
   }
 }
 
+// Topology::CommonSetup()
+int Topology::CommonSetup(bool bondsearch) {
+  // Set residue last atom (PDB/Mol2/PSF) 
+  residues_.back().SetLastAtom( atoms_.size() );
+  // Set up bond information if specified and necessary
+  if (bondsearch) {
+    if (bonds_.empty() && bondsh_.empty() && !refCoords_.empty()) {
+      GetBondsFromAtomCoords();
+      molecules_.clear();
+    }
+  }
+  // Assign default lengths if necessary (for e.g. CheckStructure)
+  if (bondparm_.empty())
+    AssignBondParameters();
+  // Determine molecule info
+  if (molecules_.empty())  
+    if (DetermineMolecules()) 
+      mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
+  // Set up solvent information
+  if (SetSolventInfo())
+    mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
+  // Determine excluded atoms
+  DetermineExcludedAtoms();
+  // Determine # of extra points.
+  DetermineNumExtraPoints();
+
+  return 0;
+}
+
 static inline int NoAtomsErr(const char* msg) {
   mprinterr("Error: Cannot set up %s, no atoms present.\n");
   return 1;
@@ -538,35 +567,6 @@ void Topology::SetAtomBondInfo(BondArray const& bonds) {
     atoms_[ (*bnd).A1() ].AddBond( (*bnd).A2() );
     atoms_[ (*bnd).A2() ].AddBond( (*bnd).A1() );
   }
-}
-
-// Topology::CommonSetup()
-int Topology::CommonSetup(bool bondsearch) {
-  // Set residue last atom (PDB/Mol2/PSF) 
-  residues_.back().SetLastAtom( atoms_.size() );
-  // Set up bond information if specified and necessary
-  if (bondsearch) {
-    if (bonds_.empty() && bondsh_.empty() && !refCoords_.empty()) {
-      GetBondsFromAtomCoords();
-      molecules_.clear();
-    }
-  }
-  // Assign default lengths if necessary (for e.g. CheckStructure)
-  if (bondparm_.empty())
-    AssignBondParameters();
-  // Determine molecule info
-  if (molecules_.empty())  
-    if (DetermineMolecules()) 
-      mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
-  // Set up solvent information
-  if (SetSolventInfo())
-    mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
-  // Determine excluded atoms
-  DetermineExcludedAtoms();
-  // Determine # of extra points.
-  DetermineNumExtraPoints();
-
-  return 0;
 }
 
 // -----------------------------------------------------------------------------
