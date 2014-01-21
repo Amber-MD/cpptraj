@@ -2,13 +2,13 @@
 #define INC_ACTION_VECTOR_H
 #include "Action.h"
 #include "DataSet_Vector.h"
+#include "TrajectoryFile.h"
 class Action_Vector : public Action {
   public:
     Action_Vector();
     ~Action_Vector();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Vector(); }
     static void Help();
-
   private:
     enum vectorMode {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
@@ -40,5 +40,8 @@ class Action_Vector : public Action {
     AtomMask mask_;
     AtomMask mask2_;
     std::string filename_;
+    std::string trajoutName_;
+    std::string parmoutName_;
+    TrajectoryFile::TrajFormatType trajoutFmt_;
 };
 #endif

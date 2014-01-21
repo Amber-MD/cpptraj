@@ -4,6 +4,8 @@
 #include "Action_Vector.h"
 #include "CpptrajStdio.h"
 #include "Matrix_3x3.h" // for principal
+#include "Trajout.h" // for trajout
+#include "ParmFile.h" // for trajout
 
 // CONSTRUCTOR
 Action_Vector::Action_Vector() :
@@ -17,7 +19,7 @@ Action_Vector::Action_Vector() :
 
 void Action_Vector::Help() {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
-          "\t[magnitude] [ired]\n"
+          "\t[magnitude] [ired] [trajout <file> [trajfmt <format>] [parmout <file>]]\n"
           "\t<Type> = { principal [x|y|z] | dipole | box | center | corrplane }\n"
           "  Calculate the specified coordinate vector.\n");
 }
@@ -48,6 +50,9 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   ensembleNum_ = DSL->EnsembleNum();
   // filename is saved in case ptraj-compatible output is desired
   filename_ = actionArgs.GetStringKey("out");
+  trajoutName_ = actionArgs.GetStringKey("trajout");
+  trajoutFmt_ = TrajectoryFile::GetFormatFromString( actionArgs.GetStringKey("trajfmt") );
+  parmoutName_ = actionArgs.GetStringKey("parmout");
   ptrajoutput_ = actionArgs.hasKey("ptrajoutput");
   if (ptrajoutput_ && filename_.empty()) {
     mprinterr("Error: 'ptrajoutput' specified but no 'out <filename>' arg given.\n");
@@ -374,4 +379,30 @@ void Action_Vector::Print() {
     }
     outfile.CloseFile();
   }
+  if (!trajoutName_.empty()) {
+    // Create psuedo-topology.
+    Topology pseudo;
+    pseudo.AddTopAtom(Atom("OXYZ", ' ', 0), 1, "VEC", 0);
+    pseudo.AddTopAtom(Atom("VXYZ", ' ', 0), 1, "VEC", 0);
+    pseudo.AddBond(0, 1);
+    pseudo.CommonSetup(false);
+    if (!parmoutName_.empty()) {
+      ParmFile pfile;
+      if (pfile.WriteTopology( pseudo, parmoutName_, ParmFile::UNKNOWN_PARM, 0 ))
+        mprinterr("Error: Could not write pseudo topology to '%s'\n", parmoutName_.c_str());
+    }
+    Trajout out;
+    if (out.InitTrajWrite(trajoutName_, &pseudo, trajoutFmt_) == 0) {
+      int totalFrames = Vec_->Size();
+      Frame outFrame(2);
+      for (int i = 0; i < totalFrames; ++i) {
+        outFrame.ClearAtoms();
+        outFrame.AddVec3( Vec_->OXYZ(i) );
+        outFrame.AddVec3( (*Vec_)[i] );
+        out.WriteFrame(i+1, &pseudo, outFrame);
+      }
+      out.EndTraj();
+    } else
+      mprinterr("Error: Could not set up '%s' for write.\n", trajoutName_.c_str());
+  } 
 }
