@@ -295,10 +295,10 @@ int Action_NAstruct::determineBasePairing() {
       int NHB = CalcNumHB(Bases_[base1], Bases_[minBaseNum]);
       if (NHB > 0) {
         BasePairAxes_.push_back( NA_Axis(base1, minBaseNum, AntiParallel) );
+        NumberOfHbonds_.push_back( NHB );
         isPaired[base1] = true;
         isPaired[minBaseNum] = true;
       }
-      NumberOfHbonds_.push_back( NHB );
     } // END if minBaseNum!=-1
   } // END Loop over base1
 
