@@ -20,8 +20,14 @@ Action_Vector::Action_Vector() :
 void Action_Vector::Help() {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
           "\t[magnitude] [ired] [trajout <file> [trajfmt <format>] [parmout <file>]]\n"
-          "\t<Type> = { principal [x|y|z] | dipole | box | center | corrplane }\n"
-          "  Calculate the specified coordinate vector.\n");
+          "\t<Type> = { mask | principal [x|y|z] | dipole | box | center | corrplane }\n"
+          "  Calculate the specified coordinate vector.\n"
+          "    mask: (Default) Vector from <mask1> to <mask2>.\n"
+          "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n"
+          "    dipole: Dipole and center of mass of the atoms specified in <mask1>\n"
+          "    box: (No mask needed) Store the box lengths of the trajectory.\n"
+          "    center: Store the center of mass of atoms in <mask1>.\n"
+          "    corrplane: Vector perpendicular to plane through the atoms in <mask1>.\n");
 }
 
 // DESTRUCTOR
@@ -95,7 +101,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (mode_ == MASK) {
     std::string maskexpr = actionArgs.GetMaskNext();
     if (maskexpr.empty()) {
-      mprinterr("Error: Specified vector mode requires a second mask.\n");
+      mprinterr("Error: Specified vector mode (%s) requires a second mask.\n",
+                ModeString[ mode_ ]);
       return Action::ERR;
     }
     mask2_.SetMaskString( maskexpr );

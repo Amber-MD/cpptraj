@@ -23,8 +23,15 @@ void Action_Matrix::Help() {
   mprintf("\t[name <name>] [ byatom | byres [mass] | bymask [mass] ]\n"
           "\t[ ired [order <#>] ]\n"
           "\t[ {distcovar | idea} <mask1> ]\n"
-          "\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>]\n"
-          "  Calculate a matrix of the specified type from input coordinates.\n");
+          "\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>] ]\n"
+          "  Calculate a matrix of the specified type from input coordinates.\n"
+          "    dist: Distance matrix (default).\n"
+          "    correl: Correlation matrix (aka dynamic cross correlation).\n"
+          "    covar: Coordinate covariance matrix.\n"
+          "    mwcovar: Mass-weighted coordinate covariance matrix.\n"
+          "    distcovar: Distance covariance matrix.\n"
+          "    idea: Isotropically Distributed Ensemble Analysis matrix.\n"
+          "    ired: Isotropic Reorientational Eigenmode Dynamics matrix.\n");
 }
 
 // Action_Matrix::Init()
