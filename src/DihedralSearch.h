@@ -13,10 +13,6 @@ class DihedralSearch {
     typedef std::vector<DihedralMask>::const_iterator mask_it;
     mask_it begin()  const { return dihedrals_.begin();     }
     mask_it end()    const { return dihedrals_.end();       }
-    /// Iterator over found dihedrals (for data set setup)
-    typedef std::vector<DihedralMask>::iterator setup_it;
-    setup_it setupBegin()  { return dihedrals_.begin();     }
-    setup_it setupEnd()    { return dihedrals_.end();       }
     /// Number of found dihedrals
     int Ndihedrals() const { return (int)dihedrals_.size(); }
     /// Recognized dihedral types
@@ -87,12 +83,9 @@ class DihedralSearch::DihedralMask {
     std::string const& Name() const { return name_;       }
     bool None()               const { return (a0_ == -1); }
     DihedralType Type()       const { return type_;       }
-    DataSet* Data()           const { return data_;       }
-    void SetDataSet(DataSet* d)     { data_ = d;          }
   private:
     int a0_, a1_, a2_, a3_, res_;
     std::string name_;
     DihedralType type_; ///< For mapping to types in DataSet, statistics analysis
-    DataSet* data_;     ///< Associated data set.
 };
 #endif

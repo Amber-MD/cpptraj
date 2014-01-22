@@ -78,13 +78,13 @@ DihedralSearch::DihedralType DihedralSearch::GetType(std::string const& typeIn) 
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR - DihedralMask
 DihedralSearch::DihedralMask::DihedralMask() : 
-  a0_(-1), a1_(-1), a2_(-1), a3_(-1), res_(-1), type_(NDIHTYPE), data_(0) {}
+  a0_(-1), a1_(-1), a2_(-1), a3_(-1), res_(-1), type_(NDIHTYPE) {}
 
 // CONSTRUCTOR - DihedralMask
 DihedralSearch::DihedralMask::DihedralMask(int a0, int a1, int a2, int a3, 
                                            int res, std::string const& n,
                                            DihedralType t) :
-  a0_(a0), a1_(a1), a2_(a2), a3_(a3), res_(res), name_(n), type_(t), data_(0) {}
+  a0_(a0), a1_(a1), a2_(a2), a3_(a3), res_(res), name_(n), type_(t) {}
 
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR - Custom type 

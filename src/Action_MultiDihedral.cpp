@@ -13,7 +13,7 @@ Action_MultiDihedral::Action_MultiDihedral() :
 {}
 
 void Action_MultiDihedral::Help() {
-  mprintf("\t[<name>] <dihedral types> [resrange <range>] [out <filename>]\n");
+  mprintf("\t[<name>] <dihedral types> [resrange <range>] [out <filename>] [range360]\n");
   mprintf("\t[dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...]\n");
   DihedralSearch::OffsetHelp();
   //mprintf("\t[range360]\n");
@@ -63,9 +63,9 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
     mprintf("\tDataSet name: %s\n", dsetname_.c_str());
   if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().base());
   if (range360_) 
-    mprintf("\tRange 0-360 deg.\n");
+    mprintf("\tOutput range is 0 to 360 degrees.\n");
   else
-    mprintf("\tRange -180-180 deg.\n");
+    mprintf("\tOutput range is -180 to 180 degrees.\n");
   masterDSL_ = DSL;
   return Action::OK;
 }
@@ -85,7 +85,7 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
   }
   // Exit if no residues specified
   if (actualRange.Empty()) {
-    mprinterr("Error: multidihedral: No residues specified for %s\n",currentParm->c_str());
+    mprinterr("Error: No residues specified for %s\n",currentParm->c_str());
     return Action::ERR;
   }
   // Search for specified dihedrals in each residue in the range
@@ -96,15 +96,16 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
   mprintf(", %i dihedrals.\n", dihSearch_.Ndihedrals());
 
   // Print selected dihedrals, set up DataSets
+  data_.clear();
   if (dsetname_.empty())
     dsetname_ = masterDSL_->GenerateDefaultName("MDIH");
-  for (DihedralSearch::setup_it dih = dihSearch_.setupBegin();
-                                dih != dihSearch_.setupEnd(); ++dih)
+  for (DihedralSearch::mask_it dih = dihSearch_.begin();
+                               dih != dihSearch_.end(); ++dih)
   {
     int resNum = dih->ResNum() + 1;
     // See if Dataset already present
     DataSet* ds = masterDSL_->GetSet(dsetname_, resNum, dih->Name());
-    if (ds == 0 && dih->Data() == 0) {
+    if (ds == 0) {
       // Create new DataSet
       ds = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, dsetname_, resNum, dih->Name());
       if (ds == 0) return Action::ERR;
@@ -125,15 +126,11 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
         default: dstype = DataSet::UNDEFINED;
       }
       ds->SetScalar( DataSet::M_TORSION, dstype );
-      dih->SetDataSet( ds );
       // Add to outfile
       if (outfile_ != 0)
         outfile_->AddSet( ds );
-    } else if (ds != 0 && dih->Data() == 0) {
-      mprinterr("Error: Data set '%s' has already been set up for previous Action.\n",
-                ds->Legend().c_str());
-      return Action::ERR;
     }
+    data_.push_back( ds ); 
     if (debug_ > 0) {
       mprintf("\tDIH [%s]:", ds->Legend().c_str());
       mprintf(" :%i@%i",   (*currentParm)[dih->A0()].ResNum()+1, dih->A0() + 1);
@@ -149,15 +146,24 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
 Action::RetType Action_MultiDihedral::DoAction(int frameNum, Frame* currentFrame, 
                                                Frame** frameAddress)
 {
+  std::vector<DataSet*>::const_iterator ds = data_.begin();
   for (DihedralSearch::mask_it dih = dihSearch_.begin();
-                               dih != dihSearch_.end(); ++dih)
+                               dih != dihSearch_.end(); ++dih, ++ds)
   {
     double torsion = Torsion( currentFrame->XYZ(dih->A0()),
                               currentFrame->XYZ(dih->A1()),
                               currentFrame->XYZ(dih->A2()),
                               currentFrame->XYZ(dih->A3()) );
     torsion *= Constants::RADDEG;
-    dih->Data()->Add(frameNum, &torsion);
+    (*ds)->Add(frameNum, &torsion);
   }
   return Action::OK;
+}
+
+void Action_MultiDihedral::Print() {
+  if (range360_) {
+    for (std::vector<DataSet*>::const_iterator ds = data_.begin();
+                                               ds != data_.end(); ++ds)
+      ((DataSet_double*)*ds)->ShiftTorsions(0.0, 0.0);
+  }
 }
