@@ -122,11 +122,6 @@ Action::RetType Action_Dihedral::DoAction(int frameNum, Frame* currentFrame, Fra
 } 
 
 void Action_Dihedral::Print() {
-  if (range360_) {
-    DataSet_double* ds = (DataSet_double*)dih_;
-    for (DataSet_double::iterator dval = ds->begin(); dval != ds->end(); ++dval) {
-      if ( *dval < 0.0 )
-        *dval += 360.0;
-    }
-  }
+  if (range360_)
+    ((DataSet_double*)dih_)->ShiftTorsions(0.0, 0.0);
 }

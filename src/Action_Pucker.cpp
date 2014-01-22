@@ -164,21 +164,10 @@ Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame
 } 
 
 void Action_Pucker::Print() {
-  double puckermin, puckermax;
-  if (range360_) {
-    puckermax =  360.0;
-    puckermin =    0.0;
-  } else {
-    puckermax =  180.0;
+  double puckermin;
+  if (range360_)
+    puckermin = 0.0;
+  else
     puckermin = -180.0;
-  }
-  // Deal with offset and wrap values
-  DataSet_double& ds = static_cast<DataSet_double&>( *pucker_ );
-  for (DataSet_double::iterator dval = ds.begin(); dval != ds.end(); ++dval) {
-    *dval += offset_;
-    if ( *dval > puckermax )
-      *dval -= 360.0;
-    else if ( *dval < puckermin )
-      *dval += 360.0;
-  }
+  ((DataSet_double*)pucker_)->ShiftTorsions(puckermin, offset_);
 }
