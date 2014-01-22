@@ -151,6 +151,10 @@ int CpptrajState::TrajLength( std::string const& topname,
 // -----------------------------------------------------------------------------
 // CpptrajState::Run()
 int CpptrajState::Run() {
+  if (trajinList_.empty()) {
+    mprintf("Warning: No input trajectories specified. Not running.\n");
+    return 0;
+  }
   ++nrun_;
   // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
   // this means 1 or more actions has requested that a default COORDS DataSet
