@@ -62,9 +62,9 @@ void DihedralSearch::ListKnownTypes() {
 
 // TODO: const char*
 void DihedralSearch::OffsetHelp() {
-  mprintf("\t\tOffset -2=<at0><at1> in previous res, -1=<at0> in previous res,\n");
-  mprintf("\t\t        0=All <atX> in single res,\n");
-  mprintf("\t\t        1=<at3> in next res, 2=<at2><at3> in next res.\n");
+  mprintf("\t\tOffset -2=<a0><a1> in previous res, -1=<a0> in previous res,\n"
+          "\t\t        0=All <aX> in single res,\n"
+          "\t\t        1=<a3> in next res, 2=<a2><a3> in next res.\n");
 }
 
 // DihedralSearch::GetType()
