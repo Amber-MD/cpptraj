@@ -15,6 +15,7 @@
 #include "Traj_GmxTrX.h"
 #include "Traj_SQM.h"
 #include "Traj_CIF.h"
+#include "Traj_SDF.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -35,6 +36,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "Amber Restart",      0, 0, Traj_AmberRestart::Alloc   },
   { "Amber Trajectory",   0, 0, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, 0, Traj_SQM::Alloc            },
+  { "SDF",                0, 0, Traj_SDF::Alloc            },
   { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
   { "Unknown trajectory", 0, 0, 0                          }
 };
@@ -57,6 +59,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { AMBERTRAJ,      "crd",       ".crd"     },
   { CONFLIB,        "conflib",   ".conflib" },
   { SQM,            "sqm",       ".sqm"     },
+  { SDF,            "sdf",       ".sdf"     },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 // -----------------------------------------------------------------------------

@@ -203,6 +203,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_GmxTrX.cpp \
         Traj_Mol2File.cpp \
         Traj_PDBfile.cpp \
+        Traj_SDF.cpp \
         Traj_SQM.cpp \
         TrajectoryFile.cpp \
         Trajin.cpp \
