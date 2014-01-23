@@ -30,6 +30,7 @@
   */
 class Frame {
   public:
+    enum CenterMode { ORIGIN = 0, BOXCTR, POINT };
     // Construction/Destruction/Assignment
     Frame();
     ~Frame();
@@ -153,7 +154,7 @@ class Frame {
     /// Scale coordinates of atoms in mask by given X|Y|Z constants
     void Scale(AtomMask const&, double, double, double);
     /// Translate atoms to box center or origin.
-    void Center(AtomMask const&, bool,bool);
+    void Center(AtomMask const&, CenterMode, Vec3 const&, bool);
     /// Translate atoms to origin.
     Vec3 CenterOnOrigin(bool);
     // Coordinate calculation
