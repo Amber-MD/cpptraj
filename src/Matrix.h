@@ -86,10 +86,13 @@ template <class T> class Matrix {
 // COPY CONSTRUCTOR
 template<class T> Matrix<T>::Matrix(const Matrix& rhs) :
   elements_(0),
+  diagElt_( rhs.diagElt_ ),
   ncols_( rhs.ncols_ ),
   nrows_( rhs.nrows_ ),
   nelements_( rhs.nelements_ ),
-  currentElement_( rhs.currentElement_ )
+  currentElement_( rhs.currentElement_ ),
+  type_( rhs.type_ ),
+  calcIndex( rhs.calcIndex )
 {
   if (nelements_ > 0L) {
     elements_ = new T[ nelements_ ];
@@ -106,7 +109,10 @@ template<class T> Matrix<T>& Matrix<T>::operator=(const Matrix& rhs) {
   ncols_ = rhs.ncols_;
   nrows_ = rhs.nrows_;
   nelements_ = rhs.nelements_;
+  diagElt_ = rhs.diagElt_;
   currentElement_ = rhs.currentElement_;
+  type_  = rhs.type_;
+  calcIndex = rhs.calcIndex;
   if (nelements_ > 0L) {
     elements_ = new T[ nelements_ ];
     std::copy( rhs.elements_, rhs.elements_ + nelements_, elements_ );
