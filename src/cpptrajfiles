@@ -178,6 +178,7 @@ SOURCES=ActionFrameCounter.cpp \
         Parm_CIF.cpp \
         Parm_Mol2.cpp \
         Parm_PDB.cpp \
+        Parm_SDF.cpp \
         ProgressBar.cpp \
         PubFFT.cpp \
         Random.cpp \
@@ -186,6 +187,7 @@ SOURCES=ActionFrameCounter.cpp \
         ReferenceAction.cpp \
         ReferenceFrame.cpp \
         RmsAction.cpp \
+        SDFfile.cpp \
         StringRoutines.cpp \
         Topology.cpp \
         TopologyList.cpp \

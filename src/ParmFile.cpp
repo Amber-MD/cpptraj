@@ -6,6 +6,7 @@
 #include "Parm_Mol2.h"
 #include "Parm_CharmmPsf.h"
 #include "Parm_CIF.h"
+#include "Parm_SDF.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as DataFormatType
@@ -15,6 +16,7 @@ const FileTypes::AllocToken ParmFile::PF_AllocArray[] = {
   { "Mol2 File",        0,                  0,                     Parm_Mol2::Alloc      },
   { "Charmm PSF",       0,                  0,                     Parm_CharmmPsf::Alloc },
   { "CIF File",         0,                  0,                     Parm_CIF::Alloc       },
+  { "SDF File",         0,                  0,                     Parm_SDF::Alloc       },
   { "Unknown Topology", 0,                  0,                     0                     }
 };
 
@@ -24,6 +26,7 @@ const FileTypes::KeyToken ParmFile::PF_KeyArray[] = {
   { MOL2FILE,     "mol2",  ".mol2"  },
   { CHARMMPSF,    "psf",   ".psf"   },
   { CIFFILE,      "cif",   ".cif"   },
+  { SDFFILE,      "sdf",   ".sdf"   },
   { UNKNOWN_PARM, 0,       0        }
 };
 
