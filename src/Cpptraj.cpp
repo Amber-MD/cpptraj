@@ -30,7 +30,7 @@ void Cpptraj::Usage() {
             "\t--log <logfile>  : Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n"
             "\t-tl              : Print length of trajectories specified with '-y' to STDOUT.\n"
             "\t-ms <mask>       : Print selected atom numbers to STDOUT.\n"
-            "\t-ms <mask>       : Print selected residue numbers to STDOUT.\n"
+            "\t-mr <mask>       : Print selected residue numbers to STDOUT.\n"
             "\t--mask <mask>    : Print detailed atom selection to STDOUT.\n"
             "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n");
 }
