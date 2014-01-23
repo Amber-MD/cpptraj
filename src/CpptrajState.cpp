@@ -4,7 +4,6 @@
 #include "Trajin_Multi.h" // for ensemble
 #include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
-#include "ParmFile.h" // ProcessMask
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -116,22 +115,6 @@ int CpptrajState::RemoveDataSet( ArgList& argIn ) {
       DSL_.RemoveSet( *ds );
     }
   }
-  return 0;
-}
-
-// CpptrajState::ProcessMask()
-int CpptrajState::ProcessMask( std::string const& topname, std::string const& maskexpr,
-                               bool verbose ) const
-{
-  ParmFile pfile;
-  Topology parm;
-  if (pfile.ReadTopology(parm, topname, debug_)) return 1;
-  if (!verbose) {
-    AtomMask tempMask( maskexpr );
-    if (parm.SetupIntegerMask( tempMask )) return 1;
-    tempMask.PrintMaskAtoms("Selected");
-  } else
-    parm.PrintAtomInfo( maskexpr );
   return 0;
 }
 

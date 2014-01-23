@@ -15,6 +15,7 @@ class Cpptraj {
     static void Usage();
     static void Intro();
     static void Finalize();
+    int ProcessMask(std::string const&, std::string const&, bool) const;
     Mode ProcessCmdLineArgs(int, char**);
     int Interactive();
 

@@ -5,6 +5,7 @@
 #include "Command.h"
 #include "ReadLine.h"
 #include "Version.h"
+#include "ParmFile.h" // ProcessMask
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -79,6 +80,22 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
     mprintf("\n");
   }
   return err;
+}
+
+/** Process a mask from the command line. */
+int Cpptraj::ProcessMask( std::string const& topname, std::string const& maskexpr,
+                               bool verbose ) const
+{
+  ParmFile pfile;
+  Topology parm;
+  if (pfile.ReadTopology(parm, topname, State_.Debug())) return 1;
+  if (!verbose) {
+    AtomMask tempMask( maskexpr );
+    if (parm.SetupIntegerMask( tempMask )) return 1;
+    tempMask.PrintMaskAtoms("Selected");
+  } else
+    parm.PrintAtomInfo( maskexpr );
+  return 0;
 }
 
 /** Read command line args. */
@@ -177,7 +194,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
         mprinterr("Error: No topology file specified.\n");
         return ERROR;
       }
-      if (State_.ProcessMask( topFiles[0], std::string(argv[++i]), false )) return ERROR;
+      if (ProcessMask( topFiles[0], std::string(argv[++i]), false )) return ERROR;
       return SILENT_EXIT;
     } else if (arg == "--mask" && i+1 != argc) {
       // --mask: detailed mask
@@ -185,7 +202,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
         mprinterr("Error: No topology file specified.\n");
         return ERROR;
       }
-      if (State_.ProcessMask( topFiles[0], std::string(argv[++i]), true )) return ERROR;
+      if (ProcessMask( topFiles[0], std::string(argv[++i]), true )) return ERROR;
       return SILENT_EXIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
