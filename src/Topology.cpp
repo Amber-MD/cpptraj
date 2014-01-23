@@ -387,18 +387,29 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) const {
 // Topology::PrintResidueInfo()
 void Topology::PrintResidueInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
-  ParseMask(refCoords_, mask, false); // Char mask
-  mprintf("RESIDUES:\n");
-  unsigned int rnum = 1;
-  for (std::vector<Residue>::const_iterator res = residues_.begin();
-                                            res != residues_.end(); res++)
-  {
-    if ( mask.AtomsInCharMask( (*res).FirstAtom(), (*res).LastAtom() ) ) {
-      mprintf("\tResidue %u %s atoms %i-%i (%i), original#=%i\n",
-              rnum, (*res).c_str(), (*res).FirstAtom()+1, (*res).LastAtom(),
-              (*res).NumAtoms(), (*res).OriginalResNum());
+  ParseMask(refCoords_, mask, true); // Integer mask
+  if ( mask.None() )
+    mprintf("\tSelection is empty.\n");
+  else {
+    int awidth = DigitWidth(atoms_.size());
+    if (awidth < 5) awidth = 5;
+    int rwidth = DigitWidth(residues_.size());
+    if (rwidth < 5) rwidth = 5;
+    mprintf("%-*s %4s %*s %*s %*s %*s\n", rwidth, "#Res", "Name",
+            awidth, "First", awidth, "Last", 
+            awidth, "Natom", rwidth, "#Orig");
+    int rn = -1;
+    for (AtomMask::const_iterator atom = mask.begin();
+                                  atom != mask.end(); ++atom)
+    {
+      if (atoms_[*atom].ResNum() > rn) {
+        rn = atoms_[*atom].ResNum();
+        Residue const& res = residues_[rn];
+        mprintf("%*i %4s %*i %*i %*i %*i\n", rwidth, rn+1, res.c_str(),
+                awidth, res.FirstAtom()+1, awidth, res.LastAtom(),
+                awidth, res.NumAtoms(), rwidth, res.OriginalResNum());
+      }
     }
-    ++rnum;
   }
 }
 
