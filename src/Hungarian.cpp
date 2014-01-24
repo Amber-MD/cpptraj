@@ -4,7 +4,7 @@
 #include "Constants.h" // SMALL
 #include "CpptrajStdio.h"
 
-// CONSTRUCTOR
+// CONSTRUCTOR: FIXME: Could get expensive with exceptions, get rid of
 Hungarian::Hungarian(DataSet_MatrixDbl const& mIn) :
   matrix_(mIn),
   lineThroughRow_(mIn.Nrows(), false),
@@ -24,13 +24,25 @@ Hungarian::Hungarian(DataSet_MatrixDbl const& mIn) :
   }
 }
 
-// Hungarian::Assign()
+/** Initialize matrix for Hungarian algorithm. **/
+int Hungarian::Initialize(size_t Ncols) {
+  if (matrix_.Allocate2D( Ncols, Ncols )) return 1;
+  lineThroughRow_.assign(matrix_.Nrows(), false);
+  lineThroughCol_.assign(matrix_.Ncols(), false);
+  assignRowToCol_.assign(matrix_.Ncols(), -1);
+  assignColToRow_.assign(matrix_.Nrows(), -1);
+  nrows_ = (int)matrix_.Nrows();
+  ncols_ = (int)matrix_.Ncols();
+  return 0;
+}
+
+// Hungarian::AssignRowsToColumns()
 /** Assign as many rows to columns as possible. This is done by iteratively
   * finding the row/col with the lowest number of zeros, then assigning that 
   * to the first unassigned col/row which has a zero. This is repeated until
   * no more assignments can be made.
   */
-int Hungarian::Assign() {
+int Hungarian::AssignRowsToColumns() {
   int Nassigned = 0;
   // For this stage, lines will be drawn through ASSIGNED rows/cols.
   lineThroughRow_.assign(matrix_.Nrows(), false);
@@ -164,7 +176,7 @@ std::vector<int> Hungarian::Optimize() {
   int iterations = 0;
   while (iterations < max_iterations) {
     // Attempt to assign each row to one column
-    if (Assign() == nrows_) break; // Assignments successful
+    if (AssignRowsToColumns() == nrows_) break; // Assignments successful
     // Draw minimum number of lines required to cross out all zeros
     CoverZeroElements();
     // Update matrix according to lines

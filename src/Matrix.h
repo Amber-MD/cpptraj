@@ -7,8 +7,9 @@ template <class T> class Matrix {
     enum MType { FULL = 0, HALF, TRIANGLE }; 
   public:
     Matrix() :
-      elements_(0), ncols_(0L), nrows_(0L), nelements_(0L), 
-      currentElement_(0L), type_(FULL), calcIndex(calcFullIndex) {}
+      elements_(0), ncols_(0L), nrows_(0L), nelements_(0L),
+      maxElements_(0L), currentElement_(0L), type_(FULL),
+      calcIndex(calcFullIndex) {}
     ~Matrix() { if (elements_!=0) delete[] elements_; }
     Matrix( const Matrix& );
     Matrix& operator=( const Matrix& );
@@ -48,6 +49,7 @@ template <class T> class Matrix {
     size_t ncols_;          ///< Number of columns (X)
     size_t nrows_;          ///< Number of rows (Y)
     size_t nelements_;      ///< Total number of elements.
+    size_t maxElements_;    ///< Max number of elements currently allocated for.
     size_t currentElement_; ///< Current element (for AddElement())
     MType type_;            ///< Current matrix type.
     /// Pointer to index calculator for current matrix type
@@ -90,12 +92,13 @@ template<class T> Matrix<T>::Matrix(const Matrix& rhs) :
   ncols_( rhs.ncols_ ),
   nrows_( rhs.nrows_ ),
   nelements_( rhs.nelements_ ),
+  maxElements_( rhs.maxElements_ ),
   currentElement_( rhs.currentElement_ ),
   type_( rhs.type_ ),
   calcIndex( rhs.calcIndex )
 {
-  if (nelements_ > 0L) {
-    elements_ = new T[ nelements_ ];
+  if (maxElements_ > 0L) {
+    elements_ = new T[ maxElements_ ];
     std::copy( rhs.elements_, rhs.elements_ + nelements_, elements_ );
   }
 }
@@ -109,12 +112,13 @@ template<class T> Matrix<T>& Matrix<T>::operator=(const Matrix& rhs) {
   ncols_ = rhs.ncols_;
   nrows_ = rhs.nrows_;
   nelements_ = rhs.nelements_;
+  maxElements_ = rhs.maxElements_;
   diagElt_ = rhs.diagElt_;
   currentElement_ = rhs.currentElement_;
   type_  = rhs.type_;
   calcIndex = rhs.calcIndex;
-  if (nelements_ > 0L) {
-    elements_ = new T[ nelements_ ];
+  if (maxElements_ > 0L) {
+    elements_ = new T[ maxElements_ ];
     std::copy( rhs.elements_, rhs.elements_ + nelements_, elements_ );
   }
   return *this;
@@ -128,10 +132,6 @@ template<class T> Matrix<T>& Matrix<T>::operator=(const Matrix& rhs) {
   *   - cols == 0, rows > 0: Triangle matrix
   */
 template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
-  if (elements_!=0) {
-    delete[] elements_;
-    elements_ = 0;
-  }
   diagElt_ = T(); // Diagonal element default to zero.
   if (nX > 0L && nY > 0L) { // FULL
     ncols_ = nX;
@@ -159,7 +159,11 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
   }
   currentElement_ = 0L;
   if (nelements_ > 0L) {
-    elements_ = new T[ nelements_ ];
+    if (nelements_ > maxElements_) {
+      if (elements_ != 0) delete[] elements_;
+      elements_ = new T[ nelements_ ];
+      maxElements_ = nelements_;
+    }
     std::fill(elements_, elements_ + nelements_, T());
   }
   return 0;

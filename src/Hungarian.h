@@ -6,10 +6,12 @@ class Hungarian {
   public:
     Hungarian() {}
     Hungarian(DataSet_MatrixDbl const&);
+    int Initialize(size_t);
+    void AddElement(double d) { matrix_.AddElement( d ); }
     /// \return Array containing Map[col] = row
     std::vector<int> Optimize();
   private:
-    int Assign();
+    int AssignRowsToColumns();
     int CoverZeroElements();
     void UpdateMatrix();
 #   ifdef DEBUG_HUNGARIAN
