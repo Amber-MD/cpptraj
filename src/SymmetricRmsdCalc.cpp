@@ -143,8 +143,8 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
                                       symmatoms != SymmetricAtomIndices_.end(); ++symmatoms)
   {
     // For each array of symmetric atoms, determine the lowest distance score
-    mprintf("    Symmetric atoms group %u starting with atom %i\n", 
-            symmatoms - SymmetricAtomIndices_.begin(), symmatoms->front() + 1);
+//    mprintf("    Symmetric atoms group %u starting with atom %i\n", 
+//            symmatoms - SymmetricAtomIndices_.begin(), symmatoms->front() + 1);
     cost_matrix_.Initialize( symmatoms->size() );
     for (Iarray::const_iterator tgtatom = symmatoms->begin();
                                 tgtatom != symmatoms->end(); ++tgtatom)
@@ -153,7 +153,7 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
                                   refatom != symmatoms->end(); ++refatom)
       {
         double dist2 = DIST2_NoImage( REF.XYZ(*refatom), remapFrame_.XYZ(*tgtatom) );
-        mprintf("\t\t%i to %i: %f\n", *tgtatom + 1, *refatom + 1, dist2);
+//        mprintf("\t\t%i to %i: %f\n", *tgtatom + 1, *refatom + 1, dist2);
         cost_matrix_.AddElement( dist2 );
       }
     }
@@ -164,12 +164,12 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
                                 atmidx != symmatoms->end(); ++atmidx, ++rmap)
     {
       AMap_[*atmidx] = (*symmatoms)[*rmap]; // FIXME: Check indices
-      mprintf("\tAssigned atom %i to atom %i\n", *atmidx + 1, (*symmatoms)[*rmap] + 1);
+//      mprintf("\tAssigned atom %i to atom %i\n", *atmidx + 1, (*symmatoms)[*rmap] + 1);
     }
   }
-  mprintf("    Final Atom Mapping:\n");
-  for (unsigned int ref = 0; ref < AMap_.size(); ++ref)
-    mprintf("\t%u -> %i\n", ref + 1, AMap_[ref] + 1);
+//  mprintf("    Final Atom Mapping:\n");
+//  for (unsigned int ref = 0; ref < AMap_.size(); ++ref)
+//    mprintf("\t%u -> %i\n", ref + 1, AMap_[ref] + 1);
   // Remap the original target frame, then calculate RMSD
   // FIXME: Check that masses are also remapped
   remapFrame_.SetCoordinatesByMap(TGT, AMap_);
@@ -178,7 +178,7 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
   if (fit_)
     rmsdval = selectedTgt_.RMSD_CenteredRef( centeredREF, rot, tgtTrans, useMass_ );
   else
-    rmsdval = remapFrame_.RMSD_NoFit( centeredREF, useMass_ );
-  mprintf("----------------------------------------\n");
+    rmsdval = selectedTgt_.RMSD_NoFit( centeredREF, useMass_ );
+//  mprintf("----------------------------------------\n");
   return rmsdval;
 }
