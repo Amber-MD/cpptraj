@@ -5,16 +5,33 @@
 
 SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(3) {}
 
+// SymmetricRmsdCalc::InitSymmRMSD()
+int SymmetricRmsdCalc::InitSymmRMSD(std::string const& tMaskExpr, bool fitIn, bool useMassIn)
+{
+  if (tgtMask_.SetMaskString( tMaskExpr )) return 1;
+  fit_ = fitIn;
+  useMass_ = useMassIn;
+  return 0;
+}
+
+// SymmetricRmsdCalc::FindSymmetricAtoms()
 /** Find potential symmetric atoms. All residues up to the last selected
   * residue are considered, but all atoms within those residues (even
   * unselected ones) because when symmetric atoms are re-mapped, atoms
   * bonded to the symmetric atoms (which are themselves symmetric) need
   * to be re-mapped as well.
   */
-int SymmetricRmsdCalc::FindSymmetricAtoms(Topology const& topIn, AtomMask const& tgtMask) {
-  // Allocate space for selected atoms in the target frame. This will also
+int SymmetricRmsdCalc::FindSymmetricAtoms(Topology const& topIn) {
+  // Setup target mask.
+  if (topIn.SetupIntegerMask( tgtMask_ )) return 1;
+  tgtMask_.MaskInfo();
+  if (tgtMask_.None()) {
+    mprintf("Warning: No atoms selected by mask '%s'\n", tgtMask_.MaskString());
+    return 1;
+  }
+  // Allocate space for selected atoms in target frame. This will also
   // put the correct masses in based on the mask.
-  tgtFrame_.SetupFrameFromMask(tgtMask, topIn.Atoms());
+  selectedTgt_.SetupFrameFromMask(tgtMask_, topIn.Atoms());
   // Allocate space for remapped frame; same # atoms as original frame
   remapFrame_.SetupFrameV( topIn.Atoms(), topIn.HasVelInfo(), topIn.NrepDim() );
   // Create initial 1 to 1 atom map for all atoms; indices in 
@@ -24,8 +41,8 @@ int SymmetricRmsdCalc::FindSymmetricAtoms(Topology const& topIn, AtomMask const&
   for (int atom = 0; atom < topIn.Natom(); atom++)
     AMap_.push_back(atom);
   // Determine last selected residue.
-  int last_res = topIn[tgtMask.back()].ResNum() + 1;
-  mprintf("\tResidues up to %s will be considered.\n", topIn.TruncResNameNum(last_res).c_str());
+  int last_res = topIn[tgtMask_.back()].ResNum() + 1;
+  mprintf("\tResidues up to %s will be considered.\n", topIn.TruncResNameNum(last_res-1).c_str());
   // In each residue, determine which atoms are symmetric.
   SymmetricAtomIndices_.clear();
   AtomMap resmap;
@@ -81,7 +98,7 @@ int SymmetricRmsdCalc::FindSymmetricAtoms(Topology const& topIn, AtomMask const&
     } // END loop over atom1
     // TODO: If fitting, set up mask to perform initial fit with selected nonsymmetric atoms
     if (debug_ > 0) {
-      mprintf("DEBUG:\tSelected Non-symmetric atoms:");
+      mprintf("DEBUG:\tNon-symmetric atoms:");
       for (int atom1 = 0; atom1 < resmap.Natom(); atom1++)
         if (AtomStatus[atom1] == NONSYMM) { // If selected/non-symmetric
           mprintf(" %s", topIn.AtomMaskName(atom1 + res_first_atom).c_str());
@@ -96,7 +113,7 @@ int SymmetricRmsdCalc::FindSymmetricAtoms(Topology const& topIn, AtomMask const&
                                         symmatoms != SymmetricAtomIndices_.end();
                                         ++symmatoms)
     {
-      mprintf("\t");
+      mprintf("\t%8u) ", symmatoms - SymmetricAtomIndices_.begin());
       for (Iarray::const_iterator atom = symmatoms->begin();
                                   atom != symmatoms->end(); ++atom)
         mprintf(" %s", topIn.AtomMaskName(*atom).c_str());
@@ -107,23 +124,25 @@ int SymmetricRmsdCalc::FindSymmetricAtoms(Topology const& topIn, AtomMask const&
 }
 
 // SymmetricRmsdCalc::SymmRMSD()
-double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT, AtomMask const& tgtMask,
-                                   Frame const& REF, Frame const& centeredREF, 
-                                   Matrix_3x3& rot, Vec3& tgtTrans,
-                                   Vec3 const& refTrans, bool fit, bool useMass)
+double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
+                                   Frame const& REF, Frame const& centeredREF,
+                                   Vec3 const& refTrans,
+                                   Matrix_3x3& rot, Vec3& tgtTrans)
 {
-  tgtFrame_.SetCoordinates(TGT, tgtMask);
   // Calculate initial best fit RMSD if necessary
-  if (fit) {
-    tgtFrame_.RMSD_CenteredRef(centeredREF, rot, tgtTrans, useMass);
-    // tgtFrame has been translated to origin but not rotated and translated to ref
-    tgtFrame_.Trans_Rot_Trans(Vec3(0.0), rot, refTrans);
+  remapFrame_.SetCoordinates( TGT );
+  if (fit_) {
+    selectedTgt_.SetCoordinates(TGT, tgtMask_);
+    selectedTgt_.RMSD_CenteredRef(centeredREF, rot, tgtTrans, useMass_);
+    remapFrame_.Trans_Rot_Trans(tgtTrans, rot, refTrans);
   }
   // Correct RMSD for symmetry
   for (AtomIndexArray::const_iterator symmatoms = SymmetricAtomIndices_.begin();
                                       symmatoms != SymmetricAtomIndices_.end(); ++symmatoms)
   {
     // For each array of symmetric atoms, determine the lowest distance score
+    mprintf("    Symmetric atoms group %u starting with atom %i\n", 
+            symmatoms - SymmetricAtomIndices_.begin(), symmatoms->front() + 1);
     cost_matrix_.Initialize( symmatoms->size() );
     for (Iarray::const_iterator tgtatom = symmatoms->begin();
                                 tgtatom != symmatoms->end(); ++tgtatom)
@@ -131,12 +150,11 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT, AtomMask const& tgtMask,
       for (Iarray::const_iterator refatom = symmatoms->begin();
                                   refatom != symmatoms->end(); ++refatom)
       {
-        double dist2 = DIST2_NoImage( REF.XYZ(*refatom), TGT.XYZ(*tgtatom) );
+        double dist2 = DIST2_NoImage( REF.XYZ(*refatom), remapFrame_.XYZ(*tgtatom) );
         mprintf("\t\t%i to %i: %f\n", *tgtatom + 1, *refatom + 1, dist2);
         cost_matrix_.AddElement( dist2 );
       }
     }
-//    mprintf("\tSymmetric atoms starting with %i", (*symmatoms).front() + 1);
     Iarray resMap = cost_matrix_.Optimize();
     // Fill in overall map
     Iarray::const_iterator rmap = resMap.begin();
@@ -144,22 +162,21 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT, AtomMask const& tgtMask,
                                 atmidx != symmatoms->end(); ++atmidx, ++rmap)
     {
       AMap_[*atmidx] = (*symmatoms)[*rmap]; // FIXME: Check indices
-//      mprintf("\tAssigned atom %i to atom %i\n", *atmidx + 1, (*symmatoms)[*rmap] + 1);
+      mprintf("\tAssigned atom %i to atom %i\n", *atmidx + 1, (*symmatoms)[*rmap] + 1);
     }
   }
+  mprintf("    Final Atom Mapping:\n");
   for (unsigned int ref = 0; ref < AMap_.size(); ++ref)
     mprintf("\t%u -> %i\n", ref + 1, AMap_[ref] + 1);
-  double rmsdval;
+  // Remap the original target frame, then calculate RMSD
   // FIXME: Check that masses are also remapped
-  if (fit) {
-    // Use the initial input frame coordinates (prior to the fit)
-    // FIXME: Use SetTarget/SetRefByMap??
-    remapFrame_.SetCoordinatesByMap(TGT, AMap_);
-    tgtFrame_.SetCoordinates(remapFrame_, tgtMask);
-    rmsdval = tgtFrame_.RMSD_CenteredRef( centeredREF, rot, tgtTrans, useMass );
-  } else {
-    remapFrame_.SetCoordinatesByMap(TGT, AMap_);
-    rmsdval = remapFrame_.RMSD_NoFit(centeredREF, useMass); 
-  }
+  remapFrame_.SetCoordinatesByMap(TGT, AMap_);
+  selectedTgt_.SetCoordinates(remapFrame_, tgtMask_);
+  double rmsdval;
+  if (fit_)
+    rmsdval = selectedTgt_.RMSD_CenteredRef( centeredREF, rot, tgtTrans, useMass_ );
+  else
+    rmsdval = remapFrame_.RMSD_NoFit( centeredREF, useMass_ );
+  mprintf("----------------------------------------\n");
   return rmsdval;
-} 
+}
