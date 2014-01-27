@@ -14,9 +14,9 @@ int SymmetricRmsdCalc::InitSymmRMSD(std::string const& tMaskExpr, bool fitIn,
   useMass_ = useMassIn;
   return 0;
 }
-
+#ifdef DEBUGSYMMRMSD
 static int recursionLevel_;
-
+#endif
 /** Recursive function to search for symmetric atoms. */
 void SymmetricRmsdCalc::FindSymmetricAtoms(int at, AtomMap const& resmap,
                                            std::string const& Unique,
@@ -26,18 +26,24 @@ void SymmetricRmsdCalc::FindSymmetricAtoms(int at, AtomMap const& resmap,
   // If this atom has already been selected, leave
   if (Selected[at]) return;
   Selected[at] = 1;
+# ifdef DEBUGSYMMRMSD
   ++recursionLevel_;
   for (int i = 0; i < recursionLevel_; i++)
     mprintf("..");
   mprintf("Atom %i(%s)", at+1, resmap[at].c_str());
+# endif
   // Does this atom match the unique ID we are looking for?
   if (resmap[at].Unique() == Unique) {
     symmatoms.push_back( at ); // FIXME: Needs to be absolute atom# at some point
+#   ifdef DEBUGSYMMRMSD
     mprintf(" SYMM");
+#   endif
   }
   // Recursively search through all atoms bonded to this atom unless they 
   // are a chiral center
+# ifdef DEBUGSYMMRMSD
   mprintf("\n");
+# endif
   for (Atom::bond_iterator bndatm = resmap[at].bondbegin();
                            bndatm != resmap[at].bondend();
                            ++bndatm)
@@ -72,15 +78,15 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
   AMap_.resize( topIn.Natom() );
   // Determine last selected residue.
   int last_res = topIn[tgtMask_.back()].ResNum() + 1;
-  mprintf("\tResidues up to %s will be considered.\n", topIn.TruncResNameNum(last_res-1).c_str());
+  mprintf("\tResidues up to %s will be considered for symmetry correction.\n",
+          topIn.TruncResNameNum(last_res-1).c_str());
   // In each residue, determine which atoms are symmetric.
   SymmetricAtomIndices_.clear();
-# ifdef NEWSYMM
   AtomMap resmap;
   if (debug_ > 1) resmap.SetDebug(1);
   for (int res = 0; res < last_res; ++res) {
     int res_first_atom = topIn.Res(res).FirstAtom();
-    mprintf("DEBUG: Residue %s\n", topIn.TruncResNameNum(res).c_str());
+    if (debug_>0) mprintf("DEBUG: Residue %s\n", topIn.TruncResNameNum(res).c_str());
     if (resmap.SetupResidue(topIn, res) != 0) return 1;
     if (resmap.CheckBonds() != 0) return 1;
     resmap.DetermineAtomIDs();
@@ -94,9 +100,14 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
       else if (AtomStatus[at] != SYMM) {
         Iarray Selected( resmap.Natom(), 0 );
         symmatoms.clear();
-        recursionLevel_ = 0;
         // Recursively search for other potentially symmetric atoms in residue.
+        // The Selected array is used to keep track of which atoms have been
+        // visited in this pass; this is used instead of AtomStatus so that
+        // we can travel through atoms already marked as symmetric.
+#ifdef  DEBUGSYMMRMSD
+        recursionLevel_ = 0;
         mprintf("Starting recursive call for %i(%s)\n", at+1, resmap[at].c_str());
+#       endif
         FindSymmetricAtoms(at, resmap, resmap[at].Unique(), Selected, symmatoms);
         if (symmatoms.size() == 1) {
           // Only 1 atom, not symmetric. Reset atom status
@@ -111,82 +122,20 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
         }
       }
     }
-    mprintf("DEBUG:\tResidue Atom Status:\n");
-    for (int at = 0; at < resmap.Natom(); at++) {
-      mprintf("\t%s", topIn.AtomMaskName(at + res_first_atom).c_str());
-      switch (AtomStatus[at]) {
-        case NONSYMM: mprintf(" Non-symmetric\n"); break;
-        case SYMM   : mprintf(" Symmetric\n"); break;
-        case UNSELECTED: mprintf(" Unselected\n");
+    if (debug_ > 0) {
+      mprintf("DEBUG:\tResidue Atom Status:\n");
+      for (int at = 0; at < resmap.Natom(); at++) {
+        mprintf("\t%s", topIn.AtomMaskName(at + res_first_atom).c_str());
+        switch (AtomStatus[at]) {
+          case NONSYMM: mprintf(" Non-symmetric\n"); break;
+          case SYMM   : mprintf(" Symmetric\n"); break;
+          case UNSELECTED: mprintf(" Unselected\n");
+        }
       }
     }
   }
-# else
-  AtomMap resmap;
-  if (debug_ > 1) resmap.SetDebug(1);
-  for (int residue = 0; residue < last_res; ++residue) {
-    int res_first_atom = topIn.Res(residue).FirstAtom();
-    if (debug_ > 0)
-      mprintf("DEBUG: Residue %s\n", topIn.TruncResNameNum(residue).c_str());
-    if (resmap.SetupResidue(topIn, residue) != 0) return 1;
-    if (resmap.CheckBonds() != 0) return 1;
-    resmap.DetermineAtomIDs();
-    // Get indices of potentially symmetric atoms for this residue.
-    // NOTE: Indices for resmap start at 0.
-    // AtomStatus: 0=Unselected, 1=Selected/Non-symm., 2=Selected/Symm
-    //enum atomStatusType { UNSELECTED = 0, NONSYMM, SYMM };
-    std::vector<int> AtomStatus(resmap.Natom(), UNSELECTED);
-    for (int atom1 = 0; atom1 < resmap.Natom(); atom1++) {
-      int actual_atom1 = atom1 + res_first_atom; // Actual atom index in topIn
-      if (AtomStatus[atom1] == UNSELECTED) {
-        AtomStatus[atom1] = NONSYMM; // Initially select as non-symmetric
-        // Check if atom1 is duplicated and not bound to a chiral center. 
-        // If so, find all selected duplicates.
-        if (!resmap[atom1].BoundToChiral() && resmap[atom1].Nduplicated() > 0) {
-          AtomStatus[atom1] = SYMM; // Select atom1 as symmetric
-          Iarray symmatoms(1, actual_atom1);
-          for (int atom2 = atom1 + 1; atom2 < resmap.Natom(); atom2++) {
-            int actual_atom2 = atom2 + res_first_atom;
-            // Check if atom2 matches atom1 and is not bound to a chiral center
-            if (resmap[atom1].Unique() == resmap[atom2].Unique() &&
-                !resmap[atom2].BoundToChiral())
-            {
-              AtomStatus[atom2] = SYMM; // Select atom2 as symmetric with atom1
-              symmatoms.push_back(actual_atom2);
-            }
-          } // END loop over atom2
-          if (debug_ > 0)
-            mprintf("DEBUG:\t\tAtom %s ID %s is duplicated %u times:",
-                    topIn.TruncResAtomName(symmatoms.front()).c_str(),
-                    resmap[atom1].Unique().c_str(), symmatoms.size());
-          if (symmatoms.size() > 1) {
-            SymmetricAtomIndices_.push_back( symmatoms );
-            if (debug_ > 0)
-              for (Iarray::const_iterator sa = symmatoms.begin(); sa != symmatoms.end(); ++sa)
-                mprintf(" %s", topIn.AtomMaskName(*sa).c_str());
-          } else {
-            // Only one atom selected, no symmetry. Change to non-symmetric.
-            // FIXME: Does this ever occur now that we always select all for symmetry?
-            AtomStatus[symmatoms.front() - res_first_atom] = NONSYMM; // Select as non-symmetric
-          }
-          if (debug_ > 0) mprintf("\n");
-        } // END if atom is duplicated
-      }
-    } // END loop over atom1
-    // TODO: If fitting, set up mask to perform initial fit with selected nonsymmetric atoms
-    if (debug_ > 0) {
-      mprintf("DEBUG:\tNon-symmetric atoms:");
-      for (int atom1 = 0; atom1 < resmap.Natom(); atom1++)
-        if (AtomStatus[atom1] == NONSYMM) { // If selected/non-symmetric
-          mprintf(" %s", topIn.AtomMaskName(atom1 + res_first_atom).c_str());
-          //InitialFitMask.AddAtom(atom1 + res_first_atom);
-        }
-      mprintf("\n");
-    }
-  } // End loop over residues
-# endif /* NEWSYMM */
   if (debug_ > 0) {
-    mprintf("DEBUG: Symmetric Atom Groups:\n");
+    mprintf("DEBUG: Potential Symmetric Atom Groups:\n");
     for (AtomIndexArray::const_iterator symmatoms = SymmetricAtomIndices_.begin();
                                         symmatoms != SymmetricAtomIndices_.end();
                                         ++symmatoms)
@@ -223,8 +172,10 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
                                       symmatoms != SymmetricAtomIndices_.end(); ++symmatoms)
   {
     // For each array of symmetric atoms, determine the lowest distance score
+#   ifdef DEBUGSYMMRMSD
     mprintf("    Symmetric atoms group %u starting with atom %i\n", 
             symmatoms - SymmetricAtomIndices_.begin(), symmatoms->front() + 1);
+#   endif
     cost_matrix_.Initialize( symmatoms->size() );
     for (Iarray::const_iterator tgtatom = symmatoms->begin();
                                 tgtatom != symmatoms->end(); ++tgtatom)
@@ -233,7 +184,9 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
                                   refatom != symmatoms->end(); ++refatom)
       {
         double dist2 = DIST2_NoImage( REF.XYZ(*refatom), remapFrame_.XYZ(*tgtatom) );
+#       ifdef DEBUGSYMMRMSD
         mprintf("\t\t%i to %i: %f\n", *tgtatom + 1, *refatom + 1, dist2);
+#       endif
         cost_matrix_.AddElement( dist2 );
       }
     }
@@ -244,12 +197,17 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
                                 atmidx != symmatoms->end(); ++atmidx, ++rmap)
     {
       AMap_[*atmidx] = (*symmatoms)[*rmap]; // FIXME: Check indices
+#     ifdef DEBUGSYMMRMSD
       mprintf("\tAssigned atom %i to atom %i\n", *atmidx + 1, (*symmatoms)[*rmap] + 1);
+#     endif
     }
   }
+# ifdef DEBUGSYMMRMSD
   mprintf("    Final Atom Mapping:\n");
   for (unsigned int ref = 0; ref < AMap_.size(); ++ref)
     mprintf("\t%u -> %i\n", ref + 1, AMap_[ref] + 1);
+  mprintf("----------------------------------------\n");
+# endif
   // Remap the original target frame, then calculate RMSD
   // FIXME: Check that masses are also remapped
   remapFrame_.SetCoordinatesByMap(TGT, AMap_);
@@ -259,6 +217,5 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
     rmsdval = selectedTgt_.RMSD_CenteredRef( centeredREF, rot, tgtTrans, useMass_ );
   else
     rmsdval = selectedTgt_.RMSD_NoFit( centeredREF, useMass_ );
-  mprintf("----------------------------------------\n");
   return rmsdval;
 }
