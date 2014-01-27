@@ -20,7 +20,7 @@ class SymmetricRmsdCalc {
     /// Array of groups of potentially symmetric atoms
     AtomIndexArray SymmetricAtomIndices_;
     int debug_;
-    Hungarian cost_matrix_;
+    Hungarian cost_matrix_; ///< Hungarian algorithm cost matrix.
     Iarray AMap_;           ///< AMap_[ref] = tgt
     Frame remapFrame_;      ///< Target frame re-mapped for symmetry
     Frame selectedTgt_;     ///< Selected atoms from target frame.

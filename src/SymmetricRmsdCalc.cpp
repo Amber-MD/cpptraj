@@ -3,12 +3,14 @@
 #include "AtomMap.h"
 #include "CpptrajStdio.h"
 
-SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(3) {}
+SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(0), fit_(true), useMass_(false) {}
 
 // SymmetricRmsdCalc::InitSymmRMSD()
-int SymmetricRmsdCalc::InitSymmRMSD(std::string const& tMaskExpr, bool fitIn, bool useMassIn)
+int SymmetricRmsdCalc::InitSymmRMSD(std::string const& tMaskExpr, bool fitIn,
+                                    bool useMassIn, int debugIn)
 {
   if (tgtMask_.SetMaskString( tMaskExpr )) return 1;
+  debug_ = debugIn;
   fit_ = fitIn;
   useMass_ = useMassIn;
   return 0;
