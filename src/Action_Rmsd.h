@@ -3,7 +3,6 @@
 #include "Action.h"
 #include "Range.h"
 #include "ReferenceAction.h"
-#include "RmsAction.h" 
 #include "DataSet_1D.h"
 // Class: Action_Rmsd
 /// Action to calculate the RMSD between frame and a reference frame.
@@ -45,7 +44,13 @@ class Action_Rmsd: public Action {
     DataSetList* masterDSL_;
     // ------------------------
     ReferenceAction REF_;              ///< Hold reference frame/traj/options
-    RmsAction RMS_;                    ///< RMSD-related options/actions
+    AtomMask tgtMask_; ///< Mask of selected target atoms.
+    bool fit_;         ///< If true, best-fit RMS.
+    bool rotate_;      ///< If true, rotate coordinates according to best-fit.
+    bool useMass_;     ///< If true, mass-weight calculation.
+    Vec3 tgtTrans_;    ///< Hold translation to origin.
+    Matrix_3x3 rot_;   ///< Hold best-fit rotation matrix.
+    Frame tgtFrame_;   ///< Hold selected target atoms.
     DataSet* rmsd_;
 };
 #endif

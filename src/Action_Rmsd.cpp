@@ -12,12 +12,15 @@ Action_Rmsd::Action_Rmsd() :
   perresavg_(0),
   RefParm_(0),
   masterDSL_(0),
+  fit_(true),
+  rotate_(true),
+  useMass_(false),
   rmsd_(0)
 { }
 
 void Action_Rmsd::Help() {
-  mprintf("\t[<name>] <mask> [<refmask>] [out filename] %s\n", RmsAction::RmsArgs);
-  mprintf("\t[ first | %s |\n"
+  mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n"
+          "\t[ first | %s |\n"
           "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
           "\t [range <resRange>] [refrange <refRange>]\n"
@@ -31,7 +34,10 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Check for keywords
-  RMS_.GetRmsKeywords( actionArgs );
+  fit_ = !actionArgs.hasKey("nofit");
+  if (fit_)
+    rotate_ = !actionArgs.hasKey("norotate");
+  useMass_ = actionArgs.hasKey("mass");
   DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
@@ -58,10 +64,15 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     perresavg_ = DFL->AddDataFile( actionArgs.GetStringKey("perresavg") );
   }
   // Get the RMS mask string for target
-  std::string mask1 = RMS_.GetRmsMasks(actionArgs); 
+  std::string tMaskExpr = actionArgs.GetMaskNext();
+  tgtMask_.SetMaskString(tMaskExpr);
+  // Get the RMS mask string for reference
+  std::string rMaskExpr = actionArgs.GetMaskNext();
+  if (rMaskExpr.empty())
+    rMaskExpr = tMaskExpr;
   // Initialize reference
-  if (REF_.InitRef(previous, first, RMS_.UseMass(), RMS_.Fit(), reftrajname, refFrm, 
-                  RefParm_, mask1, actionArgs, "rmsd"))
+  if (REF_.InitRef(previous, first, useMass_, fit_, reftrajname, refFrm, 
+                   RefParm_, rMaskExpr, actionArgs, "rmsd"))
     return Action::ERR;
   // Set RefParm for perres if not empty
   if (perres_ && RefParm_ == 0 && !refFrm.empty())
@@ -74,9 +85,18 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   // Add dataset to data file list
   if (outfile != 0) outfile->AddSet( rmsd_ );
 
-  mprintf("    RMSD: (%s), reference is %s", RMS_.TgtMask().MaskString(),
+  mprintf("    RMSD: (%s), reference is %s", tgtMask_.MaskString(),
           REF_.RefModeString());
-  RMS_.PrintRmsStatus();
+  if (!fit_)
+    mprintf(", no fitting");
+  else {
+    mprintf(", with fitting");
+    if (!rotate_)
+      mprintf(" (no rotation)");
+  }
+  if (useMass_)
+    mprintf(", mass-weighted");
+  mprintf(".\n");
   // Per-residue RMSD info.
   if (perres_) {
     mprintf("          No-fit RMSD will also be calculated for ");
@@ -219,9 +239,17 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
   */
 Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress) {
   // Target setup
-  if (RMS_.SetupRmsMask(*currentParm, "rmsd")) return Action::ERR;
+  if ( currentParm->SetupIntegerMask( tgtMask_ ) ) return Action::ERR;
+  tgtMask_.MaskInfo();
+  if ( tgtMask_.None() ) {
+    mprintf("Warning: No atoms in mask '%s'.\n", tgtMask_.MaskString());
+    return Action::ERR;
+  }
+  // Allocate space for selected atoms in the frame. This will also put the
+  // correct masses in based on the mask.
+  tgtFrame_.SetupFrameFromMask(tgtMask_, currentParm->Atoms());
   // Reference setup
-  if (REF_.SetupRef(*currentParm, RMS_.TgtMask().Nselected(), "rmsd"))
+  if (REF_.SetupRef(*currentParm, tgtMask_.Nselected(), "rmsd"))
     return Action::ERR;
  
   // Per residue rmsd setup
@@ -238,9 +266,22 @@ Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress
 // Action_Rmsd::DoAction()
 Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Perform any needed reference actions
-  REF_.ActionRef( *currentFrame, RMS_.Fit(), RMS_.UseMass() );
+  REF_.ActionRef( *currentFrame, fit_, useMass_ );
   // Calculate RMSD
-  double rmsdval = RMS_.CalcRmsd( *currentFrame, REF_.SelectedRef(), REF_.RefTrans() );
+  double rmsdval;
+  // Set selected frame atoms. Masses have already been set.
+  tgtFrame_.SetCoordinates(*currentFrame, tgtMask_);
+  if (!fit_) {
+    rmsdval = tgtFrame_.RMSD_NoFit(REF_.SelectedRef(), useMass_);
+  } else {
+    rmsdval = tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
+    if (rotate_)
+      currentFrame->Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
+    else {
+      tgtTrans_ += REF_.RefTrans();
+      currentFrame->Translate(tgtTrans_);
+    }
+  }
   rmsd_->Add(frameNum, &rmsdval);
 
   // ---=== Per Residue RMSD ===---
@@ -255,17 +296,17 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
         ResRefFrame_.SetFrame(REF_.RefFrame(), PerRes->refResMask_);
         ResTgtFrame_.SetFrame(*currentFrame,  PerRes->tgtResMask_);
         if (perrescenter_) {
-          ResTgtFrame_.CenterOnOrigin( RMS_.UseMass() );
-          ResRefFrame_.CenterOnOrigin( RMS_.UseMass() );
+          ResTgtFrame_.CenterOnOrigin( useMass_ );
+          ResRefFrame_.CenterOnOrigin( useMass_ );
         }
-        double R = ResTgtFrame_.RMSD_NoFit(ResRefFrame_, RMS_.UseMass());
+        double R = ResTgtFrame_.RMSD_NoFit(ResRefFrame_, useMass_);
         PerRes->data_->Add(frameNum, &R);
       }
     }
   }
 
   if (REF_.Previous())
-    REF_.SetRefStructure( *currentFrame, RMS_.Fit(), RMS_.UseMass() );
+    REF_.SetRefStructure( *currentFrame, fit_, useMass_ );
 
   return Action::OK;
 }

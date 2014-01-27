@@ -186,7 +186,6 @@ SOURCES=ActionFrameCounter.cpp \
         ReadLine.cpp \
         ReferenceAction.cpp \
         ReferenceFrame.cpp \
-        RmsAction.cpp \
         SDFfile.cpp \
         StringRoutines.cpp \
         SymmetricRmsdCalc.cpp \
