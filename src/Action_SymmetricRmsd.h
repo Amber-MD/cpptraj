@@ -2,7 +2,7 @@
 #define INC_SYMMETRICRMSD_H
 #include "Action.h"
 #include "ReferenceAction.h"
-#include "RmsAction.h"
+#include "SymmetricRmsdCalc.h"
 /// Action to calculate symmetry-corrected RMSD
 class Action_SymmetricRmsd : public Action {
   public:
@@ -16,16 +16,11 @@ class Action_SymmetricRmsd : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
 
-    typedef std::vector<int> Iarray;
-    typedef std::vector<Iarray> AtomIndexArray;
-    /// Array of groups of potentially symmetric atoms
-    AtomIndexArray SymmetricAtomIndices_;
-    int debug_;
-    bool remap_;          ///< If true remap symmetric atoms
-    Iarray AMap_;         ///< AMap_[ref] = tgt
-    DataSet* rmsd_;       ///< Output DataSet
-    Frame remapFrame_;    ///< Target frame re-mapped for symmetry
-    ReferenceAction REF_; ///< Hold reference frame/traj/options
-    RmsAction RMS_;       ///< RMSD-related options/actions
+    bool remap_;              ///< If true re-map symmetric atoms
+    DataSet* rmsd_;           ///< Output DataSet
+    ReferenceAction REF_;     ///< Hold reference frame/traj/options
+    SymmetricRmsdCalc SRMSD_; ///< Symmetric RMSD calculation.
+    Matrix_3x3 rotMatrix_;    ///< Hold best-fit rotation matrix for target.
+    Vec3 tgtTrans_;           ///< Hold translation of target to origin.
 };
 #endif

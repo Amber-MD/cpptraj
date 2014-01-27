@@ -8,6 +8,7 @@ class AtomMap {
     AtomMap();
 
     MapAtom& operator[](int);
+    const MapAtom& operator[](int i) const { return mapatoms_[i]; } // FIXME: bounds
     int Natom();
     void SetDebug(int);
     int Setup(Topology const&);
