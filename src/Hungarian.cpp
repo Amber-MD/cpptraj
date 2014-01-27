@@ -1,28 +1,7 @@
 #include <cfloat> // DBL_MAX
-#include <stdexcept>
 #include "Hungarian.h"
 #include "Constants.h" // SMALL
 #include "CpptrajStdio.h"
-
-// CONSTRUCTOR: FIXME: Could get expensive with exceptions, get rid of
-Hungarian::Hungarian(DataSet_MatrixDbl const& mIn) :
-  matrix_(mIn),
-  lineThroughRow_(mIn.Nrows(), false),
-  lineThroughCol_(mIn.Ncols(), false),
-  assignRowToCol_(mIn.Ncols(), -1),
-  assignColToRow_(mIn.Nrows(), -1),
-  nrows_((int)mIn.Nrows()),
-  ncols_((int)mIn.Ncols())
-{
-  if (matrix_.Kind() != DataSet_2D::FULL) {
-    mprinterr("Internal Error: Hungarian: Requires full double-precision matrix.\n");
-    throw(std::bad_alloc());
-  }
-  if (matrix_.Nrows() != matrix_.Ncols()) {
-    mprinterr("Internal Error: Hungarian: Non-square matrix not yet supported.");
-    throw(std::bad_alloc());
-  }
-}
 
 /** Initialize matrix for Hungarian algorithm. **/
 int Hungarian::Initialize(size_t Ncols) {
