@@ -34,7 +34,7 @@ void SymmetricRmsdCalc::FindSymmetricAtoms(int at, AtomMap const& resmap,
 # endif
   // Does this atom match the unique ID we are looking for?
   if (resmap[at].Unique() == Unique) {
-    symmatoms.push_back( at ); // FIXME: Needs to be absolute atom# at some point
+    symmatoms.push_back( at ); // NOTE: This index is relative to the residue 
 #   ifdef DEBUGSYMMRMSD
     mprintf(" SYMM");
 #   endif
@@ -113,7 +113,7 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
           // Only 1 atom, not symmetric. Reset atom status
           AtomStatus[symmatoms.front()] = NONSYMM;
         } else if (symmatoms.size() > 1) {
-          // Shift atom #s
+          // Shift residue atom #s so they correspond with topology.
           for (Iarray::iterator it = symmatoms.begin(); it != symmatoms.end(); ++it) {
             AtomStatus[*it] = SYMM;
             *it += res_first_atom;
@@ -209,7 +209,7 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
   mprintf("----------------------------------------\n");
 # endif
   // Remap the original target frame, then calculate RMSD
-  // FIXME: Check that masses are also remapped
+  // TODO: Does the topology need to be remapped as well?
   remapFrame_.SetCoordinatesByMap(TGT, AMap_);
   selectedTgt_.SetCoordinates(remapFrame_, tgtMask_);
   double rmsdval;
