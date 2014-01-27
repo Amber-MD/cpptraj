@@ -69,10 +69,7 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
   remapFrame_.SetupFrameV( topIn.Atoms(), topIn.HasVelInfo(), topIn.NrepDim() );
   // Create initial 1 to 1 atom map for all atoms; indices in 
   // SymmetricAtomIndices will correspond to positions in AMap.
-  AMap_.clear();
-  AMap_.reserve( topIn.Natom() );
-  for (int atom = 0; atom < topIn.Natom(); atom++)
-    AMap_.push_back(atom);
+  AMap_.resize( topIn.Natom() );
   // Determine last selected residue.
   int last_res = topIn[tgtMask_.back()].ResNum() + 1;
   mprintf("\tResidues up to %s will be considered.\n", topIn.TruncResNameNum(last_res-1).c_str());
@@ -91,13 +88,13 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
     Iarray AtomStatus( resmap.Natom(), UNSELECTED );
     // Loop over all atoms in the residue
     for (int at = 0; at < resmap.Natom(); at++) {
-      Iarray Selected( resmap.Natom(), 0 );
-      symmatoms.clear();
-      recursionLevel_ = 0;
       // If atom is unique in residue, mark non-symmetric 
       if (resmap[at].IsUnique())
         AtomStatus[at] = NONSYMM;
       else if (AtomStatus[at] != SYMM) {
+        Iarray Selected( resmap.Natom(), 0 );
+        symmatoms.clear();
+        recursionLevel_ = 0;
         // Recursively search for other potentially symmetric atoms in residue.
         mprintf("Starting recursive call for %i(%s)\n", at+1, resmap[at].c_str());
         FindSymmetricAtoms(at, resmap, resmap[at].Unique(), Selected, symmatoms);
@@ -210,6 +207,10 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
                                    Vec3 const& refTrans,
                                    Matrix_3x3& rot, Vec3& tgtTrans)
 {
+  // Create initial 1 to 1 atom map for all atoms; indices in 
+  // SymmetricAtomIndices will correspond to positions in AMap.
+  for (int atom = 0; atom < (int)AMap_.size(); atom++)
+    AMap_[atom] = atom;
   // Calculate initial best fit RMSD if necessary
   remapFrame_.SetCoordinates( TGT );
   if (fit_) {
