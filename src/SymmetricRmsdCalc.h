@@ -7,7 +7,7 @@ class SymmetricRmsdCalc {
   public:
     SymmetricRmsdCalc();
     /// Set target mask string, fit, and mass options.
-    int InitSymmRMSD(std::string const&, bool, bool);
+    int InitSymmRMSD(std::string const&, bool, bool, int);
     /// Setup target mask, find symmetric atoms.
     int FindSymmetricAtoms(Topology const&);
     double SymmRMSD(Frame const&, Frame const&, Frame const&,
