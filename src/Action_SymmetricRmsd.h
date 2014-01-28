@@ -20,7 +20,5 @@ class Action_SymmetricRmsd : public Action {
     DataSet* rmsd_;           ///< Output DataSet
     ReferenceAction REF_;     ///< Hold reference frame/traj/options
     SymmetricRmsdCalc SRMSD_; ///< Symmetric RMSD calculation.
-    Matrix_3x3 rotMatrix_;    ///< Hold best-fit rotation matrix for target.
-    Vec3 tgtTrans_;           ///< Hold translation of target to origin.
 };
 #endif

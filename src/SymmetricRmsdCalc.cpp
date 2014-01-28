@@ -153,8 +153,7 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
 // SymmetricRmsdCalc::SymmRMSD()
 double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
                                    Frame const& REF, Frame const& centeredREF,
-                                   Vec3 const& refTrans,
-                                   Matrix_3x3& rot, Vec3& tgtTrans)
+                                   Vec3 const& refTrans)
 {
   // Create initial 1 to 1 atom map for all atoms; indices in 
   // SymmetricAtomIndices will correspond to positions in AMap.
@@ -164,8 +163,8 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
   remapFrame_.SetCoordinates( TGT );
   if (fit_) {
     selectedTgt_.SetCoordinates(TGT, tgtMask_);
-    selectedTgt_.RMSD_CenteredRef(centeredREF, rot, tgtTrans, useMass_);
-    remapFrame_.Trans_Rot_Trans(tgtTrans, rot, refTrans);
+    selectedTgt_.RMSD_CenteredRef(centeredREF, rotMatrix_, tgtTrans_, useMass_);
+    remapFrame_.Trans_Rot_Trans(tgtTrans_, rotMatrix_, refTrans);
   }
   // Correct RMSD for symmetry
   for (AtomIndexArray::const_iterator symmatoms = SymmetricAtomIndices_.begin();
@@ -214,7 +213,7 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
   selectedTgt_.SetCoordinates(remapFrame_, tgtMask_);
   double rmsdval;
   if (fit_)
-    rmsdval = selectedTgt_.RMSD_CenteredRef( centeredREF, rot, tgtTrans, useMass_ );
+    rmsdval = selectedTgt_.RMSD_CenteredRef( centeredREF, rotMatrix_, tgtTrans_, useMass_ );
   else
     rmsdval = selectedTgt_.RMSD_NoFit( centeredREF, useMass_ );
   return rmsdval;
