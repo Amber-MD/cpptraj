@@ -2,7 +2,21 @@
 #include "DistRoutines.h"
 #include "CpptrajStdio.h"
 
+// CONSTRUCTOR
 SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(0), fit_(true), useMass_(false) {}
+
+// CONSTRUCTOR - For use when only RMSD is wanted.
+SymmetricRmsdCalc::SymmetricRmsdCalc(AtomMask const& maskIn, bool fitIn, 
+                                     bool useMassIn, Topology const& topIn) :
+  tgtMask_(maskIn), fit_(fitIn), useMass_(useMassIn)
+{
+  Topology* stripTop = topIn.partialModifyStateByMask( tgtMask_ );
+  stripTop->Brief("SymmRMSD"); // DEBUG
+  // Since input frames will already be stripped, make target mask have all atoms
+  tgtMask_.SetMaskString(0);
+  SetupSymmRMSD( *stripTop );
+  delete stripTop;
+}
 
 // SymmetricRmsdCalc::InitSymmRMSD()
 int SymmetricRmsdCalc::InitSymmRMSD(std::string const& tMaskExpr, bool fitIn,
@@ -150,8 +164,22 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
   return 0;
 }
 
+/** It is expected that TGT and REF already correspond to tgtMask. */
+double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT, Frame& REF) {
+  Vec3 refTrans = REF.CenterOnOrigin( useMass_ );
+  return SymmRMSD_CenteredRef(TGT, REF, REF, refTrans);
+}
+
+/** REF was already centered at the origin and TGT and REF already
+  * correspond to tgtMask.
+  */
+double SymmetricRmsdCalc::SymmRMSD_CenteredRef( Frame const& TGT, Frame const& REF)
+{
+  return SymmRMSD_CenteredRef( TGT, REF, REF, Vec3(0.0) );
+}
+
 // SymmetricRmsdCalc::SymmRMSD()
-double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT,
+double SymmetricRmsdCalc::SymmRMSD_CenteredRef(Frame const& TGT,
                                    Frame const& REF, Frame const& centeredREF,
                                    Vec3 const& refTrans)
 {

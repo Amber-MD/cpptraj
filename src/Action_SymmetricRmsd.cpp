@@ -78,8 +78,8 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame
   // Perform any needed reference actions
   REF_.ActionRef( *currentFrame, SRMSD_.Fit(), SRMSD_.UseMass() );
   // Calculate symmetric RMSD
-  double rmsdval = SRMSD_.SymmRMSD( *currentFrame, REF_.RefFrame(), REF_.SelectedRef(),
-                                    REF_.RefTrans() );
+  double rmsdval = SRMSD_.SymmRMSD_CenteredRef( *currentFrame, REF_.RefFrame(), 
+                                                REF_.SelectedRef(), REF_.RefTrans() );
   if ( SRMSD_.Fit() )
     currentFrame->Trans_Rot_Trans( SRMSD_.TgtTrans(), SRMSD_.RotMatrix(), REF_.RefTrans() );
 

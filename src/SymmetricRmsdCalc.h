@@ -7,12 +7,17 @@
 class SymmetricRmsdCalc {
   public:
     SymmetricRmsdCalc();
+    SymmetricRmsdCalc(AtomMask const&, bool, bool, Topology const&);
     /// Set target mask string, fit, and mass options.
     int InitSymmRMSD(std::string const&, bool, bool, int);
     /// Setup target mask, find symmetric atoms.
     int SetupSymmRMSD(Topology const&);
-    /// Calculate symmetry-corrected RMSD using both original and pre-centered references.
-    double SymmRMSD(Frame const&, Frame const&, Frame const&, Vec3 const&);
+    /// Calculate symm. RMSD using both original and pre-centered references.
+    double SymmRMSD_CenteredRef(Frame const&, Frame const&, Frame const&, Vec3 const&);
+    /// Calculate symm. RMSD using target and reference that already correspond to tgtMask
+    double SymmRMSD(Frame const&, Frame&);
+    /// Calculate symm. RMSD, REF was at origin and tgt and ref correspond to tgtMask
+    double SymmRMSD_CenteredRef( Frame const&, Frame const& );
     AtomMask const& TgtMask()     const { return tgtMask_;     }
     const Frame* RemapFrame()     const { return &remapFrame_; }
     bool Fit()                    const { return fit_;         }

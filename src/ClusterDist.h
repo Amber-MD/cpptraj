@@ -1,6 +1,6 @@
 #ifndef INC_CLUSTERDIST_H
 #define INC_CLUSTERDIST_H
-#include "Frame.h"
+#include "SymmetricRmsdCalc.h"
 #include "DataSet_Coords.h"
 #include "DataSet_1D.h"
 #include "ClusterMatrix.h"
@@ -39,6 +39,7 @@ class Centroid_Coord : public Centroid {
     Centroid* Copy() { return (Centroid*)new Centroid_Coord(cframe_); }
     friend class ClusterDist_DME;
     friend class ClusterDist_RMS;
+    friend class ClusterDist_SRMSD;
   private:
     Frame cframe_;
 };
@@ -136,4 +137,23 @@ class ClusterDist_RMS : public ClusterDist {
     Frame frm1_;
     Frame frm2_;
 };
+/// Symmetry-corrected RMS distance calc for Coords DataSet.
+class ClusterDist_SRMSD : public ClusterDist {
+  public:
+    ClusterDist_SRMSD() {}
+    ClusterDist_SRMSD(DataSet*,AtomMask const&,bool,bool);
+    void PairwiseDist(ClusterMatrix&, ClusterSieve::SievedFrames const&);
+    double FrameDist(int, int);
+    double CentroidDist( Centroid*, Centroid* );
+    double FrameCentroidDist(int, Centroid*);
+    void CalculateCentroid(Centroid*, Cframes const&);
+    Centroid* NewCentroid(Cframes const&);
+    ClusterDist* Copy() { return new ClusterDist_SRMSD( * this ); }
+  private:
+    DataSet_Coords* coords_;
+    AtomMask mask_;
+    SymmetricRmsdCalc SRMSD_;
+    Frame frm1_;
+    Frame frm2_;
+}; 
 #endif
