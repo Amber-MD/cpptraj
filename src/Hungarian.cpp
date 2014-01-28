@@ -1,7 +1,9 @@
 #include <cfloat> // DBL_MAX
 #include "Hungarian.h"
 #include "Constants.h" // SMALL
-#include "CpptrajStdio.h"
+#ifdef DEBUG_HUNGARIAN
+#  include "CpptrajStdio.h"
+#endif
 
 /** Initialize matrix for Hungarian algorithm. **/
 int Hungarian::Initialize(size_t Ncols) {
@@ -64,7 +66,7 @@ int Hungarian::AssignRowsToColumns() {
       }
     }
 #   ifdef DEBUG_HUNGARIAN
-    mprintf("Min Row %i (%i), min Column %i (%i)\n", minRow, minRowZeros,
+    mprintf("Min Row %i (%i zeros), min Column %i (%i zeros)\n", minRow, minRowZeros,
             minCol, minColZeros);
 #   endif
     if (minRow == -1 && minCol == -1) // No zeros left
@@ -90,7 +92,7 @@ int Hungarian::AssignRowsToColumns() {
       }
     } else if (minRowZeros >= minColZeros) { // Preference given to rows
 #     ifdef DEBUG_HUNGARIAN
-      mprintf("Row %i has min # of zeros (%i)\n", minRow, minRowZeros);
+      mprintf("\tRow %i has min # of zeros (%i)\n", minRow, minRowZeros);
 #     endif
       // Assign row to the first unassigned col whose elt is zero.
       int elt = minRow * ncols_;
@@ -122,6 +124,7 @@ int Hungarian::AssignRowsToColumns() {
 /** \return Array containing which row idx matches which column idx. */
 std::vector<int> Hungarian::Optimize() {
 # ifdef DEBUG_HUNGARIAN
+  mprintf("----- HUNGARIAN ALGORITHM START ------------------------------------------------\n");
   PrintMatrix("INITIAL MATRIX");
 # endif
   // Reduce elements in each row by the minimum in each row
@@ -162,6 +165,9 @@ std::vector<int> Hungarian::Optimize() {
     UpdateMatrix();
     ++iterations;
   }
+# ifdef DEBUG_HUNGARIAN
+  mprintf("--------------------------------------------------------------------------------\n");
+# endif
   return assignRowToCol_;
 }  
 
