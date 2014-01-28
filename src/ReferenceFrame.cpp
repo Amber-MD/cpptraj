@@ -49,7 +49,8 @@ int ReferenceFrame::LoadRef(std::string const& fname, ArgList& argIn,
     mprinterr("Error: No frames could be read for reference '%s'\n", traj.TrajFilename().full());
     return 1;
   } else if (trajFrames > 1)
-    mprintf("Warning: %i frames specified for reference, only reading frame %i\n", traj.Start()+1);
+    mprintf("Warning: Reference has %i frames, only reading frame %i\n", 
+            trajFrames, traj.Start()+1);
   // Start trajectory read
   if ( traj.BeginTraj(false) ) {
     mprinterr("Error: Could not open reference '%s'\n.", traj.TrajFilename().full());
