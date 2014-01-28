@@ -76,7 +76,6 @@ class NetcdfFile {
     // from picoseconds to internal units, multiply by 20.455
     // (which is 10.0 * sqrt(4.184)).
     double velocityScale_;
-    double frcScale_;
 
     std::string GetAttrText(int, const char *);
     int GetDimInfo(const char *, int *);

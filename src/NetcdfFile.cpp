@@ -68,7 +68,6 @@ NetcdfFile::NetcdfFile() :
   cell_spatialVID_(-1),
   cell_angularVID_(-1),
   velocityScale_(20.455),
-  frcScale_(velocityScale_ * velocityScale_)
 {
   start_[0] = 0;
   start_[1] = 0;
@@ -569,15 +568,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       mprinterr("Error: Defining forces variable\n");
       return 1;
     }
-    if ( checkNCerr( nc_put_att_text( ncid_, frcVID_, "units", 25, "amu*angstrom/picosecond^2")) )
+    if ( checkNCerr( nc_put_att_text( ncid_, frcVID_, "units", 25, "kilocalorie/mole/angstrom")) )
     {
       mprinterr("Error: Writing forces variable units.\n");
-      return 1;
-    }
-    if ( checkNCerr( nc_put_att_double( ncid_, frcVID_, "scale_factor", NC_DOUBLE, 1,
-                                        &frcScale_)) )
-    {
-      mprinterr("Error: Writing forces scale factor.\n");
       return 1;
     }
   }
