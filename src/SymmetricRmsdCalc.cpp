@@ -218,6 +218,11 @@ double SymmetricRmsdCalc::SymmRMSD_CenteredRef(Frame const& TGT,
       }
     }
     Iarray resMap = cost_matrix_.Optimize();
+#   ifdef DEBUGSYMMRMSD
+    mprintf("\tMapping from Hungarian Algorithm:\n");
+    for (Iarray::const_iterator ha = resMap.begin(); ha != resMap.end(); ++ha)
+      mprintf("\t\tMap col=%u row=%i\n", ha - resMap.begin(), *ha);
+#   endif
     // Fill in overall map
     Iarray::const_iterator rmap = resMap.begin();
     for (Iarray::const_iterator atmidx = symmatoms->begin();
