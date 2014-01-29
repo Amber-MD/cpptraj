@@ -13,7 +13,7 @@ class Hungarian {
     std::vector<int> Optimize();
   private:
     int AssignRowsToColumns();
-    int CoverZeroElements();
+    void CoverZeroElements();
     void UpdateMatrix();
 #   ifdef DEBUG_HUNGARIAN
     void PrintLines(const char*);
