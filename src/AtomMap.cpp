@@ -142,8 +142,7 @@ void AtomMap::DetermineAtomIDs() {
   // Create a unique ID for each atom based on Atom IDs
   for (int ma1 = 0; ma1 < (int)mapatoms_.size(); ++ma1) {
     MapAtom& matom = mapatoms_[ma1];
-    // Remove first character. Add it back after the sort.
-    std::string unique(matom.AtomID().begin() + 1, matom.AtomID().end()); // = matom.AtomID();
+    std::string unique = matom.AtomID();
     for (Atom::bond_iterator bondedAtom = matom.bondbegin();
                              bondedAtom != matom.bondend(); ++bondedAtom)
     {
@@ -155,8 +154,8 @@ void AtomMap::DetermineAtomIDs() {
         if (*ba2 != ma1) 
           unique += mapatoms_[ *ba2 ].AtomID();
     }
-    sort( unique.begin(), unique.end() );
-    unique = matom.CharName() + unique;
+    // Do not sort first character (this atoms element ID char).
+    sort( unique.begin() + 1, unique.end() );
     // NOTE: SetUnique also resets the duplicated counter.
     matom.SetUnique( unique );
   }
