@@ -22,7 +22,7 @@ Analysis_Clustering::Analysis_Clustering() :
   cnumvtime_(0),
   cpopvtimefile_(0),
   nofitrms_(false),
-  usedme_(false),
+  metric_(ClusterList::RMS),
   useMass_(false),
   grace_color_(false),
   norm_pop_(NONE),
@@ -44,8 +44,9 @@ void Analysis_Clustering::Help() {
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
-  mprintf("  Distance options:\n"
-          "\t{[[rms] [<mask>] [mass] [nofit]] | [dme [<mask>]] | [data <dset0>[,<dset1>,...]]}\n"
+  mprintf("  Distance metric options: {rms | srmsd | dme | data}\n"
+          "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
+          "\t   [data <dset0>[,<dset1>,...]] }\n"
           "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <file>]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
@@ -76,6 +77,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   // Check for DataSet(s) to cluster on, otherwise coords will be used
   cluster_dataset_.clear();
   setname = analyzeArgs.GetStringKey("data");
+  metric_ = ClusterList::RMS;
   if (!setname.empty()) {
     ArgList dsnames(setname, ",");
     DataSetList inputDsets;
@@ -96,13 +98,18 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       }
       cluster_dataset_.push_back( *ds );
     }
+    metric_ = ClusterList::DATA;
   } else {
-    usedme_ = analyzeArgs.hasKey("dme");
-    bool userms = analyzeArgs.hasKey("rms");
-    if (usedme_ && userms) {
-      mprinterr("Error: Specify either 'dme' or 'rms' but not both.\n");
+    int usedme = (int)analyzeArgs.hasKey("dme");
+    int userms = (int)analyzeArgs.hasKey("rms");
+    int usesrms = (int)analyzeArgs.hasKey("srmsd");
+    if (usedme + userms + usesrms > 1) {
+      mprinterr("Error: Specify either 'dme', 'rms', or 'srmsd'.\n");
       return Analysis::ERR;
     }
+    if      (usedme)  metric_ = ClusterList::DME;
+    else if (userms)  metric_ = ClusterList::RMS;
+    else if (usesrms) metric_ = ClusterList::SRMSD;
   }
   // Get clustering algorithm
   if (CList_ != 0) delete CList_;
@@ -317,7 +324,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_pairwise.Start();
 # endif
   if (CList_->CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
-                                  usedme_, nofitrms_, useMass_, maskexpr_, 
+                                  metric_, nofitrms_, useMass_, maskexpr_, 
                                   sieve_, sieveSeed_ ))
     return Analysis::ERR;
 # ifdef TIMER

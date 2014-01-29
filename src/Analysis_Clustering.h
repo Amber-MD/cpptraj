@@ -33,7 +33,7 @@ class Analysis_Clustering: public Analysis {
     std::string clusterinfo_;   ///< Name for Ptraj-like cluster output file.
     std::string pairdistfile_;  ///< Name of pairwise-distances file.
     bool nofitrms_;             ///< If true do not best-fit when calc RMSD.
-    bool usedme_;
+    ClusterList::DistMetricType metric_;
     bool useMass_;
     bool grace_color_;          ///< If true print grace colors instead of cluster number
     enum normPopType { NONE=0, CLUSTERPOP, FRAME };

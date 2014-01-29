@@ -343,7 +343,7 @@ int ClusterList::AddCluster( ClusterDist::Cframes const& framelistIn ) {
 // ClusterList::CalcFrameDistances()
 int ClusterList::CalcFrameDistances(std::string const& filename, 
                                     ClusterDist::DsArray const& dataSets,
-                                    DistModeType mode, bool useDME, bool nofit, 
+                                    DistModeType mode, DistMetricType metric, bool nofit, 
                                     bool useMass, std::string const& maskexpr,
                                     int sieve, int sieveSeed) 
 {
@@ -355,24 +355,30 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   // TODO: Check all DataSet sizes?
   DataSet* dsIn = dataSets[0];
   // Set up internal cluster disance calculation
-  if (dsIn->Type() == DataSet::COORDS) {
+  if (metric != DATA) {
+    if (dsIn->Type() != DataSet::COORDS) {
+      mprinterr("Internal Error: Metric is COORDS base but data set is not.\n");
+      return 1;
+    }
     // Test that the mask expression is valid
     AtomMask testMask( maskexpr );
     Topology const& dsTop = ((DataSet_Coords*)dsIn)->Top();
     if ( dsTop.SetupIntegerMask( testMask ) ) {
-      mprinterr("Error: Could not set up mask [%s] for topology %s\n",
+      mprinterr("Error: Could not set up mask '%s' for topology %s\n",
                  maskexpr.c_str(), dsTop.c_str());
       return 1;
     }
     if (testMask.None()) {
-      mprinterr("Error: No atoms elected for mask [%s]\n", testMask.MaskString());
+      mprinterr("Error: No atoms elected for mask '%s'\n", testMask.MaskString());
       return 1;
     }
-    if (useDME)
-      Cdist_ = new ClusterDist_DME(dsIn, testMask);
-    else
-      Cdist_ = new ClusterDist_RMS(dsIn, testMask, nofit, useMass);
-  } else {
+    switch (metric) {
+      case DME:   Cdist_ = new ClusterDist_DME(dsIn, testMask); break;
+      case RMS:   Cdist_ = new ClusterDist_RMS(dsIn, testMask, nofit, useMass); break;
+      case SRMSD: Cdist_ = new ClusterDist_SRMSD(dsIn, testMask, nofit, useMass); break;
+      default: return 1; // Sanity check
+    }
+  } else { // Metric is DATA
     if (dataSets.size() == 1)
       Cdist_ = new ClusterDist_Num(dsIn);
     else // TODO: More than just euclid
