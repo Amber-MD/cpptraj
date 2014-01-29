@@ -122,36 +122,43 @@ void AtomMap::DetermineAtomIDs() {
   if (debug_>0) mprintf("ATOM IDs:\n");
   unsigned int anum = 1;
   for (std::vector<MapAtom>::iterator matom = mapatoms_.begin(); 
-                                      matom != mapatoms_.end(); matom++)
+                                      matom != mapatoms_.end(); ++matom)
   {
     std::string atomID;
-    for (Atom::bond_iterator bondedAtom = (*matom).bondbegin();
-                             bondedAtom != (*matom).bondend(); bondedAtom++)
+    for (Atom::bond_iterator bondedAtom = matom->bondbegin();
+                             bondedAtom != matom->bondend(); ++bondedAtom)
     {
       atomID += mapatoms_[ *bondedAtom ].CharName();
     }
     // Sort atom ID
     sort( atomID.begin(), atomID.end() );
     // Place current atom 1 char name at beginning
-    atomID = (*matom).CharName() + atomID;
-    (*matom).SetAtomID( atomID );
-    if (debug_>0) mprintf("  Atom %u : %s\n",anum, atomID.c_str());
+    atomID = matom->CharName() + atomID;
+    matom->SetAtomID( atomID );
+    if (debug_>0) mprintf("  Atom %u %4s : %s\n",anum, matom->c_str(), atomID.c_str());
     ++anum;
   }
   
   // Create a unique ID for each atom based on Atom IDs
-  for (std::vector<MapAtom>::iterator matom = mapatoms_.begin();
-                                      matom != mapatoms_.end(); matom++)
-  {
-    std::string unique = (*matom).AtomID();
-    for (Atom::bond_iterator bondedAtom = (*matom).bondbegin();
-                             bondedAtom != (*matom).bondend(); bondedAtom++)
+  for (int ma1 = 0; ma1 < (int)mapatoms_.size(); ++ma1) {
+    MapAtom& matom = mapatoms_[ma1];
+    // Remove first character. Add it back after the sort.
+    std::string unique(matom.AtomID().begin() + 1, matom.AtomID().end()); // = matom.AtomID();
+    for (Atom::bond_iterator bondedAtom = matom.bondbegin();
+                             bondedAtom != matom.bondend(); ++bondedAtom)
     {
       unique += mapatoms_[ *bondedAtom ].AtomID();
+      // Go one more level through bonds for unique ID.
+      // FIXME: This may only be optimal above a certain # of atoms
+      MapAtom const& Batom = mapatoms_[ *bondedAtom ];
+      for (Atom::bond_iterator ba2 = Batom.bondbegin(); ba2 != Batom.bondend(); ++ba2)
+        if (*ba2 != ma1) 
+          unique += mapatoms_[ *ba2 ].AtomID();
     }
     sort( unique.begin(), unique.end() );
-    // NOTE: SetUnique also resets the dupliciated counter.
-    (*matom).SetUnique( unique );
+    unique = matom.CharName() + unique;
+    // NOTE: SetUnique also resets the duplicated counter.
+    matom.SetUnique( unique );
   }
 
   // Determine which unique IDs are duplicated - set isUnique flag
@@ -169,11 +176,12 @@ void AtomMap::DetermineAtomIDs() {
   if (debug_ > 0) {
     mprintf("UNIQUE IDs:\n");
     anum = 1;
-    for (std::vector<MapAtom>::iterator matom = mapatoms_.begin();
-                                        matom != mapatoms_.end(); matom++)
+    for (std::vector<MapAtom>::const_iterator matom = mapatoms_.begin();
+                                              matom != mapatoms_.end(); matom++)
     {
-      mprintf("  Atom %6u [%3i]: %s",anum,(*matom).Nduplicated(),(*matom).Unique().c_str());
-      if ((*matom).IsUnique()) mprintf(" UNIQUE!");
+      mprintf("  Atom %6u %4s [%3i]: %s", anum, matom->c_str(), matom->Nduplicated(),
+              matom->Unique().c_str());
+      if (matom->IsUnique()) mprintf(" UNIQUE!");
       mprintf("\n");
       ++anum;
     }
