@@ -193,17 +193,18 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   masterDSL_ = datasetlist;
 
   mprintf("    CLUSTER: Using coords dataset %s, clustering using", coords_->Legend().c_str());
-  if ( cluster_dataset_.empty() ) {
+  if ( metric_ != ClusterList::DATA ) {
+    mprintf(" %s", ClusterList::MetricString( metric_ ));
     if (!maskexpr_.empty())
-      mprintf(" RMSD (mask [%s])",maskexpr_.c_str());
+      mprintf(" (mask [%s])",maskexpr_.c_str());
     else
-      mprintf(" RMSD (all atoms)");
+      mprintf(" (all atoms)");
     if (useMass_)
       mprintf(", mass-weighted");
     if (nofitrms_)
       mprintf(", no fitting");
     else
-      mprintf(" best fit");
+      mprintf(" best-fit");
   } else {
     if (cluster_dataset_.size() == 1)
       mprintf(" dataset %s", cluster_dataset_[0]->Legend().c_str());

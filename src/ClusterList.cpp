@@ -10,6 +10,14 @@ const char* ClusterList::XMGRACE_COLOR[] = {
   "cyan", "magenta", "orange", "indigo", "maroon", "turquoise", "darkgreen"
 };
 
+static const char* MetricStringArray[] = {
+  "RMSD", "DME", "Symmetry-corrected RMSD", "Data Set(s)"
+};
+
+const char* ClusterList::MetricString(DistMetricType dm) {
+  return MetricStringArray[dm];
+}
+
 // CONSTRUCTOR
 ClusterList::ClusterList() : debug_(0), Cdist_(0) {}
 

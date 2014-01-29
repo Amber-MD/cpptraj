@@ -11,6 +11,7 @@ class ClusterList {
   public:
     enum DistModeType   { USE_FRAMES = 0, USE_FILE  };
     enum DistMetricType { RMS = 0, DME, SRMSD, DATA };
+    static const char* MetricString( DistMetricType );
     ClusterList();
     virtual ~ClusterList();
     int Nclusters()                  const { return (int)clusters_.size(); }
