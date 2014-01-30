@@ -376,6 +376,7 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
                  maskexpr.c_str(), dsTop.c_str());
       return 1;
     }
+    testMask.MaskInfo();
     if (testMask.None()) {
       mprinterr("Error: No atoms elected for mask '%s'\n", testMask.MaskString());
       return 1;
@@ -383,7 +384,7 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
     switch (metric) {
       case DME:   Cdist_ = new ClusterDist_DME(dsIn, testMask); break;
       case RMS:   Cdist_ = new ClusterDist_RMS(dsIn, testMask, nofit, useMass); break;
-      case SRMSD: Cdist_ = new ClusterDist_SRMSD(dsIn, testMask, nofit, useMass); break;
+      case SRMSD: Cdist_ = new ClusterDist_SRMSD(dsIn, testMask, nofit, useMass, debug_); break;
       default: return 1; // Sanity check
     }
   } else { // Metric is DATA

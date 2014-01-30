@@ -141,7 +141,7 @@ class ClusterDist_RMS : public ClusterDist {
 class ClusterDist_SRMSD : public ClusterDist {
   public:
     ClusterDist_SRMSD() {}
-    ClusterDist_SRMSD(DataSet*,AtomMask const&,bool,bool);
+    ClusterDist_SRMSD(DataSet*,AtomMask const&,bool,bool,int);
     void PairwiseDist(ClusterMatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );

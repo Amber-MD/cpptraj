@@ -8,15 +8,10 @@ SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(0), fit_(true),
 
 // CONSTRUCTOR - For use when only RMSD is wanted.
 SymmetricRmsdCalc::SymmetricRmsdCalc(AtomMask const& maskIn, bool fitIn, 
-                                     bool useMassIn, Topology const& topIn) :
-  tgtMask_(maskIn), fit_(fitIn), useMass_(useMassIn), remap_(false)
+                                     bool useMassIn, Topology const& topIn, int debugIn) :
+  debug_(debugIn), tgtMask_(maskIn), fit_(fitIn), useMass_(useMassIn), remap_(false)
 {
-  Topology* stripTop = topIn.partialModifyStateByMask( tgtMask_ );
-  stripTop->Brief("SymmRMSD"); // DEBUG
-  // Since input frames will already be stripped, make target mask have all atoms
-  tgtMask_.SetMaskString(0);
-  SetupSymmRMSD( *stripTop );
-  delete stripTop;
+  SetupSymmRMSD( topIn );
 }
 
 // SymmetricRmsdCalc::InitSymmRMSD()
@@ -97,9 +92,11 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
   for (int originalAtom = 0; originalAtom != topIn.Natom(); ++originalAtom)
     if ( originalAtom == tgtMask_[tgtIdx] )
       SelectedIdx[originalAtom] = tgtIdx++;
-  mprintf("DEBUG: Original atom -> Selected Index mapping:\n");
-  for (int originalAtom = 0; originalAtom != topIn.Natom(); ++originalAtom)
-    mprintf("\t%8i -> %8i\n", originalAtom + 1, SelectedIdx[originalAtom] + 1);
+  if (debug_ > 0) {
+    mprintf("DEBUG: Original atom -> Selected Index mapping:\n");
+    for (int originalAtom = 0; originalAtom != topIn.Natom(); ++originalAtom)
+      mprintf("\t%8i -> %8i\n", originalAtom + 1, SelectedIdx[originalAtom] + 1);
+  }
   // Create initial 1 to 1 atom map for all selected atoms; indices in 
   // SymmetricAtomIndices will correspond to positions in AMap.
   AMap_.resize( selectedTgt_.Natom() );

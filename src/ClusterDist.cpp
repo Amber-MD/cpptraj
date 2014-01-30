@@ -387,10 +387,10 @@ Centroid* ClusterDist_RMS::NewCentroid( Cframes const& cframesIn ) {
 
 // ---------- Distance calc routines for COORDS DataSets using SRMSD -----------
 ClusterDist_SRMSD::ClusterDist_SRMSD(DataSet* dIn, AtomMask const& maskIn, 
-                                     bool nofit, bool useMass) :
+                                     bool nofit, bool useMass, int debugIn) :
   coords_((DataSet_Coords*)dIn),
   mask_(maskIn),
-  SRMSD_(mask_, !nofit, useMass, coords_->Top())
+  SRMSD_(mask_, !nofit, useMass, coords_->Top(), debugIn)
 {
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
   frm2_ = frm1_;

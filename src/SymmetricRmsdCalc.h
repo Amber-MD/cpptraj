@@ -7,7 +7,7 @@
 class SymmetricRmsdCalc {
   public:
     SymmetricRmsdCalc();
-    SymmetricRmsdCalc(AtomMask const&, bool, bool, Topology const&);
+    SymmetricRmsdCalc(AtomMask const&, bool, bool, Topology const&,int);
     /// Set target mask string, fit, and mass options.
     int InitSymmRMSD(std::string const&, bool, bool, bool, int);
     /// Setup target mask, find symmetric atoms.
@@ -16,7 +16,7 @@ class SymmetricRmsdCalc {
     double SymmRMSD(Frame const&, Frame&);
     /// Calculate symm. RMSD of target to centered ref with potential coordinate remapping.
     double SymmRMSD_TGT(Frame const&, Frame const&);
-    /// Calculate symm. RMSD using pre-centered reference corresponding to tgtMask.
+    /// Calculate symm. RMSD using target and pre-centered reference corresponding to tgtMask.
     double SymmRMSD_CenteredRef(Frame const&, Frame const&);
     AtomMask const& TgtMask()     const { return tgtMask_;     }
     const Frame* RemapFrame()     const { return &remapFrame_; }
@@ -38,7 +38,7 @@ class SymmetricRmsdCalc {
     Hungarian cost_matrix_; ///< Hungarian algorithm cost matrix.
     Iarray AMap_;           ///< AMap_[oldSelectedTgt] = newSelectedTgt
     Iarray targetMap_;      ///< targetMap_[oldTgt] = newTgt
-    Frame remapFrame_;      ///< Target frame re-mapped for symmetry
+    Frame remapFrame_;      ///< Original target frame re-mapped for symmetry
     Frame tgtRemap_;        ///< Selected target atoms re-mapped for symmetry.
     Frame selectedTgt_;     ///< Selected atoms from target frame.
     AtomMask tgtMask_;      ///< Mask selecting atoms in target for RMSD calc.
