@@ -3,26 +3,22 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(0), fit_(true),
-  useMass_(false), remap_(false) {}
+SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(0), fit_(true), useMass_(false) {}
 
 // CONSTRUCTOR - For use when only RMSD is wanted.
 SymmetricRmsdCalc::SymmetricRmsdCalc(AtomMask const& maskIn, bool fitIn, 
                                      bool useMassIn, Topology const& topIn, int debugIn) :
-  debug_(debugIn), tgtMask_(maskIn), fit_(fitIn), useMass_(useMassIn), remap_(false)
+  debug_(debugIn), fit_(fitIn), useMass_(useMassIn)
 {
-  SetupSymmRMSD( topIn );
+  SetupSymmRMSD( topIn, maskIn, false );
 }
 
 // SymmetricRmsdCalc::InitSymmRMSD()
-int SymmetricRmsdCalc::InitSymmRMSD(std::string const& tMaskExpr, bool fitIn,
-                                    bool useMassIn, bool remapIn, int debugIn)
+int SymmetricRmsdCalc::InitSymmRMSD(bool fitIn, bool useMassIn, int debugIn)
 {
-  if (tgtMask_.SetMaskString( tMaskExpr )) return 1;
   debug_ = debugIn;
   fit_ = fitIn;
   useMass_ = useMassIn;
-  remap_ = remapIn;
   return 0;
 }
 #ifdef DEBUGSYMMRMSD
@@ -68,29 +64,16 @@ void SymmetricRmsdCalc::FindSymmetricAtoms(int at, AtomMap const& resmap,
 /** Find potential symmetric atoms. All residues up to the last selected
   * residue are considered.
   */
-int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
-  // Setup target mask.
-  if (topIn.SetupIntegerMask( tgtMask_ )) return 1;
-  tgtMask_.MaskInfo();
-  if (tgtMask_.None()) {
-    mprintf("Warning: No atoms selected by mask '%s'\n", tgtMask_.MaskString());
-    return 1;
-  }
-  // Allocate space for selected atoms in target frame. This will also
-  // put the correct masses in based on the mask.
-  selectedTgt_.SetupFrameFromMask(tgtMask_, topIn.Atoms());
-  // Allocate space for remapped selected target atoms
-  tgtRemap_ = selectedTgt_;
-  if (remap_) {
-    // Allocate space for remapped frame; same # atoms as original frame
-    remapFrame_.SetupFrameV( topIn.Atoms(), topIn.HasVelInfo(), topIn.NrepDim() );
-    targetMap_.resize( topIn.Natom() );
-  }
+int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn, AtomMask const& tgtMask, bool remapIn)
+{
+  // Allocate space for remapping selected atoms in target frame. This will
+  // also put the correct masses in based on the mask.
+  tgtRemap_.SetupFrameFromMask(tgtMask, topIn.Atoms());
   // Create map of original atom numbers to selected indices
   Iarray SelectedIdx( topIn.Natom(), -1 );
   int tgtIdx = 0;
   for (int originalAtom = 0; originalAtom != topIn.Natom(); ++originalAtom)
-    if ( originalAtom == tgtMask_[tgtIdx] )
+    if ( originalAtom == tgtMask[tgtIdx] )
       SelectedIdx[originalAtom] = tgtIdx++;
   if (debug_ > 0) {
     mprintf("DEBUG: Original atom -> Selected Index mapping:\n");
@@ -99,9 +82,9 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
   }
   // Create initial 1 to 1 atom map for all selected atoms; indices in 
   // SymmetricAtomIndices will correspond to positions in AMap.
-  AMap_.resize( selectedTgt_.Natom() );
+  AMap_.resize( tgtRemap_.Natom() );
   // Determine last selected residue.
-  int last_res = topIn[tgtMask_.back()].ResNum() + 1;
+  int last_res = topIn[tgtMask.back()].ResNum() + 1;
   mprintf("\tResidues up to %s will be considered for symmetry correction.\n",
           topIn.TruncResNameNum(last_res-1).c_str());
   // In each residue, determine which selected atoms are symmetric.
@@ -171,7 +154,7 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
       }
     }
     // If remapping and not all atoms in a residue are selected, warn user.
-    if (remap_) {
+    if (remapIn) {
       for (int at = 0; at < resmap.Natom(); at++) {
         if (AtomStatus[at] == UNSELECTED) {
           mprintf("Warning: Not all atoms selected in residue '%s'. Re-mapped\n"
@@ -202,33 +185,17 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
       mprintf("\t%8u) ", symmatoms - SymmetricAtomIndices_.begin());
       for (Iarray::const_iterator atom = symmatoms->begin();
                                   atom != symmatoms->end(); ++atom)
-        mprintf(" %s(%i)", topIn.AtomMaskName(tgtMask_[*atom]).c_str(), tgtMask_[*atom] + 1);
+        mprintf(" %s(%i)", topIn.AtomMaskName(tgtMask[*atom]).c_str(), tgtMask[*atom] + 1);
       mprintf("\n");
     } 
   }
   return 0;
 }
 
-/** It is expected that TGT and REF already correspond to tgtMask. */
-double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT, Frame& REF) {
-  REF.CenterOnOrigin( useMass_ );
-  return SymmRMSD_CenteredRef(TGT, REF);
-}
-
-/** Calculate symmetric RMSD, potentially with coordinate remapping.*/
-double SymmetricRmsdCalc::SymmRMSD_TGT( Frame const& TGT, Frame const& centeredREF)
-{
-  selectedTgt_.SetCoordinates( TGT, tgtMask_ );
-  double rmsdval = SymmRMSD_CenteredRef( selectedTgt_, centeredREF);
-  if (remap_) {
-    // Now re-map the target frame
-    for (int atom = 0; atom < (int)targetMap_.size(); atom++)
-      targetMap_[atom] = atom;
-    for (unsigned int ref = 0; ref < AMap_.size(); ++ref)
-      targetMap_[ tgtMask_[ref] ] = tgtMask_[AMap_[ref]];
-    remapFrame_.SetCoordinatesByMap( TGT, targetMap_ );
-  }
-  return rmsdval;
+/** It is expected that TGT and REF correspond to each other. */
+double SymmetricRmsdCalc::SymmRMSD(Frame const& selectedTGT, Frame& selectedREF) {
+  selectedREF.CenterOnOrigin( useMass_ );
+  return SymmRMSD_CenteredRef(selectedTGT, selectedREF);
 }
 
 // SymmetricRmsdCalc::SymmRMSD()

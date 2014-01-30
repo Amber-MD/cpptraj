@@ -6,28 +6,24 @@
 /// Class for performing symmetry-corrected RMSD calculations.
 class SymmetricRmsdCalc {
   public:
+    typedef std::vector<int> Iarray;
     SymmetricRmsdCalc();
     SymmetricRmsdCalc(AtomMask const&, bool, bool, Topology const&,int);
     /// Set target mask string, fit, and mass options.
-    int InitSymmRMSD(std::string const&, bool, bool, bool, int);
+    int InitSymmRMSD(bool, bool, int);
     /// Setup target mask, find symmetric atoms.
-    int SetupSymmRMSD(Topology const&);
+    int SetupSymmRMSD(Topology const&, AtomMask const&, bool);
     /// Calculate symm. RMSD using target and reference that already correspond to tgtMask
     double SymmRMSD(Frame const&, Frame&);
-    /// Calculate symm. RMSD of target to centered ref with potential coordinate remapping.
-    double SymmRMSD_TGT(Frame const&, Frame const&);
     /// Calculate symm. RMSD using target and pre-centered reference corresponding to tgtMask.
     double SymmRMSD_CenteredRef(Frame const&, Frame const&);
-    AtomMask const& TgtMask()     const { return tgtMask_;     }
-    const Frame* RemapFrame()     const { return &remapFrame_; }
     bool Fit()                    const { return fit_;         }
     bool UseMass()                const { return useMass_;     }
-    bool ReMap()                  const { return remap_;       }
     Matrix_3x3 const& RotMatrix() const { return rotMatrix_;   }
     Vec3 const& TgtTrans()        const { return tgtTrans_;    }
+    Iarray const& AMap()          const { return AMap_;        }
   private:
     enum atomStatusType { UNSELECTED = 0, NONSYMM, SYMM };
-    typedef std::vector<int> Iarray;
     typedef std::vector<Iarray> AtomIndexArray;
     
     void FindSymmetricAtoms(int, AtomMap const&, std::string const&, Iarray&, Iarray&) const;
@@ -37,15 +33,10 @@ class SymmetricRmsdCalc {
     int debug_;
     Hungarian cost_matrix_; ///< Hungarian algorithm cost matrix.
     Iarray AMap_;           ///< AMap_[oldSelectedTgt] = newSelectedTgt
-    Iarray targetMap_;      ///< targetMap_[oldTgt] = newTgt
-    Frame remapFrame_;      ///< Original target frame re-mapped for symmetry
     Frame tgtRemap_;        ///< Selected target atoms re-mapped for symmetry.
-    Frame selectedTgt_;     ///< Selected atoms from target frame.
-    AtomMask tgtMask_;      ///< Mask selecting atoms in target for RMSD calc.
     Matrix_3x3 rotMatrix_;  ///< Hold best-fit rotation matrix for target.
     Vec3 tgtTrans_;         ///< Hold translation of target to origin.
     bool fit_;              ///< If true, perform RMS best-fit.
     bool useMass_;          ///< If true, mass-weight calc.
-    bool remap_;            ///< If true, remap target frame for symmetry.
 };
 #endif
