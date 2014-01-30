@@ -9,13 +9,13 @@ class SymmetricRmsdCalc {
     typedef std::vector<int> Iarray;
     SymmetricRmsdCalc();
     SymmetricRmsdCalc(AtomMask const&, bool, bool, Topology const&,int);
-    /// Set target mask string, fit, and mass options.
+    /// Set fit, mass, and debug options.
     int InitSymmRMSD(bool, bool, int);
-    /// Setup target mask, find symmetric atoms.
+    /// Find symmetric atoms given a Topology and AtomMask.
     int SetupSymmRMSD(Topology const&, AtomMask const&, bool);
-    /// Calculate symm. RMSD using target and reference that already correspond to tgtMask
+    /// Calc symm. RMSD using target and reference containing selected atoms only. 
     double SymmRMSD(Frame const&, Frame&);
-    /// Calculate symm. RMSD using target and pre-centered reference corresponding to tgtMask.
+    /// Calc symm. RMSD using target and pre-centered reference containing selected atoms.
     double SymmRMSD_CenteredRef(Frame const&, Frame const&);
     bool Fit()                    const { return fit_;         }
     bool UseMass()                const { return useMass_;     }
