@@ -12,10 +12,12 @@ class SymmetricRmsdCalc {
     int InitSymmRMSD(std::string const&, bool, bool, bool, int);
     /// Setup target mask, find symmetric atoms.
     int SetupSymmRMSD(Topology const&);
-    /// Calculate symm. RMSD using pre-centered reference corresponding to tgtMask.
-    double SymmRMSD_CenteredRef(Frame const&, Frame const&);
     /// Calculate symm. RMSD using target and reference that already correspond to tgtMask
     double SymmRMSD(Frame const&, Frame&);
+    /// Calculate symm. RMSD of target to centered ref with potential coordinate remapping.
+    double SymmRMSD_TGT(Frame const&, Frame const&);
+    /// Calculate symm. RMSD using pre-centered reference corresponding to tgtMask.
+    double SymmRMSD_CenteredRef(Frame const&, Frame const&);
     AtomMask const& TgtMask()     const { return tgtMask_;     }
     const Frame* RemapFrame()     const { return &remapFrame_; }
     bool Fit()                    const { return fit_;         }

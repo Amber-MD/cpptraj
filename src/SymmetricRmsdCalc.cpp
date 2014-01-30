@@ -218,20 +218,37 @@ double SymmetricRmsdCalc::SymmRMSD(Frame const& TGT, Frame& REF) {
   return SymmRMSD_CenteredRef(TGT, REF);
 }
 
+/** Calculate symmetric RMSD, potentially with coordinate remapping.*/
+double SymmetricRmsdCalc::SymmRMSD_TGT( Frame const& TGT, Frame const& centeredREF)
+{
+  selectedTgt_.SetCoordinates( TGT, tgtMask_ );
+  double rmsdval = SymmRMSD_CenteredRef( selectedTgt_, centeredREF);
+  if (remap_) {
+    // Now re-map the target frame
+    for (int atom = 0; atom < (int)targetMap_.size(); atom++)
+      targetMap_[atom] = atom;
+    for (unsigned int ref = 0; ref < AMap_.size(); ++ref)
+      targetMap_[ tgtMask_[ref] ] = tgtMask_[AMap_[ref]];
+    remapFrame_.SetCoordinatesByMap( TGT, targetMap_ );
+  }
+  return rmsdval;
+}
+
 // SymmetricRmsdCalc::SymmRMSD()
-double SymmetricRmsdCalc::SymmRMSD_CenteredRef(Frame const& TGT, Frame const& centeredREF)
+/** selectedTgt and centeredREF must correspond to each other. */
+double SymmetricRmsdCalc::SymmRMSD_CenteredRef(Frame const& selectedTgt, Frame const& centeredREF)
 {
   // Create initial 1 to 1 atom map for all atoms; indices in 
   // SymmetricAtomIndices will correspond to positions in AMap.
   for (int atom = 0; atom < (int)AMap_.size(); atom++)
     AMap_[atom] = atom;
-  selectedTgt_.SetCoordinates(TGT, tgtMask_);
+  tgtRemap_.SetCoordinates(selectedTgt);
   // Calculate initial best fit RMSD if necessary
   if (fit_) {
-    selectedTgt_.RMSD_CenteredRef(centeredREF, rotMatrix_, tgtTrans_, useMass_);
-    // Since selectedTgt is moved to origin during RMSD calc and centeredREF
+    tgtRemap_.RMSD_CenteredRef(centeredREF, rotMatrix_, tgtTrans_, useMass_);
+    // Since tgtRemap is moved to origin during RMSD calc and centeredREF
     // should already be at the origin, just rotate.
-    selectedTgt_.Rotate( rotMatrix_ );
+    tgtRemap_.Rotate( rotMatrix_ );
   }
   // Correct RMSD for symmetry
   for (AtomIndexArray::const_iterator symmatoms = SymmetricAtomIndices_.begin();
@@ -247,7 +264,7 @@ double SymmetricRmsdCalc::SymmRMSD_CenteredRef(Frame const& TGT, Frame const& ce
     {
       for (Iarray::const_iterator ra = symmatoms->begin(); ra != symmatoms->end(); ++ra)
       { 
-        double dist2 = DIST2_NoImage( centeredREF.XYZ(*ra), selectedTgt_.XYZ(*ta) );
+        double dist2 = DIST2_NoImage( centeredREF.XYZ(*ra), tgtRemap_.XYZ(*ta) );
 #       ifdef DEBUGSYMMRMSD
         mprintf("\t\t%i to %i: %f\n", tgtMask_[*ta] + 1, tgtMask_[*ra] + 1, dist2);
 #       endif
@@ -278,25 +295,13 @@ double SymmetricRmsdCalc::SymmRMSD_CenteredRef(Frame const& TGT, Frame const& ce
     mprintf("\t%u -> %i\n", tgtMask_[ref] + 1, tgtMask_[AMap_[ref]] + 1);
   mprintf("----------------------------------------\n");
 # endif
-  // Remap the original target frame, then calculate RMSD
+  // Remap the target frame for symmetry, then calculate new RMSD.
   // TODO: Does the topology need to be remapped as well?
   double rmsdval;
-  if (fit_) {
-    // Reset to original target coordinates before remapping
-    selectedTgt_.SetCoordinates(TGT, tgtMask_);
-    tgtRemap_.SetCoordinatesByMap(selectedTgt_, AMap_);
+  tgtRemap_.SetCoordinatesByMap(selectedTgt, AMap_);
+  if (fit_)
     rmsdval = tgtRemap_.RMSD_CenteredRef( centeredREF, rotMatrix_, tgtTrans_, useMass_ );
-  } else {
-    tgtRemap_.SetCoordinatesByMap(selectedTgt_, AMap_);
+  else
     rmsdval = tgtRemap_.RMSD_NoFit( centeredREF, useMass_ );
-  }
-  if (remap_) {
-    // Now re-map the target frame
-    for (int atom = 0; atom < (int)targetMap_.size(); atom++)
-      targetMap_[atom] = atom;
-    for (unsigned int ref = 0; ref < AMap_.size(); ++ref)
-      targetMap_[ tgtMask_[ref] ] = tgtMask_[AMap_[ref]];
-    remapFrame_.SetCoordinatesByMap( TGT, targetMap_ );
-  }
   return rmsdval;
 }
