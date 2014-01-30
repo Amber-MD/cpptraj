@@ -16,7 +16,6 @@ class Action_SymmetricRmsd : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
 
-    bool remap_;              ///< If true re-map symmetric atoms
     DataSet* rmsd_;           ///< Output DataSet
     ReferenceAction REF_;     ///< Hold reference frame/traj/options
     SymmetricRmsdCalc SRMSD_; ///< Symmetric RMSD calculation.

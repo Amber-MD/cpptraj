@@ -5,7 +5,7 @@
 #include "DistRoutines.h"
 
 // CONSTRUCTOR
-Action_SymmetricRmsd::Action_SymmetricRmsd() : remap_(false), rmsd_(0) {}
+Action_SymmetricRmsd::Action_SymmetricRmsd() : rmsd_(0) {}
 
 void Action_SymmetricRmsd::Help() {
   mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [nofit] [mass] [remap]\n"
@@ -23,7 +23,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
   bool fit = !actionArgs.hasKey("nofit");
   bool useMass = actionArgs.hasKey("mass");
   DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
-  remap_ = actionArgs.hasKey("remap");
+  bool remap = actionArgs.hasKey("remap");
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
   bool first = actionArgs.hasKey("first");
@@ -33,7 +33,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
   // Get the RMS mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
   // Initialize Symmetric RMSD calc.
-  if (SRMSD_.InitSymmRMSD( tMaskExpr, fit, useMass, debugIn )) return Action::ERR;
+  if (SRMSD_.InitSymmRMSD( tMaskExpr, fit, useMass, remap, debugIn )) return Action::ERR;
   // Initialize reference
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
@@ -57,7 +57,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
   if (SRMSD_.UseMass())
     mprintf(", mass-weighted");
   mprintf(".\n");
-  if (remap_) mprintf("\tAtoms will be re-mapped for symmetry.\n");
+  if (SRMSD_.ReMap()) mprintf("\tAtoms will be re-mapped for symmetry.\n");
   return Action::OK;
 }
 
@@ -80,7 +80,7 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame
   // Calculate symmetric RMSD
   double rmsdval = SRMSD_.SymmRMSD_CenteredRef( *currentFrame, REF_.SelectedRef() );
   rmsd_->Add(frameNum, &rmsdval);
-  if (remap_)
+  if (SRMSD_.ReMap())
     *frameAddress = (Frame*)SRMSD_.RemapFrame();
   if ( SRMSD_.Fit() )
     (*frameAddress)->Trans_Rot_Trans( SRMSD_.TgtTrans(), SRMSD_.RotMatrix(), REF_.RefTrans() );

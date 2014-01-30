@@ -3,12 +3,13 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(0), fit_(true), useMass_(false) {}
+SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(0), fit_(true),
+  useMass_(false), remap_(false) {}
 
 // CONSTRUCTOR - For use when only RMSD is wanted.
 SymmetricRmsdCalc::SymmetricRmsdCalc(AtomMask const& maskIn, bool fitIn, 
                                      bool useMassIn, Topology const& topIn) :
-  tgtMask_(maskIn), fit_(fitIn), useMass_(useMassIn)
+  tgtMask_(maskIn), fit_(fitIn), useMass_(useMassIn), remap_(false)
 {
   Topology* stripTop = topIn.partialModifyStateByMask( tgtMask_ );
   stripTop->Brief("SymmRMSD"); // DEBUG
@@ -20,12 +21,13 @@ SymmetricRmsdCalc::SymmetricRmsdCalc(AtomMask const& maskIn, bool fitIn,
 
 // SymmetricRmsdCalc::InitSymmRMSD()
 int SymmetricRmsdCalc::InitSymmRMSD(std::string const& tMaskExpr, bool fitIn,
-                                    bool useMassIn, int debugIn)
+                                    bool useMassIn, bool remapIn, int debugIn)
 {
   if (tgtMask_.SetMaskString( tMaskExpr )) return 1;
   debug_ = debugIn;
   fit_ = fitIn;
   useMass_ = useMassIn;
+  remap_ = remapIn;
   return 0;
 }
 #ifdef DEBUGSYMMRMSD
@@ -82,8 +84,13 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
   // Allocate space for selected atoms in target frame. This will also
   // put the correct masses in based on the mask.
   selectedTgt_.SetupFrameFromMask(tgtMask_, topIn.Atoms());
-  // Allocate space for remapped target frame
-  remapFrame_ = selectedTgt_;
+  // Allocate space for remapped selected target atoms
+  tgtRemap_ = selectedTgt_;
+  if (remap_) {
+    // Allocate space for remapped frame; same # atoms as original frame
+    remapFrame_.SetupFrameV( topIn.Atoms(), topIn.HasVelInfo(), topIn.NrepDim() );
+    targetMap_.resize( topIn.Natom() );
+  }
   // Create map of original atom numbers to selected indices
   Iarray SelectedIdx( topIn.Natom(), -1 );
   int tgtIdx = 0;
@@ -163,6 +170,17 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn) {
             *it = SelectedIdx[ *it + res_first_atom ];
           }
           SymmetricAtomIndices_.push_back( selectedSymmAtoms );
+        }
+      }
+    }
+    // If remapping and not all atoms in a residue are selected, warn user.
+    if (remap_) {
+      for (int at = 0; at < resmap.Natom(); at++) {
+        if (AtomStatus[at] == UNSELECTED) {
+          mprintf("Warning: Not all atoms selected in residue '%s'. Re-mapped\n"
+                  "Warning:   structures may appear distorted.\n", 
+                  topIn.TruncResNameNum(res).c_str());
+          break;
         }
       }
     }
@@ -262,11 +280,23 @@ double SymmetricRmsdCalc::SymmRMSD_CenteredRef(Frame const& TGT, Frame const& ce
 # endif
   // Remap the original target frame, then calculate RMSD
   // TODO: Does the topology need to be remapped as well?
-  remapFrame_.SetCoordinatesByMap(selectedTgt_, AMap_);
   double rmsdval;
-  if (fit_)
-    rmsdval = remapFrame_.RMSD_CenteredRef( centeredREF, rotMatrix_, tgtTrans_, useMass_ );
-  else
-    rmsdval = remapFrame_.RMSD_NoFit( centeredREF, useMass_ );
+  if (fit_) {
+    // Reset to original target coordinates before remapping
+    selectedTgt_.SetCoordinates(TGT, tgtMask_);
+    tgtRemap_.SetCoordinatesByMap(selectedTgt_, AMap_);
+    rmsdval = tgtRemap_.RMSD_CenteredRef( centeredREF, rotMatrix_, tgtTrans_, useMass_ );
+  } else {
+    tgtRemap_.SetCoordinatesByMap(selectedTgt_, AMap_);
+    rmsdval = tgtRemap_.RMSD_NoFit( centeredREF, useMass_ );
+  }
+  if (remap_) {
+    // Now re-map the target frame
+    for (int atom = 0; atom < (int)targetMap_.size(); atom++)
+      targetMap_[atom] = atom;
+    for (unsigned int ref = 0; ref < AMap_.size(); ++ref)
+      targetMap_[ tgtMask_[ref] ] = tgtMask_[AMap_[ref]];
+    remapFrame_.SetCoordinatesByMap( TGT, targetMap_ );
+  }
   return rmsdval;
 }
