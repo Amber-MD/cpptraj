@@ -39,7 +39,7 @@ class Action_Gist: public Action, ImagedAction  {
     bool doOrder_;
     bool doEij_;
     //time 
-    clock_t gist_t_begin_;
+    //clock_t gist_t_begin_; // DRR - disabled for now
 #   ifdef TIMER
     Timer gist_grid_;
     Timer gist_nonbond_;

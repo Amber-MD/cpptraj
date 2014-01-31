@@ -38,8 +38,8 @@ class DataSet_Vector : public DataSet_1D {
       origins_.push_back( c );
     }
     typedef Varray::const_iterator iterator;
-    const iterator begin() const { return vectors_.begin(); }
-    const iterator end()   const { return vectors_.end();   }
+    iterator begin()       const { return vectors_.begin(); }
+    iterator end()         const { return vectors_.end();   }
     const Vec3&    Back()  const { return vectors_.back();  }
     /// Calculate spherical harmonics arrays for given Legendre order
     void CalcSphericalHarmonics(int);

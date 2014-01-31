@@ -1,6 +1,6 @@
 // Gist 
 #include <cmath>
-#include <ctime>
+//#include <ctime>
 using namespace std;
 #include "Action_Gist.h"
 #include "CpptrajStdio.h"
@@ -49,12 +49,12 @@ void Action_Gist::Help() {
   mprintf("  Calculate GIST between water molecules in selected region \n");
 }
 
-static double diffclock(clock_t clock1,clock_t clock2)
+/*static double diffclock(clock_t clock1,clock_t clock2)
 {
   double diffticks=clock1-clock2;
   double diffms=(diffticks*1000)/CLOCKS_PER_SEC;
   return diffms;
-} 
+}*/
 
 // Action_Gist::Init()
 Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
@@ -64,7 +64,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     mprinterr("Error: GIST currently cannot be used in ensemble mode.\n");
     return Action::ERR;
   }
-  gist_t_begin_ = clock();
+  //gist_t_begin_ = clock();
   // Get keywords
   // Dataset to store gist results
   datafile_ = actionArgs.GetStringKey("out");
@@ -845,8 +845,8 @@ void Action_Gist::Print() {
     PrintOutput(datafile_);
   else
     PrintOutput("gist-output.dat");
-  double gist_t_diff = diffclock(clock(), gist_t_begin_);
-  mprintf("GIST Time elapsed: %f ms\n", gist_t_diff);
+  //double gist_t_diff = diffclock(clock(), gist_t_begin_);
+  //mprintf("GIST Time elapsed: %f ms\n", gist_t_diff);
 }
 
 // Print GIST data in dx format
