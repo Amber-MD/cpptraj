@@ -22,13 +22,19 @@ class Analysis_Timecorr : public Analysis {
       double r3iave_;
       double r6iave_;
     };
-    enum timecorrMode { AUTO = 0, CROSS };
+    enum ModeType { AUTOCORR = 0, CROSSCORR, DOTPRODUCT, DOTANGLE, CROSSPRODUCT };
     static const char* ModeString[];
+
+    std::vector<double> CalculateAverages(DataSet_Vector const&, AvgResults&);
+    void CalcCorr(int);
+    int TimeCorrelation();
+    int DotProduct();
+    int CrossProduct();
 
     double tstep_;
     double tcorr_;
     int order_;
-    timecorrMode mode_;
+    ModeType mode_;
     bool dplr_;
     bool norm_;
     bool drct_;
@@ -36,11 +42,9 @@ class Analysis_Timecorr : public Analysis {
     ComplexArray data2_;
     DataSet_Vector* vinfo1_;
     DataSet_Vector* vinfo2_;
+    DataSet* DataOut_;       ///< Output data set
     std::string filename_;
     CorrF_FFT pubfft_;
     CorrF_Direct corfdir_;
-    
-    std::vector<double> CalculateAverages(DataSet_Vector const&, AvgResults&);
-    void CalcCorr(int);
 };
 #endif

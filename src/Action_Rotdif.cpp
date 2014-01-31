@@ -344,7 +344,7 @@ DataSet_Vector Action_Rotdif::RandomVectors() {
       mprinterr("Error: Rotdif: Could not set up %s for writing.\n",randvecOut_.c_str());
     } else {
       int idx = 1;
-      for (DataSet_Vector::iterator vec = XYZ.begin(); vec != XYZ.end(); ++vec)
+      for (DataSet_Vector::const_iterator vec = XYZ.begin(); vec != XYZ.end(); ++vec)
         rvout.Printf("%6i  %15.8lf  %15.8lf  %15.8lf\n",
                      idx++, (*vec)[0], (*vec)[1], (*vec)[2]);
       rvout.CloseFile();
@@ -599,8 +599,8 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
 
   // Loop over all random vectors
   int nvec = 0; // index into tau1, tau2, sumc2
-  for (DataSet_Vector::iterator randvec = random_vectors_.begin();
-                                randvec != random_vectors_.end(); ++randvec)
+  for (DataSet_Vector::const_iterator randvec = random_vectors_.begin();
+                                      randvec != random_vectors_.end(); ++randvec)
   {
     // Rotate vector i into D frame
     // This is an inverse rotation. Since matrix_D is in column major order
@@ -1138,8 +1138,8 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
   int A5 = m_rows * 5;
   double* At = matrix_At;
   int nvec = 0;
-  for (DataSet_Vector::iterator randvec = random_vectors_.begin();
-                                randvec != random_vectors_.end(); ++randvec)
+  for (DataSet_Vector::const_iterator randvec = random_vectors_.begin();
+                                      randvec != random_vectors_.end(); ++randvec)
   {
     // Transpose of matrix A
     double *A = matrix_A + nvec;
@@ -1478,8 +1478,8 @@ int Action_Rotdif::DetermineDeffs() {
     return 1; // Should never get here, olegendre is checked in init
   // LOOP OVER RANDOM VECTORS
   int nvec = 0;
-  for (DataSet_Vector::iterator rndvec = random_vectors_.begin();
-                                rndvec != random_vectors_.end(); ++rndvec)
+  for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
+                                      rndvec != random_vectors_.end(); ++rndvec)
   {
     progress.Update( nvec );
     // Reset rotated_vectors to the beginning 
