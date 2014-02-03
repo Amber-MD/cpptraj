@@ -167,12 +167,13 @@ int CpptrajState::Run() {
       err = 1;
     } else
       err = RunEnsemble();
-# else
+#   else
     switch ( trajinList_.Mode() ) {
       case TrajinList::NORMAL   : err = RunNormal(); break;
       case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
       case TrajinList::UNDEFINED: break;
     }
+#   endif
     // Clean up Actions if run completed successfully.
     if (err == 0)
       actionList_.Clear();
@@ -187,7 +188,6 @@ int CpptrajState::Run() {
     DFL_.List();
     MasterDataFileWrite();
   }
-# endif
   mprintf("---------- RUN END ---------------------------------------------------\n");
   return err;
 }
