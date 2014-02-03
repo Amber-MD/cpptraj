@@ -60,14 +60,9 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
 # endif
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
-    // If run has not yet been called, run now.
-    if (State_.Nrun() < 1)
+    // If State is not empty, run now. 
+    if (!State_.EmptyState())
       err = State_.Run();
-    // If there are analyses remaining, run them.
-    if (!State_.Empty()) {
-      State_.RunAnalyses();
-      State_.MasterDataFileWrite();
-    } 
   } else if ( cmode == INTERACTIVE ) {
     err = Interactive();
   } else if ( cmode == ERROR ) {
@@ -304,11 +299,10 @@ int Cpptraj::Interactive() {
   Command::RetType readLoop = Command::C_OK;
   while ( readLoop != Command::C_QUIT ) {
     if (inputLine.GetInput()) {
-      // EOF (Ctrl-D) specified. If there are actions/analyses queued, ask 
-      // user if they really want to quit.
-      if (!State_.Empty()) {
-        if (inputLine.YesNoPrompt("EOF (Ctrl-D) specified but there are actions/analyses"
-                                  " queued. Really quit? [y/n]> "))
+      // EOF (Ctrl-D) specified. If state is not empty, ask before exiting.
+      if (!State_.EmptyState()) {
+        if (inputLine.YesNoPrompt("EOF (Ctrl-D) specified but there are actions/"
+                                  "analyses/trajectories queued. Really quit? [y/n]> "))
           break;
       } else
         break;
@@ -319,6 +313,14 @@ int Cpptraj::Interactive() {
         logfile_.Printf("%s\n", inputLine.c_str());
         logfile_.Flush();
       }
+    }
+    // If state is not empty, ask before exiting.
+    if (readLoop == Command::C_QUIT && !State_.EmptyState()) {
+      if (inputLine.YesNoPrompt("There are actions/analyses/trajectories queued. "
+                                "Really quit? [y/n]> "))
+        break;
+      else
+        readLoop = Command::C_OK;
     }
   }
   logfile_.CloseFile();

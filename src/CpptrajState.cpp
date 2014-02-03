@@ -134,11 +134,7 @@ int CpptrajState::TrajLength( std::string const& topname,
 // -----------------------------------------------------------------------------
 // CpptrajState::Run()
 int CpptrajState::Run() {
-  if (trajinList_.empty()) {
-    mprintf("Warning: No input trajectories specified. Not running.\n");
-    return 0;
-  }
-  ++nrun_;
+  int err = 0;
   // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
   // this means 1 or more actions has requested that a default COORDS DataSet
   // be created.
@@ -149,34 +145,50 @@ int CpptrajState::Run() {
     if (default_crd->Size() > 0)
       mprintf("Warning: Default COORDS DataSet has already been written to.\n");
     else {
+      // If no input trajectories this will not work.
+      if (trajinList_.empty()) {
+        mprinterr("Error: Cannot create COORDS DataSet; no input trajectories specified.\n");
+        return 1;
+      }
       ArgList crdcmd("createcrd _DEFAULTCRD_");
       crdcmd.MarkArg(0);
       if (AddAction( Action_CreateCrd::Alloc, crdcmd ))
         return 1;
     }
   }
-
-  int err = 0;
-# ifdef MPI
-  // Only ensemble mode allowed with MPI for now.
-  if ( trajinList_.Mode() != TrajinList::ENSEMBLE ) {
-    mprinterr("Error: Only 'ensemble' mode supported in parallel.\n");
-    err = 1;
-  } else
-    err = RunEnsemble();
+  mprintf("---------- RUN BEGIN -------------------------------------------------\n");
+  if (trajinList_.empty()) 
+    mprintf("Warning: No input trajectories specified.\n");
+  else {
+#   ifdef MPI
+    // Only ensemble mode allowed with MPI for now.
+    if ( trajinList_.Mode() != TrajinList::ENSEMBLE ) {
+      mprinterr("Error: Only 'ensemble' mode supported in parallel.\n");
+      err = 1;
+    } else
+      err = RunEnsemble();
 # else
-  switch ( trajinList_.Mode() ) {
-    case TrajinList::NORMAL   :
-      err = RunNormal();
-      break;
-    case TrajinList::ENSEMBLE :
-      err = RunEnsemble(); 
-      break;
-    case TrajinList::UNDEFINED: break;
+    switch ( trajinList_.Mode() ) {
+      case TrajinList::NORMAL   : err = RunNormal(); break;
+      case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
+      case TrajinList::UNDEFINED: break;
+    }
+    // Clean up Actions if run completed successfully.
+    if (err == 0)
+      actionList_.Clear();
+  }
+  // Analysis is currently disabled for ENSEMBLE
+  if ( trajinList_.Mode() != TrajinList::ENSEMBLE) {
+    // Run Analyses if any are specified.
+    if (err == 0)
+      err = RunAnalyses();
+    DSL_.List();
+    // Print DataFile information and write DataFiles
+    DFL_.List();
+    MasterDataFileWrite();
   }
 # endif
-  // Clean up Actions.
-  actionList_.Clear();
+  mprintf("---------- RUN END ---------------------------------------------------\n");
   return err;
 }
 
@@ -357,7 +369,7 @@ int CpptrajState::RunEnsemble() {
           bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
           // Do Output
           if (!suppress_output) 
-            TrajoutEnsemble[pos].Write(actionSet, CurrentParm, CurrentFrame);
+            TrajoutEnsemble[pos].WriteTrajout(actionSet, CurrentParm, CurrentFrame);
 #       ifndef MPI
         } // END loop over ensemble
 #       endif
@@ -382,7 +394,7 @@ int CpptrajState::RunEnsemble() {
 
   // Close output trajectories
   for (int member = 0; member < ensembleSize; ++member)
-    TrajoutEnsemble[member].Close();
+    TrajoutEnsemble[member].CloseTrajout();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
@@ -517,7 +529,7 @@ int CpptrajState::RunNormal() {
 #       ifdef TIMER
         trajout_time.Start();
 #       endif
-        trajoutList_.Write(actionSet, CurrentParm, CurrentFrame);
+        trajoutList_.WriteTrajout(actionSet, CurrentParm, CurrentFrame);
 #       ifdef TIMER
         trajout_time.Stop();
 #       endif
@@ -554,7 +566,7 @@ int CpptrajState::RunNormal() {
           trajout_time.Total(), (trajout_time.Total() / frames_time.Total() )*100.0 );
 # endif
   // Close output trajectories.
-  trajoutList_.Close();
+  trajoutList_.CloseTrajout();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nACTION OUTPUT:\n");
@@ -563,15 +575,6 @@ int CpptrajState::RunNormal() {
   // Sync DataSets across all threads. 
   //DSL_.SynchronizeData(); // NOTE: Disabled, trajs are not currently divided.
 # endif
-  // ========== A N A L Y S I S  P H A S E ==========
-  if (!analysisList_.Empty())
-    RunAnalyses();
-  DSL_.List();
-
-  // ========== D A T A  W R I T E  P H A S E ==========
-  // Print Datafile information
-  DFL_.List();
-  MasterDataFileWrite();
 
   return 0;
 }
@@ -585,7 +588,7 @@ void CpptrajState::MasterDataFileWrite() {
 
 // CpptrajState::RunAnalyses()
 int CpptrajState::RunAnalyses() {
-  ++nrun_;
+  if (analysisList_.Empty()) return 0;
 # ifdef TIMER
   Timer analysis_time;
   analysis_time.Start();
