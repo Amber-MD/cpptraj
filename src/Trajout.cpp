@@ -77,6 +77,8 @@ int Trajout::InitTrajWrite(std::string const& tnameIn, ArgList *argIn,
   if (trajio_ == 0)
     trajio_ = AllocTrajIO( writeFormat );
   if (trajio_ == 0) return 1;
+  mprintf("\tWriting '%s' as %s\n", TrajFilename().full(), 
+          TrajectoryFile::FormatString(writeFormat));
   trajio_->SetDebug( debug_ );
   // Process additional arguments
   if (argIn != 0) {
