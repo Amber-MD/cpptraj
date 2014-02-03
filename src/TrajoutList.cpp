@@ -121,12 +121,12 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList& argIn,
   return 0;
 }
 
-// TrajoutList::Write()
+// TrajoutList::WriteTrajout()
 /** Go through each output traj, call write. The first time CurrentParm
   * matches the parm the trajectory was originally set up with it will
   * be opened, no need to call BeginTraj.
   */ 
-int TrajoutList::Write(int set, Topology *CurrentParm, Frame *CurrentFrame) { 
+int TrajoutList::WriteTrajout(int set, Topology *CurrentParm, Frame *CurrentFrame) { 
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj) 
   {
     if ( (*traj)->WriteFrame(set, CurrentParm, *CurrentFrame) ) {
@@ -134,15 +134,15 @@ int TrajoutList::Write(int set, Topology *CurrentParm, Frame *CurrentFrame) {
       return 1;
     }
   }
-
   return 0;
 }
 
-// TrajoutList::Close()
+// TrajoutList::CloseTrajout()
 /** Close output trajectories. Called after input traj processing completed. */
-void TrajoutList::Close() {
+void TrajoutList::CloseTrajout() {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
     (*traj)->EndTraj();
+  Clear();
 }
 
 // TrajoutList::List()
@@ -153,4 +153,3 @@ void TrajoutList::List() const {
       (*traj)->PrintInfo( 1 );
   }
 }
-
