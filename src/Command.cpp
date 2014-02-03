@@ -1415,6 +1415,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "go",            0, Help_Run,             RunState        },
   { GENERAL, "head",          0, Help_System,          SystemCmd       },
   { GENERAL, "help",          0, Help_Help,            Help            },
+  { GENERAL, "less",          0, Help_System,          SystemCmd       },
   { GENERAL, "list",          0, Help_List,            ListAll         },
   { GENERAL, "loadcrd",       0, Help_LoadCrd,         LoadCrd         },
   { GENERAL, "loadtraj",      0, Help_LoadTraj,        LoadTraj        },
