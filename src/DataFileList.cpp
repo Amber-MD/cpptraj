@@ -131,7 +131,7 @@ void DataFileList::List() const {
     return;
   }
 
-  mprintf("DATAFILE OUTPUT:\n");
+  mprintf("\nDATAFILE OUTPUT:\n");
   for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
     mprintf("  %s (%s): ",(*it)->DataFilename().base(), (*it)->FormatString());
     (*it)->DataSetNames();
