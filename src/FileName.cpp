@@ -1,5 +1,6 @@
 #include "FileName.h"
 #include "StringRoutines.h" // tildeExpansion
+#include "CpptrajStdio.h"
 
 // COPY CONSTRUCTOR
 FileName::FileName( const FileName& rhs ) : fullPathName_(rhs.fullPathName_),
@@ -96,5 +97,10 @@ int FileName::SetFileName( std::string const& nameIn, bool isCompressed ) {
 }
 
 int FileName::SetFileNameWithExpansion( std::string const& nameIn ) {
-  return SetFileName( tildeExpansion( nameIn ), UNKNOWN );
+  if (SetFileName( tildeExpansion( nameIn ), UNKNOWN )) return 1;
+  if (empty()) {
+    mprinterr("Error: File '%s' does not exist.\n", nameIn.c_str());
+    return 1;
+  }
+  return 0;
 }

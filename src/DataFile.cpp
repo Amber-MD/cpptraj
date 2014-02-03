@@ -108,7 +108,7 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
   ArgList argIn = argListIn;
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
-  filename_.SetFileNameWithExpansion( fnameIn );
+  if (filename_.SetFileNameWithExpansion( fnameIn )) return 1;
   // 'as' keyword specifies a format
   std::string as_arg = argIn.GetStringKey("as");
   if (!as_arg.empty()) {

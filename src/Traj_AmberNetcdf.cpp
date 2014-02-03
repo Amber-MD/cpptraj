@@ -52,7 +52,7 @@ int Traj_AmberNetcdf::openTrajin() {
   */
 int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
 {
-  filename_.SetFileNameWithExpansion( fname );
+  if (filename_.SetFileNameWithExpansion( fname )) return TRAJIN_ERR;
   if (openTrajin()) return TRAJIN_ERR;
 
   // Sanity check - Make sure this is a Netcdf trajectory

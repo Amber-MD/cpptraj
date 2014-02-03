@@ -58,7 +58,7 @@ int ParmFile::ReadTopology(Topology& Top, std::string const& fnameIn,
   ArgList argIn = argListIn;
   ParmFormatType pfType;
   ParmIO* parmio = 0;
-  parmName_.SetFileNameWithExpansion( fnameIn );
+  if (parmName_.SetFileNameWithExpansion( fnameIn )) return 1;
   bool bondsearch = !argIn.hasKey("nobondsearch");
   Top.SetDebug( debugIn );
   Top.SetOffset( argIn.getKeyDouble("bondsearch", -1.0) );
