@@ -11,7 +11,8 @@
 Traj_AmberNetcdf::Traj_AmberNetcdf() :
   Coord_(0),
   eptotVID_(-1),
-  binsVID_(-1)
+  binsVID_(-1),
+  useVelAsCoords_(false)
 { }
 
 // DESTRUCTOR
@@ -46,6 +47,11 @@ int Traj_AmberNetcdf::openTrajin() {
   return 0;
 }
 
+int Traj_AmberNetcdf::processReadArgs(ArgList& argIn) {
+  useVelAsCoords_ = argIn.hasKey("usevelascoords");
+  return 0;
+}
+
 // Traj_AmberNetcdf::setupTrajin()
 /* * Open the netcdf file, read all dimension and variable IDs, close.
   * Return the number of frames in the file. 
@@ -70,7 +76,7 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
   // Get Frame info
   if ( SetupFrame()!=0 ) return TRAJIN_ERR;
   // Setup Coordinates/Velocities
-  if ( SetupCoordsVelo()!=0 ) return TRAJIN_ERR;
+  if ( SetupCoordsVelo( useVelAsCoords_ )!=0 ) return TRAJIN_ERR;
   SetVelocity( HasVelocities() );
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
@@ -161,7 +167,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
     start_[0] = set;
     count_[0] = 1;
     if ( checkNCerr(nc_get_vara_double(ncid_, TempVID_, start_, count_, frameIn.tAddress())) ) {
-      mprinterr("Error: Getting replica temperature.\n"); 
+      mprinterr("Error: Getting replica temperature for frame %i.\n", set+1); 
       return 1;
     }
     //fprintf(stderr,"DEBUG: Replica Temperature %lf\n",F->T);
@@ -175,7 +181,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   count_[1] = Ncatom();
   count_[2] = 3;
   if ( checkNCerr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)) ) {
-    mprinterr("Error: Getting frame %i\n", set);
+    mprinterr("Error: Getting coordinates for frame %i\n", set+1);
     return 1;
   }
   FloatToDouble(frameIn.xAddress(), Coord_);
@@ -183,7 +189,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   // Read Velocities
   if (velocityVID_ != -1) {
     if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
-      mprinterr("Error: Getting velocities for frame %i\n", set);
+      mprinterr("Error: Getting velocities for frame %i\n", set+1);
       return 1;
     }
     FloatToDouble(frameIn.vAddress(), Coord_);
@@ -193,7 +199,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   if (indicesVID_!=-1) {
     count_[1] = remd_dimension_;
     if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frameIn.iAddress())) ) {
-      mprinterr("Error: Getting replica indices.\n");
+      mprinterr("Error: Getting replica indices for frame %i.\n", set+1);
       return 1;
     }
     //mprintf("DEBUG:\tReplica indices:");
@@ -207,12 +213,12 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
     count_[2] = 0;
     if (checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())))
     {
-      mprinterr("Getting cell lengths.\n");
+      mprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
       return 1;
     }
     if (checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)))
     {
-      mprinterr("Getting cell angles.\n");
+      mprinterr("Error: Getting cell angles for frame %i.\n", set+2);
       return 1;
     }
   }
@@ -232,7 +238,7 @@ int Traj_AmberNetcdf::readVelocity(int set, Frame& frameIn) {
   // Read Velocities
   if (velocityVID_ != -1) {
     if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
-      mprinterr("Error: Getting velocities for frame %i\n", set);
+      mprinterr("Error: Getting velocities for frame %i\n", set+1);
       return 1;
     }
     FloatToDouble(frameIn.vAddress(), Coord_);

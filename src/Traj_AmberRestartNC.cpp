@@ -11,6 +11,7 @@
 Traj_AmberRestartNC::Traj_AmberRestartNC() :
   restartTime_(0),
   singleWrite_(false),
+  useVelAsCoords_(false),
   time0_(1.0),
   dt_(1.0)
 { }
@@ -43,6 +44,11 @@ int Traj_AmberRestartNC::openTrajin() {
   return 0;
 }
 
+int Traj_AmberRestartNC::processReadArgs(ArgList& argIn) {
+  useVelAsCoords_ = argIn.hasKey("usevelascoords");
+  return 0;
+}
+
 // Traj_AmberRestartNC::setupTrajin()
 /** Set up netcdf restart file for reading, get all variable and dimension IDs. 
   * Also check number of atoms against associated parmtop.
@@ -65,7 +71,7 @@ int Traj_AmberRestartNC::setupTrajin(std::string const& fname, Topology* trajPar
   // Get title
   SetTitle( GetAttrText("title") );
   // Setup Coordinates/Velocities
-  if ( SetupCoordsVelo()!=0 ) return TRAJIN_ERR;
+  if ( SetupCoordsVelo( useVelAsCoords_ )!=0 ) return TRAJIN_ERR;
   SetVelocity( HasVelocities() );
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {

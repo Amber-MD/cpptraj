@@ -46,6 +46,8 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   // Set trajectory filename
   SetTrajFileName( tnameIn, true );
   mprintf("\tReading '%s' as %s\n", TrajFilename().full(), TrajectoryFile::FormatString(tformat));
+  // Process format-specific read args
+  if (trajio_->processReadArgs( argIn )) return 1;
   // Set up the format for reading and get the number of frames.
   if (SetupTrajIO( tnameIn, *trajio_, argIn )) return 1;
   // Check how many frames will actually be read

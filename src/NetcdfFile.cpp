@@ -166,7 +166,7 @@ int NetcdfFile::SetupFrame() {
 /** Setup ncatom, ncatom3, atomDID, coordVID, spatialDID, spatialVID,
   * velocityVID. Check units and spatial dimensions.
   */
-int NetcdfFile::SetupCoordsVelo() {
+int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
   int spatial;
   atomDID_ = GetDimInfo(NCATOM, &ncatom_);
   if (atomDID_==-1) return 1;
@@ -200,6 +200,16 @@ int NetcdfFile::SetupCoordsVelo() {
   if ( coordVID_ == -1 && velocityVID_ == -1 ) {
     mprinterr("Error: NetCDF file has no coords and no velocities.\n");
     return 1;
+  }
+  // If using velocities as coordinates, swap them now.
+  if (useVelAsCoords) {
+    if (velocityVID_ == -1) {
+      mprinterr("Error: Cannot use velocities as coordinates; no velocities present.\n");
+      return 1;
+    }
+    mprintf("\tUsing velocities as coordinates.\n");
+    coordVID_ = velocityVID_;
+    velocityVID_ = -1;
   }
   return 0;
 }
