@@ -37,7 +37,8 @@ class NetcdfFile {
     inline int Ncatom()  { return ncatom_;  }
     inline int Ncatom3() { return ncatom3_; }
     inline int Ncframe() { return ncframe_; }
-    bool HasVelocities() { return (velocityVID_ != -1); } 
+    bool HasVelocities() { return (velocityVID_ != -1); }
+    bool HasCoords()     { return (coordVID_ != -1);    }
 
     inline void SetNcatom( int natomIn ) { ncatom_ = natomIn; }
   protected: // TODO: Make all private

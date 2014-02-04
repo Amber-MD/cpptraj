@@ -359,19 +359,9 @@ int Traj_AmberNetcdf::writeReservoir(int set, Frame& frame, double energy, int b
 // Traj_AmberNetcdf::info()
 void Traj_AmberNetcdf::Info() {
   mprintf("is a NetCDF AMBER trajectory");
+  if (!HasCoords()) mprintf(" (no coordinates)");
   if (HasV()) mprintf(" containing velocities");
   if (HasT()) mprintf(" with replica temperatures");
   if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
-
-  /*if (debug_ > 2) {
-      if (title != 0)
-        printfone("    title:        \"%s\"\n", p->title);
-      if (application != 0)  
-        printfone("    application:  \"%s\"\n", p->application);
-      if (program != 0) 
-        printfone("    program:      \"%s\"\n", p->program);
-      if (version != 0) 
-        printfone("    version:      \"%s\"\n", p->version);
-  }*/
 }
 #endif
