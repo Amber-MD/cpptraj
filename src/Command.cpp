@@ -106,6 +106,7 @@
 #include "Analysis_KDE.h"
 #include "Analysis_MultiHist.h"
 #include "Analysis_Divergence.h"
+#include "Analysis_VectorMath.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -1578,7 +1579,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
   { ANALYSIS, "statistics", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
   { ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
-  { ANALYSIS, "vectormath", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
+  { ANALYSIS, "vectormath", Analysis_VectorMath::Alloc, Analysis_VectorMath::Help, AddAnalysis },
   // DEPRECATED COMMANDS
   { DEPRECATED, "acceptor",     0, Deprecate_Hbond,        0 },
   { DEPRECATED, "avgcoord",     0, Deprecate_AvgCoord,     0 },

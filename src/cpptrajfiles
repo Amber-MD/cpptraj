@@ -96,6 +96,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_Spline.cpp \
         Analysis_Statistics.cpp \
         Analysis_Timecorr.cpp \
+        Analysis_VectorMath.cpp \
         ArgList.cpp \
         Array1D.cpp \
         Atom.cpp \

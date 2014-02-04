@@ -2,17 +2,15 @@
 #include "Analysis_Timecorr.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
-#include "DataSet_double.h" // For Resize in dot product
 
 /// Strings corresponding to modes, used in output.
 const char* Analysis_Timecorr::ModeString[] = { 
-  "Auto-correlation function", "Cross-correlation function",
-  "Dot product", "Angle from dot product", "Cross product" };
+  "Auto-correlation function", "Cross-correlation function" };
 
 // CONSTRUCTOR
 Analysis_Timecorr::Analysis_Timecorr() :
-  tstep_(1),
-  tcorr_(10000),
+  tstep_(1.0),
+  tcorr_(10000.0),
   order_(2),
   mode_(AUTOCORR),
   dplr_(false),
@@ -24,11 +22,9 @@ Analysis_Timecorr::Analysis_Timecorr() :
 
 void Analysis_Timecorr::Help() {
   mprintf("\tvec1 <vecname1> [vec2 <vecname2>] out <filename>\n"
-          "\t[ dotproduct | dotangle | crossproduct ]\n"
           "\t[order <order>] [tstep <tstep>] [tcorr <tcorr>]\n"
           "\t[dplr] [norm] [drct]\n"
-          "  Calculate auto/cross-correlation functions (default), dot product, angle\n"
-          "  from dot product (degrees), or cross product for specified vectors.\n");
+          "  Calculate auto/cross-correlation functions for specified vectors.\n");
 }
 
 // Analysis_TimeCorr::CalculateAverages()
@@ -112,7 +108,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   } else
     vinfo2_ = 0;
   // Get output DataSet name
-  std::string setname = analyzeArgs.GetStringKey("name");
+  //std::string setname = analyzeArgs.GetStringKey("name");
   // Determine auto or cross correlation 
   if (vinfo2_ == 0)
     mode_ = AUTOCORR;
@@ -122,23 +118,6 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   dplr_ = analyzeArgs.hasKey("dplr");
   norm_ = analyzeArgs.hasKey("norm");
   drct_ = analyzeArgs.hasKey("drct");
-  // Check for dotproduct/crossproduct keywords
-  DataOut_ = 0;
-  if (analyzeArgs.hasKey("dotproduct")) {
-    mode_ = DOTPRODUCT;
-    if ((DataOut_ = DSLin->AddSet(DataSet::DOUBLE, setname, "Dot")) == 0) return Analysis::ERR;
-  } else if (analyzeArgs.hasKey("dotangle")) {
-    mode_ = DOTANGLE;
-    norm_ = true; // Vecs must be normalized for angle calc to work
-    if ((DataOut_ = DSLin->AddSet(DataSet::DOUBLE, setname, "Angle")) == 0) return Analysis::ERR;
-  } else if (analyzeArgs.hasKey("crossproduct")) {
-    mode_ = CROSSPRODUCT;
-    if ((DataOut_ = DSLin->AddSet(DataSet::VECTOR, setname, "Cross")) == 0) return Analysis::ERR;
-  }
-  if (mode_ != AUTOCORR && vinfo2_ == 0) {
-    mprinterr("Error: %s requires a second vector ('vec2 <vecname2>')\n");
-    return Analysis::ERR;
-  }
   // Get order for Legendre polynomial
   order_ = analyzeArgs.getKeyInt("order",2);
   if (order_ < 0 || order_ > 2) {
@@ -149,49 +128,47 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   tstep_ = analyzeArgs.getKeyDouble("tstep", 1.0);
   tcorr_ = analyzeArgs.getKeyDouble("tcorr", 10000.0);
   filename_ = analyzeArgs.GetStringKey("out");
-  if ((mode_ == AUTOCORR || mode_ == CROSSCORR) && filename_.empty()) {
+  if (filename_.empty()) {
     mprinterr("Error: No output file name given ('out <filename>').\n");
     return Analysis::ERR;
   }
-  // Set up output file in DataFileList if necessary
-  if (DataOut_ != 0) {
-    DataFile* outfile = DFLin->AddDataFile( filename_, analyzeArgs );
-    if (outfile != 0) outfile->AddSet( DataOut_ );
-  }
 
   // Print Status
-  mprintf("    VECTORMATH: Calculating %s", ModeString[mode_]);
+  mprintf("    TIMECORR: Calculating %s", ModeString[mode_]);
   if (mode_ == AUTOCORR)
-    mprintf(" of vector %s", vinfo1_->Legend().c_str());
-  else // if (mode_ == CROSSCORR || DOTPRODUCT || CROSSPRODUCT)
-    mprintf(" of vectors %s and %s", vinfo1_->Legend().c_str(),
+    mprintf(" of vector %s\n", vinfo1_->Legend().c_str());
+  else // CROSSCORR
+    mprintf(" of vectors %s and %s\n", vinfo1_->Legend().c_str(),
             vinfo2_->Legend().c_str());
-  mprintf("\n");
-  if (mode_ == AUTOCORR || mode_ == CROSSCORR) {
-    mprintf("\tCorrelation time %f, time step %f\n", tcorr_, tstep_);
-    mprintf("\tCorr. func. are");
-    if (dplr_)
-      mprintf(" for dipolar interactions and");
-    if (norm_)
-      mprintf(" normalized.\n");
-    else
-      mprintf(" not normalized.\n");
-    mprintf("\tCorr. func. are calculated using the");
-    if (drct_)
-      mprintf(" direct approach.\n");
-    else
-      mprintf(" FFT approach.\n");
-  } else {
-    if (norm_) mprintf("\tVectors will be normalized.\n");
-  }
-  if (!filename_.empty())
-    mprintf("\tResults are written to %s\n", filename_.c_str());
+  mprintf("\tCorrelation time %f, time step %f\n", tcorr_, tstep_);
+  mprintf("\tCorr. func. are");
+  if (dplr_)
+    mprintf(" for dipolar interactions and");
+  if (norm_)
+    mprintf(" normalized.\n");
+  else
+    mprintf(" not normalized.\n");
+  mprintf("\tCorr. func. are calculated using the");
+  if (drct_)
+    mprintf(" direct approach.\n");
+  else
+    mprintf(" FFT approach.\n");
+  mprintf("\tResults are written to %s\n", filename_.c_str());
 
   return Analysis::OK;
 }
 
-// Analysis_Timecorr::TimeCorrelation()
-int Analysis_Timecorr::TimeCorrelation() {
+// Analysis_Timecorr::Analyze()
+Analysis::RetType Analysis_Timecorr::Analyze() {
+  // If 2 vectors, ensure they have the same # of frames
+  if (vinfo2_!=0) {
+    if (vinfo1_->Size() != vinfo2_->Size()) {
+      mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
+                vinfo1_->Legend().c_str(), vinfo1_->Size(), 
+                vinfo2_->Legend().c_str(), vinfo2_->Size());
+      return Analysis::ERR;
+    }
+  }
   // Determine sizes
   int frame = vinfo1_->Size();
   int time = (int)(tcorr_ / tstep_) + 1;
@@ -286,7 +263,7 @@ int Analysis_Timecorr::TimeCorrelation() {
     
   // ----- PRINT NORMAL -----
   CpptrajFile outfile;
-  if (outfile.OpenWrite(filename_)) return 1;
+  if (outfile.OpenWrite(filename_)) return Analysis::ERR;
   outfile.Printf("%ss, normal type\n",ModeString[mode_]);
   if (dplr_) {
     outfile.Printf("***** Vector length *****\n");
@@ -332,64 +309,5 @@ int Analysis_Timecorr::TimeCorrelation() {
     }
   }
   outfile.CloseFile();
-  return 0;
-}
-
-// Analysis_Timecorr::DotProduct()
-int Analysis_Timecorr::DotProduct()
-{
-  DataSet_double& Out = static_cast<DataSet_double&>( *DataOut_ );
-  DataSet_Vector& V1 = static_cast<DataSet_Vector&>( *vinfo1_ );
-  DataSet_Vector& V2 = static_cast<DataSet_Vector&>( *vinfo2_ );
-  Out.Resize( V1.Size() );
-  for (unsigned int v = 0; v < V1.Size(); ++v) {
-    if (norm_) {
-      V1[v].Normalize();
-      V2[v].Normalize();
-    }
-    if (mode_ == DOTPRODUCT)
-      Out[v] = V1[v] * V2[v];
-    else // DOTANGLE
-      Out[v] = V1[v].Angle( V2[v] ) * Constants::RADDEG;
-  }
-  return 0;
-}
-
-// Analysis_Timecorr::CrossProduct()
-int Analysis_Timecorr::CrossProduct()
-{
-  DataSet_Vector& Out = static_cast<DataSet_Vector&>( *DataOut_ );
-  DataSet_Vector& V1 = static_cast<DataSet_Vector&>( *vinfo1_ );
-  DataSet_Vector& V2 = static_cast<DataSet_Vector&>( *vinfo2_ );
-  Out.ReserveVecs( V1.Size() );
-  for (unsigned int v = 0; v < V1.Size(); ++v) {
-    if (norm_) {
-      V1[v].Normalize();
-      V2[v].Normalize();
-    }
-    Out.AddVxyz( V1[v].Cross( V2[v] ) );
-  }
-  return 0;
-}
-
-// Analysis_Timecorr::Analyze()
-Analysis::RetType Analysis_Timecorr::Analyze() {
-  // If 2 vectors, ensure they have the same # of frames
-  if (vinfo2_!=0) {
-    if (vinfo1_->Size() != vinfo2_->Size()) {
-      mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
-                vinfo1_->Legend().c_str(), vinfo1_->Size(), 
-                vinfo2_->Legend().c_str(), vinfo2_->Size());
-      return Analysis::ERR;
-    }
-  }
-  int err = 0;
-  if (mode_ == AUTOCORR || mode_ == CROSSCORR)
-    err = TimeCorrelation();
-  else if (mode_ == CROSSPRODUCT)
-    err = CrossProduct();
-  else // DOTPRODUCT || DOTANGLE
-    err = DotProduct();
-  if (err != 0) return Analysis::ERR;
   return Analysis::OK;
 }
