@@ -264,19 +264,19 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   // ----- PRINT NORMAL -----
   CpptrajFile outfile;
   if (outfile.OpenWrite(filename_)) return Analysis::ERR;
-  outfile.Printf("%ss, normal type\n",ModeString[mode_]);
+  outfile.Printf("#%ss, normal type\n",ModeString[mode_]);
   if (dplr_) {
-    outfile.Printf("***** Vector length *****\n");
-    outfile.Printf("%10s %10s %10s %10s\n", "<r>", "<rrig>", "<1/r^3>", "<1/r^6>");
-    outfile.Printf("%10.4f %10.4f %10.4f %10.4f\n",
+    outfile.Printf("#***** Vector length *****\n");
+    outfile.Printf("#%10s %10s %10s %10s\n", "<r>", "<rrig>", "<1/r^3>", "<1/r^6>");
+    outfile.Printf("#%10.4f %10.4f %10.4f %10.4f\n",
                    Avg1.rave_, Avg1.avgr_, Avg1.r3iave_, Avg1.r6iave_);
     if (mode_ == CROSSCORR)
-      outfile.Printf("%10.4f %10.4f %10.4f %10.4f\n",
+      outfile.Printf("#%10.4f %10.4f %10.4f %10.4f\n",
                      Avg2.rave_, Avg2.avgr_, Avg2.r3iave_, Avg2.r6iave_);
   }
-  outfile.Printf("\n***** Correlation functions *****\n");
+  outfile.Printf("#\n#***** Correlation functions *****\n");
   if (dplr_) {
-    outfile.Printf("%10s %10s %10s %10s\n", "Time", "<C>", "<P2>", "<1/(r^3*r^3)>");
+    outfile.Printf("#%-10s %10s %10s %10s\n", "Time", "<C>", "<P2>", "<1/(r^3*r^3)>");
     if (norm_) {
       for (int i = 0; i < nsteps; ++i)
         outfile.Printf("%10.3f %10.4f %10.4f %10.4f\n",
@@ -294,7 +294,7 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
                        rcf_[i]  / (frame - i));
     }
   } else {
-    outfile.Printf("%10s %10s\n", "Time", "<P2>");
+    outfile.Printf("#%-10s %10s\n", "Time", "<P2>");
     if (norm_) {
       for (int i = 0; i < nsteps; ++i)
         outfile.Printf("%10.3f %10.4f\n",

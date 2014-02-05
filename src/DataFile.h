@@ -65,9 +65,9 @@ class DataFile {
 
     int debug_;
     int dimension_;            ///< The dimension of all sets in the DataFile.
-    DataFormatType dfType_;    ///< Format of data in DataFile.
-    bool dflWrite_;            ///< Write file when DataFileList::WriteAllDF called.
-    bool setDataSetPrecision_; ///< If true set default precision of incoming DataSets.
+    DataFormatType dfType_;    ///< Format to read/write data in DataFile.
+    bool dflWrite_;            ///< True: write file when DataFileList::WriteAllDF called.
+    bool setDataSetPrecision_; ///< True: set default precision of incoming DataSets.
     int default_width_;        ///< Default width of data sets added to this file.
     int default_precision_;    ///< Default precision of data sets added to this file.
     DataSetList SetList_;      ///< Array of pointers to associated DataSets.
