@@ -26,6 +26,8 @@ void DataIO_Std::ReadHelp() {
   mprintf("\tindex <col>: Use column # (starting from 1) as index column.\n");
 }
 
+const char* DataIO_Std::SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
+
 // TODO: Set dimension labels
 // DataIO_Std::ReadData()
 int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
@@ -34,7 +36,8 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
   int err = 0;
   if      (argIn.hasKey("read1d")) err = Read_1D(fname, argIn, dsl, dsname);
   else if (argIn.hasKey("read2d")) err = Read_2D(fname, argIn, dsl, dsname);
-  else if (argIn.hasKey("read3d")) err = Read_3D(fname, argIn, dsl, dsname);
+//  else if (argIn.hasKey("read3d")) err = Read_3D(fname, argIn, dsl, dsname);
+  else if (argIn.hasKey("vector")) err = Read_Vector(fname, argIn, dsl, dsname);
   else                             err = Read_1D(fname, argIn, dsl, dsname);
   return err;
 }
@@ -50,7 +53,6 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
   // Column user args start from 1
   if (indexcol != -1)
     mprintf("\tUsing column %i as index column.\n", indexcol--);
-  const char* SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
 
   // Buffer file
   BufferedLine buffer;
@@ -203,10 +205,10 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
 int DataIO_Std::Read_2D(std::string const& fname, ArgList& argIn,
                         DataSetList& datasetlist, std::string const& dsname)
 {
-  const char* SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
   // Buffer file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
+  mprintf("\tData will be read as a 2D square matrix.\n");
   // Skip comments
   const char* linebuffer = buffer.Line();
   while (linebuffer != 0 && linebuffer[0] == '#')
@@ -216,9 +218,13 @@ int DataIO_Std::Read_2D(std::string const& fname, ArgList& argIn,
   std::vector<double> matrixArray;
   while (linebuffer != 0) {
     int ntokens = buffer.TokenizeLine( SEPARATORS );
-    if (ncols < 0)
+    if (ncols < 0) {
       ncols = ntokens;
-    else if (ncols != ntokens) {
+      if (ntokens < 1) {
+        mprinterr("Error: Could not tokenize line.\n");
+        return 1;
+      }
+    } else if (ncols != ntokens) {
       mprinterr("Error: In 2D file, number of columns changes from %i to %i at line %i\n",
                 ncols, ntokens, buffer.LineNumber());
       return 1;
@@ -248,6 +254,63 @@ int DataIO_Std::Read_3D(std::string const& fname, ArgList& argIn,
 {
   return 1;
 }
+
+// DataIO_Std::Read_Vector()
+int DataIO_Std::Read_Vector(std::string const& fname, ArgList& argIn,
+                            DataSetList& datasetlist, std::string const& dsname)
+{
+  // Buffer file
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  mprintf("\tData will be read as a vector.\n");
+  // Skip comments
+  const char* linebuffer = buffer.Line();
+  while (linebuffer != 0 && linebuffer[0] == '#')
+    linebuffer = buffer.Line();
+  double vecBuffer[6];
+  std::fill(vecBuffer, vecBuffer+6, 0.0);
+  size_t ndata = 0;
+  int ncols = -1; // Should be 3, 6, or 9
+  int nv = 0;     // Will be set to 3 or 6
+  bool hasIndex = false;
+  DataSet* vec = 0;
+  while (linebuffer != 0) {
+    int ntokens = buffer.TokenizeLine( SEPARATORS );
+    if (ncols < 0) {
+      ncols = ntokens;
+      if (ntokens < 1) {
+        mprinterr("Error: Could not tokenize line.\n");
+        return 1;
+      }
+      if (ncols == 3 || ncols == 6 || ncols == 9)
+        hasIndex = false;
+      else if (ncols == 4 || ncols == 7 || ncols == 10) {
+        hasIndex = true;
+        mprintf("Warning: Not reading vector data indices.\n");
+      } else {
+        mprinterr("Error: Expected 3, 6, or 9 columns of vector data, got %i.\n", ncols);
+        return 1;
+      }
+      if (ncols >= 6)
+        nv = 6;
+      else
+        nv = 3;
+      vec = datasetlist.AddSet(DataSet::VECTOR, dsname, "Vec");
+    } else if (ncols != ntokens) {
+      mprinterr("Error: In vector file, number of columns changes from %i to %i at line %i\n",
+                ncols, ntokens, buffer.LineNumber());
+      return 1;
+    }
+    if (hasIndex)
+      buffer.NextToken(); // Skip index
+    for (int i = 0; i < nv; i++)
+      vecBuffer[i] = atof( buffer.NextToken() );
+    vec->Add( ndata, vecBuffer ); 
+    ndata++;
+    linebuffer = buffer.Line();
+  } 
+  return 0;
+} 
 
 // -----------------------------------------------------------------------------
 void DataIO_Std::WriteHelp() {
