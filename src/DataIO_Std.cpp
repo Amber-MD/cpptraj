@@ -6,7 +6,7 @@
 #include "StringRoutines.h" // SetStringFormatString
 #include "BufferedLine.h"
 #include "Array1D.h"
-#include "DataSet_2D.h"
+#include "DataSet_MatrixDbl.h"
 #include "DataSet_3D.h"
 
 // CONSTRUCTOR
@@ -15,7 +15,8 @@ DataIO_Std::DataIO_Std() :
   isInverted_(false), 
   hasXcolumn_(true), 
   writeHeader_(true), 
-  square2d_(false) {}
+  square2d_(false)
+{}
 
 static void PrintColumnError(int idx) {
   mprinterr("Error: Number of columns in file changes at line %i.\n", idx);
@@ -28,7 +29,19 @@ void DataIO_Std::ReadHelp() {
 // TODO: Set dimension labels
 // DataIO_Std::ReadData()
 int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
-                         DataSetList& datasetlist, std::string const& dsname)
+                         DataSetList& dsl, std::string const& dsname)
+{
+  int err = 0;
+  if      (argIn.hasKey("read1d")) err = Read_1D(fname, argIn, dsl, dsname);
+  else if (argIn.hasKey("read2d")) err = Read_2D(fname, argIn, dsl, dsname);
+  else if (argIn.hasKey("read3d")) err = Read_3D(fname, argIn, dsl, dsname);
+  else                             err = Read_1D(fname, argIn, dsl, dsname);
+  return err;
+}
+
+// DataIO_Std::Read_1D()
+int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
+                        DataSetList& datasetlist, std::string const& dsname)
 {
   ArgList labels;
   bool hasLabels = false;
@@ -184,6 +197,56 @@ int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
         DsetList[i]->SetDim(Dimension::X, Dimension(1.0, 1.0, DsetList[i]->Size()));
   }
   return 0;
+}
+
+// DataIO_Std::Read_2D()
+int DataIO_Std::Read_2D(std::string const& fname, ArgList& argIn,
+                        DataSetList& datasetlist, std::string const& dsname)
+{
+  const char* SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
+  // Buffer file
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  // Skip comments
+  const char* linebuffer = buffer.Line();
+  while (linebuffer != 0 && linebuffer[0] == '#')
+    linebuffer = buffer.Line();
+  int ncols = -1;
+  int nrows = 0;
+  std::vector<double> matrixArray;
+  while (linebuffer != 0) {
+    int ntokens = buffer.TokenizeLine( SEPARATORS );
+    if (ncols < 0)
+      ncols = ntokens;
+    else if (ncols != ntokens) {
+      mprinterr("Error: In 2D file, number of columns changes from %i to %i at line %i\n",
+                ncols, ntokens, buffer.LineNumber());
+      return 1;
+    }
+    for (int i = 0; i < ntokens; i++)
+      matrixArray.push_back( atof( buffer.NextToken() ) );
+    nrows++;
+    linebuffer = buffer.Line();
+  }
+  if (ncols < 0) {
+    mprinterr("Error: No data detected in %s\n", buffer.Filename().full());
+    return 1;
+  }
+  DataSet* ds = datasetlist.AddSet(DataSet::MATRIX_DBL, dsname, "Mat");
+  if (ds == 0) return 1;
+  DataSet_MatrixDbl& Mat = static_cast<DataSet_MatrixDbl&>( *ds );
+  Mat.SetTypeAndKind( DataSet_2D::DIST, DataSet_2D::FULL ); // TODO: FIXME 
+  Mat.Allocate2D( ncols, nrows );
+  std::copy( matrixArray.begin(), matrixArray.end(), Mat.begin() );
+
+  return 0;
+}
+
+// DataIO_Std::Read_3D()
+int DataIO_Std::Read_3D(std::string const& fname, ArgList& argIn,
+                        DataSetList& datasetlist, std::string const& dsname)
+{
+  return 1;
 }
 
 // -----------------------------------------------------------------------------

@@ -15,6 +15,9 @@ class DataIO_Std : public DataIO {
     int WriteData3D(std::string const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
+    int Read_1D(std::string const&,ArgList&,DataSetList&,std::string const&);
+    int Read_2D(std::string const&,ArgList&,DataSetList&,std::string const&);
+    int Read_3D(std::string const&,ArgList&,DataSetList&,std::string const&);
     static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);
     int WriteDataNormal(CpptrajFile&,DataSetList const&);
     int WriteDataInverted(CpptrajFile&,DataSetList const&);
