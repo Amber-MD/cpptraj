@@ -255,7 +255,7 @@ std::string const& ArgList::getNextTag() {
       std::string::reverse_iterator lastchar  = arglist_[arg].rbegin();
       std::string::iterator         firstchar = arglist_[arg].begin();
       if (*firstchar=='[' && *lastchar==']') {
-        marked_[arg]==true;
+        marked_[arg]=true;
         return arglist_[arg];
       }
     }
