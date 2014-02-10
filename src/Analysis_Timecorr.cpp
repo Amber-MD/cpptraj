@@ -2,6 +2,8 @@
 #include "Analysis_Timecorr.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
+#include "DataSet_double.h"
+#include "DataSet_string.h"
 
 /// Strings corresponding to modes, used in output.
 const char* Analysis_Timecorr::ModeString[] = { 
@@ -17,13 +19,14 @@ Analysis_Timecorr::Analysis_Timecorr() :
   norm_(false),
   drct_(false),
   vinfo1_(0),
-  vinfo2_(0)
+  vinfo2_(0),
+  DSOut_((int)NDSETOUT, (DataSet*)0)
 {}
 
 void Analysis_Timecorr::Help() {
   mprintf("\tvec1 <vecname1> [vec2 <vecname2>] out <filename>\n"
           "\t[order <order>] [tstep <tstep>] [tcorr <tcorr>]\n"
-          "\t[dplr] [norm] [drct]\n"
+          "\t[dplr] [norm] [drct] [dplrout <dplrfile>] [ptrajformat]\n"
           "  Calculate auto/cross-correlation functions for specified vectors.\n");
 }
 
@@ -81,6 +84,14 @@ void Analysis_Timecorr::CalcCorr(int frame) {
   }
 }
 
+/// DataSet tokens
+Analysis_Timecorr::DStoken Analysis_Timecorr::Tokens[] = {
+  { "R",    "<r>",     DataSet::DOUBLE }, { "RRIG", "<rrig>",        DataSet::DOUBLE },
+  { "R3",   "<1/r^3>", DataSet::DOUBLE }, { "R6",   "<1/r^6>",       DataSet::DOUBLE },
+  { "Name", "Name",    DataSet::STRING }, { "C",    "<C>",           DataSet::DOUBLE },
+  { "P",    "<P2>",    DataSet::DOUBLE }, { "R3R3", "<1/(r^3*r^3)>", DataSet::DOUBLE }
+};
+
 // Analysis_Timecorr::Setup()
 Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
@@ -108,7 +119,9 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   } else
     vinfo2_ = 0;
   // Get output DataSet name
-  //std::string setname = analyzeArgs.GetStringKey("name");
+  std::string setname = analyzeArgs.GetStringKey("name");
+  if (setname.empty())
+    setname = DSLin->GenerateDefaultName("TC");
   // Determine auto or cross correlation 
   if (vinfo2_ == 0)
     mode_ = AUTOCORR;
@@ -118,6 +131,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   dplr_ = analyzeArgs.hasKey("dplr");
   norm_ = analyzeArgs.hasKey("norm");
   drct_ = analyzeArgs.hasKey("drct");
+  std::string dplrname = analyzeArgs.GetStringKey("dplrout");
   // Get order for Legendre polynomial
   order_ = analyzeArgs.getKeyInt("order",2);
   if (order_ < 0 || order_ > 2) {
@@ -127,11 +141,52 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   // Get tstep, tcorr, filename
   tstep_ = analyzeArgs.getKeyDouble("tstep", 1.0);
   tcorr_ = analyzeArgs.getKeyDouble("tcorr", 10000.0);
+  bool ptrajFormat = analyzeArgs.hasKey("ptrajformat");
   filename_ = analyzeArgs.GetStringKey("out");
-  if (filename_.empty()) {
-    mprinterr("Error: No output file name given ('out <filename>').\n");
+  if (ptrajFormat && filename_.empty()) {
+    mprinterr("Error: No output file name given ('out <filename>'). Required for 'ptrajformat'.\n");
     return Analysis::ERR;
   }
+  DataFile* outfile = 0;
+  DataFile* dplrfile = 0;
+  if (!ptrajFormat) {
+    outfile = DFLin->AddDataFile( filename_, analyzeArgs );
+    if (dplr_ && !dplrname.empty()) {
+      if (dplrname == filename_) {
+        mprinterr("Error: 'dplrname' cannot be the same file as 'out'.\n");
+        return Analysis::ERR;
+      }
+      dplrfile = DFLin->AddDataFile( dplrname, analyzeArgs );
+    }
+    filename_.clear();
+  }
+  // Set up output DataSets
+  std::string ds_name = "_TC_DIPOLAR_";
+  DataFile* df_ptr = dplrfile;
+  for (int i = 0; i != (int)NDSETOUT; i++) {
+    if (!dplr_ && i != (int)TC_P) continue;
+    if ( i < (int)TC_C  ) {
+      // Dipolar average DataSets are reserved so it can be spanned across 
+      // multiple 'timecorr' commands if desired.
+      DSOut_[i] = DSLin->GetSet(ds_name, -1, Tokens[i].Aspect);
+    } else {
+      ds_name = setname;
+      df_ptr = outfile;
+    } 
+    if (DSOut_[i] == 0) {
+      // Not present; create data set.
+      DSOut_[i] = DSLin->AddSetAspect(Tokens[i].Type, ds_name, Tokens[i].Aspect);
+      if (DSOut_[i] == 0) {
+        mprinterr("Error: Could not create data set '%s'\n", Tokens[i].Legend);
+        return Analysis::ERR;
+      }
+      DSOut_[i]->SetLegend( Tokens[i].Legend );
+      if ( df_ptr != 0)
+        df_ptr->AddSet( DSOut_[i] );
+    }
+  }
+  // TODO Fix P legend
+  // "<P"+integerToString(order_)+">"
 
   // Print Status
   mprintf("    TIMECORR: Calculating %s", ModeString[mode_]);
@@ -200,13 +255,10 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   // ---------------------------------------------------------------------------
 
   // Initialize output array memory
-  std::vector<double> p2cf_(nsteps, 0.0);
-  std::vector<double> cf_;
-  std::vector<double> rcf_;
-  if (dplr_) {
-    cf_.assign(nsteps, 0.0);
-    rcf_.assign(nsteps, 0.0);
-  }
+  DataSet_double& p2cf_ = static_cast<DataSet_double&>( *DSOut_[TC_P] );
+  p2cf_.Resize( nsteps );
+  Dimension Xdim(0.0, tstep_, nsteps, "Time");
+  p2cf_.SetDim(Dimension::X, Xdim);
 
   // P2
   for (int midx = -order_; midx <= order_; ++midx) {
@@ -220,6 +272,12 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   // Only needed if dplr
   AvgResults Avg1, Avg2;
   if (dplr_) {
+    DataSet_double& cf_ = static_cast<DataSet_double&>( *DSOut_[TC_C] );
+    cf_.Resize( nsteps );
+    cf_.SetDim(Dimension::X, Xdim);
+    DataSet_double& rcf_ = static_cast<DataSet_double&>( *DSOut_[TC_R3R3] );
+    rcf_.Resize( nsteps );
+    rcf_.SetDim(Dimension::X, Xdim);
     // Calculate averages
     std::vector<double> R3i_1 = CalculateAverages(*vinfo1_, Avg1);
     std::vector<double> R3i_2;
@@ -260,54 +318,70 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     for (int k = 0; k < nsteps; ++k)
       rcf_[k] = data1_[2 * k];
   }
-    
-  // ----- PRINT NORMAL -----
-  CpptrajFile outfile;
-  if (outfile.OpenWrite(filename_)) return Analysis::ERR;
-  outfile.Printf("#%ss, normal type\n",ModeString[mode_]);
+
+  // ----- DataSet Output ------------------------
   if (dplr_) {
-    outfile.Printf("#***** Vector length *****\n");
-    outfile.Printf("#%10s %10s %10s %10s\n", "<r>", "<rrig>", "<1/r^3>", "<1/r^6>");
-    outfile.Printf("#%10.4f %10.4f %10.4f %10.4f\n",
-                   Avg1.rave_, Avg1.avgr_, Avg1.r3iave_, Avg1.r6iave_);
-    if (mode_ == CROSSCORR)
-      outfile.Printf("#%10.4f %10.4f %10.4f %10.4f\n",
-                     Avg2.rave_, Avg2.avgr_, Avg2.r3iave_, Avg2.r6iave_);
-  }
-  outfile.Printf("#\n#***** Correlation functions *****\n");
-  if (dplr_) {
-    outfile.Printf("#%-10s %10s %10s %10s\n", "Time", "<C>", "<P2>", "<1/(r^3*r^3)>");
-    if (norm_) {
-      for (int i = 0; i < nsteps; ++i)
-        outfile.Printf("%10.3f %10.4f %10.4f %10.4f\n",
-                       (double)i * tstep_,
-                       cf_[i]   * frame / (cf_[0]   * (frame - i)),
-                       p2cf_[i] * frame / (p2cf_[0] * (frame - i)),
-                       rcf_[i]  * frame / (rcf_[0]  * (frame - i)));  
-    } else {
-      // 4/5*PI due to spherical harmonics addition theorem
-      for (int i = 0; i < nsteps; ++i)
-        outfile.Printf("%10.3f %10.4f %10.4f %10.4f\n",
-                       (double)i * tstep_,
-                       Constants::FOURFIFTHSPI * cf_[i]   / (frame - i),
-                       Constants::FOURFIFTHSPI * p2cf_[i] / (frame - i),
-                       rcf_[i]  / (frame - i));
-    }
-  } else {
-    outfile.Printf("#%-10s %10s\n", "Time", "<P2>");
-    if (norm_) {
-      for (int i = 0; i < nsteps; ++i)
-        outfile.Printf("%10.3f %10.4f\n",
-                       (double)i * tstep_,
-                       p2cf_[i] * frame / (p2cf_[0] * (frame - i)));
-    } else {
-      // 4/5*PI due to spherical harmonics addition theorem
-      for (int i = 0; i < nsteps; ++i)
-        outfile.Printf("%10.3f %10.4f\n",
-                       (double)i * tstep_,
-                       Constants::FOURFIFTHSPI * p2cf_[i] / (frame - i));
+    ((DataSet_double*)DSOut_[DPLR_R])->AddElement( Avg1.rave_ );
+    ((DataSet_double*)DSOut_[DPLR_RRIG])->AddElement( Avg1.avgr_ );
+    ((DataSet_double*)DSOut_[DPLR_R3])->AddElement( Avg1.r3iave_ );
+    ((DataSet_double*)DSOut_[DPLR_R6])->AddElement( Avg1.r6iave_ );
+    ((DataSet_string*)DSOut_[DPLR_NAME])->AddElement( vinfo1_->Legend() );
+    if (mode_ == CROSSCORR) {
+      ((DataSet_double*)DSOut_[DPLR_R])->AddElement( Avg2.rave_ );
+      ((DataSet_double*)DSOut_[DPLR_RRIG])->AddElement( Avg2.avgr_ );
+      ((DataSet_double*)DSOut_[DPLR_R3])->AddElement( Avg2.r3iave_ );
+      ((DataSet_double*)DSOut_[DPLR_R6])->AddElement( Avg2.r6iave_ );
+      ((DataSet_string*)DSOut_[DPLR_NAME])->AddElement( vinfo2_->Legend() );
     }
   }
-  outfile.CloseFile();
+  // ----- NORMALIZATION -------------------------
+  // 4/5*PI due to spherical harmonics addition theorem
+  Normalize( DSOut_[TC_P],    frame, Constants::FOURFIFTHSPI );
+  Normalize( DSOut_[TC_C],    frame, Constants::FOURFIFTHSPI );
+  Normalize( DSOut_[TC_R3R3], frame, 1.0 );
+  // ----- PRINT PTRAJ FORMAT --------------------
+  if (!filename_.empty()) { 
+    CpptrajFile outfile;
+    if (outfile.OpenWrite(filename_)) return Analysis::ERR;
+    outfile.Printf("%ss, normal type\n",ModeString[mode_]);
+    if (dplr_) {
+      outfile.Printf("***** Vector length *****\n");
+      outfile.Printf("%10s %10s %10s %10s\n", "<r>", "<rrig>", "<1/r^3>", "<1/r^6>");
+      outfile.Printf("%10.4f %10.4f %10.4f %10.4f\n",
+                     Avg1.rave_, Avg1.avgr_, Avg1.r3iave_, Avg1.r6iave_);
+      if (mode_ == CROSSCORR)
+        outfile.Printf("%10.4f %10.4f %10.4f %10.4f\n",
+                       Avg2.rave_, Avg2.avgr_, Avg2.r3iave_, Avg2.r6iave_);
+    }
+    outfile.Printf("\n***** Correlation functions *****\n");
+    if (dplr_) {
+      DataSet_double& cf_ = static_cast<DataSet_double&>( *DSOut_[TC_C] );
+      DataSet_double& rcf_ = static_cast<DataSet_double&>( *DSOut_[TC_R3R3] );
+      outfile.Printf("%-10s %10s %10s %10s\n", "Time", "<C>", "<P2>", "<1/(r^3*r^3)>");
+      for (int i = 0; i < nsteps; ++i)
+        outfile.Printf("%10.3f %10.4f %10.4f %10.4f\n", (double)i * tstep_,
+                       cf_[i], p2cf_[i], rcf_[i]);
+    } else {
+      outfile.Printf("%-10s %10s\n", "Time", "<P2>");
+      for (int i = 0; i < nsteps; ++i)
+        outfile.Printf("%10.3f %10.4f\n", (double)i * tstep_, p2cf_[i]);
+    }
+    outfile.CloseFile();
+  }
   return Analysis::OK;
+}
+
+// Analysis_Timecorr::Normalize()
+void Analysis_Timecorr::Normalize(DataSet* ds, int frame, double Kin) {
+  if (ds == 0) return;
+  DataSet_double& data = static_cast<DataSet_double&>( *ds );
+  double Kn;
+  if (norm_)
+    Kn = (double)frame / data[0];
+  else
+    Kn = Kin;
+  int nsteps = (int)data.Size();
+  for (int i = 0; i < nsteps; ++i) {
+    data[i] *= (Kn / (double)(frame - i));
+  }
 }
