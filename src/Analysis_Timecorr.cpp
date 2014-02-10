@@ -246,21 +246,17 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     if (mode_ == CROSSCORR)
       data2_ = data1_;
   }
-
-  // ---------------------------------------------------------------------------
-  // Real + Img. for each -order <= m <= order, spherical Harmonics for each frame
+  // ----- Calculate spherical harmonics ---------
+  // Real + Img. for each -order <= m <= order
   vinfo1_->CalcSphericalHarmonics(order_);
   if (vinfo2_ != 0)
     vinfo2_->CalcSphericalHarmonics(order_);
-  // ---------------------------------------------------------------------------
-
-  // Initialize output array memory
+  // ----- Initialize P2 output array memory -----
   DataSet_double& p2cf_ = static_cast<DataSet_double&>( *DSOut_[TC_P] );
   p2cf_.Resize( nsteps );
   Dimension Xdim(0.0, tstep_, nsteps, "Time");
   p2cf_.SetDim(Dimension::X, Xdim);
-
-  // P2
+  // ----- Calculate P2 --------------------------
   for (int midx = -order_; midx <= order_; ++midx) {
     data1_.Assign( vinfo1_->SphericalHarmonics( midx ) );
     if (vinfo2_ != 0)
@@ -269,7 +265,7 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     for (int k = 0; k < nsteps; ++k)
       p2cf_[k] += data1_[2 * k];
   }
-  // Only needed if dplr
+  // ----- Dipolar Calc. -------------------------
   AvgResults Avg1, Avg2;
   if (dplr_) {
     DataSet_double& cf_ = static_cast<DataSet_double&>( *DSOut_[TC_C] );
@@ -288,8 +284,7 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
       data1_.Assign( vinfo1_->SphericalHarmonics( midx ) );
       if (vinfo2_ != 0)
         data2_.Assign( vinfo2_->SphericalHarmonics( midx ) );
-      int i2 = 0;
-      for (int i = 0; i < frame; ++i) {
+      for (int i = 0, i2 = 0; i < frame; ++i, i2 += 2) {
         double r3i = R3i_1[ i ]; 
         data1_[i2  ] *= r3i;
         data1_[i2+1] *= r3i;
@@ -298,15 +293,13 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
           data2_[i2  ] *= r3i;
           data2_[i2+1] *= r3i;
         }
-        i2 += 2;
       }
       CalcCorr( frame );
       for (int k = 0; k < nsteps; ++k) 
         cf_[k] += data1_[2 * k];
     }
     // 1 / R^6
-    for (int i = 0; i < frame; ++i) {
-      int i2 = i * 2;
+    for (int i = 0, i2 = 0; i < frame; ++i, i2 += 2) {
       data1_[i2  ] = R3i_1[ i ];
       data1_[i2+1] = 0.0;
       if ( vinfo2_ != 0 ) {
@@ -318,8 +311,7 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     for (int k = 0; k < nsteps; ++k)
       rcf_[k] = data1_[2 * k];
   }
-
-  // ----- DataSet Output ------------------------
+  // ----- Dipolar Averages ----------------------
   if (dplr_) {
     ((DataSet_double*)DSOut_[DPLR_R])->AddElement( Avg1.rave_ );
     ((DataSet_double*)DSOut_[DPLR_RRIG])->AddElement( Avg1.avgr_ );
