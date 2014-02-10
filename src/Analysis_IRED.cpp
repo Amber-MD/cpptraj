@@ -470,6 +470,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
     cmtfile.Printf("\n");
   }
   // Print cf
+  // 4*PI / ((2*order)+1) due to spherical harmonics addition theorem
+  double Snorm = DataSet_Vector::SphericalHarmonicsNorm( order_ );
   for (int i = 0; i < nsteps; ++i) {
     cmtfile.Printf("%12.8f", (double)i * tstep_);
     cjtfile.Printf("%12.8f", (double)i * tstep_);
@@ -478,9 +480,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
         cmtfile.Printf("%12.8f", cf_[nsteps*j + i] * Nframes_ / (cf_[nsteps * j] * (Nframes_ - i)));
         cjtfile.Printf("%12.8f", cf_cjt_[nsteps*j + i] / cf_cjt_[nsteps*j]);
       } else {
-        // 4/5*PI due to spherical harmonics addition theorem
-        cmtfile.Printf("%12.8f", Constants::FOURFIFTHSPI * cf_[nsteps*j + i] / (Nframes_ - i));
-        cjtfile.Printf("%12.8f", Constants::FOURFIFTHSPI * cf_cjt_[nsteps*j + i]);
+        cmtfile.Printf("%12.8f", Snorm * cf_[nsteps*j + i] / (Nframes_ - i));
+        cjtfile.Printf("%12.8f", Snorm * cf_cjt_[nsteps*j + i]);
       }
     }
     cmtfile.Printf("\n");

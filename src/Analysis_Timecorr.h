@@ -51,6 +51,7 @@ class Analysis_Timecorr : public Analysis {
     DataSet_Vector* vinfo2_;
     DSarray DSOut_;
     std::string filename_;
+    std::string Plegend_;
     CorrF_FFT pubfft_;
     CorrF_Direct corfdir_;
 };

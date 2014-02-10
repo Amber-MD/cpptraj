@@ -1,9 +1,9 @@
 #include <cmath> // sqrt
 #include "Analysis_Timecorr.h"
 #include "CpptrajStdio.h"
-#include "Constants.h" // PI
 #include "DataSet_double.h"
 #include "DataSet_string.h"
+#include "StringRoutines.h" // integerToString
 
 /// Strings corresponding to modes, used in output.
 const char* Analysis_Timecorr::ModeString[] = { 
@@ -185,8 +185,9 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
         df_ptr->AddSet( DSOut_[i] );
     }
   }
-  // TODO Fix P legend
-  // "<P"+integerToString(order_)+">"
+  // Fix P legend
+  Plegend_ = "<P"+integerToString(order_)+">";
+  DSOut_[TC_P]->SetLegend( Plegend_ );
 
   // Print Status
   mprintf("    TIMECORR: Calculating %s", ModeString[mode_]);
@@ -195,7 +196,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   else // CROSSCORR
     mprintf(" of vectors %s and %s\n", vinfo1_->Legend().c_str(),
             vinfo2_->Legend().c_str());
-  mprintf("\tCorrelation time %f, time step %f\n", tcorr_, tstep_);
+  mprintf("\tCorrelation time %f, time step %f, order %i\n", tcorr_, tstep_, order_);
   mprintf("\tCorr. func. are");
   if (dplr_)
     mprintf(" for dipolar interactions and");
@@ -248,22 +249,23 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   }
   // ----- Calculate spherical harmonics ---------
   // Real + Img. for each -order <= m <= order
-  vinfo1_->CalcSphericalHarmonics(order_);
-  if (vinfo2_ != 0)
-    vinfo2_->CalcSphericalHarmonics(order_);
-  // ----- Initialize P2 output array memory -----
-  DataSet_double& p2cf_ = static_cast<DataSet_double&>( *DSOut_[TC_P] );
-  p2cf_.Resize( nsteps );
+  if (vinfo1_->CalcSphericalHarmonics(order_)) return Analysis::ERR;
+  if (vinfo2_ != 0) {
+    if (vinfo2_->CalcSphericalHarmonics(order_)) return Analysis::ERR;
+  }
+  // ----- Initialize PN output array memory -----
+  DataSet_double& pncf_ = static_cast<DataSet_double&>( *DSOut_[TC_P] );
+  pncf_.Resize( nsteps );
   Dimension Xdim(0.0, tstep_, nsteps, "Time");
-  p2cf_.SetDim(Dimension::X, Xdim);
-  // ----- Calculate P2 --------------------------
+  pncf_.SetDim(Dimension::X, Xdim);
+  // ----- Calculate PN --------------------------
   for (int midx = -order_; midx <= order_; ++midx) {
     data1_.Assign( vinfo1_->SphericalHarmonics( midx ) );
     if (vinfo2_ != 0)
       data2_.Assign( vinfo2_->SphericalHarmonics( midx ) );
     CalcCorr( frame );
     for (int k = 0; k < nsteps; ++k)
-      p2cf_[k] += data1_[2 * k];
+      pncf_[k] += data1_[2 * k];
   }
   // ----- Dipolar Calc. -------------------------
   AvgResults Avg1, Avg2;
@@ -327,9 +329,10 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     }
   }
   // ----- NORMALIZATION -------------------------
-  // 4/5*PI due to spherical harmonics addition theorem
-  Normalize( DSOut_[TC_P],    frame, Constants::FOURFIFTHSPI );
-  Normalize( DSOut_[TC_C],    frame, Constants::FOURFIFTHSPI );
+  // 4*PI / ((2*order)+1) due to spherical harmonics addition theorem
+  double KN = DataSet_Vector::SphericalHarmonicsNorm( order_ );
+  Normalize( DSOut_[TC_P],    frame, KN );
+  Normalize( DSOut_[TC_C],    frame, KN );
   Normalize( DSOut_[TC_R3R3], frame, 1.0 );
   // ----- PRINT PTRAJ FORMAT --------------------
   if (!filename_.empty()) { 
@@ -349,14 +352,14 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     if (dplr_) {
       DataSet_double& cf_ = static_cast<DataSet_double&>( *DSOut_[TC_C] );
       DataSet_double& rcf_ = static_cast<DataSet_double&>( *DSOut_[TC_R3R3] );
-      outfile.Printf("%-10s %10s %10s %10s\n", "Time", "<C>", "<P2>", "<1/(r^3*r^3)>");
+      outfile.Printf("%-10s %10s %10s %10s\n", "Time", "<C>", Plegend_.c_str(), "<1/(r^3*r^3)>");
       for (int i = 0; i < nsteps; ++i)
         outfile.Printf("%10.3f %10.4f %10.4f %10.4f\n", (double)i * tstep_,
-                       cf_[i], p2cf_[i], rcf_[i]);
+                       cf_[i], pncf_[i], rcf_[i]);
     } else {
-      outfile.Printf("%-10s %10s\n", "Time", "<P2>");
+      outfile.Printf("%-10s %10s\n", "Time", Plegend_.c_str());
       for (int i = 0; i < nsteps; ++i)
-        outfile.Printf("%10.3f %10.4f\n", (double)i * tstep_, p2cf_[i]);
+        outfile.Printf("%10.3f %10.4f\n", (double)i * tstep_, pncf_[i]);
     }
     outfile.CloseFile();
   }

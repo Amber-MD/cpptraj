@@ -43,9 +43,11 @@ class DataSet_Vector : public DataSet_1D {
     const_iterator end()         const { return vectors_.end();   }
     const Vec3&    Back()        const { return vectors_.back();  }
     /// Calculate spherical harmonics arrays for given Legendre order
-    void CalcSphericalHarmonics(int);
+    int CalcSphericalHarmonics(int);
     /// \return Spherical harmonics array for given m (-order_ <= m <= order_)
-    const ComplexArray& SphericalHarmonics(int) const;
+    ComplexArray const& SphericalHarmonics(int) const;
+    /// \return Constant for normalization via spherical harmonics addition theorem.
+    static double SphericalHarmonicsNorm(int); 
   private:
     int order_;      ///< Order for spherical harmonics calculations
     bool isIred_;    ///< If true, this can be used in IRED analysis
