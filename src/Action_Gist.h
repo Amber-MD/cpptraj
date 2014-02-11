@@ -48,7 +48,6 @@ class Action_Gist: public Action, ImagedAction  {
 
     // other constants
     int NFRAME_;		// total number of frames analyzed
-    double BULK_DENS_;		// bulk water density
 //    double BULK_E_;		// bulk water energy
 
     //Grid Stuff   
@@ -56,6 +55,7 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <int> griddim_;		// grid dimension (bin number in each direction)
     Vec3 gridorig_;		// coordinates of grid origin
     double gridspacn_;		// grid spacing
+    double BULK_DENS_;		// reference density from bulk water
     int MAX_GRID_PT_;
     std::vector <int> gridwat_;		// voxel index of each water
     std::vector <int> nwat_;		// total number of water found in each voxel
@@ -108,10 +108,10 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> ww_evdw_;
     std::vector <double> ww_eelec_;
     std::vector < std::vector <float> > ww_Eij_;
-    std::vector <float> dEwh_dw_;
-    std::vector <float> dEwh_norm_;
-    std::vector <float> dEww_norm_unref_;
-    std::vector <float> dEww_dw_unref_;
+    std::vector <float> Ewh_dw_;
+    std::vector <float> Ewh_norm_;
+    std::vector <float> Eww_norm_;
+    std::vector <float> Eww_dw_;
     std::vector <float> neighbor_dw_;
     std::vector <float> neighbor_norm_;
     std::vector <float> pol_;
@@ -122,13 +122,15 @@ class Action_Gist: public Action, ImagedAction  {
 //	Eij[a] = new float [a];
 
     // entropy stuff
-    std::vector <float> TSNN_dw_;
-    std::vector <double> TSNN_norm_;
-    std::vector <float> TStrans_dw_;
-    std::vector <float> TStrans_norm_;
-    double TSNNtot_;
+    std::vector <float> dTSorient_dw_;
+    std::vector <double> dTSorient_norm_;
+    std::vector <float> dTStrans_dw_;
+    std::vector <float> dTStrans_norm_;
+    double dTSorienttot_;
     int max_nwat_;
-    double TStranstot_;
+    double dTStranstot_;
+    double Ewhtot_; 
+    double Ewwtot_;
     std::vector < std::vector <float> > the_vox_;
     std::vector < std::vector <float> > phi_vox_;
     std::vector < std::vector <float> > psi_vox_;
