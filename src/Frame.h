@@ -75,6 +75,7 @@ class Frame {
     double Temperature()         const { return T_;             }
     const double* XYZ(int atnum) const { return X_ + (atnum*3); } 
     const double* CRD(int idx)   const { return X_ + idx;       } 
+    const double* Vel(int atnum) const { return V_ + (atnum*3); } 
     double Mass(int atnum)       const { return Mass_[atnum];   }
     const Box& BoxCrd()          const { return box_;           }
     // Routines for accessing internal data pointers

@@ -66,6 +66,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Translate.cpp \
         Action_Unwrap.cpp \
         Action_Vector.cpp \
+        Action_VelocityAutoCorr.cpp \
         Action_Volmap.cpp \
         Action_Watershell.cpp \
         AnalysisList.cpp \

@@ -77,6 +77,7 @@
 #include "Action_FilterByData.h"
 #include "Action_LESsplit.h"
 #include "Action_NativeContacts.h"
+#include "Action_VelocityAutoCorr.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1543,8 +1544,9 @@ const Command::Token Command::Commands[] = {
   { ACTION, "unstrip", Action_Unstrip::Alloc, Action_Unstrip::Help, AddAction },
   { ACTION, "unwrap", Action_Unwrap::Alloc, Action_Unwrap::Help, AddAction },
   { ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, AddAction },
-  { ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, AddAction },
+  { ACTION, "velocityautocorr", Action_VelocityAutoCorr::Alloc, Action_VelocityAutoCorr::Help, AddAction },
   { ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, AddAction},
+  { ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, AddAction },
   // INC_ANALYSIS: ANALYSIS COMMANDS
   { ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
   { ANALYSIS, "amdbias", Analysis_AmdBias::Alloc, Analysis_AmdBias::Help, AddAnalysis },
