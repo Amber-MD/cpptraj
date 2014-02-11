@@ -119,6 +119,7 @@ int CpptrajState::RemoveDataSet( ArgList& argIn ) {
 }
 
 // CpptrajState::TrajLength()
+// NOTE: MMPBSA.py relies on this.
 int CpptrajState::TrajLength( std::string const& topname, 
                               std::vector<std::string> const& trajinFiles)
 {
