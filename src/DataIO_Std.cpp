@@ -336,22 +336,17 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
   std::string temp_name = label;
   // If left aligning, add '#' to name; 
   if (leftAlign) {
-    if (temp_name[0]!='#')
+    if (temp_name[0]!='#') {
       temp_name.insert(0,"#");
+      // Ensure that name will not be larger than column width.
+      if ((int)temp_name.size() > width)
+        temp_name.resize( width );
+    }
   }
-  // Ensure that name will not be larger than column width.
-  if ((int)temp_name.size() > width)
-    temp_name.resize( width );
   // Replace any spaces with underscores
   for (std::string::iterator tc = temp_name.begin(); tc != temp_name.end(); ++tc)
     if ( *tc == ' ' )
       *tc = '_';
-  // If not left-aligning there needs to be a leading blank space.
-  // TODO: No truncation
-  if (!leftAlign && width == (int)temp_name.size()) {
-    temp_name = " " + temp_name;
-    temp_name.resize( width );
-  }
   // Set up header format string
   std::string header_format = SetStringFormatString(width, leftAlign);
   fileIn.Printf(header_format.c_str(), temp_name.c_str());
@@ -375,8 +370,6 @@ int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList)
 // DataIO_Std::WriteDataNormal()
 int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& SetList) {
   std::string x_col_format;
-  int xcol_width = 8;
-  int xcol_precision = 3;
 
   // Hold all 1D data sets.
   Array1D Sets( SetList );
@@ -388,6 +381,9 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& SetList) {
   // TODO: Check for empty dim.
   DataSet_1D const& Xdata = static_cast<DataSet_1D const&>( *Sets[0] );
   Dimension const& Xdim = static_cast<Dimension const&>( Xdata.Dim(0) );
+  int xcol_width = Xdim.Label().size() + 1;
+  if (xcol_width < 8) xcol_width = 8;
+  int xcol_precision = 3;
 
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
@@ -410,9 +406,14 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& SetList) {
       WriteNameToBuffer( file, Xdim.Label(), xcol_width, true );
     // To prevent truncation of DataSet legends, adjust the width of each
     // DataSet if necessary.
+    bool labelLeftAligned = !hasXcolumn_;
     for (Array1D::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {
-      if ( (int)(*ds)->Legend().size() > (*ds)->ColumnWidth() )
+      int requiredColSize = (int)(*ds)->Legend().size();
+      if (!labelLeftAligned || (ds == Sets.begin() && !hasXcolumn_))
+        requiredColSize++;
+      if ( requiredColSize > (*ds)->ColumnWidth() )
         (*ds)->SetWidth( (*ds)->Legend().size() );
+      labelLeftAligned = false;
     }
     // Write dataset names to header, left-aligning first set if no X-column
     Array1D::const_iterator set = Sets.begin();

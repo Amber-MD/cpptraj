@@ -352,12 +352,12 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     if (dplr_) {
       DataSet_double& cf_ = static_cast<DataSet_double&>( *DSOut_[TC_C] );
       DataSet_double& rcf_ = static_cast<DataSet_double&>( *DSOut_[TC_R3R3] );
-      outfile.Printf("%-10s %10s %10s %10s\n", "Time", "<C>", Plegend_.c_str(), "<1/(r^3*r^3)>");
+      outfile.Printf("%10s %10s %10s %10s\n", "Time", "<C>", Plegend_.c_str(), "<1/(r^3*r^3)>");
       for (int i = 0; i < nsteps; ++i)
         outfile.Printf("%10.3f %10.4f %10.4f %10.4f\n", (double)i * tstep_,
                        cf_[i], pncf_[i], rcf_[i]);
     } else {
-      outfile.Printf("%-10s %10s\n", "Time", Plegend_.c_str());
+      outfile.Printf("%10s %10s\n", "Time", Plegend_.c_str());
       for (int i = 0; i < nsteps; ++i)
         outfile.Printf("%10.3f %10.4f\n", (double)i * tstep_, pncf_[i]);
     }
