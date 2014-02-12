@@ -218,8 +218,7 @@ void CpptrajFile::Reset() {
 // CpptrajFile::OpenRead()
 int CpptrajFile::OpenRead(std::string const& nameIn) {
   if (SetupRead( nameIn, debug_ )) return 1; 
-  if (OpenFile()) return 1;
-  return 0;
+  return OpenFile();
 }
 
 // CpptrajFile::SetupRead()
@@ -257,6 +256,7 @@ int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
 }
 
 // CpptrajFile::OpenWriteNumbered()
+// NOTE: File MUST be previously set up. Primarily for use with traj files.
 int CpptrajFile::OpenWriteNumbered(int numIn) {
   std::string newName = NumberFilename( Filename().Full(), numIn );
   if (IO_->Open( newName.c_str(), "wb")) return 1;
@@ -267,8 +267,17 @@ int CpptrajFile::OpenWriteNumbered(int numIn) {
 // CpptrajFile::OpenWrite()
 int CpptrajFile::OpenWrite(std::string const& nameIn) {
   if (SetupWrite(nameIn, debug_)) return 1;
-  if (OpenFile()) return 1;
-  return 0;
+  return OpenFile();
+}
+
+// CpptrajFile::OpenEnsembleWrite()
+int CpptrajFile::OpenEnsembleWrite(std::string const& nameIn, int ensembleNum) {
+  if (!nameIn.empty() && ensembleNum > -1) {
+    if (SetupWrite( NumberFilename(nameIn, ensembleNum), debug_)) return 1;
+  } else {
+    if (SetupWrite( nameIn,                              debug_)) return 1;
+  }
+  return OpenFile();
 }
 
 // CpptrajFile::SetupWrite()
@@ -316,8 +325,21 @@ int CpptrajFile::OpenAppend(std::string const& nameIn) {
   } else {
     if (SetupAppend(nameIn, debug_)) return 1;
   }
-  if (OpenFile()) return 1;
-  return 0;
+  return OpenFile();
+}
+
+// CpptrajFile::OpenEnsembleAppend()
+int CpptrajFile::OpenEnsembleAppend(std::string const& nameIn, int ensembleNum) {
+  if (nameIn.empty())
+    return OpenEnsembleWrite( nameIn, ensembleNum );
+  else {
+    if (ensembleNum > -1) {
+      if (SetupAppend( NumberFilename(nameIn, ensembleNum), debug_)) return 1;
+    } else {
+      if (SetupAppend( nameIn,                              debug_)) return 1;
+    }
+  }
+  return OpenFile();
 }
 
 // CpptrajFile::SetupAppend()

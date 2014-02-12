@@ -137,19 +137,6 @@ int TopologyList::AddParmFile(std::string const& filenameIn, ArgList& argIn)
   return 0;
 }
 
-// TopologyList::WriteParm()
-int TopologyList::WriteParm(ArgList& argIn) const {
-  std::string outfilename = argIn.GetStringKey("out");
-  if (outfilename.empty()) {
-    mprinterr("Error: No output filename specified (use 'out <filename>').\n");
-    return 1;
-  }
-  Topology* parm = GetParmByIndex( argIn );
-  if (parm == 0) return 1;
-  ParmFile pfile;
-  return pfile.WriteTopology( *parm, outfilename, argIn, ParmFile::UNKNOWN_PARM, debug_ );
-}
-
 // TopologyList::List()
 /** Print list of loaded parameter files */
 void TopologyList::List() const {

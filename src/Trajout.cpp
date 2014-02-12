@@ -1,6 +1,6 @@
 #include "Trajout.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // fileExists
+#include "StringRoutines.h" // fileExists, NumberFilename
 
 // CONSTRUCTOR
 Trajout::Trajout() :
@@ -77,6 +77,8 @@ int Trajout::InitTrajWrite(std::string const& tnameIn, ArgList *argIn,
   if (trajio_ == 0)
     trajio_ = AllocTrajIO( writeFormat );
   if (trajio_ == 0) return 1;
+  mprintf("\tWriting '%s' as %s\n", TrajFilename().full(), 
+          TrajectoryFile::FormatString(writeFormat));
   trajio_->SetDebug( debug_ );
   // Process additional arguments
   if (argIn != 0) {
@@ -127,6 +129,23 @@ int Trajout::InitTrajWriteWithArgs(std::string const& tnameIn, const char *argst
 {
   ArgList tempArg(argstring, " ");
   return InitTrajWrite(tnameIn,&tempArg,tparmIn,fmtIn);
+}
+
+// Trajout::InitEnsembleTrajWrite()
+int Trajout::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList const& argIn,
+                                   Topology* tparmIn, TrajFormatType fmtIn,
+                                   int ensembleNum)
+{
+  ArgList tempArg = argIn;
+  FileName tempName;
+  tempName.SetFileName( tnameIn );
+  TrajFormatType extFmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
+  if (extFmt != UNKNOWN_TRAJ)
+    fmtIn = extFmt;
+  if (ensembleNum > -1)
+    return InitTrajWrite( NumberFilename(tnameIn, ensembleNum), &tempArg, tparmIn, extFmt );
+  else
+    return InitTrajWrite( tnameIn, &tempArg, tparmIn, extFmt );
 }
 
 // Trajout::EndTraj()
@@ -194,7 +213,7 @@ int Trajout::WriteFrame(int set, Topology *tparmIn, Frame const& FrameOut) {
 
 // Trajout::PrintInfo()
 void Trajout::PrintInfo(int showExtended) const {
-  mprintf("  [%s] ",TrajFilename().base());
+  mprintf("  '%s' ",TrajFilename().base());
   trajio_->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
   if (trajio_->HasBox()) mprintf(" (with box info)");

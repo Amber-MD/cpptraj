@@ -5,6 +5,7 @@
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
+  centerMode_(Frame::BOXCTR),
   origin_(false),
   ortho_(false),
   usecom_(true),
@@ -14,14 +15,14 @@ Action_AutoImage::Action_AutoImage() :
 {}
 
 void Action_AutoImage::Help() {
-  mprintf("\t[<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n");
-  mprintf("\t[origin] [firstatom] [familiar | triclinic]\n");
-  mprintf("\tAutomatically center and image periodic trajectory.\n");
-  mprintf("\tThe 'anchor' molecule (default the first molecule) will be centered;\n");
-  mprintf("\tall 'fixed' molecules will be imaged only if imaging brings them closer\n");
-  mprintf("\tto the 'anchor' molecule; default for 'fixed' molecules is all\n");
-  mprintf("\tnon-solvent non-ion molecules. All other molecules (referred to as\n");
-  mprintf("\t'mobile') will be imaged freely.\n");
+  mprintf("\t[<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n"
+          "\t[origin] [firstatom] [familiar | triclinic]\n"
+          "  Automatically center and image periodic trajectory.\n"
+          "  The 'anchor' molecule (default the first molecule) will be centered;\n"
+          "  all 'fixed' molecules will be imaged only if imaging brings them closer\n"
+          "  to the 'anchor' molecule; default for 'fixed' molecules is all\n"
+          "  non-solvent non-ion molecules. All other molecules (referred to as\n"
+          "  'mobile') will be imaged freely.\n");
 }
 
 // Action_AutoImage::Init()
@@ -30,6 +31,10 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, F
 {
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
+  if (origin_)
+    centerMode_ = Frame::ORIGIN;
+  else
+    centerMode_ = Frame::BOXCTR;
   usecom_ = !actionArgs.hasKey("firstatom");
   if (actionArgs.hasKey("familiar")) triclinic_ = FAMILIAR;
   if (actionArgs.hasKey("triclinic")) triclinic_ = FORCE;
@@ -41,7 +46,7 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, F
     anchor_ = actionArgs.GetMaskNext();
 
   mprintf("    AUTOIMAGE: To");
-  if (origin_)
+  if (centerMode_ == Frame::ORIGIN)
     mprintf(" origin");
   else
     mprintf(" box center");
@@ -208,7 +213,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
   Vec3 Trans, framecenter, imagedcenter, anchorcenter;
 
   // Center w.r.t. anchor
-  currentFrame->Center( anchorMask_, origin_, useMass_);
+  currentFrame->Center( anchorMask_, centerMode_, fcom, useMass_);
   // Determine whether anchor center is at box center or coordinate origin
   if (origin_)
     anchorcenter.Zero(); 

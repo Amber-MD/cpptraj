@@ -92,6 +92,12 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
   } else {
     // Set debug level
     Current->SetDebug(debug_);
+    // Check for keywords that do not match file type
+    DataFile::DataFormatType kType = DataFile::GetFormatFromArg( argIn );
+    if (kType != DataFile::UNKNOWN_DATA && kType != Current->Type())
+      mprintf("Warning: %s is type %s but type %s keyword specified; ignoring keyword.\n",
+              Current->DataFilename().full(), Current->FormatString(),
+              DataFile::FormatString( kType ));
     // Process Arguments
     if (!argIn.empty())
       Current->ProcessArgs( argIn );
@@ -125,7 +131,7 @@ void DataFileList::List() const {
     return;
   }
 
-  mprintf("DATAFILE OUTPUT:\n");
+  mprintf("\nDATAFILES:\n");
   for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
     mprintf("  %s (%s): ",(*it)->DataFilename().base(), (*it)->FormatString());
     (*it)->DataSetNames();
@@ -182,5 +188,7 @@ int DataFileList::ProcessDataFileArgs(ArgList& dataArg) {
     return 1;
   }
   // Process command
-  return df->ProcessArgs( dataArg );
+  int err = df->ProcessArgs( dataArg );
+  if (err != 0 || dataArg.CheckForMoreArgs()) return 1;
+  return 0;
 }

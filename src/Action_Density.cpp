@@ -26,7 +26,8 @@ Action_Density::Action_Density() :
 void Action_Density::Help()
 {
   mprintf("\tout <filename> [delta <resolution>] [x|y|z]\n"
-	  "\t[number|mass|charge|electron] <mask1> ... <maskN>\n");
+	  "\t[number|mass|charge|electron] <mask1> ... <maskN>\n"
+          "  Calculate density along a coordinate.\n");
 }
 
 // Action_Density::init()
@@ -43,7 +44,7 @@ Action::RetType Action_Density::Init(ArgList& actionArgs,
     outfileName = "density.dat";
   }
 
-  if (output_.OpenWrite(outfileName) ) {
+  if (output_.OpenEnsembleWrite(outfileName, DSL->EnsembleNum()) ) {
     mprinterr("Error: Density: Could not open output file %s\n",
 	      outfileName.c_str());
     return Action::ERR;

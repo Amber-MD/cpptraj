@@ -18,16 +18,20 @@ class CpptrajFile {
     int OpenRead(std::string const&);
     /// Prepare file for reading. 
     int SetupRead(std::string const&, int);
-    /// Open file as set up for write except use a new name
+    /// Open file previously set up for write with given numeric suffix.
     int OpenWriteNumbered(int);
-    /// Set up and open file for writing
+    /// Set up and open file for writing.
     int OpenWrite(std::string const&);
+    /// Open file for writing in Actions; if ensemble, append numeric suffix to filename.
+    int OpenEnsembleWrite(std::string const&, int);
     /// Prepare file for writing.
     int SetupWrite(std::string const&, int);
     /// Prepare file of given type for writing
     int SetupWrite(std::string const&, FileType, int);
     /// Set up and open file for appending.
     int OpenAppend(std::string const&);
+    /// Open file for append in Actions; if ensemble, append numeric suffix to filename.
+    int OpenEnsembleAppend(std::string const&, int);
     /// Prepare file for appending. 
     int SetupAppend(std::string const&, int);
     /// Open file.

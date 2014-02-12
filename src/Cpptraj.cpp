@@ -5,6 +5,7 @@
 #include "Command.h"
 #include "ReadLine.h"
 #include "Version.h"
+#include "ParmFile.h" // ProcessMask
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -16,20 +17,22 @@ void Cpptraj::Usage() {
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl] [-ms] [--mask]\n"
             "       cpptraj <Top> <Input>\n"
-            "\t-p <Top0>      : Load <Top0> as a topology file. May be specified more than once.\n"
-            "\t-i <Input0>    : Read input from <Input0>. May be specified more than once.\n"
-            "\t-y <trajin>    : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
-            "\t-x <trajout>   : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n"
-            "\t-c <reference> : Read <reference> as reference coordinates; same as input 'reference <reference>'.\n"
-            "\t-h | --help    : Print command line help and exit.\n"
-            "\t-V | --version : Print version and exit.\n"
-            "\t--defines      : Print compiler defines and exit.\n"
-            "\t-debug <#>     : Set global debug level to <#>; same as input 'debug <#>'.\n"
-            "\t--interactive  : Force interactive mode.\n"
-            "\t--log <logfile>: Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n"
-            "\t-tl            : Print length of trajectories specified with '-y' to STDOUT.\n"
-            "\t-ms <mask>     : Print selected atom numbers to STDOUT.\n"
-            "\t--mask <mask>  : Print detailed atom selection to STDOUT.\n");
+            "\t-p <Top0>        : Load <Top0> as a topology file. May be specified more than once.\n"
+            "\t-i <Input0>      : Read input from <Input0>. May be specified more than once.\n"
+            "\t-y <trajin>      : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
+            "\t-x <trajout>     : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n"
+            "\t-c <reference>   : Read <reference> as reference coordinates; same as input 'reference <reference>'.\n"
+            "\t-h | --help      : Print command line help and exit.\n"
+            "\t-V | --version   : Print version and exit.\n"
+            "\t--defines        : Print compiler defines and exit.\n"
+            "\t-debug <#>       : Set global debug level to <#>; same as input 'debug <#>'.\n"
+            "\t--interactive    : Force interactive mode.\n"
+            "\t--log <logfile>  : Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n"
+            "\t-tl              : Print length of trajectories specified with '-y' to STDOUT.\n"
+            "\t-ms <mask>       : Print selected atom numbers to STDOUT.\n"
+            "\t-mr <mask>       : Print selected residue numbers to STDOUT.\n"
+            "\t--mask <mask>    : Print detailed atom selection to STDOUT.\n"
+            "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n");
 }
 
 void Cpptraj::Intro() {
@@ -57,8 +60,8 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
 # endif
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
-    // If run has not yet been called, run now.
-    if (State_.Nrun() < 1)
+    // If State is not empty, run now. 
+    if (!State_.EmptyState())
       err = State_.Run();
   } else if ( cmode == INTERACTIVE ) {
     err = Interactive();
@@ -76,11 +79,47 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   return err;
 }
 
+/** Process a mask from the command line. */
+int Cpptraj::ProcessMask( Sarray const& topFiles, std::string const& maskexpr,
+                          bool verbose, bool residue ) const
+{
+  if (topFiles.empty()) {
+    mprinterr("Error: No topology file specified.\n");
+    return 1;
+  }
+  ParmFile pfile;
+  Topology parm;
+  if (pfile.ReadTopology(parm, topFiles[0], State_.Debug())) return 1;
+  if (!verbose) {
+    AtomMask tempMask( maskexpr );
+    if (parm.SetupIntegerMask( tempMask )) return 1;
+    if (residue) {
+      int res = -1;
+      mprintf("Selected=");
+      for (AtomMask::const_iterator atom = tempMask.begin(); 
+                                    atom != tempMask.end(); ++atom)
+      {
+        if (parm[*atom].ResNum() > res) {
+          mprintf(" %i", parm[*atom].ResNum()+1);
+          res = parm[*atom].ResNum();
+        }
+      }
+      mprintf("\n");
+    } else
+      tempMask.PrintMaskAtoms("Selected");
+  } else {
+    if (residue)
+      parm.PrintResidueInfo( maskexpr );
+    else
+      parm.PrintAtomInfo( maskexpr );
+  }
+  return 0;
+}
+
 /** Read command line args. */
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   bool hasInput = false;
   bool interactive = false;
-  typedef std::vector<std::string> Sarray;
   Sarray inputFiles;
   Sarray topFiles;
   Sarray trajinFiles;
@@ -167,20 +206,20 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // -i: Input file(s)
       inputFiles.push_back( argv[++i] );
     } else if (arg == "-ms" && i+1 != argc) {
-      // -ms: Parse mask string
-      if (topFiles.empty()) {
-        mprinterr("Error: No topology file specified.\n");
-        return ERROR;
-      }
-      if (State_.ProcessMask( topFiles[0], std::string(argv[++i]), false )) return ERROR;
+      // -ms: Parse mask string, print selected atom #s
+      if (ProcessMask( topFiles, std::string(argv[++i]), false, false )) return ERROR;
+      return SILENT_EXIT;
+    } else if (arg == "-mr" && i+1 != argc) {
+      // -mr: Parse mask string, print selected res #s
+      if (ProcessMask( topFiles, std::string(argv[++i]), false, true )) return ERROR;
       return SILENT_EXIT;
     } else if (arg == "--mask" && i+1 != argc) {
-      // --mask: detailed mask
-      if (topFiles.empty()) {
-        mprinterr("Error: No topology file specified.\n");
-        return ERROR;
-      }
-      if (State_.ProcessMask( topFiles[0], std::string(argv[++i]), true )) return ERROR;
+      // --mask: Parse mask string, print selected atom details
+      if (ProcessMask( topFiles, std::string(argv[++i]), true, false )) return ERROR;
+      return SILENT_EXIT;
+    } else if (arg == "--resmask" && i+1 != argc) {
+      // --resmask: Parse mask string, print selected residue details
+      if (ProcessMask( topFiles, std::string(argv[++i]), true, true )) return ERROR;
       return SILENT_EXIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
@@ -260,11 +299,10 @@ int Cpptraj::Interactive() {
   Command::RetType readLoop = Command::C_OK;
   while ( readLoop != Command::C_QUIT ) {
     if (inputLine.GetInput()) {
-      // EOF (Ctrl-D) specified. If there are actions/analyses queued, ask 
-      // user if they really want to quit.
-      if (!State_.Empty()) {
-        if (inputLine.YesNoPrompt("EOF (Ctrl-D) specified but there are actions/analyses"
-                                  " queued. Really quit? [y/n]> "))
+      // EOF (Ctrl-D) specified. If state is not empty, ask before exiting.
+      if (!State_.EmptyState()) {
+        if (inputLine.YesNoPrompt("EOF (Ctrl-D) specified but there are actions/"
+                                  "analyses/trajectories queued. Really quit? [y/n]> "))
           break;
       } else
         break;
@@ -275,6 +313,14 @@ int Cpptraj::Interactive() {
         logfile_.Printf("%s\n", inputLine.c_str());
         logfile_.Flush();
       }
+    }
+    // If state is not empty, ask before exiting.
+    if (readLoop == Command::C_QUIT && !State_.EmptyState()) {
+      if (inputLine.YesNoPrompt("There are actions/analyses/trajectories queued. "
+                                "Really quit? [y/n]> "))
+        break;
+      else
+        readLoop = Command::C_OK;
     }
   }
   logfile_.CloseFile();

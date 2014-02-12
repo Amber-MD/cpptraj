@@ -96,6 +96,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_Spline.cpp \
         Analysis_Statistics.cpp \
         Analysis_Timecorr.cpp \
+        Analysis_VectorMath.cpp \
         ArgList.cpp \
         Array1D.cpp \
         Atom.cpp \
@@ -138,6 +139,8 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_2D.cpp \
         DataSet_3D.cpp \
         DataSet_Coords.cpp \
+        DataSet_Coords_CRD.cpp \
+        DataSet_Coords_TRJ.cpp \
         DataSet_GridFlt.cpp \
         DataSet_MatrixDbl.cpp \
         DataSet_MatrixFlt.cpp \
@@ -176,6 +179,7 @@ SOURCES=ActionFrameCounter.cpp \
         Parm_CIF.cpp \
         Parm_Mol2.cpp \
         Parm_PDB.cpp \
+        Parm_SDF.cpp \
         ProgressBar.cpp \
         PubFFT.cpp \
         Random.cpp \
@@ -183,8 +187,9 @@ SOURCES=ActionFrameCounter.cpp \
         ReadLine.cpp \
         ReferenceAction.cpp \
         ReferenceFrame.cpp \
-        RmsAction.cpp \
+        SDFfile.cpp \
         StringRoutines.cpp \
+        SymmetricRmsdCalc.cpp \
         Topology.cpp \
         TopologyList.cpp \
         TorsionRoutines.cpp \
@@ -194,10 +199,12 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_AmberRestartNC.cpp \
         Traj_Binpos.cpp \
         Traj_CharmmDcd.cpp \
+        Traj_CIF.cpp \
         Traj_Conflib.cpp \
         Traj_GmxTrX.cpp \
         Traj_Mol2File.cpp \
         Traj_PDBfile.cpp \
+        Traj_SDF.cpp \
         Traj_SQM.cpp \
         TrajectoryFile.cpp \
         Trajin.cpp \

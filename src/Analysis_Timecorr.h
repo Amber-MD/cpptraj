@@ -22,13 +22,26 @@ class Analysis_Timecorr : public Analysis {
       double r3iave_;
       double r6iave_;
     };
-    enum timecorrMode { AUTO = 0, CROSS };
+    enum ModeType { AUTOCORR = 0, CROSSCORR };
     static const char* ModeString[];
+    enum DsetOutType { DPLR_R = 0, DPLR_RRIG, DPLR_R3, DPLR_R6, DPLR_NAME,
+                       TC_C,       TC_P,      TC_R3R3,   NDSETOUT };
+    typedef std::vector<DataSet*> DSarray;
+    struct DStoken {
+      const char* Aspect;
+      const char* Legend;
+      DataSet::DataType Type;
+    };
+    static DStoken Tokens[];
+
+    std::vector<double> CalculateAverages(DataSet_Vector const&, AvgResults&);
+    void CalcCorr(int);
+    void Normalize( DataSet*, int, double );
 
     double tstep_;
     double tcorr_;
     int order_;
-    timecorrMode mode_;
+    ModeType mode_;
     bool dplr_;
     bool norm_;
     bool drct_;
@@ -36,11 +49,10 @@ class Analysis_Timecorr : public Analysis {
     ComplexArray data2_;
     DataSet_Vector* vinfo1_;
     DataSet_Vector* vinfo2_;
+    DSarray DSOut_;
     std::string filename_;
+    std::string Plegend_;
     CorrF_FFT pubfft_;
     CorrF_Direct corfdir_;
-    
-    std::vector<double> CalculateAverages(DataSet_Vector const&, AvgResults&);
-    void CalcCorr(int);
 };
 #endif

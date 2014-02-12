@@ -6,12 +6,12 @@
 // Class: Frame
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,
-  * along with box coordinates (used in imaging calculations) and optionally 
-  * with mass information and/or velocity information. Frame can be set up
-  * coords only, coords and masses, or coords/masses/velocities. Mass is stored
-  * since several functions (like COM, RMSD, Inertia etc) have the option to 
-  * factor in the mass of the atoms involved, and this avoids having to pass a 
-  * mass pointer in, which takes the burden of keeping track of mass away from 
+  * along with box coordinates (used in imaging calculations), mass information,
+  * and optionally velocity information. Frame can be set up coords only (all 
+  * masses set to 1.0), coords and masses, or coords/masses/velocities. Mass is 
+  * stored since several functions (like COM, RMSD, Inertia etc) have the option
+  * to factor in the mass of the atoms involved, and this avoids having to pass
+  * a mass pointer in, which takes the burden of keeping track of mass away from 
   * actions etc. Mass is stored when the frame is initially created, and is 
   * modified if necessary by SetFrame (which is the case when e.g. calculating
   * per-residue RMSD).
@@ -20,18 +20,17 @@
   *
   * In addition to the constructors, there are two classes of routine that
   * can be used to set up Frames. The SetupX routines do any memory allocation,
-  * and assign masses, and the SetX routines assign coordinates. The SetX 
-  * routines will dynamically adjust the size of the frame up to maxnatom, but
-  * no reallocation will occur so the frame should be set up for the largest
+  * and assign masses, and the SetX routines assign coordinates/velocities. The
+  * SetX routines will dynamically adjust the size of the frame up to maxnatom,
+  * but no reallocation will occur so the frame should be set up for the largest
   * possible # of atoms it will hold. This avoids expensive reallocations.
   * The representation of coordinates (X) and velocities (V) are double*
   * instead of STL vectors so as to easily interface with the FileIO routines
-  * which are much faster than iostream ops. 
+  * which tend to be much faster than iostream ops. 
   */
 class Frame {
   public:
-    /// This type interfaces with DataSet_Coords.
-    typedef std::vector<float> CRDtype;
+    enum CenterMode { ORIGIN = 0, BOXCTR, POINT };
     // Construction/Destruction/Assignment
     Frame();
     ~Frame();
@@ -43,12 +42,16 @@ class Frame {
     Frame(Frame const&, AtomMask const&);
     Frame(const Frame&);
     Frame& operator=(Frame);
+    // -------------------------------------------
+    /// This type interfaces with DataSet_Coords_CRD
+    typedef std::vector<float> CRDtype;
     /// Assign given CRDtype to this frame.
-    void SetFromCRD(CRDtype const&, int);
+    void SetFromCRD(CRDtype const&, int, int, bool);
     /// Assign selected atoms from given CRDtype to this frame.
-    void SetFromCRD(CRDtype const&, int, AtomMask const&);
+    void SetFromCRD(CRDtype const&, AtomMask const&, int, int, bool);
     /// Convert this frame to CRDtype.
-    CRDtype ConvertToCRD(int) const;
+    CRDtype ConvertToCRD(int, bool) const;
+    // -------------------------------------------
     /// Print XYZ coordinates for given atom.
     void printAtomCoord(int) const;
     /// Print information about the frame.
@@ -151,7 +154,7 @@ class Frame {
     /// Scale coordinates of atoms in mask by given X|Y|Z constants
     void Scale(AtomMask const&, double, double, double);
     /// Translate atoms to box center or origin.
-    void Center(AtomMask const&, bool,bool);
+    void Center(AtomMask const&, CenterMode, Vec3 const&, bool);
     /// Translate atoms to origin.
     Vec3 CenterOnOrigin(bool);
     // Coordinate calculation
@@ -184,7 +187,8 @@ class Frame {
     Darray Mass_;   ///< Masses.
 
     void swap(Frame&, Frame&);
-    void ReallocateX();
+    void IncreaseX();
+    inline bool ReallocateX(int);
 };
 // ---------- INLINE FUNCTION DEFINITIONS --------------------------------------
 void Frame::SetBoxAngles(const double* boxAngle) {

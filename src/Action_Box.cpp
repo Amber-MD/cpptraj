@@ -4,9 +4,9 @@
 Action_Box::Action_Box() : nobox_(false) {}
 
 void Action_Box::Help() {
-  mprintf("\t[x <xval>] [y <yval>] [z <zval>] [alpha <a>] [beta <b>] [gamma <g>]\n");
-  mprintf("\t[nobox] [truncoct]\n");
-  mprintf("\tFor each input frame, replace any box information with the information given.\n");
+  mprintf("\t[x <xval>] [y <yval>] [z <zval>] [alpha <a>] [beta <b>] [gamma <g>]\n"
+          "\t[nobox] [truncoct]\n"
+          "  For each input frame, replace any box information with the information given.\n");
 }
 
 // Action_Box::Init()

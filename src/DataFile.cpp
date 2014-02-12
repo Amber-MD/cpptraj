@@ -108,7 +108,7 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
   ArgList argIn = argListIn;
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
-  filename_.SetFileNameWithExpansion( fnameIn );
+  if (filename_.SetFileNameWithExpansion( fnameIn )) return 1;
   // 'as' keyword specifies a format
   std::string as_arg = argIn.GetStringKey("as");
   if (!as_arg.empty()) {
@@ -317,17 +317,13 @@ void DataFile::WriteData() {
   dftimer.Start();
 #endif
   int err = 0;
-  if ( dimension_ < 2 ) {        // One-dimensional/DataSet-specific write
+  if ( dimension_ < 2 )        // One-dimensional/DataSet-specific write
     err = dataio_->WriteData(filename_.Full(), setsToWrite);
-  } else if ( dimension_ == 2) { // Two-dimensional
-    for ( DataSetList::const_iterator set = setsToWrite.begin();
-                                      set != setsToWrite.end(); ++set)
-      err += dataio_->WriteData2D(filename_.Full(), *(*set) );
-  } else if ( dimension_ == 3) { // Three-dimensional
-    for ( DataSetList::const_iterator set = setsToWrite.begin();
-                                      set != setsToWrite.end(); ++set)
-      err += dataio_->WriteData3D(filename_.Full(), *(*set) );
-  } else {
+  else if ( dimension_ == 2) // Two-dimensional
+    err = dataio_->WriteData2D(filename_.Full(), setsToWrite);
+  else if ( dimension_ == 3) // Three-dimensional
+    err = dataio_->WriteData3D(filename_.Full(), setsToWrite);
+  else {
     mprinterr("Error: %iD writes not yet supported.\n", dimension_);
     err = 1;
   }

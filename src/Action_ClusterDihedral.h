@@ -93,5 +93,6 @@ class Action_ClusterDihedral : public Action {
     DataSet* CVT_; ///< Hold # clusters vs time.
     double minimum_; ///< Value of first bin 
     int debug_;
+    int ensembleNum_;
 };
 #endif

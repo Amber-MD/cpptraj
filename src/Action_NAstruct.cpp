@@ -17,6 +17,7 @@ Action_NAstruct::Action_NAstruct() :
   originCut2_(6.25),   // Origin cutoff^2 for base-pairing: 2.5^2
   maxResSize_(0),
   debug_(0),
+  ensembleNum_(-1),
   printheader_(true),
   useReference_(false),
   masterDSL_(0)
@@ -26,12 +27,15 @@ Action_NAstruct::Action_NAstruct() :
 {}
 
 void Action_NAstruct::Help() {
-  mprintf("\t[resrange <range>] [naout <nafilename>]\n");
-  mprintf("\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n");
-  mprintf("\t[hbcut <hbcut>] [origincut <origincut>]\n");
-  mprintf("\t[ reference | refindex <#> | ref <REF> ]\n");
-  mprintf("\tPerform nucleic acid structure analysis. Base pairing is determined\n");
-  mprintf("\tfrom specified reference or first frame.\n");
+  mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
+          "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n"
+          "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
+          "\t[ %s ]\n", FrameList::RefArgs);
+  mprintf("  Perform nucleic acid structure analysis. Base pairing is determined\n"
+          "  from specified reference or first frame.\n"
+          "  Base pair parameters are written to BP.<suffix>, base pair step parameters\n"
+          "  are written to BPstep.<suffix>, and helix parameters are written to\n"
+          "  Helix.<suffix>\n");
 }
 
 // DESTRUCTOR
@@ -294,10 +298,10 @@ int Action_NAstruct::determineBasePairing() {
       int NHB = CalcNumHB(Bases_[base1], Bases_[minBaseNum]);
       if (NHB > 0) {
         BasePairAxes_.push_back( NA_Axis(base1, minBaseNum, AntiParallel) );
+        NumberOfHbonds_.push_back( NHB );
         isPaired[base1] = true;
         isPaired[minBaseNum] = true;
       }
-      NumberOfHbonds_.push_back( NHB );
     } // END if minBaseNum!=-1
   } // END Loop over base1
 
@@ -884,7 +888,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 {
   debug_ = debugIn;
   masterDSL_ = DSL;
-
+  ensembleNum_ = DSL->EnsembleNum();
   // Get keywords
   outputsuffix_ = actionArgs.GetStringKey("naout");
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
@@ -893,6 +897,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   double origincut = actionArgs.getKeyDouble("origincut", -1);
   if (origincut > 0)
     originCut2_ = origincut * origincut;
+  if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
+  else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
   // Get residue range
   resRange_.SetRange(actionArgs.GetStringKey("resrange"));
   if (!resRange_.Empty())
@@ -912,7 +918,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     maplist.SetList( actionArgs.GetStringKey("resmap"), ":" );
     // Expect only 2 args
     if (maplist.Nargs()!=2) {
-      mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
+      mprinterr("Error: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
                 maplist.ArgLine());
       return Action::ERR;
     }
@@ -923,14 +929,14 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     else if (maplist[1] == "T") mapbase = NA_Base::THY;
     else if (maplist[1] == "U") mapbase = NA_Base::URA;
     else {
-      mprinterr("Error: nastruct: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
+      mprinterr("Error: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
                 maplist.ArgLine());
       return Action::ERR;
     }
     // Check that residue name is <= 4 chars
     std::string resname = maplist[0]; 
     if (resname.size() > 4) {
-      mprinterr("Error: nastruct: resmap resname > 4 chars (%s)\n",maplist.ArgLine());
+      mprinterr("Error: resmap resname > 4 chars (%s)\n",maplist.ArgLine());
       return Action::ERR;
     }
     // Format residue name
@@ -942,7 +948,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     // Add to CustomMap
     ResMapType::iterator customRes = CustomMap_.find(resname);
     if (customRes != CustomMap_.end()) {
-      mprintf("Warning: nastruct: resmap: %s already mapped.\n",resname.c_str());
+      mprintf("Warning: resmap: %s already mapped.\n",resname.c_str());
     } else {
       CustomMap_.insert( std::pair<std::string,NA_Base::NAType>(resname,mapbase) );
     }
@@ -976,9 +982,12 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     // Determine Base Pairing
     if ( determineBasePairing() ) return Action::ERR;
     mprintf("\tSet up %zu base pairs.\n", BasePairAxes_.size() ); 
-  } else {
+  } else
     mprintf("\tUsing first frame to determine base pairing.\n");
-  }
+  if (puckerMethod_==ALTONA)
+    mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
+  else if (puckerMethod_==CREMER)
+    mprintf("\tCalculating sugar pucker using Cremer & Pople method.\n");
   return Action::OK;
 }
 
@@ -1096,9 +1105,9 @@ void Action_NAstruct::Print() {
   std::string outfilename = "BP." + outputsuffix_;
   // Check that there is actually data
   if ( SHEAR_.empty() || SHEAR_[0]->Empty() )
-    mprinterr("Error: nastruct: Could not write BP file %s: No BP data.\n",outfilename.c_str()); 
+    mprinterr("Error: Could not write BP file %s: No BP data.\n",outfilename.c_str()); 
   else {
-    if (outfile.OpenWrite( outfilename ) == 0) {
+    if (outfile.OpenEnsembleWrite( outfilename, ensembleNum_ ) == 0) {
       // Determine number of frames from SHEAR[0] DataSet
       nframes = SHEAR_[0]->Size();
       mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
@@ -1128,7 +1137,7 @@ void Action_NAstruct::Print() {
       }
       outfile.CloseFile();
     } else {
-      mprinterr("Error: nastruct: Could not open %s for writing.\n", outfilename.c_str());
+      mprinterr("Error: Could not open %s for writing.\n", outfilename.c_str());
     }
   }
 
@@ -1139,15 +1148,15 @@ void Action_NAstruct::Print() {
   // Check that there is actually data
   // TODO: Check helix data as well
   if ( SHIFT_.empty() || SHIFT_[0]->Empty() )
-    mprintf("Warning: nastruct: Could not write BPstep / helix files: No data.\n"); 
+    mprinterr("Error: Could not write BPstep / helix files: No data.\n"); 
   else {
     int err = 0;
-    err += outfile.OpenWrite( outfilename );
-    err += outfile2.OpenWrite( outfilename2 );
+    err += outfile.OpenEnsembleWrite( outfilename, ensembleNum_ );
+    err += outfile2.OpenEnsembleWrite( outfilename2, ensembleNum_ );
     if (err == 0) {
       // Determine number of frames from SHIFT[0] DataSet. Should be same as SHEAR.
       nframes = SHIFT_[0]->Size();
-      mprintf("\tBase pair step output file %s;",outfilename.c_str());
+      mprintf("\tBase pair step output file %s; ",outfilename.c_str());
       mprintf("Helix output file %s; %i frames, %zu base pair steps.\n", outfilename2.c_str(),
               nframes, BasePairAxes_.size() - 1);
       //  File headers
@@ -1189,7 +1198,7 @@ void Action_NAstruct::Print() {
       outfile.CloseFile();
       outfile2.CloseFile();
     } else {
-      mprinterr("Error: nastruct: Could not open BPstep files for writing.\n");
+      mprinterr("Error: Could not open BPstep files for writing.\n");
     }
   }
 }

@@ -25,7 +25,7 @@ Action_OrderParameter::Action_OrderParameter() :
 
 void Action_OrderParameter::Help()
 {
-  mprintf("\tout <filename> [unsat <mask>] [scd]\n"
+  mprintf("\tout <filename> [unsat <mask>] [scd] [unsat]\n"
 	  "\t[taildist <filename> delta <resolution>\n"
 	  "\ttailstart <mask> tailend <mask>]\n"
 	  "\t<mask0> ... <maskN>\n");
@@ -49,7 +49,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs,
     outfileName = "orderparam.dat";
   }
 
-  if (output_.OpenWrite(outfileName) ) {
+  if (output_.OpenEnsembleWrite(outfileName, DSL->EnsembleNum()) ) {
     mprinterr("Error: OrderParameter: Could not open output file %s\n",
 	      outfileName.c_str());
     return Action::ERR;
@@ -66,7 +66,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs,
   std::string taildistName = actionArgs.GetStringKey("taildist");
 
   if (!taildistName.empty()) {
-    if (taildist_.OpenWrite(taildistName) ) {
+    if (taildist_.OpenEnsembleWrite(taildistName, DSL->EnsembleNum()) ) {
       mprinterr("Error: OrderParameter: Could not open output file %s\n",
 		outfileName.c_str());
       return Action::ERR;
@@ -237,10 +237,10 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum,
       for (C_atom = C_mask->begin(),
 	     H1_atom = H1_mask->begin(),
 	     H2_atom = H2_mask->begin();
-	   C_atom != C_mask->end(),
-	     H1_atom != H1_mask->end(),
+	     C_atom != C_mask->end() &&
+	     H1_atom != H1_mask->end() &&
 	     H2_atom != H2_mask->end();
-	   C_atom++, H1_atom++, H2_atom++) {
+	     C_atom++, H1_atom++, H2_atom++) {
 
 	// C-H1 unit vector
 	c = currentFrame->XYZ(*C_atom);
@@ -337,7 +337,7 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum,
 
   if (taildist_.IsOpen() ) {
     for (start_atom = tailstart_mask_.begin(), end_atom = tailend_mask_.begin();
-	 start_atom != tailstart_mask_.end(), end_atom != tailend_mask_.end();
+	 start_atom != tailstart_mask_.end() && end_atom != tailend_mask_.end();
 	 start_atom++, end_atom++) {
 
       ca = currentFrame->XYZ(*start_atom);

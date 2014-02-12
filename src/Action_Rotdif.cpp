@@ -98,16 +98,16 @@ Action_Rotdif::Action_Rotdif() :
 { } 
 // TODO: MAKE ANALYSIS
 void Action_Rotdif::Help() {
-  mprintf("\t[rseed <rseed>] [nvecs <nvecs>]\n");
-  mprintf("\tref <refname> | refindex <refindex> | reference\n");
-  mprintf("\t[<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>\n");
-  mprintf("\t[itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]\n");
-  mprintf("\t[delqfrac <delqfrac>] [rvecout <randvecOut>]\n");
-  mprintf("\t[rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]\n");
-  mprintf("\t[corrout <corrOut>] [usefft]\n");
-  mprintf("\t[rvecin <randvecIn>]\n");
-  mprintf("\t[gridsearch] [nmesh <NmeshPoints>]\n");
-  mprintf("\tCalculate rotational diffusion tensor.\n");
+  mprintf("\t[rseed <rseed>] [nvecs <nvecs>]\n"
+          "\tref <refname> | refindex <refindex> | reference\n"
+          "\t[<refmask>] [ncorr <ncorr>] dt <tfac> [ti <ti>] tf <tf>\n"
+          "\t[itmax <itmax>] [tol <delmin>] [d0 <d0>] [order <olegendre>]\n"
+          "\t[delqfrac <delqfrac>] [rvecout <randvecOut>]\n"
+          "\t[rmout <rmOut>] [deffout <deffOut>] [outfile <outfilename>]\n"
+          "\t[corrout <corrOut>] [usefft]\n"
+          "\t[rvecin <randvecIn>]\n"
+          "\t[gridsearch] [nmesh <NmeshPoints>]\n"
+          "  Calculate rotational diffusion tensor.\n");
 }
 
 // DESTRUCTOR
@@ -122,6 +122,10 @@ Action_Rotdif::~Action_Rotdif() {
 Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  if (DSL->EnsembleNum() > -1) {
+    mprinterr("Error: Rotational Diffusion calc. currently cannot be used in ensemble mode.\n");
+    return Action::ERR;
+  }
   debug_ = debugIn;
   // Get Keywords
   usefft_ = actionArgs.hasKey("usefft");
@@ -130,13 +134,13 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   ncorr_ = actionArgs.getKeyInt("ncorr",0);
   tfac_ = actionArgs.getKeyDouble("dt",0);
   if (tfac_<=0) {
-    mprinterr("Error: Rotdif: 'dt <timestep>' must be specified and > 0.\n");
+    mprinterr("Error: 'dt <timestep>' must be specified and > 0.\n");
     return Action::ERR;
   }
   ti_ = actionArgs.getKeyDouble("ti",0);
   tf_ = actionArgs.getKeyDouble("tf",0);
   if (tf_ <= ti_) {
-    mprinterr("Error: Rotdif: Initial time ti (%f) must be < final time tf (%f).\n",
+    mprinterr("Error: Initial time ti (%f) must be < final time tf (%f).\n",
               ti_, tf_);
     return Action::ERR;
   }
@@ -146,12 +150,8 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   d0_ = actionArgs.getKeyDouble("d0",0.03);
   olegendre_ = actionArgs.getKeyInt("order",2);
   if (olegendre_!=1 && olegendre_!=2) {
-    mprinterr("Error: Rotdif: Order of legendre polynomial (%i) must be 1 or 2.\n",
+    mprinterr("Error: Order of legendre polynomial (%i) must be 1 or 2.\n",
               olegendre_);
-    return Action::ERR;
-  }
-  if (usefft_ && olegendre_ != 2) {
-    mprinterr("Error: Rotdif: FFT only supports legendre order 2.\n");
     return Action::ERR;
   }
   delqfrac_ = actionArgs.getKeyDouble("delqfrac",0.5);
@@ -165,6 +165,10 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Reference Keywords
   ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
+  if (REF.empty()) {
+    mprinterr("Error: Must specify a reference structure.\n");
+    return Action::ERR;
+  }
   // Get Masks
   AtomMask RefMask( actionArgs.GetMaskNext() );
   TargetMask_.SetMaskString( RefMask.MaskExpression() );
@@ -176,7 +180,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   // Setup reference mask
   if (REF.Parm()->SetupIntegerMask( RefMask )) return Action::ERR;
   if (RefMask.None()) {
-    mprintf("Error: Rotdif::init: No atoms in reference mask.\n");
+    mprinterr("Error: No atoms in reference mask.\n");
     return Action::ERR;
   }
   // Allocate frame for selected reference atoms
@@ -187,8 +191,8 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   SelectedRef_.CenterOnOrigin(useMass_); 
 
   // Open output file. Defaults to stdout if no name specified
-  if (outfile_.OpenWrite(outfilename)) {
-    mprinterr("Error opening Rotdif output file %s.\n", outfilename.c_str());
+  if (outfile_.OpenEnsembleWrite(outfilename, DSL->EnsembleNum())) {
+    mprinterr("Error: Could not open Rotdif output file %s.\n", outfilename.c_str());
     return Action::ERR;
   }
 
@@ -230,13 +234,14 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   mprintf("------------------------------------------------------\n");
 #else
   if (!outfilename.empty())
-    mprintf("            Diffusion constants and tau will be written to %s\n",
+    mprintf("\tDiffusion constants and tau will be written to %s\n",
             outfilename.c_str());
   else
-    mprintf("            Diffusion constants and tau will be written to STDOUT.\n");
+    mprintf("\tDiffusion constants and tau will be written to STDOUT.\n");
 #endif
-  mprintf( "# Citation: Wong & Case, (Evaluating rotational diffusion from protein MD\n"
-           "#           simulations, J. Phys. Chem. B 112:6013, 2008)\n");
+  mprintf("# Citation: Wong V.; Case, D. A.; \"Evaluating rotational diffusion from\n"
+          "#           protein MD simulations.\"\n"
+          "#           J. Phys. Chem. B (2008) V.112 pp.6013-6024.\n");
   return Action::OK;
 }
 
@@ -248,7 +253,7 @@ Action::RetType Action_Rotdif::Setup(Topology* currentParm, Topology** parmAddre
 
   if ( currentParm->SetupIntegerMask( TargetMask_ ) ) return Action::ERR;
   if ( TargetMask_.None() ) {
-    mprintf("    Error: Rotdif::setup: No atoms in mask.\n");
+    mprintf("Warning: No atoms in mask.\n");
     return Action::ERR;
   }
   // Allocate space for selected atoms in the frame. This will also put the
@@ -256,8 +261,8 @@ Action::RetType Action_Rotdif::Setup(Topology* currentParm, Topology** parmAddre
   SelectedTgt_.SetupFrameFromMask(TargetMask_, currentParm->Atoms());
   // Check that num atoms in frame mask from this parm match ref parm mask
   if ( SelectedRef_.Natom() != TargetMask_.Nselected() ) {
-    mprintf( "    Error: Number of atoms in RMS mask (%i) does not \n",TargetMask_.Nselected());
-    mprintf( "           equal number of atoms in Ref mask (%i).\n",SelectedRef_.Natom());
+    mprinterr("Error: Number of atoms in RMS mask (%i) does not \n",TargetMask_.Nselected());
+    mprinterr("Error:   equal number of atoms in Ref mask (%i).\n",SelectedRef_.Natom());
     return Action::ERR;
   }
   
@@ -336,10 +341,10 @@ DataSet_Vector Action_Rotdif::RandomVectors() {
   if (!randvecOut_.empty()) {
     CpptrajFile rvout;
     if (rvout.OpenWrite(randvecOut_)) {
-      mprinterr("Error: Rotdif: Could not set up %s for writing.\n",randvecOut_.c_str());
+      mprinterr("Error: Could not set up %s for writing vectors.\n",randvecOut_.c_str());
     } else {
       int idx = 1;
-      for (DataSet_Vector::iterator vec = XYZ.begin(); vec != XYZ.end(); ++vec)
+      for (DataSet_Vector::const_iterator vec = XYZ.begin(); vec != XYZ.end(); ++vec)
         rvout.Printf("%6i  %15.8lf  %15.8lf  %15.8lf\n",
                      idx++, (*vec)[0], (*vec)[1], (*vec)[2]);
       rvout.CloseFile();
@@ -408,15 +413,10 @@ int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int n
   }
   // Normalize correlation fn
   // 4/3*PI and 4/5*PI due to spherical harmonics addition theorem
-  double norm = 1.0;
-  if (order==1)
-    norm = Constants::FOURTHIRDSPI;
-  else if (order==2)
-    norm = Constants::FOURFIFTHSPI;
-  for (int i = 0; i < nsteps; ++i) {
+  double norm = DataSet_Vector::SphericalHarmonicsNorm( order );
+  for (int i = 0; i < nsteps; ++i)
     p2[i] *= (norm / (n_of_vecs - i));
-  }
-     
+
   return 0;
 }
 
@@ -576,7 +576,7 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
   }
   delta = (Dav*Dav) - Dpr2;
   if (delta < 0) {
-    mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate lambda l=2, m=0\n");
+    mprinterr("Error: calc_Asymmetric: Cannot calculate lambda l=2, m=0\n");
     return 1;
   }
   double sqrt_Dav_Dpr = sqrt( delta );
@@ -594,8 +594,8 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
 
   // Loop over all random vectors
   int nvec = 0; // index into tau1, tau2, sumc2
-  for (DataSet_Vector::iterator randvec = random_vectors_.begin();
-                                randvec != random_vectors_.end(); ++randvec)
+  for (DataSet_Vector::const_iterator randvec = random_vectors_.begin();
+                                      randvec != random_vectors_.end(); ++randvec)
   {
     // Rotate vector i into D frame
     // This is an inverse rotation. Since matrix_D is in column major order
@@ -1036,7 +1036,7 @@ int Action_Rotdif::Grid_search(Vec6& Q_vector, int gridsize) {
   double sgn, sgn0;
   bool success = false;
   if (gridsize < 1) {
-    mprinterr("Error: Rotdif: Grid search: Grid < 1\n");
+    mprinterr("Error: Grid search: Grid < 1\n");
     return 0;
   }
   int gridmax = gridsize + 1;
@@ -1133,8 +1133,8 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
   int A5 = m_rows * 5;
   double* At = matrix_At;
   int nvec = 0;
-  for (DataSet_Vector::iterator randvec = random_vectors_.begin();
-                                randvec != random_vectors_.end(); ++randvec)
+  for (DataSet_Vector::const_iterator randvec = random_vectors_.begin();
+                                      randvec != random_vectors_.end(); ++randvec)
   {
     // Transpose of matrix A
     double *A = matrix_A + nvec;
@@ -1181,6 +1181,7 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
   // matrix_A and work no longer needed
   delete[] matrix_A;
   delete[] work_;
+  work_ = 0;
   // DEBUG - Print Sigma
   if (debug_>0) {
     for (int i = 0; i < s_dim; i++) 
@@ -1188,7 +1189,7 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
   }
   // Check for convergence
   if ( info > 0 ) {
-    mprinterr( "The algorithm computing SVD of At failed to converge.\n" );
+    mprinterr("Error: The algorithm computing SVD of At failed to converge.\n" );
     delete[] matrix_At;
     delete[] matrix_U;
     delete[] matrix_S;
@@ -1265,8 +1266,9 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
          D_XYZ_.Dptr(), work_, lwork_, info);
   // Check for convergence
   if (info > 0) {
-    mprinterr("The algorithm computing the eigenvalues/eigenvectors of D failed to converge.\n");
+    mprinterr("Error: The algorithm computing the eigenvalues/eigenvectors of D failed to converge.\n");
     delete[] work_;
+    work_ = 0;
     delete[] matrix_At;
     return 1;
   }
@@ -1473,8 +1475,8 @@ int Action_Rotdif::DetermineDeffs() {
     return 1; // Should never get here, olegendre is checked in init
   // LOOP OVER RANDOM VECTORS
   int nvec = 0;
-  for (DataSet_Vector::iterator rndvec = random_vectors_.begin();
-                                rndvec != random_vectors_.end(); ++rndvec)
+  for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
+                                      rndvec != random_vectors_.end(); ++rndvec)
   {
     progress.Update( nvec );
     // Reset rotated_vectors to the beginning 
@@ -1580,7 +1582,7 @@ void Action_Rotdif::Print() {
   if (!rmOut_.empty()) {
     CpptrajFile rmout;
     if (rmout.SetupWrite(rmOut_,debug_)) {
-      mprinterr("    Error: Rotdif: Could not set up %s for writing.\n",rmOut_.c_str());
+      mprinterr("Error: Could not set up %s for writing rotation matrices.\n",rmOut_.c_str());
     } else {
       rmout.OpenFile();
       int rmframe=1;
@@ -1604,7 +1606,7 @@ void Action_Rotdif::Print() {
   if (!deffOut_.empty()) {
     CpptrajFile dout;
     if (dout.SetupWrite(deffOut_,debug_)) {
-      mprinterr("    Error: Rotdif: Could not set up file %s\n",deffOut_.c_str());
+      mprinterr("Error: Could not set up Deff file %s\n",deffOut_.c_str());
     } else {
       dout.OpenFile();
       for (int vec = 0; vec < nvecs_; vec++)
@@ -1616,7 +1618,7 @@ void Action_Rotdif::Print() {
   // All remaining functions require LAPACK
 # ifndef NO_MATHLIB
   Vec6 Q_isotropic;
-  Tensor_Fit( Q_isotropic );
+  if (Tensor_Fit( Q_isotropic )) return;
 
   // Using Q (small anisotropy) as a guess, calculate Q with
   // full anisotropy

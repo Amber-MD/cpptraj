@@ -19,16 +19,17 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     int readFrame(int,Frame&);
     int writeFrame(int,Frame const&);
     int processWriteArgs(ArgList&);
+    int processReadArgs(ArgList&);
     void Info();
   private:
     double restartTime_;
     bool singleWrite_;
+    bool useVelAsCoords_;
     double time0_;
     double dt_;
     FileName filename_;
 
     int readVelocity(int, Frame&) { return 1; }
-    int processReadArgs(ArgList&) { return 0; }
 };
 #endif
 #endif  

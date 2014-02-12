@@ -6,6 +6,7 @@
 Traj_Mol2File::Traj_Mol2File() : 
   mol2WriteMode_(NONE),
   mol2Top_(0),
+  currentSet_(0),
   hasCharges_(false)
 {}
 
@@ -15,7 +16,8 @@ bool Traj_Mol2File::ID_TrajFormat(CpptrajFile& fileIn) {
 
 // Traj_Mol2File::openTrajin()
 int Traj_Mol2File::openTrajin() {
-  return file_.OpenFile(); 
+  currentSet_ = 0;
+  return file_.OpenFile();
 }
 
 // Traj_Mol2File::closeTraj() {
@@ -53,8 +55,8 @@ int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm)
     if (frameAtom != file_.Mol2Natoms()) {
       mprintf("Warning: # atoms in Mol2 file %s frame %i (%i) not equal\n",
               file_.Filename().base(), Frames+1, frameAtom);
-      mprintf("Warning: to # atoms int first frame (%i).\n", file_.Mol2Natoms());
-      mprintf("Warning: Only using frames 1-%i.\n", Frames);
+      mprintf("Warning:   to # atoms int first frame (%i).\n", file_.Mol2Natoms());
+      mprintf("Warning:   Only using frames 1-%i.\n", Frames);
       break;
     }
     ++Frames;
@@ -67,12 +69,18 @@ int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm)
 
 // Traj_Mol2File::readFrame()
 int Traj_Mol2File::readFrame(int set, Frame& frameIn) {
-  // Position file at next @<TRIPOS>ATOM tag
-  if (file_.ScanTo(Mol2File::ATOM)) return 1;
+  if (set < currentSet_) {
+    file_.Rewind();
+    currentSet_ = 0;
+  }
+  // Position file at @<TRIPOS>ATOM tag for specified set
+  while (currentSet_ <= set) {
+    if (file_.ScanTo(Mol2File::ATOM)) return 1;
+    currentSet_++;
+  }
   double *Xptr = frameIn.xAddress(); 
   for (int atom = 0; atom < file_.Mol2Natoms(); atom++) {
     if (file_.Mol2XYZ(Xptr)) return 1;
-    //F->printAtomCoord(atom);
     Xptr += 3;
   }
   return 0;

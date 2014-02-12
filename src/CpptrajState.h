@@ -11,7 +11,7 @@
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
-    CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true), nrun_(0) {}
+    CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true) {}
     // TODO: Change to &
     TopologyList* PFL()      { return &parmFileList_; }
     FrameList* FL()          { return &refFrames_;    }
@@ -20,9 +20,10 @@ class CpptrajState {
     void SetNoExitOnError()  { exitOnError_ = false;  }
     void SetNoProgress()     { showProgress_ = false; }
     int Debug()        const { return debug_;         }
-    int Nrun()         const { return nrun_;          }
     bool ExitOnError() const { return exitOnError_;   }
-    bool Empty()       const { return (actionList_.Empty() && analysisList_.Empty()); }
+    bool EmptyState()  const { return (actionList_.Empty() && 
+                                       analysisList_.Empty() &&
+                                       trajoutList_.Empty()); }
     int AddTrajin( ArgList&, bool );
     int AddTrajin( std::string const& );
     int RunAnalyses();
@@ -37,8 +38,7 @@ class CpptrajState {
     int ListAll(ArgList&) const;
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
-    int RemoveFromList(ArgList&);
-    int ProcessMask(std::string const&, std::string const&, bool) const;
+    int RemoveDataSet(ArgList&);
     int TrajLength( std::string const&, std::vector<std::string> const&);
     int Run();
     /// Write all DataFiles
@@ -79,8 +79,6 @@ class CpptrajState {
     bool showProgress_;
     /// If true cpptraj will exit if errors are encountered instead of trying to continue
     bool exitOnError_;
-    /// Number of times Run() has been called.
-    int nrun_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 // CpptrajState::AddTrajout()

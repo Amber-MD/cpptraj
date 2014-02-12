@@ -13,10 +13,10 @@ Action_Contacts::Action_Contacts() :
 { }
 
 void Action_Contacts::Help() {
-  mprintf("\t[ first | reference | ref <ref> | refindex <#> ] [byresidue]\n");
-  mprintf("\t[out <filename>] [time <interval>] [distance <cutoff>] [<mask>]\n");
-  mprintf("\tCalculate contacts for each frame based on a reference.\n");
-  mprintf("\tbyresidue: calculate number of contacts for every specified atom and save result per residue\n");
+  mprintf("\t[ first | reference | ref <ref> | refindex <#> ] [byresidue]\n"
+          "\t[out <filename>] [time <interval>] [distance <cutoff>] [<mask>]\n"
+          "  Calculate contacts for each frame based on a reference.\n"
+          "    byresidue: calculate number of contacts and save results per residue\n");
 }
 
 // DESTRUCTOR
@@ -69,14 +69,14 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   std::string outfilename = actionArgs.GetStringKey("out"); 
-  if (outfile_.OpenWrite(outfilename))
+  if (outfile_.OpenEnsembleWrite(outfilename, DSL->EnsembleNum()))
     return Action::ERR;
   if (byResidue_) {
     if (outfilename.empty()) {
       mprinterr("Error: Contacts 'byresidue' requires output filename.\n");
       return Action::ERR;
     }
-    if (outfile2_.OpenWrite( outfilename + ".native" ))
+    if (outfile2_.OpenEnsembleWrite( outfilename + ".native", DSL->EnsembleNum() ))
       return Action::ERR;
   }
 

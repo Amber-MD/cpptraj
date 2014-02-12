@@ -9,6 +9,9 @@
 //   Version 2: Instead of nrows and nelements, write original nrows
 //              and actual nrows to easily determine if this is a reduced
 //              matrix. Also write sieve value.
+//   Version 2 Update: Read/write sieve value as signed, negative
+//                     value is random sieve. Variable is same #
+//                     of bytes so should be backwards-compatible.
 const unsigned char ClusterMatrix::Magic_[4] = {'C', 'T', 'M', 2};
 
 // CONSTRUCTOR
@@ -21,7 +24,6 @@ const unsigned char ClusterMatrix::Magic_[4] = {'C', 'T', 'M', 2};
 int ClusterMatrix::SetupWithSieve(size_t sizeIn, size_t sieveIn, int iseed)
 {
   if (sievedFrames_.SetSieve( sieveIn, sizeIn, iseed )) return 1;
-  sieve_ = sievedFrames_.Sieve();
   // Sieved distances should be ignored.
   if (sievedFrames_.Type() != ClusterSieve::NONE) {
     // Set up the ignore array to ignore sieved frames
@@ -47,7 +49,6 @@ int ClusterMatrix::SetupWithSieve(size_t sizeIn, size_t sieveIn, int iseed)
 // COPY CONSTRUCTOR
 ClusterMatrix::ClusterMatrix(const ClusterMatrix& rhs) :
   ignore_(rhs.ignore_),
-  sieve_(rhs.sieve_),
   Mat_(rhs.Mat_)
 {}
 
@@ -55,7 +56,6 @@ ClusterMatrix::ClusterMatrix(const ClusterMatrix& rhs) :
 ClusterMatrix& ClusterMatrix::operator=(const ClusterMatrix& rhs) {
   if (this == &rhs) return *this;
   ignore_ = rhs.ignore_;
-  sieve_ = rhs.sieve_;
   Mat_ = rhs.Mat_;
   return *this;
 }
@@ -87,12 +87,12 @@ int ClusterMatrix::SaveFile(std::string const& filename) const {
   ntemp = (uint_8)Mat_.Nrows();
   outfile.Write( &ntemp, sizeof(uint_8) );
   // Write out sieve value
-  ntemp = (uint_8)sieve_;
-  outfile.Write( &ntemp, sizeof(uint_8) );
+  sint_8 stemp = (sint_8)sievedFrames_.Sieve();
+  outfile.Write( &stemp, sizeof(sint_8) );
   // Write matrix elements
   outfile.Write( Mat_.Ptr(), Mat_.size()*sizeof(float) );
   // If this is a reduced matrix, write the ignore array as chars.
-  if (sieve_ > 1) {
+  if (sievedFrames_.Type() != ClusterSieve::NONE) {
     char* ignore_out = new char[ ignore_.size() ];
     int idx = 0;
     for (std::vector<bool>::const_iterator ig = ignore_.begin(); ig != ignore_.end(); ++ig) 
@@ -110,7 +110,9 @@ int ClusterMatrix::SaveFile(std::string const& filename) const {
 int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
   unsigned char magic[4];
   CpptrajFile infile;
-  uint_8 ROWS, ELTS, SIEVE;
+  uint_8 ROWS, ELTS;
+  sint_8 SIEVE;
+  int sieve = 1;
   size_t actual_nrows = 0;
   // Open file for reading
   if (infile.OpenRead(filename)) {
@@ -140,8 +142,8 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
     infile.Read( &ROWS,  sizeof(uint_8) ); // V2: Original Nrows
     infile.Read( &ELTS,  sizeof(uint_8) ); // V2: Actual Nrows
     actual_nrows = (size_t)ELTS;
-    infile.Read( &SIEVE, sizeof(uint_8) ); // V2: Sieve
-    sieve_ = (size_t)SIEVE;
+    infile.Read( &SIEVE, sizeof(sint_8) ); // V2: Sieve
+    sieve = (int)SIEVE; 
   } else {
     mprinterr("Error: ClusterMatrix version %u is not recognized.\n", (unsigned int)magic[3]);
     return 1;
@@ -162,7 +164,7 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
                 filename.c_str(), (unsigned int)magic[3]);
       return 1;
     }
-    sieve_ = 1;
+    sieve = 1;
   }
   // Setup underlying TriangleMatrix for actual # of rows
   if ( Mat_.resize( 0L, actual_nrows ) ) return 1;
@@ -171,7 +173,7 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
   // Read in matrix elements
   infile.Read( Mat_.Ptr(), Mat_.size()*sizeof(float) );
   // If sieved, read in the ignore array
-  if (sieve_ > 1) {
+  if (sieve != 1) {
     mprintf("Warning: ClusterMatrix %s contains sieved data.\n", filename.c_str());
     char* ignore_in = new char[ ROWS ]; // Original nrows
     infile.Read( ignore_in, ROWS*sizeof(char) );
@@ -181,12 +183,12 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
     delete[] ignore_in;
   }
   // Setup sieve class
-  if (sievedFrames_.SetSieve( sieve_, ignore_ )) {
+  if (sievedFrames_.SetSieve( sieve, ignore_ )) {
     mprinterr("Error: Could not set sieve from ClusterMatrix file.\n");
     return 1;
   }
-  mprintf("\tLoaded %s: %u original rows, %u actual rows, %u elements, sieve=%u\n",
-          filename.c_str(), ROWS, Mat_.Nrows(), Mat_.size(), sieve_);
+  mprintf("\tLoaded %s: %u original rows, %u actual rows, %u elements, sieve=%i\n",
+          filename.c_str(), ROWS, Mat_.Nrows(), Mat_.size(), sieve);
   return 0;
 }
 
@@ -194,7 +196,7 @@ int ClusterMatrix::LoadFile(std::string const& filename, int sizeIn) {
 int ClusterMatrix::SetupMatrix(size_t sizeIn) {
   if (Mat_.resize( 0L, sizeIn )) return 1;
   ignore_.assign( sizeIn, false );
-  sieve_ = 1;
+  //sieve_ = 1;
   return 0;
 }
 

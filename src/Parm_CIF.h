@@ -10,6 +10,7 @@ class Parm_CIF : public ParmIO {
     int ReadParm(std::string const&, Topology&);
     int WriteParm(std::string const&, Topology const&) { return 1;   }
     void SetDebug(int i)                               { debug_ = i; }
+    int processWriteArgs(ArgList&) { return 0; }
   private:
     enum EntryType { ANAME=0, RNAME, X, Y, Z, RNUM, CHAINID, NENTRY };
     static const char* Entries[];

@@ -143,6 +143,7 @@ int DataSet::SetDataSetFormat(bool leftAlignIn) {
     case REMLOG:
     case MATRIX_DBL:
     case XYMESH:
+    case TRAJ   :
     case DOUBLE : format_ = SetDoubleFormatString(width_, precision_, 0); break;
     case MATRIX_FLT:
     case GRID_FLT  :
@@ -182,3 +183,15 @@ bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const&
   //mprintf("\tMATCH\n");
   return true;
 }
+
+static const char* Smodes[] = {"","distance","angle","torsion","pucker","rms"};
+static const char* Stypes[] = {"","alpha","beta","gamma","delta","epsilon",
+  "zeta","pucker","nucelic chi","h1p","c2p","phi","psi","protein chi","hbond","noe"};
+
+void DataSet::ScalarDescription() const {
+  if (scalarmode_ != UNKNOWN_MODE) {
+    mprintf(", %s", Smodes[scalarmode_]);
+    if (scalartype_ != UNDEFINED)
+      mprintf("(%s)", Stypes[scalartype_]);
+  }
+} 

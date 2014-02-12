@@ -11,6 +11,7 @@
 // CONSTRUCTOR
 Action_Hbond::Action_Hbond() :
   debug_(0),
+  ensembleNum_(-1),
   Nframes_(0),
   useAtomNum_(false),
   hasDonorMask_(false),
@@ -37,21 +38,22 @@ void Action_Hbond::Help() {
           "\t[avgout <filename>] [printatomnum] [nointramol]\n"
           "\t[solventdonor <mask>] [solventacceptor <mask>]\n"
           "\t[solvout <filename>] [bridgeout <filename>]\n"
-          "\t  Search for hydrogen bonds using atoms in the region specified by mask.\n"
-          "\tIf just <mask> specified donors and acceptors will be automatically searched for.\n"
-          "\tIf donormask is specified but not acceptormask, acceptors will be\n"
-          "\tautomatically searched for in <mask>.\n"
-          "\tIf acceptormask is specified but not donormask, donors will be automatically\n"
-          "\tsearched for in <mask>.\n"
-          "\tIf both donormask and acceptor mask are specified no automatic searching will occur.\n"
-          "\tIf donorhmask is specified atoms in that mask will be paired with atoms in\n"
-          "\tdonormask instead of automatically searching for hydrogen atoms.\n");
+          "  Search for hydrogen bonds using atoms in the region specified by mask.\n"
+          "  If just <mask> specified donors and acceptors will be automatically searched for.\n"
+          "  If donormask is specified but not acceptormask, acceptors will be\n"
+          "  automatically searched for in <mask>.\n"
+          "  If acceptormask is specified but not donormask, donors will be automatically\n"
+          "  searched for in <mask>.\n"
+          "  If both donormask and acceptor mask are specified no automatic searching will occur.\n"
+          "  If donorhmask is specified atoms in that mask will be paired with atoms in\n"
+          "  donormask instead of automatically searching for hydrogen atoms.\n");
 }
 
 // Action_Hbond::Init()
 Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get keywords
   DataFile* DF = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -668,7 +670,7 @@ void Action_Hbond::Print() {
 
   // Solute Hbonds 
   if (!avgout_.empty()) { 
-    if (outfile.OpenWrite( avgout_ )) return;
+    if (outfile.OpenEnsembleWrite( avgout_, ensembleNum_ )) return;
     // Place all detected Hbonds in a list and sort.
     for (HBmapType::const_iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) {
       HbondList.push_back( (*it).second );
@@ -702,9 +704,9 @@ void Action_Hbond::Print() {
   // Solute-solvent Hbonds 
   if (!solvout_.empty() && calcSolvent_) {
     if (solvout_ == avgout_) {
-      if (outfile.OpenAppend( solvout_ )) return;
+      if (outfile.OpenEnsembleAppend( solvout_, ensembleNum_ )) return;
     } else {
-      if (outfile.OpenWrite( solvout_)) return;
+      if (outfile.OpenEnsembleWrite( solvout_, ensembleNum_ )) return;
     }
     HbondList.clear();
     for (HBmapType::const_iterator it = SolventMap_.begin(); it != SolventMap_.end(); ++it) {
@@ -751,9 +753,9 @@ void Action_Hbond::Print() {
   // BRIDGING INFO
   if (!bridgeout_.empty() && calcSolvent_) {
     if (bridgeout_ == avgout_ || bridgeout_ == solvout_) {
-      if (outfile.OpenAppend( bridgeout_ )) return;
+      if (outfile.OpenEnsembleAppend( bridgeout_, ensembleNum_ )) return;
     } else {
-      if (outfile.OpenWrite( bridgeout_ )) return; 
+      if (outfile.OpenEnsembleWrite( bridgeout_, ensembleNum_ )) return; 
     }
     outfile.Printf("#Bridging Solute Residues:\n");
     // Place bridging values in a vector for sorting

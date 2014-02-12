@@ -14,10 +14,11 @@ class TrajoutList {
     /// Add a traj file to the list with given access and associate with a parm
     int AddTrajout(ArgList const&, TopologyList const&);
     /// Call write for all trajectories
-    int Write(int, Topology*, Frame*);
+    int WriteTrajout(int, Topology*, Frame*);
     /// Call end for all trajectories
-    void Close();
+    void CloseTrajout();
     void List() const;
+    bool Empty()     const { return trajout_.empty();     }
     // The definitions below are for ensemble processing.
     typedef std::vector<ArgList> ArgsArray;
     typedef std::vector<ArgList>::const_iterator ArgIt;
@@ -30,6 +31,7 @@ class TrajoutList {
     /// Array of trajout args for setting up ensemble trajout.
     ArgsArray trajoutArgs_;
 
-    int AddTrajout(std::string const&, ArgList&, TopologyList const&);
+    int AddTrajout(std::string const&, ArgList&, TopologyList const&,
+                   TrajectoryFile::TrajFormatType);
 };
 #endif

@@ -23,10 +23,10 @@ void Analysis_RmsAvgCorr::Help() {
   mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>] [mass]\n"
           "\t[stop <maxwindow>] [offset <offset>]\n"
           "\t{reference <ref file> parm <parmfile> | first}\n"
-          "\tCalculate the RMS average correlation, i.e. the average RMSD\n"
-          "\tof structures which have been averaged over increasing numbers\n"
-          "\tof frames.\n"
-          "\t<crd set> can be created with the 'createcrd' command.\n");
+          "  Calculate the RMS average correlation, i.e. the average RMSD\n"
+          "  of structures which have been averaged over increasing numbers\n"
+          "  of frames.\n"
+          "  <crd set> can be created with the 'createcrd' command.\n");
 }
 
 Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
@@ -169,7 +169,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     // If using first running avgd frames as ref, set up reference frame.
     // Use coords of first COORDS frame for window=1.
     refFrame_ = tgtFrame;
-    refFrame_.SetFromCRD( (*coords_)[0], 0, mask_ );
+    coords_->GetFrame( 0, refFrame_, mask_ );
     refFrame_.CenterOnOrigin( useMass_ );
   } else {
     // Ensure # target atoms equals # ref atoms.
@@ -210,7 +210,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   avg = 0.0;
   stdev = 0.0;
   for (frame = 0; frame < maxFrame; frame++) {
-    tgtFrame.SetFromCRD( (*coords_)[frame], 0, mask_);
+    coords_->GetFrame( frame, tgtFrame, mask_ );
     rmsd = tgtFrame.RMSD_CenteredRef(refFrame_, useMass_); 
     avg += rmsd;
     stdev += (rmsd * rmsd);
@@ -278,7 +278,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     stdev = 0.0;
     first = useFirst_;
     for (frame = 0; frame < maxFrame; frame++) {
-      tgtFrame.SetFromCRD( (*coords_)[frame], 0, mask_);
+      coords_->GetFrame( frame, tgtFrame, mask_);
       // Add current coordinates to sumFrame
       sumFrame += tgtFrame;
       // Do we have enough frames to start calculating a running avg?
@@ -307,7 +307,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
         avg += rmsd;
         stdev += (rmsd * rmsd);
         // Subtract frame at subtractWindow from sumFrame 
-        tgtFrame.SetFromCRD( (*coords_)[subtractWindow], 0, mask_);
+        coords_->GetFrame(subtractWindow, tgtFrame, mask_);
         sumFrame -= tgtFrame;
         ++subtractWindow;
       }

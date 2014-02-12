@@ -14,6 +14,8 @@
 #include "Traj_Binpos.h"
 #include "Traj_GmxTrX.h"
 #include "Traj_SQM.h"
+#include "Traj_CIF.h"
+#include "Traj_SDF.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -27,12 +29,14 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # endif
   { "PDB",                0, 0, Traj_PDBfile::Alloc        },
   { "Mol2",               0, 0, Traj_Mol2File::Alloc       },
+  { "CIF",                0, 0, Traj_CIF::Alloc            },
   { "Charmm DCD",         0, 0, Traj_CharmmDcd::Alloc      },
   { "Gromacs TRX",        0, 0, Traj_GmxTrX::Alloc         },
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
   { "Amber Restart",      0, 0, Traj_AmberRestart::Alloc   },
   { "Amber Trajectory",   0, 0, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, 0, Traj_SQM::Alloc            },
+  { "SDF",                0, 0, Traj_SDF::Alloc            },
   { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
   { "Unknown trajectory", 0, 0, 0                          }
 };
@@ -44,6 +48,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { AMBERRESTARTNC, "restartnc", ".ncrst"   },
   { PDBFILE,        "pdb",       ".pdb"     },
   { MOL2FILE,       "mol2",      ".mol2"    },
+  { CIF,            "cif",       ".cif"     },
   { CHARMMDCD,      "dcd",       ".dcd"     },
   { CHARMMDCD,      "charmm",    ".dcd"     },
   { GMXTRX,         "trr",       ".trr"     },
@@ -54,6 +59,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { AMBERTRAJ,      "crd",       ".crd"     },
   { CONFLIB,        "conflib",   ".conflib" },
   { SQM,            "sqm",       ".sqm"     },
+  { SDF,            "sdf",       ".sdf"     },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 // -----------------------------------------------------------------------------

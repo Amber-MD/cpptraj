@@ -34,6 +34,7 @@ class Action_Spam: public Action, ImagedAction {
 
     void Print();
   private:
+    int ensembleNum_;
     /** \brief Name of the solvent residues */
     std::string solvname_;
     /** \brief SPAM free energy of the bulk solvent */

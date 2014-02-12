@@ -10,8 +10,6 @@ Trajin::Trajin() :
   total_frames_(0),
   total_read_frames_(-1),
   currentFrame_(0),
-  targetSet_(0),
-  frameskip_(1),
   numFramesProcessed_(0),
   useProgress_(true),
   isEnsemble_(false)
@@ -218,37 +216,13 @@ int Trajin::setupFrameInfo() {
   return total_read_frames_;
 }
 
-// Trajin::SingleFrame()
-/** Tell the trajectory to set up stop and offset so that only start frame
-  * will be processed.
-  */
-void Trajin::SingleFrame() {
-  stop_ = start_ + 1;
-  offset_ = 1;
-  // Call setupFrameInfo to recalc total_read_frames. Since setupFrameInfo 
-  // should have already been called in SetupRead (and thus any errors 
-  // handled there) dont check for an error here. It should return 1.
-  if ( setupFrameInfo() != 1 ) {
-    mprintf("  Warning: Single frame requested for %s but not calcd!\n",TrajFilename().base());
-    mprintf("           start/stop/offset (%i, %i, %i)\n",start_+1,stop_+1,offset_);
-  }
-}
-
 // Trajin::PrepareForRead()
-void Trajin::PrepareForRead(bool useIn, bool seekable) {
+void Trajin::PrepareForRead(bool useIn) {
   numFramesProcessed_ = 0;
   // Setup progress bar
   useProgress_ = useIn;
   if (useProgress_) progress_.SetupProgress( total_read_frames_ );
-  // Determine what frames will be read
-  targetSet_ = start_;
-  if (seekable) {
-    frameskip_ = offset_;
-    currentFrame_ = start_;
-  } else {
-    frameskip_ = 1;
-    currentFrame_ = 0;
-  }
+  currentFrame_ = start_;
 }
 
 // Trajin::PrintInfoLine()

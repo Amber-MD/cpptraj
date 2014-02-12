@@ -4,9 +4,12 @@
 #include "Action_Vector.h"
 #include "CpptrajStdio.h"
 #include "Matrix_3x3.h" // for principal
+#include "Trajout.h" // for trajout
+#include "ParmFile.h" // for trajout
 
 // CONSTRUCTOR
 Action_Vector::Action_Vector() :
+  ensembleNum_(-1),
   Vec_(0),
   Magnitude_(0),
   vcorr_(0),
@@ -16,9 +19,15 @@ Action_Vector::Action_Vector() :
 
 void Action_Vector::Help() {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
-          "\t[magnitude] [ired]\n"
-          "\t<Type> = { principal [x|y|z] | dipole | box | center | corrplane }\n"
-          "\tCalculate the specified coordinate vector.\n");
+          "\t[magnitude] [ired] [trajout <file> [trajfmt <format>] [parmout <file>]]\n"
+          "\t<Type> = { mask | principal [x|y|z] | dipole | box | center | corrplane }\n"
+          "  Calculate the specified coordinate vector.\n"
+          "    mask: (Default) Vector from <mask1> to <mask2>.\n"
+          "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n"
+          "    dipole: Dipole and center of mass of the atoms specified in <mask1>\n"
+          "    box: (No mask needed) Store the box lengths of the trajectory.\n"
+          "    center: Store the center of mass of atoms in <mask1>.\n"
+          "    corrplane: Vector perpendicular to plane through the atoms in <mask1>.\n");
 }
 
 // DESTRUCTOR
@@ -44,8 +53,12 @@ static Action::RetType WarnDeprecated() {
 Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   // filename is saved in case ptraj-compatible output is desired
   filename_ = actionArgs.GetStringKey("out");
+  trajoutName_ = actionArgs.GetStringKey("trajout");
+  trajoutFmt_ = TrajectoryFile::GetFormatFromString( actionArgs.GetStringKey("trajfmt") );
+  parmoutName_ = actionArgs.GetStringKey("parmout");
   ptrajoutput_ = actionArgs.hasKey("ptrajoutput");
   if (ptrajoutput_ && filename_.empty()) {
     mprinterr("Error: 'ptrajoutput' specified but no 'out <filename>' arg given.\n");
@@ -88,7 +101,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (mode_ == MASK) {
     std::string maskexpr = actionArgs.GetMaskNext();
     if (maskexpr.empty()) {
-      mprinterr("Error: Specified vector mode requires a second mask.\n");
+      mprinterr("Error: Specified vector mode (%s) requires a second mask.\n",
+                ModeString[ mode_ ]);
       return Action::ERR;
     }
     mask2_.SetMaskString( maskexpr );
@@ -125,6 +139,13 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf(" %s", filename_.c_str());
   }
   mprintf("\n");
+  if (!trajoutName_.empty()) {
+    mprintf("\tVector pseudo-trajectory will be written to '%s' with format %s\n",
+            trajoutName_.c_str(), TrajectoryFile::FormatString(trajoutFmt_));
+    if (!parmoutName_.empty())
+      mprintf("\tCorresponding pseudo-topology will be written to '%s'\n",
+              parmoutName_.c_str());
+  }
 
   return Action::OK;
 }
@@ -299,22 +320,20 @@ void Action_Vector::Dipole(Frame const& currentFrame) {
 
 void Action_Vector::Principal(Frame const& currentFrame) {
   Matrix_3x3 Inertia;
-  Vec3 Eval; 
+  Vec3 Eval;
 
-  Vec3 CXYZ = currentFrame.CalculateInertia( mask_, Inertia );
+  // Origin is center of atoms in mask_ 
+  Vec3 OXYZ = currentFrame.CalculateInertia( mask_, Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
   Inertia.Diagonalize_Sort_Chirality( Eval, 0 );
-  /*if (debug > 2) {
-    printVector("PRINCIPAL EIGENVALUES", Eval );
-    //TEMP.Print("GENERAL");
-    printMatrix_3x3("PRINCIPAL EIGENVECTORS (Rows)", Evec);
-  }*/
+  // Eval.Print("PRINCIPAL EIGENVALUES");
+  // Inertia.Print("PRINCIPAL EIGENVECTORS (Rows)");
   if ( mode_ == PRINCIPAL_X ) 
-    Vec_->AddVxyz( Inertia.Row1(), CXYZ.Dptr() ); // First row = first eigenvector
+    Vec_->AddVxyz( Inertia.Row1(), OXYZ ); // First row = first eigenvector
   else if ( mode_ == PRINCIPAL_Y )
-    Vec_->AddVxyz( Inertia.Row2(), CXYZ.Dptr() ); // Second row = second eigenvector
+    Vec_->AddVxyz( Inertia.Row2(), OXYZ ); // Second row = second eigenvector
   else // PRINCIPAL_Z
-    Vec_->AddVxyz( Inertia.Row3(), CXYZ.Dptr() ); // Third row = third eigenvector
+    Vec_->AddVxyz( Inertia.Row3(), OXYZ ); // Third row = third eigenvector
 }
 
 void Action_Vector::CorrPlane(Frame const& currentFrame) {
@@ -357,7 +376,7 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
 void Action_Vector::Print() {
   if (ptrajoutput_) {
     CpptrajFile outfile;
-    if (outfile.OpenWrite(filename_)) return;
+    if (outfile.OpenEnsembleWrite(filename_, ensembleNum_)) return;
     mprintf("    VECTOR: writing ptraj-style vector information for %s\n", Vec_->Legend().c_str());
     outfile.Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n"
                    "# FORMAT where v? is vector, c? is center of mass...\n");
@@ -372,4 +391,31 @@ void Action_Vector::Print() {
     }
     outfile.CloseFile();
   }
+  if (!trajoutName_.empty()) {
+    // Create pseudo-topology.
+    Topology pseudo;
+    pseudo.AddTopAtom(Atom("OXYZ", ' ', 0), 1, "VEC", 0);
+    pseudo.AddTopAtom(Atom("VXYZ", ' ', 0), 1, "VEC", 0);
+    pseudo.AddBond(0, 1);
+    pseudo.CommonSetup(false);
+    if (!parmoutName_.empty()) {
+      ParmFile pfile;
+      if (pfile.WriteTopology( pseudo, parmoutName_, ParmFile::UNKNOWN_PARM, 0 ))
+        mprinterr("Error: Could not write pseudo topology to '%s'\n", parmoutName_.c_str());
+    }
+    Trajout out;
+    if (out.InitTrajWrite(trajoutName_, &pseudo, trajoutFmt_) == 0) {
+      int totalFrames = Vec_->Size();
+      Frame outFrame(2);
+      for (int i = 0; i < totalFrames; ++i) {
+        outFrame.ClearAtoms();
+        Vec3 const& OXYZ = Vec_->OXYZ(i);
+        outFrame.AddVec3( OXYZ );
+        outFrame.AddVec3( (*Vec_)[i] + OXYZ );
+        out.WriteFrame(i, &pseudo, outFrame);
+      }
+      out.EndTraj();
+    } else
+      mprinterr("Error: Could not set up '%s' for write.\n", trajoutName_.c_str());
+  } 
 }

@@ -11,14 +11,18 @@ Action_LESsplit::~Action_LESsplit() {
 
 void Action_LESsplit::Help() {
   mprintf("\t[out <filename prefix>] [average <avg filename>] <trajout args>\n"
-          "\t  Split and/or average LES trajectory. At least one of 'out' or 'average'\n"
-          "\tmust be specified. If both are specified they share <trajout args>.\n");
+          "  Split and/or average LES trajectory. At least one of 'out' or 'average'\n"
+          "  must be specified. If both are specified they share <trajout args>.\n");
 }
 
 // Action_LESsplit::Init()
 Action::RetType Action_LESsplit::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  if (DSL->EnsembleNum() > -1) {
+    mprinterr("Error: LESSPLIT currently cannot be used in ensemble mode.\n");
+    return Action::ERR;
+  }
   trajfilename_ = actionArgs.GetStringKey("out");
   avgfilename_ = actionArgs.GetStringKey("average");
   lesSplit_ = !trajfilename_.empty();

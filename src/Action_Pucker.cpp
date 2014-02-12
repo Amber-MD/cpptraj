@@ -17,12 +17,13 @@ Action_Pucker::Action_Pucker() :
 { } 
 
 void Action_Pucker::Help() {
-  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> <mask5> [<mask6>] out <filename>\n");
-  mprintf("\t[range360] [amplitude] [theta] [altona | cremer] [offset <offset>]\n");
-  mprintf("\tCalculate pucker of atoms in masks 1-5 (or 6).\n");
+  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> <mask5> [<mask6>] [geom]\n"
+          "\t[out <filename>] [altona | cremer] [amplitude] [theta]\n"
+          "\t[range360] [offset <offset>]\n"
+          "\tCalculate pucker of atoms in masks 1-5 (or 6, 'cremer' only).\n");
 }
 
-// Action_Pucker::init()
+// Action_Pucker::Init()
 Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -34,6 +35,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   bool calc_theta = actionArgs.hasKey("theta");
   offset_ = actionArgs.getKeyDouble("offset",0.0);
   range360_ = actionArgs.hasKey("range360");
+  useMass_ = !actionArgs.hasKey("geom");
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
   if ( stypename == "pucker" ) stype = DataSet::PUCKER;
@@ -83,7 +85,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
                                              MX != Masks_.end(); ++MX)
   {
     if (MX != Masks_.begin()) mprintf("-");
-    mprintf("[%s]", (*MX).MaskString());
+    mprintf("[%s]", MX->MaskString());
   }
   mprintf("\n");
   if (puckerMethod_==ALTONA) 
@@ -97,7 +99,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (theta_!=0)
     mprintf("            Thetas will be stored.\n");
   if (offset_!=0)
-    mprintf("            Offset: %lf will be added to values.\n");
+    mprintf("            Offset: %f will be added to values.\n");
   if (range360_)
     mprintf("              Output range is 0 to 360 degrees.\n");
   else
@@ -106,17 +108,17 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   return Action::OK;
 }
 
-// Action_Pucker::setup
+// Action_Pucker::Setup()
 Action::RetType Action_Pucker::Setup(Topology* currentParm, Topology** parmAddress) {
   mprintf("\t");
   for (std::vector<AtomMask>::iterator MX = Masks_.begin();
                                        MX != Masks_.end(); ++MX)
   {
     if ( currentParm->SetupIntegerMask( *MX ) ) return Action::ERR;
-    (*MX).BriefMaskInfo();
-    if ((*MX).None()) {
-      mprintf("\nWarning: pucker: Mask '%s' selects no atoms for topology '%s'\n",
-              (*MX).MaskString(), currentParm->c_str());
+    MX->BriefMaskInfo();
+    if (MX->None()) {
+      mprintf("\nWarning: Mask '%s' selects no atoms for topology '%s'\n",
+              MX->MaskString(), currentParm->c_str());
       return Action::ERR;
     }
   }
@@ -125,7 +127,7 @@ Action::RetType Action_Pucker::Setup(Topology* currentParm, Topology** parmAddre
   return Action::OK;  
 }
 
-// Action_Pucker::action()
+// Action_Pucker::DoAction()
 Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double pval, aval, tval;
   std::vector<Vec3>::iterator ax = AX_.begin(); 
@@ -164,21 +166,10 @@ Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame
 } 
 
 void Action_Pucker::Print() {
-  double puckermin, puckermax;
-  if (range360_) {
-    puckermax =  360.0;
-    puckermin =    0.0;
-  } else {
-    puckermax =  180.0;
+  double puckermin;
+  if (range360_)
+    puckermin = 0.0;
+  else
     puckermin = -180.0;
-  }
-  // Deal with offset and wrap values
-  DataSet_double& ds = static_cast<DataSet_double&>( *pucker_ );
-  for (DataSet_double::iterator dval = ds.begin(); dval != ds.end(); ++dval) {
-    *dval += offset_;
-    if ( *dval > puckermax )
-      *dval -= 360.0;
-    else if ( *dval < puckermin )
-      *dval += 360.0;
-  }
+  ((DataSet_double*)pucker_)->ShiftTorsions(puckermin, offset_);
 }

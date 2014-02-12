@@ -9,7 +9,10 @@ Action_Temperature::Action_Temperature() :
 {}
 
 void Action_Temperature::Help() {
-  mprintf("\t[<name>] {frame | [<mask>] [ntc <#>]} [out <filename>]\n");
+  mprintf("\t[<name>] {frame | [<mask>] [ntc <#>]} [out <filename>]\n"
+          "  Calculate temperature in frame based on velocity information.\n"
+          "  If 'frame' is specified just use frame temperature (read in from\n"
+          "  e.g. REMD trajectory)\n");
 }
 
 static const char* ShakeString[] = {

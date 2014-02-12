@@ -4,8 +4,9 @@
 
 // CONSTRUCTOR
 Traj_Conflib::Traj_Conflib() :
-  energy_(0),
-  radGyr_(0),
+  energy_(0.0),
+  radGyr_(0.0),
+  confFrame_(0),
   timesFound_(0),
   conflibAtom_(0)
 {}
@@ -37,17 +38,17 @@ int Traj_Conflib::openTrajin() {
 int Traj_Conflib::setupTrajin(std::string const& fname, Topology* trajParm)
 {
   int Frames;
+  // Conflib frame is double,double,int,natom*3*double
+  confFrame_ = ((size_t)((trajParm->Natom() * 3) + 2) * sizeof(double)) + sizeof(int);
   if (file_.OpenRead(fname)) return TRAJIN_ERR;
   size_t file_size = (size_t)file_.UncompressedSize();
   if (file_size > 0) {
-    // Conflib frame is double,double,int,natom*3*double
-    long unsigned int confFrame = (((trajParm->Natom() * 3) + 2) * sizeof(double)) + sizeof(int);
-    Frames = (int) (file_size / confFrame);
-    if ( (file_size % confFrame) != 0 ) {
-      mprintf("Warning: %s: Could not accurately predict # frames. This can indicate either\n",
-              file_.Filename().base());
-      mprintf("Warning: the wrong topology is associated with this CONFLIB file or that the\n");
-      mprintf("Warning: trajectory is corrupted. Will attempt to read %i frames.\n", Frames);
+    Frames = (int) (file_size / confFrame_);
+    if ( (file_size % confFrame_) != 0 ) {
+      mprintf("Warning: %s: Could not accurately predict # frames. This can indicate either\n"
+              "Warning:   the wrong topology is associated with this CONFLIB file or that the\n"
+              "Warning:   trajectory is corrupted. Will attempt to read %i frames.\n",
+              file_.Filename().base(), Frames);
     }
   } else {
     Frames = TRAJIN_UNK;
@@ -58,7 +59,7 @@ int Traj_Conflib::setupTrajin(std::string const& fname, Topology* trajParm)
 
 // Traj_Conflib::readFrame()
 int Traj_Conflib::readFrame(int set, Frame& frameIn) {
-
+  file_.Seek( confFrame_ * set );
   if (file_.Read(&energy_,sizeof(double)) < 1) return 1;
   file_.Read(&radGyr_,sizeof(double));
   file_.Read(&timesFound_,sizeof(int));
@@ -87,4 +88,3 @@ int Traj_Conflib::writeFrame(int set, Frame const& frameOut) {
 void Traj_Conflib::Info() {
   mprintf("is an LMOD conflib file");
 }
-

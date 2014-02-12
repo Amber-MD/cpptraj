@@ -11,10 +11,10 @@ Action_Unwrap::Action_Unwrap() :
 { }
 
 void Action_Unwrap::Help() {
-  mprintf("\t[center] [{bymol | byres | byatom}]\n");
-  mprintf("\t[{reference | ref <refname> | refindex <#>}] [<mask>]\n");
-  mprintf("\tReverse of 'image'; unwrap coordinates in <mask> according\n");
-  mprintf("\tto a reference structure.\n");
+  mprintf("\t[center] [{bymol | byres | byatom}]\n"
+          "\t[ %s ] [<mask>]\n", FrameList::RefArgs);
+  mprintf("  Reverse of 'image'; unwrap coordinates in <mask> according\n"
+          "  to a reference structure.\n");
 }
 
 // Action_Unwrap::Init()

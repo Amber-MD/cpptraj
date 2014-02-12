@@ -36,8 +36,8 @@ int Action_MakeStructure::FindSStype(std::string const& typeIn)
 
 void Action_MakeStructure::Help() {
   mprintf("\t<List of Args>\n"
-          "\tApply dihedrals to specified residues using arguments found in <List of Args>,\n"
-          "\twhere an argument is 1 or more of the following arg types:\n"
+          "  Apply dihedrals to specified residues using arguments found in <List of Args>,\n"
+          "  where an argument is 1 or more of the following arg types:\n"
           "\t'<sstype>:<res range>' Apply SS type (phi/psi) to residue range.\n"
           "\t\t<sstype> standard = alpha, left, pp2, hairpin, extended\n"
           "\t\t<sstype> turn = typeI, typeII, typeVIII, typeI', typeII,\n"

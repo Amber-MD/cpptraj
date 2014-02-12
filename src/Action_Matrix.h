@@ -31,6 +31,7 @@ class Action_Matrix : public Action, ActionFrameCounter {
     OutputType outtype_;
     int snap_;
     int debug_;
+    int ensembleNum_;
     // IRED only
     int order_;                                ///< Legendre order
     std::vector<DataSet_Vector*> IredVectors_; ///< IRED vectors

@@ -27,7 +27,6 @@ class Analysis_IRED : public Analysis {
     bool relax_;
     bool norm_;
     bool drct_;
-    ComplexArray data1_;
     double* cf_;
     double* cf_cjt_;
     double* cfinf_;

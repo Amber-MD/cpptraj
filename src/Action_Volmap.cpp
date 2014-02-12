@@ -8,6 +8,7 @@ const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::
 const double Action_Volmap::one_over_6 = 1.0 / 6.0;
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
+  ensembleNum_(-1),
   dx_(0.0), dy_(0.0), dz_(0.0),
   xmin_(0.0), ymin_(0.0), zmin_(0.0),
   Nframes_(0),
@@ -20,25 +21,26 @@ Action_Volmap::Action_Volmap() :
 
 void Action_Volmap::Help() {
   RawHelp();
-  mprintf("filename   -- Output file name\n");
-  mprintf("dx, dy, dz -- grid spacing in the x-, y-, and z-dimensions, respectively.\n\n");
-  mprintf("The grid size can be determined either by the size (x,y,z in Angstroms)\n");
-  mprintf("or by a rectangular prism enclosing a mask with <buffer> clearance\n");
-  mprintf("in every dimension. The density is calculated from the atoms in the\n");
-  mprintf("required <mask>. If a <buffer> is given, the grid is centered on the\n");
-  mprintf("centermask if provided, or the required mask if not.\n");
+  mprintf("    filename  : Output file name\n"
+          "    dx, dy, dz: grid spacing in the x-, y-, and z-dimensions, respectively.\n"
+          "  The grid size can be determined either by the size (x,y,z in Angstroms)\n"
+          "  or by a rectangular prism enclosing a mask with <buffer> clearance\n"
+          "  in every dimension. The density is calculated from the atoms in the\n"
+          "  required <mask>. If a <buffer> is given, the grid is centered on the\n"
+          "  centermask if provided, or the required mask if not.\n");
 }
 
 void Action_Volmap::RawHelp() {
-  mprintf("\tfilename dx dy dz <mask> [xplor] [radscale <factor>]\n");
-  mprintf("\t[ [[buffer <buffer>] [centermask <mask>]] | [center <x,y,z>] [size <x,y,z>] ]\n");
-  mprintf("\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");
+  mprintf("\tfilename dx dy dz <mask> [xplor] [radscale <factor>]\n"
+          "\t[ [[buffer <buffer>] [centermask <mask>]] | [center <x,y,z>] [size <x,y,z>] ]\n"
+          "\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");
 }
 
 // Action_Volmap::Init()
 Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();
   if (reqmask.empty()) {
@@ -334,7 +336,7 @@ void Action_Volmap::Print() {
     // If we have peaks, open up our peak data and print it
     if (npeaks > 0) {
       CpptrajFile outfile;
-      if(outfile.OpenWrite(peakfilename_)) {
+      if(outfile.OpenEnsembleWrite(peakfilename_, ensembleNum_)) {
         mprinterr("Error: Could not open %s for writing.\n", peakfilename_.c_str());
         return;
       }

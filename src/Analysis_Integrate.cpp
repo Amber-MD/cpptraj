@@ -5,7 +5,7 @@ Analysis_Integrate::Analysis_Integrate() : outfile_(0) {}
 
 void Analysis_Integrate::Help() {
   mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>]\n"
-          "\tIntegrate given data sets.\n");
+          "  Integrate given data sets.\n");
 }
 
 Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,

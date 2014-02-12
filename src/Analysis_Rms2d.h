@@ -4,6 +4,7 @@
 #include "Trajin_Single.h"
 #include "DataSet_Coords.h"
 #include "DataSet_MatrixFlt.h"
+#include "SymmetricRmsdCalc.h"
 // Class: Analysis_Rms2d
 /// Calculate the RMSD between two sets of frames.
 /** Perform RMS calculation between each input frame and each other input 
@@ -23,7 +24,7 @@ class Analysis_Rms2d: public Analysis {
     void CalcAutoCorr();
 
     static const char* ModeStrings_[];
-    enum ModeType { RMS_FIT = 0, RMS_NOFIT, DME };
+    enum ModeType { RMS_FIT = 0, RMS_NOFIT, DME, SRMSD };
     ModeType mode_;
     DataSet_Coords* coords_;   ///< Hold coords from input frames.
     bool useReferenceTraj_;    ///< If true read from reference trajectory.
@@ -32,6 +33,7 @@ class Analysis_Rms2d: public Analysis {
     AtomMask RefMask_;         ///< Reference atom mask.
     Trajin_Single RefTraj_;    ///< Reference trajectory, each frame used in turn.
     Topology* RefParm_;        ///< Reference trajectory Parm.
+    SymmetricRmsdCalc SRMSD_;  ///< Hold symmetry-corrected RMSD calc.
     DataSet_MatrixFlt* rmsdataset_;
     DataSet* Ct_;
 };

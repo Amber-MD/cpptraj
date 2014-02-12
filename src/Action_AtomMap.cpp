@@ -20,10 +20,10 @@ Action_AtomMap::Action_AtomMap() :
 {}
 
 void Action_AtomMap::Help() {
-  mprintf("\t<target> <reference> [mapout <filename>] [maponly]\n");
-  mprintf("\t[rmsfit [ rmsout <rmsout> ]]\n");
-  mprintf("\tAttempt to create a map from atoms in <target> to atoms in <reference> solely\n");
-  mprintf("\tbased on how they are bonded (not how they are named).\n");
+  mprintf("\t<target> <reference> [mapout <filename>] [maponly]\n"
+          "\t[rmsfit [ rmsout <rmsout> ]]\n"
+          "  Attempt to create a map from atoms in <target> to atoms in <reference> solely\n"
+          "  based on how they are bonded; remap <target> so it matches <reference>.\n");
 }
 
 // DESTRUCTOR
@@ -793,7 +793,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
 
   // Print atom map and count # mapped atoms
   numMappedAtoms = 0;
-  outputfile.OpenWrite(outputname);
+  outputfile.OpenEnsembleWrite(outputname, DSL->EnsembleNum());
   outputfile.Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
   for (refatom=0; refatom < RefMap_.Natom(); refatom++) {
     targetatom = AMap_[refatom];

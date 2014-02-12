@@ -67,8 +67,7 @@ NetcdfFile::NetcdfFile() :
   spatialVID_(-1),
   cell_spatialVID_(-1),
   cell_angularVID_(-1),
-  velocityScale_(20.455),
-  frcScale_(velocityScale_ * velocityScale_)
+  velocityScale_(20.455)
 {
   start_[0] = 0;
   start_[1] = 0;
@@ -167,7 +166,7 @@ int NetcdfFile::SetupFrame() {
 /** Setup ncatom, ncatom3, atomDID, coordVID, spatialDID, spatialVID,
   * velocityVID. Check units and spatial dimensions.
   */
-int NetcdfFile::SetupCoordsVelo() {
+int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
   int spatial;
   atomDID_ = GetDimInfo(NCATOM, &ncatom_);
   if (atomDID_==-1) return 1;
@@ -201,6 +200,16 @@ int NetcdfFile::SetupCoordsVelo() {
   if ( coordVID_ == -1 && velocityVID_ == -1 ) {
     mprinterr("Error: NetCDF file has no coords and no velocities.\n");
     return 1;
+  }
+  // If using velocities as coordinates, swap them now.
+  if (useVelAsCoords) {
+    if (velocityVID_ == -1) {
+      mprinterr("Error: Cannot use velocities as coordinates; no velocities present.\n");
+      return 1;
+    }
+    mprintf("\tUsing velocities as coordinates.\n");
+    coordVID_ = velocityVID_;
+    velocityVID_ = -1;
   }
   return 0;
 }
@@ -569,15 +578,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       mprinterr("Error: Defining forces variable\n");
       return 1;
     }
-    if ( checkNCerr( nc_put_att_text( ncid_, frcVID_, "units", 25, "amu*angstrom/picosecond^2")) )
+    if ( checkNCerr( nc_put_att_text( ncid_, frcVID_, "units", 25, "kilocalorie/mole/angstrom")) )
     {
       mprinterr("Error: Writing forces variable units.\n");
-      return 1;
-    }
-    if ( checkNCerr( nc_put_att_double( ncid_, frcVID_, "scale_factor", NC_DOUBLE, 1,
-                                        &frcScale_)) )
-    {
-      mprinterr("Error: Writing forces scale factor.\n");
       return 1;
     }
   }

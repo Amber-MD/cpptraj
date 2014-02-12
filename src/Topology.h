@@ -119,11 +119,10 @@ class Topology {
     // ----- Setup routines ----------------------
     int AddTopAtom(Atom const&, int, NameType const&, const double*);
     void StartNewMol();
+    int CommonSetup(bool);
     // ----- Amber setup routines ----------------
     int SetAmberExtra(std::vector<double> const&,std::vector<NameType> const&,
                       std::vector<int> const&,std::vector<int> const&);
-    // ----- Common Setup Routines ---------------
-    int CommonSetup(bool);
     // ----- Mask Routines -----------------------
     bool SetupIntegerMask(AtomMask &) const;
     bool SetupCharMask(AtomMask &) const;
@@ -160,7 +159,7 @@ class Topology {
     void DetermineNumExtraPoints();
     int SetSolventInfo();
 
-    void Mask_SelectDistance( Frame const&, char*, bool, bool, double ) const;
+    int Mask_SelectDistance( Frame const&, char*, bool, bool, double ) const;
     void Mask_AND(char*,char*) const;
     void Mask_OR(char*,char*) const;
     void Mask_NEG(char*) const;

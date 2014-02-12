@@ -7,7 +7,7 @@ ClusterSieve::ClusterSieve() : type_(NONE), sieve_(1) {}
 inline void ClusterSieve::DetermineTypeFromSieve( int sieveIn ) {
   sieve_ = sieveIn;
   // Determine sieve type from sieve value.
-  if (sieve_ == -1)
+  if (sieve_ < -1)
     type_ = RANDOM;
   else if (sieve_ < 2) {
     type_ = NONE;
@@ -40,8 +40,7 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
     double dmax = (double)maxFrames;
     Random_Number random;
     random.rn_set( iseed );
-    int idx = 0;
-    for (unsigned int i = 0; i < maxFrames; i += sieve_)
+    for (unsigned int i = 0; i < maxFrames; i -= sieve_)
     {
       bool frame_generated = false;
       // Pick until we pick a frame that has not yet been selected.
@@ -49,12 +48,16 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
         double dframe = dmax * random.rn_gen();
         int iframe = (int)dframe;
         if (frameToIdx_[iframe] == -1) {
-          frameToIdx_[iframe] = idx++;
+          frameToIdx_[iframe] = 1;
           frame_generated = true;
         }
       }
     }
-    // TODO: Put indices in order?
+    // Put indices in order
+    int idx = 0;
+    for (unsigned int i = 0; i < maxFrames; i++)
+      if (frameToIdx_[i] == 1)
+        frameToIdx_[i] = idx++;
   }
   return 0;
 }

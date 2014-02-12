@@ -61,6 +61,7 @@ class Action_NAstruct: public Action {
     double originCut2_;                 ///< Cutoff^2 for determining base-pairing vi origins
     int maxResSize_;                    ///< Max residue size, used to set up frames for RMS fit.
     int debug_;
+    int ensembleNum_;
     Range resRange_;                    ///< Range to search for NA residues.
     bool printheader_;                  ///< If true, print header to naout files.
     bool useReference_;                 ///< If true, use reference to determine base pairing.

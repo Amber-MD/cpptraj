@@ -12,10 +12,10 @@ Analysis_Corr::Analysis_Corr() :
 {}
 
 void Analysis_Corr::Help() {
-  mprintf("\tout <outfilename> <Dataset1> [<Dataset2>] [name <name>]\n");
-  mprintf("\t[lagmax <lag>] [nocovar] [direct]\n");
-  mprintf("\tCalculate auto-correlation for <Dataset1>, or cross -correlation\n");
-  mprintf("\tbetween <Dataset1> and <Dataset2>\n");
+  mprintf("\tout <outfilename> <Dataset1> [<Dataset2>] [name <name>]\n"
+          "\t[lagmax <lag>] [nocovar] [direct]\n"
+          "  Calculate auto-correlation for <Dataset1>, or cross -correlation\n"
+          "  between <Dataset1> and <Dataset2>\n");
 }
 
 // Analysis_Corr::Setup()
@@ -32,7 +32,11 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprinterr("Error: Corr: No output filename specified ('out' <filename>).\n");
     return Analysis::ERR;
   }
- 
+  // TODO: Check DataSet type
+  std::string dataset_name = analyzeArgs.GetStringKey("name");
+  if (dataset_name.empty())
+    dataset_name = datasetlist->GenerateDefaultName( "Corr" );
+
   // DataSet names
   std::string D1name = analyzeArgs.GetStringNext();
   if (D1name.empty()) {
@@ -57,13 +61,9 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
     return Analysis::ERR;
   }
 
-  // TODO: Check DataSet type
-  std::string dataset_name = analyzeArgs.GetStringKey("name");
-  if (dataset_name.empty())
-    dataset_name = datasetlist->GenerateDefaultName( "Corr" );
-
   // Setup output dataset
-  std::string corrname = D1_->Legend() + "-" + D2_->Legend();
+  std::string corrname = D1_->Legend();
+  if (D2_ != D1_) corrname += ("-" + D2_->Legend());
   Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, dataset_name, corrname );
   if (Ct_ == 0) return Analysis::ERR;
   outfile->AddSet( Ct_ );

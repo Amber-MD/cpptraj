@@ -415,6 +415,16 @@ void AtomMask::ResetMask() {
   maskTokens_.clear();
 }
 
+// AtomMask::ClearSelected()
+void AtomMask::ClearSelected() {
+  nselected_ = 0;
+  Selected_.clear();
+  if (!CharMask_.empty()) {
+    if (maskChar_ == 'T') CharMask_.assign(Natom_, 'F');
+    else                  CharMask_.assign(Natom_, 'T');
+  }
+}
+
 // AtomMask::InvertMask()
 /** Currently for integer masks only. Reverse the selected mask char for 
   * next selection. By default atoms in the Selected_ array are those marked 

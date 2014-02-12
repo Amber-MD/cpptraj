@@ -384,3 +384,101 @@ Centroid* ClusterDist_RMS::NewCentroid( Cframes const& cframesIn ) {
   CalculateCentroid( cent, cframesIn );
   return cent;
 }
+
+// ---------- Distance calc routines for COORDS DataSets using SRMSD -----------
+ClusterDist_SRMSD::ClusterDist_SRMSD(DataSet* dIn, AtomMask const& maskIn, 
+                                     bool nofit, bool useMass, int debugIn) :
+  coords_((DataSet_Coords*)dIn),
+  mask_(maskIn),
+  SRMSD_(mask_, !nofit, useMass, coords_->Top(), debugIn)
+{
+  frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
+  frm2_ = frm1_;
+}
+
+void ClusterDist_SRMSD::PairwiseDist(ClusterMatrix& frameDistances,
+                                   ClusterSieve::SievedFrames const& frames)
+{
+  double rmsd;
+  int f1, f2;
+  Frame frm2 = frm1_;
+  int f2end = (int)frames.size();
+  int f1end = f2end - 1;
+  ParallelProgress progress(f1end);
+#ifdef _OPENMP
+  Frame frm1 = frm1_;
+# define frm1_ frm1
+#pragma omp parallel private(f1, f2, rmsd) firstprivate(frm1, frm2, progress)
+{
+  progress.SetThread(omp_get_thread_num());
+#pragma omp for schedule(dynamic)
+#endif
+  for (f1 = 0; f1 < f1end; f1++) {
+    progress.Update(f1);
+    coords_->GetFrame( frames[f1], frm1_, mask_ );
+    for (f2 = f1 + 1; f2 < f2end; f2++) {
+      coords_->GetFrame( frames[f2], frm2,  mask_ );
+      rmsd = SRMSD_.SymmRMSD(frm1_, frm2);
+      frameDistances.SetElement( f1, f2, rmsd );
+    }
+  }
+#ifdef _OPENMP
+# undef frm1_
+} // END pragma omp parallel
+#endif
+  progress.Finish();
+}
+
+double ClusterDist_SRMSD::FrameDist(int f1, int f2) {
+  coords_->GetFrame( f1, frm1_, mask_ );
+  coords_->GetFrame( f2, frm2_, mask_ );
+  return SRMSD_.SymmRMSD(frm1_, frm2_);
+}
+
+double ClusterDist_SRMSD::CentroidDist(Centroid* c1, Centroid* c2) {
+  // Centroid is already at origin.
+  return SRMSD_.SymmRMSD_CenteredRef( ((Centroid_Coord*)c1)->cframe_,
+                                      ((Centroid_Coord*)c2)->cframe_ );
+}
+
+double ClusterDist_SRMSD::FrameCentroidDist(int f1, Centroid* c1) {
+  coords_->GetFrame( f1, frm1_, mask_ );
+  // Centroid is already at origin.
+  return SRMSD_.SymmRMSD_CenteredRef( frm1_, ((Centroid_Coord*)c1)->cframe_ );
+}
+
+/** Compute the centroid (avg) coords for each atom from all frames in this
+  * cluster. If fitting,  RMS fit to centroid as it is being built.
+  */
+void ClusterDist_SRMSD::CalculateCentroid(Centroid* centIn,  Cframes const& cframesIn) {
+  Matrix_3x3 Rot;
+  Vec3 Trans;
+  Centroid_Coord* cent = (Centroid_Coord*)centIn;
+  // Reset atom count for centroid.
+  cent->cframe_.ClearAtoms();
+  for (Cframes_it frm = cframesIn.begin(); frm != cframesIn.end(); ++frm)
+  {
+    coords_->GetFrame( *frm, frm1_, mask_ );
+    if (cent->cframe_.empty()) {
+      cent->cframe_ = frm1_;
+      if (SRMSD_.Fit())
+        cent->cframe_.CenterOnOrigin(SRMSD_.UseMass());
+    } else {
+      if (SRMSD_.Fit()) {
+        SRMSD_.SymmRMSD_CenteredRef( frm1_, cent->cframe_ );
+        frm1_.Rotate( SRMSD_.RotMatrix() );
+      }
+      cent->cframe_ += frm1_;
+    }
+  }
+  cent->cframe_.Divide( (double)cframesIn.size() );
+  //mprintf("\t\tFirst 3 centroid coords (of %i): %f %f %f\n", cent->cframe_.Natom(), 
+  //        cent->cent->cframe_[0], cent->cframe_[1],cent->cframe_[2]);
+}
+
+Centroid* ClusterDist_SRMSD::NewCentroid( Cframes const& cframesIn ) {
+  // TODO: Incorporate mass?
+  Centroid_Coord* cent = new Centroid_Coord( mask_.Nselected() );
+  CalculateCentroid( cent, cframesIn );
+  return cent;
+}

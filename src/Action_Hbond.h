@@ -30,6 +30,7 @@ class Action_Hbond : public Action {
     };
 
     int debug_;
+    int ensembleNum_;
     int Nframes_;
     std::string avgout_;
     std::string solvout_;

@@ -12,12 +12,13 @@ Action_Distance::Action_Distance() :
 
 void Action_Distance::Help() {
   mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]\n"
-          "\t[type {noe | hbond}\n"
+          "\t[type {noe | hbond}]\n"
           "\tOptions for 'type noe': [bound <lower>] [bound <upper>] [rexp <expected>]\n"
-          "\t                        [noe_strong] [noe_medium] [noe_weak]\n");
+          "\t                        [noe_strong] [noe_medium] [noe_weak]\n"
+          "  Calculate distance between atoms in <mask1> and <mask2>\n");
 }
 
-// Action_Distance::init()
+// Action_Distance::Init()
 Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -79,7 +80,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   return Action::OK;
 }
 
-// Action_Distance::setup()
+// Action_Distance::Setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   * Imaging is checked for in Action::Setup. 
   */
@@ -103,7 +104,7 @@ Action::RetType Action_Distance::Setup(Topology* currentParm, Topology** parmAdd
   return Action::OK;  
 }
 
-// Action_Distance::action()
+// Action_Distance::DoAction()
 Action::RetType Action_Distance::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double Dist;
   Matrix_3x3 ucell, recip;
@@ -136,4 +137,4 @@ Action::RetType Action_Distance::DoAction(int frameNum, Frame* currentFrame, Fra
   //fprintf(outfile,"%10i %10.4lf\n",frameNum,D);
   
   return Action::OK;
-} 
+}

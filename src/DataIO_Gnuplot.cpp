@@ -98,7 +98,6 @@ void DataIO_Gnuplot::WriteRangeAndHeader(Dimension const& Xdim, size_t Xmax,
 void DataIO_Gnuplot::Finish() {
   if (!jpegout_ && writeHeader_)
     file_.Printf("end\npause -1\n");
-  file_.CloseFile();
 }
 
 // DataIO_Gnuplot::JpegOut()
@@ -128,8 +127,10 @@ int DataIO_Gnuplot::WriteData(std::string const& fname, DataSetList const& SetLi
     //return WriteDataBinary( fname, SetList );
     mprinterr("Error: GNUPLOT binary write disabled.\n");
     return 1;
-  } else
-    return WriteDataAscii( fname, SetList);
+  }
+  int err = WriteDataAscii( fname, SetList);
+  file_.CloseFile();
+  return err;
 }
 
 /** Format:
@@ -320,16 +321,28 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
 }
 
 // DataIO_Gnuplot::WriteData2D()
-int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSet const& setIn) 
+int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSetList const& setList) 
 {
+  // Open output file
+  if (file_.OpenWrite( fname )) return 1;
+  // Warn about writing multiple sets
+  if (setList.size() > 1)
+    mprintf("Warning: %s: Writing multiple 2D sets in GNUplot format may result in unexpected behavior\n", fname.c_str());
+  int err = 0;
+  for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
+    err += WriteSet2D( *(*set) );
+  file_.CloseFile();
+  return err;
+}
+
+// DataIO_Gnuplot::WriteSet2D()
+int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
   if (setIn.Ndim() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              setIn.Legend().c_str(), fname.c_str(), setIn.Ndim());
+              setIn.Legend().c_str(), file_.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_2D const& set = static_cast<DataSet_2D const&>( setIn );
-  // Open output file
-  if (file_.OpenWrite( fname )) return 1;
 
   Dimension const& Xdim = setIn.Dim(0);
   Dimension const& Ydim = setIn.Dim(1);

@@ -11,8 +11,8 @@ Action_Projection::Action_Projection() :
 {}
 
 void Action_Projection::Help() {
-  mprintf("\tmodes <modesname> out <outfile> [beg <beg>] [end <end>] [<mask>]\n"
-          "\t%s\n\tCalculate projection of coordinates along given eigenmodes.\n", 
+  mprintf("\tevecs <dataset name> [out <outfile>] [beg <beg>] [end <end>] [<mask>]\n"
+          "\t%s\n  Calculate projection of coordinates along given eigenvectors.\n", 
           ActionFrameCounter::HelpText);
 }
 
@@ -26,9 +26,11 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   end_ = actionArgs.getKeyInt("end", 2);
   if (InitFrameCounter(actionArgs)) return Action::ERR;
 
-  std::string modesname = actionArgs.GetStringKey("modes");
+  std::string modesname = actionArgs.GetStringKey("modes"); // For backwards compat.
+  if (modesname.empty()) modesname = actionArgs.GetStringKey("evecs");
   if (modesname.empty()) {
-    mprinterr("Error: projection: no modes file specified ('modes <name>')\n");
+    mprinterr("Error: No eigenvectors data set specified ('evecs <name>'). To load\n"
+              "Error:   eigenvectors from a file use 'readdata <file>' prior to this command.\n");
     return Action::ERR;
   }
   // Check if DataSet exists
@@ -39,7 +41,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   }
   // Check if beg and end are in bounds.
   if (end_ > modinfo_->Nmodes()) {
-    mprintf("Warning: 'end' %i is greater than # modes (%i); setting end to %i\n",
+    mprintf("Warning: 'end' %i is greater than # evecs (%i); setting end to %i\n",
             end_, modinfo_->Nmodes(), modinfo_->Nmodes());
     end_ = modinfo_->Nmodes();
   }
@@ -53,7 +55,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
       modinfo_->Type() != DataSet_2D::MWCOVAR &&
       modinfo_->Type() != DataSet_2D::IDEA)
   {
-    mprinterr("Error: projection: evecs type is not COVAR, MWCOVAR, or IDEA.\n");
+    mprinterr("Error: evecs type is not COVAR, MWCOVAR, or IDEA.\n");
     return Action::ERR;
   }
 
@@ -72,7 +74,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
     if (modinfo_->Type() != DataSet_2D::IDEA) { // COVAR, MWCOVAR
       DataSet* dout = DSL->AddSetIdx( DataSet::FLOAT, setname, imode );
       if (dout == 0) {
-        mprinterr("Error creating output dataset for mode %i\n", imode);
+        mprinterr("Error: Could not create output dataset for mode %i\n", imode);
         return Action::ERR;
       }
       dout->SetLegend("Mode"+integerToString(imode));
@@ -90,7 +92,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
     }
   }
   // Set datafile args
-  mprintf("    PROJECTION: Calculating projection using modes %i to %i of %s\n",
+  mprintf("    PROJECTION: Calculating projection using eigenvectors %i to %i of %s\n",
           beg_+1, end_, modinfo_->Legend().c_str());
   if (DF != 0)
     mprintf("\tResults are written to %s\n", DF->DataFilename().full());
@@ -105,7 +107,7 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
   // Setup mask
   if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
   if (mask_.None()) {
-    mprinterr("Error: projection: No atoms selected.\n");
+    mprinterr("Error: No atoms selected.\n");
     return Action::ERR;
   }
   mask_.MaskInfo();
@@ -116,12 +118,12 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
     // Check if (3 * number of atoms in mask) and nvectelem agree
     int natom3 = mask_.Nselected() * 3;
     if ( natom3 != modinfo_->NavgCrd() ) {
-      mprinterr("Error: projection: # selected coords (%i) != # avg coords (%i) in %s\n",
+      mprinterr("Error: number selected coords (%i) != number avg coords (%i) in %s\n",
                 natom3, modinfo_->NavgCrd(), modinfo_->Legend().c_str());
       return Action::ERR;
     }
     if ( natom3 != modinfo_->VectorSize() ) {
-      mprinterr("Error: projection: # selected coords (%i) != eigenvector size (%i)\n",
+      mprinterr("Error: number selected coords (%i) != eigenvector size (%i)\n",
                 natom3, modinfo_->VectorSize() );
       return Action::ERR;
     }
@@ -130,7 +132,7 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
     if (//mask_.Nselected() != modinfo_.Navgelem() ||
         mask_.Nselected() != modinfo_->VectorSize()) 
     {
-      mprinterr("Error: projection: # selected atoms (%i) != eigenvector size (%i)\n",
+      mprinterr("Error: number selected atoms (%i) != eigenvector size (%i)\n",
                 mask_.Nselected(), modinfo_->VectorSize() );
       return Action::ERR;
     }

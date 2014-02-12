@@ -19,16 +19,16 @@ Analysis_Rms2d::Analysis_Rms2d() :
 
 void Analysis_Rms2d::Help() {
   mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>]\n"
-          "\t[dme] [mass] [nofit]\n"
+          "\t[dme | nofit | srmsd] [mass]\n"
           "\t[reftraj <traj> [parm <parmname> | parmindex <#>] [<refmask>]]\n"
           "\t[corr <corrfilename>]\n"
-          "\tCalculate RMSD between all frames in <crd set>, or between frames in\n"
-          "\t<crd set> and frames in <traj>.\n"
-          "\n\t<crd set> can be created with the 'createcrd' command.\n");
+          "  Calculate RMSD between all frames in <crd set>, or between frames in\n"
+          "  <crd set> and frames in <traj>.\n"
+          "  <crd set> can be created with the 'createcrd' command.\n");
 }
 
 const char* Analysis_Rms2d::ModeStrings_[] = {
-  "RMSD (fit)", "RMSD (no fitting)", "DME"
+  "RMSD (fit)", "RMSD (no fitting)", "DME", "symmetry-corrected RMSD"
 };
 
 // Analysis_Rms2d::Setup()
@@ -49,6 +49,8 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     mode_ = RMS_NOFIT;
   else if (analyzeArgs.hasKey("dme"))
     mode_ = DME;
+  else if (analyzeArgs.hasKey("srmsd"))
+    mode_ = SRMSD;
   else
     mode_ = RMS_FIT;
   useMass_ = analyzeArgs.hasKey("mass");
@@ -169,7 +171,12 @@ Analysis::RetType Analysis_Rms2d::Analyze() {
               "Error:   '%s' (%i)\n", TgtMask_.MaskString(), RefMask_.MaskString());
     return Analysis::ERR;
   }
-
+  // Set up symmetry-corrected RMSD calc if necessary - always fit!
+  if (mode_ == SRMSD) {
+    SRMSD_.InitSymmRMSD(true, useMass_, 0);
+    if (SRMSD_.SetupSymmRMSD( coords_->Top(), TgtMask_, false)) // No remap
+      return Analysis::ERR;
+  }
   if (useReferenceTraj_)
     err = CalcRmsToTraj();
   else
@@ -209,16 +216,17 @@ int Analysis_Rms2d::CalcRmsToTraj() {
     RefTraj_.GetNextFrame(RefFrame);
     // Set reference atoms and pre-center if fitting
     SelectedRef.SetCoordinates(RefFrame, RefMask_);
-    if (mode_ == RMS_FIT)
+    if (mode_ == RMS_FIT || SRMSD)
       SelectedRef.CenterOnOrigin(useMass_);
     // LOOP OVER TARGET FRAMES
     for (size_t nframe=0; nframe < totaltgt; nframe++) {
       // Get selected atoms of the current target frame
-      SelectedTgt.SetFromCRD( (*coords_)[nframe], 0, TgtMask_);
+      coords_->GetFrame( nframe, SelectedTgt, TgtMask_ );
       switch (mode_) {
         case RMS_FIT:   R = (float)SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_); break;
         case RMS_NOFIT: R = (float)SelectedTgt.RMSD_NoFit(SelectedRef, useMass_); break;
         case DME:       R = (float)SelectedTgt.DISTRMSD(SelectedRef); break;
+        case SRMSD:     R = (float)SRMSD_.SymmRMSD_CenteredRef(SelectedTgt, SelectedRef); break;
       }
       rmsdataset_->SetElement( nref, nframe, R );
       // DEBUG
@@ -261,11 +269,10 @@ int Analysis_Rms2d::Calculate_2D() {
 # endif
     for (nref=0; nref < totalref; nref++) {
       progress.Update(nref);
-      // Get the current reference frame - no box crd
-      // TODO: Use coords_->GetFrame instead?
-      SelectedRef.SetFromCRD( (*coords_)[nref], 0, RefMask_);
+      // Get the current reference frame
+      coords_->GetFrame( nref, SelectedRef, RefMask_ );
       // Select and pre-center reference atoms (if fitting)
-      if (mode_ == RMS_FIT)
+      if (mode_ == RMS_FIT || SRMSD)
         SelectedRef.CenterOnOrigin(useMass_);
       // LOOP OVER TARGET FRAMES
       if (calculateFullMatrix)
@@ -274,11 +281,12 @@ int Analysis_Rms2d::Calculate_2D() {
         tgtstart = nref + 1;
       for (ntgt = tgtstart; ntgt < totalref; ntgt++) {
         // Get the current target frame
-        SelectedTgt.SetFromCRD( (*coords_)[ntgt], 0, TgtMask_);
+        coords_->GetFrame( ntgt, SelectedTgt, TgtMask_ );
         switch (mode_) {
           case RMS_FIT:   R = (float)SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_); break;
           case RMS_NOFIT: R = (float)SelectedTgt.RMSD_NoFit(SelectedRef, useMass_); break;
           case DME:       R = (float)SelectedTgt.DISTRMSD(SelectedRef); break;
+          case SRMSD:     R = (float)SRMSD_.SymmRMSD_CenteredRef(SelectedTgt, SelectedRef); break;
         }
 #       ifdef _OPENMP
         rmsdataset_->SetElement(ntgt, nref, R);

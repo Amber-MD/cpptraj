@@ -62,9 +62,9 @@ void DihedralSearch::ListKnownTypes() {
 
 // TODO: const char*
 void DihedralSearch::OffsetHelp() {
-  mprintf("\t\tOffset -2=<at0><at1> in previous res, -1=<at0> in previous res,\n");
-  mprintf("\t\t        0=All <atX> in single res,\n");
-  mprintf("\t\t        1=<at3> in next res, 2=<at2><at3> in next res.\n");
+  mprintf("\t\tOffset -2=<a0><a1> in previous res, -1=<a0> in previous res,\n"
+          "\t\t        0=All <aX> in single res,\n"
+          "\t\t        1=<a3> in next res, 2=<a2><a3> in next res.\n");
 }
 
 // DihedralSearch::GetType()
@@ -77,22 +77,24 @@ DihedralSearch::DihedralType DihedralSearch::GetType(std::string const& typeIn) 
 
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR - DihedralMask
-DihedralSearch::DihedralMask::DihedralMask() : a0_(-1), a1_(-1), a2_(-1), 
-                                               a3_(-1), res_(-1) {}
+DihedralSearch::DihedralMask::DihedralMask() : 
+  a0_(-1), a1_(-1), a2_(-1), a3_(-1), res_(-1), type_(NDIHTYPE) {}
 
 // CONSTRUCTOR - DihedralMask
 DihedralSearch::DihedralMask::DihedralMask(int a0, int a1, int a2, int a3, 
-                                           int res, std::string const& name) :
-  a0_(a0), a1_(a1), a2_(a2), a3_(a3), res_(res), name_(name) {}
+                                           int res, std::string const& n,
+                                           DihedralType t) :
+  a0_(a0), a1_(a1), a2_(a2), a3_(a3), res_(res), name_(n), type_(t) {}
 
 // -----------------------------------------------------------------------------
-// CONSTRUCTOR - DihedralToken
+// CONSTRUCTOR - Custom type 
 DihedralSearch::DihedralToken::DihedralToken(int off, 
                                              NameType const& an0, NameType const& an1,
                                              NameType const& an2, NameType const& an3,
                                              std::string const& name) :
   offset_(off),
-  name_(name)
+  name_(name),
+  type_(NDIHTYPE)
 {
   aname_[0] = an0;
   aname_[1] = an1;
@@ -105,10 +107,11 @@ DihedralSearch::DihedralToken::DihedralToken(int off,
   search_[3] = ByName;
 }
 
-// CONSTRUCTOR - DihedralToken
-DihedralSearch::DihedralToken::DihedralToken(DIH_TYPE const& dih) :
+// CONSTRUCTOR - Recognized type 
+DihedralSearch::DihedralToken::DihedralToken(DIH_TYPE const& dih, DihedralType dt) :
   offset_(dih.off),
-  name_(dih.name)
+  name_(dih.name),
+  type_(dt)
 {
   aname_[0] = dih.an0;
   aname_[1] = dih.an1;
@@ -137,7 +140,7 @@ DihedralSearch::DihedralMask
     if (atnum[i] == -1) return DihedralMask();
   }
   // All atoms found at this point.
-  return DihedralMask(atnum[0], atnum[1], atnum[2], atnum[3], resIn, name_);
+  return DihedralMask(atnum[0], atnum[1], atnum[2], atnum[3], resIn, name_, type_);
 }
 
 // -----------------------------------------------------------------------------
@@ -146,7 +149,8 @@ DihedralSearch::DihedralSearch() {}
 
 // DihedralSearch::SearchFor()
 int DihedralSearch::SearchFor(DihedralType typeIn) {
-  dihedralTokens_.push_back( DihedralSearch::DihedralToken::DIH[typeIn] );
+  dihedralTokens_.push_back( DihedralToken(DihedralSearch::DihedralToken::DIH[typeIn],
+                                           typeIn) );
   return 0;
 }
 
@@ -165,9 +169,9 @@ int DihedralSearch::SearchForNewType(int off, std::string const& an0, std::strin
                                      std::string const& an2, std::string const& an3,
                                      std::string const& name)
 {
-  for (std::vector<DihedralToken>::iterator dih = dihedralTokens_.begin();
-                                            dih != dihedralTokens_.end(); ++dih)
-    if ( (*dih).Name() == name ) {
+  for (std::vector<DihedralToken>::iterator tkn = dihedralTokens_.begin();
+                                            tkn != dihedralTokens_.end(); ++tkn)
+    if ( tkn->Name() == name ) {
       mprintf("Warning: Dihedral type %s already defined.\n", name.c_str());
       return 1;
     }
@@ -190,13 +194,13 @@ int DihedralSearch::FindDihedrals(Topology const& currentParm, Range const& rang
   dihedrals_.clear();
   for (Range::const_iterator res = rangeIn.begin(); res != rangeIn.end(); ++res)
   {
-    for (std::vector<DihedralToken>::iterator dih = dihedralTokens_.begin();
-                                              dih != dihedralTokens_.end(); ++dih)
+    for (std::vector<DihedralToken>::iterator tkn = dihedralTokens_.begin();
+                                              tkn != dihedralTokens_.end(); ++tkn)
     {
-      dihedrals_.push_back( (*dih).FindDihedralAtoms(currentParm, *res) );
+      dihedrals_.push_back( tkn->FindDihedralAtoms(currentParm, *res) );
       if (dihedrals_.back().None()) {
         mprintf("Warning: Dihedral %s not found for residue %i\n", 
-                (*dih).Name().c_str(), *res + 1);
+                tkn->Name().c_str(), *res + 1);
         dihedrals_.pop_back();
       } 
     }
@@ -222,10 +226,10 @@ void DihedralSearch::ClearFound() {
 
 // DihedralSearch::PrintTypes()
 void DihedralSearch::PrintTypes() {
-  for (std::vector<DihedralToken>::iterator dih = dihedralTokens_.begin();
-                                            dih != dihedralTokens_.end(); ++dih)
+  for (std::vector<DihedralToken>::iterator tkn = dihedralTokens_.begin();
+                                            tkn != dihedralTokens_.end(); ++tkn)
   {
-    mprintf(" %s", (*dih).Name().c_str());
+    mprintf(" %s", tkn->Name().c_str());
   }
 }
 
@@ -255,6 +259,8 @@ AtomMask DihedralSearch::MovingAtoms(Topology const& topIn, int atom0, int atom1
   }
   // Everything marked T will move.
   AtomMask Rmask;
+  // Needed for conversion to atom mask
+  Rmask.SetNatom( topIn.Natom() );
   for (int maskatom = 0; maskatom < (int)Visited.size(); maskatom++) {
     if (Visited[maskatom])
       Rmask.AddAtom(maskatom);

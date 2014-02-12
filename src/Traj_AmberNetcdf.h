@@ -21,6 +21,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     int writeFrame(int,Frame const&);
     void Info();
     int processWriteArgs(ArgList&);
+    int processReadArgs(ArgList&);
     // Reservoir functions
     inline int createReservoir(bool,double,int);
     int writeReservoir(int, Frame&, double, int);
@@ -29,7 +30,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     FileName filename_;
     int eptotVID_;
     int binsVID_;
-    int processReadArgs(ArgList&) { return 0; }
+    bool useVelAsCoords_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 int Traj_AmberNetcdf::createReservoir(bool hasBins, double reservoirT, int iseed) {

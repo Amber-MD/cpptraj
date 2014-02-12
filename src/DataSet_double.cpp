@@ -89,3 +89,21 @@ int DataSet_double::Sync() {
 
   return 0;
 }
+
+/** For torsion arrays, shift values by offset and ensure they lie between
+  * minVal and minVal + 360.
+  */
+void DataSet_double::ShiftTorsions(double minVal, double offset) {
+  if (IsTorsionArray()) {
+    double maxVal = minVal + 360.0;
+    for (std::vector<double>::iterator dval = Data_.begin();
+                                       dval != Data_.end(); ++dval)
+    {
+      *dval += offset;
+      if ( *dval > maxVal )
+        *dval -= 360.0;
+      else if ( *dval < minVal )
+        *dval += 360.0;
+    }
+  }
+}

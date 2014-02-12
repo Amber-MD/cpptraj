@@ -3,10 +3,10 @@
 
 void Action_FilterByData::Help() {
   mprintf("\t<dataset arg> min <min> max <max> [out <file> [name <setname>]]\n"
-          "\tFor all following actions, only allow frames that are between <min>\n"
-          "\t  and <max> of data sets in <dataset arg>. There must be at least\n"
-          "\t  one <min> and <max> argument, and can be as many as there are\n"
-          "\t  specified data sets.\n");
+          "  For all following actions, only allow frames that are between <min>\n"
+          "  and <max> of data sets in <dataset arg>. There must be at least\n"
+          "  one <min> and <max> argument, and can be as many as there are\n"
+          "  specified data sets.\n");
 }
 
 // Action_FilterByData::Init()

@@ -16,9 +16,9 @@ Analysis_KDE::Analysis_KDE() :
 
 void Analysis_KDE::Help() {
   mprintf("\t<dataset> [bandwidth <bw>] [out <file>] [name <dsname>]\n"
-          "\t[min <min>] [max <max] [step <step>] [bins <bins>]\n"
+          "\t[min <min>] [max <max] [step <step>] [bins <bins>] [free]\n"
           "\t[kldiv <dsname2> [klout <outfile>]] [amd <amdboost_data>]\n"
-          "\tHistogram 1D data set using a kernel density estimator.\n");
+          "  Histogram 1D data set using a kernel density estimator.\n");
 }
 
 // Analysis_KDE::Setup()

@@ -7,17 +7,13 @@ Action_Outtraj::Action_Outtraj() : CurrentParm_(0) {}
 
 void Action_Outtraj::Help() {
   mprintf("\t<filename> [ trajout args ]\n"
-          "\tLike 'trajout', but coordinate output occurs during actions rather than at the end.\n");
+          "  Like 'trajout', but coordinate output occurs during actions rather than at the end.\n");
 }
 
 // Action_Outtraj::Init()
 Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-# ifdef MPI
-  mprintf("ERROR: OUTTRAJ currently not functional with MPI.\n");
-  return Action::ERR;
-# else
   // maxmin now deprecated, functionality is in Action_FilterByData
   if (actionArgs.Contains("maxmin") || actionArgs.Contains("max") ||
       actionArgs.Contains("min") || actionArgs.Contains("maxmindata")) {
@@ -37,14 +33,14 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",trajfilename.c_str());
     return Action::ERR;
   }
-  if ( outtraj_.InitTrajWrite(trajfilename, actionArgs, 
-                               tempParm, TrajectoryFile::UNKNOWN_TRAJ) ) 
+  if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(), 
+                                      tempParm, TrajectoryFile::UNKNOWN_TRAJ,
+                                      DSL->EnsembleNum()) ) 
     return Action::ERR;
   mprintf("    OUTTRAJ:");
   outtraj_.PrintInfo(1);
 
   return Action::OK;
-# endif
 } 
 
 // Action_Outtraj::Setup()

@@ -22,9 +22,9 @@ Action_Pairwise::Action_Pairwise() :
 {} 
 
 void Action_Pairwise::Help() {
-  mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <cute>] [cutevdw <cutv>]\n");
-  mprintf("\t[ref <reffilename> | refindex <ref#>] [cutout <cutmol2name>]\n");
-  mprintf("\tCalculate pairwise (non-bonded) energy for atoms in <mask>.\n");
+  mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <ecut>] [cutevdw <vcut>]\n"
+          "\t[ %s ] [cutout <cutmol2name>]\n"
+          "  Calculate pairwise (non-bonded) energy for atoms in <mask>.\n", FrameList::RefArgs);
 }
 
 // DESTRUCTOR
@@ -89,7 +89,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 
   // Output for individual atom energy | dEnergy
   if (!eout.empty()) {
-    if (Eout_.OpenWrite(eout)) {
+    if (Eout_.OpenEnsembleWrite(eout, DSL->EnsembleNum())) {
       mprinterr("Error: Pairwise: Could not set up file %s for eout.\n",eout.c_str());
       return Action::ERR;
     }

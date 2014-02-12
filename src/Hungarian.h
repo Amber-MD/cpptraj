@@ -4,13 +4,16 @@
 /// Use Hungarian algorithm to perform minimum-matching on a matrix.
 class Hungarian {
   public:
-    Hungarian() {}
-    Hungarian(DataSet_MatrixDbl const&);
+    Hungarian() : nrows_(0), ncols_(0) {}
+    /// Initialize NxN full matrix for Hungarian algorithm.
+    int Initialize(size_t);
+    /// Add an element to matrix for Hungarian algorithm.
+    void AddElement(double d) { matrix_.AddElement( d ); }
     /// \return Array containing Map[col] = row
     std::vector<int> Optimize();
   private:
-    int Assign();
-    int CoverZeroElements();
+    int AssignRowsToColumns();
+    void CoverZeroElements();
     void UpdateMatrix();
 #   ifdef DEBUG_HUNGARIAN
     void PrintLines(const char*);

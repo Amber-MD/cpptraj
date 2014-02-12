@@ -5,6 +5,7 @@
 
 // CONSTRUCTOR
 Action_STFC_Diffusion::Action_STFC_Diffusion() :
+  ensembleNum_(-1),
   printDistances_(false),
   calcType_(DEFAULT),
   direction_(DX),
@@ -12,22 +13,30 @@ Action_STFC_Diffusion::Action_STFC_Diffusion() :
   lowerCutoff_(0),
   upperCutoff_(0),
   hasBox_(false),
-  n_atom_(0),
+  n_atom_(-1),
   elapsedFrames_(0)
 {}
 
 void Action_STFC_Diffusion::Help() {
-  mprintf("\tmask <mask> [out <file>] [time <time per frame>]\n");
-  mprintf("\t[mask2 <mask>] [lower <distance>] [upper <distance>]\n");
-  mprintf("\t[nwout <file>]) [avout <file>] [distances] [com]\n");
-  mprintf("\t[x|y|z|xy|xz|yz|xyz]\n");
-  mprintf("\tCalculate diffusion of atoms in <mask>\n");
+  mprintf("\tmask <mask> [out <file>] [time <time per frame>]\n"
+          "\t[mask2 <mask>] [lower <distance>] [upper <distance>]\n"
+          "\t[nwout <file>]) [avout <file>] [distances] [com]\n"
+          "\t[x|y|z|xy|xz|yz|xyz]\n"
+          "  Calculate diffusion of atoms in <mask>\n");
 }
 
-// Action_STFC_Diffusion::init()
+/// Must correspond to DirectionType
+static const char* DirectionString[] = {
+  "x",  "y",  "z",  "xy", "xz", "yz", "xyz" 
+};
+
+// Action_STFC_Diffusion::Init()
 Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  n_atom_ = -1;
+  ensembleNum_ = DSL->EnsembleNum();
+  // Get keywords
   std::string maskarg = actionArgs.GetStringKey("mask");
   if (maskarg.empty()) {
     mprinterr("Error: diffusion: No mask specified.\n");
@@ -38,33 +47,26 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* P
   std::string outfileName = actionArgs.GetStringKey("out");
   if (outfileName.empty())
     outfileName = "diffusion.dat";
-  if ( output_.OpenWrite( outfileName ) ) {
+  if ( output_.OpenEnsembleWrite( outfileName, DSL->EnsembleNum() ) ) {
     mprinterr("Error: diffusion: Could not open output file %s\n", outfileName.c_str());
     return Action::ERR;
   }
 
   outputAverDist_ = actionArgs.GetStringKey("avout");
-
   time_ = actionArgs.getKeyDouble("time", 1.0);
   if (time_ < 0) {
     mprinterr("Error: diffusion: time argument cannot be < 0 (%lf)\n", time_);
     return Action::ERR;
   }
-
   printDistances_ = actionArgs.hasKey("distances");
   if ( actionArgs.hasKey("com") )
     calcType_ = COM;
 
   // Directions considered for diffusion
   direction_ = DXYZ;
-  if ( actionArgs.hasKey("x") )   direction_ = DX;
-  if ( actionArgs.hasKey("y") )   direction_ = DY;
-  if ( actionArgs.hasKey("z") )   direction_ = DZ;
-  if ( actionArgs.hasKey("xy") )  direction_ = DXY;
-  if ( actionArgs.hasKey("xz") )  direction_ = DXZ;
-  if ( actionArgs.hasKey("yz") )  direction_ = DYZ;
-  if ( actionArgs.hasKey("xyz") ) direction_ = DXYZ;
-    
+  for (int i = 0; i <= (int)DXYZ; i++)
+    if (actionArgs.hasKey( DirectionString[i] ))
+      direction_ = (DirectionType)i;
   // Process second mask
   maskarg = actionArgs.GetStringKey("mask2");
   double lcut = 0;
@@ -78,7 +80,7 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* P
     outputNumWat_ = actionArgs.GetStringKey("nwout");
     if (outputNumWat_.empty())
       outputNumWat_ = "nw.dat";
-    if ( outputnw_.OpenWrite( outputNumWat_ ) ) {
+    if ( outputnw_.OpenEnsembleWrite( outputNumWat_, DSL->EnsembleNum() ) ) {
       mprinterr("Error: diffusion: Could not open nwout file %s\n", 
                 outputNumWat_.c_str());
       return Action::ERR;
@@ -125,15 +127,25 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* P
   return Action::OK;
 }
 
-// Action_STFC_Diffusion::setup()
+// Action_STFC_Diffusion::Setup()
 Action::RetType Action_STFC_Diffusion::Setup(Topology* currentParm, Topology** parmAddress) {
-  n_atom_ = currentParm->Natom();
   // Setup atom mask
   if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
   if (mask_.None()) {
     mprinterr("Error: diffusion: No atoms selected.\n");
     return Action::ERR;
   }
+  if (n_atom_ == -1) { // first time through, write header
+    output_.Printf("%-10s %10s %10s %10s %10s","#time","x","y","z",DirectionString[direction_]);
+    if (printDistances_) {
+      for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom) {
+        int a1 = *atom + 1;
+        output_.Printf(" x%-8i y%-8i z%-8i r%-8i", a1, a1, a1, a1);
+      }
+    }
+    output_.Printf("\n");
+  }
+  n_atom_ = currentParm->Natom();
   // Setup second mask if necessary
   if ( calcType_ == DIST ) {
     if (currentParm->SetupIntegerMask( mask2_ )) return Action::ERR;
@@ -281,7 +293,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
   previousxyz_[idx23+2] = XYZ[2];
 }
 
-// Action_STFC_Diffusion::action()
+// Action_STFC_Diffusion::DoAction()
 Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double Time, average, avgx, avgy, avgz;
 
@@ -430,12 +442,12 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, Frame* currentFram
   return Action::OK;
 }
 
-// Action_STFC_Diffusion::print()
+// Action_STFC_Diffusion::Print()
 void Action_STFC_Diffusion::Print() {
   CpptrajFile outputad;
 
   if (!outputAverDist_.empty()) {
-    if ( outputad.OpenWrite( outputAverDist_ ) ) {
+    if ( outputad.OpenEnsembleWrite( outputAverDist_, ensembleNum_ ) ) {
       mprinterr("Error: diffusion: Could not open average distance file %s\n", 
                 outputAverDist_.c_str()); 
       return;

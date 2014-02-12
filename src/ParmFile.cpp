@@ -6,16 +6,18 @@
 #include "Parm_Mol2.h"
 #include "Parm_CharmmPsf.h"
 #include "Parm_CIF.h"
+#include "Parm_SDF.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as DataFormatType
 const FileTypes::AllocToken ParmFile::PF_AllocArray[] = {
-  { "Amber Topology",   0, 0, Parm_Amber::Alloc     },
-  { "PDB File",         0, 0, Parm_PDB::Alloc       },
-  { "Mol2 File",        0, 0, Parm_Mol2::Alloc      },
-  { "Charmm PSF",       0, 0, Parm_CharmmPsf::Alloc },
-  { "CIF File",         0, 0, Parm_CIF::Alloc       },
-  { "Unknown Topology", 0, 0, 0                     }
+  { "Amber Topology",   0,                  Parm_Amber::WriteHelp, Parm_Amber::Alloc     },
+  { "PDB File",         Parm_PDB::ReadHelp, 0,                     Parm_PDB::Alloc       },
+  { "Mol2 File",        0,                  0,                     Parm_Mol2::Alloc      },
+  { "Charmm PSF",       0,                  0,                     Parm_CharmmPsf::Alloc },
+  { "CIF File",         0,                  0,                     Parm_CIF::Alloc       },
+  { "SDF File",         0,                  0,                     Parm_SDF::Alloc       },
+  { "Unknown Topology", 0,                  0,                     0                     }
 };
 
 const FileTypes::KeyToken ParmFile::PF_KeyArray[] = {
@@ -24,6 +26,7 @@ const FileTypes::KeyToken ParmFile::PF_KeyArray[] = {
   { MOL2FILE,     "mol2",  ".mol2"  },
   { CHARMMPSF,    "psf",   ".psf"   },
   { CIFFILE,      "cif",   ".cif"   },
+  { SDFFILE,      "sdf",   ".sdf"   },
   { UNKNOWN_PARM, 0,       0        }
 };
 
@@ -55,7 +58,7 @@ int ParmFile::ReadTopology(Topology& Top, std::string const& fnameIn,
   ArgList argIn = argListIn;
   ParmFormatType pfType;
   ParmIO* parmio = 0;
-  parmName_.SetFileNameWithExpansion( fnameIn );
+  if (parmName_.SetFileNameWithExpansion( fnameIn )) return 1;
   bool bondsearch = !argIn.hasKey("nobondsearch");
   Top.SetDebug( debugIn );
   Top.SetOffset( argIn.getKeyDouble("bondsearch", -1.0) );
@@ -115,6 +118,7 @@ int ParmFile::WriteTopology(Topology const& Top, std::string const& fname,
   ParmIO* parmio = (ParmIO*)FileTypes::AllocIO(PF_AllocArray, fmt, true);
   if (parmio == 0) return 1;
   parmio->SetDebug( debugIn );
+  parmio->processWriteArgs( argIn );
   mprintf("\tWriting topology %i (%s) to '%s' with format %s\n", Top.Pindex(),
           Top.c_str(), parmName_.full(), FileTypes::FormatDescription(PF_AllocArray, fmt));
   int err = parmio->WriteParm( parmName_.Full(), Top );

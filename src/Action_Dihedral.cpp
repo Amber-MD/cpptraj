@@ -13,9 +13,10 @@ Action_Dihedral::Action_Dihedral() :
 { } 
 
 void Action_Dihedral::Help() {
-  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> [out filename] [mass]\n");
-  mprintf("\t[type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p|h1p|phi|psi|pchi}]\n");
-  mprintf("\t[range360]\n");
+  mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> [out filename] [mass]\n"
+          "\t[type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p|h1p|phi|psi|pchi}]\n"
+          "\t[range360]\n"
+          "  Calculate dihedral angle for atoms in masks 1-4.\n");
 }
 
 // Action_Dihedral::init()
@@ -121,11 +122,6 @@ Action::RetType Action_Dihedral::DoAction(int frameNum, Frame* currentFrame, Fra
 } 
 
 void Action_Dihedral::Print() {
-  if (range360_) {
-    DataSet_double* ds = (DataSet_double*)dih_;
-    for (DataSet_double::iterator dval = ds->begin(); dval != ds->end(); ++dval) {
-      if ( *dval < 0.0 )
-        *dval += 360.0;
-    }
-  }
+  if (range360_)
+    ((DataSet_double*)dih_)->ShiftTorsions(0.0, 0.0);
 }

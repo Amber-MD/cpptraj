@@ -11,10 +11,12 @@ class Cpptraj {
     Cpptraj() {}
     int RunCpptraj(int, char**);
   private:
+    typedef std::vector<std::string> Sarray;
     enum Mode { BATCH = 0, ERROR, QUIT, INTERACTIVE, SILENT_EXIT };
     static void Usage();
     static void Intro();
     static void Finalize();
+    int ProcessMask(Sarray const&, std::string const&, bool,bool) const;
     Mode ProcessCmdLineArgs(int, char**);
     int Interactive();
 

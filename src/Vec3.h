@@ -14,6 +14,7 @@ class Vec3 {
       V_[1] = vy;
       V_[2] = vz;
     }
+    Vec3(double vxyz) { V_[0] = vxyz; V_[1] = vxyz; V_[2] = vxyz; }
     Vec3(const double* XYZ) {
       V_[0] = XYZ[0];
       V_[1] = XYZ[1];

@@ -49,38 +49,35 @@ BaseIOtype* FileTypes::AllocIO(AllocPtr allocArray, FileFormatType typeIn, bool 
   return allocArray[typeIn].Alloc();
 }
 // FileTypes::FormatKeywords()
-void FileTypes::FormatKeywords(KeyPtr begin) {
-  mprintf("  Recognized keywords:");
+void FileTypes::FormatKeywords(KeyPtr begin, FileFormatType ftype) {
+  mprintf("Keywords:");
   for (KeyPtr token = begin; token->Key != 0; ++token)
-    mprintf(" %s", token->Key);
-  mprintf("\n");
+    if (token->Type == ftype) mprintf(" %s", token->Key);
 }
 // FileTypes::FormatExtensions()
-void FileTypes::FormatExtensions(KeyPtr begin) {
-  mprintf("  Recognized extensions:");
+void FileTypes::FormatExtensions(KeyPtr begin, FileFormatType ftype) {
+  mprintf("Extensions:");
   for (KeyPtr token = begin; token->Extension != 0; ++token)
-    mprintf(" %s", token->Extension);
-  mprintf("\n");
+    if (token->Type == ftype) mprintf(" %s", token->Extension);
 }
 // FileTypes::ReadOptions()
 void FileTypes::ReadOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
-  FormatKeywords( begin );
-  FormatExtensions( begin );
   for (int i = 0; i < UNK; i++) {
-    if (allocArray[i].ReadHelp != 0) {
-      mprintf("  Options for %s:\n", allocArray[i].Description);
-      allocArray[i].ReadHelp();
-    }
+    mprintf("    Options for %s: ", allocArray[i].Description);
+    //FormatKeywords( begin, i );
+    FormatExtensions( begin, i );
+    mprintf("\n");
+    if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp();
   }
 }
 // FileTypes::WriteOptions()
 void FileTypes::WriteOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
-  FormatKeywords( begin );
-  FormatExtensions( begin );
   for (int i = 0; i < UNK; i++) {
-    if (allocArray[i].WriteHelp != 0) {
-      mprintf("  Options for %s:\n", allocArray[i].Description);
-      allocArray[i].WriteHelp();
-    }
+    mprintf("    Options for %s: ", allocArray[i].Description);
+    FormatKeywords( begin, i );
+    mprintf(", ");
+    FormatExtensions( begin, i );
+    mprintf("\n");
+    if (allocArray[i].WriteHelp != 0) allocArray[i].WriteHelp();
   }
 }

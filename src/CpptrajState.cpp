@@ -4,7 +4,6 @@
 #include "Trajin_Multi.h" // for ensemble
 #include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
-#include "ParmFile.h" // ProcessMask
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -96,60 +95,31 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   return 0;
 }
 
-static inline int RemoveError() {
-  mprinterr("Error: Remove not yet supported for this list type.\n");
-  return 1;
-}
-
-/** Remove something from specified list */
-int CpptrajState::RemoveFromList( ArgList& argIn ) {
-  std::vector<bool> enabled = ListsFromArg( argIn, false );
+/** Remove DataSet from State */
+int CpptrajState::RemoveDataSet( ArgList& argIn ) {
+  // Need to first make sure they are removed from DataFiles etc also.
+  // FIXME: Currently no good way to check if Actions/Analyses will be
+  //        made invalid by DataSet removal.
   std::string removeArg = argIn.GetStringNext();
-  if ( enabled[L_ACTION]   ) return RemoveError(); //actionList_.Clear();
-  if ( enabled[L_TRAJIN]   ) return RemoveError(); //trajinList_.Clear();
-  if ( enabled[L_REF]      ) return RemoveError(); //refFrames_.Clear();
-  if ( enabled[L_TRAJOUT]  ) return RemoveError(); //trajoutList_.Clear();
-  if ( enabled[L_PARM]     ) return RemoveError(); //parmFileList_.Clear();
-  if ( enabled[L_ANALYSIS] ) return RemoveError(); //analysisList_.Clear();
-  if ( enabled[L_DATAFILE] ) return RemoveError(); //DFL_.Clear();
-  if ( enabled[L_DATASET]  ) {
-    // For DataSets, need to first make sure they are removed from
-    // DataFiles etc as well.
-    // FIXME: Currently no good way to check if Actions/Analyses will be
-    //        made invalid by DataSet removal.
-    DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
-    if (tempDSL.empty())
-      mprintf("Warning: \"%s\" does not correspond to any data sets.\n", removeArg.c_str());
-    else {
-      for (DataSetList::const_iterator ds = tempDSL.begin();
+  if (removeArg.empty()) {
+    mprinterr("Error: No data set(s) specified for removal.\n");
+    return 1;
+  }
+  DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
+  if (!tempDSL.empty()) {
+    for (DataSetList::const_iterator ds = tempDSL.begin();
                                      ds != tempDSL.end(); ++ds)
-      {
-        mprintf("\tRemoving \"%s\"\n", (*ds)->Legend().c_str());
-        DFL_.RemoveDataSet( *ds );
-        DSL_.RemoveSet( *ds );
-      }
+    {
+      mprintf("\tRemoving \"%s\"\n", (*ds)->Legend().c_str());
+      DFL_.RemoveDataSet( *ds );
+      DSL_.RemoveSet( *ds );
     }
   }
   return 0;
 }
 
-// CpptrajState::ProcessMask()
-int CpptrajState::ProcessMask( std::string const& topname, std::string const& maskexpr,
-                               bool verbose ) const
-{
-  ParmFile pfile;
-  Topology parm;
-  if (pfile.ReadTopology(parm, topname, debug_)) return 1;
-  if (!verbose) {
-    AtomMask tempMask( maskexpr );
-    if (parm.SetupIntegerMask( tempMask )) return 1;
-    tempMask.PrintMaskAtoms("Selected");
-  } else
-    parm.PrintAtomInfo( maskexpr );
-  return 0;
-}
-
 // CpptrajState::TrajLength()
+// NOTE: MMPBSA.py relies on this.
 int CpptrajState::TrajLength( std::string const& topname, 
                               std::vector<std::string> const& trajinFiles)
 {
@@ -165,7 +135,7 @@ int CpptrajState::TrajLength( std::string const& topname,
 // -----------------------------------------------------------------------------
 // CpptrajState::Run()
 int CpptrajState::Run() {
-  ++nrun_;
+  int err = 0;
   // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
   // this means 1 or more actions has requested that a default COORDS DataSet
   // be created.
@@ -176,39 +146,50 @@ int CpptrajState::Run() {
     if (default_crd->Size() > 0)
       mprintf("Warning: Default COORDS DataSet has already been written to.\n");
     else {
+      // If no input trajectories this will not work.
+      if (trajinList_.empty()) {
+        mprinterr("Error: Cannot create COORDS DataSet; no input trajectories specified.\n");
+        return 1;
+      }
       ArgList crdcmd("createcrd _DEFAULTCRD_");
       crdcmd.MarkArg(0);
       if (AddAction( Action_CreateCrd::Alloc, crdcmd ))
         return 1;
     }
   }
-
-  int err = 0;
-# ifdef MPI
-  // Only ensemble mode allowed with MPI for now.
-  if ( trajinList_.Mode() != TrajinList::ENSEMBLE ) {
-    mprinterr("Error: Only 'ensemble' mode supported in parallel.\n");
-    err = 1;
-  } else
-    err = RunEnsemble();
-# else
-  switch ( trajinList_.Mode() ) {
-    case TrajinList::NORMAL   :
-      err = RunNormal();
-      break;
-    case TrajinList::ENSEMBLE :
-      err = RunEnsemble(); 
-      break;
-    default:
-      // No trajectories loaded; If analyses are defined, try to run them.
-      if (!analysisList_.Empty()) {
-        RunAnalyses();
-        MasterDataFileWrite();
-      }
+  mprintf("---------- RUN BEGIN -------------------------------------------------\n");
+  if (trajinList_.empty()) 
+    mprintf("Warning: No input trajectories specified.\n");
+  else {
+#   ifdef MPI
+    // Only ensemble mode allowed with MPI for now.
+    if ( trajinList_.Mode() != TrajinList::ENSEMBLE ) {
+      mprinterr("Error: Only 'ensemble' mode supported in parallel.\n");
+      err = 1;
+    } else
+      err = RunEnsemble();
+#   else
+    switch ( trajinList_.Mode() ) {
+      case TrajinList::NORMAL   : err = RunNormal(); break;
+      case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
+      case TrajinList::UNDEFINED: break;
+    }
+#   endif
+    // Clean up Actions if run completed successfully.
+    if (err == 0)
+      actionList_.Clear();
   }
-# endif
-  // Clean up Actions.
-  actionList_.Clear();
+  // Analysis is currently disabled for ENSEMBLE
+  if ( trajinList_.Mode() != TrajinList::ENSEMBLE) {
+    // Run Analyses if any are specified.
+    if (err == 0)
+      err = RunAnalyses();
+    DSL_.List();
+    // Print DataFile information and write DataFiles
+    DFL_.List();
+    MasterDataFileWrite();
+  }
+  mprintf("---------- RUN END ---------------------------------------------------\n");
   return err;
 }
 
@@ -293,6 +274,11 @@ int CpptrajState::RunEnsemble() {
   for (int member = 0; member < ensembleSize; ++member) {
     // Set max frames in the data set list and allocate
     DataSetEnsemble[member].AllocateSets( maxFrames );
+#   ifdef MPI
+    DataSetEnsemble[member].SetEnsembleNum( worldrank );
+#   else
+    DataSetEnsemble[member].SetEnsembleNum( member );
+#   endif
     // Initialize actions for this ensemble member based on original actionList_
     if (!actionList_.Empty()) {
       mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
@@ -384,7 +370,7 @@ int CpptrajState::RunEnsemble() {
           bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
           // Do Output
           if (!suppress_output) 
-            TrajoutEnsemble[pos].Write(actionSet, CurrentParm, CurrentFrame);
+            TrajoutEnsemble[pos].WriteTrajout(actionSet, CurrentParm, CurrentFrame);
 #       ifndef MPI
         } // END loop over ensemble
 #       endif
@@ -409,7 +395,7 @@ int CpptrajState::RunEnsemble() {
 
   // Close output trajectories
   for (int member = 0; member < ensembleSize; ++member)
-    TrajoutEnsemble[member].Close();
+    TrajoutEnsemble[member].CloseTrajout();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
@@ -544,7 +530,7 @@ int CpptrajState::RunNormal() {
 #       ifdef TIMER
         trajout_time.Start();
 #       endif
-        trajoutList_.Write(actionSet, CurrentParm, CurrentFrame);
+        trajoutList_.WriteTrajout(actionSet, CurrentParm, CurrentFrame);
 #       ifdef TIMER
         trajout_time.Stop();
 #       endif
@@ -581,7 +567,7 @@ int CpptrajState::RunNormal() {
           trajout_time.Total(), (trajout_time.Total() / frames_time.Total() )*100.0 );
 # endif
   // Close output trajectories.
-  trajoutList_.Close();
+  trajoutList_.CloseTrajout();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nACTION OUTPUT:\n");
@@ -590,15 +576,6 @@ int CpptrajState::RunNormal() {
   // Sync DataSets across all threads. 
   //DSL_.SynchronizeData(); // NOTE: Disabled, trajs are not currently divided.
 # endif
-  // ========== A N A L Y S I S  P H A S E ==========
-  if (!analysisList_.Empty())
-    RunAnalyses();
-  DSL_.List();
-
-  // ========== D A T A  W R I T E  P H A S E ==========
-  // Print Datafile information
-  DFL_.List();
-  MasterDataFileWrite();
 
   return 0;
 }
@@ -612,7 +589,7 @@ void CpptrajState::MasterDataFileWrite() {
 
 // CpptrajState::RunAnalyses()
 int CpptrajState::RunAnalyses() {
-  ++nrun_;
+  if (analysisList_.Empty()) return 0;
 # ifdef TIMER
   Timer analysis_time;
   analysis_time.Start();

@@ -5,8 +5,8 @@
 Action_Translate::Action_Translate() { }
 
 void Action_Translate::Help() {
-  mprintf("\t[<mask>] [x <dx>] [y <dy>] [z <dz>]\n");
-  mprintf("\tTranslate atoms in <mask>\n");
+  mprintf("\t[<mask>] [x <dx>] [y <dy>] [z <dz>]\n"
+          "  Translate atoms in <mask>\n");
 }
 
 Action::RetType Action_Translate::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,

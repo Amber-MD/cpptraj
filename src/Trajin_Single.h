@@ -12,7 +12,7 @@ class Trajin_Single : public Trajin {
     int SetupTrajRead(std::string const&, ArgList&, Topology*);
     int BeginTraj(bool);
     void EndTraj();
-    int GetNextFrame(Frame&);
+    int ReadTrajFrame(int, Frame&);
     void PrintInfo(int) const;
     bool HasVelocity() const;
     int NreplicaDimension() const;

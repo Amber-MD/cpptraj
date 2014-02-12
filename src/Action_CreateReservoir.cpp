@@ -15,9 +15,14 @@ Action_CreateReservoir::Action_CreateReservoir() :
 {}
 
 void Action_CreateReservoir::Help() {
-  mprintf("\t<filename> ene <energy data set> [bin <cluster bin data set>]\n");
-  mprintf("\ttemp0 <temp0> iseed <iseed> [velocity]\n");
-  mprintf("\t[parm <parmfile> | parmindex <#>] [title <title>]\n");
+  mprintf("\t<filename> ene <energy data set> [bin <cluster bin data set>]\n"
+          "\ttemp0 <temp0> iseed <iseed> [velocity]\n"
+          "\t[parm <parmfile> | parmindex <#>] [title <title>]\n"
+          "  Create structure reservoir for use with reservoir REMD simulations using\n"
+          "  energies in <energy data set>, temperature <temp0> and random seed <iseed>\n"
+          "  Include velocities if [velocity] is specified. If <cluster bin data set> is\n"
+          "  specified from e.g. a previous 'clusterdihedral' command, the reservoir can\n"
+          "  be used for non-Boltzmann reservoir REMD (rremd==3).\n");
 }
 
 // Action_CreateReservoir::Init()

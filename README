@@ -1,6 +1,6 @@
   _______________________________________________________________________
 
-                  CPPTRAJ: 2013 - README FILE
+                  CPPTRAJ: 2014 - README FILE
   _______________________________________________________________________
 
 About CPPTRAJ
@@ -17,7 +17,7 @@ trajectories with different topology files in the same run.
 
 Disclaimer and Copyright
 ----------------------------------------
-  CPPTRAJ is Copyright (c) 2010-2013 Daniel R. Roe. 
+  CPPTRAJ is Copyright (c) 2010-2014 Daniel R. Roe. 
   The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
@@ -51,9 +51,13 @@ Contributors:
       Department of Chemistry, Cambridge, UK).
     Action_GridFreeEnergy
 
-  -  Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department,
-                         Warrington, WA4 4AD, UK)
+  - Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department,
+                        Warrington, WA4 4AD, UK)
     Action_Density, Action_OrderParameter, Action_PairDist
+
+  - Crystal N. Nguyen (University of California, San Diego).
+  - Romelia F. Salomon ()
+    Action_Gist
 
   The following people wrote code in PTRAJ which was eventually adapted for
 use in CPPTRAJ:

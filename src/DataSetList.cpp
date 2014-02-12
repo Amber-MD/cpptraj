@@ -13,12 +13,13 @@
 #include "DataSet_string.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_MatrixFlt.h"
-#include "DataSet_Coords.h"
+#include "DataSet_Coords_CRD.h"
 #include "DataSet_Vector.h"
 #include "DataSet_Modes.h"
 #include "DataSet_GridFlt.h"
 #include "DataSet_RemLog.h"
 #include "DataSet_Mesh.h"
+#include "DataSet_Coords_TRJ.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
@@ -30,18 +31,20 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "string",        DataSet_string::Alloc     }, // STRING
   { "double matrix", DataSet_MatrixDbl::Alloc  }, // MATRIX_DBL
   { "float matrix",  DataSet_MatrixFlt::Alloc  }, // MATRIX_FLT
-  { "coordinates",   DataSet_Coords::Alloc     }, // COORDS
+  { "coordinates",   DataSet_Coords_CRD::Alloc }, // COORDS
   { "vector",        DataSet_Vector::Alloc     }, // VECTOR
   { "eigenmodes",    DataSet_Modes::Alloc      }, // MODES
   { "float grid",    DataSet_GridFlt::Alloc    }, // GRID_FLT
   { "remlog",        DataSet_RemLog::Alloc     }, // REMLOG
   { "X-Y mesh",      DataSet_Mesh::Alloc       }, // XYMESH
+  { "trajectories",  DataSet_Coords_TRJ::Alloc }, // TRAJ
   { 0, 0 }
 };
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
   debug_(0),
+  ensembleNum_(-1),
   hasCopies_(false) 
 {}
 
@@ -198,7 +201,7 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
   std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
   //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str());
   // If index arg is empty make wildcard (-1)
-  if (idx_arg.empty())
+  if (idx_arg.empty() || idx_arg == "*")
     idxrange.SetRange( -1, 0 ); 
   else
     idxrange.SetRange( idx_arg );
@@ -387,15 +390,17 @@ void DataSetList::List() const {
   else
     mprintf("  %zu data sets:\n", DataList_.size());
   for (unsigned int ds=0; ds<DataList_.size(); ds++) {
-    mprintf("\t%s", DataList_[ds]->Name().c_str());
-    if (!DataList_[ds]->Aspect().empty())
-      mprintf("[%s]", DataList_[ds]->Aspect().c_str());
-    if (DataList_[ds]->Idx() != -1)
-      mprintf(":%i", DataList_[ds]->Idx());
-    mprintf(" \"%s\"", DataList_[ds]->Legend().c_str());
-    mprintf(" (%s)", DataArray[DataList_[ds]->Type()].Description);
-    mprintf(", size is %i", DataList_[ds]->Size());
-    DataList_[ds]->Info();
+    DataSet const& dset = static_cast<DataSet const&>(*DataList_[ds]);
+    mprintf("\t%s", dset.Name().c_str());
+    if (!dset.Aspect().empty())
+      mprintf("[%s]", dset.Aspect().c_str());
+    if (dset.Idx() != -1)
+      mprintf(":%i", dset.Idx());
+    mprintf(" \"%s\"", dset.Legend().c_str());
+    mprintf(" (%s", DataArray[dset.Type()].Description);
+    dset.ScalarDescription();
+    mprintf("), size is %i", dset.Size());
+    dset.Info();
     mprintf("\n");
   }
 }
@@ -443,6 +448,9 @@ DataSet* DataSetList::FindCoordsSet(std::string const& setname) {
   } else {
     // crdset specified
     outset = FindSetOfType(setname, DataSet::COORDS);
+    // If COORDS not found look for TRAJ
+    if (outset == 0)
+      outset = FindSetOfType(setname, DataSet::TRAJ);
   }
   return outset;
 }

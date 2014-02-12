@@ -73,9 +73,8 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
 #ifdef TRAJDEBUG
   mprinterr("Reading frame %10i from %s\n",set,Filename().base());
 #endif
-  // If trajectory is not broken, seek to given frame.
-  if (IsSeekable())
-    file_.SeekToFrame( set ); 
+  // Seek to given frame.
+  file_.SeekToFrame( set ); 
 
   // Read frame into the char buffer
   if (file_.ReadFrame()) return 1;
@@ -96,7 +95,7 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
 }
 
 int Traj_AmberCoord::readVelocity(int set, Frame& frameIn) {
-  if (IsSeekable()) file_.SeekToFrame( set );
+  file_.SeekToFrame( set );
   // Read frame into the char buffer
   if (file_.ReadFrame()) return 1;
   file_.BufferBeginAt(hasREMD_);
@@ -238,11 +237,10 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
         Frames = (int) (file_size / frame_size);
         seekable = true;
       } else {
-        mprintf("Warning: %s: Number of frames in compressed traj could not be determined.\n",
-                file_.Filename().base());
-        mprintf("         Frames will be read until EOF.\n");
+        mprintf("Warning: %s: Number of frames in compressed traj could not be determined.\n"
+                "Warning:  Frames will be read until EOF.\n", file_.Filename().base());
         Frames = TRAJIN_UNK;
-        seekable=false;
+        seekable = false;
       }
     }
   } else {     
@@ -251,11 +249,11 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
     if ( (file_size % frame_size) == 0 ) {
       seekable = true;
     } else {
-      mprintf("Warning: %s: Could not accurately predict # frames. This usually \n",
-              file_.Filename().base());
-      mprintf("         indicates a corrupted trajectory. Will attempt to read %i frames.\n",
-              Frames);
-      seekable=false;
+      mprintf("Warning: %s: Could not accurately predict # frames. This usually\n"
+              "Warning:  indicates a corrupted trajectory or trajectory/topology\n"
+              "Warning:  mismatch. Will attempt to read %i frames.\n",
+              file_.Filename().base(), Frames);
+      seekable = false;
     }
   }
 
@@ -268,7 +266,6 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
   SetBox( boxInfo );
   SetTemperature( hasREMD_ != 0 );
   SetTitle( title );
-  SetSeekable( seekable );
   return Frames;
 }
 

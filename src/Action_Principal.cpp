@@ -10,9 +10,9 @@ Action_Principal::Action_Principal() :
 { }
 
 void Action_Principal::Help() {
-  mprintf("\t[<mask>] [dorotation] [mass] [out <filename>]\n");
-  mprintf("\tCalculate principal axes of atoms in <mask>. Align the system along\n");
-  mprintf("\tprincipal axes if 'dorotation' specified.\n");
+  mprintf("\t[<mask>] [dorotation] [mass] [out <filename>]\n"
+          "  Calculate principal axes of atoms in <mask>. Align the system along\n"
+          "  principal axes if 'dorotation' specified.\n");
 }
 
 // Action_Principal::init()
@@ -34,7 +34,7 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, TopologyList* PFL, F
   mprintf("    PRINCIPAL:");
   if (!filename.empty()) {
     mprintf(" output eigenvectors/eigenvalues to %s,", filename.c_str());
-    if (outfile_.OpenWrite(filename)) return Action::ERR;
+    if (outfile_.OpenEnsembleWrite(filename, DSL->EnsembleNum())) return Action::ERR;
   }
   if (doRotation_)
     mprintf(" with rotation by");

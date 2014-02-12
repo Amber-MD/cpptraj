@@ -15,8 +15,14 @@ Action_Diffusion::Action_Diffusion() :
 }
 
 void Action_Diffusion::Help() {
-  mprintf("\t<mask> <time per frame> [average] [<outfile prefix>]\n");
-  mprintf("\tCompute a mean square displacement plot for the atoms in the mask.\n");
+  mprintf("\t<mask> <time per frame> [average] [<prefix>]\n"
+          "  Compute a mean square displacement plot for the atoms in the mask.\n"
+          "  The following files are produced:\n"
+          "    <prefix>_x.xmgr: Mean square displacement(s) in the X direction (in Å^2).\n"
+          "    <prefix>_y.xmgr: Mean square displacement(s) in the Y direction (in Å^2).\n"
+          "    <prefix>_z.xmgr: Mean square displacement(s) in the Z direction (in Å^2).\n"
+          "    <prefix>_r.xmgr: Overall mean square displacement(s) (in Å^2).\n"
+          "    <prefix>_a.xmgr: Total distance travelled (in Å).\n");
 }
 
 Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
@@ -37,26 +43,33 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, F
   
   // Open output files
   std::string fname = outputNameRoot + "_x.xmgr";
-  if (outputx_.OpenWrite( fname )) return Action::ERR;
+  if (outputx_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
   fname = outputNameRoot + "_y.xmgr";
-  if (outputy_.OpenWrite( fname )) return Action::ERR;
+  if (outputy_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
   fname = outputNameRoot + "_z.xmgr";
-  if (outputz_.OpenWrite( fname )) return Action::ERR;
+  if (outputz_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
   fname = outputNameRoot + "_r.xmgr";
-  if (outputr_.OpenWrite( fname )) return Action::ERR;
+  if (outputr_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
   fname = outputNameRoot + "_a.xmgr";
-  if (outputa_.OpenWrite( fname )) return Action::ERR;
+  if (outputa_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
 
   mprintf("    DIFFUSION:\n");
-  if (printIndividual_)
-    mprintf("\tThe average and individual results will ");
-  else
-    mprintf("\tOnly the average results will ");
-  mprintf("be printed to %s_?.xmgr\n", outputNameRoot.c_str());
-  mprintf("\tThe time between frames in psec is %5.3f.\n", time_);
-  mprintf("\tTo calculate diffusion constants, calculate the slope of the lines(s)\n");
-  mprintf("\tand multiply by 10.0/6.0; this will give units of 1x10**-5 cm**2/s\n");
   mprintf("\tAtom Mask is [%s]\n", mask_.MaskString());
+  if (printIndividual_)
+    mprintf("\tThe average and individual results will be printed to:\n");
+  else
+    mprintf("\tOnly the average results will be printed to:\n");
+  const char* onr = outputNameRoot.c_str();
+  mprintf("\t  %s_x.xmgr: Mean square displacement(s) in the X direction (in Å^2).\n"
+          "\t  %s_y.xmgr: Mean square displacement(s) in the Y direction (in Å^2).\n"
+          "\t  %s_z.xmgr: Mean square displacement(s) in the Z direction (in Å^2).\n"
+          "\t  %s_r.xmgr: Overall mean square displacement(s) (in Å^2).\n"
+          "\t  %s_a.xmgr: Total distance travelled (in Å).\n",
+          onr, onr, onr, onr, onr);
+  mprintf("\tThe time between frames in ps is %.3f.\n", time_);
+  mprintf("\tTo calculate diffusion constants from a mean squared displacement plot\n"
+          "\t(i.e. {_x|_y|_z|_r}.xmgr), calculate the slope of the line and multiply\n"
+          "\tby 10.0/6.0; this will give units of 1x10^-5 cm^2/s\n");
 
   return Action::OK;
 }

@@ -36,7 +36,8 @@ Frame::Frame(int natomIn) :
   X_(0),
   V_(0),
   remd_indices_(0),
-  Ndimensions_(0)
+  Ndimensions_(0),
+  Mass_(natomIn, 1.0)
 {
   if (ncoord_ > 0)
     X_ = new double[ ncoord_ ];
@@ -74,37 +75,29 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   Ndimensions_(0)
 {
   if (ncoord_ > 0) {
+    Mass_.reserve(natom_);
     X_ = new double[ ncoord_ ];
     double* newX = X_;
-    if ( !frameIn.Mass_.empty() ) {
-      if ( frameIn.V_ != 0 ) {
-        // Copy coords/mass/velo
-        V_ = new double[ ncoord_ ];
-        double* newV = V_;
-        for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-        {
-          int oldcrd = ((*atom) * 3);
-          memcpy(newX, frameIn.X_ + oldcrd, COORDSIZE_);
-          newX += 3;
-          memcpy(newV, frameIn.V_ + oldcrd, COORDSIZE_);
-          newV += 3;
-          Mass_.push_back( frameIn.Mass_[*atom] );
-        }
-      } else {
-        // Copy coords/mass
-        for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-        {
-          memcpy(newX, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
-          newX += 3;
-          Mass_.push_back( frameIn.Mass_[*atom] );
-        }
+    if ( frameIn.V_ != 0 ) {
+      // Copy coords/mass/velo
+      V_ = new double[ ncoord_ ];
+      double* newV = V_;
+      for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+      {
+        int oldcrd = ((*atom) * 3);
+        memcpy(newX, frameIn.X_ + oldcrd, COORDSIZE_);
+        newX += 3;
+        memcpy(newV, frameIn.V_ + oldcrd, COORDSIZE_);
+        newV += 3;
+        Mass_.push_back( frameIn.Mass_[*atom] );
       }
     } else {
-      // Copy coords only
+      // Copy coords/mass
       for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
       {
         memcpy(newX, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
         newX += 3;
+        Mass_.push_back( frameIn.Mass_[*atom] );
       }
     }
   }
@@ -166,52 +159,70 @@ Frame &Frame::operator=(Frame rhs) {
   return *this;
 }
 
-// ---------- CONVERT TO/FROM ARRAYS -------------------------------------------
+// ---------- CONVERT TO/FROM CRDtype ------------------------------------------
 // Frame::SetFromCRD()
-void Frame::SetFromCRD(CRDtype const& farray, int numBoxCrd) {
-  int f_ncoord = (int)(farray.size()) - numBoxCrd;
+void Frame::SetFromCRD(CRDtype const& farray, int numCrd, int numBoxCrd, bool hasVel) {
+  int f_ncoord = numCrd;
   if (f_ncoord > maxnatom_*3) {
-    mprinterr("Error: Float array size (%zu) > max #coords in frame (%i)\n",
-              farray.size(), maxnatom_*3);
+    mprinterr("Error: Float array size (%i) > max #coords in frame (%i)\n",
+              f_ncoord, maxnatom_*3);
     return;
   }
   ncoord_ = f_ncoord;
   natom_ = ncoord_ / 3;
-  for (int ix = 0; ix < f_ncoord; ++ix)
+  for (int ix = 0; ix < ncoord_; ++ix)
     X_[ix] = (double)farray[ix];
+  if (hasVel && V_ != 0) {
+    for (int iv = 0; iv < ncoord_; ++iv)
+      V_[iv] = (double)farray[f_ncoord++];
+  }
   for (int ib = 0; ib < numBoxCrd; ++ib)
     box_[ib] = (double)farray[f_ncoord++];
-  return;
 }
 
 // Frame::SetFromCRD()
-void Frame::SetFromCRD(CRDtype const& farray, int numBoxCrd, AtomMask const& mask) {
+void Frame::SetFromCRD(CRDtype const& crdIn, AtomMask const& mask, int numCrd,
+                       int numBoxCrd, bool hasVel)
+{
   if (mask.Nselected() > maxnatom_) {
-    mprinterr("Error: Selected # atoms in float array (%i) > max #atoms in frame (%i)\n",
+    mprinterr("Internal Error: Selected # atoms in float array (%i) > max #atoms in frame (%i)\n",
               mask.Nselected(), maxnatom_);
     return;
   }
   natom_ = mask.Nselected();
   ncoord_ = natom_ * 3;
-  int ix = 0;
+  unsigned int ix = 0;
+  unsigned int iv = 0;
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
-    int ia = *atom * 3;
-    X_[ix++] = (double)farray[ia++];
-    X_[ix++] = (double)farray[ia++];
-    X_[ix++] = (double)farray[ia++];
+    unsigned int xoffset = ((unsigned int)(*atom)) * 3;
+    X_[ix++] = (double)crdIn[xoffset  ];
+    X_[ix++] = (double)crdIn[xoffset+1];
+    X_[ix++] = (double)crdIn[xoffset+2];
+    if (hasVel) {
+      unsigned int voffset = numCrd + xoffset;
+      V_[iv++] = (double)crdIn[voffset  ]; 
+      V_[iv++] = (double)crdIn[voffset+1]; 
+      V_[iv++] = (double)crdIn[voffset+2]; 
+    }
   }
-  int f_ncoord = farray.size() - numBoxCrd;
+  int f_ncoord = (int)crdIn.size() - numBoxCrd;
   for (int ib = 0; ib < numBoxCrd; ++ib)
-    box_[ib] = (double)farray[f_ncoord++];
-  return;
+    box_[ib] = (double)crdIn[f_ncoord++];
 }
 
 // Frame::ConvertToCRD()
-Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd) const {
+Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd, bool hasVel) const {
+  int nvel;
+  if (hasVel)
+    nvel = ncoord_;
+  else
+    nvel = 0;
   CRDtype farray;
-  farray.reserve( ncoord_ + numBoxCrd );
+  farray.reserve( ncoord_ + nvel + numBoxCrd );
   for (int ix = 0; ix < ncoord_; ++ix)
-    farray.push_back( (float)X_[ix] );
+    farray.push_back( (float)X_[ix]   );
+  for (int iv = 0; iv < nvel; ++iv )
+    farray.push_back( (float)V_[iv]   );
   for (int ib = 0; ib < numBoxCrd; ++ib)
     farray.push_back( (float)box_[ib] );
   return farray;
@@ -232,14 +243,13 @@ void Frame::Info(const char *msg) const {
   else
     mprintf("\tFrame:");
   mprintf("%i atoms, %i coords",natom_, ncoord_);
-  if (V_!=0) mprintf(" with Velocities");
-  if (!Mass_.empty()) mprintf(" with Masses");
-  if (remd_indices_!=0) mprintf(" with replica indices");
+  if (V_!=0) mprintf(", with Velocities");
+  if (remd_indices_!=0) mprintf(", with replica indices");
   mprintf("\n");
 }
 
-// Frame::ReallocateX()
-void Frame::ReallocateX() {
+// Frame::IncreaseX()
+void Frame::IncreaseX() {
   maxnatom_ += 500;
   double *newX = new double[ maxnatom_ * 3 ];
   if (X_!=0) {
@@ -260,7 +270,7 @@ void Frame::ClearAtoms() {
 void Frame::AddXYZ(const double *XYZin) {
   if (XYZin == 0) return;
   if (natom_ >= maxnatom_) 
-    ReallocateX(); 
+    IncreaseX(); 
   memcpy(X_ + ncoord_, XYZin, COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
@@ -269,87 +279,59 @@ void Frame::AddXYZ(const double *XYZin) {
 // Frame::AddVec3()
 void Frame::AddVec3(Vec3 const& vIn) {
   if (natom_ >= maxnatom_) 
-    ReallocateX();
+    IncreaseX();
   memcpy(X_ + ncoord_, vIn.Dptr(), COORDSIZE_);
   ++natom_;
   ncoord_ += 3;
 }
 
 // ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
-// Frame::SetupFrame()
-int Frame::SetupFrame(int natomIn) {
+/** \return True if reallocation of coordinate arrray must occur based on 
+  *         given number of atoms.
+  */
+bool Frame::ReallocateX(int natomIn) {
   natom_ = natomIn;
   ncoord_ = natom_ * 3;
   if (natom_ > maxnatom_) {
-    // Reallocate
     if (X_ != 0) delete[] X_;
     X_ = new double[ ncoord_ ];
     maxnatom_ = natom_;
+    return true;
   }
+  return false;
+}
+
+// Frame::SetupFrame()
+int Frame::SetupFrame(int natomIn) {
+  ReallocateX( natomIn );
   if (V_ != 0) delete[] V_;
-  Mass_.clear();
+  Mass_.assign(natomIn, 1.0);
   return 0;
 }
 
 // Frame::SetupFrameM()
 int Frame::SetupFrameM(std::vector<Atom> const& atoms) {
-  bool reallocate = false;
-  natom_ = (int)atoms.size();
-  ncoord_ = natom_ * 3;
-  // First check if reallocation must occur. If so reallocate coords. Masses
-  // will be reallocated as well, or allocated if not already.
-  if (natom_ > maxnatom_) {
-    reallocate = true;
-    if (X_ != 0) delete[] X_;
-    X_ = new double[ ncoord_ ];
-    maxnatom_ = natom_;
-  }
-  if (reallocate || Mass_.empty())
-    Mass_.resize(maxnatom_);
-  // Copy masses
-  Darray::iterator mass = Mass_.begin();
-  for (std::vector<Atom>::const_iterator atom = atoms.begin();
-                                         atom != atoms.end(); ++atom)
-    *(mass++) = (*atom).Mass();
-  if (V_ != 0) delete[] V_;
-  return 0;
+  return SetupFrameV( atoms, false, 0 );
 }
 
 // Frame::SetupFrameXM()
 int Frame::SetupFrameXM(Darray const& Xin, Darray const& massIn) {
-  ncoord_ = (int)Xin.size();
-  natom_ = ncoord_ / 3;
-  // Check if reallocation must occur.
-  if (natom_ > maxnatom_) {
-    if (X_ != 0) delete[] X_;
-    X_ = new double[ ncoord_ ];
-    maxnatom_ = natom_;
-  } 
+  ReallocateX( Xin.size() / 3 );
   // Copy coords
   std::copy( Xin.begin(), Xin.end(), X_ );
   // Copy masses, or set all to 1.0 if input masses are empty.
   if (!massIn.empty())
     Mass_ = massIn;
-  else {
-    Mass_.clear();
-    Mass_.resize( natom_, 1.0 );
-  }
+  else 
+    Mass_.assign( natom_, 1.0 );
   if (V_ != 0) delete[] V_;
   return 0;
 }
 
-
 // Frame::SetupFrameV()
 int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity, int nDim) {
-  bool reallocate = false;
-  natom_ = (int)atoms.size();
-  ncoord_ = natom_ * 3;
-  if (natom_ > maxnatom_) {
-    reallocate = true;
-    if (X_ != 0) delete[] X_;
-    X_ = new double[ ncoord_ ];
-    maxnatom_ = natom_;
-  }
+  bool reallocate = ReallocateX( atoms.size() );
+  // Velocity
   if (hasVelocity) {
     if (reallocate || V_ == 0) {
       if (V_ != 0) delete[] V_;
@@ -361,9 +343,9 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity, int nDi
     if (V_ != 0) delete[] V_;
     V_ = 0;
   }
+  // Mass 
   if (reallocate || Mass_.empty())
     Mass_.resize(maxnatom_);
-  // Copy masses
   Darray::iterator mass = Mass_.begin();
   for (std::vector<Atom>::const_iterator atom = atoms.begin();
                                          atom != atoms.end(); ++atom)
@@ -375,7 +357,8 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity, int nDi
     if (Ndimensions_ > 0) {
       remd_indices_ = new int[ Ndimensions_ ];
       std::fill( remd_indices_, remd_indices_ + Ndimensions_, 0 );
-    }
+    } else
+      remd_indices_ = 0;
   }
   return 0;
 }
@@ -387,15 +370,7 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity, int nDi
   * memory if Nselected > maxnatom.
   */
 int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& atoms) {
-  bool reallocate = false;
-  natom_ = maskIn.Nselected();
-  ncoord_ = natom_ * 3;
-  if (natom_ > maxnatom_) {
-    reallocate = true;
-    if (X_ != 0) delete[] X_;
-    X_ = new double[ ncoord_ ];
-    maxnatom_ = natom_;
-  }
+  bool reallocate = ReallocateX( maskIn.Nselected() );
   if (reallocate || Mass_.empty())
     Mass_.resize(maxnatom_);
   // Copy masses according to maskIn
@@ -705,7 +680,7 @@ void Frame::Scale(AtomMask const& maskIn, double sx, double sy, double sz) {
 /** Center coordinates in Mask to to origin or box center. Use center of
   * mass if useMassIn is true, otherwise use geometric center.
   */
-void Frame::Center(AtomMask const& Mask, bool origin, bool useMassIn) 
+void Frame::Center(AtomMask const& Mask, CenterMode mode, Vec3 const& vec, bool useMassIn) 
 {
   Vec3 center;
   if (useMassIn)
@@ -713,10 +688,14 @@ void Frame::Center(AtomMask const& Mask, bool origin, bool useMassIn)
   else
     center = VGeometricCenter(Mask);
   //mprinterr("  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
-  if (origin) // Shift to coordinate origin (0,0,0)
-    center.Neg();
-  else        // Shift to box center
-    center = box_.Center() - center;
+  switch (mode) {
+    case ORIGIN: // Shift to coordinate origin (0,0,0)
+      center.Neg(); break;
+    case BOXCTR: // Shift to box center
+      center = box_.Center() - center; break;
+    case POINT:  // Shift to reference point
+      center = vec - center; break;
+  }
   Translate(center);
 }
 

@@ -21,6 +21,7 @@ class Analysis_Clustering: public Analysis {
     ClusterList* CList_;        ///< Hold specified clustering algorithm.
     std::string maskexpr_;      ///< If RMSD, Atoms to cluster on
     int sieve_;                 ///< If > 1, frames to skip on initial clustering pass.
+    int sieveSeed_;             ///< Used to seed random number gen for sieve
     std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
     DataFile* cpopvtimefile_;   ///< Cluster pop v time file.
@@ -32,7 +33,7 @@ class Analysis_Clustering: public Analysis {
     std::string clusterinfo_;   ///< Name for Ptraj-like cluster output file.
     std::string pairdistfile_;  ///< Name of pairwise-distances file.
     bool nofitrms_;             ///< If true do not best-fit when calc RMSD.
-    bool usedme_;
+    ClusterList::DistMetricType metric_;
     bool useMass_;
     bool grace_color_;          ///< If true print grace colors instead of cluster number
     enum normPopType { NONE=0, CLUSTERPOP, FRAME };

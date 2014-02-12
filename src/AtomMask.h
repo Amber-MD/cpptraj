@@ -62,10 +62,14 @@ class AtomMask {
     bool IsCharMask()                   const { return (!CharMask_.empty()); }
     /// Reset atom mask
     void ResetMask();
+    /// Clear any selected atoms in mask.
+    void ClearSelected();
     /// Switch char used to denote selected atoms (T->F, F->T)
     void InvertMask();
     /// \return the number of atoms mask has in common with another mask
     int NumAtomsInCommon(AtomMask const&);
+    /// Add atom to Selected array; assumes atoms will be in order.
+    void AddSelectedAtom(int i) { Selected_.push_back( i ); nselected_=(int)Selected_.size(); }
     /// Add given atom to Selected array 
     void AddAtom(int);
     /// Add a list of atoms to mask
@@ -88,6 +92,8 @@ class AtomMask {
     bool AtomInCharMask(int) const;
     /// \return true if any atoms within given range are T in CharMask.
     bool AtomsInCharMask(int,int) const;
+    /// Set number of atoms, needed for integer to char mask conversion.
+    void SetNatom( int a) { Natom_ = a; }
     /// Convert from integer mask to char mask.
     int ConvertToCharMask();
     /// Convert from char mask to integer mask.

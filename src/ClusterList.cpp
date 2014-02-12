@@ -10,6 +10,14 @@ const char* ClusterList::XMGRACE_COLOR[] = {
   "cyan", "magenta", "orange", "indigo", "maroon", "turquoise", "darkgreen"
 };
 
+static const char* MetricStringArray[] = {
+  "RMSD", "DME", "Symmetry-corrected RMSD", "Data Set(s)"
+};
+
+const char* ClusterList::MetricString(DistMetricType dm) {
+  return MetricStringArray[dm];
+}
+
 // CONSTRUCTOR
 ClusterList::ClusterList() : debug_(0), Cdist_(0) {}
 
@@ -301,7 +309,18 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++)
     outfile.Printf(" %i",(*C).CentroidFrame()+1);
   outfile.Printf("\n");
-  
+  // Print sieve info if present
+  if (FrameDistances_.SieveValue() != 1) {
+    if (FrameDistances_.SieveValue() < -1) {
+      outfile.Printf("#Sieve value: %i\n#Sieved frames:", -FrameDistances_.SieveValue());
+      ClusterSieve::SievedFrames sFrames = FrameDistances_.Sieved();
+      for (ClusterSieve::SievedFrames::const_iterator sfrm = sFrames.begin();
+                                                      sfrm != sFrames.end(); ++sfrm)
+        outfile.Printf(" %i", *sfrm + 1);
+      outfile.Printf("\n");
+    } else
+      outfile.Printf("#Sieve value: %i\n", FrameDistances_.SieveValue());
+  } 
   outfile.CloseFile();
 }
 
@@ -332,9 +351,9 @@ int ClusterList::AddCluster( ClusterDist::Cframes const& framelistIn ) {
 // ClusterList::CalcFrameDistances()
 int ClusterList::CalcFrameDistances(std::string const& filename, 
                                     ClusterDist::DsArray const& dataSets,
-                                    DistModeType mode, bool useDME, bool nofit, 
+                                    DistModeType mode, DistMetricType metric, bool nofit, 
                                     bool useMass, std::string const& maskexpr,
-                                    int sieve) 
+                                    int sieve, int sieveSeed) 
 {
   if (dataSets.empty()) {
     mprinterr("Internal Error: CalcFrameDistances: No DataSets given.\n");
@@ -344,24 +363,31 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   // TODO: Check all DataSet sizes?
   DataSet* dsIn = dataSets[0];
   // Set up internal cluster disance calculation
-  if (dsIn->Type() == DataSet::COORDS) {
+  if (metric != DATA) {
+    if (dsIn->Type() != DataSet::COORDS) {
+      mprinterr("Internal Error: Metric is COORDS base but data set is not.\n");
+      return 1;
+    }
     // Test that the mask expression is valid
     AtomMask testMask( maskexpr );
     Topology const& dsTop = ((DataSet_Coords*)dsIn)->Top();
     if ( dsTop.SetupIntegerMask( testMask ) ) {
-      mprinterr("Error: Could not set up mask [%s] for topology %s\n",
+      mprinterr("Error: Could not set up mask '%s' for topology %s\n",
                  maskexpr.c_str(), dsTop.c_str());
       return 1;
     }
+    testMask.MaskInfo();
     if (testMask.None()) {
-      mprinterr("Error: No atoms elected for mask [%s]\n", testMask.MaskString());
+      mprinterr("Error: No atoms elected for mask '%s'\n", testMask.MaskString());
       return 1;
     }
-    if (useDME)
-      Cdist_ = new ClusterDist_DME(dsIn, testMask);
-    else
-      Cdist_ = new ClusterDist_RMS(dsIn, testMask, nofit, useMass);
-  } else {
+    switch (metric) {
+      case DME:   Cdist_ = new ClusterDist_DME(dsIn, testMask); break;
+      case RMS:   Cdist_ = new ClusterDist_RMS(dsIn, testMask, nofit, useMass); break;
+      case SRMSD: Cdist_ = new ClusterDist_SRMSD(dsIn, testMask, nofit, useMass, debug_); break;
+      default: return 1; // Sanity check
+    }
+  } else { // Metric is DATA
     if (dataSets.size() == 1)
       Cdist_ = new ClusterDist_Num(dsIn);
     else // TODO: More than just euclid
@@ -379,8 +405,8 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   // be set up to ignore sieved frames.
   if (mode == USE_FRAMES) {
     mprintf("\tCalculating pair-wise distances.\n");
-    // Set up ClusterMatrix with sieve. TODO: Set iseed with a var instead of 1
-    if (FrameDistances_.SetupWithSieve( dsIn->Size(), sieve, 1 )) {
+    // Set up ClusterMatrix with sieve.
+    if (FrameDistances_.SetupWithSieve( dsIn->Size(), sieve, sieveSeed )) {
       mprinterr("Error: Could not setup matrix for pair-wise distances.\n");
       return 1; 
     }

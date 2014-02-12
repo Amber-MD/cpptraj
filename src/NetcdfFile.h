@@ -24,7 +24,7 @@ class NetcdfFile {
     void NC_close();
 
     int SetupFrame();
-    int SetupCoordsVelo();
+    int SetupCoordsVelo(bool);
     int SetupTime();
     int SetupBox(double*,NCTYPE);
     int SetupTemperature();
@@ -37,7 +37,8 @@ class NetcdfFile {
     inline int Ncatom()  { return ncatom_;  }
     inline int Ncatom3() { return ncatom3_; }
     inline int Ncframe() { return ncframe_; }
-    bool HasVelocities() { return (velocityVID_ != -1); } 
+    bool HasVelocities() { return (velocityVID_ != -1); }
+    bool HasCoords()     { return (coordVID_ != -1);    }
 
     inline void SetNcatom( int natomIn ) { ncatom_ = natomIn; }
   protected: // TODO: Make all private
@@ -76,7 +77,6 @@ class NetcdfFile {
     // from picoseconds to internal units, multiply by 20.455
     // (which is 10.0 * sqrt(4.184)).
     double velocityScale_;
-    double frcScale_;
 
     std::string GetAttrText(int, const char *);
     int GetDimInfo(const char *, int *);

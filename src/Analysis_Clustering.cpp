@@ -18,10 +18,11 @@ Analysis_Clustering::Analysis_Clustering() :
   coords_(0),
   CList_(0),
   sieve_(1),
+  sieveSeed_(-1),
   cnumvtime_(0),
   cpopvtimefile_(0),
   nofitrms_(false),
-  usedme_(false),
+  metric_(ClusterList::RMS),
   useMass_(false),
   grace_color_(false),
   norm_pop_(NONE),
@@ -43,19 +44,20 @@ void Analysis_Clustering::Help() {
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
-  mprintf("  Distance options:\n");
-  mprintf("\t{[[rms] [<mask>] [mass] [nofit]] | [dme [<mask>]] | [data <dset0>[,<dset1>,...]]}\n");
-  mprintf("\t[sieve <#>] [loadpairdist] [savepairdist] [pairdist <file>]\n");
-  mprintf("  Output options:\n");
-  mprintf("\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n");
-  mprintf("\t[summaryhalf <halffile>] [splitframe <frame>]\n");
-  mprintf("\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n");
-  mprintf("  Coordinate output options:\n");
-  mprintf("\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n");
-  mprintf("\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n");
-  mprintf("\t[ repout <repprefix> [repfmt <repfmt>] [repframe] ]\n");
-  mprintf("\tCluster structures based on coordinates (RMSD/DME) or given data set(s).\n");
-  mprintf("\t<crd set> can be created with the 'createcrd' command.\n");
+  mprintf("  Distance metric options: {rms | srmsd | dme | data}\n"
+          "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
+          "\t   [data <dset0>[,<dset1>,...]] }\n"
+          "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <file>]\n"
+          "  Output options:\n"
+          "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
+          "\t[summaryhalf <halffile>] [splitframe <frame>]\n"
+          "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
+          "  Coordinate output options:\n"
+          "\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n"
+          "\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n"
+          "\t[ repout <repprefix> [repfmt <repfmt>] [repframe] ]\n"
+          "  Cluster structures based on coordinates (RMSD/DME) or given data set(s).\n"
+          "  <crd set> can be created with the 'createcrd' command.\n");
 }
 
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
@@ -75,6 +77,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   // Check for DataSet(s) to cluster on, otherwise coords will be used
   cluster_dataset_.clear();
   setname = analyzeArgs.GetStringKey("data");
+  metric_ = ClusterList::RMS;
   if (!setname.empty()) {
     ArgList dsnames(setname, ",");
     DataSetList inputDsets;
@@ -95,13 +98,18 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       }
       cluster_dataset_.push_back( *ds );
     }
+    metric_ = ClusterList::DATA;
   } else {
-    usedme_ = analyzeArgs.hasKey("dme");
-    bool userms = analyzeArgs.hasKey("rms");
-    if (usedme_ && userms) {
-      mprinterr("Error: Specify either 'dme' or 'rms' but not both.\n");
+    int usedme = (int)analyzeArgs.hasKey("dme");
+    int userms = (int)analyzeArgs.hasKey("rms");
+    int usesrms = (int)analyzeArgs.hasKey("srmsd");
+    if (usedme + userms + usesrms > 1) {
+      mprinterr("Error: Specify either 'dme', 'rms', or 'srmsd'.\n");
       return Analysis::ERR;
     }
+    if      (usedme)  metric_ = ClusterList::DME;
+    else if (userms)  metric_ = ClusterList::RMS;
+    else if (usesrms) metric_ = ClusterList::SRMSD;
   }
   // Get clustering algorithm
   if (CList_ != 0) delete CList_;
@@ -118,11 +126,14 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
   // Get keywords
   useMass_ = analyzeArgs.hasKey("mass");
-  sieve_ = analyzeArgs.getKeyInt("sieve",1);
+  sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
+  sieve_ = analyzeArgs.getKeyInt("sieve", 1);
   if (sieve_ < 1) {
     mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
     return Analysis::ERR;
   }
+  if (analyzeArgs.hasKey("random") && sieve_ > 1)
+    sieve_ = -sieve_; // negative # indicates random sieve
   halffile_ = analyzeArgs.GetStringKey("summaryhalf");
   if (!halffile_.empty()) {
     ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
@@ -182,17 +193,18 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   masterDSL_ = datasetlist;
 
   mprintf("    CLUSTER: Using coords dataset %s, clustering using", coords_->Legend().c_str());
-  if ( cluster_dataset_.empty() ) {
+  if ( metric_ != ClusterList::DATA ) {
+    mprintf(" %s", ClusterList::MetricString( metric_ ));
     if (!maskexpr_.empty())
-      mprintf(" RMSD (mask [%s])",maskexpr_.c_str());
+      mprintf(" (mask [%s])",maskexpr_.c_str());
     else
-      mprintf(" RMSD (all atoms)");
+      mprintf(" (all atoms)");
     if (useMass_)
       mprintf(", mass-weighted");
     if (nofitrms_)
       mprintf(", no fitting");
     else
-      mprintf(" best fit");
+      mprintf(" best-fit");
   } else {
     if (cluster_dataset_.size() == 1)
       mprintf(" dataset %s", cluster_dataset_[0]->Legend().c_str());
@@ -203,6 +215,11 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   CList_->ClusteringInfo();
   if (sieve_ > 1)
     mprintf("\tInitial clustering sieve value is %i frames.\n", sieve_);
+  else if (sieve_ < -1) {
+    mprintf("\tInitial clustering will be randomly sieved (with value %i)", -sieve_);
+    if (sieveSeed_ > 0) mprintf(" using random seed %i", sieveSeed_);
+    mprintf(".\n");
+  }
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->DataFilename().base());
   if (cpopvtimefile_ != 0) {
@@ -297,8 +314,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   // If no coordinates were specified, disable coordinate output types
   bool has_coords = true;
   if (coords_->Size() < 1) {
-    mprintf("Warning: Associated coordinate data set is empty.\n");
-    mprintf("Warning: Disabling coordinate output.\n");
+    mprintf("Warning: Associated coordinate data set is empty.\n"
+            "Warning: Disabling coordinate output.\n");
     has_coords = false;
   }
   clock_t cluster_setup_stop = clock();
@@ -308,7 +325,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_pairwise.Start();
 # endif
   if (CList_->CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
-                                  usedme_, nofitrms_, useMass_, maskexpr_, sieve_ ))
+                                  metric_, nofitrms_, useMass_, maskexpr_, 
+                                  sieve_, sieveSeed_ ))
     return Analysis::ERR;
 # ifdef TIMER
   cluster_pairwise.Stop();
@@ -325,8 +343,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_post.Start();
 # endif
   if (CList_->Nclusters() > 0) {
-    CList_->Renumber( (sieve_ > 1) );
-
+    CList_->Renumber( (sieve_ != 1) );
     // DEBUG
     if (debug_ > 0) {
       mprintf("\nFINAL CLUSTERS:\n");

@@ -12,11 +12,11 @@
 Action_Surf::Action_Surf() : surf_(0) {} 
 
 void Action_Surf::Help() {
-  mprintf("\t<name> <mask1> [out filename]\n");
-  mprintf("\tCalculate LCPO surface area of atoms in <mask1>\n");
+  mprintf("\t<name> <mask1> [out filename]\n"
+          "  Calculate LCPO surface area of atoms in <mask1>\n");
 }
 
-// Action_Surf::init()
+// Action_Surf::Init()
 Action::RetType Action_Surf::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -33,11 +33,14 @@ Action::RetType Action_Surf::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (outfile != 0) outfile->AddSet( surf_ );
 
   mprintf("    SURF: Calculating surface area for atoms in mask [%s]\n",Mask1_.MaskString());
+  mprintf("#Citation: Weiser, J.; Shenkin, P. S.; Still, W. C.; \"Approximate atomic\n"
+          "#          surfaces from linear combinations of pairwise overlaps (LCPO).\"\n"
+          "#          J. Comp. Chem. (1999), V.20, pp.217-230.\n");
 
   return Action::OK;
 }
 
-// Action_Surf::setup()
+// Action_Surf::Setup()
 /** Set LCPO surface area calc parameters for this parmtop if not already set. 
   * Get the mask, and check that the atoms in mask belong to solute. 
   */
@@ -47,18 +50,18 @@ Action::RetType Action_Surf::Setup(Topology* currentParm, Topology** parmAddress
 
   if (currentParm->SetupIntegerMask( Mask1_ )) return Action::ERR;
   if (Mask1_.None()) {
-    mprintf("    Error: Surf::setup: Mask contains 0 atoms.\n");
+    mprintf("Warning: Mask '%s' corresponds to 0 atoms.\n", Mask1_.MaskString());
     return Action::ERR;
   }
 
   // Setup surface area calc for this parm
   soluteAtoms = currentParm->SoluteAtoms();
   if (soluteAtoms <= 0) {
-    mprinterr("Error: Surf: No solute atoms in %s.\n",currentParm->c_str());
+    mprinterr("Error: No solute atoms in %s.\n",currentParm->c_str());
     return Action::ERR;
   }
-  mprintf("      SURF: %i solute atoms.\n",soluteAtoms);
-  mprintf("            LCPO surface area will be calculated for %i atoms.\n",Mask1_.Nselected());
+  mprintf("\t%i solute atoms.\n",soluteAtoms);
+  mprintf("\tLCPO surface area will be calculated for %i atoms.\n",Mask1_.Nselected());
 
   // Check that each atom in Mask1 is part of solute
   // Create a separate mask for building the atom neighbor list
@@ -70,6 +73,12 @@ Action::RetType Action_Surf::Setup(Topology* currentParm, Topology** parmAddress
   SurfaceInfo_neighbor_.clear();
   SurfaceInfo_noNeighbor_.clear();
   for (AtomMask::const_iterator atomi = Mask1_.begin(); atomi!=Mask1_.end(); atomi++) {
+    int molNum = (*currentParm)[ *atomi ].MolNum();
+    if (currentParm->Mol( molNum ).IsSolvent()) {
+      mprinterr("Error: Atom %i in mask %s does not belong to solute.\n",
+                *atomi+1, Mask1_.MaskString());
+      return Action::ERR;
+    }
     SetAtomLCPO( *currentParm, *atomi, &SI ); 
     if (SI.vdwradii > 2.5) {
       atomi_neighborMask_.AddAtom(*atomi);
@@ -78,34 +87,34 @@ Action::RetType Action_Surf::Setup(Topology* currentParm, Topology** parmAddress
       atomi_noNeighborMask_.AddAtom(*atomi);
       SurfaceInfo_noNeighbor_.push_back( SI );
     }
-    if (*atomi >= soluteAtoms) {
-      mprintf("Error: Surf::setup(): Atom %i in mask %s does not belong to solute.\n",
-              *atomi+1, Mask1_.MaskString());
-      return Action::ERR;
-    }
   }
-  // From all atoms, create a second mask for building atom neighbor list
-  // that only includes atoms with vdw radius > 2.5
+  // From all solute atoms, create a second mask for building atom 
+  // neighbor list that only includes atoms with vdw radius > 2.5.
   VDW_.clear();
   VDW_.reserve( soluteAtoms );
-  for (int atomj=0; atomj < soluteAtoms; atomj++) {
-    SetAtomLCPO( *currentParm, atomj, &SI );
-    VDW_.push_back( SI.vdwradii );
-    if (SI.vdwradii > 2.5)
-      atomj_neighborMask_.AddAtom(atomj);
+  for (Topology::mol_iterator mol = currentParm->MolStart(); 
+                              mol != currentParm->MolEnd(); ++mol)
+  {
+    if (!mol->IsSolvent()) {
+      for (int atomj=mol->BeginAtom(); atomj != mol->EndAtom(); atomj++) {
+        SetAtomLCPO( *currentParm, atomj, &SI );
+        VDW_.push_back( SI.vdwradii );
+        if (SI.vdwradii > 2.5)
+          atomj_neighborMask_.AddAtom(atomj);
+      }
+    }
   }
- 
   return Action::OK;  
 }
 
-// Action_Surf::action()
+// Action_Surf::DoAction()
 /** Calculate surface area. */
 Action::RetType Action_Surf::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double SA;
   int atomi, idx;
   AtomMask::const_iterator atomj; 
-  std::vector<int> ineighbor;
-  std::vector<double> Distances_i_j;
+  std::vector<int> ineighbor; // TODO: Class var
+  std::vector<double> Distances_i_j; // TODO: Class var
   int max_atomi_neighbormask = atomi_neighborMask_.Nselected();
 
   // Set up neighbor list for each atom in mask and calc its surface 
@@ -156,10 +165,10 @@ Action::RetType Action_Surf::DoAction(int frameNum, Frame* currentFrame, Frame**
 
     // Loop over all neighbors of atomi (j)
     // NOTE: Factor through the 2 in aij and ajk?
-    std::vector<double>::iterator Dij = Distances_i_j.begin();
-    for (std::vector<int>::iterator jt = ineighbor.begin(); 
-                                    jt != ineighbor.end(); 
-                                    jt++) 
+    std::vector<double>::const_iterator Dij = Distances_i_j.begin();
+    for (std::vector<int>::const_iterator jt = ineighbor.begin(); 
+                                          jt != ineighbor.end(); 
+                                          ++jt, ++Dij) 
     {
       //printf("i,j %i %i\n",atomi + 1,(*jt)+1);
       double vdwj = VDW_[*jt];
@@ -171,9 +180,9 @@ Action::RetType Action_Surf::DoAction(int frameNum, Frame* currentFrame, Frame**
 
       // Find which neighbors of atom i (j and k) are themselves neighbors
       double sumajk_2 = 0.0;
-      for (std::vector<int>::iterator kt = ineighbor.begin(); 
-                                      kt != ineighbor.end(); 
-                                      kt++) 
+      for (std::vector<int>::const_iterator kt = ineighbor.begin(); 
+                                            kt != ineighbor.end(); 
+                                            kt++) 
       {
         if ( (*kt) == (*jt) ) continue;
         //printf("i,j,k %i %i %i\n",atomi + 1,(*jt)+1,(*kt)+1);
@@ -197,7 +206,6 @@ Action::RetType Action_Surf::DoAction(int frameNum, Frame* currentFrame, Frame**
 
       // DEBUG
       //printf("%4s%20.8lf %20.8lf %20.8lf\n","AJK ",aij,sumajk,sumaijajk);
-      Dij++;
 
     } // END Loop over neighbors of atom i (jt)
     SA += ( (SurfaceInfo_neighbor_[idx].P1 * Si       ) +

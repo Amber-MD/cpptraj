@@ -4,54 +4,76 @@
 
 // CONSTRUCTOR
 Action_Center::Action_Center() :
-  origin_(false),
+  centerMode_(Frame::BOXCTR),
   useMass_(false)
 { } 
 
 void Action_Center::Help() {
-  mprintf("\t<mask> [origin] [mass]\n\tCenter coordinates in <mask>.\n");
+  mprintf("\t<mask> [origin] [mass]\n"
+          "\t [ %s [<refmask>]]\n  Center coordinates in <mask>.\n", FrameList::RefArgs);
 }
 
-// Action_Center::init()
+// Action_Center::Init()
 Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
-  origin_ = actionArgs.hasKey("origin");
+  if (actionArgs.hasKey("origin"))
+    centerMode_ = Frame::ORIGIN;
+  else
+    centerMode_ = Frame::BOXCTR;
   useMass_ = actionArgs.hasKey("mass");
+  ReferenceFrame refFrm = FL->GetFrameFromArgs( actionArgs );
+  if (refFrm.error()) return Action::ERR;
 
   // Get Masks
   Mask_.SetMaskString( actionArgs.GetMaskNext() );
+  // Get reference mask if reference specified.
+  AtomMask refMask;
+  if (!refFrm.empty()) {
+    std::string rMaskExpr = actionArgs.GetMaskNext();
+    if (rMaskExpr.empty())
+      rMaskExpr = Mask_.MaskExpression();
+    refMask.SetMaskString( rMaskExpr );
+    if (refFrm.Parm()->SetupIntegerMask( refMask, *refFrm.Coord() ))
+      return Action::ERR;
+    // Get center of mask in reference
+    if (useMass_)
+      refCenter_ = refFrm.Coord()->VCenterOfMass( refMask );
+    else
+      refCenter_ = refFrm.Coord()->VGeometricCenter( refMask );
+    centerMode_ = Frame::POINT; 
+  }
 
-  mprintf("    CENTER: To");
-  if (origin_)
-    mprintf(" origin");
-  else
-    mprintf(" box center");
-  mprintf(" via center of");
+  mprintf("    CENTER: Centering coordinates using");
   if (useMass_)
-    mprintf(" mass");
+    mprintf(" center of mass");
   else
-    mprintf(" geometry");
-  mprintf(" using atoms in mask %s\n",Mask_.MaskString());
+    mprintf(" geometric center");
+  mprintf(" of atoms in mask (%s) to\n", Mask_.MaskString());
+  if (centerMode_ == Frame::POINT)
+    mprintf("\tcenter of mask (%s) in reference '%s'.\n", refMask.MaskString(),
+            refFrm.FrameName().base());
+  else if (centerMode_ == Frame::ORIGIN)
+    mprintf("\tcoordinate origin.\n");
+  else
+    mprintf("\tbox center.\n");
 
   return Action::OK;
 }
 
-// Action_Center::setup()
-/** Set angle up for this parmtop. Get masks etc. */
-// currentParm is set in Action::Setup
+// Action_Center::Setup()
 Action::RetType Action_Center::Setup(Topology* currentParm, Topology** parmAddress) {
 
   if ( currentParm->SetupIntegerMask(Mask_) ) return Action::ERR;
   Mask_.MaskInfo();
   if (Mask_.None()) {
-    mprintf("Warning: center:: Mask contains 0 atoms.\n");
+    mprintf("Warning: Mask contains 0 atoms.\n");
     return Action::ERR;
   }
 
-  if (!origin_ && currentParm->BoxType()==Box::NOBOX) {
-    mprintf("Warning: center: Box center specified but no box information.\n");
+  if (centerMode_ == Frame::BOXCTR && currentParm->BoxType()==Box::NOBOX) {
+    mprintf("Warning: Box center specified but no box information.\n");
     //fprintf(stdout,"                            Centering on origin.\n");
     return Action::ERR;
   }
@@ -59,12 +81,11 @@ Action::RetType Action_Center::Setup(Topology* currentParm, Topology** parmAddre
   return Action::OK;  
 }
 
-// Action_Center::action()
-/** Center coordinates in frame to coord origin or box origin (corner).
-  */
+// Action_Center::DoAction()
+/** Center coordinates in frame according to specified mode. */
 Action::RetType Action_Center::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
 
-  currentFrame->Center(Mask_, origin_, useMass_);
+  currentFrame->Center(Mask_, centerMode_, refCenter_, useMass_);
 
   return Action::OK;
-} 
+}

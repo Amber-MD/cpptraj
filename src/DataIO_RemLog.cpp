@@ -52,7 +52,8 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
 
 void DataIO_RemLog::ReadHelp() {
   mprintf("\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
-          "\t                      coordinate indices (H-REMD only).\n");
+          "\t                      coordinate indices (H-REMD only).\n"
+          "\tMultiple REM logs may be specified.\n");
 }
 
 // DataIO_RemLog::ReadData()

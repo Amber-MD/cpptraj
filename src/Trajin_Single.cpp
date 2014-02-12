@@ -46,6 +46,8 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   // Set trajectory filename
   SetTrajFileName( tnameIn, true );
   mprintf("\tReading '%s' as %s\n", TrajFilename().full(), TrajectoryFile::FormatString(tformat));
+  // Process format-specific read args
+  if (trajio_->processReadArgs( argIn )) return 1;
   // Set up the format for reading and get the number of frames.
   if (SetupTrajIO( tnameIn, *trajio_, argIn )) return 1;
   // Check how many frames will actually be read
@@ -76,11 +78,6 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
                 mdvelname.c_str(), vel_frames, TotalFrames());
       return 1;
     }
-    if (trajio_->IsSeekable() && !velio_->IsSeekable()) {
-      mprinterr("Error: traj %s is seekable but velocity file %s is not.\n",
-                TrajFilename().full(), mdvelname.c_str());
-      return 1;
-    }
   }
   return 0;
 }
@@ -98,7 +95,7 @@ int Trajin_Single::BeginTraj(bool showProgress) {
     return 1;
   }
   // Set progress bar, start and offset.
-  PrepareForRead( showProgress, trajio_->IsSeekable() );
+  PrepareForRead( showProgress );
   trajIsOpen_ = true;
   return 0;
 }
@@ -112,24 +109,18 @@ void Trajin_Single::EndTraj() {
   }
 }
 
-// Trajin_Single::GetNextFrame()
-int Trajin_Single::GetNextFrame( Frame& frameIn ) {
-  // If the current frame is out of range, exit
-  if ( CheckFinished() ) return 0;
-  bool tgtFrameFound = false;
-  while ( !tgtFrameFound ) {
-    if (trajio_->readFrame(CurrentFrame(), frameIn))
-      return 0;
-    if (velio_ != 0 && velio_->readVelocity(CurrentFrame(), frameIn))
-      return 0;
-    // Check if coords in frame are valid.
-    if (frameIn.CheckCoordsInvalid())
-      mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
-              CurrentFrame()+1);
-    //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
-    tgtFrameFound = ProcessFrame();
-  }
-  return 1;
+// Trajin_Single::ReadTrajFrame()
+int Trajin_Single::ReadTrajFrame( int currentFrame, Frame& frameIn ) {
+  if (trajio_->readFrame(currentFrame, frameIn))
+    return 1;
+  if (velio_ != 0 && velio_->readVelocity(currentFrame, frameIn))
+    return 1;
+  // Check if coords in frame are valid.
+  if (frameIn.CheckCoordsInvalid())
+    mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
+            currentFrame+1);
+  //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
+  return 0;
 }
 
 // Trajin_Single::PrintInfo()
@@ -140,8 +131,7 @@ void Trajin_Single::PrintInfo(int showExtended) const {
   if (trajio_->HasBox()) mprintf(" (%s box)", trajio_->TrajBox().TypeName());
   if (showExtended==1) PrintFrameInfo(); 
   if (debug_>0)
-    mprintf(", %i atoms, Box %i, seekable %i",TrajParm()->Natom(),(int)trajio_->HasBox(),
-            (int)trajio_->IsSeekable());
+    mprintf(", %i atoms, Box %i",TrajParm()->Natom(),(int)trajio_->HasBox());
   mprintf("\n");
   if (velio_!=0) {
     mprintf("\tMDVEL: ");

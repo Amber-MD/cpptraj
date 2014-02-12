@@ -10,6 +10,7 @@ class Traj_Conflib: public TrajectoryIO {
   private:
     double energy_;
     double radGyr_;
+    size_t confFrame_; ///< Size of each frame in bytes
     int timesFound_;
     int conflibAtom_;
     CpptrajFile file_;

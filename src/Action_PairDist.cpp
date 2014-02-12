@@ -22,7 +22,8 @@ Action_PairDist::Action_PairDist() :
 
 void Action_PairDist::Help()
 {
-  mprintf("\tout <filename> mask <mask> [mask2 <mask>] [<resolution> delta]\n");
+  mprintf("\tout <filename> mask <mask> [mask2 <mask>] [<resolution> delta]\n"
+          "  Calculate pair distribution function P(r) between two masks.\n");
 }
 
 // Action_PairDist::init()
@@ -39,7 +40,7 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs,
     outfileName = "pairdist.dat";
   }
 
-  if (output_.OpenWrite(outfileName) ) {
+  if (output_.OpenEnsembleWrite(outfileName, DSL->EnsembleNum()) ) {
     mprinterr("Error: PairDist: Could not open output file %s\n",
 	      outfileName.c_str());
     return Action::ERR;

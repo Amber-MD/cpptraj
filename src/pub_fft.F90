@@ -99,6 +99,7 @@ subroutine cffti1(n, wa, ifac)
   double precision      :: tpi, argh, fi, argld, arg
 
   data ntryh(1), ntryh(2), ntryh(3), ntryh(4) /3, 4, 2, 5/
+  data i, j /0, 0/  ! Related to bug #248 in pmemd, fixed by JMS 
 
   nl = n
   nf = 0

@@ -9,7 +9,8 @@
 Action_NMRrst::Action_NMRrst() : useMass_(false), resOffset_(0) {} 
 
 void Action_NMRrst::Help() {
-  mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n");
+  mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n"
+          "  Calculate distances based on entries in the given NMR restraint file.\n");
 }
 
 /// \return true if first character is a 'skippable' one.

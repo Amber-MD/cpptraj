@@ -9,7 +9,9 @@ class ParmFile {
     static const FileTypes::KeyToken PF_KeyArray[];
   public :
     enum ParmFormatType { AMBERPARM=0, PDBFILE, MOL2FILE,
-                          CHARMMPSF, CIFFILE, UNKNOWN_PARM };
+                          CHARMMPSF, CIFFILE, SDFFILE, UNKNOWN_PARM };
+    static void ReadOptions() { FileTypes::ReadOptions(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM); }
+    static void WriteOptions(){ FileTypes::WriteOptions(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM);} 
     ParmFile() {}
     int ReadTopology(Topology&, std::string const&, ArgList const&,int);
     int ReadTopology(Topology& t, std::string const& n, int d) {

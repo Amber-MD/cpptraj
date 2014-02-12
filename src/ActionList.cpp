@@ -54,7 +54,7 @@ int ActionList::SetupActions(Topology **ParmAddress) {
   if (actionlist_.empty()) return 0;
   Topology *OriginalParm = *ParmAddress;
   mprintf(".....................................................\n");
-  mprintf("ACTION SETUP FOR PARM [%s] (%zu actions):\n",(*ParmAddress)->c_str(),actionlist_.size());
+  mprintf("ACTION SETUP FOR PARM '%s' (%zu actions):\n",(*ParmAddress)->c_str(),actionlist_.size());
   unsigned int actnum = 0;
   for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act)
   {

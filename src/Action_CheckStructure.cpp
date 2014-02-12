@@ -17,7 +17,7 @@ Action_CheckStructure::Action_CheckStructure() :
 void Action_CheckStructure::Help() {
   mprintf("\t[<mask1>] [reportfile <report>] [noimage]\n"
           "\t[offset <offset>] [cut <cut>] [nobondcheck]\n"
-          "\tCheck frames for atomic overlaps and unusual bond lengths\n");
+          "  Check frames for atomic overlaps and unusual bond lengths\n");
 }
 
 // DESTRUCTOR
@@ -59,9 +59,8 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   }
   nonbondcut2_ = nonbondcut * nonbondcut;
 
-  if (outfile_.SetupWrite(reportFile, debug_))
+  if (outfile_.OpenEnsembleWrite(reportFile, DSL->EnsembleNum()))
     return Action::ERR;
-  outfile_.OpenFile();
 
   return Action::OK;
 }
@@ -76,14 +75,14 @@ void Action_CheckStructure::SetupBondlist(BondArray const& BndLst, BondParmArray
   for (BondArray::const_iterator bondatom = BndLst.begin();
                                  bondatom != BndLst.end(); ++bondatom) 
   {
-    bnd.atom1 = (*bondatom).A1();
+    bnd.atom1 = bondatom->A1();
     if ( !Mask1_.AtomInCharMask(bnd.atom1) ) continue;
-    bnd.atom2 = (*bondatom).A2();
+    bnd.atom2 = bondatom->A2();
     if ( !Mask1_.AtomInCharMask(bnd.atom2) ) continue;
-    if ( (*bondatom).Idx() < 0 ) // sanity check
+    if ( bondatom->Idx() < 0 ) // sanity check
       mprinterr("Internal Error: Bond parameters not present.\n");
     else {
-      bnd.req = Parm[ (*bondatom).Idx() ].Req() + bondoffset_;
+      bnd.req = Parm[ bondatom->Idx() ].Req() + bondoffset_;
       bnd.req *= bnd.req; // Store squared values.
       bondL_.push_back(bnd);
     }

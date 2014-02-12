@@ -9,7 +9,9 @@
   */
 class ClusterList {
   public:
-    enum DistModeType { USE_FRAMES = 0, USE_FILE };
+    enum DistModeType   { USE_FRAMES = 0, USE_FILE  };
+    enum DistMetricType { RMS = 0, DME, SRMSD, DATA };
+    static const char* MetricString( DistMetricType );
     ClusterList();
     virtual ~ClusterList();
     int Nclusters()                  const { return (int)clusters_.size(); }
@@ -22,7 +24,7 @@ class ClusterList {
     void PrintClusters();
 
     int CalcFrameDistances(std::string const&, ClusterDist::DsArray const&, DistModeType, 
-                           bool, bool, bool, std::string const&, int);
+                           DistMetricType, bool, bool, std::string const&, int, int);
     // Inherited by individual clustering methods
     virtual int SetupCluster(ArgList&) = 0;
     virtual void ClusteringInfo() = 0;

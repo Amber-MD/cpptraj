@@ -20,6 +20,7 @@ class Action_STFC_Diffusion : public Action {
 
     void calculateMSD(const double*,int,int,Vec3 const&);
 
+    int ensembleNum_;
     bool printDistances_; // iarg1
     enum CalcType { DEFAULT = 0, COM, DIST };
     CalcType calcType_; // iarg2
