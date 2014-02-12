@@ -62,8 +62,10 @@ Action::RetType Action_VelocityAutoCorr::Setup(Topology* currentParm,
                 mask_.Nselected(), Velocity0_.size());
       return Action::ERR;
     }
-  } else
+  } else {
     Velocity0_.resize( mask_.Nselected(), Vec3(0.0) );
+    Norm_.resize( mask_.Nselected(), 1.0 );
+  }
   return Action::OK;
 }
 
@@ -77,27 +79,25 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum,
     if (frameIdx_ == 1) {
       // This is the first frame which we can calculate pseudo-velocity.
       Varray::iterator v0 = Velocity0_.begin();
+      Darray::iterator n0 = Norm_.begin();
       for (AtomMask::const_iterator atom = mask_.begin();
                                     atom != mask_.end(); 
-                                  ++atom, ++v0)
+                                  ++atom, ++v0, ++n0)
       {
         *v0 = Vec3( currentFrame->XYZ(*atom) ) - Vec3( previousFrame_.XYZ(*atom) );
-        v0->Normalize();
-        sum += (*v0) * (*v0);
+        *n0 = (*v0) * (*v0);
+        sum += (*v0) * (*v0) / (*n0);
       }
       sum /= (double)mask_.Nselected();
+      //sum = 1.0; // Due to normalization
       velAC_->Add( frameNum - 1, &sum );
     } else if ( frameIdx_ > 1 ) {
       Varray::const_iterator v0 = Velocity0_.begin();
+      Darray::const_iterator n0 = Norm_.begin();
       for (AtomMask::const_iterator atom = mask_.begin();
                                     atom != mask_.end(); 
-                                  ++atom, ++v0)
-      {
-        Vec3 vt = Vec3( currentFrame->XYZ(*atom) ) - Vec3( previousFrame_.XYZ(*atom) );
-        vt.Normalize();
-        sum += *v0 * vt;
-        //sum += *v0 * (Vec3( currentFrame->XYZ(*atom) ) - Vec3( previousFrame_.XYZ(*atom) ));
-      }
+                                  ++atom, ++v0, ++n0)
+        sum += (*v0 * (Vec3(currentFrame->XYZ(*atom)) - Vec3(previousFrame_.XYZ(*atom)))) / *n0;
       sum /= (double)mask_.Nselected();
       velAC_->Add( frameNum - 1, &sum );
     }
@@ -105,19 +105,23 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum,
   } else {
     if (frameIdx_ == 0) {
       Varray::iterator v0 = Velocity0_.begin();
+      Darray::iterator n0 = Norm_.begin();
       for (AtomMask::const_iterator atom = mask_.begin();
                                     atom != mask_.end(); 
-                                  ++atom, ++v0)
+                                  ++atom, ++v0, ++n0)
       {
         *v0 = Vec3( currentFrame->Vel( *atom ) );
-        sum += (*v0) * (*v0);
+        *n0 = (*v0) * (*v0);
+        sum += (*v0) * (*v0) / (*n0);
       }
+      //sum = 1.0; // Due to normalization
     } else { // frameIdx_ > 0
       Varray::const_iterator v0 = Velocity0_.begin();
+      Darray::const_iterator n0 = Norm_.begin();
       for (AtomMask::const_iterator atom = mask_.begin();
                                     atom != mask_.end();
-                                  ++atom, ++v0)
-        sum += *v0 * Vec3( currentFrame->Vel( *atom ) );
+                                  ++atom, ++v0, ++n0)
+        sum += (*v0 * Vec3( currentFrame->Vel( *atom ) )) / *n0;
     }
     sum /= (double)mask_.Nselected();
     velAC_->Add( frameNum, &sum );

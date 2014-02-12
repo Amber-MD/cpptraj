@@ -20,5 +20,7 @@ class Action_VelocityAutoCorr : public Action {
     Frame previousFrame_; ///< Hold previous frame coords (!useVelInfo only)
     typedef std::vector<Vec3> Varray;
     Varray Velocity0_; ///< Hold velocities at time 0.
+    typedef std::vector<double> Darray;
+    Darray Norm_; ///< Hold v0*v0 for normalization.
 };
 #endif
