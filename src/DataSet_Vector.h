@@ -25,6 +25,12 @@ class DataSet_Vector : public DataSet_1D {
     bool IsIred()            const { return isIred_;        }
     // -------------------------------------------
     void reset();
+    void Resize(size_t s)               { vectors_.resize( s );    }
+    void Resize(size_t s, Vec3 const& v){ vectors_.resize(s, v);   }
+    typedef Varray::iterator iterator;
+    iterator begin()                    { return vectors_.begin(); }
+    iterator end()                      { return vectors_.end();   }
+    bool Empty()                  const { return vectors_.empty(); }
     const Vec3& operator[](int i) const { return vectors_[i];      }
     Vec3&       operator[](int i)       { return vectors_[i];      }
     const Vec3& OXYZ(int i)       const {
