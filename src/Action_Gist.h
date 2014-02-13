@@ -43,33 +43,33 @@ class Action_Gist: public Action, ImagedAction  {
     bool doEij_;
 
     //time 
-    clock_t gist_t_begin,gist_t_end;
-    double gist_t_diff;
+//    clock_t gist_t_begin,gist_t_end;
+//    double gist_t_diff;
 
     // other constants
-    int NFRAME_;		// total number of frames analyzed
-//    double BULK_E_;		// bulk water energy
+    int NFRAME_;// total number of frames analyzed
+//    double BULK_E_;// bulk water energy
 
     //Grid Stuff   
-    Vec3 gridcntr_;    		// coordiantes of grid center
-    std::vector <int> griddim_;		// grid dimension (bin number in each direction)
-    Vec3 gridorig_;		// coordinates of grid origin
-    double gridspacn_;		// grid spacing
-    double BULK_DENS_;		// reference density from bulk water
+    Vec3 gridcntr_;            // coordiantes of grid center
+    std::vector <int> griddim_;// grid dimension (bin number in each direction)
+    Vec3 gridorig_;            // coordinates of grid origin
+    double gridspacn_;         // grid spacing
+    double BULK_DENS_;         // reference density from bulk water
     int MAX_GRID_PT_;
-    std::vector <int> gridwat_;		// voxel index of each water
-    std::vector <int> nwat_;		// total number of water found in each voxel
-    std::vector <int> nH_;			// total number of hydrogen found in each voxel
-    std::vector <int> nw_angle_;	// total nuber of Euler angles found in each voxel
-    std::vector <float> g_;		// normalized water density
-    std::vector <float> gH_;		// normalized H density
-    std::vector <float> dens_;		// water density
-    std::vector <float> grid_x_;	// voxel index in x
+    std::vector <int> gridwat_; // voxel index of each water
+    std::vector <int> nwat_;    // total number of water found in each voxel
+    std::vector <int> nH_;      // total number of hydrogen found in each voxel
+    std::vector <int> nw_angle_;// total nuber of Euler angles found in each voxel
+    std::vector <float> g_;     // normalized water density
+    std::vector <float> gH_;    // normalized H density
+    std::vector <float> dens_;  // water density
+    std::vector <float> grid_x_;// voxel index in x
     std::vector <float> grid_y_;
     std::vector <float> grid_z_;
-    std::vector <float> neighbor_;		// number of water neighbor within 3.5A
-    std::vector <double> qtet_;		// tetahedral order parameter
-    double Vvox_;			// voxel volume
+    std::vector <float> neighbor_;// number of water neighbor within 3.5A
+    std::vector <double> qtet_;   // tetahedral order parameter
+    double Vvox_;                 // voxel volume
     /// Return X coordinate of bin center
     double Xcrd(int i) { return (double)i*gridspacn_ + gridorig_[0] + 0.5*gridspacn_; }
     /// Return Y coordinate of bin center
@@ -77,22 +77,21 @@ class Action_Gist: public Action, ImagedAction  {
     /// Return Z coordinate of bin center
     double Zcrd(int k) { return (double)k*gridspacn_ + gridorig_[2] + 0.5*gridspacn_; }
     
-    double Lx, Ly, Lz;		// box length
-    double G_max_x, G_max_y, G_max_z;		// grid max length
-    void pbc(Vec3& r) {
-	if (r[0] < -Lx/2) r[0] += Lx;
+    double Lx, Ly, Lz;// box length
+    double G_max_x, G_max_y, G_max_z; // grid max length
+/*    void pbc(Vec3& r) {
+        if (r[0] < -Lx/2) r[0] += Lx;
         else if (r[0] > Lx/2) r[0] -= Lx;
         if (r[1] < -Ly/2) r[1] += Ly;
         else if (r[1] > Ly/2) r[1] -= Ly;
         if (r[2] < -Lz/2) r[2] += Lz;
         else if (r[2] > Lz/2) r[2] -= Lz;
-    } 
+    } */
 
     //general loop    
     Topology::mol_iterator solvmol, solvmol2;
     int voxel;
     int resnum,resnum2,resindex1,resindex2;
-    double theta, phi, psi;
     
     //non-bond energy stuff
     Matrix_3x3 ucell, recip;
@@ -116,10 +115,10 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <float> neighbor_norm_;
     std::vector <float> pol_;
 
-//    DataSet_Matrix* ww_Eij_;	// upper left triangular matrix - not what we want
-//    float ** ww_Eij_ = new float * [MAX_GRID_PT];	//lower left triangular matrix
+//    DataSet_Matrix* ww_Eij_;// upper left triangular matrix - not what we want
+//    float ** ww_Eij_ = new float * [MAX_GRID_PT];//lower left triangular matrix
 //    for (a=1; a<MAX_GRID_PT; a++)
-//	Eij[a] = new float [a];
+//Eij[a] = new float [a];
 
     // entropy stuff
     std::vector <float> dTSorient_dw_;
