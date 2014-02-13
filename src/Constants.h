@@ -30,7 +30,12 @@ namespace Constants {
   // Convert electron charge <-> Amber units (w/ prefactor)
   const double ELECTOAMBER  = 18.2223;
   const double AMBERTOELEC  = 1.0 / ELECTOAMBER;
-  /// Amber internal units of time are 1/20.455 ps
+  /// Convert from Amber internal units of time (1/20.455 ps) to ps.
+  /** Amber operates in kcal/mol units for energy, amu for masses,
+    * and angstoms for distances. To convert the input time parameters
+    * from picoseconds to internal units, multiply by 20.455
+    * (which is 10.0 * sqrt(4.184)).
+    */
   const double AMBERTIME_TO_PS = 20.455;
 }
 #endif

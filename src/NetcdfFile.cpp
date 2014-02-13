@@ -67,8 +67,7 @@ NetcdfFile::NetcdfFile() :
   cell_angularDID_(-1),
   spatialVID_(-1),
   cell_spatialVID_(-1),
-  cell_angularVID_(-1),
-  velocityScale_(Constants::AMBERTIME_TO_PS)
+  cell_angularVID_(-1)
 {
   start_[0] = 0;
   start_[1] = 0;
@@ -567,7 +566,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       return 1;
     }
     if ( checkNCerr( nc_put_att_double( ncid_, velocityVID_, "scale_factor", NC_DOUBLE, 1, 
-                                        &velocityScale_)) )
+                                        &Constants::AMBERTIME_TO_PS)) )
     {
       mprinterr("Error: Writing velocities scale factor.\n");
       return 1;
