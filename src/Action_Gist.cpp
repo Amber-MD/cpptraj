@@ -365,7 +365,6 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
 
 // Action_Gist::NonbondEnergy()
 void Action_Gist::NonbondEnergy(Frame *currentFrame) {
-  Vec3 XYZ, XYZ2, JI;
   double rij2, rij, r2, r6, r12, f12, f6, e_vdw, e_elec;
   int satom, satom2, atom1, atom2;
   
@@ -374,6 +373,8 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
   
   // Setup imaging info
   Matrix_3x3 ucell, recip;
+  if (ImagingEnabled())
+    currentFrame->BoxCrd().ToRecip(ucell, recip);
 
   // Inner loop has both solute and solvent
   resnum2=0;
@@ -403,27 +404,15 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
     for (satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
     {
       // Set up coord index for this atom
-      XYZ =  Vec3(currentFrame->XYZ( satom ));
+      const double* XYZ =  currentFrame->XYZ( satom );
   
       atom2=0;
       for (satom2 = (*solvmol2).BeginAtom(); satom2 < (*solvmol2).EndAtom(); ++satom2)
       {    
         // Set up coord index for this atom
-        XYZ2 = Vec3(currentFrame->XYZ( satom2 ));
+        const double* XYZ2 = currentFrame->XYZ( satom2 );
         // Calculate the vector pointing from atom2 to atom1
-        //rij2 = DIST2_ImageOrtho(XYZ, XYZ2, currentFrame->BoxCrd());
-        //rij2 = DIST2(XYZ, XYZ2, ImageType(), currentFrame->BoxCrd(), ucell, recip);
-        switch( ImageType() ) {
-          case NONORTHO:
-            currentFrame->BoxCrd().ToRecip(ucell, recip);
-            rij2 = DIST2_ImageNonOrtho(XYZ, XYZ2, ucell, recip);
-            break;
-          case ORTHO:
-            rij2 = DIST2_ImageOrtho(XYZ, XYZ2, currentFrame->BoxCrd());
-            break;
-          default:
-            rij2 = DIST2_NoImage(XYZ, XYZ2);          
-        }
+        rij2 = DIST2(XYZ, XYZ2, ImageType(), currentFrame->BoxCrd(), ucell, recip);
         rij = sqrt(rij2);
         // LJ energy
         NonbondType const& LJ = CurrentParm_->GetLJparam(satom, satom2); 
