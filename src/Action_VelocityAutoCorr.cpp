@@ -105,7 +105,7 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum,
       for (AtomMask::const_iterator atom = mask_.begin();
                                     atom != mask_.end(); 
                                   ++atom, ++vel)
-        vel->AddVxyz( Vec3(currentFrame->XYZ(*atom)) - Vec3(previousFrame_.XYZ(*atom)) );
+        vel->AddVxyz( (Vec3(currentFrame->XYZ(*atom)) - Vec3(previousFrame_.XYZ(*atom))) / tstep_ );
     }
     previousFrame_ = *currentFrame;
   } else {
@@ -187,7 +187,7 @@ void Action_VelocityAutoCorr::Print() {
       progress.Update( nvel );
       // Place vector from each frame into 1D array
       unsigned int nd = 0; // Will be used to index complex data
-      for (DataSet_Vector::iterator vec = vel->begin(); vec != vel->end(); ++vec, nd+=6)
+      for (DataSet_Vector::const_iterator vec = vel->begin(); vec != vel->end(); ++vec, nd+=6)
       {
         //mprintf("\tFrame %u assigned to complex array %u\n", vec - vel->begin(), nd); // DEBUG
         data1[nd  ] = (*vec)[0]; data1[nd+1] = 0.0;
@@ -224,7 +224,8 @@ void Action_VelocityAutoCorr::Print() {
   DataSet_Mesh mesh;
   mesh.SetMeshXY( static_cast<DataSet_1D const&>(*VAC_) );
   double total = mesh.Integrate_Trapezoid();
-  mprintf("\tIntegral= %g  Integral/3= %g\n", total, total / 3.0);
+  mprintf("\tIntegral= %g  Integral/3= %g Å^2/ps, %g x10^-5 cm^2/s\n", 
+          total, total / 3.0, total * 10.0 / 18.0);
   if (normalize_) {
     // Normalize VAC fn to 1.0
     double norm = 1.0 / Ct[0];
