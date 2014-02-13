@@ -224,8 +224,10 @@ void Action_VelocityAutoCorr::Print() {
   DataSet_Mesh mesh;
   mesh.SetMeshXY( static_cast<DataSet_1D const&>(*VAC_) );
   double total = mesh.Integrate_Trapezoid();
-  mprintf("\tIntegral= %g  Integral/3= %g Å^2/ps, %g x10^-5 cm^2/s\n", 
-          total, total / 3.0, total * 10.0 / 18.0);
+  const double ANG2_PS_TO_CM2_S = 10.0 / 6.0;
+  mprintf("\t3D= %g Å^2/ps, %g x10^-5 cm^2/s\n", total, total * ANG2_PS_TO_CM2_S);
+  mprintf("\t D= %g Å^2/ps, %g x10^-5 cm^2/s\n", total / 3.0, total * ANG2_PS_TO_CM2_S / 3.0);
+  mprintf("\t6D= %g Å^2/ps, %g x10^-5 cm^2/s\n", total * 2.0, total * ANG2_PS_TO_CM2_S * 2.0);
   if (normalize_) {
     // Normalize VAC fn to 1.0
     double norm = 1.0 / Ct[0];
