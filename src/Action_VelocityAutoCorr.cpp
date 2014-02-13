@@ -3,6 +3,7 @@
 #include "ProgressBar.h"
 #include "DataSet_Mesh.h"
 #include "DataSet_double.h"
+#include "Constants.h"
 #include "Corr.h"
 #ifdef _OPENMP
 #  include "omp.h"
@@ -10,11 +11,12 @@
 
 // CONSTRUCTOR
 Action_VelocityAutoCorr::Action_VelocityAutoCorr() :
-  useVelInfo_(false), useFFT_(false), VAC_(0), tstep_(0.0), maxLag_(0) {}
+  useVelInfo_(false), useFFT_(false), normalize_(false), VAC_(0), tstep_(0.0),
+  maxLag_(0) {}
 
 void Action_VelocityAutoCorr::Help() {
   mprintf("\t[<set name>] [<mask>] [usevelocity] [out <filename>]\n"
-          "\t[maxlag <time>] [tstep <timestep>] [usefft]\n"
+          "\t[maxlag <time>] [tstep <timestep>] [usefft] [norm]\n"
           "  Calculate velocity auto-correlation function for atoms in <mask>\n");
 }
 
@@ -29,6 +31,7 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, TopologyList*
   maxLag_ = actionArgs.getKeyInt("maxlag", -1);
   tstep_ = actionArgs.getKeyDouble("tstep", 1.0);
   useFFT_ = actionArgs.hasKey("usefft");
+  normalize_ = actionArgs.hasKey("norm");
   // Set up output data set
   VAC_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "VAC");
   if (VAC_ == 0) return Action::ERR;
@@ -54,6 +57,8 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, TopologyList*
     mprintf("\tUsing FFT to calculate autocorrelation function.\n");
   else
     mprintf("\tUsing direct method to calculate autocorrelation function.\n");
+  if (normalize_)
+    mprintf("\tNormalizing autocorrelation function to 1.0\n");
   return Action::OK;
 }
 
@@ -105,11 +110,12 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum,
     previousFrame_ = *currentFrame;
   } else {
     // Use velocity information in the frame.
+    // FIXME: Eventually dont assume V is in Amber units.
     VelArray::iterator vel = Vel_.begin();
     for (AtomMask::const_iterator atom = mask_.begin();
                                   atom != mask_.end(); 
                                 ++atom, ++vel)
-      vel->AddVxyz( Vec3(currentFrame->Vel( *atom )) );
+      vel->AddVxyz( Vec3(currentFrame->Vel( *atom )) * Constants::AMBERTIME_TO_PS );
   }
   return Action::OK;
 }
@@ -129,6 +135,12 @@ void Action_VelocityAutoCorr::Print() {
     mprintf("\tSpecified maximum lag > total length, setting to %u\n", maxlag);
   } else
     maxlag = (unsigned int)maxLag_;
+  // DEBUG
+  //for (VelArray::iterator vel = Vel_.begin(); vel != Vel_.end(); ++vel) {
+  //  mprintf("Vector %u:\n", vel - Vel_.begin());
+  //  for (DataSet_Vector::iterator vec = vel->begin(); vec != vel->end(); ++vec)
+  //    mprintf("\t%u {%f %f %f}\n", vec - vel->begin(), (*vec)[0], (*vec)[1], (*vec)[2]);
+  //}
   // Allocate space for output correlation function values.
   DataSet_double& Ct = static_cast<DataSet_double&>( *VAC_ );
   Ct.Resize( maxlag );
@@ -152,37 +164,60 @@ void Action_VelocityAutoCorr::Print() {
             Ct[t] += (*vel)[dt] * (*vel)[dt + t];
         }
         Ct[t] /= (double)(dtmax * Vel_.size());
-        //mprintf("\t%i %f\n", t, sum);
+        //mprintf("\tCt[%i]= %f\n", t, Ct[t]); // DEBUG
       }
 #   ifdef _OPENMP
     } // END pragma omp parallel
 #   endif
     progress.Finish();
-    double norm = 1.0 / Ct[0];
-    for (unsigned int t = 0; t < maxlag; ++t)
-      Ct[t] *= norm;
   } else {
     // FFT METHOD
-    CorrF_FFT pubfft( Vel_[0].Size() );
+    // Since FFT is cyclic, unroll vectors into a 1D array; in the resulting
+    // transformed array after FFT, every 3rd value will be the correlation
+    // via dot products that we want (once it is normalized).
+    unsigned int total_length = Vel_[0].Size() * 3;
+    CorrF_FFT pubfft( total_length );
     ComplexArray data1 = pubfft.Array();
+    //mprintf("Complex Array Size is %i (%i actual)\n", data1.size(), data1.size()*2);
     ProgressBar progress( Vel_.size() );
     unsigned int nvel = 0;
     for (VelArray::iterator vel = Vel_.begin(); vel != Vel_.end(); ++vel, ++nvel)
     {
+      //mprintf("Vector %u\n", vel - Vel_.begin()); // DEBUG
       progress.Update( nvel );
-      vel->CalcSphericalHarmonics( 1 );
-      for (int midx = -1; midx < 2; ++midx)
+      // Place vector from each frame into 1D array
+      unsigned int nd = 0; // Will be used to index complex data
+      for (DataSet_Vector::iterator vec = vel->begin(); vec != vel->end(); ++vec, nd+=6)
       {
-        data1.Assign( vel->SphericalHarmonics( midx ) );
-        data1.PadWithZero( Vel_[0].Size() );
-        pubfft.AutoCorr( data1 );
-        for (unsigned int i = 0; i < maxlag; i++)
-          Ct[i] += data1[i*2];
+        //mprintf("\tFrame %u assigned to complex array %u\n", vec - vel->begin(), nd); // DEBUG
+        data1[nd  ] = (*vec)[0]; data1[nd+1] = 0.0;
+        data1[nd+2] = (*vec)[1]; data1[nd+3] = 0.0;
+        data1[nd+4] = (*vec)[2]; data1[nd+5] = 0.0;
+        //mprintf("\t  Complex[%u]= %f  Complex[%u]= %f  Complex[%u]= %f\n", // DEBUG
+        //        nd, data1[nd], nd+2, data1[nd+2], nd+4, data1[nd+4]);
+      }
+      data1.PadWithZero( total_length );
+      //mprintf("Before FFT:\n"); // DEBUG
+      //for (unsigned int cd = 0; cd < (unsigned int)data1.size()*2; cd += 2)
+      //  mprintf("\t%u: %f + %fi\n", cd/2, data1[cd], data1[cd+1]);
+      pubfft.AutoCorr( data1 );
+      //mprintf("Results of FFT:\n"); // DEBUG
+      //for (unsigned int cd = 0; cd < (unsigned int)data1.size()*2; cd += 2)
+      //  mprintf("\t%u: %f + %fi\n", cd/2, data1[cd], data1[cd+1]);
+      // Increment nd by 3 here so it can be used for normalization.
+      nd = 0;
+      for (unsigned int t = 0; t < maxlag; t++, nd += 3) {
+        //mprintf("\tdata1[%u] = %f", nd*2, data1[nd*2]); // DEBUG
+        //mprintf("  norm= %u", total_length - nd); // DEBUG
+        //Ct[t] += data1[nd*2] * 3.0 / (double)(total_length - nd);
+        Ct[t] += data1[nd*2];
+        //mprintf("  Ct[%i]= %f\n", t, Ct[t]); // DEBUG
       }
     }
-    double norm = DataSet_Vector::SphericalHarmonicsNorm( 1 ) / (double)Vel_.size();
-    for (unsigned int i = 0; i < maxlag; ++i)
-      Ct[i] *= (norm / (Vel_[0].Size() - i));
+    // Normalization
+    for (unsigned int t = 0, nd = 0; t < maxlag; t++, nd += 3)
+      Ct[t] *= ( 3.0 / (double)((total_length - nd) * Vel_.size()) );
+      //Ct[t] /= (double)Vel_.size();
   }
   // Integration to get diffusion coefficient.
   mprintf("\tIntegrating data set %s, step is %f\n", VAC_->Legend().c_str(), VAC_->Dim(0).Step());
@@ -190,4 +225,10 @@ void Action_VelocityAutoCorr::Print() {
   mesh.SetMeshXY( static_cast<DataSet_1D const&>(*VAC_) );
   double total = mesh.Integrate_Trapezoid();
   mprintf("\tIntegral= %g  Integral/3= %g\n", total, total / 3.0);
+  if (normalize_) {
+    // Normalize VAC fn to 1.0
+    double norm = 1.0 / Ct[0];
+    for (unsigned int t = 0; t < maxlag; ++t)
+      Ct[t] *= norm;
+  }
 }

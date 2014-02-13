@@ -15,7 +15,8 @@ class Action_VelocityAutoCorr : public Action {
     void Print();
 
     bool useVelInfo_;     ///< If true use actual velocities in frame if present
-    bool useFFT_;         ///< Use FFT to calculate VAC functions 
+    bool useFFT_;         ///< Use FFT to calculate VAC functions
+    bool normalize_;      ///< Normalize VAC fn to 1.0 
     AtomMask mask_;       ///< Atoms to calculate VAC fn for.
     Frame previousFrame_; ///< Hold previous frame coords (!useVelInfo only)
     typedef DataSet_Vector Varray;
