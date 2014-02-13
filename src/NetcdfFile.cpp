@@ -3,6 +3,7 @@
 #endif
 #include "NetcdfFile.h"
 #include "CpptrajStdio.h"
+#include "Constants.h"
 #include "Version.h"
 
 // NetcdfFile::GetNetcdfConventions()
@@ -67,7 +68,7 @@ NetcdfFile::NetcdfFile() :
   spatialVID_(-1),
   cell_spatialVID_(-1),
   cell_angularVID_(-1),
-  velocityScale_(20.455)
+  velocityScale_(Constants::AMBERTIME_TO_PS)
 {
   start_[0] = 0;
   start_[1] = 0;

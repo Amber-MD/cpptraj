@@ -30,5 +30,7 @@ namespace Constants {
   // Convert electron charge <-> Amber units (w/ prefactor)
   const double ELECTOAMBER  = 18.2223;
   const double AMBERTOELEC  = 1.0 / ELECTOAMBER;
+  /// Amber internal units of time are 1/20.455 ps
+  const double AMBERTIME_TO_PS = 20.455;
 }
 #endif
