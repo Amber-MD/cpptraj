@@ -10,7 +10,6 @@
 class Action_Gist: public Action, ImagedAction  {
   public:
     Action_Gist();
-    ~Action_Gist();
 
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Gist(); }
     static void Help();
