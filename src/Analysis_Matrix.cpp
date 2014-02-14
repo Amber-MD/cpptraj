@@ -6,6 +6,7 @@
 Analysis_Matrix::Analysis_Matrix() :
   matrix_(0),
   modes_(0),
+  thermo_temp_(298.15),
   nevec_(0),
   thermopt_(false),
   reduce_(false),
@@ -14,7 +15,7 @@ Analysis_Matrix::Analysis_Matrix() :
 {}
 
 void Analysis_Matrix::Help() {
-  mprintf("\t<name> [out <filename>] [thermo outthermo <filename>]\n"
+  mprintf("\t<name> [out <filename>] [thermo [outthermo <filename>] [temp <T>]]\n"
           "\t[vecs <#>] [name <modesname>] [reduce]\n"
           "  Diagonalize given symmetric matrix to obtain eigenvectors\n"
           "  and eigenvalues.\n");
@@ -60,8 +61,8 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Thermo flag
   thermopt_ = analyzeArgs.hasKey("thermo");
-  if (thermopt_)
-    outthermo_ = analyzeArgs.GetStringKey("outthermo");
+  outthermo_ = analyzeArgs.GetStringKey("outthermo");
+  thermo_temp_ = analyzeArgs.getKeyDouble("temp", 298.15);
   if (thermopt_ && matrix_->Type()!=DataSet_2D::MWCOVAR) {
     mprinterr("Error: Parameter 'thermo' only works for mass-weighted covariance matrix ('mwcovar').\n");
     return Analysis::ERR;
@@ -92,7 +93,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
     mprintf(" and writing modes to %s", outfile->DataFilename().full());
   mprintf("\n\tCalculating %i eigenvectors", nevec_);
   if (thermopt_) {
-    mprintf(" and thermodynamic data, output to");
+    mprintf(" and thermodynamic data at %.2f K, output to", thermo_temp_);
     if (!outthermo_.empty())
       mprintf(" %s", outthermo_.c_str());
     else
@@ -126,14 +127,14 @@ Analysis::RetType Analysis_Matrix::Analyze() {
       return Analysis::ERR;
     }
     // Convert eigenvalues to cm^-1
-    if (modes_->EigvalToFreq()) return Analysis::ERR;
+    if (modes_->EigvalToFreq(thermo_temp_)) return Analysis::ERR;
     // Mass-wt eigenvectors
     if (modes_->MassWtEigvect( Dmatrix->Mass() )) return Analysis::ERR;
     // Calc thermo-chemistry if specified
     if (thermopt_) {
       CpptrajFile outfile;
       outfile.OpenWrite(outthermo_);
-      modes_->Thermo( outfile, 1, 298.15, 1.0 );
+      modes_->Thermo( outfile, 1, thermo_temp_, 1.0 );
       outfile.CloseFile();
     }
     // Print nmwiz file if specified

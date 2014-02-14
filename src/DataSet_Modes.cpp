@@ -287,15 +287,16 @@ void DataSet_Modes::PrintModes() {
 /** Convert eigenvalues to cm^-1. 
   * Frequency = sqrt( Ene / (mass * MSF)) = sqrt( Ene / Eigval )
   */
-int DataSet_Modes::EigvalToFreq() {
-  mprintf("\tConverting eigenvalues to frequencies (cm^-1).\n");
+int DataSet_Modes::EigvalToFreq(double tempIn) {
+  double KT = Constants::GASK_KCAL * tempIn;
+  mprintf("\tConverting eigenvalues to frequencies (cm^-1), T= %.2f K.\n", tempIn);
   for (int i = 0; i < nmodes_; ++i) {
-    // "0.6" is conversion of kT for 300K into kcal/mol
+    // KT is in kcal/mol
     // "108.597" is conversion to units of cm^-1
     if (evalues_[i] > 0)
-      evalues_[i] =  108.587 * sqrt( 0.6 / evalues_[i]);
+      evalues_[i] =  108.587 * sqrt( KT / evalues_[i]);
     else if (evalues_[i] < 0.0)
-      evalues_[i] = -108.587 * sqrt(-0.6 / evalues_[i]);
+      evalues_[i] = -108.587 * sqrt(-KT / evalues_[i]);
     else {
       mprinterr("Error: DataSet_Modes: bad eigenvalue %i = %f\n", i, evalues_[i]);
       return 1;

@@ -26,7 +26,7 @@ class DataSet_Modes : public DataSet {
     int SetModes(bool, int, int, const double*, const double*);
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
-    int EigvalToFreq();
+    int EigvalToFreq(double);
     int MassWtEigvect( DataSet_MatrixDbl::Darray const& );
     int ReduceVectors();
     int Thermo(CpptrajFile&, int, double, double) const;
