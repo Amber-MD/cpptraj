@@ -16,7 +16,7 @@ Action_VelocityAutoCorr::Action_VelocityAutoCorr() :
 
 void Action_VelocityAutoCorr::Help() {
   mprintf("\t[<set name>] [<mask>] [usevelocity] [out <filename>]\n"
-          "\t[maxlag <time>] [tstep <timestep>] [usefft] [norm]\n"
+          "\t[maxlag <time>] [tstep <timestep>] [direct] [norm]\n"
           "  Calculate velocity auto-correlation function for atoms in <mask>\n");
 }
 
@@ -30,7 +30,7 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, TopologyList*
   DataFile* outfile =  DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   maxLag_ = actionArgs.getKeyInt("maxlag", -1);
   tstep_ = actionArgs.getKeyDouble("tstep", 1.0);
-  useFFT_ = actionArgs.hasKey("usefft");
+  useFFT_ = !actionArgs.hasKey("direct");
   normalize_ = actionArgs.hasKey("norm");
   // Set up output data set
   VAC_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "VAC");
@@ -230,6 +230,7 @@ void Action_VelocityAutoCorr::Print() {
   mprintf("\t6D= %g Å^2/ps, %g x10^-5 cm^2/s\n", total * 2.0, total * ANG2_PS_TO_CM2_S * 2.0);
   if (normalize_) {
     // Normalize VAC fn to 1.0
+    mprintf("\tNormalizing VAC function to 1.0, C[0]= %g\n", Ct[0]);
     double norm = 1.0 / Ct[0];
     for (unsigned int t = 0; t < maxlag; ++t)
       Ct[t] *= norm;
