@@ -49,13 +49,6 @@ void Action_Gist::Help() {
   mprintf("  Calculate GIST between water molecules in selected region \n");
 }
 
-/*static double diffclock(clock_t clock1,clock_t clock2)
-{
-  double diffticks=clock1-clock2;
-  double diffms=(diffticks*1000)/CLOCKS_PER_SEC;
-  return diffms;
-}*/
-
 // Action_Gist::Init()
 Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
           DataSetList* DSL, DataFileList* DFL, int debugIn)
@@ -64,7 +57,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     mprinterr("Error: GIST currently cannot be used in ensemble mode.\n");
     return Action::ERR;
   }
-  //gist_t_begin_ = clock();
+  gist_init_.Start();
   // Get keywords
   // Dataset to store gist results
   datafile_ = actionArgs.GetStringKey("out");
@@ -150,6 +143,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   mprintf("\tGIST grid spacing: %5.3f \n", gridspacn_);
   mprintf("#Citation: Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
           "#          J. Chem. Phys. 137, 044101 (2012), arXiv:1108.4876v1 (2011)\n");
+  gist_init_.Stop();
   return Action::OK;
 }
 
@@ -157,6 +151,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 /** Set Gist up for this parmtop. Get masks etc.
   */
 Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress) {
+  gist_setup_.Start();
   CurrentParm_ = currentParm;      
   NFRAME_ = 0;
   max_nwat_ = 0;
@@ -290,14 +285,12 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
 
   resnum_ = 0;
   voxel_ = 0;
-
+  gist_setup_.Stop();
   return Action::OK;  
 }
 
-
 // Action_Gist::DoAction()
 Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-
   NFRAME_ ++;
   if (NFRAME_==1) mprintf("GIST Action \n");
 
@@ -316,37 +309,21 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   {
     resindex1_++;
     if (!solvmol_->IsSolvent()) continue;
-#   ifdef TIMER
     gist_grid_.Start();
-#   endif
     Grid( currentFrame );
-#   ifdef TIMER
     gist_grid_.Stop();
-#   endif
     voxel_ = gridwat_[resnum_];
     resnum_++;
-#   ifdef TIMER
     gist_nonbond_.Start();
-#   endif
     NonbondEnergy( currentFrame );
-#   ifdef TIMER
     gist_nonbond_.Stop();
-#   endif
     if (voxel_ >= MAX_GRID_PT_) continue;
-#   ifdef TIMER
     gist_euler_.Start();
-#   endif
     EulerAngle( currentFrame );
-#   ifdef TIMER
     gist_euler_.Stop();
-#   endif
-#   ifdef TIMER
     gist_dipole_.Start();
-#   endif
     Dipole( currentFrame );
-#   ifdef TIMER
     gist_dipole_.Stop();
-#   endif
   }
   if(doOrder_) Order( currentFrame );
   
@@ -359,6 +336,7 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   return Action::OK;
 }
 
+// Action_Gist::NonbondEnergy()
 void Action_Gist::NonbondEnergy(Frame *currentFrame) {
   double rij2, rij, r2, r6, r12, f12, f6, e_vdw, e_elec;
   int satom, satom2, atom1, atom2;
@@ -520,6 +498,7 @@ void Action_Gist::Grid(Frame *frameIn) {
   }
 }
 
+// Action_Gist::EulerAngle()
 void Action_Gist::EulerAngle(Frame *frameIn) {
   //if (NFRAME_==1) mprintf("GIST Euler Angles \n");
   Vec3 x_lab, y_lab, z_lab, O_wat, H1_wat, H2_wat, x_wat, y_wat, z_wat, node, v;
@@ -721,22 +700,9 @@ void Action_Gist::Order(Frame *frameIn) {
   }
 }
 
-
+// Action_Gist::Print()
 void Action_Gist::Print() {
-# ifdef TIMER
-  double total = gist_grid_.Total() + gist_nonbond_.Total() + 
-                 gist_euler_.Total() + gist_dipole_.Total();
-  mprintf("TIME: GIST timings:\n"
-          "\tGrid:    %.4f (%.2f%%)\n"
-          "\tNonbond: %.4f (%.2f%%)\n"
-          "\tEuler:   %.4f (%.2f%%)\n"
-          "\tDipole:  %.4f (%.2f%%)\n"
-          "\tTotal:   %.4f\n",
-          gist_grid_.Total(),    gist_grid_.Total() / total,
-          gist_nonbond_.Total(), gist_nonbond_.Total() / total,
-          gist_euler_.Total(),   gist_euler_.Total() / total,
-          gist_dipole_.Total(),  gist_dipole_.Total() / total, total);
-# endif
+  gist_print_.Start();
   // Implement NN to compute orientational entropy for each voxel
   double NNr, rx, ry, rz, rR, dbl;
   TSNNtot_=0;
@@ -845,8 +811,20 @@ void Action_Gist::Print() {
     PrintOutput(datafile_);
   else
     PrintOutput("gist-output.dat");
-  //double gist_t_diff = diffclock(clock(), gist_t_begin_);
-  //mprintf("GIST Time elapsed: %f ms\n", gist_t_diff);
+  gist_print_.Stop();
+  double total = gist_grid_.Total() + gist_nonbond_.Total() + 
+                 gist_euler_.Total() + gist_dipole_.Total() +
+                 gist_init_.Total() + gist_setup_.Total() + 
+                 gist_print_.Total();
+  mprintf("\tGIST timings:\n");
+  gist_init_.WriteTiming(1,    "Init: ", total);
+  gist_setup_.WriteTiming(1,   "Setup:", total);
+  gist_grid_.WriteTiming(2,    "Grid:   ", total);
+  gist_nonbond_.WriteTiming(2, "Nonbond:", total);
+  gist_euler_.WriteTiming(2,   "Euler:  ", total);
+  gist_dipole_.WriteTiming(2,  "Dipole: ", total);
+  gist_print_.WriteTiming(1,   "Print:", total);
+  mprintf("TIME:\tTotal: %.4f s\n", total);
 }
 
 // Print GIST data in dx format
