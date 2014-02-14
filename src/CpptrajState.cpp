@@ -4,9 +4,7 @@
 #include "Trajin_Multi.h" // for ensemble
 #include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
-#ifdef TIMER
-# include "Timer.h"
-#endif
+#include "Timer.h"
 
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
@@ -436,10 +434,8 @@ int CpptrajState::RunNormal() {
   Frame TrajFrame;            // Original Frame read in from traj
 
   // ========== S E T U P   P H A S E ========== 
-# ifdef TIMER
   Timer init_time;
   init_time.Start();
-# endif
   // Parameter file information
   parmFileList_.List();
   // Input coordinate file information
@@ -450,21 +446,19 @@ int CpptrajState::RunNormal() {
   trajoutList_.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
-# ifdef TIMER
   init_time.Stop();
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total());
-# endif
   
   // ========== A C T I O N  P H A S E ==========
   // Loop over every trajectory in trajFileList
 # ifdef TIMER
-  Timer actions_time;
-  Timer setup_time;
   Timer trajin_time;
+  Timer setup_time;
+  Timer actions_time;
   Timer trajout_time;
+# endif
   Timer frames_time;
   frames_time.Start();
-# endif
   mprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
   for ( TrajinList::const_iterator traj = trajinList_.begin();
                                    traj != trajinList_.end(); ++traj)
@@ -551,20 +545,15 @@ int CpptrajState::RunNormal() {
     mprintf("\n");
   } // End loop over trajin
   mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
-# ifdef TIMER
   frames_time.Stop();
-  mprintf("TIME: Trajectory processing occurred in %.4f seconds\n"
-          "TIME: Avg. throughput= %.4f frames / second.\n"
-          "TIME:\tTrajectory read took %.4f seconds (%.2f%% of processing).\n"
-          "TIME:\tAction setup took %.4f seconds (%.2f%% of processing).\n"
-          "TIME:\tAction frame processing took %.4f seconds (%.2f%% of processing).\n"
-          "TIME:\tTrajectory output took %.4f seconds (%.2f%% of processing).\n",
-          frames_time.Total(),
-          (double)readSets / frames_time.Total(),
-          trajin_time.Total(),  (trajin_time.Total()  / frames_time.Total() )*100.0, 
-          setup_time.Total(),   (setup_time.Total()   / frames_time.Total() )*100.0, 
-          actions_time.Total(), (actions_time.Total() / frames_time.Total() )*100.0,
-          trajout_time.Total(), (trajout_time.Total() / frames_time.Total() )*100.0 );
+  frames_time.WriteTiming(0," Trajectory processing:");
+  mprintf("TIME: Avg. throughput= %.4f frames / second.\n", 
+          (double)readSets / frames_time.Total());
+# ifdef TIMER
+  trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time.Total());
+  setup_time.WriteTiming(1,   "Action setup:           ", frames_time.Total());
+  actions_time.WriteTiming(1, "Action frame processing:", frames_time.Total());
+  trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time.Total());
 # endif
   // Close output trajectories.
   trajoutList_.CloseTrajout();
@@ -590,15 +579,11 @@ void CpptrajState::MasterDataFileWrite() {
 // CpptrajState::RunAnalyses()
 int CpptrajState::RunAnalyses() {
   if (analysisList_.Empty()) return 0;
-# ifdef TIMER
   Timer analysis_time;
   analysis_time.Start();
-# endif
   int err = analysisList_.DoAnalyses();
-# ifdef TIMER
   analysis_time.Stop();
   mprintf("TIME: Analyses took %.4f seconds.\n", analysis_time.Total());
-# endif
   // If all Analyses completed successfully, clean up analyses.
   if ( err == 0) 
     analysisList_.Clear();
