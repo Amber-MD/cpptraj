@@ -288,15 +288,18 @@ void DataSet_Modes::PrintModes() {
   * Frequency = sqrt( Ene / (mass * MSF)) = sqrt( Ene / Eigval )
   */
 int DataSet_Modes::EigvalToFreq(double tempIn) {
+  // KT is in kcal/mol
+  // TO_CM1 is conversion from (kcal / mol * A^2)^-.5 to units of cm^-1
+  // = (sqrt(4184 * 1000) / (TWOPI * C)) * 1E8;
+  // Original value in ptraj (lower precision)= 108.587
+  const double TO_CM1 = 108.591358592377;
   double KT = Constants::GASK_KCAL * tempIn;
   mprintf("\tConverting eigenvalues to frequencies (cm^-1), T= %.2f K.\n", tempIn);
   for (int i = 0; i < nmodes_; ++i) {
-    // KT is in kcal/mol
-    // "108.597" is conversion to units of cm^-1
     if (evalues_[i] > 0)
-      evalues_[i] =  108.587 * sqrt( KT / evalues_[i]);
+      evalues_[i] =  TO_CM1 * sqrt( KT / evalues_[i]);
     else if (evalues_[i] < 0.0)
-      evalues_[i] = -108.587 * sqrt(-KT / evalues_[i]);
+      evalues_[i] = -TO_CM1 * sqrt(-KT / evalues_[i]);
     else {
       mprinterr("Error: DataSet_Modes: bad eigenvalue %i = %f\n", i, evalues_[i]);
       return 1;
@@ -448,14 +451,14 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   const double tokg   = 1.660531e-27; // kilograms per amu.
   const double boltz  = 1.380622e-23; // boltzman constant, in joules per kelvin.
   const double planck = 6.626196e-34; // planck constant, in joule-seconds.
-  const double avog   = 6.022169e+23; // avogadro constant, in mol**(-1).
+//  const double avog   = 6.022169e+23; // avogadro constant, in mol**(-1).
   const double jpcal  = 4.18674e+00;  // joules per calorie.
   const double tomet  = 1.0e-10;      // metres per Angstrom.
   const double hartre = 4.35981e-18;  // joules per hartree.
   const double pstd   = 1.01325e+05;  // Standard pressure in pascals
   //     compute the gas constant, pi, pi**2, and e.
   //     compute the conversion factors cal per joule and kcal per joule.
-  const double gas  = avog * boltz;
+//  const double gas  = avog * boltz;
   // pi   = four * datan(one)
   const double pipi = Constants::PI * Constants::PI;
   const double e    = exp(1.0);
@@ -473,7 +476,7 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   outfile.Printf(  "                    *******************\n\n");
   outfile.Printf("\n temperature %9.3f kelvin\n pressure    %9.5f atm\n",temp,patm);
   double pressure = pstd * patm;
-  double rt = gas * temp;
+  double rt = Constants::GASK_J * temp;
 
   //     compute and print the molecular mass in amu, then convert to
   //     kilograms.
@@ -498,9 +501,9 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   arg = (arg / pressure) * (dum1 / planck);
   arg = arg * dum2 * (weight / planck);
   arg = arg * sqrt(weight) * exp(2.5);
-  double stran = gas * log(arg);
+  double stran = Constants::GASK_J * log(arg);
   double etran = 1.5 * rt;
-  double ctran = 1.5 * gas;
+  double ctran = 1.5 * Constants::GASK_J;
 
   //     Compute contributions due to electronic motion:
   //        It is assumed that the first electronic excitation energy
@@ -588,16 +591,16 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
 
   if (linear) {
      erot = rt;
-     crot = gas;
+     crot = Constants::GASK_J;
      arg  = (temp/rtemp) * (e/sn);
-     srot = gas * log(arg);
+     srot = Constants::GASK_J * log(arg);
   } else {
      erot = 1.5 * rt;
-     crot = 1.5 * gas;
+     crot = 1.5 * Constants::GASK_J;
      arg  = sqrt(Constants::PI*e*e*e) / sn;
      double dum  = (temp/rtemp1) * (temp/rtemp2) * (temp/rtemp3);
      arg  = arg * sqrt(dum);
-     srot = gas * log(arg);
+     srot = Constants::GASK_J * log(arg);
   }
 
   //     compute contributions due to vibration.
@@ -625,9 +628,10 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
      ezpe    += evalues_[i+iff] * 3.0e10;
   }
   ezpe = 0.5 * planck * ezpe;
-  outfile.Printf("\n zero point vibrational energy %12.1f (joules/mol) \n",ezpe * avog);
-  outfile.Printf(  "                               %12.5f (kcal/mol)\n",ezpe * tokcal * avog);
-  outfile.Printf(  "                               %12.7f (hartree/particle)\n", ezpe / hartre);
+  outfile.Printf("\n zero point vibrational energy %12.1f (joules/mol) \n"
+                   "                               %12.5f (kcal/mol)\n"
+                   "                               %12.7f (hartree/particle)\n",
+                   ezpe*Constants::NA, ezpe*tokcal*Constants::NA, ezpe/hartre);
   //     compute the number of vibrations for which more than 5% of an
   //     assembly of molecules would exist in vibrational excited states.
   //     special printing for these modes is done to allow the user to
@@ -675,16 +679,16 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
      }
      //       if (lofreq .ge. i) then
      evibn[i] = econt * rt;
-     cvibn[i] = ccont * gas;
-     svibn[i] = scont * gas;
+     cvibn[i] = ccont * Constants::GASK_J;
+     svibn[i] = scont * Constants::GASK_J;
      //       end if
      evib += econt;
      cvib += ccont;
      svib += scont;
   }
   evib *= rt;
-  cvib *= gas;
-  svib *= gas;
+  cvib *= Constants::GASK_J;
+  svib *= Constants::GASK_J;
 
   //     the units are now:
   //         e-- joules/mol
