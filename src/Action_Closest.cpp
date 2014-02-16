@@ -121,7 +121,11 @@ Action::RetType Action_Closest::Setup(Topology* currentParm, Topology** parmAddr
               closestWaters_, currentParm->c_str(), currentParm->Nsolvent());
     return Action::ERR;
   }
-  SetupImaging( currentParm->BoxType() ); 
+  SetupImaging( currentParm->BoxType() );
+  if (ImagingEnabled())
+    mprintf("\tDistances will be imaged.\n");
+  else
+    mprintf("\tImaging off.\n"); 
   // LOOP OVER MOLECULES
   // 1: Check that all solvent molecules contain same # atoms. Solvent 
   //    molecules must be identical for the command to work properly; 
@@ -191,6 +195,7 @@ Action::RetType Action_Closest::Setup(Topology* currentParm, Topology** parmAddr
             distanceMask_.MaskString());
     return Action::ERR;
   }
+  distanceMask_.MaskInfo();
 
   // Check the total number of solvent atoms to be kept.
   NsolventAtoms *= closestWaters_;

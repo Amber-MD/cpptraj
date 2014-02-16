@@ -12,7 +12,8 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   Coord_(0),
   eptotVID_(-1),
   binsVID_(-1),
-  useVelAsCoords_(false)
+  useVelAsCoords_(false),
+  readAccess_(false)
 { }
 
 // DESTRUCTOR
@@ -60,7 +61,7 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
 {
   if (filename_.SetFileNameWithExpansion( fname )) return TRAJIN_ERR;
   if (openTrajin()) return TRAJIN_ERR;
-
+  readAccess_ = true;
   // Sanity check - Make sure this is a Netcdf trajectory
   if ( GetNetcdfConventions() != NC_AMBERTRAJ ) {
     mprinterr("Error: Netcdf file %s conventions do not include \"AMBER\"\n",filename_.base());
@@ -126,6 +127,7 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn) {
 int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm, 
                                    int NframesToWrite, bool append)
 {
+  readAccess_ = false;
   if (!append) {
     filename_.SetFileName( fname );
     // Set up title
@@ -359,7 +361,7 @@ int Traj_AmberNetcdf::writeReservoir(int set, Frame& frame, double energy, int b
 // Traj_AmberNetcdf::info()
 void Traj_AmberNetcdf::Info() {
   mprintf("is a NetCDF AMBER trajectory");
-  if (!HasCoords()) mprintf(" (no coordinates)");
+  if (readAccess_ && !HasCoords()) mprintf(" (no coordinates)");
   if (HasV()) mprintf(" containing velocities");
   if (HasT()) mprintf(" with replica temperatures");
   if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
