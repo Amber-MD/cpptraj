@@ -98,11 +98,11 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> ww_evdw_;
     std::vector <double> ww_eelec_;
     std::vector < std::vector <float> > ww_Eij_;
-    std::vector <float> dEwh_dw_;
-    std::vector <float> dEwh_norm_;
-    std::vector <float> dEww_norm_unref_;
-    std::vector <float> dEww_dw_unref_;
-    std::vector <float> neighbor_dw_;
+    std::vector <float> Esw_dens_;
+    std::vector <float> Esw_norm_;
+    std::vector <float> Eww_norm_;
+    std::vector <float> Eww_dens_;
+    std::vector <float> neighbor_dens_;
     std::vector <float> neighbor_norm_;
     std::vector <float> pol_;
 
@@ -112,13 +112,14 @@ class Action_Gist: public Action, ImagedAction  {
 //  Eij[a] = new float [a];
 
     // entropy stuff
-    std::vector <float> TSNN_dw_;
-    std::vector <double> TSNN_norm_;
-    std::vector <float> TStrans_dw_;
-    std::vector <float> TStrans_norm_;
-    double TSNNtot_;
+    std::vector <float> dTSorient_dens_;
+    std::vector <double> dTSorient_norm_;
+    std::vector <float> dTStrans_dens_;
+    std::vector <float> dTStrans_norm_;
+    double dTSorienttot_;
     int max_nwat_;
-    double TStranstot_;
+    double dTStranstot_;
+    double Ewwtot_;
     std::vector < std::vector <float> > the_vox_;
     std::vector < std::vector <float> > phi_vox_;
     std::vector < std::vector <float> > psi_vox_;
