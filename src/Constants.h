@@ -28,7 +28,7 @@ namespace Constants {
   const double GASK_KCAL    = 0.0019872041; // kcal/mol*K
   // Avogadro constant
   const double NA = 6.02214129e23;
-  // Speed of light
+  // Speed of light (m/s)
   const double C0 = 299792458;
   // Convert electron charge <-> Amber units (w/ prefactor)
   const double ELECTOAMBER  = 18.2223;
