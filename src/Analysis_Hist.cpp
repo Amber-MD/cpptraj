@@ -203,7 +203,7 @@ Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& hist
   dimensionArgs_.push_back( ArgList(dsIn->Legend()) ); // Needed for dim label
   histdata_.push_back( dsIn );
   N_dimensions_ = 1;
-  std::string setname;
+  std::string setname = histname;
   if (histname.empty())
     setname="Hist_";
   setname += dsIn->Legend();
