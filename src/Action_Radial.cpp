@@ -302,7 +302,6 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
   if (ImagingEnabled() || useVolume_) {
     D = currentFrame->BoxCrd().ToRecip(ucell,recip);
-    mprintf("V= %f\n", D);
     if (useVolume_)  volume_ += D;
   }
 
