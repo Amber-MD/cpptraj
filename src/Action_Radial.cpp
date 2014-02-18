@@ -300,8 +300,9 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 
   // Set imaging information and store volume if specified
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
-  if (ImagingEnabled()) {
+  if (ImagingEnabled() || useVolume_) {
     D = currentFrame->BoxCrd().ToRecip(ucell,recip);
+    mprintf("V= %f\n", D);
     if (useVolume_)  volume_ += D;
   }
 
