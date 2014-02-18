@@ -22,6 +22,7 @@ class Array1D {
     size_t size()                          const { return array_.size();     }
     void clear()                                 { array_.clear();           }
     int AddDataSets(DataSetList const&);
+    int AddTorsionSets(DataSetList const&);
     int AddSetsFromArgs(ArgList const&, DataSetList const&);
     int CheckXDimension() const;
   private:

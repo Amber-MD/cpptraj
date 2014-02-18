@@ -41,10 +41,12 @@ DataSet_Modes::~DataSet_Modes() {
 
 // DataSet_Modes::SetAvgCoords()
 void DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
-  avgcrd_.ClearAtoms();
+  avgcrd_.clear();
+  mass_.clear();
   if (mIn.Type() != DataSet_2D::NO_OP) { // May have avg coords 
     DataSet_MatrixDbl const& mat = static_cast<DataSet_MatrixDbl const&>( mIn );
-    avgcrd_.SetupFrameXM( mat.Vect(), mat.Mass() );
+    avgcrd_ = mat.Vect();
+    mass_ = mat.Mass();
   }
 }
 
@@ -442,7 +444,8 @@ int DataSet_Modes::ReduceDistCovar() {
 */
 int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double patm) const
 {
-  // avgcrd_   Frame containing coordinates in Angstroms, masses in amu.
+  // avgcrd_   Contains coordinates in Angstroms
+  // mass_     Contains masses in amu.
   // nmodes_   Number of eigenvectors (already converted to frequencies)
   // evalues_  vibrational frequencies, in cm**-1 and in ascending order
   double rtemp, rtemp1, rtemp2, rtemp3;
@@ -481,8 +484,8 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   //     compute and print the molecular mass in amu, then convert to
   //     kilograms.
   double weight = 0.0;
-  for (int iat = 0; iat < avgcrd_.Natom(); ++iat)
-    weight += avgcrd_.Mass(iat);
+  for (Darray::const_iterator m = mass_.begin(); m != mass_.end(); ++m)
+    weight += *m;
   outfile.Printf(" molecular mass (principal isotopes) %11.5f amu\n", weight);
   weight *= tokg;
   
@@ -514,7 +517,7 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   //        electronic energy.
 
   //     for monatomics print and return.
-  if (avgcrd_.Natom() <= 1){
+  if (avgcrd_.size() <= 3){
     outfile.Printf("\n internal energy:   %10.3f joule/mol         %10.3f kcal/mol\n",
            etran, etran * tokcal);
     outfile.Printf(  " entropy:           %10.3f joule/k-mol       %10.3f cal/k-mol\n",
@@ -524,6 +527,8 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
     return 0;
   }
 
+  Frame AVG;
+  AVG.SetupFrameXM( avgcrd_, mass_ );
   // Allocate workspace memory
   // vtemp   vibrational temperatures, in kelvin.
   // evibn   contribution to e from the vibration n.
@@ -542,7 +547,7 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   //     the rotational temperatures.  Note the imbedded conversion
   //     of the moments to SI units.
   Matrix_3x3 Inertia;
-  avgcrd_.CalculateInertia( AtomMask(0, avgcrd_.Natom()), Inertia );
+  AVG.CalculateInertia( AtomMask(0, AVG.Natom()), Inertia );
   // NOTE: Diagonalize_Sort sorts evals/evecs in descending order, but
   //       thermo() expects ascending.
   // pmom      principal moments of inertia, in amu-bohr**2 and in ascending order.
@@ -557,9 +562,9 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   bool linear = false;
   // Symmetry number: only for linear molecules. for others symmetry number is unity
   double sn = 1.0;
-  if (avgcrd_.Natom() <= 2) {
+  if (AVG.Natom() <= 2) {
     linear = true;
-    if (avgcrd_.Mass(0) == avgcrd_.Mass(1)) sn = 2.0;
+    if (AVG.Mass(0) == AVG.Mass(1)) sn = 2.0;
   }
   outfile.Printf("\n rotational symmetry number %3.0f\n", sn);
 
@@ -771,7 +776,7 @@ int DataSet_Modes::NMWiz(CpptrajFile& outfile, int nvecs, std::string filename, 
   outfile.Printf("bfactors \n");    //TODO: get from optionally provided pdb file
 
   outfile.Printf("coordinates ");
-  for (int i = 0; i<avgcrd_.size(); ++i)
+  for (unsigned int i = 0; i < avgcrd_.size(); ++i)
 	  outfile.Printf("%8.3f ", avgcrd_[i]);
   outfile.Printf("\n");
   

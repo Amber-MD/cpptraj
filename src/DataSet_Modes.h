@@ -16,12 +16,18 @@ class DataSet_Modes : public DataSet {
     void Info()   const { return;         }
     void Add( size_t, const void* ) {} // TODO: Get rid of, only needed by DataSet_1D
     // -------------------------------------------
+    typedef std::vector<double> Darray;
+    typedef Darray::const_iterator AvgIt;
+    AvgIt AvgBegin() const { return avgcrd_.begin(); } // TODO : Get rid of?
+    Darray const& AvgCrd() const { return avgcrd_; }
+    Darray const& Mass()   const { return mass_;   }
     void SetAvgCoords(DataSet_2D const&);
-    void AllocateAvgCoords(int n)          { avgcrd_.SetupFrame( n / 3 ); }
-    const Frame& AvgFrame()          const { return avgcrd_;              } // Project, Modes
+//    const Frame& AvgFrame()          const { return avgcrd_;              } // Project, Modes
     int NavgCrd()                    const { return (int)avgcrd_.size();  } // Project
     /// For reading directly into avgcrd buffer
-    double* AvgFramePtr()                  { return avgcrd_.xAddress();   }
+    double* AvgFramePtr()                  { return &avgcrd_[0];          }
+    const double* AvgFramePtr()   const               { return &avgcrd_[0];          }
+    void AllocateAvgCoords(int n)          { avgcrd_.resize(n, 0.0);      }
 
     int SetModes(bool, int, int, const double*, const double*);
     int CalcEigen(DataSet_2D const&,int);
@@ -45,7 +51,8 @@ class DataSet_Modes : public DataSet {
     int ReduceCovar();
     int ReduceDistCovar();
 
-    Frame avgcrd_;                ///< Average coordinates
+    Darray avgcrd_;               ///< Average coordinates
+    Darray mass_;                 ///< Masses
     double* evalues_;             ///< Array of eigenvalues
     double* evectors_;            ///< Array of eigenvectors
     int nmodes_;                  ///< Number of eigenmodes

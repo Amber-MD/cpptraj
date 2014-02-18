@@ -128,7 +128,7 @@ Analysis::RetType Analysis_Matrix::Analyze() {
     }
     // Convert eigenvalues to cm^-1
     if (modes_->EigvalToFreq(thermo_temp_)) return Analysis::ERR;
-    // Mass-wt eigenvectors
+    // Mass-wt eigenvectors // TODO Do not pass in Mass again, done above in SetAvgCoords
     if (modes_->MassWtEigvect( Dmatrix->Mass() )) return Analysis::ERR;
     // Calc thermo-chemistry if specified
     if (thermopt_) {

@@ -42,6 +42,22 @@ int Array1D::AddDataSets(DataSetList const& SetList) {
   return 0;
 }
 
+// Array1D::AddTorsionSets()
+int Array1D::AddTorsionSets(DataSetList const& SetList) {
+  for (DataSetList::const_iterator ds = SetList.begin(); ds != SetList.end(); ++ds) {
+    // Ensure data sets are 1D and periodic
+    if ( (*ds)->Ndim() == 1 ) {
+      DataSet_1D* ds1 = (DataSet_1D*)(*ds);
+      if ( ds1->IsTorsionArray() )
+        array_.push_back( ds1 );
+      else
+        mprintf("Warning: Set '%s' is not periodic, skipping.\n", (*ds)->Legend().c_str());
+    } else
+      mprintf("Warning: Set '%s' is not 1D, skipping.\n", (*ds)->Legend().c_str());
+  }
+  return 0;
+}
+
 // Array1D::AddSetsFromArgs()
 int Array1D::AddSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSLin) {
   DataSetList input_dsl;
