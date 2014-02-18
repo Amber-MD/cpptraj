@@ -4,10 +4,8 @@
 class Action_Translate : public Action {
   public:
     Action_Translate();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Translate(); }
     static void Help();
-
   private:
     Vec3 Trans_;
     AtomMask mask_;

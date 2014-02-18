@@ -4,16 +4,14 @@
 class Action_Diffusion : public Action {
   public:
     Action_Diffusion();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Diffusion(); }
     static void Help();
-
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     Frame initial_;
     std::vector<double> previousx_;

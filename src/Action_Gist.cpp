@@ -310,9 +310,9 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
 //  if (NFRAME_==1) mprintf("GIST Action \n");
 
   // Simulation box length - assign here because it can vary for npt simulation
-  Lx_ = currentFrame->BoxCrd().BoxX();
-  Ly_ = currentFrame->BoxCrd().BoxY();
-  Lz_ = currentFrame->BoxCrd().BoxZ();
+  //Lx_ = currentFrame->BoxCrd().BoxX();
+  //Ly_ = currentFrame->BoxCrd().BoxY();
+  //Lz_ = currentFrame->BoxCrd().BoxZ();
 //  if (NFRAME_==1) mprintf("GIST Action box length: %f %f %f \n", Lx_, Ly_, Lz_);
   
   int solventMolecules = CurrentParm_->Nsolvent();

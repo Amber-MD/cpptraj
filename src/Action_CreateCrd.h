@@ -7,12 +7,12 @@ class Action_CreateCrd : public Action {
     Action_CreateCrd();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_CreateCrd(); }
     static void Help();
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     DataSet_Coords* coords_;
     int pindex_;

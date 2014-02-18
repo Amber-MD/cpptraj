@@ -75,7 +75,6 @@ class Action_Gist: public Action, ImagedAction  {
     /// \return Z coordinate of bin center
     double Zcrd(int k) { return (double)k*gridspacn_ + gridorig_[2] + 0.5*gridspacn_; }
     
-    double Lx_, Ly_, Lz_;                ///< box lengths FIXME: Needed?
     double G_max_x_, G_max_y_, G_max_z_; ///< grid max length
 
     //general loop   

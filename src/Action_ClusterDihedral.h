@@ -1,7 +1,40 @@
 #ifndef INC_ACTION_CLUSTERDIHEDRAL_H
 #define INC_ACTION_CLUSTERDIHEDRAL_H
 #include "Action.h"
-class DCnode {
+class Action_ClusterDihedral : public Action {
+  public:
+    Action_ClusterDihedral();
+    static DispatchObject* Alloc() { return (DispatchObject*)new Action_ClusterDihedral(); }
+    static void Help();
+  private:
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
+    int ReadDihedrals(std::string const&);
+    class DCnode;
+    class DCmask;
+
+    std::vector<DCnode> dcarray_;  ///< Hold counts for each bin# combo.
+    std::vector<DCmask> DCmasks_;  ///< Hold 4 atom mask for each dihedral
+    std::vector<int> Bins_;        ///< For holding bin combo each frame
+    int phibins_;
+    int psibins_;
+    int CUT_;
+    int lastframe_;
+    Topology* dcparm_;             ///< Set to first parm encountered.
+    std::string outfile_;
+    std::string framefile_; // filenames[1]
+    std::string infofile_;  // filenames[2]
+    AtomMask mask_;
+    DataSet* CVT_; ///< Hold # clusters vs time.
+    double minimum_; ///< Value of first bin 
+    int debug_;
+    int ensembleNum_;
+};
+// -----------------------------------------------------------------------------
+class Action_ClusterDihedral::DCnode {
   public:
     DCnode() : count_(0) {}
     DCnode(std::vector<int>& binIn, int frameIn) : 
@@ -37,8 +70,8 @@ class DCnode {
     std::vector<int> frames_;
     long int count_;
 };
-
-class DCmask {
+// -----------------------------------------------------------------------------
+class Action_ClusterDihedral::DCmask {
   public: 
     DCmask() : a1_(0), a2_(0), a3_(0), a4_(0), bins_(0) {}
     DCmask(int a1, int a2, int a3, int a4, int bins, double min) :
@@ -59,40 +92,5 @@ class DCmask {
     int bins_;
     double step_; 
     double min_;
-};
-
-class Action_ClusterDihedral : public Action {
-  public:
-    Action_ClusterDihedral();
-
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_ClusterDihedral(); }
-    static void Help();
-
-
-    void Print();
-  private:
-    int ReadDihedrals(std::string const&);    
-
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
-
-    std::vector<DCnode> dcarray_;  ///< Hold counts for each bin# combo.
-    std::vector<DCmask> DCmasks_;  ///< Hold 4 atom mask for each dihedral
-    std::vector<int> Bins_;        ///< For holding bin combo each frame
-    int phibins_;
-    int psibins_;
-    int CUT_;
-    int lastframe_;
-    Topology* dcparm_;             ///< Set to first parm encountered.
-    std::string outfile_;
-    std::string framefile_; // filenames[1]
-    std::string infofile_;  // filenames[2]
-    AtomMask mask_;
-    DataSet* CVT_; ///< Hold # clusters vs time.
-    double minimum_; ///< Value of first bin 
-    int debug_;
-    int ensembleNum_;
 };
 #endif

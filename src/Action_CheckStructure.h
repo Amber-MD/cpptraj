@@ -7,10 +7,8 @@
 class Action_CheckStructure: public Action, ImagedAction {
   public:
     Action_CheckStructure();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_CheckStructure(); }
     static void Help();
-
     ~Action_CheckStructure();
     // These are made public for use in other actions (e.g. Action_DihedralScan)
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,

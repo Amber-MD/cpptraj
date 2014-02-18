@@ -4,16 +4,14 @@
 class Action_Scale : public Action {
   public:
     Action_Scale();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Scale(); }
     static void Help();
-
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     AtomMask mask_;
     double sx_;

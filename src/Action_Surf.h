@@ -11,16 +11,15 @@
 class Action_Surf: public Action {
   public:
     Action_Surf();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Surf(); }
     static void Help();
-
+  private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
-  private:
+
     DataSet* surf_;
     AtomMask Mask1_;
     AtomMask atomi_neighborMask_;

@@ -1496,6 +1496,7 @@ const Command::Token Command::Commands[] = {
 //  { ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, AddAction },
   { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
+  { ACTION, "dssp", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
   { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
   { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
   { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },

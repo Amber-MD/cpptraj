@@ -6,11 +6,8 @@
 class Action_RunningAvg: public Action {
   public:
     Action_RunningAvg();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_RunningAvg(); }
     static void Help();
-
-    void Print() {}
   private:
     int Nwindow_;               ///< Size of the running average
     double d_Nwindow_;          ///< For frame division (avoids constant recasting)
@@ -25,5 +22,6 @@ class Action_RunningAvg: public Action {
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 };
 #endif  

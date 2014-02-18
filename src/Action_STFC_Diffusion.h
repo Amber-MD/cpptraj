@@ -7,10 +7,8 @@
 class Action_STFC_Diffusion : public Action {
   public:
     Action_STFC_Diffusion();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_STFC_Diffusion(); }
     static void Help();
-
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);

@@ -4,11 +4,8 @@
 class Action_Principal : public Action {
   public:
     Action_Principal();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Principal(); }
     static void Help();
-
-    void Print() {}
   private:
     bool doRotation_;
     bool useMass_;
@@ -20,5 +17,6 @@ class Action_Principal : public Action {
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 };
 #endif
