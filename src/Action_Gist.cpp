@@ -120,7 +120,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     griddim_[1] = actionArgs.getNextInteger(-1);
     griddim_[2] = actionArgs.getNextInteger(-1);
   } else {
-    mprintf("Warning: No grid dimension values specified using default\n");
+    mprintf("Warning: No grid dimension values specified, using default\n");
     griddim_[0] = 40;
     griddim_[1] = 40;
     griddim_[2] = 40;
@@ -132,7 +132,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if(doOrder_)
     mprintf("\tDo Order calculation\n");
   else
-    mprintf("\tDkip Order calculation\n");
+    mprintf("\tSkip Order calculation\n");
   if(doEij_)
     mprintf("\tCompute and print water-water Eij matrix\n");
   else
@@ -152,11 +152,11 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   mprintf("\tGIST grid center: %5.3f %5.3f %5.3f\n", gridcntr_[0],gridcntr_[1],gridcntr_[2]);
   mprintf("\tGIST grid dimension: %d %d %d \n", griddim_[0],griddim_[1],griddim_[2]);
   mprintf("\tGIST grid spacing: %5.3f A^3\n", gridspacn_);
-  mprintf("#Please cite these papers if you use GIST results in a publication:\n"
-          "#    Crystal Nguyen, Michael K. Gilson, and Tom Young, arXiv:1108.4876v1 (2011)\n"
-          "#    Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
-          "#      J. Chem. Phys. 137, 044101 (2012)\n"
-          "#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n");
+  mprintf("\t#Please cite these papers if you use GIST results in a publication:\n"
+          "\t#    Crystal Nguyen, Michael K. Gilson, and Tom Young, arXiv:1108.4876v1 (2011)\n"
+          "\t#    Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
+          "\t#      J. Chem. Phys. 137, 044101 (2012)\n"
+          "\t#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n");
   gist_init_.Stop();
   return Action::OK;
 }
@@ -307,13 +307,13 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
 // Action_Gist::DoAction()
 Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   NFRAME_ ++;
-  if (NFRAME_==1) mprintf("GIST Action \n");
+//  if (NFRAME_==1) mprintf("GIST Action \n");
 
   // Simulation box length - assign here because it can vary for npt simulation
   Lx_ = currentFrame->BoxCrd().BoxX();
   Ly_ = currentFrame->BoxCrd().BoxY();
   Lz_ = currentFrame->BoxCrd().BoxZ();
-  if (NFRAME_==1) mprintf("GIST Action box length: %f %f %f \n", Lx_, Ly_, Lz_);
+//  if (NFRAME_==1) mprintf("GIST Action box length: %f %f %f \n", Lx_, Ly_, Lz_);
   
   int solventMolecules = CurrentParm_->Nsolvent();
   resnum_ = 0;
@@ -343,9 +343,9 @@ Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame**
   if(doOrder_) Order( currentFrame );
   
   //Debug
-  if (NFRAME_==1) mprintf("GIST  DoAction:  Found %d solvent residues \n", resnum_);
+//  if (NFRAME_==1) mprintf("GIST  DoAction:  Found %d solvent residues \n", resnum_);
   if (solventMolecules != resnum_) {
-    mprinterr("GIST  DoAction  Error: No solvent molecules don't match %d %d\n", solventMolecules, resnum_);
+    mprinterr("GIST  DoAction Error: Number of solvent molecules don't match %d %d\n", solventMolecules, resnum_);
   }
   
   return Action::OK;
@@ -532,7 +532,7 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
   if ((*CurrentParm_)[i+1].Element() != Atom::HYDROGEN || 
       (*CurrentParm_)[i+2].Element() != Atom::HYDROGEN)
   {
-    mprintf("Warning: GIST: First coordinates do not belong to oxygen atom (%s, %s)\n",
+    mprintf("Warning: GIST: second and third coordinates do not belong to hydrogen atoms (%s, %s)\n",
             (*CurrentParm_)[i+1].ElementName(), (*CurrentParm_)[i+2].ElementName());
   } 
   
@@ -595,9 +595,9 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
     if (!(theta_<=Constants::PI && theta_>=0 && 
           phi_<=Constants::TWOPI && phi_>=0 && psi_<=Constants::TWOPI && psi_>=0))
     {
-      mprintf("GIST: angles: %f %f %f\n", theta_, phi_, psi_);
-      H1_wat.Print("H1_wat");
-      H2_wat.Print("H2_wat");
+//      mprintf("GIST: angles: %f %f %f\n", theta_, phi_, psi_);
+//      H1_wat.Print("H1_wat");
+//      H2_wat.Print("H2_wat");
       mprinterr("Error: Euler: angles don't fall into range.\n");
       //break; 
     }
@@ -641,7 +641,7 @@ void Action_Gist::Dipole(Frame *frameIn) {
 
 // Action_Gist::Order() 
 void Action_Gist::Order(Frame *frameIn) {
-  if (NFRAME_==1) mprintf("GIST Order Parameter \n");
+//  if (NFRAME_==1) mprintf("GIST Order Parameter \n");
   int i;
   double cos, sum, r1, r2, rij2, x[5], y[5], z[5];
   Vec3 O_wat1, O_wat2, O_wat3, v1, v2;
@@ -797,7 +797,7 @@ void Action_Gist::Print() {
   }
   Eswtot *= Vvox_;
   Ewwtot *= Vvox_;
-  mprintf("Total water-host energy of the grid: Esw = %9.5f kcal/mol\n", Eswtot);
+  mprintf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", Eswtot);
   mprintf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n", Ewwtot);
 
   // Print the gist info file
