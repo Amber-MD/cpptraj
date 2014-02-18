@@ -13,7 +13,7 @@ class Action_Vector : public Action {
     enum vectorMode {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
       DIPOLE,    BOX,         MASK,        IRED,
-      CORRPLANE, CENTER 
+      CORRPLANE, CENTER,      BOX_X,       BOX_Y,       BOX_Z
     };
     static const char* ModeString[];
 
@@ -29,13 +29,15 @@ class Action_Vector : public Action {
     void Dipole(Frame const&);
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
+    void UnitCell(Box const&);
 
     int ensembleNum_;
     DataSet_Vector* Vec_;   ///< Hold vector values
     DataSet* Magnitude_;    ///< Hold vector magnitudes if requested
     double* vcorr_;         ///< Temp. space for calculating CorrPlane
     vectorMode mode_;       ///< Vector calculation mode
-    bool ptrajoutput_;      ///< If true output in ptraj format 
+    bool ptrajoutput_;      ///< If true output in ptraj format
+    bool needBoxInfo_;      ///< If true box info required. 
     Topology* CurrentParm_; ///< Current topology (for dipole)
     AtomMask mask_;
     AtomMask mask2_;

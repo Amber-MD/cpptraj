@@ -14,20 +14,23 @@ Action_Vector::Action_Vector() :
   Magnitude_(0),
   vcorr_(0),
   ptrajoutput_(false),
+  needBoxInfo_(false),
   CurrentParm_(0)
 {}
 
 void Action_Vector::Help() {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
           "\t[magnitude] [ired] [trajout <file> [trajfmt <format>] [parmout <file>]]\n"
-          "\t<Type> = { mask | principal [x|y|z] | dipole | box | center | corrplane }\n"
+          "\t<Type> = { mask | principal [x|y|z] | dipole | box | center | corrplane |\n"
+          "             ucellx | ucelly | ucellz }\n"
           "  Calculate the specified coordinate vector.\n"
           "    mask: (Default) Vector from <mask1> to <mask2>.\n"
           "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n"
           "    dipole: Dipole and center of mass of the atoms specified in <mask1>\n"
           "    box: (No mask needed) Store the box lengths of the trajectory.\n"
           "    center: Store the center of mass of atoms in <mask1>.\n"
-          "    corrplane: Vector perpendicular to plane through the atoms in <mask1>.\n");
+          "    corrplane: Vector perpendicular to plane through the atoms in <mask1>.\n"
+          "    ucell{x|y|z}: (No mask needed) Store specified unit cell vector.\n");
 }
 
 // DESTRUCTOR
@@ -38,7 +41,7 @@ Action_Vector::~Action_Vector() {
 const char* Action_Vector::ModeString[] = {
   "NO_OP", "Principal X", "Principal Y", "Principal Z",
   "Dipole", "Box", "Mask", "Ired",
-  "CorrPlane", "Center"
+  "CorrPlane", "Center", "Unit cell X", "Unit cell Y", "Unit cell Z"
 };
 
 static Action::RetType WarnDeprecated() {
@@ -69,7 +72,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprinterr("Error: 'ptrajoutput' and 'magnitude' are incompatible.\n");
     return Action::ERR;
   }
-  // Acceptable args: principal [x | y | z], dipole, box, corrplane, 
+  needBoxInfo_ = false;
   // Deprecated: corrired, corr, ired
   if ( actionArgs.hasKey("principal") ) {
     mode_ = PRINCIPAL_X;
@@ -89,13 +92,21 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else if (actionArgs.hasKey("corr"))
     return WarnDeprecated();
   else if (actionArgs.hasKey("mask"))
-    mode_ = MASK; 
+    mode_ = MASK;
+  else if (actionArgs.hasKey("ucellx"))
+    mode_ = BOX_X;
+  else if (actionArgs.hasKey("ucelly"))
+    mode_ = BOX_Y;
+  else if (actionArgs.hasKey("ucellz"))
+    mode_ = BOX_Z; 
   else
     mode_ = MASK;
+  if (mode_ == BOX || mode_ == BOX_X || mode_ == BOX_Y || mode_ == BOX_Z)
+    needBoxInfo_ = true;
   // Check if IRED vector
   bool isIred = actionArgs.hasKey("ired"); 
   // Vector Mask
-  if (mode_ != BOX)
+  if (!needBoxInfo_)
     mask_.SetMaskString( actionArgs.GetMaskNext() );
   // Get second mask if necessary
   if (mode_ == MASK) {
@@ -127,7 +138,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf(" (with magnitude)");
   if (isIred)
     mprintf(", IRED");
-  if (mode_ != BOX)
+  if (!needBoxInfo_)
      mprintf(", mask [%s]", mask_.MaskString());
   if (mode_ == MASK)
     mprintf(", second mask [%s]", mask2_.MaskString());
@@ -152,7 +163,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 
 // Action_Vector::Setup()
 Action::RetType Action_Vector::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (mode_ == BOX) {
+  if (needBoxInfo_) {
     // Check for box info
     if (currentParm->BoxType() == Box::NOBOX) {
       mprinterr("Error: vector box: Parm %s does not have box information.\n",
@@ -352,6 +363,17 @@ void Action_Vector::CorrPlane(Frame const& currentFrame) {
   Vec_->AddVxyz(VXYZ, CXYZ);
 }
 
+void Action_Vector::UnitCell(Box const& box) {
+  Matrix_3x3 ucell, recip;
+  box.ToRecip( ucell, recip );
+  switch ( mode_ ) {
+    case BOX_X: Vec_->AddVxyz( ucell.Row1() ); break;
+    case BOX_Y: Vec_->AddVxyz( ucell.Row2() ); break;
+    case BOX_Z: Vec_->AddVxyz( ucell.Row3() ); break;
+    default: return;
+  }
+}
+
 // Action_Vector::DoAction()
 Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   switch ( mode_ ) {
@@ -362,7 +384,10 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
     case PRINCIPAL_Y :
     case PRINCIPAL_Z : Principal(*currentFrame); break;
     case CORRPLANE   : CorrPlane(*currentFrame); break;
-    case BOX         : Vec_->AddVxyz( currentFrame->BoxCrd().Lengths() ); break; 
+    case BOX         : Vec_->AddVxyz( currentFrame->BoxCrd().Lengths() ); break;
+    case BOX_X       : 
+    case BOX_Y       : 
+    case BOX_Z       : UnitCell( currentFrame->BoxCrd() ); break; 
     default          : return Action::ERR; // NO_OP
   } // END switch over vectorMode
   if (Magnitude_ != 0) {
