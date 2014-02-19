@@ -115,10 +115,6 @@ int Trajin_Single::ReadTrajFrame( int currentFrame, Frame& frameIn ) {
     return 1;
   if (velio_ != 0 && velio_->readVelocity(currentFrame, frameIn))
     return 1;
-  // Check if coords in frame are valid.
-  if (frameIn.CheckCoordsInvalid())
-    mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
-            currentFrame+1);
   //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
   return 0;
 }

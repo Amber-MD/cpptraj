@@ -1,7 +1,6 @@
 // DataSet_integer
 #include "DataSet_integer.h"
 #include "MpiRoutines.h"
-#include "CpptrajStdio.h"
 
 // DataSet_integer::Allocate()
 /** Reserve space in the Data and Frames arrays. */

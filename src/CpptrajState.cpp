@@ -364,11 +364,17 @@ int CpptrajState::RunEnsemble() {
 #       endif
           // Since Frame can be modified by actions, save original and use CurrentFrame
           Frame* CurrentFrame = &(FrameEnsemble[member]);
-          // Perform Actions on Frame
-          bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
-          // Do Output
-          if (!suppress_output) 
-            TrajoutEnsemble[pos].WriteTrajout(actionSet, CurrentParm, CurrentFrame);
+          bool badFrame = CurrentFrame->CheckCoordsInvalid();
+          if (badFrame)
+            rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
+                    member, mtraj->CurrentFrame());
+          if (!badFrame || !skipBadFrames_) {
+            // Perform Actions on Frame
+            bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
+            // Do Output
+            if (!suppress_output) 
+              TrajoutEnsemble[pos].WriteTrajout(actionSet, CurrentParm, CurrentFrame);
+          }
 #       ifndef MPI
         } // END loop over ensemble
 #       endif
@@ -509,25 +515,32 @@ int CpptrajState::RunNormal() {
     while ( (*traj)->GetNextFrame(TrajFrame) )
 #   endif
     {
-      // Since Frame can be modified by actions, save original and use CurrentFrame
-      Frame* CurrentFrame = &TrajFrame;
-      // Perform Actions on Frame
-#     ifdef TIMER
-      actions_time.Start();
-#     endif
-      bool suppress_output = actionList_.DoActions(&CurrentFrame, actionSet);
-#     ifdef TIMER
-      actions_time.Stop();
-#     endif
-      // Do Output
-      if (!suppress_output) {
+      // Check that coords are valid.
+      bool badFrame = TrajFrame.CheckCoordsInvalid();
+      if (badFrame)
+        mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
+                (*traj)->CurrentFrame());
+      if (!badFrame || !skipBadFrames_) {
+        // Since Frame can be modified by actions, save original and use CurrentFrame
+        Frame* CurrentFrame = &TrajFrame;
+        // Perform Actions on Frame
 #       ifdef TIMER
-        trajout_time.Start();
+        actions_time.Start();
 #       endif
-        trajoutList_.WriteTrajout(actionSet, CurrentParm, CurrentFrame);
+        bool suppress_output = actionList_.DoActions(&CurrentFrame, actionSet);
 #       ifdef TIMER
-        trajout_time.Stop();
+        actions_time.Stop();
 #       endif
+        // Do Output
+        if (!suppress_output) {
+#         ifdef TIMER
+          trajout_time.Start();
+#         endif
+          trajoutList_.WriteTrajout(actionSet, CurrentParm, CurrentFrame);
+#         ifdef TIMER
+          trajout_time.Stop();
+#         endif
+        }
       }
       // Increment frame counter
       ++actionSet;

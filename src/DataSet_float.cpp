@@ -1,7 +1,6 @@
 // DataSet_float
 #include "DataSet_float.h"
 #include "MpiRoutines.h"
-#include "CpptrajStdio.h"
 
 // DataSet_float::Allocate()
 /** Reserve space in the Data and Frames arrays. */

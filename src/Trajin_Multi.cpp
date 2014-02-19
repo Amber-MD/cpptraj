@@ -431,10 +431,6 @@ int Trajin_Multi::ReadTrajFrame( int currentFrame, Frame& frameIn ) {
               "Error:   for this ensemble.\n");
     return 1; 
   }
-  // Check if coords in frame are valid.
-  if (frameIn.CheckCoordsInvalid())
-    mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
-            currentFrame+1);
   return 0;
 }
 

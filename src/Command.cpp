@@ -310,6 +310,10 @@ static void Help_NoExitOnError() {
           "  in interactive mode.\n");
 }
 
+static void Help_SkipBadFrames() {
+  mprintf("  Do not process bad frames during a run.\n");
+}
+
 static void Help_GenerateAmberRst() {
   mprintf("\t<mask1> <mask2> [<mask3>] [<mask4>]\n"
           "\tr1 <r1> r2 <r2> r3 <r3> r4 <r4> rk2 <rk2> rk3 <rk3>\n"
@@ -1065,6 +1069,14 @@ Command::RetType NoExitOnError(CpptrajState& State, ArgList& argIn, Command::All
   return Command::C_OK;
 }
 
+/// Tell CpptrajState to skip bad frames.
+Command::RetType SkipBadFrames(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  State.SetSkipBadFrames();
+  mprintf("\tCorrupt frames will be skipped.\n");
+  return Command::C_OK;
+}
+
 /// Tell CpptrajState not to use a progress bar during Run.
 Command::RetType NoProgress(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1436,6 +1448,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
   { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
   { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
+  { GENERAL, "skipbadframes", 0, Help_SkipBadFrames,   SkipBadFrames   },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "xmgrace",       0, Help_System,          SystemCmd       },
