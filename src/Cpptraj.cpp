@@ -74,7 +74,8 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
 }
 
 /** Process a mask from the command line. */
-int Cpptraj::ProcessMask( Sarray const& topFiles, std::string const& maskexpr,
+int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
+                          std::string const& maskexpr,
                           bool verbose, bool residue ) const
 {
   if (topFiles.empty()) {
@@ -84,6 +85,11 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, std::string const& maskexpr,
   ParmFile pfile;
   Topology parm;
   if (pfile.ReadTopology(parm, topFiles[0], State_.Debug())) return 1;
+  if (!refFiles.empty()) {
+    ReferenceFrame refFrame;
+    if (refFrame.LoadRef( refFiles[0], &parm, State_.Debug())) return 1;
+    parm.SetReferenceCoords( *(refFrame.Coord()) );
+  }
   if (!verbose) {
     AtomMask tempMask( maskexpr );
     if (parm.SetupIntegerMask( tempMask )) return 1;
@@ -201,19 +207,19 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       inputFiles.push_back( argv[++i] );
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Parse mask string, print selected atom #s
-      if (ProcessMask( topFiles, std::string(argv[++i]), false, false )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, false )) return ERROR;
       return SILENT_EXIT;
     } else if (arg == "-mr" && i+1 != argc) {
       // -mr: Parse mask string, print selected res #s
-      if (ProcessMask( topFiles, std::string(argv[++i]), false, true )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, true )) return ERROR;
       return SILENT_EXIT;
     } else if (arg == "--mask" && i+1 != argc) {
       // --mask: Parse mask string, print selected atom details
-      if (ProcessMask( topFiles, std::string(argv[++i]), true, false )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, false )) return ERROR;
       return SILENT_EXIT;
     } else if (arg == "--resmask" && i+1 != argc) {
       // --resmask: Parse mask string, print selected residue details
-      if (ProcessMask( topFiles, std::string(argv[++i]), true, true )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, true )) return ERROR;
       return SILENT_EXIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
