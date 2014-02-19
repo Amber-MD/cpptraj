@@ -367,7 +367,7 @@ int CpptrajState::RunEnsemble() {
           bool badFrame = CurrentFrame->CheckCoordsInvalid();
           if (badFrame)
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
-                    member, mtraj->CurrentFrame()+1);
+                    member, mtraj->CurrentFrame() - mtraj->Offset() + 1);
           if (!badFrame || !skipBadFrames_) {
             // Perform Actions on Frame
             bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
@@ -519,7 +519,7 @@ int CpptrajState::RunNormal() {
       bool badFrame = TrajFrame.CheckCoordsInvalid();
       if (badFrame)
         mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
-                (*traj)->CurrentFrame()+1);
+                (*traj)->CurrentFrame() - (*traj)->Offset() + 1);
       if (!badFrame || !skipBadFrames_) {
         // Since Frame can be modified by actions, save original and use CurrentFrame
         Frame* CurrentFrame = &TrajFrame;
