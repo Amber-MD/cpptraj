@@ -17,7 +17,7 @@ Action_CheckStructure::Action_CheckStructure() :
 
 void Action_CheckStructure::Help() {
   mprintf("\t[<mask1>] [reportfile <report>] [noimage] [skipbadframes]\n"
-          "\t[offset <offset>] [cut <cut>] [nobondcheck]\n"
+          "\t[offset <offset>] [cut <cut>] [nobondcheck] [silent]\n"
           "  Check frames for atomic overlaps and unusual bond lengths\n");
 }
 
@@ -38,7 +38,6 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
   bondcheck_ = !actionArgs.hasKey("nobondcheck");
   skipBadFrames_ = actionArgs.hasKey("skipbadframes");
-  // Hidden option, for use when used by other actions
   silent_ = actionArgs.hasKey("silent");
 
   // Get Masks
@@ -61,11 +60,13 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   }
   if (skipBadFrames_)
     mprintf("\tFrames with problems will be skipped.\n");
+  if (silent_)
+    mprintf("\tWarning messages will be suppressed.\n");
   // Square the non-bond cutoff
   nonbondcut2_ = nonbondcut * nonbondcut;
-
-  if (outfile_.OpenEnsembleWrite(reportFile, DSL->EnsembleNum()))
-    return Action::ERR;
+  if (!silent_)
+    if (outfile_.OpenEnsembleWrite(reportFile, DSL->EnsembleNum()))
+      return Action::ERR;
 
   return Action::OK;
 }
@@ -210,17 +211,19 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
       double Dist = sqrt(bondL_[idx].D2);
       if (problem == BOND || problem == BOTH) {
         ++Nproblems;
-        outfile_.Printf(
-                "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
-                atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
-                atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
+        if (outfile_.IsOpen())
+          outfile_.Printf(
+                  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
+                  atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
+                  atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
       }
       if (problem == OVERLAP || problem == BOTH) {
         ++Nproblems;
-        outfile_.Printf(
-                "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
-                atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(),
-                atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
+        if (outfile_.IsOpen())
+          outfile_.Printf(
+                  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
+                  atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(),
+                  atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
       }
     }
   }
@@ -240,10 +243,11 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
         // req has been precalced to (req + bondoffset)^2
         if (D2 > currentBond->req) {
           ++Nproblems;
-          outfile_.Printf(
-                  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
-                  atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
-                  atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
+          if (outfile_.IsOpen())
+            outfile_.Printf(
+                    "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
+                    atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
+                    atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
         }
         // Next bond
         ++currentBond;
@@ -251,10 +255,11 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
       // Always check overlap
       if (D2 < nonbondcut2_) {
         ++Nproblems;
-        outfile_.Printf(
-                "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
-                atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
-                atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
+        if (outfile_.IsOpen())
+          outfile_.Printf(
+                  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
+                  atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
+                  atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
       }
     } // END second loop over mask atoms
   } // END first loop over mask atoms
