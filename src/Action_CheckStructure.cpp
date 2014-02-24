@@ -227,11 +227,10 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
 #else
   // Begin loop
   BondListType::const_iterator currentBond = bondL_.begin();
-  int lastidx = Mask1_.Nselected() - 1;
-  for (int maskidx1 = 0; maskidx1 < lastidx; maskidx1++) {
-    int atom1 = Mask1_[maskidx1];
-    for (int maskidx2 = maskidx1 + 1; maskidx2 < Mask1_.Nselected(); maskidx2++) {
-      int atom2 = Mask1_[maskidx2];
+  for (AtomMask::const_iterator a1 = Mask1_.begin(); a1 != Mask1_.end(); ++a1) {
+    int atom1 = *a1;
+    for (AtomMask::const_iterator a2 = a1 + 1; a2 != Mask1_.end(); ++a2) {
+      int atom2 = *a2;
       // Get distance^2
       double D2 = DIST2(currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
                         ImageType(), currentFrame.BoxCrd(), ucell, recip);
@@ -239,9 +238,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
       if ( (atom1==currentBond->atom1) && (atom2==currentBond->atom2) ) {
         // Atoms bonded, check bond length.
         // req has been precalced to (req + bondoffset)^2
-        double bondmax = currentBond->req;
-        // Check for long bond length; distance2 > (req+bondoffset)^2
-        if (D2 > bondmax) {
+        if (D2 > currentBond->req) {
           ++Nproblems;
           outfile_.Printf(
                   "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
