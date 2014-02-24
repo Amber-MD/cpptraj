@@ -3,6 +3,7 @@
 #include <algorithm> // sort
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
+#include "Timer.h" // DEBUG
 
 // CONSTRUCTOR
 Action_CheckStructure::Action_CheckStructure() : 
@@ -71,20 +72,22 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
 
 /** Set up bond arrays in a sorted list for easy access during loop
   * over all pairs of atoms. Only use bonds for which both atoms are in
-  * the mask. It is expected that BndLst has 2 atom indices (i.e.
-  * atom# * 3) followed by parameter index that starts from 1.
+  * the mask.
   */
-void Action_CheckStructure::SetupBondlist(BondArray const& BndLst, BondParmArray const& Parm) {
+void Action_CheckStructure::SetupBondlist(BondArray const& BndLst, BondParmArray const& Parm,
+                                          AtomMask const& cMask)
+{
   bond_list bnd;
   for (BondArray::const_iterator bondatom = BndLst.begin();
                                  bondatom != BndLst.end(); ++bondatom) 
   {
     bnd.atom1 = bondatom->A1();
-    if ( !Mask1_.AtomInCharMask(bnd.atom1) ) continue;
+    if ( !cMask.AtomInCharMask(bnd.atom1) ) continue;
     bnd.atom2 = bondatom->A2();
-    if ( !Mask1_.AtomInCharMask(bnd.atom2) ) continue;
+    if ( !cMask.AtomInCharMask(bnd.atom2) ) continue;
     if ( bondatom->Idx() < 0 ) // sanity check
-      mprinterr("Internal Error: Bond parameters not present.\n");
+      mprintf("Warning: Bond parameters not present for atoms %i-%i, skipping.\n",
+              bondatom->A1()+1, bondatom->A2()+1);
     else {
       bnd.req = Parm[ bondatom->Idx() ].Req() + bondoffset_;
       bnd.req *= bnd.req; // Store squared values.
@@ -101,40 +104,40 @@ void Action_CheckStructure::SetupBondlist(BondArray const& BndLst, BondParmArray
   * (req + bondoffset)^2 for easy comparison with calculated distance^2.
   */
 Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** parmAddress) {
-  unsigned int totalbonds;
+  unsigned int totalbonds = 0;
 
-  CurrentParm_ = currentParm;      
-  // Initially set up character mask to easily determine whether
-  // both atoms of a bond are in the mask.
-  if ( currentParm->SetupCharMask(Mask1_) ) return Action::ERR;
+  CurrentParm_ = currentParm;
+  SetupImaging( currentParm->BoxType() );
+  bondL_.clear();
+  // Setup integer mask.
+  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
   if (Mask1_.None()) {
-    mprintf("    Error: CheckStructure::setup: Mask has no atoms.\n");
+    mprintf("Warning: Mask has no atoms.\n");
     return Action::ERR;
   }
-
-  SetupImaging( currentParm->BoxType() );
-
   // Check bonds
-  bondL_.clear();
-    totalbonds = 0;
   if (bondcheck_) {
-    SetupBondlist( currentParm->Bonds(),  currentParm->BondParm() );
-    SetupBondlist( currentParm->BondsH(), currentParm->BondParm() );
+    // Set up character mask to easily determine whether
+    // both atoms of a bond are in the mask.
+    AtomMask cMask = Mask1_;
+    cMask.ConvertToCharMask();
+    SetupBondlist( currentParm->Bonds(),  currentParm->BondParm(), cMask );
+    SetupBondlist( currentParm->BondsH(), currentParm->BondParm(), cMask );
     if (bondL_.empty())
       mprintf("Warning: No bond info in parm %s, will not check bonds.\n",CurrentParm_->c_str());
-  }
-  if (!bondL_.empty()) {
-    // Since in the loop atom1 always < atom2, enforce this with parameters.
-    // Sort by atom1, then by atom2
-    std::sort( bondL_.begin(), bondL_.end(), bond_list_cmp() );
-    // DEBUG
-    if (debug_>0) {
-      mprintf("DEBUG:\tSorted bond list:\n");
-      for (std::vector<bond_list>::iterator it = bondL_.begin(); it!=bondL_.end(); it++)
-        mprintf("\t%8i %8i %6.2lf\n",(*it).atom1,(*it).atom2, (*it).req);
+    else {
+      // Since in the loop atom1 always < atom2, enforce this with parameters.
+      // Sort by atom1, then by atom2
+      std::sort( bondL_.begin(), bondL_.end(), bond_list_cmp() );
+      // DEBUG
+      if (debug_>0) {
+        mprintf("DEBUG:\tSorted bond list:\n");
+        for (BondListType::const_iterator it = bondL_.begin(); it!=bondL_.end(); it++)
+          mprintf("\t%8i %8i %6.2lf\n", it->atom1, it->atom2, it->req);
+      }
     }
-    totalbonds = bondL_.size();
   }
+  totalbonds = bondL_.size();
   // Insert a placeholder. Since atoms -1 -1 dont exist the bond will never
   // actually be accessed. If bond info is present this serves to indicate 
   // to the pair loop there are no more bonds to check. If no bond info is
@@ -143,12 +146,28 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
   bnd.atom1 = -1;
   bnd.atom2 = -1;
   bondL_.push_back(bnd);
-      
-  // Reset to integer mask.
-  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
+# ifdef _OPENMP
+  BondListType listOfBonds = bondL_;
+  bondL_.clear();
+  BondListType::const_iterator currentBond = listOfBonds.begin();
+  // Loop over all pairs
+  bnd.D2 = 0.0;
+  bnd.problem = 0;
+  for (AtomMask::const_iterator atom1 = Mask1_.begin(); atom1 != Mask1_.end(); ++atom1)
+    for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != Mask1_.end(); ++atom2)
+    {
+      bnd.atom1 = *atom1;
+      bnd.atom2 = *atom2;
+      bnd.req = -1.0;
+      if ( (*atom1==currentBond->atom1) && (*atom2==currentBond->atom2) )
+        // Atoms bonded, set bond eq length.
+        bnd.req = (currentBond++)->req;
+      bondL_.push_back( bnd );
+    }
+# endif
   // Print imaging info for this parm
-  mprintf("\tChecking atoms in '%s' (%i atoms, %u bonds)",Mask1_.MaskString(), Mask1_.Nselected(),
-          totalbonds);
+  mprintf("\tChecking atoms in '%s' (%i atoms, %u bonds)",Mask1_.MaskString(),
+          Mask1_.Nselected(), totalbonds);
   if (ImagingEnabled())
     mprintf(", imaging on");
   else
@@ -161,12 +180,71 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
 int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
   Matrix_3x3 ucell, recip;
   int Nproblems = 0;
-  // Start bond list 
-  std::vector<bond_list>::iterator currentBond = bondL_.begin();
   // Get imaging info for non-orthogonal box
   if (ImageType()==NONORTHO) currentFrame.BoxCrd().ToRecip(ucell, recip);
+#ifdef _OPENMP
+  Timer firstloop, secondloop;
+  static const int NONE = 0; //FIXME Use bitmasks?
+  static const int OVERLAP = 1;
+  static const int BOND = 2;
+  static const int BOTH = 3;
+  int idx, bondLsize;
+  bondLsize = (int)bondL_.size();
+  firstloop.Start();
+# ifdef _OPENMP
+# pragma omp parallel private(idx) reduction(+: Nproblems)
+  {
+# pragma omp for
+# endif
+    for (idx = 0; idx < bondLsize; ++idx) {
+      bondL_[idx].problem = NONE;
+      bondL_[idx].D2 = DIST2(currentFrame.XYZ(bondL_[idx].atom1),
+                             currentFrame.XYZ(bondL_[idx].atom2),
+                             ImageType(), currentFrame.BoxCrd(), ucell, recip);
+      if (bondL_[idx].req > 0.0) { // Check bond length
+        if (bondL_[idx].D2 > bondL_[idx].req) {
+          ++Nproblems;
+          bondL_[idx].problem = BOND;
+        }
+      }
+      if (bondL_[idx].D2 < nonbondcut2_) { // Always check overlap
+        ++Nproblems;
+        bondL_[idx].problem += OVERLAP;
+      }
+    }
+# ifdef _OPENMP
+  } // END pragma OMP parallel
+  firstloop.Stop();
+  secondloop.Start();
+# endif
+  // Second loop for writing out results sequentially
+  for (idx = 0; idx < bondLsize; ++idx) {
+    int problem = bondL_[idx].problem;
+    if (problem > NONE) {
+      int atom1 = bondL_[idx].atom1;
+      int atom2 = bondL_[idx].atom2;
+      double Dist = sqrt(bondL_[idx].D2);
+      if (problem == BOND || problem == BOTH)
+        outfile_.Printf(
+                "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
+                atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
+                atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
+      if (problem == OVERLAP || problem == BOTH) 
+      outfile_.Printf(
+              "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
+              atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(),
+              atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
+    }
+  }
+  secondloop.Stop();
+  firstloop.WriteTiming(1,"FirstLoop");
+  secondloop.WriteTiming(1, "SecondLoop");
+#else
   // Begin loop
+  BondListType::const_iterator currentBond = bondL_.begin();
   int lastidx = Mask1_.Nselected() - 1;
+  Timer firstloop;
+  firstloop.Start();
   for (int maskidx1 = 0; maskidx1 < lastidx; maskidx1++) {
     int atom1 = Mask1_[maskidx1];
     for (int maskidx2 = maskidx1 + 1; maskidx2 < Mask1_.Nselected(); maskidx2++) {
@@ -200,6 +278,9 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
       }
     } // END second loop over mask atoms
   } // END first loop over mask atoms
+  firstloop.Stop();
+  firstloop.WriteTiming(1, "Loop");
+#endif
   return Nproblems;
 }
 
