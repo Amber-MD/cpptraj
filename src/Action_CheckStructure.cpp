@@ -3,7 +3,6 @@
 #include <algorithm> // sort
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
-#include "Timer.h" // DEBUG
 
 // CONSTRUCTOR
 Action_CheckStructure::Action_CheckStructure() : 
@@ -52,16 +51,17 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
     mprintf(", output to %s",reportFile.c_str());
   mprintf(".\n");
   if (!bondcheck_) {
-    mprintf("\tChecking inter-atom distances only.\n");
+    mprintf("\tChecking inter-atomic distances only.\n");
     mprintf("\tWarnings will be printed for non-bond distances < %.2f Ang.\n", nonbondcut);
   } else {
-    mprintf("\tChecking inter-atom and bond distances.\n");
+    mprintf("\tChecking inter-atomic and bond distances.\n");
     mprintf("\tWarnings will be printed for bond lengths > eq + %.2f Ang\n",
             bondoffset_);
     mprintf("\tand non-bond distances < %.2f Ang.\n",nonbondcut);
-    if (skipBadFrames_)
-      mprintf("\tFrames with problems will be skipped.\n");
   }
+  if (skipBadFrames_)
+    mprintf("\tFrames with problems will be skipped.\n");
+  // Square the non-bond cutoff
   nonbondcut2_ = nonbondcut * nonbondcut;
 
   if (outfile_.OpenEnsembleWrite(reportFile, DSL->EnsembleNum()))
@@ -115,9 +115,8 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
     mprintf("Warning: Mask has no atoms.\n");
     return Action::ERR;
   }
-  // Check bonds
   if (bondcheck_) {
-    // Set up character mask to easily determine whether
+    // Check bonds. Set up character mask to easily determine whether
     // both atoms of a bond are in the mask.
     AtomMask cMask = Mask1_;
     cMask.ConvertToCharMask();
@@ -138,10 +137,10 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
     }
   }
   totalbonds = bondL_.size();
-  // Insert a placeholder. Since atoms -1 -1 dont exist the bond will never
-  // actually be accessed. If bond info is present this serves to indicate 
-  // to the pair loop there are no more bonds to check. If no bond info is
-  // present this serves to skip the bond check entirely.
+  // Insert a placeholder bond; since atom -1 does not exist, this bond will
+  // never actually be accessed. If bond info is present this serves to 
+  // indicate to the pair loop there are no more bonds to check. If no bond 
+  // info is present this serves to skip the bond check entirely.
   bond_list bnd; 
   bnd.atom1 = -1;
   bnd.atom2 = -1;
@@ -150,7 +149,7 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
   BondListType listOfBonds = bondL_;
   bondL_.clear();
   BondListType::const_iterator currentBond = listOfBonds.begin();
-  // Loop over all pairs
+  // Set up all possible pairs for checking in parallel.
   bnd.D2 = 0.0;
   bnd.problem = 0;
   for (AtomMask::const_iterator atom1 = Mask1_.begin(); atom1 != Mask1_.end(); ++atom1)
@@ -183,40 +182,25 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
   // Get imaging info for non-orthogonal box
   if (ImageType()==NONORTHO) currentFrame.BoxCrd().ToRecip(ucell, recip);
 #ifdef _OPENMP
-  Timer firstloop, secondloop;
-  static const int NONE = 0; //FIXME Use bitmasks?
-  static const int OVERLAP = 1;
-  static const int BOND = 2;
-  static const int BOTH = 3;
+  enum ProblemType { NONE = 0, OVERLAP, BOND, BOTH };
   int idx, bondLsize;
   bondLsize = (int)bondL_.size();
-  firstloop.Start();
-# ifdef _OPENMP
 # pragma omp parallel private(idx) reduction(+: Nproblems)
   {
 # pragma omp for
-# endif
     for (idx = 0; idx < bondLsize; ++idx) {
       bondL_[idx].problem = NONE;
       bondL_[idx].D2 = DIST2(currentFrame.XYZ(bondL_[idx].atom1),
                              currentFrame.XYZ(bondL_[idx].atom2),
                              ImageType(), currentFrame.BoxCrd(), ucell, recip);
       if (bondL_[idx].req > 0.0) { // Check bond length
-        if (bondL_[idx].D2 > bondL_[idx].req) {
-          ++Nproblems;
+        if (bondL_[idx].D2 > bondL_[idx].req)
           bondL_[idx].problem = BOND;
-        }
       }
-      if (bondL_[idx].D2 < nonbondcut2_) { // Always check overlap
-        ++Nproblems;
+      if (bondL_[idx].D2 < nonbondcut2_) // Always check overlap
         bondL_[idx].problem += OVERLAP;
-      }
     }
-# ifdef _OPENMP
   } // END pragma OMP parallel
-  firstloop.Stop();
-  secondloop.Start();
-# endif
   // Second loop for writing out results sequentially
   for (idx = 0; idx < bondLsize; ++idx) {
     int problem = bondL_[idx].problem;
@@ -224,27 +208,26 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
       int atom1 = bondL_[idx].atom1;
       int atom2 = bondL_[idx].atom2;
       double Dist = sqrt(bondL_[idx].D2);
-      if (problem == BOND || problem == BOTH)
+      if (problem == BOND || problem == BOTH) {
+        ++Nproblems;
         outfile_.Printf(
                 "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
                 atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
                 atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
-      if (problem == OVERLAP || problem == BOTH) 
-      outfile_.Printf(
-              "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
-              atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(),
-              atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
+      }
+      if (problem == OVERLAP || problem == BOTH) {
+        ++Nproblems;
+        outfile_.Printf(
+                "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
+                atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(),
+                atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
+      }
     }
   }
-  secondloop.Stop();
-  firstloop.WriteTiming(1,"FirstLoop");
-  secondloop.WriteTiming(1, "SecondLoop");
 #else
   // Begin loop
   BondListType::const_iterator currentBond = bondL_.begin();
   int lastidx = Mask1_.Nselected() - 1;
-  Timer firstloop;
-  firstloop.Start();
   for (int maskidx1 = 0; maskidx1 < lastidx; maskidx1++) {
     int atom1 = Mask1_[maskidx1];
     for (int maskidx2 = maskidx1 + 1; maskidx2 < Mask1_.Nselected(); maskidx2++) {
@@ -278,8 +261,6 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
       }
     } // END second loop over mask atoms
   } // END first loop over mask atoms
-  firstloop.Stop();
-  firstloop.WriteTiming(1, "Loop");
 #endif
   return Nproblems;
 }
