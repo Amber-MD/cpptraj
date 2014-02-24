@@ -10,12 +10,13 @@ Action_CheckStructure::Action_CheckStructure() :
   nonbondcut2_(0.64), // 0.8^2
   bondcheck_(true),
   silent_(false),
+  skipBadFrames_(false),
   CurrentParm_(0),
   debug_(0)
 {} 
 
 void Action_CheckStructure::Help() {
-  mprintf("\t[<mask1>] [reportfile <report>] [noimage]\n"
+  mprintf("\t[<mask1>] [reportfile <report>] [noimage] [skipbadframes]\n"
           "\t[offset <offset>] [cut <cut>] [nobondcheck]\n"
           "  Check frames for atomic overlaps and unusual bond lengths\n");
 }
@@ -36,6 +37,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   bondoffset_ = actionArgs.getKeyDouble("offset",1.15);
   double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
   bondcheck_ = !actionArgs.hasKey("nobondcheck");
+  skipBadFrames_ = actionArgs.hasKey("skipbadframes");
   // Hidden option, for use when used by other actions
   silent_ = actionArgs.hasKey("silent");
 
@@ -56,6 +58,8 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
     mprintf("\tWarnings will be printed for bond lengths > eq + %.2f Ang\n",
             bondoffset_);
     mprintf("\tand non-bond distances < %.2f Ang.\n",nonbondcut);
+    if (skipBadFrames_)
+      mprintf("\tFrames with problems will be skipped.\n");
   }
   nonbondcut2_ = nonbondcut * nonbondcut;
 
@@ -87,8 +91,6 @@ void Action_CheckStructure::SetupBondlist(BondArray const& BndLst, BondParmArray
       bondL_.push_back(bnd);
     }
   }
-  if (bondL_.empty())
-    mprintf("Warning: No bond info in parm %s, will not check bonds.\n",CurrentParm_->c_str());
 }
 
 // Action_CheckStructure::Setup()
@@ -118,6 +120,8 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
   if (bondcheck_) {
     SetupBondlist( currentParm->Bonds(),  currentParm->BondParm() );
     SetupBondlist( currentParm->BondsH(), currentParm->BondParm() );
+    if (bondL_.empty())
+      mprintf("Warning: No bond info in parm %s, will not check bonds.\n",CurrentParm_->c_str());
   }
   if (!bondL_.empty()) {
     // Since in the loop atom1 always < atom2, enforce this with parameters.
@@ -143,7 +147,7 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
   // Reset to integer mask.
   if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
   // Print imaging info for this parm
-  mprintf("    CHECKSTRUCTURE: %s (%i atoms, %u bonds)",Mask1_.MaskString(), Mask1_.Nselected(),
+  mprintf("\tChecking atoms in '%s' (%i atoms, %u bonds)",Mask1_.MaskString(), Mask1_.Nselected(),
           totalbonds);
   if (ImagingEnabled())
     mprintf(", imaging on");
@@ -170,10 +174,11 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
       // Get distance^2
       double D2 = DIST2(currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
                         ImageType(), currentFrame.BoxCrd(), ucell, recip);
-      if ( (atom1==(*currentBond).atom1) && (atom2==(*currentBond).atom2) ) {
+      //mprintf("DEBUG:\t%i-%i D^2= %f\n", atom1+1, atom2+1, D2);
+      if ( (atom1==currentBond->atom1) && (atom2==currentBond->atom2) ) {
         // Atoms bonded, check bond length.
         // req has been precalced to (req + bondoffset)^2
-        double bondmax = (*currentBond).req;
+        double bondmax = currentBond->req;
         // Check for long bond length; distance2 > (req+bondoffset)^2
         if (D2 > bondmax) {
           ++Nproblems;
@@ -183,16 +188,15 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
                   atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
         }
         // Next bond
-        currentBond++;
-      } else {
-        // Atoms not bonded, check overlap
-        if (D2 < nonbondcut2_) {
-          ++Nproblems;
-          outfile_.Printf(
-                  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
-                  atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
-                  atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
-        }
+        ++currentBond;
+      }
+      // Always check overlap
+      if (D2 < nonbondcut2_) {
+        ++Nproblems;
+        outfile_.Printf(
+                "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
+                atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
+                atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
       }
     } // END second loop over mask atoms
   } // END first loop over mask atoms
@@ -203,6 +207,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
 Action::RetType Action_CheckStructure::DoAction(int frameNum, Frame* 
                                                 currentFrame, Frame** frameAddress)
 {
-  CheckFrame(frameNum+1, *currentFrame);
+  if (CheckFrame(frameNum+1, *currentFrame) > 0 && skipBadFrames_)
+    return Action::SUPPRESSCOORDOUTPUT;
   return Action::OK;
 }

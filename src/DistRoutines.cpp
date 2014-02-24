@@ -279,7 +279,7 @@ double DIST2_ImageNonOrthoRecip(Vec3 const& f, Vec3 const& f2, double minIn,
   */
 double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
   // If box lengths are zero no imaging possible
-  if (box[0]==0.0 && box[1]==0.0 && box[2]==0.0) return -1.0;
+  if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0) return -1.0;
   double x = a1[0] - a2[0];
   double y = a1[1] - a2[1];
   double z = a1[2] - a2[2];

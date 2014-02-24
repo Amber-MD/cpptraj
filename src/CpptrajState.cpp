@@ -364,17 +364,14 @@ int CpptrajState::RunEnsemble() {
 #       endif
           // Since Frame can be modified by actions, save original and use CurrentFrame
           Frame* CurrentFrame = &(FrameEnsemble[member]);
-          bool badFrame = CurrentFrame->CheckCoordsInvalid();
-          if (badFrame)
+          if ( CurrentFrame->CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
                     member, mtraj->CurrentFrame() - mtraj->Offset() + 1);
-          if (!badFrame || !skipBadFrames_) {
             // Perform Actions on Frame
             bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
             // Do Output
             if (!suppress_output) 
               TrajoutEnsemble[pos].WriteTrajout(actionSet, CurrentParm, CurrentFrame);
-          }
 #       ifndef MPI
         } // END loop over ensemble
 #       endif
@@ -516,11 +513,9 @@ int CpptrajState::RunNormal() {
 #   endif
     {
       // Check that coords are valid.
-      bool badFrame = TrajFrame.CheckCoordsInvalid();
-      if (badFrame)
+      if ( TrajFrame.CheckCoordsInvalid() )
         mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
                 (*traj)->CurrentFrame() - (*traj)->Offset() + 1);
-      if (!badFrame || !skipBadFrames_) {
         // Since Frame can be modified by actions, save original and use CurrentFrame
         Frame* CurrentFrame = &TrajFrame;
         // Perform Actions on Frame
@@ -541,7 +536,6 @@ int CpptrajState::RunNormal() {
           trajout_time.Stop();
 #         endif
         }
-      }
       // Increment frame counter
       ++actionSet;
 #     ifdef TIMER

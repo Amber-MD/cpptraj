@@ -11,15 +11,13 @@
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
-    CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true),
-                     skipBadFrames_(false) {}
+    CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true) {}
     // TODO: Change to &
     TopologyList* PFL()      { return &parmFileList_; }
     FrameList* FL()          { return &refFrames_;    }
     DataSetList* DSL()       { return &DSL_;          }
     DataFileList* DFL()      { return &DFL_;          }
     void SetNoExitOnError()  { exitOnError_ = false;  }
-    void SetSkipBadFrames()  { skipBadFrames_ = true; }
     void SetNoProgress()     { showProgress_ = false; }
     int Debug()        const { return debug_;         }
     bool ExitOnError() const { return exitOnError_;   }
@@ -81,8 +79,6 @@ class CpptrajState {
     bool showProgress_;
     /// If true cpptraj will exit if errors are encountered instead of trying to continue
     bool exitOnError_;
-    /// If true cpptraj will not process bad frames during traj read.
-    bool skipBadFrames_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 // CpptrajState::AddTrajout()

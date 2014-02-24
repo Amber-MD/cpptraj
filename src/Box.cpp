@@ -171,7 +171,12 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   double u23x,u23y,u23z;
   double u31x,u31y,u31z;
   double volume,onevolume;
-
+  // If box lengths are zero no imaging possible
+  if (box_[0]==0.0 || box_[1]==0.0 || box_[2]==0.0) {
+    ucell.Zero();
+    recip.Zero();
+    return -1.0;
+  }
   ucell[0] = box_[0]; // u(1,1)
   ucell[1] = 0.0;     // u(2,1)
   ucell[2] = 0.0;     // u(3,1)
