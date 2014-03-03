@@ -186,7 +186,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
   enum ProblemType { NONE = 0, OVERLAP, BOND, BOTH };
   int idx, bondLsize;
   bondLsize = (int)bondL_.size();
-# pragma omp parallel private(idx) reduction(+: Nproblems)
+# pragma omp parallel private(idx)
   {
 # pragma omp for
     for (idx = 0; idx < bondLsize; ++idx) {
