@@ -58,6 +58,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_RunningAvg.cpp \
         Action_STFC_Diffusion.cpp \
         Action_Scale.cpp \
+        Action_SetVelocity.cpp \
         Action_Spam.cpp \
         Action_Strip.cpp \
         Action_Surf.cpp \

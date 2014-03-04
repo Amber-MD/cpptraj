@@ -115,7 +115,7 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum,
     for (AtomMask::const_iterator atom = mask_.begin();
                                   atom != mask_.end(); 
                                 ++atom, ++vel)
-      vel->AddVxyz( Vec3(currentFrame->Vel( *atom )) * Constants::AMBERTIME_TO_PS );
+      vel->AddVxyz( Vec3(currentFrame->VXYZ( *atom )) * Constants::AMBERTIME_TO_PS );
   }
   return Action::OK;
 }

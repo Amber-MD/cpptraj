@@ -65,19 +65,19 @@ class Frame {
     /// Swap the coordinates and velocities of two atoms
     void SwapAtoms(int, int);
     // Access internal data
-    double& operator[](int idx)        { return X_[idx];        }
-    const double& operator[](int idx) const { return X_[idx];   }
-    bool empty()                 const { return (natom_ == 0);  }
-    bool HasVelocity()           const { return (V_ != NULL);   }
-    int Natom()                  const { return natom_;         }
-    int size()                   const { return ncoord_;        }
-    int NrepDims()               const { return Ndimensions_;   }
-    double Temperature()         const { return T_;             }
-    const double* XYZ(int atnum) const { return X_ + (atnum*3); } 
-    const double* CRD(int idx)   const { return X_ + idx;       } 
-    const double* Vel(int atnum) const { return V_ + (atnum*3); } 
-    double Mass(int atnum)       const { return Mass_[atnum];   }
-    const Box& BoxCrd()          const { return box_;           }
+    double& operator[](int idx)             { return X_[idx];        }
+    const double& operator[](int idx) const { return X_[idx];        }
+    bool empty()                      const { return (natom_ == 0);  }
+    bool HasVelocity()                const { return (V_ != 0);      }
+    int Natom()                       const { return natom_;         }
+    int size()                        const { return ncoord_;        }
+    int NrepDims()                    const { return Ndimensions_;   }
+    double Temperature()              const { return T_;             }
+    const double* XYZ(int atnum)      const { return X_ + (atnum*3); } 
+    const double* CRD(int idx)        const { return X_ + idx;       } 
+    const double* VXYZ(int atnum)     const { return V_ + (atnum*3); } 
+    double Mass(int atnum)            const { return Mass_[atnum];   }
+    const Box& BoxCrd()               const { return box_;           }
     // Routines for accessing internal data pointers
     inline double* xAddress() { return X_;            }
     inline double* vAddress() { return V_;            }

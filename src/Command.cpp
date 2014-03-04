@@ -78,6 +78,7 @@
 #include "Action_LESsplit.h"
 #include "Action_NativeContacts.h"
 #include "Action_VelocityAutoCorr.h"
+#include "Action_SetVelocity.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1534,6 +1535,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
   { ACTION, "scale", Action_Scale::Alloc, Action_Scale::Help, AddAction },
   { ACTION, "secstruct", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
+  { ACTION, "setvelocity", Action_SetVelocity::Alloc, Action_SetVelocity::Help, AddAction },
   { ACTION, "spam", Action_Spam::Alloc, Action_Spam::Help, AddAction },
   { ACTION, "stfcdiffusion", Action_STFC_Diffusion::Alloc, Action_STFC_Diffusion::Help, AddAction },
   { ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, AddAction },
