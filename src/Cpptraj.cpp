@@ -225,7 +225,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return SILENT_EXIT;
     } else if (arg == "--ambpdb") {
       // --ambpdb: Convert files to PDB.
-      if (AmbPDB(argc - i, argv + i + 1)) return ERROR;
+      if (AmbPDB(i + 1, argc, argv)) return ERROR;
       return SILENT_EXIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
@@ -335,13 +335,13 @@ int Cpptraj::Interactive() {
 }
 
 // Cpptraj::AmbPDB()
-int Cpptraj::AmbPDB(int argc, char** argv) {
+int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
   std::string topname, title, aatm(" pdbatom"), bres, pqr;
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
   bool ctr_origin = false;
   bool noTER = false;
   int res_offset = 0;
-  for (int i = 0; i < argc; ++i) {
+  for (int i = argstart; i < argc; ++i) {
     std::string arg( argv[i] );
     if (arg == "-p" && i+1 != argc && topname.empty())
       topname = std::string( argv[++i] );
