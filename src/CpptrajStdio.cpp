@@ -44,7 +44,7 @@ void mprinterr(const char *format, ...) {
 /** Print message to STDOUT for this worldrank */
 void rprintf(const char *format, ...) {
   va_list args;
-
+  if (worldsilent) return;
 #ifdef MPI
   fprintf(stdout,"[%i]\t",worldrank);
 #endif
