@@ -9,11 +9,6 @@
     that during parallel runs messages are only printed to the master
     thread, etc.
  */
-#ifdef CPPTRAJSTDIO_MODULE
-bool worldsilent = false; // If true suppress all mprintf output.
-#else
-extern bool worldsilent;
-#endif
 void mflush();
 void mprintf(const char *, ...);
 void mprinterr(const char *, ...);

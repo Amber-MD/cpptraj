@@ -1,11 +1,10 @@
 #include <cstdio>
 #include <cstdarg>
-#define CPPTRAJSTDIO_MODULE
-#include "CpptrajStdio.h"
 #ifdef MPI
 #  include "MpiRoutines.h"
 #endif
 
+static bool worldsilent = false; // If true suppress all mprintf output.
 // mflush()
 /** Call flush on STDOUT only if this is the master thread */
 void mflush() {
