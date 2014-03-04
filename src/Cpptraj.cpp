@@ -7,6 +7,8 @@
 #include "Version.h"
 #include "ParmFile.h" // ProcessMask
 #include "Timer.h"
+#include "StringRoutines.h" // convertToInteger
+#include "Trajin_Single.h" // for AmbPDB
 
 void Cpptraj::Usage() {
   mprinterr("\n"
@@ -221,6 +223,10 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // --resmask: Parse mask string, print selected residue details
       if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, true )) return ERROR;
       return SILENT_EXIT;
+    } else if (arg == "--ambpdb") {
+      // --ambpdb: Convert files to PDB.
+      if (AmbPDB(argc - i, argv + i + 1)) return ERROR;
+      return SILENT_EXIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
       topFiles.push_back( argv[i] );
@@ -325,5 +331,58 @@ int Cpptraj::Interactive() {
   }
   logfile_.CloseFile();
   if (readLoop == Command::C_ERR) return 1;
+  return 0;
+}
+
+// Cpptraj::AmbPDB()
+int Cpptraj::AmbPDB(int argc, char** argv) {
+  std::string topname, title, aatm(" pdbatom"), bres, pqr;
+  TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
+  bool ctr_origin = false;
+  bool noTER = false;
+  int res_offset = 0;
+  for (int i = 0; i < argc; ++i) {
+    std::string arg( argv[i] );
+    if (arg == "-p" && i+1 != argc && topname.empty())
+      topname = std::string( argv[++i] );
+    else if (arg == "-tit" && i+1 != argc && title.empty())
+      title = "title " + std::string( argv[++i] );
+    else if (arg == "-offset" && i+1 != argc)
+      res_offset = convertToInteger( argv[++i] );
+    else if (arg == "-aatm")
+      aatm.clear();
+    else if (arg == "-bres")
+      bres.assign(" pdbres");
+    else if (arg == "-ctr")
+      ctr_origin = true;
+    else if (arg == "-noter")
+      noTER = true;
+    else if (arg == "-pqr")
+      pqr.assign(" dumpq");
+    else if (arg == "-mol2")
+      fmt = TrajectoryFile::MOL2FILE;
+    else
+      mprintf("Warning: ambpdb: Unrecognized or unused option '%s'\n", arg.c_str());
+  }
+  // Topology
+  ParmFile pfile;
+  Topology parm;
+  if (pfile.ReadTopology(parm, topname, State_.Debug())) return 1;
+  parm.IncreaseFrames( 1 );
+  // Input coords
+  Trajin_Single trajin;
+  ArgList trajArgs;
+  if (trajin.SetupTrajRead("", trajArgs, &parm, false)) return 1;
+  Frame TrajFrame;
+  TrajFrame.SetupFrameV(parm.Atoms(), trajin.HasVelocity(), trajin.NreplicaDimension());
+  trajin.BeginTraj(false);
+  if (trajin.ReadTrajFrame(0, TrajFrame)) return 1;
+  trajin.EndTraj();
+  // Output coords
+  Trajout trajout;
+  trajArgs.SetList( aatm + bres + pqr + title, " " );
+  if ( trajout.InitStdoutTrajWrite(trajArgs, &parm, fmt) ) return 1;
+  trajout.WriteFrame(0, &parm, TrajFrame);
+  trajout.EndTraj(); 
   return 0;
 }

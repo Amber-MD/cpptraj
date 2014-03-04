@@ -18,10 +18,10 @@ FileIO_Std::~FileIO_Std() {
   */
 int FileIO_Std::Open(const char *filename, const char *mode) {
   if (filename==NULL) {
-    if (mode[0]=='w') 
+    if (mode[0]=='w' || mode[0] == 'a') 
       fp_=stdout;
-    else
-      return 1;
+    else if (mode[0] == 'r')
+      fp_=stdin;
     isStdout_=true;
   } else
     fp_ = fopen(filename, mode);
