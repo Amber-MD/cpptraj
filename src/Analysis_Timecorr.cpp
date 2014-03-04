@@ -181,6 +181,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
         return Analysis::ERR;
       }
       DSOut_[i]->SetLegend( Tokens[i].Legend );
+      DSOut_[i]->Dim(0).SetLabel("Vector");
       if ( df_ptr != 0)
         df_ptr->AddSet( DSOut_[i] );
     }
