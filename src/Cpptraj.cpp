@@ -344,25 +344,25 @@ int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
   int res_offset = 0;
   for (int i = argstart; i < argc; ++i) {
     std::string arg( argv[i] );
-    if (arg == "-p" && i+1 != argc && topname.empty())
+    if (arg == "-p" && i+1 != argc && topname.empty()) // Topology
       topname = std::string( argv[++i] );
-    else if (arg == "-c" && i+1 != argc && crdname.empty())
+    else if (arg == "-c" && i+1 != argc && crdname.empty()) // Coords
       crdname = std::string( argv[++i] );
-    else if (arg == "-tit" && i+1 != argc && title.empty())
+    else if (arg == "-tit" && i+1 != argc && title.empty()) // Title
       title = " title " + std::string( argv[++i] );
-    else if (arg == "-offset" && i+1 != argc)
+    else if (arg == "-offset" && i+1 != argc) // Residue # offset
       res_offset = convertToInteger( argv[++i] );
-    else if (arg == "-aatm")
+    else if (arg == "-aatm") // Amber atom names
       aatm.clear();
-    else if (arg == "-bres")
+    else if (arg == "-bres") // PDB residue names
       bres.assign(" pdbres");
-    else if (arg == "-ctr")
+    else if (arg == "-ctr")  // Center on origin
       ctr_origin = true;
-    else if (arg == "-noter")
+    else if (arg == "-noter") // No TER cards
       noTER = true;
-    else if (arg == "-pqr")
+    else if (arg == "-pqr") // Charge/Radii in occ/bfactor cols
       pqr.assign(" dumpq");
-    else if (arg == "-mol2")
+    else if (arg == "-mol2") // output as mol2
       fmt = TrajectoryFile::MOL2FILE;
     else
       mprinterr("Warning: ambpdb: Unrecognized or unused option '%s'\n", arg.c_str());
@@ -372,6 +372,11 @@ int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
   Topology parm;
   if (pfile.ReadTopology(parm, topname, State_.Debug())) return 1;
   parm.IncreaseFrames( 1 );
+  if (noTER)
+    parm.ClearMoleculeInfo();
+  if (res_offset != 0)
+    for (int r = 0; r < parm.Nres(); r++)
+      parm.SetRes(r).SetOriginalNum( parm.Res(r).OriginalResNum() + res_offset );
   // Input coords
   Trajin_Single trajin;
   ArgList trajArgs;
@@ -381,6 +386,11 @@ int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
   trajin.BeginTraj(false);
   if (trajin.ReadTrajFrame(0, TrajFrame)) return 1;
   trajin.EndTraj();
+  if (ctr_origin) {
+    AtomMask mask("*");
+    parm.SetupIntegerMask( mask );
+    TrajFrame.Center( mask, Frame::ORIGIN, Vec3(0.0), false );
+  }
   // Output coords
   Trajout trajout;
   trajArgs.SetList( aatm + bres + pqr + title, " " );
