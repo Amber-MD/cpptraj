@@ -1,5 +1,7 @@
 #include <cstdio>
 #include <cstdarg>
+#define CPPTRAJSTDIO_MODULE
+#include "CpptrajStdio.h"
 #ifdef MPI
 #  include "MpiRoutines.h"
 #endif
@@ -17,7 +19,7 @@ void mflush() {
 /** Print message to STDOUT only if this is the master thread */
 void mprintf(const char *format, ...) {
   va_list args;
-
+  if (worldsilent) return;
 #ifdef MPI
   if (worldrank!=0) return;
 #endif
@@ -67,6 +69,10 @@ void rprinterr(const char *format, ...) {
   return;
 }
 
+void SetWorldSilent(bool silentIn) {
+  worldsilent = silentIn;
+}
+
 // printerr()
 /** Print error message along with calling routine.  */
 /*void printerr(const char *ROUTINE, const char *format, ...) {
@@ -96,4 +102,3 @@ void rprinterr(const char *format, ...) {
   fprintf(stdout,"\n");
   return;
 }*/
-

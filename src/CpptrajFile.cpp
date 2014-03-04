@@ -208,12 +208,11 @@ void CpptrajFile::Reset() {
   CloseFile();
   if (IO_!=0) delete IO_;
   IO_ = 0;
-  isDos_ = 0;
-  uncompressed_size_ = 0UL;
-  file_size_ = 0UL;
-  compressType_ = NO_COMPRESSION;
-  isOpen_ = false;
   fname_.clear();
+  isOpen_ = false;
+  uncompressed_size_ = 0UL;
+  compressType_ = NO_COMPRESSION;
+  isDos_ = 0;
 }
 
 // CpptrajFile::OpenRead()
@@ -227,37 +226,32 @@ int CpptrajFile::OpenRead(std::string const& nameIn) {
   * \return 0 on success, 1 on error.
   */
 int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
+  // null filename not allowed
+  if (nameIn.empty()) {
+    mprinterr("Internal Error: No filename specified for READ.\n");
+    return 1;
+  }
+  // Check if file exists. If not, fail silently
+  if (!fileExists( nameIn )) return 1;
   // Clear file, set debug level
   Reset();
   debug_ = debugIn;
   access_ = READ;
   fileType_ = UNKNOWN_TYPE;
-  // Force it to be standard, uncompressed
-  fileType_ = STANDARD;
-  IO_ = new FileIO_Std();
-  // null filename = STDIN 
-  if (nameIn.empty()) {
-    //mprinterr("Internal Error: No filename specified for READ.\n");
-    //return 1;
-    mprinterr("| Setting up for read from STDIN\n");
-  } else {
-    // Check if file exists. If not, fail silently
-    if (!fileExists( nameIn )) return 1;
-    if (debug_>0)
-      mprintf("CpptrajFile: Setting up %s for READ.\n", nameIn.c_str());
-    // Perform tilde-expansion
-    std::string expandedName = tildeExpansion( nameIn );
-    if (expandedName.empty()) {
-      mprinterr("Interal Error: CpptrajFile: Tilde-expansion failed.\n");
-      return 1;
-    }
-    // Determine file type. This sets up IO and determines compression. 
-    if (ID_Type( expandedName.c_str() )) return 1;
-    // Set up filename; sets base filename and extensions
-    fname_.SetFileName( expandedName, IsCompressed() );
-    if (debug_>0)
-      rprintf("\t[%s] is type %s with access READ\n", Filename().full(), FileTypeName[fileType_]);
+  if (debug_>0)
+    mprintf("CpptrajFile: Setting up %s for READ.\n", nameIn.c_str());
+  // Perform tilde-expansion
+  std::string expandedName = tildeExpansion( nameIn );
+  if (expandedName.empty()) {
+    mprinterr("Interal Error: CpptrajFile: Tilde-expansion failed.\n");
+    return 1;
   }
+  // Determine file type. This sets up IO and determines compression. 
+  if (ID_Type( expandedName.c_str() )) return 1;
+  // Set up filename; sets base filename and extensions
+  fname_.SetFileName( expandedName, IsCompressed() );
+  if (debug_>0)
+    rprintf("\t[%s] is type %s with access READ\n", Filename().full(), FileTypeName[fileType_]);
   return 0;
 }
 

@@ -336,7 +336,8 @@ int Cpptraj::Interactive() {
 
 // Cpptraj::AmbPDB()
 int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
-  std::string topname, title, aatm(" pdbatom"), bres, pqr;
+  SetWorldSilent(true);
+  std::string topname, crdname, title, aatm(" pdbatom"), bres, pqr;
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
   bool ctr_origin = false;
   bool noTER = false;
@@ -345,8 +346,10 @@ int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
     std::string arg( argv[i] );
     if (arg == "-p" && i+1 != argc && topname.empty())
       topname = std::string( argv[++i] );
+    else if (arg == "-c" && i+1 != argc && crdname.empty())
+      crdname = std::string( argv[++i] );
     else if (arg == "-tit" && i+1 != argc && title.empty())
-      title = "title " + std::string( argv[++i] );
+      title = " title " + std::string( argv[++i] );
     else if (arg == "-offset" && i+1 != argc)
       res_offset = convertToInteger( argv[++i] );
     else if (arg == "-aatm")
@@ -362,7 +365,7 @@ int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
     else if (arg == "-mol2")
       fmt = TrajectoryFile::MOL2FILE;
     else
-      mprintf("Warning: ambpdb: Unrecognized or unused option '%s'\n", arg.c_str());
+      mprinterr("Warning: ambpdb: Unrecognized or unused option '%s'\n", arg.c_str());
   }
   // Topology
   ParmFile pfile;
@@ -372,7 +375,7 @@ int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
   // Input coords
   Trajin_Single trajin;
   ArgList trajArgs;
-  if (trajin.SetupTrajRead("", trajArgs, &parm, false)) return 1;
+  if (trajin.SetupTrajRead(crdname, trajArgs, &parm, false)) return 1;
   Frame TrajFrame;
   TrajFrame.SetupFrameV(parm.Atoms(), trajin.HasVelocity(), trajin.NreplicaDimension());
   trajin.BeginTraj(false);
