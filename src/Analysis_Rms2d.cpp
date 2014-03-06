@@ -262,7 +262,9 @@ int Analysis_Rms2d::Calculate_2D() {
   ParallelProgress progress( totalref );
   // LOOP OVER REFERENCE FRAMES
 # ifdef _OPENMP
-# pragma omp parallel private(nref, ntgt, tgtstart) firstprivate(R, SelectedTgt, SelectedRef, progress)
+  SymmetricRmsdCalc SRMSD_OMP = SRMSD_;
+# define SRMSD_ SRMSD_OMP
+# pragma omp parallel private(nref, ntgt, tgtstart) firstprivate(SRMSD_OMP, R, SelectedTgt, SelectedRef, progress)
   {
     progress.SetThread(omp_get_thread_num());
 #   pragma omp for schedule(dynamic)
@@ -298,6 +300,7 @@ int Analysis_Rms2d::Calculate_2D() {
       } // END loop over target frames
     } // END loop over reference frames
 # ifdef _OPENMP
+# undef SRMSD_
   }
 # endif
   progress.Finish();
