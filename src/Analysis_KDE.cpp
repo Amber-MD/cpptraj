@@ -2,7 +2,7 @@
 #include "Analysis_KDE.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
-#include "Constants.h" // TWOPI
+#include "Constants.h" // TWOPI, GASK_KCAL
 #include <limits> // Minimum double val for checking zero
 #ifdef _OPENMP
 #  include "omp.h"
@@ -11,7 +11,7 @@
 // CONSTRUCTOR
 Analysis_KDE::Analysis_KDE() : 
   data_(0), q_data_(0), bandwidth_(0.0), output_(0), kldiv_(0),
-  amddata_(0), calcFreeE_(false),
+  amddata_(0), calcFreeE_(false), Temp_(0.0),
   Kernel_(&Analysis_KDE::GaussianKernel) {}
 
 void Analysis_KDE::Help() {
@@ -19,6 +19,51 @@ void Analysis_KDE::Help() {
           "\t[min <min>] [max <max] [step <step>] [bins <bins>] [free]\n"
           "\t[kldiv <dsname2> [klout <outfile>]] [amd <amdboost_data>]\n"
           "  Histogram 1D data set using a kernel density estimator.\n");
+}
+
+Analysis::RetType Analysis_KDE::Setup(DataSet_1D* dsIn, std::string const& histname,
+                                       std::string const& outfilenameIn,
+                                       bool minArgSetIn, double minIn,
+                                       bool maxArgSetIn, double maxIn,
+                                       double stepIn, int binsIn, double tempIn,
+                                       DataSetList& datasetlist, DataFileList& DFLin)
+{
+  if (dsIn == 0) return Analysis::ERR;
+  data_ = dsIn;
+  q_data_ = 0;
+  kldiv_ = 0;
+  amddata_ = 0;
+  bandwidth_ = -1.0;
+  Dimension Xdim;
+  if (minArgSetIn)
+    Xdim.SetMin( minIn );
+  if (maxArgSetIn)
+    Xdim.SetMax( maxIn );
+  Xdim.SetStep( stepIn );
+  Xdim.SetBins( binsIn );
+  if (Xdim.Step() < 0.0 && Xdim.Bins() < 0) {
+    mprinterr("Error: Must set either bins or step.\n");
+    return Analysis::ERR;
+  }
+  Temp_ = tempIn;
+  if (Temp_ != -1.0)
+    calcFreeE_ = true;
+  else
+    calcFreeE_ = false;
+  std::string setname = histname;
+  if (histname.empty()) {
+    if (calcFreeE_)
+      setname="FreeE_";
+    else
+      setname="KDE_";
+  }
+  setname += dsIn->Legend();
+  DataFile* outfile = DFLin.AddDataFile( outfilenameIn );
+  output_ = datasetlist.AddSet(DataSet::DOUBLE, setname, "kde");
+  if (output_ == 0) return Analysis::ERR;
+  output_->SetDim(Dimension::X, Xdim);
+  if (outfile != 0) outfile->AddSet( output_ );
+  return Analysis::OK;
 }
 
 // Analysis_KDE::Setup()
@@ -36,6 +81,11 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
     mprinterr("Error: Must set either bins or step.\n");
     return Analysis::ERR;
   }
+  Temp_ = analyzeArgs.getKeyDouble("free",-1.0);
+  if (Temp_!=-1.0) 
+    calcFreeE_ = true;
+  else
+    calcFreeE_ = false;
   std::string setname = analyzeArgs.GetStringKey("name");
   bandwidth_ = analyzeArgs.getKeyDouble("bandwidth", -1.0);
   DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
@@ -71,7 +121,6 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
     }
   } else
     amddata_ = 0;
-  calcFreeE_ = analyzeArgs.hasKey("free");
 
   // Get data set
   data_ = datasetlist->GetDataSet( analyzeArgs.GetStringNext() );
@@ -86,6 +135,7 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
   
   // Output data set
   output_ = datasetlist->AddSet(DataSet::DOUBLE, setname, "kde");
+  if (output_ == 0) return Analysis::ERR;
   output_->SetDim(Dimension::X, Xdim);
   if (outfile != 0) outfile->AddSet( output_ );
   // Output for KL divergence calc.
@@ -106,6 +156,8 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
     mprintf("\tBandwidth will be estimated.\n");
   else
     mprintf("\tBandwidth= %f\n", bandwidth_);
+  if (calcFreeE_)
+    mprintf("\tFree energy in kcal/mol will be calculated from bin populations at %f K.\n",Temp_);
   return Analysis::OK;
 }
 
@@ -283,9 +335,10 @@ Analysis::RetType Analysis_KDE::Analyze() {
 
   // Calc free E
   if (calcFreeE_) {
+    double KT = (-Constants::GASK_KCAL * Temp_);
     double minFreeE = 0.0;
     for (unsigned int j = 0; j < Out.Size(); j++) {
-      Out[j] = -log( Out[j] );
+      Out[j] = log( Out[j] ) * KT;
       if (j == 0)
         minFreeE = Out[j];
       else if (Out[j] < minFreeE)

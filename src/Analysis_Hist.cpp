@@ -243,7 +243,10 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   outfile_ = DFLin->AddDataFile(outfilename_, analyzeArgs);
   if (outfile_==0) return Analysis::ERR;
   Temp_ = analyzeArgs.getKeyDouble("free",-1.0);
-  if (Temp_!=-1.0) calcFreeE_ = true;
+  if (Temp_!=-1.0) 
+    calcFreeE_ = true;
+  else
+    calcFreeE_ = false;
   gnuplot_ = analyzeArgs.hasKey("gnu");
   if (analyzeArgs.hasKey("norm"))
     normalize_ = NORM_SUM;
@@ -325,29 +328,29 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
 
   mprintf("\tHist: %s: Set up for %zu dimensions using the following datasets:\n", 
           outfilename_.c_str(), N_dimensions_);
-  mprintf("\t      [ ");
+  mprintf("\t[ ");
   for (std::vector<DataSet_1D*>::iterator ds=histdata_.begin(); ds!=histdata_.end(); ++ds)
     mprintf("%s ",(*ds)->Legend().c_str());
   mprintf("]\n");
   if (calcAMD_)
-    mprintf("\t      Populating bins using AMD boost from data set %s\n", 
+    mprintf("\tPopulating bins using AMD boost from data set %s\n", 
             amddata_->Legend().c_str());
   if (calcFreeE_)
-    mprintf("\t      Free energy will be calculated from bin populations at %lf K.\n",Temp_);
+    mprintf("\tFree energy in kcal/mol will be calculated from bin populations at %f K.\n",Temp_);
   if (nativeOut_)
     mprintf("\tUsing internal routine for output. Data will not be stored on the data set list.\n");
   //if (circular_ || gnuplot_) {
   //  mprintf("\tWarning: gnuplot and/or circular specified; advanced grace/gnuplot\n");
   //  mprintf("\t         formatting disabled.\n");*/
     if (circular_)
-      mprintf("\t      circular: Output coordinates will be wrapped.\n");
+      mprintf("\tcircular: Output coordinates will be wrapped.\n");
     if (gnuplot_ && outfile_ == 0)
-      mprintf("\t      gnuplot: Output will be in gnuplot-readable format.\n");
+      mprintf("\tgnuplot: Output will be in gnuplot-readable format.\n");
   //}
   if (normalize_ == NORM_SUM)
-    mprintf("\t      norm: Sum over bins will be normalized to 1.0.\n");
+    mprintf("\tnorm: Sum over bins will be normalized to 1.0.\n");
   else if (normalize_ == NORM_INT)
-    mprintf("\t      normint: Integral over bins will be normalized to 1.0.\n");
+    mprintf("\tnormint: Integral over bins will be normalized to 1.0.\n");
   if (!traj3dName_.empty()) {
     mprintf("\tPseudo-trajectory will be written to '%s' with format %s\n",
             traj3dName_.c_str(), TrajectoryFile::FormatString(traj3dFmt_));

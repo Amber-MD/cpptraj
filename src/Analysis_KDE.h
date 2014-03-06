@@ -1,12 +1,16 @@
 #ifndef INC_ANALYSIS_KDE_H
 #define INC_ANALYSIS_KDE_H
 #include "Analysis.h"
+#include "DataSet_1D.h"
 class Analysis_KDE : public Analysis {
   public:
     Analysis_KDE();
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_KDE(); }
     static void Help();
 
+    Analysis::RetType Setup(DataSet_1D*, std::string const&, std::string const&,
+                            bool, double, bool, double, double, int, double,
+                            DataSetList&, DataFileList&);
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
@@ -22,6 +26,7 @@ class Analysis_KDE : public Analysis {
     DataSet* kldiv_;   ///< KL divergence vs time.
     DataSet* amddata_; ///< Optional AMD boost data set.
     bool calcFreeE_;
+    double Temp_;
     fxnptr Kernel_;    ///< Kernel to use.
 };
 #endif
