@@ -622,12 +622,21 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
     if (targetType_ != NONE) {
       // Each rank needs to know where to send its coords, and where to receive coords from.
       int my_idx = *fidx;
+#     ifdef TIMER
+      mpi_allgather_timer_.Start();
+#     endif
       if (parallel_allgather( &my_idx, 1, PARA_INT, frameidx_, 1, PARA_INT))
         rprinterr("Error: Gathering frame indices.\n");
+#     ifdef TIMER
+      mpi_allgather_timer_.Stop();
+#     endif
       //mprintf("Frame %i Table:\n", CurrentFrame()); // DEBUG
       //for (unsigned int i = 0; i < REMDtraj_.size(); i++) // DEBUG
       //  mprintf("Rank %i has index %i\n", i, frameidx_[i]); // DEBUG
       // LOOP: one sendrecv at a time.
+#     ifdef TIMER
+      mpi_sendrecv_timer_.Start();
+#     endif
       for (int sendrank = 0; sendrank < (int)REMDtraj_.size(); sendrank++) {
         int recvrank = frameidx_[sendrank];
         if (sendrank != recvrank) {
@@ -651,7 +660,10 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
           }
         }
         //else rprintf("SEND RANK == RECV RANK, NO COMM\n"); // DEBUG
-      } 
+      }
+#     ifdef TIMER
+      mpi_sendrecv_timer_.Stop();
+#     endif
     }
     //rprintf("FRAME %i, FRAME RECEIVED= %i\n", CurrentFrame(), ensembleFrameNum_); // DEBUG 
 #   else

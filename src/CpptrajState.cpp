@@ -193,8 +193,9 @@ int CpptrajState::Run() {
 
 // CpptrajState::RunEnsemble()
 int CpptrajState::RunEnsemble() {
+  Timer init_time;
+  init_time.Start();
   FrameArray FrameEnsemble;
-
   // No Analysis will be run. Warn user if analyses are defined.
   if (!analysisList_.Empty())
     mprintf("Warning: In ensemble mode, Analysis will not be performed.\n");
@@ -293,13 +294,26 @@ int CpptrajState::RunEnsemble() {
       }
     }
   }
-      
+  init_time.Stop();
+  mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total()); 
   // ========== A C T I O N  P H A S E ==========
   int lastPindex=-1;          // Index of the last loaded parm file
   int pos = 0;                // Where member should be processed by actions
   int readSets = 0;
   int actionSet = 0;
   bool hasVelocity = false;
+# ifdef TIMER
+  Timer trajin_time;
+  Timer setup_time;
+  Timer actions_time;
+  Timer trajout_time;
+# ifdef MPI
+  double mpiallgather = 0.0;
+  double mpisendrecv = 0.0;
+# endif
+# endif
+  Timer frames_time;
+  frames_time.Start();
   // Loop over every trajectory in trajFileList
   mprintf("\nBEGIN ENSEMBLE PROCESSING:\n");
   for ( TrajinList::const_iterator traj = trajinList_.begin();
@@ -316,7 +330,9 @@ int CpptrajState::RunEnsemble() {
     CurrentParm->SetNrepDim( (*traj)->NreplicaDimension() );
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
-
+#   ifdef TIMER
+    setup_time.Start();
+#   endif
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
     if (parmHasChanged || (hasVelocity != (*traj)->HasVelocity()))
@@ -345,11 +361,21 @@ int CpptrajState::RunEnsemble() {
       if (!setupOK) continue;
       lastPindex = CurrentParm->Pindex();
     }
-
+#   ifdef TIMER
+    setup_time.Stop();
+#   endif
     // Loop over every collection of frames in the ensemble
     (*traj)->PrintInfoLine();
     Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
-    while ( mtraj->GetNextEnsemble(FrameEnsemble) ) {
+#   ifdef TIMER
+    trajin_time.Start();
+    bool readMoreFrames = mtraj->GetNextEnsemble(FrameEnsemble);
+    trajin_time.Stop();
+    while ( readMoreFrames )
+#   else
+    while ( mtraj->GetNextEnsemble(FrameEnsemble) )
+#   endif
+    {
       if (!mtraj->BadEnsemble()) {
 #       ifdef MPI
         // For MPI, each thread has one ensemble frame. member is 1 if coords
@@ -367,11 +393,24 @@ int CpptrajState::RunEnsemble() {
           if ( CurrentFrame->CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
                     member, mtraj->CurrentFrame() - mtraj->Offset() + 1);
+#           ifdef TIMER
+            actions_time.Start();
+#           endif
             // Perform Actions on Frame
             bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
+#           ifdef TIMER
+            actions_time.Stop();
+#           endif
             // Do Output
-            if (!suppress_output) 
+            if (!suppress_output) {
+#             ifdef TIMER
+              trajout_time.Start();
+#             endif 
               TrajoutEnsemble[pos].WriteTrajout(actionSet, CurrentParm, CurrentFrame);
+#             ifdef TIMER
+              trajout_time.Stop();
+#             endif
+            }
 #       ifndef MPI
         } // END loop over ensemble
 #       endif
@@ -384,15 +423,42 @@ int CpptrajState::RunEnsemble() {
       }
       // Increment frame counter
       ++actionSet;
+#     ifdef TIMER
+      trajin_time.Start();
+      readMoreFrames = mtraj->GetNextEnsemble(FrameEnsemble);
+      trajin_time.Stop();
+#     endif
     }
 
     // Close the trajectory file
     (*traj)->EndTraj();
+#   ifdef MPI
+#   ifdef TIMER
+    mpiallgather += mtraj->MPI_AllgatherTime();
+    mpisendrecv  += mtraj->MPI_SendRecvTime();
+#   endif
+#   endif
     // Update how many frames have been processed.
     readSets += (*traj)->NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
   mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
+  frames_time.Stop();
+  frames_time.WriteTiming(0," Trajectory processing:");
+  mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
+          (double)readSets / frames_time.Total());
+# ifdef TIMER
+  trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time.Total());
+# ifdef MPI
+  rprintf("MPI_TIME:\tallgather: %.4f s (%.2f%%), sendrecv: %.4f s (%.2f%%), Other:  %.4f s\n",
+          mpiallgather, (mpiallgather / trajin_time.Total())*100.0,
+          mpisendrecv,  (mpisendrecv / trajin_time.Total())*100.0,
+          trajin_time.Total() - mpiallgather - mpisendrecv);
+# endif
+  setup_time.WriteTiming(1,   "Action setup:           ", frames_time.Total());
+  actions_time.WriteTiming(1, "Action frame processing:", frames_time.Total());
+  trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time.Total());
+# endif
 
   // Close output trajectories
   for (int member = 0; member < ensembleSize; ++member)

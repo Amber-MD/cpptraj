@@ -4,6 +4,11 @@
 #include "Trajin.h"
 #include "FrameArray.h"
 #include "DataSet_RemLog.h"
+#ifdef MPI
+#  ifdef TIMER
+#    include "Timer.h"
+#  endif
+#endif
 /// Class for reading in multiple trajectories at the same time (e.g. REMD ensemble)
 class Trajin_Multi : public Trajin {
   public:
@@ -24,6 +29,10 @@ class Trajin_Multi : public Trajin {
     int EnsembleSize()               const { return (int)REMDtraj_.size(); }
 #   ifdef MPI
     int EnsembleFrameNum()           const { return ensembleFrameNum_;     }
+#   ifdef TIMER
+    double MPI_AllgatherTime()       const { return mpi_allgather_timer_.Total(); }
+    double MPI_SendRecvTime()        const { return mpi_sendrecv_timer_.Total();  }
+#   endif
 #   else
     int EnsemblePosition(int member) const { return frameidx_[member];     }
 #   endif
@@ -57,6 +66,10 @@ class Trajin_Multi : public Trajin {
     ImapType IndicesMap_;
 #   ifdef MPI
     int ensembleFrameNum_;      ///< Position containing coords to use in FrameArray
+#   ifdef TIMER
+    Timer mpi_allgather_timer_;
+    Timer mpi_sendrecv_timer_;
+#   endif
 #   endif
     DataSet_RemLog remlogData_; ///< For sorting by CRDIDX from remlog.
     NameListType SearchForReplicas();
