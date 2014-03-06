@@ -36,8 +36,14 @@ void Cpptraj::Usage() {
 }
 
 void Cpptraj::Intro() {
-  mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n"
-          "    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n",
+  mprintf("\nCPPTRAJ: Trajectory Analysis. %s"
+# ifdef MPI
+          " MPI"
+# endif
+# ifdef _OPENMP
+          " OpenMP"
+# endif
+          "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
   mprintf("Running on %i threads\n",CpptrajState::WorldSize());
