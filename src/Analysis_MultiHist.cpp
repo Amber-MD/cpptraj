@@ -11,7 +11,7 @@ Analysis_MultiHist::~Analysis_MultiHist() {
 
 void Analysis_MultiHist::Help() {
   mprintf("\t[out <filename>] [name <dsname>] [norm | normint]\n"
-          "\t[min <min>] [max <max>] [step <step>] [bins <bins>]\n"
+          "\t[min <min>] [max <max>] [step <step>] [bins <bins>] [free <T>]\n"
           "\t <dsetarg0> [ <dsetarg1> ... ]\n"
           "  Histogram each data set separately in 1D.\n");
 }
@@ -34,6 +34,7 @@ Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* d
     normalize = Analysis_Hist::NORM_SUM;
   else if (analyzeArgs.hasKey("normint"))
     normalize = Analysis_Hist::NORM_INT;
+  double Temp = analyzeArgs.getKeyDouble("free",-1.0);
   // Remaining args should be data sets
   Array1D inputDsets;
   if (inputDsets.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
@@ -46,8 +47,8 @@ Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* d
   {
     Analysis_Hist* ana = new Analysis_Hist();
     if (ana->Setup( (*ds), setname, outfilename, minArgSet, min,
-                    maxArgSet, max, step, bins, normalize, *datasetlist,
-                    *DFLin ) != Analysis::OK)
+                    maxArgSet, max, step, bins, Temp, normalize,
+                    *datasetlist, *DFLin ) != Analysis::OK)
     {
       mprinterr("Error: Could not set up histogram for %s\n", (*ds)->Legend().c_str());
       delete ana;

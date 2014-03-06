@@ -4,6 +4,7 @@
 #include "StringRoutines.h" // doubleToString
 #include "Trajout.h" // for traj3d
 #include "ParmFile.h" // for traj3d
+#include "Constants.h" // GASK_KCAL
 // DataSet types used by Analysis_Hist
 #include "DataSet_double.h"
 #include "DataSet_MatrixDbl.h"
@@ -176,15 +177,19 @@ Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& hist
                                        std::string const& outfilenameIn,
                                        bool minArgSetIn, double minIn,
                                        bool maxArgSetIn, double maxIn,
-                                       double stepIn, int binsIn, NormMode normIn,
+                                       double stepIn, int binsIn, double tempIn,
+                                       NormMode normIn,
                                        DataSetList& datasetlist, DataFileList& DFLin)
 {
   debug_ = 0;
   if (dsIn == 0) return Analysis::ERR;
   outfilename_ = outfilenameIn;
   outfile_ = DFLin.AddDataFile(outfilename_);
-  Temp_ = -1.0;
-  calcFreeE_ = false;
+  Temp_ = tempIn; 
+  if (Temp_ != -1.0)
+    calcFreeE_ = true;
+  else
+    calcFreeE_ = false;
   gnuplot_ = false;
   normalize_ = normIn;
   circular_ = false;
@@ -204,8 +209,12 @@ Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& hist
   histdata_.push_back( dsIn );
   N_dimensions_ = 1;
   std::string setname = histname;
-  if (histname.empty())
-    setname="Hist_";
+  if (histname.empty()) {
+    if (calcFreeE_)
+      setname="FreeE_";
+    else
+      setname="Hist_";
+  }
   setname += dsIn->Legend();
   hist_ = datasetlist.AddSet( DataSet::DOUBLE, setname, "MHist" );
   if (hist_ == 0) return Analysis::ERR;
@@ -495,7 +504,7 @@ int Analysis_Hist::CalcFreeE() {
   int refbin = -1; // TODO: re-enable
     mprintf("\tHistogram: Calculating free E at %f K.\n",Temp_);
   // TODO: Make Kb a constant
-  double KT = (-.001985886596 * Temp_);
+  double KT = (-Constants::GASK_KCAL * Temp_);
 
   // Find most populated bin for G=0
   std::vector<double>::iterator bin = Bins_.begin();
