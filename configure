@@ -535,19 +535,19 @@ if [[ $USETIMER -eq 1 ]] ; then
   LDFLAGS="$LDFLAGS -lrt"
 fi
 
+# For pgi on cray modify some flags
+if [[ $USECRAY -eq 1 && $CC = "pgcc" ]] ; then
+    OPTFLAGS="-fast"
+    OMPFLAGS="-mp=nonuma"
+    FOPTFLAGS="-fast"
+fi
+
 # Add flags for OPENMP if specified
 if [[ $USEOPENMP -eq 1 ]] ; then
   echo "Using OPENMP"
   DIRECTIVES="$OMPFLAGS $DIRECTIVES"
   LDFLAGS="$OMPFLAGS $LDFLAGS"
   SFX=".OMP"
-fi
-
-# For pgi on cray modify some flags
-if [[ $USECRAY -eq 1 && $CC = "pgcc" ]] ; then
-    OPTFLAGS="-fast"
-    OMPFLAGS="-mp=nonuma"
-    FOPTFLAGS="-fast"
 fi
 
 # Remove opt flags if specified
