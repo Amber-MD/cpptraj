@@ -45,11 +45,15 @@ void mprinterr(const char *format, ...) {
 void rprintf(const char *format, ...) {
   va_list args;
   if (worldsilent) return;
+  va_start(args, format);
 #ifdef MPI
-  fprintf(stdout,"[%i]\t",worldrank);
-#endif
-  va_start(args,format);
+  char buffer[1024];
+  int nc = sprintf(buffer, "[%i]\t", worldrank);
+  nc += vsprintf(buffer + nc, format, args);
+  fwrite(buffer, 1, nc, stdout);
+# else
   vfprintf(stdout,format,args);
+# endif
   va_end(args);
   return;
 }
