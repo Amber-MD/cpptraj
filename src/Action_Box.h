@@ -7,12 +7,12 @@ class Action_Box : public Action {
     Action_Box();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Box(); }
     static void Help();
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     Box box_;
     bool nobox_;

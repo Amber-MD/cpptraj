@@ -7,7 +7,7 @@
 
 /** Initialize matrix for Hungarian algorithm. **/
 int Hungarian::Initialize(size_t Ncols) {
-  if (matrix_.Allocate2D( Ncols, Ncols )) return 1;
+  if (matrix_.resize( Ncols, Ncols )) return 1;
   lineThroughRow_.assign(matrix_.Nrows(), false);
   lineThroughCol_.assign(matrix_.Ncols(), false);
   assignRowToCol_.assign(matrix_.Ncols(), -1);
@@ -185,7 +185,7 @@ void Hungarian::UpdateMatrix() {
     if (!lineThroughRow_[row]) {
       for (int col = 0; col < ncols_; ++col) {
         if (!lineThroughCol_[col]) {
-          double matrix_elt = matrix_.GetElement(col, row);
+          double matrix_elt = matrix_.element(col, row);
           if (matrix_elt < min_uncovered) {
 #           ifdef DEBUG_HUNGARIAN
             mprintf("\tNew min %f at col=%i, row=%i\n",matrix_elt,col,row);

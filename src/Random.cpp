@@ -1,13 +1,14 @@
 // Random_Number
 #include <ctime> // clock
 #include <cstdlib> // div
+#include <cmath> // sqrt, log
 #include "Random.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 /// Only sets setup state to false. Actual setup is rn_set
 Random_Number::Random_Number() {
-  RN_generator.set = false;
+  RN_generator.iseed = -1;
 }
 
 // Random_Number::rn_set()
@@ -22,7 +23,6 @@ Random_Number::Random_Number() {
   * \param iseed Seed for the random number generator.
   */
 void Random_Number::rn_set(int iseedIn) {
-  int iseed;
   // Two internal seeds used in Marsaglia algorithm:
   int is1, is2;
   const int is1max = 31328;
@@ -34,15 +34,15 @@ void Random_Number::rn_set(int iseedIn) {
   // If iseed <= 0 set the seed based on wallclock time
   if (iseedIn <= 0 ) {
     clock_t wallclock = clock();
-    iseed = (int) wallclock;
-    mprintf("Random_Number: seed is <= 0, using wallclock time as seed (%i)\n",iseed);
+    RN_generator.iseed = (int) wallclock;
+    mprintf("Random_Number: seed is <= 0, using wallclock time as seed (%i)\n",RN_generator.iseed);
   } else
-    iseed = iseedIn;
+    RN_generator.iseed = iseedIn;
 
   // Construct two internal seeds from single unbound seed.
   // is1 and is2 are quotient and remainder of iseed/IS2MAX.
   // Add one to keep zero and one results from both mapping to one.
-  divresult = div( iseed, is2max );
+  divresult = div( RN_generator.iseed, is2max );
   divresult.quot++;
   divresult.rem++;
   // Ensure range: 1 <= is1 <= is1max
@@ -90,8 +90,6 @@ void Random_Number::rn_set(int iseedIn) {
 
   RN_generator.i97 = 96;
   RN_generator.j97 = 32;
-
-  RN_generator.set = true;  
 }
 
 // Random_Number::rn_set()
@@ -125,7 +123,7 @@ void Random_Number::rn_set( ) {
   * \return -1.0 if the random number generator is not initialized.
   */
 double Random_Number::rn_gen() {
-  if (!RN_generator.set) { 
+  if (!IsSet()) { 
     mprinterr("Error: random number generator not initialized.");
     return -1.0;
   }
@@ -144,3 +142,38 @@ double Random_Number::rn_gen() {
   return uni;
 }
 
+// Random_Number::rn_gauss()
+/** This is a version of amrand() that adds the constraint of a gaussian 
+  * distribution, with mean "am" and standard deviation "sd". This 
+  * requires rn_set() to have been called first, and "uses up" the
+  * same sequence that rn_gen() does.
+  */
+double Random_Number::rn_gauss(double am, double sd) {
+  if (!IsSet()) {
+    mprinterr("Error: random number generator not initialized.");
+    return -1.0;
+  }
+  // Use the method of Box and Muller.
+  // For some applications, one could use both "v" and "veven" in random
+  // sequence; but this won't work for most things we need (e.g. Langevin
+  // dynamics,) since the two adjacent variables are themselves highly
+  // correlated.  Hence we will just use the first ("v") variable.
+
+  // Get two random numbers, even on (-1,1):
+  bool generate = true;
+  while (generate) {
+    double uni = rn_gen();
+    double zeta1 = uni + uni - 1.0;
+
+    uni = rn_gen();
+    double zeta2 = uni + uni - 1.0;
+
+    double tmp1 = zeta1 * zeta1 + zeta2 * zeta2;
+
+    if (tmp1 < 1.0 && tmp1 != 0.0) {
+        double tmp2 = sd * sqrt(-2.0 * log(tmp1)/tmp1);
+        return (zeta1 * tmp2 + am);
+    }
+  }
+  return 0.0;
+}

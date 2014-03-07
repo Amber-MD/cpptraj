@@ -28,11 +28,8 @@ and was rewritten by Jason Swails for the current cpptraj version.
 class Action_Spam: public Action, ImagedAction {
   public:
     Action_Spam();
-    
     static DispatchObject* Alloc() { return (DispatchObject*) new Action_Spam(); }
     static void Help();
-
-    void Print();
   private:
     int ensembleNum_;
     /** \brief Name of the solvent residues */
@@ -90,6 +87,7 @@ class Action_Spam: public Action, ImagedAction {
                          DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
     // Custom Do- routines
     Action::RetType DoPureWater(int, Frame*);
     Action::RetType DoSPAM(int, Frame*);

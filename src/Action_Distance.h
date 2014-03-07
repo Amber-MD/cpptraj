@@ -7,20 +7,18 @@
 class Action_Distance: public Action, ImagedAction {
   public:
     Action_Distance();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Distance(); }
     static void Help();
-
-    void Print() {}
   private:
-    DataSet* dist_;  ///< Will hold DataSet of calculated distances.
-    bool useMass_;   ///< If true, mass-weight distances.
-    AtomMask Mask1_;
-    AtomMask Mask2_;
-
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
+
+    DataSet* dist_;  ///< Will hold DataSet of calculated distances.
+    bool useMass_;   ///< If true, mass-weight distances.
+    AtomMask Mask1_;
+    AtomMask Mask2_;
 };
 #endif  

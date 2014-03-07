@@ -13,7 +13,7 @@ class Analysis_Hist : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Hist(); }
     static void Help();
     Analysis::RetType Setup(DataSet_1D*, std::string const&, std::string const&,
-                            bool, double, bool, double, double, int, NormMode,
+                            bool, double, bool, double, double, int, double, NormMode,
                             DataSetList&, DataFileList&);
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();

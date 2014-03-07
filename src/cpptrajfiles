@@ -58,6 +58,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_RunningAvg.cpp \
         Action_STFC_Diffusion.cpp \
         Action_Scale.cpp \
+        Action_SetVelocity.cpp \
         Action_Spam.cpp \
         Action_Strip.cpp \
         Action_Surf.cpp \
@@ -66,6 +67,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Translate.cpp \
         Action_Unwrap.cpp \
         Action_Vector.cpp \
+        Action_VelocityAutoCorr.cpp \
         Action_Volmap.cpp \
         Action_Watershell.cpp \
         AnalysisList.cpp \
@@ -190,6 +192,7 @@ SOURCES=ActionFrameCounter.cpp \
         SDFfile.cpp \
         StringRoutines.cpp \
         SymmetricRmsdCalc.cpp \
+        Timer.cpp \
         Topology.cpp \
         TopologyList.cpp \
         TorsionRoutines.cpp \

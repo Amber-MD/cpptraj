@@ -231,7 +231,7 @@ int DataIO_Evecs::WriteData(std::string const& fname, DataSetList const& SetList
     bufsize = modesData.VectorSize();
   outfile.SetupFrameBuffer( bufsize, colwidth, 7 );
   // Print average coords
-  outfile.DoubleToBuffer( modesData.AvgFrame().xAddress(), modesData.NavgCrd(),
+  outfile.DoubleToBuffer( modesData.AvgFramePtr(), modesData.NavgCrd(),
                           modesData.DataFormat() );
   outfile.WriteFrame();
   // Eigenvectors and eigenvalues

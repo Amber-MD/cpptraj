@@ -1,19 +1,23 @@
 #include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include <cmath> // sqrt
 #include "DataSet_Vector.h"
+#include "Constants.h" // For spherical harmonics norm.
 
 const Vec3 DataSet_Vector::ZERO = Vec3(0,0,0);
 const ComplexArray DataSet_Vector::COMPLEXBLANK = ComplexArray(0);
 
+// CONSTRUCTOR
 DataSet_Vector::DataSet_Vector() : DataSet_1D(VECTOR, 8, 4),
  order_(0), isIred_(false), writeSum_(false) {}
 
+// DataSet_Vector::Allocate1D()
 int DataSet_Vector::Allocate1D(size_t Nin) {
   vectors_.reserve( Nin );
   origins_.reserve( Nin ); // TODO: check if this needs allocation
   return 0;
 }
 
+// DataSet_Vector::WriteBuffer()
 void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, size_t frameIn) const {
   int zmax;
   if (frameIn >= vectors_.size()) {
@@ -40,6 +44,7 @@ void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, size_t frameIn) const {
   }
 }
 
+// DataSet_Vector::reset()
 void DataSet_Vector::reset() {
   vectors_.clear();
   origins_.clear();
@@ -49,17 +54,19 @@ void DataSet_Vector::reset() {
   writeSum_ = false;
 }
 
+// DataSet_Vector::CalcSphericalHarmonics()
 /** Calc spherical harmonics of order l=0,1,2 and -l<=m<=l for stored vectors 
   * (see e.g. Merzbacher, Quantum Mechanics, p. 186).
   */
-void DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
+int DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
   const double SH00=0.28209479;
   const double SH10=0.48860251;
   const double SH11=0.34549415;
   const double SH20=0.31539157;
   const double SH21=0.77254840;
   const double SH22=0.38627420;
-  if (order_ == orderIn) return;
+  if (orderIn < 0 || orderIn > 2) return 1;
+  if (order_ == orderIn) return 0;
   order_ = orderIn;
   sphericalHarmonics_.clear();
   // Allocate and init complex arrays
@@ -99,12 +106,21 @@ void DataSet_Vector::CalcSphericalHarmonics(int orderIn) {
       //mprintf("DBG: Vec %zu sphereHarm(m=%i) = %f + %fi\n",vec-vectors_.begin(), midx,
       //        D[cidx], D[cidx+1]);
     }
-  } 
+  }
+  return 0; 
 }
 
 // DataSet_Vector::SphericalHarmonics()
-const ComplexArray& DataSet_Vector::SphericalHarmonics(int midx) const {
+ComplexArray const& DataSet_Vector::SphericalHarmonics(int midx) const {
   if (sphericalHarmonics_.empty() || abs(midx) > order_)
    return COMPLEXBLANK;
   return sphericalHarmonics_[midx + order_];
+}
+
+/** 4*PI / ((2*order)+1) due to spherical harmonics addition theorem */
+double DataSet_Vector::SphericalHarmonicsNorm(int order) {
+  if      (order == 2) return Constants::FOURFIFTHSPI;
+  else if (order == 1) return Constants::FOURTHIRDSPI;
+  else if (order == 0) return Constants::FOURPI;
+  else return 1.0;
 }

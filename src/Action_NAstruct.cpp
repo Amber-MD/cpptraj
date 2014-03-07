@@ -47,8 +47,8 @@ Action_NAstruct::~Action_NAstruct() {
 }
 
 // Output Format Strings
-static const char BP_OUTPUT_FMT[66] = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2i\n";
-static const char NA_OUTPUT_FMT[73] = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f\n";
+static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2i %10.4f %10.4f\n";
+static const char* NA_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f\n";
 
 // ------------------------- PRIVATE FUNCTIONS ---------------------------------
 // Action_NAstruct::ClearLists()
@@ -1114,8 +1114,9 @@ void Action_NAstruct::Print() {
               outfilename.c_str(), nframes, BasePairAxes_.size());
       //  File header
       if (printheader_)
-        outfile.Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s\n","#Frame","Base1","Base2",
-                       "Shear","Stretch","Stagger","Buckle","Propeller","Opening", "HB");
+        outfile.Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %10s %10s\n",
+                       "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
+                       "Buckle","Propeller","Opening", "HB", "Major", "Minor");
       // Loop over all frames
       for (int frame = 0; frame < nframes; ++frame) {
         int nbp = 0;
@@ -1130,7 +1131,7 @@ void Action_NAstruct::Print() {
                          SHEAR_[nbp]->Dval(frame), STRETCH_[nbp]->Dval(frame),
                          STAGGER_[nbp]->Dval(frame), BUCKLE_[nbp]->Dval(frame),
                          PROPELLER_[nbp]->Dval(frame), OPENING_[nbp]->Dval( frame),
-                         n_of_hb);
+                         n_of_hb, MAJOR_[nbp]->Dval(frame), MINOR_[nbp]->Dval(frame));
           ++nbp;
         }
         outfile.Printf("\n");

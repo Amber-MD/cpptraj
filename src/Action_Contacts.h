@@ -6,13 +6,18 @@
 class Action_Contacts : public Action {
   public:
     Action_Contacts();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Contacts(); }
     static void Help();
-
     ~Action_Contacts();
-    void Print() {}
   private:
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
+
+    int SetupContacts(Frame*, Topology*);
+
     AtomMask Mask_;
     bool byResidue_;
     double distance_;
@@ -28,12 +33,5 @@ class Action_Contacts : public Action {
     std::vector<int> residueContacts_;
     std::vector<int> residueNative_;
     std::set<int> activeResidues_;
-
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
-
-    int SetupContacts(Frame*, Topology*);
 };
 #endif

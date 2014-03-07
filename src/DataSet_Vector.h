@@ -25,6 +25,12 @@ class DataSet_Vector : public DataSet_1D {
     bool IsIred()            const { return isIred_;        }
     // -------------------------------------------
     void reset();
+    void Resize(size_t s)               { vectors_.resize( s );    }
+    void Resize(size_t s, Vec3 const& v){ vectors_.resize(s, v);   }
+    //typedef Varray::iterator iterator;
+    //iterator begin()                    { return vectors_.begin(); }
+    //iterator end()                      { return vectors_.end();   }
+    bool Empty()                  const { return vectors_.empty(); }
     const Vec3& operator[](int i) const { return vectors_[i];      }
     Vec3&       operator[](int i)       { return vectors_[i];      }
     const Vec3& OXYZ(int i)       const {
@@ -43,9 +49,11 @@ class DataSet_Vector : public DataSet_1D {
     const_iterator end()         const { return vectors_.end();   }
     const Vec3&    Back()        const { return vectors_.back();  }
     /// Calculate spherical harmonics arrays for given Legendre order
-    void CalcSphericalHarmonics(int);
+    int CalcSphericalHarmonics(int);
     /// \return Spherical harmonics array for given m (-order_ <= m <= order_)
-    const ComplexArray& SphericalHarmonics(int) const;
+    ComplexArray const& SphericalHarmonics(int) const;
+    /// \return Constant for normalization via spherical harmonics addition theorem.
+    static double SphericalHarmonicsNorm(int); 
   private:
     int order_;      ///< Order for spherical harmonics calculations
     bool isIred_;    ///< If true, this can be used in IRED analysis

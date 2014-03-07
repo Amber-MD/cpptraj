@@ -4,6 +4,7 @@
 #  include "MpiRoutines.h"
 #endif
 
+static bool worldsilent = false; // If true suppress all mprintf output.
 // mflush()
 /** Call flush on STDOUT only if this is the master thread */
 void mflush() {
@@ -17,7 +18,7 @@ void mflush() {
 /** Print message to STDOUT only if this is the master thread */
 void mprintf(const char *format, ...) {
   va_list args;
-
+  if (worldsilent) return;
 #ifdef MPI
   if (worldrank!=0) return;
 #endif
@@ -43,12 +44,16 @@ void mprinterr(const char *format, ...) {
 /** Print message to STDOUT for this worldrank */
 void rprintf(const char *format, ...) {
   va_list args;
-
+  if (worldsilent) return;
+  va_start(args, format);
 #ifdef MPI
-  fprintf(stdout,"[%i]\t",worldrank);
-#endif
-  va_start(args,format);
+  char buffer[1024];
+  int nc = sprintf(buffer, "[%i]\t", worldrank);
+  nc += vsprintf(buffer + nc, format, args);
+  fwrite(buffer, 1, nc, stdout);
+# else
   vfprintf(stdout,format,args);
+# endif
   va_end(args);
   return;
 }
@@ -65,6 +70,10 @@ void rprinterr(const char *format, ...) {
   vfprintf(stderr,format,args);
   va_end(args);
   return;
+}
+
+void SetWorldSilent(bool silentIn) {
+  worldsilent = silentIn;
 }
 
 // printerr()
@@ -96,4 +105,3 @@ void rprinterr(const char *format, ...) {
   fprintf(stdout,"\n");
   return;
 }*/
-

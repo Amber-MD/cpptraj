@@ -22,12 +22,9 @@
 class Action_Rotdif: public Action {
   public:
     Action_Rotdif();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rotdif(); }
     static void Help();
-
     ~Action_Rotdif();
-
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);

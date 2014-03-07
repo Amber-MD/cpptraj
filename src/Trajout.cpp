@@ -29,12 +29,26 @@ Trajout::~Trajout() {
 int Trajout::InitTrajWrite(std::string const& tnameIn, ArgList *argIn, 
                            Topology *tparmIn, TrajFormatType writeFormatIn)
 {
-  TrajectoryFile::TrajFormatType writeFormat = writeFormatIn;
   // Require a filename
   if (tnameIn.empty()) {
     mprinterr("Internal Error: InitTrajWrite: No filename given.\n");
     return 1;
   }
+  return InitTrajout(tnameIn, argIn, tparmIn, writeFormatIn);
+}
+
+// Trajout::InitStdoutTrajWrite()
+int Trajout::InitStdoutTrajWrite(ArgList& argIn, Topology *tparmIn,
+                                 TrajFormatType writeFormatIn)
+{
+  return InitTrajout("", &argIn, tparmIn, writeFormatIn);
+}
+
+// Trajout::InitTrajout()
+int Trajout::InitTrajout(std::string const& tnameIn, ArgList *argIn,
+                         Topology *tparmIn, TrajFormatType writeFormatIn)
+{
+  TrajectoryFile::TrajFormatType writeFormat = writeFormatIn;
   // Check and set associated parm file
   if ( SetTrajParm( tparmIn ) ) return 1;
   // Mark as not yet open

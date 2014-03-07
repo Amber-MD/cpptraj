@@ -154,10 +154,6 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
               olegendre_);
     return Action::ERR;
   }
-  if (usefft_ && olegendre_ != 2) {
-    mprinterr("Error: FFT only supports legendre order 2.\n");
-    return Action::ERR;
-  }
   delqfrac_ = actionArgs.getKeyDouble("delqfrac",0.5);
   randvecOut_ = actionArgs.GetStringKey("rvecout");
   randvecIn_ = actionArgs.GetStringKey("rvecin");
@@ -417,15 +413,10 @@ int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int n
   }
   // Normalize correlation fn
   // 4/3*PI and 4/5*PI due to spherical harmonics addition theorem
-  double norm = 1.0;
-  if (order==1)
-    norm = Constants::FOURTHIRDSPI;
-  else if (order==2)
-    norm = Constants::FOURFIFTHSPI;
-  for (int i = 0; i < nsteps; ++i) {
+  double norm = DataSet_Vector::SphericalHarmonicsNorm( order );
+  for (int i = 0; i < nsteps; ++i)
     p2[i] *= (norm / (n_of_vecs - i));
-  }
-     
+
   return 0;
 }
 

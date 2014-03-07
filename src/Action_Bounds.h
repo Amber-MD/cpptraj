@@ -5,20 +5,19 @@
 class Action_Bounds : public Action {
   public:
     Action_Bounds();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Bounds(); }
     static void Help();
-
-    void Print();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
     AtomMask mask_;
     std::string outfilename_;
     double max_[3];
     double min_[3];
+    double dxyz_[3];
     int ensembleNum_;
 };
 #endif

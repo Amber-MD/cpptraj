@@ -11,6 +11,7 @@ class Trajout : public TrajectoryFile {
     inline int InitTrajWrite(std::string const&, ArgList&, Topology*,
                              TrajectoryFile::TrajFormatType);
     inline int InitTrajWrite(std::string const&, Topology*, TrajectoryFile::TrajFormatType);
+    int InitStdoutTrajWrite(ArgList&, Topology*, TrajectoryFile::TrajFormatType);
     int InitEnsembleTrajWrite(std::string const&, ArgList const&,
                               Topology*, TrajFormatType, int);
     int InitTrajWriteWithArgs(std::string const&, const char*, Topology*,
@@ -22,6 +23,7 @@ class Trajout : public TrajectoryFile {
     int NumFramesProcessed() const { return numFramesProcessed_; }
   private:
     int InitTrajWrite(std::string const&, ArgList*, Topology*, TrajectoryFile::TrajFormatType);
+    int InitTrajout(std::string const&, ArgList*, Topology*, TrajectoryFile::TrajFormatType);
 
     int numFramesProcessed_;
     TrajectoryIO* trajio_;

@@ -6,9 +6,9 @@
 #include "ReadLine.h"
 #include "Version.h"
 #include "ParmFile.h" // ProcessMask
-#ifdef TIMER
-# include "Timer.h"
-#endif
+#include "Timer.h"
+#include "StringRoutines.h" // convertToInteger
+#include "Trajin_Single.h" // for AmbPDB
 
 void Cpptraj::Usage() {
   mprinterr("\n"
@@ -36,8 +36,14 @@ void Cpptraj::Usage() {
 }
 
 void Cpptraj::Intro() {
-  mprintf("\nCPPTRAJ: Trajectory Analysis. %s\n"
-          "    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n",
+  mprintf("\nCPPTRAJ: Trajectory Analysis. %s"
+# ifdef MPI
+          " MPI"
+# endif
+# ifdef _OPENMP
+          " OpenMP"
+# endif
+          "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
   mprintf("Running on %i threads\n",CpptrajState::WorldSize());
@@ -54,10 +60,8 @@ void Cpptraj::Finalize() {
 
 int Cpptraj::RunCpptraj(int argc, char** argv) {
   int err = 0;
-# ifdef TIMER
   Timer total_time;
   total_time.Start();
-# endif
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
     // If State is not empty, run now. 
@@ -68,10 +72,8 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   } else if ( cmode == ERROR ) {
     err = 1;
   }
-# ifdef TIMER
   total_time.Stop();
   mprintf("TIME: Total execution time: %.4f seconds.\n", total_time.Total());
-# endif
   if (cmode != SILENT_EXIT) {
     if (err == 0) Cpptraj::Finalize();
     mprintf("\n");
@@ -80,7 +82,8 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
 }
 
 /** Process a mask from the command line. */
-int Cpptraj::ProcessMask( Sarray const& topFiles, std::string const& maskexpr,
+int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
+                          std::string const& maskexpr,
                           bool verbose, bool residue ) const
 {
   if (topFiles.empty()) {
@@ -90,6 +93,11 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, std::string const& maskexpr,
   ParmFile pfile;
   Topology parm;
   if (pfile.ReadTopology(parm, topFiles[0], State_.Debug())) return 1;
+  if (!refFiles.empty()) {
+    ReferenceFrame refFrame;
+    if (refFrame.LoadRef( refFiles[0], &parm, State_.Debug())) return 1;
+    parm.SetReferenceCoords( *(refFrame.Coord()) );
+  }
   if (!verbose) {
     AtomMask tempMask( maskexpr );
     if (parm.SetupIntegerMask( tempMask )) return 1;
@@ -207,19 +215,23 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       inputFiles.push_back( argv[++i] );
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Parse mask string, print selected atom #s
-      if (ProcessMask( topFiles, std::string(argv[++i]), false, false )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, false )) return ERROR;
       return SILENT_EXIT;
     } else if (arg == "-mr" && i+1 != argc) {
       // -mr: Parse mask string, print selected res #s
-      if (ProcessMask( topFiles, std::string(argv[++i]), false, true )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, true )) return ERROR;
       return SILENT_EXIT;
     } else if (arg == "--mask" && i+1 != argc) {
       // --mask: Parse mask string, print selected atom details
-      if (ProcessMask( topFiles, std::string(argv[++i]), true, false )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, false )) return ERROR;
       return SILENT_EXIT;
     } else if (arg == "--resmask" && i+1 != argc) {
       // --resmask: Parse mask string, print selected residue details
-      if (ProcessMask( topFiles, std::string(argv[++i]), true, true )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, true )) return ERROR;
+      return SILENT_EXIT;
+    } else if (arg == "--ambpdb") {
+      // --ambpdb: Convert files to PDB.
+      if (AmbPDB(i + 1, argc, argv)) return ERROR;
       return SILENT_EXIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
@@ -325,5 +337,71 @@ int Cpptraj::Interactive() {
   }
   logfile_.CloseFile();
   if (readLoop == Command::C_ERR) return 1;
+  return 0;
+}
+
+// Cpptraj::AmbPDB()
+int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
+  SetWorldSilent(true);
+  std::string topname, crdname, title, aatm(" pdbatom"), bres, pqr;
+  TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
+  bool ctr_origin = false;
+  bool noTER = false;
+  int res_offset = 0;
+  for (int i = argstart; i < argc; ++i) {
+    std::string arg( argv[i] );
+    if (arg == "-p" && i+1 != argc && topname.empty()) // Topology
+      topname = std::string( argv[++i] );
+    else if (arg == "-c" && i+1 != argc && crdname.empty()) // Coords
+      crdname = std::string( argv[++i] );
+    else if (arg == "-tit" && i+1 != argc && title.empty()) // Title
+      title = " title " + std::string( argv[++i] );
+    else if (arg == "-offset" && i+1 != argc) // Residue # offset
+      res_offset = convertToInteger( argv[++i] );
+    else if (arg == "-aatm") // Amber atom names
+      aatm.clear();
+    else if (arg == "-bres") // PDB residue names
+      bres.assign(" pdbres");
+    else if (arg == "-ctr")  // Center on origin
+      ctr_origin = true;
+    else if (arg == "-noter") // No TER cards
+      noTER = true;
+    else if (arg == "-pqr") // Charge/Radii in occ/bfactor cols
+      pqr.assign(" dumpq");
+    else if (arg == "-mol2") // output as mol2
+      fmt = TrajectoryFile::MOL2FILE;
+    else
+      mprinterr("Warning: ambpdb: Unrecognized or unused option '%s'\n", arg.c_str());
+  }
+  // Topology
+  ParmFile pfile;
+  Topology parm;
+  if (pfile.ReadTopology(parm, topname, State_.Debug())) return 1;
+  parm.IncreaseFrames( 1 );
+  if (noTER)
+    parm.ClearMoleculeInfo();
+  if (res_offset != 0)
+    for (int r = 0; r < parm.Nres(); r++)
+      parm.SetRes(r).SetOriginalNum( parm.Res(r).OriginalResNum() + res_offset );
+  // Input coords
+  Trajin_Single trajin;
+  ArgList trajArgs;
+  if (trajin.SetupTrajRead(crdname, trajArgs, &parm, false)) return 1;
+  Frame TrajFrame;
+  TrajFrame.SetupFrameV(parm.Atoms(), trajin.HasVelocity(), trajin.NreplicaDimension());
+  trajin.BeginTraj(false);
+  if (trajin.ReadTrajFrame(0, TrajFrame)) return 1;
+  trajin.EndTraj();
+  if (ctr_origin) {
+    AtomMask mask("*");
+    parm.SetupIntegerMask( mask );
+    TrajFrame.Center( mask, Frame::ORIGIN, Vec3(0.0), false );
+  }
+  // Output coords
+  Trajout trajout;
+  trajArgs.SetList( aatm + bres + pqr + title, " " );
+  if ( trajout.InitStdoutTrajWrite(trajArgs, &parm, fmt) ) return 1;
+  trajout.WriteFrame(0, &parm, TrajFrame);
+  trajout.EndTraj(); 
   return 0;
 }

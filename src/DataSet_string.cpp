@@ -1,7 +1,6 @@
 // DataSet_string
 #include "DataSet_string.h"
 #include "MpiRoutines.h"
-#include "CpptrajStdio.h"
 
 // DataSet_string::Allocate()
 /** Reserve space in the Data and Frames arrays. */

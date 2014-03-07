@@ -90,8 +90,15 @@ int TopologyList::AddParmFile(std::string const& filename) {
 /** Add a parameter file to the parm file list with optional tag. */
 int TopologyList::AddParmFile(std::string const& filenameIn, ArgList& argIn) 
 {
+  if (filenameIn.empty()) {
+    mprinterr("Error: No topology file name specified.\n");
+    return 1;
+  }
   StrArray fnames = ExpandToFilenames( filenameIn );
-  if (fnames.empty()) return 1;
+  if (fnames.empty()) {
+    mprinterr("Error: '%s' matches no files.\n", filenameIn.c_str());
+    return 1;
+  }
   std::string ParmTag = argIn.getNextTag();
   int numErr = 0;
   for (StrArray::const_iterator fn = fnames.begin();

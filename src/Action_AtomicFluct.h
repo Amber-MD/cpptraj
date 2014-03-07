@@ -5,16 +5,14 @@
 class Action_AtomicFluct : public Action, ActionFrameCounter {
   public :
     Action_AtomicFluct();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomicFluct(); }
     static void Help();
-
-    void Print();
   private :
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 
     enum outputType { BYATOM = 0, BYRES, BYMASK };
 

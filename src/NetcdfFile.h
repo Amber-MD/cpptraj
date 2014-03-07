@@ -72,11 +72,6 @@ class NetcdfFile {
     int spatialVID_;
     int cell_spatialVID_;
     int cell_angularVID_;
-    // Amber operates in kcal/mol units for energy, amu for masses,
-    // and angstoms for distances. To convert the input time parameters
-    // from picoseconds to internal units, multiply by 20.455
-    // (which is 10.0 * sqrt(4.184)).
-    double velocityScale_;
 
     std::string GetAttrText(int, const char *);
     int GetDimInfo(const char *, int *);

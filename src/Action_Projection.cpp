@@ -2,6 +2,7 @@
 #include "Action_Projection.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
+#include "Constants.h" // DEGRAD
 
 // CONSTRUCTOR
 Action_Projection::Action_Projection() :
@@ -11,8 +12,8 @@ Action_Projection::Action_Projection() :
 {}
 
 void Action_Projection::Help() {
-  mprintf("\tevecs <dataset name> [out <outfile>] [beg <beg>] [end <end>] [<mask>]\n"
-          "\t%s\n  Calculate projection of coordinates along given eigenvectors.\n", 
+  mprintf("\tevecs <evecs dataset> [out <outfile>] [beg <beg>] [end <end>] [<mask>]\n"
+          "\t%s\n  Calculate projection along given eigenvectors.\n", 
           ActionFrameCounter::HelpText);
 }
 
@@ -53,17 +54,35 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   // Check modes type
   if (modinfo_->Type() != DataSet_2D::COVAR &&
       modinfo_->Type() != DataSet_2D::MWCOVAR &&
+      modinfo_->Type() != DataSet_2D::DIHCOVAR &&
       modinfo_->Type() != DataSet_2D::IDEA)
   {
-    mprinterr("Error: evecs type is not COVAR, MWCOVAR, or IDEA.\n");
+    mprinterr("Error: evecs type is not COVAR, MWCOVAR, DIHCOVAR, or IDEA.\n");
     return Action::ERR;
   }
 
   // Output Filename
   DataFile* DF = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
 
-  // Get mask
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  // Get dihedral data sets 
+  if (modinfo_->Type() == DataSet_2D::DIHCOVAR) {
+    DihedralSets_.clear();
+    DihedralSets_.AddTorsionSets( DSL->GetMultipleSets( actionArgs.GetStringKey("dihedrals") ) );
+    if ( DihedralSets_.empty() ) {
+      mprinterr("Error: No valid data sets found.\n");
+      return Action::ERR;
+    } else if ((int)DihedralSets_.size() * 2 != (end_ - beg_)) {
+      mprinterr("Error: Number of dihedral data sets %u does not correspond to number of eigenvectors %i\n",
+                DihedralSets_.size() * 2, end_ - beg_);
+      return Action::ERR;
+    } else if ((int)DihedralSets_.size() * 2 != modinfo_->NavgCrd()) {
+      mprinterr("Error: Number of dihedral data sets %u does not correspond to number of average elements %i\n",
+                DihedralSets_.size() * 2, modinfo_->NavgCrd());
+      return Action::ERR;
+    }
+  } else
+    // Get mask
+    mask_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Set up data sets
   std::string setname = actionArgs.GetStringNext();
@@ -97,58 +116,60 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   if (DF != 0)
     mprintf("\tResults are written to %s\n", DF->DataFilename().full());
   FrameCounterInfo();
-  mprintf("\tAtom Mask: [%s]\n", mask_.MaskString());
+  if (modinfo_->Type() != DataSet_2D::DIHCOVAR)
+    mprintf("\tAtom Mask: [%s]\n", mask_.MaskString());
 
   return Action::OK;
 }
 
 // Action_Projection::Setup()
 Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmAddress) {
-  // Setup mask
-  if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
-  if (mask_.None()) {
-    mprinterr("Error: No atoms selected.\n");
-    return Action::ERR;
-  }
-  mask_.MaskInfo();
-  // Check # of selected atoms against modes info
-  if ( modinfo_->Type() == DataSet_2D::COVAR || 
-       modinfo_->Type() == DataSet_2D::MWCOVAR)
-  {
-    // Check if (3 * number of atoms in mask) and nvectelem agree
-    int natom3 = mask_.Nselected() * 3;
-    if ( natom3 != modinfo_->NavgCrd() ) {
-      mprinterr("Error: number selected coords (%i) != number avg coords (%i) in %s\n",
-                natom3, modinfo_->NavgCrd(), modinfo_->Legend().c_str());
+  if (modinfo_->Type() != DataSet_2D::DIHCOVAR) {
+    // Setup mask
+    if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
+    if (mask_.None()) {
+      mprinterr("Error: No atoms selected.\n");
       return Action::ERR;
     }
-    if ( natom3 != modinfo_->VectorSize() ) {
-      mprinterr("Error: number selected coords (%i) != eigenvector size (%i)\n",
-                natom3, modinfo_->VectorSize() );
-      return Action::ERR;
-    }
-  } else if ( modinfo_->Type() == DataSet_2D::IDEA ) {
-    // Check if (number of atoms in mask) and nvectelem agree
-    if (//mask_.Nselected() != modinfo_.Navgelem() ||
-        mask_.Nselected() != modinfo_->VectorSize()) 
+    mask_.MaskInfo();
+    // Check # of selected atoms against modes info
+    if ( modinfo_->Type() == DataSet_2D::COVAR || 
+         modinfo_->Type() == DataSet_2D::MWCOVAR)
     {
-      mprinterr("Error: number selected atoms (%i) != eigenvector size (%i)\n",
-                mask_.Nselected(), modinfo_->VectorSize() );
-      return Action::ERR;
+      // Check if (3 * number of atoms in mask) and nvectelem agree
+      int natom3 = mask_.Nselected() * 3;
+      if ( natom3 != modinfo_->NavgCrd() ) {
+        mprinterr("Error: number selected coords (%i) != number avg coords (%i) in %s\n",
+                  natom3, modinfo_->NavgCrd(), modinfo_->Legend().c_str());
+        return Action::ERR;
+      }
+      if ( natom3 != modinfo_->VectorSize() ) {
+        mprinterr("Error: number selected coords (%i) != eigenvector size (%i)\n",
+                  natom3, modinfo_->VectorSize() );
+        return Action::ERR;
+      }
+    } else if ( modinfo_->Type() == DataSet_2D::IDEA ) {
+      // Check if (number of atoms in mask) and nvectelem agree
+      if (//mask_.Nselected() != modinfo_.Navgelem() ||
+          mask_.Nselected() != modinfo_->VectorSize()) 
+      {
+        mprinterr("Error: number selected atoms (%i) != eigenvector size (%i)\n",
+                  mask_.Nselected(), modinfo_->VectorSize() );
+        return Action::ERR;
+      }
+    }
+
+    // Precalc sqrt of mass for each coordinate
+    sqrtmasses_.clear();
+    if ( modinfo_->Type() == DataSet_2D::MWCOVAR ) {
+      sqrtmasses_.reserve( mask_.Nselected() );
+      for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
+        sqrtmasses_.push_back( sqrt( (*currentParm)[*atom].Mass() ) );
+    } else {
+      // If not MWCOVAR no mass-weighting necessary
+      sqrtmasses_.resize( mask_.Nselected(), 1.0 );
     }
   }
-
-  // Precalc sqrt of mass for each coordinate
-  sqrtmasses_.clear();
-  if ( modinfo_->Type() == DataSet_2D::MWCOVAR ) {
-    sqrtmasses_.reserve( mask_.Nselected() );
-    for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
-      sqrtmasses_.push_back( sqrt( (*currentParm)[*atom].Mass() ) );
-  } else {
-    // If not MWCOVAR no mass-weighting necessary
-    sqrtmasses_.resize( mask_.Nselected(), 1.0 );
-  }
-
   return Action::OK;
 }
 
@@ -164,19 +185,35 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame,
        modinfo_->Type() == DataSet_2D::MWCOVAR ) 
   {
     for (int mode = beg_; mode < end_; ++mode) {
-      const double* Avg = modinfo_->AvgFrame().xAddress();
+      DataSet_Modes::AvgIt Avg = modinfo_->AvgBegin();
       double proj = 0;
       std::vector<double>::const_iterator sqrtmass = sqrtmasses_.begin();
       for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
       {
         const double* XYZ = currentFrame->XYZ( *atom );
         double mass = *(sqrtmass++);
-        proj += (XYZ[0] - Avg[0]) * mass * Vec[0]; 
-        proj += (XYZ[1] - Avg[1]) * mass * Vec[1]; 
-        proj += (XYZ[2] - Avg[2]) * mass * Vec[2]; 
-        Avg += 3;
+        proj += (XYZ[0] - *(Avg++)) * mass * Vec[0]; 
+        proj += (XYZ[1] - *(Avg++)) * mass * Vec[1]; 
+        proj += (XYZ[2] - *(Avg++)) * mass * Vec[2]; 
         Vec += 3;
       }
+      float fproj = (float)proj;
+      project_[mode]->Add( frameNum, &fproj );
+    }
+  } else if (modinfo_->Type() == DataSet_2D::DIHCOVAR ) {
+    for (int mode = beg_; mode < end_; ++mode) {
+      DataSet_Modes::AvgIt Avg = modinfo_->AvgBegin();
+      double proj = 0.0;
+      for (Array1D::const_iterator dih = DihedralSets_.begin();
+                                   dih != DihedralSets_.end(); ++dih)
+      {
+        double theta = (*dih)->Dval( frameNum ) * Constants::DEGRAD;
+        proj += (cos(theta) - *(Avg++)) * Vec[0];
+        proj += (sin(theta) - *(Avg++)) * Vec[1];
+        Avg += 2;
+        Vec += 2;
+      }
+      // TODO: Convert to degrees?
       float fproj = (float)proj;
       project_[mode]->Add( frameNum, &fproj );
     }

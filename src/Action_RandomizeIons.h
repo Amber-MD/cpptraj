@@ -5,16 +5,14 @@
 class Action_RandomizeIons : public Action, ImagedAction {
   public:
     Action_RandomizeIons();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_RandomizeIons(); }
     static void Help();
-
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     AtomMask ions_;    ///< the list of ions to be moved.
     double overlap_;   ///< darg1: the minimum distance between ions

@@ -6,17 +6,15 @@
 class Action_Strip: public Action {
   public:
     Action_Strip();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Strip(); }
     static void Help();
-
     ~Action_Strip();
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     Topology *oldParm_;
     Topology *newParm_;

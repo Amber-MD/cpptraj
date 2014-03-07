@@ -4,10 +4,8 @@
 class Action_Rotate : public Action {
   public:
     Action_Rotate();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rotate(); }
     static void Help();
-
   private:
     Matrix_3x3 RotMatrix_;
     AtomMask mask_;

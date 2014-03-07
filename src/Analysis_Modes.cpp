@@ -388,7 +388,7 @@ void Analysis_Modes::CalcDipoleCorr() {
   std::fill(results_, results_ + rsize, 0);
   // Loop over atom pairs 
   double* Res = results_;
-  const double* Avg = modinfo_->AvgFrame().xAddress();
+  DataSet_Modes::Darray const& Avg = modinfo_->AvgCrd();
   for (modestack_it apair = atompairStack_.begin(); apair != atompairStack_.end(); ++apair)
   {
     int idx1 = (*apair).first  * 3;
@@ -400,7 +400,8 @@ void Analysis_Modes::CalcDipoleCorr() {
       continue;
     }
     // Calc unit vector along at2->at1 bond
-    Vec3 vec = Vec3(Avg + idx1) - Vec3(Avg + idx2);
+    Vec3 vec = Vec3(Avg[idx1], Avg[idx1+1], Avg[idx1+2]) -
+               Vec3(Avg[idx2], Avg[idx2+1], Avg[idx2+2]);
     double dnorm = sqrt( vec.Magnitude2() );
     vec /= dnorm;
     // Precalc certain values
@@ -459,7 +460,7 @@ void Analysis_Modes::CalcDipoleCorr() {
 // Calculate projection of coords along given mode.
 void Analysis_Modes::CalculateProjection(int set, Frame const& Crd, int mode) {
   double proj = 0.0;
-  const double* Avg = modinfo_->AvgFrame().xAddress();
+  DataSet_Modes::Darray const& Avg = modinfo_->AvgCrd();
   const double* Vec = modinfo_->Eigenvector(mode);
   for (int idx = 0; idx < Crd.size(); ++idx)
     proj += (Crd[idx] - Avg[idx]) * 1.0 * Vec[idx];
@@ -483,7 +484,8 @@ int Analysis_Modes::ProjectCoords() {
     return Analysis::ERR;
   }
   // Setup frame to hold output coords, initalized to avg coords.
-  Frame outframe = modinfo_->AvgFrame();
+  Frame outframe;
+  outframe.SetupFrameXM( modinfo_->AvgCrd(), modinfo_->Mass() );
   // Point to correct eigenvector
   const double* Vec = modinfo_->Eigenvector(tMode_-1);
   // Initialize coords to pcmin

@@ -105,24 +105,8 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     }
   } else if (mtype == DataSet_2D::DIHCOVAR) { // Dihedral Covariance
     // Get data set mask for dihedral covariance
-    DataSetList dihedralSets = DSL->GetMultipleSets( actionArgs.GetStringKey("dihedrals") );
-    if (dihedralSets.empty()) {
-      mprinterr("Error: No dihedral data sets specified.\n");
-      return Action::ERR;
-    }
-    // Ensure data sets are periodic
     DihedralSets_.clear();
-    for (DataSetList::const_iterator ds = dihedralSets.begin(); ds != dihedralSets.end(); ++ds)
-    {
-      if ( (*ds)->Ndim() == 1 ) {
-        DataSet_1D* ds1 = (DataSet_1D*)(*ds);
-        if ( ds1->IsTorsionArray() )
-          DihedralSets_.push_back( ds1 );
-        else
-          mprintf("Warning: Set '%s' is not periodic, skipping.\n", (*ds)->Legend().c_str());
-      } else
-        mprintf("Warning: Set '%s' is not 1D, skipping.\n", (*ds)->Legend().c_str());
-    }
+    DihedralSets_.AddTorsionSets( DSL->GetMultipleSets( actionArgs.GetStringKey("dihedrals") ) );
     if ( DihedralSets_.empty() ) {
       mprinterr("Error: No valid data sets found.\n");
       return Action::ERR;
@@ -185,7 +169,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf("            Storing matrix on internal stack with name: %s\n", 
             Mat_->Legend().c_str());
   FrameCounterInfo();
-  if (mtype != DataSet_2D::IRED) {
+  if (mtype != DataSet_2D::IRED && mtype != DataSet_2D::DIHCOVAR) {
     mprintf("            Mask1: %s\n",mask1_.MaskString());
     if (useMask2_)
       mprintf("            Mask2: %s\n",mask2_.MaskString());

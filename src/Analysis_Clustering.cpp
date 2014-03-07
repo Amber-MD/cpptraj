@@ -1,16 +1,13 @@
 // Analysis_Clustering
-#include <ctime>
 #include "Analysis_Clustering.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
 #include "DataSet_integer.h" // For converting cnumvtime
 #include "Trajout.h"
+#include "Timer.h"
 // Clustering Algorithms
 #include "Cluster_HierAgglo.h"
 #include "Cluster_DBSCAN.h"
-#ifdef TIMER
-# include "Timer.h"
-#endif
 
 // CONSTRUCTOR
 Analysis_Clustering::Analysis_Clustering() :
@@ -267,22 +264,20 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   return Analysis::OK;
 }
 
-inline void WriteTiming(const char* label, clock_t t0, clock_t tf) {
-  mprintf("\t%15s: %12.2f seconds.\n", label, ((float)(tf - t0)) / CLOCKS_PER_SEC);
-}
-
 /** This is where the clustering is actually performed. First the distances
   * between each frame are calculated. Then the clustering routine is called.
   */
 // TODO: Need to update save to indicate distance type
 // NOTE: Should distances be saved only if load_pair?
 Analysis::RetType Analysis_Clustering::Analyze() {
-# ifdef TIMER
+  Timer cluster_setup;
   Timer cluster_pairwise;
+  Timer cluster_cluster;
   Timer cluster_post;
-# endif
+  Timer cluster_total;
+  cluster_total.Start();
   mprintf("\tStarting clustering.\n");
-  clock_t cluster_setup_start = clock();
+  cluster_setup.Start();
   // Default: USE_FRAMES  - Calculate pair distances from frames.
   //          USE_FILE    - If pairdistfile exists, load pair distances from there.
   // Calculated distances will be saved if not loaded from file.
@@ -318,30 +313,21 @@ Analysis::RetType Analysis_Clustering::Analyze() {
             "Warning: Disabling coordinate output.\n");
     has_coords = false;
   }
-  clock_t cluster_setup_stop = clock();
+  cluster_setup.Stop();
   // Calculate distances between frames
-  clock_t cluster_pairwise_start = clock();
-# ifdef TIMER
   cluster_pairwise.Start();
-# endif
   if (CList_->CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
                                   metric_, nofitrms_, useMass_, maskexpr_, 
                                   sieve_, sieveSeed_ ))
     return Analysis::ERR;
-# ifdef TIMER
   cluster_pairwise.Stop();
-# endif
-  clock_t cluster_pairwise_stop = clock();
   // Cluster
-  clock_t cluster_cluster_start = clock();
+  cluster_cluster.Start();
   CList_->Cluster();
-  clock_t cluster_cluster_stop = clock();
+  cluster_cluster.Stop();
   // Sort clusters and renumber; also finds centroids for printing
   // representative frames. If sieving, add remaining frames.
-  clock_t cluster_finish_start = clock();
-# ifdef TIMER
   cluster_post.Start();
-# endif
   if (CList_->Nclusters() > 0) {
     CList_->Renumber( (sieve_ != 1) );
     // DEBUG
@@ -409,20 +395,15 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     }
   } else
     mprintf("\tNo clusters found.\n");
-# ifdef TIMER
   cluster_post.Stop();
-# endif
-  clock_t cluster_finish_stop = clock();
+  cluster_total.Stop();
   // Timing data
-  WriteTiming("Cluster Init.", cluster_setup_start, cluster_setup_stop);
-  WriteTiming("Pairwise Calc.", cluster_pairwise_start, cluster_pairwise_stop);
-  WriteTiming("Clustering", cluster_cluster_start, cluster_cluster_stop);
-  WriteTiming("Cluster Post.", cluster_finish_start, cluster_finish_stop);
-  WriteTiming("Total", cluster_setup_start, cluster_finish_stop);
-# ifdef TIMER
-  mprintf("\t%15s: %12.4f\n", "ACTUAL PAIRWISE", cluster_pairwise.Total());
-  mprintf("\t%15s: %12.4f\n", "ACTUAL POST", cluster_post.Total());
-# endif
+  mprintf("\tCluster timing data:\n");
+  cluster_setup.WriteTiming(1,    "  Cluster Init. :", cluster_total.Total());
+  cluster_pairwise.WriteTiming(1, "  Pairwise Calc.:", cluster_total.Total());
+  cluster_cluster.WriteTiming(1,  "  Clustering    :", cluster_total.Total());
+  cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
+  cluster_total.WriteTiming(1,    "Total:");
   return Analysis::OK;
 }
 

@@ -6,16 +6,14 @@
 class Action_Radgyr: public Action {
   public:
     Action_Radgyr();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Radgyr(); }
     static void Help();
-
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     DataSet* rog_;
     DataSet* rogmax_;

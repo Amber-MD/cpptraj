@@ -408,7 +408,9 @@ void ClusterDist_SRMSD::PairwiseDist(ClusterMatrix& frameDistances,
 #ifdef _OPENMP
   Frame frm1 = frm1_;
 # define frm1_ frm1
-#pragma omp parallel private(f1, f2, rmsd) firstprivate(frm1, frm2, progress)
+  SymmetricRmsdCalc SRMSD_OMP = SRMSD_;
+# define SRMSD_ SRMSD_OMP
+#pragma omp parallel private(f1, f2, rmsd) firstprivate(SRMSD_OMP, frm1, frm2, progress)
 {
   progress.SetThread(omp_get_thread_num());
 #pragma omp for schedule(dynamic)
@@ -424,6 +426,7 @@ void ClusterDist_SRMSD::PairwiseDist(ClusterMatrix& frameDistances,
   }
 #ifdef _OPENMP
 # undef frm1_
+# undef SRMSD_
 } // END pragma omp parallel
 #endif
   progress.Finish();

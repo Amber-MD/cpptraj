@@ -4,9 +4,7 @@
 #include "Vec3.h"
 #include "Matrix_3x3.h"
 #include "ImagedAction.h"
-#ifdef TIMER
-# include "Timer.h"
-#endif
+#include "Timer.h"
 
 // Class: Action_Gist
 /// Calculate water energy and entropy
@@ -38,14 +36,14 @@ class Action_Gist: public Action, ImagedAction  {
     bool useSPCFW_;*/
     bool doOrder_;
     bool doEij_;
-    //time 
-    //clock_t gist_t_begin_; // DRR - disabled for now
-#   ifdef TIMER
+    // Timing data
+    Timer gist_init_;
+    Timer gist_setup_;
+    Timer gist_print_;
     Timer gist_grid_;
     Timer gist_nonbond_;
     Timer gist_euler_;
     Timer gist_dipole_;
-#   endif
     // other constants
     int NFRAME_;                   ///< total number of frames analyzed
     double BULK_DENS_;             ///< bulk water density
@@ -77,7 +75,6 @@ class Action_Gist: public Action, ImagedAction  {
     /// \return Z coordinate of bin center
     double Zcrd(int k) { return (double)k*gridspacn_ + gridorig_[2] + 0.5*gridspacn_; }
     
-    double Lx_, Ly_, Lz_;                ///< box lengths FIXME: Needed?
     double G_max_x_, G_max_y_, G_max_z_; ///< grid max length
 
     //general loop   
@@ -100,11 +97,11 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> ww_evdw_;
     std::vector <double> ww_eelec_;
     std::vector < std::vector <float> > ww_Eij_;
-    std::vector <float> dEwh_dw_;
-    std::vector <float> dEwh_norm_;
-    std::vector <float> dEww_norm_unref_;
-    std::vector <float> dEww_dw_unref_;
-    std::vector <float> neighbor_dw_;
+    std::vector <float> Esw_dens_;
+    std::vector <float> Esw_norm_;
+    std::vector <float> Eww_norm_;
+    std::vector <float> Eww_dens_;
+    std::vector <float> neighbor_dens_;
     std::vector <float> neighbor_norm_;
     std::vector <float> pol_;
 
@@ -114,13 +111,14 @@ class Action_Gist: public Action, ImagedAction  {
 //  Eij[a] = new float [a];
 
     // entropy stuff
-    std::vector <float> TSNN_dw_;
-    std::vector <double> TSNN_norm_;
-    std::vector <float> TStrans_dw_;
-    std::vector <float> TStrans_norm_;
-    double TSNNtot_;
+    std::vector <float> dTSorient_dens_;
+    std::vector <double> dTSorient_norm_;
+    std::vector <float> dTStrans_dens_;
+    std::vector <float> dTStrans_norm_;
+    double dTSorienttot_;
     int max_nwat_;
-    double TStranstot_;
+    double dTStranstot_;
+    double Ewwtot_;
     std::vector < std::vector <float> > the_vox_;
     std::vector < std::vector <float> > phi_vox_;
     std::vector < std::vector <float> > psi_vox_;

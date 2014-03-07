@@ -7,18 +7,15 @@
 class Action_Average: public Action, ActionFrameCounter {
   public:
     Action_Average();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Average(); }
     static void Help();
-
     ~Action_Average();
-
-    void Print();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
 
     int ensembleNum_;
     int debug_;

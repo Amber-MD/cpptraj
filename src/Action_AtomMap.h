@@ -7,17 +7,15 @@
 class Action_AtomMap : public Action {
   public:
     Action_AtomMap(); 
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomMap(); }
     static void Help();
-
     ~Action_AtomMap();
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     int debug_;
     AtomMap RefMap_;

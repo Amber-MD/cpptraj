@@ -77,6 +77,8 @@
 #include "Action_FilterByData.h"
 #include "Action_LESsplit.h"
 #include "Action_NativeContacts.h"
+#include "Action_VelocityAutoCorr.h"
+#include "Action_SetVelocity.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1495,6 +1497,7 @@ const Command::Token Command::Commands[] = {
 //  { ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, AddAction },
   { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
+  { ACTION, "dssp", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
   { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
   { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
   { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
@@ -1532,6 +1535,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
   { ACTION, "scale", Action_Scale::Alloc, Action_Scale::Help, AddAction },
   { ACTION, "secstruct", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
+  { ACTION, "setvelocity", Action_SetVelocity::Alloc, Action_SetVelocity::Help, AddAction },
   { ACTION, "spam", Action_Spam::Alloc, Action_Spam::Help, AddAction },
   { ACTION, "stfcdiffusion", Action_STFC_Diffusion::Alloc, Action_STFC_Diffusion::Help, AddAction },
   { ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, AddAction },
@@ -1543,8 +1547,9 @@ const Command::Token Command::Commands[] = {
   { ACTION, "unstrip", Action_Unstrip::Alloc, Action_Unstrip::Help, AddAction },
   { ACTION, "unwrap", Action_Unwrap::Alloc, Action_Unwrap::Help, AddAction },
   { ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, AddAction },
-  { ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, AddAction },
+  { ACTION, "velocityautocorr", Action_VelocityAutoCorr::Alloc, Action_VelocityAutoCorr::Help, AddAction },
   { ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, AddAction},
+  { ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, AddAction },
   // INC_ANALYSIS: ANALYSIS COMMANDS
   { ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
   { ANALYSIS, "amdbias", Analysis_AmdBias::Alloc, Analysis_AmdBias::Help, AddAnalysis },

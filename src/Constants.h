@@ -23,12 +23,22 @@ namespace Constants {
   const double RADDEG       =   57.29577951308232;  // may have precision loss
   // For checking floating point zero
   const double SMALL        = 0.00000000000001;
-  /// Gas constant in J/mol*K
-  const double GASK_J       = 8.3144621;
-  /// Gas constant in kcal/mol*K
-  const double GASK_KCAL    = 0.0019872041;
+  // Gas constant
+  const double GASK_J       = 8.3144621;    // J/mol*K
+  const double GASK_KCAL    = 0.0019872041; // kcal/mol*K
+  // Avogadro constant
+  const double NA = 6.02214129e23;
+  // Speed of light (m/s)
+  const double C0 = 299792458;
   // Convert electron charge <-> Amber units (w/ prefactor)
   const double ELECTOAMBER  = 18.2223;
   const double AMBERTOELEC  = 1.0 / ELECTOAMBER;
+  /// Convert from Amber internal units of time (1/20.455 ps) to ps.
+  /** Amber operates in kcal/mol units for energy, amu for masses,
+    * and angstoms for distances. To convert the input time parameters
+    * from picoseconds to internal units, multiply by 20.455
+    * (which is 10.0 * sqrt(4.184)).
+    */
+  const double AMBERTIME_TO_PS = 20.455;
 }
 #endif

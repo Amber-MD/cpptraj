@@ -14,17 +14,15 @@
 class Action_Molsurf: public Action {
   public:
     Action_Molsurf();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Molsurf(); }
     static void Help();
-
     ~Action_Molsurf();
-    void Print() {}
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     DataSet* sasa_;
     AtomMask Mask1_;

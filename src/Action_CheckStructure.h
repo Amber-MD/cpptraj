@@ -7,10 +7,8 @@
 class Action_CheckStructure: public Action, ImagedAction {
   public:
     Action_CheckStructure();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_CheckStructure(); }
     static void Help();
-
     ~Action_CheckStructure();
     // These are made public for use in other actions (e.g. Action_DihedralScan)
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
@@ -21,14 +19,19 @@ class Action_CheckStructure: public Action, ImagedAction {
   private:
     Action::RetType DoAction(int, Frame*, Frame**);
 
-    void SetupBondlist(BondArray const&, BondParmArray const&);
+    void SetupBondlist(BondArray const&, BondParmArray const&, AtomMask const&);
     /// Used to cache bond parameters
     struct bond_list {
       double req; ///< Hold (req + bondoffset)^2
+#     ifdef _OPENMP
+      double D2;  ///< Hold distance^2 for this pair.
+      int problem;///< Hold detected problem type for this pair.
+#     endif
       int atom1;
       int atom2;
     };
-    std::vector<bond_list> bondL_;
+    typedef std::vector<bond_list> BondListType;
+    BondListType bondL_;
     /// Sort first by atom1, then by atom2
     struct bond_list_cmp {
       inline bool operator()(bond_list const& first, bond_list const& second) const {
@@ -46,6 +49,7 @@ class Action_CheckStructure: public Action, ImagedAction {
     double nonbondcut2_;
     bool bondcheck_;
     bool silent_;
+    bool skipBadFrames_;
     CpptrajFile outfile_;
     Topology* CurrentParm_;
     int debug_;

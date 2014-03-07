@@ -54,11 +54,13 @@ class Topology {
     inline res_iterator ResStart() const { return residues_.begin(); }
     inline res_iterator ResEnd()   const { return residues_.end();   }
     const Residue& Res(int idx)    const { return residues_[idx];    }
+    Residue& SetRes(int idx)             { return residues_[idx];    }
     // ----- Molecule-specific routines ----------
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const { return molecules_.begin(); }
     inline mol_iterator MolEnd()   const { return molecules_.end();   }
     const Molecule& Mol(int idx)   const { return molecules_[idx];    }
+    void ClearMoleculeInfo()             { molecules_.clear();        }
     // ----- Bond-specific routines --------------
     BondArray         const& Bonds()        const { return bonds_;        }
     BondArray         const& BondsH()       const { return bondsh_;       }

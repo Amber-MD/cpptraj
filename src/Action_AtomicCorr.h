@@ -4,13 +4,15 @@
 class Action_AtomicCorr : public Action {
   public:
     Action_AtomicCorr();
-
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomicCorr(); }
     static void Help();
-
-    
-    void Print();
   private:
+    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
+                          DataFileList*, int);
+    Action::RetType Setup(Topology*, Topology**);
+    Action::RetType DoAction(int, Frame*, Frame**);
+    void Print();
+
     class AtomVector {
       public:
         AtomVector() : idx_(0) {}
@@ -28,11 +30,6 @@ class Action_AtomicCorr : public Action {
         std::string lbl_;
         int idx_;
     };
-
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
 
     enum AcorrModeType { ATOM = 0, RES };
     static const char* ModeString[];

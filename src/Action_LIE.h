@@ -9,11 +9,8 @@
 class Action_LIE: public Action, ImagedAction {
   public:
     Action_LIE();
-    
     static DispatchObject* Alloc() { return (DispatchObject*) new Action_LIE(); }
     static void Help();
-
-    void Print() {}
   private:
     DataSet *elec_;  //< EEL data set
     DataSet *vdw_;   //< VDW data set
@@ -35,6 +32,7 @@ class Action_LIE: public Action, ImagedAction {
                          DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
+    void Print() {}
 
     // Specific routines to this action
     int SetupParms(Topology const&);

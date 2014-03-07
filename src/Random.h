@@ -32,7 +32,10 @@ class Random_Number {
     void rn_set();
     /// Generate a random number between 0.0 and 1.0
     double rn_gen();
-    //double rn_gauss(double,double);
+    /// Generate a pseudo-random Gaussian sequence.
+    double rn_gauss(double,double);
+    /// \return true if RN generator has been set up.
+    bool IsSet() const { return RN_generator.iseed != -1; }
   private:
     /// Variables necessary for Marsaglia random number stream.
     /** This is placed in a struct in case the state of the random number
@@ -47,8 +50,8 @@ class Random_Number {
       // Pointers into u() in Marsaglia algorithm
       int i97;
       int j97;
-      // Determines if this random generator has been set or not
-      bool set;
+      // Random seed; if -1 random generator has not been set
+      int iseed;
     };
     /// Hold the state of the random number generator
     random_state RN_generator;

@@ -90,7 +90,9 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tOutput to file %s\n", filename_.c_str());
   if (!ignore_negative_violations_)
     mprintf("\tReporting negative NOE violations.\n");
-
+  mprintf("# SNB = Values from: Schneider, Neidle, and Berman, \"Conformations of the\n"
+          "#       Sugar-Phosphate Backbone in Helical DNA Crystal Structures.\",\n"
+          "#       Biopolymers (1997), V.42 (1), pp.113-124.\n");
   return Analysis::OK;
 }
 

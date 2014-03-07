@@ -1,7 +1,6 @@
 // DataSet_double
 #include "DataSet_double.h"
 #include "MpiRoutines.h"
-#include "CpptrajStdio.h"
 
 // DataSet_double::Allocate()
 /** Reserve space in the Data and Frames arrays. */

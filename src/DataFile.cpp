@@ -177,6 +177,7 @@ int DataFile::AddSet(DataSet* dataIn) {
     // If current format not valid for first set, attempt to find valid format
     if (!dataio_->CheckValidFor(*dataIn)) {
       delete dataio_;
+      dataio_ = 0;
       for (int dft = 0; dft != (int)UNKNOWN_DATA; dft++) {
         dfType_ = (DataFormatType)dft;
         dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );

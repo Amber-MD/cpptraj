@@ -116,7 +116,8 @@ int Trajin::SetupTrajIO( std::string const& fname, TrajectoryIO& trajio, ArgList
     stop_ = -1;
   // Set the start, stop, and offset args based on user input. Do some bounds
   // checking.
-  Trajin::CheckFrameArgs( argIn, total_frames_, start_, stop_, offset_);
+  if (Trajin::CheckFrameArgs( argIn, total_frames_, start_, stop_, offset_))
+    return 1;
   return 0;
 }
 

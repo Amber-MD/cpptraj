@@ -16,6 +16,7 @@ class Analysis_Matrix : public Analysis {
     DataSet_2D* matrix_;
     DataSet_Modes* modes_;
     std::string outthermo_;
+    double thermo_temp_;
     int nevec_;
     bool thermopt_;
     bool reduce_;

@@ -16,9 +16,10 @@ class Cpptraj {
     static void Usage();
     static void Intro();
     static void Finalize();
-    int ProcessMask(Sarray const&, std::string const&, bool,bool) const;
+    int ProcessMask(Sarray const&, Sarray const&, std::string const&, bool,bool) const;
     Mode ProcessCmdLineArgs(int, char**);
     int Interactive();
+    int AmbPDB(int, int, char**);
 
     CpptrajState State_;
     std::string logfilename_; // TODO: Put in CpptrajState?
