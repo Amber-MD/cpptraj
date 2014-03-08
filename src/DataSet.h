@@ -31,7 +31,7 @@ class DataSet {
     // DIH         DIH    DIH   DIH    DIH    DIST     DIST
     enum scalarType {
       UNDEFINED=0, ALPHA, BETA, GAMMA, DELTA, EPSILON, ZETA, PUCKER, CHI, 
-      H1P,         C2P,   PHI,  PSI,   PCHI,  HBOND,   NOE
+      H1P,         C2P,   PHI,  PSI,   PCHI,  OMEGA, HBOND,   NOE
     };
 
     DataSet();

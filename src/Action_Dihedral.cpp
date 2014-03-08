@@ -41,6 +41,7 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   else if ( stypename == "phi"     ) stype = DataSet::PHI;
   else if ( stypename == "psi"     ) stype = DataSet::PSI;
   else if ( stypename == "pchi"    ) stype = DataSet::PCHI;
+  else if ( stypename == "omega"   ) stype = DataSet::OMEGA;
 
   // Get Masks
   std::string mask1 = actionArgs.GetMaskNext();

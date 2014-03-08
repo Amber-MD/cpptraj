@@ -123,6 +123,7 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
         case DihedralSearch::EPSILON: dstype = DataSet::EPSILON; break;
         case DihedralSearch::ZETA: dstype = DataSet::ZETA; break;
         case DihedralSearch::CHIN: dstype = DataSet::CHI; break;
+        case DihedralSearch::OMEGA: dstype = DataSet::OMEGA; break;
         default: dstype = DataSet::UNDEFINED;
       }
       ds->SetScalar( DataSet::M_TORSION, dstype );
