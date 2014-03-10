@@ -44,7 +44,8 @@ void Action_FixAtomOrder::VisitAtom(int atomnum, int mol, Topology const& Parm) 
 Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** parmAddress) {
   // If topology already has molecule info assume no need to reorder.
   if (currentParm->Nmol() > 0) {
-    mprintf("Warning: %s already has molecule information. No reordering will occur.\n",
+    mprintf("Warning: %s already has molecule information. No reordering will occur.\n"
+            "Warning: This indicates that there is no need to fix atom ordering in this topology.\n",
             currentParm->c_str());
     return Action::ERR;
   }
