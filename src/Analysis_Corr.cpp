@@ -34,8 +34,6 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   }
   // TODO: Check DataSet type
   std::string dataset_name = analyzeArgs.GetStringKey("name");
-  if (dataset_name.empty())
-    dataset_name = datasetlist->GenerateDefaultName( "Corr" );
 
   // DataSet names
   std::string D1name = analyzeArgs.GetStringNext();
@@ -62,10 +60,12 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   }
 
   // Setup output dataset
-  std::string corrname = D1_->Legend();
+  std::string corrname = "C(" + D1_->Legend();
   if (D2_ != D1_) corrname += ("-" + D2_->Legend());
-  Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, dataset_name, corrname );
+  corrname += ")";
+  Ct_ = datasetlist->AddSet( DataSet::DOUBLE, dataset_name, "Corr" );
   if (Ct_ == 0) return Analysis::ERR;
+  Ct_->SetLegend( corrname );
   outfile->AddSet( Ct_ );
 
   if (calc_covar_)
