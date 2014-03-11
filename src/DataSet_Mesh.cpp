@@ -1,5 +1,7 @@
+#include <cmath> // regression
 #include "DataSet_Mesh.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // regression
 
 // CONSTRUCTOR - Create X mesh
 DataSet_Mesh::DataSet_Mesh(int sizeIn, double ti, double tf) :
@@ -237,5 +239,49 @@ int DataSet_Mesh::SetSplinedMesh(DataSet_1D const& dsIn)
   }
   cubicSpline_coeff(x, y);
   cubicSpline_eval(x, y);
+  return 0;
+}
+
+// ---------- Linear Regression ------------------------------------------------
+int DataSet_Mesh::LinearRegression( DataSet_Mesh& sumOut ) const {
+  if (mesh_x_.size() < 2) return 1;
+  double mesh_size = (double)mesh_x_.size();
+  // Averages
+  double xavg = 0.0, yavg = 0.0;
+  for (unsigned int i = 0; i < mesh_x_.size(); i++) {
+    xavg += mesh_x_[i];
+    yavg += mesh_y_[i];
+  }
+  xavg /= mesh_size;
+  yavg /= mesh_size;
+  // Sums of squares
+  double sxx = 0.0, sxy = 0.0, syy = 0.0;
+  for (unsigned int i = 0; i < mesh_x_.size(); i++) {
+    double xdiff = mesh_x_[i] - xavg;
+    double ydiff = mesh_y_[i] - yavg;
+    sxx += (xdiff * xdiff);
+    sxy += (xdiff * ydiff);
+    syy += (ydiff * ydiff);
+  }
+  // Standard deviation
+  double xsd = sqrt( sxx / (mesh_size - 1.0) );
+  double ysd = sqrt( syy / (mesh_size - 1.0) );
+  if (xsd < Constants::SMALL || ysd < Constants::SMALL) {
+    mprinterr("Error: Standard deviation(s) cannot be zero.\n");
+    return 1;
+  }
+  double covariance = sxy / (mesh_size - 1.0);
+  double correl = covariance / (xsd * ysd);
+  double slope = sxy / sxx;
+  double intercept = yavg - slope * xavg;
+  double residualSumSq = syy - slope * sxy;
+
+  mprintf("\tData points= %u\n"
+          "\t<X>= %g\n\t<Y>= %g\n"
+          "\tSDx= %g\n\tSDy= %g\n"
+          "\tCorrelation coefficient= %g\n"
+          "\tSlope= %g\n", mesh_x_.size(),
+          xavg, yavg, xsd, ysd, correl, slope);
+
   return 0;
 }

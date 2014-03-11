@@ -91,6 +91,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_Modes.cpp \
         Analysis_MultiHist.cpp \
         Analysis_Overlap.cpp \
+        Analysis_Regression.cpp \
         Analysis_RemLog.cpp \
         Analysis_Rms2d.cpp \
         Analysis_RmsAvgCorr.cpp \
