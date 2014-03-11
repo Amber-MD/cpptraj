@@ -64,7 +64,7 @@ Analysis::RetType Analysis_Integrate::Analyze() {
         sum = mesh.Integrate_Trapezoid( *(output_dsets_[idx]) );
       else
         sum = mesh.Integrate_Trapezoid();
-      mprintf("\tIntegral of %s is %f\n", (*DS)->Legend().c_str(), sum);
+      mprintf("\tIntegral of %s is %g\n", (*DS)->Legend().c_str(), sum);
     }
   }
   return Analysis::OK;
