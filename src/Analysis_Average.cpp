@@ -4,7 +4,7 @@
 Analysis_Average::Analysis_Average() {}
 
 void Analysis_Average::Help() {
-  mprintf("\t<dset0> [<dset1> ...] [torsion]\n"
+  mprintf("\t<dset0> [<dset1> ...]\n"
           "  Calculate the average, standard deviation, min, and max of given data sets.\n");
 }
 
@@ -12,7 +12,6 @@ void Analysis_Average::Help() {
 Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  bool setTorsion = analyzeArgs.hasKey("torsion");
   std::string outname = analyzeArgs.GetStringKey("out");
   // Select datasets from remaining args
   if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
@@ -30,16 +29,6 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
     mprintf("\tWriting results to %s\n", outname.c_str());
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
   //  mprintf("\t%s\n", (*set)->Legend().c_str());
-  // Change mode to torsion is not yet a torsion array
-  if (setTorsion) {
-    mprintf("\tChanging input data set types to torsion if not already set.\n");
-    for (unsigned int idx = 0; idx < input_dsets_.size(); idx++)
-      if (!input_dsets_[idx]->IsTorsionArray()) {
-        mprintf("Warning: Changing data set \"%s\" type to torsion.\n", 
-                input_dsets_[idx]->Legend().c_str());
-        input_dsets_[idx]->SetScalar( DataSet::M_TORSION );
-      }
-  }
   if (outfile_.OpenWrite( outname )) return Analysis::ERR;
 
   return Analysis::OK;

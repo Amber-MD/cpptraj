@@ -216,7 +216,7 @@ Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& hist
       setname="Hist_";
   }
   setname += dsIn->Legend();
-  hist_ = datasetlist.AddSet( DataSet::DOUBLE, setname, "MHist" );
+  hist_ = datasetlist.AddSetIdxAspect( DataSet::DOUBLE, setname, dsIn->Idx(), dsIn->Aspect() );
   if (hist_ == 0) return Analysis::ERR;
   if (outfile_ != 0) outfile_->AddSet( hist_ );
   return Analysis::OK;

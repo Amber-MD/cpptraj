@@ -377,6 +377,11 @@ static void Help_DataFile() {
   DataFile::WriteOptions();
 }
 
+static void Help_DataSetCmd() {
+  mprintf("\t{ legend <legend> <set> | torsion <set arg1> [<set arg 2> ...] }\n"
+          "  Perform specified operation on given data set(s).\n");
+}
+
 static void Help_ReadData() {
   mprintf("\t<filename> [name <dsname>] [as <fmt>] [<format options>]\n"
           "  Read data from <filename> into data sets.\n");
@@ -988,6 +993,48 @@ Command::RetType DataFileCmd(CpptrajState& State, ArgList& argIn, Command::Alloc
   return (Command::RetType)( State.DFL()->ProcessDataFileArgs( argIn ) );
 }
 
+/// Process DataSet-specific command
+Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  enum DS_MODE_TYPE { TORSION = 0, LEGEND, NONE };
+  DS_MODE_TYPE ds_mode = NONE;
+  if (argIn.hasKey("torsion")) { // Set all data sets to Torsion
+    mprintf("\tChanging the following data sets to type 'torsion':\n");
+    ds_mode = TORSION;
+  } else if (argIn.Contains("legend")) { // Set legend for one data set
+    std::string legend = argIn.GetStringKey("legend");
+    ds_mode = LEGEND;
+    DataSet* ds = State.DSL()->GetDataSet( argIn.GetStringNext() );
+    if (ds == 0) return Command::C_ERR;
+    mprintf("\tChanging legend '%s' to '%s'\n", ds->Legend().c_str(), legend.c_str());
+    ds->SetLegend( legend );
+    return Command::C_OK;
+  }
+  if (ds_mode == NONE) {
+    mprinterr("Error: No valid keywords specified.\n");
+    return Command::C_ERR;
+  }
+  // Loop for commands that affect multiple sets 
+  std::string ds_arg = argIn.GetStringNext();
+  while (!ds_arg.empty()) {
+    DataSetList dsl = State.DSL()->GetMultipleSets( ds_arg );
+    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
+    {
+      if (ds_mode == TORSION) {
+        if ( (*ds)->Ndim() != 1 )
+          mprintf("Warning:\t\t'%s': Only 1D data sets can be made 'torsion'.\n",
+                  (*ds)->Legend().c_str());
+        else {
+          mprintf("\t\t'%s': Type set to 'torsion'\n", (*ds)->Legend().c_str());
+          (*ds)->SetScalar( DataSet::M_TORSION );
+        }
+      }
+    }
+    ds_arg = argIn.GetStringNext();
+  }
+  return Command::C_OK;
+}
+
 /// Read data from file into master DataSetList
 Command::RetType ReadData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1412,6 +1459,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "crdout",        0, Help_CrdOut,          CrdOut          },
   { GENERAL, "create",        0, Help_Create_DataFile, Create_DataFile },
   { GENERAL, "datafile",      0, Help_DataFile,        DataFileCmd     },
+  { GENERAL, "dataset",       0, Help_DataSetCmd,      DataSetCmd      },
   { GENERAL, "debug",         0, Help_Debug,           SetListDebug    },
   { GENERAL, "exit" ,         0, Help_Quit,            Quit            },
   { GENERAL, "gnuplot",       0, Help_System,          SystemCmd       },

@@ -59,7 +59,7 @@ Analysis::RetType Analysis_KDE::Setup(DataSet_1D* dsIn, std::string const& histn
   }
   setname += dsIn->Legend();
   DataFile* outfile = DFLin.AddDataFile( outfilenameIn );
-  output_ = datasetlist.AddSet(DataSet::DOUBLE, setname, "kde");
+  output_ = datasetlist.AddSetIdxAspect(DataSet::DOUBLE, setname, dsIn->Idx(), dsIn->Aspect());
   if (output_ == 0) return Analysis::ERR;
   output_->SetDim(Dimension::X, Xdim);
   if (outfile != 0) outfile->AddSet( output_ );
