@@ -56,6 +56,8 @@ class CpptrajFile {
     const FileName& Filename()  const { return fname_;                }
     /// \return 1 if the file contains carriage returns in addition to newlines
     int IsDos()                 const { return isDos_;                }
+    /// \return File size
+    off_t FileSize()            const { return file_size_;            }
     /// \return true if the file is compressed.
     bool IsCompressed();
     /// \return uncompressed file size (just size if file is not compressed).

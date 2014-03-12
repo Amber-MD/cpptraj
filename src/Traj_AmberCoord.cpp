@@ -219,7 +219,7 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
           // Determine the maximum number of iterations to try based on the
           // fact that Amber trajectories typically compress about 3x with
           // gzip.
-          off_t tmpfsize = ((file_size * 4) - uncompressed_size) / 4294967296LL;
+          off_t tmpfsize = ((file_.FileSize() * 4) - uncompressed_size) / 4294967296LL;
           int maxi = (int) tmpfsize;
           ++maxi;
           if (debug_>1)
