@@ -36,8 +36,6 @@ class DataSetList {
     void RemoveSet( const_iterator );
     /// Remove set from the list.
     void RemoveSet( DataSet* );
-    /// Sort DataSets in list.
-    void sort();
     /// \return DataSet at didx.
     DataSet* operator[](int didx) { return DataList_[didx]; } // FIXME: No bounds check
     /// Set DataSetList and underlying DataSet debug level
@@ -99,11 +97,5 @@ class DataSetList {
     };
     static const DataToken DataArray[];
     typedef const DataToken* TokenPtr;
-    /// Used to sort DataSets
-    struct dsl_cmp {
-      inline bool operator()(DataSet* first, DataSet* second) const {
-        return *first < *second;
-      }
-    };
 };
 #endif

@@ -1,5 +1,4 @@
 // DataSetList
-#include <algorithm> // sort
 // This also includes basic DataSet class and dataType
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
@@ -93,11 +92,6 @@ void DataSetList::RemoveSet( DataSet* dsIn ) {
       break;
     }
   }
-}
-
-// DataSetList::sort()
-void DataSetList::sort() {
-  std::sort( DataList_.begin(), DataList_.end(), dsl_cmp() );
 }
 
 // DataSetList::SetDebug()

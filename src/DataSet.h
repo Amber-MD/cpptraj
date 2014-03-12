@@ -101,6 +101,12 @@ class DataSet {
     Dimension const& Dim(int i)       const { return dim_[i];      }
     /// Comparison for sorting, name/aspect/idx
     inline bool operator<(const DataSet&) const;
+    /// Used to sort DataSet pointers (DataSetList, Array1D).
+    struct DS_PtrCmp {
+      inline bool operator()(DataSet const* first, DataSet const* second) const {
+        return *first < *second;
+      }
+    };
     const char* DataFormat()    const { return data_format_;       }
   protected:
     /// Width of numbers in output elements.

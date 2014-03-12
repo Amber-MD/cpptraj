@@ -1,3 +1,4 @@
+#include <algorithm> // sort
 #include "Array1D.h"
 #include "CpptrajStdio.h"
 
@@ -29,6 +30,10 @@ int Array1D::push_back( DataSet_1D* const& val ) {
   else
     return 1;
   return 0;
+}
+
+void Array1D::SortArray1D() {
+  std::sort( array_.begin(), array_.end(), DataSet::DS_PtrCmp() );
 }
 
 // Array1D::AddDataSets()
@@ -67,8 +72,6 @@ int Array1D::AddSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSLin) 
     mprinterr("Error: No data sets selected.\n");
     return 1;
   }
-  // Sort input datasets
-  input_dsl.sort();
   // Add to main list
   array_.clear();
   if (AddDataSets( input_dsl ))

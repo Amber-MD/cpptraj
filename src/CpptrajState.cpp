@@ -475,7 +475,6 @@ int CpptrajState::RunEnsemble() {
   mprintf("\nENSEMBLE DATASETS: Each member has %u sets total.\n", total_data_sets);
   for (int member = 0; member < ensembleSize; ++member) {
     //DataSetEnsemble[member].Sync(); // SYNC only necessary when splitting up data
-    DataSetEnsemble[member].sort();
     if (total_data_sets != DataSetEnsemble[member].size())
       mprintf("Warning: Ensemble member %i # data sets (%i) does not match member 0 (%i)\n",
               member, DataSetEnsemble[member].size(), total_data_sets);

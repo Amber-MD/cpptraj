@@ -57,6 +57,8 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     mprinterr("Error: lifetime: Could not add data sets.\n");
     return Analysis::ERR;
   }
+  // Sort data sets
+  inputDsets_.SortArray1D(); 
 
   // Create output datasets
   DataFile* outfile = 0;

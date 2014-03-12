@@ -21,6 +21,7 @@ class Array1D {
     const_iterator end()                   const { return array_.end();      }
     size_t size()                          const { return array_.size();     }
     void clear()                                 { array_.clear();           }
+    void SortArray1D();
     int AddDataSets(DataSetList const&);
     int AddTorsionSets(DataSetList const&);
     int AddSetsFromArgs(ArgList const&, DataSetList const&);
