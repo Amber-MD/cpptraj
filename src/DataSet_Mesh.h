@@ -35,8 +35,8 @@ class DataSet_Mesh : public DataSet_1D {
     int SetSplinedMeshY(std::vector<double> const&, std::vector<double> const&);
     /// Set mesh with splined values based on input DataSet.
     int SetSplinedMesh(DataSet_1D const&);
-    /// Calculate linear regression
-    int LinearRegression( DataSet_Mesh& ) const;
+    /// Calculate linear regression; report slope, intercept, and correlation.
+    int LinearRegression( double&, double&, double&, bool ) const;
   private:
     void cubicSpline_coeff(std::vector<double> const&, std::vector<double> const&);
     void cubicSpline_eval(std::vector<double> const&, std::vector<double> const&);

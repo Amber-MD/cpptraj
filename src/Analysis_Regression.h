@@ -11,6 +11,7 @@ class Analysis_Regression : public Analysis {
     Analysis::RetType Analyze();
   private:
     Array1D input_dsets_;
+    Array1D output_dsets_;
     CpptrajFile outfile_;
 };
 #endif
