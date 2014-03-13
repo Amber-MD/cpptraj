@@ -22,9 +22,9 @@ void Analysis_Lifetime::Help() {
           "  is given calculate lifetimes over windows of given size.\n");
 }
 
-Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray) {
+Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray, std::string const& fname) {
   if (dsArray.empty()) return Analysis::ERR;
-  outfileName_.clear();
+  outfileName_ = fname;
   inputDsets_ = dsArray;
   windowSize_ = -1;
   averageonly_ = false;

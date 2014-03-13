@@ -7,7 +7,7 @@ class Analysis_Lifetime : public Analysis {
     Analysis_Lifetime();
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Lifetime(); }
     static void Help();
-    Analysis::RetType Setup(Array1D const&);
+    Analysis::RetType Setup(Array1D const&, std::string const&);
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:

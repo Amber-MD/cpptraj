@@ -19,5 +19,6 @@ class Analysis_RemLog : public Analysis {
     std::vector<DataSet*> outputDsets_;
     CpptrajFile statsout_;
     CpptrajFile reptime_;
+    std::string lifetimesName_;
 };
 #endif

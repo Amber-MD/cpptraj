@@ -15,7 +15,7 @@ Analysis_RemLog::Analysis_RemLog() :
 
 void Analysis_RemLog::Help() {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
-          "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime]\n"
+          "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime <file>]\n"
           "    crdidx: Print coordinate index vs exchange; output sets contain replica indices.\n"
           "    repidx: Print replica index vs exchange; output sets contain coordinate indices.\n"
           "  Analyze previously read in replica log data.\n");
@@ -41,7 +41,8 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprinterr("Error: remlog data set appears to be empty.\n");
     return Analysis::ERR;
   }
-  calculateLifetimes_ = analyzeArgs.hasKey("lifetime");
+  lifetimesName_ = analyzeArgs.GetStringKey("lifetime");
+  calculateLifetimes_ = !lifetimesName_.empty();
   calculateStats_ = analyzeArgs.hasKey("stats");
   if (calculateStats_) {
     if (statsout_.OpenWrite( analyzeArgs.GetStringKey("statsout") )) return Analysis::ERR;
@@ -146,7 +147,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         dsLifetime.push_back( (DataSet_1D*)&(series[i][j]) );
       }
     }
-    if (Lifetime.Setup( dsLifetime ) == Analysis::ERR) {
+    if (Lifetime.Setup( dsLifetime, lifetimesName_ ) == Analysis::ERR) {
       mprinterr("Error: Could not set up remlog lifetime analysis.\n");
       return Analysis::ERR;
     }
@@ -193,8 +194,8 @@ Analysis::RetType Analysis_RemLog::Analyze() {
           }
         }
       }
-    } // END loop over exchanges for replica
-  } // END loop over replicas
+    } // END loop over replicas
+  } // END loop over exchanges
 
   if (calculateStats_) {
     statsout_.Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
