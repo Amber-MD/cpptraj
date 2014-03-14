@@ -20,5 +20,7 @@ class Analysis_RemLog : public Analysis {
     CpptrajFile statsout_;
     CpptrajFile reptime_;
     std::string lifetimesName_;
+    int calcRepFracSlope_;
+    CpptrajFile repFracSlope_;
 };
 #endif

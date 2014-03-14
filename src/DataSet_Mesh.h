@@ -23,6 +23,8 @@ class DataSet_Mesh : public DataSet_1D {
     inline void AddXY(double,double);
     double X(int i) const { return mesh_x_[i]; }
     double Y(int i) const { return mesh_y_[i]; }
+    /// Set mesh Y value at given index.
+    void SetY(int i, double y) { mesh_y_[i] = y; }
     /// Calculate mesh X values given size, start, and end values.
     void CalculateMeshX(int,double,double);
     /// Set mesh X and Y values from input data set.

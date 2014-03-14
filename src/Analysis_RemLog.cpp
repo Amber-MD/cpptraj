@@ -4,13 +4,15 @@
 #include "ProgressBar.h"
 #include "Analysis_Lifetime.h"
 #include "StringRoutines.h" // integerToString
+#include "DataSet_Mesh.h" // Regression
 
 Analysis_RemLog::Analysis_RemLog() :
   calculateStats_(false),
   calculateLifetimes_(false),
   printIndividualTrips_(false), 
   remlog_(0),
-  mode_(NONE)
+  mode_(NONE),
+  calcRepFracSlope_(0)
 {}
 
 void Analysis_RemLog::Help() {
@@ -48,6 +50,18 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     if (statsout_.OpenWrite( analyzeArgs.GetStringKey("statsout") )) return Analysis::ERR;
     if (reptime_.OpenWrite( analyzeArgs.GetStringKey("reptime") )) return Analysis::ERR;
   }
+  calcRepFracSlope_ = analyzeArgs.getKeyInt("reptimeslope", 0);
+  std::string rfs_name = analyzeArgs.GetStringKey("reptimeslopeout");
+  if (!calculateStats_) {
+    calcRepFracSlope_ = 0;
+    rfs_name.clear();
+  }
+  if ( (calcRepFracSlope_ > 0) != (!rfs_name.empty()) ) {
+    mprinterr("Error: Both reptimeslope and reptimeslopeout must be specified.\n");
+    return Analysis::ERR;
+  }
+  if (!rfs_name.empty())
+    if (repFracSlope_.OpenWrite(rfs_name)) return Analysis::ERR;
   printIndividualTrips_ = analyzeArgs.hasKey("printtrips");
   // Get mode
   if (analyzeArgs.hasKey("crdidx"))
@@ -153,6 +167,15 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     }
   }
 
+  DataSet_Mesh mesh;
+  if ( calcRepFracSlope_ > 0 ) {
+    mesh.CalculateMeshX( remlog_->Size(), 1, remlog_->Size() );
+    repFracSlope_.Printf("%-8s", "#Exchg");
+    for (int crdidx = 0; crdidx < (int)remlog_->Size(); crdidx++)
+      repFracSlope_.Printf("  C%07i_slope C%07i_corel", crdidx + 1, crdidx + 1);
+    repFracSlope_.Printf("\n");
+  }
+
   ProgressBar progress( remlog_->NumExchange() );
   for (int frame = 0; frame < remlog_->NumExchange(); frame++) {
     progress.Update( frame );
@@ -195,6 +218,18 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         }
       }
     } // END loop over replicas
+    if (calcRepFracSlope_ > 0 && frame > 0 && (frame % calcRepFracSlope_) == 0) {
+      repFracSlope_.Printf("%8i", frame+1);
+      for (int crdidx = 0; crdidx < (int)remlog_->Size(); crdidx++) {
+        for (int replica = 0; replica < (int)remlog_->Size(); replica++)
+          mesh.SetY(replica, (double)replicaFrac[replica][crdidx] / (double)frame);
+        double slope, intercept, correl;
+        mesh.LinearRegression(slope, intercept, correl, true);
+        repFracSlope_.Printf("  %14.7g %14.7g", slope * 100.0, correl);
+                //frame+1, crdidx, slope * 100.0, intercept * 100.0, correl
+      }
+      repFracSlope_.Printf("\n");
+    }
   } // END loop over exchanges
 
   if (calculateStats_) {
