@@ -408,7 +408,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
     case DataSet::ZETA:
       //              "               g+       a+       t        a-       g-       c 
       outfile_.Printf(" ZETA                <----- BII ------------- BI ----->\n");
-      outfile_.Printf("\n   C3'-O3'-P-O5', SNB range is 130-300\n");
+      outfile_.Printf("\n   C3'-O3'-P-O5', SNB range is 230-300 (BI), 150-210 (BII)\n");
       outfile_.Printf("   BI = %6.2f%% (~265, a-/g-), BII = %6.2f%% (~174, a+/t)\n",
               (torsion_visits[3]+torsion_visits[4])*100.0/totalFrames,
               (torsion_visits[1]+torsion_visits[2])*100.0/totalFrames);
