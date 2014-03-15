@@ -167,7 +167,7 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
 
   // Read replica indices
   if (indicesVID_!=-1) {
-    count_[1] = remd_dimension_;
+    count_[0] = remd_dimension_;
     if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frameIn.iAddress())) ) {
       mprinterr("Error: Getting replica indices from restart.\n");
       return 1;
