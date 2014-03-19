@@ -50,6 +50,28 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
   return numexchg;
 }
 
+static inline bool IsNullPtr( const char* ptr ) { 
+  if (ptr == 0) {
+    mprinterr("Error: Could not read file.\n");
+    return true;
+  }
+  return false;
+}
+
+int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
+  BufferedLine rd_file;
+  if (rd_file.OpenFileRead( rd_name )) {
+    mprinterr("Error: Could not read remd dim file '%s'\n", rd_name.c_str());
+    return 1;
+  }
+  // Read dimension title
+  const char* ptr = rd_file.Line();
+  if (IsNullPtr( ptr )) return 1;
+  
+
+  return 0;
+} 
+
 void DataIO_RemLog::ReadHelp() {
   mprintf("\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
           "\t                      coordinate indices (H-REMD only).\n"

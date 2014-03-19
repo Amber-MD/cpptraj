@@ -17,6 +17,7 @@ class DataIO_RemLog : public DataIO {
   private:
     enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD };
     int ReadRemlogHeader(BufferedLine&, ExchgType&);
+    int ReadRemdDimFile(std::string const&);
     int debug_;
 };
 #endif
