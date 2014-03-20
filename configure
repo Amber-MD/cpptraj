@@ -255,7 +255,7 @@ while [[ ! -z $1 ]] ; do
    "clang" )
       echo "Using clang/gfortran compilers"
       CC=clang
-      CXX=clang
+      CXX=clang++
       FC=gfortran
       OPTFLAGS="-O3"
       OMPFLAGS=""
