@@ -69,7 +69,7 @@ clean:
 	cd readline && $(MAKE) -f Makefile_at clean
 
 uninstall:
-	/bin/rm -f $(BINDIR)/cpptraj$(SFX)
+	/bin/rm -f $(BINDIR)/cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX) $(BINDIR)/cpptraj.MPI$(SFX)
 	cd readline && $(MAKE) -f Makefile_at uninstall
 
 # Header dependencies
