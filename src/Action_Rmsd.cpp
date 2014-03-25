@@ -260,6 +260,13 @@ Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress
     if (perResSetup(currentParm, RefParm_)) return Action::ERR;
   }
 
+  // Warn if PBC and rotating
+  if (rotate_ && currentParm->BoxType() != Box::NOBOX) {
+    mprintf("Warning: Coordinates are being rotated and box coordinates are present.\n"
+            "Warning: Unit cell vectors are NOT rotated; imaging will not be possible\n"
+            "Warning:  after the RMS-fit is performed.\n");
+  }
+
   return Action::OK;
 }
 
