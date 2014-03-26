@@ -173,17 +173,16 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
   // For each residue selected in the mask, check if residue is already 
   // set up in SecStruct. If so update the atom indices, otherwise set it up.
   int selected = 0;
-  int missing = 0;
+  std::vector<std::string> missingResidues;
   for (int res = 0; res < Nres_; ++res) {
     if (!SecStruct_[res].isSelected) continue;
     // Residue needs at least C=O or N-H, Check?
     if ( SecStruct_[res].N==-1 || SecStruct_[res].H==-1 ||
           SecStruct_[res].C==-1 || SecStruct_[res].O==-1 )
     {
-      ++missing;
+      missingResidues.push_back( currentParm->TruncResNameNum( res ) );
       if (debug_ > 0) {
-        mprintf("Warning: Not all BB atoms found for res %i:%s:",
-                res+1, currentParm->Res(res).c_str());
+        mprintf("Warning: Not all BB atoms found for res %s:", missingResidues.back().c_str());
         if (SecStruct_[res].N==-1) mprintf(" N");
         if (SecStruct_[res].H==-1) mprintf(" H");
         if (SecStruct_[res].C==-1) mprintf(" C");
@@ -205,12 +204,15 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
     }
     ++selected;
   }
-  if (missing > 0) {
-    mprintf("Warning: Not all BB atoms found for %i residues.\n", missing);
-    mprintf("Info: This is expected for Proline and terminal/non-standard residues.\n");
-    mprintf("Info: Expected BB atom names: N=[%s]  H=[%s]  C=[%s]  O=[%s]\n",
-          *BB_N, *BB_H, *BB_C, *BB_O );
-    mprintf("Info: Re-run with 'actiondebug 1' to see which residues are missing atoms.\n");
+  if (!missingResidues.empty()) {
+    mprintf("Warning: Not all BB atoms found for %u residues:", missingResidues.size());
+    for (std::vector<std::string>::const_iterator mr = missingResidues.begin();
+                                                  mr != missingResidues.end(); ++mr)
+      mprintf(" %s", mr->c_str());
+    mprintf("\nInfo: This is expected for Proline and terminal/non-standard residues.\n"
+              "Info: Expected BB atom names: N=[%s]  H=[%s]  C=[%s]  O=[%s]\n",
+            *BB_N, *BB_H, *BB_C, *BB_O );
+    mprintf("Info: Re-run with action debug level >= 1 to see which residues are missing atoms.\n");
   }
 
   // Count number of selected residues
