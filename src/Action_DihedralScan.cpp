@@ -39,7 +39,8 @@ void Action_DihedralScan::Help() {
           "\tOptions for 'random': [rseed <rseed>]\n"
           "\t\t[ check [cutoff <cutoff>] [rescutoff <rescutoff>]\n"
           "\t\t  [backtrack <backtrack>] [increment <increment>] [maxfactor <max_factor>] ]\n"
-          "\tOptions for 'interval': <interval deg> [outtraj <filename> [<outfmt>]]\n");
+          "\tOptions for 'interval': <interval deg> [outtraj <filename> [<outfmt>]]\n"
+          "  Rotate specified dihedral(s) by specific intervals or by random values.\n");
 }
 
 // Action_DihedralScan::Init()
