@@ -56,7 +56,8 @@ void ClusterList::Renumber(bool addSievedFrames) {
         //        ClusterDistances.GetElement( (*node).num, (*node2).num ));
         avgclusterdist += ClusterDistances_.GetCdist( (*node).Num(), (*node2).Num() );
       }
-      avgclusterdist /= numdist;
+      if (numdist > 0.0)
+        avgclusterdist /= numdist;
       //mprintf("DBG:\tCluster %i avg dist = %f\n",(*node).num,avgclusterdist);
       (*node).SetAvgDist( avgclusterdist ); 
     }

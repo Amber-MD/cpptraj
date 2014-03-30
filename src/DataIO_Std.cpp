@@ -314,10 +314,11 @@ int DataIO_Std::Read_Vector(std::string const& fname, ArgList& argIn,
 
 // -----------------------------------------------------------------------------
 void DataIO_Std::WriteHelp() {
-  mprintf("\tinvert:   Flip X/Y axes.\n"
-          "\tnoxcol:   Do not print X (index) column.\n"
-          "\tnoheader: Do not print header line.\n"
-          "\tsquare2d: Write 2D data sets in matrix-like format.\n");
+  mprintf("\tinvert:     Flip X/Y axes.\n"
+          "\tnoxcol:     Do not print X (index) column.\n"
+          "\tnoheader:   Do not print header line.\n"
+          "\tsquare2d:   Write 2D data sets in matrix-like format.\n"
+          "\tnosquare2d: Write 2D data sets as '<X> <Y> <Value>'.\n");
 }
 
 // DataIO_Std::processWriteArgs()
@@ -326,6 +327,7 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
   hasXcolumn_ = !argIn.hasKey("noxcol");
   writeHeader_ = !argIn.hasKey("noheader");
   square2d_ = argIn.hasKey("square2d");
+  if (argIn.hasKey("nosquare2d")) square2d_ = false;
   return 0;
 }
 
