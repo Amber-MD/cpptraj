@@ -8,8 +8,6 @@ Action_Average::Action_Average() :
   ensembleNum_(-1),
   debug_(0),
   AvgFrame_(0),
-  AvgParm_(0),
-  parmStripped_(false),
   Natom_(0),
   Nframes_(0)
 { } 
@@ -24,7 +22,6 @@ void Action_Average::Help() {
 Action_Average::~Action_Average() {
   //fprintf(stderr,"Average Destructor.\n");
   if (AvgFrame_!=0) delete AvgFrame_;
-  if (parmStripped_ && AvgParm_!=0) delete AvgParm_;
 }
 
 // Action_Average::Init()
@@ -83,12 +80,11 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
     // the parm for output purposes.
     if (Mask1_.Nselected()<currentParm->Natom()) {
       mprintf("Warning: Atom selection < natom, stripping parm for averaging only:\n");
-      AvgParm_ = currentParm->modifyStateByMask(Mask1_);
-      parmStripped_=true;
+      AvgParm_ = *(currentParm->modifyStateByMask(Mask1_));
       if (debug_ > 0)
-        AvgParm_->Summary();
+        AvgParm_.Summary();
     } else 
-      AvgParm_ = currentParm; 
+      AvgParm_ = *currentParm; 
   } else {
     // If the frame is already set up, check to see if the current number
     // of atoms is bigger or smaller. If bigger, only average Natom coords.
@@ -97,13 +93,13 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
       Natom_ = AvgFrame_->Natom();
       mprintf("Warning: Average [%s]: Parm %s selected # atoms (%i) > original parm %s\n",
               avgfilename_.c_str(), currentParm->c_str(),
-              Mask1_.Nselected(), AvgParm_->c_str());
+              Mask1_.Nselected(), AvgParm_.c_str());
       mprintf("Warning:   selected# atoms (%i).\n",AvgFrame_->Natom());
     } else if (Mask1_.Nselected() < AvgFrame_->Natom()) {
       Natom_ = Mask1_.Nselected();
       mprintf("Warning: Average[%s]: Parm %s selected # atoms (%i) < original parm %s\n",
               avgfilename_.c_str(), currentParm->c_str(), 
-              Mask1_.Nselected(), AvgParm_->c_str());
+              Mask1_.Nselected(), AvgParm_.c_str());
       mprintf("Warning:   selected # atoms (%i).\n",AvgFrame_->Natom());
     } else {
       Natom_ = AvgFrame_->Natom();
@@ -136,7 +132,7 @@ void Action_Average::Print() {
 
   mprintf("    AVERAGE: [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
 
-  if (outfile.InitEnsembleTrajWrite(avgfilename_, trajArgs_, AvgParm_, 
+  if (outfile.InitEnsembleTrajWrite(avgfilename_, trajArgs_, &AvgParm_, 
                                     TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 
   {
     mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename_.c_str());
@@ -145,7 +141,7 @@ void Action_Average::Print() {
 
   outfile.PrintInfo(0);
 
-  outfile.WriteFrame(0, AvgParm_, *AvgFrame_);
+  outfile.WriteFrame(0, &AvgParm_, *AvgFrame_);
 
   outfile.EndTraj();
 }
