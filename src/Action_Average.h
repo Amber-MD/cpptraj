@@ -21,9 +21,8 @@ class Action_Average: public Action, ActionFrameCounter {
     int debug_;
     AtomMask Mask1_;
     Frame* AvgFrame_;
-    Topology* AvgParm_;
+    Topology AvgParm_;
     ArgList trajArgs_;
-    bool parmStripped_;
     int Natom_;
     int Nframes_;
     std::string avgfilename_;
