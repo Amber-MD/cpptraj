@@ -290,7 +290,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
 #     pragma omp for
 #   endif
       for (frame = 0; frame < inSize; frame++) {
-        mprintf("DEBUG: Frame=%u Outsize=%u\n", frame, outSize);
+        //mprintf("DEBUG: Frame=%u Outsize=%u\n", frame, outSize);
         increment = Increments[frame];
         total += increment;
         // Apply kernel across P and Q, calculate KL divergence as we go. 
@@ -303,14 +303,16 @@ Analysis::RetType Analysis_KDE::Analyze() {
           xcrd = Xdim.Coord(bin);
           Pbin = (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
           Qbin = (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
-          normP += Pbin;
-          normQ += Qbin;
 #         ifdef _OPENMP
           P_thread[mythread][bin] += Pbin;
+          normP += P_thread[mythread][bin];
           Q_thread[mythread][bin] += Qbin;
+          normQ += Q_thread[mythread][bin];
 #         else
           P_hist[bin] += Pbin;
+          normP += P_hist[bin];
           Q_hist[bin] += Qbin;
+          normQ += Q_hist[bin];
 #         endif
         }
         normP = 1.0 / normP;
