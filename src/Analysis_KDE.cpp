@@ -216,11 +216,22 @@ Analysis::RetType Analysis_KDE::Analyze() {
   unsigned int frame, bin;
   double increment;
   double total = 0.0;
+# ifdef _OPENMP
+  int numthreads;
+# pragma omp parallel
+  {
+#   pragma omp master
+    {
+      numthreads = omp_get_num_threads();
+      mprintf("\tParallelizing calculation with %i threads\n", numthreads);
+    }
+  }
+# endif
   if (q_data_ == 0) {
     double val;
     // Calculate KDE, loop over input data
 #   ifdef _OPENMP
-    int numthreads, mythread;
+    int mythread;
     double **P_thread;
 #   pragma omp parallel private(frame, bin, val, increment, mythread) reduction(+:total)
     {
@@ -228,8 +239,6 @@ Analysis::RetType Analysis_KDE::Analyze() {
       // Prevent race conditions by giving each thread its own histogram
 #     pragma omp master
       {
-        numthreads = omp_get_num_threads();
-        mprintf("\tParallelizing calculation with %i threads\n", numthreads);
         P_thread = new double*[ numthreads ];
         for (int nt = 0; nt < numthreads; nt++) {
           P_thread[nt] = new double[ outSize ];
@@ -274,54 +283,68 @@ Analysis::RetType Analysis_KDE::Analyze() {
     DataSet_double& klOut = static_cast<DataSet_double&>( *kldiv_ );
     std::vector<double> Q_hist( Xdim.Bins(), 0.0 ); // Raw Q histogram.
     klOut.Resize( inSize ); // Hold KL div vs time
-    double val_p, val_q, KL, xcrd, Pnorm, Qnorm, normP, normQ, Pbin, Qbin;
-    bool Pzero, Qzero, validPoint;
+    double val_p, val_q, KL, xcrd, Pnorm, Qnorm, normP, normQ;
+    bool Pzero, Qzero;
     // Loop over input P and Q data
-    unsigned int nInvalid = 0;
-      for (frame = 0; frame < inSize; frame++) {
-        //mprintf("DEBUG: Frame=%u Outsize=%u\n", frame, outSize);
-        increment = Increments[frame];
-        total += increment;
-        // Apply kernel across P and Q, calculate KL divergence as we go. 
-        val_p = Pdata.Dval(frame);
-        val_q = Qdata.Dval(frame);
-        normP = 0.0;
-        normQ = 0.0;
-        validPoint = true;
+    unsigned int nInvalid = 0, validPoint;
+    for (frame = 0; frame < inSize; frame++) {
+      //mprintf("DEBUG: Frame=%u Outsize=%u\n", frame, outSize);
+      increment = Increments[frame];
+      total += increment;
+      // Apply kernel across P and Q, calculate KL divergence as we go. 
+      val_p = Pdata.Dval(frame);
+      val_q = Qdata.Dval(frame);
+      normP = 0.0;
+      normQ = 0.0;
+      validPoint = 0; // 0 in this context means true
+#     ifdef _OPENMP
+#     pragma omp parallel private(bin, xcrd) reduction(+:normP, normQ)
+      {
+#       pragma omp for
+#       endif
         for (bin = 0; bin < outSize; bin++) {
           xcrd = Xdim.Coord(bin);
-          Pbin = (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
-          Qbin = (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
-          P_hist[bin] += Pbin;
+          P_hist[bin] += (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
           normP += P_hist[bin];
-          Q_hist[bin] += Qbin;
+          Q_hist[bin] += (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
           normQ += Q_hist[bin];
         }
-        normP = 1.0 / normP;
-        normQ = 1.0 / normQ;
-        KL = 0.0;
+#     ifdef _OPENMP
+      } // End first parallel block
+#     endif
+      normP = 1.0 / normP;
+      normQ = 1.0 / normQ;
+      KL = 0.0;
+#     ifdef _OPENMP
+#     pragma omp parallel private(bin, Pnorm, Qnorm, Pzero, Qzero) reduction(+:KL, validPoint)
+      {
+#       pragma omp for
+#       endif
         for (bin = 0; bin < outSize; bin++) {
           // KL only defined when Q and P are non-zero, or both zero.
-          // Normalize for this frame
-          Pnorm = P_hist[bin] * normP;
-          Qnorm = Q_hist[bin] * normQ;
-          //mprintf("Frame %8i Bin %8i P=%g Q=%g Pnorm=%g Qnorm=%g\n",frame,bin,P_hist[bin],Q_hist[bin],normP,normQ);
-          Pzero = (Pnorm <= std::numeric_limits<double>::min());
-          Qzero = (Qnorm <= std::numeric_limits<double>::min());
-          if (!Pzero && !Qzero)
-            KL += ( log( Pnorm / Qnorm ) * Pnorm );
-          else if ( Pzero != Qzero ) {
-            validPoint = false;
-            break;
+          if (validPoint == 0) {
+            // Normalize for this frame
+            Pnorm = P_hist[bin] * normP;
+            Qnorm = Q_hist[bin] * normQ;
+            //mprintf("Frame %8i Bin %8i P=%g Q=%g Pnorm=%g Qnorm=%g\n",frame,bin,P_hist[bin],Q_hist[bin],normP,normQ);
+            Pzero = (Pnorm <= std::numeric_limits<double>::min());
+            Qzero = (Qnorm <= std::numeric_limits<double>::min());
+            if (!Pzero && !Qzero)
+              KL += ( log( Pnorm / Qnorm ) * Pnorm );
+            else if ( Pzero != Qzero )
+              validPoint++;
           }
         }
-        if (validPoint) {
-          klOut[frame] = KL;
-        } else {
-          //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", frame+1);
-          nInvalid++;
-        }
-      } // END KL divergence calc loop over frames
+#       ifdef _OPENMP
+      } // End second parallel block
+#     endif
+      if (validPoint == 0) {
+        klOut[frame] = KL;
+      } else {
+        //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", frame+1);
+        nInvalid++;
+      }
+    } // END KL divergence calc loop over frames
     if (nInvalid > 0)
       mprintf("Warning:\tKullback-Leibler divergence was undefined for %u frames.\n", nInvalid);
   }
