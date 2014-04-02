@@ -284,7 +284,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
     // Loop over input P and Q data
     unsigned int nInvalid = 0;
 #   ifdef _OPENMP
-#   pragma omp parallel private(frame, bin, validPoint, increment, val_p, val_q, KL, xcrd, Pnorm, Qnorm, Pzero, Qzero, normP, normQ, Pbin, Qbin) reduction(+:total,nInvalid)
+#   pragma omp parallel private(mythread, frame, bin, validPoint, increment, val_p, val_q, KL, xcrd, Pnorm, Qnorm, Pzero, Qzero, normP, normQ, Pbin, Qbin) reduction(+:total,nInvalid)
     {
       mythread = omp_get_thread_num();
 #     pragma omp for
