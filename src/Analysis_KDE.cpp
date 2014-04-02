@@ -213,32 +213,6 @@ Analysis::RetType Analysis_KDE::Analyze() {
       Increments[i] = exp( AMD.Dval(i) );
   }
 
-# ifdef _OPENMP
-  // Prevent race conditions by giving each thread its own histogram
-  int numthreads, mythread;
-  double **P_thread, **Q_thread;
-# pragma omp parallel
-  {
-#   pragma omp master
-    {
-      numthreads = omp_get_num_threads();
-    }
-  }
-  mprintf("\tParallelizing calculation with %i threads\n", numthreads);
-  P_thread = new double*[ numthreads ];
-  for (int nt = 0; nt < numthreads; nt++) {
-    P_thread[nt] = new double[ outSize ];
-    std::fill(P_thread[nt], P_thread[nt] + outSize, 0.0);
-  }
-  if (q_data_ != 0) {
-    Q_thread = new double*[ numthreads ];
-    for (int nt = 0; nt < numthreads; nt++) {
-     Q_thread[nt] = new double[ outSize ];
-      std::fill(Q_thread[nt], Q_thread[nt] + outSize, 0.0);
-    }
-  }
-# endif
- 
   unsigned int frame, bin;
   double increment;
   double total = 0.0;
@@ -246,9 +220,23 @@ Analysis::RetType Analysis_KDE::Analyze() {
     double val;
     // Calculate KDE, loop over input data
 #   ifdef _OPENMP
+    int numthreads, mythread;
+    double **P_thread;
 #   pragma omp parallel private(frame, bin, val, increment, mythread) reduction(+:total)
     {
       mythread = omp_get_thread_num();
+      // Prevent race conditions by giving each thread its own histogram
+#     pragma omp master
+      {
+        numthreads = omp_get_num_threads();
+        mprintf("\tParallelizing calculation with %i threads\n", numthreads);
+        P_thread = new double*[ numthreads ];
+        for (int nt = 0; nt < numthreads; nt++) {
+          P_thread[nt] = new double[ outSize ];
+          std::fill(P_thread[nt], P_thread[nt] + outSize, 0.0);
+        }
+      }
+#     pragma omp barrier
 #     pragma omp for
 #   endif
       for (frame = 0; frame < inSize; frame++) {
@@ -266,6 +254,13 @@ Analysis::RetType Analysis_KDE::Analyze() {
       }
 #   ifdef _OPENMP
     } // END parallel block
+    // Combine results from each thread histogram into P_hist
+    for (int i = 0; i < numthreads; i++) {
+      for (unsigned int j = 0; j < outSize; j++)
+        P_hist[j] += P_thread[i][j];
+      delete[] P_thread[i];
+    }
+    delete[] P_thread;
 #   endif
   } else {
     // Calculate Kullback-Leibler divergence vs time
@@ -283,12 +278,6 @@ Analysis::RetType Analysis_KDE::Analyze() {
     bool Pzero, Qzero, validPoint;
     // Loop over input P and Q data
     unsigned int nInvalid = 0;
-#   ifdef _OPENMP
-#   pragma omp parallel private(mythread, frame, bin, validPoint, increment, val_p, val_q, KL, xcrd, Pnorm, Qnorm, Pzero, Qzero, normP, normQ, Pbin, Qbin) reduction(+:total,nInvalid)
-    {
-      mythread = omp_get_thread_num();
-#     pragma omp for
-#   endif
       for (frame = 0; frame < inSize; frame++) {
         //mprintf("DEBUG: Frame=%u Outsize=%u\n", frame, outSize);
         increment = Increments[frame];
@@ -303,17 +292,10 @@ Analysis::RetType Analysis_KDE::Analyze() {
           xcrd = Xdim.Coord(bin);
           Pbin = (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
           Qbin = (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
-#         ifdef _OPENMP
-          P_thread[mythread][bin] += Pbin;
-          normP += P_thread[mythread][bin];
-          Q_thread[mythread][bin] += Qbin;
-          normQ += Q_thread[mythread][bin];
-#         else
           P_hist[bin] += Pbin;
           normP += P_hist[bin];
           Q_hist[bin] += Qbin;
           normQ += Q_hist[bin];
-#         endif
         }
         normP = 1.0 / normP;
         normQ = 1.0 / normQ;
@@ -321,14 +303,9 @@ Analysis::RetType Analysis_KDE::Analyze() {
         for (bin = 0; bin < outSize; bin++) {
           // KL only defined when Q and P are non-zero, or both zero.
           // Normalize for this frame
-#         ifdef _OPENMP
-          Pnorm = P_thread[mythread][bin] * normP;
-          Qnorm = Q_thread[mythread][bin] * normQ;
-#         else
           Pnorm = P_hist[bin] * normP;
           Qnorm = Q_hist[bin] * normQ;
           //mprintf("Frame %8i Bin %8i P=%g Q=%g Pnorm=%g Qnorm=%g\n",frame,bin,P_hist[bin],Q_hist[bin],normP,normQ);
-#         endif
           Pzero = (Pnorm <= std::numeric_limits<double>::min());
           Qzero = (Qnorm <= std::numeric_limits<double>::min());
           if (!Pzero && !Qzero)
@@ -345,27 +322,9 @@ Analysis::RetType Analysis_KDE::Analyze() {
           nInvalid++;
         }
       } // END KL divergence calc loop over frames
-#   ifdef _OPENMP
-    }
-#   endif 
     if (nInvalid > 0)
       mprintf("Warning:\tKullback-Leibler divergence was undefined for %u frames.\n", nInvalid);
   }
-# ifdef _OPENMP
-  // Combine results from each thread histogram into P_hist
-  for (int i = 0; i < numthreads; i++) {
-    for (unsigned int j = 0; j < outSize; j++)
-      P_hist[j] += P_thread[i][j];
-    delete[] P_thread[i];
-  }
-  delete[] P_thread;
-  // Clean up Q thread memory
-  if (q_data_ != 0) {
-    for (int i = 0; i < numthreads; i++)
-      delete[] Q_thread[i];
-    delete[] Q_thread;
-  }
-# endif
 
   // Normalize
   for (unsigned int j = 0; j < P_hist.Size(); j++)
