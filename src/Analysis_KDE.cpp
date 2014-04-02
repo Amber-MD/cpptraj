@@ -167,37 +167,29 @@ double Analysis_KDE::GaussianKernel(double u) const {
   return ( ONE_OVER_ROOT_TWOPI * exp( -0.5 * u * u ) );
 }
 
+// Analysis_KDE::Analyze()
 Analysis::RetType Analysis_KDE::Analyze() {
-  // Declare variables here in case of OPENMP
-  unsigned int frame, bin, validPoint;
-  double val, increment;
-  bool Pzero, Qzero;
-# ifdef _OPENMP
-  int numthreads, mythread, nt;
-  double** out_thread;
-# endif
-
   Dimension& Xdim = output_->Dim(0);
-  DataSet_1D const& In = static_cast<DataSet_1D const&>( *data_ );
-  size_t inSize = In.Size();
+  DataSet_1D const& Pdata = static_cast<DataSet_1D const&>( *data_ );
+  size_t inSize = Pdata.Size();
   // Set output set dimensions from input set if necessary.
   if (!Xdim.MinIsSet())
-    Xdim.SetMin( In.Min() );
+    Xdim.SetMin( Pdata.Min() );
   if (!Xdim.MaxIsSet())
-    Xdim.SetMax( In.Max() );
+    Xdim.SetMax( Pdata.Max() );
   if (Xdim.CalcBinsOrStep()) return Analysis::ERR;
   Xdim.PrintDim();
   // TODO: When calculating KL divergence check q_data_ dimension.
 
   // Allocate output set
-  DataSet_double& Out = static_cast<DataSet_double&>( *output_ );
-  Out.Resize( Xdim.Bins() );
-  size_t outSize = Out.Size();
+  DataSet_double& P_hist = static_cast<DataSet_double&>( *output_ );
+  P_hist.Resize( Xdim.Bins() );
+  size_t outSize = P_hist.Size();
 
   // Estimate bandwidth from normal distribution approximation if necessary.
   if (bandwidth_ < 0.0) {
     double stdev;
-    In.Avg( stdev );
+    Pdata.Avg( stdev );
     double N_to_1_over_5 = pow( (double)inSize, (-1.0/5.0) );
     bandwidth_ = 1.06 * stdev * N_to_1_over_5;
     mprintf("\tDetermined bandwidth from normal distribution approximation: %f\n", bandwidth_);
@@ -220,132 +212,174 @@ Analysis::RetType Analysis_KDE::Analyze() {
     for (unsigned int i = 0; i < inSize; i++)
       Increments[i] = exp( AMD.Dval(i) );
   }
+
+# ifdef _OPENMP
+  // Prevent race conditions by giving each thread its own histogram
+  int numthreads, mythread;
+  double **P_thread, **Q_thread;
+# pragma omp parallel
+  {
+#   pragma omp master
+    {
+      numthreads = omp_get_num_threads();
+    }
+  }
+  mprintf("\tParallelizing calculation with %i threads\n", numthreads);
+  P_thread = new double*[ numthreads ];
+  for (int nt = 0; nt < numthreads; nt++) {
+    P_thread[nt] = new double[ outSize ];
+    std::fill(P_thread[nt], P_thread[nt] + outSize, 0.0);
+  }
+  if (q_data_ != 0) {
+    Q_thread = new double*[ numthreads ];
+    for (int nt = 0; nt < numthreads; nt++) {
+     Q_thread[nt] = new double[ outSize ];
+      std::fill(Q_thread[nt], Q_thread[nt] + outSize, 0.0);
+    }
+  }
+# endif
  
+  unsigned int frame, bin;
+  double increment;
   double total = 0.0;
   if (q_data_ == 0) {
+    double val;
     // Calculate KDE, loop over input data
-#ifdef _OPENMP
+#   ifdef _OPENMP
 #   pragma omp parallel private(frame, bin, val, increment, mythread) reduction(+:total)
     {
       mythread = omp_get_thread_num();
-      // Prevent race conditions by giving each thread its own histogram.
-#     pragma omp master
-      {
-        numthreads = omp_get_num_threads();
-        mprintf("\tParallelizing calculation with %i threads\n", numthreads);
-        out_thread = new double*[ numthreads ];
-        for (nt = 0; nt < numthreads; nt++) {
-          out_thread[nt] = new double[ outSize ]; 
-          std::fill(out_thread[nt], out_thread[nt] + outSize, 0.0);
-        }
-      }
-#     pragma omp barrier
 #     pragma omp for
-# endif
+#   endif
       for (frame = 0; frame < inSize; frame++) {
-        val = In.Dval(frame);
+        val = Pdata.Dval(frame);
         increment = Increments[frame];
         total += increment;
         // Apply kernel across histogram
         for (bin = 0; bin < outSize; bin++)
 #         ifdef _OPENMP
-          out_thread[mythread][bin] +=
+          P_thread[mythread][bin] +=
 #         else
-          Out[bin] += 
+          P_hist[bin] += 
 #         endif
             (increment * (this->*Kernel_)( (Xdim.Coord(bin) - val) / bandwidth_ ));
       }
-#ifdef _OPENMP
+#   ifdef _OPENMP
     } // END parallel block
-    // Combine results from each thread histogram into Out
-    for (int i = 0; i < numthreads; i++) {
-      for (unsigned int j = 0; j < outSize; j++)
-        Out[j] += out_thread[i][j];
-      delete[] out_thread[i];
-    }
-    delete[] out_thread;
-#endif
+#   endif
   } else {
     // Calculate Kullback-Leibler divergence vs time
     DataSet_1D const& Qdata = static_cast<DataSet_1D const&>( *q_data_ );
     if (inSize != Qdata.Size()) {
       mprintf("Warning: Size of %s (%zu) != size of %s (%zu)\n",
-                In.Legend().c_str(), In.Size(), Qdata.Legend().c_str(), Qdata.Size());
+                Pdata.Legend().c_str(), Pdata.Size(), Qdata.Legend().c_str(), Qdata.Size());
       inSize = std::min( inSize, Qdata.Size() );
       mprintf("Warning:  Only using %zu data points.\n", inSize);
     }
     DataSet_double& klOut = static_cast<DataSet_double&>( *kldiv_ );
-    std::vector<double> Qhist( Xdim.Bins(), 0.0 ); // Raw Q histogram.
+    std::vector<double> Q_hist( Xdim.Bins(), 0.0 ); // Raw Q histogram.
     klOut.Resize( inSize ); // Hold KL div vs time
-    double val_p, val_q, KL, norm, xcrd, Pnorm, Qnorm;
+    double val_p, val_q, KL, xcrd, Pnorm, Qnorm, normP, normQ, Pbin, Qbin;
+    bool Pzero, Qzero, validPoint;
     // Loop over input P and Q data
     unsigned int nInvalid = 0;
-    for (frame = 0; frame < inSize; frame++) {
-      increment = Increments[frame];
-      total += increment;
-      // Apply kernel across P and Q, calculate KL divergence as we go. 
-      val_p = In.Dval(frame);
-      val_q = Qdata.Dval(frame);
-      KL = 0.0;
-      validPoint = 0; // 0 in this context means true
-      // NOTE: This normalization is subject to precision loss.
-      //       For a calculation between 2 sets of ~850000 frames the max
-      //       precision loss is on the order of 0.001, and the avg. deviation
-      //       is ~2E-05.
-      norm = Xdim.Step() / (total * bandwidth_);
-#     ifdef _OPENMP
-#     pragma omp parallel private(bin, xcrd, Pnorm, Qnorm, Pzero, Qzero) reduction(+:KL, validPoint)
-{
+#   ifdef _OPENMP
+#   pragma omp parallel private(frame, bin, validPoint, increment, val_p, val_q, KL, xcrd, Pnorm, Qnorm, Pzero, Qzero, normP, normQ, Pbin, Qbin) reduction(+:total,nInvalid)
+    {
+      mythread = omp_get_thread_num();
 #     pragma omp for
-#     endif
-      for (bin = 0; bin < outSize; bin++) {
-        xcrd = Xdim.Coord(bin);
-        Out[bin]   += (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
-        Qhist[bin] += (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
-        // KL only defined when Q and P are non-zero, or both zero.
-        if (validPoint == 0) {
+#   endif
+      for (frame = 0; frame < inSize; frame++) {
+        increment = Increments[frame];
+        total += increment;
+        // Apply kernel across P and Q, calculate KL divergence as we go. 
+        val_p = Pdata.Dval(frame);
+        val_q = Qdata.Dval(frame);
+        normP = 0.0;
+        normQ = 0.0;
+        validPoint = true;
+        for (bin = 0; bin < outSize; bin++) {
+          xcrd = Xdim.Coord(bin);
+          Pbin = (increment * (this->*Kernel_)( (xcrd - val_p) / bandwidth_ ));
+          Qbin = (increment * (this->*Kernel_)( (xcrd - val_q) / bandwidth_ ));
+          normP += Pbin;
+          normQ += Qbin;
+#         ifdef _OPENMP
+          P_thread[mythread][bin] += Pbin;
+          Q_thread[mythread][bin] += Qbin;
+#         else
+          P_hist[bin] += Pbin;
+          Q_hist[bin] += Qbin;
+#         endif
+        }
+        normP = 1.0 / normP;
+        normQ = 1.0 / normQ;
+        KL = 0.0;
+        for (bin = 0; bin < outSize; bin++) {
+          // KL only defined when Q and P are non-zero, or both zero.
           // Normalize for this frame
-          Pnorm = Out[bin] * norm;
-          Qnorm = Qhist[bin] * norm;
+#         ifdef _OPENMP
+          Pnorm = P_thread[mythread][bin] * normP;
+          Qnorm = Q_thread[mythread][bin] * normQ;
+#         else
+          Pnorm = P_hist[bin] * normP;
+          Qnorm = Q_hist[bin] * normQ;
+#         endif
           Pzero = (Pnorm <= std::numeric_limits<double>::min());
           Qzero = (Qnorm <= std::numeric_limits<double>::min());
           if (!Pzero && !Qzero)
             KL += ( log( Pnorm / Qnorm ) * Pnorm );
-          else if ( Pzero != Qzero )
-            validPoint++;
+          else if ( Pzero != Qzero ) {
+            validPoint = false;
+            break;
+          }
         }
-      }
-#ifdef _OPENMP
-}
-#endif
-      if (validPoint == 0) {
-        klOut[frame] = KL;
-      } else {
-        //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", frame+1);
-        nInvalid++;
-      }
+        if (validPoint) {
+          klOut[frame] = KL;
+        } else {
+          //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", frame+1);
+          nInvalid++;
+        }
+      } // END KL divergence calc loop over frames
+#   ifdef _OPENMP
     }
+#   endif 
     if (nInvalid > 0)
       mprintf("Warning:\tKullback-Leibler divergence was undefined for %u frames.\n", nInvalid);
   }
+# ifdef _OPENMP
+  // Combine results from each thread histogram into P_hist
+  for (int i = 0; i < numthreads; i++) {
+    for (unsigned int j = 0; j < outSize; j++)
+      P_hist[j] += P_thread[i][j];
+    delete[] P_thread[i];
+  }
+  delete[] P_thread;
+  // Clean up Q thread memory
+  if (q_data_ != 0) {
+    for (int i = 0; i < numthreads; i++)
+      delete[] Q_thread[i];
+    delete[] Q_thread;
+  }
+# endif
 
   // Normalize
-  for (unsigned int j = 0; j < Out.Size(); j++)
-    Out[j] /= (total * bandwidth_);
+  for (unsigned int j = 0; j < P_hist.Size(); j++)
+    P_hist[j] /= (total * bandwidth_);
 
   // Calc free E
   if (calcFreeE_) {
     double KT = (-Constants::GASK_KCAL * Temp_);
     double minFreeE = 0.0;
-    for (unsigned int j = 0; j < Out.Size(); j++) {
-      Out[j] = log( Out[j] ) * KT;
+    for (unsigned int j = 0; j < P_hist.Size(); j++) {
+      P_hist[j] = log( P_hist[j] ) * KT;
       if (j == 0)
-        minFreeE = Out[j];
-      else if (Out[j] < minFreeE)
-        minFreeE = Out[j];
+        minFreeE = P_hist[j];
+      else if (P_hist[j] < minFreeE)
+        minFreeE = P_hist[j];
     }
-    for (unsigned int j = 0; j < Out.Size(); j++)
-      Out[j] -= minFreeE;
+    for (unsigned int j = 0; j < P_hist.Size(); j++)
+      P_hist[j] -= minFreeE;
   }
 
   return Analysis::OK;
