@@ -290,6 +290,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
 #     pragma omp for
 #   endif
       for (frame = 0; frame < inSize; frame++) {
+        mprintf("DEBUG: Frame=%u Outsize=%u\n", frame, outSize);
         increment = Increments[frame];
         total += increment;
         // Apply kernel across P and Q, calculate KL divergence as we go. 
@@ -324,6 +325,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
 #         else
           Pnorm = P_hist[bin] * normP;
           Qnorm = Q_hist[bin] * normQ;
+          //mprintf("Frame %8i Bin %8i P=%g Q=%g Pnorm=%g Qnorm=%g\n",frame,bin,P_hist[bin],Q_hist[bin],normP,normQ);
 #         endif
           Pzero = (Pnorm <= std::numeric_limits<double>::min());
           Qzero = (Qnorm <= std::numeric_limits<double>::min());
