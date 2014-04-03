@@ -5,9 +5,7 @@
 #include "DistRoutines.h" // GenerateAmberRst
 #include "DataSet_Coords_TRJ.h" // LoadTraj
 #include "ParmFile.h" // ReadOptions, WriteOptions
-#ifdef TIMER
-# include "Timer.h"
-#endif
+#include "Timer.h"
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -627,10 +625,8 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
     mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
     return Command::C_ERR;
   }
-# ifdef TIMER
   Timer total_time;
   total_time.Start();
-# endif
   // Start, stop, offset
   int start, stop, offset;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
@@ -685,10 +681,8 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   delete originalFrame;
   delete originalParm;
   delete act;
-# ifdef TIMER
   total_time.Stop();
   mprintf("TIME: Total action execution time: %.4f seconds.\n", total_time.Total());
-# endif
   return Command::C_OK;
 }
 
@@ -1170,10 +1164,8 @@ Command::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
   if ( tkn == 0 ) return Command::C_ERR;
   Analysis* ana = (Analysis*)tkn->Alloc();
   if (ana == 0) return Command::C_ERR;
-# ifdef TIMER
   Timer total_time;
   total_time.Start();
-# endif
   Command::RetType err = Command::C_ERR;
   if ( ana->Setup( analyzeargs, State.DSL(), State.PFL(), State.DFL(), State.Debug() ) == 
                    Analysis::OK )
@@ -1185,10 +1177,8 @@ Command::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
     }
   }
   delete ana;
-# ifdef TIMER
   total_time.Stop();
   mprintf("TIME: Total analysis execution time: %.4f seconds.\n", total_time.Total());
-# endif
   return err;
 }
 
