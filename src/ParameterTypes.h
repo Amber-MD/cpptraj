@@ -118,7 +118,7 @@ class HB_ParmType {
   public:
     HB_ParmType() : asol_(0), bsol_(0), hbcut_(0) {}
     HB_ParmType(double a, double b, double c) :
-                           asol_(a), bsol_(b), hbcut_(0) {}
+                           asol_(a), bsol_(b), hbcut_(c) {}
     inline double Asol()  const { return asol_;  }
     inline double Bsol()  const { return bsol_;  }
     inline double HBcut() const { return hbcut_; }
