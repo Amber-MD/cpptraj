@@ -188,8 +188,6 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
         BondsToAtomBegin_.push_back( bondL_.end() - 1 );
     }
   }
-  mprintf("DEBUG: Selected %i atoms, BondsToAtomBegin size=%zu\n",
-          Mask1_.Nselected(), BondsToAtomBegin_.size());
 # endif 
     
   // Print imaging info for this parm
@@ -217,6 +215,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
 # pragma omp parallel private(i1, i2, mythread, D2) firstprivate(problem) reduction(+:Nproblems)
   { // First check overlaps
     mythread = omp_get_thread_num();
+    problemIndices_[mythread].clear();
 #   pragma omp for schedule(dynamic)
     for (i1 = 0; i1 < Mask1_.Nselected(); i1++) {
       problem.atom1_ = Mask1_[i1];
