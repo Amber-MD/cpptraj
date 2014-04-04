@@ -23,10 +23,6 @@ class Action_CheckStructure: public Action, ImagedAction {
     /// Used to cache bond parameters
     struct bond_list {
       double req; ///< Hold (req + bondoffset)^2
-#     ifdef _OPENMP
-      double D2;  ///< Hold distance^2 for this pair.
-      int problem;///< Hold detected problem type for this pair.
-#     endif
       int atom1;
       int atom2;
     };
@@ -43,7 +39,14 @@ class Action_CheckStructure: public Action, ImagedAction {
         return false;
       }
     };
-
+#   ifdef _OPENMP
+    /// Hold position in bondL for each atom.
+    std::vector<BondListType::const_iterator> BondsToAtomBegin_;
+    enum ProblemType { NONE = 0, BOND, DISTANCE, BOTH };
+    class Problem;
+    std::vector<Problem>* problemIndices_;
+    int numthreads_;
+#   endif
     AtomMask Mask1_;
     double bondoffset_;
     double nonbondcut2_;
@@ -54,4 +57,19 @@ class Action_CheckStructure: public Action, ImagedAction {
     Topology* CurrentParm_;
     int debug_;
 };
+#ifdef _OPENMP
+class Action_CheckStructure::Problem {
+  public:
+  Problem() : Dist_(0.0), frameNum_(-1), type_(BOND), atom1_(-1), atom2_(-1) {}
+  Problem(int f) : Dist_(0.0), frameNum_(f), type_(BOND), atom1_(-1), atom2_(-1) {}
+  Problem(Problem const& rhs) : 
+    Dist_(rhs.Dist_), frameNum_(rhs.frameNum_), type_(rhs.type_), 
+    atom1_(rhs.atom1_), atom2_(rhs.atom2_) {}
+  double Dist_;
+  int frameNum_; 
+  int type_; // 0: NONE, 1: BOND, 2: DISTANCE, 3: BOTH
+  int atom1_;
+  int atom2_;
+};
+#endif
 #endif  

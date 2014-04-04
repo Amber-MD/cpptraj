@@ -3,9 +3,16 @@
 #include <algorithm> // sort
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
+#ifdef _OPENMP
+#  include "omp.h"
+#endif
 
 // CONSTRUCTOR
-Action_CheckStructure::Action_CheckStructure() : 
+Action_CheckStructure::Action_CheckStructure() :
+# ifdef _OPENMP
+  problemIndices_(0),
+  numthreads_(0),
+# endif 
   bondoffset_(1.15),
   nonbondcut2_(0.64), // 0.8^2
   bondcheck_(true),
@@ -24,6 +31,9 @@ void Action_CheckStructure::Help() {
 // DESTRUCTOR
 Action_CheckStructure::~Action_CheckStructure() {
   outfile_.CloseFile();
+# ifdef _OPENMP
+  if (problemIndices_ != 0) delete[] problemIndices_;
+# endif
 }
 
 // Action_CheckStructure::Init()
@@ -67,7 +77,19 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   if (!silent_)
     if (outfile_.OpenEnsembleWrite(reportFile, DSL->EnsembleNum()))
       return Action::ERR;
-
+# ifdef _OPENMP
+  // Create array so each thread can record what problems it finds.
+# pragma omp parallel
+  {
+#   pragma omp master
+    {
+      numthreads_ = omp_get_num_threads();
+      mprintf("\tParallelizing calculation with %i threads.\n", numthreads_);
+      if (outfile_.IsOpen())
+        problemIndices_ = new std::vector<Problem>[ numthreads_ ];
+    }
+  }
+# endif
   return Action::OK;
 }
 
@@ -147,24 +169,27 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
   bnd.atom2 = -1;
   bondL_.push_back(bnd);
 # ifdef _OPENMP
-  BondListType listOfBonds = bondL_;
-  bondL_.clear();
-  BondListType::const_iterator currentBond = listOfBonds.begin();
-  // Set up all possible pairs for checking in parallel.
-  bnd.D2 = 0.0;
-  bnd.problem = 0;
-  for (AtomMask::const_iterator atom1 = Mask1_.begin(); atom1 != Mask1_.end(); ++atom1)
-    for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != Mask1_.end(); ++atom2)
-    {
-      bnd.atom1 = *atom1;
-      bnd.atom2 = *atom2;
-      bnd.req = -1.0;
-      if ( (*atom1==currentBond->atom1) && (*atom2==currentBond->atom2) )
-        // Atoms bonded, set bond eq length.
-        bnd.req = (currentBond++)->req;
-      bondL_.push_back( bnd );
+  // For each atom, record where in bondL its bonds start
+  BondsToAtomBegin_.clear();
+  BondListType::const_iterator currentBond = bondL_.begin();
+  if (currentBond->atom1 == -1) {
+    // No bonds
+    for (int idx = 0; idx != Mask1_.Nselected(); idx++)
+      BondsToAtomBegin_.push_back( currentBond );
+  } else {
+    for (int idx = 0; idx != Mask1_.Nselected(); idx++) {
+      for (currentBond = bondL_.begin(); currentBond != bondL_.end(); ++currentBond) {
+        if (currentBond->atom1 == Mask1_[idx]) {
+          BondsToAtomBegin_.push_back( currentBond );
+          break;
+        }
+      }
+      if (currentBond == bondL_.end()) // Atom has no bonds
+        BondsToAtomBegin_.push_back( bondL_.end() - 1 );
     }
-# endif
+  }
+# endif 
+    
   // Print imaging info for this parm
   mprintf("\tChecking atoms in '%s' (%i atoms, %u bonds)",Mask1_.MaskString(),
           Mask1_.Nselected(), totalbonds);
@@ -182,53 +207,66 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
   int Nproblems = 0;
   // Get imaging info for non-orthogonal box
   if (ImageType()==NONORTHO) currentFrame.BoxCrd().ToRecip(ucell, recip);
-#ifdef _OPENMP
-  enum ProblemType { NONE = 0, OVERLAP, BOND, BOTH };
-  int idx, bondLsize;
-  bondLsize = (int)bondL_.size();
-# pragma omp parallel private(idx)
-  {
-# pragma omp for
-    for (idx = 0; idx < bondLsize; ++idx) {
-      bondL_[idx].problem = NONE;
-      bondL_[idx].D2 = DIST2(currentFrame.XYZ(bondL_[idx].atom1),
-                             currentFrame.XYZ(bondL_[idx].atom2),
-                             ImageType(), currentFrame.BoxCrd(), ucell, recip);
-      if (bondL_[idx].req > 0.0) { // Check bond length
-        if (bondL_[idx].D2 > bondL_[idx].req)
-          bondL_[idx].problem = BOND;
+  // Begin loop
+# ifdef _OPENMP
+  int i1, i2, mythread;
+  double D2;
+  Problem problem(frameNum);
+# pragma omp parallel private(i1, i2, mythread, D2) firstprivate(problem) reduction(+:Nproblems)
+  { // First check overlaps
+    mythread = omp_get_thread_num();
+    problemIndices_[mythread].clear();
+#   pragma omp for schedule(dynamic)
+    for (i1 = 0; i1 < Mask1_.Nselected(); i1++) {
+      problem.atom1_ = Mask1_[i1];
+      BondListType::const_iterator currentBond = BondsToAtomBegin_[i1];
+      for (i2 = i1 + 1; i2 < Mask1_.Nselected(); i2++) {
+        problem.type_ = NONE;
+        problem.atom2_ = Mask1_[i2];
+        D2 = DIST2(currentFrame.XYZ(problem.atom1_), currentFrame.XYZ(problem.atom2_),
+                   ImageType(), currentFrame.BoxCrd(), ucell, recip);
+        if ( (problem.atom1_==currentBond->atom1) && (problem.atom2_==currentBond->atom2) ) {
+          if (D2 > currentBond->req) {
+            ++Nproblems;
+            if (outfile_.IsOpen())
+              problem.type_ += BOND;
+          }
+          // Next bond
+          ++currentBond;
+        }
+        if (D2 < nonbondcut2_) {
+          ++Nproblems;
+          if (outfile_.IsOpen())
+            problem.type_ += DISTANCE;
+        }
+        if (problem.type_ != NONE) {
+          problem.Dist_ = sqrt(D2);
+          problemIndices_[mythread].push_back( problem );
+        }
       }
-      if (bondL_[idx].D2 < nonbondcut2_) // Always check overlap
-        bondL_[idx].problem += OVERLAP;
     }
-  } // END pragma OMP parallel
-  // Second loop for writing out results sequentially
-  for (idx = 0; idx < bondLsize; ++idx) {
-    int problem = bondL_[idx].problem;
-    if (problem > NONE) {
-      int atom1 = bondL_[idx].atom1;
-      int atom2 = bondL_[idx].atom2;
-      double Dist = sqrt(bondL_[idx].D2);
-      if (problem == BOND || problem == BOTH) {
-        ++Nproblems;
-        if (outfile_.IsOpen())
+  } // END parallel block
+  // OUTPUT
+  if (outfile_.IsOpen()) {
+    for (int nt = 0; nt < numthreads_; nt++) {
+      for (std::vector<Problem>::const_iterator prob = problemIndices_[nt].begin();
+                                                prob != problemIndices_[nt].end();
+                                              ++prob)
+      {
+        if (prob->type_ == BOTH || prob->type_ == BOND)
           outfile_.Printf(
-                  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
-                  atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
-                  atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
-      }
-      if (problem == OVERLAP || problem == BOTH) {
-        ++Nproblems;
-        if (outfile_.IsOpen())
+            "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", prob->frameNum_,
+            prob->atom1_+1, CurrentParm_->TruncResAtomName(prob->atom1_).c_str(),
+            prob->atom2_+1, CurrentParm_->TruncResAtomName(prob->atom2_).c_str(), prob->Dist_);
+        if (prob->type_ == BOTH || prob->type_ == DISTANCE)
           outfile_.Printf(
-                  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
-                  atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(),
-                  atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), Dist);
+            "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", prob->frameNum_,
+            prob->atom1_+1, CurrentParm_->TruncResAtomName(prob->atom1_).c_str(),
+            prob->atom2_+1, CurrentParm_->TruncResAtomName(prob->atom2_).c_str(), prob->Dist_);
       }
     }
   }
-#else
-  // Begin loop
+# else
   BondListType::const_iterator currentBond = bondL_.begin();
   for (AtomMask::const_iterator a1 = Mask1_.begin(); a1 != Mask1_.end(); ++a1) {
     int atom1 = *a1;
@@ -263,7 +301,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
       }
     } // END second loop over mask atoms
   } // END first loop over mask atoms
-#endif
+# endif
   return Nproblems;
 }
 

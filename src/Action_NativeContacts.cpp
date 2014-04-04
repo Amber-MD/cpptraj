@@ -1,5 +1,6 @@
 #include <cmath> // sqrt
 #include <cfloat> // DBL_MAX
+#include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include "Action_NativeContacts.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
@@ -10,6 +11,7 @@ Action_NativeContacts::Action_NativeContacts() :
   debug_(0),
   ensembleNum_(-1),
   matrix_min_(0),
+  resoffset_(1),
   nframes_(0),
   first_(false),
   byResidue_(false),
@@ -25,61 +27,38 @@ Action_NativeContacts::Action_NativeContacts() :
 void Action_NativeContacts::Help() {
   mprintf("\t[<mask1> [<mask2>]] [writecontacts <outfile>]\n"
           "\t[noimage] [distance <cut>] [out <filename>] [includesolvent]\n"
-          "\t[ first | %s ]\n"
+          "\t[ first | %s ] [resoffset <n>]\n"
           "\t[name <dsname>] [mindist] [maxdist] [byresidue]\n"
           "\t[map [mapout <mapfile>]]\n"
           "  Calculate number of contacts in <mask1>, or between <mask1> and <mask2>\n"
           "  if both are specified. Native contacts are determined based on the given\n"
           "  reference structure (or first frame if not specified) and the specified\n"
-          "  distance cut-off (7.0 Ang. default). If [byresidue] is specified a contact\n"
-          "  between two residues is considered formed if any selected atom pair between\n"
-          "  two residues satisfies the cut-off.\n", FrameList::RefArgs);
+          "  distance cut-off (7.0 Ang. default). If [byresidue] is specified contacts\n"
+          "  between two residues spaced <resoffset> residues apart are ignored, and\n"
+          "  the map (if specified) is written per-residue.\n", FrameList::RefArgs);
 }
 
-// Action_NativeContacts::SetupList()
-Action_NativeContacts::Marray Action_NativeContacts::SetupList(Topology const& parmIn, 
-                                        AtomMask const& mask, Iarray& Idx) const
+/** Set up atom/residue indices corresponding to atoms selected in mask.
+  * This is done to make creating an atom/residue contact map easier.
+  */
+Action_NativeContacts::Iarray Action_NativeContacts::SetupContactIndices(
+                                AtomMask const& mask, Topology const& parmIn)
 {
-  Marray listOut;
-  Idx.clear();
-  if (byResidue_) {
-    AtomMask::const_iterator selected = mask.begin();
-    for (Topology::res_iterator res = parmIn.ResStart(); res != parmIn.ResEnd(); ++res) {
-      AtomMask resMask;
-      for (int atnum = res->FirstAtom(); atnum != res->LastAtom(); ++atnum) {
-        // If we are at the last selected atom we are done
-        if (selected == mask.end()) break;
-        if ( *selected == atnum ) {
-          resMask.AddAtom( atnum );
-          ++selected;
-        }
-      }
-      if (!resMask.None()) {
-        listOut.push_back( resMask );
-        Idx.push_back( res - parmIn.ResStart() );
-      }
-      // If we are at the last selected atom we are done
-      if (selected == mask.end()) break;
-    }
-  } else { // FIXME: Just use masks? If so get rid of this AtomMask constructor
-    for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
-      listOut.push_back( AtomMask( *atom ) );
-      Idx.push_back( *atom );
-    }
-  }
-  return listOut;
+  Iarray contactIdx;
+  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
+    if (byResidue_)
+      contactIdx.push_back( parmIn[*atom].ResNum() );
+    else
+      contactIdx.push_back( *atom );
+  return contactIdx;
 }
 
 // DEBUG
-static void DebugContactList(std::vector<AtomMask> const& clist, Topology const& parmIn) {
-  for (std::vector<AtomMask>::const_iterator c = clist.begin();
-                                             c != clist.end(); ++c)
-  {
-    mprintf("\tPotential Contact %u:", c - clist.begin());
-    for (AtomMask::const_iterator m = c->begin(); m != c->end(); ++m)
-      mprintf(" %s", parmIn.AtomMaskName(*m).c_str());
-    mprintf("\n");
-  }
+static void DebugContactList(AtomMask const& mask, Topology const& parmIn)
+{
+  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
+    mprintf("\tPotential Contact %u: %s\n", atom - mask.begin(),
+            parmIn.AtomMaskName(*atom).c_str());
 }
 
 /** Remove any selected solvent atoms from mask. */
@@ -98,25 +77,29 @@ static void removeSelectedSolvent( Topology const& parmIn, AtomMask& mask ) {
   * potential contact lists. Also set up atom/residue indices corresponding
   * to each potential contact.
   */
-int Action_NativeContacts::SetupContactLists(Marray& CL1, Marray& CL2,
-                                             Iarray& CI1, Iarray& CI2,
-                                             Topology const& parmIn, Frame const& frameIn)
+int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const& frameIn)
 {
+  // Setup first contact list
   if ( parmIn.SetupIntegerMask( Mask1_, frameIn ) ) return 1;
   if (!includeSolvent_) removeSelectedSolvent( parmIn, Mask1_ );
   Mask1_.MaskInfo();
-  // Setup first contact list
-  CL1 = SetupList(parmIn, Mask1_, CI1);
-  if (CL1.empty()) {
+  if (Mask1_.None())
+  {
     mprinterr("Warning: Nothing selected for '%s'\n", Mask1_.MaskString());
     return 1;
   }
-  if (debug_ > 0) DebugContactList( CL1, parmIn );
+  if (debug_ > 0) DebugContactList( Mask1_, parmIn );
+  contactIdx1_ = SetupContactIndices( Mask1_, parmIn );
   // Setup second contact list if necessary
   if ( Mask2_.MaskStringSet() ) {
     if (parmIn.SetupIntegerMask( Mask2_, frameIn ) ) return 1;
     if (!includeSolvent_) removeSelectedSolvent( parmIn, Mask2_ );
     Mask2_.MaskInfo();
+    if (Mask2_.None())
+    {
+      mprinterr("Warning: Nothing selected for '%s'\n", Mask2_.MaskString());
+      return 1;
+    }
     // Warn if masks overlap
     int nOverlap = Mask1_.NumAtomsInCommon( Mask2_ );
     if (nOverlap > 0) {
@@ -126,32 +109,10 @@ int Action_NativeContacts::SetupContactLists(Marray& CL1, Marray& CL2,
       if (mindist_ != 0)
         mprintf("Warning: Minimum distance will always be 0.0\n");
     }
-    CL2 = SetupList(parmIn, Mask2_, CI2);
-    if (CL2.empty()) {
-      mprinterr("Warning: Nothing selected for '%s'\n", Mask2_.MaskString());
-      return 1;
-    }
-    if (debug_ > 0) DebugContactList( CL2, parmIn );
+    if (debug_ > 0) DebugContactList( Mask2_, parmIn );
+    contactIdx2_ = SetupContactIndices( Mask2_, parmIn );
   }
   return 0;
-}
-
-/** Determine the minimum and maximum distances between two masks.
-  * \return the minimum distance between the masks.
-  */
-double Action_NativeContacts::GetMinMax(AtomMask const& m1, AtomMask const& m2,
-                                        Frame const& frameIn, double& maxDist2) const
-{
-  double min = DBL_MAX;
-  for (AtomMask::const_iterator a1 = m1.begin(); a1 != m1.end(); ++a1) {
-    for (AtomMask::const_iterator a2 = m2.begin(); a2 != m2.end(); ++a2) {
-      double Dist2 = DIST2(frameIn.XYZ(*a1), frameIn.XYZ(*a2), image_.ImageType(),
-                           frameIn.BoxCrd(), ucell_, recip_);
-      if (Dist2 < min     ) min      = Dist2;
-      if (Dist2 > maxDist2) maxDist2 = Dist2;
-    }
-  }
-  return min;
 }
 
 // Action_NativeContacts::DetermineNativeContacts()
@@ -160,9 +121,7 @@ double Action_NativeContacts::GetMinMax(AtomMask const& m1, AtomMask const& m2,
   */
 int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame const& frameIn)
 {
-  Marray CL1, CL2;
-  Iarray CI1, CI2;
-  if ( SetupContactLists(CL1, CL2, CI1, CI2, parmIn, frameIn) ) return 1;
+  if ( SetupContactLists(parmIn, frameIn) ) return 1;
   // If specified, set up contacts map; base size on atom masks.
   if (map_ != 0) {
     int matrix_max;
@@ -189,23 +148,30 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
   double minDist2 = DBL_MAX;
   nativeContacts_.clear();
   if ( Mask2_.MaskStringSet() ) {
-    for (unsigned int c1 = 0; c1 < CL1.size(); ++c1)
-      for (unsigned int c2 = 0; c2 < CL2.size(); ++c2)
+    for (AtomMask::const_iterator c1 = Mask1_.begin(); c1 != Mask1_.end(); ++c1)
+      for (AtomMask::const_iterator c2 = Mask2_.begin(); c2 != Mask2_.end(); ++c2)
       {
-        double Dist2 = GetMinMax(CL1[c1], CL2[c2], frameIn, maxDist2);
-        if (Dist2 < distance_)
-          nativeContacts_.insert( contactType(CI1[c1], CI2[c2]) );
-        if (Dist2 < minDist2) minDist2 = Dist2;
+        if (ValidContact(*c1, *c2, parmIn)) {
+          double Dist2 = DIST2(frameIn.XYZ(*c1), frameIn.XYZ(*c2), image_.ImageType(),
+                               frameIn.BoxCrd(), ucell_, recip_);
+          minDist2 = std::min( Dist2, minDist2 );
+          maxDist2 = std::max( Dist2, maxDist2 );
+          if (Dist2 < distance_)
+            nativeContacts_.insert( contactType(*c1, *c2) );
+        }
       }
   } else {
-    for (unsigned int c1 = 0; c1 < CL1.size(); ++c1)
-      for (unsigned int c2 = c1 + 1; c2 < CL1.size(); ++c2)
+    for (AtomMask::const_iterator c1 = Mask1_.begin(); c1 != Mask1_.end(); ++c1)
+      for (AtomMask::const_iterator c2 = c1 + 1; c2 != Mask1_.end(); ++c2)
       {
-        double Dist2 = GetMinMax(CL1[c1], CL1[c2], frameIn, maxDist2);
-        //mprintf("\tContact %u to %u mindist = %f\n", c1, c2, sqrt(Dist2));
-        if (Dist2 < distance_)
-          nativeContacts_.insert( contactType(CI1[c1], CI1[c2]) );
-        if (Dist2 < minDist2) minDist2 = Dist2;
+        if (ValidContact(*c1, *c2, parmIn)) {
+          double Dist2 = DIST2(frameIn.XYZ(*c1), frameIn.XYZ(*c2), image_.ImageType(),
+                               frameIn.BoxCrd(), ucell_, recip_);
+          minDist2 = std::min( Dist2, minDist2 );
+          maxDist2 = std::max( Dist2, maxDist2 );
+          if (Dist2 < distance_)
+            nativeContacts_.insert( contactType(*c1, *c2) );
+        }
       }
   }
   //mprintf("\tMinimum observed distance= %f, maximum observed distance= %f\n",
@@ -227,14 +193,9 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
   {
     int a1 = contact->first;
     int a2 = contact->second;
-    if (byResidue_)
-      outfile.Printf("\t\tResidue %s to %s\n",
-              parmIn.TruncResNameNum(a1).c_str(),
-              parmIn.TruncResNameNum(a2).c_str());
-    else
-      outfile.Printf("\t\tAtom '%s' to '%s'\n", 
-              parmIn.AtomMaskName(a1).c_str(),
-              parmIn.AtomMaskName(a2).c_str());
+    outfile.Printf("\t\tAtom '%s' to '%s'\n", 
+                   parmIn.AtomMaskName(a1).c_str(),
+                   parmIn.AtomMaskName(a2).c_str());
   }
   outfile.CloseFile();
   return 0;  
@@ -250,6 +211,11 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   double dist = actionArgs.getKeyDouble("distance", 7.0);
   byResidue_ = actionArgs.hasKey("byresidue");
+  resoffset_ = actionArgs.getKeyInt("resoffset", 0) + 1;
+  if (resoffset_ < 1) {
+    mprinterr("Error: Residue offset must be >= 0\n");
+    return Action::ERR;
+  }
   includeSolvent_ = actionArgs.hasKey("includesolvent");
   distance_ = dist * dist; // Square the cutoff
   first_ = actionArgs.hasKey("first");
@@ -303,8 +269,11 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
     mprintf(" first frame.\n");
   else
     mprintf("'%s'.\n", REF.FrameName().base());
-  if (byResidue_)
-    mprintf("\tContacts will be determined by residue\n");
+  if (byResidue_) {
+    mprintf("\tContacts will be ignored for residues spaced < %i apart.\n", resoffset_);
+    if (map_ != 0)
+      mprintf("\tMap will be printed by residue.\n");
+  }
   mprintf("\tDistance cutoff is %g Angstroms,", sqrt(distance_));
   if (!image_.UseImage())
     mprintf(" imaging is off.\n");
@@ -338,12 +307,11 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
 // Action_NativeContacts::Setup()
 Action::RetType Action_NativeContacts::Setup(Topology* currentParm, Topology** parmAddress) {
   // Setup potential contact lists for this topology
-  if (SetupContactLists(contactList1_, contactList2_, contactIdx1_, contactIdx2_,
-                        *currentParm, Frame()))
+  if (SetupContactLists( *currentParm, Frame()))
     return Action::ERR;
-  mprintf("\t%zu potential contact sites for '%s'\n", contactList1_.size(), Mask1_.MaskString());
+  mprintf("\t%zu potential contact sites for '%s'\n", Mask1_.Nselected(), Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
-    mprintf("\t%zu potential contact sites for '%s'\n", contactList2_.size(), Mask2_.MaskString());
+    mprintf("\t%zu potential contact sites for '%s'\n", Mask2_.Nselected(), Mask2_.MaskString());
   // Set up imaging info for this parm
   image_.SetupImaging( currentParm->BoxType() );
   if (image_.ImagingEnabled())
@@ -352,6 +320,15 @@ Action::RetType Action_NativeContacts::Setup(Topology* currentParm, Topology** p
     mprintf("\tImaging disabled.\n");
   CurrentParm_ = currentParm;
   return Action::OK;
+}
+
+/// \return true if valid contact; when by residue atoms cannot be in same residue
+bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn) const {
+  if (byResidue_) {
+    if ( abs(parmIn[a1].ResNum() - parmIn[a2].ResNum()) < resoffset_ )
+      return false;
+  }
+  return true;
 }
 
 // Action_NativeContacts::DoAction()
@@ -371,47 +348,52 @@ Action::RetType Action_NativeContacts::DoAction(int frameNum, Frame* currentFram
   double maxDist2 = 0.0;
   double minDist2 = DBL_MAX;
   if ( Mask2_.MaskStringSet() ) {
-    for (unsigned int c1 = 0; c1 < contactList1_.size(); ++c1)
-      for (unsigned int c2 = 0; c2 < contactList2_.size(); ++c2)
+    for (int c1 = 0; c1 != Mask1_.Nselected(); c1++)
+      for (int c2 = 0; c2 != Mask2_.Nselected(); c2++)
       {
-        double Dist2 = GetMinMax(contactList1_[c1], contactList2_[c2],
-                                 *currentFrame, maxDist2);
-        if (Dist2 < distance_) { // Potential contact
-          if (nativeContacts_.find( contactType(contactIdx1_[c1], contactIdx2_[c2]) ) != 
-              nativeContacts_.end())
-          {
-            ++Nnative;    // Native contact
-            if (map_ != 0) map_->Element(contactIdx1_[c1] - matrix_min_, 
-                                         contactIdx2_[c2] - matrix_min_) += 1;
-          } else {
-            ++NnonNative; // Non-native contact
-            if (map_ != 0) map_->Element(contactIdx1_[c1] - matrix_min_,
-                                         contactIdx2_[c2] - matrix_min_) -= 1;
+        if (ValidContact(Mask1_[c1], Mask2_[c2], *CurrentParm_)) {
+          double Dist2 = DIST2(currentFrame->XYZ(Mask1_[c1]), currentFrame->XYZ(Mask2_[c2]), 
+                               image_.ImageType(), currentFrame->BoxCrd(), ucell_, recip_);
+          minDist2 = std::min( Dist2, minDist2 );
+          maxDist2 = std::max( Dist2, maxDist2 );
+          if (Dist2 < distance_) { // Potential contact
+            if (nativeContacts_.find( contactType(Mask1_[c1], Mask2_[c2]) ) != 
+                nativeContacts_.end())
+            {
+              ++Nnative;    // Native contact
+              if (map_ != 0) map_->Element(contactIdx1_[c1] - matrix_min_, 
+                                           contactIdx2_[c2] - matrix_min_) += 1;
+            } else {
+              ++NnonNative; // Non-native contact
+              if (map_ != 0) map_->Element(contactIdx1_[c1] - matrix_min_,
+                                           contactIdx2_[c2] - matrix_min_) -= 1;
+            }
           }
         }
-        if (Dist2 < minDist2) minDist2 = Dist2;
       }
   } else {
-    for (unsigned int c1 = 0; c1 < contactList1_.size(); ++c1)
-      for (unsigned int c2 = c1 + 1; c2 < contactList1_.size(); ++c2)
+    for (int c1 = 0; c1 != Mask1_.Nselected(); c1++)
+      for (int c2 = c1 + 1; c2 != Mask1_.Nselected(); c2++)
       {
-        double Dist2 = GetMinMax(contactList1_[c1], contactList1_[c2],
-                                 *currentFrame, maxDist2);
-        if (Dist2 < distance_) { // Potential contact
-          if (nativeContacts_.find( contactType(contactIdx1_[c1], contactIdx1_[c2]) ) != 
-              nativeContacts_.end())
-          {
-            ++Nnative;    // Native contact
-            if (map_ != 0) map_->Element(contactIdx1_[c1] - matrix_min_,
-                                         contactIdx1_[c2] - matrix_min_) += 1;
-          } else {
-            ++NnonNative; // Non-native contact
-            if (map_ != 0) map_->Element(contactIdx1_[c1] - matrix_min_, 
-                                         contactIdx1_[c2] - matrix_min_) -= 1;
+        if (ValidContact(Mask1_[c1], Mask1_[c2], *CurrentParm_)) {
+          double Dist2 = DIST2(currentFrame->XYZ(Mask1_[c1]), currentFrame->XYZ(Mask1_[c2]),
+                               image_.ImageType(), currentFrame->BoxCrd(), ucell_, recip_);
+          minDist2 = std::min( Dist2, minDist2 );
+          maxDist2 = std::max( Dist2, maxDist2 );
+          if (Dist2 < distance_) { // Potential contact
+            if (nativeContacts_.find( contactType(Mask1_[c1], Mask1_[c2]) ) != 
+                nativeContacts_.end())
+            {
+              ++Nnative;    // Native contact
+              if (map_ != 0) map_->Element(contactIdx1_[c1] - matrix_min_,
+                                           contactIdx1_[c2] - matrix_min_) += 1;
+            } else {
+              ++NnonNative; // Non-native contact
+              if (map_ != 0) map_->Element(contactIdx1_[c1] - matrix_min_, 
+                                           contactIdx1_[c2] - matrix_min_) -= 1;
+            }
           }
         }
-        if (Dist2 < minDist2) minDist2 = Dist2;
-        //mprintf("\n");
       }
   }
   numnative_->Add(frameNum, &Nnative);
@@ -427,6 +409,7 @@ Action::RetType Action_NativeContacts::DoAction(int frameNum, Frame* currentFram
   return Action::OK;
 }
 
+// Action_NativeContacts::Print()
 void Action_NativeContacts::Print() {
   if (map_ != 0) {
     // Normalize map by number of frames.
