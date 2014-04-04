@@ -33,9 +33,9 @@ void Action_NativeContacts::Help() {
           "  Calculate number of contacts in <mask1>, or between <mask1> and <mask2>\n"
           "  if both are specified. Native contacts are determined based on the given\n"
           "  reference structure (or first frame if not specified) and the specified\n"
-          "  distance cut-off (7.0 Ang. default). If [byresidue] is specified a contact\n"
-          "  between two residues is considered formed if any selected atom pair between\n"
-          "  two residues satisfies the cut-off.\n", FrameList::RefArgs);
+          "  distance cut-off (7.0 Ang. default). If [byresidue] is specified contacts\n"
+          "  between two residues spaced <resoffset> residues apart are ignored, and\n"
+          "  the map (if specified) is written per-residue.\n", FrameList::RefArgs);
 }
 
 /** Set up atom/residue indices corresponding to atoms selected in mask.
