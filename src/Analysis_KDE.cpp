@@ -173,13 +173,22 @@ Analysis::RetType Analysis_KDE::Analyze() {
   DataSet_1D const& Pdata = static_cast<DataSet_1D const&>( *data_ );
   size_t inSize = Pdata.Size();
   // Set output set dimensions from input set if necessary.
-  if (!Xdim.MinIsSet())
-    Xdim.SetMin( Pdata.Min() );
-  if (!Xdim.MaxIsSet())
-    Xdim.SetMax( Pdata.Max() );
+  if (!Xdim.MinIsSet()) {
+    mprintf("\tNo minimum specified, determining from input data.\n");
+    if (q_data_ != 0)
+      Xdim.SetMin( std::max(((DataSet_1D*)q_data_)->Min(), Pdata.Min()) );
+    else
+      Xdim.SetMin( Pdata.Min() );
+  }
+  if (!Xdim.MaxIsSet()) {
+    mprintf("\tNo maximum specified, determining from input data.\n");
+    if (q_data_ != 0)
+      Xdim.SetMax( std::min(((DataSet_1D*)q_data_)->Max(), Pdata.Max()) );
+    else
+      Xdim.SetMax( Pdata.Max() );
+  }
   if (Xdim.CalcBinsOrStep()) return Analysis::ERR;
   Xdim.PrintDim();
-  // TODO: When calculating KL divergence check q_data_ dimension.
 
   // Allocate output set
   DataSet_double& P_hist = static_cast<DataSet_double&>( *output_ );
