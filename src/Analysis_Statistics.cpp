@@ -499,7 +499,7 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
   // Init for NOE
   bool isNOE = (ds.ScalarType() == DataSet::NOE);
   if (isNOE) {
-    outfile_.Printf("   NOE SERIES: S < 2.9, M < 3.5, w < 5.0, blank otherwise.\n    |");
+    outfile_.Printf("   NOE SERIES: S < 2.9, M < 3.5, W < 5.0, blank otherwise.\n    |");
     average = 0;
     Nb = 0;
     Nh = 0;
