@@ -185,12 +185,12 @@ bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const&
 }
 
 const char* DataSet::Smodes[] = {"distance","angle","torsion","pucker","rms",0};
-const char* DataSet::Stypes[] = {"alpha","beta","gamma","delta","epsilon",
-  "zeta","pucker","chi","h1p","c2p","phi","psi","pchi","omega",
-  "hbond","noe",0};
+const char* DataSet::Stypes[] = {"alpha","beta","gamma",
+  "delta","epsilon","zeta","pucker","chi","h1p","c2p",
+  "phi","psi","pchi","omega","noe",0};
 const DataSet::scalarMode DataSet::TypeModes[] = {M_TORSION,M_TORSION,M_TORSION,
   M_TORSION,M_TORSION,M_TORSION,M_PUCKER,M_TORSION,M_TORSION,M_TORSION,
-  M_TORSION,M_TORSION,M_TORSION,M_TORSION,M_DISTANCE,M_DISTANCE,UNKNOWN_MODE}; 
+  M_TORSION,M_TORSION,M_TORSION,M_TORSION,M_DISTANCE,UNKNOWN_MODE}; 
 
 // DataSet::ScalarDescription()
 void DataSet::ScalarDescription() const {

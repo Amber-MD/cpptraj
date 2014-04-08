@@ -10,12 +10,39 @@ Action_Distance::Action_Distance() :
   useMass_(true)
 { } 
 
+const char* Action_Distance::NOE_Help = 
+  "[bound <lower>] [bound <upper>] [rexp <expected>] [noe_strong] [noe_medium] [noe_weak]\n";
+
 void Action_Distance::Help() {
   mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]\n"
-          "\t[type {noe | hbond}]\n"
-          "\tOptions for 'type noe': [bound <lower>] [bound <upper>] [rexp <expected>]\n"
-          "\t                        [noe_strong] [noe_medium] [noe_weak]\n"
-          "  Calculate distance between atoms in <mask1> and <mask2>\n");
+          "\t[type noe]\n"
+          "\tOptions for 'type noe':\n"
+          "\t  %s\n"
+          "  Calculate distance between atoms in <mask1> and <mask2>\n", NOE_Help);
+}
+
+int Action_Distance::NOE_Args(ArgList& argIn, double& noe_lbound, 
+                              double& noe_ubound, double& noe_rexp)
+{
+  noe_lbound = argIn.getKeyDouble("bound", 0.0);
+  noe_ubound = argIn.getKeyDouble("bound", 0.0);
+  noe_rexp = argIn.getKeyDouble("rexp", -1.0);
+  if (argIn.hasKey("noe_weak")) {
+    noe_lbound = 3.5;
+    noe_ubound = 5.0;
+  } else if (argIn.hasKey("noe_medium")) {
+    noe_lbound = 2.9;
+    noe_ubound = 3.5;
+  } else if (argIn.hasKey("noe_strong")) {
+    noe_lbound = 1.8;
+    noe_ubound = 2.9;
+  }
+  if (noe_ubound <= noe_lbound) {
+    mprinterr("Error: noe lower bound (%g) must be less than upper bound (%g).\n",
+              noe_lbound, noe_ubound);
+    return 1; 
+  }
+  return 0;
 }
 
 // Action_Distance::Init()
@@ -29,29 +56,9 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
-  //if      ( stypename == "hbond" )
-  //  stype = DataSet::HBOND;
-  //else
   if ( stypename == "noe" ) {
     stype = DataSet::NOE;
-    noe_bound = actionArgs.getKeyDouble("bound", 0.0);
-    noe_boundh = actionArgs.getKeyDouble("bound", 0.0);
-    noe_rexp = actionArgs.getKeyDouble("rexp", -1.0);
-    if (actionArgs.hasKey("noe_weak")) {
-      noe_bound = 3.5;
-      noe_boundh = 5.0;
-    } else if (actionArgs.hasKey("noe_medium")) {
-      noe_bound = 2.9;
-      noe_boundh = 3.5;
-    } else if (actionArgs.hasKey("noe_strong")) {
-      noe_bound = 1.8;
-      noe_boundh = 2.9;
-    }
-    if (noe_boundh <= noe_bound) {
-      mprinterr("Error: noe lower bound (%g) must be less than upper bound (%g).\n",
-                noe_bound, noe_boundh);
-      return Action::ERR;
-    } 
+    if (NOE_Args(actionArgs, noe_bound, noe_boundh, noe_rexp)) return Action::ERR;
   }
   // Get Masks
   std::string mask1 = actionArgs.GetMaskNext();

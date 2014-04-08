@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // GenerateAmberRst
 #include "DataSet_Coords_TRJ.h" // LoadTraj
+#include "DataSet_double.h" // DataSetCmd
 #include "ParmFile.h" // ReadOptions, WriteOptions
 #include "Timer.h"
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
@@ -379,8 +380,10 @@ static void Help_DataFile() {
 static void Help_DataSetCmd() {
   mprintf("\t{ legend <legend> <set> | \n"
           "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
+          "\tOptions for 'type noe':\n"
+          "\t  %s\n"
           "  Either set the legend for a single data set, or change the mode/type for\n"
-          "  one or more data sets.\n");
+          "  one or more data sets.\n", Action_Distance::NOE_Help);
 }
 
 static void Help_ReadData() {
@@ -1026,6 +1029,12 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
       return Command::C_ERR;
     }
   }
+  // Additional options for type 'noe'
+  double noe_lbound=0.0, noe_ubound=0.0, noe_rexp = -1.0;
+  if (dtype == DataSet::NOE) {
+    if (Action_Distance::NOE_Args(argIn, noe_lbound, noe_ubound, noe_rexp))
+      return Command::C_ERR;
+  }
   if (dmode != DataSet::UNKNOWN_MODE)
     mprintf("\tDataSet mode = %s\n", DataSet::Smodes[dmode]);
   if (dtype != DataSet::UNDEFINED)
@@ -1040,6 +1049,13 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
         mprintf("Warning:\t\t'%s': Can only set mode/type for 1D data sets.\n",
                 (*ds)->Legend().c_str());
       else {
+        if ( dtype == DataSet::NOE ) {
+          if ( (*ds)->Type() != DataSet::DOUBLE )
+            mprintf("Warning:\t\t'%s': Can only set NOE parameters for 'double' data sets.\n",
+                (*ds)->Legend().c_str());
+          else
+            ((DataSet_double*)(*ds))->SetNOE(noe_lbound, noe_ubound, noe_rexp);
+        }
         mprintf("\t\t'%s'\n", (*ds)->Legend().c_str());
         (*ds)->SetScalar( dmode, dtype );
       }

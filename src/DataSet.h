@@ -29,7 +29,7 @@ class DataSet {
     /// Type of DataSet, used by Analysis_Statistics
     enum scalarType {
       ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,  PUCKER, CHI, H1P,
-      C2P,     PHI,  PSI,   PCHI,  OMEGA,   HBOND, NOE,    UNDEFINED
+      C2P,     PHI,  PSI,   PCHI,  OMEGA,   NOE,   UNDEFINED
     };
 
     DataSet();
