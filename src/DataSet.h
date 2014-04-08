@@ -113,6 +113,7 @@ class DataSet {
     static scalarMode ModeFromKeyword(std::string const&);
     /// \return scalarType that matches keyword; check that mode is valid if specified.
     static scalarType TypeFromKeyword(std::string const&, scalarMode&);
+    static scalarType TypeFromKeyword(std::string const&, scalarMode const&);
   protected:
     /// Width of numbers in output elements.
     int Width()                 const { return width_;             }

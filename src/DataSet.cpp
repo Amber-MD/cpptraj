@@ -208,6 +208,12 @@ DataSet::scalarMode DataSet::ModeFromKeyword(std::string const& key) {
   return UNKNOWN_MODE;
 }
 
+DataSet::scalarType DataSet::TypeFromKeyword(std::string const& key, scalarMode const& mIn)
+{
+  scalarMode dm = mIn;
+  return TypeFromKeyword(key, dm);
+}
+
 // DataSet::TypeFromKeyword()
 DataSet::scalarType DataSet::TypeFromKeyword(std::string const& key, scalarMode& modeIn) {
   for (int i = 0; i != (int)UNDEFINED; i++)
