@@ -16,7 +16,7 @@ Analysis_Statistics::Analysis_Statistics() :
 
 void Analysis_Statistics::Help() {
   mprintf("\t{<name> | all} [shift <value>] [out <filename>] [noeout <filename>]\n"
-          "\t [reportnv]\n"
+          "\t [ignorenv]\n"
           "  Calculate various statistical quantities for data in specified data set(s)\n"
           "  based on the data set type (e.g. distance noe, dihedral alpha, etc)\n");
 }
@@ -29,7 +29,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   // Get keywords.
   shift_ = analyzeArgs.getKeyDouble("shift", 0);
   filename_ = analyzeArgs.GetStringKey("out");
-  ignore_negative_violations_ = !analyzeArgs.hasKey("reportnv");
+  ignore_negative_violations_ = analyzeArgs.hasKey("ignorenv");
   DataFile* NOE_out = DFLin->AddDataFile(analyzeArgs.GetStringKey("noeout"), analyzeArgs);
   // Get dataset or all datasets
   bool useAllSets = false;
@@ -88,8 +88,8 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tShift (about %.2f) is begin applied.\n", shift_);
   if (!filename_.empty())
     mprintf("\tOutput to file %s\n", filename_.c_str());
-  if (!ignore_negative_violations_)
-    mprintf("\tReporting negative NOE violations.\n");
+  if (ignore_negative_violations_)
+    mprintf("\tIgnoring negative NOE violations.\n");
   mprintf("# SNB = Values from: Schneider, Neidle, and Berman, \"Conformations of the\n"
           "#       Sugar-Phosphate Backbone in Helical DNA Crystal Structures.\",\n"
           "#       Biopolymers (1997), V.42 (1), pp.113-124.\n");

@@ -29,9 +29,10 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
-  if      ( stypename == "hbond" )
-    stype = DataSet::HBOND;
-  else if ( stypename == "noe" ) {
+  //if      ( stypename == "hbond" )
+  //  stype = DataSet::HBOND;
+  //else
+  if ( stypename == "noe" ) {
     stype = DataSet::NOE;
     noe_bound = actionArgs.getKeyDouble("bound", 0.0);
     noe_boundh = actionArgs.getKeyDouble("bound", 0.0);
@@ -41,10 +42,15 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Fr
       noe_boundh = 5.0;
     } else if (actionArgs.hasKey("noe_medium")) {
       noe_bound = 2.9;
-      noe_boundh = 5.0;
+      noe_boundh = 3.5;
     } else if (actionArgs.hasKey("noe_strong")) {
       noe_bound = 1.8;
       noe_boundh = 2.9;
+    }
+    if (noe_boundh <= noe_bound) {
+      mprinterr("Error: noe lower bound (%g) must be less than upper bound (%g).\n",
+                noe_bound, noe_boundh);
+      return Action::ERR;
     } 
   }
   // Get Masks
