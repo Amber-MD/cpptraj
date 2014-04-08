@@ -68,6 +68,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
       mprinterr("Error: Could not set up NOE data sets.\n");
       return Analysis::ERR;
     }
+    NOE_r6_->Dim(0).SetLabel("#NOE");
     if (NOE_out != 0) {
       NOE_out->AddSet( NOE_r6_ );
       NOE_out->AddSet( NOE_violations_ );
