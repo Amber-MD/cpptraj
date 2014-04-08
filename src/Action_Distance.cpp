@@ -11,11 +11,10 @@ Action_Distance::Action_Distance() :
 { } 
 
 const char* Action_Distance::NOE_Help = 
-  "[bound <lower>] [bound <upper>] [rexp <expected>] [noe_strong] [noe_medium] [noe_weak]\n";
+  "[bound <lower> bound <upper>] [rexp <expected>] [noe_strong] [noe_medium] [noe_weak]\n";
 
 void Action_Distance::Help() {
-  mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]\n"
-          "\t[type noe]\n"
+  mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage] [type noe]\n"
           "\tOptions for 'type noe':\n"
           "\t  %s\n"
           "  Calculate distance between atoms in <mask1> and <mask2>\n", NOE_Help);
