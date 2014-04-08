@@ -24,14 +24,12 @@ class DataSet {
     };
     /// Source of data stored in DataSet, used by Analysis_Statistics
     enum scalarMode {
-      UNKNOWN_MODE=0, M_DISTANCE, M_ANGLE, M_TORSION, M_PUCKER, M_RMS
+      M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, UNKNOWN_MODE 
     };
     /// Type of DataSet, used by Analysis_Statistics
-    // 0           DIH    DIH   DIH    DIH    DIH      DIH   PUCK    DIH
-    // DIH         DIH    DIH   DIH    DIH    DIST     DIST
     enum scalarType {
-      UNDEFINED=0, ALPHA, BETA, GAMMA, DELTA, EPSILON, ZETA, PUCKER, CHI, 
-      H1P,         C2P,   PHI,  PSI,   PCHI,  OMEGA, HBOND,   NOE
+      ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,  PUCKER, CHI, H1P,
+      C2P,     PHI,  PSI,   PCHI,  OMEGA,   HBOND, NOE,    UNDEFINED
     };
 
     DataSet();
@@ -69,7 +67,7 @@ class DataSet {
     /// Used to set the data and header format strings 
     int SetDataSetFormat(bool);
     /// Check if name and/or index and aspect match this DataSet.
-    bool Matches(std::string const&, int, std::string const&);
+    bool Matches(std::string const&, int, std::string const&) const;
     /// Write scalar mode/type description
     void ScalarDescription() const;
     // -----------------------------------------------------
@@ -108,6 +106,13 @@ class DataSet {
       }
     };
     const char* DataFormat()    const { return data_format_;       }
+    static const char* Smodes[];
+    static const char* Stypes[];
+    static const scalarMode TypeModes[];
+    /// \return scalarMode that matches input keyword.
+    static scalarMode ModeFromKeyword(std::string const&);
+    /// \return scalarType that matches keyword; check that mode is valid if specified.
+    static scalarType TypeFromKeyword(std::string const&, scalarMode&);
   protected:
     /// Width of numbers in output elements.
     int Width()                 const { return width_;             }

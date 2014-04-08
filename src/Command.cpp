@@ -377,8 +377,10 @@ static void Help_DataFile() {
 }
 
 static void Help_DataSetCmd() {
-  mprintf("\t{ legend <legend> <set> | torsion <set arg1> [<set arg 2> ...] }\n"
-          "  Perform specified operation on given data set(s).\n");
+  mprintf("\t{ legend <legend> <set> | \n"
+          "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
+          "  Either set the legend for a single data set, or change the mode/type for\n"
+          "  one or more data sets.\n");
 }
 
 static void Help_ReadData() {
@@ -991,38 +993,55 @@ Command::RetType DataFileCmd(CpptrajState& State, ArgList& argIn, Command::Alloc
 /// Process DataSet-specific command
 Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  enum DS_MODE_TYPE { TORSION = 0, LEGEND, NONE };
-  DS_MODE_TYPE ds_mode = NONE;
-  if (argIn.hasKey("torsion")) { // Set all data sets to Torsion
-    mprintf("\tChanging the following data sets to type 'torsion':\n");
-    ds_mode = TORSION;
-  } else if (argIn.Contains("legend")) { // Set legend for one data set
+  if (argIn.Contains("legend")) { // Set legend for one data set
     std::string legend = argIn.GetStringKey("legend");
-    ds_mode = LEGEND;
     DataSet* ds = State.DSL()->GetDataSet( argIn.GetStringNext() );
     if (ds == 0) return Command::C_ERR;
     mprintf("\tChanging legend '%s' to '%s'\n", ds->Legend().c_str(), legend.c_str());
     ds->SetLegend( legend );
     return Command::C_OK;
   }
-  if (ds_mode == NONE) {
+  // Change mode/type for one or more sets.
+  std::string modeKey = argIn.GetStringKey("mode");
+  std::string typeKey = argIn.GetStringKey("type");
+  if (modeKey.empty() && typeKey.empty()) {
     mprinterr("Error: No valid keywords specified.\n");
     return Command::C_ERR;
   }
-  // Loop for commands that affect multiple sets 
+  // First determine mode if specified.
+  DataSet::scalarMode dmode = DataSet::UNKNOWN_MODE;
+  if (!modeKey.empty()) {
+    dmode = DataSet::ModeFromKeyword( modeKey );
+    if (dmode == DataSet::UNKNOWN_MODE) {
+      mprinterr("Error: Invalid mode keyword '%s'\n", modeKey.c_str());
+      return Command::C_ERR;
+    }
+  }
+  // Next determine type if specified.
+  DataSet::scalarType dtype = DataSet::UNDEFINED;
+  if (!typeKey.empty()) {
+    dtype = DataSet::TypeFromKeyword( typeKey, dmode );
+    if (dtype == DataSet::UNDEFINED) {
+      mprinterr("Error: Invalid type keyword '%s'\n", typeKey.c_str());
+      return Command::C_ERR;
+    }
+  }
+  if (dmode != DataSet::UNKNOWN_MODE)
+    mprintf("\tDataSet mode = %s\n", DataSet::Smodes[dmode]);
+  if (dtype != DataSet::UNDEFINED)
+    mprintf("\tDataSet type = %s\n", DataSet::Stypes[dtype]);
+  // Loop over all DataSet arguments 
   std::string ds_arg = argIn.GetStringNext();
   while (!ds_arg.empty()) {
     DataSetList dsl = State.DSL()->GetMultipleSets( ds_arg );
     for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
     {
-      if (ds_mode == TORSION) {
-        if ( (*ds)->Ndim() != 1 )
-          mprintf("Warning:\t\t'%s': Only 1D data sets can be made 'torsion'.\n",
-                  (*ds)->Legend().c_str());
-        else {
-          mprintf("\t\t'%s': Type set to 'torsion'\n", (*ds)->Legend().c_str());
-          (*ds)->SetScalar( DataSet::M_TORSION );
-        }
+      if ( (*ds)->Ndim() != 1 )
+        mprintf("Warning:\t\t'%s': Can only set mode/type for 1D data sets.\n",
+                (*ds)->Legend().c_str());
+      else {
+        mprintf("\t\t'%s'\n", (*ds)->Legend().c_str());
+        (*ds)->SetScalar( dmode, dtype );
       }
     }
     ds_arg = argIn.GetStringNext();
