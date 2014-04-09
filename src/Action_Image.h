@@ -16,6 +16,8 @@ class Action_Image: public Action {
     AtomMask Mask1_;
     /// If defined, image w.r.t. the center of atoms in ComMask.
     AtomMask *ComMask_;
+    /// Offsets
+    Vec3 offset_;
     /// If true image w.r.t. coordinate origin, otherwise box center
     bool origin_;
     /// If true molecules will be imaged w.r.t. their center, otherwise first atom will be used

@@ -19,7 +19,7 @@ static inline void CheckRange(Image::PairType& atomPairs, AtomMask const& MaskIn
   }
 }
 
-// CreatePairList()
+// Image::CreatePairList() 
 /** Create an atom pair list by molecule, residue, or atom.
   * NOTE: The mask is passed in by VALUE, not REFERENCE so that it can
   *       be set up and used here.
@@ -64,7 +64,8 @@ Image::PairType Image::CreatePairList(Topology const& Parm, Mode modeIn, AtomMas
   return atomPairs;
 }
 
-// SetupImageTruncoct()
+// -----------------------------------------------------------------------------
+// Image::SetupTruncoct()
 /** Set up centering if putting nonortho cell into familiar trunc. oct. shape.
   * \param frameIn Frame to set up for.
   * \param ComMask If not null center is calcd w.r.t. center of atoms in mask.
@@ -88,7 +89,7 @@ Vec3 Image::SetupTruncoct( Frame const& frameIn, AtomMask* ComMask, bool useMass
   return Vec3(0.0, 0.0, 0.0); // Default is origin {0,0,0}
 }
 
-// ImageNonortho()
+// Image::Nonortho()
 /** \param frameIn Frame to image.
   * \param origin If true image w.r.t. coordinate origin.
   * \param fcom If truncoct is true, calc distance w.r.t. this coordinate.
@@ -139,7 +140,7 @@ void Image::Nonortho(Frame& frameIn, bool origin, Vec3 const& fcom,
   } // END loop over atom pairs
 }
 
-// ImageNonortho()
+// Image::Nonortho()
 /** \param Coord Coordinate to image.
   * \param truncoct If true, image in truncated octahedral shape.
   * \param origin If true, image w.r.t. coordinate origin.
@@ -183,7 +184,8 @@ Vec3 Image::Nonortho(Vec3 const& Coord, bool truncoct,
   return boxTransOut;
 }
 
-// SetupImageOrtho()
+// -----------------------------------------------------------------------------
+// Image::SetupOrtho()
 /** \param boxIn Box coordinates of Frame to image.
   * \param bp Output: Box + boundary.
   * \param bm Output: Box - boundary.
@@ -203,18 +205,20 @@ int Image::SetupOrtho(Box const& boxIn, Vec3& bp, Vec3& bm, bool origin) {
   return 0;
 }
 
-// ImageOrtho()
+// Image::Ortho()
 /** \param frameIn Frame to image.
   * \param bp Box + boundary.
   * \param bm Box - boundary.
   * \param center If true image w.r.t. center of atoms, otherwise first atom.
   * \param useMass If true calc center of mass, otherwise geometric center.
   */
-void Image::Ortho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, bool useMass,
-                  PairType const& AtomPairs)
+void Image::Ortho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, Vec3 const& offIn,
+                  bool center, bool useMass, PairType const& AtomPairs)
 {
   Vec3 Coord;
-
+  Vec3 offset(offIn[0] * frameIn.BoxCrd()[0],
+              offIn[1] * frameIn.BoxCrd()[1],
+              offIn[2] * frameIn.BoxCrd()[2]);
   // Loop over atom pairs
   for (PairType::const_iterator atom = AtomPairs.begin();
                                 atom != AtomPairs.end(); atom++)
@@ -235,14 +239,14 @@ void Image::Ortho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, bool center, b
       Coord = frameIn.XYZ( firstAtom );
 
     // boxTrans will hold calculated translation needed to move atoms back into box
-    Vec3 boxTrans = Ortho(Coord, bp, bm, frameIn.BoxCrd());
+    Vec3 boxTrans = Ortho(Coord, bp, bm, frameIn.BoxCrd()) + offset;
 
     // Translate atoms according to Coord
     frameIn.Translate(boxTrans, firstAtom, lastAtom);
   } // END loop over atom pairs
 }
 
-// ImageOrtho()
+// Image::Ortho()
 /** \param Coord Coordinate to image
   * \param bp Box + boundary
   * \param bm Box - boundary
@@ -268,7 +272,8 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
   return trans;
 }
 
-// UnwrapNonortho()
+// -----------------------------------------------------------------------------
+// Image::UnwrapNonortho()
 void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, PairType const& AtomPairs,
                             Matrix_3x3 const& ucell, Matrix_3x3 const& recip, 
                             bool center, bool useMass ) 
@@ -334,7 +339,7 @@ void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, PairType const& AtomPair
   } // END loop over atom pairs 
 }
 
-// UnwrapOrtho()
+// Image::UnwrapOrtho()
 void Image::UnwrapOrtho( Frame& tgtIn, Frame& refIn, PairType const& AtomPairs,
                          bool center, bool useMass )
 {

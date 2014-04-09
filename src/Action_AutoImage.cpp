@@ -209,7 +209,7 @@ Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAd
 Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   Matrix_3x3 ucell, recip;
   Vec3 fcom;
-  Vec3 bp, bm;
+  Vec3 bp, bm, offset(0.0);
   Vec3 Trans, framecenter, imagedcenter, anchorcenter;
 
   // Center w.r.t. anchor
@@ -228,7 +228,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
       return Action::OK;
     }
-    Image::Ortho(*currentFrame, bp, bm, usecom_, useMass_, mobileList_);
+    Image::Ortho(*currentFrame, bp, bm, offset, usecom_, useMass_, mobileList_);
   } else {
     currentFrame->BoxCrd().ToRecip(ucell, recip);
     if (truncoct_)

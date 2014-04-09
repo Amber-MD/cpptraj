@@ -7,6 +7,7 @@
 Action_Image::Action_Image() :
   imageMode_(Image::BYMOL),
   ComMask_(0),
+  offset_(0.0),
   origin_(false),
   center_(false),
   ortho_(false),
@@ -18,7 +19,7 @@ Action_Image::Action_Image() :
 
 void Action_Image::Help() {
   mprintf("\t[origin] [center] [triclinic | familiar [com <commask>]] <mask>\n" 
-          "\t[ bymol | byres | byatom ]\n"
+          "\t[ bymol | byres | byatom ] [xoffset <x>] [yoffset <y>] [zoffset <z>]\n"
           "  Image atoms in <mask> into the primary unit cell.\n"
           "    origin: center at 0.0, 0.0, 0.0, otherwise center at box center.\n"
           "    center: Use center of mass for imaging, otherwise use first atom.\n"
@@ -54,6 +55,9 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, TopologyList* PFL, Frame
     if (center_) center_ = false;
   } else
     imageMode_ = Image::BYMOL;
+  offset_[0] = actionArgs.getKeyDouble("xoffset", 0.0);
+  offset_[1] = actionArgs.getKeyDouble("yoffset", 0.0);
+  offset_[2] = actionArgs.getKeyDouble("zoffset", 0.0);
   // Get Masks
   if (triclinic_ == FAMILIAR) {
     std::string maskexpr = actionArgs.GetStringKey("com");
@@ -84,6 +88,9 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, TopologyList* PFL, Frame
       mprintf( " centering on atoms in mask %s", ComMask_->MaskString());
     mprintf(".\n");
   }
+  if (!offset_.IsZero())
+    mprintf("\tOffsetting unit cells by factors X=%g, Y=%g, Z=%g\n",
+            offset_[0], offset_[1], offset_[2]);
 
   return Action::OK;
 }
@@ -155,7 +162,7 @@ Action::RetType Action_Image::DoAction(int frameNum, Frame* currentFrame, Frame*
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
       return Action::OK;
     }
-    Image::Ortho(*currentFrame, bp, bm, center_, useMass_, imageList_);
+    Image::Ortho(*currentFrame, bp, bm, offset_, center_, useMass_, imageList_);
   } else {
     currentFrame->BoxCrd().ToRecip( ucell, recip );
     if (truncoct_)
