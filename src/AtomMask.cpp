@@ -247,7 +247,7 @@ int AtomMask::Tokenize() {
   // 1 when start with "[", 0 when finished.
   flag = 0;
   char pp = ' ';
-  for (std::string::iterator p = infix.begin(); p != infix.end(); p++) {
+  for (std::string::const_iterator p = infix.begin(); p != infix.end(); p++) {
     if (*p == '[') {
       postfix += *p;
       flag = 1;
@@ -315,7 +315,7 @@ int AtomMask::Tokenize() {
   std::string tokenString;
   MaskToken token;
   maskTokens_.clear();
-  for (std::string::iterator p = postfix.begin(); p != postfix.end(); p++) 
+  for (std::string::const_iterator p = postfix.begin(); p != postfix.end(); p++) 
   {  // Operand begins here
     if (*p == '[')
       buffer.clear();
@@ -398,7 +398,8 @@ int AtomMask::Tokenize() {
   } // END loop over postfix    
 
   if (debug_ > 0)
-    for (std::vector<MaskToken>::iterator T = maskTokens_.begin(); T != maskTokens_.end(); T++)
+    for (std::vector<MaskToken>::const_iterator T = maskTokens_.begin(); 
+                                                T != maskTokens_.end(); T++)
       (*T).Print();
 
   return 0;
@@ -502,7 +503,7 @@ int AtomMask::NumAtomsInCommon(AtomMask const& maskIn) {
 // 32 33 34 48 49 50
 void AtomMask::AddAtom(int atomIn) {
   // Ensure atom is not already in mask
-  for (std::vector<int>::iterator atom = Selected_.begin();  atom != Selected_.end(); atom++) {
+  for (std::vector<int>::iterator atom = Selected_.begin(); atom != Selected_.end(); atom++) {
     if ( *atom == atomIn) return;
     if ( *atom > atomIn) {
       // Insert at the current position, which is the first atom # > atomIn
