@@ -441,6 +441,7 @@ static void Help_Ensemble() {
   mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n"
           "\t        %s\n", TopologyList::ParmArgs);
   mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>\n"
+          "\t        [remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]]\n"
           "  Load an ensemble of trajectories starting with <file0> that will be\n"
           "  processed together as an ensemble.\n");
 }
