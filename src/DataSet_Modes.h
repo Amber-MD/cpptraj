@@ -18,17 +18,16 @@ class DataSet_Modes : public DataSet {
     // -------------------------------------------
     typedef std::vector<double> Darray;
     typedef Darray::const_iterator AvgIt;
-    AvgIt AvgBegin() const { return avgcrd_.begin(); } // TODO : Get rid of?
-    Darray const& AvgCrd() const { return avgcrd_; }
-    Darray const& Mass()   const { return mass_;   }
-    void SetAvgCoords(DataSet_2D const&);
-//    const Frame& AvgFrame()          const { return avgcrd_;              } // Project, Modes
+    AvgIt AvgBegin()                 const { return avgcrd_.begin(); } // TODO : Get rid of?
+    Darray const& AvgCrd()           const { return avgcrd_; }
+    Darray const& Mass()             const { return mass_;   }
     int NavgCrd()                    const { return (int)avgcrd_.size();  } // Project
     /// For reading directly into avgcrd buffer
     double* AvgFramePtr()                  { return &avgcrd_[0];          }
-    const double* AvgFramePtr()   const               { return &avgcrd_[0];          }
+    const double* AvgFramePtr()      const { return &avgcrd_[0];          }
     void AllocateAvgCoords(int n)          { avgcrd_.resize(n, 0.0);      }
 
+    void SetAvgCoords(DataSet_2D const&);
     int SetModes(bool, int, int, const double*, const double*);
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
