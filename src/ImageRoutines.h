@@ -5,7 +5,7 @@
 namespace Image {
   PairType CreatePairList(Topology const&, Mode, AtomMask);
   Vec3 SetupTruncoct( Frame const&, AtomMask*, bool, bool);
-  void Nonortho(Frame&, bool, Vec3 const&, Matrix_3x3 const&, Matrix_3x3 const&,
+  void Nonortho(Frame&, bool, Vec3 const&, Vec3 const&, Matrix_3x3 const&, Matrix_3x3 const&,
                 bool, bool, bool, PairType const&);
   Vec3 Nonortho(Vec3 const&, bool, bool,
                 Matrix_3x3 const&, Matrix_3x3 const&, Vec3 const&, double);

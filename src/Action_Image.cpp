@@ -167,7 +167,7 @@ Action::RetType Action_Image::DoAction(int frameNum, Frame* currentFrame, Frame*
     currentFrame->BoxCrd().ToRecip( ucell, recip );
     if (truncoct_)
       fcom = Image::SetupTruncoct( *currentFrame, ComMask_, useMass_, origin_ );
-    Image::Nonortho( *currentFrame, origin_, fcom, ucell, recip, truncoct_,
+    Image::Nonortho( *currentFrame, origin_, fcom, offset_, ucell, recip, truncoct_,
                      center_, useMass_, imageList_);
   }
   return Action::OK;

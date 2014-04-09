@@ -100,12 +100,13 @@ Vec3 Image::SetupTruncoct( Frame const& frameIn, AtomMask* ComMask, bool useMass
   * \param useMass If true use COM, otherwise geometric center.
   * \param AtomPairs Atom pairs to image.
   */
-void Image::Nonortho(Frame& frameIn, bool origin, Vec3 const& fcom, 
+void Image::Nonortho(Frame& frameIn, bool origin, Vec3 const& fcom, Vec3 const& offIn, 
                      Matrix_3x3 const& ucell, Matrix_3x3 const& recip,
                      bool truncoct, bool center,
                      bool useMass, PairType const& AtomPairs)
 {
   Vec3 Coord;
+  Vec3 offset = ucell.TransposeMult( offIn );
   double min = -1.0;
 
   if (truncoct)
@@ -133,7 +134,7 @@ void Image::Nonortho(Frame& frameIn, bool origin, Vec3 const& fcom,
       Coord = frameIn.XYZ( firstAtom );
 
     // boxTrans will hold calculated translation needed to move atoms back into box
-    Vec3 boxTrans = Nonortho(Coord, truncoct, origin, ucell, recip, fcom, min);
+    Vec3 boxTrans = Nonortho(Coord, truncoct, origin, ucell, recip, fcom, min) + offset;
 
     frameIn.Translate(boxTrans, firstAtom, lastAtom);
 
