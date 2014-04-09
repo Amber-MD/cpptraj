@@ -16,7 +16,7 @@ Analysis_Statistics::Analysis_Statistics() :
 
 void Analysis_Statistics::Help() {
   mprintf("\t{<name> | all} [shift <value>] [out <filename>] [noeout <filename>]\n"
-          "\t [reportnv]\n"
+          "\t [ignorenv]\n"
           "  Calculate various statistical quantities for data in specified data set(s)\n"
           "  based on the data set type (e.g. distance noe, dihedral alpha, etc)\n");
 }
@@ -29,7 +29,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   // Get keywords.
   shift_ = analyzeArgs.getKeyDouble("shift", 0);
   filename_ = analyzeArgs.GetStringKey("out");
-  ignore_negative_violations_ = !analyzeArgs.hasKey("reportnv");
+  ignore_negative_violations_ = analyzeArgs.hasKey("ignorenv");
   DataFile* NOE_out = DFLin->AddDataFile(analyzeArgs.GetStringKey("noeout"), analyzeArgs);
   // Get dataset or all datasets
   bool useAllSets = false;
@@ -68,6 +68,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
       mprinterr("Error: Could not set up NOE data sets.\n");
       return Analysis::ERR;
     }
+    NOE_r6_->Dim(0).SetLabel("#NOE");
     if (NOE_out != 0) {
       NOE_out->AddSet( NOE_r6_ );
       NOE_out->AddSet( NOE_violations_ );
@@ -88,8 +89,8 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tShift (about %.2f) is begin applied.\n", shift_);
   if (!filename_.empty())
     mprintf("\tOutput to file %s\n", filename_.c_str());
-  if (!ignore_negative_violations_)
-    mprintf("\tReporting negative NOE violations.\n");
+  if (ignore_negative_violations_)
+    mprintf("\tIgnoring negative NOE violations.\n");
   mprintf("# SNB = Values from: Schneider, Neidle, and Berman, \"Conformations of the\n"
           "#       Sugar-Phosphate Backbone in Helical DNA Crystal Structures.\",\n"
           "#       Biopolymers (1997), V.42 (1), pp.113-124.\n");
@@ -499,7 +500,7 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
   // Init for NOE
   bool isNOE = (ds.ScalarType() == DataSet::NOE);
   if (isNOE) {
-    outfile_.Printf("   NOE SERIES: S < 2.9, M < 3.5, w < 5.0, blank otherwise.\n    |");
+    outfile_.Printf("   NOE SERIES: S < 2.9, M < 3.5, W < 5.0, blank otherwise.\n    |");
     average = 0;
     Nb = 0;
     Nh = 0;

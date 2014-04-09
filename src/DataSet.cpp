@@ -168,7 +168,7 @@ int DataSet::SetDataSetFormat(bool leftAlignIn) {
 }
 
 // DataSet::Matches()
-bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const& aspect )
+bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const& aspect ) const
 {
   /*mprintf("DEBUG: Input: %s[%s]:%i  This Set: %s[%s]:%i\n",
           dsname.c_str(), aspect.c_str(), idxnum, 
@@ -184,15 +184,50 @@ bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const&
   return true;
 }
 
-static const char* Smodes[] = {"","distance","angle","torsion","pucker","rms"};
-static const char* Stypes[] = {"","alpha","beta","gamma","delta","epsilon",
-  "zeta","pucker","nucelic chi","h1p","c2p","phi","psi","protein chi","omega",
-  "hbond","noe"};
+const char* DataSet::Smodes[] = {"distance","angle","torsion","pucker","rms",0};
+const char* DataSet::Stypes[] = {"alpha","beta","gamma",
+  "delta","epsilon","zeta","pucker","chi","h1p","c2p",
+  "phi","psi","pchi","omega","noe",0};
+const DataSet::scalarMode DataSet::TypeModes[] = {M_TORSION,M_TORSION,M_TORSION,
+  M_TORSION,M_TORSION,M_TORSION,M_PUCKER,M_TORSION,M_TORSION,M_TORSION,
+  M_TORSION,M_TORSION,M_TORSION,M_TORSION,M_DISTANCE,UNKNOWN_MODE}; 
 
+// DataSet::ScalarDescription()
 void DataSet::ScalarDescription() const {
   if (scalarmode_ != UNKNOWN_MODE) {
     mprintf(", %s", Smodes[scalarmode_]);
     if (scalartype_ != UNDEFINED)
       mprintf("(%s)", Stypes[scalartype_]);
   }
-} 
+}
+
+// DataSet::ModeFromKeyword()
+DataSet::scalarMode DataSet::ModeFromKeyword(std::string const& key) {
+  for (int i = 0; i != (int)UNKNOWN_MODE; i++)
+    if (key.compare( Smodes[i] ) == 0) return (scalarMode)i;
+  return UNKNOWN_MODE;
+}
+
+DataSet::scalarType DataSet::TypeFromKeyword(std::string const& key, scalarMode const& mIn)
+{
+  scalarMode dm = mIn;
+  return TypeFromKeyword(key, dm);
+}
+
+// DataSet::TypeFromKeyword()
+DataSet::scalarType DataSet::TypeFromKeyword(std::string const& key, scalarMode& modeIn) {
+  for (int i = 0; i != (int)UNDEFINED; i++)
+    if (key.compare( Stypes[i] ) == 0) {
+      if (modeIn != UNKNOWN_MODE) {
+        // Is type valid for given mode?
+        if (modeIn != TypeModes[i]) {
+          mprinterr("Error: Type '%s' not valid for mode '%s'\n",
+                    Stypes[i], Smodes[TypeModes[i]]);
+          return UNDEFINED;
+        }
+      } else
+        modeIn = TypeModes[i];
+      return (scalarType)i;
+    }
+  return UNDEFINED;
+}

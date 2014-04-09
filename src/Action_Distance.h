@@ -8,7 +8,9 @@ class Action_Distance: public Action, ImagedAction {
   public:
     Action_Distance();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Distance(); }
+    static const char* NOE_Help;
     static void Help();
+    static int NOE_Args(ArgList& argIn, double&, double&, double&);
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);

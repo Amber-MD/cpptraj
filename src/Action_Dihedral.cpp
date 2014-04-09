@@ -26,22 +26,16 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   // Get keywords
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   useMass_ = actionArgs.hasKey("mass");
-  DataSet::scalarType stype = DataSet::UNDEFINED;
   range360_ = actionArgs.hasKey("range360");
+  DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
-  if      ( stypename == "alpha"   ) stype = DataSet::ALPHA;
-  else if ( stypename == "beta"    ) stype = DataSet::BETA;
-  else if ( stypename == "gamma"   ) stype = DataSet::GAMMA;
-  else if ( stypename == "delta"   ) stype = DataSet::DELTA;
-  else if ( stypename == "epsilon" ) stype = DataSet::EPSILON;
-  else if ( stypename == "zeta"    ) stype = DataSet::ZETA;
-  else if ( stypename == "chi"     ) stype = DataSet::CHI;
-  else if ( stypename == "c2p"     ) stype = DataSet::C2P;
-  else if ( stypename == "h1p"     ) stype = DataSet::H1P;
-  else if ( stypename == "phi"     ) stype = DataSet::PHI;
-  else if ( stypename == "psi"     ) stype = DataSet::PSI;
-  else if ( stypename == "pchi"    ) stype = DataSet::PCHI;
-  else if ( stypename == "omega"   ) stype = DataSet::OMEGA;
+  if (!stypename.empty()) {
+    stype = DataSet::TypeFromKeyword( stypename, DataSet::M_TORSION );
+    if (stype == DataSet::UNDEFINED) {
+      mprinterr("Error: Invalid torsion type keyword '%s'\n", stypename.c_str());
+      return Action::ERR;
+    }
+  }
 
   // Get Masks
   std::string mask1 = actionArgs.GetMaskNext();
