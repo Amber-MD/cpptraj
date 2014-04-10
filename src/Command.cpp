@@ -539,8 +539,10 @@ static void Help_LoadCrd() {
 }
 
 static void Help_LoadTraj() {
-  mprintf("\tname <setname>\n"
-          "  Convert currently loaded input trajectories to TRAJ data set named <setname>\n");
+  mprintf("\tname <setname> [<filename>]\n"
+          "  Create/add to TRAJ data set named <setname>. If no <filename> given, convert\n"
+          "  currently loaded input trajectories to TRAJ data set; otherwise add <filename>\n"
+          "  to TRAJ data set <setname>\n");
 }
 
 static void Help_CrdAction() {
@@ -626,7 +628,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
     mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
     return Command::C_ERR;
   }
-  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindSetOfType( setname, DataSet::COORDS );
+  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
   if (CRD == 0) {
     mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
     return Command::C_ERR;
@@ -700,7 +702,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
     mprinterr("Error: crdout: Specify COORDS dataset name.\n");
     return Command::C_ERR;
   }
-  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindSetOfType( setname, DataSet::COORDS );
+  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
   if (CRD == 0) {
     mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
     return Command::C_ERR;
@@ -790,14 +792,7 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
 /// Convert input traj list to TRAJ data set
 Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  if (State.InputTrajList().empty()) {
-    mprinterr("Error: No input trajectories loaded.\n");
-    return Command::C_ERR;
-  }
-  if (State.InputTrajList().Mode() != TrajinList::NORMAL) {
-    mprinterr("Error: Cannot convert ensemble input trajectories to data.\n");
-    return Command::C_ERR;
-  }
+  // Get Keywords
   std::string setname = argIn.GetStringKey("name");
   if (setname.empty()) {
     mprinterr("Error: Must provide data set name ('name <setname>')\n");
@@ -812,12 +807,28 @@ Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocTyp
     mprinterr("Error: Could not set up TRAJ data set.\n");
     return Command::C_ERR;
   }
-  mprintf("\tSaving currently loaded input trajectories as data set with name '%s'\n",
-          setname.c_str());
-  for (TrajinList::const_iterator Trajin = State.InputTrajList().begin();
-                                  Trajin != State.InputTrajList().end(); ++Trajin)
-    if (trj->AddInputTraj( *Trajin )) return Command::C_ERR;
-  // TODO: Clear input trajectories from trajinList?
+  std::string trajname = argIn.GetStringNext();
+  if (trajname.empty()) {
+    // Add all existing input trajectories
+    if (State.InputTrajList().empty()) {
+      mprinterr("Error: No input trajectories loaded.\n");
+      return Command::C_ERR;
+    }
+    if (State.InputTrajList().Mode() != TrajinList::NORMAL) {
+      mprinterr("Error: Cannot convert ensemble input trajectories to data.\n");
+      return Command::C_ERR;
+    }
+    mprintf("\tSaving currently loaded input trajectories as data set with name '%s'\n",
+            setname.c_str());
+    for (TrajinList::const_iterator Trajin = State.InputTrajList().begin();
+                                    Trajin != State.InputTrajList().end(); ++Trajin)
+      if (trj->AddInputTraj( *Trajin )) return Command::C_ERR;
+    // TODO: Clear input trajectories from trajinList?
+  } else {
+    // Add the named trajectory
+    if (trj->AddSingleTrajin( trajname, argIn, State.PFL()->GetParm(argIn) ))
+      return Command::C_ERR;
+  }
   return Command::C_OK;
 }
 
