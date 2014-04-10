@@ -48,6 +48,7 @@ class Trajin_Multi : public Trajin {
     typedef std::vector<std::string> NameListType;
 
     double remdtrajtemp_;     ///< Get frames with this temperature on read
+    double remdFrameFactor_;  ///< For HREMD sort, # frames written per remlog entry
     RemdIdxType remdtrajidx_; ///< Get frames with these indices on read
     int Ndimensions_;         ///< # of dimensions in each trajectory.
     IOarrayType REMDtraj_;    ///< Input replica trajectories

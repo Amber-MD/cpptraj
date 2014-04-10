@@ -11,7 +11,7 @@ class Cluster_HierAgglo : public ClusterList {
     void ClusteringInfo();
     int Cluster();
     void AddSievedFrames();
-    void ClusterResults(CpptrajFile&) const {}
+    void ClusterResults(CpptrajFile&) const;
   private:
     int nclusters_;       ///< Target # of clusters.
     double epsilon_;      ///< Once the min distance between clusters is > epsilon, stop.

@@ -2,6 +2,7 @@
 #include "Analysis_Rms2d.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#include "DataSet_Coords_TRJ.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -12,6 +13,7 @@ Analysis_Rms2d::Analysis_Rms2d() :
   coords_(0),
   useReferenceTraj_(false),
   useMass_(false),
+  RefTraj_(0),
   RefParm_(0),
   rmsdataset_(0),
   Ct_(0)
@@ -60,11 +62,6 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   std::string reftrajname = analyzeArgs.GetStringKey("reftraj");
   if (!reftrajname.empty()) {
     RefParm_ = PFLin->GetParm(analyzeArgs);
-    if (RefParm_==0) {
-      mprinterr("Error: Could not get parm for reftraj %s.\n"
-                "Error:   Ensure parm has been previously loaded.\n",reftrajname.c_str());
-      return Analysis::ERR;
-    }
     useReferenceTraj_ = true;
   } else
     useReferenceTraj_ = false;
@@ -97,11 +94,22 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   }
   // If reference is trajectory, open traj
   if (useReferenceTraj_) {
-    // Attempt to set up reference trajectory
-    if (RefTraj_.SetupTrajRead(reftrajname, analyzeArgs, RefParm_)) {
-      mprinterr("Error: Rms2d: Could not set up reftraj %s.\n", reftrajname.c_str());
-      return Analysis::ERR;
-    }
+    // Find out if reference traj is already present
+    RefTraj_ = (DataSet_Coords*)datasetlist->FindCoordsSet( reftrajname );
+    if (RefTraj_ == 0) {
+      // Reference traj not yet present. Load it; requires parm.
+      if (RefParm_==0) {
+        mprinterr("Error: Could not get parm for reftraj %s.\n"
+                  "Error:   Ensure parm has been previously loaded.\n",reftrajname.c_str());
+        return Analysis::ERR;
+      }
+      DataSet_Coords_TRJ* DCT = (DataSet_Coords_TRJ*)
+                                datasetlist->AddSet(DataSet::TRAJ, reftrajname, "RmsRefTraj");
+      if (DCT == 0) return Analysis::ERR;
+      if (DCT->AddSingleTrajin( reftrajname, analyzeArgs, RefParm_ )) return Analysis::ERR;
+      RefTraj_ = (DataSet_Coords*)DCT;
+    } else
+      RefParm_ = (Topology*)&(RefTraj_->Top()); // TODO: Fix cast
   }
   // Set up output DataSet
   rmsdataset_ = (DataSet_MatrixFlt*)datasetlist->AddSet( DataSet::MATRIX_FLT, 
@@ -132,8 +140,8 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   if (useMass_) mprintf(", mass-weighted");
   mprintf("\n");
   if (useReferenceTraj_)
-    mprintf("\tReference trajectory '%s', %i frames",
-            RefTraj_.TrajFilename().base(), RefTraj_.TotalReadFrames());
+    mprintf("\tReference trajectory '%s', %u frames\n",
+            RefTraj_->Legend().c_str(), RefTraj_->Size());
   if (rmsdFile != 0) 
     mprintf("\tOutput to '%s'\n",rmsdFile->DataFilename().full());
   if (corrfile != 0)
@@ -190,11 +198,10 @@ Analysis::RetType Analysis_Rms2d::Analyze() {
   */
 int Analysis_Rms2d::CalcRmsToTraj() {
   float R = 0.0;
-
   // Setup reference frame for selected reference atoms
   Frame RefFrame( RefParm_->Atoms() );
   Frame SelectedRef( RefFrame, RefMask_ );
-  size_t totalref = (size_t)RefTraj_.TotalReadFrames();
+  size_t totalref = RefTraj_->Size();
   // Setup target from from Coords
   Frame SelectedTgt;
   SelectedTgt.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms() );
@@ -203,17 +210,13 @@ int Analysis_Rms2d::CalcRmsToTraj() {
   size_t max = totalref * totaltgt;
   mprintf("  RMS2D: Calculating %s between each input frame and each reference\n" 
           "         trajectory '%s' frame (%zu total).\n  ",
-          ModeStrings_[mode_], RefTraj_.TrajFilename().base(), max);
+          ModeStrings_[mode_], RefTraj_->Legend().c_str(), max);
   rmsdataset_->Allocate2D( totalref, totaltgt );
-  if (RefTraj_.BeginTraj(true)) {
-    mprinterr("Error: Rms2d: Could not open reference trajectory.\n");
-    return 1;
-  }
 
   // LOOP OVER REFERENCE FRAMES
   for (size_t nref=0; nref < totalref; nref++) {
     // Get the current reference frame from trajectory
-    RefTraj_.GetNextFrame(RefFrame);
+    RefTraj_->GetFrame(nref, RefFrame);
     // Set reference atoms and pre-center if fitting
     SelectedRef.SetCoordinates(RefFrame, RefMask_);
     if (mode_ == RMS_FIT || SRMSD)
@@ -233,7 +236,6 @@ int Analysis_Rms2d::CalcRmsToTraj() {
       //mprinterr("%12i %12i %12.4lf\n",nref,nframe,R);
     } // END loop over target frames
   } // END loop over reference frames
-  RefTraj_.EndTraj();
   return 0;
 }
 

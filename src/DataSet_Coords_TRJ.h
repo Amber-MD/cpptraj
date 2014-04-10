@@ -9,7 +9,9 @@
 class DataSet_Coords_TRJ : public DataSet_Coords {
   public:
     DataSet_Coords_TRJ();
+    ~DataSet_Coords_TRJ();
     static DataSet* Alloc() { return (DataSet*)new DataSet_Coords_TRJ(); }
+    int AddSingleTrajin(std::string const&, ArgList&, Topology*);
     int AddInputTraj(Trajin*);
     // ---- DataSet functions -------------------
     size_t Size() const { return maxFrames_;     }
@@ -31,13 +33,17 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
     void GetFrame(int idx, Frame& fIn);
     /// Get a frame at position corresponding to mask.
     void GetFrame(int idx, Frame& fIn, AtomMask const& mIn);
-    private:
+   private:
+      int SetTrjTopology( Topology const& );
+      int UpdateTrjFrames(int);
+
       typedef std::vector<Trajin*> ListType;
       ListType trajinList_; ///< Input trajectories
       Trajin* Traj_;        ///< Current input trajectory. 
       int currentTrajNum_;  ///< # of currently open input trajectory
       int globalOffset_;    ///< Internal offset for converting global index to traj index
       int maxFrames_;       ///< Total read frames
+      bool deleteTrajectories_;
       Frame readFrame_;     ///< For reading in with mask
 };
 #endif

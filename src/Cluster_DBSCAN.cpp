@@ -217,6 +217,8 @@ int Cluster_DBSCAN::Cluster() {
 
 // Cluster_DBSCAN::ClusterResults()
 void Cluster_DBSCAN::ClusterResults(CpptrajFile& outfile) const {
+  outfile.Printf("#Algorithm: DBSCAN minpoints %i epsilon %g sieveToCentroid %i\n",
+                 minPoints_, epsilon_, (int)sieveToCentroid_);
   // List the number of noise points.
   outfile.Printf("#NOISE_FRAMES:");
   unsigned int frame = 1;

@@ -10,6 +10,7 @@
 // CONSTRUCTOR
 Trajin_Multi::Trajin_Multi() :
   remdtrajtemp_(0.0),
+  remdFrameFactor_(1.0),
   Ndimensions_(0),
   lowestRepnum_(0),
   hasVelocity_(false),
@@ -327,6 +328,10 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
         return 1;
       } 
       targetType_ = CRDIDX;
+      double nstlim = argIn.getKeyDouble("nstlim", 1.0);
+      double ntwx   = argIn.getKeyDouble("ntwx",   1.0);
+      remdFrameFactor_ = ntwx / nstlim;
+      mprintf("\t%g trajectory frames written for every exchange.\n", remdFrameFactor_);
     } else {
       // If dimensions are present index by replica indices, otherwise index
       // by temperature. 
@@ -612,7 +617,9 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
       //  mprintf(" %i", remd_indices_[idx]);
       //mprintf(" }[%i]", *fidx);
     } else if (targetType_ == CRDIDX) {
-      *fidx = remlogData_.RepFrame( CurrentFrame(), repIdx++).CoordsIdx() - 1;
+      int currentRemExchange = (int)((double)CurrentFrame() * remdFrameFactor_);
+      //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", CurrentFrame()+1, currentRemExchange+1);
+      *fidx = remlogData_.RepFrame( currentRemExchange, repIdx++).CoordsIdx() - 1;
       //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", CurrentFrame(), fidx - frameidx_, *fidx);
     }
 #   ifdef MPI

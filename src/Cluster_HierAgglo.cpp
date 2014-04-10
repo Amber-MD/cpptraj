@@ -16,6 +16,10 @@ void Cluster_HierAgglo::Help() {
   mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]]\n");
 }
 
+static const char* LinkageString[] = {
+  "single-linkage", "average-linkage", "complete-linkage"
+};
+
 int Cluster_HierAgglo::SetupCluster(ArgList& analyzeArgs) {
   nclusters_ = analyzeArgs.getKeyInt("clusters", -1);
   epsilon_ = analyzeArgs.getKeyDouble("epsilon", -1.0);
@@ -38,13 +42,7 @@ void Cluster_HierAgglo::ClusteringInfo() {
     mprintf(" %i clusters,",nclusters_);
   if (epsilon_ != -1.0)
     mprintf(" epsilon %.3f,",epsilon_);
-  if (linkage_==SINGLELINK)
-    mprintf(" single-linkage");
-  else if (linkage_==AVERAGELINK)
-    mprintf(" average-linkage");
-  else if (linkage_==COMPLETELINK)
-    mprintf(" complete-linkage");
-  mprintf(".\n");
+  mprintf(" %s.\n", LinkageString[linkage_]);
 }
 
 /** Set up the initial distances between clusters. Should be called before 
@@ -116,6 +114,11 @@ int Cluster_HierAgglo::Cluster() {
   mprintf("\tCompleted after %i iterations, %u clusters.\n",iterations,
           Nclusters());
   return 0;
+}
+
+void Cluster_HierAgglo::ClusterResults(CpptrajFile& outfile) const {
+  outfile.Printf("#Algorithm: HierAgglo linkage %s nclusters %i epsilon %g\n",
+                 LinkageString[linkage_], nclusters_, epsilon_);
 }
 
 // Cluster_HierAgglo::AddSievedFrames()

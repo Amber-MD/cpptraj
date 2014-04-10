@@ -313,7 +313,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   // Print sieve info if present
   if (FrameDistances_.SieveValue() != 1) {
     if (FrameDistances_.SieveValue() < -1) {
-      outfile.Printf("#Sieve value: %i\n#Sieved frames:", -FrameDistances_.SieveValue());
+      outfile.Printf("#Sieve value: %i (random)\n#Sieved frames:", -FrameDistances_.SieveValue());
       ClusterSieve::SievedFrames sFrames = FrameDistances_.Sieved();
       for (ClusterSieve::SievedFrames::const_iterator sfrm = sFrames.begin();
                                                       sfrm != sFrames.end(); ++sfrm)

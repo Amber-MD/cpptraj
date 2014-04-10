@@ -19,7 +19,7 @@ const char* MaskToken::MaskTypeString[] = {
   "OP_AND", "OP_OR", "OP_NEG", "OP_DIST"
 };
 
-void MaskToken::Print() {
+void MaskToken::Print() const {
   mprintf("TOKEN: [%s]",MaskTypeString[type_]);
   switch (type_) {
     case ResName:
