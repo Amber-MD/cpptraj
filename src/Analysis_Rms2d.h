@@ -1,7 +1,6 @@
 #ifndef INC_ANALYSIS_RMS2D_H
 #define INC_ANALYSIS_RMS2D_H
 #include "Analysis.h"
-#include "Trajin_Single.h"
 #include "DataSet_Coords.h"
 #include "DataSet_MatrixFlt.h"
 #include "SymmetricRmsdCalc.h"
@@ -31,7 +30,7 @@ class Analysis_Rms2d: public Analysis {
     bool useMass_;             ///< If true, mass-weight.
     AtomMask TgtMask_;         ///< Target atom mask.
     AtomMask RefMask_;         ///< Reference atom mask.
-    Trajin_Single RefTraj_;    ///< Reference trajectory, each frame used in turn.
+    DataSet_Coords* RefTraj_;  ///< Reference trajectory, each frame used in turn.
     Topology* RefParm_;        ///< Reference trajectory Parm.
     SymmetricRmsdCalc SRMSD_;  ///< Hold symmetry-corrected RMSD calc.
     DataSet_MatrixFlt* rmsdataset_;
