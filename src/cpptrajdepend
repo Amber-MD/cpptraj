@@ -155,7 +155,7 @@ DataSet_double.o : DataSet_double.cpp CpptrajFile.h DataSet.h DataSet_1D.h DataS
 DataSet_float.o : DataSet_float.cpp CpptrajFile.h DataSet.h DataSet_1D.h DataSet_float.h Dimension.h FileIO.h FileName.h MpiRoutines.h
 DataSet_integer.o : DataSet_integer.cpp CpptrajFile.h DataSet.h DataSet_1D.h DataSet_integer.h Dimension.h FileIO.h FileName.h MpiRoutines.h
 DataSet_string.o : DataSet_string.cpp CpptrajFile.h DataSet.h DataSet_1D.h DataSet_string.h Dimension.h FileIO.h FileName.h MpiRoutines.h
-DihedralSearch.o : DihedralSearch.cpp ArgList.h Atom.h AtomMask.h Box.h CpptrajStdio.h DataSet.h DihedralSearch.h Dimension.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParameterTypes.h Range.h Residue.h Topology.h Vec3.h
+DihedralSearch.o : DihedralSearch.cpp ArgList.h Atom.h AtomMask.h AxisType.h Box.h CpptrajStdio.h DataSet.h DihedralSearch.h Dimension.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParameterTypes.h Range.h Residue.h Topology.h Vec3.h
 Dimension.o : Dimension.cpp CpptrajStdio.h Dimension.h
 DistRoutines.o : DistRoutines.cpp Box.h DistRoutines.h Matrix_3x3.h Vec3.h
 FileIO_Bzip2.o : FileIO_Bzip2.cpp CpptrajStdio.h FileIO.h FileIO_Bzip2.h
