@@ -63,6 +63,8 @@ class DihedralSearch::DihedralToken {
     /// \return mask with 4 atoms corresponding to dihedral for specified residue.
     DihedralMask FindDihedralAtoms(Topology const&, int);
     std::string const& Name() const { return name_; }
+    DihedralType Type()       const { return type_; }
+    void SetAtomName(int i, NameType const& n) { aname_[i] = n; }
   private:
     int offset_;       ///< -1|0|1: Dihedral starts at prev.|stays in current|ends at next res.
     NameType aname_[4];       ///< Dihedral atom names/types.

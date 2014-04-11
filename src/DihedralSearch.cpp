@@ -1,5 +1,6 @@
 #include "DihedralSearch.h"
 #include "CpptrajStdio.h"
+#include "AxisType.h" // FIXME: For pyrimidine chi
 
 /// Function to search for atoms within a residue by name.
 static int ByName(Topology const& topIn, int res, NameType const& tgtname)
@@ -193,11 +194,21 @@ int DihedralSearch::FindDihedrals(Topology const& currentParm, Range const& rang
 {
   dihedrals_.clear();
   for (Range::const_iterator res = rangeIn.begin(); res != rangeIn.end(); ++res)
-  {
+  { // FIXME: Kludge for pyrimidine chi
+    NA_Base::NAType baseType = NA_Base::ID_BaseFromName( currentParm.Res(*res).Name() );
     for (std::vector<DihedralToken>::iterator tkn = dihedralTokens_.begin();
                                               tkn != dihedralTokens_.end(); ++tkn)
     {
-      dihedrals_.push_back( tkn->FindDihedralAtoms(currentParm, *res) );
+      // FIXME: Kludge for pyrimidine chi
+      if (tkn->Type() == CHIN && (baseType == NA_Base::URA ||
+                                  baseType == NA_Base::THY ||
+                                  baseType == NA_Base::CYT)  )
+      {
+        DihedralToken pyrimidineChi = *tkn;
+        pyrimidineChi.SetAtomName(3, "C2");
+        dihedrals_.push_back( pyrimidineChi.FindDihedralAtoms(currentParm, *res) );
+      } else
+        dihedrals_.push_back( tkn->FindDihedralAtoms(currentParm, *res) );
       if (dihedrals_.back().None()) {
         mprintf("Warning: Dihedral %s not found for residue %i\n", 
                 tkn->Name().c_str(), *res + 1);
