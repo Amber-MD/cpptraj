@@ -334,10 +334,17 @@ void Topology::PrintDihedrals(DihedralArray const& darray, AtomMask const& maskI
       if ( didx > -1 )
         mprintf(" %6.3f %4.2f %4.1f", dihedralparm_[didx].Pk(), dihedralparm_[didx].Phase(),
                  dihedralparm_[didx].Pn());
-      mprintf(" %-*s %-*s %-*s %-*s (%i,%i,%i,%i)\n",
+      mprintf(" %-*s %-*s %-*s %-*s (%i,%i,%i,%i)",
               rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(), 
               rwidth, AtomMaskName(atom3).c_str(), rwidth, AtomMaskName(atom4).c_str(),
               atom1+1, atom2+1, atom3+1, atom4+1);
+      // Atom types
+      const char* atype1 = *atoms_[atom1].Type();
+      const char* atype2 = *atoms_[atom2].Type();
+      const char* atype3 = *atoms_[atom3].Type();
+      const char* atype4 = *atoms_[atom4].Type();
+      mprintf(" %c%c-%c%c-%c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1],
+              atype3[0],atype3[1],atype4[0],atype4[1]);
     }
     nd++;
   }
