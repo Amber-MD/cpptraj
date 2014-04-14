@@ -3,6 +3,8 @@
 #include "Command.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // GenerateAmberRst
+#include "TorsionRoutines.h" // GenerateAmberRst
+#include "Constants.h" // GenerateAmberRst
 #include "DataSet_Coords_TRJ.h" // LoadTraj
 #include "DataSet_double.h" // DataSetCmd
 #include "ParmFile.h" // ReadOptions, WriteOptions
@@ -894,18 +896,27 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
   }
   // TODO: Remove backbone atoms for 'nobb'?
   // If a reference frame was specified and distance restraint, use center of
-  // mass distance between masks as r2.
-  if ( !RefCrd.empty() && rstMasks.size() == 2 ) {
+  // mass distance/angle/torsion between masks as r2.
+  if ( !RefCrd.empty() ) {
     if ( RefCrd.Parm()->Pindex() != parm->Pindex() )
       mprintf("Warning: Reference topology does not match specified topology.\n");
     Vec3 a1 = RefCrd.Coord()->VCenterOfMass( rstMasks[0] );
     Vec3 a2 = RefCrd.Coord()->VCenterOfMass( rstMasks[1] );
-    r2 = DIST_NoImage( a1, a2 );
+    if (rstMasks.size() == 2)
+      r2 = DIST_NoImage( a1, a2 );
+    else if (rstMasks.size() == 3) {
+      Vec3 a3 = RefCrd.Coord()->VCenterOfMass( rstMasks[2] );
+      r2 = CalcAngle(a1.Dptr(), a2.Dptr(), a3.Dptr()) * Constants::RADDEG;
+    } else if (rstMasks.size() == 4) {
+      Vec3 a3 = RefCrd.Coord()->VCenterOfMass( rstMasks[2] );
+      Vec3 a4 = RefCrd.Coord()->VCenterOfMass( rstMasks[3] );
+      r2 = Torsion(a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr()) * Constants::RADDEG;
+    }
     r2 += offset;
     r3 = r2;
     r1 = r2 - width;
     r4 = r3 + width;
-    mprintf("\tCoM distance will be used, r1=%f, r2=%f, r3=%f, r4=%f\n", r1,r2,r3,r4);
+    mprintf("\tCoM value from ref will be used, r1=%f, r2=%f, r3=%f, r4=%f\n", r1,r2,r3,r4);
   } 
   // Print restraint header 
   outfile.Printf(" &rst iat=");
