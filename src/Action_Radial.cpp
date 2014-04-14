@@ -499,7 +499,7 @@ void Action_Radial::Print() {
     Dset_->Add(bin, &N);
     // If specified, calc integral of # mask2 atoms as fn of distance
     if (intrdf_ != 0) {
-      sum += N * expectedD;
+      sum += N * expectedD / nmask2;
       intrdf_->Add(bin, &sum);
     }
   }
