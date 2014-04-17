@@ -19,5 +19,6 @@ class DataIO_RemLog : public DataIO {
     int ReadRemlogHeader(BufferedLine&, ExchgType&);
     int ReadRemdDimFile(std::string const&);
     int debug_;
+    int nRemdDimensions_;
 };
 #endif

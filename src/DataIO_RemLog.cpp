@@ -7,7 +7,7 @@
 #include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
-DataIO_RemLog::DataIO_RemLog() : debug_(0) {
+DataIO_RemLog::DataIO_RemLog() : debug_(0), nRemdDimensions_(0) {
   SetValid( DataSet::REMLOG );
 }
 
@@ -58,19 +58,62 @@ static inline bool IsNullPtr( const char* ptr ) {
   return false;
 }
 
+static const char* dimTypeString[] = {0, "TREMD", "HREMD", "MREMD"};
+
+// DataIO_RemLog::ReadRemdDimFile()
 int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
   BufferedLine rd_file;
   if (rd_file.OpenFileRead( rd_name )) {
     mprinterr("Error: Could not read remd dim file '%s'\n", rd_name.c_str());
     return 1;
   }
+  const char* separators = " =,()";
   // Read dimension title
   const char* ptr = rd_file.Line();
   if (IsNullPtr( ptr )) return 1;
-  
+  mprintf("\tremd.dim title: '%s'\n", ptr);
+  // Read each &multirem section
+  nRemdDimensions_ = 0;
+  ArgList rd_arg;
+  while (ptr != 0) {
+    rd_arg.SetList( std::string(ptr), separators );
+    if ( rd_arg[0] == "&multirem" ) {
+      ++nRemdDimensions_;
+      std::string desc;
+      ExchgType exch_type = UNKNOWN;
+      int nGroups = 0;
+      while (ptr != 0) {
+        rd_arg.SetList( std::string(ptr), separators );
+        if (rd_arg.CommandIs("&end") || rd_arg.CommandIs("/")) break;
+        rd_arg.MarkArg(0);
+        if ( rd_arg.CommandIs("exch_type") ) {
+          if ( rd_arg.hasKey("TEMP") || rd_arg.hasKey("TEMPERATURE") )
+            exch_type = TREMD;
+          else if ( rd_arg.hasKey("HAMILTONIAN") || rd_arg.hasKey("HREMD") )
+            exch_type = HREMD;
+          else {
+            mprinterr("Error: Unrecognized exch_type: %s\n", rd_arg.ArgLine());
+            return 1;
+          }
+        } else if ( rd_arg.CommandIs("group") ) {
+          nGroups++;
+        } else if ( rd_arg.CommandIs("desc") ) {
+          desc = rd_arg.GetStringNext(); 
+        }
+        ptr = rd_file.Line();
+      }
+      mprintf("\tDimension %i: type '%s' description '%s'\n", nRemdDimensions_,
+              dimTypeString[exch_type], desc.c_str()); 
+    }
+    ptr = rd_file.Line();
+  }
+  if (nRemdDimensions_ < 1) {
+    mprinterr("Error: No replica dimensions found.\n");
+    return 1;
+  }
 
   return 0;
-} 
+}
 
 void DataIO_RemLog::ReadHelp() {
   mprintf("\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
@@ -89,6 +132,16 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     return 1;
   }
   logFilenames.push_back( fname );
+  // Get dimfile arg
+  std::string dimfile = argIn.GetStringKey("dimfile");
+  if (!dimfile.empty()) {
+    if (ReadRemdDimFile( dimfile )) {
+      mprinterr("Error: Reading remd.dim file '%s'\n", dimfile.c_str());
+      return 1;
+    }
+    mprintf("\tExpecting %i replica dimensions.\n", nRemdDimensions_);
+    return 0; // DEBUG
+  }
   // Get crdidx arg
   ArgList idxArgs( argIn.GetStringKey("crdidx"), "," );
   // Check if more than one log name was specified.
