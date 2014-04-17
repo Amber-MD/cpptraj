@@ -3,16 +3,15 @@
 #include "DataIO_RemLog.h"
 #include "CpptrajStdio.h" 
 #include "ProgressBar.h"
-#include "DataSet_RemLog.h"
 #include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
-DataIO_RemLog::DataIO_RemLog() : debug_(0) {
+DataIO_RemLog::DataIO_RemLog() : debug_(0), n_mremd_replicas_(0) {
   SetValid( DataSet::REMLOG );
 }
 
 const char* ExchgDescription[] = {
-"Unknown", "Temperature", "Hamiltonian", "MultipleDim"
+  "Unknown", "Temperature", "Hamiltonian", "MultipleDim"
 };
 
 // DataIO_RemLog::ReadRemlogHeader()
@@ -33,12 +32,24 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
       return -1;
     }
     ArgList columns( line );
-    if (columns.hasKey("exchange")) break;
-    if (debug_ > 0) mprintf("\t%s", line.c_str());
-    if (columns.hasKey("numexchg")) {
-      numexchg = columns.getNextInteger(-1);
+    // Each line should have at least 2 arguments
+    if (columns.Nargs() > 1) {
+      if (columns[1] == "exchange") break;
+      if (debug_ > 0) mprintf("\t%s", line.c_str());
+      if (columns[1] == "numexchg") {
+        numexchg = columns.getNextInteger(-1);
+      }
+      if (columns[1] == "Dimension") {
+        type = MREMD;
+        int ndim = columns.getKeyInt("of", 0);
+        if (ndim != (int)GroupDims_.size()) {
+          mprinterr("Error: # of dimensions in rem log %i != dimensions in remd.dim file (%u).\n",
+                    ndim, GroupDims_.size());
+          return -1;
+        }
+      }
     }
-    if (columns.hasKey("Rep#,")) {
+    if (type == UNKNOWN && columns.hasKey("Rep#,")) {
       if (columns[2] == "Neibr#,") type = HREMD;
       else if (columns[2] == "Velocity") type = TREMD;
     }
@@ -50,6 +61,7 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) {
   return numexchg;
 }
 
+/// \return true if char pointer is null.
 static inline bool IsNullPtr( const char* ptr ) { 
   if (ptr == 0) {
     mprinterr("Error: Could not read file.\n");
@@ -57,8 +69,6 @@ static inline bool IsNullPtr( const char* ptr ) {
   }
   return false;
 }
-
-static const char* dimTypeString[] = {0, "TREMD", "HREMD", "MREMD"};
 
 // DataIO_RemLog::ReadRemdDimFile()
 int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
@@ -75,12 +85,14 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
   mprintf("\tReplica dimension file '%s' title: %s", rd_name.c_str(), ptr);
   // Read each &multirem section
   GroupDims_.clear();
+  DimTypes_.clear();
   ArgList rd_arg;
   while (ptr != 0) {
     rd_arg.SetList( std::string(ptr), separators );
     if ( rd_arg[0] == "&multirem" ) {
       GroupDimType Groups;
       std::string desc;
+      int n_replicas = 0;
       ExchgType exch_type = UNKNOWN;
       while (ptr != 0) {
         rd_arg.SetList( std::string(ptr), separators );
@@ -101,11 +113,12 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
             mprinterr("Error: Invalid group number: %i\n", group_num);
             return 1;
           }
-          mprintf("\t\tGroup %i\n", group_num);
+          //mprintf("\t\tGroup %i\n", group_num);
           std::vector<int> indices;
           int group_index = rd_arg.getNextInteger(-1);
           while (group_index != -1) {
             indices.push_back( group_index );
+            n_replicas++;
             group_index = rd_arg.getNextInteger(-1);
           }
           // Set up partner array for this group
@@ -116,8 +129,8 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
             int r_idx = i + 1;
             if (r_idx == (int)indices.size()) r_idx = 0;
             group.push_back( GroupReplica(indices[l_idx], indices[i], indices[r_idx]) );
-            mprintf("\t\t\t%i - %i - %i\n", group.back().L_partner(),
-                    group.back().Me(), group.back().R_partner());
+            //mprintf("\t\t\t%i - %i - %i\n", group.back().L_partner(),
+            //        group.back().Me(), group.back().R_partner());
           }
           Groups.push_back( group ); 
         } else if ( rd_arg.CommandIs("desc") ) {
@@ -125,9 +138,18 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
         }
         ptr = rd_file.Line();
       }
-      mprintf("\tDimension %zu: type '%s' description '%s' groups=%zu\n", GroupDims_.size() + 1,
-              dimTypeString[exch_type], desc.c_str(), Groups.size());
-      GroupDims_.push_back( Groups ); 
+      mprintf("\tDimension %zu: type '%s', description '%s', groups=%zu, replicas=%i\n", 
+              GroupDims_.size() + 1, ExchgDescription[exch_type], desc.c_str(), 
+              Groups.size(), n_replicas);
+      if (n_mremd_replicas_ == 0)
+        n_mremd_replicas_ = n_replicas;
+      else if (n_replicas != n_mremd_replicas_) {
+        mprinterr("Error: Number of MREMD replicas in dimension (%i) != number of\n"
+                  "Error: MREMD replicas in first dimension (%i)\n", n_replicas, n_mremd_replicas_);
+        return 1;
+      }
+      GroupDims_.push_back( Groups );
+      DimTypes_.push_back( exch_type );
     }
     ptr = rd_file.Line();
   }
@@ -139,15 +161,72 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
   return 0;
 }
 
+// DataIO_RemLog::ReadHelp()
 void DataIO_RemLog::ReadHelp() {
   mprintf("\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
           "\t                      coordinate indices (H-REMD only).\n"
           "\tMultiple REM logs may be specified.\n");
 }
 
+/// Get filename up to extension
 static inline std::string GetPrefix(FileName const& fname) {
   size_t found = fname.Full().rfind( fname.Ext() );
   return fname.Full().substr(0, found);
+}
+
+/** buffer should be positioned at the first exchange. */
+DataSet_RemLog::TmapType DataIO_RemLog::SetupTemperatureMap(BufferedLine& buffer) const {
+  DataSet_RemLog::TmapType TemperatureMap;
+  std::set<double> tList;
+  double t0;
+  const char* ptr = buffer.Line();
+  while (ptr != 0 && ptr[0] != '#') {
+    // For temperature remlog create temperature map.
+    //mprintf("DEBUG: Temp0= %s", ptr+32);
+    if ( sscanf(ptr+32, "%10lf", &t0) != 1) {
+      mprinterr("Error: could not read temperature from T-REMD log.\n"
+                "Error: Line: %s", ptr);
+      return TemperatureMap;
+    }
+    std::pair<std::set<double>::iterator,bool> ret = tList.insert( t0 );
+    if (!ret.second) {
+      mprinterr("Error: duplicate temperature %.2f detected in T-REMD remlog\n", t0);
+      return TemperatureMap;
+    }
+    ptr = buffer.Line();
+  }
+  // Temperatures are already sorted lowest to highest in set. Map 
+  // temperatures to index + 1 since indices in the remlog start from 1.
+  int repnum = 1;
+  for (std::set<double>::const_iterator temp0 = tList.begin(); temp0 != tList.end(); ++temp0)
+    TemperatureMap.insert(std::pair<double,int>(*temp0, repnum++));
+  for (DataSet_RemLog::TmapType::const_iterator tmap = TemperatureMap.begin();
+                                                tmap != TemperatureMap.end(); ++tmap)
+    mprintf("\t\t%i => %f\n", tmap->second, tmap->first);
+
+  return TemperatureMap;
+}
+
+// DataIO_RemLog::CountHamiltonianReps()
+/** buffer should be positioned at the first exchange. */
+int DataIO_RemLog::CountHamiltonianReps(BufferedLine& buffer) const {
+  int n_replicas = 0;
+  const char* ptr = buffer.Line();
+  while (ptr != 0 && ptr[0] != '#') {
+    ptr = buffer.Line();
+    ++n_replicas;
+  }
+  return n_replicas;
+}
+
+static inline int MremdNrepsError(int n_replicas, int dim, int groupsize) {
+  if (n_replicas != groupsize) {
+    mprinterr("Error: Number of replicas in dimension %i (%i) does not match\n"
+              "Error: number of replicas in remd.dim file (%u)\n", dim+1, n_replicas,
+              groupsize);
+    return 1;
+  }
+  return 0;
 }
 
 // DataIO_RemLog::MremdRead()
@@ -174,12 +253,63 @@ int DataIO_RemLog::MremdRead(std::vector<std::string> const& logFilenames,
       mprinterr("Error: Must specify MREMD log for dimension 1 (i.e. '%s.1')\n", Prefix.c_str());
       return 1;
     }
-    for (int i = 2; i < (int)GroupDims_.size(); i++) {
+    for (int i = 2; i <= (int)GroupDims_.size(); i++) {
       std::string logname = Prefix + "." + integerToString( i );
       if ( !fileExists(logname) ) {
         mprinterr("Error: MREMD log not found for dimension %i, '%s'\n",
                   i, logname.c_str());
         return 1;
+      }
+    }
+  }
+  // Loop over all MREMD logs.
+  for (std::vector<std::string>::const_iterator logfile = logFilenames.begin();
+                                                logfile != logFilenames.end();
+                                              ++logfile)
+  {
+    // Open remlogs for each dimension as buffered file.
+    ExchgType log_type = UNKNOWN;
+    std::vector<BufferedLine> buffer( GroupDims_.size() );
+    // Potentially need a temperature map for each group in each dimension.
+    std::vector< std::vector<DataSet_RemLog::TmapType> > TemperatureMap( GroupDims_.size() );
+    fname.SetFileName( *logfile );
+    std::string Prefix = GetPrefix( fname );
+    int total_exchanges = -1;
+    int current_dim = 0;
+    for (int dim = 0; dim < (int)GroupDims_.size(); dim++) {
+      std::string logname = Prefix + "." + integerToString( dim + 1 );
+      if (buffer[dim].OpenFileRead( logname  )) return 1;
+      //mprintf("\tOpened %s\n", logname.c_str());
+      // Read the remlog header.
+      int numexchg = ReadRemlogHeader(buffer[dim], log_type);
+      if (numexchg == -1) return 1;
+      mprintf("\t%s should contain %i exchanges\n", logname.c_str(), numexchg);
+      if (total_exchanges == -1)
+        total_exchanges = numexchg;
+      else if (numexchg != total_exchanges) {
+        mprinterr("Error: Number of expected exchanges in dimension %i does not match\n"
+                  "Error: number of expected exchanges in first dimension.\n", dim + 1);
+        return 1;
+      }
+      if (log_type != MREMD) {
+        mprinterr("Error: Log type is not MREMD.\n");
+        return 1;
+      }
+      // Should now be positioned at the first exchange in each dimension.
+      int n_replicas = 0;
+      if ( DimTypes_[dim] == TREMD ) {
+        TemperatureMap[dim].resize( GroupDims_[dim].size() );
+        for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
+          TemperatureMap[dim][grp] = SetupTemperatureMap( buffer[dim] );
+          n_replicas = (int)TemperatureMap[dim][grp].size();
+          if (MremdNrepsError(n_replicas, dim, GroupDims_[dim][grp].size())) return 1;
+        }
+      } else {
+        for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
+          n_replicas = CountHamiltonianReps( buffer[dim] );
+          if (MremdNrepsError(n_replicas, dim, GroupDims_[dim][grp].size())) return 1;
+          mprintf("\t\tGroup %u: %i Hamiltonian reps.\n", grp, n_replicas);
+        } 
       }
     }
   }
@@ -191,7 +321,6 @@ int DataIO_RemLog::MremdRead(std::vector<std::string> const& logFilenames,
 int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                             DataSetList& datasetlist, std::string const& dsname)
 {
-  ExchgType firstlog_type = UNKNOWN;
   std::vector<std::string> logFilenames;
   if (!fileExists( fname )) {
     mprinterr("Error: File '%s' does not exist.\n", fname.c_str());
@@ -229,47 +358,23 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
   // Read the first line. Should be '# Replica Exchange log file'
+  ExchgType firstlog_type = UNKNOWN;
   if (ReadRemlogHeader(buffer, firstlog_type) == -1) return 1;
   // Should currently be positioned at the first exchange. Need to read this
   // to determine how many replicas there are (and temperature for T-REMD).
-  DataSet_RemLog::TmapType TemperatureMap;
-  std::set<double> tList;
-  double t0;
   int n_replicas = 0;
-  const char* ptr = buffer.Line();
-  while (ptr != 0 && ptr[0] != '#') {
-    if (firstlog_type == TREMD) {
-      // For temperature remlog create temperature map.
-      //mprintf("DEBUG: Temp0= %s", ptr+32);
-      if ( sscanf(ptr+32, "%10lf", &t0) != 1) {
-        mprinterr("Error: could not read temperature from T-REMD log.\n"
-                  "Error: Line: %s", ptr);
-        return 1;
-      }
-      std::pair<std::set<double>::iterator,bool> ret = tList.insert( t0 );
-      if (!ret.second) {
-        mprinterr("Error: duplicate temperature %.2f detected in T-REMD remlog\n", t0);
-        return 1;
-      }
-    }
-    ptr = buffer.Line();
-    ++n_replicas;
-  }
+  DataSet_RemLog::TmapType TemperatureMap;
+  if (firstlog_type == TREMD) {
+    TemperatureMap = SetupTemperatureMap( buffer );
+    n_replicas = (int)TemperatureMap.size();
+  } else
+    n_replicas = CountHamiltonianReps( buffer );
   mprintf("\t%i %s replicas.\n", n_replicas, ExchgDescription[firstlog_type]);
   if (n_replicas < 1) {
     mprinterr("Error: Detected less than 1 replica in remlog.\n");
     return 1;
-  }
-  if (firstlog_type == TREMD) {
-    // Temperatures are already sorted lowest to highest in set. Map 
-    // temperatures to index + 1 since indices in the remlog start from 1.
-    int repnum = 1;
-    for (std::set<double>::const_iterator temp0 = tList.begin(); temp0 != tList.end(); ++temp0)
-      TemperatureMap.insert(std::pair<double,int>(*temp0, repnum++));
-    for (DataSet_RemLog::TmapType::const_iterator tmap = TemperatureMap.begin();
-                                                  tmap != TemperatureMap.end(); ++tmap)
-      mprintf("\t\t%i => %f\n", (*tmap).second, (*tmap).first);
-  }
+  } 
+  // Allocate replica log DataSet
   DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
   if (ds == 0) return 1;
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
@@ -319,6 +424,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     // Loop over all exchanges.
     ProgressBar progress( numexchg );
     bool fileEOF = false;
+    const char* ptr = 0;
     for (int exchg = 0; exchg < numexchg; exchg++) {
       progress.Update( exchg );
       for (int replica = 0; replica < n_replicas; replica++) {

@@ -2,6 +2,7 @@
 #define INC_DATAIO_REMLOG_H
 #include "DataIO.h"
 #include "BufferedLine.h"
+#include "DataSet_RemLog.h"
 /// Read replica exchange log data.
 class DataIO_RemLog : public DataIO {
   public:
@@ -15,18 +16,22 @@ class DataIO_RemLog : public DataIO {
     int WriteData3D(std::string const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
+    DataSet_RemLog::TmapType SetupTemperatureMap(BufferedLine&) const;
+    int CountHamiltonianReps(BufferedLine&) const;
     int MremdRead(std::vector<std::string> const&, DataSetList&, std::string const&);
  
     enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD };
     int ReadRemlogHeader(BufferedLine&, ExchgType&);
     int ReadRemdDimFile(std::string const&);
     int debug_;
+    int n_mremd_replicas_;
     class GroupReplica;
     typedef std::vector<GroupReplica> GroupArray;
     typedef std::vector<GroupArray> GroupDimType;
     std::vector<GroupDimType> GroupDims_;
+    std::vector<ExchgType> DimTypes_;
 };
-
+/// Used to hold replica partner info in M-REMD simulations
 class DataIO_RemLog::GroupReplica {
   public:
     GroupReplica() : l_partner_(-1), me_(-1), r_partner_(-1) {}
