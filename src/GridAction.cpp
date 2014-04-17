@@ -6,6 +6,13 @@ const char* GridAction::HelpText =
   "{data <dsname> | <nx> <dx> <ny> <dy> <nz> <dz> [gridcenter <cx> <cy> <cz>]}\n"
   "\t[box|origin|center <mask>] [negative] [name <gridname>]";
 
+static inline void CheckEven(int& N, char dir) {
+  if (N % 2 == 1) {
+    ++N;
+    mprintf("Warning: number of grid points must be even. Incrementing N%c by 1 to %u\n", dir, N);
+  }
+}
+
 // GridAction::GridInit()
 DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn, 
                                       DataSetList& DSL) 
@@ -38,6 +45,8 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
                 nx, ny, nz, dx, dy, dz);
       return 0;
     }
+    // For backwards compat., enforce even grid spacing.
+    CheckEven( nx, 'X' ); CheckEven( ny, 'Y' ); CheckEven( nz, 'Z' );
     Vec3 gridctr(0.0, 0.0, 0.0);
     if (argIn.hasKey("gridcenter")) {
       double cx = argIn.getNextDouble(0.0);

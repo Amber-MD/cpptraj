@@ -134,8 +134,9 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
     int nTokens = infile.TokenizeLine(" \t");
     for (int j = 0; j < nTokens; j++) {
       if (ndata >= gridsize) {
-        mprinterr("Error: Too many grid points found!\n");
-        return 1;
+        mprintf("Warning: Too many grid points found. Only reading %zu grid points.\n", gridsize);
+        mprintf("Warning: Check that data region ends with a newline.\n");
+        break;
       }
       grid[ndata++] = (float)atof(infile.NextToken());
     }

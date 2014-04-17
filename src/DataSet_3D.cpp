@@ -1,21 +1,11 @@
 #include "DataSet_3D.h"
 #include "CpptrajStdio.h"
 
-// DataSet_3D::CheckEven()
-void DataSet_3D::CheckEven(size_t& N, char dir) {
-  if (N % 2 == 1) {
-    ++N;
-    mprintf("Warning: number of grid points must be even. Incrementing N%c by 1 to %u\n", dir, N);
-  }
-}
-
 // DataSet_3D::Allocate_N_O_D()
 int DataSet_3D::Allocate_N_O_D(size_t nx, size_t ny, size_t nz,
                                Vec3 const& oxyz, Vec3 const& dxyz)
 {
   if (nx == 0 || ny == 0 || nz == 0) return 1;
-  // For now, enforce even grid spacing
-  CheckEven( nx, 'X' ); CheckEven( ny, 'Y' ); CheckEven( nz, 'Z' );
   // Set origin and spacing
   ox_ = oxyz[0];
   oy_ = oxyz[1];
@@ -47,8 +37,6 @@ static double Calc_Origin(int N, double D) {
 int DataSet_3D::Allocate_N_C_D(size_t nx, size_t ny, size_t nz,
                                Vec3 const& cxyz, Vec3 const& dxyz)
 {
-  // For now, enforce even grid spacing
-  CheckEven( nx, 'X' ); CheckEven( ny, 'Y' ); CheckEven( nz, 'Z' );
   // Calculate origin from center coordinates.
   Vec3 oxyz( cxyz[0] + Calc_Origin(nx, dxyz[0]),
              cxyz[1] + Calc_Origin(ny, dxyz[1]),
