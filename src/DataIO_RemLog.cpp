@@ -7,7 +7,7 @@
 #include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
-DataIO_RemLog::DataIO_RemLog() : debug_(0), nRemdDimensions_(0) {
+DataIO_RemLog::DataIO_RemLog() : debug_(0) {
   SetValid( DataSet::REMLOG );
 }
 
@@ -74,15 +74,14 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
   // ptr Should end with a newline
   mprintf("\tReplica dimension file '%s' title: %s", rd_name.c_str(), ptr);
   // Read each &multirem section
-  nRemdDimensions_ = 0;
+  GroupDims_.clear();
   ArgList rd_arg;
   while (ptr != 0) {
     rd_arg.SetList( std::string(ptr), separators );
     if ( rd_arg[0] == "&multirem" ) {
-      ++nRemdDimensions_;
+      GroupDimType Groups;
       std::string desc;
       ExchgType exch_type = UNKNOWN;
-      int nGroups = 0;
       while (ptr != 0) {
         rd_arg.SetList( std::string(ptr), separators );
         if (rd_arg.CommandIs("&end") || rd_arg.CommandIs("/")) break;
@@ -97,18 +96,42 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
             return 1;
           }
         } else if ( rd_arg.CommandIs("group") ) {
-          nGroups++;
+          int group_num = rd_arg.getNextInteger(-1);
+          if (group_num < 1) {
+            mprinterr("Error: Invalid group number: %i\n", group_num);
+            return 1;
+          }
+          mprintf("\t\tGroup %i\n", group_num);
+          std::vector<int> indices;
+          int group_index = rd_arg.getNextInteger(-1);
+          while (group_index != -1) {
+            indices.push_back( group_index );
+            group_index = rd_arg.getNextInteger(-1);
+          }
+          // Set up partner array for this group
+          GroupArray group;
+          for (int i = 0; i < (int)indices.size(); i++) {
+            int l_idx = i - 1;
+            if (l_idx < 0) l_idx = (int)indices.size() - 1;
+            int r_idx = i + 1;
+            if (r_idx == (int)indices.size()) r_idx = 0;
+            group.push_back( GroupReplica(indices[l_idx], indices[i], indices[r_idx]) );
+            mprintf("\t\t\t%i - %i - %i\n", group.back().L_partner(),
+                    group.back().Me(), group.back().R_partner());
+          }
+          Groups.push_back( group ); 
         } else if ( rd_arg.CommandIs("desc") ) {
           desc = rd_arg.GetStringNext(); 
         }
         ptr = rd_file.Line();
       }
-      mprintf("\tDimension %i: type '%s' description '%s' groups=%i\n", nRemdDimensions_,
-              dimTypeString[exch_type], desc.c_str(), nGroups); 
+      mprintf("\tDimension %zu: type '%s' description '%s' groups=%zu\n", GroupDims_.size() + 1,
+              dimTypeString[exch_type], desc.c_str(), Groups.size());
+      GroupDims_.push_back( Groups ); 
     }
     ptr = rd_file.Line();
   }
-  if (nRemdDimensions_ < 1) {
+  if (GroupDims_.empty()) {
     mprinterr("Error: No replica dimensions found.\n");
     return 1;
   }
@@ -122,6 +145,48 @@ void DataIO_RemLog::ReadHelp() {
           "\tMultiple REM logs may be specified.\n");
 }
 
+static inline std::string GetPrefix(FileName const& fname) {
+  size_t found = fname.Full().rfind( fname.Ext() );
+  return fname.Full().substr(0, found);
+}
+
+// DataIO_RemLog::MremdRead()
+int DataIO_RemLog::MremdRead(std::vector<std::string> const& logFilenames,
+                             DataSetList& datasetlist, std::string const& dsname)
+{
+  // Ensure that each replica log has counterparts for each dimension
+  FileName fname;
+  for (std::vector<std::string>::const_iterator logfile = logFilenames.begin();
+                                                logfile != logFilenames.end();
+                                              ++logfile)
+  {
+    fname.SetFileName( *logfile );
+    // Remove leading '.'
+    std::string logExt = fname.Ext();
+    if (logExt[0] == '.') logExt.erase(0,1);
+    if ( !validInteger(logExt) ) {
+      mprinterr("Error: MREMD log %s does not have valid numerical extension.\n", fname.full());
+      return 1;
+    }
+    std::string Prefix = GetPrefix( fname );
+    int numericalExt = convertToInteger( logExt );
+    if (numericalExt != 1) {
+      mprinterr("Error: Must specify MREMD log for dimension 1 (i.e. '%s.1')\n", Prefix.c_str());
+      return 1;
+    }
+    for (int i = 2; i < (int)GroupDims_.size(); i++) {
+      std::string logname = Prefix + "." + integerToString( i );
+      if ( !fileExists(logname) ) {
+        mprinterr("Error: MREMD log not found for dimension %i, '%s'\n",
+                  i, logname.c_str());
+        return 1;
+      }
+    }
+  }
+
+  return 0;
+}
+  
 // DataIO_RemLog::ReadData()
 int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                             DataSetList& datasetlist, std::string const& dsname)
@@ -140,8 +205,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
       mprinterr("Error: Reading remd.dim file '%s'\n", dimfile.c_str());
       return 1;
     }
-    mprintf("\tExpecting %i replica dimensions.\n", nRemdDimensions_);
-    return 0; // DEBUG
+    mprintf("\tExpecting %zu replica dimensions.\n", GroupDims_.size());
   }
   // Get crdidx arg
   ArgList idxArgs( argIn.GetStringKey("crdidx"), "," );
@@ -159,6 +223,8 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                                           it != logFilenames.end(); ++it)
     mprintf(" %s", (*it).c_str());
   mprintf("\n");
+  // Multidim replica read requires reading from multiple files
+  if (!GroupDims_.empty()) return MremdRead( logFilenames, datasetlist, dsname );
   // Open first remlog as buffered file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
