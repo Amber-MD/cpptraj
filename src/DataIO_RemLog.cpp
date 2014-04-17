@@ -71,7 +71,8 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
   // Read dimension title
   const char* ptr = rd_file.Line();
   if (IsNullPtr( ptr )) return 1;
-  mprintf("\tremd.dim title: '%s'\n", ptr);
+  // ptr Should end with a newline
+  mprintf("\tReplica dimension file '%s' title: %s", rd_name.c_str(), ptr);
   // Read each &multirem section
   nRemdDimensions_ = 0;
   ArgList rd_arg;
@@ -102,8 +103,8 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
         }
         ptr = rd_file.Line();
       }
-      mprintf("\tDimension %i: type '%s' description '%s'\n", nRemdDimensions_,
-              dimTypeString[exch_type], desc.c_str()); 
+      mprintf("\tDimension %i: type '%s' description '%s' groups=%i\n", nRemdDimensions_,
+              dimTypeString[exch_type], desc.c_str(), nGroups); 
     }
     ptr = rd_file.Line();
   }
