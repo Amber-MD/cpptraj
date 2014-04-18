@@ -335,7 +335,51 @@ int DataIO_RemLog::MremdRead(std::vector<std::string> const& logFilenames,
   DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
   if (ds == 0) return 1;
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
-  ensemble.AllocateReplicas(n_mremd_replicas_); 
+  ensemble.AllocateReplicas(n_mremd_replicas_);
+  // Loop over all remlogs
+  for (std::vector<std::string>::const_iterator it = logFilenames.begin();
+                                                it != logFilenames.end(); ++it)
+  { 
+    // Open the current remlog, advance to first exchange
+    int numexchg = OpenMremdDims(buffer, *it);
+    if (numexchg == -1) return 1;
+    mprintf("\t%s should contain %i exchanges\n", it->c_str(), numexchg);
+    // Should now be positioned at 'exchange 1'.
+    // Loop over all exchanges.
+    ProgressBar progress( numexchg );
+    bool fileEOF = false;
+    const char* ptr = 0;
+    unsigned int current_dim = 0;
+    for (int exchg = 0; exchg < numexchg; exchg++) {
+      progress.Update( exchg );
+      // Loop over all groups in the current dimension
+      for (unsigned int grp = 0; grp < GroupDims_[current_dim].size(); grp++) {
+        // Loop over all replicas in the current group
+        for (unsigned int replica = 0; replica < GroupDims_[current_dim][grp].size(); replica++) {
+          // Read remlog line.
+          ptr = buffer[current_dim].Line();
+          if (ptr == 0) {
+            mprinterr("Error: reading remlog; unexpected EOF. Dim=%u, Exchg=%i, grp=%u, rep=%u\n",
+                      current_dim+1, exchg+1, grp+1, replica+1);
+            fileEOF = true;
+            // If this is not the first replica remove all partial replicas
+            if (replica > 0) ensemble.TrimLastExchange();
+            break;
+          }
+          
+        } // END loop over replicas in group
+        if ( fileEOF ) break; // Error occurred reading replicas, skip rest of groups.
+      } // END loop over groups in dimension
+      if ( fileEOF ) break; // Error occurred reading replicas, skip rest of exchanges.
+      // Currently each exchange the dimension alternates
+      ++current_dim;
+      if (current_dim == GroupDims_.size()) current_dim = 0;
+    } // END loop over exchanges in remlog
+  } // END loop over remlogs
+  if (!ensemble.ValidEnsemble()) {
+    mprinterr("Error: Ensemble is not valid.\n");
+    return 1;
+  }
 
   return 0;
 }
@@ -373,7 +417,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   mprintf("\tReading from log files:");
   for (std::vector<std::string>::const_iterator it = logFilenames.begin();
                                           it != logFilenames.end(); ++it)
-    mprintf(" %s", (*it).c_str());
+    mprintf(" %s", it->c_str());
   mprintf("\n");
   // Multidim replica read requires reading from multiple files
   if (!GroupDims_.empty()) return MremdRead( logFilenames, datasetlist, dsname );
@@ -439,10 +483,10 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     int numexchg = ReadRemlogHeader(buffer, thislog_type);
     if (thislog_type != firstlog_type) {
       mprinterr("Error: rem log %s type %s does not match first rem log.\n",
-                (*it).c_str(), ExchgDescription[thislog_type]);
+                it->c_str(), ExchgDescription[thislog_type]);
       return 1;
     }
-    mprintf("\t%s should contain %i exchanges\n", (*it).c_str(), numexchg);
+    mprintf("\t%s should contain %i exchanges\n", it->c_str(), numexchg);
     // Should now be positioned at 'exchange 1'.
     // Loop over all exchanges.
     ProgressBar progress( numexchg );
