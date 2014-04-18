@@ -313,6 +313,9 @@ int DataIO_RemLog::MremdRead(std::vector<std::string> const& logFilenames,
   // whats in the remd.dim file.
   // Potentially need a temperature map for each group in each dimension.
   std::vector< std::vector<DataSet_RemLog::TmapType> > TemperatureMap( GroupDims_.size() );
+  // Potentially need coordinate indices for each group in each dimension
+  std::vector< std::vector< std::vector<int> > > CoordinateIndices( GroupDims_.size() );
+  int maxGroupSize = 1; // Max # of replica frames needed to allocate
   for (int dim = 0; dim < (int)GroupDims_.size(); dim++) {
     int group_size = 0;
     if ( DimTypes_[dim] == TREMD ) {
@@ -324,13 +327,21 @@ int DataIO_RemLog::MremdRead(std::vector<std::string> const& logFilenames,
         mprintf("\t\tGroup %u: %i Temperature reps.\n", grp+1, group_size);
       }
     } else {
+      CoordinateIndices[dim].resize( GroupDims_[dim].size() );
       for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
         group_size = CountHamiltonianReps( buffer[dim] );
         if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
+        if (group_size > maxGroupSize) maxGroupSize = group_size;
         mprintf("\t\tGroup %u: %i Hamiltonian reps.\n", grp+1, group_size);
+        // Set initial coord indices equal to replica (starting from 1)
+        CoordinateIndices[dim][grp].resize( group_size );
+        for (int replica = 0; replica < group_size; replica++)
+          CoordinateIndices[dim][grp][replica] = replica + 1;
       } 
     }
   } // END loop over replica dimensions
+  mprintf("\tMaximum group size= %i\n", maxGroupSize);
+  std::vector<DataSet_RemLog::ReplicaFrame> replicaFrames( maxGroupSize );
   // Allocate replica log DataSet
   DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
   if (ds == 0) return 1;
@@ -366,9 +377,48 @@ int DataIO_RemLog::MremdRead(std::vector<std::string> const& logFilenames,
             if (replica > 0) ensemble.TrimLastExchange();
             break;
           }
-          
+          // -------------------------------------
+          // ----- T-REMD ----------------------------
+          if (DimTypes_[current_dim] == TREMD) {
+            if (replicaFrames[0].SetTremdFrame( ptr, TemperatureMap[current_dim][grp] )) {
+              mprinterr("Error reading TREMD line from rem log. Dim=%u, Exchg=%i, grp=%u, rep=%u\n",
+                        current_dim+1, exchg+1, grp+1, replica+1);
+              mprinterr("Error: Line: %s", ptr);
+              return 1;
+            }
+            // Add replica frame to appropriate ensemble
+            int ensembleRepNum = GroupDims_[current_dim][grp][replicaFrames[0].ReplicaIdx()-1].Me();
+            ensemble.AddRepFrame( ensembleRepNum-1, replicaFrames[0] );
+          // ----- H-REMD ----------------------------
+          } else if (DimTypes_[current_dim] == HREMD) {
+            if (replicaFrames[replica].SetHremdFrame( ptr, CoordinateIndices[current_dim][grp] )) {
+              mprinterr("Error reading HREMD line from rem log. Dim=%u, Exchg=%i, grp=%u, rep=%u\n",
+                        current_dim+1, exchg+1, grp+1, replica+1);
+              mprinterr("Error: Line: %s", ptr);
+              return 1;
+            }
+            // Add replica frame to appropriate ensemble
+            int ensembleRepNum = GroupDims_[current_dim][grp][replica].Me();
+            ensemble.AddRepFrame( ensembleRepNum-1, replicaFrames[replica] );
+          // -----------------------------------------
+          } else {
+            mprinterr("Error: remlog; unknown type.\n");
+          }
+          // -------------------------------------
         } // END loop over replicas in group
         if ( fileEOF ) break; // Error occurred reading replicas, skip rest of groups.
+        if (DimTypes_[current_dim] == HREMD) {
+          // Update coordinate indices.
+          //mprintf("DEBUG: exchange= %i:\n", exchg + 1);
+          for (unsigned int replica = 0; replica < GroupDims_[current_dim][grp].size(); replica++)
+          {
+            //mprintf("DEBUG:\tReplica %i crdidx %i =>", replica+1, coordinateIndices[replica]);
+            CoordinateIndices[current_dim][grp][replica] = replicaFrames[replica].CoordsIdx();
+            //mprintf(" %i\n", coordinateIndices[replica]); // DEBUG
+          }
+        }
+        // Read next group exchange line.
+        ptr = buffer[current_dim].Line();
       } // END loop over groups in dimension
       if ( fileEOF ) break; // Error occurred reading replicas, skip rest of exchanges.
       // Currently each exchange the dimension alternates
