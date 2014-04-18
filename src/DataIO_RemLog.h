@@ -16,13 +16,14 @@ class DataIO_RemLog : public DataIO {
     int WriteData3D(std::string const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
+    enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD };
+    int ReadRemlogHeader(BufferedLine&, ExchgType&) const;
+    int ReadRemdDimFile(std::string const&);
     DataSet_RemLog::TmapType SetupTemperatureMap(BufferedLine&) const;
     int CountHamiltonianReps(BufferedLine&) const;
+    int OpenMremdDims(std::vector<BufferedLine>&, std::string const&) const;
     int MremdRead(std::vector<std::string> const&, DataSetList&, std::string const&);
- 
-    enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD };
-    int ReadRemlogHeader(BufferedLine&, ExchgType&);
-    int ReadRemdDimFile(std::string const&);
+
     int debug_;
     int n_mremd_replicas_;
     class GroupReplica;
