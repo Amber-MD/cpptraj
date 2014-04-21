@@ -71,6 +71,7 @@ static inline bool IsNullPtr( const char* ptr ) {
 }
 
 // DataIO_RemLog::ReadRemdDimFile()
+// TODO: Handle cases where groups are not in order.
 int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
   BufferedLine rd_file;
   if (rd_file.OpenFileRead( rd_name )) {
@@ -429,7 +430,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     }
   } // END loop over replica dimensions
   // DEBUG: Print out dimension layout
-  //if (debug_ > 0) {
+  if (debug_ > 0) {
     for (std::vector<GroupDimType>::const_iterator Dim = GroupDims_.begin();
                                                    Dim != GroupDims_.end(); ++Dim)
     {
@@ -443,7 +444,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
           mprintf("\t\tReplica[%u]= %i\n", Rep - Group->begin(), Rep->Me());
       }
     }
-  //}
+  }
   // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
   std::vector<int> CoordinateIndices( n_mremd_replicas_ );
   for (int repidx = 0; repidx < n_mremd_replicas_; repidx++) {
