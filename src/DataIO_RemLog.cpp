@@ -297,10 +297,41 @@ void DataIO_RemLog::SetupDim1Group( int group_size ) {
   n_mremd_replicas_ = group_size;
 }  
 
-// DataIO_RemLog::MremdRead()
-int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname,
-                             bool searchForLogs)
+// DataIO_RemLog::ReadData()
+int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
+                            DataSetList& datasetlist, std::string const& dsname)
 {
+  if (!fileExists( fname )) {
+    mprinterr("Error: File '%s' does not exist.\n", fname.c_str());
+    return 1;
+  }
+  logFilenames_.push_back( fname );
+  bool searchForLogs = !argIn.hasKey("nosearch");
+  // Get dimfile arg
+  std::string dimfile = argIn.GetStringKey("dimfile");
+  if (!dimfile.empty()) {
+    if (ReadRemdDimFile( dimfile )) {
+      mprinterr("Error: Reading remd.dim file '%s'\n", dimfile.c_str());
+      return 1;
+    }
+    mprintf("\tExpecting %zu replica dimensions.\n", GroupDims_.size());
+  }
+  // Get crdidx arg
+  ArgList idxArgs( argIn.GetStringKey("crdidx"), "," );
+  // Check if more than one log name was specified.
+  std::string log_name = argIn.GetStringNext();
+  while (!log_name.empty()) {
+    if (!fileExists( log_name ))
+      mprintf("Warning: '%s' does not exist.\n", log_name.c_str());
+    else
+      logFilenames_.push_back( log_name );
+    log_name = argIn.GetStringNext();
+  }
+  mprintf("\tReading from log files:");
+  for (Sarray::const_iterator it = logFilenames_.begin(); it != logFilenames_.end(); ++it)
+    mprintf(" %s", it->c_str());
+  mprintf("\n");
+  // ---------------------------------------------
   typedef std::vector<Sarray> LogGroupType;
   LogGroupType logFileGroups;
   if (GroupDims_.empty()) {
@@ -313,58 +344,59 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
   } else {
     // M-REMD
     processMREMD_ = true;
-  // Ensure that each replica log has counterparts for each dimension
-  // TODO: Read all headers and check dimensions in log.
-  // Two cases; all log files were specified, or only lowest logs were specified.
-  if ( searchForLogs ) { 
-    FileName fname;
-    for (Sarray::const_iterator logfile = logFilenames_.begin();
-                                logfile != logFilenames_.end(); ++logfile)
-    {
+    // Ensure that each replica log has counterparts for each dimension
+    // TODO: Read all headers and check dimensions in log.
+    // Two cases; all log files were specified, or only lowest logs were specified.
+    if ( searchForLogs ) { 
+      FileName fname;
+      for (Sarray::const_iterator logfile = logFilenames_.begin();
+                                  logfile != logFilenames_.end(); ++logfile)
+      {
+        Sarray dimLogs;
+        fname.SetFileName( *logfile );
+        // Remove leading '.'
+        std::string logExt = fname.Ext();
+        if (logExt[0] == '.') logExt.erase(0,1);
+        if ( !validInteger(logExt) ) {
+          mprinterr("Error: MREMD log %s does not have valid numerical extension.\n", fname.full());
+          return 1;
+        }
+        std::string Prefix = GetPrefix( fname );
+        int numericalExt = convertToInteger( logExt );
+        if (numericalExt != 1) {
+          mprinterr("Error: Must specify MREMD log for dimension 1 (i.e. '%s.1')\n", 
+                    Prefix.c_str());
+          return 1;
+        }
+        dimLogs.push_back( *logfile );
+        for (int idim = 2; idim <= (int)GroupDims_.size(); idim++) {
+          std::string logname = Prefix + "." + integerToString( idim );
+          if ( !fileExists(logname) ) {
+            mprinterr("Error: MREMD log not found for dimension %i, '%s'\n",
+                      idim, logname.c_str());
+            return 1;
+          }
+          dimLogs.push_back( logname );
+        }
+        logFileGroups.push_back( dimLogs );
+      }
+    } else {
+      // All logs specified. Assume they are given in order.
       Sarray dimLogs;
-      fname.SetFileName( *logfile );
-      // Remove leading '.'
-      std::string logExt = fname.Ext();
-      if (logExt[0] == '.') logExt.erase(0,1);
-      if ( !validInteger(logExt) ) {
-        mprinterr("Error: MREMD log %s does not have valid numerical extension.\n", fname.full());
-        return 1;
-      }
-      std::string Prefix = GetPrefix( fname );
-      int numericalExt = convertToInteger( logExt );
-      if (numericalExt != 1) {
-        mprinterr("Error: Must specify MREMD log for dimension 1 (i.e. '%s.1')\n", Prefix.c_str());
-        return 1;
-      }
-      dimLogs.push_back( *logfile );
-      for (int idim = 2; idim <= (int)GroupDims_.size(); idim++) {
-        std::string logname = Prefix + "." + integerToString( idim );
-        if ( !fileExists(logname) ) {
-          mprinterr("Error: MREMD log not found for dimension %i, '%s'\n",
-                    idim, logname.c_str());
-          return 1;
+      Sarray::const_iterator logfile = logFilenames_.begin();
+      while (logfile != logFilenames_.end()) {
+        dimLogs.clear();
+        for (unsigned int dim = 0; dim < GroupDims_.size(); dim++) {
+          if (logfile == logFilenames_.end()) {
+            mprinterr("Error: Ran out of MREMD logs, run %zu, dimension %u\n",
+                      logFileGroups.size() + 1, dim + 1);
+            return 1;
+          }
+          dimLogs.push_back( *(logfile++) );
         }
-        dimLogs.push_back( logname );
+        logFileGroups.push_back( dimLogs );
       }
-      logFileGroups.push_back( dimLogs );
     }
-  } else {
-    // All logs specified. Assume they are given in order.
-    Sarray dimLogs;
-    Sarray::const_iterator logfile = logFilenames_.begin();
-    while (logfile != logFilenames_.end()) {
-      dimLogs.clear();
-      for (unsigned int dim = 0; dim < GroupDims_.size(); dim++) {
-        if (logfile == logFilenames_.end()) {
-          mprinterr("Error: Ran out of MREMD logs, run %zu, dimension %u\n",
-                    logFileGroups.size() + 1, dim + 1);
-          return 1;
-        }
-        dimLogs.push_back( *(logfile++) );
-      }
-      logFileGroups.push_back( dimLogs );
-    }
-  }
   }    
   // Set up temperature maps/coordinate index arrays for each dim/group.
   // Base this on the first set of MREMD replica logs.
@@ -414,8 +446,25 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
   //}
   // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
   std::vector<int> CoordinateIndices( n_mremd_replicas_ );
-  for (int repidx = 0; repidx < n_mremd_replicas_; repidx++)
-     CoordinateIndices[repidx] = repidx + 1;
+  for (int repidx = 0; repidx < n_mremd_replicas_; repidx++) {
+    if (idxArgs.empty())
+      CoordinateIndices[repidx] = repidx + 1;
+    else {// TODO: Check replica index range
+      CoordinateIndices[repidx] = idxArgs.getNextInteger(0);
+      if (CoordinateIndices[repidx] < 0 || CoordinateIndices[repidx] > n_mremd_replicas_ )
+      {
+        mprinterr("Error: Given coordinate index out of range or not enough indices given.\n");
+        return 1;
+      }
+    }
+  }
+  if (!idxArgs.empty()) {
+    mprintf("\tInitial coordinate indices:");
+    for (std::vector<int>::const_iterator c = CoordinateIndices.begin();
+                                          c != CoordinateIndices.end(); ++c)
+      mprintf(" %i", *c);
+    mprintf("\n");
+  }
   // Allocate replica log DataSet
   DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
   if (ds == 0) return 1;
@@ -451,6 +500,13 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
             break;
           }
           // ----- T-REMD ----------------------------
+          /* Format:
+           * '(i2,6f10.2,i8)'
+          # Rep#, Velocity Scaling, T, Eptot, Temp0, NewTemp0, Success rate (i,i+1), ResStruct#
+            1     -1.00      0.00   -433.24    300.00    300.00      0.00      -1
+           * Order during REMD is exchange -> MD, so NewTemp0 is the temp. that gets
+           * simulated. TODO: Is that valid?
+           */
           if (DimTypes_[current_dim] == TREMD) {
             int tremd_crdidx, current_crdidx; // TODO: Remove tremd_crdidx
             double tremd_scaling, tremd_pe, tremd_temp0, tremd_tempP;
@@ -497,6 +553,11 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
                                                tremd_success,
                                                tremd_temp0, tremd_pe, 0.0) );
           // ----- H-REMD ----------------------------
+          /* Format:
+           * '(2i6,5f10.2,4x,a,2x,f10.2)'
+       # Rep#, Neibr#, Temp0, PotE(x_1), PotE(x_2), left_fe, right_fe, Success, Success rate (i,i+1)
+            1     8    300.00 -25011.03 -24959.58    -27.48      0.00    F        0.00
+           */
           } else if (DimTypes_[current_dim] == HREMD) {
             int hremd_grp_repidx, hremd_grp_partneridx, current_crdidx;
             double hremd_temp0, hremd_pe_x1, hremd_pe_x2;
@@ -563,175 +624,7 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
   }
   if (debug_ > 1)
     PrintReplicaStats( ensemble );
-
-  return 0;
-}
-  
-// DataIO_RemLog::ReadData()
-int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
-                            DataSetList& datasetlist, std::string const& dsname)
-{
-  if (!fileExists( fname )) {
-    mprinterr("Error: File '%s' does not exist.\n", fname.c_str());
-    return 1;
-  }
-  logFilenames_.push_back( fname );
-  bool searchForLogs = !argIn.hasKey("nosearch");
-  // Get dimfile arg
-  std::string dimfile = argIn.GetStringKey("dimfile");
-  if (!dimfile.empty()) {
-    if (ReadRemdDimFile( dimfile )) {
-      mprinterr("Error: Reading remd.dim file '%s'\n", dimfile.c_str());
-      return 1;
-    }
-    mprintf("\tExpecting %zu replica dimensions.\n", GroupDims_.size());
-  }
-  // Get crdidx arg
-  ArgList idxArgs( argIn.GetStringKey("crdidx"), "," );
-  // Check if more than one log name was specified.
-  std::string log_name = argIn.GetStringNext();
-  while (!log_name.empty()) {
-    if (!fileExists( log_name ))
-      mprintf("Warning: '%s' does not exist.\n", log_name.c_str());
-    else
-      logFilenames_.push_back( log_name );
-    log_name = argIn.GetStringNext();
-  }
-  mprintf("\tReading from log files:");
-  for (Sarray::const_iterator it = logFilenames_.begin(); it != logFilenames_.end(); ++it)
-    mprintf(" %s", it->c_str());
-  mprintf("\n");
-  // Multidim replica read requires reading from multiple files
-  //if (!GroupDims_.empty()) 
-  return MremdRead( datasetlist, dsname, searchForLogs );
-  // Open first remlog as buffered file
-  BufferedLine buffer;
-  if (buffer.OpenFileRead( fname )) return 1;
-  // Read the first line. Should be '# Replica Exchange log file'
-  ExchgType firstlog_type = UNKNOWN;
-  if (ReadRemlogHeader(buffer, firstlog_type) == -1) return 1;
-  // Should currently be positioned at the first exchange. Need to read this
-  // to determine how many replicas there are (and temperature for T-REMD).
-  int n_replicas = 0;
-  DataSet_RemLog::TmapType TemperatureMap;
-  if (firstlog_type == TREMD) {
-    TemperatureMap = SetupTemperatureMap( buffer );
-    n_replicas = (int)TemperatureMap.size();
-  } else
-    n_replicas = CountHamiltonianReps( buffer );
-  mprintf("\t%i %s replicas.\n", n_replicas, ExchgDescription[firstlog_type]);
-  if (n_replicas < 1) {
-    mprinterr("Error: Detected less than 1 replica in remlog.\n");
-    return 1;
-  } 
-  // Allocate replica log DataSet
-  DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
-  if (ds == 0) return 1;
-  DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
-  ensemble.AllocateReplicas(n_replicas);
-  std::vector<DataSet_RemLog::ReplicaFrame> replicaFrames;
-  std::vector<int> coordinateIndices;
-  if (firstlog_type == HREMD) {
-    replicaFrames.resize( n_replicas );
-    if (!idxArgs.empty() && idxArgs.Nargs() != n_replicas) {
-      mprinterr("Error: crdidx: Ensemble size is %i but only %i indices given!\n",
-                n_replicas, idxArgs.Nargs());
-      return 1;
-    }
-    // All coord indices start equal to replica indices.
-    // Indices start from 1 in remlogs (H-REMD only).
-    coordinateIndices.resize( n_replicas );
-    mprintf("\tInitial H-REMD coordinate indices:");
-    for (int replica = 0; replica < n_replicas; replica++) {
-      if (idxArgs.empty())
-        coordinateIndices[replica] = replica+1;
-      else // TODO: Check replica index range
-        coordinateIndices[replica] = idxArgs.getNextInteger(0);
-      mprintf(" %i", coordinateIndices[replica]);
-    }
-    mprintf("\n");
-  } else if (firstlog_type == TREMD)
-    replicaFrames.resize(1);
-  // Close first remlog 
-  buffer.CloseFile();
-
-  for (Sarray::const_iterator it = logFilenames_.begin(); it != logFilenames_.end(); ++it)
-  {
-    // Open the current remlog, advance to first exchange
-    if (buffer.OpenFileRead( *it )) return 1;
-    //ptr = buffer.Line();
-    //while (ptr[0] == '#' && ptr[2] != 'e' && ptr[3] != 'x') ptr = buffer.Line();
-    ExchgType thislog_type = UNKNOWN;
-    int numexchg = ReadRemlogHeader(buffer, thislog_type);
-    if (thislog_type != firstlog_type) {
-      mprinterr("Error: rem log %s type %s does not match first rem log.\n",
-                it->c_str(), ExchgDescription[thislog_type]);
-      return 1;
-    }
-    mprintf("\t%s should contain %i exchanges\n", it->c_str(), numexchg);
-    // Should now be positioned at 'exchange 1'.
-    // Loop over all exchanges.
-    ProgressBar progress( numexchg );
-    bool fileEOF = false;
-    const char* ptr = 0;
-    for (int exchg = 0; exchg < numexchg; exchg++) {
-      progress.Update( exchg );
-      for (int replica = 0; replica < n_replicas; replica++) {
-        // Read remlog line.
-        ptr = buffer.Line();
-        if (ptr == 0) {
-          mprinterr("Error: reading remlog; unexpected end of file. Exchange=%i, replica=%i\n",
-                    exchg+1, replica+1);
-          fileEOF = true;
-          // If this is not the first replica remove all partial replicas
-          if (replica > 0) ensemble.TrimLastExchange();
-          break;
-        }
-        // ----- T-REMD ----------------------------
-        if (thislog_type == TREMD) {
-          if (replicaFrames[0].SetTremdFrame( ptr, TemperatureMap )) {
-          mprinterr("Error reading TREMD line from rem log. Exchange=%i, replica=%i\n",
-                      exchg+1, replica+1);
-            return 1;
-          }
-          // Add replica frame to appropriate ensemble
-          ensemble.AddRepFrame( replicaFrames[0].ReplicaIdx()-1, replicaFrames[0] );
-        // ----- H-REMD ----------------------------
-        } else if (thislog_type == HREMD) {
-          if (replicaFrames[replica].SetHremdFrame( ptr, coordinateIndices )) {
-            mprinterr("Error reading HREMD line from rem log. Exchange=%i, replica=%i\n",
-                      exchg+1, replica+1);
-            return 1;
-          }
-          // Add replica frame to appropriate ensemble
-          ensemble.AddRepFrame( replica, replicaFrames[replica] );
-        // -----------------------------------------
-        } else {
-          mprinterr("Error: remlog; unknown type.\n");
-        }
-      }
-      if ( fileEOF ) break; // Error occurred reading replicas, skip rest of exchanges.
-      if (thislog_type == HREMD) {
-        // Update coordinate indices.
-        //mprintf("DEBUG: exchange= %i:\n", exchg + 1);
-        for (int replica = 0; replica < n_replicas; replica++) {
-          //mprintf("DEBUG:\tReplica %i crdidx %i =>", replica+1, coordinateIndices[replica]);
-          coordinateIndices[replica] = replicaFrames[replica].CoordsIdx();
-          //mprintf(" %i\n", coordinateIndices[replica]); // DEBUG
-        }
-      }
-      // Read 'exchange N' line.
-      ptr = buffer.Line();
-    } // END loop over exchanges
-    buffer.CloseFile();
-  } // END loop over remlog files
-  if (!ensemble.ValidEnsemble()) {
-    mprinterr("Error: Ensemble is not valid.\n");
-    return 1;
-  }
-  // DEBUG - Print out replica 1 stats
-  if (debug_ > 1)
-    PrintReplicaStats( ensemble );
+  // ---------------------------------------------
 
   return 0;
 }

@@ -48,8 +48,6 @@ class DataSet_RemLog::ReplicaFrame {
     ReplicaFrame(int r, int p, int c, bool s, double t0, double pe1, double pe2) :
       replicaIdx_(r), partnerIdx_(p), coordsIdx_(c), success_(s), 
       temp0_(t0), PE_x1_(pe1), PE_x2_(pe2) {}
-    int SetTremdFrame( const char*, TmapType const& );
-    int SetHremdFrame( const char*, std::vector<int> const& );
     int ReplicaIdx() const { return replicaIdx_; }
     int PartnerIdx() const { return partnerIdx_; }
     int CoordsIdx()  const { return coordsIdx_;  }
