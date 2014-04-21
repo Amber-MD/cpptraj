@@ -24,6 +24,7 @@ class DataIO_RemLog : public DataIO {
     int CountHamiltonianReps(BufferedLine&) const;
     int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&) const;
     int MremdRead(DataSetList&, std::string const&, bool);
+    void PrintReplicaStats(DataSet_RemLog const&);
 
     int debug_;
     Sarray logFilenames_; ///< Replica log file names.
