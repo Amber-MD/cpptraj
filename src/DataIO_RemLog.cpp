@@ -163,8 +163,10 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
 
 // DataIO_RemLog::ReadHelp()
 void DataIO_RemLog::ReadHelp() {
-  mprintf("\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
-          "\t                      coordinate indices (H-REMD only).\n"
+  mprintf("\t[nosearch]          : Do not automatically search for MREMD dimension logs.\n"
+          "\t[dimfile <file>]    : remd.dim file for processing MREMD logs.\n"
+          "\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
+          "\t                      coordinate indices.\n"
           "\tMultiple REM logs may be specified.\n");
 }
 
