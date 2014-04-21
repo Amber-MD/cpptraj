@@ -158,18 +158,18 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
     return 1;
   }
   // DEBUG: Print out dimension layout
-  for (std::vector<GroupDimType>::const_iterator Dim = GroupDims_.begin();
-                                                 Dim != GroupDims_.end(); ++Dim)
-  {
-    mprintf("Dimension %u:\n", Dim - GroupDims_.begin());
-    for (GroupDimType::const_iterator Group = Dim->begin();
-                                      Group != Dim->end(); ++Group)
+  if (debug_ > 0) {
+    for (std::vector<GroupDimType>::const_iterator Dim = GroupDims_.begin();
+                                                   Dim != GroupDims_.end(); ++Dim)
     {
-      mprintf("\tGroup %u:\n", Group - Dim->begin());
-      for (GroupArray::const_iterator Rep = Group->begin();
-                                      Rep != Group->end(); ++Rep)
+      mprintf("Dimension %u:\n", Dim - GroupDims_.begin());
+      for (GroupDimType::const_iterator Group = Dim->begin();
+                                        Group != Dim->end(); ++Group)
       {
-        mprintf("\t\tReplica[%u]= %i\n", Rep - Group->begin(), Rep->Me());
+        mprintf("\tGroup %u:\n", Group - Dim->begin());
+        for (GroupArray::const_iterator Rep = Group->begin();
+                                        Rep != Group->end(); ++Rep)
+          mprintf("\t\tReplica[%u]= %i\n", Rep - Group->begin(), Rep->Me());
       }
     }
   }
@@ -393,12 +393,12 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
     //mprintf("\t%s should contain %i exchanges\n", it->front().c_str(), numexchg);
     // Should now be positioned at 'exchange 1'.
     // Loop over all exchanges.
-//    ProgressBar progress( numexchg ); // DEBUG
+    ProgressBar progress( numexchg );
     bool fileEOF = false;
     const char* ptr = 0;
     unsigned int current_dim = 0;
     for (int exchg = 0; exchg < numexchg; exchg++) {
-//      progress.Update( exchg ); // DEBUG
+      progress.Update( exchg );
       // Loop over all groups in the current dimension
       for (unsigned int grp = 0; grp < GroupDims_[current_dim].size(); grp++) {
         // Loop over all replicas in the current group
@@ -413,7 +413,6 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
             if (replica > 0) ensemble.TrimLastExchange();
             break;
           }
-          // -------------------------------------
           // ----- T-REMD ----------------------------
           if (DimTypes_[current_dim] == TREMD) {
             int tremd_crdidx, current_crdidx; // TODO: Remove tremd_crdidx
@@ -436,8 +435,8 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
             }
             // What is my actual position? Currently mapped rep nums start from 1
             int tremd_repidx = GroupDims_[current_dim][grp][tmap->second - 1].Me();
-            mprintf("DEBUG: Exchg %i Tdim# %u T=%g group_repidx=%i repidx=%i\n",
-                    exchg+1, current_dim, tremd_temp0, tmap->second, tremd_repidx);
+            //mprintf("DEBUG: Exchg %i Tdim# %u T=%g group=%u group_repidx=%i repidx=%i\n",
+            //        exchg+1, current_dim+1, tremd_temp0, grp+1, tmap->second, tremd_repidx);
             // Who is my partner? ONLY VALID IF EXCHANGE OCCURS
             tmap = TemperatureMap[current_dim].find( tremd_tempP ); // TODO: Make function
             if (tmap == TemperatureMap[current_dim].end()) {
@@ -476,8 +475,8 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
             // What is my actual position and who is my actual partner?
             int hremd_repidx = GroupDims_[current_dim][grp][hremd_grp_repidx-1].Me();
             int hremd_partneridx = GroupDims_[current_dim][grp][hremd_grp_partneridx-1].Me();
-            mprintf("DEBUG: Exchg %i Hdim# %u group_repidx=%i repidx=%i\n",
-                    exchg+1, current_dim, hremd_grp_repidx, hremd_repidx);
+            //mprintf("DEBUG: Exchg %i Hdim# %u group=%u group_repidx=%i repidx=%i\n",
+            //        exchg+1, current_dim+1, grp+1, hremd_grp_repidx, hremd_repidx);
             // Determine if an exchange occurred
             switch ( ptr[66] ) {
               case 'T': hremd_success = true; break;
@@ -502,7 +501,7 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
           } else {
             mprinterr("Error: remlog; unknown type.\n");
           }
-          // -------------------------------------
+          // -----------------------------------------
         } // END loop over replicas in group
         if ( fileEOF ) break; // Error occurred reading replicas, skip rest of groups.
         // Read next group exchange line.
@@ -525,7 +524,8 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
     mprinterr("Error: Ensemble is not valid.\n");
     return 1;
   }
-  PrintReplicaStats( ensemble );
+  if (debug_ > 1)
+    PrintReplicaStats( ensemble );
 
   return 0;
 }
@@ -692,7 +692,8 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     return 1;
   }
   // DEBUG - Print out replica 1 stats
-  PrintReplicaStats( ensemble );
+  if (debug_ > 1)
+    PrintReplicaStats( ensemble );
 
   return 0;
 }
