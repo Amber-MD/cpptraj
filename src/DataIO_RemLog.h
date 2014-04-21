@@ -22,13 +22,15 @@ class DataIO_RemLog : public DataIO {
     int ReadRemdDimFile(std::string const&);
     DataSet_RemLog::TmapType SetupTemperatureMap(BufferedLine&) const;
     int CountHamiltonianReps(BufferedLine&) const;
-    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&) const;
+    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&);
+    void SetupDim1Group( int );
     int MremdRead(DataSetList&, std::string const&, bool);
     void PrintReplicaStats(DataSet_RemLog const&);
 
     int debug_;
     Sarray logFilenames_; ///< Replica log file names.
     int n_mremd_replicas_;
+    bool processMREMD_;
     class GroupReplica;
     typedef std::vector<GroupReplica> GroupArray;
     typedef std::vector<GroupArray> GroupDimType;

@@ -6,7 +6,7 @@
 #include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
-DataIO_RemLog::DataIO_RemLog() : debug_(0), n_mremd_replicas_(0) {
+DataIO_RemLog::DataIO_RemLog() : debug_(0), n_mremd_replicas_(0), processMREMD_(false) {
   SetValid( DataSet::REMLOG );
 }
 
@@ -157,23 +157,6 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
     mprinterr("Error: No replica dimensions found.\n");
     return 1;
   }
-  // DEBUG: Print out dimension layout
-  if (debug_ > 0) {
-    for (std::vector<GroupDimType>::const_iterator Dim = GroupDims_.begin();
-                                                   Dim != GroupDims_.end(); ++Dim)
-    {
-      mprintf("Dimension %u:\n", Dim - GroupDims_.begin());
-      for (GroupDimType::const_iterator Group = Dim->begin();
-                                        Group != Dim->end(); ++Group)
-      {
-        mprintf("\tGroup %u:\n", Group - Dim->begin());
-        for (GroupArray::const_iterator Rep = Group->begin();
-                                        Rep != Group->end(); ++Rep)
-          mprintf("\t\tReplica[%u]= %i\n", Rep - Group->begin(), Rep->Me());
-      }
-    }
-  }
-
   return 0;
 }
 
@@ -254,7 +237,7 @@ static inline int MremdNrepsError(int n_replicas, int dim, int groupsize) {
   * \return Expected number of exchanges
   */
 int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer, 
-                                 Sarray const& dimLogs) const
+                                 Sarray const& dimLogs)
 {
   // Sanity check
   if (buffer.size() != dimLogs.size()) {
@@ -280,13 +263,39 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer,
                 "Error: number of expected exchanges in first dimension.\n", dim + 1);
       return -1;
     }
-    if (log_type != MREMD) {
-      mprinterr("Error: Log type is not MREMD.\n");
-      return -1;
+    if ( processMREMD_ ) {
+      if (log_type != MREMD) {
+        mprinterr("Error: Log type is not MREMD.\n");
+        return -1;
+      }
+    } else {
+      // Single dimension. Record log type, ensure subsqeuent opens match.
+      if (DimTypes_.empty())
+        DimTypes_.push_back( log_type );
+      else if ( log_type != DimTypes_.front() ) {
+        mprinterr("Error: Log type of %s does not match first log type.\n", 
+                  buffer[dim].Filename().full());
+        return -1;
+      }
     }
   }
   return total_exchanges;
 }
+
+/** For non-MREMD runs, setup dimension 1 group. */
+void DataIO_RemLog::SetupDim1Group( int group_size ) {
+  if (GroupDims_.empty()) GroupDims_.resize( 1 );
+  GroupDims_[0].resize( 1 );
+  for (int replica = 0; replica < group_size; replica++) {
+    int me = replica + 1;
+    int l_partner = me - 1;
+    if (l_partner < 1) l_partner = group_size;
+    int r_partner = me + 1;
+    if (r_partner > group_size) r_partner = 1;
+    GroupDims_[0][0].push_back( GroupReplica(l_partner, me, r_partner) );
+  }
+  n_mremd_replicas_ = group_size;
+}  
 
 // DataIO_RemLog::MremdRead()
 int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname,
@@ -294,6 +303,16 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
 {
   typedef std::vector<Sarray> LogGroupType;
   LogGroupType logFileGroups;
+  if (GroupDims_.empty()) {
+    // Not M-REMD; T-REMD or H-REMD. Single dimension.
+    processMREMD_ = false;
+    GroupDims_.resize( 1 );
+    for (Sarray::const_iterator logfile = logFilenames_.begin();
+                                logfile != logFilenames_.end(); ++logfile)
+      logFileGroups.push_back( Sarray( 1, *logfile ) );
+  } else {
+    // M-REMD
+    processMREMD_ = true;
   // Ensure that each replica log has counterparts for each dimension
   // TODO: Read all headers and check dimensions in log.
   // Two cases; all log files were specified, or only lowest logs were specified.
@@ -346,7 +365,7 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
       logFileGroups.push_back( dimLogs );
     }
   }
-      
+  }    
   // Set up temperature maps/coordinate index arrays for each dim/group.
   // Base this on the first set of MREMD replica logs.
   // Open remlogs for each dimension as buffered file.
@@ -358,27 +377,45 @@ int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname
   // whats in the remd.dim file.
   // Temperature map for dimensions (if needed) 
   std::vector<DataSet_RemLog::TmapType> TemperatureMap( GroupDims_.size() );
-  // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
-  std::vector<int> CoordinateIndices( n_mremd_replicas_ );
-  for (int repidx = 0; repidx < n_mremd_replicas_; repidx++)
-     CoordinateIndices[repidx] = repidx + 1;
   for (int dim = 0; dim < (int)GroupDims_.size(); dim++) {
     int group_size = 0;
     if ( DimTypes_[dim] == TREMD ) {
       TemperatureMap[dim] = SetupTemperatureMap( buffer[dim] );
       group_size = (int)TemperatureMap[dim].size();
       mprintf("\t\tDim %i: %i Temperature reps.\n", dim+1, group_size);
+      if (!processMREMD_) SetupDim1Group( group_size );
       for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
         if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
       }
     } else {
       group_size = CountHamiltonianReps( buffer[dim] );
       mprintf("\t\tDim %i: %i Hamiltonian reps.\n", dim+1, group_size);
+      if (!processMREMD_) SetupDim1Group( group_size );
       for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
         if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
       } 
     }
   } // END loop over replica dimensions
+  // DEBUG: Print out dimension layout
+  //if (debug_ > 0) {
+    for (std::vector<GroupDimType>::const_iterator Dim = GroupDims_.begin();
+                                                   Dim != GroupDims_.end(); ++Dim)
+    {
+      mprintf("Dimension %u:\n", Dim - GroupDims_.begin());
+      for (GroupDimType::const_iterator Group = Dim->begin();
+                                        Group != Dim->end(); ++Group)
+      {
+        mprintf("\tGroup %u:\n", Group - Dim->begin());
+        for (GroupArray::const_iterator Rep = Group->begin();
+                                        Rep != Group->end(); ++Rep)
+          mprintf("\t\tReplica[%u]= %i\n", Rep - Group->begin(), Rep->Me());
+      }
+    }
+  //}
+  // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
+  std::vector<int> CoordinateIndices( n_mremd_replicas_ );
+  for (int repidx = 0; repidx < n_mremd_replicas_; repidx++)
+     CoordinateIndices[repidx] = repidx + 1;
   // Allocate replica log DataSet
   DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
   if (ds == 0) return 1;
@@ -565,7 +602,8 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     mprintf(" %s", it->c_str());
   mprintf("\n");
   // Multidim replica read requires reading from multiple files
-  if (!GroupDims_.empty()) return MremdRead( datasetlist, dsname, searchForLogs );
+  //if (!GroupDims_.empty()) 
+  return MremdRead( datasetlist, dsname, searchForLogs );
   // Open first remlog as buffered file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
