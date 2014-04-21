@@ -17,14 +17,16 @@ class DataIO_RemLog : public DataIO {
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD };
+    typedef std::vector<std::string> Sarray;
     int ReadRemlogHeader(BufferedLine&, ExchgType&) const;
     int ReadRemdDimFile(std::string const&);
     DataSet_RemLog::TmapType SetupTemperatureMap(BufferedLine&) const;
     int CountHamiltonianReps(BufferedLine&) const;
-    int OpenMremdDims(std::vector<BufferedLine>&, std::string const&) const;
-    int MremdRead(std::vector<std::string> const&, DataSetList&, std::string const&);
+    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&) const;
+    int MremdRead(DataSetList&, std::string const&, bool);
 
     int debug_;
+    Sarray logFilenames_; ///< Replica log file names.
     int n_mremd_replicas_;
     class GroupReplica;
     typedef std::vector<GroupReplica> GroupArray;

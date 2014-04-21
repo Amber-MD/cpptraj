@@ -169,6 +169,7 @@ void DataIO_RemLog::ReadHelp() {
 }
 
 /// Get filename up to extension
+//TODO May not need to be its own function. Make a general FileName function?
 static inline std::string GetPrefix(FileName const& fname) {
   size_t found = fname.Full().rfind( fname.Ext() );
   return fname.Full().substr(0, found);
@@ -237,23 +238,25 @@ static inline int MremdNrepsError(int n_replicas, int dim, int groupsize) {
   * \return Expected number of exchanges
   */
 int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer, 
-                                 std::string const& logFilename) const
+                                 Sarray const& dimLogs) const
 {
-  FileName fname;
-  fname.SetFileName( logFilename );
-  std::string Prefix = GetPrefix( fname );
+  // Sanity check
+  if (buffer.size() != dimLogs.size()) {
+    mprinterr("Internal Error: File buffer array size %zu != # MREMD logs %zu.\n",
+              buffer.size(), dimLogs.size());
+    return 1;
+  }
   int total_exchanges = -1;
   ExchgType log_type = UNKNOWN;
   // Open remlogs for each dimension as buffered file.
-  for (int dim = 0; dim < (int)GroupDims_.size(); dim++) {
+  for (unsigned int dim = 0; dim < GroupDims_.size(); dim++) {
     buffer[dim].CloseFile();
-    std::string logname = Prefix + "." + integerToString( dim + 1 );
-    if (buffer[dim].OpenFileRead( logname  )) return -1;
+    if (buffer[dim].OpenFileRead( dimLogs[dim]  )) return -1;
     //mprintf("\tOpened %s\n", logname.c_str());
     // Read the remlog header.
     int numexchg = ReadRemlogHeader(buffer[dim], log_type);
     if (numexchg == -1) return -1;
-    mprintf("\t%s should contain %i exchanges\n", logname.c_str(), numexchg);
+    mprintf("\t%s should contain %i exchanges\n", dimLogs[dim].c_str(), numexchg);
     if (total_exchanges == -1)
       total_exchanges = numexchg;
     else if (numexchg != total_exchanges) {
@@ -270,43 +273,69 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer,
 }
 
 // DataIO_RemLog::MremdRead()
-int DataIO_RemLog::MremdRead(std::vector<std::string> const& logFilenames,
-                             DataSetList& datasetlist, std::string const& dsname)
+int DataIO_RemLog::MremdRead(DataSetList& datasetlist, std::string const& dsname,
+                             bool searchForLogs)
 {
+  typedef std::vector<Sarray> LogGroupType;
+  LogGroupType logFileGroups;
   // Ensure that each replica log has counterparts for each dimension
+  // TODO: Read all headers and check dimensions in log.
   FileName fname;
-  for (std::vector<std::string>::const_iterator logfile = logFilenames.begin();
-                                                logfile != logFilenames.end();
-                                              ++logfile)
-  {
-    fname.SetFileName( *logfile );
-    // Remove leading '.'
-    std::string logExt = fname.Ext();
-    if (logExt[0] == '.') logExt.erase(0,1);
-    if ( !validInteger(logExt) ) {
-      mprinterr("Error: MREMD log %s does not have valid numerical extension.\n", fname.full());
-      return 1;
-    }
-    std::string Prefix = GetPrefix( fname );
-    int numericalExt = convertToInteger( logExt );
-    if (numericalExt != 1) {
-      mprinterr("Error: Must specify MREMD log for dimension 1 (i.e. '%s.1')\n", Prefix.c_str());
-      return 1;
-    }
-    for (int i = 2; i <= (int)GroupDims_.size(); i++) {
-      std::string logname = Prefix + "." + integerToString( i );
-      if ( !fileExists(logname) ) {
-        mprinterr("Error: MREMD log not found for dimension %i, '%s'\n",
-                  i, logname.c_str());
+  // Two cases; all log files were specified, or only lowest logs were specified.
+  if ( searchForLogs ) { 
+    for (Sarray::const_iterator logfile = logFilenames_.begin();
+                                logfile != logFilenames_.end(); ++logfile)
+    {
+      Sarray dimLogs;
+      fname.SetFileName( *logfile );
+      // Remove leading '.'
+      std::string logExt = fname.Ext();
+      if (logExt[0] == '.') logExt.erase(0,1);
+      if ( !validInteger(logExt) ) {
+        mprinterr("Error: MREMD log %s does not have valid numerical extension.\n", fname.full());
         return 1;
       }
+      std::string Prefix = GetPrefix( fname );
+      int numericalExt = convertToInteger( logExt );
+      if (numericalExt != 1) {
+        mprinterr("Error: Must specify MREMD log for dimension 1 (i.e. '%s.1')\n", Prefix.c_str());
+        return 1;
+      }
+      dimLogs.push_back( *logfile );
+      for (int idim = 2; idim <= (int)GroupDims_.size(); idim++) {
+        std::string logname = Prefix + "." + integerToString( idim );
+        if ( !fileExists(logname) ) {
+          mprinterr("Error: MREMD log not found for dimension %i, '%s'\n",
+                    idim, logname.c_str());
+          return 1;
+        }
+        dimLogs.push_back( logname );
+      }
+      logFileGroups.push_back( dimLogs );
+    }
+  } else {
+    // All logs specified. Assume they are given in order.
+    Sarray dimLogs;
+    Sarray::const_iterator logfile = logFilenames_.begin();
+    while (logfile != logFilenames_.end()) {
+      dimLogs.clear();
+      for (unsigned int dim = 0; dim < GroupDims_.size(); dim++) {
+        if (logfile == logFilenames_.end()) {
+          mprinterr("Error: Ran out of MREMD logs, run %zu, dimension %u\n",
+                    logFileGroups.size() + 1, dim + 1);
+          return 1;
+        }
+        dimLogs.push_back( *(logfile++) );
+      }
+      logFileGroups.push_back( dimLogs );
     }
   }
+      
   // Set up temperature maps/coordinate index arrays for each dim/group.
   // Base this on the first set of MREMD replica logs.
   // Open remlogs for each dimension as buffered file.
   std::vector<BufferedLine> buffer( GroupDims_.size() );
-  int total_exchanges = OpenMremdDims(buffer, logFilenames.front());
+  int total_exchanges = OpenMremdDims(buffer, logFileGroups.front());
   if (total_exchanges == -1) return 1;
   // Should now be positioned at the first exchange in each dimension.
   // Set up map/coordinate indices for each group and make sure they match
@@ -348,13 +377,12 @@ int DataIO_RemLog::MremdRead(std::vector<std::string> const& logFilenames,
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
   ensemble.AllocateReplicas(n_mremd_replicas_);
   // Loop over all remlogs
-  for (std::vector<std::string>::const_iterator it = logFilenames.begin();
-                                                it != logFilenames.end(); ++it)
+  for (LogGroupType::const_iterator it = logFileGroups.begin(); it != logFileGroups.end(); ++it)
   { 
     // Open the current remlog, advance to first exchange
     int numexchg = OpenMremdDims(buffer, *it);
     if (numexchg == -1) return 1;
-    mprintf("\t%s should contain %i exchanges\n", it->c_str(), numexchg);
+    //mprintf("\t%s should contain %i exchanges\n", it->front().c_str(), numexchg);
     // Should now be positioned at 'exchange 1'.
     // Loop over all exchanges.
     ProgressBar progress( numexchg );
@@ -438,12 +466,12 @@ int DataIO_RemLog::MremdRead(std::vector<std::string> const& logFilenames,
 int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                             DataSetList& datasetlist, std::string const& dsname)
 {
-  std::vector<std::string> logFilenames;
   if (!fileExists( fname )) {
     mprinterr("Error: File '%s' does not exist.\n", fname.c_str());
     return 1;
   }
-  logFilenames.push_back( fname );
+  logFilenames_.push_back( fname );
+  bool searchForLogs = !argIn.hasKey("nosearch");
   // Get dimfile arg
   std::string dimfile = argIn.GetStringKey("dimfile");
   if (!dimfile.empty()) {
@@ -461,16 +489,15 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     if (!fileExists( log_name ))
       mprintf("Warning: '%s' does not exist.\n", log_name.c_str());
     else
-      logFilenames.push_back( log_name );
+      logFilenames_.push_back( log_name );
     log_name = argIn.GetStringNext();
   }
   mprintf("\tReading from log files:");
-  for (std::vector<std::string>::const_iterator it = logFilenames.begin();
-                                          it != logFilenames.end(); ++it)
+  for (Sarray::const_iterator it = logFilenames_.begin(); it != logFilenames_.end(); ++it)
     mprintf(" %s", it->c_str());
   mprintf("\n");
   // Multidim replica read requires reading from multiple files
-  if (!GroupDims_.empty()) return MremdRead( logFilenames, datasetlist, dsname );
+  if (!GroupDims_.empty()) return MremdRead( datasetlist, dsname, searchForLogs );
   // Open first remlog as buffered file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
@@ -522,8 +549,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   // Close first remlog 
   buffer.CloseFile();
 
-  for (std::vector<std::string>::const_iterator it = logFilenames.begin();
-                                                it != logFilenames.end(); ++it)
+  for (Sarray::const_iterator it = logFilenames_.begin(); it != logFilenames_.end(); ++it)
   {
     // Open the current remlog, advance to first exchange
     if (buffer.OpenFileRead( *it )) return 1;

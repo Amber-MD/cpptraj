@@ -138,7 +138,7 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
 # endif
   int err = dataio_->ReadData( filename_.Full(), argIn, datasetlist, dsname );
   if (err)
-    mprinterr("Error reading datafile %s\n", filename_.Full().c_str());
+    mprinterr("Error: reading datafile %s\n", filename_.Full().c_str());
 # ifdef TIMER
   dftimer.Stop();
   mprintf("TIME: DataFile read took %.4f seconds.\n", dftimer.Total());
