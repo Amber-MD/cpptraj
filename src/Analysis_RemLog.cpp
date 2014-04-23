@@ -187,7 +187,6 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       int crdidx = frm.CoordsIdx() - 1;
       int repidx = frm.ReplicaIdx() - 1;
       if (frm.Success()) {
-        if (replica==0 && 
         if (frm.PartnerIdx() > frm.ReplicaIdx())
           acceptUp[replica]++;
         else
