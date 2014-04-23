@@ -173,6 +173,10 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
     remdtrajtemp_ = argIn.getKeyDouble("remdtrajtemp",0.0);
     targetType_ = TEMP;
   }
+  // Process any remlog keywords so they are not processed by SetupTrajIO
+  std::string remlog_name = argIn.GetStringKey("remlog");
+  double remlog_nstlim    = argIn.getKeyDouble("nstlim", 1.0);
+  double remlog_ntwx      = argIn.getKeyDouble("ntwx",   1.0);
   // If the command was ensemble, target args are not valid
   bool no_sort = false;
   if ( IsEnsemble() ){
@@ -182,7 +186,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
       targetType_ = NONE;
     }
   } else {
-    if (argIn.Contains("remlog")) {
+    if (!remlog_name.empty()) {
       mprinterr("Error: 'remlog' is only for ensemble processing.\n");
       return 1;
     }
@@ -204,7 +208,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
                                  fname != remdtraj_list.end(); ++fname) 
        replica_filenames_.push_back( *fname );
   }
-
+  
   // Loop over all filenames in replica_filenames 
   bool lowestRep = true;
   bool repBoxInfo = false;
@@ -301,12 +305,12 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
   // Unless nosort was specified, figure out target type if this will be 
   // processed as an ensemble.
   if (IsEnsemble() && !no_sort) {
-    if ( argIn.Contains("remlog") ) {
+    if ( !remlog_name.empty() ) {
       // Sort according to remlog data.
       DataFile remlogFile;
       DataSetList tempDSL;
       // CRDIDXARG: TODO: Come up with a way to do this that doesnt require ArgLists.
-      if (remlogFile.ReadDataIn( argIn.GetStringKey("remlog"), crdidxarg, tempDSL ) ||
+      if (remlogFile.ReadDataIn( remlog_name, crdidxarg, tempDSL ) ||
           tempDSL.empty())
       {
         mprinterr("Error: Could not read remlog data.\n");
@@ -322,16 +326,15 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
         return 1;
       }
       remlogData_ = *((DataSet_RemLog*)tempDSL[0]); // FIXME: This feels clunky. Can we read direct?
-      if ( TotalFrames() != remlogData_.NumExchange() ) {
-        mprinterr("Error: length of REMD ensemble %i does not match # exchanges in remlog %i.\n",
-                  TotalFrames(), remlogData_.NumExchange());
-        return 1;
-      } 
       targetType_ = CRDIDX;
-      double nstlim = argIn.getKeyDouble("nstlim", 1.0);
-      double ntwx   = argIn.getKeyDouble("ntwx",   1.0);
-      remdFrameFactor_ = ntwx / nstlim;
+      remdFrameFactor_ = remlog_ntwx / remlog_nstlim;
       mprintf("\t%g trajectory frames written for every exchange.\n", remdFrameFactor_);
+      int expectedTrajFrames = (int)((double)TotalFrames() * remdFrameFactor_);
+      if ( expectedTrajFrames != remlogData_.NumExchange() ) {
+        mprinterr("Error: expected length of REMD ensemble %i does not match # exchanges in remlog %i.\n",
+                  expectedTrajFrames, remlogData_.NumExchange());
+        return 1;
+      }
     } else {
       // If dimensions are present index by replica indices, otherwise index
       // by temperature. 
