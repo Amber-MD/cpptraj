@@ -628,7 +628,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
     } else if (targetType_ == CRDIDX) {
       int currentRemExchange = (int)((double)CurrentFrame() * remdFrameFactor_) + remdFrameOffset_;
       //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", CurrentFrame()+1, currentRemExchange+1);
-      *fidx = remlogData_.RepFrame( currentRemExchange, repIdx++).CoordsIdx() - 1;
+      *fidx = remlogData_.RepFrame( currentRemExchange, repIdx++ ).CoordsIdx() - 1;
       //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", CurrentFrame(), fidx - frameidx_, *fidx);
     }
 #   ifdef MPI

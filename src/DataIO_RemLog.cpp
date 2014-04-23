@@ -258,7 +258,7 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer,
     // Read the remlog header.
     int numexchg = ReadRemlogHeader(buffer[dim], log_type);
     if (numexchg == -1) return -1;
-    mprintf("\t%s should contain %i exchanges\n", dimLogs[dim].c_str(), numexchg);
+    //mprintf("\t%s should contain %i exchanges\n", dimLogs[dim].c_str(), numexchg);
     if (total_exchanges == -1)
       total_exchanges = numexchg;
     else if (numexchg != total_exchanges) {
@@ -407,6 +407,8 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   std::vector<BufferedLine> buffer( GroupDims_.size() );
   int total_exchanges = OpenMremdDims(buffer, logFileGroups.front());
   if (total_exchanges == -1) return 1;
+  mprintf("\t%s should contain %i exchanges\n", logFileGroups.front().front().c_str(), 
+          total_exchanges);
   // Should now be positioned at the first exchange in each dimension.
   // Set up map/coordinate indices for each group and make sure they match
   // whats in the remd.dim file.
