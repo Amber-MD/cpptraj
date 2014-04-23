@@ -131,6 +131,8 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
 
 // Analysis_RemLog::Analyze()
 Analysis::RetType Analysis_RemLog::Analyze() {
+  std::vector<int> acceptUp( remlog_->Size(), 0 );
+  std::vector<int> acceptDown( remlog_->Size(), 0 );
   // Variables for calculating replica stats
   enum RepStatusType { UNKNOWN = 0, HIT_BOTTOM, HIT_TOP };
   std::vector<int> replicaStatus;
@@ -184,6 +186,13 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       DataSet_RemLog::ReplicaFrame const& frm = remlog_->RepFrame( frame, replica );
       int crdidx = frm.CoordsIdx() - 1;
       int repidx = frm.ReplicaIdx() - 1;
+      if (frm.Success()) {
+        if (replica==0 && 
+        if (frm.PartnerIdx() > frm.ReplicaIdx())
+          acceptUp[replica]++;
+        else
+          acceptDown[replica]++;
+      }
       if (mode_ == CRDIDX) {
         DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[repidx]) );
         ds[frame] = frm.CoordsIdx();
@@ -232,6 +241,13 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       repFracSlope_.Printf("\n");
     }
   } // END loop over exchanges
+  // Number of exchange attempts is actually /2 for TREMD/HREMD since
+  // attempts alternate up/down.
+  double exchangeAttempts = (double)remlog_->NumExchange() / 2;
+  for (int replica = 0; replica < (int)remlog_->Size(); replica++)
+    mprintf("\tReplica %8i UP= %8.3f %%  DOWN= %8.3f %%\n", replica+1,
+            ((double)acceptUp[replica] / exchangeAttempts) * 100.0,
+            ((double)acceptDown[replica] / exchangeAttempts) * 100.0);
 
   if (calculateStats_) {
     statsout_.Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
