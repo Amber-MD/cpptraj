@@ -49,6 +49,7 @@ class Trajin_Multi : public Trajin {
 
     double remdtrajtemp_;     ///< Get frames with this temperature on read
     double remdFrameFactor_;  ///< For HREMD sort, # frames written per remlog entry
+    int remdFrameOffset_;     ///< If traj written less often than log, +1
     RemdIdxType remdtrajidx_; ///< Get frames with these indices on read
     int Ndimensions_;         ///< # of dimensions in each trajectory.
     IOarrayType REMDtraj_;    ///< Input replica trajectories

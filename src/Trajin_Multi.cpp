@@ -11,6 +11,7 @@
 Trajin_Multi::Trajin_Multi() :
   remdtrajtemp_(0.0),
   remdFrameFactor_(1.0),
+  remdFrameOffset_(0),
   Ndimensions_(0),
   lowestRepnum_(0),
   hasVelocity_(false),
@@ -328,7 +329,12 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
       remlogData_ = *((DataSet_RemLog*)tempDSL[0]); // FIXME: This feels clunky. Can we read direct?
       targetType_ = CRDIDX;
       remdFrameFactor_ = remlog_ntwx / remlog_nstlim;
-      mprintf("\t%g trajectory frames written for every exchange.\n", remdFrameFactor_);
+      mprintf("\t%g exchanges for every trajectory frame written.\n", remdFrameFactor_);
+      if (remdFrameFactor_ > 1.0)
+        remdFrameOffset_ = (int)remdFrameFactor_ - 1;
+      else
+        remdFrameOffset_ = 0;
+      mprintf("\tTrajectory frame 1 corresponds to exchange %i\n", remdFrameOffset_ + 1);
       int expectedTrajFrames = (int)((double)TotalFrames() * remdFrameFactor_);
       if ( expectedTrajFrames != remlogData_.NumExchange() ) {
         mprinterr("Error: expected length of REMD ensemble %i does not match # exchanges in remlog %i.\n",
@@ -620,7 +626,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
       //  mprintf(" %i", remd_indices_[idx]);
       //mprintf(" }[%i]", *fidx);
     } else if (targetType_ == CRDIDX) {
-      int currentRemExchange = (int)((double)CurrentFrame() * remdFrameFactor_);
+      int currentRemExchange = (int)((double)CurrentFrame() * remdFrameFactor_) + remdFrameOffset_;
       //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", CurrentFrame()+1, currentRemExchange+1);
       *fidx = remlogData_.RepFrame( currentRemExchange, repIdx++).CoordsIdx() - 1;
       //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", CurrentFrame(), fidx - frameidx_, *fidx);
