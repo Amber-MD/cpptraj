@@ -6,7 +6,7 @@
 #include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
-DataIO_RemLog::DataIO_RemLog() : debug_(0), n_mremd_replicas_(0), processMREMD_(false) {
+DataIO_RemLog::DataIO_RemLog() : n_mremd_replicas_(0), processMREMD_(false) {
   SetValid( DataSet::REMLOG );
 }
 

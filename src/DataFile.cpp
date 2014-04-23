@@ -96,15 +96,14 @@ void DataFile::SetDebug(int debugIn) {
   if (debug_ > 0) mprintf("\tDataFile debug level set to %i\n", debug_);
 }
 
+inline int Error(const char* msg) { mprinterr(msg); return 1; }
+
 // DataFile::ReadDataIn()
 // TODO: Should this read to internal DataSetList?
 int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn, 
                          DataSetList& datasetlist)
 {
-  if (fnameIn.empty()) {
-    mprinterr("Error: No input data file name given.\n");
-    return 1;
-  }
+  if (fnameIn.empty()) return Error("Error: No input data file name given.\n"); 
   ArgList argIn = argListIn;
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
@@ -125,7 +124,9 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
     dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_KeyArray, filename_.Ext(), 
                                                               DATAFILE);
     dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
+    if (dataio_ == 0) return Error("Error: DataIO allocation failed.\n"); 
   }
+  dataio_->SetDebug( debug_ );
   // Check if user specifed DataSet name; otherwise use filename base.
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty()) dsname = filename_.Base();
@@ -145,8 +146,6 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
 # endif
   return err;
 }
-
-inline int Error(const char* msg) { mprinterr(msg); return 1; }
 
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debugIn) {

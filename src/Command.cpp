@@ -1092,6 +1092,7 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
 Command::RetType ReadData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   DataFile dataIn;
+  dataIn.SetDebug( State.DFL()->Debug() );
   if (dataIn.ReadDataIn( argIn.GetStringNext(), argIn, *State.DSL() )!=0) {
     mprinterr("Error: Could not read data file.\n");
     return Command::C_ERR;

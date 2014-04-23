@@ -26,7 +26,6 @@ class DataIO_RemLog : public DataIO {
     void SetupDim1Group( int );
     void PrintReplicaStats(DataSet_RemLog const&);
 
-    int debug_;
     Sarray logFilenames_; ///< Replica log file names.
     int n_mremd_replicas_;
     bool processMREMD_;

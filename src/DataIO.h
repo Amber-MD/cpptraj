@@ -12,7 +12,7 @@
   */
 class DataIO : public BaseIOtype {
   public:
-    DataIO() : valid1d_(false), valid2d_(false), valid3d_(false) {}
+    DataIO() : debug_(0), valid1d_(false), valid2d_(false), valid3d_(false) {}
     DataIO(bool v1, bool v2, bool v3) :
                valid1d_(v1), valid2d_(v2), valid3d_(v3) {}
     virtual ~DataIO() {}
@@ -25,12 +25,14 @@ class DataIO : public BaseIOtype {
     virtual bool ID_DataFormat(CpptrajFile&) = 0; // TODO: -> BaseIOtype?
     /// \return True if this DataIO valid for given DataSet
     bool CheckValidFor(DataSet const&) const;
+    void SetDebug(int d) { debug_ = d; }
   protected:
     // TODO: Move this to DataSet?
     static std::string SetupCoordFormat(size_t, Dimension const&, int, int);
     static Dimension DetermineXdim( std::vector<double> const& );
     /// Indicate this DataIO is valid for given DataSet type
     void SetValid(DataSet::DataType t) { valid_.push_back( t ); }
+    int debug_;
   private:
     std::vector<DataSet::DataType> valid_; ///< Data sets for which DataIO is valid writer.
     bool valid1d_; ///< Valid for all 1D data sets.

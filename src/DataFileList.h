@@ -26,6 +26,7 @@ class DataFileList {
     void WriteAllDF();
     void ResetWriteStatus();
     int ProcessDataFileArgs(ArgList&);
+    int Debug() const { return debug_; }
   private:
     typedef std::vector<DataFile*> DFarray;
     DFarray fileList_;
