@@ -8,7 +8,7 @@ Traj_AmberRestart::Traj_AmberRestart() :
   restartAtoms_(0),
   natom3_(0),
   numBoxCoords_(0),
-  restartTime_(0.0),
+  restartTime_(-1.0),
   restartTemp_(-1.0),
   time0_(1.0),
   dt_(1.0),
@@ -55,7 +55,7 @@ int Traj_AmberRestart::processWriteArgs(ArgList& argIn) {
   // For write, assume we want velocities unless specified
   SetVelocity( !argIn.hasKey("novelocity") );
   SetTemperature(argIn.hasKey("remdtraj"));
-  time0_ = argIn.getKeyDouble("time0", 1.0);
+  time0_ = argIn.getKeyDouble("time0", -1.0);
   dt_ = argIn.getKeyDouble("dt",1.0);
   return 0;
 }
