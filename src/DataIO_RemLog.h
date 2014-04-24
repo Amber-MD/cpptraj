@@ -20,7 +20,7 @@ class DataIO_RemLog : public DataIO {
     typedef std::vector<std::string> Sarray;
     int ReadRemlogHeader(BufferedLine&, ExchgType&) const;
     int ReadRemdDimFile(std::string const&);
-    DataSet_RemLog::TmapType SetupTemperatureMap(BufferedLine&) const;
+    DataSet_RemLog::TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
     int CountHamiltonianReps(BufferedLine&) const;
     int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&);
     void SetupDim1Group( int );
@@ -34,6 +34,16 @@ class DataIO_RemLog : public DataIO {
     typedef std::vector<GroupArray> GroupDimType;
     std::vector<GroupDimType> GroupDims_;
     std::vector<ExchgType> DimTypes_;
+    // Used for getting temps/coord indices from T-remlog
+    struct TlogType {
+      double t0;
+      int crdidx;
+    };
+    struct TlogType_cmp {
+      inline bool operator()(TlogType const& first, TlogType const& second) const {
+        return (first.t0 < second.t0);
+      }
+    };
 };
 /// Used to hold replica partner info in M-REMD simulations
 class DataIO_RemLog::GroupReplica {

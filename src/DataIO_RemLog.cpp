@@ -1,5 +1,5 @@
 #include <cstdio> // sscanf
-#include <set> // for TREMD temperature sorting
+#include <algorithm> // sort
 #include "DataIO_RemLog.h"
 #include "CpptrajStdio.h" 
 #include "ProgressBar.h"
@@ -179,34 +179,45 @@ static inline std::string GetPrefix(FileName const& fname) {
 
 // DataIO_RemLog::SetupTemperatureMap()
 /** buffer should be positioned at the first exchange. */
-DataSet_RemLog::TmapType DataIO_RemLog::SetupTemperatureMap(BufferedLine& buffer) const {
+DataSet_RemLog::TmapType 
+  DataIO_RemLog::SetupTemperatureMap(BufferedLine& buffer,
+                                     std::vector<int>& CrdIdxs) const
+{
   DataSet_RemLog::TmapType TemperatureMap;
-  std::set<double> tList;
-  double t0;
+  std::vector<TlogType> tList;
+  TlogType tlog;
+  CrdIdxs.clear();
   const char* ptr = buffer.Line();
   while (ptr != 0 && ptr[0] != '#') {
-    // For temperature remlog create temperature map.
+    // For temperature remlog create temperature map. 
     //mprintf("DEBUG: Temp0= %s", ptr+32);
-    if ( sscanf(ptr+32, "%10lf", &t0) != 1) {
+    if ( sscanf(ptr, "%2i%*10f%*10f%*10f%10lf", &tlog.crdidx, &tlog.t0) != 2 ) {
       mprinterr("Error: could not read temperature from T-REMD log.\n"
                 "Error: Line: %s", ptr);
       return TemperatureMap;
     }
-    std::pair<std::set<double>::iterator,bool> ret = tList.insert( t0 );
-    if (!ret.second) {
-      mprinterr("Error: duplicate temperature %.2f detected in T-REMD remlog\n", t0);
-      return TemperatureMap;
-    }
+    tList.push_back( tlog );
     ptr = buffer.Line();
   }
-  // Temperatures are already sorted lowest to highest in set. Map 
-  // temperatures to index + 1 since indices in the remlog start from 1.
-  int repnum = 1;
-  for (std::set<double>::const_iterator temp0 = tList.begin(); temp0 != tList.end(); ++temp0)
-    TemperatureMap.insert(std::pair<double,int>(*temp0, repnum++));
-  for (DataSet_RemLog::TmapType::const_iterator tmap = TemperatureMap.begin();
-                                                tmap != TemperatureMap.end(); ++tmap)
-    mprintf("\t\t%i => %f\n", tmap->second, tmap->first);
+  // Sort temperatures
+  std::sort( tList.begin(), tList.end(), TlogType_cmp() );
+  // Place sorted temperatures into map starting from replica index 1. Check
+  // for duplicate temperatures. Also store the sorted coordinate indices.
+  int repidx = 1;
+  for (std::vector<TlogType>::const_iterator it = tList.begin();
+                                             it != tList.end(); ++it)
+  {
+    mprintf("\t\tReplica %i => %f (crdidx= %i)\n", repidx, it->t0, it->crdidx); 
+    if (it != tList.begin()) {
+      if ( it->t0 == (it-1)->t0 ) {
+        mprinterr("Error: duplicate temperature %.2f detected in T-REMD remlog\n", it->t0);
+        TemperatureMap.clear();
+        return TemperatureMap;
+      }
+    }
+    TemperatureMap.insert(std::pair<double,int>(it->t0, repidx++));
+    CrdIdxs.push_back( it->crdidx );
+  }
 
   return TemperatureMap;
 }
@@ -407,17 +418,18 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   std::vector<BufferedLine> buffer( GroupDims_.size() );
   int total_exchanges = OpenMremdDims(buffer, logFileGroups.front());
   if (total_exchanges == -1) return 1;
-  mprintf("\t%s should contain %i exchanges\n", logFileGroups.front().front().c_str(), 
-          total_exchanges);
   // Should now be positioned at the first exchange in each dimension.
   // Set up map/coordinate indices for each group and make sure they match
   // whats in the remd.dim file.
   // Temperature map for dimensions (if needed) 
   std::vector<DataSet_RemLog::TmapType> TemperatureMap( GroupDims_.size() );
+  // Coordinate indices for temperature dimensions (if needed)
+  std::vector< std::vector<int> > TempCrdIdxs( GroupDims_.size() ); 
   for (int dim = 0; dim < (int)GroupDims_.size(); dim++) {
     int group_size = 0;
     if ( DimTypes_[dim] == TREMD ) {
-      TemperatureMap[dim] = SetupTemperatureMap( buffer[dim] );
+      TemperatureMap[dim] = SetupTemperatureMap( buffer[dim], TempCrdIdxs[dim] );
+      if (TemperatureMap[dim].empty()) return 1;
       group_size = (int)TemperatureMap[dim].size();
       mprintf("\t\tDim %i: %i Temperature reps.\n", dim+1, group_size);
       if (!processMREMD_) SetupDim1Group( group_size );
@@ -452,24 +464,28 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
   std::vector<int> CoordinateIndices( n_mremd_replicas_ );
   for (int repidx = 0; repidx < n_mremd_replicas_; repidx++) {
-    if (idxArgs.empty())
-      CoordinateIndices[repidx] = repidx + 1;
-    else {// TODO: Check replica index range
+    if (!idxArgs.empty()) {
+      // User-specified starting coord indices
       CoordinateIndices[repidx] = idxArgs.getNextInteger(0);
       if (CoordinateIndices[repidx] < 0 || CoordinateIndices[repidx] > n_mremd_replicas_ )
       {
         mprinterr("Error: Given coordinate index out of range or not enough indices given.\n");
         return 1;
       }
-    }
+    } else if (!processMREMD_ && !TempCrdIdxs.front().empty())
+      // Use coordinate indices from 1D T-REMD log
+      CoordinateIndices[repidx] = TempCrdIdxs.front()[repidx];
+    else
+      // Default: starting crdidx = repidx
+      CoordinateIndices[repidx] = repidx + 1;
   }
-  if (!idxArgs.empty()) {
+//  if (!idxArgs.empty()) {
     mprintf("\tInitial coordinate indices:");
     for (std::vector<int>::const_iterator c = CoordinateIndices.begin();
                                           c != CoordinateIndices.end(); ++c)
       mprintf(" %i", *c);
     mprintf("\n");
-  }
+//  }
   // Allocate replica log DataSet
   DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
   if (ds == 0) return 1;
@@ -481,7 +497,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     // Open the current remlog, advance to first exchange
     int numexchg = OpenMremdDims(buffer, *it);
     if (numexchg == -1) return 1;
-    //mprintf("\t%s should contain %i exchanges\n", it->front().c_str(), numexchg);
+    mprintf("\t%s should contain %i exchanges\n", it->front().c_str(), numexchg);
     // Should now be positioned at 'exchange 1'.
     // Loop over all exchanges.
     ProgressBar progress( numexchg );
