@@ -57,6 +57,9 @@ int Traj_AmberRestart::processWriteArgs(ArgList& argIn) {
   SetTemperature(argIn.hasKey("remdtraj"));
   time0_ = argIn.getKeyDouble("time0", -1.0);
   dt_ = argIn.getKeyDouble("dt",1.0);
+  // If temperature requested write time as well or format will break.
+  if (HasT() && time0_ < 0.0)
+    time0_ = 1.0;
   return 0;
 }
 
