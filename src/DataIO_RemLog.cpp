@@ -509,6 +509,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
       // Loop over all groups in the current dimension
       for (unsigned int grp = 0; grp < GroupDims_[current_dim].size(); grp++) {
         // Loop over all replicas in the current group
+        //mprintf("--------------------------------------------------------------------------\n");
         for (unsigned int replica = 0; replica < GroupDims_[current_dim][grp].size(); replica++) {
           // Read remlog line.
           ptr = buffer[current_dim].Line();
@@ -549,8 +550,6 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
             }
             // What is my actual position? Currently mapped rep nums start from 1
             int tremd_repidx = GroupDims_[current_dim][grp][tmap->second - 1].Me();
-            //mprintf("DEBUG: Exchg %i Tdim# %u T=%g group=%u group_repidx=%i repidx=%i\n",
-            //        exchg+1, current_dim+1, tremd_temp0, grp+1, tmap->second, tremd_repidx);
             // Who is my partner? ONLY VALID IF EXCHANGE OCCURS
             tmap = TemperatureMap[current_dim].find( tremd_tempP ); // TODO: Make function
             if (tmap == TemperatureMap[current_dim].end()) {
@@ -566,6 +565,8 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
               current_crdidx = CoordinateIndices[tremd_partneridx-1];
             else
               current_crdidx = CoordinateIndices[tremd_repidx-1];
+            //mprintf("DEBUG: Exchg %8i Tdim# %2u T=%6.2f group=%2u repidx=%3i partneridx=%3i oldcrdidx=%i newcrdidx=%i\n",
+            //        exchg+1, current_dim+1, tremd_temp0, grp+1, tremd_repidx, tremd_partneridx, CoordinateIndices[tremd_repidx-1], current_crdidx);
             // Create replica frame for TREMD
             ensemble.AddRepFrame( tremd_repidx-1,
                                   DataSet_RemLog:: 
@@ -628,11 +629,11 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
       } // END loop over groups in dimension
       if ( fileEOF ) break; // Error occurred reading replicas, skip rest of exchanges.
       // Update coordinate indices.
-      //mprintf("DEBUG: exchange= %i:\n", exchg + 1);
+      //mprintf("DEBUG: exchange= %i: Updating coordinates\n", exchg + 1);
       for (int repidx = 0; repidx < n_mremd_replicas_; repidx++) {
-        //mprintf("DEBUG:\tReplica %i crdidx %i =>", replica+1, coordinateIndices[replica]);
-        CoordinateIndices[repidx] = ensemble.RepFrame(exchg, repidx).CoordsIdx();
-        //mprintf(" %i\n", coordinateIndices[replica]); // DEBUG
+        //mprintf("DEBUG:\tReplica %i crdidx %i =>", repidx+1, CoordinateIndices[repidx]);
+        CoordinateIndices[repidx] = ensemble.LastRepFrame(repidx).CoordsIdx();
+        //mprintf(" %i\n", CoordinateIndices[repidx]); // DEBUG
       }
       // Currently each exchange the dimension alternates
       ++current_dim;

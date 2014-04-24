@@ -20,6 +20,8 @@ class DataSet_RemLog : public DataSet {
     void AddRepFrame(int rep, ReplicaFrame const& frm) { ensemble_[rep].push_back(frm); }
     /// \return replica frame at exchange in specified ensemble member.
     ReplicaFrame const& RepFrame(int exch, int rep) const { return ensemble_[rep][exch]; }
+    /// \return replica frame at last exchange in specified ensemble member.
+    ReplicaFrame const& LastRepFrame(int rep) const { return ensemble_[rep].back(); }
     /// \return number of exchanges
     int NumExchange() const;
     /// \return true if ensemble is valid.
