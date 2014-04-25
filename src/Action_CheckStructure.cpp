@@ -210,6 +210,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
   // Begin loop
 # ifdef _OPENMP
   int i1, i2, mythread;
+  int M1N = Mask1_.Nselected();
   double D2;
   Problem problem(frameNum);
 # pragma omp parallel private(i1, i2, mythread, D2) firstprivate(problem) reduction(+:Nproblems)
@@ -217,10 +218,10 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
     mythread = omp_get_thread_num();
     problemIndices_[mythread].clear();
 #   pragma omp for schedule(dynamic)
-    for (i1 = 0; i1 < Mask1_.Nselected(); i1++) {
+    for (i1 = 0; i1 < M1N; i1++) {
       problem.atom1_ = Mask1_[i1];
       BondListType::const_iterator currentBond = BondsToAtomBegin_[i1];
-      for (i2 = i1 + 1; i2 < Mask1_.Nselected(); i2++) {
+      for (i2 = i1 + 1; i2 < M1N; i2++) {
         problem.type_ = NONE;
         problem.atom2_ = Mask1_[i2];
         D2 = DIST2(currentFrame.XYZ(problem.atom1_), currentFrame.XYZ(problem.atom2_),
