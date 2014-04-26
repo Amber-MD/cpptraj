@@ -39,6 +39,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Matrix.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
+        Action_MultiVector.cpp \
         Action_NAstruct.cpp \
         Action_NativeContacts.cpp \
         Action_NMRrst.cpp \

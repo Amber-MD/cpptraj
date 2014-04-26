@@ -80,6 +80,7 @@
 #include "Action_NativeContacts.h"
 #include "Action_VelocityAutoCorr.h"
 #include "Action_SetVelocity.h"
+#include "Action_MultiVector.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1612,6 +1613,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, AddAction },
   { ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, AddAction },
   { ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, AddAction },
+  { ACTION, "multivector", Action_MultiVector::Alloc, Action_MultiVector::Help, AddAction },
   { ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, AddAction },
   { ACTION, "nativecontacts", Action_NativeContacts::Alloc, Action_NativeContacts::Help, AddAction },
   { ACTION, "nmrrst", Action_NMRrst::Alloc, Action_NMRrst::Help, AddAction },
