@@ -51,7 +51,7 @@ class Action_Matrix : public Action, ActionFrameCounter {
     Topology* CurrentParm_; // For ByResidue output
 
     Darray FillMassArray(Topology const&, AtomMask const&) const;
-    void CalcIredMatrix();
+    void CalcIredMatrix(int);
     void CalcDistanceMatrix(Frame const&);
     inline void StoreVec(v_iterator&, v_iterator&, const double*) const;
     void CalcCovarianceMatrix(Frame const&);

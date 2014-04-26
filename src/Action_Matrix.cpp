@@ -340,12 +340,12 @@ static double LegendrePoly(int order, double val) {
   * See JACS 2002, 124, 4522, eq. A14 
   * CAVEAT: omegaK-omegaL is not "just" the intra molecular angle there.
   */
-void Action_Matrix::CalcIredMatrix() {
+void Action_Matrix::CalcIredMatrix(int frameNum) {
   v_iterator v2idx1 = vect2_.begin();
   // Store length of IRED vectors in vect2
-  for (std::vector<DataSet_Vector*>::iterator Vtmp = IredVectors_.begin();
-                                              Vtmp != IredVectors_.end(); ++Vtmp)
-    *(v2idx1++) = sqrt( (*Vtmp)->Back() * (*Vtmp)->Back() );
+  for (std::vector<DataSet_Vector*>::const_iterator Vtmp = IredVectors_.begin();
+                                                    Vtmp != IredVectors_.end(); ++Vtmp)
+    *(v2idx1++) = sqrt( (*Vtmp)->VXYZ(frameNum) * (*Vtmp)->VXYZ(frameNum) );
 
   // Loop over all pairs of IRED vectors.
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
@@ -360,7 +360,7 @@ void Action_Matrix::CalcIredMatrix() {
                                                 Vtmp2 != IredVectors_.end(); ++Vtmp2)
     {
       double len2 = *(v2idx2++);
-      double legendre = LegendrePoly(order_, (*Vtmp)->Back() * (*Vtmp2)->Back()  / (len1 * len2) );
+      double legendre = LegendrePoly(order_, (*Vtmp)->VXYZ(frameNum) * (*Vtmp2)->VXYZ(frameNum)  / (len1 * len2) );
       *(mat++) += legendre;
       if (Vtmp == Vtmp2)
         *(v1idx++) += legendre;
@@ -681,7 +681,7 @@ Action::RetType Action_Matrix::DoAction(int frameNum, Frame* currentFrame, Frame
     case DataSet_2D::DIHCOVAR : CalcDihedralCovariance(frameNum); break;
     case DataSet_2D::DISTCOVAR: CalcDistanceCovarianceMatrix(*currentFrame); break;
     case DataSet_2D::IDEA     : CalcIdeaMatrix(*currentFrame); break;
-    case DataSet_2D::IRED     : CalcIredMatrix(); break;
+    case DataSet_2D::IRED     : CalcIredMatrix(frameNum); break;
     default: return Action::ERR; // Sanity check
   }
 

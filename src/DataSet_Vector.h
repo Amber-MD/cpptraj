@@ -33,6 +33,7 @@ class DataSet_Vector : public DataSet_1D {
     bool Empty()                  const { return vectors_.empty(); }
     const Vec3& operator[](int i) const { return vectors_[i];      }
     Vec3&       operator[](int i)       { return vectors_[i];      }
+    const Vec3& VXYZ(int i)       const { return vectors_[i];      }
     const Vec3& OXYZ(int i)       const {
       if (origins_.empty())
         return ZERO;
