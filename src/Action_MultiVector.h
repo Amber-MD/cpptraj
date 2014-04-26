@@ -26,5 +26,6 @@ class Action_MultiVector : public Action {
     DataFile* outfile_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
+    bool ired_;
 };
 #endif 

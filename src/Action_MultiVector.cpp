@@ -4,11 +4,13 @@
 Action_MultiVector::Action_MultiVector() :
   debug_(0),
   outfile_(0),
-  masterDSL_(0)
+  masterDSL_(0),
+  ired_(false)
 {}
 
 void Action_MultiVector::Help() {
   mprintf("\t[<name>] [resrange <range>] name1 <name1> name2 <name2> [out <filename>]\n"
+          "\t[ired]\n"
           "  Calculate vectors between named atoms for residues in given <range>.\n");
 }
 
@@ -30,6 +32,7 @@ Action::RetType Action_MultiVector::Init(ArgList& actionArgs, TopologyList* PFL,
   std::string resrange_arg = actionArgs.GetStringKey("resrange");
   if (!resrange_arg.empty())
     if (resRange_.SetRange( resrange_arg )) return Action::ERR;
+  ired_ = actionArgs.hasKey("ired");
   // Setup DataSet(s) name
   dsetname_ = actionArgs.GetStringNext();
   // Get atom names
@@ -37,6 +40,7 @@ Action::RetType Action_MultiVector::Init(ArgList& actionArgs, TopologyList* PFL,
   if (SetName(name2_, actionArgs.GetStringKey("name2"), "name2")) return Action::ERR;
 
   mprintf("    MULTIVECTOR: Calculating");
+  if (ired_) mprintf(" IRED");
   if (!resRange_.Empty())
     mprintf(" vectors for residues in range %s\n", resRange_.RangeArg());
   else
@@ -78,15 +82,17 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
     int atom1 = currentParm->FindAtomInResidue( *res, name1_ );
     int atom2 = currentParm->FindAtomInResidue( *res, name2_ );
     if (atom1 != -1 && atom2 != -1) {
-      DataSet* ds = masterDSL_->GetSet( dsetname_, atom1+1, "" );
+      DataSet_Vector* ds = (DataSet_Vector*)masterDSL_->GetSet( dsetname_, atom1+1, "" );
       if (ds == 0) {
         // Create DataSet
-        ds = masterDSL_->AddSetIdx( DataSet::VECTOR, dsetname_, atom1+1 );
+        ds = (DataSet_Vector*)masterDSL_->AddSetIdx( DataSet::VECTOR, dsetname_, atom1+1 );
         if (ds == 0) return Action::ERR;
         ds->SetLegend( "v" + currentParm->AtomMaskName(atom1) + "->" +
                              currentParm->AtomMaskName(atom2) );
+        if (ired_) ds->SetIred( );
+        if (outfile_ != 0) outfile_->AddSet( ds );
       }
-      data_.push_back( (DataSet_Vector*)ds );
+      data_.push_back( ds );
       CrdIdx1_.push_back( atom1 * 3 ); // Pre calc coordinate index
       CrdIdx2_.push_back( atom2 * 3 );
     } else if ((atom1==-1) != (atom2==-1)) {
