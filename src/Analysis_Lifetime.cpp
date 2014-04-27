@@ -74,16 +74,14 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   DataFile* outfile = 0;
   DataFile* maxfile = 0;
   DataFile* avgfile = 0;
-  DataFile* crvfile = 0;
+    if (setname.empty()) 
+      setname = datasetlist->GenerateDefaultName( "lifetime" );
   if ( windowSize_ != -1) {
     outfile = DFLin->AddDataFile(outfileName_, analyzeArgs);
     if (!averageonly_ && outfile != 0) {
       maxfile = DFLin->AddDataFile("max." + outfile->DataFilename().Full(), analyzeArgs);
       avgfile = DFLin->AddDataFile("avg." + outfile->DataFilename().Full(), analyzeArgs);
-      crvfile = DFLin->AddDataFile("crv." + outfile->DataFilename().Full(), analyzeArgs);
     }
-    if (setname.empty()) 
-      setname = datasetlist->GenerateDefaultName( "lifetime" );
     int didx = 0;
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
     {
@@ -93,12 +91,6 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       outSet->SetLegend( (*set)->Legend() );
       outputDsets_.push_back( outSet );
       if (outfile != 0) outfile->AddSet( outSet );
-      // Lifetime curves
-      outSet = (DataSet_1D*)datasetlist->AddSetIdxAspect(DataSet::DOUBLE, setname, didx, "curve");
-      if (CheckDsetError(outSet, "lifetime curve", (*set)->Legend().c_str())) 
-        return Analysis::ERR;
-      curveSets_.push_back( outSet );
-      if (crvfile != 0) crvfile->AddSet( outSet );
       if (!averageonly_) {
         // MAX
         outSet = (DataSet_1D*)datasetlist->AddSetIdxAspect(DataSet::INTEGER, setname, didx, "max");
@@ -122,6 +114,19 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     if (outfile != 0) outfile->ProcessArgs( fileArgs );
     if (maxfile != 0) maxfile->ProcessArgs( fileArgs );
     if (avgfile != 0) avgfile->ProcessArgs( fileArgs );
+  }
+  // Lifetime curves
+  DataFile* crvfile = 0;
+  if (!outfileName_.empty())
+    crvfile = DFLin->AddDataFile("crv." + outfileName_, analyzeArgs);
+  for (int didx = 0; didx != (int)inputDsets_.size(); didx++)
+  {
+    DataSet_1D* outSet = (DataSet_1D*)
+      datasetlist->AddSetIdxAspect(DataSet::DOUBLE, setname, didx, "curve");
+    if (CheckDsetError(outSet, "lifetime curve", inputDsets_[didx]->Legend().c_str()))
+      return Analysis::ERR;
+    curveSets_.push_back( outSet );
+    if (crvfile != 0) crvfile->AddSet( outSet );
   }
 
   if (!averageonly_)
