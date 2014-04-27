@@ -13,6 +13,7 @@ class Analysis_Lifetime : public Analysis {
   private:
     Array1D inputDsets_;
     Array1D outputDsets_;
+    Array1D curveSets_;
     Array1D maxDsets_;
     Array1D avgDsets_;
     std::string outfileName_;
