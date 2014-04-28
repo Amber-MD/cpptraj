@@ -10,13 +10,14 @@ Analysis_Lifetime::Analysis_Lifetime() :
   averageonly_(false),
   cumulative_(false),
   deltaAvg_(false),
+  normalizeCurves_(true),
   Compare_(Compare_GreaterThan)
 {}
 
 void Analysis_Lifetime::Help() {
   mprintf("\t[out <filename>] <dsetarg0> [ <dsetarg1> ... ]\n"
           "\t[window <windowsize> [name <setname>]] [averageonly]\n"
-          "\t[cumulative] [cut <cutoff>] [greater | less]\n"
+          "\t[cumulative] [cut <cutoff>] [greater | less] [rawcurve]\n"
           "  Calculate lifetimes for specified data set(s), i.e. time that data is\n"
           "  either greater than or less than <cutoff> (default: > 0.5). If <windowsize>\n"
           "  is given calculate lifetimes over windows of given size.\n");
@@ -31,6 +32,7 @@ Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray, std::string c
   averageonly_ = false;
   cumulative_ = false;
   deltaAvg_ = false;
+  normalizeCurves_ = true;
   cut_ = 0.5;
   Compare_ = Compare_GreaterThan;
   return Analysis::OK;
@@ -56,6 +58,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   cumulative_ = analyzeArgs.hasKey("cumulative");
   deltaAvg_ = analyzeArgs.hasKey("delta");
   cut_ = analyzeArgs.getKeyDouble("cut", 0.5);
+  normalizeCurves_ = !analyzeArgs.hasKey("rawcurve");
   if (analyzeArgs.hasKey("greater"))
     Compare_ = Compare_GreaterThan;
   else if (analyzeArgs.hasKey("less"))
@@ -117,16 +120,18 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   }
   // Lifetime curves
   DataFile* crvfile = 0;
-  if (!outfileName_.empty())
-    crvfile = DFLin->AddDataFile("crv." + outfileName_, analyzeArgs);
-  for (int didx = 0; didx != (int)inputDsets_.size(); didx++)
-  {
-    DataSet_1D* outSet = (DataSet_1D*)
-      datasetlist->AddSetIdxAspect(DataSet::DOUBLE, setname, didx, "curve");
-    if (CheckDsetError(outSet, "lifetime curve", inputDsets_[didx]->Legend().c_str()))
-      return Analysis::ERR;
-    curveSets_.push_back( outSet );
-    if (crvfile != 0) crvfile->AddSet( outSet );
+  if (!averageonly_) {
+    if (!outfileName_.empty())
+      crvfile = DFLin->AddDataFile("crv." + outfileName_, analyzeArgs);
+    for (int didx = 0; didx != (int)inputDsets_.size(); didx++)
+    {
+      DataSet_1D* outSet = (DataSet_1D*)
+        datasetlist->AddSetIdxAspect(DataSet::DOUBLE, setname, didx, "curve");
+      if (CheckDsetError(outSet, "lifetime curve", inputDsets_[didx]->Legend().c_str()))
+        return Analysis::ERR;
+      curveSets_.push_back( outSet );
+      if (crvfile != 0) crvfile->AddSet( outSet );
+    }
   }
 
   if (!averageonly_)
@@ -156,8 +161,14 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       mprintf(", %s, %s", maxfile->DataFilename().base(), avgfile->DataFilename().base());
     mprintf("\n");
   }
-
-
+  if (!averageonly_) {
+    if (crvfile != 0)
+      mprintf("\tLifetime curves output: %s\n", crvfile->DataFilename().base());
+    if (normalizeCurves_)
+      mprintf("\tLifetime curves will be normalized.\n");
+    else
+      mprintf("\tLifetime curves will not be normalized.\n");
+  }
   return Analysis::OK;
 }
 
@@ -287,7 +298,11 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
     // Calculate normalized lifetime curve
     if (!lifetimeCurve.empty()) {
       curveSets_[setIdx]->Allocate1D( lifetimeCurve.size() );
-      double norm = 1.0 / (double)lifetimeCurve.front();
+      double norm;
+      if (normalizeCurves_)
+        norm = 1.0 / (double)lifetimeCurve.front();
+      else
+        norm = 1.0;
       for (unsigned int n = 0; n != lifetimeCurve.size(); n++) {
         double dval = lifetimeCurve[n] * norm;
         curveSets_[setIdx]->Add(n, &dval);
