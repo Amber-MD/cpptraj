@@ -6,6 +6,7 @@
 // CONSTRUCTOR
 Analysis_Lifetime::Analysis_Lifetime() :
   windowSize_(0),
+  fuzzCut_(-1),
   cut_(0.5),
   averageonly_(false),
   cumulative_(false),
@@ -18,6 +19,7 @@ void Analysis_Lifetime::Help() {
   mprintf("\t[out <filename>] <dsetarg0> [ <dsetarg1> ... ]\n"
           "\t[window <windowsize> [name <setname>]] [averageonly]\n"
           "\t[cumulative] [cut <cutoff>] [greater | less] [rawcurve]\n"
+          "\t[fuzz <fuzzcut>]\n"
           "  Calculate lifetimes for specified data set(s), i.e. time that data is\n"
           "  either greater than or less than <cutoff> (default: > 0.5). If <windowsize>\n"
           "  is given calculate lifetimes over windows of given size.\n");
@@ -34,6 +36,7 @@ Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray, std::string c
   deltaAvg_ = false;
   normalizeCurves_ = true;
   cut_ = 0.5;
+  fuzzCut_ = -1;
   Compare_ = Compare_GreaterThan;
   return Analysis::OK;
 }
@@ -58,6 +61,8 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   cumulative_ = analyzeArgs.hasKey("cumulative");
   deltaAvg_ = analyzeArgs.hasKey("delta");
   cut_ = analyzeArgs.getKeyDouble("cut", 0.5);
+  fuzzCut_ = analyzeArgs.getKeyInt("fuzz", -1);
+  if (fuzzCut_ < 1) fuzzCut_ = -1;
   normalizeCurves_ = !analyzeArgs.hasKey("rawcurve");
   if (analyzeArgs.hasKey("greater"))
     Compare_ = Compare_GreaterThan;
@@ -169,7 +174,32 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     else
       mprintf("\tLifetime curves will not be normalized.\n");
   }
+  if (fuzzCut_ != -1)
+    mprintf("\tFuzz value of %i frames will be used.\n", fuzzCut_);
   return Analysis::OK;
+}
+
+inline static void RecordCurrentLifetime(int& currentLifetimeCount, int& maximumLifetimeCount,
+                                         int& sumLifetimes, int& Nlifetimes,
+                                         std::vector<int>& localCurve,
+                                         std::vector<int>& lifetimeCurve)
+{
+  // Record current lifetime information. 
+  if (currentLifetimeCount > maximumLifetimeCount)
+    maximumLifetimeCount = currentLifetimeCount;
+  sumLifetimes += currentLifetimeCount;
+  ++Nlifetimes;
+  mprintf("%i; LC=%i maxLC=%i NL=%i\n", 0, currentLifetimeCount, maximumLifetimeCount, Nlifetimes);
+  if (localCurve.size() > lifetimeCurve.size())
+    lifetimeCurve.resize( localCurve.size(), 0 );
+  for (unsigned int lc = 0; lc != localCurve.size(); lc++)
+    lifetimeCurve[lc] += localCurve[lc];
+  // DEBUG: Current lifetime curve
+  mprintf("CRV:");
+  for (std::vector<int>::const_iterator it = lifetimeCurve.begin(); it != lifetimeCurve.end(); ++it) mprintf(" %i", *it);
+  mprintf("\n");
+  currentLifetimeCount = 0;
+  localCurve.clear();
 }
 
 // Analysis_Lifetime::Analyze()
@@ -186,13 +216,19 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
   }
   ProgressBar progress( inputDsets_.size() );
   std::vector<int> lifetimeCurve;
+  std::vector<int> localCurve;
   for (unsigned int setIdx = 0; setIdx < inputDsets_.size(); setIdx++) {
     lifetimeCurve.clear();
+    localCurve.clear();
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *inputDsets_[setIdx] );
     if (standalone)
       mprintf("\t\tCalculating lifetimes for set %s\n", DS.Legend().c_str());
     else
       progress.Update( current++ );
+    if (DS.Size() < 1) {
+      mprintf("Warning: Set %s is empty, skipping.\n", DS.Legend().c_str());
+      continue;
+    }
     // Loop over all values in set.
     int setSize = (int)DS.Size();
     double sum = 0.0;
@@ -200,10 +236,24 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
     int windowcount = 0; // Used to trigger averaging
     int Ncount = 0;      // Used in averaging; if !cumulative, == windowcount
     int frame = 0;       // Frame to add data at.
-    int currentLifetimeCount = 0; // # of frames value has been present this lifetime
+    int currentLifetimeCount = 0; // # of frames value has been present this window
     int maximumLifetimeCount = 0; // Max observed lifetime
     int Nlifetimes = 0;           // # of separate lifetimes observed
     int sumLifetimes = 0;         // sum of lifetimeCount for each lifetime observed
+    // Are we using fuzz values?
+    int startingFuzzCount;
+    if (fuzzCut_ < 1)
+      startingFuzzCount = -1;
+    else
+      startingFuzzCount = 0;
+    int fuzzCount = startingFuzzCount;
+    // Where are we starting
+    bool locationWasOutside;
+    if ( Compare_(DS.Dval(0), cut_) )
+      locationWasOutside = false;
+    else
+      locationWasOutside = true;
+    // Loop over all data points
     for (int i = 0; i < setSize; ++i) {
       double dval = DS.Dval(i);
       //mprintf("\t\t\tValue[%i]= %.2f", i,dval);
@@ -212,27 +262,83 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         sum += dval;
       else {
         // Lifetime calculation
-        if ( Compare_(dval, cut_) ) {
+        bool frameIsInside = Compare_(dval, cut_);
+        if ( locationWasOutside ) {
+          if (frameIsInside) {
+            if (fuzzCount == 0) {
+              // We have come in from outside but are within fuzz boundary.
+              fuzzCount = 1;
+            } else if (fuzzCount < fuzzCut_) {
+              // Still within fuzz boundary.
+              fuzzCount++;
+            } else {
+              // We are now inside.
+              locationWasOutside = false;
+              fuzzCount = startingFuzzCount;
+            }
+          } else {
+            if (fuzzCount > 0) {
+              // We were inside, but not long enough. Reset fuzz and lifetime count.
+              fuzzCount = startingFuzzCount;
+              currentLifetimeCount = 0;
+              localCurve.clear();
+            }
+          }
+        } else { // Location is inside
+          if (!frameIsInside) {
+            if (fuzzCount == 0) {
+              // We have gone out from inside but are within fuzz boundary.
+              fuzzCount = 1;
+            } else if (fuzzCount < fuzzCut_) {
+              // Still within fuzz boundary
+              fuzzCount++;
+            } else {
+              // We are now outside.
+              locationWasOutside = true;
+              //mprintf(" not present");
+              //mprintf("I went outside. currentLC=%i, fuzzCut_=%i\n", currentLifetimeCount, fuzzCut_);
+              if (currentLifetimeCount > fuzzCut_ + 1) {
+                // Record current lifetime information. 
+                RecordCurrentLifetime(currentLifetimeCount, maximumLifetimeCount,
+                                      sumLifetimes, Nlifetimes,
+                                      localCurve, lifetimeCurve);
+/*                if (currentLifetimeCount > maximumLifetimeCount)
+                  maximumLifetimeCount = currentLifetimeCount;
+                sumLifetimes += currentLifetimeCount;
+                ++Nlifetimes;
+                mprintf("%i; LC=%i maxLC=%i NL=%i\n", i+1, currentLifetimeCount, maximumLifetimeCount, Nlifetimes);
+                if (localCurve.size() > lifetimeCurve.size())
+                  lifetimeCurve.resize( localCurve.size(), 0 );
+                for (unsigned int lc = 0; lc != localCurve.size(); lc++)
+                  lifetimeCurve[lc] += localCurve[lc];
+                  // DEBUG: Current lifetime curve
+                  mprintf("CRV:");
+                  for (std::vector<int>::const_iterator it = lifetimeCurve.begin(); it != lifetimeCurve.end(); ++it) mprintf(" %i", *it);
+                  mprintf("\n");
+                currentLifetimeCount = 0;
+                localCurve.clear();*/
+              }
+              //mprintf("\n");
+              fuzzCount = startingFuzzCount;
+            }
+          } else {
+            if (fuzzCount > 0) {
+              // We were outside, but not long enough. Reset fuzz count.
+              fuzzCount = startingFuzzCount;
+            }
+          }
+        }
+        mprintf("%8i locationWasOutside=%i frameIsInside=%i fuzzCount=%i currentLifetimeCount=%i\n",
+                i+1, (int)locationWasOutside, (int)frameIsInside, fuzzCount, currentLifetimeCount);
+        if (frameIsInside) { 
           // Value is present at time i
           ++sum;
-          if (currentLifetimeCount == (int)lifetimeCurve.size())
-            lifetimeCurve.push_back( 0 );
-          lifetimeCurve[currentLifetimeCount]++;
+          if (currentLifetimeCount == (int)localCurve.size())
+            localCurve.push_back( 0 );
+          localCurve[currentLifetimeCount]++;
           ++currentLifetimeCount;
           //mprintf(" present; sum=%i LC=%i\n", sum, currentLifetimeCount);
-        } else {
-          //mprintf(" not present");
-          // Value is not present at time i
-          if (currentLifetimeCount > 0) {
-            if (currentLifetimeCount > maximumLifetimeCount)
-              maximumLifetimeCount = currentLifetimeCount;
-            sumLifetimes += currentLifetimeCount;
-            ++Nlifetimes;
-            //mprintf("; LC=%i maxLC=%i NL=%i\n", currentLifetimeCount, maximumLifetimeCount, Nlifetimes);
-            currentLifetimeCount = 0;
-          }
-          //mprintf("\n");
-        }
+        } 
       }
       //sum += inputDsets_[setIdx]->Dval(i);
       ++Ncount;
@@ -245,12 +351,16 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         if (!averageonly_) {
           // Store lifetime information for this window
           // Update current lifetime total
-          if (currentLifetimeCount > 0) {
-            if (currentLifetimeCount > maximumLifetimeCount)
+          if (currentLifetimeCount > fuzzCut_ + 1) {
+            RecordCurrentLifetime(currentLifetimeCount, maximumLifetimeCount,
+                                  sumLifetimes, Nlifetimes,
+                                  localCurve, lifetimeCurve);
+            /*if (currentLifetimeCount > maximumLifetimeCount)
               maximumLifetimeCount = currentLifetimeCount;
             sumLifetimes += currentLifetimeCount;
-            ++Nlifetimes;
+            ++Nlifetimes;*/
           }
+          fuzzCount = startingFuzzCount;
           // If Nlifetimes is 0 then value was never present. 
           if (Nlifetimes == 0) 
             favg = 0.0;
@@ -274,6 +384,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
           maximumLifetimeCount = 0;
           Nlifetimes = 0;
           sumLifetimes = 0;
+          //mprintf("WINDOW BREAK\n");
         }
       }
     }

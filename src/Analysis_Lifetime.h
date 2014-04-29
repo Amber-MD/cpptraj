@@ -18,6 +18,7 @@ class Analysis_Lifetime : public Analysis {
     Array1D avgDsets_;
     std::string outfileName_;
     int windowSize_;
+    int fuzzCut_;
     double cut_;
     bool averageonly_;
     bool cumulative_;
