@@ -35,7 +35,7 @@ Action_Hbond::Action_Hbond() :
 void Action_Hbond::Help() {
   mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>] [series]\n"
           "\t[donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n"
-          "\t[avgout <filename>] [printatomnum] [nointramol]\n"
+          "\t[avgout <filename>] [printatomnum] [nointramol] [image]\n"
           "\t[solventdonor <mask>] [solventacceptor <mask>]\n"
           "\t[solvout <filename>] [bridgeout <filename>]\n"
           "  Search for hydrogen bonds using atoms in the region specified by mask.\n"
@@ -56,6 +56,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
   ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get keywords
+  Image_.InitImaging( (actionArgs.hasKey("image")) );
   DataFile* DF = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   series_ = actionArgs.hasKey("series");
   avgout_ = actionArgs.GetStringKey("avgout");
@@ -169,6 +170,8 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
     mprintf("\tAtom numbers will be written to output.\n");
   if (series_)
     mprintf("\tTime series data for each hbond will be saved for analysis.\n");
+  if (Image_.UseImage())
+    mprintf("\tImaging enabled.\n");
   masterDSL_ = DSL;
   return Action::OK;
 }
@@ -270,6 +273,7 @@ void Action_Hbond::SearchDonor(HBlistType& dlist, AtomMask& dmask, bool Auto,
 /** Search for hbond donors and acceptors. */
 Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddress) {
   CurrentParm_ = currentParm;
+  Image_.SetupImaging( currentParm->BoxType() );
   // Set up mask
   if (!hasDonorMask_ || !hasAcceptorMask_) {
     if ( currentParm->SetupIntegerMask( Mask_ ) ) return Action::ERR;
@@ -383,6 +387,10 @@ Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddres
       mprintf("\tSet up %zu solvent donors\n", SolventDonor_.size()/2 );
     }
   }
+  if (Image_.ImagingEnabled())
+    mprintf("\tImaging on.\n");
+  else
+    mprintf("\tImaging off.\n");
   return Action::OK;
 }
 
@@ -397,7 +405,9 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
   double angle;
 
   if (a_atom == d_atom) return 0;
-  double dist2 = DIST2_NoImage(currentFrame.XYZ(a_atom), currentFrame.XYZ(d_atom));
+  double dist2 = DIST2(currentFrame.XYZ(a_atom), currentFrame.XYZ(d_atom),
+                       Image_.ImageType(), currentFrame.BoxCrd(),
+                       ucell_, recip_);
   if (dist2 > dcut2_) return 0;
   /*mprintf("DEBUG: Donor %i@%s -- acceptor %i@%s = %lf",
          d_atom+1, (*currentParm)[d_atom].c_str(),
@@ -459,7 +469,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
   * hbond loop.
   */
 #define SoluteHbond(a_atom, d_atom, h_atom)  { \
-  dist2 = DIST2_NoImage(currentFrame->XYZ(a_atom), currentFrame->XYZ(d_atom)); \
+  dist2 = DIST2(currentFrame->XYZ(a_atom), currentFrame->XYZ(d_atom), Image_.ImageType(), currentFrame->BoxCrd(), ucell_, recip_); \
   if (dist2 > dcut2_) continue; \
   angle = CalcAngle( currentFrame->XYZ(a_atom), \
                      currentFrame->XYZ(h_atom), \
@@ -504,6 +514,8 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
   HBmapType::iterator it;
   HbondType HB;
 
+  if (Image_.ImageType() == NONORTHO)
+    currentFrame->BoxCrd().ToRecip(ucell_, recip_);
   // SOLUTE-SOLUTE HBONDS
   int hbidx = 0; 
   int numHB=0;

@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include "Action.h"
+#include "ImagedAction.h"
 #include "DataSet_integer.h"
 // Class: Action_Hbond
 /// Action to calculate the Hbonds present in each frame.
@@ -29,6 +30,8 @@ class Action_Hbond : public Action {
       DataSet_integer* data_; ///< If series, keep track of frames hbond is present.
     };
 
+    ImagedAction Image_;
+    Matrix_3x3 ucell_, recip_;
     int debug_;
     int ensembleNum_;
     int Nframes_;
