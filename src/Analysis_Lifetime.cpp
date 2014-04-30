@@ -179,6 +179,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   return Analysis::OK;
 }
 
+// TODO: Make most of these class variables. 
 inline static void RecordCurrentLifetime(int start, int stop, int length,
                                          int& maximumLifetimeCount,
                                          int& sumLifetimes, int& Nlifetimes,
@@ -413,6 +414,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         potentialLifetimeStop = setSize; // Include last frame in lifetime.
         int lifetimeLength = potentialLifetimeStop - potentialLifetimeStart;
         if (lifetimeLength > fuzzCut_) { // TODO: Necessary? Always true if calcLifetime?
+          sum += (double)lifetimeLength;
           RecordCurrentLifetime(potentialLifetimeStart, potentialLifetimeStop,
                                 lifetimeLength,
                                 maximumLifetimeCount, sumLifetimes, Nlifetimes,
@@ -430,7 +432,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
                             DS.Legend().c_str());
     }
     // Calculate normalized lifetime curve
-    if (!lifetimeCurve.empty()) {
+    if (!lifetimeCurve.empty() && !curveSets_.empty()) {
       curveSets_[setIdx]->Allocate1D( lifetimeCurve.size() );
       double norm;
       if (normalizeCurves_)
