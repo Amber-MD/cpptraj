@@ -664,12 +664,6 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
     delete act;
     return Command::C_ERR;
   }
-  // Check if parm was modified. If so, update COORDS.
-  if ( currentParm != originalParm ) {
-    mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
-            CRD->Legend().c_str(), actionargs.Command());
-    CRD->SetTopology( *currentParm );
-  }
   // Loop over all frames in COORDS.
   ProgressBar progress( stop - start );
   int set = 0;
@@ -686,6 +680,12 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
     //if ( currentFrame != originalFrame ) 
       CRD->SetCRD( frame, *currentFrame );
     set++;
+  }
+  // Check if parm was modified. If so, update COORDS.
+  if ( currentParm != originalParm ) {
+    mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
+            CRD->Legend().c_str(), actionargs.Command());
+    CRD->SetTopology( *currentParm );
   }
   act->Print();
   State.MasterDataFileWrite();
