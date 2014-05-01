@@ -2,8 +2,7 @@
 #define INC_TRAJ_MOL2FILE_H
 #include "TrajectoryIO.h"
 #include "Mol2File.h"
-// Class: Traj_Mol2File
-/// TrajecttoryIO class for reading coordinates from Mol2 files.
+/// TrajectoryIO class for reading coordinates from Mol2 files.
 class Traj_Mol2File : public TrajectoryIO {
   public:
     /// Indicate how the mol2 file should be written.
