@@ -845,8 +845,7 @@ static inline void CombinedCoords_AddBondArray(Topology* top, BondArray const& b
 {
   for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
   {
-    mprintf("DBG:\t\tBonding %i and %i\n", bond->A1() + atomOffset + 1, 
-            bond->A2() + atomOffset + 1);
+    //mprintf("DBG:\t\tBonding %i and %i\n", bond->A1() + atomOffset + 1, bond->A2() + atomOffset + 1);
     top->AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
   }
 }
@@ -881,13 +880,16 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
   // TODO: Check Parm box info.
   int atomOffset = 0;
   int currentAtNum = 0;
+  size_t minSize = CRD[0]->Size();
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {
+    if (CRD[setnum]->Size() < minSize)
+      minSize = CRD[setnum]->Size();
     Topology const& CurrentTop = CRD[setnum]->Top();
     for (Topology::atom_iterator atom = CurrentTop.begin();
                                  atom != CurrentTop.end();
                                ++atom, ++currentAtNum)
     {
-      mprintf("DBG:\tAtom %i (%u) '%s'\n", currentAtNum+1, atom - CurrentTop.begin() + 1, *(atom->Name()));
+      //mprintf("DBG:\tAtom %i (%u) '%s'\n", currentAtNum+1, atom - CurrentTop.begin() + 1, *(atom->Name()));
       Atom CurrentAtom = *atom;
       Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
       // Bonds need to be cleared and re-added.
@@ -905,7 +907,44 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
   CombinedTop->Brief("Combined parm:");
   State.PFL()->AddParm( CombinedTop );
   // Combine coordinates
-
+  if (crdname.empty())
+    crdname = CRD[0]->Legend() + "_" + CRD[1]->Legend();
+  mprintf("\tCombining %zu frames from each set into %s\n", minSize, crdname.c_str());
+  DataSet_Coords* CombinedCrd = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, crdname, "CRD");
+  if (CombinedCrd == 0) {
+    mprinterr("Error: Could not create COORDS data set.\n");
+    return Command::C_ERR;
+  }
+  CombinedCrd->SetTopology( *CombinedTop );
+  // FIXME: Only copying coords for now
+  Frame CombinedFrame( CombinedTop->Natom() * 3 );
+  std::vector<Frame> InputFrames;
+  for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum)
+    InputFrames.push_back( CRD[setnum]->AllocateFrame() );
+  for (size_t nf = 0; nf != minSize; ++nf) {
+    CombinedFrame.ClearAtoms();
+    for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum)
+    {
+      CRD[setnum]->GetFrame( nf, InputFrames[setnum] );
+      for (int atnum = 0; atnum < CRD[setnum]->Top().Natom(); atnum++)
+        CombinedFrame.AddXYZ( InputFrames[setnum].XYZ(atnum) );
+    }
+    CombinedCrd->AddFrame( CombinedFrame );
+  }
+/* FIXME: This code is fast but only works for DataSet_Coords_CRD
+  Frame::CRDtype CombinedFrame( CombinedTop->Natom() * 3 );
+  for (size_t nf = 0; nf != minSize; ++nf) {
+    size_t offset = 0;
+    for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum)
+    {
+      size_t crd_offset = (size_t)CRD[setnum]->Top().Natom() * 3;
+      std::copy( CRD[setnum]->CRD(nf).begin(), CRD[setnum]->CRD(nf).begin() + crd_offset,
+                 CombinedFrame.begin() + offset );
+      offset += crd_offset;
+    }
+    CombinedCrd->AddCRD( CombinedFrame );
+  }
+*/
   return Command::C_OK;
 }
 // -----------------------------------------------------------------------------
