@@ -195,8 +195,12 @@ void Topology::Brief(const char* heading) const {
     mprintf("\t%s", heading);
   if (!parmTag_.empty())
     mprintf(" %s", parmTag_.c_str());
-  mprintf(" '%s', %zu atoms, %zu res, box: %s, %zu mol", fileName_.full(),
-          atoms_.size(), residues_.size(), box_.TypeName(), molecules_.size());
+  if (!fileName_.empty())
+    mprintf(" '%s',", fileName_.full());
+  else if (!parmName_.empty())
+    mprintf(" %s,", parmName_.c_str());
+  mprintf(" %zu atoms, %zu res, box: %s, %zu mol", atoms_.size(), 
+          residues_.size(), box_.TypeName(), molecules_.size());
   if (NsolventMolecules_>0)
     mprintf(", %i solvent", NsolventMolecules_);
   if (heading != 0)

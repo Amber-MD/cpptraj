@@ -834,6 +834,81 @@ Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocTyp
   }
   return Command::C_OK;
 }
+// -----------------------------------------------------------------------------
+static void Help_CombineCoords() {
+  mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>] [bondsearch]\n"
+          "  Combined two COORDS data sets.\n");
+}
+
+static inline void CombinedCoords_AddBondArray(Topology* top, BondArray const& barray,
+                                               int atomOffset)
+{
+  for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
+  {
+    mprintf("DBG:\t\tBonding %i and %i\n", bond->A1() + atomOffset + 1, 
+            bond->A2() + atomOffset + 1);
+    top->AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+  }
+}
+
+/// Combine two COORDS DataSets
+Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  std::string parmname = argIn.GetStringKey("parmname");
+  std::string crdname  = argIn.GetStringKey("crdname");
+  bool bondsearch = argIn.hasKey("bondsearch");
+  // Get COORDS DataSets.
+  std::vector<DataSet_Coords*> CRD;
+  std::string setname = argIn.GetStringNext();
+  while (!setname.empty()) {
+    DataSet_Coords* ds = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
+    if (ds == 0) {
+      mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
+      return Command::C_ERR;
+    }
+    CRD.push_back( ds );
+    setname = argIn.GetStringNext();
+  }
+  if (CRD.size() < 2) {
+    mprinterr("Error: %s: Must specify at least 2 COORDS data sets\n", argIn.Command());
+    return Command::C_ERR;
+  }
+  Topology* CombinedTop = new Topology();
+  if (CombinedTop == 0) return Command::C_ERR;
+  if (parmname.empty())
+    parmname = CRD[0]->Top().ParmName() + "_" + CRD[1]->Top().ParmName();
+  CombinedTop->SetParmName( parmname, FileName() );
+  // TODO: Check Parm box info.
+  int atomOffset = 0;
+  int currentAtNum = 0;
+  for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {
+    Topology const& CurrentTop = CRD[setnum]->Top();
+    for (Topology::atom_iterator atom = CurrentTop.begin();
+                                 atom != CurrentTop.end();
+                               ++atom, ++currentAtNum)
+    {
+      mprintf("DBG:\tAtom %i (%u) '%s'\n", currentAtNum+1, atom - CurrentTop.begin() + 1, *(atom->Name()));
+      Atom CurrentAtom = *atom;
+      Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
+      // Bonds need to be cleared and re-added.
+      CurrentAtom.ClearBonds();
+      CombinedTop->AddTopAtom( CurrentAtom, res.OriginalResNum(),
+                               res.Name(), 0 );
+    }
+    // BONDS
+    CombinedCoords_AddBondArray(CombinedTop, CurrentTop.Bonds(),  atomOffset);
+    CombinedCoords_AddBondArray(CombinedTop, CurrentTop.BondsH(), atomOffset);
+    atomOffset += CombinedTop->Natom();
+  }
+  if (CombinedTop->CommonSetup(bondsearch))
+    return Command::C_ERR;
+  CombinedTop->Brief("Combined parm:");
+  State.PFL()->AddParm( CombinedTop );
+  // Combine coordinates
+
+  return Command::C_OK;
+}
+// -----------------------------------------------------------------------------
 
 /// Generate amber restraints from given masks.
 Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
@@ -1506,6 +1581,7 @@ const Command::Token Command::Commands[] = {
   // GENERAL COMMANDS
   { GENERAL, "activeref",     0, Help_ActiveRef,       ActiveRef       },
   { GENERAL, "clear",         0, Help_Clear,           ClearList       },
+  { GENERAL, "combinecrd",    0, Help_CombineCoords,   CombineCoords   },
   { GENERAL, "crdaction",     0, Help_CrdAction,       CrdAction       },
   { GENERAL, "crdout",        0, Help_CrdOut,          CrdOut          },
   { GENERAL, "create",        0, Help_Create_DataFile, Create_DataFile },
