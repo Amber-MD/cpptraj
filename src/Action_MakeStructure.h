@@ -13,7 +13,7 @@ class Action_MakeStructure : public Action {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
-    //Topology* CurrentParm_; // DEBUG
+    Topology* CurrentParm_; // DEBUG
     int debug_;
     /// Hold secondary structure/turn/single dihedral types.
     class SS_TYPE {

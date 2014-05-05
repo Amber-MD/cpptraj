@@ -378,16 +378,16 @@ Action::RetType Action_MakeStructure::DoAction(int frameNum, Frame* currentFrame
       Vec3 axisOfRotation = currentFrame->SetAxisOfRotation((*dih).A1(), (*dih).A2());
       // Calculate rotation matrix for delta 
       rotationMatrix.CalcRotationMatrix(axisOfRotation, delta);
-      //if (debug_ > 0) {
-//        std::string a0name = CurrentParm_->TruncResAtomName( (*dih).A0() );
-//        std::string a1name = CurrentParm_->TruncResAtomName( (*dih).A1() );
-//        std::string a2name = CurrentParm_->TruncResAtomName( (*dih).A2() );
-//        std::string a3name = CurrentParm_->TruncResAtomName( (*dih).A3() );
-//          mprintf("\tRotating Dih %i:%s (%i-%i-%i-%i) (@%.2f) by %.2f deg to get to %.2f.\n",
-//                  (*dih).ResNum()+1, (*dih).Name().c_str(),
-//                  (*dih).A0() + 1, (*dih).A1() + 1, (*dih).A2() + 1, (*dih).A3() + 1, 
-//                  torsion*Constants::RADDEG, delta*Constants::RADDEG, theta_in_radians*Constants::RADDEG);
-      //}
+      if (debug_ > 0) {
+        std::string a0name = CurrentParm_->TruncResAtomName( (*dih).A0() );
+        std::string a1name = CurrentParm_->TruncResAtomName( (*dih).A1() );
+        std::string a2name = CurrentParm_->TruncResAtomName( (*dih).A2() );
+        std::string a3name = CurrentParm_->TruncResAtomName( (*dih).A3() );
+          mprintf("\tRotating Dih %i:%s (%i-%i-%i-%i) (@%.2f) by %.2f deg to get to %.2f.\n",
+                  (*dih).ResNum()+1, (*dih).Name().c_str(),
+                  (*dih).A0() + 1, (*dih).A1() + 1, (*dih).A2() + 1, (*dih).A3() + 1, 
+                  torsion*Constants::RADDEG, delta*Constants::RADDEG, theta_in_radians*Constants::RADDEG);
+      }
       // Rotate around axis
       currentFrame->Rotate(rotationMatrix, *Rmask);
     }
