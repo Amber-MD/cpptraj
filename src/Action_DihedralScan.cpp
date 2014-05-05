@@ -16,6 +16,7 @@ Action_DihedralScan::Action_DihedralScan() :
   interval_(60.0),
   maxVal_(0),
   check_for_clashes_(false),
+  checkAllResidues_(false),
   max_rotations_(0),
   max_factor_(2),
   cutoff_(0.64), // 0.8^2
@@ -37,7 +38,7 @@ void Action_DihedralScan::Help() {
   DihedralSearch::ListKnownTypes();
   mprintf("\t'*' denotes default.\n"
           "\tOptions for 'random': [rseed <rseed>]\n"
-          "\t\t[ check [cutoff <cutoff>] [rescutoff <rescutoff>]\n"
+          "\t\t[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [checkallresidues]\n"
           "\t\t  [backtrack <backtrack>] [increment <increment>] [maxfactor <max_factor>] ]\n"
           "\tOptions for 'interval': <interval deg> [outtraj <filename> [<outfmt>]]\n"
           "  Rotate specified dihedral(s) by specific intervals or by random values.\n");
@@ -90,6 +91,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   // Get 'random' args
   if (mode_ == RANDOM) {
     check_for_clashes_ = actionArgs.hasKey("check");
+    checkAllResidues_ = actionArgs.hasKey("checkallresidues");
     cutoff_ = actionArgs.getKeyDouble("cutoff",0.8);
     rescutoff_ = actionArgs.getKeyDouble("rescutoff",10.0);
     backtrack_ = actionArgs.getKeyInt("backtrack",4);
@@ -140,6 +142,10 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
         mprintf("\tRandom number generator will be seeded using %i\n",iseed);
       if (check_for_clashes_) {
         mprintf("\tWill attempt to recover from bad steric clashes.\n");
+        if (checkAllResidues_)
+          mprintf("\tAll residues will be checked.\n");
+        else
+          mprintf("\tResidues up to the currenly rotating dihedral will be checked.\n");
         mprintf("\tAtom cutoff %.2f, residue cutoff %.2f, backtrack = %i\n",
                 cutoff_, rescutoff_, backtrack_);
         mprintf("\tWhen clashes occur dihedral will be incremented by %i\n",increment_);
@@ -411,7 +417,11 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
       // If we dont care about sterics exit here
       if (!check_for_clashes_) break;
       // Check resulting structure for issues
-      int checkresidue = CheckResidue(currentFrame, *dih, next_resnum, &clash);
+      int checkresidue;
+      if (!checkAllResidues_)
+        checkresidue = CheckResidue(currentFrame, *dih, next_resnum, &clash);
+      else
+        checkresidue = CheckResidue(currentFrame, *dih, CurrentParm_->FinalSoluteRes(), &clash);
       if (checkresidue==0)
         rotate_dihedral = false;
       else if (checkresidue==-1) {

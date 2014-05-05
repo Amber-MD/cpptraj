@@ -53,6 +53,7 @@ class Action_DihedralScan: public Action {
     int maxVal_;        ///< Maximum number of times to rotate dihedral
     // 'random' options
     bool check_for_clashes_;
+    bool checkAllResidues_;
     int max_rotations_; ///< Max # of random rotations to try, == # of dihedrals
     int max_factor_;    ///< # of times to randomly rotate each dihedral
     double cutoff_;     ///< When checking for clashes, atom cutoff
