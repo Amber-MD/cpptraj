@@ -855,13 +855,14 @@ void Topology::DetermineExcludedAtoms() {
   int natom = (int)atoms_.size();
   for (int atomi = 0; atomi < natom; atomi++) {
     excluded_i.clear();
-    //mprintf("\tDetermining excluded atoms for atom %i\n",atomi+1);
+    //mprintf("    Determining excluded atoms for atom %i\n",atomi+1);
     // AtomDistance recursively sets each atom bond distance from atomi
     AtomDistance(atomi, atomi, 0, excluded_i);
     atoms_[atomi].AddExclusionList( excluded_i );
     // DEBUG
-    //mprintf("Atom %i Excluded:");
-    //for (std::set<int>::iterator ei = excluded_i.begin(); ei != excluded_i.end(); ei++)
+    //mprintf("\tAtom %i Excluded:",atomi+1);
+    //for (Atom::excluded_iterator ei = atoms_[atomi].excludedbegin(); 
+    //                             ei != atoms_[atomi].excludedend(); ++ei)
     //  mprintf(" %i",*ei + 1);
     //mprintf("\n");
   } // END loop over atomi
