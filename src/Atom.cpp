@@ -128,7 +128,6 @@ Atom::Atom( NameType const& name, double charge, double polar, int atomicnum,
 }
 
 // COPY CONSTRUCTOR
-// TODO: Does excluded need to be copied as well?
 Atom::Atom(const Atom &rhs) :
   charge_(rhs.charge_),
   polar_(rhs.polar_),
@@ -142,7 +141,8 @@ Atom::Atom(const Atom &rhs) :
   resnum_(rhs.resnum_),
   mol_(rhs.mol_),
   chainID_(rhs.chainID_),
-  bonds_(rhs.bonds_)
+  bonds_(rhs.bonds_),
+  excluded_(rhs.excluded_)
 { }
 
 // SWAP
@@ -161,6 +161,7 @@ void Atom::swap(Atom &first, Atom &second) {
   swap(first.mol_, second.mol_);
   swap(first.chainID_, second.chainID_);
   swap(first.bonds_, second.bonds_);
+  swap(first.excluded_, second.excluded_);
 }
 
 // ASSIGNMENT via copy/swap idiom
