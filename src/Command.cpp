@@ -1362,7 +1362,7 @@ Command::RetType SelectAtoms(CpptrajState& State, ArgList& argIn, Command::Alloc
   AtomMask tempMask( argIn.GetMaskNext() );
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
-  parm->SetupIntegerMask( tempMask );
+  if (parm->SetupIntegerMask( tempMask )) return Command::C_ERR;
   mprintf("Selected %i atoms.\n", tempMask.Nselected());
   if (!argIn.hasKey("total"))
     tempMask.PrintMaskAtoms("Selected");
@@ -1538,7 +1538,7 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
   AtomMask tempMask( argIn.GetMaskNext() );
   // Since want to keep atoms outside mask, invert selection
   tempMask.InvertMask();
-  parm->SetupIntegerMask( tempMask );
+  if (parm->SetupIntegerMask( tempMask )) return Command::C_ERR;
   mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.MaskString(),
            parm->Natom() - tempMask.Nselected(), parm->c_str());
   Topology* tempParm = parm->modifyStateByMask(tempMask);
