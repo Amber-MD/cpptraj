@@ -38,7 +38,7 @@ int Parm_Tinker::ReadParm(std::string const& fname, Topology &parmOut) {
     parmOut.AddBond( *bond, *(bond+1) );
   // Set topology box info.
   parmOut.SetBox( infile.TinkerBox() );
-    
+  parmOut.SetParmName( infile.TinkerTitle(), infile.Filename() );
   mprintf("\tTinker file contains %i atoms, %i residues,\n", parmOut.Natom(),parmOut.Nres());
   //mprintf("    %i bonds to H, %i other bonds.\n", parmOut.NbondsWithH,parmOut.NbondsWithoutH);
 

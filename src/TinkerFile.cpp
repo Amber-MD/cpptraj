@@ -9,11 +9,16 @@ TinkerFile::TinkerFile() : natom_(0), hasBox_(false) {}
 
 /// \return 1 if problem with or not a Tinker Atom/Title line.
 static inline int SetNatomAndTitle(ArgList& lineIn, int& natom, std::string& title) {
-  if (lineIn.Nargs() != 2) return 1;
+  if (lineIn.Nargs() < 2) return 1;
   natom = lineIn.getNextInteger( -1 );
   if (natom < 1) return 1;
-  title = lineIn.GetStringNext();
-  if (title.empty()) return 1;
+  std::string nextWord = lineIn.GetStringNext();
+  if (nextWord.empty()) return 1;
+  while (!nextWord.empty()) {
+    if (!title.empty()) title += ' ';
+    title.append( nextWord );
+    nextWord = lineIn.GetStringNext();
+  }
   return 0;
 }
 
