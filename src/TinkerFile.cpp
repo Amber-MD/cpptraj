@@ -123,10 +123,16 @@ int TinkerFile::NextTinkerFrame() {
   if (CheckTitleLine()) return -1;
   // Box line if necessary
   if (hasBox_) {
-    if (file_.Line() == 0) return -1;
+    if (file_.Line() == 0) {
+      mprinterr("Error: Could not read Tinker box line (%i).\n", file_.LineNumber());
+      return -1;
+    }
   }
   for (int atidx = 0; atidx < natom_; atidx++)
-    if (file_.Line() == 0) return -1;
+    if (file_.Line() == 0) {
+      mprinterr("Error: Could not read Tinker atom line (%i).\n", file_.LineNumber());
+      return -1;
+    }
   return 1;
 }
 
@@ -140,7 +146,10 @@ int TinkerFile::ReadNextTinkerFrame(double* Xptr, double* box) {
   if (CheckTitleLine()) return -1;
   // Box line
   if (hasBox_) {
-    if (file_.Line() == 0) return -1;
+    if (file_.Line() == 0) {
+      mprinterr("Error: Could not read Tinker box line (%i).\n", file_.LineNumber());
+      return -1;
+    }
     int nbox = file_.TokenizeLine(" ");
     if (nbox != 6) {
       mprinterr("Error: In Tinker file line %i expected 6 box coords, got %i\n", 
@@ -152,7 +161,10 @@ int TinkerFile::ReadNextTinkerFrame(double* Xptr, double* box) {
   }
   // Coords
   for (int atidx = 0; atidx < natom_; atidx++) {
-    if (file_.Line() == 0) return -1;
+    if (file_.Line() == 0) {
+      mprinterr("Error: Could not read Tinker atom line (%i).\n", file_.LineNumber());
+      return -1;
+    }
     int ncol = file_.TokenizeLine(" ");
     if (ncol < 5) {
       mprinterr("Error: In Tinker file line %i expected at least 5 columns for atom, got %i\n",

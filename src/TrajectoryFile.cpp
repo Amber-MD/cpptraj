@@ -35,10 +35,10 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "Gromacs TRX",        0, 0, Traj_GmxTrX::Alloc         },
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
   { "Amber Restart",      0, 0, Traj_AmberRestart::Alloc   },
+  { "Tinker file",        0, 0, Traj_Tinker::Alloc         },
   { "Amber Trajectory",   0, 0, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, 0, Traj_SQM::Alloc            },
   { "SDF",                0, 0, Traj_SDF::Alloc            },
-  { "Tinker file",        0, 0, Traj_Tinker::Alloc         },
   { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
   { "Unknown trajectory", 0, 0, 0                          }
 };
