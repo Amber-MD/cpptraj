@@ -395,12 +395,38 @@ int AtomMask::Tokenize() {
       maskTokens_.clear();
       return 1;
     }
-  } // END loop over postfix    
-
+  } // END loop over postfix
+  // Test that operators will work correctly.
+  if (!maskTokens_.empty()) {
+    std::stack<char> tempStack;
+    bool validMask = true;
+    std::vector<MaskToken>::const_iterator T = maskTokens_.begin();
+    for ( ; T != maskTokens_.end(); ++T)
+    {
+      if (T->Type() == MaskToken::OP_AND ||
+          T->Type() == MaskToken::OP_OR) // Requires 2 operands
+      {
+        if (tempStack.empty()) { validMask = false; break; }
+        tempStack.pop();
+        if (tempStack.empty()) { validMask = false; break; }
+      } else if (T->Type() == MaskToken::OP_NEG  ||
+                 T->Type() == MaskToken::OP_DIST) // Requires 1 operand
+      {
+        if (tempStack.empty()) { validMask = false; break; }
+      }
+      if ( T->OnStack() )
+        tempStack.push('T');
+    } 
+    if ( !validMask ) {
+      mprinterr("Error: Misplaced operator %s.\n", T->TypeName());
+      maskTokens_.clear();
+      return 1;
+    } 
+  }
   if (debug_ > 0)
     for (std::vector<MaskToken>::const_iterator T = maskTokens_.begin(); 
                                                 T != maskTokens_.end(); T++)
-      (*T).Print();
+      T->Print();
 
   return 0;
 }
