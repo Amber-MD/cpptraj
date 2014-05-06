@@ -70,6 +70,7 @@ int Traj_Tinker::readFrame(int set, Frame& frameIn) {
   }
   if (file_.ReadNextTinkerFrame( frameIn.xAddress(), frameIn.bAddress() ) != 1)
     return 1;
+  currentSet_++;
   return 0;
 }
 
