@@ -54,7 +54,8 @@ const char* Analysis_Modes::analysisTypeString[] = {
   "rms fluctuations",
   "displacements",
   "correlation functions",
-  "coordinate projection"
+  "coordinate projection",
+  "eigenvalue fraction"
 };
 
 // DESTRUCTOR
@@ -90,6 +91,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     type_ = CORR;
   else if (analyzeArgs.Contains("trajout"))
     type_ = TRAJ;
+  else if (analyzeArgs.hasKey("eigenval"))
+    type_ = EIGENVAL;
   else {
     mprinterr("Error: No analysis type specified.\n");
     return Analysis::ERR;
@@ -102,7 +105,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     CheckDeprecated(analyzeArgs, modesfile, "file");
     CheckDeprecated(analyzeArgs, modesfile, "stack");
     if (modesfile.empty()) {
-      mprinterr("Error: No 'modes <name>' argument given.\n");
+      mprinterr("Error: No 'name <modes data set name>' argument given.\n");
       return Analysis::ERR;
     }
   }
@@ -214,16 +217,19 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   mprintf("    ANALYZE MODES: Calculating %s using modes from %s", 
           analysisTypeString[type_], modinfo_->Legend().c_str());
   if ( type_ != TRAJ ) {
-    mprintf(", modes %i to %i\n", beg_+1, end_);
-    mprintf("\tResults are written to");
+    if (type_ != EIGENVAL)
+      mprintf(", modes %i to %i", beg_+1, end_);
+    mprintf("\n\tResults are written to");
     if (filename_.empty())
       mprintf(" STDOUT\n");
     else
       mprintf(" %s\n", filename_.c_str());
-    if (bose_)
-      mprintf("\tBose statistics used.\n");
-    else
-      mprintf("\tBoltzmann statistics used.\n");
+    if (type_ != EIGENVAL) {
+      if (bose_)
+        mprintf("\tBose statistics used.\n");
+      else
+        mprintf("\tBoltzmann statistics used.\n");
+    }
     if (type_ == DISPLACE)
       mprintf("\tFactor for displacement: %lf\n", factor_);
     if (type_ == CORR) {
@@ -247,7 +253,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
 Analysis::RetType Analysis_Modes::Analyze() {
   CpptrajFile outfile;
   // Check # of modes
-  if (type_ != TRAJ) {
+  if (type_ != TRAJ && type_ != EIGENVAL) {
     if (beg_ < 0 || beg_ >= modinfo_->Nmodes()) {
       mprinterr("Error: 'beg %i' is out of bounds.\n", beg_+1);
       return Analysis::ERR;
@@ -304,7 +310,7 @@ Analysis::RetType Analysis_Modes::Analyze() {
       Ri += 4;
     }
     // Output
-    outfile.OpenWrite( filename_ );
+    if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
     outfile.Printf("Analysis of modes: RMS FLUCTUATIONS\n");
     outfile.Printf("%10s %10s %10s %10s %10s\n", "Atom no.", "rmsX", "rmsY", "rmsZ", "rms");
     int anum = 1;
@@ -339,7 +345,7 @@ Analysis::RetType Analysis_Modes::Analyze() {
       }
     }
     // Output
-    outfile.OpenWrite( filename_ );
+    if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
     outfile.Printf("Analysis of modes: DISPLACEMENT\n");
     outfile.Printf("%10s %10s %10s %10s\n", "Atom no.", "displX", "displY", "displZ");
     int anum = 1;
@@ -351,7 +357,7 @@ Analysis::RetType Analysis_Modes::Analyze() {
     // Calc dipole-dipole correlation functions
     CalcDipoleCorr();
     if (results_==0) return Analysis::ERR;
-    outfile.OpenWrite( filename_ );
+    if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
     outfile.Printf("Analysis of modes: CORRELATION FUNCTIONS\n");
     outfile.Printf("%10s %10s %10s %10s %10s %10s\n", "Atom1", "Atom2", "Mode", 
                    "Freq", "1-S^2", "P2(cum)");
@@ -371,8 +377,24 @@ Analysis::RetType Analysis_Modes::Analyze() {
         }
       }
     } // END loop over CORR atom pairs
+  // ----- PSEUDO-TRAJECTORY -----
   } else if (type_ == TRAJ) {
     ProjectCoords();
+  // ----- EIGENVALUE FRACTION -----
+  } else if (type_ == EIGENVAL) {
+    double sum = 0.0;
+    for (unsigned int mode = 0; mode != modinfo_->Size(); mode++)
+      sum += modinfo_->Eigenvalue( mode );
+    mprintf("\t%zu eigenvalues, sum is %f\n", modinfo_->Size(), sum);
+    double cumulative = 0.0;
+    if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
+    outfile.Printf("%6s %12s %12s %12s\n", "#Mode", "Frac.", "Cumulative", "Eigenval");
+    for (unsigned int mode = 0; mode != modinfo_->Size(); mode++) {
+      double frac = modinfo_->Eigenvalue( mode ) / sum;
+      cumulative += frac;
+      outfile.Printf("%6u %12.6f %12.6f %12.6f\n", mode+1, frac, cumulative, 
+                     modinfo_->Eigenvalue( mode ));
+    }
   } else // SANITY CHECK
     return Analysis::ERR;
   outfile.CloseFile();

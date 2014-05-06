@@ -22,7 +22,7 @@ class Analysis_Modes : public Analysis {
     static const double CMTOA;
     static const double CONT;
 
-    enum modeAnalysisType { FLUCT=0, DISPLACE, CORR, TRAJ };
+    enum modeAnalysisType { FLUCT=0, DISPLACE, CORR, TRAJ, EIGENVAL };
     static const char* analysisTypeString[];
     typedef std::vector< std::pair<int,int> > modestackType;
     typedef modestackType::const_iterator modestack_it;
