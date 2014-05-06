@@ -36,6 +36,8 @@ int Parm_Tinker::ReadParm(std::string const& fname, Topology &parmOut) {
   for (std::vector<int>::const_iterator bond = Bonds.begin();
                                         bond != Bonds.end(); bond += 2)
     parmOut.AddBond( *bond, *(bond+1) );
+  // Try to set up residue info based on bonds.
+  if (parmOut.Setup_NoResInfo()) return 1;
   // Set topology box info.
   parmOut.SetBox( infile.TinkerBox() );
   parmOut.SetParmName( infile.TinkerTitle(), infile.Filename() );

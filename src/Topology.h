@@ -122,6 +122,7 @@ class Topology {
     int AddTopAtom(Atom const&, int, NameType const&, const double*);
     void StartNewMol();
     int CommonSetup(bool);
+    int Setup_NoResInfo();
     // ----- Amber setup routines ----------------
     int SetAmberExtra(std::vector<double> const&,std::vector<NameType> const&,
                       std::vector<int> const&,std::vector<int> const&);

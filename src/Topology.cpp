@@ -528,6 +528,51 @@ int Topology::CommonSetup(bool bondsearch) {
   return 0;
 }
 
+/** For topology formats that do not contain residue info, base residues
+  * on molecules.
+  */
+int Topology::Setup_NoResInfo() {
+  mprintf("\tAttempting to determine residue info from molecules.\n");
+  if (DetermineMolecules()) {
+    mprintf("Warning: Could not determine molecule info. Not setting up residues.\n");
+    return 0;
+  }
+  // Save residue name if its there at all.
+  NameType default_res_name, res_name;
+  if (!residues_.empty())
+    default_res_name = residues_[0].Name();
+  else
+    default_res_name = "RES";
+  // Set residue info to match molecule info.
+  residues_.clear();
+  int resnum = 0;
+  for (std::vector<Molecule>::const_iterator mol = molecules_.begin();
+                                             mol != molecules_.end();
+                                           ++mol, ++resnum)
+  {
+    // Try to detect at least water as solvent. Assume CommonSetup will be
+    // run after this to set up molecule solvent info.
+    if (mol->NumAtoms() == 3) {
+      int nH = 0;
+      int nO = 0;
+      for (int atnum = mol->BeginAtom(); atnum != mol->EndAtom(); atnum++)
+      {
+        if (atoms_[atnum].Element() == Atom::HYDROGEN) nH++;
+        if (atoms_[atnum].Element() == Atom::OXYGEN)   nO++;
+      }
+      if (nO == 1 && nH == 2) res_name = "HOH";
+    } else
+      res_name = default_res_name;
+    residues_.push_back( Residue(resnum+1, res_name, mol->BeginAtom()) );
+    residues_.back().SetLastAtom( mol->EndAtom() );
+    // Update atom residue numbers
+    for (int atnum = residues_.back().FirstAtom(); 
+             atnum != residues_.back().LastAtom(); ++atnum)
+      atoms_[atnum].SetResNum( resnum );
+  }
+  return 0;
+}
+
 static inline int NoAtomsErr(const char* msg) {
   mprinterr("Error: Cannot set up %s, no atoms present.\n");
   return 1;
