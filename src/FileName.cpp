@@ -5,7 +5,7 @@
 // COPY CONSTRUCTOR
 FileName::FileName( const FileName& rhs ) : fullPathName_(rhs.fullPathName_),
   baseName_(rhs.baseName_), extension_(rhs.extension_),
-  compressExt_(rhs.compressExt_) {}
+  compressExt_(rhs.compressExt_), dirPrefix_(rhs.dirPrefix_) {}
 
 // ASSIGNMENT
 FileName& FileName::operator=(const FileName& rhs) {
@@ -14,6 +14,7 @@ FileName& FileName::operator=(const FileName& rhs) {
   baseName_ = rhs.baseName_;
   extension_ = rhs.extension_;
   compressExt_ = rhs.compressExt_;
+  dirPrefix_ = rhs.dirPrefix_;
   return *this;
 }
 
@@ -23,6 +24,7 @@ void FileName::clear() {
   baseName_.clear();
   extension_.clear();
   compressExt_.clear();
+  dirPrefix_.clear();
 }
 
 bool FileName::MatchFullOrBase(std::string const& rhs) const {
@@ -50,10 +52,13 @@ int FileName::SetFileName(std::string const& nameIn, FileName::CompressStatus co
   fullPathName_.assign( nameIn );
   // Get position of last occurence of '/' to determine base filename
   size_t found = fullPathName_.find_last_of("/");
-  if (found == std::string::npos)
+  if (found == std::string::npos) {
     baseName_ = fullPathName_;
-  else
+    dirPrefix_.clear();
+  } else {
     baseName_ = fullPathName_.substr(found+1);
+    dirPrefix_ = fullPathName_.substr(0, found+1);
+  }
   // Get the filename extension
   found = baseName_.find_last_of(".");
   if (found == std::string::npos) {

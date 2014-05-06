@@ -87,8 +87,10 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   if ( windowSize_ != -1) {
     outfile = DFLin->AddDataFile(outfileName_, analyzeArgs);
     if (!averageonly_ && outfile != 0) {
-      maxfile = DFLin->AddDataFile("max." + outfile->DataFilename().Full(), analyzeArgs);
-      avgfile = DFLin->AddDataFile("avg." + outfile->DataFilename().Full(), analyzeArgs);
+      maxfile = DFLin->AddDataFile(outfile->DataFilename().DirPrefix() + "max." + 
+                                   outfile->DataFilename().Base(), analyzeArgs);
+      avgfile = DFLin->AddDataFile(outfile->DataFilename().DirPrefix() + "avg." + 
+                                   outfile->DataFilename().Base(), analyzeArgs);
     }
     int didx = 0;
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
