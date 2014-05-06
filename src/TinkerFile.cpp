@@ -1,4 +1,5 @@
 #include <cstdlib> // atoi
+#include <cstdio>  // sscanf
 #include "TinkerFile.h"
 #include "ArgList.h"
 #include "CpptrajStdio.h"
@@ -6,11 +7,12 @@
 // CONSTRUCTOR
 TinkerFile::TinkerFile() : natom_(0), hasBox_(false) {}
 
-static inline int SetNatomAndTitle(ArgList& firstLine, int& natom, std::string& title) {
-  if (firstLine.Nargs() != 2) return 1;
-  natom = firstLine.getNextInteger( -1 );
+/// \return 1 if problem with or not a Tinker Atom/Title line.
+static inline int SetNatomAndTitle(ArgList& lineIn, int& natom, std::string& title) {
+  if (lineIn.Nargs() != 2) return 1;
+  natom = lineIn.getNextInteger( -1 );
   if (natom < 1) return 1;
-  title = firstLine.GetStringNext();
+  title = lineIn.GetStringNext();
   if (title.empty()) return 1;
   return 0;
 }
@@ -27,20 +29,24 @@ bool TinkerFile::ID_Tinker(CpptrajFile& fileIn) {
   return isTinker;
 }
 
+/** Open tinker file. Read number of atoms and title from first frame. Set up
+  * box coordinates if present.
+  */
 int TinkerFile::OpenTinker() {
   if (tinkerName_.empty()) {
     mprinterr("Internal Error: Tinker file name not set.\n");
     return 1;
   }
   if (file_.OpenFileRead( tinkerName_ )) return 1;
-  ArgList firstLine( file_.Line() );
-  if ( SetNatomAndTitle(firstLine, natom_, title_) ) {
+  ArgList line( file_.Line() );
+  if ( SetNatomAndTitle(line, natom_, title_) ) {
     mprinterr("Error: Could not get # atoms / title from Tinker file.\n");
     return 1;
   }
   // Are box coords present? If not, next line read in should be 1 followed by
   // atom info and the line after that should be 2.
   hasBox_ = false;
+  box_.SetNoBox();
   const char* secondptr = file_.Line();
   if (secondptr == 0) {
     mprinterr("Error: Could not get first atom line of Tinker file.\n");
@@ -52,20 +58,20 @@ int TinkerFile::OpenTinker() {
     // If a third line was read, check if it is another title line. If so,
     // no box coordinates.
     if (thirdptr != 0) {
-      firstLine.SetList( std::string(thirdptr), " " );
+      line.SetList( std::string(thirdptr), " " );
       int natom2;
       std::string title2; // TODO: Check natom/title match?
-      if (SetNatomAndTitle(firstLine, natom2, title2))
-        hasBox_ = true;
+      if (SetNatomAndTitle(line, natom2, title2))
+        hasBox_ = true; // Not a title line, should be first atom so second should be box.
     } // else no third line read, no box.
   } else {
     if (thirdptr == 0) {
       mprinterr("Error: Could not get second atom line of Tinker file.\n");
       return 1;
     }
-    firstLine.SetList( std::string(thirdptr), " " );
+    line.SetList( std::string(thirdptr), " " );
     // If the third line contains atom 1 there are box coords.
-    int atomIdx = firstLine.IntegerAt( 0 );
+    int atomIdx = line.IntegerAt( 0 );
     if (atomIdx < 1) {
       mprinterr("Error: Third line contains invalid atom index.\n");
       mprinterr("Error: %s", thirdptr);
@@ -74,11 +80,23 @@ int TinkerFile::OpenTinker() {
     if (atomIdx == 1)
       hasBox_ = true;
   }
+  // Set up box
+  if (hasBox_) {
+    double bp[6];
+    if (secondptr == 0) return 1;
+    if (sscanf(secondptr, "%lf %lf %lf %lf %lf %lf", bp, bp+1, bp+2, bp+3, bp+4, bp+5)!=6)
+    {
+      mprinterr("Error: Expected 6 box coordinates.\n");
+      return 1;
+    }
+    box_.SetBox( bp );
+  }
   // Close and reopen the file.
   file_.CloseFile();
   return file_.OpenFileRead( tinkerName_ );
 }
 
+/// \return 1 if number of atoms does not match what file was set up for.
 int TinkerFile::CheckTitleLine() {
   file_.TokenizeLine(" ");
   int lineNatom = atoi( file_.NextToken() );
@@ -107,6 +125,10 @@ int TinkerFile::NextTinkerFrame() {
   return 1;
 }
 
+/** \return 0 if no more frames to read.
+  * \return -1 if an error occurs.
+  * \return 1 if more frames to read.
+  */
 int TinkerFile::ReadNextTinkerFrame(double* Xptr, double* box) {
   // Title line
   if (file_.Line() == 0) return 0;
@@ -141,4 +163,52 @@ int TinkerFile::ReadNextTinkerFrame(double* Xptr, double* box) {
   }
   return 1;
 }
-     
+
+/* \return an array of Atoms from the current frame.
+ * Assumes file has already been opened.
+ */
+std::vector<Atom> TinkerFile::ReadTinkerAtoms(double* XYZ, std::vector<int>& bonds)
+{
+  std::vector<Atom> atoms;
+  if (XYZ == 0) {
+    mprinterr("Internal Error: No space allocated for reading Tinker atom coordinates.\n");
+    return atoms;
+  }
+  // Title line
+  if (file_.Line() == 0) return atoms;
+  if (CheckTitleLine()) return atoms;
+  // Box line
+  if (hasBox_) {
+    if (file_.Line() == 0) return atoms;
+  }
+  // Read atoms
+  atoms.reserve( natom_ );
+  for (int atidx = 0; atidx < natom_; atidx++) {
+    if (file_.Line() == 0) return std::vector<Atom>(0);
+    int ncol = file_.TokenizeLine(" ");
+    if (ncol < 6) {
+      mprinterr("Error: In Tinker file line %i expected at least 5 columns for atom, got %i\n",
+                file_.LineNumber(), ncol);
+      return std::vector<Atom>(0);
+    }
+    file_.NextToken(); // Atom index
+    NameType atom_name( file_.NextToken() );
+    XYZ[0] = atof( file_.NextToken() ); // X
+    XYZ[1] = atof( file_.NextToken() ); // Y
+    XYZ[2] = atof( file_.NextToken() ); // Z
+    XYZ += 3;
+    const char* at_type_ptr = file_.NextToken(); // Atom Type Index
+    int atom_type_index = atoi( at_type_ptr );
+    NameType atom_type( at_type_ptr );
+    // Read in any bonded partners.
+    for (int col = 6; col != ncol; col++) {
+      int bonded_atom = atoi(file_.NextToken()) - 1; // Tinker atoms start from 1
+      if (atidx < bonded_atom) {
+        bonds.push_back( atidx );
+        bonds.push_back( bonded_atom );
+      }
+    }
+    atoms.push_back( Atom(atom_name, atom_type, atom_type_index) );
+  }
+  return atoms;
+}

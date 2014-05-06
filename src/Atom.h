@@ -30,6 +30,8 @@ class Atom {
     Atom(NameType const&, char, const char*);
     /// Take atom name, type name, and charge.
     Atom(NameType const&, NameType const&, double);
+    /// Take atom name, type name, and type index.
+    Atom(NameType const&, NameType const&, int);
     /// Take atom name, charge, mass, and type name
     Atom(NameType const&, double, double, NameType const&);
     /// Atom name, charge, polarizability atomic num, mass, type index, type name, gb radius and screen parameter.

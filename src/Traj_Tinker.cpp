@@ -36,7 +36,9 @@ int Traj_Tinker::setupTrajin(std::string const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
   // Set title
-  SetTitle( file_.TinkerTitle() ); 
+  SetTitle( file_.TinkerTitle() );
+  // Set Box.
+  SetBox( file_.TinkerBox() ); 
   // Count how many frames can be read.
   int readMoreFrames = 1;
   while (readMoreFrames == 1) {

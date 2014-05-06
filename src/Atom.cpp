@@ -86,6 +86,16 @@ Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   mass_ = AtomicElementMass[ element_ ];
 }
 
+/** Set type and type index. Attempt to guess element from atom name. */
+Atom::Atom( NameType const& aname, NameType const& atype, int atidx ) :
+  charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
+  aname_(aname), atype_(atype), atype_index_(atidx), element_(UNKNOWN_ELEMENT),
+  resnum_(0), mol_(0), chainID_(' ')
+{
+  SetElementFromName();
+  mass_ = AtomicElementMass[ element_ ];
+}
+
 // Atom::DetermineElement()
 /// Determine element from atomic number, mass, or atom name.
 void Atom::DetermineElement(int atomicnum) {
