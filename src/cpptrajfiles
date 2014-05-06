@@ -184,6 +184,7 @@ SOURCES=ActionFrameCounter.cpp \
         Parm_Mol2.cpp \
         Parm_PDB.cpp \
         Parm_SDF.cpp \
+        Parm_Tinker.cpp \
         ProgressBar.cpp \
         PubFFT.cpp \
         Random.cpp \
@@ -195,6 +196,7 @@ SOURCES=ActionFrameCounter.cpp \
         StringRoutines.cpp \
         SymmetricRmsdCalc.cpp \
         Timer.cpp \
+        TinkerFile.cpp \
         Topology.cpp \
         TopologyList.cpp \
         TorsionRoutines.cpp \
@@ -211,6 +213,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_PDBfile.cpp \
         Traj_SDF.cpp \
         Traj_SQM.cpp \
+        Traj_Tinker.cpp \
         TrajectoryFile.cpp \
         Trajin.cpp \
         TrajinList.cpp \

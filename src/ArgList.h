@@ -68,8 +68,6 @@ class ArgList {
     std::string const& getNextTag();
     /// \return true if arg at position is valid integer.
     bool ValidInteger(int) const;
-    /// \return Integer at position.
-    int IntegerAt(int) const;
     /// \return true if arg at position is valid double.
     bool ValidDouble(int) const;
     /// \return the next unmarked integer

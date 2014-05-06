@@ -69,9 +69,9 @@ int TinkerFile::OpenTinker() {
       mprinterr("Error: Could not get second atom line of Tinker file.\n");
       return 1;
     }
-    line.SetList( std::string(thirdptr), " " );
     // If the third line contains atom 1 there are box coords.
-    int atomIdx = line.IntegerAt( 0 );
+    file_.TokenizeLine(" ");
+    int atomIdx = atoi( file_.NextToken() );
     if (atomIdx < 1) {
       mprinterr("Error: Third line contains invalid atom index.\n");
       mprinterr("Error: %s", thirdptr);

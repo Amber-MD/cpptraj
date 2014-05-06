@@ -7,9 +7,10 @@
 #include "Parm_CharmmPsf.h"
 #include "Parm_CIF.h"
 #include "Parm_SDF.h"
+#include "Parm_Tinker.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
-// NOTE: Must be in same order as DataFormatType
+// NOTE: Must be in same order as ParmFormatType
 const FileTypes::AllocToken ParmFile::PF_AllocArray[] = {
   { "Amber Topology",   0,                  Parm_Amber::WriteHelp, Parm_Amber::Alloc     },
   { "PDB File",         Parm_PDB::ReadHelp, 0,                     Parm_PDB::Alloc       },
@@ -17,6 +18,7 @@ const FileTypes::AllocToken ParmFile::PF_AllocArray[] = {
   { "Charmm PSF",       0,                  0,                     Parm_CharmmPsf::Alloc },
   { "CIF File",         0,                  0,                     Parm_CIF::Alloc       },
   { "SDF File",         0,                  0,                     Parm_SDF::Alloc       },
+  { "Tinker File",      0,                  0,                     Parm_Tinker::Alloc    },
   { "Unknown Topology", 0,                  0,                     0                     }
 };
 
@@ -27,6 +29,8 @@ const FileTypes::KeyToken ParmFile::PF_KeyArray[] = {
   { CHARMMPSF,    "psf",   ".psf"   },
   { CIFFILE,      "cif",   ".cif"   },
   { SDFFILE,      "sdf",   ".sdf"   },
+  { TINKER,       "tinker",".arc"   },
+  { TINKER,       "arc",   ".arc"   },
   { UNKNOWN_PARM, 0,       0        }
 };
 
