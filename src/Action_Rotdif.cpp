@@ -225,7 +225,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   if (!deffOut_.empty())
     mprintf("\tDeff will be written out to %s\n",deffOut_.c_str());
   if (!corrOut_.empty())
-    mprintf("\tTime correlation for l=1 and l=2 for vector 0 will be written to %s\n",
+    mprintf("\tTime correlation functions will be written to %s.X\n",
             corrOut_.c_str());
 #ifdef NO_MATHLIB
   mprintf("------------------------------------------------------\n");
@@ -1534,8 +1534,6 @@ int Action_Rotdif::DetermineDeffs() {
             outfile.Printf("%f %f\n", spline.X(i), spline.Y(i));
           outfile.CloseFile();
         }
-        if (!corrOut_.empty()) 
-          corrOut_.clear();
     }
     if (debug_ > 0) {
       mprintf("DBG: Vec %i Spline integral= %12.4lf\n",nvec,integral);
