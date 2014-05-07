@@ -128,9 +128,12 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   // Lifetime curves
   DataFile* crvfile = 0;
   if (!averageonly_) {
-    if (outfile != 0)
-      crvfile = DFLin->AddDataFile(outfile->DataFilename().DirPrefix() + "crv." + 
-                                   outfile->DataFilename().Base(), analyzeArgs);
+    if (!outfileName_.empty()) {
+      FileName crvFilename;
+      crvFilename.SetFileName( outfileName_ );
+      crvfile = DFLin->AddDataFile(crvFilename.DirPrefix() + "crv." + 
+                                   crvFilename.Base(), analyzeArgs);
+    }
     for (int didx = 0; didx != (int)inputDsets_.size(); didx++)
     {
       DataSet_1D* outSet = (DataSet_1D*)
