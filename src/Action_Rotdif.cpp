@@ -160,6 +160,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   rmOut_ = actionArgs.GetStringKey("rmout");
   deffOut_ = actionArgs.GetStringKey("deffout");
   std::string outfilename = actionArgs.GetStringKey("outfile");
+  if (outfilename.empty()) outfilename = actionArgs.GetStringKey("out");
   corrOut_ = actionArgs.GetStringKey("corrout");
   do_gridsearch_ = actionArgs.hasKey("gridsearch");
   // Reference Keywords
