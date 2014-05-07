@@ -33,7 +33,11 @@ class DataSet_integer : public DataSet_1D {
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 void DataSet_integer::AddVal(size_t frame, int ival) {
-  if (frame > Data_.size()) Data_.resize( frame, 0 );
-  Data_.push_back( ival );
+  if (frame < Data_.size())
+    Data_[frame] += ival;
+  else {
+    if (frame > Data_.size()) Data_.resize( frame, 0 );
+    Data_.push_back( ival );
+  }
 }
 #endif
