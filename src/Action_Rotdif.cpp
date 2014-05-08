@@ -1049,8 +1049,9 @@ int Action_Rotdif::Grid_search(Vec6& Q_vector, int gridsize) {
 
   // Store initial solution
   for (int b = 0; b < 6; b++) best[b] = Q_vector[b];
-
+  ProgressBar progress( gridmax );
   for (int i = gridmin; i < gridmax; i++) {
+    progress.Update( i );
     xsearch[0] = Q_vector[0] + (i*delqfrac_/100.0);
     for (int j = gridmin; j < gridmax; j++) {
       xsearch[1] = Q_vector[1] + (j*delqfrac_/100.0);
@@ -1084,7 +1085,8 @@ int Action_Rotdif::Grid_search(Vec6& Q_vector, int gridsize) {
     mprintf("  Grid search succeeded.\n");
     for (int b = 0; b < 6; b++) Q_vector[b] = best[b];
     return 1;
-  }
+  } else
+    mprintf("  Grid search could not find a better solution.\n");
   return 0;
 }
 
