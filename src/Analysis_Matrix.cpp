@@ -51,11 +51,11 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   
   //nmwiz flag
   nmwizopt_ = analyzeArgs.hasKey("nmwiz");
-  if (nmwizopt_) 
-	nmwizvecs_ = analyzeArgs.getKeyInt("nmwizvecs", 20);
-	nmwizfile_ = analyzeArgs.GetStringKey("nmwizfile");
-	parmIn_ = PFLin ->GetParm( analyzeArgs);
-
+  if (nmwizopt_) { 
+    nmwizvecs_ = analyzeArgs.getKeyInt("nmwizvecs", 20);
+    nmwizfile_ = analyzeArgs.GetStringKey("nmwizfile");
+    parmIn_ = PFLin ->GetParm( analyzeArgs);
+  }
   
   // Filenames
   DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs);
