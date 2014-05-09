@@ -13,6 +13,8 @@ class Analysis_Matrix : public Analysis {
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
+    int NMWizOutput() const;
+
     DataSet_2D* matrix_;
     DataSet_Modes* modes_;
     std::string outthermo_;
@@ -24,6 +26,6 @@ class Analysis_Matrix : public Analysis {
     bool nmwizopt_;
     int nmwizvecs_;
     std::string nmwizfile_;
-    Topology* parmIn_;
+    Topology nmwizParm_;
 };
 #endif
