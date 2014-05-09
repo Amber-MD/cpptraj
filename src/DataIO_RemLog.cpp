@@ -73,6 +73,9 @@ static inline bool IsNullPtr( const char* ptr ) {
 // DataIO_RemLog::ReadRemdDimFile()
 // TODO: Handle cases where groups are not in order.
 int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
+  typedef std::map<int,GroupArray> GroupMapType;
+  typedef std::pair<GroupMapType::iterator,bool> GroupMapRet;
+  typedef std::pair<int,GroupArray> GroupMapElt;
   BufferedLine rd_file;
   if (rd_file.OpenFileRead( rd_name )) {
     mprinterr("Error: Could not read remd dim file '%s'\n", rd_name.c_str());
@@ -91,7 +94,7 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
   while (ptr != 0) {
     rd_arg.SetList( std::string(ptr), separators );
     if ( rd_arg[0] == "&multirem" ) {
-      GroupDimType Groups;
+      GroupMapType GroupMap;
       std::string desc;
       int n_replicas = 0;
       ExchgType exch_type = UNKNOWN;
@@ -133,12 +136,20 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
             //mprintf("\t\t\t%i - %i - %i\n", group.back().L_partner(),
             //        group.back().Me(), group.back().R_partner());
           }
-          Groups.push_back( group ); 
+          GroupMapRet ret = GroupMap.insert( GroupMapElt(group_num, group) );
+          if (ret.second == false) {
+            mprinterr("Error: Duplicate group # detected (%i)\n", group_num);
+            return 1;
+          }
         } else if ( rd_arg.CommandIs("desc") ) {
           desc = rd_arg.GetStringNext(); 
         }
         ptr = rd_file.Line();
       }
+      // Place sorted groups for dim into GroupDimType
+      GroupDimType Groups;
+      for (GroupMapType::const_iterator it = GroupMap.begin(); it != GroupMap.end(); ++it)
+        Groups.push_back( it->second );
       mprintf("\tDimension %zu: type '%s', description '%s', groups=%zu, replicas=%i\n", 
               GroupDims_.size() + 1, ExchgDescription[exch_type], desc.c_str(), 
               Groups.size(), n_replicas);
