@@ -1562,10 +1562,21 @@ Command::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Command::AllocTy
     mprinterr("Error: No output filename specified (use 'out <filename>').\n");
     return Command::C_ERR;
   }
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  int err = 0;
   ParmFile pfile;
-  if (pfile.WriteTopology( *parm, outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug() ))
+  // Check if a COORDS data set was specified.
+  std::string crdset = argIn.GetStringKey("crdset");
+  if (crdset.empty()) {
+    Topology* parm = State.PFL()->GetParmByIndex( argIn );
+    if (parm == 0) return Command::C_ERR;
+    err = pfile.WriteTopology( *parm, outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug() );
+  } else {
+    DataSet_Coords* ds = (DataSet_Coords*)State.DSL()->FindCoordsSet(crdset);
+    if (ds == 0) return Command::C_ERR;
+    mprintf("\tUsing topology from data set '%s'\n", ds->Legend().c_str());
+    err = pfile.WriteTopology(ds->Top(), outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug());
+  }
+  if (err != 0)
     return Command::C_ERR;
   return Command::C_OK;
 }
