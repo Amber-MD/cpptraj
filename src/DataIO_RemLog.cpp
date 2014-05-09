@@ -14,11 +14,22 @@ const char* ExchgDescription[] = {
   "Unknown", "Temperature", "Hamiltonian", "MultipleDim"
 };
 
+/// \return true if char pointer is null.
+static inline bool IsNullPtr( const char* ptr ) { 
+  if (ptr == 0) {
+    mprinterr("Error: Could not read file.\n");
+    return true;
+  }
+  return false;
+}
+
 // DataIO_RemLog::ReadRemlogHeader()
 int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) const {
   int numexchg = -1;
   // Read the first line. Should be '# Replica Exchange log file'
-  std::string line = buffer.GetLine();
+  const char* ptr = buffer.Line();
+  if (IsNullPtr( ptr )) return 1;
+  std::string line(ptr);  
   if (line.compare(0, 27, "# Replica Exchange log file") != 0) {
     mprinterr("Error: Expected '# Replica Exchange log file', got:\n%s\n", line.c_str());
     return -1;
@@ -26,7 +37,9 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) const
 
   // Read past metadata. Save expected number of exchanges.
   while (line[0] == '#') {
-    line = buffer.GetLine();
+    ptr = buffer.Line();
+    if (IsNullPtr( ptr )) return 1;
+    line.assign( ptr );
     if (line.empty()) {
       mprinterr("Error: No exchanges in rem log.\n");
       return -1;
@@ -59,15 +72,6 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) const
     return -1;
   }
   return numexchg;
-}
-
-/// \return true if char pointer is null.
-static inline bool IsNullPtr( const char* ptr ) { 
-  if (ptr == 0) {
-    mprinterr("Error: Could not read file.\n");
-    return true;
-  }
-  return false;
 }
 
 // DataIO_RemLog::ReadRemdDimFile()
@@ -515,10 +519,20 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     bool fileEOF = false;
     const char* ptr = 0;
     unsigned int current_dim = 0;
+    int grp; // Will be set to group number for MREMD or group index otherwise
     for (int exchg = 0; exchg < numexchg; exchg++) {
       progress.Update( exchg );
       // Loop over all groups in the current dimension
-      for (unsigned int grp = 0; grp < GroupDims_[current_dim].size(); grp++) {
+      for (unsigned int gidx = 0; gidx < GroupDims_[current_dim].size(); gidx++) {
+        if (processMREMD_) {
+          if (sscanf(buffer[current_dim].CurrentLine(), "%*s%*s%*i%*s%*s%i", &grp)!=1) {
+            mprinterr("Error: Could not get MREMD group number.\n");
+            return 1;
+          }
+          // REMD group indices start from 1
+          grp--;
+        } else
+          grp = gidx;
         // Loop over all replicas in the current group
         //mprintf("--------------------------------------------------------------------------\n");
         for (unsigned int replica = 0; replica < GroupDims_[current_dim][grp].size(); replica++) {
