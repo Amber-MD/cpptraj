@@ -20,12 +20,14 @@ class BufferedLine : private CpptrajFile {
       if ( OpenRead( fname ) ) return 1;
       return ResetBuffer();
     }
-    int LineNumber()     const { return nline_;  }
-    const char* Buffer() const { return buffer_; }
+    int LineNumber()          const { return nline_;          }
+    const char* Buffer()      const { return buffer_;         }
+    // Pointer to current buffer position.
+    const char* CurrentLine() const { return bufferPosition_; }
+    inline std::string GetLine();
     // Members of CpptrajFile that should be public
     using CpptrajFile::Filename;
     using CpptrajFile::CloseFile;
-    using CpptrajFile::GetLine; // TODO: Use internal buffer
   private:
     int ResetBuffer();
     static const size_t DEFAULT_BUFFERSIZE = 16384;
@@ -45,5 +47,11 @@ class BufferedLine : private CpptrajFile {
 const char* BufferedLine::Token(int idx) {
   if (idx < 0 || idx >= (int)tokens_.size()) return 0;
   return tokens_[idx];
+}
+
+std::string BufferedLine::GetLine() {
+  const char* ptr = Line();
+  if (ptr == 0) return std::string();
+  return std::string(ptr);
 }
 #endif

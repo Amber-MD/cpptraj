@@ -27,9 +27,7 @@ static inline bool IsNullPtr( const char* ptr ) {
 int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) const {
   int numexchg = -1;
   // Read the first line. Should be '# Replica Exchange log file'
-  const char* ptr = buffer.Line();
-  if (IsNullPtr( ptr )) return 1;
-  std::string line(ptr);  
+  std::string line = buffer.GetLine();
   if (line.compare(0, 27, "# Replica Exchange log file") != 0) {
     mprinterr("Error: Expected '# Replica Exchange log file', got:\n%s\n", line.c_str());
     return -1;
@@ -37,9 +35,7 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) const
 
   // Read past metadata. Save expected number of exchanges.
   while (line[0] == '#') {
-    ptr = buffer.Line();
-    if (IsNullPtr( ptr )) return 1;
-    line.assign( ptr );
+    line = buffer.GetLine();
     if (line.empty()) {
       mprinterr("Error: No exchanges in rem log.\n");
       return -1;
