@@ -58,7 +58,7 @@ bool TinkerFile::ID_Tinker(CpptrajFile& fileIn) {
   std::string title;
   if ( SetNatomAndTitle(firstLine, natom, title) != 0 )
     return false;
-  mprinterr("Past SetNatomAndTitle\n");
+  //mprinterr("Past SetNatomAndTitle\n");
   if (secondLine.Nargs() == 6) {
     bool isBoxLine = true;
     for (int i = 0; i < 6; i++) {
