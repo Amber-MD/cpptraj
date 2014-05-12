@@ -186,13 +186,16 @@ void Analysis_Statistics::PuckerAnalysis( DataSet_1D const& ds, int totalFrames 
     double dval = value;
     if (dval < 0) dval += 360.0;
     curbin = dval / 36;
-
-    ++pucker_visits[curbin];
-    pucker_avg[curbin] += value;
-    pucker_sd[curbin]  += (value*value);
-    if (curbin != prevbin) 
-      ++pucker_transitions[prevbin][curbin];
-    prevbin = curbin;
+    if (curbin < 0 || curbin > 9) {
+      mprinterr("Error: stat pucker: frame %i has invalid pucker value.\n", i+1);
+    } else {
+      ++pucker_visits[curbin];
+      pucker_avg[curbin] += value;
+      pucker_sd[curbin]  += (value*value);
+      if (curbin != prevbin) 
+        ++pucker_transitions[prevbin][curbin];
+      prevbin = curbin;
+    }
   }
 
   if ( ds.ScalarType() == DataSet::PUCKER)
