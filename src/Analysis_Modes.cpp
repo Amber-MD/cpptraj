@@ -20,10 +20,10 @@ Analysis_Modes::Analysis_Modes() :
 {}
 
 void Analysis_Modes::Help() {
-  mprintf("\t{fluct|displ|corr|trajout} name <modesname>\n" 
+  mprintf("\t{fluct|displ|corr|eigenval|trajout} name <modesname>\n" 
           "\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n"
           "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
-          "    Options for 'trajout':\n"
+          "    Options for 'trajout': (Generate pseudo-trajectory)\n"
           "\t[trajout <name> [<parm arg>] [trajoutfmt <format>] [trajoutmask <mask>]\n"
           "\t  [pcmin <pcmin>] [pcmax <pcmax>] [trajmode <mode>]]\n"
           "  Perform one of the following analysis on calculated Eigenmodes.\n"
@@ -35,7 +35,8 @@ void Analysis_Modes::Help() {
           "    displ:\n"
           "\t[displx(at1), disply(at1), displz(at1), ..., displx(atN), ..., displz(atN)]\n"
           "    corr:\n"
-          "\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n");
+          "\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n"
+          "\t  eigenval: Calculate eigenvalue fractions.\n");
 }
 
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
