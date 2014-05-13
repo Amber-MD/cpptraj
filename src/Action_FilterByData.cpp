@@ -90,3 +90,21 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, Frame* currentFrame,
   maxmin_->Add( frameNum, &ONE );
   return Action::OK;
 }
+
+size_t Action_FilterByData::DetermineFrames() const {
+  if (Dsets_.empty()) return 0;
+  size_t nframes = Dsets_[0]->Size();
+  for (Array1D::const_iterator it = Dsets_.begin(); it != Dsets_.end(); ++it)
+  {
+    if ((*it)->Size() < nframes)
+      nframes = (*it)->Size();
+  }
+  // Warn if any datasets are larger.
+  for (Array1D::const_iterator it = Dsets_.begin(); it != Dsets_.end(); ++it)
+  {
+    if ((*it)->Size() > nframes)
+      mprintf("Warning: '%s' size %zu is larger than other sets; only processing %zu\n",
+              (*it)->Legend().c_str(), (*it)->Size(), nframes);
+  }
+  return nframes;
+}

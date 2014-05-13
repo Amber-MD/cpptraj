@@ -8,11 +8,13 @@ class Action_FilterByData : public Action {
     Action_FilterByData() : maxmin_(0) {}
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_FilterByData(); }
     static void Help();
-  private:
+    /// For running as a separate command.
+    size_t DetermineFrames() const;
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**) { return Action::OK; }
+                         DataFileList*, int);
     Action::RetType DoAction(int, Frame*, Frame**);
+  private:
+    Action::RetType Setup(Topology*, Topology**) { return Action::OK; }
     void Print() {}
 
     std::vector<double> Max_;

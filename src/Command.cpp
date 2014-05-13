@@ -1203,6 +1203,34 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
   return Command::C_OK;
 }
 
+// -----------------------------------------------------------------------------
+static void Help_DataFilter() {
+  Action_FilterByData::Help();
+}
+
+/// Use the filter command on DataSets outside trajectory processing.
+Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  Action_FilterByData filterAction;
+  if (filterAction.Init(argIn, State.PFL(), State.FL(), State.DSL(), 
+                        State.DFL(), State.Debug()) != Action::OK)
+    return Command::C_ERR;
+  size_t nframes = filterAction.DetermineFrames();
+  if (nframes < 1) {
+    mprinterr("Error: No data to filter. All sets must contain some data.\n");
+    return Command::C_ERR;
+  }
+  ProgressBar progress( nframes );
+  for (size_t frame = 0; frame != nframes; frame++) {
+    progress.Update( frame );
+    filterAction.DoAction(frame, (Frame*)0, (Frame**)0); // Filter does not need frame.
+  }
+  // Trigger master datafile write just in case
+  State.MasterDataFileWrite();
+  return Command::C_OK;
+}
+// -----------------------------------------------------------------------------
+
 /// Read data from file into master DataSetList
 Command::RetType ReadData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1636,6 +1664,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "crdout",        0, Help_CrdOut,          CrdOut          },
   { GENERAL, "create",        0, Help_Create_DataFile, Create_DataFile },
   { GENERAL, "datafile",      0, Help_DataFile,        DataFileCmd     },
+  { GENERAL, "datafilter",    0, Help_DataFilter,      DataFilter      },
   { GENERAL, "dataset",       0, Help_DataSetCmd,      DataSetCmd      },
   { GENERAL, "debug",         0, Help_Debug,           SetListDebug    },
   { GENERAL, "exit" ,         0, Help_Quit,            Quit            },
