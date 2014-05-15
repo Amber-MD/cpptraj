@@ -45,6 +45,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   cut_evdw_ = actionArgs.getKeyDouble("cutevdw",1.0);
   cut_evdw1_ = -cut_evdw_;
   cutout_ = actionArgs.GetStringKey("cutout");
+  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   
   // Get Masks
   Mask0_.SetMaskString( actionArgs.GetMaskNext() );
@@ -66,7 +67,6 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   DFL->AddSetToFile(dataout, ds_elec_);
 
   // Get reference structure
-  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) { 
     // Set up reference mask
@@ -268,12 +268,12 @@ void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &
           double delta_eelec = (*refpair).eelec - e_elec;
           // Output
           if (Eout_.IsOpen()) {
-            if (delta_vdw > cut_evdw_ && delta_vdw < cut_evdw1_) {
+            if (delta_vdw > cut_evdw_ || delta_vdw < cut_evdw1_) {
               Eout_.Printf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4lf\n",
                               atom1+1, (*parmIn)[atom1].c_str(),
                               atom2+1, (*parmIn)[atom2].c_str(), delta_vdw);
             }
-            if (delta_eelec > cut_eelec_ && delta_eelec < cut_eelec1_) {
+            if (delta_eelec > cut_eelec_ || delta_eelec < cut_eelec1_) {
               Eout_.Printf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4lf\n",
                               atom1+1, (*parmIn)[atom1].c_str(),
                               atom2+1, (*parmIn)[atom2].c_str(),delta_eelec);
