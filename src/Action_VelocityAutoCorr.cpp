@@ -126,15 +126,15 @@ void Action_VelocityAutoCorr::Print() {
   mprintf("    VELOCITYAUTOCORR:\n");
   mprintf("\t%zu vectors have been saved, total length of each = %zu\n",
           Vel_.size(), Vel_[0].Size());
-  unsigned int maxlag;
+  int maxlag;
   if (maxLag_ <= 0) {
-    maxlag = Vel_[0].Size() / 2;
-    mprintf("\tSetting maximum lag to 1/2 total time (%u)\n", maxlag);
+    maxlag = (int)Vel_[0].Size() / 2;
+    mprintf("\tSetting maximum lag to 1/2 total time (%i)\n", maxlag);
   } else if (maxLag_ > (int)Vel_[0].Size()) {
-    maxlag = Vel_[0].Size();
-    mprintf("\tSpecified maximum lag > total length, setting to %u\n", maxlag);
+    maxlag = (int)Vel_[0].Size();
+    mprintf("\tSpecified maximum lag > total length, setting to %i\n", maxlag);
   } else
-    maxlag = (unsigned int)maxLag_;
+    maxlag = maxLag_;
   // DEBUG
   //for (VelArray::iterator vel = Vel_.begin(); vel != Vel_.end(); ++vel) {
   //  mprintf("Vector %u:\n", vel - Vel_.begin());
@@ -147,7 +147,8 @@ void Action_VelocityAutoCorr::Print() {
   if (!useFFT_) {
     // DIRECT METHOD 
     ParallelProgress progress( maxlag );
-    unsigned int t, dtmax, dt;
+    int t;
+    unsigned int dtmax, dt;
 #   ifdef _OPENMP
 #   pragma omp parallel private(t, dtmax, dt) firstprivate(progress)
     {
@@ -206,7 +207,7 @@ void Action_VelocityAutoCorr::Print() {
       //  mprintf("\t%u: %f + %fi\n", cd/2, data1[cd], data1[cd+1]);
       // Increment nd by 3 here so it can be used for normalization.
       nd = 0;
-      for (unsigned int t = 0; t < maxlag; t++, nd += 3) {
+      for (int t = 0; t < maxlag; t++, nd += 3) {
         //mprintf("\tdata1[%u] = %f", nd*2, data1[nd*2]); // DEBUG
         //mprintf("  norm= %u", total_length - nd); // DEBUG
         //Ct[t] += data1[nd*2] * 3.0 / (double)(total_length - nd);
@@ -215,7 +216,7 @@ void Action_VelocityAutoCorr::Print() {
       }
     }
     // Normalization
-    for (unsigned int t = 0, nd = 0; t < maxlag; t++, nd += 3)
+    for (int t = 0, nd = 0; t < maxlag; t++, nd += 3)
       Ct[t] *= ( 3.0 / (double)((total_length - nd) * Vel_.size()) );
       //Ct[t] /= (double)Vel_.size();
   }
@@ -232,7 +233,7 @@ void Action_VelocityAutoCorr::Print() {
     // Normalize VAC fn to 1.0
     mprintf("\tNormalizing VAC function to 1.0, C[0]= %g\n", Ct[0]);
     double norm = 1.0 / Ct[0];
-    for (unsigned int t = 0; t < maxlag; ++t)
+    for (int t = 0; t < maxlag; ++t)
       Ct[t] *= norm;
   }
 }

@@ -171,7 +171,7 @@ double Analysis_KDE::GaussianKernel(double u) const {
 Analysis::RetType Analysis_KDE::Analyze() {
   Dimension& Xdim = output_->Dim(0);
   DataSet_1D const& Pdata = static_cast<DataSet_1D const&>( *data_ );
-  size_t inSize = Pdata.Size();
+  int inSize = (int)Pdata.Size();
   // Set output set dimensions from input set if necessary.
   if (!Xdim.MinIsSet()) {
     mprintf("\tNo minimum specified, determining from input data.\n");
@@ -193,7 +193,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
   // Allocate output set
   DataSet_double& P_hist = static_cast<DataSet_double&>( *output_ );
   P_hist.Resize( Xdim.Bins() );
-  size_t outSize = P_hist.Size();
+  int outSize = (int)P_hist.Size();
 
   // Estimate bandwidth from normal distribution approximation if necessary.
   if (bandwidth_ < 0.0) {
@@ -208,21 +208,20 @@ Analysis::RetType Analysis_KDE::Analyze() {
   std::vector<double> Increments(inSize, 1.0);
   if (amddata_ != 0) {
     DataSet_1D& AMD = static_cast<DataSet_1D&>( *amddata_ );
-    if (AMD.Size() != inSize) {
-      if (AMD.Size() < inSize) {
-        mprinterr("Error: Size of AMD data set %zu < input data set %zu\n",
+    if ((int)AMD.Size() != inSize) {
+      if ((int)AMD.Size() < inSize) {
+        mprinterr("Error: Size of AMD data set %zu < input data set iu\n",
                   AMD.Size(), inSize);
         return Analysis::ERR;
       } else {
-        mprintf("Warning: Size of AMD data set %zu > input data set %zu\n",
+        mprintf("Warning: Size of AMD data set %zu > input data set %i\n",
                 AMD.Size(), inSize);
       }
     }
-    for (unsigned int i = 0; i < inSize; i++)
+    for (int i = 0; i < inSize; i++)
       Increments[i] = exp( AMD.Dval(i) );
   }
-
-  unsigned int frame, bin;
+  int frame, bin;
   double increment;
   double total = 0.0;
 # ifdef _OPENMP
@@ -274,7 +273,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
     } // END parallel block
     // Combine results from each thread histogram into P_hist
     for (int i = 0; i < numthreads; i++) {
-      for (unsigned int j = 0; j < outSize; j++)
+      for (int j = 0; j < outSize; j++)
         P_hist[j] += P_thread[i][j];
       delete[] P_thread[i];
     }
@@ -283,11 +282,11 @@ Analysis::RetType Analysis_KDE::Analyze() {
   } else {
     // Calculate Kullback-Leibler divergence vs time
     DataSet_1D const& Qdata = static_cast<DataSet_1D const&>( *q_data_ );
-    if (inSize != Qdata.Size()) {
+    if (inSize != (int)Qdata.Size()) {
       mprintf("Warning: Size of %s (%zu) != size of %s (%zu)\n",
                 Pdata.Legend().c_str(), Pdata.Size(), Qdata.Legend().c_str(), Qdata.Size());
-      inSize = std::min( inSize, Qdata.Size() );
-      mprintf("Warning:  Only using %zu data points.\n", inSize);
+      inSize = std::min( inSize, (int)Qdata.Size() );
+      mprintf("Warning:  Only using %i data points.\n", inSize);
     }
     DataSet_double& klOut = static_cast<DataSet_double&>( *kldiv_ );
     std::vector<double> Q_hist( Xdim.Bins(), 0.0 ); // Raw Q histogram.
@@ -297,7 +296,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
     // Loop over input P and Q data
     unsigned int nInvalid = 0, validPoint;
     for (frame = 0; frame < inSize; frame++) {
-      //mprintf("DEBUG: Frame=%u Outsize=%u\n", frame, outSize);
+      //mprintf("DEBUG: Frame=%i Outsize=%i\n", frame, outSize);
       increment = Increments[frame];
       total += increment;
       // Apply kernel across P and Q, calculate KL divergence as we go. 
@@ -350,7 +349,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
       if (validPoint == 0) {
         klOut[frame] = KL;
       } else {
-        //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %u\n", frame+1);
+        //mprintf("Warning:\tKullback-Leibler divergence is undefined for frame %i\n", frame+1);
         nInvalid++;
       }
     } // END KL divergence calc loop over frames
