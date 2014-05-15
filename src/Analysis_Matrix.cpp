@@ -179,7 +179,8 @@ int Analysis_Matrix::NMWizOutput() const {
   }
   // Check # atoms
   if (nmwizParm_.Natom() * 3 != modes_->VectorSize()) {
-    mprinterr("Error: nmwiz topology size does not match eigenvector size.\n");
+    mprinterr("Error: nmwiz topology size %i does not match eigenvector size %i.\n",
+              nmwizParm_.Natom() * 3, modes_->VectorSize());
     return 1;
   }
   
