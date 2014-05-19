@@ -310,7 +310,7 @@ int DataSet_Modes::EigvalToFreq(double tempIn) {
   return 0;
 }
 
-/** Mass-weght Eigenvectors. Currently only works when vector size
+/** Mass-weight Eigenvectors. Currently only works when vector size
   * is a multiple of 3 (i.e. COVAR-type matrix. Size of massIn
   * must be == number of modes (TODO: Make std::vector). The
   * ith xyz elements of each eigenvector is multiplied by mass i.

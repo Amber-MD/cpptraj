@@ -312,8 +312,8 @@ Analysis::RetType Analysis_Modes::Analyze() {
     }
     // Output
     if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
-    outfile.Printf("Analysis of modes: RMS FLUCTUATIONS\n");
-    outfile.Printf("%10s %10s %10s %10s %10s\n", "Atom no.", "rmsX", "rmsY", "rmsZ", "rms");
+    outfile.Printf("#Analysis of modes: RMS FLUCTUATIONS\n");
+    outfile.Printf("%-10s %10s %10s %10s %10s\n", "#Atom_no.", "rmsX", "rmsY", "rmsZ", "rms");
     int anum = 1;
     for (int i4 = 0; i4 < modinfo_->NavgCrd()*4/3; i4+=4) 
       outfile.Printf("%10i %10.3f %10.3f %10.3f %10.3f\n", anum++, results_[i4], 
@@ -347,8 +347,8 @@ Analysis::RetType Analysis_Modes::Analyze() {
     }
     // Output
     if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
-    outfile.Printf("Analysis of modes: DISPLACEMENT\n");
-    outfile.Printf("%10s %10s %10s %10s\n", "Atom no.", "displX", "displY", "displZ");
+    outfile.Printf("#Analysis of modes: DISPLACEMENT\n");
+    outfile.Printf("%-10s %10s %10s %10s\n", "#Atom_no.", "displX", "displY", "displZ");
     int anum = 1;
     for (int i3 = 0; i3 < modinfo_->NavgCrd(); i3 += 3)
       outfile.Printf("%10i %10.3f %10.3f %10.3f\n", anum++, results_[i3], 
@@ -359,8 +359,8 @@ Analysis::RetType Analysis_Modes::Analyze() {
     CalcDipoleCorr();
     if (results_==0) return Analysis::ERR;
     if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
-    outfile.Printf("Analysis of modes: CORRELATION FUNCTIONS\n");
-    outfile.Printf("%10s %10s %10s %10s %10s %10s\n", "Atom1", "Atom2", "Mode", 
+    outfile.Printf("#Analysis of modes: CORRELATION FUNCTIONS\n");
+    outfile.Printf("%-10s %10s %10s %10s %10s %10s\n", "#Atom1", "Atom2", "Mode", 
                    "Freq", "1-S^2", "P2(cum)");
     int ncnt = 0;
     for (modestack_it apair = atompairStack_.begin();
