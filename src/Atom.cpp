@@ -274,28 +274,38 @@ void Atom::SetElementFromName() {
 // Atom::SetElementFromSymbol()
 void Atom::SetElementFromSymbol(char c1, char c2) {
   if (element_ != UNKNOWN_ELEMENT) return;
-  // Attempt to match up 2 char element name
+  // Attempt to match up 1 or 2 char element name
   char en[2];
-  if (c1 != ' ') {
+  bool oneChar = true;
+  if (c1 != ' ' && c2 != ' ') {
     en[0] = toupper(c1);
     en[1] = toupper(c2);
-  } else {
+    oneChar = false;
+  } else if (c2 != ' ') {
     en[0] = toupper(c2);
     en[1] = ' ';
-  }
-  for (int i = 1; i < (int)NUMELEMENTS; i++) {
-    if (AtomicElementName[i][1]=='\0') { // 1 char
-      if ( en[0] == AtomicElementName[i][0] ) {
+  } else if (c1 != ' ') {
+    en[0] = toupper(c1);
+    en[1] = ' ';
+  } else
+    return; // sanity check, both blank
+  if (oneChar) {
+    for (int i = 1; i < (int)NUMELEMENTS; i++)
+      if (AtomicElementName[i][1]=='\0' && // 1 char
+          en[0] == AtomicElementName[i][0])
+      {
         element_ = (AtomicElementType)i;
         break;
       }
-    } else {                             // 2 char
-      if ( en[0] == AtomicElementName[i][0] &&
-           en[1] == AtomicElementName[i][1] ) {
+  } else {
+    for (int i = 1; i < (int)NUMELEMENTS; i++)
+      if (AtomicElementName[i][1]!='\0' && // 2 char
+          en[0] == AtomicElementName[i][0] &&
+          en[1] == AtomicElementName[i][1])
+      {
         element_ = (AtomicElementType)i;
         break;
       }
-    }
   }
 }
 
