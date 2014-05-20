@@ -195,6 +195,13 @@ void Atom::SortBonds() {
   sort( bonds_.begin(), bonds_.end() );
 }
 
+// Atom::IsBondedTo()
+bool Atom::IsBondedTo(int atomnum) const {
+  for (std::vector<int>::const_iterator b = bonds_.begin(); b != bonds_.end(); ++b)
+    if ( atomnum == *b ) return true;
+  return false;
+} 
+
 // Atom::AddExclusionList()
 void Atom::AddExclusionList(std::set<int> const& elist) {
   excluded_.clear();

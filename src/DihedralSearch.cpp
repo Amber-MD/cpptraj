@@ -139,6 +139,15 @@ DihedralSearch::DihedralMask
   for (int i = 0; i < 4; i++) {
     atnum[i] = search_[i](topIn, resnum[i], aname_[i]);
     if (atnum[i] == -1) return DihedralMask();
+    // Ensure this atom is bonded to previous atom
+    if (i > 0) {
+      if ( !topIn[ atnum[i] ].IsBondedTo( atnum[i-1] ) ) {
+        mprintf("Warning: Atom %s is not bonded to atom %s\n",
+                topIn.AtomMaskName(atnum[i]).c_str(),
+                topIn.AtomMaskName(atnum[i-1]).c_str());
+        return DihedralMask();
+      }
+    }
   }
   // All atoms found at this point.
   return DihedralMask(atnum[0], atnum[1], atnum[2], atnum[3], resIn, name_, type_);

@@ -75,6 +75,9 @@ class Atom {
     void AddBond(int);
     void ClearBonds();
     void SortBonds();
+    // TODO: Use this routine in AtomMap etc
+    /// \return true if this atom is bonded to given atom number
+    bool IsBondedTo(int) const;
     /// Create exclusion list from input set.
     void AddExclusionList(std::set<int> const&);
     /// \return Optimal bond length based on element types
