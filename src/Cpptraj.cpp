@@ -87,6 +87,7 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
                           std::string const& maskexpr,
                           bool verbose, bool residue ) const
 {
+  SetWorldSilent(true);
   if (topFiles.empty()) {
     mprinterr("Error: No topology file specified.\n");
     return 1;
@@ -102,20 +103,22 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
   if (!verbose) {
     AtomMask tempMask( maskexpr );
     if (parm.SetupIntegerMask( tempMask )) return 1;
+    loudPrintf("Selected=");
     if (residue) {
       int res = -1;
-      mprintf("Selected=");
       for (AtomMask::const_iterator atom = tempMask.begin(); 
                                     atom != tempMask.end(); ++atom)
       {
         if (parm[*atom].ResNum() > res) {
-          mprintf(" %i", parm[*atom].ResNum()+1);
+          loudPrintf(" %i", parm[*atom].ResNum()+1);
           res = parm[*atom].ResNum();
         }
       }
-      mprintf("\n");
     } else
-      tempMask.PrintMaskAtoms("Selected");
+      for (AtomMask::const_iterator atom = tempMask.begin();
+                                    atom != tempMask.end(); ++atom)
+        loudPrintf(" %i", *atom);
+    loudPrintf("\n");
   } else {
     if (residue)
       parm.PrintResidueInfo( maskexpr );

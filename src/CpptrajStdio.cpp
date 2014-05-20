@@ -14,6 +14,17 @@ void mflush() {
   fflush(stdout);
 }
 
+/** Print message to STDOUT even if worldsilent */
+void loudPrintf(const char* format, ...) {
+  va_list args;
+#ifdef MPI
+  if (worldrank!=0) return;
+#endif
+  va_start(args,format);
+  vfprintf(stdout,format,args);
+  va_end(args);
+}
+
 // mprintf()
 /** Print message to STDOUT only if this is the master thread */
 void mprintf(const char *format, ...) {

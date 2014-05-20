@@ -41,6 +41,7 @@ void Analysis_Modes::Help() {
 
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
 const double Analysis_Modes::CONSQ = 2.39805E-3;
+/// kT/c^2 in cgs units (grams), with T=300K
 const double Analysis_Modes::TKBC2 = 0.46105E-34;
 /// Avogadros number
 const double Analysis_Modes::AVO   = 6.023E23;

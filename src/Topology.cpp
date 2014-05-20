@@ -208,26 +208,29 @@ void Topology::Brief(const char* heading) const {
 }
 
 // Topology::PrintAtomInfo()
+/** Since this function may be called from command line with worldsilent
+  * set to true, use loudPrintf and mprinterr.
+  */
 void Topology::PrintAtomInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
   ParseMask(refCoords_, mask, true); // integer mask
   if ( mask.None() )
-    mprintf("\tSelection is empty.\n");
+    mprinterr("\tSelection is empty.\n");
   else {
     int width = DigitWidth(atoms_.size());
     if (width < 5) width = 5;
-    mprintf("%-*s %4s %*s %4s %*s %4s %8s %8s %8s %2s\n", 
-            width, "#Atom", "Name", 
-            width, "#Res",  "Name",
-            width, "#Mol",  "Type", "Charge", "Mass", "GBradius", "El");
+    loudPrintf("%-*s %4s %*s %4s %*s %4s %8s %8s %8s %2s\n", 
+               width, "#Atom", "Name", 
+               width, "#Res",  "Name",
+               width, "#Mol",  "Type", "Charge", "Mass", "GBradius", "El");
     for (AtomMask::const_iterator atnum = mask.begin(); atnum != mask.end(); atnum++) {
       const Atom& atom = atoms_[*atnum];
       int resnum = atom.ResNum();
-      mprintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f %8.4f %2s\n", 
-              width, *atnum+1, atom.c_str(), 
-              width, resnum+1, residues_[resnum].c_str(),
-              width, atom.MolNum()+1, *(atom.Type()), atom.Charge(), 
-              atom.Mass(), atom.GBRadius(), atom.ElementName());
+      loudPrintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f %8.4f %2s\n", 
+                 width, *atnum+1, atom.c_str(), 
+                 width, resnum+1, residues_[resnum].c_str(),
+                 width, atom.MolNum()+1, *(atom.Type()), atom.Charge(), 
+                 atom.Mass(), atom.GBRadius(), atom.ElementName());
     }
   }
 }
@@ -407,19 +410,22 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) const {
 }
 
 // Topology::PrintResidueInfo()
+/** Since this function may be called from command line with worldsilent
+  * set to true, use loudPrintf and mprinterr.
+  */
 void Topology::PrintResidueInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
   ParseMask(refCoords_, mask, true); // Integer mask
   if ( mask.None() )
-    mprintf("\tSelection is empty.\n");
+    mprinterr("\tSelection is empty.\n");
   else {
     int awidth = DigitWidth(atoms_.size());
     if (awidth < 5) awidth = 5;
     int rwidth = DigitWidth(residues_.size());
     if (rwidth < 5) rwidth = 5;
-    mprintf("%-*s %4s %*s %*s %*s %*s\n", rwidth, "#Res", "Name",
-            awidth, "First", awidth, "Last", 
-            awidth, "Natom", rwidth, "#Orig");
+    loudPrintf("%-*s %4s %*s %*s %*s %*s\n", rwidth, "#Res", "Name",
+               awidth, "First", awidth, "Last", 
+               awidth, "Natom", rwidth, "#Orig");
     int rn = -1;
     for (AtomMask::const_iterator atom = mask.begin();
                                   atom != mask.end(); ++atom)
@@ -427,9 +433,9 @@ void Topology::PrintResidueInfo(std::string const& maskString) const {
       if (atoms_[*atom].ResNum() > rn) {
         rn = atoms_[*atom].ResNum();
         Residue const& res = residues_[rn];
-        mprintf("%*i %4s %*i %*i %*i %*i\n", rwidth, rn+1, res.c_str(),
-                awidth, res.FirstAtom()+1, awidth, res.LastAtom(),
-                awidth, res.NumAtoms(), rwidth, res.OriginalResNum());
+        loudPrintf("%*i %4s %*i %*i %*i %*i\n", rwidth, rn+1, res.c_str(),
+                   awidth, res.FirstAtom()+1, awidth, res.LastAtom(),
+                   awidth, res.NumAtoms(), rwidth, res.OriginalResNum());
       }
     }
   }
