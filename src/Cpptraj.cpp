@@ -33,7 +33,7 @@ void Cpptraj::Usage() {
             "\t-ms <mask>       : Print selected atom numbers to STDOUT.\n"
             "\t-mr <mask>       : Print selected residue numbers to STDOUT.\n"
             "\t--mask <mask>    : Print detailed atom selection to STDOUT.\n"
-            "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n");
+            "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n\n");
 }
 
 void Cpptraj::Intro() {
@@ -75,10 +75,8 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   }
   total_time.Stop();
   mprintf("TIME: Total execution time: %.4f seconds.\n", total_time.Total());
-  if (cmode != SILENT_EXIT) {
-    if (err == 0) Cpptraj::Finalize();
-    mprintf("\n");
-  }
+  if (err == 0) Cpptraj::Finalize();
+  mprintf("\n");
   return err;
 }
 
@@ -141,48 +139,52 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     std::string arg(argv[i]);
     if ( arg == "--help" || arg == "-h" ) {
       // --help, -help: Print usage and exit
+      SetWorldSilent(true);
       Usage();
-      return SILENT_EXIT;
+      return QUIT;
     }
     if ( arg == "-V" || arg == "--version" ) {
       // -V, --version: Print version number and exit
-      mprintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
-      return SILENT_EXIT;
+      SetWorldSilent( true );
+      loudPrintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
+      return QUIT;
     }
     if ( arg == "--internal-version" ) {
       // --internal-version: Print internal version number and quit.
-      mprintf("CPPTRAJ: Internal version # %s\n", CPPTRAJ_INTERNAL_VERSION);
-      return SILENT_EXIT;
+      SetWorldSilent( true );
+      loudPrintf("CPPTRAJ: Internal version # %s\n", CPPTRAJ_INTERNAL_VERSION);
+      return QUIT;
     }
     if ( arg == "--defines" ) {
       // --defines: Print information on compiler defines used and exit
-      mprintf("Compiled with:");
+      SetWorldSilent( true );
+      loudPrintf("Compiled with:");
 #     ifdef DEBUG
-      mprintf(" -DDEBUG");
+      loudPrintf(" -DDEBUG");
 #     endif
 #     ifdef HASBZ2
-      mprintf(" -DHASBZ2");
+      loudPrintf(" -DHASBZ2");
 #     endif
 #     ifdef HASGZ
-      mprintf(" -DHASGZ");
+      loudPrintf(" -DHASGZ");
 #     endif
 #     ifdef BINTRAJ
-      mprintf(" -DBINTRAJ");
+      loudPrintf(" -DBINTRAJ");
 #     endif
 #     ifdef MPI
-      mprintf(" -DMPI");
+      loudPrintf(" -DMPI");
 #     endif
 #     ifdef _OPENMP
-      mprintf(" -D_OPENMP");
+      loudPrintf(" -D_OPENMP");
 #     endif
 #     ifdef NO_MATHLIB
-      mprintf(" -DNO_MATHLIB");
+      loudPrintf(" -DNO_MATHLIB");
 #     endif
 #     ifdef TIMER
-      mprintf(" -DTIMER");
+      loudPrintf(" -DTIMER");
 #     endif
-      mprintf("\n");
-      return SILENT_EXIT;
+      loudPrintf("\n");
+      return QUIT;
     }
     if (arg == "-tl") {
       // -tl: Trajectory length
@@ -190,8 +192,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
         mprinterr("Error: No topology file specified.\n");
         return ERROR;
       }
+      SetWorldSilent( true );
       if (State_.TrajLength( topFiles[0], trajinFiles )) return ERROR;
-      return SILENT_EXIT;
+      return QUIT;
     }
     if ( arg == "--interactive" )
       interactive = true;
@@ -220,23 +223,23 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Parse mask string, print selected atom #s
       if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, false )) return ERROR;
-      return SILENT_EXIT;
+      return QUIT;
     } else if (arg == "-mr" && i+1 != argc) {
       // -mr: Parse mask string, print selected res #s
       if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, true )) return ERROR;
-      return SILENT_EXIT;
+      return QUIT;
     } else if (arg == "--mask" && i+1 != argc) {
       // --mask: Parse mask string, print selected atom details
       if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, false )) return ERROR;
-      return SILENT_EXIT;
+      return QUIT;
     } else if (arg == "--resmask" && i+1 != argc) {
       // --resmask: Parse mask string, print selected residue details
       if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, true )) return ERROR;
-      return SILENT_EXIT;
+      return QUIT;
     } else if (arg == "--ambpdb") {
       // --ambpdb: Convert files to PDB.
       if (AmbPDB(i + 1, argc, argv)) return ERROR;
-      return SILENT_EXIT;
+      return QUIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
       topFiles.push_back( argv[i] );

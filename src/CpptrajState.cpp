@@ -126,7 +126,7 @@ int CpptrajState::TrajLength( std::string const& topname,
                                                 trajinName != trajinFiles.end();
                                                 ++trajinName)
     if (AddTrajin( *trajinName )) return 1;
-  mprintf("Frames: %i\n", trajinList_.MaxFrames());
+  loudPrintf("Frames: %i\n", trajinList_.MaxFrames());
   return 0;
 }
 

@@ -12,7 +12,7 @@ class Cpptraj {
     int RunCpptraj(int, char**);
   private:
     typedef std::vector<std::string> Sarray;
-    enum Mode { BATCH = 0, ERROR, QUIT, INTERACTIVE, SILENT_EXIT };
+    enum Mode { BATCH = 0, ERROR, QUIT, INTERACTIVE };
     static void Usage();
     static void Intro();
     static void Finalize();
