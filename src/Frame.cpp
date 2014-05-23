@@ -646,11 +646,11 @@ void Frame::Divide(double divisor) {
 
 // Frame::AddByMask()
 /** Increment atoms in this frame by the selected atoms in given frame. */
-void Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
+int Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
   if (maskIn.Nselected() > maxnatom_) {
     mprinterr("Error: AddByMask: Input mask #atoms (%i) > frame #atoms (%i)\n",
               maskIn.Nselected(), maxnatom_);
-    return;
+    return 1;
   }
   unsigned int xidx = 0;
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
@@ -661,6 +661,7 @@ void Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
     X_[xidx+2] += frameIn.X_[fidx+2];
     xidx += 3;
   }
+  return 0;
 }
 
 // ---------- COORDINATE MANIPULATION ------------------------------------------

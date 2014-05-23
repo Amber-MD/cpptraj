@@ -115,7 +115,7 @@ Action::RetType Action_Average::DoAction(int frameNum, Frame* currentFrame, Fram
 {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
 
-  AvgFrame_->AddByMask(*currentFrame, Mask1_);
+  if (AvgFrame_->AddByMask(*currentFrame, Mask1_)) return Action::ERR;
   ++Nframes_; 
 
   return Action::OK;
