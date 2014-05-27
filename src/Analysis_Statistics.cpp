@@ -301,16 +301,19 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
     double dval = value;
     if (dval < 0) dval += 360;
     curbin = (int) (dval - 30.0) / 60;
-
-    ++torsion_visits[curbin];
-    value += torsion_offset[curbin];
-    // Fix for trans averaging
-    if (value < -150.0) value += 360.0;
-    torsion_avg[curbin] += value;
-    torsion_sd[curbin]  += (value*value);
-    if (curbin != prevbin) 
-      ++torsion_transitions[prevbin][curbin];
-    prevbin = curbin;
+    if (curbin < 0 || curbin > 5) {
+      mprinterr("Error: stat torsion: frame %i has invalid torsion value.\n", i+1);
+    } else {
+      ++torsion_visits[curbin];
+      value += torsion_offset[curbin];
+      // Fix for trans averaging
+      if (value < -150.0) value += 360.0;
+      torsion_avg[curbin] += value;
+      torsion_sd[curbin]  += (value*value);
+      if (curbin != prevbin) 
+        ++torsion_transitions[prevbin][curbin];
+      prevbin = curbin;
+    }
   }
 
   // OUTPUT
