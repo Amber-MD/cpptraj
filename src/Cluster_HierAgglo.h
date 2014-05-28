@@ -16,6 +16,7 @@ class Cluster_HierAgglo : public ClusterList {
     int nclusters_;       ///< Target # of clusters.
     double epsilon_;      ///< Once the min distance between clusters is > epsilon, stop.
     LINKAGETYPE linkage_; ///< Cluster Linkage type.
+    CpptrajFile eps_v_n_; ///< Write epsilon vs # clusters.
 
     void InitializeClusterDistances();
     int MergeClosest();

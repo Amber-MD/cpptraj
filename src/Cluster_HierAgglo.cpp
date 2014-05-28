@@ -13,7 +13,8 @@ Cluster_HierAgglo::Cluster_HierAgglo() :
 {}
 
 void Cluster_HierAgglo::Help() {
-  mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]]\n");
+  mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]]\n"
+          "\t[epsilonplot <file>]\n");
 }
 
 static const char* LinkageString[] = {
@@ -27,6 +28,11 @@ int Cluster_HierAgglo::SetupCluster(ArgList& analyzeArgs) {
   else if (analyzeArgs.hasKey("averagelinkage")) linkage_ = AVERAGELINK;
   else if (analyzeArgs.hasKey("complete"))       linkage_ = COMPLETELINK;
   else linkage_ = AVERAGELINK; // DEFAULT linkage
+  std::string epsilonPlot = analyzeArgs.GetStringKey("epsilonplot");
+  if (!epsilonPlot.empty()) {
+    if (eps_v_n_.OpenWrite( epsilonPlot )) return 1;
+    eps_v_n_.Printf("%-12s %12s\n", "#Epsilon", "Nclusters");
+  }
   // Determine finish criteria. If nothing specified default to 10 clusters.
   if (nclusters_==-1 && epsilon_==-1.0) {
     mprintf("Warning: cluster: Neither target # of clusters nor epsilon given.\n");
@@ -43,6 +49,8 @@ void Cluster_HierAgglo::ClusteringInfo() {
   if (epsilon_ != -1.0)
     mprintf(" epsilon %.3f,",epsilon_);
   mprintf(" %s.\n", LinkageString[linkage_]);
+  if (eps_v_n_.IsOpen())
+    mprintf("\tWriting epsilon vs # clusters to '%s'\n", eps_v_n_.Filename().full());
 }
 
 /** Set up the initial distances between clusters. Should be called before 
@@ -194,6 +202,8 @@ int Cluster_HierAgglo::MergeClosest() {
   int C1, C2;
   // Find the minimum distance between clusters. C1 will be lower than C2.
   double min = ClusterDistances_.FindMin(C1, C2);
+  if (eps_v_n_.IsOpen())
+    eps_v_n_.Printf("%12g %12i\n", min, Nclusters());
   if (debug_>0)
     mprintf("\tMinimum found between clusters %i and %i (%f)\n",C1,C2,min);
   // If the minimum distance is greater than epsilon we are done
