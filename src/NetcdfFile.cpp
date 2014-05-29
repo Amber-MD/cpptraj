@@ -24,6 +24,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 
 #ifdef BINTRAJ
 // DEFINES
+#define NCENSEMBLE "ensemble"
 #define NCFRAME "frame"
 #define NCSPATIAL "spatial"
 #define NCATOM "atom"
@@ -117,7 +118,9 @@ std::string NetcdfFile::GetAttrText(const char *attribute) {
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions() {
   NCTYPE nctype = NC_UNKNOWN;
   std::string attrText = GetAttrText(NC_GLOBAL, "Conventions");
-  if (attrText == "AMBER")
+  if (attrText == "AMBERENSEMBLE")
+    nctype = NC_AMBERENSEMBLE;
+  else if (attrText == "AMBER")
     nctype = NC_AMBERTRAJ;
   else if (attrText == "AMBERRESTART")
     nctype = NC_AMBERRESTART;
@@ -126,7 +129,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions() {
   else {
     mprinterr("Error: Netcdf file: Unrecognized conventions \"%s\".\n",
               attrText.c_str());
-    mprinterr("Error:   Expected \"AMBER\" or \"AMBERRESTART\".\n");
+    mprinterr("Error:   Expected \"AMBER\", \"AMBERRESTART\", or \"AMBERENSEMBLE\".\n");
   }
   return nctype;
 }
@@ -311,18 +314,26 @@ int NetcdfFile::SetupBox(double* boxIn, NCTYPE typeIn) {
     start_[0]=0; 
     start_[1]=0; 
     start_[2]=0;
+    start_[3]=0;
     switch (typeIn) {
       case NC_AMBERRESTART:
         count_[0]=3;
         count_[1]=0;
+        count_[2]=0;
         break;
       case NC_AMBERTRAJ:
         count_[0]=1; 
         count_[1]=3;
+        count_[2]=0;
+        break;
+      case NC_AMBERENSEMBLE:
+        count_[0]=1; // NOTE: All ensemble members must have same box type
+        count_[1]=1; // TODO: Check all members?
+        count_[2]=3;
         break;
       case NC_UNKNOWN: return 1; // Sanity check
     }
-    count_[2]=0;
+    count_[3]=0;
     if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, boxIn )) )
     {
       mprinterr("Error: Getting cell lengths.\n");
@@ -468,7 +479,8 @@ int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
 int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
                           bool hasVelocity, bool hasFrc, bool hasBox, 
                           bool hasTemperature, bool hasTime, bool hasIndices,
-                          ReplicaDimArray const& remdDim, std::string const& title) 
+                          ReplicaDimArray const& remdDim, int ensembleSize,
+                          std::string const& title) 
 {
   if (Name.empty()) return 1;
   int dimensionID[NC_MAX_VAR_DIMS];
@@ -487,6 +499,10 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   
   // Set number of dimensions based on file type
   switch (type) {
+    case NC_AMBERENSEMBLE:
+      NDIM = 4;
+      dataType = NC_FLOAT;
+      break;
     case NC_AMBERTRAJ: 
       NDIM = 3;
       dataType = NC_FLOAT;
@@ -500,14 +516,22 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       return 1;
   }
 
+  if (type == NC_AMBERENSEMBLE) {
+    // Ensemble dimension for ensemble
+    if ( checkNCerr( nc_def_dim(ncid_, NCENSEMBLE, ensembleSize, &ensembleDID_) ) ) {
+      mprinterr("Error: Defining ensemble dimension.\n");
+      return 1;
+    }
+    dimensionID[0] = ensembleDID_;
+  }
   ncframe_ = 0;
-  if (type == NC_AMBERTRAJ) {
+  if (type == NC_AMBERTRAJ || type == NC_AMBERENSEMBLE) {
     // Frame dimension for traj
     if ( checkNCerr( nc_def_dim( ncid_, NCFRAME, NC_UNLIMITED, &frameDID_)) ) {
       mprinterr("Error: Defining frame dimension.\n");
       return 1;
     }
-    dimensionID[0] = frameDID_;
+    dimensionID[NDIM-3] = frameDID_;
   }
   // Time variable and units
   if (hasTime) {
@@ -537,7 +561,12 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   }
   // Setup dimensions for Coords/Velocity
   // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
-  if (type == NC_AMBERTRAJ) {
+  if (type == NC_AMBERENSEMBLE) {
+    dimensionID[0] = ensembleDID_;
+    dimensionID[1] = frameDID_;
+    dimensionID[2] = atomDID_;
+    dimensionID[3] = spatialDID_;
+  } else if (type == NC_AMBERTRAJ) {
     dimensionID[0] = frameDID_;
     dimensionID[1] = atomDID_;
     dimensionID[2] = spatialDID_;
@@ -586,8 +615,6 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   }
   // Replica Temperature
   if (hasTemperature) {
-    // NOTE: Setting dimensionID should be OK for Restart, will not be used.
-    dimensionID[0] = frameDID_;
     if ( NC_defineTemperature( dimensionID, NDIM-2 ) ) return 1;
   }
   // Replica indices
@@ -608,7 +635,11 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     }
     // Need to store the indices of replica in each dimension each frame
     // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
-    if (type == NC_AMBERTRAJ) {
+    if (type == NC_AMBERENSEMBLE) {
+      dimensionID[0] = ensembleDID_;
+      dimensionID[1] = frameDID_;
+      dimensionID[2] = remDimDID;
+    } else if (type == NC_AMBERTRAJ) {
       dimensionID[0] = frameDID_;
       dimensionID[1] = remDimDID;
     } else {
@@ -655,7 +686,11 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     // Setup dimensions for Box
     // NOTE: This must be modified if more types added
     int boxdim;
-    if (type == NC_AMBERTRAJ) {
+    if (type == NC_AMBERENSEMBLE) {
+      dimensionID[0] = ensembleDID_;
+      dimensionID[1] = frameDID_;
+      boxdim = 2;
+    } else if (type == NC_AMBERTRAJ) {
       dimensionID[0] = frameDID_;
       boxdim = 1;
     } else {
@@ -705,16 +740,16 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     return 1;
   }
   // TODO: Make conventions a static string
-  if ( type == NC_AMBERTRAJ ) {
-    if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",5,"AMBER")) ) {
-      mprinterr("Error: Writing conventions.\n");
-      return 1;
-    }
-  } else {
-    if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",12,"AMBERRESTART")) ) {
-      mprinterr("Error: Writing conventions.\n");
-      return 1;
-    }
+  bool errOccurred = false;
+  if ( type == NC_AMBERENSEMBLE )
+    errOccurred = checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",13,"AMBERENSEMBLE"));
+  else if ( type == NC_AMBERTRAJ )
+    errOccurred = checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",5,"AMBER"));
+  else
+    errOccurred = checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",12,"AMBERRESTART"));
+  if (errOccurred) {
+    mprinterr("Error: Writing conventions.\n");
+    return 1;
   }
   if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"ConventionVersion",3,"1.0")) ) {
     mprinterr("Error: Writing conventions version.\n");

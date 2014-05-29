@@ -216,7 +216,6 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
   Ndimensions_ = -1;
   hasVelocity_ = false;
   TrajFormatType rep0format = TrajectoryFile::UNKNOWN_TRAJ;
-  ReplicaDimArray lowestRepDims;
   for (NameListType::iterator repfile = replica_filenames_.begin();
                               repfile != replica_filenames_.end(); ++repfile)
   {
@@ -241,8 +240,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
       // If lowest rep has velocity, all others must have velocity.
       hasVelocity_ = replica0->HasV();
       // If lowest rep has dimensions, all others must have same dimensions
-      lowestRepDims = replica0->ReplicaDimensions();
-      Ndimensions_ = lowestRepDims.Ndims();
+      trajRepDimInfo_ = replica0->ReplicaDimensions();
+      Ndimensions_ = trajRepDimInfo_.Ndims();
       // Check that replica dimension valid for desired indices.
       if (targetType_ == INDICES && Ndimensions_ != (int)remdtrajidx_.size())
       {
@@ -253,7 +252,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
       if (Ndimensions_ > 0) {
         mprintf("\tReplica dimensions:\n");
         for (int rd = 0; rd < Ndimensions_; rd++)
-          mprintf("\t\t%i: %s\n", rd+1, lowestRepDims.Description(rd)); 
+          mprintf("\t\t%i: %s\n", rd+1, trajRepDimInfo_.Description(rd)); 
       }
     } else {
       // Check total frames in this replica against lowest rep.
@@ -284,7 +283,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
         return 1;
       }
       // Check # dimensions and types against lowest rep
-      if ( replica0->ReplicaDimensions() != lowestRepDims ) {
+      if ( replica0->ReplicaDimensions() != trajRepDimInfo_ ) {
         mprinterr("Error: RemdTraj: Replica %s dimension info does not match first replica.\n",
                   (*repfile).c_str());
         ReplicaDimArray thisRepDims = replica0->ReplicaDimensions();
@@ -520,7 +519,7 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   if (frameidx_ != 0) delete[] frameidx_;
   frameidx_ = new int[ REMDtraj_.size() ];
   f_ensemble.resize( REMDtraj_.size() );
-  f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity(), NreplicaDimension() );
+  f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity(), Ndimensions_ );
   if (targetType_ == TEMP) {
     // Get a list of all temperature present in input REMD trajectories
     // by reading the first frame.

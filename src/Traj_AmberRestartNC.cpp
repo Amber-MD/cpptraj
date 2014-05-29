@@ -123,6 +123,7 @@ int Traj_AmberRestartNC::setupTrajout(std::string const& fname, Topology* trajPa
   }
   filename_.SetFileName( fname );
   SetNcatom( trajParm->Natom() );
+  SetReplicaDims( trajParm->ParmReplicaDimInfo() );
   // If number of frames to write == 1 set singleWrite so we dont append
   // frame # to filename.
   if (NframesToWrite == 1) singleWrite_ = true;
@@ -207,7 +208,8 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
     fname = NumberFilename(filename_.Full(), set+1);
   // TODO: Add option to write replica indices
   if ( NC_create( fname.c_str(), NC_AMBERRESTART, Ncatom(), V_present, false,
-                  HasBox(), HasT(), (time0_ >= 0), false, ReplicaDimArray(), Title() ) )
+                  HasBox(), HasT(), (time0_ >= 0), false, ReplicaDimensions(), 
+                  0, Title() ) )
     return 1;
   // write coords
   start_[0] = 0;

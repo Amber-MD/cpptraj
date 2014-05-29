@@ -6,7 +6,7 @@
 class NetcdfFile {
   public:
     /// For determining netcdf file type
-    enum NCTYPE { NC_UNKNOWN = 0, NC_AMBERTRAJ, NC_AMBERRESTART };
+    enum NCTYPE { NC_UNKNOWN = 0, NC_AMBERTRAJ, NC_AMBERRESTART, NC_AMBERENSEMBLE };
     NCTYPE GetNetcdfConventions(const char*);
 #   ifndef BINTRAJ
     NetcdfFile() { }
@@ -20,7 +20,7 @@ class NetcdfFile {
     int NC_openWrite(std::string const&);
     int NC_createReservoir(bool, double, int, int&, int&);
     int NC_create(std::string const&,NCTYPE,int,bool,bool,bool,bool,bool,
-                  bool, ReplicaDimArray const&, std::string const&);
+                  bool, ReplicaDimArray const&, int, std::string const&);
     void NC_close();
 
     int SetupFrame();
@@ -42,8 +42,8 @@ class NetcdfFile {
 
     inline void SetNcatom( int natomIn ) { ncatom_ = natomIn; }
   protected: // TODO: Make all private
-    size_t start_[3];
-    size_t count_[3];
+    size_t start_[4];
+    size_t count_[4];
 
     int ncid_;
     int ncframe_;
@@ -61,6 +61,7 @@ class NetcdfFile {
     bool checkNCerr(int);
   private:
     int ncdebug_;
+    int ensembleDID_;
     int frameDID_;
     int atomDID_;
     int ncatom_;

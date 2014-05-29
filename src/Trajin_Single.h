@@ -15,10 +15,13 @@ class Trajin_Single : public Trajin {
     int ReadTrajFrame(int, Frame&);
     void PrintInfo(int) const;
     bool HasVelocity() const;
-    int NreplicaDimension() const;
+    /// \return Any replica dimension information present.
+    ReplicaDimArray const& TrajReplicaDimInfo() const;
+    int EnsembleSize() const { return 0; }
   private:
     TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.
     TrajectoryIO* velio_;  ///< Hold class that will interface with opt. mdvel file.
-    bool trajIsOpen_;      ///< True if trajectory is open. 
+    bool trajIsOpen_;      ///< True if trajectory is open.
+    static const ReplicaDimArray emptyReplicaDimArray_; ///< When no replica dim info present 
 };
 #endif

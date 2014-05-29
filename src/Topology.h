@@ -8,21 +8,23 @@
 #include "AtomMask.h"
 #include "Frame.h"
 #include "FileName.h"
+#include "ReplicaDimArray.h"
 // Class: Topology
 /// Hold information for all atoms
 class Topology {
   public:
     Topology();
     // ----- Set internal variables --------------
-    void SetOffset(double oIn)           { if (oIn > 0.0) offset_ = oIn;  }
-    void SetDebug(int dIn)               { debug_ = dIn;                  }
-    void SetIpol(int iIn)                { ipol_ = iIn;                   }
-    void SetPindex(int pIn)              { pindex_ = pIn;                 }
-    void IncreaseFrames(int fIn)         { nframes_ += fIn;               }
-    void SetTag(std::string const& t)    { parmTag_ = t;                  }
-    void SetVelInfo(bool v)              { hasVelInfo_ = v;               }
-    void SetNrepDim(int n)               { nRepDim_ = n;                  }
-    void SetGBradiiSet(std::string const& s) { radius_set_ = s;           }
+    void SetOffset(double oIn)               { if (oIn > 0.0) offset_ = oIn; }
+    void SetDebug(int dIn)                   { debug_ = dIn;                 }
+    void SetIpol(int iIn)                    { ipol_ = iIn;                  }
+    void SetPindex(int pIn)                  { pindex_ = pIn;                }
+    void IncreaseFrames(int fIn)             { nframes_ += fIn;              }
+    void SetTag(std::string const& t)        { parmTag_ = t;                 }
+    void SetRepDim(ReplicaDimArray const& r) { RepDim_ = r;                  }
+    void SetVelInfo(bool v)                  { hasVelInfo_ = v;              }
+    void SetEnsembleSize(int n)              { ensembleSize_ = n;            }
+    void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
     void SetParmName(std::string const&, FileName const&);
     void SetReferenceCoords( Frame const& );
     // ----- Return internal variables -----------
@@ -35,8 +37,10 @@ class Topology {
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int Nframes()                  const { return nframes_;               }
     int NextraPts()                const { return n_extra_pts_;           }
+    int EnsembleSize()             const { return ensembleSize_;          }
     bool HasVelInfo()              const { return hasVelInfo_;            }
-    int NrepDim()                  const { return nRepDim_;               }
+    int NrepDim()                  const { return RepDim_.Ndims();        }
+    ReplicaDimArray const& ParmReplicaDimInfo() const { return RepDim_;   }
     std::string const& ParmName()         const { return parmName_;       }
     FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
@@ -219,8 +223,9 @@ class Topology {
     int pindex_;
     int nframes_;
     int n_extra_pts_;
-    bool hasVelInfo_; // TODO: This information should be passed separate from Topology
-    int nRepDim_;     // TODO: This information should be passed separate from Topology
+    int ensembleSize_;       // TODO: This information should be passed separate from Topology
+    bool hasVelInfo_;        // TODO: This information should be passed separate from Topology
+    ReplicaDimArray RepDim_; // TODO: This information should be passed separate from Topology
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 NonbondType const& Topology::GetLJparam(int a1, int a2) const {

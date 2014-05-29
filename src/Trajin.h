@@ -13,7 +13,8 @@ class Trajin : public TrajectoryFile {
     virtual void EndTraj() = 0;
     virtual void PrintInfo(int) const = 0;
     virtual bool HasVelocity() const = 0;
-    virtual int NreplicaDimension() const = 0;
+    virtual ReplicaDimArray const& TrajReplicaDimInfo() const = 0;
+    virtual int EnsembleSize() const = 0;
 
     static int CheckFrameArgs(ArgList&, int, int&, int&, int&);
     inline bool CheckFinished();
@@ -26,7 +27,8 @@ class Trajin : public TrajectoryFile {
     void PrepareForRead(bool);
     void PrintInfoLine() const;
     void PrintFrameInfo() const;
- 
+
+    int NreplicaDimension()  const { return TrajReplicaDimInfo().Ndims(); } 
     int TotalFrames()        const { return total_frames_;       }
     int TotalReadFrames()    const { return total_read_frames_;  }
     int CurrentFrame()       const { return currentFrame_;       } // GetNextEnsemble

@@ -147,9 +147,12 @@ bool Trajin_Single::HasVelocity() const {
   return false;
 }
 
-int Trajin_Single::NreplicaDimension() const {
+const ReplicaDimArray Trajin_Single::emptyReplicaDimArray_ = 
+  ReplicaDimArray();
+
+ReplicaDimArray const& Trajin_Single::TrajReplicaDimInfo() const {
   if (trajio_!=0) 
-    return trajio_->ReplicaDimensions().Ndims();
+    return trajio_->ReplicaDimensions();
   else
-    return 0;
+    return emptyReplicaDimArray_;
 }

@@ -21,8 +21,8 @@ Topology::Topology() :
   pindex_(0),
   nframes_(0),
   n_extra_pts_(0),
-  hasVelInfo_(false),
-  nRepDim_(0)
+  ensembleSize_(0),
+  hasVelInfo_(false)
 { }
 
 // Topology::SetParmName()
@@ -1410,7 +1410,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->radius_set_ = radius_set_;
   newParm->debug_ = debug_;
   newParm->hasVelInfo_ = hasVelInfo_;
-  newParm->nRepDim_ = nRepDim_;
+  newParm->RepDim_ = RepDim_;
+  newParm->ensembleSize_ = ensembleSize_;
 
   // Reverse Atom map
   std::vector<int> atomMap( atoms_.size(),-1 );

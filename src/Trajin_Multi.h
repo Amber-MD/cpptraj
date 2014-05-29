@@ -21,12 +21,12 @@ class Trajin_Multi : public Trajin {
     int ReadTrajFrame( int, Frame& );
     void PrintInfo(int) const;
     bool HasVelocity()      const { return hasVelocity_; }
-    int NreplicaDimension() const { return Ndimensions_; }
+    ReplicaDimArray const& TrajReplicaDimInfo() const { return trajRepDimInfo_; }
+    int EnsembleSize()      const { return (int)REMDtraj_.size(); }
 
     void EnsembleInfo() const;
     int EnsembleSetup( FrameArray& );
     int GetNextEnsemble( FrameArray& );
-    int EnsembleSize()               const { return (int)REMDtraj_.size(); }
 #   ifdef MPI
     int EnsembleFrameNum()           const { return ensembleFrameNum_;     }
 #   ifdef TIMER
@@ -51,6 +51,7 @@ class Trajin_Multi : public Trajin {
     double remdFrameFactor_;  ///< For HREMD sort, # frames written per remlog entry
     int remdFrameOffset_;     ///< If traj written less often than log, +1
     RemdIdxType remdtrajidx_; ///< Get frames with these indices on read
+    ReplicaDimArray trajRepDimInfo_; ///< Replica dimension info for all trajectories.
     int Ndimensions_;         ///< # of dimensions in each trajectory.
     IOarrayType REMDtraj_;    ///< Input replica trajectories
     int lowestRepnum_;        ///< Hold the lowest replica number
