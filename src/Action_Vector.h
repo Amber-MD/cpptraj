@@ -2,7 +2,6 @@
 #define INC_ACTION_VECTOR_H
 #include "Action.h"
 #include "DataSet_Vector.h"
-#include "TrajectoryFile.h" // trajout
 class Action_Vector : public Action {
   public:
     Action_Vector();
@@ -42,8 +41,5 @@ class Action_Vector : public Action {
     AtomMask mask_;
     AtomMask mask2_;
     std::string filename_;
-    std::string trajoutName_;
-    std::string parmoutName_;
-    TrajectoryFile::TrajFormatType trajoutFmt_;
 };
 #endif

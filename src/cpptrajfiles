@@ -136,6 +136,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataIO_Mdout.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
+        DataIO_VecTraj.cpp \
         DataIO_Xplor.cpp \
         DataSet.cpp \
         DataSetList.cpp \
