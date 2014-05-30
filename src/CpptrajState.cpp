@@ -248,6 +248,11 @@ int CpptrajState::RunEnsemble() {
 # ifdef MPI
   DataFileEnsemble.SetEnsembleMode( worldrank );
 # endif
+  // If we are on a single thread, give each member its own copy of the
+  // current topology address. This way if topology is modified by a member,
+  // e.g. in strip or closest, subsequent members wont be trying to modify 
+  // an already-modified topology.
+  std::vector<Topology*> EnsembleParm( ensembleSize );
 
   // Set up output trajectories for each member of the ensemble
   for (TrajoutList::ArgIt targ = trajoutList_.argbegin(); targ != trajoutList_.argend(); ++targ)
@@ -326,6 +331,8 @@ int CpptrajState::RunEnsemble() {
     }
     // Set current parm from current traj.
     Topology* CurrentParm = (*traj)->TrajParm();
+    for (int member = 0; member < ensembleSize; ++member)
+      EnsembleParm[member] = CurrentParm;
     CurrentParm->SetVelInfo( (*traj)->HasVelocity() );
     CurrentParm->SetNrepDim( (*traj)->NreplicaDimension() );
     // Check if parm has changed
@@ -347,13 +354,13 @@ int CpptrajState::RunEnsemble() {
       // Set up actions for this parm
       bool setupOK = true;
       for (int member = 0; member < ensembleSize; ++member) {
-        if (ActionEnsemble[member].SetupActions( &CurrentParm )) {
+        if (ActionEnsemble[member].SetupActions( &(EnsembleParm[member]) )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
-                  worldrank,CurrentParm->c_str());
+                  worldrank,EnsembleParm[member]->c_str());
 #         else
           mprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
-                  member,CurrentParm->c_str());
+                  member,EnsembleParm[member]->c_str());
 #         endif
           setupOK = false;
         }
@@ -406,7 +413,8 @@ int CpptrajState::RunEnsemble() {
 #             ifdef TIMER
               trajout_time.Start();
 #             endif 
-              if (TrajoutEnsemble[pos].WriteTrajout(actionSet, CurrentParm, CurrentFrame)) {
+              if (TrajoutEnsemble[pos].WriteTrajout(actionSet, EnsembleParm[pos], CurrentFrame))
+              {
                 mprinterr("Error: Writing ensemble output traj, position %i\n", pos);
                 if (exitOnError_) return 1; 
               }
