@@ -619,6 +619,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   }
   // Replica indices
   bool hasIndices = (remdDim.Ndims() > 0);
+  int remDimTypeVID = -1;
   if (hasIndices) {
     // Define number of replica dimensions
     remd_dimension_ = remdDim.Ndims();
@@ -630,7 +631,6 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     }
     dimensionID[0] = remDimDID;
     // For each dimension, store the type
-    int remDimTypeVID = -1;
     if ( checkNCerr(nc_def_var(ncid_, NCREMD_DIMTYPE, NC_INT, 1, dimensionID, &remDimTypeVID)) ) 
     {
       mprinterr("Error: Defining replica dimension type variable.\n");
@@ -810,7 +810,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     int* tempDims = new int[ remd_dimension_ ];
     for (int i = 0; i < remd_dimension_; ++i)
       tempDims[i] = remdDim[i];
-    if (checkNCerr(nc_put_vara_int(ncid_, indicesVID_, start_, count_, tempDims))) {
+    if (checkNCerr(nc_put_vara_int(ncid_, remDimTypeVID, start_, count_, tempDims))) {
       mprinterr("Error: writing replica dimension types.\n");
       delete[] tempDims;
       return 1;

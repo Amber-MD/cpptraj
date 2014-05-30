@@ -44,7 +44,7 @@ class Trajin_Multi : public Trajin {
     std::string FinalCrdIndices()    const;
   private:
     /// Define type that will hold REMD indices
-    typedef std::vector<int> RemdIdxType;
+    typedef Frame::RemdIdxType RemdIdxType;
     typedef std::vector<TrajectoryIO*> IOarrayType;
     typedef std::vector<std::string> NameListType;
 
@@ -66,7 +66,7 @@ class Trajin_Multi : public Trajin {
     int* frameidx_;    ///< Hold position of each frame in ensemble.
     typedef std::map<double,int> TmapType;
     TmapType TemperatureMap_;
-    typedef std::map< std::vector<int>, int > ImapType;
+    typedef std::map< RemdIdxType, int > ImapType;
     ImapType IndicesMap_;
 #   ifdef MPI
     int ensembleFrameNum_;      ///< Position containing coords to use in FrameArray
