@@ -42,6 +42,7 @@ class Frame {
     Frame(Frame const&, AtomMask const&);
     Frame(const Frame&);
     Frame& operator=(Frame);
+    typedef std::vector<int> RemdIdxType; ///< For dealing with replica indices
     // -------------------------------------------
     /// This type interfaces with DataSet_Coords_CRD
     typedef std::vector<float> CRDtype;
@@ -71,24 +72,25 @@ class Frame {
     bool HasVelocity()                const { return (V_ != 0);      }
     int Natom()                       const { return natom_;         }
     int size()                        const { return ncoord_;        }
-    int NrepDims()                    const { return Ndimensions_;   }
+    int NrepDims()                    const { return (int)remd_indices_.size(); } // TODO: deprecate
     double Temperature()              const { return T_;             }
     const double* XYZ(int atnum)      const { return X_ + (atnum*3); } 
     const double* CRD(int idx)        const { return X_ + idx;       } 
     const double* VXYZ(int atnum)     const { return V_ + (atnum*3); } 
     double Mass(int atnum)            const { return Mass_[atnum];   }
     const Box& BoxCrd()               const { return box_;           }
+    RemdIdxType const& RemdIndices()  const { return remd_indices_;  }
     // Routines for accessing internal data pointers
-    inline double* xAddress() { return X_;            }
-    inline double* vAddress() { return V_;            }
-    inline double* bAddress() { return box_.boxPtr(); }
-    inline double* tAddress() { return &T_;           }
-    inline int* iAddress()    { return remd_indices_; }
-    inline const double* xAddress() const { return X_;            }
-    inline const double* vAddress() const { return V_;            }
-    inline const double* bAddress() const { return box_.boxPtr(); }
-    inline const double* tAddress() const { return &T_;           }
-    inline const int* iAddress()    const { return remd_indices_; }
+    inline double* xAddress() { return X_;                }
+    inline double* vAddress() { return V_;                }
+    inline double* bAddress() { return box_.boxPtr();     }
+    inline double* tAddress() { return &T_;               }
+    inline int* iAddress()    { return &remd_indices_[0]; }
+    inline const double* xAddress() const { return X_;                }
+    inline const double* vAddress() const { return V_;                }
+    inline const double* bAddress() const { return box_.boxPtr();     }
+    inline const double* tAddress() const { return &T_;               }
+    inline const int* iAddress()    const { return &remd_indices_[0]; }
     /// Set box alpha, beta, and gamma
     inline void SetBoxAngles(const double*);
     /// Allocate frame for given # atoms, no mass or velocity.
@@ -183,8 +185,7 @@ class Frame {
     double T_;      ///< Temperature
     double* X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     double* V_;     ///< Velocities (same arrangement as Coords).
-    int* remd_indices_; ///< replica indices.
-    int Ndimensions_;   ///< # of replica dimensions.
+    RemdIdxType remd_indices_; ///< replica indices.
     Darray Mass_;   ///< Masses.
 
     void swap(Frame&, Frame&);

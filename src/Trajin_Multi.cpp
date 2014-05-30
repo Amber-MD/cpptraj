@@ -415,11 +415,12 @@ bool Trajin_Multi::IsTarget(Frame const& fIn) {
   if ( targetType_ == TEMP ) {
     if ( fIn.Temperature() == remdtrajtemp_ ) return true;
   } else {
-    const int* tgtIdx = fIn.iAddress();
-    for (RemdIdxType::iterator idx = remdtrajidx_.begin(); idx != remdtrajidx_.end(); ++idx)
+    Frame::RemdIdxType::const_iterator tgtIdx = fIn.RemdIndices().begin();
+    for (RemdIdxType::const_iterator idx = remdtrajidx_.begin(); 
+                                     idx != remdtrajidx_.end(); 
+                                   ++idx, ++tgtIdx)
     {
       if ( *tgtIdx != *idx ) return false;
-      ++tgtIdx;
     }
     return true;
   }
@@ -500,8 +501,8 @@ void Trajin_Multi::EnsembleInfo() const {
                                   imap != IndicesMap_.end(); ++imap)
     {
       mprintf("\t{");
-      for (std::vector<int>::const_iterator idx = (*imap).first.begin();
-                                            idx != (*imap).first.end(); ++idx)
+      for (RemdIdxType::const_iterator idx = imap->first.begin();
+                                       idx != imap->first.end(); ++idx)
         mprintf(" %i", *idx);
       mprintf(" } -> %i\n", (*imap).second);
     }
@@ -513,7 +514,7 @@ void Trajin_Multi::EnsembleInfo() const {
 // Trajin_Multi::EnsembleSetup()
 int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   std::set<double> tList;
-  std::set< std::vector<int> > iList;
+  std::set< RemdIdxType > iList;
   // Allocate space to hold position of each incoming frame in replica space.
   // TODO: When actually perfoming read in MPI will only need room for 1
   //frameidx_.resize( REMDtraj_.size() );
@@ -557,21 +558,20 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
       if ( (*replica)->openTrajin() ) return 1;
       if ( (*replica)->readFrame( Start(), *frame ) ) return 1;
       (*replica)->closeTraj();
-      std::pair<std::set< std::vector<int> >::iterator,bool> ret = 
-        iList.insert( std::vector<int>( (*frame).iAddress(), (*frame).iAddress()+Ndimensions_ ) );
+      std::pair<std::set< RemdIdxType >::iterator,bool> ret = iList.insert(frame->RemdIndices());
       if ( !ret.second ) {
         mprinterr("Error: Ensemble: Duplicate indices detected in ensemble %s:",
                   TrajFilename().full());
-        for (std::vector<int>::const_iterator idx = (*ret.first).begin(); 
-                                              idx != (*ret.first).end(); ++idx)
+        for (RemdIdxType::const_iterator idx = (*ret.first).begin(); 
+                                         idx != (*ret.first).end(); ++idx)
           mprinterr(" %i", *idx);
         mprinterr("\n");
         return 1;
       }
     }
     int repnum = 0;
-    for (std::set< std::vector<int> >::iterator idxs = iList.begin(); idxs != iList.end(); ++idxs)
-      IndicesMap_.insert(std::pair< std::vector<int>, int >(*idxs, repnum++));
+    for (std::set< RemdIdxType >::iterator idxs = iList.begin(); idxs != iList.end(); ++idxs)
+      IndicesMap_.insert(std::pair< RemdIdxType, int >(*idxs, repnum++));
   } else { 
     // NONE, no sorting
 #   ifdef MPI
@@ -614,8 +614,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
         *fidx = tmap->second;
       //mprintf(" %.2f[%i]", (*frame).Temperature(), *fidx ); // DEBUG
     } else if (targetType_ == INDICES) {
-      ImapType::iterator imap = IndicesMap_.find( 
-        std::vector<int>( (*frame).iAddress(), (*frame).iAddress()+Ndimensions_ ) );
+      ImapType::iterator imap = IndicesMap_.find( frame->RemdIndices() );
       if (imap == IndicesMap_.end())
         badEnsemble_ = true;
       else
