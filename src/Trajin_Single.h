@@ -23,8 +23,8 @@ class Trajin_Single : public Trajin {
     int EnsembleSetup(FrameArray&) {return 1;}
     int GetNextEnsemble(FrameArray&) {return 0;}
 #   ifdef MPI
-    int EnsembleFrameNum() {return 0;}
-    #   ifdef TIMER
+    int EnsembleFrameNum() const {return 0;}
+#   ifdef TIMER
     double MPI_AllgatherTime() const { return 0.0; }
     double MPI_SendRecvTime()  const { return 0.0;  }
 #   endif
