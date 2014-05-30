@@ -478,7 +478,7 @@ int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
 // NetcdfFile::NC_create()
 int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
                           bool hasVelocity, bool hasFrc, bool hasBox, 
-                          bool hasTemperature, bool hasTime, bool hasIndices,
+                          bool hasTemperature, bool hasTime,
                           ReplicaDimArray const& remdDim, int ensembleSize,
                           std::string const& title) 
 {
@@ -618,10 +618,13 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     if ( NC_defineTemperature( dimensionID, NDIM-2 ) ) return 1;
   }
   // Replica indices
+  bool hasIndices = (remdDim.Ndims() > 0);
   if (hasIndices) {
     // Define number of replica dimensions
+    remd_dimension_ = remdDim.Ndims();
+    mprintf("DEBUG: Creating %iD NetCDF file with %i replica dims.\n", NDIM, remd_dimension_);
     int remDimDID = -1;
-    if ( checkNCerr(nc_def_dim( ncid_, NCREMD_DIMENSION, remdDim.Ndims(), &remDimDID )) ) {
+    if ( checkNCerr(nc_def_dim( ncid_, NCREMD_DIMENSION, remd_dimension_, &remDimDID )) ) {
       mprinterr("Error: Defining replica indices dimension.\n");
       return 1;
     }
@@ -803,9 +806,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   // Store the type of each replica dimension.
   if (hasIndices) {
     start_[0] = 0;
-    count_[0] = remdDim.Ndims();
-    int* tempDims = new int[ remdDim.Ndims() ];
-    for (int i = 0; i < remdDim.Ndims(); ++i)
+    count_[0] = remd_dimension_;
+    int* tempDims = new int[ remd_dimension_ ];
+    for (int i = 0; i < remd_dimension_; ++i)
       tempDims[i] = remdDim[i];
     if (checkNCerr(nc_put_vara_int(ncid_, indicesVID_, start_, count_, tempDims))) {
       mprinterr("Error: writing replica dimension types.\n");

@@ -20,7 +20,7 @@ class NetcdfFile {
     int NC_openWrite(std::string const&);
     int NC_createReservoir(bool, double, int, int&, int&);
     int NC_create(std::string const&,NCTYPE,int,bool,bool,bool,bool,bool,
-                  bool, ReplicaDimArray const&, int, std::string const&);
+                  ReplicaDimArray const&, int, std::string const&);
     void NC_close();
 
     int SetupFrame();

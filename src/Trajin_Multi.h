@@ -2,7 +2,7 @@
 #define INC_TRAJIN_MULTI_H
 #include <map>
 #include "Trajin.h"
-#include "FrameArray.h"
+//#inc lude "FrameArray.h"
 #include "DataSet_RemLog.h"
 #ifdef MPI
 #  ifdef TIMER
@@ -26,6 +26,7 @@ class Trajin_Multi : public Trajin {
 
     void EnsembleInfo() const;
     int EnsembleSetup( FrameArray& );
+    /// \return 1 if more frames to read, 0 if finished
     int GetNextEnsemble( FrameArray& );
 #   ifdef MPI
     int EnsembleFrameNum()           const { return ensembleFrameNum_;     }

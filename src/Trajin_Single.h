@@ -18,6 +18,20 @@ class Trajin_Single : public Trajin {
     /// \return Any replica dimension information present.
     ReplicaDimArray const& TrajReplicaDimInfo() const;
     int EnsembleSize() const { return 0; }
+    // NOTE: The following are currently for testing Trajin_Ensemble
+    void EnsembleInfo() const {} 
+    int EnsembleSetup(FrameArray&) {return 1;}
+    int GetNextEnsemble(FrameArray&) {return 0;}
+#   ifdef MPI
+    int EnsembleFrameNum() {return 0;}
+    #   ifdef TIMER
+    double MPI_AllgatherTime() const { return 0.0; }
+    double MPI_SendRecvTime()  const { return 0.0;  }
+#   endif
+#   else
+    int EnsemblePosition(int) const {return 0;}
+#   endif
+    bool  BadEnsemble() const { return true; }
   private:
     TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.
     TrajectoryIO* velio_;  ///< Hold class that will interface with opt. mdvel file.

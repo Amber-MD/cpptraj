@@ -1,7 +1,6 @@
 #include "CpptrajState.h"
 #include "CpptrajStdio.h"
 #include "FrameArray.h" // for ensemble
-#include "Trajin_Multi.h" // for ensemble
 #include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "Timer.h"
@@ -205,9 +204,8 @@ int CpptrajState::RunEnsemble() {
   int ensembleSize = -1;
   for (TrajinList::const_iterator traj = trajinList_.begin(); traj != trajinList_.end(); ++traj) 
   {
-    Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
     if (ensembleSize == -1) {
-      ensembleSize = mtraj->EnsembleSize();
+      ensembleSize = (*traj)->EnsembleSize();
 #     ifdef MPI
       // TODO: Eventually try to divide ensemble among MPI threads?
       if (worldsize != ensembleSize) {
@@ -216,17 +214,17 @@ int CpptrajState::RunEnsemble() {
         return 1;
       }
 #     endif
-    } else if (ensembleSize != mtraj->EnsembleSize()) {
+    } else if (ensembleSize != (*traj)->EnsembleSize()) {
       mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
-                mtraj->EnsembleSize(), ensembleSize);
+                (*traj)->EnsembleSize(), ensembleSize);
       return 1;
     }
     // Perform ensemble setup - this also resizes FrameEnsemble
-    if ( mtraj->EnsembleSetup( FrameEnsemble ) ) return 1;
+    if ( (*traj)->EnsembleSetup( FrameEnsemble ) ) return 1;
   }
   mprintf("  Ensemble size is %i\n", ensembleSize); 
   // At this point all ensembles should match (i.e. same map etc.)
-  ((Trajin_Multi*)(trajinList_.front()))->EnsembleInfo();
+  trajinList_.front()->EnsembleInfo();
 
   // Calculate frame division among trajectories
   trajinList_.List();
@@ -367,33 +365,32 @@ int CpptrajState::RunEnsemble() {
 #   endif
     // Loop over every collection of frames in the ensemble
     (*traj)->PrintInfoLine();
-    Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
 #   ifdef TIMER
     trajin_time.Start();
-    bool readMoreFrames = mtraj->GetNextEnsemble(FrameEnsemble);
+    bool readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble);
     trajin_time.Stop();
     while ( readMoreFrames )
 #   else
-    while ( mtraj->GetNextEnsemble(FrameEnsemble) )
+    while ( (*traj)->GetNextEnsemble(FrameEnsemble) )
 #   endif
     {
-      if (!mtraj->BadEnsemble()) {
+      if (!(*traj)->BadEnsemble()) {
 #       ifdef MPI
         // For MPI, each thread has one ensemble frame. member is 1 if coords
         // had to be sorted, 0 otherwise. pos is always 0.
-        int member = mtraj->EnsembleFrameNum();
+        int member = (*traj)->EnsembleFrameNum();
         pos = 0;
 #       else
         // Loop over all members of the ensemble
         for (int member = 0; member < ensembleSize; ++member) {
           // Get this members current position
-          pos = mtraj->EnsemblePosition( member );
+          pos = (*traj)->EnsemblePosition( member );
 #       endif
           // Since Frame can be modified by actions, save original and use CurrentFrame
           Frame* CurrentFrame = &(FrameEnsemble[member]);
           if ( CurrentFrame->CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
-                    member, mtraj->CurrentFrame() - mtraj->Offset() + 1);
+                    member, (*traj)->CurrentFrame() - (*traj)->Offset() + 1);
 #           ifdef TIMER
             actions_time.Start();
 #           endif
@@ -426,7 +423,7 @@ int CpptrajState::RunEnsemble() {
       ++actionSet;
 #     ifdef TIMER
       trajin_time.Start();
-      readMoreFrames = mtraj->GetNextEnsemble(FrameEnsemble);
+      readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble);
       trajin_time.Stop();
 #     endif
     }
@@ -435,8 +432,8 @@ int CpptrajState::RunEnsemble() {
     (*traj)->EndTraj();
 #   ifdef MPI
 #   ifdef TIMER
-    mpiallgather += mtraj->MPI_AllgatherTime();
-    mpisendrecv  += mtraj->MPI_SendRecvTime();
+    mpiallgather += (*traj)->MPI_AllgatherTime();
+    mpisendrecv  += (*traj)->MPI_SendRecvTime();
 #   endif
 #   endif
     // Update how many frames have been processed.

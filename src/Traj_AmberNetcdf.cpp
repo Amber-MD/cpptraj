@@ -135,7 +135,7 @@ int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm,
       SetTitle("Cpptraj Generated trajectory");
     // Create NetCDF file. TODO: Add option to set up replica indices.
     if ( NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), HasV(),
-                    false, HasBox(), HasT(), true, false, trajParm->ParmReplicaDimInfo(),
+                    false, HasBox(), HasT(), true, trajParm->ParmReplicaDimInfo(),
                     0, Title() ) )
       return 1;
     if (debug_>1) NetcdfDebug();
@@ -293,6 +293,15 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   if (TempVID_!=-1) {
     if ( checkNCerr( nc_put_vara_double(ncid_,TempVID_,start_,count_,frameOut.tAddress())) ) {
       mprinterr("Error: Writing temperature frame %i.\n", set+1);
+      return 1;
+    }
+  }
+
+  // Write indices
+  if (indicesVID_ != -1) {
+    count_[1] = remd_dimension_;
+    if ( checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frameOut.iAddress())) ) {
+      mprinterr("Error: Writing indices frame %i.\n", set+1);
       return 1;
     }
   }

@@ -109,7 +109,7 @@ Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddres
 // Action_Strip::DoAction()
 /** Modify the coordinate frame to reflect stripped parmtop. */
 Action::RetType Action_Strip::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-
+  rprintf("DEBUG: Strip frame %i\n", frameNum+1);
   newFrame_.SetFrame(*currentFrame, M1_);
 
   // Set frame

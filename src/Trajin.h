@@ -2,6 +2,7 @@
 #define INC_TRAJIN_H
 #include "TrajectoryFile.h"
 #include "ProgressBar.h"
+#include "FrameArray.h"
 /// Class that all input trajectories will inherit.
 class Trajin : public TrajectoryFile {
   public:
@@ -15,6 +16,20 @@ class Trajin : public TrajectoryFile {
     virtual bool HasVelocity() const = 0;
     virtual ReplicaDimArray const& TrajReplicaDimInfo() const = 0;
     virtual int EnsembleSize() const = 0;
+    // NOTE: The following are currently for testing Trajin_Ensemble
+    virtual void EnsembleInfo() const = 0;
+    virtual int EnsembleSetup(FrameArray&) = 0;
+    virtual int GetNextEnsemble(FrameArray&) = 0;
+#   ifdef MPI
+    virtual int EnsembleFrameNum() const = 0;
+#   ifdef TIMER
+    virtual double MPI_AllgatherTime() const = 0;
+    virtual double MPI_SendRecvTime() const = 0;
+#   endif
+#   else
+    virtual int EnsemblePosition(int) const = 0;
+#   endif
+    virtual bool  BadEnsemble() const = 0;
 
     static int CheckFrameArgs(ArgList&, int, int&, int&, int&);
     inline bool CheckFinished();
