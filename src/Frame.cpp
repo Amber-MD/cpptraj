@@ -370,6 +370,7 @@ void Frame::SetCoordinates(Frame const& frameIn, AtomMask const& maskIn) {
   ncoord_ = natom_ * 3;
   box_ = frameIn.box_;
   T_ = frameIn.T_;
+  remd_indices_ = frameIn.remd_indices_;
   double* newXptr = X_;
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
   {
@@ -402,6 +403,7 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   // Copy T/box
   box_ = frameIn.box_;
   T_ = frameIn.T_;
+  remd_indices_ = frameIn.remd_indices_;
   double* newXptr = X_;
   Darray::iterator mass = Mass_.begin();
   if (frameIn.V_ != 0 && V_ != 0) {
@@ -452,7 +454,7 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   ncoord_ = natom_ * 3;
   box_ = tgtIn.box_;
   T_ = tgtIn.T_;
-  // TODO: remd_indices
+  remd_indices_ = frameIn.remd_indices_;
   double* newXptr = X_;
   Darray::iterator newmass = Mass_.begin();
   if (tgtIn.V_ != 0 && V_ != 0) {
