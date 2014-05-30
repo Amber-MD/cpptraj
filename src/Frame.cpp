@@ -454,7 +454,7 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   ncoord_ = natom_ * 3;
   box_ = tgtIn.box_;
   T_ = tgtIn.T_;
-  remd_indices_ = frameIn.remd_indices_;
+  remd_indices_ = tgtIn.remd_indices_;
   double* newXptr = X_;
   Darray::iterator newmass = Mass_.begin();
   if (tgtIn.V_ != 0 && V_ != 0) {
