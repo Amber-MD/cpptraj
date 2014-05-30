@@ -1119,6 +1119,7 @@ Command::RetType Write_DataFile(CpptrajState& State, ArgList& argIn, Command::Al
     delete df;
     return Command::C_ERR;
   }
+  mprintf("\tWriting sets to %s, format '%s'\n", df->DataFilename().full(), df->FormatString());
   int err = AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL()));
   if (err == 0) df->WriteData();
   delete df;
