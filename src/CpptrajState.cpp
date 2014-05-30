@@ -406,7 +406,10 @@ int CpptrajState::RunEnsemble() {
 #             ifdef TIMER
               trajout_time.Start();
 #             endif 
-              TrajoutEnsemble[pos].WriteTrajout(actionSet, CurrentParm, CurrentFrame);
+              if (TrajoutEnsemble[pos].WriteTrajout(actionSet, CurrentParm, CurrentFrame)) {
+                mprinterr("Error: Writing ensemble output traj, position %i\n", pos);
+                if (exitOnError_) return 1; 
+              }
 #             ifdef TIMER
               trajout_time.Stop();
 #             endif
@@ -596,7 +599,9 @@ int CpptrajState::RunNormal() {
 #         ifdef TIMER
           trajout_time.Start();
 #         endif
-          trajoutList_.WriteTrajout(actionSet, CurrentParm, CurrentFrame);
+          if (trajoutList_.WriteTrajout(actionSet, CurrentParm, CurrentFrame)) {
+            if (exitOnError_) return 1;
+          }
 #         ifdef TIMER
           trajout_time.Stop();
 #         endif
