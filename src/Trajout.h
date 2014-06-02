@@ -1,32 +1,50 @@
 #ifndef INC_TRAJOUT_H
 #define INC_TRAJOUT_H
 #include "TrajectoryFile.h"
+#include "FrameArray.h"
 #include "Range.h"
 #include "ActionFrameCounter.h"
 /// Output trajectory class.
 class Trajout : public TrajectoryFile {
   public:
     Trajout();
-    ~Trajout();
-    inline int InitTrajWrite(std::string const&, ArgList&, Topology*,
-                             TrajectoryFile::TrajFormatType);
-    inline int InitTrajWrite(std::string const&, Topology*, TrajectoryFile::TrajFormatType);
-    int InitStdoutTrajWrite(ArgList&, Topology*, TrajectoryFile::TrajFormatType);
-    int InitEnsembleTrajWrite(std::string const&, ArgList const&,
-                              Topology*, TrajFormatType, int);
-    int InitTrajWriteWithArgs(std::string const&, const char*, Topology*,
-                               TrajectoryFile::TrajFormatType);
-    void EndTraj();
-    int WriteFrame(int, Topology*, Frame const&);
-    void PrintInfo(int) const;
-    bool TrajIsOpen()        const { return trajIsOpen_;         }
-    int NumFramesProcessed() const { return numFramesProcessed_; }
+    virtual ~Trajout() {}
+    /// Close output trajectory.
+    virtual void EndTraj() = 0;
+    /// Write a single frame.
+    virtual int WriteFrame(int, Topology*, Frame const&) = 0;
+    /// Write an array of frames.
+    virtual int WriteEnsemble(int, Topology*, FrameArray const&, Frame::RemdIdxType const&) = 0;
+    /// Print information on trajectory to be written.
+    virtual void PrintInfo(int) const = 0;
+    /// Prepare trajectory for writing using the given topology.
+    virtual int InitTrajWrite(std::string const&, ArgList const&, Topology*,
+                              TrajectoryFile::TrajFormatType) = 0;
+    /// Set ensemble info, just size for now.
+    virtual void SetEnsembleInfo(int) = 0;
+    /// Prepare trajectory for writing, no args.
+    int InitTrajWrite(std::string const& f, Topology* p, TrajectoryFile::TrajFormatType t) {
+      return InitTrajWrite(f, ArgList(), p, t);
+    }
+    int NumFramesProcessed()          const { return numFramesProcessed_; }
+    bool TrajIsOpen()                 const { return trajIsOpen_;         }
+    bool TrajoutAppend()              const { return append_;             }
+    std::string const& TrajoutTitle() const { return title_;              }
+    void SetTrajIsOpen(bool o)              { trajIsOpen_ = o;            }
+    inline int CheckFrameRange(int);
+  protected:
+    /// Grab keywords common to all trajouts, set/determine format if necessary
+    int CommonTrajoutSetup(std::string const&, ArgList&, Topology*, 
+                           TrajectoryFile::TrajFormatType&);
+    /// Set up anything topology-related.
+    int FirstFrameSetup(std::string const&, TrajectoryIO*, Topology*);
+    /// Check format for append
+    int CheckAppendFormat(std::string const&, TrajFormatType&);
+    /// Print information for TrajectoryIO
+    void CommonInfo(TrajectoryIO*) const;
   private:
-    int InitTrajWrite(std::string const&, ArgList*, Topology*, TrajectoryFile::TrajFormatType);
-    int InitTrajout(std::string const&, ArgList*, Topology*, TrajectoryFile::TrajFormatType);
-
+    std::string title_;                ///< Output trajectory title.
     int numFramesProcessed_;
-    TrajectoryIO* trajio_;
     bool trajIsOpen_;                  ///< If true trajectory has been opened.
     bool nobox_;                       ///< If true do not put box information in output traj
     bool append_;                      ///< If true, append to this file.
@@ -35,14 +53,21 @@ class Trajout : public TrajectoryFile {
     Range::const_iterator rangeframe_; ///< If frame range defined, this is next frame in range.
     ActionFrameCounter frameCount_;    ///< Hold start/stop/offset values
 };
-// ----- INLINE FUNCTIONS ------------------------------------------------------
-int Trajout::InitTrajWrite(std::string const& n, ArgList& a, Topology* p,
-                           TrajectoryFile::TrajFormatType t)
-{
-  return InitTrajWrite( n, &a, p, t );
-}
-int Trajout::InitTrajWrite(std::string const& n, Topology* p, TrajectoryFile::TrajFormatType t)
-{
-  return InitTrajWrite( n, 0, p, t );
+// ---------- INLINE FUNCTION DEFINITIONS --------------------------------------
+/** \return 1 if set should not be written. */
+int Trajout::CheckFrameRange(int set) {
+  if (hasRange_) {
+    // If no more frames in the framerange, skip.
+    if (rangeframe_ == FrameRange_.end()) return 1;
+    // If this frame is not the next in the range, skip.
+    if ( *rangeframe_ != set ) return 1;
+    // This frame is next in the range. Advance FrameRange iterator.
+    ++rangeframe_;
+  } else {
+    if (frameCount_.CheckFrameCounter( set )) return 1;
+  }
+  // Frame will be processed. Increment frame count.
+  ++numFramesProcessed_;
+  return 0;
 }
 #endif

@@ -31,7 +31,7 @@ class TrajectoryFile {
     static void WriteOptions(){ FileTypes::WriteOptions(TF_KeyArray,TF_AllocArray,UNKNOWN_TRAJ); }
     /// \return format type from keyword in ArgList. 
     static TrajFormatType GetFormatFromArg(ArgList& a) {
-      return (TrajFormatType)FileTypes::GetFormatFromArg(TF_KeyArray, a, AMBERTRAJ);
+      return (TrajFormatType)FileTypes::GetFormatFromArg(TF_KeyArray, a, UNKNOWN_TRAJ);
     }
     /// \return format type from keyword.
     static TrajFormatType GetFormatFromString(std::string const& s) {

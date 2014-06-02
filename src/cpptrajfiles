@@ -221,6 +221,8 @@ SOURCES=ActionFrameCounter.cpp \
         Trajin_Multi.cpp \
         Trajin_Single.cpp \
         Trajout.cpp \
+        Trajout_Multi.cpp \
+        Trajout_Single.cpp \
         TrajoutList.cpp \
         Vec3.cpp \
         main.cpp
