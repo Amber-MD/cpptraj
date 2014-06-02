@@ -62,8 +62,7 @@ class Trajin_Multi : public Trajin {
     TargetType targetType_;   ///< Hold type of REMD frame being searched for.
     NameListType replica_filenames_;
     // ENSEMBLE
-    //RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
-    int* frameidx_;    ///< Hold position of each frame in ensemble.
+    RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
     typedef std::map<double,int> TmapType;
     TmapType TemperatureMap_;
     typedef std::map< RemdIdxType, int > ImapType;

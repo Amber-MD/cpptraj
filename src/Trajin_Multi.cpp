@@ -16,8 +16,7 @@ Trajin_Multi::Trajin_Multi() :
   lowestRepnum_(0),
   hasVelocity_(false),
   replicasAreOpen_(false),
-  targetType_(NONE),
-  frameidx_(0)
+  targetType_(NONE)
 # ifdef MPI
   ,ensembleFrameNum_(0)
 # endif
@@ -28,7 +27,6 @@ Trajin_Multi::~Trajin_Multi() {
   if (replicasAreOpen_) EndTraj();
   for (IOarrayType::iterator replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     delete *replica;
-  if (frameidx_ != 0) delete[] frameidx_;
 }
 
 // Trajin_Multi::SearchForReplicas()
@@ -516,9 +514,7 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
   std::set< RemdIdxType > iList;
   // Allocate space to hold position of each incoming frame in replica space.
   // TODO: When actually perfoming read in MPI will only need room for 1
-  //frameidx_.resize( REMDtraj_.size() );
-  if (frameidx_ != 0) delete[] frameidx_;
-  frameidx_ = new int[ REMDtraj_.size() ];
+  frameidx_.resize( REMDtraj_.size() );
   f_ensemble.resize( REMDtraj_.size() );
   f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity(), Ndimensions_ );
   if (targetType_ == TEMP) {
@@ -588,8 +584,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
   // If the current frame is out of range, exit
   if ( CheckFinished() ) return 0;
   FrameArray::iterator frame = f_ensemble.begin();
-  //RemdIdxType::iterator fidx = frameidx_.begin();
-  int* fidx = frameidx_;
+  RemdIdxType::iterator fidx = frameidx_.begin();
   badEnsemble_ = false;
   // Read in all replicas
   //mprintf("DBG: Ensemble frame %i:",CurrentFrame()+1); // DEBUG
@@ -639,7 +634,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
 #     ifdef TIMER
       mpi_allgather_timer_.Start();
 #     endif
-      if (parallel_allgather( &my_idx, 1, PARA_INT, frameidx_, 1, PARA_INT))
+      if (parallel_allgather( &my_idx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT))
         rprinterr("Error: Gathering frame indices.\n");
 #     ifdef TIMER
       mpi_allgather_timer_.Stop();
@@ -660,6 +655,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
             parallel_send( (*frame).xAddress(), (*frame).size(), PARA_DOUBLE, recvrank, 1212 );
             parallel_send( (*frame).bAddress(), 6, PARA_DOUBLE, recvrank, 1213 );
             parallel_send( (*frame).tAddress(), 1, PARA_DOUBLE, recvrank, 1214 );
+            parallel_send( (*frame).iAddress(), frame->NrepDims(), PARA_INT, recvrank, 1216 );
             if (HasVelocity())
               parallel_send( (*frame).vAddress(), (*frame).size(), PARA_DOUBLE, recvrank, 1215 );
           } else if (recvrank == worldrank) {
@@ -667,6 +663,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
             parallel_recv( f_ensemble[1].xAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1212 );
             parallel_recv( f_ensemble[1].bAddress(), 6, PARA_DOUBLE, sendrank, 1213 );
             parallel_recv( f_ensemble[1].tAddress(), 1, PARA_DOUBLE, sendrank, 1214 );
+            parallel_recv( f_ensemble[1].iAddress(), frame->NrepDims(), PARA_INT, sendrank, 1216 );
             if (HasVelocity())
               parallel_recv( f_ensemble[1].vAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1215 );
             // Since a frame was received, indicate position 1 should be used
