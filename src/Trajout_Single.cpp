@@ -1,5 +1,6 @@
 #include "Trajout_Single.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" //NumberFilename
 
 // CONSTRUCTOR
 Trajout_Single::Trajout_Single() : trajio_(0) {}
@@ -30,6 +31,22 @@ int Trajout_Single::InitStdoutTrajWrite(ArgList const& argIn, Topology *tparmIn,
                                  TrajFormatType writeFormatIn)
 {
   return InitTrajout("", argIn, tparmIn, writeFormatIn);
+}
+
+// Trajout_Single::InitEnsembleTrajWrite()
+int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList const& argIn,
+                                          Topology* tparmIn, TrajFormatType fmtIn,
+                                          int ensembleNum)
+{
+  FileName tempName;
+  tempName.SetFileName( tnameIn );
+  TrajFormatType extFmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
+  if (extFmt != UNKNOWN_TRAJ)
+    fmtIn = extFmt;
+  if (ensembleNum > -1)
+    return InitTrajWrite( NumberFilename(tnameIn, ensembleNum), argIn, tparmIn, extFmt );
+  else
+    return InitTrajWrite( tnameIn, argIn, tparmIn, extFmt );
 }
 
 // Trajout_Single::InitTrajout()
