@@ -1,6 +1,5 @@
 #include "CpptrajState.h"
 #include "CpptrajStdio.h"
-#include "FrameArray.h" // for ensemble
 #include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "Timer.h"
