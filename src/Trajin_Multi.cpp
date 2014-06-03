@@ -509,12 +509,13 @@ void Trajin_Multi::EnsembleInfo() const {
 }
 
 // Trajin_Multi::EnsembleSetup()
-int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
+int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sorted ) {
   std::set<double> tList;
   std::set< RemdIdxType > iList;
   // Allocate space to hold position of each incoming frame in replica space.
   // TODO: When actually perfoming read in MPI will only need room for 1
   frameidx_.resize( REMDtraj_.size() );
+  f_sorted.resize( REMDtraj_.size() );
   f_ensemble.resize( REMDtraj_.size() );
   f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity(), Ndimensions_ );
   if (targetType_ == TEMP) {
@@ -557,8 +558,8 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
       if ( !ret.second ) {
         mprinterr("Error: Ensemble: Duplicate indices detected in ensemble %s:",
                   TrajFilename().full());
-        for (RemdIdxType::const_iterator idx = (*ret.first).begin(); 
-                                         idx != (*ret.first).end(); ++idx)
+        for (RemdIdxType::const_iterator idx = ret.first->begin(); 
+                                         idx != ret.first->end(); ++idx)
           mprinterr(" %i", *idx);
         mprinterr("\n");
         return 1;
@@ -580,7 +581,7 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
 }
 
 // Trajin_Multi::GetNextEnsemble()
-int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
+int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sorted ) {
   // If the current frame is out of range, exit
   if ( CheckFinished() ) return 0;
   FrameArray::iterator frame = f_ensemble.begin();
@@ -595,13 +596,13 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
     return 0;
 # else
   int repIdx = 0; // for targetType==CRDIDX
-  for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+  for (unsigned int member = 0; member != REMDtraj_.size(); ++member)
   {
-    if ( (*replica)->readFrame( CurrentFrame(), *frame) )
+    if ( REMDtraj_[member]->readFrame( CurrentFrame(), *frame) )
       return 0;
 # endif
     if (targetType_ == TEMP) {
-      TmapType::iterator tmap = TemperatureMap_.find( (*frame).Temperature() );
+      TmapType::iterator tmap = TemperatureMap_.find( frame->Temperature() );
       if (tmap ==  TemperatureMap_.end())
         badEnsemble_ = true;
       else
@@ -672,12 +673,14 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
         }
         //else rprintf("SEND RANK == RECV RANK, NO COMM\n"); // DEBUG
       }
+      f_sorted[0] = &f_ensemble[ensembleFrameNum_];
 #     ifdef TIMER
       mpi_sendrecv_timer_.Stop();
 #     endif
     }
     //rprintf("FRAME %i, FRAME RECEIVED= %i\n", CurrentFrame(), ensembleFrameNum_); // DEBUG 
 #   else
+    f_sorted[*fidx] = &f_ensemble[member];
     ++fidx;
     ++frame;
   }

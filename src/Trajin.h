@@ -18,8 +18,8 @@ class Trajin : public TrajectoryFile {
     virtual int EnsembleSize() const = 0;
     // NOTE: The following are currently for testing Trajin_Ensemble
     virtual void EnsembleInfo() const = 0;
-    virtual int EnsembleSetup(FrameArray&) = 0;
-    virtual int GetNextEnsemble(FrameArray&) = 0;
+    virtual int EnsembleSetup(FrameArray&, FramePtrArray&) = 0;
+    virtual int GetNextEnsemble(FrameArray&, FramePtrArray&) = 0;
 #   ifdef MPI
     virtual int EnsembleFrameNum() const = 0;
 #   ifdef TIMER

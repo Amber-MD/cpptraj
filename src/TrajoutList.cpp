@@ -98,7 +98,7 @@ int TrajoutList::AddTrajout(ArgList const& argIn, TopologyList const& topListIn)
 
 //TrajoutList::WriteEnsembleOut()
 int TrajoutList::WriteEnsembleOut(int set, Topology* CurrentParm,
-                                  Trajout::FramePtrArray const& Farray)
+                                  TrajectoryFile::FramePtrArray const& Farray)
 {
   for (ListType::const_iterator to = trajout_.begin();
                                 to != trajout_.end(); ++to)

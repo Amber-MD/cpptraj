@@ -194,6 +194,7 @@ int CpptrajState::RunEnsemble() {
   Timer init_time;
   init_time.Start();
   FrameArray FrameEnsemble;
+  TrajectoryFile::FramePtrArray SortedFrames;
   // No Analysis will be run. Warn user if analyses are defined.
   if (!analysisList_.Empty())
     mprintf("Warning: In ensemble mode, Analysis will not be performed.\n");
@@ -218,8 +219,8 @@ int CpptrajState::RunEnsemble() {
                 (*traj)->EnsembleSize(), ensembleSize);
       return 1;
     }
-    // Perform ensemble setup - this also resizes FrameEnsemble
-    if ( (*traj)->EnsembleSetup( FrameEnsemble ) ) return 1;
+    // Perform ensemble setup - this also resizes FrameEnsemble and SortedFrames
+    if ( (*traj)->EnsembleSetup( FrameEnsemble, SortedFrames ) ) return 1;
   }
   mprintf("  Ensemble size is %i\n", ensembleSize); 
   // At this point all ensembles should match (i.e. same map etc.)
@@ -241,7 +242,7 @@ int CpptrajState::RunEnsemble() {
   mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
   TrajoutEnsemble.List();
 # ifdef MPI
-  // Each thread will process one member of the ensemble, so total ensemble
+  // Each thread will process one member of the ensemble, so local ensemble
   // size is effectively 1.
   ensembleSize = 1;
 # endif
@@ -258,8 +259,6 @@ int CpptrajState::RunEnsemble() {
   // e.g. in strip or closest, subsequent members wont be trying to modify 
   // an already-modified topology.
   std::vector<Topology*> EnsembleParm( ensembleSize );
-  // Hold frame pointers for output; frames may be modified by actions.
-  Trajout::FramePtrArray OutputFrames( ensembleSize );
   // Set up DataSets and Actions for each ensemble member.
   int maxFrames = trajinList_.MaxFrames();
   for (int member = 0; member < ensembleSize; ++member) {
@@ -367,10 +366,11 @@ int CpptrajState::RunEnsemble() {
     trajin_time.Stop();
     while ( readMoreFrames )
 #   else
-    while ( (*traj)->GetNextEnsemble(FrameEnsemble) )
+    while ( (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames) )
 #   endif
     {
       if (!(*traj)->BadEnsemble()) {
+        bool suppress_output = false;
 #       ifdef MPI
         // For MPI, each thread has one ensemble frame. member is 1 if coords
         // had to be sorted, 0 otherwise. pos is always 0.
@@ -378,14 +378,13 @@ int CpptrajState::RunEnsemble() {
         pos = 0;
 #       else
         // Loop over all members of the ensemble
-        bool suppress_output = false;
         for (int member = 0; member < ensembleSize; ++member) {
           // Get this members current position
           pos = (*traj)->EnsemblePosition( member );
 #       endif
           // Since Frame can be modified by actions, save original and use CurrentFrame
           Frame* CurrentFrame = &(FrameEnsemble[member]);
-          OutputFrames[pos] = CurrentFrame;
+          //OutputFrames[pos] = CurrentFrame;
           if ( CurrentFrame->CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
                     member, (*traj)->CurrentFrameNumber());
@@ -405,7 +404,7 @@ int CpptrajState::RunEnsemble() {
 #         ifdef TIMER
           trajout_time.Start();
 #         endif 
-          if (TrajoutEnsemble.WriteEnsembleOut(actionSet, EnsembleParm[pos], OutputFrames))
+          if (TrajoutEnsemble.WriteEnsembleOut(actionSet, EnsembleParm[pos], SortedFrames))
           {
             mprinterr("Error: Writing ensemble output traj, frame %i\n", actionSet+1);
             if (exitOnError_) return 1; 

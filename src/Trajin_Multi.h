@@ -25,9 +25,9 @@ class Trajin_Multi : public Trajin {
     int EnsembleSize()      const { return (int)REMDtraj_.size(); }
 
     void EnsembleInfo() const;
-    int EnsembleSetup( FrameArray& );
+    int EnsembleSetup( FrameArray&, FramePtrArray& );
     /// \return 1 if more frames to read, 0 if finished
-    int GetNextEnsemble( FrameArray& );
+    int GetNextEnsemble( FrameArray&, FramePtrArray& );
 #   ifdef MPI
     int EnsembleFrameNum()           const { return ensembleFrameNum_;     }
 #   ifdef TIMER

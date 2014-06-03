@@ -6,8 +6,6 @@
 /// Output trajectory class.
 class Trajout : public TrajectoryFile {
   public:
-    /// Store frame addresses for output since they may be modified.
-    typedef std::vector<Frame*> FramePtrArray;
     Trajout();
     virtual ~Trajout() {}
     /// Close output trajectory.

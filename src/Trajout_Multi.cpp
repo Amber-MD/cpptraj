@@ -162,9 +162,18 @@ int Trajout_Multi::WriteEnsemble(int set, Topology *tparmIn, FramePtrArray const
 void Trajout_Multi::PrintInfo(int showExtended) const {
   mprintf("  '%s.X' (Ensemble,", TrajFilename().base());
 # ifdef MPI
-  mprintf(" %zu members/thread, %zu total) ", ioarray_.size(), ioarray_.size()*worldsize);
+  // Since not every thread may be writing if 'onlymembers' specified,
+  // determine total number being written.
+  int mysize = (int)ioarray_.size();
+  int total;
+  parallel_reduce(&total, &mysize, 1, PARA_INT, PARA_SUM);
+  mprintf(" %i members written) ", total);
+  // Since first member may be skipped, do not print if empty. 
+  if (ioarray_.empty())
+    mprintf("\n");
+  else
 # else
-  mprintf(" %zu members) ", ioarray_.size());
+  mprintf(" %zu members written) ", ioarray_.size());
 # endif
   CommonInfo( ioarray_.front() );
 }

@@ -15,7 +15,7 @@ class TrajoutList {
     /// Add trajectory to list for single trajectory output
     int AddTrajout(ArgList const&, TopologyList const&);
     /// Write frame array to ensemble output trajectories.
-    int WriteEnsembleOut(int, Topology*, Trajout::FramePtrArray const&);
+    int WriteEnsembleOut(int, Topology*, TrajectoryFile::FramePtrArray const&);
     /// Write frame to normal output trajectories.
     int WriteTrajout(int, Topology*, Frame const&);
     /// Call end for all trajectories

@@ -20,8 +20,8 @@ class Trajin_Single : public Trajin {
     int EnsembleSize() const { return 0; }
     // NOTE: The following are currently for testing Trajin_Ensemble
     void EnsembleInfo() const {} 
-    int EnsembleSetup(FrameArray&) {return 1;}
-    int GetNextEnsemble(FrameArray&) {return 0;}
+    int EnsembleSetup(FrameArray&,FramePtrArray&) {return 1;}
+    int GetNextEnsemble(FrameArray&,FramePtrArray&) {return 0;}
 #   ifdef MPI
     int EnsembleFrameNum() const {return 0;}
 #   ifdef TIMER

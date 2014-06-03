@@ -16,6 +16,8 @@ class TrajectoryFile {
     /// For associating keywords/extensions with file types. 
     static const FileTypes::KeyToken TF_KeyArray[];
   public:
+    /// Store frame addresses in ensemble for sorting.
+    typedef std::vector<Frame*> FramePtrArray;
     /// Known trajectory formats.
     enum TrajFormatType {
       AMBERNETCDF = 0, AMBERRESTARTNC, PDBFILE, MOL2FILE, CIF, CHARMMDCD, 
