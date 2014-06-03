@@ -10,14 +10,15 @@ class Trajout_Single : public Trajout {
     int InitTrajWrite(std::string const&, ArgList const&, Topology*, 
                       TrajectoryFile::TrajFormatType);
     void EndTraj();
-    int WriteFrame(int, Topology*, Frame const&);
-    int WriteEnsemble(int,Topology*,FramePtrArray const&) { return 1; }
+    int WriteSingle(int, Frame const&);
+    int WriteEnsemble(int,FramePtrArray const&) { return 1; }
     void PrintInfo(int) const;
+    int SetupTrajWrite(Topology*);
     void SetEnsembleInfo(int) {}
     // -------------------------------------------
-    // For writing single traj to STDOUT (e.g. ambpdb mode)
+    /// For writing single traj to STDOUT (e.g. ambpdb mode)
     int InitStdoutTrajWrite(ArgList const&, Topology*, TrajectoryFile::TrajFormatType);
-    // For writing single traj from Action, ensemble-aware.
+    /// For writing single traj from Action, ensemble-aware.
     int InitEnsembleTrajWrite(std::string const&, ArgList const&, Topology*,
                               TrajFormatType fmtIn, int ensembleNum);
   private:

@@ -289,7 +289,6 @@ int CpptrajState::RunEnsemble() {
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total()); 
   // ========== A C T I O N  P H A S E ==========
   int lastPindex=-1;          // Index of the last loaded parm file
-  int pos = 0;                // Where member should be processed by actions
   int readSets = 0;
   int actionSet = 0;
   bool hasVelocity = false;
@@ -353,6 +352,11 @@ int CpptrajState::RunEnsemble() {
         }
       }
       if (!setupOK) continue;
+      // Set up any related output trajectories.
+      // TODO: Currently assuming topology is always modified the same
+      //       way for all actions. If this behavior ever changes the
+      //       following line will cause undesireable behavior.
+      TrajoutEnsemble.SetupTrajout( EnsembleParm[0] );
       lastPindex = CurrentParm->Pindex();
     }
 #   ifdef TIMER
@@ -371,20 +375,10 @@ int CpptrajState::RunEnsemble() {
     {
       if (!(*traj)->BadEnsemble()) {
         bool suppress_output = false;
-#       ifdef MPI
-        // For MPI, each thread has one ensemble frame. member is 1 if coords
-        // had to be sorted, 0 otherwise. pos is always 0.
-        int member = (*traj)->EnsembleFrameNum();
-        pos = 0;
-#       else
-        // Loop over all members of the ensemble
-        for (int member = 0; member < ensembleSize; ++member) {
-          // Get this members current position
-          pos = (*traj)->EnsemblePosition( member );
-#       endif
+        for (int member = 0; member != ensembleSize; ++member) {
           // Since Frame can be modified by actions, save original and use CurrentFrame
-          Frame* CurrentFrame = &(FrameEnsemble[member]);
-          //OutputFrames[pos] = CurrentFrame;
+          Frame* CurrentFrame = SortedFrames[member];
+          //rprintf("DEBUG: CurrentFrame=%x SortedFrames[0]=%x\n",CurrentFrame, SortedFrames[0]);
           if ( CurrentFrame->CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
                     member, (*traj)->CurrentFrameNumber());
@@ -392,19 +386,17 @@ int CpptrajState::RunEnsemble() {
           actions_time.Start();
 #         endif
           // Perform Actions on Frame
-          suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
+          suppress_output = ActionEnsemble[member].DoActions(&CurrentFrame, actionSet);
 #         ifdef TIMER
           actions_time.Stop();
 #         endif
-#       ifndef MPI
         } // END loop over actions for serial
-#       endif
         // Do Output
         if (!suppress_output) {
 #         ifdef TIMER
           trajout_time.Start();
 #         endif 
-          if (TrajoutEnsemble.WriteEnsembleOut(actionSet, EnsembleParm[pos], SortedFrames))
+          if (TrajoutEnsemble.WriteEnsembleOut(actionSet, SortedFrames))
           {
             mprinterr("Error: Writing ensemble output traj, frame %i\n", actionSet+1);
             if (exitOnError_) return 1; 
@@ -559,6 +551,8 @@ int CpptrajState::RunNormal() {
                 CurrentParm->c_str());
         continue;
       }
+      // Set up any related output trajectories 
+      trajoutList_.SetupTrajout( CurrentParm );
       lastPindex = CurrentParm->Pindex();
     }
 #   ifdef TIMER
@@ -594,7 +588,7 @@ int CpptrajState::RunNormal() {
 #         ifdef TIMER
           trajout_time.Start();
 #         endif
-          if (trajoutList_.WriteTrajout(actionSet, CurrentParm, *CurrentFrame)) {
+          if (trajoutList_.WriteTrajout(actionSet, *CurrentFrame)) {
             if (exitOnError_) return 1;
           }
 #         ifdef TIMER

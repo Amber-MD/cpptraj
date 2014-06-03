@@ -17,9 +17,6 @@ Trajin_Multi::Trajin_Multi() :
   hasVelocity_(false),
   replicasAreOpen_(false),
   targetType_(NONE)
-# ifdef MPI
-  ,ensembleFrameNum_(0)
-# endif
 {}
 
 // DESTRUCTOR
@@ -628,7 +625,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sort
 #   ifdef MPI
     // If calculated index is not worldrank, coords need to be sent to rank fidx.
     //rprintf("Index=%i\n", *fidx); // DEBUG
-    ensembleFrameNum_ = 0;
+    int ensembleFrameNum = 0;
     if (targetType_ != NONE) {
       // Each rank needs to know where to send its coords, and where to receive coords from.
       int my_idx = *fidx;
@@ -668,17 +665,17 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sort
             if (HasVelocity())
               parallel_recv( f_ensemble[1].vAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1215 );
             // Since a frame was received, indicate position 1 should be used
-            ensembleFrameNum_ = 1; 
+            ensembleFrameNum = 1; 
           }
         }
         //else rprintf("SEND RANK == RECV RANK, NO COMM\n"); // DEBUG
       }
-      f_sorted[0] = &f_ensemble[ensembleFrameNum_];
+      f_sorted[0] = &f_ensemble[ensembleFrameNum];
 #     ifdef TIMER
       mpi_sendrecv_timer_.Stop();
 #     endif
     }
-    //rprintf("FRAME %i, FRAME RECEIVED= %i\n", CurrentFrame(), ensembleFrameNum_); // DEBUG 
+    //rprintf("FRAME %i, FRAME RECEIVED= %i\n", CurrentFrame(), ensembleFrameNum); // DEBUG 
 #   else
     f_sorted[*fidx] = &f_ensemble[member];
     ++fidx;

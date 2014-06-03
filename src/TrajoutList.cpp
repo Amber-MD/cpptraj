@@ -97,13 +97,12 @@ int TrajoutList::AddTrajout(ArgList const& argIn, TopologyList const& topListIn)
 }
 
 //TrajoutList::WriteEnsembleOut()
-int TrajoutList::WriteEnsembleOut(int set, Topology* CurrentParm,
-                                  TrajectoryFile::FramePtrArray const& Farray)
+int TrajoutList::WriteEnsembleOut(int set, TrajectoryFile::FramePtrArray const& Farray)
 {
   for (ListType::const_iterator to = trajout_.begin();
                                 to != trajout_.end(); ++to)
   {
-    if ( (*to)->WriteEnsemble(set, CurrentParm, Farray) ) {
+    if ( (*to)->WriteEnsemble(set, Farray) ) {
       mprinterr("Error writing output trajectory, frame %i.\n", set+1);
       return 1;
     }
@@ -111,18 +110,27 @@ int TrajoutList::WriteEnsembleOut(int set, Topology* CurrentParm,
   return 0;
 }
 
+// TrajoutList::SetupTrajout()
+int TrajoutList::SetupTrajout(Topology* CurrentParm) {
+  for (ListType::const_iterator traj = trajout_.begin();
+                                traj != trajout_.end(); ++traj)
+  {
+    if ( (*traj)->SetupTrajWrite( CurrentParm ) ) {
+      mprinterr("Error: Setting up output trajectory %s\n", (*traj)->TrajFilename().base());
+      return 1;
+    }
+  }
+  return 0;
+}
+
 // TrajoutList::WriteTrajout()
-/** Go through each output traj, call write. The first time CurrentParm
-  * matches the parm the trajectory was originally set up with it will
-  * be opened, no need to call BeginTraj.
-  */ 
-int TrajoutList::WriteTrajout(int set, Topology* CurrentParm,
-                              Frame const& CurrentFrame)
+/** Go through each output traj, call write. */ 
+int TrajoutList::WriteTrajout(int set, Frame const& CurrentFrame)
 { 
   for (ListType::const_iterator traj = trajout_.begin();
                                 traj != trajout_.end(); ++traj) 
   {
-    if ( (*traj)->WriteFrame(set, CurrentParm, CurrentFrame) ) {
+    if ( (*traj)->WriteSingle(set, CurrentFrame) ) {
       mprinterr("Error writing output trajectory, frame %i.\n", set+1);
       return 1;
     }

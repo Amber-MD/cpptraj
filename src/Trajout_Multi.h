@@ -10,9 +10,10 @@ class Trajout_Multi : public Trajout {
     inline int InitTrajWrite(std::string const&, ArgList const&, Topology*,
                              TrajectoryFile::TrajFormatType);
     void EndTraj();
-    int WriteFrame(int, Topology*, Frame const&) { return 1; }
-    int WriteEnsemble(int,Topology*,FramePtrArray const&);
+    int WriteSingle(int, Frame const&) { return 1; }
+    int WriteEnsemble(int,FramePtrArray const&);
     void PrintInfo(int) const;
+    int SetupTrajWrite(Topology*);
     void SetEnsembleInfo(int i) { ensembleSize_ = i; }
     // -------------------------------------------
   private:

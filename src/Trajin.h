@@ -21,13 +21,10 @@ class Trajin : public TrajectoryFile {
     virtual int EnsembleSetup(FrameArray&, FramePtrArray&) = 0;
     virtual int GetNextEnsemble(FrameArray&, FramePtrArray&) = 0;
 #   ifdef MPI
-    virtual int EnsembleFrameNum() const = 0;
 #   ifdef TIMER
     virtual double MPI_AllgatherTime() const = 0;
     virtual double MPI_SendRecvTime() const = 0;
 #   endif
-#   else
-    virtual int EnsemblePosition(int) const = 0;
 #   endif
     virtual bool  BadEnsemble() const = 0;
 

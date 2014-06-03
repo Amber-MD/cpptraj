@@ -98,8 +98,7 @@ int Trajout_Multi::InitTrajWrite(std::string const& tnameIn, ArgList const& argI
     //  trajio_->SetTitle( TrajoutTitle() + "." + integerToString( num ) );
     ioarray_.back()->SetTitle( TrajoutTitle() );
     // Process any write arguments specific to certain formats not related
-    // to parm file. Options related to parm file are handled on the first
-    // write in WriteFrame.
+    // to parm file. Options related to parm file are handled in SetupTrajWrite 
     ArgList rep_args = trajout_args;
     if (ioarray_.back()->processWriteArgs( rep_args )) {
       mprinterr("Error: trajout %s: Could not process arguments.\n",fileNames_[m].c_str());
@@ -119,42 +118,45 @@ void Trajout_Multi::EndTraj() {
   }
 }
 
-// Trajout_Multi::WriteEnsemble()
-/** Write given array of frames; frames should already be in their ensemble 
-  * position. If this is the first frame array being written, this routine 
-  * is where the output trajectory IO will actually be set up for the 
-  * associated topology file since the topology may have been modified (e.g. 
-  * by a 'strip' command) since the output trajectory was initialized 
-  * (modified topologies will still have the same Pindex).
-  */ 
-int Trajout_Multi::WriteEnsemble(int set, Topology *tparmIn, FramePtrArray const& Farray)
-{
+/** Perform any topology-related setup for this trajectory if given Topology
+  * matches what trajectory was initialized with; the topology may have
+  * been modified (e.g. by a 'strip' command) since the output trajectory was
+  * initialized.
+  */
+int Trajout_Multi::SetupTrajWrite(Topology* tparmIn) {
   // Check that input parm matches setup parm - if not, skip
   if (tparmIn->Pindex() != TrajParm()->Pindex()) return 0;
-
   // First frame setup
   if (!TrajIsOpen()) {
     for (unsigned int m = 0; m != ioarray_.size(); ++m) {
       if (FirstFrameSetup(fileNames_[m], ioarray_[m], tparmIn)) return 1;
     }
   }
+  return 0;
+}
 
-  // Check that set should be written
-  if (CheckFrameRange(set)) return 0;
-
-  // Write
-# ifdef MPI
-  if (!ioarray_.empty()) {
-    if (ioarray_.front()->writeFrame(set, *Farray.front())) return 1;
-  }
-# else
-  for (int member = 0; member != ensembleSize_; member++) {
-    int tidx = tIndex_[member];
-    if (tidx != -1) {
-      if (ioarray_[tidx]->writeFrame(set, *Farray[member])) return 1;
+// Trajout_Multi::WriteEnsemble()
+/** Write given array of frames if trajectory is open (initialzed and set-up).
+  */ 
+int Trajout_Multi::WriteEnsemble(int set, FramePtrArray const& Farray)
+{
+  if (TrajIsOpen()) {
+    // Check that set should be written
+    if (CheckFrameRange(set)) return 0;
+    // Write
+#   ifdef MPI
+    if (!ioarray_.empty()) {
+      if (ioarray_.front()->writeFrame(set, *Farray.front())) return 1;
     }
+#   else
+    for (int member = 0; member != ensembleSize_; member++) {
+      int tidx = tIndex_[member];
+      if (tidx != -1) {
+        if (ioarray_[tidx]->writeFrame(set, *Farray[member])) return 1;
+      }
+    }
+#   endif
   }
-# endif
   return 0;
 }
 

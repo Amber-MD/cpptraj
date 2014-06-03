@@ -71,8 +71,7 @@ int Trajout_Single::InitTrajout(std::string const& tnameIn, ArgList const& argIn
   // Set specified title - will not set if empty 
   trajio_->SetTitle( TrajoutTitle() );
   // Process any write arguments specific to certain formats not related
-  // to parm file. Options related to parm file are handled on the first
-  // write in WriteFrame.
+  // to parm file. Options related to parm file are handled in SetupTrajWrite 
   if (trajio_->processWriteArgs(trajout_args)) {
     mprinterr("Error: trajout %s: Could not process arguments.\n",TrajFilename().full());
     return 1;
@@ -89,29 +88,32 @@ void Trajout_Single::EndTraj() {
   }
 }
 
-// Trajout_Single::WriteFrame()
-/** Write given frame. If this is the first frame being written this routine
-  * is where the output trajectory will actually be set up for the associated 
-  * topology file since the topology may have been modified (e.g. by a 'strip'
-  * command) since the output trajectory was initialized (modified topologies
-  * will still have the same Pindex).
-  */ 
-int Trajout_Single::WriteFrame(int set, Topology *tparmIn, Frame const& FrameOut) {
+/** Perform any topology-related setup for this trajectory if given Topology
+  * Pindex matches what trajectory was initialized with; the topology may have
+  * been modified (e.g. by a 'strip' command) since the output trajectory was
+  * initialized.
+  */
+int Trajout_Single::SetupTrajWrite(Topology* tparmIn) {
   // Check that input parm matches setup parm - if not, skip
   if (tparmIn->Pindex() != TrajParm()->Pindex()) return 0;
-
   // First frame setup
   if (!TrajIsOpen()) {
     if (FirstFrameSetup(TrajFilename().Full(), trajio_, tparmIn)) return 1;
   }
+  return 0;
+}
 
-  // Check that set should be written
-  if (CheckFrameRange(set)) return 0;
-
-  // Write
-  //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
-  if (trajio_->writeFrame(set, FrameOut)) return 1;
-
+// Trajout_Single::WriteSingle()
+/** Write given frame if trajectory is open (initialzed and set-up).
+  */ 
+int Trajout_Single::WriteSingle(int set, Frame const& FrameOut) {
+  if (TrajIsOpen()) {
+    // Check that set should be written
+    if (CheckFrameRange(set)) return 0;
+    // Write
+    //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
+    if (trajio_->writeFrame(set, FrameOut)) return 1;
+  }
   return 0;
 }
 

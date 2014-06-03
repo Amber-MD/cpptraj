@@ -11,14 +11,16 @@ class Trajout : public TrajectoryFile {
     /// Close output trajectory.
     virtual void EndTraj() = 0;
     /// Write a single frame.
-    virtual int WriteFrame(int, Topology*, Frame const&) = 0;
+    virtual int WriteSingle(int, Frame const&) = 0;
     /// Write an array of frames.
-    virtual int WriteEnsemble(int, Topology*, FramePtrArray const&) = 0;
+    virtual int WriteEnsemble(int, FramePtrArray const&) = 0;
     /// Print information on trajectory to be written.
     virtual void PrintInfo(int) const = 0;
-    /// Prepare trajectory for writing using the given topology.
+    /// Prepare trajectory for writing for the given topology.
     virtual int InitTrajWrite(std::string const&, ArgList const&, Topology*,
                               TrajectoryFile::TrajFormatType) = 0;
+    /// Perform topology-related setup if given topology Pindex matches.
+    virtual int SetupTrajWrite(Topology*) = 0;
     /// Set ensemble info, just size for now.
     virtual void SetEnsembleInfo(int) = 0;
     int NumFramesProcessed()          const { return numFramesProcessed_; }
@@ -27,6 +29,8 @@ class Trajout : public TrajectoryFile {
     std::string const& TrajoutTitle() const { return title_;              }
     void SetTrajIsOpen(bool o)              { trajIsOpen_ = o;            }
     inline int CheckFrameRange(int);
+    /// Write isingle frame, performing set up if needed.
+    inline int WriteFrame(int, Topology*, Frame const&);
   protected:
     /// Grab keywords common to all trajouts, set/determine format if necessary
     int CommonTrajoutSetup(std::string const&, ArgList&, Topology*, 
@@ -66,5 +70,10 @@ int Trajout::CheckFrameRange(int set) {
   // Frame will be processed. Increment frame count.
   ++numFramesProcessed_;
   return 0;
+}
+
+int Trajout::WriteFrame(int set, Topology* tparmIn, Frame const& f) {
+  int err = SetupTrajWrite(tparmIn);
+  return err + WriteSingle(set, f);
 }
 #endif

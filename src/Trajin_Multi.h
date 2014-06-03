@@ -29,13 +29,10 @@ class Trajin_Multi : public Trajin {
     /// \return 1 if more frames to read, 0 if finished
     int GetNextEnsemble( FrameArray&, FramePtrArray& );
 #   ifdef MPI
-    int EnsembleFrameNum()           const { return ensembleFrameNum_;     }
 #   ifdef TIMER
     double MPI_AllgatherTime()       const { return mpi_allgather_timer_.Total(); }
     double MPI_SendRecvTime()        const { return mpi_sendrecv_timer_.Total();  }
 #   endif
-#   else
-    int EnsemblePosition(int member) const { return frameidx_[member];     }
 #   endif
     bool BadEnsemble()               const { return badEnsemble_;          }
     // CRDIDXARG: NOTE: This is public for CRDIDX in TrajinList
@@ -62,13 +59,12 @@ class Trajin_Multi : public Trajin {
     TargetType targetType_;   ///< Hold type of REMD frame being searched for.
     NameListType replica_filenames_;
     // ENSEMBLE
-    RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
+    RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble. // TODO: Delete
     typedef std::map<double,int> TmapType;
     TmapType TemperatureMap_;
     typedef std::map< RemdIdxType, int > ImapType;
     ImapType IndicesMap_;
 #   ifdef MPI
-    int ensembleFrameNum_;      ///< Position containing coords to use in FrameArray
 #   ifdef TIMER
     Timer mpi_allgather_timer_;
     Timer mpi_sendrecv_timer_;
