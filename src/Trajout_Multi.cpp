@@ -151,7 +151,7 @@ int Trajout_Multi::WriteEnsemble(int set, Topology *tparmIn, FramePtrArray const
   for (int member = 0; member != ensembleSize_; member++) {
     int tidx = tIndex_[member];
     if (tidx != -1) {
-      if (ioarray_[member]->writeFrame(set, *Farray[member])) return 1;
+      if (ioarray_[tidx]->writeFrame(set, *Farray[member])) return 1;
     }
   }
 # endif
