@@ -366,7 +366,7 @@ int CpptrajState::RunEnsemble() {
     (*traj)->PrintInfoLine();
 #   ifdef TIMER
     trajin_time.Start();
-    bool readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble);
+    bool readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames);
     trajin_time.Stop();
     while ( readMoreFrames )
 #   else
@@ -390,7 +390,7 @@ int CpptrajState::RunEnsemble() {
 #         ifdef TIMER
           actions_time.Stop();
 #         endif
-        } // END loop over actions for serial
+        } // END loop over actions
         // Do Output
         if (!suppress_output) {
 #         ifdef TIMER
@@ -416,7 +416,7 @@ int CpptrajState::RunEnsemble() {
       ++actionSet;
 #     ifdef TIMER
       trajin_time.Start();
-      readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble);
+      readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames);
       trajin_time.Stop();
 #     endif
     }
