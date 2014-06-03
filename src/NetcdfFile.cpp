@@ -518,6 +518,10 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
 
   if (type == NC_AMBERENSEMBLE) {
     // Ensemble dimension for ensemble
+    if (ensembleSize < 1) {
+      mprinterr("Internal Error: NetcdfFile: ensembleSize < 1\n");
+      return 1;
+    }
     if ( checkNCerr( nc_def_dim(ncid_, NCENSEMBLE, ensembleSize, &ensembleDID_) ) ) {
       mprinterr("Error: Defining ensemble dimension.\n");
       return 1;

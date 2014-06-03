@@ -5,6 +5,7 @@
 #ifdef BINTRAJ
   #include "Traj_AmberNetcdf.h"
   #include "Traj_AmberRestartNC.h"
+  #include "Traj_NcEnsemble.h"
 #endif
 #include "Traj_PDBfile.h"
 #include "Traj_AmberRestart.h"
@@ -24,9 +25,11 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # ifdef BINTRAJ
   { "Amber NetCDF",       0, 0, Traj_AmberNetcdf::Alloc    },
   { "Amber NC Restart",   0, 0, Traj_AmberRestartNC::Alloc },
+  { "Amber NC Ensemble",  0, 0, Traj_NcEnsemble::Alloc     },
 # else
   { "Amber NetCDF",       0, 0, 0                          },
   { "Amber NC Restart",   0, 0, 0                          },
+  { "Amber NC Ensemble",  0, 0, 0                          },
 # endif
   { "PDB",                0, 0, Traj_PDBfile::Alloc        },
   { "Mol2",               0, 0, Traj_Mol2File::Alloc       },
@@ -48,6 +51,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { AMBERNETCDF,    "cdf",       ".nc"      },
   { AMBERRESTARTNC, "ncrestart", ".ncrst"   },
   { AMBERRESTARTNC, "restartnc", ".ncrst"   },
+  { AMBERNCENSEMBLE,"ncensemble",".ncens"   },
   { PDBFILE,        "pdb",       ".pdb"     },
   { MOL2FILE,       "mol2",      ".mol2"    },
   { CIF,            "cif",       ".cif"     },
