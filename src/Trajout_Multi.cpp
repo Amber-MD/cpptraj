@@ -105,7 +105,7 @@ int Trajout_Multi::InitTrajWrite(std::string const& tnameIn, ArgList const& argI
       return 1;
     }
   }
-  // Write is set up for topology only when first frame written.
+  // Write is set up for topology in SetupTrajWrite 
   return 0;
 }
 

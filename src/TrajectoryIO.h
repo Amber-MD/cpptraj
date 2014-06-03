@@ -2,6 +2,7 @@
 #define INC_TRAJECTORYIO_H
 #include "Topology.h" // Box
 #include "ReplicaDimArray.h"
+#include "FramePtrArray.h"
 #include "CpptrajFile.h"
 #include "ArgList.h"
 #include "BaseIOtype.h"
@@ -66,6 +67,10 @@ class TrajectoryIO : public BaseIOtype {
     virtual int processWriteArgs(ArgList&) = 0; 
     /// Process arguments relevant to reading trajectory (optional)
     virtual int processReadArgs(ArgList&) = 0;
+    /// \return true if this IO is suitable for single file ensemble IO
+    virtual bool CanProcessEnsemble() { return false; } // TODO: Pure virtual
+    /// Write frame array
+    virtual int writeArray(int, FramePtrArray const&) { return 1; }
     // -----------------------------------------------------
     bool HasBox()              const { return box_.HasBox();               }
     const Box& TrajBox()       const { return box_;                        }

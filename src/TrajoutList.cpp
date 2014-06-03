@@ -4,6 +4,7 @@
 #include "StringRoutines.h" // integerToString
 #include "Trajout_Single.h"
 #include "Trajout_Multi.h"
+#include "Trajout_Ensemble.h"
 
 TrajoutList::TrajoutList() : debug_(0) { }
 
@@ -40,8 +41,12 @@ int TrajoutList::MakeEnsembleTrajout(TopologyList const& topListIn,
     // Get parm from TopologyList based on args
     Topology* tempParm = topListIn.GetParm( argIn );
     if (tempParm == 0) return 1;
-    // Create new multi output trajectory.
-    ensembleList.trajout_.push_back( new Trajout_Multi() );
+    // See if single ensemble output desired.
+    if (argIn.hasKey("ensemble"))
+      ensembleList.trajout_.push_back( new Trajout_Ensemble() );
+    else
+      // Create new multi output trajectory.
+      ensembleList.trajout_.push_back( new Trajout_Multi() );
     if (ensembleList.trajout_.back() == 0) return 1;
     ensembleList.trajout_.back()->SetEnsembleInfo( ensembleSize );
     ensembleList.trajout_.back()->SetDebug( debug_ );
@@ -97,7 +102,7 @@ int TrajoutList::AddTrajout(ArgList const& argIn, TopologyList const& topListIn)
 }
 
 //TrajoutList::WriteEnsembleOut()
-int TrajoutList::WriteEnsembleOut(int set, TrajectoryFile::FramePtrArray const& Farray)
+int TrajoutList::WriteEnsembleOut(int set, FramePtrArray const& Farray)
 {
   for (ListType::const_iterator to = trajout_.begin();
                                 to != trajout_.end(); ++to)

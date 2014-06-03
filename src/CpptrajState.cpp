@@ -194,7 +194,7 @@ int CpptrajState::RunEnsemble() {
   Timer init_time;
   init_time.Start();
   FrameArray FrameEnsemble;
-  TrajectoryFile::FramePtrArray SortedFrames;
+  FramePtrArray SortedFrames;
   // No Analysis will be run. Warn user if analyses are defined.
   if (!analysisList_.Empty())
     mprintf("Warning: In ensemble mode, Analysis will not be performed.\n");

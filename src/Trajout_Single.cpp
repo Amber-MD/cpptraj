@@ -76,7 +76,7 @@ int Trajout_Single::InitTrajout(std::string const& tnameIn, ArgList const& argIn
     mprinterr("Error: trajout %s: Could not process arguments.\n",TrajFilename().full());
     return 1;
   }
-  // Write is set up for topology only when first frame written.
+  // Write is set up for topology in SetupTrajWrite 
   return 0;
 }
 
