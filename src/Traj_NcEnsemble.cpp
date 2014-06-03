@@ -31,6 +31,10 @@ int Traj_NcEnsemble::openTrajin() {
   return 0;
 }
 
+int Traj_NcEnsemble::processReadArgs(ArgList& argIn) {
+  return 0;
+}
+
 int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
 {
   return TRAJIN_ERR;
