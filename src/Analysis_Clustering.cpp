@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
 #include "DataSet_integer.h" // For converting cnumvtime
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "Timer.h"
 // Clustering Algorithms
 #include "Cluster_HierAgglo.h"
@@ -519,10 +519,10 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
     std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
     // Set up trajectory file 
     // Use parm from first frame of cluster (pot. dangerous)
-    Trajout *clusterout = new Trajout;
+    Trajout *clusterout = new Trajout_Single();
     ClusterNode::frame_iterator frame = (*C).beginframe();
     Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-    if (clusterout->InitTrajWrite(cfilename, clusterparm, clusterfmt_)) 
+    if (clusterout->InitTrajWrite(cfilename, ArgList(), clusterparm, clusterfmt_)) 
     {
       mprinterr("Error: Clustering::WriteClusterTraj: Could not set up %s for write.\n",
                 cfilename.c_str());
@@ -549,10 +549,10 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
 // Analysis_Clustering::WriteSingleRepTraj()
 /** Write representative frame of each cluster to a trajectory file.  */
 void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
-  Trajout clusterout;
+  Trajout_Single clusterout;
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-  if (clusterout.InitTrajWrite(singlerepfile_, clusterparm, singlerepfmt_)) 
+  if (clusterout.InitTrajWrite(singlerepfile_, ArgList(), clusterparm, singlerepfmt_)) 
   {
     mprinterr("Error: Clustering::WriteSingleRepTraj: Could not set up %s for write.\n",
                 singlerepfile_.c_str());
@@ -587,7 +587,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
   {
-    Trajout* clusterout = new Trajout();
+    Trajout* clusterout = new Trajout_Single();
     // Get centroid frame # 
     int framenum = (*C).CentroidFrame();
     // Create filename based on frame #
@@ -595,7 +595,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
     cfilename += tmpExt;
     // Set up trajectory file. 
-    if (clusterout->InitTrajWrite(cfilename, clusterparm, reptrajfmt_)) 
+    if (clusterout->InitTrajWrite(cfilename, ArgList(), clusterparm, reptrajfmt_)) 
     {
       mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
                 cfilename.c_str());

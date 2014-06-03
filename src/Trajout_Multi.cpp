@@ -39,6 +39,14 @@ int Trajout_Multi::InitTrajWrite(std::string const& tnameIn, ArgList const& argI
   }
   ArgList trajout_args = argIn;
   TrajectoryFile::TrajFormatType writeFormat = writeFormatIn;
+  // Get onlymembers range
+  Range members_to_write = MembersToWrite(trajout_args.GetStringKey("onlymembers"), ensembleSize_);
+  if (members_to_write.Empty()) return 1;
+  // DEBUG
+  //std::string dbg_mtw = "MembersToWrite:";
+  //for (Range::const_iterator r = members_to_write.begin(); r != members_to_write.end(); r++)
+  //  dbg_mtw += (" " + integerToString(*r));
+  //rprintf("DEBUG: %s\n", dbg_mtw.c_str());
   // Process common args
   if (CommonTrajoutSetup(tnameIn, trajout_args, tparmIn, writeFormat))
     return 1;
@@ -47,35 +55,41 @@ int Trajout_Multi::InitTrajWrite(std::string const& tnameIn, ArgList const& argI
   fileNames_.clear();
 # ifdef MPI
   // In MPI each thread writes a single member.
-  fileNames_.push_back( NumberFilename(TrajFilename().Full(), worldrank) );
+  if (members_to_write.InRange( worldrank ))
+    fileNames_.push_back( NumberFilename(TrajFilename().Full(), worldrank) );
+  else
+    rprintf("Warning: Skipping member '%s'\n", 
+            NumberFilename(TrajFilename().Full(), worldrank).c_str());
 # else
   // In serial single process writes each member.
-  for (int num = 0; num < total; num++)
-    fileNames_.push_back( NumberFilename(TrajFilename().Full(), num) );
+  // Create a map: tIndex[ pos ] = <ioarray_index>
+  tIndex_.clear();
+  tIndex_.reserve( ensembleSize_ );
+  int ioidx = 0;
+  for (int num = 0; num < ensembleSize_; num++) {
+    if (members_to_write.InRange( num )) {
+      fileNames_.push_back( NumberFilename(TrajFilename().Full(), num) );
+      tIndex_.push_back( ioidx++ );
+    } else {
+      mprintf("Warning: Skipping member '%s'\n",
+              NumberFilename(TrajFilename().Full(), num).c_str());
+      tIndex_.push_back( -1 );
+    }
+  }
 # endif
   // Set up write format for each file. 
   typedef std::vector<TrajectoryFile::TrajFormatType> FmtArray;
   FmtArray fileFormats(fileNames_.size(), writeFormat);
   // If appending, all files must exist and must have same format.
   if (TrajoutAppend()) {
-    FmtArray::iterator wfmt = fileFormats.begin(); 
-    for (Sarray::const_iterator fname = fileNames_.begin();
-                                fname != fileNames_.end(); 
-                              ++fname, ++wfmt)
-    {
-      CheckAppendFormat( *fname, *wfmt );
-    }
+    for (unsigned int m = 0; m != fileNames_.size(); ++m)
+      CheckAppendFormat( fileNames_[m], fileFormats[m] );
   }
-  // FIXME: Should report heterogeneous ensembles
-  mprintf("\tWriting ensemble '%s.X' as %s\n", TrajFilename().full(),
-          TrajectoryFile::FormatString(writeFormat));
   // Set up TrajectoryIO for each member.
-  FmtArray::const_iterator wfmt;
-  for (Sarray::const_iterator fname = fileNames_.begin();
-                              fname != fileNames_.end(); 
-                            ++fname, ++wfmt)
-  {
-    TrajectoryIO* tio = AllocTrajIO( *wfmt );
+  for (unsigned int m = 0; m != fileNames_.size(); ++m) {
+    rprintf("\tWriting ensemble '%s' as %s\n", fileNames_[m].c_str(),
+            TrajectoryFile::FormatString(fileFormats[m]));
+    TrajectoryIO* tio = AllocTrajIO( fileFormats[m] );
     if (tio == 0) return 1;
     ioarray_.push_back( tio );
     ioarray_.back()->SetDebug( debug_ );
@@ -88,7 +102,7 @@ int Trajout_Multi::InitTrajWrite(std::string const& tnameIn, ArgList const& argI
     // write in WriteFrame.
     ArgList rep_args = trajout_args;
     if (ioarray_.back()->processWriteArgs( rep_args )) {
-      mprinterr("Error: trajout %s: Could not process arguments.\n",fname->c_str());
+      mprinterr("Error: trajout %s: Could not process arguments.\n",fileNames_[m].c_str());
       return 1;
     }
   }
@@ -106,42 +120,51 @@ void Trajout_Multi::EndTraj() {
 }
 
 // Trajout_Multi::WriteEnsemble()
-/** Write given array of frames to their correct ensemble position. If this is
-  * the first frame being written, this routine is where the output trajectories
-  * will actually be set up for the associated topology file since the topology 
-  * may have been modified (e.g. by a 'strip' command) since the output 
-  * trajectory was initialized (modified topologies will still have the 
-  * same Pindex).
+/** Write given array of frames; frames should already be in their ensemble 
+  * position. If this is the first frame array being written, this routine 
+  * is where the output trajectory IO will actually be set up for the 
+  * associated topology file since the topology may have been modified (e.g. 
+  * by a 'strip' command) since the output trajectory was initialized 
+  * (modified topologies will still have the same Pindex).
   */ 
-int Trajout_Multi::WriteEnsemble(int set, Topology *tparmIn, FrameArray const& Farray,
-                                 Frame::RemdIdxType const& FrameIdx)
+int Trajout_Multi::WriteEnsemble(int set, Topology *tparmIn, FramePtrArray const& Farray)
 {
   // Check that input parm matches setup parm - if not, skip
   if (tparmIn->Pindex() != TrajParm()->Pindex()) return 0;
 
   // First frame setup
   if (!TrajIsOpen()) {
-    Sarray::const_iterator fname = fileNames_.begin();
-    for (IOarrayType::const_iterator tio = ioarray_.begin(); 
-                                     tio != ioarray_.end(); 
-                                   ++tio, ++fname)
-      if (FirstFrameSetup(*fname, *tio, tparmIn)) return 1;
+    for (unsigned int m = 0; m != ioarray_.size(); ++m) {
+      if (FirstFrameSetup(fileNames_[m], ioarray_[m], tparmIn)) return 1;
+    }
   }
 
   // Check that set should be written
   if (CheckFrameRange(set)) return 0;
 
   // Write
-  for (int member = 0; member != ensembleSize_; member++) {
-    mprintf("DEBUG: member %i to position %i\n", member, FrameIdx[member]);
-    if (ioarray_[ FrameIdx[member] ]->writeFrame(set, Farray[member])) return 1;
+# ifdef MPI
+  if (!ioarray_.empty()) {
+    if (ioarray_.front()->writeFrame(set, *Farray.front())) return 1;
   }
-  
+# else
+  for (int member = 0; member != ensembleSize_; member++) {
+    int tidx = tIndex_[member];
+    if (tidx != -1) {
+      if (ioarray_[member]->writeFrame(set, *Farray[member])) return 1;
+    }
+  }
+# endif
   return 0;
 }
 
 // Trajout_Multi::PrintInfo()
 void Trajout_Multi::PrintInfo(int showExtended) const {
-  mprintf("  (Ensemble)");
+  mprintf("  '%s.X' (Ensemble,", TrajFilename().base());
+# ifdef MPI
+  mprintf(" %zu members/thread, %zu total) ", ioarray_.size(), ioarray_.size()*worldsize);
+# else
+  mprintf(" %zu members) ", ioarray_.size());
+# endif
   CommonInfo( ioarray_.front() );
 }

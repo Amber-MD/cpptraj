@@ -52,6 +52,8 @@ class Trajin : public TrajectoryFile {
     int NumFramesProcessed() const { return numFramesProcessed_; }
     bool IsEnsemble()        const { return isEnsemble_;         }
     void SetEnsemble(bool b)       { isEnsemble_ = b;            }
+    /// \return Current frame number (starting from 1).
+    int CurrentFrameNumber() const { return currentFrame_ - offset_ + 1; }
   private:
     int start_;              ///< Frame to begin processing
     int stop_;               ///< Frame to end processing

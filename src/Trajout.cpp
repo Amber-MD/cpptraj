@@ -118,8 +118,22 @@ int Trajout::CheckAppendFormat(std::string const& fname, TrajFormatType& writeFo
   return 0;
 }
 
+Range Trajout::MembersToWrite(std::string const& onlyMembers, int ensembleSize) const {
+  Range members;
+  int err;
+  // Empty String indicates write All members
+  if (onlyMembers.empty())
+    err = members.SetRange(0, ensembleSize);
+  else
+    err = members.SetRange(onlyMembers);
+  if (err != 0 || members.Empty()) {
+    mprinterr("Error: onlymembers: Invalid range (%s)\n", onlyMembers.c_str());
+    return Range();
+  }
+  return members;
+}
+
 void Trajout::CommonInfo(TrajectoryIO* trajio) const {
-  mprintf("  '%s' ",TrajFilename().base());
   trajio->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
   if (trajio->HasBox() && !nobox_) mprintf(" (with box info)");

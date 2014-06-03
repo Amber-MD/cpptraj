@@ -2,7 +2,7 @@
 #include "Analysis_Hist.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // doubleToString
-#include "Trajout.h" // for traj3d
+#include "Trajout_Single.h" // for traj3d
 #include "ParmFile.h" // for traj3d
 #include "Constants.h" // GASK_KCAL
 // DataSet types used by Analysis_Hist
@@ -482,8 +482,8 @@ Analysis::RetType Analysis_Hist::Analyze() {
           if (pfile.WriteTopology( pseudo, parmoutName_, ParmFile::UNKNOWN_PARM, 0 ))
             mprinterr("Error: Could not write pseudo topology to '%s'\n", parmoutName_.c_str());
         }
-        Trajout out;
-        if (out.InitTrajWrite(traj3dName_, &pseudo, traj3dFmt_) == 0) {
+        Trajout_Single out;
+        if (out.InitTrajWrite(traj3dName_, ArgList(), &pseudo, traj3dFmt_) == 0) {
           Frame outFrame(1);
           for (size_t i = 0; i < Ndata; ++i) {
             outFrame.ClearAtoms();

@@ -2,7 +2,7 @@
 #define INC_ANALYSIS_MODES_H
 #include "Analysis.h"
 #include "DataSet_Modes.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 class Analysis_Modes : public Analysis {
   public:
     Analysis_Modes();
@@ -38,7 +38,7 @@ class Analysis_Modes : public Analysis {
     modestackType atompairStack_;
     double* results_;
     Topology* tOutParm_;
-    Trajout trajout_;
+    Trajout_Single trajout_;
     int tMode_;
     double pcmin_;
     double pcmax_;

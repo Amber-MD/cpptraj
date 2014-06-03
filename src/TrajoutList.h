@@ -10,28 +10,25 @@ class TrajoutList {
     ~TrajoutList();
     void Clear();
     void SetDebug(int);
-    int AddEnsembleTrajout(ArgList const&, TopologyList const&, int);
-    /// Add a traj file to the list with given access and associate with a parm
+    /// Place current trajout in given list as ensemble trajectory output.
+    int MakeEnsembleTrajout(TopologyList const&, TrajoutList&, int);
+    /// Add trajectory to list for single trajectory output
     int AddTrajout(ArgList const&, TopologyList const&);
-    /// Call write for all trajectories
-    int WriteTrajout(int, Topology*, Frame*);
+    /// Write frame array to ensemble output trajectories.
+    int WriteEnsembleOut(int, Topology*, Trajout::FramePtrArray const&);
+    /// Write frame to normal output trajectories.
+    int WriteTrajout(int, Topology*, Frame const&);
     /// Call end for all trajectories
     void CloseTrajout();
+    /// List output trajectories.
     void List() const;
+    /// \return true if no args/trajectories present.
     bool Empty()     const { return trajout_.empty();     }
-    // The definitions below are for ensemble processing.
-    typedef std::vector<ArgList> ArgsArray;
-    typedef std::vector<ArgList>::const_iterator ArgIt;
-    ArgIt argbegin() const { return trajoutArgs_.begin(); }
-    ArgIt argend()   const { return trajoutArgs_.end();   }
   private:
     int debug_;
     typedef std::vector<Trajout*> ListType;
     ListType trajout_;
-    /// Array of trajout args for setting up ensemble trajout.
-    ArgsArray trajoutArgs_;
-
-    int AddTrajout(std::string const&, ArgList&, TopologyList const&,
-                   TrajectoryFile::TrajFormatType);
+    typedef std::vector<ArgList> ArgsArray;
+    ArgsArray trajoutArgs_; ///< Array of trajout args for setting up trajouts.
 };
 #endif

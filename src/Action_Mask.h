@@ -19,6 +19,7 @@ class Action_Mask: public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
 
+    int ensembleNum_;
     AtomMask Mask1_;         ///< Atoms which will be selected each frame
     CpptrajFile outfile_;    ///< File to write selected atom info to
     std::string maskpdb_;    ///< Traj output file name

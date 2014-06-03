@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_LESSPLIT_H
 #define INC_ACTION_LESSPLIT_H
 #include "Action.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 /// Split LES frame/top into normal frames/tops.
 class Action_LESsplit : public Action {
   public:
@@ -22,7 +22,7 @@ class Action_LESsplit : public Action {
     MaskArray lesMasks_;
     typedef std::vector<Trajout*> TrajoutArray;
     TrajoutArray lesTraj_;
-    Trajout avgTraj_;
+    Trajout_Single avgTraj_;
     std::string trajfilename_;
     std::string avgfilename_;
     ArgList trajArgs_;

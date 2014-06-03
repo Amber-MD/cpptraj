@@ -11,7 +11,7 @@ class Trajout_Single : public Trajout {
                       TrajectoryFile::TrajFormatType);
     void EndTraj();
     int WriteFrame(int, Topology*, Frame const&);
-    int WriteEnsemble(int,Topology*,FrameArray const&,Frame::RemdIdxType const&) { return 1; }
+    int WriteEnsemble(int,Topology*,FramePtrArray const&) { return 1; }
     void PrintInfo(int) const;
     void SetEnsembleInfo(int) {}
     // -------------------------------------------

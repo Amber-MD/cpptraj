@@ -2,7 +2,7 @@
 #include <cmath> //sqrt
 #include "Action_Pairwise.h"
 #include "CpptrajStdio.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "Constants.h" // ELECTOAMBER
 
 // CONSTRUCTOR
@@ -333,8 +333,8 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
     CutParm.AddTopAtom( cutatom, resnum, Parm.Res(resnum).Name(), 0 );
   } 
     
-  Trajout tout;
-  if (tout.InitTrajWriteWithArgs(outfilename,"multi",&CutParm,TrajectoryFile::MOL2FILE)) {
+  Trajout_Single tout;
+  if (tout.InitTrajWrite(outfilename,"multi",&CutParm,TrajectoryFile::MOL2FILE)) {
     mprinterr("Error: Pairwise: Could not set up cut mol2 file %s\n",outfilename.c_str());
     return 1;
   }

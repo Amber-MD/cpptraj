@@ -116,4 +116,7 @@ int Trajout_Single::WriteFrame(int set, Topology *tparmIn, Frame const& FrameOut
 }
 
 // Trajout_Single::PrintInfo()
-void Trajout_Single::PrintInfo(int showExtended) const {CommonInfo( trajio_ );}
+void Trajout_Single::PrintInfo(int showExtended) const {
+  mprintf("  '%s' ",TrajFilename().base());
+  CommonInfo( trajio_ );
+}

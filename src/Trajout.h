@@ -1,12 +1,13 @@
 #ifndef INC_TRAJOUT_H
 #define INC_TRAJOUT_H
 #include "TrajectoryFile.h"
-#include "FrameArray.h"
 #include "Range.h"
 #include "ActionFrameCounter.h"
 /// Output trajectory class.
 class Trajout : public TrajectoryFile {
   public:
+    /// Store frame addresses for output since they may be modified.
+    typedef std::vector<Frame*> FramePtrArray;
     Trajout();
     virtual ~Trajout() {}
     /// Close output trajectory.
@@ -14,7 +15,7 @@ class Trajout : public TrajectoryFile {
     /// Write a single frame.
     virtual int WriteFrame(int, Topology*, Frame const&) = 0;
     /// Write an array of frames.
-    virtual int WriteEnsemble(int, Topology*, FrameArray const&, Frame::RemdIdxType const&) = 0;
+    virtual int WriteEnsemble(int, Topology*, FramePtrArray const&) = 0;
     /// Print information on trajectory to be written.
     virtual void PrintInfo(int) const = 0;
     /// Prepare trajectory for writing using the given topology.
@@ -22,10 +23,6 @@ class Trajout : public TrajectoryFile {
                               TrajectoryFile::TrajFormatType) = 0;
     /// Set ensemble info, just size for now.
     virtual void SetEnsembleInfo(int) = 0;
-    /// Prepare trajectory for writing, no args.
-    int InitTrajWrite(std::string const& f, Topology* p, TrajectoryFile::TrajFormatType t) {
-      return InitTrajWrite(f, ArgList(), p, t);
-    }
     int NumFramesProcessed()          const { return numFramesProcessed_; }
     bool TrajIsOpen()                 const { return trajIsOpen_;         }
     bool TrajoutAppend()              const { return append_;             }
@@ -40,6 +37,8 @@ class Trajout : public TrajectoryFile {
     int FirstFrameSetup(std::string const&, TrajectoryIO*, Topology*);
     /// Check format for append
     int CheckAppendFormat(std::string const&, TrajFormatType&);
+    /// For ensemble trajouts, get range of members to write.
+    Range MembersToWrite(std::string const&,int) const;
     /// Print information for TrajectoryIO
     void CommonInfo(TrajectoryIO*) const;
   private:

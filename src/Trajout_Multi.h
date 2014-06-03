@@ -11,7 +11,7 @@ class Trajout_Multi : public Trajout {
                              TrajectoryFile::TrajFormatType);
     void EndTraj();
     int WriteFrame(int, Topology*, Frame const&) { return 1; }
-    int WriteEnsemble(int,Topology*,FrameArray const&,Frame::RemdIdxType const&);
+    int WriteEnsemble(int,Topology*,FramePtrArray const&);
     void PrintInfo(int) const;
     void SetEnsembleInfo(int i) { ensembleSize_ = i; }
     // -------------------------------------------
@@ -23,5 +23,8 @@ class Trajout_Multi : public Trajout {
     typedef std::vector<std::string> Sarray;
     Sarray fileNames_;
     int ensembleSize_;
+#   ifndef MPI
+    std::vector<int> tIndex_;
+#   endif
 };
 #endif

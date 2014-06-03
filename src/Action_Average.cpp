@@ -1,7 +1,7 @@
 // Action_Average
 #include "Action_Average.h"
 #include "CpptrajStdio.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 
 // CONSTRUCTOR
 Action_Average::Action_Average() :
@@ -123,7 +123,7 @@ Action::RetType Action_Average::DoAction(int frameNum, Frame* currentFrame, Fram
 
 // Action_Average::Print()
 void Action_Average::Print() {
-  Trajout outfile;
+  Trajout_Single outfile;
   double d_Nframes;
 
   if (Nframes_ < 1) return;

@@ -141,7 +141,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       return Analysis::ERR;
     }
     // Setup output traj
-    if (trajout_.InitTrajWrite( tOutName, tOutParm_, tOutFmt ) != 0) {
+    if (trajout_.InitTrajWrite( tOutName, ArgList(), tOutParm_, tOutFmt ) != 0) {
       mprinterr("Error: Could not setup output trajectory.\n");
       return Analysis::ERR;
     }

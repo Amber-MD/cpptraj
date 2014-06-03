@@ -9,6 +9,7 @@
 #include "Timer.h"
 #include "StringRoutines.h" // convertToInteger
 #include "Trajin_Single.h" // for AmbPDB
+#include "Trajout_Single.h" // for AmbPDB
 
 void Cpptraj::Usage() {
   mprinterr("\n"
@@ -405,7 +406,7 @@ int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
     TrajFrame.Center( mask, Frame::ORIGIN, Vec3(0.0), false );
   }
   // Output coords
-  Trajout trajout;
+  Trajout_Single trajout;
   trajArgs.SetList( aatm + bres + pqr + title, " " );
   if ( trajout.InitStdoutTrajWrite(trajArgs, &parm, fmt) ) return 1;
   trajout.WriteFrame(0, &parm, TrajFrame);

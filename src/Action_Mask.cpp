@@ -1,10 +1,11 @@
 // Action_Mask
 #include "Action_Mask.h"
 #include "CpptrajStdio.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 
 // CONSTRUCTOR
 Action_Mask::Action_Mask() :
+  ensembleNum_(-1),
   CurrentParm_(0),
   debug_(0),
   trajFmt_(TrajectoryFile::PDBFILE),
@@ -24,6 +25,7 @@ void Action_Mask::Help() {
 Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
   std::string maskFilename = actionArgs.GetStringKey("maskout");
@@ -94,7 +96,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
 
   // Optional PDB write out of selected atoms for the frame.
   if (!maskpdb_.empty()) {
-    Trajout pdbout;
+    Trajout_Single pdbout;
     // Convert Mask1 to an integer mask for use in parm/frame functions
     AtomMask Mask2 = Mask1_;
     Mask2.ConvertToIntMask();
@@ -107,7 +109,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
     pdbout.SetDebug(debug_);
     // Set pdb output options: multi so that 1 file per frame is written; dumpq
     // so that charges are written out. 
-    if (pdbout.InitTrajWriteWithArgs(maskpdb_,trajOpt_,pdbParm,trajFmt_)) 
+    if (pdbout.InitEnsembleTrajWrite(maskpdb_,trajOpt_,pdbParm,trajFmt_,ensembleNum_)) 
     {
       mprinterr("Error: %s: Could not set up for write of frame %i.\n",
                 maskpdb_.c_str(),frameNum);
