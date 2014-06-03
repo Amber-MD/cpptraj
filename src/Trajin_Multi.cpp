@@ -510,11 +510,14 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sorted
   std::set<double> tList;
   std::set< RemdIdxType > iList;
   // Allocate space to hold position of each incoming frame in replica space.
-  // TODO: When actually perfoming read in MPI will only need room for 1
-  frameidx_.resize( REMDtraj_.size() );
+  // TODO: When actually perfoming read in MPI will only need room for 2
   f_sorted.resize( REMDtraj_.size() );
   f_ensemble.resize( REMDtraj_.size() );
   f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity(), Ndimensions_ );
+# ifdef MPI
+  // This array will let each thread know who has what frame.
+  frameidx_.resize( REMDtraj_.size() );
+# endif
   if (targetType_ == TEMP) {
     // Get a list of all temperature present in input REMD trajectories
     // by reading the first frame.
@@ -565,15 +568,7 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sorted
     int repnum = 0;
     for (std::set< RemdIdxType >::iterator idxs = iList.begin(); idxs != iList.end(); ++idxs)
       IndicesMap_.insert(std::pair< RemdIdxType, int >(*idxs, repnum++));
-  } else { 
-    // NONE, no sorting
-#   ifdef MPI
-    frameidx_[0] = worldrank;
-#   else 
-    for (int rnum = 0; rnum < (int) REMDtraj_.size(); ++rnum)
-      frameidx_[rnum] = rnum;
-#   endif
-  }
+  }  // Otherwise NONE, no sorting
   return 0;
 }
 
@@ -582,7 +577,7 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sort
   // If the current frame is out of range, exit
   if ( CheckFinished() ) return 0;
   FrameArray::iterator frame = f_ensemble.begin();
-  RemdIdxType::iterator fidx = frameidx_.begin();
+  int fidx = 0;
   badEnsemble_ = false;
   // Read in all replicas
   //mprintf("DBG: Ensemble frame %i:",CurrentFrame()+1); // DEBUG
@@ -603,32 +598,36 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sort
       if (tmap ==  TemperatureMap_.end())
         badEnsemble_ = true;
       else
-        *fidx = tmap->second;
-      //mprintf(" %.2f[%i]", (*frame).Temperature(), *fidx ); // DEBUG
+        fidx = tmap->second;
+      //mprintf(" %.2f[%i]", (*frame).Temperature(), fidx ); // DEBUG
     } else if (targetType_ == INDICES) {
       ImapType::iterator imap = IndicesMap_.find( frame->RemdIndices() );
       if (imap == IndicesMap_.end())
         badEnsemble_ = true;
       else
-        *fidx = imap->second;
+        fidx = imap->second;
       // DEBUG
       //mprintf(" {");
       //for (int idx = 0; idx < Ndimensions_; ++idx)
       //  mprintf(" %i", remd_indices_[idx]);
-      //mprintf(" }[%i]", *fidx);
+      //mprintf(" }[%i]", fidx);
     } else if (targetType_ == CRDIDX) {
       int currentRemExchange = (int)((double)CurrentFrame() * remdFrameFactor_) + remdFrameOffset_;
       //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", CurrentFrame()+1, currentRemExchange+1);
-      *fidx = remlogData_.RepFrame( currentRemExchange, repIdx++ ).CoordsIdx() - 1;
-      //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", CurrentFrame(), fidx - frameidx_, *fidx);
+      fidx = remlogData_.RepFrame( currentRemExchange, repIdx++ ).CoordsIdx() - 1;
+      //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", CurrentFrame(), member, fidx);
     }
+#   ifndef MPI
+    else // NONE
+      fidx = member; // Not needed when MPI
+#   endif
 #   ifdef MPI
     // If calculated index is not worldrank, coords need to be sent to rank fidx.
-    //rprintf("Index=%i\n", *fidx); // DEBUG
+    //rprintf("Index=%i\n", fidx); // DEBUG
     int ensembleFrameNum = 0;
     if (targetType_ != NONE) {
       // Each rank needs to know where to send its coords, and where to receive coords from.
-      int my_idx = *fidx;
+      int my_idx = fidx;
 #     ifdef TIMER
       mpi_allgather_timer_.Start();
 #     endif
@@ -670,15 +669,14 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sort
         }
         //else rprintf("SEND RANK == RECV RANK, NO COMM\n"); // DEBUG
       }
-      f_sorted[0] = &f_ensemble[ensembleFrameNum];
 #     ifdef TIMER
       mpi_sendrecv_timer_.Stop();
 #     endif
     }
+    f_sorted[0] = &f_ensemble[ensembleFrameNum];
     //rprintf("FRAME %i, FRAME RECEIVED= %i\n", CurrentFrame(), ensembleFrameNum); // DEBUG 
 #   else
-    f_sorted[*fidx] = &f_ensemble[member];
-    ++fidx;
+    f_sorted[fidx] = &f_ensemble[member];
     ++frame;
   }
 #   endif

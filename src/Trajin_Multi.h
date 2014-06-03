@@ -59,12 +59,12 @@ class Trajin_Multi : public Trajin {
     TargetType targetType_;   ///< Hold type of REMD frame being searched for.
     NameListType replica_filenames_;
     // ENSEMBLE
-    RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble. // TODO: Delete
     typedef std::map<double,int> TmapType;
     TmapType TemperatureMap_;
     typedef std::map< RemdIdxType, int > ImapType;
     ImapType IndicesMap_;
 #   ifdef MPI
+    RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
 #   ifdef TIMER
     Timer mpi_allgather_timer_;
     Timer mpi_sendrecv_timer_;
