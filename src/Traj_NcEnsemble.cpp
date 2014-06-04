@@ -15,12 +15,28 @@ Traj_NcEnsemble::~Traj_NcEnsemble() {
   if (Coord_!=0) delete[] Coord_;
 }
 
+void Traj_NcEnsemble::WriteHelp() {
+  mprintf("\t[remdtraj] [velocity]\n");
+}
+
+// Traj_NcEnsemble::processWriteArgs()
+int Traj_NcEnsemble::processWriteArgs(ArgList& argIn) {
+  SetTemperature(argIn.hasKey("remdtraj"));
+  SetVelocity(argIn.hasKey("velocity"));
+  return 0;
+}
+
+// Traj_NcEnsemble::processReadArgs()
+int Traj_NcEnsemble::processReadArgs(ArgList& argIn) {
+  return 0;
+}
+
+// Traj_NcEnsemble::ID_TrajFormat()
 bool Traj_NcEnsemble::ID_TrajFormat(CpptrajFile& fileIn) {
   return ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERENSEMBLE );
 }
 
-void Traj_NcEnsemble::closeTraj() { NC_close(); }
-
+// Traj_NcEnsemble::openTrajin()
 int Traj_NcEnsemble::openTrajin() {
   // If already open, return
   if (Ncid()!=-1) return 0;
@@ -31,19 +47,16 @@ int Traj_NcEnsemble::openTrajin() {
   return 0;
 }
 
-int Traj_NcEnsemble::processReadArgs(ArgList& argIn) {
-  return 0;
-}
+// Traj_NcEnsemble::closeTraj()
+void Traj_NcEnsemble::closeTraj() { NC_close(); }
 
+// Traj_NcEnsemble::setupTrajin()
 int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
 {
   return TRAJIN_ERR;
 }
 
-int Traj_NcEnsemble::processWriteArgs(ArgList& argIn) {
-  return 0;
-}
-
+// Traj_NcEnsemble::setupTrajout()
 int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
                                   int NframesToWrite, bool append)
 {
@@ -82,18 +95,22 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
   return 0;
 }
 
+// Traj_NcEnsemble::readFrame()
 int Traj_NcEnsemble::readFrame(int set, Frame& frameIn) {
   return 1;
 }
 
+// Traj_NcEnsemble::readVelocity()
 int Traj_NcEnsemble::readVelocity(int set, Frame& frameIn) {
   return 1;
 }
 
+// Traj_NcEnsemble::writeFrame()
 int Traj_NcEnsemble::writeFrame(int set, Frame const& frameOut) {
   return 1;
 }
 
+// Traj_NcEnsemble::writeArray()
 int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
   start_[0] = ncframe_;
   start_[2] = 0;
@@ -161,6 +178,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
   return 0;
 }
 
+// Traj_NcEnsemble::Info()
 void Traj_NcEnsemble::Info() {
   mprintf("is a NetCDF Ensemble AMBER trajectory");
   if (readAccess_ && !HasCoords()) mprintf(" (no coordinates)");

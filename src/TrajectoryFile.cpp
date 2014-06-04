@@ -25,7 +25,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # ifdef BINTRAJ
   { "Amber NetCDF",       0, 0, Traj_AmberNetcdf::Alloc    },
   { "Amber NC Restart",   0, 0, Traj_AmberRestartNC::Alloc },
-  { "Amber NC Ensemble",  0, 0, Traj_NcEnsemble::Alloc     },
+  { "Amber NC Ensemble",  0, Traj_NcEnsemble::WriteHelp, Traj_NcEnsemble::Alloc },
 # else
   { "Amber NetCDF",       0, 0, 0                          },
   { "Amber NC Restart",   0, 0, 0                          },

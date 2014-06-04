@@ -9,6 +9,7 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     Traj_NcEnsemble();
     ~Traj_NcEnsemble();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_NcEnsemble(); }
+    static void WriteHelp();
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(std::string const&, Topology*);

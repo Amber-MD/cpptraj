@@ -92,6 +92,6 @@ int Trajout_Ensemble::WriteEnsemble(int set, FramePtrArray const& Farray) {
 
 // Trajout_Ensemble::PrintInfo()
 void Trajout_Ensemble::PrintInfo(int showExtended) const {
-  mprintf("  '%s' (Single Ensemble, %i members)",TrajFilename().base(), ensembleSize_);
+  mprintf("  '%s' (Single Ensemble, %i members) ",TrajFilename().base(), ensembleSize_);
   CommonInfo( eio_ );
 }
