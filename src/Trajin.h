@@ -2,7 +2,6 @@
 #define INC_TRAJIN_H
 #include "TrajectoryFile.h"
 #include "ProgressBar.h"
-#include "FrameArray.h"
 /// Class that all input trajectories will inherit.
 class Trajin : public TrajectoryFile {
   public:
@@ -12,7 +11,7 @@ class Trajin : public TrajectoryFile {
     virtual int ReadTrajFrame(int, Frame&) = 0;
     virtual int BeginTraj(bool) = 0;
     virtual void EndTraj() = 0;
-    virtual void PrintInfo(int) const = 0;
+    virtual void PrintInfo(int) const = 0; // FIXME: Appears to not be used?
     virtual bool HasVelocity() const = 0;
     virtual ReplicaDimArray const& TrajReplicaDimInfo() const = 0;
     virtual int EnsembleSize() const = 0;

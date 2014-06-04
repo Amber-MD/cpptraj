@@ -49,6 +49,9 @@ class TrajectoryFile {
     static const char* FormatString( TrajFormatType tt ) { return 
       FileTypes::FormatDescription(TF_AllocArray, tt);
     }
+    // NOTE: This is made public in order to detect single ensemble trajs
+    /// Allocate TrajectoryIO appropriate for given file.
+    static TrajectoryIO* DetectFormat(std::string const&, TrajFormatType&);
 
     void SetDebug(int);
     void SetTrajFileName( std::string const&, bool );
@@ -57,12 +60,10 @@ class TrajectoryFile {
     const FileName& TrajFilename() const { return trajName_; }
   protected:
     int debug_;            ///< Trajectory debug level.
-    ///< Allocate TrajectoryIO for given format
+    /// Allocate TrajectoryIO for given format
     static TrajectoryIO* AllocTrajIO(TrajFormatType t) {
       return (TrajectoryIO*)FileTypes::AllocIO(TF_AllocArray, t, true);
     }
-    ///< Allocate TrajectoryIO appropriate for given file.
-    static TrajectoryIO* DetectFormat(std::string const&, TrajFormatType&);
   private:
     Topology *trajParm_;   ///< Associated parm
     FileName trajName_;    ///< The full path to trajectory file.

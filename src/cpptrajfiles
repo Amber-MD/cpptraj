@@ -219,6 +219,7 @@ SOURCES=ActionFrameCounter.cpp \
         TrajectoryFile.cpp \
         Trajin.cpp \
         TrajinList.cpp \
+        Trajin_Ensemble.cpp \
         Trajin_Multi.cpp \
         Trajin_Single.cpp \
         Trajout.cpp \

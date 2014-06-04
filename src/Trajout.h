@@ -29,7 +29,7 @@ class Trajout : public TrajectoryFile {
     std::string const& TrajoutTitle() const { return title_;              }
     void SetTrajIsOpen(bool o)              { trajIsOpen_ = o;            }
     inline int CheckFrameRange(int);
-    /// Write isingle frame, performing set up if needed.
+    /// Write single frame, performing set up if needed.
     inline int WriteFrame(int, Topology*, Frame const&);
   protected:
     /// Grab keywords common to all trajouts, set/determine format if necessary

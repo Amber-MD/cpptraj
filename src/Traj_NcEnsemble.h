@@ -10,6 +10,7 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     ~Traj_NcEnsemble();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_NcEnsemble(); }
     static void WriteHelp();
+    static void ReadHelp();
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(std::string const&, Topology*);
@@ -23,12 +24,15 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     int processWriteArgs(ArgList&);
     int processReadArgs(ArgList&);
     bool CanProcessEnsemble() { return true; }
+    int readArray(int, FrameArray&);
     int writeArray(int, FramePtrArray const&);
+    int EnsembleSize() const { return ensembleSize_; }
   private:
     float *Coord_;
     FileName filename_;
     int ensembleSize_;
     bool readAccess_;
+    bool useVelAsCoords_;
 };
 #endif
 #endif

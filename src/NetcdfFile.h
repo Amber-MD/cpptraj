@@ -24,6 +24,7 @@ class NetcdfFile {
     void NC_close();
 
     int SetupFrame();
+    int SetupEnsembleDim();
     int SetupCoordsVelo(bool);
     int SetupTime();
     int SetupBox(double*,NCTYPE);

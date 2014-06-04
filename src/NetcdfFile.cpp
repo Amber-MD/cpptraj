@@ -165,6 +165,14 @@ int NetcdfFile::SetupFrame() {
   return 0;
 }
 
+/** Get the ensemble dimension ID and size. */
+int NetcdfFile::SetupEnsembleDim() {
+  int ensembleSize = 0;
+  ensembleDID_ = GetDimInfo( NCENSEMBLE, &ensembleSize );
+  if (ensembleDID_ == -1) return 0;
+  return ensembleSize;
+}
+
 // NetcdfFile::SetupCoordsVelo()
 /** Setup ncatom, ncatom3, atomDID, coordVID, spatialDID, spatialVID,
   * velocityVID. Check units and spatial dimensions.
