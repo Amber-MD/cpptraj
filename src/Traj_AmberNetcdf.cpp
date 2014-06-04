@@ -221,7 +221,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
     }
     if (checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)))
     {
-      mprinterr("Error: Getting cell angles for frame %i.\n", set+2);
+      mprinterr("Error: Getting cell angles for frame %i.\n", set+1);
       return 1;
     }
   }
