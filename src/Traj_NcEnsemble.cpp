@@ -103,28 +103,56 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
   count_[2] = Ncatom(); // Atoms
   count_[3] = 3;        // XYZ
   for (int member = 0; member != ensembleSize_; member++) {
+    Frame* frm = Farray[member];
     start_[1] = member;
     // Coords
-    DoubleToFloat(Coord_, Farray[member]->xAddress());
+    DoubleToFloat(Coord_, frm->xAddress());
     if (checkNCerr(nc_put_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
     {
       mprinterr("Error: Netcdf Writing coords frame %i\n", set+1);
       return 1;
     }
     // Write velocity.
+    if (HasV() && frm->HasVelocity()) { // TODO: Determine V beforehand
+      DoubleToFloat(Coord_, frm->vAddress());
+      if (checkNCerr(nc_put_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) )
+      {
+        mprinterr("Error: Netcdf writing velocity frame %i\n", set+1);
+        return 1;
+      }
+    }
     // Write box
+    if (cellLengthVID_ != -1) {
+      count_[2] = 3;
+      count_[3] = 0;
+      if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frm->bAddress())) )
+      {
+        mprinterr("Error: Writing cell lengths frame %i.\n", set+1);
+        return 1;
+      }
+      if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frm->bAddress()+3)))
+      {
+        mprinterr("Error: Writing cell angles frame %i.\n", set+1);
+        return 1;
+      }
+    }
     // Write temperature
+    if (TempVID_!=-1) {
+      if (checkNCerr(nc_put_vara_double(ncid_,TempVID_,start_,count_,frm->tAddress())))
+      {
+        mprinterr("Error: Writing temperature frame %i.\n", set+1);
+        return 1;
+      }
+    }
     // Write indices
     if (indicesVID_ != -1) {
       count_[2] = remd_dimension_;
-      if (checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,Farray[member]->iAddress())))
+      if (checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frm->iAddress())))
       {
         mprinterr("Error: Writing indices frame %i.\n", set+1);
         return 1;
       }
     }
-
-
   }
 
   nc_sync(ncid_); // Necessary after every write??
