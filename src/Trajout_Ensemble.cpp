@@ -69,8 +69,6 @@ void Trajout_Ensemble::EndTraj() {
 
 // Trajout_Ensemble::SetupTrajWrite()
 int Trajout_Ensemble::SetupTrajWrite(Topology* tparmIn) {
-  // Check that input parm matches setup parm - if not, skip
-  if (tparmIn->Pindex() != TrajParm()->Pindex()) return 0;
   // First frame setup
   if (!TrajIsOpen()) {
     if (FirstFrameSetup(TrajFilename().Full(), eio_, tparmIn)) return 1;
@@ -80,13 +78,11 @@ int Trajout_Ensemble::SetupTrajWrite(Topology* tparmIn) {
 
 // Trajout_Ensemble::WriteEnsemble()
 int Trajout_Ensemble::WriteEnsemble(int set, FramePtrArray const& Farray) {
-  if (TrajIsOpen()) {
-    // Check that set should be written
-    if (CheckFrameRange(set)) return 0;
-    // Write
-    //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
-    if (eio_->writeArray(set, Farray)) return 1;
-  }
+  // Check that set should be written
+  if (CheckFrameRange(set)) return 0;
+  // Write
+  //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
+  if (eio_->writeArray(set, Farray)) return 1;
   return 0;
 }
 

@@ -117,23 +117,28 @@ int TrajoutList::WriteEnsembleOut(int set, FramePtrArray const& Farray)
 
 // TrajoutList::SetupTrajout()
 int TrajoutList::SetupTrajout(Topology* CurrentParm) {
+  active_.clear();
   for (ListType::const_iterator traj = trajout_.begin();
                                 traj != trajout_.end(); ++traj)
   {
-    if ( (*traj)->SetupTrajWrite( CurrentParm ) ) {
-      mprinterr("Error: Setting up output trajectory %s\n", (*traj)->TrajFilename().base());
-      return 1;
+    // Check that input parm matches setup parm - if not, skip
+    if (CurrentParm->Pindex() == (*traj)->TrajParm()->Pindex()) {
+      if ( (*traj)->SetupTrajWrite( CurrentParm ) ) {
+        mprinterr("Error: Setting up output trajectory %s\n", (*traj)->TrajFilename().base());
+        return 1;
+      }
+      active_.push_back( *traj );
     }
   }
   return 0;
 }
 
 // TrajoutList::WriteTrajout()
-/** Go through each output traj, call write. */ 
+/** Go through each active output traj, call write. */ 
 int TrajoutList::WriteTrajout(int set, Frame const& CurrentFrame)
 { 
-  for (ListType::const_iterator traj = trajout_.begin();
-                                traj != trajout_.end(); ++traj) 
+  for (ListType::const_iterator traj = active_.begin();
+                                traj != active_.end(); ++traj) 
   {
     if ( (*traj)->WriteSingle(set, CurrentFrame) ) {
       mprinterr("Error writing output trajectory, frame %i.\n", set+1);

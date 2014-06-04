@@ -29,7 +29,8 @@ class TrajoutList {
   private:
     int debug_;
     typedef std::vector<Trajout*> ListType;
-    ListType trajout_;
+    ListType trajout_; ///< Hold actual output trajectories.
+    ListType active_;  ///< Hold only active output trajectories.
     typedef std::vector<ArgList> ArgsArray;
     ArgsArray trajoutArgs_; ///< Array of trajout args for setting up trajouts.
 };

@@ -94,8 +94,6 @@ void Trajout_Single::EndTraj() {
   * initialized.
   */
 int Trajout_Single::SetupTrajWrite(Topology* tparmIn) {
-  // Check that input parm matches setup parm - if not, skip
-  if (tparmIn->Pindex() != TrajParm()->Pindex()) return 0;
   // First frame setup
   if (!TrajIsOpen()) {
     if (FirstFrameSetup(TrajFilename().Full(), trajio_, tparmIn)) return 1;
@@ -107,13 +105,11 @@ int Trajout_Single::SetupTrajWrite(Topology* tparmIn) {
 /** Write given frame if trajectory is open (initialzed and set-up).
   */ 
 int Trajout_Single::WriteSingle(int set, Frame const& FrameOut) {
-  if (TrajIsOpen()) {
-    // Check that set should be written
-    if (CheckFrameRange(set)) return 0;
-    // Write
-    //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
-    if (trajio_->writeFrame(set, FrameOut)) return 1;
-  }
+  // Check that set should be written
+  if (CheckFrameRange(set)) return 0;
+  // Write
+  //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
+  if (trajio_->writeFrame(set, FrameOut)) return 1;
   return 0;
 }
 

@@ -124,8 +124,6 @@ void Trajout_Multi::EndTraj() {
   * initialized.
   */
 int Trajout_Multi::SetupTrajWrite(Topology* tparmIn) {
-  // Check that input parm matches setup parm - if not, skip
-  if (tparmIn->Pindex() != TrajParm()->Pindex()) return 0;
   // First frame setup
   if (!TrajIsOpen()) {
     for (unsigned int m = 0; m != ioarray_.size(); ++m) {
@@ -140,23 +138,21 @@ int Trajout_Multi::SetupTrajWrite(Topology* tparmIn) {
   */ 
 int Trajout_Multi::WriteEnsemble(int set, FramePtrArray const& Farray)
 {
-  if (TrajIsOpen()) {
-    // Check that set should be written
-    if (CheckFrameRange(set)) return 0;
-    // Write
-#   ifdef MPI
-    if (!ioarray_.empty()) {
-      if (ioarray_.front()->writeFrame(set, *Farray.front())) return 1;
-    }
-#   else
-    for (int member = 0; member != ensembleSize_; member++) {
-      int tidx = tIndex_[member];
-      if (tidx != -1) {
-        if (ioarray_[tidx]->writeFrame(set, *Farray[member])) return 1;
-      }
-    }
-#   endif
+  // Check that set should be written
+  if (CheckFrameRange(set)) return 0;
+  // Write
+# ifdef MPI
+  if (!ioarray_.empty()) {
+    if (ioarray_.front()->writeFrame(set, *Farray.front())) return 1;
   }
+# else
+  for (int member = 0; member != ensembleSize_; member++) {
+    int tidx = tIndex_[member];
+    if (tidx != -1) {
+      if (ioarray_[tidx]->writeFrame(set, *Farray[member])) return 1;
+    }
+  }
+# endif
   return 0;
 }
 
