@@ -526,7 +526,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       mprinterr("Error: Defining ensemble dimension.\n");
       return 1;
     }
-    dimensionID[0] = ensembleDID_;
+    dimensionID[1] = ensembleDID_;
   }
   ncframe_ = 0;
   if (type == NC_AMBERTRAJ || type == NC_AMBERENSEMBLE) {
@@ -535,7 +535,8 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       mprinterr("Error: Defining frame dimension.\n");
       return 1;
     }
-    dimensionID[NDIM-3] = frameDID_;
+    // Since frame is UNLIMITED, it must be lowest dim.
+    dimensionID[0] = frameDID_;
   }
   // Time variable and units
   if (hasTime) {
@@ -566,8 +567,8 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   // Setup dimensions for Coords/Velocity
   // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
   if (type == NC_AMBERENSEMBLE) {
-    dimensionID[0] = ensembleDID_;
-    dimensionID[1] = frameDID_;
+    dimensionID[0] = frameDID_;
+    dimensionID[1] = ensembleDID_;
     dimensionID[2] = atomDID_;
     dimensionID[3] = spatialDID_;
   } else if (type == NC_AMBERTRAJ) {
@@ -643,8 +644,8 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     // Need to store the indices of replica in each dimension each frame
     // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
     if (type == NC_AMBERENSEMBLE) {
-      dimensionID[0] = ensembleDID_;
-      dimensionID[1] = frameDID_;
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = ensembleDID_;
       dimensionID[2] = remDimDID;
     } else if (type == NC_AMBERTRAJ) {
       dimensionID[0] = frameDID_;
@@ -694,8 +695,8 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     // NOTE: This must be modified if more types added
     int boxdim;
     if (type == NC_AMBERENSEMBLE) {
-      dimensionID[0] = ensembleDID_;
-      dimensionID[1] = frameDID_;
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = ensembleDID_;
       boxdim = 2;
     } else if (type == NC_AMBERTRAJ) {
       dimensionID[0] = frameDID_;

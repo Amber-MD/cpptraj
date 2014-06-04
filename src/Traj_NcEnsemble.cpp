@@ -95,18 +95,19 @@ int Traj_NcEnsemble::writeFrame(int set, Frame const& frameOut) {
 }
 
 int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
-  start_[1] = ncframe_;
+  start_[0] = ncframe_;
   start_[2] = 0;
   start_[3] = 0;
-  count_[0] = 1;        // Ensemble
-  count_[1] = 1;        // Frame
+  count_[0] = 1;        // Frame
+  count_[1] = 1;        // Ensemble
   count_[2] = Ncatom(); // Atoms
   count_[3] = 3;        // XYZ
   for (int member = 0; member != ensembleSize_; member++) {
-    start_[0] = member;
+    start_[1] = member;
     // Coords
     DoubleToFloat(Coord_, Farray[member]->xAddress());
-    if (checkNCerr(nc_put_vara_float(ncid_, coordVID_, start_, count_, Coord_))) {
+    if (checkNCerr(nc_put_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
+    {
       mprinterr("Error: Netcdf Writing coords frame %i\n", set+1);
       return 1;
     }
@@ -114,6 +115,15 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
     // Write box
     // Write temperature
     // Write indices
+    if (indicesVID_ != -1) {
+      count_[2] = remd_dimension_;
+      if (checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,Farray[member]->iAddress())))
+      {
+        mprinterr("Error: Writing indices frame %i.\n", set+1);
+        return 1;
+      }
+    }
+
 
   }
 
