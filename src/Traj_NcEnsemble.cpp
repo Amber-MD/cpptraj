@@ -111,8 +111,7 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
   // Allocate float array
   if (Coord_ != 0) delete[] Coord_;
   Coord_ = new float[ Ncatom3() ];
-  //if (debug_>1)
-    NetcdfDebug();
+  if (debug_>1) NetcdfDebug();
   closeTraj();
   return Ncframe();
 }
@@ -133,8 +132,7 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
                     false, HasBox(), HasT(), true, trajParm->ParmReplicaDimInfo(),
                     ensembleSize_, Title() ) )
       return 1;
-    //if (debug_>1)
-      NetcdfDebug();
+    if (debug_>1) NetcdfDebug();
     // Close Netcdf file. It will be reopened write.
     NC_close();
     // Allocate memory
@@ -178,11 +176,11 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
   start_[3] = 0;   // XYZ
   count_[0] = 1;        // Frame
   count_[1] = 1;        // Ensemble
-  count_[2] = Ncatom(); // Atoms
   count_[3] = 3;        // XYZ
   for (int member = 0; member != ensembleSize_; member++) {
     Frame& frm = f_ensemble[member];
-    start_[1] = member; // Ensemble
+    start_[1] = member;   // Ensemble
+    count_[2] = Ncatom(); // Atoms
     // Read Coords
     if (checkNCerr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
     {
@@ -190,6 +188,8 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
       return 1;
     }
     FloatToDouble(frm.xAddress(), Coord_);
+    //mprintf("Frm=%8i Rep=%8i ", set+1, member+1); // DEBUG
+    //frm.printAtomCoord(0); // DEBUG
     // Read Velocities
     if (velocityVID_ != -1) {
       if (checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)))
@@ -202,7 +202,6 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     // Read Box
     if (cellLengthVID_ != -1) {
       count_[2] = 3;
-      count_[3] = 0;
       if (checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frm.bAddress())))
       {
         mprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
@@ -241,17 +240,18 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 
 // Traj_NcEnsemble::writeArray()
 int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
-  start_[0] = ncframe_;
-  start_[2] = 0;
-  start_[3] = 0;
-  count_[0] = 1;        // Frame
-  count_[1] = 1;        // Ensemble
-  count_[2] = Ncatom(); // Atoms
-  count_[3] = 3;        // XYZ
+  start_[0] = ncframe_; // Frame
+  start_[2] = 0;        // Atoms
+  start_[3] = 0;        // XYZ
+  count_[0] = 1; // Frame
+  count_[1] = 1; // Ensemble
+  count_[3] = 3; // XYZ
   for (int member = 0; member != ensembleSize_; member++) {
     Frame* frm = Farray[member];
-    start_[1] = member;
+    start_[1] = member;   // Ensemble
+    count_[2] = Ncatom(); // Atoms
     // Write Coords
+    //WriteIndices(); // DEBUG
     DoubleToFloat(Coord_, frm->xAddress());
     if (checkNCerr(nc_put_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
     {
@@ -270,7 +270,6 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
     // Write box
     if (cellLengthVID_ != -1) {
       count_[2] = 3;
-      count_[3] = 0;
       if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frm->bAddress())) )
       {
         mprinterr("Error: Writing cell lengths frame %i.\n", set+1);

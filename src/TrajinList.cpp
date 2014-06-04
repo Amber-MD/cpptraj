@@ -62,7 +62,6 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
     if (tio != 0) delete tio;
     // Determine whether this file is multiple file or single file ensemble.
     tio = TrajectoryFile::DetectFormat( *fn, trajinFmt );
-    mprintf("DEBUG: %s format is %s\n", fn->c_str(), TrajectoryFile::FormatString(trajinFmt));
     if (tio == 0) {
       mprinterr("Error: Could not determine trajectory %s format\n", fn->c_str());
       err++;

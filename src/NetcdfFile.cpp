@@ -636,7 +636,6 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   if (hasIndices) {
     // Define number of replica dimensions
     remd_dimension_ = remdDim.Ndims();
-    mprintf("DEBUG: Creating %iD NetCDF file with %i replica dims.\n", NDIM, remd_dimension_);
     int remDimDID = -1;
     if ( checkNCerr(nc_def_dim( ncid_, NCREMD_DIMENSION, remd_dimension_, &remDimDID )) ) {
       mprinterr("Error: Defining replica indices dimension.\n");
@@ -851,4 +850,9 @@ void NetcdfFile::DoubleToFloat(float* Coord, const double* X) {
     Coord[i]=(float) X[i];
 }
 
+void NetcdfFile::WriteIndices() const {
+  mprintf("DBG: Start={%zu, %zu, %zu, %zu} Count={%zu, %zu, %zu, %zu}\n",
+         start_[0], start_[1], start_[2], start_[3],
+         count_[0], count_[1], count_[2], count_[3]);
+}
 #endif
