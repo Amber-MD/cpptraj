@@ -107,6 +107,7 @@ void Trajin_Ensemble::PrintInfo(int showExtended) const {
 }
 
 // -----------------------------------------------------------------------------
+// Trajin_Ensemble::EnsembleInfo()
 void Trajin_Ensemble::EnsembleInfo() const {
   if (targetType_ == ReplicaInfo::TEMP) {
     mprintf("  Ensemble Temperature Map:\n");
@@ -127,6 +128,7 @@ void Trajin_Ensemble::EnsembleInfo() const {
   }
 }
 
+// Trajin_Ensemble::EnsembleSetup()
 int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sorted ) {
   // Allocate space to hold position of each incoming frame in replica space.
   // TODO: When actually perfoming read in MPI will only need room for 1 (2?)
@@ -171,11 +173,7 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
   return 0;
 }
 
-int Trajin_Ensemble::setBadEnsemble() {
-  badEnsemble_ = true;
-  return 0;
-}
-
+// Trajin_Ensemble::GetNextEnsemble()
 int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_sorted ) {
   badEnsemble_ = false;
   // If the current frame is out of range, exit
@@ -185,14 +183,18 @@ int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_
   if (targetType_ == ReplicaInfo::TEMP) {
     for (unsigned int i = 0; i != f_ensemble.Size(); i++) {
       int fidx = TemperatureMap_.FindIndex( f_ensemble[i].Temperature() );
-      if ( fidx == -1 ) return setBadEnsemble(); // FIXME: Should try to exit gracefully.
-      f_sorted[fidx] = &f_ensemble[i];
+      if ( fidx == -1 )
+        badEnsemble_ = true;
+      else
+        f_sorted[fidx] = &f_ensemble[i];
     }
   } else if (targetType_ == ReplicaInfo::INDICES) {
     for (unsigned int i = 0; i != f_ensemble.Size(); i++) {
       int fidx = IndicesMap_.FindIndex( f_ensemble[i].RemdIndices() );
-      if (fidx == -1 ) return setBadEnsemble();
-      f_sorted[fidx] = &f_ensemble[i];
+      if (fidx == -1 )
+        badEnsemble_ = true;
+      else
+        f_sorted[fidx] = &f_ensemble[i];
     }
   }
   UpdateCounters();

@@ -29,8 +29,6 @@ class Trajin_Ensemble : public Trajin {
     bool  BadEnsemble() const { return badEnsemble_; }
     // -------------------------------------------
   private:
-    int setBadEnsemble();
-
     typedef Frame::RemdIdxType RemdIdxType;
     ReplicaInfo::TargetType targetType_;
     TrajectoryIO* eio_;
