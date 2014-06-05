@@ -1,4 +1,5 @@
 #include <cmath> // sqrt
+#include <cctype> // tolower
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
@@ -8,12 +9,11 @@ const double Action_DSSP::DSSP_fac = 27.888;
 
 // CONSTRUCTOR
 Action_DSSP::Action_DSSP() :
+  ensembleNum_(-1),
   debug_(0),
   outfile_(0),
-  dssp_(0), 
   Nres_(0),
   Nframe_(0),
-  SSline_(0),
   printString_(false),
   masterDSL_(0),
   BB_N("N"),
@@ -23,20 +23,14 @@ Action_DSSP::Action_DSSP() :
 {}
 
 void Action_DSSP::Help() {
-  mprintf("\t[out <filename>] [<mask>] [sumout <filename>]\n"
+  mprintf("\t[out <filename>] [<mask>] [sumout <filename>] [assignout <filename>]\n"
           "\t[ptrajformat] [namen <N name>] [nameh <H name>]\n"
           "\t[namec <C name>] [nameo <O name>]\n"
           "  Calculate secondary structure content for residues in <mask>.\n"
           "  If sumout not specified, the filename specified by out is used with .sum suffix.\n");
 }
 
-// DESTRUCTOR
-Action_DSSP::~Action_DSSP() {
-//  debugout.CloseFile(); // DEBUG
-  if (SSline_!=0) delete[] SSline_;
-}
-
-const char Action_DSSP::SSchar[]={ '0', 'b', 'B', 'G', 'H', 'I', 'T' };
+const char* Action_DSSP::SSchar[]={ "0", "b", "B", "G", "H", "I", "T" };
 const char* Action_DSSP::SSname[]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn"};
 
 // Action_DSSP::init()
@@ -44,6 +38,7 @@ const char* Action_DSSP::SSname[]={"None", "Para", "Anti", "3-10", "Alpha", "Pi"
 Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // DEBUG
 //  debugout.SetupFile((char*)"dsspdebug.out",WRITE,UNKNOWN_FORMAT,STANDARD,0);
@@ -55,7 +50,8 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (temp.empty() && outfile_ != 0) 
     temp = outfile_->DataFilename().Full() + ".sum";
   dsspFile_ = DFL->AddDataFile( temp );
-  if (actionArgs.hasKey("ptrajformat")) printString_=true;
+  assignout_ = actionArgs.GetStringKey("assignout");
+  printString_ = actionArgs.hasKey("ptrajformat");
   temp = actionArgs.GetStringKey("namen");
   if (!temp.empty()) BB_N = temp;
   temp = actionArgs.GetStringKey("nameh");
@@ -69,16 +65,9 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 
   // Set up the DSSP data set
   dsetname_ = actionArgs.GetStringNext();
-  if (printString_) {
-    dssp_ = DSL->AddSet(DataSet::STRING, dsetname_, "DSSP");
-    if (dssp_==0) return Action::ERR;
-    dsetname_ = dssp_->Name();
-    if (outfile_ != 0) outfile_->AddSet( dssp_ );
-  } else {
-    // If not string output set up Z labels
-    if (outfile_ != 0)
-      outfile_->ProcessArgs("zlabels None,Para,Anti,3-10,Alpha,Pi,Turn");
-  }
+  // Set up Z labels
+  if (outfile_ != 0)
+    outfile_->ProcessArgs("zlabels None,Para,Anti,3-10,Alpha,Pi,Turn");
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
   if (outfile_ != 0) 
@@ -89,6 +78,8 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     mprintf("               SS data for each residue will be stored as a string.\n");
   else
     mprintf("               SS data for each residue will be stored as integers.\n");
+  if (!assignout_.empty())
+    mprintf("               Overall assigned SS will be written to %s\n", assignout_.c_str());
   mprintf("               Backbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]\n",
           *BB_N, *BB_H, *BB_C, *BB_O );
   mprintf("# Citation: Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:\n"
@@ -191,16 +182,22 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
       }
     }
     // Set up dataset if necessary 
-    if (!printString_ && SecStruct_[res].isSelected && SecStruct_[res].resDataSet==0) {
+    if (SecStruct_[res].isSelected && SecStruct_[res].resDataSet==0) {
       // Set default name if none specified
       if (dsetname_.empty()) dsetname_=masterDSL_->GenerateDefaultName("DSSP");
-      // Setup dataset name for this residue
-      SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INTEGER, dsetname_,
-                                                                res+1, "res");
-      if (SecStruct_[res].resDataSet!=0) {
-        if (outfile_ != 0) outfile_->AddSet(SecStruct_[res].resDataSet);
-        SecStruct_[res].resDataSet->SetLegend( currentParm->TruncResNameNum(res) );
+      // Setup dataset for this residue
+      if (printString_)
+        SecStruct_[res].resDataSet =
+          masterDSL_->AddSetIdxAspect( DataSet::STRING, dsetname_, res+1, "res");
+      else
+        SecStruct_[res].resDataSet = 
+          masterDSL_->AddSetIdxAspect( DataSet::INTEGER, dsetname_, res+1, "res");
+      if (SecStruct_[res].resDataSet == 0) {
+        mprinterr("Error: Could not allocate DSSP data set for residue %i\n", res+1);
+        return Action::ERR;
       }
+      if (outfile_ != 0) outfile_->AddSet(SecStruct_[res].resDataSet);
+      SecStruct_[res].resDataSet->SetLegend( currentParm->TruncResNameNum(res) );
     }
     ++selected;
   }
@@ -217,13 +214,6 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
 
   // Count number of selected residues
   mprintf("\tMask [%s] corresponds to %i residues.\n",Mask_.MaskString(),selected);
-
-  // Set up output buffer to hold string
-  if (printString_) {
-    if (SSline_!=0) delete[] SSline_;
-    SSline_ = new char[ (2*selected) + 1 ];
-    SSline_[(2*selected)]='\0';
-  }
 
   // DEBUG - Print atom nums for each residue set up
 //  for (res=0; res < Nres_; res++) {
@@ -382,28 +372,52 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
   // Store data for each residue 
   //fprintf(stdout,"%10i ",frameNum);
   // String data set
-  if (printString_) {
-    resj = 0;
-    for (resi=0; resi < Nres_; resi++) {
-      if (!SecStruct_[resi].isSelected) continue;
-      SecStruct_[resi].SSprob[SecStruct_[resi].sstype]++;
-      SSline_[resj++] = SSchar[SecStruct_[resi].sstype];
-      SSline_[resj++] = ' ';
-    }
-    dssp_->Add(frameNum, SSline_);
-  // Integer data sets
-  } else {
-    for (resi=0; resi < Nres_; resi++) {
-      if (!SecStruct_[resi].isSelected) continue;
-      //fprintf(stdout,"%c",SSchar[SecStruct_[resi].sstype]);
-      SecStruct_[resi].SSprob[SecStruct_[resi].sstype]++;
+  for (resi=0; resi < Nres_; resi++) {
+    if (!SecStruct_[resi].isSelected) continue;
+    //fprintf(stdout,"%c",SSchar[SecStruct_[resi].sstype]);
+    SecStruct_[resi].SSprob[SecStruct_[resi].sstype]++;
+    if (printString_)
+      SecStruct_[resi].resDataSet->Add(frameNum, SSchar[SecStruct_[resi].sstype]); 
+    else
       SecStruct_[resi].resDataSet->Add(frameNum, &(SecStruct_[resi].sstype));
-    }
   }
   //fprintf(stdout,"\n");
   ++Nframe_;
 
   return Action::OK;
+}
+
+static inline char ConvertResName(std::string const& r) {
+  if (r.compare(0,3,"ALA")==0) return 'A';
+  if (r.compare(0,3,"ARG")==0) return 'R';
+  if (r.compare(0,3,"ASN")==0) return 'N';
+  if (r.compare(0,3,"ASP")==0) return 'D';
+  if (r.compare(0,3,"ASH")==0) return 'D'; // Protonated ASP
+  if (r.compare(0,3,"CYS")==0) return 'C';
+  if (r.compare(0,3,"CYM")==0) return 'C'; // Deprotonated CYS
+  if (r.compare(0,3,"GLN")==0) return 'Q';
+  if (r.compare(0,3,"GLU")==0) return 'E';
+  if (r.compare(0,3,"GLH")==0) return 'E'; // Protonated GLU
+  if (r.compare(0,3,"GLY")==0) return 'G';
+  if (r.compare(0,3,"HIS")==0) return 'H';
+  if (r.compare(0,3,"HIE")==0) return 'H'; // NE-protonated (HIS)
+  if (r.compare(0,3,"HID")==0) return 'H'; // ND-protonated
+  if (r.compare(0,3,"HIP")==0) return 'H'; // NE/ND protonated
+  if (r.compare(0,3,"ILE")==0) return 'I';
+  if (r.compare(0,3,"LEU")==0) return 'L';
+  if (r.compare(0,3,"LYS")==0) return 'K';
+  if (r.compare(0,3,"LYN")==0) return 'K'; // Deprotonated (neutral) LYS 
+  if (r.compare(0,3,"MET")==0) return 'M';
+  if (r.compare(0,3,"PHE")==0) return 'F';
+  if (r.compare(0,3,"PRO")==0) return 'P';
+  if (r.compare(0,3,"SER")==0) return 'S';
+  if (r.compare(0,3,"THR")==0) return 'T';
+  if (r.compare(0,3,"TRP")==0) return 'W';
+  if (r.compare(0,3,"TYR")==0) return 'R';
+  if (r.compare(0,3,"VAL")==0) return 'V';
+  // Make lower case letter when unrecognized.
+  if (!r.empty()) return tolower(r[0]);
+  return ' ';
 }
 
 // Action_DSSP::print()
@@ -449,5 +463,45 @@ void Action_DSSP::Print() {
       dsspData_[ss]->Add(idx, &avg);
     }
     ++idx;
+  }
+
+  // Print out SS assignment like PDB
+  if (!assignout_.empty()) {
+    CpptrajFile outfile;
+    if (outfile.OpenEnsembleWrite(assignout_, ensembleNum_) == 0) {
+      static const char dssp_char[7] = {' ', 'E', 'B', 'G', 'H', 'I', 'T' };
+      int total = 0;
+      int startRes = -1;
+      std::string resLine, ssLine;
+      for (int resi = min_res; resi < max_res+1; resi++) {
+        if (startRes == -1) startRes = resi;
+        // Convert residue name.
+        resLine += ConvertResName( SecStruct_[resi].resDataSet->Legend() );
+        // Figure out which SS element is dominant for res if selected
+        if (SecStruct_[resi].isSelected) {
+          int dominantType = 0;
+          int ssmax = 0;
+          for (int ss = 0; ss < 7; ss++) {
+            if ( SecStruct_[resi].SSprob[ss] > ssmax ) {
+              ssmax = SecStruct_[resi].SSprob[ss];
+              dominantType = ss;
+            }
+          }
+          ssLine += dssp_char[dominantType];
+        } else
+          ssLine += '-';
+        total++;
+        if ((total % 50) == 0 || resi == max_res) {
+          outfile.Printf("%-8i %s\n", startRes+1, resLine.c_str());
+          outfile.Printf("%8s %s\n\n", " ", ssLine.c_str());
+          startRes = -1;
+          resLine.clear();
+          ssLine.clear();
+        } else if ((total % 10) == 0) {
+          resLine += ' '; 
+          ssLine += ' ';
+        }
+      }
+    }
   }
 }
