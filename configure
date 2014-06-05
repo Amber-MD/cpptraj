@@ -21,6 +21,7 @@ Usage() {
   echo ""
   echo "  Library linking options:"
   echo "    --with-netcdf=<DIR>"
+  echo "    --with-pnetcdf=<DIR>"
   echo "    --with-zlib=<DIR>"
   echo "    --with-bzlib=<DIR>"
   echo "    --with-blas=<DIR>"
@@ -220,6 +221,7 @@ INCLUDE=""
 LDFLAGS=""
 STATIC=0
 NETCDF_HOME=""
+PNETCDF_HOME=""
 BZLIB_HOME=""
 ZLIB_HOME=""
 BLAS_HOME=""
@@ -227,6 +229,7 @@ LAPACK_HOME=""
 ARPACK_HOME=""
 READLINE_HOME="readline"
 NETCDFLIB="-lnetcdf"
+PNETCDFLIB=""
 BZLIB="-lbz2"
 ZLIB="-lz"
 BLAS="-lblas"
@@ -387,6 +390,11 @@ while [[ ! -z $1 ]] ; do
       NETCDF_HOME="$VALUE"
       echo "Using NETCDF in $NETCDF_HOME"
       ;;
+    "--with-pnetcdf" )
+      PNETCDF_HOME="$VALUE"
+      PNETCDFLIB="-lpnetcdf"
+      echo "Using parallel NETCDF in $PNETCDF_HOME"
+      ;;
     "--with-blas" )
       INCLUDE="$INCLUDE -I$VALUE/include"
       BLAS_HOME="$VALUE"
@@ -440,6 +448,17 @@ if [[ ! -z $NETCDFLIB ]] ; then
   NETCDFLIB="$NETCDFLIB $HDF5LIB"
 fi
 
+# Only use parallel NETCDF with MPI
+if [[ ! -z $PNETCDFLIB ]] ; then
+  if [[ $USEMPI -eq 0 ]] ; then
+    echo "Warning: Parallel NETCDF only supported with '-mpi'"
+    PNETCDFLIB=""
+    PNETCDFHOME=""
+  else
+    INCLUDE="$INCLUDE -I$VALUE/include"
+  fi
+fi
+
 # Add directives
 if [[ ! -z $BZLIB ]] ; then
   DIRECTIVES="$DIRECTIVES -DHASBZ2"
@@ -449,6 +468,9 @@ if [[ ! -z $ZLIB ]] ; then
 fi
 if [[ ! -z $NETCDFLIB ]] ; then
   DIRECTIVES="$DIRECTIVES -DBINTRAJ"
+fi
+if [[ ! -z $PNETCDFLIB ]] ; then
+  DIRECTIVES="$DIRECTIVES -DHAS_PNETCDF"
 fi
 
 # Use libraries in AMBERHOME for stuff thats undefined 
@@ -489,6 +511,9 @@ if [[ $STATIC -eq 1 ]] ; then
   if [[ ! -z $ZLIB_HOME && ! -z $ZLIB ]] ; then
     ZLIB="$ZLIB_HOME/lib/libz.a"
   fi
+  if [[ ! -z $PNETCDF_HOME && ! -z $PNETCDFLIB ]] ; then
+    PNETCDFLIB="$PNETCDF_HOME/lib/libpnetcdf.a"
+  fi
 else
   # Dynamic linking
   if [[ ! -z $BLAS_HOME && ! -z $BLAS ]] ; then
@@ -508,6 +533,9 @@ else
   fi
   if [[ ! -z $ZLIB_HOME && ! -z $ZLIB ]] ; then
     ZLIB="-L$ZLIB_HOME/lib $ZLIB"
+  fi
+  if [[ ! -z $PNETCDF_HOME && ! -z $PNETCDFLIB ]] ; then
+    PNETCDFLIB="-L$PNETCDF_HOME $PNETCDFLIB"
   fi
 fi
 
@@ -536,7 +564,7 @@ if [[ $USEMKL -eq 1 ]] ; then
 fi
 
 # Set up linking flags
-LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $BZLIB $ZLIB $FLIBS"
+LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $FLIBS"
 
 # Add options for Timer
 if [[ $USETIMER -eq 1 ]] ; then
