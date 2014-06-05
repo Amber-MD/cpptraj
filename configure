@@ -453,9 +453,9 @@ if [[ ! -z $PNETCDFLIB ]] ; then
   if [[ $USEMPI -eq 0 ]] ; then
     echo "Warning: Parallel NETCDF only supported with '-mpi'"
     PNETCDFLIB=""
-    PNETCDFHOME=""
+    PNETCDF_HOME=""
   else
-    INCLUDE="$INCLUDE -I$VALUE/include"
+    INCLUDE="$INCLUDE -I$PNETCDF_HOME/include"
   fi
 fi
 
@@ -535,7 +535,7 @@ else
     ZLIB="-L$ZLIB_HOME/lib $ZLIB"
   fi
   if [[ ! -z $PNETCDF_HOME && ! -z $PNETCDFLIB ]] ; then
-    PNETCDFLIB="-L$PNETCDF_HOME $PNETCDFLIB"
+    PNETCDFLIB="-L$PNETCDF_HOME/lib $PNETCDFLIB"
   fi
 fi
 
