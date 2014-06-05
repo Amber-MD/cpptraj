@@ -14,31 +14,30 @@ class Trajin_Multi : public Trajin {
   public:
     Trajin_Multi();
     ~Trajin_Multi();
-
+    // ----- Inherited functions -----------------
     int SetupTrajRead(std::string const&, ArgList&, Topology*);
+    int ReadTrajFrame( int, Frame& );
     int BeginTraj(bool);
     void EndTraj();
-    int ReadTrajFrame( int, Frame& );
     void PrintInfo(int) const;
     bool HasVelocity()      const { return hasVelocity_; }
     ReplicaDimArray const& TrajReplicaDimInfo() const { return trajRepDimInfo_; }
     int EnsembleSize()      const { return (int)REMDtraj_.size(); }
-
     void EnsembleInfo() const;
     int EnsembleSetup( FrameArray&, FramePtrArray& );
     /// \return 1 if more frames to read, 0 if finished
     int GetNextEnsemble( FrameArray&, FramePtrArray& );
-#   ifdef MPI
-#   ifdef TIMER
-    double MPI_AllgatherTime()       const { return mpi_allgather_timer_.Total(); }
-    double MPI_SendRecvTime()        const { return mpi_sendrecv_timer_.Total();  }
-#   endif
-#   endif
     bool BadEnsemble()               const { return badEnsemble_;          }
+    // -------------------------------------------
     // CRDIDXARG: NOTE: This is public for CRDIDX in TrajinList
     enum TargetType { NONE = 0, TEMP, INDICES, CRDIDX };
     TargetType TargetMode()          const { return targetType_;           }
     std::string FinalCrdIndices()    const;
+#   ifdef MPI
+#   ifdef TIMER
+    static void TimingData() const;
+#   endif
+#   endif
   private:
     /// Define type that will hold REMD indices
     typedef Frame::RemdIdxType RemdIdxType;
@@ -68,6 +67,8 @@ class Trajin_Multi : public Trajin {
 #   ifdef TIMER
     Timer mpi_allgather_timer_;
     Timer mpi_sendrecv_timer_;
+    static double total_mpi_allgather_;
+    static double total_mpi_sendrecv_;
 #   endif
 #   endif
     DataSet_RemLog remlogData_; ///< For sorting by CRDIDX from remlog.

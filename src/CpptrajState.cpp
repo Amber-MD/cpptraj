@@ -297,10 +297,6 @@ int CpptrajState::RunEnsemble() {
   Timer setup_time;
   Timer actions_time;
   Timer trajout_time;
-# ifdef MPI
-  double mpiallgather = 0.0;
-  double mpisendrecv = 0.0;
-# endif
 # endif
   Timer frames_time;
   frames_time.Start();
@@ -423,12 +419,6 @@ int CpptrajState::RunEnsemble() {
 
     // Close the trajectory file
     (*traj)->EndTraj();
-#   ifdef MPI
-#   ifdef TIMER
-    mpiallgather += (*traj)->MPI_AllgatherTime();
-    mpisendrecv  += (*traj)->MPI_SendRecvTime();
-#   endif
-#   endif
     // Update how many frames have been processed.
     readSets += (*traj)->NumFramesProcessed();
     mprintf("\n");
@@ -440,15 +430,12 @@ int CpptrajState::RunEnsemble() {
           (double)readSets / frames_time.Total());
 # ifdef TIMER
   trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time.Total());
-# ifdef MPI
-  rprintf("MPI_TIME:\tallgather: %.4f s (%.2f%%), sendrecv: %.4f s (%.2f%%), Other:  %.4f s\n",
-          mpiallgather, (mpiallgather / trajin_time.Total())*100.0,
-          mpisendrecv,  (mpisendrecv / trajin_time.Total())*100.0,
-          trajin_time.Total() - mpiallgather - mpisendrecv);
-# endif
   setup_time.WriteTiming(1,   "Action setup:           ", frames_time.Total());
   actions_time.WriteTiming(1, "Action frame processing:", frames_time.Total());
   trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time.Total());
+# ifdef MPI
+  Trajin_Multi::TimingData(trajin_time.Total());
+# endif
 # endif
 
   // Close output trajectories

@@ -5,6 +5,10 @@
 #include "DataFile.h" // For CRDIDX
 #ifdef MPI
 #  include "MpiRoutines.h"
+#  ifdef TIMER
+double Trajin_Multi::total_mpi_allgather_ = 0.0;
+double Trajin_Multi::total_mpi_sendrecv_ = 0.0;
+#  endif
 #endif
 
 // CONSTRUCTOR
@@ -392,15 +396,33 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
 void Trajin_Multi::EndTraj() {
   if (replicasAreOpen_) {
 #   ifdef MPI
-    if (IsEnsemble())
+    if (IsEnsemble()) {
       REMDtraj_[worldrank]->closeTraj();
-    else
+#     ifdef TIMER
+      total_mpi_allgather_ += mpi_allgather_timer_.Total();
+      total_mpi_sendrecv_  += mpi_sendrecv_timer_.Total();
+#     endif
+    } else
 #   endif 
       for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
         (*replica)->closeTraj();
     replicasAreOpen_ = false;
   }
 }
+
+#ifdef MPI
+#ifdef TIMER
+// Trajin_Multi::TimingData()
+void Trajin_Multi::TimingData(double trajin_time) const {
+  if (total_mpi_allgather_ > 0.0 || total_mpi_sendrecv_ > 0.0) {
+    rprintf("MPI_TIME:\tallgather: %.4f s (%.2f%%), sendrecv: %.4f s (%.2f%%), Other:  %.4f s\n",
+            total_mpi_allgather_, (total_mpi_allgather_ / trajin_time)*100.0,
+            total_mpi_sendrecv_,  (total_mpi_sendrecv_  / trajin_time)*100.0,
+            trajin_time - total_mpi_allgather_ - total_mpi_sendrecv_);
+  }
+}
+#endif
+#endif
 
 // Trajin_Multi::IsTarget()
 /** Determine if given frame is target. ReadTrajFrame (i.e. non-ensemble) only.

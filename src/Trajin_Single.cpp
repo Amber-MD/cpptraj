@@ -58,6 +58,8 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
     if (CheckBoxInfo(tparmIn->c_str(), parmBox, trajio_->TrajBox())) return 1;
     tparmIn->SetBox( parmBox );
   }
+  // Set replica dimension info
+  trajRepDimInfo_ = trajio_->ReplicaDimensions();
   // Check if a separate mdvel file will be read
   if (argIn.Contains("mdvel")) {
     std::string mdvelname = argIn.GetStringKey("mdvel");
@@ -145,14 +147,4 @@ bool Trajin_Single::HasVelocity() const {
       return true;
   }
   return false;
-}
-
-const ReplicaDimArray Trajin_Single::emptyReplicaDimArray_ = 
-  ReplicaDimArray();
-
-ReplicaDimArray const& Trajin_Single::TrajReplicaDimInfo() const {
-  if (trajio_!=0) 
-    return trajio_->ReplicaDimensions();
-  else
-    return emptyReplicaDimArray_;
 }

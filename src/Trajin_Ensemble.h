@@ -20,13 +20,7 @@ class Trajin_Ensemble : public Trajin {
     void EnsembleInfo() const;
     int EnsembleSetup(FrameArray&, FramePtrArray&);
     int GetNextEnsemble(FrameArray&, FramePtrArray&);
-#   ifdef MPI
-#   ifdef TIMER
-    double MPI_AllgatherTime() const = 0;
-    double MPI_SendRecvTime() const = 0;
-#   endif
-#   endif
-    bool  BadEnsemble() const { return badEnsemble_; }
+    bool BadEnsemble() const { return badEnsemble_; }
     // -------------------------------------------
   private:
     typedef Frame::RemdIdxType RemdIdxType;

@@ -19,12 +19,6 @@ class Trajin : public TrajectoryFile {
     virtual void EnsembleInfo() const = 0;
     virtual int EnsembleSetup(FrameArray&, FramePtrArray&) = 0;
     virtual int GetNextEnsemble(FrameArray&, FramePtrArray&) = 0;
-#   ifdef MPI
-#   ifdef TIMER
-    virtual double MPI_AllgatherTime() const = 0;
-    virtual double MPI_SendRecvTime() const = 0;
-#   endif
-#   endif
     virtual bool  BadEnsemble() const = 0;
 
     static int CheckFrameArgs(ArgList&, int, int&, int&, int&);
