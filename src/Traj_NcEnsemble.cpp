@@ -2,11 +2,16 @@
 #include "netcdf.h"
 #include "Traj_NcEnsemble.h"
 #include "CpptrajStdio.h"
+#ifdef MPI
+# include "MpiRoutines.h"
+#endif
 
 // CONSTRUCTOR
 Traj_NcEnsemble::Traj_NcEnsemble() : 
   Coord_(0),
   ensembleSize_(0),
+  ensembleStart_(0),
+  ensembleEnd_(0),
   readAccess_(false),
   useVelAsCoords_(false)
 {}
@@ -57,9 +62,23 @@ int Traj_NcEnsemble::openTrajin() {
 // Traj_NcEnsemble::closeTraj()
 void Traj_NcEnsemble::closeTraj() { NC_close(); }
 
+#ifdef MPI
+static int NoPnetcdf() {
+# ifndef HAS_PNETCDF
+  mprinterr("Error: Compiled without pnetcdf. Netcdf Ensemble requires pnetcdf in parallel.\n");
+  return 1;
+# else
+  return 0;
+# endif
+}
+#endif
+
 // Traj_NcEnsemble::setupTrajin()
 int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
 {
+# ifdef MPI
+  if (NoPnetcdf()) return TRAJIN_ERR;
+# endif
   if (filename_.SetFileNameWithExpansion( fname )) return TRAJIN_ERR;
   if (openTrajin()) return TRAJIN_ERR;
   readAccess_ = true;
@@ -84,6 +103,14 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
     mprinterr("Error: Could not get ensemble dimension info.\n");
     return TRAJIN_ERR;
   }
+  // Set up local ensemble parameters
+# ifdef MPI
+  ensembleStart_ = worldrank;
+  ensembleEnd_ = worldrank + 1;
+# else
+  ensembleStart_ = 0;
+  ensembleEnd_ = ensembleSize_;
+# endif
   // Setup Coordinates/Velocities
   if ( SetupCoordsVelo( useVelAsCoords_ )!=0 ) return TRAJIN_ERR;
   SetVelocity( HasVelocities() );
@@ -120,21 +147,45 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
 int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
                                   int NframesToWrite, bool append)
 {
+# ifdef MPI
+  if (NoPnetcdf()) return 1;
+# endif
   readAccess_ = false;
   if (!append) {
     ensembleSize_ = trajParm->EnsembleSize();
+#   ifdef MPI
+    ensembleStart_ = worldrank;
+    ensembleEnd_ = worldrank + 1;
+#   else
+    ensembleStart_ = 0;
+    ensembleEnd_ = ensembleSize_;
+#   endif
     filename_.SetFileName( fname );
     // Set up title
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
-    // Create NetCDF file. TODO: Add option to set up replica indices.
-    if ( NC_create( filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(), HasV(),
-                    false, HasBox(), HasT(), true, trajParm->ParmReplicaDimInfo(),
-                    ensembleSize_, Title() ) )
-      return 1;
-    if (debug_>1) NetcdfDebug();
-    // Close Netcdf file. It will be reopened write.
-    NC_close();
+    int err = 0;
+#   ifdef MPI
+    if (worldrank == 0) { // Only master creates file.
+#   endif
+      // Create NetCDF file.
+      err = NC_create( filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(), HasV(),
+                       false, HasBox(), HasT(), true, trajParm->ParmReplicaDimInfo(),
+                       ensembleSize_, Title() );
+      if (debug_ > 1 && err == 0) NetcdfDebug();
+      // Close Netcdf file. It will be reopened write.
+      NC_close();
+#   ifdef MPI
+    }
+    parallel_bcastMaster(&err, 1, PARA_INT);
+#   endif
+    if (err != 0) return 1;
+#   ifdef MPI
+    // Ncatom3 etc not yet set for non-master
+    if (worldrank != 0) {
+      setupTrajin(filename_.Full(), trajParm);
+    }
+#   endif
     // Allocate memory
     if (Coord_!=0) delete[] Coord_;
     Coord_ = new float[ Ncatom3() ];
@@ -177,8 +228,12 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
   count_[0] = 1;        // Frame
   count_[1] = 1;        // Ensemble
   count_[3] = 3;        // XYZ
-  for (int member = 0; member != ensembleSize_; member++) {
+  for (int member = ensembleStart_; member != ensembleEnd_; member++) {
+#   ifdef MPI
+    Frame& frm = f_ensemble[0];
+#   else
     Frame& frm = f_ensemble[member];
+#   endif
     start_[1] = member;   // Ensemble
     count_[2] = Ncatom(); // Atoms
     // Read Coords
@@ -246,8 +301,13 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
   count_[0] = 1; // Frame
   count_[1] = 1; // Ensemble
   count_[3] = 3; // XYZ
-  for (int member = 0; member != ensembleSize_; member++) {
+  for (int member = ensembleStart_; member != ensembleEnd_; member++) {
+    rprintf("DEBUG: Writing set %i, member %i\n", set+1, member); 
+#   ifdef MPI
+    Frame* frm = Farray[0];
+#   else
     Frame* frm = Farray[member];
+#   endif
     start_[1] = member;   // Ensemble
     count_[2] = Ncatom(); // Atoms
     // Write Coords

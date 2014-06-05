@@ -70,6 +70,7 @@ int parallel_allreduce(void*, void*, int, parallelDataType, parallelOpType);
 int parallel_allgather(void*, int, parallelDataType, void*, int, parallelDataType);
 int parallel_send(void*, int, parallelDataType, int, int);
 int parallel_recv(void*, int, parallelDataType, int, int);
+int parallel_bcastMaster(void*, int, parallelDataType);
 #ifdef __cplusplus
 }
 #endif

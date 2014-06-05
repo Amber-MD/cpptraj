@@ -31,6 +31,8 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     float *Coord_;
     FileName filename_;
     int ensembleSize_;
+    int ensembleStart_;
+    int ensembleEnd_;
     bool readAccess_;
     bool useVelAsCoords_;
 };
