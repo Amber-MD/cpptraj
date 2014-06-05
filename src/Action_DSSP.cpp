@@ -10,10 +10,8 @@ const double Action_DSSP::DSSP_fac = 27.888;
 Action_DSSP::Action_DSSP() :
   debug_(0),
   outfile_(0),
-  dssp_(0), 
   Nres_(0),
   Nframe_(0),
-  SSline_(0),
   printString_(false),
   masterDSL_(0),
   BB_N("N"),
@@ -30,13 +28,7 @@ void Action_DSSP::Help() {
           "  If sumout not specified, the filename specified by out is used with .sum suffix.\n");
 }
 
-// DESTRUCTOR
-Action_DSSP::~Action_DSSP() {
-//  debugout.CloseFile(); // DEBUG
-  if (SSline_!=0) delete[] SSline_;
-}
-
-const char Action_DSSP::SSchar[]={ '0', 'b', 'B', 'G', 'H', 'I', 'T' };
+const char* Action_DSSP::SSchar[]={ "0", "b", "B", "G", "H", "I", "T" };
 const char* Action_DSSP::SSname[]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn"};
 
 // Action_DSSP::init()
@@ -55,7 +47,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   if (temp.empty() && outfile_ != 0) 
     temp = outfile_->DataFilename().Full() + ".sum";
   dsspFile_ = DFL->AddDataFile( temp );
-  if (actionArgs.hasKey("ptrajformat")) printString_=true;
+  printString_ = actionArgs.hasKey("ptrajformat");
   temp = actionArgs.GetStringKey("namen");
   if (!temp.empty()) BB_N = temp;
   temp = actionArgs.GetStringKey("nameh");
@@ -69,16 +61,9 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 
   // Set up the DSSP data set
   dsetname_ = actionArgs.GetStringNext();
-  if (printString_) {
-    dssp_ = DSL->AddSet(DataSet::STRING, dsetname_, "DSSP");
-    if (dssp_==0) return Action::ERR;
-    dsetname_ = dssp_->Name();
-    if (outfile_ != 0) outfile_->AddSet( dssp_ );
-  } else {
-    // If not string output set up Z labels
-    if (outfile_ != 0)
-      outfile_->ProcessArgs("zlabels None,Para,Anti,3-10,Alpha,Pi,Turn");
-  }
+  // Set up Z labels
+  if (outfile_ != 0)
+    outfile_->ProcessArgs("zlabels None,Para,Anti,3-10,Alpha,Pi,Turn");
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
   if (outfile_ != 0) 
@@ -191,16 +176,22 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
       }
     }
     // Set up dataset if necessary 
-    if (!printString_ && SecStruct_[res].isSelected && SecStruct_[res].resDataSet==0) {
+    if (SecStruct_[res].isSelected && SecStruct_[res].resDataSet==0) {
       // Set default name if none specified
       if (dsetname_.empty()) dsetname_=masterDSL_->GenerateDefaultName("DSSP");
-      // Setup dataset name for this residue
-      SecStruct_[res].resDataSet = masterDSL_->AddSetIdxAspect( DataSet::INTEGER, dsetname_,
-                                                                res+1, "res");
-      if (SecStruct_[res].resDataSet!=0) {
-        if (outfile_ != 0) outfile_->AddSet(SecStruct_[res].resDataSet);
-        SecStruct_[res].resDataSet->SetLegend( currentParm->TruncResNameNum(res) );
+      // Setup dataset for this residue
+      if (printString_)
+        SecStruct_[res].resDataSet =
+          masterDSL_->AddSetIdxAspect( DataSet::STRING, dsetname_, res+1, "res");
+      else
+        SecStruct_[res].resDataSet = 
+          masterDSL_->AddSetIdxAspect( DataSet::INTEGER, dsetname_, res+1, "res");
+      if (SecStruct_[res].resDataSet == 0) {
+        mprinterr("Error: Could not allocate DSSP data set for residue %i\n", res+1);
+        return Action::ERR;
       }
+      if (outfile_ != 0) outfile_->AddSet(SecStruct_[res].resDataSet);
+      SecStruct_[res].resDataSet->SetLegend( currentParm->TruncResNameNum(res) );
     }
     ++selected;
   }
@@ -217,13 +208,6 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
 
   // Count number of selected residues
   mprintf("\tMask [%s] corresponds to %i residues.\n",Mask_.MaskString(),selected);
-
-  // Set up output buffer to hold string
-  if (printString_) {
-    if (SSline_!=0) delete[] SSline_;
-    SSline_ = new char[ (2*selected) + 1 ];
-    SSline_[(2*selected)]='\0';
-  }
 
   // DEBUG - Print atom nums for each residue set up
 //  for (res=0; res < Nres_; res++) {
@@ -382,23 +366,14 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
   // Store data for each residue 
   //fprintf(stdout,"%10i ",frameNum);
   // String data set
-  if (printString_) {
-    resj = 0;
-    for (resi=0; resi < Nres_; resi++) {
-      if (!SecStruct_[resi].isSelected) continue;
-      SecStruct_[resi].SSprob[SecStruct_[resi].sstype]++;
-      SSline_[resj++] = SSchar[SecStruct_[resi].sstype];
-      SSline_[resj++] = ' ';
-    }
-    dssp_->Add(frameNum, SSline_);
-  // Integer data sets
-  } else {
-    for (resi=0; resi < Nres_; resi++) {
-      if (!SecStruct_[resi].isSelected) continue;
-      //fprintf(stdout,"%c",SSchar[SecStruct_[resi].sstype]);
-      SecStruct_[resi].SSprob[SecStruct_[resi].sstype]++;
+  for (resi=0; resi < Nres_; resi++) {
+    if (!SecStruct_[resi].isSelected) continue;
+    //fprintf(stdout,"%c",SSchar[SecStruct_[resi].sstype]);
+    SecStruct_[resi].SSprob[SecStruct_[resi].sstype]++;
+    if (printString_)
+      SecStruct_[resi].resDataSet->Add(frameNum, SSchar[SecStruct_[resi].sstype]); 
+    else
       SecStruct_[resi].resDataSet->Add(frameNum, &(SecStruct_[resi].sstype));
-    }
   }
   //fprintf(stdout,"\n");
   ++Nframe_;

@@ -8,7 +8,6 @@ class Action_DSSP : public Action {
     Action_DSSP();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_DSSP(); }
     static void Help();
-    ~Action_DSSP();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
@@ -17,11 +16,11 @@ class Action_DSSP : public Action {
     void Print();
     // Enum and static vars
     enum SStype { 
-      SECSTRUCT_NULL, SECSTRUCT_PARA, SECSTRUCT_ANTI, SECSTRUCT_3_10, 
-      SECSTRUCT_ALPHA, SECSTRUCT_PI, SECSTRUCT_TURN 
+      SECSTRUCT_NULL=0, SECSTRUCT_PARA, SECSTRUCT_ANTI, SECSTRUCT_3_10, 
+      SECSTRUCT_ALPHA,  SECSTRUCT_PI,   SECSTRUCT_TURN 
     };
     static const double DSSP_fac;
-    static const char SSchar[];
+    static const char* SSchar[];
     static const char* SSname[];
     /// Hold SS-related data for each residue
     struct Residue {
@@ -40,12 +39,10 @@ class Action_DSSP : public Action {
     int debug_;
     DataFile* outfile_;       ///< Output Data file
     DataFile* dsspFile_;      ///< Sum output file
-    DataSet* dssp_;           ///< If printString, hold the string dataset
     std::string dsetname_;    ///< DSSP data set name
     AtomMask Mask_;           ///< Mask used to determine selected residues
     int Nres_;                ///< Current total # of residues
     int Nframe_;              ///< # of frames, for calculating SS avg.
-    char *SSline_;            ///< Hold SS propensity for frame, each char represents a residue
     bool printString_;        ///< If true print 1 char per residue indicating ss type
     // TODO: Replace these with new type of DataSet
     DataSetList* masterDSL_;
