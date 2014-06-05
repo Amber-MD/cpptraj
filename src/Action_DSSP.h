@@ -36,10 +36,12 @@ class Action_DSSP : public Action {
     };
     std::vector<Residue> SecStruct_; ///< Hold SS-related data for all residues
     // Class variables
+    int ensembleNum_;
     int debug_;
     DataFile* outfile_;       ///< Output Data file
     DataFile* dsspFile_;      ///< Sum output file
     std::string dsetname_;    ///< DSSP data set name
+    std::string assignout_;   ///< Assignment output file.
     AtomMask Mask_;           ///< Mask used to determine selected residues
     int Nres_;                ///< Current total # of residues
     int Nframe_;              ///< # of frames, for calculating SS avg.
