@@ -4,6 +4,12 @@
 #include "CpptrajStdio.h"
 #ifdef MPI
 # include "MpiRoutines.h"
+  // MPI cannot be defined for C++ when including mpi.h since it is reserved for the MPI namespace
+# undef MPI
+# define USE_MPI
+# ifdef HAS_PNETCDF
+#   include "pnetcdf.h"
+# endif
 #endif
 
 // CONSTRUCTOR
@@ -60,9 +66,18 @@ int Traj_NcEnsemble::openTrajin() {
 }
 
 // Traj_NcEnsemble::closeTraj()
-void Traj_NcEnsemble::closeTraj() { NC_close(); }
+void Traj_NcEnsemble::closeTraj() {
+# ifdef HAS_PNETCDF
+  rprintf("Ready to close.\n");
+  //parallel_barrier();
+  ncmpi_close( ncid_ ); 
+  rprintf("File is closed.\n");
+# else 
+  NC_close();
+# endif
+}
 
-#ifdef MPI
+#ifdef USE_MPI
 static int NoPnetcdf() {
 # ifndef HAS_PNETCDF
   mprinterr("Error: Compiled without pnetcdf. Netcdf Ensemble requires pnetcdf in parallel.\n");
@@ -76,12 +91,12 @@ static int NoPnetcdf() {
 // Traj_NcEnsemble::setupTrajin()
 int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
 {
-# ifdef MPI
+# ifdef USE_MPI
   if (NoPnetcdf()) return TRAJIN_ERR;
 # endif
+  readAccess_ = true;
   if (filename_.SetFileNameWithExpansion( fname )) return TRAJIN_ERR;
   if (openTrajin()) return TRAJIN_ERR;
-  readAccess_ = true;
   // Sanity check - Make sure this is a Netcdf ensemble trajectory
   if ( GetNetcdfConventions() != NC_AMBERENSEMBLE ) {
     mprinterr("Error: Netcdf file %s conventions do not include \"AMBERENSEMBLE\"\n",
@@ -103,14 +118,6 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
     mprinterr("Error: Could not get ensemble dimension info.\n");
     return TRAJIN_ERR;
   }
-  // Set up local ensemble parameters
-# ifdef MPI
-  ensembleStart_ = worldrank;
-  ensembleEnd_ = worldrank + 1;
-# else
-  ensembleStart_ = 0;
-  ensembleEnd_ = ensembleSize_;
-# endif
   // Setup Coordinates/Velocities
   if ( SetupCoordsVelo( useVelAsCoords_ )!=0 ) return TRAJIN_ERR;
   SetVelocity( HasVelocities() );
@@ -135,11 +142,19 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
   ReplicaDimArray remdDim;
   if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
   SetReplicaDims( remdDim );
+  if (debug_>1) NetcdfDebug();
+  closeTraj();
+  // Set up local ensemble parameters
+# ifdef USE_MPI
+  ensembleStart_ = worldrank;
+  ensembleEnd_ = worldrank + 1;
+# else
+  ensembleStart_ = 0;
+  ensembleEnd_ = ensembleSize_;
+# endif
   // Allocate float array
   if (Coord_ != 0) delete[] Coord_;
   Coord_ = new float[ Ncatom3() ];
-  if (debug_>1) NetcdfDebug();
-  closeTraj();
   return Ncframe();
 }
 
@@ -147,13 +162,14 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
 int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
                                   int NframesToWrite, bool append)
 {
-# ifdef MPI
+  int err = 0;
+# ifdef USE_MPI
   if (NoPnetcdf()) return 1;
 # endif
   readAccess_ = false;
   if (!append) {
     ensembleSize_ = trajParm->EnsembleSize();
-#   ifdef MPI
+#   ifdef USE_MPI
     ensembleStart_ = worldrank;
     ensembleEnd_ = worldrank + 1;
 #   else
@@ -164,8 +180,7 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
     // Set up title
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
-    int err = 0;
-#   ifdef MPI
+#   ifdef USE_MPI
     if (worldrank == 0) { // Only master creates file.
 #   endif
       // Create NetCDF file.
@@ -175,16 +190,18 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
       if (debug_ > 1 && err == 0) NetcdfDebug();
       // Close Netcdf file. It will be reopened write.
       NC_close();
-#   ifdef MPI
+#   ifdef USE_MPI
     }
     parallel_bcastMaster(&err, 1, PARA_INT);
 #   endif
     if (err != 0) return 1;
-#   ifdef MPI
-    // Ncatom3 etc not yet set for non-master
-    if (worldrank != 0) {
-      setupTrajin(filename_.Full(), trajParm);
-    }
+#   ifdef USE_MPI
+    // Synchronize netcdf info on non-master threads
+    Sync();
+    // DEBUG: Print info for all ranks
+    rprintf("TempVID_=%i  coordVID_=%i  velocityVID_=%i  cellAngleVID_=%i"
+            "  cellLengthVID_=%i  indicesVID_=%i\n",
+            TempVID_, coordVID_, velocityVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
 #   endif
     // Allocate memory
     if (Coord_!=0) delete[] Coord_;
@@ -197,7 +214,13 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
       mprintf("\tNetCDF: Appending %s starting at frame %i\n", filename_.base(), Ncframe());
   }
   // Open file
-  if ( NC_openWrite( filename_.Full() ) != 0 ) {
+# ifdef HAS_PNETCDF
+  err = ncmpi_open(MPI_COMM_WORLD, filename_.full(), NC_WRITE, MPI_INFO_NULL, &ncid_);
+  // TODO: Graceful error handling
+# else
+  err = NC_openWrite( filename_.Full();
+# endif  
+  if ( err != 0 ) {
     mprinterr("Error: Opening Netcdf file %s for Write.\n", filename_.base());
     return 1;
   }
@@ -229,7 +252,7 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
   count_[1] = 1;        // Ensemble
   count_[3] = 3;        // XYZ
   for (int member = ensembleStart_; member != ensembleEnd_; member++) {
-#   ifdef MPI
+#   ifdef USE_MPI
     Frame& frm = f_ensemble[0];
 #   else
     Frame& frm = f_ensemble[member];
@@ -237,7 +260,11 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     start_[1] = member;   // Ensemble
     count_[2] = Ncatom(); // Atoms
     // Read Coords
+//#   ifdef HAS_PNETCDF
+//    if (ncmpi_get_vara_float_all(ncid_, coordVID_, start_, count_, Coord_))
+//#   else
     if (checkNCerr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
+//#   endif
     {
       mprinterr("Error: Getting coordinates for frame %i\n", set+1);
       return 1;
@@ -295,6 +322,12 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 
 // Traj_NcEnsemble::writeArray()
 int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
+# ifdef HAS_PNETCDF
+  MPI_Offset pstart_[4];
+  MPI_Offset pcount_[4];
+# define start_ pstart_
+# define count_ pcount_
+# endif
   start_[0] = ncframe_; // Frame
   start_[2] = 0;        // Atoms
   start_[3] = 0;        // XYZ
@@ -303,7 +336,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
   count_[3] = 3; // XYZ
   for (int member = ensembleStart_; member != ensembleEnd_; member++) {
     rprintf("DEBUG: Writing set %i, member %i\n", set+1, member); 
-#   ifdef MPI
+#   ifdef USE_MPI
     Frame* frm = Farray[0];
 #   else
     Frame* frm = Farray[member];
@@ -313,7 +346,11 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
     // Write Coords
     //WriteIndices(); // DEBUG
     DoubleToFloat(Coord_, frm->xAddress());
+#   ifdef HAS_PNETCDF
+    if (ncmpi_put_vara_float_all(ncid_, coordVID_, start_, count_, Coord_))
+#   else
     if (checkNCerr(nc_put_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
+#   endif
     {
       mprinterr("Error: Netcdf Writing coords frame %i\n", set+1);
       return 1;
@@ -321,7 +358,11 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
     // Write velocity.
     if (HasV() && frm->HasVelocity()) { // TODO: Determine V beforehand
       DoubleToFloat(Coord_, frm->vAddress());
+#     ifdef HAS_PNETCDF
+      if (ncmpi_put_vara_float_all(ncid_, velocityVID_, start_, count_, Coord_))
+#     else
       if (checkNCerr(nc_put_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) )
+#     endif
       {
         mprinterr("Error: Netcdf writing velocity frame %i\n", set+1);
         return 1;
@@ -330,12 +371,20 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
     // Write box
     if (cellLengthVID_ != -1) {
       count_[2] = 3;
+#     ifdef HAS_PNETCDF
+      if (ncmpi_put_vara_double_all(ncid_,cellLengthVID_,start_,count_,frm->bAddress()))
+#     else
       if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frm->bAddress())) )
+#     endif
       {
         mprinterr("Error: Writing cell lengths frame %i.\n", set+1);
         return 1;
       }
+#     ifdef HAS_PNETCDF
+      if (ncmpi_put_vara_double_all(ncid_,cellAngleVID_,start_,count_,frm->bAddress()+3))
+#     else
       if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frm->bAddress()+3)))
+#     endif
       {
         mprinterr("Error: Writing cell angles frame %i.\n", set+1);
         return 1;
@@ -343,7 +392,11 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
     }
     // Write temperature
     if (TempVID_!=-1) {
+#     ifdef HAS_PNETCDF
+      if (ncmpi_put_vara_double_all(ncid_,TempVID_,start_,count_,frm->tAddress()))
+#     else
       if (checkNCerr(nc_put_vara_double(ncid_,TempVID_,start_,count_,frm->tAddress())))
+#     endif
       {
         mprinterr("Error: Writing temperature frame %i.\n", set+1);
         return 1;
@@ -352,17 +405,28 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
     // Write indices
     if (indicesVID_ != -1) {
       count_[2] = remd_dimension_;
+#     ifdef HAS_PNETCDF
+      if (ncmpi_put_vara_int_all(ncid_,indicesVID_,start_,count_,frm->iAddress()))
+#     else
       if (checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frm->iAddress())))
+#     endif
       {
         mprinterr("Error: Writing indices frame %i.\n", set+1);
         return 1;
       }
     }
   }
-
+# ifdef HAS_PNETCDF
+  ncmpi_sync(ncid_);
+# else
   nc_sync(ncid_); // Necessary after every write??
+# endif
   ++ncframe_;
-
+# ifdef HAS_PNETCDF
+  // DEBUG
+# undef start_
+# undef count_
+# endif
   return 0;
 }
 

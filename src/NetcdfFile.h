@@ -61,6 +61,7 @@ class NetcdfFile {
     int indicesVID_;          ///< Variable ID for replica indices.
 
     bool checkNCerr(int);
+    void Sync();
   private:
     int ncdebug_;
     int ensembleDID_;

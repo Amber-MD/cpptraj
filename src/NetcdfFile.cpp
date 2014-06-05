@@ -5,6 +5,9 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "Version.h"
+#ifdef MPI
+# include "MpiRoutines.h"
+#endif
 
 // NetcdfFile::GetNetcdfConventions()
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
@@ -854,5 +857,33 @@ void NetcdfFile::WriteIndices() const {
   mprintf("DBG: Start={%zu, %zu, %zu, %zu} Count={%zu, %zu, %zu, %zu}\n",
          start_[0], start_[1], start_[2], start_[3],
          count_[0], count_[1], count_[2], count_[3]);
+}
+
+void NetcdfFile::Sync() {
+# ifdef MPI
+  parallel_bcastMaster(&ncframe_, 1, PARA_INT);
+  parallel_bcastMaster(&TempVID_, 1, PARA_INT);
+  parallel_bcastMaster(&coordVID_, 1, PARA_INT);
+  parallel_bcastMaster(&velocityVID_, 1, PARA_INT);
+  parallel_bcastMaster(&frcVID_, 1, PARA_INT);
+  parallel_bcastMaster(&cellAngleVID_, 1, PARA_INT);
+  parallel_bcastMaster(&cellLengthVID_, 1, PARA_INT);
+  parallel_bcastMaster(&timeVID_, 1, PARA_INT);
+  parallel_bcastMaster(&remd_dimension_, 1, PARA_INT);
+  parallel_bcastMaster(&indicesVID_, 1, PARA_INT);
+  parallel_bcastMaster(&ncdebug_, 1, PARA_INT);
+  parallel_bcastMaster(&ensembleDID_, 1, PARA_INT);
+  parallel_bcastMaster(&frameDID_, 1, PARA_INT);
+  parallel_bcastMaster(&atomDID_, 1, PARA_INT);
+  parallel_bcastMaster(&ncatom_, 1, PARA_INT);
+  parallel_bcastMaster(&ncatom3_, 1, PARA_INT);
+  parallel_bcastMaster(&spatialDID_, 1, PARA_INT);
+  parallel_bcastMaster(&labelDID_, 1, PARA_INT);
+  parallel_bcastMaster(&cell_spatialDID_, 1, PARA_INT);
+  parallel_bcastMaster(&cell_angularDID_, 1, PARA_INT);
+  parallel_bcastMaster(&spatialVID_, 1, PARA_INT);
+  parallel_bcastMaster(&cell_spatialVID_, 1, PARA_INT);
+  parallel_bcastMaster(&cell_angularVID_, 1, PARA_INT);
+# endif
 }
 #endif
