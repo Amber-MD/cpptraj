@@ -164,7 +164,7 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
         return 1; // TODO: Better parallel error check
       }
 #     else
-      for (unsigned int i = 0; i != ensembleSize; i++)
+      for (int i = 0; i != ensembleSize_; i++)
         all_temperatures[i] = f_ensemble[i].Temperature();
 #     endif
       if (TemperatureMap_.CreateMap( all_temperatures )) {
@@ -190,7 +190,7 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
                                             ++it, idx_it += trajRepDimInfo_.Ndims())
         it->assign(idx_it, idx_it + trajRepDimInfo_.Ndims());
 #     else
-      for (unsigned int i = 0; i != ensembleSize_; i++)
+      for (int i = 0; i != ensembleSize_; i++)
         indices[i] = f_ensemble[i].RemdIndices();
 #     endif
       if (IndicesMap_.CreateMap( indices )) {
@@ -253,7 +253,7 @@ int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_
   f_sorted[0] = &f_ensemble[ensembleFrameNum];
 # else
   if (targetType_ == ReplicaInfo::TEMP) {
-    for (unsigned int i = 0; i != ensembleSize_; i++) {
+    for (int i = 0; i != ensembleSize_; i++) {
       int fidx = TemperatureMap_.FindIndex( f_ensemble[i].Temperature() );
       if ( fidx == -1 )
         badEnsemble_ = true;
@@ -261,7 +261,7 @@ int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_
         f_sorted[fidx] = &f_ensemble[i];
     }
   } else if (targetType_ == ReplicaInfo::INDICES) {
-    for (unsigned int i = 0; i != ensembleSize_; i++) {
+    for (int i = 0; i != ensembleSize_; i++) {
       int fidx = IndicesMap_.FindIndex( f_ensemble[i].RemdIndices() );
       if (fidx == -1 )
         badEnsemble_ = true;

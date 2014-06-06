@@ -62,7 +62,7 @@ int Traj_NcEnsemble::openTrajin() {
 # if HAS_PNETCDF
   int err = ncmpi_open(MPI_COMM_WORLD, filename_.full(), NC_NOWRITE, MPI_INFO_NULL, &ncid_);
 # else
-  int err = NC_openRead( filename_.Full() )
+  int err = NC_openRead( filename_.Full() );
 # endif
   if ( err != 0 ) {
     mprinterr("Error: Opening Netcdf file %s for reading.\n", filename_.base());
@@ -227,7 +227,7 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
   err = ncmpi_open(MPI_COMM_WORLD, filename_.full(), NC_WRITE, MPI_INFO_NULL, &ncid_);
   // TODO: Graceful error handling
 # else
-  err = NC_openWrite( filename_.Full();
+  err = NC_openWrite( filename_.Full() );
 # endif  
   if ( err != 0 ) {
     mprinterr("Error: Opening Netcdf file %s for Write.\n", filename_.base());
