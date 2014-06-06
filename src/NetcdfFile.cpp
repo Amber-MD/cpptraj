@@ -859,6 +859,12 @@ void NetcdfFile::WriteIndices() const {
          count_[0], count_[1], count_[2], count_[3]);
 }
 
+void NetcdfFile::WriteVIDs() const {
+  rprintf("TempVID_=%i  coordVID_=%i  velocityVID_=%i  cellAngleVID_=%i"
+          "  cellLengthVID_=%i  indicesVID_=%i\n",
+          TempVID_, coordVID_, velocityVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
+}
+
 void NetcdfFile::Sync() {
 # ifdef MPI
   parallel_bcastMaster(&ncframe_, 1, PARA_INT);

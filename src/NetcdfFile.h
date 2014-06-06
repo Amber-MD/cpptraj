@@ -43,6 +43,7 @@ class NetcdfFile {
 
     inline void SetNcatom( int natomIn ) { ncatom_ = natomIn; }
     void WriteIndices() const;
+    void WriteVIDs() const;
   protected: // TODO: Make all private
     size_t start_[4];
     size_t count_[4];
