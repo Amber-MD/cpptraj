@@ -653,8 +653,10 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sort
 #     ifdef TIMER
       mpi_allgather_timer_.Start();
 #     endif
-      if (parallel_allgather( &my_idx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT))
+      if (parallel_allgather( &my_idx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
         rprinterr("Error: Gathering frame indices.\n");
+        return 1; // TODO: Better parallel error check
+      }
 #     ifdef TIMER
       mpi_allgather_timer_.Stop();
 #     endif
