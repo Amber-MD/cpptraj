@@ -173,6 +173,11 @@ class Frame {
     Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&) const;
     /// Calculate temperature of atoms in mask.
     double CalcTemperature(AtomMask const&,int) const;
+#   ifdef MPI
+    // ----- Parallel Routines -------------------
+    int SendFrame(int);
+    int RecvFrame(int);
+#   endif
   private:
     typedef std::vector<double> Darray;
     static const size_t COORDSIZE_;

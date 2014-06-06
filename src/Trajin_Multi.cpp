@@ -671,22 +671,10 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sort
         int recvrank = frameidx_[sendrank];
         if (sendrank != recvrank) {
           // TODO: Change Frame class so everything can be sent in one MPI call.
-          if (sendrank == worldrank) {
-            //rprintf("SENDING TO %i\n", recvrank); // DEBUG
-            parallel_send( (*frame).xAddress(), (*frame).size(), PARA_DOUBLE, recvrank, 1212 );
-            parallel_send( (*frame).bAddress(), 6, PARA_DOUBLE, recvrank, 1213 );
-            parallel_send( (*frame).tAddress(), 1, PARA_DOUBLE, recvrank, 1214 );
-            parallel_send( (*frame).iAddress(), frame->NrepDims(), PARA_INT, recvrank, 1216 );
-            if (HasVelocity())
-              parallel_send( (*frame).vAddress(), (*frame).size(), PARA_DOUBLE, recvrank, 1215 );
-          } else if (recvrank == worldrank) {
-            //rprintf("RECEIVING FROM %i\n", sendrank); // DEBUG
-            parallel_recv( f_ensemble[1].xAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1212 );
-            parallel_recv( f_ensemble[1].bAddress(), 6, PARA_DOUBLE, sendrank, 1213 );
-            parallel_recv( f_ensemble[1].tAddress(), 1, PARA_DOUBLE, sendrank, 1214 );
-            parallel_recv( f_ensemble[1].iAddress(), frame->NrepDims(), PARA_INT, sendrank, 1216 );
-            if (HasVelocity())
-              parallel_recv( f_ensemble[1].vAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1215 );
+          if (sendrank == worldrank)
+            frame->SendFrame( recvrank ); 
+          else if (recvrank == worldrank) {
+            f_ensemble[1].RecvFrame( sendrank );
             // Since a frame was received, indicate position 1 should be used
             ensembleFrameNum = 1; 
           }
