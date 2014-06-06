@@ -32,5 +32,8 @@ class Trajin_Ensemble : public Trajin {
     ReplicaDimArray trajRepDimInfo_;
     ReplicaMap<double> TemperatureMap_;
     ReplicaMap<RemdIdxType> IndicesMap_;
+#   ifdef MPI
+    RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
+#   endif 
 };
 #endif

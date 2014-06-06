@@ -1,4 +1,5 @@
 #ifdef BINTRAJ
+#include <cstdio> // DEBUG
 #include "netcdf.h"
 #include "Traj_NcEnsemble.h"
 #include "CpptrajStdio.h"
@@ -58,7 +59,13 @@ bool Traj_NcEnsemble::ID_TrajFormat(CpptrajFile& fileIn) {
 int Traj_NcEnsemble::openTrajin() {
   // If already open, return
   if (Ncid()!=-1) return 0;
-  if ( NC_openRead( filename_.Full() ) != 0 ) {
+# if HAS_PNETCDF
+  rprintf("DEBUG: Opening in parallel\n");
+  int err = ncmpi_open(MPI_COMM_WORLD, filename_.full(), NC_NOWRITE, MPI_INFO_NULL, &ncid_);
+# else
+  int err = NC_openRead( filename_.Full() )
+# endif
+  if ( err != 0 ) {
     mprinterr("Error: Opening Netcdf file %s for reading.\n", filename_.base());
     return 1;
   }
@@ -68,10 +75,12 @@ int Traj_NcEnsemble::openTrajin() {
 // Traj_NcEnsemble::closeTraj()
 void Traj_NcEnsemble::closeTraj() {
 # ifdef HAS_PNETCDF
-  rprintf("Ready to close.\n");
+  if (ncid_ == -1) return;
+  rprintf("DEBUG: Ready to close.\n");
   //parallel_barrier();
   ncmpi_close( ncid_ ); 
-  rprintf("File is closed.\n");
+  rprintf("DEBUG: File is closed.\n");
+  ncid_ = -1;
 # else 
   NC_close();
 # endif
@@ -96,7 +105,10 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
 # endif
   readAccess_ = true;
   if (filename_.SetFileNameWithExpansion( fname )) return TRAJIN_ERR;
-  if (openTrajin()) return TRAJIN_ERR;
+  //if (openTrajin()) return TRAJIN_ERR;
+  // Open single thread for now
+  rprintf("DEBUG: Opening NcEnsemble with single thread\n");
+  if (NC_openRead( filename_.Full() )) return TRAJIN_ERR;
   // Sanity check - Make sure this is a Netcdf ensemble trajectory
   if ( GetNetcdfConventions() != NC_AMBERENSEMBLE ) {
     mprinterr("Error: Netcdf file %s conventions do not include \"AMBERENSEMBLE\"\n",
@@ -143,7 +155,10 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
   if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
   SetReplicaDims( remdDim );
   if (debug_>1) NetcdfDebug();
-  closeTraj();
+  //closeTraj();
+  // Close single thread for now
+  rprintf("DEBUG: Closing NcEnsemble with single thread\n");
+  NC_close();
   // Set up local ensemble parameters
 # ifdef USE_MPI
   ensembleStart_ = worldrank;
@@ -152,6 +167,10 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
   ensembleStart_ = 0;
   ensembleEnd_ = ensembleSize_;
 # endif
+  // DEBUG: Print info for all ranks
+  rprintf("TempVID_=%i  coordVID_=%i  velocityVID_=%i  cellAngleVID_=%i"
+          "  cellLengthVID_=%i  indicesVID_=%i\n",
+          TempVID_, coordVID_, velocityVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
   // Allocate float array
   if (Coord_ != 0) delete[] Coord_;
   Coord_ = new float[ Ncatom3() ];
@@ -245,12 +264,19 @@ int Traj_NcEnsemble::writeFrame(int set, Frame const& frameOut) {
 
 // Traj_NcEnsemble::readArray()
 int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
+# ifdef HAS_PNETCDF
+  MPI_Offset pstart_[4];
+  MPI_Offset pcount_[4];
+# define start_ pstart_
+# define count_ pcount_
+# endif
   start_[0] = set; // Frame
   start_[2] = 0;   // Atoms
   start_[3] = 0;   // XYZ
   count_[0] = 1;        // Frame
   count_[1] = 1;        // Ensemble
   count_[3] = 3;        // XYZ
+  rprintf("DEBUG: Reading frame %i\n", set+1);
   for (int member = ensembleStart_; member != ensembleEnd_; member++) {
 #   ifdef USE_MPI
     Frame& frm = f_ensemble[0];
@@ -260,11 +286,11 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     start_[1] = member;   // Ensemble
     count_[2] = Ncatom(); // Atoms
     // Read Coords
-//#   ifdef HAS_PNETCDF
-//    if (ncmpi_get_vara_float_all(ncid_, coordVID_, start_, count_, Coord_))
-//#   else
+#   ifdef HAS_PNETCDF
+    if (ncmpi_get_vara_float_all(ncid_, coordVID_, start_, count_, Coord_))
+#   else
     if (checkNCerr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
-//#   endif
+#   endif
     {
       mprinterr("Error: Getting coordinates for frame %i\n", set+1);
       return 1;
@@ -274,7 +300,11 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     //frm.printAtomCoord(0); // DEBUG
     // Read Velocities
     if (velocityVID_ != -1) {
+#     ifdef HAS_PNETCDF
+      if (ncmpi_get_vara_float_all(ncid_, velocityVID_, start_, count_, Coord_))
+#     else
       if (checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)))
+#     endif
       {
         mprinterr("Error: Getting velocities for frame %i\n", set+1);
         return 1;
@@ -284,12 +314,20 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     // Read Box
     if (cellLengthVID_ != -1) {
       count_[2] = 3;
+#     ifdef HAS_PNETCDF
+      if (ncmpi_get_vara_double_all(ncid_, cellLengthVID_, start_, count_, frm.bAddress()))
+#     else
       if (checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frm.bAddress())))
+#     endif
       {
         mprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
         return 1;
       }
+#     ifdef HAS_PNETCDF
+      if (ncmpi_get_vara_double_all(ncid_, cellAngleVID_, start_, count_, frm.bAddress()+3))
+#     else
       if (checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frm.bAddress()+3)))
+#     endif
       {
         mprinterr("Error: Getting cell angles for frame %i.\n", set+1);
         return 1;
@@ -297,7 +335,11 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     }
     // Read Temperature
     if (TempVID_!=-1) {
+#     ifdef HAS_PNETCDF
+      if (ncmpi_get_vara_double_all(ncid_, TempVID_, start_, count_, frm.tAddress()))
+#     else
       if (checkNCerr(nc_get_vara_double(ncid_, TempVID_, start_, count_, frm.tAddress())))
+#     endif
       {
         mprinterr("Error: Getting replica temperature for frame %i.\n", set+1);
         return 1;
@@ -307,16 +349,32 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     // Read indices
     if (indicesVID_!=-1) {
       count_[2] = remd_dimension_;
+#     ifdef HAS_PNETCDF
+      if (ncmpi_get_vara_int_all(ncid_, indicesVID_, start_, count_, frm.iAddress()))
+#     else
       if (checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frm.iAddress())))
+#     endif
       {
         mprinterr("Error: Getting replica indices for frame %i.\n", set+1);
         return 1;
       }
+      // DEBUG
+      char buffer[128];
+      char* ptr = buffer;
+      ptr += sprintf(buffer,"DEBUG:\tReplica indices:");
+      for (int dim=0; dim < remd_dimension_; dim++) ptr += sprintf(ptr, " %i", frm.RemdIndices()[dim]);
+      sprintf(ptr,"\n");
+      rprintf("%s", buffer);
       //mprintf("DEBUG:\tReplica indices:");
       //for (int dim=0; dim < remd_dimension_; dim++) mprintf(" %i",remd_indices[dim]);
       //mprintf("\n");
     }
   }
+# ifdef HAS_PNETCDF
+  // DEBUG
+# undef start_
+# undef count_
+# endif
   return 0;
 }
 

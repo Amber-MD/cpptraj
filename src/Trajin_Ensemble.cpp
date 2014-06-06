@@ -1,5 +1,8 @@
 #include "Trajin_Ensemble.h"
 #include "CpptrajStdio.h"
+#ifdef MPI
+# include "MpiRoutines.h"
+#endif
 
 // CONSTRUCTOR
 Trajin_Ensemble::Trajin_Ensemble() :
@@ -135,7 +138,10 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
   f_sorted.resize( ensembleSize_ );
   f_ensemble.resize( ensembleSize_ );
   f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity(), trajRepDimInfo_.Ndims() );
-
+# ifdef MPI
+  // This array will let each thread know who has what frame.
+  frameidx_.resize( ensembleSize_ ); // TODO: Get rid of, should do all in TrajIO class.
+# endif
   // Get a list of all temperatures/indices.
   TemperatureMap_.ClearMap();
   IndicesMap_.ClearMap();
@@ -145,26 +151,52 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
     if ( eio_->readArray( Start(), f_ensemble ) ) return 1;
     eio_->closeTraj();
     if (targetType_ == ReplicaInfo::TEMP) {
-      std::vector<double> temps( f_ensemble.Size() );
+      std::vector<double> all_temperatures( f_ensemble.Size() );
+#     ifdef MPI
+      // Consolidate temperatures
+      if (parallel_allgather(f_ensemble[0].tAddress(), 1, PARA_DOUBLE, 
+                             &all_temperatures[0], 1, PARA_DOUBLE))
+      {
+        rprinterr("Error: Gathering temperatures\n");
+        return 1; // TODO: Better parallel error check
+      }
+#     else
       for (unsigned int i = 0; i != f_ensemble.Size(); i++)
-        temps[i] = f_ensemble[i].Temperature();
-      if (TemperatureMap_.CreateMap( temps )) {
-        mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n"
+        all_temperatures[i] = f_ensemble[i].Temperature();
+#     endif
+      if (TemperatureMap_.CreateMap( all_temperatures )) {
+        rprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n"
                   "Error:   If this is an H-REMD ensemble try the 'nosort' keyword.\n",
                    TemperatureMap_.Duplicate(), TrajFilename().full());
         return 1;
       }
     } else if (targetType_ == ReplicaInfo::INDICES) {
       std::vector<RemdIdxType> indices( f_ensemble.Size() );
+#     ifdef MPI
+      // Consolidate replica indices
+      std::vector<int> all_indices( f_ensemble.Size() * trajRepDimInfo_.Ndims() );
+      if (parallel_allgather( f_ensemble[0].iAddress(), trajRepDimInfo_.Ndims(), PARA_INT,
+                              &all_indices[0], trajRepDimInfo_.Ndims(), PARA_INT ))
+      {
+        rprinterr("Error: Gathering indices\n");
+        return 1; // TODO: Better parallel error check
+      }
+      std::vector<int>::const_iterator idx_it = all_indices.begin();
+      for (std::vector<RemdIdxType>::iterator it = indices.begin();
+                                              it != indices.end();
+                                            ++it, idx_it += trajRepDimInfo_.Ndims())
+        it->assign(idx_it, idx_it + trajRepDimInfo_.Ndims());
+#     else
       for (unsigned int i = 0; i != f_ensemble.Size(); i++)
         indices[i] = f_ensemble[i].RemdIndices();
+#     endif
       if (IndicesMap_.CreateMap( indices )) {
-        mprinterr("Error: Ensemble: Duplicate indices detected in ensemble %s:",
+        rprinterr("Error: Ensemble: Duplicate indices detected in ensemble %s:",
                   TrajFilename().full());
         for (RemdIdxType::const_iterator idx = IndicesMap_.Duplicate().begin();
                                          idx != IndicesMap_.Duplicate().end(); ++idx)
-          mprinterr(" %i", *idx);
-        mprinterr("\n");
+          rprinterr(" %i", *idx);
+        rprinterr("\n");
         return 1;
       }
     }
@@ -180,6 +212,43 @@ int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_
   if (CheckFinished()) return 0;
   // Read in all replicas.
   if ( eio_->readArray( CurrentFrame(), f_ensemble ) ) return 0;
+# ifdef MPI
+  int ensembleFrameNum = 0;
+  if (targetType_ != ReplicaInfo::NONE) {
+    int my_idx;
+    if (targetType_ == ReplicaInfo::TEMP)
+      my_idx = TemperatureMap_.FindIndex( f_ensemble[0].Temperature() );
+    else if (targetType_ == ReplicaInfo::INDICES)
+      my_idx = IndicesMap_.FindIndex( f_ensemble[0].RemdIndices() );
+    // TODO: Put this in Traj_NcEnsemble
+    if (parallel_allgather( &my_idx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
+      rprinterr("Error: Gathering frame indices.\n");
+      badEnsemble_ = true;
+      return 1; // TODO: Better parallel error check
+    }
+    for (int i = 0; i != ensembleSize_; i++)
+      if (frameidx_[i] == -1) {
+        badEnsemble_ = true;
+        break;
+      }
+    if (!badEnsemble_) {
+      for (int sendrank = 0; sendrank != ensembleSize_; sendrank++) {
+        int recvrank = frameidx_[sendrank];
+        if (sendrank != recvrank) {
+          if (sendrank == worldrank)
+            f_ensemble[0].SendFrame( recvrank );
+          else if (recvrank == worldrank) {
+            f_ensemble[1].RecvFrame( sendrank );
+            // Since a frame was received, indicate position 1 should be used
+            ensembleFrameNum = 1;
+          }
+        }
+        //else rprintf("SEND RANK == RECV RANK, NO COMM\n"); // DEBUG
+      }
+    }
+  }
+  f_sorted[0] = &f_ensemble[ensembleFrameNum];
+# else
   if (targetType_ == ReplicaInfo::TEMP) {
     for (unsigned int i = 0; i != f_ensemble.Size(); i++) {
       int fidx = TemperatureMap_.FindIndex( f_ensemble[i].Temperature() );
@@ -197,6 +266,7 @@ int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_
         f_sorted[fidx] = &f_ensemble[i];
     }
   }
+# endif
   UpdateCounters();
   return 1;
 }
