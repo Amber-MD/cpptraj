@@ -134,14 +134,17 @@ void Trajin_Ensemble::EnsembleInfo() const {
 // Trajin_Ensemble::EnsembleSetup()
 int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sorted ) {
   // Allocate space to hold position of each incoming frame in replica space.
-  // TODO: When actually perfoming read in MPI will only need room for 1 (2?)
-  f_sorted.resize( ensembleSize_ );
-  f_ensemble.resize( ensembleSize_ );
-  f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity(), trajRepDimInfo_.Ndims() );
 # ifdef MPI
+  // Only two frames needed; one for reading, one for receiving.
+  f_sorted.resize( 2 );
+  f_ensemble.resize( 2 );
   // This array will let each thread know who has what frame.
   frameidx_.resize( ensembleSize_ ); // TODO: Get rid of, should do all in TrajIO class.
-# endif
+# else
+  f_sorted.resize( ensembleSize_ );
+  f_ensemble.resize( ensembleSize_ );
+# endif 
+  f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity(), trajRepDimInfo_.Ndims() );
   // Get a list of all temperatures/indices.
   TemperatureMap_.ClearMap();
   IndicesMap_.ClearMap();
@@ -151,7 +154,7 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
     if ( eio_->readArray( Start(), f_ensemble ) ) return 1;
     eio_->closeTraj();
     if (targetType_ == ReplicaInfo::TEMP) {
-      std::vector<double> all_temperatures( f_ensemble.Size() );
+      std::vector<double> all_temperatures( ensembleSize_ );
 #     ifdef MPI
       // Consolidate temperatures
       if (parallel_allgather(f_ensemble[0].tAddress(), 1, PARA_DOUBLE, 
@@ -161,7 +164,7 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
         return 1; // TODO: Better parallel error check
       }
 #     else
-      for (unsigned int i = 0; i != f_ensemble.Size(); i++)
+      for (unsigned int i = 0; i != ensembleSize; i++)
         all_temperatures[i] = f_ensemble[i].Temperature();
 #     endif
       if (TemperatureMap_.CreateMap( all_temperatures )) {
@@ -171,10 +174,10 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
         return 1;
       }
     } else if (targetType_ == ReplicaInfo::INDICES) {
-      std::vector<RemdIdxType> indices( f_ensemble.Size() );
+      std::vector<RemdIdxType> indices( ensembleSize_ );
 #     ifdef MPI
       // Consolidate replica indices
-      std::vector<int> all_indices( f_ensemble.Size() * trajRepDimInfo_.Ndims() );
+      std::vector<int> all_indices( ensembleSize_ * trajRepDimInfo_.Ndims() );
       if (parallel_allgather( f_ensemble[0].iAddress(), trajRepDimInfo_.Ndims(), PARA_INT,
                               &all_indices[0], trajRepDimInfo_.Ndims(), PARA_INT ))
       {
@@ -187,7 +190,7 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
                                             ++it, idx_it += trajRepDimInfo_.Ndims())
         it->assign(idx_it, idx_it + trajRepDimInfo_.Ndims());
 #     else
-      for (unsigned int i = 0; i != f_ensemble.Size(); i++)
+      for (unsigned int i = 0; i != ensembleSize_; i++)
         indices[i] = f_ensemble[i].RemdIndices();
 #     endif
       if (IndicesMap_.CreateMap( indices )) {
@@ -250,7 +253,7 @@ int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_
   f_sorted[0] = &f_ensemble[ensembleFrameNum];
 # else
   if (targetType_ == ReplicaInfo::TEMP) {
-    for (unsigned int i = 0; i != f_ensemble.Size(); i++) {
+    for (unsigned int i = 0; i != ensembleSize_; i++) {
       int fidx = TemperatureMap_.FindIndex( f_ensemble[i].Temperature() );
       if ( fidx == -1 )
         badEnsemble_ = true;
@@ -258,7 +261,7 @@ int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_
         f_sorted[fidx] = &f_ensemble[i];
     }
   } else if (targetType_ == ReplicaInfo::INDICES) {
-    for (unsigned int i = 0; i != f_ensemble.Size(); i++) {
+    for (unsigned int i = 0; i != ensembleSize_; i++) {
       int fidx = IndicesMap_.FindIndex( f_ensemble[i].RemdIndices() );
       if (fidx == -1 )
         badEnsemble_ = true;
