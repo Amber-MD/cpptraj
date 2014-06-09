@@ -1,20 +1,12 @@
 // DataFileList
 #include "DataFileList.h"
 #include "CpptrajStdio.h"
-#ifdef MPI
-# include "StringRoutines.h" // integerToString
-#endif
 #ifdef TIMER
 # include "Timer.h"
 #endif
 
 // CONSTRUCTOR
-DataFileList::DataFileList() : 
-  debug_(0)
-#ifdef MPI
-  ,ensembleMode_(-1)
-#endif
-{}
+DataFileList::DataFileList() : debug_(0) {}
 
 // DESTRUCTOR
 DataFileList::~DataFileList() {
@@ -55,7 +47,13 @@ void DataFileList::SetDebug(int debugIn) {
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
     (*df)->SetDebug( debug_ );
 }
-
+#ifdef MPI
+void DataFileList::SetEnsembleMode(int memberIn) {
+  for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
+    if ( (*df)->Member() == -1 ) // FIXME: Is this check necessary?
+      (*df)->SetMember( memberIn );
+}
+#endif
 // DataFileList::GetDataFile()
 /** Return DataFile specified by given file name if it exists in the list,
   * otherwise return null. Must match full path.
@@ -73,11 +71,6 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
   std::string name = nameIn;
-# ifdef MPI
-  if (ensembleMode_ != -1)
-    // Ensemble mode, append rank to the output filename.
-    name += ("." + integerToString(ensembleMode_));
-# endif
   // Check if this filename already in use
   DataFile* Current = GetDataFile(name);
   // If no DataFile associated with name, create new datafile

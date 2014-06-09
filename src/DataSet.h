@@ -54,8 +54,8 @@ class DataSet {
     void SetWidth(int);
     /// Set output width and precision
     void SetPrecision(int,int);
-    /// Set up DataSet with given name, index, and aspect.
-    int SetupSet(std::string const&,int,std::string const&);
+    /// Set up DataSet with given name, index, aspect, and ensemble num.
+    int SetupSet(std::string const&,int,std::string const&,int);
     /// Set DataSet legend.
     void SetLegend( std::string const& lIn ) { legend_ = lIn;     }
     /// Set scalar mode
@@ -67,7 +67,7 @@ class DataSet {
     /// Used to set the data and header format strings 
     int SetDataSetFormat(bool);
     /// Check if name and/or index and aspect match this DataSet.
-    bool Matches(std::string const&, int, std::string const&) const;
+    bool Matches(std::string const&, int, std::string const&, int) const;
     /// Write scalar mode/type description
     void ScalarDescription() const;
     // -----------------------------------------------------
@@ -79,6 +79,10 @@ class DataSet {
     // TODO: Put all data set metadata into one class.
     /// \return DataSet base name.
     std::string const& Name()   const { return name_;              }
+    /// \return DataSet ensemble number.
+    int Member()                const { return ensembleNum_;       }
+    /// Set DataSet ensemble number.
+    void SetMember(int i)             { ensembleNum_ = i;          }
     /// \return DataSet index.
     int Idx()                   const { return idx_;               }
     /// \return DataSet aspect.
@@ -122,6 +126,7 @@ class DataSet {
     /// Type to hold coordinate info for each dimension in DataSet.
     typedef std::vector<Dimension> DimArray;
     std::string name_;        ///< Name of the DataSet
+    int ensembleNum_;         ///< DataSet ensemble number.
     int idx_;                 ///< DataSet index
     std::string aspect_;      ///< DataSet aspect.
     std::string legend_;      ///< DataSet legend.

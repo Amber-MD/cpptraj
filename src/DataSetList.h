@@ -30,6 +30,10 @@ class DataSetList {
     bool empty()           const { return DataList_.empty(); }
     /// \return number of datasets in the list 
     size_t size()          const { return DataList_.size();  }
+    /// Set current ensemble number.
+    void SetEnsembleNum(int i)   { ensembleNum_ = i;         }
+    /// Make all sets not part of an ensemble part of given ensemble.
+    void MakeDataSetsEnsemble(int);
     /// \return Ensemble number; -1 if not an ensemble
     int EnsembleNum()      const { return ensembleNum_;      }
     /// Remove set from list - used in DataFile
@@ -40,14 +44,12 @@ class DataSetList {
     DataSet* operator[](int didx) { return DataList_[didx]; } // FIXME: No bounds check
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
-    /// Set current ensemble number.
-    void SetEnsembleNum(int i)   { ensembleNum_ = i;        }
     /// Allocate 1D DataSet memory based on current max# expected frames.
     void AllocateSets(long int);
     /// Set width.precision of all DataSets in the list.
     void SetPrecisionOfDataSets(std::string const&, int, int);
     /// Get DataSet with specified name, index, and aspect.
-    DataSet* GetSet(std::string const&, int, std::string const&) const;
+    inline DataSet* GetSet(std::string const&, int, std::string const&) const;
     /// Get DataSet matching specified argument.
     DataSet* GetDataSet( std::string const& ) const;
     /// Get multiple DataSets matching specified argument.
@@ -79,7 +81,9 @@ class DataSetList {
     DataSet* FindCoordsSet(std::string const&);
   private:
     /// Separate input string into DataSet args.
-    static std::string ParseArgString(std::string const&, std::string&, std::string&);
+    static std::string ParseArgString(std::string const&, std::string&, std::string&, std::string&);
+    /// \return Set with name, index, aspect, ensemble number.
+    DataSet* GetSet(std::string const&, int, std::string const&, int) const;
 
     typedef std::vector<DataSet*> DataListType;
     /// DataSet debug level
@@ -98,4 +102,8 @@ class DataSetList {
     static const DataToken DataArray[];
     typedef const DataToken* TokenPtr;
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+DataSet* DataSetList::GetSet(std::string const& n, int i, std::string const& a) const {
+  return GetSet(n, i, a, ensembleNum_);
+}
 #endif

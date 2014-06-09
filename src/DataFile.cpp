@@ -3,6 +3,7 @@
 #endif
 #include "DataFile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 // All DataIO classes go here
 #include "DataIO_Std.h"
 #include "DataIO_Grace.h"
@@ -19,6 +20,7 @@
 // CONSTRUCTOR
 DataFile::DataFile() :
   debug_(0),
+  member_(-1), 
   dimension_(-1),
   dfType_(DATAFILE),
   dflWrite_(true),
@@ -315,17 +317,21 @@ void DataFile::WriteData() {
     mprintf("Warning: File '%s' has no sets containing data.\n", filename_.base());
     return;
   }
+  std::string output_filename = filename_.Full();
+  if (member_ != -1)
+    // Ensemble mode, append member num to the output filename.
+    output_filename += ("." + integerToString(member_));
 #ifdef TIMER
   Timer dftimer;
   dftimer.Start();
 #endif
   int err = 0;
   if ( dimension_ < 2 )        // One-dimensional/DataSet-specific write
-    err = dataio_->WriteData(filename_.Full(), setsToWrite);
+    err = dataio_->WriteData(output_filename, setsToWrite);
   else if ( dimension_ == 2) // Two-dimensional
-    err = dataio_->WriteData2D(filename_.Full(), setsToWrite);
+    err = dataio_->WriteData2D(output_filename, setsToWrite);
   else if ( dimension_ == 3) // Three-dimensional
-    err = dataio_->WriteData3D(filename_.Full(), setsToWrite);
+    err = dataio_->WriteData3D(output_filename, setsToWrite);
   else {
     mprinterr("Error: %iD writes not yet supported.\n", dimension_);
     err = 1;

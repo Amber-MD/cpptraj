@@ -241,34 +241,36 @@ int CpptrajState::RunEnsemble() {
     return 1;
   mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
   TrajoutEnsemble.List();
+  // Allocate DataSets in the master DataSetList based on # frames to be read
+  DSL_.AllocateSets( trajinList_.MaxFrames() );
 # ifdef MPI
   // Each thread will process one member of the ensemble, so local ensemble
   // size is effectively 1.
   ensembleSize = 1;
 # endif
-  // Allocate an ActionList and DataSetList for each member of the ensemble.
-  std::vector<ActionList> ActionEnsemble( ensembleSize );
-  std::vector<DataSetList> DataSetEnsemble( ensembleSize );
-  // Use separate DataFileList
-  DataFileList DataFileEnsemble;
-# ifdef MPI
-  DataFileEnsemble.SetEnsembleMode( worldrank );
-# endif
+  // Allocate an ActionList for each member of the ensemble.
+  std::vector<ActionList*> ActionEnsemble( ensembleSize );
+  ActionEnsemble[0] = &actionList_;
+  for (int member = 1; member < ensembleSize; member++)
+    ActionEnsemble[member] = new ActionList();
   // If we are on a single thread, give each member its own copy of the
   // current topology address. This way if topology is modified by a member,
   // e.g. in strip or closest, subsequent members wont be trying to modify 
   // an already-modified topology.
   std::vector<Topology*> EnsembleParm( ensembleSize );
-  // Set up DataSets and Actions for each ensemble member.
-  int maxFrames = trajinList_.MaxFrames();
-  for (int member = 0; member < ensembleSize; ++member) {
-    // Set max frames in the data set list and allocate
-    DataSetEnsemble[member].AllocateSets( maxFrames );
-#   ifdef MPI
-    DataSetEnsemble[member].SetEnsembleNum( worldrank );
-#   else
-    DataSetEnsemble[member].SetEnsembleNum( member );
-#   endif
+# ifdef MPI
+  // Make all sets not in an ensemble a member of this thread.
+  DSL_.MakeDataSetsEnsemble( worldrank );
+  // This tells all DataFiles to append member number.
+  DFL_.SetEnsembleMode( worldrank );
+  // Actions have already been set up for this ensemble.
+# else
+  // Make all sets not in an ensemble part of member 0.
+  DSL_.MakeDataSetsEnsemble( 0 ); 
+  // Set up Actions for each ensemble member > 0.
+  for (int member = 1; member < ensembleSize; ++member) {
+    // All DataSets that will be set up will be part of this ensemble 
+    DSL_.SetEnsembleNum( member );
     // Initialize actions for this ensemble member based on original actionList_
     if (!actionList_.Empty()) {
       mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
@@ -277,14 +279,14 @@ int CpptrajState::RunEnsemble() {
         ArgList command( actionList_.CmdString(iaction) );
         command.MarkArg(0); // TODO: Create separate CommandArg class?
         // Attempt to add same action to this ensemble. 
-        if (ActionEnsemble[member].AddAction( actionList_.ActionAlloc(iaction), 
-                                              command, &parmFileList_, &refFrames_,
-                                              &(DataSetEnsemble[member]), 
-                                              &DataFileEnsemble ))
+        if (ActionEnsemble[member]->AddAction( actionList_.ActionAlloc(iaction), 
+                                                command, &parmFileList_, &refFrames_,
+                                                &DSL_, &DFL_ ))
             return 1;
       }
     }
   }
+# endif
   init_time.Stop();
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total()); 
   // ========== A C T I O N  P H A S E ==========
@@ -336,7 +338,7 @@ int CpptrajState::RunEnsemble() {
       // Set up actions for this parm
       bool setupOK = true;
       for (int member = 0; member < ensembleSize; ++member) {
-        if (ActionEnsemble[member].SetupActions( &(EnsembleParm[member]) )) {
+        if (ActionEnsemble[member]->SetupActions( &(EnsembleParm[member]) )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
                   worldrank,EnsembleParm[member]->c_str());
@@ -382,7 +384,7 @@ int CpptrajState::RunEnsemble() {
           actions_time.Start();
 #         endif
           // Perform Actions on Frame
-          suppress_output = ActionEnsemble[member].DoActions(&CurrentFrame, actionSet);
+          suppress_output = ActionEnsemble[member]->DoActions(&CurrentFrame, actionSet);
 #         ifdef TIMER
           actions_time.Stop();
 #         endif
@@ -444,26 +446,29 @@ int CpptrajState::RunEnsemble() {
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
   for (int member = 0; member < ensembleSize; ++member)
-    ActionEnsemble[member].Print( );
+    ActionEnsemble[member]->Print( );
 
   // Sort DataSets and print DataSet information
   // TODO - Also have datafilelist call a sync??
-  unsigned int total_data_sets = DataSetEnsemble[0].size();
+  unsigned int total_data_sets = DSL_.size();
   mprintf("\nENSEMBLE DATASETS: Each member has %u sets total.\n", total_data_sets);
   for (int member = 0; member < ensembleSize; ++member) {
     //DataSetEnsemble[member].Sync(); // SYNC only necessary when splitting up data
-    if (total_data_sets != DataSetEnsemble[member].size())
+    if (total_data_sets != DSL_.size())
       mprintf("Warning: Ensemble member %i # data sets (%i) does not match member 0 (%i)\n",
-              member, DataSetEnsemble[member].size(), total_data_sets);
+              member, DSL_.size(), total_data_sets);
     if (debug_ > 0)
-      DataSetEnsemble[member].List();
+      DSL_.List();
   }
 
   // Print Datafile information
-  DataFileEnsemble.List();
+  DFL_.List();
   // Print DataFiles. When in parallel ensemble mode, each member of the 
   // ensemble will write data to separate files with numeric extensions. 
-  DataFileEnsemble.WriteAllDF();
+  DFL_.WriteAllDF();
+  // Clean up ensemble action lists
+  for (int member = 1; member < ensembleSize; member++)
+    delete ActionEnsemble[member];
 
   return 0;
 }

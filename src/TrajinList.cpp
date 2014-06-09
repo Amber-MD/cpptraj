@@ -59,7 +59,6 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
   TrajectoryIO* tio = 0;
   for (StrArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
     ArgList args = trajin_args;
-    if (tio != 0) delete tio;
     // Determine whether this file is multiple file or single file ensemble.
     tio = TrajectoryFile::DetectFormat( *fn, trajinFmt );
     if (tio == 0) {
@@ -84,6 +83,7 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
     if ( traj->SetupTrajRead(fname, args, tempParm) ) {
       mprinterr("Error: Could not set up input trajectory '%s'.\n", fname.c_str());
       delete traj;
+      delete tio;
       err++;
       continue;
     }
@@ -98,6 +98,7 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
         if (finalCrdIndicesArg_.empty()) {
           mprinterr("Error: Could not obtain final remlog indices.\n");
           delete traj;
+          delete tio;
           err++;
           continue;
         }
@@ -107,6 +108,7 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
       mprintf("Warning: Single ensemble cannot process crdidx.\n");
     AddToList(traj);
     //err += AddInputTraj( *fn, traj, argIn, topListIn );
+    delete tio;
   }
   if (err > 0) return 1;
   return 0;

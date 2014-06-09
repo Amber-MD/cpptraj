@@ -60,10 +60,15 @@ class DataFile {
     bool DFLwrite()                const { return dflWrite_; }
     /// \return DataFile format type.
     DataFormatType Type()          const { return dfType_;   }
+    /// \return DataFile member num.
+    int Member()                   const { return member_;   }
+    /// Set DataFile member num.
+    void SetMember(int i)                { member_ = i;      }
   private:
     static DataIO* DetectFormat(std::string const&, DataFormatType&);
 
     int debug_;
+    int member_;               ///< DataFile ensemble member number.
     int dimension_;            ///< The dimension of all sets in the DataFile.
     DataFormatType dfType_;    ///< Format to read/write data in DataFile.
     bool dflWrite_;            ///< True: write file when DataFileList::WriteAllDF called.
