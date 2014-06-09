@@ -184,6 +184,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
 #     ifdef TIMER
       loudPrintf(" -DTIMER");
 #     endif
+#     ifdef HAS_PNETCDF
+      loudPrintf(" -DHAS_PNETCDF");
+#     endif
       loudPrintf("\n");
       return QUIT;
     }
