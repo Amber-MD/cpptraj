@@ -25,15 +25,14 @@ int DataSet_Coords_TRJ::SetTrjTopology( Topology const& parmIn ) {
   if (trajinList_.empty())
     SetTopology( parmIn );
   else {
-    if ( parmIn.Natom() != Topology().Natom() ) {
+    if ( parmIn.Natom() != this->Top().Natom() ) {
       mprinterr("Error: For TRAJ data set currently all trajectories must have same number\n"
-                "Error:  of atoms (%i != %i). Recommended course of action is to create a\n"
-                "Error:  trajectory where all frames have been stripped to the same number of"
-                "Error:  atoms first.\n", parmIn.Natom(), Topology().Natom());
+                "Error:  of atoms: %s (%i) != %s (%i). Recommended course of action is to\n"
+                "Error:  create a trajectory where all frames have been stripped to the same\n"
+                "Error:  number of atoms first.\n", parmIn.Natom(), this->Top().Natom());
       return 1;
     }
   }
-  // TODO: Need some way of enforcing topology sameness
   return 0;
 }
 
@@ -135,7 +134,7 @@ void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn, AtomMask const& mask) {
 
 void DataSet_Coords_TRJ::Info() const {
   if (trajinList_.size() == 1)
-    mprintf(" (%zu trajectories)", trajinList_.size());
-  else
     mprintf(" (1 trajectory)");
+  else
+    mprintf(" (%zu trajectories)", trajinList_.size());
 }
