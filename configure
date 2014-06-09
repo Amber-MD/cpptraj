@@ -301,9 +301,14 @@ while [[ ! -z $1 ]] ; do
       echo "Using cray compiler wrappers (cc/CC/ftn)"
       USECRAY=1
       ;; 
-    "-debug" | "-d" ) 
+    "-debug" ) 
       echo "Turning on compiler debug info"
       DBGFLAGS="-g"
+      ;;
+    "-d" )
+      echo "Turning on compiler debug info and disabling optimization"
+      DBGFLAGS="-g"
+      OPT=0
       ;;
     "-debugon"      ) 
       echo "Turning on cpptraj internal debug info"
