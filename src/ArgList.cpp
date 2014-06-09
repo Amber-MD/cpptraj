@@ -231,11 +231,10 @@ std::string const& ArgList::GetStringNext() {
   *   '*' everything
   * \return the next unmarked atom mask expression
   */
-// FIXME: / and % may only be valid after @
 std::string const& ArgList::GetMaskNext() {
   for (unsigned int arg = 0; arg < arglist_.size(); ++arg) {
     if (!marked_[arg]) {
-      size_t found = arglist_[arg].find_first_of(":@*/%");
+      size_t found = arglist_[arg].find_first_of(":@*");
       if (found != std::string::npos) {
         marked_[arg] = true;
         return arglist_[arg];
