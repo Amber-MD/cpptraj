@@ -3,44 +3,38 @@
 #include "CpptrajStdio.h"
 
 // DESTRUCTOR
-ReferenceFrame::~ReferenceFrame() {
-  if (strippedParm_ && parm_ != 0) delete parm_;
-  //if (frame_ != 0) delete frame_; // TODO: Enable
+// Memory must be freed with ClearRef();
+ReferenceFrame::~ReferenceFrame() {}
+
+void ReferenceFrame::ClearRef() {
+  if (frame_ != 0) delete frame_;
+  if (parm_ != 0) delete parm_;
+  frame_ = 0;
+  parm_ = 0;
+  num_ = 0;
+  tag_.clear();
+  name_.clear();
 }
 
 int ReferenceFrame::LoadRef(std::string const& fname, Topology* parmIn, int debugIn)
 {
   ArgList argIn;
-  return LoadRef( fname, argIn, parmIn, debugIn);
+  return LoadRef( fname, argIn, parmIn, std::string(), debugIn);
 }
 
 // ReferenceFrame::LoadRef()
 int ReferenceFrame::LoadRef(std::string const& fname, ArgList& argIn, 
-                            Topology* parmIn, int debugIn)
+                            Topology* parmIn, std::string const& maskexpr,
+                            int debugIn)
 {
   Trajin_Single traj;
   traj.SetDebug(debugIn);
   num_ = -1; // This is -1 as long as ref is not fully set up.
-  // Set topology; remove old topology if it was stripped.
-  if (strippedParm_ && parm_ != 0) delete parm_;
-  strippedParm_ = false;
-  parm_ = parmIn;
   // Set up trajectory - false = do not modify box info
-  if ( traj.SetupTrajRead( fname, argIn, parm_, false ) ) {
+  if ( traj.SetupTrajRead( fname, argIn, parmIn, false ) ) {
     mprinterr("Error: reference: Could not set up trajectory.\n");
     return 1;
   }
-  // 'average' keyword is deprecated
-  if ( argIn.hasKey("average") ) {
-    mprinterr("Error: 'average' for reference is deprecated. Please use\n"
-              "Error:   the 'average' action to create averaged coordinates.\n");
-    return 1;
-  }
-  // Check for mask expression
-  // NOTE: This is done after SetupTrajRead because forward slash is a valid
-  //       mask operand for element, so getNextMask will unfortunately pick up 
-  //       filenames as well as masks.
-  std::string maskexpr = argIn.GetMaskNext();
   // Check for tag - done after SetupTrajRead so traj can process args
   tag_ = argIn.getNextTag();
   // Check number of frames to be read
@@ -58,6 +52,9 @@ int ReferenceFrame::LoadRef(std::string const& fname, ArgList& argIn,
   }
   mprintf("\t");
   traj.PrintInfo(1);
+  // Set topology; remove old topology if it was set.
+  if (parm_ != 0) delete parm_;
+  parm_ = new Topology(*parmIn);
   // Set up input frame
   if (frame_ == 0) frame_ = new Frame();
   frame_->SetupFrameV( parm_->Atoms(), traj.HasVelocity(), traj.NreplicaDimension() );
@@ -65,7 +62,9 @@ int ReferenceFrame::LoadRef(std::string const& fname, ArgList& argIn,
   traj.ReadTrajFrame( traj.Start(), *frame_ );
   // If a mask expression was specified, strip to match the expression.
   if (!maskexpr.empty()) {
-    if ( StripRef( maskexpr ) ) {
+    AtomMask stripMask( maskexpr );
+    if (parm_->SetupIntegerMask(stripMask)) return 1;
+    if ( StripRef( stripMask ) ) {
       delete frame_;
       frame_ = 0;
       return 1;
@@ -74,22 +73,19 @@ int ReferenceFrame::LoadRef(std::string const& fname, ArgList& argIn,
   // Set name and number.
   name_ = traj.TrajFilename();
   num_ = traj.Start();
-  // If the top currently has no reference coords, set them now
-  if (parm_->NoRefCoords()) parm_->SetReferenceCoords( *frame_ );
+  // Set topology reference coords.
+  parm_->SetReferenceCoords( *frame_ );
   return 0;
-}
-
-/** Strip reference based on mask expression. */
-int ReferenceFrame::StripRef(std::string const& maskexpr) {
-  AtomMask stripMask( maskexpr );
-  if (parm_->SetupIntegerMask(stripMask, *frame_)) return 1;
-  return StripRef( stripMask );
 }
 
 /** Strip reference to match mask */
 int ReferenceFrame::StripRef(AtomMask const& stripMask) {
   if (stripMask.None()) {
     mprinterr("Error: No atoms kept for reference.\n");
+    return 1;
+  }
+  if (frame_ == 0 || frame_->empty()) {
+    mprinterr("Internal Error: Attempting to strip empty reference.\n");
     return 1;
   }
   // Create new stripped frame
@@ -101,12 +97,10 @@ int ReferenceFrame::StripRef(AtomMask const& stripMask) {
     mprinterr("Error: Could not create stripped reference topology.\n");
     return 1;
   }
-  strippedParm_ = true;
-  strippedRefParm->Summary();
+  strippedRefParm->Brief("Stripped ref parm:");
   delete frame_;
   frame_ = strippedRefFrame;
-  // Free parm_ if it was previously stripped.
-  if (strippedParm_ && parm_ != 0) delete parm_;
+  delete parm_;
   parm_ = strippedRefParm;
   return 0;
 }

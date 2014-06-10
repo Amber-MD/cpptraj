@@ -70,7 +70,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) { 
     // Set up reference mask
-    if ( REF.Parm()->SetupIntegerMask(RefMask_) ) return Action::ERR;
+    if ( REF.Parm().SetupIntegerMask(RefMask_) ) return Action::ERR;
     if (RefMask_.None()) {
       mprinterr("    Error: Pairwise::init: No atoms selected in reference mask.\n");
       return Action::ERR;
@@ -114,7 +114,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 /** Set up the exclusion list based on the given mask and parm.
   * \return the total number of interactions, -1 on error.
   */
-int Action_Pairwise::SetupNonbondParm(AtomMask &maskIn, Topology *ParmIn) {
+int Action_Pairwise::SetupNonbondParm(AtomMask const& maskIn, Topology const& ParmIn) {
   // Charge is in units of electron charge, distance is in angstroms, so 
   // the electrostatic prefactor should be 332. However, since the charges
   // in Topology have presumably been converted from Amber charge units
@@ -122,11 +122,11 @@ int Action_Pairwise::SetupNonbondParm(AtomMask &maskIn, Topology *ParmIn) {
   // Amber-converted charges more accurate at the cost of making non-Amber 
   // charges less accurate.
   atom_charge_.clear();
-  atom_charge_.reserve( ParmIn->Natom() );
-  for (Topology::atom_iterator atom = ParmIn->begin(); atom != ParmIn->end(); ++atom)
-    atom_charge_.push_back( (*atom).Charge() * Constants::ELECTOAMBER );
+  atom_charge_.reserve( ParmIn.Natom() );
+  for (Topology::atom_iterator atom = ParmIn.begin(); atom != ParmIn.end(); ++atom)
+    atom_charge_.push_back( atom->Charge() * Constants::ELECTOAMBER );
   // Check if LJ parameters present - need at least 2 atoms for it to matter.
-  if (ParmIn->Natom() > 1 && !ParmIn->Nonbond().HasNonbond()) {
+  if (ParmIn.Natom() > 1 && !ParmIn.Nonbond().HasNonbond()) {
     mprinterr("Error: Topology does not have LJ information.\n");
     return 1;
   }
@@ -135,7 +135,7 @@ int Action_Pairwise::SetupNonbondParm(AtomMask &maskIn, Topology *ParmIn) {
   // This is ((N^2 - N) / 2) - SUM[ #excluded atoms]
   int N_interactions = ((maskIn.Nselected() * maskIn.Nselected()) - maskIn.Nselected()) / 2;
   for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at)
-    N_interactions -= (*ParmIn)[ *at ].Nexcluded();
+    N_interactions -= ParmIn[ *at ].Nexcluded();
 
   // DEBUG - Print total number of interactions for this parm
   mprintf("\t%i interactions for this parm.\n",N_interactions);
@@ -166,7 +166,7 @@ Action::RetType Action_Pairwise::Setup(Topology* currentParm, Topology** parmAdd
   }
 
   // Set up exclusion list and determine total # interactions.
-  int N_interactions = SetupNonbondParm(Mask0_, currentParm);
+  int N_interactions = SetupNonbondParm(Mask0_, *currentParm);
 
   // If comparing to a reference frame for atom-by-atom comparison make sure
   // the number of interactions is the same in reference and parm.
@@ -199,7 +199,9 @@ Action::RetType Action_Pairwise::Setup(Topology* currentParm, Topology** parmAdd
   * to a reference structure, pairs for which the energy difference exceeds
   * the cutoffs are printed.
   */
-void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &maskIn) {
+void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn, 
+                                    AtomMask const&maskIn)
+{
   double delta2;
   std::vector<NonbondEnergyType>::iterator refpair;
   NonbondEnergyType refE;
@@ -219,26 +221,26 @@ void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &
     // Set up coord index for this atom
     int coord1 = (*maskatom1) * 3;
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = (*parmIn)[*maskatom1].excludedbegin();
+    Atom::excluded_iterator excluded_atom = parmIn[*maskatom1].excludedbegin();
     // Inner loop
     AtomMask::const_iterator maskatom2 = maskatom1;
     ++maskatom2;
     for (; maskatom2 != mask_end; maskatom2++) {
       // If atom is excluded, just increment to next excluded atom;
       // otherwise perform energy calc.
-      if ( excluded_atom != (*parmIn)[*maskatom1].excludedend() && *maskatom2 == *excluded_atom )
+      if ( excluded_atom != parmIn[*maskatom1].excludedend() && *maskatom2 == *excluded_atom )
         ++excluded_atom;
       else {
         // Set up coord index for this atom
         int coord2 = (*maskatom2) * 3;
         // Calculate the vector pointing from atom2 to atom1
-        Vec3 JI = Vec3(frameIn->CRD(coord1)) - Vec3(frameIn->CRD(coord2));
+        Vec3 JI = Vec3(frameIn.CRD(coord1)) - Vec3(frameIn.CRD(coord2));
         double rij2 = JI.Magnitude2();
         // Normalize
         double rij = sqrt(rij2);
         JI /= rij;
         // LJ energy
-        NonbondType const& LJ = parmIn->GetLJparam(*maskatom1, *maskatom2);
+        NonbondType const& LJ = parmIn.GetLJparam(*maskatom1, *maskatom2);
         double r2    = 1 / rij2;
         double r6    = r2 * r2 * r2;
         double r12   = r6 * r6;
@@ -270,13 +272,13 @@ void Action_Pairwise::NonbondEnergy(Frame *frameIn, Topology *parmIn, AtomMask &
           if (Eout_.IsOpen()) {
             if (delta_vdw > cut_evdw_ || delta_vdw < cut_evdw1_) {
               Eout_.Printf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4lf\n",
-                              atom1+1, (*parmIn)[atom1].c_str(),
-                              atom2+1, (*parmIn)[atom2].c_str(), delta_vdw);
+                              atom1+1, parmIn[atom1].c_str(),
+                              atom2+1, parmIn[atom2].c_str(), delta_vdw);
             }
             if (delta_eelec > cut_eelec_ || delta_eelec < cut_eelec1_) {
               Eout_.Printf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4lf\n",
-                              atom1+1, (*parmIn)[atom1].c_str(),
-                              atom2+1, (*parmIn)[atom2].c_str(),delta_eelec);
+                              atom1+1, parmIn[atom1].c_str(),
+                              atom2+1, parmIn[atom2].c_str(),delta_eelec);
             }
           }
           // Divide the total pair dEvdw between both atoms.
@@ -347,7 +349,7 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
 /** Print atoms for which the cumulative energy satisfies the given
   * cutoffs. Also create MOL2 files containing those atoms.
   */
-void Action_Pairwise::PrintCutAtoms(Frame *frame, int frameNum) {
+void Action_Pairwise::PrintCutAtoms(Frame const& frame, int frameNum) {
   AtomMask CutMask; // TEST
   std::vector<double> CutCharges; // TEST
   // EVDW
@@ -369,7 +371,7 @@ void Action_Pairwise::PrintCutAtoms(Frame *frame, int frameNum) {
   }
   if (!cutout_.empty() && !CutMask.None()) {
     if (WriteCutFrame(frameNum, *CurrentParm_, CutMask, CutCharges, 
-                      *frame, cutout_ + ".evdw.mol2")) 
+                      frame, cutout_ + ".evdw.mol2")) 
       return;
   }
   CutMask.ResetMask();
@@ -393,7 +395,7 @@ void Action_Pairwise::PrintCutAtoms(Frame *frame, int frameNum) {
   }
   if (!cutout_.empty() && !CutMask.None()) {
     if (WriteCutFrame(frameNum, *CurrentParm_, CutMask, CutCharges, 
-                      *frame, cutout_ + ".eelec.mol2"))
+                      frame, cutout_ + ".eelec.mol2"))
       return;
   }
 }
@@ -403,8 +405,8 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
 {
   //if (Energy(&Mask0, currentFrame, currentParm)) return 1;
   if (Eout_.IsOpen()) Eout_.Printf("PAIRWISE: Frame %i\n",frameNum);
-  NonbondEnergy( currentFrame, CurrentParm_, Mask0_ );
-  PrintCutAtoms( currentFrame, frameNum );
+  NonbondEnergy( *currentFrame, *CurrentParm_, Mask0_ );
+  PrintCutAtoms( *currentFrame, frameNum );
   // Reset cumulative energy arrays
   atom_eelec_.assign(CurrentParm_->Natom(), 0);
   atom_evdw_.assign(CurrentParm_->Natom(), 0);

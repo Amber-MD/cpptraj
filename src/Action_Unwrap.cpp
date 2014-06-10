@@ -37,9 +37,9 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) {
-    RefFrame_ = *(REF.Coord());
+    RefFrame_ = REF.Coord();
     // Get reference parm for frame
-    RefParm_ = REF.Parm();
+    RefParm_ = (Topology*)(&REF.Parm()); // FIXME: 
   }
 
   // Get mask string

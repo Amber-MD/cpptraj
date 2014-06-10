@@ -117,14 +117,14 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
       DihedralSearch refSearch;
       refSearch.SearchFor(DihedralSearch::PHI);
       refSearch.SearchFor(DihedralSearch::PSI);
-      if (refSearch.FindDihedrals( *(REF.Parm()), refRange )) return Action::ERR;
+      if (refSearch.FindDihedrals( REF.Parm(), refRange )) return Action::ERR;
       // For each found dihedral, set theta 
       for (DihedralSearch::mask_it dih = refSearch.begin(); dih != refSearch.end(); ++dih)
       {
-        double torsion = Torsion( REF.Coord()->XYZ((*dih).A0()),
-                                  REF.Coord()->XYZ((*dih).A1()),
-                                  REF.Coord()->XYZ((*dih).A2()),
-                                  REF.Coord()->XYZ((*dih).A3()) );
+        double torsion = Torsion( REF.Coord().XYZ(dih->A0()),
+                                  REF.Coord().XYZ(dih->A1()),
+                                  REF.Coord().XYZ(dih->A2()),
+                                  REF.Coord().XYZ(dih->A3()) );
         ss_holder.thetas_.push_back( (float)torsion );
       }
       secstruct_.push_back( ss_holder );

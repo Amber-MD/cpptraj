@@ -35,13 +35,13 @@ Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     if (rMaskExpr.empty())
       rMaskExpr = Mask_.MaskExpression();
     refMask.SetMaskString( rMaskExpr );
-    if (refFrm.Parm()->SetupIntegerMask( refMask, *refFrm.Coord() ))
+    if (refFrm.Parm().SetupIntegerMask( refMask, refFrm.Coord() ))
       return Action::ERR;
     // Get center of mask in reference
     if (useMass_)
-      refCenter_ = refFrm.Coord()->VCenterOfMass( refMask );
+      refCenter_ = refFrm.Coord().VCenterOfMass( refMask );
     else
-      refCenter_ = refFrm.Coord()->VGeometricCenter( refMask );
+      refCenter_ = refFrm.Coord().VGeometricCenter( refMask );
     centerMode_ = Frame::POINT; 
   }
 

@@ -16,7 +16,7 @@ int ReferenceAction::SetRefMask(Topology const& topIn, const char* call) {
 
 // ReferenceAction::InitRef()
 int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool fitIn,
-                             std::string const& reftrajname, ReferenceFrame& REF, 
+                             std::string const& reftrajname, ReferenceFrame const& REF, 
                              Topology* RefParm, std::string const& refmaskIn, 
                              ArgList& actionArgs, const char* call)
 {
@@ -61,8 +61,8 @@ int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool fi
       }
     } else {
       // Reference Frame
-      if (SetRefMask( *(REF.Parm()), call ) != 0) return 1;
-      SetRefStructure( *(REF.Coord()), fitIn, massIn );
+      if (SetRefMask( REF.Parm(), call ) != 0) return 1;
+      SetRefStructure( REF.Coord(), fitIn, massIn );
     }
   }
   // Set reference mode string

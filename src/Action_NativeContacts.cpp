@@ -295,10 +295,10 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   // Set up reference if necessary.
   if (!first_) {
     // Set up imaging info for ref parm
-    image_.SetupImaging( REF.Parm()->BoxType() );
+    image_.SetupImaging( REF.Parm().BoxType() );
     if (image_.ImageType() == NONORTHO)
-      REF.Coord()->BoxCrd().ToRecip(ucell_, recip_);
-    if (DetermineNativeContacts( *(REF.Parm()), *(REF.Coord()) )) return Action::ERR;
+      REF.Coord().BoxCrd().ToRecip(ucell_, recip_);
+    if (DetermineNativeContacts( REF.Parm(), REF.Coord() )) return Action::ERR;
   }
 
   return Action::OK;

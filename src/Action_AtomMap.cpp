@@ -7,10 +7,6 @@
 // CONSTRUCTOR
 Action_AtomMap::Action_AtomMap() :
   debug_(0),
-  RefFrame_(0),
-  RefParm_(0),
-  TgtFrame_(0),
-  TgtParm_(0),
   maponly_(false),
   newFrame_(0),
   newParm_(0),
@@ -212,19 +208,19 @@ int Action_AtomMap::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
     }
     // Calculate reference improper dihedrals
     for (int i=0; i<notunique_r; i++) {
-      dR[i] = Torsion( RefFrame_->XYZ(uR[0]),
-                       RefFrame_->XYZ(uR[1]), 
-                       RefFrame_->XYZ(uR[2]),
-                       RefFrame_->XYZ(nR[i]) );
+      dR[i] = Torsion( RefFrame_.Coord().XYZ(uR[0]),
+                       RefFrame_.Coord().XYZ(uR[1]), 
+                       RefFrame_.Coord().XYZ(uR[2]),
+                       RefFrame_.Coord().XYZ(nR[i]) );
       if (debug_>1) mprintf("    Ref Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
                            uR[0]+1, uR[1]+1, uR[2]+1, nR[i]+1, dR[i]+1);
     }
     // Calculate target improper dihedrals
     for (int i=0; i<notunique_t; i++) {
-      dT[i] = Torsion( TgtFrame_->XYZ(uT[0]),
-                       TgtFrame_->XYZ(uT[1]),
-                       TgtFrame_->XYZ(uT[2]),
-                       TgtFrame_->XYZ(nT[i]) );
+      dT[i] = Torsion( TgtFrame_.Coord().XYZ(uT[0]),
+                       TgtFrame_.Coord().XYZ(uT[1]),
+                       TgtFrame_.Coord().XYZ(uT[2]),
+                       TgtFrame_.Coord().XYZ(nT[i]) );
       if (debug_>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
                            uR[0]+1, uR[1]+1, uR[2]+1, nT[i]+1, dT[i]+1);
     }
@@ -593,8 +589,8 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
         if (numAtomsMapped<3) continue;
         // Score this mapping with an RMSD ---------------------------------
         // Set up a reference/target frame containing only mapped atoms
-        rmsRefFrame_.SetReferenceByMap(*RefFrame_, AMap_);
-        rmsTgtFrame_.SetTargetByMap(*TgtFrame_, AMap_);
+        rmsRefFrame_.SetReferenceByMap(RefFrame_.Coord(), AMap_);
+        rmsTgtFrame_.SetTargetByMap(TgtFrame_.Coord(), AMap_);
         double RmsVal = rmsTgtFrame_.RMSD(rmsRefFrame_, false);
         mprintf("\tRMS fit (%i atoms) based on guess Tgt %i -> Ref %i, %lf\n",
                 numAtomsMapped,(*t)+1, (*r)+1, RmsVal);
@@ -718,25 +714,21 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     return Action::ERR;
   }
   // Get Reference
-  ReferenceFrame REF = FL->GetFrameByName( refName );
-  if (REF.empty()) {
+  RefFrame_ = FL->GetFrameByName( refName );
+  if (RefFrame_.empty()) {
     mprintf("AtomMap::init: Error: Could not get reference frame %s\n",refName.c_str());
     return Action::ERR;
   }
-  RefFrame_ = REF.Coord();
-  RefParm_ = REF.Parm();
   // Get Target
-  ReferenceFrame TGT = FL->GetFrameByName( targetName );
-  if (TGT.empty()) {
+  TgtFrame_ = FL->GetFrameByName( targetName );
+  if (TgtFrame_.empty()) {
     mprintf("AtomMap::init: Error: Could not get target frame %s\n",targetName.c_str());
     return Action::ERR;
   }
-  TgtFrame_ = TGT.Coord();
-  TgtParm_ = TGT.Parm();
  
   mprintf("    ATOMMAP: Atoms in trajectories associated with parm %s will be\n",
-          TgtParm_->c_str());
-  mprintf("             mapped according to parm %s.\n",RefParm_->c_str());
+          TgtFrame_.Parm().c_str());
+  mprintf("             mapped according to parm %s.\n",RefFrame_.Parm().c_str());
   if (!outputname.empty())
     mprintf("             Map will be written to %s\n",outputname.c_str());
   if (maponly_)
@@ -755,12 +747,12 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   // cutoffs, the give each atom an ID based on what atoms are bonded to
   // it, noting which IDs are unique for that map. 
 
-  if (RefMap_.Setup(*RefParm_)!=0) return Action::ERR;
+  if (RefMap_.Setup(RefFrame_.Parm())!=0) return Action::ERR;
   if (RefMap_.CheckBonds()!=0) return Action::ERR;
   //RefMap_.WriteMol2((char*)"RefMap.mol2\0"); // DEBUG
   RefMap_.DetermineAtomIDs();
 
-  if (TgtMap_.Setup(*TgtParm_)!=0) return Action::ERR;
+  if (TgtMap_.Setup(TgtFrame_.Parm())!=0) return Action::ERR;
   if (TgtMap_.CheckBonds()!=0) return Action::ERR;
   //TgtMap_.WriteMol2((char*)"TgtMap.mol2\0"); // DEBUG
   TgtMap_.DetermineAtomIDs();
@@ -821,7 +813,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   // target to reference.
   if (rmsfit_) {
     // Set up a reference frame containing only mapped reference atoms
-    rmsRefFrame_.SetReferenceByMap(*RefFrame_, AMap_);
+    rmsRefFrame_.SetReferenceByMap(RefFrame_.Coord(), AMap_);
     mprintf("      rmsfit: Will rms fit %i atoms from target to reference.\n",numMappedAtoms);
     return Action::OK;
   }
@@ -839,8 +831,8 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
       }
       // Strip reference parm
       mprintf("    Modifying reference '%s' topology and frame to match mapped atoms.\n",
-              REF.FrameName().base());
-      if (REF.StripRef( M1 )) return Action::ERR;
+              RefFrame_.FrameName().base());
+      if (RefFrame_.StripRef( M1 )) return Action::ERR;
       // Since AMap[ ref ] = tgt but ref is now missing any stripped atoms,
       // the indices of AMap must be shifted to match
       int refIndex = 0; // The new index
@@ -860,10 +852,10 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   if (!maponly_) {
     // Set up new Frame
     newFrame_ = new Frame();
-    newFrame_->SetupFrameM( TgtParm_->Atoms() );
+    newFrame_->SetupFrameM( TgtFrame_.Parm().Atoms() );
 
     // Set up new Parm
-    newParm_ = TgtParm_->ModifyByMap(AMap_);
+    newParm_ = TgtFrame_.Parm().ModifyByMap(AMap_);
   }
 
   return Action::OK;
@@ -878,11 +870,11 @@ Action::RetType Action_AtomMap::Setup(Topology* currentParm, Topology** parmAddr
     mprintf("    ATOMMAP: maponly was specified, not using atom map during traj read.\n");
     return Action::OK;
   }
-  if (currentParm->Pindex() != TgtParm_->Pindex() ||
-      currentParm->Natom() != TgtParm_->Natom()) 
+  if (currentParm->Pindex() != TgtFrame_.Parm().Pindex() ||
+      currentParm->Natom() != TgtFrame_.Parm().Natom()) 
   {
-    mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TgtParm_->c_str(),
-            RefParm_->c_str(), TgtParm_->Natom());
+    mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TgtFrame_.Parm().c_str(),
+            RefFrame_.Parm().c_str(), TgtFrame_.Parm().Natom());
     mprintf("             Current parm %s (%i atom).\n",currentParm->c_str(),
             currentParm->Natom());
     mprintf("             Not using map for this parm.\n");
@@ -892,8 +884,8 @@ Action::RetType Action_AtomMap::Setup(Topology* currentParm, Topology** parmAddr
     mprintf("    ATOMMAP: rmsfit specified, %i atoms.\n",rmsRefFrame_.Natom());
     return Action::OK;
   }
-  mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TgtParm_->c_str(),
-          RefParm_->c_str(), TgtParm_->Natom());
+  mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TgtFrame_.Parm().c_str(),
+          RefFrame_.Parm().c_str(), TgtFrame_.Parm().Natom());
 
   *parmAddress = newParm_;
   
