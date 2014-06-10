@@ -196,22 +196,18 @@ int Trajin_Ensemble::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
   }
   f_sorted[0] = &f_ensemble[ensembleFrameNum];
 # else
-  if (targetType_ == ReplicaInfo::TEMP) {
-    for (int i = 0; i != ensembleSize_; i++) {
-      int fidx = TemperatureMap_.FindIndex( f_ensemble[i].Temperature() );
-      if ( fidx == -1 )
-        badEnsemble_ = true;
-      else
-        f_sorted[fidx] = &f_ensemble[i];
-    }
-  } else if (targetType_ == ReplicaInfo::INDICES) {
-    for (int i = 0; i != ensembleSize_; i++) {
-      int fidx = IndicesMap_.FindIndex( f_ensemble[i].RemdIndices() );
-      if (fidx == -1 )
-        badEnsemble_ = true;
-      else
-        f_sorted[fidx] = &f_ensemble[i];
-    }
+  int fidx;
+  for (int i = 0; i != ensembleSize_; i++) {
+    if (targetType_ == ReplicaInfo::TEMP)
+      fidx = TemperatureMap_.FindIndex( f_ensemble[i].Temperature() );
+    else if (targetType_ == ReplicaInfo::INDICES)
+      fidx = IndicesMap_.FindIndex( f_ensemble[i].RemdIndices() );
+    else // NONE
+      fidx = i;
+    if ( fidx == -1 )
+      badEnsemble_ = true;
+    else
+      f_sorted[fidx] = &f_ensemble[i];
   }
 # endif
   return 0;
