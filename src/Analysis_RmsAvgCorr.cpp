@@ -3,7 +3,7 @@
 #include "Analysis_RmsAvgCorr.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
-#include "Trajin_Single.h" // For reading in reference
+#include "ReferenceFrame.h" // For reading in reference
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -32,7 +32,6 @@ void Analysis_RmsAvgCorr::Help() {
 Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  Trajin_Single traj;
   Topology* refParm = 0; 
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
@@ -76,12 +75,6 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
       mprinterr("Error: Could not get ref parm.\n");
       return Analysis::ERR;
     }
-    // Set up ref traj
-    traj.SetDebug( debugIn );
-    if ( traj.SetupTrajRead( refFilename, analyzeArgs, refParm, false ) ) {
-      mprinterr("Error: Could not set up reference '%s'\n", refFilename.c_str());
-      return Analysis::ERR;
-    }
   }
   // Get Mask
   mask_.SetMaskString( analyzeArgs.GetMaskNext() );
@@ -91,23 +84,11 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
     std::string refMaskExpr = analyzeArgs.GetMaskNext();
     if (refMaskExpr.empty())
       refMaskExpr = mask_.MaskExpression();
-    AtomMask refMask( refMaskExpr );
-    if ( refParm->SetupIntegerMask( refMask ) ) return Analysis::ERR;
-    refMask.MaskInfo();
-    if ( refMask.None() ) {
-      mprinterr("Error: No atoms in reference selected.\n");
+    ReferenceFrame REF;
+    if (REF.LoadRef(refFilename, analyzeArgs, refParm, refMaskExpr, debugIn))
       return Analysis::ERR;
-    }
-    // Read in reference structure if specified
-    if ( traj.BeginTraj(false) ) {
-      mprinterr("Error: could not open reference '%s'\n", traj.TrajFilename().full());
-      return Analysis::ERR;
-    }
-    Frame inputFrame( refParm->Atoms() );
-    traj.GetNextFrame( inputFrame );
-    traj.EndTraj();
-    refFrame_.SetupFrameFromMask( refMask, refParm->Atoms() );
-    refFrame_.SetFrame( inputFrame, refMask );
+    refFrame_ = REF.Coord();
+    REF.ClearRef();
     // Pre-center reference
     refFrame_.CenterOnOrigin(useMass_);
   }
