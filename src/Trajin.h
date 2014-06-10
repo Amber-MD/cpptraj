@@ -18,13 +18,12 @@ class Trajin : public TrajectoryFile {
     // NOTE: The following are currently for testing Trajin_Ensemble
     virtual void EnsembleInfo() const = 0;
     virtual int EnsembleSetup(FrameArray&, FramePtrArray&) = 0;
-    virtual int GetNextEnsemble(FrameArray&, FramePtrArray&) = 0;
+    virtual int ReadEnsemble(int, FrameArray&, FramePtrArray&) = 0;
     virtual bool  BadEnsemble() const = 0;
 
     static int CheckFrameArgs(ArgList&, int, int&, int&, int&);
-    inline bool CheckFinished();
-    inline void UpdateCounters();
     inline int GetNextFrame(Frame&);
+    inline int GetNextEnsemble(FrameArray&, FramePtrArray&);
     inline void SetTotalFrames(int); 
     int SetupTrajIO( std::string const&, TrajectoryIO&, ArgList& );
     int CheckBoxInfo(const char*, Box&, Box const&) const; 
@@ -36,7 +35,6 @@ class Trajin : public TrajectoryFile {
     int NreplicaDimension()  const { return TrajReplicaDimInfo().Ndims(); } 
     int TotalFrames()        const { return total_frames_;       }
     int TotalReadFrames()    const { return total_read_frames_;  }
-    int CurrentFrame()       const { return currentFrame_;       } // GetNextEnsemble
     int Start()              const { return start_;              }
     int Offset()             const { return offset_;             }
     int NumFramesProcessed() const { return numFramesProcessed_; }
@@ -45,6 +43,9 @@ class Trajin : public TrajectoryFile {
     /// \return Current frame number (starting from 1).
     int CurrentFrameNumber() const { return currentFrame_ - offset_ + 1; }
   private:
+    inline bool CheckFinished();
+    inline void UpdateCounters();
+
     int start_;              ///< Frame to begin processing
     int stop_;               ///< Frame to end processing
     int offset_;             ///< Number of frames to skip between processed frames
@@ -75,6 +76,16 @@ int Trajin::GetNextFrame(Frame& frameIn) {
   if (CheckFinished()) return 0;
   // Read current frame
   if ( ReadTrajFrame( currentFrame_, frameIn ) ) return 0;
+  // Update counters
+  UpdateCounters();
+  return 1;
+}
+/** \return 1 if more ensembles should be read, 0 if finished. */
+int Trajin::GetNextEnsemble( FrameArray& fe, FramePtrArray& fs ) {
+  // If the current frame is out of range, exit
+  if (CheckFinished()) return 0;
+  // Read current ensemble, sorting if necessary.
+  if ( ReadEnsemble( currentFrame_, fe, fs ) ) return 0;
   // Update counters
   UpdateCounters();
   return 1;

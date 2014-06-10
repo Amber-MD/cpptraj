@@ -19,7 +19,7 @@ class Trajin_Ensemble : public Trajin {
     // NOTE: The following are currently for testing Trajin_Ensemble
     void EnsembleInfo() const;
     int EnsembleSetup(FrameArray&, FramePtrArray&);
-    int GetNextEnsemble(FrameArray&, FramePtrArray&);
+    int ReadEnsemble(int, FrameArray&, FramePtrArray&);
     bool BadEnsemble() const { return badEnsemble_; }
     // -------------------------------------------
   private:

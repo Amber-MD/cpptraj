@@ -22,7 +22,7 @@ class Trajin_Single : public Trajin {
     // NOTE: The following are currently for testing Trajin_Ensemble
     void EnsembleInfo() const {} 
     int EnsembleSetup(FrameArray&,FramePtrArray&) {return 1;}
-    int GetNextEnsemble(FrameArray&,FramePtrArray&) {return 0;}
+    int ReadEnsemble(int,FrameArray&,FramePtrArray&) {return 1;}
     bool  BadEnsemble() const { return true; }
   private:
     TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.

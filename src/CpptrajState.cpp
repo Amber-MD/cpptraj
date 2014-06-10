@@ -564,7 +564,7 @@ int CpptrajState::RunNormal() {
       // Check that coords are valid.
       if ( TrajFrame.CheckCoordsInvalid() )
         mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
-                (*traj)->CurrentFrame() - (*traj)->Offset() + 1);
+                (*traj)->CurrentFrameNumber());
         // Since Frame can be modified by actions, save original and use CurrentFrame
         Frame* CurrentFrame = &TrajFrame;
         // Perform Actions on Frame

@@ -594,26 +594,26 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sorted
   return 0;
 }
 
-// Trajin_Multi::GetNextEnsemble()
-int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sorted ) {
-  // If the current frame is out of range, exit
-  if ( CheckFinished() ) return 0;
+// Trajin_Multi::ReadEnsemble()
+int Trajin_Multi::ReadEnsemble( int currentFrame, FrameArray& f_ensemble, 
+                                FramePtrArray& f_sorted )
+{
   FrameArray::iterator frame = f_ensemble.begin();
   int fidx = 0;
   badEnsemble_ = false;
   // Read in all replicas
-  //mprintf("DBG: Ensemble frame %i:",CurrentFrame()+1); // DEBUG
+  //mprintf("DBG: Ensemble frame %i:",currentFrame+1); // DEBUG
 # ifdef MPI
   int repIdx = worldrank; // for targetType==CRDIDX
   // Read REMDtraj for this rank
-  if ( REMDtraj_[worldrank]->readFrame( CurrentFrame(), *frame) )
-    return 0;
+  if ( REMDtraj_[worldrank]->readFrame( currentFrame, *frame) )
+    return 1;
 # else
   int repIdx = 0; // for targetType==CRDIDX
   for (unsigned int member = 0; member != REMDtraj_.size(); ++member)
   {
-    if ( REMDtraj_[member]->readFrame( CurrentFrame(), *frame) )
-      return 0;
+    if ( REMDtraj_[member]->readFrame( currentFrame, *frame) )
+      return 1;
 # endif
     if (targetType_ == TEMP) {
       TmapType::iterator tmap = TemperatureMap_.find( frame->Temperature() );
@@ -634,10 +634,10 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sort
       //  mprintf(" %i", remd_indices_[idx]);
       //mprintf(" }[%i]", fidx);
     } else if (targetType_ == CRDIDX) {
-      int currentRemExchange = (int)((double)CurrentFrame() * remdFrameFactor_) + remdFrameOffset_;
-      //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", CurrentFrame()+1, currentRemExchange+1);
+      int currentRemExchange = (int)((double)currentFrame * remdFrameFactor_) + remdFrameOffset_;
+      //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", currentFrame+1, currentRemExchange+1);
       fidx = remlogData_.RepFrame( currentRemExchange, repIdx++ ).CoordsIdx() - 1;
-      //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", CurrentFrame(), member, fidx);
+      //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", currentFrame, member, fidx);
     }
 #   ifndef MPI
     else // NONE
@@ -655,12 +655,12 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sort
 #     endif
       if (parallel_allgather( &my_idx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
         rprinterr("Error: Gathering frame indices.\n");
-        return 1; // TODO: Better parallel error check
+        return 0; // TODO: Better parallel error check
       }
 #     ifdef TIMER
       mpi_allgather_timer_.Stop();
 #     endif
-      //mprintf("Frame %i Table:\n", CurrentFrame()); // DEBUG
+      //mprintf("Frame %i Table:\n", currentFrame); // DEBUG
       //for (unsigned int i = 0; i < REMDtraj_.size(); i++) // DEBUG
       //  mprintf("Rank %i has index %i\n", i, frameidx_[i]); // DEBUG
       // LOOP: one sendrecv at a time.
@@ -686,15 +686,14 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble, FramePtrArray& f_sort
 #     endif
     }
     f_sorted[0] = &f_ensemble[ensembleFrameNum];
-    //rprintf("FRAME %i, FRAME RECEIVED= %i\n", CurrentFrame(), ensembleFrameNum); // DEBUG 
+    //rprintf("FRAME %i, FRAME RECEIVED= %i\n", currentFrame, ensembleFrameNum); // DEBUG 
 #   else
     f_sorted[fidx] = &f_ensemble[member];
     ++frame;
   }
 #   endif
   //mprintf("\n"); // DEBUG
-  UpdateCounters();
-  return 1;
+  return 0;
 }
 
 /** CRDIDXARG:

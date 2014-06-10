@@ -25,8 +25,8 @@ class Trajin_Multi : public Trajin {
     int EnsembleSize()      const { return (int)REMDtraj_.size(); }
     void EnsembleInfo() const;
     int EnsembleSetup( FrameArray&, FramePtrArray& );
-    /// \return 1 if more frames to read, 0 if finished
-    int GetNextEnsemble( FrameArray&, FramePtrArray& );
+    /// \return 0 if more frames to read, 1 if finished/error
+    int ReadEnsemble( int, FrameArray&, FramePtrArray& );
     bool BadEnsemble()               const { return badEnsemble_;          }
     // -------------------------------------------
     // CRDIDXARG: NOTE: This is public for CRDIDX in TrajinList

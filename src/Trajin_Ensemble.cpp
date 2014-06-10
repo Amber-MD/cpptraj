@@ -208,13 +208,13 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
   return 0;
 }
 
-// Trajin_Ensemble::GetNextEnsemble()
-int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_sorted ) {
+// Trajin_Ensemble::ReadEnsemble()
+int Trajin_Ensemble::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
+                                  FramePtrArray& f_sorted )
+{
   badEnsemble_ = false;
-  // If the current frame is out of range, exit
-  if (CheckFinished()) return 0;
   // Read in all replicas.
-  if ( eio_->readArray( CurrentFrame(), f_ensemble ) ) return 0;
+  if ( eio_->readArray( currentFrame, f_ensemble ) ) return 1;
 # ifdef MPI
   int ensembleFrameNum = 0;
   if (targetType_ != ReplicaInfo::NONE) {
@@ -227,7 +227,7 @@ int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_
     if (parallel_allgather( &my_idx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
       rprinterr("Error: Gathering frame indices.\n");
       badEnsemble_ = true;
-      return 1; // TODO: Better parallel error check
+      return 0; // TODO: Better parallel error check
     }
     for (int i = 0; i != ensembleSize_; i++)
       if (frameidx_[i] == -1) {
@@ -270,6 +270,5 @@ int Trajin_Ensemble::GetNextEnsemble(  FrameArray& f_ensemble, FramePtrArray& f_
     }
   }
 # endif
-  UpdateCounters();
-  return 1;
+  return 0;
 }
