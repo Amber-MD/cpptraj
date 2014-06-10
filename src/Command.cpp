@@ -1013,18 +1013,18 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
   // If a reference frame was specified and distance restraint, use center of
   // mass distance/angle/torsion between masks as r2.
   if ( !RefCrd.empty() ) {
-    if ( RefCrd.Parm()->Pindex() != parm->Pindex() )
+    if ( RefCrd.Parm().Pindex() != parm->Pindex() )
       mprintf("Warning: Reference topology does not match specified topology.\n");
-    Vec3 a1 = RefCrd.Coord()->VCenterOfMass( rstMasks[0] );
-    Vec3 a2 = RefCrd.Coord()->VCenterOfMass( rstMasks[1] );
+    Vec3 a1 = RefCrd.Coord().VCenterOfMass( rstMasks[0] );
+    Vec3 a2 = RefCrd.Coord().VCenterOfMass( rstMasks[1] );
     if (rstMasks.size() == 2)
       r2 = DIST_NoImage( a1, a2 );
     else if (rstMasks.size() == 3) {
-      Vec3 a3 = RefCrd.Coord()->VCenterOfMass( rstMasks[2] );
+      Vec3 a3 = RefCrd.Coord().VCenterOfMass( rstMasks[2] );
       r2 = CalcAngle(a1.Dptr(), a2.Dptr(), a3.Dptr()) * Constants::RADDEG;
     } else if (rstMasks.size() == 4) {
-      Vec3 a3 = RefCrd.Coord()->VCenterOfMass( rstMasks[2] );
-      Vec3 a4 = RefCrd.Coord()->VCenterOfMass( rstMasks[3] );
+      Vec3 a3 = RefCrd.Coord().VCenterOfMass( rstMasks[2] );
+      Vec3 a4 = RefCrd.Coord().VCenterOfMass( rstMasks[3] );
       r2 = Torsion(a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr()) * Constants::RADDEG;
     }
     r2 += offset;

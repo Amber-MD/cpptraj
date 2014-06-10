@@ -18,7 +18,7 @@ void FrameList::Clear() {
   // TODO: ReferenceFrame should be passed by const reference. 
   for (std::vector<ReferenceFrame>::iterator ref = frames_.begin();
                                              ref != frames_.end(); ++ref)
-    delete (*ref).Coord();
+    ref->ClearRef();
   frames_.clear();
   activeRefNum_ = 0;
 }
@@ -35,7 +35,7 @@ void FrameList::SetDebug(int debugIn) {
   */
 Frame FrameList::ActiveReference() const {
   if (frames_.empty()) return Frame();
-  return *(frames_[activeRefNum_].Coord());
+  return frames_[activeRefNum_].Coord();
 }
 
 // FrameList::SetActiveRef()
@@ -57,10 +57,18 @@ int FrameList::SetActiveRef(int numIn) {
 int FrameList::AddRefFrame(ArgList& argIn, TopologyList const& topListIn) {
   ReferenceFrame refFrame;
 
-  // Get associated parmtop
+  // Get filename, associated parmtop, and mask.
+  std::string fname = argIn.GetStringNext();
   Topology* parmIn = topListIn.GetParm( argIn );
+  std::string mask  = argIn.GetMaskNext();
+  // 'average' keyword is deprecated
+  if ( argIn.hasKey("average") ) {
+    mprinterr("Error: 'average' for reference is deprecated. Please use\n"
+              "Error:   the 'average' action to create averaged coordinates.\n");
+    return 1;
+  }
   // Load reference frame.
-  if (refFrame.LoadRef( argIn.GetStringNext(), argIn, parmIn, debug_ ))
+  if (refFrame.LoadRef( fname, argIn, parmIn, mask, debug_ ))
     return 1;
   // Check and warn if filename/reftag currently in use
   // TODO: Check for base filename?

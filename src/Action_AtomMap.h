@@ -19,11 +19,9 @@ class Action_AtomMap : public Action {
 
     int debug_;
     AtomMap RefMap_;
-    Frame* RefFrame_;
-    Topology* RefParm_;
+    ReferenceFrame RefFrame_;
     AtomMap TgtMap_;
-    Frame* TgtFrame_;
-    Topology* TgtParm_ ;
+    ReferenceFrame TgtFrame_;
 
     std::vector<int> AMap_;
     bool maponly_;

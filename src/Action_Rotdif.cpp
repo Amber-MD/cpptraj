@@ -179,15 +179,15 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 
   // Set up reference for RMSD
   // Setup reference mask
-  if (REF.Parm()->SetupIntegerMask( RefMask )) return Action::ERR;
+  if (REF.Parm().SetupIntegerMask( RefMask )) return Action::ERR;
   if (RefMask.None()) {
     mprinterr("Error: No atoms in reference mask.\n");
     return Action::ERR;
   }
   // Allocate frame for selected reference atoms
-  SelectedRef_.SetupFrameFromMask(RefMask, REF.Parm()->Atoms());
+  SelectedRef_.SetupFrameFromMask(RefMask, REF.Parm().Atoms());
   // Set reference frame coordinates
-  SelectedRef_.SetCoordinates(*(REF.Coord()), RefMask);
+  SelectedRef_.SetCoordinates(REF.Coord(), RefMask);
   // Always fitting; Pre-center reference frame
   SelectedRef_.CenterOnOrigin(useMass_); 
 

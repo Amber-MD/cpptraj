@@ -16,7 +16,7 @@ class Action_Contacts : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
 
-    int SetupContacts(Frame*, Topology*);
+    int SetupContacts(Frame const&, Topology const&);
 
     AtomMask Mask_;
     bool byResidue_;

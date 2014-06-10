@@ -9,7 +9,7 @@ class ReferenceAction {
     /// Set up selected ref coordinates base on given frame and ref mask.
     inline void SetRefStructure(Frame const&, bool, bool);
     /// Initialize
-    int InitRef(bool, bool, bool, bool, std::string const&, ReferenceFrame&,
+    int InitRef(bool, bool, bool, bool, std::string const&, ReferenceFrame const&,
                 Topology*, std::string const&, ArgList&, const char*);
     /// Setup
     int SetupRef(Topology const&, int, const char*);

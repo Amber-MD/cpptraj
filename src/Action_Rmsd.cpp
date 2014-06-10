@@ -76,7 +76,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     return Action::ERR;
   // Set RefParm for perres if not empty
   if (perres_ && RefParm_ == 0 && !refFrm.empty())
-    RefParm_ = refFrm.Parm();
+    RefParm_ = (Topology*)(&refFrm.Parm()); // 
 
   // Set up the RMSD data set. 
   rmsd_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"RMSD");

@@ -27,7 +27,7 @@ Action_Contacts::~Action_Contacts() {
 }
 
 /** Set up native contacts based on reference structure. */
-int Action_Contacts::SetupContacts(Frame* refframe, Topology* refparm) {
+int Action_Contacts::SetupContacts(Frame const& refframe, Topology const& refparm) {
   // Determine which pairs of atoms satisfy cutoff, build contact list
   AtomMask::const_iterator atom1end = Mask_.end() - 1;
   for (AtomMask::const_iterator atom1 = Mask_.begin();
@@ -36,7 +36,7 @@ int Action_Contacts::SetupContacts(Frame* refframe, Topology* refparm) {
     for (AtomMask::const_iterator atom2 = atom1 + 1;
                                   atom2 != Mask_.end(); ++atom2)
     {
-      double d2 = DIST2_NoImage(refframe->XYZ(*atom1), refframe->XYZ(*atom2));
+      double d2 = DIST2_NoImage(refframe.XYZ(*atom1), refframe.XYZ(*atom2));
       if (d2 < distance_)
         nativecontacts_.insert( contactType(*atom1, *atom2) );
     }
@@ -48,8 +48,8 @@ int Action_Contacts::SetupContacts(Frame* refframe, Topology* refparm) {
   {
     int a1 = (*contact).first;
     int a2 = (*contact).second;
-    mprintf("\t\tAtom %i[%s] to %i[%s]\n", a1+1, (*refparm)[a1].c_str(),
-            a2+1, (*refparm)[a2].c_str());
+    mprintf("\t\tAtom %i[%s] to %i[%s]\n", a1+1, refparm[a1].c_str(),
+            a2+1, refparm[a2].c_str());
   }
   return 0;
 }
@@ -100,7 +100,7 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   if (!first_) {
     // TODO: Convert FrameList to return frame reference?
     // Set up atom mask for reference frame
-    if (REF.Parm()->SetupIntegerMask(Mask_, *(REF.Coord()))) return Action::ERR;
+    if (REF.Parm().SetupIntegerMask(Mask_, REF.Coord())) return Action::ERR;
     // Set up reference contacts 
     SetupContacts(REF.Coord(), REF.Parm());
   }
@@ -170,7 +170,7 @@ Action::RetType Action_Contacts::Setup(Topology* currentParm, Topology** parmAdd
 
 Action::RetType Action_Contacts::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   if (first_) {
-    SetupContacts( currentFrame, CurrentParm_ );
+    SetupContacts( *currentFrame, *CurrentParm_ );
     first_ = false;
   }
 

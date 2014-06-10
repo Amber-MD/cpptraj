@@ -55,11 +55,11 @@ class Action_Pairwise: public Action {
     //std::vector<NonbondEnergyType> atom_nonbondEnergy;
 
     /// Set up nonbondParm for given Parm and atoms in mask
-    int SetupNonbondParm(AtomMask &, Topology *);
+    int SetupNonbondParm(AtomMask const&, Topology const&);
     /// Calculate nonbond energy using nonbondParm for given frame
-    void NonbondEnergy(Frame *, Topology *, AtomMask &);
+    void NonbondEnergy(Frame const&, Topology const&, AtomMask const&);
     int WriteCutFrame(int, Topology const&, AtomMask const&, std::vector<double> const&, 
                       Frame const&, std::string const&);
-    void PrintCutAtoms(Frame *,int);
+    void PrintCutAtoms(Frame const&,int);
 };
 #endif  

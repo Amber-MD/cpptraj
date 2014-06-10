@@ -97,7 +97,7 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
   if (!refFiles.empty()) {
     ReferenceFrame refFrame;
     if (refFrame.LoadRef( refFiles[0], &parm, State_.Debug())) return 1;
-    parm.SetReferenceCoords( *(refFrame.Coord()) );
+    parm.SetReferenceCoords( refFrame.Coord() );
   }
   if (!verbose) {
     AtomMask tempMask( maskexpr );

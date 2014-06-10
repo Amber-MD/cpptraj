@@ -226,8 +226,6 @@ std::string const& ArgList::GetStringNext() {
 /** Return next unmarked Mask. A mask MUST include one of the following: 
   *   ':' residue
   *   '@' atom
-  *   '/' element
-  *   '%' type
   *   '*' everything
   * \return the next unmarked atom mask expression
   */
