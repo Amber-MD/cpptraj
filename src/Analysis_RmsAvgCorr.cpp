@@ -241,6 +241,10 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   int startWindow = 1 + lagOffset_; 
   int total_windows = (WindowMax - startWindow)  / lagOffset_;
   if ( (total_windows % lagOffset_) > 0 ) ++total_windows;
+  if (total_windows < 0) {
+    mprinterr("Error: Not enough frames to perform calculation.\n");
+    return Analysis::ERR;
+  }
   w_sizes.reserve( total_windows );
   for (int ws = startWindow; ws < WindowMax; ws += lagOffset_)
     w_sizes.push_back( ws );
