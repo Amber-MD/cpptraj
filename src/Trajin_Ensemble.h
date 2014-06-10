@@ -1,7 +1,6 @@
 #ifndef TRAJIN_ENSEMBLE_H
 #define TRAJIN_ENSEMBLE_H
 #include "Trajin.h"
-#include "ReplicaInfo.h"
 /// Class for reading in single file ensemble trajectories.
 class Trajin_Ensemble : public Trajin {
   public:

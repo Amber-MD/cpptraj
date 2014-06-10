@@ -2,6 +2,7 @@
 #define INC_TRAJIN_H
 #include "TrajectoryFile.h"
 #include "ProgressBar.h"
+#include "ReplicaInfo.h"
 /// Class that all input trajectories will inherit.
 class Trajin : public TrajectoryFile {
   public:
@@ -42,6 +43,12 @@ class Trajin : public TrajectoryFile {
     void SetEnsemble(bool b)       { isEnsemble_ = b;            }
     /// \return Current frame number (starting from 1).
     int CurrentFrameNumber() const { return currentFrame_ - offset_ + 1; }
+  protected:
+    // ----- Useful Ensemble Functions -----------
+    ReplicaMap<double> SetReplicaTmap(int,FrameArray&) const;
+    ReplicaMap<Frame::RemdIdxType> SetReplicaImap(int,int,FrameArray&) const;
+    static void PrintReplicaTmap(ReplicaMap<double> const&);
+    static void PrintReplicaImap(ReplicaMap<Frame::RemdIdxType> const&);
   private:
     inline bool CheckFinished();
     inline void UpdateCounters();

@@ -93,7 +93,7 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
     //       so trajin doesnt have to worry about it.
     if ( !tio->CanProcessEnsemble() ) {
       Trajin_Multi const& mTraj = static_cast<Trajin_Multi const&>( *traj );
-      if ( mTraj.TargetMode() == Trajin_Multi::CRDIDX ) {
+      if ( mTraj.TargetMode() == ReplicaInfo::CRDIDX ) {
         finalCrdIndicesArg_ = mTraj.FinalCrdIndices();
         if (finalCrdIndicesArg_.empty()) {
           mprinterr("Error: Could not obtain final remlog indices.\n");

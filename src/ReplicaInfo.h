@@ -18,6 +18,7 @@ template <class T> class ReplicaMap {
     typedef typename RmapType::const_iterator const_iterator;
     const_iterator begin() const { return repMap_.begin(); }
     const_iterator end()   const { return repMap_.end();   }
+    bool empty()           const { return repMap_.empty(); }
     void ClearMap()              { repMap_.clear();        }
   private:
     RmapType repMap_;

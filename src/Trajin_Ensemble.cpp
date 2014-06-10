@@ -112,23 +112,10 @@ void Trajin_Ensemble::PrintInfo(int showExtended) const {
 // -----------------------------------------------------------------------------
 // Trajin_Ensemble::EnsembleInfo()
 void Trajin_Ensemble::EnsembleInfo() const {
-  if (targetType_ == ReplicaInfo::TEMP) {
-    mprintf("  Ensemble Temperature Map:\n");
-    for (ReplicaMap<double>::const_iterator tmap = TemperatureMap_.begin();
-                                            tmap != TemperatureMap_.end(); ++tmap)
-      mprintf("\t%10.2f -> %i\n", tmap->first, tmap->second);
-  } else if (targetType_ == ReplicaInfo::INDICES) {
-    mprintf("  Ensemble Indices Map:\n");
-    for (ReplicaMap<RemdIdxType>::const_iterator imap = IndicesMap_.begin();
-                                                 imap != IndicesMap_.end(); ++imap)
-    {
-      mprintf("\t{");
-      for (RemdIdxType::const_iterator idx = imap->first.begin();
-                                       idx != imap->first.end(); ++idx)
-        mprintf(" %i", *idx);
-      mprintf(" } -> %i\n", imap->second);
-    }
-  }
+  if (targetType_ == ReplicaInfo::TEMP)
+    PrintReplicaTmap( TemperatureMap_ );
+  else if (targetType_ == ReplicaInfo::INDICES)
+    PrintReplicaImap( IndicesMap_ );
 }
 
 // Trajin_Ensemble::EnsembleSetup()
@@ -154,54 +141,11 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
     if ( eio_->readArray( Start(), f_ensemble ) ) return 1;
     eio_->closeTraj();
     if (targetType_ == ReplicaInfo::TEMP) {
-      std::vector<double> all_temperatures( ensembleSize_ );
-#     ifdef MPI
-      // Consolidate temperatures
-      if (parallel_allgather(f_ensemble[0].tAddress(), 1, PARA_DOUBLE, 
-                             &all_temperatures[0], 1, PARA_DOUBLE))
-      {
-        rprinterr("Error: Gathering temperatures\n");
-        return 1; // TODO: Better parallel error check
-      }
-#     else
-      for (int i = 0; i != ensembleSize_; i++)
-        all_temperatures[i] = f_ensemble[i].Temperature();
-#     endif
-      if (TemperatureMap_.CreateMap( all_temperatures )) {
-        rprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n"
-                  "Error:   If this is an H-REMD ensemble try the 'nosort' keyword.\n",
-                   TemperatureMap_.Duplicate(), TrajFilename().full());
-        return 1;
-      }
+      TemperatureMap_ = SetReplicaTmap(ensembleSize_, f_ensemble);
+      if (TemperatureMap_.empty()) return 1;
     } else if (targetType_ == ReplicaInfo::INDICES) {
-      std::vector<RemdIdxType> indices( ensembleSize_ );
-#     ifdef MPI
-      // Consolidate replica indices
-      std::vector<int> all_indices( ensembleSize_ * trajRepDimInfo_.Ndims() );
-      if (parallel_allgather( f_ensemble[0].iAddress(), trajRepDimInfo_.Ndims(), PARA_INT,
-                              &all_indices[0], trajRepDimInfo_.Ndims(), PARA_INT ))
-      {
-        rprinterr("Error: Gathering indices\n");
-        return 1; // TODO: Better parallel error check
-      }
-      std::vector<int>::const_iterator idx_it = all_indices.begin();
-      for (std::vector<RemdIdxType>::iterator it = indices.begin();
-                                              it != indices.end();
-                                            ++it, idx_it += trajRepDimInfo_.Ndims())
-        it->assign(idx_it, idx_it + trajRepDimInfo_.Ndims());
-#     else
-      for (int i = 0; i != ensembleSize_; i++)
-        indices[i] = f_ensemble[i].RemdIndices();
-#     endif
-      if (IndicesMap_.CreateMap( indices )) {
-        rprinterr("Error: Ensemble: Duplicate indices detected in ensemble %s:",
-                  TrajFilename().full());
-        for (RemdIdxType::const_iterator idx = IndicesMap_.Duplicate().begin();
-                                         idx != IndicesMap_.Duplicate().end(); ++idx)
-          rprinterr(" %i", *idx);
-        rprinterr("\n");
-        return 1;
-      }
+      IndicesMap_ = SetReplicaImap(ensembleSize_,  trajRepDimInfo_.Ndims(), f_ensemble);
+      if (IndicesMap_.empty()) return 1;
     }
   }
 

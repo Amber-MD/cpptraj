@@ -3,6 +3,11 @@
 #include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "Timer.h"
+#ifdef TIMER
+#ifdef MPI
+#include "Trajin_Multi.h"
+#endif
+#endif
 
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
