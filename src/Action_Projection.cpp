@@ -13,8 +13,8 @@ Action_Projection::Action_Projection() :
 
 void Action_Projection::Help() {
   mprintf("\tevecs <evecs dataset> [out <outfile>] [beg <beg>] [end <end>] [<mask>]\n"
-          "\t%s\n  Calculate projection along given eigenvectors.\n", 
-          ActionFrameCounter::HelpText);
+          "\t[dihedrals <dataset arg>]\n\t%s\n"
+          "  Calculate projection along given eigenvectors.\n", ActionFrameCounter::HelpText);
 }
 
 // Action_Projection::Init()
@@ -67,17 +67,17 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   // Get dihedral data sets 
   if (modinfo_->Type() == DataSet_2D::DIHCOVAR) {
     DihedralSets_.clear();
-    DihedralSets_.AddTorsionSets( DSL->GetMultipleSets( actionArgs.GetStringKey("dihedrals") ) );
+    DihedralSets_.AddTorsionSets( DSL->GetMultipleSets(actionArgs.GetStringKey("dihedrals")) );
     if ( DihedralSets_.empty() ) {
       mprinterr("Error: No valid data sets found.\n");
       return Action::ERR;
-    } else if ((int)DihedralSets_.size() * 2 != (end_ - beg_)) {
-      mprinterr("Error: Number of dihedral data sets %u does not correspond to number of eigenvectors %i\n",
-                DihedralSets_.size() * 2, end_ - beg_);
+    } else if ((int)DihedralSets_.size() * 2 != modinfo_->VectorSize()) {
+      mprinterr("Error: Number of dihedral data sets %u does not correspond to"
+                " number of eigenvectors %i\n", DihedralSets_.size()*2, modinfo_->VectorSize());
       return Action::ERR;
     } else if ((int)DihedralSets_.size() * 2 != modinfo_->NavgCrd()) {
-      mprinterr("Error: Number of dihedral data sets %u does not correspond to number of average elements %i\n",
-                DihedralSets_.size() * 2, modinfo_->NavgCrd());
+      mprinterr("Error: Number of dihedral data sets %u does not correspond to"
+                " number of average elements %i\n", DihedralSets_.size()*2, modinfo_->NavgCrd());
       return Action::ERR;
     }
   } else
@@ -116,7 +116,9 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   if (DF != 0)
     mprintf("\tResults are written to %s\n", DF->DataFilename().full());
   FrameCounterInfo();
-  if (modinfo_->Type() != DataSet_2D::DIHCOVAR)
+  if (modinfo_->Type() == DataSet_2D::DIHCOVAR)
+    mprintf("\t%zu dihedral data sets.\n", DihedralSets_.size());
+  else
     mprintf("\tAtom Mask: [%s]\n", mask_.MaskString());
 
   return Action::OK;
@@ -210,7 +212,6 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame,
         double theta = (*dih)->Dval( frameNum ) * Constants::DEGRAD;
         proj += (cos(theta) - *(Avg++)) * Vec[0];
         proj += (sin(theta) - *(Avg++)) * Vec[1];
-        Avg += 2;
         Vec += 2;
       }
       // TODO: Convert to degrees?

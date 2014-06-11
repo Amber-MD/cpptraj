@@ -12,6 +12,7 @@ Analysis_Modes::Analysis_Modes() :
   bose_(false),
   factor_(0),
   modinfo_(0),
+  modinfo2_(0),
   results_(0),
   tOutParm_(0),
   tMode_(0),
@@ -20,7 +21,7 @@ Analysis_Modes::Analysis_Modes() :
 {}
 
 void Analysis_Modes::Help() {
-  mprintf("\t{fluct|displ|corr|eigenval|trajout} name <modesname>\n" 
+  mprintf("\t{fluct|displ|corr|eigenval|trajout|rmsip} name <modesname> [name2 <modesname>]\n"
           "\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n"
           "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
           "    Options for 'trajout': (Generate pseudo-trajectory)\n"
@@ -29,14 +30,15 @@ void Analysis_Modes::Help() {
           "  Perform one of the following analysis on calculated Eigenmodes.\n"
           "    fluct: rms fluctations from normal modes\n"
           "    displ: displacement of cartesian coordinates along normal mode directions\n"
+          "    eigenval: Calculate eigenvalue fractions.\n"
+          "    rmsip: Root mean square inner product.\n"
           "  Results vector usage:\n"
           "    fluct:\n"
           "\t[rmsx(at1), rmsy(at1), rmsz(at1), rms(at1), ..., rmsx(atN), ..., rms(atN)]\n"
           "    displ:\n"
           "\t[displx(at1), disply(at1), displz(at1), ..., displx(atN), ..., displz(atN)]\n"
           "    corr:\n"
-          "\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n"
-          "\t  eigenval: Calculate eigenvalue fractions.\n");
+          "\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n");
 }
 
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
@@ -57,7 +59,8 @@ const char* Analysis_Modes::analysisTypeString[] = {
   "displacements",
   "correlation functions",
   "coordinate projection",
-  "eigenvalue fraction"
+  "eigenvalue fraction",
+  "root mean square inner product"
 };
 
 // DESTRUCTOR
@@ -95,6 +98,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     type_ = TRAJ;
   else if (analyzeArgs.hasKey("eigenval"))
     type_ = EIGENVAL;
+  else if (analyzeArgs.hasKey("rmsip"))
+    type_ = RMSIP;
   else {
     mprinterr("Error: No analysis type specified.\n");
     return Analysis::ERR;
@@ -111,6 +116,15 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       return Analysis::ERR;
     }
   }
+  // Get second modes name for RMSIP
+  std::string modesfile2 = analyzeArgs.GetStringKey("name2");
+  if (type_ == RMSIP) {
+    if (modesfile2.empty()) {
+      mprinterr("Error: 'rmsip' requires second modes data 'name2 <modes>'\n");
+      return Analysis::ERR;
+    }
+  } else
+    modesfile2.clear(); 
 
   // Get trajectory format args for projected traj
   if (type_ == TRAJ ) {
@@ -164,16 +178,26 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   // Check if modes name exists on the stack
   modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
-    mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
+    mprinterr("Error: '%s' not found: %s\n", modesfile.c_str(), DataSet_Modes::DeprecateFileMsg);
     return Analysis::ERR;
   }
+  if (!modesfile2.empty()) {
+    modinfo2_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile2, DataSet::MODES );
+    if (modinfo2_ == 0) {
+      mprinterr("Error: Set %s not found.\n", modesfile2.c_str());
+      return Analysis::ERR;
+    }
+  }
 
-  // Check modes type
-  if (modinfo_->Type() != DataSet_2D::COVAR && 
-      modinfo_->Type() != DataSet_2D::MWCOVAR)
-  {
-    mprinterr("Error: Modes must be of type COVAR or MWCOVAR.\n");
-    return Analysis::ERR;
+  // Check modes type for specified analysis
+  if (type_ == FLUCT || type_ == DISPLACE || type_ == CORR || type_ == TRAJ) {
+    if (modinfo_->Type() != DataSet_2D::COVAR && 
+        modinfo_->Type() != DataSet_2D::MWCOVAR)
+    {
+      mprinterr("Error: Modes must be of type COVAR or MWCOVAR for %s.\n",
+                analysisTypeString[type_]);
+      return Analysis::ERR;
+    }
   }
 
   // Get output filename
@@ -226,7 +250,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       mprintf(" STDOUT\n");
     else
       mprintf(" %s\n", filename_.c_str());
-    if (type_ != EIGENVAL) {
+    if (type_ != EIGENVAL && type_ != RMSIP) {
       if (bose_)
         mprintf("\tBose statistics used.\n");
       else
@@ -241,6 +265,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
         mprintf(" (%i,%i)", (*apair).first+1, (*apair).second+1 );
       mprintf("\n");
     }
+    if (type_ == RMSIP)
+      mprintf("\tRMSIP calculated to modes in %s\n", modinfo2_->Legend().c_str());
   } else {
     mprintf("\n\tCreating trajectory for mode %i\n"
               "\tWriting to trajectory %s\n"
@@ -397,6 +423,9 @@ Analysis::RetType Analysis_Modes::Analyze() {
       outfile.Printf("%6u %12.6f %12.6f %12.6f\n", mode+1, frac, cumulative, 
                      modinfo_->Eigenvalue( mode ));
     }
+  } else if (type_ == RMSIP) {
+    if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
+    if (CalcRMSIP(outfile)) return Analysis::ERR; 
   } else // SANITY CHECK
     return Analysis::ERR;
   outfile.CloseFile();
@@ -533,5 +562,37 @@ int Analysis_Modes::ProjectCoords() {
     trajout_.WriteFrame(set++, tOutParm_, outframe);
   }
   trajout_.EndTraj();
+  return 0;
+}
+
+// Analysis_Modes::CalcRMSIP()
+int Analysis_Modes::CalcRMSIP(CpptrajFile& outfile) {
+  if (modinfo_->VectorSize() != modinfo2_->VectorSize()) {
+    mprinterr("Error: '%s' vector size (%i) != '%s' vector size (%i)\n",
+              modinfo_->Legend().c_str(), modinfo_->VectorSize(),
+              modinfo2_->Legend().c_str(), modinfo2_->VectorSize());
+    return 1;
+  }
+  if ( beg_ >= modinfo2_->Nmodes() || end_ > modinfo2_->Nmodes() ) {
+    mprinterr("Error: beg/end out of range for %s (%i modes)\n",
+              modinfo2_->Legend().c_str(), modinfo2_->Nmodes());
+    return 1;
+  }
+  double sumsq = 0.0;
+  for (int m1 = beg_; m1 < end_; m1++) {
+    const double* ev1 = modinfo_->Eigenvector(m1);
+    for (int m2 = beg_; m2 < end_; m2++) {
+      const double* ev2 = modinfo2_->Eigenvector(m2);
+      double dot = 0.0;
+      for (int iv = 0; iv < modinfo_->VectorSize(); iv++)
+        dot += ev1[iv] * ev2[iv];
+      sumsq += dot;
+    }
+  }
+  sumsq /= (double)(end_ - beg_);
+  double rmsip = sqrt( sumsq );
+  mprintf("\tRMSIP= %g\n", rmsip);
+  if (!filename_.empty())
+    outfile.Printf("%g\n", rmsip);
   return 0;
 }

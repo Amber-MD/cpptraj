@@ -24,6 +24,7 @@ void Action_Matrix::Help() {
           "\t[ ired [order <#>] ]\n"
           "\t[ {distcovar | idea} <mask1> ]\n"
           "\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>] ]\n"
+          "\t[ dihcovar dihedrals <dataset arg>\n"
           "  Calculate a matrix of the specified type from input coordinates.\n"
           "    dist: Distance matrix (default).\n"
           "    correl: Correlation matrix (aka dynamic cross correlation).\n"
@@ -31,7 +32,8 @@ void Action_Matrix::Help() {
           "    mwcovar: Mass-weighted coordinate covariance matrix.\n"
           "    distcovar: Distance covariance matrix.\n"
           "    idea: Isotropically Distributed Ensemble Analysis matrix.\n"
-          "    ired: Isotropic Reorientational Eigenmode Dynamics matrix.\n");
+          "    ired: Isotropic Reorientational Eigenmode Dynamics matrix.\n"
+          "    dihcovar: Dihedral covariance matrix.\n");
 }
 
 // Action_Matrix::Init()
