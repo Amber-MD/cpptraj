@@ -181,10 +181,12 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
     return Analysis::ERR;
   }
-  modinfo2_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile2, DataSet::MODES );
-  if (modinfo2_ == 0) {
-    mprinterr("Error: Set %s not found.\n", modesfile2.c_str());
-    return Analysis::ERR;
+  if (!modesfile2.empty()) {
+    modinfo2_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile2, DataSet::MODES );
+    if (modinfo2_ == 0) {
+      mprinterr("Error: Set %s not found.\n", modesfile2.c_str());
+      return Analysis::ERR;
+    }
   }
 
   // Check modes type for specified analysis
