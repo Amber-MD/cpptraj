@@ -178,7 +178,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   // Check if modes name exists on the stack
   modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
-    mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
+    mprinterr("Error: '%s' not found: %s\n", modesfile.c_str(), DataSet_Modes::DeprecateFileMsg);
     return Analysis::ERR;
   }
   if (!modesfile2.empty()) {
