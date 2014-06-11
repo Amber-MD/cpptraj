@@ -22,7 +22,7 @@ class Analysis_Modes : public Analysis {
     static const double CMTOA;
     static const double CONT;
 
-    enum modeAnalysisType { FLUCT=0, DISPLACE, CORR, TRAJ, EIGENVAL };
+    enum modeAnalysisType { FLUCT=0, DISPLACE, CORR, TRAJ, EIGENVAL, RMSIP };
     static const char* analysisTypeString[];
     typedef std::vector< std::pair<int,int> > modestackType;
     typedef modestackType::const_iterator modestack_it;
@@ -34,6 +34,7 @@ class Analysis_Modes : public Analysis {
     bool bose_;
     double factor_;
     DataSet_Modes* modinfo_;
+    DataSet_Modes* modinfo2_;
     std::string filename_;
     modestackType atompairStack_;
     double* results_;
@@ -47,5 +48,6 @@ class Analysis_Modes : public Analysis {
     void CalcDipoleCorr();
     int ProjectCoords();
     void CalculateProjection(int,Frame const&,int); // DEBUG
+    int CalcRMSIP(CpptrajFile&);
 };
 #endif
