@@ -166,6 +166,7 @@ class Frame {
     double RMSD_CenteredRef( Frame const&, bool);
     double RMSD_CenteredRef( Frame const&, Matrix_3x3&, Vec3&, bool);
     double RMSD_NoFit(Frame const&,bool) const;
+    inline double RMSD_FitToRef(Frame const&, Vec3 const&);
     double DISTRMSD( Frame const& ) const;
     /// Set axis of rotation to be around line connecting given atoms.
     Vec3 SetAxisOfRotation(int, int);
@@ -341,5 +342,22 @@ void Frame::Trans_Rot_Trans(Vec3 const& t1, Matrix_3x3 const& R, Vec3 const& t2)
     X_[i+1] = x*R[3] + y*R[4] + z*R[5] + t2[1];
     X_[i+2] = x*R[6] + y*R[7] + z*R[8] + t2[2];
   }
+}
+
+double Frame::RMSD_FitToRef(Frame const& Ref, Vec3 const& reftrans) {
+  Matrix_3x3 U;
+  Vec3 tgttrans;
+  double rval = RMSD_CenteredRef( Ref, U, tgttrans, false );
+  // Frame will have already been translated to origin.
+  // Rotate and translate back to reference.
+  for (int i = 0; i < ncoord_; i += 3) {
+    double x = X_[i  ];
+    double y = X_[i+1];
+    double z = X_[i+2];
+    X_[i  ] = x*U[0] + y*U[1] + z*U[2] + reftrans[0];
+    X_[i+1] = x*U[3] + y*U[4] + z*U[5] + reftrans[1];
+    X_[i+2] = x*U[6] + y*U[7] + z*U[8] + reftrans[2];
+  }
+  return rval;
 }
 #endif

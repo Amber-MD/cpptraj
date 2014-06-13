@@ -4,6 +4,7 @@
 #include "Range.h"
 #include "ActionFrameCounter.h"
 /// Output trajectory class.
+// FIXME: InitTrajWrite should also take # frames to write?
 class Trajout : public TrajectoryFile {
   public:
     Trajout();

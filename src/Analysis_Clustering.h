@@ -30,6 +30,7 @@ class Analysis_Clustering: public Analysis {
     std::string clusterfile_;   ///< Cluster trajectory base filename.
     std::string singlerepfile_; ///< Cluster all rep single trajectory filename.
     std::string reptrajfile_;   ///< Cluster rep to separate trajectory filename.
+    std::string avgfile_;       ///< Cluster traj average structure filename.
     std::string clusterinfo_;   ///< Name for Ptraj-like cluster output file.
     std::string pairdistfile_;  ///< Name of pairwise-distances file.
     bool nofitrms_;             ///< If true do not best-fit when calc RMSD.
@@ -48,6 +49,8 @@ class Analysis_Clustering: public Analysis {
     TrajectoryFile::TrajFormatType singlerepfmt_;
     /// Cluster rep to separate trajectory format.
     TrajectoryFile::TrajFormatType reptrajfmt_;
+    /// Cluster traj average structure file format.
+    TrajectoryFile::TrajFormatType avgfmt_;
     int debug_;
     static const char* PAIRDISTFILE;
 
@@ -55,6 +58,7 @@ class Analysis_Clustering: public Analysis {
     void CreateCpopvtime( ClusterList const&, int );
     void ClusterLifetimes( ClusterList const&, int );
     void WriteClusterTraj( ClusterList const& );
+    void WriteAvgStruct( ClusterList const& );
     void WriteSingleRepTraj( ClusterList const& );
     void WriteRepTraj( ClusterList const& );
 };

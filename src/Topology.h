@@ -19,6 +19,7 @@ class Topology {
     void SetIpol(int iIn)                { ipol_ = iIn;                   }
     void SetPindex(int pIn)              { pindex_ = pIn;                 }
     void IncreaseFrames(int fIn)         { nframes_ += fIn;               }
+    void SetNframes(int fIn)             { nframes_ = fIn;                }
     void SetTag(std::string const& t)    { parmTag_ = t;                  }
     void SetVelInfo(bool v)              { hasVelInfo_ = v;               }
     void SetNrepDim(int n)               { nRepDim_ = n;                  }

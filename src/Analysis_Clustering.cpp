@@ -53,6 +53,7 @@ void Analysis_Clustering::Help() {
           "\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n"
           "\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n"
           "\t[ repout <repprefix> [repfmt <repfmt>] [repframe] ]\n"
+          "\t[ avgout <avgprefix> [avgfmt <avgfmt>] ]\n"
           "  Cluster structures based on coordinates (RMSD/DME) or given data set(s).\n"
           "  <crd set> can be created with the 'createcrd' command.\n");
 }
@@ -179,6 +180,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   reptrajfile_ = analyzeArgs.GetStringKey("repout");
   reptrajfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("repfmt") );
   writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
+  avgfile_ = analyzeArgs.GetStringKey("avgout");
+  avgfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("avgfmt") );
   // Get the mask string 
   maskexpr_ = analyzeArgs.GetMaskNext();
 
@@ -260,6 +263,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     if (writeRepFrameNum_) mprintf(", with frame #s");
     mprintf("\n");
   }
+  if (!avgfile_.empty())
+    mprintf("\tAverage structures for clusters will be written to %s, format %s\n",
+            avgfile_.c_str(), TrajectoryFile::FormatString(avgfmt_));
 
   return Analysis::OK;
 }
@@ -392,6 +398,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       // Write all representative frames to separate trajs
       if (!reptrajfile_.empty())
         WriteRepTraj( *CList_ );
+      if (!avgfile_.empty())
+        WriteAvgStruct( *CList_ );
     }
   } else
     mprintf("\tNo clusters found.\n");
@@ -510,42 +518,78 @@ void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFra
 // Analysis_Clustering::WriteClusterTraj()
 /** Write frames in each cluster to a trajectory file.  */
 void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
+  Topology* clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
   // Loop over all clusters
   for (ClusterList::cluster_iterator C = CList.begincluster();
-                                     C != CList.endcluster(); C++)
+                                     C != CList.endcluster(); ++C)
   {
     // Create filename based on cluster number.
-    int cnum = (*C).Num();
+    int cnum = C->Num();
     std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
     // Set up trajectory file 
-    // Use parm from first frame of cluster (pot. dangerous)
-    Trajout *clusterout = new Trajout;
-    ClusterNode::frame_iterator frame = (*C).beginframe();
-    Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-    if (clusterout->InitTrajWrite(cfilename, clusterparm, clusterfmt_)) 
+    Trajout clusterout;
+    if (clusterout.InitTrajWrite(cfilename, clusterparm, clusterfmt_)) 
     {
-      mprinterr("Error: Clustering::WriteClusterTraj: Could not set up %s for write.\n",
+      mprinterr("Error: Could not set up cluster trajectory %s for write.\n",
                 cfilename.c_str());
-      delete clusterout;
       return;
     }
-    //mprinterr("Cluster %i:\n",CList->CurrentNum());
     // Loop over all frames in cluster
-    int framenum = 0;
-    Frame clusterframe( coords_->Top().Natom() );
-    for (; frame != (*C).endframe(); frame++) {
-      //mprinterr("%i,",*frame);
-      coords_->GetFrame( *frame, clusterframe );
-      clusterout->WriteFrame(framenum++, clusterparm, clusterframe);
+    int set = 0;
+    Frame clusterframe = coords_->AllocateFrame();
+    for (ClusterNode::frame_iterator fnum = C->beginframe();
+                                     fnum != C->endframe(); ++fnum)
+    {
+      coords_->GetFrame( *fnum, clusterframe );
+      clusterout.WriteFrame(set++, clusterparm, clusterframe);
     }
     // Close traj
-    clusterout->EndTraj();
-    //mprinterr("\n");
-    //break;
-    delete clusterout;
+    clusterout.EndTraj();
   }
 }
 
+// Analysis_Clustering::WriteAvgStruct()
+void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
+  Topology avgparm = coords_->Top();
+  avgparm.SetNframes( 1 );
+  // Get extension for representative frame format 
+  std::string tmpExt = TrajectoryFile::GetExtensionForType(avgfmt_);
+  // Loop over all clusters
+  for (ClusterList::cluster_iterator C = CList.begincluster();
+                                     C != CList.endcluster(); ++C)
+  {
+    // Create filename based on cluster number.
+    int cnum = C->Num();
+    std::string cfilename = avgfile_ + ".c" + integerToString( cnum ) + tmpExt;
+    // Set up trajectory file
+    Trajout clusterout;
+    if (clusterout.InitTrajWrite(cfilename, &avgparm, avgfmt_))
+    {
+      mprinterr("Error: Could not set up cluster average file %s for write.\n",
+                cfilename.c_str());
+      return;
+    }
+    // Get rep frame for rms fitting.
+    Frame repframe = coords_->AllocateFrame();
+    coords_->GetFrame( C->CentroidFrame(), repframe );
+    Vec3 reftrans = repframe.CenterOnOrigin(false);
+    // Loop over all frames in cluster
+    Frame clusterframe = coords_->AllocateFrame();
+    Frame avgframe = clusterframe;
+    avgframe.ZeroCoords();
+    for (ClusterNode::frame_iterator fnum = C->beginframe();
+                                     fnum != C->endframe(); ++fnum)
+    {
+      coords_->GetFrame( *fnum, clusterframe );
+      clusterframe.RMSD_FitToRef( repframe, reftrans );
+      avgframe += clusterframe;
+    }
+    avgframe.Divide( (double)C->Nframes() );
+    clusterout.WriteFrame(0, &avgparm, avgframe);
+    clusterout.EndTraj();
+  }
+}
+ 
 // Analysis_Clustering::WriteSingleRepTraj()
 /** Write representative frame of each cluster to a trajectory file.  */
 void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
@@ -554,18 +598,18 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
   if (clusterout.InitTrajWrite(singlerepfile_, clusterparm, singlerepfmt_)) 
   {
-    mprinterr("Error: Clustering::WriteSingleRepTraj: Could not set up %s for write.\n",
+    mprinterr("Error: Could not set up single trajectory for represenatatives %s for write.\n",
                 singlerepfile_.c_str());
      return;
   }
   // Set up frame to hold cluster rep coords. 
-  Frame clusterframe( coords_->Top().Natom() );
+  Frame clusterframe = coords_->AllocateFrame();
   int framecounter = 0;
   // Write rep frames from all clusters.
   for (ClusterList::cluster_iterator cluster = CList.begincluster(); 
                                      cluster != CList.endcluster(); ++cluster) 
   {
-   coords_->GetFrame( (*cluster).CentroidFrame(), clusterframe );
+   coords_->GetFrame( cluster->CentroidFrame(), clusterframe );
    clusterout.WriteFrame(framecounter++, clusterparm, clusterframe);
   }
   // Close traj
@@ -580,34 +624,30 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
   // Get extension for representative frame format 
   std::string tmpExt = TrajectoryFile::GetExtensionForType(reptrajfmt_);
   // Use Topology from COORDS DataSet to set up input frame
-  Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: Fix cast
-  Frame clusterframe( clusterparm->Natom() );
+  Topology* clusterparm = (Topology*)&(coords_->Top()); // TODO: Fix cast
+  Frame clusterframe = coords_->AllocateFrame();
   // Loop over all clusters
-  int clusterNum = 0;
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
   {
-    Trajout* clusterout = new Trajout();
+    Trajout clusterout;
     // Get centroid frame # 
-    int framenum = (*C).CentroidFrame();
+    int framenum = C->CentroidFrame();
     // Create filename based on frame #
-    std::string cfilename = reptrajfile_ + ".c" + integerToString(clusterNum);
+    std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num());
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
     cfilename += tmpExt;
     // Set up trajectory file. 
-    if (clusterout->InitTrajWrite(cfilename, clusterparm, reptrajfmt_)) 
+    if (clusterout.InitTrajWrite(cfilename, clusterparm, reptrajfmt_)) 
     {
-      mprinterr("Error: Clustering::WriteRepTraj: Could not set up %s for write.\n",
+      mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
                 cfilename.c_str());
-       delete clusterout;
        return;
     }
     // Write cluster rep frame
     coords_->GetFrame( framenum, clusterframe );
-    clusterout->WriteFrame(framenum, clusterparm, clusterframe);
+    clusterout.WriteFrame(framenum, clusterparm, clusterframe);
     // Close traj
-    clusterout->EndTraj();
-    delete clusterout;
-    ++clusterNum;
+    clusterout.EndTraj();
   }
 }
