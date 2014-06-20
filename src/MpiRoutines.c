@@ -139,6 +139,12 @@ int parallel_end() {
   return 0;
 }
 
+void parallel_abort(int err) {
+#ifdef MPI
+  MPI_Abort(MPI_COMM_WORLD, err);
+# endif
+}
+
 // parallel_barrier()
 /** Use MPI barrier.  */
 void parallel_barrier() {

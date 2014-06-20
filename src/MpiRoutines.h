@@ -51,6 +51,7 @@ int parallel_debug_end();
 #endif
 int parallel_init(int, char **);
 int parallel_end();
+void parallel_abort(int);
 void parallel_barrier();
 // ----- File Routines ---------------------------
 int parallel_openFile_read(parallelType, const char*);

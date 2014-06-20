@@ -61,6 +61,7 @@ int Traj_NcEnsemble::openTrajin() {
   if (Ncid()!=-1) return 0;
 # if HAS_PNETCDF
   int err = ncmpi_open(MPI_COMM_WORLD, filename_.full(), NC_NOWRITE, MPI_INFO_NULL, &ncid_);
+  err += ncmpi_begin_indep_data( ncid_ );
 # else
   int err = NC_openRead( filename_.Full() );
 # endif
@@ -75,6 +76,7 @@ int Traj_NcEnsemble::openTrajin() {
 void Traj_NcEnsemble::closeTraj() {
 # ifdef HAS_PNETCDF
   if (ncid_ == -1) return;
+  ncmpi_end_indep_data( ncid_ );
   ncmpi_close( ncid_ ); 
   ncid_ = -1;
 # else 
@@ -252,6 +254,17 @@ int Traj_NcEnsemble::writeFrame(int set, Frame const& frameOut) {
   return 1;
 }
 
+#ifdef HAS_PNETCDF
+inline int checkPNCerr(int err) {
+  if (err != NC_NOERR) {
+    rprinterr("PnetCDF Error: %s\n", ncmpi_strerror(err));
+    parallel_abort( err );
+    return 1;
+  }
+  return 0;
+}
+#endif
+
 // Traj_NcEnsemble::readArray()
 int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 # ifdef HAS_PNETCDF
@@ -277,12 +290,12 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     count_[2] = Ncatom(); // Atoms
     // Read Coords
 #   ifdef HAS_PNETCDF
-    if (ncmpi_get_vara_float_all(ncid_, coordVID_, start_, count_, Coord_))
+    if (checkPNCerr(ncmpi_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
 #   else
     if (checkNCerr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
 #   endif
     {
-      mprinterr("Error: Getting coordinates for frame %i\n", set+1);
+      rprinterr("Error: Getting coordinates for frame %i\n", set+1);
       return 1;
     }
     FloatToDouble(frm.xAddress(), Coord_);
@@ -291,12 +304,12 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     // Read Velocities
     if (velocityVID_ != -1) {
 #     ifdef HAS_PNETCDF
-      if (ncmpi_get_vara_float_all(ncid_, velocityVID_, start_, count_, Coord_))
+      if (checkPNCerr(ncmpi_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)))
 #     else
       if (checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)))
 #     endif
       {
-        mprinterr("Error: Getting velocities for frame %i\n", set+1);
+        rprinterr("Error: Getting velocities for frame %i\n", set+1);
         return 1;
       }
       FloatToDouble(frm.vAddress(), Coord_);
@@ -305,33 +318,33 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     if (cellLengthVID_ != -1) {
       count_[2] = 3;
 #     ifdef HAS_PNETCDF
-      if (ncmpi_get_vara_double_all(ncid_, cellLengthVID_, start_, count_, frm.bAddress()))
+      if (checkPNCerr(ncmpi_get_vara_double(ncid_, cellLengthVID_, start_, count_, frm.bAddress())))
 #     else
       if (checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frm.bAddress())))
 #     endif
       {
-        mprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
+        rprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
         return 1;
       }
 #     ifdef HAS_PNETCDF
-      if (ncmpi_get_vara_double_all(ncid_, cellAngleVID_, start_, count_, frm.bAddress()+3))
+      if (checkPNCerr(ncmpi_get_vara_double(ncid_, cellAngleVID_, start_, count_, frm.bAddress()+3)))
 #     else
       if (checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frm.bAddress()+3)))
 #     endif
       {
-        mprinterr("Error: Getting cell angles for frame %i.\n", set+1);
+        rprinterr("Error: Getting cell angles for frame %i.\n", set+1);
         return 1;
       }
     }
     // Read Temperature
     if (TempVID_!=-1) {
 #     ifdef HAS_PNETCDF
-      if (ncmpi_get_vara_double_all(ncid_, TempVID_, start_, count_, frm.tAddress()))
+      if (checkPNCerr(ncmpi_get_vara_double(ncid_, TempVID_, start_, count_, frm.tAddress())))
 #     else
       if (checkNCerr(nc_get_vara_double(ncid_, TempVID_, start_, count_, frm.tAddress())))
 #     endif
       {
-        mprinterr("Error: Getting replica temperature for frame %i.\n", set+1);
+        rprinterr("Error: Getting replica temperature for frame %i.\n", set+1);
         return 1;
       }
       //fprintf(stderr,"DEBUG: Replica Temperature %lf\n",F->T);
@@ -340,12 +353,12 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
     if (indicesVID_!=-1) {
       count_[2] = remd_dimension_;
 #     ifdef HAS_PNETCDF
-      if (ncmpi_get_vara_int_all(ncid_, indicesVID_, start_, count_, frm.iAddress()))
+      if (checkPNCerr(ncmpi_get_vara_int(ncid_, indicesVID_, start_, count_, frm.iAddress())))
 #     else
       if (checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frm.iAddress())))
 #     endif
       {
-        mprinterr("Error: Getting replica indices for frame %i.\n", set+1);
+        rprinterr("Error: Getting replica indices for frame %i.\n", set+1);
         return 1;
       }
       // DEBUG
