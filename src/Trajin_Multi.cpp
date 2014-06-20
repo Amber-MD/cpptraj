@@ -415,10 +415,11 @@ void Trajin_Multi::EndTraj() {
 // Trajin_Multi::TimingData()
 void Trajin_Multi::TimingData(double trajin_time) {
   if (total_mpi_allgather_ > 0.0 || total_mpi_sendrecv_ > 0.0) {
-    rprintf("MPI_TIME:\tallgather: %.4f s (%.2f%%), sendrecv: %.4f s (%.2f%%), Other:  %.4f s\n",
+    double other_time = trajin_time - total_mpi_allgather_ - total_mpi_sendrecv_;
+    rprintf("MPI_TIME:\tallgather: %.4f s (%.2f%%), sendrecv: %.4f s (%.2f%%), Other:  %.4f s (%.2f%%)\n",
             total_mpi_allgather_, (total_mpi_allgather_ / trajin_time)*100.0,
             total_mpi_sendrecv_,  (total_mpi_sendrecv_  / trajin_time)*100.0,
-            trajin_time - total_mpi_allgather_ - total_mpi_sendrecv_);
+            other_time, (other_time / trajin_time)*100.0 );
   }
 }
 #endif

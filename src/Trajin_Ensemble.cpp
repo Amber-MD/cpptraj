@@ -2,6 +2,10 @@
 #include "CpptrajStdio.h"
 #ifdef MPI
 # include "MpiRoutines.h"
+#  ifdef TIMER
+double Trajin_Ensemble::total_mpi_allgather_ = 0.0;
+double Trajin_Ensemble::total_mpi_sendrecv_ = 0.0;
+#  endif
 #endif
 
 // CONSTRUCTOR
@@ -90,7 +94,27 @@ void Trajin_Ensemble::EndTraj() {
     eio_->closeTraj();
     trajIsOpen_ = false;
   }
+# ifdef MPI
+# ifdef TIMER
+  total_mpi_allgather_ += mpi_allgather_timer_.Total();
+  total_mpi_sendrecv_  += mpi_sendrecv_timer_.Total();
+# endif
+# endif
 }
+
+#ifdef MPI
+#ifdef TIMER
+void Trajin_Ensemble::TimingData(double trajin_time) {
+  if (total_mpi_allgather_ > 0.0 || total_mpi_sendrecv_ > 0.0) {
+    double other_time = trajin_time - total_mpi_allgather_ - total_mpi_sendrecv_;
+    rprintf("MPI_TIME:\tallgather: %.4f s (%.2f%%), sendrecv: %.4f s (%.2f%%), Other:  %.4f s (%.2f%%)\n",
+            total_mpi_allgather_, (total_mpi_allgather_ / trajin_time)*100.0,
+            total_mpi_sendrecv_,  (total_mpi_sendrecv_  / trajin_time)*100.0,
+            other_time, (other_time / trajin_time)*100.0 );
+  }
+}
+#endif
+#endif
 
 bool Trajin_Ensemble::HasVelocity() const {
   if (eio_ != 0)
@@ -167,6 +191,9 @@ int Trajin_Ensemble::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
       my_idx = TemperatureMap_.FindIndex( f_ensemble[0].Temperature() );
     else if (targetType_ == ReplicaInfo::INDICES)
       my_idx = IndicesMap_.FindIndex( f_ensemble[0].RemdIndices() );
+#   ifdef TIMER
+    mpi_allgather_timer_.Start();
+#   endif
     // TODO: Put this in Traj_NcEnsemble
     if (parallel_allgather( &my_idx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
       rprinterr("Error: Gathering frame indices.\n");
@@ -178,6 +205,10 @@ int Trajin_Ensemble::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
         badEnsemble_ = true;
         break;
       }
+#   ifdef TIMER
+    mpi_allgather_timer_.Stop();
+    mpi_sendrecv_timer_.Start();
+#   endif
     if (!badEnsemble_) {
       for (int sendrank = 0; sendrank != ensembleSize_; sendrank++) {
         int recvrank = frameidx_[sendrank];
@@ -193,6 +224,9 @@ int Trajin_Ensemble::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
         //else rprintf("SEND RANK == RECV RANK, NO COMM\n"); // DEBUG
       }
     }
+#   ifdef TIMER
+    mpi_sendrecv_timer_.Stop();
+#   endif
   }
   f_sorted[0] = &f_ensemble[ensembleFrameNum];
 # else

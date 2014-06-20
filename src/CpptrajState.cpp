@@ -6,6 +6,7 @@
 #ifdef TIMER
 #ifdef MPI
 #include "Trajin_Multi.h"
+#include "Trajin_Ensemble.h"
 #endif
 #endif
 
@@ -442,6 +443,7 @@ int CpptrajState::RunEnsemble() {
   trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time.Total());
 # ifdef MPI
   Trajin_Multi::TimingData(trajin_time.Total());
+  Trajin_Ensemble::TimingData(trajin_time.Total());
 # endif
 # endif
 

@@ -1,6 +1,11 @@
 #ifndef TRAJIN_ENSEMBLE_H
 #define TRAJIN_ENSEMBLE_H
 #include "Trajin.h"
+#ifdef MPI
+#  ifdef TIMER
+#    include "Timer.h"
+#  endif
+#endif
 /// Class for reading in single file ensemble trajectories.
 class Trajin_Ensemble : public Trajin {
   public:
@@ -21,6 +26,11 @@ class Trajin_Ensemble : public Trajin {
     int ReadEnsemble(int, FrameArray&, FramePtrArray&);
     bool BadEnsemble() const { return badEnsemble_; }
     // -------------------------------------------
+#   ifdef MPI
+#   ifdef TIMER
+    static void TimingData(double);
+#   endif
+#   endif
   private:
     typedef Frame::RemdIdxType RemdIdxType;
     ReplicaInfo::TargetType targetType_;
@@ -33,6 +43,12 @@ class Trajin_Ensemble : public Trajin {
     ReplicaMap<RemdIdxType> IndicesMap_;
 #   ifdef MPI
     RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
+#   ifdef TIMER
+    Timer mpi_allgather_timer_;
+    Timer mpi_sendrecv_timer_;
+    static double total_mpi_allgather_;
+    static double total_mpi_sendrecv_;
+#   endif
 #   endif 
 };
 #endif
