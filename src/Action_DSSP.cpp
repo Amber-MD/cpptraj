@@ -246,12 +246,16 @@ int Action_DSSP::isBonded(int res1, int res2) {
   * Assumes given residue range is valid.
   */
 void Action_DSSP::SSassign(int res1, int res2, SStype typeIn) {
+  //mprintf("DEBUG: Calling SSassign from %i to %i, %s:", res1+1, res2, SSname[typeIn]); 
   for (int res=res1; res<res2; res++) {
     if (res==Nres_) break;
     if (!SecStruct_[res].isSelected) continue;
-    if (SecStruct_[res].sstype==SECSTRUCT_NULL)
+    if (SecStruct_[res].sstype==SECSTRUCT_NULL) {
+      //mprintf(" %i", res+1); // DEBUG
       SecStruct_[res].sstype=typeIn;
+    }
   }
+  //mprintf("\n"); // DEBUG
 }   
  
 // Action_DSSP::action()
@@ -305,8 +309,15 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
 #endif
 
   // Determine Secondary Structure based on Hbonding pattern.
-  // In case of structural overlap, priority is given to the structure first in this list: 
-  //   H, B, (E), G, I, T  (s. p. 2595 in the Kabsch & Sander paper)
+  // In case of structural overlap, priority is given to the structure first 
+  // in this list (see p. 2587 & 2595 in the Kabsch & Sander paper):
+  //   H = 4-helix (alpha helix)
+  //   B = residue in isolated beta bridge
+  //   E = extended strand, participates in beta-ladder
+  //   G = 3-helix (310 helix)
+  //   I = 5-helix (pi helix)
+  //   T = H-bonded turn
+  //   S = bend
   for (resi=0; resi < Nres_; resi++) {
     if (!SecStruct_[resi].isSelected) continue;
     // Alpha helices
@@ -395,6 +406,7 @@ static inline char ConvertResName(std::string const& r) {
   if (r.compare(0,3,"ASH")==0) return 'D'; // Protonated ASP
   if (r.compare(0,3,"CYS")==0) return 'C';
   if (r.compare(0,3,"CYM")==0) return 'C'; // Deprotonated CYS
+  if (r.compare(0,3,"CYX")==0) return 'C';
   if (r.compare(0,3,"GLN")==0) return 'Q';
   if (r.compare(0,3,"GLU")==0) return 'E';
   if (r.compare(0,3,"GLH")==0) return 'E'; // Protonated GLU
