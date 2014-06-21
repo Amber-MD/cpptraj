@@ -34,7 +34,7 @@ const char  Action_DSSP::dssp_char[] = { ' ', 'E', 'B', 'G', 'H', 'I', 'T', 'S' 
 const char* Action_DSSP::SSchar[]    = { "0", "b", "B", "G", "H", "I", "T", "S" };
 const char* Action_DSSP::SSname[]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn", "Bend"};
 
-// Action_DSSP::init()
+// Action_DSSP::Init()
 // For now dont allow null(stdout) filename for output
 Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
@@ -90,7 +90,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   return Action::OK;
 }
 
-// Action_DSSP::setup()
+// Action_DSSP::Setup()
 /** Set up secondary structure calculation for all residues selected by the
   * mask expression. A residue is selected if at least one of the following 
   * atoms named "C   ", "O   ", "N   ", or "H   " (i.e. standard atom protein 
@@ -277,64 +277,66 @@ bool Action_DSSP::HasPriority( SStype type1, SStype type2 ) {
   * Assumes given residue range is valid.
   */
 void Action_DSSP::SSassign(int res1, int res2, SStype typeIn, bool force) {
-  mprintf("DEBUG:\tCalling SSassign from %i to %i, %s:", res1+1, res2, SSname[typeIn]); 
+  //mprintf("DEBUG:\tCalling SSassign from %i to %i, %s:", res1+1, res2, SSname[typeIn]); 
   for (int res=res1; res<res2; res++) {
     if (res==Nres_) break;
-    if (!SecStruct_[res].isSelected) continue;
-    if ( HasPriority(typeIn, SecStruct_[res].sstype) || force ) {
-      mprintf(" %i", res+1); // DEBUG
-      SecStruct_[res].sstype=typeIn;
+    if (SecStruct_[res].isSelected) { 
+      if ( HasPriority(typeIn, SecStruct_[res].sstype) || force ) {
+        //mprintf(" %i", res+1); // DEBUG
+        SecStruct_[res].sstype=typeIn;
+      }
     }
   }
-  mprintf("\n"); // DEBUG
+  //mprintf("\n"); // DEBUG
 }   
  
-// Action_DSSP::action()
+// Action_DSSP::DoAction()
 /** Determine secondary structure by hydrogen bonding pattern. */    
 Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   int resi, resj;
   int C, O, H, N;
   double rON, rCH, rOH, rCN, E;
 
-  // Determine C=0 to H-N hydrogen bonds for each residue to each other residue
+  // Determine C=O to H-N hydrogen bonds for each residue to each other residue
 #ifdef _OPENMP
 #pragma omp parallel private(resi,resj,C,O,H,N,rON, rCH, rOH, rCN, E)
 {
 #pragma omp for
 #endif
   for (resi=0; resi < Nres_; resi++) {
-    if (!SecStruct_[resi].isSelected) continue;
-    // Reset previous SS assignment
-    SecStruct_[resi].sstype=NONE;
-    SecStruct_[resi].CO_HN_Hbond.assign( Nres_, 0 );    
+    if (SecStruct_[resi].isSelected) {
+      // Reset previous SS assignment
+      SecStruct_[resi].sstype=NONE;
+      SecStruct_[resi].CO_HN_Hbond.assign( Nres_, 0 );    
 
-    if (SecStruct_[resi].C==-1 || SecStruct_[resi].O==-1) continue;
-    C = SecStruct_[resi].C;
-    O = SecStruct_[resi].O;
-    for (resj=0; resj < Nres_; resj++) {
-      if (!SecStruct_[resj].isSelected) continue;
+      if (SecStruct_[resi].C != -1 && SecStruct_[resi].O != -1) {
+        C = SecStruct_[resi].C;
+        O = SecStruct_[resi].O;
+        for (resj=0; resj < Nres_; resj++) {
+          if (SecStruct_[resj].isSelected && resi != resj &&
+              SecStruct_[resj].H != -1 && SecStruct_[resj].N != -1)
+          {
 // DEBUG
-//      debugout.IO->Printf("\n%i Res%i-Res%i:",frameNum,resi,resj);
-//      debugout.IO->Printf(" C=%i O=%i | N=%i H=%i:",C,O,SecStruct_[resj].N,SecStruct_[resj].H);
+//          debugout.IO->Printf("\n%i Res%i-Res%i:",frameNum,resi,resj);
+//          debugout.IO->Printf(" C=%i O=%i | N=%i H=%i:",C,O,SecStruct_[resj].N,SecStruct_[resj].H);
 // DEBUG 
-      if (resi==resj) continue;
-      
-      // NOTE: Should check all atoms here?
-      if (SecStruct_[resj].H==-1 || SecStruct_[resj].N==-1) continue;
-      N = SecStruct_[resj].N;
-      H = SecStruct_[resj].H;
+            N = SecStruct_[resj].N;
+            H = SecStruct_[resj].H;
 
-      rON = sqrt(DIST2_NoImage(currentFrame->CRD(O), currentFrame->CRD(N)));
-      rCH = sqrt(DIST2_NoImage(currentFrame->CRD(C), currentFrame->CRD(H)));
-      rOH = sqrt(DIST2_NoImage(currentFrame->CRD(O), currentFrame->CRD(H)));
-      rCN = sqrt(DIST2_NoImage(currentFrame->CRD(C), currentFrame->CRD(N)));
+            rON = sqrt(DIST2_NoImage(currentFrame->CRD(O), currentFrame->CRD(N)));
+            rCH = sqrt(DIST2_NoImage(currentFrame->CRD(C), currentFrame->CRD(H)));
+            rOH = sqrt(DIST2_NoImage(currentFrame->CRD(O), currentFrame->CRD(H)));
+            rCN = sqrt(DIST2_NoImage(currentFrame->CRD(C), currentFrame->CRD(N)));
 
-      E = DSSP_fac * (1/rON + 1/rCH - 1/rOH - 1/rCN);
-      if (E < -0.5) {
-        mprintf("DEBUG: %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
-        SecStruct_[resi].CO_HN_Hbond[resj] = 1;
+            E = DSSP_fac * (1/rON + 1/rCH - 1/rOH - 1/rCN);
+            if (E < -0.5) {
+              //mprintf("DEBUG: %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
+              SecStruct_[resi].CO_HN_Hbond[resj] = 1;
+            }
+//          if ( SecStruct_[resi].CO_HN_Hbond[resj] ) debugout.IO->Printf(" HBONDED!"); // DEBUG
+          }
+        }
       }
-//      if ( SecStruct_[resi].CO_HN_Hbond[resj] ) debugout.IO->Printf(" HBONDED!"); // DEBUG
     }
   }
 #ifdef _OPENMP
@@ -352,63 +354,56 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
   //   T = H-bonded turn
   //   S = bend
   for (resi=0; resi < Nres_; resi++) {
-    if (!SecStruct_[resi].isSelected) continue;
-    mprintf("DEBUG: Residue %i -----\n", resi+1);
-    // Alpha helices
-    if ( isBonded( resi - 1, resi+3 ) && isBonded( resi, resi + 4) ) {
-      SSassign(resi, resi+4, ALPHA, false);
-      // Since alpha helices have ultimate priority, advance.
-      //resi = resi + 3;
-      continue;
-    }
+    if (SecStruct_[resi].isSelected) { 
+      //mprintf("DEBUG: Residue %i -----\n", resi+1);
+      // Alpha helices
+      if ( isBonded( resi - 1, resi+3 ) && isBonded( resi, resi + 4) )
+        SSassign(resi, resi+4, ALPHA, false);
 
-    // Beta sheets - only needed if SS not already assigned to alpha
-    if ( SecStruct_[resi].sstype != ALPHA ) {
-      for (resj=0; resj < Nres_; resj++) {
-        if (!SecStruct_[resj].isSelected) continue;
-        // Only consider residues spaced more than 2 apart
-        int abs_resi_resj = resi - resj;
-        if (abs_resi_resj<0) abs_resi_resj = -abs_resi_resj;
-        if (abs_resi_resj > 2) {
-          if ( (isBonded(resi-1, resj) && isBonded(resj, resi+1)) ||
-               (isBonded(resj-1, resi) && isBonded(resi, resj+1)) )
-          {
-            // Parallel
-            // NOTE: Not checking if ANTI since not geometrically possible
-            //       to be anti-parallel and parallel at the same time.
-            mprintf("DEBUG:\tAssigning %i to parallel beta.\n", resi+1);
-            SecStruct_[resi].sstype = PARA;
-            break;
-          } else if ( (isBonded(resi-1, resj+1) && isBonded(resj-1, resi+1)) ||
-                      (isBonded(resi,   resj  ) && isBonded(resj,   resi  )) )
-          {
-            // Anti-parallel
-            mprintf("DEBUG:\tAssigning %i to anti-parallel beta.\n", resi+1);
-            SecStruct_[resi].sstype = ANTI;
-            break;
+      // Beta sheets - only needed if SS not already assigned to alpha
+      if ( SecStruct_[resi].sstype != ALPHA ) {
+        for (resj=0; resj < Nres_; resj++) {
+          if (SecStruct_[resj].isSelected) {
+            // Only consider residues spaced more than 2 apart
+            int abs_resi_resj = resi - resj;
+            if (abs_resi_resj<0) abs_resi_resj = -abs_resi_resj;
+            if (abs_resi_resj > 2) {
+              if ( (isBonded(resi-1, resj) && isBonded(resj, resi+1)) ||
+                   (isBonded(resj-1, resi) && isBonded(resi, resj+1)) )
+              {
+                // Parallel
+                // NOTE: Not checking if ANTI since not geometrically possible
+                //       to be anti-parallel and parallel at the same time.
+                //mprintf("DEBUG:\tAssigning %i to parallel beta.\n", resi+1);
+                SecStruct_[resi].sstype = PARA;
+                break;
+              } else if ( (isBonded(resi-1, resj+1) && isBonded(resj-1, resi+1)) ||
+                          (isBonded(resi,   resj  ) && isBonded(resj,   resi  )) )
+              {
+                // Anti-parallel
+                //mprintf("DEBUG:\tAssigning %i to anti-parallel beta.\n", resi+1);
+                SecStruct_[resi].sstype = ANTI;
+                break;
+              }
+            }
           }
         }
       }
-      //if (SecStruct_[resi].sstype!=NONE) continue; 
-    }
 
-    // 3-10 helix
-    if ( isBonded( resi - 1, resi+2 ) && isBonded( resi, resi + 3) ) {
-      SSassign(resi, resi+3, H3_10, false);
-      //continue;
-    } 
+      // 3-10 helix
+      if ( isBonded( resi - 1, resi+2 ) && isBonded( resi, resi + 3) )
+        SSassign(resi, resi+3, H3_10, false);
 
-    // Pi helix
-    if ( isBonded( resi - 1, resi+4 ) && isBonded( resi, resi + 5) ) {
-      SSassign(resi, resi+5, HPI, false);
-      //continue;
-    }
+      // Pi helix
+      if ( isBonded( resi - 1, resi+4 ) && isBonded( resi, resi + 5) )
+        SSassign(resi, resi+5, HPI, false);
     
-    // n-Turn, n=3,4,5
-    for (int n=5; n > 2; n--) {
-      if ( isBonded(resi, resi + n) ) {
-        SSassign(resi+1, resi + n, TURN, false);
-        break;
+      // n-Turn, n=3,4,5
+      for (int n=5; n > 2; n--) {
+        if ( isBonded(resi, resi + n) ) {
+          SSassign(resi+1, resi + n, TURN, false); // FIXME: Should this be resi?
+          break;
+        }
       }
     }
   } // End Initial SS assignment over all residues
@@ -421,49 +416,33 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
       if (lastType != SecStruct_[resi].sstype) {
         // Secondary structure type has changed.
         if (lastType == H3_10) {
-          mprintf("DEBUG: 3-10 helix length is %i\n", resi - resStart);
+          //mprintf("DEBUG: 3-10 helix length is %i\n", resi - resStart);
           if (resi - resStart < 3)
             SSassign(resStart, resi, TURN, true);
         } else if (lastType == HPI) {
-          mprintf("DEBUG: PI helix length is %i\n", resi - resStart);
+          //mprintf("DEBUG: PI helix length is %i\n", resi - resStart);
           if (resi - resStart < 5)
             SSassign(resStart, resi, TURN, true);
         }
         resStart = resi;
-        mprintf("DEBUG: ResStart=%i for type %s\n", resi+1, SSname[SecStruct_[resi].sstype]);
+        //mprintf("DEBUG: ResStart=%i for type %s\n", resi+1, SSname[SecStruct_[resi].sstype]);
       }
       lastType = SecStruct_[resi].sstype;
     }
   }
-/*
-  // Assign Turn structure
-  for (resi=0; resi < Nres_; resi++) {
-    if (!SecStruct_[resi].isSelected) continue;
 
-    for (resj=5; resj > 2; resj--) {
-//      fprintf(stdout,"DEBUG: %i Res %i and %i+%i are",frameNum,resi,resi,resj);
-//      if ( isBonded( resi, resi+resj) )
-//        fprintf(stdout," BONDED!\n");
-//      else
-//        fprintf(stdout," not bonded.\n");
-      if ( isBonded( resi, resi+resj) ) {
-        SSassign(resi+1, resi+resj, TURN);
-        break;
-      }
-    }
-  }
-*/
   // Store data for each residue 
   //fprintf(stdout,"%10i ",frameNum);
   // String data set
   for (resi=0; resi < Nres_; resi++) {
-    if (!SecStruct_[resi].isSelected) continue;
-    //fprintf(stdout,"%c",SSchar[SecStruct_[resi].sstype]);
-    SecStruct_[resi].SSprob[SecStruct_[resi].sstype]++;
-    if (printString_)
-      SecStruct_[resi].resDataSet->Add(frameNum, SSchar[SecStruct_[resi].sstype]); 
-    else
-      SecStruct_[resi].resDataSet->Add(frameNum, &(SecStruct_[resi].sstype));
+    if (SecStruct_[resi].isSelected) { 
+      //fprintf(stdout,"%c",SSchar[SecStruct_[resi].sstype]);
+      SecStruct_[resi].SSprob[SecStruct_[resi].sstype]++;
+      if (printString_)
+        SecStruct_[resi].resDataSet->Add(frameNum, SSchar[SecStruct_[resi].sstype]); 
+      else
+        SecStruct_[resi].resDataSet->Add(frameNum, &(SecStruct_[resi].sstype));
+    }
   }
   //fprintf(stdout,"\n");
   ++Nframe_;
@@ -505,7 +484,7 @@ static inline char ConvertResName(std::string const& r) {
   return ' ';
 }
 
-// Action_DSSP::print()
+// Action_DSSP::Print()
 /** Calculate the average of each secondary structure type across all residues.
   * Prepare for output via the master data file list.
   */
