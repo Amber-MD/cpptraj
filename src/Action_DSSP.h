@@ -15,11 +15,10 @@ class Action_DSSP : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
     // Enum and static vars
-    enum SStype { 
-      SECSTRUCT_NULL=0, SECSTRUCT_PARA, SECSTRUCT_ANTI, SECSTRUCT_3_10, 
-      SECSTRUCT_ALPHA,  SECSTRUCT_PI,   SECSTRUCT_TURN 
-    };
+    //enum SStype { ALPHA=0, ANTI, PARA, H3_10, HPI, TURN, BEND, NONE };
+    enum SStype { NONE=0, PARA, ANTI, H3_10, ALPHA, HPI, TURN, BEND };
     static const double DSSP_fac;
+    static const char dssp_char[];
     static const char* SSchar[];
     static const char* SSname[];
     /// Hold SS-related data for each residue
@@ -56,6 +55,7 @@ class Action_DSSP : public Action {
     NameType BB_O;
     // Private fns
     int isBonded(int, int);
-    void SSassign(int, int, SStype);
+    void SSassign(int, int, SStype, bool);
+    inline bool HasPriority(SStype, SStype);
 };
 #endif
