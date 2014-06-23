@@ -38,16 +38,11 @@ const char* Action_DSSP::SSchar[]    = { "0", "b", "B", "G", "H", "I", "T", "S" 
 const char* Action_DSSP::SSname[]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn", "Bend"};
 
 // Action_DSSP::Init()
-// For now dont allow null(stdout) filename for output
 Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
-  // DEBUG
-//  debugout.SetupFile((char*)"dsspdebug.out",WRITE,UNKNOWN_FORMAT,STANDARD,0);
-//  debugout.OpenFile();
-
   // Get keywords
   outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   std::string temp = actionArgs.GetStringKey("sumout");
@@ -224,14 +219,23 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
 
   // Count number of selected residues
   mprintf("\tMask [%s] corresponds to %u residues.\n", Mask_.MaskString(), Nselected);
-
+# ifdef DSSPDEBUG
   // DEBUG - Print atom nums for each residue set up
-//  for (res=0; res < Nres_; res++) {
-//    if (SecStruct_[res].isSelected)
-//      fprintf(stdout,"DEBUG: %i C=%i O=%i N=%i H=%i\n",res,SecStruct_[res].C/3,
-//              SecStruct_[res].O/3, SecStruct_[res].N/3, SecStruct_[res].H/3);
-//  }
-
+  for (int res=0; res < Nres_; res++) {
+    if (SecStruct_[res].isSelected) {
+      mprintf("DEBUG: Res %i", res + 1);
+      if (SecStruct_[res].hasCO)
+        mprintf(" C=%s O=%s",currentParm->AtomMaskName(SecStruct_[res].C/3).c_str(),
+                             currentParm->AtomMaskName(SecStruct_[res].O/3).c_str());
+      if (SecStruct_[res].hasNH)
+        mprintf(" N=%s H=%s",currentParm->AtomMaskName(SecStruct_[res].N/3).c_str(),
+                             currentParm->AtomMaskName(SecStruct_[res].H/3).c_str());
+      if (SecStruct_[res].CA != -1)
+        mprintf(" CA=%s",currentParm->AtomMaskName(SecStruct_[res].CA/3).c_str());
+      mprintf("\n");
+    }
+  }
+# endif
   return Action::OK;
 }
 
@@ -280,15 +284,21 @@ bool Action_DSSP::HasPriority( SStype type1, SStype type2 ) {
   * Assumes given residue range is valid.
   */
 void Action_DSSP::SSassign(int res1, int res2, SStype typeIn, bool force) {
-  //mprintf("DEBUG:\tCalling SSassign from %i to %i, %s:", res1+1, res2, SSname[typeIn]); 
+# ifdef DSSPDEBUG
+  mprintf("DEBUG:\tCalling SSassign from %i to %i, %s:", res1+1, res2, SSname[typeIn]);
+# endif
   for (int res = res1; res < res2; res++) {
     if (res==Nres_) break;
     if ( HasPriority(typeIn, SecStruct_[res].sstype) || force ) {
-      //mprintf(" %i", res+1); // DEBUG
+#     ifdef DSSPDEBUG
+      mprintf(" %i", res+1); // DEBUG
+#     endif
       SecStruct_[res].sstype = typeIn;
     }
   }
-  //mprintf("\n"); // DEBUG
+# ifdef DSSPDEBUG
+  mprintf("\n"); // DEBUG
+# endif
 }
  
 // Action_DSSP::DoAction()
@@ -314,10 +324,6 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
         for (resj = 0; resj < Nres_; resj++) {
           if (SecStruct_[resj].isSelected && resi != resj && SecStruct_[resj].hasNH)
           {
-// DEBUG
-//          debugout.IO->Printf("\n%i Res%i-Res%i:",frameNum,resi,resj);
-//          debugout.IO->Printf(" C=%i O=%i | N=%i H=%i:",C,O,SecStruct_[resj].N,SecStruct_[resj].H);
-// DEBUG 
             N = currentFrame->CRD(SecStruct_[resj].N);
             H = currentFrame->CRD(SecStruct_[resj].H);
 
@@ -328,10 +334,11 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
 
             E = DSSP_fac * (1/rON + 1/rCH - 1/rOH - 1/rCN);
             if (E < -0.5) {
-              //mprintf("DEBUG: %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
+#             ifdef DSSPDEBUG
+              mprintf("DEBUG: %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
+#             endif
               SecStruct_[resi].CO_HN_Hbond[resj] = 1;
             }
-//          if ( SecStruct_[resi].CO_HN_Hbond[resj] ) debugout.IO->Printf(" HBONDED!"); // DEBUG
           }
         }
       }
@@ -352,8 +359,10 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
   //   T = H-bonded turn
   //   S = bend
   for (resi=0; resi < Nres_; resi++) {
-    if (SecStruct_[resi].isSelected) { 
-      //mprintf("DEBUG: Residue %i -----\n", resi+1);
+    if (SecStruct_[resi].isSelected) {
+#     ifdef DSSPDEBUG 
+      mprintf("DEBUG: Residue %i -----\n", resi+1);
+#     endif
       // Alpha helices
       if ( isBonded( resi - 1, resi+3 ) && isBonded( resi, resi + 4) )
         SSassign(resi, resi+4, ALPHA, false);
@@ -372,14 +381,18 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
                 // Parallel
                 // NOTE: Not checking if ANTI since not geometrically possible
                 //       to be anti-parallel and parallel at the same time.
-                //mprintf("DEBUG:\tAssigning %i to parallel beta.\n", resi+1);
+#               ifdef DSSPDEBUG
+                mprintf("DEBUG:\tAssigning %i to parallel beta.\n", resi+1);
+#               endif
                 SecStruct_[resi].sstype = PARA;
                 break;
               } else if ( (isBonded(resi-1, resj+1) && isBonded(resj-1, resi+1)) ||
                           (isBonded(resi,   resj  ) && isBonded(resj,   resi  )) )
               {
                 // Anti-parallel
-                //mprintf("DEBUG:\tAssigning %i to anti-parallel beta.\n", resi+1);
+#               ifdef DSSPDEBUG
+                mprintf("DEBUG:\tAssigning %i to anti-parallel beta.\n", resi+1);
+#               endif
                 SecStruct_[resi].sstype = ANTI;
                 break;
               }
@@ -418,12 +431,13 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
           Vec3 CA2( CAp2[0]-CA0[0], CAp2[1]-CA0[1], CAp2[2]-CA0[2] );
           CA1.Normalize();
           CA2.Normalize();
-          // DEBUG
-          //mprintf("DEBUG: Bend calc %i-%i-%i: %g rad.\n", resi-1, resi+1, resi+3,
-          //        CA1.Angle(CA2));
           // 1.221730476 rad = 70 degrees
-          if (CA1.Angle(CA2) > 1.221730476)
+          if (CA1.Angle(CA2) > 1.221730476) {
+#           ifdef DSSPDEBUG
+            mprintf("DEBUG: Bend calc %i-%i-%i: %g rad.\n", resi-1, resi+1, resi+3, CA1.Angle(CA2));
+#           endif
             SecStruct_[resi].sstype = BEND;
+          }
         }
       }
     }
@@ -437,16 +451,22 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
       if (lastType != SecStruct_[resi].sstype) {
         // Secondary structure type has changed.
         if (lastType == H3_10) {
-          //mprintf("DEBUG: 3-10 helix length is %i\n", resi - resStart);
+#         ifdef DSSPDEBUG
+          mprintf("DEBUG: 3-10 helix length is %i\n", resi - resStart);
+#         endif
           if (resi - resStart < 3)
             SSassign(resStart, resi, TURN, true);
         } else if (lastType == HPI) {
-          //mprintf("DEBUG: PI helix length is %i\n", resi - resStart);
+#         ifdef DSSPDEBUG
+          mprintf("DEBUG: PI helix length is %i\n", resi - resStart);
+#         endif
           if (resi - resStart < 5)
             SSassign(resStart, resi, TURN, true);
         }
         resStart = resi;
-        //mprintf("DEBUG: ResStart=%i for type %s\n", resi+1, SSname[SecStruct_[resi].sstype]);
+#       ifdef DSSPDEBUG
+        mprintf("DEBUG: ResStart=%i for type %s\n", resi+1, SSname[SecStruct_[resi].sstype]);
+#       endif
       }
       lastType = SecStruct_[resi].sstype;
     }

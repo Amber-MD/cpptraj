@@ -50,7 +50,6 @@ class Action_DSSP : public Action {
     bool printString_;        ///< If true print 1 char per residue indicating ss type
     // TODO: Replace these with new type of DataSet
     DataSetList* masterDSL_;
-    //CpptrajFile debugout; // DEBUG
     NameType BB_N_;
     NameType BB_H_;
     NameType BB_C_;
