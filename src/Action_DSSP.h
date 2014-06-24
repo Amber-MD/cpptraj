@@ -46,10 +46,12 @@ class Action_DSSP : public Action {
     std::string assignout_;   ///< Assignment output file.
     AtomMask Mask_;           ///< Mask used to determine selected residues
     int Nres_;                ///< Current total # of residues
+    unsigned int Nselected_;  ///< Current # residues selected.
     int Nframe_;              ///< # of frames, for calculating SS avg.
     bool printString_;        ///< If true print 1 char per residue indicating ss type
     // TODO: Replace these with new type of DataSet
     DataSetList* masterDSL_;
+    DataSet* totalDS_[8];
     NameType BB_N_;
     NameType BB_H_;
     NameType BB_C_;
