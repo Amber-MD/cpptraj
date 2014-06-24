@@ -3,8 +3,7 @@
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
-/// Hbond energy calc prefactor
-// From ptraj actions.c:transformSecStruct 0.42*0.20*332
+/// Hbond energy calc prefactor for kcal/mol: q1*q2*E, 0.42*0.20*332
 const double Action_DSSP::DSSP_fac = 27.888;
 
 const int Action_DSSP::NSSTYPE = 8;
@@ -72,16 +71,21 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
   if (outfile_ != 0) 
-    mprintf("               Dumping results to %s\n", outfile_->DataFilename().base());
+    mprintf("\tDumping results to %s\n", outfile_->DataFilename().full());
   if (dsspFile_ != 0)
-    mprintf("               Sum results to %s\n", dsspFile_->DataFilename().base());
-  if (printString_) 
-    mprintf("               SS data for each residue will be stored as a string.\n");
-  else
-    mprintf("               SS data for each residue will be stored as integers.\n");
+    mprintf("\tSum results to %s\n", dsspFile_->DataFilename().full());
+  if (printString_) { 
+    mprintf("\tSS data for each residue will be stored as a string.\n");
+    for (int i = 0; i < NSSTYPE; i++)
+      mprintf("\t\t%s = %s\n", SSchar[i], SSname[i]);
+  } else {
+    mprintf("\tSS data for each residue will be stored as integers.\n");
+    for (int i = 0; i < NSSTYPE; i++)
+      mprintf("\t\t%i = %s\n", i, SSname[i]);
+  }
   if (!assignout_.empty())
-    mprintf("               Overall assigned SS will be written to %s\n", assignout_.c_str());
-  mprintf("               Backbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]  CA=[%s]\n",
+    mprintf("\tOverall assigned SS will be written to %s\n", assignout_.c_str());
+  mprintf("\tBackbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]  CA=[%s]\n",
           *BB_N_, *BB_H_, *BB_C_, *BB_O_, *BB_CA_ );
   mprintf("# Citation: Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:\n"
           "#           Pattern Recognition of Hydrogen-Bonded and Geometrical Features.\"\n"
@@ -327,12 +331,12 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
             N = currentFrame->CRD(SecStruct_[resj].N);
             H = currentFrame->CRD(SecStruct_[resj].H);
 
-            rON = sqrt(DIST2_NoImage(O, N));
-            rCH = sqrt(DIST2_NoImage(C, H));
-            rOH = sqrt(DIST2_NoImage(O, H));
-            rCN = sqrt(DIST2_NoImage(C, N));
+            rON = 1.0/sqrt(DIST2_NoImage(O, N));
+            rCH = 1.0/sqrt(DIST2_NoImage(C, H));
+            rOH = 1.0/sqrt(DIST2_NoImage(O, H));
+            rCN = 1.0/sqrt(DIST2_NoImage(C, N));
 
-            E = DSSP_fac * (1/rON + 1/rCH - 1/rOH - 1/rCN);
+            E = DSSP_fac * (rON + rCH - rOH - rCN);
             if (E < -0.5) {
 #             ifdef DSSPDEBUG
               mprintf("DEBUG: %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
