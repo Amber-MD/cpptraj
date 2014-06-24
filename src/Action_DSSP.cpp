@@ -82,7 +82,8 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
       mprinterr("Error: Could not create DSSP total frac v time data set.\n");
       return Action::ERR;
     }
-    if (totalout != 0) totalout->AddSet( totalDS_[i] );
+    // For now dont add 'None' so colors match up.
+    if (totalout != 0 && i > 0) totalout->AddSet( totalDS_[i] );
   }
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
