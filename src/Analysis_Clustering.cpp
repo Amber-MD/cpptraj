@@ -16,7 +16,9 @@ Analysis_Clustering::Analysis_Clustering() :
   CList_(0),
   sieve_(1),
   sieveSeed_(-1),
+  windowSize_(0),
   cnumvtime_(0),
+  clustersVtime_(0),
   cpopvtimefile_(0),
   nofitrms_(false),
   metric_(ClusterList::RMS),
@@ -47,7 +49,8 @@ void Analysis_Clustering::Help() {
           "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <file>]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
-          "\t[summaryhalf <halffile>] [splitframe <frame>]\n"
+          "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
+          "\t[clustersvtime <filename> cvtwindow <window size>]\n"
           "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
           "  Coordinate output options:\n"
           "\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n"
@@ -132,7 +135,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   }
   if (analyzeArgs.hasKey("random") && sieve_ > 1)
     sieve_ = -sieve_; // negative # indicates random sieve
-  halffile_ = analyzeArgs.GetStringKey("summaryhalf");
+  halffile_ = analyzeArgs.GetStringKey("summarysplit");
+  if (halffile_.empty()) // For backwards compat.
+    halffile_ = analyzeArgs.GetStringKey("summaryhalf");
   if (!halffile_.empty()) {
     ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
     if (!splits.empty()) {
@@ -149,7 +154,11 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       }
     }
   }
+  
   DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* clustersvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
+                                                   analyzeArgs);
+  windowSize_ = analyzeArgs.getKeyInt("cvtwindow", 0);
   cpopvtimefile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
   clusterinfo_ = analyzeArgs.GetStringKey("info");
   summaryfile_ = analyzeArgs.GetStringKey("summary");
@@ -188,7 +197,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   // Dataset to store cluster number v time
   cnumvtime_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==0) return Analysis::ERR;
-  if (cnumvtimefile != 0) cnumvtimefile->AddSet( cnumvtime_ ); 
+  if (cnumvtimefile != 0) cnumvtimefile->AddSet( cnumvtime_ );
+  // DataSet for # clusters seen v time
+  if (clustersvtimefile != 0) {
+    if (windowSize_ < 2) {
+      mprinterr("Error: For # clusters seen vs time, cvtwindow must be specified and > 1\n");
+      return Analysis::ERR;
+    }
+    clustersVtime_ = datasetlist->AddSetAspect(DataSet::INTEGER, cnumvtime_->Name(), "NCVT");
+    if (clustersVtime_ == 0) return Analysis::ERR;
+    clustersvtimefile->AddSet( clustersVtime_ );
+  }
   // Save master DSL for Cpopvtime
   masterDSL_ = datasetlist;
 
@@ -222,6 +241,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   }
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->DataFilename().base());
+  if (clustersvtimefile != 0)
+    mprintf("\t# clusters seen vs time will be written to %s\n",
+            clustersvtimefile->DataFilename().base());
   if (cpopvtimefile_ != 0) {
     mprintf("\tCluster pop vs time will be written to %s", cpopvtimefile_->DataFilename().base());
     if (norm_pop_==CLUSTERPOP) mprintf(" (normalized by cluster size)");
@@ -369,6 +391,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // Create cluster v time data from clusters.
     CreateCnumvtime( *CList_, clusterDataSetSize );
 
+    // Create # clusters seen v time data.
+    if (clustersVtime_ != 0)
+      NclustersObserved( *CList_, clusterDataSetSize );
+
     // Create cluster pop v time plots
     if (cpopvtimefile_ != 0)
       CreateCpopvtime( *CList_, clusterDataSetSize );
@@ -515,6 +541,51 @@ void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFra
   }
 }
 
+/** Determine how many different clusters are observed within a given time
+  * window.
+  */
+void Analysis_Clustering::NclustersObserved( ClusterList const& CList, int maxFrames ) {
+  DataSet_integer const& CVT = static_cast<DataSet_integer const&>( *cnumvtime_ );
+  if (CVT.Size() < 1 || CList.Nclusters() < 1) return;
+  int dataIdx = 0;
+  // True if cluster was observed during window
+  std::vector<bool> observed( CList.Nclusters(), false );
+  for (int frame = 0; frame < maxFrames; frame++) {
+    if (CVT[frame] != -1)
+      observed[ CVT[frame] ] = true;
+    if ( ((frame+1) % windowSize_) == 0 ) {
+      // Count # observed clusters
+      int nClustersObserved = 0;
+      for (std::vector<bool>::iterator ob = observed.begin(); ob != observed.end(); ++ob)
+        if ( *ob ) {
+          ++nClustersObserved;
+          *ob = false;
+        }
+      mprintf("DEBUG: WINDOW at frame %i; %i clusters observed\n", frame+1, nClustersObserved);
+      clustersVtime_->Add( dataIdx++, &nClustersObserved );
+    }
+  }
+/*
+  int currentCluster = CVT[0];
+  int nClustersObserved = 1;
+  for (int frame = 1; frame < maxFrames; frame++) {
+    // Do not count noise as a cluster.
+    if (CVT[frame] != currentCluster && CVT[frame] != -1) {
+      ++nClustersObserved;
+      currentCluster = CVT[frame];
+    }
+    mprintf("DEBUG: %i %i\n", frame+1, nClustersObserved);
+    if ( ((frame+1) % windowSize_) == 0 ) {
+      mprintf("DEBUG: WINDOW\n");
+      clustersVtime_->Add( dataIdx++, &nClustersObserved );
+      nClustersObserved = 1;
+    }
+  }
+*/
+  clustersVtime_->SetDim(Dimension::X, Dimension(windowSize_, windowSize_, dataIdx));
+} 
+
+// ---------- Cluster Coordinate Output Routines -------------------------------
 // Analysis_Clustering::WriteClusterTraj()
 /** Write frames in each cluster to a trajectory file.  */
 void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
