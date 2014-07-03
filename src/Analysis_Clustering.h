@@ -22,8 +22,10 @@ class Analysis_Clustering: public Analysis {
     std::string maskexpr_;      ///< If RMSD, Atoms to cluster on
     int sieve_;                 ///< If > 1, frames to skip on initial clustering pass.
     int sieveSeed_;             ///< Used to seed random number gen for sieve
+    int windowSize_;            ///< Window size for # clusters seen vs time.
     std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
+    DataSet* clustersVtime_;    ///< # clusters seen vs time dataset.
     DataFile* cpopvtimefile_;   ///< Cluster pop v time file.
     std::string summaryfile_;   ///< Summary file name
     std::string halffile_;      ///< 1st/2nd half summary file name
@@ -57,6 +59,7 @@ class Analysis_Clustering: public Analysis {
     void CreateCnumvtime( ClusterList const&, int );
     void CreateCpopvtime( ClusterList const&, int );
     void ClusterLifetimes( ClusterList const&, int );
+    void NclustersObserved(ClusterList const&, int);
     void WriteClusterTraj( ClusterList const& );
     void WriteAvgStruct( ClusterList const& );
     void WriteSingleRepTraj( ClusterList const& );
