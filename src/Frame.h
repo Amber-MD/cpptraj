@@ -74,6 +74,7 @@ class Frame {
     int size()                        const { return ncoord_;        }
     int NrepDims()                    const { return (int)remd_indices_.size(); } // TODO: deprecate
     double Temperature()              const { return T_;             }
+    double Time()                     const { return time_;          }
     const double* XYZ(int atnum)      const { return X_ + (atnum*3); } 
     const double* CRD(int idx)        const { return X_ + idx;       } 
     const double* VXYZ(int atnum)     const { return V_ + (atnum*3); } 
@@ -85,11 +86,13 @@ class Frame {
     inline double* vAddress() { return V_;                }
     inline double* bAddress() { return box_.boxPtr();     }
     inline double* tAddress() { return &T_;               }
+    inline double* mAddress() { return &time_;            }
     inline int* iAddress()    { return &remd_indices_[0]; }
     inline const double* xAddress() const { return X_;                }
     inline const double* vAddress() const { return V_;                }
     inline const double* bAddress() const { return box_.boxPtr();     }
     inline const double* tAddress() const { return &T_;               }
+    inline const double* mAddress() const { return &time_;            }
     inline const int* iAddress()    const { return &remd_indices_[0]; }
     /// Set box alpha, beta, and gamma
     inline void SetBoxAngles(const double*);
@@ -184,6 +187,7 @@ class Frame {
     int ncoord_;    ///< Number of coordinates stored in frame (natom * 3).
     Box box_;       ///< Box coords, 3xlengths, 3xangles
     double T_;      ///< Temperature
+    double time_;   ///< Time
     double* X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     double* V_;     ///< Velocities (same arrangement as Coords).
     RemdIdxType remd_indices_; ///< replica indices.

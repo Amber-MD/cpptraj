@@ -164,10 +164,15 @@ int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm,
   * Coords are a 1 dimensional array of format X1,Y1,Z1,X2,Y2,Z2,...
   */
 int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
+  start_[0] = set;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 1;
+  count_[1] = Ncatom();
+  count_[2] = 3;
+
   // Get temperature
   if (TempVID_!=-1) {
-    start_[0] = set;
-    count_[0] = 1;
     if ( checkNCerr(nc_get_vara_double(ncid_, TempVID_, start_, count_, frameIn.tAddress())) ) {
       mprinterr("Error: Getting replica temperature for frame %i.\n", set+1); 
       return 1;
@@ -175,13 +180,15 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
     //fprintf(stderr,"DEBUG: Replica Temperature %lf\n",F->T);
   }
 
+  // Get time
+  if (timeVID_!=-1) {
+    if (checkNCerr(nc_get_vara_double(ncid_, timeVID_, start_, count_, frameIn.mAddress()))) {
+      mprinterr("Error: Getting time for frame %i.\n", set + 1);
+      return 1;
+    }
+  }
+
   // Read Coords 
-  start_[0] = set;
-  start_[1] = 0;
-  start_[2] = 0;
-  count_[0] = 1;
-  count_[1] = Ncatom();
-  count_[2] = 3;
   if ( checkNCerr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)) ) {
     mprinterr("Error: Getting coordinates for frame %i\n", set+1);
     return 1;
@@ -224,7 +231,6 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
       return 1;
     }
   }
-
 
   return 0;
 }
