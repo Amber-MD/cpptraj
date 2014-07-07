@@ -8,6 +8,7 @@
 #include "Parm_CIF.h"
 #include "Parm_SDF.h"
 #include "Parm_Tinker.h"
+#include "Parm_Gromacs.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as ParmFormatType
@@ -17,21 +18,23 @@ const FileTypes::AllocToken ParmFile::PF_AllocArray[] = {
   { "Mol2 File",        0,                  0,                     Parm_Mol2::Alloc      },
   { "Charmm PSF",       0,                  0,                     Parm_CharmmPsf::Alloc },
   { "CIF File",         0,                  0,                     Parm_CIF::Alloc       },
+  { "Gromacs Topology", 0,                  0,                     Parm_Gromacs::Alloc   },
   { "SDF File",         0,                  0,                     Parm_SDF::Alloc       },
   { "Tinker File",      0,                  0,                     Parm_Tinker::Alloc    },
   { "Unknown Topology", 0,                  0,                     0                     }
 };
 
 const FileTypes::KeyToken ParmFile::PF_KeyArray[] = {
-  { AMBERPARM,    "amber", ".parm7" },
-  { PDBFILE,      "pdb",   ".pdb"   },
-  { MOL2FILE,     "mol2",  ".mol2"  },
-  { CHARMMPSF,    "psf",   ".psf"   },
-  { CIFFILE,      "cif",   ".cif"   },
-  { SDFFILE,      "sdf",   ".sdf"   },
-  { TINKER,       "tinker",".arc"   },
-  { TINKER,       "arc",   ".arc"   },
-  { UNKNOWN_PARM, 0,       0        }
+  { AMBERPARM,    "amber",   ".parm7" },
+  { PDBFILE,      "pdb",     ".pdb"   },
+  { MOL2FILE,     "mol2",    ".mol2"  },
+  { CHARMMPSF,    "psf",     ".psf"   },
+  { CIFFILE,      "cif",     ".cif"   },
+  { GMXTOP,       "gromacs", ".top"   },
+  { SDFFILE,      "sdf",     ".sdf"   },
+  { TINKER,       "tinker",  ".arc"   },
+  { TINKER,       "arc",     ".arc"   },
+  { UNKNOWN_PARM, 0,         0        }
 };
 
 // ParmFile::DetectFormat()

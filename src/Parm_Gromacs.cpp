@@ -15,7 +15,10 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
   const char* SEP = " \t";
   BufferedLine infile;
   mprintf("DEBUG: Opening GMX file '%s'\n", fname.c_str());
-  if (infile.OpenFileRead( fname )) return 1;
+  if (infile.OpenFileRead( fname )) {
+    mprinterr("Error: Could not open '%s'\n", fname.c_str());
+    return 1;
+  }
   const char* ptr = infile.Line();
   while (ptr != 0) {
     if ( ptr[0] == '#' ) {
@@ -23,8 +26,9 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
       std::string gmx_line( ptr );
       if ( gmx_line.compare(0, 9,"#include "       )==0 ) {
         std::string inc_fname = gmx_line.substr( 9 );
-        // Remove any quotes
+        // Remove any quotes/newline
         std::string::iterator pend = std::remove( inc_fname.begin(), inc_fname.end(), '"' );
+        pend = std::remove( inc_fname.begin(), pend, '\n' );
         size_t newsize = pend - inc_fname.begin();
         inc_fname.resize( newsize );
         if (ReadGmxFile( inc_fname )) return 1;

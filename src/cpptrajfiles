@@ -182,6 +182,7 @@ SOURCES=ActionFrameCounter.cpp \
         Parm_Amber.cpp \
         Parm_CharmmPsf.cpp \
         Parm_CIF.cpp \
+        Parm_Gromacs.cpp \
         Parm_Mol2.cpp \
         Parm_PDB.cpp \
         Parm_SDF.cpp \
