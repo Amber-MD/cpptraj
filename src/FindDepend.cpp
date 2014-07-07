@@ -57,11 +57,14 @@ list<string> *PeakHeader(char *filename, int indent, bool includeStdHeaders) {
       ptr++;
       if (*ptr=='\n' || *ptr=='\0') break;
     }
+    // First non-whitespace charcter must be '#'
+    if (*ptr != '#') continue;
     // Ignore commented lines
-    if (strncmp(ptr,"//",2)==0) continue;
+//    if (strncmp(ptr,"//",2)==0) continue;
     // Check if this is an include line - if not, skip
     includePosition = strstr(ptr,"include");
-    if ( includePosition==NULL || strchr(ptr,'#')==NULL ) continue;
+    if ( includePosition==NULL ) continue;
+//    if ( includePosition==NULL || strchr(ptr,'#')==NULL ) continue;
     //if ( strncmp(ptr,"#include",8)!=0 ) continue; 
     // Record standard libs but dont process them
     if ( strchr(ptr, '<')==NULL ) {
