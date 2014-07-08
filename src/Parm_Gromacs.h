@@ -26,6 +26,7 @@ class Parm_Gromacs : public ParmIO {
     int debug_;
     int numOpen_;
     std::string title_;
+    FileName infileName_;
 };
 // ----- CLASSES ---------------------------------------------------------------
 class Parm_Gromacs::gmx_atom {

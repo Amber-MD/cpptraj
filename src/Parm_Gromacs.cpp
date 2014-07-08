@@ -19,6 +19,8 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
     mprinterr("Error: Could not open '%s'\n", fname.c_str());
     return 1;
   }
+  if (infileName_.empty())
+    infileName_ = infile.Filename(); 
   const char* ptr = infile.Line();
   while (ptr != 0) {
     if ( ptr[0] == '#' ) {
@@ -130,11 +132,38 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
 int Parm_Gromacs::ReadParm(std::string const& fname, Topology &TopIn) {
   // Reads topology and #included files, sets up gmx_molXXX arrays.
   if (ReadGmxFile(fname)) return 1;
+  // Set title/filename
+  TopIn.SetParmName( title_, infileName_ );
+  int resoffset = 0;
   // Set up <count> of each <molecule>
   for (unsigned int m = 0; m != mols_.size(); m++) {
     mprintf("\t%i instances of molecule %s\n", nums_[m], mols_[m].c_str());
+    // Find molecule
+    int tgtmol = -1;
+    for (unsigned int n = 0; n != gmx_molnames_.size(); n++)
+      if (gmx_molnames_[n] == mols_[m]) {
+        tgtmol = (int)n;
+        break;
+      }
+    if (tgtmol == -1) {
+      mprinterr("Error: Molecule %s is not defined in gromacs topology.\n", mols_[m].c_str());
+      return 1;
+    }
+    AtomArray const& Mol = gmx_molecules_[tgtmol];
+    for (int molcount = 0; molcount != nums_[m]; molcount++) {
+      for (AtomArray::const_iterator atom = Mol.begin(); atom != Mol.end(); ++atom)
+      {
+        if (atom->mass_ > -1.0)
+          TopIn.AddTopAtom( Atom( atom->aname_, atom->charge_, atom->mass_, atom->atype_),
+                            atom->rnum_ + resoffset, atom->rname_, 0 );
+        else
+          TopIn.AddTopAtom( Atom( atom->aname_, atom->atype_, atom->charge_ ),
+                            atom->rnum_ + resoffset, atom->rname_, 0 );
+      }
+      resoffset = TopIn.Nres();
+    }
   }
-  return 1;
+  return 0;
 }
 
 // Parm_Gromacs::ID_ParmFormat()
