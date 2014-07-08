@@ -49,16 +49,16 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
           mprinterr("Error: After [ moleculetype ] expected name, nrexcl.\n");
           return 1;
         }
-        gmx_molnames_.push_back( std::string(infile.NextToken()) );
-        gmx_molecules_.push_back( AtomArray() );
+        gmx_molecules_.push_back( gmx_mol(std::string(infile.NextToken())) );
       } else if ( gmx_line.compare(0, 9,"[ atoms ]"       )==0 ) {
         // Atoms for current molecule
         if (gmx_molecules_.empty()) {
           mprinterr("Error: Encountered [ atoms ] before [ moleculetype ]\n");
           return 1;
         }
-        mprintf("DEBUG: Reading atoms for molecule %s\n", gmx_molnames_.back().c_str());
-        if (!gmx_molecules_.back().empty())
+        mprintf("DEBUG: Reading atoms for molecule %s\n", gmx_molecules_.back().Mname());
+        AtomArray& MolAtoms = gmx_molecules_.back().atoms_;
+        if (!MolAtoms.empty())
           mprintf("Warning: Encountered second [ atoms ] section before [ moleculetype ]\n");
         // Read header.
         // ; <#> <type> <res#> <resname> <atomname> <cgnr> <charge> <mass>
@@ -95,13 +95,44 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
               else infile.NextToken(); // Blank read.
             }
             if (currentcols == 7)
-              gmx_molecules_.back().push_back( gmx_atom(aname, atype, rname, chrg, -1.0, rnum) );
+              MolAtoms.push_back( gmx_atom(aname, atype, rname, chrg, -1.0, rnum) );
             else // currentcols == 8
-              gmx_molecules_.back().push_back( gmx_atom(aname, atype, rname, chrg, mass, rnum) );
+              MolAtoms.push_back( gmx_atom(aname, atype, rname, chrg, mass, rnum) );
           } 
         }
-        mprintf("DEBUG: Molecule %s contains %zu atoms.\n", gmx_molnames_.back().c_str(),
-                gmx_molecules_.back().size());
+        mprintf("DEBUG: Molecule %s contains %zu atoms.\n", gmx_molecules_.back().Mname(),
+                MolAtoms.size());
+      } else if ( gmx_line.compare(0,  9,"[ bonds ]"        )==0 ) {
+        // Bonds for current molecule
+        if (gmx_molecules_.empty()) {
+          mprinterr("Error: Encountered [ bonds ] before [ moleculetype ]\n");
+          return 1;
+        }
+        mprintf("DEBUG: Reading bonds for molecule %s\n", gmx_molecules_.back().Mname());
+        BondArray& MolBonds = gmx_molecules_.back().bonds_;
+        if (!MolBonds.empty())
+          mprintf("Warning: Encountered second [ bonds ] section before [ moleculetype ]\n");
+        // Read header line
+        // ; i     j       funct   length  force_constant
+        if ( (ptr = infile.Line()) == 0 ) return 1;
+        // Gromacs bond lengths are in nm, bond energy in kJ/mol*nm^2
+        bool readBonds = true;
+        while (readBonds) {
+          ptr = infile.Line();
+          if (ptr == 0)
+            readBonds = false;
+          else {
+            int currentcols = infile.TokenizeLine(SEP);
+            if ( currentcols < 2 ) {
+              // Assume blank line, done reading atoms.
+              readBonds = false;
+              break;
+            }
+            // Only need first two columns. Internal atom #s start from 0.
+            MolBonds.push_back( atoi(infile.NextToken()) - 1 );
+            MolBonds.push_back( atoi(infile.NextToken()) - 1 );
+          }
+        }
       } else if ( gmx_line.compare(0, 10,"[ system ]"       )==0 ) {
         // Title.
         ptr = infile.Line();
@@ -135,13 +166,14 @@ int Parm_Gromacs::ReadParm(std::string const& fname, Topology &TopIn) {
   // Set title/filename
   TopIn.SetParmName( title_, infileName_ );
   int resoffset = 0;
+  int atomoffset = 0;
   // Set up <count> of each <molecule>
   for (unsigned int m = 0; m != mols_.size(); m++) {
     mprintf("\t%i instances of molecule %s\n", nums_[m], mols_[m].c_str());
     // Find molecule
     int tgtmol = -1;
-    for (unsigned int n = 0; n != gmx_molnames_.size(); n++)
-      if (gmx_molnames_[n] == mols_[m]) {
+    for (unsigned int n = 0; n != gmx_molecules_.size(); n++)
+      if (gmx_molecules_[n].mname_ == mols_[m]) {
         tgtmol = (int)n;
         break;
       }
@@ -149,7 +181,8 @@ int Parm_Gromacs::ReadParm(std::string const& fname, Topology &TopIn) {
       mprinterr("Error: Molecule %s is not defined in gromacs topology.\n", mols_[m].c_str());
       return 1;
     }
-    AtomArray const& Mol = gmx_molecules_[tgtmol];
+    AtomArray const& Mol = gmx_molecules_[tgtmol].atoms_;
+    BondArray const& Bonds = gmx_molecules_[tgtmol].bonds_;
     for (int molcount = 0; molcount != nums_[m]; molcount++) {
       for (AtomArray::const_iterator atom = Mol.begin(); atom != Mol.end(); ++atom)
       {
@@ -160,7 +193,10 @@ int Parm_Gromacs::ReadParm(std::string const& fname, Topology &TopIn) {
           TopIn.AddTopAtom( Atom( atom->aname_, atom->atype_, atom->charge_ ),
                             atom->rnum_ + resoffset, atom->rname_, 0 );
       }
+      for (BondArray::const_iterator bond = Bonds.begin(); bond != Bonds.end(); bond += 2)
+        TopIn.AddBond( *bond + atomoffset , *(bond+1) + atomoffset );
       resoffset = TopIn.Nres();
+      atomoffset = TopIn.Natom();
     }
   }
   return 0;

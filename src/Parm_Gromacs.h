@@ -15,12 +15,13 @@ class Parm_Gromacs : public ParmIO {
     int ReadGmxFile(std::string const&);
 
     class gmx_atom;
+    class gmx_mol;
     typedef std::vector<gmx_atom> AtomArray;
-    typedef std::vector<AtomArray> MolArray;
-    MolArray gmx_molecules_;
+    typedef std::vector<gmx_mol> MolArray;
+    typedef std::vector<int> BondArray;
+    MolArray gmx_molecules_; ///< Hold each molecule defined in topololgy
     typedef std::vector<std::string> Sarray;
-    Sarray gmx_molnames_;
-    Sarray mols_; ///< Molecules present
+    Sarray mols_;           ///< Which molecules are present
     std::vector<int> nums_; ///< How much of each mol is present.
 
     int debug_;
@@ -42,5 +43,16 @@ class Parm_Gromacs::gmx_atom {
     double charge_;
     double mass_;
     int rnum_;
+};
+
+class Parm_Gromacs::gmx_mol {
+  public:
+    gmx_mol() {}
+    gmx_mol(std::string const& s) : mname_(s) {}
+    const char* Mname() { return mname_.c_str(); }
+
+    AtomArray atoms_;
+    BondArray bonds_;
+    std::string mname_;
 };
 #endif
