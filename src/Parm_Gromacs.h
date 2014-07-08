@@ -14,13 +14,32 @@ class Parm_Gromacs : public ParmIO {
   private:
     int ReadGmxFile(std::string const&);
 
-    typedef std::vector<Atom> AtomArray;
+    class gmx_atom;
+    typedef std::vector<gmx_atom> AtomArray;
     typedef std::vector<AtomArray> MolArray;
     MolArray gmx_molecules_;
     typedef std::vector<std::string> Sarray;
     Sarray gmx_molnames_;
+    Sarray mols_; ///< Molecules present
+    std::vector<int> nums_; ///< How much of each mol is present.
 
     int debug_;
     int numOpen_;
+    std::string title_;
+};
+// ----- CLASSES ---------------------------------------------------------------
+class Parm_Gromacs::gmx_atom {
+  public:
+    gmx_atom() : charge_(0.0), mass_(0.0), rnum_(0) {}
+    gmx_atom(NameType const& an, NameType const& at, NameType const& rn,
+             double c, double m, int r) :
+             aname_(an), atype_(at), rname_(rn), charge_(c), mass_(m), rnum_(r) {}
+    
+    NameType aname_;
+    NameType atype_;
+    NameType rname_;
+    double charge_;
+    double mass_;
+    int rnum_;
 };
 #endif

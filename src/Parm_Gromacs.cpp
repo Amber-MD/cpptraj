@@ -14,7 +14,7 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
   }
   const char* SEP = " \t";
   BufferedLine infile;
-  mprintf("DEBUG: Opening GMX file '%s'\n", fname.c_str());
+  mprintf("DEBUG: Opening GMX file '%s' (%i)\n", fname.c_str(), numOpen_);
   if (infile.OpenFileRead( fname )) {
     mprinterr("Error: Could not open '%s'\n", fname.c_str());
     return 1;
@@ -31,7 +31,9 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
         pend = std::remove( inc_fname.begin(), pend, '\n' );
         size_t newsize = pend - inc_fname.begin();
         inc_fname.resize( newsize );
-        if (ReadGmxFile( inc_fname )) return 1;
+        if (ReadGmxFile( inc_fname ))
+          mprintf("Warning: Could not process '#include' directive for '%s', skipping.\n",
+                  fname.c_str());
         numOpen_--;
       }
     } else if ( ptr[0] == '[' ) {
@@ -49,32 +51,23 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
         gmx_molecules_.push_back( AtomArray() );
       } else if ( gmx_line.compare(0, 9,"[ atoms ]"       )==0 ) {
         // Atoms for current molecule
-        if (!gmx_molecules_.back().empty())
-          mprintf("Warning: Encountered second [ atoms ] section before [ moleculetype ]\n");
-        // ;   nr    type   resnr  residu    atom    cgnr  charge
-        if ( (ptr = infile.Line()) == 0 ) return 1;
-        // How many columns to expect?
-        int ncols = infile.TokenizeLine(SEP);
-        // Which columns to expect.
-        int namecol = -1;
-        int typecol = -1;
-        int chrgcol = -1;
-        int masscol = -1;
-        for (int col = 0; col < ncols; col++) {
-          std::string col_label( infile.NextToken() );
-          if      (col_label == "type"  ) typecol = col;
-          else if (col_label == "atom"  ) namecol = col;
-          else if (col_label == "charge") chrgcol = col;
-          else if (col_label == "mass"  ) masscol = col;
-        }
-        // Require at least name/type
-        if (namecol == -1 || typecol == -1) {
-          mprinterr("Error: In [ atoms ], could not find either type or atom columns.\n");
+        if (gmx_molecules_.empty()) {
+          mprinterr("Error: Encountered [ atoms ] before [ moleculetype ]\n");
           return 1;
         }
+        mprintf("DEBUG: Reading atoms for molecule %s\n", gmx_molnames_.back().c_str());
+        if (!gmx_molecules_.back().empty())
+          mprintf("Warning: Encountered second [ atoms ] section before [ moleculetype ]\n");
+        // Read header.
+        // ; <#> <type> <res#> <resname> <atomname> <cgnr> <charge> <mass>
+        // It appears that the labels for the [ atoms ] section can vary, so
+        // do not rely on them. Expect at least 7 columns, mass may be
+        // ommitted and defined elsewhere.
+        if ( (ptr = infile.Line()) == 0 ) return 1;
         bool readAtoms = true;
-        NameType aname, atype;
+        NameType aname, atype, rname;
         double mass = 0.0, chrg = 0.0;
+        int rnum = 0;
         while (readAtoms) {
           ptr = infile.Line();
           if (ptr == 0)
@@ -85,27 +78,47 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
               // Assume blank line, done reading atoms.
               readAtoms = false;
               break;
-            } else if ( currentcols != ncols ) {
-              mprinterr("Error: Number of columns changes at %i (expected %i)\n",
-                        infile.LineNumber(), ncols);
+            } else if ( currentcols < 7 ) {
+              mprinterr("Error: Line %i: Expected at least 7 columns for [ atoms ], got %i\n",
+                        infile.LineNumber(), currentcols);
               return 1;
             }
-            for (int col = 0; col < ncols; col++) {
-              if      (col == typecol) atype = infile.NextToken();
-              else if (col == namecol) aname = infile.NextToken();
-              else if (col == chrgcol) chrg  = atof(infile.NextToken());
-              else if (col == masscol) mass  = atof(infile.NextToken());
+            for (int col = 0; col < currentcols; col++) {
+              if      (col == 1) atype = infile.NextToken();
+              else if (col == 2) rnum  = atoi(infile.NextToken());
+              else if (col == 3) rname = infile.NextToken();
+              else if (col == 4) aname = infile.NextToken();
+              else if (col == 6) chrg  = atof(infile.NextToken());
+              else if (col == 7) mass  = atof(infile.NextToken());
               else infile.NextToken(); // Blank read.
             }
-            if (masscol == -1)
-              gmx_molecules_.back().push_back( Atom(aname, atype, chrg) );
-            else
-              gmx_molecules_.back().push_back( Atom(aname, chrg, mass, atype) );
+            if (currentcols == 7)
+              gmx_molecules_.back().push_back( gmx_atom(aname, atype, rname, chrg, -1.0, rnum) );
+            else // currentcols == 8
+              gmx_molecules_.back().push_back( gmx_atom(aname, atype, rname, chrg, mass, rnum) );
           } 
         }
         mprintf("DEBUG: Molecule %s contains %zu atoms.\n", gmx_molnames_.back().c_str(),
                 gmx_molecules_.back().size());
-      }  
+      } else if ( gmx_line.compare(0, 10,"[ system ]"       )==0 ) {
+        // Title.
+        ptr = infile.Line();
+        if (ptr == 0) return 1;
+        title_.assign( ptr );
+      } else if ( gmx_line.compare(0, 13,"[ molecules ]"       )==0 ) {
+        // System layout
+        ptr = infile.Line();
+        while (ptr != 0 && ptr[0] != ' ') { // TODO: Allow blank to end?
+          if (infile.TokenizeLine(SEP) != 2) {
+            mprinterr("Error: [ molecules ]: Line %i, expected 2 entries (<name> <count>)\n",
+                      infile.LineNumber());
+            return 1;
+          }
+          mols_.push_back( std::string(infile.NextToken()) );
+          nums_.push_back( atoi(infile.NextToken()) );
+          ptr = infile.Line(); 
+        }
+      }
     } // End bracket '[' read
     // Get next line
     ptr = infile.Line();
@@ -117,7 +130,11 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
 int Parm_Gromacs::ReadParm(std::string const& fname, Topology &TopIn) {
   // Reads topology and #included files, sets up gmx_molXXX arrays.
   if (ReadGmxFile(fname)) return 1;
-  return 0;
+  // Set up <count> of each <molecule>
+  for (unsigned int m = 0; m != mols_.size(); m++) {
+    mprintf("\t%i instances of molecule %s\n", nums_[m], mols_[m].c_str());
+  }
+  return 1;
 }
 
 // Parm_Gromacs::ID_ParmFormat()
