@@ -14,9 +14,11 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
   }
   const char* SEP = " \t";
   BufferedLine infile;
-  mprintf("DEBUG: Opening GMX file '%s' (%i)\n", fname.c_str(), numOpen_);
+  if (debug_ > 0)
+    mprintf("DEBUG: Opening GMX file '%s' (%i)\n", fname.c_str(), numOpen_);
   if (infile.OpenFileRead( fname )) {
-    mprinterr("Error: Could not open '%s'\n", fname.c_str());
+    if (numOpen_ == 1) // Do not print errors for #includes
+      mprinterr("Error: Could not open '%s'\n", fname.c_str());
     return 1;
   }
   if (infileName_.empty())
@@ -56,7 +58,8 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
           mprinterr("Error: Encountered [ atoms ] before [ moleculetype ]\n");
           return 1;
         }
-        mprintf("DEBUG: Reading atoms for molecule %s\n", gmx_molecules_.back().Mname());
+        if (debug_ > 0)
+          mprintf("DEBUG: Reading atoms for molecule %s\n", gmx_molecules_.back().Mname());
         AtomArray& MolAtoms = gmx_molecules_.back().atoms_;
         if (!MolAtoms.empty())
           mprintf("Warning: Encountered second [ atoms ] section before [ moleculetype ]\n");
@@ -100,15 +103,17 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
               MolAtoms.push_back( gmx_atom(aname, atype, rname, chrg, mass, rnum) );
           } 
         }
-        mprintf("DEBUG: Molecule %s contains %zu atoms.\n", gmx_molecules_.back().Mname(),
-                MolAtoms.size());
+        if (debug_ > 0)
+          mprintf("DEBUG: Molecule %s contains %zu atoms.\n", gmx_molecules_.back().Mname(),
+                  MolAtoms.size());
       } else if ( gmx_line.compare(0,  9,"[ bonds ]"        )==0 ) {
         // Bonds for current molecule
         if (gmx_molecules_.empty()) {
           mprinterr("Error: Encountered [ bonds ] before [ moleculetype ]\n");
           return 1;
         }
-        mprintf("DEBUG: Reading bonds for molecule %s\n", gmx_molecules_.back().Mname());
+        if (debug_ > 0)
+          mprintf("DEBUG: Reading bonds for molecule %s\n", gmx_molecules_.back().Mname());
         BondArray& MolBonds = gmx_molecules_.back().bonds_;
         if (!MolBonds.empty())
           mprintf("Warning: Encountered second [ bonds ] section before [ moleculetype ]\n");
@@ -138,6 +143,10 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
         ptr = infile.Line();
         if (ptr == 0) return 1;
         title_.assign( ptr );
+        // Remove any quotes/newline
+        std::string::iterator pend = std::remove( title_.begin(), title_.end(), '\n' );
+        size_t newsize = pend - title_.begin();
+        title_.resize( newsize );
       } else if ( gmx_line.compare(0, 13,"[ molecules ]"       )==0 ) {
         // System layout
         ptr = infile.Line();
@@ -161,6 +170,7 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
         
 // Parm_Gromacs::ReadParm()
 int Parm_Gromacs::ReadParm(std::string const& fname, Topology &TopIn) {
+  mprintf("Warning: Currently only basic topology info read from gromacs topologies.\n");
   // Reads topology and #included files, sets up gmx_molXXX arrays.
   if (ReadGmxFile(fname)) return 1;
   // Set title/filename
