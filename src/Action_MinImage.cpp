@@ -166,44 +166,7 @@ Action::RetType Action_MinImage::DoAction(int frameNum, Frame* currentFrame, Fra
   double Dist2;
 
   currentFrame->BoxCrd().ToRecip(ucell_, recip_);
-/*
-  // Test alternate recip calc. Cartesian->Frac
-  recip_.Print("Recip");
-  Matrix_3x3 rtest;
-  double a = currentFrame->BoxCrd().BoxX();
-  double b = currentFrame->BoxCrd().BoxY();
-  double c = currentFrame->BoxCrd().BoxZ();
-  double alpha = currentFrame->BoxCrd().Alpha() * Constants::DEGRAD;
-  double beta  = currentFrame->BoxCrd().Beta()  * Constants::DEGRAD;
-  double gamma = currentFrame->BoxCrd().Gamma() * Constants::DEGRAD;
-  double volume = sqrt( 1 - cos(alpha)*cos(alpha) - cos(beta)*cos(beta)
-                                 - cos(gamma)*cos(gamma)
-                                 + 2*cos(alpha)*cos(beta)*cos(gamma) );
-  volume *= a * b * c;
-  rtest[0] = 1 / a;
-  rtest[1] = -cos( gamma ) / (a * sin( gamma ));
-  rtest[2] = cos( alpha ) * cos( gamma ) - cos( beta );
-  rtest[3] = 0.0;
-  rtest[4] = 1 / (b * sin( gamma ));
-  rtest[5] = (cos(beta)*cos(gamma) - cos(alpha)) / (b * volume * sin(gamma));
-  rtest[6] = 0.0;
-  rtest[7] = 0.0;
-  rtest[8] = (a * b * sin( gamma )) / volume;
-  rtest.Print("Rtest");
-  // Test alternate ucell calc. Frac->Cartesian 
-  ucell_.Print("Ucell");
-  Matrix_3x3 utest;
-  utest[0] = a;
-  utest[1] = b * cos( gamma );
-  utest[2] = c * cos( beta );
-  utest[3] = 0.0;
-  utest[4] = b * sin( gamma );
-  utest[5] = c * ((cos(alpha)-cos(beta)*cos(gamma)) / sin(gamma));
-  utest[6] = 0.0;
-  utest[7] = 0.0;
-  utest[8] = volume / (a * b * sin(gamma));
-  utest.Print("Utest");
-*/
+
   if (calcUsingMask_) {
     // Use center of mask1 and mask2
     Vec3 a1, a2;

@@ -2,7 +2,7 @@
 #define INC_ACTION_MINIMAGE_H
 #include "Action.h"
 #include "ImagedAction.h"
-#include "PDBfile.h" // DEBUG
+//#incl ude "PDBfile.h" // DEBUG
 /// Action to calculate minimum non-self distance between atoms in two masks.
 class Action_MinImage: public Action {
   public:
