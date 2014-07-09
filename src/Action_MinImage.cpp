@@ -1,12 +1,10 @@
 #include <cmath>
-#include <cfloat>
+#include <cfloat> // DBL_MAX
 #include "Action_MinImage.h"
 #include "CpptrajStdio.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
-#include "StringRoutines.h" // DEBUG
-#include "Constants.h" // DEBUG
 
 // CONSTRUCTOR
 Action_MinImage::Action_MinImage() : 
@@ -44,8 +42,15 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "MID");
   if (dist_==0) return Action::ERR;
   dist_->SetScalar( DataSet::M_DISTANCE );
-  // Add dataset to data file
-  if (outfile != 0) outfile->AddSet( dist_ );
+  atom1_ = DSL->AddSetAspect(DataSet::INTEGER, dist_->Name(), "A1");
+  atom2_ = DSL->AddSetAspect(DataSet::INTEGER, dist_->Name(), "A2");
+  if (atom1_ == 0 || atom2_ == 0) return Action::ERR;
+  // Add DataSets to data file
+  if (outfile != 0) {
+    outfile->AddSet( dist_ );
+    outfile->AddSet( atom1_ );
+    outfile->AddSet( atom2_ );
+  }
   int numthreads = 1;
 # ifdef _OPENMP
 #pragma omp parallel
@@ -55,6 +60,8 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 }
 # endif
   minDist_.resize( numthreads );
+  minAtom1_.resize( numthreads );
+  minAtom2_.resize( numthreads );
 
   mprintf("    MINIMAGE: Looking for closest approach of");
   if (calcUsingMask_) {
@@ -64,9 +71,12 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, TopologyList* PFL, Fr
       mprintf("\tUsing center of mass of masks.\n");
     else
       mprintf("\tUsing geometric center of masks.\n");
-  } else
+  } else {
     mprintf(" atoms in %s\n\tto images of atoms in %s\n",
             Mask1_.MaskString(), Mask2_.MaskString());
+    if (numthreads > 1)
+      mprintf("\tParallelizing calculation with %i threads.\n", numthreads);
+  }
   return Action::OK;
 }
 
@@ -106,7 +116,6 @@ static void WriteMatrix(Matrix_3x3 const& ucell, PDBfile& pdbout, const char* na
 */
 
 double Action_MinImage::MinNonSelfDist2(Vec3 const& a1, Vec3 const& a2) {
-#ifndef NONSENSE
 //  a1.Print("A1");
 //  a2.Print("A2");
   Vec3 frac1 = recip_ * a1; // a1 in fractional coords
@@ -144,76 +153,6 @@ double Action_MinImage::MinNonSelfDist2(Vec3 const& a1, Vec3 const& a2) {
       }
     }
   }
-#else
-  // Project a1 in fractional coords axes.
-  Vec3 f1 = recip_ * a1;
-  // Ensure fractional coords.
-  Vec3 frac1(f1[0] - floor(f1[0]), f1[1] - floor(f1[1]), f1[2] - floor(f1[2]));
-  // Project back in original unit cell axes
-  Vec3 T1 = ucell_.TransposeMult(frac1);
-  pdbout_.WriteATOM("O1", 6, T1[0], T1[1], T1[2], "O1", 1.0); // DEBUG
-  // Determine which projected a1 is closest to self.
-/*  double minDist2 = DBL_MAX;
-  Vec3 minT1(0.0);
-  for (int ix = -1; ix < 2; ix++) {
-    for (int iy = -1; iy < 2; iy++) {
-      for (int iz = -1; iz < 2; iz++) {
-        Vec3 ixyz(ix, iy, iz);
-        // Project back in original unit cell axes
-        Vec3 t1 = ucell_.TransposeMult(frac1 + ixyz);
-        Vec3 dxyz = t1 - a1;
-        double dist2 = dxyz.Magnitude2();
-        if (dist2 < dxyz.Magnitude2()) {
-          minT1 = t1;
-          minDist2 = dist2;
-        }
-      }
-    }
-  }
-  pdbout_.WriteATOM("T1", 6, minT1[0], minT1[1], minT1[2], "T1", 1.0); // DEBUG*/
-
-  // Project a2 in fractional coords axes.
-  Vec3 f2 = recip_ * a2;
-  // Ensure fractional coords.
-  Vec3 frac2(f2[0] - floor(f2[0]), f2[1] - floor(f2[1]), f2[2] - floor(f2[2]));
-  int ndist = 0; // DEBUG
-  double minDist2 = DBL_MAX;
-  // Loop over all images of a2, ignoring self. Calc dist to T1.
-  for (int ix = -1; ix < 2; ix++) {
-    for (int iy = -1; iy < 2; iy++) {
-      for (int iz = -1; iz < 2; iz++) {
-        if (ix != 0 || iy != 0 || iz != 0) { // Ignore self
-          Vec3 ixyz(ix, iy, iz);
-          Vec3 t1 = ucell_.TransposeMult(frac1 + ixyz);
-          Vec3 t2 = ucell_.TransposeMult(frac2 + ixyz);
-          std::string name1 = "T1" + integerToString(ndist);
-          std::string name2 = "T2" + integerToString(ndist); // DEBUG
-//          pdbout_.WriteATOM(name2.c_str(), ndist+7, t2[0], t2[1], t2[2], "T2", 1.0); // DEBUG
-          pdbout_.WriteATOM(name1.c_str(), ndist*2+7, t1[0], t1[1], t1[2], "T1", 1.0);
-          pdbout_.WriteATOM(name2.c_str(), ndist*2+8, t2[0], t2[1], t2[2], "T2", 1.0);
-          //Vec3 dxyz = ucell_.TransposeMult(frac2 + ixyz) - a1;
-          Vec3 dxyz = t2 - T1;
-//        std::string name1 = "O" + integerToString(ndist);
-//        std::string name2 = "D" + integerToString(ndist);
-//        std::string rname = "V" + integerToString(ndist);
-//        pdbout.WriteATOM(name1.c_str(), ndist*2+7, a1[0], a1[1], a1[2], rname.c_str(), 1.0);
-//        pdbout.WriteATOM(name2.c_str(), ndist*2+8, a1[0] + dxyz[0],
-//                                                   a1[1] + dxyz[1],
-//                                                   a2[2] + dxyz[2], rname.c_str(), 1.0);
-          double dist2 = dxyz.Magnitude2();
-          //minDist2 = std::min(minDist2, dist2);
-          if (dist2 < minDist2) {
-            minDist2 = dist2;
-            minxyz_ = t2;
-          }
-//          mprintf("DEBUG: Map: %2i = {%2g %2g %2g} %g\n", ndist, ixyz[0], ixyz[1], ixyz[2],
-//                  sqrt(dist2));
-        }
-        ndist++;
-      }
-    }
-  }
-#endif
 //  mprintf("DEBUG: Minimum distance= %g\n", sqrt(minDist2));
   return minDist2;
 }
@@ -276,23 +215,6 @@ Action::RetType Action_MinImage::DoAction(int frameNum, Frame* currentFrame, Fra
       a2 = currentFrame->VGeometricCenter( Mask2_ );
     }
 
-/*
-  Dist = DIST2_NoSelfImageNonOrtho(a1, a2, ucell, recip);
-  Dist = sqrt(Dist);
-*/
-  // Project A1 & A2
-//  Vec3 f1 = recip * a1;
-//  Vec3 f2 = recip * a2;
-//  pdbout.WriteATOM("F1", 5, f1[0], f1[1], f1[2], "F1", 1.0);
-//  pdbout.WriteATOM("F2", 6, f2[0], f2[1], f2[2], "F2", 1.0);
-  // Fractional coords?
-//  Vec3 frac1(f1[0] - floor(f1[0]), f1[1] - floor(f1[1]), f1[2] - floor(f1[2]));
-//  Vec3 frac2(f2[0] - floor(f2[0]), f2[1] - floor(f2[1]), f2[2] - floor(f2[2]));
-//  frac1.Print("frac1");
-//  frac2.Print("frac2");
-
-//  pdbout.WriteATOM("A1", 1, a1[0], a1[1], a1[2], "A1", 1.0);
-//  pdbout.WriteATOM("A2", 2, a2[0], a2[1], a2[2], "A2", 1.0);
   // Unit cell parameters
 //  WriteMatrix( ucell, pdbout, "UNT", 3);
 //  WriteMatrix( recip, pdbout, "RCP", 4);
@@ -321,6 +243,8 @@ Action::RetType Action_MinImage::DoAction(int frameNum, Frame* currentFrame, Fra
         Dist2 = MinNonSelfDist2( a1, Vec3(currentFrame->XYZ(Mask2_[m2])) );
         if (Dist2 < minDist_[mythread]) {
           minDist_[mythread] = Dist2;
+          minAtom1_[mythread] = Mask1_[m1];
+          minAtom2_[mythread] = Mask2_[m2];
 //          rprintf("DEBUG: New Min Dist: Atom %i to %i (%g)\n",
 //                  Mask1_[m1]+1,Mask2_[m2]+1,sqrt(Dist2));
           //pdbout_.WriteHET(1, minxyz_[0], minxyz_[1], minxyz_[2]);
@@ -332,9 +256,18 @@ Action::RetType Action_MinImage::DoAction(int frameNum, Frame* currentFrame, Fra
 #   endif
     // Find lowest minDist
     double globalMin = minDist_[0];
+    int min1 = minAtom1_[0];
+    int min2 = minAtom2_[0];
     for (unsigned int n = 1; n != minDist_.size(); n++)
-      if (minDist_[n] < globalMin)
+      if (minDist_[n] < globalMin) {
         globalMin = minDist_[n];
+        min1 = minAtom1_[n];
+        min2 = minAtom2_[n];
+      }
+    ++min1;
+    ++min2;
+    atom1_->Add(frameNum, &min1);
+    atom2_->Add(frameNum, &min2);
     Dist2 = sqrt( globalMin );
   }
 

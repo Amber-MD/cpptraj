@@ -20,13 +20,16 @@ class Action_MinImage: public Action {
 
     ImagedAction image_;
     Matrix_3x3 ucell_, recip_;
-    DataSet* dist_;  ///< Will hold DataSet of calculated distances.
-    bool useMass_;   ///< If true, mass-weight distances.
+    DataSet* dist_;      ///< Will hold DataSet of calculated distances.
+    DataSet* atom1_;
+    DataSet* atom2_;
+    bool useMass_;       ///< If true, mass-weight distances.
     bool calcUsingMask_; ///< If true use center of masks
     AtomMask Mask1_;
     AtomMask Mask2_;
     std::vector<double> minDist_;
-    //Vec3 minxyz_;
+    std::vector<int> minAtom1_;
+    std::vector<int> minAtom2_;
     //PDBfile pdbout_; // DEBUG
 };
 #endif
