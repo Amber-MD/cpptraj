@@ -3,7 +3,7 @@
 #include "Action_AtomicCorr.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
-#include "DataSet_MatrixDbl.h"
+#include "DataSet_MatrixFlt.h"
 #include "ProgressBar.h"
 #ifdef _OPENMP
 #  include "omp.h"
@@ -161,7 +161,7 @@ void Action_AtomicCorr::Print() {
     mprinterr("Error: atomiccorr: No vectors calcd.\n");
     return;
   }
-  DataSet_MatrixDbl* tmatrix = static_cast<DataSet_MatrixDbl*>( dset_ );
+  DataSet_MatrixFlt* tmatrix = static_cast<DataSet_MatrixFlt*>( dset_ );
   tmatrix->AllocateTriangle( atom_vectors_.size() );
   // Calculate correlation coefficient of each atomic vector to each other
   ACvector::iterator av_end = atom_vectors_.end();
