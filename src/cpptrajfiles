@@ -37,6 +37,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_MakeStructure.cpp \
         Action_Mask.cpp \
         Action_Matrix.cpp \
+        Action_MinImage.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
         Action_MultiVector.cpp \
@@ -182,6 +183,7 @@ SOURCES=ActionFrameCounter.cpp \
         Parm_Amber.cpp \
         Parm_CharmmPsf.cpp \
         Parm_CIF.cpp \
+        Parm_Gromacs.cpp \
         Parm_Mol2.cpp \
         Parm_PDB.cpp \
         Parm_SDF.cpp \
