@@ -502,6 +502,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     (*iredvec)->CalcSphericalHarmonics( order_ );
 
   // Calculate Cm(t) for each mode
+  std::vector<double> Plateau( modinfo_->Nmodes(), 0.0 );
   typedef std::vector< std::vector<double> > CmtArrayType;
   CmtArrayType CmtArray( modinfo_->Nmodes() );
   for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
@@ -511,6 +512,9 @@ Analysis::RetType Analysis_IRED::Analyze() {
     // Loop over L = -order ... +order
     for (int Lval = -order_; Lval <= order_; Lval++)
     {
+      // Values for determining plateau value of Cm(t)
+      double plateau_r = 0.0;
+      double plateau_i  = 0.0;
       // Loop over all frames.
       for (int frame = 0; frame != Nframes_; frame++)
       {
@@ -524,10 +528,19 @@ Analysis::RetType Analysis_IRED::Analyze() {
         for (int i = 0; i != modinfo_->VectorSize(); i++)
         {
           ComplexArray const& SH_L = IredVectors_[i]->SphericalHarmonics( Lval );
-          data1_[cidx  ] += SH_L[cidx    ] * eigenvec[i];
-          data1_[cidx+1] += SH_L[cidx + 1] * eigenvec[i];
+          double alpha_r = SH_L[cidx    ] * eigenvec[i];
+          plateau_r += alpha_r;
+          data1_[cidx  ] += alpha_r;
+          double alpha_i = SH_L[cidx + 1] * eigenvec[i];
+          plateau_i += alpha_i;
+          data1_[cidx+1] += alpha_i;
         }
       }
+      plateau_r /= (double)Nframes_;
+      plateau_i /= (double)Nframes_;
+      // Calc contribution of this L to plateau value of correlation function 
+      // (= C(m,t->T) in Bruschweiler paper (A20))
+      Plateau[mode] += (plateau_r*plateau_r) + (plateau_i*plateau_i);
       // data1_ should now contain projected SH coords for this mode and L.
       // Calculate autocorrelation of projected coords.
       if (drct_)
@@ -537,7 +550,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
         data1_.PadWithZero( Nframes_ );
         pubfft_.AutoCorr( data1_ );
       }
-      // Sum into Cm(t)
+      // Sum this L into Cm(t)
       for (int k = 0; k < nsteps; ++k)
         cm_t[k] += data1_[2 * k];
     }
@@ -548,18 +561,44 @@ Analysis::RetType Analysis_IRED::Analyze() {
     double Kn = (double)Nframes_ / cm_t[0];
     for (int k = 0; k < nsteps; ++k)
       cm_t[k] *= (Kn / (double)(Nframes_ - k));
-    // DEBUG: Write cm_t
+      //cm_t[k] /= (double)(Nframes_ - k);
+    // DEBUG: Write cm_t normalized to 1.0
     CpptrajFile cmt_out;
     cmt_out.OpenWrite( "dbg_cmt." + integerToString(mode) + ".dat" );
     cmt_out.Printf("%-12s Cm(t)_%i\n", "#Time", mode);
     for (int k = 0; k < nsteps; ++k)
       cmt_out.Printf("%12.4f %g\n", (double)k * tstep_, cm_t[k]);
+      //cmt_out.Printf("%12.4f %g\n", (double)k * tstep_, cm_t[k] * Kn);
     cmt_out.CloseFile();
+  }
+
+  // Calculate tau_m for each mode.
+  std::vector<double> TauM( modinfo_->Nmodes(), 0.0 );
+  for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
+  {
+    std::vector<double> const& cm_t = CmtArray[mode];
+    // Only integrate a third of the way in. 
+    int maxsteps = nsteps / 3;
+    // Get previously calculated plateau value for this.
+    double Cplateau = Plateau[mode];
+    mprintf("Cplateau[%i]= %g\n", mode, Cplateau);
+    // Integrate Cm(t) - Cplateau
+    double sum = 0.0;
+    for (int i = 1; i < maxsteps; i++)
+    {
+      //double b_minus_a = ((double)i * tstep_) - ((double)(i-1) * tstep_);
+      double curr_val = cm_t[i  ] - Cplateau;
+      double prev_val = cm_t[i-1] - Cplateau;
+      sum += (tstep_ * (prev_val + curr_val) * 0.5);
+    }
+    TauM[mode] = (1 / (cm_t[0] - Cplateau)) * sum;
+    mprintf("DEBUG: TauM for mode %i is %g\n", mode, TauM[mode]);
   }
 
   // Calculate Cj(t) for each vector j as weighted sum over Cm(t) arrays.
   // Cj(t) = SUM(m)[ dSjm^2 * Cm(t) ]
   // dSjm^2 = EVALm * (EVECm[i])^2
+  // Cm(t) must be normalized to 1.0.
   for (unsigned int ivec = 0; ivec != IredVectors_.size(); ivec++)
   {
     std::vector<double> cj_t( nsteps, 0.0 );
