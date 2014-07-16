@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
 #include "Corr.h"
+#include "StringRoutines.h" // DEBUG
 
 // CONSTRUCTOR
 Analysis_IRED::Analysis_IRED() :
@@ -163,15 +164,17 @@ Analysis::RetType Analysis_IRED::Analyze() {
       mprinterr("Error: Could not set up order parameter file.\n");
       return Analysis::ERR;
     }
-    orderout.Printf("\n\t************************************\n"
-                    "\t- Calculated iRed order parameters -\n"
-                    "\t************************************\n\n"
-                    "vector    S2\n----------------------\n");
+//    orderout.Printf("\n\t************************************\n"
+//                    "\t- Calculated iRed order parameters -\n"
+//                    "\t************************************\n\n"
+//                    "vector    S2\n----------------------\n");
+    orderout.Printf("%-4s  %10s\n", "#Vec", "S2");
     // Loop over all vector elements
     for (int vi = 0; vi < modinfo_->VectorSize(); ++vi) {
       // Sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
       double sum = 0.0;
-      // Loop over all eigenvectors except the first five ones
+      // Loop over all eigenvectors except the first five ones, i.e.
+      // sum over all internal modes only.
       const double* evectorElem = modinfo_->Eigenvector(5) + vi;
       for (int mode = 5; mode < modinfo_->Nmodes(); ++mode) {
         sum += modinfo_->Eigenvalue(mode) * (*evectorElem) * (*evectorElem);
@@ -220,8 +223,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
     pubfft_.Allocate( Nframes_ );
     data1_ = pubfft_.Array();
   }
-
   // -------------------- IRED CALCULATION ---------------------------
+#ifdef ORIGINAL_IRED
   // Store Modes Info
   int nvect = modinfo_->Nmodes();
   int nvectelem = modinfo_->VectorSize();
@@ -489,6 +492,98 @@ Analysis::RetType Analysis_IRED::Analyze() {
   }
   cmtfile.CloseFile();
   cjtfile.CloseFile();
+#else
+  // ===========================================================================
+  // ===========================================================================
+  // Ensure SH coords calculated for each ired vector.
+  for (std::vector<DataSet_Vector*>::const_iterator iredvec = IredVectors_.begin();
+                                                    iredvec != IredVectors_.end();
+                                                  ++iredvec)
+    (*iredvec)->CalcSphericalHarmonics( order_ );
 
+  // Calculate Cm(t) for each mode
+  typedef std::vector< std::vector<double> > CmtArrayType;
+  CmtArrayType CmtArray( modinfo_->Nmodes() );
+  for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
+  {
+    std::vector<double>& cm_t = CmtArray[mode];
+    cm_t.assign( nsteps, 0.0 );
+    // Loop over L = -order ... +order
+    for (int Lval = -order_; Lval <= order_; Lval++)
+    {
+      // Loop over all frames.
+      for (int frame = 0; frame != Nframes_; frame++)
+      {
+        const double* eigenvec = modinfo_->Eigenvector( mode );
+        //DataSet_Modes::AvgIt Avg = modinfo_->AvgBegin(); //FIXME: Is this needed?
+        int cidx = frame*2; // Index into complex arrays
+        data1_[cidx  ] = 0.0; // Real component
+        data1_[cidx+1] = 0.0; // Imaginary component
+        // Loop over each eigenvector/ired vector element for this frame and L
+        //for (int i = 0; i != modinfo_->VectorSize(); i++, Avg++)
+        for (int i = 0; i != modinfo_->VectorSize(); i++)
+        {
+          ComplexArray const& SH_L = IredVectors_[i]->SphericalHarmonics( Lval );
+          data1_[cidx  ] += SH_L[cidx    ] * eigenvec[i];
+          data1_[cidx+1] += SH_L[cidx + 1] * eigenvec[i];
+        }
+      }
+      // data1_ should now contain projected SH coords for this mode and L.
+      // Calculate autocorrelation of projected coords.
+      if (drct_)
+        corfdir_.AutoCorr( data1_ );
+      else {
+        // Pad with zeros at the end
+        data1_.PadWithZero( Nframes_ );
+        pubfft_.AutoCorr( data1_ );
+      }
+      // Sum into Cm(t)
+      for (int k = 0; k < nsteps; ++k)
+        cm_t[k] += data1_[2 * k];
+    }
+    // Normalize
+    // 4*PI / ((2*order)+1) due to spherical harmonics addition theorem
+    //double Kn = DataSet_Vector::SphericalHarmonicsNorm( order_ ); 
+    // Normalize to 1.0
+    double Kn = (double)Nframes_ / cm_t[0];
+    for (int k = 0; k < nsteps; ++k)
+      cm_t[k] *= (Kn / (double)(Nframes_ - k));
+    // DEBUG: Write cm_t
+    CpptrajFile cmt_out;
+    cmt_out.OpenWrite( "dbg_cmt." + integerToString(mode) + ".dat" );
+    cmt_out.Printf("%-12s Cm(t)_%i\n", "#Time", mode);
+    for (int k = 0; k < nsteps; ++k)
+      cmt_out.Printf("%12.4f %g\n", (double)k * tstep_, cm_t[k]);
+    cmt_out.CloseFile();
+  }
+
+  // Calculate Cj(t) for each vector j as weighted sum over Cm(t) arrays.
+  // Cj(t) = SUM(m)[ dSjm^2 * Cm(t) ]
+  // dSjm^2 = EVALm * (EVECm[i])^2
+  for (unsigned int ivec = 0; ivec != IredVectors_.size(); ivec++)
+  {
+    std::vector<double> cj_t( nsteps, 0.0 );
+    // Calculate dS^2 for this vector and mode.
+    for (int mode = 0; mode != modinfo_->Nmodes(); ++mode)
+    {
+      std::vector<double> const& cm_t = CmtArray[mode];
+      // Get element ivec of current eigenvector
+      double evectorElement = *(modinfo_->Eigenvector(mode) + ivec);
+      double S2 = modinfo_->Eigenvalue(mode) * evectorElement * evectorElement;
+      // Calculate weighted contribution of this mode to Cj(t) for this vector.
+      for (int k = 0; k < nsteps; k++)
+      {
+        cj_t[k] += S2 * cm_t[k];
+      }
+    }
+    // DEBUG: Write cj_t
+    CpptrajFile cjt_out;
+    cjt_out.OpenWrite( "dbg_cjt." + integerToString(ivec) + ".dat" );
+    cjt_out.Printf("%-12s Cj(t)_%i\n", "#Time", ivec);
+    for (int k = 0; k < nsteps; ++k)
+      cjt_out.Printf("%12.4f %g\n", (double)k * tstep_, cj_t[k]);
+  }
+
+#endif
   return Analysis::OK;
 }
