@@ -38,5 +38,6 @@ class Analysis_IRED : public Analysis {
     std::vector<DataSet_Vector*> IredVectors_;
 
     double calc_spectral_density(int, double);
+    double Jw(int, double, std::vector<double>) const;
 };
 #endif
