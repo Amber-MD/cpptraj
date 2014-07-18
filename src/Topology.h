@@ -146,6 +146,8 @@ class Topology {
     Topology* ModifyByMap(std::vector<int> const& m) const {
       return ModifyByMap(m, true);
     }
+    /// Append topology to this one.
+    int AppendTop( Topology const& );
   private:
     void PrintBonds(BondArray const&, AtomMask const&, int&) const;
     void PrintAngles(AngleArray const&, AtomMask const&, int&) const;
@@ -179,6 +181,7 @@ class Topology {
     BondArray StripBondArray(BondArray const&, std::vector<int> const&) const;
     AngleArray StripAngleArray(AngleArray const&, std::vector<int> const&) const;
     DihedralArray StripDihedralArray(DihedralArray const&, std::vector<int> const&) const;
+    inline void AddBondArray(BondArray const&, int);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

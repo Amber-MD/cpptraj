@@ -837,7 +837,7 @@ Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 }
 // -----------------------------------------------------------------------------
 static void Help_CombineCoords() {
-  mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>] [bondsearch]\n"
+  mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>]\n"
           "  Combined two COORDS data sets.\n");
 }
 
@@ -856,7 +856,6 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
 {
   std::string parmname = argIn.GetStringKey("parmname");
   std::string crdname  = argIn.GetStringKey("crdname");
-  bool bondsearch = argIn.hasKey("bondsearch");
   // Get COORDS DataSets.
   std::vector<DataSet_Coords*> CRD;
   std::string setname = argIn.GetStringNext();
@@ -879,32 +878,12 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
     parmname = CRD[0]->Top().ParmName() + "_" + CRD[1]->Top().ParmName();
   CombinedTop->SetParmName( parmname, FileName() );
   // TODO: Check Parm box info.
-  int atomOffset = 0;
-  int currentAtNum = 0;
   size_t minSize = CRD[0]->Size();
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {
     if (CRD[setnum]->Size() < minSize)
       minSize = CRD[setnum]->Size();
-    Topology const& CurrentTop = CRD[setnum]->Top();
-    for (Topology::atom_iterator atom = CurrentTop.begin();
-                                 atom != CurrentTop.end();
-                               ++atom, ++currentAtNum)
-    {
-      //mprintf("DBG:\tAtom %i (%u) '%s'\n", currentAtNum+1, atom - CurrentTop.begin() + 1, *(atom->Name()));
-      Atom CurrentAtom = *atom;
-      Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
-      // Bonds need to be cleared and re-added.
-      CurrentAtom.ClearBonds();
-      CombinedTop->AddTopAtom( CurrentAtom, res.OriginalResNum(),
-                               res.Name(), 0 );
-    }
-    // BONDS
-    CombinedCoords_AddBondArray(CombinedTop, CurrentTop.Bonds(),  atomOffset);
-    CombinedCoords_AddBondArray(CombinedTop, CurrentTop.BondsH(), atomOffset);
-    atomOffset += CombinedTop->Natom();
+    CombinedTop->AppendTop( CRD[setnum]->Top() );
   }
-  if (CombinedTop->CommonSetup(bondsearch))
-    return Command::C_ERR;
   CombinedTop->Brief("Combined parm:");
   State.PFL()->AddParm( CombinedTop );
   // Combine coordinates
