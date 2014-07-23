@@ -1624,3 +1624,29 @@ DihedralArray Topology::StripDihedralArray(DihedralArray const& dihIn, std::vect
   }
   return dihOut;
 }
+
+// Topology::AddBondArray()
+void Topology::AddBondArray(BondArray const& barray, int atomOffset) {
+  for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
+    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+}
+
+// Topology::AppendTop()
+int Topology::AppendTop(Topology const& CurrentTop) {
+  int atomOffset = (int)atoms_.size();
+  // ATOMS
+  for (atom_iterator atom = CurrentTop.begin(); atom != CurrentTop.end(); ++atom)
+  {
+    Atom CurrentAtom = *atom;
+    Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
+    // Bonds need to be cleared and re-added.
+    CurrentAtom.ClearBonds();
+    AddTopAtom( CurrentAtom, res.OriginalResNum(), res.Name(), 0 );
+  }
+  // BONDS
+  AddBondArray(CurrentTop.Bonds(),  atomOffset);
+  AddBondArray(CurrentTop.BondsH(), atomOffset);
+  // Re-set up this topology
+  // TODO: Could get expensive for multiple appends.
+  return CommonSetup(false);
+}

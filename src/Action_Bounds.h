@@ -17,7 +17,9 @@ class Action_Bounds : public Action {
     std::string outfilename_;
     double max_[3];
     double min_[3];
-    double dxyz_[3];
+    Vec3 dxyz_;
     int ensembleNum_;
+    int offset_;
+    DataSet* grid_;
 };
 #endif
