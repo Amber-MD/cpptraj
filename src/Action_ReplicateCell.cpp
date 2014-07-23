@@ -1,9 +1,6 @@
 #include "Action_ReplicateCell.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
-#ifdef _OPENMP
-#  include "omp.h"
-#endif
 
 // CONSTRUCTOR
 Action_ReplicateCell::Action_ReplicateCell() : 
@@ -168,24 +165,36 @@ Action::RetType Action_ReplicateCell::Setup(Topology* currentParm, Topology** pa
 Action::RetType Action_ReplicateCell::DoAction(int frameNum, Frame* currentFrame,
                                                Frame** frameAddress)
 {
+  int idx, newFrameIdx;
+  unsigned int id;
+  Vec3 frac, t2;
+
   currentFrame->BoxCrd().ToRecip(ucell_, recip_);
-  for (int idx = 0; idx != Mask1_.Nselected(); idx++) {
+  int shift = Mask1_.Nselected() * 3;
+# ifdef _OPENMP
+# pragma omp parallel private(idx, newFrameIdx, id) firstprivate(frac, t2)
+  {
+# pragma omp for
+# endif
+  for (idx = 0; idx < Mask1_.Nselected(); idx++) {
     // Convert to fractional coords
-    Vec3 frac = recip_ * Vec3(currentFrame->XYZ( Mask1_[idx] ));
+    frac = recip_ * Vec3(currentFrame->XYZ( Mask1_[idx] ));
     // replicate in each direction
-    int newFrameIdx = idx * 3;
-    int shift = Mask1_.Nselected() * 3;
-    for (unsigned int i = 0; i != directionArray_.size(); i+=3, newFrameIdx += shift)
+    newFrameIdx = idx * 3;
+    for (id = 0; id != directionArray_.size(); id+=3, newFrameIdx += shift)
     {
        // Convert back to Cartesian coords.
-       Vec3 t2 = ucell_.TransposeMult(frac + Vec3(directionArray_[i  ],
-                                                  directionArray_[i+1],
-                                                  directionArray_[i+2]));
+       t2 = ucell_.TransposeMult(frac + Vec3(directionArray_[id  ],
+                                             directionArray_[id+1],
+                                             directionArray_[id+2]));
        combinedFrame_[newFrameIdx  ] = t2[0];
        combinedFrame_[newFrameIdx+1] = t2[1];
        combinedFrame_[newFrameIdx+2] = t2[2];
     }
   }
+# ifdef _OPENMP
+  }
+# endif
   if (!trajfilename_.empty()) {
     if (outtraj_.WriteFrame(frameNum, &combinedTop_, combinedFrame_)!=0)
       return Action::ERR;
