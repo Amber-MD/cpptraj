@@ -82,6 +82,7 @@
 #include "Action_SetVelocity.h"
 #include "Action_MultiVector.h"
 #include "Action_MinImage.h"
+#include "Action_ReplicateCell.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1763,6 +1764,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, AddAction },
   { ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, AddAction },
+  { ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
   { ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
