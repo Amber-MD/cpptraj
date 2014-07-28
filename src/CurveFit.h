@@ -25,6 +25,8 @@ class CurveFit {
     /// Perform Levenberg-Marquardt curve fit: fxn, x, y, p, tol, iter
     int LevenbergMarquardt(FitFunctionType, Darray const&, Darray const&, Darray&,
                            double, int);
+    /// \return Status message.
+    static const char* Message(int);
   private:
     typedef std::vector<int> Iarray;
     typedef std::vector<double>::size_type dsize;

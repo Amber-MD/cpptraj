@@ -31,6 +31,31 @@ void CurveFit::DBGPRINT(const char* format, ...) const {
 # endif
 }
 
+const char* CurveFit::Message(int info) {
+  switch (info) {
+    case 0 : return "Problem with input parameters.";
+    case 1 : return "Both actual and predicted relative reductions"
+                    " in the sum of squares are at most tolerance.";
+    case 2 : return "Relative error between two consecutive iterates"
+                    " is at most xtol.";
+    case 3 : return "Both actual and predicted relative reductions"
+                    " in the sum of squares are at most tolerance"
+                    " and relative error between two consecutive iterates"
+                    " is at most xtol.";
+    case 4 : return "The cosine of the angle between residual and any"
+                    " column of the Jacobian is at most gtol in"
+                    " absolute value.";
+    case 5 : return "Number of calls to function has reached or exceeded max.";
+    case 6 : return "ftol is too small. No further reduction in"
+                    " the sum of squares is possible.";
+    case 7 : return "xtol is too small. no further improvement in"
+                    " the approximate solution parameter vector is possible.";
+    case 8 : return "gtol is too small. Residual is orthogonal to the"
+                    " columns of the Jacobian to machine precision.";
+  }
+  return 0;
+}
+
 /// Machine precision
 // NOTE: from http://cpansearch.perl.org/src/RKOBES/Math-Cephes-0.47/libmd/const.c
 const double CurveFit::machine_epsilon = pow(2.0, -53);
@@ -211,7 +236,8 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
                                  Darray const& Yvals_, Darray& Params_,
                                  double tolerance, int maxIterations)
 {
-  if (ParametersHaveProblems(Xvals_, Yvals_, Params_)) return 1;
+  int info = 0;
+  if (ParametersHaveProblems(Xvals_, Yvals_, Params_)) return info;
 
   fxn_ = fxnIn;
   m_ = Xvals_.size();        // Number of values (rows)
@@ -263,12 +289,10 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
   double rnorm = VecNorm( residual_ );
   DBGPRINT("Rnorm= %g\n", rnorm);
 
-  int info = 0;
   dsize nfev = 1; // Will be set to calls to fxn_. 1 already.
 
   // MAIN LOOP
   int currentIt = 0;
-  int err = 0;
   while ( currentIt < maxIterations ) {
     DBGPRINT("DEBUG: ----- Iteration %i ------------------------------\n", currentIt+1);
     // Calculate the Jacobian using the forward-difference approximation.
@@ -848,25 +872,8 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
     if (info != 0) break;
     currentIt++;
   }
-  switch (info) {
-        case 1 : DBGPRINT("both actual and predicted relative reductions"
-                        " in the sum of squares are at most ftol.\n"); break;
-        case 2 : DBGPRINT("relative error between two consecutive iterates"
-                        " is at most xtol.\n"); break;
-        case 3 : DBGPRINT("conditions for info = 1 and info = 2 both hold.\n");
-                 break;
-        case 4 : DBGPRINT("the cosine of the angle between fvec and any"
-                        " column of the jacobian is at most gtol in"
-                        " absolute value.\n"); break;
-        case 5 : DBGPRINT("number of calls to fcn has reached or exceeded maxfev.\n"); break;
-        case 6 : DBGPRINT("ftol is too small. no further reduction in"
-                        " the sum of squares is possible.\n"); break;
-        case 7 : DBGPRINT("xtol is too small. no further improvement in"
-                        " the approximate solution x is possible.\n"); break;
-        case 8 : DBGPRINT("gtol is too small. fvec is orthogonal to the"
-                        " columns of the jacobian to machine precision.\n"); break;
-  }
+  DBGPRINT("%s\n", Message(info));
   DBGPRINT("Exiting with info value = %i\n", info);
   PrintFinalParams(Params_);
-  return err;
+  return info;
 }

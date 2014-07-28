@@ -77,14 +77,14 @@ Analysis::RetType Analysis_ExpCurveFit::Setup(ArgList& analyzeArgs, DataSetList*
   if (finalY_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddSet( finalY_ );
 
-  mprintf("    EXPCURVEFIT: Fitting multi-exponential curve using %i exponentials\n"
-          "\tto data in set '%s'. Final Y values will be saved in set '%s'\n",
-          nexp_, dset_->Legend().c_str(), finalY_->Legend().c_str());
+  mprintf("    EXPCURVEFIT: Fitting multi-exponential curve using %i exponentials.\n", nexp_);
+  mprintf("\tUsing data in set '%s'.\n", dset_->Legend().c_str());
+  mprintf("\tFinal Y values will be saved in set '%s'\n", finalY_->Legend().c_str());
   mprintf("\tFitting to form:");
   if (useConstant_)
-    mprintf("Y = B0 + SUM[Bi * exp(X * Bi+1)\n");
+    mprintf(" Y = B0 + SUM[Bi * exp(X * Bi+1)\n");
   else
-    mprintf("Y = SUM[Bi * exp(X * Bi+1)\n");
+    mprintf(" Y = SUM[Bi * exp(X * Bi+1)\n");
   mprintf("\tTolerance= %g, maximum iterations= %i\n", tolerance_, maxIt_);
   if (outfile != 0)
     mprintf("\tFinal Y values will be written in file '%s'\n", outfile->DataFilename().full());
@@ -131,7 +131,8 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
 
   // Perform curve fitting.
   CurveFit fit;
-  fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, tolerance_, maxIt_ );
+  int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, tolerance_, maxIt_ );
+  mprintf("\t%s\n", fit.Message(info));
 
   // Write out final form
   mprintf("\tFinal Eq: Y =");
