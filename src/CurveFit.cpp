@@ -1,27 +1,48 @@
-#include <cstdio>
+#include <cstdio> // DEBUG
+#include <cstdarg> // DEBUG
 #include <cmath> //sqrt
 #include <cfloat> // DBL_MIN
 #include "CurveFit.h"
+
+// CONSTRUCTOR
+CurveFit::CurveFit() : fxn_(0), m_(0), n_(0)
+{
+  // DEBUG
+  dbgfile_ = fopen("dbgcurvefit.dat", "wb");
+}
+
+// DESTRUCTOR
+// FIXME DEBUG ONLY
+CurveFit::~CurveFit() {
+  fclose(dbgfile_);
+}
+
+void CurveFit::DBGPRINT(const char* format, ...) const {
+  va_list args;
+  va_start(args, format);
+  vfprintf(dbgfile_, format, args);
+  va_end(args);
+}
 
 /// Machine precision
 // NOTE: from http://cpansearch.perl.org/src/RKOBES/Math-Cephes-0.47/libmd/const.c
 const double CurveFit::machine_epsilon = pow(2.0, -53);
 
 // For debugging
-static inline void PrintMatrix(const char* name, int ncols, int mrows, CurveFit::Darray const& mat)
-{
+void CurveFit::PrintMatrix(const char* name, int ncols, int mrows, CurveFit::Darray const& mat)
+const {
   CurveFit::Darray::const_iterator mij = mat.begin();
   for (int n = 0; n < ncols; n++) {
     for (int m = 0; m < mrows; m++)
-      printf("DEBUG: %s(%i,%i)= %12.6g [%zu]\n", name, m+1, n+1, *(mij++), mij-mat.begin());
+      DBGPRINT("DEBUG: %s(%i,%i)= %12.6g [%zu]\n", name, m+1, n+1, *(mij++), mij-mat.begin());
   }
 }
 
-static inline void PrintVector(const char* name, CurveFit::Darray const& Vec) {
-  printf("%s={", name);
+void CurveFit::PrintVector(const char* name, CurveFit::Darray const& Vec) const {
+  DBGPRINT("%s={", name);
   for (CurveFit::Darray::const_iterator v = Vec.begin(); v != Vec.end(); ++v)
-    printf(" %g", *v);
-  printf(" }\n");
+    DBGPRINT(" %g", *v);
+  DBGPRINT(" }\n");
 }
 
 /** Evaulate function at given X values and parameters. Calculate residual
@@ -143,7 +164,7 @@ double CurveFit::VecNorm( Darray::const_iterator const& vBeg, dsize nElt ) {
 // CurveFit::PrintFinalParams()
 void CurveFit::PrintFinalParams(Darray const& Params_) const {
   for (dsize in = 0; in != n_; in++)
-    printf("\tParams[%lu]= %g\n", in, Params_[in]);
+    DBGPRINT("\tParams[%lu]= %g\n", in, Params_[in]);
 }
 
 // ErrorMessage()
@@ -223,24 +244,30 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
   //  approximate solution.
   // TODO: Make input paramter
   double xtol = 0.0;
+  // maxfev is the maxiumum number of allowed function evaluations.
+  // NOTE: Included here for complete compatibility with eariler code,
+  //       though may not be strictly necessary.
+  dsize maxfev = (n_ + 1) * (dsize)maxIterations;
 
   // Evaluate initial function, obtain residual
   EvaluateFxn( Xvals_, Yvals_, Params_, residual_ );
 
   // Calculate norm of the residual
   double rnorm = VecNorm( residual_ );
-  printf("Rnorm= %g\n", rnorm);
+  DBGPRINT("Rnorm= %g\n", rnorm);
 
   int info = 0;
+  dsize nfev = 1; // Will be set to calls to fxn_. 1 already.
 
   // MAIN LOOP
   int currentIt = 0;
   int err = 0;
   while ( currentIt < maxIterations ) {
-    printf("DEBUG: ----- Iteration %i ------------------------------\n", currentIt+1);
+    DBGPRINT("DEBUG: ----- Iteration %i ------------------------------\n", currentIt+1);
     // Calculate the Jacobian using the forward-difference approximation.
     CalcJacobian_ForwardDiff( Xvals_, Yvals_, Params_, residual_, newResidual );
     PrintMatrix( "Jacobian", n_, m_, jacobian_ );
+    nfev += n_;
 
     // -------------------------------------------
     // | BEGIN QRFAC
@@ -256,7 +283,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
     // where u has zeros in the first k-1 positions. Adapted from routine qrfac_
     // in Grace 5.1.22 lmdif.c, which in turn is derived from an earlier linpack
     // subroutine.
-    printf("\nQRFAC ITERATION %i\n", currentIt+1);
+    DBGPRINT("\nQRFAC ITERATION %i\n", currentIt+1);
     // Rdiag will hold the diagonal elements of R.
     Darray Rdiag(n_, 0.0);
     // Jpvt defines the permutation matrix p such that a*p = q*r. Column j of p
@@ -270,7 +297,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
       Rdiag[in] = JcolNorm_[in];
       work1[in] = Rdiag[in];
       Jpvt[in] = in;
-      printf("%lu: Rdiag= %12.6g    wa= %12.6g    ipvt= %i\n",
+      DBGPRINT("%lu: Rdiag= %12.6g    wa= %12.6g    ipvt= %i\n",
              in+1, Rdiag[in], work1[in], Jpvt[in]+1);
     }
 
@@ -280,17 +307,17 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
       // Bring the column of largest norm into the pivot position.
       dsize kmax = in;
       for (dsize k = in; k != n_; k++) {
-        printf("\tRdiag[%lu]= %g    Rdiag[%lu]= %g\n", k+1, Rdiag[k], kmax+1, Rdiag[kmax]);
+        DBGPRINT("\tRdiag[%lu]= %g    Rdiag[%lu]= %g\n", k+1, Rdiag[k], kmax+1, Rdiag[kmax]);
         if (Rdiag[k] > Rdiag[kmax])
           kmax = k;
       }
-      printf("Elt= %lu    Kmax= %lu\n", in+1, kmax+1);
+      DBGPRINT("Elt= %lu    Kmax= %lu\n", in+1, kmax+1);
       if (kmax != in) {
         for (dsize i = 0; i != m_; i++) {
           double temp = jacobian_[i + in * m_];
           jacobian_[i + in   * m_] = jacobian_[i + kmax * m_];
           jacobian_[i + kmax * m_] = temp;
-          printf("DBG: Swap jac[%lu,%lu] with jac[%lu,%lu]\n", i+1, in+1, i+1, kmax+1);
+          DBGPRINT("DBG: Swap jac[%lu,%lu] with jac[%lu,%lu]\n", i+1, in+1, i+1, kmax+1);
         }
         Rdiag[kmax] = Rdiag[in];
         work1[kmax] = work1[in];
@@ -302,7 +329,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
       // Compute the Householder transformation to reduce the j-th column
       // of Jacobian to a multiple of the j-th unit vector.
       double ajnorm = VecNorm( jacobian_.begin() + (in + in * m_), m_ - in );
-      printf("#Elt= %lu    mat[%lu]= %g    ajnorm= %g\n",
+      DBGPRINT("#Elt= %lu    mat[%lu]= %g    ajnorm= %g\n",
              m_ - in, in + in * m_, jacobian_[in + in * m_], ajnorm);
       if (ajnorm != 0.0) {
         if (jacobian_[in + in * m_] < 0.0)
@@ -325,14 +352,14 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
               temp = jacobian_[in + k * m_] / Rdiag[k];
               Rdiag[k] *= sqrt( std::max( 0.0, 1.0 - temp * temp ) );
               temp = Rdiag[k] / work1[k];
-              printf("\t\tQRFAC TEST: 0.5 * %g^2 <= %g\n", temp, machine_epsilon);
+              DBGPRINT("\t\tQRFAC TEST: 0.5 * %g^2 <= %g\n", temp, machine_epsilon);
               if (0.05 * (temp * temp) <= machine_epsilon) {
-                printf("\t\tTEST PASSED\n");
+                DBGPRINT("\t\tTEST PASSED\n");
                 Rdiag[k] = VecNorm( jacobian_.begin() + (in1 + k * m_), m_ - in - 1 );
                 work1[k] = Rdiag[k];
               }
             }
-            printf("QRFAC Rdiag[%lu]= %g\n", k+1, Rdiag[k]);
+            DBGPRINT("QRFAC Rdiag[%lu]= %g\n", k+1, Rdiag[k]);
           }
         }
       }
@@ -344,7 +371,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
 
     PrintMatrix("QR", n_, m_, jacobian_);
     for (dsize in = 0; in != n_; in++)
-      printf("\tRdiag[%lu]= %12.6g    acnorm[%lu]= %12.6g    ipvt[%lu]= %i\n",
+      DBGPRINT("\tRdiag[%lu]= %12.6g    acnorm[%lu]= %12.6g    ipvt[%lu]= %i\n",
              in+1, Rdiag[in], in+1, JcolNorm_[in], in+1, Jpvt[in]+1);
 
     double xnorm = 0.0;
@@ -365,7 +392,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
       delta = factor * xnorm;
       if (delta == 0.0)
         delta = factor;
-      printf("Delta= %g\n", delta);
+      DBGPRINT("Delta= %g\n", delta);
     }
 
     // Form Qt * residual and store in Qt_r. Only first n components of
@@ -374,7 +401,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
     newResidual = residual_;
     for (dsize in = 0; in != n_; in++) {
       double matElt = jacobian_[in + in * m_];
-      printf("DEBUG: Element %lu = %g\n", in+1, matElt);
+      DBGPRINT("DEBUG: Element %lu = %g\n", in+1, matElt);
       if (matElt != 0.0) {
         double sum = 0.0;
         for (dsize i = in; i < m_; i++)
@@ -384,9 +411,9 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
           newResidual[i] += jacobian_[i + in * m_] * temp;
       }
       jacobian_[in + in * m_] = Rdiag[in]; 
-      printf("\tRdiag[%lu]= %g\n", in+1, jacobian_[in + in * m_]);
+      DBGPRINT("\tRdiag[%lu]= %g\n", in+1, jacobian_[in + in * m_]);
       Qt_r[in] = newResidual[in];
-      printf("DEBUG: qtf[%lu]= %g\n", in+1, Qt_r[in]);
+      DBGPRINT("DEBUG: qtf[%lu]= %g\n", in+1, Qt_r[in]);
     }
 
     // Compute the norm of the scaled gradient.
@@ -398,7 +425,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
           double sum = 0.0;
           for (dsize i2 = 0; i2 <= in; i2++) {
             sum += jacobian_[i2 + in * m_] * (Qt_r[i2] / rnorm);
-            printf("DEBUG: jacobian[%lu, %lu]= %g\n", i2+1, in+1, jacobian_[i2 + in * m_]);
+            DBGPRINT("DEBUG: jacobian[%lu, %lu]= %g\n", i2+1, in+1, jacobian_[i2 + in * m_]);
           }
           // Determine max
           double d1 = fabs( sum / JcolNorm_[l] );
@@ -406,10 +433,10 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
         }
       }
     }
-    printf("gnorm= %g\n", gnorm);
+    DBGPRINT("gnorm= %g\n", gnorm);
     // Test for convergence of gradient norm.
     if (gnorm <= gtol) {
-      printf("Gradient norm %g is less than gtol %g, iteration %i\n",
+      DBGPRINT("Gradient norm %g is less than gtol %g, iteration %i\n",
              gnorm, gtol, currentIt+1);
       info = 4;
       break;
@@ -425,7 +452,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
       // | LMPAR BEGIN
       // -----------------------------------------
       // NOTE: Adapted from lmpar_ in lmdif.c from Grace 5.1.22
-      printf("\nLMPAR ITERATION %i\n", currentIt+1);
+      DBGPRINT("\nLMPAR ITERATION %i\n", currentIt+1);
       // Determine the Levenberg-Marquardt parameter.
       Darray Xvec(n_, 0.0);  // Will contain solution to A*x=b, sqrt(par)*D*x=0
       // Compute and store in Xvec the Gauss-Newton direction.
@@ -433,27 +460,27 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
       dsize rank = n_;
       for (dsize in = 0; in != n_; in++) {
         work1[in] = Qt_r[in];
-        printf("jac[%lu,%lu]= %12.6g  rank= %4lu", in+1, in+1, jacobian_[in + in * m_], rank);
+        DBGPRINT("jac[%lu,%lu]= %12.6g  rank= %4lu", in+1, in+1, jacobian_[in + in * m_], rank);
         if (jacobian_[in + in * m_] == 0.0 && rank == n_)
           rank = in;
         if (rank < n_)
           work1[in] = 0.0;
-        printf("   wa1= %12.6g\n", work1[in]);
+        DBGPRINT("   wa1= %12.6g\n", work1[in]);
       }
-      printf("Final rank= %lu\n", rank);
+      DBGPRINT("Final rank= %lu\n", rank);
       // Subtract 1 from rank to use as an index.
       dsize rm1 = rank - 1;
       if (rm1 >= 0) {
         for (dsize k = 0; k <= rm1; k++) {
           dsize in = rm1 - k;
           work1[in] /= jacobian_[in + in * m_];
-          printf("wa1[%lu] /= %g\n", in+1, jacobian_[in + in * m_]);
+          DBGPRINT("wa1[%lu] /= %g\n", in+1, jacobian_[in + in * m_]);
           long int in1 = (long int)in - 1;
           if (in1 > -1) {
             double temp = work1[in];
             for (long int i = 0; i <= in1; i++) {
               work1[i] -= jacobian_[i + in * m_] * temp;
-              printf("  wa1[%li] -= %g\n", i+1, jacobian_[i + in * m_]);
+              DBGPRINT("  wa1[%li] -= %g\n", i+1, jacobian_[i + in * m_]);
             }
           }
         }
@@ -465,11 +492,11 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
       // Evaluate the function at the origin, and test for acceptance of
       // the Gauss-Newton direction.
       for (dsize in = 0; in != n_; in++) {
-        printf("work2[%lu] = %g * %g\n", in+1, diag[in], Xvec[in]);
+        DBGPRINT("work2[%lu] = %g * %g\n", in+1, diag[in], Xvec[in]);
         work2[in] = diag[in] * Xvec[in];
       }
       double dxnorm = VecNorm( work2 );
-      printf("dxnorm= %g\n", dxnorm);
+      DBGPRINT("dxnorm= %g\n", dxnorm);
       double fp = dxnorm - delta;
       // Initialize counter for searching for LM parameter
       int lmIterations = 0;
@@ -495,7 +522,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
           double temp = VecNorm(work1);
           parl = fp / delta / temp / temp;
         }
-        printf("parl= %g\n",parl);
+        DBGPRINT("parl= %g\n",parl);
   
         // Calculate an upper bound, paru, for the zero of the function
         for (dsize in = 0; in != n_; in++) {
@@ -503,14 +530,14 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
           for (dsize i = 0; i <= in; i++)
             sum += jacobian_[i + in * m_] * Qt_r[i];
           work1[in] = sum / diag[ Jpvt[in] ];
-          printf("paru work1[%lu]= %g\n", in+1, work1[in]);
+          DBGPRINT("paru work1[%lu]= %g\n", in+1, work1[in]);
         }
         double w1norm = VecNorm( work1 );
         double paru = w1norm / delta;
-        printf("paru = %g = %g / %g\n", paru, w1norm, delta);
+        DBGPRINT("paru = %g = %g / %g\n", paru, w1norm, delta);
         if (paru == 0.0)
           paru = dwarf / std::min( delta, 0.1 );
-        printf("paru= %g\n", paru);
+        DBGPRINT("paru= %g\n", paru);
         
         // If the current L-M parameter lies outside of the interval (parl,paru),
         // set par to the closer endpoint.
@@ -523,7 +550,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
         bool lmLoop = true;
         while (lmLoop) {
           ++lmIterations;
-          printf("\t[ lmLoop %i  parl= %g  paru= %g   LM_par= %g ]\n",
+          DBGPRINT("\t[ lmLoop %i  parl= %g  paru= %g   LM_par= %g ]\n",
                  lmIterations, parl, paru, LM_par);
           // Evaluate the function at the current value of LM_par
           if (LM_par == 0.0)
@@ -531,14 +558,14 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
           double temp = sqrt( LM_par );
           for (dsize in = 0; in != n_; in++) {
             work1[in] = temp * diag[in];
-            printf("\tLMPAR work1[%lu]= %g = %g * %g\n", in+1, work1[in], temp, diag[in]);
+            DBGPRINT("\tLMPAR work1[%lu]= %g = %g * %g\n", in+1, work1[in], temp, diag[in]);
           }
   
           // -----------------------------------------------
           // | BEGIN QRSOLV
           // -----------------------------------------------
           // NOTE: Adapted from qrsolv_ in lmdif.c from Grace 5.1.22 
-          printf("\nQRSOLV ITERATION %i\n", lmIterations);
+          DBGPRINT("\nQRSOLV ITERATION %i\n", lmIterations);
           // This array of length n will hold the diagonal elements of the
           // upper triangular matrix s.
           Darray Sdiag(n_, 0.0);
@@ -556,7 +583,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
             // Prepare the row of D to be eliminated, locating the diagonal 
             // element using p from the QR factorization.
             double diagL = work1[ Jpvt[in] ];
-            printf("diag[%i] = %g\n", Jpvt[in]+1, diagL);
+            DBGPRINT("diag[%i] = %g\n", Jpvt[in]+1, diagL);
             if (diagL != 0.0) {
               for (dsize k = in; k < n_; k++)
                 Sdiag[k] = 0.0;
@@ -580,7 +607,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
                     cos = 0.5 / sqrt(0.25 + 0.25 * (tan * tan));
                     sin = cos * tan;
                   }
-                  printf("DBG QRsolv: %lu, %lu: cos= %12.6g  sin= %12.6g\n",
+                  DBGPRINT("DBG QRsolv: %lu, %lu: cos= %12.6g  sin= %12.6g\n",
                          in+1, k+1, cos, sin);
                   // Compute the modified diagonal element of R and the 
                   // modified element of (Qt_r, 0)
@@ -588,7 +615,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
                   double temp = cos * work2[k] + sin * qtbpj; 
                   qtbpj = -sin * work2[k] + cos * qtbpj;
                   work2[k] = temp;
-                  printf("\twork2[%lu]= %g\n", k+1, work2[k]);
+                  DBGPRINT("\twork2[%lu]= %g\n", k+1, work2[k]);
                   // Accumulate the transformation in the row of S
                   dsize kp1 = k + 1;
                   if (kp1 <= n_) {
@@ -604,7 +631,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
             // Store the diagonal element of s and restore the corresponding
             // diagonal element of r
             Sdiag[in] = jacobian_[in + in * m_];
-            printf("QRsolv sdiag[%lu]= %g\n", in+1, Sdiag[in]);
+            DBGPRINT("QRsolv sdiag[%lu]= %g\n", in+1, Sdiag[in]);
             jacobian_[in + in * m_] = Xvec[in];
           }
   
@@ -617,7 +644,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
             if (nsing < n_)
               work2[in] = 0.0;
           }
-          printf("nsing= %lu\n", nsing);
+          DBGPRINT("nsing= %lu\n", nsing);
           // Subtract 1 from nsing to use as an index.
           --nsing; 
           if (nsing >= 0) {
@@ -645,13 +672,13 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
 
           for (dsize in = 0; in != n_; in++) {
             work2[in] = diag[in] * Xvec[in];
-            printf("\twork2[%lu]= %g = %g * %g\n", in+1, work2[in], diag[in], Xvec[in]);
+            DBGPRINT("\twork2[%lu]= %g = %g * %g\n", in+1, work2[in], diag[in], Xvec[in]);
           }
   
           dxnorm = VecNorm( work2 );
           temp = fp;
           fp = dxnorm - delta;
-          printf("DBG LMPAR: fp = %g = %g - %g\n", fp, dxnorm, delta); 
+          DBGPRINT("DBG LMPAR: fp = %g = %g - %g\n", fp, dxnorm, delta); 
           // If the function is small enough, accept the current value of LM_par.
           // Also test for the exceptional cases where parl is zero of the number
           // of iterations has reached 10.
@@ -679,7 +706,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
           }
           temp = VecNorm( work1 );
           double parc = fp / delta / temp / temp;
-          printf("parc= %g\n", parc);
+          DBGPRINT("parc= %g\n", parc);
           
           // Depending on the sign of the function, update parl or paru
           if (fp > 0.0)
@@ -691,13 +718,13 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
           LM_par = std::max( parl, LM_par + parc );
         }
       }
-      printf("END LMPAR iter= %i  LM_par= %g\n", lmIterations, LM_par); 
+      DBGPRINT("END LMPAR iter= %i  LM_par= %g\n", lmIterations, LM_par); 
       if (lmIterations == 0)
         LM_par = 0.0;
       // -------------------------------------------
       // | LMPAR END
       // -------------------------------------------
-      printf("DEBUG: LM_par is %g\n", LM_par);
+      DBGPRINT("DEBUG: LM_par is %g\n", LM_par);
       // Store the direction Xvec and Param + Xvec. Calculate norm of Param.
       PrintVector("DEBUG: hvec", Xvec);
       for (dsize in = 0; in != n_; in++) {
@@ -706,17 +733,18 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
         work2[in] = diag[in] * Xvec[in];
       }
       double pnorm = VecNorm( work2 );
-      printf("pnorm= %g\n", pnorm);
+      DBGPRINT("pnorm= %g\n", pnorm);
 
       // On first iteration, adjust initial step bound
       if (currentIt == 0)
         delta = std::min( delta, pnorm );
-      printf("Delta is now %g\n", delta);
+      DBGPRINT("Delta is now %g\n", delta);
 
       // Evaluate function at Param + Xvec and calculate its norm
       EvaluateFxn( Xvals_, Yvals_, work1, newResidual );
+      ++nfev;
       double rnorm1 = VecNorm( newResidual );
-      printf("rnorm1= %g\n", rnorm1);
+      DBGPRINT("rnorm1= %g\n", rnorm1);
 
       // Compute the scaled actual reduction
       double actual_reduction = -1.0;
@@ -724,7 +752,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
         double d1 = rnorm1 / rnorm;
         actual_reduction = 1.0 - d1 * d1;
       }
-      printf("actualReduction= %g\n", actual_reduction);
+      DBGPRINT("actualReduction= %g\n", actual_reduction);
 
       // Compute the scaled predicted reduction and the scaled directional
       // derivative.
@@ -737,20 +765,20 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
       }
       double temp1 = VecNorm( work2 ) / rnorm;
       double temp2 = sqrt(LM_par) * pnorm / rnorm;
-      printf("temp1= %g    temp2= %g\n", temp1, temp2);
+      DBGPRINT("temp1= %g    temp2= %g\n", temp1, temp2);
 
       double predicted_reduction = temp1 * temp1 + temp2 * temp2 / 0.5;
       double dirder = -(temp1 * temp1 + temp2 * temp2);
-      printf("predictedReduction = %12.6g    dirder= %12.6g\n", predicted_reduction, dirder);
+      DBGPRINT("predictedReduction = %12.6g    dirder= %12.6g\n", predicted_reduction, dirder);
 
       // Compute the ratio of the actial to the predicted reduction.
       if (predicted_reduction != 0.0)
         Ratio = actual_reduction / predicted_reduction;
-      printf("ratio= %g\n", Ratio);
+      DBGPRINT("ratio= %g\n", Ratio);
 
       // Update the step bound
       if (Ratio <= 0.25) {
-        printf("Ratio <= 0.25\n");
+        DBGPRINT("Ratio <= 0.25\n");
         double temp;
         if (actual_reduction < 0.0)
           temp = 0.5 * dirder / (dirder + 0.5 * actual_reduction);
@@ -758,17 +786,17 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
           temp = 0.5;
         if ( 0.1 * rnorm1 >= rnorm || temp < 0.1 )
           temp = 0.1;
-        printf("delta = %g * min( %g, %g )\n", temp, delta, pnorm / 0.1); 
+        DBGPRINT("delta = %g * min( %g, %g )\n", temp, delta, pnorm / 0.1); 
         delta = temp * std::min( delta, pnorm / 0.1 );
         LM_par /= temp;
       } else {
         if (LM_par == 0.0 || Ratio >= 0.75) {
-          printf("Ratio > 0.25 and (LMpar is zero or Ratio >= 0.75\n");
+          DBGPRINT("Ratio > 0.25 and (LMpar is zero or Ratio >= 0.75\n");
           delta = pnorm / 0.5;
           LM_par *= 0.5;
         }
       }
-      printf("LM_par= %g    Delta= %g\n", LM_par, delta);
+      DBGPRINT("LM_par= %g    Delta= %g\n", LM_par, delta);
 
       if (Ratio >= 0.0001) { 
         // Successful iteration. Update Param, residual, and their norms.
@@ -797,6 +825,8 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
       if (info != 0) break;
                  
       // Tests for stringent tolerance
+      if (nfev >= maxfev)
+        info = 5;
       if (fabs(actual_reduction) <= machine_epsilon &&
           predicted_reduction <= machine_epsilon &&
           0.5 * Ratio <= 1.0)
@@ -812,25 +842,24 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
     currentIt++;
   }
   switch (info) {
-        case 1 : printf("both actual and predicted relative reductions"
+        case 1 : DBGPRINT("both actual and predicted relative reductions"
                         " in the sum of squares are at most ftol.\n"); break;
-        case 2 : printf("relative error between two consecutive iterates"
+        case 2 : DBGPRINT("relative error between two consecutive iterates"
                         " is at most xtol.\n"); break;
-        case 3 : printf("conditions for info = 1 and info = 2 both hold.\n");
+        case 3 : DBGPRINT("conditions for info = 1 and info = 2 both hold.\n");
                  break;
-        case 4 : printf("the cosine of the angle between fvec and any"
+        case 4 : DBGPRINT("the cosine of the angle between fvec and any"
                         " column of the jacobian is at most gtol in"
                         " absolute value.\n"); break;
-        // TODO: Redundant
-        case 5 : printf("number of calls to fcn has reached or exceeded maxfev.\n"); break;
-        case 6 : printf("ftol is too small. no further reduction in"
+        case 5 : DBGPRINT("number of calls to fcn has reached or exceeded maxfev.\n"); break;
+        case 6 : DBGPRINT("ftol is too small. no further reduction in"
                         " the sum of squares is possible.\n"); break;
-        case 7 : printf("xtol is too small. no further improvement in"
+        case 7 : DBGPRINT("xtol is too small. no further improvement in"
                         " the approximate solution x is possible.\n"); break;
-        case 8 : printf("gtol is too small. fvec is orthogonal to the"
+        case 8 : DBGPRINT("gtol is too small. fvec is orthogonal to the"
                         " columns of the jacobian to machine precision.\n"); break;
   }
-  printf("Exiting with info value = %i\n", info);
+  DBGPRINT("Exiting with info value = %i\n", info);
   PrintFinalParams(Params_);
   return err;
 }

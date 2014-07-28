@@ -4,11 +4,11 @@
 #include "CurveFit.h"
 #include "DataSet_Mesh.h"
 
-/** Multi exponential of form Y = SUM[Bi * exp(X * Bi+1)] */
+/** Multi exponential of form Y =  B0 + SUM[Bi * exp(X * Bi+1)] */
 double MultiExponential(double X, CurveFit::Darray const& Params)
 {
-  double Y = 0.0;
-  for (unsigned int i = 0; i != Params.size(); i += 2)
+  double Y = Params[0];
+  for (unsigned int i = 1; i < Params.size(); i += 2)
   {
     double expBx = exp( Params[i+1] * X );
     Y += Params[i] * expBx;
@@ -76,8 +76,9 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
   }
 
   // Set up initial params.
-  CurveFit::Darray Params( nexp_ * 2 );
-  for (unsigned int j = 0; j < Params.size(); j += 2) {
+  CurveFit::Darray Params( 1 + (nexp_ * 2) );
+  Params[0] = 0.0;
+  for (unsigned int j = 1; j < Params.size(); j += 2) {
     Params[j  ] =  1.0;
     Params[j+1] = -1.0;
   }
