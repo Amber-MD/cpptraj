@@ -1,0 +1,836 @@
+#include <cstdio>
+#include <cmath> //sqrt
+#include <cfloat> // DBL_MIN
+#include "CurveFit.h"
+
+/// Machine precision
+// NOTE: from http://cpansearch.perl.org/src/RKOBES/Math-Cephes-0.47/libmd/const.c
+const double CurveFit::machine_epsilon = pow(2.0, -53);
+
+// For debugging
+static inline void PrintMatrix(const char* name, int ncols, int mrows, CurveFit::Darray const& mat)
+{
+  CurveFit::Darray::const_iterator mij = mat.begin();
+  for (int n = 0; n < ncols; n++) {
+    for (int m = 0; m < mrows; m++)
+      printf("DEBUG: %s(%i,%i)= %12.6g [%zu]\n", name, m+1, n+1, *(mij++), mij-mat.begin());
+  }
+}
+
+static inline void PrintVector(const char* name, CurveFit::Darray const& Vec) {
+  printf("%s={", name);
+  for (CurveFit::Darray::const_iterator v = Vec.begin(); v != Vec.end(); ++v)
+    printf(" %g", *v);
+  printf(" }\n");
+}
+
+/** Evaulate function at given X values and parameters. Calculate residual
+  * from given Y values.
+  */
+void CurveFit::EvaluateFxn(Darray const& Xvals_, Darray const& Yvals_, 
+                           Darray const& pvec, Darray& residual) const
+{
+  PrintVector("Param", pvec);
+  for (dsize im = 0; im != m_; im++)
+  {
+    double diff = fxn_(Xvals_[im], pvec) - Yvals_[im];
+    // Residual
+    residual[im] = diff;
+  }
+  PrintVector("Residual", residual);
+}
+  
+/** Calculate Jacobian of function from forward-difference approximation.
+  * NOTE: The Jacobian is stored as its transpose, i.e. columns are in 
+  * rows, to make calculating things like column norms easier. Adapted
+  * from subroutine fdjac2_ in lmdif.c from Grace 5.1.22.
+  */
+// NOTE: Params_ is not const so it can be changed when calc. derivative.
+void CurveFit::CalcJacobian_ForwardDiff(Darray const& Xvals_, Darray const& Yvals_,
+                                        Darray& Params_,
+                                        Darray const& residual, Darray& newResidual)
+{
+  double eps = sqrt( std::max(0.0, machine_epsilon) );
+  for (dsize in = 0; in != n_; in++) {
+    double param = Params_[in];
+    double delta = eps * fabs( param );
+    if (delta == 0.0)
+      delta = eps;
+    Params_[in] = param + delta;
+    
+    EvaluateFxn(Xvals_, Yvals_, Params_, newResidual);
+
+    Params_[in] = param;
+
+    for (dsize im = 0; im != m_; im++)
+      jacobian_[im + in * m_] = (newResidual[im] - residual[im]) / delta;
+  }
+}
+    
+/** Calculate normal of given vector within matrix. This routine accumulates
+  * the sum of squares in three different sums: small, mid, and large. The
+  * sums of the squares for the small and large components are scaled so that
+  * no overflows occur. Non-destructive underflows are permitted. The
+  * definitions of the small, mid, and large components depend on two
+  * constants, rdward and rgiant. The main restrictions on these constants
+  * are that rdwarf^2 not underflow and rgiant^2 not overflow.
+  * This routine was adapted from the enorm_ subroutine of lmdif.c from
+  * Grace 5.1.22, which in turn was adapted from minpack (Argonne National
+  * Laboratory. minpack project. March 1980. Burton S. Garbow,
+  * Kenneth E. Hillstrom, Jorge J. More.
+  */
+double CurveFit::VecNorm( Darray::const_iterator const& vBeg, dsize nElt ) {
+  // CONSTANTS
+  const double rdwarf = 3.834e-20;
+  const double rgiant = 1.304e19;
+  
+  double agiant = rgiant / (double)nElt;
+
+  double sum_large = 0.0;
+  double sum_mid = 0.0;
+  double sum_small = 0.0;
+  double x1max = 0.0;
+  double x3max = 0.0;
+ 
+  Darray::const_iterator vEnd = vBeg + nElt;
+  for (Darray::const_iterator v = vBeg; v != vEnd; ++v)
+  {
+    double xabs = fabs( *v );
+    if (xabs > rdwarf && xabs < agiant)
+    {
+      // Sum for intermediate components.
+      sum_mid += xabs * xabs;
+    } else if (xabs <= rdwarf) {
+      // Sum for small components
+      if (xabs > x3max) {
+        double d1 = x3max / xabs;
+        sum_small = 1.0 + sum_small * (d1 * d1);
+        x3max = xabs;
+      } else {
+        if (xabs != 0.0) {
+          double d1 = xabs / x3max;
+          sum_small += d1 * d1;
+        }
+      }
+    } else {
+      // Sum for large components
+      if (xabs > x1max) {
+        double d1 = x1max / xabs;
+        sum_large = 1.0 + sum_large * (d1 * d1);
+        x1max = xabs;
+      } else { // L10
+        double d1 = xabs / x1max;
+        sum_large += d1 * d1;
+      } // L20
+    }
+  }
+
+  // Calculation of norm
+  double ret_val;
+  if (sum_large != 0.0) {
+    ret_val = x1max * sqrt( sum_large + sum_mid / x1max / x1max );
+  } else if (sum_mid != 0.0) {
+    if (sum_mid < x3max)
+      ret_val = sqrt( x3max * (sum_mid / x3max + x3max * sum_small) );
+    else
+      ret_val = sqrt( sum_mid * (1.0 + x3max / sum_mid * (x3max * sum_small)));
+  } else {
+    ret_val = x3max * sqrt(sum_small);
+  }
+  return ret_val;
+}
+
+// CurveFit::PrintFinalParams()
+void CurveFit::PrintFinalParams(Darray const& Params_) const {
+  for (dsize in = 0; in != n_; in++)
+    printf("\tParams[%lu]= %g\n", in, Params_[in]);
+}
+
+// ErrorMessage()
+static inline void ErrorMessage(const char* msg) {
+  fprintf(stderr, "Error: %s\n", msg);
+}
+
+// CurveFit::ParametersHaveProblems()
+bool CurveFit::ParametersHaveProblems(Darray const& Xvals_, Darray const& Yvals_,
+                                      Darray const& Params_) const
+{
+  if (Params_.empty() || Xvals_.empty() || Yvals_.empty()) {
+    ErrorMessage("Parameters or coordinates are empty.");
+    return true;
+  }
+  if (Xvals_.size() != Yvals_.size()) {
+    ErrorMessage("Number of X values != number of Y values.");
+    return true;
+  }
+  if ( Xvals_.size() < Params_.size() ) {
+    ErrorMessage("Number of parameters cannot be greater than number of XY values.");
+    return true;
+  }
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+/** Perform curve fitting via Levenberg-Marquardt method.
+  * \param fxnIn Function to fit.
+  * \param Xvals_ target X values (ordinates, M)
+  * \param Yvals_ target Y values (coordinates, M)
+  * \param Params_ input parameters; at finish contains best esimate of fit parameters
+  * \param tolerance Fit tolerance
+  * \param maxIterations Number of iterations to try.
+  */
+int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
+                                 Darray const& Yvals_, Darray& Params_,
+                                 double tolerance, int maxIterations)
+{
+  if (ParametersHaveProblems(Xvals_, Yvals_, Params_)) return 1;
+
+  fxn_ = fxnIn;
+  m_ = Xvals_.size();        // Number of values (rows)
+  n_ = Params_.size();       // Number of parameters (cols)
+  Darray residual_( m_ );    // Contain Y vals at current Params minus original Y
+  // Jacobian matrix/R: m rows by n cols, transposed.
+  jacobian_.assign( m_ * n_, 0.0 );
+
+  // For holding diagonal elements for scaling // TODO: Rename
+  Darray diag( n_, 0.0 );
+  // Workspace arrays
+  Darray work1( n_, 0.0 );
+  Darray work2( n_, 0.0 );
+  Darray newResidual( m_, 0.0 );
+  // delta specifies an upper bound on the euclidean norm of d*x
+  double delta = 0.0;
+  // factor is positive input variable used in determining the initial step
+  // bound. This bound is set to the product of factor and the euclidean norm
+  // of diag*x if nonzero, or else to factor itself. In most cases factor should
+  // lie in the interval (.1,100.). 100. is a generally recommended value.
+  // TODO: Make input parameter
+  const double factor = 100.0;
+  // gtol is a nonnegative input variable. Termination occurs when the cosine 
+  // of the angle between residual and any column of the Jacobian is at most 
+  // gtol in absolute value. Therefore, gtol measures the orthogonality
+  // desired between the function vector and the columns of the Jacobian.
+  // TODO: Make input parameter
+  const double gtol = 0.0;
+  // Smallest possible magnitude
+  // TODO: Make Constant?
+  const double dwarf = DBL_MIN;
+  // Levenberg-Marquard parameter
+  double LM_par = 0.0;
+  //  xtol is a nonnegative input variable. Termination occurs when the 
+  //  relative error between two consecutive iterates is at most xtol.
+  //  Therefore, xtol measures the relative error desired in the 
+  //  approximate solution.
+  // TODO: Make input paramter
+  double xtol = 0.0;
+
+  // Evaluate initial function, obtain residual
+  EvaluateFxn( Xvals_, Yvals_, Params_, residual_ );
+
+  // Calculate norm of the residual
+  double rnorm = VecNorm( residual_ );
+  printf("Rnorm= %g\n", rnorm);
+
+  int info = 0;
+
+  // MAIN LOOP
+  int currentIt = 0;
+  int err = 0;
+  while ( currentIt < maxIterations ) {
+    printf("DEBUG: ----- Iteration %i ------------------------------\n", currentIt+1);
+    // Calculate the Jacobian using the forward-difference approximation.
+    CalcJacobian_ForwardDiff( Xvals_, Yvals_, Params_, residual_, newResidual );
+    PrintMatrix( "Jacobian", n_, m_, jacobian_ );
+
+    // -------------------------------------------
+    // | BEGIN QRFAC
+    // -------------------------------------------
+    // Perform QR factorization of Jacobian via Householder transformations
+    // with column pivoting:
+    //   J * P = Q * R
+    // where J is the Jacobian, P is the permutation matrix, Q is an orthogonal
+    // matrix, and R is an upper trapezoidal matrix with diagonal elements of
+    // nonincreasing magnitude. The Householder transformation for column k,
+    // k = 1,2,...,min(m,n), is of the form:
+    //   I = (1/u[k])*u*ut
+    // where u has zeros in the first k-1 positions. Adapted from routine qrfac_
+    // in Grace 5.1.22 lmdif.c, which in turn is derived from an earlier linpack
+    // subroutine.
+    printf("\nQRFAC ITERATION %i\n", currentIt+1);
+    // Rdiag will hold the diagonal elements of R.
+    Darray Rdiag(n_, 0.0);
+    // Jpvt defines the permutation matrix p such that a*p = q*r. Column j of p
+    // is column Jpvt[j] of the identity matrix.
+    Iarray Jpvt(n_, 0.0);
+    // JcolNorm Will hold the norms of the columns of input Jacobian.
+    Darray JcolNorm_(n_, 0.0);
+    // Compute the initial column norms and initialize arrays.
+    for (dsize in = 0; in != n_; in++) {
+      JcolNorm_[in] = VecNorm( jacobian_.begin() + (in * m_), m_ ); 
+      Rdiag[in] = JcolNorm_[in];
+      work1[in] = Rdiag[in];
+      Jpvt[in] = in;
+      printf("%lu: Rdiag= %12.6g    wa= %12.6g    ipvt= %i\n",
+             in+1, Rdiag[in], work1[in], Jpvt[in]+1);
+    }
+
+    // Reduce Jacobian to R with Householder transformations.
+    dsize min_m_n = std::min( m_, n_ );
+    for (dsize in = 0; in != min_m_n; in++) {
+      // Bring the column of largest norm into the pivot position.
+      dsize kmax = in;
+      for (dsize k = in; k != n_; k++) {
+        printf("\tRdiag[%lu]= %g    Rdiag[%lu]= %g\n", k+1, Rdiag[k], kmax+1, Rdiag[kmax]);
+        if (Rdiag[k] > Rdiag[kmax])
+          kmax = k;
+      }
+      printf("Elt= %lu    Kmax= %lu\n", in+1, kmax+1);
+      if (kmax != in) {
+        for (dsize i = 0; i != m_; i++) {
+          double temp = jacobian_[i + in * m_];
+          jacobian_[i + in   * m_] = jacobian_[i + kmax * m_];
+          jacobian_[i + kmax * m_] = temp;
+          printf("DBG: Swap jac[%lu,%lu] with jac[%lu,%lu]\n", i+1, in+1, i+1, kmax+1);
+        }
+        Rdiag[kmax] = Rdiag[in];
+        work1[kmax] = work1[in];
+        dsize k = Jpvt[in];
+        Jpvt[in] = Jpvt[kmax];
+        Jpvt[kmax] = k;
+      }
+
+      // Compute the Householder transformation to reduce the j-th column
+      // of Jacobian to a multiple of the j-th unit vector.
+      double ajnorm = VecNorm( jacobian_.begin() + (in + in * m_), m_ - in );
+      printf("#Elt= %lu    mat[%lu]= %g    ajnorm= %g\n",
+             m_ - in, in + in * m_, jacobian_[in + in * m_], ajnorm);
+      if (ajnorm != 0.0) {
+        if (jacobian_[in + in * m_] < 0.0)
+          ajnorm = -ajnorm;
+        for (dsize im = in; im < m_; im++)
+          jacobian_[im + in * m_] /= ajnorm;
+        jacobian_[in + in * m_] += 1.0;
+
+        // Apply the transfomation to the remaining columns and update the norms
+        dsize in1 = in + 1;
+        if (in1 < n_) {
+          for (dsize k = in1; k < n_; k++) {
+            double sum = 0.0;
+            for (dsize i = in; i < m_; i++)
+              sum += jacobian_[i + in * m_] * jacobian_[i + k * m_];
+            double temp = sum / jacobian_[in + in * m_];
+            for (dsize i = in; i < m_; i++)
+              jacobian_[i + k * m_] -= temp * jacobian_[i + in * m_];
+            if (Rdiag[k] != 0.0) {
+              temp = jacobian_[in + k * m_] / Rdiag[k];
+              Rdiag[k] *= sqrt( std::max( 0.0, 1.0 - temp * temp ) );
+              temp = Rdiag[k] / work1[k];
+              printf("\t\tQRFAC TEST: 0.5 * %g^2 <= %g\n", temp, machine_epsilon);
+              if (0.05 * (temp * temp) <= machine_epsilon) {
+                printf("\t\tTEST PASSED\n");
+                Rdiag[k] = VecNorm( jacobian_.begin() + (in1 + k * m_), m_ - in - 1 );
+                work1[k] = Rdiag[k];
+              }
+            }
+            printf("QRFAC Rdiag[%lu]= %g\n", k+1, Rdiag[k]);
+          }
+        }
+      }
+      Rdiag[in] = -ajnorm;
+    }      
+    // -------------------------------------------
+    // | END QRFAC
+    // -------------------------------------------
+
+    PrintMatrix("QR", n_, m_, jacobian_);
+    for (dsize in = 0; in != n_; in++)
+      printf("\tRdiag[%lu]= %12.6g    acnorm[%lu]= %12.6g    ipvt[%lu]= %i\n",
+             in+1, Rdiag[in], in+1, JcolNorm_[in], in+1, Jpvt[in]+1);
+
+    double xnorm = 0.0;
+    if ( currentIt == 0 ) {
+      // First iteration. Scale according to the norms of the columns of
+      // the initial Jacobian.
+      for (dsize in = 0; in != n_; in++) {
+        if ( JcolNorm_[in] == 0.0 )
+          diag[in] = 1.0;
+        else
+          diag[in] = JcolNorm_[in];
+      }
+      PrintVector("diag", diag);
+      // Calculate norm of scaled params and init step bound delta
+      for (dsize in = 0; in != n_; in++)
+        work1[in] = diag[in] * Params_[in];
+      xnorm = VecNorm( work1 );
+      delta = factor * xnorm;
+      if (delta == 0.0)
+        delta = factor;
+      printf("Delta= %g\n", delta);
+    }
+
+    // Form Qt * residual and store in Qt_r. Only first n components of
+    // Qt*r are needed.
+    Darray Qt_r( n_, 0.0 );
+    newResidual = residual_;
+    for (dsize in = 0; in != n_; in++) {
+      double matElt = jacobian_[in + in * m_];
+      printf("DEBUG: Element %lu = %g\n", in+1, matElt);
+      if (matElt != 0.0) {
+        double sum = 0.0;
+        for (dsize i = in; i < m_; i++)
+          sum += jacobian_[i + in *  m_] * newResidual[i];
+        double temp = -sum / matElt;
+        for (dsize i = in; i < m_; i++)
+          newResidual[i] += jacobian_[i + in * m_] * temp;
+      }
+      jacobian_[in + in * m_] = Rdiag[in]; 
+      printf("\tRdiag[%lu]= %g\n", in+1, jacobian_[in + in * m_]);
+      Qt_r[in] = newResidual[in];
+      printf("DEBUG: qtf[%lu]= %g\n", in+1, Qt_r[in]);
+    }
+
+    // Compute the norm of the scaled gradient.
+    double gnorm = 0.0;
+    if ( rnorm > 0.0 ) {
+      for (dsize in = 0; in != n_; in++) {
+        int l = Jpvt[ in ];
+        if (JcolNorm_[in] != 0.0) {
+          double sum = 0.0;
+          for (dsize i2 = 0; i2 <= in; i2++) {
+            sum += jacobian_[i2 + in * m_] * (Qt_r[i2] / rnorm);
+            printf("DEBUG: jacobian[%lu, %lu]= %g\n", i2+1, in+1, jacobian_[i2 + in * m_]);
+          }
+          // Determine max
+          double d1 = fabs( sum / JcolNorm_[l] );
+          gnorm = std::max( gnorm, d1 );
+        }
+      }
+    }
+    printf("gnorm= %g\n", gnorm);
+    // Test for convergence of gradient norm.
+    if (gnorm <= gtol) {
+      printf("Gradient norm %g is less than gtol %g, iteration %i\n",
+             gnorm, gtol, currentIt+1);
+      info = 4;
+      break;
+    }
+
+    // Rescale if necessary
+    for (dsize in = 0; in != n_; in++)
+      diag[in] = std::max( diag[in], JcolNorm_[in] );
+    PrintVector("RescaleDiag", diag);
+    double Ratio = 0.0;
+    while (Ratio < 0.0001) {
+      // -----------------------------------------
+      // | LMPAR BEGIN
+      // -----------------------------------------
+      // NOTE: Adapted from lmpar_ in lmdif.c from Grace 5.1.22
+      printf("\nLMPAR ITERATION %i\n", currentIt+1);
+      // Determine the Levenberg-Marquardt parameter.
+      Darray Xvec(n_, 0.0);  // Will contain solution to A*x=b, sqrt(par)*D*x=0
+      // Compute and store in Xvec the Gauss-Newton direction.
+      // If the Jacobian is rank-deficient, obtain a least-squares solution.
+      dsize rank = n_;
+      for (dsize in = 0; in != n_; in++) {
+        work1[in] = Qt_r[in];
+        printf("jac[%lu,%lu]= %12.6g  rank= %4lu", in+1, in+1, jacobian_[in + in * m_], rank);
+        if (jacobian_[in + in * m_] == 0.0 && rank == n_)
+          rank = in;
+        if (rank < n_)
+          work1[in] = 0.0;
+        printf("   wa1= %12.6g\n", work1[in]);
+      }
+      printf("Final rank= %lu\n", rank);
+      // Subtract 1 from rank to use as an index.
+      dsize rm1 = rank - 1;
+      if (rm1 >= 0) {
+        for (dsize k = 0; k <= rm1; k++) {
+          dsize in = rm1 - k;
+          work1[in] /= jacobian_[in + in * m_];
+          printf("wa1[%lu] /= %g\n", in+1, jacobian_[in + in * m_]);
+          long int in1 = (long int)in - 1;
+          if (in1 > -1) {
+            double temp = work1[in];
+            for (long int i = 0; i <= in1; i++) {
+              work1[i] -= jacobian_[i + in * m_] * temp;
+              printf("  wa1[%li] -= %g\n", i+1, jacobian_[i + in * m_]);
+            }
+          }
+        }
+      }
+      PrintVector("work1", work1);
+      for (dsize in = 0; in != n_; in++)
+        Xvec[ Jpvt[in] ] = work1[in];
+  
+      // Evaluate the function at the origin, and test for acceptance of
+      // the Gauss-Newton direction.
+      for (dsize in = 0; in != n_; in++) {
+        printf("work2[%lu] = %g * %g\n", in+1, diag[in], Xvec[in]);
+        work2[in] = diag[in] * Xvec[in];
+      }
+      double dxnorm = VecNorm( work2 );
+      printf("dxnorm= %g\n", dxnorm);
+      double fp = dxnorm - delta;
+      // Initialize counter for searching for LM parameter
+      int lmIterations = 0;
+      if (fp > 0.1 * delta) {
+        // If the Jacobian is not rank deficient, the Newton step provdes a lower
+        // bound, parl, for the zero of the function. Otherwise set this bound to
+        // zero
+        double parl = 0.0;
+        if ( rank >= n_ ) {
+          for (dsize in = 0; in != n_; in++) {
+            int idx = Jpvt[in];
+            work1[in] = diag[idx] * (work2[idx] / dxnorm);
+          }
+          for (dsize in = 0; in != n_; in++) {
+            double sum = 0.0;
+            long int in1 = (long int)in - 1;
+            if (in1 > -1) {
+              for (long int i = 0; i <= in1; i++)
+                sum += jacobian_[i + in * m_] * work1[i];
+            }
+            work1[in] = (work1[in] - sum) / jacobian_[in + in * m_];
+          }
+          double temp = VecNorm(work1);
+          parl = fp / delta / temp / temp;
+        }
+        printf("parl= %g\n",parl);
+  
+        // Calculate an upper bound, paru, for the zero of the function
+        for (dsize in = 0; in != n_; in++) {
+          double sum = 0.0;
+          for (dsize i = 0; i <= in; i++)
+            sum += jacobian_[i + in * m_] * Qt_r[i];
+          work1[in] = sum / diag[ Jpvt[in] ];
+          printf("paru work1[%lu]= %g\n", in+1, work1[in]);
+        }
+        double w1norm = VecNorm( work1 );
+        double paru = w1norm / delta;
+        printf("paru = %g = %g / %g\n", paru, w1norm, delta);
+        if (paru == 0.0)
+          paru = dwarf / std::min( delta, 0.1 );
+        printf("paru= %g\n", paru);
+        
+        // If the current L-M parameter lies outside of the interval (parl,paru),
+        // set par to the closer endpoint.
+        LM_par = std::max( LM_par, parl );
+        LM_par = std::min( LM_par, paru );
+        if (LM_par == 0.0)
+          LM_par = w1norm / dxnorm;
+  
+        // Iteration start.
+        bool lmLoop = true;
+        while (lmLoop) {
+          ++lmIterations;
+          printf("\t[ lmLoop %i  parl= %g  paru= %g   LM_par= %g ]\n",
+                 lmIterations, parl, paru, LM_par);
+          // Evaluate the function at the current value of LM_par
+          if (LM_par == 0.0)
+            LM_par = std::max( dwarf, 0.001 * paru );
+          double temp = sqrt( LM_par );
+          for (dsize in = 0; in != n_; in++) {
+            work1[in] = temp * diag[in];
+            printf("\tLMPAR work1[%lu]= %g = %g * %g\n", in+1, work1[in], temp, diag[in]);
+          }
+  
+          // -----------------------------------------------
+          // | BEGIN QRSOLV
+          // -----------------------------------------------
+          // NOTE: Adapted from qrsolv_ in lmdif.c from Grace 5.1.22 
+          printf("\nQRSOLV ITERATION %i\n", lmIterations);
+          // This array of length n will hold the diagonal elements of the
+          // upper triangular matrix s.
+          Darray Sdiag(n_, 0.0);
+
+          // Copy R and Qt_r to preserve input and initialize s.
+          for (dsize in = 0; in != n_; in++) {
+            for (dsize i = in; i != n_; i++)
+              jacobian_[i + in * m_] = jacobian_[in + i * m_];
+            Xvec[in] = jacobian_[in + in * m_];
+            work2[in] = Qt_r[in];
+          }
+
+          // Eliminate the diagonal matrix D using a Givens rotation
+          for (dsize in = 0; in != n_; in++) {
+            // Prepare the row of D to be eliminated, locating the diagonal 
+            // element using p from the QR factorization.
+            double diagL = work1[ Jpvt[in] ];
+            printf("diag[%i] = %g\n", Jpvt[in]+1, diagL);
+            if (diagL != 0.0) {
+              for (dsize k = in; k < n_; k++)
+                Sdiag[k] = 0.0;
+              Sdiag[in] = diagL;
+              // The transformations to eliminate the row of D modify only
+              // a single element of Qt_r beyond the first n, which is 
+              // initially zero.
+              double qtbpj = 0.0;
+              for (dsize k = in; k < n_; k++) {
+                // Determine a Givens rotation which eliminates the appropriate
+                // element in the current row of D.
+                if (Sdiag[k] != 0.0) {
+                  double d1 = jacobian_[k + k * m_];
+                  double cos, sin;
+                  if (fabs(d1) < fabs(Sdiag[k])) {
+                    double cotan = jacobian_[k + k * m_] / Sdiag[k];
+                    sin = 0.5 / sqrt(0.25 + 0.25 * (cotan * cotan));
+                    cos = sin * cotan;
+                  } else {
+                    double tan = Sdiag[k] / jacobian_[k + k *m_];
+                    cos = 0.5 / sqrt(0.25 + 0.25 * (tan * tan));
+                    sin = cos * tan;
+                  }
+                  printf("DBG QRsolv: %lu, %lu: cos= %12.6g  sin= %12.6g\n",
+                         in+1, k+1, cos, sin);
+                  // Compute the modified diagonal element of R and the 
+                  // modified element of (Qt_r, 0)
+                  jacobian_[k + k * m_] = cos * jacobian_[k + k * m_] + sin * Sdiag[k];
+                  double temp = cos * work2[k] + sin * qtbpj; 
+                  qtbpj = -sin * work2[k] + cos * qtbpj;
+                  work2[k] = temp;
+                  printf("\twork2[%lu]= %g\n", k+1, work2[k]);
+                  // Accumulate the transformation in the row of S
+                  dsize kp1 = k + 1;
+                  if (kp1 <= n_) {
+                    for (dsize i = kp1; i < n_; i++) {
+                      temp = cos * jacobian_[i + k * m_] + sin * Sdiag[i];
+                      Sdiag[i] = -sin * jacobian_[i + k * m_] + cos * Sdiag[i];
+                      jacobian_[i + k * m_] = temp;
+                    }
+                  }
+                }
+              }
+            }
+            // Store the diagonal element of s and restore the corresponding
+            // diagonal element of r
+            Sdiag[in] = jacobian_[in + in * m_];
+            printf("QRsolv sdiag[%lu]= %g\n", in+1, Sdiag[in]);
+            jacobian_[in + in * m_] = Xvec[in];
+          }
+  
+          // Solve the triangular system for z. if the system is singular,
+          // then obtain a least-squares solution.
+          dsize nsing = n_;
+          for (dsize in = 0; in != n_; in++) {
+            if (Sdiag[in] == 0.0 && nsing == n_)
+              nsing = in;
+            if (nsing < n_)
+              work2[in] = 0.0;
+          }
+          printf("nsing= %lu\n", nsing);
+          // Subtract 1 from nsing to use as an index.
+          --nsing; 
+          if (nsing >= 0) {
+            for (dsize k = 0; k <= nsing; k++) {
+              dsize in = nsing - k;
+              double sum = 0.0;
+              dsize in1 = in + 1;
+              if (in1 <= nsing) {
+                for (dsize i = in1; i <= nsing; i++)
+                  sum += jacobian_[i + in * m_] * work2[i];
+              }
+              work2[in] = (work2[in] - sum) / Sdiag[in];
+            }
+          }
+
+          // Permute the components of z back to components of x.
+          for (dsize in = 0; in != n_; in++)
+            Xvec[ Jpvt[in] ] = work2[in];
+
+          PrintVector("QRsolv Xvec", Xvec);
+          PrintVector("sdiag", Sdiag);
+          // -----------------------------------------------
+          // | END QRSOLV
+          // -----------------------------------------------
+
+          for (dsize in = 0; in != n_; in++) {
+            work2[in] = diag[in] * Xvec[in];
+            printf("\twork2[%lu]= %g = %g * %g\n", in+1, work2[in], diag[in], Xvec[in]);
+          }
+  
+          dxnorm = VecNorm( work2 );
+          temp = fp;
+          fp = dxnorm - delta;
+          printf("DBG LMPAR: fp = %g = %g - %g\n", fp, dxnorm, delta); 
+          // If the function is small enough, accept the current value of LM_par.
+          // Also test for the exceptional cases where parl is zero of the number
+          // of iterations has reached 10.
+          if (fabs(fp) <= 0.1 * delta ||
+              (parl == 0.0 && fp <= temp && temp < 0.0) ||
+              lmIterations == 10)
+          {
+            lmLoop = false;
+            break;
+          }
+  
+          // Compute the Newton correction.
+          for (dsize in = 0; in != n_; in++) {
+            int idx = Jpvt[ in ];
+            work1[in] = diag[idx] * (work2[idx] / dxnorm);
+          }
+          for (dsize in = 0; in != n_; in++) {
+            work1[in] /= Sdiag[in];
+            temp = work1[in];
+            dsize in1 = in + 1;
+            if (in1 <= n_) {
+              for (dsize i = in1; i < n_; i++)
+                work1[i] -= jacobian_[i + in * m_] * temp;
+            }
+          }
+          temp = VecNorm( work1 );
+          double parc = fp / delta / temp / temp;
+          printf("parc= %g\n", parc);
+          
+          // Depending on the sign of the function, update parl or paru
+          if (fp > 0.0)
+            parl = std::max( parl, LM_par );
+          if (fp < 0.0)
+            paru = std::min( paru, LM_par );
+
+          // Compute an improved estimate for the parameter
+          LM_par = std::max( parl, LM_par + parc );
+        }
+      }
+      printf("END LMPAR iter= %i  LM_par= %g\n", lmIterations, LM_par); 
+      if (lmIterations == 0)
+        LM_par = 0.0;
+      // -------------------------------------------
+      // | LMPAR END
+      // -------------------------------------------
+      printf("DEBUG: LM_par is %g\n", LM_par);
+      // Store the direction Xvec and Param + Xvec. Calculate norm of Param.
+      PrintVector("DEBUG: hvec", Xvec);
+      for (dsize in = 0; in != n_; in++) {
+        Xvec[in] = -Xvec[in];
+        work1[in] = Params_[in] + Xvec[in];
+        work2[in] = diag[in] * Xvec[in];
+      }
+      double pnorm = VecNorm( work2 );
+      printf("pnorm= %g\n", pnorm);
+
+      // On first iteration, adjust initial step bound
+      if (currentIt == 0)
+        delta = std::min( delta, pnorm );
+      printf("Delta is now %g\n", delta);
+
+      // Evaluate function at Param + Xvec and calculate its norm
+      EvaluateFxn( Xvals_, Yvals_, work1, newResidual );
+      double rnorm1 = VecNorm( newResidual );
+      printf("rnorm1= %g\n", rnorm1);
+
+      // Compute the scaled actual reduction
+      double actual_reduction = -1.0;
+      if ( 0.1 * rnorm1 < rnorm) {
+        double d1 = rnorm1 / rnorm;
+        actual_reduction = 1.0 - d1 * d1;
+      }
+      printf("actualReduction= %g\n", actual_reduction);
+
+      // Compute the scaled predicted reduction and the scaled directional
+      // derivative.
+      for (dsize in = 0; in != n_; in++)
+      {
+        work2[in] = 0.0;
+        double temp = Xvec[ Jpvt[in] ];
+        for (dsize i = 0; i <= in; i++)
+          work2[i] += jacobian_[i + in * m_] * temp;
+      }
+      double temp1 = VecNorm( work2 ) / rnorm;
+      double temp2 = sqrt(LM_par) * pnorm / rnorm;
+      printf("temp1= %g    temp2= %g\n", temp1, temp2);
+
+      double predicted_reduction = temp1 * temp1 + temp2 * temp2 / 0.5;
+      double dirder = -(temp1 * temp1 + temp2 * temp2);
+      printf("predictedReduction = %12.6g    dirder= %12.6g\n", predicted_reduction, dirder);
+
+      // Compute the ratio of the actial to the predicted reduction.
+      if (predicted_reduction != 0.0)
+        Ratio = actual_reduction / predicted_reduction;
+      printf("ratio= %g\n", Ratio);
+
+      // Update the step bound
+      if (Ratio <= 0.25) {
+        printf("Ratio <= 0.25\n");
+        double temp;
+        if (actual_reduction < 0.0)
+          temp = 0.5 * dirder / (dirder + 0.5 * actual_reduction);
+        else
+          temp = 0.5;
+        if ( 0.1 * rnorm1 >= rnorm || temp < 0.1 )
+          temp = 0.1;
+        printf("delta = %g * min( %g, %g )\n", temp, delta, pnorm / 0.1); 
+        delta = temp * std::min( delta, pnorm / 0.1 );
+        LM_par /= temp;
+      } else {
+        if (LM_par == 0.0 || Ratio >= 0.75) {
+          printf("Ratio > 0.25 and (LMpar is zero or Ratio >= 0.75\n");
+          delta = pnorm / 0.5;
+          LM_par *= 0.5;
+        }
+      }
+      printf("LM_par= %g    Delta= %g\n", LM_par, delta);
+
+      if (Ratio >= 0.0001) { 
+        // Successful iteration. Update Param, residual, and their norms.
+        for (dsize in = 0; in != n_; in++) {
+          Params_[in] = work1[in];
+          work1[in] = diag[in] * Params_[in];
+        }
+        for (dsize im = 0; im < m_; im++)
+          residual_[im] = newResidual[im];
+        xnorm = VecNorm( work1 );
+        rnorm = rnorm1;
+      }
+      
+      // Tests for convergence
+      if (fabs(actual_reduction) <= tolerance &&
+          predicted_reduction <= tolerance &&
+          0.5 * Ratio <= 1.0)
+        info = 1;
+      if (delta <= xtol * xnorm)
+        info = 2;  
+      if (fabs(actual_reduction) <= tolerance &&
+          predicted_reduction <= tolerance &&
+          0.5 * Ratio <= 1.0 &&
+          info == 2)
+        info = 3;
+      if (info != 0) break;
+                 
+      // Tests for stringent tolerance
+      if (fabs(actual_reduction) <= machine_epsilon &&
+          predicted_reduction <= machine_epsilon &&
+          0.5 * Ratio <= 1.0)
+        info = 6;
+      if (delta <= machine_epsilon * xnorm)
+        info = 7;
+      if (gnorm <= machine_epsilon)
+        info = 8;
+      if (info != 0) break;
+
+    } // END inner loop
+    if (info != 0) break;
+    currentIt++;
+  }
+  switch (info) {
+        case 1 : printf("both actual and predicted relative reductions"
+                        " in the sum of squares are at most ftol.\n"); break;
+        case 2 : printf("relative error between two consecutive iterates"
+                        " is at most xtol.\n"); break;
+        case 3 : printf("conditions for info = 1 and info = 2 both hold.\n");
+                 break;
+        case 4 : printf("the cosine of the angle between fvec and any"
+                        " column of the jacobian is at most gtol in"
+                        " absolute value.\n"); break;
+        // TODO: Redundant
+        case 5 : printf("number of calls to fcn has reached or exceeded maxfev.\n"); break;
+        case 6 : printf("ftol is too small. no further reduction in"
+                        " the sum of squares is possible.\n"); break;
+        case 7 : printf("xtol is too small. no further improvement in"
+                        " the approximate solution x is possible.\n"); break;
+        case 8 : printf("gtol is too small. fvec is orthogonal to the"
+                        " columns of the jacobian to machine precision.\n"); break;
+  }
+  printf("Exiting with info value = %i\n", info);
+  PrintFinalParams(Params_);
+  return err;
+}
