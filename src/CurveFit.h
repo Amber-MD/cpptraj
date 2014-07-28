@@ -1,6 +1,8 @@
 #ifndef INC_CURVEFIT_H
 #define INC_CURVEFIT_H
-#include <cstdio> // DEBUG
+#ifdef DBG_CURVEFIT
+# include <cstdio> // DEBUG
+#endif
 #include <vector>
 /// Used for non-linear curve fitting.
 class CurveFit {
@@ -17,8 +19,9 @@ class CurveFit {
     typedef double (*FitFunctionType)(double, Darray const&);
     
     CurveFit();
+#   ifdef DBG_CURVEFIT
     ~CurveFit(); // DEBUG
-
+#   endif
     /// Perform Levenberg-Marquardt curve fit: fxn, x, y, p, tol, iter
     int LevenbergMarquardt(FitFunctionType, Darray const&, Darray const&, Darray&,
                            double, int);
@@ -51,6 +54,8 @@ class CurveFit {
     dsize n_; ///< Number of parameters (cols)
     Darray jacobian_; ///< Jacobian/R, stored in transpose (row-major)
     // DEBUG
+#   ifdef DBG_CURVEFIT
     FILE* dbgfile_;
+#   endif
 };
 #endif

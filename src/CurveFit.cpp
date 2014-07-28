@@ -1,5 +1,7 @@
 #include <cstdio> // DEBUG
-#include <cstdarg> // DEBUG
+#ifdef DBG_CURVEFIT
+# include <cstdarg> // DEBUG
+#endif
 #include <cmath> //sqrt
 #include <cfloat> // DBL_MIN
 #include "CurveFit.h"
@@ -7,21 +9,26 @@
 // CONSTRUCTOR
 CurveFit::CurveFit() : fxn_(0), m_(0), n_(0)
 {
+# ifdef DBG_CURVEFIT
   // DEBUG
   dbgfile_ = fopen("dbgcurvefit.dat", "wb");
+# endif
 }
 
 // DESTRUCTOR
-// FIXME DEBUG ONLY
+#ifdef DBG_CURVEFIT
 CurveFit::~CurveFit() {
   fclose(dbgfile_);
 }
+#endif
 
 void CurveFit::DBGPRINT(const char* format, ...) const {
+# ifdef DBG_CURVEFIT
   va_list args;
   va_start(args, format);
   vfprintf(dbgfile_, format, args);
   va_end(args);
+# endif
 }
 
 /// Machine precision
