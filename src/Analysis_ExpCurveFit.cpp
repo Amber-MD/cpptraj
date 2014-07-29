@@ -136,6 +136,10 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
   CurveFit fit;
   int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, tolerance_, maxIt_ );
   mprintf("\t%s\n", fit.Message(info));
+  if (info == 0) {
+    mprinterr("Error: %s\n", fit.ErrorMessage());
+    return Analysis::ERR;
+  } 
 
   // Write out final form
   mprintf("\tFinal Eq: Y =");

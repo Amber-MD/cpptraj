@@ -1,5 +1,5 @@
-#include <cstdio> // DEBUG
 #ifdef DBG_CURVEFIT
+# include <cstdio> // DEBUG
 # include <cstdarg> // DEBUG
 #endif
 #include <cmath> //sqrt
@@ -7,7 +7,7 @@
 #include "CurveFit.h"
 
 // CONSTRUCTOR
-CurveFit::CurveFit() : fxn_(0), m_(0), n_(0)
+CurveFit::CurveFit() : fxn_(0), m_(0), n_(0), errorMessage_(0)
 {
 # ifdef DBG_CURVEFIT
   // DEBUG
@@ -199,27 +199,23 @@ void CurveFit::PrintFinalParams(Darray const& Params_) const {
     DBGPRINT("\tParams[%lu]= %g\n", in, Params_[in]);
 }
 
-// ErrorMessage()
-static inline void ErrorMessage(const char* msg) {
-  fprintf(stderr, "Error: %s\n", msg);
-}
-
 // CurveFit::ParametersHaveProblems()
 bool CurveFit::ParametersHaveProblems(Darray const& Xvals_, Darray const& Yvals_,
-                                      Darray const& Params_) const
+                                      Darray const& Params_)
 {
   if (Params_.empty() || Xvals_.empty() || Yvals_.empty()) {
-    ErrorMessage("Parameters or coordinates are empty.");
+    errorMessage_ = "Parameters or coordinates are empty.";
     return true;
   }
   if (Xvals_.size() != Yvals_.size()) {
-    ErrorMessage("Number of X values != number of Y values.");
+    errorMessage_ = "Number of X values != number of Y values.";
     return true;
   }
   if ( Xvals_.size() < Params_.size() ) {
-    ErrorMessage("Number of parameters cannot be greater than number of XY values.");
+    errorMessage_ = "Number of parameters cannot be greater than number of XY values.";
     return true;
   }
+  errorMessage_ = 0;
   return false;
 }
 
@@ -237,7 +233,10 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
                                  double tolerance, int maxIterations)
 {
   int info = 0;
-  if (ParametersHaveProblems(Xvals_, Yvals_, Params_)) return info;
+  if (ParametersHaveProblems(Xvals_, Yvals_, Params_)) {
+    DBGPRINT("Error: %s\n", errorMessage_);
+    return info;
+  }
 
   fxn_ = fxnIn;
   m_ = Xvals_.size();        // Number of values (rows)

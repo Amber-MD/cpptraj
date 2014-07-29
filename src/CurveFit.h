@@ -27,6 +27,8 @@ class CurveFit {
                            double, int);
     /// \return Status message.
     static const char* Message(int);
+    /// \return Error message if status is zero.
+    const char* ErrorMessage() const { return errorMessage_; }
   private:
     typedef std::vector<int> Iarray;
     typedef std::vector<double>::size_type dsize;
@@ -45,7 +47,7 @@ class CurveFit {
     /// Print final parameters to STDOUT
     void PrintFinalParams(Darray const&) const;
     /// \return true if input coords/parameters have problems.
-    bool ParametersHaveProblems(Darray const&, Darray const&, Darray const&) const;
+    bool ParametersHaveProblems(Darray const&, Darray const&, Darray const&);
     // DEBUG
     inline void PrintMatrix(const char*, int, int, Darray const&) const;
     inline void PrintVector(const char*, Darray const&) const;
@@ -55,6 +57,7 @@ class CurveFit {
     dsize m_; ///< Number of values (rows)
     dsize n_; ///< Number of parameters (cols)
     Darray jacobian_; ///< Jacobian/R, stored in transpose (row-major)
+    const char* errorMessage_; ///< Set to error message when return status is 0.
     // DEBUG
 #   ifdef DBG_CURVEFIT
     FILE* dbgfile_;
