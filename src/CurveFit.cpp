@@ -103,6 +103,7 @@ void CurveFit::CalcJacobian_ForwardDiff(Darray const& Xvals_, Darray const& Yval
                                         Darray& Params_,
                                         Darray const& residual, Darray& newResidual)
 {
+  // NOTE: The zero could eventually be a passed-in constant.
   double eps = sqrt( std::max(0.0, machine_epsilon) );
   for (dsize in = 0; in != n_; in++) {
     double param = Params_[in];
@@ -130,20 +131,20 @@ void CurveFit::CalcJacobian_ForwardDiff(Darray const& Xvals_, Darray const& Yval
   * This routine was adapted from the enorm_ subroutine of lmdif.c from
   * Grace 5.1.22, which in turn was adapted from minpack (Argonne National
   * Laboratory. minpack project. March 1980. Burton S. Garbow,
-  * Kenneth E. Hillstrom, Jorge J. More.
+  * Kenneth E. Hillstrom, Jorge J. More).
   */
 double CurveFit::VecNorm( Darray::const_iterator const& vBeg, dsize nElt ) {
   // CONSTANTS
-  const double rdwarf = 3.834e-20;
-  const double rgiant = 1.304e19;
+  static const double rdwarf = 3.834e-20;
+  static const double rgiant = 1.304e19;
   
   double agiant = rgiant / (double)nElt;
 
   double sum_large = 0.0;
   double sum_mid = 0.0;
   double sum_small = 0.0;
-  double x1max = 0.0;
-  double x3max = 0.0;
+  double lMax = 0.0;
+  double sMax = 0.0;
  
   Darray::const_iterator vEnd = vBeg + nElt;
   for (Darray::const_iterator v = vBeg; v != vEnd; ++v)
@@ -155,24 +156,24 @@ double CurveFit::VecNorm( Darray::const_iterator const& vBeg, dsize nElt ) {
       sum_mid += xabs * xabs;
     } else if (xabs <= rdwarf) {
       // Sum for small components
-      if (xabs > x3max) {
-        double d1 = x3max / xabs;
+      if (xabs > sMax) {
+        double d1 = sMax / xabs;
         sum_small = 1.0 + sum_small * (d1 * d1);
-        x3max = xabs;
+        sMax = xabs;
       } else {
         if (xabs != 0.0) {
-          double d1 = xabs / x3max;
+          double d1 = xabs / sMax;
           sum_small += d1 * d1;
         }
       }
     } else {
       // Sum for large components
-      if (xabs > x1max) {
-        double d1 = x1max / xabs;
+      if (xabs > lMax) {
+        double d1 = lMax / xabs;
         sum_large = 1.0 + sum_large * (d1 * d1);
-        x1max = xabs;
+        lMax = xabs;
       } else { // L10
-        double d1 = xabs / x1max;
+        double d1 = xabs / lMax;
         sum_large += d1 * d1;
       } // L20
     }
@@ -181,22 +182,16 @@ double CurveFit::VecNorm( Darray::const_iterator const& vBeg, dsize nElt ) {
   // Calculation of norm
   double ret_val;
   if (sum_large != 0.0) {
-    ret_val = x1max * sqrt( sum_large + sum_mid / x1max / x1max );
+    ret_val = lMax * sqrt( sum_large + sum_mid / lMax / lMax );
   } else if (sum_mid != 0.0) {
-    if (sum_mid < x3max)
-      ret_val = sqrt( x3max * (sum_mid / x3max + x3max * sum_small) );
+    if (sum_mid < sMax)
+      ret_val = sqrt( sMax * (sum_mid / sMax + sMax * sum_small) );
     else
-      ret_val = sqrt( sum_mid * (1.0 + x3max / sum_mid * (x3max * sum_small)));
+      ret_val = sqrt( sum_mid * (1.0 + sMax / sum_mid * (sMax * sum_small)));
   } else {
-    ret_val = x3max * sqrt(sum_small);
+    ret_val = sMax * sqrt(sum_small);
   }
   return ret_val;
-}
-
-// CurveFit::PrintFinalParams()
-void CurveFit::PrintFinalParams(Darray const& Params_) const {
-  for (dsize in = 0; in != n_; in++)
-    DBGPRINT("\tParams[%lu]= %g\n", in, Params_[in]);
 }
 
 // CurveFit::ParametersHaveProblems()
@@ -871,8 +866,11 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
     if (info != 0) break;
     currentIt++;
   }
+# ifdef DBG_CURVEFIT
   DBGPRINT("%s\n", Message(info));
   DBGPRINT("Exiting with info value = %i\n", info);
-  PrintFinalParams(Params_);
+  for (dsize in = 0; in != n_; in++)
+    DBGPRINT("\tParams[%lu]= %g\n", in, Params_[in]);
+# endif
   return info;
 }
