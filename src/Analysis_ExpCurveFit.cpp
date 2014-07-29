@@ -21,6 +21,20 @@ double MultiExponentialK(double X, CurveFit::Darray const& Params)
   return Y;
 }
 
+double TestFxn(double X, CurveFit::Darray const& Params)
+{
+  double Y = Params[0];
+  double penalty = Params[0];
+  for (unsigned int i = 1; i < Params.size(); i += 2)
+  {
+    penalty += Params[i];
+    double expBx = exp( Params[i+1] * X );
+    Y += Params[i] * expBx;
+  }
+  penalty = 1000.0 * (1.0 - penalty);
+  return Y + penalty;
+}
+
 /** Multi exponential of form Y = SUM[Bi * exp(X * Bi+1)] */
 double MultiExponential(double X, CurveFit::Darray const& Params)
 {
@@ -110,33 +124,40 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
     pstart = 1;
     fxn = MultiExponentialK; 
     Params.resize( 1 + (nexp_ * 2) );
-    Params[0] = 0.0;
+    if (usePrefactorBounds_) {
+      Params[0] = 1.0 / (double)(Params.size() - pstart);
+      fxn = TestFxn;
+    } else
+      Params[0] = 0.0;
   } else {
     fxn = MultiExponential;
     Params.resize( nexp_ * 2 );
   }
   Params.resize( pstart + (nexp_ * 2) );
   // Set initial parameters and bounds if necessary.
-  std::vector<bool> bounds;
-  CurveFit::Darray UB, LB;
-  if (usePrefactorBounds_) {
-    bounds.assign( Params.size(), false );
-    LB.assign( Params.size(), 0.0 );
-    UB.assign( Params.size(), 0.0 );
-  }
+//  std::vector<bool> bounds;
+//  CurveFit::Darray UB, LB;
+//  if (usePrefactorBounds_) {
+//    bounds.assign( Params.size(), false );
+//    LB.assign( Params.size(), 0.0 );
+//    UB.assign( Params.size(), 0.0 );
+//  }
   for (unsigned int j = pstart; j < Params.size(); j += 2)
   {
     double prefac =  1.0;
     double expfac = -1.0;
     if (usePrefactorBounds_) {
       prefac /= (double)(Params.size() - pstart);
-      bounds[j] = true;
-      LB[j] = 0.0;
-      UB[j] = 1.0;
+      expfac = -0.01;
+//      bounds[j] = true;
+//      LB[j] = 0.0;
+//      UB[j] = 1.0;
     }
     Params[j  ] = prefac;
     Params[j+1] = expfac;
   }
+  for (unsigned int j = 0; j != Params.size(); j++)
+    mprintf("\t\tInitial Param %u = %g\n", j, Params[j]);
 
   // Set up X and Y values.
   DataSet_1D& Set = static_cast<DataSet_1D&>( *dset_ );
@@ -153,14 +174,16 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
 
   // Perform curve fitting.
   CurveFit fit;
-  //int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, tolerance_, maxIt_ );
-  int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, 
-                                     bounds, LB, UB, tolerance_, maxIt_ );
+  int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, tolerance_, maxIt_ );
+  //int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, 
+  //                                   bounds, LB, UB, tolerance_, maxIt_ );
   mprintf("\t%s\n", fit.Message(info));
   if (info == 0) {
     mprinterr("Error: %s\n", fit.ErrorMessage());
     return Analysis::ERR;
   } 
+  for (unsigned int j = 0; j != Params.size(); j++)
+    mprintf("\t\tFinal Param %u = %g\n", j, Params[j]);
 
   // Write out final form
   mprintf("\tFinal Eq: Y =");
