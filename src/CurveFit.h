@@ -25,6 +25,11 @@ class CurveFit {
     /// Perform Levenberg-Marquardt curve fit: fxn, x, y, p, tol, iter
     int LevenbergMarquardt(FitFunctionType, Darray const&, Darray const&, Darray&,
                            double, int);
+
+    /// Perform Levenberg-Marquardt curve fit: fxn, x, y, p, bnd, lbnd, ubnd, tol, iter
+    int LevenbergMarquardt(FitFunctionType, Darray const&, Darray const&, Darray&,
+                           std::vector<bool> const&, Darray const&, Darray const&, 
+                           double, int);
     /// \return Status message.
     static const char* Message(int);
     /// \return Error message if status is zero.
@@ -33,9 +38,12 @@ class CurveFit {
     typedef std::vector<int> Iarray;
     typedef std::vector<double>::size_type dsize;
     static const double machine_epsilon;
-
+    /// Function params to internal params
+    void Pvec_to_Params(Darray&);
+    /// Internal params to function params
+    void Params_to_Pvec(Darray&, Darray const&) const;
     /// Calculate residual only
-    void EvaluateFxn(Darray const&, Darray const&, Darray const&, Darray&) const;
+    void EvaluateFxn(Darray const&, Darray const&, Darray const&, Darray&);
     /// Calculate Jacobian using forward-difference approximation
     void CalcJacobian_ForwardDiff(Darray const&, Darray const&, Darray&, Darray const&, Darray&);
     /// Calculate || m(i,...) || for vector in matrix
@@ -57,6 +65,11 @@ class CurveFit {
     dsize m_; ///< Number of values (rows)
     dsize n_; ///< Number of parameters (cols)
     Darray jacobian_; ///< Jacobian/R, stored in transpose (row-major)
+    Darray Params_; ///< Working copy of parameter vector.
+    Darray fParms_; ///< Parameters for function evaluation.
+    std::vector<bool> hasBounds_;
+    Darray Ubound_;
+    Darray Lbound_;
     const char* errorMessage_; ///< Set to error message when return status is 0.
     // DEBUG
 #   ifdef DBG_CURVEFIT

@@ -77,16 +77,54 @@ void CurveFit::PrintVector(const char* name, CurveFit::Darray const& Vec) const 
   DBGPRINT(" }\n");
 }
 
+void CurveFit::Pvec_to_Params(Darray& PvecIn) {
+  //Params_ = PvecIn;
+  static const double epsilon = 1.0e-6;
+
+  for (dsize in = 0; in != n_; in++) {
+    if (hasBounds_[in]) {
+      double minPmax2 = (Lbound_[in] + Ubound_[in]) / 2.0;
+      double maxMmin2 = (Ubound_[in] - Lbound_[in]) / 2.0;
+      double t = (PvecIn[in] - minPmax2) / maxMmin2;
+      if ( t < -(1.0 - epsilon)) {
+        t = -(1.0 - epsilon);
+        PvecIn[in] = minPmax2 + maxMmin2 * t;
+      }
+      if ( t > (1.0 - epsilon)) {
+        t = (1.0 - epsilon);
+        PvecIn[in] = minPmax2 + maxMmin2 * t;
+      }
+      Params_[in] = t / (1.0 - fabs(t));
+    } else
+      Params_[in] = PvecIn[in];
+  }
+}
+
+void CurveFit::Params_to_Pvec(Darray& PvecIn, Darray const& ParamsIn) const {
+  //PvecIn = ParamsIn;
+  for (dsize in = 0; in != n_; in++) {
+    if (hasBounds_[in]) {
+      // map (-inf, inf) to (-1, 1) 
+      double t = ParamsIn[in] / (fabs(ParamsIn[in] + 1.0));
+      // map (-1,1) to (lower, upper)
+      PvecIn[in] = ((Lbound_[in] + Ubound_[in]) / 2.0) +
+                   ((Ubound_[in] - Lbound_[in]) / 2.0) * t;
+    } else
+      PvecIn[in] = ParamsIn[in];
+  }
+}
+
 /** Evaulate function at given X values and parameters. Calculate residual
   * from given Y values.
   */
 void CurveFit::EvaluateFxn(Darray const& Xvals_, Darray const& Yvals_, 
-                           Darray const& pvec, Darray& residual) const
+                           Darray const& ParamsIn, Darray& residual)
 {
-  PrintVector("Param", pvec);
+  Params_to_Pvec(fParms_, ParamsIn);
+  PrintVector("Param", fParms_);
   for (dsize im = 0; im != m_; im++)
   {
-    double diff = fxn_(Xvals_[im], pvec) - Yvals_[im];
+    double diff = fxn_(Xvals_[im], fParms_) - Yvals_[im];
     // Residual
     residual[im] = diff;
   }
@@ -98,23 +136,23 @@ void CurveFit::EvaluateFxn(Darray const& Xvals_, Darray const& Yvals_,
   * rows, to make calculating things like column norms easier. Adapted
   * from subroutine fdjac2_ in lmdif.c from Grace 5.1.22.
   */
-// NOTE: Params_ is not const so it can be changed when calc. derivative.
+// NOTE: ParamsIn is not const so it can be changed when calc. derivative.
 void CurveFit::CalcJacobian_ForwardDiff(Darray const& Xvals_, Darray const& Yvals_,
-                                        Darray& Params_,
+                                        Darray& ParamsIn,
                                         Darray const& residual, Darray& newResidual)
 {
   // NOTE: The zero could eventually be a passed-in constant.
   double eps = sqrt( std::max(0.0, machine_epsilon) );
   for (dsize in = 0; in != n_; in++) {
-    double param = Params_[in];
+    double param = ParamsIn[in];
     double delta = eps * fabs( param );
     if (delta == 0.0)
       delta = eps;
-    Params_[in] = param + delta;
+    ParamsIn[in] = param + delta;
     
-    EvaluateFxn(Xvals_, Yvals_, Params_, newResidual);
+    EvaluateFxn(Xvals_, Yvals_, ParamsIn, newResidual);
 
-    Params_[in] = param;
+    ParamsIn[in] = param;
 
     for (dsize im = 0; im != m_; im++)
       jacobian_[im + in * m_] = (newResidual[im] - residual[im]) / delta;
@@ -196,9 +234,9 @@ double CurveFit::VecNorm( Darray::const_iterator const& vBeg, dsize nElt ) {
 
 // CurveFit::ParametersHaveProblems()
 bool CurveFit::ParametersHaveProblems(Darray const& Xvals_, Darray const& Yvals_,
-                                      Darray const& Params_)
+                                      Darray const& ParamsIn)
 {
-  if (Params_.empty() || Xvals_.empty() || Yvals_.empty()) {
+  if (ParamsIn.empty() || Xvals_.empty() || Yvals_.empty()) {
     errorMessage_ = "Parameters or coordinates are empty.";
     return true;
   }
@@ -206,32 +244,78 @@ bool CurveFit::ParametersHaveProblems(Darray const& Xvals_, Darray const& Yvals_
     errorMessage_ = "Number of X values != number of Y values.";
     return true;
   }
-  if ( Xvals_.size() < Params_.size() ) {
+  if ( Xvals_.size() < ParamsIn.size() ) {
     errorMessage_ = "Number of parameters cannot be greater than number of XY values.";
     return true;
+  }
+  if (hasBounds_.empty())
+    hasBounds_.assign(ParamsIn.size(), false);
+  else {
+    if (hasBounds_.size() != ParamsIn.size() ||
+        Ubound_.size() != ParamsIn.size() ||
+        Lbound_.size() != ParamsIn.size())
+    {
+      errorMessage_ = "Number of bounds does not match number of parameters.";
+      return true;
+    }
+    for (dsize in = 0; in != ParamsIn.size(); in++) {
+      if (hasBounds_[in]) {
+        if ( Lbound_[in] >= Ubound_[in] ) {
+          errorMessage_ = "Lower bound must be less than upper bound.";
+          return true;
+        }
+        if (ParamsIn[in] <= Lbound_[in] ||
+            ParamsIn[in] >= Ubound_[in])
+        {
+          errorMessage_ = "Initial parameter not within bounds.";
+          return true;
+        }
+      }
+    }
   }
   errorMessage_ = 0;
   return false;
 }
 
+/** Perform curve fitting via Levenberg-Marquardt with no bounds. */
+int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
+                                 Darray const& Yvals_, Darray& ParamVec,
+                                 double tolerance, int maxIterations)
+{
+  return LevenbergMarquardt(fxnIn, Xvals_, Yvals_, ParamVec, std::vector<bool>(),
+                            Darray(), Darray(), tolerance, maxIterations);
+}
+
 // -----------------------------------------------------------------------------
-/** Perform curve fitting via Levenberg-Marquardt method.
+/** Perform curve fitting via Levenberg-Marquardt method with optional bounds.
   * \param fxnIn Function to fit.
   * \param Xvals_ target X values (ordinates, M)
   * \param Yvals_ target Y values (coordinates, M)
-  * \param Params_ input parameters; at finish contains best esimate of fit parameters
+  * \param ParamVec input parameters(N); at finish contains best esimate of fit parameters
+  * \param boundsIn true if parameter has bounds (N)
+  * \param lboundIn contain lower bounds for parameter (N)
+  * \param uboundIn contain upper bounds for parameter (N)
   * \param tolerance Fit tolerance
   * \param maxIterations Number of iterations to try.
   */
 int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
-                                 Darray const& Yvals_, Darray& Params_,
+                                 Darray const& Yvals_, Darray& ParamVec,
+                                 std::vector<bool> const& boundsIn,
+                                 Darray const& lboundIn, Darray const& uboundIn,
                                  double tolerance, int maxIterations)
 {
   int info = 0;
-  if (ParametersHaveProblems(Xvals_, Yvals_, Params_)) {
+  hasBounds_ = boundsIn;
+  Ubound_ = uboundIn;
+  Lbound_ = lboundIn;
+  if (ParametersHaveProblems(Xvals_, Yvals_, ParamVec)) {
     DBGPRINT("Error: %s\n", errorMessage_);
     return info;
   }
+  // Set initial parameters
+  Params_= ParamVec;  // Internal parameter vector
+  fParms_ = ParamVec; // Parameters for function evaluation
+  Pvec_to_Params( ParamVec );
 
   fxn_ = fxnIn;
   m_ = Xvals_.size();        // Number of values (rows)
@@ -866,11 +950,12 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
     if (info != 0) break;
     currentIt++;
   }
+  Params_to_Pvec(ParamVec, Params_);
 # ifdef DBG_CURVEFIT
   DBGPRINT("%s\n", Message(info));
   DBGPRINT("Exiting with info value = %i\n", info);
   for (dsize in = 0; in != n_; in++)
-    DBGPRINT("\tParams[%lu]= %g\n", in, Params_[in]);
+    DBGPRINT("\tParams[%lu]= %g\n", in, ParamVec[in]);
 # endif
   return info;
 }
