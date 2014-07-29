@@ -124,8 +124,11 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
   CurveFit::Darray Xvals, Yvals;
   Xvals.reserve( Set.Size() );
   Yvals.reserve( Set.Size() );
+  bool setHasZero = false;
   for (unsigned int i = 0; i != Set.Size(); i++) {
     Xvals.push_back( Set.Xcrd(i) );
+    if (Set.Dval(i) == 0.0)
+      setHasZero = true;
     Yvals.push_back( Set.Dval(i) );
   }
 
@@ -153,6 +156,41 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
   Yout.Allocate1D( dset_->Size() );
   for (CurveFit::Darray::const_iterator x = Xvals.begin(); x != Xvals.end(); x++)
     Yout.AddXY( *x, fxn(*x, Params) );
-  
+
+  // Statistics
+  double corr_coeff = Yout.CorrCoeff( Set );
+  mprintf("\tCorrelation coefficient: %g\n", corr_coeff);
+  double ChiSq = 0.0;
+  double Y2 = 0.0;
+  for (unsigned int i = 0; i != Set.Size(); i++) {
+    double diff = Yout.Dval(i) - Set.Dval(i);
+    ChiSq += (diff * diff);
+    Y2 += (Set.Dval(i) * Set.Dval(i));
+  }
+  double TheilU = sqrt(ChiSq / Y2);
+  mprintf("\tChi squared: %g\n", ChiSq);
+  mprintf("\tUncertainty coefficient: %g\n", TheilU);
+  if (!setHasZero) {
+    double rms_percent_error = 0.0;
+    for (unsigned int i = 0; i != Set.Size(); i++) {
+      double diff = Yout.Dval(i) - Set.Dval(i);
+      rms_percent_error += (diff * diff) / (Set.Dval(i) * Set.Dval(i));
+    }
+    rms_percent_error = sqrt( rms_percent_error / (double)Set.Size() );
+    mprintf("\tRMS percent error: %g\n", rms_percent_error);
+  } else
+    mprintf("Warning: Input set Y values contain zero, cannot calculate RMS percent error\n");
+
+  // Report decay constants from exponential parameters.
+  mprintf("\tTime constants:");
+  for (unsigned int p = pstart + 1; p < Params.size(); p += 2) {
+    if (Params[p] != 0.0) {
+      double tau = 1.0 / -Params[p];
+      mprintf(" %12.6g", tau);
+    } else
+      mprintf("Warning: exp parameter %u is zero.\n", ((p - pstart) / 2) + 1);
+  }
+  mprintf("\n");
+
   return Analysis::OK;
 }
