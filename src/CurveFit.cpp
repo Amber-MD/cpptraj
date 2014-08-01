@@ -17,9 +17,7 @@ CurveFit::CurveFit() : fxn_(0), m_(0), n_(0), errorMessage_(0)
 
 // DESTRUCTOR
 #ifdef DBG_CURVEFIT
-CurveFit::~CurveFit() {
-  fclose(dbgfile_);
-}
+CurveFit::~CurveFit() { fclose(dbgfile_); }
 #endif
 
 void CurveFit::DBGPRINT(const char* format, ...) const {
@@ -124,9 +122,8 @@ void CurveFit::EvaluateFxn(Darray const& Xvals_, Darray const& Yvals_,
   PrintVector("Param", fParms_);
   for (dsize im = 0; im != m_; im++)
   {
-    double diff = fxn_(Xvals_[im], fParms_) - Yvals_[im];
     // Residual
-    residual[im] = diff;
+    residual[im] = fxn_(Xvals_[im], fParms_) - Yvals_[im];
   }
   PrintVector("Residual", residual);
 }

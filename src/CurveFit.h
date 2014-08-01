@@ -38,15 +38,15 @@ class CurveFit {
     typedef std::vector<int> Iarray;
     typedef std::vector<double>::size_type dsize;
     static const double machine_epsilon;
-    /// Function params to internal params
+    /// Function params to internal params.
     void Pvec_to_Params(Darray&);
-    /// Internal params to function params
+    /// Internal params to params for function evaluation.
     void Params_to_Pvec(Darray&, Darray const&) const;
-    /// Calculate residual only
+    /// Calculate residual using given X, Y, and parameters.
     void EvaluateFxn(Darray const&, Darray const&, Darray const&, Darray&);
     /// Calculate Jacobian using forward-difference approximation
     void CalcJacobian_ForwardDiff(Darray const&, Darray const&, Darray&, Darray const&, Darray&);
-    /// Calculate || m(i,...) || for vector in matrix
+    /// Calculate || m(i,...) || for row vector in matrix
     static double VecNorm(Darray::const_iterator const&, dsize);
     /// Calculate || v || for vector
     static inline double VecNorm(Darray const& vec) {
@@ -62,14 +62,14 @@ class CurveFit {
     void DBGPRINT(const char*, ...) const;
 
     FitFunctionType fxn_; ///< Function to fit to.
-    dsize m_; ///< Number of values (rows)
-    dsize n_; ///< Number of parameters (cols)
+    dsize m_;             ///< Number of values (rows)
+    dsize n_;             ///< Number of parameters (cols)
     Darray jacobian_; ///< Jacobian/R, stored in transpose (row-major)
-    Darray Params_; ///< Working copy of parameter vector.
-    Darray fParms_; ///< Parameters for function evaluation.
-    std::vector<bool> hasBounds_;
-    Darray Ubound_;
-    Darray Lbound_;
+    Darray Params_;   ///< Working copy of parameter vector.
+    Darray fParms_;   ///< Parameters for function evaluation.
+    std::vector<bool> hasBounds_; ///< True if parameter has bounds.
+    Darray Ubound_;               ///< Parameter upper bound.
+    Darray Lbound_;               ///< Parameter lower bound.
     const char* errorMessage_; ///< Set to error message when return status is 0.
     // DEBUG
 #   ifdef DBG_CURVEFIT
