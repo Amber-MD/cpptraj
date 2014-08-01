@@ -72,12 +72,15 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
   // Get bin data set
   std::string binDSname = actionArgs.GetStringKey("bin");
   if (!binDSname.empty()) {
-    bin_ = (DataSet_integer*)DSL->FindSetOfType( binDSname, DataSet::INTEGER );
-    if (bin_ == 0) {
+    dstmp = DSL->GetDataSet( binDSname );
+    if (dstmp == 0) {
       mprinterr("Error: could not get bin data set %s\n", binDSname.c_str());
-      mprinterr("Info: bin data set must be type INTEGER.\n");
+      return Action::ERR;
+    } else if (dstmp->Ndim() != 1) {
+      mprinterr("Error: bin data set must be one dimensional.\n");
       return Action::ERR;
     }
+    bin_ = static_cast<DataSet_1D*>( dstmp );
   }
   trajIsOpen_ = false;
   nframes_ = 0;
@@ -93,7 +96,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
 
   mprintf("    CREATERESERVOIR: %s, energy data %s", filename_.c_str(),
           ene_->Legend().c_str());
-  if (!binDSname.empty())
+  if (bin_ != 0)
     mprintf(", bin data %s", bin_->Legend().c_str());
   mprintf("\n\tReservoir temperature= %.2f, random seed= %i\n", reservoirT_, iseed_);
   if (reservoir_.HasV())
@@ -144,7 +147,7 @@ Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFra
 {
 # ifdef BINTRAJ
   int bin = -1;
-  if (bin_ != 0) bin = (*bin_)[frameNum];
+  if (bin_ != 0) bin = (int)bin_->Dval(frameNum);
   if (reservoir_.writeReservoir(nframes_++, *currentFrame, ene_->Dval(frameNum), bin))
     return Action::ERR;
   return Action::OK;
