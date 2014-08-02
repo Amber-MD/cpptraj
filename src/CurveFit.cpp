@@ -125,6 +125,9 @@ void CurveFit::EvaluateFxn(Darray const& Xvals_, Darray const& Yvals_,
     // Residual
     residual[im] = fxn_(Xvals_[im], fParms_) - Yvals_[im];
   }
+  // Apply weights
+  for (dsize im = 0; im != Weights_.size(); im++)
+    residual[im] *= Weights_[im];
   PrintVector("Residual", residual);
 }
   
@@ -270,6 +273,10 @@ bool CurveFit::ParametersHaveProblems(Darray const& Xvals_, Darray const& Yvals_
       }
     }
   }
+  if (!Weights_.empty() && Weights_.size() != Xvals_.size()) {
+    errorMessage_ = "Number of weights does not match number of XY values.";
+    return true;
+  }
   errorMessage_ = 0;
   return false;
 }
@@ -280,7 +287,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
                                  double tolerance, int maxIterations)
 {
   return LevenbergMarquardt(fxnIn, Xvals_, Yvals_, ParamVec, std::vector<bool>(),
-                            Darray(), Darray(), tolerance, maxIterations);
+                            Darray(), Darray(), Darray(), tolerance, maxIterations);
 }
 
 // -----------------------------------------------------------------------------
@@ -299,12 +306,14 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
                                  Darray const& Yvals_, Darray& ParamVec,
                                  std::vector<bool> const& boundsIn,
                                  Darray const& lboundIn, Darray const& uboundIn,
+                                 Darray const& weightsIn,
                                  double tolerance, int maxIterations)
 {
   int info = 0;
   hasBounds_ = boundsIn;
   Ubound_ = uboundIn;
   Lbound_ = lboundIn;
+  Weights_ = weightsIn;
   if (ParametersHaveProblems(Xvals_, Yvals_, ParamVec)) {
     DBGPRINT("Error: %s\n", errorMessage_);
     return info;

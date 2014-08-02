@@ -26,10 +26,10 @@ class CurveFit {
     int LevenbergMarquardt(FitFunctionType, Darray const&, Darray const&, Darray&,
                            double, int);
 
-    /// Perform Levenberg-Marquardt curve fit: fxn, x, y, p, bnd, lbnd, ubnd, tol, iter
+    /// Perform Levenberg-Marquardt curve fit: fxn, x, y, p, bnd, lbnd, ubnd, wts, tol, iter
     int LevenbergMarquardt(FitFunctionType, Darray const&, Darray const&, Darray&,
                            std::vector<bool> const&, Darray const&, Darray const&, 
-                           double, int);
+                           Darray const&, double, int);
     /// \return Status message.
     static const char* Message(int);
     /// \return Error message if status is zero.
@@ -67,6 +67,7 @@ class CurveFit {
     Darray jacobian_; ///< Jacobian/R, stored in transpose (row-major)
     Darray Params_;   ///< Working copy of parameter vector.
     Darray fParms_;   ///< Parameters for function evaluation.
+    Darray Weights_;  ///< Residual weights
     std::vector<bool> hasBounds_; ///< True if parameter has bounds.
     Darray Ubound_;               ///< Parameter upper bound.
     Darray Lbound_;               ///< Parameter lower bound.

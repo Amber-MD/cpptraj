@@ -1,4 +1,5 @@
 #include <cmath> // exp
+#include <cfloat> // DBL_MAX
 #include "Analysis_ExpCurveFit.h"
 #include "CpptrajStdio.h"
 #include "CurveFit.h"
@@ -124,10 +125,10 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
     pstart = 1;
     fxn = MultiExponentialK; 
     Params.resize( 1 + (nexp_ * 2) );
-    if (usePrefactorBounds_) {
-      Params[0] = 1.0 / (double)(Params.size() - pstart);
-      fxn = TestFxn;
-    } else
+//    if (usePrefactorBounds_) {
+//      Params[0] = 1.0 / (double)(Params.size() - pstart);
+//      //fxn = TestFxn;
+//    } else
       Params[0] = 0.0;
   } else {
     fxn = MultiExponential;
@@ -135,13 +136,19 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
   }
   Params.resize( pstart + (nexp_ * 2) );
   // Set initial parameters and bounds if necessary.
-//  std::vector<bool> bounds;
-//  CurveFit::Darray UB, LB;
-//  if (usePrefactorBounds_) {
+  std::vector<bool> bounds;
+  CurveFit::Darray UB, LB, Weights;
+  if (usePrefactorBounds_) {
 //    bounds.assign( Params.size(), false );
 //    LB.assign( Params.size(), 0.0 );
 //    UB.assign( Params.size(), 0.0 );
-//  }
+    Weights.assign( dset_->Size(), 0.0 );
+    double Dsize = (double)dset_->Size();
+    for (unsigned int i = 0; i != dset_->Size(); i++) {
+      Weights[i] = (Dsize - (double)i) / Dsize;
+      //mprintf("DEBUG:\t\tWeight[%u]= %g\n", i, Weights[i]);
+    }
+  }
   for (unsigned int j = pstart; j < Params.size(); j += 2)
   {
     double prefac =  1.0;
@@ -150,14 +157,21 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
       prefac /= (double)(Params.size() - pstart);
       expfac = -0.01;
 //      bounds[j] = true;
+//      bounds[j+1] = true;
 //      LB[j] = 0.0;
 //      UB[j] = 1.0;
+//      LB[j+1] = -1E10;
+//      UB[j+1] = 0.0;
     }
     Params[j  ] = prefac;
     Params[j+1] = expfac;
   }
-  for (unsigned int j = 0; j != Params.size(); j++)
-    mprintf("\t\tInitial Param %u = %g\n", j, Params[j]);
+  for (unsigned int j = 0; j != Params.size(); j++) {
+    mprintf("\t\tInitial Param %u = %g", j, Params[j]);
+    if (!bounds.empty() && bounds[j])
+      mprintf("    Bounds: %g < P%u < %g", LB[j], UB[j]);
+    mprintf("\n");
+  }
 
   // Set up X and Y values.
   DataSet_1D& Set = static_cast<DataSet_1D&>( *dset_ );
@@ -174,9 +188,9 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
 
   // Perform curve fitting.
   CurveFit fit;
-  int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, tolerance_, maxIt_ );
-  //int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, 
-  //                                   bounds, LB, UB, tolerance_, maxIt_ );
+  //int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, tolerance_, maxIt_ );
+  int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, 
+                                     bounds, LB, UB, Weights, tolerance_, maxIt_ );
   mprintf("\t%s\n", fit.Message(info));
   if (info == 0) {
     mprinterr("Error: %s\n", fit.ErrorMessage());
@@ -191,10 +205,28 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
     mprintf(" %g +", Params[0]);
   for (unsigned int p = pstart; p < Params.size(); p += 2) {
     if (p > pstart) mprintf(" +");
-    mprintf(" [%g * exp(X * %g)]", Params[p], Params[p+1]);
+    mprintf(" (%g * exp(x * %g))", Params[p], Params[p+1]);
   }
   mprintf("\n");
 
+  // TEST: Integrate the function out a ways.
+/*
+  double sum = 0.0;
+  double xstep = Set.Dim(Dimension::X).Step();
+  double lastY = fxn( 0.0, Params);// - Params[0];
+  double delta = 0.0;
+  double lastslice = lastY;
+  unsigned int intmax = 1000000;
+  for (unsigned int i = 1; i < intmax; i++) {
+    double newY = fxn( (double)i * xstep, Params);// - Params[0];
+    double slice = (xstep * (lastY + newY) * 0.5);
+    //mprintf("DBG: %g\n", slice);
+    delta = lastslice - slice;
+    sum += slice;
+    lastslice = slice;
+  }
+  mprintf("\tDEBUG: Integration from 0.0 to %g is %g (delta %g)\n", intmax*xstep, sum, delta);
+*/
   // FIXME Should probably have better error handling here.
   // Construct output data.
   DataSet_Mesh& Yout = static_cast<DataSet_Mesh&>( *finalY_ );
