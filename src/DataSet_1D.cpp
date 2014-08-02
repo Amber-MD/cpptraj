@@ -7,9 +7,10 @@
 
 /// Return true if set is an atomic type (i.e. int, double, float).
 bool DataSet_1D::GoodCalcType(DataSet_1D const& ds) {
-  if (ds.Type() == DataSet::DOUBLE ||
-      ds.Type() == DataSet::FLOAT ||
-      ds.Type() == DataSet::INTEGER)
+  if (ds.Type() == DataSet::DOUBLE  ||
+      ds.Type() == DataSet::FLOAT   ||
+      ds.Type() == DataSet::INTEGER ||
+      ds.Type() == DataSet::XYMESH    )
     return true;
   mprinterr("Error: DataSet %s is not a valid type for this calc.\n",
             ds.Name().c_str());

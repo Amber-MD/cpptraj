@@ -203,17 +203,17 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf(" Total # of frames\n");
   else
     mprintf(" %i\n",ncorr_);
-  mprintf("\tTimestep = %.4lf, T0 = %.4lf, TF = %.4lf\n",tfac_,ti_,tf_);
+  mprintf("\tTimestep = %.4g, T0 = %.4g, TF = %.4g\n",tfac_,ti_,tf_);
   if (usefft_)
     mprintf("\tVector correlation functions will be calculated using FFT\n");
   else
     mprintf("\tVector correlation functions will be calculated directly\n");
   if (NmeshPoints_ != -1)
     mprintf("\tNumber of mesh points for interpolation is %i\n", NmeshPoints_);
-  mprintf("\tIterative solver: Max iterations = %i, tol = %lf, initial guess = %lf\n",
+  mprintf("\tIterative solver: Max iterations = %i, tol = %g, initial guess = %g\n",
           itmax_, delmin_, d0_);
   mprintf("\tOrder of Legendre polynomial = %i\n",olegendre_);
-  mprintf("\tSimplex scaling factor=%.4lf\n",delqfrac_);
+  mprintf("\tSimplex scaling factor=%.4g\n",delqfrac_);
   if (do_gridsearch_)
     mprintf("\tGrid search will be performed for Q with full anisotropy (time consuming)\n");
   if (!randvecIn_.empty())
@@ -346,7 +346,7 @@ DataSet_Vector Action_Rotdif::RandomVectors() {
     } else {
       int idx = 1;
       for (DataSet_Vector::const_iterator vec = XYZ.begin(); vec != XYZ.end(); ++vec)
-        rvout.Printf("%6i  %15.8lf  %15.8lf  %15.8lf\n",
+        rvout.Printf("%6i  %15.8g  %15.8g  %15.8g\n",
                      idx++, (*vec)[0], (*vec)[1], (*vec)[2]);
       rvout.CloseFile();
     }
@@ -471,7 +471,7 @@ double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
      del = (d-di)/di;
      if (del < 0) del = -del; // Abs value
      if (debug_>2)
-       mprintf("ITSOLV: %6i  %15.8e  %15.8e  %15.8e\n", i,di,d,del);
+       mprintf("ITSOLV: %6i  %15.8g  %15.8g  %15.8g\n", i,di,d,del);
      di = d;
      ++i;
   }
@@ -481,7 +481,7 @@ double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
   } else {
     if (debug_>1) mprintf("\tITSOLV Converged: # iterations=%i\n",i);
   }
-
+  mprintf("DEBUG: Final D= %g\n", d);
   return d; 
 }
 
@@ -500,20 +500,20 @@ double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
 void Action_Rotdif::PrintMatrix(CpptrajFile& outfile, const char* Title, Matrix_3x3 const& U)
 {
   outfile.Printf("    %s\n",Title);
-  outfile.Printf(" %10.5f %10.5f %10.5f\n %10.5f %10.5f %10.5f\n %10.5f %10.5f %10.5f\n",
+  outfile.Printf(" %10.5g %10.5g %10.5g\n %10.5g %10.5g %10.5g\n %10.5g %10.5g %10.5g\n",
                  U[0], U[1], U[2], U[3], U[4], U[5], U[6], U[7], U[8]);
 }
 
 void Action_Rotdif::PrintVector(CpptrajFile& outfile, const char* Title, Vec3 const& V)
 {
   outfile.Printf("    %s\n",Title);
-  outfile.Printf(" %10.5f %10.5f %10.5f\n", V[0], V[1], V[2]);
+  outfile.Printf(" %10.5g %10.5g %10.5g\n", V[0], V[1], V[2]);
 }
 
 void Action_Rotdif::PrintVec6(CpptrajFile& outfile, const char* Title, Vec6 const& V)
 {
   outfile.Printf("    %s\n",Title);
-  outfile.Printf(" %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n", 
+  outfile.Printf(" %10.5g %10.5g %10.5g %10.5g %10.5g %10.5g\n", 
                  V[0], V[1], V[2], V[3], V[4], V[5]);
 }
 
@@ -605,7 +605,7 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
     double dot1 = rotated_vec[0];
     double dot2 = rotated_vec[1];
     double dot3 = rotated_vec[2];
-    //mprintf("DBG: dot1-3= %10.5lf%10.5lf%10.5lf\n",dot1,dot2,dot3);
+    //mprintf("DBG: dot1-3= %10.5g%10.5g%10.5g\n",dot1,dot2,dot3);
     
     // assuming e(3)*n = cos(theta), e(1)*n = sin(theta)*cos(phi),
     // e(2)*n = sin(theta)*sin(phi), theta >= 0;
@@ -762,7 +762,7 @@ double Action_Rotdif::Amotry(double xsmplx[SM_NP1][SM_NP], double *ysearch,
   fac2 = fac1 - fac;
   for (int j=0; j < SM_NP; j++) {
     ptry[j] = (psum[j] * fac1) - (xsmplx[ihi][j] * fac2);
-    //mprintf("\t\tAmotry: %6i%10.5lf\n",j,ptry[j]);
+    //mprintf("\t\tAmotry: %6i%10.5g\n",j,ptry[j]);
   }
   ytry = chi_squared( ptry );
   if (ytry < ysearch[ihi]) {
@@ -770,7 +770,7 @@ double Action_Rotdif::Amotry(double xsmplx[SM_NP1][SM_NP], double *ysearch,
     for (int j = 0; j < SM_NP; j++) {
       psum[j] = psum[j] - xsmplx[ihi][j] + ptry[j];
       xsmplx[ihi][j] = ptry[j];
-      //mprintf("\t\tAmotryX: %6i%6i%10.5lf\n",ihi+1,j+1,xsmplx[ihi][j]);
+      //mprintf("\t\tAmotryX: %6i%6i%10.5g\n",ihi+1,j+1,xsmplx[ihi][j]);
     }
   }
   return ytry;
@@ -793,8 +793,8 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
     for (int n = 0; n < SM_NP; n++) {
       psum[n] = 0;
       for (int m = 0; m < SM_NP1; m++) { 
-        //mprintf("Xsmplx %6i%6i%10.5lf\n",m,n,xsmplx[m][n]);
-        //mprintf("Ysearch %6i%10.5lf\n",m,ysearch[m]);
+        //mprintf("Xsmplx %6i%6i%10.5g\n",m,n,xsmplx[m][n]);
+        //mprintf("Ysearch %6i%10.5g\n",m,ysearch[m]);
         psum[n] += xsmplx[m][n];
       }
     }
@@ -802,7 +802,7 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
     while (loop2) {
       //mprintf("Hit loop two %6i\n",iter);
       //for (int n = 0; n < SM_NP; n++)
-      //  mprintf("\tPsum %6i%10.5lf\n",n,psum[n]);
+      //  mprintf("\tPsum %6i%10.5g\n",n,psum[n]);
       ilo = 0;
       if (ysearch[0] > ysearch[1]) {
         ihi = 0;
@@ -820,7 +820,7 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
           if (i != ihi) inhi = i;
         }
       }  
-      //mprintf("Yihi Yilo = %10.5lf%10.5lf\n",ysearch[ihi],ysearch[ilo]);
+      //mprintf("Yihi Yilo = %10.5g%10.5g\n",ysearch[ihi],ysearch[ilo]);
       //mprintf("\tYihi Yilo = %6i%6i\n",ihi+1,ilo+1);
       double abs_yhi_ylo = ysearch[ihi] - ysearch[ilo];
       if (abs_yhi_ylo < 0) abs_yhi_ylo = -abs_yhi_ylo;
@@ -828,7 +828,7 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
       if (abs_yhi < 0) abs_yhi = -abs_yhi;
       double abs_ylo = ysearch[ilo];
       if (abs_ylo < 0) abs_ylo = -abs_ylo;
-      //mprintf("Abs(yihi - yilo)=%lf, Abs(yihi)=%lf, Abs(yilo)=%lf\n",
+      //mprintf("Abs(yihi - yilo)=%g, Abs(yihi)=%g, Abs(yilo)=%g\n",
       //        abs_yhi_ylo,abs_yhi,abs_ylo);
       rtol = 2.0 * (abs_yhi_ylo / (abs_yhi + abs_ylo));
       if (rtol < amoeba_ftol_) {
@@ -842,7 +842,7 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
         }
         return iter;
       }
-      //mprintf("\tIn amoeba, iter=%i, rtol=%15.6le\n",iter,rtol); 
+      //mprintf("\tIn amoeba, iter=%i, rtol=%15.6g\n",iter,rtol); 
 
       if (iter >= amoeba_itmax_) {
         mprintf("Max iterations (%i) exceeded in amoeba.\n",amoeba_itmax_);
@@ -851,14 +851,14 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
       iter += 2;
 
       double ytry = Amotry(xsmplx, ysearch, psum, ihi, -1.0);
-      //mprintf("\tYtry %6i%10.5f\n",iter,ytry);
+      //mprintf("\tYtry %6i%10.5g\n",iter,ytry);
       if (ytry <= ysearch[ilo]) { 
         ytry = Amotry(xsmplx, ysearch, psum, ihi, 2.0);
-        //mprintf("\tCase 1 %10.5lf\n",ytry);
+        //mprintf("\tCase 1 %10.5g\n",ytry);
       } else if (ytry >= ysearch[inhi]) {
         double ysave = ysearch[ihi];
         ytry = Amotry(xsmplx, ysearch, psum, ihi, 0.5);
-        //mprintf("\tCase 2 %10.5lf\n",ytry);
+        //mprintf("\tCase 2 %10.5g\n",ytry);
         if (ytry >= ysave) {
           for (int i=0; i < SM_NP1; i++) {
             if (i != ilo) {
@@ -928,10 +928,10 @@ int Action_Rotdif::Simplex_min(Vec6& Q_vector) {
   // chi_squared performs diagonalization. The workspace for dsyev should
   // already have been set up in Tensor_Fit.
   outfile_.Printf("Same diffusion tensor, but full anisotropy:\n");
-  outfile_.Printf("  chi_squared for SVD tensor is %15.5lf\n",chi_squared(Q_vector));
+  outfile_.Printf("  chi_squared for SVD tensor is %15.5g\n",chi_squared(Q_vector));
   outfile_.Printf("     taueff(obs) taueff(calc)\n");
   for (int i = 0; i < nvecs_; i++) 
-    outfile_.Printf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff_[i],(*Tau_)[i],sumc2_[i]);
+    outfile_.Printf("%5i %10.5g %10.5g %10.5g\n",i+1,D_eff_[i],(*Tau_)[i],sumc2_[i]);
   outfile_.Printf("\n");
 
   // Now execute the simplex search method with initial vertices,
@@ -981,7 +981,7 @@ int Action_Rotdif::Simplex_min(Vec6& Q_vector) {
     Vec3 d_props = calculate_D_properties(D_XYZ_);
 
     outfile_.Printf("Input to amoeba - average at cycle %i\n",i+1);
-    outfile_.Printf("    Initial chisq = %15.5lf\n",sgn);
+    outfile_.Printf("    Initial chisq = %15.5g\n",sgn);
     PrintVector(outfile_,"Dav, aniostropy, rhombicity:",d_props);
     PrintVector(outfile_,"D tensor eigenvalues:",D_XYZ_);
     PrintMatrix(outfile_,"D tensor eigenvectors (in columns):",D_tensor_);
@@ -1002,18 +1002,18 @@ int Action_Rotdif::Simplex_min(Vec6& Q_vector) {
     d_props = calculate_D_properties(D_XYZ_);
 
     outfile_.Printf("Output from amoeba - average at cycle %i\n",i+1);
-    outfile_.Printf("    Final chisq = %15.5lf\n",sgn);
+    outfile_.Printf("    Final chisq = %15.5g\n",sgn);
     PrintVector(outfile_,"Dav, aniostropy, rhombicity:",d_props);
     PrintVector(outfile_,"D tensor eigenvalues:",D_XYZ_);
     PrintMatrix(outfile_,"D tensor eigenvectors (in columns):",D_tensor_);
     outfile_.Printf("     taueff(obs) taueff(calc)\n");
     for (int i = 0; i < nvecs_; i++)
-      outfile_.Printf("%5i%10.5lf%10.5lf%10.5lf\n",i+1,D_eff_[i],(*Tau_)[i],sumc2_[i]);
+      outfile_.Printf("%5i %10.5g %10.5g %10.5g\n",i+1,D_eff_[i],(*Tau_)[i],sumc2_[i]);
     outfile_.Printf("\n");
    
     // cycle over main loop, but first reduce the size of delqfrac:
     delqfrac_ *= 0.750;
-    if (debug_>0)mprintf("\tAmoeba: Setting delqfrac to %15.7lf\n",delqfrac_);
+    if (debug_>0)mprintf("\tAmoeba: Setting delqfrac to %15.7g\n",delqfrac_);
   }
 
   // Set q vector to the final average result from simpmin
@@ -1044,8 +1044,8 @@ int Action_Rotdif::Grid_search(Vec6& Q_vector, int gridsize) {
   int gridmin = -gridsize;
 
   sgn0 = chi_squared(Q_vector);
-  mprintf("Grid search: Starting chisq is %15.5lf\n",sgn0);
-  //mprintf("_Grid q0 %10.5lf\n",Q_vector[0]);
+  mprintf("Grid search: Starting chisq is %15.5g\n",sgn0);
+  //mprintf("_Grid q0 %10.5g\n",Q_vector[0]);
 
   // Store initial solution
   for (int b = 0; b < 6; b++) best[b] = Q_vector[b];
@@ -1065,8 +1065,8 @@ int Action_Rotdif::Grid_search(Vec6& Q_vector, int gridsize) {
               xsearch[5] = Q_vector[5] + (n*delqfrac_/100.0);
 
               sgn = chi_squared( xsearch );
-              //mprintf("_Grid x0 %10.5lf\n",xsearch[0]);
-              //mprintf("_Grid %3i%3i%3i%3i%3i%3i%10.5lf%10.5lf\n",
+              //mprintf("_Grid x0 %10.5g\n",xsearch[0]);
+              //mprintf("_Grid %3i%3i%3i%3i%3i%3i%10.5g%10.5g\n",
               //        i,j,k,l,m,n,sgn,sgn0);
               if (sgn < sgn0) {
                 for (int b = 0; b < 6; b++) best[b] = xsearch[b];
@@ -1095,7 +1095,7 @@ static void printMatrix(const char *Title, const double *U, int mrows, int ncols
   int usize = mrows * ncols;
   for (int i = 0; i < usize; i++) {
     if ( (i%ncols)==0 ) mprintf("\n");
-    mprintf(" %10.5lf",U[i]);
+    mprintf(" %10.5g",U[i]);
   }
   mprintf("\n");
 }
@@ -1188,7 +1188,7 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
   // DEBUG - Print Sigma
   if (debug_>0) {
     for (int i = 0; i < s_dim; i++) 
-      mprintf("Sigma %6i%12.6lf\n",i+1,matrix_S[i]);
+      mprintf("Sigma %6i %12.6g\n",i+1,matrix_S[i]);
   }
   // Check for convergence
   if ( info > 0 ) {
@@ -1294,7 +1294,7 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
   Vec6 vector_q_local;
   vector_q_local.D_to_Q(matrix_D_local);
   if (debug_>0) {
-    mprintf("    D_to_Q\n %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n",
+    mprintf("    D_to_Q\n %10.5g %10.5g %10.5g %10.5g %10.5g %10.5g\n",
             vector_q_local[0], vector_q_local[1], vector_q_local[2],
             vector_q_local[3], vector_q_local[4], vector_q_local[4]);
   }
@@ -1318,12 +1318,12 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
     // For the following chisq fits, convert deff to taueff
     D_eff_[i] = 1 / (6 * D_eff_[i]);
     deff_local[i] = 1 / (6 * deff_local[i]);
-    outfile_.Printf("%5i%10.5lf%10.5lf\n", i+1, D_eff_[i], deff_local[i]);
+    outfile_.Printf("%5i %10.5g %10.5g\n", i+1, D_eff_[i], deff_local[i]);
     // NOTE: in rotdif code, sig is 1.0 for all nvecs 
     double diff = deff_local[i] - D_eff_[i];
     sgn += (diff * diff);
   }
-  outfile_.Printf("  chisq for above is %15.5lf\n\n",sgn);
+  outfile_.Printf("  chisq for above is %15.5g\n\n",sgn);
 
   // Cleanup
   delete[] matrix_At;
@@ -1512,6 +1512,7 @@ int Action_Rotdif::DetermineDeffs() {
     spline.SetSplinedMeshY(pX, *pY);
     // Integrate
     double integral = spline.Integrate_Trapezoid();
+    mprintf("DEBUG: Vec %i integral= %g\n", nvec, integral);
     // Solve for deff
     D_eff_.push_back( calcEffectiveDiffusionConst(integral) );
 
@@ -1526,20 +1527,20 @@ int Action_Rotdif::DetermineDeffs() {
         outfile.OpenWrite(namebuffer);
         for (int i = 0; i < maxdat; i++) 
           //outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
-          outfile.Printf("%f %f\n",pX[i], (*pY)[i]);
+          outfile.Printf("%g %g\n",pX[i], (*pY)[i]);
         outfile.CloseFile();
         //    Write Mesh
         if (debug_>3) {
           namebuffer = NumberFilename( "mesh.dat", nvec );
           outfile.OpenWrite(namebuffer);
           for (int i=0; i < (int)spline.Size(); i++)
-            outfile.Printf("%f %f\n", spline.X(i), spline.Y(i));
+            outfile.Printf("%g %g\n", spline.X(i), spline.Y(i));
           outfile.CloseFile();
         }
     }
     if (debug_ > 0) {
-      mprintf("DBG: Vec %i Spline integral= %12.4lf\n",nvec,integral);
-      mprintf("DBG: deff is %lf\n",D_eff_[nvec]);
+      mprintf("DBG: Vec %i Spline integral= %12.4g\n",nvec,integral);
+      mprintf("DBG: deff is %g\n",D_eff_[nvec]);
     }
     // END DEBUG -----------------------------------------------------
     ++nvec;
@@ -1590,7 +1591,7 @@ void Action_Rotdif::Print() {
       for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
                                              rmatrix != Rmatrices_.end(); rmatrix++) 
       {
-        rmout.Printf("%13i %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f\n",
+        rmout.Printf("%13i %12.9g %12.9g %12.9g %12.9g %12.9g %12.9g %12.9g %12.9g %12.9g\n",
              rmframe++,
             (*rmatrix)[0], (*rmatrix)[1], (*rmatrix)[2],
             (*rmatrix)[3], (*rmatrix)[4], (*rmatrix)[5],
@@ -1611,7 +1612,7 @@ void Action_Rotdif::Print() {
     } else {
       dout.OpenFile();
       for (int vec = 0; vec < nvecs_; vec++)
-        dout.Printf("%6i%15.8lf\n",vec+1,D_eff_[vec]);
+        dout.Printf("%6i %15.8g\n",vec+1,D_eff_[vec]);
       dout.CloseFile();
     }
   }

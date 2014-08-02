@@ -114,6 +114,7 @@
 #include "Analysis_Divergence.h"
 #include "Analysis_VectorMath.h"
 #include "Analysis_Regression.h"
+#include "Analysis_ExpCurveFit.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -1803,6 +1804,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "crosscorr", Analysis_CrossCorr::Alloc, Analysis_CrossCorr::Help, AddAnalysis },
   { ANALYSIS, "diagmatrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
   { ANALYSIS, "divergence", Analysis_Divergence::Alloc, Analysis_Divergence::Help, AddAnalysis },
+  { ANALYSIS, "expcurvefit", Analysis_ExpCurveFit::Alloc, Analysis_ExpCurveFit::Help, AddAnalysis },
   { ANALYSIS, "fft", Analysis_FFT::Alloc, Analysis_FFT::Help, AddAnalysis },
   { ANALYSIS, "hist", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
   { ANALYSIS, "histogram", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
