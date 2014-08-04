@@ -107,5 +107,7 @@ class Action_Rotdif: public Action {
     int Grid_search(Vec6&, int);
     int Tensor_Fit(Vec6&);
     int DetermineDeffs();
+
+    int DetermineDeffsAlt();
 };
 #endif  

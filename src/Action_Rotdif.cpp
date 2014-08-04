@@ -9,6 +9,7 @@
 #include "DataSet_Mesh.h"
 #include "ProgressBar.h"
 #include "Corr.h"
+#include "CurveFit.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -1424,6 +1425,106 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
 #endif
 }
 
+// =============================================================================
+// Single exponential function with constant
+double ExpFxn(double tau, CurveFit::Darray const& Params) {
+  return ( exp( Params[0] * tau ) );
+}
+
+// Integral of exponential with constant
+double IntExpFxn(double tau, double a0) {
+  return ( exp( a0 * tau ) / a0 );
+}
+
+int Action_Rotdif::DetermineDeffsAlt() {
+  // For each randomly generated vector:
+  //   1) Rotate the vector according to saved rotation matrices.
+  //   2) Calculate the autocorrelation function of the vector.
+  //   3) Fit the autocorrelation to a single exponential.
+
+  // Determine max length of autocorrelation fxn. Calculate the number of
+  // points using the initial and final times as well as time step.
+  int ctMax = (int)((tf_ - ti_) / tfac_) + 1;
+  printf("DEBUG: Npoints for autocorrelation fxn= %i\n", ctMax);
+
+//  int ctMax = ncorr_;
+//  if (ncorr_ == 0) ctMax = Rmatrices_.size() + 1;
+
+  // Set up X values
+  CurveFit::Darray Xvals;
+  Xvals.reserve( ctMax );
+  double xv = ti_;
+  for (int n = 0; n != ctMax; n++) {
+    Xvals.push_back( xv );
+    xv += tfac_;
+  }
+
+  // Parameter array for curve fitting (1 for single exp)
+  CurveFit::Darray Params(1, -1.0);
+  CurveFit fit;
+
+  // LOOP OVER RANDOM VECTORS
+  D_eff_.reserve( random_vectors_.Size() );
+  DataSet_Vector rotated_vectors; // Hold vectors after rotation with Rmatrices
+  rotated_vectors.ReserveVecs( Rmatrices_.size() + 1 );
+  CurveFit::Darray Ct; // Hold vector autocorrelation
+  Ct.reserve( ctMax );
+  int nvec = 0; // For numbering vector
+  for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
+                                      rndvec != random_vectors_.end();
+                                    ++rndvec, ++nvec)
+  {
+    // Reset rotated_vectors to the beginning 
+    rotated_vectors.reset();
+    // Normalize vector
+    //rndvec->Normalize(); // FIXME: Should already be normalized
+    // Assign normalized vector to rotated_vectors position 0
+    rotated_vectors.AddVxyz( *rndvec );
+    // Loop over rotation matrices
+    for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
+                                           rmatrix != Rmatrices_.end();
+                                           ++rmatrix)
+    {
+      // Rotate normalized vector
+      rotated_vectors.AddVxyz( *rmatrix * (*rndvec) );
+    }
+    // Calculate spherical harmonics of given order for this vector.
+    rotated_vectors.CalcSphericalHarmonics( olegendre_ );
+    // Calculate autocorrelation for rotated vectors.
+    fft_compute_corr(rotated_vectors, ctMax, Ct, olegendre_);
+    // Fit autocorrelation to C(tau) = exp[-l(l+1)D * tau] 
+    int info = fit.LevenbergMarquardt( ExpFxn, Xvals, Ct, Params, 0.000001, 1000 );
+    mprintf("\t%s\n", fit.Message(info));
+    if (info == 0) {
+      mprinterr("Error: %s\n", fit.ErrorMessage());
+      return 1;
+    }
+    // We now in principal have A0 = -l(l+1)D, D = A0 / -l(l+1)
+    double Deff = Params[0] / (double)(-olegendre_ * (olegendre_ + 1));
+    printf("\tVec %i A0= %g    Deff=%g\n", nvec, Params[0], Deff);
+    D_eff_.push_back( Deff );
+
+    // DEBUG: Write out Ct and fit curve ---------
+    if (!corrOut_.empty() || debug_ > 3) {
+      CpptrajFile outfile;
+      std::string namebuffer;
+      if (!corrOut_.empty())
+        namebuffer = NumberFilename( corrOut_, nvec );
+      else
+        namebuffer = NumberFilename( "CtFit.dat", nvec );
+      outfile.OpenWrite(namebuffer);
+      for (int n = 0; n != ctMax; n++)
+        outfile.Printf("%12.6g %20.10g %20.10g\n", Xvals[n], Ct[n], ExpFxn(Xvals[n], Params));
+      outfile.CloseFile();
+    }
+
+ 
+  } // END loop over random vectors
+
+  return 0;
+}
+
+// =============================================================================
 // Action_Rotdif::DetermineDeffs()
 /** Calculate effective diffusion constant for each random vector. 
   * Vectors will be normalized during this phase. First rotate the vector 
@@ -1604,6 +1705,8 @@ void Action_Rotdif::Print() {
 
   // Determine effective D for each vector
   DetermineDeffs( );
+//  DetermineDeffsAlt(); // DEBUG
+//  return; // DEBUG
   // Print deffs
   if (!deffOut_.empty()) {
     CpptrajFile dout;
