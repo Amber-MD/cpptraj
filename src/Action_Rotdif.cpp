@@ -1187,7 +1187,7 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
   delete[] work_;
   work_ = 0;
   // DEBUG - Print Sigma
-  if (debug_>0) {
+  if (debug_>1) {
     for (int i = 0; i < s_dim; i++) 
       mprintf("Sigma %6i %12.6g\n",i+1,matrix_S[i]);
   }
@@ -1294,7 +1294,7 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
   // First convert original D back to Q
   Vec6 vector_q_local;
   vector_q_local.D_to_Q(matrix_D_local);
-  if (debug_>0) {
+  if (debug_>1) {
     mprintf("    D_to_Q\n %10.5g %10.5g %10.5g %10.5g %10.5g %10.5g\n",
             vector_q_local[0], vector_q_local[1], vector_q_local[2],
             vector_q_local[3], vector_q_local[4], vector_q_local[4]);
@@ -1639,7 +1639,7 @@ int Action_Rotdif::DetermineDeffs() {
           outfile.CloseFile();
         }
     }
-    if (debug_ > 0) {
+    if (debug_ > 1) {
       mprintf("DBG: Vec %i Spline integral= %12.4g\n",nvec,integral);
       mprintf("DBG: deff is %g\n",D_eff_[nvec]);
     }
@@ -1704,8 +1704,10 @@ void Action_Rotdif::Print() {
   mprintf("\t%i vectors, %u rotation matrices.\n",nvecs_,Rmatrices_.size());
 
   // Determine effective D for each vector
-  DetermineDeffs( );
-//  DetermineDeffsAlt(); // DEBUG
+  if (debug_ == 0)
+    DetermineDeffs( );
+  else
+    DetermineDeffsAlt(); // DEBUG
 //  return; // DEBUG
   // Print deffs
   if (!deffOut_.empty()) {

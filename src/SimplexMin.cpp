@@ -5,7 +5,7 @@
 double SimplexMin::chi_squared(Darray const& Ysearch) { 
   double chisq = 0.0;
 
-  fxn_(Ysearch, Ynew_);
+  fxn_(Xvals_, Ysearch, Ynew_);
 
   for (dsize i = 0; i < Nvals_; i++) {
     double diff = Yvals_[i] - Ynew_[i];
@@ -164,12 +164,13 @@ void SimplexMin::Average_vertices(Darray& xsearch) const
   * for each of the components of Q; the sign of the variation is randomly 
   * chosen.
   */
-int SimplexMin::Simplex_min(SimplexFunctionType fxnIn, Darray& Q_vector, 
-                            Darray const& YvalsIn, double delqfracIn,
-                            int maxItIn, double ftolIn,
-                            Random_Number& RNgen) // TODO: use internal rand
+int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector, 
+                         DataSet* Xin, Darray const& YvalsIn, double delqfracIn,
+                         int maxItIn, double ftolIn,
+                         Random_Number& RNgen) // TODO: use internal rand
 {
   double delqfrac = delqfracIn;
+  Xvals_ = Xin;
   Yvals_ = YvalsIn;
   Ynew_ = YvalsIn;
   Nvals_ = Yvals_.size();
