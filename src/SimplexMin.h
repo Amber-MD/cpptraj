@@ -7,9 +7,11 @@ class SimplexMin {
     typedef std::vector<double> Darray;
     /** Function that takes X values and parameters and calculates new Y values. */
     typedef int (*SimplexFunctionType)(DataSet*, Darray const&, Darray&);
-    SimplexMin() : fxn_(0), Xvals_(0) {}
+    SimplexMin() : fxn_(0), Xvals_(0), final_chisq_(0.0) {}
     int Minimize(SimplexFunctionType, Darray&, DataSet*, Darray const&,
                  double, int, double, Random_Number&);
+    Darray const& FinalY() const { return Ynew_; }
+    double FinalChiSquared() const { return final_chisq_; }
   private:
     typedef std::vector<double>::size_type dsize;
 
@@ -27,5 +29,6 @@ class SimplexMin {
     Darray Yvals_;            ///< Original y values (Nvals)
     Darray Ynew_;             ///< Y values with current parameters (Nvals)
     Darray Ysearch_;          ///< (NP1)
+    double final_chisq_;
 };
 #endif

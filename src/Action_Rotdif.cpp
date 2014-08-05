@@ -20,6 +20,7 @@ extern "C" {
                int&, double*, double*, int&, double*, int&,
                double*, int&, int& );
   void dsyev_(char*, char*, int&, double*, int&, double*,double*,int&,int&);
+  // TODO: Use internal diagonalizer
   // DEBUG
   //void dgemm_(char*,char*,int&,int&,int&,double&,
   //            double*,int&,double*,int&,double&,double*,int&);
@@ -86,6 +87,18 @@ void Action_Rotdif::Vec6::D_to_Q(Matrix_3x3 const& D) {
   Q_[5] = -D[2] / 2; // Qxz
 }
 #endif
+
+static void printMatrix(const char *Title, const double *U, int mrows, int ncols) {
+  mprintf("    %s",Title);
+  int usize = mrows * ncols;
+  for (int i = 0; i < usize; i++) {
+    if ( (i%ncols)==0 ) mprintf("\n");
+    mprintf(" %10.5g",U[i]);
+  }
+  mprintf("\n");
+}
+
+
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
 Action_Rotdif::Action_Rotdif() :
@@ -496,7 +509,7 @@ double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
   } else {
     if (debug_>1) mprintf("\tITSOLV Converged: # iterations=%i\n",i);
   }
-  mprintf("DEBUG: Final D= %g\n", d);
+  //mprintf("DEBUG: Final D= %g\n", d);
   return d; 
 }
 
@@ -559,8 +572,8 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
   double Dav, Dpr2, delta;
 
   // DEBUG
-  //printMatrix("Dxyz",Dxyz,1,3);
-  //printMatrix("Dvec",matrix_D,3,3);
+//  printMatrix("Dxyz",Dxyz.Dptr(),1,3);
+//  printMatrix("Dvec",matrix_D.Dptr(),3,3);
 
   // tau = sum(m){amp(l,m)/lambda(l,m)}
   // See Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY; 
@@ -605,8 +618,12 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
   // Check all normalization factors for 0.0, which can lead to inf values
   // propogating throughout the calc. Set to SMALL instead; will get 
   // very large numbers but should still not overflow.
-  for (int i = 0; i < 8; i++) 
+//  mprintf("lambda=");
+  for (int i = 0; i < 8; i++) {
     if (lambda[i] < Constants::SMALL) lambda[i] = Constants::SMALL;
+//    if (i > 2) mprintf(" %g", lambda[i]);
+  }
+//  mprintf("\n");
 
   // Loop over all random vectors
   int nvec = 0; // index into tau1, tau2, sumc2
@@ -620,7 +637,7 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
     double dot1 = rotated_vec[0];
     double dot2 = rotated_vec[1];
     double dot3 = rotated_vec[2];
-    //mprintf("DBG: dot1-3= %10.5g%10.5g%10.5g\n",dot1,dot2,dot3);
+    //mprintf("DBG: dot1-3= %10.5g %10.5g %10.5g\n",dot1,dot2,dot3);
     
     // assuming e(3)*n = cos(theta), e(1)*n = sin(theta)*cos(phi),
     // e(2)*n = sin(theta)*sin(phi), theta >= 0;
@@ -704,6 +721,8 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
     tau2_[nvec] = (m_m2 / lambda[3]) + (m_m1 / lambda[4]) + (m_0 / lambda[5]) +
                (m_p1 / lambda[6]) + (m_p2 / lambda[7]);
     sumc2_[nvec] = m_m2 + m_m1 + m_0 + m_p1 + m_p2;
+//    mprintf("Yvals[%i]= (%g / %g) + (%g / %g) + (%g / %g) + (%g / %g) + (%g / %g) = %g\n", nvec,
+//            m_m2, lambda[3], m_m1, lambda[4], m_0, lambda[5], m_p1, lambda[6], m_p2, lambda[7], tau2_[nvec]);
     ++nvec;
   }
 
@@ -711,22 +730,27 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
 }
 
 // =============================================================================
+// Diagonalize D; it is assumed workspace (work, lwork) set up prior 
+// to this call.
+// NOTE: Due to the fortran call, the eigenvectors are returned in COLUMN
+//       MAJOR order.
+static void Diagonalize(double* Mat, double* Vec) {
+  int n_cols = 3, lwork = 102, info;
+  double work[102];
+
+  dsyev_((char*)"Vectors", (char*)"Upper", n_cols, Mat, n_cols,
+         Vec, work, lwork, info);
+}
+
 int AsymmetricFxn_L2(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::Darray& Yvals) 
 {
-  int n_cols = 3;
-  int info, lwork = 102;
   Matrix_3x3 d_tensor;
   Vec3 d_xyz;
-  double work[102];
 
   // Convert input Q to Diffusion tensor D
   Q_to_D(Qin, d_tensor);
   // Diagonalize D; it is assumed workspace (work, lwork) set up prior 
-  // to this call.
-  // NOTE: Due to the fortran call, the eigenvectors are returned in COLUMN
-  //       MAJOR order.
-  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, d_tensor.Dptr(), n_cols, 
-         d_xyz.Dptr(), work, lwork, info);
+  Diagonalize( d_tensor.Dptr(), d_xyz.Dptr() );
 
   double lambda[5];
   double dx = d_xyz[0];
@@ -734,8 +758,8 @@ int AsymmetricFxn_L2(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
   double dz = d_xyz[2];
 
   // DEBUG
-  //printMatrix("Dxyz",Dxyz,1,3);
-  //printMatrix("Dvec",matrix_D,3,3);
+//  printMatrix("Dxyz",d_xyz.Dptr(),1,3);
+//  printMatrix("Dvec",d_tensor.Dptr(),3,3);
 
   // tau = sum(m){amp(l,m)/lambda(l,m)}
   // See Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY; 
@@ -774,8 +798,12 @@ int AsymmetricFxn_L2(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
   // Check all normalization factors for 0.0, which can lead to inf values
   // propogating throughout the calc. Set to SMALL instead; will get 
   // very large numbers but should still not overflow.
-  for (int i = 0; i < 5; i++) 
+//  mprintf("lambda=");
+  for (int i = 0; i < 5; i++) {
     if (lambda[i] < Constants::SMALL) lambda[i] = Constants::SMALL;
+//    mprintf(" %g", lambda[i]);
+  }
+//  mprintf("\n");
 
   // Loop over all random vectors
   int nvec = 0; // index into tau1, tau2, sumc2
@@ -791,7 +819,7 @@ int AsymmetricFxn_L2(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
     double dot1 = rotated_vec[0];
     double dot2 = rotated_vec[1];
     double dot3 = rotated_vec[2];
-    //mprintf("DBG: dot1-3= %10.5g%10.5g%10.5g\n",dot1,dot2,dot3);
+    //mprintf("DBG: dot1-3= %10.5g %10.5g %10.5g\n",dot1,dot2,dot3);
     
     // ----- Compute correlation time for l=2
     // pre-calculate squares
@@ -850,6 +878,8 @@ int AsymmetricFxn_L2(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
     Yvals[nvec] = (m_m2 / lambda[0]) + (m_m1 / lambda[1]) + (m_0 / lambda[2]) +
                   (m_p1 / lambda[3]) + (m_p2 / lambda[4]);
     //sumc2_[nvec] = m_m2 + m_m1 + m_0 + m_p1 + m_p2;
+//    mprintf("Yvals[%i]= (%g / %g) + (%g / %g) + (%g / %g) + (%g / %g) + (%g / %g) = %g\n", nvec,
+//            m_m2, lambda[0], m_m1, lambda[1], m_0, lambda[2], m_p1, lambda[3], m_p2, lambda[4], Yvals[nvec]);
   }
 
   return 0;
@@ -858,20 +888,16 @@ int AsymmetricFxn_L2(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
 // -----------------------------------------------
 int AsymmetricFxn_L1(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::Darray& Yvals) 
 {
-  int n_cols = 3;
-  int info, lwork = 102;
   Matrix_3x3 d_tensor;
   Vec3 d_xyz;
-  double work[102];
 
   // Convert input Q to Diffusion tensor D
   Q_to_D(Qin, d_tensor);
   // Diagonalize D; it is assumed workspace (work, lwork) set up prior 
+  Diagonalize( d_tensor.Dptr(), d_xyz.Dptr() );
   // to this call.
   // NOTE: Due to the fortran call, the eigenvectors are returned in COLUMN
   //       MAJOR order.
-  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, d_tensor.Dptr(), n_cols, 
-         d_xyz.Dptr(), work, lwork, info);
 
   double lambda[3];
   double dx = d_xyz[0];
@@ -1043,20 +1069,20 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
   iter = 0;
   loop1 = true;
   while (loop1) {
-    //mprintf("Hit loop one %6i\n",iter);
+    mprintf("Hit loop one %6i\n",iter);
     for (int n = 0; n < SM_NP; n++) {
       psum[n] = 0;
       for (int m = 0; m < SM_NP1; m++) { 
-        //mprintf("Xsmplx %6i%6i%10.5g\n",m,n,xsmplx[m][n]);
-        //mprintf("Ysearch %6i%10.5g\n",m,ysearch[m]);
+        mprintf("Xsmplx %6i%6i%10.5g\n",m,n,xsmplx[m][n]);
+        mprintf("Ysearch %6i%10.5g\n",m,ysearch[m]);
         psum[n] += xsmplx[m][n];
       }
     }
     loop2 = true;
     while (loop2) {
-      //mprintf("Hit loop two %6i\n",iter);
-      //for (int n = 0; n < SM_NP; n++)
-      //  mprintf("\tPsum %6i%10.5g\n",n,psum[n]);
+      mprintf("Hit loop two %6i\n",iter);
+      for (int n = 0; n < SM_NP; n++)
+        mprintf("\tPsum %6i%10.5g\n",n,psum[n]);
       ilo = 0;
       if (ysearch[0] > ysearch[1]) {
         ihi = 0;
@@ -1074,16 +1100,16 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
           if (i != ihi) inhi = i;
         }
       }  
-      //mprintf("Yihi Yilo = %10.5g%10.5g\n",ysearch[ihi],ysearch[ilo]);
-      //mprintf("\tYihi Yilo = %6i%6i\n",ihi+1,ilo+1);
+      mprintf("Yihi Yilo = %10.5g%10.5g\n",ysearch[ihi],ysearch[ilo]);
+      mprintf("\tYihi Yilo = %6i%6i\n",ihi+1,ilo+1);
       double abs_yhi_ylo = ysearch[ihi] - ysearch[ilo];
       if (abs_yhi_ylo < 0) abs_yhi_ylo = -abs_yhi_ylo;
       double abs_yhi = ysearch[ihi];
       if (abs_yhi < 0) abs_yhi = -abs_yhi;
       double abs_ylo = ysearch[ilo];
       if (abs_ylo < 0) abs_ylo = -abs_ylo;
-      //mprintf("Abs(yihi - yilo)=%g, Abs(yihi)=%g, Abs(yilo)=%g\n",
-      //        abs_yhi_ylo,abs_yhi,abs_ylo);
+      mprintf("Abs(yihi - yilo)=%g, Abs(yihi)=%g, Abs(yilo)=%g\n",
+              abs_yhi_ylo,abs_yhi,abs_ylo);
       rtol = 2.0 * (abs_yhi_ylo / (abs_yhi + abs_ylo));
       if (rtol < amoeba_ftol_) {
         swap = ysearch[0];
@@ -1096,7 +1122,7 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
         }
         return iter;
       }
-      //mprintf("\tIn amoeba, iter=%i, rtol=%15.6g\n",iter,rtol); 
+      mprintf("\tIn amoeba, iter=%i, rtol=%15.6g\n",iter,rtol); 
 
       if (iter >= amoeba_itmax_) {
         mprintf("Max iterations (%i) exceeded in amoeba.\n",amoeba_itmax_);
@@ -1105,14 +1131,14 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
       iter += 2;
 
       double ytry = Amotry(xsmplx, ysearch, psum, ihi, -1.0);
-      //mprintf("\tYtry %6i%10.5g\n",iter,ytry);
+      mprintf("\tYtry %6i%10.5g\n",iter,ytry);
       if (ytry <= ysearch[ilo]) { 
         ytry = Amotry(xsmplx, ysearch, psum, ihi, 2.0);
-        //mprintf("\tCase 1 %10.5g\n",ytry);
+        mprintf("\tCase 1 %10.5g\n",ytry);
       } else if (ytry >= ysearch[inhi]) {
         double ysave = ysearch[ihi];
         ytry = Amotry(xsmplx, ysearch, psum, ihi, 0.5);
-        //mprintf("\tCase 2 %10.5g\n",ytry);
+        mprintf("\tCase 2 %10.5g\n",ytry);
         if (ytry >= ysave) {
           for (int i=0; i < SM_NP1; i++) {
             if (i != ilo) {
@@ -1128,7 +1154,7 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
           loop2 = false;
         }
       } else {
-        //mprintf("\tCase 3\n");
+        mprintf("\tCase 3\n");
         iter--;
       }
       // GO TO 2
@@ -1213,6 +1239,13 @@ int Action_Rotdif::Simplex_min(Vec6& Q_vector) {
         }
       }
     }
+    mprintf("--------------------\n");
+    for (int j = 0; j < SM_NP1; j++)
+      for (int k = 0; k < SM_NP; k++)
+        mprintf("xsimplex[%i,%i]= %g\n", j, k, xsmplx[j][k]);
+    for (int k = 0; k < SM_NP; k++)
+      mprintf("xsearch[%i]= %g\n", k, xsearch[k]);
+    mprintf("--------------------\n");
 
     // As to amoeba, chi-squared must be evaluated for all
     // vertices in the initial simplex.
@@ -1221,6 +1254,7 @@ int Action_Rotdif::Simplex_min(Vec6& Q_vector) {
         xsearch[k] = xsmplx[j][k];
       }
       ysearch[j] = chi_squared(xsearch);
+      mprintf("ysearch[%i]= %g\n", j, ysearch[j]);
     }
 
     // Average the vertices and compute details of the average.
@@ -1342,16 +1376,6 @@ int Action_Rotdif::Grid_search(Vec6& Q_vector, int gridsize) {
   } else
     mprintf("  Grid search could not find a better solution.\n");
   return 0;
-}
-
-static void printMatrix(const char *Title, const double *U, int mrows, int ncols) {
-  mprintf("    %s",Title);
-  int usize = mrows * ncols;
-  for (int i = 0; i < usize; i++) {
-    if ( (i%ncols)==0 ) mprintf("\n");
-    mprintf(" %10.5g",U[i]);
-  }
-  mprintf("\n");
 }
 
 // Action_Rotdif::Tensor_Fit()
@@ -1867,7 +1891,7 @@ int Action_Rotdif::DetermineDeffs() {
     spline.SetSplinedMeshY(pX, *pY);
     // Integrate
     double integral = spline.Integrate_Trapezoid();
-    mprintf("DEBUG: Vec %i integral= %g\n", nvec, integral);
+    //mprintf("DEBUG: Vec %i integral= %g\n", nvec, integral);
     // Solve for deff
     D_eff_.push_back( calcEffectiveDiffusionConst(integral) );
 
@@ -1991,8 +2015,8 @@ void Action_Rotdif::Print() {
   Q_anisotropic[4] = Q_isotropic[4];
   Q_anisotropic[5] = Q_isotropic[5];
 
-  Simplex_min( Q_anisotropic );
-/*
+//  Simplex_min( Q_anisotropic );
+
   SimplexMin minimizer;
   SimplexMin::SimplexFunctionType fxn;
   tau1_.resize(nvecs_);
@@ -2006,12 +2030,42 @@ void Action_Rotdif::Print() {
   }
   SimplexMin::Darray tempQ(6);
   for (unsigned int i = 0; i < 6; i++)
-    tempQ[i] = Q_anisotropic[i]; 
-  minimizer.Minimize(fxn, tempQ, &random_vectors_, *Tau_, delqfrac_,
+    tempQ[i] = Q_anisotropic[i];
+  // First, back-calculate with the SVD tensor, but with the full anisotropy
+  // chi_squared performs diagonalization. The workspace for dsyev should
+  // already have been set up in Tensor_Fit.
+  fxn(&random_vectors_, tempQ, *Tau_);
+  double initial_chisq = 0.0;
+  for (int i = 0; i < nvecs_; i++) {
+    double diff = (D_eff_[i] - (*Tau_)[i]);
+    initial_chisq += (diff * diff);
+  } 
+  outfile_.Printf("Same diffusion tensor, but full anisotropy:\n");
+  outfile_.Printf("  chi_squared for SVD tensor is %15.5g\n", initial_chisq);
+  outfile_.Printf("     taueff(obs) taueff(calc)\n");
+  for (int i = 0; i < nvecs_; i++) 
+    outfile_.Printf("%5i %10.5g %10.5g %10.5g\n",i+1,D_eff_[i],(*Tau_)[i], 1.0); // FIXME: pseudo sumc2
+  outfile_.Printf("\n");
+
+  minimizer.Minimize(fxn, tempQ, &random_vectors_, D_eff_, delqfrac_,
                      amoeba_itmax_, amoeba_ftol_, RNgen_);
   for (unsigned int i = 0; i < 6; i++)
-    Q_anisotropic[i] = tempQ[i]; 
-*/
+    Q_anisotropic[i] = tempQ[i];
+  Q_anisotropic.Q_to_D( D_tensor_ );
+  Diagonalize( D_tensor_.Dptr(), D_XYZ_.Dptr() );
+  *Tau_ = minimizer.FinalY();
+  //mprintf("Output from amoeba - average at cycle %i\n",i+1);
+  Vec3 d_props = calculate_D_properties(D_XYZ_);
+  outfile_.Printf("    Final chisq = %15.5g\n", minimizer.FinalChiSquared());
+  PrintVector(outfile_,"Dav, aniostropy, rhombicity:",d_props);
+  PrintVector(outfile_,"D tensor eigenvalues:",D_XYZ_);
+  PrintMatrix(outfile_,"D tensor eigenvectors (in columns):",D_tensor_);
+  outfile_.Printf("     taueff(obs) taueff(calc)\n");
+  for (int i = 0; i < nvecs_; i++)
+    outfile_.Printf("%5i %10.5g %10.5g %10.5g\n",i+1, D_eff_[i], (*Tau_)[i], 1.0); // FIXME: pseudo sumc2
+  outfile_.Printf("\n");
+
+
   // Brute force grid search
   if (do_gridsearch_)
     Grid_search( Q_anisotropic, 5 );

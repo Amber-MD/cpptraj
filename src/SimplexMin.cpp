@@ -25,7 +25,7 @@ double SimplexMin::Amotry(Darray& psum, int ihi, double fac)
   for (dsize j = 0; j < NP_; j++)
   {
     ptry[j] = (psum[j] * fac1) - (Xsimplex_[ihi * NP_ + j] * fac2);
-    //mprintf("\t\tAmotry: %6i%10.5g\n",j,ptry[j]);
+    //mprintf("\t\tAmotry: %6lu%10.5g\n",j,ptry[j]);
   }
   double ytry = chi_squared( ptry );
   if (ytry < Ysearch_[ihi]) {
@@ -33,7 +33,7 @@ double SimplexMin::Amotry(Darray& psum, int ihi, double fac)
     for (dsize j = 0; j < NP_; j++) {
       psum[j] = psum[j] - Xsimplex_[ihi * NP_ + j] + ptry[j];
       Xsimplex_[ihi * NP_ + j] = ptry[j];
-      //mprintf("\t\tAmotryX: %6i%6i%10.5g\n",ihi+1,j+1,xsmplx[ihi][j]);
+      //mprintf("\t\tAmotryX: %6lu%6lu%10.5g\n",ihi+1,j+1,xsmplx[ihi][j]);
     }
   }
   return ytry;
@@ -47,20 +47,20 @@ int SimplexMin::Amoeba(int amoeba_itmax, double amoeba_ftol) {
   int iter = 0;
   bool loop1 = true;
   while (loop1) {
-    //mprintf("Hit loop one %6i\n",iter);
+//    mprintf("Hit loop one %6i\n",iter);
     for (dsize n = 0; n < NP_; n++) {
       psum[n] = 0;
       for (dsize m = 0; m < NP1_; m++) { 
-        //mprintf("Xsmplx %6i%6i%10.5g\n",m,n,xsmplx[m][n]);
-        //mprintf("Ysearch %6i%10.5g\n",m,Ysearch_[m]);
+//        mprintf("Xsmplx %6lu%6lu%10.5g\n",m,n,Xsimplex_[m * NP_ + n]);
+//        mprintf("Ysearch %6lu%10.5g\n",m,Ysearch_[m]);
         psum[n] += Xsimplex_[m * NP_ + n];
       }
     }
     bool loop2 = true;
     while (loop2) {
-      //mprintf("Hit loop two %6i\n",iter);
-      //for (int n = 0; n < SM_NP; n++)
-      //  mprintf("\tPsum %6i%10.5g\n",n,psum[n]);
+//      mprintf("Hit loop two %6i\n",iter);
+//      for (dsize n = 0; n < NP_; n++)
+//        mprintf("\tPsum %6lu%10.5g\n",n,psum[n]);
       dsize ilo = 0, ihi, inhi;
       if (Ysearch_[0] > Ysearch_[1]) {
         ihi = 0;
@@ -78,16 +78,16 @@ int SimplexMin::Amoeba(int amoeba_itmax, double amoeba_ftol) {
           if (i != ihi) inhi = i;
         }
       }  
-      //mprintf("Yihi Yilo = %10.5g%10.5g\n",Ysearch_[ihi],Ysearch_[ilo]);
-      //mprintf("\tYihi Yilo = %6i%6i\n",ihi+1,ilo+1);
+//      mprintf("Yihi Yilo = %10.5g%10.5g\n",Ysearch_[ihi],Ysearch_[ilo]);
+//      mprintf("\tYihi Yilo = %6lu%6lu\n",ihi+1,ilo+1);
       double abs_yhi_ylo = Ysearch_[ihi] - Ysearch_[ilo];
       if (abs_yhi_ylo < 0) abs_yhi_ylo = -abs_yhi_ylo;
       double abs_yhi = Ysearch_[ihi];
       if (abs_yhi < 0) abs_yhi = -abs_yhi;
       double abs_ylo = Ysearch_[ilo];
       if (abs_ylo < 0) abs_ylo = -abs_ylo;
-      //mprintf("Abs(yihi - yilo)=%g, Abs(yihi)=%g, Abs(yilo)=%g\n",
-      //        abs_yhi_ylo,abs_yhi,abs_ylo);
+//      mprintf("Abs(yihi - yilo)=%g, Abs(yihi)=%g, Abs(yilo)=%g\n",
+//              abs_yhi_ylo,abs_yhi,abs_ylo);
       double rtol = 2.0 * (abs_yhi_ylo / (abs_yhi + abs_ylo));
       if (rtol < amoeba_ftol) {
         double swap = Ysearch_[0];
@@ -100,7 +100,7 @@ int SimplexMin::Amoeba(int amoeba_itmax, double amoeba_ftol) {
         }
         return iter;
       }
-      //mprintf("\tIn amoeba, iter=%i, rtol=%15.6g\n",iter,rtol); 
+//      mprintf("\tIn amoeba, iter=%i, rtol=%15.6g\n",iter,rtol); 
 
       if (iter >= amoeba_itmax) {
         mprintf("Max iterations (%i) exceeded in amoeba.\n",amoeba_itmax);
@@ -109,14 +109,14 @@ int SimplexMin::Amoeba(int amoeba_itmax, double amoeba_ftol) {
       iter += 2;
 
       double ytry = Amotry(psum, ihi, -1.0);
-      //mprintf("\tYtry %6i%10.5g\n",iter,ytry);
+//      mprintf("\tYtry %6i%10.5g\n",iter,ytry);
       if (ytry <= Ysearch_[ilo]) { 
         ytry = Amotry( psum, ihi, 2.0);
-        //mprintf("\tCase 1 %10.5g\n",ytry);
+//        mprintf("\tCase 1 %10.5g\n",ytry);
       } else if (ytry >= Ysearch_[inhi]) {
         double ysave = Ysearch_[ihi];
         ytry = Amotry(psum, ihi, 0.5);
-        //mprintf("\tCase 2 %10.5g\n",ytry);
+//        mprintf("\tCase 2 %10.5g\n",ytry);
         if (ytry >= ysave) {
           for (dsize i=0; i < NP1_; i++) {
             if (i != ilo) {
@@ -134,7 +134,7 @@ int SimplexMin::Amoeba(int amoeba_itmax, double amoeba_ftol) {
           loop2 = false;
         }
       } else {
-        //mprintf("\tCase 3\n");
+//        mprintf("\tCase 3\n");
         iter--;
       }
       // GO TO 2
@@ -231,6 +231,13 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
         }
       }
     }
+//    mprintf("--------------------\n");
+//    for (dsize j = 0; j < NP1_; j++)
+//      for (dsize k = 0; k < NP_; k++)
+//        mprintf("xsimplex[%lu,%lu]= %g\n", j, k, Xsimplex_[j * NP_ + k]);
+//    for (dsize k = 0; k < NP_; k++)
+//      mprintf("xsearch[%lu]= %g\n", k, xsearch[k]);
+//    mprintf("--------------------\n");
 
     // As to amoeba, chi-squared must be evaluated for all
     // vertices in the initial simplex.
@@ -240,6 +247,7 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
         //xsearch[k] = xsmplx[j][k];
       }
       Ysearch_[j] = chi_squared(xsearch);
+//      mprintf("ysearch[%lu]= %g\n", j, Ysearch_[j]);
     }
 
     // Average the vertices and compute details of the average.
@@ -268,18 +276,18 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
 
     // Average the vertices and compute details of the average.
     Average_vertices( xsearch );
-    chisq = chi_squared( xsearch );
+    final_chisq_ = chi_squared( xsearch );
 
-    mprintf("Output from amoeba - average at cycle %i\n",i+1);
-    mprintf("    Final chisq = %15.5g\n",chisq);
-    mprintf("     taueff(obs) taueff(calc)\n");
-    for (dsize i = 0; i < Nvals_; i++)
-      mprintf("%5i %10.5g %10.5g\n",i+1, Yvals_[i], Ynew_[i]);
-    mprintf("\n");
+//    mprintf("Output from amoeba - average at cycle %i\n",i+1);
+//    mprintf("    Final chisq = %15.5g\n",chisq);
+//    mprintf("     taueff(obs) taueff(calc)\n");
+//    for (dsize i = 0; i < Nvals_; i++)
+//      mprintf("%5i %10.5g %10.5g\n",i+1, Yvals_[i], Ynew_[i]);
+//    mprintf("\n");
    
     // cycle over main loop, but first reduce the size of delqfrac:
     delqfrac *= 0.750;
-    mprintf("\tAmoeba: Setting delqfrac to %15.7g\n",delqfrac);
+//    mprintf("\tAmoeba: Setting delqfrac to %15.7g\n",delqfrac);
   }
 
   // Set q vector to the final average result from simpmin
