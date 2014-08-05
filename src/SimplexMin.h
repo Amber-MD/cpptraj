@@ -6,7 +6,7 @@ class SimplexMin {
   public:
     typedef std::vector<double> Darray;
     /** Function that takes X values and parameters and calculates new Y values. */
-    typedef double (*SimplexFunctionType)(DataSet*, Darray const&, Darray&);
+    typedef int (*SimplexFunctionType)(DataSet*, Darray const&, Darray&);
     SimplexMin() : fxn_(0), Xvals_(0) {}
     int Minimize(SimplexFunctionType, Darray&, DataSet*, Darray const&,
                  double, int, double, Random_Number&);

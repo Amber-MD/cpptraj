@@ -10,6 +10,7 @@
 #include "ProgressBar.h"
 #include "Corr.h"
 #include "CurveFit.h"
+#include "SimplexMin.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -43,6 +44,19 @@ extern "C" {
   * correlation functions) along principal axe
   */
 void Action_Rotdif::Vec6::Q_to_D(Matrix_3x3& D) const {
+  double tq = Q_[0] + Q_[1] + Q_[2];
+  D[0] = tq - (2 * Q_[0]); // tq-2Qxx
+  D[1] = -2 * Q_[3];       // -2Qxy
+  D[2] = -2 * Q_[5];       // -2Qxz
+  D[3] = D[1];            // -2Qyx
+  D[4] = tq - (2 * Q_[1]); // tq-2Qyy
+  D[5] = -2 * Q_[4];       // -2Qyz
+  D[6] = D[2];            // -2Qzx
+  D[7] = D[5];            // -2Qzy
+  D[8] = tq - (2 * Q_[2]); // tq-2Qzz
+}
+
+static void Q_to_D(SimplexMin::Darray const& Q_, Matrix_3x3& D) {
   double tq = Q_[0] + Q_[1] + Q_[2];
   D[0] = tq - (2 * Q_[0]); // tq-2Qxx
   D[1] = -2 * Q_[3];       // -2Qxy
@@ -696,6 +710,245 @@ int Action_Rotdif::calc_Asymmetric(Vec3 const& Dxyz, Matrix_3x3 const& matrix_D)
   return 0;
 }
 
+// =============================================================================
+int AsymmetricFxn_L2(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::Darray& Yvals) 
+{
+  int n_cols = 3;
+  int info, lwork = 102;
+  Matrix_3x3 d_tensor;
+  Vec3 d_xyz;
+  double work[102];
+
+  // Convert input Q to Diffusion tensor D
+  Q_to_D(Qin, d_tensor);
+  // Diagonalize D; it is assumed workspace (work, lwork) set up prior 
+  // to this call.
+  // NOTE: Due to the fortran call, the eigenvectors are returned in COLUMN
+  //       MAJOR order.
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, d_tensor.Dptr(), n_cols, 
+         d_xyz.Dptr(), work, lwork, info);
+
+  double lambda[5];
+  double dx = d_xyz[0];
+  double dy = d_xyz[1];
+  double dz = d_xyz[2];
+
+  // DEBUG
+  //printMatrix("Dxyz",Dxyz,1,3);
+  //printMatrix("Dvec",matrix_D,3,3);
+
+  // tau = sum(m){amp(l,m)/lambda(l,m)}
+  // See Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY; 
+  // Prog. Nuc. Mag. Res. Spec., 38, 197 (2001) for details, Table 3 in 
+  // particular. Only weights need to be computed for each vector, decay 
+  // constants can be computed once. Decay constants correspond 
+  // to l=2, m=-2,-1,0,+1,+2.
+
+  // l=2, m=-2 term: lambda(2,-2) = Dx + Dy + 4*Dz
+  lambda[0] = dx + dy + (4*dz);
+  // l=2, m=-1 term: lambda(2,-1) = Dx + 4*Dy + Dz
+  lambda[1] = dx + (4*dy) + dz;
+  // l=2, m=0 term:  lambda(2, 0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
+  //                 Dav = (Dx + Dy + Dz)/3 
+  //                 Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
+  //                 Dpr2 = Dpr*Dpr = (Dx*Dy + Dy*Dz + Dx*Dz)/3
+  double Dav = (dx + dy + dz) / 3;
+  double Dpr2 = ((dx*dy) + (dy*dz) + (dx*dz)) / 3;
+  if (Dpr2 < 0) {
+    //mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate Dpr (Dpr^2 < 0)\n");
+    // NOTE: Original code just set Dpr to 0 and continued. 
+    Dpr2 = 0;
+  }
+  double delta = (Dav*Dav) - Dpr2;
+  if (delta < 0) {
+    mprinterr("Error: calc_Asymmetric: Cannot calculate lambda l=2, m=0\n");
+    return 1;
+  }
+  double sqrt_Dav_Dpr = sqrt( delta );
+  lambda[2] = 6 * (Dav - sqrt_Dav_Dpr);
+  // l=2, m=+1 term: lambda(2,+1) = 4*Dx + Dy + Dz
+  lambda[3] = (4*dx) + dy + dz;
+  // l=2, m=+2 term: lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav - Dpr*Dpr)]
+  lambda[4] = 6 * (Dav + sqrt_Dav_Dpr);
+
+  // Check all normalization factors for 0.0, which can lead to inf values
+  // propogating throughout the calc. Set to SMALL instead; will get 
+  // very large numbers but should still not overflow.
+  for (int i = 0; i < 5; i++) 
+    if (lambda[i] < Constants::SMALL) lambda[i] = Constants::SMALL;
+
+  // Loop over all random vectors
+  int nvec = 0; // index into tau1, tau2, sumc2
+  DataSet_Vector const& random_vectors = static_cast<DataSet_Vector const&>( *Xvals );
+  for (DataSet_Vector::const_iterator randvec = random_vectors.begin();
+                                      randvec != random_vectors.end();
+                                    ++randvec, ++nvec)
+  {
+    // Rotate vector i into D frame
+    // This is an inverse rotation. Since matrix_D is in column major order
+    // however, do a normal rotation instead.
+    Vec3 rotated_vec = d_tensor * (*randvec);
+    double dot1 = rotated_vec[0];
+    double dot2 = rotated_vec[1];
+    double dot3 = rotated_vec[2];
+    //mprintf("DBG: dot1-3= %10.5g%10.5g%10.5g\n",dot1,dot2,dot3);
+    
+    // ----- Compute correlation time for l=2
+    // pre-calculate squares
+    double dot1_2 = dot1*dot1;
+    double dot2_2 = dot2*dot2;
+    double dot3_2 = dot3*dot3;
+    //     m=-2 term:
+    //     lambda(2,-2) = Dx + Dy + 4*Dz
+    //     amp(2,-2) = 0.75*sin(theta)^4*sin(2*phi)^2 = 3*(l^2)*(m^2)
+    double m_m2 = 3*dot1_2*dot2_2;
+    //     m=-1 term:
+    //     lambda(2,-1) = Dx + 4*Dy + Dz
+    //     amp(2,-1) = 0.75*sin(2*theta)^2*cos(phi)^2 = 3*(l^2)*(n^2)
+    double m_m1 = 3*dot1_2*dot3_2;
+    //     m=0 term:
+    //     lambda(2,0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
+    //         Dav = (Dx + Dy + Dz)/3 
+    //         Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
+    //     amp(2,0) = (w/N)^2*0.25*[3*cos(theta)^2-1]^2 +
+    //                (u/N)^2*0.75*sin(theta)^4*cos(2*phi)^2 -
+    //                (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
+    //         u = sqrt(3)*(Dx - Dy)
+    //         delta = 3*sqrt(Dav*Dav - Dpr*Dpr)
+    //         w = 2*Dz - Dx - Dy + 2*delta
+    //         N = 2*sqrt(delta*w)
+    delta = 3 * sqrt_Dav_Dpr;
+    double dot1_4 = dot1_2 * dot1_2;
+    double dot2_4 = dot2_2 * dot2_2;
+    double dot3_4 = dot3_2 * dot3_2;
+    double da = 0.25 * ( 3*(dot1_4 + dot2_4 + dot3_4) - 1);
+    double ea = 0;
+    if ( delta > Constants::SMALL) { 
+      double epsx = 3*(dx-Dav)/delta;
+      double epsy = 3*(dy-Dav)/delta;
+      double epsz = 3*(dz-Dav)/delta;
+      double d2d3 = dot2*dot3;
+      double d1d3 = dot1*dot3;
+      double d1d2 = dot1*dot2;
+      ea = epsx*(3*dot1_4 + 6*(d2d3*d2d3) - 1) + 
+           epsy*(3*dot2_4 + 6*(d1d3*d1d3) - 1) + 
+           epsz*(3*dot3_4 + 6*(d1d2*d1d2) - 1);
+      ea /= 12;
+    }
+    double m_0 = da + ea;
+    //     m=+1 term:
+    //     lambda(2,+1) = 4*Dx + Dy + Dz
+    //     amp(2,+1) = 0.75*sin(2*theta)^2*sin(phi)^2 
+    double m_p1 = 3*dot2_2*dot3_2;
+    //     m=+2 term:
+    //     lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav = Dpr*Dpr)]
+    //     amp(2,+2) = (u/n)^2*0.25*[3*cos(theta)^2-1]^2 +
+    //                 (w/n)^2*0.75*sin(theta)^4*cos(2*phi)^2 +
+    //                 (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
+    double m_p2 = da - ea;
+    // Sum decay constants and weights for l=2 m=-2...2
+    Yvals[nvec] = (m_m2 / lambda[0]) + (m_m1 / lambda[1]) + (m_0 / lambda[2]) +
+                  (m_p1 / lambda[3]) + (m_p2 / lambda[4]);
+    //sumc2_[nvec] = m_m2 + m_m1 + m_0 + m_p1 + m_p2;
+  }
+
+  return 0;
+}
+
+// -----------------------------------------------
+int AsymmetricFxn_L1(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::Darray& Yvals) 
+{
+  int n_cols = 3;
+  int info, lwork = 102;
+  Matrix_3x3 d_tensor;
+  Vec3 d_xyz;
+  double work[102];
+
+  // Convert input Q to Diffusion tensor D
+  Q_to_D(Qin, d_tensor);
+  // Diagonalize D; it is assumed workspace (work, lwork) set up prior 
+  // to this call.
+  // NOTE: Due to the fortran call, the eigenvectors are returned in COLUMN
+  //       MAJOR order.
+  dsyev_((char*)"Vectors",(char*)"Upper", n_cols, d_tensor.Dptr(), n_cols, 
+         d_xyz.Dptr(), work, lwork, info);
+
+  double lambda[3];
+  double dx = d_xyz[0];
+  double dy = d_xyz[1];
+  double dz = d_xyz[2];
+
+  // DEBUG
+  //printMatrix("Dxyz",Dxyz,1,3);
+  //printMatrix("Dvec",matrix_D,3,3);
+
+  // tau = sum(m){amp(l,m)/lambda(l,m)}
+  // See Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY; 
+  // Prog. Nuc. Mag. Res. Spec., 38, 197 (2001) for details, Table 3 in 
+  // particular. Only weights need to be computed for each vector, decay 
+  // constants can be computed once. Three decay constants correspond 
+  // to l=1, m=-1,0,+1
+
+  // l=1, m=-1 term: lambda(1,-1) = Dy + Dz
+  lambda[0] = dy + dz;
+  // l=1, m=0 term:  lambda(1, 0) = Dx + Dy
+  lambda[1] = dx + dy;
+  // l=1, m=+1 term: lambda(1,+1) = Dx + Dz
+  lambda[2] = dx + dz;
+
+  // Check all normalization factors for 0.0, which can lead to inf values
+  // propogating throughout the calc. Set to SMALL instead; will get 
+  // very large numbers but should still not overflow.
+  for (int i = 0; i < 3; i++) 
+    if (lambda[i] < Constants::SMALL) lambda[i] = Constants::SMALL;
+
+  // Loop over all random vectors
+  int nvec = 0; // index into tau1, tau2, sumc2
+  DataSet_Vector const& random_vectors = static_cast<DataSet_Vector const&>( *Xvals );
+  for (DataSet_Vector::const_iterator randvec = random_vectors.begin();
+                                      randvec != random_vectors.end();
+                                    ++randvec, ++nvec)
+  {
+    // Rotate vector i into D frame
+    // This is an inverse rotation. Since matrix_D is in column major order
+    // however, do a normal rotation instead.
+    Vec3 rotated_vec = d_tensor * (*randvec);
+    double dot1 = rotated_vec[0];
+    double dot2 = rotated_vec[1];
+    double dot3 = rotated_vec[2];
+    //mprintf("DBG: dot1-3= %10.5g%10.5g%10.5g\n",dot1,dot2,dot3);
+    
+    // assuming e(3)*n = cos(theta), e(1)*n = sin(theta)*cos(phi),
+    // e(2)*n = sin(theta)*sin(phi), theta >= 0;
+    // sin(theta) = sqrt(1 - cos(theta)^2) and theta = tan^-1[sin(theta)/cos(theta)];
+    // phi = tan^-1[sin(phi)/cos(phi)] = tan^-1[(e(2)*n)/(e(1)*n)]
+    double theta = atan2( sqrt( 1 - (dot3*dot3) ), dot3 );
+    double phi = atan2( dot2, dot1 );
+
+    // Pre-calculate sines and cosines
+    double sintheta = sin(theta);
+    double costheta = cos(theta);
+    double sinphi = sin(phi);
+    double cosphi = cos(phi);
+
+    // ----- Compute correlation time for l=1
+    // tau(l=1) = [sin(theta)^2*cos(phi)^2]/(Dy+Dz) +
+    //            [sin(theta)^2*sin(phi)^2]/(Dx+Dz) +
+    //            [cos(theta)^2           ]/(Dx+Dy)
+    double sintheta2 = sintheta * sintheta;
+    //     cth2=cth*cth
+    //     sphi2=sphi*sphi
+    //     cphi2=cphi*cphi
+    Yvals[nvec] = ((sintheta2 * (cosphi*cosphi)) / lambda[0]) +
+                  ((sintheta2 * (sinphi*sinphi)) / lambda[2]) +
+                  ((costheta*costheta)           / lambda[1]);
+  }
+
+  return 0;
+}
+
+// =============================================================================
+
 // Action_Rotdif::chi_squared()
 /** Given Q, calculate effective D values for random_vectors with full 
   * anisotropy and compare to the effective D values in D_eff. Sets
@@ -1264,6 +1517,7 @@ int Action_Rotdif::Tensor_Fit(Vec6& vector_q) {
   dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor_.Dptr(), n_cols, 
          D_XYZ_.Dptr(), &wkopt, lwork_, info);
   lwork_ = (int) wkopt;
+  mprintf("DEBUG: dsyev optimal work= %i\n", lwork_);
   work_ = new double[ lwork_ ];
   // Diagonalize D_tensor
   dsyev_((char*)"Vectors",(char*)"Upper", n_cols, D_tensor_.Dptr(), n_cols, 
@@ -1736,8 +1990,28 @@ void Action_Rotdif::Print() {
   Q_anisotropic[3] = Q_isotropic[3];
   Q_anisotropic[4] = Q_isotropic[4];
   Q_anisotropic[5] = Q_isotropic[5];
-  Simplex_min( Q_anisotropic );
 
+  Simplex_min( Q_anisotropic );
+/*
+  SimplexMin minimizer;
+  SimplexMin::SimplexFunctionType fxn;
+  tau1_.resize(nvecs_);
+  tau2_.resize(nvecs_);
+  if (olegendre_ == 1) {
+    fxn = AsymmetricFxn_L1;
+    Tau_ = &tau1_;
+  } else {
+    fxn = AsymmetricFxn_L2;
+    Tau_ = &tau2_;
+  }
+  SimplexMin::Darray tempQ(6);
+  for (unsigned int i = 0; i < 6; i++)
+    tempQ[i] = Q_anisotropic[i]; 
+  minimizer.Minimize(fxn, tempQ, &random_vectors_, *Tau_, delqfrac_,
+                     amoeba_itmax_, amoeba_ftol_, RNgen_);
+  for (unsigned int i = 0; i < 6; i++)
+    Q_anisotropic[i] = tempQ[i]; 
+*/
   // Brute force grid search
   if (do_gridsearch_)
     Grid_search( Q_anisotropic, 5 );
