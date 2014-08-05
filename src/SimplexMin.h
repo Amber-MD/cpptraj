@@ -8,6 +8,7 @@ class SimplexMin {
     /** Function that takes X values and parameters and calculates new Y values. */
     typedef int (*SimplexFunctionType)(DataSet*, Darray const&, Darray&);
     SimplexMin() : fxn_(0), Xvals_(0), final_chisq_(0.0) {}
+    /// Function, Params, X, Y, delqfrac, itmax, tolerance, rn generator
     int Minimize(SimplexFunctionType, Darray&, DataSet*, Darray const&,
                  double, int, double, Random_Number&);
     Darray const& FinalY() const { return Ynew_; }

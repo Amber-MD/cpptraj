@@ -1069,20 +1069,20 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
   iter = 0;
   loop1 = true;
   while (loop1) {
-    mprintf("Hit loop one %6i\n",iter);
+//    mprintf("Hit loop one %6i\n",iter);
     for (int n = 0; n < SM_NP; n++) {
       psum[n] = 0;
       for (int m = 0; m < SM_NP1; m++) { 
-        mprintf("Xsmplx %6i%6i%10.5g\n",m,n,xsmplx[m][n]);
-        mprintf("Ysearch %6i%10.5g\n",m,ysearch[m]);
+//        mprintf("Xsmplx %6i%6i%10.5g\n",m,n,xsmplx[m][n]);
+//        mprintf("Ysearch %6i%10.5g\n",m,ysearch[m]);
         psum[n] += xsmplx[m][n];
       }
     }
     loop2 = true;
     while (loop2) {
-      mprintf("Hit loop two %6i\n",iter);
-      for (int n = 0; n < SM_NP; n++)
-        mprintf("\tPsum %6i%10.5g\n",n,psum[n]);
+//      mprintf("Hit loop two %6i\n",iter);
+//      for (int n = 0; n < SM_NP; n++)
+//        mprintf("\tPsum %6i%10.5g\n",n,psum[n]);
       ilo = 0;
       if (ysearch[0] > ysearch[1]) {
         ihi = 0;
@@ -1100,16 +1100,16 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
           if (i != ihi) inhi = i;
         }
       }  
-      mprintf("Yihi Yilo = %10.5g%10.5g\n",ysearch[ihi],ysearch[ilo]);
-      mprintf("\tYihi Yilo = %6i%6i\n",ihi+1,ilo+1);
+//      mprintf("Yihi Yilo = %10.5g%10.5g\n",ysearch[ihi],ysearch[ilo]);
+//      mprintf("\tYihi Yilo = %6i%6i\n",ihi+1,ilo+1);
       double abs_yhi_ylo = ysearch[ihi] - ysearch[ilo];
       if (abs_yhi_ylo < 0) abs_yhi_ylo = -abs_yhi_ylo;
       double abs_yhi = ysearch[ihi];
       if (abs_yhi < 0) abs_yhi = -abs_yhi;
       double abs_ylo = ysearch[ilo];
       if (abs_ylo < 0) abs_ylo = -abs_ylo;
-      mprintf("Abs(yihi - yilo)=%g, Abs(yihi)=%g, Abs(yilo)=%g\n",
-              abs_yhi_ylo,abs_yhi,abs_ylo);
+//      mprintf("Abs(yihi - yilo)=%g, Abs(yihi)=%g, Abs(yilo)=%g\n",
+//              abs_yhi_ylo,abs_yhi,abs_ylo);
       rtol = 2.0 * (abs_yhi_ylo / (abs_yhi + abs_ylo));
       if (rtol < amoeba_ftol_) {
         swap = ysearch[0];
@@ -1122,23 +1122,23 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
         }
         return iter;
       }
-      mprintf("\tIn amoeba, iter=%i, rtol=%15.6g\n",iter,rtol); 
+//      mprintf("\tIn amoeba, iter=%i, rtol=%15.6g\n",iter,rtol); 
 
       if (iter >= amoeba_itmax_) {
-        mprintf("Max iterations (%i) exceeded in amoeba.\n",amoeba_itmax_);
+//        mprintf("Max iterations (%i) exceeded in amoeba.\n",amoeba_itmax_);
         return iter;
       }
       iter += 2;
 
       double ytry = Amotry(xsmplx, ysearch, psum, ihi, -1.0);
-      mprintf("\tYtry %6i%10.5g\n",iter,ytry);
+//      mprintf("\tYtry %6i%10.5g\n",iter,ytry);
       if (ytry <= ysearch[ilo]) { 
         ytry = Amotry(xsmplx, ysearch, psum, ihi, 2.0);
-        mprintf("\tCase 1 %10.5g\n",ytry);
+//        mprintf("\tCase 1 %10.5g\n",ytry);
       } else if (ytry >= ysearch[inhi]) {
         double ysave = ysearch[ihi];
         ytry = Amotry(xsmplx, ysearch, psum, ihi, 0.5);
-        mprintf("\tCase 2 %10.5g\n",ytry);
+//        mprintf("\tCase 2 %10.5g\n",ytry);
         if (ytry >= ysave) {
           for (int i=0; i < SM_NP1; i++) {
             if (i != ilo) {
@@ -1154,7 +1154,7 @@ int Action_Rotdif::Amoeba(double xsmplx[SM_NP1][SM_NP], double *ysearch) {
           loop2 = false;
         }
       } else {
-        mprintf("\tCase 3\n");
+//        mprintf("\tCase 3\n");
         iter--;
       }
       // GO TO 2
@@ -1239,13 +1239,13 @@ int Action_Rotdif::Simplex_min(Vec6& Q_vector) {
         }
       }
     }
-    mprintf("--------------------\n");
-    for (int j = 0; j < SM_NP1; j++)
-      for (int k = 0; k < SM_NP; k++)
-        mprintf("xsimplex[%i,%i]= %g\n", j, k, xsmplx[j][k]);
-    for (int k = 0; k < SM_NP; k++)
-      mprintf("xsearch[%i]= %g\n", k, xsearch[k]);
-    mprintf("--------------------\n");
+//    mprintf("--------------------\n");
+//    for (int j = 0; j < SM_NP1; j++)
+//      for (int k = 0; k < SM_NP; k++)
+//        mprintf("xsimplex[%i,%i]= %g\n", j, k, xsmplx[j][k]);
+//    for (int k = 0; k < SM_NP; k++)
+//      mprintf("xsearch[%i]= %g\n", k, xsearch[k]);
+//    mprintf("--------------------\n");
 
     // As to amoeba, chi-squared must be evaluated for all
     // vertices in the initial simplex.
@@ -1254,7 +1254,7 @@ int Action_Rotdif::Simplex_min(Vec6& Q_vector) {
         xsearch[k] = xsmplx[j][k];
       }
       ysearch[j] = chi_squared(xsearch);
-      mprintf("ysearch[%i]= %g\n", j, ysearch[j]);
+//      mprintf("ysearch[%i]= %g\n", j, ysearch[j]);
     }
 
     // Average the vertices and compute details of the average.
