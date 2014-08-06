@@ -27,66 +27,8 @@ extern "C" {
   // DEBUG
   //void dgemv_(char*,int&,int&,double&,double*,int&,double*,int&,double&,double*,int&);
 }
-
-// Q_to_D()
-/** Convert column vector Q with format:
-  *   {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
-  * to diffusion tensor D via the formula:
-  *   D = 3*Diso*I - 2Q
-  * where
-  *   Diso = trace(Q) / 3
-  *
-  * J. Biomol. NMR 9, 287 (1997) L. K. Lee, M. Rance, W. J. Chazin, A. G. Palmer
-  * it has been assumed that the Q(l=1) has the same relationship to
-  * D(l=1) as in the l=2 case; we have not yet proved this for the
-  * non-symmetric case, but it is true for the axially symmetric case
-  * also, Deff(l=1) = 1/(2*tau(l=1)) = e^T * Q(l=1) * e yields the 
-  * correct values for tau(l=1) (known from Woessner model type 
-  * correlation functions) along principal axe
-  */
-static void Q_to_D(SimplexMin::Darray const& Q_, Matrix_3x3& D) {
-  double tq = Q_[0] + Q_[1] + Q_[2];
-  D[0] = tq - (2 * Q_[0]); // tq-2Qxx
-  D[1] = -2 * Q_[3];       // -2Qxy
-  D[2] = -2 * Q_[5];       // -2Qxz
-  D[3] = D[1];            // -2Qyx
-  D[4] = tq - (2 * Q_[1]); // tq-2Qyy
-  D[5] = -2 * Q_[4];       // -2Qyz
-  D[6] = D[2];            // -2Qzx
-  D[7] = D[5];            // -2Qzy
-  D[8] = tq - (2 * Q_[2]); // tq-2Qzz
-}
-
-// D_to_Q()
-/** Given diffusion tensor D[9], calculate Q[6] where Q is:
-  *   Q = {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
-  * from
-  *   Q = (3*Dav*I - D) / 2
-  * where Dav = trace(D). See Q_to_D for more discussion.
-  */
-static void D_to_Q(Matrix_3x3 const& D, SimplexMin::Darray& Q_) {
-  double td = D[0] + D[4] + D[8];
-  Q_[0] = (td - D[0]) / 2; // Qxx
-  Q_[1] = (td - D[4]) / 2; // Qyy
-  Q_[2] = (td - D[8]) / 2; // Qzz
-  Q_[3] = -D[1] / 2; // Qxy
-  Q_[4] = -D[5] / 2; // Qyz
-  Q_[5] = -D[2] / 2; // Qxz
-}
 #endif
 
-static void printMatrix(const char *Title, const double *U, int mrows, int ncols) {
-  mprintf("    %s",Title);
-  int usize = mrows * ncols;
-  for (int i = 0; i < usize; i++) {
-    if ( (i%ncols)==0 ) mprintf("\n");
-    mprintf(" %10.5g",U[i]);
-  }
-  mprintf("\n");
-}
-
-
-// -----------------------------------------------------------------------------
 // CONSTRUCTOR
 Action_Rotdif::Action_Rotdif() :
   debug_(0),
@@ -260,7 +202,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   return Action::OK;
 }
 
-// Action_Rotdif::setup()
+// Action_Rotdif::Setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   * Also determine whether imaging should be performed.
   */
@@ -287,7 +229,7 @@ Action::RetType Action_Rotdif::Setup(Topology* currentParm, Topology** parmAddre
   return Action::OK;  
 }
 
-// Action_Rotdif::action()
+// Action_Rotdif::DoAction()
 /** Calculate and store the rotation matrix for frame to reference.
   */
 Action::RetType Action_Rotdif::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
@@ -302,7 +244,115 @@ Action::RetType Action_Rotdif::DoAction(int frameNum, Frame* currentFrame, Frame
   return Action::OK;
 } 
 
-// ---------- ROTATIONAL DIFFUSION CALC ROUTINES -------------------------------
+// ========== ROTATIONAL DIFFUSION CALC ROUTINES ===============================
+// Q_to_D()
+/** Convert column vector Q with format:
+  *   {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
+  * to diffusion tensor D via the formula:
+  *   D = 3*Diso*I - 2Q
+  * where
+  *   Diso = trace(Q) / 3
+  *
+  * J. Biomol. NMR 9, 287 (1997) L. K. Lee, M. Rance, W. J. Chazin, A. G. Palmer
+  * it has been assumed that the Q(l=1) has the same relationship to
+  * D(l=1) as in the l=2 case; we have not yet proved this for the
+  * non-symmetric case, but it is true for the axially symmetric case
+  * also, Deff(l=1) = 1/(2*tau(l=1)) = e^T * Q(l=1) * e yields the 
+  * correct values for tau(l=1) (known from Woessner model type 
+  * correlation functions) along principal axe
+  */
+static void Q_to_D(SimplexMin::Darray const& Q_, Matrix_3x3& D) {
+  double tq = Q_[0] + Q_[1] + Q_[2];
+  D[0] = tq - (2 * Q_[0]); // tq-2Qxx
+  D[1] = -2 * Q_[3];       // -2Qxy
+  D[2] = -2 * Q_[5];       // -2Qxz
+  D[3] = D[1];            // -2Qyx
+  D[4] = tq - (2 * Q_[1]); // tq-2Qyy
+  D[5] = -2 * Q_[4];       // -2Qyz
+  D[6] = D[2];            // -2Qzx
+  D[7] = D[5];            // -2Qzy
+  D[8] = tq - (2 * Q_[2]); // tq-2Qzz
+}
+
+// D_to_Q()
+/** Given diffusion tensor D[9], calculate Q[6] where Q is:
+  *   Q = {Qxx, Qyy, Qzz, Qxy, Qyz, Qxz}
+  * from
+  *   Q = (3*Dav*I - D) / 2
+  * where Dav = trace(D). See Q_to_D for more discussion.
+  */
+static void D_to_Q(Matrix_3x3 const& D, SimplexMin::Darray& Q_) {
+  double td = D[0] + D[4] + D[8];
+  Q_[0] = (td - D[0]) / 2; // Qxx
+  Q_[1] = (td - D[4]) / 2; // Qyy
+  Q_[2] = (td - D[8]) / 2; // Qzz
+  Q_[3] = -D[1] / 2; // Qxy
+  Q_[4] = -D[5] / 2; // Qyz
+  Q_[5] = -D[2] / 2; // Qxz
+}
+
+// printMatrix()
+static void printMatrix(const char *Title, const double *U, int mrows, int ncols) {
+  mprintf("    %s",Title);
+  int usize = mrows * ncols;
+  for (int i = 0; i < usize; i++) {
+    if ( (i%ncols)==0 ) mprintf("\n");
+    mprintf(" %10.5g",U[i]);
+  }
+  mprintf("\n");
+}
+
+// chi_squared()
+/** Calculate chi-squared of residual between Yvals and newY = fxn(Xvals).
+  */
+static double chi_squared(SimplexMin::SimplexFunctionType fxn,
+                          SimplexMin::Darray const& Qin, DataSet* Xvals,
+                                  std::vector<double> const& Yvals,
+                                  std::vector<double>& newY)
+{
+#ifdef NO_MATHLIB
+  return -1;
+#else
+  fxn(Xvals, Qin, newY);
+
+  double chisq = 0.0;
+  for (unsigned int i = 0; i != Yvals.size(); i++) {
+    double diff = Yvals[i] - newY[i];
+    chisq += (diff * diff); 
+  }
+
+  return chisq;  
+#endif
+}
+
+// calculate_D_properties()
+/** Given the principal components of D, calculate the isotropic diffusion
+  * constant (Dav = (Dx + Dy + Dz) / 3), anisotropy (Dan = 2Dz / (Dx + Dy)),
+  * and rhombicity (Drh = (3/2)(Dy - Dx) / (Dz - 0.5(Dx + Dy)).
+  */
+static Vec3 calculate_D_properties(Vec3 const& Dxyz) {
+  double Dx = Dxyz[0];
+  double Dy = Dxyz[1];
+  double Dz = Dxyz[2];
+  return Vec3( (Dx + Dy + Dz) / 3,
+               (2 * Dz) / (Dx + Dy),
+               (1.5 * (Dy - Dx)) / (Dz - (0.5 * (Dx + Dy))) );
+}
+
+/** Diagonalize 3x3 matrix Mat; eigenvectors are returned in columns due to
+  * the fortran call. Workspace is fixed at 102, optimal value returned for
+  * 3x3 matrix by LAPACK. Eigenvalues returned in Vec.
+  */
+static void Diagonalize(double* Mat, double* Vec) {
+  int n_cols = 3, lwork = 102, info;
+  double work[102];
+# ifndef NO_MATHLIB
+  dsyev_((char*)"Vectors", (char*)"Upper", n_cols, Mat, n_cols,
+         Vec, work, lwork, info);
+# endif
+}
+
+// =============================================================================
 // Action_Rotdif::RandomVectors()
 /** If no input file is specified by randvecIn, generate nvecs vectors of length 
   * 1.0 centered at the coordinate origin that are randomly oriented. The x,
@@ -327,7 +377,6 @@ DataSet_Vector Action_Rotdif::RandomVectors() {
       mprinterr("Error: Could not open random vectors input file %s",randvecIn_.c_str());
       return XYZ;
     }
-    //vecIn.SetupBuffer(); // NOTE: Use CpptrajFile internal buffer (1024 chars)
     Vec3 xIn;
     for (int i = 0; i < nvecs_; i++) {
       const char* buffer = vecIn.NextLine();
@@ -360,7 +409,7 @@ DataSet_Vector Action_Rotdif::RandomVectors() {
     } else {
       int idx = 1;
       for (DataSet_Vector::const_iterator vec = XYZ.begin(); vec != XYZ.end(); ++vec)
-        rvout.Printf("%6i  %15.8g  %15.8g  %15.8g\n",
+        rvout.Printf("%6i  %15.8f  %15.8f  %15.8f\n",
                      idx++, (*vec)[0], (*vec)[1], (*vec)[2]);
       rvout.CloseFile();
     }
@@ -369,180 +418,39 @@ DataSet_Vector Action_Rotdif::RandomVectors() {
   return XYZ;
 }
 
-// Action_Rotdif::compute_corr()
-/** Given a normalized vector that has been randomly rotated itotframes 
-  * times, compute the time correlation functions of the vector.
-  * \param rotated_vectors array of vector coords for each frame 
-  * \param maxdat Maximum length to compute time correlation functions (units of 'frames')
-  * \param p2 Will be set with values for correlation function, l=2
-  * \param p1 Will be set with values for correlation function, l=1
-  */
-// TODO: Make rotated_vectors const&
-int Action_Rotdif::compute_corr(DataSet_Vector const& rotated_vectors, int maxdat,
-                                std::vector<double>& p2, std::vector<double>& p1)
-{
-  // Initialize p1 and p2
-  p1.assign(maxdat, 0.0);
-  p2.assign(maxdat, 0.0);
-  int itotframes = rotated_vectors.Size();
-  // i loop:  each value of i is a value of delay (correlation function argument)
-  for (int i = 0; i < maxdat; i++) {
-    int jmax = itotframes - i;
-    for (int j = 0; j < jmax; j++) {
-      // Dot vector j with vector j+i 
-      double dot = rotated_vectors[j] * rotated_vectors[j+i];
-      //printf("DBG i=%6i j=%6i k=%i  %f\n",i,j,i+j,dot);
-      p2[i] += ((1.5*dot*dot) - 0.5);
-      p1[i] += dot;
-    }
-    double one_jmax = (double) jmax;
-    one_jmax = 1 / one_jmax;
-    p2[i] = p2[i] * one_jmax;
-    p1[i] = p1[i] * one_jmax;
-  }
- 
-  return 0; 
-}
-
-// Action_Rotdif::fft_compute_corr()
-int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int nsteps, 
-                                    std::vector<double>& p2, int order)
-{
-  int n_of_vecs = rotated_vectors.Size();
-  // Zero output array
-  p2.assign(nsteps, 0.0);
-
-  // Calculate correlation fn
-  CorrF_FFT pubfft( n_of_vecs );
-  ComplexArray data1 = pubfft.Array();
-  // Loop over m = -olegendre, ..., +olegendre
-  for (int midx = -order; midx <= order; ++midx) { 
-    data1.Assign(rotated_vectors.SphericalHarmonics(midx));
-    // Pad with zeros at the end
-    // TODO: Does this always have to be done or can it just be done once
-    data1.PadWithZero( n_of_vecs );
-    pubfft.AutoCorr(data1);
-    // Sum into pX
-    for (int i = 0; i < nsteps; ++i)
-      p2[i] += data1[i*2];
-  }
-  // Normalize correlation fn
-  // 4/3*PI and 4/5*PI due to spherical harmonics addition theorem
-  double norm = DataSet_Vector::SphericalHarmonicsNorm( order );
-  for (int i = 0; i < nsteps; ++i)
-    p2[i] *= (norm / (n_of_vecs - i));
-
-  return 0;
-}
-
-// Action_Rotdif::calcEffectiveDiffusionConst()
-/** computes effect diffusion constant for a vector using the integral over
-  * its correlation function as input. Starting with definition:
-  *
-  *   6*D=integral[0,inf;C(t)] 
-  *
-  * C(t) has already been integrated from ti -> tf yielding F(ti,tf).
-  * Iteratively solves the equation 
-  *
-  *   D(i+1)=[exp(6*D(i)*ti)-exp(6*D(i)*tf)]/[6*F(ti,tf)]
-  *
-  * (numerator obtained by integrating exp(6*D*t) from ti -> tf)
-  *
-  * Modified so that itsolv now solves
-  *
-  * F(ti,tf;C(t)]=integral[ti,tf;C(t)]
-  *
-  * D(i+1)={exp[l*(l+1)*D(i)*ti]-exp[l*(l+1)*D(i)*tf)]}/[l*(l+1)*F(ti,tf)]
-  * /param f Integral of Cl(t) from ti to tf
-  * /return Effective value of D
-  */
-double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
-// Class variables used:
-//   ti,tf: Integration limits.
-//   itmax: Maximum number of iterations in subroutine itsolv.
-//   delmin: convergence criterion used in subroutine itsolv;
-//           maximum accepted fractional change in successive 
-//           iterations
-//   d0: initial guess for diffusion constant; accurate estimate not needed
-//   olegendre: order of Legendre polynomial in the correlation function <P(l)>
-//
-// Solves the equation 6*D=[exp(-6*D*ti)-exp(-6*D*tf)]/F(ti,tf) iteratively, 
-// by putting 6*D(i+1)=[exp(-6*D(i)*ti)-exp(-6*D(i)*tf)]/F(ti,tf)
-// where F(ti,tf) is input (integral[dt*C(t)] from ti->tf).
-  double l, d, del, fac, di; 
-  int i;
-
-  // Always use d0 as initial guess
-  di = d0_;
-  l = (double) olegendre_;
-  fac = (l*(l+1));
-  i=1;
-  d = 0;
-  del = DBL_MAX;
-  while ( i<=itmax_ && del>delmin_) {
-     d = ( exp(-fac*di*ti_) - exp(-fac*di*tf_) );
-     d = d / (fac*f);
-     del = (d-di)/di;
-     if (del < 0) del = -del; // Abs value
-     if (debug_>2)
-       mprintf("ITSOLV: %6i  %15.8g  %15.8g  %15.8g\n", i,di,d,del);
-     di = d;
-     ++i;
-  }
-  if ( i>itmax_ && del>delmin_) {
-     mprintf("\tWarning, itsolv did not converge: # iterations=%i, fractional change=%lf\n",
-             i, del);
-  } else {
-    if (debug_>1) mprintf("\tITSOLV Converged: # iterations=%i\n",i);
-  }
-  //mprintf("DEBUG: Final D= %g\n", d);
-  return d; 
-}
-
-// PrintMatrix()
-/*static void PrintMatrix(CpptrajFile &outfile, const char *Title, double *U, 
-                        int mrows, int ncols) 
-{
-  outfile.Printf("    %s",Title);
-  int usize = mrows * ncols;
-  for (int i = 0; i < usize; i++) {
-    if ( (i%ncols)==0 ) outfile.Printf("\n");
-    outfile.Printf(" %10.5lf",U[i]);
-  }
-  outfile.Printf("\n");
-}*/
+// =============================================================================
+// Action_Rotdif::PrintMatrix()
 void Action_Rotdif::PrintMatrix(CpptrajFile& outfile, const char* Title, Matrix_3x3 const& U)
 {
   outfile.Printf("    %s\n",Title);
-  outfile.Printf(" %10.5g %10.5g %10.5g\n %10.5g %10.5g %10.5g\n %10.5g %10.5g %10.5g\n",
+  outfile.Printf(" %12.5e %12.5e %12.5e\n %12.5e %12.5e %12.5e\n %12.5e %12.5e %12.5e\n",
                  U[0], U[1], U[2], U[3], U[4], U[5], U[6], U[7], U[8]);
 }
 
+// Action_Rotdif::PrintVector()
 void Action_Rotdif::PrintVector(CpptrajFile& outfile, const char* Title, Vec3 const& V)
 {
   outfile.Printf("    %s\n",Title);
-  outfile.Printf(" %10.5g %10.5g %10.5g\n", V[0], V[1], V[2]);
+  outfile.Printf(" %12.5e %12.5e %12.5e\n", V[0], V[1], V[2]);
 }
 
+// Action_Rotdif::PrintVec6()
 void Action_Rotdif::PrintVec6(CpptrajFile& outfile, const char* Title, SimplexMin::Darray const& V)
 {
   outfile.Printf("    %s\n",Title);
-  outfile.Printf(" %10.5g %10.5g %10.5g %10.5g %10.5g %10.5g\n", 
+  outfile.Printf(" %12.5e %12.5e %12.5e %12.5e %12.5e %12.5e\n", 
                  V[0], V[1], V[2], V[3], V[4], V[5]);
 }
 
-/** Diagonalize 3x3 matrix Mat; eigenvectors are returned in columns due to
-  * the fortran call. Workspace is fixed at 102, optimal value returned for
-  * 3x3 matrix by LAPACK. Eigenvalues returned in Vec.
-  */
-static void Diagonalize(double* Mat, double* Vec) {
-  int n_cols = 3, lwork = 102, info;
-  double work[102];
-
-  dsyev_((char*)"Vectors", (char*)"Upper", n_cols, Mat, n_cols,
-         Vec, work, lwork, info);
+// Action_Rotdif::PrintTau()
+void Action_Rotdif::PrintTau(std::vector<double> const& Tau)
+{
+  outfile_.Printf("     taueff(obs) taueff(calc)\n");
+  for (int i = 0; i < nvecs_; i++)
+    outfile_.Printf("%5i %12.5e %12.5e\n", i+1, D_eff_[i], Tau[i]);
 }
 
+// =============================================================================
 /** Compute tau(l=2) with full anisotropy given vectors and Q. Q is converted
   * to the diffusion tensor D, and the eigenvectors/eigenvalues are computed.
   * n*ez = cos(theta), n*ey = sin(theta)*sin(phi), n*ex = sin(theta)*cos(phi)
@@ -620,7 +528,7 @@ int AsymmetricFxn_L2(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
 //  mprintf("\n");
 
   // Loop over all random vectors
-  int nvec = 0; // index into tau1, tau2, sumc2
+  int nvec = 0; // index into Yvals, sumc2
   DataSet_Vector const& random_vectors = static_cast<DataSet_Vector const&>( *Xvals );
   for (DataSet_Vector::const_iterator randvec = random_vectors.begin();
                                       randvec != random_vectors.end();
@@ -746,7 +654,7 @@ int AsymmetricFxn_L1(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
     if (lambda[i] < Constants::SMALL) lambda[i] = Constants::SMALL;
 
   // Loop over all random vectors
-  int nvec = 0; // index into tau1, tau2, sumc2
+  int nvec = 0; // index into Yvals 
   DataSet_Vector const& random_vectors = static_cast<DataSet_Vector const&>( *Xvals );
   for (DataSet_Vector::const_iterator randvec = random_vectors.begin();
                                       randvec != random_vectors.end();
@@ -790,43 +698,7 @@ int AsymmetricFxn_L1(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
   return 0;
 }
 
-// Action_Rotdif::chi_squared()
-/** Calculate chi-squared of residual between Yvals and newY = fxn(Xvals).
-  */
-static double chi_squared(SimplexMin::SimplexFunctionType fxn,
-                          SimplexMin::Darray const& Qin, DataSet* Xvals,
-                                  std::vector<double> const& Yvals,
-                                  std::vector<double>& newY)
-{
-#ifdef NO_MATHLIB
-  return -1;
-#else
-  fxn(Xvals, Qin, newY);
-
-  double chisq = 0.0;
-  for (unsigned int i = 0; i != Yvals.size(); i++) {
-    double diff = Yvals[i] - newY[i];
-    chisq += (diff * diff); 
-  }
-
-  return chisq;  
-#endif
-}
-
-// calculate_D_properties()
-/** Given the principal components of D, calculate the isotropic diffusion
-  * constant (Dav = (Dx + Dy + Dz) / 3), anisotropy (Dan = 2Dz / (Dx + Dy)),
-  * and rhombicity (Drh = (3/2)(Dy - Dx) / (Dz - 0.5(Dx + Dy)).
-  */
-static Vec3 calculate_D_properties(Vec3 const& Dxyz) {
-  double Dx = Dxyz[0];
-  double Dy = Dxyz[1];
-  double Dz = Dxyz[2];
-  return Vec3( (Dx + Dy + Dz) / 3,
-               (2 * Dz) / (Dx + Dy),
-               (1.5 * (Dy - Dx)) / (Dz - (0.5 * (Dx + Dy))) );
-}
-
+// =============================================================================
 // Action_Rotdif::Tensor_Fit()
 /** Based on random_vectors and effective diffusion constants D_eff previously
   * calculated, first find the tensor Q (and therefore D) in the small
@@ -1040,18 +912,17 @@ int Action_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
     At += 6;
   }
   // Convert deff to tau, Output
-  outfile_.Printf("     taueff(obs) taueff(calc)\n");
   double sgn = 0;
   for (int i = 0; i < nvecs_; i++) {
     // For the following chisq fits, convert deff to taueff
     D_eff_[i] = 1 / (6 * D_eff_[i]);
     deff_local[i] = 1 / (6 * deff_local[i]);
-    outfile_.Printf("%5i %10.5g %10.5g\n", i+1, D_eff_[i], deff_local[i]);
     // NOTE: in rotdif code, sig is 1.0 for all nvecs 
     double diff = deff_local[i] - D_eff_[i];
     sgn += (diff * diff);
   }
-  outfile_.Printf("  chisq for above is %15.5g\n\n",sgn);
+  PrintTau( deff_local );
+  outfile_.Printf("  chisq for above is %15.5g\n",sgn);
 
   // Cleanup
   delete[] matrix_At;
@@ -1153,6 +1024,73 @@ int Action_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
 }
 
 // =============================================================================
+// Action_Rotdif::compute_corr()
+/** Given a normalized vector that has been randomly rotated itotframes 
+  * times, compute the time correlation functions of the vector.
+  * \param rotated_vectors array of vector coords for each frame 
+  * \param maxdat Maximum length to compute time correlation functions (units of 'frames')
+  * \param p2 Will be set with values for correlation function, l=2
+  * \param p1 Will be set with values for correlation function, l=1
+  */
+// TODO: Make rotated_vectors const&
+int Action_Rotdif::compute_corr(DataSet_Vector const& rotated_vectors, int maxdat,
+                                std::vector<double>& p2, std::vector<double>& p1)
+{
+  // Initialize p1 and p2
+  p1.assign(maxdat, 0.0);
+  p2.assign(maxdat, 0.0);
+  int itotframes = rotated_vectors.Size();
+  // i loop:  each value of i is a value of delay (correlation function argument)
+  for (int i = 0; i < maxdat; i++) {
+    int jmax = itotframes - i;
+    for (int j = 0; j < jmax; j++) {
+      // Dot vector j with vector j+i 
+      double dot = rotated_vectors[j] * rotated_vectors[j+i];
+      //printf("DBG i=%6i j=%6i k=%i  %f\n",i,j,i+j,dot);
+      p2[i] += ((1.5*dot*dot) - 0.5);
+      p1[i] += dot;
+    }
+    double one_jmax = (double) jmax;
+    one_jmax = 1 / one_jmax;
+    p2[i] = p2[i] * one_jmax;
+    p1[i] = p1[i] * one_jmax;
+  }
+ 
+  return 0; 
+}
+
+// Action_Rotdif::fft_compute_corr()
+int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int nsteps, 
+                                    std::vector<double>& p2, int order)
+{
+  int n_of_vecs = rotated_vectors.Size();
+  // Zero output array
+  p2.assign(nsteps, 0.0);
+
+  // Calculate correlation fn
+  CorrF_FFT pubfft( n_of_vecs );
+  ComplexArray data1 = pubfft.Array();
+  // Loop over m = -olegendre, ..., +olegendre
+  for (int midx = -order; midx <= order; ++midx) { 
+    data1.Assign(rotated_vectors.SphericalHarmonics(midx));
+    // Pad with zeros at the end
+    // TODO: Does this always have to be done or can it just be done once
+    data1.PadWithZero( n_of_vecs );
+    pubfft.AutoCorr(data1);
+    // Sum into pX
+    for (int i = 0; i < nsteps; ++i)
+      p2[i] += data1[i*2];
+  }
+  // Normalize correlation fn
+  // 4/3*PI and 4/5*PI due to spherical harmonics addition theorem
+  double norm = DataSet_Vector::SphericalHarmonicsNorm( order );
+  for (int i = 0; i < nsteps; ++i)
+    p2[i] *= (norm / (n_of_vecs - i));
+
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 // Single exponential function with constant
 double ExpFxn(double tau, CurveFit::Darray const& Params) {
   return ( exp( Params[0] * tau ) );
@@ -1251,7 +1189,71 @@ int Action_Rotdif::DetermineDeffsAlt() {
   return 0;
 }
 
-// =============================================================================
+// -----------------------------------------------------------------------------
+// Action_Rotdif::calcEffectiveDiffusionConst()
+/** computes effect diffusion constant for a vector using the integral over
+  * its correlation function as input. Starting with definition:
+  *
+  *   6*D=integral[0,inf;C(t)] 
+  *
+  * C(t) has already been integrated from ti -> tf yielding F(ti,tf).
+  * Iteratively solves the equation 
+  *
+  *   D(i+1)=[exp(6*D(i)*ti)-exp(6*D(i)*tf)]/[6*F(ti,tf)]
+  *
+  * (numerator obtained by integrating exp(6*D*t) from ti -> tf)
+  *
+  * Modified so that itsolv now solves
+  *
+  * F(ti,tf;C(t)]=integral[ti,tf;C(t)]
+  *
+  * D(i+1)={exp[l*(l+1)*D(i)*ti]-exp[l*(l+1)*D(i)*tf)]}/[l*(l+1)*F(ti,tf)]
+  * /param f Integral of Cl(t) from ti to tf
+  * /return Effective value of D
+  */
+double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
+// Class variables used:
+//   ti,tf: Integration limits.
+//   itmax: Maximum number of iterations in subroutine itsolv.
+//   delmin: convergence criterion used in subroutine itsolv;
+//           maximum accepted fractional change in successive 
+//           iterations
+//   d0: initial guess for diffusion constant; accurate estimate not needed
+//   olegendre: order of Legendre polynomial in the correlation function <P(l)>
+//
+// Solves the equation 6*D=[exp(-6*D*ti)-exp(-6*D*tf)]/F(ti,tf) iteratively, 
+// by putting 6*D(i+1)=[exp(-6*D(i)*ti)-exp(-6*D(i)*tf)]/F(ti,tf)
+// where F(ti,tf) is input (integral[dt*C(t)] from ti->tf).
+  double l, d, del, fac, di; 
+  int i;
+
+  // Always use d0 as initial guess
+  di = d0_;
+  l = (double) olegendre_;
+  fac = (l*(l+1));
+  i=1;
+  d = 0;
+  del = DBL_MAX;
+  while ( i<=itmax_ && del>delmin_) {
+     d = ( exp(-fac*di*ti_) - exp(-fac*di*tf_) );
+     d = d / (fac*f);
+     del = (d-di)/di;
+     if (del < 0) del = -del; // Abs value
+     if (debug_>2)
+       mprintf("ITSOLV: %6i  %15.8g  %15.8g  %15.8g\n", i,di,d,del);
+     di = d;
+     ++i;
+  }
+  if ( i>itmax_ && del>delmin_) {
+     mprintf("\tWarning, itsolv did not converge: # iterations=%i, fractional change=%lf\n",
+             i, del);
+  } else {
+    if (debug_>1) mprintf("\tITSOLV Converged: # iterations=%i\n",i);
+  }
+  //mprintf("DEBUG: Final D= %g\n", d);
+  return d; 
+}
+
 // Action_Rotdif::DetermineDeffs()
 /** Calculate effective diffusion constant for each random vector. 
   * Vectors will be normalized during this phase. First rotate the vector 
@@ -1377,6 +1379,7 @@ int Action_Rotdif::DetermineDeffs() {
   return 0;
 }
 
+// =============================================================================
 // Action_Rotdif::Print()
 /** Main tensorfit calculation.
   * - Read/generate random vectors; analogous to e.g. N-H bond vectors.
@@ -1393,9 +1396,7 @@ int Action_Rotdif::DetermineDeffs() {
   *   minimizer to optimize Q in full anisotropic limit
   */
 void Action_Rotdif::Print() {
-
   mprintf("    ROTDIF:\n");
- 
   // Read/Generate nvecs random vectors
   random_vectors_ = RandomVectors();
   if (random_vectors_.Size() < 1) return;
@@ -1406,8 +1407,8 @@ void Action_Rotdif::Print() {
   //       implicitly transposed), transpose each rotation matrix.
   // NOTE: Is this actually correct? Want inverse rotation?
   for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
-                                      rmatrix != Rmatrices_.end(); rmatrix++) 
-    (*rmatrix).Transpose();
+                                         rmatrix != Rmatrices_.end(); ++rmatrix)
+    rmatrix->Transpose();
   // Print rotation matrices
   if (!rmOut_.empty()) {
     CpptrajFile rmout;
@@ -1416,11 +1417,12 @@ void Action_Rotdif::Print() {
     } else {
       rmout.OpenFile();
       int rmframe=1;
-      for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
-                                             rmatrix != Rmatrices_.end(); rmatrix++) 
+      for (std::vector<Matrix_3x3>::const_iterator rmatrix = Rmatrices_.begin();
+                                                   rmatrix != Rmatrices_.end();
+                                                 ++rmatrix, ++rmframe) 
       {
-        rmout.Printf("%13i %12.9g %12.9g %12.9g %12.9g %12.9g %12.9g %12.9g %12.9g %12.9g\n",
-             rmframe++,
+        rmout.Printf("%13i %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f\n",
+            rmframe,
             (*rmatrix)[0], (*rmatrix)[1], (*rmatrix)[2],
             (*rmatrix)[3], (*rmatrix)[4], (*rmatrix)[5],
             (*rmatrix)[6], (*rmatrix)[7], (*rmatrix)[8]);
@@ -1444,7 +1446,7 @@ void Action_Rotdif::Print() {
     } else {
       dout.OpenFile();
       for (int vec = 0; vec < nvecs_; vec++)
-        dout.Printf("%6i %15.8g\n",vec+1,D_eff_[vec]);
+        dout.Printf("%6i %15.8e\n",vec+1,D_eff_[vec]);
       dout.CloseFile();
     }
   }
@@ -1456,6 +1458,7 @@ void Action_Rotdif::Print() {
 
   // Using Q (small anisotropy) as a guess, calculate Q with
   // full anisotropy
+  mprintf("\tDetermining diffusion tensor with full anisotropy.\n");
   SimplexMin::Darray Q_anisotropic = Q_isotropic;
   // Set up simplex minimizer and function to use.
   SimplexMin minimizer;
@@ -1469,15 +1472,15 @@ void Action_Rotdif::Print() {
   // chi_squared performs diagonalization. The workspace for dsyev should
   // already have been set up in Tensor_Fit.
   double initial_chisq = chi_squared(fxn, Q_anisotropic, &random_vectors_, D_eff_, Tau);
-  outfile_.Printf("Same diffusion tensor, but full anisotropy:\n");
+  outfile_.Printf("\nSame diffusion tensor, but full anisotropy:\n");
   outfile_.Printf("  chi_squared for SVD tensor is %15.5g\n", initial_chisq);
-  outfile_.Printf("     taueff(obs) taueff(calc)\n");
-  for (int i = 0; i < nvecs_; i++) 
-    outfile_.Printf("%5i %10.5g %10.5g %10.5g\n",i+1,D_eff_[i],Tau[i], 1.0); // FIXME: pseudo sumc2
-  outfile_.Printf("\n");
+  PrintTau( Tau );
 
   minimizer.Minimize(fxn, Q_anisotropic, &random_vectors_, D_eff_, delqfrac_,
                      amoeba_itmax_, amoeba_ftol_, RNgen_);
+  outfile_.Printf("\nOutput from amoeba:\n");
+  // Print Q vector
+  PrintVec6(outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
   Q_to_D( Q_anisotropic, D_tensor_ );
   Diagonalize( D_tensor_.Dptr(), D_XYZ_.Dptr() );
   Tau = minimizer.FinalY(); // FIXME: Unnecessary copy
@@ -1487,11 +1490,7 @@ void Action_Rotdif::Print() {
   PrintVector(outfile_,"Dav, aniostropy, rhombicity:",d_props);
   PrintVector(outfile_,"D tensor eigenvalues:",D_XYZ_);
   PrintMatrix(outfile_,"D tensor eigenvectors (in columns):",D_tensor_);
-  outfile_.Printf("     taueff(obs) taueff(calc)\n");
-  for (int i = 0; i < nvecs_; i++)
-    outfile_.Printf("%5i %10.5g %10.5g %10.5g\n",i+1,D_eff_[i], Tau[i], 1.0); // FIXME: pseudo sumc2
-  outfile_.Printf("\n");
-
+  PrintTau( Tau );
 
   // Brute force grid search
   if (do_gridsearch_) {

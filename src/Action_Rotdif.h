@@ -84,6 +84,7 @@ class Action_Rotdif: public Action {
     static void PrintMatrix(CpptrajFile&, const char*, Matrix_3x3 const&);
     static void PrintVector(CpptrajFile&, const char*, Vec3 const&);
     static void PrintVec6(CpptrajFile&, const char*, std::vector<double> const&);
+    void PrintTau( std::vector<double> const& );
     int Tensor_Fit(std::vector<double>&);
     int DetermineDeffs();
 
