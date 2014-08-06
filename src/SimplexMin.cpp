@@ -186,19 +186,6 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
   const int nsearch = 1;
   //int test_seed = -3001796; // For tensorfit_ comparison
 
-  //mprintf("\tDetermining diffusion tensor with full anisotropy.\n");
-  // Allocate tau1, tau2, and sumc2; used in calc_Asymmetric
-/*  tau1_.resize(nvecs_);
-  tau2_.resize(nvecs_);
-  sumc2_.resize(nvecs_);
-  // Set Tau to be used in chi_squared based on olegendre
-  if (olegendre_ == 1)
-    Tau_ = &tau1_;
-  else if (olegendre_ == 2)
-    Tau_ = &tau2_;
-  else
-    Tau_ = 0; // Should never get here*/
-
   // Initial chi squared
   double chisq = chi_squared( Q_vector );
   mprintf("\tInitial chi-squared is %g\n", chisq);

@@ -31,18 +31,7 @@ class Action_Rotdif: public Action {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
-    // -------------------------------------------
-    class Vec6 {
-      public:
-        Vec6() {}
-        void Q_to_D(Matrix_3x3&) const;
-        void D_to_Q(Matrix_3x3 const&);
-        double& operator[](int idx) { return Q_[idx]; }
-        double const& operator[](int idx) const { return Q_[idx]; }
-      private:
-        double Q_[6];
-    };
-    // -------------------------------------------
+
     int debug_;
     int rseed_;       ///< Random seed
     int nvecs_;       ///< Number of random vectors to generate
@@ -85,10 +74,7 @@ class Action_Rotdif: public Action {
     std::vector<Matrix_3x3> Rmatrices_; ///< Store rotation matrices
     DataSet_Vector random_vectors_;     ///< Hold nvecs random vectors
     std::vector<double> D_eff_;         ///< Hold calculated effective D values for each vector
-    std::vector<double> tau1_;          ///< Hold tau for l=1, full anisotropy
-    std::vector<double> tau2_;          ///< Hold tau for l=2, full anisotropy
-    std::vector<double> *Tau_;          ///> Hold tau being compared based on olegendre
-    std::vector<double> sumc2_;      
+//    std::vector<double> sumc2_;      
 
     DataSet_Vector RandomVectors();
     int compute_corr(DataSet_Vector const&, int, std::vector<double>&, std::vector<double>&);
@@ -97,15 +83,8 @@ class Action_Rotdif: public Action {
 
     static void PrintMatrix(CpptrajFile&, const char*, Matrix_3x3 const&);
     static void PrintVector(CpptrajFile&, const char*, Vec3 const&);
-    static void PrintVec6(CpptrajFile&, const char*, Vec6 const&);
-    int calc_Asymmetric(Vec3 const&, Matrix_3x3 const&);
-    double chi_squared(Vec6 const&);
-    double Amotry(double[][6], double *, Vec6&, int, double); 
-    int Amoeba(double[][6], double *);
-    static void Average_vertices(Vec6&, double[][6]);
-    int Simplex_min(Vec6&);
-    int Grid_search(Vec6&, int);
-    int Tensor_Fit(Vec6&);
+    static void PrintVec6(CpptrajFile&, const char*, std::vector<double> const&);
+    int Tensor_Fit(std::vector<double>&);
     int DetermineDeffs();
 
     int DetermineDeffsAlt();
