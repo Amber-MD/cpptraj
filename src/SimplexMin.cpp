@@ -98,6 +98,7 @@ int SimplexMin::Amoeba(int amoeba_itmax, double amoeba_ftol) {
           Xsimplex_[n] = Xsimplex_[ilo * NP_ + n];
           Xsimplex_[ilo * NP_ + n] = swap;
         }
+        mprintf("Rtol %g is less than specified tolerance %g\n", rtol, amoeba_ftol);
         return iter;
       }
 //      mprintf("\tIn amoeba, iter=%i, rtol=%15.6g\n",iter,rtol); 
@@ -166,7 +167,7 @@ void SimplexMin::Average_vertices(Darray& xsearch) const
   */
 int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector, 
                          DataSet* Xin, Darray const& YvalsIn, double delqfracIn,
-                         int maxItIn, double ftolIn,
+                         int maxItIn, double ftolIn, int nsearchIn,
                          Random_Number& RNgen) // TODO: use internal rand
 {
   double delqfrac = delqfracIn;
@@ -183,7 +184,6 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
 
   Xsimplex_.assign(NP1_ * NP_, 0.0);
 
-  const int nsearch = 1;
   //int test_seed = -3001796; // For tensorfit_ comparison
 
   // Initial chi squared
@@ -197,7 +197,7 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
   Darray xsearch = Q_vector;
 
   // BEGIN SIMPLEX LOOP
-  for (int i = 0; i < nsearch; i++) {
+  for (int i = 0; i < nsearchIn; i++) {
     for (dsize j = 0; j < NP_; j++) 
       Xsimplex_[j] = xsearch[j]; // 0 * NP_ + j
 
@@ -244,8 +244,8 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
     mprintf("Input to amoeba - average at cycle %i\n",i+1);
     mprintf("    Initial chisq = %15.5g\n",chisq);
 
-    Amoeba( maxItIn, ftolIn );
-
+    int am_iter = Amoeba( maxItIn, ftolIn );
+    mprintf("amoeba ran for %i iterations.\n", am_iter);
     // Put amoeba results into xsearch
     for (dsize j=0; j < NP1_; j++) {
       for (dsize k=0; k < NP_; k++) {

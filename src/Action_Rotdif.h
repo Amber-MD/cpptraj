@@ -46,6 +46,7 @@ class Action_Rotdif: public Action {
     double delqfrac_; ///< how to scale simplexes
     double amoeba_ftol_;
     int amoeba_itmax_;
+    int amoeba_nsearch_; ///< Number of amoeba searches
     bool do_gridsearch_;
     bool useMass_;
     bool usefft_;

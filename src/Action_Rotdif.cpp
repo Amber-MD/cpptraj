@@ -45,7 +45,8 @@ Action_Rotdif::Action_Rotdif() :
   ncorr_( 0 ),
   delqfrac_( 0 ),
   amoeba_ftol_(0.0000001 ),
-  amoeba_itmax_(10000 ),
+  amoeba_itmax_(10000),
+  amoeba_nsearch_(1),
   do_gridsearch_( false ),
   useMass_(false),
   usefft_( true )
@@ -66,7 +67,7 @@ void Action_Rotdif::Help() {
           "\t[nmesh <NmeshPoints>] dt <tfac> [ti <ti>] tf <tf>\n"
           "  Options for calculating D with full anisotropy:\n"
           "\t[amoeba_tol <tolerance>] [amoeba_itmax <iterations>]\n"
-          "\t[scalesimplex <scale>] [gridsearch]\n"
+          "\t[amoeba_nsearch <n>] [scalesimplex <scale>] [gridsearch]\n"
           "  Calculate rotational diffusion tensor.\n");
 }
 
@@ -118,6 +119,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   do_gridsearch_ = actionArgs.hasKey("gridsearch");
   amoeba_ftol_ = actionArgs.getKeyDouble("amoeba_tol", amoeba_ftol_);
   amoeba_itmax_ = actionArgs.getKeyInt("amoeba_itmax", amoeba_itmax_);
+  amoeba_nsearch_ = actionArgs.getKeyInt("amoeba_nsearch", 1);
   // Reference Keywords
   ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
@@ -193,8 +195,8 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
           itmax_, delmin_, d0_);
   mprintf("\tNelder Mead (downhill simplex) minimizer will be used to determine\n"
           "\t  Q with full anisotropy.\n");
-  mprintf("\t  iterations= %i, tolerance= %g, simplex scaling= %g\n",
-          amoeba_itmax_, amoeba_ftol_, delqfrac_);
+  mprintf("\t  searches= %i, iterations= %i, tolerance= %g, simplex scaling= %g\n",
+          amoeba_nsearch_, amoeba_itmax_, amoeba_ftol_, delqfrac_);
    if (do_gridsearch_)
     mprintf("\tGrid search will be performed for Q with full anisotropy (time consuming)\n");
 #ifdef NO_MATHLIB
@@ -1457,7 +1459,7 @@ void Action_Rotdif::Print() {
   PrintTau( Tau );
 
   minimizer.Minimize(fxn, Q_anisotropic, &random_vectors_, D_eff_, delqfrac_,
-                     amoeba_itmax_, amoeba_ftol_, RNgen_);
+                     amoeba_itmax_, amoeba_ftol_, amoeba_nsearch_, RNgen_);
   outfile_.Printf("\nOutput from amoeba:\n");
   // Print Q vector
   PrintVec6(outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
