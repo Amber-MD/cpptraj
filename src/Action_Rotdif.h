@@ -24,7 +24,6 @@ class Action_Rotdif: public Action {
     Action_Rotdif();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rotdif(); }
     static void Help();
-    ~Action_Rotdif();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
@@ -52,8 +51,6 @@ class Action_Rotdif: public Action {
     bool usefft_;
 
     // Workspace for LAPACK functions
-    double* work_;
-    int lwork_;
     Matrix_3x3 D_tensor_;
     Vec3 D_XYZ_;
 
@@ -77,8 +74,8 @@ class Action_Rotdif: public Action {
 //    std::vector<double> sumc2_;      
 
     DataSet_Vector RandomVectors();
-    int compute_corr(DataSet_Vector const&, int, std::vector<double>&, std::vector<double>&);
-    int fft_compute_corr(DataSet_Vector const&, int, std::vector<double>&, int);
+    int direct_compute_corr(DataSet_Vector const&, int, std::vector<double>&);
+    int fft_compute_corr(DataSet_Vector const&, int, std::vector<double>&);
     double calcEffectiveDiffusionConst(double );
 
     static void PrintMatrix(CpptrajFile&, const char*, Matrix_3x3 const&);

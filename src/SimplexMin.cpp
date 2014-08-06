@@ -238,12 +238,6 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
     }
 
     // Average the vertices and compute details of the average.
-    /*for (int j=0; j < SM_NP; j++) {
-      xsearch[j] = 0;
-      for (int k = 0; k < SM_NP1; k++) 
-        xsearch[j] += xsmplx[k][j];
-      xsearch[j] /= SM_NP1;
-    }*/
     Average_vertices( xsearch );
     chisq  = chi_squared( xsearch );
 
@@ -264,13 +258,8 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
     // Average the vertices and compute details of the average.
     Average_vertices( xsearch );
     final_chisq_ = chi_squared( xsearch );
-
-//    mprintf("Output from amoeba - average at cycle %i\n",i+1);
-//    mprintf("    Final chisq = %15.5g\n",chisq);
-//    mprintf("     taueff(obs) taueff(calc)\n");
-//    for (dsize i = 0; i < Nvals_; i++)
-//      mprintf("%5i %10.5g %10.5g\n",i+1, Yvals_[i], Ynew_[i]);
-//    mprintf("\n");
+    mprintf("Output from amoeba - average at cycle %i\n",i+1);
+    mprintf("    Final chisq = %15.5g\n",final_chisq_);
    
     // cycle over main loop, but first reduce the size of delqfrac:
     delqfrac *= 0.750;
