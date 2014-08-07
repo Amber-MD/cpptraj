@@ -1141,11 +1141,13 @@ double Ctau_L2(double tau, CurveFit::Darray const& Params) {
     Dpr2 = 0;
   }
   double delta = (Dav*Dav) - Dpr2;
+  // Do not allow square root of negative number. Return a large value to indicate
+  // this is a poor fit.
   if (delta < 0) {
-    mprinterr("Error: Ctau_L2: Cannot calculate lambda l=2, m=0, tau=%g\n", tau);
-    mprinterr("\tl= %g  m= %g  n= %g  dx= %g  dy= %g  dz= %g\n",
-              Params[0], Params[1], Params[2], Params[3], Params[4], Params[5]);
-    return 0.0;
+    //mprinterr("Error: Ctau_L2: Cannot calculate lambda l=2, m=0, tau=%g\n", tau);
+    //mprinterr("\tl= %g  m= %g  n= %g  dx= %g  dy= %g  dz= %g\n",
+    //          Params[0], Params[1], Params[2], Params[3], Params[4], Params[5]);
+    return 1000.0;
   }
   double sqrt_Dav_Dpr = sqrt( delta );
   lambda[2] = 6 * (Dav - sqrt_Dav_Dpr);
@@ -1244,13 +1246,14 @@ int Action_Rotdif::DetermineDeffsAlt() {
   //   3) Fit the autocorrelation to a single exponential.
 
   // Determine max length of autocorrelation fxn.
+   int vLength = (int)Rmatrices_.size() + 1;
    int ctMax = ncorr_;
    if (ncorr_ == 0)
-     ctMax = (int)random_vectors_.Size();
-   else if (ncorr_ > (int)random_vectors_.Size());
-     ctMax = (int)random_vectors_.Size();
+     ctMax = vLength;
+   else if (ncorr_ > vLength)
+     ctMax = vLength;
   //int ctMax = (int)((tf_ - ti_) / tfac_) + 1;
-  printf("DEBUG: Npoints for autocorrelation fxn= %i\n", ctMax);
+  printf("DEBUG: Npoints for autocorrelation fxn= %i  vLength=%i  ncorr= %i\n", ctMax, vLength, ncorr_);
 
   // Set up X values
   CurveFit::Darray Xvals;
@@ -1272,7 +1275,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
   // LOOP OVER RANDOM VECTORS
   D_eff_.reserve( random_vectors_.Size() );
   DataSet_Vector rotated_vectors; // Hold vectors after rotation with Rmatrices
-  rotated_vectors.ReserveVecs( Rmatrices_.size() + 1 );
+  rotated_vectors.ReserveVecs( vLength );
   CurveFit::Darray Ct;        // Hold vector autocorrelation
   Ct.reserve( ctMax );
   CurveFit::Darray Ct_single; // Save fit for single exp
@@ -1324,9 +1327,9 @@ int Action_Rotdif::DetermineDeffsAlt() {
     Cparams[0] = 1.0;        // l
     Cparams[1] = 0.0;        // m
     Cparams[2] = 0.0;        // n
-    Cparams[3] = A0;         // dx
-    Cparams[4] = Cparams[3]; // dy
-    Cparams[5] = Cparams[3]; // dz
+    Cparams[3] = A0;         // dx (A0?)
+    Cparams[4] = A0 + (A0 * 0.1); // dy
+    Cparams[5] = A0 - (A0 * 0.1); // dz
     info = fit.LevenbergMarquardt( Ctau_L2, Xvals, Ct, Cparams, 0.000001, 1000 ); 
     mprintf("\tMultiExp: %s\n", fit.Message(info));
     if (info == 0) {
