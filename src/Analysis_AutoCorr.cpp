@@ -1,6 +1,6 @@
 #include "Analysis_AutoCorr.h"
 #include "CpptrajStdio.h"
-#include "DataSet_1D.h"
+#include "DataSet_Vector.h"
 
 // CONSTRUCTOR
 Analysis_AutoCorr::Analysis_AutoCorr() :
@@ -70,10 +70,15 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
 
 Analysis::RetType Analysis_AutoCorr::Analyze() {
   for (unsigned int ids = 0; ids < dsets_.size(); ids++) {
-    DataSet_1D const& set = static_cast<DataSet_1D const&>( *dsets_[ids] );
-    mprintf("\t\tCalculating AutoCorrelation for set %s\n", set.Legend().c_str());
-    set.CrossCorr( set, static_cast<DataSet_1D&>( *((DataSet_1D*)outputData_[ids]) ),
-                   lagmax_, calc_covar_, usefft_ );
+    mprintf("\t\tCalculating AutoCorrelation for set %s\n", dsets_[ids]->Legend().c_str());
+    DataSet_1D& Ct = static_cast<DataSet_1D&>( *outputData_[ids] );
+    if (dsets_[ids]->Type() == DataSet::VECTOR) {
+      DataSet_Vector const& set = static_cast<DataSet_Vector const&>( *dsets_[ids] );
+      set.CalcVectorCorr( set, Ct, lagmax_ );
+    } else {
+      DataSet_1D const& set = static_cast<DataSet_1D const&>( *dsets_[ids] );
+      set.CrossCorr( set, Ct, lagmax_, calc_covar_, usefft_ );
+    }
   }
 
   return Analysis::OK;

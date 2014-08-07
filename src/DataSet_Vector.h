@@ -49,6 +49,8 @@ class DataSet_Vector : public DataSet_1D {
     const_iterator begin()       const { return vectors_.begin(); }
     const_iterator end()         const { return vectors_.end();   }
     const Vec3&    Back()        const { return vectors_.back();  }
+    /// Calculate auto/cross-correlation
+    int CalcVectorCorr(DataSet_Vector const&, DataSet_1D&, int) const;
     /// Calculate spherical harmonics arrays for given Legendre order
     int CalcSphericalHarmonics(int);
     /// \return Spherical harmonics array for given m (-order_ <= m <= order_)

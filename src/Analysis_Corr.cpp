@@ -1,6 +1,6 @@
 #include "Analysis_Corr.h"
 #include "CpptrajStdio.h"
-#include "DataSet_1D.h"
+#include "DataSet_Vector.h"
 
 // CONSTRUCTOR
 Analysis_Corr::Analysis_Corr() :
@@ -58,6 +58,11 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
     mprinterr("Error: Corr: Could not get dataset named %s\n",D2name.c_str());
     return Analysis::ERR;
   }
+  if (D1_->Type() == DataSet::VECTOR && D2_->Type() != DataSet::VECTOR)
+  {
+    mprinterr("Error: Vector cross correlation requires 2 vector data sets.\n");
+    return Analysis::ERR;
+  }
 
   // Setup output dataset
   std::string corrname = "C(" + D1_->Legend();
@@ -103,12 +108,17 @@ Analysis::RetType Analysis_Corr::Analyze() {
 
   mprintf("    CORR: %u elements, max lag %i\n",Nelements,lagmax_);
 
-  DataSet_1D const& set1 = static_cast<DataSet_1D const&>( *D1_ );
-  DataSet_1D const& set2 = static_cast<DataSet_1D const&>( *D2_ );
-  set1.CrossCorr( set2, *((DataSet_1D*)Ct_), lagmax_, calc_covar_, usefft_ );
-
-  mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
-          D1_->Legend().c_str(), D2_->Legend().c_str(), set1.CorrCoeff( set2 ) );
+  if (D1_->Type() == DataSet::VECTOR) {
+    DataSet_Vector const& set1 = static_cast<DataSet_Vector const&>( *D1_ );
+    DataSet_Vector const& set2 = static_cast<DataSet_Vector const&>( *D2_ );
+    set1.CalcVectorCorr(set2, *((DataSet_1D*)Ct_), lagmax_);
+  } else {
+    DataSet_1D const& set1 = static_cast<DataSet_1D const&>( *D1_ );
+    DataSet_1D const& set2 = static_cast<DataSet_1D const&>( *D2_ );
+    set1.CrossCorr( set2, *((DataSet_1D*)Ct_), lagmax_, calc_covar_, usefft_ );
+    mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
+            D1_->Legend().c_str(), D2_->Legend().c_str(), set1.CorrCoeff( set2 ) );
+  }
 
   return Analysis::OK;
 }
