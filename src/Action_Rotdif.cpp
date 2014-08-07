@@ -1088,13 +1088,154 @@ int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int n
 // -----------------------------------------------------------------------------
 // Single exponential function with constant
 double ExpFxn(double tau, CurveFit::Darray const& Params) {
-  return ( exp( Params[0] * tau ) );
+  return ( exp( -tau * Params[0] ) );
 }
 
 // Integral of exponential with constant
-double IntExpFxn(double tau, double a0) {
-  return ( exp( a0 * tau ) / a0 );
+//double IntExpFxn(double tau, double a0) {
+//  return ( exp( a0 * tau ) / a0 );
+//}
+
+// Multiple exponential, full asymmetry, l=2
+double MultiExp_L2(double tau, CurveFit::Darray const& Params) {
+  return ( Params[0] * exp( -tau / Params[1] ) +
+           Params[2] * exp( -tau / Params[3] ) +
+           Params[4] * exp( -tau / Params[5] ) +
+           Params[6] * exp( -tau / Params[7] ) +
+           Params[8] * exp( -tau / Params[9] ) );
 }
+
+// C(tau) = SUM(-l...l)[ c * exp(-tau / T) ]
+// e-2 = (3*l^2*m^2) * exp( -tau * (x + y + 4z) )
+// e-1 = (3*l^2*n^2) * exp( -tau * (x + 4y + z) )
+// e0  = (d + e)     * exp( -tau * 6*(D-sqrt(D^2 - D'^2)) )
+// e+1 = (3*m^2*n^2) * exp( -tau * (4x + y + z) )
+// e+2 = (d - e)     * exp( -tau * 6*(D+sqrt(D^2 - D'^2)) )
+// Params={l, m, n, x, y, z}
+double Ctau_L2(double tau, CurveFit::Darray const& Params) {
+  double lambda[5];
+  double dx = Params[3];
+  double dy = Params[4];
+  double dz = Params[5];
+
+  // tau = sum(m){amp(l,m)/lambda(l,m)}
+  // See Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY; 
+  // Prog. Nuc. Mag. Res. Spec., 38, 197 (2001) for details, Table 3 in 
+  // particular. Only weights need to be computed for each vector, decay 
+  // constants can be computed once. Decay constants correspond 
+  // to l=2, m=-2,-1,0,+1,+2.
+
+  // l=2, m=-2 term: lambda(2,-2) = Dx + Dy + 4*Dz
+  lambda[0] = dx + dy + (4*dz);
+  // l=2, m=-1 term: lambda(2,-1) = Dx + 4*Dy + Dz
+  lambda[1] = dx + (4*dy) + dz;
+  // l=2, m=0 term:  lambda(2, 0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
+  //                 Dav = (Dx + Dy + Dz)/3 
+  //                 Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
+  //                 Dpr2 = Dpr*Dpr = (Dx*Dy + Dy*Dz + Dx*Dz)/3
+  double Dav = (dx + dy + dz) / 3;
+  double Dpr2 = ((dx*dy) + (dy*dz) + (dx*dz)) / 3;
+  if (Dpr2 < 0) {
+    //mprinterr("Error: Rotdif::calc_Asymmetric: Cannot calculate Dpr (Dpr^2 < 0)\n");
+    // NOTE: Original code just set Dpr to 0 and continued. 
+    Dpr2 = 0;
+  }
+  double delta = (Dav*Dav) - Dpr2;
+  if (delta < 0) {
+    mprinterr("Error: Ctau_L2: Cannot calculate lambda l=2, m=0, tau=%g\n", tau);
+    mprinterr("\tl= %g  m= %g  n= %g  dx= %g  dy= %g  dz= %g\n",
+              Params[0], Params[1], Params[2], Params[3], Params[4], Params[5]);
+    return 0.0;
+  }
+  double sqrt_Dav_Dpr = sqrt( delta );
+  lambda[2] = 6 * (Dav - sqrt_Dav_Dpr);
+  // l=2, m=+1 term: lambda(2,+1) = 4*Dx + Dy + Dz
+  lambda[3] = (4*dx) + dy + dz;
+  // l=2, m=+2 term: lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav - Dpr*Dpr)]
+  lambda[4] = 6 * (Dav + sqrt_Dav_Dpr);
+
+  // Check all normalization factors for 0.0, which can lead to inf values
+  // propogating throughout the calc. Set to SMALL instead; will get 
+  // very large numbers but should still not overflow.
+//  mprintf("lambda=");
+  for (int i = 0; i < 5; i++) {
+    if (lambda[i] < Constants::SMALL) lambda[i] = Constants::SMALL;
+//    mprintf(" %g", lambda[i]);
+  }
+//  mprintf("\n");
+
+    double dot1 = Params[0]; // l
+    double dot2 = Params[1]; // m
+    double dot3 = Params[2]; // n
+    //mprintf("DBG: dot1-3= %10.5g %10.5g %10.5g\n",dot1,dot2,dot3);
+    
+    // ----- Compute correlation time for l=2
+    // pre-calculate squares
+    double dot1_2 = dot1*dot1;
+    double dot2_2 = dot2*dot2;
+    double dot3_2 = dot3*dot3;
+    //     m=-2 term:
+    //     lambda(2,-2) = Dx + Dy + 4*Dz
+    //     amp(2,-2) = 0.75*sin(theta)^4*sin(2*phi)^2 = 3*(l^2)*(m^2)
+    double m_m2 = 3*dot1_2*dot2_2;
+    //     m=-1 term:
+    //     lambda(2,-1) = Dx + 4*Dy + Dz
+    //     amp(2,-1) = 0.75*sin(2*theta)^2*cos(phi)^2 = 3*(l^2)*(n^2)
+    double m_m1 = 3*dot1_2*dot3_2;
+    //     m=0 term:
+    //     lambda(2,0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
+    //         Dav = (Dx + Dy + Dz)/3 
+    //         Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
+    //     amp(2,0) = (w/N)^2*0.25*[3*cos(theta)^2-1]^2 +
+    //                (u/N)^2*0.75*sin(theta)^4*cos(2*phi)^2 -
+    //                (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
+    //         u = sqrt(3)*(Dx - Dy)
+    //         delta = 3*sqrt(Dav*Dav - Dpr*Dpr)
+    //         w = 2*Dz - Dx - Dy + 2*delta
+    //         N = 2*sqrt(delta*w)
+    delta = 3 * sqrt_Dav_Dpr;
+    double dot1_4 = dot1_2 * dot1_2;
+    double dot2_4 = dot2_2 * dot2_2;
+    double dot3_4 = dot3_2 * dot3_2;
+    double da = 0.25 * ( 3*(dot1_4 + dot2_4 + dot3_4) - 1);
+    double ea = 0;
+    if ( delta > Constants::SMALL) { 
+      double epsx = 3*(dx-Dav)/delta;
+      double epsy = 3*(dy-Dav)/delta;
+      double epsz = 3*(dz-Dav)/delta;
+      double d2d3 = dot2*dot3;
+      double d1d3 = dot1*dot3;
+      double d1d2 = dot1*dot2;
+      ea = epsx*(3*dot1_4 + 6*(d2d3*d2d3) - 1) + 
+           epsy*(3*dot2_4 + 6*(d1d3*d1d3) - 1) + 
+           epsz*(3*dot3_4 + 6*(d1d2*d1d2) - 1);
+      ea /= 12;
+    }
+    double m_0 = da + ea;
+    //     m=+1 term:
+    //     lambda(2,+1) = 4*Dx + Dy + Dz
+    //     amp(2,+1) = 0.75*sin(2*theta)^2*sin(phi)^2 
+    double m_p1 = 3*dot2_2*dot3_2;
+    //     m=+2 term:
+    //     lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav = Dpr*Dpr)]
+    //     amp(2,+2) = (u/n)^2*0.25*[3*cos(theta)^2-1]^2 +
+    //                 (w/n)^2*0.75*sin(theta)^4*cos(2*phi)^2 +
+    //                 (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
+    double m_p2 = da - ea;
+    // Sum decay constants and weights for l=2 m=-2...2
+    return ( (m_m2 * exp(-tau * lambda[0])) +
+             (m_m1 * exp(-tau * lambda[1])) +
+             (m_0  * exp(-tau * lambda[2])) +
+             (m_p1 * exp(-tau * lambda[3])) +
+             (m_p2 * exp(-tau * lambda[4])) );
+
+    //Yvals[nvec] = (m_m2 / lambda[0]) + (m_m1 / lambda[1]) + (m_0 / lambda[2]) +
+    //              (m_p1 / lambda[3]) + (m_p2 / lambda[4]);
+    //sumc2_[nvec] = m_m2 + m_m1 + m_0 + m_p1 + m_p2;
+//    mprintf("Yvals[%i]= (%g / %g) + (%g / %g) + (%g / %g) + (%g / %g) + (%g / %g) = %g\n", nvec,
+//            m_m2, lambda[0], m_m1, lambda[1], m_0, lambda[2], m_p1, lambda[3], m_p2, lambda[4], Yvals[nvec]);
+}
+
 
 int Action_Rotdif::DetermineDeffsAlt() {
   // For each randomly generated vector:
@@ -1102,13 +1243,14 @@ int Action_Rotdif::DetermineDeffsAlt() {
   //   2) Calculate the autocorrelation function of the vector.
   //   3) Fit the autocorrelation to a single exponential.
 
-  // Determine max length of autocorrelation fxn. Calculate the number of
-  // points using the initial and final times as well as time step.
-  int ctMax = (int)((tf_ - ti_) / tfac_) + 1;
+  // Determine max length of autocorrelation fxn.
+   int ctMax = ncorr_;
+   if (ncorr_ == 0)
+     ctMax = (int)random_vectors_.Size();
+   else if (ncorr_ > (int)random_vectors_.Size());
+     ctMax = (int)random_vectors_.Size();
+  //int ctMax = (int)((tf_ - ti_) / tfac_) + 1;
   printf("DEBUG: Npoints for autocorrelation fxn= %i\n", ctMax);
-
-//  int ctMax = ncorr_;
-//  if (ncorr_ == 0) ctMax = Rmatrices_.size() + 1;
 
   // Set up X values
   CurveFit::Darray Xvals;
@@ -1120,15 +1262,21 @@ int Action_Rotdif::DetermineDeffsAlt() {
   }
 
   // Parameter array for curve fitting (1 for single exp)
-  CurveFit::Darray Params(1, -1.0);
+  CurveFit::Darray Params(1, 1.0);
+  // Parameter array for curve fitting (10 for multi exp)
+  //CurveFit::Darray Mparams(10, 1.0);
+  // Parameter array for curve fitting (6 for multi exp, l,m,n,x,y,z)
+  CurveFit::Darray Cparams(6, 0.5);
   CurveFit fit;
 
   // LOOP OVER RANDOM VECTORS
   D_eff_.reserve( random_vectors_.Size() );
   DataSet_Vector rotated_vectors; // Hold vectors after rotation with Rmatrices
   rotated_vectors.ReserveVecs( Rmatrices_.size() + 1 );
-  CurveFit::Darray Ct; // Hold vector autocorrelation
+  CurveFit::Darray Ct;        // Hold vector autocorrelation
   Ct.reserve( ctMax );
+  CurveFit::Darray Ct_single; // Save fit for single exp
+  Ct_single.reserve( ctMax );
   int nvec = 0; // For numbering vector
   for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
                                       rndvec != random_vectors_.end();
@@ -1150,21 +1298,49 @@ int Action_Rotdif::DetermineDeffsAlt() {
     }
     // Calculate spherical harmonics of given order for this vector.
     rotated_vectors.CalcSphericalHarmonics( olegendre_ );
-    // Calculate autocorrelation for rotated vectors.
+    // Calculate autocorrelation for rotated vectors using SH.
     fft_compute_corr(rotated_vectors, ctMax, Ct);
+
     // Fit autocorrelation to C(tau) = exp[-l(l+1)D * tau] 
     int info = fit.LevenbergMarquardt( ExpFxn, Xvals, Ct, Params, 0.000001, 1000 );
-    mprintf("\t%s\n", fit.Message(info));
+    mprintf("\tSingleExp: %s\n", fit.Message(info));
     if (info == 0) {
-      mprinterr("Error: %s\n", fit.ErrorMessage());
+      mprinterr("Error: Single exp fit: %s\n", fit.ErrorMessage());
       return 1;
     }
+    Ct_single = fit.FinalY();
     // We now in principal have A0 = -l(l+1)D, D = A0 / -l(l+1)
-    double Deff = Params[0] / (double)(-olegendre_ * (olegendre_ + 1));
-    printf("\tVec %i A0= %g    Deff=%g\n", nvec, Params[0], Deff);
+    double A0 = Params[0];
+    double Deff = A0 / (double)(olegendre_ * (olegendre_ + 1));
+    printf("\tVec %i A0= %g    Deff= %g\n", nvec, A0, Deff);
     D_eff_.push_back( Deff );
 
-    // DEBUG: Write out Ct and fit curve ---------
+    // Fit autocorrelation to C(tau) = SUM(-l...l)[ c * exp(-tau / T) ]
+    //for (unsigned int i = 0; i < 10; i += 2) {
+    //  Mparams[i  ] = 0.2;
+    //  Mparams[i+1] = 1.0 / A0;
+    //}
+    //info = fit.LevenbergMarquardt( MultiExp_L2, Xvals, Ct, Mparams, 0.000001, 1000 );
+    Cparams[0] = 1.0;        // l
+    Cparams[1] = 0.0;        // m
+    Cparams[2] = 0.0;        // n
+    Cparams[3] = A0;         // dx
+    Cparams[4] = Cparams[3]; // dy
+    Cparams[5] = Cparams[3]; // dz
+    info = fit.LevenbergMarquardt( Ctau_L2, Xvals, Ct, Cparams, 0.000001, 1000 ); 
+    mprintf("\tMultiExp: %s\n", fit.Message(info));
+    if (info == 0) {
+      mprinterr("Error: Multi exp fit: %s\n", fit.ErrorMessage());
+      return 1;
+    }
+    //for (unsigned int i = 0; i < 10; i += 2)
+    //  mprintf("\t    l=%2i  c= %12.5e  T= %12.5e\n", i/2 - olegendre_, Mparams[i], Mparams[i+1]);
+    mprintf("\tl= %g  m= %g  n= %g  L= %g dx= %g  dy= %g  dz= %g\n",
+            Cparams[0], Cparams[1], Cparams[2], 
+            sqrt(Cparams[0]*Cparams[0] + Cparams[1]*Cparams[1] + Cparams[2]*Cparams[2]),
+            Cparams[3], Cparams[4], Cparams[5]);
+
+    // DEBUG: Write out Ct and fit curves --------
     if (!corrOut_.empty() || debug_ > 3) {
       CpptrajFile outfile;
       std::string namebuffer;
@@ -1173,8 +1349,10 @@ int Action_Rotdif::DetermineDeffsAlt() {
       else
         namebuffer = NumberFilename( "CtFit.dat", nvec );
       outfile.OpenWrite(namebuffer);
+      CurveFit::Darray const& FinalY = fit.FinalY();
       for (int n = 0; n != ctMax; n++)
-        outfile.Printf("%12.6g %20.8e %20.8e\n", Xvals[n], Ct[n], ExpFxn(Xvals[n], Params));
+        outfile.Printf("%12.6g %20.8e %20.8e %20.8e\n",
+                       Xvals[n], Ct[n], Ct_single[n], FinalY[n]);
       outfile.CloseFile();
     }
 
@@ -1317,11 +1495,11 @@ int Action_Rotdif::DetermineDeffs() {
       //        current[0], current[1], current[2]); 
     }
     // Calculate time correlation function for this vector
-    if (usefft_) {
-      // Calculate spherical harmonics for each vector.
-      rotated_vectors.CalcSphericalHarmonics( olegendre_ );
-      fft_compute_corr(rotated_vectors, maxdat, pY);
-    } else
+//    if (usefft_) {
+//      // Calculate spherical harmonics for each vector.
+//      rotated_vectors.CalcSphericalHarmonics( olegendre_ );
+//      fft_compute_corr(rotated_vectors, maxdat, pY);
+//    } else
       direct_compute_corr(rotated_vectors, maxdat, pY);
     // Calculate mesh Y values
     spline.SetSplinedMeshY(pX, pY);
@@ -1364,6 +1542,21 @@ int Action_Rotdif::DetermineDeffs() {
 }
 
 // =============================================================================
+void Action_Rotdif::PrintDeffs(std::string const& nameIn) const {
+  // Print deffs
+  if (!nameIn.empty()) {
+    CpptrajFile dout;
+    if (dout.SetupWrite(nameIn, debug_)) {
+      mprinterr("Error: Could not set up Deff file %s\n",nameIn.c_str());
+    } else {
+      dout.OpenFile();
+      for (int vec = 0; vec < nvecs_; vec++)
+        dout.Printf("%6i %15.8e\n", vec+1, D_eff_[vec]);
+      dout.CloseFile();
+    }
+  }
+}
+
 // Action_Rotdif::Print()
 /** Main tensorfit calculation.
   * - Read/generate random vectors.
@@ -1415,118 +1608,109 @@ void Action_Rotdif::Print() {
     }
   }
   mprintf("\t%i vectors, %u rotation matrices.\n",nvecs_,Rmatrices_.size());
-  // ---------------------------------------------
-  // Determine effective D for each vector
-  if (debug_ == 0)
+  if (usefft_) {
+    // ---------------------------------------------
+    // Test calculation; determine constants directly with SH and curve fitting.
+    DetermineDeffsAlt();
+    PrintDeffs( deffOut_ );
+  } else {
+    // ---------------------------------------------
+    // Original Wong & Case method using Legendre polynomial Ct and SVD.
+    // Determine effective D for each vector.
     DetermineDeffs( );
-  else
-    DetermineDeffsAlt(); // DEBUG
-//  return; // DEBUG
-  // Print deffs
-  if (!deffOut_.empty()) {
-    CpptrajFile dout;
-    if (dout.SetupWrite(deffOut_,debug_)) {
-      mprinterr("Error: Could not set up Deff file %s\n",deffOut_.c_str());
-    } else {
-      dout.OpenFile();
-      for (int vec = 0; vec < nvecs_; vec++)
-        dout.Printf("%6i %15.8e\n",vec+1,D_eff_[vec]);
-      dout.CloseFile();
-    }
+    PrintDeffs( deffOut_ );
+    // All remaining functions require LAPACK
+#   ifndef NO_MATHLIB
+    SimplexMin::Darray Q_isotropic(6);
+    if (Tensor_Fit( Q_isotropic )) return;
+    // Using Q (small anisotropy) as a guess, calculate Q with full anisotropy
+    mprintf("\tDetermining diffusion tensor with full anisotropy.\n");
+    SimplexMin::Darray Q_anisotropic = Q_isotropic;
+    // Set up simplex minimizer and function to use.
+    SimplexMin minimizer;
+    SimplexMin::SimplexFunctionType fxn;
+    if (olegendre_ == 1)
+      fxn = AsymmetricFxn_L1;
+    else
+      fxn = AsymmetricFxn_L2;
+    std::vector<double> Tau(nvecs_, 0.0);
+    // First, back-calculate with the SVD tensor, but with the full anisotropy
+    // chi_squared performs diagonalization. The workspace for dsyev should
+    // already have been set up in Tensor_Fit.
+    double initial_chisq = chi_squared(fxn, Q_anisotropic, &random_vectors_, D_eff_, Tau);
+    outfile_.Printf("\nSame diffusion tensor, but full anisotropy:\n");
+    outfile_.Printf("  chi_squared for SVD tensor is %15.5g\n", initial_chisq);
+    PrintTau( Tau );
+    // Use the SVD solution as one of the initial points for the minimizer.
+    minimizer.Minimize(fxn, Q_anisotropic, &random_vectors_, D_eff_, delqfrac_,
+                       amoeba_itmax_, amoeba_ftol_, amoeba_nsearch_, RNgen_);
+    outfile_.Printf("\nOutput from amoeba:\n");
+    // Print Q vector
+    PrintVec6(outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
+    Q_to_D( Q_anisotropic, D_tensor_ );
+    Diagonalize( D_tensor_, D_XYZ_ );
+    // Copy final Tau values from minimizer in case grid search needed.
+    Tau = minimizer.FinalY();
+    //mprintf("Output from amoeba - average at cycle %i\n",i+1);
+    Vec3 d_props = calculate_D_properties(D_XYZ_);
+    outfile_.Printf("    Final chisq = %15.5g\n", minimizer.FinalChiSquared());
+    PrintVector(outfile_,"Dav, aniostropy, rhombicity:",d_props);
+    PrintVector(outfile_,"D tensor eigenvalues:",D_XYZ_);
+    PrintMatrix(outfile_,"D tensor eigenvectors (in columns):",D_tensor_);
+    PrintTau( Tau );
+    // Brute force grid search
+    if (do_gridsearch_) {
+      // Store initial solution
+      SimplexMin::Darray best = Q_anisotropic;
+      SimplexMin::Darray xsearch(6);
+      bool success = false;
+      const int gridsize = 5;
+      int gridmax = gridsize + 1;
+      int gridmin = -gridsize;
+      // Calc initial chi squared
+      double sgn0 = chi_squared(fxn, Q_anisotropic, &random_vectors_, D_eff_, Tau);
+      mprintf("Grid search: Starting chisq is %15.5g\n",sgn0);
+      //mprintf("_Grid q0 %10.5g\n",Q_anisotropic[0]);
+      // Loop over all grid points
+      ProgressBar progress( gridmax );
+      for (int i = gridmin; i < gridmax; i++) {
+        progress.Update( i );
+        xsearch[0] = Q_anisotropic[0] + (i*delqfrac_/100.0);
+        for (int j = gridmin; j < gridmax; j++) {
+          xsearch[1] = Q_anisotropic[1] + (j*delqfrac_/100.0);
+          for (int k = gridmin; k < gridmax; k++) {
+            xsearch[2] = Q_anisotropic[2] + (k*delqfrac_/100.0);
+            for (int l = gridmin; l < gridmax; l++) {
+              xsearch[3] = Q_anisotropic[3] + (l*delqfrac_/100.0);
+              for (int m = gridmin; m < gridmax; m++) {
+                xsearch[4] = Q_anisotropic[4] + (m*delqfrac_/100.0);
+                for (int n = gridmin; n < gridmax; n++) {
+                  xsearch[5] = Q_anisotropic[5] + (n*delqfrac_/100.0);
+  
+                  double sgn = chi_squared(fxn, xsearch, &random_vectors_, D_eff_, Tau);
+                  //mprintf("_Grid x0 %10.5g\n",xsearch[0]);
+                  //mprintf("_Grid %3i%3i%3i%3i%3i%3i%10.5g%10.5g\n",
+                  //        i,j,k,l,m,n,sgn,sgn0);
+                  if (sgn < sgn0) {
+                    best = xsearch;
+                    sgn0 = sgn;
+                    success = true;
+                  }
+                } // n
+              } // m
+            } // l
+          } // k
+        } // j
+      } // i
+      // Set best solution
+      if (success) {
+        mprintf("  Grid search succeeded.\n");
+        Q_anisotropic = best;
+        PrintVec6(outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
+      } else
+        mprintf("  Grid search could not find a better solution.\n");
+    } // END grid search
+#   endif
   }
-  // ---------------------------------------------
-  // All remaining functions require LAPACK
-# ifndef NO_MATHLIB
-  SimplexMin::Darray Q_isotropic(6);
-  if (Tensor_Fit( Q_isotropic )) return;
-  // Using Q (small anisotropy) as a guess, calculate Q with full anisotropy
-  mprintf("\tDetermining diffusion tensor with full anisotropy.\n");
-  SimplexMin::Darray Q_anisotropic = Q_isotropic;
-  // Set up simplex minimizer and function to use.
-  SimplexMin minimizer;
-  SimplexMin::SimplexFunctionType fxn;
-  if (olegendre_ == 1)
-    fxn = AsymmetricFxn_L1;
-  else
-    fxn = AsymmetricFxn_L2;
-  std::vector<double> Tau(nvecs_, 0.0);
-  // First, back-calculate with the SVD tensor, but with the full anisotropy
-  // chi_squared performs diagonalization. The workspace for dsyev should
-  // already have been set up in Tensor_Fit.
-  double initial_chisq = chi_squared(fxn, Q_anisotropic, &random_vectors_, D_eff_, Tau);
-  outfile_.Printf("\nSame diffusion tensor, but full anisotropy:\n");
-  outfile_.Printf("  chi_squared for SVD tensor is %15.5g\n", initial_chisq);
-  PrintTau( Tau );
-  // Use the SVD solution as one of the initial points for the minimizer.
-  minimizer.Minimize(fxn, Q_anisotropic, &random_vectors_, D_eff_, delqfrac_,
-                     amoeba_itmax_, amoeba_ftol_, amoeba_nsearch_, RNgen_);
-  outfile_.Printf("\nOutput from amoeba:\n");
-  // Print Q vector
-  PrintVec6(outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
-  Q_to_D( Q_anisotropic, D_tensor_ );
-  Diagonalize( D_tensor_, D_XYZ_ );
-  // Copy final Tau values from minimizer in case grid search needed.
-  Tau = minimizer.FinalY();
-  //mprintf("Output from amoeba - average at cycle %i\n",i+1);
-  Vec3 d_props = calculate_D_properties(D_XYZ_);
-  outfile_.Printf("    Final chisq = %15.5g\n", minimizer.FinalChiSquared());
-  PrintVector(outfile_,"Dav, aniostropy, rhombicity:",d_props);
-  PrintVector(outfile_,"D tensor eigenvalues:",D_XYZ_);
-  PrintMatrix(outfile_,"D tensor eigenvectors (in columns):",D_tensor_);
-  PrintTau( Tau );
-
-  // Brute force grid search
-  if (do_gridsearch_) {
-    // Store initial solution
-    SimplexMin::Darray best = Q_anisotropic;
-    SimplexMin::Darray xsearch(6);
-    bool success = false;
-    const int gridsize = 5;
-    int gridmax = gridsize + 1;
-    int gridmin = -gridsize;
-    // Calc initial chi squared
-    double sgn0 = chi_squared(fxn, Q_anisotropic, &random_vectors_, D_eff_, Tau);
-    mprintf("Grid search: Starting chisq is %15.5g\n",sgn0);
-    //mprintf("_Grid q0 %10.5g\n",Q_anisotropic[0]);
-    // Loop over all grid points
-    ProgressBar progress( gridmax );
-    for (int i = gridmin; i < gridmax; i++) {
-      progress.Update( i );
-      xsearch[0] = Q_anisotropic[0] + (i*delqfrac_/100.0);
-      for (int j = gridmin; j < gridmax; j++) {
-        xsearch[1] = Q_anisotropic[1] + (j*delqfrac_/100.0);
-        for (int k = gridmin; k < gridmax; k++) {
-          xsearch[2] = Q_anisotropic[2] + (k*delqfrac_/100.0);
-          for (int l = gridmin; l < gridmax; l++) {
-            xsearch[3] = Q_anisotropic[3] + (l*delqfrac_/100.0);
-            for (int m = gridmin; m < gridmax; m++) {
-              xsearch[4] = Q_anisotropic[4] + (m*delqfrac_/100.0);
-              for (int n = gridmin; n < gridmax; n++) {
-                xsearch[5] = Q_anisotropic[5] + (n*delqfrac_/100.0);
-
-                double sgn = chi_squared(fxn, xsearch, &random_vectors_, D_eff_, Tau);
-                //mprintf("_Grid x0 %10.5g\n",xsearch[0]);
-                //mprintf("_Grid %3i%3i%3i%3i%3i%3i%10.5g%10.5g\n",
-                //        i,j,k,l,m,n,sgn,sgn0);
-                if (sgn < sgn0) {
-                  best = xsearch;
-                  sgn0 = sgn;
-                  success = true;
-                }
-              } // n
-            } // m
-          } // l
-        } // k
-      } // j
-    } // i
-    // Set best solution
-    if (success) {
-      mprintf("  Grid search succeeded.\n");
-      Q_anisotropic = best;
-      PrintVec6(outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
-    } else
-      mprintf("  Grid search could not find a better solution.\n");
-  } // END grid search
   outfile_.CloseFile();
-# endif
 }

@@ -33,7 +33,8 @@ class CurveFit {
     /// \return Status message.
     static const char* Message(int);
     /// \return Error message if status is zero.
-    const char* ErrorMessage() const { return errorMessage_; }
+    const char* ErrorMessage() const { return errorMessage_; } 
+    Darray const& FinalY() const { return finalY_; }
   private:
     typedef std::vector<int> Iarray;
     typedef std::vector<double>::size_type dsize;
@@ -67,6 +68,7 @@ class CurveFit {
     Darray jacobian_; ///< Jacobian/R, stored in transpose (row-major)
     Darray Params_;   ///< Working copy of parameter vector.
     Darray fParms_;   ///< Parameters for function evaluation.
+    Darray finalY_;     ///< fxn(x) with final parameters
     Darray Weights_;  ///< Residual weights
     std::vector<bool> hasBounds_; ///< True if parameter has bounds.
     Darray Ubound_;               ///< Parameter upper bound.

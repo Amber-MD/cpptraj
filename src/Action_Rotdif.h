@@ -85,6 +85,7 @@ class Action_Rotdif: public Action {
     void PrintTau( std::vector<double> const& );
     int Tensor_Fit(std::vector<double>&);
     int DetermineDeffs();
+    void PrintDeffs(std::string const&) const;
 
     int DetermineDeffsAlt();
 };

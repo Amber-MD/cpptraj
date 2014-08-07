@@ -230,9 +230,11 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
   // FIXME Should probably have better error handling here.
   // Construct output data.
   DataSet_Mesh& Yout = static_cast<DataSet_Mesh&>( *finalY_ );
+  CurveFit::Darray::const_iterator ny = fit.FinalY().begin();
   Yout.Allocate1D( dset_->Size() );
-  for (CurveFit::Darray::const_iterator x = Xvals.begin(); x != Xvals.end(); x++)
-    Yout.AddXY( *x, fxn(*x, Params) );
+  for (CurveFit::Darray::const_iterator x = Xvals.begin(); x != Xvals.end(); ++x, ++ny)
+    Yout.AddXY( *x, *ny );
+    //Yout.AddXY( *x, fxn(*x, Params) );
 
   // Statistics
   double corr_coeff = Yout.CorrCoeff( Set );
