@@ -29,7 +29,7 @@ class SimplexMin {
     Darray Xsimplex_;         ///< NP+1 rows by NP cols array containing current simplex.
     Darray Yvals_;            ///< Original y values (Nvals)
     Darray Ynew_;             ///< Y values with current parameters (Nvals)
-    Darray Ysearch_;          ///< (NP1)
+    Darray Ysearch_;          ///< Hold residuals at each solution vector in Xsimplex (NP1)
     double final_chisq_;
 };
 #endif

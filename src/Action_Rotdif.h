@@ -32,23 +32,23 @@ class Action_Rotdif: public Action {
     void Print();
 
     int debug_;
-    int rseed_;       ///< Random seed
-    int nvecs_;       ///< Number of random vectors to generate
-    double tfac_;     ///< time step
-    double ti_;       ///< initial time (ns)
-    double tf_;       ///< final time (ns), should be less than ncorr * tfac
-    int NmeshPoints_; ///< # cubic spline mesh points 
-    int itmax_;       ///< Max number of iterations
-    double delmin_;   ///< Convergence criterion
-    double d0_;       ///< Initial guess for iso diffusion tensor
-    int olegendre_;   ///< order of Legendre polynomial in the correlation function
-    int ncorr_;       ///< Max length to compute time correlation fns (# frames)
-    double delqfrac_; ///< how to scale simplexes
-    double amoeba_ftol_;
-    int amoeba_itmax_;
-    int amoeba_nsearch_; ///< Number of amoeba searches
-    bool do_gridsearch_;
-    bool useMass_;
+    int rseed_;          ///< Random seed
+    int nvecs_;          ///< Number of random vectors to generate
+    double tfac_;        ///< time step
+    double ti_;          ///< initial time (ns)
+    double tf_;          ///< final time (ns), should be less than ncorr * tfac
+    int NmeshPoints_;    ///< # cubic spline mesh points 
+    int itmax_;          ///< Max number of iterations
+    double delmin_;      ///< Convergence criterion
+    double d0_;          ///< Initial guess for iso diffusion tensor
+    int olegendre_;      ///< order of Legendre polynomial in the correlation function
+    int ncorr_;          ///< Max length to compute time correlation fns (# frames)
+    double delqfrac_;    ///< how to scale simplexes
+    double amoeba_ftol_; ///< Simplex min tolerance
+    int amoeba_itmax_;   ///< Simplex min iterations
+    int amoeba_nsearch_; ///< Number of simplex min searches
+    bool do_gridsearch_; ///< If true perform grid search after simplex min.
+    bool useMass_;       ///< Use mass in rms fitting.
     bool usefft_;
 
     // Workspace for LAPACK functions

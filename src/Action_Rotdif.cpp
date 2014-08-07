@@ -1457,7 +1457,7 @@ void Action_Rotdif::Print() {
   outfile_.Printf("\nSame diffusion tensor, but full anisotropy:\n");
   outfile_.Printf("  chi_squared for SVD tensor is %15.5g\n", initial_chisq);
   PrintTau( Tau );
-
+  // Use the SVD solution as one of the initial points for the minimizer.
   minimizer.Minimize(fxn, Q_anisotropic, &random_vectors_, D_eff_, delqfrac_,
                      amoeba_itmax_, amoeba_ftol_, amoeba_nsearch_, RNgen_);
   outfile_.Printf("\nOutput from amoeba:\n");

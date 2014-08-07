@@ -147,23 +147,23 @@ int SimplexMin::Amoeba(int amoeba_itmax, double amoeba_ftol) {
 // Average_vertices()
 void SimplexMin::Average_vertices(Darray& xsearch) const
 {
-    for (dsize j=0; j < NP_; j++) {
-      xsearch[j] = 0;
-      for (dsize k = 0; k < NP1_; k++) 
-        xsearch[j] += Xsimplex_[k * NP_ + j];
-      xsearch[j] /= (double)NP1_;
-    }
+  for (dsize j=0; j < NP_; j++) {
+    xsearch[j] = 0.0;
+    for (dsize k = 0; k < NP1_; k++) 
+      xsearch[j] += Xsimplex_[k * NP_ + j];
+    xsearch[j] /= (double)NP1_;
+  }
 }
 
 // SimplexMin::Simplex_min()
 /** Main driver routine for Amoeba (downhill simplex) minimizer. In the 
   * simplex method, N+1 initial points (where N is the dimension of the 
-  * search space) must be chosen; the SVD solution provides one of these. 
-  * Initial points are stored in rows of xsmplx. Components of vector 
-  * delq should be of the order of the characteristic "lengthscales" over 
-  * which the Q tensor varies. delqfrac determines the size of variation
-  * for each of the components of Q; the sign of the variation is randomly 
-  * chosen.
+  * search space) must be chosen. Initial points are stored in rows of
+  * matrix Xsimplex_; one of these is the input Q_vector. The other  
+  * initial solutions should be of the order of the characteristic 
+  * "lengthscales" over which Q_vector varies. delqfracIn determines the 
+  * size of variation for each of the components of Q; the sign of the 
+  * variation is randomly chosen.
   */
 int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector, 
                          DataSet* Xin, Darray const& YvalsIn, double delqfracIn,
@@ -250,7 +250,7 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
     for (dsize j=0; j < NP1_; j++) {
       for (dsize k=0; k < NP_; k++) {
         //xsearch[k] = xsmplx[j][k];
-        Xsimplex_[j * NP_ + k];
+        xsearch[k] = Xsimplex_[j * NP_ + k];
       }
       Ysearch_[j] = chi_squared(xsearch);
     }
@@ -263,7 +263,7 @@ int SimplexMin::Minimize(SimplexFunctionType fxnIn, Darray& Q_vector,
    
     // cycle over main loop, but first reduce the size of delqfrac:
     delqfrac *= 0.750;
-//    mprintf("\tAmoeba: Setting delqfrac to %15.7g\n",delqfrac);
+    mprintf("\tAmoeba: Setting delqfrac to %15.7g\n",delqfrac);
   }
 
   // Set q vector to the final average result from simpmin
