@@ -34,10 +34,11 @@ class NetcdfFile {
     void FloatToDouble(double*,const float*);
     void DoubleToFloat(float*,const double*); 
 
-    inline int Ncid()    { return ncid_;    }
-    inline int Ncatom()  { return ncatom_;  }
-    inline int Ncatom3() { return ncatom3_; }
-    inline int Ncframe() { return ncframe_; }
+    inline int Ncid()     const { return ncid_;    }
+    inline int Ncatom()   const { return ncatom_;  }
+    inline int Ncatom3()  const { return ncatom3_; }
+    inline int Ncframe()  const { return ncframe_; }
+    inline int CoordVID() const { return coordVID_; }
     bool HasVelocities() { return (velocityVID_ != -1); }
     bool HasCoords()     { return (coordVID_ != -1);    }
 

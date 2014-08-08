@@ -199,6 +199,7 @@ SOURCES=ActionFrameCounter.cpp \
         ReferenceAction.cpp \
         ReferenceFrame.cpp \
         SDFfile.cpp \
+        SimplexMin.cpp \
         StringRoutines.cpp \
         SymmetricRmsdCalc.cpp \
         Timer.cpp \
