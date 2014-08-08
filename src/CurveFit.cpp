@@ -120,10 +120,11 @@ void CurveFit::EvaluateFxn(Darray const& Xvals_, Darray const& Yvals_,
 {
   Params_to_Pvec(fParms_, ParamsIn);
   PrintVector("Param", fParms_);
+  fxn_(Xvals_, fParms_, finalY_);
   for (dsize im = 0; im != m_; im++)
   {
     // Residual
-    residual[im] = fxn_(Xvals_[im], fParms_) - Yvals_[im];
+    residual[im] = finalY_[im] - Yvals_[im];
   }
   // Apply weights
   for (dsize im = 0; im != Weights_.size(); im++)
@@ -959,8 +960,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
   }
   // Final parameters and Y at final parameters
   Params_to_Pvec(ParamVec, Params_);
-  for (dsize im = 0; im != m_; im++)
-    finalY_[im] = fxn_(Xvals_[im], ParamVec);
+  fxn_(Xvals_, ParamVec, finalY_);
 # ifdef DBG_CURVEFIT
   DBGPRINT("%s\n", Message(info));
   DBGPRINT("Exiting with info value = %i\n", info);

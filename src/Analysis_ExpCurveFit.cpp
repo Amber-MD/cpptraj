@@ -6,22 +6,27 @@
 #include "DataSet_Mesh.h"
 
 /** Multi exponential of form Y =  B0 + SUM[Bi * exp(X * Bi+1)] */
-double MultiExponentialK(double X, CurveFit::Darray const& Params)
+int MultiExponentialK(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
+                      CurveFit::Darray& Yvals)
 {
-  double Y = Params[0];
-  // dYdP[0] = 1.0;
-  for (unsigned int i = 1; i < Params.size(); i += 2)
-  {
-    double expBx = exp( Params[i+1] * X );
-    Y += Params[i] * expBx;
-    //dYdP[i  ] = expBx;
-    //dYdP[i+1] = Params[i] * X * expBx;
-    //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i, dYdP[i]);
-    //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i+1, dYdP[i+1]);
+  for (unsigned int n = 0; n != Xvals.size(); n++) {
+    double X = Xvals[n];
+    double Y = Params[0];
+    // dYdP[0] = 1.0;
+    for (unsigned int i = 1; i < Params.size(); i += 2)
+    {
+      double expBx = exp( Params[i+1] * X );
+      Y += Params[i] * expBx;
+      //dYdP[i  ] = expBx;
+      //dYdP[i+1] = Params[i] * X * expBx;
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i, dYdP[i]);
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i+1, dYdP[i+1]);
+    }
+    Yvals[n] = Y;
   }
-  return Y;
+  return 0;
 }
-
+/*
 double TestFxn(double X, CurveFit::Darray const& Params)
 {
   double Y = Params[0];
@@ -35,21 +40,26 @@ double TestFxn(double X, CurveFit::Darray const& Params)
   penalty = 1000.0 * (1.0 - penalty);
   return Y + penalty;
 }
-
+*/
 /** Multi exponential of form Y = SUM[Bi * exp(X * Bi+1)] */
-double MultiExponential(double X, CurveFit::Darray const& Params)
+int MultiExponential(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
+                     CurveFit::Darray& Yvals)
 {
-  double Y = 0.0;
-  for (unsigned int i = 0; i < Params.size(); i += 2)
-  {
-    double expBx = exp( Params[i+1] * X );
-    Y += Params[i] * expBx;
-    //dYdP[i  ] = expBx;
-    //dYdP[i+1] = Params[i] * X * expBx;
-    //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i, dYdP[i]);
-    //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i+1, dYdP[i+1]);
+  for (unsigned int n = 0; n != Xvals.size(); n++) {
+    double X = Xvals[n];
+    double Y = 0.0;
+    for (unsigned int i = 0; i < Params.size(); i += 2)
+    {
+      double expBx = exp( Params[i+1] * X );
+      Y += Params[i] * expBx;
+      //dYdP[i  ] = expBx;
+      //dYdP[i+1] = Params[i] * X * expBx;
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i, dYdP[i]);
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i+1, dYdP[i+1]);
+    }
+    Yvals[n] = Y;
   }
-  return Y;
+  return 1;
 }
 
 void Analysis_ExpCurveFit::Help() {

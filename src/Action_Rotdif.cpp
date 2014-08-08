@@ -1087,8 +1087,12 @@ int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int n
 
 // -----------------------------------------------------------------------------
 // Single exponential function with constant
-double ExpFxn(double tau, CurveFit::Darray const& Params) {
-  return ( exp( -tau * Params[0] ) );
+int ExpFxn(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
+              CurveFit::Darray& Ct)
+{
+  for (unsigned int n = 0; n != Tau.size(); n++)
+    Ct[n] = ( exp( -Tau[n] * Params[0] ) );
+  return 0;
 }
 
 // Integral of exponential with constant
@@ -1096,13 +1100,19 @@ double ExpFxn(double tau, CurveFit::Darray const& Params) {
 //  return ( exp( a0 * tau ) / a0 );
 //}
 
-// Multiple exponential, full asymmetry, l=2
-double MultiExp_L2(double tau, CurveFit::Darray const& Params) {
-  return ( Params[0] * exp( -tau / Params[1] ) +
-           Params[2] * exp( -tau / Params[3] ) +
-           Params[4] * exp( -tau / Params[5] ) +
-           Params[6] * exp( -tau / Params[7] ) +
-           Params[8] * exp( -tau / Params[9] ) );
+// Sum of 5 exponentials
+int Sum5Exp(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
+            CurveFit::Darray& Ct)
+{
+  for (unsigned int n = 0; n != Tau.size(); n++) {
+    double tau = Tau[n];
+    Ct[n]= ( Params[0] * exp( -tau * Params[1] ) +
+             Params[2] * exp( -tau * Params[3] ) +
+             Params[4] * exp( -tau * Params[5] ) +
+             Params[6] * exp( -tau * Params[7] ) +
+             Params[8] * exp( -tau * Params[9] ) );
+  }
+  return 0;
 }
 
 // C(tau) = SUM(-l...l)[ c * exp(-tau / T) ]
@@ -1112,7 +1122,9 @@ double MultiExp_L2(double tau, CurveFit::Darray const& Params) {
 // e+1 = (3*m^2*n^2) * exp( -tau * (4x + y + z) )
 // e+2 = (d - e)     * exp( -tau * 6*(D+sqrt(D^2 - D'^2)) )
 // Params={l, m, n, x, y, z}
-double Ctau_L2(double tau, CurveFit::Darray const& Params) {
+int Ctau_L2(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
+               CurveFit::Darray& Ct)
+{
   double lambda[5];
   double dx = Params[3];
   double dy = Params[4];
@@ -1147,7 +1159,8 @@ double Ctau_L2(double tau, CurveFit::Darray const& Params) {
     //mprinterr("Error: Ctau_L2: Cannot calculate lambda l=2, m=0, tau=%g\n", tau);
     //mprinterr("\tl= %g  m= %g  n= %g  dx= %g  dy= %g  dz= %g\n",
     //          Params[0], Params[1], Params[2], Params[3], Params[4], Params[5]);
-    return 1000.0;
+    Ct.assign(Ct.size(), 1000.0);
+    return 1;
   }
   double sqrt_Dav_Dpr = sqrt( delta );
   lambda[2] = 6 * (Dav - sqrt_Dav_Dpr);
@@ -1224,18 +1237,21 @@ double Ctau_L2(double tau, CurveFit::Darray const& Params) {
     //                 (w/n)^2*0.75*sin(theta)^4*cos(2*phi)^2 +
     //                 (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
     double m_p2 = da - ea;
+  for (unsigned int n = 0; n != Tau.size(); n++) {
+    double tau = Tau[n]; 
     // Sum decay constants and weights for l=2 m=-2...2
-    return ( (m_m2 * exp(-tau * lambda[0])) +
+    Ct[n]= ( (m_m2 * exp(-tau * lambda[0])) +
              (m_m1 * exp(-tau * lambda[1])) +
              (m_0  * exp(-tau * lambda[2])) +
              (m_p1 * exp(-tau * lambda[3])) +
              (m_p2 * exp(-tau * lambda[4])) );
-
+  }
     //Yvals[nvec] = (m_m2 / lambda[0]) + (m_m1 / lambda[1]) + (m_0 / lambda[2]) +
     //              (m_p1 / lambda[3]) + (m_p2 / lambda[4]);
     //sumc2_[nvec] = m_m2 + m_m1 + m_0 + m_p1 + m_p2;
 //    mprintf("Yvals[%i]= (%g / %g) + (%g / %g) + (%g / %g) + (%g / %g) + (%g / %g) = %g\n", nvec,
 //            m_m2, lambda[0], m_m1, lambda[1], m_0, lambda[2], m_p1, lambda[3], m_p2, lambda[4], Yvals[nvec]);
+  return 0;
 }
 
 
@@ -1253,7 +1269,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
    else if (ncorr_ > vLength)
      ctMax = vLength;
   //int ctMax = (int)((tf_ - ti_) / tfac_) + 1;
-  printf("DEBUG: Npoints for autocorrelation fxn= %i  vLength=%i  ncorr= %i\n", ctMax, vLength, ncorr_);
+  mprintf("DEBUG: Npoints for autocorrelation fxn= %i  vLength=%i  ncorr= %i\n", ctMax, vLength, ncorr_);
 
   // Set up X values
   CurveFit::Darray Xvals;
@@ -1304,8 +1320,9 @@ int Action_Rotdif::DetermineDeffsAlt() {
     // Calculate autocorrelation for rotated vectors using SH.
     fft_compute_corr(rotated_vectors, ctMax, Ct);
 
+    mprintf("    Vec %4i -----------------------------------\n", nvec);
     // Fit autocorrelation to C(tau) = exp[-l(l+1)D * tau] 
-    int info = fit.LevenbergMarquardt( ExpFxn, Xvals, Ct, Params, 0.000001, 1000 );
+    int info = fit.LevenbergMarquardt( ExpFxn, Xvals, Ct, Params, amoeba_ftol_, amoeba_itmax_ );
     mprintf("\tSingleExp: %s\n", fit.Message(info));
     if (info == 0) {
       mprinterr("Error: Single exp fit: %s\n", fit.ErrorMessage());
@@ -1315,30 +1332,36 @@ int Action_Rotdif::DetermineDeffsAlt() {
     // We now in principal have A0 = -l(l+1)D, D = A0 / -l(l+1)
     double A0 = Params[0];
     double Deff = A0 / (double)(olegendre_ * (olegendre_ + 1));
-    printf("\tVec %i A0= %g    Deff= %g\n", nvec, A0, Deff);
+    mprintf("\t\tA0= %12.5e    Deff= %12.5e    Vxyz={%12.5e, %12.5e, %12.5e}\n",
+            A0, Deff, (*rndvec)[0], (*rndvec)[1], (*rndvec)[2]);
     D_eff_.push_back( Deff );
 
-    // Fit autocorrelation to C(tau) = SUM(-l...l)[ c * exp(-tau / T) ]
+    // Fit autocorrelation to C(tau) = SUM(-l...l)[ c * exp(-tau / T) ], T = 1/E
     //for (unsigned int i = 0; i < 10; i += 2) {
     //  Mparams[i  ] = 0.2;
-    //  Mparams[i+1] = 1.0 / A0;
+    //  Mparams[i+1] = A0;
     //}
-    //info = fit.LevenbergMarquardt( MultiExp_L2, Xvals, Ct, Mparams, 0.000001, 1000 );
-    Cparams[0] = 1.0;        // l
-    Cparams[1] = 0.0;        // m
-    Cparams[2] = 0.0;        // n
+    //info = fit.LevenbergMarquardt( Sum5Exp, Xvals, Ct, Mparams, 0.000001, 1000 );
+
+    double rv_norm = 1.0 / sqrt( (*rndvec)[0]*(*rndvec)[0] +
+                                 (*rndvec)[1]*(*rndvec)[1] +
+                                 (*rndvec)[2]*(*rndvec)[2] );
+    Cparams[0] = (*rndvec)[0] * rv_norm;        // l
+    Cparams[1] = (*rndvec)[1] * rv_norm;        // m
+    Cparams[2] = (*rndvec)[2] * rv_norm;        // n
     Cparams[3] = A0;         // dx (A0?)
     Cparams[4] = A0 + (A0 * 0.1); // dy
     Cparams[5] = A0 - (A0 * 0.1); // dz
-    info = fit.LevenbergMarquardt( Ctau_L2, Xvals, Ct, Cparams, 0.000001, 1000 ); 
+    info = fit.LevenbergMarquardt( Ctau_L2, Xvals, Ct, Cparams, amoeba_ftol_, amoeba_itmax_ ); 
+
     mprintf("\tMultiExp: %s\n", fit.Message(info));
     if (info == 0) {
       mprinterr("Error: Multi exp fit: %s\n", fit.ErrorMessage());
       return 1;
     }
     //for (unsigned int i = 0; i < 10; i += 2)
-    //  mprintf("\t    l=%2i  c= %12.5e  T= %12.5e\n", i/2 - olegendre_, Mparams[i], Mparams[i+1]);
-    mprintf("\tl= %g  m= %g  n= %g  L= %g dx= %g  dy= %g  dz= %g\n",
+    //  mprintf("\t\tl=%2i  c= %12.5e  T= %12.5e\n", i/2 - olegendre_, Mparams[i], Mparams[i+1]);
+    mprintf("\t  l= %g  m= %g  n= %g  L= %g dx= %g  dy= %g  dz= %g\n",
             Cparams[0], Cparams[1], Cparams[2], 
             sqrt(Cparams[0]*Cparams[0] + Cparams[1]*Cparams[1] + Cparams[2]*Cparams[2]),
             Cparams[3], Cparams[4], Cparams[5]);
@@ -1358,8 +1381,6 @@ int Action_Rotdif::DetermineDeffsAlt() {
                        Xvals[n], Ct[n], Ct_single[n], FinalY[n]);
       outfile.CloseFile();
     }
-
- 
   } // END loop over random vectors
 
   return 0;

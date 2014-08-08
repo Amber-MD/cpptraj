@@ -16,7 +16,11 @@ class CurveFit {
     /** Function prototype for Y =f(x):
       * Xvalue, P[] parameters.
       */
-    typedef double (*FitFunctionType)(double, Darray const&);
+    //typedef double (*FitFunctionType)(double, Darray const&);
+    /** Function prototype for Y = f(x, p)
+      * Xvalues, P[] parameters, Y values
+      */
+    typedef int (*FitFunctionType)(Darray const&, Darray const&, Darray&);
     
     CurveFit();
 #   ifdef DBG_CURVEFIT
