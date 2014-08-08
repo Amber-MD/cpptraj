@@ -190,12 +190,12 @@ static inline std::string GetPrefix(FileName const& fname) {
 
 // DataIO_RemLog::SetupTemperatureMap()
 /** buffer should be positioned at the first exchange. */
-DataSet_RemLog::TmapType 
+DataIO_RemLog::TmapType 
   DataIO_RemLog::SetupTemperatureMap(BufferedLine& buffer,
                                      std::vector<int>& CrdIdxs) const
 {
-  DataSet_RemLog::TmapType TemperatureMap;
-  std::vector<TlogType> tList;
+  TmapType TemperatureMap;
+  std::vector<TlogType> tList; // Hold temps and associated coord idxs
   TlogType tlog;
   CrdIdxs.clear();
   const char* ptr = buffer.Line();
@@ -210,7 +210,7 @@ DataSet_RemLog::TmapType
     tList.push_back( tlog );
     ptr = buffer.Line();
   }
-  // Sort temperatures
+  // Sort temperatures and associated coord indices
   std::sort( tList.begin(), tList.end(), TlogType_cmp() );
   // Place sorted temperatures into map starting from replica index 1. Check
   // for duplicate temperatures. Also store the sorted coordinate indices.
@@ -356,7 +356,12 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   for (Sarray::const_iterator it = logFilenames_.begin(); it != logFilenames_.end(); ++it)
     mprintf(" %s", it->c_str());
   mprintf("\n");
-  // ---------------------------------------------
+
+  // logFileGroups will be used to hold all dimension replica logs for all runs.
+  //   When there are multiple dimensions, logFileGroups will look like:
+  // {Run1Log.Dim1, Run1Log.Dim2, ... Run1Log.DimN}, {Run2Log.Dim1 ...}, ...
+  //   otherwise:
+  // {Run1Log}, {Run2Log}, ...
   typedef std::vector<Sarray> LogGroupType;
   LogGroupType logFileGroups;
   if (GroupDims_.empty()) {
@@ -423,6 +428,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
       }
     }
   }    
+
   // Set up temperature maps/coordinate index arrays for each dim/group.
   // Base this on the first set of MREMD replica logs.
   // Open remlogs for each dimension as buffered file.
@@ -433,7 +439,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
   // Set up map/coordinate indices for each group and make sure they match
   // whats in the remd.dim file.
   // Temperature map for dimensions (if needed) 
-  std::vector<DataSet_RemLog::TmapType> TemperatureMap( GroupDims_.size() );
+  std::vector<TmapType> TemperatureMap( GroupDims_.size() );
   // Coordinate indices for temperature dimensions (if needed)
   std::vector< std::vector<int> > TempCrdIdxs( GroupDims_.size() ); 
   for (int dim = 0; dim < (int)GroupDims_.size(); dim++) {
@@ -562,7 +568,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
               return 1;
             }
             // Figure out my position within the group.
-            DataSet_RemLog::TmapType::const_iterator tmap = 
+            TmapType::const_iterator tmap = 
               TemperatureMap[current_dim].find( tremd_temp0 );
             if (tmap == TemperatureMap[current_dim].end()) {
               mprinterr("Error: replica temperature %.2f not found in temperature map.\n", 

@@ -1,5 +1,6 @@
 #ifndef INC_DATAIO_REMLOG_H
 #define INC_DATAIO_REMLOG_H
+#include <map>
 #include "DataIO.h"
 #include "BufferedLine.h"
 #include "DataSet_RemLog.h"
@@ -18,9 +19,11 @@ class DataIO_RemLog : public DataIO {
   private:
     enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD };
     typedef std::vector<std::string> Sarray;
+    typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
+
     int ReadRemlogHeader(BufferedLine&, ExchgType&) const;
     int ReadRemdDimFile(std::string const&);
-    DataSet_RemLog::TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
+    TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
     int CountHamiltonianReps(BufferedLine&) const;
     int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&);
     void SetupDim1Group( int );

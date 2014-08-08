@@ -58,7 +58,6 @@ class Trajin_Multi : public Trajin {
     ReplicaInfo::TargetType targetType_; ///< Hold type of REMD frame being searched for.
     NameListType replica_filenames_;
     // ENSEMBLE
-    typedef std::map<double,int> TmapType;
     ReplicaMap<double> TemperatureMap_;
     ReplicaMap<RemdIdxType> IndicesMap_;
 #   ifdef MPI

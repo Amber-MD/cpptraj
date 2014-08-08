@@ -1,7 +1,6 @@
 #ifndef INC_REPLICAINFO_H
 #define INC_REPLICAINFO_H
 #include <map>
-// FIXME: Consolidate with Trajin_Multi
 namespace ReplicaInfo {
   enum TargetType { NONE = 0, TEMP, INDICES, CRDIDX };
 }
