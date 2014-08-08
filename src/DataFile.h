@@ -39,6 +39,8 @@ class DataFile {
     void SetDataFilePrecision(int, int);
     /// Read data from DataFile to DataSets.
     int ReadDataIn(std::string const&, ArgList const&, DataSetList&);
+    /// Read data from specific type of DataFile
+    int ReadDataOfType(std::string const&, DataFormatType, DataSetList&);
     /// Set up DataFile for writing.
     int SetupDatafile(std::string const&, ArgList&, int);
     /// Add a previously set-up DataSet to DataFile.

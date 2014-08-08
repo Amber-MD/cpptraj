@@ -37,8 +37,14 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   // Check if DataSet exists
   modinfo_ = (DataSet_Modes*)DSL->FindSetOfType( modesname, DataSet::MODES );
   if (modinfo_ == 0) {
-    mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
-    return Action::ERR;
+    // To preserve backwards compat., if no modes data set specified try to
+    // load the data file.
+    DataFile dataIn;
+    dataIn.SetDebug( debugIn );
+    if (dataIn.ReadDataOfType( modesname, DataFile::EVECS, *DSL ))
+      return Action::ERR;
+    modinfo_ = (DataSet_Modes*)DSL->FindSetOfType( modesname, DataSet::MODES );
+    if (modinfo_ == 0) return Action::ERR;
   }
   // Check if beg and end are in bounds.
   if (end_ > modinfo_->Nmodes()) {
