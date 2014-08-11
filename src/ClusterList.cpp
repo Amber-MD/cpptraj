@@ -473,3 +473,39 @@ double ClusterList::ComputeDBI(CpptrajFile& outfile) {
   * the all-data centroid, and P is the sum (for all clusters) of the distances
   * from the cluster centroid.
   */
+double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
+  // Make sure all cluster centroids are up to date.
+  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
+    C1->CalculateCentroid( Cdist_ );
+
+  // Form a cluster with all points to get a centroid.
+  ClusterNode c_all;
+  ClusterSieve::SievedFrames sFrames = FrameDistances_.Sieved();
+  for (ClusterSieve::SievedFrames::const_iterator sfrm = sFrames.begin();
+                                                  sfrm != sFrames.end(); ++sfrm)
+    c_all.AddFrameToCluster( *sfrm );
+  c_all.CalculateCentroid( Cdist_ );
+
+  // Loop over all clusters
+  double gss = 0.0; // between-group sum of squares
+  double wss = 0.0; // within-group sum of squares
+  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
+  {
+    for (ClusterNode::frame_iterator f1 = C1->beginframe(); f1 != C1->endframe(); ++f1)
+    {
+      double dist = Cdist_->FrameCentroidDist(*f1, c_all.Cent());
+      gss += (dist * dist);
+      dist = Cdist_->FrameCentroidDist(*f1, C1->Cent());
+      wss += (dist * dist);
+    }
+  }
+  double d_nclusters = (double)Nclusters();
+  double num = (gss - wss) / (d_nclusters - 1.0);
+  double den = wss / ((double)sFrames.size() - d_nclusters);
+  mprintf("Pseudo-f: Total distance to centroid is %.4f\n", gss);
+  mprintf("Pseudo-f: Cluster distance to centroid is %.4f\n", wss);
+  double pseudof = num / den;
+  mprintf("Num %.4f over Den %.4f gives %.4f\n", num, den, pseudof);
+
+  return pseudof;
+}

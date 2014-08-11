@@ -52,6 +52,8 @@ class ClusterList {
     int AddCluster(ClusterDist::Cframes const&);
     /// Calculate the Davies-Bouldin index of clusters.
     double ComputeDBI(CpptrajFile&);
+    /// Calculate pseudo-F statistic.
+    double ComputePseudoF(CpptrajFile&);
   private:
     static const char* XMGRACE_COLOR[];
 };
