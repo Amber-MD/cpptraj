@@ -30,7 +30,8 @@ Analysis_Clustering::Analysis_Clustering() :
   writeRepFrameNum_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
-  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ)
+  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  debug_(0)
 { } 
 
 // DESTRUCTOR

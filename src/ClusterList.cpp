@@ -521,10 +521,12 @@ double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
   double den = wss / (d_ntotal - d_nclusters);
   if (den < Constants::SMALL)
     den = Constants::SMALL;
-  mprintf("Pseudo-f: Total distance to centroid is %.4f\n", gss);
-  mprintf("Pseudo-f: Cluster distance to centroid is %.4f\n", wss);
   double pseudof = num / den;
-  mprintf("Num %.4f over Den %.4f gives %.4f\n", num, den, pseudof);
+  if (debug_ > 0)
+    mprintf("Pseudo-f: Total distance to centroid is %.4f\n"
+            "Pseudo-f: Cluster distance to centroid is %.4f\n"
+            "Pseudo-f: Numerator %.4f over denominator %.4f gives %.4f\n", 
+            gss, wss, num, den, pseudof);
   if (outfile.IsOpen()) outfile.Printf("#pSF: %f\n", pseudof);
 
   return pseudof;
