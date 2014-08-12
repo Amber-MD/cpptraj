@@ -467,11 +467,14 @@ void ClusterDist_SRMSD::CalculateCentroid(Centroid* centIn,  Cframes const& cfra
       if (SRMSD_.Fit())
         cent->cframe_.CenterOnOrigin(SRMSD_.UseMass());
     } else {
+      SRMSD_.SymmRMSD_CenteredRef( frm1_, cent->cframe_ );
+      // Remap atoms
+      frm2_.SetCoordinatesByMap( frm1_, SRMSD_.AMap() );
       if (SRMSD_.Fit()) {
-        SRMSD_.SymmRMSD_CenteredRef( frm1_, cent->cframe_ );
-        frm1_.Rotate( SRMSD_.RotMatrix() );
+        frm2_.Translate( SRMSD_.TgtTrans() );
+        frm2_.Rotate( SRMSD_.RotMatrix() );
       }
-      cent->cframe_ += frm1_;
+      cent->cframe_ += frm2_;
     }
   }
   cent->cframe_.Divide( (double)cframesIn.size() );
