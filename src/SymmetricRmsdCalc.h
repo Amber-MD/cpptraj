@@ -17,6 +17,9 @@ class SymmetricRmsdCalc {
     double SymmRMSD(Frame const&, Frame&);
     /// Calc symm. RMSD using target and pre-centered reference containing selected atoms.
     double SymmRMSD_CenteredRef(Frame const&, Frame const&);
+    /// Remap symmetric atoms based on previous symmetric rmsd calc.
+    int RemapSymmAtoms(Frame const&, AtomMask const&);
+    Frame* RemapFrameAddress()          { return &remapFrame_; }
     bool Fit()                    const { return fit_;         }
     bool UseMass()                const { return useMass_;     }
     Matrix_3x3 const& RotMatrix() const { return rotMatrix_;   }
@@ -33,7 +36,9 @@ class SymmetricRmsdCalc {
     int debug_;
     Hungarian cost_matrix_; ///< Hungarian algorithm cost matrix.
     Iarray AMap_;           ///< AMap_[oldSelectedTgt] = newSelectedTgt
+    Iarray targetMap_;      ///< targetMap_[oldTgt] = newTgt
     Frame tgtRemap_;        ///< Selected target atoms re-mapped for symmetry.
+    Frame remapFrame_;      ///< Entire target frame re-mapped for symmetry.
     Matrix_3x3 rotMatrix_;  ///< Hold best-fit rotation matrix for target.
     Vec3 tgtTrans_;         ///< Hold translation of target to origin.
     bool fit_;              ///< If true, perform RMS best-fit.

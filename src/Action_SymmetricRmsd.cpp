@@ -76,12 +76,6 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
   selectedTgt_.SetupFrameFromMask(tgtMask_, currentParm->Atoms());
   // Setup Symmetric RMSD calc (target mask, symmetric atoms etc)
   if (SRMSD_.SetupSymmRMSD( *currentParm, tgtMask_, remap_ )) return Action::ERR;
-  if (remap_) {
-    // Allocate space for remapped frame; same # atoms as original frame
-    remapFrame_.SetupFrameV( currentParm->Atoms(), currentParm->HasVelInfo(),
-                             currentParm->NrepDim() );
-    targetMap_.resize( currentParm->Natom() );
-  }
   // Reference frame setup
   if (REF_.SetupRef(*currentParm, tgtMask_.Nselected(), "symmrmsd"))
     return Action::ERR;
@@ -100,13 +94,8 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame
   rmsd_->Add(frameNum, &rmsdval);
   if (remap_) {
     // Now re-map the target frame
-    for (int atom = 0; atom < (int)targetMap_.size(); atom++)
-      targetMap_[atom] = atom;
-    SymmetricRmsdCalc::Iarray const& AMap = SRMSD_.AMap();
-    for (unsigned int ref = 0; ref < AMap.size(); ++ref)
-      targetMap_[ tgtMask_[ref] ] = tgtMask_[AMap[ref]];
-    remapFrame_.SetCoordinatesByMap( *currentFrame, targetMap_ );
-    *frameAddress = &remapFrame_;
+    SRMSD_.RemapSymmAtoms( *currentFrame, tgtMask_ );
+    *frameAddress = SRMSD_.RemapFrameAddress();
   }
   if ( SRMSD_.Fit() )
     (*frameAddress)->Trans_Rot_Trans( SRMSD_.TgtTrans(), SRMSD_.RotMatrix(), REF_.RefTrans() );
