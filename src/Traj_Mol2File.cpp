@@ -156,17 +156,13 @@ int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
   file_.WriteHeader(Mol2File::ATOM);
   const double *Xptr = frameOut.xAddress();
   int atnum = 1;
-  for (Topology::atom_iterator atom = mol2Top_->begin(); atom != mol2Top_->end(); ++atom) {
+  for (Topology::atom_iterator atom = mol2Top_->begin();
+                               atom != mol2Top_->end();
+                             ++atom, ++atnum, Xptr += 3)
+  {
     // figure out the residue number
-    int res = (*atom).ResNum();
-    // If atom type is blank, set to atom name.
-    NameType atype = (*atom).Type();
-    if ( atype == "" )
-      atype = (*atom).Name();
-    file_.Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-5s %6i %-6s %10.6lf\n",
-                     atnum++, (*atom).c_str(), Xptr[0], Xptr[1], Xptr[2],
-                     *atype, res+1, mol2Top_->Res(res).c_str(), (*atom).Charge());
-    Xptr += 3;
+    int res = atom->ResNum();
+    file_.WriteMol2Atom(atnum, *atom, res+1, mol2Top_->Res(res).c_str(), Xptr); 
   }
   //@<TRIPOS>BOND section
   if (file_.Mol2Nbonds() > 0) {

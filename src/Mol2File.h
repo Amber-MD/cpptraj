@@ -27,6 +27,8 @@ class Mol2File : public CpptrajFile {
     Atom Mol2Atom();
     /// Convert current line to Residue
     NameType Mol2Residue(int&);
+    /// Write mol2 atom line: at#, atom, res#, res, coords
+    void WriteMol2Atom(int, Atom const&, int, const char*, const double*);
 
     void SetMol2Natoms(int nIn)               { mol2atoms_ = nIn;  }
     void SetMol2Nbonds(int nIn)               { mol2bonds_ = nIn;  }
