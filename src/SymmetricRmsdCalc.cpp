@@ -7,10 +7,11 @@ SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(0), fit_(true), useMass_(false) 
 
 // CONSTRUCTOR - For use when only RMSD is wanted.
 SymmetricRmsdCalc::SymmetricRmsdCalc(AtomMask const& maskIn, bool fitIn, 
-                                     bool useMassIn, Topology const& topIn, int debugIn) :
+                                     bool useMassIn, bool remapIn,
+                                     Topology const& topIn, int debugIn) :
   debug_(debugIn), fit_(fitIn), useMass_(useMassIn)
 {
-  SetupSymmRMSD( topIn, maskIn, false );
+  SetupSymmRMSD( topIn, maskIn, remapIn );
 }
 
 // SymmetricRmsdCalc::InitSymmRMSD()
@@ -189,14 +190,6 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn, AtomMask const& tgtM
       mprintf("\n");
     } 
   }
-  // Allocate space for remapping original target frame.
-  if (remapIn) {
-    targetMap_.resize( topIn.Natom() );
-    // Allocate space for remapped frame; same # atoms as original frame
-    remapFrame_.SetupFrameV( topIn.Atoms(), topIn.HasVelInfo(), topIn.NrepDim() );
-  } else {
-    targetMap_.clear();
-  }
   return 0;
 }
 
@@ -276,16 +269,4 @@ double SymmetricRmsdCalc::SymmRMSD_CenteredRef(Frame const& selectedTgt, Frame c
   else
     rmsdval = tgtRemap_.RMSD_NoFit( centeredREF, useMass_ );
   return rmsdval;
-}
-
-// SymmetricRmsdCalc::RemapSymmAtoms()
-int SymmetricRmsdCalc::RemapSymmAtoms(Frame const& tgtFrame, AtomMask const& tgtMask)
-{
-  // Re-map the target frame
-  for (int atom = 0; atom < (int)targetMap_.size(); atom++)
-    targetMap_[atom] = atom;
-  for (unsigned int ref = 0; ref < AMap_.size(); ++ref)
-    targetMap_[ tgtMask[ref] ] = tgtMask[AMap_[ref]];
-  remapFrame_.SetCoordinatesByMap( tgtFrame, targetMap_ );
-  return 0;
 }

@@ -22,5 +22,7 @@ class Action_SymmetricRmsd : public Action {
     AtomMask tgtMask_;        ///< Atom mask selecting target atoms.
     Frame selectedTgt_;       ///< Frame holding selected target atoms.
     bool remap_;              ///< If true, re-map target frame.
+    Frame remapFrame_;        ///< Original target frame re-mapped for symmetry
+    SymmetricRmsdCalc::Iarray targetMap_; ///< targetMap_[oldTgt] = newTgt
 };
 #endif
