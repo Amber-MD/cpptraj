@@ -7,11 +7,10 @@ SymmetricRmsdCalc::SymmetricRmsdCalc() : debug_(0), fit_(true), useMass_(false) 
 
 // CONSTRUCTOR - For use when only RMSD is wanted.
 SymmetricRmsdCalc::SymmetricRmsdCalc(AtomMask const& maskIn, bool fitIn, 
-                                     bool useMassIn, bool remapIn,
-                                     Topology const& topIn, int debugIn) :
+                                     bool useMassIn, Topology const& topIn, int debugIn) :
   debug_(debugIn), fit_(fitIn), useMass_(useMassIn)
 {
-  SetupSymmRMSD( topIn, maskIn, remapIn );
+  SetupSymmRMSD( topIn, maskIn, false ); // No remap warning
 }
 
 // SymmetricRmsdCalc::InitSymmRMSD()

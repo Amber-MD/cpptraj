@@ -19,7 +19,11 @@ class ClusterNode {
     void CalcEccentricity(ClusterMatrix const&);
     /// Calculate centroid of members of this cluster.
     void CalculateCentroid(ClusterDist* Cdist) {
-      Cdist->CalculateCentroid( centroid_, frameList_ );
+      // FIXME: Could potentially get rid of this branch.
+      if (centroid_ == 0)
+        centroid_ = Cdist->NewCentroid( frameList_ );
+      else
+        Cdist->CalculateCentroid( centroid_, frameList_ );
     }
     /// Calculate average distance of all members to centroid
     double CalcAvgToCentroid( ClusterDist*);

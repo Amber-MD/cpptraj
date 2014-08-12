@@ -3,6 +3,7 @@
 #include "ClusterList.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
+#include "Constants.h"
 
 // XMGRACE colors
 const char* ClusterList::XMGRACE_COLOR[] = {
@@ -286,6 +287,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   outfile.Printf("#Clustering: %u clusters %i frames\n",
                  clusters_.size(), maxframesIn);
   ComputeDBI( outfile );
+  ComputePseudoF( outfile );
   // Call internal info routine.
   ClusterResults( outfile );
   // Do not print trajectory stuff if no filename given (i.e. STDOUT output)
@@ -439,12 +441,12 @@ double ClusterList::ComputeDBI(CpptrajFile& outfile) {
   averageDist.reserve( clusters_.size() );
   for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
     // Make sure centroid for this cluster is up to date
-    (*C1).CalculateCentroid( Cdist_ );
+    C1->CalculateCentroid( Cdist_ );
     // Calculate average distance to centroid for this cluster
-    averageDist.push_back( (*C1).CalcAvgToCentroid( Cdist_ ) );
+    averageDist.push_back( C1->CalcAvgToCentroid( Cdist_ ) );
     if (outfile.IsOpen())
-      outfile.Printf("#Cluster %i has average-distance-to-centroid %f\n", (*C1).Num(),
-                     averageDist.back());
+      outfile.Printf("#Cluster %i has average-distance-to-centroid %f\n", 
+                     C1->Num(), averageDist.back());
   }
   double DBITotal = 0.0;
   unsigned int nc1 = 0;
@@ -454,7 +456,7 @@ double ClusterList::ComputeDBI(CpptrajFile& outfile) {
     for (cluster_it c2 = clusters_.begin(); c2 != clusters_.end(); ++c2, ++nc2) {
       if (c1 == c2) continue;
       double Fred = averageDist[nc1] + averageDist[nc2];
-      Fred /= Cdist_->CentroidDist( (*c1).Cent(), (*c2).Cent() );
+      Fred /= Cdist_->CentroidDist( c1->Cent(), c2->Cent() );
       if (Fred > MaxFred)
         MaxFred = Fred;
     }
@@ -465,25 +467,39 @@ double ClusterList::ComputeDBI(CpptrajFile& outfile) {
   return DBITotal;
 }
 
-/** The pseudo-F statistic is another measure of clustering goodness. HIGH 
-  * values are GOOD. Generally, one selects a cluster-count that gives a peak 
+/** The pseudo-F statistic is another measure of clustering goodness. High 
+  * values are good. Generally, one selects a cluster-count that gives a peak 
   * in the pseudo-f statistic (or pSF, for short).
   * Formula: A/B, where A = (T - P)/(G-1), and B = P / (n-G). Here n is the 
   * number of points, G is the number of clusters, T is the total distance from
   * the all-data centroid, and P is the sum (for all clusters) of the distances
   * from the cluster centroid.
   */
+// NOTE: This calc differs slightly from PTRAJ in that real centroids are used
+//       instead of representative structures.
 double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
-  // Make sure all cluster centroids are up to date.
-  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
-    C1->CalculateCentroid( Cdist_ );
+  // Calculation makes no sense with fewer than 2 clusters.
+  if (Nclusters() < 2) {
+    mprintf("Warning: Fewer than 2 clusters. Not calculating pseudo-F.\n");
+    return 0.0;
+  }
 
-  // Form a cluster with all points to get a centroid.
+  // Form a cluster with all points to get a centroid. Use only frames that
+  // are in clusters, i.e. ignore noise. Also make sure all cluster centroids
+  // are up to date.
   ClusterNode c_all;
-  ClusterSieve::SievedFrames sFrames = FrameDistances_.Sieved();
-  for (ClusterSieve::SievedFrames::const_iterator sfrm = sFrames.begin();
-                                                  sfrm != sFrames.end(); ++sfrm)
-    c_all.AddFrameToCluster( *sfrm );
+  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
+  {
+    C1->CalculateCentroid( Cdist_ );
+    for (ClusterNode::frame_iterator f1 = C1->beginframe(); f1 != C1->endframe(); ++f1)
+      c_all.AddFrameToCluster( *f1 );
+  }
+  // Pseudo-F makes no sense if # clusters == # frames
+  if (Nclusters() == c_all.Nframes()) {
+    mprintf("Warning: Each frame is in a separate cluster. Not calculating pseudo-F.\n");
+    return 0.0;
+  }
+  c_all.SortFrameList();
   c_all.CalculateCentroid( Cdist_ );
 
   // Loop over all clusters
@@ -500,12 +516,16 @@ double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
     }
   }
   double d_nclusters = (double)Nclusters();
+  double d_ntotal = (double)c_all.Nframes();
   double num = (gss - wss) / (d_nclusters - 1.0);
-  double den = wss / ((double)sFrames.size() - d_nclusters);
+  double den = wss / (d_ntotal - d_nclusters);
+  if (den < Constants::SMALL)
+    den = Constants::SMALL;
   mprintf("Pseudo-f: Total distance to centroid is %.4f\n", gss);
   mprintf("Pseudo-f: Cluster distance to centroid is %.4f\n", wss);
   double pseudof = num / den;
   mprintf("Num %.4f over Den %.4f gives %.4f\n", num, den, pseudof);
+  if (outfile.IsOpen()) outfile.Printf("#pSF: %f\n", pseudof);
 
   return pseudof;
 }
