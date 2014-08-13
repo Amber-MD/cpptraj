@@ -122,6 +122,7 @@ int Cluster_DBSCAN::Cluster() {
   std::vector<int> FramesToCluster;
   ClusterDist::Cframes cluster_frames;
   // First determine which frames are being clustered.
+  // FIXME: Just use sieved array?
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
     if (!FrameDistances_.IgnoringRow( frame ))
       FramesToCluster.push_back( frame );
