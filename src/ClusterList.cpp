@@ -367,7 +367,7 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   DataSet* dsIn = dataSets[0];
   // Set up internal cluster disance calculation
   if (metric != DATA) {
-    if (dsIn->Type() != DataSet::COORDS) {
+    if (!dsIn->IsCoordSet()) {
       mprinterr("Internal Error: Metric is COORDS base but data set is not.\n");
       return 1;
     }
