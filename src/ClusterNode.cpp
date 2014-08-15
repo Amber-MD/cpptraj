@@ -121,3 +121,16 @@ double ClusterNode::CalcAvgToCentroid( ClusterDist* Cdist )
 void ClusterNode::SortFrameList() {
   std::sort(frameList_.begin(), frameList_.end());
 }
+
+// ClusterNode::HasFrame()
+bool ClusterNode::HasFrame(int frame) {
+  ClusterDist::Cframes::iterator it = std::find(frameList_.begin(), frameList_.end(), frame);
+  return !(it == frameList_.end());
+}
+
+// ClusterNode::RemoveFrameFromCluster()
+void ClusterNode::RemoveFrameFromCluster(int frame) {
+  ClusterDist::Cframes::iterator pend = std::remove( frameList_.begin(), frameList_.end(), frame);
+  size_t newsize = pend - frameList_.begin();
+  frameList_.resize( newsize );
+} 

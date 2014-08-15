@@ -44,6 +44,8 @@ class ClusterNode {
     void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum );  }
     void SetNum(int numIn)             { num_ = numIn;                  }
     void SortFrameList();
+    bool HasFrame(int);
+    void RemoveFrameFromCluster(int);
   private:
     double avgClusterDist_;           ///< Avg distance of this cluster to all other clusters.
     double eccentricity_;             ///< Maximum distance between any 2 frames.

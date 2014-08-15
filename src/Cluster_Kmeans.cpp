@@ -6,7 +6,8 @@ Cluster_Kmeans::Cluster_Kmeans() :
   nclusters_(0),
   kseed_(-1),
   maxIt_(100),
-  mode_(SEQUENTIAL)
+  mode_(SEQUENTIAL),
+  clusterToClusterCentroid_(false)
 {}
 
 void Cluster_Kmeans::Help() {
@@ -36,6 +37,11 @@ void Cluster_Kmeans::ClusteringInfo() {
     mprintf("\t\tRandomly pick point for modification.\n");
   if (kseed_ != -1 && mode_ == RANDOM)
     mprintf("\t\tSeed for random number generator: %i\n", kseed_);
+  mprintf("\tCluster to cluster distance will be based on");
+  if (clusterToClusterCentroid_)
+    mprintf(" best representative from cluster.\n");
+  else
+    mprintf(" cluster centroids.\n");
 }
 
 
@@ -82,9 +88,10 @@ int Cluster_Kmeans::Cluster() {
     int changed = 0;
     for (int processIdx = 0; processIdx != pointCount; processIdx++)
     {
+      int pointIdx;
       if (mode_ == SEQUENTIAL)
         pointIdx = processIdx;
-      else
+      else //if (mode == RANDOM)
         pointIdx = ChooseNextPoint(FinishedPoints, pointCount, unprocessedPointCount - processIdx);
       if (pointIdx != -1 && 
            (iteration != 0 || mode != SEQUENTIAL || !FinishedPoints[pointIdx]))
@@ -100,12 +107,11 @@ int Cluster_Kmeans::Cluster() {
               // If this point is alone in its cluster its in the right place
               if (C1->Nframes() ==1) {
                 yanked = false;
-                //continue;
-                break; // break bc if pointFrame is here it wont be anywhere else
+                continue; // FIXME: should this be a break?
               }
               C1->FindCentroidFrame();
               oldBestRep = C1->CentroidFrame(); 
-              oldCluster = C1;
+              oldClusterIdx = C1->Num();
               C1->RemoveFrameFromCluster( pointFrame );
               C1->CalculateCentroid( Cdist_ );
               C1->FindCentroidFrame();
@@ -145,6 +151,63 @@ int Cluster_Kmeans::FindKmeansSeeds() {
   // SeedIndices will hold indices into FramesToCluster_
   SeedIndices_.resize( nclusters_, 1 ); // 1 used to be consistent with ptraj
 
+  double bestDistance = 0.0;
+  int frameCount = (int)FramesToCluster_.size();
+  for (int frameIdx = 0; frameIdx != frameCount; frameIdx++)
+  {
+    int seedFrame = FramesToCluster_[ frameIdx ];
+    for (int candidateIdx = frameIdx; candidateIdx < frameCount; candidateIdx++)
+    {
+      int candidateFrame = FramesToCluster_[ candidateIdx ];
+      double dist = FrameDistances_.GetFdist( seedFrame, candidateFrame );
+      if (dist > bestDistance)
+      {
+        bestDistance = dist;
+        SeedIndices_[0] = frameIdx;
+        SeedIndices_[1] = candidateFrameIdx;
+      }
+    }
+  }
+
+  for (int seedIdx = 2; seedIdx != nclusters_; seedIdx++)
+  {
+    bestDistance = 0.0;
+    for (int candidateIdx = frameIdx; candidateIdx < frameCount; candidateIdx++)
+    {
+      // Make sure this candidate isnt already a seed
+      bool skipCandidate = false;
+      int bestIdx = 0;
+      for (int checkIdx = 0; checkIdx != seedIdx; checkIdx++)
+      {
+        if (SeedIndices_[checkIdx] == candidateFrameIdx) {
+          skipCandidate = true;
+          break;
+        }
+      }
+      if (!skipCandidate) {
+        // Get the closest distance from this candidate to a current seed
+        int candidateFrame = FramesToCluster_[ candidateIdx ];
+        double nearestDist = -1.0;
+        for (int checkIdx = 0; checkIdx != seedIdx; checkIdx++)
+        {
+          int checkFrame = FramesToCluster_[ checkIdx ];
+          double dist = FrameDistances_.GetFdist( candidateFrame, checkFrame );
+          if (dist < nearestDist || nearestDist < 0.0)
+            nearestDist = dist;
+        }
+        // Is this the best so far?
+        if (nearestDist > bestDistance)
+        {
+          bestDistance = nearestDist;
+          bestIdx = candidateIdx;
+        }
+      }
+    }
+    SeedIndices_[seedIdx] = bestIdx;
+  }
+  for (unsigned int si = 0; si != SeedIndices_.size(); si++)
+    mprintf("DEBUG:\t\tSeedIndices[%u]= %i\n", si, SeedIndices_[si]);
+/*
   for (int seedIdx = 1; seedIdx < nclusters_; seedIdx++)
   {
     double bestDistance = 0.0;
@@ -181,6 +244,6 @@ int Cluster_Kmeans::FindKmeansSeeds() {
     }
     SeedIndices_[seedIdx] = bestIdx;
   }
-
+*/
   return 0;
 }

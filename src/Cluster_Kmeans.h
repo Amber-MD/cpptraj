@@ -22,5 +22,6 @@ class Cluster_Kmeans : public ClusterList {
     Iarray SeedIndices_;
     Iarray FramesToCluster_;
     KmeansModeType mode_;
+    bool clusterToClusterCentroid_;
 };
 #endif
