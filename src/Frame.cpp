@@ -482,21 +482,25 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   }
 }
 
-// Frame::SetReferenceByMap()
+// Frame::StripUnmappedAtoms()
 /** Set this frame to include only atoms from the given reference that are 
-  * mapped.
+  * mapped: Map[newatom] = refatom (refatom -> this frame).
   */
-void Frame::SetReferenceByMap(Frame const& refIn, std::vector<int> const& mapIn) {
+void Frame::StripUnmappedAtoms(Frame const& refIn, std::vector<int> const& mapIn) {
   if (refIn.natom_ > maxnatom_) {
-    mprinterr("Error: SetReferenceByMap: # Input map frame atoms (%i) > max atoms (%i)\n",
+    mprinterr("Error: StripUnmappedAtoms: # Input map frame atoms (%i) > max atoms (%i)\n",
               refIn.natom_, maxnatom_);
     return;
   }
   if ((int)mapIn.size() != refIn.natom_) {
-    mprinterr("Error: SetReferenceByMap: Input map size (%zu) != input frame natom (%i)\n",
+    mprinterr("Error: StripUnmappedAtoms: Input map size (%zu) != input frame natom (%i)\n",
               mapIn.size(), refIn.natom_);
     return;
   }
+  box_ = refIn.box_;
+  T_ = refIn.T_;
+  remd_indices_ = refIn.remd_indices_;
+
   double* newXptr = X_;
   double* refptr = refIn.X_;
   for (std::vector<int>::const_iterator refatom = mapIn.begin(); 
@@ -512,31 +516,30 @@ void Frame::SetReferenceByMap(Frame const& refIn, std::vector<int> const& mapIn)
   natom_ = ncoord_ / 3;
 }
 
-// Frame::SetTargetByMap()
+// Frame::ModifyByMap()
 /** Set this frame to include only atoms from the given target frame, remapped
-  * according to the given atom map.
+  * according to the given atom map: Map[newatom] = oldatom (oldatom -> frameIn)
   */
-void Frame::SetTargetByMap(Frame const& tgtIn, std::vector<int> const& mapIn) {
-  if (tgtIn.natom_ > maxnatom_) {
-    mprinterr("Error: SetTargetByMap: # Input map frame atoms (%i) > max atoms (%i)\n",
-              tgtIn.natom_, maxnatom_);
+void Frame::ModifyByMap(Frame const& frameIn, std::vector<int> const& mapIn) {
+  if ((int)mapIn.size() > maxnatom_) {
+    mprinterr("Error: SetTargetByMap: Input map size (%zu) > this frame max natom (%i)\n",
+              mapIn.size(), maxnatom_);
     return;
   }
-  if ((int)mapIn.size() != tgtIn.natom_) {
-    mprinterr("Error: SetTargetByMap: Input map size (%zu) != input frame natom (%i)\n",
-              mapIn.size(), tgtIn.natom_);
-    return;
-  }
-  double* newXptr = X_;
-  for (std::vector<int>::const_iterator refatom = mapIn.begin(); 
-                                        refatom != mapIn.end(); ++refatom)
+  box_ = frameIn.box_;
+  T_ = frameIn.T_;
+  remd_indices_ = frameIn.remd_indices_;
+
+  double* Xptr = X_;
+  for (std::vector<int>::const_iterator oldatom = mapIn.begin(); 
+                                        oldatom != mapIn.end(); ++oldatom)
   {
-    if (*refatom != -1) {
-      memcpy( newXptr, tgtIn.X_ + ((*refatom) * 3), COORDSIZE_ );
-      newXptr += 3;
+    if (*oldatom != -1) {
+      memcpy( Xptr, frameIn.X_ + ((*oldatom) * 3), COORDSIZE_ );
+      Xptr += 3;
     }
   }
-  ncoord_ = (int)(newXptr - X_);
+  ncoord_ = (int)(Xptr - X_);
   natom_ = ncoord_ / 3;
 }
 

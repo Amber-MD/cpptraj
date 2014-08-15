@@ -1446,6 +1446,12 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Set last residue last atom
   newParm->residues_.back().SetLastAtom( newParm->atoms_.size() );
 
+  // Copy reference if present
+  if (!refCoords_.empty()) {
+    newParm->refCoords_.SetupFrameM( atoms_ );
+    newParm->refCoords_.ModifyByMap( refCoords_, MapIn );
+  }
+
   // NOTE: Since in the bond/angle/dihedral atom arrays the parm indices have 
   //       survived intact we can just include direct copies of all the 
   //       parameter arrays for now. May want to cull unused params later.
