@@ -11,24 +11,27 @@ Cluster_Kmeans::Cluster_Kmeans() :
 {}
 
 void Cluster_Kmeans::Help() {
-  mprintf("\t[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]\n");
+  //mprintf("\t[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]\n");
+  mprintf("\t[kmeans clusters <n> [maxit <iterations>]\n");
 }
 
+// Cluster_Kmeans::SetupCluster()
 int Cluster_Kmeans::SetupCluster(ArgList& analyzeArgs) {
   nclusters_ = analyzeArgs.getKeyInt("clusters", -1);
   if (nclusters_ < 2) {
     mprinterr("Error: Specify number of clusters > 1 for K-means algorithm.\n");
     return 1;
   }
-  if (analyzeArgs.hasKey("randompoint"))
-    mode_ = RANDOM;
-  else
+//  if (analyzeArgs.hasKey("randompoint"))
+//    mode_ = RANDOM;
+//  else
     mode_ = SEQUENTIAL;
   kseed_ = analyzeArgs.getKeyInt("kseed", -1);
   maxIt_ = analyzeArgs.getKeyInt("maxit", 100);
   return 0;
 }
 
+// Cluster_Kmeans::ClusteringInfo()
 void Cluster_Kmeans::ClusteringInfo() {
   mprintf("\tK-MEANS: Looking for %i clusters.\n", nclusters_);
   if (mode_ == SEQUENTIAL)
@@ -44,7 +47,7 @@ void Cluster_Kmeans::ClusteringInfo() {
     mprintf(" cluster centroids.\n");
 }
 
-
+// Cluster_Kmeans::Cluster()
 int Cluster_Kmeans::Cluster() {
   // DEBUG: To match ptraj use rand
 //  srand( 1 );
@@ -74,8 +77,9 @@ int Cluster_Kmeans::Cluster() {
     // NOTE: No need to calc best rep frame, only 1 frame.
     clusters_.back().CalculateCentroid( Cdist_ );
     FinishedPoints[ *seedIdx ] = true;
-    mprintf("Put frame %i in cluster %i (seed index=%i).\n", 
-            seedFrame, clusters_.back().Num(), *seedIdx);
+    if (debug_ > 0)
+      mprintf("Put frame %i in cluster %i (seed index=%i).\n", 
+              seedFrame, clusters_.back().Num(), *seedIdx);
   }
   int unprocessedPointCount = pointCount - nclusters_;
   int oldClusterIdx = -1;
@@ -85,7 +89,7 @@ int Cluster_Kmeans::Cluster() {
   for (int iteration = 0; iteration != maxIt_; iteration++)
   {
     // Add each point to an existing cluster, and recompute centroid
-    mprintf("Round %i\n", iteration);
+    if (debug_ > 0) mprintf("Round %i\n", iteration);
     if (iteration != 0) {
       FinishedPoints.assign( pointCount, false );
       unprocessedPointCount = pointCount;
@@ -102,7 +106,8 @@ int Cluster_Kmeans::Cluster() {
            (iteration != 0 || mode_ != SEQUENTIAL || !FinishedPoints[pointIdx]))
       {
         int pointFrame = FramesToCluster_[ pointIdx ];
-        mprintf("DEBUG: Processing frame %i (index %i)\n", pointFrame, pointIdx);
+        if (debug_ > 0)
+          mprintf("DEBUG: Processing frame %i (index %i)\n", pointFrame, pointIdx);
         bool pointWasYanked = true;
         if (iteration > 0) {
           // Yank this point out of its cluster, recompute the centroid
@@ -120,7 +125,8 @@ int Cluster_Kmeans::Cluster() {
               C1->RemoveFrameFromCluster( pointFrame );
               //newBestRep = C1->FindBestRepFrame();
               C1->CalculateCentroid( Cdist_ );
-              mprintf("Remove Frame %i from cluster %i\n", pointFrame, C1->Num());
+              if (debug_ > 0)
+                mprintf("Remove Frame %i from cluster %i\n", pointFrame, C1->Num());
               //if (clusterToClusterCentroid_) {
               //  if (oldBestRep != NewBestRep)
               //    C1->AlignToBestRep( Cdist_ ); // FIXME: Only relevant for COORDS dist?
@@ -148,8 +154,9 @@ int Cluster_Kmeans::Cluster() {
           if (closestCluster->Num() != oldClusterIdx)
           {
             Nchanged++;
-            mprintf("Remove Frame %i from cluster %i, but add to cluster %i.\n",
-                    pointFrame, oldClusterIdx, closestCluster->Num());
+            if (debug_ > 0)
+              mprintf("Remove Frame %i from cluster %i, but add to cluster %i.\n",
+                      pointFrame, oldClusterIdx, closestCluster->Num());
           }
           if (clusterToClusterCentroid_) {
             //if (oldBestRep != NewBestRep) {
@@ -172,6 +179,7 @@ int Cluster_Kmeans::Cluster() {
   return 0;
 }
 
+// Cluster_Kmeans::FindKmeansSeeds()
 /** Find some seed-points for K-means clustering. Take the first point as an 
   * arbitrary first choice.  Then, at each iteration, add the point whose total
   * distance from our set of seeds is as large as possible.
@@ -234,49 +242,13 @@ int Cluster_Kmeans::FindKmeansSeeds() {
     }
     SeedIndices_[seedIdx] = bestIdx;
   }
-  for (unsigned int si = 0; si != SeedIndices_.size(); si++)
-    mprintf("DEBUG:\t\tSeedIndices[%u]= %i\n", si, SeedIndices_[si]);
-/*
-  for (int seedIdx = 1; seedIdx < nclusters_; seedIdx++)
-  {
-    double bestDistance = 0.0;
-    int bestIdx = 0;
-    for (int candidateIdx = 0; candidateIdx != (int)FramesToCluster_.size(); candidateIdx++)
-    {
-      // Make sure this candidate isnt already a seed
-      bool skipPoint = false;
-      for (int checkIdx = 0; checkIdx < seedIdx; checkIdx++)
-      {
-        if (SeedIndices_[checkIdx] == candidateIdx) {
-          skipPoint = true;
-          break;
-        }
-      }
-      if (!skipPoint) {
-        // Get the closest distance from this candidate to a current seed
-        double nearestDistance = -1.0;
-        int candidateFrame = FramesToCluster_[candidateIdx];
-        for (int checkIdx = 0; checkIdx < seedIdx; checkIdx++)
-        {
-          int seedFrame = FramesToCluster_[ SeedIndices_[checkIdx] ];
-          double dist = FrameDistances_.GetFdist( seedFrame, candidateFrame );
-          if ( dist < nearestDistance || nearestDistance < 0.0 )
-            nearestDistance = dist;
-        }
-        // Is this the best so far
-        if (nearestDistance > bestDistance)
-        {
-          bestDistance = nearestDistance;
-          bestIdx = candidateIdx;
-        }
-      }
-    }
-    SeedIndices_[seedIdx] = bestIdx;
-  }
-*/
+  if (debug_ > 0)
+    for (unsigned int si = 0; si != SeedIndices_.size(); si++)
+      mprintf("DEBUG:\t\tSeedIndices[%u]= %i\n", si, SeedIndices_[si]);
   return 0;
 }
 
+// Cluster_Kmeans::ChooseNextPoint()
 int Cluster_Kmeans::ChooseNextPoint(std::vector<bool> const& PointProcessed,
                                     int pointCount, int remainingPointCount)
 {
