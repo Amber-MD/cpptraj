@@ -69,7 +69,7 @@ Action::RetType Action_AreaPerMol::Setup(Topology* currentParm, Topology** parmA
     mprintf("Warning: Box is not orthorhombic, calculated area may not be correct.\n");
   // Determine how many molecules are selected
   if (Mask1_.MaskStringSet()) {
-    if (currentParm->SetupIntegerMask(Mask1_)) return Action::ERR;
+    if (currentParm->SetupCharMask(Mask1_)) return Action::ERR;
     if (Mask1_.None()) {
       mprinterr("Warning: Mask '%s' selects no atoms.\n", Mask1_.MaskString());
       return Action::ERR;
@@ -81,7 +81,7 @@ Action::RetType Action_AreaPerMol::Setup(Topology* currentParm, Topology** parmA
       if (Mask1_.AtomsInCharMask(mol->BeginAtom(), mol->EndAtom()))
         Nmols_ += 1.0;
     }
-    mprintf("\tMask '%s' selects %.0f molecules.\n", Nmols_);
+    mprintf("\tMask '%s' selects %.0f molecules.\n", Mask1_.MaskString(), Nmols_);
     if (Nmols_ < 1.0) return Action::ERR;
     Nmols_ /= Nlayers_;
     mprintf("\tArea per %.0f molecules (%0.f layers) will be determined.\n", Nmols_, Nlayers_);
