@@ -11,11 +11,11 @@ Cluster_Kmeans::Cluster_Kmeans() :
 {}
 
 void Cluster_Kmeans::Help() {
-  mprintf("\t[kmeans nclusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]\n");
+  mprintf("\t[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]\n");
 }
 
 int Cluster_Kmeans::SetupCluster(ArgList& analyzeArgs) {
-  nclusters_ = analyzeArgs.getKeyInt("nclusters", -1);
+  nclusters_ = analyzeArgs.getKeyInt("clusters", -1);
   if (nclusters_ < 2) {
     mprinterr("Error: Specify number of clusters > 1 for K-means algorithm.\n");
     return 1;
@@ -159,7 +159,12 @@ int Cluster_Kmeans::Cluster() {
           }
         }
       }
-    } // END loop over points to cluster 
+    } // END loop over points to cluster
+    if (Nchanged == 0) {
+      mprintf("\tK-means round %i: No change. Skipping the rest of the iterations.\n", iteration);
+      break;
+    } else
+      mprintf("\tK-means round %i: %i points changed cluster assignment.\n", iteration, Nchanged);
   } // END k-means iterations
   // Remove any empty clusters
   RemoveEmptyClusters();
@@ -214,8 +219,8 @@ int Cluster_Kmeans::FindKmeansSeeds() {
         double nearestDist = -1.0;
         for (int checkIdx = 0; checkIdx != seedIdx; checkIdx++)
         {
-          int checkFrame = FramesToCluster_[ checkIdx ];
-          double dist = FrameDistances_.GetFdist( candidateFrame, checkFrame );
+          int seedFrame = FramesToCluster_[ SeedIndices_[checkIdx] ];
+          double dist = FrameDistances_.GetFdist( candidateFrame, seedFrame );
           if (dist < nearestDist || nearestDist < 0.0)
             nearestDist = dist;
         }

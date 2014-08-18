@@ -8,6 +8,7 @@
 // Clustering Algorithms
 #include "Cluster_HierAgglo.h"
 #include "Cluster_DBSCAN.h"
+#include "Cluster_Kmeans.h"
 
 // CONSTRUCTOR
 Analysis_Clustering::Analysis_Clustering() :
@@ -44,6 +45,7 @@ void Analysis_Clustering::Help() {
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
+  Cluster_Kmeans::Help();
   mprintf("  Distance metric options: {rms | srmsd | dme | data}\n"
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
@@ -118,6 +120,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   CList_ = 0;
   if (analyzeArgs.hasKey("hieragglo"))   CList_ = new Cluster_HierAgglo(); 
   else if (analyzeArgs.hasKey("dbscan")) CList_ = new Cluster_DBSCAN();
+  else if (analyzeArgs.hasKey("kmeans") ||
+           analyzeArgs.hasKey("means" )) CList_ = new Cluster_Kmeans(); 
   else {
     mprintf("Warning: No clustering algorithm specified; defaulting to 'hieragglo'\n");
     CList_ = new Cluster_HierAgglo();
