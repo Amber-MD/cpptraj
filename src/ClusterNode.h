@@ -13,8 +13,8 @@ class ClusterNode {
     inline bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
     inline void MergeFrames(ClusterNode const&);
-    /// Determine which frame in the cluster is centroid.
-    int FindCentroidFrame(ClusterMatrix const&);
+    /// Determine which frame in the cluster is the best representative.
+    int FindBestRepFrame(ClusterMatrix const&);
     /// Calculate eccentricity for frames in this cluster.
     void CalcEccentricity(ClusterMatrix const&);
     /// Calculate centroid of members of this cluster.
@@ -37,7 +37,7 @@ class ClusterNode {
     inline double Eccentricity() const { return eccentricity_;          }
     inline int Num()             const { return num_;                   }
     inline int Nframes()         const { return (int)frameList_.size(); }
-    inline int CentroidFrame()   const { return centroidframe_;         }
+    inline int BestRepFrame()   const  { return repFrame_;              }
     inline Centroid* Cent()            { return centroid_;              }
     // Set internal variables 
     void SetAvgDist(double avg)        { avgClusterDist_ = avg;         }
@@ -50,7 +50,7 @@ class ClusterNode {
     double avgClusterDist_;           ///< Avg distance of this cluster to all other clusters.
     double eccentricity_;             ///< Maximum distance between any 2 frames.
     int num_;                         ///< Cluster number.
-    int centroidframe_;               ///< Frame number with lowest dist. to all other frames.
+    int repFrame_;                    ///< Frame number with lowest dist. to all other frames.
     ClusterDist::Cframes frameList_;  ///< List of frames belonging to this cluster.
     Centroid* centroid_;              ///< Centroid of all frames in this cluster. 
 };

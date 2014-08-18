@@ -66,17 +66,17 @@ void ClusterList::Renumber(bool addSievedFrames) {
   // Update cluster centroids.
   bool centroid_error = false;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
-    (*node).SortFrameList();
+    node->SortFrameList();
     // Ensure cluster centroid is up-to-date
-    (*node).CalculateCentroid( Cdist_ );
-    // Find frame that is closest to the centroid.
-    if ((*node).FindCentroidFrame( FrameDistances_ )) {
-      mprinterr("Error: Could not determine centroid frame for cluster %i\n",
-                (*node).Num());
+    node->CalculateCentroid( Cdist_ );
+    // Find best representative frame
+    if (node->FindBestRepFrame( FrameDistances_ ) == -1) {
+      mprinterr("Error: Could not determine represenative frame for cluster %i\n",
+                node->Num());
       centroid_error = true;
     }
   }
-  // Add back sieved frames based on distance to cluster centroids.
+  // Add back sieved frames
   if (addSievedFrames) {
     if (centroid_error)
       mprinterr("Error: 1 or more centroids not determined. Cannot add sieved frames.\n");
@@ -86,14 +86,14 @@ void ClusterList::Renumber(bool addSievedFrames) {
     }
     // Re-sort cluster frame lists.
     for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
-      (*node).SortFrameList();
+      node->SortFrameList();
   }
   // Sort clusters by population 
   clusters_.sort( );
   // Renumber clusters.
   int newNum = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) 
-    (*node).SetNum( newNum++ );
+    node->SetNum( newNum++ );
   // TODO: Clear ClusterDistances?
 }
 
@@ -154,8 +154,8 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
     }
     // OUTPUT
     outfile.Printf("%8i %8i %8.3f %8.3f %8.3f %8i %8.3f\n",
-                   (*node).Num(), (*node).Nframes(), (double)(*node).Nframes()/fmax, internalAvg, 
-                   internalSD, (*node).CentroidFrame()+1, (*node).AvgDist() );
+                   node->Num(), node->Nframes(), (double)node->Nframes()/fmax, internalAvg, 
+                   internalSD, node->BestRepFrame()+1, node->AvgDist() );
   } // END loop over clusters
   outfile.CloseFile();
 }
@@ -310,7 +310,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   // Print representative frame numbers
   outfile.Printf("#Representative frames:");
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++)
-    outfile.Printf(" %i",(*C).CentroidFrame()+1);
+    outfile.Printf(" %i", C->BestRepFrame()+1);
   outfile.Printf("\n");
   // Print sieve info if present
   if (FrameDistances_.SieveValue() != 1) {
@@ -428,6 +428,16 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   
   return 0;
 }  
+
+void ClusterList::RemoveEmptyClusters() {
+  cluster_it cnode = clusters_.begin();
+  while (cnode != clusters_.end()) {
+    if (cnode->Nframes() == 0)
+      cnode = clusters_.erase( cnode );
+    else
+      ++cnode;
+  }
+}
 
 // -----------------------------------------------------------------------------
 /** The Davies-Bouldin Index (DBI) is a measure of clustering merit; the 

@@ -643,7 +643,7 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
     }
     // Get rep frame for rms fitting.
     Frame repframe = coords_->AllocateFrame();
-    coords_->GetFrame( C->CentroidFrame(), repframe );
+    coords_->GetFrame( C->BestRepFrame(), repframe );
     Vec3 reftrans = repframe.CenterOnOrigin(false);
     // Loop over all frames in cluster
     Frame clusterframe = coords_->AllocateFrame();
@@ -681,7 +681,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator cluster = CList.begincluster(); 
                                      cluster != CList.endcluster(); ++cluster) 
   {
-   coords_->GetFrame( cluster->CentroidFrame(), clusterframe );
+   coords_->GetFrame( cluster->BestRepFrame(), clusterframe );
    clusterout.WriteFrame(framecounter++, clusterparm, clusterframe);
   }
   // Close traj
@@ -703,8 +703,8 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
                                      C != CList.endcluster(); ++C)
   {
     Trajout clusterout;
-    // Get centroid frame # 
-    int framenum = C->CentroidFrame();
+    // Get best rep frame # 
+    int framenum = C->BestRepFrame();
     // Create filename based on frame #
     std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num());
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));

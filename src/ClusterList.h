@@ -34,6 +34,8 @@ class ClusterList {
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     const cluster_iterator begincluster() const { return clusters_.begin(); }
     const cluster_iterator endcluster()   const { return clusters_.end();   }
+    /// Remove clusters with no members.
+    void RemoveEmptyClusters();
   protected:
     virtual void AddSievedFrames() = 0;
     virtual void ClusterResults(CpptrajFile&) const = 0;
