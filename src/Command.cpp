@@ -83,6 +83,7 @@
 #include "Action_MultiVector.h"
 #include "Action_MinImage.h"
 #include "Action_ReplicateCell.h"
+#include "Action_AreaPerMol.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1708,6 +1709,7 @@ const Command::Token Command::Commands[] = {
   { PARM,    "solvent",       0, Help_Solvent,         ParmSolvent     },
   // INC_ACTION: ACTION COMMANDS
   { ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, AddAction },
+  { ACTION, "areapermol", Action_AreaPerMol::Alloc, Action_AreaPerMol::Help, AddAction },
   { ACTION, "atomiccorr", Action_AtomicCorr::Alloc, Action_AtomicCorr::Help, AddAction },
   { ACTION, "atomicfluct", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
   { ACTION, "atommap", Action_AtomMap::Alloc, Action_AtomMap::Help, AddAction },
