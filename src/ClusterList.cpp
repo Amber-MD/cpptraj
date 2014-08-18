@@ -434,6 +434,7 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   return 0;
 }  
 
+// ClusterList::RemoveEmptyClusters()
 void ClusterList::RemoveEmptyClusters() {
   cluster_it cnode = clusters_.begin();
   while (cnode != clusters_.end()) {
@@ -441,6 +442,23 @@ void ClusterList::RemoveEmptyClusters() {
       cnode = clusters_.erase( cnode );
     else
       ++cnode;
+  }
+}
+
+/** Calculate the distances between each cluster based on centroids. */
+void ClusterList::CalcClusterDistances() {
+  if (clusters_.empty()) return;
+  ClusterDistances_.SetupMatrix( clusters_.size() );
+  // Make sure centroid for clusters are up to date
+  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
+    C1->CalculateCentroid( Cdist_ );
+  // Calculate distances between each cluster centroid
+  cluster_it Cend = clusters_.end();
+  for (cluster_it C1 = clusters_.begin(); C1 != Cend; ++C1) {
+    cluster_it C2 = C1;
+    ++C2;
+    for (; C2 != Cend; ++C2)
+      ClusterDistances_.AddElement( Cdist_->CentroidDist( C1->Cent(), C2->Cent() ) );
   }
 }
 

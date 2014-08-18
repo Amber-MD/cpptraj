@@ -36,6 +36,8 @@ class ClusterList {
     const cluster_iterator endcluster()   const { return clusters_.end();   }
     /// Remove clusters with no members.
     void RemoveEmptyClusters();
+    /// Calculate distances between each cluster
+    void CalcClusterDistances();
   protected:
     virtual void AddSievedFrames() = 0;
     virtual void ClusterResults(CpptrajFile&) const = 0;

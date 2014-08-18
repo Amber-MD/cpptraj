@@ -200,18 +200,7 @@ int Cluster_DBSCAN::Cluster() {
     cluster_progress.Update(iteration++);
   } // END loop over FramesToCluster
   // Calculate the distances between each cluster based on centroids
-  ClusterDistances_.SetupMatrix( clusters_.size() );
-  // Make sure centroid for clusters are up to date
-  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
-    (*C1).CalculateCentroid( Cdist_ );
-  // Calculate distances between each cluster centroid
-  cluster_it C1end = clusters_.end();
-  for (cluster_it C1 = clusters_.begin(); C1 != C1end; ++C1) {
-    cluster_it C2 = C1;
-    ++C2;
-    for (; C2 != clusters_.end(); ++C2)
-      ClusterDistances_.AddElement( Cdist_->CentroidDist( (*C1).Cent(), (*C2).Cent() ) );
-  }
+  CalcClusterDistances();
 
   return 0;
 }
