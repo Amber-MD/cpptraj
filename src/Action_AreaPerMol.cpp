@@ -5,11 +5,12 @@
 Action_AreaPerMol::Action_AreaPerMol() :
   area_per_mol_(0),
   Nmols_(-1.0),
+  Nlayers_(1.0),
   areaType_(XY)
 {}
 
 void Action_AreaPerMol::Help() {
-  mprintf("\t[<name>] {[<mask1>] | nmols <#>} [out <filename>] [{xy | xz | yz}]\n"
+  mprintf("\t[<name>] {[<mask1>] [nlayers <#>] | nmols <#>} [out <filename>] [{xy | xz | yz}]\n"
           "  Calculate the specified area per molecule for molecules in <mask1>.\n");
 }
 
@@ -26,15 +27,17 @@ Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, TopologyList* PFL, 
   else if (actionArgs.hasKey("yz")) areaType_ = YZ;
   else areaType_ = XY;
 
-  int nmols = actionArgs.getKeyDouble("nmols", -1);
-  if (nmols == -1)
-    Nmols_ = -1.0;
-  else
-    Nmols_ = (double)nmols;
+  Nmols_ = (double)actionArgs.getKeyInt("nmols", -1);
 
   // Get Masks
-  if (Nmols_ < 0.0)
+  if (Nmols_ < 0.0) {
+    Nlayers_ = (double)actionArgs.getKeyInt("nlayers", 1);
+    if (Nlayers_ < 1.0) {
+      mprinterr("Error: Number of layers must be > 0\n");
+      return Action::ERR;
+    }
     Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  }
 
   // DataSet
   area_per_mol_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"APM");
@@ -44,7 +47,7 @@ Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, TopologyList* PFL, 
 
   mprintf("    AREAPERMOL: Calculating %s area per molecule", APMSTRING[areaType_]);
   if (Mask1_.MaskStringSet())
-    mprintf(" using mask '%s'.\n", Mask1_.MaskString());
+    mprintf(" using mask '%s', %.0f layers.\n", Mask1_.MaskString(), Nlayers_);
   else
     mprintf(" for %.0f mols\n", Nmols_);
 
@@ -80,6 +83,8 @@ Action::RetType Action_AreaPerMol::Setup(Topology* currentParm, Topology** parmA
     }
     mprintf("\tMask '%s' selects %.0f molecules.\n", Nmols_);
     if (Nmols_ < 1.0) return Action::ERR;
+    Nmols_ /= Nlayers_;
+    mprintf("\tArea per %.0f molecules (%0.f layers) will be determined.\n", Nmols_, Nlayers_);
   }
   return Action::OK;
 }
