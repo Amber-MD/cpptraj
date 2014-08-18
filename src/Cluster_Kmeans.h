@@ -14,6 +14,7 @@ class Cluster_Kmeans : public ClusterList {
     enum KmeansModeType { SEQUENTIAL, RANDOM };
 
     int FindKmeansSeeds();
+    int ChooseNextPoint(std::vector<bool> const&, int, int);
 
     int nclusters_; ///< Target number of clusters.
     int kseed_;

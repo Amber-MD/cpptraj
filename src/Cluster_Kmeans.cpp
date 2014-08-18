@@ -46,6 +46,9 @@ void Cluster_Kmeans::ClusteringInfo() {
 
 
 int Cluster_Kmeans::Cluster() {
+  // DEBUG: To match ptraj use rand
+//  srand( 1 );
+
   // First determine which frames are being clustered.
   // FIXME: Can this just be the sieved array?
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
@@ -68,9 +71,11 @@ int Cluster_Kmeans::Cluster() {
   {
     int seedFrame = FramesToCluster_[ *seedIdx ];
     AddCluster( ClusterDist::Cframes(1, seedFrame) );
+    // NOTE: No need to calc best rep frame, only 1 frame.
     clusters_.back().CalculateCentroid( Cdist_ );
     FinishedPoints[ *seedIdx ] = true;
-    mprintf("Put frame %i in cluster %i.\n", seedFrame, clusters_.back().Num());
+    mprintf("Put frame %i in cluster %i (seed index=%i).\n", 
+            seedFrame, clusters_.back().Num(), *seedIdx);
   }
   int unprocessedPointCount = pointCount - nclusters_;
   int oldClusterIdx = -1;
@@ -85,19 +90,20 @@ int Cluster_Kmeans::Cluster() {
       FinishedPoints.assign( pointCount, false );
       unprocessedPointCount = pointCount;
     }
-    int changed = 0;
+    int Nchanged = 0;
     for (int processIdx = 0; processIdx != pointCount; processIdx++)
     {
       int pointIdx;
       if (mode_ == SEQUENTIAL)
         pointIdx = processIdx;
-      else //if (mode == RANDOM)
+      else //if (mode_ == RANDOM)
         pointIdx = ChooseNextPoint(FinishedPoints, pointCount, unprocessedPointCount - processIdx);
       if (pointIdx != -1 && 
-           (iteration != 0 || mode != SEQUENTIAL || !FinishedPoints[pointIdx]))
+           (iteration != 0 || mode_ != SEQUENTIAL || !FinishedPoints[pointIdx]))
       {
         int pointFrame = FramesToCluster_[ pointIdx ];
-        bool yanked = true;
+        mprintf("DEBUG: Processing frame %i (index %i)\n", pointFrame, pointIdx);
+        bool pointWasYanked = true;
         if (iteration > 0) {
           // Yank this point out of its cluster, recompute the centroid
           for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
@@ -105,24 +111,25 @@ int Cluster_Kmeans::Cluster() {
             if (C1->HasFrame( pointFrame )) 
             {
               // If this point is alone in its cluster its in the right place
-              if (C1->Nframes() ==1) {
-                yanked = false;
+              if (C1->Nframes() == 1) {
+                pointWasYanked = false;
                 continue; // FIXME: should this be a break?
               }
-              C1->FindCentroidFrame();
-              oldBestRep = C1->CentroidFrame(); 
+              //oldBestRep = C1->BestRepFrame(); 
               oldClusterIdx = C1->Num();
               C1->RemoveFrameFromCluster( pointFrame );
+              //newBestRep = C1->FindBestRepFrame();
               C1->CalculateCentroid( Cdist_ );
-              C1->FindCentroidFrame();
-              newBestRep = C1->CentroidFrame();
               mprintf("Remove Frame %i from cluster %i\n", pointFrame, C1->Num());
-              // if C2Ccentroid
-              // In ptraj realign against best rep here.
+              //if (clusterToClusterCentroid_) {
+              //  if (oldBestRep != NewBestRep)
+              //    C1->AlignToBestRep( Cdist_ ); // FIXME: Only relevant for COORDS dist?
+              //  C1->CalculateCentroid( Cdist_ ); // FIXME: Seems unnessecary to align prior
+              //} 
             }
           }
         }
-        if (Yanked) {
+        if (pointWasYanked) {
           double closestDist = -1.0;
           cluster_it closestCluster = clusters_.begin();
           for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
@@ -134,12 +141,29 @@ int Cluster_Kmeans::Cluster() {
               closestCluster = C1;
             }
           }
+          //oldBestRep = closestCluster->BestRepFrame();
           closestCluster->AddFrameToCluster( pointFrame );
+          //newBestRep = closestCluster->FindBestFrameFrame();
           closestCluster->CalculateCentroid( Cdist_ );
+          if (closestCluster->Num() != oldClusterIdx)
+          {
+            Nchanged++;
+            mprintf("Remove Frame %i from cluster %i, but add to cluster %i.\n",
+                    pointFrame, oldClusterIdx, closestCluster->Num());
+          }
+          if (clusterToClusterCentroid_) {
+            //if (oldBestRep != NewBestRep) {
+            //    C1->AlignToBestRep( Cdist_ ); // FIXME: Only relevant for COORDS dist?
+            //  C1->CalculateCentroid( Cdist_ ); // FIXME: Seems unnessecary to align prior
+            //}
+          }
         }
       }
     } // END loop over points to cluster 
   } // END k-means iterations
+  // Remove any empty clusters
+  RemoveEmptyClusters();
+  // NOTE in PTRAJ here align all frames to best rep 
   return 0;
 }
 
@@ -164,7 +188,7 @@ int Cluster_Kmeans::FindKmeansSeeds() {
       {
         bestDistance = dist;
         SeedIndices_[0] = frameIdx;
-        SeedIndices_[1] = candidateFrameIdx;
+        SeedIndices_[1] = candidateIdx;
       }
     }
   }
@@ -172,14 +196,14 @@ int Cluster_Kmeans::FindKmeansSeeds() {
   for (int seedIdx = 2; seedIdx != nclusters_; seedIdx++)
   {
     bestDistance = 0.0;
-    for (int candidateIdx = frameIdx; candidateIdx < frameCount; candidateIdx++)
+    int bestIdx = 0;
+    for (int candidateIdx = 0; candidateIdx < frameCount; candidateIdx++)
     {
       // Make sure this candidate isnt already a seed
       bool skipCandidate = false;
-      int bestIdx = 0;
       for (int checkIdx = 0; checkIdx != seedIdx; checkIdx++)
       {
-        if (SeedIndices_[checkIdx] == candidateFrameIdx) {
+        if (SeedIndices_[checkIdx] == candidateIdx) {
           skipCandidate = true;
           break;
         }
@@ -246,4 +270,24 @@ int Cluster_Kmeans::FindKmeansSeeds() {
   }
 */
   return 0;
+}
+
+int Cluster_Kmeans::ChooseNextPoint(std::vector<bool> const& PointProcessed,
+                                    int pointCount, int remainingPointCount)
+{
+/*  double randValue = rand() / (double)RAND_MAX;
+  int pointChosen = floor(randValue * remainingPointCount);
+  int pointIndex = 0;
+  while (pointIndex < pointCount)
+  {
+    if (!PointProcessed[pointIndex]) {
+      if (pointChosen == 0) {
+        PointProcessed[pointIndex] = true;
+        return pointIndex;
+      }
+      pointChosen--;
+    }
+    pointIndex++;
+  }*/
+  return -1;
 }
