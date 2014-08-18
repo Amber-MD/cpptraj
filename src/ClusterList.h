@@ -39,6 +39,8 @@ class ClusterList {
   protected:
     virtual void AddSievedFrames() = 0;
     virtual void ClusterResults(CpptrajFile&) const = 0;
+
+    void AddSievedFramesByCentroid();
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
     int debug_;

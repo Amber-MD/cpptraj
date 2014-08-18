@@ -8,8 +8,8 @@ class Cluster_Kmeans : public ClusterList {
     int SetupCluster(ArgList&);
     void ClusteringInfo();
     int Cluster();
-    void AddSievedFrames() {} // TODO: Implement
-    void ClusterResults(CpptrajFile&) const {} // TODO: Implement
+    void AddSievedFrames() { AddSievedFramesByCentroid(); }
+    void ClusterResults(CpptrajFile&) const;
   private:
     enum KmeansModeType { SEQUENTIAL, RANDOM };
 

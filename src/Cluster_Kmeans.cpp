@@ -47,6 +47,11 @@ void Cluster_Kmeans::ClusteringInfo() {
     mprintf(" cluster centroids.\n");
 }
 
+// Cluster_Kmeans::ClusterResults()
+void Cluster_Kmeans::ClusterResults(CpptrajFile& outfile) const {
+  outfile.Printf("#Algorithm: Kmeans nclusters %i maxit %i\n", nclusters_, maxIt_);
+}
+
 // Cluster_Kmeans::Cluster()
 int Cluster_Kmeans::Cluster() {
   // DEBUG: To match ptraj use rand

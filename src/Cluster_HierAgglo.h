@@ -10,7 +10,7 @@ class Cluster_HierAgglo : public ClusterList {
     int SetupCluster(ArgList&);
     void ClusteringInfo();
     int Cluster();
-    void AddSievedFrames();
+    void AddSievedFrames() { AddSievedFramesByCentroid(); }
     void ClusterResults(CpptrajFile&) const;
   private:
     int nclusters_;       ///< Target # of clusters.
