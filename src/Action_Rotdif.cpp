@@ -1257,6 +1257,10 @@ int Ctau_L2(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
   *   fit the autocorrelation to a single exponential and multi exp.
   */
 int Action_Rotdif::DetermineDeffsAlt() {
+  if (olegendre_ != 2) {
+    mprintf("Warning: This calculation currently only works for order=2. Setting order to 2.\n");
+    olegendre_ = 2;
+  }
   // Determine max length of autocorrelation fxn.
    int vLength = (int)Rmatrices_.size() + 1;
    int ctMax = ncorr_;
@@ -1305,8 +1309,8 @@ int Action_Rotdif::DetermineDeffsAlt() {
   }
   // Average curve
   double norm_nvecs = 1.0 / (double)random_vectors_.Size();
-  for (CurveFit::Darray::iterator it = CtTotal.begin(); it != CtTotal.end(); ++it)
-    *it *= norm_nvecs; 
+  for (CurveFit::Darray::iterator ctot = CtTotal.begin(); ctot != CtTotal.end(); ++ctot)
+    *ctot *= norm_nvecs; 
 
   // Set up X values
   CurveFit::Darray Xvals;
@@ -1336,9 +1340,9 @@ int Action_Rotdif::DetermineDeffsAlt() {
   // We now in principal have A0 = -l(l+1)D, D = A0 / -l(l+1)
   double A0 = Params[0];
   double Deff = A0 / (double)(olegendre_ * (olegendre_ + 1));
-  outfile_.Printf("# Results from single-exponential fit:\n");
-  outfile_.Printf("%-12s %12s\n", "#A0", "D");
-  outfile_.Printf("%12.5e %12.5e\n", A0, Deff);
+  outfile_.Printf("# Results from single-exponential fit: <C(t)> = exp(-t * A0)\n");
+  outfile_.Printf("%-12s %12s %12s\n", "#A0", "D" ,"T");
+  outfile_.Printf("%12.5e %12.5e %12.5e\n", A0, Deff, 1.0 / A0);
 //  mprintf("\t\tA0= %12.5e    Deff= %12.5e    Vxyz={%12.5e, %12.5e, %12.5e}\n",
 //          A0, Deff, AvgVec[0], AvgVec[1], AvgVec[2]);
 //  D_eff_.push_back( Deff );
@@ -1373,7 +1377,8 @@ int Action_Rotdif::DetermineDeffsAlt() {
 //    mprintf("\t\t# %2i  c= %12.5f  T= %12.5e\n", i/2, Mparams[i], Mparams[i+1]);
   // Sort Dx <= Dy <= Dz
   std::sort( Cparams.begin() + 3, Cparams.end() );
-  outfile_.Printf("# Results from multi-exponential fit:\n");
+  outfile_.Printf("# Results from multi-exponential fit:"
+                  " <C(t)> = SUM(l=-2,...,2)[ c(l) * exp(-t * E2(l)) ]\n");
   outfile_.Printf("%-12s %12s %12s %12s %12s %12s\n", "#l", "m", "n", "dx", "dy", "dz");
   outfile_.Printf("%12.5f %12.5f %12.5f %12.5e %12.5e %12.5e\n",
                   Cparams[0], Cparams[1], Cparams[2],
@@ -1383,8 +1388,24 @@ int Action_Rotdif::DetermineDeffsAlt() {
 //          Cparams[0], Cparams[1], Cparams[2], 
 //          sqrt(Cparams[0]*Cparams[0] + Cparams[1]*Cparams[1] + Cparams[2]*Cparams[2]),
 //          Cparams[3], Cparams[4], Cparams[5]);
-  PrintVector(outfile_,"#Dav, aniostropy, rhombicity:", 
-              calculate_D_properties(Vec3(Cparams[3], Cparams[4], Cparams[5])));
+  double DX = Cparams[3];
+  double DY = Cparams[4];
+  double DZ = Cparams[5];
+  Vec3 d_props = calculate_D_properties(Vec3(DX, DY, DZ));
+  PrintVector(outfile_,"#Dav, aniostropy, rhombicity:", d_props);
+  double t1 = 1.0 / (4.0 * DX + DY + DZ);
+  double t2 = 1.0 / (4.0 * DY + DX + DZ);
+  double t3 = 1.0 / (4.0 * DZ + DX + DY);
+  double Dav = d_props[0];
+  double Dav2 = Dav * Dav;
+  double Dp2 = (DX*DY + DX*DZ + DY*DZ) / 3.0;
+  double Dm2 = sqrt(Dav2 - Dp2);
+  mprintf("DEBUG: Dav2= %12.5e  Dp2= %12.5e  Dm2= %12.5e\n", Dav2, Dp2, Dm2);
+  double t4 = 1.0 / (6.0 * (Dav + Dm2));
+  double t5 = 1.0 / (6.0 * (Dav - Dm2));
+  double tR = 1.0 / (2.0 * (DX + DY + DZ));
+  outfile_.Printf("%-12s %12s %12s %12s %12s %12s\n", "#T1", "T2", "T3", "T4", "T5", "TR");
+  outfile_.Printf("%12.5e %12.5e %12.5e %12.5e %12.5e %12.5e\n", t1, t2, t3, t4, t5, tR);
 
   // Write out Ct and fit curves
   if (!corrOut_.empty() || debug_ > 3) {
