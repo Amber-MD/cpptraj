@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cfloat> // DBL_MAX
 #include <cstdio> //sscanf
+#include <algorithm> // sort
 #include "Action_Rotdif.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // NumberFilename
@@ -62,6 +63,7 @@ void Action_Rotdif::Help() {
           "\t[rvecout <randvecOut>]\n"
           "  Options for calculating vector time correlation functions:\n"
           "\t[order <olegendre>] [ncorr <ncorr>] [corrout <corrOut>] [usefft]\n"
+          "  The options below only apply if usefft is not specified.\n"
           "  Options for calculating local effective D, small anisotropy:\n"
           "\t[deffout <deffOut>] [itmax <itmax>] [tol <tolerance>] [d0 <d0>]\n"
           "\t[nmesh <NmeshPoints>] dt <tfac> [ti <ti>] tf <tf>\n"
@@ -173,48 +175,58 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else
     mprintf(" %i frames.\n",ncorr_);
   mprintf("\tVector time correlation function order: %i\n", olegendre_);
-  if (usefft_)
-    mprintf("\tVector time correlation functions will be calculated using FFT.\n");
-  else
+  if (usefft_) {
+    mprintf("\tVector time correlation functions will be calculated using spherical harmonics.\n");
+    mprintf("\tTime step is %.4g\n", tfac_);
+    if (!corrOut_.empty())
+      mprintf("\tAveraged vector time correlation function and fit curves"
+              " will be written to '%s'\n", corrOut_.c_str());
+    mprintf("\tCurve fit tolerance= %g, %i iterations.\n", amoeba_ftol_, amoeba_itmax_);
+    if (!outfilename.empty())
+      mprintf("\tDiffusion constants output to %s\n", outfilename.c_str());
+    else
+      mprintf("\tDiffusion constants output to STDOUT\n");
+  } else {
     mprintf("\tVector time correlation functions will be calculated directly.\n");
-  if (!corrOut_.empty())
-    mprintf("\tVector time correlation functions will be written to '%s.X'\n",
-            corrOut_.c_str());
-  mprintf("\tVector time correlation functions assumed to fit single exponential\n"
-          "\t  in the limit of small anisotropy.\n");
-  mprintf("\tVector time correlation functions will be integrated from\n"
-          "\t  %.4g to %.4g, time step %.4g\n", ti_, tf_, tfac_);
-  mprintf("\tVector time correlation functions will be smoothed using cubic spline \n"
-          "\t  interpolation. Data points will be increased");
-  if (NmeshPoints_ != -1)
-    mprintf(" by a factor of %i.\n", NmeshPoints_);
-  else
-    mprintf(" by a factor of 2.\n");
-  mprintf("\tIntegral of single exponential iterative solver:\n"
-          "\t  iterations= %i, tolerance= %g, initial guess= %g\n",
-          itmax_, delmin_, d0_);
-  mprintf("\tNelder Mead (downhill simplex) minimizer will be used to determine\n"
-          "\t  Q with full anisotropy.\n");
-  mprintf("\t  searches= %i, iterations= %i, tolerance= %g, simplex scaling= %g\n",
-          amoeba_nsearch_, amoeba_itmax_, amoeba_ftol_, delqfrac_);
-   if (do_gridsearch_)
-    mprintf("\tGrid search will be performed for Q with full anisotropy (time consuming)\n");
-#ifdef NO_MATHLIB
-  mprintf("------------------------------------------------------\n");
-  mprintf("Warning: Cpptraj was compiled with -DNO_MATHLIB.\n");
-  mprintf("         The final tensor fit cannot be performed.\n");
-  mprintf("         Only Deffs will be calculated.\n");
-  mprintf("------------------------------------------------------\n");
-#else
-  if (!outfilename.empty())
-    mprintf("\tDiffusion constants and tau will be written to %s\n",
-            outfilename.c_str());
-  else
-    mprintf("\tDiffusion constants and tau will be written to STDOUT.\n");
-#endif
-  mprintf("# Citation: Wong V.; Case, D. A.; \"Evaluating rotational diffusion from\n"
-          "#           protein MD simulations.\"\n"
-          "#           J. Phys. Chem. B (2008) V.112 pp.6013-6024.\n");
+    if (!corrOut_.empty())
+      mprintf("\tVector time correlation functions will be written to '%s.X'\n",
+              corrOut_.c_str());
+    mprintf("\tVector time correlation functions assumed to fit single exponential\n"
+            "\t  in the limit of small anisotropy.\n");
+    mprintf("\tVector time correlation functions will be integrated from\n"
+            "\t  %.4g to %.4g, time step %.4g\n", ti_, tf_, tfac_);
+    mprintf("\tVector time correlation functions will be smoothed using cubic spline \n"
+            "\t  interpolation. Data points will be increased");
+    if (NmeshPoints_ != -1)
+      mprintf(" by a factor of %i.\n", NmeshPoints_);
+    else
+      mprintf(" by a factor of 2.\n");
+    mprintf("\tIntegral of single exponential iterative solver:\n"
+            "\t  iterations= %i, tolerance= %g, initial guess= %g\n",
+            itmax_, delmin_, d0_);
+    mprintf("\tNelder Mead (downhill simplex) minimizer will be used to determine\n"
+            "\t  Q with full anisotropy.\n");
+    mprintf("\t  searches= %i, iterations= %i, tolerance= %g, simplex scaling= %g\n",
+            amoeba_nsearch_, amoeba_itmax_, amoeba_ftol_, delqfrac_);
+    if (do_gridsearch_)
+      mprintf("\tGrid search will be performed for Q with full anisotropy (time consuming)\n");
+#   ifdef NO_MATHLIB
+    mprintf("------------------------------------------------------\n");
+    mprintf("Warning: Cpptraj was compiled with -DNO_MATHLIB.\n");
+    mprintf("         The final tensor fit cannot be performed.\n");
+    mprintf("         Only Deffs will be calculated.\n");
+    mprintf("------------------------------------------------------\n");
+#   else
+    if (!outfilename.empty())
+      mprintf("\tDiffusion constants and tau will be written to %s\n",
+              outfilename.c_str());
+    else
+      mprintf("\tDiffusion constants and tau will be written to STDOUT.\n");
+#   endif
+    mprintf("# Citation: Wong V.; Case, D. A.; \"Evaluating rotational diffusion from\n"
+            "#           protein MD simulations.\"\n"
+            "#           J. Phys. Chem. B (2008) V.112 pp.6013-6024.\n");
+  }
   return Action::OK;
 }
 
@@ -1020,40 +1032,6 @@ int Action_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
 }
 
 // =============================================================================
-// Action_Rotdif::direct_compute_corr()
-/** Given a normalized vector that has been randomly rotated itotframes 
-  * times, compute the time correlation functions of the vector.
-  * \param rotated_vectors array of vector coords for each frame 
-  * \param maxdat Maximum length to compute time correlation functions (units of 'frames')
-  * \param pY Will be set with values for correlation function, l=olegendre_
-  */
-// TODO: Make rotated_vectors const&
-int Action_Rotdif::direct_compute_corr(DataSet_Vector const& rotated_vectors, int maxdat,
-                                       std::vector<double>& pY)
-{
-  // Initialize output array 
-  pY.assign(maxdat, 0.0);
-  int itotframes = rotated_vectors.Size();
-  // i loop:  each value of i is a value of delay (correlation function argument)
-  for (int i = 0; i < maxdat; i++) {
-    int jmax = itotframes - i;
-    for (int j = 0; j < jmax; j++) {
-      // Dot vector j with vector j+i 
-      double dot = rotated_vectors[j] * rotated_vectors[j+i];
-      //printf("DBG i=%6i j=%6i k=%i  %f\n",i,j,i+j,dot);
-      if (olegendre_ == 2)
-        pY[i] += ((1.5*dot*dot) - 0.5);
-      else
-        pY[i] += dot;
-    }
-    double one_jmax = (double) jmax;
-    one_jmax = 1 / one_jmax;
-    pY[i] = pY[i] * one_jmax;
-  }
- 
-  return 0; 
-}
-
 // Action_Rotdif::fft_compute_corr()
 int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int nsteps, 
                                     std::vector<double>& pY)
@@ -1085,7 +1063,6 @@ int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int n
   return 0;
 }
 
-// -----------------------------------------------------------------------------
 // Single exponential function with constant
 int ExpFxn(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
               CurveFit::Darray& Ct)
@@ -1104,13 +1081,21 @@ int ExpFxn(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
 int Sum5Exp(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
             CurveFit::Darray& Ct)
 {
+  double penalty1 = Params[0] + Params[2] + Params[4] +
+                   Params[6] + Params[8];
+  penalty1 = 1000.0 * (1.0 - penalty1);
+
+  double penalty2 = 0.0;
+  for (int i = 1; i != 11; i += 2)
+    if (Params[i] < 0.0) penalty2 += 200.0;
+
   for (unsigned int n = 0; n != Tau.size(); n++) {
     double tau = Tau[n];
     Ct[n]= ( Params[0] * exp( -tau * Params[1] ) +
              Params[2] * exp( -tau * Params[3] ) +
              Params[4] * exp( -tau * Params[5] ) +
              Params[6] * exp( -tau * Params[7] ) +
-             Params[8] * exp( -tau * Params[9] ) );
+             Params[8] * exp( -tau * Params[9] ) ) + penalty1 + penalty2;
   }
   return 0;
 }
@@ -1126,9 +1111,16 @@ int Ctau_L2(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
                CurveFit::Darray& Ct)
 {
   double lambda[5];
+  double dot1 = Params[0]; // l
+  double dot2 = Params[1]; // m
+  double dot3 = Params[2]; // n
   double dx = Params[3];
   double dy = Params[4];
   double dz = Params[5];
+  // pre-calculate squares
+  double dot1_2 = dot1*dot1;
+  double dot2_2 = dot2*dot2;
+  double dot3_2 = dot3*dot3;
 
   // tau = sum(m){amp(l,m)/lambda(l,m)}
   // See Korzhnev DM, Billeter M, Arseniev AS, Orekhov VY; 
@@ -1179,64 +1171,67 @@ int Ctau_L2(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
   }
 //  mprintf("\n");
 
-    double dot1 = Params[0]; // l
-    double dot2 = Params[1]; // m
-    double dot3 = Params[2]; // n
-    //mprintf("DBG: dot1-3= %10.5g %10.5g %10.5g\n",dot1,dot2,dot3);
-    
-    // ----- Compute correlation time for l=2
-    // pre-calculate squares
-    double dot1_2 = dot1*dot1;
-    double dot2_2 = dot2*dot2;
-    double dot3_2 = dot3*dot3;
-    //     m=-2 term:
-    //     lambda(2,-2) = Dx + Dy + 4*Dz
-    //     amp(2,-2) = 0.75*sin(theta)^4*sin(2*phi)^2 = 3*(l^2)*(m^2)
-    double m_m2 = 3*dot1_2*dot2_2;
-    //     m=-1 term:
-    //     lambda(2,-1) = Dx + 4*Dy + Dz
-    //     amp(2,-1) = 0.75*sin(2*theta)^2*cos(phi)^2 = 3*(l^2)*(n^2)
-    double m_m1 = 3*dot1_2*dot3_2;
-    //     m=0 term:
-    //     lambda(2,0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
-    //         Dav = (Dx + Dy + Dz)/3 
-    //         Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
-    //     amp(2,0) = (w/N)^2*0.25*[3*cos(theta)^2-1]^2 +
-    //                (u/N)^2*0.75*sin(theta)^4*cos(2*phi)^2 -
-    //                (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
-    //         u = sqrt(3)*(Dx - Dy)
-    //         delta = 3*sqrt(Dav*Dav - Dpr*Dpr)
-    //         w = 2*Dz - Dx - Dy + 2*delta
-    //         N = 2*sqrt(delta*w)
-    delta = 3 * sqrt_Dav_Dpr;
-    double dot1_4 = dot1_2 * dot1_2;
-    double dot2_4 = dot2_2 * dot2_2;
-    double dot3_4 = dot3_2 * dot3_2;
-    double da = 0.25 * ( 3*(dot1_4 + dot2_4 + dot3_4) - 1);
-    double ea = 0;
-    if ( delta > Constants::SMALL) { 
-      double epsx = 3*(dx-Dav)/delta;
-      double epsy = 3*(dy-Dav)/delta;
-      double epsz = 3*(dz-Dav)/delta;
-      double d2d3 = dot2*dot3;
-      double d1d3 = dot1*dot3;
-      double d1d2 = dot1*dot2;
-      ea = epsx*(3*dot1_4 + 6*(d2d3*d2d3) - 1) + 
-           epsy*(3*dot2_4 + 6*(d1d3*d1d3) - 1) + 
-           epsz*(3*dot3_4 + 6*(d1d2*d1d2) - 1);
-      ea /= 12;
-    }
-    double m_0 = da + ea;
-    //     m=+1 term:
-    //     lambda(2,+1) = 4*Dx + Dy + Dz
-    //     amp(2,+1) = 0.75*sin(2*theta)^2*sin(phi)^2 
-    double m_p1 = 3*dot2_2*dot3_2;
-    //     m=+2 term:
-    //     lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav = Dpr*Dpr)]
-    //     amp(2,+2) = (u/n)^2*0.25*[3*cos(theta)^2-1]^2 +
-    //                 (w/n)^2*0.75*sin(theta)^4*cos(2*phi)^2 +
-    //                 (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
-    double m_p2 = da - ea;
+  //mprintf("DBG: dot1-3= %10.5g %10.5g %10.5g\n",dot1,dot2,dot3);
+  
+  // ----- Compute correlation time for l=2
+  //     m=-2 term:
+  //     lambda(2,-2) = Dx + Dy + 4*Dz
+  //     amp(2,-2) = 0.75*sin(theta)^4*sin(2*phi)^2 = 3*(l^2)*(m^2)
+  double m_m2 = 3*dot1_2*dot2_2;
+  //     m=-1 term:
+  //     lambda(2,-1) = Dx + 4*Dy + Dz
+  //     amp(2,-1) = 0.75*sin(2*theta)^2*cos(phi)^2 = 3*(l^2)*(n^2)
+  double m_m1 = 3*dot1_2*dot3_2;
+  //     m=0 term:
+  //     lambda(2,0) = 6*[Dav - sqrt(Dav*Dav - Dpr*Dpr)]
+  //         Dav = (Dx + Dy + Dz)/3 
+  //         Dpr = sqrt[(Dx*Dy + Dy*Dz + Dx*Dz)/3 ]
+  //     amp(2,0) = (w/N)^2*0.25*[3*cos(theta)^2-1]^2 +
+  //                (u/N)^2*0.75*sin(theta)^4*cos(2*phi)^2 -
+  //                (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
+  //         u = sqrt(3)*(Dx - Dy)
+  //         delta = 3*sqrt(Dav*Dav - Dpr*Dpr)
+  //         w = 2*Dz - Dx - Dy + 2*delta
+  //         N = 2*sqrt(delta*w)
+  delta = 3 * sqrt_Dav_Dpr;
+  double dot1_4 = dot1_2 * dot1_2;
+  double dot2_4 = dot2_2 * dot2_2;
+  double dot3_4 = dot3_2 * dot3_2;
+  double da = 0.25 * ( 3*(dot1_4 + dot2_4 + dot3_4) - 1);
+  double ea = 0;
+  if ( delta > Constants::SMALL) { 
+    double epsx = 3*(dx-Dav)/delta;
+    double epsy = 3*(dy-Dav)/delta;
+    double epsz = 3*(dz-Dav)/delta;
+    double d2d3 = dot2*dot3;
+    double d1d3 = dot1*dot3;
+    double d1d2 = dot1*dot2;
+    ea = epsx*(3*dot1_4 + 6*(d2d3*d2d3) - 1) + 
+         epsy*(3*dot2_4 + 6*(d1d3*d1d3) - 1) + 
+         epsz*(3*dot3_4 + 6*(d1d2*d1d2) - 1);
+    ea /= 12;
+  }
+  double m_0 = da + ea;
+  //     m=+1 term:
+  //     lambda(2,+1) = 4*Dx + Dy + Dz
+  //     amp(2,+1) = 0.75*sin(2*theta)^2*sin(phi)^2 
+  double m_p1 = 3*dot2_2*dot3_2;
+  //     m=+2 term:
+  //     lambda(2,+2) = 6*[Dav + sqrt(Dav*Dav = Dpr*Dpr)]
+  //     amp(2,+2) = (u/n)^2*0.25*[3*cos(theta)^2-1]^2 +
+  //                 (w/n)^2*0.75*sin(theta)^4*cos(2*phi)^2 +
+  //                 (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
+  double m_p2 = da - ea;
+
+  // Calculate penalty functions. Require sqrt(l^2 + m^2 + n^2) = 1.0,
+  // dx|dy|dz > 0.0
+  double penalty = sqrt(dot1_2 + dot2_2 + dot3_2);
+  penalty = 1000.0 * (1.0 - penalty);
+  if (dx < 0.0) penalty += 400.0;
+  if (dy < 0.0) penalty += 400.0;
+  if (dz < 0.0) penalty += 400.0;
+
+  // Calculate Y values
   for (unsigned int n = 0; n != Tau.size(); n++) {
     double tau = Tau[n]; 
     // Sum decay constants and weights for l=2 m=-2...2
@@ -1244,7 +1239,7 @@ int Ctau_L2(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
              (m_m1 * exp(-tau * lambda[1])) +
              (m_0  * exp(-tau * lambda[2])) +
              (m_p1 * exp(-tau * lambda[3])) +
-             (m_p2 * exp(-tau * lambda[4])) );
+             (m_p2 * exp(-tau * lambda[4])) ) + penalty;
   }
     //Yvals[nvec] = (m_m2 / lambda[0]) + (m_m1 / lambda[1]) + (m_0 / lambda[2]) +
     //              (m_p1 / lambda[3]) + (m_p2 / lambda[4]);
@@ -1254,13 +1249,14 @@ int Ctau_L2(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
   return 0;
 }
 
-
+// Action_Rotdif::DetermineDeffsAlt()
+/** For each randomly generated vector:
+  *   1) Rotate the vector according to saved rotation matrices.
+  *   2) Calculate the autocorrelation function of the vector.
+  * Then take the average of the autocorrelation functions and
+  *   fit the autocorrelation to a single exponential and multi exp.
+  */
 int Action_Rotdif::DetermineDeffsAlt() {
-  // For each randomly generated vector:
-  //   1) Rotate the vector according to saved rotation matrices.
-  //   2) Calculate the autocorrelation function of the vector.
-  //   3) Fit the autocorrelation to a single exponential.
-
   // Determine max length of autocorrelation fxn.
    int vLength = (int)Rmatrices_.size() + 1;
    int ctMax = ncorr_;
@@ -1269,7 +1265,48 @@ int Action_Rotdif::DetermineDeffsAlt() {
    else if (ncorr_ > vLength)
      ctMax = vLength;
   //int ctMax = (int)((tf_ - ti_) / tfac_) + 1;
-  mprintf("DEBUG: Npoints for autocorrelation fxn= %i  vLength=%i  ncorr= %i\n", ctMax, vLength, ncorr_);
+  mprintf("DEBUG: Npoints for autocorrelation fxn= %i  vLength=%i  ncorr= %i\n",
+          ctMax, vLength, ncorr_);
+
+  // Reserve space for holding effective D values
+  D_eff_.reserve( random_vectors_.Size() );
+  // Hold vectors after rotation with Rmatrices
+  DataSet_Vector rotated_vectors;
+  rotated_vectors.ReserveVecs( vLength );
+  // Hold single vector autocorrelation
+  CurveFit::Darray Ct;
+  Ct.reserve( ctMax );
+  // Hold averaged vector autocorrelations
+  CurveFit::Darray CtTotal;
+  CtTotal.assign( ctMax, 0.0 );
+  // LOOP OVER RANDOM VECTORS
+  for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
+                                      rndvec != random_vectors_.end(); ++rndvec)
+  {
+    // Reset rotated_vectors to the beginning and clear spherical harmonics 
+    rotated_vectors.reset();
+    // Normalize vector
+    //rndvec->Normalize(); // FIXME: Should already be normalized
+    // Assign normalized vector to rotated_vectors position 0
+    rotated_vectors.AddVxyz( *rndvec );
+    // Loop over rotation matrices
+    for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
+                                           rmatrix != Rmatrices_.end();
+                                           ++rmatrix)
+      // Rotate normalized vector
+      rotated_vectors.AddVxyz( *rmatrix * (*rndvec) );
+    // Calculate spherical harmonics of given order for this vector.
+    rotated_vectors.CalcSphericalHarmonics( olegendre_ );
+    // Calculate autocorrelation for rotated vectors using SH.
+    fft_compute_corr(rotated_vectors, ctMax, Ct);
+    // Sum into CtTotal
+    for (unsigned int i = 0; i != Ct.size(); i++)
+      CtTotal[i] += Ct[i];
+  }
+  // Average curve
+  double norm_nvecs = 1.0 / (double)random_vectors_.Size();
+  for (CurveFit::Darray::iterator it = CtTotal.begin(); it != CtTotal.end(); ++it)
+    *it *= norm_nvecs; 
 
   // Set up X values
   CurveFit::Darray Xvals;
@@ -1288,105 +1325,122 @@ int Action_Rotdif::DetermineDeffsAlt() {
   CurveFit::Darray Cparams(6, 0.5);
   CurveFit fit;
 
-  // LOOP OVER RANDOM VECTORS
-  D_eff_.reserve( random_vectors_.Size() );
-  DataSet_Vector rotated_vectors; // Hold vectors after rotation with Rmatrices
-  rotated_vectors.ReserveVecs( vLength );
-  CurveFit::Darray Ct;        // Hold vector autocorrelation
-  Ct.reserve( ctMax );
-  CurveFit::Darray Ct_single; // Save fit for single exp
-  Ct_single.reserve( ctMax );
-  int nvec = 0; // For numbering vector
-  for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
-                                      rndvec != random_vectors_.end();
-                                    ++rndvec, ++nvec)
-  {
-    // Reset rotated_vectors to the beginning 
-    rotated_vectors.reset();
-    // Normalize vector
-    //rndvec->Normalize(); // FIXME: Should already be normalized
-    // Assign normalized vector to rotated_vectors position 0
-    rotated_vectors.AddVxyz( *rndvec );
-    // Loop over rotation matrices
-    for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
-                                           rmatrix != Rmatrices_.end();
-                                           ++rmatrix)
-    {
-      // Rotate normalized vector
-      rotated_vectors.AddVxyz( *rmatrix * (*rndvec) );
-    }
-    // Calculate spherical harmonics of given order for this vector.
-    rotated_vectors.CalcSphericalHarmonics( olegendre_ );
-    // Calculate autocorrelation for rotated vectors using SH.
-    fft_compute_corr(rotated_vectors, ctMax, Ct);
+  // Fit averaged autocorrelation to C(tau) = exp[-l(l+1)D * tau] 
+  int info = fit.LevenbergMarquardt( ExpFxn, Xvals, CtTotal, Params, amoeba_ftol_, amoeba_itmax_ );
+  mprintf("\tSingleExp: %s\n", fit.Message(info));
+  if (info == 0) {
+    mprinterr("Error: Single exp fit: %s\n", fit.ErrorMessage());
+    return 1;
+  }
+  CurveFit::Darray Ct_single = fit.FinalY();
+  // We now in principal have A0 = -l(l+1)D, D = A0 / -l(l+1)
+  double A0 = Params[0];
+  double Deff = A0 / (double)(olegendre_ * (olegendre_ + 1));
+  outfile_.Printf("# Results from single-exponential fit:\n");
+  outfile_.Printf("%-12s %12s\n", "#A0", "D");
+  outfile_.Printf("%12.5e %12.5e\n", A0, Deff);
+//  mprintf("\t\tA0= %12.5e    Deff= %12.5e    Vxyz={%12.5e, %12.5e, %12.5e}\n",
+//          A0, Deff, AvgVec[0], AvgVec[1], AvgVec[2]);
+//  D_eff_.push_back( Deff );
 
-    mprintf("    Vec %4i -----------------------------------\n", nvec);
-    // Fit autocorrelation to C(tau) = exp[-l(l+1)D * tau] 
-    int info = fit.LevenbergMarquardt( ExpFxn, Xvals, Ct, Params, amoeba_ftol_, amoeba_itmax_ );
-    mprintf("\tSingleExp: %s\n", fit.Message(info));
-    if (info == 0) {
-      mprinterr("Error: Single exp fit: %s\n", fit.ErrorMessage());
-      return 1;
-    }
-    Ct_single = fit.FinalY();
-    // We now in principal have A0 = -l(l+1)D, D = A0 / -l(l+1)
-    double A0 = Params[0];
-    double Deff = A0 / (double)(olegendre_ * (olegendre_ + 1));
-    mprintf("\t\tA0= %12.5e    Deff= %12.5e    Vxyz={%12.5e, %12.5e, %12.5e}\n",
-            A0, Deff, (*rndvec)[0], (*rndvec)[1], (*rndvec)[2]);
-    D_eff_.push_back( Deff );
+  // Fit averaged autocorrelation to C(tau) = SUM(-l...l)[ c * exp(-tau / T) ], T = 1/E
+//  for (unsigned int i = 0; i < 10; i += 2) {
+//    Mparams[i  ] = 0.2;
+//    Mparams[i+1] = A0;
+//  }
+////  CurveFit::Darray weights( CtTotal.size() );
+////  for (unsigned int i = 0; i != CtTotal.size(); i++)
+////    weights[i] = ( (double)i / (double)(CtTotal.size() - i) );
+//  info = fit.LevenbergMarquardt( Sum5Exp, Xvals, CtTotal, Mparams,  
+//                                 amoeba_ftol_, amoeba_itmax_ );
+  Vec3 AvgVec = random_vectors_.Back();
+  double rv_norm = 1.0 / sqrt( AvgVec[0]*AvgVec[0] +
+                               AvgVec[1]*AvgVec[1] +
+                               AvgVec[2]*AvgVec[2] );
+  Cparams[0] = AvgVec[0] * rv_norm; // l
+  Cparams[1] = AvgVec[1] * rv_norm; // m
+  Cparams[2] = AvgVec[2] * rv_norm; // n
+  Cparams[3] = A0;                  // dx (A0?)
+  Cparams[4] = A0 + (A0 * 0.1);     // dy
+  Cparams[5] = A0 - (A0 * 0.1);     // dz
+  info = fit.LevenbergMarquardt( Ctau_L2, Xvals, CtTotal, Cparams, amoeba_ftol_, amoeba_itmax_ ); 
+  mprintf("\tMultiExp: %s\n", fit.Message(info));
+  if (info == 0) {
+    mprinterr("Error: Multi exp fit: %s\n", fit.ErrorMessage());
+    return 1;
+  }
+//  for (unsigned int i = 0; i < 10; i += 2)
+//    mprintf("\t\t# %2i  c= %12.5f  T= %12.5e\n", i/2, Mparams[i], Mparams[i+1]);
+  // Sort Dx <= Dy <= Dz
+  std::sort( Cparams.begin() + 3, Cparams.end() );
+  outfile_.Printf("# Results from multi-exponential fit:\n");
+  outfile_.Printf("%-12s %12s %12s %12s %12s %12s\n", "#l", "m", "n", "dx", "dy", "dz");
+  outfile_.Printf("%12.5f %12.5f %12.5f %12.5e %12.5e %12.5e\n",
+                  Cparams[0], Cparams[1], Cparams[2],
+                  Cparams[3], Cparams[4], Cparams[5]);
+//  mprintf("\t  l= %12.5f  m= %12.5f  n= %12.5f  L= %12.5f"
+//          "  dx= %12.5e  dy= %12.5e  dz= %12.5e\n",
+//          Cparams[0], Cparams[1], Cparams[2], 
+//          sqrt(Cparams[0]*Cparams[0] + Cparams[1]*Cparams[1] + Cparams[2]*Cparams[2]),
+//          Cparams[3], Cparams[4], Cparams[5]);
+  PrintVector(outfile_,"#Dav, aniostropy, rhombicity:", 
+              calculate_D_properties(Vec3(Cparams[3], Cparams[4], Cparams[5])));
 
-    // Fit autocorrelation to C(tau) = SUM(-l...l)[ c * exp(-tau / T) ], T = 1/E
-    //for (unsigned int i = 0; i < 10; i += 2) {
-    //  Mparams[i  ] = 0.2;
-    //  Mparams[i+1] = A0;
-    //}
-    //info = fit.LevenbergMarquardt( Sum5Exp, Xvals, Ct, Mparams, 0.000001, 1000 );
-
-    double rv_norm = 1.0 / sqrt( (*rndvec)[0]*(*rndvec)[0] +
-                                 (*rndvec)[1]*(*rndvec)[1] +
-                                 (*rndvec)[2]*(*rndvec)[2] );
-    Cparams[0] = (*rndvec)[0] * rv_norm;        // l
-    Cparams[1] = (*rndvec)[1] * rv_norm;        // m
-    Cparams[2] = (*rndvec)[2] * rv_norm;        // n
-    Cparams[3] = A0;         // dx (A0?)
-    Cparams[4] = A0 + (A0 * 0.1); // dy
-    Cparams[5] = A0 - (A0 * 0.1); // dz
-    info = fit.LevenbergMarquardt( Ctau_L2, Xvals, Ct, Cparams, amoeba_ftol_, amoeba_itmax_ ); 
-
-    mprintf("\tMultiExp: %s\n", fit.Message(info));
-    if (info == 0) {
-      mprinterr("Error: Multi exp fit: %s\n", fit.ErrorMessage());
-      return 1;
-    }
-    //for (unsigned int i = 0; i < 10; i += 2)
-    //  mprintf("\t\tl=%2i  c= %12.5e  T= %12.5e\n", i/2 - olegendre_, Mparams[i], Mparams[i+1]);
-    mprintf("\t  l= %g  m= %g  n= %g  L= %g dx= %g  dy= %g  dz= %g\n",
-            Cparams[0], Cparams[1], Cparams[2], 
-            sqrt(Cparams[0]*Cparams[0] + Cparams[1]*Cparams[1] + Cparams[2]*Cparams[2]),
-            Cparams[3], Cparams[4], Cparams[5]);
-
-    // DEBUG: Write out Ct and fit curves --------
-    if (!corrOut_.empty() || debug_ > 3) {
-      CpptrajFile outfile;
-      std::string namebuffer;
-      if (!corrOut_.empty())
-        namebuffer = NumberFilename( corrOut_, nvec );
-      else
-        namebuffer = NumberFilename( "CtFit.dat", nvec );
-      outfile.OpenWrite(namebuffer);
-      CurveFit::Darray const& FinalY = fit.FinalY();
-      for (int n = 0; n != ctMax; n++)
-        outfile.Printf("%12.6g %20.8e %20.8e %20.8e\n",
-                       Xvals[n], Ct[n], Ct_single[n], FinalY[n]);
-      outfile.CloseFile();
-    }
-  } // END loop over random vectors
+  // Write out Ct and fit curves
+  if (!corrOut_.empty() || debug_ > 3) {
+    CpptrajFile outfile;
+    std::string namebuffer;
+    if (!corrOut_.empty())
+      namebuffer = corrOut_;
+    else
+      namebuffer = "CtFit.dat";
+    outfile.OpenWrite(namebuffer);
+    outfile.Printf("%-12s %20s %20s %20s\n", "#Time", "<Ct>", "SingleExp", "MultiExp");
+    CurveFit::Darray const& Ct_multi = fit.FinalY();
+    for (int n = 0; n != ctMax; n++)
+      outfile.Printf("%12.6g %20.8e %20.8e %20.8e\n",
+                     Xvals[n], CtTotal[n], Ct_single[n], Ct_multi[n]);
+    outfile.CloseFile();
+  }
 
   return 0;
 }
 
-// -----------------------------------------------------------------------------
+// =============================================================================
+// Action_Rotdif::direct_compute_corr()
+/** Given a normalized vector that has been randomly rotated itotframes 
+  * times, compute the time correlation functions of the vector.
+  * \param rotated_vectors array of vector coords for each frame 
+  * \param maxdat Maximum length to compute time correlation functions (units of 'frames')
+  * \param pY Will be set with values for correlation function, l=olegendre_
+  */
+// TODO: Make rotated_vectors const&
+int Action_Rotdif::direct_compute_corr(DataSet_Vector const& rotated_vectors, int maxdat,
+                                       std::vector<double>& pY)
+{
+  // Initialize output array 
+  pY.assign(maxdat, 0.0);
+  int itotframes = rotated_vectors.Size();
+  // i loop:  each value of i is a value of delay (correlation function argument)
+  for (int i = 0; i < maxdat; i++) {
+    int jmax = itotframes - i;
+    for (int j = 0; j < jmax; j++) {
+      // Dot vector j with vector j+i 
+      double dot = rotated_vectors[j] * rotated_vectors[j+i];
+      //printf("DBG i=%6i j=%6i k=%i  %f\n",i,j,i+j,dot);
+      if (olegendre_ == 2)
+        pY[i] += ((1.5*dot*dot) - 0.5);
+      else
+        pY[i] += dot;
+    }
+    double one_jmax = (double) jmax;
+    one_jmax = 1 / one_jmax;
+    pY[i] = pY[i] * one_jmax;
+  }
+ 
+  return 0; 
+}
+
 // Action_Rotdif::calcEffectiveDiffusionConst()
 /** computes effect diffusion constant for a vector using the integral over
   * its correlation function as input. Starting with definition:
@@ -1636,7 +1690,7 @@ void Action_Rotdif::Print() {
     // ---------------------------------------------
     // Test calculation; determine constants directly with SH and curve fitting.
     DetermineDeffsAlt();
-    PrintDeffs( deffOut_ );
+    //PrintDeffs( deffOut_ );
   } else {
     // ---------------------------------------------
     // Original Wong & Case method using Legendre polynomial Ct and SVD.
