@@ -29,7 +29,9 @@ class CurveFit {
     /// Perform Levenberg-Marquardt curve fit: fxn, x, y, p, tol, iter
     int LevenbergMarquardt(FitFunctionType, Darray const&, Darray const&, Darray&,
                            double, int);
-
+    /// Perform Legenberg-Marquardt curve fit: fxn, x, y, p, wgt, tol, iter
+    int LevenbergMarquardt(FitFunctionType, Darray const&, Darray const&, Darray&,
+                           Darray const&, double, int);
     /// Perform Levenberg-Marquardt curve fit: fxn, x, y, p, bnd, lbnd, ubnd, wts, tol, iter
     int LevenbergMarquardt(FitFunctionType, Darray const&, Darray const&, Darray&,
                            std::vector<bool> const&, Darray const&, Darray const&, 

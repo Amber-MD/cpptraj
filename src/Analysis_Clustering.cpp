@@ -8,6 +8,7 @@
 // Clustering Algorithms
 #include "Cluster_HierAgglo.h"
 #include "Cluster_DBSCAN.h"
+#include "Cluster_Kmeans.h"
 
 // CONSTRUCTOR
 Analysis_Clustering::Analysis_Clustering() :
@@ -30,7 +31,8 @@ Analysis_Clustering::Analysis_Clustering() :
   writeRepFrameNum_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
-  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ)
+  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  debug_(0)
 { } 
 
 // DESTRUCTOR
@@ -43,6 +45,7 @@ void Analysis_Clustering::Help() {
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
+  Cluster_Kmeans::Help();
   mprintf("  Distance metric options: {rms | srmsd | dme | data}\n"
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
@@ -117,6 +120,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   CList_ = 0;
   if (analyzeArgs.hasKey("hieragglo"))   CList_ = new Cluster_HierAgglo(); 
   else if (analyzeArgs.hasKey("dbscan")) CList_ = new Cluster_DBSCAN();
+  else if (analyzeArgs.hasKey("kmeans") ||
+           analyzeArgs.hasKey("means" )) CList_ = new Cluster_Kmeans(); 
   else {
     mprintf("Warning: No clustering algorithm specified; defaulting to 'hieragglo'\n");
     CList_ = new Cluster_HierAgglo();
@@ -642,7 +647,7 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
     }
     // Get rep frame for rms fitting.
     Frame repframe = coords_->AllocateFrame();
-    coords_->GetFrame( C->CentroidFrame(), repframe );
+    coords_->GetFrame( C->BestRepFrame(), repframe );
     Vec3 reftrans = repframe.CenterOnOrigin(false);
     // Loop over all frames in cluster
     Frame clusterframe = coords_->AllocateFrame();
@@ -680,7 +685,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator cluster = CList.begincluster(); 
                                      cluster != CList.endcluster(); ++cluster) 
   {
-   coords_->GetFrame( cluster->CentroidFrame(), clusterframe );
+   coords_->GetFrame( cluster->BestRepFrame(), clusterframe );
    clusterout.WriteFrame(framecounter++, clusterparm, clusterframe);
   }
   // Close traj
@@ -702,8 +707,8 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
                                      C != CList.endcluster(); ++C)
   {
     Trajout_Single clusterout;
-    // Get centroid frame # 
-    int framenum = C->CentroidFrame();
+    // Get best rep frame # 
+    int framenum = C->BestRepFrame();
     // Create filename based on frame #
     std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num());
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));

@@ -589,8 +589,8 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
         if (numAtomsMapped<3) continue;
         // Score this mapping with an RMSD ---------------------------------
         // Set up a reference/target frame containing only mapped atoms
-        rmsRefFrame_.SetReferenceByMap(RefFrame_.Coord(), AMap_);
-        rmsTgtFrame_.SetTargetByMap(TgtFrame_.Coord(), AMap_);
+        rmsRefFrame_.StripUnmappedAtoms(RefFrame_.Coord(), AMap_);
+        rmsTgtFrame_.ModifyByMap(TgtFrame_.Coord(), AMap_);
         double RmsVal = rmsTgtFrame_.RMSD(rmsRefFrame_, false);
         mprintf("\tRMS fit (%i atoms) based on guess Tgt %i -> Ref %i, %lf\n",
                 numAtomsMapped,(*t)+1, (*r)+1, RmsVal);
@@ -764,7 +764,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
     mprintf("Warning:\tto # atoms in target (%i).\n",TgtMap_.Natom());
   }
 
-  // Set up RMS frames to be able to hold max # of possible frames
+  // Set up RMS frames to be able to hold max # of possible atoms 
   rmsRefFrame_.SetupFrame(RefMap_.Natom());
   rmsTgtFrame_.SetupFrame(RefMap_.Natom());
 
@@ -813,7 +813,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   // target to reference.
   if (rmsfit_) {
     // Set up a reference frame containing only mapped reference atoms
-    rmsRefFrame_.SetReferenceByMap(RefFrame_.Coord(), AMap_);
+    rmsRefFrame_.StripUnmappedAtoms(RefFrame_.Coord(), AMap_);
     mprintf("      rmsfit: Will rms fit %i atoms from target to reference.\n",numMappedAtoms);
     return Action::OK;
   }
@@ -901,7 +901,7 @@ Action::RetType Action_AtomMap::DoAction(int frameNum, Frame* currentFrame, Fram
   // Perform RMS fit on mapped atoms only
   if (rmsfit_) {
     // Set target frame up according to atom map.
-    rmsTgtFrame_.SetTargetByMap(*currentFrame, AMap_);
+    rmsTgtFrame_.ModifyByMap(*currentFrame, AMap_);
     Matrix_3x3 Rot;
     Vec3 Trans, refTrans;
     double R = rmsTgtFrame_.RMSD(rmsRefFrame_, Rot, Trans, refTrans, false);

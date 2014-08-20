@@ -112,9 +112,9 @@ class Frame {
     /// Copy entire input frame, reorder according to input map. 
     void SetCoordinatesByMap(Frame const&, std::vector<int>const&);
     /// Modify this frame to include only mapped atoms from input frame.
-    void SetReferenceByMap(Frame const&, std::vector<int>const&);
+    void StripUnmappedAtoms(Frame const&, std::vector<int>const&);
     /// Copy only input coordinates, reorder according to input map.
-    void SetTargetByMap(Frame const&, std::vector<int>const&);
+    void ModifyByMap(Frame const&, std::vector<int>const&);
     // Basic Arithmetic
     void ZeroCoords();
     Frame& operator+=(const Frame&);

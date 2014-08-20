@@ -47,9 +47,9 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   // Get Mask
   Mask_.SetMaskString( actionArgs.GetMaskNext()  );
   // Get DataSet name
-  std::string setname = actionArgs.GetStringNext();
+  setname_ = actionArgs.GetStringNext();
   // Add output dataset
-  dataout_ = DSL->AddSet( DataSet::XYMESH, setname, "Fluct" );
+  dataout_ = DSL->AddSet( DataSet::XYMESH, setname_, "Fluct" );
   if (dataout_ == 0) {
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return Action::ERR; 
@@ -67,8 +67,8 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
   FrameCounterInfo();
   if (calc_adp_)
     mprintf("\tCalculating anisotropic displacement parameters.\n");
-  if (!setname.empty())
-    mprintf("\tData will be saved to set named %s\n", setname.c_str());
+  if (!setname_.empty())
+    mprintf("\tData will be saved to set named %s\n", setname_.c_str());
 
   return Action::OK;
 }
@@ -150,7 +150,8 @@ void Action_AtomicFluct::Print() {
     if (calc_adp_) adpout.OpenEnsembleWrite( adpoutname_, ensembleNum_ );
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
-    dataout_->SetLegend("B-factors");
+    if (setname_.empty())
+      dataout_->SetLegend("B-factors");
     double bfac = (8.0/3.0)*Constants::PI*Constants::PI;
     for (int i = 0; i < SumCoords2_.size(); i+=3) {
       double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
@@ -177,7 +178,8 @@ void Action_AtomicFluct::Print() {
     }
   } else {
     // Atomic fluctuations
-    dataout_->SetLegend("AtomicFlx");
+    if (setname_.empty())
+      dataout_->SetLegend("AtomicFlx");
     for (int i = 0; i < SumCoords2_.size(); i+=3) {
       double fluct = SumCoords2_[i] + SumCoords2_[i+1] + SumCoords2_[i+2];
       if (fluct > 0)

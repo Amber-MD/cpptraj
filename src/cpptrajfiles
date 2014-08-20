@@ -1,6 +1,7 @@
 SOURCES=ActionFrameCounter.cpp \
         ActionList.cpp \
         Action_Angle.cpp \
+        Action_AreaPerMol.cpp \
         Action_AtomMap.cpp \
         Action_AtomicCorr.cpp \
         Action_AtomicFluct.cpp \
@@ -122,6 +123,7 @@ SOURCES=ActionFrameCounter.cpp \
         ClusterSieve.cpp \
         Cluster_DBSCAN.cpp \
         Cluster_HierAgglo.cpp \
+        Cluster_Kmeans.cpp \
         Command.cpp \
         ComplexArray.cpp \
         Corr.cpp \

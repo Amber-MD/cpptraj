@@ -8,7 +8,7 @@ class SymmetricRmsdCalc {
   public:
     typedef std::vector<int> Iarray;
     SymmetricRmsdCalc();
-    SymmetricRmsdCalc(AtomMask const&, bool, bool, Topology const&,int);
+    SymmetricRmsdCalc(AtomMask const&, bool, bool, Topology const&, int);
     /// Set fit, mass, and debug options.
     int InitSymmRMSD(bool, bool, int);
     /// Find symmetric atoms given a Topology and AtomMask.

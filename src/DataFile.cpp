@@ -152,6 +152,21 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
   return err;
 }
 
+// DataFile::ReadDataOfType()
+int DataFile::ReadDataOfType(std::string const& fnameIn, DataFormatType typeIn,
+                             DataSetList& datasetlist)
+{
+  if (fnameIn.empty()) return Error("Error: No input data file name given.\n");
+  if (dataio_ != 0) delete dataio_;
+  dataio_ = 0;
+  if (filename_.SetFileNameWithExpansion( fnameIn )) return 1;
+  dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, typeIn, false );
+  if (dataio_ == 0) return 1;
+  dataio_->SetDebug( debug_ );
+  ArgList empty;
+  return dataio_->ReadData( filename_.Full(), empty, datasetlist, filename_.Full() );
+}
+
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debugIn) {
   SetDebug( debugIn );

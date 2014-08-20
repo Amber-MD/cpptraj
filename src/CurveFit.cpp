@@ -282,13 +282,23 @@ bool CurveFit::ParametersHaveProblems(Darray const& Xvals_, Darray const& Yvals_
   return false;
 }
 
-/** Perform curve fitting via Levenberg-Marquardt with no bounds. */
+/** Perform curve fitting via Levenberg-Marquardt with no bounds/weights. */
 int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
                                  Darray const& Yvals_, Darray& ParamVec,
                                  double tolerance, int maxIterations)
 {
   return LevenbergMarquardt(fxnIn, Xvals_, Yvals_, ParamVec, std::vector<bool>(),
                             Darray(), Darray(), Darray(), tolerance, maxIterations);
+}
+
+/** Perform curve fitting via Levenberg-Marquard with weights. */
+int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals,
+                                 Darray const& Yvals, Darray& ParamVec,
+                                 Darray const& weightsIn,
+                                 double tolerance, int maxIterations)
+{
+  return LevenbergMarquardt(fxnIn, Xvals, Yvals, ParamVec, std::vector<bool>(),
+                            Darray(), Darray(), weightsIn, tolerance, maxIterations);
 }
 
 // -----------------------------------------------------------------------------
@@ -300,6 +310,7 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
   * \param boundsIn true if parameter has bounds (N)
   * \param lboundIn contain lower bounds for parameter (N)
   * \param uboundIn contain upper bounds for parameter (N)
+  * \param weightsIn contain weights for Y values (M)
   * \param tolerance Fit tolerance
   * \param maxIterations Number of iterations to try.
   */

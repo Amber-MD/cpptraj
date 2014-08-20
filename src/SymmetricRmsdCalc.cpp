@@ -10,7 +10,7 @@ SymmetricRmsdCalc::SymmetricRmsdCalc(AtomMask const& maskIn, bool fitIn,
                                      bool useMassIn, Topology const& topIn, int debugIn) :
   debug_(debugIn), fit_(fitIn), useMass_(useMassIn)
 {
-  SetupSymmRMSD( topIn, maskIn, false );
+  SetupSymmRMSD( topIn, maskIn, false ); // No remap warning
 }
 
 // SymmetricRmsdCalc::InitSymmRMSD()

@@ -92,6 +92,12 @@ Action::RetType Action_Surf::Setup(Topology* currentParm, Topology** parmAddress
   // neighbor list that only includes atoms with vdw radius > 2.5.
   VDW_.clear();
   VDW_.reserve( soluteAtoms );
+  if (currentParm->Nmol() < 1) {
+    mprinterr("Error: Topology %s has no molecule information, LCPO surface area\n"
+              "Error:   cannot be calculated. Try using 'fixatomorder' prior to 'surf' command.\n",
+              currentParm->c_str());
+    return Action::ERR;
+  }
   for (Topology::mol_iterator mol = currentParm->MolStart(); 
                               mol != currentParm->MolEnd(); ++mol)
   {
