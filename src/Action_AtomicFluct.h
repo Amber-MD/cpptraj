@@ -26,6 +26,7 @@ class Action_AtomicFluct : public Action, ActionFrameCounter {
     bool calc_adp_;
     std::string adpoutname_;
     std::string outfilename_;
+    std::string setname_;
     Topology *fluctParm_;
     outputType outtype_;
     DataSet* dataout_;
