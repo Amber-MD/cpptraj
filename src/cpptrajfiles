@@ -25,6 +25,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Dipole.cpp \
         Action_DistRmsd.cpp \
         Action_Distance.cpp \
+        Action_Energy.cpp \
         Action_FilterByData.cpp \
         Action_FixAtomOrder.cpp \
         Action_Gist.cpp \
@@ -166,6 +167,7 @@ SOURCES=ActionFrameCounter.cpp \
         DihedralSearch.cpp \
         Dimension.cpp \
         DistRoutines.cpp \
+        Energy.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \

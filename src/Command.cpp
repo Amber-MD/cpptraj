@@ -84,6 +84,7 @@
 #include "Action_MinImage.h"
 #include "Action_ReplicateCell.h"
 #include "Action_AreaPerMol.h"
+#include "Action_Energy.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1737,6 +1738,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "dssp", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
+  { ACTION, "energy", Action_Energy::Alloc, Action_Energy::Help, AddAction },
   { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
   { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
   { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
