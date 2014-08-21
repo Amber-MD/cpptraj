@@ -26,21 +26,42 @@ int MultiExponentialK(CurveFit::Darray const& Xvals, CurveFit::Darray const& Par
   }
   return 0;
 }
-/*
-double TestFxn(double X, CurveFit::Darray const& Params)
+
+/** Multi exponential of form Y = B0 + SUM[Bi * exp(X * Bi+1)] subject to the
+  * constraints that B0 + {Bi} = 1.0 and {Bi+1} < 0.0
+  */
+int MultiExpK_WithPenalty(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
+                          CurveFit::Darray& Yvals)
 {
-  double Y = Params[0];
-  double penalty = Params[0];
+  // Calculate penalty for coefficients
+  double penalty1 = Params[0];
   for (unsigned int i = 1; i < Params.size(); i += 2)
-  {
-    penalty += Params[i];
-    double expBx = exp( Params[i+1] * X );
-    Y += Params[i] * expBx;
+    penalty1 += Params[i];
+  penalty1 = 1000.0 * (1.0 - penalty1);
+  // Calculate penalty for exponents
+  double pvalue = 1000.0 / (double)((Params.size() - 1) / 2);
+  double penalty2 = 0.0;
+  for (unsigned int i = 2; i < Params.size(); i += 2)
+    if (Params[i] > 0.0) penalty2 += pvalue;
+  // Calculate Y values
+  for (unsigned int n = 0; n != Xvals.size(); n++) {
+    double X = Xvals[n];
+    double Y = Params[0];
+    // dYdP[0] = 1.0;
+    for (unsigned int i = 1; i < Params.size(); i += 2)
+    {
+      double expBx = exp( Params[i+1] * X );
+      Y += Params[i] * expBx;
+      //dYdP[i  ] = expBx;
+      //dYdP[i+1] = Params[i] * X * expBx;
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i, dYdP[i]);
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i+1, dYdP[i+1]);
+    }
+    Yvals[n] = Y + penalty1 + penalty2;
   }
-  penalty = 1000.0 * (1.0 - penalty);
-  return Y + penalty;
+  return 0;
 }
-*/
+
 /** Multi exponential of form Y = SUM[Bi * exp(X * Bi+1)] */
 int MultiExponential(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
                      CurveFit::Darray& Yvals)
@@ -62,10 +83,28 @@ int MultiExponential(CurveFit::Darray const& Xvals, CurveFit::Darray const& Para
   return 1;
 }
 
+// -----------------------------------------------------------------------------
+// CONSTRUCTOR
+Analysis_ExpCurveFit::Analysis_ExpCurveFit() : 
+  dset_(0), 
+  finalY_(0),
+  tolerance_(0.0),
+  maxIt_(0),
+  nexp_(0),
+  eqForm_(MEXP),
+  usePrefactorBounds_(false)
+{}
+
 void Analysis_ExpCurveFit::Help() {
   mprintf("\t<dset> [name <output setname>] [out <outfile>] [nexp <n>]\n"
-          "\t[tol <tolerance>] [maxit <max iterations>] [useconstant]\n");
+          "\t[tol <tolerance>] [maxit <max iterations>] [useconstant | usepenalty]\n");
 }
+
+static const char* EQFORM[] = {
+  " Y = SUM[Bi * exp(X * Bi+1)",
+  " Y = B0 + SUM[Bi * exp(X * Bi+1)]",
+  " Y = B0 + SUM[Bi * exp(X * Ai)], B0+{Bi}=1.0, {Ai} < 0.0"
+};
 
 // Analysis_ExpCurveFit::Setup()
 Analysis::RetType Analysis_ExpCurveFit::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
@@ -74,7 +113,12 @@ Analysis::RetType Analysis_ExpCurveFit::Setup(ArgList& analyzeArgs, DataSetList*
   // Get keywords
   DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   std::string dsoutName = analyzeArgs.GetStringKey("name");
-  useConstant_ = analyzeArgs.hasKey("useconstant");
+  if (analyzeArgs.hasKey("useconstant"))
+    eqForm_ = MEXP_K;
+  else if (analyzeArgs.hasKey("usepenalty"))
+    eqForm_ = MEXP_K_PENALTY;
+  else
+    eqForm_ = MEXP;
   usePrefactorBounds_ = analyzeArgs.hasKey("prefactorbounds");
   nexp_ = analyzeArgs.getKeyInt("nexp", 2);
   tolerance_ = analyzeArgs.getKeyDouble("tol", 0.0001);
@@ -106,11 +150,7 @@ Analysis::RetType Analysis_ExpCurveFit::Setup(ArgList& analyzeArgs, DataSetList*
   mprintf("    EXPCURVEFIT: Fitting multi-exponential curve using %i exponentials.\n", nexp_);
   mprintf("\tUsing data in set '%s'.\n", dset_->Legend().c_str());
   mprintf("\tFinal Y values will be saved in set '%s'\n", finalY_->Legend().c_str());
-  mprintf("\tFitting to form:");
-  if (useConstant_)
-    mprintf(" Y = B0 + SUM[Bi * exp(X * Bi+1)\n");
-  else
-    mprintf(" Y = SUM[Bi * exp(X * Bi+1)\n");
+  mprintf("\tFitting to form: %s\n", EQFORM[eqForm_]);
   mprintf("\tTolerance= %g, maximum iterations= %i\n", tolerance_, maxIt_);
   if (usePrefactorBounds_)
     mprintf("\tExponential prefactors will be bound between 0.0 and 1.0.\n");
@@ -131,25 +171,25 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
   CurveFit::Darray Params;
   CurveFit::FitFunctionType fxn = 0;
   unsigned int pstart = 0;
-  if (useConstant_) {
-    pstart = 1;
-    fxn = MultiExponentialK; 
-    Params.resize( 1 + (nexp_ * 2) );
-//    if (usePrefactorBounds_) {
-//      Params[0] = 1.0 / (double)(Params.size() - pstart);
-//      //fxn = TestFxn;
-//    } else
-      Params[0] = 0.0;
-  } else {
-    fxn = MultiExponential;
-    Params.resize( nexp_ * 2 );
+  switch (eqForm_) {
+    case MEXP_K:
+      pstart = 1;
+      fxn = MultiExponentialK; 
+      break;
+    case MEXP_K_PENALTY:
+      pstart = 1;
+      fxn = MultiExpK_WithPenalty;
+      break;
+    case MEXP:
+      fxn = MultiExponential;
   }
-  Params.resize( pstart + (nexp_ * 2) );
+  Params.resize( pstart + (nexp_ * 2), 0.0 );
+
   // Set initial parameters and bounds if necessary.
-  std::vector<bool> bounds;
+  std::vector<bool> HasBounds;
   CurveFit::Darray UB, LB, Weights;
   if (usePrefactorBounds_) {
-//    bounds.assign( Params.size(), false );
+//    HasBounds.assign( Params.size(), false );
 //    LB.assign( Params.size(), 0.0 );
 //    UB.assign( Params.size(), 0.0 );
     Weights.assign( dset_->Size(), 0.0 );
@@ -166,8 +206,8 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
     if (usePrefactorBounds_) {
       prefac /= (double)(Params.size() - pstart);
       expfac = -0.01;
-//      bounds[j] = true;
-//      bounds[j+1] = true;
+//      HasBounds[j] = true;
+//      HasBounds[j+1] = true;
 //      LB[j] = 0.0;
 //      UB[j] = 1.0;
 //      LB[j+1] = -1E10;
@@ -176,9 +216,11 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
     Params[j  ] = prefac;
     Params[j+1] = expfac;
   }
+
+  // Write out parameters and bounds.
   for (unsigned int j = 0; j != Params.size(); j++) {
     mprintf("\t\tInitial Param %u = %g", j, Params[j]);
-    if (!bounds.empty() && bounds[j])
+    if (!HasBounds.empty() && HasBounds[j])
       mprintf("    Bounds: %g < P%u < %g", LB[j], UB[j]);
     mprintf("\n");
   }
@@ -200,7 +242,7 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
   CurveFit fit;
   //int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, tolerance_, maxIt_ );
   int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, 
-                                     bounds, LB, UB, Weights, tolerance_, maxIt_ );
+                                     HasBounds, LB, UB, Weights, tolerance_, maxIt_ );
   mprintf("\t%s\n", fit.Message(info));
   if (info == 0) {
     mprinterr("Error: %s\n", fit.ErrorMessage());
@@ -211,13 +253,20 @@ Analysis::RetType Analysis_ExpCurveFit::Analyze() {
 
   // Write out final form
   mprintf("\tFinal Eq: Y =");
-  if (useConstant_)
+  if (eqForm_ == MEXP_K || eqForm_ == MEXP_K_PENALTY)
     mprintf(" %g +", Params[0]);
   for (unsigned int p = pstart; p < Params.size(); p += 2) {
     if (p > pstart) mprintf(" +");
     mprintf(" (%g * exp(x * %g))", Params[p], Params[p+1]);
   }
   mprintf("\n");
+
+  double sumB = 0.0;
+  if (eqForm_ == MEXP_K || eqForm_ == MEXP_K_PENALTY)
+    sumB = Params[0];
+  for (unsigned int p = pstart; p < Params.size(); p += 2)
+    sumB += Params[p];
+  mprintf("\tSum of prefactors = %g\n", sumB);
 
   // TEST: Integrate the function out a ways.
 /*
