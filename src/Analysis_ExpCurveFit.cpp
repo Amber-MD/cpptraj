@@ -115,8 +115,8 @@ Analysis::RetType Analysis_ExpCurveFit::Setup(ArgList& analyzeArgs, DataSetList*
   std::string dsoutName = analyzeArgs.GetStringKey("name");
   if (analyzeArgs.hasKey("useconstant"))
     eqForm_ = MEXP_K;
-  else if (analyzeArgs.hasKey("usepenalty"))
-    eqForm_ = MEXP_K_PENALTY;
+  //else if (analyzeArgs.hasKey("usepenalty"))
+  //  eqForm_ = MEXP_K_PENALTY;
   else
     eqForm_ = MEXP;
   usePrefactorBounds_ = analyzeArgs.hasKey("prefactorbounds");
