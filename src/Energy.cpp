@@ -40,8 +40,10 @@ double Energy_Amber::CalcBondEnergy(Frame const& fIn, BondArray const& Bonds,
       double rdiff = r - bp.Req();
       double ene = bp.Rk() * (rdiff * rdiff);
       Ebond += ene;
+#     ifdef DEBUG_ENERGY
       mprintf("\tBond %4u %4i -- %4i: k= %12.5f  x0= %12.5f  r= %12.5f  E= %12.5e\n",
               b - Bonds.begin(), b->A1()+1, b->A2()+1, bp.Rk(), bp.Req(), r, ene);
+#     endif
     }
   }
   return Ebond;
@@ -80,8 +82,10 @@ double Energy_Amber::CalcAngleEnergy(Frame const& fIn, AngleArray const& Angles,
       double tdiff = theta - ap.Teq();
       double ene = ap.Tk() * (tdiff * tdiff);
       Eangle += ene;
+#     ifdef DEBUG_ENERGY
       mprintf("\tAngle %4u %4i -- %4i -- %4i: k= %12.5f  x0= %12.5f  t= %12.5f  E= %12.5e\n",
               a - Angles.begin(), a->A1()+1, a->A2()+1, a->A3()+1, ap.Tk(), ap.Teq(), theta, ene);
+#     endif
     }
   }
   return Eangle;
@@ -121,10 +125,12 @@ double Energy_Amber::CalcTorsionEnergy(Frame const& fIn, DihedralArray const& Di
                            fIn.XYZ(d->A3()), fIn.XYZ(d->A4()));
       double ene = dp.Pk() * (1.0 + cos(dp.Pn() * phi - dp.Phase()));
       Edih += ene;
+#     ifdef DEBUG_ENERGY
       mprintf("\tDihedral %4u %4i -- %4i -- %4i -- %4i: pk= %12.5f  "
                 "pn= %12.5f  phase= %12.5f  p= %12.5f  E= %12.5e\n",
               d - Dihedrals.begin(), d->A1()+1, d->A2()+1, d->A3()+1, d->A4()+1,
               dp.Pk(), dp.Pn(), dp.Phase(), phi, ene);
+#     endif
     }
   }
   return Edih;
@@ -172,16 +178,18 @@ double Energy_Amber::Calc_14_Energy(Frame const& fIn, DihedralArray const& Dihed
       double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
       e_vdw /= dp.SCNB();
       Evdw14 += e_vdw;
-      mprintf("\tEVDW14  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
-              d->A1()+1, d->A4()+1, LJ.A(), LJ.B(), rij2, e_vdw);
       // Coulomb
       double qiqj = QFAC * tIn[d->A1()].Charge() * tIn[d->A4()].Charge();
       double e_elec = qiqj / rij;
       e_elec /= dp.SCEE();
       Eq14 += e_elec;
+#     ifdef DEBUG_ENERGY
+      mprintf("\tEVDW14  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
+              d->A1()+1, d->A4()+1, LJ.A(), LJ.B(), rij2, e_vdw);
       mprintf("\tEELEC14 %4i -- %4i: q1= %12.5e  q2= %12.5e  r=  %12.5f  E= %12.5e\n",
               d->A1()+1, d->A4()+1, tIn[d->A1()].Charge(), tIn[d->A4()].Charge(),
               rij, e_elec);
+#     endif
     }
   }
   return Evdw14;
@@ -226,15 +234,17 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
         double f6    = LJ.B() * r6;   // B/r^6
         double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
         Evdw += e_vdw;
-        mprintf("\tEVDW  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
-                *maskatom1+1, *maskatom2+1, LJ.A(), LJ.B(), rij2, e_vdw);
         // Coulomb
         double qiqj = QFAC * tIn[*maskatom1].Charge() * tIn[*maskatom2].Charge();
         double e_elec = qiqj / rij;
         Eelec += e_elec;
+#       ifdef DEBUG_ENERGY
+        mprintf("\tEVDW  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
+                *maskatom1+1, *maskatom2+1, LJ.A(), LJ.B(), rij2, e_vdw);
         mprintf("\tEELEC %4i -- %4i: q1= %12.5e  q2= %12.5e  r=  %12.5f  E= %12.5e\n",
                 *maskatom1, *maskatom2, tIn[*maskatom1].Charge(), tIn[*maskatom2].Charge(),
                 rij, e_elec);
+#       endif
       }
     }
   }
