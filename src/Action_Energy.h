@@ -13,7 +13,7 @@ class Action_Energy: public Action {
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    void Print() {}
+    void Print();
 
     enum Etype { BOND, ANGLE, DIHEDRAL, V14, Q14, VDW, ELEC, TOTAL};
     std::vector<DataSet*> Energy_;

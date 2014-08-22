@@ -81,3 +81,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, Frame* currentFrame,
 
   return Action::OK;
 }
+
+void Action_Energy::Print() {
+  ENE_.PrintTiming();
+} 

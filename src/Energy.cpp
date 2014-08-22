@@ -13,9 +13,11 @@ Energy_Amber::Energy_Amber() : debug_(0) {}
 /** Bond energy */
 double Energy_Amber::E_bond(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
 {
+  time_bond_.Start();
   // Heavy atom bonds
   double Ebond = CalcBondEnergy(fIn, tIn.Bonds(), tIn.BondParm(), mask);
   Ebond += CalcBondEnergy(fIn, tIn.BondsH(), tIn.BondParm(), mask);
+  time_bond_.Stop();
   return Ebond;
 }
 
@@ -53,9 +55,11 @@ double Energy_Amber::CalcBondEnergy(Frame const& fIn, BondArray const& Bonds,
 /** Angle energy */
 double Energy_Amber::E_angle(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
 {
+  time_angle_.Start();
   // Heavy atom angles
   double Eang = CalcAngleEnergy(fIn, tIn.Angles(), tIn.AngleParm(), mask);
   Eang += CalcAngleEnergy(fIn, tIn.AnglesH(), tIn.AngleParm(), mask);
+  time_angle_.Stop();
   return Eang;
 }
 
@@ -95,9 +99,11 @@ double Energy_Amber::CalcAngleEnergy(Frame const& fIn, AngleArray const& Angles,
 /** Dihedral energy */
 double Energy_Amber::E_torsion(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
 {
+  time_tors_.Start();
   // Heavy atom dihedrals
   double Edih = CalcTorsionEnergy(fIn, tIn.Dihedrals(), tIn.DihedralParm(), mask);
   Edih += CalcTorsionEnergy(fIn, tIn.DihedralsH(), tIn.DihedralParm(), mask);
+  time_tors_.Stop();
   return Edih;
 }
 
@@ -141,10 +147,12 @@ double Energy_Amber::CalcTorsionEnergy(Frame const& fIn, DihedralArray const& Di
 double Energy_Amber::E_14_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
                                   double& Eq14)
 {
+  time_14_.Start();
   Eq14 = 0.0;
   // Heavy atom dihedrals
   double Evdw14 = Calc_14_Energy(fIn, tIn.Dihedrals(), tIn.DihedralParm(), tIn, mask, Eq14);
   Evdw14 += Calc_14_Energy(fIn, tIn.DihedralsH(), tIn.DihedralParm(), tIn, mask, Eq14);
+  time_14_.Stop();
   return Evdw14;
 }
 
@@ -200,6 +208,7 @@ double Energy_Amber::Calc_14_Energy(Frame const& fIn, DihedralArray const& Dihed
 double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
                                double& Eelec)
 {
+  time_NB_.Start();
   double Evdw = 0.0;
   Eelec = 0.0;
   for (AtomMask::const_iterator maskatom1 = mask.begin();
@@ -248,5 +257,18 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
       }
     }
   }
+  time_NB_.Stop();
   return Evdw;
+}
+
+void Energy_Amber::PrintTiming() const {
+  double total = time_bond_.Total() + time_angle_.Total() +
+                 time_tors_.Total() + time_14_.Total() +
+                 time_NB_.Total();
+  time_bond_.WriteTiming(1, "BOND", total);
+  time_angle_.WriteTiming(1, "ANGLE", total);
+  time_tors_.WriteTiming(1, "TORSION", total);
+  time_14_.WriteTiming(1, "1-4_NONBOND", total);
+  time_NB_.WriteTiming(1, "NONBOND", total);
+  mprintf("TIME: Total= %.4f\n", total);
 }
