@@ -1,29 +1,26 @@
-#include <cmath> //floor
+#include <cmath> // sqrt
 #include "DistRoutines.h"
 
-// Frame::DIST2_ImageNonOrtho()
-/** Given two coordinates and reciprocal space information based on 
-  * the current non-orthorhombic box, return the shortest imaged distance^2 
-  * between the coordinates.
+/** \param a1 First set of XYZ coordinates.
+  * \param a2 Second set of XYZ coordinates.
+  * \param ucell Unit cell vectors.
+  * \param recip Fractional cell vectors.
+  * \return the shortest imaged distance^2 between the coordinates.
   */
 double DIST2_ImageNonOrtho(Vec3 const& a1, Vec3 const& a2, 
                            Matrix_3x3 const& ucell, Matrix_3x3 const& recip) 
 { 
   int ixyz[3];
-  Vec3 f = recip * a2;
-  Vec3 f2 = recip * a1;
-
-  return DIST2_ImageNonOrthoRecip(f, f2, -1.0, ixyz, ucell);
+  return DIST2_ImageNonOrthoRecip(recip * a2, recip * a1, -1.0, ixyz, ucell);
 }
 
-// DIST2_ImageNonOrthoRecip()
-/** Given two coordinate sets in reciprocal space, return the minimum imaged
-  * distance^2 between them.
-  * If minIn is > 0.0 it is considered a possible minimum distance.
-  * The integer coefficients describing the closest reflection in reciprocal
-  * space will be placed in ixyz.
+/** \param f1 First set of fractional XYZ coordinates.
+  * \param f2 Second set of fractional XYZ coordinates.
+  * \param ixyz Will be set with integer coefficients describing closest reflection.
+  * \param ucell Unit cell vectors.
+  * \return the shortest imaged distance^2 between the coordinates.
   */
-double DIST2_ImageNonOrthoRecip(Vec3 const& f, Vec3 const& f2, double minIn, 
+double DIST2_ImageNonOrthoRecip(Vec3 const& f1, Vec3 const& f2, double minIn, 
                                 int* ixyz, Matrix_3x3 const& ucell) 
 { 
   //double closest2
@@ -37,13 +34,13 @@ double DIST2_ImageNonOrthoRecip(Vec3 const& f, Vec3 const& f2, double minIn,
    *  is shorter than the minimum possible distance between images.
    */
 
-  fx = f[0] - floor(f[0]);
-  fy = f[1] - floor(f[1]);
-  fz = f[2] - floor(f[2]); 
+  fx = f1[0];
+  fy = f1[1];
+  fz = f1[2]; 
   
-  f2x = f2[0] - floor(f2[0]);
-  f2y = f2[1] - floor(f2[1]);
-  f2z = f2[2] - floor(f2[2]);
+  f2x = f2[0];
+  f2y = f2[1];
+  f2z = f2[2];
 
   // Precompute some factors
   X_factor = (f2x*ucell[0] + f2y*ucell[3] + f2z*ucell[6]);

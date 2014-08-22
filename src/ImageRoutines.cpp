@@ -174,6 +174,14 @@ Vec3 Image::Nonortho(Vec3 const& Coord, bool truncoct,
       f2 += 0.5;
     }
 
+    // Ensure |fractional| coords < 1.0
+    TransCoord[0] = TransCoord[0] - floor(TransCoord[0]);
+    TransCoord[1] = TransCoord[1] - floor(TransCoord[1]);
+    TransCoord[2] = TransCoord[2] - floor(TransCoord[2]);
+    f2[0] = f2[0] - floor(f2[0]);
+    f2[1] = f2[1] - floor(f2[1]);
+    f2[2] = f2[2] - floor(f2[2]);
+
     DIST2_ImageNonOrthoRecip(TransCoord, f2, min, ixyz, ucell);
     if (ixyz[0] != 0 || ixyz[1] != 0 || ixyz[2] != 0) {
       boxTransOut += ucell.TransposeMult( ixyz );
