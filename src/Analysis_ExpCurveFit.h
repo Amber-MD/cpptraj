@@ -4,20 +4,22 @@
 /// Perform curve fit to sum of exponentials.
 class Analysis_ExpCurveFit : public Analysis {
   public:
-    Analysis_ExpCurveFit() : dset_(0), finalY_(0), tolerance_(0.0), maxIt_(0),
-                             nexp_(0), useConstant_(false), usePrefactorBounds_(false) {}
+    Analysis_ExpCurveFit();
+                          
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_ExpCurveFit(); }
     static void Help();
 
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
+    enum EqFormType { MEXP, MEXP_K, MEXP_K_PENALTY }; 
+
     DataSet* dset_;
     DataSet* finalY_;
     double tolerance_;
     int maxIt_;
-    int nexp_; ///< Number of exponentials
-    bool useConstant_;
+    int nexp_;          ///< Number of exponentials
+    EqFormType eqForm_; ///< Equation form
     bool usePrefactorBounds_; 
 };
 #endif

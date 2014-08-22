@@ -75,7 +75,8 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
     err = 1;
   }
   total_time.Stop();
-  mprintf("TIME: Total execution time: %.4f seconds.\n", total_time.Total());
+  if (cmode != INTERACTIVE)
+    mprintf("TIME: Total execution time: %.4f seconds.\n", total_time.Total());
   if (err == 0) Cpptraj::Finalize();
   mprintf("\n");
   return err;
