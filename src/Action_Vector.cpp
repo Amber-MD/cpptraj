@@ -3,7 +3,7 @@
 #include "Constants.h" // PI
 #include "Action_Vector.h"
 #include "CpptrajStdio.h"
-#include "Matrix_3x3.h" // for principal
+#include "DistRoutines.h" // MinImagedVec, includes Matrix_3x3 for principal
 
 // CONSTRUCTOR
 Action_Vector::Action_Vector() :
@@ -39,7 +39,8 @@ Action_Vector::~Action_Vector() {
 const char* Action_Vector::ModeString[] = {
   "NO_OP", "Principal X", "Principal Y", "Principal Z",
   "Dipole", "Box", "Mask", "Ired",
-  "CorrPlane", "Center", "Unit cell X", "Unit cell Y", "Unit cell Z"
+  "CorrPlane", "Center", "Unit cell X", "Unit cell Y", "Unit cell Z",
+  "MinImage"
 };
 
 static Action::RetType WarnDeprecated() {
@@ -102,18 +103,21 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else if (actionArgs.hasKey("ucelly"))
     mode_ = BOX_Y;
   else if (actionArgs.hasKey("ucellz"))
-    mode_ = BOX_Z; 
+    mode_ = BOX_Z;
+  else if (actionArgs.hasKey("minimage"))
+    mode_ = MINIMAGE; 
   else
     mode_ = MASK;
-  if (mode_ == BOX || mode_ == BOX_X || mode_ == BOX_Y || mode_ == BOX_Z)
+  if (mode_ == BOX || mode_ == BOX_X || mode_ == BOX_Y || mode_ == BOX_Z ||
+      mode_ == MINIMAGE)
     needBoxInfo_ = true;
   // Check if IRED vector
   bool isIred = actionArgs.hasKey("ired"); 
   // Vector Mask
-  if (!needBoxInfo_)
+  if (mode_ != BOX && mode_ != BOX_X && mode_ != BOX_Y && mode_ != BOX_Z)
     mask_.SetMaskString( actionArgs.GetMaskNext() );
   // Get second mask if necessary
-  if (mode_ == MASK) {
+  if (mode_ == MASK || mode_ == MINIMAGE) {
     std::string maskexpr = actionArgs.GetMaskNext();
     if (maskexpr.empty()) {
       mprinterr("Error: Specified vector mode (%s) requires a second mask.\n",
@@ -142,9 +146,9 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf(" (with magnitude)");
   if (isIred)
     mprintf(", IRED");
-  if (!needBoxInfo_)
+  if (mask_.MaskStringSet())
      mprintf(", mask [%s]", mask_.MaskString());
-  if (mode_ == MASK)
+  if (mask2_.MaskStringSet())
     mprintf(", second mask [%s]", mask2_.MaskString());
   if (!filename_.empty()) {
     if (ptrajoutput_)
@@ -167,7 +171,8 @@ Action::RetType Action_Vector::Setup(Topology* currentParm, Topology** parmAddre
                 currentParm->c_str());
       return Action::ERR;
     }
-  } else {
+  }
+  if (mask_.MaskStringSet()) {
     // Setup mask 1
     if (currentParm->SetupIntegerMask(mask_)) return Action::ERR;
     mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
@@ -371,6 +376,13 @@ void Action_Vector::UnitCell(Box const& box) {
   }
 }
 
+void Action_Vector::MinImage(Frame const& frm) {
+  Matrix_3x3 ucell, recip;
+  frm.BoxCrd().ToRecip( ucell, recip );
+  Vec3 com1 = frm.VCenterOfMass(mask_);
+  Vec_->AddVxyz( MinImagedVec(com1, frm.VCenterOfMass(mask2_), ucell, recip), com1 );
+}
+                 
 // Action_Vector::DoAction()
 Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   switch ( mode_ ) {
@@ -384,7 +396,8 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
     case BOX         : Vec_->AddVxyz( currentFrame->BoxCrd().Lengths() ); break;
     case BOX_X       : 
     case BOX_Y       : 
-    case BOX_Z       : UnitCell( currentFrame->BoxCrd() ); break; 
+    case BOX_Z       : UnitCell( currentFrame->BoxCrd() ); break;
+    case MINIMAGE    : MinImage( *currentFrame ); break; 
     default          : return Action::ERR; // NO_OP
   } // END switch over vectorMode
   if (Magnitude_ != 0) {

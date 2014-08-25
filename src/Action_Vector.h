@@ -12,7 +12,8 @@ class Action_Vector : public Action {
     enum vectorMode {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
       DIPOLE,    BOX,         MASK,        IRED,
-      CORRPLANE, CENTER,      BOX_X,       BOX_Y,       BOX_Z
+      CORRPLANE, CENTER,      BOX_X,       BOX_Y,       BOX_Z,
+      MINIMAGE
     };
     static const char* ModeString[];
 
@@ -29,6 +30,7 @@ class Action_Vector : public Action {
     void Principal(Frame const&);
     void CorrPlane(Frame const&);
     void UnitCell(Box const&);
+    void MinImage(Frame const&);
 
     int ensembleNum_;
     DataSet_Vector* Vec_;   ///< Hold vector values
