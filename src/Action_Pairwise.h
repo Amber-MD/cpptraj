@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_PAIRWISE_H
 #define INC_ACTION_PAIRWISE_H
 #include "Action.h"
+#include "PDBfile.h"
 // Class: Pairwise 
 /// Action to calculate nonbonded energy between pairs of atoms.
 /** Functions in two ways:
@@ -13,7 +14,6 @@
 class Action_Pairwise: public Action {
   public:
     Action_Pairwise();
-    ~Action_Pairwise();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Pairwise(); }
     static void Help();
   private:
@@ -21,29 +21,28 @@ class Action_Pairwise: public Action {
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    void Print();
+    void Print() {}
 
+    typedef std::vector<double> Darray;
+    enum EoutType {VDWOUT = 0, ELECOUT};
     enum PairCalcType { SET_REF, COMPARE_REF, NORMAL };
-    PairCalcType nb_calcType_;       ///< Type of nonbonded calc being performed
-    AtomMask Mask0_;                 ///< Calculate energy for atoms in mask
-    AtomMask RefMask_;               ///< Reference mask
-    Topology* CurrentParm_;          ///< Set to the current topology file.
-    int N_ref_interactions_;         ///< Number of interactions in Ref w/exclusions
-    double kes_;                     ///< Electrostatic constant, 1.0 when using Amber units
-    DataSet* ds_vdw_;                ///< Evdw dataset
-    DataSet* ds_elec_;               ///< Eelec dataset
-    double ELJ_;                     ///< Total VDW energy over all selected atoms.
-    double Eelec_;                   ///< Total elec. energy over all selected atoms.
-    double cut_evdw_;                ///< Min Evdw cutoff
-    double cut_evdw1_;               ///< Max Evdw cutoff
-    std::vector<double> atom_evdw_;  ///< Cumulative Evdw on each atom
-    double cut_eelec_;               ///< Min Eelec cutoff
-    double cut_eelec1_;              ///< Max Eelec cutoff
-    std::vector<double> atom_eelec_; ///< Cumulative Eelec on each atom
-    std::string cutout_;             ///< Mol2 file prefix for atoms satisfying cutoffs
-    CpptrajFile Eout_;               ///< Output file for atom energies.
-    /// HACK: Hold charges * 18.2223
-    std::vector<double> atom_charge_;
+    PairCalcType nb_calcType_; ///< Type of nonbonded calc being performed
+    AtomMask Mask0_;           ///< Calculate energy for atoms in mask
+    AtomMask RefMask_;         ///< Reference mask
+    Topology* CurrentParm_;    ///< Set to the current topology file.
+    int N_ref_interactions_;   ///< Number of interactions in Ref w/exclusions
+    DataSet* ds_vdw_;          ///< Evdw dataset
+    DataSet* ds_elec_;         ///< Eelec dataset
+    double ELJ_;               ///< Total VDW energy over all selected atoms.
+    double Eelec_;             ///< Total elec. energy over all selected atoms.
+    double cut_evdw_;          ///< van der Waals energy cutoff
+    Darray atom_evdw_;         ///< Cumulative Evdw on each atom
+    double cut_eelec_;         ///< Coulomb energy cutoff
+    Darray atom_eelec_;        ///< Cumulative Eelec on each atom
+//    std::string cutout_;       ///< Mol2 file prefix for atoms satisfying cutoffs
+    PDBfile CutOut_;           ///< PDB with atoms colored by evdw/eelec
+    CpptrajFile Eout_;         ///< Output file for atom energies.
+    static const double QFAC;  ///< Convert charges to kcal/mol units
     /// Hold nonbond energy for a given atom pair
     struct NonbondEnergyType {
       double evdw;
@@ -58,8 +57,8 @@ class Action_Pairwise: public Action {
     int SetupNonbondParm(AtomMask const&, Topology const&);
     /// Calculate nonbond energy using nonbondParm for given frame
     void NonbondEnergy(Frame const&, Topology const&, AtomMask const&);
-    int WriteCutFrame(int, Topology const&, AtomMask const&, std::vector<double> const&, 
-                      Frame const&, std::string const&);
-    void PrintCutAtoms(Frame const&,int);
+//    int WriteCutFrame(int, Topology const&, AtomMask const&, Darray const&, 
+//                      Frame const&, std::string const&);
+    int PrintCutAtoms(Frame const&, int, EoutType, Darray const&, double);
 };
 #endif  
