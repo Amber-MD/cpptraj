@@ -10,8 +10,11 @@ Action_Pairwise::Action_Pairwise() :
   nb_calcType_(NORMAL),
   CurrentParm_(0),
   N_ref_interactions_(0),
+  nframes_(0),
   ds_vdw_(0),
   ds_elec_(0),
+  vdwMat_(0),
+  eleMat_(0),
   ELJ_(0),
   Eelec_(0),
   cut_evdw_(1.0),
@@ -20,7 +23,8 @@ Action_Pairwise::Action_Pairwise() :
 
 void Action_Pairwise::Help() {
   mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <ecut>] [cutevdw <vcut>]\n"
-          "\t[ %s ] [cutout <cutmol2name>]\n"
+          "\t[ %s ] [cutout <cut mol2 prefix>]\n"
+          "\t[vmapout <vdw map>] [emapout <elec map>] [avgout <avg file>]\n"
           "  Calculate pairwise (non-bonded) energy for atoms in <mask>.\n", FrameList::RefArgs);
 }
 
@@ -31,7 +35,10 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get Keywords
-  std::string dataout = actionArgs.GetStringKey("out");
+  DataFile* dataout = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* vmapout = DFL->AddDataFile( actionArgs.GetStringKey("vmapout"), actionArgs );
+  DataFile* emapout = DFL->AddDataFile( actionArgs.GetStringKey("emapout"), actionArgs );
+  avgout_ = actionArgs.GetStringKey("avgout");
   std::string eout = actionArgs.GetStringKey("eout");
   cut_eelec_ = fabs(actionArgs.getKeyDouble("cuteelec",1.0));
   cut_evdw_ = fabs(actionArgs.getKeyDouble("cutevdw",1.0));
@@ -54,9 +61,16 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   ds_vdw_  = DSL->AddSetAspect(DataSet::DOUBLE, ds_name, "EVDW");
   ds_elec_ = DSL->AddSetAspect(DataSet::DOUBLE, ds_name, "EELEC");
   if (ds_vdw_ == 0 || ds_elec_ == 0) return Action::ERR;
-  // Add datasets to data file list
-  DFL->AddSetToFile(dataout, ds_vdw_);
-  DFL->AddSetToFile(dataout, ds_elec_);
+  // Add DataSets to data file list
+  if (dataout != 0) {
+    dataout->AddSet(ds_vdw_);
+    dataout->AddSet(ds_elec_);
+  }
+  vdwMat_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, ds_name, "VMAP");
+  eleMat_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, ds_name, "EMAP");
+  if (vdwMat_ == 0 || eleMat_ == 0) return Action::ERR;
+  if (vmapout != 0) vmapout->AddSet(vdwMat_);
+  if (emapout != 0) emapout->AddSet(eleMat_);
 
   // Get reference structure
   if (REF.error()) return Action::ERR;
@@ -64,7 +78,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     // Set up reference mask
     if ( REF.Parm().SetupIntegerMask(RefMask_) ) return Action::ERR;
     if (RefMask_.None()) {
-      mprinterr("    Error: Pairwise::init: No atoms selected in reference mask.\n");
+      mprinterr("Error: Pairwise::init: No atoms selected in reference mask.\n");
       return Action::ERR;
     }
     // Set up nonbonded params for reference
@@ -160,6 +174,21 @@ Action::RetType Action_Pairwise::Setup(Topology* currentParm, Topology** parmAdd
   // Set up exclusion list and determine total # interactions.
   int N_interactions = SetupNonbondParm(Mask0_, *currentParm);
 
+  // Allocate matrix memory
+  int previous_size = (int)vdwMat_->Size();
+  if (previous_size == 0) {
+    vdwMat_->AllocateTriangle( currentParm->Natom() );
+    eleMat_->AllocateTriangle( currentParm->Natom() );
+  } else {
+    if (previous_size != N_interactions) {
+      mprinterr("Error: Attempting to reallocate matrix with different size.\n"
+                "Error:   Original size= %i, new size= %i\n"
+                "Error:   This can occur when different #s of atoms are selected in\n"
+                "Error:   different topology files.\n", previous_size, N_interactions);
+      return Action::ERR;
+    }
+  }
+
   // If comparing to a reference frame for atom-by-atom comparison make sure
   // the number of interactions is the same in reference and parm.
   if (nb_calcType_==COMPARE_REF) {
@@ -180,6 +209,23 @@ Action::RetType Action_Pairwise::Setup(Topology* currentParm, Topology** parmAdd
   Mask0_.MaskInfo();
   CurrentParm_ = currentParm;      
   return Action::OK;  
+}
+
+void Action_Pairwise::WriteEnergies(Topology const& parmIn, int atom1, int atom2,
+                                    double evdw, double eelec, const char* etype)
+{
+  if (fabs(evdw) > cut_evdw_) {
+    Eout_.Printf("\tAtom %6i@%4s-%6i@%4s %sEvdw= %12.4f\n",
+                    atom1+1, parmIn[atom1].c_str(),
+                    atom2+1, parmIn[atom2].c_str(),
+                    etype,  evdw);
+  }
+  if (fabs(eelec) > cut_eelec_) {
+    Eout_.Printf("\tAtom %6i@%4s-%6i@%4s %sEelec= %12.4f\n",
+                    atom1+1, parmIn[atom1].c_str(),
+                    atom2+1, parmIn[atom2].c_str(),
+                    etype, eelec);
+  }
 }
 
 // Action_Pairwise::NonbondEnergy()
@@ -254,18 +300,10 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
           // dEelec
           double delta_eelec = refpair->eelec - e_elec;
           // Output
-          if (Eout_.IsOpen()) {
-            if (fabs(delta_vdw) > cut_evdw_) {
-              Eout_.Printf("\tAtom %6i@%4s-%6i@%4s dEvdw= %12.4f\n",
-                              atom1+1, parmIn[atom1].c_str(),
-                              atom2+1, parmIn[atom2].c_str(), delta_vdw);
-            }
-            if (fabs(delta_eelec) > cut_eelec_) {
-              Eout_.Printf("\tAtom %6i@%4s-%6i@%4s dEelec= %12.4f\n",
-                              atom1+1, parmIn[atom1].c_str(),
-                              atom2+1, parmIn[atom2].c_str(),delta_eelec);
-            }
-          }
+          if (Eout_.IsOpen())
+            WriteEnergies(parmIn, atom1, atom2, delta_vdw, delta_eelec, "d");
+          vdwMat_->Element(atom1, atom2) += delta_vdw;
+          eleMat_->Element(atom1, atom2) += delta_eelec;
           // Divide the total pair dEvdw between both atoms.
           delta2 = delta_vdw * 0.5;
           atom_evdw_[atom1] += delta2;
@@ -276,6 +314,10 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
           atom_eelec_[atom2] += delta2;
         } else if (nb_calcType_ == NORMAL) {
           // 2 - No reference, just cumulative Energy on atoms
+          if (Eout_.IsOpen())
+            WriteEnergies(parmIn, atom1, atom2, e_vdw, e_elec, "");
+          vdwMat_->Element(atom1, atom2) += e_vdw;
+          eleMat_->Element(atom1, atom2) += e_elec;
           // Cumulative evdw - divide between both atoms
           delta2 = e_vdw * 0.5;
           atom_evdw_[atom1] += delta2;
@@ -299,7 +341,7 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
 }
 
 // Action_Pairwise::WriteCutFrame()
-/** Write file containing only cut atoms and charges. */
+/** Write file containing only cut atoms and energies as charges. */
 int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask const& CutMask, 
                                    Darray const& CutCharges,
                                    Frame const& frame, std::string const& outfilename) 
@@ -348,7 +390,7 @@ int Action_Pairwise::PrintCutAtoms(Frame const& frame, int frameNum, EoutType ct
     if (nb_calcType_==COMPARE_REF)
       Eout_.Printf("\tPAIRWISE: Cumulative d%s:", CalcString[ctype]);
     else
-      Eout_.Printf("\tPAIRWISE: Cumulative E%s:", CalcString[ctype]);
+      Eout_.Printf("\tPAIRWISE: Cumulative %s:", CalcString[ctype]);
     Eout_.Printf(" %s < %.4f, %s > %.4f\n", CalcString[ctype], -cutIn,
                  CalcString[ctype], cutIn);
   }
@@ -381,6 +423,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
   atom_evdw_.assign(CurrentParm_->Natom(), 0.0);
   if (Eout_.IsOpen()) Eout_.Printf("PAIRWISE: Frame %i\n",frameNum);
   NonbondEnergy( *currentFrame, *CurrentParm_, Mask0_ );
+  nframes_++;
   // Write cumulative energy arrays
   if (PrintCutAtoms( *currentFrame, frameNum, VDWOUT, atom_evdw_, cut_evdw_ ))
     return Action::ERR;
@@ -410,4 +453,41 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
   ds_elec_->Add(frameNum, &Eelec_);
 
   return Action::OK;
-} 
+}
+
+void Action_Pairwise::Print() {
+  // Divide matrices by # of frames
+  double norm = 1.0 / (double)nframes_;
+  for (unsigned int i = 0; i != vdwMat_->Size(); i++)
+  {
+    (*vdwMat_)[i] *= norm;
+    (*eleMat_)[i] *= norm;
+  }
+  // Write out final results
+  CpptrajFile AvgOut;
+  if (AvgOut.OpenWrite( avgout_ )) return;
+  if (nb_calcType_ == NORMAL)
+    mprintf("  PAIRWISE: Writing all pairs with |<evdw>| > %.4f, |<eelec>| > %.4f\n",
+            cut_evdw_, cut_eelec_);
+  else if (nb_calcType_ == COMPARE_REF)
+    mprintf("  PAIRWISE: Writing all pairs with |<dEvdw>| > %.4f, |<dEelec>| > %.4f\n",
+            cut_evdw_, cut_eelec_);
+  AvgOut.Printf("%-16s %5s -- %16s %5s : ENE\n","#Name1", "At1", "Name2", "At2");
+  for (AtomMask::const_iterator m1 = Mask0_.begin(); m1 != Mask0_.end(); ++m1) {
+    for (AtomMask::const_iterator m2 = m1 + 1; m2 != Mask0_.end(); ++m2)
+    {
+      double EV = vdwMat_->GetElement(*m1, *m2);
+      double EE = eleMat_->GetElement(*m1, *m2);
+      bool outputv = ( fabs(EV) > cut_evdw_ );
+      bool outpute = ( fabs(EE) > cut_eelec_ );
+      if (outputv || outpute) {
+        AvgOut.Printf("%16s %5i -- %16s %5i :",
+                CurrentParm_->TruncResAtomName(*m1).c_str(), *m1 + 1,
+                CurrentParm_->TruncResAtomName(*m2).c_str(), *m2 + 1);
+        if (outputv) AvgOut.Printf("  EVDW= %12.5e", EV);
+        if (outpute) AvgOut.Printf(" EELEC= %12.5e", EE);
+        AvgOut.Printf("\n");
+      }
+    }
+  }
+}
