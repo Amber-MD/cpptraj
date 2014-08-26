@@ -39,8 +39,8 @@ class Action_Pairwise: public Action {
     Darray atom_evdw_;         ///< Cumulative Evdw on each atom
     double cut_eelec_;         ///< Coulomb energy cutoff
     Darray atom_eelec_;        ///< Cumulative Eelec on each atom
-//    std::string cutout_;       ///< Mol2 file prefix for atoms satisfying cutoffs
-    PDBfile CutOut_;           ///< PDB with atoms colored by evdw/eelec
+    std::string mol2Prefix_;   ///< Mol2 file prefix for atoms satisfying cutoffs
+    PDBfile PdbOut_;           ///< PDB with atoms colored by evdw/eelec
     CpptrajFile Eout_;         ///< Output file for atom energies.
     static const double QFAC;  ///< Convert charges to kcal/mol units
     /// Hold nonbond energy for a given atom pair
@@ -57,8 +57,10 @@ class Action_Pairwise: public Action {
     int SetupNonbondParm(AtomMask const&, Topology const&);
     /// Calculate nonbond energy using nonbondParm for given frame
     void NonbondEnergy(Frame const&, Topology const&, AtomMask const&);
-//    int WriteCutFrame(int, Topology const&, AtomMask const&, Darray const&, 
-//                      Frame const&, std::string const&);
+    /// Write mol2 file with atoms satisfying cutoff
+    int WriteCutFrame(int, Topology const&, AtomMask const&, Darray const&, 
+                      Frame const&, std::string const&);
+    /// Write atoms satisfying cutoff for given energy type
     int PrintCutAtoms(Frame const&, int, EoutType, Darray const&, double);
 };
 #endif  

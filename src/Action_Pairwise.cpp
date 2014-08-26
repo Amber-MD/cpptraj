@@ -35,7 +35,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   std::string eout = actionArgs.GetStringKey("eout");
   cut_eelec_ = fabs(actionArgs.getKeyDouble("cuteelec",1.0));
   cut_evdw_ = fabs(actionArgs.getKeyDouble("cutevdw",1.0));
-//  cutout_ = actionArgs.GetStringKey("cutout");
+  mol2Prefix_ = actionArgs.GetStringKey("cutout");
   std::string pdbout = actionArgs.GetStringKey("pdbout");
   ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   
@@ -86,7 +86,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
 
   // Set up output pdb
   if (!pdbout.empty()) {
-    if (CutOut_.OpenWrite( pdbout )) return Action::ERR;
+    if (PdbOut_.OpenWrite( pdbout )) return Action::ERR;
   }
 
   // Action Info
@@ -102,12 +102,12 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   }
   mprintf("\tEelec absolute cutoff (kcal/mol): %.4f\n", cut_eelec_);
   mprintf("\tEvdw absolute cutoff (kcal/mol) : %.4f\n", cut_evdw_);
-//  if (!cutout_.empty())
-//    mprintf("\tAtoms satisfying cutoff will be printed to %s.eX.mol2\n",
-//            cutout_.c_str());
-  if (CutOut_.IsOpen())
+  if (!mol2Prefix_.empty())
+    mprintf("\tAtoms satisfying cutoff will be printed to %s.e<type>.mol2\n",
+            mol2Prefix_.c_str());
+  if (PdbOut_.IsOpen())
     mprintf("\tPDB with evdw/eelec in occ/b-fac columns will be written to %s\n",
-            CutOut_.Filename().full());
+            PdbOut_.Filename().full());
   
   return Action::OK;
 }
@@ -300,7 +300,6 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
 
 // Action_Pairwise::WriteCutFrame()
 /** Write file containing only cut atoms and charges. */
-/*
 int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask const& CutMask, 
                                    Darray const& CutCharges,
                                    Frame const& frame, std::string const& outfilename) 
@@ -331,9 +330,9 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
   tout.EndTraj();
   return 0;
 }
-*/
+
 static const char* CalcString[] = { "Evdw", "Eelec" };
-//static const char* CutName[] = { ".evdw.mol2", ".eelec.mol2" };
+static const char* CutName[] = { ".evdw.mol2", ".eelec.mol2" };
 
 // Action_Pairwise::PrintCutAtoms()
 /** Print atoms for which the cumulative energy satisfies the given
@@ -342,8 +341,8 @@ static const char* CalcString[] = { "Evdw", "Eelec" };
 int Action_Pairwise::PrintCutAtoms(Frame const& frame, int frameNum, EoutType ctype,
                                    Darray const& Earray, double cutIn)
 {
-//  AtomMask CutMask;  // Hold atoms that satisfy the cutoff
-//  Darray CutCharges; // Hold evdw/eelec corresponding to CutMask atoms.
+  AtomMask CutMask;  // Hold atoms that satisfy the cutoff
+  Darray CutCharges; // Hold evdw/eelec corresponding to CutMask atoms.
 
   if (Eout_.IsOpen()) {
     if (nb_calcType_==COMPARE_REF)
@@ -360,17 +359,17 @@ int Action_Pairwise::PrintCutAtoms(Frame const& frame, int frameNum, EoutType ct
       if (Eout_.IsOpen()) 
         Eout_.Printf("\t\t%6i@%s: %12.4f\n", *atom+1,
                     (*CurrentParm_)[*atom].c_str(), Earray[*atom]);
-//      CutMask.AddAtom(*atom);
-//      CutCharges.push_back(Earray[*atom]);
+      CutMask.AddAtom(*atom);
+      CutCharges.push_back(Earray[*atom]);
     }
   }
-/*
-  if (!cutout_.empty() && !CutMask.None()) {
+  // Write mol2 with atoms satisfying cutoff
+  if (!mol2Prefix_.empty() && !CutMask.None()) {
     if (WriteCutFrame(frameNum, *CurrentParm_, CutMask, CutCharges, 
-                      frame, cutout_ + CutName[ctype])) 
+                      frame, mol2Prefix_ + CutName[ctype])) 
       return 1;
   }
-*/
+
   return 0;
 }
 
@@ -388,8 +387,8 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
   if (PrintCutAtoms( *currentFrame, frameNum, ELECOUT, atom_eelec_, cut_eelec_ ))
     return Action::ERR;
   // Write PDB with atoms that satisfy cutoff colored in.
-  if (CutOut_.IsOpen()) {
-    CutOut_.Printf("MODEL     %i\n", frameNum + 1);
+  if (PdbOut_.IsOpen()) {
+    PdbOut_.Printf("MODEL     %i\n", frameNum + 1);
     for (AtomMask::const_iterator atom = Mask0_.begin(); atom != Mask0_.end(); ++atom)
     {
       float occ = 0.0;
@@ -401,11 +400,11 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
       const double* XYZ = currentFrame->XYZ( *atom );
       Atom const& AT = (*CurrentParm_)[*atom];
       int rn = AT.ResNum();
-      CutOut_.WriteCoord(PDBfile::ATOM, *atom+1, AT.c_str(), CurrentParm_->Res(rn).c_str(),
+      PdbOut_.WriteCoord(PDBfile::ATOM, *atom+1, AT.c_str(), CurrentParm_->Res(rn).c_str(),
                          ' ', rn + 1, XYZ[0], XYZ[1], XYZ[2], occ, bfac, AT.ElementName(),
                          (int)AT.Charge(), false);
     }
-    CutOut_.Printf("ENDMDL\n");
+    PdbOut_.Printf("ENDMDL\n");
   }
   ds_vdw_->Add(frameNum, &ELJ_);
   ds_elec_->Add(frameNum, &Eelec_);
