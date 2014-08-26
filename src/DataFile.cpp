@@ -167,6 +167,7 @@ int DataFile::ReadDataOfType(std::string const& fnameIn, DataFormatType typeIn,
   return dataio_->ReadData( filename_.Full(), empty, datasetlist, filename_.Full() );
 }
 
+// -----------------------------------------------------------------------------
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debugIn) {
   SetDebug( debugIn );

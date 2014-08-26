@@ -107,7 +107,7 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
   if (append && mol2WriteMode_ != MULTI) {
     if (file_.SetupAppend( fname, debug_)) return 1;
   } else {
-    if (mol2WriteMode_ == MULTI)
+    if (append && mol2WriteMode_ == MULTI)
       mprintf("Warning: 'append' not compatible with 'multi' mol2 write.\n");
     if (file_.SetupWrite( fname, debug_ )) return 1;
   }
