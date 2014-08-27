@@ -1,6 +1,7 @@
 #include "Cluster_Kmeans.h"
 #include "CpptrajStdio.h"
 #include "Random.h"
+#include "ProgressBar.h"
 
 Cluster_Kmeans::Cluster_Kmeans() :
   nclusters_(0),
@@ -91,8 +92,10 @@ int Cluster_Kmeans::Cluster() {
   // Assign points in 3 passes. If a point looked like it belonged to cluster A
   // at first, but then we added many other points and altered our cluster 
   // shapes, its possible that we will want to reassign it to cluster B.
+  ProgressBar progress( maxIt_ );
   for (int iteration = 0; iteration != maxIt_; iteration++)
   {
+    progress.Update(iteration);
     // Add each point to an existing cluster, and recompute centroid
     if (debug_ > 0) mprintf("Round %i\n", iteration);
     if (iteration != 0) {
@@ -174,6 +177,7 @@ int Cluster_Kmeans::Cluster() {
     } // END loop over points to cluster
     if (Nchanged == 0) {
       mprintf("\tK-means round %i: No change. Skipping the rest of the iterations.\n", iteration);
+      progress.Update(maxIt_ - 1);
       break;
     } else
       mprintf("\tK-means round %i: %i points changed cluster assignment.\n", iteration, Nchanged);

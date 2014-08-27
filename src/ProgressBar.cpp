@@ -2,10 +2,9 @@
 #include "ProgressBar.h"
 #include "CpptrajStdio.h"
 
-const int ProgressBar::UNKNOWN_FRAMESIZE = 200;
-
 // CONSTRUCTOR
 ProgressBar::ProgressBar() :
+  unknown_(0),
   max_(0),
   C_over_max_(1.0),
   targetPercent_(0.0),
@@ -19,9 +18,13 @@ void ProgressBar::SetupProgress(int maxIn) {
   unknownframes_ = false;
   if (max_ < 0) {
     unknownframes_ = true;
-    mprintf("\tProgress: '+' = %i iterations.\n", UNKNOWN_FRAMESIZE);
+    if (maxIn == -1)
+      unknown_ = 200; // default
+    else
+      unknown_ = -maxIn;
+    mprintf("\tProgress: '+' = %i iterations.\n", unknown_);
     targetPercent_ = -1.0;
-    max_ = UNKNOWN_FRAMESIZE * 25;
+    max_ = unknown_ * 25;
   } else {
     if ( max_ == 0) // One frame
       C_over_max_ = 100.0;
@@ -47,14 +50,14 @@ void ProgressBar::Update(int current) {
     if (targetPercent_ < 0) {
       mprintf("%10i ",current);
       mflush();
-      targetPercent_ = (float)(UNKNOWN_FRAMESIZE - 1);
+      targetPercent_ = (float)(unknown_ - 1);
     }
     if ((float)current > targetPercent_) {
       mprintf("+");
       int target = (int)targetPercent_ + 1;
       if ((target % max_) == 0)
         mprintf("\n%10i ",current);
-      targetPercent_ += (float)UNKNOWN_FRAMESIZE;
+      targetPercent_ += (float)unknown_;
       mflush();
     } 
   } else {

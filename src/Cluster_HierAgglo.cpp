@@ -90,7 +90,7 @@ int Cluster_HierAgglo::Cluster() {
   // If target clusters not given make it 1
   if (nclusters_ == -1) nclusters_ = 1;
   mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
-  ProgressBar cluster_progress(-1);
+  ProgressBar cluster_progress(-10);
   // Build initial clusters.
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); frame++) {
     if (!FrameDistances_.IgnoringRow( frame ))
