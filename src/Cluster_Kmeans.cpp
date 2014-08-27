@@ -12,7 +12,7 @@ Cluster_Kmeans::Cluster_Kmeans() :
 
 void Cluster_Kmeans::Help() {
   //mprintf("\t[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]\n");
-  mprintf("\t[kmeans clusters <n> [maxit <iterations>]\n");
+  mprintf("\t[kmeans clusters <n> [maxit <iterations>]]\n");
 }
 
 // Cluster_Kmeans::SetupCluster()

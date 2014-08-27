@@ -10,8 +10,8 @@ Cluster_HierAgglo::Cluster_HierAgglo() :
 {}
 
 void Cluster_HierAgglo::Help() {
-  mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]]\n"
-          "\t[epsilonplot <file>]\n");
+  mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]\n"
+          "\t  [epsilonplot <file>]]\n");
 }
 
 static const char* LinkageString[] = {

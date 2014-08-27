@@ -10,8 +10,9 @@ class Cluster_ReadInfo : public ClusterList {
     void ClusteringInfo();
     int Cluster();
     void AddSievedFrames() { }
-    void ClusterResults(CpptrajFile&) const {}
+    void ClusterResults(CpptrajFile&) const;
   private:
     std::string filename_;
+    std::string algorithm_;
 };
 #endif
