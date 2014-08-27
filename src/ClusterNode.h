@@ -46,6 +46,8 @@ class ClusterNode {
     void SortFrameList();
     bool HasFrame(int);
     void RemoveFrameFromCluster(int);
+    void RemoveFrameUpdateCentroid(ClusterDist*, int);
+    void AddFrameUpdateCentroid(ClusterDist*, int);
   private:
     double avgClusterDist_;           ///< Avg distance of this cluster to all other clusters.
     double eccentricity_;             ///< Maximum distance between any 2 frames.

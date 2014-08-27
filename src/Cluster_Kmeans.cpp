@@ -1,5 +1,6 @@
 #include "Cluster_Kmeans.h"
 #include "CpptrajStdio.h"
+#include "ProgressBar.h"
 
 Cluster_Kmeans::Cluster_Kmeans() :
   nclusters_(0),
@@ -95,11 +96,14 @@ int Cluster_Kmeans::Cluster() {
     if (mode_ == RANDOM)
       ShufflePoints( PointIndices );
     // Add each point to an existing cluster, and recompute centroid
-    if (debug_ > 0) mprintf("Round %i\n", iteration);
+    mprintf("\tRound %i: ", iteration);
+    ProgressBar progress( PointIndices.size() );
     int Nchanged = 0;
+    int prog = 0;
     for (Iarray::const_iterator pointIdx = PointIndices.begin();
-                                pointIdx != PointIndices.end(); ++pointIdx)
+                                pointIdx != PointIndices.end(); ++pointIdx, ++prog)
     {
+      progress.Update( prog );
 //      if ( iteration != 0 || mode_ != SEQUENTIAL) // FIXME: Should this really happen for RANDOM
 //      {
         int pointFrame = FramesToCluster_[ *pointIdx ];
@@ -119,9 +123,10 @@ int Cluster_Kmeans::Cluster() {
               }
               //oldBestRep = C1->BestRepFrame(); 
               oldClusterIdx = C1->Num();
-              C1->RemoveFrameFromCluster( pointFrame );
+              C1->RemoveFrameUpdateCentroid( Cdist_, pointFrame );
+//              C1->RemoveFrameFromCluster( pointFrame );
               //newBestRep = C1->FindBestRepFrame();
-              C1->CalculateCentroid( Cdist_ );
+//              C1->CalculateCentroid( Cdist_ );
               if (debug_ > 0)
                 mprintf("Remove Frame %i from cluster %i\n", pointFrame, C1->Num());
               //if (clusterToClusterCentroid_) {
@@ -145,9 +150,10 @@ int Cluster_Kmeans::Cluster() {
             }
           }
           //oldBestRep = closestCluster->BestRepFrame();
-          closestCluster->AddFrameToCluster( pointFrame );
+          closestCluster->AddFrameUpdateCentroid( Cdist_, pointFrame );
+//          closestCluster->AddFrameToCluster( pointFrame );
           //newBestRep = closestCluster->FindBestFrameFrame();
-          closestCluster->CalculateCentroid( Cdist_ );
+//          closestCluster->CalculateCentroid( Cdist_ );
           if (closestCluster->Num() != oldClusterIdx)
           {
             Nchanged++;

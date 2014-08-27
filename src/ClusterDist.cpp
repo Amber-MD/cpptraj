@@ -385,6 +385,30 @@ Centroid* ClusterDist_RMS::NewCentroid( Cframes const& cframesIn ) {
   return cent;
 }
 
+// Subtract Notes
+// FIXME: Handle single frame
+// FIXME: Check if frame is in cluster?
+void ClusterDist_RMS::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                      CentOpType OP)
+{
+  Matrix_3x3 Rot;
+  Vec3 Trans;
+  Centroid_Coord* cent = (Centroid_Coord*)centIn;
+  coords_->GetFrame( frame, frm1_, mask_ );
+  if (!nofit_) {
+    frm1_.RMSD_CenteredRef( cent->cframe_, Rot, Trans, useMass_ );
+    frm1_.Rotate( Rot );
+  }
+  cent->cframe_.Multiply( oldSize );
+  if (OP == ADDFRAME) {
+    cent->cframe_ += frm1_;
+    cent->cframe_.Divide( oldSize + 1 );
+  } else { // SUBTRACTFRAME
+    cent->cframe_ -= frm1_;
+    cent->cframe_.Divide( oldSize - 1 );
+  }
+}
+
 // ---------- Distance calc routines for COORDS DataSets using SRMSD -----------
 ClusterDist_SRMSD::ClusterDist_SRMSD(DataSet* dIn, AtomMask const& maskIn, 
                                      bool nofit, bool useMass, int debugIn) :

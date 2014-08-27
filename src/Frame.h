@@ -124,6 +124,7 @@ class Frame {
     const Frame operator-(const Frame&) const;
     int Divide(Frame const&, double); 
     void Divide(double);
+    void Multiply(double);
     int AddByMask(Frame const&, AtomMask const&); 
     // -------------------------------------------------------------------------
     // NOTE: These functions are placed in the header since most modern 

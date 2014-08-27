@@ -51,6 +51,7 @@ class Centroid_Coord : public Centroid {
   */
 class ClusterDist {
   public:
+    enum CentOpType { ADDFRAME=0, SUBTRACTFRAME };
     typedef std::vector<int> Cframes;
     typedef Cframes::const_iterator Cframes_it;
     typedef std::vector<DataSet*> DsArray;
@@ -62,6 +63,7 @@ class ClusterDist {
     virtual void CalculateCentroid(Centroid*, Cframes const&) = 0;
     virtual Centroid* NewCentroid(Cframes const&) = 0;
     virtual ClusterDist* Copy() = 0;
+    virtual void FrameOpCentroid(int, Centroid*, double, CentOpType) {} // TODO Pure virtual
   protected:
     typedef double (*DistCalc)(double,double);
 };
@@ -127,6 +129,7 @@ class ClusterDist_RMS : public ClusterDist {
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
+    void FrameOpCentroid(int, Centroid*, double, CentOpType);
     Centroid* NewCentroid(Cframes const&);
     ClusterDist* Copy() { return new ClusterDist_RMS( *this ); }
   private:
