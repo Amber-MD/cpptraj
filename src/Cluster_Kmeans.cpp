@@ -1,7 +1,5 @@
 #include "Cluster_Kmeans.h"
 #include "CpptrajStdio.h"
-#include "Random.h"
-#include "ProgressBar.h"
 
 Cluster_Kmeans::Cluster_Kmeans() :
   nclusters_(0),
@@ -12,8 +10,7 @@ Cluster_Kmeans::Cluster_Kmeans() :
 {}
 
 void Cluster_Kmeans::Help() {
-  //mprintf("\t[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]\n");
-  mprintf("\t[kmeans clusters <n> [maxit <iterations>]]\n");
+  mprintf("\t[kmeans clusters <n> [randompoint [kseed <seed>]] [maxit <iterations>]\n");
 }
 
 // Cluster_Kmeans::SetupCluster()
@@ -23,9 +20,9 @@ int Cluster_Kmeans::SetupCluster(ArgList& analyzeArgs) {
     mprinterr("Error: Specify number of clusters > 1 for K-means algorithm.\n");
     return 1;
   }
-//  if (analyzeArgs.hasKey("randompoint"))
-//    mode_ = RANDOM;
-//  else
+  if (analyzeArgs.hasKey("randompoint"))
+    mode_ = RANDOM;
+  else
     mode_ = SEQUENTIAL;
   kseed_ = analyzeArgs.getKeyInt("kseed", -1);
   maxIt_ = analyzeArgs.getKeyInt("maxit", 100);
@@ -38,7 +35,7 @@ void Cluster_Kmeans::ClusteringInfo() {
   if (mode_ == SEQUENTIAL)
     mprintf("\t\tSequentially modify each point.\n");
   else
-    mprintf("\t\tRandomly pick point for modification.\n");
+    mprintf("\t\tRandomly pick points for modification.\n");
   if (kseed_ != -1 && mode_ == RANDOM)
     mprintf("\t\tSeed for random number generator: %i\n", kseed_);
   mprintf("\tCluster to cluster distance will be based on");
@@ -55,9 +52,6 @@ void Cluster_Kmeans::ClusterResults(CpptrajFile& outfile) const {
 
 // Cluster_Kmeans::Cluster()
 int Cluster_Kmeans::Cluster() {
-  // DEBUG: To match ptraj use rand
-//  srand( 1 );
-
   // First determine which frames are being clustered.
   // FIXME: Can this just be the sieved array?
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
@@ -67,12 +61,18 @@ int Cluster_Kmeans::Cluster() {
   // Determine seeds
   FindKmeansSeeds();
 
-  Random_Number RN;
   if (mode_ == RANDOM)
-    RN.rn_set( kseed_ );
+    RN_.rn_set( kseed_ );
 
   int pointCount = (int)FramesToCluster_.size();
-  std::vector<bool> FinishedPoints( pointCount, false );
+
+  // This array will hold the indices of the points to process each iteration.
+  // If sequential this is just 0 -> pointCount. If random this will be 
+  // reassigned each iteration.
+  Iarray PointIndices;
+  PointIndices.reserve( pointCount );
+  for (int processIdx = 0; processIdx != pointCount; processIdx++)
+    PointIndices.push_back( processIdx );
 
   // Add the seed clusters
   for (Iarray::const_iterator seedIdx = SeedIndices_.begin();
@@ -82,40 +82,29 @@ int Cluster_Kmeans::Cluster() {
     AddCluster( ClusterDist::Cframes(1, seedFrame) );
     // NOTE: No need to calc best rep frame, only 1 frame.
     clusters_.back().CalculateCentroid( Cdist_ );
-    FinishedPoints[ *seedIdx ] = true;
     if (debug_ > 0)
       mprintf("Put frame %i in cluster %i (seed index=%i).\n", 
               seedFrame, clusters_.back().Num(), *seedIdx);
   }
-  int unprocessedPointCount = pointCount - nclusters_;
   int oldClusterIdx = -1;
   // Assign points in 3 passes. If a point looked like it belonged to cluster A
   // at first, but then we added many other points and altered our cluster 
   // shapes, its possible that we will want to reassign it to cluster B.
-  ProgressBar progress( maxIt_ );
   for (int iteration = 0; iteration != maxIt_; iteration++)
   {
-    progress.Update(iteration);
+    if (mode_ == RANDOM)
+      ShufflePoints( PointIndices );
     // Add each point to an existing cluster, and recompute centroid
     if (debug_ > 0) mprintf("Round %i\n", iteration);
-    if (iteration != 0) {
-      FinishedPoints.assign( pointCount, false );
-      unprocessedPointCount = pointCount;
-    }
     int Nchanged = 0;
-    for (int processIdx = 0; processIdx != pointCount; processIdx++)
+    for (Iarray::const_iterator pointIdx = PointIndices.begin();
+                                pointIdx != PointIndices.end(); ++pointIdx)
     {
-      int pointIdx;
-      if (mode_ == SEQUENTIAL)
-        pointIdx = processIdx;
-      else //if (mode_ == RANDOM)
-        pointIdx = ChooseNextPoint(FinishedPoints, pointCount, unprocessedPointCount - processIdx);
-      if (pointIdx != -1 && 
-           (iteration != 0 || mode_ != SEQUENTIAL || !FinishedPoints[pointIdx]))
-      {
-        int pointFrame = FramesToCluster_[ pointIdx ];
+//      if ( iteration != 0 || mode_ != SEQUENTIAL) // FIXME: Should this really happen for RANDOM
+//      {
+        int pointFrame = FramesToCluster_[ *pointIdx ];
         if (debug_ > 0)
-          mprintf("DEBUG: Processing frame %i (index %i)\n", pointFrame, pointIdx);
+          mprintf("DEBUG: Processing frame %i (index %i)\n", pointFrame, *pointIdx);
         bool pointWasYanked = true;
         if (iteration > 0) {
           // Yank this point out of its cluster, recompute the centroid
@@ -173,11 +162,10 @@ int Cluster_Kmeans::Cluster() {
             //}
           }
         }
-      }
+//      }
     } // END loop over points to cluster
     if (Nchanged == 0) {
       mprintf("\tK-means round %i: No change. Skipping the rest of the iterations.\n", iteration);
-      progress.Update(maxIt_ - 1);
       break;
     } else
       mprintf("\tK-means round %i: %i points changed cluster assignment.\n", iteration, Nchanged);
@@ -260,23 +248,22 @@ int Cluster_Kmeans::FindKmeansSeeds() {
   return 0;
 }
 
-// Cluster_Kmeans::ChooseNextPoint()
-int Cluster_Kmeans::ChooseNextPoint(std::vector<bool> const& PointProcessed,
-                                    int pointCount, int remainingPointCount)
-{
-/*  double randValue = rand() / (double)RAND_MAX;
-  int pointChosen = floor(randValue * remainingPointCount);
-  int pointIndex = 0;
-  while (pointIndex < pointCount)
-  {
-    if (!PointProcessed[pointIndex]) {
-      if (pointChosen == 0) {
-        PointProcessed[pointIndex] = true;
-        return pointIndex;
-      }
-      pointChosen--;
-    }
-    pointIndex++;
-  }*/
-  return -1;
+/** Use modern version of the Fisher-Yates shuffle to randomly reorder the
+  * given points.
+  */
+void Cluster_Kmeans::ShufflePoints( Iarray& PointIndices ) {
+  for (unsigned int i = PointIndices.size() - 1; i != 1; i--)
+  { // 0 <= j <= i
+    unsigned int j = (unsigned int)(RN_.rn_gen() * (double)i);
+    int temp = PointIndices[j];
+    PointIndices[j] = PointIndices[i];
+    PointIndices[i] = temp;
+  }
+  if (debug_ > 0) { 
+    mprintf("DEBUG: Shuffled points:");
+    for (Iarray::const_iterator it = PointIndices.begin();
+                                it != PointIndices.end(); ++it)
+      mprintf(" %i", *it);
+    mprintf("\n");
+  }
 }

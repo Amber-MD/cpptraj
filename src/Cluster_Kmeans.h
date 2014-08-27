@@ -1,6 +1,7 @@
 #ifndef INC_CLUSTER_KMEANS_H
 #define INC_CLUSTER_KMEANS_H
 #include "ClusterList.h"
+#include "Random.h"
 class Cluster_Kmeans : public ClusterList {
   public:
     Cluster_Kmeans();
@@ -11,15 +12,16 @@ class Cluster_Kmeans : public ClusterList {
     void AddSievedFrames() { AddSievedFramesByCentroid(); }
     void ClusterResults(CpptrajFile&) const;
   private:
+    typedef std::vector<int> Iarray;
     enum KmeansModeType { SEQUENTIAL, RANDOM };
 
     int FindKmeansSeeds();
-    int ChooseNextPoint(std::vector<bool> const&, int, int);
+    void ShufflePoints(Iarray&);
 
+    Random_Number RN_;
     int nclusters_; ///< Target number of clusters.
     int kseed_;
     int maxIt_;
-    typedef std::vector<int> Iarray;
     Iarray SeedIndices_;
     Iarray FramesToCluster_;
     KmeansModeType mode_;
