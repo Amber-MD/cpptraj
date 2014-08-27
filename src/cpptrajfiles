@@ -125,6 +125,7 @@ SOURCES=ActionFrameCounter.cpp \
         Cluster_DBSCAN.cpp \
         Cluster_HierAgglo.cpp \
         Cluster_Kmeans.cpp \
+        Cluster_ReadInfo.cpp \
         Command.cpp \
         ComplexArray.cpp \
         Corr.cpp \
