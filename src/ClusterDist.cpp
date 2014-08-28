@@ -228,15 +228,14 @@ double ClusterDist_Euclid::FrameCentroidDist(int f1, Centroid* c1) {
 
 void ClusterDist_Euclid::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Multi* cent = (Centroid_Multi*)centIn;
-  cent->cvals_.clear();
+  cent->cvals_.resize( dsets_.size(), 0.0 );
   cent->Sumx_.resize( dsets_.size(), 0.0 );
   cent->Sumy_.resize( dsets_.size(), 0.0 );
-  unsigned int idx = 0;
-  for (D1Array::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds, ++idx) {
-    if ((*ds)->IsTorsionArray())
-      cent->cvals_.push_back( AvgCalc_Dih(*(*ds), cframesIn, cent->Sumx_[idx], cent->Sumy_[idx]) );
+  for (unsigned int idx = 0; idx != dsets_.size(); ++idx) {
+    if (dsets_[idx]->IsTorsionArray())
+      cent->cvals_[idx] = AvgCalc_Dih(*dsets_[idx], cframesIn, cent->Sumx_[idx], cent->Sumy_[idx]);
     else
-      cent->cvals_.push_back( AvgCalc_Std(*(*ds), cframesIn) );
+      cent->cvals_[idx] = AvgCalc_Std(*dsets_[idx], cframesIn);
   }
 //  mprintf("DEBUG: Centroids:");
 //  for (unsigned int i = 0; i != cent->cvals_.size(); i++)
