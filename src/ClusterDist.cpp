@@ -250,19 +250,26 @@ double ClusterDist_DME::FrameCentroidDist(int f1, Centroid* c1) {
 }
 
 /** Compute the centroid (avg) coords for each atom from all frames in this
-  * cluster.
+  * cluster. NOTE: For DME the centroid should probably be calculated via
+  * internal coordinates; use RMS best-fit as a cheat.
   */
 void ClusterDist_DME::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
+  Matrix_3x3 Rot;
+  Vec3 Trans;
   Centroid_Coord* cent = (Centroid_Coord*)centIn;
   // Reset atom count for centroid.
   cent->cframe_.ClearAtoms();
   for (Cframes_it frm = cframesIn.begin(); frm != cframesIn.end(); ++frm)
   {
     coords_->GetFrame( *frm, frm1_, mask_ );
-    if (cent->cframe_.empty())
+    if (cent->cframe_.empty()) {
       cent->cframe_ = frm1_;
-    else
+      cent->cframe_.CenterOnOrigin(false);
+    } else {
+      frm1_.RMSD_CenteredRef( cent->cframe_, Rot, Trans, false );
+      frm1_.Rotate( Rot );
       cent->cframe_ += frm1_;
+    }
   }
   cent->cframe_.Divide( (double)cframesIn.size() );
   //mprintf("\t\tFirst 3 centroid coords (of %i): %f %f %f\n", cent->cframe_.Natom(), 
