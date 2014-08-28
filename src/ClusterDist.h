@@ -112,6 +112,7 @@ class ClusterDist_DME: public ClusterDist {
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
+    void FrameOpCentroid(int, Centroid*, double, CentOpType);
     ClusterDist* Copy() { return new ClusterDist_DME( *this ); }
   private:
     DataSet_Coords* coords_;
@@ -151,6 +152,7 @@ class ClusterDist_SRMSD : public ClusterDist {
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
+    void FrameOpCentroid(int, Centroid*, double, CentOpType);
     ClusterDist* Copy() { return new ClusterDist_SRMSD( * this ); }
   private:
     DataSet_Coords* coords_;

@@ -276,6 +276,21 @@ Centroid* ClusterDist_DME::NewCentroid( Cframes const& cframesIn ) {
   return cent;
 }
 
+void ClusterDist_DME::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                      CentOpType OP)
+{
+  Centroid_Coord* cent = (Centroid_Coord*)centIn;
+  coords_->GetFrame( frame, frm1_, mask_ );
+  cent->cframe_.Multiply( oldSize );
+  if (OP == ADDFRAME) {
+    cent->cframe_ += frm1_;
+    cent->cframe_.Divide( oldSize + 1 );
+  } else { // SUBTRACTFRAME
+    cent->cframe_ -= frm1_;
+    cent->cframe_.Divide( oldSize - 1 );
+  }
+}
+
 // ---------- Distance calc routines for COORDS DataSets using RMSD ------------
 ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, AtomMask const& maskIn, 
                                  bool nofit, bool useMass) :
@@ -511,4 +526,28 @@ Centroid* ClusterDist_SRMSD::NewCentroid( Cframes const& cframesIn ) {
   Centroid_Coord* cent = new Centroid_Coord( mask_.Nselected() );
   CalculateCentroid( cent, cframesIn );
   return cent;
+}
+
+void ClusterDist_SRMSD::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                        CentOpType OP)
+{
+  Matrix_3x3 Rot;
+  Vec3 Trans;
+  Centroid_Coord* cent = (Centroid_Coord*)centIn;
+  coords_->GetFrame( frame, frm1_, mask_ );
+  SRMSD_.SymmRMSD_CenteredRef( frm1_, cent->cframe_ );
+  // Remap atoms
+  frm2_.SetCoordinatesByMap( frm1_, SRMSD_.AMap() );
+  if (SRMSD_.Fit()) {
+    frm2_.Translate( SRMSD_.TgtTrans() );
+    frm2_.Rotate( SRMSD_.RotMatrix() );
+  }
+  cent->cframe_.Multiply( oldSize );
+  if (OP == ADDFRAME) {
+    cent->cframe_ += frm2_;
+    cent->cframe_.Divide( oldSize + 1 );
+  } else { // SUBTRACTFRAME
+    cent->cframe_ -= frm2_;
+    cent->cframe_.Divide( oldSize - 1 );
+  }
 }
