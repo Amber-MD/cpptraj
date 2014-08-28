@@ -80,14 +80,13 @@ int Cluster_Kmeans::Cluster() {
                               seedIdx != SeedIndices_.end(); ++seedIdx)
   {
     int seedFrame = FramesToCluster_[ *seedIdx ];
+    // A centroid is created for new clusters.
     AddCluster( ClusterDist::Cframes(1, seedFrame) );
     // NOTE: No need to calc best rep frame, only 1 frame.
-    clusters_.back().CalculateCentroid( Cdist_ );
     if (debug_ > 0)
       mprintf("Put frame %i in cluster %i (seed index=%i).\n", 
               seedFrame, clusters_.back().Num(), *seedIdx);
   }
-  int oldClusterIdx = -1;
   // Assign points in 3 passes. If a point looked like it belonged to cluster A
   // at first, but then we added many other points and altered our cluster 
   // shapes, its possible that we will want to reassign it to cluster B.
@@ -103,7 +102,8 @@ int Cluster_Kmeans::Cluster() {
     for (Iarray::const_iterator pointIdx = PointIndices.begin();
                                 pointIdx != PointIndices.end(); ++pointIdx, ++prog)
     {
-      progress.Update( prog );
+      if (debug_ < 1) progress.Update( prog );
+      int oldClusterIdx = -1;
 //      if ( iteration != 0 || mode_ != SEQUENTIAL) // FIXME: Should this really happen for RANDOM
 //      {
         int pointFrame = FramesToCluster_[ *pointIdx ];
@@ -123,7 +123,7 @@ int Cluster_Kmeans::Cluster() {
               }
               //oldBestRep = C1->BestRepFrame(); 
               oldClusterIdx = C1->Num();
-              C1->RemoveFrameUpdateCentroid( Cdist_, pointFrame );
+              C1->RemoveFrameUpdateCentroid( Cdist_, pointFrame ); // TEST
 //              C1->RemoveFrameFromCluster( pointFrame );
               //newBestRep = C1->FindBestRepFrame();
 //              C1->CalculateCentroid( Cdist_ );
@@ -134,6 +134,18 @@ int Cluster_Kmeans::Cluster() {
               //    C1->AlignToBestRep( Cdist_ ); // FIXME: Only relevant for COORDS dist?
               //  C1->CalculateCentroid( Cdist_ ); // FIXME: Seems unnessecary to align prior
               //} 
+            }
+          }
+        } else {
+          // First iteration. If this point is already in a cluster it is a seed.
+          for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
+          {
+            if (C1->HasFrame( pointFrame )) {
+              pointWasYanked = false;
+              if (debug_ > 0)
+                mprintf("Frame %i was already used to seed cluster %i\n", 
+                        pointFrame, C1->Num());
+              continue;
             }
           }
         }
@@ -150,7 +162,7 @@ int Cluster_Kmeans::Cluster() {
             }
           }
           //oldBestRep = closestCluster->BestRepFrame();
-          closestCluster->AddFrameUpdateCentroid( Cdist_, pointFrame );
+          closestCluster->AddFrameUpdateCentroid( Cdist_, pointFrame ); // TEST
 //          closestCluster->AddFrameToCluster( pointFrame );
           //newBestRep = closestCluster->FindBestFrameFrame();
 //          closestCluster->CalculateCentroid( Cdist_ );
@@ -158,8 +170,11 @@ int Cluster_Kmeans::Cluster() {
           {
             Nchanged++;
             if (debug_ > 0)
-              mprintf("Remove Frame %i from cluster %i, but add to cluster %i.\n",
-                      pointFrame, oldClusterIdx, closestCluster->Num());
+              mprintf("Remove Frame %i from cluster %i, but add to cluster %i (dist= %f).\n",
+                      pointFrame, oldClusterIdx, closestCluster->Num(), closestDist);
+          } else {
+            if (debug_ > 0)
+              mprintf("Frame %i staying in cluster %i\n", pointFrame, closestCluster->Num());
           }
           if (clusterToClusterCentroid_) {
             //if (oldBestRep != NewBestRep) {

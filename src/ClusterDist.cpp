@@ -28,21 +28,20 @@ static double DistCalc_Std(double d1, double d2) {
  * \param OP Operation being performed.
  */
 static double DistCalc_FrameCentroid(double fval, double cval, bool isTorsion,
-                                     double oldSize, ClusterDist::CentOpType OP)
+                                     double oldSize, ClusterDist::CentOpType OP,
+                                     double& sumx, double& sumy)
 {
   double newcval;
   if (isTorsion) {
     double ftheta = fval * Constants::DEGRAD;
-    double ctheta = cval * Constants::DEGRAD;
-    double y,x;
     if (OP == ClusterDist::ADDFRAME) {
-      y = sin( ctheta ) + sin( ftheta );
-      x = cos( ctheta ) + cos( ftheta );
+      sumy += sin( ftheta );
+      sumx += cos( ftheta );
     } else { // SUBTRACTFRAME
-      y = sin( ctheta ) - sin( ftheta );
-      x = cos( ctheta ) - cos( ftheta );
+      sumy -= sin( ftheta );
+      sumx -= cos( ftheta );
     }
-    newcval = atan2(y, x) * Constants::RADDEG;
+    newcval = atan2(sumy, sumx) * Constants::RADDEG;
   } else {
     newcval = cval * oldSize;
     if (OP == ClusterDist::ADDFRAME) {
@@ -62,9 +61,10 @@ static double DistCalc_FrameCentroid(double fval, double cval, bool isTorsion,
   *   tan(avgtheta) = avgy / avgx = SUM[sin(theta)] / SUM[cos(theta)]
   * See Eq. 2 from Altis et al., J. Chem. Phys., 126 p. 244111 (2007).
   */
-static double AvgCalc_Dih( DataSet_1D const& dsIn, ClusterDist::Cframes const& cframesIn ) {
-  double sumy = 0.0;
-  double sumx = 0.0;
+static double AvgCalc_Dih( DataSet_1D const& dsIn, ClusterDist::Cframes const& cframesIn,
+                           double& sumx, double& sumy ) {
+  sumy = 0.0;
+  sumx = 0.0;
   // TODO: Convert angles to radians prior to this call?
   for (ClusterDist::Cframes_it frm = cframesIn.begin(); frm != cframesIn.end(); ++frm) {
     double theta = dsIn.Dval( *frm ) * Constants::DEGRAD;
@@ -128,7 +128,7 @@ double ClusterDist_Num::FrameCentroidDist(int f1, Centroid* c1) {
 void ClusterDist_Num::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Num* cent = (Centroid_Num*)centIn;
   if (data_->IsTorsionArray())
-    cent->cval_ = AvgCalc_Dih(*data_, cframesIn);
+    cent->cval_ = AvgCalc_Dih(*data_, cframesIn, cent->sumx_, cent->sumy_);
   else
     cent->cval_ = AvgCalc_Std(*data_, cframesIn);
 }
@@ -144,8 +144,9 @@ void ClusterDist_Num::FrameOpCentroid(int frame, Centroid* centIn, double oldSiz
                                       CentOpType OP)
 {
   Centroid_Num* cent = (Centroid_Num*)centIn;
-  DistCalc_FrameCentroid(data_->Dval(frame), cent->cval_,
-                         data_->IsTorsionArray(), oldSize, OP);
+  cent->cval_ = DistCalc_FrameCentroid(data_->Dval(frame), cent->cval_,
+                                       data_->IsTorsionArray(), oldSize, OP,
+                                       cent->sumx_, cent->sumy_);
 }
  
 // ---------- Distance calc routines for multiple DataSets (Euclid) ------------
@@ -228,12 +229,19 @@ double ClusterDist_Euclid::FrameCentroidDist(int f1, Centroid* c1) {
 void ClusterDist_Euclid::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Multi* cent = (Centroid_Multi*)centIn;
   cent->cvals_.clear();
-  for (D1Array::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
+  cent->Sumx_.resize( dsets_.size(), 0.0 );
+  cent->Sumy_.resize( dsets_.size(), 0.0 );
+  unsigned int idx = 0;
+  for (D1Array::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds, ++idx) {
     if ((*ds)->IsTorsionArray())
-      cent->cvals_.push_back( AvgCalc_Dih(*(*ds), cframesIn) );
+      cent->cvals_.push_back( AvgCalc_Dih(*(*ds), cframesIn, cent->Sumx_[idx], cent->Sumy_[idx]) );
     else
       cent->cvals_.push_back( AvgCalc_Std(*(*ds), cframesIn) );
   }
+//  mprintf("DEBUG: Centroids:");
+//  for (unsigned int i = 0; i != cent->cvals_.size(); i++)
+//    mprintf("   %f (sumy=%f sumx=%f)", cent->cvals_[i], cent->Sumy_[i], cent->Sumx_[i]);
+//  mprintf("\n");
 }
 
 Centroid* ClusterDist_Euclid::NewCentroid(Cframes const& cframesIn) {
@@ -242,13 +250,25 @@ Centroid* ClusterDist_Euclid::NewCentroid(Cframes const& cframesIn) {
   return cent;
 }
 
+//static const char* OPSTRING[] = {"ADD", "SUBTRACT"}; // DEBUG
+
 void ClusterDist_Euclid::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
                                          CentOpType OP)
 {
   Centroid_Multi* cent = (Centroid_Multi*)centIn;
+//  mprintf("DEBUG: Old Centroids:");
+//  for (unsigned int i = 0; i != cent->cvals_.size(); i++)
+//    mprintf("   sumy=%f sumx=%f", cent->Sumy_[i], cent->Sumx_[i]);
+//    //mprintf(" %f", cent->cvals_[i]);
+//  mprintf("\n");
   for (unsigned int i = 0; i != dsets_.size(); ++i)
-    DistCalc_FrameCentroid(dsets_[i]->Dval(frame), cent->cvals_[i],
-                           dsets_[i]->IsTorsionArray(), oldSize, OP);
+    cent->cvals_[i] = DistCalc_FrameCentroid(dsets_[i]->Dval(frame), 
+                          cent->cvals_[i], dsets_[i]->IsTorsionArray(), oldSize, OP,
+                          cent->Sumx_[i], cent->Sumy_[i]);
+//  mprintf("DEBUG: New Centroids after %s frame %i:", OPSTRING[OP], frame);
+//  for (unsigned int i = 0; i != cent->cvals_.size(); i++)
+//    mprintf(" %f", cent->cvals_[i]);
+//  mprintf("\n");
 }
 
 // ---------- Distance calc routines for COORDS DataSet using DME --------------
