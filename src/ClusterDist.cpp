@@ -198,6 +198,22 @@ Centroid* ClusterDist_Euclid::NewCentroid(Cframes const& cframesIn) {
   return cent;
 }
 
+void ClusterDist_Euclid::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                         CentOpType OP)
+{
+  Centroid_Multi* cent = (Centroid_Multi*)centIn;
+  for (unsigned int i = 0; i != dsets_.size(); ++i) {
+    cent->cvals_[i] *= oldSize;
+    if (OP == ADDFRAME) {
+      cent->cvals_[i] += dsets_[i]->Dval(frame);
+      cent->cvals_[i] /= ( oldSize + 1 );
+    } else { // SUBTRACTFRAME
+      cent->cvals_[i] -= dsets_[i]->Dval(frame);
+      cent->cvals_[i] /= ( oldSize - 1 );
+    }
+  }
+}
+
 // ---------- Distance calc routines for COORDS DataSet using DME --------------
 ClusterDist_DME::ClusterDist_DME(DataSet* dIn, AtomMask const& maskIn) :
   coords_((DataSet_Coords*)dIn),
@@ -286,8 +302,12 @@ Centroid* ClusterDist_DME::NewCentroid( Cframes const& cframesIn ) {
 void ClusterDist_DME::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
                                       CentOpType OP)
 {
+  Matrix_3x3 Rot;
+  Vec3 Trans;
   Centroid_Coord* cent = (Centroid_Coord*)centIn;
   coords_->GetFrame( frame, frm1_, mask_ );
+  frm1_.RMSD_CenteredRef( cent->cframe_, Rot, Trans, false );
+  frm1_.Rotate( Rot );
   cent->cframe_.Multiply( oldSize );
   if (OP == ADDFRAME) {
     cent->cframe_ += frm1_;

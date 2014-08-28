@@ -94,6 +94,7 @@ class ClusterDist_Euclid : public ClusterDist {
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
+    void FrameOpCentroid(int, Centroid*, double, CentOpType);
     ClusterDist* Copy() { return new ClusterDist_Euclid( *this ); }
   private:
     typedef std::vector<DataSet_1D*> D1Array;
