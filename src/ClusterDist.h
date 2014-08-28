@@ -63,7 +63,7 @@ class ClusterDist {
     virtual void CalculateCentroid(Centroid*, Cframes const&) = 0;
     virtual Centroid* NewCentroid(Cframes const&) = 0;
     virtual ClusterDist* Copy() = 0;
-    virtual void FrameOpCentroid(int, Centroid*, double, CentOpType) {} // TODO Pure virtual
+    virtual void FrameOpCentroid(int, Centroid*, double, CentOpType) = 0;
   protected:
     typedef double (*DistCalc)(double,double);
 };
@@ -78,6 +78,7 @@ class ClusterDist_Num : public ClusterDist {
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
     Centroid* NewCentroid(Cframes const&);
+    void FrameOpCentroid(int, Centroid*, double, CentOpType);
     ClusterDist* Copy() { return new ClusterDist_Num( *this ); }
   private:
     DataSet_1D* data_;

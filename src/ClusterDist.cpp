@@ -20,6 +20,42 @@ static double DistCalc_Std(double d1, double d2) {
   return fabs(d1 - d2);
 }
 
+/* Update centroid value for adding/removing a frame.
+ * \param fval value of frame being added/removed.
+ * \param cval current centroid value.
+ * \param isTorsion data is periodic.
+ * \param oldSize Previous size of the centroid.
+ * \param OP Operation being performed.
+ */
+static double DistCalc_FrameCentroid(double fval, double cval, bool isTorsion,
+                                     double oldSize, ClusterDist::CentOpType OP)
+{
+  double newcval;
+  if (isTorsion) {
+    double ftheta = fval * Constants::DEGRAD;
+    double ctheta = cval * Constants::DEGRAD;
+    double y,x;
+    if (OP == ClusterDist::ADDFRAME) {
+      y = sin( ctheta ) + sin( ftheta );
+      x = cos( ctheta ) + cos( ftheta );
+    } else { // SUBTRACTFRAME
+      y = sin( ctheta ) - sin( ftheta );
+      x = cos( ctheta ) - cos( ftheta );
+    }
+    newcval = atan2(y, x) * Constants::RADDEG;
+  } else {
+    newcval = cval * oldSize;
+    if (OP == ClusterDist::ADDFRAME) {
+      newcval += fval;
+      newcval /= ( oldSize + 1 );
+    } else { // SUBTRACTFRAME
+      newcval -= fval;
+      newcval /= ( oldSize - 1 );
+    }
+  }
+  return newcval;
+}
+
 // -----------------------------------------------------------------------------
 /** Calculate unambiguous average dihedral angle (in degrees) by converting to 
   * cartesian coords using x = cos(theta), y = sin(theta), and:
@@ -104,6 +140,14 @@ Centroid* ClusterDist_Num::NewCentroid( Cframes const& cframesIn ) {
   return cent;
 }
 
+void ClusterDist_Num::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                      CentOpType OP)
+{
+  Centroid_Num* cent = (Centroid_Num*)centIn;
+  DistCalc_FrameCentroid(data_->Dval(frame), cent->cval_,
+                         data_->IsTorsionArray(), oldSize, OP);
+}
+ 
 // ---------- Distance calc routines for multiple DataSets (Euclid) ------------
 ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn)
 {
@@ -202,16 +246,9 @@ void ClusterDist_Euclid::FrameOpCentroid(int frame, Centroid* centIn, double old
                                          CentOpType OP)
 {
   Centroid_Multi* cent = (Centroid_Multi*)centIn;
-  for (unsigned int i = 0; i != dsets_.size(); ++i) {
-    cent->cvals_[i] *= oldSize;
-    if (OP == ADDFRAME) {
-      cent->cvals_[i] += dsets_[i]->Dval(frame);
-      cent->cvals_[i] /= ( oldSize + 1 );
-    } else { // SUBTRACTFRAME
-      cent->cvals_[i] -= dsets_[i]->Dval(frame);
-      cent->cvals_[i] /= ( oldSize - 1 );
-    }
-  }
+  for (unsigned int i = 0; i != dsets_.size(); ++i)
+    DistCalc_FrameCentroid(dsets_[i]->Dval(frame), cent->cvals_[i],
+                           dsets_[i]->IsTorsionArray(), oldSize, OP);
 }
 
 // ---------- Distance calc routines for COORDS DataSet using DME --------------
