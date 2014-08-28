@@ -145,11 +145,12 @@ int Cluster_Kmeans::Cluster() {
               if (debug_ > 0)
                 mprintf("Frame %i was already used to seed cluster %i\n", 
                         pointFrame, C1->Num());
-              continue;
+              continue; // FIXME break?
             }
           }
         }
         if (pointWasYanked) {
+          // Find out what cluster this point is now closest to.
           double closestDist = -1.0;
           cluster_it closestCluster = clusters_.begin();
           for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
