@@ -136,4 +136,16 @@ void ClusterNode::RemoveFrameFromCluster(int frame) {
   ClusterDist::Cframes::iterator pend = std::remove( frameList_.begin(), frameList_.end(), frame);
   size_t newsize = pend - frameList_.begin();
   frameList_.resize( newsize );
-} 
+}
+
+void ClusterNode::RemoveFrameUpdateCentroid(ClusterDist* Cdist, int frame) {
+  Cdist->FrameOpCentroid(frame, centroid_, (double)frameList_.size(),
+                         ClusterDist::SUBTRACTFRAME);
+  RemoveFrameFromCluster( frame );
+}
+
+void ClusterNode::AddFrameUpdateCentroid(ClusterDist* Cdist, int frame) {
+  Cdist->FrameOpCentroid(frame, centroid_, (double)frameList_.size(),
+                         ClusterDist::ADDFRAME);
+  AddFrameToCluster( frame );
+}

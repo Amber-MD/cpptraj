@@ -630,6 +630,11 @@ void Frame::Divide(double divisor) {
     X_[i] /= divisor;
 }
 
+void Frame::Multiply(double mult) {
+  for (int i = 0; i < ncoord_; i++)
+    X_[i] *= mult;
+}
+
 // Frame::AddByMask()
 /** Increment atoms in this frame by the selected atoms in given frame. */
 int Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {

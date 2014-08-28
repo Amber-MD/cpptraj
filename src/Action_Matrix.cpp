@@ -176,6 +176,9 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     if (useMask2_)
       mprintf("            Mask2: %s\n",mask2_.MaskString());
   }
+#ifdef NEW_MATRIX_PARA
+  mprintf("DEBUG: NEW COVARIANCE MATRIX PARALLELIZATION SCHEME IN USE.\n");
+#endif
 
   return Action::OK;
 }
@@ -285,6 +288,17 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
        ( Mat_->Type() == DataSet_2D::COVAR ||
          Mat_->Type() == DataSet_2D::MWCOVAR ))
   {
+#   ifdef NEW_MATRIX_PARA
+    // Store coordinate XYZ indices of mask 1.
+    crd_indices_.clear();
+    for (AtomMask::const_iterator m1 = mask1_.begin(); m1 != mask1_.end(); ++m1)
+    {
+      int crdidx = *m1 * 3;
+      crd_indices_.push_back( crdidx );
+      crd_indices_.push_back( crdidx+1 );
+      crd_indices_.push_back( crdidx+2 );
+    }
+#   else
     if (Mat_->Kind() == DataSet_2D::FULL) {
       // Store combined mask1 and mask2 for diagonal.
       crd_indices_.clear();
@@ -299,6 +313,7 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
       for (unsigned int i = 0; i < crd_indices_.size(); i += 2)
         mprintf("%u:\t%i %i\n", i/2, crd_indices_[i], crd_indices_[i+1]);
     }
+#   endif
   }
 # endif
   // If matrix has already been allocated, make sure size did not change.
@@ -401,6 +416,41 @@ void Action_Matrix::StoreVec(v_iterator& v1, v_iterator& v2, const double* XYZ) 
 /** Calc Covariance Matrix */
 void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
 # ifdef _OPENMP
+#ifdef NEW_MATRIX_PARA /* New matrix parallelization */
+  //int idx2, atomCrd2, offset2, midx, idx1, atomCrd1, offset1;
+  int idx2, midx, idx1;
+  double Mj;
+  if (useMask2_) { // FULL MATRIX TODO
+    return;
+  } else { // HALF MATRIX
+    DataSet_MatrixDbl& matrix = *Mat_;
+    Darray& vect1 = Mat_->V1();
+    //int Ncoords = mask1_.Nselected() * 3;
+    int Ncoords = (int)crd_indices_.size();
+//#   pragma omp parallel private(idx2, atomCrd2, offset2, midx, idx1, atomCrd1, offset1, Mj)
+#   pragma omp parallel private(idx2, midx, idx1, Mj)
+    {
+#   pragma omp for schedule(dynamic)
+    for (idx2 = 0; idx2 < Ncoords; idx2++)
+    {
+      //atomCrd2 = mask1_[idx2 / 3] * 3;
+      //offset2 = idx2 % 3;
+      //Mj = currentFrame[atomCrd2 + offset2];
+      Mj = currentFrame[ crd_indices_[idx2] ];
+      vect1[idx2] += Mj;
+      vect2_[idx2] += (Mj * Mj);
+      midx = (idx2 * (int)matrix.Ncols() - (idx2 * (idx2-1) / 2));
+      for (idx1 = idx2; idx1 < Ncoords; idx1++, midx++)
+      {
+        //atomCrd1 = mask1_[idx1 / 3] * 3;
+        //offset1 = idx1 % 3;
+        //matrix[midx] += (currentFrame[atomCrd1 + offset1] * Mj);
+        matrix[midx] += (currentFrame[ crd_indices_[idx1] ] * Mj);
+      }
+    } // END for loop
+    } // END openmp pragma
+  }
+#else /* Original matrix parallelization */
   int m1_idx, m2_idx;
   double Vj;
   const double* XYZi;
@@ -467,6 +517,7 @@ void Action_Matrix::CalcCovarianceMatrix(Frame const& currentFrame) {
     }
     } // END PARALLEL BLOCK HALF
   }
+#endif
 # else
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
   v_iterator v1idx1 = Mat_->v1begin();

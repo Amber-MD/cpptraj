@@ -37,6 +37,7 @@ class DataSet_MatrixDbl : public DataSet_2D {
     typedef std::vector<double> Darray;
     /// \return diagonal vector.
     Darray const& Vect()                 const { return vect_;              }
+    Darray& V1()                               { return vect_;              }
     /// Allocate diagonal vector.
     void AllocateVector(size_t vsize)          { vect_.resize(vsize, 0.0);  }
     /// \return iterator to beginning of diagonal vector.
