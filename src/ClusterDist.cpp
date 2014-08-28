@@ -11,8 +11,6 @@ static double DistCalc_Dih(double d1, double d2) {
   double diff = fabs(d1 - d2);
   if (diff > 180.0)
     return (360.0 - diff);
-  else if (diff < -180.0)
-    return (360.0 + diff); 
   else
     return diff;
 }
