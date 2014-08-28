@@ -251,3 +251,9 @@ void ClusterMatrix::PrintElements() const {
     }
   }
 }
+
+size_t ClusterMatrix::DataSize() const {
+  return ( Mat_.DataSize() +
+           (ignore_.capacity()*sizeof(bool) + sizeof(ignore_)) +
+           sievedFrames_.DataSize() );
+}

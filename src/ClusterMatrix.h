@@ -36,6 +36,7 @@ class ClusterMatrix {
     inline void SetElement(int, int, double);
     size_t Nelements()        const { return Mat_.size();               }
     int AddElement(double d)        { return Mat_.addElement((float)d); }
+    size_t DataSize() const;
   private:
     static const unsigned char Magic_[];
     /// For reading/writing 8 byte unsigned integers

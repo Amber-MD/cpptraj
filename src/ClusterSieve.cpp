@@ -87,4 +87,9 @@ ClusterSieve::SievedFrames ClusterSieve::Frames() const {
       frames.push_back( frame );
   }
   return frames;
-}  
+}
+
+size_t ClusterSieve::DataSize() const {
+  return ( sizeof(type_) + sizeof(int) +
+           (frameToIdx_.capacity()*sizeof(int) + sizeof(frameToIdx_)) );
+}

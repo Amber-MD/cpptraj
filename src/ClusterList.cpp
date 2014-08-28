@@ -425,6 +425,8 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
     mprintf("\tSaving pair-wise distances to %s\n", filename.c_str());
     FrameDistances_.SaveFile( filename );
   }
+  mprintf("\tMemory used by pair-wise matrix: %.4f MB\n",
+          (double)FrameDistances_.DataSize() / 1048576);
   // DEBUG - Print Frame distances
   if (debug_ > 1) {
     mprintf("INTIAL FRAME DISTANCES:\n");
