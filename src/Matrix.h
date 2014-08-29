@@ -43,6 +43,12 @@ template <class T> class Matrix {
     iterator begin() { return elements_;              }
     /// Iterator to end of matrix elements.
     iterator end()   { return elements_ + nelements_; }
+    /// Return memory used by matrix in bytes.
+    size_t DataSize() const {
+      return (nelements_*sizeof(T)) + sizeof(T) +
+             (5 * sizeof(size_t) + sizeof(MType) +
+             sizeof(long int(*)()));
+    }
   private:
     T* elements_;           ///< Array of elements
     T diagElt_;             ///< For TRIANGLE, the value of the diagonal.
