@@ -136,10 +136,13 @@ int DataIO_Xplor::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
   //outfile.Printf("%8i%8i%8i",   set.NX(), -set.NX()/2 + 1, set.NX()/2 );
   //outfile.Printf("%8i%8i%8i",   set.NY(), -set.NY()/2 + 1, set.NY()/2 );
   //outfile.Printf("%8i%8i%8i\n", set.NZ(), -set.NZ()/2 + 1, set.NZ()/2 );
+  int grid_min_x = (int)(set.OX()/set.DX());
+  int grid_min_y = (int)(set.OY()/set.DY());
+  int grid_min_z = (int)(set.OZ()/set.DZ());
   outfile.Printf("%8i%8i%8i%8i%8i%8i%8i%8i%8i\n",
-    set.NX(), (int)(set.OX()/set.DX()), (int)(set.MX()/set.DX())-1,
-    set.NY(), (int)(set.OY()/set.DY()), (int)(set.MY()/set.DY())-1,
-    set.NZ(), (int)(set.OZ()/set.DZ()), (int)(set.MZ()/set.DZ())-1);
+    set.NX(), grid_min_x, grid_min_x + set.NX() - 1,
+    set.NY(), grid_min_y, grid_min_y + set.NY() - 1,
+    set.NZ(), grid_min_z, grid_min_z + set.NZ() - 1);
   // Header - cell x y z alpha beta gamma
   outfile.Printf("%12.3f%12.3f%12.3f%12.3f%12.3f%12.3f\n",
                  (double)set.NX() * set.DX(), 
