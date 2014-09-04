@@ -66,6 +66,7 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
     mprintf("\tOutput range is 0 to 360 degrees.\n");
   else
     mprintf("\tOutput range is -180 to 180 degrees.\n");
+  DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }

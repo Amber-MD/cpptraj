@@ -107,6 +107,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   mprintf("# Citation: Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:\n"
           "#           Pattern Recognition of Hydrogen-Bonded and Geometrical Features.\"\n"
           "#           Biopolymers (1983), V.22, pp.2577-2637.\n" );
+  DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }

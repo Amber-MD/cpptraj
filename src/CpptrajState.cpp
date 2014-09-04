@@ -174,8 +174,10 @@ int CpptrajState::Run() {
     }
 #   endif
     // Clean up Actions if run completed successfully.
-    if (err == 0)
+    if (err == 0) {
       actionList_.Clear();
+      DSL_.SetDataSetsPending(false);
+    }
   }
   // Analysis is currently disabled for ENSEMBLE
   if ( trajinList_.Mode() != TrajinList::ENSEMBLE) {

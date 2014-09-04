@@ -32,6 +32,8 @@ class DataSetList {
     size_t size()          const { return DataList_.size();  }
     /// \return Ensemble number; -1 if not an ensemble
     int EnsembleNum()      const { return ensembleNum_;      }
+    /// \return True if Actions have indicated DataSets will be generated.
+    bool DataSetsPending() const { return dataSetsPending_;  }
     /// Remove set from list - used in DataFile
     void RemoveSet( const_iterator );
     /// Remove set from the list.
@@ -42,6 +44,8 @@ class DataSetList {
     void SetDebug(int);
     /// Set current ensemble number.
     void SetEnsembleNum(int i)   { ensembleNum_ = i;        }
+    /// Set DataSets pending status.
+    void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
     /// Allocate 1D DataSet memory based on current max# expected frames.
     void AllocateSets(long int);
     /// Set width.precision of all DataSets in the list.
@@ -80,6 +84,8 @@ class DataSetList {
   private:
     /// Separate input string into DataSet args.
     static std::string ParseArgString(std::string const&, std::string&, std::string&);
+    /// Warn if DataSet not found but may be pending.
+    inline void PendingWarning() const;
 
     typedef std::vector<DataSet*> DataListType;
     /// DataSet debug level
@@ -88,6 +94,8 @@ class DataSetList {
     int ensembleNum_;
     /// True if list contains copies that should not be freed in destructor.
     bool hasCopies_;
+    /// True if Actions will generate DataSets in the future.
+    bool dataSetsPending_;
     /// List of DataSets
     DataListType DataList_;
     /// Hold descriptions and allocators for all DataSet types.
