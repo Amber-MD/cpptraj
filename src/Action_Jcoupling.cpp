@@ -208,6 +208,7 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
   if (!outfilename.empty()) {
     if ( outputfile_.OpenEnsembleWrite( outfilename, DSL->EnsembleNum() ) ) return Action::ERR;
   }
+  DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }

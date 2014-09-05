@@ -85,6 +85,7 @@
 #include "Action_ReplicateCell.h"
 #include "Action_AreaPerMol.h"
 #include "Action_Energy.h"
+#include "Action_CheckChirality.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1720,6 +1721,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "box", Action_Box::Alloc, Action_Box::Help, AddAction },
   { ACTION, "center", Action_Center::Alloc, Action_Center::Help, AddAction },
   { ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
+  { ACTION, "checkchirality", Action_CheckChirality::Alloc, Action_CheckChirality::Help, AddAction },
   { ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, AddAction },

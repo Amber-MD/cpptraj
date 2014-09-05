@@ -44,7 +44,8 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
 DataSetList::DataSetList() :
   debug_(0),
   ensembleNum_(-1),
-  hasCopies_(false) 
+  hasCopies_(false),
+  dataSetsPending_(false) 
 {}
 
 // DESTRUCTOR
@@ -58,6 +59,7 @@ void DataSetList::Clear() {
       delete *ds;
   DataList_.clear();
   hasCopies_ = false;
+  dataSetsPending_ = false;
 } 
 
 DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
@@ -190,6 +192,14 @@ std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& 
   return dsname;
 }
 
+// DataSetList::PendingWarning()
+void DataSetList::PendingWarning() const {
+  if (dataSetsPending_)
+    mprintf("Warning: Some Actions currently in Action list need to be run in order to create\n"
+            "Warning:   data sets. Try processing currently loaded trajectories with 'run' or\n"
+            "Warning:   'go' to generate these data sets.\n");
+}
+
 // DataSetList::GetDataSet()
 DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
   std::string attr_arg, idx_arg, member_arg;
@@ -198,7 +208,12 @@ DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
   if (!idx_arg.empty()) idx = convertToInteger(idx_arg); // TODO: Set idx_arg to -1
   int member = -1;
   if (!member_arg.empty()) member = convertToInteger(member_arg);
-  return GetSet( dsname, idx, attr_arg, member );
+  DataSet* ds = GetSet( dsname, idx, attr_arg, member );
+  if (ds == 0) {
+    mprintf("Warning: Data set '%s' not found.\n", nameIn.c_str());
+    PendingWarning();
+  }
+  return ds;
 }
 
 // DataSetList::GetMultipleSets()
@@ -262,8 +277,10 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
   selected = SelectedSets.begin();
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ( *(selected++) == 'T' ) dsetOut.DataList_.push_back( *ds );
-  if ( dsetOut.empty() )
+  if ( dsetOut.empty() ) {
     mprintf("Warning: '%s' selects no data sets.\n", nameIn.c_str());
+    PendingWarning();
+  }
   return dsetOut;
 }
 

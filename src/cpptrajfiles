@@ -10,6 +10,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Bounds.cpp \
         Action_Box.cpp \
         Action_Center.cpp \
+        Action_CheckChirality.cpp \
         Action_CheckStructure.cpp \
         Action_Closest.cpp \
         Action_ClusterDihedral.cpp \

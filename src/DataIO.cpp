@@ -41,10 +41,18 @@ std::string DataIO::SetupCoordFormat(size_t maxFrames, Dimension const& dim,
   return SetDoubleFormatString( col_width, col_precision, 0 );
 }
 
-/** Given X values, try to determine step size etc */
+/// For backwards compat. FIXME
 Dimension DataIO::DetermineXdim( std::vector<double> const& Xvals ) {
+  int nerr;
+  return DetermineXdim( Xvals, nerr );
+}
+
+/** Given X values, try to determine step size etc */
+Dimension DataIO::DetermineXdim( std::vector<double> const& Xvals, int& nerr ) {
+  nerr = 0;
   if ( Xvals.empty() ) {
     mprinterr("Error: Cannot determine X dimension - no X values.\n");
+    nerr = 1;
     return Dimension();
   }
   if ( Xvals.size() == 1)
@@ -52,7 +60,6 @@ Dimension DataIO::DetermineXdim( std::vector<double> const& Xvals ) {
   // Determine from max/min
   double xstep = (Xvals.back() - Xvals.front()) / (double)(Xvals.size() - 1);
   // Check if xstep is reasonable. Check only the first few values.
-  int nerr = 0;
   double xval = Xvals.front();
   for (unsigned int i = 0; i < std::min(10U, (unsigned int)Xvals.size()); i++) {
     if (xval - Xvals[i] > Constants::SMALL) {

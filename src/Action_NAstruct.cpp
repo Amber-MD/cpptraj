@@ -988,6 +988,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
   else if (puckerMethod_==CREMER)
     mprintf("\tCalculating sugar pucker using Cremer & Pople method.\n");
+  DSL->SetDataSetsPending(true);
   return Action::OK;
 }
 

@@ -116,6 +116,8 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     if (perresinvert_)
       mprintf("          perresinvert: Frames will be written in rows instead of columns.\n");
   }
+  if (perres_)
+    DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }
