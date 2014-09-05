@@ -30,6 +30,7 @@ class DataIO : public BaseIOtype {
     // TODO: Move this to DataSet?
     static std::string SetupCoordFormat(size_t, Dimension const&, int, int);
     static Dimension DetermineXdim( std::vector<double> const& );
+    static Dimension DetermineXdim( std::vector<double> const&, int& );
     /// Indicate this DataIO is valid for given DataSet type
     void SetValid(DataSet::DataType t) { valid_.push_back( t ); }
     int debug_;

@@ -29,6 +29,8 @@ class DataSet_Mesh : public DataSet_1D {
     void CalculateMeshX(int,double,double);
     /// Set mesh X and Y values from input data set.
     int SetMeshXY(DataSet_1D const&);
+    /// Set mesh X and Y values from input arrays.
+    inline int SetMeshXY(std::vector<double> const&, std::vector<double> const&);
     /// Integrate the mesh, compute cumulative sum
     double Integrate_Trapezoid( DataSet_Mesh& ) const;
     /// Integrate the mesh
@@ -54,5 +56,11 @@ class DataSet_Mesh : public DataSet_1D {
 void DataSet_Mesh::AddXY(double x, double y) {
   mesh_x_.push_back( x );
   mesh_y_.push_back( y );
+}
+int DataSet_Mesh::SetMeshXY(std::vector<double> const& X, std::vector<double> const& Y) {
+  if (mesh_x_.size() != mesh_y_.size()) return 1;
+  mesh_x_ = X;
+  mesh_y_ = Y;
+  return 0;
 }
 #endif

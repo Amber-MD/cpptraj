@@ -14,11 +14,12 @@ class DataIO_Mdout : public DataIO {
     int WriteData3D(std::string const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&);
   private:
+    typedef std::vector<std::string> Sarray;
     enum FieldType { NSTEP = 0, Etot, EPtot, GMAX, BOND,
                      ANGLE, DIHED, VDWAALS, EEL, EGB,
                      VDW14, EEL14, RESTRAINT, EAMBER, Density,
                      RMS, EKtot, ESURF, EAMD_BOOST, N_FIELDTYPES };
-    static FieldType getEindex(std::vector<std::string> const&);
+    static FieldType getEindex(Sarray const&);
     static const char* Enames[];
 };
 #endif
