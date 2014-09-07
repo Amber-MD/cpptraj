@@ -5,8 +5,6 @@
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ConvertToDouble
-#include "DataSet_double.h"
-#include "DataSet_Mesh.h"
 
 // DataIO_Mdout::ID_DataFormat()
 bool DataIO_Mdout::ID_DataFormat(CpptrajFile& infile) {
@@ -261,37 +259,16 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
     lastx = time;
     buffer.CloseFile();
   } // END loop over mdout files
-  // Save DataSets to the DataSetList. If X step cannot be determined, save
-  // DataSets as Mesh.
-  int dim_err;
-  DataSet::DataType Dtype;
-  Dimension Xdim = DataIO::DetermineXdim( TimeVals, dim_err );
-  if (dim_err == 0)
-    Dtype = DataSet::DOUBLE;
-  else {
-    mprintf("Warning: %s data sets will be X-Y mesh.\n",dsname.c_str());
-    Dtype = DataSet::XYMESH; 
-  }
-  // ----- ADD NON-EMPTY DATA SETS -----
-  for (int i = 1; i < (int)N_FIELDTYPES; i++) { // Do not store NSTEP
+  // ----- SET UP DATA SETS -----
+  Esets[NSTEP].Resize( 0 ); // Do not store NSTEP
+  for (int i = 1; i < (int)N_FIELDTYPES; i++) {
     if (Esets[i].Size() > 0) {
-      DataSet* ds = datasetlist.AddSetAspect( Dtype, dsname, Enames[i] );
-      if (ds == 0)
-        mprinterr("Error: Could not create set for %s[%s]\n", dsname.c_str(), Enames[i]);
-      else {
-        // Make legend same as aspect.
-        ds->SetLegend( dsname + "_" + Enames[i] );
-        ds->SetDim(Dimension::X, Xdim);
-        if (Dtype == DataSet::DOUBLE) {
-          DataSet_double& dsD = static_cast<DataSet_double&>( *ds );
-          dsD = Esets[i].Data();
-        } else { // DataSet::XYMESH
-          DataSet_Mesh& dsM = static_cast<DataSet_Mesh&>( *ds );
-          dsM.SetMeshXY( TimeVals, Esets[i].Data() ); 
-        }
-      }
+      Esets[i].SetupSet( dsname, -1, Enames[i] );
+      Esets[i].SetLegend( dsname + "_" + Enames[i] );
     }
   }
-      
+  // Save DataSets to the DataSetList. If X step cannot be determined, save
+  // DataSets as Mesh.
+  if (DataIO::AddSetsToList(datasetlist, TimeVals, Esets, dsname)) return 1;
   return 0;
 }

@@ -2,6 +2,8 @@
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include "DataSet_Mesh.h"
+
 // DataIO::CheckValidFor()
 bool DataIO::CheckValidFor( DataSet const& dataIn ) const {
   if (valid1d_ && dataIn.Ndim() == 1) return true; 
@@ -71,4 +73,40 @@ Dimension DataIO::DetermineXdim( std::vector<double> const& Xvals, int& nerr ) {
   }
   if (nerr > 0) mprintf("Warning: Could not accurately determine X dimension step size.\n");
   return Dimension(Xvals.front(), xstep, Xvals.size());
+}
+
+// TODO: DataSetList should have a function that allows you to add/append sets
+int DataIO::AddSetsToList(DataSetList& datasetlist, Xarray const& TimeVals,
+                          ArrayDD const& Sets, std::string const& dsname)
+{
+  int dim_err;
+  DataSet::DataType Dtype;
+  Dimension Xdim = DetermineXdim( TimeVals, dim_err );
+  if (dim_err == 0)
+    Dtype = DataSet::DOUBLE;
+  else {
+    mprintf("Warning: %s data sets will be X-Y mesh.\n",dsname.c_str());
+    Dtype = DataSet::XYMESH;
+  }
+  // ----- ADD NON-EMPTY DATA SETS -----
+  for (ArrayDD::const_iterator set = Sets.begin(); set != Sets.end(); ++set)
+  {
+    if (set->Size() > 0) {
+      DataSet* ds = datasetlist.AddSetIdxAspect( Dtype, set->Name(), set->Idx(),
+                                                 set->Aspect(), set->Legend() );
+      if (ds == 0)
+        mprinterr("Error: Could not create set for %s \"%s\"\n", set->Name().c_str(), set->Legend().c_str());
+      else {
+        ds->SetDim(Dimension::X, Xdim);
+        if (Dtype == DataSet::DOUBLE) {
+          DataSet_double& dsD = static_cast<DataSet_double&>( *ds );
+          dsD = set->Data();
+        } else { // DataSet::XYMESH
+          DataSet_Mesh& dsM = static_cast<DataSet_Mesh&>( *ds );
+          dsM.SetMeshXY( TimeVals, set->Data() );
+        }
+      }
+    }
+  }
+  return 0;
 }
