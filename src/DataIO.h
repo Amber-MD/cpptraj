@@ -4,6 +4,7 @@
 #include "DataSetList.h"
 #include "CpptrajFile.h"
 #include "BaseIOtype.h"
+#include "DataSet_double.h"
 /// Base class that all DataIO objects inherit from.
 /** Reading in data occurs as soon as ReadData is called, so any read-specific
   * arguments are passed in with ReadData. Writing data can occur any time
@@ -30,11 +31,16 @@ class DataIO : public BaseIOtype {
     // TODO: Move this to DataSet?
     static std::string SetupCoordFormat(size_t, Dimension const&, int, int);
     static Dimension DetermineXdim( std::vector<double> const& );
-    static Dimension DetermineXdim( std::vector<double> const&, int& );
+    typedef std::vector<DataSet_double> ArrayDD;
+    typedef std::vector<double> Xarray;
+    /// Add non-empty sets to the given DataSetList, determine appropriate X dim.
+    static int AddSetsToList(DataSetList&, Xarray const&, ArrayDD const&, 
+                             std::string const&);
     /// Indicate this DataIO is valid for given DataSet type
     void SetValid(DataSet::DataType t) { valid_.push_back( t ); }
     int debug_;
   private:
+    static Dimension DetermineXdim( std::vector<double> const&, int& );
     std::vector<DataSet::DataType> valid_; ///< Data sets for which DataIO is valid writer.
     bool valid1d_; ///< Valid for all 1D data sets.
     bool valid2d_; ///< Valid for all 2D data sets.
