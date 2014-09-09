@@ -116,7 +116,7 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
     } else
       for (AtomMask::const_iterator atom = tempMask.begin();
                                     atom != tempMask.end(); ++atom)
-        loudPrintf(" %i", *atom);
+        loudPrintf(" %i", *atom + 1);
     loudPrintf("\n");
   } else {
     if (residue)
