@@ -451,7 +451,7 @@ int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const
     double sumq = 0.0;
     for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
       sumq += atoms_[*aidx].Charge();
-    mprintf(" is %f\n", sumq);
+    mprintf(" is %g\n", sumq);
   }
   if (type == 1 || type == 2) {
     mprintf("\tSum of masses in mask");
@@ -459,7 +459,7 @@ int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const
     double summ = 0.0;
     for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
       summ += atoms_[*aidx].Mass();
-    mprintf(" is %f\n", summ);
+    mprintf(" is %g\n", summ);
   }
   return 0; 
 }
