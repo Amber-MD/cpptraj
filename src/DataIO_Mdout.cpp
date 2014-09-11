@@ -29,7 +29,7 @@ static inline int EOF_ERROR() {
 }
 
 const char* DataIO_Mdout::Enames[] = {
-  "NSTEP",  "Etot",   "EPtot", "GMAX",   "BOND", 
+  "Etot",   "EPtot", "GMAX",   "BOND", 
   "ANGLE",  "DIHED",  "VDW",   "EELEC",  "EGB",
   "VDW1-4", "EEL1-4", "RST",   "EAMBER", "Density",
   "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", 0
@@ -38,7 +38,6 @@ const char* DataIO_Mdout::Enames[] = {
 /// \return index of name in Energy[] array, N_FIELDTYPES if not recognized.
 DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
   //mprintf("DEBUG:\tgetEindex(%s,%s)\n", Name[0].c_str(), Name[1].c_str());
-  if (Name[0]=="NSTEP") return NSTEP;
   if (Name[0]=="Etot")  return Etot;
   if (Name[0]=="EPtot") return EPtot;
   if (Name[0]=="GMAX") return GMAX; // Not necessary?
@@ -175,6 +174,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
     // ----- PARSE THE RESULTS SECTION -----
     bool finalE = false;
     int nstep;
+    int minStep = 0; // For imin=1 only
     if (irest == 0)
       nstep = 0;
     else
@@ -200,7 +200,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       if ( strncmp(ptr, Trigger, 8) == 0 || finalE ) {
         if (frame > -1) {
           // Data storage should go here
-          for (int i = 1; i < (int)N_FIELDTYPES; i++) // skip NSTEP
+          for (int i = 0; i < (int)N_FIELDTYPES; i++)
               if (EnergyExists[i]) Esets[i].Add( count, Energy + i );
           TimeVals.push_back( time );
           count++;
@@ -214,8 +214,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       if ((imin == 1 || imin == 5) && strncmp(ptr, "   NSTEP", 8) == 0) {
         ptr = buffer.Line(); // Get next line
         //sscanf(ptr, " %6lf    %13lE  %13lE  %13lE", Energy+NSTEP, Energy+EPtot, Energy+RMS, Energy+GMAX);
-        sscanf(ptr, " %lf %lE %lE %lE", Energy+NSTEP, Energy+EPtot, Energy+RMS, Energy+GMAX);
-        EnergyExists[NSTEP] = true;
+        sscanf(ptr, " %i %lE %lE %lE", &minStep, Energy+EPtot, Energy+RMS, Energy+GMAX);
         EnergyExists[EPtot] = true;
         EnergyExists[RMS] = true;
         EnergyExists[GMAX] = true;
@@ -249,7 +248,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       // Set time
       switch (imin) {
         case 5: time = (double)nstep + lastx; break;
-        case 1: time = Energy[0] + lastx; break;
+        case 1: time = (double)minStep + lastx; break;
         case 0: time = ((double)nstep * dt) + t0 + lastx; break;
       }
       // Read in next line
@@ -260,8 +259,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
     buffer.CloseFile();
   } // END loop over mdout files
   // ----- SET UP DATA SETS -----
-  Esets[NSTEP].Resize( 0 ); // Do not store NSTEP
-  for (int i = 1; i < (int)N_FIELDTYPES; i++) {
+  for (int i = 0; i < (int)N_FIELDTYPES; i++) {
     if (Esets[i].Size() > 0) {
       Esets[i].SetupSet( dsname, -1, Enames[i] );
       Esets[i].SetLegend( dsname + "_" + Enames[i] );
