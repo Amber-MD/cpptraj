@@ -38,6 +38,8 @@ class ClusterList {
     void RemoveEmptyClusters();
     /// Calculate distances between each cluster
     void CalcClusterDistances();
+    /// Calculate cluster silhouettes
+    void CalcSilhouette(std::string const&) const;
   protected:
     virtual void AddSievedFrames() = 0;
     virtual void ClusterResults(CpptrajFile&) const = 0;
@@ -60,8 +62,6 @@ class ClusterList {
     double ComputeDBI(CpptrajFile&);
     /// Calculate pseudo-F statistic.
     double ComputePseudoF(CpptrajFile&);
-    /// Calculate cluster silhouettes
-    void CalcSilhouette(CpptrajFile &) const;
   private:
     static const char* XMGRACE_COLOR[];
 };

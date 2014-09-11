@@ -57,6 +57,7 @@ void Analysis_Clustering::Help() {
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
           "\t[clustersvtime <filename> cvtwindow <window size>]\n"
           "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
+          "\t[sil <silhouette file prefix>]\n"
           "  Coordinate output options:\n"
           "\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n"
           "\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n"
@@ -182,6 +183,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     else
       norm_pop_ = NONE;
   }
+  sil_file_ = analyzeArgs.GetStringKey("sil");
   // Options for loading/saving pairwise distance file
   load_pair_ = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
@@ -270,6 +272,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
   if (!summaryfile_.empty())
     mprintf("\tSummary of cluster results will be written to %s\n",summaryfile_.c_str());
+  if (!sil_file_.empty()) {
+    mprintf("\tFrame silhouettes will be written to %s.frame.dat, cluster silhouettes\n"
+            "\t  will be written to %s.cluster.dat\n", sil_file_.c_str(), sil_file_.c_str());
+    if (sieve_ > 1)
+      mprintf("\tSilhouette calculation will use sieved frames ONLY.\n");
+  }
   if (!halffile_.empty()) {
     mprintf("\tSummary comparing parts of trajectory data for clusters will be written to %s\n",
             halffile_.c_str());
@@ -376,6 +384,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // Print ptraj-like cluster info. If no filename is written some info will
     // still be written to STDOUT.
     CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+
+    // Calculate cluster silhouette
+    if (!sil_file_.empty())
+      CList_->CalcSilhouette( sil_file_ );
 
     // Print a summary of clusters
     if (!summaryfile_.empty())
