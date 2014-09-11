@@ -362,10 +362,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_cluster.Start();
   CList_->Cluster();
   cluster_cluster.Stop();
-  // Sort clusters and renumber; also finds centroids for printing
-  // representative frames. If sieving, add remaining frames.
   cluster_post.Start();
   if (CList_->Nclusters() > 0) {
+    // Sort clusters and renumber; also finds centroids for printing
+    // representative frames. If sieving, add remaining frames.
     CList_->Renumber( (sieve_ != 1) );
     // DEBUG
     if (debug_ > 0) {

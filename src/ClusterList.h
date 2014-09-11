@@ -60,6 +60,8 @@ class ClusterList {
     double ComputeDBI(CpptrajFile&);
     /// Calculate pseudo-F statistic.
     double ComputePseudoF(CpptrajFile&);
+    /// Calculate cluster silhouettes
+    void CalcSilhouette(CpptrajFile &) const;
   private:
     static const char* XMGRACE_COLOR[];
 };
