@@ -75,35 +75,64 @@ Dimension DataIO::DetermineXdim( std::vector<double> const& Xvals, int& nerr ) {
   return Dimension(Xvals.front(), xstep, Xvals.size());
 }
 
-// TODO: DataSetList should have a function that allows you to add/append sets
+// DataIO::AddSetsToList()
 int DataIO::AddSetsToList(DataSetList& datasetlist, Xarray const& TimeVals,
                           ArrayDD const& Sets, std::string const& dsname)
 {
   int dim_err;
-  DataSet::DataType Dtype;
   Dimension Xdim = DetermineXdim( TimeVals, dim_err );
-  if (dim_err == 0)
-    Dtype = DataSet::DOUBLE;
-  else {
-    mprintf("Warning: %s data sets will be X-Y mesh.\n",dsname.c_str());
-    Dtype = DataSet::XYMESH;
-  }
-  // ----- ADD NON-EMPTY DATA SETS -----
+  if (dim_err != 0)
+    mprintf("Warning: Sets having irregular X dim will be saved as X-Y mesh.\n");
+  // For non-empty sets in Sets, determine if the set already exists. If it
+  // does, append to existing set.
   for (ArrayDD::const_iterator set = Sets.begin(); set != Sets.end(); ++set)
   {
     if (set->Size() > 0) {
-      DataSet* ds = datasetlist.AddSetIdxAspect( Dtype, set->Name(), set->Idx(),
+      DataSet* ds = datasetlist.GetSet(set->Name(), set->Idx(), set->Aspect());
+      if (ds != 0) {
+        // Set found. 
+        if (ds->Type() == DataSet::XYMESH) {
+          // Just add on X and Y values.
+          DataSet_Mesh& DM = static_cast<DataSet_Mesh&>( *ds );
+          for (unsigned int i = 0; i != TimeVals.size(); i++)
+            DM.AddXY(TimeVals[i], (*set)[i]);
+        } else if (ds->Type() == DataSet::DOUBLE) {
+          // Append using existing X dimension.
+          Dimension& newX = ds->Dim(Dimension::X);
+          mprintf("Warning: Appending to set '%s'. Using existing X step %g\n",
+                  ds->Legend().c_str(), newX.Step());
+          DataSet_double& DD = static_cast<DataSet_double&>( *ds );
+          DD.Append( *set );
+          newX.SetMax( DD.Xcrd(DD.Size() - 1) );
+          mprintf("\t%s: %g <= X <= %g, %g\n", DD.Legend().c_str(), newX.Min(),
+                  newX.Max(), newX.Step());
+        } else {
+          mprinterr("Error: Cannot append set type %s to existing type %s\n",
+                    DataSetList::SetString(set->Type()),
+                    DataSetList::SetString(ds->Type()));
+          return 1;
+        }
+      } else {
+        // This is a new set. Copy to datasetlist.
+        DataSet::DataType Dtype;
+        if (dim_err == 0)
+          Dtype = DataSet::DOUBLE;
+        else
+          Dtype = DataSet::XYMESH;
+        ds = datasetlist.AddSetIdxAspect( Dtype, set->Name(), set->Idx(),
                                                  set->Aspect(), set->Legend() );
-      if (ds == 0)
-        mprinterr("Error: Could not create set for %s \"%s\"\n", set->Name().c_str(), set->Legend().c_str());
-      else {
-        ds->SetDim(Dimension::X, Xdim);
-        if (Dtype == DataSet::DOUBLE) {
-          DataSet_double& dsD = static_cast<DataSet_double&>( *ds );
-          dsD = set->Data();
-        } else { // DataSet::XYMESH
-          DataSet_Mesh& dsM = static_cast<DataSet_Mesh&>( *ds );
-          dsM.SetMeshXY( TimeVals, set->Data() );
+        if (ds == 0)
+          mprinterr("Error: Could not create set for %s \"%s\"\n",
+                    set->Name().c_str(), set->Legend().c_str());
+        else {
+          ds->SetDim(Dimension::X, Xdim);
+          if (Dtype == DataSet::DOUBLE) {
+            DataSet_double& DD = static_cast<DataSet_double&>( *ds );
+            DD = set->Data();
+          } else { // DataSet::XYMESH
+            DataSet_Mesh& DM = static_cast<DataSet_Mesh&>( *ds );
+            DM.SetMeshXY( TimeVals, set->Data() );
+          }
         }
       }
     }

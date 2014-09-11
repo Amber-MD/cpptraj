@@ -38,6 +38,8 @@ class ClusterList {
     void RemoveEmptyClusters();
     /// Calculate distances between each cluster
     void CalcClusterDistances();
+    /// Calculate cluster silhouettes
+    void CalcSilhouette(std::string const&) const;
   protected:
     virtual void AddSievedFrames() = 0;
     virtual void ClusterResults(CpptrajFile&) const = 0;

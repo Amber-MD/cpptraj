@@ -1,6 +1,7 @@
 #include <cfloat> // DBL_MAX
 #include <cmath> // sqrt
 #include <vector>
+#include <algorithm> // sort
 #include "ClusterList.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
@@ -328,7 +329,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
       outfile.Printf("\n");
     } else
       outfile.Printf("#Sieve value: %i\n", FrameDistances_.SieveValue());
-  } 
+  }
   outfile.CloseFile();
 }
 
@@ -429,7 +430,7 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
           (double)FrameDistances_.DataSize() / 1048576);
   // DEBUG - Print Frame distances
   if (debug_ > 1) {
-    mprintf("INTIAL FRAME DISTANCES:\n");
+    mprintf("INITIAL FRAME DISTANCES:\n");
     FrameDistances_.PrintElements();
   }
   
@@ -633,4 +634,79 @@ double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
   if (outfile.IsOpen()) outfile.Printf("#pSF: %f\n", pseudof);
 
   return pseudof;
+}
+
+void ClusterList::CalcSilhouette(std::string const& prefix) const {
+  mprintf("\tCalculating cluster/frame silhouette.\n");
+  CpptrajFile Ffile, Cfile;
+  if (Ffile.OpenWrite(prefix + ".frame.dat")) return;
+  if (Cfile.OpenWrite(prefix + ".cluster.dat")) return;
+  Cfile.Printf("%-8s %10s\n", "#Cluster", "<Si>");
+  unsigned int idx = 0;
+  for (cluster_iterator Ci = begincluster(); Ci != endcluster(); ++Ci)
+  {
+    Ffile.Printf("#C%-6i %10s\n", Ci->Num(), "Silhouette");
+    double avg_si = 0.0;
+    int ci_frames = 0;
+    std::vector<double> SiVals;
+    for (ClusterNode::frame_iterator f1 = Ci->beginframe(); f1 != Ci->endframe(); ++f1)
+    {
+      if (FrameDistances_.IgnoringRow(*f1)) continue;
+      // Calculate the average dissimilarity of this frame with all other
+      // points in this frames cluster.
+      double ai = 0.0;
+      int self_frames = 0;
+      for (ClusterNode::frame_iterator f2 = Ci->beginframe(); f2 != Ci->endframe(); ++f2)
+      {
+        if (f1 != f2 && !FrameDistances_.IgnoringRow(*f2)) {
+          ai += FrameDistances_.GetFdist(*f1, *f2);
+          ++self_frames;
+        }
+      }
+      if (self_frames > 0)
+        ai /= (double)self_frames;
+      //mprintf("\t\tFrame %i cluster %i ai = %g\n", *f1+1, Ci->Num(), ai);
+      // Determine lowest average dissimilarity of this frame with all
+      // other clusters.
+      double min_bi = DBL_MAX;
+      for (cluster_iterator Cj = begincluster(); Cj != endcluster(); ++Cj)
+      {
+        if (Ci != Cj)
+        {
+          double bi = 0.0;
+          int cj_frames = 0;
+          // NOTE: ASSUMING NO EMPTY CLUSTERS
+          for (ClusterNode::frame_iterator f2 = Cj->beginframe(); f2 != Cj->endframe(); ++f2)
+          {
+            if (!FrameDistances_.IgnoringRow(*f2)) {
+              bi += FrameDistances_.GetFdist(*f1, *f2);
+              ++cj_frames;
+            }
+          }
+          bi /= (double)cj_frames;
+          //mprintf("\t\tFrame %i to cluster %i bi = %g\n", *f1 + 1, Cj->Num(), bi);
+          if (bi < min_bi)
+            min_bi = bi;
+        }
+      }
+      double max_ai_bi = std::max( ai, min_bi );
+      if (max_ai_bi == 0.0)
+        mprinterr("Error: Divide by zero in silhouette calculation for frame %i\n", *f1 + 1);
+      else {
+        double si = (min_bi - ai) / max_ai_bi;
+        SiVals.push_back( si );
+        //Ffile.Printf("%8i %10.4f\n", *f1 + 1, si);
+        avg_si += si;
+        ++ci_frames;
+      }
+    }
+    std::sort( SiVals.begin(), SiVals.end() );
+    for (std::vector<double>::const_iterator it = SiVals.begin(); it != SiVals.end(); ++it, ++idx)
+      Ffile.Printf("%8i %g\n", idx, *it);
+    Ffile.Printf("\n");
+    ++idx;
+    if (ci_frames > 0)
+      avg_si /= (double)ci_frames;
+    Cfile.Printf("%8i %g\n", Ci->Num(), avg_si);
+  }
 }

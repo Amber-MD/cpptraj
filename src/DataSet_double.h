@@ -27,6 +27,7 @@ class DataSet_double : public DataSet_1D {
     double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }
     void WriteBuffer(CpptrajFile&, size_t) const;
     // -------------------------------------------
+    void Append(DataSet_double const&);
     typedef std::vector<double>::iterator iterator;
     iterator begin()                     { return Data_.begin();      }
     iterator end()                       { return Data_.end();        }

@@ -238,17 +238,26 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
 
 // ClusterMatrix::PrintElements()
 void ClusterMatrix::PrintElements() const {
-  int iVal = 0;
-  int jVal = 0;
-  for (size_t idx = 0UL; idx < Nelements(); ++idx) {
-    if (!ignore_[iVal] && !ignore_[jVal])
-      mprintf("\t%i %i %8.3f\n",iVal,jVal,Mat_[idx]);
-    // Increment indices
-    jVal++;
-    if (jVal >= (int)ignore_.size()) {
-      iVal++;
-      jVal = iVal + 1;
+  if (sievedFrames_.MaxFrames()==0) {
+    // This is ClusterDistances matrix. Ignore size is # of sieved frames, sievedFrames is 0.
+    unsigned int iVal = 0;
+    unsigned int jVal = 1;
+    for (size_t idx = 0UL; idx < Nelements(); ++idx) {
+      if (!ignore_[iVal] && !ignore_[jVal])
+        mprintf("\t%u %u %f\n",iVal,jVal,Mat_[idx]);
+      // Increment indices
+      jVal++;
+      if (jVal >= ignore_.size()) {
+        iVal++;
+        jVal = iVal + 1;
+      }
     }
+  } else {
+    // This is FrameDistances matrix. Ignore and sievedFrames size is # of original frames.
+    for (unsigned int row = 0; row != Nframes(); row++)
+      for (unsigned int col = row + 1; col != Nframes(); col++)
+        if (!ignore_[row] && !ignore_[col])
+          mprintf("\t%u %u %f\n", row+1, col+1, GetFdist(col, row));
   }
 }
 

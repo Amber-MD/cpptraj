@@ -15,7 +15,7 @@ class DataIO_Mdout : public DataIO {
     bool ID_DataFormat(CpptrajFile&);
   private:
     typedef std::vector<std::string> Sarray;
-    enum FieldType { NSTEP = 0, Etot, EPtot, GMAX, BOND,
+    enum FieldType { Etot= 0, EPtot, GMAX, BOND,
                      ANGLE, DIHED, VDWAALS, EEL, EGB,
                      VDW14, EEL14, RESTRAINT, EAMBER, Density,
                      RMS, EKtot, ESURF, EAMD_BOOST, N_FIELDTYPES };
