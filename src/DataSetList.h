@@ -20,6 +20,8 @@ class DataSetList {
     ~DataSetList();
     void Clear();
     DataSetList& operator+=(DataSetList const&);
+    /// \return Description for given set type.
+    static const char* SetString(DataSet::DataType);
     /// DataSetList default iterator
     typedef std::vector<DataSet*>::const_iterator const_iterator;
     /// Iterator to beginning of dataset list
