@@ -9,6 +9,7 @@
 #include "DataSet_double.h" // DataSetCmd
 #include "ParmFile.h" // ReadOptions, WriteOptions
 #include "Timer.h"
+#include "RPNcalc.h" // Calc
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -118,6 +119,7 @@
 #include "Analysis_VectorMath.h"
 #include "Analysis_Regression.h"
 #include "Analysis_ExpCurveFit.h"
+#include "Analysis_LowestCurve.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -1395,6 +1397,24 @@ Command::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, Command::Al
   return Command::C_OK;
 }
 
+// -----------------------------------------------------------------------------
+static void Help_Calc() {
+  mprintf("\t<expression>\n"
+          "  Evaluate the given mathematical expression.\n");
+}
+
+/// Parse a mathematical expression.
+Command::RetType Calc(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  RPNcalc calc;
+  calc.SetDebug( State.Debug() );
+  // Do NOT include command in expression.
+  if (calc.ProcessExpression( argIn.ArgString().substr(argIn[0].size()) ))
+    return Command::C_ERR;
+  if (calc.Evaluate()) return Command::C_ERR;
+  return Command::C_OK;
+}
+  
 // ---------- TRAJECTORY COMMANDS ----------------------------------------------
 /// Add output trajectory to State
 Command::RetType Trajout(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
@@ -1644,6 +1664,7 @@ Command::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
 const Command::Token Command::Commands[] = {
   // GENERAL COMMANDS
   { GENERAL, "activeref",     0, Help_ActiveRef,       ActiveRef       },
+  { GENERAL, "calc",          0, Help_Calc,            Calc            },
   { GENERAL, "clear",         0, Help_Clear,           ClearList       },
   { GENERAL, "combinecrd",    0, Help_CombineCoords,   CombineCoords   },
   { GENERAL, "crdaction",     0, Help_CrdAction,       CrdAction       },
@@ -1818,6 +1839,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "ired", Analysis_IRED::Alloc, Analysis_IRED::Help, AddAnalysis },
   { ANALYSIS, "kde", Analysis_KDE::Alloc, Analysis_KDE::Help, AddAnalysis },
   { ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, AddAnalysis },
+  { ANALYSIS, "lowestcurve", Analysis_LowestCurve::Alloc, Analysis_LowestCurve::Help, AddAnalysis },
   { ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
   { ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, AddAnalysis },
   { ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, AddAnalysis },
