@@ -270,6 +270,10 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       mprinterr("Error: Cannot assign nothing.\n");
       return 1;
     }
+    if (tokens_.front().Type() != VARIABLE) {
+      mprinterr("Error: Must assign to a data set.\n");
+      return 1;
+    }
     output = DSL.AddSet(DataSet::DOUBLE, tokens_.front().Name(), "CALC");
     if (output == 0) return 1;
   }
@@ -313,8 +317,9 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           return 1;
         }
         if (Dval[0].IsDataSet()) {
-          mprintf("Assigning '%s' to '%s'\n", Dval[0].DS()->Legend().c_str(),
-                  Dval[1].DS()->Legend().c_str());
+          if (debug_>0)
+            mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->Legend().c_str(),
+                    Dval[1].DS()->Legend().c_str());
           // Should be 1D by definition, allocated below in LocalList
           DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *Dval[0].DS() );
           for (unsigned int n = 0; n != D1.Size(); n++) {
@@ -322,7 +327,9 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             output->Add(n, &dval);
           }
         } else {
-          mprintf("Assigning %f to '%s'\n", Dval[0].Value(), Dval[1].DS()->Legend().c_str());
+          if (debug_>0)
+            mprintf("DEBUG: Assigning %f to '%s'\n", Dval[0].Value(),
+                    Dval[1].DS()->Legend().c_str());
           double dval = Dval[0].Value();
           output->Add(0, &dval); 
         }
