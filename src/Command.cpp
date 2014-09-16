@@ -201,7 +201,7 @@ Command::TokenPtr Command::SearchToken(ArgList& argIn) {
       } else
         return token;
     }
-  mprinterr("'%s': Command not found.\n", argIn.Command());
+  //mprinterr("'%s': Command not found.\n", argIn.Command());
   return 0;
 }
 
@@ -212,8 +212,22 @@ Command::RetType Command::Dispatch(CpptrajState& State,
   ArgList cmdArg( commandIn );
   cmdArg.MarkArg(0); // Always mark the first arg as the command 
   TokenPtr cmdToken = SearchToken( cmdArg );
-  if (cmdToken == 0) return C_ERR;
-  return ( cmdToken->Fxn( State, cmdArg, cmdToken->Alloc ) );
+  Command::RetType ret_val = Command::C_OK;
+  if (cmdToken == 0) {
+    // Try to evaluate the expression.
+    RPNcalc calc;
+    calc.SetDebug( State.Debug() );
+    if (calc.ProcessExpression( commandIn ))
+      ret_val = Command::C_ERR;
+    else {
+      if (calc.Evaluate())
+        ret_val = Command::C_ERR;
+    }
+    if (ret_val == Command::C_ERR)
+      mprinterr("'%s': Invalid command or expression.\n", commandIn.c_str());
+  } else
+    ret_val = cmdToken->Fxn( State, cmdArg, cmdToken->Alloc );
+  return ret_val;
 }
 
 /// Used by ProcessInput to determine when line ends.

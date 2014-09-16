@@ -273,54 +273,29 @@ int RPNcalc::Evaluate() const {
   double Dval[2];
   for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
   {
-    switch ( T->Type() ) {
-      case NUMBER:
-        Stack.push( T->Value() );
-        break;
-      case VARIABLE:
-        mprinterr("Error: Not able to handle variables yet.\n");
-        return 1;
-      // ---------------------
-      case OP_MINUS:
-        if (GetOperands(2, Stack, Dval)) return 1;
-        Stack.push( Dval[1] - Dval[0] );
-        break;
-      case OP_PLUS:
-        if (GetOperands(2, Stack, Dval)) return 1;
-        Stack.push( Dval[1] + Dval[0] );
-        break;
-      case OP_DIV:
-        if (GetOperands(2, Stack, Dval)) return 1;
-        Stack.push( Dval[1] / Dval[0] );
-        break;
-      case OP_MULT:
-        if (GetOperands(2, Stack, Dval)) return 1;
-        Stack.push( Dval[1] * Dval[0] );
-        break;
-      case OP_POW:
-        if (GetOperands(2, Stack, Dval)) return 1;
-        Stack.push( pow(Dval[1], Dval[0]) );
-        break;
-      case OP_NEG:
-        if (GetOperands(1, Stack, Dval)) return 1;
-        Stack.push( -Dval[0] );
-        break;
-      // ---------------------
-      case FN_SQRT:
-        if (GetOperands(1, Stack, Dval)) return 1;
-        Stack.push( sqrt(Dval[0]) );
-        break;
-      case FN_EXP:
-        if (GetOperands(1, Stack, Dval)) return 1;
-        Stack.push( exp(Dval[0]) );
-        break;
-      case FN_LN:
-        if (GetOperands(1, Stack, Dval)) return 1;
-        Stack.push( log(Dval[0]) );
-        break;
-      default:
-        mprinterr("Error: Invalid token type: '%s'\n", T->Description());
-        return 1;
+    if ( T->Type() == NUMBER )
+      Stack.push( T->Value() );
+    else if ( T->Type() == VARIABLE ) {
+      mprinterr("Error: Not able to handle variables yet.\n");
+      return 1;
+    } else {
+      // Operand or function
+      if (GetOperands(T->numOperands(), Stack, Dval)) return 1;
+      switch (T->Type()) {
+        case OP_MINUS: Stack.push( Dval[1] - Dval[0] ); break;
+        case OP_PLUS: Stack.push( Dval[1] + Dval[0] ); break;
+        case OP_DIV: Stack.push( Dval[1] / Dval[0] ); break;
+        case OP_MULT: Stack.push( Dval[1] * Dval[0] ); break;
+        case OP_POW: Stack.push( pow(Dval[1], Dval[0]) ); break;
+        case OP_NEG: Stack.push( -Dval[0] ); break;
+        // ---------------------
+        case FN_SQRT: Stack.push( sqrt(Dval[0]) ); break;
+        case FN_EXP: Stack.push( exp(Dval[0]) ); break;
+        case FN_LN: Stack.push( log(Dval[0]) ); break;
+        default:
+          mprinterr("Error: Invalid token type: '%s'\n", T->Description());
+          return 1;
+      }
     }
   }
   if (Stack.size() != 1) {
@@ -332,26 +307,20 @@ int RPNcalc::Evaluate() const {
 }
 
 // -----------------------------------------------------------------------------
-static const char* DESC[] = {
-  "None", "Number", "Variable",
-  "Minus", "Plus", "Divide", "Multiply", "Power",
-  "Unary minus",
-  "Square root", "Exponential", "Natural log",
-  "Left Par", "Right Par" };
-
-const char* RPNcalc::Token::Description() const {
-  return DESC[ type_ ];
-}
-
-int RPNcalc::Token::Priority() const {
-  switch (type_) {
-    case OP_NEG: return 4;
-    case OP_POW: return 3;
-    case OP_MULT:
-    case OP_DIV: return 2;
-    case OP_PLUS:
-    case OP_MINUS: return 1;
-    default: return 0;
-  }
-  return 0;
-}
+/// Priority, #operands, associativity, class, description.
+const RPNcalc::OpType RPNcalc::Token::OpArray_[] = {
+  { 0, 0, NO_A,  NO_C,  "None"        }, // NONE
+  { 0, 0, NO_A,  VALUE, "Number"      }, // NUMBER
+  { 0, 0, NO_A,  VALUE, "Variable"    }, // VARIABLE
+  { 1, 2, LEFT,  OP,    "Minus"       }, // OP_MINUS
+  { 1, 2, LEFT,  OP,    "Plus"        }, // OP_PLUS
+  { 2, 2, LEFT,  OP,    "Divide"      }, // OP_DIV
+  { 2, 2, LEFT,  OP,    "Multiply"    }, // OP_MULT
+  { 3, 2, LEFT,  OP,    "Power"       }, // OP_POW
+  { 4, 1, RIGHT, OP,    "Unary minus" }, // OP_NEG
+  { 0, 1, NO_A,  FN,    "Square root" }, // FN_SQRT
+  { 0, 1, NO_A,  FN,    "Exponential" }, // FN_EXP
+  { 0, 1, NO_A,  FN,    "Natural log" }, // FN_LN
+  { 0, 0, NO_A,  NO_C,  "Left Par"    }, // LPAR
+  { 0, 0, NO_A,  NO_C,  "Right Par"   }, // RPAR
+};

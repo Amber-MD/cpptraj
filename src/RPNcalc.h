@@ -20,6 +20,17 @@ class RPNcalc {
                      FN_SQRT, FN_EXP, FN_LN,
                      // Parentheses (for infix conversion only)
                      LPAR, RPAR };
+    enum Associativity { NO_A = 0, LEFT, RIGHT };
+    enum OpClass { NO_C = 0, VALUE, OP, FN };
+    /// Hold information about ops
+    struct OpType {
+      int priority_;
+      int nOperands_;
+      Associativity assoc_;
+      OpClass opclass_;
+      const char* description_;
+    };
+
     typedef std::vector<Token> Tarray;
     Tarray tokens_;
     int debug_;
@@ -40,29 +51,25 @@ class RPNcalc::Token {
     TokenType Type() const { return type_; }
     /// \return Token value.
     double Value() const { return value_; }
-    /// \return Token name.
+    /// \return Token variable name.
     const char* name() const { return name_.c_str(); }
     /// \return true if token is a variable or number
-    inline bool IsValue() const {
-      return (type_ == NUMBER || type_ == VARIABLE);
-    }
+    inline bool IsValue() const { return (OpArray_[type_].opclass_ == VALUE); }
     /// \return true if token is an operator
-    inline bool IsOperator() const {
-      return (type_ <= OP_NEG && type_ >= OP_MINUS);
-    }
-    /// \return true if OP is left associative. Should be used in conjuction with IsOperator()
-    inline bool IsLeftAssociative() const {
-      return (type_ <= OP_POW);
-    }
+    inline bool IsOperator() const { return (OpArray_[type_].opclass_ == OP); }
     /// \return true if token is a function.
-    inline bool IsFunction() const {
-      return (type_ <= FN_LN && type_ >= FN_SQRT);
-    }
-    /// \return string indicating token type (DEBUG).
-    const char* Description() const;
+    inline bool IsFunction() const { return (OpArray_[type_].opclass_ == FN); }
+    /// \return true if OP is left associative.
+    inline bool IsLeftAssociative() const { return (OpArray_[type_].assoc_ == LEFT); }
+    /// \return string indicating token type.
+    const char* Description() const { return OpArray_[type_].description_; }
     /// \return operator priority
-    int Priority() const;
+    int Priority() const { return OpArray_[type_].priority_; }
+    /// \return expected number of operands
+    int numOperands() const { return OpArray_[type_].nOperands_; }
   private:
+    static const OpType OpArray_[];
+ 
     TokenType type_;
     double value_; ///< Numerical value.
     std::string name_; ///< Variable name
