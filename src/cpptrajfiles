@@ -93,6 +93,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_IRED.cpp \
         Analysis_KDE.cpp \
         Analysis_Lifetime.cpp \
+        Analysis_LowestCurve.cpp \
         Analysis_Matrix.cpp \
         Analysis_MeltCurve.cpp \
         Analysis_Modes.cpp \
@@ -201,6 +202,7 @@ SOURCES=ActionFrameCounter.cpp \
         PubFFT.cpp \
         Random.cpp \
         Range.cpp \
+        RPNcalc.cpp \
         ReadLine.cpp \
         ReferenceAction.cpp \
         ReferenceFrame.cpp \
