@@ -272,7 +272,7 @@ int DataFile::ProcessArgs(ArgList &argIn) {
     setDataSetPrecision_ = true;
   } 
   if (dataio_->processWriteArgs(argIn)==1) return 1;
-  if (debug_ > 0) argIn.CheckForMoreArgs();
+  //if (debug_ > 0) argIn.CheckForMoreArgs();
   return 0;
 }
 
