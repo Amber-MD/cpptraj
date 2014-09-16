@@ -202,7 +202,7 @@ ProgressBar.o : ProgressBar.cpp CpptrajStdio.h ProgressBar.h
 PubFFT.o : PubFFT.cpp ArrayIterator.h ComplexArray.h PubFFT.h
 Random.o : Random.cpp CpptrajStdio.h Random.h
 Range.o : Range.cpp ArgList.h CpptrajStdio.h Range.h
-RPNcalc.o : RPNcalc.cpp RPNcalc.h
+RPNcalc.o : RPNcalc.cpp CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_1D.h Dimension.h FileIO.h FileName.h RPNcalc.h
 ReadLine.o : ReadLine.cpp Action.h ActionFrameCounter.h ActionList.h Analysis.h AnalysisList.h ArgList.h Atom.h AtomMask.h BaseIOtype.h Box.h Command.h CpptrajFile.h CpptrajState.h DataFile.h DataFileList.h DataIO.h DataSet.h DataSetList.h DataSet_1D.h DataSet_double.h Dimension.h DispatchObject.h FileIO.h FileName.h FileTypes.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParameterTypes.h ProgressBar.h Range.h ReadLine.h ReferenceFrame.h ReplicaDimArray.h Residue.h Topology.h TopologyList.h TrajectoryFile.h TrajectoryIO.h Trajin.h TrajinList.h Trajout.h TrajoutList.h Vec3.h
 ReferenceAction.o : ReferenceAction.cpp ArgList.h Atom.h AtomMask.h BaseIOtype.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h FileTypes.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParameterTypes.h ProgressBar.h ReferenceAction.h ReferenceFrame.h ReplicaDimArray.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h
 ReferenceFrame.o : ReferenceFrame.cpp ArgList.h Atom.h AtomMask.h BaseIOtype.h Box.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h FileTypes.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParameterTypes.h ProgressBar.h ReferenceFrame.h ReplicaDimArray.h Residue.h Topology.h TrajectoryFile.h TrajectoryIO.h Trajin.h Trajin_Single.h Vec3.h

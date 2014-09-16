@@ -1,21 +1,21 @@
 #ifndef INC_RPNCALC_H
 #define INC_RPNCALC_H
-#include <vector>
-#include <string>
+#include "DataSetList.h"
 /// Reverse Polish notation calculator
 class RPNcalc {
   public:
     RPNcalc();
     void SetDebug(int d) { debug_ = d; }
     int ProcessExpression(std::string const&);
-    int Evaluate() const;
+    int Evaluate(DataSetList&) const;
   private:
+    class ValType;
     class Token;
     enum TokenType { NONE = 0, NUMBER, VARIABLE,
                      // Left-associative operators 
                      OP_MINUS, OP_PLUS, OP_DIV, OP_MULT, OP_POW,
                      // Right-associative operators
-                     OP_NEG,
+                     OP_NEG, OP_ASSIGN,
                      // Functions
                      FN_SQRT, FN_EXP, FN_LN,
                      // Parentheses (for infix conversion only)
@@ -30,6 +30,8 @@ class RPNcalc {
       OpClass opclass_;
       const char* description_;
     };
+
+    static inline double DoOperation(double, double, TokenType);
 
     typedef std::vector<Token> Tarray;
     Tarray tokens_;
@@ -52,6 +54,7 @@ class RPNcalc::Token {
     /// \return Token value.
     double Value() const { return value_; }
     /// \return Token variable name.
+    std::string const& Name() const { return name_; }
     const char* name() const { return name_.c_str(); }
     /// \return true if token is a variable or number
     inline bool IsValue() const { return (OpArray_[type_].opclass_ == VALUE); }
@@ -73,5 +76,30 @@ class RPNcalc::Token {
     TokenType type_;
     double value_; ///< Numerical value.
     std::string name_; ///< Variable name
+};
+/// Hold results from ongoing calculation.
+class RPNcalc::ValType {
+  public:
+    ValType() : ds_(0), val_(0.0), isDataSet_(false) {}
+    ValType(double dval) : ds_(0), val_(dval), isDataSet_(false) {}
+    ValType(DataSet* dsIn) : ds_(dsIn), val_(0.0), isDataSet_(true) {}
+    ValType(ValType const& rhs) : ds_(rhs.ds_), val_(rhs.val_),
+                                  isDataSet_(rhs.isDataSet_) {}
+    ValType& operator=(ValType const& rhs) {
+      if (this != &rhs) {
+        ds_ = rhs.ds_;
+        val_ = rhs.val_;
+        isDataSet_ = rhs.isDataSet_;
+      }
+      return *this;
+    }
+    bool IsDataSet() const { return isDataSet_; }
+    double Value() const { return val_; }
+    DataSet* DS() const { return ds_; }
+    void Reset() { ds_=0; val_=0.0; isDataSet_=false; }
+  private:
+    DataSet* ds_;
+    double val_;
+    bool isDataSet_;
 };
 #endif

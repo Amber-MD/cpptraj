@@ -220,7 +220,7 @@ Command::RetType Command::Dispatch(CpptrajState& State,
     if (calc.ProcessExpression( commandIn ))
       ret_val = Command::C_ERR;
     else {
-      if (calc.Evaluate())
+      if (calc.Evaluate(*State.DSL()))
         ret_val = Command::C_ERR;
     }
     if (ret_val == Command::C_ERR)
@@ -1425,7 +1425,7 @@ Command::RetType Calc(CpptrajState& State, ArgList& argIn, Command::AllocType Al
   // Do NOT include command in expression.
   if (calc.ProcessExpression( argIn.ArgString().substr(argIn[0].size()) ))
     return Command::C_ERR;
-  if (calc.Evaluate()) return Command::C_ERR;
+  if (calc.Evaluate(*State.DSL())) return Command::C_ERR;
   return Command::C_OK;
 }
   

@@ -1,26 +1,11 @@
-#include <cstdio> // DEBUG
-#include <cstdarg> // DEBUG
 #include <cmath>
 #include <sstream>
 #include <locale>
 #include <stack>
 #include "RPNcalc.h"
+#include "DataSet_1D.h"
+#include "CpptrajStdio.h"
 
-// DEBUG FIXME Replace with CpptrajStdio functions
-static void mprintf(const char *format, ...) {
-  va_list args;
-  va_start(args,format);
-  vfprintf(stdout,format,args);
-  va_end(args);
-}
-static void mprinterr(const char *format, ...) {
-  va_list args;
-  va_start(args,format);
-  vfprintf(stderr,format,args);
-  va_end(args);
-}
-
-// -----------------------------------------------------------------------------
 // CONSTRUCTOR
 RPNcalc::RPNcalc() {}
 
@@ -201,6 +186,8 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         O1.SetType(OP_DIV);
       else if (*ptr == '^')
         O1.SetType(OP_POW);
+      else if (*ptr == '=')
+        O1.SetType(OP_ASSIGN);
       else {
         mprinterr("Error: Unrecognized character in expression: %c\n", *ptr);
         return 1;
@@ -250,51 +237,167 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
   return 0;
 }
 
-inline int GetOperands(unsigned int nOps, std::stack<double>& Stack, double* Dval)
-{
-  if (Stack.size() < nOps) {
-    mprinterr("Error: Not enough operands.\n");
-    return 1;
+double RPNcalc::DoOperation(double d1, double d2, TokenType op_type) {
+  switch (op_type) {
+    case OP_MINUS: return d2 - d1;
+    case OP_PLUS: return d2 + d1;
+    case OP_DIV: return d2 / d1;
+    case OP_MULT: return d2 * d1;
+    case OP_POW: return pow(d2, d1);
+    case OP_NEG: return -d1;
+    // ---------------------
+    case FN_SQRT: return sqrt(d1);
+    case FN_EXP: return exp(d1);
+    case FN_LN: return log(d1);
+    default:
+      mprinterr("Error: Invalid token type.\n");
   }
-  for (unsigned int i = 0; i != nOps; i++) {
-    Dval[i] = Stack.top();
-    Stack.pop();
-  }
-  return 0;
+  return 0.0;
 }
 
-int RPNcalc::Evaluate() const {
+int RPNcalc::Evaluate(DataSetList& DSL) const {
   if (tokens_.empty()) {
     mprinterr("Error: Expression was not set.\n");
     return 1;
   }
-  //TODO: This may need to enapsulate data sets as well eventually.
-  std::stack<double> Stack;
-  double Dval[2];
+  std::stack<ValType> Stack;
+  ValType Dval[2];
+  DataSetList LocalList;
+  // Are we going to be assigning this?
+  DataSet* output = 0;
+  if (tokens_.front().IsValue() && tokens_.back().Type() == OP_ASSIGN) {
+    if (tokens_.size() < 3) {
+      mprinterr("Error: Cannot assign nothing.\n");
+      return 1;
+    }
+    output = DSL.AddSet(DataSet::DOUBLE, tokens_.front().Name(), "CALC");
+    if (output == 0) return 1;
+  }
+    
   for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
   {
     if ( T->Type() == NUMBER )
-      Stack.push( T->Value() );
+      Stack.push( ValType(T->Value()) );
     else if ( T->Type() == VARIABLE ) {
-      mprinterr("Error: Not able to handle variables yet.\n");
-      return 1;
+      DataSet* ds = 0;
+      if (output != 0 && T == tokens_.begin())
+        ds = output;
+      else
+        ds= DSL.GetDataSet( T->Name() );
+      if (ds == 0) {
+        mprinterr("Error: Data set with name '%s' not found.\n", T->name());
+        return 1;
+      }
+      Stack.push( ValType( ds ) );
     } else {
-      // Operand or function
-      if (GetOperands(T->numOperands(), Stack, Dval)) return 1;
-      switch (T->Type()) {
-        case OP_MINUS: Stack.push( Dval[1] - Dval[0] ); break;
-        case OP_PLUS: Stack.push( Dval[1] + Dval[0] ); break;
-        case OP_DIV: Stack.push( Dval[1] / Dval[0] ); break;
-        case OP_MULT: Stack.push( Dval[1] * Dval[0] ); break;
-        case OP_POW: Stack.push( pow(Dval[1], Dval[0]) ); break;
-        case OP_NEG: Stack.push( -Dval[0] ); break;
-        // ---------------------
-        case FN_SQRT: Stack.push( sqrt(Dval[0]) ); break;
-        case FN_EXP: Stack.push( exp(Dval[0]) ); break;
-        case FN_LN: Stack.push( log(Dval[0]) ); break;
-        default:
-          mprinterr("Error: Invalid token type: '%s'\n", T->Description());
+      Dval[0].Reset();
+      Dval[1].Reset();
+      // Operand or function. Get operand(s)
+      //if (GetOperands(T->numOperands(), Stack, Dval)) return 1;
+      unsigned int nOps = (unsigned int)T->numOperands();
+      if (Stack.size() < nOps) {
+        mprinterr("Error: Not enough operands.\n");
+        return 1;
+      }
+      for (unsigned int i = 0; i != nOps; i++) {
+        Dval[i] = Stack.top();
+        Stack.pop();
+      }
+      if (T->Type() == OP_ASSIGN) {
+        // This should be the last operation.
+        if (!Dval[1].IsDataSet()) {
+          mprinterr("Error: Attempting to assign to something that is not a data set.\n");
           return 1;
+        }
+        if (Dval[0].IsDataSet()) {
+          mprintf("Assigning '%s' to '%s'\n", Dval[0].DS()->Legend().c_str(),
+                  Dval[1].DS()->Legend().c_str());
+          // Should be 1D by definition, allocated below in LocalList
+          DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *Dval[0].DS() );
+          for (unsigned int n = 0; n != D1.Size(); n++) {
+            double dval = D1.Dval(n); // TODO: Direct copy
+            output->Add(n, &dval);
+          }
+        } else {
+          mprintf("Assigning %f to '%s'\n", Dval[0].Value(), Dval[1].DS()->Legend().c_str());
+          double dval = Dval[0].Value();
+          output->Add(0, &dval); 
+        }
+        if (Dval[1].DS() != output) {
+          mprinterr("Internal Error: Assigning to wrong data set!\n");
+          return 1;
+        }
+        
+        Stack.push(ValType(output));
+      } else if (!Dval[0].IsDataSet() && !Dval[1].IsDataSet()) {
+        // Neither operand is a data set
+        Stack.push(ValType(DoOperation(Dval[0].Value(), Dval[1].Value(), T->Type())));
+/*        switch (T->Type()) {
+          case OP_MINUS: Stack.push( ValType(Dval[1].Value() - Dval[0].Value()) ); break;
+          case OP_PLUS: Stack.push( ValType(Dval[1].Value() + Dval[0].Value()) ); break;
+          case OP_DIV: Stack.push( ValType(Dval[1].Value() / Dval[0].Value()) ); break;
+          case OP_MULT: Stack.push( ValType(Dval[1].Value() * Dval[0].Value()) ); break;
+          case OP_POW: Stack.push( ValType(pow(Dval[1].Value(), Dval[0].Value())) ); break;
+          case OP_NEG: Stack.push( ValType(-Dval[0].Value()) ); break;
+          // ---------------------
+          case FN_SQRT: Stack.push( ValType(sqrt(Dval[0].Value())) ); break;
+          case FN_EXP: Stack.push( ValType(exp(Dval[0].Value())) ); break;
+          case FN_LN: Stack.push( ValType(log(Dval[0].Value())) ); break;
+          default:
+            mprinterr("Error: Invalid token type: '%s'\n", T->Description());
+            return 1;
+        }*/
+      } else {
+        // One or both operands is a DataSet
+        // Check output data set
+        if (output == 0) {
+          mprinterr("Error: DataSet math must be assigned to a variable.\n");
+          return 1;
+        }
+        // Set up temporary data set
+        DataSet* tempDS = LocalList.AddSetIdx(DataSet::DOUBLE, "TEMP", T-tokens_.begin());
+        if (tempDS == 0) return 1;
+        // Handle 2 or 1 operand
+        if (T->numOperands() == 2) {
+          if (Dval[0].IsDataSet() && Dval[1].IsDataSet()) {
+            // Both are DataSets. Must have same size.
+            DataSet* ds1 = Dval[0].DS();
+            DataSet* ds2 = Dval[1].DS();
+            mprintf("DEBUG: '%s' [%s] '%s' => '%s'\n", ds1->Legend().c_str(), T->Description(),
+                    ds2->Legend().c_str(), tempDS->Legend().c_str());
+            if (ds1->Size() != ds2->Size()) {
+              mprinterr("Error: Sets '%s' and '%s' do not have same size, required for %s\n",
+                        ds1->Legend().c_str(), ds2->Legend().c_str(), T->name());
+              return 1;
+            }
+            if (ds1->Ndim() != 1 && ds2->Ndim() != 1) {
+              mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
+              return 1;
+            }
+            DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+            DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
+            for (unsigned int n = 0; n != D1.Size(); n++) {
+              double dval = DoOperation(D1.Dval(n), D2.Dval(n), T->Type());
+              tempDS->Add(n, &dval);
+            }
+          } else {
+            mprinterr("Error: DataSet OP Value not yet handled.\n");
+            return 1;
+          }
+        } else {
+          // Only 1 operand and it is a DataSet
+          DataSet* ds1 = Dval[0].DS();
+          if (ds1->Ndim() != 1) {
+            mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
+            return 1;
+          }
+          DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+          for (unsigned int n = 0; n != D1.Size(); n++) {
+            double dval = DoOperation(D1.Dval(n), 0.0, T->Type());
+            tempDS->Add(n, &dval);
+          }
+        }
+        Stack.push(ValType(tempDS));
       }
     }
   }
@@ -302,7 +405,7 @@ int RPNcalc::Evaluate() const {
     mprinterr("Error: Unbalanced expression.\n");
     return 1;
   }
-  mprintf("Result: %f\n", Stack.top());
+  if (output == 0) mprintf("Result: %f\n", Stack.top().Value());
   return 0;
 }
 
@@ -318,6 +421,7 @@ const RPNcalc::OpType RPNcalc::Token::OpArray_[] = {
   { 2, 2, LEFT,  OP,    "Multiply"    }, // OP_MULT
   { 3, 2, LEFT,  OP,    "Power"       }, // OP_POW
   { 4, 1, RIGHT, OP,    "Unary minus" }, // OP_NEG
+  { 0, 2, RIGHT, OP,    "Assignment"  }, // OP_ASSIGN
   { 0, 1, NO_A,  FN,    "Square root" }, // FN_SQRT
   { 0, 1, NO_A,  FN,    "Exponential" }, // FN_EXP
   { 0, 1, NO_A,  FN,    "Natural log" }, // FN_LN
