@@ -293,7 +293,6 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       Dval[0].Reset();
       Dval[1].Reset();
       // Operand or function. Get operand(s)
-      //if (GetOperands(T->numOperands(), Stack, Dval)) return 1;
       unsigned int nOps = (unsigned int)T->numOperands();
       if (Stack.size() < nOps) {
         mprinterr("Error: Not enough operands.\n");
@@ -304,7 +303,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         Stack.pop();
       }
       if (T->Type() == OP_ASSIGN) {
-        // This should be the last operation.
+        // Assignment. This should be the last operation.
         if (!Dval[1].IsDataSet()) {
           mprinterr("Error: Attempting to assign to something that is not a data set.\n");
           return 1;
@@ -332,24 +331,9 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       } else if (!Dval[0].IsDataSet() && !Dval[1].IsDataSet()) {
         // Neither operand is a data set
         Stack.push(ValType(DoOperation(Dval[0].Value(), Dval[1].Value(), T->Type())));
-/*        switch (T->Type()) {
-          case OP_MINUS: Stack.push( ValType(Dval[1].Value() - Dval[0].Value()) ); break;
-          case OP_PLUS: Stack.push( ValType(Dval[1].Value() + Dval[0].Value()) ); break;
-          case OP_DIV: Stack.push( ValType(Dval[1].Value() / Dval[0].Value()) ); break;
-          case OP_MULT: Stack.push( ValType(Dval[1].Value() * Dval[0].Value()) ); break;
-          case OP_POW: Stack.push( ValType(pow(Dval[1].Value(), Dval[0].Value())) ); break;
-          case OP_NEG: Stack.push( ValType(-Dval[0].Value()) ); break;
-          // ---------------------
-          case FN_SQRT: Stack.push( ValType(sqrt(Dval[0].Value())) ); break;
-          case FN_EXP: Stack.push( ValType(exp(Dval[0].Value())) ); break;
-          case FN_LN: Stack.push( ValType(log(Dval[0].Value())) ); break;
-          default:
-            mprinterr("Error: Invalid token type: '%s'\n", T->Description());
-            return 1;
-        }*/
       } else {
         // One or both operands is a DataSet
-        // Check output data set
+        // Check that final output data set has been allocated.
         if (output == 0) {
           mprinterr("Error: DataSet math must be assigned to a variable.\n");
           return 1;
