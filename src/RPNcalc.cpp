@@ -295,7 +295,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       // Operand or function. Get operand(s)
       unsigned int nOps = (unsigned int)T->numOperands();
       if (Stack.size() < nOps) {
-        mprinterr("Error: Not enough operands.\n");
+        mprinterr("Error: Not enough operands for '%s'.\n", T->Description());
         return 1;
       }
       for (unsigned int i = 0; i != nOps; i++) {
@@ -306,6 +306,10 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         // Assignment. This should be the last operation.
         if (!Dval[1].IsDataSet()) {
           mprinterr("Error: Attempting to assign to something that is not a data set.\n");
+          return 1;
+        }
+        if (Dval[1].DS() != output) {
+          mprinterr("Internal Error: Assigning to wrong data set!\n");
           return 1;
         }
         if (Dval[0].IsDataSet()) {
@@ -322,14 +326,10 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           double dval = Dval[0].Value();
           output->Add(0, &dval); 
         }
-        if (Dval[1].DS() != output) {
-          mprinterr("Internal Error: Assigning to wrong data set!\n");
-          return 1;
-        }
-        
         Stack.push(ValType(output));
       } else if (!Dval[0].IsDataSet() && !Dval[1].IsDataSet()) {
         // Neither operand is a data set
+        //mprintf("DEBUG: '%f' [%s] '%f'\n", Dval[1].Value(), T->Description(), Dval[0].Value());
         Stack.push(ValType(DoOperation(Dval[0].Value(), Dval[1].Value(), T->Type())));
       } else {
         // One or both operands is a DataSet
@@ -347,8 +347,8 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             // Both are DataSets. Must have same size.
             DataSet* ds1 = Dval[0].DS();
             DataSet* ds2 = Dval[1].DS();
-            mprintf("DEBUG: '%s' [%s] '%s' => '%s'\n", ds1->Legend().c_str(), T->Description(),
-                    ds2->Legend().c_str(), tempDS->Legend().c_str());
+            mprintf("DEBUG: '%s' [%s] '%s' => '%s'\n", ds2->Legend().c_str(), T->Description(),
+                    ds1->Legend().c_str(), tempDS->Legend().c_str());
             if (ds1->Size() != ds2->Size()) {
               mprinterr("Error: Sets '%s' and '%s' do not have same size, required for %s\n",
                         ds1->Legend().c_str(), ds2->Legend().c_str(), T->name());
