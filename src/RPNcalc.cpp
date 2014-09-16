@@ -329,7 +329,8 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         Stack.push(ValType(output));
       } else if (!Dval[0].IsDataSet() && !Dval[1].IsDataSet()) {
         // Neither operand is a data set
-        //mprintf("DEBUG: '%f' [%s] '%f'\n", Dval[1].Value(), T->Description(), Dval[0].Value());
+        if (debug_>0)
+          mprintf("DEBUG: '%f' [%s] '%f'\n", Dval[1].Value(), T->Description(), Dval[0].Value());
         Stack.push(ValType(DoOperation(Dval[0].Value(), Dval[1].Value(), T->Type())));
       } else {
         // One or both operands is a DataSet
@@ -347,8 +348,9 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             // Both are DataSets. Must have same size.
             DataSet* ds1 = Dval[0].DS();
             DataSet* ds2 = Dval[1].DS();
-            mprintf("DEBUG: '%s' [%s] '%s' => '%s'\n", ds2->Legend().c_str(), T->Description(),
-                    ds1->Legend().c_str(), tempDS->Legend().c_str());
+            if (debug_>0)
+              mprintf("DEBUG: '%s' [%s] '%s' => '%s'\n", ds2->Legend().c_str(), T->Description(),
+                      ds1->Legend().c_str(), tempDS->Legend().c_str());
             if (ds1->Size() != ds2->Size()) {
               mprinterr("Error: Sets '%s' and '%s' do not have same size, required for %s\n",
                         ds1->Legend().c_str(), ds2->Legend().c_str(), T->name());
@@ -369,8 +371,9 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             if (Dval[0].IsDataSet()) {
               // DataSet OP Value
               DataSet* ds1 = Dval[0].DS();
-              mprintf("DEBUG: %f [%s] '%s' => '%s'\n", Dval[1].Value(), T->Description(),
-                      ds1->Legend().c_str(), tempDS->Legend().c_str());
+              if (debug_ > 0)
+                mprintf("DEBUG: %f [%s] '%s' => '%s'\n", Dval[1].Value(), T->Description(),
+                        ds1->Legend().c_str(), tempDS->Legend().c_str());
               if (ds1->Ndim() != 1) {
                 mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
                 return 1;
@@ -384,8 +387,9 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             } else {
               // Value OP DataSet
               DataSet* ds2 = Dval[1].DS();
-              mprintf("DEBUG: '%s' [%s] '%f' => '%s'\n", ds2->Legend().c_str(), T->Description(),
-                      Dval[0].Value(), tempDS->Legend().c_str());
+              if (debug_ > 0)
+                mprintf("DEBUG: '%s' [%s] '%f' => '%s'\n", ds2->Legend().c_str(), T->Description(),
+                        Dval[0].Value(), tempDS->Legend().c_str());
               if (ds2->Ndim() != 1) {
                 mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
                 return 1;
@@ -401,6 +405,9 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         } else {
           // Only 1 operand and it is a DataSet
           DataSet* ds1 = Dval[0].DS();
+          if (debug_ > 0)
+            mprintf("DEBUG: [%s] '%s' => '%s'\n", T->Description(),
+                    ds1->Legend().c_str(), tempDS->Legend().c_str());
           if (ds1->Ndim() != 1) {
             mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
             return 1;
