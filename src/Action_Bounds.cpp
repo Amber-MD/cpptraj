@@ -9,14 +9,14 @@ Action_Bounds::Action_Bounds() : ensembleNum_(-1), offset_(1), grid_(0) {}
 
 void Action_Bounds::Help() {
   mprintf("\t[<mask>] [out <filename>] [dx <dx> [dy <dy>] [dz <dz>] name <gridname>]\n"
-          "\t[buffer <offset>]\n"
+          "\t[offset <bin offset>]\n"
           "  Calcuate the max/min coordinates (X,Y,Z) of atoms in <mask>.\n"
           "    [<mask>]: Atoms to calculate boundaries for.\n"
           "    [out <filename>]: Write boundaries to <filename>.\n"
           "    [dx <dx>] [dy <dy>] [dz <dz>]: Grid spacing in X/Y/Z directions.\n"
           "      If specified a grid will be created after processing is complete.\n"
           "    [name <gridname>]: Name of grid data set (if 'dx <dx>' etc specified).\n"
-          "    [buffer <offset>]: Number of bins to add in each direction to grid.\n");
+          "    [offset <bin offset>]: Number of bins to add in each direction to grid.\n");
 }
 
 // Action_Bounds::Init()
