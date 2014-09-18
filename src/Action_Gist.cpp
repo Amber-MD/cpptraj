@@ -643,7 +643,8 @@ void Action_Gist::Dipole(Frame *frameIn) {
 void Action_Gist::Order(Frame *frameIn) {
 //  if (NFRAME_==1) mprintf("GIST Order Parameter \n");
   int i;
-  double cos, sum, r1, r2, rij2, x[5], y[5], z[5];
+  double cos, sum, r1, r2, r3, r4, rij2, x[5], y[5], z[5];
+  Vec3 neighbor1(0.0), neighbor2(0.0), neighbor3(0.0), neighbor4(0.0);
   Vec3 O_wat1, O_wat2, O_wat3, v1, v2;
   resnum_=0;
 
@@ -660,12 +661,7 @@ void Action_Gist::Order(Frame *frameIn) {
     i = solvmol_->BeginAtom();
     O_wat1 = Vec3(frameIn->XYZ( i ));
 
-    r1=1000; r2=1000; resnum2_=0;
-    for (int a=1; a<5; a++) {
-      x[a]=10000;
-      y[a]=10000;
-      z[a]=10000;
-    }
+    r1=1000; r2=1000; r3=1000; r4=1000; resnum2_=0;
     // Can't make into triangular matrix
     for (solvmol2_ = CurrentParm_->MolStart();
          solvmol2_ != CurrentParm_->MolEnd(); ++solvmol2_)
@@ -677,22 +673,38 @@ void Action_Gist::Order(Frame *frameIn) {
       O_wat2 = Vec3(frameIn->XYZ( i ));      
       rij2 = DIST2_NoImage(O_wat1, O_wat2);
       if (rij2<r1) {
-        x[4] = x[3];
-        y[4] = y[3];
-        z[4] = z[3];
-        x[3] = x[2];
-        y[3] = y[2];
-        z[3] = z[2];
-        x[2] = x[1];
-        y[2] = y[1];
-        z[2] = z[1];
+        r4 = r3;
+        r3 = r2;
+        r2 = r1;
         r1 = rij2;
-        x[1] = O_wat2[0];
-        y[1] = O_wat2[1];
-        z[1] = O_wat2[2];
+        neighbor4 = neighbor3;
+        neighbor3 = neighbor2;
+        neighbor2 = neighbor1;
+        neighbor1 = O_wat2;
       }
+      else if (rij2<r2) {
+        r4 = r3;
+        r3 = r2;
+        r2 = rij2;
+        neighbor4 = neighbor3;
+        neighbor3 = neighbor2;
+        neighbor2 = O_wat2;
+      }
+      else if (rij2<r3) {
+        r4 = r3;
+        r3 = rij2;
+        neighbor4 = neighbor3;
+        neighbor3 = O_wat2;       
+      }
+      else if (rij2<r4) {
+        r4 = rij2;
+        neighbor4 = O_wat2;
+     }        
     }
-    
+    x[1]=neighbor1[0]; y[1]=neighbor1[1]; z[1]=neighbor1[2];
+    x[2]=neighbor2[0]; y[2]=neighbor2[1]; z[2]=neighbor2[2];
+    x[3]=neighbor3[0]; y[3]=neighbor3[1]; z[3]=neighbor3[2];
+    x[4]=neighbor4[0]; y[4]=neighbor4[1]; z[4]=neighbor4[2];    
     // Compute the tetrahedral order parameter
     sum=0;
     for (int mol1=1; mol1<=3; mol1++) {
@@ -712,6 +724,10 @@ void Action_Gist::Order(Frame *frameIn) {
       }
     }
     qtet_[voxel_] += (1.0 - (3.0/8)*sum);
+/*    double dbl = (1.0 - (3.0/8)*sum)
+ *    if (dbl<-3.0 || dbl>1.0) {
+      mprintf("BAD! voxel=%d, q=%9.5f\n", voxel_, dbl);
+    }*/
   }
 }
 
