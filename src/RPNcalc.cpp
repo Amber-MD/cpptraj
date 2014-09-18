@@ -5,6 +5,7 @@
 #include "RPNcalc.h"
 #include "DataSet_1D.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // PI
 
 // CONSTRUCTOR
 RPNcalc::RPNcalc() {}
@@ -81,6 +82,24 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         ptr += 2;
         lastTokenWasOperator = true;
       }
+      else if (expression.compare(pos, 3, "sin")==0)
+      {
+        op_stack.push( Token(FN_SIN) );
+        ptr += 3;
+        lastTokenWasOperator = true;
+      }
+      else if (expression.compare(pos, 3, "cos")==0)
+      {
+        op_stack.push( Token(FN_COS) );
+        ptr += 3;
+        lastTokenWasOperator = true;
+      }
+      else if (expression.compare(pos, 3, "tan")==0)
+      {
+        op_stack.push( Token(FN_TAN) );
+        ptr += 3;
+        lastTokenWasOperator = true;
+      }
       else if (expression.compare(pos, 3, "sum")==0)
       {
         op_stack.push( Token(FN_SUM) );
@@ -105,6 +124,13 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         ptr += 3;
         lastTokenWasOperator = true;
       } 
+      // -----------------------------------------
+      else if (expression.compare(pos, 2, "PI")==0)
+      {
+        tokens_.push_back( Token( Constants::PI ) );
+        ptr += 2;
+        lastTokenWasOperator = false;
+      }
       // -----------------------------------------
       else
       { // Assume variable name.
@@ -187,7 +213,7 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
       }
       // Pop left parentheses off the stack.
       op_stack.pop();
-      // Supposed to put function on top of stack in output
+      // Put function on top of stack in output
       if (!op_stack.empty() && op_stack.top().IsFunction()) {
         tokens_.push_back( op_stack.top() );
         op_stack.pop();
@@ -274,13 +300,21 @@ double RPNcalc::DoOperation(double d1, double d2, TokenType op_type) {
     case FN_SQRT: return sqrt(d1);
     case FN_EXP: return exp(d1);
     case FN_LN: return log(d1);
-    case FN_SUM: return d1;
+    case FN_SIN: return sin(d1);
+    case FN_COS: return cos(d1);
+    case FN_TAN: return tan(d1);
+    case FN_SUM:
+    case FN_AVG:
+    case FN_MIN:
+    case FN_MAX:
+      return d1;
     default:
       mprinterr("Error: Invalid token type.\n");
   }
   return 0.0;
 }
 
+// RPNcalc::Evaluate()
 int RPNcalc::Evaluate(DataSetList& DSL) const {
   if (tokens_.empty()) {
     mprinterr("Error: Expression was not set.\n");
@@ -391,8 +425,8 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           return 1;
         }
       } else {
-        // One or both operands is a DataSet
-        // Check that final output data set has been allocated.
+        // One or both operands is a DataSet. Result is DataSet.
+        // Check that final output DataSet has been allocated.
         if (output == 0) {
           mprinterr("Error: DataSet math must be assigned to a variable.\n");
           return 1;
@@ -504,6 +538,9 @@ const RPNcalc::OpType RPNcalc::Token::OpArray_[] = {
   { 0, 1, NO_A,  FN,    0, "Square root" }, // FN_SQRT
   { 0, 1, NO_A,  FN,    0, "Exponential" }, // FN_EXP
   { 0, 1, NO_A,  FN,    0, "Natural log" }, // FN_LN
+  { 0, 1, NO_A,  FN,    0, "Sine"        }, // FN_SIN
+  { 0, 1, NO_A,  FN,    0, "Cosine"      }, // FN_COS
+  { 0, 1, NO_A,  FN,    0, "Tangent"     }, // FN_TAN
   { 0, 1, NO_A,  FN,    1, "Sum"         }, // FN_SUM
   { 0, 1, NO_A,  FN,    1, "Avg"         }, // FN_AVG
   { 0, 1, NO_A,  FN,    1, "Min"         }, // FN_MIN

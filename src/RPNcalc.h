@@ -18,6 +18,8 @@ class RPNcalc {
                      OP_NEG, OP_ASSIGN,
                      // Functions
                      FN_SQRT, FN_EXP, FN_LN,
+                     // Trig functions
+                     FN_SIN, FN_COS, FN_TAN,
                      // Functions that take a data set
                      FN_SUM, FN_AVG, FN_MIN, FN_MAX, 
                      // Parentheses (for infix conversion only)
