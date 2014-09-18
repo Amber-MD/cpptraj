@@ -81,6 +81,30 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         ptr += 2;
         lastTokenWasOperator = true;
       }
+      else if (expression.compare(pos, 3, "sum")==0)
+      {
+        op_stack.push( Token(FN_SUM) );
+        ptr += 3;
+        lastTokenWasOperator = true;
+      }
+      else if (expression.compare(pos, 3, "avg")==0)
+      {
+        op_stack.push( Token(FN_AVG) );
+        ptr += 3;
+        lastTokenWasOperator = true;
+      }
+      else if (expression.compare(pos, 3, "min")==0)
+      {
+        op_stack.push( Token(FN_MIN) );
+        ptr += 3;
+        lastTokenWasOperator = true;
+      } 
+      else if (expression.compare(pos, 3, "max")==0)
+      {
+        op_stack.push( Token(FN_MAX) );
+        ptr += 3;
+        lastTokenWasOperator = true;
+      } 
       // -----------------------------------------
       else
       { // Assume variable name.
@@ -88,7 +112,8 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         bool has_colon = false; // For index
         enum BracketState { NONE, OPEN, CLOSED };
         BracketState bracket = NONE;
-        while ( ptr != expression.end() && (isalpha(*ptr,loc) || isdigit(*ptr,loc)) )
+        // FIXME: Recognize punctuation beyond period?
+        while ( ptr != expression.end() && (isalnum(*ptr,loc) || *ptr == '.') )
         {
           //mprintf("DEBUG: Var '%c'\n", *ptr);
           varname.push_back( *(ptr++) );
@@ -249,6 +274,7 @@ double RPNcalc::DoOperation(double d1, double d2, TokenType op_type) {
     case FN_SQRT: return sqrt(d1);
     case FN_EXP: return exp(d1);
     case FN_LN: return log(d1);
+    case FN_SUM: return d1;
     default:
       mprinterr("Error: Invalid token type.\n");
   }
@@ -339,6 +365,31 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         if (debug_>0)
           mprintf("DEBUG: '%f' [%s] '%f'\n", Dval[1].Value(), T->Description(), Dval[0].Value());
         Stack.push(ValType(DoOperation(Dval[0].Value(), Dval[1].Value(), T->Type())));
+      } else if (T->numOperands() == 1 && T->ResultIsScalar()) {
+        // One operand that is a data set that will be converted to a scalar
+        DataSet* ds1 = Dval[0].DS();
+        if (debug_ > 0)
+          mprintf("DEBUG: [%s] '%s'\n", T->Description(), ds1->Legend().c_str());
+        if (ds1->Ndim() != 1) {
+          mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
+          return 1;
+        }
+        DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+        if (T->Type() == FN_SUM) {
+          double sum = 0.0;
+          for (unsigned int n = 0; n != D1.Size(); n++)
+            sum += D1.Dval(n);
+          Stack.push(ValType(sum));
+        } else if (T->Type() == FN_AVG)
+          Stack.push(ValType(D1.Avg()));
+        else if (T->Type() == FN_MIN)
+          Stack.push(ValType(D1.Min()));
+        else if (T->Type() == FN_MAX)
+          Stack.push(ValType(D1.Max()));
+        else {
+          mprinterr("Internal Error: OP %s is undefined for data set.\n", T->Description());
+          return 1;
+        }
       } else {
         // One or both operands is a DataSet
         // Check that final output data set has been allocated.
@@ -438,21 +489,25 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
 }
 
 // -----------------------------------------------------------------------------
-/// Priority, #operands, associativity, class, description.
+/// Priority, #operands, associativity, class, resultIsScalar, description.
 const RPNcalc::OpType RPNcalc::Token::OpArray_[] = {
-  { 0, 0, NO_A,  NO_C,  "None"        }, // NONE
-  { 0, 0, NO_A,  VALUE, "Number"      }, // NUMBER
-  { 0, 0, NO_A,  VALUE, "Variable"    }, // VARIABLE
-  { 1, 2, LEFT,  OP,    "Minus"       }, // OP_MINUS
-  { 1, 2, LEFT,  OP,    "Plus"        }, // OP_PLUS
-  { 2, 2, LEFT,  OP,    "Divide"      }, // OP_DIV
-  { 2, 2, LEFT,  OP,    "Multiply"    }, // OP_MULT
-  { 3, 2, LEFT,  OP,    "Power"       }, // OP_POW
-  { 4, 1, RIGHT, OP,    "Unary minus" }, // OP_NEG
-  { 0, 2, RIGHT, OP,    "Assignment"  }, // OP_ASSIGN
-  { 0, 1, NO_A,  FN,    "Square root" }, // FN_SQRT
-  { 0, 1, NO_A,  FN,    "Exponential" }, // FN_EXP
-  { 0, 1, NO_A,  FN,    "Natural log" }, // FN_LN
-  { 0, 0, NO_A,  NO_C,  "Left Par"    }, // LPAR
-  { 0, 0, NO_A,  NO_C,  "Right Par"   }, // RPAR
+  { 0, 0, NO_A,  NO_C,  0, "None"        }, // NONE
+  { 0, 0, NO_A,  VALUE, 0, "Number"      }, // NUMBER
+  { 0, 0, NO_A,  VALUE, 0, "Variable"    }, // VARIABLE
+  { 1, 2, LEFT,  OP,    0, "Minus"       }, // OP_MINUS
+  { 1, 2, LEFT,  OP,    0, "Plus"        }, // OP_PLUS
+  { 2, 2, LEFT,  OP,    0, "Divide"      }, // OP_DIV
+  { 2, 2, LEFT,  OP,    0, "Multiply"    }, // OP_MULT
+  { 3, 2, LEFT,  OP,    0, "Power"       }, // OP_POW
+  { 4, 1, RIGHT, OP,    0, "Unary minus" }, // OP_NEG
+  { 0, 2, RIGHT, OP,    0, "Assignment"  }, // OP_ASSIGN
+  { 0, 1, NO_A,  FN,    0, "Square root" }, // FN_SQRT
+  { 0, 1, NO_A,  FN,    0, "Exponential" }, // FN_EXP
+  { 0, 1, NO_A,  FN,    0, "Natural log" }, // FN_LN
+  { 0, 1, NO_A,  FN,    1, "Sum"         }, // FN_SUM
+  { 0, 1, NO_A,  FN,    1, "Avg"         }, // FN_AVG
+  { 0, 1, NO_A,  FN,    1, "Min"         }, // FN_MIN
+  { 0, 1, NO_A,  FN,    1, "Max"         }, // FN_MAX
+  { 0, 0, NO_A,  NO_C,  0, "Left Par"    }, // LPAR
+  { 0, 0, NO_A,  NO_C,  0, "Right Par"   }, // RPAR
 };

@@ -18,6 +18,8 @@ class RPNcalc {
                      OP_NEG, OP_ASSIGN,
                      // Functions
                      FN_SQRT, FN_EXP, FN_LN,
+                     // Functions that take a data set
+                     FN_SUM, FN_AVG, FN_MIN, FN_MAX, 
                      // Parentheses (for infix conversion only)
                      LPAR, RPAR };
     enum Associativity { NO_A = 0, LEFT, RIGHT };
@@ -28,6 +30,7 @@ class RPNcalc {
       int nOperands_;
       Associativity assoc_;
       OpClass opclass_;
+      int resultIsScalar_;
       const char* description_;
     };
 
@@ -64,6 +67,8 @@ class RPNcalc::Token {
     inline bool IsFunction() const { return (OpArray_[type_].opclass_ == FN); }
     /// \return true if OP is left associative.
     inline bool IsLeftAssociative() const { return (OpArray_[type_].assoc_ == LEFT); }
+    /// \return true if OP( dataset ) returns a scalar.
+    inline bool ResultIsScalar() const { return (bool)OpArray_[type_].resultIsScalar_; }
     /// \return string indicating token type.
     const char* Description() const { return OpArray_[type_].description_; }
     /// \return operator priority
