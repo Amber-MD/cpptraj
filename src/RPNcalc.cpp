@@ -10,6 +10,11 @@
 // CONSTRUCTOR
 RPNcalc::RPNcalc() {}
 
+static inline bool isOpChar(char cIn) {
+  return ( cIn == '(' || cIn == ')' || cIn == '+' || cIn == '-' ||
+           cIn == '/' || cIn == '*' || cIn == '^' || cIn == '=');
+}
+
 /** Convert infix expression to RPN in tokens_ array. This uses a
   * shunting-yard algorithm which has been slightly modified to
   * recognize unary right-associative operators.
@@ -138,8 +143,7 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         bool has_colon = false; // For index
         enum BracketState { NONE, OPEN, CLOSED };
         BracketState bracket = NONE;
-        // FIXME: Recognize punctuation beyond period?
-        while ( ptr != expression.end() && (isalnum(*ptr,loc) || *ptr == '.') )
+        while (ptr != expression.end() && !isOpChar(*ptr) && !isspace(*ptr,loc))
         {
           //mprintf("DEBUG: Var '%c'\n", *ptr);
           varname.push_back( *(ptr++) );
