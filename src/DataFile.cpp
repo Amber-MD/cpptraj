@@ -185,6 +185,16 @@ int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debu
   return 0;
 }
 
+int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
+  SetDebug( debugIn );
+  filename_.clear();
+  dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, DATAFILE, false );
+  if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+  if (!argIn.empty())
+    ProcessArgs( argIn );
+  return 0;
+}
+
 // DataFile::AddSet()
 int DataFile::AddSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;

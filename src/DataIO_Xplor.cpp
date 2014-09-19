@@ -144,16 +144,15 @@ int DataIO_Xplor::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
     set.NY(), grid_min_y, grid_min_y + set.NY() - 1,
     set.NZ(), grid_min_z, grid_min_z + set.NZ() - 1);
   // Header - cell x y z alpha beta gamma
-  outfile.Printf("%12.3f%12.3f%12.3f%12.3f%12.3f%12.3f\n",
+  outfile.Printf("%12.5f%12.5f%12.5f%12.5f%12.5f%12.5f\n",
                  (double)set.NX() * set.DX(), 
                  (double)set.NY() * set.DY(), 
                  (double)set.NZ() * set.DZ(),
                  90.0, 90.0, 90.0);
   outfile.Printf("ZYX\n");
   // Print grid bins
-  size_t NZ2 = set.NZ() / 2;
   for (size_t k = 0; k < set.NZ(); ++k) {
-    outfile.Printf("%8i\n", k - NZ2 + 1);
+    outfile.Printf("%8i\n", k);
     for (size_t j = 0; j < set.NY(); ++j) {
       int col = 1;
       for (size_t i = 0; i < set.NX(); ++i) {
@@ -166,5 +165,6 @@ int DataIO_Xplor::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
         outfile.Printf("\n");
     }
   }
+  outfile.Printf("%8i\n", -9999);
   return 0;
 }

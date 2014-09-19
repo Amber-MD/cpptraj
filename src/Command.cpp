@@ -1412,6 +1412,29 @@ Command::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, Command::Al
 }
 
 // -----------------------------------------------------------------------------
+static void Help_PrintData() {
+  mprintf("\t<data set>\n"
+          "  Print data from data set to screen.\n");
+}
+
+Command::RetType PrintData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  std::string ds_arg = argIn.GetStringNext();
+  if (ds_arg.empty()) {
+    mprinterr("Error: No data set arg specified.\n");
+    return Command::C_ERR;
+  }
+  DataSet* ds = State.DSL()->GetDataSet( ds_arg );
+  if (ds == 0) return Command::C_ERR;
+
+  DataFile ToStdout;
+  ToStdout.SetupStdout(argIn, State.Debug());
+  ToStdout.AddSet( ds );
+  ToStdout.WriteData();
+  return Command::C_OK;
+}
+
+// -----------------------------------------------------------------------------
 static void Help_Calc() {
   mprintf("\t<expression>\n"
           "  Evaluate the given mathematical expression.\n");
@@ -1701,6 +1724,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "noexitonerror", 0, Help_NoExitOnError,   NoExitOnError   },
   { GENERAL, "noprogress",    0, Help_NoProgress,      NoProgress      },
   { GENERAL, "precision",     0, Help_Precision,       Precision       },
+  { GENERAL, "printdata",     0, Help_PrintData,       PrintData       },
   { GENERAL, "prnlev",        0, Help_Debug,           SetListDebug    },
   { GENERAL, "pwd",           0, Help_System,          SystemCmd       },
   { GENERAL, "quit" ,         0, Help_Quit,            Quit            },
