@@ -17,7 +17,7 @@ class RPNcalc {
                      // Right-associative operators
                      OP_NEG, OP_ASSIGN,
                      // Functions
-                     FN_SQRT, FN_EXP, FN_LN,
+                     FN_SQRT, FN_EXP, FN_LN, FN_ABS,
                      // Trig functions
                      FN_SIN, FN_COS, FN_TAN,
                      // Functions that take a data set

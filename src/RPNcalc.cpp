@@ -87,6 +87,12 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         ptr += 2;
         lastTokenWasOperator = true;
       }
+      else if (expression.compare(pos, 3, "abs")==0)
+      {
+        op_stack.push( Token(FN_ABS) );
+        ptr += 3;
+        lastTokenWasOperator = true;
+      }
       else if (expression.compare(pos, 3, "sin")==0)
       {
         op_stack.push( Token(FN_SIN) );
@@ -304,6 +310,7 @@ double RPNcalc::DoOperation(double d1, double d2, TokenType op_type) {
     case FN_SQRT: return sqrt(d1);
     case FN_EXP: return exp(d1);
     case FN_LN: return log(d1);
+    case FN_ABS: return fabs(d1);
     case FN_SIN: return sin(d1);
     case FN_COS: return cos(d1);
     case FN_TAN: return tan(d1);
@@ -542,6 +549,7 @@ const RPNcalc::OpType RPNcalc::Token::OpArray_[] = {
   { 0, 1, NO_A,  FN,    0, "Square root" }, // FN_SQRT
   { 0, 1, NO_A,  FN,    0, "Exponential" }, // FN_EXP
   { 0, 1, NO_A,  FN,    0, "Natural log" }, // FN_LN
+  { 0, 1, NO_A,  FN,    0, "Abs. value"  }, // FN_ABS
   { 0, 1, NO_A,  FN,    0, "Sine"        }, // FN_SIN
   { 0, 1, NO_A,  FN,    0, "Cosine"      }, // FN_COS
   { 0, 1, NO_A,  FN,    0, "Tangent"     }, // FN_TAN
