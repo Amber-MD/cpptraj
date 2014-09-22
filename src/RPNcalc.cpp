@@ -332,9 +332,10 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
     return 1;
   }
   std::stack<ValType> Stack;
-  ValType Dval[2];
+  ValType Dval[2]; // NOTE: Must be able to hold max # operands.
   DataSetList LocalList;
   // Are we going to be assigning this?
+  bool assigningResult = false;
   DataSet* output = 0;
   if (tokens_.front().IsValue() && tokens_.back().Type() == OP_ASSIGN) {
     if (tokens_.size() < 3) {
@@ -342,11 +343,10 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       return 1;
     }
     if (tokens_.front().Type() != VARIABLE) {
-      mprinterr("Error: Must assign to a data set.\n");
+      mprinterr("Error: Must assign to a data set on left hand side.\n");
       return 1;
     }
-    output = DSL.AddSet(DataSet::DOUBLE, tokens_.front().Name(), "CALC");
-    if (output == 0) return 1;
+    assigningResult = true;
   }
     
   for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
@@ -355,13 +355,14 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       Stack.push( ValType(T->Value()) );
     else if ( T->Type() == VARIABLE ) {
       DataSet* ds = 0;
-      if (output != 0 && T == tokens_.begin())
-        ds = output;
-      else
+      if (assigningResult && T == tokens_.begin())
+        ds = output; // NOTE: Will be '0' at this point.
+      else {
         ds= DSL.GetDataSet( T->Name() );
-      if (ds == 0) {
-        mprinterr("Error: Data set with name '%s' not found.\n", T->name());
-        return 1;
+        if (ds == 0) {
+          mprinterr("Error: Data set with name '%s' not found.\n", T->name());
+          return 1;
+        }
       }
       Stack.push( ValType( ds ) );
     } else {
@@ -379,18 +380,24 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       }
       if (T->Type() == OP_ASSIGN) {
         // Assignment. This should be the last operation.
+        if (!assigningResult) {
+          mprinterr("Error: Assignment must be the final operation.\n");
+          return 1;
+        }
         if (!Dval[1].IsDataSet()) {
           mprinterr("Error: Attempting to assign to something that is not a data set.\n");
           return 1;
         }
-        if (Dval[1].DS() != output) {
+        if (Dval[1].DS() != output) { // NOTE: Should be '0'
           mprinterr("Internal Error: Assigning to wrong data set!\n");
           return 1;
         }
+        output = DSL.AddSet(DataSet::DOUBLE, tokens_.front().Name(), "CALC");
+        if (output == 0) return 1;
         if (Dval[0].IsDataSet()) {
           if (debug_>0)
             mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->Legend().c_str(),
-                    Dval[1].DS()->Legend().c_str());
+                    output->Legend().c_str());
           // Should be 1D by definition, allocated below in LocalList
           DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *Dval[0].DS() );
           for (unsigned int n = 0; n != D1.Size(); n++) {
@@ -400,7 +407,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         } else {
           if (debug_>0)
             mprintf("DEBUG: Assigning %f to '%s'\n", Dval[0].Value(),
-                    Dval[1].DS()->Legend().c_str());
+                    output->Legend().c_str());
           double dval = Dval[0].Value();
           output->Add(0, &dval); 
         }
@@ -437,12 +444,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         }
       } else {
         // One or both operands is a DataSet. Result is DataSet.
-        // Check that final output DataSet has been allocated.
-        if (output == 0) {
-          mprinterr("Error: DataSet math must be assigned to a variable.\n");
-          return 1;
-        }
-        // Set up temporary data set
+        // Set up temporary data set to hold result.
         DataSet* tempDS = LocalList.AddSetIdx(DataSet::DOUBLE, "TEMP", T-tokens_.begin());
         if (tempDS == 0) return 1;
         // Handle 2 or 1 operand
@@ -553,10 +555,10 @@ const RPNcalc::OpType RPNcalc::Token::OpArray_[] = {
   { 0, 1, NO_A,  FN,    0, "Sine"        }, // FN_SIN
   { 0, 1, NO_A,  FN,    0, "Cosine"      }, // FN_COS
   { 0, 1, NO_A,  FN,    0, "Tangent"     }, // FN_TAN
-  { 0, 1, NO_A,  FN,    1, "Sum"         }, // FN_SUM
-  { 0, 1, NO_A,  FN,    1, "Avg"         }, // FN_AVG
-  { 0, 1, NO_A,  FN,    1, "Min"         }, // FN_MIN
-  { 0, 1, NO_A,  FN,    1, "Max"         }, // FN_MAX
+  { 0, 1, NO_A,  FN,    1, "Summation"   }, // FN_SUM
+  { 0, 1, NO_A,  FN,    1, "Average"     }, // FN_AVG
+  { 0, 1, NO_A,  FN,    1, "Minimum"     }, // FN_MIN
+  { 0, 1, NO_A,  FN,    1, "Maximum"     }, // FN_MAX
   { 0, 0, NO_A,  NO_C,  0, "Left Par"    }, // LPAR
   { 0, 0, NO_A,  NO_C,  0, "Right Par"   }, // RPAR
 };
