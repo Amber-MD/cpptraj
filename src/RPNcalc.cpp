@@ -377,6 +377,10 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       for (unsigned int i = 0; i != nOps; i++) {
         Dval[i] = Stack.top();
         Stack.pop();
+        // Replace 1D datasets of size 1 with the actual value.
+        if (Dval[i].IsDataSet() && Dval[i].DS()!=0 && // Probably being assigned to if '0'
+            Dval[i].DS()->Ndim()==1 && Dval[i].DS()->Size()==1)
+          Dval[i].SetValue(((DataSet_1D*)Dval[i].DS())->Dval(0));
       }
       if (T->Type() == OP_ASSIGN) {
         // Assignment. This should be the last operation.

@@ -104,6 +104,7 @@ class RPNcalc::ValType {
     double Value() const { return val_; }
     DataSet* DS() const { return ds_; }
     void Reset() { ds_=0; val_=0.0; isDataSet_=false; }
+    void SetValue(double d) { ds_ = 0; val_ = d; isDataSet_ = false; }
   private:
     DataSet* ds_;
     double val_;
