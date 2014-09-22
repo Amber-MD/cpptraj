@@ -21,7 +21,7 @@ class RPNcalc {
                      // Trig functions
                      FN_SIN, FN_COS, FN_TAN,
                      // Functions that take a data set
-                     FN_SUM, FN_AVG, FN_MIN, FN_MAX, 
+                     FN_SUM, FN_AVG, FN_STDEV, FN_MIN, FN_MAX, 
                      // Parentheses (for infix conversion only)
                      LPAR, RPAR };
     enum Associativity { NO_A = 0, LEFT, RIGHT };

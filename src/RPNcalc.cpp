@@ -123,6 +123,12 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         ptr += 3;
         lastTokenWasOperator = true;
       }
+      else if (expression.compare(pos, 5, "stdev")==0)
+      {
+        op_stack.push( Token(FN_STDEV) );
+        ptr += 5;
+        lastTokenWasOperator = true;
+      }
       else if (expression.compare(pos, 3, "min")==0)
       {
         op_stack.push( Token(FN_MIN) );
@@ -314,6 +320,7 @@ double RPNcalc::DoOperation(double d1, double d2, TokenType op_type) {
     case FN_SIN: return sin(d1);
     case FN_COS: return cos(d1);
     case FN_TAN: return tan(d1);
+    case FN_STDEV: return 0.0;
     case FN_SUM:
     case FN_AVG:
     case FN_MIN:
@@ -436,6 +443,10 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           for (unsigned int n = 0; n != D1.Size(); n++)
             sum += D1.Dval(n);
           Stack.push(ValType(sum));
+        } else if (T->Type() == FN_STDEV) {
+          double stdev;
+          D1.Avg(stdev);
+          Stack.push(ValType(stdev));
         } else if (T->Type() == FN_AVG)
           Stack.push(ValType(D1.Avg()));
         else if (T->Type() == FN_MIN)
@@ -564,6 +575,7 @@ const RPNcalc::OpType RPNcalc::Token::OpArray_[] = {
   { 0, 1, NO_A,  FN,    0, "Tangent"     }, // FN_TAN
   { 0, 1, NO_A,  FN,    1, "Summation"   }, // FN_SUM
   { 0, 1, NO_A,  FN,    1, "Average"     }, // FN_AVG
+  { 0, 1, NO_A,  FN,    1, "Standard Dev"}, // FN_STDEV
   { 0, 1, NO_A,  FN,    1, "Minimum"     }, // FN_MIN
   { 0, 1, NO_A,  FN,    1, "Maximum"     }, // FN_MAX
   { 0, 0, NO_A,  NO_C,  0, "Left Par"    }, // LPAR
