@@ -535,7 +535,10 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
     mprinterr("Error: Unbalanced expression.\n");
     return 1;
   }
-  if (output == 0) mprintf("Result: %f\n", Stack.top().Value());
+  if (output == 0)
+    mprintf("Result: %f\n", Stack.top().Value());
+  else
+    mprintf("Result stored in '%s'\n", output->Legend().c_str());
   return 0;
 }
 
