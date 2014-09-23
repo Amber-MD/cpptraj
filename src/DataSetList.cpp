@@ -202,6 +202,14 @@ DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
   return ds;
 }
 
+DataSet* DataSetList::CheckForSet( std::string const& nameIn ) const {
+  std::string attr_arg;
+  std::string idx_arg("-1");
+  std::string dsname = ParseArgString(nameIn, idx_arg, attr_arg);
+  int idx = convertToInteger(idx_arg);
+  return GetSet( dsname, idx, attr_arg );
+}
+
 // DataSetList::GetMultipleSets()
 /** \return a list of all DataSets matching the given argument. */
 DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {

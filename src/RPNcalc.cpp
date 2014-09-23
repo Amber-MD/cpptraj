@@ -365,7 +365,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       if (assigningResult && T == tokens_.begin())
         ds = output; // NOTE: Will be '0' at this point.
       else {
-        ds= DSL.GetDataSet( T->Name() );
+        ds= DSL.CheckForSet( T->Name() );
         if (ds == 0) {
           mprinterr("Error: Data set with name '%s' not found.\n", T->name());
           return 1;
