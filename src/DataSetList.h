@@ -58,6 +58,8 @@ class DataSetList {
     inline DataSet* GetSet(std::string const&, int, std::string const&) const;
     /// Get DataSet matching specified argument.
     DataSet* GetDataSet( std::string const& ) const;
+    /// Get DataSet matching specified argument, no warning if not found.
+    DataSet* CheckForSet( std::string const& ) const;
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;
     /// Generate name based on given default and # of DataSets.
