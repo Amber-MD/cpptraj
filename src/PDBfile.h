@@ -45,6 +45,8 @@ class PDBfile : public CpptrajFile {
                      int, int, int, int, int, int, const char *, int);
     /// Write TITLE
     void WriteTITLE(std::string const&);
+    /// Write CRYST1
+    void WriteCRYST1(const double*);
   private:
     /// Write PDB record header.
     void WriteRecordHeader(PDB_RECTYPE, int, NameType const&,

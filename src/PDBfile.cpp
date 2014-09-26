@@ -268,6 +268,14 @@ void PDBfile::WriteTITLE(std::string const& titleIn) {
     Printf("%-69s\n", titleOut.c_str());
 }
 
+/** Expect x, y, z, alpha, beta, gamma */
+void PDBfile::WriteCRYST1(const double* box) {
+  if (box==0) return;
+  // RECROD A B C ALPHA BETA GAMMA SGROUP Z
+  Printf("CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f %-11s%4i\n",
+         box[0], box[1], box[2], box[3], box[4], box[5], "P 1", 1);
+}
+
 /* Additional Values:
  *  Chain ID : buffer[21]
  *  10 chars between Bfactor and element: buffer[66] to buffer[75]
