@@ -37,7 +37,7 @@ dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
-	$(CXX) $(CWARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
+	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
 
 $(LIBDIR)/libarpack.a:
@@ -56,13 +56,13 @@ pub_fft.o:  pub_fft.F90
 	$(FC) $(FWARNFLAGS) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ pub_fft.F90
 
 ReadLine.o: ReadLine.cpp
-	$(CXX) $(CWARNFLAGS) -c $(CPPTRAJ_FLAGS) -I$(READLINE_HOME) -o $@ ReadLine.cpp
+	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -I$(READLINE_HOME) -o $@ ReadLine.cpp
 
 .c.o:
-	$(CC) $(CWARNFLAGS) -c $(CPPTRAJ_FLAGS) -o $@ $<
+	$(CC) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 .cpp.o:
-	$(CXX) $(CWARNFLAGS) -c $(CPPTRAJ_FLAGS) -o $@ $<
+	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 clean:
 	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX)
