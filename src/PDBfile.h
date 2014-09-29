@@ -14,6 +14,8 @@ class PDBfile : public CpptrajFile {
     static bool ID_PDB(CpptrajFile&);
     /// \return true if current line has an ATOM/HETATM record.
     bool IsPDBatomKeyword();
+    /// \return true if current line has CRYST1 keyword.
+    bool IsBoxKeyword();
     /// \return true if current line has TER keyword.
     bool IsPDB_TER();
     /// \return true if current line has END keyword.
@@ -25,6 +27,8 @@ class PDBfile : public CpptrajFile {
     NameType pdb_Residue(int&);
     /// Set XYZ based on current line.
     void pdb_XYZ(double*);
+    /// Set box coords a b c alpha beta gamma from current line
+    void pdb_Box(double*);
 
     /// Write TER record
     void WriteTER(int, NameType const&, char, int);

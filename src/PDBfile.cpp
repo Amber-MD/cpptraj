@@ -64,6 +64,10 @@ bool PDBfile::IsPDBatomKeyword() {
   return false;
 }
 
+bool PDBfile::IsBoxKeyword() {
+  return (strncmp(linebuffer_,"CRYST1",6)==0);
+}
+
 bool PDBfile::IsPDB_TER() {
   if (linebuffer_[0]=='T' && linebuffer_[1]=='E' && linebuffer_[2]=='R')
     return true;
@@ -137,6 +141,13 @@ void PDBfile::pdb_XYZ(double *Xout) {
   Xout[2] = atof( linebuffer_+46 );
   linebuffer_[54] = savechar;
 }
+
+void PDBfile::pdb_Box(double* box) {
+  // A=6-15 B=15-24 C=24-33 alpha=33-40 beta=40-47 gamma=47-54
+  sscanf(linebuffer_, "%*6s%9lf%9lf%9lf%7lf%7lf%7lf", box, box+1, box+2,
+         box+3, box+4, box+5);
+}
+  
 // -----------------------------------------------------------------------------
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,

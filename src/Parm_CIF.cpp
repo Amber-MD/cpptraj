@@ -16,7 +16,10 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
 
   if (infile.Read( fname, debug_ )) return 1;
   CIFfile::DataBlock const& block = infile.GetDataBlock("_atom_site");
-  if (block.empty()) return 1;
+  if (block.empty()) {
+    mprinterr("Error: CIF data block '_atom_site' not found.\n");
+    return 1;
+  }
   // Does this CIF contain multiple models?
   int Nmodels = 0;
   int model_col = block.ColumnIndex("pdbx_PDB_model_num");
@@ -71,6 +74,20 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
   if (!entryblock.empty())
     ciftitle = entryblock.Data("id");
   TopIn.SetParmName( ciftitle, infile.CIFname() );
+  // Get unit cell parameters if present.
+  CIFfile::DataBlock const& cellblock = infile.GetDataBlock("_cell");
+  if (!cellblock.empty()) {
+    double cif_box[6];
+    cif_box[0] = convertToDouble( cellblock.Data("length_a") );
+    cif_box[1] = convertToDouble( cellblock.Data("length_b") );
+    cif_box[2] = convertToDouble( cellblock.Data("length_c") );
+    cif_box[3] = convertToDouble( cellblock.Data("angle_alpha") );
+    cif_box[4] = convertToDouble( cellblock.Data("angle_beta" ) );
+    cif_box[5] = convertToDouble( cellblock.Data("angle_gamma") );
+    mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
+              cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
+    TopIn.SetBox( Box(cif_box) ); 
+  }
   
   return 0;
 }
