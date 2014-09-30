@@ -12,6 +12,7 @@ Traj_PDBfile::Traj_PDBfile() :
   dumpr_(false),
   pdbres_(false),
   pdbatom_(false),
+  write_cryst1_(false),
   pdbTop_(0),
   chainchar_(' ')
 {}
@@ -242,6 +243,9 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
     if ( file_.OpenFile() ) return 1;
     if (!Title().empty()) file_.WriteTITLE( Title() );
   }
+  write_cryst1_ = (TrajBox().Type() != Box::NOBOX);
+  if (write_cryst1_ && pdbWriteMode_!=SINGLE)
+    mprintf("Warning: For PDB, box coords for first frame only will be written to CRYST1.\n");
   return 0;
 }
 
@@ -253,7 +257,13 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     if (file_.OpenWriteNumbered( set + 1 )) return 1;
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
-  } else if (pdbWriteMode_==MODEL) {
+  }
+  // Write box coords, first frame only.
+  if (write_cryst1_) {
+    file_.WriteCRYST1( frameOut.BoxCrd().boxPtr() );
+    write_cryst1_ = false;
+  }
+  if (pdbWriteMode_==MODEL) {
     // If specified, write MODEL keyword
     // 1-6 MODEL, 11-14 model serial #
     // Since num frames could be large, do not format the integer with width - OK?

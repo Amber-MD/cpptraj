@@ -1,5 +1,6 @@
 #include <cstdio>    // fprintf, fopen, fclose, sprintf
 #include <cmath>     // log10
+#include <ctime>     // for TimeString()
 #include <cerrno>
 #include <cstring>   // strerror
 #include <sstream>   // istringstream, ostringstream
@@ -279,4 +280,18 @@ std::string SetIntegerFormatString(int width)
   // Set format string.
   format.append( "%" + width_arg + "i" );
   return format;
+}
+
+// -----------------------------------------------------------------------------
+std::string TimeString() {
+  char buffer[20];
+  time_t rawtime;
+
+  time( &rawtime );
+  struct tm* timeinfo = localtime( &rawtime );
+  // Use snprintf for safety here. Speed not a factor for this routine.
+  snprintf(buffer, 20, "%02i/%02i/%02i  %02i:%02i:%02i",
+           timeinfo->tm_mon+1,timeinfo->tm_mday,timeinfo->tm_year%100,
+           timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
+  return std::string( buffer );
 }

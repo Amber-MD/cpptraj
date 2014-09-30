@@ -3,7 +3,7 @@
 #include "ParmIO.h"
 class Parm_PDB : public ParmIO {
   public :
-    Parm_PDB() : readAsPQR_(false) {}
+    Parm_PDB() : readAsPQR_(false), readBox_(false) {}
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_PDB(); }
     static void ReadHelp();
     bool ID_ParmFormat(CpptrajFile&);
@@ -14,5 +14,6 @@ class Parm_PDB : public ParmIO {
     int processWriteArgs(ArgList&) { return 0; }
   private:
     bool readAsPQR_; ///< If true get charge and radius from occ/b factor cols
+    bool readBox_;   ///< If true try to read CRYST1 record as box info.
 };
 #endif

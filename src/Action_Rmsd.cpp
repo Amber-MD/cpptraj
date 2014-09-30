@@ -242,7 +242,9 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
 Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress) {
   // Target setup
   if ( currentParm->SetupIntegerMask( tgtMask_ ) ) return Action::ERR;
-  tgtMask_.MaskInfo();
+  mprintf("\tTarget mask:");
+  tgtMask_.BriefMaskInfo();
+  mprintf("\n");
   if ( tgtMask_.None() ) {
     mprintf("Warning: No atoms in mask '%s'.\n", tgtMask_.MaskString());
     return Action::ERR;
