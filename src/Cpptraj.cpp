@@ -65,6 +65,7 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   total_time.Start();
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
+    mprintf("\n| Date/time: %s\n\n", TimeString().c_str()); 
     // If State is not empty, run now. 
     if (!State_.EmptyState())
       err = State_.Run();

@@ -1,6 +1,5 @@
 #include <cstdio> // sscanf
 #include <cstring> // strlen, strncmp
-#include <ctime> // time for parm write
 #include <locale> // isspace
 #include <cstdlib> // atoi, atof
 #include "Parm_Amber.h"
@@ -298,10 +297,6 @@ int Parm_Amber::processWriteArgs(ArgList& argIn) {
   */
 int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   ptype_ = NEWPARM;
-  // For date and time
-  time_t rawtime;
-  struct tm *timeinfo;
-
   // Create arrays of atom info
   std::vector<NameType> names, types;
   std::vector<double> charge, mass, gb_radii, gb_screen, polar;
@@ -406,12 +401,9 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   // Write parm
   if (file_.OpenWrite( fname )) return 1;
   // HEADER AND TITLE (4 lines, version, flag, format, title)
-  time( &rawtime );
-  timeinfo = localtime(&rawtime);
-  file_.Printf("%-44s%02i/%02i/%02i  %02i:%02i:%02i                  \n",
+  file_.Printf("%-44s%s                  \n",
                "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
-               timeinfo->tm_mon+1,timeinfo->tm_mday,timeinfo->tm_year%100,
-               timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
+               TimeString().c_str());
   std::string title = parmIn.ParmName();
   // Resize title to max 80 char
   if (title.size() > 80)
