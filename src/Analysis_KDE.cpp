@@ -22,7 +22,7 @@ void Analysis_KDE::Help() {
 }
 
 Analysis::RetType Analysis_KDE::Setup(DataSet_1D* dsIn, std::string const& histname,
-                                       std::string const& outfilenameIn,
+                                       int setidx, std::string const& outfilenameIn,
                                        bool minArgSetIn, double minIn,
                                        bool maxArgSetIn, double maxIn,
                                        double stepIn, int binsIn, double tempIn,
@@ -59,7 +59,7 @@ Analysis::RetType Analysis_KDE::Setup(DataSet_1D* dsIn, std::string const& histn
   }
   setname += dsIn->Legend();
   DataFile* outfile = DFLin.AddDataFile( outfilenameIn );
-  output_ = datasetlist.AddSetIdxAspect(DataSet::DOUBLE, setname, dsIn->Idx(), dsIn->Aspect());
+  output_ = datasetlist.AddSetIdxAspect(DataSet::DOUBLE, setname, setidx, dsIn->Aspect());
   if (output_ == 0) return Analysis::ERR;
   output_->SetDim(Dimension::X, Xdim);
   if (outfile != 0) outfile->AddSet( output_ );
