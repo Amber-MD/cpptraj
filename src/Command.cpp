@@ -1,4 +1,4 @@
-#include <cstdio> // for ReadInput
+#include <cstdio> // for ProcessInput
 #include <cstdlib> // system
 #include "Command.h"
 #include "CpptrajStdio.h"
@@ -8,6 +8,7 @@
 #include "DataSet_Coords_TRJ.h" // LoadTraj
 #include "DataSet_double.h" // DataSetCmd
 #include "ParmFile.h" // ReadOptions, WriteOptions
+#include "StringRoutines.h" // tildeExpansion
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
@@ -249,9 +250,11 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
     mprintf("INPUT: Reading Input from STDIN\n");
     infile = stdin;
   } else {
-    mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
-    if ( (infile=fopen(inputFilename.c_str(),"r"))==0 ) {
-      rprinterr("Error: Could not open input file %s\n",inputFilename.c_str());
+    std::string fname = tildeExpansion(inputFilename);
+    if (fname.empty()) return C_ERR;
+    mprintf("INPUT: Reading Input from file %s\n", fname.c_str());
+    if ( (infile=fopen(fname.c_str(),"r"))==0 ) {
+      rprinterr("Error: Could not open input file %s\n", fname.c_str());
       return C_ERR;
     }
   }
