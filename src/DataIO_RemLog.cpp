@@ -10,8 +10,9 @@ DataIO_RemLog::DataIO_RemLog() : n_mremd_replicas_(0), processMREMD_(false) {
   SetValid( DataSet::REMLOG );
 }
 
-const char* ExchgDescription[] = {
-  "Unknown", "Temperature", "Hamiltonian", "MultipleDim"
+// NOTE: Must match ExchgType
+const char* DataIO_RemLog::ExchgDescription[] = {
+  "Unknown", "Temperature", "Hamiltonian", "MultipleDim", "RXSGLD"
 };
 
 /// \return true if char pointer is null.
@@ -43,19 +44,23 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) const
     ArgList columns( line );
     // Each line should have at least 2 arguments
     if (columns.Nargs() > 1) {
-      if (columns[1] == "exchange") break;
-      if (debug_ > 0) mprintf("\t%s", line.c_str());
-      if (columns[1] == "numexchg") {
-        numexchg = columns.getNextInteger(-1);
-      }
-      if (columns[1] == "Dimension") {
-        type = MREMD;
-        int ndim = columns.getKeyInt("of", 0);
-        if (ndim != (int)GroupDims_.size()) {
-          mprinterr("Error: # of dimensions in rem log %i != dimensions in remd.dim file (%u).\n",
-                    ndim, GroupDims_.size());
-          return -1;
-        }
+      if (columns[1] == "exchange")
+        break;
+      else
+      {
+        if (debug_ > 0) mprintf("\t%s", line.c_str());
+        if (columns[1] == "numexchg")
+          numexchg = columns.getNextInteger(-1);
+        else if (columns[1] == "Dimension") {
+          type = MREMD;
+          int ndim = columns.getKeyInt("of", 0);
+          if (ndim != (int)GroupDims_.size()) {
+            mprinterr("Error: # of dimensions in rem log %i != dimensions in remd.dim file (%u).\n",
+                      ndim, GroupDims_.size());
+            return -1;
+          }
+        } else if (columns[1] == "RXSGLD")
+          type = RXSGLD;
       }
     }
     if (type == UNKNOWN && columns.hasKey("Rep#,")) {
@@ -447,13 +452,23 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
       for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
         if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
       }
-    } else {
+    } else if (DimTypes_[dim] == HREMD) {
       group_size = CountHamiltonianReps( buffer[dim] );
       mprintf("\t\tDim %i: %i Hamiltonian reps.\n", dim+1, group_size);
       if (!processMREMD_) SetupDim1Group( group_size );
       for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
         if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
       } 
+    } else if (DimTypes_[dim] == RXSGLD) {
+      group_size = CountHamiltonianReps( buffer[dim] );
+      mprintf("\t\tDim %i: %i RXSGLD reps.\n", dim+1, group_size);
+      if (!processMREMD_) SetupDim1Group( group_size );
+      for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
+        if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
+      }
+    } else {
+      mprinterr("Error: Unrecognized dimension type.\n");
+      return 1;
     }
   } // END loop over replica dimensions
   // DEBUG: Print out dimension layout
@@ -638,9 +653,65 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                                                current_crdidx,
                                                hremd_success,
                                                hremd_temp0, hremd_pe_x1, hremd_pe_x2) );
+          // ----- RXSGLD ----------------------------
+          /* Format:
+           * (i4,i4,2f8.4,2f8.2,e14.6,f8.4) 
+           # Rep Stagid Vscale  SGscale Temp Templf Eptot Acceptance(i,i+1)
+              1   1  1.0000  1.0000    0.00   21.21 -0.102302E+02  0.0000
+           */
+          } else if (DimTypes_[current_dim] == RXSGLD) {
+            // Consider accept if sgscale is not -1.0. Unfortunately Stagid is
+            // the coords index *before* the exchange.
+            int sgld_repidx, current_crdidx;
+            double sgscale;
+            if ( sscanf(ptr, "%4i%*4i%*8f%8lf", &sgld_repidx, &sgscale) != 2 ) {
+              mprinterr("Error reading RXSGLD line from rem log. "
+                        "Dim=%u, Exchg=%i, grp=%u, rep=%u\n",
+                        current_dim+1, exchg+1, grp+1, replica+1);
+              mprinterr("Error: Line: %s", ptr);
+              return 1;
+            }
+            bool sgld_success = (sgscale > -1.0);
+            // The partner index is not stored in RXSGLD logs.
+            bool sgld_up;
+            // First exchange for even replicas is up, then down.
+            if ((exchg % 2)==0) {
+              if ((sgld_repidx % 2)==0) // Exchange up
+                sgld_up = true;
+              else
+                sgld_up = false;
+            } else {
+              if ((sgld_repidx % 2)==0) // Exchange down
+                sgld_up = false;
+              else
+                sgld_up = true;
+            }
+            int sgld_partneridx;
+            if (sgld_up) {
+              sgld_partneridx = sgld_repidx + 1;
+              if (sgld_partneridx > (int)GroupDims_[current_dim][grp].size())
+                sgld_partneridx = 1;
+            } else {
+              sgld_partneridx = sgld_repidx - 1;
+              if (sgld_partneridx < 1)
+                sgld_partneridx = GroupDims_[current_dim][grp].size();
+            }
+            // If an exchange occured, coordsIdx will be that of partner replica.
+            if (sgld_success)
+              current_crdidx = CoordinateIndices[sgld_partneridx-1];
+            else
+              current_crdidx = CoordinateIndices[sgld_repidx-1];
+            // Create replica frame for SGLD
+            ensemble.AddRepFrame( sgld_repidx-1,
+                                  DataSet_RemLog::
+                                  ReplicaFrame(sgld_repidx, sgld_partneridx,
+                                               current_crdidx,
+                                               sgld_success,
+                                               0.0, 0.0, 0.0) );
           // -----------------------------------------
           } else {
             mprinterr("Error: remlog; unknown type.\n");
+            return 1;
           }
           // -----------------------------------------
         } // END loop over replicas in group
