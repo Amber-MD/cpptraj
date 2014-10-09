@@ -276,6 +276,7 @@ int CpptrajState::RunEnsemble() {
   }
 
   // TODO: One loop over member?
+  mprintf("\nENSEMBLE ACTIONS:\n");
   int maxFrames = trajinList_.MaxFrames();
   for (int member = 0; member < ensembleSize; ++member) {
     // Set max frames in the data set list and allocate
@@ -284,10 +285,13 @@ int CpptrajState::RunEnsemble() {
     DataSetEnsemble[member].SetEnsembleNum( worldrank );
 #   else
     DataSetEnsemble[member].SetEnsembleNum( member );
+    // If serial, silence action output for all beyond first member.
+    if (member > 0 && debug_ == 0)
+      SetWorldSilent( true );
 #   endif
     // Initialize actions for this ensemble member based on original actionList_
     if (!actionList_.Empty()) {
-      mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
+      if (debug_ > 0) mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
       for (int iaction = 0; iaction < actionList_.Naction(); iaction++) { 
         // Create new arg list from original command string.
         ArgList command( actionList_.CmdString(iaction) );
@@ -302,6 +306,8 @@ int CpptrajState::RunEnsemble() {
     }
   }
   init_time.Stop();
+  // Re-enable output
+  SetWorldSilent( false );
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total()); 
   // ========== A C T I O N  P H A S E ==========
   int lastPindex=-1;          // Index of the last loaded parm file
@@ -356,6 +362,9 @@ int CpptrajState::RunEnsemble() {
       // Set up actions for this parm
       bool setupOK = true;
       for (int member = 0; member < ensembleSize; ++member) {
+        // Silence action output for all beyond first member.
+        if (member > 0)
+          SetWorldSilent( true );
         if (ActionEnsemble[member].SetupActions( &(EnsembleParm[member]) )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
@@ -367,6 +376,8 @@ int CpptrajState::RunEnsemble() {
           setupOK = false;
         }
       }
+      // Re-enable output
+      SetWorldSilent( false );
       if (!setupOK) continue;
       lastPindex = CurrentParm->Pindex();
     }
