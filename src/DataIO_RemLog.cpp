@@ -660,11 +660,10 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
               1   1  1.0000  1.0000    0.00   21.21 -0.102302E+02  0.0000
            */
           } else if (DimTypes_[current_dim] == RXSGLD) {
-            // Consider accept if sgscale is not -1.0. Unfortunately Stagid is
-            // the coords index *before* the exchange.
-            int sgld_repidx, current_crdidx;
+            // Consider accept if sgscale is not -1.0.
+            int sgld_repidx, sgld_crdidx;
             double sgscale;
-            if ( sscanf(ptr, "%4i%*4i%*8f%8lf", &sgld_repidx, &sgscale) != 2 ) {
+            if ( sscanf(ptr, "%4i%4i%*8f%8lf", &sgld_crdidx, &sgld_repidx, &sgscale) != 3 ) {
               mprinterr("Error reading RXSGLD line from rem log. "
                         "Dim=%u, Exchg=%i, grp=%u, rep=%u\n",
                         current_dim+1, exchg+1, grp+1, replica+1);
@@ -687,16 +686,12 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
                 sgld_up = true;
             }
             int sgld_partneridx;
-            if (sgld_up) {
-              sgld_partneridx = sgld_repidx + 1;
-              if (sgld_partneridx > (int)GroupDims_[current_dim][grp].size())
-                sgld_partneridx = 1;
-            } else {
-              sgld_partneridx = sgld_repidx - 1;
-              if (sgld_partneridx < 1)
-                sgld_partneridx = GroupDims_[current_dim][grp].size();
-            }
+            if (sgld_up)
+              sgld_partneridx = GroupDims_[current_dim][grp][sgld_repidx-1].R_partner();
+            else
+              sgld_partneridx = GroupDims_[current_dim][grp][sgld_repidx-1].L_partner();
             // If an exchange occured, coordsIdx will be that of partner replica.
+            int current_crdidx;
             if (sgld_success)
               current_crdidx = CoordinateIndices[sgld_partneridx-1];
             else
