@@ -170,18 +170,16 @@ int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
     int bondnum = 1;
     for (BondArray::const_iterator bidx = mol2Top_->Bonds().begin();
                                    bidx != mol2Top_->Bonds().end(); ++bidx)
-      file_.Printf("%5d %5d %5d 1\n", bondnum++, bidx->A1()+1, bidx->A2()+1);
+      file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1);
     for (BondArray::const_iterator bidx = mol2Top_->BondsH().begin();
                                    bidx != mol2Top_->BondsH().end(); ++bidx)
-      file_.Printf("%5d %5d %5d 1\n", bondnum++, bidx->A1()+1, bidx->A2()+1);
+      file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1);
   }
   //@<TRIPOS>SUBSTRUCTURE section
   file_.WriteHeader(Mol2File::SUBSTRUCT);
   int resnum = 1;
-  for (Topology::res_iterator Res = mol2Top_->ResStart(); Res!=mol2Top_->ResEnd(); Res++) {
-    file_.Printf("%7d %4s %14d ****               0 ****  **** \n",
-                      resnum++, (*Res).c_str(), (*Res).FirstAtom()+1);
-  }
+  for (Topology::res_iterator Res = mol2Top_->ResStart(); Res!=mol2Top_->ResEnd(); Res++)
+    file_.WriteMol2Substructure(resnum++, Res->c_str(), Res->FirstAtom()+1);
   // If writing 1 mol2 per frame, close output file
   if (mol2WriteMode_==MULTI)
     file_.CloseFile();

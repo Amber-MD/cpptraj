@@ -3,7 +3,7 @@
 #include "CpptrajFile.h"
 #include "Atom.h"
 /// Used to access mol2 files.
-class Mol2File : public CpptrajFile {
+class Mol2File : private CpptrajFile {
   public: 
     Mol2File();
 
@@ -29,6 +29,10 @@ class Mol2File : public CpptrajFile {
     NameType Mol2Residue(int&);
     /// Write mol2 atom line: at#, atom, res#, res, coords
     void WriteMol2Atom(int, Atom const&, int, const char*, const double*);
+    /// Write mol2 bond line; bond#, atom1, atom2
+    void WriteMol2Bond(int, int, int);
+    /// Write mol2 substructure line; res#, resname, firstatom
+    void WriteMol2Substructure(int, const char*, int);
 
     void SetMol2Natoms(int nIn)               { mol2atoms_ = nIn;  }
     void SetMol2Nbonds(int nIn)               { mol2bonds_ = nIn;  }
@@ -36,6 +40,16 @@ class Mol2File : public CpptrajFile {
     int Mol2Natoms()                    const { return mol2atoms_; }
     int Mol2Nbonds()                    const { return mol2bonds_; }
     std::string const& Mol2Title()      const { return mol2title_; }
+    // CpptrajFile functions that should be accessible.
+    using CpptrajFile::SetupRead;
+    using CpptrajFile::SetupWrite;
+    using CpptrajFile::SetupAppend;
+    using CpptrajFile::OpenFile;
+    using CpptrajFile::OpenRead;
+    using CpptrajFile::OpenWriteNumbered;
+    using CpptrajFile::CloseFile;
+    using CpptrajFile::Filename;
+    using CpptrajFile::Rewind;
   private:
     static const char* TRIPOSTAGTEXT[];
     int mol2debug_;
