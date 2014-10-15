@@ -274,14 +274,16 @@ int CpptrajState::RunEnsemble() {
   // Actions have already been set up for this ensemble.
 # else
   // Make all sets not in an ensemble part of member 0.
-  DSL_.MakeDataSetsEnsemble( 0 ); 
+  DSL_.MakeDataSetsEnsemble( 0 );
+  // Silence action output for members > 0.
+  if (debug_ == 0) SetWorldSilent( true ); 
   // Set up Actions for each ensemble member > 0.
   for (int member = 1; member < ensembleSize; ++member) {
     // All DataSets that will be set up will be part of this ensemble 
     DSL_.SetEnsembleNum( member );
     // Initialize actions for this ensemble member based on original actionList_
     if (!actionList_.Empty()) {
-      mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
+      if (debug_ > 0) mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
       for (int iaction = 0; iaction < actionList_.Naction(); iaction++) { 
         // Create new arg list from original command string.
         ArgList command( actionList_.CmdString(iaction) );
@@ -294,8 +296,11 @@ int CpptrajState::RunEnsemble() {
       }
     }
   }
+  SetWorldSilent( false );
 # endif
   init_time.Stop();
+  // Re-enable output
+  SetWorldSilent( false );
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total()); 
   // ========== A C T I O N  P H A S E ==========
   int lastPindex=-1;          // Index of the last loaded parm file
@@ -346,6 +351,9 @@ int CpptrajState::RunEnsemble() {
       // Set up actions for this parm
       bool setupOK = true;
       for (int member = 0; member < ensembleSize; ++member) {
+        // Silence action output for all beyond first member.
+        if (member > 0)
+          SetWorldSilent( true );
         if (ActionEnsemble[member]->SetupActions( &(EnsembleParm[member]) )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
@@ -357,6 +365,8 @@ int CpptrajState::RunEnsemble() {
           setupOK = false;
         }
       }
+      // Re-enable output
+      SetWorldSilent( false );
       if (!setupOK) continue;
       // Set up any related output trajectories.
       // TODO: Currently assuming topology is always modified the same

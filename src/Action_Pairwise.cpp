@@ -431,7 +431,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
     return Action::ERR;
   // Write PDB with atoms that satisfy cutoff colored in.
   if (PdbOut_.IsOpen()) {
-    PdbOut_.Printf("MODEL     %i\n", frameNum + 1);
+    PdbOut_.WriteMODEL(frameNum + 1);
     for (AtomMask::const_iterator atom = Mask0_.begin(); atom != Mask0_.end(); ++atom)
     {
       float occ = 0.0;
@@ -447,7 +447,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
                          ' ', rn + 1, XYZ[0], XYZ[1], XYZ[2], occ, bfac, AT.ElementName(),
                          (int)AT.Charge(), false);
     }
-    PdbOut_.Printf("ENDMDL\n");
+    PdbOut_.WriteENDMDL();
   }
   ds_vdw_->Add(frameNum, &ELJ_);
   ds_elec_->Add(frameNum, &Eelec_);

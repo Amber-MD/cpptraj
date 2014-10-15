@@ -3,32 +3,29 @@
 #include "CpptrajFile.h"
 #include "Atom.h"
 /// Used to access PDB files
-class PDBfile : public CpptrajFile {
+class PDBfile : private CpptrajFile {
   public:
-    PDBfile() : anum_(1) {}
     // NOTE: PDB_RECNAME must correspond with this.
-    enum PDB_RECTYPE {ATOM=0, HETATM, TER, ANISOU};
-    /// \return true if the first 6 chars of buffer match a PDB keyword
-    static bool IsPDBkeyword(std::string const&);
+    enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, UNKNOWN};
+    PDBfile() : anum_(1), recType_(UNKNOWN), lineLengthWarning_(false) {}
     /// Check if either of the first two lines contain valid PDB records.
     static bool ID_PDB(CpptrajFile&);
-    /// \return true if current line has an ATOM/HETATM record.
-    bool IsPDBatomKeyword();
-    /// \return true if current line has CRYST1 keyword.
-    bool IsBoxKeyword();
-    /// \return true if current line has TER keyword.
-    bool IsPDB_TER();
-    /// \return true if current line has END keyword.
-    bool IsPDB_END();
-    /// \return Atom based on current line.
+    /// \return the type of the next PDB record read.
+    PDB_RECTYPE NextRecord();
+    /// \return Atom info with name, chain, elt, and opt. charge/radius for ATOM/HETATM.
     Atom pdb_Atom(bool);
+    /// \return Atom info with name, chain, and elt for ATOM/HETATM.
     Atom pdb_Atom() { return pdb_Atom(false); }
-    /// \return Residue based on current line.
-    NameType pdb_Residue(int&);
-    /// Set XYZ based on current line.
+    /// Set given XYZ array with coords from ATOM/HETATM record.
     void pdb_XYZ(double*);
-    /// Set box coords a b c alpha beta gamma from current line
-    void pdb_Box(double*);
+    /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record.
+    void pdb_Box(double*) const;
+    /// \return Residue name, only valid for ATOM/HETATM record.
+    NameType pdb_ResName();
+    /// \return Residue number, only valid for ATOM/HETATM record.
+    int pdb_ResNum();
+    /// \return current record type.
+    PDB_RECTYPE RecType()         const { return recType_; }
 
     /// Write TER record
     void WriteTER(int, NameType const&, char, int);
@@ -51,12 +48,35 @@ class PDBfile : public CpptrajFile {
     void WriteTITLE(std::string const&);
     /// Write CRYST1
     void WriteCRYST1(const double*);
+    /// Write MODEL
+    void WriteMODEL(int);
+    /// Write ENDMDL
+    void WriteENDMDL();
+    /// Write END
+    void WriteEND();
+    // CpptrajFile functions that should be accessible.
+    using CpptrajFile::SetupRead;
+    using CpptrajFile::SetupWrite;
+    using CpptrajFile::SetupAppend;
+    using CpptrajFile::OpenFile;
+    using CpptrajFile::OpenRead;
+    using CpptrajFile::OpenWriteNumbered;
+    using CpptrajFile::OpenEnsembleWrite;
+    using CpptrajFile::OpenWrite;
+    using CpptrajFile::CloseFile;
+    using CpptrajFile::IsOpen;
+    using CpptrajFile::Filename;
+    using CpptrajFile::Rewind;
   private:
+    /// \return true if the first 6 chars of buffer match a PDB keyword
+    static bool IsPDBkeyword(std::string const&);
     /// Write PDB record header.
     void WriteRecordHeader(PDB_RECTYPE, int, NameType const&,
                            NameType const&, char, int);
 
-    int anum_;
+    int anum_;            ///< Atom number for writing.
+    PDB_RECTYPE recType_; ///< Current record type.
+    bool lineLengthWarning_; ///< True if any read line is shorter than 80 char
     static const char* PDB_RECNAME[];
 };
 #endif

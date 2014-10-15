@@ -17,7 +17,9 @@ class DataIO_RemLog : public DataIO {
     int WriteData3D(std::string const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
-    enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD };
+    // NOTE: Must match ExchgDescription
+    enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD };
+    static const char* ExchgDescription[];
     typedef std::vector<std::string> Sarray;
     typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
 

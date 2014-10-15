@@ -251,9 +251,13 @@ void Topology::PrintBonds(BondArray const& barray, AtomMask const& maskIn, int& 
       int bidx = (*batom).Idx();
       if ( bidx > -1 )
         mprintf(" %6.2f %6.3f", bondparm_[bidx].Rk(), bondparm_[bidx].Req());
-      mprintf(" %-*s %-*s (%i,%i)\n",
+      mprintf(" %-*s %-*s (%i,%i)",
               rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(),
               atom1+1, atom2+1);
+      // Atom types
+      const char* atype1 = *atoms_[atom1].Type();
+      const char* atype2 = *atoms_[atom2].Type();
+      mprintf(" %c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1]);
     }
     nb++;
   }
@@ -292,9 +296,15 @@ void Topology::PrintAngles(AngleArray const& aarray, AtomMask const& maskIn, int
       int aidx = (*aatom).Idx();
       if ( aidx > -1 )
         mprintf(" %6.3f %6.2f", angleparm_[aidx].Tk(), angleparm_[aidx].Teq() * Constants::RADDEG);
-      mprintf(" %-*s %-*s %-*s (%i,%i,%i)\n", rwidth, AtomMaskName(atom1).c_str(), 
+      mprintf(" %-*s %-*s %-*s (%i,%i,%i)", rwidth, AtomMaskName(atom1).c_str(), 
               rwidth, AtomMaskName(atom2).c_str(), rwidth, AtomMaskName(atom3).c_str(),
               atom1+1, atom2+1, atom3+1); 
+      // Atom types
+      const char* atype1 = *atoms_[atom1].Type();
+      const char* atype2 = *atoms_[atom2].Type();
+      const char* atype3 = *atoms_[atom3].Type();
+      mprintf(" %c%c-%c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1],
+              atype3[0],atype3[1]);
     }
     na++;
   }

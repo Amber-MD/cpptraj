@@ -14,30 +14,25 @@ int Parm_PDB::processReadArgs(ArgList& argIn) {
 
 int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
   PDBfile infile;
-  double XYZ[6];
-  int current_res = 0;
+  double XYZ[6]; // Hold XYZ/box coords.
   if (infile.OpenRead(fname)) return 1;
-  // Loop over PDB records 
-  while ( infile.NextLine() != 0 ) {
-    if (readBox_ && infile.IsBoxKeyword()) {
-      // CRYST1 keyword: RECORD A B C ALPHA BETA GAMMA SGROUP Z
+  // Loop over PDB records
+  while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
+    if (readBox_ && infile.RecType() == PDBfile::CRYST1) {
+      // Box info from CRYST1 record.
       infile.pdb_Box( XYZ );
-      mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
-              XYZ[0], XYZ[1], XYZ[2], XYZ[3], XYZ[4], XYZ[5]);
-      // Warn if the box looks strange.
-      if (XYZ[0] == 1.0 && XYZ[0] == XYZ[1] && XYZ[0] == XYZ[2])
-        mprintf("Warning: PDB cell lengths are all 1.0 Ang.;"
-                " this usually indicates an invalid box.\n");
-      TopIn.SetBox( Box(XYZ) );
-    } else if (infile.IsPDBatomKeyword()) {
-      // If this is an ATOM / HETATM keyword, add to topology
-      infile.pdb_XYZ(XYZ);
-      NameType pdbresname = infile.pdb_Residue( current_res );
-      TopIn.AddTopAtom(infile.pdb_Atom(readAsPQR_), current_res, pdbresname, XYZ);
-    } else if (infile.IsPDB_TER() || infile.IsPDB_END()) {
+      TopIn.SetBox( XYZ );
+    } else if (infile.RecType() == PDBfile::ATOM) {
+      // If this is an ATOM / HETATM keyword, add to topology.
+      infile.pdb_XYZ( XYZ );
+      TopIn.AddTopAtom(infile.pdb_Atom(readAsPQR_), infile.pdb_ResNum(), 
+                       infile.pdb_ResName(), XYZ);
+    } else if ( infile.RecType() == PDBfile::TER || 
+                infile.RecType() == PDBfile::END )
+    {
       // Indicate end of molecule for TER/END. Finish if END.
       TopIn.StartNewMol();
-      if (infile.IsPDB_END()) break;
+      if (infile.RecType() == PDBfile::END) break;
     }
   }
   // If Topology name not set with TITLE etc, use base filename.

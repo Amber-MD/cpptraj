@@ -10,7 +10,7 @@ DataIO_VecTraj::DataIO_VecTraj() : trajoutFmt_(TrajectoryFile::UNKNOWN_TRAJ) {
 }
 
 void DataIO_VecTraj::WriteHelp() {
-  mprintf("[trajfmt <format>] [parmout <file>]\n");
+  mprintf("\t[trajfmt <format>] [parmout <file>]\n");
 }
 
 int DataIO_VecTraj::processWriteArgs(ArgList& argIn) {
