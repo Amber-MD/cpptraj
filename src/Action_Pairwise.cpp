@@ -25,7 +25,12 @@ void Action_Pairwise::Help() {
   mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <ecut>] [cutevdw <vcut>]\n"
           "\t[ %s ] [cutout <cut mol2 prefix>]\n"
           "\t[vmapout <vdw map>] [emapout <elec map>] [avgout <avg file>]\n"
-          "  Calculate pairwise (non-bonded) energy for atoms in <mask>.\n", FrameList::RefArgs);
+          "\t[eout <eout file>] [pdbout <pdb file>]\n"
+          "  Calculate pairwise (non-bonded) energy for atoms in <mask>.\n"
+          "  If 'eout' is specified individual interaction energies will be written to\n"
+          "  <eout file>. If a reference structure is given the energies will be\n"
+          "  Eref - Eframe. Only energies with absolute value greater than <ecut> and\n"
+          "  <vcut> will be printed.\n" , FrameList::RefArgs);
 }
 
 const double Action_Pairwise::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
