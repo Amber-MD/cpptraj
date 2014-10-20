@@ -1454,6 +1454,11 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     // Place new atom in newParm
     newParm->atoms_.push_back( newparmAtom );
   }
+  if (newParm->atoms_.empty()) {
+    mprintf("Warning: All atoms have been stripped.\n");
+    return newParm;
+  }
+
   // Set last residue last atom
   newParm->residues_.back().SetLastAtom( newParm->atoms_.size() );
 
