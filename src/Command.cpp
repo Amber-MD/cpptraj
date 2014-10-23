@@ -358,23 +358,20 @@ static void Help_Run() {
 
 static void Help_Quit() { mprintf("  Exit CPPTRAJ\n"); }
 
-static const char TypeList[] =
-  "(<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)";
-
 static void Help_List() {
-  mprintf("\t[<type>] %s\n"
+  mprintf("\t[<type>] (<type> =%s)\n"
           "  List currently loaded objects of the specified type. If no type is given\n"
-          "  then list all loaded objects.\n", TypeList);
+          "  then list all loaded objects.\n", CpptrajState::PrintListKeys().c_str());
 }
 
 static void Help_Debug() {
-  mprintf("\t[<type>] <#> %s\n", TypeList);
+  mprintf("\t[<type>] <#> (<type> =%s)\n", CpptrajState::PrintListKeys().c_str());
   mprintf("  Set debug level for new objects of the specified type. If no type is given\n"
           "  then set debug level for all new objects. Does not affect current objects.\n");
 }
 
 static void Help_Clear() {
-  mprintf("\t[ {all | <type>} ] %s\n", TypeList);
+  mprintf("\t[ {all | <type>} ] (<type> =%s)\n", CpptrajState::PrintListKeys().c_str());
   mprintf("  Clear currently loaded objects of the specified type. If 'all' is specified\n"
           "  then clear all loaded objects.\n");
 }
