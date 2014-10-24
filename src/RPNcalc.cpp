@@ -37,22 +37,43 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
     if (*ptr == '.' || isdigit(*ptr, loc))
     { // Start of a number
       std::string number;
+      std::string exponent;
+      int hasExponent = 0;
       bool decimal_point = (*ptr == '.');
       if (decimal_point)
         number.push_back( *(ptr++) );
       while ( ptr != expression.end() && isdigit(*ptr, loc) )
       {
-        number.push_back( *(ptr++) );
+        if (hasExponent != 0)
+          exponent.push_back( *(ptr++) );
+        else
+          number.push_back( *(ptr++) );
         // Check the next character
         if (*ptr == '.')
         {
-          if (decimal_point)
+          if (hasExponent != 0)
+          {
+            mprinterr("Error: Decimal point not allowed in exponent.\n");
+            return 1;
+          }
+          else if (decimal_point)
           {
             mprinterr("Error: Two decimal points encountered in number: %s\n", number.c_str());
             return 1;
           }
           decimal_point = true;
           number.push_back( *(ptr++) );
+        }
+        else if (*ptr == 'E' || *ptr == 'e')
+        {
+          ++ptr;
+          if (*ptr == '-')
+          {
+            hasExponent = -1;
+            ++ptr;
+          }
+          else
+            hasExponent = 1;
         } 
       }
       if (debug_ > 0) mprintf("Number detected: %s\n", number.c_str());
@@ -61,6 +82,23 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
       if (!(iss >> val)) {
         mprinterr("Error: Invalid number: %s\n", number.c_str());
         return 1;
+      }
+      if (hasExponent != 0)
+      {
+        if (exponent.empty()) {
+          mprinterr("Error: Exponent is empty.\n");
+          return 1;
+        }
+        mprintf("Exponent detected: %s\n", exponent.c_str());
+        double eval;
+        std::istringstream iss2(exponent);
+        if (!(iss2 >> eval)) {
+          mprinterr("Error: Invalid exponent: %s\n", exponent.c_str());
+          return 1;
+        }
+        if (hasExponent < 0)
+          eval = -eval;
+        val *= pow(10, eval);
       }
       tokens_.push_back( Token( val ) );
       lastTokenWasOperator = false;
