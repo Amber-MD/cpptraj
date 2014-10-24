@@ -134,9 +134,10 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
   Range ref_range; // Selected reference residues
 
   // If no target range previously specified do all solute residues
-  if (TgtRange_.Empty()) 
-    tgt_range.SetRange(1, currentParm->FinalSoluteRes()+1);
-  else
+  if (TgtRange_.Empty()) { 
+    tgt_range = currentParm->SoluteResidues();
+    tgt_range.ShiftBy(1); // To match user range arg which would start from 1
+  } else
     tgt_range = TgtRange_;
   // If the reference range is empty, set it to match the target range
   if (RefRange_.Empty()) 

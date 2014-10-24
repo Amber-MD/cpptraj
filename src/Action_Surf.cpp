@@ -46,32 +46,25 @@ Action::RetType Action_Surf::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   */
 Action::RetType Action_Surf::Setup(Topology* currentParm, Topology** parmAddress) {
   SurfInfo SI;
-  int soluteAtoms;
 
   if (currentParm->SetupIntegerMask( Mask1_ )) return Action::ERR;
   if (Mask1_.None()) {
     mprintf("Warning: Mask '%s' corresponds to 0 atoms.\n", Mask1_.MaskString());
     return Action::ERR;
   }
-
-  // Setup surface area calc for this parm
-  soluteAtoms = currentParm->SoluteAtoms();
-  if (soluteAtoms <= 0) {
-    mprinterr("Error: No solute atoms in %s.\n",currentParm->c_str());
-    return Action::ERR;
-  }
-  mprintf("\t%i solute atoms.\n",soluteAtoms);
   mprintf("\tLCPO surface area will be calculated for %i atoms.\n",Mask1_.Nselected());
 
+  // Setup surface area calc for this parm.
   // Check that each atom in Mask1 is part of solute
-  // Create a separate mask for building the atom neighbor list
-  // that only includes atoms with vdw radius > 2.5
-  // Consider all atoms for icosa, only non-H's for LCPO
+  // Create a separate mask for building the atom neighbor list that only
+  // includes atoms with vdw radius > 2.5. Consider all atoms for icosa, only
+  // non-H's for LCPO
   atomi_neighborMask_.ResetMask();
   atomi_noNeighborMask_.ResetMask();
   atomj_neighborMask_.ResetMask();
   SurfaceInfo_neighbor_.clear();
   SurfaceInfo_noNeighbor_.clear();
+  int soluteAtoms = 0;
   for (AtomMask::const_iterator atomi = Mask1_.begin(); atomi!=Mask1_.end(); atomi++) {
     int molNum = (*currentParm)[ *atomi ].MolNum();
     if (currentParm->Mol( molNum ).IsSolvent()) {
@@ -79,6 +72,7 @@ Action::RetType Action_Surf::Setup(Topology* currentParm, Topology** parmAddress
                 *atomi+1, Mask1_.MaskString());
       return Action::ERR;
     }
+    ++soluteAtoms;
     SetAtomLCPO( *currentParm, *atomi, &SI ); 
     if (SI.vdwradii > 2.5) {
       atomi_neighborMask_.AddAtom(*atomi);
@@ -87,6 +81,11 @@ Action::RetType Action_Surf::Setup(Topology* currentParm, Topology** parmAddress
       atomi_noNeighborMask_.AddAtom(*atomi);
       SurfaceInfo_noNeighbor_.push_back( SI );
     }
+  }
+  mprintf("\t%i solute atoms.\n",soluteAtoms);
+  if (soluteAtoms <= 0) {
+    mprinterr("Error: No solute atoms in %s.\n",currentParm->c_str());
+    return Action::ERR;
   }
   // From all solute atoms, create a second mask for building atom 
   // neighbor list that only includes atoms with vdw radius > 2.5.

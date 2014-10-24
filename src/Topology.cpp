@@ -17,7 +17,6 @@ Topology::Topology() :
   debug_(0),
   ipol_(0),
   NsolventMolecules_(0),
-  finalSoluteRes_(-1),
   pindex_(0),
   nframes_(0),
   n_extra_pts_(0),
@@ -38,10 +37,25 @@ void Topology::SetReferenceCoords( Frame const& frameIn ) {
 }
 
 // -----------------------------------------------------------------------------
-// Topology::FinalSoluteRes()
-/** Return 1 past the last solute residue. */
-int Topology::FinalSoluteRes() const {
-  return finalSoluteRes_ + 1;
+/** \return Range containing only solute residues. */
+Range Topology::SoluteResidues() const {
+  Range solute_res;
+  atom_iterator atom = atoms_.begin();
+  while (atom != atoms_.end()) {
+    // If atom is in a solvent molecule skip molecule. Otherwise add res num
+    // and skip to next residue.
+    if (molecules_[atom->MolNum()].IsSolvent())
+      atom += molecules_[atom->MolNum()].NumAtoms();
+    else if (molecules_[atom->MolNum()].NumAtoms() == 1) // Assume ion.
+      ++atom;
+    else {
+      solute_res.AddToRange( atom->ResNum() );
+      if (debug_ > 0)
+        mprintf("DEBUG:\t\tAdding solute residue %i\n", atom->ResNum()+1);
+      atom += residues_[atom->ResNum()].NumAtoms();
+    }
+  }
+  return solute_res;
 }
 
 // Topology::c_str()
@@ -137,15 +151,6 @@ int Topology::FindResidueMaxNatom() const {
   return largest_natom;
 }
 
-// Topology::SoluteAtoms()
-// TODO: do not rely on finalsoluteres since it makes assumptions about
-//       system layout
-int Topology::SoluteAtoms() const {
-  if (NsolventMolecules_ == 0)
-    return (int)atoms_.size();
-  return ( residues_[finalSoluteRes_].LastAtom() );
-}
-
 // -----------------------------------------------------------------------------
 // Topology::Summary()
 void Topology::Summary() const {
@@ -169,8 +174,6 @@ void Topology::Summary() const {
   mprintf("\t\tBox: %s\n",box_.TypeName());
   if (NsolventMolecules_>0) {
     mprintf("\t\t%i solvent molecules.\n", NsolventMolecules_);
-    if (finalSoluteRes_>-1)
-      mprintf("\t\tFinal solute residue is %i\n", finalSoluteRes_+1);
   }
   if (!radius_set_.empty())
     mprintf("\t\tGB radii set: %s\n", radius_set_.c_str());
@@ -951,9 +954,8 @@ int Topology::SetSolvent(std::string const& maskexpr) {
     mprintf("Warning: Removing all solvent information from %s\n", c_str());
     for (std::vector<Molecule>::iterator mol = molecules_.begin(); 
                                          mol != molecules_.end(); ++mol)
-      (*mol).SetNoSolvent();
+      mol->SetNoSolvent();
     NsolventMolecules_ = 0;
-    finalSoluteRes_ = Nres();
     return 0;
   }
   // Setup mask
@@ -965,43 +967,31 @@ int Topology::SetSolvent(std::string const& maskexpr) {
   }
   // Loop over all molecules
   NsolventMolecules_ = 0;
-  finalSoluteRes_ = -1;
   int numSolvAtoms = 0;
-  int firstSolventMol = -1;
   for (std::vector<Molecule>::iterator mol = molecules_.begin();
                                        mol != molecules_.end(); ++mol)
   {
     // Reset old solvent information.
-    (*mol).SetNoSolvent();
+    mol->SetNoSolvent();
     // If any atoms in this molecule are selected by mask, make entire
     // molecule solvent.
-    for (int atom = (*mol).BeginAtom(); atom < (*mol).EndAtom(); ++atom) {
+    for (int atom = mol->BeginAtom(); atom < mol->EndAtom(); ++atom) {
       if ( mask.AtomInCharMask( atom ) ) {
-        (*mol).SetSolvent();
-        if (firstSolventMol == -1) {
-          // This is first solvent mol. Final solute res is the one before this.
-          int firstRes = atoms_[ (*mol).BeginAtom() ].ResNum();
-          finalSoluteRes_ = firstRes - 1;
-          firstSolventMol = (int)(mol - molecules_.begin());
-        }
+        mol->SetSolvent();
         ++NsolventMolecules_;
-        numSolvAtoms += (*mol).NumAtoms();
+        numSolvAtoms += mol->NumAtoms();
         break;
       }
     }
   }
 
-  if (firstSolventMol == -1 && finalSoluteRes_ == -1)
-    finalSoluteRes_ = (int)residues_.size() - 1;
   mprintf("\tSolvent Mask [%s]: %i solvent molecules, %i solvent atoms\n",
           maskexpr.c_str(), NsolventMolecules_, numSolvAtoms);
   return 0;
 }
 
 // Topology::SetSolventInfo()
-/** Determine which molecules are solvent based on residue name. 
-  * Also set finalSoluteRes.
-  */
+/** Determine which molecules are solvent based on residue name. */
 int Topology::SetSolventInfo() {
   // Require molecule information
   if (molecules_.empty()) {
@@ -1010,27 +1000,18 @@ int Topology::SetSolventInfo() {
   }
   // Loop over each molecule. Check if first residue of molecule is solvent.
   NsolventMolecules_ = 0;
-  finalSoluteRes_ = -1;
   int numSolvAtoms = 0;
-  int firstSolventMol = -1;
   for (std::vector<Molecule>::iterator mol = molecules_.begin();
                                        mol != molecules_.end(); mol++)
   {
-    int firstRes = atoms_[ (*mol).BeginAtom() ].ResNum();
+    int firstRes = atoms_[ mol->BeginAtom() ].ResNum();
     if ( residues_[firstRes].NameIsSolvent() ) {
-      (*mol).SetSolvent();
+      mol->SetSolvent();
       ++NsolventMolecules_;
-      numSolvAtoms += (*mol).NumAtoms();
-      if (firstSolventMol==-1) {
-        // This is first solvent mol. Final solute res is the one before this.
-        finalSoluteRes_ = firstRes - 1;
-        firstSolventMol = (int)(mol - molecules_.begin());
-      }
+      numSolvAtoms += mol->NumAtoms();
     }
   }
 
-  if (firstSolventMol == -1 && finalSoluteRes_ == -1)
-    finalSoluteRes_ = (int)residues_.size() - 1;
   if (debug_>0) {
     if (NsolventMolecules_ == 0) 
       mprintf("    No solvent.\n");

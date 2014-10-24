@@ -8,6 +8,7 @@
 #include "AtomMask.h"
 #include "Frame.h"
 #include "FileName.h"
+#include "Range.h"
 // Class: Topology
 /// Hold information for all atoms
 class Topology {
@@ -42,7 +43,6 @@ class Topology {
     FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
     bool NoRefCoords()                    const { return (refCoords_.empty()); }
-    int FinalSoluteRes() const; // TODO: Replace
     const char *c_str() const;
     // ---- Atom-specific routines ---------------
     typedef std::vector<Atom>::const_iterator atom_iterator;
@@ -56,6 +56,7 @@ class Topology {
     inline res_iterator ResEnd()   const { return residues_.end();   }
     const Residue& Res(int idx)    const { return residues_[idx];    }
     Residue& SetRes(int idx)             { return residues_[idx];    }
+    Range SoluteResidues() const;
     // ----- Molecule-specific routines ----------
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const { return molecules_.begin(); }
@@ -103,7 +104,6 @@ class Topology {
     std::string TruncResNameNum(int) const;
     int FindAtomInResidue(int, NameType const&) const;
     int FindResidueMaxNatom() const;
-    int SoluteAtoms() const;
     int SetSolvent(std::string const&);
     // ----- Print topology info -----------------
     void Summary() const;
@@ -219,7 +219,6 @@ class Topology {
     int debug_;
     int ipol_;              ///< 0 if fixed charge, 1 if polarizable
     int NsolventMolecules_;
-    int finalSoluteRes_; ///< TODO: Get rid of
     int pindex_;
     int nframes_;
     int n_extra_pts_;
