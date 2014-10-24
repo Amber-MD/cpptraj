@@ -89,7 +89,7 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
           mprinterr("Error: Exponent is empty.\n");
           return 1;
         }
-        mprintf("Exponent detected: %s\n", exponent.c_str());
+        if (debug_ > 0) mprintf("Exponent detected: %s\n", exponent.c_str());
         double eval;
         std::istringstream iss2(exponent);
         if (!(iss2 >> eval)) {
