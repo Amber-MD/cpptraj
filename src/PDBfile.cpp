@@ -82,6 +82,8 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
 
 Atom PDBfile::pdb_Atom(bool readPQR) {
   // ATOM or HETATM keyword.
+  // Check line length before any modification.
+  size_t lineLength = strlen( linebuffer_ );
   // Atom number (6-11)
   // Atom name (12-16), Replace asterisks with single quotes.
   char savechar = linebuffer_[16];
@@ -90,8 +92,6 @@ Atom PDBfile::pdb_Atom(bool readPQR) {
   aname.ReplaceAsterisk();
   linebuffer_[16] = savechar;
   // Chain ID (21)
-  // Check line length.
-  size_t lineLength = strlen( linebuffer_ );
   // Element (76-77), Protect against broken PDB files (lines too short).
   char eltString[2]; eltString[0] = ' '; eltString[1] = ' ';
   if (lineLength > 77) {
@@ -152,16 +152,21 @@ void PDBfile::pdb_Box(double* box) const {
 
 NameType PDBfile::pdb_ResName() {
   // Res name (16-20), Replace asterisks with single quotes.
+  char savechar = linebuffer_[20];
   linebuffer_[20] = '\0';
   NameType resName(linebuffer_+16);
+  linebuffer_[20] = savechar;
   resName.ReplaceAsterisk();
   return resName;
 }
 
 int PDBfile::pdb_ResNum() {
   // Res num (22-27)
+  char savechar = linebuffer_[27];
   linebuffer_[27] = '\0';
-  return atoi( linebuffer_+22 );
+  int resnum = atoi( linebuffer_+22 );
+  linebuffer_[27] = savechar;
+  return resnum;
 }
 
 // -----------------------------------------------------------------------------
