@@ -15,7 +15,7 @@ class Action_NMRrst: public Action {
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    void Print() {}
+    void Print();
 
     int ReadNmrRestraints( std::string const& );
     int ReadXplor( BufferedLine& );
@@ -44,10 +44,17 @@ class Action_NMRrst: public Action {
       public:
         Site() : resNum_(-1) {}
         Site(int r, Iarray const& i) : resNum_(r), indices_(i), shortestCount_(i.size(), 0) {}
-        int ResNum() const { return resNum_; }
-        typedef Iarray::const_iterator Idx_it;
-        Idx_it IdxBegin() const { return indices_.begin(); }
-        Idx_it IdxEnd() const { return indices_.end(); }
+        int ResNum()                   const { return resNum_;           }
+        unsigned int Nindices()        const { return indices_.size();   }
+        int Idx(unsigned int i)        const { return indices_[i];       }
+        int Count(unsigned int i)      const { return shortestCount_[i]; }
+        void Increment(int c)                { ++shortestCount_[c];      }
+        int TotalCount()               const {
+          int c = 0;
+          for (Iarray::const_iterator it = shortestCount_.begin(); it != shortestCount_.end(); ++it)
+            c += *it;
+          return c;
+        };
       private:
         int resNum_; ///< Site residue number.
         Iarray indices_; ///< Site atom indices.
@@ -63,6 +70,17 @@ class Action_NMRrst: public Action {
     class NOEtype {
       public:
         NOEtype() : dist_(0) {}
+        NOEtype(Site const& s1, Site const& s2, DataSet* d) :
+          site1_(s1), site2_(s2), dist_(d) {}
+        Site const& Site1() const { return site1_; }
+        Site const& Site2() const { return site2_; }
+        DataSet* Data()           { return dist_;  }
+        void UpdateNOE(int i, double d, unsigned int c1, unsigned int c2) {
+          float fval = (float)d;
+          dist_->Add(i, &fval);
+          site1_.Increment( c1 );
+          site2_.Increment( c2 );
+        }
       private:
         Site site1_; ///< First site, lower resNum
         Site site2_; ///< Second site, higher resNum
@@ -70,11 +88,18 @@ class Action_NMRrst: public Action {
     };
     typedef std::map<Ptype, NOEtype> NOEmap;
     NOEmap FoundNOEs_;
+
+    static void PrintFoundNOE(NOEtype const&);
     
     ImagedAction Image_;
-    bool useMass_;
-    bool findNOEs_;
+    std::string setname_;
+    DataSetList* masterDSL_; // TODO: Replace these with new DataSet type
+    double max_cut2_; ///< Min cutoff^2 for NOE to be present.
+    double present_fraction_; ///< NOEs present less than this will be removed.
     int resOffset_;
     int debug_;
+    int nframes_; ///< Total # of frames.
+    bool useMass_;
+    bool findNOEs_;
 };
 #endif

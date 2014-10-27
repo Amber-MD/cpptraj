@@ -8,7 +8,8 @@
 
 // CONSTRUCTOR
 Action_NMRrst::Action_NMRrst() :
-   useMass_(false), findNOEs_(false), resOffset_(0), debug_(0) {} 
+   masterDSL_(0), max_cut2_(25.0), present_fraction_(0.10), resOffset_(0),
+   debug_(0), nframes_(0), useMass_(false), findNOEs_(false) {} 
 
 void Action_NMRrst::Help() {
   mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n"
@@ -74,14 +75,22 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   findNOEs_ = actionArgs.hasKey("findnoes");
   resOffset_ = actionArgs.getKeyInt("resoffset", 0);
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  double cut = actionArgs.getKeyDouble("cut", 5.0);
+  max_cut2_ = cut * cut;
+  present_fraction_ = actionArgs.getKeyDouble("fraction", 0.10);
+  if (present_fraction_ > 1.0 || present_fraction_ < 0.0) {
+    mprinterr("Error: 'fraction' must be between 0.0 and 1.0\n");
+    return Action::ERR;
+  }
   std::string rstfilename = actionArgs.GetStringKey("file");
-  std::string setname = actionArgs.GetStringKey("name");
-  if (setname.empty())
-    setname = DSL->GenerateDefaultName("NMR");
+  setname_ = actionArgs.GetStringKey("name");
+  if (setname_.empty())
+    setname_ = DSL->GenerateDefaultName("NMR");
   if (!findNOEs_ && rstfilename.empty()) {
     mprinterr("Error: Must specify restraint file and/or 'findnoes'.\n");
     return Action::ERR;
   }
+  nframes_ = 0;
 
   // Read in NMR restraints.
   if (!rstfilename.empty()) {
@@ -98,7 +107,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
      noe->dMask1_.SetMaskString( MaskExpression( noe->resNum1_, noe->aName1_ ) ); 
      noe->dMask2_.SetMaskString( MaskExpression( noe->resNum2_, noe->aName2_ ) ); 
      // Dataset to store distances
-    noe->dist_ = DSL->AddSetIdxAspect(DataSet::DOUBLE, setname, num_noe, "NOE");
+    noe->dist_ = DSL->AddSetIdxAspect(DataSet::DOUBLE, setname_, num_noe, "NOE");
     if (noe->dist_==0) return Action::ERR;
     noe->dist_->SetScalar( DataSet::M_DISTANCE, DataSet::NOE );
     ((DataSet_double*)noe->dist_)->SetNOE(noe->bound_, noe->boundh_, noe->rexp_);
@@ -107,6 +116,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     // Add dataset to data file
     if (outfile != 0) outfile->AddSet( noe->dist_ );
   }
+  masterDSL_ = DSL;
  
   mprintf("    NMRRST: %zu NOEs from NMR restraint file.\n", NOEs_.size());
   mprintf("\tShifting residue numbers in restraint file by %i\n", resOffset_);
@@ -114,8 +124,11 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   for (noeArray::const_iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe)
     mprintf("\t'%s'  %f < %f < %f\n", noe->dist_->Legend().c_str(),
             noe->bound_, noe->rexp_, noe->boundh_);
-  if (findNOEs_)
-    mprintf("\tSearching for potential NOEs.\n");
+  if (findNOEs_) {
+    mprintf("\tSearching for potential NOEs. Cutoff is %g Ang.\n", sqrt(max_cut2_));
+    mprintf("\tNOEs present less than %g %% of the total # of frames will be ignored.\n",
+            present_fraction_ * 100.0);
+  }
   if (!Image_.UseImage()) 
     mprintf("\tNon-imaged");
   else
@@ -291,10 +304,11 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
           Iarray heavyAtomGroup;
           for (Atom::bond_iterator ba = (*currentParm)[ratom].bondbegin();
                                    ba != (*currentParm)[ratom].bondend(); ++ba)
-            if ( *ba >= res_first_atom &&
-                 !selected[ *ba - res_first_atom ] &&
-                 (*currentParm)[ *ba ].Element() == Atom::HYDROGEN )
+            if ( *ba >= res_first_atom && *ba < currentParm->Res(*res).LastAtom() ) {
+              if ( !selected[ *ba - res_first_atom ] &&
+                   (*currentParm)[ *ba ].Element() == Atom::HYDROGEN )
                 heavyAtomGroup.push_back( *ba );
+            }
           if (!heavyAtomGroup.empty())
             potentialSites_.push_back( Site(*res, heavyAtomGroup) );
         }
@@ -304,9 +318,9 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
     for (SiteArray::const_iterator site = potentialSites_.begin();
                                    site != potentialSites_.end(); ++site)
     {
-      mprintf("\tRes %i:", site->ResNum()+1);
-      for (Site::Idx_it it = site->IdxBegin(); it != site->IdxEnd(); ++it)
-        mprintf(" %s", currentParm->TruncAtomNameNum( *it ).c_str());
+      mprintf("  %u\tRes %i:", site - potentialSites_.begin(), site->ResNum()+1);
+      for (unsigned int idx = 0; idx != site->Nindices(); ++idx)
+        mprintf(" %s", currentParm->TruncAtomNameNum( site->Idx(idx) ).c_str());
       mprintf("\n");
     }
   }
@@ -326,31 +340,119 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, Frame* currentFrame, Frame
   Matrix_3x3 ucell, recip;
   Vec3 a1, a2;
 
+  if (Image_.ImageType() == NONORTHO)
+    currentFrame->BoxCrd().ToRecip(ucell, recip);
+
   for (noeArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
-    if ( (*noe).active_ ) {
+    if ( noe->active_ ) {
       if (useMass_) {
-        a1 = currentFrame->VCenterOfMass( (*noe).dMask1_ );
-        a2 = currentFrame->VCenterOfMass( (*noe).dMask2_ );
+        a1 = currentFrame->VCenterOfMass( noe->dMask1_ );
+        a2 = currentFrame->VCenterOfMass( noe->dMask2_ );
       } else {
-        a1 = currentFrame->VGeometricCenter( (*noe).dMask1_ );
-        a2 = currentFrame->VGeometricCenter( (*noe).dMask2_ );
+        a1 = currentFrame->VGeometricCenter( noe->dMask1_ );
+        a2 = currentFrame->VGeometricCenter( noe->dMask2_ );
       }
 
       switch ( Image_.ImageType() ) {
-        case NONORTHO:
-          currentFrame->BoxCrd().ToRecip(ucell, recip);
-          Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);
-          break;
-        case ORTHO:
-          Dist = DIST2_ImageOrtho(a1, a2, currentFrame->BoxCrd());
-          break;
-        case NOIMAGE:
-          Dist = DIST2_NoImage(a1, a2);
-          break;
+        case NONORTHO: Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip); break;
+        case ORTHO: Dist = DIST2_ImageOrtho(a1, a2, currentFrame->BoxCrd()); break;
+        case NOIMAGE: Dist = DIST2_NoImage(a1, a2); break;
       }
       Dist = sqrt(Dist);
-      (*noe).dist_->Add(frameNum, &Dist);
+      noe->dist_->Add(frameNum, &Dist);
     }
   }
+
+  int sc1 = 0;
+  for (SiteArray::const_iterator site1 = potentialSites_.begin();
+                                 site1 != potentialSites_.end(); ++site1, ++sc1)
+  {
+    int sc2 = sc1 + 1;
+    for (SiteArray::const_iterator site2 = site1 + 1;
+                                   site2 != potentialSites_.end(); ++site2, ++sc2)
+    {
+      if (site1->ResNum() != site2->ResNum())
+      {
+        unsigned int shortest_idx1 = 0, shortest_idx2 = 0;
+        double shortest_dist2 = -1.0;
+        for (unsigned int idx1 = 0; idx1 != site1->Nindices(); ++idx1)
+        {
+          for (unsigned int idx2 = 0; idx2 != site2->Nindices(); ++idx2)
+          {
+            double dist2 = DIST2(currentFrame->XYZ(site1->Idx(0)),
+                                 currentFrame->XYZ(site2->Idx(0)),
+                                 Image_.ImageType(), currentFrame->BoxCrd(),
+                                 ucell, recip);
+            if (shortest_dist2 < 0.0 || dist2 < shortest_dist2) {
+              shortest_dist2 = dist2;
+              shortest_idx1 = idx1;
+              shortest_idx2 = idx2;
+            }
+          }
+        }
+        if (shortest_dist2 < max_cut2_) {
+//          mprintf("%i (%i to %i):", frameNum+1, sc1, sc2); 
+          // Potential NOE has formed. Determine if it has been seen before.
+          Ptype res_pair(sc1, sc2);
+          NOEmap::iterator my_noe = FoundNOEs_.find( res_pair );
+          if (my_noe == FoundNOEs_.end()) {
+//            mprintf(" New NOE");
+            // New NOE
+            DataSet* ds = masterDSL_->AddSetIdxAspect(DataSet::FLOAT, setname_,
+                                                      FoundNOEs_.size(), "foundNOE");
+            std::pair<NOEmap::iterator, bool> ret =
+              FoundNOEs_.insert( std::pair<Ptype,NOEtype>(res_pair,
+                                                          NOEtype(*site1, *site2, ds)) );
+            my_noe = ret.first;
+          }
+//          PrintFoundNOE(my_noe->second); 
+          // Update NOE
+          my_noe->second.UpdateNOE(frameNum, sqrt(shortest_dist2), shortest_idx1, shortest_idx2);
+        }
+      }
+    }
+  }
+  ++nframes_;
   return Action::OK;
+}
+
+void Action_NMRrst::PrintFoundNOE(NOEtype const& noe) {
+      mprintf(" %i:{", noe.Site1().ResNum()+1);
+      for (unsigned int idx = 0; idx != noe.Site1().Nindices(); idx++)
+        mprintf(" @%i(%i)", noe.Site1().Idx(idx)+1, noe.Site1().Count(idx));
+      mprintf(" } -- %i:{", noe.Site2().ResNum()+1);
+      for (unsigned int idx = 0; idx != noe.Site2().Nindices(); idx++)
+        mprintf(" @%i(%i)", noe.Site2().Idx(idx)+1, noe.Site2().Count(idx));
+      mprintf(" }\n");
 } 
+
+// Action_NMRrst::Print()
+void Action_NMRrst::Print() {
+  if (!FoundNOEs_.empty()) {
+    mprintf("    NMRRST:\n");
+    // Remove NOEs present less than the cutoff
+    int framesCut = (int)(present_fraction_ * (double)nframes_);
+    mprintf("\tRemoving found NOEs present less than %i frames (%g %%)\n",
+            framesCut, present_fraction_ * 100.0);
+    NOEmap::iterator f_noe = FoundNOEs_.begin();
+    while ( f_noe != FoundNOEs_.end() )
+    {
+      int total_count = f_noe->second.Site1().TotalCount();
+      if (total_count < framesCut) {
+        mprintf("\tRemoving");
+        PrintFoundNOE(f_noe->second);
+        masterDSL_->RemoveSet( f_noe->second.Data() );
+        FoundNOEs_.erase( f_noe++ );
+      } else
+        ++f_noe;
+    }
+    // Print found NOEs
+    mprintf("\tFinal found NOEs:\n");
+    for (NOEmap::const_iterator my_noe = FoundNOEs_.begin();
+                                my_noe != FoundNOEs_.end(); ++my_noe)
+    {
+      mprintf("\t\t");
+      PrintFoundNOE(my_noe->second);
+    }
+  }
+}
