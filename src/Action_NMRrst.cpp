@@ -8,9 +8,8 @@
 
 // CONSTRUCTOR
 Action_NMRrst::Action_NMRrst() :
-   masterDSL_(0), max_cut2_(25.0), present_fraction_(0.10), resOffset_(0),
-   debug_(0), nframes_(0), useMass_(false), findNOEs_(false) {} 
-
+   masterDSL_(0), numNoePairs_(0), max_cut2_(25.0), //present_fraction_(0.10), 
+   resOffset_(0), debug_(0), nframes_(0), useMass_(false), findNOEs_(false) {} 
 void Action_NMRrst::Help() {
   mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n"
           "  Calculate distances based on entries in the given NMR restraint file.\n");
@@ -77,11 +76,11 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   double cut = actionArgs.getKeyDouble("cut", 5.0);
   max_cut2_ = cut * cut;
-  present_fraction_ = actionArgs.getKeyDouble("fraction", 0.10);
-  if (present_fraction_ > 1.0 || present_fraction_ < 0.0) {
-    mprinterr("Error: 'fraction' must be between 0.0 and 1.0\n");
-    return Action::ERR;
-  }
+//  present_fraction_ = actionArgs.getKeyDouble("fraction", 0.10);
+//  if (present_fraction_ > 1.0 || present_fraction_ < 0.0) {
+//    mprinterr("Error: 'fraction' must be between 0.0 and 1.0\n");
+//    return Action::ERR;
+//  }
   std::string rstfilename = actionArgs.GetStringKey("file");
   setname_ = actionArgs.GetStringKey("name");
   if (setname_.empty())
@@ -126,8 +125,8 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
             noe->bound_, noe->rexp_, noe->boundh_);
   if (findNOEs_) {
     mprintf("\tSearching for potential NOEs. Cutoff is %g Ang.\n", sqrt(max_cut2_));
-    mprintf("\tNOEs present less than %g %% of the total # of frames will be ignored.\n",
-            present_fraction_ * 100.0);
+//    mprintf("\tNOEs present less than %g %% of the total # of frames will be ignored.\n",
+//            present_fraction_ * 100.0);
   }
   if (!Image_.UseImage()) 
     mprintf("\tNon-imaged");
@@ -323,6 +322,34 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
         mprintf(" %s", currentParm->TruncAtomNameNum( site->Idx(idx) ).c_str());
       mprintf("\n");
     }
+    if (noeArray_.empty()) {
+      // Set up all potential NOE pairs.
+      for (SiteArray::const_iterator site1 = potentialSites_.begin();
+                                     site1 != potentialSites_.end(); ++site1)
+      {
+        for (SiteArray::const_iterator site2 = site1 + 1;
+                                       site2 != potentialSites_.end(); ++site2)
+        {
+          if (site1->ResNum() != site2->ResNum()) {
+            DataSet* ds = masterDSL_->AddSetIdxAspect(DataSet::FLOAT, setname_, 
+                                                      noeArray_.size(), "foundNOE");
+            if (ds == 0) return Action::ERR;
+            noeArray_.push_back( NOEtype(*site1, *site2, ds) );
+          }
+        }
+      }
+      numNoePairs_ = noeArray_.size();
+      size_t noeSize = ((sizeof(Site) + sizeof(Site) + sizeof(DataSet*) + sizeof(NOEtype) +
+                        sizeof(std::vector<float>)) * noeArray_.size()) + sizeof(NOEtypeArray);
+      mprintf("\t%zu potential NOE pairs. Estimated memory usage is %g MB + %g MB per frame.\n",
+              numNoePairs_, (double)noeSize / 1048576.0, 
+              (double)(numNoePairs_ * sizeof(float)) / 1048576.0);
+    } else if (numNoePairs_ != potentialSites_.size()) {
+      mprinterr("Error: Found NOE matrix has already been set up for %zu potential\n"
+                "Error:   NOEs, but %zu NOEs currently found.\n", numNoePairs_,
+                potentialSites_.size());
+      return Action::ERR;
+    }
   }
   // Set up imaging info for this parm
   Image_.SetupImaging( currentParm->BoxType() );
@@ -363,6 +390,31 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, Frame* currentFrame, Frame
     }
   }
 
+  for (NOEtypeArray::iterator my_noe = noeArray_.begin();
+                              my_noe != noeArray_.end(); ++my_noe)
+  {
+    unsigned int shortest_idx1 = 0, shortest_idx2 = 0;
+    double shortest_dist2 = -1.0;
+    for (unsigned int idx1 = 0; idx1 != my_noe->Site1().Nindices(); ++idx1)
+    {
+      for (unsigned int idx2 = 0; idx2 != my_noe->Site2().Nindices(); ++idx2)
+      {
+        double dist2 = DIST2(currentFrame->XYZ(my_noe->Site1().Idx(idx1)),
+                             currentFrame->XYZ(my_noe->Site2().Idx(idx2)),
+                             Image_.ImageType(), currentFrame->BoxCrd(),
+                             ucell, recip); 
+        if (shortest_dist2 < 0.0 || dist2 < shortest_dist2) {
+          shortest_dist2 = dist2;
+          shortest_idx1 = idx1;
+          shortest_idx2 = idx2;
+        }
+      }
+    }
+    my_noe->UpdateNOE(frameNum, shortest_dist2, shortest_idx1, shortest_idx2,
+                      (shortest_dist2 < max_cut2_));
+  }
+
+/*
   int sc1 = 0;
   for (SiteArray::const_iterator site1 = potentialSites_.begin();
                                  site1 != potentialSites_.end(); ++site1, ++sc1)
@@ -379,8 +431,8 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, Frame* currentFrame, Frame
         {
           for (unsigned int idx2 = 0; idx2 != site2->Nindices(); ++idx2)
           {
-            double dist2 = DIST2(currentFrame->XYZ(site1->Idx(0)),
-                                 currentFrame->XYZ(site2->Idx(0)),
+            double dist2 = DIST2(currentFrame->XYZ(site1->Idx(idx1)),
+                                 currentFrame->XYZ(site2->Idx(idx2)),
                                  Image_.ImageType(), currentFrame->BoxCrd(),
                                  ucell, recip);
             if (shortest_dist2 < 0.0 || dist2 < shortest_dist2) {
@@ -412,6 +464,7 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, Frame* currentFrame, Frame
       }
     }
   }
+*/
   ++nframes_;
   return Action::OK;
 }
@@ -423,17 +476,57 @@ void Action_NMRrst::PrintFoundNOE(NOEtype const& noe) {
       mprintf(" } -- %i:{", noe.Site2().ResNum()+1);
       for (unsigned int idx = 0; idx != noe.Site2().Nindices(); idx++)
         mprintf(" @%i(%i)", noe.Site2().Idx(idx)+1, noe.Site2().Count(idx));
-      mprintf(" }\n");
+      mprintf(" }");
 } 
 
 // Action_NMRrst::Print()
 void Action_NMRrst::Print() {
-  if (!FoundNOEs_.empty()) {
+  if (findNOEs_) {
     mprintf("    NMRRST:\n");
     // Remove NOEs present less than the cutoff
-    int framesCut = (int)(present_fraction_ * (double)nframes_);
-    mprintf("\tRemoving found NOEs present less than %i frames (%g %%)\n",
-            framesCut, present_fraction_ * 100.0);
+//    int framesCut = (int)(present_fraction_ * (double)nframes_);
+//    mprintf("\tRemoving found NOEs with all distances > %g or present less than"
+//            " %i frames (%g %%)\n", sqrt(max_cut2_),
+//            framesCut, present_fraction_ * 100.0);
+    mprintf("\tRemoving found NOEs with all distances > %g\n", sqrt(max_cut2_));
+    for (NOEtypeArray::iterator my_noe = noeArray_.begin();
+                                my_noe != noeArray_.end(); ++my_noe)
+    {
+//      int total_count = my_noe->Site1().TotalCount();
+      if (!my_noe->CutoffSatisfied())
+      {
+        if (debug_ > 0) {
+          mprintf("\tRemoving");
+          PrintFoundNOE(*my_noe);
+//        if (total_count < framesCut) mprintf(" too infrequent");
+          mprintf("\n");
+        }
+        masterDSL_->RemoveSet( my_noe->Data() );
+        my_noe->ResetData();
+      }
+    }
+    // Print found NOEs
+    mprintf("\tFinal found NOEs:\n");
+    for (NOEtypeArray::iterator my_noe = noeArray_.begin();
+                                my_noe != noeArray_.end(); ++my_noe)
+    {
+      if (my_noe->Data() != 0) {
+        // Perform averaging
+        DataSet_1D const& data = static_cast<DataSet_1D const&>( *(my_noe->Data()) );
+        double r6_avg = 0.0;
+        for (unsigned int i = 0; i != data.Size(); i++)
+        {
+          double d2 = data.Dval(i);
+          r6_avg += ( 1.0 / (d2 * d2 * d2) );
+        }
+        r6_avg /= (double)data.Size();
+        r6_avg = pow( r6_avg, -1.0/6.0 );
+        mprintf("  %i\t", data.Idx());
+        PrintFoundNOE(*my_noe);
+        mprintf(" %g\n", r6_avg);
+      }
+    }
+/*
     NOEmap::iterator f_noe = FoundNOEs_.begin();
     while ( f_noe != FoundNOEs_.end() )
     {
@@ -454,5 +547,6 @@ void Action_NMRrst::Print() {
       mprintf("\t\t");
       PrintFoundNOE(my_noe->second);
     }
+*/
   }
 }

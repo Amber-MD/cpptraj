@@ -1,6 +1,5 @@
 #ifndef INC_ACTION_NMRRST_H
 #define INC_ACTION_NMRRST_H
-#include <map>
 #include "Action.h"
 #include "ImagedAction.h"
 #include "BufferedLine.h"
@@ -49,12 +48,12 @@ class Action_NMRrst: public Action {
         int Idx(unsigned int i)        const { return indices_[i];       }
         int Count(unsigned int i)      const { return shortestCount_[i]; }
         void Increment(int c)                { ++shortestCount_[c];      }
-        int TotalCount()               const {
-          int c = 0;
-          for (Iarray::const_iterator it = shortestCount_.begin(); it != shortestCount_.end(); ++it)
-            c += *it;
-          return c;
-        };
+//        int TotalCount()               const {
+//          int c = 0;
+//          for (Iarray::const_iterator it = shortestCount_.begin(); it != shortestCount_.end(); ++it)
+//            c += *it;
+//          return c;
+//        };
       private:
         int resNum_; ///< Site residue number.
         Iarray indices_; ///< Site atom indices.
@@ -69,33 +68,40 @@ class Action_NMRrst: public Action {
     /// NOE between two sites.
     class NOEtype {
       public:
-        NOEtype() : dist_(0) {}
+        NOEtype() : dist2_(0), belowCut_(false) {}
         NOEtype(Site const& s1, Site const& s2, DataSet* d) :
-          site1_(s1), site2_(s2), dist_(d) {}
-        Site const& Site1() const { return site1_; }
-        Site const& Site2() const { return site2_; }
-        DataSet* Data()           { return dist_;  }
-        void UpdateNOE(int i, double d, unsigned int c1, unsigned int c2) {
+          site1_(s1), site2_(s2), dist2_(d), belowCut_(false) {}
+        Site const& Site1()    const { return site1_;    }
+        Site const& Site2()    const { return site2_;    }
+        bool CutoffSatisfied() const { return belowCut_; }
+        DataSet* Data()              { return dist2_;    }
+        void ResetData()             { dist2_ = 0;       }
+        void UpdateNOE(int i, double d, unsigned int c1, unsigned int c2, bool satisfyCut) {
           float fval = (float)d;
-          dist_->Add(i, &fval);
+          dist2_->Add(i, &fval);
           site1_.Increment( c1 );
           site2_.Increment( c2 );
+          if (satisfyCut) belowCut_ = true;
         }
       private:
         Site site1_; ///< First site, lower resNum
         Site site2_; ///< Second site, higher resNum
-        DataSet* dist_; ///< Distance data.
+        DataSet* dist2_; ///< Distance^2 data.
+        bool belowCut_; ///< If true, cutoff was satisfied at least once.
     };
-    typedef std::map<Ptype, NOEtype> NOEmap;
-    NOEmap FoundNOEs_;
+    typedef std::vector<NOEtype> NOEtypeArray;
+    NOEtypeArray noeArray_;
+//    typedef std::map<Ptype, NOEtype> NOEmap;
+//    NOEmap FoundNOEs_;
 
     static void PrintFoundNOE(NOEtype const&);
     
     ImagedAction Image_;
     std::string setname_;
     DataSetList* masterDSL_; // TODO: Replace these with new DataSet type
+    size_t numNoePairs_;
     double max_cut2_; ///< Min cutoff^2 for NOE to be present.
-    double present_fraction_; ///< NOEs present less than this will be removed.
+//    double present_fraction_; ///< NOEs present less than this will be removed.
     int resOffset_;
     int debug_;
     int nframes_; ///< Total # of frames.
