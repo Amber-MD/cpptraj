@@ -748,12 +748,10 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   // it, noting which IDs are unique for that map. 
 
   if (RefMap_.Setup(RefFrame_.Parm())!=0) return Action::ERR;
-  if (RefMap_.CheckBonds()!=0) return Action::ERR;
   //RefMap_.WriteMol2((char*)"RefMap.mol2\0"); // DEBUG
   RefMap_.DetermineAtomIDs();
 
   if (TgtMap_.Setup(TgtFrame_.Parm())!=0) return Action::ERR;
-  if (TgtMap_.CheckBonds()!=0) return Action::ERR;
   //TgtMap_.WriteMol2((char*)"TgtMap.mol2\0"); // DEBUG
   TgtMap_.DetermineAtomIDs();
 
