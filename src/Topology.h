@@ -99,8 +99,13 @@ class Topology {
     inline const std::vector<int>& Join()       const { return join_;   }
     inline const std::vector<int>& Irotat()     const { return irotat_; }
     // ----- Misc routines -----------------------
+    /// Format: <res name><res num>@<atom name>
     std::string TruncResAtomName(int) const;
-    std::string AtomMaskName(int atom) const;
+    /// Format: :<res num>@<atom name>
+    std::string AtomMaskName(int) const;
+    /// Format: <atom name>_<atom num>
+    std::string TruncAtomNameNum(int) const;
+    /// Format: <res name>:<res num> 
     std::string TruncResNameNum(int) const;
     int FindAtomInResidue(int, NameType const&) const;
     int FindResidueMaxNatom() const;

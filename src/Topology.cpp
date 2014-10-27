@@ -109,6 +109,14 @@ std::string Topology::AtomMaskName(int atom) const {
   return maskName;
 }
 
+std::string Topology::TruncAtomNameNum(int atom) const {
+  if (atom < 0 || atom >= (int)atoms_.size()) return std::string("");
+  std::string atom_name = atoms_[atom].Name().Truncated();
+  atom_name += "_";
+  atom_name += integerToString(atom + 1);
+  return atom_name;
+}
+
 // Topology::TruncResNameNum()
 /** Given a residue number (starting from 0), return a string containing 
   * residue name and number (starting from 1) with format: 
