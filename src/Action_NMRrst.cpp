@@ -4,9 +4,11 @@
 #include "DataSet_double.h"
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
+#include "AtomMap.h"
 
 // CONSTRUCTOR
-Action_NMRrst::Action_NMRrst() : useMass_(false), resOffset_(0) {} 
+Action_NMRrst::Action_NMRrst() :
+   useMass_(false), findNOEs_(false), resOffset_(0), debug_(0) {} 
 
 void Action_NMRrst::Help() {
   mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n"
@@ -27,27 +29,10 @@ static void TranslateAmbiguous(std::string& aname) {
     aname.assign("HA=");
 }
 
-// Action_NMRrst::Init()
-Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+int Action_NMRrst::ReadNmrRestraints( std::string const& rstfilename )
 {
-  // Get Keywords
-  Image_.InitImaging( !(actionArgs.hasKey("noimage")) );
-  useMass_ = !(actionArgs.hasKey("geom"));
-  resOffset_ = actionArgs.getKeyInt("resoffset", 0);
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  std::string rstfilename = actionArgs.GetStringKey("file");
-  if (rstfilename.empty()) {
-    mprinterr("Error: must specify an NMR restraint filename with 'file <rstfile>'\n");
-    return Action::ERR;
-  }
-  std::string setname = actionArgs.GetStringKey("name");
-  if (setname.empty())
-    setname = DSL->GenerateDefaultName("NMR");
-
-  // Read in NMR restraints.
   BufferedLine infile;
-  if (infile.OpenFileRead( rstfilename )) return Action::ERR;
+  if (infile.OpenFileRead( rstfilename )) return 1;
   // Try to determine what kind of file.
   const char* ptr = infile.Line();
   // Try to skip past any blank lines and comments
@@ -55,12 +40,12 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     ptr = infile.Line();
   if (ptr == 0) {
     mprinterr("Error: Unexpected end of restraint file.\n");
-    return Action::ERR;
+    return 1; 
   }
   std::string inputLine( ptr );
   infile.CloseFile();
   // Re-open file
-  if (infile.OpenFileRead( rstfilename )) return Action::ERR;
+  if (infile.OpenFileRead( rstfilename )) return 1;
   int err = 0;
   if ( inputLine.compare(0, 7, "*HEADER")==0 ||
        inputLine.compare(0, 6, "*TITLE")==0 ||
@@ -73,35 +58,64 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   infile.CloseFile();
   if (err != 0) {
     mprinterr("Error: Could not parse restraint file.\n");
+    return 1;
+  }
+  return 0;
+}
+
+// Action_NMRrst::Init()
+Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
+                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+{
+  debug_ = debugIn;
+  // Get Keywords
+  Image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  useMass_ = !(actionArgs.hasKey("geom"));
+  findNOEs_ = actionArgs.hasKey("findnoes");
+  resOffset_ = actionArgs.getKeyInt("resoffset", 0);
+  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  std::string rstfilename = actionArgs.GetStringKey("file");
+  std::string setname = actionArgs.GetStringKey("name");
+  if (setname.empty())
+    setname = DSL->GenerateDefaultName("NMR");
+  if (!findNOEs_ && rstfilename.empty()) {
+    mprinterr("Error: Must specify restraint file and/or 'findnoes'.\n");
     return Action::ERR;
+  }
+
+  // Read in NMR restraints.
+  if (!rstfilename.empty()) {
+    if (ReadNmrRestraints( rstfilename )) return Action::ERR;
   }
 
   // Set up distances.
   int num_noe = 1;
   for (noeArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe, ++num_noe) {
      // Translate any ambiguous atom names
-     TranslateAmbiguous( (*noe).aName1_ ); 
-     TranslateAmbiguous( (*noe).aName2_ );
+     TranslateAmbiguous( noe->aName1_ ); 
+     TranslateAmbiguous( noe->aName2_ );
      // Create mask expressions from resnum/atom name
-     (*noe).dMask1_.SetMaskString( MaskExpression( (*noe).resNum1_, (*noe).aName1_ ) ); 
-     (*noe).dMask2_.SetMaskString( MaskExpression( (*noe).resNum2_, (*noe).aName2_ ) ); 
+     noe->dMask1_.SetMaskString( MaskExpression( noe->resNum1_, noe->aName1_ ) ); 
+     noe->dMask2_.SetMaskString( MaskExpression( noe->resNum2_, noe->aName2_ ) ); 
      // Dataset to store distances
-    (*noe).dist_ = DSL->AddSetIdxAspect(DataSet::DOUBLE, setname, num_noe, "NOE");
-    if ((*noe).dist_==0) return Action::ERR;
-    (*noe).dist_->SetScalar( DataSet::M_DISTANCE, DataSet::NOE );
-    ((DataSet_double*)(*noe).dist_)->SetNOE((*noe).bound_, (*noe).boundh_, (*noe).rexp_);
-    (*noe).dist_->SetLegend( (*noe).dMask1_.MaskExpression() + " and " + 
-                             (*noe).dMask2_.MaskExpression());
+    noe->dist_ = DSL->AddSetIdxAspect(DataSet::DOUBLE, setname, num_noe, "NOE");
+    if (noe->dist_==0) return Action::ERR;
+    noe->dist_->SetScalar( DataSet::M_DISTANCE, DataSet::NOE );
+    ((DataSet_double*)noe->dist_)->SetNOE(noe->bound_, noe->boundh_, noe->rexp_);
+    noe->dist_->SetLegend( noe->dMask1_.MaskExpression() + " and " + 
+                           noe->dMask2_.MaskExpression());
     // Add dataset to data file
-    if (outfile != 0) outfile->AddSet( (*noe).dist_ );
+    if (outfile != 0) outfile->AddSet( noe->dist_ );
   }
  
-  mprintf("    NMRRST: %zu NOEs\n", NOEs_.size());
+  mprintf("    NMRRST: %zu NOEs from NMR restraint file.\n", NOEs_.size());
   mprintf("\tShifting residue numbers in restraint file by %i\n", resOffset_);
   // DEBUG - print NOEs
   for (noeArray::const_iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe)
-    mprintf("\t'%s'  %f < %f < %f\n", (*noe).dist_->Legend().c_str(),
-            (*noe).bound_, (*noe).rexp_, (*noe).boundh_);
+    mprintf("\t'%s'  %f < %f < %f\n", noe->dist_->Legend().c_str(),
+            noe->bound_, noe->rexp_, noe->boundh_);
+  if (findNOEs_)
+    mprintf("\tSearching for potential NOEs.\n");
   if (!Image_.UseImage()) 
     mprintf("\tNon-imaged");
   else
@@ -218,18 +232,83 @@ int Action_NMRrst::ReadXplor( BufferedLine& infile ) {
 /** Determine what atoms each mask pertains to for the current parm file.
   */
 Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddress) {
+  // Set up NOEs from file.
   for (noeArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
-    if (currentParm->SetupIntegerMask( (*noe).dMask1_ )) return Action::ERR;
-    if (currentParm->SetupIntegerMask( (*noe).dMask2_ )) return Action::ERR;
+    if (currentParm->SetupIntegerMask( noe->dMask1_ )) return Action::ERR;
+    if (currentParm->SetupIntegerMask( noe->dMask2_ )) return Action::ERR;
     //mprintf("\t%s (%i atoms) to %s (%i atoms)",Mask1_.MaskString(), Mask1_.Nselected(),
     //        Mask2_.MaskString(),Mask2_.Nselected());
-    if ((*noe).dMask1_.None() || (*noe).dMask2_.None()) {
+    if (noe->dMask1_.None() || noe->dMask2_.None()) {
       mprintf("Warning: One or both masks for NOE '%s' have no atoms (%i and %i).\n",
-              (*noe).dist_->Legend().c_str(), (*noe).dMask1_.Nselected(),
-              (*noe).dMask2_.Nselected());
-      (*noe).active_ = false; 
+              noe->dist_->Legend().c_str(), noe->dMask1_.Nselected(),
+              noe->dMask2_.Nselected());
+      noe->active_ = false; 
     } else
-      (*noe).active_ = true;
+      noe->active_ = true;
+  }
+  // Set up potential NOE sites.
+  if (findNOEs_) {
+    potentialSites_.clear();
+    AtomMap resMap;
+    resMap.SetDebug( debug_ );
+    std::vector<bool> selected;
+    Range soluteRes = currentParm->SoluteResidues();
+    for (Range::const_iterator res = soluteRes.begin(); res != soluteRes.end(); ++res)
+    {
+      int res_first_atom = currentParm->Res(*res).FirstAtom();
+      selected.assign( currentParm->Res(*res).NumAtoms(), false );
+      // Find symmetric atom groups.
+      AtomMap::AtomIndexArray symmGroups;
+      if (resMap.SymmetricAtoms(*currentParm, symmGroups, *res)) return Action::ERR;
+      // DEBUG
+      mprintf("DEBUG: Residue %i: symmetric atom groups:\n", *res + 1);
+      for (AtomMap::AtomIndexArray::const_iterator grp = symmGroups.begin();
+                                                   grp != symmGroups.end(); ++grp)
+      {
+        mprintf("\t\t");
+        for (AtomMap::Iarray::const_iterator at = grp->begin();
+                                             at != grp->end(); ++at)
+          mprintf(" %s", currentParm->TruncAtomNameNum( *at ).c_str());
+        mprintf("\n");
+      }
+      // Each symmetric hydrogen atom group is a site.
+      for (AtomMap::AtomIndexArray::const_iterator grp = symmGroups.begin();
+                                                   grp != symmGroups.end(); ++grp)
+      { // NOTE: If first atom is H all should be H.
+        if ( (*currentParm)[ grp->front() ].Element() == Atom::HYDROGEN )
+        {
+          potentialSites_.push_back( Site(*res, *grp) );
+          // Mark symmetric atoms as selected.
+          for (AtomMap::Iarray::const_iterator at = grp->begin();
+                                               at != grp->end(); ++at)
+            selected[ *at - res_first_atom ] = true;
+        }
+      }
+      // All other non-selected hydrogens bonded to same heavy atom are sites.
+      for (int ratom = res_first_atom; ratom != currentParm->Res(*res).LastAtom(); ++ratom)
+      {
+        if ( (*currentParm)[ratom].Element() != Atom::HYDROGEN ) {
+          Iarray heavyAtomGroup;
+          for (Atom::bond_iterator ba = (*currentParm)[ratom].bondbegin();
+                                   ba != (*currentParm)[ratom].bondend(); ++ba)
+            if ( *ba >= res_first_atom &&
+                 !selected[ *ba - res_first_atom ] &&
+                 (*currentParm)[ *ba ].Element() == Atom::HYDROGEN )
+                heavyAtomGroup.push_back( *ba );
+          if (!heavyAtomGroup.empty())
+            potentialSites_.push_back( Site(*res, heavyAtomGroup) );
+        }
+      }
+    }
+    mprintf("DEBUG: Potential NOE sites:\n");
+    for (SiteArray::const_iterator site = potentialSites_.begin();
+                                   site != potentialSites_.end(); ++site)
+    {
+      mprintf("\tRes %i:", site->ResNum()+1);
+      for (Site::Idx_it it = site->IdxBegin(); it != site->IdxEnd(); ++it)
+        mprintf(" %s", currentParm->TruncAtomNameNum( *it ).c_str());
+      mprintf("\n");
+    }
   }
   // Set up imaging info for this parm
   Image_.SetupImaging( currentParm->BoxType() );
