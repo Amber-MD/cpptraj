@@ -63,6 +63,7 @@ void SymmetricRmsdCalc::FindSymmetricAtoms(int at, AtomMap const& resmap,
 // SymmetricRmsdCalc::SetupSymmRMSD()
 /** Find potential symmetric atoms. All residues up to the last selected
   * residue are considered.
+  * TODO: Use SymmetricAtom() function in AtomMap
   */
 int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn, AtomMask const& tgtMask, bool remapIn)
 {
