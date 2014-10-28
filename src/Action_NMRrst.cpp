@@ -62,6 +62,9 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   }
   nframes_ = 0;
 
+  // Atom Mask
+  Mask_.SetMaskString( actionArgs.GetMaskNext() ); 
+
   // Read in NMR restraints.
   if (!rstfilename.empty()) {
     if (ReadNmrRestraints( rstfilename )) return Action::ERR;
@@ -271,6 +274,9 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
   }
   // Set up potential NOE sites.
   if (findNOEs_) {
+    if (currentParm->SetupCharMask( Mask_ )) return Action::ERR;
+    Mask_.MaskInfo();
+    if (Mask_.None()) return Action::ERR;
     SiteArray potentialSites; // .clear();
     AtomMap resMap;
     resMap.SetDebug( debug_ );
@@ -302,11 +308,18 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
       { // NOTE: If first atom is H all should be H.
         if ( (*currentParm)[ grp->front() ].Element() == Atom::HYDROGEN )
         {
-          potentialSites.push_back( Site(*res, *grp) );
-          // Mark symmetric atoms as selected.
-          for (AtomMap::Iarray::const_iterator at = grp->begin();
-                                               at != grp->end(); ++at)
-            selected[ *at - res_first_atom ] = true;
+          Iarray symmAtomGroup;
+          for (Iarray::const_iterator at = grp->begin();
+                                      at != grp->end(); ++at)
+            if (Mask_.AtomInCharMask( *at ))
+              symmAtomGroup.push_back( *at );
+          if (!symmAtomGroup.empty()) {
+            potentialSites.push_back( Site(*res, symmAtomGroup) );
+            // Mark symmetric atoms as selected.
+            for (AtomMap::Iarray::const_iterator at = grp->begin();
+                                                 at != grp->end(); ++at)
+              selected[ *at - res_first_atom ] = true;
+          }
         }
       }
       // All other non-selected hydrogens bonded to same heavy atom are sites.
@@ -316,7 +329,10 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
           Iarray heavyAtomGroup;
           for (Atom::bond_iterator ba = (*currentParm)[ratom].bondbegin();
                                    ba != (*currentParm)[ratom].bondend(); ++ba)
-            if ( *ba >= res_first_atom && *ba < currentParm->Res(*res).LastAtom() ) {
+            if ( Mask_.AtomInCharMask(*ba) && 
+                 *ba >= res_first_atom && 
+                 *ba < currentParm->Res(*res).LastAtom() )
+            {
               if ( !selected[ *ba - res_first_atom ] &&
                    (*currentParm)[ *ba ].Element() == Atom::HYDROGEN )
                 heavyAtomGroup.push_back( *ba );
@@ -345,16 +361,17 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
                                        site2 != potentialSites.end(); ++site2)
         {
           if (site1->ResNum() != site2->ResNum()) {
+            std::string legend = site1->SiteLegend(*currentParm) + "--" +
+                                 site2->SiteLegend(*currentParm);
             DataSet* ds = 0;
             if (series_) {
               ds = masterDSL_->AddSetIdxAspect(DataSet::FLOAT, setname_, 
                                                noeArray_.size(), "foundNOE");
               if (ds == 0) return Action::ERR;
               // Construct a data set name.
-              ds->SetLegend(site1->SiteLegend(*currentParm) + "--" +
-                            site2->SiteLegend(*currentParm));
+              ds->SetLegend(legend);
             }
-            noeArray_.push_back( NOEtype(*site1, *site2, ds) );
+            noeArray_.push_back( NOEtype(*site1, *site2, ds, legend) );
             siteArraySize += (2 * sizeof(int) * site1->Nindices()) +
                              (2 * sizeof(int) * site2->Nindices());
           }
@@ -499,14 +516,13 @@ void Action_NMRrst::Print() {
         current_cut++;
         outfile.Printf("#   %s\n", Labels[current_cut]);
       }
-      outfile.Printf("\t %s %g", my_noe->PrintNOE().c_str(), my_noe->R6_Avg());
+      outfile.Printf("\t %s %g \"%s\"\n", my_noe->PrintNOE().c_str(),
+                     my_noe->R6_Avg(), my_noe->legend());
       if (my_noe->Data() != 0) {
         DataSet_float& data = static_cast<DataSet_float&>( *(my_noe->Data()) );
-        outfile.Printf(" \"%s\"", data.Legend().c_str()); 
         for (unsigned int i = 0; i != data.Size(); i++)
           data[i] = sqrt(data[i]);
       }
-      outfile.Printf("\n");
       // Bin
       if      (my_noe->R6_Avg() < strong_cut_) ++Bins[0];
       else if (my_noe->R6_Avg() < medium_cut_) ++Bins[1];

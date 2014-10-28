@@ -51,6 +51,7 @@ class Action_NMRrst: public Action {
     ImagedAction Image_;
     std::string setname_;
     std::string findOutputName_;
+    AtomMask Mask_;
     DataSetList* masterDSL_; // TODO: Replace these with new DataSet type
     size_t numNoePairs_; ///< Used to check if # of pairs has changed
     double max_cut_; ///< Min distance cutoff for NOE to be considered
@@ -86,11 +87,12 @@ class Action_NMRrst::Site {
 class Action_NMRrst::NOEtype {
   public:
     NOEtype() : dist2_(0), r6_avg_(0.0) {}
-    NOEtype(Site const& s1, Site const& s2, DataSet* d) :
-      site1_(s1), site2_(s2), dist2_(d), r6_avg_(0.0) {}
+    NOEtype(Site const& s1, Site const& s2, DataSet* d, std::string const& l) :
+      site1_(s1), site2_(s2), legend_(l), dist2_(d), r6_avg_(0.0) {}
     Site const& Site1()    const { return site1_;    }
     Site const& Site2()    const { return site2_;    }
     double R6_Avg()        const { return r6_avg_;   }
+    const char* legend()   const { return legend_.c_str(); }
     DataSet* Data()              { return dist2_;    }
     void SetR6Avg(double r6)     { r6_avg_ = r6;     }
     std::string PrintNOE() const;
@@ -107,6 +109,7 @@ class Action_NMRrst::NOEtype {
   private:
     Site site1_;     ///< First site, lower resNum
     Site site2_;     ///< Second site, higher resNum
+    std::string legend_;
     DataSet* dist2_; ///< Distance^2 data.
     double r6_avg_;  ///< Sum of r^-6 over all frames.
 };
