@@ -40,7 +40,7 @@ class Action_NMRrst: public Action {
 
     class Site;
     typedef std::vector<Site> SiteArray;
-    SiteArray potentialSites_;
+//    SiteArray potentialSites_; // TODO: Doesnt need to be class var
 
     /// Used to map NOEs to unique values, res1 always < res2. 
     typedef std::pair<int,int> Ptype;
@@ -51,19 +51,22 @@ class Action_NMRrst: public Action {
 //    typedef std::map<Ptype, NOEtype> NOEmap;
 //    NOEmap FoundNOEs_;
 
-    static void PrintFoundNOE(NOEtype const&);
     
     ImagedAction Image_;
     std::string setname_;
     DataSetList* masterDSL_; // TODO: Replace these with new DataSet type
     size_t numNoePairs_;
-    double max_cut2_; ///< Min cutoff^2 for NOE to be present.
+    double max_cut_; ///< Min distance cutoff for NOE to be considered
+    double strong_cut_;
+    double medium_cut_;
+    double weak_cut_;
 //    double present_fraction_; ///< NOEs present less than this will be removed.
     int resOffset_;
     int debug_;
     int nframes_; ///< Total # of frames.
     bool useMass_;
     bool findNOEs_;
+    bool series_; ///< If true save NOE distance data.
 };
 // ----- Associated Classes ----------------------------------------------------
 /// Potential NOE site.
@@ -90,25 +93,31 @@ class Action_NMRrst::Site {
 /// NOE between two sites.
 class Action_NMRrst::NOEtype {
   public:
-    NOEtype() : dist2_(0), belowCut_(false) {}
+    NOEtype() : dist2_(0), r6_avg_(0.0) {}
     NOEtype(Site const& s1, Site const& s2, DataSet* d) :
-      site1_(s1), site2_(s2), dist2_(d), belowCut_(false) {}
+      site1_(s1), site2_(s2), dist2_(d), r6_avg_(0.0) {}
     Site const& Site1()    const { return site1_;    }
     Site const& Site2()    const { return site2_;    }
-    bool CutoffSatisfied() const { return belowCut_; }
+    double R6_Avg()        const { return r6_avg_;   }
+//    bool CutoffSatisfied() const { return belowCut_; }
     DataSet* Data()              { return dist2_;    }
-    void ResetData()             { dist2_ = 0;       }
-    void UpdateNOE(int i, double d, unsigned int c1, unsigned int c2, bool satisfyCut) {
-      float fval = (float)d;
-      dist2_->Add(i, &fval);
+//    void ResetData()             { dist2_ = 0;       }
+    void SetR6Avg(double r6)     { r6_avg_ = r6;     }
+    void PrintNOE() const;
+    void UpdateNOE(int i, double d2, unsigned int c1, unsigned int c2) {
+      if (dist2_ != 0) {
+        float fval = (float)d2;
+        dist2_->Add(i, &fval);
+      }
       site1_.Increment( c1 );
       site2_.Increment( c2 );
-      if (satisfyCut) belowCut_ = true;
+      r6_avg_ += ( 1.0 / (d2 * d2 * d2) );
     }
+    inline bool operator<(const NOEtype& rhs) const { return (r6_avg_ < rhs.r6_avg_); } 
   private:
-    Site site1_; ///< First site, lower resNum
-    Site site2_; ///< Second site, higher resNum
+    Site site1_;     ///< First site, lower resNum
+    Site site2_;     ///< Second site, higher resNum
     DataSet* dist2_; ///< Distance^2 data.
-    bool belowCut_; ///< If true, cutoff was satisfied at least once.
+    double r6_avg_;  ///< Sum of r^-6 over all frames.
 };
 #endif
