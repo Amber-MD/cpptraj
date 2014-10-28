@@ -33,14 +33,13 @@ class Action_NMRrst: public Action {
       DataSet* dist_;   ///< Distance DataSet.
       bool active_;     ///< True if NOE was properly set up.
     };
-    typedef std::vector<noeDataType> noeArray;
-    noeArray NOEs_;
+    typedef std::vector<noeDataType> noeDataArray;
+    noeDataArray NOEs_;
 
     typedef std::vector<int> Iarray;
 
     class Site;
     typedef std::vector<Site> SiteArray;
-//    SiteArray potentialSites_; // TODO: Doesnt need to be class var
 
     /// Used to map NOEs to unique values, res1 always < res2. 
     typedef std::pair<int,int> Ptype;
@@ -48,21 +47,19 @@ class Action_NMRrst: public Action {
     class NOEtype;
     typedef std::vector<NOEtype> NOEtypeArray;
     NOEtypeArray noeArray_;
-//    typedef std::map<Ptype, NOEtype> NOEmap;
-//    NOEmap FoundNOEs_;
-
     
     ImagedAction Image_;
     std::string setname_;
+    std::string findOutputName_;
     DataSetList* masterDSL_; // TODO: Replace these with new DataSet type
-    size_t numNoePairs_;
+    size_t numNoePairs_; ///< Used to check if # of pairs has changed
     double max_cut_; ///< Min distance cutoff for NOE to be considered
     double strong_cut_;
     double medium_cut_;
     double weak_cut_;
-//    double present_fraction_; ///< NOEs present less than this will be removed.
     int resOffset_;
     int debug_;
+    int ensembleNum_;
     int nframes_; ///< Total # of frames.
     bool useMass_;
     bool findNOEs_;
@@ -80,12 +77,6 @@ class Action_NMRrst::Site {
     int Count(unsigned int i)      const { return shortestCount_[i]; }
     void Increment(int c)                { ++shortestCount_[c];      }
     std::string SiteLegend(Topology const&) const;
-//    int TotalCount()               const {
-//      int c = 0;
-//      for (Iarray::const_iterator it = shortestCount_.begin(); it != shortestCount_.end(); ++it)
-//        c += *it;
-//      return c;
-//    };
   private:
     int resNum_; ///< Site residue number.
     Iarray indices_; ///< Site atom indices.
@@ -100,11 +91,9 @@ class Action_NMRrst::NOEtype {
     Site const& Site1()    const { return site1_;    }
     Site const& Site2()    const { return site2_;    }
     double R6_Avg()        const { return r6_avg_;   }
-//    bool CutoffSatisfied() const { return belowCut_; }
     DataSet* Data()              { return dist2_;    }
-//    void ResetData()             { dist2_ = 0;       }
     void SetR6Avg(double r6)     { r6_avg_ = r6;     }
-    void PrintNOE() const;
+    std::string PrintNOE() const;
     void UpdateNOE(int i, double d2, unsigned int c1, unsigned int c2) {
       if (dist2_ != 0) {
         float fval = (float)d2;
