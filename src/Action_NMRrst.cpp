@@ -350,6 +350,9 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
               ds = masterDSL_->AddSetIdxAspect(DataSet::FLOAT, setname_, 
                                                noeArray_.size(), "foundNOE");
               if (ds == 0) return Action::ERR;
+              // Construct a data set name.
+              ds->SetLegend(site1->SiteLegend(*currentParm) + "--" +
+                            site2->SiteLegend(*currentParm));
             }
             noeArray_.push_back( NOEtype(*site1, *site2, ds) );
             siteArraySize += (2 * sizeof(int) * site1->Nindices()) +
@@ -630,6 +633,16 @@ void Action_NMRrst::Print() {
 }
 
 // -----------------------------------------------------------------------------
+std::string Action_NMRrst::Site::SiteLegend(Topology const& top) const {
+  std::string legend( top.TruncResNameNum(resNum_) + "(" );
+  for (Iarray::const_iterator atom = indices_.begin(); atom != indices_.end(); ++atom) {
+    if (atom != indices_.begin()) legend.append(",");
+    legend.append( top[*atom].Name().Truncated() );
+  }
+  legend.append(")");
+  return legend;
+}
+
 void Action_NMRrst::NOEtype::PrintNOE() const {
   mprintf(" %i:{", Site1().ResNum()+1);
   for (unsigned int idx = 0; idx != Site1().Nindices(); idx++)

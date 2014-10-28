@@ -79,6 +79,7 @@ class Action_NMRrst::Site {
     int Idx(unsigned int i)        const { return indices_[i];       }
     int Count(unsigned int i)      const { return shortestCount_[i]; }
     void Increment(int c)                { ++shortestCount_[c];      }
+    std::string SiteLegend(Topology const&) const;
 //    int TotalCount()               const {
 //      int c = 0;
 //      for (Iarray::const_iterator it = shortestCount_.begin(); it != shortestCount_.end(); ++it)
