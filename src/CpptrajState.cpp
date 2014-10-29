@@ -187,6 +187,8 @@ int CpptrajState::Run() {
   mprintf("---------- RUN BEGIN -------------------------------------------------\n");
   if (trajinList_.empty()) 
     mprintf("Warning: No input trajectories specified.\n");
+  else if (actionList_.Empty() && trajoutList_.Empty())
+    mprintf("Warning: No actions/output trajectories specified.\n");
   else {
 #   ifdef MPI
     // Only ensemble mode allowed with MPI for now.
