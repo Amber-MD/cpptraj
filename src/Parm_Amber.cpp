@@ -595,24 +595,30 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteInteger(F_IROTAT, parmIn.Irotat());
   // Write solvent info if IFBOX>0
   if (values[IFBOX] > 0) {
-    // Determine first solvent residue
+    // Determine first solvent molecule 
     int firstSolventMol = -1;
     for (Topology::mol_iterator mol = parmIn.MolStart(); mol != parmIn.MolEnd(); ++mol) {
-      if ( (*mol).IsSolvent() ) { 
-        firstSolventMol = (int)(mol - parmIn.MolStart() + 1); 
+      if ( mol->IsSolvent() ) { 
+        firstSolventMol = (int)(mol - parmIn.MolStart()); 
         break;
       }
     }
+    // Determine final solute residue based on first solvent molecule.
+    int finalSoluteRes = 0;
+    if (firstSolventMol == -1)
+      finalSoluteRes = parmIn.Nres(); // No solvent Molecules
+    else if (firstSolventMol > 0) {
+      int finalSoluteAtom = parmIn.Mol(firstSolventMol).BeginAtom() - 1;
+      finalSoluteRes = parmIn[finalSoluteAtom].ResNum() + 1;
+    }
     // If no solvent, just set to 1 beyond # of molecules
     if (firstSolventMol == -1)
-      firstSolventMol = parmIn.Nmol() + 1;
+      firstSolventMol = parmIn.Nmol();
     // Solvent Pointers
     std::vector<int> solvent_pointer(3);
-    solvent_pointer[0] = parmIn.FinalSoluteRes(); // Already +1
+    solvent_pointer[0] = finalSoluteRes; // Already +1
     solvent_pointer[1] = parmIn.Nmol();
-    solvent_pointer[2] = firstSolventMol;
-    if (solvent_pointer[2] == 0)
-      solvent_pointer[2] = solvent_pointer[1] + 1;
+    solvent_pointer[2] = firstSolventMol + 1;
     WriteInteger(F_SOLVENT_POINTER, solvent_pointer);
     // ATOMS PER MOLECULE
     std::vector<int> APM;

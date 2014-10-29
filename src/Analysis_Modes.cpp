@@ -586,7 +586,7 @@ int Analysis_Modes::CalcRMSIP(CpptrajFile& outfile) {
       double dot = 0.0;
       for (int iv = 0; iv < modinfo_->VectorSize(); iv++)
         dot += ev1[iv] * ev2[iv];
-      sumsq += dot;
+      sumsq += (dot * dot);
     }
   }
   sumsq /= (double)(end_ - beg_);

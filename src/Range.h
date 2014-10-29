@@ -21,6 +21,7 @@ class Range {
     const_iterator end()   const { return rangeList_.end();        }
     bool Empty()           const { return rangeList_.empty();      }
     int Size()             const { return (int) rangeList_.size(); }
+    int Back()             const { return rangeList_.back();       }
 
     int SetRange(std::string const&);
     int SetRange(int,int);
@@ -29,7 +30,8 @@ class Range {
     void PrintRange(const char*,int) const;
 
     void ShiftBy(int);
-    void AddToRange(int);
+    /// Add a number to the range. Range is NOT explicitly sorted in this case. 
+    void AddToRange(int num) { rangeList_.push_back(num); }
     void RemoveFromRange(int);
     bool InRange(int) const;
   private:

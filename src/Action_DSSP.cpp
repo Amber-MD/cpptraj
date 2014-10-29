@@ -141,7 +141,8 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
   }
 
   // Set up SecStruct for each solute residue
-  Nres_ = currentParm->FinalSoluteRes();
+  Range soluteRes = currentParm->SoluteResidues();
+  Nres_ = soluteRes.Back() + 1;
   if (debug_>0) mprintf("\tDSSP: Setting up for %i residues.\n", Nres_);
 
   // Set up for each residue of the current Parm if not already set-up.

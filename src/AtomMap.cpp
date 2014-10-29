@@ -3,9 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-AtomMap::AtomMap() :
-  debug_(0)
-{}
+AtomMap::AtomMap() : debug_(0) {}
 
 /// Blank AtomMap for empty return of bracket operator
 MapAtom AtomMap::EMPTYMAPATOM = MapAtom();
@@ -20,19 +18,7 @@ MapAtom& AtomMap::operator[](int idx) {
   return mapatoms_[idx];
 }
 
-// AtomMap::Natom()
-/// Return the number of atoms in the AtomMap.
-int AtomMap::Natom() {
-  return (int)mapatoms_.size();
-}
-
-// AtomMap::SetDebug()
-/// Set the debug level of the AtomMap.
-void AtomMap::SetDebug(int debugIn) {
-  debug_ = debugIn;
-}
-
-/// Check if 1 char name set to 0, means unidentified element.
+// AtomMap::InvalidElement()
 bool AtomMap::InvalidElement() {
   if (mapatoms_.back().CharName() == 0) {
     mprinterr("Error: AtomMap: Mapping currently not supported for element %s\n",
@@ -43,7 +29,6 @@ bool AtomMap::InvalidElement() {
 }
 
 // AtomMap::Setup()
-/** Copy all atoms from input topology to this AtomMap. */
 int AtomMap::Setup(Topology const& TopIn) {
   mapatoms_.clear();
   for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); atom++) {
@@ -51,9 +36,10 @@ int AtomMap::Setup(Topology const& TopIn) {
     mapatoms_.push_back( *atom );
     if (InvalidElement()) return 1;
   }
-  return 0;
+  return CheckBonds();
 }
 
+// AtomMap::SetupResidue()
 int AtomMap::SetupResidue(Topology const& topIn, int resnum) {
   mapatoms_.clear();
   int firstAtom = topIn.Res(resnum).FirstAtom();
@@ -76,17 +62,16 @@ int AtomMap::SetupResidue(Topology const& topIn, int resnum) {
       //mprintf("\n");
     }
   }
-  return 0;
+  return CheckBonds();
 }
 
 // AtomMap::ResetMapping()
-/** Reset any previously set mapping information. */
 void AtomMap::ResetMapping() {
   for (std::vector<MapAtom>::iterator matom = mapatoms_.begin();
                                       matom != mapatoms_.end(); matom++)
   {
-    (*matom).SetNotMapped();
-    (*matom).SetNotComplete();
+    matom->SetNotMapped();
+    matom->SetNotComplete();
   }
 }
 
@@ -151,8 +136,20 @@ void AtomMap::DetermineAtomIDs() {
       // FIXME: This may only be optimal above a certain # of atoms
       MapAtom const& Batom = mapatoms_[ *bondedAtom ];
       for (Atom::bond_iterator ba2 = Batom.bondbegin(); ba2 != Batom.bondend(); ++ba2)
-        if (*ba2 != ma1) 
+      {
+        if (*ba2 != ma1) {
           unique += mapatoms_[ *ba2 ].AtomID();
+          // For larger residues go one additional level.
+          if (mapatoms_.size() > 20) {
+            Atom const& Catom = mapatoms_[ *ba2 ];
+            for (Atom::bond_iterator ca3 = Catom.bondbegin(); ca3 != Catom.bondend(); ++ca3)
+            {
+              if (ca3 != ba2 && *ca3 != ma1)
+                unique += mapatoms_[ *ca3 ].AtomID();
+            }
+          }
+        }
+      }
     }
     // Do not sort first character (this atoms element ID char).
     sort( unique.begin() + 1, unique.end() );
@@ -281,6 +278,163 @@ int AtomMap::CheckBonds() {
       {
         mprintf("    to %s(%c)_%i\n",mapatoms_[*bondedAtom].c_str(),
                 mapatoms_[*bondedAtom].CharName(), *bondedAtom+1);
+      }
+    }
+  }
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+#ifdef DEBUG_ATOMMAP
+static int recursionLevel_;
+#endif
+/** Recursive function to search for symmetric atoms.
+  * \param at Atom to start search at.
+  * \param Unique ID string of starting atom.
+  * \param Selected 1 if at already visited, 0 if not.
+  * \param symmatoms Output array of potentially symmetric atoms.
+  */
+void AtomMap::FindSymmetricAtoms(int at, std::string const& Unique,
+                                 Iarray& Selected, Iarray& symmatoms) const
+{
+  // If this atom has already been selected, leave
+  if (Selected[at]) return;
+  Selected[at] = 1;
+# ifdef DEBUG_ATOMMAP
+  ++recursionLevel_;
+  for (int i = 0; i < recursionLevel_; i++)
+    mprintf("..");
+  mprintf("Atom %i(%s)", at+1, mapatoms_[at].c_str());
+# endif
+  // Does this atom match the unique ID we are looking for?
+  if (mapatoms_[at].Unique() == Unique) {
+    symmatoms.push_back( at ); // NOTE: This index is relative to the residue 
+#   ifdef DEBUG_ATOMMAP
+    mprintf(" SYMM");
+#   endif
+  }
+  // Recursively search through all atoms bonded to this atom unless they 
+  // are a chiral center
+# ifdef DEBUG_ATOMMAP
+  mprintf("\n");
+# endif
+  for (Atom::bond_iterator bndatm = mapatoms_[at].bondbegin();
+                           bndatm != mapatoms_[at].bondend();
+                           ++bndatm)
+  {
+    if (!mapatoms_[*bndatm].IsChiral())
+      FindSymmetricAtoms( *bndatm, Unique, Selected, symmatoms );
+  }
+}
+
+/** Find groups of potentially symmetric atoms in residue.
+  * \param topIn Topology.
+  * \param SymmetricAtomIndices Groups of symmetric atoms will be added to this array.
+  * \param res Residue # to search for symmetric atoms in.
+  */
+int AtomMap::SymmetricAtoms(Topology const& topIn,
+                            AtomIndexArray& SymmetricAtomIndices,
+//                          AtomMask const& tgtMask,
+                            int res)
+{
+  enum atomStatusType { UNSELECTED = 0, NONSYMM, SYMM };
+  int res_first_atom = topIn.Res(res).FirstAtom();
+  // Are any of the residue atoms selected?
+//  bool atomsAreSelected = false;
+//  for (int ratom = res_first_atom; ratom != topIn.Res(res).LastAtom(); ++ratom)
+//    if (SelectedIdx[ratom] != -1) {
+//      atomsAreSelected = true;
+//      break;
+//    }
+//  if (!atomsAreSelected) continue;
+  if (debug_>0) mprintf("DEBUG: Residue %s\n", topIn.TruncResNameNum(res).c_str());
+  // Create AtomMap of this residue to determine chiral centers, unique atom IDs etc
+  if (SetupResidue(topIn, res) != 0) return 1;
+  DetermineAtomIDs();
+  // Potentially symmetric atom group; indices relative to this AtomMap.
+  Iarray symmAtoms;
+  // Symmetric atom group; indices relative to Topology.
+  Iarray selectedSymmAtoms;
+  // Current status of atoms in this residue.
+  Iarray AtomStatus( Natom(), UNSELECTED );
+  // Loop over all atoms in the residue
+  for (int at = 0; at < Natom(); at++) {
+    // If atom is unique in residue, mark non-symmetric 
+    if (mapatoms_[at].IsUnique())
+      AtomStatus[at] = NONSYMM;
+    else if (AtomStatus[at] != SYMM) {
+      Iarray Selected( Natom(), 0 );
+      symmAtoms.clear();
+      // Recursively search for other potentially symmetric atoms in residue.
+      // The Selected array is used to keep track of which atoms have been
+      // visited in this pass; this is used instead of AtomStatus so that
+      // we can travel through atoms already marked as symmetric.
+#     ifdef DEBUG_ATOMMAP
+      recursionLevel_ = 0;
+      mprintf("Starting recursive call for %i(%s)\n", at+1, mapatoms_[at].c_str());
+#     endif
+      FindSymmetricAtoms(at, mapatoms_[at].Unique(), Selected, symmAtoms);
+#     ifdef DEBUG_ATOMMAP
+      mprintf("Potentially symmetric:\n");
+      for (Iarray::const_iterator sa = symmAtoms.begin(); sa != symmAtoms.end(); ++sa)
+        mprintf("\t%8i %4s %8i\n", *sa + res_first_atom + 1,
+                topIn[*sa + res_first_atom].c_str(),
+                SelectedIdx[ *sa + res_first_atom ] + 1);
+#     endif
+      // If only one atom, not symmetric.
+      if (symmAtoms.size() == 1)
+        AtomStatus[symmAtoms.front()] = NONSYMM;
+      else if (symmAtoms.size() > 1) {
+        // Store correct atom #s in selectedSymmAtoms
+        selectedSymmAtoms.clear();
+        for (Iarray::const_iterator sa = symmAtoms.begin();
+                                    sa != symmAtoms.end(); ++sa)
+        {
+          selectedSymmAtoms.push_back( *sa + res_first_atom );
+          AtomStatus[*sa] = SYMM;
+        }
+        // Add this group of symmetric atoms.
+        SymmetricAtomIndices.push_back( selectedSymmAtoms );
+      }
+//      // Which of the symmetric atoms are selected?
+//      selectedSymmAtoms.clear();
+//      for (Iarray::const_iterator sa = symmAtoms.begin(); sa != symmAtoms.end(); ++sa)
+//        if (SelectedIdx[ *sa + res_first_atom ] != -1)
+//          selectedSymmAtoms.push_back( *sa );
+//      if (selectedSymmAtoms.size() == 1) {
+//        // Only 1 atom, not symmetric. Reset atom status
+//        AtomStatus[selectedSymmAtoms.front()] = NONSYMM;
+//      } else if (selectedSymmAtoms.size() > 1) {
+//        // Shift residue atom #s so they correspond with tgtMask.
+//        for (Iarray::iterator it = selectedSymmAtoms.begin();
+//                              it != selectedSymmAtoms.end(); ++it)
+//        {
+//          AtomStatus[*it] = SYMM;
+//          *it = SelectedIdx[ *it + res_first_atom ];
+//        }
+//        SymmetricAtomIndices_.push_back( selectedSymmAtoms );
+//      }
+    }
+  }
+  // If remapping and not all atoms in a residue are selected, warn user.
+//  if (remapIn) {
+//    for (int at = 0; at < resmap.Natom(); at++) {
+//      if (AtomStatus[at] == UNSELECTED) {
+//        mprintf("Warning: Not all atoms selected in residue '%s'. Re-mapped\n"
+//                "Warning:   structures may appear distorted.\n",
+//                topIn.TruncResNameNum(res).c_str());
+//        break;
+//      }
+//    }
+//  }
+  if (debug_ > 0) {
+    mprintf("DEBUG:\tResidue Atom Status:\n");
+    for (int at = 0; at < Natom(); at++) {
+      mprintf("\t%s", topIn.AtomMaskName(at + res_first_atom).c_str());
+      switch (AtomStatus[at]) {
+        case NONSYMM: mprintf(" Non-symmetric\n"); break;
+        case SYMM   : mprintf(" Symmetric\n"); break;
+        case UNSELECTED: mprintf(" Unselected\n");
       }
     }
   }

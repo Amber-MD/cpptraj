@@ -321,6 +321,8 @@ int Cpptraj::Interactive() {
     logfile_.OpenWrite(logfilename_);
   else
     logfile_.OpenAppend("cpptraj.log");
+  if (logfile_.IsOpen())
+    logfile_.Printf("# %s\n", TimeString().c_str());
   Command::RetType readLoop = Command::C_OK;
   while ( readLoop != Command::C_QUIT ) {
     if (inputLine.GetInput()) {

@@ -27,7 +27,8 @@ Action_Closest::Action_Closest() :
 void Action_Closest::Help() {
   mprintf("\t<# to keep> <mask> [noimage] [first | oxygen]\n"
           "\t[closestout <filename> [name <setname>]] [outprefix <parmprefix>]\n"
-          "  Keep only the closest <# to keep> molecules to atoms in <mask>\n");
+          "  Keep only the closest <# to keep> solvent molecules to atoms in <mask>.\n"
+          "  Molecules can be marked as solvent with the 'solvent' command.\n");
 }
 
 // DESTRUCTOR

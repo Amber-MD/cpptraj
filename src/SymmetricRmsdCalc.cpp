@@ -63,6 +63,7 @@ void SymmetricRmsdCalc::FindSymmetricAtoms(int at, AtomMap const& resmap,
 // SymmetricRmsdCalc::SetupSymmRMSD()
 /** Find potential symmetric atoms. All residues up to the last selected
   * residue are considered.
+  * TODO: Use SymmetricAtom() function in AtomMap
   */
 int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn, AtomMask const& tgtMask, bool remapIn)
 {
@@ -104,7 +105,6 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn, AtomMask const& tgtM
     if (debug_>0) mprintf("DEBUG: Residue %s\n", topIn.TruncResNameNum(res).c_str());
     // Create AtomMap of this residue to determine chiral centers, unique atom IDs etc
     if (resmap.SetupResidue(topIn, res) != 0) return 1;
-    if (resmap.CheckBonds() != 0) return 1;
     resmap.DetermineAtomIDs();
     Iarray symmAtoms; // Symmetric atoms, indices relative to resmap
     Iarray selectedSymmAtoms; // Selected Symmetric atoms, indices will be relative to tgtMask

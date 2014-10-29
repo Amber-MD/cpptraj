@@ -1003,7 +1003,7 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
   // solute residues.
   Range actualRange;
   if (resRange_.Empty()) 
-    actualRange.SetRange(0, currentParm->FinalSoluteRes());
+    actualRange = currentParm->SoluteResidues();
   else 
     actualRange = resRange_;
   // Exit if no residues specified
