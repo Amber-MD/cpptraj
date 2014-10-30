@@ -15,6 +15,10 @@ static inline bool isOpChar(char cIn) {
            cIn == '/' || cIn == '*' || cIn == '^' || cIn == '=');
 }
 
+std::string const& RPNcalc::FirstTokenName() const {
+  return tokens_.front().Name();
+} 
+
 /** Convert infix expression to RPN in tokens_ array. This uses a
   * shunting-yard algorithm which has been slightly modified to
   * recognize unary right-associative operators.
@@ -381,8 +385,13 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
   DataSetList LocalList;
   // Are we going to be assigning this?
   bool assigningResult = false;
+  AssignType assignStatus = AssignStatus();
+  if (assignStatus == ERR_ASSIGN)
+    return 1;
+  else if (assignStatus == YES_ASSIGN)
+    assigningResult = true;
   DataSet* output = 0;
-  if (tokens_.front().IsValue() && tokens_.back().Type() == OP_ASSIGN) {
+/*  if (tokens_.front().IsValue() && tokens_.back().Type() == OP_ASSIGN) {
     if (tokens_.size() < 3) {
       mprinterr("Error: Cannot assign nothing.\n");
       return 1;
@@ -392,7 +401,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       return 1;
     }
     assigningResult = true;
-  }
+  }*/
     
   for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
   {
@@ -588,6 +597,176 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
     mprintf("Result: %f\n", Stack.top().Value());
   else
     mprintf("Result stored in '%s'\n", output->Legend().c_str());
+  return 0;
+}
+
+RPNcalc::AssignType RPNcalc::AssignStatus() const {
+  AssignType assigningResult = NO_ASSIGN;
+  if (tokens_.front().IsValue() && tokens_.back().Type() == OP_ASSIGN) {
+    if (tokens_.size() < 3) {
+      mprinterr("Error: Cannot assign nothing.\n");
+      return ERR_ASSIGN;
+    }
+    if (tokens_.front().Type() != VARIABLE) {
+      mprinterr("Error: Must assign to a data set on left hand side.\n");
+      return ERR_ASSIGN;
+    }
+    assigningResult = YES_ASSIGN;
+  }
+  return assigningResult;
+}
+
+// RPNcalc::Nparams()
+int RPNcalc::Nparams() const {
+  int nparams=0, min_param=-1, max_param=-1;
+  bool hasXvar = false;
+  for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
+    if (T->Type() == VARIABLE) {
+      if (T->Name()[0] == 'A')
+      {
+        std::istringstream iss( T->Name().substr(1) );      
+        int pnum;
+        if (!(iss >> pnum)) {
+          mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
+          return 1;
+        }
+        if (min_param ==-1 || pnum < min_param) min_param = pnum;
+        if (max_param ==-1 || pnum > max_param) max_param = pnum;
+        nparams++;
+      }
+      else if (T->Name() == "X")
+        hasXvar = true;
+    }
+  if (!hasXvar) {
+    mprinterr("Error: No X variable in equation.\n");
+    return -1;
+  }
+  if (nparams > 0 && min_param != 0) {
+    mprinterr("Error: Minimum paramter is not A0.\n");
+    return -1;
+  }
+  if (nparams > 0 && max_param != nparams-1) {
+    mprinterr("Error: %i parameters detected but max parameter is not A%i\n", nparams, max_param);
+    return -1;
+  }
+  return nparams;
+}
+
+// RPNcalc::Evaluate()
+/** This version of evaluate requires assignment. Should be checked with
+  * AssignStatus() prior to call.
+  */
+int RPNcalc::Evaluate(Darray const& Params, double X, double& Result) const {
+  if (tokens_.empty()) {
+    mprinterr("Error: Expression was not set.\n");
+    return 1;
+  }
+  std::stack<ValType> Stack; // TODO: Just need double for this version.
+  ValType Dval[2]; // NOTE: Must be able to hold max # operands.
+  Darray LocalList;
+    
+  for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
+  {
+    if ( T->Type() == NUMBER )
+      Stack.push( ValType(T->Value()) );
+    else if ( T->Type() == VARIABLE ) {
+      double param = 0.0;
+      if (T != tokens_.begin()) { // First var will be output variable, set to 0.0.
+        if (T->Name()[0] == 'A') {
+          // Find parameter An, where n is parameter position.
+          std::istringstream iss( T->Name().substr(1) );
+          int nparam;
+          if (!(iss >> nparam)) {
+            mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
+            return 1;
+          }
+          // NOTE: NO CHECK FOR OUT OF BOUNDS.
+          param = Params[nparam]; 
+        } else if (T->Name()[0] == 'X') {
+          param = X;
+        } else {
+          mprinterr("Error: Invalid variable '%s'. Expect 'X' or 'A<n>'\n", T->Name().c_str());
+          return 1;
+        }
+      }
+      Stack.push( ValType( param ) );
+    } else {
+      Dval[0].Reset();
+      Dval[1].Reset();
+      // Operand or function. Get operand(s)
+      unsigned int nOps = (unsigned int)T->numOperands();
+      if (Stack.size() < nOps) {
+        mprinterr("Error: Not enough operands for '%s'.\n", T->Description());
+        return 1;
+      }
+      for (unsigned int i = 0; i != nOps; i++) {
+        Dval[i] = Stack.top();
+        Stack.pop();
+//        // Replace 1D datasets of size 1 with the actual value.
+//        if (Dval[i].IsDataSet() && Dval[i].DS()!=0 && // Probably being assigned to if '0'
+//            Dval[i].DS()->Ndim()==1 && Dval[i].DS()->Size()==1)
+//          Dval[i].SetValue(((DataSet_1D*)Dval[i].DS())->Dval(0));
+      }
+      if (T->Type() == OP_ASSIGN) {
+        // Assignment. This should be the last operation.
+//        if (!assigningResult) {
+//          mprinterr("Error: Assignment must be the final operation.\n");
+//          return 1;
+//        }
+//        if (!Dval[1].IsDataSet()) {
+//          mprinterr("Error: Attempting to assign to something that is not a data set.\n");
+//          return 1;
+//        }
+//        if (Dval[1].DS() != output) { // NOTE: Should be '0'
+//          mprinterr("Internal Error: Assigning to wrong data set!\n");
+//          return 1;
+//        }
+//        output = DSL.AddSet(DataSet::DOUBLE, tokens_.front().Name(), "CALC");
+//        if (output == 0) return 1;
+//        if (Dval[0].IsDataSet()) {
+//          if (debug_>0)
+//            mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->Legend().c_str(),
+//                    output->Legend().c_str());
+//          // Should be 1D by definition, allocated below in LocalList
+//          DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *Dval[0].DS() );
+//          for (unsigned int n = 0; n != D1.Size(); n++) {
+//            double dval = D1.Dval(n); // TODO: Direct copy
+//            output->Add(n, &dval);
+//          }
+//        } else {
+//          if (debug_>0)
+//            mprintf("DEBUG: Assigning %f to '%s'\n", Dval[0].Value(),
+//                    output->Legend().c_str());
+//          double dval = Dval[0].Value();
+//          output->Add(0, &dval); 
+//        }
+        Stack.push(ValType( Dval[0].Value()  ));
+      } else if (!Dval[0].IsDataSet() && !Dval[1].IsDataSet()) {
+        // Neither operand is a data set
+        if (debug_ > 0)
+          mprintf("DEBUG: '%f' [%s] '%f'\n", Dval[1].Value(), T->Description(), Dval[0].Value());
+        Stack.push(ValType(DoOperation(Dval[0].Value(), Dval[1].Value(), T->Type())));
+      } else if (T->numOperands() == 1 && T->ResultIsScalar()) {
+        // One operand that is a data set that will be converted to a scalar.
+        // Not allowed with this version of Evaluate.
+        mprinterr("Error: '%s': Data Set functions not allowed in these equations.\n",
+                  T->Description());
+        return 1;
+      } else {
+        // One or both operands is a DataSet. Should never happen with this Evaluate.
+        mprinterr("Internal Error: Data set not valid for this equation.\n");
+        return 1;
+      }
+    }
+  }
+  if (Stack.size() != 1) {
+    mprinterr("Error: Unbalanced expression.\n");
+    return 1;
+  }
+  Result = Stack.top().Value();
+  if (debug_ > 0)
+    mprintf("Result: Y(%g)= %g\n", X, Result);
+
   return 0;
 }
 

@@ -121,6 +121,7 @@
 #include "Analysis_Regression.h"
 #include "Analysis_ExpCurveFit.h"
 #include "Analysis_LowestCurve.h"
+#include "Analysis_CurveFit.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -1867,6 +1868,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "crankshaft", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, AddAnalysis },
   { ANALYSIS, "crdfluct", Analysis_CrdFluct::Alloc, Analysis_CrdFluct::Help, AddAnalysis },
   { ANALYSIS, "crosscorr", Analysis_CrossCorr::Alloc, Analysis_CrossCorr::Help, AddAnalysis },
+  { ANALYSIS, "curvefit", Analysis_CurveFit::Alloc, Analysis_CurveFit::Help, AddAnalysis },
   { ANALYSIS, "diagmatrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
   { ANALYSIS, "divergence", Analysis_Divergence::Alloc, Analysis_Divergence::Help, AddAnalysis },
   { ANALYSIS, "expcurvefit", Analysis_ExpCurveFit::Alloc, Analysis_ExpCurveFit::Help, AddAnalysis },
