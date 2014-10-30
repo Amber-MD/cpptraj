@@ -62,6 +62,41 @@ int EQ_MultiExpK(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
   return 0;
 }
 
+/** Multi exponential of form Y = B0 + SUM[Bi * exp(X * Bi+1)] subject to the
+  * constraints that B0 + {Bi} = 1.0 and {Bi+1} < 0.0
+  */
+int EQ_MultiExpK_Penalty(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
+                         CurveFit::Darray& Yvals)
+{
+  // Calculate penalty for coefficients
+  double penalty1 = Params[0]; 
+  for (unsigned int i = 1; i < Params.size(); i += 2)
+    penalty1 += Params[i]; 
+  penalty1 = 1000.0 * (1.0 - penalty1);
+  // Calculate penalty for exponents
+  double pvalue = 1000.0 / (double)((Params.size() - 1) / 2);
+  double penalty2 = 0.0;
+  for (unsigned int i = 2; i < Params.size(); i += 2)
+    if (Params[i] > 0.0) penalty2 += pvalue;
+  // Calculate Y values 
+  for (unsigned int n = 0; n != Xvals.size(); n++) {
+    double X = Xvals[n];
+    double Y = Params[0];
+    // dYdP[0] = 1.0; 
+    for (unsigned int i = 1; i < Params.size(); i += 2)
+    {
+      double expBx = exp( Params[i+1] * X );
+      Y += Params[i] * expBx;
+      //dYdP[i  ] = expBx;
+      //dYdP[i+1] = Params[i] * X * expBx;
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i, dYdP[i]);
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i+1, dYdP[i+1]);
+    }
+    Yvals[n] = Y + penalty1 + penalty2;
+  }
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
 Analysis_CurveFit::Analysis_CurveFit() :
@@ -110,10 +145,17 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     }
     equation = dsoutName + " = ";
     // Determine form
+    eqForm_ = MEXP;
     std::string formStr = analyzeArgs.GetStringKey("form");
-    if (formStr == "mexp") eqForm_ = MEXP;
-    else if (formStr == "mexpk") eqForm_ = MEXP_K;
-    else eqForm_ = MEXP;
+    if (!formStr.empty()) {
+      if (formStr == "mexp") eqForm_ = MEXP;
+      else if (formStr == "mexpk") eqForm_ = MEXP_K;
+      else if (formStr == "mexpk_penalty") eqForm_ = MEXP_K_PENALTY;
+      else {
+        mprinterr("Error: Multi-exponential form '%s' not recognized.\n", formStr.c_str());
+        return Analysis::ERR;
+      }
+    }
     // Set up equation
     int nparam = 0;
     if (eqForm_ != MEXP) {
@@ -140,12 +182,12 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     if (Calc_.ProcessExpression( equation )) return Analysis::ERR;
     // Equation must have an assignment.
     if ( Calc_.AssignStatus() != RPNcalc::YES_ASSIGN ) {
-      mprinterr("Error: No assignment '=' in equation.\n");
+      mprinterr("Error: No assignment '=' in equation '%s'.\n", equation.c_str());
       return Analysis::ERR;
     }
     dsoutName = Calc_.FirstTokenName();
     if (dsoutName.empty()) {
-      mprinterr("Error: Invalid assignment in equation.\n");
+      mprinterr("Error: Invalid assignment in equation '%s'.\n", equation.c_str());
       return Analysis::ERR;
     } 
     n_expected_params = Calc_.Nparams();
@@ -189,8 +231,12 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
 
   mprintf("    CURVEFIT: Fitting set '%s' to equation '%s'\n",
           dset_->Legend().c_str(), equation.c_str());
-  if (nexp_ > 0)
+  if (nexp_ > 0) {
     mprintf("\tMulti-exponential form with %i exponentials.\n", nexp_);
+    if (eqForm_ == MEXP_K_PENALTY)
+      mprintf("\tMulti-exponential equation constraints: sum of prefactors = 1.0,"
+              " exponent parameters < 0.0\n");
+  }
   mprintf("\tFinal Y values will be saved in set '%s'\n", finalY_->Legend().c_str());
   mprintf("\tTolerance= %g, maximum iterations= %i\n", tolerance_, maxIt_);
   mprintf("\tInitial parameters:\n");
@@ -210,21 +256,14 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
   // Set up function to use
   CurveFit::FitFunctionType fxn = 0;
   switch (eqForm_) {
-    case GENERAL: fxn = Equation; break;
-    case MEXP_K:
-//      pstart = 1;
-      fxn = EQ_MultiExpK;
-      break;
-//    case MEXP_K_PENALTY:
-//      pstart = 1;
-//      fxn = MultiExpK_WithPenalty;
-//      break;
-    case MEXP: fxn = EQ_MultiExp; break;
+    case GENERAL:        fxn = Equation; break;
+    case MEXP_K:         fxn = EQ_MultiExpK; break;
+    case MEXP_K_PENALTY: fxn = EQ_MultiExpK_Penalty; break;
+    case MEXP:           fxn = EQ_MultiExp; break;
     default: return Analysis::ERR;
   }
 
   // TODO: Set initial parameters and bounds if necessary.
-
 
   // Set up initial Y and X values.
   DataSet_1D& Set = static_cast<DataSet_1D&>( *dset_ );
@@ -283,11 +322,19 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
   } else
     mprintf("Warning: Input set Y values contain zero, cannot calculate RMS percent error\n");
 
+  // Stats specific to multi-exp forms.
   if (eqForm_ != GENERAL) {
-    // Report decay constants from exponential parameters.
     unsigned int pstart = 0;
     if (eqForm_ != MEXP)
       pstart = 1;
+    // Report Sum of prefactors
+    double sumB = 0.0;
+    if (eqForm_ != MEXP)
+      sumB = Params_[0];
+    for (unsigned int p = pstart; p < Params_.size(); p += 2)
+      sumB += Params_[p];
+    mprintf("\tSum of prefactors = %g\n", sumB);
+    // Report decay constants from exponential parameters.
     mprintf("\tTime constants:");
     for (unsigned int p = pstart + 1; p < Params_.size(); p += 2) {
       if (Params_[p] != 0.0) {
