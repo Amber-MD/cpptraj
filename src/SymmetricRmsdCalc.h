@@ -6,7 +6,7 @@
 /// Class for performing symmetry-corrected RMSD calculations.
 class SymmetricRmsdCalc {
   public:
-    typedef std::vector<int> Iarray;
+    typedef AtomMap::Iarray Iarray;
     SymmetricRmsdCalc();
     SymmetricRmsdCalc(AtomMask const&, bool, bool, Topology const&, int);
     /// Set fit, mass, and debug options.
@@ -23,11 +23,7 @@ class SymmetricRmsdCalc {
     Vec3 const& TgtTrans()        const { return tgtTrans_;    }
     Iarray const& AMap()          const { return AMap_;        }
   private:
-    enum atomStatusType { UNSELECTED = 0, NONSYMM, SYMM };
     typedef std::vector<Iarray> AtomIndexArray;
-    
-    void FindSymmetricAtoms(int, AtomMap const&, std::string const&, Iarray&, Iarray&) const;
-
     /// Array of groups of potentially symmetric atoms
     AtomIndexArray SymmetricAtomIndices_;
     int debug_;
