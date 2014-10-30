@@ -207,7 +207,8 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
   // Now get all parameters
   if (n_expected_params < 0) return Analysis::ERR;
   Params_.resize( n_expected_params, 0.0 );
-  for (int p = 0; p != n_expected_params; p++) {
+  int n_specified_params = 0;
+  for (int p = 0; p != n_expected_params; p++, n_specified_params++) {
     std::string parameterArg = analyzeArgs.GetStringNext();
     if (parameterArg.empty())
       break;
@@ -223,6 +224,23 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     }
     int pnum = convertToInteger(parameterName.substr(1));
     Params_[pnum] = parameter.getNextDouble(0.0);
+  }
+  // Check if all params specified.
+  if (n_specified_params != n_expected_params) {
+    mprintf("Warning: # specified params (%i) less than # expected params (%i)\n",
+            n_specified_params, n_expected_params);
+    if (eqForm_ != GENERAL && n_specified_params == 0) {
+      mprintf("Warning: For multi-exponential using default params.\n");
+      int pnum = 0;
+      if (eqForm_ != MEXP) {
+        pnum = 1;
+        Params_[0] = 1.0;
+      }
+      for (int p = pnum; p != n_expected_params; p+=2) {
+        Params_[p] = 1.0;
+        Params_[p+1] = -1.0;
+      }
+    }
   }
   // Set up output data set.
   finalY_ = datasetlist->AddSet(DataSet::XYMESH, dsoutName, "FIT");
