@@ -6,10 +6,11 @@
 #include "RPNcalc.h"
 #include "DataSet_Mesh.h"
 
+// -----------------------------------------------------------------------------
 /// The RPN calculator is static so it can be used in Equation.
 static RPNcalc Calc_;
 
-/// This function will be passed to CurveFit
+/// This is for generic equations with RPNcalc.
 int Equation(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
                       CurveFit::Darray& Yvals)
 {
@@ -17,22 +18,69 @@ int Equation(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
     Calc_.Evaluate(Params, Xvals[n], Yvals[n]);
   return 0;
 }
-    
+
+/// Multi exponential of form Y = SUM[Bi * exp(X * Bi+1)] 
+int EQ_MultiExp(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
+                CurveFit::Darray& Yvals)
+{
+  for (unsigned int n = 0; n != Xvals.size(); n++) {
+    double X = Xvals[n];
+    double Y = 0.0;
+    for (unsigned int i = 0; i < Params.size(); i += 2)
+    {
+      double expBx = exp( Params[i+1] * X );
+      Y += Params[i] * expBx;
+      //dYdP[i  ] = expBx;
+      //dYdP[i+1] = Params[i] * X * expBx;
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i, dYdP[i]);
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i+1, dYdP[i+1]);
+    }
+    Yvals[n] = Y;
+  }
+  return 1;
+}
+
+/// Multi exponential of form Y =  B0 + SUM[Bi * exp(X * Bi+1)]
+int EQ_MultiExpK(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
+                 CurveFit::Darray& Yvals)
+{
+  for (unsigned int n = 0; n != Xvals.size(); n++) {
+    double X = Xvals[n];
+    double Y = Params[0];
+    // dYdP[0] = 1.0; 
+    for (unsigned int i = 1; i < Params.size(); i += 2)
+    {
+      double expBx = exp( Params[i+1] * X );
+      Y += Params[i] * expBx;
+      //dYdP[i  ] = expBx;
+      //dYdP[i+1] = Params[i] * X * expBx;
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i, dYdP[i]);
+      //printf("DEBUG: MultiExponential: dYdP[%i]= %g\n", i+1, dYdP[i+1]);
+    }
+    Yvals[n] = Y;
+  }
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 // CONSTRUCTOR
 Analysis_CurveFit::Analysis_CurveFit() :
   dset_(0),
   finalY_(0),
   tolerance_(0.0),
-  maxIt_(0)
+  maxIt_(0),
+  nexp_(-1),
+  eqForm_(GENERAL)
 {} 
 
 // Analysis_CurveFit::Help()
 void Analysis_CurveFit::Help() {
-  mprintf("\t<dset> <equation> [out <outfile>]\n"
+  mprintf("\t<dset> {<equation> | nexp <n> [form {mexp|mexpk}} [out <outfile>]\n"
           "\t[tol <tolerance>] [maxit <max iterations>]\n"
           "  Fit data set <dset> to <equation>. The equation must have form:\n"
           "    <var> = <expression>\n"
-          "  where <expression> can contain variable 'X' and parameters A<n>.\n");
+          "  where <expression> can contain variable 'X' and parameters A<n>.\n"
+          "  Alternatively, multi-exponential equations can be used via 'nexp' and 'form'\n");
 }
 
 Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
@@ -49,24 +97,59 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     mprinterr("Error: Curve fitting can only be done with 1D data sets.\n");
     return Analysis::ERR;
   }
-  // Second argument should be the equation to fit DataSet to.
-  std::string equation = analyzeArgs.GetStringNext();
-  if (equation.empty()) {
-    mprinterr("Error: Must specify an equation.\n");
-    return Analysis::ERR;
+  std::string dsoutName, equation;
+  int n_expected_params = 0;
+  // Determine if special equation is being used.
+  nexp_ = analyzeArgs.getKeyInt("nexp", -1);
+  if ( nexp_ > 0 ) {
+    // Multi-exponential specialized equation form.
+    dsoutName = analyzeArgs.GetStringKey("name");
+    if (dsoutName.empty()) {
+      mprinterr("Error: 'name <OutputSetName>' must be used with 'nexp <n>'\n");
+      return Analysis::ERR;
+    }
+    equation = dsoutName + " = ";
+    // Determine form
+    std::string formStr = analyzeArgs.GetStringKey("form");
+    if (formStr == "mexp") eqForm_ = MEXP;
+    else if (formStr == "mexpk") eqForm_ = MEXP_K;
+    else eqForm_ = MEXP;
+    // Set up equation
+    int nparam = 0;
+    if (eqForm_ != MEXP) {
+      equation.append("A0 +");
+      nparam = 1;
+    }
+    for (int ie = 0; ie != nexp_; ie++, nparam += 2) {
+      if (ie > 0)
+        equation.append(" + ");
+      equation.append("(A" + integerToString(nparam) + " * exp(X * A" + 
+                             integerToString(nparam+1) + "))");
+    }
+    n_expected_params = nparam;
+  } else {
+    // Any equation form, solve with RPNcalc.
+    eqForm_ = GENERAL;
+    // Second argument should be the equation to fit DataSet to.
+    equation = analyzeArgs.GetStringNext();
+    if (equation.empty()) {
+      mprinterr("Error: Must specify an equation if 'nexp <n>' not specified.\n");
+      return Analysis::ERR;
+    }
+    Calc_.SetDebug(debugIn);
+    if (Calc_.ProcessExpression( equation )) return Analysis::ERR;
+    // Equation must have an assignment.
+    if ( Calc_.AssignStatus() != RPNcalc::YES_ASSIGN ) {
+      mprinterr("Error: No assignment '=' in equation.\n");
+      return Analysis::ERR;
+    }
+    dsoutName = Calc_.FirstTokenName();
+    if (dsoutName.empty()) {
+      mprinterr("Error: Invalid assignment in equation.\n");
+      return Analysis::ERR;
+    } 
+    n_expected_params = Calc_.Nparams();
   }
-  Calc_.SetDebug(debugIn);
-  if (Calc_.ProcessExpression( equation )) return Analysis::ERR;
-  // Equation must have an assignment.
-  if ( Calc_.AssignStatus() != RPNcalc::YES_ASSIGN ) {
-    mprinterr("Error: No assignment '=' in equation.\n");
-    return Analysis::ERR;
-  }
-  std::string dsoutName = Calc_.FirstTokenName();
-  if (dsoutName.empty()) {
-    mprinterr("Error: Invalid assignment in equation.\n");
-    return Analysis::ERR;
-  } 
   // Get keywords
   DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   tolerance_ = analyzeArgs.getKeyDouble("tol", 0.0001);
@@ -80,9 +163,7 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     return Analysis::ERR;
   }
   // Now get all parameters
-  int n_expected_params = Calc_.Nparams();
   if (n_expected_params < 0) return Analysis::ERR;
-  
   Params_.resize( n_expected_params, 0.0 );
   for (int p = 0; p != n_expected_params; p++) {
     std::string parameterArg = analyzeArgs.GetStringNext();
@@ -108,6 +189,8 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
 
   mprintf("    CURVEFIT: Fitting set '%s' to equation '%s'\n",
           dset_->Legend().c_str(), equation.c_str());
+  if (nexp_ > 0)
+    mprintf("\tMulti-exponential form with %i exponentials.\n", nexp_);
   mprintf("\tFinal Y values will be saved in set '%s'\n", finalY_->Legend().c_str());
   mprintf("\tTolerance= %g, maximum iterations= %i\n", tolerance_, maxIt_);
   mprintf("\tInitial parameters:\n");
@@ -124,6 +207,25 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     return Analysis::ERR;
   }
 
+  // Set up function to use
+  CurveFit::FitFunctionType fxn = 0;
+  switch (eqForm_) {
+    case GENERAL: fxn = Equation; break;
+    case MEXP_K:
+//      pstart = 1;
+      fxn = EQ_MultiExpK;
+      break;
+//    case MEXP_K_PENALTY:
+//      pstart = 1;
+//      fxn = MultiExpK_WithPenalty;
+//      break;
+    case MEXP: fxn = EQ_MultiExp; break;
+    default: return Analysis::ERR;
+  }
+
+  // TODO: Set initial parameters and bounds if necessary.
+
+
   // Set up initial Y and X values.
   DataSet_1D& Set = static_cast<DataSet_1D&>( *dset_ );
   CurveFit::Darray Xvals, Yvals;
@@ -139,7 +241,7 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
 
   // Perform curve fitting.
   CurveFit fit;
-  int info = fit.LevenbergMarquardt( Equation, Xvals, Yvals, Params_, tolerance_, maxIt_ );
+  int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params_, tolerance_, maxIt_ );
   mprintf("\t%s\n", fit.Message(info));
   if (info == 0) {
     mprinterr("Error: %s\n", fit.ErrorMessage());
