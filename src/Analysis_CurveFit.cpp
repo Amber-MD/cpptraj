@@ -282,6 +282,22 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     mprintf("\tRMS percent error: %g\n", rms_percent_error);
   } else
     mprintf("Warning: Input set Y values contain zero, cannot calculate RMS percent error\n");
+
+  if (eqForm_ != GENERAL) {
+    // Report decay constants from exponential parameters.
+    unsigned int pstart = 0;
+    if (eqForm_ != MEXP)
+      pstart = 1;
+    mprintf("\tTime constants:");
+    for (unsigned int p = pstart + 1; p < Params_.size(); p += 2) {
+      if (Params_[p] != 0.0) {
+        double tau = 1.0 / -Params_[p];
+        mprintf(" %12.6g", tau);
+      } else
+        mprintf("Warning: exp parameter %u is zero.\n", ((p - pstart) / 2) + 1);
+    }
+    mprintf("\n");
+  }
   
   return Analysis::OK;
 }
