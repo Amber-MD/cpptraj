@@ -11,13 +11,13 @@ class Analysis_CurveFit : public Analysis {
     Analysis::RetType Analyze();
   private:
     enum EqFormType { GENERAL = 0, MEXP, MEXP_K, MEXP_K_PENALTY };
-    DataSet* dset_; ///< DataSet to fit.
-    DataSet* finalY_; ///< Final output DataSet.
+    DataSet* dset_;     ///< DataSet to fit.
+    DataSet* finalY_;   ///< Final output DataSet.
     typedef std::vector<double> Darray;
-    Darray Params_; ///< Equation parameters.
-    double tolerance_; ///< Curve fit tolerance.
-    int maxIt_; ///< Max # iterations.
-    int nexp_; ///< # exponentials.
+    Darray Params_;     ///< Equation parameters.
+    double tolerance_;  ///< Curve fit tolerance.
+    int maxIt_;         ///< Max # iterations.
+    int nexp_;          ///< # exponentials.
     EqFormType eqForm_; ///< Equation form.
 };
 #endif
