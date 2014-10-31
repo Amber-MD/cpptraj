@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-ActionList::ActionList() : debug_(0) {}
+ActionList::ActionList() : debug_(0), actionsAreSilent_(false) {}
 
 // DESTRUCTOR
 ActionList::~ActionList() {
@@ -31,19 +31,23 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& 
                           TopologyList* PFL, FrameList* FL, DataSetList* DSL,
                           DataFileList* DFL)
 {
+  int err = 0;
+  if (actionsAreSilent_) SetWorldSilent( true );
   Action* act = (Action*)Alloc();
   // Attempt to initialize action
   if ( act->Init( argIn, PFL, FL, DSL, DFL, debug_ ) != Action::OK ) {
     mprinterr("Error: Could not initialize action [%s]\n", argIn.Command());
     delete act;
-    return 1;
+    err = 1;
+  } else {
+    actionlist_.push_back( act );
+    actioncmd_.push_back( argIn.ArgLine() );
+    actionAlloc_.push_back( Alloc );
+    actionstatus_.push_back( INIT );
+    if (argIn.CheckForMoreArgs()) err = 1;
   }
-  actionlist_.push_back( act );
-  actioncmd_.push_back( argIn.ArgLine() );
-  actionAlloc_.push_back( Alloc );
-  actionstatus_.push_back( INIT );
-  if (argIn.CheckForMoreArgs()) return 1;
-  return 0;
+  if (actionsAreSilent_) SetWorldSilent( false );
+  return err;
 }
 
 // ActionList::SetupActions()
@@ -55,6 +59,7 @@ int ActionList::SetupActions(Topology **ParmAddress) {
   Topology *OriginalParm = *ParmAddress;
   mprintf(".....................................................\n");
   mprintf("ACTION SETUP FOR PARM '%s' (%zu actions):\n",(*ParmAddress)->c_str(),actionlist_.size());
+  if (actionsAreSilent_) SetWorldSilent( true );
   unsigned int actnum = 0;
   for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act)
   {
@@ -68,16 +73,13 @@ int ActionList::SetupActions(Topology **ParmAddress) {
                 actioncmd_[actnum].c_str());
         // Reset action status to INIT (pre-setup)
         actionstatus_[actnum] = INIT;
-        //return 1;
       } else if (err == Action::USEORIGINALFRAME) {
-        // Return value of 2 requests return to original parm
         *ParmAddress = OriginalParm;
       }
-      //fprintf(stdout,"DEBUG: After Action %i Setup parmName is %s\n",act,P->parmName);
     }
     ++actnum;
   }
-  //mprintf(".....................................................\n");
+  if (actionsAreSilent_) SetWorldSilent( false );
 
   return 0;
 }

@@ -24,6 +24,7 @@ class CpptrajState {
     bool EmptyState()  const { return (actionList_.Empty() && 
                                        analysisList_.Empty() &&
                                        trajoutList_.Empty()); }
+    void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
     int AddTrajin( ArgList&, bool );
     int AddTrajin( std::string const& );
     int RunAnalyses();
