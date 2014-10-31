@@ -110,12 +110,17 @@ Analysis_CurveFit::Analysis_CurveFit() :
 
 // Analysis_CurveFit::Help()
 void Analysis_CurveFit::Help() {
-  mprintf("\t<dset> {<equation> | nexp <n> [form {mexp|mexpk}} [out <outfile>]\n"
-          "\t[tol <tolerance>] [maxit <max iterations>]\n"
+  mprintf("\t<dset> {<equation> | nexp <m> [form {mexp|mexpk|mexpk_penalty}}\n"
+          "\t[out <outfile>] [tol <tolerance>] [maxit <max iterations>]\n"
           "  Fit data set <dset> to <equation>. The equation must have form:\n"
           "    <var> = <expression>\n"
-          "  where <expression> can contain variable 'X' and parameters A<n>.\n"
-          "  Alternatively, multi-exponential equations can be used via 'nexp' and 'form'\n");
+          "  where <var> is the output data set name and <expression> can contain\n"
+          "  variable 'X' and parameters A<n>.\n"
+          "  Alternatively, multi-exponential equations can be used via 'nexp' and 'form':\n"
+          "    mexp:  SUM(m)[ An * exp(An+1 * X)]\n"
+          "    mexpk: A0 + SUM(m)[An * exp(An+1 * X)]\n"
+          "    mexpk_penalty: Same as mexpk except sum of prefactors constrained to 1.0 and\n"
+          "                   exp. constants constrained to < 0.0.\n");
 }
 
 Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
