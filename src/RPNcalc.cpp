@@ -15,6 +15,10 @@ static inline bool isOpChar(char cIn) {
            cIn == '/' || cIn == '*' || cIn == '^' || cIn == '=');
 }
 
+std::string const& RPNcalc::FirstTokenName() const {
+  return tokens_.front().Name();
+} 
+
 /** Convert infix expression to RPN in tokens_ array. This uses a
   * shunting-yard algorithm which has been slightly modified to
   * recognize unary right-associative operators.
@@ -381,19 +385,13 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
   DataSetList LocalList;
   // Are we going to be assigning this?
   bool assigningResult = false;
-  DataSet* output = 0;
-  if (tokens_.front().IsValue() && tokens_.back().Type() == OP_ASSIGN) {
-    if (tokens_.size() < 3) {
-      mprinterr("Error: Cannot assign nothing.\n");
-      return 1;
-    }
-    if (tokens_.front().Type() != VARIABLE) {
-      mprinterr("Error: Must assign to a data set on left hand side.\n");
-      return 1;
-    }
+  AssignType assignStatus = AssignStatus();
+  if (assignStatus == ERR_ASSIGN)
+    return 1;
+  else if (assignStatus == YES_ASSIGN)
     assigningResult = true;
-  }
-    
+  DataSet* output = 0;
+  // Process RPN tokens. 
   for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
   {
     if ( T->Type() == NUMBER )
@@ -588,6 +586,135 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
     mprintf("Result: %f\n", Stack.top().Value());
   else
     mprintf("Result stored in '%s'\n", output->Legend().c_str());
+  return 0;
+}
+
+// RPNcalc::AssignStatus()
+RPNcalc::AssignType RPNcalc::AssignStatus() const {
+  AssignType assigningResult = NO_ASSIGN;
+  if (tokens_.front().IsValue() && tokens_.back().Type() == OP_ASSIGN) {
+    if (tokens_.size() < 3) {
+      mprinterr("Error: Cannot assign nothing.\n");
+      return ERR_ASSIGN;
+    }
+    if (tokens_.front().Type() != VARIABLE) {
+      mprinterr("Error: Must assign to a data set on left hand side.\n");
+      return ERR_ASSIGN;
+    }
+    assigningResult = YES_ASSIGN;
+  }
+  return assigningResult;
+}
+
+// RPNcalc::Nparams()
+int RPNcalc::Nparams() const {
+  int nparams=0, min_param=-1, max_param=-1;
+  bool hasXvar = false;
+  for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
+    if (T->Type() == VARIABLE) {
+      if (T->Name()[0] == 'A')
+      {
+        std::istringstream iss( T->Name().substr(1) );      
+        int pnum;
+        if (!(iss >> pnum)) {
+          mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
+          return 1;
+        }
+        if (min_param ==-1 || pnum < min_param) min_param = pnum;
+        if (max_param ==-1 || pnum > max_param) max_param = pnum;
+        nparams++;
+      }
+      else if (T->Name() == "X")
+        hasXvar = true;
+    }
+  if (!hasXvar) {
+    mprinterr("Error: No X variable in equation.\n");
+    return -1;
+  }
+  if (nparams > 0 && min_param != 0) {
+    mprinterr("Error: Minimum paramter is not A0.\n");
+    return -1;
+  }
+  if (nparams > 0 && max_param != nparams-1) {
+    mprinterr("Error: %i parameters detected but max parameter is not A%i\n", nparams, max_param);
+    return -1;
+  }
+  return nparams;
+}
+
+// RPNcalc::Evaluate()
+/** This version of evaluate requires assignment. Should be checked with
+  * AssignStatus() prior to call.
+  */
+int RPNcalc::Evaluate(Darray const& Params, double X, double& Result) const {
+  if (tokens_.empty()) {
+    mprinterr("Error: Expression was not set.\n");
+    return 1;
+  }
+  std::stack<double> Stack;
+  double Dval[2] = {0.0, 0.0}; // NOTE: Must be able to hold max # operands.
+    
+  for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
+  {
+    if ( T->Type() == NUMBER )
+      Stack.push( T->Value() );
+    else if ( T->Type() == VARIABLE ) {
+      double param = 0.0;
+      if (T != tokens_.begin()) { // First var will be output variable, set to 0.0.
+        if (T->Name()[0] == 'A') {
+          // Find parameter An, where n is parameter position.
+          std::istringstream iss( T->Name().substr(1) );
+          int nparam;
+          if (!(iss >> nparam)) {
+            mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
+            return 1;
+          }
+          // NOTE: NO CHECK FOR OUT OF BOUNDS.
+          param = Params[nparam]; 
+        } else if (T->Name()[0] == 'X') {
+          param = X;
+        } else {
+          mprinterr("Error: Invalid variable '%s'. Expect 'X' or 'A<n>'\n", T->Name().c_str());
+          return 1;
+        }
+      }
+      Stack.push( param );
+    } else {
+      // Operand or function. Get operand(s)
+      unsigned int nOps = (unsigned int)T->numOperands();
+      if (Stack.size() < nOps) {
+        mprinterr("Error: Not enough operands for '%s'.\n", T->Description());
+        return 1;
+      }
+      for (unsigned int i = 0; i != nOps; i++) {
+        Dval[i] = Stack.top();
+        Stack.pop();
+      }
+      if (T->Type() == OP_ASSIGN) {
+        // Assignment. This should be the last operation.
+        Stack.push( Dval[0]  );
+      } else if (T->numOperands() == 1 && T->ResultIsScalar()) {
+        // One operand that is a data set that will be converted to a scalar.
+        // Not allowed with this version of Evaluate.
+        mprinterr("Error: '%s': Data Set functions not allowed in these equations.\n",
+                  T->Description());
+        return 1;
+      } else {
+        // Perform operation. 
+        if (debug_ > 0)
+          mprintf("DEBUG: '%f' [%s] '%f'\n", Dval[1], T->Description(), Dval[0]);
+        Stack.push( DoOperation(Dval[0], Dval[1], T->Type()) );
+      }
+    }
+  }
+  if (Stack.size() != 1) {
+    mprinterr("Error: Unbalanced expression.\n");
+    return 1;
+  }
+  Result = Stack.top();
+  if (debug_ > 0)
+    mprintf("Result: Y(%g)= %g\n", X, Result);
+
   return 0;
 }
 

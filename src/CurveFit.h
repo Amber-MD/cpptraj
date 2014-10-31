@@ -36,6 +36,8 @@ class CurveFit {
     int LevenbergMarquardt(FitFunctionType, Darray const&, Darray const&, Darray&,
                            std::vector<bool> const&, Darray const&, Darray const&, 
                            Darray const&, double, int);
+    /// Calculate various statistics using final Y values and input Y values.
+    int Statistics(Darray const&, double&, double&, double&, double&) const;
     /// \return Status message.
     static const char* Message(int);
     /// \return Error message if status is zero.
@@ -63,6 +65,8 @@ class CurveFit {
     void PrintFinalParams(Darray const&) const;
     /// \return true if input coords/parameters have problems.
     bool ParametersHaveProblems(Darray const&, Darray const&, Darray const&);
+    /// Calculate mean and standard deviation
+    void CalcMeanStdev(Darray const&, double&, double&) const;
     // DEBUG
     inline void PrintMatrix(const char*, int, int, Darray const&) const;
     inline void PrintVector(const char*, Darray const&) const;

@@ -14,6 +14,7 @@ class ActionList {
     void Clear();
     /// Set the debug level for actions.
     void SetDebug(int);
+    void SetSilent(bool b) { actionsAreSilent_ = b; }
     int Debug() const { return debug_; }
     /// Add given action to the action list and initialize.
     int AddAction(DispatchObject::DispatchAllocatorType, ArgList&,
@@ -49,5 +50,7 @@ class ActionList {
     std::vector<ActionStatusType> actionstatus_;
     /// Default debug level for actions
     int debug_;
+    /// If true suppress all init/setup output from actions.
+    bool actionsAreSilent_;
 };
 #endif

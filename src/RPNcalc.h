@@ -4,13 +4,25 @@
 /// Reverse Polish notation calculator
 class RPNcalc {
   public:
+    typedef std::vector<double> Darray;
     RPNcalc();
     void SetDebug(int d) { debug_ = d; }
+    /// Set RPNcalc with equation from expression.
     int ProcessExpression(std::string const&);
+    /// Evaluate equation; variables = DataSets
     int Evaluate(DataSetList&) const;
+    enum AssignType { NO_ASSIGN, YES_ASSIGN, ERR_ASSIGN };
+    /// Report on whether equation contains an assignment or not.
+    AssignType AssignStatus() const;
+    /// Evaluate equation; variables are input parameters.
+    int Evaluate(Darray const&, double, double&) const;
+    /// \return Name of variable being assigned to.
+    std::string const& FirstTokenName() const;
+    /// \return Number of A<n> parameter variables, check validity.
+    int Nparams() const;
   private:
-    class ValType;
     class Token;
+    class ValType;
     enum TokenType { NONE = 0, NUMBER, VARIABLE,
                      // Left-associative operators 
                      OP_MINUS, OP_PLUS, OP_DIV, OP_MULT, OP_POW,

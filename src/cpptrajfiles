@@ -85,8 +85,8 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_CrankShaft.cpp \
         Analysis_CrdFluct.cpp \
         Analysis_CrossCorr.cpp \
+        Analysis_CurveFit.cpp \
         Analysis_Divergence.cpp \
-        Analysis_ExpCurveFit.cpp \
         Analysis_FFT.cpp \
         Analysis_Hist.cpp \
         Analysis_Integrate.cpp \

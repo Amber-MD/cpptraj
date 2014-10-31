@@ -119,8 +119,8 @@
 #include "Analysis_Divergence.h"
 #include "Analysis_VectorMath.h"
 #include "Analysis_Regression.h"
-#include "Analysis_ExpCurveFit.h"
 #include "Analysis_LowestCurve.h"
+#include "Analysis_CurveFit.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -644,6 +644,11 @@ Command::RetType ListAll(CpptrajState& State, ArgList& argIn, Command::AllocType
 {
   return (Command::RetType)State.ListAll( argIn );
 }
+
+static void Help_SilenceActions() { mprintf("Silence Actions Init/Setup output.\n"); }
+/// Silence Actions Init/Setup output.
+Command::RetType SilenceActions(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{ State.SetActionSilence( true ); return Command::C_OK; }
 
 /// Perform action on given COORDS dataset
 Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
@@ -1736,6 +1741,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
   { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
   { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
+  { GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "xmgrace",       0, Help_System,          SystemCmd       },
@@ -1867,9 +1873,9 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "crankshaft", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, AddAnalysis },
   { ANALYSIS, "crdfluct", Analysis_CrdFluct::Alloc, Analysis_CrdFluct::Help, AddAnalysis },
   { ANALYSIS, "crosscorr", Analysis_CrossCorr::Alloc, Analysis_CrossCorr::Help, AddAnalysis },
+  { ANALYSIS, "curvefit", Analysis_CurveFit::Alloc, Analysis_CurveFit::Help, AddAnalysis },
   { ANALYSIS, "diagmatrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
   { ANALYSIS, "divergence", Analysis_Divergence::Alloc, Analysis_Divergence::Help, AddAnalysis },
-  { ANALYSIS, "expcurvefit", Analysis_ExpCurveFit::Alloc, Analysis_ExpCurveFit::Help, AddAnalysis },
   { ANALYSIS, "fft", Analysis_FFT::Alloc, Analysis_FFT::Help, AddAnalysis },
   { ANALYSIS, "hist", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
   { ANALYSIS, "histogram", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
