@@ -50,6 +50,11 @@ const char* CurveFit::Message(int info) {
                     " the approximate solution parameter vector is possible.";
     case 8 : return "gtol is too small. Residual is orthogonal to the"
                     " columns of the Jacobian to machine precision.";
+    // The following (9 and 10) are for Statistics() only.
+    case 9 : return "Cannot calculate statistics; # elements does not match"
+                    " or curve fitting has not been performed.";
+    case 10: return "Input set Y values contain zero, cannot calculate RMS"
+                    " percent error.";
   }
   return 0;
 }
@@ -979,4 +984,70 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
     DBGPRINT("\tParams[%lu]= %g\n", in, ParamVec[in]);
 # endif
   return info;
+}
+
+// CurveFit::CalcMeanStdev()
+void CurveFit::CalcMeanStdev(Darray const& Vals, double& mean, double& stdev) const
+{
+  mean = 0.0;
+  for (Darray::const_iterator val = Vals.begin(); val != Vals.end(); ++val)
+    mean += *val;
+  mean /= (double)Vals.size();
+  stdev = 0.0;
+  if (Vals.size() > 1) {
+    for (Darray::const_iterator val = Vals.begin(); val != Vals.end(); ++val)
+    {
+      double diff = mean - *val;
+      stdev += (diff * diff);
+    }
+    stdev = sqrt( stdev / (double)(Vals.size() - 1) );
+  }
+}
+
+// CurveFit::Statistics()
+/** For final Y values vs given (presumably initial) Y values, calculate
+  * correlation coefficient, chi-squared, Theil's U, and RMS percent 
+  * error.
+  */
+int CurveFit::Statistics(Darray const& Yvals,
+                         double& corr, double& ChiSq, 
+                         double& TheilU, double& rms_percent_error) const
+{
+  if (finalY_.empty() || Yvals.size() != finalY_.size())
+    return 9;
+  int err_val = 0;
+  unsigned int Nvals = Yvals.size();
+  // Correlation coefficient
+  corr = 0.0;
+  if (Nvals > 1) {
+    double mean0, mean1, stdev0, stdev1;
+    CalcMeanStdev(finalY_, mean0, stdev0);
+    CalcMeanStdev(Yvals,   mean1, stdev1);
+    if (stdev0 > 0.0 && stdev1 > 0.0) {
+      for (unsigned int n = 0; n != Nvals; n++)
+        corr += (finalY_[n] - mean0) * (Yvals[n] - mean1);
+      corr /= ((double)(Nvals - 1) * stdev0 * stdev1);
+    }
+  }
+  ChiSq = 0.0;
+  double Y2 = 0.0;
+  bool setHasZero = false;
+  for (unsigned int n = 0; n != Nvals; n++) {
+    double diff = finalY_[n] - Yvals[n];
+    ChiSq += (diff * diff);
+    Y2 += (Yvals[n] * Yvals[n]);
+    if (Yvals[n] == 0.0)
+      setHasZero = true;
+  }
+  TheilU = sqrt(ChiSq / Y2);
+  rms_percent_error = 0.0;
+  if (!setHasZero) {
+    for (unsigned int n = 0; n != Nvals; n++) {
+      double diff = finalY_[n] - Yvals[n];
+      rms_percent_error += (diff * diff) / (Yvals[n] * Yvals[n]);
+    }
+    rms_percent_error = sqrt( rms_percent_error / (double)Nvals );
+  } else
+    err_val = 10;
+  return err_val;
 }

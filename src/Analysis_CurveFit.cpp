@@ -103,8 +103,11 @@ Analysis_CurveFit::Analysis_CurveFit() :
   dset_(0),
   finalY_(0),
   tolerance_(0.0),
+  outXmin_(0.0),
+  outXmax_(0.0),
   maxIt_(0),
   nexp_(-1),
+  outXbins_(-1),
   eqForm_(GENERAL)
 {} 
 
@@ -112,6 +115,7 @@ Analysis_CurveFit::Analysis_CurveFit() :
 void Analysis_CurveFit::Help() {
   mprintf("\t<dset> {<equation> | nexp <m> [form {mexp|mexpk|mexpk_penalty}}\n"
           "\t[out <outfile>] [tol <tolerance>] [maxit <max iterations>]\n"
+          "\t[outxbins <NX> outxmin <xmin> outxmax <xmax>]\n"
           "  Fit data set <dset> to <equation>. The equation must have form:\n"
           "    <var> = <expression>\n"
           "  where <var> is the output data set name and <expression> can contain\n"
@@ -137,7 +141,7 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     mprinterr("Error: Curve fitting can only be done with 1D data sets.\n");
     return Analysis::ERR;
   }
-  std::string dsoutName, equation;
+  std::string dsoutName;
   int n_expected_params = 0;
   // Determine if special equation is being used.
   nexp_ = analyzeArgs.getKeyInt("nexp", -1);
@@ -148,7 +152,7 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
       mprinterr("Error: 'name <OutputSetName>' must be used with 'nexp <n>'\n");
       return Analysis::ERR;
     }
-    equation = dsoutName + " = ";
+    equation_ = dsoutName + " = ";
     // Determine form
     eqForm_ = MEXP;
     std::string formStr = analyzeArgs.GetStringKey("form");
@@ -164,13 +168,13 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     // Set up equation
     int nparam = 0;
     if (eqForm_ != MEXP) {
-      equation.append("A0 +");
+      equation_.append("A0 +");
       nparam = 1;
     }
     for (int ie = 0; ie != nexp_; ie++, nparam += 2) {
       if (ie > 0)
-        equation.append(" + ");
-      equation.append("(A" + integerToString(nparam) + " * exp(X * A" + 
+        equation_.append(" + ");
+      equation_.append("(A" + integerToString(nparam) + " * exp(X * A" + 
                              integerToString(nparam+1) + "))");
     }
     n_expected_params = nparam;
@@ -178,21 +182,21 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     // Any equation form, solve with RPNcalc.
     eqForm_ = GENERAL;
     // Second argument should be the equation to fit DataSet to.
-    equation = analyzeArgs.GetStringNext();
-    if (equation.empty()) {
+    equation_ = analyzeArgs.GetStringNext();
+    if (equation_.empty()) {
       mprinterr("Error: Must specify an equation if 'nexp <n>' not specified.\n");
       return Analysis::ERR;
     }
     Calc_.SetDebug(debugIn);
-    if (Calc_.ProcessExpression( equation )) return Analysis::ERR;
+    if (Calc_.ProcessExpression( equation_ )) return Analysis::ERR;
     // Equation must have an assignment.
     if ( Calc_.AssignStatus() != RPNcalc::YES_ASSIGN ) {
-      mprinterr("Error: No assignment '=' in equation '%s'.\n", equation.c_str());
+      mprinterr("Error: No assignment '=' in equation '%s'.\n", equation_.c_str());
       return Analysis::ERR;
     }
     dsoutName = Calc_.FirstTokenName();
     if (dsoutName.empty()) {
-      mprinterr("Error: Invalid assignment in equation '%s'.\n", equation.c_str());
+      mprinterr("Error: Invalid assignment in equation '%s'.\n", equation_.c_str());
       return Analysis::ERR;
     } 
     n_expected_params = Calc_.Nparams();
@@ -208,6 +212,16 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
   if (maxIt_ < 1) {
     mprinterr("Error: Max iterations must be greater than or equal to 1.\n");
     return Analysis::ERR;
+  }
+  outXbins_ = analyzeArgs.getKeyInt("outxbins", -1);
+  outXmin_ = analyzeArgs.getKeyDouble("outxmin", 0.0);
+  outXmax_ = analyzeArgs.getKeyDouble("outxmax", 0.0);
+  if (outXbins_ > 0) {
+    mprintf("%g %g\n", outXmin_, outXmax_);
+    if (outXmin_ >= outXmax_) {
+      mprinterr("Error: outxmin must be less than outxmax.\n");
+      return Analysis::ERR;
+    }
   }
   // Now get all parameters
   if (n_expected_params < 0) return Analysis::ERR;
@@ -253,7 +267,7 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
   if (outfile != 0) outfile->AddSet( finalY_ );
 
   mprintf("    CURVEFIT: Fitting set '%s' to equation '%s'\n",
-          dset_->Legend().c_str(), equation.c_str());
+          dset_->Legend().c_str(), equation_.c_str());
   if (nexp_ > 0) {
     mprintf("\tMulti-exponential form with %i exponentials.\n", nexp_);
     if (eqForm_ == MEXP_K_PENALTY)
@@ -261,6 +275,8 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
               " exponent parameters < 0.0\n");
   }
   mprintf("\tFinal Y values will be saved in set '%s'\n", finalY_->Legend().c_str());
+  if (outXbins_ > 0)
+    mprintf("\tFinal X range: %g to %g, %i points.\n", outXmin_, outXmax_, outXbins_);
   mprintf("\tTolerance= %g, maximum iterations= %i\n", tolerance_, maxIt_);
   mprintf("\tInitial parameters:\n");
   for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
@@ -293,11 +309,8 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
   CurveFit::Darray Xvals, Yvals;
   Xvals.reserve( Set.Size() );
   Yvals.reserve( Set.Size() );
-  bool setHasZero = false;
   for (unsigned int i = 0; i != Set.Size(); i++) {
     Xvals.push_back( Set.Xcrd(i) );
-    if (Set.Dval(i) == 0.0)
-      setHasZero = true;
     Yvals.push_back( Set.Dval(i) );
   }
 
@@ -312,38 +325,39 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
   for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
     mprintf("\t\tFinal Param %u = %g\n", ip - Params_.begin(), *ip);
 
-  // FIXME Should probably have better error handling here.
   // Construct output data.
   DataSet_Mesh& Yout = static_cast<DataSet_Mesh&>( *finalY_ );
-  CurveFit::Darray::const_iterator ny = fit.FinalY().begin();
-  Yout.Allocate1D( dset_->Size() );
-  for (CurveFit::Darray::const_iterator x = Xvals.begin(); x != Xvals.end(); ++x, ++ny)
-    Yout.AddXY( *x, *ny );
+  if (outXbins_ > 0) {
+    // Set Calc if not already done.
+    if (eqForm_ != GENERAL) {
+      if (Calc_.ProcessExpression( equation_ )) {
+        mprinterr("Internal Error: Invalid multi-exponential equation.\n");
+        return Analysis::ERR;
+      }
+    }
+    double xstep = (outXmax_ - outXmin_) / (double)(outXbins_ - 1);
+    double xval = outXmin_, yval = 0.0;
+    Yout.Allocate1D( outXbins_ );
+    for (int bin = 0; bin != outXbins_; bin++, xval += xstep) {
+      Calc_.Evaluate( Params_, xval, yval );
+      Yout.AddXY( xval, yval );
+    }
+    Yout.SetDim(Dimension::X, Dimension(outXmin_, xstep, outXbins_));
+  } else {
+    Yout.Allocate1D( dset_->Size() );
+    CurveFit::Darray::const_iterator ny = fit.FinalY().begin();
+    for (CurveFit::Darray::const_iterator x = Xvals.begin(); x != Xvals.end(); ++x, ++ny)
+      Yout.AddXY( *x, *ny );
+    Yout.SetDim(Dimension::X, dset_->Dim(Dimension::X));
+  }
 
   // Statistics
-  // TODO: Move to CurveFit?
-  double corr_coeff = Yout.CorrCoeff( Set );
-  mprintf("\tCorrelation coefficient: %g\n", corr_coeff);
-  double ChiSq = 0.0;
-  double Y2 = 0.0;
-  for (unsigned int i = 0; i != Set.Size(); i++) {
-    double diff = Yout.Dval(i) - Set.Dval(i);
-    ChiSq += (diff * diff);
-    Y2 += (Set.Dval(i) * Set.Dval(i));
-  }
-  double TheilU = sqrt(ChiSq / Y2);
-  mprintf("\tChi squared: %g\n", ChiSq);
-  mprintf("\tUncertainty coefficient: %g\n", TheilU);
-  if (!setHasZero) {
-    double rms_percent_error = 0.0;
-    for (unsigned int i = 0; i != Set.Size(); i++) {
-      double diff = Yout.Dval(i) - Set.Dval(i);
-      rms_percent_error += (diff * diff) / (Set.Dval(i) * Set.Dval(i));
-    }
-    rms_percent_error = sqrt( rms_percent_error / (double)Set.Size() );
-    mprintf("\tRMS percent error: %g\n", rms_percent_error);
-  } else
-    mprintf("Warning: Input set Y values contain zero, cannot calculate RMS percent error\n");
+  double corr_coeff, ChiSq, TheilU, rms_percent_error;
+  int err = fit.Statistics( Yvals, corr_coeff, ChiSq, TheilU, rms_percent_error);
+  if (err != 0) mprintf("Warning: %s\n", fit.Message(err));
+  mprintf("\tCorrelation coefficient: %g\n\tChi squared: %g\n"
+          "\tUncertainty coefficient: %g\n\tRMS percent error: %g\n",
+          corr_coeff, ChiSq, TheilU, rms_percent_error);
 
   // Stats specific to multi-exp forms.
   if (eqForm_ != GENERAL) {
