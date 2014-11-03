@@ -379,7 +379,7 @@ int AtomMap::SymmetricAtoms(Topology const& topIn,
       for (Iarray::const_iterator sa = symmAtoms.begin(); sa != symmAtoms.end(); ++sa)
         mprintf("\t%8i %4s %8i\n", *sa + res_first_atom + 1,
                 topIn[*sa + res_first_atom].c_str(),
-                SelectedIdx[ *sa + res_first_atom ] + 1);
+                AtomStatus[ *sa ]);
 #     endif
       // If only one atom, not symmetric.
       if (symmAtoms.size() == 1)
