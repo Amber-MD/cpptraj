@@ -128,24 +128,27 @@ void AtomMap::DetermineAtomIDs() {
   for (int ma1 = 0; ma1 < (int)mapatoms_.size(); ++ma1) {
     MapAtom& matom = mapatoms_[ma1];
     std::string unique = matom.AtomID();
-    for (Atom::bond_iterator bondedAtom = matom.bondbegin();
-                             bondedAtom != matom.bondend(); ++bondedAtom)
+    if (mapatoms_.size() > 10)
     {
-      unique += mapatoms_[ *bondedAtom ].AtomID();
-      // Go one more level through bonds for unique ID.
-      // FIXME: This may only be optimal above a certain # of atoms
-      MapAtom const& Batom = mapatoms_[ *bondedAtom ];
-      for (Atom::bond_iterator ba2 = Batom.bondbegin(); ba2 != Batom.bondend(); ++ba2)
+      for (Atom::bond_iterator bondedAtom = matom.bondbegin();
+                               bondedAtom != matom.bondend(); ++bondedAtom)
       {
-        if (*ba2 != ma1) {
-          unique += mapatoms_[ *ba2 ].AtomID();
-          // For larger residues go one additional level.
-          if (mapatoms_.size() > 20) {
-            Atom const& Catom = mapatoms_[ *ba2 ];
-            for (Atom::bond_iterator ca3 = Catom.bondbegin(); ca3 != Catom.bondend(); ++ca3)
-            {
-              if (ca3 != ba2 && *ca3 != ma1)
-                unique += mapatoms_[ *ca3 ].AtomID();
+        unique += mapatoms_[ *bondedAtom ].AtomID();
+        // Go one more level through bonds for unique ID.
+        // FIXME: This may only be optimal above a certain # of atoms
+        MapAtom const& Batom = mapatoms_[ *bondedAtom ];
+        for (Atom::bond_iterator ba2 = Batom.bondbegin(); ba2 != Batom.bondend(); ++ba2)
+        {
+          if (*ba2 != ma1) {
+            unique += mapatoms_[ *ba2 ].AtomID();
+            // For larger residues go one additional level.
+            if (mapatoms_.size() > 20) {
+              Atom const& Catom = mapatoms_[ *ba2 ];
+              for (Atom::bond_iterator ca3 = Catom.bondbegin(); ca3 != Catom.bondend(); ++ca3)
+              {
+                if (ca3 != ba2 && *ca3 != ma1)
+                  unique += mapatoms_[ *ca3 ].AtomID();
+              }
             }
           }
         }
