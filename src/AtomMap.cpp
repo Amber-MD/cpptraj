@@ -396,37 +396,8 @@ int AtomMap::SymmetricAtoms(Topology const& topIn,
         // Add this group of symmetric atoms.
         SymmetricAtomIndices.push_back( selectedSymmAtoms );
       }
-//      // Which of the symmetric atoms are selected?
-//      selectedSymmAtoms.clear();
-//      for (Iarray::const_iterator sa = symmAtoms.begin(); sa != symmAtoms.end(); ++sa)
-//        if (SelectedIdx[ *sa + res_first_atom ] != -1)
-//          selectedSymmAtoms.push_back( *sa );
-//      if (selectedSymmAtoms.size() == 1) {
-//        // Only 1 atom, not symmetric. Reset atom status
-//        AtomStatus[selectedSymmAtoms.front()] = NONSYMM;
-//      } else if (selectedSymmAtoms.size() > 1) {
-//        // Shift residue atom #s so they correspond with tgtMask.
-//        for (Iarray::iterator it = selectedSymmAtoms.begin();
-//                              it != selectedSymmAtoms.end(); ++it)
-//        {
-//          AtomStatus[*it] = SYMM;
-//          *it = SelectedIdx[ *it + res_first_atom ];
-//        }
-//        SymmetricAtomIndices_.push_back( selectedSymmAtoms );
-//      }
     }
   }
-  // If remapping and not all atoms in a residue are selected, warn user.
-//  if (remapIn) {
-//    for (int at = 0; at < resmap.Natom(); at++) {
-//      if (AtomStatus[at] == UNSELECTED) {
-//        mprintf("Warning: Not all atoms selected in residue '%s'. Re-mapped\n"
-//                "Warning:   structures may appear distorted.\n",
-//                topIn.TruncResNameNum(res).c_str());
-//        break;
-//      }
-//    }
-//  }
   if (debug_ > 0) {
     mprintf("DEBUG:\tResidue Atom Status:\n");
     for (int at = 0; at < Natom(); at++) {
