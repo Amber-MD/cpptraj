@@ -308,10 +308,27 @@ int Cpptraj::Interactive() {
   State_.SetNoExitOnError();
   // Open log file. If no name has been set, use default.
   CpptrajFile logfile_;
-  if (!logfilename_.empty())
-    logfile_.OpenWrite(logfilename_);
-  else
-    logfile_.OpenAppend("cpptraj.log");
+  if (logfilename_.empty())
+    logfilename_.assign("cpptraj.log");
+  if (fileExists(logfilename_)) {
+    // Load previous history.
+    if (logfile_.OpenRead(logfilename_)==0) {
+      mprintf("\tLoading previous history from log '%s'\n", logfile_.Filename().full());
+      std::string previousLine = logfile_.GetLine();
+      while (!previousLine.empty()) {
+        if (previousLine[0] != '#') {
+          // Remove any newline chars.
+          std::size_t found = previousLine.find_first_of("\r\n");
+          if (found != std::string::npos)
+            previousLine[found] = '\0';
+          inputLine.AddHistory( previousLine.c_str() );
+        }
+        previousLine = logfile_.GetLine();
+      }
+      logfile_.CloseFile();
+    }
+  }
+  logfile_.OpenAppend(logfilename_);
   if (logfile_.IsOpen())
     logfile_.Printf("# %s\n", TimeString().c_str());
   Command::RetType readLoop = Command::C_OK;
