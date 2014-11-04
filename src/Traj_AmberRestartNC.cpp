@@ -44,6 +44,10 @@ int Traj_AmberRestartNC::openTrajin() {
   return 0;
 }
 
+void Traj_AmberRestartNC::ReadHelp() {
+  mprintf("\tusevelascoords: Use velocities instead of coordinates if present.\n");
+}
+
 int Traj_AmberRestartNC::processReadArgs(ArgList& argIn) {
   useVelAsCoords_ = argIn.hasKey("usevelascoords");
   return 0;
@@ -100,6 +104,13 @@ int Traj_AmberRestartNC::setupTrajin(std::string const& fname, Topology* trajPar
   closeTraj();
   // Only 1 frame for NC restarts
   return 1;
+}
+
+void Traj_AmberRestartNC::WriteHelp() {
+  mprintf("\tnovelocity: Do not write velocities to restart file.\n"
+          "\tremdtraj:   Write temperature to restart file.\n"
+          "\ttime0:      Time for first frame (default 1.0).\n"
+          "\tdt:         Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n");
 }
 
 // Traj_AmberRestartNC::processWriteArgs()

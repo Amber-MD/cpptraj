@@ -16,6 +16,7 @@ class Traj_PDBfile: public TrajectoryIO {
 
     Traj_PDBfile();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_PDBfile(); }
+    static void WriteHelp();
   private:
     int pdbAtom_;
     int currentSet_;

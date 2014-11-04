@@ -436,6 +436,10 @@ int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
   return 0;
 }
 
+void Traj_CharmmDcd::WriteHelp() {
+  mprintf("\tx64: Use 8 byte block size (default 4 bytes).\n");
+}
+
 // Traj_CharmmDcd::processWriteArgs()
 int Traj_CharmmDcd::processWriteArgs(ArgList& argIn) {
   // Default is to write 32 bit

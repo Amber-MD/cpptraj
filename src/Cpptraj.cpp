@@ -7,9 +7,7 @@
 #include "Version.h"
 #include "ParmFile.h" // ProcessMask
 #include "Timer.h"
-#include "StringRoutines.h" // convertToInteger
-#include "Trajin_Single.h" // for AmbPDB
-#include "Trajout_Single.h" // for AmbPDB
+#include "StringRoutines.h" // TimeString
 
 void Cpptraj::Usage() {
   mprinterr("\n"
@@ -242,10 +240,6 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // --resmask: Parse mask string, print selected residue details
       if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, true )) return ERROR;
       return QUIT;
-    } else if (arg == "--ambpdb") {
-      // --ambpdb: Convert files to PDB.
-      if (AmbPDB(i + 1, argc, argv)) return ERROR;
-      return QUIT;
     } else if ( i == 1 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
       topFiles.push_back( argv[i] );
@@ -317,10 +311,27 @@ int Cpptraj::Interactive() {
   State_.SetNoExitOnError();
   // Open log file. If no name has been set, use default.
   CpptrajFile logfile_;
-  if (!logfilename_.empty())
-    logfile_.OpenWrite(logfilename_);
-  else
-    logfile_.OpenAppend("cpptraj.log");
+  if (logfilename_.empty())
+    logfilename_.assign("cpptraj.log");
+  if (fileExists(logfilename_)) {
+    // Load previous history.
+    if (logfile_.OpenRead(logfilename_)==0) {
+      mprintf("\tLoading previous history from log '%s'\n", logfile_.Filename().full());
+      std::string previousLine = logfile_.GetLine();
+      while (!previousLine.empty()) {
+        if (previousLine[0] != '#') {
+          // Remove any newline chars.
+          std::size_t found = previousLine.find_first_of("\r\n");
+          if (found != std::string::npos)
+            previousLine[found] = '\0';
+          inputLine.AddHistory( previousLine.c_str() );
+        }
+        previousLine = logfile_.GetLine();
+      }
+      logfile_.CloseFile();
+    }
+  }
+  logfile_.OpenAppend(logfilename_);
   if (logfile_.IsOpen())
     logfile_.Printf("# %s\n", TimeString().c_str());
   Command::RetType readLoop = Command::C_OK;
@@ -336,7 +347,7 @@ int Cpptraj::Interactive() {
     }
     if (!inputLine.empty()) {
       readLoop = Command::Dispatch( State_, *inputLine );
-      if (logfile_.IsOpen()) {
+      if (logfile_.IsOpen() && readLoop != Command::C_ERR) {
         logfile_.Printf("%s\n", inputLine.c_str());
         logfile_.Flush();
       }
@@ -352,71 +363,5 @@ int Cpptraj::Interactive() {
   }
   logfile_.CloseFile();
   if (readLoop == Command::C_ERR) return 1;
-  return 0;
-}
-
-// Cpptraj::AmbPDB()
-int Cpptraj::AmbPDB(int argstart, int argc, char** argv) {
-  SetWorldSilent(true);
-  std::string topname, crdname, title, aatm(" pdbatom"), bres, pqr;
-  TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
-  bool ctr_origin = false;
-  bool noTER = false;
-  int res_offset = 0;
-  for (int i = argstart; i < argc; ++i) {
-    std::string arg( argv[i] );
-    if (arg == "-p" && i+1 != argc && topname.empty()) // Topology
-      topname = std::string( argv[++i] );
-    else if (arg == "-c" && i+1 != argc && crdname.empty()) // Coords
-      crdname = std::string( argv[++i] );
-    else if (arg == "-tit" && i+1 != argc && title.empty()) // Title
-      title = " title " + std::string( argv[++i] );
-    else if (arg == "-offset" && i+1 != argc) // Residue # offset
-      res_offset = convertToInteger( argv[++i] );
-    else if (arg == "-aatm") // Amber atom names
-      aatm.clear();
-    else if (arg == "-bres") // PDB residue names
-      bres.assign(" pdbres");
-    else if (arg == "-ctr")  // Center on origin
-      ctr_origin = true;
-    else if (arg == "-noter") // No TER cards
-      noTER = true;
-    else if (arg == "-pqr") // Charge/Radii in occ/bfactor cols
-      pqr.assign(" dumpq");
-    else if (arg == "-mol2") // output as mol2
-      fmt = TrajectoryFile::MOL2FILE;
-    else
-      mprinterr("Warning: ambpdb: Unrecognized or unused option '%s'\n", arg.c_str());
-  }
-  // Topology
-  ParmFile pfile;
-  Topology parm;
-  if (pfile.ReadTopology(parm, topname, State_.Debug())) return 1;
-  parm.IncreaseFrames( 1 );
-  if (noTER)
-    parm.ClearMoleculeInfo();
-  if (res_offset != 0)
-    for (int r = 0; r < parm.Nres(); r++)
-      parm.SetRes(r).SetOriginalNum( parm.Res(r).OriginalResNum() + res_offset );
-  // Input coords
-  Trajin_Single trajin;
-  ArgList trajArgs;
-  if (trajin.SetupTrajRead(crdname, trajArgs, &parm, false)) return 1;
-  Frame TrajFrame;
-  TrajFrame.SetupFrameV(parm.Atoms(), trajin.HasVelocity(), trajin.NreplicaDimension());
-  trajin.BeginTraj(false);
-  if (trajin.ReadTrajFrame(0, TrajFrame)) return 1;
-  trajin.EndTraj();
-  if (ctr_origin) {
-    AtomMask mask("*");
-    parm.SetupIntegerMask( mask );
-    TrajFrame.Center( mask, Frame::ORIGIN, Vec3(0.0), false );
-  }
-  // Output coords
-  Trajout_Single trajout;
-  trajArgs.SetList( aatm + bres + pqr + title, " " );
-  if ( trajout.InitStdoutTrajWrite(trajArgs, &parm, fmt) ) return 1;
-  trajout.WriteFrame(0, &parm, TrajFrame);
-  trajout.EndTraj(); 
   return 0;
 }

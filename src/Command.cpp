@@ -423,10 +423,10 @@ static void Help_ReadInput() {
 }
 
 static void Help_Write_DataFile() {
-  mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n"
-          "  With no arguments, write all files currently in the data file list.\n"
-          "  Otherwise, write specified data sets to <filename> immediately.\n");
+  mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n");
   DataFile::WriteHelp();
+  mprintf("  With no arguments, write all files currently in the data file list.\n"
+          "  Otherwise, write specified data sets to <filename> immediately.\n");
   DataFile::WriteOptions();
 }
 
@@ -475,8 +475,9 @@ static void Help_Trajout() {
   mprintf("\t<filename> [<fileformat>] [append] [nobox]\n"
           "\t           %s [onlyframes <range>] [title <title>]\n", TopologyList::ParmArgs);
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
-  mprintf("\t           [ <Format Options> ]\n");
-  mprintf("  Specify output trajectory.\n");
+  mprintf("\t           [ <Format Options> ]\n"
+          "  Write frames after all actions have been processed to output trajectory\n"
+          "  specified by <filename>.\n");
   TrajectoryFile::WriteOptions();
 }
 

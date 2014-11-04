@@ -23,24 +23,24 @@
 // NOTE: Must be in same order as TrajFormatType
 const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # ifdef BINTRAJ
-  { "Amber NetCDF",       0, 0, Traj_AmberNetcdf::Alloc    },
-  { "Amber NC Restart",   0, 0, Traj_AmberRestartNC::Alloc },
+  { "Amber NetCDF",       Traj_AmberNetcdf::ReadHelp, Traj_AmberNetcdf::WriteHelp, Traj_AmberNetcdf::Alloc    },
+  { "Amber NC Restart",   Traj_AmberRestartNC::ReadHelp, Traj_AmberRestartNC::WriteHelp, Traj_AmberRestartNC::Alloc },
   { "Amber NC Ensemble",  Traj_NcEnsemble::ReadHelp, Traj_NcEnsemble::WriteHelp, Traj_NcEnsemble::Alloc },
 # else
   { "Amber NetCDF",       0, 0, 0                          },
   { "Amber NC Restart",   0, 0, 0                          },
   { "Amber NC Ensemble",  0, 0, 0                          },
 # endif
-  { "PDB",                0, 0, Traj_PDBfile::Alloc        },
-  { "Mol2",               0, 0, Traj_Mol2File::Alloc       },
+  { "PDB",                0, Traj_PDBfile::WriteHelp, Traj_PDBfile::Alloc        },
+  { "Mol2",               0, Traj_Mol2File::WriteHelp, Traj_Mol2File::Alloc       },
   { "CIF",                0, 0, Traj_CIF::Alloc            },
-  { "Charmm DCD",         0, 0, Traj_CharmmDcd::Alloc      },
+  { "Charmm DCD",         0, Traj_CharmmDcd::WriteHelp, Traj_CharmmDcd::Alloc      },
   { "Gromacs TRX",        0, 0, Traj_GmxTrX::Alloc         },
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
-  { "Amber Restart",      0, 0, Traj_AmberRestart::Alloc   },
+  { "Amber Restart",      0, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },
   { "Tinker file",        0, 0, Traj_Tinker::Alloc         },
-  { "Amber Trajectory",   0, 0, Traj_AmberCoord::Alloc     },
-  { "SQM Input",          0, 0, Traj_SQM::Alloc            },
+  { "Amber Trajectory",   0, Traj_AmberCoord::WriteHelp, Traj_AmberCoord::Alloc     },
+  { "SQM Input",          0, Traj_SQM::WriteHelp, Traj_SQM::Alloc            },
   { "SDF",                0, 0, Traj_SDF::Alloc            },
   { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
   { "Unknown trajectory", 0, 0, 0                          }

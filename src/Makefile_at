@@ -16,16 +16,35 @@ include cpptrajfiles
 
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 
+AMBPDB_OBJECTS=AmbPDB.o ActionFrameCounter.o ArgList.o Atom.o AtomMask.o Box.o \
+               BufferedFrame.o BufferedLine.o ByteRoutines.o CIFfile.o \
+               CpptrajFile.o CpptrajStdio.o DistRoutines.o \
+               FileIO_Bzip2.o FileIO_Gzip.o FileIO_Mpi.o FileIO_Std.o \
+               FileName.o FileTypes.o Frame.o MaskToken.o Matrix_3x3.o \
+               Mol2File.o MpiRoutines.o NameType.o NetcdfFile.o ParmFile.o \
+               Parm_Amber.o Parm_CIF.o Parm_CharmmPsf.o Parm_Gromacs.o \
+               Parm_Mol2.o Parm_PDB.o Parm_SDF.o Parm_Tinker.o \
+               PDBfile.o ProgressBar.o Range.o SDFfile.o StringRoutines.o \
+               TinkerFile.o Topology.o TrajectoryFile.o Trajin.o \
+               Trajin_Single.o Trajout.o Trajout_Single.o \
+               Traj_AmberCoord.o Traj_AmberRestart.o Traj_CIF.o \
+               Traj_Mol2File.o Traj_SDF.o Traj_AmberNetcdf.o Traj_Binpos.o \
+               Traj_Conflib.o Traj_NcEnsemble.o Traj_SQM.o \
+               Traj_AmberRestartNC.o Traj_CharmmDcd.o Traj_GmxTrX.o \
+               Traj_PDBfile.o Traj_Tinker.o \
+               Vec3.o
+
 all: cpptraj$(SFX)
 
-install: cpptraj$(SFX) 
+install: cpptraj$(SFX) cpp_ambpdb$(SFX) 
 	mv cpptraj$(SFX) $(BINDIR)/
+	mv cpp_ambpdb$(SFX) $(BINDIR)/
 
 install_openmp: cpptraj$(SFX)
 	mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX)
 
 install_mpi: cpptraj$(SFX)
-	mv cpptraj$(SFX) $(BINDIR)/cpptraj.MPI$(SFX) 
+	mv cpptraj$(SFX) $(BINDIR)/cpptraj.MPI$(SFX)
 
 findDepend: FindDepend.o
 	$(CXX) -o findDepend FindDepend.o
@@ -39,6 +58,10 @@ dependclean:
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
+
+cpp_ambpdb$(SFX): $(AMBPDB_OBJECTS)
+	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpp_ambpdb$(SFX) $(AMBPDB_OBJECTS) \
+               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB)
 
 $(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install
@@ -65,11 +88,12 @@ ReadLine.o: ReadLine.cpp
 	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 clean:
-	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX)
+	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o cpp_ambpdb$(SFX)
 	cd readline && $(MAKE) -f Makefile_at clean
 
 uninstall:
 	/bin/rm -f $(BINDIR)/cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX) $(BINDIR)/cpptraj.MPI$(SFX)
+	/bin/rm -f $(BINDIR)/cpp_ambpdb$(SFX)
 	cd readline && $(MAKE) -f Makefile_at uninstall
 
 # Header dependencies

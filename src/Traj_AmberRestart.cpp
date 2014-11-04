@@ -50,6 +50,13 @@ int Traj_AmberRestart::openTrajin() {
   return 0; 
 }
 
+void Traj_AmberRestart::WriteHelp() {
+  mprintf("\tnovelocity: Do not write velocities to restart file.\n"
+          "\tremdtraj:   Write temperature to restart file (will also write time).\n"
+          "\ttime0:      Time for first frame (if not specified time is not written).\n"
+          "\tdt:         Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n");
+}
+
 // Traj_AmberRestart::processWriteArgs()
 int Traj_AmberRestart::processWriteArgs(ArgList& argIn) {
   // For write, assume we want velocities unless specified

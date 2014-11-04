@@ -91,9 +91,13 @@ int ReadLine::GetInput() {
       input_.erase( input_.begin() + end, input_.end() );
   }
   // Add line to history
-  if (!input_.empty()) add_history(input_.c_str());
+  if (!input_.empty()) AddHistory(input_.c_str());
   if (line != 0) free( line );
   return 0;
+}
+
+void ReadLine::AddHistory(const char* line) {
+  if (line != 0) add_history( line );
 }
 
 bool ReadLine::YesNoPrompt(const char* prompt) {

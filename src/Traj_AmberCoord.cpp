@@ -289,6 +289,11 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
   return Frames;
 }
 
+void Traj_AmberCoord::WriteHelp() {
+  mprintf("\tremdtraj:      Write temperature to trajectory (makes REMD trajectory).\n"
+          "\thighprecision: (ADVANCED USE ONLY) Write 8.6 instead of 8.3 format.\n");
+}
+
 // Traj_AmberCoord::processWriteArgs()
 int Traj_AmberCoord::processWriteArgs(ArgList& argIn) {
   SetTemperature( argIn.hasKey("remdtraj") );

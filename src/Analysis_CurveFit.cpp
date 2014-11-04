@@ -114,8 +114,8 @@ Analysis_CurveFit::Analysis_CurveFit() :
 // Analysis_CurveFit::Help()
 void Analysis_CurveFit::Help() {
   mprintf("\t<dset> {<equation> | nexp <m> [form {mexp|mexpk|mexpk_penalty}}\n"
-          "\t[out <outfile>] [tol <tolerance>] [maxit <max iterations>]\n"
-          "\t[outxbins <NX> outxmin <xmin> outxmax <xmax>]\n"
+          "\t[out <outfile>] [resultsout <results>] [maxit <max iterations>]\n"
+          "\t[tol <tolerance>] [outxbins <NX> outxmin <xmin> outxmax <xmax>]\n"
           "  Fit data set <dset> to <equation>. The equation must have form:\n"
           "    <var> = <expression>\n"
           "  where <var> is the output data set name and <expression> can contain\n"
@@ -202,6 +202,7 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     n_expected_params = Calc_.Nparams();
   }
   // Get keywords
+  resultsName_ = analyzeArgs.GetStringKey("resultsout");
   DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   tolerance_ = analyzeArgs.getKeyDouble("tol", 0.0001);
   if (tolerance_ < 0.0) {
@@ -278,6 +279,9 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
   if (outXbins_ > 0)
     mprintf("\tFinal X range: %g to %g, %i points.\n", outXmin_, outXmax_, outXbins_);
   mprintf("\tTolerance= %g, maximum iterations= %i\n", tolerance_, maxIt_);
+  if (!resultsName_.empty())
+    mprintf("\tFinal parameters and statistics for fit will be writtent to %s\n",
+            resultsName_.c_str());
   mprintf("\tInitial parameters:\n");
   for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
     mprintf("\t  A%u = %g\n", ip - Params_.begin(), *ip);
@@ -322,8 +326,15 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     mprinterr("Error: %s\n", fit.ErrorMessage());
     return Analysis::ERR;
   }
+  CpptrajFile Results;
+  if (Results.OpenWrite(resultsName_)) return Analysis::ERR;
+  const char* HASH_TAB = "\t";
+  if (!resultsName_.empty())
+    HASH_TAB = "#";
+  Results.Printf("%sFit equation '%s' to set '%s'\n", HASH_TAB, 
+                 equation_.c_str(), dset_->Legend().c_str());
   for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
-    mprintf("\t\tFinal Param %u = %g\n", ip - Params_.begin(), *ip);
+    Results.Printf("%sFinal Param A%u = %g\n", HASH_TAB, ip - Params_.begin(), *ip);
 
   // Construct output data.
   DataSet_Mesh& Yout = static_cast<DataSet_Mesh&>( *finalY_ );
@@ -355,9 +366,10 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
   double corr_coeff, ChiSq, TheilU, rms_percent_error;
   int err = fit.Statistics( Yvals, corr_coeff, ChiSq, TheilU, rms_percent_error);
   if (err != 0) mprintf("Warning: %s\n", fit.Message(err));
-  mprintf("\tCorrelation coefficient: %g\n\tChi squared: %g\n"
-          "\tUncertainty coefficient: %g\n\tRMS percent error: %g\n",
-          corr_coeff, ChiSq, TheilU, rms_percent_error);
+  Results.Printf("%sCorrelation coefficient: %g\n%sChi squared: %g\n"
+                 "%sUncertainty coefficient: %g\n%sRMS percent error: %g\n",
+                 HASH_TAB, corr_coeff, HASH_TAB, ChiSq, 
+                 HASH_TAB, TheilU, HASH_TAB, rms_percent_error);
 
   // Stats specific to multi-exp forms.
   if (eqForm_ != GENERAL) {
@@ -370,17 +382,19 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
       sumB = Params_[0];
     for (unsigned int p = pstart; p < Params_.size(); p += 2)
       sumB += Params_[p];
-    mprintf("\tSum of prefactors = %g\n", sumB);
+    Results.Printf("%sSum of prefactors = %g\n", HASH_TAB, sumB);
     // Report decay constants from exponential parameters.
-    mprintf("\tTime constants:");
+    Results.Printf("%sTime constants (-1.0/A<n>):", HASH_TAB);
     for (unsigned int p = pstart + 1; p < Params_.size(); p += 2) {
       if (Params_[p] != 0.0) {
         double tau = 1.0 / -Params_[p];
-        mprintf(" %12.6g", tau);
-      } else
+        Results.Printf(" %12.6g", tau);
+      } else {
+        Results.Printf(" %12.6g", 0.0);
         mprintf("Warning: exp parameter %u is zero.\n", ((p - pstart) / 2) + 1);
+      }
     }
-    mprintf("\n");
+    Results.Printf("\n");
   }
   
   return Analysis::OK;

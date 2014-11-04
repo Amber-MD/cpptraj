@@ -3,7 +3,8 @@
 #include "CpptrajStdio.h"
 
 void Parm_PDB::ReadHelp() {
-  mprintf("\t[pqr] [readbox]\n");
+  mprintf("\tpqr:     Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
+          "\treadbox: Read unit cell information from CRYST1 record if present.\n");
 }
 
 int Parm_PDB::processReadArgs(ArgList& argIn) {

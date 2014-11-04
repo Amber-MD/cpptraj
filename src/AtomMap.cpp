@@ -128,24 +128,27 @@ void AtomMap::DetermineAtomIDs() {
   for (int ma1 = 0; ma1 < (int)mapatoms_.size(); ++ma1) {
     MapAtom& matom = mapatoms_[ma1];
     std::string unique = matom.AtomID();
-    for (Atom::bond_iterator bondedAtom = matom.bondbegin();
-                             bondedAtom != matom.bondend(); ++bondedAtom)
+    if (mapatoms_.size() > 10)
     {
-      unique += mapatoms_[ *bondedAtom ].AtomID();
-      // Go one more level through bonds for unique ID.
-      // FIXME: This may only be optimal above a certain # of atoms
-      MapAtom const& Batom = mapatoms_[ *bondedAtom ];
-      for (Atom::bond_iterator ba2 = Batom.bondbegin(); ba2 != Batom.bondend(); ++ba2)
+      for (Atom::bond_iterator bondedAtom = matom.bondbegin();
+                               bondedAtom != matom.bondend(); ++bondedAtom)
       {
-        if (*ba2 != ma1) {
-          unique += mapatoms_[ *ba2 ].AtomID();
-          // For larger residues go one additional level.
-          if (mapatoms_.size() > 20) {
-            Atom const& Catom = mapatoms_[ *ba2 ];
-            for (Atom::bond_iterator ca3 = Catom.bondbegin(); ca3 != Catom.bondend(); ++ca3)
-            {
-              if (ca3 != ba2 && *ca3 != ma1)
-                unique += mapatoms_[ *ca3 ].AtomID();
+        unique += mapatoms_[ *bondedAtom ].AtomID();
+        // Go one more level through bonds for unique ID.
+        // FIXME: This may only be optimal above a certain # of atoms
+        MapAtom const& Batom = mapatoms_[ *bondedAtom ];
+        for (Atom::bond_iterator ba2 = Batom.bondbegin(); ba2 != Batom.bondend(); ++ba2)
+        {
+          if (*ba2 != ma1) {
+            unique += mapatoms_[ *ba2 ].AtomID();
+            // For larger residues go one additional level.
+            if (mapatoms_.size() > 20) {
+              Atom const& Catom = mapatoms_[ *ba2 ];
+              for (Atom::bond_iterator ca3 = Catom.bondbegin(); ca3 != Catom.bondend(); ++ca3)
+              {
+                if (ca3 != ba2 && *ca3 != ma1)
+                  unique += mapatoms_[ *ca3 ].AtomID();
+              }
             }
           }
         }
@@ -379,7 +382,7 @@ int AtomMap::SymmetricAtoms(Topology const& topIn,
       for (Iarray::const_iterator sa = symmAtoms.begin(); sa != symmAtoms.end(); ++sa)
         mprintf("\t%8i %4s %8i\n", *sa + res_first_atom + 1,
                 topIn[*sa + res_first_atom].c_str(),
-                SelectedIdx[ *sa + res_first_atom ] + 1);
+                AtomStatus[ *sa ]);
 #     endif
       // If only one atom, not symmetric.
       if (symmAtoms.size() == 1)
@@ -396,37 +399,8 @@ int AtomMap::SymmetricAtoms(Topology const& topIn,
         // Add this group of symmetric atoms.
         SymmetricAtomIndices.push_back( selectedSymmAtoms );
       }
-//      // Which of the symmetric atoms are selected?
-//      selectedSymmAtoms.clear();
-//      for (Iarray::const_iterator sa = symmAtoms.begin(); sa != symmAtoms.end(); ++sa)
-//        if (SelectedIdx[ *sa + res_first_atom ] != -1)
-//          selectedSymmAtoms.push_back( *sa );
-//      if (selectedSymmAtoms.size() == 1) {
-//        // Only 1 atom, not symmetric. Reset atom status
-//        AtomStatus[selectedSymmAtoms.front()] = NONSYMM;
-//      } else if (selectedSymmAtoms.size() > 1) {
-//        // Shift residue atom #s so they correspond with tgtMask.
-//        for (Iarray::iterator it = selectedSymmAtoms.begin();
-//                              it != selectedSymmAtoms.end(); ++it)
-//        {
-//          AtomStatus[*it] = SYMM;
-//          *it = SelectedIdx[ *it + res_first_atom ];
-//        }
-//        SymmetricAtomIndices_.push_back( selectedSymmAtoms );
-//      }
     }
   }
-  // If remapping and not all atoms in a residue are selected, warn user.
-//  if (remapIn) {
-//    for (int at = 0; at < resmap.Natom(); at++) {
-//      if (AtomStatus[at] == UNSELECTED) {
-//        mprintf("Warning: Not all atoms selected in residue '%s'. Re-mapped\n"
-//                "Warning:   structures may appear distorted.\n",
-//                topIn.TruncResNameNum(res).c_str());
-//        break;
-//      }
-//    }
-//  }
   if (debug_ > 0) {
     mprintf("DEBUG:\tResidue Atom Status:\n");
     for (int at = 0; at < Natom(); at++) {

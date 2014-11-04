@@ -17,8 +17,8 @@ bool DataIO_Evecs::ID_DataFormat(CpptrajFile& infile) {
 }
 
 void DataIO_Evecs::ReadHelp() {
-  mprintf("\t[ibeg <firstmode>] [iend <lastmode>]\n"
-          "\tDefaults: ibeg=1, iend=50\n");
+  mprintf("\tibeg <firstmode>: First mode to read in (default 1).\n"
+          "\tiend <lastmode>:  Last mode to read in (default 50).\n");
 }
 
 // DataIO_Evecs::ReadData()

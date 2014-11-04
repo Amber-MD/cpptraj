@@ -177,15 +177,6 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
   return 0;
 }
 
-// DataIO_RemLog::ReadHelp()
-void DataIO_RemLog::ReadHelp() {
-  mprintf("\t[nosearch]          : Do not automatically search for MREMD dimension logs.\n"
-          "\t[dimfile <file>]    : remd.dim file for processing MREMD logs.\n"
-          "\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
-          "\t                      coordinate indices.\n"
-          "\tMultiple REM logs may be specified.\n");
-}
-
 /// Get filename up to extension
 //TODO May not need to be its own function. Make a general FileName function?
 static inline std::string GetPrefix(FileName const& fname) {
@@ -326,6 +317,15 @@ void DataIO_RemLog::SetupDim1Group( int group_size ) {
   }
   n_mremd_replicas_ = group_size;
 }  
+
+// DataIO_RemLog::ReadHelp()
+void DataIO_RemLog::ReadHelp() {
+  mprintf("\tnosearch            : Do not automatically search for MREMD dimension logs.\n"
+          "\tdimfile <file>      : remd.dim file for processing MREMD logs.\n"
+          "\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
+          "\t                      coordinate indices.\n"
+          "\tMultiple REM logs may be specified.\n");
+}
 
 // DataIO_RemLog::ReadData()
 int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,

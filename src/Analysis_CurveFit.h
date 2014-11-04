@@ -12,6 +12,7 @@ class Analysis_CurveFit : public Analysis {
   private:
     enum EqFormType { GENERAL = 0, MEXP, MEXP_K, MEXP_K_PENALTY };
     std::string equation_; ///< Equation to fit.
+    std::string resultsName_; ///< Results output filename (final params, stats)
     DataSet* dset_;     ///< DataSet to fit.
     DataSet* finalY_;   ///< Final output DataSet.
     typedef std::vector<double> Darray;

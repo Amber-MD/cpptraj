@@ -166,7 +166,13 @@ Action::RetType Action_Density::DoAction(int frameNum,
       slice = (long) (coord[axis_] / delta_);
 
       // FIXME: split 0 bin in one + and one -
-      tmp[slice] += properties_[i][j];
+      if (slice != 0)
+	tmp[slice] += properties_[i][j];
+      else
+	if (coord[axis_] < 0.0)
+	  tmp[slice-1] += properties_[i][j];
+	else
+	  tmp[slice+1] += properties_[i][j];
 
       j++;
     }
@@ -240,18 +246,19 @@ void Action_Density::Print()
 
   for (long i = minidx; i <= maxidx; i++) {
     first = true;
+    if (i == 0) continue;	// FIXME: 0 is doubly counted
 
     for (unsigned long j = 0; j < histograms_.size(); j++) {
       curr = histograms_[j];
 
       if (first) {
         output_.Printf("%10.4f", (i < 0 ? -delta_ : 0.0) +
-                       ((double) i + (i == 0 ? 0.0 : 0.5)) * delta_);
+                       ((double) i + 0.5) * delta_);
         first = false;
       }
 
-      density = curr.mean(i) / (delta_ * // 0 is doubly counted
-				(i == 0 ? 2.0 : 1.0 ));
+      density = curr.mean(i) / (delta_ * // FIXME: 0 is doubly counted
+				(i == -1 or i == 1 ? 2.0 : 1.0 ));
       sd = sqrt(curr.variance(i) );
 
       if (scale_area) {
