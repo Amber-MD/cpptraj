@@ -423,10 +423,10 @@ static void Help_ReadInput() {
 }
 
 static void Help_Write_DataFile() {
-  mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n"
-          "  With no arguments, write all files currently in the data file list.\n"
-          "  Otherwise, write specified data sets to <filename> immediately.\n");
+  mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n");
   DataFile::WriteHelp();
+  mprintf("  With no arguments, write all files currently in the data file list.\n"
+          "  Otherwise, write specified data sets to <filename> immediately.\n");
   DataFile::WriteOptions();
 }
 
