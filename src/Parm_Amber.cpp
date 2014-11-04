@@ -281,7 +281,8 @@ static std::vector<int> DihedralArrayToIndex(DihedralArray const& dihedralIn, bo
 } 
 
 void Parm_Amber::WriteHelp() {
-  mprintf("\t[nochamber]\n");
+  mprintf("\tnochamber: Do not write CHAMBER information to topology (useful for e.g. using"
+          " topology for visualization with VMD).\n");
 }
 
 int Parm_Amber::processWriteArgs(ArgList& argIn) {
