@@ -144,6 +144,17 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
   return 0;
 }
 
+void Traj_PDBfile::WriteHelp() {
+  mprintf("\tdumpq:       Write atom charge/radius in occupancy/B-factor columns (PQR format).\n"
+          "\tpdbres:      Use PDB V3 residue names.\n"
+          "\tpdbatom:     Use PDB V3 atom names.\n"
+          "\tpdbv3:       Use PDB V3 residue/atom names.\n"
+          "\tteradvance:  Increment record (atom) # for TER records (default no).\n"
+          "\tmodel:       Write to single file separated by MODEL records.\n"
+          "\tmulti:       Write each frame to separate files.\n"
+          "\tchainid <c>: Write character 'c' in chain ID column.\n");
+}
+
 // Traj_PDBfile::processWriteArgs()
 int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   pdbWriteMode_ = SINGLE;

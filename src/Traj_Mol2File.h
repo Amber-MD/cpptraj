@@ -15,6 +15,7 @@ class Traj_Mol2File : public TrajectoryIO {
 
     Traj_Mol2File();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_Mol2File(); }
+    static void WriteHelp();
   private:
     MOL2WRITEMODE mol2WriteMode_;
     Topology* mol2Top_;

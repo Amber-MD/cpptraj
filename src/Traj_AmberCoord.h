@@ -8,6 +8,7 @@ class Traj_AmberCoord: public TrajectoryIO {
   public:
     Traj_AmberCoord();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_AmberCoord(); }
+    static void WriteHelp();
   private:
     int natom3_;          ///< Number of coords (# atoms X 3)
     // TODO: Replace hasREMD with REMD_HEADER_SIZE/HasT()

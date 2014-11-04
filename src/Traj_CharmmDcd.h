@@ -7,6 +7,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
   public :
     Traj_CharmmDcd();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_CharmmDcd(); }
+    static void WriteHelp();
     ~Traj_CharmmDcd();
   private:
     int dcdatom_;            ///< Number of atoms in DCD file.

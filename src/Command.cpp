@@ -475,8 +475,9 @@ static void Help_Trajout() {
   mprintf("\t<filename> [<fileformat>] [append] [nobox]\n"
           "\t           %s [onlyframes <range>] [title <title>]\n", TopologyList::ParmArgs);
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
-  mprintf("\t           [ <Format Options> ]\n");
-  mprintf("  Specify output trajectory.\n");
+  mprintf("\t           [ <Format Options> ]\n"
+          "  Write frames after all actions have been processed to output trajectory\n"
+          "  specified by <filename>.\n");
   TrajectoryFile::WriteOptions();
 }
 

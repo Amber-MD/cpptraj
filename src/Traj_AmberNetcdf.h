@@ -10,6 +10,8 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     Traj_AmberNetcdf();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_AmberNetcdf(); }
     ~Traj_AmberNetcdf();
+    static void ReadHelp();
+    static void WriteHelp();
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(std::string const&, Topology*);

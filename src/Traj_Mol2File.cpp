@@ -86,6 +86,11 @@ int Traj_Mol2File::readFrame(int set, Frame& frameIn) {
   return 0;
 }
 
+void Traj_Mol2File::WriteHelp() {
+  mprintf("\tsingle: Write to a single file.\n"
+          "\tmulti:  Write each frame to a separate file.\n");
+}
+
 // Traj_Mol2File::processWriteArgs()
 int Traj_Mol2File::processWriteArgs(ArgList& argIn) {
   mol2WriteMode_ = SINGLE; // Default to single writes
