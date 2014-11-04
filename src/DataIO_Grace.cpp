@@ -87,7 +87,7 @@ int DataIO_Grace::ReadData(std::string const& fname, ArgList& argIn,
 }
 // -----------------------------------------------------------------------------
 void DataIO_Grace::WriteHelp() {
-  mprintf("\tinvert:   Flip X/Y axes.\n");
+  mprintf("\tinvert: Flip X/Y axes.\n");
 }
 
 // DataIO_Grace::processWriteArgs()

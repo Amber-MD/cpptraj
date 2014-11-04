@@ -23,7 +23,11 @@ static void PrintColumnError(int idx) {
 }
 
 void DataIO_Std::ReadHelp() {
-  mprintf("\tindex <col>: Use column # (starting from 1) as index column.\n");
+  mprintf("\tread1d:      Read data as 1D data sets (default).\n"
+          "\tread2d:      Read data as 2D square matrix.\n"
+          "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
+          "\tindex <col>: (1D) Use column # (starting from 1) as index column.\n");
+
 }
 
 const char* DataIO_Std::SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
