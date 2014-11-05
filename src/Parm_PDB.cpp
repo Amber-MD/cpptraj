@@ -3,30 +3,37 @@
 #include "CpptrajStdio.h"
 
 void Parm_PDB::ReadHelp() {
-  mprintf("\t[pqr]\n");
+  mprintf("\tpqr:     Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
+          "\treadbox: Read unit cell information from CRYST1 record if present.\n");
 }
 
 int Parm_PDB::processReadArgs(ArgList& argIn) {
   readAsPQR_ = argIn.hasKey("pqr");
+  readBox_ = argIn.hasKey("readbox");
   return 0;
 } 
 
 int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
   PDBfile infile;
-  double XYZ[3];
-  int current_res = 0;
+  double XYZ[6]; // Hold XYZ/box coords.
   if (infile.OpenRead(fname)) return 1;
-  // Loop over PDB records 
-  while ( infile.NextLine() != 0 ) {
-    if (infile.IsPDBatomKeyword()) {
-      // If this is an ATOM / HETATM keyword, add to topology
-      infile.pdb_XYZ(XYZ);
-      NameType pdbresname = infile.pdb_Residue( current_res );
-      TopIn.AddTopAtom(infile.pdb_Atom(readAsPQR_), current_res, pdbresname, XYZ);
-    } else if (infile.IsPDB_TER() || infile.IsPDB_END()) {
+  // Loop over PDB records
+  while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
+    if (readBox_ && infile.RecType() == PDBfile::CRYST1) {
+      // Box info from CRYST1 record.
+      infile.pdb_Box( XYZ );
+      TopIn.SetBox( XYZ );
+    } else if (infile.RecType() == PDBfile::ATOM) {
+      // If this is an ATOM / HETATM keyword, add to topology.
+      infile.pdb_XYZ( XYZ );
+      TopIn.AddTopAtom(infile.pdb_Atom(readAsPQR_), infile.pdb_ResNum(), 
+                       infile.pdb_ResName(), XYZ);
+    } else if ( infile.RecType() == PDBfile::TER || 
+                infile.RecType() == PDBfile::END )
+    {
       // Indicate end of molecule for TER/END. Finish if END.
       TopIn.StartNewMol();
-      if (infile.IsPDB_END()) break;
+      if (infile.RecType() == PDBfile::END) break;
     }
   }
   // If Topology name not set with TITLE etc, use base filename.

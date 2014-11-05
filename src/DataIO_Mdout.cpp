@@ -29,16 +29,15 @@ static inline int EOF_ERROR() {
 }
 
 const char* DataIO_Mdout::Enames[] = {
-  "NSTEP",  "Etot",   "EPtot", "GMAX",   "BOND", 
+  "Etot",   "EPtot", "GMAX",   "BOND", 
   "ANGLE",  "DIHED",  "VDW",   "EELEC",  "EGB",
   "VDW1-4", "EEL1-4", "RST",   "EAMBER", "Density",
   "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", 0
 };
 
 /// \return index of name in Energy[] array, N_FIELDTYPES if not recognized.
-DataIO_Mdout::FieldType DataIO_Mdout::getEindex(std::vector<std::string> const& Name) {
+DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
   //mprintf("DEBUG:\tgetEindex(%s,%s)\n", Name[0].c_str(), Name[1].c_str());
-  if (Name[0]=="NSTEP") return NSTEP;
   if (Name[0]=="Etot")  return Etot;
   if (Name[0]=="EPtot") return EPtot;
   if (Name[0]=="GMAX") return GMAX; // Not necessary?
@@ -68,7 +67,7 @@ void DataIO_Mdout::ReadHelp() {
 int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
                             DataSetList& datasetlist, std::string const& dsname)
 {
-  std::vector<std::string> mdoutFilenames;
+  Sarray mdoutFilenames;
   mdoutFilenames.push_back( fname );
   // Check if more than one mdout name was specified.
   ArgList mdoutnames = argIn.RemainingArgs();
@@ -77,30 +76,25 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       mdoutFilenames.push_back( mdoutnames[i] );
   }
   mprintf("\tReading from mdout files:");
-  for (std::vector<std::string>::const_iterator it = mdoutFilenames.begin();
-                                          it != mdoutFilenames.end(); ++it)
-    mprintf(" %s", (*it).c_str());
+  for (Sarray::const_iterator it = mdoutFilenames.begin();
+                              it != mdoutFilenames.end(); ++it)
+    mprintf(" %s", it->c_str());
   mprintf("\n");
 
   // ----- CREATE DATASETS FOR ENERGIES -----
-  // TODO: Set it up so blank data sets can be REMOVED.
-  std::vector<DataSet*> Esets( N_FIELDTYPES, 0 );
-  for (int i = 1; i < (int)N_FIELDTYPES; i++) { // Do not store NSTEP
-    Esets[i] = datasetlist.AddSetAspect( DataSet::DOUBLE, dsname, Enames[i] );
-    // Make legend same as aspect.
-    Esets[i]->SetLegend( dsname + "_" + Enames[i] );
-  }
+  // NOTE: Using DataSet_double here to take advantage of the Add() function,
+  //       since energy terms can appear/vanish over the course of a sim.
+  std::vector<DataSet_double> Esets( N_FIELDTYPES );
 
   // LOOP OVER ALL MDOUT FILES
   BufferedLine buffer;
   double lastx = 0.0;
-  int count = 0;
+  int count = 0; // DataSet index
   std::vector<double> TimeVals;
-  for (std::vector<std::string>::const_iterator mdoutname = mdoutFilenames.begin();
-                                                mdoutname != mdoutFilenames.end();
-                                                ++mdoutname)
+  for (Sarray::const_iterator mdoutname = mdoutFilenames.begin();
+                              mdoutname != mdoutFilenames.end(); ++mdoutname)
   {
-    mprintf("\t%s\n", (*mdoutname).c_str());
+    mprintf("\tProcessing MDOUT: %s\n", mdoutname->c_str() );
     if (buffer.OpenFileRead( *mdoutname )) return 1;
     // Read first line
     const char* ptr = buffer.Line();
@@ -111,7 +105,10 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
     int imin = -1;           // imin for this file
     const char* Trigger = 0; // Trigger must be 8 chars long.
     int frame = 0;           // Frame counter for this file
-    double dt = 1.0;         // Timestep for this file
+    double dt = 1.0;         // Timestep for this file (MD)
+    double t0 = 0.0;         // Initial time for this file (MD)
+    int ntpr = 1;            // Value of ntpr
+    int irest = 0;           // Value of irest
     // ----- PARSE THE INPUT SECTION ----- 
     while ( ptr != 0 && strncmp(ptr, "   2.  CONTROL  DATA", 20) != 0 )
       ptr = buffer.Line();
@@ -120,7 +117,6 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
     ptr = buffer.Line(); // Dashes 
     ptr = buffer.Line(); // Blank 
     ptr = buffer.Line(); // title line
-    mprintf("\tProcessing MDOUT: %s", ptr);
     while ( strncmp(ptr, "   3.  ATOMIC", 13) != 0 ) 
     {
       ArgList mdin_args( ptr, " ,=" ); // Remove commas, equal signs
@@ -130,7 +126,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
         int col1 = col + 1;
         if (mdin_args[col] == "imin") {
           imin = convertToInteger( mdin_args[ col1 ] );
-          mprintf("\tMDIN: imin is %i\n", imin);
+          if (debug_ > 0) mprintf("\t\tMDIN: imin is %i\n", imin);
           // Set a trigger for printing. For imin5 this is the word minimization.
           // For imin0 or imin1 this is NSTEP.
           if      (imin==0) Trigger = " NSTEP =";
@@ -140,7 +136,18 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
           if (imin==1 || imin==0) frame = -1;
         } else if (mdin_args[col] == "dt") {
           dt = convertToDouble( mdin_args[ col1 ] );
-          mprintf("\tMDIN: dt is %f\n", dt);
+          if (debug_ > 0) mprintf("\t\tMDIN: dt is %f\n", dt);
+        } else if (mdin_args[col] == "t") {
+          if (mdoutname == mdoutFilenames.begin()) {
+            t0 = convertToDouble( mdin_args[ col1 ] );
+            if (debug_ > 0) mprintf("\t\tMDIN: t is %f\n", t0);
+          }
+        } else if (mdin_args[col] == "ntpr") {
+          ntpr = convertToInteger( mdin_args[ col1 ] );
+          if (debug_ > 0) mprintf("\t\tMDIN: ntpr is %i\n", ntpr);
+        } else if (mdin_args[col] == "irest") {
+          irest = convertToInteger( mdin_args[ col1 ] );
+          if (debug_ > 0) mprintf("\t\tMDIN: irest is %i\n", irest);
         }
       }
       ptr = buffer.Line();
@@ -150,20 +157,32 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       mprinterr("Error: Could not determine whether MDOUT is md, min, or post-process.\n");
       return 1;
     }
-
-    // ----- PARSE THE RESULTS SECTION -----
+    // ----- PARSE THE ATOMIC ... SECTION -----
     while ( ptr != 0 && strncmp(ptr, "   4.  RESULTS", 14) != 0 )
+    {
       ptr = buffer.Line();
+      // If this is the first mdout file being read and it is a restart,
+      // set the initial time value.
+      if (mdoutname == mdoutFilenames.begin() && irest == 1) {
+        if (strncmp(ptr, " begin time", 11) == 0) {
+          sscanf(ptr, " begin time read from input coords = %lf", &lastx);
+          if (debug_ > 0) mprintf("\t\tMD restart initial time= %f\n", lastx);
+        }
+      }
+    }
     if (ptr == 0) return EOF_ERROR();
-/*    CpptrajFile TestOut; // DEBUG
-    TestOut.OpenWrite("TestOut.dat"); // DEBUG
-    bool printHeader = true; // DEBUG*/
+    // ----- PARSE THE RESULTS SECTION -----
     bool finalE = false;
-    int set = 0;
+    int nstep;
+    int minStep = 0; // For imin=1 only
+    if (irest == 0)
+      nstep = 0;
+    else
+      nstep = ntpr;
     double Energy[N_FIELDTYPES];
     std::fill( Energy, Energy+N_FIELDTYPES, 0.0 );
     std::vector<bool> EnergyExists(N_FIELDTYPES, false);
-    std::vector<std::string> Name(2);
+    Sarray Name(2);
     double time = 0.0;
     while (ptr != 0) {
       // Check for end of imin 0 or 1 run; do not record Average and Stdevs
@@ -173,7 +192,7 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
         finalE = true;
       // Record set for energy post-processing
       if (imin == 5 && strncmp(ptr, "minimizing", 10) == 0)
-        set = atoi( ptr + 22 );
+        nstep = atoi( ptr + 22 );
       // MAIN OUTPUT ROUTINE
       // If the trigger has been reached print output.
       // For imin0 and imin1 the first trigger will have no data.
@@ -181,23 +200,11 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       if ( strncmp(ptr, Trigger, 8) == 0 || finalE ) {
         if (frame > -1) {
           // Data storage should go here
-          for (int i = 1; i < (int)N_FIELDTYPES; i++) // skip NSTEP
-            if (EnergyExists[i]) Esets[i]->Add( count, Energy + i );
-/*          // DEBUG
-          if (printHeader) {
-            TestOut.Printf("%-14s", "#Time");
-            for (int i = 1; i < (int)N_FIELDTYPES; i++) // skip NSTEP
-              if (EnergyExists[i]) TestOut.Printf(" %14s", Enames[i]);
-            TestOut.Printf("\n");
-            printHeader = false;
-          }
-          TestOut.Printf(" %14.4f", time);
-          for (int i = 1; i < (int)N_FIELDTYPES; i++) // skip NSTEP
-            if (EnergyExists[i]) TestOut.Printf(" %14.4f", Energy[i]);
-          TestOut.Printf("\n");
-          // DEBUG*/
+          for (int i = 0; i < (int)N_FIELDTYPES; i++)
+              if (EnergyExists[i]) Esets[i].Add( count, Energy + i );
           TimeVals.push_back( time );
           count++;
+          nstep += ntpr;
         }
         frame++;
         if (finalE) break;
@@ -206,9 +213,8 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       // on the next line. NOTE: NSTEP means something different for imin=5.
       if ((imin == 1 || imin == 5) && strncmp(ptr, "   NSTEP", 8) == 0) {
         ptr = buffer.Line(); // Get next line
-        sscanf(ptr, " %6lf    %13lE  %13lE  %13lE", Energy+NSTEP, Energy+EPtot,
-               Energy+RMS, Energy+GMAX);
-        EnergyExists[NSTEP] = true;
+        //sscanf(ptr, " %6lf    %13lE  %13lE  %13lE", Energy+NSTEP, Energy+EPtot, Energy+RMS, Energy+GMAX);
+        sscanf(ptr, " %i %lE %lE %lE", &minStep, Energy+EPtot, Energy+RMS, Energy+GMAX);
         EnergyExists[EPtot] = true;
         EnergyExists[RMS] = true;
         EnergyExists[GMAX] = true;
@@ -241,26 +247,26 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
       }
       // Set time
       switch (imin) {
-        case 5: time = (double)set; break;
-        case 1: time = Energy[0] + lastx; break;
-        case 0: time = (Energy[0] * dt) + lastx; break;
+        case 5: time = (double)nstep + lastx; break;
+        case 1: time = (double)minStep + lastx; break;
+        case 0: time = ((double)nstep * dt) + t0 + lastx; break;
       }
       // Read in next line
       ptr = buffer.Line();
     }
-/*    TestOut.CloseFile(); // DEBUG*/
     mprintf("\t%i frames\n", frame);
     lastx = time;
     buffer.CloseFile();
   } // END loop over mdout files
- 
-  Dimension Xdim = DataIO::DetermineXdim( TimeVals ); 
-  // ----- REMOVE EMPTY DATASETS -----
-  for (int i = 1; i < (int)N_FIELDTYPES; i++) { // Do not store NSTEP
-    if (Esets[i]->Empty())
-      datasetlist.RemoveSet( Esets[i] );
-    else
-      Esets[i]->SetDim(Dimension::X, Xdim);
+  // ----- SET UP DATA SETS -----
+  for (int i = 0; i < (int)N_FIELDTYPES; i++) {
+    if (Esets[i].Size() > 0) {
+      Esets[i].SetupSet( dsname, -1, Enames[i] );
+      Esets[i].SetLegend( dsname + "_" + Enames[i] );
+    }
   }
+  // Save DataSets to the DataSetList. If X step cannot be determined, save
+  // DataSets as Mesh.
+  if (DataIO::AddSetsToList(datasetlist, TimeVals, Esets, dsname)) return 1;
   return 0;
 }

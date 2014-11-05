@@ -44,11 +44,12 @@ Action::RetType Action_MultiVector::Init(ArgList& actionArgs, TopologyList* PFL,
   if (!resRange_.Empty())
     mprintf(" vectors for residues in range %s\n", resRange_.RangeArg());
   else
-    mprintf(" vectors for all residues.\n");
+    mprintf(" vectors for all solute residues.\n");
   mprintf("\tName1='%s' (origin)  Name2='%s'\n", *name1_, *name2_);
   if (!dsetname_.empty())
     mprintf("\tDataSet name: %s\n", dsetname_.c_str());
   if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().base());
+  DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }
@@ -59,7 +60,7 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
   if (resRange_.Empty())
-    actualRange.SetRange(0, currentParm->FinalSoluteRes());
+    actualRange = currentParm->SoluteResidues();
   else {
     // If user range specified, create new range shifted by -1 since internal
     // resnums start from 0.

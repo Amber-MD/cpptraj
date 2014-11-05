@@ -66,7 +66,17 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
   if (scalar2_ == 0) {
     mprinterr("Error: crankshaft: Dataset %s not found.\n", name2.c_str());
     return Analysis::ERR;
-  } 
+  }
+  if (scalar1_->Type() != scalar2_->Type()) {
+    mprinterr("Error: '%s' type does not match '%s' type.\n",
+              scalar1_->Legend().c_str(), scalar2_->Legend().c_str());
+    return Analysis::ERR;
+  }
+  // Warn if type does not match data set type
+  if (type_ == ANGLE && !scalar1_->IsTorsionArray())
+    mprintf("Warning: 'angle' type specified but data sets are not torsions.\n");
+  if (type_ == DISTANCE && scalar1_->ScalarMode() != DataSet::M_DISTANCE)
+    mprintf("Warning: 'distance' type specified but data sets are not distances.\n"); 
 
   // INFO:
   mprintf("    ANALYZE CRANKSHAFT: %s ", info_.c_str());

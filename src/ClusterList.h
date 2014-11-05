@@ -34,9 +34,17 @@ class ClusterList {
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     const cluster_iterator begincluster() const { return clusters_.begin(); }
     const cluster_iterator endcluster()   const { return clusters_.end();   }
+    /// Remove clusters with no members.
+    void RemoveEmptyClusters();
+    /// Calculate distances between each cluster
+    void CalcClusterDistances();
+    /// Calculate cluster silhouettes
+    void CalcSilhouette(std::string const&) const;
   protected:
     virtual void AddSievedFrames() = 0;
     virtual void ClusterResults(CpptrajFile&) const = 0;
+
+    void AddSievedFramesByCentroid();
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
     int debug_;
@@ -52,6 +60,8 @@ class ClusterList {
     int AddCluster(ClusterDist::Cframes const&);
     /// Calculate the Davies-Bouldin index of clusters.
     double ComputeDBI(CpptrajFile&);
+    /// Calculate pseudo-F statistic.
+    double ComputePseudoF(CpptrajFile&);
   private:
     static const char* XMGRACE_COLOR[];
 };

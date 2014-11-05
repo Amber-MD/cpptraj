@@ -1,4 +1,4 @@
-#include <cstdio> // for ReadInput
+#include <cstdio> // for ProcessInput
 #include <cstdlib> // system
 #include "Command.h"
 #include "CpptrajStdio.h"
@@ -8,7 +8,9 @@
 #include "DataSet_Coords_TRJ.h" // LoadTraj
 #include "DataSet_double.h" // DataSetCmd
 #include "ParmFile.h" // ReadOptions, WriteOptions
+#include "StringRoutines.h" // tildeExpansion
 #include "Timer.h"
+#include "RPNcalc.h" // Calc
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -81,6 +83,11 @@
 #include "Action_VelocityAutoCorr.h"
 #include "Action_SetVelocity.h"
 #include "Action_MultiVector.h"
+#include "Action_MinImage.h"
+#include "Action_ReplicateCell.h"
+#include "Action_AreaPerMol.h"
+#include "Action_Energy.h"
+#include "Action_CheckChirality.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -112,6 +119,8 @@
 #include "Analysis_Divergence.h"
 #include "Analysis_VectorMath.h"
 #include "Analysis_Regression.h"
+#include "Analysis_LowestCurve.h"
+#include "Analysis_CurveFit.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -193,7 +202,7 @@ Command::TokenPtr Command::SearchToken(ArgList& argIn) {
       } else
         return token;
     }
-  mprinterr("'%s': Command not found.\n", argIn.Command());
+  //mprinterr("'%s': Command not found.\n", argIn.Command());
   return 0;
 }
 
@@ -204,8 +213,22 @@ Command::RetType Command::Dispatch(CpptrajState& State,
   ArgList cmdArg( commandIn );
   cmdArg.MarkArg(0); // Always mark the first arg as the command 
   TokenPtr cmdToken = SearchToken( cmdArg );
-  if (cmdToken == 0) return C_ERR;
-  return ( cmdToken->Fxn( State, cmdArg, cmdToken->Alloc ) );
+  Command::RetType ret_val = Command::C_OK;
+  if (cmdToken == 0) {
+    // Try to evaluate the expression.
+    RPNcalc calc;
+    calc.SetDebug( State.Debug() );
+    if (calc.ProcessExpression( commandIn ))
+      ret_val = Command::C_ERR;
+    else {
+      if (calc.Evaluate(*State.DSL()))
+        ret_val = Command::C_ERR;
+    }
+    if (ret_val == Command::C_ERR)
+      mprinterr("'%s': Invalid command or expression.\n", commandIn.c_str());
+  } else
+    ret_val = cmdToken->Fxn( State, cmdArg, cmdToken->Alloc );
+  return ret_val;
 }
 
 /// Used by ProcessInput to determine when line ends.
@@ -227,9 +250,11 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
     mprintf("INPUT: Reading Input from STDIN\n");
     infile = stdin;
   } else {
-    mprintf("INPUT: Reading Input from file %s\n",inputFilename.c_str());
-    if ( (infile=fopen(inputFilename.c_str(),"r"))==0 ) {
-      rprinterr("Error: Could not open input file %s\n",inputFilename.c_str());
+    std::string fname = tildeExpansion(inputFilename);
+    if (fname.empty()) return C_ERR;
+    mprintf("INPUT: Reading Input from file %s\n", fname.c_str());
+    if ( (infile=fopen(fname.c_str(),"r"))==0 ) {
+      rprinterr("Error: Could not open input file %s\n", fname.c_str());
       return C_ERR;
     }
   }
@@ -333,23 +358,20 @@ static void Help_Run() {
 
 static void Help_Quit() { mprintf("  Exit CPPTRAJ\n"); }
 
-static const char TypeList[] =
-  "(<type> = actions,trajin,trajout,ref,parm,analysis,datafile,dataset)";
-
 static void Help_List() {
-  mprintf("\t[<type>] %s\n"
+  mprintf("\t[<type>] (<type> =%s)\n"
           "  List currently loaded objects of the specified type. If no type is given\n"
-          "  then list all loaded objects.\n", TypeList);
+          "  then list all loaded objects.\n", CpptrajState::PrintListKeys().c_str());
 }
 
 static void Help_Debug() {
-  mprintf("\t[<type>] <#> %s\n", TypeList);
+  mprintf("\t[<type>] <#> (<type> =%s)\n", CpptrajState::PrintListKeys().c_str());
   mprintf("  Set debug level for new objects of the specified type. If no type is given\n"
           "  then set debug level for all new objects. Does not affect current objects.\n");
 }
 
 static void Help_Clear() {
-  mprintf("\t[ {all | <type>} ] %s\n", TypeList);
+  mprintf("\t[ {all | <type>} ] (<type> =%s)\n", CpptrajState::PrintListKeys().c_str());
   mprintf("  Clear currently loaded objects of the specified type. If 'all' is specified\n"
           "  then clear all loaded objects.\n");
 }
@@ -401,10 +423,10 @@ static void Help_ReadInput() {
 }
 
 static void Help_Write_DataFile() {
-  mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n"
-          "  With no arguments, write all files currently in the data file list.\n"
-          "  Otherwise, write specified data sets to <filename> immediately.\n");
+  mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n");
   DataFile::WriteHelp();
+  mprintf("  With no arguments, write all files currently in the data file list.\n"
+          "  Otherwise, write specified data sets to <filename> immediately.\n");
   DataFile::WriteOptions();
 }
 
@@ -453,8 +475,9 @@ static void Help_Trajout() {
   mprintf("\t<filename> [<fileformat>] [append] [nobox]\n"
           "\t           %s [onlyframes <range>] [title <title>]\n", TopologyList::ParmArgs);
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
-  mprintf("\t           [ <Format Options> ]\n");
-  mprintf("  Specify output trajectory.\n");
+  mprintf("\t           [ <Format Options> ]\n"
+          "  Write frames after all actions have been processed to output trajectory\n"
+          "  specified by <filename>.\n");
   TrajectoryFile::WriteOptions();
 }
 
@@ -622,6 +645,11 @@ Command::RetType ListAll(CpptrajState& State, ArgList& argIn, Command::AllocType
 {
   return (Command::RetType)State.ListAll( argIn );
 }
+
+static void Help_SilenceActions() { mprintf("Silence Actions Init/Setup output.\n"); }
+/// Silence Actions Init/Setup output.
+Command::RetType SilenceActions(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{ State.SetActionSilence( true ); return Command::C_OK; }
 
 /// Perform action on given COORDS dataset
 Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
@@ -836,7 +864,7 @@ Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 }
 // -----------------------------------------------------------------------------
 static void Help_CombineCoords() {
-  mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>] [bondsearch]\n"
+  mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>]\n"
           "  Combined two COORDS data sets.\n");
 }
 
@@ -855,7 +883,6 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
 {
   std::string parmname = argIn.GetStringKey("parmname");
   std::string crdname  = argIn.GetStringKey("crdname");
-  bool bondsearch = argIn.hasKey("bondsearch");
   // Get COORDS DataSets.
   std::vector<DataSet_Coords*> CRD;
   std::string setname = argIn.GetStringNext();
@@ -878,32 +905,12 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
     parmname = CRD[0]->Top().ParmName() + "_" + CRD[1]->Top().ParmName();
   CombinedTop->SetParmName( parmname, FileName() );
   // TODO: Check Parm box info.
-  int atomOffset = 0;
-  int currentAtNum = 0;
   size_t minSize = CRD[0]->Size();
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {
     if (CRD[setnum]->Size() < minSize)
       minSize = CRD[setnum]->Size();
-    Topology const& CurrentTop = CRD[setnum]->Top();
-    for (Topology::atom_iterator atom = CurrentTop.begin();
-                                 atom != CurrentTop.end();
-                               ++atom, ++currentAtNum)
-    {
-      //mprintf("DBG:\tAtom %i (%u) '%s'\n", currentAtNum+1, atom - CurrentTop.begin() + 1, *(atom->Name()));
-      Atom CurrentAtom = *atom;
-      Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
-      // Bonds need to be cleared and re-added.
-      CurrentAtom.ClearBonds();
-      CombinedTop->AddTopAtom( CurrentAtom, res.OriginalResNum(),
-                               res.Name(), 0 );
-    }
-    // BONDS
-    CombinedCoords_AddBondArray(CombinedTop, CurrentTop.Bonds(),  atomOffset);
-    CombinedCoords_AddBondArray(CombinedTop, CurrentTop.BondsH(), atomOffset);
-    atomOffset += CombinedTop->Natom();
+    CombinedTop->AppendTop( CRD[setnum]->Top() );
   }
-  if (CombinedTop->CommonSetup(bondsearch))
-    return Command::C_ERR;
   CombinedTop->Brief("Combined parm:");
   State.PFL()->AddParm( CombinedTop );
   // Combine coordinates
@@ -1410,6 +1417,47 @@ Command::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, Command::Al
   return Command::C_OK;
 }
 
+// -----------------------------------------------------------------------------
+static void Help_PrintData() {
+  mprintf("\t<data set>\n"
+          "  Print data from data set to screen.\n");
+}
+
+Command::RetType PrintData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  std::string ds_arg = argIn.GetStringNext();
+  if (ds_arg.empty()) {
+    mprinterr("Error: No data set arg specified.\n");
+    return Command::C_ERR;
+  }
+  DataSet* ds = State.DSL()->GetDataSet( ds_arg );
+  if (ds == 0) return Command::C_ERR;
+
+  DataFile ToStdout;
+  ToStdout.SetupStdout(argIn, State.Debug());
+  ToStdout.AddSet( ds );
+  ToStdout.WriteData();
+  return Command::C_OK;
+}
+
+// -----------------------------------------------------------------------------
+static void Help_Calc() {
+  mprintf("\t<expression>\n"
+          "  Evaluate the given mathematical expression.\n");
+}
+
+/// Parse a mathematical expression.
+Command::RetType Calc(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{
+  RPNcalc calc;
+  calc.SetDebug( State.Debug() );
+  // Do NOT include command in expression.
+  if (calc.ProcessExpression( argIn.ArgString().substr(argIn[0].size()) ))
+    return Command::C_ERR;
+  if (calc.Evaluate(*State.DSL())) return Command::C_ERR;
+  return Command::C_OK;
+}
+  
 // ---------- TRAJECTORY COMMANDS ----------------------------------------------
 /// Add output trajectory to State
 Command::RetType Trajout(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
@@ -1659,6 +1707,7 @@ Command::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
 const Command::Token Command::Commands[] = {
   // GENERAL COMMANDS
   { GENERAL, "activeref",     0, Help_ActiveRef,       ActiveRef       },
+  { GENERAL, "calc",          0, Help_Calc,            Calc            },
   { GENERAL, "clear",         0, Help_Clear,           ClearList       },
   { GENERAL, "combinecrd",    0, Help_CombineCoords,   CombineCoords   },
   { GENERAL, "crdaction",     0, Help_CrdAction,       CrdAction       },
@@ -1681,6 +1730,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "noexitonerror", 0, Help_NoExitOnError,   NoExitOnError   },
   { GENERAL, "noprogress",    0, Help_NoProgress,      NoProgress      },
   { GENERAL, "precision",     0, Help_Precision,       Precision       },
+  { GENERAL, "printdata",     0, Help_PrintData,       PrintData       },
   { GENERAL, "prnlev",        0, Help_Debug,           SetListDebug    },
   { GENERAL, "pwd",           0, Help_System,          SystemCmd       },
   { GENERAL, "quit" ,         0, Help_Quit,            Quit            },
@@ -1692,6 +1742,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
   { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
   { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
+  { GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "xmgrace",       0, Help_System,          SystemCmd       },
@@ -1726,6 +1777,7 @@ const Command::Token Command::Commands[] = {
   { PARM,    "solvent",       0, Help_Solvent,         ParmSolvent     },
   // INC_ACTION: ACTION COMMANDS
   { ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, AddAction },
+  { ACTION, "areapermol", Action_AreaPerMol::Alloc, Action_AreaPerMol::Help, AddAction },
   { ACTION, "atomiccorr", Action_AtomicCorr::Alloc, Action_AtomicCorr::Help, AddAction },
   { ACTION, "atomicfluct", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
   { ACTION, "atommap", Action_AtomMap::Alloc, Action_AtomMap::Help, AddAction },
@@ -1735,6 +1787,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "box", Action_Box::Alloc, Action_Box::Help, AddAction },
   { ACTION, "center", Action_Center::Alloc, Action_Center::Help, AddAction },
   { ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
+  { ACTION, "checkchirality", Action_CheckChirality::Alloc, Action_CheckChirality::Help, AddAction },
   { ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, AddAction },
@@ -1753,6 +1806,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "dssp", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
+  { ACTION, "energy", Action_Energy::Alloc, Action_Energy::Help, AddAction },
   { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
   { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
   { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
@@ -1767,6 +1821,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "makestructure", Action_MakeStructure::Alloc, Action_MakeStructure::Help, AddAction },
   { ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, AddAction },
   { ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, AddAction },
+  { ACTION, "minimage", Action_MinImage::Alloc, Action_MinImage::Help, AddAction },
   { ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, AddAction },
   { ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, AddAction },
   { ACTION, "multivector", Action_MultiVector::Alloc, Action_MultiVector::Help, AddAction },
@@ -1782,6 +1837,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, AddAction },
   { ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, AddAction },
+  { ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
   { ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
@@ -1818,6 +1874,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "crankshaft", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, AddAnalysis },
   { ANALYSIS, "crdfluct", Analysis_CrdFluct::Alloc, Analysis_CrdFluct::Help, AddAnalysis },
   { ANALYSIS, "crosscorr", Analysis_CrossCorr::Alloc, Analysis_CrossCorr::Help, AddAnalysis },
+  { ANALYSIS, "curvefit", Analysis_CurveFit::Alloc, Analysis_CurveFit::Help, AddAnalysis },
   { ANALYSIS, "diagmatrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
   { ANALYSIS, "divergence", Analysis_Divergence::Alloc, Analysis_Divergence::Help, AddAnalysis },
   { ANALYSIS, "fft", Analysis_FFT::Alloc, Analysis_FFT::Help, AddAnalysis },
@@ -1827,6 +1884,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "ired", Analysis_IRED::Alloc, Analysis_IRED::Help, AddAnalysis },
   { ANALYSIS, "kde", Analysis_KDE::Alloc, Analysis_KDE::Help, AddAnalysis },
   { ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, AddAnalysis },
+  { ANALYSIS, "lowestcurve", Analysis_LowestCurve::Alloc, Analysis_LowestCurve::Help, AddAnalysis },
   { ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
   { ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, AddAnalysis },
   { ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, AddAnalysis },

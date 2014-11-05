@@ -208,6 +208,7 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, F
   if (!outfilename.empty()) {
     if ( outputfile_.OpenEnsembleWrite( outfilename, DSL->EnsembleNum() ) ) return Action::ERR;
   }
+  DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }
@@ -238,17 +239,19 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
   // For each residue, set up 1 jcoupling calc for each parameter defined in
   // KarplusConstants for this residue. Only set up the Jcoupling calc if all
   // atoms involved are present in the mask.
-  MaxResidues = currentParm->FinalSoluteRes();
-  for (int residue=0; residue < MaxResidues; residue++) {
+  Range resRange = currentParm->SoluteResidues();
+  for (Range::const_iterator residue = resRange.begin();
+                             residue != resRange.end(); ++residue)
+  {
     // Skip residue if no atoms within residue are selected.
-    if (!Mask1_.AtomsInCharMask(currentParm->Res(residue).FirstAtom(),
-                                currentParm->Res(residue).LastAtom())) continue;
-    resName.assign(currentParm->Res(residue).c_str());
+    if (!Mask1_.AtomsInCharMask(currentParm->Res(*residue).FirstAtom(),
+                                currentParm->Res(*residue).LastAtom())) continue;
+    resName.assign(currentParm->Res(*residue).c_str());
     karplusConstantMap::iterator reslist = KarplusConstants_.find(resName);
     // If list does not exist for residue, skip it.
     if (reslist == KarplusConstants_.end() ) {
       mprintf("Warning: Karplus parameters not found for residue [%i:%s]\n",
-              residue+1, resName.c_str());
+              *residue+1, resName.c_str());
       continue;
     }
     currentResList = (*reslist).second;
@@ -257,22 +260,22 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
                                        kc != currentResList->end(); ++kc) 
     {
       // Init jcoupling info. Constants will point inside KarplusConstants.
-      JC.residue = residue;
+      JC.residue = *residue;
       JC.atom[0] = -1;
       JC.atom[1] = -1;
       JC.atom[2] = -1;
       JC.atom[3] = -1;
-      JC.C = (*kc).C;
-      JC.type = (*kc).type;
+      JC.C = kc->C;
+      JC.type = kc->type;
       // For each atom in the dihedral specified in this Karplus constant, find
       // corresponding atoms in parm.
       bool allAtomsFound = true;
       for (int idx=0; idx < 4; idx++) {
-        JC.atom[idx] = currentParm->FindAtomInResidue(residue+(*kc).offset[idx],
-                                                      (*kc).atomName[idx]       );
+        JC.atom[idx] = currentParm->FindAtomInResidue(*residue + kc->offset[idx],
+                                                      kc->atomName[idx]       );
         if (JC.atom[idx] == -1) {
           mprintf("Warning: Atom '%s' at position %i not found for residue %i\n",
-                    *((*kc).atomName[idx]), idx, residue+(*kc).offset[idx]+1);
+                    *(kc->atomName[idx]), idx, *residue+kc->offset[idx]+1);
           allAtomsFound = false;
         }
       }
@@ -320,13 +323,13 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
     for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
                                               jc != JcouplingInfo_.end(); ++jc) 
     {
-      mprintf("%8i [%i:%4s]",MaxResidues,(*jc).residue, currentParm->Res((*jc).residue).c_str());
-      mprintf(" %6i:%-4s",(*jc).atom[0],(*currentParm)[(*jc).atom[0]].c_str());
-      mprintf(" %6i:%-4s",(*jc).atom[1],(*currentParm)[(*jc).atom[1]].c_str());
-      mprintf(" %6i:%-4s",(*jc).atom[2],(*currentParm)[(*jc).atom[2]].c_str());
-      mprintf(" %6i:%-4s",(*jc).atom[3],(*currentParm)[(*jc).atom[3]].c_str());
-      mprintf(" %6.2lf%6.2lf%6.2lf%6.2lf %i\n",(*jc).C[0],(*jc).C[1],(*jc).C[2],(*jc).C[3],
-              (*jc).type);
+      mprintf("%8i [%i:%4s]",MaxResidues,jc->residue, currentParm->Res(jc->residue).c_str());
+      mprintf(" %6i:%-4s",jc->atom[0],(*currentParm)[jc->atom[0]].c_str());
+      mprintf(" %6i:%-4s",jc->atom[1],(*currentParm)[jc->atom[1]].c_str());
+      mprintf(" %6i:%-4s",jc->atom[2],(*currentParm)[jc->atom[2]].c_str());
+      mprintf(" %6i:%-4s",jc->atom[3],(*currentParm)[jc->atom[3]].c_str());
+      mprintf(" %6.2lf%6.2lf%6.2lf%6.2lf %i\n",jc->C[0],jc->C[1],jc->C[2],jc->C[3],
+              jc->type);
       MaxResidues++;
     }
   }
@@ -347,29 +350,29 @@ Action::RetType Action_Jcoupling::DoAction(int frameNum, Frame* currentFrame, Fr
   for (std::vector<jcouplingInfo>::iterator jc = JcouplingInfo_.begin();
                                             jc !=JcouplingInfo_.end(); ++jc)
   {
-    double phi = Torsion(currentFrame->XYZ((*jc).atom[0]),
-                         currentFrame->XYZ((*jc).atom[1]),
-                         currentFrame->XYZ((*jc).atom[2]),
-                         currentFrame->XYZ((*jc).atom[3]) );
-    if ((*jc).type==1) {
-      //phitemp = phi + (*jc).C[3]; // Only necessary if offsets become used in perez-type calc
-      Jval = (*jc).C[0] + ((*jc).C[1] * cos(phi)) + ((*jc).C[2] * cos(phi * 2.0)); 
+    double phi = Torsion(currentFrame->XYZ(jc->atom[0]),
+                         currentFrame->XYZ(jc->atom[1]),
+                         currentFrame->XYZ(jc->atom[2]),
+                         currentFrame->XYZ(jc->atom[3]) );
+    if (jc->type==1) {
+      //phitemp = phi + jc->C[3]; // Only necessary if offsets become used in perez-type calc
+      Jval = jc->C[0] + (jc->C[1] * cos(phi)) + (jc->C[2] * cos(phi * 2.0)); 
     } else {
-      double phitemp = cos( phi + (*jc).C[3] );
-      Jval = ((*jc).C[0] * phitemp * phitemp) + ((*jc).C[1] * phitemp) + (*jc).C[2];
+      double phitemp = cos( phi + jc->C[3] );
+      Jval = (jc->C[0] * phitemp * phitemp) + (jc->C[1] * phitemp) + jc->C[2];
     }
     float fval = (float)Jval;
-    (*jc).data_->Add(frameNum, &fval);
+    jc->data_->Add(frameNum, &fval);
 
-    int residue = (*jc).residue;
+    int residue = jc->residue;
     // Output
     if (outputfile_.IsOpen())
       outputfile_.Printf("%5i %4s%4s%4s%4s%4s%12f%12f\n",
                          residue+1, CurrentParm_->Res(residue).c_str(),
-                         (*CurrentParm_)[(*jc).atom[0]].c_str(), 
-                         (*CurrentParm_)[(*jc).atom[1]].c_str(),
-                         (*CurrentParm_)[(*jc).atom[2]].c_str(), 
-                         (*CurrentParm_)[(*jc).atom[3]].c_str(),
+                         (*CurrentParm_)[jc->atom[0]].c_str(), 
+                         (*CurrentParm_)[jc->atom[1]].c_str(),
+                         (*CurrentParm_)[jc->atom[2]].c_str(), 
+                         (*CurrentParm_)[jc->atom[3]].c_str(),
                          phi*Constants::RADDEG, Jval);
   }
 

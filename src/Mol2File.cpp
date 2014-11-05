@@ -154,3 +154,24 @@ NameType Mol2File::Mol2Residue(int& current_res) {
   rname.ReplaceAsterisk();
   return rname;
 }
+
+void Mol2File::WriteMol2Atom(int atnum, Atom const& atomIn,
+                             int resnum, const char* rname,
+                             const double* Xptr)
+{
+  // If atom type is blank, set to atom name
+  NameType atype = atomIn.Type();
+  if (atype == "")
+    atype = atomIn.Name();
+  Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-5s %6i %-6s %10.6lf\n",
+         atnum, atomIn.c_str(), Xptr[0], Xptr[1], Xptr[2],
+         *atype, resnum, rname, atomIn.Charge());
+}
+
+void Mol2File::WriteMol2Bond(int bnum, int at1, int at2) {
+  Printf("%5d %5d %5d 1\n", bnum, at1, at2);
+}
+
+void Mol2File::WriteMol2Substructure(int rnum, const char* rname, int firstatom) {
+  Printf("%7d %4s %14d ****               0 ****  **** \n", rnum, rname, firstatom);
+}

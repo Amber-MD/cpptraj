@@ -2,10 +2,12 @@
 #include <cstdlib> // atoi, atof
 #include <cstring> // strncmp
 #include "PDBfile.h"
+#include "CpptrajStdio.h"
 
 /// PDB record types
 // NOTE: Must correspond with PDB_RECTYPE
-const char* PDBfile::PDB_RECNAME[] = { "ATOM  ", "HETATM", "TER   ", "ANISOU" };
+const char* PDBfile::PDB_RECNAME[] = { "ATOM  ", "HETATM", "CRYST1", "TER   ",
+  "END   ", "ANISOU", "EndRec", 0 };
 
 // PDBfile::IsPDBkeyword()
 bool PDBfile::IsPDBkeyword(std::string const& recname) {
@@ -57,65 +59,62 @@ bool PDBfile::ID_PDB(CpptrajFile& fileIn) {
   return true;
 }
 
-// PDBfile::IsPDBatomKeyword()
-bool PDBfile::IsPDBatomKeyword() {
-  if (strncmp(linebuffer_,"ATOM  ",6)==0) return true;
-  if (strncmp(linebuffer_,"HETATM",6)==0) return true;
-  return false;
+// PDBfile::NextRecord()
+PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
+  if (NextLine() == 0) { // No more records to read
+    recType_ = END_OF_FILE;
+    return END_OF_FILE;
+  }
+  recType_ = UNKNOWN;
+  // Try to ID the current record.
+  if (strncmp(linebuffer_,"ATOM  ",6)==0 ||
+      strncmp(linebuffer_,"HETATM",6)==0   )
+    // Just return ATOM for ATOM/HETATM when reading.
+    recType_ = ATOM;
+  else if (strncmp(linebuffer_,"CRYST1",6)==0)
+    recType_ = CRYST1;
+  else if (linebuffer_[0]=='T' && linebuffer_[1]=='E' && linebuffer_[2]=='R')
+    recType_ = TER;
+  else if (linebuffer_[0]=='E' && linebuffer_[1]=='N' && linebuffer_[2]=='D')
+    recType_ = END;
+  return recType_;
 }
 
-bool PDBfile::IsPDB_TER() {
-  if (linebuffer_[0]=='T' && linebuffer_[1]=='E' && linebuffer_[2]=='R')
-    return true;
-  return false;
-}
-
-bool PDBfile::IsPDB_END() {
-  if (linebuffer_[0]=='E' && linebuffer_[1]=='N' && linebuffer_[2]=='D')
-    return true;
-  return false;
-}
-
-// PDBfile::pdb_Atom()
 Atom PDBfile::pdb_Atom(bool readPQR) {
+  // ATOM or HETATM keyword.
+  // Check line length before any modification.
+  size_t lineLength = strlen( linebuffer_ );
   // Atom number (6-11)
-  // Atom name (12-16)
-  // Chain ID (21)
-  // Occupancy (54-59)
-  // B-factor (60-65)
-  // Element  (76-77)
+  // Atom name (12-16), Replace asterisks with single quotes.
   char savechar = linebuffer_[16];
   linebuffer_[16] = '\0';
   NameType aname(linebuffer_+12);
-  linebuffer_[16] = savechar;
-  // Replace asterisks with single quotes
   aname.ReplaceAsterisk();
-  Atom outAtom(aname, linebuffer_[21], linebuffer_+76);
-  // If the file has charges/radii, format of the occ./b-factor cols may differ
+  linebuffer_[16] = savechar;
+  // Chain ID (21)
+  // Element (76-77), Protect against broken PDB files (lines too short).
+  char eltString[2]; eltString[0] = ' '; eltString[1] = ' ';
+  if (lineLength > 77) {
+    eltString[0] = linebuffer_[76];
+    eltString[1] = linebuffer_[77];
+  } else if (!lineLengthWarning_) {
+    mprintf("Warning: PDB line length is short (%zu chars, expected 80).\n", lineLength);
+    lineLengthWarning_ = true;
+  }
+  // Set atom info.
+  Atom outAtom(aname, linebuffer_[21], eltString);
+  // Occupancy (54-59) | charge
+  // B-factor (60-65) | radius
   if (readPQR) {
     double charge = 0.0, radius = 0.0;
     sscanf(linebuffer_+54, "%lf %lf", &charge, &radius);
     outAtom.SetCharge( charge );
     outAtom.SetGBradius( radius );
   }
+  // NOTE: Additional values:
+  //       10 chars between Bfactor and element: buffer[66] to buffer[75]
+  //       Charge: buffer[78] and buffer[79]
   return outAtom;
-}
-
-// PDBfile::pdb_Residue()
-NameType PDBfile::pdb_Residue(int& current_res) {
-  // Res name (16-20)
-  char savechar = linebuffer_[20];
-  linebuffer_[20] = '\0';
-  NameType resname(linebuffer_+16);
-  // Replace asterisks with single quotes
-  resname.ReplaceAsterisk();
-  linebuffer_[20] = savechar;
-  // Res num (22-27)
-  savechar = linebuffer_[27];
-  linebuffer_[27] = '\0';
-  current_res = atoi( linebuffer_+22 );
-  linebuffer_[27] = savechar;
-  return resname;
 }
 
 // PDBfile::pdb_XYZ()
@@ -137,6 +136,39 @@ void PDBfile::pdb_XYZ(double *Xout) {
   Xout[2] = atof( linebuffer_+46 );
   linebuffer_[54] = savechar;
 }
+
+void PDBfile::pdb_Box(double* box) const {
+  // CRYST1 keyword. RECORD A B C ALPHA BETA GAMMA SGROUP Z
+  // A=6-15 B=15-24 C=24-33 alpha=33-40 beta=40-47 gamma=47-54
+  sscanf(linebuffer_, "%*6s%9lf%9lf%9lf%7lf%7lf%7lf", box, box+1, box+2,
+         box+3, box+4, box+5);
+  mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
+          box[0], box[1], box[2], box[3], box[4], box[5]);
+  // Warn if the box looks strange.
+  if (box[0] == 1.0 && box[1] == 1.0 && box[2] == 1.0)
+    mprintf("Warning: PDB cell lengths are all 1.0 Ang.;"
+            " this usually indicates an invalid box.\n");
+}
+
+NameType PDBfile::pdb_ResName() {
+  // Res name (16-20), Replace asterisks with single quotes.
+  char savechar = linebuffer_[20];
+  linebuffer_[20] = '\0';
+  NameType resName(linebuffer_+16);
+  linebuffer_[20] = savechar;
+  resName.ReplaceAsterisk();
+  return resName;
+}
+
+int PDBfile::pdb_ResNum() {
+  // Res num (22-27)
+  char savechar = linebuffer_[27];
+  linebuffer_[27] = '\0';
+  int resnum = atoi( linebuffer_+22 );
+  linebuffer_[27] = savechar;
+  return resnum;
+}
+
 // -----------------------------------------------------------------------------
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
@@ -268,9 +300,20 @@ void PDBfile::WriteTITLE(std::string const& titleIn) {
     Printf("%-69s\n", titleOut.c_str());
 }
 
-/* Additional Values:
- *  Chain ID : buffer[21]
- *  10 chars between Bfactor and element: buffer[66] to buffer[75]
- *  Element  : buffer[76] and buffer[77]
- *  Charge   : buffer[78] and buffer[79]
- */
+/** Expect x, y, z, alpha, beta, gamma */
+void PDBfile::WriteCRYST1(const double* box) {
+  if (box==0) return;
+  // RECROD A B C ALPHA BETA GAMMA SGROUP Z
+  Printf("CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f %-11s%4i\n",
+         box[0], box[1], box[2], box[3], box[4], box[5], "P 1", 1);
+}
+
+/** Write MODEL record: 1-6 MODEL, 11-14 model serial # */
+void PDBfile::WriteMODEL(int model) {
+  // Since num frames could be large, do not format the integer with width - OK?
+  Printf("MODEL     %i\n", model);
+}
+
+void PDBfile::WriteENDMDL() { Printf("ENDMDL\n"); }
+
+void PDBfile::WriteEND()    { Printf("END   \n"); }

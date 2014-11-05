@@ -2,9 +2,6 @@
 #include "Cluster_HierAgglo.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
-#ifdef _OPENMP
-#  include "omp.h"
-#endif
 
 Cluster_HierAgglo::Cluster_HierAgglo() :
   nclusters_(-1),
@@ -13,8 +10,8 @@ Cluster_HierAgglo::Cluster_HierAgglo() :
 {}
 
 void Cluster_HierAgglo::Help() {
-  mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]]\n"
-          "\t[epsilonplot <file>]\n");
+  mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]\n"
+          "\t  [epsilonplot <file>]]\n");
 }
 
 static const char* LinkageString[] = {
@@ -93,7 +90,7 @@ int Cluster_HierAgglo::Cluster() {
   // If target clusters not given make it 1
   if (nclusters_ == -1) nclusters_ = 1;
   mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
-  ProgressBar cluster_progress(-1);
+  ProgressBar cluster_progress(-10);
   // Build initial clusters.
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); frame++) {
     if (!FrameDistances_.IgnoringRow( frame ))
@@ -127,74 +124,6 @@ int Cluster_HierAgglo::Cluster() {
 void Cluster_HierAgglo::ClusterResults(CpptrajFile& outfile) const {
   outfile.Printf("#Algorithm: HierAgglo linkage %s nclusters %i epsilon %g\n",
                  LinkageString[linkage_], nclusters_, epsilon_);
-}
-
-// Cluster_HierAgglo::AddSievedFrames()
-void Cluster_HierAgglo::AddSievedFrames() {
-  // NOTE: All cluster centroids must be up to date.
-  int frame;
-  int nframes = (int)FrameDistances_.Nframes();
-  double mindist, dist;
-  cluster_it minNode, Cnode;
-  ParallelProgress progress( nframes );
-# ifdef _OPENMP
-  int numthreads, mythread;
-  // Need to create a ClusterDist for every thread to ensure memory allocation and avoid clashes
-  ClusterDist** cdist_thread;
-  // Also need a temp. array to hold which frame goes to which cluster to avoid clashes
-  std::vector<cluster_it> frameToCluster( nframes, clusters_.end() );
-# pragma omp parallel
-  {
-    if (omp_get_thread_num()==0)
-      numthreads = omp_get_num_threads();
-  }
-  mprintf("\tParallelizing calculation with %i threads\n", numthreads);
-  cdist_thread = new ClusterDist*[ numthreads ];
-  for (int i=0; i < numthreads; i++)
-    cdist_thread[i] = Cdist_->Copy();
-# pragma omp parallel private(mythread, frame, dist, mindist, minNode, Cnode) firstprivate(progress)
-{
-  mythread = omp_get_thread_num();
-  progress.SetThread( mythread );
-# pragma omp for schedule(dynamic)
-# endif
-  for (frame = 0; frame < nframes; ++frame) {
-    progress.Update( frame );
-    if (FrameDistances_.IgnoringRow(frame)) {
-      // Which clusters centroid is closest to this frame?
-      mindist = DBL_MAX;
-      minNode = clusters_.end();
-      for (Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
-#       ifdef _OPENMP
-        dist = cdist_thread[mythread]->FrameCentroidDist(frame, (*Cnode).Cent());
-#       else
-        dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
-#       endif
-        if (dist < mindist) {
-          mindist = dist;
-          minNode = Cnode;
-        }
-      }
-      // Add sieved frame to the closest cluster.
-#     ifdef _OPENMP
-      frameToCluster[frame] = minNode;
-#     else
-      (*minNode).AddFrameToCluster( frame );
-#     endif
-    }
-  } // END loop over frames
-# ifdef _OPENMP
-} // END pragma omp parallel
-  // Free cdist_thread memory
-  for (int i = 0; i < numthreads; i++)
-    delete cdist_thread[i];
-  delete[] cdist_thread;
-  // Now actually add sieved frames to their appropriate clusters
-  for (frame = 0; frame < nframes; frame++)
-    if (frameToCluster[frame] != clusters_.end())
-      (*frameToCluster[frame]).AddFrameToCluster( frame );
-# endif
-  progress.Finish();
 }
 
 /** Find and merge the two closest clusters. */

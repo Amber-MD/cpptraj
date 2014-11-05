@@ -8,7 +8,7 @@ class Analysis_KDE : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_KDE(); }
     static void Help();
 
-    Analysis::RetType Setup(DataSet_1D*, std::string const&, std::string const&,
+    Analysis::RetType Setup(DataSet_1D*, std::string const&, int, std::string const&,
                             bool, double, bool, double, double, int, double,
                             DataSetList&, DataFileList&);
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);

@@ -14,12 +14,12 @@ class Matrix_3x3 {
     // TODO: Make const ref only?
     double  operator[](int idx) const { return M_[idx]; }
     double& operator[](int idx)       { return M_[idx]; }
-    Vec3 Row1() { return Vec3(M_);   }
-    Vec3 Row2() { return Vec3(M_+3); }
-    Vec3 Row3() { return Vec3(M_+6); }
-    Vec3 Col1() { return Vec3(M_[0], M_[3], M_[6]); }
-    Vec3 Col2() { return Vec3(M_[1], M_[4], M_[7]); }
-    Vec3 Col3() { return Vec3(M_[2], M_[5], M_[8]); }
+    Vec3 Row1() const { return Vec3(M_);   }
+    Vec3 Row2() const { return Vec3(M_+3); }
+    Vec3 Row3() const { return Vec3(M_+6); }
+    Vec3 Col1() const { return Vec3(M_[0], M_[3], M_[6]); }
+    Vec3 Col2() const { return Vec3(M_[1], M_[4], M_[7]); }
+    Vec3 Col3() const { return Vec3(M_[2], M_[5], M_[8]); }
     void Zero();
     void Print(const char*) const;
 

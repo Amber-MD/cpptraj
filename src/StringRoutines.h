@@ -32,4 +32,6 @@ bool validDouble(std::string const&);
 std::string SetDoubleFormatString(int, int, int);
 std::string SetStringFormatString(int, bool);
 std::string SetIntegerFormatString(int);
+/// \return the current date/time with format 'mm/dd/yy  hh:mm:ss'
+std::string TimeString();
 #endif

@@ -10,7 +10,7 @@ all:
 install_local:
 	cd src && $(MAKE) install
 
-# Create cpptraj binary within AmberTools
+# Create cpptraj/ambpdb binaries within AmberTools
 install:
 	cd src && $(MAKE) -f Makefile_at install
 

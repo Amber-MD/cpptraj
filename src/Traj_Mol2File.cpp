@@ -86,6 +86,11 @@ int Traj_Mol2File::readFrame(int set, Frame& frameIn) {
   return 0;
 }
 
+void Traj_Mol2File::WriteHelp() {
+  mprintf("\tsingle: Write to a single file.\n"
+          "\tmulti:  Write each frame to a separate file.\n");
+}
+
 // Traj_Mol2File::processWriteArgs()
 int Traj_Mol2File::processWriteArgs(ArgList& argIn) {
   mol2WriteMode_ = SINGLE; // Default to single writes
@@ -107,7 +112,7 @@ int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
   if (append && mol2WriteMode_ != MULTI) {
     if (file_.SetupAppend( fname, debug_)) return 1;
   } else {
-    if (mol2WriteMode_ == MULTI)
+    if (append && mol2WriteMode_ == MULTI)
       mprintf("Warning: 'append' not compatible with 'multi' mol2 write.\n");
     if (file_.SetupWrite( fname, debug_ )) return 1;
   }
@@ -156,17 +161,13 @@ int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
   file_.WriteHeader(Mol2File::ATOM);
   const double *Xptr = frameOut.xAddress();
   int atnum = 1;
-  for (Topology::atom_iterator atom = mol2Top_->begin(); atom != mol2Top_->end(); ++atom) {
+  for (Topology::atom_iterator atom = mol2Top_->begin();
+                               atom != mol2Top_->end();
+                             ++atom, ++atnum, Xptr += 3)
+  {
     // figure out the residue number
-    int res = (*atom).ResNum();
-    // If atom type is blank, set to atom name.
-    NameType atype = (*atom).Type();
-    if ( atype == "" )
-      atype = (*atom).Name();
-    file_.Printf("%7i %-8s %9.4lf %9.4lf %9.4lf %-5s %6i %-6s %10.6lf\n",
-                     atnum++, (*atom).c_str(), Xptr[0], Xptr[1], Xptr[2],
-                     *atype, res+1, mol2Top_->Res(res).c_str(), (*atom).Charge());
-    Xptr += 3;
+    int res = atom->ResNum();
+    file_.WriteMol2Atom(atnum, *atom, res+1, mol2Top_->Res(res).c_str(), Xptr); 
   }
   //@<TRIPOS>BOND section
   if (file_.Mol2Nbonds() > 0) {
@@ -174,18 +175,16 @@ int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
     int bondnum = 1;
     for (BondArray::const_iterator bidx = mol2Top_->Bonds().begin();
                                    bidx != mol2Top_->Bonds().end(); ++bidx)
-      file_.Printf("%5d %5d %5d 1\n", bondnum++, bidx->A1()+1, bidx->A2()+1);
+      file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1);
     for (BondArray::const_iterator bidx = mol2Top_->BondsH().begin();
                                    bidx != mol2Top_->BondsH().end(); ++bidx)
-      file_.Printf("%5d %5d %5d 1\n", bondnum++, bidx->A1()+1, bidx->A2()+1);
+      file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1);
   }
   //@<TRIPOS>SUBSTRUCTURE section
   file_.WriteHeader(Mol2File::SUBSTRUCT);
   int resnum = 1;
-  for (Topology::res_iterator Res = mol2Top_->ResStart(); Res!=mol2Top_->ResEnd(); Res++) {
-    file_.Printf("%7d %4s %14d ****               0 ****  **** \n",
-                      resnum++, (*Res).c_str(), (*Res).FirstAtom()+1);
-  }
+  for (Topology::res_iterator Res = mol2Top_->ResStart(); Res!=mol2Top_->ResEnd(); Res++)
+    file_.WriteMol2Substructure(resnum++, Res->c_str(), Res->FirstAtom()+1);
   // If writing 1 mol2 per frame, close output file
   if (mol2WriteMode_==MULTI)
     file_.CloseFile();

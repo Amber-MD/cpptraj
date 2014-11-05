@@ -140,13 +140,6 @@ void Range::ShiftBy(int val) {
     *rangeNum += val;
 }
 
-// Range::AddToRange()
-/** Add a number to the range. Range is NOT explicitly sorted in this case.
-  */
-void Range::AddToRange(int num) {
-  rangeList_.push_back(num);
-}
-
 // Range::RemoveFromRange()
 /** Remove all instances of num from the range. */
 void Range::RemoveFromRange(int num) {

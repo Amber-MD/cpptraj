@@ -74,11 +74,6 @@ int Traj_Tinker::readFrame(int set, Frame& frameIn) {
   return 0;
 }
 
-// Traj_Tinker::processWriteArgs()
-int Traj_Tinker::processWriteArgs(ArgList& argIn) {
-  return 0;
-}
-
 // Traj_Tinker::setupTrajout()
 /** Set parm information required for write, and check write mode against
   * number of frames to be written.

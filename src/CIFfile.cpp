@@ -249,7 +249,7 @@ int CIFfile::Read(std::string const& fnameIn, int debugIn) {
 CIFfile::DataBlock const& CIFfile::GetDataBlock(std::string const& header) const {
   CIF_DataType::const_iterator it = cifdata_.find( header );
   if (it == cifdata_.end()) {
-    mprinterr("Error: CIF data block '%s' not found.\n", header.c_str());
+    //mprinterr("Error: CIF data block '%s' not found.\n", header.c_str());
     return emptyblock;
   }
   return (*it).second;

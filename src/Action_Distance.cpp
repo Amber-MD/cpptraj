@@ -11,7 +11,7 @@ Action_Distance::Action_Distance() :
 { } 
 
 const char* Action_Distance::NOE_Help = 
-  "[bound <lower> bound <upper>] [rexp <expected>] [noe_strong] [noe_medium] [noe_weak]\n";
+  "[bound <lower> bound <upper>] [rexp <expected>] [noe_strong] [noe_medium] [noe_weak]";
 
 void Action_Distance::Help() {
   mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage] [type noe]\n"

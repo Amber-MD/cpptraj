@@ -4,7 +4,7 @@
 Analysis_Average::Analysis_Average() {}
 
 void Analysis_Average::Help() {
-  mprintf("\t<dset0> [<dset1> ...]\n"
+  mprintf("\t<dset0> [<dset1> ...] [out <file>]\n"
           "  Calculate the average, standard deviation, min, and max of given data sets.\n");
 }
 

@@ -150,6 +150,22 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
   return err;
 }
 
+// DataFile::ReadDataOfType()
+int DataFile::ReadDataOfType(std::string const& fnameIn, DataFormatType typeIn,
+                             DataSetList& datasetlist)
+{
+  if (fnameIn.empty()) return Error("Error: No input data file name given.\n");
+  if (dataio_ != 0) delete dataio_;
+  dataio_ = 0;
+  if (filename_.SetFileNameWithExpansion( fnameIn )) return 1;
+  dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, typeIn, false );
+  if (dataio_ == 0) return 1;
+  dataio_->SetDebug( debug_ );
+  ArgList empty;
+  return dataio_->ReadData( filename_.Full(), empty, datasetlist, filename_.Full() );
+}
+
+// -----------------------------------------------------------------------------
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debugIn) {
   SetDebug( debugIn );
@@ -161,6 +177,16 @@ int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debu
                                                               DATAFILE);
   // Set up DataIO based on format.
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
+  if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+  if (!argIn.empty())
+    ProcessArgs( argIn );
+  return 0;
+}
+
+int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
+  SetDebug( debugIn );
+  filename_.clear();
+  dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, DATAFILE, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
   if (!argIn.empty())
     ProcessArgs( argIn );
@@ -256,7 +282,7 @@ int DataFile::ProcessArgs(ArgList &argIn) {
     setDataSetPrecision_ = true;
   } 
   if (dataio_->processWriteArgs(argIn)==1) return 1;
-  if (debug_ > 0) argIn.CheckForMoreArgs();
+  //if (debug_ > 0) argIn.CheckForMoreArgs();
   return 0;
 }
 

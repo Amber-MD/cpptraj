@@ -14,6 +14,8 @@ class ClusterSieve {
     int SetSieve(int, std::vector<bool> const&);
     /// \return an array of sieved frame numbers.
     SievedFrames Frames() const;
+    /// \return size of data in bytes
+    size_t DataSize() const;
     /// \return an array index corresponding to a sieved frame.
     inline int FrameToIdx(int frame) const { return frameToIdx_[frame]; }
     inline size_t MaxFrames()        const { return frameToIdx_.size(); }

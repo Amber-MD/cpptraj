@@ -58,7 +58,7 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
   if (!resRange_.Empty())
     mprintf(" dihedrals for residues in range %s\n", resRange_.RangeArg());
   else
-    mprintf(" dihedrals for all residues.\n");
+    mprintf(" dihedrals for all solute residues.\n");
   if (!dsetname_.empty())
     mprintf("\tDataSet name: %s\n", dsetname_.c_str());
   if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().base());
@@ -66,6 +66,7 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
     mprintf("\tOutput range is 0 to 360 degrees.\n");
   else
     mprintf("\tOutput range is -180 to 180 degrees.\n");
+  DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }
@@ -76,7 +77,7 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
   if (resRange_.Empty())
-    actualRange.SetRange(0, currentParm->FinalSoluteRes());
+    actualRange = currentParm->SoluteResidues();
   else {
     // If user range specified, create new range shifted by -1 since internal
     // resnums start from 0.

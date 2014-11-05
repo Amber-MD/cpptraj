@@ -5,11 +5,12 @@
 
 /// Size of REMD header
 const size_t Traj_AmberCoord::REMD_HEADER_SIZE = 42;
+const size_t Traj_AmberCoord::RXSGLD_HEADER_SIZE = 44;
 
 // CONSTRUCTOR
 Traj_AmberCoord::Traj_AmberCoord() :
   natom3_(0),
-  hasREMD_(0),
+  headerSize_(0),
   numBoxCoords_(0),
   outfmt_("%8.3lf"),
   highPrecision_(false)
@@ -27,6 +28,12 @@ static inline bool IsRemdHeader(const char* buffer) {
   return false;
 }
 
+static inline bool IsRxsgldHeader(const char* buffer) {
+  if ( buffer[0]=='R' && buffer[1]=='X' && buffer[2]=='S' && buffer[3]=='G' )
+    return true;
+  return false;
+}
+
 // Traj_AmberCoord::ID_TrajFormat()
 bool Traj_AmberCoord::ID_TrajFormat(CpptrajFile& fileIn) {
   // File must already be set up for read
@@ -37,7 +44,17 @@ bool Traj_AmberCoord::ID_TrajFormat(CpptrajFile& fileIn) {
   // Check if second line contains REMD/HREMD, Amber Traj with REMD header
   if ( IsRemdHeader( buffer2.c_str() ) ) {
     if (debug_>0) mprintf("  AMBER TRAJECTORY with (H)REMD header.\n");
-    hasREMD_ = REMD_HEADER_SIZE + (size_t)fileIn.IsDos();
+    headerSize_ = REMD_HEADER_SIZE + (size_t)fileIn.IsDos();
+    tStart_ = 33; // 42 - 8 - 1
+    tEnd_   = 41; // 42 - 1
+    return true;
+  }
+  // TODO: Read these in as indices instead of temperatures
+  if ( IsRxsgldHeader( buffer2.c_str() ) ) {
+    mprintf("  AMBER TRAJECTORY with RXSGLD header.\n");
+    headerSize_ = RXSGLD_HEADER_SIZE + (size_t)fileIn.IsDos();
+    tStart_ = 35; // 44 - 8 - 1
+    tEnd_   = 43; // 44 - 1
     return true;
   }
   // Check if we can read at least 3 coords of width 8, Amber trajectory
@@ -80,10 +97,10 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
   if (file_.ReadFrame()) return 1;
 
   // Get REMD Temperature if present
-  if (hasREMD_ != 0) 
-    file_.GetDoubleAtPosition(*(frameIn.tAddress()), 33, 41); 
+  if (headerSize_ != 0) 
+    file_.GetDoubleAtPosition(*(frameIn.tAddress()), tStart_, tEnd_); 
   // Get Coordinates; offset is hasREMD (size in bytes of REMD header)
-  file_.BufferBeginAt(hasREMD_);
+  file_.BufferBeginAt(headerSize_);
   file_.BufferToDouble(frameIn.xAddress(), natom3_);
   if (numBoxCoords_ != 0) { 
     file_.BufferToDouble(frameIn.bAddress(), numBoxCoords_);
@@ -98,7 +115,7 @@ int Traj_AmberCoord::readVelocity(int set, Frame& frameIn) {
   file_.SeekToFrame( set );
   // Read frame into the char buffer
   if (file_.ReadFrame()) return 1;
-  file_.BufferBeginAt(hasREMD_);
+  file_.BufferBeginAt(headerSize_);
   file_.BufferToDouble(frameIn.vAddress(), natom3_);
   return 0;
 }
@@ -109,7 +126,7 @@ int Traj_AmberCoord::readVelocity(int set, Frame& frameIn) {
   */
 // NOTE: The output frame size is calcd here - should it just be precalcd?
 int Traj_AmberCoord::writeFrame(int set, Frame const& frameOut) {
-  if (hasREMD_ != 0) 
+  if (headerSize_ != 0) 
     file_.Printf("REMD  %8i %8i %8i %8.3f\n", 0, set+1, set+1, frameOut.Temperature());
 
   file_.BufferBegin();
@@ -133,10 +150,10 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
   // Allocate mem to read in frame (plus REMD header if present). REMD
   // header is checked for when file is IDd. Title size is used in seeking. 
   natom3_ = trajParm->Natom() * 3;
-  file_.SetupFrameBuffer( natom3_, 8, 10, hasREMD_, title.size() );
+  file_.SetupFrameBuffer( natom3_, 8, 10, headerSize_, title.size() );
   if (debug_ > 0) {
     mprintf("Each frame is %u bytes", file_.FrameSize());
-    if (hasREMD_ != 0) mprintf(" (including REMD header)");
+    if (headerSize_ != 0) mprintf(" (including REMD header)");
     mprintf(".\n");
   }
   // Read the first frame of coordinates
@@ -150,7 +167,7 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
   std::string nextLine = file_.GetLine();
   if ( !nextLine.empty() ) {
     if (debug_>0) rprintf("DEBUG: Line after first frame: (%s)\n", nextLine.c_str());
-    if ( IsRemdHeader(nextLine.c_str()) ) {
+    if ( IsRemdHeader(nextLine.c_str()) || IsRxsgldHeader(nextLine.c_str()) ) {
       // REMD header - no box coords
       numBoxCoords_ = 0;
     } else {
@@ -165,6 +182,9 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
         numBoxCoords_ = 0;
       } else if (numBoxCoords_ == 3) {
         // Box lengths only, ortho. or truncated oct. Use default parm angles.
+        if (trajParm->BoxType() == Box::NOBOX)
+          mprintf("Warning: Trajectory only contains box lengths and topology has no box info.\n"
+                  "Warning: To set box angles for topology use the 'parmbox' command.\n");
         box[3] = boxAngle_[0] = trajParm->ParmBox().Alpha();
         box[4] = boxAngle_[1] = trajParm->ParmBox().Beta();
         box[5] = boxAngle_[2] = trajParm->ParmBox().Gamma();
@@ -264,9 +284,14 @@ int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
   file_.CloseFile();
   // Set trajectory info
   SetBox( boxInfo );
-  SetTemperature( hasREMD_ != 0 );
+  SetTemperature( headerSize_ != 0 );
   SetTitle( title );
   return Frames;
+}
+
+void Traj_AmberCoord::WriteHelp() {
+  mprintf("\tremdtraj:      Write temperature to trajectory (makes REMD trajectory).\n"
+          "\thighprecision: (ADVANCED USE ONLY) Write 8.6 instead of 8.3 format.\n");
 }
 
 // Traj_AmberCoord::processWriteArgs()
@@ -289,7 +314,7 @@ int Traj_AmberCoord::setupTrajout(std::string const& fname, Topology* trajParm,
                                   int NframesToWrite, bool append)
 {
   // Set Temperature Write 
-  if (HasT()) hasREMD_ = REMD_HEADER_SIZE;
+  if (HasT()) headerSize_ = REMD_HEADER_SIZE;
   if (!append) {
     // Write the title if not appending
     if (file_.SetupWrite( fname, debug_ )) return 1;

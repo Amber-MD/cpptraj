@@ -80,7 +80,7 @@ Action::RetType Action_Density::Init(ArgList& actionArgs,
   std::string maskstr;
 
   while ( (maskstr = actionArgs.GetMaskNext() ) != emptystring) {
-    masks_.push_back(AtomMask(maskstr) );
+    masks_.push_back( AtomMask(maskstr) );
   }
 
   histograms_.resize(masks_.size() );
@@ -166,12 +166,20 @@ Action::RetType Action_Density::DoAction(int frameNum,
       slice = (long) (coord[axis_] / delta_);
 
       // FIXME: split 0 bin in one + and one -
-      tmp[slice] += properties_[i][j];
+      if (slice != 0)
+	tmp[slice] += properties_[i][j];
+      else
+	if (coord[axis_] < 0.0)
+	  tmp[slice-1] += properties_[i][j];
+	else
+	  tmp[slice+1] += properties_[i][j];
 
       j++;
     }
 
-    histograms_[i].accumulate(tmp);
+    if (tmp.size() > 0)
+      histograms_[i].accumulate(tmp);
+
     i++;
   }
 
@@ -187,37 +195,41 @@ void Action_Density::Print()
 {
   const unsigned int SMALL = 1.0;
 
-  bool first;
+  bool first, scale_area;
   long minidx = LONG_MAX, maxidx = LONG_MIN;
   double density, sd, area;
 
-  std::map<int,double>::iterator it, itv;
+  std::map<int,double>::iterator e, b, itv;
   statmap curr;
 
 
 
   area = area_.mean();
   sd = sqrt(area_.variance());
+  scale_area = (property_ == ELECTRON && area > SMALL);
 
   mprintf("The average box area in %c/%c is %.2f Angstrom (sd = %.2f).\n",
 	  area_coord_[0] + 88, area_coord_[1] + 88, area, sd);
 
-  if (property_ == ELECTRON && area > SMALL)
+  if (scale_area)
     mprintf("The electron density will be scaled by this area.\n");
 
   // the search for minimum and maximum indices relies on ordered map
   for (unsigned long i = 0; i < histograms_.size(); i++) {
-    it = histograms_[i].mean_begin(); 
-    if (it->first < minidx)
-      minidx = it->first;
+    b = histograms_[i].mean_begin(); 
+    e = histograms_[i].mean_end();
 
-    it = histograms_[i].mean_end();
-    it--;
-    if (it->first > maxidx)
-      maxidx = it->first;
+    if (b->first < minidx)
+      minidx = b->first;
+
+    if (e != b) {
+      e--;
+      if (e->first > maxidx)
+	maxidx = e->first;
+    }
   }
 
-  output_.Printf("#dist");
+  output_.Printf("#density");
 
   for (std::vector<AtomMask>::const_iterator mask = masks_.begin();
        mask != masks_.end();
@@ -227,23 +239,29 @@ void Action_Density::Print()
 
   output_.Printf("\n");
 
+  // make sure we have zero values at beginning and end as this
+  // "correctly" integrates the histogram
+  minidx--;
+  maxidx++;
+
   for (long i = minidx; i <= maxidx; i++) {
     first = true;
+    if (i == 0) continue;	// FIXME: 0 is doubly counted
 
     for (unsigned long j = 0; j < histograms_.size(); j++) {
       curr = histograms_[j];
 
       if (first) {
         output_.Printf("%10.4f", (i < 0 ? -delta_ : 0.0) +
-                       ((double) i + (i == 0 ? 0.0 : 0.5)) * delta_);
+                       ((double) i + 0.5) * delta_);
         first = false;
       }
 
-      density = curr.mean(i) / (delta_ * // 0 is double counted
-				(i == 0 ? 2.0 : 1.0 ));
+      density = curr.mean(i) / (delta_ * // FIXME: 0 is doubly counted
+				(i == -1 or i == 1 ? 2.0 : 1.0 ));
       sd = sqrt(curr.variance(i) );
 
-      if (property_ == ELECTRON && area > SMALL) {
+      if (scale_area) {
 	density /= area;
 	sd /= area;
       }

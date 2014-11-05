@@ -7,7 +7,7 @@ ClusterNode::ClusterNode() :
   avgClusterDist_(0),
   eccentricity_(0),
   num_(0),
-  centroidframe_(0),
+  repFrame_(0),
   centroid_(0)
 {}
 
@@ -16,13 +16,15 @@ ClusterNode::~ClusterNode() {
   if (centroid_ != 0) delete centroid_;
 }
 
-// Set initial centroid frame to front, even though that will probably be wrong
-// when number of frames in the list > 1
+/** Create new cluster with given number containing given frames. Calculate
+  * initial centroid and set initial best rep frame to front, even though 
+  * that will probably be wrong when number of frames in the list > 1.
+  */
 ClusterNode::ClusterNode(ClusterDist* Cdist, ClusterDist::Cframes const& frameListIn, int numIn) :
   avgClusterDist_(0.0),
   eccentricity_(0.0),
   num_(numIn),
-  centroidframe_(frameListIn.front()),
+  repFrame_(frameListIn.front()),
   frameList_(frameListIn),
   centroid_(Cdist->NewCentroid(frameList_))
 {}
@@ -32,7 +34,7 @@ ClusterNode::ClusterNode(const ClusterNode& rhs) :
   avgClusterDist_( rhs.avgClusterDist_ ),
   eccentricity_( rhs.eccentricity_ ),
   num_( rhs.num_ ),
-  centroidframe_( rhs.centroidframe_ ),
+  repFrame_( rhs.repFrame_ ),
   frameList_( rhs.frameList_ ),
   centroid_(0)
 {
@@ -46,7 +48,7 @@ ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   avgClusterDist_ = rhs.avgClusterDist_;
   eccentricity_ = rhs.eccentricity_;
   num_ = rhs.num_;
-  centroidframe_ = rhs.centroidframe_;
+  repFrame_ = rhs.repFrame_;
   frameList_ = rhs.frameList_;
   if (centroid_ != 0) delete centroid_;
   if (rhs.centroid_ != 0)
@@ -56,10 +58,11 @@ ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   return *this;
 }
 
-/** Find the frame in the given cluster that is the centroid, i.e. has the
-  * lowest cumulative distance to every other point in the cluster.
+/** Find the frame in the given cluster that is the best representative, i.e.
+  * has the lowest cumulative distance to every other point in the cluster.
+  * \return best representative frame number, or -1 on error.
   */
-int ClusterNode::FindCentroidFrame(ClusterMatrix const& FrameDistancesIn) {
+int ClusterNode::FindBestRepFrame(ClusterMatrix const& FrameDistancesIn) {
   double mindist = DBL_MAX;
   int minframe = -1;
   for (frame_iterator frm1 = frameList_.begin(); frm1 != frameList_.end(); ++frm1)
@@ -76,9 +79,9 @@ int ClusterNode::FindCentroidFrame(ClusterMatrix const& FrameDistancesIn) {
     }
   }
   if (minframe == -1) 
-    return 1;
-  centroidframe_ = minframe;
-  return 0;
+    return -1;
+  repFrame_ = minframe;
+  return minframe;
 }
 
 /** Calculate the eccentricity of this cluster (i.e. the largest distance
@@ -120,4 +123,29 @@ double ClusterNode::CalcAvgToCentroid( ClusterDist* Cdist )
 
 void ClusterNode::SortFrameList() {
   std::sort(frameList_.begin(), frameList_.end());
+}
+
+// ClusterNode::HasFrame()
+bool ClusterNode::HasFrame(int frame) {
+  ClusterDist::Cframes::iterator it = std::find(frameList_.begin(), frameList_.end(), frame);
+  return !(it == frameList_.end());
+}
+
+// ClusterNode::RemoveFrameFromCluster()
+void ClusterNode::RemoveFrameFromCluster(int frame) {
+  ClusterDist::Cframes::iterator pend = std::remove( frameList_.begin(), frameList_.end(), frame);
+  size_t newsize = pend - frameList_.begin();
+  frameList_.resize( newsize );
+}
+
+void ClusterNode::RemoveFrameUpdateCentroid(ClusterDist* Cdist, int frame) {
+  Cdist->FrameOpCentroid(frame, centroid_, (double)frameList_.size(),
+                         ClusterDist::SUBTRACTFRAME);
+  RemoveFrameFromCluster( frame );
+}
+
+void ClusterNode::AddFrameUpdateCentroid(ClusterDist* Cdist, int frame) {
+  Cdist->FrameOpCentroid(frame, centroid_, (double)frameList_.size(),
+                         ClusterDist::ADDFRAME);
+  AddFrameToCluster( frame );
 }

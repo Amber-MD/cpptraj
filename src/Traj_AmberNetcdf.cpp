@@ -48,6 +48,10 @@ int Traj_AmberNetcdf::openTrajin() {
   return 0;
 }
 
+void Traj_AmberNetcdf::ReadHelp() {
+  mprintf("\tusevelascoords: Use velocities instead of coordinates if present.\n");
+}
+
 int Traj_AmberNetcdf::processReadArgs(ArgList& argIn) {
   useVelAsCoords_ = argIn.hasKey("usevelascoords");
   return 0;
@@ -111,6 +115,11 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
   if (debug_>1) NetcdfDebug();
   closeTraj();
   return Ncframe();
+}
+
+void Traj_AmberNetcdf::WriteHelp() {
+  mprintf("\tremdtraj: Write temperature to trajectory (makes REMD trajectory).\n"
+          "\tvelocity: Write velocities to trajectory.\n");
 }
 
 // Traj_AmberNetcdf::processWriteArgs()

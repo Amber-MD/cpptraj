@@ -29,6 +29,13 @@ void DataSet_double::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
     cbuffer.Printf(data_format_, Data_[frame]);
 }
 
+void DataSet_double::Append(DataSet_double const& dsIn) {
+  if (dsIn.Size() < 1) return;
+  size_t oldsize = Size();
+  Data_.resize( oldsize + dsIn.Size() );
+  std::copy( dsIn.Data_.begin(), dsIn.Data_.end(), Data_.begin() + oldsize );
+}
+
 // DataSet_double::Sync()
 /** First, non-master threads convert their vectors into C-arrays.
   * These arrays are then sent to the master, where they are put 

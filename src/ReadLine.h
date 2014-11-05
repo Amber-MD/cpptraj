@@ -6,6 +6,7 @@ class ReadLine {
   public:
     ReadLine();
     int GetInput();
+    void AddHistory(const char*);
     bool YesNoPrompt(const char*);
     const char* c_str()            const { return input_.c_str(); }
     std::string const& operator*() const { return input_;         }

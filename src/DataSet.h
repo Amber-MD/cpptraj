@@ -93,6 +93,8 @@ class DataSet {
     scalarType ScalarType()     const { return scalartype_;        }
     /// \return number of dimensions.
     size_t Ndim()               const { return dim_.size();        }
+    /// \return true if set is a coordinate set type.
+    bool IsCoordSet()           const { return (dType_ == COORDS || dType_ == TRAJ); }
     /// \return specified DataSet dimension.
     Dimension& Dim(Dimension::DimIdxType i) { return dim_[(int)i]; }
     Dimension&       Dim(int i)             { return dim_[i];      }

@@ -8,7 +8,7 @@ class ProgressBar {
     void SetupProgress(int);
     void Update(int);
   private:
-    static const int UNKNOWN_FRAMESIZE;
+    int unknown_;
     int max_;
     float C_over_max_;
     float targetPercent_;

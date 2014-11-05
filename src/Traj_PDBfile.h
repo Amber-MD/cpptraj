@@ -16,6 +16,7 @@ class Traj_PDBfile: public TrajectoryIO {
 
     Traj_PDBfile();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_PDBfile(); }
+    static void WriteHelp();
   private:
     int pdbAtom_;
     int currentSet_;
@@ -25,6 +26,7 @@ class Traj_PDBfile: public TrajectoryIO {
     bool dumpr_;   ///< If true print radii in B-factor column.
     bool pdbres_;  ///< If true convert Amber res names to PDBV3 style.
     bool pdbatom_; ///< If true convert Amber atom names to PDBV3 style.
+    bool write_cryst1_; ///< If false write CRYST1 for first frame.
     Topology *pdbTop_;
     PDBfile file_;
 

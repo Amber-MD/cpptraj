@@ -20,15 +20,51 @@ static double DistCalc_Std(double d1, double d2) {
   return fabs(d1 - d2);
 }
 
+/* Update centroid value for adding/removing a frame.
+ * \param fval value of frame being added/removed.
+ * \param cval current centroid value.
+ * \param isTorsion data is periodic.
+ * \param oldSize Previous size of the centroid.
+ * \param OP Operation being performed.
+ */
+static double DistCalc_FrameCentroid(double fval, double cval, bool isTorsion,
+                                     double oldSize, ClusterDist::CentOpType OP,
+                                     double& sumx, double& sumy)
+{
+  double newcval;
+  if (isTorsion) {
+    double ftheta = fval * Constants::DEGRAD;
+    if (OP == ClusterDist::ADDFRAME) {
+      sumy += sin( ftheta );
+      sumx += cos( ftheta );
+    } else { // SUBTRACTFRAME
+      sumy -= sin( ftheta );
+      sumx -= cos( ftheta );
+    }
+    newcval = atan2(sumy, sumx) * Constants::RADDEG;
+  } else {
+    newcval = cval * oldSize;
+    if (OP == ClusterDist::ADDFRAME) {
+      newcval += fval;
+      newcval /= ( oldSize + 1 );
+    } else { // SUBTRACTFRAME
+      newcval -= fval;
+      newcval /= ( oldSize - 1 );
+    }
+  }
+  return newcval;
+}
+
 // -----------------------------------------------------------------------------
 /** Calculate unambiguous average dihedral angle (in degrees) by converting to 
   * cartesian coords using x = cos(theta), y = sin(theta), and:
   *   tan(avgtheta) = avgy / avgx = SUM[sin(theta)] / SUM[cos(theta)]
   * See Eq. 2 from Altis et al., J. Chem. Phys., 126 p. 244111 (2007).
   */
-static double AvgCalc_Dih( DataSet_1D const& dsIn, ClusterDist::Cframes const& cframesIn ) {
-  double sumy = 0.0;
-  double sumx = 0.0;
+static double AvgCalc_Dih( DataSet_1D const& dsIn, ClusterDist::Cframes const& cframesIn,
+                           double& sumx, double& sumy ) {
+  sumy = 0.0;
+  sumx = 0.0;
   // TODO: Convert angles to radians prior to this call?
   for (ClusterDist::Cframes_it frm = cframesIn.begin(); frm != cframesIn.end(); ++frm) {
     double theta = dsIn.Dval( *frm ) * Constants::DEGRAD;
@@ -92,7 +128,7 @@ double ClusterDist_Num::FrameCentroidDist(int f1, Centroid* c1) {
 void ClusterDist_Num::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Num* cent = (Centroid_Num*)centIn;
   if (data_->IsTorsionArray())
-    cent->cval_ = AvgCalc_Dih(*data_, cframesIn);
+    cent->cval_ = AvgCalc_Dih(*data_, cframesIn, cent->sumx_, cent->sumy_);
   else
     cent->cval_ = AvgCalc_Std(*data_, cframesIn);
 }
@@ -104,6 +140,15 @@ Centroid* ClusterDist_Num::NewCentroid( Cframes const& cframesIn ) {
   return cent;
 }
 
+void ClusterDist_Num::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                      CentOpType OP)
+{
+  Centroid_Num* cent = (Centroid_Num*)centIn;
+  cent->cval_ = DistCalc_FrameCentroid(data_->Dval(frame), cent->cval_,
+                                       data_->IsTorsionArray(), oldSize, OP,
+                                       cent->sumx_, cent->sumy_);
+}
+ 
 // ---------- Distance calc routines for multiple DataSets (Euclid) ------------
 ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn)
 {
@@ -183,19 +228,46 @@ double ClusterDist_Euclid::FrameCentroidDist(int f1, Centroid* c1) {
 
 void ClusterDist_Euclid::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Multi* cent = (Centroid_Multi*)centIn;
-  cent->cvals_.clear();
-  for (D1Array::iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds) {
-    if ((*ds)->IsTorsionArray())
-      cent->cvals_.push_back( AvgCalc_Dih(*(*ds), cframesIn) );
+  cent->cvals_.resize( dsets_.size(), 0.0 );
+  cent->Sumx_.resize( dsets_.size(), 0.0 );
+  cent->Sumy_.resize( dsets_.size(), 0.0 );
+  for (unsigned int idx = 0; idx != dsets_.size(); ++idx) {
+    if (dsets_[idx]->IsTorsionArray())
+      cent->cvals_[idx] = AvgCalc_Dih(*dsets_[idx], cframesIn, cent->Sumx_[idx], cent->Sumy_[idx]);
     else
-      cent->cvals_.push_back( AvgCalc_Std(*(*ds), cframesIn) );
+      cent->cvals_[idx] = AvgCalc_Std(*dsets_[idx], cframesIn);
   }
+//  mprintf("DEBUG: Centroids:");
+//  for (unsigned int i = 0; i != cent->cvals_.size(); i++)
+//    mprintf("   %f (sumy=%f sumx=%f)", cent->cvals_[i], cent->Sumy_[i], cent->Sumx_[i]);
+//  mprintf("\n");
 }
 
 Centroid* ClusterDist_Euclid::NewCentroid(Cframes const& cframesIn) {
   Centroid_Multi* cent = new Centroid_Multi();
   CalculateCentroid(cent, cframesIn);
   return cent;
+}
+
+//static const char* OPSTRING[] = {"ADD", "SUBTRACT"}; // DEBUG
+
+void ClusterDist_Euclid::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                         CentOpType OP)
+{
+  Centroid_Multi* cent = (Centroid_Multi*)centIn;
+//  mprintf("DEBUG: Old Centroids:");
+//  for (unsigned int i = 0; i != cent->cvals_.size(); i++)
+//    mprintf("   sumy=%f sumx=%f", cent->Sumy_[i], cent->Sumx_[i]);
+//    //mprintf(" %f", cent->cvals_[i]);
+//  mprintf("\n");
+  for (unsigned int i = 0; i != dsets_.size(); ++i)
+    cent->cvals_[i] = DistCalc_FrameCentroid(dsets_[i]->Dval(frame), 
+                          cent->cvals_[i], dsets_[i]->IsTorsionArray(), oldSize, OP,
+                          cent->Sumx_[i], cent->Sumy_[i]);
+//  mprintf("DEBUG: New Centroids after %s frame %i:", OPSTRING[OP], frame);
+//  for (unsigned int i = 0; i != cent->cvals_.size(); i++)
+//    mprintf(" %f", cent->cvals_[i]);
+//  mprintf("\n");
 }
 
 // ---------- Distance calc routines for COORDS DataSet using DME --------------
@@ -250,19 +322,26 @@ double ClusterDist_DME::FrameCentroidDist(int f1, Centroid* c1) {
 }
 
 /** Compute the centroid (avg) coords for each atom from all frames in this
-  * cluster.
+  * cluster. NOTE: For DME the centroid should probably be calculated via
+  * internal coordinates; use RMS best-fit as a cheat.
   */
 void ClusterDist_DME::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
+  Matrix_3x3 Rot;
+  Vec3 Trans;
   Centroid_Coord* cent = (Centroid_Coord*)centIn;
   // Reset atom count for centroid.
   cent->cframe_.ClearAtoms();
   for (Cframes_it frm = cframesIn.begin(); frm != cframesIn.end(); ++frm)
   {
     coords_->GetFrame( *frm, frm1_, mask_ );
-    if (cent->cframe_.empty())
+    if (cent->cframe_.empty()) {
       cent->cframe_ = frm1_;
-    else
+      cent->cframe_.CenterOnOrigin(false);
+    } else {
+      frm1_.RMSD_CenteredRef( cent->cframe_, Rot, Trans, false );
+      frm1_.Rotate( Rot );
       cent->cframe_ += frm1_;
+    }
   }
   cent->cframe_.Divide( (double)cframesIn.size() );
   //mprintf("\t\tFirst 3 centroid coords (of %i): %f %f %f\n", cent->cframe_.Natom(), 
@@ -274,6 +353,25 @@ Centroid* ClusterDist_DME::NewCentroid( Cframes const& cframesIn ) {
   Centroid_Coord* cent = new Centroid_Coord( mask_.Nselected() );
   CalculateCentroid( cent, cframesIn );
   return cent;
+}
+
+void ClusterDist_DME::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                      CentOpType OP)
+{
+  Matrix_3x3 Rot;
+  Vec3 Trans;
+  Centroid_Coord* cent = (Centroid_Coord*)centIn;
+  coords_->GetFrame( frame, frm1_, mask_ );
+  frm1_.RMSD_CenteredRef( cent->cframe_, Rot, Trans, false );
+  frm1_.Rotate( Rot );
+  cent->cframe_.Multiply( oldSize );
+  if (OP == ADDFRAME) {
+    cent->cframe_ += frm1_;
+    cent->cframe_.Divide( oldSize + 1 );
+  } else { // SUBTRACTFRAME
+    cent->cframe_ -= frm1_;
+    cent->cframe_.Divide( oldSize - 1 );
+  }
 }
 
 // ---------- Distance calc routines for COORDS DataSets using RMSD ------------
@@ -385,6 +483,30 @@ Centroid* ClusterDist_RMS::NewCentroid( Cframes const& cframesIn ) {
   return cent;
 }
 
+// Subtract Notes
+// FIXME: Handle single frame
+// FIXME: Check if frame is in cluster?
+void ClusterDist_RMS::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                      CentOpType OP)
+{
+  Matrix_3x3 Rot;
+  Vec3 Trans;
+  Centroid_Coord* cent = (Centroid_Coord*)centIn;
+  coords_->GetFrame( frame, frm1_, mask_ );
+  if (!nofit_) {
+    frm1_.RMSD_CenteredRef( cent->cframe_, Rot, Trans, useMass_ );
+    frm1_.Rotate( Rot );
+  }
+  cent->cframe_.Multiply( oldSize );
+  if (OP == ADDFRAME) {
+    cent->cframe_ += frm1_;
+    cent->cframe_.Divide( oldSize + 1 );
+  } else { // SUBTRACTFRAME
+    cent->cframe_ -= frm1_;
+    cent->cframe_.Divide( oldSize - 1 );
+  }
+}
+
 // ---------- Distance calc routines for COORDS DataSets using SRMSD -----------
 ClusterDist_SRMSD::ClusterDist_SRMSD(DataSet* dIn, AtomMask const& maskIn, 
                                      bool nofit, bool useMass, int debugIn) :
@@ -467,11 +589,14 @@ void ClusterDist_SRMSD::CalculateCentroid(Centroid* centIn,  Cframes const& cfra
       if (SRMSD_.Fit())
         cent->cframe_.CenterOnOrigin(SRMSD_.UseMass());
     } else {
+      SRMSD_.SymmRMSD_CenteredRef( frm1_, cent->cframe_ );
+      // Remap atoms
+      frm2_.SetCoordinatesByMap( frm1_, SRMSD_.AMap() );
       if (SRMSD_.Fit()) {
-        SRMSD_.SymmRMSD_CenteredRef( frm1_, cent->cframe_ );
-        frm1_.Rotate( SRMSD_.RotMatrix() );
+        frm2_.Translate( SRMSD_.TgtTrans() );
+        frm2_.Rotate( SRMSD_.RotMatrix() );
       }
-      cent->cframe_ += frm1_;
+      cent->cframe_ += frm2_;
     }
   }
   cent->cframe_.Divide( (double)cframesIn.size() );
@@ -484,4 +609,28 @@ Centroid* ClusterDist_SRMSD::NewCentroid( Cframes const& cframesIn ) {
   Centroid_Coord* cent = new Centroid_Coord( mask_.Nselected() );
   CalculateCentroid( cent, cframesIn );
   return cent;
+}
+
+void ClusterDist_SRMSD::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                        CentOpType OP)
+{
+  Matrix_3x3 Rot;
+  Vec3 Trans;
+  Centroid_Coord* cent = (Centroid_Coord*)centIn;
+  coords_->GetFrame( frame, frm1_, mask_ );
+  SRMSD_.SymmRMSD_CenteredRef( frm1_, cent->cframe_ );
+  // Remap atoms
+  frm2_.SetCoordinatesByMap( frm1_, SRMSD_.AMap() );
+  if (SRMSD_.Fit()) {
+    frm2_.Translate( SRMSD_.TgtTrans() );
+    frm2_.Rotate( SRMSD_.RotMatrix() );
+  }
+  cent->cframe_.Multiply( oldSize );
+  if (OP == ADDFRAME) {
+    cent->cframe_ += frm2_;
+    cent->cframe_.Divide( oldSize + 1 );
+  } else { // SUBTRACTFRAME
+    cent->cframe_ -= frm2_;
+    cent->cframe_.Divide( oldSize - 1 );
+  }
 }

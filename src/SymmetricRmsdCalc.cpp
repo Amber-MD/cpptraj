@@ -10,7 +10,7 @@ SymmetricRmsdCalc::SymmetricRmsdCalc(AtomMask const& maskIn, bool fitIn,
                                      bool useMassIn, Topology const& topIn, int debugIn) :
   debug_(debugIn), fit_(fitIn), useMass_(useMassIn)
 {
-  SetupSymmRMSD( topIn, maskIn, false );
+  SetupSymmRMSD( topIn, maskIn, false ); // No remap warning
 }
 
 // SymmetricRmsdCalc::InitSymmRMSD()
@@ -20,44 +20,6 @@ int SymmetricRmsdCalc::InitSymmRMSD(bool fitIn, bool useMassIn, int debugIn)
   fit_ = fitIn;
   useMass_ = useMassIn;
   return 0;
-}
-#ifdef DEBUGSYMMRMSD
-static int recursionLevel_;
-#endif
-/** Recursive function to search for symmetric atoms. */
-void SymmetricRmsdCalc::FindSymmetricAtoms(int at, AtomMap const& resmap,
-                                           std::string const& Unique,
-                                           Iarray& Selected,
-                                           Iarray& symmatoms) const
-{
-  // If this atom has already been selected, leave
-  if (Selected[at]) return;
-  Selected[at] = 1;
-# ifdef DEBUGSYMMRMSD
-  ++recursionLevel_;
-  for (int i = 0; i < recursionLevel_; i++)
-    mprintf("..");
-  mprintf("Atom %i(%s)", at+1, resmap[at].c_str());
-# endif
-  // Does this atom match the unique ID we are looking for?
-  if (resmap[at].Unique() == Unique) {
-    symmatoms.push_back( at ); // NOTE: This index is relative to the residue 
-#   ifdef DEBUGSYMMRMSD
-    mprintf(" SYMM");
-#   endif
-  }
-  // Recursively search through all atoms bonded to this atom unless they 
-  // are a chiral center
-# ifdef DEBUGSYMMRMSD
-  mprintf("\n");
-# endif
-  for (Atom::bond_iterator bndatm = resmap[at].bondbegin();
-                           bndatm != resmap[at].bondend();
-                           ++bndatm)
-  {
-    if (!resmap[*bndatm].IsChiral())
-      FindSymmetricAtoms( *bndatm, resmap, Unique, Selected, symmatoms );
-  }
 }
 
 // SymmetricRmsdCalc::SetupSymmRMSD()
@@ -92,87 +54,41 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn, AtomMask const& tgtM
   AtomMap resmap;
   if (debug_ > 1) resmap.SetDebug(1);
   for (int res = 0; res < last_res; ++res) {
-    int res_first_atom = topIn.Res(res).FirstAtom();
-    // Are any of the residue atoms selected?
-    bool atomsAreSelected = false;
-    for (int ratom = res_first_atom; ratom != topIn.Res(res).LastAtom(); ++ratom)
-      if (SelectedIdx[ratom] != -1) {
-        atomsAreSelected = true;
-        break;
+    AtomMap::AtomIndexArray residue_SymmetricGroups;
+    if (resmap.SymmetricAtoms(topIn, residue_SymmetricGroups, res)) {
+      mprinterr("Error: Finding symmetric atoms in residue '%s'\n",
+                topIn.TruncResNameNum(res).c_str());
+      return 1;
+    }
+    if (!residue_SymmetricGroups.empty()) {
+      // Which atoms in symmetric groups are selected?
+      bool resHasSelectedSymmAtoms = false;
+      for (AtomMap::AtomIndexArray::const_iterator symmGroup = residue_SymmetricGroups.begin();
+                                                   symmGroup != residue_SymmetricGroups.end();
+                                                 ++symmGroup)
+      {
+        Iarray selectedAtomIndices;
+        for (Iarray::const_iterator atnum = symmGroup->begin();
+                                    atnum != symmGroup->end(); ++atnum)
+        {
+          if ( SelectedIdx[*atnum] != -1 )
+            selectedAtomIndices.push_back( SelectedIdx[*atnum] ); // Store tgtMask indices
+        }
+        if (!selectedAtomIndices.empty()) {
+          SymmetricAtomIndices_.push_back( selectedAtomIndices );
+          resHasSelectedSymmAtoms = true;
+        }
       }
-    if (!atomsAreSelected) continue;
-    if (debug_>0) mprintf("DEBUG: Residue %s\n", topIn.TruncResNameNum(res).c_str());
-    // Create AtomMap of this residue to determine chiral centers, unique atom IDs etc
-    if (resmap.SetupResidue(topIn, res) != 0) return 1;
-    if (resmap.CheckBonds() != 0) return 1;
-    resmap.DetermineAtomIDs();
-    Iarray symmAtoms; // Symmetric atoms, indices relative to resmap
-    Iarray selectedSymmAtoms; // Selected Symmetric atoms, indices will be relative to tgtMask
-    Iarray AtomStatus( resmap.Natom(), UNSELECTED );
-    // Loop over all atoms in the residue
-    for (int at = 0; at < resmap.Natom(); at++) {
-      // If atom is unique in residue, mark non-symmetric 
-      if (resmap[at].IsUnique())
-        AtomStatus[at] = NONSYMM;
-      else if (AtomStatus[at] != SYMM) {
-        Iarray Selected( resmap.Natom(), 0 );
-        symmAtoms.clear();
-        // Recursively search for other potentially symmetric atoms in residue.
-        // The Selected array is used to keep track of which atoms have been
-        // visited in this pass; this is used instead of AtomStatus so that
-        // we can travel through atoms already marked as symmetric.
-#       ifdef DEBUGSYMMRMSD
-        recursionLevel_ = 0;
-        mprintf("Starting recursive call for %i(%s)\n", at+1, resmap[at].c_str());
-#       endif
-        FindSymmetricAtoms(at, resmap, resmap[at].Unique(), Selected, symmAtoms);
-#       ifdef DEBUGSYMMRMSD
-        mprintf("Potentially symmetric:\n");
-        for (Iarray::const_iterator sa = symmAtoms.begin(); sa != symmAtoms.end(); ++sa)
-          mprintf("\t%8i %4s %8i\n", *sa + res_first_atom + 1, 
-                  topIn[*sa + res_first_atom].c_str(),
-                  SelectedIdx[ *sa + res_first_atom ] + 1);
-#       endif
-        // Which of the symmetric atoms are selected?
-        selectedSymmAtoms.clear();
-        for (Iarray::const_iterator sa = symmAtoms.begin(); sa != symmAtoms.end(); ++sa)
-          if (SelectedIdx[ *sa + res_first_atom ] != -1)
-            selectedSymmAtoms.push_back( *sa );
-        if (selectedSymmAtoms.size() == 1) {
-          // Only 1 atom, not symmetric. Reset atom status
-          AtomStatus[selectedSymmAtoms.front()] = NONSYMM;
-        } else if (selectedSymmAtoms.size() > 1) {
-          // Shift residue atom #s so they correspond with tgtMask.
-          for (Iarray::iterator it = selectedSymmAtoms.begin(); 
-                                it != selectedSymmAtoms.end(); ++it)
-          {
-            AtomStatus[*it] = SYMM;
-            *it = SelectedIdx[ *it + res_first_atom ];
+      // If remapping and not all atoms in a residue are selected, warn user.
+      // TODO: Should they just be considered even if not selected?
+      if (remapIn && resHasSelectedSymmAtoms) {
+        for (int atom = topIn.Res(res).FirstAtom(); atom != topIn.Res(res).LastAtom(); ++atom)
+          if (SelectedIdx[atom] == -1) {
+            mprintf("Warning: Not all atoms selected in residue '%s'. Re-mapped\n"
+                    "Warning:   structures may appear distorted.\n", 
+                    topIn.TruncResNameNum(res).c_str());
+            break;
           }
-          SymmetricAtomIndices_.push_back( selectedSymmAtoms );
-        }
-      }
-    }
-    // If remapping and not all atoms in a residue are selected, warn user.
-    if (remapIn) {
-      for (int at = 0; at < resmap.Natom(); at++) {
-        if (AtomStatus[at] == UNSELECTED) {
-          mprintf("Warning: Not all atoms selected in residue '%s'. Re-mapped\n"
-                  "Warning:   structures may appear distorted.\n", 
-                  topIn.TruncResNameNum(res).c_str());
-          break;
-        }
-      }
-    }
-    if (debug_ > 0) {
-      mprintf("DEBUG:\tResidue Atom Status:\n");
-      for (int at = 0; at < resmap.Natom(); at++) {
-        mprintf("\t%s", topIn.AtomMaskName(at + res_first_atom).c_str());
-        switch (AtomStatus[at]) {
-          case NONSYMM: mprintf(" Non-symmetric\n"); break;
-          case SYMM   : mprintf(" Symmetric\n"); break;
-          case UNSELECTED: mprintf(" Unselected\n");
-        }
       }
     }
   }

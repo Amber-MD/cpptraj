@@ -8,6 +8,7 @@
 #include "AtomMask.h"
 #include "Frame.h"
 #include "FileName.h"
+#include "Range.h"
 // Class: Topology
 /// Hold information for all atoms
 class Topology {
@@ -42,7 +43,6 @@ class Topology {
     FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
     bool NoRefCoords()                    const { return (refCoords_.empty()); }
-    int FinalSoluteRes() const; // TODO: Replace
     const char *c_str() const;
     // ---- Atom-specific routines ---------------
     typedef std::vector<Atom>::const_iterator atom_iterator;
@@ -56,6 +56,7 @@ class Topology {
     inline res_iterator ResEnd()   const { return residues_.end();   }
     const Residue& Res(int idx)    const { return residues_[idx];    }
     Residue& SetRes(int idx)             { return residues_[idx];    }
+    Range SoluteResidues() const;
     // ----- Molecule-specific routines ----------
     typedef std::vector<Molecule>::const_iterator mol_iterator;
     inline mol_iterator MolStart() const { return molecules_.begin(); }
@@ -98,12 +99,16 @@ class Topology {
     inline const std::vector<int>& Join()       const { return join_;   }
     inline const std::vector<int>& Irotat()     const { return irotat_; }
     // ----- Misc routines -----------------------
+    /// Format: <res name><res num>@<atom name>
     std::string TruncResAtomName(int) const;
-    std::string AtomMaskName(int atom) const;
+    /// Format: :<res num>@<atom name>
+    std::string AtomMaskName(int) const;
+    /// Format: <atom name>_<atom num>
+    std::string TruncAtomNameNum(int) const;
+    /// Format: <res name>:<res num> 
     std::string TruncResNameNum(int) const;
     int FindAtomInResidue(int, NameType const&) const;
     int FindResidueMaxNatom() const;
-    int SoluteAtoms() const;
     int SetSolvent(std::string const&);
     // ----- Print topology info -----------------
     void Summary() const;
@@ -146,6 +151,8 @@ class Topology {
     Topology* ModifyByMap(std::vector<int> const& m) const {
       return ModifyByMap(m, true);
     }
+    /// Append topology to this one.
+    int AppendTop( Topology const& );
   private:
     void PrintBonds(BondArray const&, AtomMask const&, int&) const;
     void PrintAngles(AngleArray const&, AtomMask const&, int&) const;
@@ -179,6 +186,7 @@ class Topology {
     BondArray StripBondArray(BondArray const&, std::vector<int> const&) const;
     AngleArray StripAngleArray(AngleArray const&, std::vector<int> const&) const;
     DihedralArray StripDihedralArray(DihedralArray const&, std::vector<int> const&) const;
+    inline void AddBondArray(BondArray const&, int);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;
@@ -216,7 +224,6 @@ class Topology {
     int debug_;
     int ipol_;              ///< 0 if fixed charge, 1 if polarizable
     int NsolventMolecules_;
-    int finalSoluteRes_; ///< TODO: Get rid of
     int pindex_;
     int nframes_;
     int n_extra_pts_;

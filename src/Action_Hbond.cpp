@@ -172,6 +172,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, Frame
     mprintf("\tTime series data for each hbond will be saved for analysis.\n");
   if (Image_.UseImage())
     mprintf("\tImaging enabled.\n");
+  DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }

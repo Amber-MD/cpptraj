@@ -1,3 +1,4 @@
+#include <set>
 #include "FileTypes.h"
 #include "CpptrajStdio.h"
 // FileTypes::GetFormatFromArg()
@@ -49,35 +50,56 @@ BaseIOtype* FileTypes::AllocIO(AllocPtr allocArray, FileFormatType typeIn, bool 
   return allocArray[typeIn].Alloc();
 }
 // FileTypes::FormatKeywords()
-void FileTypes::FormatKeywords(KeyPtr begin, FileFormatType ftype) {
-  mprintf("Keywords:");
+std::string FileTypes::FormatKeywords(KeyPtr begin, FileFormatType ftype) {
+  std::string keywords;
+  std::set<std::string> Keys;
   for (KeyPtr token = begin; token->Key != 0; ++token)
-    if (token->Type == ftype) mprintf(" %s", token->Key);
+    if (token->Type == ftype) Keys.insert( std::string(token->Key) );
+  if (!Keys.empty()) {
+    keywords.assign("Keywords:");
+    for (std::set<std::string>::const_iterator key = Keys.begin();
+                                               key != Keys.end(); ++key)
+      keywords.append(" " + *key);
+  }
+  return keywords;
 }
 // FileTypes::FormatExtensions()
-void FileTypes::FormatExtensions(KeyPtr begin, FileFormatType ftype) {
-  mprintf("Extensions:");
+std::string FileTypes::FormatExtensions(KeyPtr begin, FileFormatType ftype) {
+  std::string extensions;
+  std::set<std::string> Exts;
   for (KeyPtr token = begin; token->Extension != 0; ++token)
-    if (token->Type == ftype) mprintf(" %s", token->Extension);
+    if (token->Type == ftype) Exts.insert( std::string(token->Extension) );
+  if (!Exts.empty()) {
+    extensions.assign("Extensions:");
+    for (std::set<std::string>::const_iterator ext = Exts.begin();
+                                               ext != Exts.end(); ++ext)
+      extensions.append(" '" + *ext + "'");
+  }
+  return extensions;
 }
 // FileTypes::ReadOptions()
 void FileTypes::ReadOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
   for (int i = 0; i < UNK; i++) {
-    mprintf("    Options for %s: ", allocArray[i].Description);
-    //FormatKeywords( begin, i );
-    FormatExtensions( begin, i );
-    mprintf("\n");
-    if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp();
+    std::string fmtExtensions = FormatExtensions(begin, i);
+    if (allocArray[i].ReadHelp || !fmtExtensions.empty()) {
+      mprintf("    Options for %s:", allocArray[i].Description);
+      if (!fmtExtensions.empty()) mprintf(" %s", fmtExtensions.c_str());
+      mprintf("\n");
+      if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp();
+    }
   }
 }
 // FileTypes::WriteOptions()
 void FileTypes::WriteOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
   for (int i = 0; i < UNK; i++) {
-    mprintf("    Options for %s: ", allocArray[i].Description);
-    FormatKeywords( begin, i );
-    mprintf(", ");
-    FormatExtensions( begin, i );
-    mprintf("\n");
-    if (allocArray[i].WriteHelp != 0) allocArray[i].WriteHelp();
+    std::string fmtExtensions = FormatExtensions(begin, i);
+    std::string fmtKeywords =  FormatKeywords(begin, i);
+    if (allocArray[i].WriteHelp || !fmtExtensions.empty() || !fmtKeywords.empty()) {
+      mprintf("    Options for %s:", allocArray[i].Description);
+      if (!fmtKeywords.empty()) mprintf(" %s,", fmtKeywords.c_str());
+      if (!fmtExtensions.empty()) mprintf(" %s", fmtExtensions.c_str()); 
+      mprintf("\n");
+      if (allocArray[i].WriteHelp != 0) allocArray[i].WriteHelp();
+    }
   }
 }

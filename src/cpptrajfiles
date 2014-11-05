@@ -1,6 +1,7 @@
 SOURCES=ActionFrameCounter.cpp \
         ActionList.cpp \
         Action_Angle.cpp \
+        Action_AreaPerMol.cpp \
         Action_AtomMap.cpp \
         Action_AtomicCorr.cpp \
         Action_AtomicFluct.cpp \
@@ -9,6 +10,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Bounds.cpp \
         Action_Box.cpp \
         Action_Center.cpp \
+        Action_CheckChirality.cpp \
         Action_CheckStructure.cpp \
         Action_Closest.cpp \
         Action_ClusterDihedral.cpp \
@@ -24,6 +26,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Dipole.cpp \
         Action_DistRmsd.cpp \
         Action_Distance.cpp \
+        Action_Energy.cpp \
         Action_FilterByData.cpp \
         Action_FixAtomOrder.cpp \
         Action_Gist.cpp \
@@ -37,6 +40,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_MakeStructure.cpp \
         Action_Mask.cpp \
         Action_Matrix.cpp \
+        Action_MinImage.cpp \
         Action_Molsurf.cpp \
         Action_MultiDihedral.cpp \
         Action_MultiVector.cpp \
@@ -53,6 +57,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Radgyr.cpp \
         Action_Radial.cpp \
         Action_RandomizeIons.cpp \
+        Action_ReplicateCell.cpp \
         Action_Rmsd.cpp \
         Action_Rotate.cpp \
         Action_Rotdif.cpp \
@@ -80,6 +85,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_CrankShaft.cpp \
         Analysis_CrdFluct.cpp \
         Analysis_CrossCorr.cpp \
+        Analysis_CurveFit.cpp \
         Analysis_Divergence.cpp \
         Analysis_FFT.cpp \
         Analysis_Hist.cpp \
@@ -87,6 +93,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_IRED.cpp \
         Analysis_KDE.cpp \
         Analysis_Lifetime.cpp \
+        Analysis_LowestCurve.cpp \
         Analysis_Matrix.cpp \
         Analysis_MeltCurve.cpp \
         Analysis_Modes.cpp \
@@ -119,6 +126,8 @@ SOURCES=ActionFrameCounter.cpp \
         ClusterSieve.cpp \
         Cluster_DBSCAN.cpp \
         Cluster_HierAgglo.cpp \
+        Cluster_Kmeans.cpp \
+        Cluster_ReadInfo.cpp \
         Command.cpp \
         ComplexArray.cpp \
         Corr.cpp \
@@ -126,6 +135,7 @@ SOURCES=ActionFrameCounter.cpp \
         CpptrajFile.cpp \
         CpptrajState.cpp \
         CpptrajStdio.cpp \
+        CurveFit.cpp \
         DataFile.cpp \
         DataFileList.cpp \
         DataIO.cpp \
@@ -160,6 +170,7 @@ SOURCES=ActionFrameCounter.cpp \
         DihedralSearch.cpp \
         Dimension.cpp \
         DistRoutines.cpp \
+        Energy.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
@@ -182,6 +193,7 @@ SOURCES=ActionFrameCounter.cpp \
         Parm_Amber.cpp \
         Parm_CharmmPsf.cpp \
         Parm_CIF.cpp \
+        Parm_Gromacs.cpp \
         Parm_Mol2.cpp \
         Parm_PDB.cpp \
         Parm_SDF.cpp \
@@ -190,10 +202,12 @@ SOURCES=ActionFrameCounter.cpp \
         PubFFT.cpp \
         Random.cpp \
         Range.cpp \
+        RPNcalc.cpp \
         ReadLine.cpp \
         ReferenceAction.cpp \
         ReferenceFrame.cpp \
         SDFfile.cpp \
+        SimplexMin.cpp \
         StringRoutines.cpp \
         SymmetricRmsdCalc.cpp \
         Timer.cpp \

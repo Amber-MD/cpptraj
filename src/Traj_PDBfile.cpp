@@ -12,6 +12,7 @@ Traj_PDBfile::Traj_PDBfile() :
   dumpr_(false),
   pdbres_(false),
   pdbatom_(false),
+  write_cryst1_(false),
   pdbTop_(0),
   chainchar_(' ')
 {}
@@ -26,7 +27,7 @@ bool Traj_PDBfile::ID_TrajFormat(CpptrajFile& fileIn) {
 void Traj_PDBfile::closeTraj() {
   if ( (pdbWriteMode_ == SINGLE || pdbWriteMode_ == MODEL) &&
         file_.IsOpen() )
-    file_.Printf("%-6s\n","END");
+    file_.WriteEND();
   if (pdbWriteMode_ != MULTI)
     file_.CloseFile();
 }
@@ -57,21 +58,21 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
     atom = 0;
     while ( atom < trajParm->Natom() ) {
       //fprintf(stdout,"DEBUG: PDB Read atom %i\n",atom);
-      if ( file_.NextLine() == 0 ) {
+      if ( file_.NextRecord() == PDBfile::END_OF_FILE ) {
         scanPDB = false;
         break;
       }
       //fprintf(stdout,"DEBUG: PDB buffer %i [%s]\n",atom,buffer);
       // Skip non-ATOM records
-      if (!file_.IsPDBatomKeyword()) continue;
+      if (file_.RecType() != PDBfile::ATOM) continue;
       // If still on first frame, check pdb atom name against the name in the 
       // associated parm file.
       if (Frames==0) {
-        Atom pdbatom = file_.pdb_Atom();
-        if ( pdbatom.Name() != (*trajParm)[atom].Name() ) {
+        Atom pdbAtom = file_.pdb_Atom();
+        if ( pdbAtom.Name() != (*trajParm)[atom].Name() ) {
           if (debug_>1) 
             mprintf("Warning: %s: PDB atom %i name [%s] does not match parm atom name [%s]\n",
-                    file_.Filename().base(), atom+1, *(pdbatom.Name()), 
+                    file_.Filename().base(), atom+1, *(pdbAtom.Name()), 
                     *((*trajParm)[atom].Name()));
           ++numMismatch;
         }
@@ -121,17 +122,17 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
   while (currentSet_ < set) {
     atom = 0;
     while (atom < pdbAtom_) {
-      if ( file_.NextLine() == 0 ) return 1;
-      if (file_.IsPDBatomKeyword()) ++atom;
+      if ( file_.NextRecord() == PDBfile::END_OF_FILE ) return 1;
+      if ( file_.RecType() == PDBfile::ATOM ) ++atom;
     }
     currentSet_++;
   }
   atom = 0;
   double *Xptr = frameIn.xAddress(); 
   while (atom < pdbAtom_) {
-    if ( file_.NextLine() == 0 ) return 1;
+    if ( file_.NextRecord() == PDBfile::END_OF_FILE ) return 1;
     // Skip non-ATOM records
-    if (file_.IsPDBatomKeyword()) {
+    if ( file_.RecType() == PDBfile::ATOM ) {
       // Read current PDB record XYZ into Frame
       file_.pdb_XYZ( Xptr );
       ++atom; 
@@ -141,6 +142,17 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
   currentSet_++;
 
   return 0;
+}
+
+void Traj_PDBfile::WriteHelp() {
+  mprintf("\tdumpq:       Write atom charge/radius in occupancy/B-factor columns (PQR format).\n"
+          "\tpdbres:      Use PDB V3 residue names.\n"
+          "\tpdbatom:     Use PDB V3 atom names.\n"
+          "\tpdbv3:       Use PDB V3 residue/atom names.\n"
+          "\tteradvance:  Increment record (atom) # for TER records (default no).\n"
+          "\tmodel:       Write to single file separated by MODEL records.\n"
+          "\tmulti:       Write each frame to separate files.\n"
+          "\tchainid <c>: Write character 'c' in chain ID column.\n");
 }
 
 // Traj_PDBfile::processWriteArgs()
@@ -242,6 +254,9 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
     if ( file_.OpenFile() ) return 1;
     if (!Title().empty()) file_.WriteTITLE( Title() );
   }
+  write_cryst1_ = (TrajBox().Type() != Box::NOBOX);
+  if (write_cryst1_ && pdbWriteMode_!=SINGLE)
+    mprintf("Warning: For PDB, box coords for first frame only will be written to CRYST1.\n");
   return 0;
 }
 
@@ -253,12 +268,15 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     if (file_.OpenWriteNumbered( set + 1 )) return 1;
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
-  } else if (pdbWriteMode_==MODEL) {
-    // If specified, write MODEL keyword
-    // 1-6 MODEL, 11-14 model serial #
-    // Since num frames could be large, do not format the integer with width - OK?
-    file_.Printf("MODEL     %i\n", set + 1);
   }
+  // Write box coords, first frame only.
+  if (write_cryst1_) {
+    file_.WriteCRYST1( frameOut.BoxCrd().boxPtr() );
+    write_cryst1_ = false;
+  }
+  // If specified, write MODEL keyword
+  if (pdbWriteMode_==MODEL)
+    file_.WriteMODEL(set + 1); 
 
   float Occ = 1.0; 
   float B = 0.0;
@@ -304,11 +322,11 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   }
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame, close output file
-    file_.Printf("%-6s\n","END");
+    file_.WriteEND();
     file_.CloseFile();
   } else if (pdbWriteMode_==MODEL) {
     // If MODEL keyword was written, write corresponding ENDMDL record
-    file_.Printf("ENDMDL\n");
+    file_.WriteENDMDL();
   }
 
   return 0;

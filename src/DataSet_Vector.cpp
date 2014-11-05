@@ -2,6 +2,7 @@
 #include <cmath> // sqrt
 #include "DataSet_Vector.h"
 #include "Constants.h" // For spherical harmonics norm.
+#include "Corr.h"
 
 const Vec3 DataSet_Vector::ZERO = Vec3(0,0,0);
 const ComplexArray DataSet_Vector::COMPLEXBLANK = ComplexArray(0);
@@ -54,6 +55,63 @@ void DataSet_Vector::reset() {
   writeSum_ = false;
 }
 
+// -----------------------------------------------------------------------------
+int DataSet_Vector::CalcVectorCorr(DataSet_Vector const& V2, DataSet_1D& Ct,
+                                   int lagmaxIn) const
+{
+  if (Ct.Type() != DataSet::DOUBLE)
+    return 1;
+  unsigned int Nvecs = this->Size();
+  if (Nvecs != V2.Size()) return 1;
+  if (Nvecs < 2) return 1;
+  unsigned int lagmax;
+  if (lagmaxIn == -1)
+    lagmax = Nvecs;
+  else if (lagmaxIn > (int)Nvecs)
+    lagmax = Nvecs;
+  else
+    lagmax = (unsigned int)lagmaxIn;
+  bool crosscorr = (&V2 != this);
+  
+  unsigned int arraySize = Nvecs * 3; // XYZ
+  CorrF_FFT pubfft( arraySize );
+  ComplexArray data1 = pubfft.Array();
+  data1.PadWithZero( arraySize );
+  ComplexArray data2;
+  if (crosscorr)
+    data2 = data1;
+  
+  // Load up real components of data1 with vector XYZ
+  unsigned int idx = 0;
+  for (unsigned int v = 0; v != Nvecs; v++, idx += 6) {
+    data1[idx  ] = vectors_[v][0];
+    data1[idx+2] = vectors_[v][1];
+    data1[idx+4] = vectors_[v][2];
+    if (crosscorr) {
+      data2[idx  ] = V2.vectors_[v][0];
+      data2[idx+2] = V2.vectors_[v][1];
+      data2[idx+4] = V2.vectors_[v][2];
+    }
+  }
+
+  if (crosscorr)
+    pubfft.CrossCorr(data1, data2);
+  else
+    pubfft.AutoCorr(data1);
+
+  // Place desired components of correlation fn back in output and normalize
+  double normV = (double)arraySize;
+  double norm0 = 1.0 / (fabs(data1[0]) / normV);
+  idx = 0;
+  for (unsigned int iout = 0; iout != lagmax; iout++, normV -= 3.0, idx += 6) {
+    double c_t = (data1[idx] / normV) * norm0;
+    Ct.Add(iout, &c_t);
+    //Ct[iout] = (data1[idx] / normV) * norm0;
+  }
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 // DataSet_Vector::CalcSphericalHarmonics()
 /** Calc spherical harmonics of order l=0,1,2 and -l<=m<=l for stored vectors 
   * (see e.g. Merzbacher, Quantum Mechanics, p. 186).

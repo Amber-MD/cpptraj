@@ -8,6 +8,8 @@
 // Clustering Algorithms
 #include "Cluster_HierAgglo.h"
 #include "Cluster_DBSCAN.h"
+#include "Cluster_Kmeans.h"
+#include "Cluster_ReadInfo.h"
 
 // CONSTRUCTOR
 Analysis_Clustering::Analysis_Clustering() :
@@ -30,7 +32,8 @@ Analysis_Clustering::Analysis_Clustering() :
   writeRepFrameNum_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
-  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ)
+  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  debug_(0)
 { } 
 
 // DESTRUCTOR
@@ -43,6 +46,8 @@ void Analysis_Clustering::Help() {
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
+  Cluster_Kmeans::Help();
+  Cluster_ReadInfo::Help();
   mprintf("  Distance metric options: {rms | srmsd | dme | data}\n"
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
@@ -52,6 +57,7 @@ void Analysis_Clustering::Help() {
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
           "\t[clustersvtime <filename> cvtwindow <window size>]\n"
           "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
+          "\t[sil <silhouette file prefix>]\n"
           "  Coordinate output options:\n"
           "\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n"
           "\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n"
@@ -117,6 +123,10 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   CList_ = 0;
   if (analyzeArgs.hasKey("hieragglo"))   CList_ = new Cluster_HierAgglo(); 
   else if (analyzeArgs.hasKey("dbscan")) CList_ = new Cluster_DBSCAN();
+  else if (analyzeArgs.hasKey("kmeans") ||
+           analyzeArgs.hasKey("means" )) CList_ = new Cluster_Kmeans();
+  else if (analyzeArgs.hasKey("readinfo") ||
+           analyzeArgs.hasKey("readtxt")) CList_ = new Cluster_ReadInfo(); 
   else {
     mprintf("Warning: No clustering algorithm specified; defaulting to 'hieragglo'\n");
     CList_ = new Cluster_HierAgglo();
@@ -173,6 +183,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     else
       norm_pop_ = NONE;
   }
+  sil_file_ = analyzeArgs.GetStringKey("sil");
   // Options for loading/saving pairwise distance file
   load_pair_ = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
@@ -261,6 +272,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
   if (!summaryfile_.empty())
     mprintf("\tSummary of cluster results will be written to %s\n",summaryfile_.c_str());
+  if (!sil_file_.empty()) {
+    mprintf("\tFrame silhouettes will be written to %s.frame.dat, cluster silhouettes\n"
+            "\t  will be written to %s.cluster.dat\n", sil_file_.c_str(), sil_file_.c_str());
+    if (sieve_ > 1)
+      mprintf("\tSilhouette calculation will use sieved frames ONLY.\n");
+  }
   if (!halffile_.empty()) {
     mprintf("\tSummary comparing parts of trajectory data for clusters will be written to %s\n",
             halffile_.c_str());
@@ -353,10 +370,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_cluster.Start();
   CList_->Cluster();
   cluster_cluster.Stop();
-  // Sort clusters and renumber; also finds centroids for printing
-  // representative frames. If sieving, add remaining frames.
   cluster_post.Start();
   if (CList_->Nclusters() > 0) {
+    // Sort clusters and renumber; also finds centroids for printing
+    // representative frames. If sieving, add remaining frames.
     CList_->Renumber( (sieve_ != 1) );
     // DEBUG
     if (debug_ > 0) {
@@ -367,6 +384,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // Print ptraj-like cluster info. If no filename is written some info will
     // still be written to STDOUT.
     CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+
+    // Calculate cluster silhouette
+    if (!sil_file_.empty())
+      CList_->CalcSilhouette( sil_file_ );
 
     // Print a summary of clusters
     if (!summaryfile_.empty())
@@ -642,7 +663,7 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
     }
     // Get rep frame for rms fitting.
     Frame repframe = coords_->AllocateFrame();
-    coords_->GetFrame( C->CentroidFrame(), repframe );
+    coords_->GetFrame( C->BestRepFrame(), repframe );
     Vec3 reftrans = repframe.CenterOnOrigin(false);
     // Loop over all frames in cluster
     Frame clusterframe = coords_->AllocateFrame();
@@ -680,7 +701,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator cluster = CList.begincluster(); 
                                      cluster != CList.endcluster(); ++cluster) 
   {
-   coords_->GetFrame( cluster->CentroidFrame(), clusterframe );
+   coords_->GetFrame( cluster->BestRepFrame(), clusterframe );
    clusterout.WriteFrame(framecounter++, clusterparm, clusterframe);
   }
   // Close traj
@@ -702,8 +723,8 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
                                      C != CList.endcluster(); ++C)
   {
     Trajout clusterout;
-    // Get centroid frame # 
-    int framenum = C->CentroidFrame();
+    // Get best rep frame # 
+    int framenum = C->BestRepFrame();
     // Create filename based on frame #
     std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num());
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));

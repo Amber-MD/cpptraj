@@ -23,7 +23,11 @@ static void PrintColumnError(int idx) {
 }
 
 void DataIO_Std::ReadHelp() {
-  mprintf("\tindex <col>: Use column # (starting from 1) as index column.\n");
+  mprintf("\tread1d:      Read data as 1D data sets (default).\n"
+          "\tread2d:      Read data as 2D square matrix.\n"
+          "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
+          "\tindex <col>: (1D) Use column # (starting from 1) as index column.\n");
+
 }
 
 const char* DataIO_Std::SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
@@ -100,7 +104,8 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
     labels.ClearList();
     hasLabels = false;
   }
-  // Determine the type of data stored in each column 
+  // Determine the type of data stored in each column. Assume numbers should
+  // be read with double precision.
   for (int col = 0; col < ntoken; ++col) {
     const char* token = buffer.NextToken();
     // Determine data type
@@ -110,13 +115,8 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
                   token[0]=='-' ||
                   token[0]=='.'   )
     {
-      if ( strchr( token, '.' ) != 0 ) {
-        if ( col != indexcol )
-          dset = (DataSet_1D*)datasetlist.AddSetIdx( DataSet::DOUBLE, dsname, col+1 );
-      } else {
-        if (col != indexcol)
-          dset = (DataSet_1D*)datasetlist.AddSetIdx( DataSet::INTEGER, dsname, col+1 );
-      }
+      if ( col != indexcol )
+        dset = (DataSet_1D*)datasetlist.AddSetIdx( DataSet::DOUBLE, dsname, col+1 );
     } else {
       // Assume string
       // STRING columns cannot be index columns
@@ -126,7 +126,7 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
         return 1;
       }
       dset = (DataSet_1D*)datasetlist.AddSetIdx( DataSet::STRING, dsname, col+1 );
-    } 
+    }
     // Set legend to label if present
     if ( dset != 0 && hasLabels)
       dset->SetLegend( labels[col] );
@@ -141,15 +141,14 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
   }
 
   // Read in data.
-  int ival = 0;
   double dval = 0;
-  std::vector<double> Xvals;
+  std::vector<double> Xvals; // Hold index values.
   int indexval = 0;
   do {
     if ( buffer.TokenizeLine( SEPARATORS ) != ntoken ) {
       PrintColumnError(buffer.LineNumber());
       break;
-    } 
+    }
     // Convert data in columns
     for (int i = 0; i < ntoken; ++i) {
       const char* token = buffer.NextToken();
@@ -157,24 +156,16 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
         // Index column - always read as double
         Xvals.push_back( atof( token ) );
       } else {
-        switch ( DsetList[i]->Type() ) {
-          case DataSet::INTEGER: 
-            ival = atoi( token ); 
-            DsetList[i]->Add( indexval, &ival );
-            break;
-          case DataSet::DOUBLE: 
+        if ( DsetList[i]->Type() == DataSet::DOUBLE ) {
             dval = atof( token ); 
             DsetList[i]->Add( indexval, &dval );
-            break;
-          case DataSet::STRING: 
+        } else { // DataSet::STRING
             DsetList[i]->Add( indexval, token );
-            break;
-          default: continue; 
         }
       }
     }
     ++indexval;
-  } while (buffer.Line() != 0);
+  } while (buffer.Line() != 0); // Read in next line.
   buffer.CloseFile();
   mprintf("\tDataFile %s has %i columns, %i lines.\n", buffer.Filename().full(),
           ntoken, buffer.LineNumber());

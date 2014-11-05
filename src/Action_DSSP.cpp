@@ -107,6 +107,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   mprintf("# Citation: Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:\n"
           "#           Pattern Recognition of Hydrogen-Bonded and Geometrical Features.\"\n"
           "#           Biopolymers (1983), V.22, pp.2577-2637.\n" );
+  DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }
@@ -140,7 +141,8 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
   }
 
   // Set up SecStruct for each solute residue
-  Nres_ = currentParm->FinalSoluteRes();
+  Range soluteRes = currentParm->SoluteResidues();
+  Nres_ = soluteRes.Back() + 1;
   if (debug_>0) mprintf("\tDSSP: Setting up for %i residues.\n", Nres_);
 
   // Set up for each residue of the current Parm if not already set-up.

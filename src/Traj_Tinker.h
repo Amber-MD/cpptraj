@@ -21,8 +21,8 @@ class Traj_Tinker : public TrajectoryIO {
     int readFrame(int,Frame&);
     int writeFrame(int,Frame const&);
     void Info();
-    int processWriteArgs(ArgList&);
-    int readVelocity(int, Frame&) { return 1; }
-    int processReadArgs(ArgList&) { return 0; }
+    int processWriteArgs(ArgList&) { return 0; }
+    int readVelocity(int, Frame&)  { return 1; }
+    int processReadArgs(ArgList&)  { return 0; }
 };
 #endif

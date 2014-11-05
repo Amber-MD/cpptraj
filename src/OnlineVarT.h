@@ -27,8 +27,8 @@ public:
 
   Float mean() const { return mean_; };
   Float variance() const { 
-    if (n_ < 2) return 0;
-    return M2_ / (n_ - 1); 
+    if (n_ < 2) return 0.0;
+    return M2_ / (n_ - 1.0); 
   };
   Float nData() const { return n_; };
 
@@ -47,20 +47,33 @@ template <typename Key, typename Value>
 class StatsMap {
 public:
   StatsMap() :
-    n_(0.0)
+    n_(0.0), min_(0), max_(0)
   {}
 
   typedef typename std::map<Key,Value>::iterator iterator;
 
   void accumulate(std::map<Key,Value> a)
   {
-    Key i;
     Value delta;
+    Key min, max;
+
+
+    // FIXME: This is ugly but we must make sure that _all_ indices from min to
+    //        max are generated so that the mean can be calculated for every
+    //        iteration.
+
+    min = a.begin()->first;
+    max = a.rbegin()->first;
+
+    if (min < min_)
+      min_ = min;
+    
+    if (max > max_)
+      max_ = max;
 
     n_++;
 
-    for (iterator it = a.begin(); it != a.end(); it++) {
-      i = it->first;
+    for (Key i = min_; i <= max_; i++) {
       delta = a[i] - mean_[i];
       mean_[i] += delta / n_;
       M2_[i] += delta * (a[i] - mean_[i]);
@@ -69,8 +82,8 @@ public:
 
   Value mean(Key i) { return mean_[i]; };
   Value variance(Key i) {
-    if (n_ < 2) return 0;
-    return M2_[i] / (n_ - 1); 
+    if (n_ < 2) return 0.0;
+    return M2_[i] / (n_ - 1.0); 
   };
 
   iterator mean_begin() { return mean_.begin(); };
@@ -84,6 +97,7 @@ public:
 
 private:
   Value n_;
+  Key min_, max_;
   std::map<Key,Value> mean_;
   std::map<Key,Value> M2_;
 };

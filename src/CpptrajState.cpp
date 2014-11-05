@@ -27,26 +27,55 @@ int CpptrajState::AddTrajin( std::string const& fname ) {
 // -----------------------------------------------------------------------------
 int CpptrajState::WorldSize() { return worldsize; }
 
+CpptrajState::ListKeyType CpptrajState::ListKeys[] = {
+  {L_ACTION,   "actions" }, {L_ACTION,   "action"   },
+  {L_TRAJIN,   "trajin"  },
+  {L_REF,      "ref"     }, {L_REF,      "reference"},
+  {L_TRAJOUT,  "trajout" },
+  {L_PARM,     "parm"    }, {L_PARM,     "topology" },
+  {L_ANALYSIS, "analysis"}, {L_ANALYSIS, "analyses" },
+  {L_DATAFILE, "datafile"}, {L_DATAFILE, "datafiles"},
+  {L_DATASET,  "dataset" }, {L_DATASET,  "datasets" }, {L_DATASET, "data"},
+  {N_LISTS,    0         }
+};
+
+std::string CpptrajState::PrintListKeys() {
+  std::string keys;
+  for (const ListKeyType* ptr = ListKeys; ptr->Key_ != 0; ptr++) {
+    keys += " ";
+    keys.append( ptr->Key_ );
+  }
+  return keys;
+}
+
 /** Select lists from ArgList */
-std::vector<bool> CpptrajState::ListsFromArg( ArgList& argIn, bool allowEnableAll ) const {
-  std::vector<bool> enabled( (int)N_LISTS );
-  enabled[L_ACTION]   = argIn.hasKey("actions");
-  enabled[L_TRAJIN]   = argIn.hasKey("trajin");
-  enabled[L_REF]      = argIn.hasKey("ref");
-  enabled[L_TRAJOUT]  = argIn.hasKey("trajout");
-  enabled[L_PARM]     = argIn.hasKey("parm");
-  enabled[L_ANALYSIS] = argIn.hasKey("analysis");
-  enabled[L_DATAFILE] = argIn.hasKey("datafile");
-  enabled[L_DATASET]  = argIn.hasKey("dataset");
-  if (!allowEnableAll) return enabled;
-  // If nothing is enabled, set all enabled
-  bool nothing_enabled = true;
-  for (std::vector<bool>::iterator en = enabled.begin(); en != enabled.end(); ++en)
-    if (*en) {
-      nothing_enabled = false;
-      break;
+std::vector<bool> CpptrajState::ListsFromArg( ArgList& argIn, bool allowEmptyKeyword ) const {
+  std::vector<bool> enabled( (int)N_LISTS, false );
+  std::string listKeyword = argIn.GetStringNext();
+  if (listKeyword.empty() || listKeyword == "all") {
+    // See if enabling all lists is permissible.
+    if (listKeyword.empty() && !allowEmptyKeyword) {
+      mprinterr("Error: A specific list name or 'all' must be specified for '%s'\n",
+                argIn.Command());
+      return enabled; // All are false
     }
-  if (nothing_enabled) enabled.assign( (int)N_LISTS, true );
+    enabled.assign( (int)N_LISTS, true );
+  } else {
+    while (!listKeyword.empty()) {
+      const ListKeyType* ptr = ListKeys;
+      for (; ptr->Key_ != 0; ptr++)
+        if (listKeyword == ptr->Key_) {
+          enabled[ptr->Type_] = true;
+          break;
+        }
+      if (ptr->Key_ == 0) {
+        mprinterr("Error: Unrecognized list name: '%s'\n", listKeyword.c_str());
+        mprinterr("Error: Recognized keys:%s\n", PrintListKeys().c_str());
+        return std::vector<bool>( (int)N_LISTS, false );
+      }
+      listKeyword = argIn.GetStringNext();
+    }
+  }
   return enabled;
 }
 
@@ -66,8 +95,8 @@ int CpptrajState::ListAll( ArgList& argIn ) const {
 
 /** Set debug level of specified lists. */
 int CpptrajState::SetListDebug( ArgList& argIn ) {
-  std::vector<bool> enabled = ListsFromArg( argIn, true );
   debug_ = argIn.getNextInteger(0);
+  std::vector<bool> enabled = ListsFromArg( argIn, true );
   if ( enabled[L_ACTION]   ) actionList_.SetDebug( debug_ );
   if ( enabled[L_TRAJIN]   ) trajinList_.SetDebug( debug_ );
   if ( enabled[L_REF]      ) refFrames_.SetDebug( debug_ );
@@ -81,7 +110,7 @@ int CpptrajState::SetListDebug( ArgList& argIn ) {
 
 /** Clear specified lists */
 int CpptrajState::ClearList( ArgList& argIn ) {
-  std::vector<bool> enabled = ListsFromArg( argIn, argIn.hasKey("all") );
+  std::vector<bool> enabled = ListsFromArg( argIn, false );
   if ( enabled[L_ACTION]   ) actionList_.Clear();
   if ( enabled[L_TRAJIN]   ) trajinList_.Clear();
   if ( enabled[L_REF]      ) refFrames_.Clear();
@@ -158,6 +187,8 @@ int CpptrajState::Run() {
   mprintf("---------- RUN BEGIN -------------------------------------------------\n");
   if (trajinList_.empty()) 
     mprintf("Warning: No input trajectories specified.\n");
+  else if (actionList_.Empty() && trajoutList_.Empty())
+    mprintf("Warning: No actions/output trajectories specified.\n");
   else {
 #   ifdef MPI
     // Only ensemble mode allowed with MPI for now.
@@ -174,8 +205,10 @@ int CpptrajState::Run() {
     }
 #   endif
     // Clean up Actions if run completed successfully.
-    if (err == 0)
+    if (err == 0) {
       actionList_.Clear();
+      DSL_.SetDataSetsPending(false);
+    }
   }
   // Analysis is currently disabled for ENSEMBLE
   if ( trajinList_.Mode() != TrajinList::ENSEMBLE) {
@@ -274,6 +307,7 @@ int CpptrajState::RunEnsemble() {
   }
 
   // TODO: One loop over member?
+  mprintf("\nENSEMBLE ACTIONS:\n");
   int maxFrames = trajinList_.MaxFrames();
   for (int member = 0; member < ensembleSize; ++member) {
     // Set max frames in the data set list and allocate
@@ -282,10 +316,13 @@ int CpptrajState::RunEnsemble() {
     DataSetEnsemble[member].SetEnsembleNum( worldrank );
 #   else
     DataSetEnsemble[member].SetEnsembleNum( member );
+    // If serial, silence action output for all beyond first member.
+    if (member > 0 && debug_ == 0)
+      SetWorldSilent( true );
 #   endif
     // Initialize actions for this ensemble member based on original actionList_
     if (!actionList_.Empty()) {
-      mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
+      if (debug_ > 0) mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
       for (int iaction = 0; iaction < actionList_.Naction(); iaction++) { 
         // Create new arg list from original command string.
         ArgList command( actionList_.CmdString(iaction) );
@@ -300,6 +337,8 @@ int CpptrajState::RunEnsemble() {
     }
   }
   init_time.Stop();
+  // Re-enable output
+  SetWorldSilent( false );
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total()); 
   // ========== A C T I O N  P H A S E ==========
   int lastPindex=-1;          // Index of the last loaded parm file
@@ -354,6 +393,9 @@ int CpptrajState::RunEnsemble() {
       // Set up actions for this parm
       bool setupOK = true;
       for (int member = 0; member < ensembleSize; ++member) {
+        // Silence action output for all beyond first member.
+        if (member > 0)
+          SetWorldSilent( true );
         if (ActionEnsemble[member].SetupActions( &(EnsembleParm[member]) )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
@@ -365,6 +407,8 @@ int CpptrajState::RunEnsemble() {
           setupOK = false;
         }
       }
+      // Re-enable output
+      SetWorldSilent( false );
       if (!setupOK) continue;
       lastPindex = CurrentParm->Pindex();
     }

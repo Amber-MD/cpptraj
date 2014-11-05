@@ -15,11 +15,22 @@
   * Topology file. DoAction will perform the action on a given frame.
   * A fourth function, Print, is for any additional calculations or output 
   * the action may require once all frames are processed.
+  * Note that Setup and DoAction take Topology and Frame pointer addresses 
+  * respectively as their final arguments; this allows actions to modify
+  * the current Topology/Frame by replacing them with ones inside the Action
+  * itself. This is more memory-hungry but allows the Topology/Frame to be
+  * manipulated quickly, and is also easier to return to the original
+  * Topology/Frame via USEORIGINALFRAME (see e.g. Action_Unstrip in 
+  * Action_Strip.cpp).
   */
 class Action : public DispatchObject {
   public:
     /// Enumerate potential return states from Init, Setup, and DoAction.
-    enum RetType { OK=0, ERR, USEORIGINALFRAME, SUPPRESSCOORDOUTPUT };
+    enum RetType { OK=0, ///< Everything OK, normal return.
+                   ERR,  ///< Problem occurred.
+                   USEORIGINALFRAME, ///< Return to unmodified frame/topology.
+                   SUPPRESSCOORDOUTPUT ///< Skip remaining actions and traj output.
+    };
     /// Destructor - virtual since this class is inherited
     virtual ~Action() {}
     /// Initialize action
@@ -32,9 +43,7 @@ class Action : public DispatchObject {
     virtual RetType DoAction(int,Frame*,Frame**) = 0;
     /// Print anything besides datasets, called at end of execution
     /** Perform any output not related to master dataset output, or any 
-      * necessary post-trajectory calculations, e.g. in the 2drms command
-      * several passes must be made over the input frames, which are stored
-      * by that action.
+      * necessary post-trajectory processing calculations.
       */
     virtual void Print() = 0;
 };

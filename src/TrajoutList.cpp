@@ -56,13 +56,17 @@ int TrajoutList::AddEnsembleTrajout(ArgList const& argIn, TopologyList const& to
       return 0;
     }
   }
-  // Before filename is modified see if extension is recognized
-  FileName tempName;
-  tempName.SetFileName( filename );
-  TrajectoryFile::TrajFormatType extFmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
+  // Trajectory format keywords take precendence over extension.
+  TrajectoryFile::TrajFormatType outtrajFmt = TrajectoryFile::GetFormatFromArg(args);
+  if (outtrajFmt == TrajectoryFile::AMBERTRAJ) {
+    // Before filename is modified see if extension is recognized
+    FileName tempName;
+    tempName.SetFileName( filename );
+    outtrajFmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
+  }
   // Modify filename by member
   filename += ("." + integerToString( member ));
-  return AddTrajout( filename, args, topListIn, extFmt );
+  return AddTrajout( filename, args, topListIn, outtrajFmt );
 }
 
 // TrajoutList::AddTrajout()

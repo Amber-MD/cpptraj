@@ -24,6 +24,7 @@ class CpptrajState {
     bool EmptyState()  const { return (actionList_.Empty() && 
                                        analysisList_.Empty() &&
                                        trajoutList_.Empty()); }
+    void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
     int AddTrajin( ArgList&, bool );
     int AddTrajin( std::string const& );
     int RunAnalyses();
@@ -35,6 +36,7 @@ class CpptrajState {
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
     inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );
     static int WorldSize();
+    static std::string PrintListKeys();
     int ListAll(ArgList&) const;
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
@@ -49,6 +51,12 @@ class CpptrajState {
       L_ACTION = 0, L_TRAJIN, L_REF, L_TRAJOUT, L_PARM, L_ANALYSIS,
       L_DATAFILE, L_DATASET, N_LISTS
     };
+    /// Hold list keyword.
+    struct ListKeyType {
+      ListType Type_;
+      const char* Key_;
+    };
+    static ListKeyType ListKeys[];
     std::vector<bool> ListsFromArg(ArgList&, bool) const;
 
     int RunNormal();

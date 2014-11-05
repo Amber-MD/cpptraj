@@ -116,6 +116,8 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     if (perresinvert_)
       mprintf("          perresinvert: Frames will be written in rows instead of columns.\n");
   }
+  if (perres_)
+    DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }
@@ -132,9 +134,10 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
   Range ref_range; // Selected reference residues
 
   // If no target range previously specified do all solute residues
-  if (TgtRange_.Empty()) 
-    tgt_range.SetRange(1, currentParm->FinalSoluteRes()+1);
-  else
+  if (TgtRange_.Empty()) { 
+    tgt_range = currentParm->SoluteResidues();
+    tgt_range.ShiftBy(1); // To match user range arg which would start from 1
+  } else
     tgt_range = TgtRange_;
   // If the reference range is empty, set it to match the target range
   if (RefRange_.Empty()) 
@@ -240,7 +243,9 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
 Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress) {
   // Target setup
   if ( currentParm->SetupIntegerMask( tgtMask_ ) ) return Action::ERR;
-  tgtMask_.MaskInfo();
+  mprintf("\tTarget mask:");
+  tgtMask_.BriefMaskInfo();
+  mprintf("\n");
   if ( tgtMask_.None() ) {
     mprintf("Warning: No atoms in mask '%s'.\n", tgtMask_.MaskString());
     return Action::ERR;

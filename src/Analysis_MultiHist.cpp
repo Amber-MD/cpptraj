@@ -52,15 +52,15 @@ Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* d
     Analysis* ana = 0;
     if (useKdehist) {
       Analysis_KDE* k_ana = new Analysis_KDE();
-      err = k_ana->Setup( (*ds), setname, outfilename, minArgSet, min,
-                          maxArgSet, max, step, bins, Temp,
+      err = k_ana->Setup( (*ds), setname, ds - inputDsets.begin(), outfilename, 
+                          minArgSet, min, maxArgSet, max, step, bins, Temp,
                           *datasetlist, *DFLin );
       ana = (Analysis*)k_ana;
     } else {
       Analysis_Hist* h_ana = new Analysis_Hist();
-      err = h_ana->Setup( (*ds), setname, outfilename, minArgSet, min,
-                          maxArgSet, max, step, bins, Temp, normalize,
-                          *datasetlist, *DFLin );
+      err = h_ana->Setup( (*ds), setname, ds - inputDsets.begin(), outfilename,
+                          minArgSet, min, maxArgSet, max, step, bins, Temp, 
+                          normalize, *datasetlist, *DFLin );
       ana = (Analysis*)h_ana;
     }
     if (err != Analysis::OK) {

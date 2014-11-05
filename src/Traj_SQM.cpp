@@ -2,6 +2,11 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 
+void Traj_SQM::WriteHelp() {
+  mprintf("\tcharge <c>: Set total integer charge. If not specified it will be calculated from"
+          " atomic charges.\n");
+}
+
 // Traj_SQM::processWriteArgs()
 int Traj_SQM::processWriteArgs(ArgList& argIn) {
   if (argIn.Contains("charge")) {

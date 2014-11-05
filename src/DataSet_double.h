@@ -11,6 +11,7 @@ class DataSet_double : public DataSet_1D {
     static DataSet* Alloc() { return (DataSet*)new DataSet_double();}
     double& operator[](size_t idx)       { return Data_[idx];         }
     double  operator[](size_t idx) const { return Data_[idx];         }
+    std::vector<double> const& Data() const { return Data_;           }
     void operator=(std::vector<double> const& rhs) { Data_ = rhs;     }
     void AddElement(double d)            { Data_.push_back( d );      }
     /// Make set size sizeIn, all values set to 0.0.
@@ -26,6 +27,7 @@ class DataSet_double : public DataSet_1D {
     double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }
     void WriteBuffer(CpptrajFile&, size_t) const;
     // -------------------------------------------
+    void Append(DataSet_double const&);
     typedef std::vector<double>::iterator iterator;
     iterator begin()                     { return Data_.begin();      }
     iterator end()                       { return Data_.end();        }

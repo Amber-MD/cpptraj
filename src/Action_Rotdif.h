@@ -24,47 +24,34 @@ class Action_Rotdif: public Action {
     Action_Rotdif();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rotdif(); }
     static void Help();
-    ~Action_Rotdif();
   private:
     Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
                           DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
-    // -------------------------------------------
-    class Vec6 {
-      public:
-        Vec6() {}
-        void Q_to_D(Matrix_3x3&) const;
-        void D_to_Q(Matrix_3x3 const&);
-        double& operator[](int idx) { return Q_[idx]; }
-        double const& operator[](int idx) const { return Q_[idx]; }
-      private:
-        double Q_[6];
-    };
-    // -------------------------------------------
+
     int debug_;
-    int rseed_;       ///< Random seed
-    int nvecs_;       ///< Number of random vectors to generate
-    double tfac_;     ///< time step
-    double ti_;       ///< initial time (ns)
-    double tf_;       ///< final time (ns), should be less than ncorr * tfac
-    int NmeshPoints_; ///< # cubic spline mesh points 
-    int itmax_;       ///< Max number of iterations
-    double delmin_;   ///< Convergence criterion
-    double d0_;       ///< Initial guess for iso diffusion tensor
-    int olegendre_;   ///< order of Legendre polynomial in the correlation function
-    int ncorr_;       ///< Max length to compute time correlation fns (# frames)
-    double delqfrac_; ///< how to scale simplexes
-    double amoeba_ftol_;
-    int amoeba_itmax_;
-    bool do_gridsearch_;
-    bool useMass_;
+    int rseed_;          ///< Random seed
+    int nvecs_;          ///< Number of random vectors to generate
+    double tfac_;        ///< time step
+    double ti_;          ///< initial time (ns)
+    double tf_;          ///< final time (ns), should be less than ncorr * tfac
+    int NmeshPoints_;    ///< # cubic spline mesh points 
+    int itmax_;          ///< Max number of iterations
+    double delmin_;      ///< Convergence criterion
+    double d0_;          ///< Initial guess for iso diffusion tensor
+    int olegendre_;      ///< order of Legendre polynomial in the correlation function
+    int ncorr_;          ///< Max length to compute time correlation fns (# frames)
+    double delqfrac_;    ///< how to scale simplexes
+    double amoeba_ftol_; ///< Simplex min tolerance
+    int amoeba_itmax_;   ///< Simplex min iterations
+    int amoeba_nsearch_; ///< Number of simplex min searches
+    bool do_gridsearch_; ///< If true perform grid search after simplex min.
+    bool useMass_;       ///< Use mass in rms fitting.
     bool usefft_;
 
     // Workspace for LAPACK functions
-    double* work_;
-    int lwork_;
     Matrix_3x3 D_tensor_;
     Vec3 D_XYZ_;
 
@@ -85,27 +72,21 @@ class Action_Rotdif: public Action {
     std::vector<Matrix_3x3> Rmatrices_; ///< Store rotation matrices
     DataSet_Vector random_vectors_;     ///< Hold nvecs random vectors
     std::vector<double> D_eff_;         ///< Hold calculated effective D values for each vector
-    std::vector<double> tau1_;          ///< Hold tau for l=1, full anisotropy
-    std::vector<double> tau2_;          ///< Hold tau for l=2, full anisotropy
-    std::vector<double> *Tau_;          ///> Hold tau being compared based on olegendre
-    std::vector<double> sumc2_;      
+//    std::vector<double> sumc2_;      
 
     DataSet_Vector RandomVectors();
-    int compute_corr(DataSet_Vector const&, int, std::vector<double>&, std::vector<double>&);
-    int fft_compute_corr(DataSet_Vector const&, int, std::vector<double>&, int);
+    int direct_compute_corr(DataSet_Vector const&, int, std::vector<double>&);
+    int fft_compute_corr(DataSet_Vector const&, int, std::vector<double>&);
     double calcEffectiveDiffusionConst(double );
 
     static void PrintMatrix(CpptrajFile&, const char*, Matrix_3x3 const&);
     static void PrintVector(CpptrajFile&, const char*, Vec3 const&);
-    static void PrintVec6(CpptrajFile&, const char*, Vec6 const&);
-    int calc_Asymmetric(Vec3 const&, Matrix_3x3 const&);
-    double chi_squared(Vec6 const&);
-    double Amotry(double[][6], double *, Vec6&, int, double); 
-    int Amoeba(double[][6], double *);
-    static void Average_vertices(Vec6&, double[][6]);
-    int Simplex_min(Vec6&);
-    int Grid_search(Vec6&, int);
-    int Tensor_Fit(Vec6&);
+    static void PrintVec6(CpptrajFile&, const char*, std::vector<double> const&);
+    void PrintTau( std::vector<double> const& );
+    int Tensor_Fit(std::vector<double>&);
     int DetermineDeffs();
+    void PrintDeffs(std::string const&) const;
+
+    int DetermineDeffsAlt();
 };
 #endif  

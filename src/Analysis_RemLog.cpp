@@ -18,7 +18,7 @@ Analysis_RemLog::Analysis_RemLog() :
 void Analysis_RemLog::Help() {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
           "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime <file>]\n"
-          "\t[reptimeslope <n> reptimeslopeout <file>]\n"
+          "\t[reptimeslope <n> reptimeslopeout <file>] [acceptout <file>]\n"
           "    crdidx: Print coordinate index vs exchange; output sets contain replica indices.\n"
           "    repidx: Print replica index vs exchange; output sets contain coordinate indices.\n"
           "  Analyze previously read in replica log data.\n");
@@ -44,6 +44,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprinterr("Error: remlog data set appears to be empty.\n");
     return Analysis::ERR;
   }
+  acceptout_ = analyzeArgs.GetStringKey("acceptout");
   lifetimesName_ = analyzeArgs.GetStringKey("lifetime");
   calculateLifetimes_ = !lifetimesName_.empty();
   calculateStats_ = analyzeArgs.hasKey("stats");
@@ -125,6 +126,8 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
   }
   if (calculateLifetimes_)
     mprintf("\tThe lifetime of each crd at each replica will be calculated.\n");
+  if (!acceptout_.empty())
+    mprintf("\tOverall exchange acceptance % will be written to %s\n", acceptout_.c_str());
 
   return Analysis::OK;
 }
@@ -242,11 +245,15 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   } // END loop over exchanges
   // Number of exchange attempts is actually /2 for TREMD/HREMD since
   // attempts alternate up/down.
+  CpptrajFile Accept;
+  Accept.OpenWrite( acceptout_ );
+  Accept.Printf("%-8s %8s %8s\n", "#Replica", "%UP", "%DOWN");
   double exchangeAttempts = (double)remlog_->NumExchange() / 2;
   for (int replica = 0; replica < (int)remlog_->Size(); replica++)
-    mprintf("\tReplica %8i UP= %8.3f %%  DOWN= %8.3f %%\n", replica+1,
+    Accept.Printf("%8i %8.3f %8.3f\n", replica+1,
             ((double)acceptUp[replica] / exchangeAttempts) * 100.0,
             ((double)acceptDown[replica] / exchangeAttempts) * 100.0);
+  Accept.CloseFile();
 
   if (calculateStats_) {
     statsout_.Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
