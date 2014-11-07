@@ -1,5 +1,4 @@
 #include <cmath>
-#include <climits>
 
 #include "Action_Density.h"
 #include "CpptrajStdio.h"
@@ -83,7 +82,8 @@ Action::RetType Action_Density::Init(ArgList& actionArgs,
     masks_.push_back( AtomMask(maskstr) );
   }
 
-  histograms_.resize(masks_.size() );
+  minus_histograms_.resize(masks_.size() );
+  plus_histograms_.resize(masks_.size() );
 
   return Action::OK;
 }
@@ -157,28 +157,28 @@ Action::RetType Action_Density::DoAction(int frameNum,
 
     j = 0;
 
-    std::map<int,double> tmp;
+    std::map<long,double> minus_histo, plus_histo;
 
     for (AtomMask::const_iterator idx = mask->begin();
 	 idx != mask->end();
 	 idx++) {
       coord = currentFrame->XYZ(*idx);
-      slice = (long) (coord[axis_] / delta_);
+      slice = (unsigned long) (coord[axis_] / delta_);
 
-      // FIXME: split 0 bin in one + and one -
-      if (slice != 0)
-	tmp[slice] += properties_[i][j];
-      else
-	if (coord[axis_] < 0.0)
-	  tmp[slice-1] += properties_[i][j];
-	else
-	  tmp[slice+1] += properties_[i][j];
+      if (coord[axis_] < 0) {
+	minus_histo[slice] += properties_[i][j];
+      } else {
+	plus_histo[slice] += properties_[i][j];
+      }
 
       j++;
     }
 
-    if (tmp.size() > 0)
-      histograms_[i].accumulate(tmp);
+    if (minus_histo.size() > 0)
+      minus_histograms_[i].accumulate(minus_histo);
+
+    if (plus_histo.size() > 0)
+      plus_histograms_[i].accumulate(plus_histo);
 
     i++;
   }
@@ -195,11 +195,11 @@ void Action_Density::Print()
 {
   const unsigned int SMALL = 1.0;
 
-  bool first, scale_area;
-  long minidx = LONG_MAX, maxidx = LONG_MIN;
+  bool first_round, scale_area;
+  long minus_minidx = 0, minus_maxidx = 0, plus_minidx = 0, plus_maxidx = 0;
   double density, sd, area;
 
-  std::map<int,double>::iterator e, b, itv;
+  std::map<long,double>::iterator first_idx, last_idx;
   statmap curr;
 
 
@@ -215,21 +215,35 @@ void Action_Density::Print()
     mprintf("The electron density will be scaled by this area.\n");
 
   // the search for minimum and maximum indices relies on ordered map
-  for (unsigned long i = 0; i < histograms_.size(); i++) {
-    b = histograms_[i].mean_begin(); 
-    e = histograms_[i].mean_end();
+  for (unsigned long i = 0; i < minus_histograms_.size(); i++) {
+    first_idx = minus_histograms_[i].mean_begin(); 
+    last_idx = minus_histograms_[i].mean_end();
 
-    if (b->first < minidx)
-      minidx = b->first;
+    if (first_idx->first < minus_minidx)
+      minus_minidx = first_idx->first;
 
-    if (e != b) {
-      e--;
-      if (e->first > maxidx)
-	maxidx = e->first;
+    if (last_idx != first_idx) {
+      last_idx--;
+      if (last_idx->first > minus_maxidx)
+        minus_maxidx = last_idx->first;
     }
   }
 
-  output_.Printf("#density");
+  for (unsigned long i = 0; i < plus_histograms_.size(); i++) {
+    first_idx = plus_histograms_[i].mean_begin(); 
+    last_idx = plus_histograms_[i].mean_end();
+
+    if (first_idx->first < plus_minidx)
+      plus_minidx = first_idx->first;
+
+    if (last_idx != first_idx) {
+      last_idx--;
+      if (last_idx->first > plus_maxidx)
+        plus_maxidx = last_idx->first;
+    }
+  }
+
+  output_.Printf("# routine version: %s\n#density", ROUTINE_VERSION_STRING);
 
   for (std::vector<AtomMask>::const_iterator mask = masks_.begin();
        mask != masks_.end();
@@ -241,24 +255,46 @@ void Action_Density::Print()
 
   // make sure we have zero values at beginning and end as this
   // "correctly" integrates the histogram
-  minidx--;
-  maxidx++;
+  minus_minidx--;
+  plus_maxidx++;
 
-  for (long i = minidx; i <= maxidx; i++) {
-    first = true;
-    if (i == 0) continue;	// FIXME: 0 is doubly counted
+  for (long i = minus_minidx; i <= minus_maxidx; i++) {
+    first_round = true;
 
-    for (unsigned long j = 0; j < histograms_.size(); j++) {
-      curr = histograms_[j];
+    for (unsigned long j = 0; j < minus_histograms_.size(); j++) {
+      curr = minus_histograms_[j];
 
-      if (first) {
-        output_.Printf("%10.4f", (i < 0 ? -delta_ : 0.0) +
-                       ((double) i + 0.5) * delta_);
-        first = false;
+      if (first_round) {
+        output_.Printf("%10.4f", -delta_ + ((double) i + 0.5) * delta_);
+	first_round = false;
+      }
+      
+      density = curr.mean(i) / delta_;
+      sd = sqrt(curr.variance(i) );
+
+      if (scale_area) {
+	density /= area;
+	sd /= area;
       }
 
-      density = curr.mean(i) / (delta_ * // FIXME: 0 is doubly counted
-				(i == -1 or i == 1 ? 2.0 : 1.0 ));
+      output_.Printf(" %10.3f %10.5f", density, sd);
+    }
+
+    output_.Printf("\n");
+  }
+
+  for (long i = plus_minidx; i <= plus_maxidx; i++) {
+    first_round = true;
+
+    for (unsigned long j = 0; j < plus_histograms_.size(); j++) {
+      curr = plus_histograms_[j];
+
+      if (first_round) {
+        output_.Printf("%10.4f", ((double) i + 0.5) * delta_);
+	first_round = false;
+      }
+
+      density = curr.mean(i) / delta_;
       sd = sqrt(curr.variance(i) );
 
       if (scale_area) {
