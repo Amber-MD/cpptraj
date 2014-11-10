@@ -600,12 +600,12 @@ int CpptrajState::RunNormal() {
 #   ifdef TIMER
     setup_time.Start();
 #   endif
-    // If Parm has changed or trajectory velocity status has changed,
-    // reset the frame.
-    if (parmHasChanged || (TrajFrame.HasVelocity() != (*traj)->HasVelocity()))
+    // If Parm has changed or trajectory frame has changed, reset the frame.
+    if (parmHasChanged || 
+        (TrajFrame.HasVelocity() != (*traj)->HasVelocity()) ||
+        ((int)TrajFrame.RemdIndices().size() != (*traj)->NreplicaDimension()))
       TrajFrame.SetupFrameV(CurrentParm->Atoms(), (*traj)->HasVelocity(), 
                             (*traj)->NreplicaDimension());
-
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set active reference for this parm
