@@ -1213,7 +1213,11 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
 
 // -----------------------------------------------------------------------------
 static void Help_DataFilter() {
-  Action_FilterByData::Help();
+  mprintf("\t<dataset arg> min <min> max <max> [out <file> [name <setname>]]\n"
+          "  Create a data set (optionally named <setname>) containing 1 for\n"
+          "  data within given <min> and <max> criteria for each specified\n"
+          "  data set. There must be at least one <min> and <max> argument,\n"
+          "  and can be as many as there are specified data sets.\n");
 }
 
 /// Use the filter command on DataSets outside trajectory processing.
