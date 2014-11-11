@@ -1430,7 +1430,8 @@ int Action_Rotdif::DetermineDeffsAlt() {
   double DY = Cparams[4];
   double DZ = Cparams[5];
   Vec3 d_props = calculate_D_properties(Vec3(DX, DY, DZ));
-  PrintVector(outfile_,"#Dav, aniostropy, rhombicity:", d_props);
+  outfile_.Printf("%-12s %12s %12s\n%12.5e %12.5e %12.5e\n", "#Dav",
+                  "anisotropy", "rhombicity", d_props[0], d_props[1], d_props[2]);
   double t_2_p1 = 1.0 / (4.0 * DX + DY + DZ);
   double t_2_m1 = 1.0 / (4.0 * DY + DX + DZ);
   double t_2_m2 = 1.0 / (4.0 * DZ + DX + DY);
@@ -1443,7 +1444,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
   double t_2_0  = 1.0 / (6.0 * (Dav - Dm2));
   double tR = 1.0 / (2.0 * (DX + DY + DZ));
   outfile_.Printf("%-12s %12s %12s %12s %12s %12s\n",
-                  "#t2,-2", "t2,-1", "t2,0", "t2,+1", "t2,+2", "TR");
+                  "#t2,-2", "t2,-1", "t2,0", "t2,+1", "t2,+2", "tR");
   outfile_.Printf("%12.5e %12.5e %12.5e %12.5e %12.5e %12.5e\n", 
                   t_2_m2, t_2_m1, t_2_0, t_2_p1, t_2_p2, tR);
 
