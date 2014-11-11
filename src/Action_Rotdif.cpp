@@ -1356,6 +1356,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
   CurveFit::Darray Cparams(6, 0.5);
   CurveFit fit;
 
+  double stat_corr, stat_chisq, stat_theilu, stat_rpe;
   // Fit averaged autocorrelation to C(tau) = exp[-l(l+1)D * tau] 
   int info = fit.LevenbergMarquardt( ExpFxn, Xvals, CtTotal, Params, amoeba_ftol_, amoeba_itmax_ );
   mprintf("\tSingleExp: %s\n", fit.Message(info));
@@ -1363,11 +1364,14 @@ int Action_Rotdif::DetermineDeffsAlt() {
     mprinterr("Error: Single exp fit: %s\n", fit.ErrorMessage());
     return 1;
   }
+  fit.Statistics(CtTotal, stat_corr, stat_chisq, stat_theilu, stat_rpe);
   CurveFit::Darray Ct_single = fit.FinalY();
   // We now in principal have A0 = -l(l+1)D, D = A0 / -l(l+1)
   double A0 = Params[0];
   double Deff = A0 / (double)(olegendre_ * (olegendre_ + 1));
   outfile_.Printf("# Results from single-exponential fit: <C(t)> = exp(-t * A0)\n");
+  outfile_.Printf("# Corr= %g  ChiSq= %g  TheilU= %g  RMS_PE= %g\n",
+                  stat_corr, stat_chisq, stat_theilu, stat_rpe);
   outfile_.Printf("%-12s %12s %12s\n", "#A0", "D" ,"T");
   outfile_.Printf("%12.5e %12.5e %12.5e\n", A0, Deff, 1.0 / A0);
 //  mprintf("\t\tA0= %12.5e    Deff= %12.5e    Vxyz={%12.5e, %12.5e, %12.5e}\n",
@@ -1403,14 +1407,16 @@ int Action_Rotdif::DetermineDeffsAlt() {
   }
   // Calculate final curve without applied penalty
   USE_PENALTY = false;
-  CurveFit::Darray Ct_multi = fit.FinalY();
-  Ctau_L2(Xvals, Cparams, Ct_multi);
+  fit.LevenbergMarquardt( Ctau_L2, Xvals, CtTotal, Cparams, amoeba_ftol_, 0 );
+  fit.Statistics(CtTotal, stat_corr, stat_chisq, stat_theilu, stat_rpe);
 //  for (unsigned int i = 0; i < 10; i += 2)
 //    mprintf("\t\t# %2i  c= %12.5f  T= %12.5e\n", i/2, Mparams[i], Mparams[i+1]);
   // Sort Dx <= Dy <= Dz
   std::sort( Cparams.begin() + 3, Cparams.end() );
   outfile_.Printf("# Results from multi-exponential fit:"
                   " <C(t)> = SUM(l=-2,...,2)[ c(l) * exp(-t * E2(l)) ]\n");
+  outfile_.Printf("# Corr= %g  ChiSq= %g  TheilU= %g  RMS_PE= %g\n",
+                  stat_corr, stat_chisq, stat_theilu, stat_rpe);
   outfile_.Printf("%-12s %12s %12s %12s %12s %12s\n", "#l", "m", "n", "dx", "dy", "dz");
   outfile_.Printf("%12.5f %12.5f %12.5f %12.5e %12.5e %12.5e\n",
                   Cparams[0], Cparams[1], Cparams[2],
@@ -1451,7 +1457,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
       namebuffer = "CtFit.dat";
     outfile.OpenWrite(namebuffer);
     outfile.Printf("%-12s %20s %20s %20s\n", "#Time", "<Ct>", "SingleExp", "MultiExp");
-//    CurveFit::Darray const& Ct_multi = fit.FinalY();
+    CurveFit::Darray const& Ct_multi = fit.FinalY();
     for (int n = 0; n != ctMax; n++)
       outfile.Printf("%12.6g %20.8e %20.8e %20.8e\n",
                      Xvals[n], CtTotal[n], Ct_single[n], Ct_multi[n]);
