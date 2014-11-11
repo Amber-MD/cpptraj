@@ -54,7 +54,7 @@ Action_Rotdif::Action_Rotdif() :
 { } 
 // TODO: MAKE ANALYSIS
 void Action_Rotdif::Help() {
-  mprintf("\t[outfile <outfilename>]\n"
+  mprintf("\t[outfile <outfilename>] [usefft]\n"
           "  Options for creating RMS best-fit rotation matrices:\n"
           "\t[<mask>] {ref <refname> | refinfex <refindex> | reference}\n"
           "\t[rmout <rmOut>]\n"
@@ -62,15 +62,26 @@ void Action_Rotdif::Help() {
           "\t[nvecs <nvecs>] [rvecin <randvecIn>] [rseed <random seed>]\n"
           "\t[rvecout <randvecOut>]\n"
           "  Options for calculating vector time correlation functions:\n"
-          "\t[order <olegendre>] [ncorr <ncorr>] [corrout <corrOut>] [usefft]\n"
-          "  The options below only apply if usefft is not specified.\n"
+          "\t[order <olegendre>] [ncorr <ncorr>] [corrout <corrOut>]\n"
+          "  *** The options below only apply if 'usefft' IS NOT specified. ***\n"
           "  Options for calculating local effective D, small anisotropy:\n"
           "\t[deffout <deffOut>] [itmax <itmax>] [tol <tolerance>] [d0 <d0>]\n"
           "\t[nmesh <NmeshPoints>] dt <tfac> [ti <ti>] tf <tf>\n"
           "  Options for calculating D with full anisotropy:\n"
           "\t[amoeba_tol <tolerance>] [amoeba_itmax <iterations>]\n"
           "\t[amoeba_nsearch <n>] [scalesimplex <scale>] [gridsearch]\n"
-          "  Calculate rotational diffusion tensor.\n");
+          "  *** The options below only apply if 'usefft' IS specified. ***\n"
+          "  Options for curve-fitting:\n"
+          "\t[fit_tol <tolerance>] [fit_itmax <max # iterations>]\n"
+          "\n  Calculate rotational diffusion tensor. By default the procedure of\n"
+          "  Wong & Case (2008) is used.\n"
+          "  The 'usefft' option is currently an EXPERIMENTAL option, where time\n"
+          "  correlation functions for each vector are calculated using spherical\n"
+          "  harmonics. The average over all time correlation functions is then fit\n"
+          "  to the following equation to obtain principal values of the diffusion\n"
+          "  tensor:\n    C(t) = SUM[l=-2,...,+2]( cl * exp(-t / Tl)\n"
+          "  (see equation 2.10b and related eqs. in Korzhnev et al., Prog. Nuc. Mag.\n"
+          "   Res. Spec. 38 (2001) 197-266 for details).\n");
 }
 
 // Action_Rotdif::Init()
@@ -122,6 +133,10 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   amoeba_ftol_ = actionArgs.getKeyDouble("amoeba_tol", amoeba_ftol_);
   amoeba_itmax_ = actionArgs.getKeyInt("amoeba_itmax", amoeba_itmax_);
   amoeba_nsearch_ = actionArgs.getKeyInt("amoeba_nsearch", 1);
+  if (usefft_) {
+    amoeba_ftol_ = actionArgs.getKeyDouble("fit_tol", amoeba_ftol_);
+    amoeba_itmax_ = actionArgs.getKeyInt("fit_itmax", amoeba_itmax_);
+  }
   // Reference Keywords
   ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (REF.error()) return Action::ERR;
@@ -176,8 +191,9 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mprintf(" %i frames.\n",ncorr_);
   mprintf("\tVector time correlation function order: %i\n", olegendre_);
   if (usefft_) {
+    mprintf("Warning: 'usefft' is an EXPERIMENTAL option. Use at your own risk.\n");
     mprintf("\tVector time correlation functions will be calculated using spherical harmonics.\n");
-    mprintf("\tTime step is %.4g\n", tfac_);
+    mprintf("\tVector time correlation time step is %.4g ps\n", tfac_);
     if (!corrOut_.empty())
       mprintf("\tAveraged vector time correlation function and fit curves"
               " will be written to '%s'\n", corrOut_.c_str());
@@ -223,9 +239,10 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     else
       mprintf("\tDiffusion constants and tau will be written to STDOUT.\n");
 #   endif
-    mprintf("# Citation: Wong V.; Case, D. A.; \"Evaluating rotational diffusion from\n"
-            "#           protein MD simulations.\"\n"
-            "#           J. Phys. Chem. B (2008) V.112 pp.6013-6024.\n");
+    if (!usefft_)
+      mprintf("# Citation: Wong V.; Case, D. A.; \"Evaluating rotational diffusion from\n"
+              "#           protein MD simulations.\"\n"
+              "#           J. Phys. Chem. B (2008) V.112 pp.6013-6024.\n");
   }
   return Action::OK;
 }
@@ -1063,12 +1080,12 @@ int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int n
   return 0;
 }
 
-// Single exponential function with constant
-int ExpFxn(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
+// Single exponential function
+int ExpFxn(CurveFit::Darray const& Tvals, CurveFit::Darray const& Params,
               CurveFit::Darray& Ct)
 {
-  for (unsigned int n = 0; n != Tau.size(); n++)
-    Ct[n] = ( exp( -Tau[n] * Params[0] ) );
+  for (unsigned int n = 0; n != Tvals.size(); n++)
+    Ct[n] = ( exp( -Tvals[n] * Params[0] ) );
   return 0;
 }
 
@@ -1078,7 +1095,7 @@ int ExpFxn(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
 //}
 
 // Sum of 5 exponentials
-int Sum5Exp(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
+int Sum5Exp(CurveFit::Darray const& Tvals, CurveFit::Darray const& Params,
             CurveFit::Darray& Ct)
 {
   double penalty1 = Params[0] + Params[2] + Params[4] +
@@ -1089,16 +1106,19 @@ int Sum5Exp(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
   for (int i = 1; i != 11; i += 2)
     if (Params[i] < 0.0) penalty2 += 200.0;
 
-  for (unsigned int n = 0; n != Tau.size(); n++) {
-    double tau = Tau[n];
-    Ct[n]= ( Params[0] * exp( -tau * Params[1] ) +
-             Params[2] * exp( -tau * Params[3] ) +
-             Params[4] * exp( -tau * Params[5] ) +
-             Params[6] * exp( -tau * Params[7] ) +
-             Params[8] * exp( -tau * Params[9] ) ) + penalty1 + penalty2;
+  for (unsigned int n = 0; n != Tvals.size(); n++) {
+    double tau = -Tvals[n];
+    Ct[n]= ( Params[0] * exp( tau * Params[1] ) +
+             Params[2] * exp( tau * Params[3] ) +
+             Params[4] * exp( tau * Params[5] ) +
+             Params[6] * exp( tau * Params[7] ) +
+             Params[8] * exp( tau * Params[9] ) ) + penalty1 + penalty2;
   }
   return 0;
 }
+
+/// Determine if penalty should be used during fit.
+static bool USE_PENALTY = false;
 
 // C(tau) = SUM(-l...l)[ c * exp(-tau / T) ]
 // e-2 = (3*l^2*m^2) * exp( -tau * (x + y + 4z) )
@@ -1223,13 +1243,16 @@ int Ctau_L2(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
   //                 (u/delta)*[sqrt(3)/8]*[3*cos(theta)^2-1]*sin(theta)^2*cos(2*phi)
   double m_p2 = da - ea;
 
-  // Calculate penalty functions. Require sqrt(l^2 + m^2 + n^2) = 1.0,
-  // dx|dy|dz > 0.0
-  double penalty = sqrt(dot1_2 + dot2_2 + dot3_2);
-  penalty = 1000.0 * (1.0 - penalty);
-  if (dx < 0.0) penalty += 400.0;
-  if (dy < 0.0) penalty += 400.0;
-  if (dz < 0.0) penalty += 400.0;
+  double penalty = 0.0;
+  if (USE_PENALTY) {
+    // Calculate penalty functions. Require sqrt(l^2 + m^2 + n^2) = 1.0,
+    // dx|dy|dz > 0.0, sum of all prefactors = 1.0.
+    penalty = 1000.0 * (1.0 - sqrt(dot1_2 + dot2_2 + dot3_2));
+    if (dx < 0.0) penalty += 400.0;
+    if (dy < 0.0) penalty += 400.0;
+    if (dz < 0.0) penalty += 400.0;
+    penalty += (1000.0 * (1.0 - (m_m2+m_m1+m_0+m_p1+m_p2)));
+  }
 
   // Calculate Y values
   for (unsigned int n = 0; n != Tau.size(); n++) {
@@ -1246,6 +1269,11 @@ int Ctau_L2(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
     //sumc2_[nvec] = m_m2 + m_m1 + m_0 + m_p1 + m_p2;
 //    mprintf("Yvals[%i]= (%g / %g) + (%g / %g) + (%g / %g) + (%g / %g) + (%g / %g) = %g\n", nvec,
 //            m_m2, lambda[0], m_m1, lambda[1], m_0, lambda[2], m_p1, lambda[3], m_p2, lambda[4], Yvals[nvec]);
+  //mprintf("DEBUG: cl={ %g %g %g %g %g }, Tl={ %g %g %g %g %g }\n",
+  //        m_m2, m_m1, m_0, m_p1, m_p2, 1.0/lambda[0], 1.0/lambda[1],
+  //        1.0/lambda[2], 1.0/lambda[3], 1.0/lambda[4]);
+  //mprintf("DEBUG: Sum of prefactors= %g\n", m_m2+m_m1+m_0+m_p1+m_p2);
+  //mprintf("DEBUG: Penalty is %g\n", penalty);
   return 0;
 }
 
@@ -1281,8 +1309,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
   CurveFit::Darray Ct;
   Ct.reserve( ctMax );
   // Hold averaged vector autocorrelations
-  CurveFit::Darray CtTotal;
-  CtTotal.assign( ctMax, 0.0 );
+  CurveFit::Darray CtTotal( ctMax, 0.0 );
   // LOOP OVER RANDOM VECTORS
   for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
                                       rndvec != random_vectors_.end(); ++rndvec)
@@ -1307,12 +1334,12 @@ int Action_Rotdif::DetermineDeffsAlt() {
     for (unsigned int i = 0; i != Ct.size(); i++)
       CtTotal[i] += Ct[i];
   }
-  // Average curve
+  // Average curve over all vectors.
   double norm_nvecs = 1.0 / (double)random_vectors_.Size();
   for (CurveFit::Darray::iterator ctot = CtTotal.begin(); ctot != CtTotal.end(); ++ctot)
     *ctot *= norm_nvecs; 
 
-  // Set up X values
+  // Set up X and Y values for curve fitting.
   CurveFit::Darray Xvals;
   Xvals.reserve( ctMax );
   double xv = ti_;
@@ -1367,12 +1394,17 @@ int Action_Rotdif::DetermineDeffsAlt() {
   Cparams[3] = A0;                  // dx (A0?)
   Cparams[4] = A0 + (A0 * 0.1);     // dy
   Cparams[5] = A0 - (A0 * 0.1);     // dz
+  USE_PENALTY = true;
   info = fit.LevenbergMarquardt( Ctau_L2, Xvals, CtTotal, Cparams, amoeba_ftol_, amoeba_itmax_ ); 
   mprintf("\tMultiExp: %s\n", fit.Message(info));
   if (info == 0) {
     mprinterr("Error: Multi exp fit: %s\n", fit.ErrorMessage());
     return 1;
   }
+  // Calculate final curve without applied penalty
+  USE_PENALTY = false;
+  CurveFit::Darray Ct_multi = fit.FinalY();
+  Ctau_L2(Xvals, Cparams, Ct_multi);
 //  for (unsigned int i = 0; i < 10; i += 2)
 //    mprintf("\t\t# %2i  c= %12.5f  T= %12.5e\n", i/2, Mparams[i], Mparams[i+1]);
   // Sort Dx <= Dy <= Dz
@@ -1393,19 +1425,21 @@ int Action_Rotdif::DetermineDeffsAlt() {
   double DZ = Cparams[5];
   Vec3 d_props = calculate_D_properties(Vec3(DX, DY, DZ));
   PrintVector(outfile_,"#Dav, aniostropy, rhombicity:", d_props);
-  double t1 = 1.0 / (4.0 * DX + DY + DZ);
-  double t2 = 1.0 / (4.0 * DY + DX + DZ);
-  double t3 = 1.0 / (4.0 * DZ + DX + DY);
+  double t_2_p1 = 1.0 / (4.0 * DX + DY + DZ);
+  double t_2_m1 = 1.0 / (4.0 * DY + DX + DZ);
+  double t_2_m2 = 1.0 / (4.0 * DZ + DX + DY);
   double Dav = d_props[0];
   double Dav2 = Dav * Dav;
-  double Dp2 = (DX*DY + DX*DZ + DY*DZ) / 3.0;
+  double Dp2 = (DX*DY + DY*DZ + DX*DZ) / 3.0;
   double Dm2 = sqrt(Dav2 - Dp2);
   mprintf("DEBUG: Dav2= %12.5e  Dp2= %12.5e  Dm2= %12.5e\n", Dav2, Dp2, Dm2);
-  double t4 = 1.0 / (6.0 * (Dav + Dm2));
-  double t5 = 1.0 / (6.0 * (Dav - Dm2));
+  double t_2_p2 = 1.0 / (6.0 * (Dav + Dm2));
+  double t_2_0  = 1.0 / (6.0 * (Dav - Dm2));
   double tR = 1.0 / (2.0 * (DX + DY + DZ));
-  outfile_.Printf("%-12s %12s %12s %12s %12s %12s\n", "#T1", "T2", "T3", "T4", "T5", "TR");
-  outfile_.Printf("%12.5e %12.5e %12.5e %12.5e %12.5e %12.5e\n", t1, t2, t3, t4, t5, tR);
+  outfile_.Printf("%-12s %12s %12s %12s %12s %12s\n",
+                  "#t2,-2", "t2,-1", "t2,0", "t2,+1", "t2,+2", "TR");
+  outfile_.Printf("%12.5e %12.5e %12.5e %12.5e %12.5e %12.5e\n", 
+                  t_2_m2, t_2_m1, t_2_0, t_2_p1, t_2_p2, tR);
 
   // Write out Ct and fit curves
   if (!corrOut_.empty() || debug_ > 3) {
@@ -1417,7 +1451,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
       namebuffer = "CtFit.dat";
     outfile.OpenWrite(namebuffer);
     outfile.Printf("%-12s %20s %20s %20s\n", "#Time", "<Ct>", "SingleExp", "MultiExp");
-    CurveFit::Darray const& Ct_multi = fit.FinalY();
+//    CurveFit::Darray const& Ct_multi = fit.FinalY();
     for (int n = 0; n != ctMax; n++)
       outfile.Printf("%12.6g %20.8e %20.8e %20.8e\n",
                      Xvals[n], CtTotal[n], Ct_single[n], Ct_multi[n]);
