@@ -13,7 +13,8 @@ Traj_AmberRestart::Traj_AmberRestart() :
   time0_(1.0),
   dt_(1.0),
   singleWrite_( false),
-  readAccess_(false)
+  readAccess_(false),
+  useVelAsCoords_(false)
 {}
 
 /** Check for an integer (I5) followed by 0-2 scientific floats (E15.7) */
@@ -149,6 +150,15 @@ int Traj_AmberRestart::getBoxAngles(std::string const& boxline, Box& trajBox) {
   return 0;
 }
 
+void Traj_AmberRestart::ReadHelp() {
+  mprintf("\tusevelascoords: Use velocities in place of coordinates.\n");
+}
+
+int Traj_AmberRestart::processReadArgs(ArgList& argIn) {
+  useVelAsCoords_ = argIn.hasKey("usevelascoords");
+  return 0;
+}
+
 // Traj_AmberRestart::setupTrajin()
 /** Set up amber restart file for reading. Check that number of atoms matches
   * number of atoms in associated parmtop. Check for box/velocity info.
@@ -232,6 +242,10 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
   SetBox( boxInfo );
+  if (useVelAsCoords_ && !HasV()) {
+    mprinterr("Error: 'usevelascoords' specified but no velocities in this restart.\n");
+    return TRAJIN_ERR;
+  }
   // Recalculate the frame size
   if (HasV())
     file_.ResizeBuffer( natom3_ );
@@ -259,9 +273,12 @@ int Traj_AmberRestart::readFrame(int set, Frame& frameIn) {
   file_.BufferToDouble(frameIn.xAddress(), natom3_);
   // Get velocity from buffer if present
   if (HasV()) {
-    if (frameIn.HasVelocity())
-      file_.BufferToDouble(frameIn.vAddress(), natom3_);
-    else
+    if (frameIn.HasVelocity()) {
+      if (useVelAsCoords_) 
+        file_.BufferToDouble(frameIn.xAddress(), natom3_);
+      else
+        file_.BufferToDouble(frameIn.vAddress(), natom3_);
+    } else
       file_.AdvanceBuffer( coordSize_ );
   }
   // Get box from buffer if present
@@ -336,6 +353,7 @@ void Traj_AmberRestart::Info() {
       mprintf(" with velocity info");
     else
       mprintf(", no velocities");
+    if (useVelAsCoords_) mprintf(" (using velocities as coords)");
   } else {
     // If write, not sure yet whether velocities will be written since
     // it also depends on if the frame has velocity info, so only state
