@@ -21,7 +21,6 @@ void Cluster_DBSCAN::Help() {
 }
 
 int Cluster_DBSCAN::SetupCluster(ArgList& analyzeArgs) {
-//  kdist_ = analyzeArgs.getKeyInt( "kdist", 0 );
   kdist_.SetRange(analyzeArgs.GetStringKey("kdist"));
   if (kdist_.Empty()) {
     minPoints_ = analyzeArgs.getKeyInt("minpoints", -1);
@@ -77,7 +76,7 @@ void Cluster_DBSCAN::RegionQuery(std::vector<int>& NeighborPts,
 }
 
 /** For each point p, calculate function Kdist(p) which is the distance of
-  * the Kth farthest point from p.
+  * the Kth nearest point to p.
   */
 void Cluster_DBSCAN::ComputeKdist( int Kval, std::vector<int> const& FramesToCluster ) const {
   std::vector<double> dists;
@@ -101,40 +100,50 @@ void Cluster_DBSCAN::ComputeKdist( int Kval, std::vector<int> const& FramesToClu
     Kdist.push_back( dists[Kval] );
   }
   std::sort( Kdist.begin(), Kdist.end() );
-  std::reverse( Kdist.begin(), Kdist.end() );
   CpptrajFile Outfile;
   Outfile.OpenWrite(outfilename);
   Outfile.Printf("%-8s %1i%-11s\n", "#Point", Kval,"-dist");
-  for (std::vector<double>::const_iterator k = Kdist.begin(); k != Kdist.end(); ++k)
-    Outfile.Printf("%8i %12.4f\n", k - Kdist.begin(), *k);
+  // Write out largest to smallest
+  unsigned int ik = 0;
+  for (std::vector<double>::reverse_iterator k = Kdist.rbegin(); 
+                                             k != Kdist.rend(); ++k, ++ik)
+    Outfile.Printf("%8u %12.4f\n", ik, *k);
   Outfile.CloseFile();
 }
-
-
 
 // Cluster_DBSCAN::ComputeKdistMap()
 void Cluster_DBSCAN::ComputeKdistMap( Range const& Kvals, 
                                       std::vector<int> const& FramesToCluster ) const
 {
+  int pt1_idx, pt2_idx, d_idx, point;
   DataSet_MatrixDbl kmatrix;
   kmatrix.Allocate2D( FramesToCluster.size(), Kvals.Size() );
   mprintf("\tCalculating Kdist map for %s\n", Kvals.RangeArg());
-# ifdef _OPENMP
-  Range::const_iterator kval;
-  int pt1_idx, pt2_idx, d_idx, point;
   double* kdist_array; // Store distance of pt1 to every other point.
   int nframes = (int)FramesToCluster.size();
+  // Ensure all Kdist points are within proper range
+  Range::const_iterator kval;
+  for (kval = Kvals.begin(); kval != Kvals.end(); ++kval)
+    if (*kval < 1 || *kval >= nframes) {
+      mprinterr("Error: Kdist value %i is out of range (1 <= Kdist < %i)\n",
+                 *kval, nframes);
+      return;
+    }
   int nvals = (int)Kvals.Size();
   double** KMAP; // KMAP[i] has the ith nearest point for each point.
   KMAP = new double*[ nvals ];
   for (int i = 0; i != nvals; i++)
     KMAP[i] = new double[ nframes ];
   ParallelProgress progress( nframes );
+# ifdef _OPENMP
 # pragma omp parallel private(pt1_idx, pt2_idx, d_idx, kval, point, kdist_array) firstprivate(progress)
   {
   progress.SetThread( omp_get_thread_num() );
+#endif
   kdist_array = new double[ nframes ];
+# ifdef _OPENMP
 # pragma omp for
+# endif
   for (pt1_idx = 0; pt1_idx < nframes; pt1_idx++) // X
   {
     progress.Update( pt1_idx );
@@ -151,49 +160,21 @@ void Cluster_DBSCAN::ComputeKdistMap( Range const& Kvals,
       KMAP[d_idx++][pt1_idx] = kdist_array[ *kval ];
   }
   delete[] kdist_array;
+# ifdef _OPENMP
   } // END omp parallel
+# endif
   progress.Finish();
-  // Sort all of the individual kdist plots, largest to smallest.
-  for (int i = 0; i != nvals; i++) {
+  // Sort all of the individual kdist plots, smallest to largest.
+  for (int i = 0; i != nvals; i++)
     std::sort(KMAP[i], KMAP[i] + nframes);
-    //std::reverse(KMAP[i], KMAP[i] + nframes);
-  }
-  // Save in matrix
+  // Save in matrix, largest to smallest.
   for (int y = 0; y != nvals; y++) {
     for (int x = nframes - 1; x != -1; x--)
       kmatrix.AddElement( KMAP[y][x] );
     delete[] KMAP[y];
   }
   delete[] KMAP;
-# else
-  std::vector<double> dists;
-  std::vector<double> Kdist;
-  dists.reserve( FramesToCluster.size() ); 
-  Kdist.reserve( FramesToCluster.size() );
-  for (Range::const_iterator kval = Kvals.begin(); kval != Kvals.end(); ++kval)
-  {
-    Kdist.clear();
-    mprintf("\tDBSCAN: Calculating Kdist(%i)\n", *kval);
-    for (std::vector<int>::const_iterator point = FramesToCluster.begin();
-                                          point != FramesToCluster.end();
-                                          ++point)
-    {
-      // Store distances from this point
-      dists.clear();
-      for (std::vector<int>::const_iterator otherpoint = FramesToCluster.begin();
-                                            otherpoint != FramesToCluster.end();
-                                            ++otherpoint)
-        dists.push_back( FrameDistances_.GetFdist(*point, *otherpoint) );
-      // Sort distances - first dist should always be 0
-      std::sort(dists.begin(), dists.end());
-      Kdist.push_back( dists[*kval] );
-    }
-    std::sort( Kdist.begin(), Kdist.end() );
-    for (std::vector<double>::reverse_iterator rit = Kdist.rbegin();
-                                               rit != Kdist.rend(); ++rit)
-      kmatrix.AddElement( *rit );
-  }
-# endif
+  // Write matrix to file
   DataFile outfile;
   ArgList outargs("usemap");
   outfile.SetupDatafile("Kmatrix.gnu", outargs, debug_);
