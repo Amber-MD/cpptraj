@@ -180,7 +180,9 @@ void Cluster_DBSCAN::ComputeKdistMap( Range const& Kvals,
   outfile.SetupDatafile("Kmatrix.gnu", outargs, debug_);
   outfile.AddSet( (DataSet*)&kmatrix );
   outfile.WriteData();
-  // Write out the largest and smallest values for each K
+  // Write out the largest and smallest values for each K.
+  // This means for each value of K the point with the furthest Kth-nearest
+  // neighbor etc.
   CpptrajFile maxfile;
   if (maxfile.OpenWrite("Kmatrix.max.dat")) return;
   maxfile.Printf("%-12s %12s %12s\n", "#Kval", "MaxD", "MinD");
