@@ -116,8 +116,6 @@ void Cluster_DBSCAN::ComputeKdistMap( Range const& Kvals,
                                       std::vector<int> const& FramesToCluster ) const
 {
   int pt1_idx, pt2_idx, d_idx, point;
-  DataSet_MatrixDbl kmatrix;
-  kmatrix.Allocate2D( FramesToCluster.size(), Kvals.Size() );
   mprintf("\tCalculating Kdist map for %s\n", Kvals.RangeArg());
   double* kdist_array; // Store distance of pt1 to every other point.
   int nframes = (int)FramesToCluster.size();
@@ -168,6 +166,8 @@ void Cluster_DBSCAN::ComputeKdistMap( Range const& Kvals,
   for (int i = 0; i != nvals; i++)
     std::sort(KMAP[i], KMAP[i] + nframes);
   // Save in matrix, largest to smallest.
+  DataSet_MatrixDbl kmatrix;
+  kmatrix.Allocate2D( FramesToCluster.size(), Kvals.Size() );
   for (int y = 0; y != nvals; y++) {
     for (int x = nframes - 1; x != -1; x--)
       kmatrix.AddElement( KMAP[y][x] );
@@ -180,6 +180,15 @@ void Cluster_DBSCAN::ComputeKdistMap( Range const& Kvals,
   outfile.SetupDatafile("Kmatrix.gnu", outargs, debug_);
   outfile.AddSet( (DataSet*)&kmatrix );
   outfile.WriteData();
+  // Write out the largest and smallest values for each K
+  CpptrajFile maxfile;
+  if (maxfile.OpenWrite("Kmatrix.max.dat")) return;
+  maxfile.Printf("%-12s %12s %12s\n", "#Kval", "MaxD", "MinD");
+  d_idx = 0;
+  for (kval = Kvals.begin(); kval != Kvals.end(); ++kval, d_idx++)
+    maxfile.Printf("%12i %12g %12g\n", *kval, kmatrix.GetElement(0, d_idx),
+                   kmatrix.GetElement(nframes-1, d_idx));
+  maxfile.CloseFile();
 }
 
 // Potential frame statuses.
