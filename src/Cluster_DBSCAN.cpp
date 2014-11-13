@@ -17,7 +17,7 @@ Cluster_DBSCAN::Cluster_DBSCAN() :
 {}
 
 void Cluster_DBSCAN::Help() {
-  mprintf("\t[dbscan minpoints <n> epsilon <e> [sievetoframe] [kdist <k>]]\n");
+  mprintf("\t[dbscan minpoints <n> epsilon <e> [sievetoframe] [kdist <k> [kfile <prefix>]]]\n");
 }
 
 int Cluster_DBSCAN::SetupCluster(ArgList& analyzeArgs) {
@@ -36,15 +36,20 @@ int Cluster_DBSCAN::SetupCluster(ArgList& analyzeArgs) {
       return 1;
     }
     sieveToCentroid_ = !analyzeArgs.hasKey("sievetoframe");
+  } else {
+    k_prefix_ = analyzeArgs.GetStringKey("kfile");
+    if (!k_prefix_.empty() && k_prefix_.at(k_prefix_.size()-1) != '/')
+      k_prefix_ += '/';
   }
   return 0;
 }
 
 void Cluster_DBSCAN::ClusteringInfo() {
   mprintf("\tDBSCAN:\n");
-  if (!kdist_.Empty())
+  if (!kdist_.Empty()) {
     mprintf("\t\tOnly calculating Kdist graph for K=%s\n", kdist_.RangeArg());
-  else {
+    if (!k_prefix_.empty()) mprintf("\t\tKdist file prefix: %s\n", k_prefix_.c_str());
+  } else {
     mprintf("\t\tMinimum pts to form cluster= %i\n", minPoints_);
     mprintf("\t\tCluster distance criterion= %.3f\n", epsilon_);
     if (sieveToCentroid_)
@@ -83,7 +88,7 @@ void Cluster_DBSCAN::ComputeKdist( int Kval, std::vector<int> const& FramesToClu
   std::vector<double> Kdist;
   dists.reserve( FramesToCluster.size() ); 
   Kdist.reserve( FramesToCluster.size() );
-  std::string outfilename = "Kdist." + integerToString(Kval) + ".dat";
+  std::string outfilename = k_prefix_ + "Kdist." + integerToString(Kval) + ".dat";
   mprintf("\tDBSCAN: Calculating Kdist(%i), output to %s\n", Kval, outfilename.c_str());
   for (std::vector<int>::const_iterator point = FramesToCluster.begin();
                                         point != FramesToCluster.end();
@@ -177,14 +182,14 @@ void Cluster_DBSCAN::ComputeKdistMap( Range const& Kvals,
   // Write matrix to file
   DataFile outfile;
   ArgList outargs("usemap");
-  outfile.SetupDatafile("Kmatrix.gnu", outargs, debug_);
+  outfile.SetupDatafile(k_prefix_ + "Kmatrix.gnu", outargs, debug_);
   outfile.AddSet( (DataSet*)&kmatrix );
   outfile.WriteData();
   // Write out the largest and smallest values for each K.
   // This means for each value of K the point with the furthest Kth-nearest
   // neighbor etc.
   CpptrajFile maxfile;
-  if (maxfile.OpenWrite("Kmatrix.max.dat")) return;
+  if (maxfile.OpenWrite(k_prefix_ + "Kmatrix.max.dat")) return;
   maxfile.Printf("%-12s %12s %12s\n", "#Kval", "MaxD", "MinD");
   d_idx = 0;
   for (kval = Kvals.begin(); kval != Kvals.end(); ++kval, d_idx++)
