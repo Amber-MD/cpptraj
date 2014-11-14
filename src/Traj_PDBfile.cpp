@@ -54,6 +54,7 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
   int Frames = 0;
   int numMismatch = 0;
   bool scanPDB = true;
+  Box boxInfo;
   while (scanPDB) {
     atom = 0;
     while ( atom < trajParm->Natom() ) {
@@ -63,6 +64,12 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
         break;
       }
       //fprintf(stdout,"DEBUG: PDB buffer %i [%s]\n",atom,buffer);
+      if (file_.RecType() ==  PDBfile::CRYST1) {
+        // Read in box information
+        double box_crd[6];
+        file_.pdb_Box( box_crd );
+        boxInfo.SetBox( box_crd );
+      } 
       // Skip non-ATOM records
       if (file_.RecType() != PDBfile::ATOM) continue;
       // If still on first frame, check pdb atom name against the name in the 
@@ -106,6 +113,7 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
   if (numMismatch > 0)
     mprintf("Warning: In PDB file %s: %i name mismatches with parm %s.\n",
             file_.Filename().base(), numMismatch, trajParm->c_str());
+  SetBox( boxInfo );
   return Frames;
 }
 
@@ -132,7 +140,9 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
   while (atom < pdbAtom_) {
     if ( file_.NextRecord() == PDBfile::END_OF_FILE ) return 1;
     // Skip non-ATOM records
-    if ( file_.RecType() == PDBfile::ATOM ) {
+    if ( file_.RecType() == PDBfile::CRYST1 )
+      file_.pdb_Box( frameIn.bAddress() );
+    else if ( file_.RecType() == PDBfile::ATOM ) {
       // Read current PDB record XYZ into Frame
       file_.pdb_XYZ( Xptr );
       ++atom; 
@@ -255,8 +265,11 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
     if (!Title().empty()) file_.WriteTITLE( Title() );
   }
   write_cryst1_ = (TrajBox().Type() != Box::NOBOX);
-  if (write_cryst1_ && pdbWriteMode_!=SINGLE)
-    mprintf("Warning: For PDB, box coords for first frame only will be written to CRYST1.\n");
+  if (write_cryst1_) {
+    if (pdbWriteMode_!=SINGLE)
+      mprintf("Warning: For PDB, box coords for first frame only will be written to CRYST1.\n");
+    mprintf("Warning: PDB space group is set to P 1 by default.\n");
+  }
   return 0;
 }
 

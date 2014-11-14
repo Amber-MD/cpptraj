@@ -65,6 +65,22 @@ int Traj_CIF::setupTrajin(std::string const& fname, Topology* trajParm)
     }
   }
   mprintf("\t%i atoms, %i models.\n", Natoms_, Nmodels_);
+  // Get unit cell parameters if present.
+  boxInfo_.SetNoBox();
+  CIFfile::DataBlock const& cellblock = file_.GetDataBlock("_cell");
+  if (!cellblock.empty()) {
+    double cif_box[6];
+    cif_box[0] = convertToDouble( cellblock.Data("length_a") );
+    cif_box[1] = convertToDouble( cellblock.Data("length_b") );
+    cif_box[2] = convertToDouble( cellblock.Data("length_c") );
+    cif_box[3] = convertToDouble( cellblock.Data("angle_alpha") );
+    cif_box[4] = convertToDouble( cellblock.Data("angle_beta" ) );
+    cif_box[5] = convertToDouble( cellblock.Data("angle_gamma") );
+    mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
+              cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
+    boxInfo_.SetBox( cif_box);
+  }
+  SetBox( boxInfo_ );
   // Get title. 
   CIFfile::DataBlock const& entryblock = file_.GetDataBlock("_entry");
   if (!entryblock.empty())
@@ -86,6 +102,7 @@ int Traj_CIF::readFrame(int set, Frame& frameIn) {
     *(Xptr++) = convertToDouble( (*line)[Cartn_y_col_] );
     *(Xptr++) = convertToDouble( (*line)[Cartn_z_col_] );
   }
+  std::copy( boxInfo_.boxPtr(), boxInfo_.boxPtr() + 6, frameIn.bAddress() );
   return 0;
 }
 

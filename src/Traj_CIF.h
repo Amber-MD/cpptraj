@@ -24,6 +24,7 @@ class Traj_CIF : public TrajectoryIO {
     int writeFrame(int,Frame const&)                           { return 1; } 
 
     CIFfile file_;
+    Box boxInfo_;
     int Natoms_;
     int Nmodels_;
     int Cartn_x_col_;
