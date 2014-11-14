@@ -289,20 +289,24 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   else
     lastAtomInMol = -1;
   const double *Xptr = frameOut.xAddress();
-  for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom) {
-    int res = (*atom).ResNum();
+  for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom, ++aidx) {
+    int res = atom->ResNum();
     // If this atom belongs to a new molecule print a TER card
     // Use res instead of res+1 since this TER belongs to last mol/res
     if (aidx == lastAtomInMol) {
       file_.WriteTER( anum, resNames_[res-1], chainID_[aidx-1], pdbTop_->Res(res-1).OriginalResNum() );
       anum += ter_num_;
       ++mol;
-      lastAtomInMol = (*mol).EndAtom();
+      lastAtomInMol = mol->EndAtom();
     }
-    if (dumpq_) Occ = (float) (*atom).Charge();
-    if (dumpr_) B = (float) (*atom).GBRadius();
+    if (!pdbTop_->Extra().empty()) {
+      Occ = pdbTop_->Extra()[aidx].Occupancy();
+      B   = pdbTop_->Extra()[aidx].Bfactor();
+    }
+    if (dumpq_) Occ = (float) atom->Charge();
+    if (dumpr_) B = (float) atom->GBRadius();
     // If pdbatom change amber atom names to pdb v3
-    NameType atomName = (*atom).Name();
+    NameType atomName = atom->Name();
     if (pdbatom_) {
       if      (atomName == "H5'1") atomName = "H5'";
       else if (atomName == "H5'2") atomName = "H5''";
@@ -315,9 +319,9 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       else if (atomName == "HO'2") atomName = "HO2'";
     }
     file_.WriteCoord(PDBfile::ATOM, anum++, atomName, resNames_[res],
-                     chainID_[aidx++], pdbTop_->Res(res).OriginalResNum(), 
+                     chainID_[aidx], pdbTop_->Res(res).OriginalResNum(), 
                      Xptr[0], Xptr[1], Xptr[2], Occ, B, 
-                     (*atom).ElementName(), 0, dumpq_);
+                     atom->ElementName(), 0, dumpq_);
     Xptr += 3;
   }
   if (pdbWriteMode_==MULTI) {

@@ -129,10 +129,11 @@ Atom::Atom(NameType const& aname, double charge, double mass, NameType const& at
 
 // CONSTRUCTOR
 Atom::Atom( NameType const& name, double charge, double polar, int atomicnum, 
-            double mass, int atidx, NameType const& type, double rad, double screen ) :
+            double mass, int atidx, NameType const& type, double rad, double screen,
+            char cID ) :
   charge_(charge), polar_(polar), mass_(mass), gb_radius_(rad), gb_screen_(screen),
   aname_(name), atype_(type), atype_index_(atidx), element_(UNKNOWN_ELEMENT),
-  resnum_(0), mol_(0), chainID_(' ')
+  resnum_(0), mol_(0), chainID_(cID)
 {
   DetermineElement(atomicnum);
 }

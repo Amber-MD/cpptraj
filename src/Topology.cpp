@@ -20,6 +20,7 @@ Topology::Topology() :
   pindex_(0),
   nframes_(0),
   n_extra_pts_(0),
+  n_atom_types_(0),
   hasVelInfo_(false),
   nRepDim_(0)
 { }
@@ -645,15 +646,20 @@ int Topology::SetDihedralInfo(DihedralArray const& dihedralsIn, DihedralArray co
   return 0;
 }
 
-// Topology::SetAmberExtra()
-// TODO: Auto generate
-int Topology::SetAmberExtra(std::vector<double> const& solty, std::vector<NameType> const& itree, 
-                            std::vector<int> const& join, std::vector<int> const& irotat)
+/** This is for any extra information that is not necessarily pertinent to
+  * all topologies, like Ambers ITREE or PDB chain ID etc.
+  */
+int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn) 
 {
-  solty_ = solty;
-  itree_ = itree;
-  join_ = join;
-  irotat_ = irotat;
+  n_atom_types_ = natyp;
+  if (!extraIn.empty()) {
+    if (extraIn.size() != atoms_.size()) {
+      mprinterr("Error: Size of extra atom info (%zu) != # atoms (%zu)\n",
+                 extraIn.size(), atoms_.size());
+      return 1;
+    }
+    extra_ = extraIn;
+  }
   return 0;
 }
 
@@ -1410,6 +1416,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->debug_ = debug_;
   newParm->hasVelInfo_ = hasVelInfo_;
   newParm->nRepDim_ = nRepDim_;
+  newParm->n_atom_types_ = n_atom_types_;
 
   // Reverse Atom map
   std::vector<int> atomMap( atoms_.size(),-1 );
@@ -1545,19 +1552,12 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
       }
     }
   }
-  // Amber extra info. Assume if one present, all present.
-  if (!itree_.empty() && !join_.empty() && !irotat_.empty()) {
+  // Amber extra info.
+  if (!extra_.empty()) {
     for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
-    {
-      if (*old_it >= 0) {
-        newParm->itree_.push_back( itree_[*old_it] );
-        newParm->irotat_.push_back( irotat_[*old_it] );
-        newParm->join_.push_back( join_[*old_it] );
-      }
-    }
+      if (*old_it >= 0)
+        newParm->extra_.push_back( extra_[*old_it] );
   }
-  // NOTE: SOLTY is currently unused 
-  newParm->solty_ = solty_;
   
   // Setup excluded atoms list - Necessary?
   newParm->DetermineExcludedAtoms();

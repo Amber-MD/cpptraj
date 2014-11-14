@@ -42,16 +42,25 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
     }
     if (debug_>0) mprintf("DEBUG: '%s' column = %i\n", Entries[i], COL[i]);
   }
+  // Get optional columns
+  int occ_col = block.ColumnIndex("occupancy");
+  int bfac_col = block.ColumnIndex("B_iso_or_equiv");
+  std::vector<AtomExtra> extra;
 
   // Loop over all atom sites
   int current_res = 0;
   double XYZ[3];
+  double occupancy = 1.0;
+  double bfactor = 0.0;
   for (line = block.begin(); line != block.end(); ++line) {
     // If more than 1 model check if we are done.
     if (Nmodels > 1) {
       if ( convertToInteger( (*line)[model_col] ) > 1 )
         break;
     }
+    if (occ_col != -1) occupancy = convertToDouble( (*line)[ occ_col ] );
+    if (bfac_col != -1) bfactor = convertToDouble( (*line)[ bfac_col ] );
+    extra.push_back( AtomExtra(occupancy, bfactor) );
     XYZ[0] = convertToDouble( (*line)[ COL[X] ] );
     XYZ[1] = convertToDouble( (*line)[ COL[Y] ] );
     XYZ[2] = convertToDouble( (*line)[ COL[Z] ] );
@@ -68,6 +77,7 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
     TopIn.AddTopAtom( Atom((*line)[ COL[ANAME] ], (*line)[ COL[CHAINID] ][0], "  "),
                       current_res, currentResName, XYZ );
   }
+  TopIn.SetExtraAtomInfo( 0, extra );
   // Get title. 
   CIFfile::DataBlock const& entryblock = infile.GetDataBlock("_entry");
   std::string ciftitle;

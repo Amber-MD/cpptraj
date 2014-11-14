@@ -12,10 +12,10 @@ class PDBfile : private CpptrajFile {
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
     PDB_RECTYPE NextRecord();
-    /// \return Atom info with name, chain, elt, and opt. charge/radius for ATOM/HETATM.
-    Atom pdb_Atom(bool);
-    /// \return Atom info with name, chain, and elt for ATOM/HETATM.
-    Atom pdb_Atom() { return pdb_Atom(false); }
+    /// \return Atom info with name, chain, and element for ATOM/HETATM record.
+    Atom pdb_Atom();
+    /// Get occupancy and B-factor from ATOM/HETATM record.
+    void pdb_OccupanyAndBfactor(float&, float&);
     /// Set given XYZ array with coords from ATOM/HETATM record.
     void pdb_XYZ(double*);
     /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record.

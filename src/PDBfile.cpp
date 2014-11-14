@@ -80,7 +80,7 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
   return recType_;
 }
 
-Atom PDBfile::pdb_Atom(bool readPQR) {
+Atom PDBfile::pdb_Atom() {
   // ATOM or HETATM keyword.
   // Check line length before any modification.
   size_t lineLength = strlen( linebuffer_ );
@@ -103,18 +103,16 @@ Atom PDBfile::pdb_Atom(bool readPQR) {
   }
   // Set atom info.
   Atom outAtom(aname, linebuffer_[21], eltString);
-  // Occupancy (54-59) | charge
-  // B-factor (60-65) | radius
-  if (readPQR) {
-    double charge = 0.0, radius = 0.0;
-    sscanf(linebuffer_+54, "%lf %lf", &charge, &radius);
-    outAtom.SetCharge( charge );
-    outAtom.SetGBradius( radius );
-  }
   // NOTE: Additional values:
   //       10 chars between Bfactor and element: buffer[66] to buffer[75]
   //       Charge: buffer[78] and buffer[79]
   return outAtom;
+}
+
+void PDBfile::pdb_OccupanyAndBfactor(float& occ, float& bfac) {
+  // Occupancy (54-59) | charge
+  // B-factor (60-65) | radius
+  sscanf(linebuffer_+54, "%f %f", &occ, &bfac);
 }
 
 // PDBfile::pdb_XYZ()
