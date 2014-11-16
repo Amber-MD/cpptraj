@@ -266,8 +266,8 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
   }
   write_cryst1_ = (TrajBox().Type() != Box::NOBOX);
   if (write_cryst1_) {
-    if (pdbWriteMode_!=SINGLE)
-      mprintf("Warning: For PDB, box coords for first frame only will be written to CRYST1.\n");
+    if (pdbWriteMode_==MODEL)
+      mprintf("Warning: For PDB with MODEL, box coords for first frame only will be written to CRYST1.\n");
     mprintf("Warning: PDB space group is set to P 1 by default.\n");
   }
   return 0;
@@ -281,11 +281,14 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     if (file_.OpenWriteNumbered( set + 1 )) return 1;
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
-  }
-  // Write box coords, first frame only.
-  if (write_cryst1_) {
-    file_.WriteCRYST1( frameOut.BoxCrd().boxPtr() );
-    write_cryst1_ = false;
+    if (write_cryst1_)
+      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr() );
+  } else {
+    // Write box coords, first frame only.
+    if (write_cryst1_) {
+      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr() );
+      write_cryst1_ = false;
+    }
   }
   // If specified, write MODEL keyword
   if (pdbWriteMode_==MODEL)
