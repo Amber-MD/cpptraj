@@ -39,6 +39,9 @@ class ClusterMatrix {
     size_t Nelements()        const { return Mat_.size();               }
     int AddElement(double d)        { return Mat_.addElement((float)d); }
     size_t DataSize() const;
+    typedef Matrix<float>::iterator const_iterator;
+    const_iterator begin() const { return Mat_.begin(); }
+    const_iterator end()   const { return Mat_.end();   }
   private:
     static const unsigned char Magic_[];
     /// For reading/writing 8 byte unsigned integers

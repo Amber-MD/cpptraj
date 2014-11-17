@@ -742,7 +742,7 @@ void ClusterList::DrawGraph(DataSet* cnumvtime) const {
   // Degrees of freedom. If Z ever initialized needs to be 3N
   double deg_of_freedom = 2.0 * (double)nframes;
   double fnq = sqrt( deg_of_freedom );
-  // Main loop
+  // Main loop for steepest descent
   const double Rk = 1.0;
   const double min_tol = 1.0E-4;
   const double dxstm = 1.0E-5;
@@ -754,28 +754,29 @@ void ClusterList::DrawGraph(DataSet* cnumvtime) const {
   int iteration = 0;
   while (rms > min_tol && iteration < max_iteration) {
     double e_total = 0.0;
+    ClusterMatrix::const_iterator Req = FrameDistances_.begin();
     for (unsigned int f1 = 0; f1 != nframes; f1++)
     {
       for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
       {
-        double Req = FrameDistances_.GetCdist(f1, f2);
+        //double Req = FrameDistances_.GetCdist(f1, f2);
         Vec3 V1_2 = Xarray[f1] - Xarray[f2];
         double r2 = V1_2.Magnitude2();
         double s = sqrt(r2);
         double r = 2.0 / s;
-        double db = s - Req;
+        double db = s - *(Req++);
         double df = Rk * db;
         double e = df * db;
         e_total += e;
         df *= r;
-
+        // Apply force
         V1_2 *= df;
         Farray[f1] -= V1_2;
         Farray[f2] += V1_2;
         // FINAL ITERATION DEBUG
-        if (iteration + 1 == max_iteration)
-          mprintf("\t\t%u to %u: D= %g  Eq= %g  F1+={%g %g}  F2-={%g %g}\n",
-                  f1+1, f2+1, s, Req, V1_2[0], V1_2[1], V1_2[0], V1_2[1]);
+        //if (iteration + 1 == max_iteration)
+        //  mprintf("\t\t%u to %u: D= %g  Eq= %g  F1+={%g %g}  F2-={%g %g}\n",
+        //          f1+1, f2+1, s, Req, V1_2[0], V1_2[1], V1_2[0], V1_2[1]);
       }
     }
     // Calculate the square of the force vector.
@@ -784,7 +785,7 @@ void ClusterList::DrawGraph(DataSet* cnumvtime) const {
     for (; FV != Farray.end(); ++FV)
       sum += FV->Magnitude2();
     rms = sqrt( sum ) / fnq;
-    // Determine search magnitude
+    // Adjust search step size
     if (dxst < crits) dxst = dxstm;
     dxst = dxst / 2.0;
     if (e_total < last_e) dxst = dxst * 2.4;

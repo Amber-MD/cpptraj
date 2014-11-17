@@ -41,8 +41,10 @@ template <class T> class Matrix {
     typedef ArrayIterator<T> iterator;
     /// Iterator to beginning of matrix elements.
     iterator begin() { return elements_;              }
+    iterator begin() const { return elements_; }
     /// Iterator to end of matrix elements.
     iterator end()   { return elements_ + nelements_; }
+    iterator end()   const { return elements_ + nelements_; }
     /// Return memory used by matrix in bytes.
     size_t DataSize() const {
       return (nelements_*sizeof(T)) + sizeof(T) +
