@@ -718,7 +718,7 @@ void ClusterList::CalcSilhouette(std::string const& prefix) const {
 }
 
 // -----------------------------------------------------------------------------
-void ClusterList::DrawGraph() const {
+void ClusterList::DrawGraph(DataSet* cnumvtime) const {
   mprintf("\tAttempting to draw graph based on pairwise distances.\n");
   unsigned int nframes = FrameDistances_.Nrows();
   std::vector<Vec3> Xarray; // Coords
@@ -772,8 +772,10 @@ void ClusterList::DrawGraph() const {
         V1_2 *= df;
         Farray[f1] -= V1_2;
         Farray[f2] += V1_2;
-        //mprintf("\t\t%u to %u: D= %g  Eq= %g  F1+={%g %g}  F2-={%g %g}\n",
-        //        f1+1, f2+1, s, Req, V1_2[0], V1_2[1], V1_2[0], V1_2[1]);
+        // FINAL ITERATION DEBUG
+        if (iteration + 1 == max_iteration)
+          mprintf("\t\t%u to %u: D= %g  Eq= %g  F1+={%g %g}  F2-={%g %g}\n",
+                  f1+1, f2+1, s, Req, V1_2[0], V1_2[1], V1_2[0], V1_2[1]);
       }
     }
     // Calculate the square of the force vector.
@@ -801,6 +803,6 @@ void ClusterList::DrawGraph() const {
   if (graph.OpenWrite("DrawGraph.dat")) return;
   for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
                                          XV != Xarray.end(); ++XV)
-    graph.Printf("%g %g %u\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1);
+    graph.Printf("%g %g %i\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1 );
   graph.CloseFile();
 }

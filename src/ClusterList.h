@@ -41,7 +41,7 @@ class ClusterList {
     /// Calculate cluster silhouettes
     void CalcSilhouette(std::string const&) const;
 
-    void DrawGraph() const;
+    void DrawGraph(DataSet*) const;
   protected:
     virtual void AddSievedFrames() = 0;
     virtual void ClusterResults(CpptrajFile&) const = 0;

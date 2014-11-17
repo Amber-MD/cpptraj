@@ -374,9 +374,6 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_cluster.Stop();
   cluster_post.Start();
   if (CList_->Nclusters() > 0) {
-    // TEST: Draw graph based on point distances
-    if (drawGraph_)
-     CList_->DrawGraph();
     // Sort clusters and renumber; also finds centroids for printing
     // representative frames. If sieving, add remaining frames.
     CList_->Renumber( (sieve_ != 1) );
@@ -416,6 +413,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 
     // Create cluster v time data from clusters.
     CreateCnumvtime( *CList_, clusterDataSetSize );
+
+    // TEST: Draw graph based on point distances
+    if (drawGraph_)
+     CList_->DrawGraph( cnumvtime_ );
 
     // Create # clusters seen v time data.
     if (clustersVtime_ != 0)
