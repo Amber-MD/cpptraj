@@ -744,7 +744,7 @@ void ClusterList::DrawGraph(DataSet* cnumvtime) const {
   double fnq = sqrt( deg_of_freedom );
   // Main loop for steepest descent
   const double Rk = 1.0;
-  const double min_tol = 1.0E-4;
+  const double min_tol = 1.0E-5;
   const double dxstm = 1.0E-5;
   const double crits = 1.0E-6;
   double rms = 1.0;
@@ -773,16 +773,11 @@ void ClusterList::DrawGraph(DataSet* cnumvtime) const {
         V1_2 *= df;
         Farray[f1] -= V1_2;
         Farray[f2] += V1_2;
-        // FINAL ITERATION DEBUG
-        //if (iteration + 1 == max_iteration)
-        //  mprintf("\t\t%u to %u: D= %g  Eq= %g  F1+={%g %g}  F2-={%g %g}\n",
-        //          f1+1, f2+1, s, Req, V1_2[0], V1_2[1], V1_2[0], V1_2[1]);
       }
     }
-    // Calculate the square of the force vector.
+    // Calculate the magnitude of the force vector.
     double sum = 0.0;
-    std::vector<Vec3>::const_iterator FV = Farray.begin();
-    for (; FV != Farray.end(); ++FV)
+    for (std::vector<Vec3>::const_iterator FV = Farray.begin(); FV != Farray.end(); ++FV)
       sum += FV->Magnitude2();
     rms = sqrt( sum ) / fnq;
     // Adjust search step size
@@ -791,13 +786,32 @@ void ClusterList::DrawGraph(DataSet* cnumvtime) const {
     if (e_total < last_e) dxst = dxst * 2.4;
     double dxsth = dxst / sqrt( sum );
     last_e = e_total;
-    FV = Farray.begin();
+    // Update positions and reset force array.
+    std::vector<Vec3>::iterator FV = Farray.begin();
     for (std::vector<Vec3>::iterator XV = Xarray.begin();
                                      XV != Xarray.end(); ++XV, ++FV)
+    {
       *XV += (*FV * dxsth);
+      *FV = 0.0;
+    }
     // Write out current E.
-    mprintf("DBG:\t%8i %g %g\n", iteration, e_total, dxsth);
+    mprintf("DBG:\t%8i %g %g\n", iteration, e_total, rms);
     iteration++;
+  }
+  // FINAL ITERATION DEBUG
+  if (debug_ > 0) {
+    ClusterMatrix::const_iterator Req = FrameDistances_.begin();
+    for (unsigned int f1 = 0; f1 != nframes; f1++)
+    {
+      for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
+      {
+        Vec3 V1_2 = Xarray[f1] - Xarray[f2];
+        double r1_2 = sqrt( V1_2.Magnitude2() );
+        mprintf("\t\t%u to %u: D= %g  Eq= %g  Delta= %g\n",
+                f1+1, f2+1, r1_2, *Req, fabs(r1_2 - *Req));
+        ++Req;
+      }
+    }
   }
   // Write out final graph with cluster numbers.
   std::vector<unsigned int> Nums;
