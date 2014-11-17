@@ -737,7 +737,7 @@ void ClusterList::DrawGraph() const {
   if (graph0.OpenWrite("InitialGraph.dat")) return;
   for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
                                          XV != Xarray.end(); ++XV)
-    graph0.Printf("%g %g\n", (*XV)[0], (*XV)[1]);
+    graph0.Printf("%g %g %u\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1);
   graph0.CloseFile();
   // Degrees of freedom. If Z ever initialized needs to be 3N
   double deg_of_freedom = 2.0 * (double)nframes;
