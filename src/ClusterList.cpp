@@ -750,7 +750,7 @@ void ClusterList::DrawGraph(DataSet* cnumvtime) const {
   double rms = 1.0;
   double dxst = 0.1;
   double last_e = 0.0;
-  const int max_iteration = 10000; 
+  const int max_iteration = 100000; 
   int iteration = 0;
   while (rms > min_tol && iteration < max_iteration) {
     double e_total = 0.0;
@@ -795,14 +795,25 @@ void ClusterList::DrawGraph(DataSet* cnumvtime) const {
                                      XV != Xarray.end(); ++XV, ++FV)
       *XV += (*FV * dxsth);
     // Write out current E.
-    mprintf("\t%8i %g %g\n", iteration, e_total, dxsth);
+    mprintf("DBG:\t%8i %g %g\n", iteration, e_total, dxsth);
     iteration++;
   }
-  // Write out final graph
+  // Write out final graph with cluster numbers.
+  std::vector<unsigned int> Nums;
+  Nums.reserve( nframes );
+  if (cnumvtime != 0) {
+    ClusterSieve::SievedFrames sievedFrames = FrameDistances_.Sieved();
+    DataSet_1D const& CVT = static_cast<DataSet_1D const&>( *cnumvtime );
+    for (unsigned int n = 0; n != nframes; n++)
+      Nums.push_back( (unsigned int)CVT.Dval(sievedFrames[n]) );
+  } else
+    for (unsigned int n = 1; n <= nframes; n++)
+      Nums.push_back( n );
   CpptrajFile graph;
   if (graph.OpenWrite("DrawGraph.dat")) return;
   for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
                                          XV != Xarray.end(); ++XV)
-    graph.Printf("%g %g %i\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1 );
+    graph.Printf("%g %g %u \"%u\"\n", (*XV)[0], (*XV)[1], 
+                 Nums[XV - Xarray.begin()], XV - Xarray.begin() + 1);
   graph.CloseFile();
 }
