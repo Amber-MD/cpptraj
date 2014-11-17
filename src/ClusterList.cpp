@@ -636,6 +636,12 @@ double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
   return pseudof;
 }
 
+/** The cluster silhouette is a measure of how well each point fits within
+  * a cluster. Values of 1 indicate the point is very similar to other points
+  * in the cluster, i.e. it is well-clustered. Values of -1 indicate the point
+  * is dissimilar and may fit better in a neighboring cluster. Values of 0
+  * indicate the point is on a border between two clusters. 
+  */
 void ClusterList::CalcSilhouette(std::string const& prefix) const {
   mprintf("\tCalculating cluster/frame silhouette.\n");
   CpptrajFile Ffile, Cfile;
