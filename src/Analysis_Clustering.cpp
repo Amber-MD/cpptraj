@@ -19,6 +19,7 @@ Analysis_Clustering::Analysis_Clustering() :
   sieve_(1),
   sieveSeed_(-1),
   windowSize_(0),
+  drawGraph_(0),
   cnumvtime_(0),
   clustersVtime_(0),
   cpopvtimefile_(0),
@@ -30,7 +31,6 @@ Analysis_Clustering::Analysis_Clustering() :
   load_pair_(false),
   calc_lifetimes_(false),
   writeRepFrameNum_(false),
-  drawGraph_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -165,7 +165,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       }
     }
   }
-  drawGraph_ = analyzeArgs.hasKey("drawgraph");
+  if (analyzeArgs.hasKey("drawgraph"))
+    drawGraph_ = 1;
+  else if (analyzeArgs.hasKey("drawgraph3d"))
+    drawGraph_ = 2;
+  else
+    drawGraph_ = 0;
   
   DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   DataFile* clustersvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
@@ -415,8 +420,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     CreateCnumvtime( *CList_, clusterDataSetSize );
 
     // TEST: Draw graph based on point distances
-    if (drawGraph_)
-     CList_->DrawGraph( cnumvtime_ );
+    if (drawGraph_ > 0)
+     CList_->DrawGraph( drawGraph_ == 2, cnumvtime_ );
 
     // Create # clusters seen v time data.
     if (clustersVtime_ != 0)

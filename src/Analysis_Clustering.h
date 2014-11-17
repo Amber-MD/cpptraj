@@ -23,6 +23,7 @@ class Analysis_Clustering: public Analysis {
     int sieve_;                 ///< If > 1, frames to skip on initial clustering pass.
     int sieveSeed_;             ///< Used to seed random number gen for sieve
     int windowSize_;            ///< Window size for # clusters seen vs time.
+    int drawGraph_;
     std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
     DataSet* clustersVtime_;    ///< # clusters seen vs time dataset.
@@ -45,7 +46,6 @@ class Analysis_Clustering: public Analysis {
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found
     bool calc_lifetimes_;       ///< If true calculate DataSets for use in lifetime analysis.
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
-    bool drawGraph_;
     ClusterDist::DsArray cluster_dataset_;  ///< DataSet(s) to use for clustering.
     /// Cluster trajectory format.
     TrajectoryFile::TrajFormatType clusterfmt_;

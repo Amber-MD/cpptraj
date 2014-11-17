@@ -10,6 +10,7 @@
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
+#include "PDBfile.h" // DEBUG
 
 // XMGRACE colors
 const char* ClusterList::XMGRACE_COLOR[] = {
@@ -718,29 +719,36 @@ void ClusterList::CalcSilhouette(std::string const& prefix) const {
 }
 
 // -----------------------------------------------------------------------------
-void ClusterList::DrawGraph(DataSet* cnumvtime) const {
-  mprintf("\tAttempting to draw graph based on pairwise distances.\n");
+void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime) const {
+  if (use_z)
+    mprintf("\tCreating PDB of graph points based on pairwise distances. B-factor = cluster #.\n");
+  else
+    mprintf("\tAttempting to draw graph based on pairwise distances.\n");
   unsigned int nframes = FrameDistances_.Nrows();
   std::vector<Vec3> Xarray; // Coords
   std::vector<Vec3> Farray; // Forces
   Xarray.reserve( nframes );
   Farray.assign( nframes, Vec3(0.0) );
   // Initialize coordinates. X and Y only.
+  double zcoord = 0.0;
   double theta_deg = 0.0;
   double delta = 360.0 / (double)nframes;
   for (unsigned int n = 0; n != nframes; n++, theta_deg += delta) {
     double theta_rad = Constants::DEGRAD * theta_deg;
-    Xarray.push_back( Vec3(cos(theta_rad), sin(theta_rad), 0.0) );
+    if (use_z)
+      zcoord = cos(theta_rad / 2.0);
+    Xarray.push_back( Vec3(cos(theta_rad), sin(theta_rad), zcoord) );
   }
   // Write out initial graph
-  CpptrajFile graph0;
-  if (graph0.OpenWrite("InitialGraph.dat")) return;
-  for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
-                                         XV != Xarray.end(); ++XV)
-    graph0.Printf("%g %g %u\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1);
-  graph0.CloseFile();
+  //CpptrajFile graph0;
+  //if (graph0.OpenWrite("InitialGraph.dat")) return;
+  //for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
+  //                                       XV != Xarray.end(); ++XV)
+  //  graph0.Printf("%g %g %u\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1);
+  //graph0.CloseFile();
   // Degrees of freedom. If Z ever initialized needs to be 3N
   double deg_of_freedom = 2.0 * (double)nframes;
+  if (use_z) deg_of_freedom += (double)nframes;
   double fnq = sqrt( deg_of_freedom );
   // Main loop for steepest descent
   const double Rk = 1.0;
@@ -824,11 +832,24 @@ void ClusterList::DrawGraph(DataSet* cnumvtime) const {
   } else
     for (unsigned int n = 1; n <= nframes; n++)
       Nums.push_back( n );
-  CpptrajFile graph;
-  if (graph.OpenWrite("DrawGraph.dat")) return;
-  for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
-                                         XV != Xarray.end(); ++XV)
-    graph.Printf("%g %g %u \"%u\"\n", (*XV)[0], (*XV)[1], 
-                 Nums[XV - Xarray.begin()], XV - Xarray.begin() + 1);
-  graph.CloseFile();
+  if (!use_z) {
+    CpptrajFile graph;
+    if (graph.OpenWrite("DrawGraph.dat")) return;
+    for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
+                                           XV != Xarray.end(); ++XV)
+      graph.Printf("%g %g %u \"%u\"\n", (*XV)[0], (*XV)[1], 
+                   Nums[XV - Xarray.begin()], XV - Xarray.begin() + 1);
+    graph.CloseFile();
+  } else {
+    // Write out PDB with B-factors
+    PDBfile pdbout;
+    if (pdbout.OpenWrite("DrawGraph.pdb")) return;
+    pdbout.WriteTITLE("Cluster points.");
+    for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
+                                           XV != Xarray.end(); ++XV)
+      pdbout.WriteCoord(PDBfile::HETATM, XV - Xarray.begin() + 1, "HE", "HE", ' ',
+                        XV - Xarray.begin() + 1, (*XV)[0], (*XV)[1], (*XV)[2],
+                        1.0, Nums[XV - Xarray.begin()], "HE", 0, false);
+    pdbout.CloseFile();
+  }
 }
