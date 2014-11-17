@@ -30,6 +30,7 @@ Analysis_Clustering::Analysis_Clustering() :
   load_pair_(false),
   calc_lifetimes_(false),
   writeRepFrameNum_(false),
+  drawGraph_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -164,6 +165,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       }
     }
   }
+  drawGraph_ = analyzeArgs.hasKey("drawgraph");
   
   DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   DataFile* clustersvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
@@ -372,6 +374,9 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_cluster.Stop();
   cluster_post.Start();
   if (CList_->Nclusters() > 0) {
+    // TEST: Draw graph based on point distances
+    if (drawGraph_)
+     CList_->DrawGraph();
     // Sort clusters and renumber; also finds centroids for printing
     // representative frames. If sieving, add remaining frames.
     CList_->Renumber( (sieve_ != 1) );

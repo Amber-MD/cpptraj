@@ -45,6 +45,7 @@ class Analysis_Clustering: public Analysis {
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found
     bool calc_lifetimes_;       ///< If true calculate DataSets for use in lifetime analysis.
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
+    bool drawGraph_;
     ClusterDist::DsArray cluster_dataset_;  ///< DataSet(s) to use for clustering.
     /// Cluster trajectory format.
     TrajectoryFile::TrajFormatType clusterfmt_;
