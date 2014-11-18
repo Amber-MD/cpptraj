@@ -305,14 +305,18 @@ void Cluster_DBSCAN::ClusterResults(CpptrajFile& outfile) const {
   // List the number of noise points.
   outfile.Printf("#NOISE_FRAMES:");
   unsigned int frame = 1;
+  unsigned int numNoise = 0;
   for (std::vector<char>::const_iterator stat = Status_.begin();
                                          stat != Status_.end(); 
                                        ++stat, ++frame)
   {
-    if ( *stat == NOISE )
+    if ( *stat == NOISE ) {
       outfile.Printf(" %i", frame);
+      ++numNoise;
+    }
   }
   outfile.Printf("\n");
+  outfile.Printf("#Number_of_noise_frames: %u\n", numNoise); 
 }
 
 // Cluster_DBSCAN::AddSievedFrames()
