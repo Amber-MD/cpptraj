@@ -760,6 +760,7 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime) const {
   double last_e = 0.0;
   const int max_iteration = 100000; 
   int iteration = 0;
+  mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
   while (rms > min_tol && iteration < max_iteration) {
     double e_total = 0.0;
     ClusterMatrix::const_iterator Req = FrameDistances_.begin();
@@ -803,24 +804,28 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime) const {
       *FV = 0.0;
     }
     // Write out current E.
-    mprintf("DBG:\t%8i %g %g\n", iteration, e_total, rms);
+    mprintf("Iteration:\t%8i %12.4E %12.4E\n", iteration, e_total, rms);
     iteration++;
   }
-  // FINAL ITERATION DEBUG
-  if (debug_ > 0) {
-    ClusterMatrix::const_iterator Req = FrameDistances_.begin();
-    for (unsigned int f1 = 0; f1 != nframes; f1++)
+  // RMS error 
+  ClusterMatrix::const_iterator Req = FrameDistances_.begin();
+  double sumdiff2 = 0.0;
+  for (unsigned int f1 = 0; f1 != nframes; f1++)
+  {
+    for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
     {
-      for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
-      {
-        Vec3 V1_2 = Xarray[f1] - Xarray[f2];
-        double r1_2 = sqrt( V1_2.Magnitude2() );
+      Vec3 V1_2 = Xarray[f1] - Xarray[f2];
+      double r1_2 = sqrt( V1_2.Magnitude2() );
+      double diff = r1_2 - *Req;
+      sumdiff2 += (diff * diff);
+      if (debug_ > 0)
         mprintf("\t\t%u to %u: D= %g  Eq= %g  Delta= %g\n",
-                f1+1, f2+1, r1_2, *Req, fabs(r1_2 - *Req));
-        ++Req;
-      }
+                f1+1, f2+1, r1_2, *Req, fabs(diff));
+      ++Req;
     }
   }
+  double rms_err = sqrt( sumdiff2 / (double)FrameDistances_.Nelements() );
+  mprintf("\tRMS error of final graph positions: %g\n", rms_err);
   // Write out final graph with cluster numbers.
   std::vector<unsigned int> Nums;
   Nums.reserve( nframes );
