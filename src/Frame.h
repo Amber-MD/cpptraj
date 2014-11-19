@@ -74,10 +74,15 @@ class Frame {
     int size()                        const { return ncoord_;        }
     int NrepDims()                    const { return (int)remd_indices_.size(); } // TODO: deprecate
     double Temperature()              const { return T_;             }
+    /// \return pointer to start of XYZ coords for given atom.
     const double* XYZ(int atnum)      const { return X_ + (atnum*3); } 
-    const double* CRD(int idx)        const { return X_ + idx;       } 
-    const double* VXYZ(int atnum)     const { return V_ + (atnum*3); } 
+    /// \return pointer to specified coordinate.
+    const double* CRD(int idx)        const { return X_ + idx;       }
+    /// \return pointer to start of velocity XYZ for given atom.
+    const double* VXYZ(int atnum)     const { return V_ + (atnum*3); }
+    /// \return mass of specified atom.
     double Mass(int atnum)            const { return Mass_[atnum];   }
+    /// \return Box information
     const Box& BoxCrd()               const { return box_;           }
     RemdIdxType const& RemdIndices()  const { return remd_indices_;  }
     // Routines for accessing internal data pointers
