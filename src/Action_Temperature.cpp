@@ -76,10 +76,10 @@ Action::RetType Action_Temperature::Setup(Topology* currentParm, Topology** parm
     int constrained_bonds_to_h = 0;
     int constrained_heavy_bonds = 0;
     if (shakeType_ >= BONDS_TO_H) {
-      constrained_bonds_to_h = (int)currentParm->BondsH().size() / 3;
+      constrained_bonds_to_h = (int)currentParm->BondsH().size();
       mprintf("\t%i bonds to hydrogen constrained.\n", constrained_bonds_to_h);
       if (shakeType_ >= ALL_BONDS) {
-        constrained_heavy_bonds = (int)currentParm->Bonds().size() / 3;
+        constrained_heavy_bonds = (int)currentParm->Bonds().size();
         mprintf("\t%i bonds to heavy atoms constrained.\n", constrained_heavy_bonds);
       }
     }

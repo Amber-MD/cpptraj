@@ -10,6 +10,7 @@
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
+#include "PDBfile.h" // DEBUG
 
 // XMGRACE colors
 const char* ClusterList::XMGRACE_COLOR[] = {
@@ -636,6 +637,12 @@ double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
   return pseudof;
 }
 
+/** The cluster silhouette is a measure of how well each point fits within
+  * a cluster. Values of 1 indicate the point is very similar to other points
+  * in the cluster, i.e. it is well-clustered. Values of -1 indicate the point
+  * is dissimilar and may fit better in a neighboring cluster. Values of 0
+  * indicate the point is on a border between two clusters. 
+  */
 void ClusterList::CalcSilhouette(std::string const& prefix) const {
   mprintf("\tCalculating cluster/frame silhouette.\n");
   CpptrajFile Ffile, Cfile;
@@ -708,5 +715,146 @@ void ClusterList::CalcSilhouette(std::string const& prefix) const {
     if (ci_frames > 0)
       avg_si /= (double)ci_frames;
     Cfile.Printf("%8i %g\n", Ci->Num(), avg_si);
+  }
+}
+
+// -----------------------------------------------------------------------------
+void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime) const {
+  if (use_z)
+    mprintf("\tCreating PDB of graph points based on pairwise distances. B-factor = cluster #.\n");
+  else
+    mprintf("\tAttempting to draw graph based on pairwise distances.\n");
+  unsigned int nframes = FrameDistances_.Nrows();
+  std::vector<Vec3> Xarray; // Coords
+  std::vector<Vec3> Farray; // Forces
+  Xarray.reserve( nframes );
+  Farray.assign( nframes, Vec3(0.0) );
+  // Initialize coordinates. X and Y only.
+  double zcoord = 0.0;
+  double theta_deg = 0.0;
+  double delta = 360.0 / (double)nframes;
+  for (unsigned int n = 0; n != nframes; n++, theta_deg += delta) {
+    double theta_rad = Constants::DEGRAD * theta_deg;
+    if (use_z)
+      zcoord = cos(theta_rad / 2.0);
+    Xarray.push_back( Vec3(cos(theta_rad), sin(theta_rad), zcoord) );
+  }
+  // Write out initial graph
+  //CpptrajFile graph0;
+  //if (graph0.OpenWrite("InitialGraph.dat")) return;
+  //for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
+  //                                       XV != Xarray.end(); ++XV)
+  //  graph0.Printf("%g %g %u\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1);
+  //graph0.CloseFile();
+  // Degrees of freedom. If Z ever initialized needs to be 3N
+  double deg_of_freedom = 2.0 * (double)nframes;
+  if (use_z) deg_of_freedom += (double)nframes;
+  double fnq = sqrt( deg_of_freedom );
+  // Main loop for steepest descent
+  const double Rk = 1.0;
+  const double min_tol = 1.0E-5;
+  const double dxstm = 1.0E-5;
+  const double crits = 1.0E-6;
+  double rms = 1.0;
+  double dxst = 0.1;
+  double last_e = 0.0;
+  const int max_iteration = 100000; 
+  int iteration = 0;
+  mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
+  while (rms > min_tol && iteration < max_iteration) {
+    double e_total = 0.0;
+    ClusterMatrix::const_iterator Req = FrameDistances_.begin();
+    for (unsigned int f1 = 0; f1 != nframes; f1++)
+    {
+      for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
+      {
+        //double Req = FrameDistances_.GetCdist(f1, f2);
+        Vec3 V1_2 = Xarray[f1] - Xarray[f2];
+        double r2 = V1_2.Magnitude2();
+        double s = sqrt(r2);
+        double r = 2.0 / s;
+        double db = s - *(Req++);
+        double df = Rk * db;
+        double e = df * db;
+        e_total += e;
+        df *= r;
+        // Apply force
+        V1_2 *= df;
+        Farray[f1] -= V1_2;
+        Farray[f2] += V1_2;
+      }
+    }
+    // Calculate the magnitude of the force vector.
+    double sum = 0.0;
+    for (std::vector<Vec3>::const_iterator FV = Farray.begin(); FV != Farray.end(); ++FV)
+      sum += FV->Magnitude2();
+    rms = sqrt( sum ) / fnq;
+    // Adjust search step size
+    if (dxst < crits) dxst = dxstm;
+    dxst = dxst / 2.0;
+    if (e_total < last_e) dxst = dxst * 2.4;
+    double dxsth = dxst / sqrt( sum );
+    last_e = e_total;
+    // Update positions and reset force array.
+    std::vector<Vec3>::iterator FV = Farray.begin();
+    for (std::vector<Vec3>::iterator XV = Xarray.begin();
+                                     XV != Xarray.end(); ++XV, ++FV)
+    {
+      *XV += (*FV * dxsth);
+      *FV = 0.0;
+    }
+    // Write out current E.
+    mprintf("Iteration:\t%8i %12.4E %12.4E\n", iteration, e_total, rms);
+    iteration++;
+  }
+  // RMS error 
+  ClusterMatrix::const_iterator Req = FrameDistances_.begin();
+  double sumdiff2 = 0.0;
+  for (unsigned int f1 = 0; f1 != nframes; f1++)
+  {
+    for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
+    {
+      Vec3 V1_2 = Xarray[f1] - Xarray[f2];
+      double r1_2 = sqrt( V1_2.Magnitude2() );
+      double diff = r1_2 - *Req;
+      sumdiff2 += (diff * diff);
+      if (debug_ > 0)
+        mprintf("\t\t%u to %u: D= %g  Eq= %g  Delta= %g\n",
+                f1+1, f2+1, r1_2, *Req, fabs(diff));
+      ++Req;
+    }
+  }
+  double rms_err = sqrt( sumdiff2 / (double)FrameDistances_.Nelements() );
+  mprintf("\tRMS error of final graph positions: %g\n", rms_err);
+  // Write out final graph with cluster numbers.
+  std::vector<unsigned int> Nums;
+  Nums.reserve( nframes );
+  if (cnumvtime != 0) {
+    ClusterSieve::SievedFrames sievedFrames = FrameDistances_.Sieved();
+    DataSet_1D const& CVT = static_cast<DataSet_1D const&>( *cnumvtime );
+    for (unsigned int n = 0; n != nframes; n++)
+      Nums.push_back( (unsigned int)CVT.Dval(sievedFrames[n]) );
+  } else
+    for (unsigned int n = 1; n <= nframes; n++)
+      Nums.push_back( n );
+  if (!use_z) {
+    CpptrajFile graph;
+    if (graph.OpenWrite("DrawGraph.dat")) return;
+    for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
+                                           XV != Xarray.end(); ++XV)
+      graph.Printf("%g %g %u \"%u\"\n", (*XV)[0], (*XV)[1], 
+                   Nums[XV - Xarray.begin()], XV - Xarray.begin() + 1);
+    graph.CloseFile();
+  } else {
+    // Write out PDB with B-factors
+    PDBfile pdbout;
+    if (pdbout.OpenWrite("DrawGraph.pdb")) return;
+    pdbout.WriteTITLE("Cluster points.");
+    for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
+                                           XV != Xarray.end(); ++XV)
+      pdbout.WriteCoord(PDBfile::HETATM, XV - Xarray.begin() + 1, "HE", "HE", ' ',
+                        XV - Xarray.begin() + 1, (*XV)[0], (*XV)[1], (*XV)[2],
+                        1.0, Nums[XV - Xarray.begin()], "HE", 0, false);
+    pdbout.CloseFile();
   }
 }

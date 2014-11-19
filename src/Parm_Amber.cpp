@@ -29,7 +29,7 @@ const int Parm_Amber::AMBERPOINTERS=31;
   NUMBND;   total number of unique bond types
   NUMANG;   total number of unique angle types
   NPTRA;    total number of unique dihedral types
-  NATYP;    number of "atoms" defined in parameter file
+  NATYP;    number of atom types defined in parameter file
   NPHB;     number of types of hydrogen bonded pair interactions
   IFPERT;   =1 if perturbation info is to be read =0 otherwise
   NBPER;    number of bonds to be perturbed
@@ -128,7 +128,12 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
   { "CHARMM_CMAP_RESOLUTION",             "%FORMAT(20I4)"}, // # steps along each Phi/Psi CMAP axis
   { "CHARMM_CMAP_PARAMETER_",             "%FORMAT(8(F9.5))"}, // CMAP grid
   { "CHARMM_CMAP_INDEX",                  "%FORMAT(6I8)" }, // Atom i,j,k,l,m of cross term and idx
-  { "FORCE_FIELD_TYPE",                   "%FORMAT(i2,a78)"} // NOTE: Cannot use with SetFortranType
+  { "FORCE_FIELD_TYPE",                   "%FORMAT(i2,a78)"},// NOTE: Cannot use with SetFortranType
+  // PDB extra info
+  { "RESIDUE_NUMBER", "%FORMAT(20I4)" }, // PDB residue number
+  { "RESIDUE_CHAINID", F20a4 }, // PDB chain ID
+  { "RESIDUE_ICODE", F20a4 }, // PDB residue insertion code
+  { "ATOM_ALTLOC", F20a4 } // PDB atom alt location indicator FIXME: format is guess
 };
 
 // -----------------------------------------------------------------------------
@@ -299,9 +304,9 @@ int Parm_Amber::processWriteArgs(ArgList& argIn) {
 int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   ptype_ = NEWPARM;
   // Create arrays of atom info
-  std::vector<NameType> names, types;
+  std::vector<NameType> names, types, itree;
   std::vector<double> charge, mass, gb_radii, gb_screen, polar;
-  std::vector<int> at_num, atype_index, numex, excluded;
+  std::vector<int> at_num, atype_index, numex, excluded, join, irotat;
   names.reserve(       parmIn.Natom() );
   types.reserve(       parmIn.Natom() );
   charge.reserve(      parmIn.Natom() );
@@ -380,7 +385,7 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   values[NUMBND] = (int)parmIn.BondParm().size();
   values[NUMANG] = (int)parmIn.AngleParm().size();
   values[NPTRA] = (int)parmIn.DihedralParm().size();
-  values[NATYP] = (int)parmIn.Solty().size(); // Only for SOLTY
+  values[NATYP] = parmIn.NatomTypes(); // Only for SOLTY
   values[NPHB] = (int)parmIn.Nonbond().HBarray().size();
   values[IFBOX] = AmberIfbox( parmIn.ParmBox() );
   values[NMXRS] = parmIn.FindResidueMaxNatom();
@@ -534,7 +539,7 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
     phase.clear();
   }
   // SOLTY - Currently unused
-  WriteDouble(F_SOLTY, parmIn.Solty());
+  WriteDouble(F_SOLTY, std::vector<double>(values[NATYP], 0.0));
   // LJ params
   Rk.reserve( parmIn.Nonbond().NBarray().size() );
   Req.reserve( parmIn.Nonbond().NBarray().size() );
@@ -591,9 +596,21 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteName(F_TYPES, types);
   // TREE CHAIN CLASSIFICATION, JOIN, IROTAT
   // TODO: Generate automatically
-  WriteName(F_ITREE, parmIn.Itree());
-  WriteInteger(F_JOIN, parmIn.Join());
-  WriteInteger(F_IROTAT, parmIn.Irotat());
+  if (!parmIn.Extra().empty()) {
+    itree.reserve(  parmIn.Natom() );
+    join.reserve(   parmIn.Natom() );
+    irotat.reserve( parmIn.Natom() );
+    for (std::vector<AtomExtra>::const_iterator ex = parmIn.Extra().begin();
+                                                ex != parmIn.Extra().end(); ++ex)
+    {
+      itree.push_back(  ex->Itree()  );
+      join.push_back(   ex->Join()   );
+      irotat.push_back( ex->Irotat() );
+    }
+  }
+  WriteName(   F_ITREE,  itree);
+  WriteInteger(F_JOIN,   join);
+  WriteInteger(F_IROTAT, irotat);
   // Write solvent info if IFBOX>0
   if (values[IFBOX] > 0) {
     // Determine first solvent molecule 
@@ -1091,24 +1108,40 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
       les_parameters.AddLES_Atom( LES_AtomType(LES_array[i], LES_cnum[i], LES_id[i]) );
     TopIn.SetLES( les_parameters );
   }
+  // Extra info from PDB files.
+  std::vector<int> pdb_resnum;
+  std::vector<NameType> pdb_res_chainID;
+  std::vector<NameType> pdb_res_icode;
+  std::vector<NameType> pdb_atom_alt;
+  if (ptype_ != OLDPARM) { // FIXME: No Chamber?
+    pdb_resnum = GetFlagInteger(F_PDB_RES, values[NRES]);
+    pdb_res_chainID = GetFlagName(F_PDB_CHAIN, values[NRES]);
+    pdb_res_icode = GetFlagName(F_PDB_ICODE, values[NRES]);
+    pdb_atom_alt = GetFlagName(F_PDB_ALT, values[NATOM]);
+  }
   // Done reading. Set up topology if no errors encountered. 
   if (error_count_==0) {
     // Add total # atoms to resnums.
     resnums.push_back( values[NATOM]+1 ); 
-    int ri = 1;
+    int ri = 0;
     // If any optional arrays are empty, fill with zeros.
     if (at_num.empty()) at_num.resize(values[NATOM], 0);
     if (gb_radii.empty()) gb_radii.resize(values[NATOM], 0);
     if (gb_screen.empty()) gb_screen.resize(values[NATOM], 0);
     if (polar.empty()) polar.resize(values[NATOM], 0);
+    if (pdb_resnum.empty())
+      for (int rnum = 1; rnum <= values[NRES]; rnum++)
+        pdb_resnum.push_back( rnum );
+    if (pdb_res_chainID.empty()) pdb_res_chainID.resize(values[NRES]);
+    // Add atoms to topology.
     for (int ai = 0; ai < values[NATOM]; ai++) {
-      if (ai + 1 == resnums[ri]) ++ri;
+      if (ai + 1 == resnums[ri+1]) ++ri;
       // Add atom. Convert Amber charge to elec and shift type index by -1.
       // NOTE: If ever used, shift atom #s in excludedAtoms by -1 so they start from 0 
       TopIn.AddTopAtom( Atom(names[ai], charge[ai] * Constants::AMBERTOELEC, polar[ai],
                              at_num[ai], mass[ai], atype_index[ai] - 1, types[ai],
-                             gb_radii[ai], gb_screen[ai]),
-                        ri, resnames[ri-1], 0 );
+                             gb_radii[ai], gb_screen[ai], pdb_res_chainID[ri][0]),
+                        pdb_resnum[ri], resnames[ri], 0 );
     }
     // NOTE: Shift indices in parm arrays by -1
     error_count_ += TopIn.SetBondInfo(bonds, bondsh, BPA);
@@ -1137,7 +1170,18 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
       if (*it > 0)
         *it -= 1;
     error_count_ += TopIn.SetNonbondInfo( NonbondParmType(values[NTYPES], NB_index, NBA, HBA) );
-    error_count_ += TopIn.SetAmberExtra(solty, itree, join_array, irotat);
+    // Set up Amber extra atom info.
+    std::vector<AtomExtra> extra;
+    if (itree.size() != join_array.size() || itree.size() != irotat.size())
+      mprintf("Warning: Size of Amber arrays ITREE/JOIN/IROTATE do not match. Setting to blank.\n");
+    else {
+      if (!itree.empty()) {
+        extra.reserve( itree.size() );
+        for (size_t n = 0; n != itree.size(); n++)
+          extra.push_back( AtomExtra(itree[n], join_array[n], irotat[n], ' ') );
+      }
+    }
+    error_count_ += TopIn.SetExtraAtomInfo(values[NATYP], extra);
     if (values[IFBOX]>0) 
       TopIn.SetBox( parmbox );
     TopIn.SetChamber( chamberParm );

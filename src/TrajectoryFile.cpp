@@ -37,7 +37,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "Charmm DCD",         0, Traj_CharmmDcd::WriteHelp, Traj_CharmmDcd::Alloc      },
   { "Gromacs TRX",        0, 0, Traj_GmxTrX::Alloc         },
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
-  { "Amber Restart",      0, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },
+  { "Amber Restart",      Traj_AmberRestart::ReadHelp, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },
   { "Tinker file",        0, 0, Traj_Tinker::Alloc         },
   { "Amber Trajectory",   0, Traj_AmberCoord::WriteHelp, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, Traj_SQM::WriteHelp, Traj_SQM::Alloc            },

@@ -22,6 +22,8 @@ class ClusterMatrix {
     bool IgnoringRow(int row) const { return ignore_[row];   }
     /// \return Number of frames (original nrows)
     size_t Nframes()          const { return ignore_.size(); }
+    /// \return Actual number of rows in matrix.
+    size_t Nrows()            const { return Mat_.Nrows();   }
     /// \return An array containing sieved frame numbers.
     ClusterSieve::SievedFrames Sieved() const { return sievedFrames_.Frames(); }
     /// \return Sieve value
@@ -37,6 +39,9 @@ class ClusterMatrix {
     size_t Nelements()        const { return Mat_.size();               }
     int AddElement(double d)        { return Mat_.addElement((float)d); }
     size_t DataSize() const;
+    typedef Matrix<float>::iterator const_iterator;
+    const_iterator begin() const { return Mat_.begin(); }
+    const_iterator end()   const { return Mat_.end();   }
   private:
     static const unsigned char Magic_[];
     /// For reading/writing 8 byte unsigned integers

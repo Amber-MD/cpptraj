@@ -9,9 +9,10 @@ class Traj_AmberRestart : public TrajectoryIO {
     Traj_AmberRestart();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_AmberRestart(); }
     static void WriteHelp();
+    static void ReadHelp();
   private:
     // Inherited functions
-    int processReadArgs(ArgList&) { return 0; }
+    int processReadArgs(ArgList&);
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(std::string const&, Topology*);
     int setupTrajout(std::string const&, Topology*, int, bool);
@@ -35,6 +36,7 @@ class Traj_AmberRestart : public TrajectoryIO {
     double dt_;            ///< For writes, restart timestep (scaling)
     bool singleWrite_;     ///< If false, frame # will be appended to output filename
     bool readAccess_;      ///< If true, presence/absence of velocity info is known
+    bool useVelAsCoords_;  ///< If true read velocities in as coordinates.
     BufferedFrame file_;
 };
 #endif

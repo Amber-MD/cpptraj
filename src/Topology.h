@@ -2,6 +2,7 @@
 #define INC_TOPOLOGY_H
 #include <string>
 #include "Atom.h"
+#include "AtomExtra.h"
 #include "Residue.h"
 #include "Molecule.h"
 #include "ParameterTypes.h"
@@ -97,11 +98,9 @@ class Topology {
     // ----- CHAMBER info ------------------------
     ChamberParmType const& Chamber()        const { return chamber_;      }
     void SetChamber(ChamberParmType const& c)     { chamber_ = c;         }
-    // ----- Amber extra info ----- TODO: Generate automatically, consolidate
-    inline const std::vector<double>& Solty()   const { return solty_;  }
-    inline const std::vector<NameType>& Itree() const { return itree_;  }
-    inline const std::vector<int>& Join()       const { return join_;   }
-    inline const std::vector<int>& Irotat()     const { return irotat_; }
+    // ----- Extra atom info ---------------------
+    inline const std::vector<AtomExtra>& Extra() const { return extra_; }
+    inline int NatomTypes()                      const { return n_atom_types_; }
     // ----- Misc routines -----------------------
     /// Format: <res name><res num>@<atom name>
     std::string TruncResAtomName(int) const;
@@ -133,9 +132,7 @@ class Topology {
     void StartNewMol();
     int CommonSetup(bool);
     int Setup_NoResInfo();
-    // ----- Amber setup routines ----------------
-    int SetAmberExtra(std::vector<double> const&,std::vector<NameType> const&,
-                      std::vector<int> const&,std::vector<int> const&);
+    int SetExtraAtomInfo(int, std::vector<AtomExtra> const&);
     // ----- Mask Routines -----------------------
     bool SetupIntegerMask(AtomMask &) const;
     bool SetupCharMask(AtomMask &) const;
@@ -215,11 +212,8 @@ class Topology {
     CapParmType cap_;                ///< Water cap information
     LES_ParmType lesparm_;           ///< LES parameters
     ChamberParmType chamber_;        ///< CHAMBER parameters
-    // Amber extra info
-    std::vector<double> solty_;
-    std::vector<NameType> itree_;
-    std::vector<int> join_;
-    std::vector<int> irotat_;
+    // Extra atom info
+    std::vector<AtomExtra> extra_;
 
     Box box_;
     Frame refCoords_;
@@ -231,6 +225,7 @@ class Topology {
     int pindex_;
     int nframes_;
     int n_extra_pts_;
+    int n_atom_types_;      ///< Number of unique atom types.
     int ensembleSize_;       // TODO: This information should be passed separate from Topology
     bool hasVelInfo_;        // TODO: This information should be passed separate from Topology
     ReplicaDimArray RepDim_; // TODO: This information should be passed separate from Topology

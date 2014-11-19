@@ -33,7 +33,8 @@ class Parm_Amber : public ParmIO {
       F_IPOL,         F_POLAR,     F_CTITLE,    F_CHM_UBC,  F_CHM_UB,
       F_CHM_UBFC,     F_CHM_UBEQ,  F_CHM_NIMP,  F_CHM_IMP,  F_CHM_NIMPT,
       F_CHM_IMPFC,    F_CHM_IMPP,  F_LJ14A,     F_LJ14B,    F_CHM_CMAPC,
-      F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE
+      F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,  F_PDB_RES,
+      F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT
     };
     static const int AMBERPOINTERS;
     struct ParmFlag {
