@@ -1,6 +1,29 @@
 #include "DataSet_3D.h"
 #include "CpptrajStdio.h"
 
+int DataSet_3D::Allocate_N_O_Box(size_t nx, size_t ny, size_t nz, 
+                                 Vec3 const& oxyz, Box const& boxIn)
+{
+  if (nx == 0 || ny == 0 || nz == 0) return 1;
+  // Get unit cell and fractional cell vectors (recip).
+  boxIn.ToRecip( ucell_, recip_ );
+  // Set origin.
+  ox_ = oxyz[0];
+  oy_ = oxyz[1];
+  oz_ = oxyz[2];
+  // NOTE: The max and spacing values are NOT correct for non-ortho grid, but
+  //       set here as placeholders.
+  // Max are unit cell vector lengths.
+  mx_ = ucell_.Row1().Length();
+  my_ = ucell_.Row2().Length();
+  mz_ = ucell_.Row3().Length();
+  // Spacing.
+  dx_ = mx_ / (double)nx;
+  dy_ = my_ / (double)ny;
+  dz_ = mz_ / (double)nz;
+  return Allocate3D(nx, ny, nz);
+}
+
 // DataSet_3D::Allocate_N_O_D()
 int DataSet_3D::Allocate_N_O_D(size_t nx, size_t ny, size_t nz,
                                Vec3 const& oxyz, Vec3 const& dxyz)

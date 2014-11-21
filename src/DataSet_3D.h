@@ -2,7 +2,7 @@
 #define INC_DATASET_3D_H
 #include "DataSet.h"
 #include "CpptrajFile.h"
-#include "Matrix_3x3.h"
+#include "Box.h"
 /// Interface for 3D DataSets.
 // FIXME: Use DataSet Dims?
 class DataSet_3D : public DataSet {
@@ -31,6 +31,8 @@ class DataSet_3D : public DataSet {
     int Allocate_N_C_D(size_t,size_t,size_t,Vec3 const&,Vec3 const&);
     /// Set up grid from sizes, center, and spacing.
     int Allocate_X_C_D(Vec3 const&,Vec3 const&,Vec3 const&);
+    /// Set up grid from dims, origin, and box.
+    int Allocate_N_O_Box(size_t,size_t,size_t, Vec3 const&, Box const&);
     /// Convert X, Y, and Z coords to index.
     inline bool CalcBins(double,double,double,int&,int&,int&) const;
     inline bool CalcNonOrthoBins(double, double, double, int&, int&, int&) const;
@@ -45,6 +47,7 @@ class DataSet_3D : public DataSet {
     inline double MZ() const { return mz_; }
     inline Vec3 BinCorner(int,int,int);
     inline Vec3 BinCenter(int,int,int);
+    inline Matrix_3x3 const& Ucell() const { return ucell_; }
   private:
     /// Check if grid dimension is even; if not, increment it by 1.
     static void CheckEven(size_t&, char);
@@ -69,12 +72,9 @@ class DataSet_3D : public DataSet {
 bool DataSet_3D::CalcBins(double x, double y, double z,
                           int& i, int& j, int& k) const
 {
-  // X
-  if (x >= ox_ && x < mx_) {
-    // Y
-    if (y >= oy_ && y < my_) {
-      // Z
-      if (z >= oz_ && z < mz_) {
+  if (x >= ox_ && x < mx_) { // X
+    if (y >= oy_ && y < my_) { // Y
+      if (z >= oz_ && z < mz_) { // Z
         i = (int)((x-ox_) / dx_);
         j = (int)((y-oy_) / dy_);
         k = (int)((z-oz_) / dz_);
@@ -100,7 +100,7 @@ Vec3 DataSet_3D::BinCenter(int i, int j, int k) {
 bool DataSet_3D::CalcNonOrthoBins(double x, double y, double z,
                                   int& i, int& j, int& k) const
 {
-  Vec3 frac = recip_ * Vec3(x, y, z);
+  Vec3 frac = recip_ * Vec3(x - ox_, y - oy_, z - oz_);
   if (frac[0] >= 0.0 && frac[0] < 1.0) {
     if (frac[1] >= 0.0 && frac[1] < 1.0) {
       if (frac[2] >= 0.0 && frac[2]) {

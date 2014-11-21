@@ -118,6 +118,7 @@ class Vec3 {
       V_[2] = vz;
     }
     double Normalize();
+    double Length() const;
     void Print(const char*) const;
     double Angle(Vec3 const&) const;
     double SignedAngle(Vec3 const&, Vec3 const&) const;
