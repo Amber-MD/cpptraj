@@ -80,7 +80,7 @@ void DataSet_3D::GridInfo() const {
     //mprintf("\tGrid max    : %8.3f %8.3f %8.3f\n", grid.MX(), grid.MY(), grid.MZ());
   } else {
     Box box(gridBin_->Ucell());
-    mprintf("\t\tBox: ABC={%g %g %g} abg={%g %g %g}\n", box[0], box[1], box[2],
-            box[3], box[4], box[5]);
+    mprintf("\t\tBox: %s ABC={%g %g %g} abg={%g %g %g}\n", box.TypeName(),
+            box[0], box[1], box[2], box[3], box[4], box[5]);
   }
 }

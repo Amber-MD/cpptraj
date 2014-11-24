@@ -46,7 +46,7 @@ Box &Box::operator=(const Box& rhs) {
   return *this;
 }
 
-const double Box::TRUNCOCTBETA = 109.4712206344906917365733534097672;
+const double Box::TRUNCOCTBETA = 2.0*acos(1.0/sqrt(3.0))*Constants::RADDEG; 
 
 const char* Box::BoxNames[] = {
   "None", "Orthogonal", "Trunc. Oct.", "Rhombic Dodec.", "Non-orthogonal"
@@ -132,7 +132,7 @@ void Box::SetMissingInfo(const Box& rhs) {
   SetBoxType();
 }
 
-static bool IsTruncOct(double angle) {
+static inline bool IsTruncOct(double angle) {
   if (angle > 109.47 && angle < 109.48) return true;
   return false;
 }
@@ -170,7 +170,7 @@ void Box::SetBoxType() {
       box_[5]=60.0;
       //if (debug_>0) mprintf("\tSetting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n");
     } else {
-      mprintf("Warning: Box: Unrecognized beta (%lf); setting all angles to beta.\n",box_[4]);
+      mprintf("Warning: Box: Unrecognized beta (%g); setting all angles to beta.\n",box_[4]);
       box_[3] = box_[4];
       box_[5] = box_[4];
     }
@@ -179,7 +179,7 @@ void Box::SetBoxType() {
 }
 
 // Box::ToRecip()
-/** Use box coordinates to calculate reciprocal space conversions for use
+/** Use box coordinates to calculate unit cell and fractional matrix for use
   * with imaging routines. Return cell volume.
   */
 double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
