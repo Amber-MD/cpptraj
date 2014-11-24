@@ -62,4 +62,19 @@ int DataSet_3D::Allocate_X_C_D(Vec3 const& sizes, Vec3 const& center, Vec3 const
   size_t ny = (size_t)(sizes[1] / dxyz[1]);
   size_t nz = (size_t)(sizes[2] / dxyz[2]);
   return Allocate_N_C_D( nx, ny, nz, center, dxyz );
-} 
+}
+
+void DataSet_3D::GridInfo() const {
+  if (gridBin_ == 0) return;
+  Vec3 const& oxyz = gridBin_->GridOrigin();
+  mprintf("\t\tBins: %zu %zu %zu\n", NX(), NY(), NZ());
+  mprintf("\t\tOrigin: %g %g %g\n", oxyz[0], oxyz[1], oxyz[2]);
+  if (gridBin_->IsOrthoGrid()) {
+    GridBin_Ortho const& gb = static_cast<GridBin_Ortho const&>( *gridBin_ );
+    mprintf("\t\tSpacing: %g %g %g\n", gb.DX(), gb.DY(), gb.DZ());
+  } else {
+    Box box(gridBin_->Ucell());
+    mprintf("\t\tBox: ABC={%g %g %g} abg={%g %g %g}\n", box[0], box[1], box[2],
+            box[3], box[4], box[5]);
+  }
+}

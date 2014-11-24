@@ -35,6 +35,8 @@ class DataSet_3D : public DataSet {
     int Allocate_X_C_D(Vec3 const&,Vec3 const&,Vec3 const&);
     /// Set up grid from dims, origin, and box.
     int Allocate_N_O_Box(size_t,size_t,size_t, Vec3 const&, Box const&);
+    /// Print grid info.
+    void GridInfo() const;
     /// Convert X, Y, and Z coords to indices. Check bounds.
     bool CalcBins(double x,double y,double z,int& i,int& j,int& k) const { 
       return gridBin_->CalcBins(x, y, z, i, j, k);

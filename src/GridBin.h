@@ -16,6 +16,8 @@ class GridBin {
     virtual Vec3 BinCenter(int, int, int) const = 0;
     /// \return unit cell matrix. // TODO: Make const&?
     virtual Matrix_3x3 Ucell() const = 0;
+    /// \return true if GridBin type is orthogonal.
+    virtual bool IsOrthoGrid() const = 0;
     /// \return Grid origin.
     Vec3 const& GridOrigin() const { return OXYZ_; }
   protected:
@@ -57,6 +59,7 @@ class GridBin_Ortho : public GridBin {
                   (double)k*dz_+OXYZ_[2]+0.5*dz_);
     }
     Matrix_3x3 Ucell() const { return Matrix_3x3(mx_-OXYZ_[0], my_-OXYZ_[1], mz_-OXYZ_[2]); }
+    bool IsOrthoGrid() const { return true; }
     /// Setup with given origin, spacing; calculate maximum.
     void Setup_O_D(size_t nx, size_t ny, size_t nz,
                    Vec3 const& oxyzIn, Vec3 const& dxyz)
@@ -67,6 +70,9 @@ class GridBin_Ortho : public GridBin {
       my_ = OXYZ_[1] + ((double)ny * dy_);
       mz_ = OXYZ_[2] + ((double)nz * dz_);
     }
+    double DX() const { return dx_; }
+    double DY() const { return dy_; }
+    double DZ() const { return dz_; }
   private:
     double dx_, dy_, dz_; ///< Grid spacing
     double mx_, my_, mz_; ///< Grid max
@@ -109,6 +115,7 @@ class GridBin_Nonortho : public GridBin {
       return ucell_.TransposeMult( frac_half );
     }
     Matrix_3x3 Ucell() const { return ucell_; }
+    bool IsOrthoGrid() const { return false; }
     /// Setup with given bins, origin and box coordinates.
     void Setup_O_Box(size_t nxIn, size_t nyIn, size_t nzIn,
                      Vec3 const& oxyzIn, Box const& boxIn) {
