@@ -91,7 +91,7 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   if (sscanf(line.c_str(), "object 2 class gridconnections counts %d %d %d",
              nxyz, nxyz+1, nxyz+2) != 3)
   {
-    mprintf("Error: Reading grid connections from DX file %s\n", filename);
+    mprinterr("Error: Reading grid connections from DX file %s\n", filename);
     return 1;
   }
   // Sanity check for conflicting grid dimensions

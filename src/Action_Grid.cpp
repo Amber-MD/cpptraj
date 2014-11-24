@@ -15,8 +15,8 @@ Action_Grid::Action_Grid() :
 {}
 
 void Action_Grid::Help() {
-  mprintf("\t<filename> %s <mask>\n", GridAction::HelpText);
-  mprintf("\t[[smoothdensity <value>] [invert]] [madura <madura>]\n"
+  mprintf("\t<filename>\n%s\n", GridAction::HelpText);
+  mprintf("\t<mask> [[smoothdensity <value>] [invert]] [madura <madura>]\n"
           "\t[pdb <pdbout> [max <fraction>]]\n"
           "  Bin atoms in <mask> into a 3D grid.\n"
           "    <fraction>: Percent of max to write.\n"
@@ -36,7 +36,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     return Action::ERR;
   }
   // Get grid options
-  grid_ = GridInit( "GRID", actionArgs, *DSL );
+  grid_ = GridInit( "GRID", actionArgs, *DSL, *FL );
   if (grid_ == 0) return Action::ERR;
 
   // Get extra options

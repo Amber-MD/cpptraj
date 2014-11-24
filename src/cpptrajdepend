@@ -179,7 +179,7 @@ FileName.o : FileName.cpp CpptrajStdio.h FileName.h StringRoutines.h
 FileTypes.o : FileTypes.cpp ArgList.h BaseIOtype.h CpptrajStdio.h FileTypes.h
 Frame.o : Frame.cpp Atom.h AtomMask.h Box.h Constants.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Vec3.h
 FrameList.o : FrameList.cpp ArgList.h Atom.h AtomExtra.h AtomMask.h Box.h CpptrajStdio.h FileName.h Frame.h FrameList.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParameterTypes.h Range.h ReferenceFrame.h Residue.h Topology.h TopologyList.h Vec3.h
-GridAction.o : GridAction.cpp ArgList.h ArrayIterator.h Atom.h AtomExtra.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_3D.h DataSet_GridFlt.h Dimension.h FileIO.h FileName.h Frame.h Grid.h GridAction.h GridBin.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParameterTypes.h Range.h Residue.h Topology.h Vec3.h
+GridAction.o : GridAction.cpp ArgList.h ArrayIterator.h Atom.h AtomExtra.h AtomMask.h Box.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_3D.h DataSet_GridFlt.h Dimension.h FileIO.h FileName.h Frame.h FrameList.h Grid.h GridAction.h GridBin.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParameterTypes.h Range.h ReferenceFrame.h Residue.h Topology.h TopologyList.h Vec3.h
 Hungarian.o : Hungarian.cpp ArrayIterator.h Constants.h CpptrajStdio.h Hungarian.h Matrix.h
 ImageRoutines.o : ImageRoutines.cpp Atom.h AtomExtra.h AtomMask.h Box.h DistRoutines.h FileName.h Frame.h ImageRoutines.h ImageTypes.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h ParameterTypes.h Range.h Residue.h Topology.h Vec3.h
 MapAtom.o : MapAtom.cpp Atom.h MapAtom.h NameType.h

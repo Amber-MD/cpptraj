@@ -67,11 +67,17 @@ int DataSet_3D::Allocate_X_C_D(Vec3 const& sizes, Vec3 const& center, Vec3 const
 void DataSet_3D::GridInfo() const {
   if (gridBin_ == 0) return;
   Vec3 const& oxyz = gridBin_->GridOrigin();
-  mprintf("\t\tBins: %zu %zu %zu\n", NX(), NY(), NZ());
-  mprintf("\t\tOrigin: %g %g %g\n", oxyz[0], oxyz[1], oxyz[2]);
+  mprintf("\t\t-=Grid Dims=- %8s %8s %8s\n", "X", "Y", "Z");
+  mprintf("\t\t        Bins: %8zu %8zu %8zu\n", NX(), NY(), NZ());
+  mprintf("\t\t      Origin: %8g %8g %8g\n", oxyz[0], oxyz[1], oxyz[2]);
   if (gridBin_->IsOrthoGrid()) {
     GridBin_Ortho const& gb = static_cast<GridBin_Ortho const&>( *gridBin_ );
-    mprintf("\t\tSpacing: %g %g %g\n", gb.DX(), gb.DY(), gb.DZ());
+    mprintf("\t\t     Spacing: %8g %8g %8g\n", gb.DX(), gb.DY(), gb.DZ());
+    mprintf("\t\t      Center: %8g %8g %8g\n",
+            oxyz[0] + (NX()/2)*gb.DX(),
+            oxyz[1] + (NY()/2)*gb.DY(),
+            oxyz[2] + (NZ()/2)*gb.DZ());
+    //mprintf("\tGrid max    : %8.3f %8.3f %8.3f\n", grid.MX(), grid.MY(), grid.MZ());
   } else {
     Box box(gridBin_->Ucell());
     mprintf("\t\tBox: ABC={%g %g %g} abg={%g %g %g}\n", box[0], box[1], box[2],
