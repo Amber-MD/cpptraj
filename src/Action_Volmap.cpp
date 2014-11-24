@@ -101,9 +101,10 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       if ( grid_->Allocate_X_C_D(Vec3(xsize,ysize,zsize), 
                                  Vec3(xcenter,ycenter,zcenter), 
                                  Vec3(dx_,dy_,dz_)) ) return Action::ERR;
-      xmin_ = grid_->OX();
-      ymin_ = grid_->OY();
-      zmin_ = grid_->OZ();
+      Vec3 const& oxyz = grid_->GridOrigin();
+      xmin_ = oxyz[0];
+      ymin_ = oxyz[1];
+      zmin_ = oxyz[2];
     } else {
       // Will generate grid around a mask. See if we have a center mask
       if (center.empty())
@@ -222,9 +223,9 @@ Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame
       if (grid_->Allocate_N_O_D( (xmax-xmin)/dx_, (ymax-ymin)/dy_, (zmax-zmin)/dz_,
                                  Vec3(xmin, ymin, zmin), Vec3(dx_, dy_, dz_) ))
         return Action::ERR;
-      xmin_ = grid_->OX();
-      ymin_ = grid_->OY();
-      zmin_ = grid_->OZ();
+      xmin_ = xmin;
+      ymin_ = ymin;
+      zmin_ = zmin;
       setupGridOnMask_ = false;
     }
   }

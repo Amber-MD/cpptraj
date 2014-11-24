@@ -1,26 +1,19 @@
 #include "DataSet_3D.h"
 #include "CpptrajStdio.h"
 
+// DESTRUCTOR
+DataSet_3D::~DataSet_3D() { if (gridBin_ != 0) delete gridBin_; }
+
+// DataSet_3D::Allocate_N_O_Box()
 int DataSet_3D::Allocate_N_O_Box(size_t nx, size_t ny, size_t nz, 
                                  Vec3 const& oxyz, Box const& boxIn)
 {
   if (nx == 0 || ny == 0 || nz == 0) return 1;
-  // Get unit cell and fractional cell vectors (recip).
-  boxIn.ToRecip( ucell_, recip_ );
-  // Set origin.
-  ox_ = oxyz[0];
-  oy_ = oxyz[1];
-  oz_ = oxyz[2];
-  // NOTE: The max and spacing values are NOT correct for non-ortho grid, but
-  //       set here as placeholders.
-  // Max are unit cell vector lengths.
-  mx_ = ucell_.Row1().Length();
-  my_ = ucell_.Row2().Length();
-  mz_ = ucell_.Row3().Length();
-  // Spacing.
-  dx_ = mx_ / (double)nx;
-  dy_ = my_ / (double)ny;
-  dz_ = mz_ / (double)nz;
+  if (gridBin_ != 0) delete gridBin_;
+  GridBin_Nonortho* gb = new GridBin_Nonortho();
+  // Set origin and unit cell params.
+  gb->Setup_O_Box(nx, ny, nz, oxyz, boxIn);
+  gridBin_ = (GridBin*)gb;
   return Allocate3D(nx, ny, nz);
 }
 
@@ -29,17 +22,11 @@ int DataSet_3D::Allocate_N_O_D(size_t nx, size_t ny, size_t nz,
                                Vec3 const& oxyz, Vec3 const& dxyz)
 {
   if (nx == 0 || ny == 0 || nz == 0) return 1;
-  // Set origin and spacing
-  ox_ = oxyz[0];
-  oy_ = oxyz[1];
-  oz_ = oxyz[2];
-  dx_ = dxyz[0];
-  dy_ = dxyz[1];
-  dz_ = dxyz[2];
-  // Calculate maximum, used when binning
-  mx_ = ox_ + ((double)nx * dx_);
-  my_ = oy_ + ((double)ny * dy_);
-  mz_ = oz_ + ((double)nz * dz_);
+  if (gridBin_ != 0) delete gridBin_;
+  GridBin_Ortho* gb = new GridBin_Ortho();
+  // Set origin and spacing, calculate maximum (for binning).
+  gb->Setup_O_D(nx, ny, nz, oxyz, dxyz);
+  gridBin_ = (GridBin*)gb;
   return Allocate3D(nx, ny, nz);
 }
 
@@ -71,7 +58,6 @@ int DataSet_3D::Allocate_N_C_D(size_t nx, size_t ny, size_t nz,
 int DataSet_3D::Allocate_X_C_D(Vec3 const& sizes, Vec3 const& center, Vec3 const& dxyz)
 {
   // Calculate bin counts
-  // TODO: Make size_t
   size_t nx = (size_t)(sizes[0] / dxyz[0]);
   size_t ny = (size_t)(sizes[1] / dxyz[1]);
   size_t nz = (size_t)(sizes[2] / dxyz[2]);

@@ -19,6 +19,8 @@ Box::Box(const double* bIn) //: debug_(0)
   SetBox( bIn );
 }
 
+Box::Box(Matrix_3x3 const& ucell) { SetBox( ucell ); }
+
 // COPY CONSTRUCTOR
 Box::Box(const Box& rhs) : btype_(rhs.btype_) //, debug_(rhs.debug_)
 {
@@ -78,6 +80,20 @@ void Box::SetBox(const double* xyzabg) {
   box_[3] = xyzabg[3];
   box_[4] = xyzabg[4];
   box_[5] = xyzabg[5];
+  SetBoxType();
+}
+
+/** Set box from unit cell matrix. */
+void Box::SetBox(Matrix_3x3 const& ucell) {
+  Vec3 x_axis = ucell.Row1();
+  Vec3 y_axis = ucell.Row2();
+  Vec3 z_axis = ucell.Row3();
+  box_[0] = x_axis.Normalize(); // A
+  box_[1] = y_axis.Normalize(); // B
+  box_[2] = z_axis.Normalize(); // C
+  box_[3] = y_axis.Angle( z_axis ) * Constants::RADDEG; // alpha
+  box_[4] = x_axis.Angle( z_axis ) * Constants::RADDEG; // beta
+  box_[5] = x_axis.Angle( y_axis ) * Constants::RADDEG; // gamma
   SetBoxType();
 }
 

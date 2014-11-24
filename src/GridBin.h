@@ -6,8 +6,10 @@ class GridBin {
   public:
     GridBin() : OXYZ_(0.0) {}
     virtual ~GridBin() {}
-    /// Given coordinates, set corresponding bin indices.
+    /// Given coordinates, set corresponding bin indices; check bounds.
     virtual bool CalcBins(double, double, double, int&, int&, int&) const = 0;
+    /// Given coordinates, set corresponding bin indices; no bounds check.
+    virtual void BinIndices(double, double, double, int&, int&, int&) const = 0;
     /// \return coordinates of bin for given indices.
     virtual Vec3 BinCorner(int, int, int) const = 0;
     /// \return coordinates of bin center for given indices.
@@ -38,6 +40,11 @@ class GridBin_Ortho : public GridBin {
         }
       }
       return false;
+    }
+    void BinIndices(double x, double y, double z, int& i, int& j, int& k) const {
+      i = (int)((x-OXYZ_[0]) / dx_);
+      j = (int)((y-OXYZ_[1]) / dy_);
+      k = (int)((z-OXYZ_[2]) / dz_);
     }
     Vec3 BinCorner(int i, int j, int k) const {
       return Vec3((double)i*dx_+OXYZ_[0],
@@ -84,6 +91,12 @@ class GridBin_Nonortho : public GridBin {
         }
       }
       return false;
+    }
+    void BinIndices(double x, double y, double z, int& i, int& j, int& k) const {
+      Vec3 frac = recip_ * Vec3(x - OXYZ_[0], y - OXYZ_[1], z - OXYZ_[2]);
+      i = (int)(frac[0] * nx_);
+      j = (int)(frac[1] * ny_);
+      k = (int)(frac[2] * nz_);
     }
     Vec3 BinCorner(int i, int j, int k) const {
       Vec3 frac( (double)i / nx_, (double)j / ny_, (double)k / nz_ );

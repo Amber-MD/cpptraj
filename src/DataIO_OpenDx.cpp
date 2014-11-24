@@ -181,10 +181,15 @@ int DataIO_OpenDx::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
   size_t gridsize = set.Size();
   outfile.Printf("object 1 class gridpositions counts %d %d %d\n",
                  set.NX(), set.NY(), set.NZ());
-  outfile.Printf("origin %lg %lg %lg\n", set.OX(), set.OY(), set.OZ());
-  outfile.Printf("delta %lg 0 0\n", set.DX());
-  outfile.Printf("delta 0 %lg 0\n", set.DY());
-  outfile.Printf("delta 0 0 %lg\n", set.DZ());
+  Vec3 const& oxyz = set.GridOrigin();
+  outfile.Printf("origin %lg %lg %lg\n", oxyz[0], oxyz[1], oxyz[2]);
+  Matrix_3x3 ucell = set.Ucell();
+  double nx = (double)set.NX();
+  double ny = (double)set.NY();
+  double nz = (double)set.NZ();
+  outfile.Printf("delta %lg %lg %lg\n", ucell[0]/nx, ucell[1]/ny, ucell[2]/nz);
+  outfile.Printf("delta %lg %lg %lg\n", ucell[3]/nx, ucell[4]/ny, ucell[5]/nz);
+  outfile.Printf("delta %lg %lg %lg\n", ucell[6]/nx, ucell[7]/ny, ucell[8]/nz);
   outfile.Printf("object 2 class gridconnections counts %d %d %d\n",
                  set.NX(), set.NY(), set.NZ());
   outfile.Printf(

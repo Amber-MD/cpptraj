@@ -109,13 +109,14 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
     mprintf("\tCalculating negative density.\n");
   mprintf("\t-=Grid Dims=- %8s %8s %8s\n", "X", "Y", "Z");
   mprintf("\tGrid points : %8i %8i %8i\n", grid.NX(), grid.NY(), grid.NZ());
-  mprintf("\tGrid spacing: %8.3f %8.3f %8.3f\n", grid.DX(), grid.DY(), grid.DZ());
-  mprintf("\tGrid origin : %8.3f %8.3f %8.3f\n", grid.OX(), grid.OY(), grid.OZ());
+  Vec3 const& oxyz = grid.GridOrigin();
+  mprintf("\tGrid origin : %8.3f %8.3f %8.3f\n", oxyz[0], oxyz[1], oxyz[2]);
+/*  mprintf("\tGrid spacing: %8.3f %8.3f %8.3f\n", grid.DX(), grid.DY(), grid.DZ());
   mprintf("\tGrid center : %8.3f %8.3f %8.3f\n",
             grid.OX() + (grid.NX()/2)*grid.DX(),
             grid.OY() + (grid.NY()/2)*grid.DY(),
             grid.OZ() + (grid.NZ()/2)*grid.DZ());
-  mprintf("\tGrid max    : %8.3f %8.3f %8.3f\n", grid.MX(), grid.MY(), grid.MZ());
+  mprintf("\tGrid max    : %8.3f %8.3f %8.3f\n", grid.MX(), grid.MY(), grid.MZ());*/
 }
 
 // GridAction::GridSetup()

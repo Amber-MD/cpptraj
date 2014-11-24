@@ -136,19 +136,22 @@ int DataIO_Xplor::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
   //outfile.Printf("%8i%8i%8i",   set.NX(), -set.NX()/2 + 1, set.NX()/2 );
   //outfile.Printf("%8i%8i%8i",   set.NY(), -set.NY()/2 + 1, set.NY()/2 );
   //outfile.Printf("%8i%8i%8i\n", set.NZ(), -set.NZ()/2 + 1, set.NZ()/2 );
-  int grid_min_x = (int)(set.OX()/set.DX());
-  int grid_min_y = (int)(set.OY()/set.DY());
-  int grid_min_z = (int)(set.OZ()/set.DZ());
+  // Locate the indices of the absolute origin in order to find starting
+  // indices for each axis. FIXME: Is this correct?
+  int grid_min_x, grid_min_y, grid_min_z;
+  set.BinIndices(0.0, 0.0, 0.0, grid_min_x, grid_min_y, grid_min_z);
+  if (grid_min_x != 0) grid_min_x = -grid_min_x;
+  if (grid_min_y != 0) grid_min_y = -grid_min_y;
+  if (grid_min_z != 0) grid_min_z = -grid_min_z;
+  //int grid_min_x = (int)(set.OX()/set.DX());
   outfile.Printf("%8i%8i%8i%8i%8i%8i%8i%8i%8i\n",
     set.NX(), grid_min_x, grid_min_x + set.NX() - 1,
     set.NY(), grid_min_y, grid_min_y + set.NY() - 1,
     set.NZ(), grid_min_z, grid_min_z + set.NZ() - 1);
   // Header - cell x y z alpha beta gamma
+  Box box( set.Ucell() );
   outfile.Printf("%12.5f%12.5f%12.5f%12.5f%12.5f%12.5f\n",
-                 (double)set.NX() * set.DX(), 
-                 (double)set.NY() * set.DY(), 
-                 (double)set.NZ() * set.DZ(),
-                 90.0, 90.0, 90.0);
+                 box[0], box[1], box[2], box[3], box[4], box[5]);
   outfile.Printf("ZYX\n");
   // Print grid bins
   for (size_t k = 0; k < set.NZ(); ++k) {
