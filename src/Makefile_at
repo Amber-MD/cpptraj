@@ -26,7 +26,7 @@ AMBPDB_OBJECTS=AmbPDB.o ActionFrameCounter.o ArgList.o Atom.o AtomMask.o Box.o \
                Parm_Mol2.o Parm_PDB.o Parm_SDF.o Parm_Tinker.o \
                PDBfile.o ProgressBar.o Range.o SDFfile.o StringRoutines.o \
                TinkerFile.o Topology.o TrajectoryFile.o Trajin.o \
-               Trajin_Single.o Trajout.o \
+               Trajin_Single.o Trajout.o Residue.o \
                Traj_AmberCoord.o Traj_AmberRestart.o Traj_CIF.o \
                Traj_Mol2File.o Traj_SDF.o Traj_AmberNetcdf.o Traj_Binpos.o \
                Traj_Conflib.o Traj_SQM.o \
