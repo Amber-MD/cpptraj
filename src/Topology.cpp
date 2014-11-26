@@ -463,6 +463,54 @@ void Topology::PrintResidueInfo(std::string const& maskString) const {
   }
 }
 
+/** Print residue info using single char names. */
+void Topology::PrintShortResInfo(std::string const& maskString, int maxChar) const {
+  AtomMask mask( maskString );
+  ParseMask(refCoords_, mask, true); // Integer mask
+  if ( mask.None() )
+    mprinterr("\tSelection is empty.\n");
+  else {
+    // Determine last selected residue.
+    int max_res = atoms_[mask.back()].ResNum();
+    int total = 0;
+    int rn = -1, startRes = -1;
+    std::string resLine;
+    for (AtomMask::const_iterator atom = mask.begin();
+                                  atom != mask.end(); ++atom)
+    {
+      int current_res = atoms_[*atom].ResNum();
+      if (current_res > rn) {
+        int n_res_skipped = 1;
+        if (startRes == -1)
+          startRes = current_res;
+        else
+          n_res_skipped = current_res - rn;
+        // If we skipped any residues print last consective segment and start a new one.
+        if (n_res_skipped > 1) {
+          mprintf("%-8i %s\n", startRes+1, resLine.c_str());
+          startRes = current_res;
+          resLine = residues_[current_res].SingleCharName();
+          total = 1;
+        } else {
+          // Convert residue name.
+          resLine += residues_[current_res].SingleCharName();
+          total++;
+        }
+        // Print if max line length reached or final res.
+        if ((total%maxChar)==0 || current_res == max_res)
+        {
+          mprintf("%-8i %s\n", startRes+1, resLine.c_str());
+          if (current_res == max_res) break;
+          startRes = -1;
+          resLine.clear();
+        } else if ((total % 10) == 0)
+          resLine += ' ';
+        rn = current_res;
+      }
+    }
+  }
+}
+
 // Topology::PrintChargeMassInfo()
 int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const {
   AtomMask mask( maskString );
