@@ -740,12 +740,14 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime) const {
     Xarray.push_back( Vec3(cos(theta_rad), sin(theta_rad), zcoord) );
   }
   // Write out initial graph
-  //CpptrajFile graph0;
-  //if (graph0.OpenWrite("InitialGraph.dat")) return;
-  //for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
-  //                                       XV != Xarray.end(); ++XV)
-  //  graph0.Printf("%g %g %u\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1);
-  //graph0.CloseFile();
+  if (debug_ > 0 && !use_z) {
+    CpptrajFile graph0;
+    if (graph0.OpenWrite("InitialGraph.dat")) return;
+    for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
+                                           XV != Xarray.end(); ++XV)
+      graph0.Printf("%g %g %u\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1);
+    graph0.CloseFile();
+  }
   // Degrees of freedom. If Z ever initialized needs to be 3N
   double deg_of_freedom = 2.0 * (double)nframes;
   if (use_z) deg_of_freedom += (double)nframes;

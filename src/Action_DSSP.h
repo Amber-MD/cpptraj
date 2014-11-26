@@ -22,7 +22,7 @@ class Action_DSSP : public Action {
     static const char* SSchar[];   ///< PTRAJ 1 character SS names
     static const char* SSname[];   ///< Full SS names
     /// Hold SS-related data for each residue
-    struct Residue {
+    struct SSres {
       std::vector<int> CO_HN_Hbond; ///< 1 if this res CO bonded to res X NH.
       DataSet* resDataSet;      ///< DataSet for SS assignment each frame.
       int SSprob[8];            ///< Hold count for each SS type
@@ -36,7 +36,7 @@ class Action_DSSP : public Action {
       bool hasCO;               ///< True if both C and O atoms selected.
       bool hasNH;               ///< True if both N and H atoms selected. 
     };
-    std::vector<Residue> SecStruct_; ///< Hold SS-related data for all residues
+    std::vector<SSres> SecStruct_; ///< Hold SS-related data for all residues
     // Class variables
     int ensembleNum_;
     int debug_;

@@ -1,7 +1,7 @@
 #ifndef INC_GRIDACTION_H
 #define INC_GRIDACTION_H
-#include "ArgList.h"
 #include "DataSetList.h"
+#include "FrameList.h"
 #include "DataSet_GridFlt.h"
 #include "Topology.h"
 /// Class for setting up a grid within an action.
@@ -11,7 +11,7 @@ class GridAction {
     enum GridModeType { ORIGIN = 0, BOX, MASKCENTER, SPECIFIEDCENTER };
     GridAction() : increment_(1.0) {}
     static const char* HelpText;
-    DataSet_GridFlt* GridInit(const char*, ArgList&, DataSetList&);
+    DataSet_GridFlt* GridInit(const char*, ArgList&, DataSetList&, FrameList const&);
     void GridInfo(DataSet_GridFlt const&);
     int GridSetup(Topology const&);
     inline void GridFrame(Frame const&, AtomMask const&, DataSet_GridFlt&);
@@ -27,7 +27,6 @@ class GridAction {
 void GridAction::GridFrame(Frame const& currentFrame, AtomMask const& mask, 
                            DataSet_GridFlt& grid) 
 {
-  Vec3 offset;
   if (mode_==BOX) {
     Vec3 offset = currentFrame.BoxCrd().Center();
     for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)

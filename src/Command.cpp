@@ -551,7 +551,7 @@ static void Help_MassInfo() {
 }
 
 static void Help_ResInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n"
+  mprintf("\t[<parmindex>] [<mask>] [short]\n"
           "  Print information for residues in <mask> for topology <parmindex> (0 by default).\n");
 }
 static void Help_MolInfo() {
@@ -1544,7 +1544,11 @@ Command::RetType ResInfo(CpptrajState& State, ArgList& argIn, Command::AllocType
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
-  parm->PrintResidueInfo( argIn.GetMaskNext() );
+  bool printShort = argIn.hasKey("short");
+  if (printShort)
+    parm->PrintShortResInfo( argIn.GetMaskNext(), argIn.getKeyInt("maxwidth",50) );
+  else
+    parm->PrintResidueInfo( argIn.GetMaskNext() );
   return Command::C_OK;
 }
 

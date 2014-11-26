@@ -75,10 +75,10 @@ int FrameList::AddRefFrame(ArgList& argIn, TopologyList const& topListIn) {
   for (std::vector<ReferenceFrame>::const_iterator rf = frames_.begin();
                                                    rf != frames_.end(); ++rf)
   {
-    if ( (*rf).FrameName().Full() == refFrame.FrameName().Full() )
+    if ( rf->FrameName().Full() == refFrame.FrameName().Full() )
       mprintf("Warning: Reference with name '%s' already exists!\n",
               refFrame.FrameName().full());
-    if ( !refFrame.Tag().empty() && (*rf).Tag() == refFrame.Tag() )
+    if ( !refFrame.Tag().empty() && rf->Tag() == refFrame.Tag() )
       mprintf("Error: Reference with tag [%s] already exists!\n",
               refFrame.Tag().c_str());
   }
@@ -135,7 +135,7 @@ ReferenceFrame FrameList::GetFrameByName(std::string const& refName) const {
   for (std::vector<ReferenceFrame>::const_iterator rf = frames_.begin();
                                                    rf != frames_.end(); ++rf)
   { // OK if name matches tag, full path, or base file name.
-    if ( (*rf).Tag()==refName || (*rf).FrameName().MatchFullOrBase( refName ) )
+    if ( rf->Tag()==refName || rf->FrameName().MatchFullOrBase( refName ) )
       return *rf;
   }
   return ReferenceFrame();
@@ -151,7 +151,7 @@ void FrameList::List() const {
                                                      rf != frames_.end(); ++rf)
     {
       mprintf("    %u:", rf - frames_.begin());
-      (*rf).RefInfo();
+      rf->RefInfo();
     }
     mprintf("\tActive reference frame for masks is %i\n",activeRefNum_);
   }

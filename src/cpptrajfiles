@@ -206,6 +206,7 @@ SOURCES=ActionFrameCounter.cpp \
         ReadLine.cpp \
         ReferenceAction.cpp \
         ReferenceFrame.cpp \
+        Residue.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \
         StringRoutines.cpp \

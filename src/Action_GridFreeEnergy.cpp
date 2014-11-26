@@ -14,7 +14,7 @@ Action_GridFreeEnergy::Action_GridFreeEnergy() :
 {}
 
 void Action_GridFreeEnergy::Help() {
-  mprintf("\t<filename> %s <mask>\n", GridAction::HelpText);
+  mprintf("\t<filename>\n%s\n\t<mask>\n", GridAction::HelpText);
 }
 
 // Action_GridFreeEnergy::init()
@@ -28,7 +28,7 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* P
     return Action::ERR;
   }
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
-  grid_ = GridInit( "GridFreeEnergy", actionArgs, *DSL );
+  grid_ = GridInit( "GridFreeEnergy", actionArgs, *DSL, *FL );
   if (grid_ == 0) return Action::ERR;
 
   // Get mask

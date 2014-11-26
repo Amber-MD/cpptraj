@@ -13,7 +13,7 @@ Action_Dipole::Action_Dipole() :
 {}
 
 void Action_Dipole::Help() {
-  mprintf("\t<filename> %s\n", GridAction::HelpText);
+  mprintf("\t<filename>\n%s\n", GridAction::HelpText);
   mprintf("\t<mask1> {origin | box} [max <max_percent>]\n");
 }
 
@@ -35,7 +35,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else
     max_ = actionArgs.getKeyDouble("max", 0);
   // Get grid options
-  grid_ = GridInit( "Dipole", actionArgs, *DSL );
+  grid_ = GridInit( "Dipole", actionArgs, *DSL, *FL );
   if (grid_ == 0) return Action::ERR;
   // Setup dipole x, y, and z grids
   dipole_.resize( grid_->Size(), Vec3(0.0,0.0,0.0) );
