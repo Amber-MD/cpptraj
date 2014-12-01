@@ -16,23 +16,9 @@ include cpptrajfiles
 
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 
-AMBPDB_OBJECTS=AmbPDB.o ActionFrameCounter.o ArgList.o Atom.o AtomMask.o Box.o \
-               BufferedFrame.o BufferedLine.o ByteRoutines.o CIFfile.o \
-               CpptrajFile.o CpptrajStdio.o DistRoutines.o \
-               FileIO_Bzip2.o FileIO_Gzip.o FileIO_Mpi.o FileIO_Std.o \
-               FileName.o FileTypes.o Frame.o MaskToken.o Matrix_3x3.o \
-               Mol2File.o MpiRoutines.o NameType.o NetcdfFile.o ParmFile.o \
-               Parm_Amber.o Parm_CIF.o Parm_CharmmPsf.o Parm_Gromacs.o \
-               Parm_Mol2.o Parm_PDB.o Parm_SDF.o Parm_Tinker.o \
-               PDBfile.o ProgressBar.o Range.o SDFfile.o StringRoutines.o \
-               TinkerFile.o Topology.o TrajectoryFile.o Trajin.o \
-               Trajin_Single.o Trajout.o Trajout_Single.o \
-               Traj_AmberCoord.o Traj_AmberRestart.o Traj_CIF.o \
-               Traj_Mol2File.o Traj_SDF.o Traj_AmberNetcdf.o Traj_Binpos.o \
-               Traj_Conflib.o Traj_NcEnsemble.o Traj_SQM.o \
-               Traj_AmberRestartNC.o Traj_CharmmDcd.o Traj_GmxTrX.o \
-               Traj_PDBfile.o Traj_Tinker.o \
-               Vec3.o
+include ambpdbfiles
+
+AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
 
 all: cpptraj$(SFX)
 
@@ -50,7 +36,7 @@ findDepend: FindDepend.o
 	$(CXX) -o findDepend FindDepend.o
 
 depend: findDepend
-	./findDepend $(SOURCES) $(CSOURCES) > cpptrajdepend
+	./findDepend $(SOURCES) $(CSOURCES) AmbPDB.cpp > cpptrajdepend
 
 dependclean:
 	/bin/rm -f FindDepend.o findDepend
