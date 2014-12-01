@@ -420,8 +420,9 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) const {
       {
         if ( mask.AtomsInCharMask( mol->BeginAtom(), mol->EndAtom() ) ) {
           int firstres = atoms_[ mol->BeginAtom() ].ResNum();
-          mprintf("%*u %*i %*i %4s", mwidth, mnum, awidth, mol->NumAtoms(),
-                  rwidth, firstres+1, residues_[firstres].c_str());
+          mprintf("%*u %*i %*i %4s %c", mwidth, mnum, awidth, mol->NumAtoms(),
+                  rwidth, firstres+1, residues_[firstres].c_str(),
+                  atoms_[mol->BeginAtom()].ChainID());
           if ( mol->IsSolvent() ) mprintf(" SOLVENT");
           mprintf("\n");
         }
@@ -445,9 +446,11 @@ void Topology::PrintResidueInfo(std::string const& maskString) const {
     if (awidth < 5) awidth = 5;
     int rwidth = DigitWidth(residues_.size());
     if (rwidth < 5) rwidth = 5;
-    loudPrintf("%-*s %4s %*s %*s %*s %*s\n", rwidth, "#Res", "Name",
+    int mwidth = DigitWidth(molecules_.size());
+    if (mwidth < 5) mwidth = 5;
+    loudPrintf("%-*s %4s %*s %*s %*s %*s %*s\n", rwidth, "#Res", "Name",
                awidth, "First", awidth, "Last", 
-               awidth, "Natom", rwidth, "#Orig");
+               awidth, "Natom", rwidth, "#Orig", mwidth, "#Mol");
     int rn = -1;
     for (AtomMask::const_iterator atom = mask.begin();
                                   atom != mask.end(); ++atom)
@@ -455,9 +458,10 @@ void Topology::PrintResidueInfo(std::string const& maskString) const {
       if (atoms_[*atom].ResNum() > rn) {
         rn = atoms_[*atom].ResNum();
         Residue const& res = residues_[rn];
-        loudPrintf("%*i %4s %*i %*i %*i %*i\n", rwidth, rn+1, res.c_str(),
+        loudPrintf("%*i %4s %*i %*i %*i %*i %*i %c\n", rwidth, rn+1, res.c_str(),
                    awidth, res.FirstAtom()+1, awidth, res.LastAtom(),
-                   awidth, res.NumAtoms(), rwidth, res.OriginalResNum());
+                   awidth, res.NumAtoms(), rwidth, res.OriginalResNum(),
+                   mwidth, atoms_[*atom].MolNum()+1, atoms_[*atom].ChainID());
       }
     }
   }
