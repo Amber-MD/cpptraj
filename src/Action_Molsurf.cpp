@@ -5,7 +5,6 @@
 
 // CONSTRUCTOR
 Action_Molsurf::Action_Molsurf() {
-  //fprintf(stderr,"Angle Con\n");
   sasa_=0;
   atom_ = 0;
   probe_rad_ = 1.4;
@@ -100,7 +99,7 @@ int Action_Molsurf::AllocateMemory() {
   return error_status;
 }
 
-// Action_Molsurf::init()
+// Action_Molsurf::Init()
 Action::RetType Action_Molsurf::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
                           DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
@@ -108,6 +107,11 @@ Action::RetType Action_Molsurf::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   probe_rad_ = actionArgs.getKeyDouble("probe",1.4);
   rad_offset_ = actionArgs.getKeyDouble("offset",0.0);
+  std::string submaskString = actionArgs.GetStringKey("submask");
+  while (!submaskString.empty()) {
+    SubMasks_.push_back( AtomMask(submaskString) );
+    submaskString = actionArgs.GetStringKey("submask");
+  }
 
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
@@ -117,28 +121,66 @@ Action::RetType Action_Molsurf::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   if (sasa_==0) return Action::ERR;
   // Add dataset to data file list
   if (outfile != 0) outfile->AddSet(sasa_);
+  // Submask string data sets
+  for (Marray::const_iterator mask = SubMasks_.begin(); mask != SubMasks_.end(); ++mask) {
+    DataSet* ds = DSL->AddSetIdxAspect(DataSet::FLOAT, sasa_->Name(), 
+                                       mask-SubMasks_.begin(), "submask", mask->MaskExpression());
+    if (ds == 0) return Action::ERR;
+    if (outfile != 0) outfile->AddSet(ds);
+    SubData_.push_back( ds );
+  }
 
   mprintf("    MOLSURF: [%s] Probe Radius=%.3lf\n",Mask1_.MaskString(),probe_rad_);
   if (rad_offset_>0)
-    mprintf("             Radii will be incremented by %.3lf\n",rad_offset_);
+    mprintf("\tRadii will be incremented by %.3lf\n",rad_offset_);
+  if (!SubMasks_.empty())
+    mprintf("\tThe contribution to the total area for %zu sub-masks will be calculated.\n",
+            SubMasks_.size());
 
   return Action::OK;
 }
 
-// Action_Molsurf::setup()
+// Action_Molsurf::Setup()
 /** Set mask up for this parmtop. Allocate the ATOM structure array used 
   * by the molsurf C routines and set everything but the atom coords.
   */
 Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddress) {
   if ( currentParm->SetupIntegerMask(Mask1_) ) return Action::ERR;
   if (Mask1_.None()) {
-    mprintf("    Error: Molsurf::setup: Mask contains 0 atoms.\n");
+    mprintf("Warning: Mask contains 0 atoms.\n");
     return Action::ERR;
   }
 
-  mprintf("    MOLSURF: Calculating surface area for %i atoms.\n",Mask1_.Nselected());
+  mprintf("\tCalculating surface area for %i atoms.\n",Mask1_.Nselected());
   // NOTE: If Mask is * dont include any solvent?
-
+  // Set up submasks
+  if (!SubMasks_.empty()) {
+    // Set up an array so we can index from parm atoms to Mask1 indices.
+    mask1idx_.assign( currentParm->Natom(), -1 );
+    int idx = 0;
+    for (int at = 0; at != currentParm->Natom(); at++) {
+      if (at == Mask1_[idx])
+        mask1idx_[at] = idx++;
+      mprintf("DBG: mask1idx_[%i]= %i\n", at, mask1idx_[at]);
+      if (idx == Mask1_.Nselected()) break;
+    }
+    for (Marray::iterator mask = SubMasks_.begin(); mask != SubMasks_.end(); ++mask)
+    {
+      if (currentParm->SetupIntegerMask(*mask)) return Action::ERR;
+      if (mask->None())
+        mprintf("Warning: No atoms selected for mask '%s'\n", mask->MaskString());
+      else {
+        mask->MaskInfo();
+        // Check that submask atoms are all in common with main mask.
+        // TODO: Use mask1idx?
+        if (Mask1_.NumAtomsInCommon(*mask) != mask->Nselected()) {
+          mprinterr("Error: Sub-mask '%s' atoms are not a subset of main mask '%s'\n",
+                    mask->MaskString(), Mask1_.MaskString());
+          return Action::ERR;
+        }
+      }
+    }
+  }
   // The ATOM structure is how molsurf organizes atomic data. Allocate
   // here and fill in parm info. Coords will be filled in during action. 
   if (atom_!=0) delete[] atom_;
@@ -156,7 +198,7 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
   ATOM *atm_ptr = atom_;
   for (AtomMask::const_iterator parmatom = Mask1_.begin();
                                 parmatom != Mask1_.end();
-                                parmatom++)
+                                ++parmatom, ++atm_ptr)
   {
     atm_ptr->anum = *parmatom + 1; // anum is for debug output only, atoms start from 1
     const Atom patom = (*currentParm)[*parmatom];
@@ -169,7 +211,7 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
     atm_ptr->pos[2] = 0;
     atm_ptr->q = patom.Charge();
     atm_ptr->rad = patom.GBRadius() + rad_offset_;
-    ++atm_ptr;
+    atm_ptr->area = 0.0;
   }
 
   // De-allocate memory first since # atoms may have changed
@@ -181,15 +223,16 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
   return Action::OK;  
 }
 
-// Action_Molsurf::action()
+// Action_Molsurf::DoAction()
 Action::RetType Action_Molsurf::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Set up coordinates for atoms in mask
   ATOM *atm_ptr = atom_;
-  for (AtomMask::const_iterator maskatom = Mask1_.begin(); maskatom != Mask1_.end(); ++maskatom)
+  for (AtomMask::const_iterator maskatom = Mask1_.begin(); maskatom != Mask1_.end();
+       ++maskatom, ++atm_ptr)
   {
     const double* XYZ = currentFrame->XYZ( *maskatom );
     std::copy( XYZ, XYZ+3, atm_ptr->pos );
-    ++atm_ptr;
+    atm_ptr->area = 0.0;
   }
 
   // NOTE: cusp_edge is the only data structure that requires initialization 
@@ -207,7 +250,16 @@ Action::RetType Action_Molsurf::DoAction(int frameNum, Frame* currentFrame, Fram
 
   sasa_->Add(frameNum, &molsurf_sasa);
 
-  //fprintf(outfile,"%10i %10.4lf\n",frameNum,molsurf_sasa);
-  
+  // Get any submask areas
+  DSarray::const_iterator ds = SubData_.begin(); 
+  for (Marray::const_iterator mask = SubMasks_.begin(); mask != SubMasks_.end(); ++mask, ++ds)
+  {
+    double areaSum = 0.0;
+    for (AtomMask::const_iterator maskatom = mask->begin(); maskatom != mask->end(); ++maskatom)
+      areaSum += atom_[ mask1idx_[*maskatom] ].area;
+    float fval = (float)areaSum;
+    (*ds)->Add(frameNum, &fval);
+  }
+
   return Action::OK;
 } 
