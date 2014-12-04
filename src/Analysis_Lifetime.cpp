@@ -19,7 +19,7 @@ void Analysis_Lifetime::Help() {
   mprintf("\t[out <filename>] <dsetarg0> [ <dsetarg1> ... ]\n"
           "\t[window <windowsize> [name <setname>]] [averageonly]\n"
           "\t[cumulative] [cut <cutoff>] [greater | less] [rawcurve]\n"
-          "\t[fuzz <fuzzcut>]\n"
+          "\t[fuzz <fuzzcut>] [nosort]\n"
           "  Calculate lifetimes for specified data set(s), i.e. time that data is\n"
           "  either greater than or less than <cutoff> (default: > 0.5). If <windowsize>\n"
           "  is given calculate lifetimes over windows of given size.\n");
@@ -56,6 +56,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   // Get Keywords
   outfileName_ = analyzeArgs.GetStringKey("out");
   std::string setname = analyzeArgs.GetStringKey("name");
+  bool sortSets = (!analyzeArgs.hasKey("nosort"));
   windowSize_ = analyzeArgs.getKeyInt("window", -1);
   averageonly_ = analyzeArgs.hasKey("averageonly");
   cumulative_ = analyzeArgs.hasKey("cumulative");
@@ -76,7 +77,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     return Analysis::ERR;
   }
   // Sort data sets
-  inputDsets_.SortArray1D(); 
+  if (sortSets) inputDsets_.SortArray1D(); 
 
   // Create output datasets
   DataFile* outfile = 0;
@@ -150,6 +151,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   else
     mprintf("    LIFETIME: Calculating only averages");
   mprintf(" of data in %i sets\n", inputDsets_.size());
+  if (!sortSets) mprintf("\tInput data sets will not be sorted.\n");
   if (debugIn > 0)
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
       mprintf("\t%s\n", (*set)->Legend().c_str());

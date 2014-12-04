@@ -29,6 +29,11 @@ class Action_Molsurf: public Action {
     ATOM* atom_;
     double probe_rad_;
     double rad_offset_;
+    typedef std::vector<AtomMask> Marray;
+    Marray SubMasks_;
+    typedef std::vector<DataSet*> DSarray;
+    DSarray SubData_;
+    std::vector<int> mask1idx_;
     // Molsurf internal data structs
   /* neighbor arrays:  these are big so amount of data stored must be small
    * upper_neighbors is of the NEIGHBOR_TORUS type, which contains 2
