@@ -205,16 +205,40 @@ std::string doubleToString(double d) {
 
 // validInteger()
 bool validInteger(std::string const &argument) {
+  if (argument.empty()) return false;
   std::locale loc;
-  if (isdigit(argument[0],loc) || argument[0]=='-') return true;
-  return false;
+  std::string::const_iterator c;
+  if (argument[0]=='-') {
+    c = argument.begin()+1;
+    if (c == argument.end()) return false;
+  } else
+    c = argument.begin();
+  for (; c != argument.end(); ++c)
+    if (!isdigit(*c,loc)) return false;
+  return true;
 }
 
 // validDouble()
 bool validDouble(std::string const &argument) {
+  if (argument.empty()) return false;
   std::locale loc;
-  if (isdigit(argument[0],loc) || argument[0]=='-' || argument[0]=='.' ) return true;
-  return false;
+  std::string::const_iterator c;
+  bool hasDecPt = (argument[0]=='.');
+  if (argument[0]=='-' || hasDecPt) {
+    c = argument.begin()+1;
+    if (c == argument.end()) return false;
+  } else
+    c = argument.begin();
+  if (!isdigit(*c,loc)) return false;
+  for (; c != argument.end(); ++c)
+  {
+    if (*c == 'e' || *c == 'E')
+      return validInteger( argument.substr(c - argument.begin() + 1) );
+    bool isDecPt = (*c == '.');
+    if (!isdigit(*c,loc) && (!isDecPt || (hasDecPt && isDecPt))) return false;
+    if (isDecPt) hasDecPt = true;
+  }
+  return true;
 }
 
 // ---------- STRING FORMAT ROUTINES -------------------------------------------
