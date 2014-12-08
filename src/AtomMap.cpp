@@ -126,7 +126,7 @@ void AtomMap::DetermineAtomIDs() {
   for (int ma1 = 0; ma1 < (int)mapatoms_.size(); ++ma1) {
     MapAtom& matom = mapatoms_[ma1];
     std::string unique = matom.AtomID();
-    if (mapatoms_.size() > 10)
+    if (mapatoms_.size() > 9)
     {
       for (Atom::bond_iterator bondedAtom = matom.bondbegin();
                                bondedAtom != matom.bondend(); ++bondedAtom)
@@ -140,7 +140,7 @@ void AtomMap::DetermineAtomIDs() {
           if (*ba2 != ma1) {
             unique += mapatoms_[ *ba2 ].AtomID();
             // For larger residues go one additional level.
-            if (mapatoms_.size() > 20) {
+            if (mapatoms_.size() > 19) {
               Atom const& Catom = mapatoms_[ *ba2 ];
               for (Atom::bond_iterator ca3 = Catom.bondbegin(); ca3 != Catom.bondend(); ++ca3)
               {
