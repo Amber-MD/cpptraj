@@ -67,8 +67,8 @@ int AtomMap::SetupResidue(Topology const& topIn, int resnum) {
 
 // AtomMap::ResetMapping()
 void AtomMap::ResetMapping() {
-  for (std::vector<MapAtom>::iterator matom = mapatoms_.begin();
-                                      matom != mapatoms_.end(); matom++)
+  for (Marray::iterator matom = mapatoms_.begin();
+                        matom != mapatoms_.end(); ++matom)
   {
     matom->SetNotMapped();
     matom->SetNotComplete();
@@ -79,7 +79,7 @@ void AtomMap::ResetMapping() {
 /** Check if the atomID of the specified atom (bondedAtom) bonded to <atom> 
   * is the same as the atomID of any other non-mapped atom bonded to <atom>.
   */
-bool AtomMap::BondIsRepeated(int atom, int bondedAtom) {
+bool AtomMap::BondIsRepeated(int atom, int bondedAtom) const {
   // If 1 or no bonds, atom cant possibly be repeated
   if (mapatoms_[atom].Nbonds() > 1) {
     for (Atom::bond_iterator bondedAtom2 = mapatoms_[atom].bondbegin();
@@ -106,15 +106,13 @@ void AtomMap::DetermineAtomIDs() {
   // Determine self IDs
   if (debug_>0) mprintf("ATOM IDs:\n");
   unsigned int anum = 1;
-  for (std::vector<MapAtom>::iterator matom = mapatoms_.begin(); 
-                                      matom != mapatoms_.end(); ++matom)
+  for (Marray::iterator matom = mapatoms_.begin(); 
+                        matom != mapatoms_.end(); ++matom)
   {
     std::string atomID;
     for (Atom::bond_iterator bondedAtom = matom->bondbegin();
                              bondedAtom != matom->bondend(); ++bondedAtom)
-    {
       atomID += mapatoms_[ *bondedAtom ].CharName();
-    }
     // Sort atom ID
     sort( atomID.begin(), atomID.end() );
     // Place current atom 1 char name at beginning
@@ -175,8 +173,8 @@ void AtomMap::DetermineAtomIDs() {
   if (debug_ > 0) {
     mprintf("UNIQUE IDs:\n");
     anum = 1;
-    for (std::vector<MapAtom>::const_iterator matom = mapatoms_.begin();
-                                              matom != mapatoms_.end(); matom++)
+    for (Marray::const_iterator matom = mapatoms_.begin();
+                                matom != mapatoms_.end(); ++matom)
     {
       mprintf("  Atom %6u %4s [%3i]: %s", anum, matom->c_str(), matom->Nduplicated(),
               matom->Unique().c_str());
@@ -236,25 +234,25 @@ void AtomMap::CheckForCompleteAtoms() {
 int AtomMap::CheckBonds() {
   int total_bonds = 0;
   // Search for chiral centers by number of bonds
-  for (std::vector<MapAtom>::iterator matom = mapatoms_.begin();
-                                      matom != mapatoms_.end(); matom++)
+  for (Marray::iterator matom = mapatoms_.begin();
+                        matom != mapatoms_.end(); ++matom)
   {
     // Sort the bonded atoms array by atom #
-    (*matom).SortBonds();
-    total_bonds += (*matom).Nbonds();
-    if ((*matom).Nbonds() == 4) {
+    matom->SortBonds();
+    total_bonds += matom->Nbonds();
+    if (matom->Nbonds() == 4) {
       // If >=3 bonds to single atoms, not chiral (e.g. -CH3)
       int N_single_atoms=0; // Count # bonds to single atoms
-      for (Atom::bond_iterator bondedAtom = (*matom).bondbegin();
-                               bondedAtom != (*matom).bondend(); bondedAtom++)
+      for (Atom::bond_iterator bondedAtom = matom->bondbegin();
+                               bondedAtom != matom->bondend(); ++bondedAtom)
       {
         if (mapatoms_[*bondedAtom].Nbonds() == 1)
           ++N_single_atoms;
       }
       if (N_single_atoms<3) {
-        (*matom).SetChiral();
-        for (Atom::bond_iterator bondedAtom = (*matom).bondbegin();
-                               bondedAtom != (*matom).bondend(); bondedAtom++)
+        matom->SetChiral();
+        for (Atom::bond_iterator bondedAtom = matom->bondbegin();
+                               bondedAtom != matom->bondend(); ++bondedAtom)
           mapatoms_[*bondedAtom].SetBoundToChiral();
       }
     }
@@ -268,16 +266,16 @@ int AtomMap::CheckBonds() {
   if (debug_>0) {
     mprintf("AtomMap: Atom Bond information.\n");
     unsigned int anum = 1;
-    for (std::vector<MapAtom>::iterator matom = mapatoms_.begin();
-                                        matom != mapatoms_.end(); matom++)
+    for (Marray::const_iterator matom = mapatoms_.begin();
+                                matom != mapatoms_.end(); ++matom)
     {
-      mprintf("  Atom %s(%c)_%i has %i bonds.",(*matom).c_str(),(*matom).CharName(),
-              anum, (*matom).Nbonds());
-      if ((*matom).IsChiral()) mprintf(" CHIRAL");
-      if ((*matom).BoundToChiral()) mprintf(" BOUND TO CHIRAL");
+      mprintf("  Atom %s(%c)_%i has %i bonds.",matom->c_str(),matom->CharName(),
+              anum, matom->Nbonds());
+      if (matom->IsChiral()) mprintf(" CHIRAL");
+      if (matom->BoundToChiral()) mprintf(" BOUND TO CHIRAL");
       mprintf("\n");
-      for (Atom::bond_iterator bondedAtom = (*matom).bondbegin();
-                               bondedAtom != (*matom).bondend(); bondedAtom++)
+      for (Atom::bond_iterator bondedAtom = matom->bondbegin();
+                               bondedAtom != matom->bondend(); ++bondedAtom)
       {
         mprintf("    to %s(%c)_%i\n",mapatoms_[*bondedAtom].c_str(),
                 mapatoms_[*bondedAtom].CharName(), *bondedAtom+1);
