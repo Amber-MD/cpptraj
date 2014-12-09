@@ -719,7 +719,9 @@ void ClusterList::CalcSilhouette(std::string const& prefix) const {
 }
 
 // -----------------------------------------------------------------------------
-void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime) const {
+void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
+                            double min_tol, int max_iteration) const
+{
   if (use_z)
     mprintf("\tCreating PDB of graph points based on pairwise distances. B-factor = cluster #.\n");
   else
@@ -754,13 +756,11 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime) const {
   double fnq = sqrt( deg_of_freedom );
   // Main loop for steepest descent
   const double Rk = 1.0;
-  const double min_tol = 1.0E-5;
   const double dxstm = 1.0E-5;
   const double crits = 1.0E-6;
   double rms = 1.0;
   double dxst = 0.1;
   double last_e = 0.0;
-  const int max_iteration = 100000; 
   int iteration = 0;
   mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
   while (rms > min_tol && iteration < max_iteration) {
@@ -829,22 +829,22 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime) const {
   double rms_err = sqrt( sumdiff2 / (double)FrameDistances_.Nelements() );
   mprintf("\tRMS error of final graph positions: %g\n", rms_err);
   // Write out final graph with cluster numbers.
-  std::vector<unsigned int> Nums;
+  std::vector<int> Nums;
   Nums.reserve( nframes );
   if (cnumvtime != 0) {
     ClusterSieve::SievedFrames sievedFrames = FrameDistances_.Sieved();
     DataSet_1D const& CVT = static_cast<DataSet_1D const&>( *cnumvtime );
     for (unsigned int n = 0; n != nframes; n++)
-      Nums.push_back( (unsigned int)CVT.Dval(sievedFrames[n]) );
+      Nums.push_back( (int)CVT.Dval(sievedFrames[n]) );
   } else
-    for (unsigned int n = 1; n <= nframes; n++)
+    for (int n = 1; n <= (int)nframes; n++)
       Nums.push_back( n );
   if (!use_z) {
     CpptrajFile graph;
     if (graph.OpenWrite("DrawGraph.dat")) return;
     for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
                                            XV != Xarray.end(); ++XV)
-      graph.Printf("%g %g %u \"%u\"\n", (*XV)[0], (*XV)[1], 
+      graph.Printf("%g %g %i \"%u\"\n", (*XV)[0], (*XV)[1], 
                    Nums[XV - Xarray.begin()], XV - Xarray.begin() + 1);
     graph.CloseFile();
   } else {

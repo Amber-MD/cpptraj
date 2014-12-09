@@ -20,6 +20,8 @@ Analysis_Clustering::Analysis_Clustering() :
   sieveSeed_(-1),
   windowSize_(0),
   drawGraph_(0),
+  draw_maxit_(0),
+  draw_tol_(0.0),
   cnumvtime_(0),
   clustersVtime_(0),
   cpopvtimefile_(0),
@@ -171,6 +173,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     drawGraph_ = 2;
   else
     drawGraph_ = 0;
+  draw_maxit_ = analyzeArgs.getKeyInt("draw_maxit", 1000);
+  draw_tol_ = analyzeArgs.getKeyDouble("draw_tol", 1.0E-5);
   
   DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   DataFile* clustersvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
@@ -312,6 +316,10 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   if (!avgfile_.empty())
     mprintf("\tAverage structures for clusters will be written to %s, format %s\n",
             avgfile_.c_str(), TrajectoryFile::FormatString(avgfmt_));
+  if (drawGraph_ > 0)
+    mprintf("\tEXPERIMENTAL: Force-directed graph will be drawn from pairwise distances.\n"
+            "\t              Max iterations= %i, min tolerance= %g\n",
+                             draw_maxit_, draw_tol_);
 
   return Analysis::OK;
 }
@@ -421,7 +429,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 
     // TEST: Draw graph based on point distances
     if (drawGraph_ > 0)
-     CList_->DrawGraph( drawGraph_ == 2, cnumvtime_ );
+     CList_->DrawGraph( drawGraph_ == 2, cnumvtime_, draw_tol_, draw_maxit_ );
 
     // Create # clusters seen v time data.
     if (clustersVtime_ != 0)
