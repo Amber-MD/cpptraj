@@ -7,7 +7,7 @@ if [[ ! -e Restart ]] ; then
 fi
 
 # Clean
-CleanFiles lie.in test.out
+CleanFiles lie.in test.out LIE.out
 
 # Check libraries
 CheckNetcdf
@@ -15,12 +15,12 @@ CheckZlib
 CheckBzlib
 
 cat > lie.in <<EOF
-trajin ../../mmpbsa_py/EstRAL_Files/test.mdcrd
+trajin test.mdcrd
 lie LIE :RAL out LIE.out cutvdw 12 cutelec 12
 EOF
 
 INPUT="lie.in"
-TOP="../../mmpbsa_py/EstRAL_Files/sol.top"
+TOP="sol.top"
 RunCpptraj "LIE Test"
 
 DoTest LIE.out.save LIE.out

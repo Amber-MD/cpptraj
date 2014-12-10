@@ -1,4 +1,5 @@
 # Test makefile for cpptraj
+include ../config.h
 
 test.general:
 	@-cd Test_General && ./RunTest.sh $(OPT)
@@ -286,26 +287,27 @@ COMPLETETESTS=test.general \
               test.lipidorder \
               test.pairdist
 
-summary:
-	@./Summary.sh $(OPT)
+summary: MasterTest.sh
+	@sh MasterTest.sh $(OPT) summary
 
-test.standalone: 
-	$(MAKE) test.complete OPT=standalone
-	@./Summary.sh standalone 
+#test.standalone: 
+#	$(MAKE) test.complete OPT=standalone
+#	@./Summary.sh standalone 
 
-test.main: $(MAINTESTS)
+#test.main: $(MAINTESTS)
 
-test: 
-	$(MAKE) test.main
+test.complete: $(COMPLETETESTS) summary
+
+test:
+	$(MAKE) test.complete OPT="-cpptraj $(CPPTRAJBIN)/cpptraj$(SFX)"
 
 test.vg:
-	$(MAKE) test.main OPT=vg
+	$(MAKE) test.complete OPT="vg -cpptraj $(CPPTRAJBIN)/cpptraj$(SFX)"
 
-test.vg.standalone:
-	$(MAKE) test.complete OPT="standalone vg"
-	@./Summary.sh standalone vg
+#test.vg.standalone:
+#	$(MAKE) test.complete OPT="standalone vg"
+#	@./Summary.sh standalone vg
 
-test.complete: $(COMPLETETESTS)
 
 clean:
 	@echo "Cleaning all test directories:"

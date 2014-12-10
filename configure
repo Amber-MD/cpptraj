@@ -206,8 +206,8 @@ CC=""
 CXX=""
 FC=""
 SFX=""
-CPPTRAJHOME=`pwd`
-CPPTRAJBIN=$CPPTRAJHOME/bin
+CPPTRAJHOME=""
+CPPTRAJBIN=""
 DIRECTIVES=""
 DBGFLAGS=""
 OPTFLAGS=""
@@ -415,7 +415,6 @@ while [[ ! -z $1 ]] ; do
     "--prefix" )
       CPPTRAJHOME=$VALUE
       CPPTRAJBIN=$VALUE
-      echo "Installing cpptraj binary to $CPPTRAJBIN"
       ;;
     * )
       echo "Unrecognized OPTION: $1"
@@ -424,6 +423,17 @@ while [[ ! -z $1 ]] ; do
   esac
   shift
 done
+
+# Check install directory
+if [[ -z $CPPTRAJHOME ]] ; then
+  # Default is to use current directory.
+  CPPTRAJHOME=`pwd`
+  CPPTRAJBIN=$CPPTRAJHOME/bin
+elif [[ ! -e $CPPTRAJHOME || ! -e $CPPTRAJBIN ]] ; then
+  echo "Error: Install directory '$CPPTRAJHOME' does not exist."
+  exit 1
+fi
+echo "Installing cpptraj binary to $CPPTRAJBIN"
 
 # Check for compilers
 if [[ -z $CC || -z $CXX || -z $FC ]] ; then

@@ -247,7 +247,67 @@ CheckPtrajAnalyze() {
     exit 0
   fi
 }
-#==============================================================================
+
+#-------------------------------------------------------------------------------
+# Summary(): Print a summary of the tests.
+Summary() {
+  RESULTFILES=""
+  if [[ ! -z $TEST_RESULTS ]] ; then
+    RESULTFILES=`ls */$TEST_RESULTS`
+  else
+    exit 0
+  fi
+  echo "===================== TEST SUMMARY ======================"
+  if [[ ! -z $RESULTFILES ]] ; then
+    cat $RESULTFILES > $TEST_RESULTS
+    # DoTest - Number of comparisons OK
+    OK=`cat $TEST_RESULTS | grep OK | wc -l`
+    # DoTest - Number of comparisons different
+    ERR=`cat $TEST_RESULTS | grep different | wc -l`
+    NOTFOUND=`cat $TEST_RESULTS | grep "not found" | wc -l`
+    ((ERR = $ERR + $NOTFOUND))
+    # Number of tests run
+    NTESTS=`cat $TEST_RESULTS | grep "TEST:" | wc -l`
+    # Number of tests successfully finished
+    PASSED=`cat $TEST_RESULTS | grep "comparisons passed" | wc -l`
+    #CERR=`cat $RESULTFILES | grep failed | awk 'BEGIN{sum=0;}{sum+=$1;}END{print sum}'`
+    #NOERR=`cat $RESULTFILES | grep failed | awk 'BEGIN{sum=0;}{sum+=$4;}END{print sum}'`
+    #PASSED=`cat $RESULTFILES | grep passed | wc -l`
+    ((NCOMPS = $OK + $ERR))
+    echo "  $OK out of $NCOMPS comparisons OK ($ERR failed)."
+    echo "  $PASSED out of $NTESTS tests completed with no issues."
+    #echo "  $PASSED tests passed."
+    #echo "  $ERR tests failed."
+    RESULTFILES=`ls */$TEST_ERROR`
+    if [[ ! -z $RESULTFILES ]] ; then
+      cat $RESULTFILES > $TEST_ERROR
+    fi 
+  else
+    echo "No Test Results files (./*/$TEST_RESULTS) found."
+  fi
+
+  if [[ ! -z $VALGRIND ]] ; then
+    RESULTFILES=`ls */$ERROR`
+    if [[ ! -z $RESULTFILES ]] ; then
+      echo "---------------------------------------------------------"
+      echo "Valgrind summary:"
+      NUMVGERR=`cat $RESULTFILES | grep ERROR | awk 'BEGIN{sum=0;}{sum+=$4;}END{print sum;}'`
+      echo "    $NUMVGERR errors."
+      NUMVGOK=`cat $RESULTFILES | grep "All heap" | wc -l`
+      echo "    $NUMVGOK memory leak checks OK."
+      NUMVGLEAK=`cat $RESULTFILES | grep LEAK | wc -l`
+      echo "    $NUMVGLEAK memory leak reports."
+#      echo "---------------------------------------------------------"
+    else
+      echo "No valgrind test results found."
+      exit 0
+    fi
+  fi
+  echo "========================================================="
+  exit 0
+}
+
+#===============================================================================
 # If the first argument is "clean" then no set-up is required. Script will
 # exit when either CleanFiles or RunCpptraj is called from sourcing script.
 CLEAN=0
@@ -267,6 +327,7 @@ if [[ $CLEAN -eq 0 ]] ; then
     echo "Using diff options: $DIFFOPTS"
     DIFFCMD=$DIFFCMD" $DIFFOPTS "
   fi
+  SUMMARY=0
   NODACDIF=0
   STANDALONE=0
   CPPTRAJ=""
@@ -290,6 +351,7 @@ if [[ $CLEAN -eq 0 ]] ; then
   DEBUG=""
   while [[ ! -z $1 ]] ; do
     case "$1" in
+      "summary") SUMMARY=1 ;;
       "stdout" ) OUTPUT="/dev/stdout" ;;
       "nodacdif" ) NODACDIF=1 ;;
       "standalone" ) STANDALONE=1 ;;
@@ -363,43 +425,6 @@ if [[ $CLEAN -eq 0 ]] ; then
     shift
   done
 
-  # If DO_PARALLEL has been set force MPI
-  if [[ ! -z $DO_PARALLEL ]] ; then
-    SFX=".MPI"
-    MPI=1
-  fi
-
-  # Check for binary. If not defined, first check AMBERHOME/bin, then
-  # CPPTRAJHOME/bin, then $AMBERHOME/AmberTools/src/cpptraj/bin.
-  # If using AMBERHOME/bin binary use DACDIF for test comparisons,
-  # otherwise diff will be used.
-  DACDIF=""
-  if [[ -z $CPPTRAJ ]] ; then
-    if [[ $STANDALONE -eq 0 && ! -z $AMBERHOME ]] ; then
-      DACDIF=$AMBERHOME/AmberTools/test/dacdif
-      if [[ ! -e $DACDIF ]] ; then
-        echo "$DACDIF not found."
-        exit 1
-      fi
-      CPPTRAJ=$AMBERHOME/bin/cpptraj$SFX
-    elif [[ ! -z $CPPTRAJHOME ]] ; then
-      CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
-    elif [[ $STANDALONE -eq 1 && ! -z $AMBERHOME ]] ; then
-      CPPTRAJ=$AMBERHOME/AmberTools/src/cpptraj/bin/cpptraj$SFX
-    else
-      echo "Tests require CPPTRAJHOME or AMBERHOME to be defined, or specify"
-      echo "cpptraj binary location with '-cpptraj <filename>'"
-      exit 0
-    fi
-  fi
-  if [[ $NODACDIF -eq 1 ]] ; then
-    DACDIF=""
-  fi
-  if [[ -z $DACDIF && -z $DIFFCMD ]] ; then
-    echo "Error: no diff command found." > /dev/stderr
-    exit 1
-  fi
-
   # If not doing AmberTools tests, record results of each test to a file
   TEST_RESULTS=""
   if [[ -z $DACDIF ]] ; then
@@ -413,6 +438,46 @@ if [[ $CLEAN -eq 0 ]] ; then
     fi
   fi
 
+  # Only a summary of previous results has been requested.
+  if [[ $SUMMARY -eq 1 ]] ; then
+    Summary
+  fi
+
+  # If DO_PARALLEL has been set force MPI
+  if [[ ! -z $DO_PARALLEL ]] ; then
+    SFX=".MPI"
+    MPI=1
+  fi
+
+  # Check for binary. If not defined, first check AMBERHOME/bin, then
+  # CPPTRAJHOME/bin, then $AMBERHOME/AmberTools/src/cpptraj/bin.
+  # If using AMBERHOME/bin binary use DACDIF for test comparisons,
+  # otherwise diff will be used.
+  DACDIF=""
+  if [[ -z $CPPTRAJ ]] ; then
+    if [[ ! -z $CPPTRAJHOME ]] ; then
+      CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
+    else
+      CPPTRAJ=../../bin/cpptraj$SFX
+    fi
+#    if [[ $STANDALONE -eq 0 && ! -z $AMBERHOME ]] ; then
+#      DACDIF=$AMBERHOME/AmberTools/test/dacdif
+#      if [[ ! -e $DACDIF ]] ; then
+#        echo "$DACDIF not found."
+#        exit 1
+#      fi
+#      CPPTRAJ=$AMBERHOME/bin/cpptraj$SFX
+#    elif [[ ! -z $CPPTRAJHOME ]] ; then
+#      CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
+#    elif [[ $STANDALONE -eq 1 && ! -z $AMBERHOME ]] ; then
+#      CPPTRAJ=$AMBERHOME/AmberTools/src/cpptraj/bin/cpptraj$SFX
+#    else
+#      echo "Tests require CPPTRAJHOME or AMBERHOME to be defined, or specify"
+#      echo "cpptraj binary location with '-cpptraj <filename>'"
+#      exit 0
+#    fi
+  fi
+
   # Check for existance of binary file
   if [[ ! -e $CPPTRAJ ]] ; then
     echo "CPPTRAJ not found ($CPPTRAJ)."
@@ -420,6 +485,15 @@ if [[ $CLEAN -eq 0 ]] ; then
   fi
   if [[ ! -z $DEBUG || $STANDALONE -eq 1 ]] ; then
     ls -l -t $CPPTRAJ
+  fi
+
+  # Ensure there is some sort of diff command set
+  if [[ $NODACDIF -eq 1 ]] ; then
+    DACDIF=""
+  fi
+  if [[ -z $DACDIF && -z $DIFFCMD ]] ; then
+    echo "Error: no diff command found." > /dev/stderr
+    exit 1
   fi
 
   # Check how cpptraj was configured to determine whether it includes 

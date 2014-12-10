@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles runavg.in running_avg.dat
+CleanFiles runavg.in running_avg.dat cumulative_avg.dat distances.dat
 CheckNetcdf
 INPUT="runavg.in"
 TOP="../tz2.parm7"

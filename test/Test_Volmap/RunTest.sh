@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles ptraj.in volmap.dx
+CleanFiles ptraj.in volmap.dx peaks.xyz volmap2.dx
 
 INPUT="ptraj.in"
 

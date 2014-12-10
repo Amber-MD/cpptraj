@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles spam.in spam.dat spam.info spampure.dat
+CleanFiles spam.in spam.dat spam.info spampure.dat test.mdcrd
 
 # Check libraries
 CheckNetcdf

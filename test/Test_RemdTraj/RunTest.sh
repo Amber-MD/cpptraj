@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles remd.in d1.offset.dat d1.crd.dat d1.nc.dat temp.crd.* temp0.crd.* 
+CleanFiles remd.in d1.offset.dat d1.crd.dat d1.nc.dat temp.crd.* temp0.crd.* d1.ensemble.dat 
 
 # Test 0
 cat > remd.in <<EOF

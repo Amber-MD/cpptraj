@@ -12,8 +12,8 @@ AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) cpp_ambpdb$(SFX) 
-	mv cpptraj$(SFX) $(CPPTRAJBIN)
-	mv cpp_ambpdb $(CPPTRAJBIN) 
+	/bin/mv cpptraj$(SFX) $(CPPTRAJBIN)
+	/bin/mv cpp_ambpdb $(CPPTRAJBIN)
 
 findDepend: FindDepend.o 
 	$(CXX) -o findDepend FindDepend.o
@@ -52,6 +52,9 @@ ReadLine.o: ReadLine.cpp
 clean:
 	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o cpp_ambpdb
 	cd $(READLINE_HOME) && $(MAKE) clean
+
+uninstall:
+	/bin/rm -f $(CPPTRAJBIN)/cpptraj $(CPPTRAJBIN)/cpp_ambpdb readline/libreadline.a
 
 # Header dependencies
 include cpptrajdepend

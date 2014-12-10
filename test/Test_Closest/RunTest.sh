@@ -3,7 +3,9 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles closest.in Closest.pdb closest2.in first.Closest.pdb closestmols.dat closest.tz2.truncoct.parm7 imaged.pdb first.Closest.rst7
+CleanFiles closest.in Closest.pdb closest2.in first.Closest.pdb \
+           closestmols.dat closest.tz2.truncoct.parm7 imaged.pdb \
+           first.Closest.rst7 all.Closest.pdb
 
 # Test 1 - Closest, first slovent atom only
 CheckNetcdf
