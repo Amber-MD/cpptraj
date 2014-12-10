@@ -26,9 +26,15 @@ Lead Author: Daniel R. Roe (daniel.r.roe@gmail.com)
 Salt Lake City, UT, USA) and many routines from PTRAJ have been adapted for 
 use by CPPTRAJ, including (but not limited to) code used in the following 
 classes:
-  Analysis_CrankShaft, Analysis_Statistics, Action_DNAionTracker,
-  Action_RandomizeIons, Action_Principal, Action_Grid, Grid,
-  Action_Image, ImageRoutines
+  - Analysis_CrankShaft
+  - Analysis_Statistics
+  - Action_DNAionTracker,
+  - Action_RandomizeIons
+  - Action_Principal
+  - Action_Grid
+  - Grid
+  - Action_Image
+  - ImageRoutines
 
 Contributors
 ============
@@ -81,34 +87,36 @@ use in CPPTRAJ:
 Documentation
 =============
   The main documentation for CPPTRAJ usage is in the AmberTools user manual,
-available with any AmberTools distribution in $AMBERHOME/doc. There is also
+available with any AmberTools distribution in `$AMBERHOME/doc`. There is also
 limited help for commands in interactive mode:
-  help [<command>]
-'help' with no arguments lists all known commands.
+```
+help [<command>]
+```
+`help` with no arguments lists all known commands.
 
-  Code documentation can be generated via Doxygen by typing 'make docs'. This
+  Code documentation can be generated via Doxygen by typing `make docs`. This
 will install HTML and Latex documentation at doc/html/index.html and in 
-the doc/latex respectively. A limited developers guide is available in
-Lyx format in doc/CpptrajDevlopmentGuide.lyx.
+the `doc/latex` respectively. A limited developers guide is available in
+Lyx format in `doc/CpptrajDevlopmentGuide.lyx`.
 
 
 Installation & Testing
 ======================
-Run './configure --help' for the complete list of configure options.
+Run `./configure --help` for the complete list of configure options.
 
-  './configure gnu' should be adequate to set up compilation for most systems.
+  `./configure gnu` should be adequate to set up compilation for most systems.
 For systems without BLAS/LAPACK/ARPACK and/or NETCDF libraries installed,
-the '-amberlib' flag can be specified to use the ones already compiled in
-an AmberTools installation ($AMBERHOME must be set), e.g.
-'./configure -amberlib gnu'. For multicore systems, the '-openmp' flag can
-be specified to enable OpenMP parallelization, e.g. './configure -openmp gnu'.
+the `-amberlib` flag can be specified to use the ones already compiled in
+an AmberTools installation (`$AMBERHOME` must be set), e.g.
+'./configure -amberlib gnu'. For multicore systems, the `-openmp` flag can
+be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
 
 The configure script by default sets everything up to link dynamically. The
-'-static' flag can be used to force static linking. If linking errors are
-encountered you may need to specify library locations using the '--with-LIB=' 
+`-static` flag can be used to force static linking. If linking errors are
+encountered you may need to specify library locations using the `--with-LIB=`
 options. For example, to use NetCDF compiled in /opt/netcdf use the option 
-'--with-netcdf=/opt/netcdf'. Alternatively, individual libraries can be 
+`--with-netcdf=/opt/netcdf`. Alternatively, individual libraries can be 
 disabled with the '-noLIB' options.
 
-After config.h has been successfully generated, 'make install' will
-compile and place the cpptraj binary in the bin/ subdirectory.
+After config.h has been successfully generated, `make install` will
+compile and place the cpptraj binary in the `bin/` subdirectory.
