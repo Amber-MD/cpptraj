@@ -28,7 +28,7 @@ use by CPPTRAJ, including (but not limited to) code used in the following
 classes:
   - Analysis_CrankShaft
   - Analysis_Statistics
-  - Action_DNAionTracker,
+  - Action_DNAionTracker
   - Action_RandomizeIons
   - Action_Principal
   - Action_Grid
