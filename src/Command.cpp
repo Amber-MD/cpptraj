@@ -88,6 +88,7 @@
 #include "Action_AreaPerMol.h"
 #include "Action_Energy.h"
 #include "Action_CheckChirality.h"
+#include "Action_Channel.h" // EXPERIMENTAL
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1794,6 +1795,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "bounds", Action_Bounds::Alloc, Action_Bounds::Help, AddAction },
   { ACTION, "box", Action_Box::Alloc, Action_Box::Help, AddAction },
   { ACTION, "center", Action_Center::Alloc, Action_Center::Help, AddAction },
+  { ACTION, "channel", Action_Channel::Alloc, Action_Channel::Help, AddAction },
   { ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "checkchirality", Action_CheckChirality::Alloc, Action_CheckChirality::Help, AddAction },
   { ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },

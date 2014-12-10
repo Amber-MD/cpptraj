@@ -19,7 +19,7 @@ class AtomMap {
     int SetupResidue(Topology const&,int);
     /// Reset any previously set mapping information.
     void ResetMapping();
-    bool BondIsRepeated(int,int);
+    bool BondIsRepeated(int,int) const;
     void DetermineAtomIDs();
     void MarkAtomComplete(int,bool);
     void CheckForCompleteAtoms();
@@ -33,7 +33,8 @@ class AtomMap {
     void FindSymmetricAtoms(int, std::string const&, Iarray&, Iarray&) const;
 
     static MapAtom EMPTYMAPATOM;
-    std::vector<MapAtom> mapatoms_;
+    typedef std::vector<MapAtom> Marray;
+    Marray mapatoms_;
     int debug_;
 };
 #endif
