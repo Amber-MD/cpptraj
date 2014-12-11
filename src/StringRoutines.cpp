@@ -12,6 +12,11 @@
 #endif
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
+#ifdef _MSC_VER
+# include <windows.h>
+#else
+# include <unistd.h>
+#endif
 
 // tildeExpansion()
 /** Use glob.h to perform tilde expansion on a filename, returning the
@@ -319,3 +324,20 @@ std::string TimeString() {
            timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
   return std::string( buffer );
 }
+// -----------------------------------------------------------------------------
+long long AvailableMemory() {
+#ifdef _MSC_VER
+  MEMORYSTATUS status;
+  GlobalMemoryStatus(&status);
+  if (status.dwLength != sizeof(status))
+    return -1;
+  return (long long)status.dwAvailPhys;
+#else
+  long pages = sysconf(_SC_AVPHYS_PAGES);
+  long page_size = sysconf(_SC_PAGE_SIZE);
+  if (pages < 0L || page_size < 0L) return -1;
+  return (long long)(pages * page_size);
+#endif
+}
+
+double AvailableMemory_MB() { return (double)AvailableMemory() / (1024 * 1024); }
