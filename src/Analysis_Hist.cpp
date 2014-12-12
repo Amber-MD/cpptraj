@@ -209,13 +209,12 @@ Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& hist
   histdata_.push_back( dsIn );
   N_dimensions_ = 1;
   std::string setname = histname;
-  if (histname.empty()) {
+  if (setname.empty()) {
     if (calcFreeE_)
-      setname="FreeE_";
+      setname = datasetlist.GenerateDefaultName("FreeE_" + dsIn->Name());
     else
-      setname="Hist_";
+      setname = datasetlist.GenerateDefaultName("Hist_" + dsIn->Name());
   }
-  setname += dsIn->Legend();
   hist_ = datasetlist.AddSetIdxAspect( DataSet::DOUBLE, setname, setidx, dsIn->Aspect() );
   if (hist_ == 0) return Analysis::ERR;
   if (outfile_ != 0) outfile_->AddSet( hist_ );
