@@ -19,6 +19,19 @@ int Equation(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
   return 0;
 }
 
+/// Gaussian: Y = a * exp( -((X - b)^2) / (2 * c^2) )
+int EQ_Gaussian(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
+                CurveFit::Darray& Yvals)
+{
+  for (unsigned int n = 0; n != Xvals.size(); n++) {
+    double diff = Xvals[n] - Params[1];
+    double num = -(diff * diff);
+    double den = 2.0 * (Params[2] * Params[2]);
+    Yvals[n] = Params[0] * exp( num / den );
+  }
+  return 0;
+}
+
 /// Multi exponential of form Y = SUM[Bi * exp(X * Bi+1)] 
 int EQ_MultiExp(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
                 CurveFit::Darray& Yvals)
@@ -108,6 +121,8 @@ Analysis_CurveFit::Analysis_CurveFit() :
   maxIt_(0),
   nexp_(-1),
   outXbins_(-1),
+  n_expected_params_(0),
+  n_specified_params_(0),
   eqForm_(GENERAL)
 {} 
 
@@ -142,42 +157,49 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     return Analysis::ERR;
   }
   std::string dsoutName;
-  int n_expected_params = 0;
+  n_expected_params_ = 0;
   // Determine if special equation is being used.
   nexp_ = analyzeArgs.getKeyInt("nexp", -1);
-  if ( nexp_ > 0 ) {
-    // Multi-exponential specialized equation form.
+  bool useGauss = analyzeArgs.hasKey("gauss");
+  if ( useGauss || nexp_ > 0 ) {
+    // Multi-exponential/Gaussian specialized equation form.
     dsoutName = analyzeArgs.GetStringKey("name");
     if (dsoutName.empty()) {
-      mprinterr("Error: 'name <OutputSetName>' must be used with 'nexp <n>'\n");
+      mprinterr("Error: 'name <OutputSetName>' must be used with 'nexp <n>' or 'gauss'\n");
       return Analysis::ERR;
     }
     equation_ = dsoutName + " = ";
-    // Determine form
-    eqForm_ = MEXP;
-    std::string formStr = analyzeArgs.GetStringKey("form");
-    if (!formStr.empty()) {
-      if (formStr == "mexp") eqForm_ = MEXP;
-      else if (formStr == "mexpk") eqForm_ = MEXP_K;
-      else if (formStr == "mexpk_penalty") eqForm_ = MEXP_K_PENALTY;
-      else {
-        mprinterr("Error: Multi-exponential form '%s' not recognized.\n", formStr.c_str());
-        return Analysis::ERR;
+    if (nexp_ > 0) {
+      // Determine form
+      eqForm_ = MEXP;
+      std::string formStr = analyzeArgs.GetStringKey("form");
+      if (!formStr.empty()) {
+        if (formStr == "mexp") eqForm_ = MEXP;
+        else if (formStr == "mexpk") eqForm_ = MEXP_K;
+        else if (formStr == "mexpk_penalty") eqForm_ = MEXP_K_PENALTY;
+        else {
+          mprinterr("Error: Multi-exponential form '%s' not recognized.\n", formStr.c_str());
+          return Analysis::ERR;
+        }
       }
+      // Set up equation
+      int nparam = 0;
+      if (eqForm_ != MEXP) {
+        equation_.append("A0 +");
+        nparam = 1;
+      }
+      for (int ie = 0; ie != nexp_; ie++, nparam += 2) {
+        if (ie > 0)
+          equation_.append(" + ");
+        equation_.append("(A" + integerToString(nparam) + " * exp(X * A" + 
+                               integerToString(nparam+1) + "))");
+      }
+      n_expected_params_ = nparam;
+    } else {
+      eqForm_ = GAUSS;
+      n_expected_params_ = 3;
+      equation_.append("A0 * exp( -((X - A1)^2) / (2 * A2^2) )");
     }
-    // Set up equation
-    int nparam = 0;
-    if (eqForm_ != MEXP) {
-      equation_.append("A0 +");
-      nparam = 1;
-    }
-    for (int ie = 0; ie != nexp_; ie++, nparam += 2) {
-      if (ie > 0)
-        equation_.append(" + ");
-      equation_.append("(A" + integerToString(nparam) + " * exp(X * A" + 
-                             integerToString(nparam+1) + "))");
-    }
-    n_expected_params = nparam;
   } else {
     // Any equation form, solve with RPNcalc.
     eqForm_ = GENERAL;
@@ -199,7 +221,7 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
       mprinterr("Error: Invalid assignment in equation '%s'.\n", equation_.c_str());
       return Analysis::ERR;
     } 
-    n_expected_params = Calc_.Nparams();
+    n_expected_params_ = Calc_.Nparams();
   }
   // Get keywords
   resultsName_ = analyzeArgs.GetStringKey("resultsout");
@@ -225,10 +247,10 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     }
   }
   // Now get all parameters
-  if (n_expected_params < 0) return Analysis::ERR;
-  Params_.resize( n_expected_params, 0.0 );
-  int n_specified_params = 0;
-  for (int p = 0; p != n_expected_params; p++, n_specified_params++) {
+  if (n_expected_params_ < 0) return Analysis::ERR;
+  Params_.resize( n_expected_params_, 0.0 );
+  n_specified_params_ = 0;
+  for (int p = 0; p != n_expected_params_; p++, n_specified_params_++) {
     std::string parameterArg = analyzeArgs.GetStringNext();
     if (parameterArg.empty())
       break;
@@ -246,22 +268,9 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     Params_[pnum] = parameter.getNextDouble(0.0);
   }
   // Check if all params specified.
-  if (n_specified_params != n_expected_params) {
+  if (n_specified_params_ != n_expected_params_)
     mprintf("Warning: # specified params (%i) less than # expected params (%i)\n",
-            n_specified_params, n_expected_params);
-    if (eqForm_ != GENERAL && n_specified_params == 0) {
-      mprintf("Warning: For multi-exponential using default params.\n");
-      int pnum = 0;
-      if (eqForm_ != MEXP) {
-        pnum = 1;
-        Params_[0] = 1.0;
-      }
-      for (int p = pnum; p != n_expected_params; p+=2) {
-        Params_[p] = 1.0;
-        Params_[p+1] = -1.0;
-      }
-    }
-  }
+            n_specified_params_, n_expected_params_);
   // Set up output data set.
   finalY_ = datasetlist->AddSet(DataSet::XYMESH, dsoutName, "FIT");
   if (finalY_ == 0) return Analysis::ERR;
@@ -274,7 +283,8 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     if (eqForm_ == MEXP_K_PENALTY)
       mprintf("\tMulti-exponential equation constraints: sum of prefactors = 1.0,"
               " exponent parameters < 0.0\n");
-  }
+  } else if (eqForm_ == GAUSS)
+    mprintf("\tGaussian form.\n");
   mprintf("\tFinal Y values will be saved in set '%s'\n", finalY_->Legend().c_str());
   if (outXbins_ > 0)
     mprintf("\tFinal X range: %g to %g, %i points.\n", outXmin_, outXmax_, outXbins_);
@@ -282,9 +292,11 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
   if (!resultsName_.empty())
     mprintf("\tFinal parameters and statistics for fit will be writtent to %s\n",
             resultsName_.c_str());
-  mprintf("\tInitial parameters:\n");
-  for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
-    mprintf("\t  A%u = %g\n", ip - Params_.begin(), *ip);
+  if (n_specified_params_ > 0) {
+    mprintf("\tInitial parameters:\n");
+    for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
+      mprintf("\t  A%u = %g\n", ip - Params_.begin(), *ip);
+  }
 
   return Analysis::OK;
 }
@@ -295,6 +307,7 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     mprinterr("Error: Set %s is empty.\n", dset_->Legend().c_str());
     return Analysis::ERR;
   }
+  DataSet_1D& Set = static_cast<DataSet_1D&>( *dset_ );
 
   // Set up function to use
   CurveFit::FitFunctionType fxn = 0;
@@ -303,13 +316,11 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     case MEXP_K:         fxn = EQ_MultiExpK; break;
     case MEXP_K_PENALTY: fxn = EQ_MultiExpK_Penalty; break;
     case MEXP:           fxn = EQ_MultiExp; break;
+    case GAUSS:          fxn = EQ_Gaussian; break;
     default: return Analysis::ERR;
   }
 
-  // TODO: Set initial parameters and bounds if necessary.
-
   // Set up initial Y and X values.
-  DataSet_1D& Set = static_cast<DataSet_1D&>( *dset_ );
   CurveFit::Darray Xvals, Yvals;
   Xvals.reserve( Set.Size() );
   Yvals.reserve( Set.Size() );
@@ -317,6 +328,40 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     Xvals.push_back( Set.Xcrd(i) );
     Yvals.push_back( Set.Dval(i) );
   }
+
+  // Check if all params specified. Try to choose defaults.
+  if (n_specified_params_ != n_expected_params_) {
+    if (nexp_ > 0 && n_specified_params_ == 0) {
+      mprintf("Warning: For multi-exponential using default params.\n");
+      int pnum = 0;
+      if (eqForm_ != MEXP) {
+        pnum = 1;
+        Params_[0] = 1.0;
+      }
+      for (int p = pnum; p != n_expected_params_; p+=2) {
+        Params_[p] = 1.0;
+        Params_[p+1] = -1.0;
+      }
+    } else if (eqForm_ == GAUSS && n_specified_params_ == 0) {
+      mprintf("Warning: For Gaussian using default params from set.\n");
+      double ymax_y = Yvals[0];
+      double ymax_x = Xvals[0];
+      for (unsigned int i = 1; i != Set.Size(); i++) {
+        if (Yvals[i] > ymax_y) {
+          ymax_y = Yvals[i];
+          ymax_x = Xvals[i];
+        }
+      }
+      Params_[0] = 1.0;
+      Params_[1] = ymax_x;
+      Params_[2] = 1.0;
+    }
+    mprintf("\tInitial parameters:\n");
+    for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
+      mprintf("\t  A%u = %g\n", ip - Params_.begin(), *ip);
+  }
+
+  // TODO: Set initial parameters and bounds if necessary.
 
   // Perform curve fitting.
   CurveFit fit;
@@ -342,7 +387,7 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     // Set Calc if not already done.
     if (eqForm_ != GENERAL) {
       if (Calc_.ProcessExpression( equation_ )) {
-        mprinterr("Internal Error: Invalid multi-exponential equation.\n");
+        mprinterr("Internal Error: Invalid equation.\n");
         return Analysis::ERR;
       }
     }
@@ -372,7 +417,7 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
                  HASH_TAB, TheilU, HASH_TAB, rms_percent_error);
 
   // Stats specific to multi-exp forms.
-  if (eqForm_ != GENERAL) {
+  if (nexp_ > 0) {
     unsigned int pstart = 0;
     if (eqForm_ != MEXP)
       pstart = 1;
