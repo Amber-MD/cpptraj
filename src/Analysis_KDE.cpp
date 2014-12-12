@@ -51,15 +51,17 @@ Analysis::RetType Analysis_KDE::Setup(DataSet_1D* dsIn, std::string const& histn
   else
     calcFreeE_ = false;
   std::string setname = histname;
-  if (setname.empty()) {
-    if (calcFreeE_)
-      setname = datasetlist.GenerateDefaultName("FreeE_" + dsIn->Name());
-    else
-      setname = datasetlist.GenerateDefaultName("KDE_" + dsIn->Name());
-  }
+  std::string htype;
+  if (calcFreeE_)
+    htype = "FreeE_";
+  else
+    htype = "KDE_";
+  if (setname.empty())
+    setname = datasetlist.GenerateDefaultName(htype + dsIn->Name());
   DataFile* outfile = DFLin.AddDataFile( outfilenameIn );
   output_ = datasetlist.AddSetIdxAspect(DataSet::DOUBLE, setname, setidx, dsIn->Aspect());
   if (output_ == 0) return Analysis::ERR;
+  output_->SetLegend(htype + dsIn->Legend());
   output_->SetDim(Dimension::X, Xdim);
   if (outfile != 0) outfile->AddSet( output_ );
   return Analysis::OK;
