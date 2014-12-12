@@ -284,11 +284,10 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, std::string const& nameI
                               const char* defaultName )
 {
   if (nameIn.empty()) {
-    if (defaultName == 0) {
-      mprinterr("Internal Error: DataSetList::AddSet() called without default name.\n");
-      return 0;
-    }
-    return AddSetIdxAspect( inType, GenerateDefaultName(defaultName), -1, std::string() ); 
+    if (defaultName == 0)
+      return AddSetIdxAspect( inType, std::string(), -1, std::string() );
+    else
+      return AddSetIdxAspect( inType, GenerateDefaultName(defaultName), -1, std::string() ); 
   } else
     return AddSetIdxAspect( inType, nameIn, -1, std::string() );
 }
@@ -297,11 +296,14 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, std::string const& nameI
 /** Create a name based on the given defaultName and # of DataSets,
   * i.e. defaultName_XXXXX 
   */
-std::string DataSetList::GenerateDefaultName(const char* defaultName) const {
+std::string DataSetList::GenerateDefaultName(std::string const& defaultName) const {
   // Determine # chars needed to hold text version of set number (min 5).
   size_t extsize = (size_t) DigitWidth( size() );
   if (extsize < 5) extsize = 5;
-  return ( std::string(defaultName) + "_" + integerToString(size(), extsize) ); 
+  if (defaultName.empty())
+    return ( "D" + integerToString(size(), extsize) );
+  else
+    return ( defaultName + "_" + integerToString(size(), extsize) ); 
 }
 
 // DataSetList::AddSetIdx()
