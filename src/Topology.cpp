@@ -1556,6 +1556,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Set up new dihedral info
   newParm->dihedrals_ = StripDihedralArray( dihedrals_, atomMap );
   newParm->dihedralsh_ = StripDihedralArray( dihedralsh_, atomMap );
+  parmMap.assign( dihedralparm_.size(), -1 );
   StripDihedralParmArray( newParm->dihedrals_,  parmMap, newParm->dihedralparm_ );
   StripDihedralParmArray( newParm->dihedralsh_, parmMap, newParm->dihedralparm_ );
   // Set up nonbond info
