@@ -287,8 +287,8 @@ COMPLETETESTS=test.general \
               test.lipidorder \
               test.pairdist
 
-summary: MasterTest.sh
-	@sh MasterTest.sh $(OPT) summary
+summary: Summary.sh MasterTest.sh
+	@./Summary.sh $(OPT) summary
 
 #test.standalone: 
 #	$(MAKE) test.complete OPT=standalone
