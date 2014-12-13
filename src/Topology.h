@@ -184,6 +184,7 @@ class Topology {
     BondArray StripBondArray(BondArray const&, std::vector<int> const&) const;
     AngleArray StripAngleArray(AngleArray const&, std::vector<int> const&) const;
     DihedralArray StripDihedralArray(DihedralArray const&, std::vector<int> const&) const;
+    void StripBondParmArray(BondArray&, std::vector<int>&, BondParmArray&) const;
     inline void AddBondArray(BondArray const&, int);
 
     static const NonbondType LJ_EMPTY;

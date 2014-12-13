@@ -727,8 +727,8 @@ int Topology::SetNonbondInfo(NonbondParmType const& nonbondIn) {
 void Topology::SetAtomBondInfo(BondArray const& bonds) {
   // Add bonds based on array 
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
-    atoms_[ (*bnd).A1() ].AddBond( (*bnd).A2() );
-    atoms_[ (*bnd).A2() ].AddBond( (*bnd).A1() );
+    atoms_[ bnd->A1() ].AddBond( bnd->A2() );
+    atoms_[ bnd->A2() ].AddBond( bnd->A1() );
   }
 }
 
@@ -1524,7 +1524,13 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->bondsh_ = StripBondArray( bondsh_, atomMap );
   newParm->SetAtomBondInfo( newParm->bonds_ );
   newParm->SetAtomBondInfo( newParm->bondsh_ );
-  newParm->bondparm_ = bondparm_;
+  // Set up bond parameter information.
+  std::vector<int> parmMap( bondparm_.size(), -1 ); // Map[oldidx] = newidx
+  StripBondParmArray( newParm->bonds_,  parmMap, newParm->bondparm_ );
+  StripBondParmArray( newParm->bondsh_, parmMap, newParm->bondparm_ );
+  mprintf("DEBUG: Original bond parm array= %zu, new bond parm array = %zu\n",
+          bondparm_.size(), newParm->bondparm_.size());
+  //newParm->bondparm_ = bondparm_;
   // Give stripped parm the same pindex as original
   newParm->pindex_ = pindex_;
   newParm->nframes_ = nframes_;
@@ -1684,6 +1690,25 @@ DihedralArray Topology::StripDihedralArray(DihedralArray const& dihIn, std::vect
     }
   }
   return dihOut;
+}
+
+// Topology::StripBondParmArray()
+void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& parmMap,
+                                  BondParmArray& newBondParm) const
+{
+  for (BondArray::iterator bnd = newBondArray.begin();
+                           bnd != newBondArray.end(); ++bnd)
+  {
+    int oldidx = bnd->Idx();
+    int newidx = parmMap[bnd->Idx()];
+    if (newidx == -1) { // This needs to be added to new parameter array.
+      newidx = (int)newBondParm.size();
+      parmMap[oldidx] = newidx;
+      newBondParm.push_back( bondparm_[oldidx] );
+    }
+    mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
+    bnd->SetIdx( newidx );
+  }
 }
 
 // Topology::AddBondArray()
