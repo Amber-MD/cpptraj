@@ -50,6 +50,7 @@ class AngleType {
     inline int A2()  const { return a2_;  }
     inline int A3()  const { return a3_;  }
     inline int Idx() const { return idx_; }
+    void SetIdx(int i)     { idx_ = i;    }
   private:
     int a1_;
     int a2_;
@@ -103,6 +104,7 @@ class DihedralType {
     inline int A4()     const { return a4_;   }
     inline Dtype Type() const { return type_; }
     inline int Idx()    const { return idx_;  }
+    void SetIdx(int i)        { idx_ = i;     }
   private:
     int a1_;
     int a2_;

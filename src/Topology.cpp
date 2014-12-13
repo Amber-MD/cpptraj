@@ -1524,13 +1524,11 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   newParm->bondsh_ = StripBondArray( bondsh_, atomMap );
   newParm->SetAtomBondInfo( newParm->bonds_ );
   newParm->SetAtomBondInfo( newParm->bondsh_ );
-  // Set up bond parameter information.
   std::vector<int> parmMap( bondparm_.size(), -1 ); // Map[oldidx] = newidx
   StripBondParmArray( newParm->bonds_,  parmMap, newParm->bondparm_ );
   StripBondParmArray( newParm->bondsh_, parmMap, newParm->bondparm_ );
   mprintf("DEBUG: Original bond parm array= %zu, new bond parm array = %zu\n",
           bondparm_.size(), newParm->bondparm_.size());
-  //newParm->bondparm_ = bondparm_;
   // Give stripped parm the same pindex as original
   newParm->pindex_ = pindex_;
   newParm->nframes_ = nframes_;
@@ -1552,11 +1550,14 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Set up new angle info
   newParm->angles_ = StripAngleArray( angles_, atomMap );
   newParm->anglesh_ = StripAngleArray( anglesh_, atomMap );
-  newParm->angleparm_ = angleparm_;
+  parmMap.assign( angleparm_.size(), -1 );
+  StripAngleParmArray( newParm->angles_,  parmMap, newParm->angleparm_ );
+  StripAngleParmArray( newParm->anglesh_, parmMap, newParm->angleparm_ );
   // Set up new dihedral info
   newParm->dihedrals_ = StripDihedralArray( dihedrals_, atomMap );
   newParm->dihedralsh_ = StripDihedralArray( dihedralsh_, atomMap );
-  newParm->dihedralparm_ = dihedralparm_;
+  StripDihedralParmArray( newParm->dihedrals_,  parmMap, newParm->dihedralparm_ );
+  StripDihedralParmArray( newParm->dihedralsh_, parmMap, newParm->dihedralparm_ );
   // Set up nonbond info
   // Since nbindex depends on the atom type index and those entries were 
   // not changed this is still valid. May want to cull unused parms later.
@@ -1708,6 +1709,44 @@ void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& par
     }
     mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
     bnd->SetIdx( newidx );
+  }
+}
+
+// Topology::StripAngleParmArray()
+void Topology::StripAngleParmArray(AngleArray& newAngleArray, std::vector<int>& parmMap,
+                                   AngleParmArray& newAngleParm) const
+{
+  for (AngleArray::iterator ang = newAngleArray.begin();
+                            ang != newAngleArray.end(); ++ang)
+  {
+    int oldidx = ang->Idx();
+    int newidx = parmMap[ang->Idx()];
+    if (newidx == -1) { // This needs to be added to new parameter array.
+      newidx = (int)newAngleParm.size();
+      parmMap[oldidx] = newidx;
+      newAngleParm.push_back( angleparm_[oldidx] );
+    }
+    mprintf("DEBUG: Old angle parm index=%i, new angle parm index=%i\n", oldidx, newidx);
+    ang->SetIdx( newidx );
+  }
+}
+
+// Topology::StripDihedralParmArray()
+void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vector<int>& parmMap,
+                                      DihedralParmArray& newDihedralParm) const
+{
+  for (DihedralArray::iterator dih = newDihedralArray.begin();
+                               dih != newDihedralArray.end(); ++dih)
+  {
+    int oldidx = dih->Idx();
+    int newidx = parmMap[dih->Idx()];
+    if (newidx == -1) { // This needs to be added to new parameter array.
+      newidx = (int)newDihedralParm.size();
+      parmMap[oldidx] = newidx;
+      newDihedralParm.push_back( dihedralparm_[oldidx] );
+    }
+    mprintf("DEBUG: Old dihedral parm index=%i, new dihedral parm index=%i\n", oldidx, newidx);
+    dih->SetIdx( newidx );
   }
 }
 
