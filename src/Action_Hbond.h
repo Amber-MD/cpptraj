@@ -21,13 +21,13 @@ class Action_Hbond : public Action {
     void Print();
 
     struct HbondType {
+      double dist;  ///< Used to calc avg distance of this hbond
+      double angle; ///< Used to calc avg angle of this hbond
+      DataSet_integer* data_; ///< If series, keep track of frames hbond is present.
       int A;        ///< Acceptor atom#
       int H;        ///< Hydrogen atom#
       int D;        ///< Donor atom#
       int Frames;   ///< # frames this hbond has been present
-      double dist;  ///< Used to calc avg distance of this hbond
-      double angle; ///< Used to calc avg angle of this hbond
-      DataSet_integer* data_; ///< If series, keep track of frames hbond is present.
     };
 
     ImagedAction Image_;
