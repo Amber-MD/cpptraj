@@ -22,7 +22,8 @@ Action_NativeContacts::Action_NativeContacts() :
   nonnative_(0),
   mindist_(0),
   maxdist_(0),
-  map_(0),
+  nativeMap_(0),
+  nonnatMap_(0),
   CurrentParm_(0),
   masterDSL_(0)
 {}
@@ -146,8 +147,8 @@ int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const
 int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame const& frameIn)
 {
   if ( SetupContactLists(parmIn, frameIn) ) return 1;
-  // If specified, set up contacts map; base size on atom masks.
-  if (map_ != 0) {
+  // If specified, set up contacts maps; base size on atom masks.
+  if (nativeMap_ != 0) {
     int matrix_max;
     if (Mask2_.MaskStringSet()) {
       matrix_min_ = std::min( Mask1_[0], Mask2_[0] );
@@ -163,10 +164,13 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
       label.assign("Residue");
     }
     int matrix_cols = matrix_max - matrix_min_ + 1;
-    map_->AllocateHalf( matrix_cols );
+    if (nativeMap_->AllocateHalf( matrix_cols )) return 1;
+    if (nonnatMap_->AllocateHalf( matrix_cols )) return 1;
     Dimension matrix_dim( matrix_min_+1, 1, matrix_cols, label );
-    map_->SetDim(Dimension::X, matrix_dim);
-    map_->SetDim(Dimension::Y, matrix_dim);
+    nativeMap_->SetDim(Dimension::X, matrix_dim);
+    nativeMap_->SetDim(Dimension::Y, matrix_dim);
+    nonnatMap_->SetDim(Dimension::X, matrix_dim);
+    nonnatMap_->SetDim(Dimension::Y, matrix_dim);
   }
   double maxDist2 = 0.0;
   double minDist2 = DBL_MAX;
@@ -252,10 +256,20 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
     if (maxdist_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddSet(maxdist_);
   }
+  DataFile *natmapfile = 0, *nonmapfile = 0;
   if (actionArgs.hasKey("map")) {
-    map_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, name, "map");
-    if (map_ == 0) return Action::ERR;
-    DFL->AddSetToFile( actionArgs.GetStringKey("mapout"), map_ );
+    nativeMap_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, name, "nativemap");
+    if (nativeMap_ == 0) return Action::ERR;
+    nonnatMap_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, name, "nonnatmap");
+    if (nonnatMap_ == 0) return Action::ERR;
+    FileName mapFilename;
+    mapFilename.SetFileName( actionArgs.GetStringKey("mapout") );
+    if (!mapFilename.empty()) {
+      natmapfile = DFL->AddDataFile(mapFilename.DirPrefix() + "native." + mapFilename.Base());
+      if (natmapfile != 0) natmapfile->AddSet(nativeMap_);
+      nonmapfile = DFL->AddDataFile(mapFilename.DirPrefix() + "nonnative." + mapFilename.Base());
+      if (nonmapfile != 0) nonmapfile->AddSet(nonnatMap_);
+    }
   }
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
@@ -272,7 +286,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
     mprintf("'%s'.\n", REF.FrameName().base());
   if (byResidue_) {
     mprintf("\tContacts will be ignored for residues spaced < %i apart.\n", resoffset_);
-    if (map_ != 0)
+    if (nativeMap_ != 0)
       mprintf("\tMap will be printed by residue.\n");
   }
   mprintf("\tDistance cutoff is %g Angstroms,", sqrt(distance_));
@@ -291,8 +305,13 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
     mprintf("\tSaving minimum observed distances in set '%s'\n", mindist_->Legend().c_str());
   if (outfile != 0)
     mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
-  if (map_ != 0)
-    mprintf("\tContacts map will be saved as set '%s'\n", map_->Legend().c_str());
+  if (nativeMap_ != 0) {
+    mprintf("\tNative contacts map will be saved as set '%s'\n"
+            "\tNon-native contacts map will be saved as set '%s'\n",
+            nativeMap_->Legend().c_str(), nonnatMap_->Legend().c_str());
+    if (natmapfile!=0) mprintf("\tNative map output to '%s'\n",natmapfile->DataFilename().full());
+    if (nonmapfile!=0) mprintf("\tNative map output to '%s'\n",nonmapfile->DataFilename().full());
+  }
   // Set up reference if necessary.
   if (!first_) {
     // Set up imaging info for ref parm
@@ -346,12 +365,12 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
             { \
               ++Nnative; \
               it->second.Increment(frameNum, sqrt(Dist2), Dist2); \
-              if (map_ != 0) map_->Element(CI1_[c1] - matrix_min_, \
-                                           CI2_[c2] - matrix_min_) += 1; \
+              if (nativeMap_ != 0) nativeMap_->Element(CI1_[c1] - matrix_min_, \
+                                                       CI2_[c2] - matrix_min_) += 1; \
             } else { \
               ++NnonNative; \
-              if (map_ != 0) map_->Element(CI1_[c1] - matrix_min_, \
-                                           CI2_[c2] - matrix_min_) -= 1; \
+              if (nonnatMap_ != 0) nonnatMap_->Element(CI1_[c1] - matrix_min_, \
+                                                       CI2_[c2] - matrix_min_) += 1; \
             } \
           } \
         } \
@@ -401,10 +420,12 @@ Action::RetType Action_NativeContacts::DoAction(int frameNum, Frame* currentFram
 
 // Action_NativeContacts::Print()
 void Action_NativeContacts::Print() {
-  if (map_ != 0) {
-    // Normalize map by number of frames.
+  if (nativeMap_ != 0) {
+    // Normalize maps by number of frames.
     double norm = 1.0 / (double)nframes_;
-    for (DataSet_MatrixDbl::iterator m = map_->begin(); m != map_->end(); ++m)
+    for (DataSet_MatrixDbl::iterator m = nativeMap_->begin(); m != nativeMap_->end(); ++m)
+      *m *= norm;
+    for (DataSet_MatrixDbl::iterator m = nonnatMap_->begin(); m != nonnatMap_->end(); ++m)
       *m *= norm;
   }
   if (series_) {

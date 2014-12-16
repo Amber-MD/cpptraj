@@ -46,7 +46,8 @@ class Action_NativeContacts : public Action {
     DataSet* nonnative_;  ///< Hold # of non-native contacts
     DataSet* mindist_;    ///< Hold minimum observed distance among contacts
     DataSet* maxdist_;    ///< Hold maximum observed distance among contacts
-    DataSet_MatrixDbl* map_; ///< Hold contacts map
+    DataSet_MatrixDbl* nativeMap_; ///< Hold native contacts map
+    DataSet_MatrixDbl* nonnatMap_; ///< Hold non-native contacts map
     Topology* CurrentParm_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
