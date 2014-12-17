@@ -332,12 +332,20 @@ long long AvailableMemory() {
   if (status.dwLength != sizeof(status))
     return -1;
   return (long long)status.dwAvailPhys;
-#else
+#elif defined(_SC_AVPHYS_PAGES) && defined(_SC_PAGE_SIZE)
   long pages = sysconf(_SC_AVPHYS_PAGES);
   long page_size = sysconf(_SC_PAGE_SIZE);
   if (pages < 0L || page_size < 0L) return -1;
   return (long long)(pages * page_size);
+#else
+  return -1;
 #endif
 }
 
-double AvailableMemory_MB() { return (double)AvailableMemory() / (1024 * 1024); }
+double AvailableMemory_MB() { 
+  double avail_in_bytes = AvailableMemory();
+  if (avail_in_bytes < 0.0) 
+    return -1.0;
+  else
+    return (double)AvailableMemory() / (1024 * 1024);
+}
