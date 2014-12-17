@@ -374,6 +374,7 @@ void Action_Vector::UnitCell(Box const& box) {
     case BOX_X: Vec_->AddVxyz( ucell.Row1() ); break;
     case BOX_Y: Vec_->AddVxyz( ucell.Row2() ); break;
     case BOX_Z: Vec_->AddVxyz( ucell.Row3() ); break;
+    case BOX_CTR: Vec_->AddVxyz( ucell.TransposeMult(Vec3(0.5)) ); break;
     default: return;
   }
 }
@@ -398,8 +399,8 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
     case BOX         : Vec_->AddVxyz( currentFrame->BoxCrd().Lengths() ); break;
     case BOX_X       : 
     case BOX_Y       : 
-    case BOX_Z       : UnitCell( currentFrame->BoxCrd() ); break;
-    case BOX_CTR     : Vec_->AddVxyz( currentFrame->BoxCrd().Center() ); break;
+    case BOX_Z       : 
+    case BOX_CTR     : UnitCell( currentFrame->BoxCrd() ); break;
     case MINIMAGE    : MinImage( *currentFrame ); break; 
     default          : return Action::ERR; // NO_OP
   } // END switch over vectorMode
