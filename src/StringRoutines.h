@@ -37,4 +37,7 @@ std::string TimeString();
 // NOTE: Not really string routines, but here for convenience.
 long long AvailableMemory();
 double AvailableMemory_MB();
+# ifdef __APPLE__
+long long TotalGlobalMemory();
+# endif
 #endif
