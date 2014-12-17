@@ -665,29 +665,6 @@ void Frame::Scale(AtomMask const& maskIn, double sx, double sy, double sz) {
   }
 }
 
-// Frame::CenterAtoms()
-/** Center coordinates in Mask to to origin or box center. Use center of
-  * mass if useMassIn is true, otherwise use geometric center.
-  */
-void Frame::CenterAtoms(AtomMask const& Mask, CenterMode mode, Vec3 const& vec, bool useMassIn) 
-{
-  Vec3 center;
-  if (useMassIn)
-    center = VCenterOfMass(Mask);
-  else
-    center = VGeometricCenter(Mask);
-  //mprinterr("  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
-  switch (mode) {
-    case ORIGIN: // Shift to coordinate origin (0,0,0)
-      center.Neg(); break;
-    case BOXCTR: // Shift to box center
-      center = box_.Center() - center; break;
-    case POINT:  // Shift to reference point
-      center = vec - center; break;
-  }
-  Translate(center);
-}
-
 // Frame::CenterOnOrigin()
 /** \return translation vector from origin to original center. */
 Vec3 Frame::CenterOnOrigin(bool useMassIn)

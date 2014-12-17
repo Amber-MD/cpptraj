@@ -5,7 +5,6 @@
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
-  centerMode_(Frame::BOXCTR),
   origin_(false),
   ortho_(false),
   usecom_(true),
@@ -31,10 +30,6 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, F
 {
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
-  if (origin_)
-    centerMode_ = Frame::ORIGIN;
-  else
-    centerMode_ = Frame::BOXCTR;
   usecom_ = !actionArgs.hasKey("firstatom");
   if (actionArgs.hasKey("familiar")) triclinic_ = FAMILIAR;
   if (actionArgs.hasKey("triclinic")) triclinic_ = FORCE;
@@ -46,7 +41,7 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, F
     anchor_ = actionArgs.GetMaskNext();
 
   mprintf("    AUTOIMAGE: To");
-  if (centerMode_ == Frame::ORIGIN)
+  if (origin_)
     mprintf(" origin");
   else
     mprintf(" box center");
