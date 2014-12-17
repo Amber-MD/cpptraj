@@ -163,7 +163,7 @@ class Frame {
     /// Scale coordinates of atoms in mask by given X|Y|Z constants
     void Scale(AtomMask const&, double, double, double);
     /// Translate atoms to box center or origin.
-    void Center(AtomMask const&, CenterMode, Vec3 const&, bool);
+    void CenterAtoms(AtomMask const&, CenterMode, Vec3 const&, bool);
     /// Translate atoms to origin.
     Vec3 CenterOnOrigin(bool);
     // Coordinate calculation

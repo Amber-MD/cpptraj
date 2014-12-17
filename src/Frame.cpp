@@ -665,11 +665,11 @@ void Frame::Scale(AtomMask const& maskIn, double sx, double sy, double sz) {
   }
 }
 
-// Frame::Center()
+// Frame::CenterAtoms()
 /** Center coordinates in Mask to to origin or box center. Use center of
   * mass if useMassIn is true, otherwise use geometric center.
   */
-void Frame::Center(AtomMask const& Mask, CenterMode mode, Vec3 const& vec, bool useMassIn) 
+void Frame::CenterAtoms(AtomMask const& Mask, CenterMode mode, Vec3 const& vec, bool useMassIn) 
 {
   Vec3 center;
   if (useMassIn)

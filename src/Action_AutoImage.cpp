@@ -213,7 +213,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
   Vec3 Trans, framecenter, imagedcenter, anchorcenter;
 
   // Center w.r.t. anchor
-  currentFrame->Center( anchorMask_, centerMode_, fcom, useMass_);
+  currentFrame->CenterAtoms( anchorMask_, centerMode_, fcom, useMass_);
   // Determine whether anchor center is at box center or coordinate origin
   if (origin_)
     anchorcenter.Zero(); 

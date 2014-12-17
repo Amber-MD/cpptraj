@@ -85,7 +85,7 @@ Action::RetType Action_Center::Setup(Topology* currentParm, Topology** parmAddre
 /** Center coordinates in frame according to specified mode. */
 Action::RetType Action_Center::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
 
-  currentFrame->Center(Mask_, centerMode_, refCenter_, useMass_);
+  currentFrame->CenterAtoms(Mask_, centerMode_, refCenter_, useMass_);
 
   return Action::OK;
 }

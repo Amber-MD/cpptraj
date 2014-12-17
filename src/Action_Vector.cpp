@@ -40,7 +40,7 @@ const char* Action_Vector::ModeString[] = {
   "NO_OP", "Principal X", "Principal Y", "Principal Z",
   "Dipole", "Box", "Mask", "Ired",
   "CorrPlane", "Center", "Unit cell X", "Unit cell Y", "Unit cell Z",
-  "MinImage"
+  "Box Center", "MinImage"
 };
 
 static Action::RetType WarnDeprecated() {
@@ -104,12 +104,14 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     mode_ = BOX_Y;
   else if (actionArgs.hasKey("ucellz"))
     mode_ = BOX_Z;
+  else if (actionArgs.hasKey("boxcenter"))
+    mode_ = BOX_CTR;
   else if (actionArgs.hasKey("minimage"))
     mode_ = MINIMAGE; 
   else
     mode_ = MASK;
   if (mode_ == BOX || mode_ == BOX_X || mode_ == BOX_Y || mode_ == BOX_Z ||
-      mode_ == MINIMAGE)
+      mode_ == BOX_CTR || mode_ == MINIMAGE)
     needBoxInfo_ = true;
   // Check if IRED vector
   bool isIred = actionArgs.hasKey("ired"); 
@@ -397,6 +399,7 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
     case BOX_X       : 
     case BOX_Y       : 
     case BOX_Z       : UnitCell( currentFrame->BoxCrd() ); break;
+    case BOX_CTR     : Vec_->AddVxyz( currentFrame->BoxCrd().Center() ); break;
     case MINIMAGE    : MinImage( *currentFrame ); break; 
     default          : return Action::ERR; // NO_OP
   } // END switch over vectorMode

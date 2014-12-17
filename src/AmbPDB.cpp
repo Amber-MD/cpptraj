@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
   if (ctr_origin) {
     AtomMask mask("*");
     parm.SetupIntegerMask( mask );
-    TrajFrame.Center( mask, Frame::ORIGIN, Vec3(0.0), false );
+    TrajFrame.CenterAtoms( mask, Frame::ORIGIN, Vec3(0.0), false );
   }
   // Output coords
   Trajout trajout;
