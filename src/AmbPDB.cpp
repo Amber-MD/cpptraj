@@ -132,11 +132,8 @@ int main(int argc, char** argv) {
   trajin.BeginTraj(false);
   if (trajin.ReadTrajFrame(0, TrajFrame)) return 1;
   trajin.EndTraj();
-  if (ctr_origin) {
-    AtomMask mask("*");
-    parm.SetupIntegerMask( mask );
-    TrajFrame.CenterAtoms( mask, Frame::ORIGIN, Vec3(0.0), false );
-  }
+  if (ctr_origin) 
+    TrajFrame.CenterOnOrigin(false);
   // Output coords
   Trajout trajout;
   trajArgs.SetList( aatm + bres + pqr + title, " " );
