@@ -5,7 +5,6 @@
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
-  centerMode_(Frame::BOXCTR),
   origin_(false),
   ortho_(false),
   usecom_(true),
@@ -31,10 +30,6 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, F
 {
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
-  if (origin_)
-    centerMode_ = Frame::ORIGIN;
-  else
-    centerMode_ = Frame::BOXCTR;
   usecom_ = !actionArgs.hasKey("firstatom");
   if (actionArgs.hasKey("familiar")) triclinic_ = FAMILIAR;
   if (actionArgs.hasKey("triclinic")) triclinic_ = FORCE;
@@ -46,7 +41,7 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, F
     anchor_ = actionArgs.GetMaskNext();
 
   mprintf("    AUTOIMAGE: To");
-  if (centerMode_ == Frame::ORIGIN)
+  if (origin_)
     mprintf(" origin");
   else
     mprintf(" box center");
@@ -212,13 +207,23 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
   Vec3 bp, bm, offset(0.0);
   Vec3 Trans, framecenter, imagedcenter, anchorcenter;
 
+  if (!ortho_) currentFrame->BoxCrd().ToRecip(ucell, recip);
   // Center w.r.t. anchor
-  currentFrame->Center( anchorMask_, centerMode_, fcom, useMass_);
-  // Determine whether anchor center is at box center or coordinate origin
-  if (origin_)
-    anchorcenter.Zero(); 
+  if (useMass_)
+    fcom = currentFrame->VCenterOfMass( anchorMask_ );
   else
-    anchorcenter = currentFrame->BoxCrd().Center(); 
+    fcom = currentFrame->VGeometricCenter( anchorMask_ );
+  if (origin_) {
+    fcom.Neg(); // Shift to coordinate origin (0,0,0)
+    anchorcenter.Zero();
+  } else {
+    if (ortho_ || truncoct_) // Center is box xyz over 2
+      anchorcenter = currentFrame->BoxCrd().Center();
+    else                     // Center in frac coords is (0.5,0.5,0.5)
+      anchorcenter = ucell.TransposeMult(Vec3(0.5));
+    fcom = anchorcenter - fcom;
+  }
+  currentFrame->Translate(fcom);
 
   // Setup imaging, and image everything in currentFrame 
   // according to mobileList. 
@@ -230,7 +235,6 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
     }
     Image::Ortho(*currentFrame, bp, bm, offset, usecom_, useMass_, mobileList_);
   } else {
-    currentFrame->BoxCrd().ToRecip(ucell, recip);
     if (truncoct_)
       fcom = Image::SetupTruncoct( *currentFrame, 0, useMass_, origin_ );
     Image::Nonortho(*currentFrame, origin_, fcom, offset, ucell, recip, truncoct_,

@@ -4,7 +4,7 @@
 
 // CONSTRUCTOR
 Action_Center::Action_Center() :
-  centerMode_(Frame::BOXCTR),
+  centerMode_(BOXCTR),
   useMass_(false)
 { } 
 
@@ -19,9 +19,9 @@ Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, Fram
 {
   // Get keywords
   if (actionArgs.hasKey("origin"))
-    centerMode_ = Frame::ORIGIN;
+    centerMode_ = ORIGIN;
   else
-    centerMode_ = Frame::BOXCTR;
+    centerMode_ = BOXCTR;
   useMass_ = actionArgs.hasKey("mass");
   ReferenceFrame refFrm = FL->GetFrameFromArgs( actionArgs );
   if (refFrm.error()) return Action::ERR;
@@ -42,7 +42,7 @@ Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, Fram
       refCenter_ = refFrm.Coord().VCenterOfMass( refMask );
     else
       refCenter_ = refFrm.Coord().VGeometricCenter( refMask );
-    centerMode_ = Frame::POINT; 
+    centerMode_ = POINT; 
   }
 
   mprintf("    CENTER: Centering coordinates using");
@@ -51,10 +51,10 @@ Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else
     mprintf(" geometric center");
   mprintf(" of atoms in mask (%s) to\n", Mask_.MaskString());
-  if (centerMode_ == Frame::POINT)
+  if (centerMode_ == POINT)
     mprintf("\tcenter of mask (%s) in reference '%s'.\n", refMask.MaskString(),
             refFrm.FrameName().base());
-  else if (centerMode_ == Frame::ORIGIN)
+  else if (centerMode_ == ORIGIN)
     mprintf("\tcoordinate origin.\n");
   else
     mprintf("\tbox center.\n");
@@ -72,7 +72,7 @@ Action::RetType Action_Center::Setup(Topology* currentParm, Topology** parmAddre
     return Action::ERR;
   }
 
-  if (centerMode_ == Frame::BOXCTR && currentParm->BoxType()==Box::NOBOX) {
+  if (centerMode_ == BOXCTR && currentParm->BoxType()==Box::NOBOX) {
     mprintf("Warning: Box center specified but no box information.\n");
     //fprintf(stdout,"                            Centering on origin.\n");
     return Action::ERR;
@@ -85,7 +85,23 @@ Action::RetType Action_Center::Setup(Topology* currentParm, Topology** parmAddre
 /** Center coordinates in frame according to specified mode. */
 Action::RetType Action_Center::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
 
-  currentFrame->Center(Mask_, centerMode_, refCenter_, useMass_);
+  Vec3 center;
+  if (useMass_)
+    center = currentFrame->VCenterOfMass(Mask_);
+  else
+    center = currentFrame->VGeometricCenter(Mask_);
+  //mprinterr("  FRAME CENTER: %lf %lf %lf\n",center[0],center[1],center[2]); //DEBUG
+  switch (centerMode_) {
+    case ORIGIN: // Shift to coordinate origin (0,0,0)
+      center.Neg(); break;
+    case BOXCTR: // Shift to box center
+      center = currentFrame->BoxCrd().Center() - center; break;
+    case POINT:  // Shift to reference point
+      center = refCenter_ - center; break;
+  }
+  currentFrame->Translate(center);
+
+//  currentFrame->CenterAtoms(Mask_, centerMode_, refCenter_, useMass_);
 
   return Action::OK;
 }

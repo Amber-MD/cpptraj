@@ -59,6 +59,8 @@ class DataSet_3D : public DataSet {
     }
     /// \return unit cell matrix.
     Matrix_3x3 Ucell() const { return gridBin_->Ucell(); }
+    /// \return voxel volume.
+    double VoxelVolume() const { return gridBin_->VoxelVolume(); }
   private:
     /// Check if grid dimension is even; if not, increment it by 1.
     static void CheckEven(size_t&, char);
