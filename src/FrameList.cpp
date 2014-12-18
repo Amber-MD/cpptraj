@@ -131,12 +131,20 @@ ReferenceFrame FrameList::GetFrameFromArgs(ArgList& argIn) const {
 }
 
 // FrameList::GetFrameByName()
+/** Look for ref frame with matching tag, full path, or base file name. */
 ReferenceFrame FrameList::GetFrameByName(std::string const& refName) const {
-  for (std::vector<ReferenceFrame>::const_iterator rf = frames_.begin();
-                                                   rf != frames_.end(); ++rf)
-  { // OK if name matches tag, full path, or base file name.
-    if ( rf->Tag()==refName || rf->FrameName().MatchFullOrBase( refName ) )
-      return *rf;
+  if (refName.empty()) {
+    mprinterr("Internal Error: FrameList::GetFrameByName() called with empty string.\n");
+    return ReferenceFrame(-1);
+  }
+  if (refName[0]=='[') { // Assume tag
+    for (std::vector<ReferenceFrame>::const_iterator rf = frames_.begin();
+                                                     rf != frames_.end(); ++rf)
+    if ( rf->Tag()==refName ) return *rf;
+  } else { // Look for matching full path or base file name.
+    for (std::vector<ReferenceFrame>::const_iterator rf = frames_.begin();
+                                                     rf != frames_.end(); ++rf) 
+      if ( rf->FrameName().MatchFullOrBase( refName ) ) return *rf;
   }
   return ReferenceFrame();
 }
