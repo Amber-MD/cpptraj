@@ -48,7 +48,12 @@ void Cpptraj::Intro() {
 # ifdef MPI
   mprintf("Running on %i threads\n",CpptrajState::WorldSize());
 # endif
-  mprintf("\n| Date/time: %s\n\n", TimeString().c_str()); 
+  mprintf("\n| Date/time: %s\n", TimeString().c_str());
+  double available_mem = AvailableMemory_MB();
+  // If < 0 could not be calculated correctly.
+  if (available_mem > 0.0)
+    mprintf(  "| Available memory: %g MB\n", AvailableMemory_MB());
+  mprintf("\n");
 }
 
 void Cpptraj::Finalize() {

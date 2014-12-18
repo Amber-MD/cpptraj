@@ -14,8 +14,9 @@ class Action_Center: public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
 
+    enum CenterMode { ORIGIN = 0, BOXCTR, POINT };
     AtomMask Mask_;
-    Frame::CenterMode centerMode_;
+    CenterMode centerMode_;
     bool useMass_;
     Vec3 refCenter_;
 };

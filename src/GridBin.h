@@ -18,6 +18,8 @@ class GridBin {
     virtual Matrix_3x3 Ucell() const = 0;
     /// \return true if GridBin type is orthogonal.
     virtual bool IsOrthoGrid() const = 0;
+    /// \return Voxel volume.
+    virtual double VoxelVolume() const = 0;
     /// \return Grid origin.
     Vec3 const& GridOrigin() const { return OXYZ_; }
   protected:
@@ -60,6 +62,7 @@ class GridBin_Ortho : public GridBin {
     }
     Matrix_3x3 Ucell() const { return Matrix_3x3(mx_-OXYZ_[0], my_-OXYZ_[1], mz_-OXYZ_[2]); }
     bool IsOrthoGrid() const { return true; }
+    double VoxelVolume() const { return dx_ * dy_ * dz_; }
     /// Setup with given origin, spacing; calculate maximum.
     void Setup_O_D(size_t nx, size_t ny, size_t nz,
                    Vec3 const& oxyzIn, Vec3 const& dxyz)
@@ -116,16 +119,19 @@ class GridBin_Nonortho : public GridBin {
     }
     Matrix_3x3 Ucell() const { return ucell_; }
     bool IsOrthoGrid() const { return false; }
+    double VoxelVolume() const { return voxelvolume_; }
     /// Setup with given bins, origin and box coordinates.
     void Setup_O_Box(size_t nxIn, size_t nyIn, size_t nzIn,
                      Vec3 const& oxyzIn, Box const& boxIn) {
       nx_ = (double)nxIn; ny_ = (double)nyIn; nz_ = (double)nzIn;
       OXYZ_ = oxyzIn;
       // Get unit cell and fractional cell vectors (recip).
-      boxIn.ToRecip( ucell_, recip_ );
+      double vol = boxIn.ToRecip( ucell_, recip_ );
+      voxelvolume_ = vol / (nx_ * ny_ * nz_);
     }
   private:
     double nx_, ny_, nz_; ///< Number of bins in double precision.
+    double voxelvolume_;  ///< Voxel volume.
     Matrix_3x3 ucell_;    ///< Unit cell axes coordinates.
     Matrix_3x3 recip_;    ///< Fractional axes coordinates.
 };

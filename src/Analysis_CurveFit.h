@@ -10,7 +10,7 @@ class Analysis_CurveFit : public Analysis {
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
-    enum EqFormType { GENERAL = 0, MEXP, MEXP_K, MEXP_K_PENALTY };
+    enum EqFormType { GENERAL = 0, MEXP, MEXP_K, MEXP_K_PENALTY, GAUSS };
     std::string equation_; ///< Equation to fit.
     std::string resultsName_; ///< Results output filename (final params, stats)
     DataSet* dset_;     ///< DataSet to fit.
@@ -23,6 +23,8 @@ class Analysis_CurveFit : public Analysis {
     int maxIt_;         ///< Max # iterations.
     int nexp_;          ///< # exponentials.
     int outXbins_;      ///< # of points in output DataSet.
+    int n_expected_params_; ///< Number of expected parameters.
+    int n_specified_params_;///< Number of specified parameters.
     EqFormType eqForm_; ///< Equation form.
 };
 #endif

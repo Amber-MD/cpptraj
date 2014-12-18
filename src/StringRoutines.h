@@ -34,4 +34,10 @@ std::string SetStringFormatString(int, bool);
 std::string SetIntegerFormatString(int);
 /// \return the current date/time with format 'mm/dd/yy  hh:mm:ss'
 std::string TimeString();
+// NOTE: Not really string routines, but here for convenience.
+long long AvailableMemory();
+double AvailableMemory_MB();
+# ifdef __APPLE__
+long long TotalGlobalMemory();
+# endif
 #endif

@@ -17,10 +17,14 @@ class Action_Grid : public Action, private GridAction {
 
     void PrintPDB(double);
 
+    enum NormType { NONE=0, TO_FRAME, TO_DENSITY };
+    NormType normalize_;
     int ensembleNum_;
+    double density_;
     double max_;
     double madura_;
     double smooth_;
+    unsigned int nframes_;
     bool invert_;
     AtomMask mask_;
     std::string pdbname_;

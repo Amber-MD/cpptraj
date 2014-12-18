@@ -190,6 +190,9 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL,
       mprintf("SPAM: Bulk solvent SPAM energy taken as %.3lf kcal/mol\n", bulk_);
     }
   }
+  mprintf("#Citation: Cui, G.; Swails, J.M.; Manas, E.S.; \"SPAM: A Simple Approach\n"
+          "#          for Profiling Bound Water Molecules\"\n"
+          "#          J. Chem. Theory Comput., 2013, 9 (12), pp 5539–5549.\n");
 
   return Action::OK;
 }
