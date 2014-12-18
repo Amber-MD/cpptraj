@@ -1,4 +1,5 @@
 language: cpp
+compiler: gcc
 before_install:
     - sudo apt-get install gfortran
     - sudo apt-get install libbz2-dev
@@ -7,4 +8,4 @@ before_install:
 install:
     - ./configure gnu
 script:
-    - cd test && make test.standalone
+    - cd test && make test
