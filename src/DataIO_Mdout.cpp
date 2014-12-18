@@ -259,9 +259,10 @@ int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
     buffer.CloseFile();
   } // END loop over mdout files
   // ----- SET UP DATA SETS -----
+  int ensembleNum = datasetlist.EnsembleNum();
   for (int i = 0; i < (int)N_FIELDTYPES; i++) {
     if (Esets[i].Size() > 0) {
-      Esets[i].SetupSet( dsname, -1, Enames[i] );
+      Esets[i].SetupSet( dsname, -1, Enames[i], ensembleNum );
       Esets[i].SetLegend( dsname + "_" + Enames[i] );
     }
   }

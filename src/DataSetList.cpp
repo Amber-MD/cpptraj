@@ -221,11 +221,12 @@ DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
 }
 
 DataSet* DataSetList::CheckForSet( std::string const& nameIn ) const {
-  std::string attr_arg;
+  std::string attr_arg, member_arg("-1");
   std::string idx_arg("-1");
-  std::string dsname = ParseArgString(nameIn, idx_arg, attr_arg);
+  std::string dsname = ParseArgString(nameIn, idx_arg, attr_arg, member_arg);
   int idx = convertToInteger(idx_arg);
-  return GetSet( dsname, idx, attr_arg );
+  int member = convertToInteger(member_arg);
+  return GetSet( dsname, idx, attr_arg, member );
 }
 
 // DataSetList::GetMultipleSets()
