@@ -3,7 +3,7 @@ compiler: gcc
 before_install:
     - sudo apt-get install gfortran
     - sudo apt-get install libbz2-dev
-    - sudo apt-get install libblas-dev liblapack-dev
+    - sudo apt-get install libblas-dev liblapack-dev libarpack2-dev
     - sudo apt-get install libnetcdf-dev
 install:
     - ./configure gnu
