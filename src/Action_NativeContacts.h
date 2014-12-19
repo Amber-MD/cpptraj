@@ -27,6 +27,7 @@ class Action_NativeContacts : public Action {
     inline bool ValidContact(int, int, Topology const&) const;
 
     double distance_;     ///< Cutoff distance
+    float pdbcut_;        ///< Only print pdb atoms with bfac > pdbcut.
     int debug_;           ///< Action debug level.
     int ensembleNum_;
     int matrix_min_;      ///< Used for map output
@@ -36,6 +37,7 @@ class Action_NativeContacts : public Action {
     bool byResidue_;      ///< If true calculate distances by residue
     bool includeSolvent_; ///< If true include solvent residues
     bool series_;         ///< If true save time series of native contacts.
+    bool usepdbcut_;      ///< If true only print pdb atoms with bfac > pdbcut.
     ImagedAction image_;  ///< Hold imaging-related info/routines.
     AtomMask Mask1_;      ///< First mask in which to search
     AtomMask Mask2_;      ///< Second mask in which to search
