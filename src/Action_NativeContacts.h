@@ -42,6 +42,7 @@ class Action_NativeContacts : public Action {
     Iarray contactIdx1_;  ///< Hold atom/residue indices for Mask1 (for map)
     Iarray contactIdx2_;  ///< Hold atom/residue indices for Mask2 (for map)
     std::string cfile_;   ///< File to write native contact list to.
+    std::string pfile_;   ///< File to write contact PDB to.
     DataSet* numnative_;  ///< Hold # of native contacts
     DataSet* nonnative_;  ///< Hold # of non-native contacts
     DataSet* mindist_;    ///< Hold minimum observed distance among contacts
@@ -49,6 +50,8 @@ class Action_NativeContacts : public Action {
     DataSet_MatrixDbl* nativeMap_; ///< Hold native contacts map
     DataSet_MatrixDbl* nonnatMap_; ///< Hold non-native contacts map
     Topology* CurrentParm_;
+    Frame refFrame_;      ///< For printing out contact PDB.
+    const Topology* refParm_;   ///< For printing out contact PDB.
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     Matrix_3x3 ucell_, recip_;
