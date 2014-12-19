@@ -2,6 +2,7 @@
 #include <cfloat> // DBL_MAX
 #include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include <set> // for sorting the map.
+#include <algorithm> // std::max
 #include "Action_NativeContacts.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
@@ -492,6 +493,9 @@ void Action_NativeContacts::Print() {
       atomContactFrac[a1] += fracShared;
       atomContactFrac[a2] += fracShared;
     }
+    // Normalize so the strongest contact value is 100.00
+    norm = (double)*std::max_element(atomContactFrac.begin(), atomContactFrac.end());
+    norm = 100.00 / norm;
     PDBfile contactPDB;
     if (contactPDB.OpenWrite(pfile_))
       mprinterr("Error: Could not open contact PDB for write.\n");
@@ -505,7 +509,7 @@ void Action_NativeContacts::Print() {
         contactPDB.WriteCoord(PDBfile::ATOM, aidx+1, (*refParm_)[aidx].Name(),
                               refParm_->Res(resnum).Name(), ' ', resnum+1,
                               refFrame_[cidx], refFrame_[cidx+1], refFrame_[cidx+2],
-                              1.0, (float)atomContactFrac[aidx], 
+                              1.0, (float)(atomContactFrac[aidx] * norm), 
                               (*refParm_)[aidx].ElementName(), 0, false);
       }
       contactPDB.CloseFile();
