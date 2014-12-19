@@ -2,13 +2,16 @@
 #include <cfloat> // DBL_MAX
 #include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include <set> // for sorting the map.
+#include <algorithm> // std::max
 #include "Action_NativeContacts.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "PDBfile.h"
 
 // CONSTRUCTOR
 Action_NativeContacts::Action_NativeContacts() :
   distance_(7.0),
+  pdbcut_(0.0),
   debug_(0),
   ensembleNum_(-1),
   matrix_min_(0),
@@ -18,6 +21,7 @@ Action_NativeContacts::Action_NativeContacts() :
   byResidue_(false),
   includeSolvent_(false),
   series_(false),
+  usepdbcut_(false),
   numnative_(0),
   nonnative_(0),
   mindist_(0),
@@ -25,15 +29,16 @@ Action_NativeContacts::Action_NativeContacts() :
   nativeMap_(0),
   nonnatMap_(0),
   CurrentParm_(0),
+  refParm_(0),
   masterDSL_(0)
 {}
 // TODO: mapout, avg contacts over traj, 1=native, -1=nonnative
 void Action_NativeContacts::Help() {
   mprintf("\t[<mask1> [<mask2>]] [writecontacts <outfile>]\n"
           "\t[noimage] [distance <cut>] [out <filename>] [includesolvent]\n"
-          "\t[ first | %s ] [resoffset <n>]\n"
-          "\t[name <dsname>] [mindist] [maxdist] [byresidue]\n"
-          "\t[map [mapout <mapfile>]] [series]\n"
+          "\t[ first | %s ]\n"
+          "\t[resoffset <n>] [contactpdb <file>] [pdbcut <cut>] [mindist] [maxdist]\n"
+          "\t[name <dsname>] [byresidue] [map [mapout <mapfile>]] [series]\n"
           "  Calculate number of contacts in <mask1>, or between <mask1> and <mask2>\n"
           "  if both are specified. Native contacts are determined based on the given\n"
           "  reference structure (or first frame if not specified) and the specified\n"
@@ -83,6 +88,10 @@ static void removeSelectedSolvent( Topology const& parmIn, AtomMask& mask ) {
   */
 int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const& frameIn)
 {
+  if (!pfile_.empty()) {
+    refFrame_ = frameIn; // Save frame for later PDB output.
+    refParm_ = &parmIn;  // Save parm for later PDB output.
+  }
   // Setup first contact list
   if ( parmIn.SetupIntegerMask( Mask1_, frameIn ) ) return 1;
   if (!includeSolvent_) removeSelectedSolvent( parmIn, Mask1_ );
@@ -226,6 +235,9 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   first_ = actionArgs.hasKey("first");
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   cfile_ = actionArgs.GetStringKey("writecontacts");
+  pfile_ = actionArgs.GetStringKey("contactpdb");
+  pdbcut_ = (float)actionArgs.getKeyDouble("pdbcut", -1.0);
+  usepdbcut_ = (pdbcut_ > -1.0);
   // Get reference
   ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
   if (!first_) {
@@ -305,6 +317,11 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
     mprintf("\tSaving minimum observed distances in set '%s'\n", mindist_->Legend().c_str());
   if (outfile != 0)
     mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
+  if (!cfile_.empty()) mprintf("\tContact stats will be written to '%s'\n", cfile_.c_str());
+  if (!pfile_.empty()) {
+    mprintf("\tContact PDB will be written to '%s'\n", pfile_.c_str());
+    if (usepdbcut_) mprintf("\tOnly atoms with values > %g will be written to PDB.\n", pdbcut_);
+  }
   if (nativeMap_ != 0) {
     mprintf("\tNative contacts map will be saved as set '%s'\n"
             "\tNon-native contacts map will be saved as set '%s'\n",
@@ -456,9 +473,8 @@ void Action_NativeContacts::Print() {
   for (contactListType::iterator it = nativeContacts_.begin();
                                  it != nativeContacts_.end(); ++it)
   {
-    contactType& NC = it->second;
-    NC.Finalize();
-    sortedList.insert( NC );
+    it->second.Finalize();
+    sortedList.insert( it->second );
   }
   outfile.Printf("%-8s %20s %8s %8s %8s %8s\n", "#", "Contact", "Nframes", "Frac.", "Avg", "Stdev");
   unsigned int num = 1;
@@ -470,6 +486,44 @@ void Action_NativeContacts::Print() {
                    NC->Nframes(), fracPresent, NC->Avg(), NC->Stdev());
   }
   outfile.CloseFile();
+  // Break down contacts by atom, write to PDB.
+  if (!pfile_.empty()) {
+    std::vector<double> atomContactFrac(refParm_->Natom(), 0.0);
+    double norm = 1.0 / ((double)nframes_ * 2.0);
+    for (contactListType::const_iterator it = nativeContacts_.begin();
+                                         it != nativeContacts_.end(); ++it)
+    {
+      int a1 = it->first.first;
+      int a2 = it->first.second;
+      contactType const& NC = it->second;
+      double fracShared = (double)NC.Nframes() * norm;
+      atomContactFrac[a1] += fracShared;
+      atomContactFrac[a2] += fracShared;
+    }
+    // Normalize so the strongest contact value is 100.00
+    norm = (double)*std::max_element(atomContactFrac.begin(), atomContactFrac.end());
+    norm = 100.00 / norm;
+    PDBfile contactPDB;
+    if (contactPDB.OpenWrite(pfile_))
+      mprinterr("Error: Could not open contact PDB for write.\n");
+    else {
+      mprintf("Writing contacts PDB to '%s'\n", pfile_.c_str());
+      contactPDB.WriteTITLE( numnative_->Name() + " " + Mask1_.MaskExpression() + " " +
+                             Mask2_.MaskExpression() );
+      int cidx = 0;
+      for (int aidx = 0; aidx != refParm_->Natom(); aidx++, cidx += 3) {
+        float bfac = (float)(atomContactFrac[aidx] * norm);
+        if (!usepdbcut_ || (bfac > pdbcut_)) {
+          int resnum = (*refParm_)[aidx].ResNum();
+          contactPDB.WriteCoord(PDBfile::ATOM, aidx+1, (*refParm_)[aidx].Name(),
+                                refParm_->Res(resnum).Name(), ' ', resnum+1,
+                                refFrame_[cidx], refFrame_[cidx+1], refFrame_[cidx+2],
+                                1.0, bfac, (*refParm_)[aidx].ElementName(), 0, false);
+        }
+      }
+      contactPDB.CloseFile();
+    }
+  }
 }
 // -----------------------------------------------------------------------------
 void Action_NativeContacts::contactType::Finalize() {
