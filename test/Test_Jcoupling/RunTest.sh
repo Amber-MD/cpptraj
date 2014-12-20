@@ -11,7 +11,7 @@ cat > jcoupling.in <<EOF
 noprogress
 parm ../tz2.parm7
 trajin ../tz2.nc 1 1
-jcoupling outfile Jcoupling.dat
+jcoupling outfile Jcoupling.dat kfile Karplus.txt
 EOF
 INPUT="-i jcoupling.in"
 RunCpptraj "J-Coupling command test."
