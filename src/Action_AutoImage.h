@@ -17,7 +17,6 @@ class Action_AutoImage : public Action {
     std::string anchor_;  ///< Mask expression for anchor region.
     std::string fixed_;   ///< Mask expression for fixed region.
     std::string mobile_;  ///< Mask expression for mobile region.
-    Frame::CenterMode centerMode_;
     bool origin_;         ///< If true imaging occurs w.r.t. coordinate origin.
     bool ortho_;          ///< If true imaging is orthogonal.
     bool usecom_;         ///< If true imaging of mobile region uses molecule center.

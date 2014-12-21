@@ -17,6 +17,10 @@
 #else
 # include <unistd.h>
 #endif
+#ifdef __APPLE__
+# include <sys/sysctl.h>
+# include <mach/mach_host.h>
+#endif
 
 // tildeExpansion()
 /** Use glob.h to perform tilde expansion on a filename, returning the
@@ -332,12 +336,42 @@ long long AvailableMemory() {
   if (status.dwLength != sizeof(status))
     return -1;
   return (long long)status.dwAvailPhys;
-#else
+#elif defined(__APPLE__)
+  mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+  vm_statistics_data_t vmstat;
+  if (KERN_SUCCESS == host_statistics(mach_host_self(), HOST_VM_INFO,
+                                      (host_info_t)&vmstat, &count)) {
+    double total = vmstat.wire_count + vmstat.active_count +
+                   vmstat.inactive_count + vmstat.free_count;
+    double free = vmstat.free_count / total; // fraction
+    return (long long)(TotalGlobalMemory() * free);
+  }
+  return -1;
+#elif defined(_SC_AVPHYS_PAGES) && defined(_SC_PAGE_SIZE)
   long pages = sysconf(_SC_AVPHYS_PAGES);
   long page_size = sysconf(_SC_PAGE_SIZE);
   if (pages < 0L || page_size < 0L) return -1;
   return (long long)(pages * page_size);
+#else
+  return -1;
 #endif
 }
 
-double AvailableMemory_MB() { return (double)AvailableMemory() / (1024 * 1024); }
+double AvailableMemory_MB() { 
+  double avail_in_bytes = AvailableMemory();
+  if (avail_in_bytes < 0.0) 
+    return -1.0;
+  else
+    return (double)AvailableMemory() / (1024 * 1024);
+}
+
+#ifdef __APPLE__
+long long TotalGlobalMemory() {
+    int mib[] = {CTL_HW, HW_MEMSIZE};
+    int64_t size = 0;
+    size_t len = sizeof(size);
+    if (sysctl(mib, 2, &size, &len, NULL, 0) == 0)
+        return (long long) size;
+    return 0ll;
+}
+#endif
