@@ -1560,58 +1560,60 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   StripDihedralParmArray( newParm->dihedrals_,  parmMap, newParm->dihedralparm_ );
   StripDihedralParmArray( newParm->dihedralsh_, parmMap, newParm->dihedralparm_ );
   // Set up nonbond info. First determine which atom types remain.
-  parmMap.clear();               // parmMap[oldtype]      = newtype
-  std::vector<int> oldTypeArray; // oldTypeArray[newtype] = oldtype
-  for (std::vector<Atom>::const_iterator atm = newParm->atoms_.begin();
-                                         atm != newParm->atoms_.end(); ++atm)
-  {
-    int oldidx = atm->TypeIndex();
-    if (oldidx >= (int)parmMap.size())
-      parmMap.resize( oldidx+1, -1 );
-    if (parmMap[oldidx] == -1) {
-      parmMap[oldidx] = (int)oldTypeArray.size();
-      oldTypeArray.push_back( oldidx );
-    }
-    int newidx = parmMap[oldidx];
-    mprintf("DEBUG: '%s' Old type index=%i, new type index = %i\n", atm->c_str(), oldidx, newidx);
-  }
-  mprintf("DEBUG: # new types %zu\n", oldTypeArray.size());
-  // Set up new nonbond and nonbond index arrays.
-  newParm->nonbond_.SetNtypes( oldTypeArray.size() );
-  for (int a1idx = 0; a1idx != (int)oldTypeArray.size(); a1idx++)
-  {
-    int atm1 = oldTypeArray[a1idx];
-    for (int a2idx = a1idx; a2idx != (int)oldTypeArray.size(); a2idx++)
+  if (nonbond_.HasNonbond()) {
+    parmMap.clear();               // parmMap[oldtype]      = newtype
+    std::vector<int> oldTypeArray; // oldTypeArray[newtype] = oldtype
+    for (std::vector<Atom>::const_iterator atm = newParm->atoms_.begin();
+                                           atm != newParm->atoms_.end(); ++atm)
     {
-      int atm2 = oldTypeArray[a2idx];
-      int oldnbidx = nonbond_.GetLJindex( atm1, atm2 );
-      // NOTE: Certain routines in sander (like the 1-4 calcs) do NOT use
-      //       the nonbond index array; instead they expect the nonbond
-      //       arrays to be indexed like '(ibig*(ibig-1)/2+isml)', where
-      //       ibig is the larger atom type index.
-      int ibig = std::max(a1idx, a2idx) + 1;
-      int isml = std::min(a1idx, a2idx) + 1;
-      int testidx = (ibig*(ibig-1)/2+isml)-1;
-      if (oldnbidx > -1) {
-        // This is a traditional LJ 6-12 term. Because of the way the LJ 1-4
-        // code is laid out in sander/pmemd the LJ matrix has to be laid out
-        // indepdendent of the nonbond index array.
-        newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
-      } else {
-        // This is an old LJ 10-12 hbond term. Add one to the LJ 6-12 matrix
-        // and one to the hbond since that seems to be the convention.
-        newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, NonbondType() );
-        newParm->nonbond_.AddHBterm( a1idx, a2idx, nonbond_.HBarray((-oldnbidx)-1) );
+      int oldidx = atm->TypeIndex();
+      if (oldidx >= (int)parmMap.size())
+        parmMap.resize( oldidx+1, -1 );
+      if (parmMap[oldidx] == -1) {
+        parmMap[oldidx] = (int)oldTypeArray.size();
+        oldTypeArray.push_back( oldidx );
       }
-      int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );
-      mprintf("DEBUG: oldtypei=%i oldtypej=%i Old NB index=%i, newtypi=%i newtypej=%i new NB idx=%i testidx=%i\n", 
-              atm1, atm2, oldnbidx, a1idx, a2idx, newnbidx, testidx);
+      int newidx = parmMap[oldidx];
+      mprintf("DEBUG: '%s' Old type index=%i, new type index = %i\n", atm->c_str(), oldidx, newidx);
     }
+    mprintf("DEBUG: # new types %zu\n", oldTypeArray.size());
+    // Set up new nonbond and nonbond index arrays.
+    newParm->nonbond_.SetNtypes( oldTypeArray.size() );
+    for (int a1idx = 0; a1idx != (int)oldTypeArray.size(); a1idx++)
+    {
+      int atm1 = oldTypeArray[a1idx];
+      for (int a2idx = a1idx; a2idx != (int)oldTypeArray.size(); a2idx++)
+      {
+        int atm2 = oldTypeArray[a2idx];
+        int oldnbidx = nonbond_.GetLJindex( atm1, atm2 );
+        // NOTE: Certain routines in sander (like the 1-4 calcs) do NOT use
+        //       the nonbond index array; instead they expect the nonbond
+        //       arrays to be indexed like '(ibig*(ibig-1)/2+isml)', where
+        //       ibig is the larger atom type index.
+        int ibig = std::max(a1idx, a2idx) + 1;
+        int isml = std::min(a1idx, a2idx) + 1;
+        int testidx = (ibig*(ibig-1)/2+isml)-1;
+        if (oldnbidx > -1) {
+          // This is a traditional LJ 6-12 term. Because of the way the LJ 1-4
+          // code is laid out in sander/pmemd the LJ matrix has to be laid out
+          // indepdendent of the nonbond index array.
+          newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
+        } else {
+          // This is an old LJ 10-12 hbond term. Add one to the LJ 6-12 matrix
+          // and one to the hbond since that seems to be the convention.
+          newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, NonbondType() );
+          newParm->nonbond_.AddHBterm( a1idx, a2idx, nonbond_.HBarray((-oldnbidx)-1) );
+        }
+        int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );
+        mprintf("DEBUG: oldtypei=%i oldtypej=%i Old NB index=%i, newtypi=%i newtypej=%i new NB idx=%i testidx=%i\n", 
+                atm1, atm2, oldnbidx, a1idx, a2idx, newnbidx, testidx);
+      }
+    }
+    // Update atom type indices.
+    for (std::vector<Atom>::iterator atm = newParm->atoms_.begin();
+                                     atm != newParm->atoms_.end(); ++atm)
+      atm->SetTypeIndex( parmMap[atm->TypeIndex()] );
   }
-  // Update atom type indices.
-  for (std::vector<Atom>::iterator atm = newParm->atoms_.begin();
-                                   atm != newParm->atoms_.end(); ++atm)
-    atm->SetTypeIndex( parmMap[atm->TypeIndex()] );
   // LES info - FIXME: Not sure if stripping this is valid so print a warning.
   if (lesparm_.HasLES()) {
     mprintf("Warning: LES info present. Stripped topology may not have correct LES info.\n");
