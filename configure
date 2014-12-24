@@ -8,7 +8,7 @@
 
 # Print help message
 Usage() {
-  echo "Usage: ./configure [gnu | intel | pgi] OPTIONS"
+  echo "Usage: ./configure [gnu | intel | clang | pgi] OPTIONS"
   echo "  OPTIONS:"
   echo "    --help     : Display this message."
   echo "    -d, -debug : Turn on compiler debugging info"
@@ -183,7 +183,7 @@ EOF
 
 #---------------------------------------------------------------------
 
-if [[ -z $1  || $1 = "--help" ]] ; then
+if [[ -z $1  || $1 = "--help" || $1 = "-h" ]] ; then
   Usage
   exit 0
 fi
