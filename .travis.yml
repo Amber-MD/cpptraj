@@ -10,4 +10,3 @@ install:
     - make install
 script:
     - cd test && make test
-    - cat Test_Error.dat
