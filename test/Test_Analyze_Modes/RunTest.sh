@@ -18,7 +18,10 @@ analyze modes displ stack tz2modes out displ.dat
 EOF
 RunCpptraj "Analyze Modes Fluct/Displ"
 DoTest fluct.dat.save fluct.dat
-DoTest displ.dat.save displ.dat
+echo "=================================================================================="
+echo "|NOTE: The displacement test is currently disabled due to eigenvector sign flips.|"
+echo "=================================================================================="
+#DoTest displ.dat.save displ.dat
 }
 
 Test2() {
