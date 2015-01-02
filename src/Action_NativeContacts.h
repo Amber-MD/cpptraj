@@ -27,6 +27,7 @@ class Action_NativeContacts : public Action {
     inline bool ValidContact(int, int, Topology const&) const;
 
     double distance_;     ///< Cutoff distance
+    float pdbcut_;        ///< Only print pdb atoms with bfac > pdbcut.
     int debug_;           ///< Action debug level.
     int ensembleNum_;
     int matrix_min_;      ///< Used for map output
@@ -36,12 +37,14 @@ class Action_NativeContacts : public Action {
     bool byResidue_;      ///< If true calculate distances by residue
     bool includeSolvent_; ///< If true include solvent residues
     bool series_;         ///< If true save time series of native contacts.
+    bool usepdbcut_;      ///< If true only print pdb atoms with bfac > pdbcut.
     ImagedAction image_;  ///< Hold imaging-related info/routines.
     AtomMask Mask1_;      ///< First mask in which to search
     AtomMask Mask2_;      ///< Second mask in which to search
     Iarray contactIdx1_;  ///< Hold atom/residue indices for Mask1 (for map)
     Iarray contactIdx2_;  ///< Hold atom/residue indices for Mask2 (for map)
     std::string cfile_;   ///< File to write native contact list to.
+    std::string pfile_;   ///< File to write contact PDB to.
     DataSet* numnative_;  ///< Hold # of native contacts
     DataSet* nonnative_;  ///< Hold # of non-native contacts
     DataSet* mindist_;    ///< Hold minimum observed distance among contacts
@@ -49,6 +52,8 @@ class Action_NativeContacts : public Action {
     DataSet_MatrixDbl* nativeMap_; ///< Hold native contacts map
     DataSet_MatrixDbl* nonnatMap_; ///< Hold non-native contacts map
     Topology* CurrentParm_;
+    Frame refFrame_;      ///< For printing out contact PDB.
+    const Topology* refParm_;   ///< For printing out contact PDB.
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     Matrix_3x3 ucell_, recip_;

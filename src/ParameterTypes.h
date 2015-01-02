@@ -50,6 +50,7 @@ class AngleType {
     inline int A2()  const { return a2_;  }
     inline int A3()  const { return a3_;  }
     inline int Idx() const { return idx_; }
+    void SetIdx(int i)     { idx_ = i;    }
   private:
     int a1_;
     int a2_;
@@ -103,6 +104,7 @@ class DihedralType {
     inline int A4()     const { return a4_;   }
     inline Dtype Type() const { return type_; }
     inline int Idx()    const { return idx_;  }
+    void SetIdx(int i)        { idx_ = i;     }
   private:
     int a1_;
     int a2_;
@@ -160,6 +162,26 @@ class NonbondParmType {
     /// In Amber, index < 0 means HB, otherwise LJ 6-12
     int GetLJindex(int type1, int type2) const {
       return nbindex_[ ntypes_ * type1 + type2 ];
+    }
+    /// Set number of types and init nonbond index array.
+    void SetNtypes(int n) {
+      ntypes_ = n;
+      nbindex_.assign(ntypes_ * ntypes_, -1); 
+    }
+    /// Add given LJ term to nonbond array and update nonbond index array.
+    void AddLJterm(int ndx, int type1, int type2, NonbondType const& LJ) {
+      nbindex_[ntypes_ * type1 + type2] = ndx;
+      nbindex_[ntypes_ * type2 + type1] = ndx;
+      if (ndx >= (int)nbarray_.size())
+        nbarray_.resize(ndx+1);
+      nbarray_[ndx] = LJ;
+    }
+    /// Add given HB term to HB array and update the nonbond index array.
+    void AddHBterm(int type1, int type2, HB_ParmType const& HB) {
+      int ndx = -((int)hbarray_.size())-1;
+      nbindex_[ntypes_ * type1 + type2] = ndx;
+      nbindex_[ntypes_ * type2 + type1] = ndx;
+      hbarray_.push_back( HB );
     }
   private:
     int ntypes_;               ///< Number of unique atom types
