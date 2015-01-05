@@ -88,10 +88,6 @@ static void removeSelectedSolvent( Topology const& parmIn, AtomMask& mask ) {
   */
 int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const& frameIn)
 {
-  if (!pfile_.empty()) {
-    refFrame_ = frameIn; // Save frame for later PDB output.
-    refParm_ = &parmIn;  // Save parm for later PDB output.
-  }
   // Setup first contact list
   if ( parmIn.SetupIntegerMask( Mask1_, frameIn ) ) return 1;
   if (!includeSolvent_) removeSelectedSolvent( parmIn, Mask1_ );
@@ -155,6 +151,10 @@ int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const
   */
 int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame const& frameIn)
 {
+  if (!pfile_.empty()) {
+    refFrame_ = frameIn; // Save frame for later PDB output.
+    refParm_ = &parmIn;  // Save parm for later PDB output.
+  }
   if ( SetupContactLists(parmIn, frameIn) ) return 1;
   // If specified, set up contacts maps; base size on atom masks.
   if (nativeMap_ != 0) {
@@ -245,6 +245,11 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
     if (REF.empty()) {
       mprintf("Warning: No reference structure specified. Defaulting to first.\n");
       first_ = true;
+    }
+  } else {
+    if (!REF.empty()) {
+      mprinterr("Error: Must only specify 'first' or a reference structure, not both.\n");
+      return Action::ERR;
     }
   }
   // Create data sets
