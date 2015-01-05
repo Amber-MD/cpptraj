@@ -23,7 +23,7 @@ class NetcdfFile {
                   bool, ReplicaDimArray const&, std::string const&);
     void NC_close();
 
-    int SetupFrame();
+    int SetupFrameDim();
     int SetupCoordsVelo(bool);
     int SetupTime();
     int SetupBox(double*,NCTYPE);
