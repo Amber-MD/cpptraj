@@ -1,8 +1,7 @@
 #include <cmath> // sqrt
 #include <cfloat> // DBL_MAX
 #include <cstdlib> // abs, intel 11 compilers choke on std::abs
-#include <set> // for sorting the map.
-#include <algorithm> // std::max
+#include <algorithm> // std::max, std::sort
 #include "Action_NativeContacts.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
@@ -479,30 +478,32 @@ void Action_NativeContacts::Print() {
   typedef std::map<Cpair, resContact> resContactMap;
   resContactMap ResContacts;
   std::pair<resContactMap::iterator, bool> ret;
-  // Normalize native contacts. Place them into a set where they will
+  // Normalize native contacts. Place them into an array where they will
   // be sorted. Sum up total contact over residue pairs.
-  std::set<contactType> sortedList;
+  std::vector<contactType> sortedList;
   for (contactListType::iterator it = nativeContacts_.begin();
                                  it != nativeContacts_.end(); ++it)
   {
     it->second.Finalize();
-    sortedList.insert( it->second );
+    sortedList.push_back( it->second );
     ret = ResContacts.insert( Rpair(Cpair(it->second.Res1(),it->second.Res2()),
                                     resContact(it->second.Nframes())) );
     if (!ret.second) // residue pair exists, update it.
       ret.first->second.Increment( it->second.Nframes() );
   }
-  // Place residue pairs into a set to be sorted.
-  std::set<Rpair,res_cmp> ResList;
+  std::sort( sortedList.begin(), sortedList.end() );
+  // Place residue pairs into an array to be sorted.
+  std::vector<Rpair> ResList;
   for (resContactMap::const_iterator it = ResContacts.begin(); it != ResContacts.end(); ++it)
-    ResList.insert( *it );
+    ResList.push_back( *it );
+  std::sort( ResList.begin(), ResList.end(), res_cmp() );
   // Print out total fraction frames for residue pairs.
   CpptrajFile resout;
   if (resout.OpenWrite(rfile_)==0) {
     resout.Printf("%-8s %8s %10s %10s\n", "#Res1", "#Res2", "TotalFrac", "Contacts");
     //for (resContactMap::const_iterator it = ResContacts.begin(); it != ResContacts.end(); ++it)
-    for (std::set<Rpair,res_cmp>::const_iterator it = ResList.begin();
-                                                 it != ResList.end(); ++it)
+    for (std::vector<Rpair>::const_iterator it = ResList.begin();
+                                            it != ResList.end(); ++it)
       resout.Printf("%-8i %8i %10g %10i\n", it->first.first+1, it->first.second+1,
                     (double)it->second.Nframes()/(double)nframes_,
                     it->second.Ncontacts());
@@ -511,8 +512,8 @@ void Action_NativeContacts::Print() {
   // Print out sorted atom contacts.
   outfile.Printf("%-8s %20s %8s %8s %8s %8s\n", "#", "Contact", "Nframes", "Frac.", "Avg", "Stdev");
   unsigned int num = 1;
-  for (std::set<contactType>::const_iterator NC = sortedList.begin();
-                                             NC != sortedList.end(); ++NC, ++num)
+  for (std::vector<contactType>::const_iterator NC = sortedList.begin();
+                                                NC != sortedList.end(); ++NC, ++num)
   { 
     double fracPresent = (double)NC->Nframes() / (double)nframes_;
     outfile.Printf("%8u %20s %8i %8.3g %8.3g %8.3g\n", num, NC->id(),
