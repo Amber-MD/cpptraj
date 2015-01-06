@@ -34,7 +34,7 @@ Action_NativeContacts::Action_NativeContacts() :
 {}
 // TODO: mapout, avg contacts over traj, 1=native, -1=nonnative
 void Action_NativeContacts::Help() {
-  mprintf("\t[<mask1> [<mask2>]] [writecontacts <outfile>]\n"
+  mprintf("\t[<mask1> [<mask2>]] [writecontacts <outfile>] [resout <resfile>]\n"
           "\t[noimage] [distance <cut>] [out <filename>] [includesolvent]\n"
           "\t[ first | %s ]\n"
           "\t[resoffset <n>] [contactpdb <file>] [pdbcut <cut>] [mindist] [maxdist]\n"
@@ -135,7 +135,9 @@ int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const
           maxDist2 = std::max( Dist2, maxDist2 ); \
           if (Dist2 < distance_) { \
             std::string legend(parmIn.AtomMaskName(*c1) + "_" + parmIn.AtomMaskName(*c2)); \
-            ret = nativeContacts_.insert( Mpair(Cpair(*c1,*c2), contactType(legend)) ); \
+            int r1 = parmIn[*c1].ResNum(); \
+            int r2 = parmIn[*c2].ResNum(); \
+            ret = nativeContacts_.insert( Mpair(Cpair(*c1,*c2), contactType(legend,r1,r2)) ); \
             if (ret.second && series_) \
               ret.first->second.SetData(masterDSL_->AddSetIdxAspect(DataSet::INTEGER, \
                                                 numnative_->Name(), nativeContacts_.size(), \
@@ -236,6 +238,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   cfile_ = actionArgs.GetStringKey("writecontacts");
   pfile_ = actionArgs.GetStringKey("contactpdb");
+  rfile_ = actionArgs.GetStringKey("resout");
   pdbcut_ = (float)actionArgs.getKeyDouble("pdbcut", -1.0);
   usepdbcut_ = (pdbcut_ > -1.0);
   // Get reference
@@ -472,15 +475,39 @@ void Action_NativeContacts::Print() {
     outfile.Printf("\n");
   } else
     mprintf("    CONTACTS: %s\n", numnative_->Name().c_str());
+  // Map of residue pairs to total contact values.
+  typedef std::map<Cpair, double> resContactMap;
+  resContactMap ResContacts;
+  std::pair<resContactMap::iterator, bool> ret;
   // Normalize native contacts. Place them into a set where they will
-  // be sorted.
+  // be sorted. Sum up total contact over residue pairs.
   std::set<contactType> sortedList;
   for (contactListType::iterator it = nativeContacts_.begin();
                                  it != nativeContacts_.end(); ++it)
   {
     it->second.Finalize();
     sortedList.insert( it->second );
+    ret = ResContacts.insert( Rpair(Cpair(it->second.Res1(),it->second.Res2()),
+                                          it->second.Nframes()) );
+    if (!ret.second) // residue pair exists, update it.
+      ret.first->second += it->second.Nframes();
   }
+  // Place residue pairs into a set to be sorted.
+  std::set<Rpair,res_cmp> ResList;
+  for (resContactMap::const_iterator it = ResContacts.begin(); it != ResContacts.end(); ++it)
+    ResList.insert( *it );
+  // Print out total fraction frames for residue pairs.
+  CpptrajFile resout;
+  if (resout.OpenWrite(rfile_)==0) {
+    resout.Printf("%-8s %8s %10s\n", "#Res1", "#Res2", "TotalFrac");
+    //for (resContactMap::const_iterator it = ResContacts.begin(); it != ResContacts.end(); ++it)
+    for (std::set<Rpair,res_cmp>::const_iterator it = ResList.begin();
+                                                 it != ResList.end(); ++it)
+      resout.Printf("%-8i %8i %10g\n", it->first.first+1, it->first.second+1,
+                    it->second/(double)nframes_);
+  }
+  resout.CloseFile();
+  // Print out sorted atom contacts.
   outfile.Printf("%-8s %20s %8s %8s %8s %8s\n", "#", "Contact", "Nframes", "Frac.", "Avg", "Stdev");
   unsigned int num = 1;
   for (std::set<contactType>::const_iterator NC = sortedList.begin();
@@ -512,7 +539,7 @@ void Action_NativeContacts::Print() {
     if (contactPDB.OpenWrite(pfile_))
       mprinterr("Error: Could not open contact PDB for write.\n");
     else {
-      mprintf("Writing contacts PDB to '%s'\n", pfile_.c_str());
+      mprintf("\tWriting contacts PDB to '%s'\n", pfile_.c_str());
       contactPDB.WriteTITLE( numnative_->Name() + " " + Mask1_.MaskExpression() + " " +
                              Mask2_.MaskExpression() );
       int cidx = 0;
