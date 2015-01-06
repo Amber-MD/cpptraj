@@ -476,7 +476,7 @@ void Action_NativeContacts::Print() {
   } else
     mprintf("    CONTACTS: %s\n", numnative_->Name().c_str());
   // Map of residue pairs to total contact values.
-  typedef std::map<Cpair, double> resContactMap;
+  typedef std::map<Cpair, resContact> resContactMap;
   resContactMap ResContacts;
   std::pair<resContactMap::iterator, bool> ret;
   // Normalize native contacts. Place them into a set where they will
@@ -488,9 +488,9 @@ void Action_NativeContacts::Print() {
     it->second.Finalize();
     sortedList.insert( it->second );
     ret = ResContacts.insert( Rpair(Cpair(it->second.Res1(),it->second.Res2()),
-                                          it->second.Nframes()) );
+                                    resContact(it->second.Nframes())) );
     if (!ret.second) // residue pair exists, update it.
-      ret.first->second += it->second.Nframes();
+      ret.first->second.Increment( it->second.Nframes() );
   }
   // Place residue pairs into a set to be sorted.
   std::set<Rpair,res_cmp> ResList;
@@ -499,12 +499,13 @@ void Action_NativeContacts::Print() {
   // Print out total fraction frames for residue pairs.
   CpptrajFile resout;
   if (resout.OpenWrite(rfile_)==0) {
-    resout.Printf("%-8s %8s %10s\n", "#Res1", "#Res2", "TotalFrac");
+    resout.Printf("%-8s %8s %10s %10s\n", "#Res1", "#Res2", "TotalFrac", "Contacts");
     //for (resContactMap::const_iterator it = ResContacts.begin(); it != ResContacts.end(); ++it)
     for (std::set<Rpair,res_cmp>::const_iterator it = ResList.begin();
                                                  it != ResList.end(); ++it)
-      resout.Printf("%-8i %8i %10g\n", it->first.first+1, it->first.second+1,
-                    it->second/(double)nframes_);
+      resout.Printf("%-8i %8i %10g %10i\n", it->first.first+1, it->first.second+1,
+                    (double)it->second.Nframes()/(double)nframes_,
+                    it->second.Ncontacts());
   }
   resout.CloseFile();
   // Print out sorted atom contacts.
