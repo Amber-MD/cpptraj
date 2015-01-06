@@ -325,6 +325,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   if (outfile != 0)
     mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
   if (!cfile_.empty()) mprintf("\tContact stats will be written to '%s'\n", cfile_.c_str());
+  if (!rfile_.empty()) mprintf("\tContact res pairs will be written to '%s'\n", rfile_.c_str());
   if (!pfile_.empty()) {
     mprintf("\tContact PDB will be written to '%s'\n", pfile_.c_str());
     if (usepdbcut_) mprintf("\tOnly atoms with values > %g will be written to PDB.\n", pdbcut_);
