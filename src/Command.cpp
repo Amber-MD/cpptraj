@@ -122,6 +122,7 @@
 #include "Analysis_Regression.h"
 #include "Analysis_LowestCurve.h"
 #include "Analysis_CurveFit.h"
+#include "Analysis_PhiPsi.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -1900,6 +1901,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, AddAnalysis },
   { ANALYSIS, "multihist", Analysis_MultiHist::Alloc, Analysis_MultiHist::Help, AddAnalysis },
   { ANALYSIS, "overlap", Analysis_Overlap::Alloc, Analysis_Overlap::Help, AddAnalysis },
+  { ANALYSIS, "phipsi", Analysis_PhiPsi::Alloc, Analysis_PhiPsi::Help, AddAnalysis },
   { ANALYSIS, "regress", Analysis_Regression::Alloc, Analysis_Regression::Help, AddAnalysis },
   { ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, AddAnalysis },
   { ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
