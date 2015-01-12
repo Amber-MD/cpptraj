@@ -35,7 +35,6 @@ class Action_Radial: public Action, ImagedAction {
     int numBins_;             ///< The number of bins.
     int numthreads_;          ///< Number of threads.
     int numFrames_;           ///< Number of frames for which RDF is calcd.
-    int numDistances_;        ///< Number of distances binned, only informational.
     double density_;          ///< Particle density (molecules/Ang^3).
     DataSet* Dset_;
     DataSet* intrdf_;

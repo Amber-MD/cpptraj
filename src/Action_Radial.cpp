@@ -22,7 +22,6 @@ Action_Radial::Action_Radial() :
   numBins_(0),
   numthreads_(1),
   numFrames_(0),
-  numDistances_(0),
   // Default particle density (molecules/Ang^3) for water based on 1.0 g/mL
   density_(0.033456),
   Dset_(0),
@@ -293,7 +292,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
   Matrix_3x3 ucell, recip;
   int atom1, atom2;
   int nmask1, nmask2;
-  int idx, mydistances;
+  int idx;
 # ifdef _OPENMP
   int mythread;
 # endif
@@ -305,13 +304,12 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
     if (useVolume_)  volume_ += D;
   }
 
-  mydistances = 0;
   if ( rmode_ == NORMAL ) { 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
     int outer_max = OuterMask_.Nselected();
     int inner_max = InnerMask_.Nselected();
 #   ifdef _OPENMP
-#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread) reduction(+:mydistances) 
+#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread)
     {
     //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
     mythread = omp_get_thread_num();
@@ -335,7 +333,6 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 #             else
               ++RDF_[idx];
 #             endif
-            ++mydistances;
           }
         }
       } // END loop over 2nd mask
@@ -349,7 +346,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
     int outer_max = OuterMask_.Nselected();
     int inner_max = InnerMask_.Nselected();
 #   ifdef _OPENMP
-#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread) reduction(+:mydistances) 
+#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D,idx,mythread)
     {
     //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
     mythread = omp_get_thread_num();
@@ -373,7 +370,6 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 #             else
               ++RDF_[idx];
 #             endif
-            ++mydistances;
           }
         }
       } // END loop over 2nd mask
@@ -386,7 +382,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
     Vec3 coord_center = currentFrame->VGeometricCenter(OuterMask_);
     int mask2_max = InnerMask_.Nselected();
 #   ifdef _OPENMP
-#   pragma omp parallel private(nmask2,atom2,D,idx,mythread) reduction(+:mydistances)
+#   pragma omp parallel private(nmask2,atom2,D,idx,mythread)
     {
     mythread = omp_get_thread_num();
 #   pragma omp for
@@ -406,14 +402,12 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 #         else
           ++RDF_[idx];
 #         endif
-        ++mydistances;
       }
     } // END loop over 2nd mask
 #   ifdef _OPENMP
     } // END pragma omp parallel
 #   endif 
   }
-  numDistances_ += mydistances;
   ++numFrames_;
 
   return Action::OK;
@@ -434,7 +428,7 @@ void Action_Radial::Print() {
       RDF_[bin] += rdf_thread_[thread][bin];
 # endif
 
-  mprintf("    RADIAL: %i frames, %i distances.\n",numFrames_,numDistances_);
+  mprintf("    RADIAL: %i frames,", numFrames_);
   double nmask1 = (double)Mask1_.Nselected();
   double nmask2 = (double)Mask2_.Nselected();
   int numSameAtoms = 0;
@@ -457,7 +451,7 @@ void Action_Radial::Print() {
     nmask2 = 1.0;
     numSameAtoms = 0;
   }
-  mprintf("            # in mask1= %.0f, # in mask2 = %.0f, # in common = %i\n",
+  mprintf(" # in mask1= %.0f, # in mask2 = %.0f, # in common = %i\n",
           nmask1, nmask2, numSameAtoms);
   
   // If useVolume, calculate the density from the average volume
