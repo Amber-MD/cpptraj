@@ -67,7 +67,7 @@ const char *Topology::c_str() const {
   if (!parmTag_.empty())
     return (parmTag_.c_str());
   else if (!fileName_.empty()) 
-    return fileName_.full();
+    return fileName_.base();
   return parmName_.c_str();
 }
 
@@ -208,7 +208,7 @@ void Topology::Brief(const char* heading) const {
   if (!parmTag_.empty())
     mprintf(" %s", parmTag_.c_str());
   if (!fileName_.empty())
-    mprintf(" '%s',", fileName_.full());
+    mprintf(" '%s',", fileName_.base());
   else if (!parmName_.empty())
     mprintf(" %s,", parmName_.c_str());
   mprintf(" %zu atoms, %zu res, box: %s, %zu mol", atoms_.size(), 

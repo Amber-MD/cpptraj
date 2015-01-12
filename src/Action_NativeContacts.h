@@ -45,6 +45,7 @@ class Action_NativeContacts : public Action {
     Iarray contactIdx2_;  ///< Hold atom/residue indices for Mask2 (for map)
     std::string cfile_;   ///< File to write native contact list to.
     std::string pfile_;   ///< File to write contact PDB to.
+    std::string rfile_;   ///< File to write total fraction frames for res pairs.
     DataSet* numnative_;  ///< Hold # of native contacts
     DataSet* nonnative_;  ///< Hold # of non-native contacts
     DataSet* mindist_;    ///< Hold minimum observed distance among contacts
@@ -61,20 +62,47 @@ class Action_NativeContacts : public Action {
     class contactType;
     /// Define contact pair.
     typedef std::pair<int,int> Cpair;
-    /// Define map pair.
+    /// Define map pair for inserting into map.
     typedef std::pair<Cpair, contactType> Mpair;
     /// Define list of contacts.
     typedef std::map<Cpair, contactType> contactListType;
     contactListType nativeContacts_; ///< List of native contacts.
+    /// Hold residue total contact frames and total # contacts.
+    class resContact {
+    public:
+    resContact() : nframes_(0), ncontacts_(0) {}
+    resContact(int nf) : nframes_(nf), ncontacts_(1) {}
+    void Increment(int nf) { nframes_ += nf; ++ncontacts_; }
+    int Nframes() const { return nframes_; }
+    int Ncontacts() const { return ncontacts_; }
+    bool operator<(resContact const& rhs) const {
+      if (nframes_ == rhs.nframes_)
+        return (ncontacts_ > rhs.ncontacts_);
+      else
+        return (nframes_ > rhs.nframes_);
+    }
+    private:
+    int nframes_, ncontacts_;
+    };
+    /// For holding residue pair and total fraction contact.
+    typedef std::pair<Cpair, resContact> Rpair;
+    /// For sorting residue contact pairs.
+    struct res_cmp {
+      inline bool operator()(Rpair const& first, Rpair const& second) const {
+        return (first.second < second.second);
+      }
+    };
 };
 // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------
 class Action_NativeContacts::contactType {
   public:
-    contactType() : dist_(0.0), dist2_(0.0), data_(0), nframes_(0) {}
-    contactType(std::string const& id) : dist_(0.0), dist2_(0.0), data_(0),
-                                         id_(id), nframes_(0) {}
+    contactType() : dist_(0.0), dist2_(0.0), data_(0), nframes_(0), res1_(-1), res2_(-1) {}
+    contactType(std::string const& id, int r1, int r2) : dist_(0.0), dist2_(0.0), data_(0),
+                                         id_(id), nframes_(0), res1_(r1), res2_(r2) {}
     const char* id() const { return id_.c_str(); }
     int Nframes()    const { return nframes_;    }
+    int Res1()       const { return res1_;       }
+    int Res2()       const { return res2_;       }
     double Avg()     const { return dist_;       }
     double Stdev()   const { return dist2_;      }
     DataSet_integer& Data() { return *data_;     }
@@ -98,5 +126,7 @@ class Action_NativeContacts::contactType {
     DataSet_integer* data_;  ///< If series, keep track of frames contact is present.
     std::string id_; ///< Contact ID.
     int nframes_;    ///< Number of frames contact is present.
+    int res1_;
+    int res2_;
 };
 #endif

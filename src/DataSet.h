@@ -60,6 +60,8 @@ class DataSet {
     void SetLegend( std::string const& lIn ) { legend_ = lIn;     }
     /// Set scalar mode
     void SetScalar( scalarMode mIn )         { scalarmode_ = mIn; }
+    /// Set index.
+    void SetIndex(int i)                     { idx_  = i;         }
     /// Set specified DataSet dimension.
     void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i]=d; }
     /// Set scalar mode and type

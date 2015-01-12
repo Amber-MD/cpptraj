@@ -15,7 +15,7 @@ Action_Dihedral::Action_Dihedral() :
 void Action_Dihedral::Help() {
   mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> [out filename] [mass]\n"
           "\t[type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p|h1p|phi|psi|pchi}]\n"
-          "\t[range360]\n"
+          "\t[range360] [idx <index>]\n"
           "  Calculate dihedral angle for atoms in masks 1-4.\n");
 }
 
@@ -27,6 +27,7 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   useMass_ = actionArgs.hasKey("mass");
   range360_ = actionArgs.hasKey("range360");
+  int dsidx = actionArgs.getKeyInt("idx", -1);
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
   if (!stypename.empty()) {
@@ -55,6 +56,7 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   dih_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Dih");
   if (dih_==0) return Action::ERR;
   dih_->SetScalar( DataSet::M_TORSION, stype );
+  if (dsidx > -1) dih_->SetIndex( dsidx );
   // Add dataset to datafile list
   if (outfile != 0) outfile->AddSet( dih_ );
 
