@@ -2,6 +2,7 @@
 #include <cstdio> // sscanf
 #include "Traj_AmberRestart.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // NoTrailingWhitespace
 
 // CONSTRUCTOR
 Traj_AmberRestart::Traj_AmberRestart() :
@@ -170,6 +171,7 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
   readAccess_ = true;
   // Read in title
   std::string title = file_.GetLine();
+  SetTitle( NoTrailingWhitespace(title) );
   // Read in natoms, time, and Replica Temp if present
   std::string nextLine = file_.GetLine();
   if (nextLine.empty()) {

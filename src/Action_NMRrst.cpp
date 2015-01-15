@@ -35,8 +35,7 @@ static void TranslateAmbiguous(std::string& aname) {
 }
 // -----------------------------------------------------------------------------
 // Action_NMRrst::Init()
-Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   ensembleNum_ = DSL->EnsembleNum();

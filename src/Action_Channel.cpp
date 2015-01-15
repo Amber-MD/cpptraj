@@ -11,8 +11,7 @@ void Action_Channel::Help() {
   mprintf("\t<solute mask> [<solvent mask>] [out <file>] [dx <dx> [dy <dy>] [dz <dz>]]\n");
 }
 
-Action::RetType Action_Channel::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Channel::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Keywords.
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );

@@ -58,8 +58,7 @@ static inline Action::RetType DeprecatedErr(const char* key) {
 }
 
 // Action_Vector::Init()
-Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   // filename is saved in case ptraj-compatible output is desired

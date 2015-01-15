@@ -21,9 +21,7 @@ void Action_VelocityAutoCorr::Help() {
 }
 
 // Action_VelocityAutoCorr::Init()
-Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, TopologyList* PFL,
-                                              FrameList* FL, DataSetList* DSL, 
-                                              DataFileList* DFL, int debugIn)
+Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   useVelInfo_ = actionArgs.hasKey("usevelocity");
   mask_.SetMaskString( actionArgs.GetMaskNext() );

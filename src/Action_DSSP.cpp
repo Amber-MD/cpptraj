@@ -38,8 +38,7 @@ const char* Action_DSSP::SSchar[]    = { "0", "b", "B", "G", "H", "I", "T", "S" 
 const char* Action_DSSP::SSname[]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn", "Bend"};
 
 // Action_DSSP::Init()
-Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;

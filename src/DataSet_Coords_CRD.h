@@ -4,18 +4,14 @@
 class DataSet_Coords_CRD : public DataSet_Coords {
   public:
     DataSet_Coords_CRD() : DataSet_Coords(COORDS) {}
-    static DataSet* Alloc() { return (DataSet*)new DataSet_Coords_CRD();    }
+    static DataSet* Alloc() { return (DataSet*)new DataSet_Coords_CRD(); }
     // ----- DataSet functions -------------------
     size_t Size() const { return coords_.size(); }
     int Sync()          { return 1;              }
     void Info() const;
-    // ----- DataSet_1D functions ----------------
-    int Allocate1D(size_t);
-    void Add( size_t, const void* )              { return;     }
-    double Dval(size_t)                    const { return 0.0; }
-    double Xcrd(size_t idx)  const { return Dim(0).Coord(idx); }
-    void WriteBuffer(CpptrajFile&, size_t) const { return;     }
-    // -------------------------------------------
+    void Add(size_t, const void*) {}
+    // ----- DataSet_Coords functions ------------
+    int AllocateCoords(size_t);
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { 
       coords_.push_back( fIn.ConvertToCRD(numBoxCrd_, hasVel_) ); 

@@ -23,8 +23,7 @@ inline static int SetName(NameType& name, std::string const& expr, const char* s
   return 0;
 }
 
-Action::RetType Action_MultiVector::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MultiVector::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get keywords

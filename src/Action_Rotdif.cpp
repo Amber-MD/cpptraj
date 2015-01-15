@@ -56,7 +56,7 @@ Action_Rotdif::Action_Rotdif() :
 void Action_Rotdif::Help() {
   mprintf("\t[outfile <outfilename>] [usefft]\n"
           "  Options for creating RMS best-fit rotation matrices:\n"
-          "\t[<mask>] {ref <refname> | refinfex <refindex> | reference}\n"
+          "\t[<mask>] {%s}\n"
           "\t[rmout <rmOut>]\n"
           "  Options for generating random vectors:\n"
           "\t[nvecs <nvecs>] [rvecin <randvecIn>] [rseed <random seed>]\n"
@@ -81,12 +81,11 @@ void Action_Rotdif::Help() {
           "  to the following equation to obtain principal values of the diffusion\n"
           "  tensor:\n    C(t) = SUM[l=-2,...,+2]( cl * exp(-t / Tl)\n"
           "  (see equation 2.10b and related eqs. in Korzhnev et al., Prog. Nuc. Mag.\n"
-          "   Res. Spec. 38 (2001) 197-266 for details).\n");
+          "   Res. Spec. 38 (2001) 197-266 for details).\n", DataSetList::RefArgs);
 }
 
 // Action_Rotdif::Init()
-Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   if (DSL->EnsembleNum() > -1) {
     mprinterr("Error: Rotational Diffusion calc. currently cannot be used in ensemble mode.\n");
@@ -138,7 +137,7 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Fram
     amoeba_itmax_ = actionArgs.getKeyInt("fit_itmax", amoeba_itmax_);
   }
   // Reference Keywords
-  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
+  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
   if (REF.empty()) {
     mprinterr("Error: Must specify a reference structure.\n");

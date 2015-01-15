@@ -54,8 +54,7 @@ void Action_MakeStructure::Help() {
 }
 
 // Action_MakeStructure::Init()
-Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   secstruct_.clear();
@@ -98,8 +97,9 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
       ss_holder.dihSearch_.SearchFor(DihedralSearch::PHI);
       ss_holder.dihSearch_.SearchFor(DihedralSearch::PSI);
       // Get reference structure
-      ReferenceFrame REF = FL->GetFrameByName( ss_arg.GetStringNext() ); // ss_arg[2]
-      if (REF.error() || REF.empty()) {
+      DataSet_Coords_REF* REF = (DataSet_Coords_REF*)
+                                DSL->GetReferenceFrame(ss_arg.GetStringNext()); // ss_arg[2]
+      if (REF == 0) {
         mprinterr("Error: Could not get reference structure [%s]\n", ss_arg[2].c_str());
         return Action::ERR;
       }
@@ -117,14 +117,14 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
       DihedralSearch refSearch;
       refSearch.SearchFor(DihedralSearch::PHI);
       refSearch.SearchFor(DihedralSearch::PSI);
-      if (refSearch.FindDihedrals( REF.Parm(), refRange )) return Action::ERR;
+      if (refSearch.FindDihedrals( REF->Top(), refRange )) return Action::ERR;
       // For each found dihedral, set theta 
       for (DihedralSearch::mask_it dih = refSearch.begin(); dih != refSearch.end(); ++dih)
       {
-        double torsion = Torsion( REF.Coord().XYZ(dih->A0()),
-                                  REF.Coord().XYZ(dih->A1()),
-                                  REF.Coord().XYZ(dih->A2()),
-                                  REF.Coord().XYZ(dih->A3()) );
+        double torsion = Torsion( REF->RefFrame().XYZ(dih->A0()),
+                                  REF->RefFrame().XYZ(dih->A1()),
+                                  REF->RefFrame().XYZ(dih->A2()),
+                                  REF->RefFrame().XYZ(dih->A3()) );
         ss_holder.thetas_.push_back( (float)torsion );
       }
       secstruct_.push_back( ss_holder );

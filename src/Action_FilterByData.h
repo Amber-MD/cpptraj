@@ -10,8 +10,7 @@ class Action_FilterByData : public Action {
     static void Help();
     /// For running as a separate command.
     size_t DetermineFrames() const;
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                         DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType DoAction(int, Frame*, Frame**);
   private:
     Action::RetType Setup(Topology*, Topology**) { return Action::OK; }

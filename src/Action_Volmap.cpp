@@ -37,8 +37,7 @@ void Action_Volmap::RawHelp() {
 }
 
 // Action_Volmap::Init()
-Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   // Get the required mask

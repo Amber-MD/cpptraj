@@ -33,8 +33,27 @@ void Topology::SetParmName(std::string const& title, FileName const& filename) {
 
 // Topology::SetReferenceCoords()
 void Topology::SetReferenceCoords( Frame const& frameIn ) {
-  if (!frameIn.empty())
-    refCoords_ = frameIn;
+  if (!frameIn.empty()) {
+    if (frameIn.Natom() == Natom())
+      refCoords_ = frameIn;
+    else if (frameIn.Natom() > Natom()) {
+      mprintf("Warning: Active reference has %i atoms, parm '%s' has only %i.\n"
+              "Warning: Truncating reference coords for this parm (distance-based masks only).\n",
+              frameIn.Natom(), c_str(), Natom());
+      refCoords_.SetupFrame(Natom());
+      std::copy(frameIn.xAddress(), frameIn.xAddress() + refCoords_.size(),
+                refCoords_.xAddress());
+    } else {
+      mprintf("Warning: Active reference has only %i atoms, parm '%s' has %i.\n"
+              "Warning: Parm will only have reference coordinates for the first %i atoms"
+              " (distance-based masks only).\n",
+              frameIn.Natom(), c_str(), Natom(), frameIn.Natom());
+      refCoords_.SetupFrame(Natom());
+      std::copy(frameIn.xAddress(), frameIn.xAddress() + frameIn.size(), refCoords_.xAddress());
+      std::fill(refCoords_.xAddress() + frameIn.size(),
+                refCoords_.xAddress() + refCoords_.size(), 0.0);
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------

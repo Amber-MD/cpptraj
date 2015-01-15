@@ -29,8 +29,7 @@ void Action_Grid::Help() {
 }
 
 // Action_Grid::Init()
-Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   nframes_ = 0;
@@ -41,7 +40,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     return Action::ERR;
   }
   // Get grid options
-  grid_ = GridInit( "GRID", actionArgs, *DSL, *FL );
+  grid_ = GridInit( "GRID", actionArgs, *DSL );
   if (grid_ == 0) return Action::ERR;
 
   // Get extra options

@@ -18,8 +18,7 @@ void Action_GridFreeEnergy::Help() {
 }
 
 // Action_GridFreeEnergy::init()
-Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get output filename
   std::string filename = actionArgs.GetStringNext();
@@ -28,7 +27,7 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* P
     return Action::ERR;
   }
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
-  grid_ = GridInit( "GridFreeEnergy", actionArgs, *DSL, *FL );
+  grid_ = GridInit( "GridFreeEnergy", actionArgs, *DSL );
   if (grid_ == 0) return Action::ERR;
 
   // Get mask

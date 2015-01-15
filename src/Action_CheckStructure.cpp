@@ -37,8 +37,7 @@ Action_CheckStructure::~Action_CheckStructure() {
 }
 
 // Action_CheckStructure::Init()
-Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords

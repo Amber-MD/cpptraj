@@ -2,6 +2,7 @@
 #define INC_ACTION_ATOMMAP_H
 #include "Action.h"
 #include "AtomMap.h"
+#include "DataSet_Coords_REF.h"
 // Class: Action_AtomMap
 /// Action used to map one molecule to another using AtomMaps
 class Action_AtomMap : public Action {
@@ -11,17 +12,16 @@ class Action_AtomMap : public Action {
     static void Help();
     ~Action_AtomMap();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
 
     int debug_;
     AtomMap RefMap_;
-    ReferenceFrame RefFrame_;
+    DataSet_Coords_REF* RefFrame_;
     AtomMap TgtMap_;
-    ReferenceFrame TgtFrame_;
+    DataSet_Coords_REF* TgtFrame_;
 
     std::vector<int> AMap_;
     bool maponly_;

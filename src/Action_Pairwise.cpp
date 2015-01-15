@@ -30,14 +30,13 @@ void Action_Pairwise::Help() {
           "  If 'eout' is specified individual interaction energies will be written to\n"
           "  <eout file>. If a reference structure is given the energies will be\n"
           "  Eref - Eframe. Only energies with absolute value greater than <ecut> and\n"
-          "  <vcut> will be printed.\n" , FrameList::RefArgs);
+          "  <vcut> will be printed.\n" , DataSetList::RefArgs);
 }
 
 const double Action_Pairwise::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 
 // Action_Pairwise::Init()
-Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get Keywords
   DataFile* dataout = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -49,7 +48,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   cut_evdw_ = fabs(actionArgs.getKeyDouble("cutevdw",1.0));
   mol2Prefix_ = actionArgs.GetStringKey("cutout");
   std::string pdbout = actionArgs.GetStringKey("pdbout");
-  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
+  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   
   // Get Masks
   Mask0_.SetMaskString( actionArgs.GetMaskNext() );
