@@ -24,6 +24,11 @@ class Trajin_Single : public Trajin {
     int EnsembleSetup(FrameArray&,FramePtrArray&) {return 1;}
     int ReadEnsemble(int,FrameArray&,FramePtrArray&) {return 1;}
     bool  BadEnsemble() const { return true; }
+    // -------------------------------------------
+    std::string Title() {
+      if (trajio_==0) return std::string("");
+      else return trajio_->Title();
+    }
   private:
     TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.
     TrajectoryIO* velio_;  ///< Hold class that will interface with opt. mdvel file.

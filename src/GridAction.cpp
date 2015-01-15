@@ -15,8 +15,7 @@ static inline void CheckEven(int& N, char dir) {
 }
 
 // GridAction::GridInit()
-DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn, 
-                                      DataSetList& DSL, FrameList const& FL) 
+DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn, DataSetList& DSL) 
 {
   DataSet_GridFlt* Grid = 0; 
   bool specifiedCenter = false;
@@ -32,9 +31,9 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     }
   } else if (!refname.empty()) {
     // Get grid parameters from reference structure box.
-    ReferenceFrame REF = FL.GetFrameByName( refname );
-    if (REF.error() || REF.empty()) return 0;
-    if (REF.Parm().ParmBox().Type() == Box::NOBOX) {
+    DataSet_Coords_REF* REF = (DataSet_Coords_REF*)DSL.GetReferenceFrame( refname );
+    if (REF == 0) return 0;
+    if (REF->Top().ParmBox().Type() == Box::NOBOX) {
       mprinterr("Error: Reference '%s' does not have box information.\n", refname.c_str());
       return 0;
     }
@@ -47,7 +46,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     }
     Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
     if (Grid == 0) return 0;
-    if (Grid->Allocate_N_O_Box(nx,ny,nz,Vec3(0.0),REF.Coord().BoxCrd())) return 0;
+    if (Grid->Allocate_N_O_Box(nx,ny,nz,Vec3(0.0),REF->RefFrame().BoxCrd())) return 0;
   } else {
     // Create new data set.
     // Get nx, dx, ny, dy, nz, dz

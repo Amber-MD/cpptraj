@@ -11,8 +11,7 @@ class Action_CheckStructure: public Action, ImagedAction {
     static void Help();
     ~Action_CheckStructure();
     // These are made public for use in other actions (e.g. Action_DihedralScan)
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     int CheckFrame(int, Frame const&);
     void Print() {}

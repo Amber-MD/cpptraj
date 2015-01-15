@@ -66,6 +66,8 @@ void Analysis_Clustering::Help() {
           "\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n"
           "\t[ repout <repprefix> [repfmt <repfmt>] [repframe] ]\n"
           "\t[ avgout <avgprefix> [avgfmt <avgfmt>] ]\n"
+          "  Experimental options:\n"
+          "\t[[drawgraph | drawgraph3d] [draw_tol <tolerance>] [draw_maxit <iterations]]\n"
           "  Cluster structures based on coordinates (RMSD/DME) or given data set(s).\n"
           "  <crd set> can be created with the 'createcrd' command.\n");
 }

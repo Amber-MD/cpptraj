@@ -14,8 +14,7 @@ void Action_Scale::Help() {
 }
 
 // Action_Scale::init()
-Action::RetType Action_Scale::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Scale::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   sx_ = actionArgs.getKeyDouble("x", 1);
   sy_ = actionArgs.getKeyDouble("y", 1);

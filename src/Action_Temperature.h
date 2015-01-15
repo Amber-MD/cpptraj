@@ -9,8 +9,7 @@ class Action_Temperature : public Action {
     static void Help();
   private:
     enum ShakeType {OFF = 0, BONDS_TO_H, ALL_BONDS};
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}

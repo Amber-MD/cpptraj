@@ -33,8 +33,27 @@ void Topology::SetParmName(std::string const& title, FileName const& filename) {
 
 // Topology::SetReferenceCoords()
 void Topology::SetReferenceCoords( Frame const& frameIn ) {
-  if (!frameIn.empty())
-    refCoords_ = frameIn;
+  if (!frameIn.empty()) {
+    if (frameIn.Natom() == Natom())
+      refCoords_ = frameIn;
+    else if (frameIn.Natom() > Natom()) {
+      mprintf("Warning: Active reference has %i atoms, parm '%s' has only %i.\n"
+              "Warning: Truncating reference coords for this parm (distance-based masks only).\n",
+              frameIn.Natom(), c_str(), Natom());
+      refCoords_.SetupFrame(Natom());
+      std::copy(frameIn.xAddress(), frameIn.xAddress() + refCoords_.size(),
+                refCoords_.xAddress());
+    } else {
+      mprintf("Warning: Active reference has only %i atoms, parm '%s' has %i.\n"
+              "Warning: Parm will only have reference coordinates for the first %i atoms"
+              " (distance-based masks only).\n",
+              frameIn.Natom(), c_str(), Natom(), frameIn.Natom());
+      refCoords_.SetupFrame(Natom());
+      std::copy(frameIn.xAddress(), frameIn.xAddress() + frameIn.size(), refCoords_.xAddress());
+      std::fill(refCoords_.xAddress() + frameIn.size(),
+                refCoords_.xAddress() + refCoords_.size(), 0.0);
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -67,7 +86,7 @@ const char *Topology::c_str() const {
   if (!parmTag_.empty())
     return (parmTag_.c_str());
   else if (!fileName_.empty()) 
-    return fileName_.full();
+    return fileName_.base();
   return parmName_.c_str();
 }
 
@@ -208,7 +227,7 @@ void Topology::Brief(const char* heading) const {
   if (!parmTag_.empty())
     mprintf(" %s", parmTag_.c_str());
   if (!fileName_.empty())
-    mprintf(" '%s',", fileName_.full());
+    mprintf(" '%s',", fileName_.base());
   else if (!parmName_.empty())
     mprintf(" %s,", parmName_.c_str());
   mprintf(" %zu atoms, %zu res, box: %s, %zu mol", atoms_.size(), 
@@ -1528,8 +1547,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   std::vector<int> parmMap( bondparm_.size(), -1 ); // Map[oldidx] = newidx
   StripBondParmArray( newParm->bonds_,  parmMap, newParm->bondparm_ );
   StripBondParmArray( newParm->bondsh_, parmMap, newParm->bondparm_ );
-  mprintf("DEBUG: Original bond parm array= %zu, new bond parm array = %zu\n",
-          bondparm_.size(), newParm->bondparm_.size());
+  //mprintf("DEBUG: Original bond parm array= %zu, new bond parm array = %zu\n",
+  //        bondparm_.size(), newParm->bondparm_.size());
   // Give stripped parm the same pindex as original
   newParm->pindex_ = pindex_;
   newParm->nframes_ = nframes_;
@@ -1574,10 +1593,10 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
         parmMap[oldidx] = (int)oldTypeArray.size();
         oldTypeArray.push_back( oldidx );
       }
-      int newidx = parmMap[oldidx];
-      mprintf("DEBUG: '%s' Old type index=%i, new type index = %i\n", atm->c_str(), oldidx, newidx);
+      //int newidx = parmMap[oldidx];
+      //mprintf("DEBUG: '%s' Old type index=%i, new type index = %i\n", atm->c_str(), oldidx, newidx);
     }
-    mprintf("DEBUG: # new types %zu\n", oldTypeArray.size());
+    //mprintf("DEBUG: # new types %zu\n", oldTypeArray.size());
     // Set up new nonbond and nonbond index arrays.
     newParm->nonbond_.SetNtypes( oldTypeArray.size() );
     for (int a1idx = 0; a1idx != (int)oldTypeArray.size(); a1idx++)
@@ -1605,9 +1624,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
           newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, NonbondType() );
           newParm->nonbond_.AddHBterm( a1idx, a2idx, nonbond_.HBarray((-oldnbidx)-1) );
         }
-        int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );
-        mprintf("DEBUG: oldtypei=%i oldtypej=%i Old NB index=%i, newtypi=%i newtypej=%i new NB idx=%i testidx=%i\n", 
-                atm1, atm2, oldnbidx, a1idx, a2idx, newnbidx, testidx);
+        //int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );
+        //mprintf("DEBUG: oldtypei=%i oldtypej=%i Old NB index=%i, newtypi=%i newtypej=%i new NB idx=%i testidx=%i\n", 
+        //        atm1, atm2, oldnbidx, a1idx, a2idx, newnbidx, testidx);
       }
     }
     // Update atom type indices.
@@ -1760,7 +1779,7 @@ void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& par
       parmMap[oldidx] = newidx;
       newBondParm.push_back( bondparm_[oldidx] );
     }
-    mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
+    //mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
     bnd->SetIdx( newidx );
   }
 }
@@ -1779,7 +1798,7 @@ void Topology::StripAngleParmArray(AngleArray& newAngleArray, std::vector<int>& 
       parmMap[oldidx] = newidx;
       newAngleParm.push_back( angleparm_[oldidx] );
     }
-    mprintf("DEBUG: Old angle parm index=%i, new angle parm index=%i\n", oldidx, newidx);
+    //mprintf("DEBUG: Old angle parm index=%i, new angle parm index=%i\n", oldidx, newidx);
     ang->SetIdx( newidx );
   }
 }
@@ -1798,7 +1817,7 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
       parmMap[oldidx] = newidx;
       newDihedralParm.push_back( dihedralparm_[oldidx] );
     }
-    mprintf("DEBUG: Old dihedral parm index=%i, new dihedral parm index=%i\n", oldidx, newidx);
+    //mprintf("DEBUG: Old dihedral parm index=%i, new dihedral parm index=%i\n", oldidx, newidx);
     dih->SetIdx( newidx );
   }
 }

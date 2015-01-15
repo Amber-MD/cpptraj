@@ -122,6 +122,7 @@
 #include "Analysis_Regression.h"
 #include "Analysis_LowestCurve.h"
 #include "Analysis_CurveFit.h"
+#include "Analysis_PhiPsi.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -338,16 +339,6 @@ static void Help_NoProgress() {
 static void Help_NoExitOnError() {
   mprintf("  Do not exit when errors are encountered. This is the default\n"
           "  in interactive mode.\n");
-}
-
-static void Help_GenerateAmberRst() {
-  mprintf("\t<mask1> <mask2> [<mask3>] [<mask4>]\n"
-          "\tr1 <r1> r2 <r2> r3 <r3> r4 <r4> rk2 <rk2> rk3 <rk3>\n"
-          "\t{%s}\n"
-          "\t[{%s} [offset <off>] [width <width>]\n"
-          "\t[out <outfile>] [overwrite]\n"
-          "  Generate Amber-format restraint from 2 or more mask expressions.\n",
-          TopologyList::ParmArgs, FrameList::RefArgs);
 }
 
 static void Help_Run() {
@@ -621,7 +612,14 @@ static void Deprecate_AvgCoord() {
 /// Set active reference for distance-based masks etc.
 Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (Command::RetType)State.FL()->SetActiveRef( argIn.getNextInteger(0) );
+  ReferenceFrame REF = State.DSL()->GetReferenceFrame( argIn );
+  if (!REF.error() && REF.empty()) {
+    ArgList singleIntArg(integerToString(argIn.getNextInteger(0)));
+    REF = State.DSL()->GetReferenceFrame( singleIntArg );
+  }
+  if (REF.error() || REF.empty()) return Command::C_ERR;
+  State.SetActiveReference( REF.RefPtr() );
+  return Command::C_OK; 
 }
 
 /// Clear data in specified lists
@@ -665,6 +663,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
     mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
     return Command::C_ERR;
   }
+  mprintf("\tUsing set '%s'\n", CRD->Legend().c_str());
   Timer total_time;
   total_time.Start();
   // Start, stop, offset
@@ -678,7 +677,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   if ( tkn == 0 ) return Command::C_ERR;
   Action* act = (Action*)tkn->Alloc();
   if (act == 0) return Command::C_ERR;
-  if ( act->Init( actionargs, State.PFL(), State.FL(), State.DSL(), State.DFL(), State.Debug() ) != Action::OK ) {
+  if ( act->Init( actionargs, State.PFL(), State.DSL(), State.DFL(), State.Debug() ) != Action::OK ) {
     delete act;
     return Command::C_ERR;
   }
@@ -739,6 +738,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
     mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
     return Command::C_ERR;
   }
+  mprintf("\tUsing set '%s'\n", CRD->Legend().c_str());
   setname = argIn.GetStringNext();
   // Start, stop, offset
   int start, stop, offset;
@@ -955,7 +955,17 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
 */
   return Command::C_OK;
 }
+
 // -----------------------------------------------------------------------------
+static void Help_GenerateAmberRst() {
+  mprintf("\t<mask1> <mask2> [<mask3>] [<mask4>]\n"
+          "\tr1 <r1> r2 <r2> r3 <r3> r4 <r4> rk2 <rk2> rk3 <rk3>\n"
+          "\t{%s}\n"
+          "\t[{%s} [offset <off>] [width <width>]\n"
+          "\t[out <outfile>] [overwrite]\n"
+          "  Generate Amber-format restraint from 2 or more mask expressions.\n",
+          TopologyList::ParmArgs, DataSetList::RefArgs);
+}
 
 /// Generate amber restraints from given masks.
 Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
@@ -967,7 +977,7 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
     return Command::C_ERR;
   }
   // Get optional reference coords
-  ReferenceFrame RefCrd = State.FL()->GetFrameFromArgs(argIn);
+  ReferenceFrame RefCrd = State.DSL()->GetReferenceFrame(argIn);
   // Get arguments
   bool overwrite = argIn.hasKey("overwrite");
   double r1 = argIn.getKeyDouble("r1", 0.0);
@@ -999,7 +1009,7 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
       mprintf("Warning: 4 masks already defined. Skipping '%s'\n", maskExpr.c_str());
     else {
       AtomMask tmpmask( maskExpr );
-      if ( parm->SetupIntegerMask( tmpmask ) ) { // TODO: Use RefCrd?
+      if ( parm->SetupIntegerMask( tmpmask, RefCrd.Coord() ) ) {
         mprinterr("Error: Could not set up mask '%s'\n", tmpmask.MaskString());
         return Command::C_ERR;
       }
@@ -1075,6 +1085,7 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
   return Command::C_OK;
 }
 
+// -----------------------------------------------------------------------------
 /// Add DataSets specified by arguments to given DataFile.
 // NOTE: Used byt Create_DataFile and Write_DataFile
 // TODO: Put in DataFile?
@@ -1225,8 +1236,7 @@ static void Help_DataFilter() {
 Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Action_FilterByData filterAction;
-  if (filterAction.Init(argIn, State.PFL(), State.FL(), State.DSL(), 
-                        State.DFL(), State.Debug()) != Action::OK)
+  if (filterAction.Init(argIn, State.PFL(), State.DSL(), State.DFL(), State.Debug()) != Action::OK)
     return Command::C_ERR;
   size_t nframes = filterAction.DetermineFrames();
   if (nframes < 1) {
@@ -1485,7 +1495,7 @@ Command::RetType Ensemble(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 /// Add reference trajectory to State
 Command::RetType Reference(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (Command::RetType)State.AddReference( argIn );
+  return (Command::RetType)State.AddReference( argIn.GetStringNext(), argIn );
 }
 
 // ---------- TOPOLOGY COMMANDS ------------------------------------------------
@@ -1900,6 +1910,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, AddAnalysis },
   { ANALYSIS, "multihist", Analysis_MultiHist::Alloc, Analysis_MultiHist::Help, AddAnalysis },
   { ANALYSIS, "overlap", Analysis_Overlap::Alloc, Analysis_Overlap::Help, AddAnalysis },
+  { ANALYSIS, "phipsi", Analysis_PhiPsi::Alloc, Analysis_PhiPsi::Help, AddAnalysis },
   { ANALYSIS, "regress", Analysis_Regression::Alloc, Analysis_Regression::Help, AddAnalysis },
   { ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, AddAnalysis },
   { ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },

@@ -21,6 +21,7 @@ int FloatWidth(double);
 int convertToInteger(std::string const &);
 double convertToDouble(std::string const &);
 void RemoveTrailingWhitespace(std::string &);
+std::string NoTrailingWhitespace(std::string const&);
 std::string integerToString(int);
 std::string integerToString(int,int);
 std::string doubleToString(double);

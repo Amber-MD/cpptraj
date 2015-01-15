@@ -120,7 +120,7 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
   // Get title
   SetTitle( GetAttrText("title") );
   // Get Frame info
-  if ( SetupFrame()!=0 ) return TRAJIN_ERR;
+  if ( SetupFrameDim()!=0 ) return TRAJIN_ERR;
   // Get ensemble info
   ensembleSize_ = SetupEnsembleDim();
   if (ensembleSize_ < 1) {

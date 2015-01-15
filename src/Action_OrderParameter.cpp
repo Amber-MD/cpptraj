@@ -32,10 +32,7 @@ void Action_OrderParameter::Help()
 }
 
 // Action_OrderParameter::init()
-Action::RetType Action_OrderParameter::Init(ArgList& actionArgs,
-					    TopologyList* PFL, FrameList* FL,
-					    DataSetList* DSL, DataFileList* DFL,
-					    int debugIn)
+Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   size_t nGroups;
   std::string mask;

@@ -160,9 +160,9 @@ int NetcdfFile::GetDimInfo(const char *attribute, int *length) {
   return dimID;
 }
 
-// NetcdfFile::SetupFrame()
+// NetcdfFile::SetupFrameDim()
 /** Get the frame dimension ID and # of frames (ncframe). */
-int NetcdfFile::SetupFrame() {
+int NetcdfFile::SetupFrameDim() {
   frameDID_ = GetDimInfo( NCFRAME, &ncframe_ );
   if (frameDID_==-1) return 1;
   return 0;

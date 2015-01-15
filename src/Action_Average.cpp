@@ -2,6 +2,7 @@
 #include "Action_Average.h"
 #include "CpptrajStdio.h"
 #include "Trajout_Single.h"
+#include "DataSet_Coords_REF.h"
 
 // CONSTRUCTOR
 Action_Average::Action_Average() :
@@ -9,7 +10,8 @@ Action_Average::Action_Average() :
   debug_(0),
   AvgFrame_(0),
   Natom_(0),
-  Nframes_(0)
+  Nframes_(0),
+  crdset_(0)
 { } 
 
 void Action_Average::Help() {
@@ -25,16 +27,26 @@ Action_Average::~Action_Average() {
 }
 
 // Action_Average::Init()
-Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
-  avgfilename_ = actionArgs.GetStringNext();
-  if (avgfilename_.empty()) {
-    mprinterr("Error: average: No filename given.\n");
-    return Action::ERR;
+  std::string crdName = actionArgs.GetStringKey("crdset");
+  if (crdName.empty()) {
+    crdset_ = 0;
+    avgfilename_ = actionArgs.GetStringNext();
+    if (avgfilename_.empty()) {
+      mprinterr("Error: average: No filename given.\n");
+      return Action::ERR;
+    }
+  } else {
+    // Create REF_FRAME data set.
+    crdset_ = DSL->AddSet(DataSet::REF_FRAME, crdName, "AVGSTRUCT");
+    if (crdset_ == 0) {
+      mprinterr("Error: Could not allocate average coordinate data set '%s'\n", crdName.c_str());
+      return Action::ERR;
+    }
   }
   // Get start/stop/offset args
   if (InitFrameCounter(actionArgs)) return Action::ERR;
@@ -43,11 +55,15 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, Fra
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Save all remaining arguments for setting up the trajectory at the end.
-  trajArgs_ = actionArgs.RemainingArgs();
+  if (crdset_ == 0)
+    trajArgs_ = actionArgs.RemainingArgs();
 
   mprintf("    AVERAGE: Averaging over coordinates in mask [%s]\n",Mask1_.MaskString());
   FrameCounterInfo();
-  mprintf("\tWriting averaged coords to [%s]\n",avgfilename_.c_str());
+  if (crdset_ == 0)
+    mprintf("\tWriting averaged coords to file '%s'\n",avgfilename_.c_str());
+  else
+    mprintf("\tSaving averaged coords to set '%s'\n", crdset_->Name().c_str());
 
   Nframes_ = 0;
 
@@ -80,7 +96,10 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
     // the parm for output purposes.
     if (Mask1_.Nselected()<currentParm->Natom()) {
       mprintf("Warning: Atom selection < natom, stripping parm for averaging only:\n");
-      AvgParm_ = *(currentParm->modifyStateByMask(Mask1_));
+      Topology* aparm = currentParm->modifyStateByMask(Mask1_);
+      if (aparm == 0) return Action::ERR;
+      AvgParm_ = *aparm;
+      delete aparm;
       if (debug_ > 0)
         AvgParm_.Summary();
     } else 
@@ -91,15 +110,13 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
     // If smaller, only average P->natom coords.
     if (Mask1_.Nselected() > AvgFrame_->Natom()) {
       Natom_ = AvgFrame_->Natom();
-      mprintf("Warning: Average [%s]: Parm %s selected # atoms (%i) > original parm %s\n",
-              avgfilename_.c_str(), currentParm->c_str(),
-              Mask1_.Nselected(), AvgParm_.c_str());
+      mprintf("Warning: Parm '%s' selected # atoms (%i) > original parm '%s'\n",
+              currentParm->c_str(), Mask1_.Nselected(), AvgParm_.c_str());
       mprintf("Warning:   selected# atoms (%i).\n",AvgFrame_->Natom());
     } else if (Mask1_.Nselected() < AvgFrame_->Natom()) {
       Natom_ = Mask1_.Nselected();
-      mprintf("Warning: Average[%s]: Parm %s selected # atoms (%i) < original parm %s\n",
-              avgfilename_.c_str(), currentParm->c_str(), 
-              Mask1_.Nselected(), AvgParm_.c_str());
+      mprintf("Warning: Parm '%s' selected # atoms (%i) < original parm '%s'\n",
+              currentParm->c_str(), Mask1_.Nselected(), AvgParm_.c_str());
       mprintf("Warning:   selected # atoms (%i).\n",AvgFrame_->Natom());
     } else {
       Natom_ = AvgFrame_->Natom();
@@ -123,25 +140,26 @@ Action::RetType Action_Average::DoAction(int frameNum, Frame* currentFrame, Fram
 
 // Action_Average::Print()
 void Action_Average::Print() {
-  Trajout_Single outfile;
-  double d_Nframes;
-
   if (Nframes_ < 1) return;
-  d_Nframes = (double) Nframes_;
+  double d_Nframes = (double) Nframes_;
   AvgFrame_->Divide(d_Nframes);
 
-  mprintf("    AVERAGE: [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
-
-  if (outfile.InitEnsembleTrajWrite(avgfilename_, trajArgs_, &AvgParm_, 
-                                    TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 
-  {
-    mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename_.c_str());
-    return;
+  mprintf("    AVERAGE:");
+  if (crdset_ == 0) {
+    Trajout_Single outfile;
+    mprintf(" [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
+    if (outfile.InitEnsembleTrajWrite(avgfilename_, trajArgs_, &AvgParm_, 
+                                      TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 
+    {
+      mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename_.c_str());
+      return;
+    }
+    outfile.PrintInfo(0);
+    outfile.WriteFrame(0, &AvgParm_, *AvgFrame_);
+    outfile.EndTraj();
+  } else {
+    DataSet_Coords_REF& ref = static_cast<DataSet_Coords_REF&>( *crdset_ );
+    ref.SetTopology( AvgParm_ );
+    ref.AddFrame( *AvgFrame_ );
   }
-
-  outfile.PrintInfo(0);
-
-  outfile.WriteFrame(0, &AvgParm_, *AvgFrame_);
-
-  outfile.EndTraj();
 }

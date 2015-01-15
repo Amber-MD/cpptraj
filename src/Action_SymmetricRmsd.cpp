@@ -12,12 +12,11 @@ void Action_SymmetricRmsd::Help() {
           "\t[ first | %s |\n"
           "\t  reftraj <trajname> [parm <parmname> | parmindex <#>] ]\n"
           "  Perform symmetry-corrected RMSD calculation. If 'remap' is specified\n"
-          "  frames will be modified for symmetry as well.\n", FrameList::RefArgs);
+          "  frames will be modified for symmetry as well.\n", DataSetList::RefArgs);
 }
 
 // Action_SymmetricRmsd::Init()
-Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PFL, 
-                          FrameList* FL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Check for keywords
   bool fit = !actionArgs.hasKey("nofit");
@@ -27,7 +26,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
   bool first = actionArgs.hasKey("first");
-  ReferenceFrame  REF = FL->GetFrameFromArgs( actionArgs );
+  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
   Topology* RefParm = PFL->GetParm( actionArgs );
   // Get the RMS mask string for target

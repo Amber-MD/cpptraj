@@ -79,7 +79,11 @@ int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
   // Get title
   SetTitle( GetAttrText("title") );
   // Get Frame info
-  if ( SetupFrame()!=0 ) return TRAJIN_ERR;
+  if ( SetupFrameDim()!=0 ) return TRAJIN_ERR;
+  if ( Ncframe() < 1 ) {
+    mprinterr("Error: Netcdf file is empty.\n");
+    return TRAJIN_ERR;
+  }
   // Setup Coordinates/Velocities
   if ( SetupCoordsVelo( useVelAsCoords_ )!=0 ) return TRAJIN_ERR;
   SetVelocity( HasVelocities() );

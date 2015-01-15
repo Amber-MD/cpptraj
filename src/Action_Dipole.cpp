@@ -18,8 +18,7 @@ void Action_Dipole::Help() {
 }
 
 // Action_Dipole::Init()
-Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   // Get output filename
@@ -35,7 +34,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else
     max_ = actionArgs.getKeyDouble("max", 0);
   // Get grid options
-  grid_ = GridInit( "Dipole", actionArgs, *DSL, *FL );
+  grid_ = GridInit( "Dipole", actionArgs, *DSL );
   if (grid_ == 0) return Action::ERR;
   // Setup dipole x, y, and z grids
   dipole_.resize( grid_->Size(), Vec3(0.0,0.0,0.0) );

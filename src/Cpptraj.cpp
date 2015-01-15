@@ -100,9 +100,9 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
   Topology parm;
   if (pfile.ReadTopology(parm, topFiles[0], State_.Debug())) return 1;
   if (!refFiles.empty()) {
-    ReferenceFrame refFrame;
-    if (refFrame.LoadRef( refFiles[0], &parm, State_.Debug())) return 1;
-    parm.SetReferenceCoords( refFrame.Coord() );
+    DataSet_Coords_REF refFrame;
+    if (refFrame.LoadRef( refFiles[0], parm, State_.Debug())) return 1;
+    parm.SetReferenceCoords( refFrame.RefFrame() );
   }
   if (!verbose) {
     AtomMask tempMask( maskexpr );
