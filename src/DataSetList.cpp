@@ -255,14 +255,14 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
 
   std::string attr_arg, idx_arg, member_arg;
   std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg, member_arg );
-  //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str());
+  //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s%%%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str(), member_arg.c_str());
   // If index arg is empty make wildcard (-1)
   if (idx_arg.empty() || idx_arg == "*")
     idxrange.SetRange( -1, 0 ); 
   else
     idxrange.SetRange( idx_arg );
   // If member arg is empty make none (-1)
-  if (member_arg.empty())
+  if (member_arg.empty() || member_arg == "*")
     memberrange.SetRange( -1, 0 );
   else
     memberrange.SetRange( member_arg );

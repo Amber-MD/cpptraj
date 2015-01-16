@@ -219,19 +219,17 @@ int CpptrajState::Run() {
     // Clean up Actions if run completed successfully.
     if (err == 0) {
       actionList_.Clear();
+      trajoutList_.Clear();
       DSL_.SetDataSetsPending(false);
     }
   }
-  // Analysis is currently disabled for ENSEMBLE
-  if ( trajinList_.Mode() != TrajinList::ENSEMBLE) {
-    // Run Analyses if any are specified.
-    if (err == 0)
-      err = RunAnalyses();
-    DSL_.List();
-    // Print DataFile information and write DataFiles
-    DFL_.List();
-    MasterDataFileWrite();
-  }
+  // Run Analyses if any are specified.
+  if (err == 0)
+    err = RunAnalyses();
+  DSL_.List();
+  // Print DataFile information and write DataFiles
+  DFL_.List();
+  MasterDataFileWrite();
   mprintf("---------- RUN END ---------------------------------------------------\n");
   return err;
 }
@@ -244,15 +242,13 @@ Frame CpptrajState::ActiveReference() const {
     return activeRef_->RefFrame();
 }
 
+// -----------------------------------------------------------------------------
 // CpptrajState::RunEnsemble()
 int CpptrajState::RunEnsemble() {
   Timer init_time;
   init_time.Start();
   FrameArray FrameEnsemble;
   FramePtrArray SortedFrames;
-  // No Analysis will be run. Warn user if analyses are defined.
-  if (!analysisList_.Empty())
-    mprintf("Warning: In ensemble mode, Analysis will not be performed.\n");
 
   mprintf("\nINPUT ENSEMBLE:\n");
   // Ensure all ensembles are of the same size
@@ -292,9 +288,9 @@ int CpptrajState::RunEnsemble() {
   // when MPI.
   TrajoutList TrajoutEnsemble;
   // Set up output trajectories for each member of the ensemble
+  mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
   if (trajoutList_.MakeEnsembleTrajout(parmFileList_, TrajoutEnsemble, ensembleSize))
     return 1;
-  mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
   TrajoutEnsemble.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
@@ -512,25 +508,10 @@ int CpptrajState::RunEnsemble() {
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
   for (int member = 0; member < ensembleSize; ++member)
     ActionEnsemble[member]->Print( );
-
-  // Sort DataSets and print DataSet information
-  // TODO - Also have datafilelist call a sync??
-  unsigned int total_data_sets = DSL_.size();
-  mprintf("\nENSEMBLE DATASETS: Each member has %u sets total.\n", total_data_sets);
-  for (int member = 0; member < ensembleSize; ++member) {
-    //DataSetEnsemble[member].Sync(); // SYNC only necessary when splitting up data
-    if (total_data_sets != DSL_.size())
-      mprintf("Warning: Ensemble member %i # data sets (%i) does not match member 0 (%i)\n",
-              member, DSL_.size(), total_data_sets);
-    if (debug_ > 0)
-      DSL_.List();
-  }
-
-  // Print Datafile information
-  DFL_.List();
-  // Print DataFiles. When in parallel ensemble mode, each member of the 
-  // ensemble will write data to separate files with numeric extensions. 
-  DFL_.WriteAllDF();
+# ifdef MPI
+  // Sync DataSets across all threads. 
+  //DSL_.SynchronizeData(); // NOTE: Disabled, trajs are not currently divided.
+# endif
   // Clean up ensemble action lists
   for (int member = 1; member < ensembleSize; member++)
     delete ActionEnsemble[member];
@@ -538,6 +519,7 @@ int CpptrajState::RunEnsemble() {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // CpptrajState::RunNormal()
 /** Process trajectories in trajinList. Each frame in trajinList is sent
  *  to the actions in actionList for processing.
@@ -692,12 +674,14 @@ int CpptrajState::RunNormal() {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // CpptrajState::MasterDataFileWrite()
-void CpptrajState::MasterDataFileWrite() {
-  // Only Master does DataFile output
-  if (worldrank==0)
-    DFL_.WriteAllDF();
-}
+// FIXME: If MPI ever used for trajin mode this may have to be protected.
+/** Trigger write of all pending DataFiles. When in parallel ensemble mode,
+  * each member of the ensemble will write data to separate files with 
+  * numeric extensions.
+  */
+void CpptrajState::MasterDataFileWrite() { DFL_.WriteAllDF(); }
 
 // CpptrajState::RunAnalyses()
 int CpptrajState::RunAnalyses() {

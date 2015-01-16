@@ -1721,7 +1721,17 @@ Command::RetType AddAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
 /// Add an action to the State AnalysisList
 Command::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return ( (Command::RetType)State.AddAnalysis( Alloc, argIn ) );
+  if (State.AddAnalysis( Alloc, argIn )) {
+#   ifndef MPI
+    if (State.InputTrajList().Mode() == TrajinList::ENSEMBLE)
+      mprinterr("Info: Data sets for ensemble members beyond the first (member 0) have not\n"
+                "Info:   yet been created for current Actions. If any Analyses report warnings\n"
+                "Info:   or errors related to missing data sets, try entering a 'run' command\n"
+                "Info:   prior to any analysis commands.\n");
+#   endif
+    return Command::C_ERR;
+  }
+  return Command::C_OK;
 }
 
 // ================ LIST OF ALL COMMANDS =======================================
