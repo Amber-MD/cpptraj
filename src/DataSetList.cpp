@@ -460,8 +460,7 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
 }
 
 // DataSetList::List()
-/** Print information on all data sets in the list, as well as any datafiles
-  * that will be written to.
+/** Print information on all DataSets in the list.
   */
 void DataSetList::List() const {
   if (!hasCopies_) { // No copies; this is a Master DSL.

@@ -288,9 +288,11 @@ int CpptrajState::RunEnsemble() {
   // when MPI.
   TrajoutList TrajoutEnsemble;
   // Set up output trajectories for each member of the ensemble
+  parallel_barrier();
   mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
   if (trajoutList_.MakeEnsembleTrajout(parmFileList_, TrajoutEnsemble, ensembleSize))
     return 1;
+  parallel_barrier();
   TrajoutEnsemble.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );

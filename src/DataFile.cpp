@@ -195,6 +195,22 @@ int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
   return 0;
 }
 
+/** Assumes file has been already created by e.g. an Action, but we are now
+  * in CpptrajState::RunEnsemble() and this file needs to be set up for a
+  * particular member (only if not already done).
+  */
+void DataFile::SetMember(int memberIn) {
+  if (member_ == -1) { // Not yet designated member of ensemble.
+    member_ = memberIn;
+    if (!filename_.empty()) // Sanity check.
+      filename_.append("." + integerToString(member_));
+    else
+      rprinterr("Internal Error: DataFile::SetMember(): No filename set.\n");
+  } else if (member_ != memberIn) // Another sanity check.
+    rprinterr("Internal Error: DataFile::SetMember(): Trying to change member %i to %i\n",
+              member_, memberIn);
+}
+
 // DataFile::AddSet()
 int DataFile::AddSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
@@ -343,21 +359,17 @@ void DataFile::WriteData() {
     mprintf("Warning: File '%s' has no sets containing data.\n", filename_.base());
     return;
   }
-  std::string output_filename = filename_.Full();
-  if (member_ != -1)
-    // Ensemble mode, append member num to the output filename.
-    output_filename += ("." + integerToString(member_));
 #ifdef TIMER
   Timer dftimer;
   dftimer.Start();
 #endif
   int err = 0;
   if ( dimension_ < 2 )        // One-dimensional/DataSet-specific write
-    err = dataio_->WriteData(output_filename, setsToWrite);
+    err = dataio_->WriteData(filename_.Full(), setsToWrite);
   else if ( dimension_ == 2) // Two-dimensional
-    err = dataio_->WriteData2D(output_filename, setsToWrite);
+    err = dataio_->WriteData2D(filename_.Full(), setsToWrite);
   else if ( dimension_ == 3) // Three-dimensional
-    err = dataio_->WriteData3D(output_filename, setsToWrite);
+    err = dataio_->WriteData3D(filename_.Full(), setsToWrite);
   else {
     mprinterr("Error: %iD writes not yet supported.\n", dimension_);
     err = 1;
@@ -381,28 +393,30 @@ void DataFile::SetDataFilePrecision(int widthIn, int precisionIn) {
 }
 
 // DataFile::DataSetNames()
-/** Print Dataset names to one line. If the number of datasets is greater 
+/** Store DataSet names in one line. If the number of datasets is greater 
   * than 10 just print the first and last 4 data sets.
   */
-void DataFile::DataSetNames() const {
+std::string DataFile::DataSetNames() const {
+  std::string setNames;
   DataSetList::const_iterator set = SetList_.begin();
   if (SetList_.size() > 10) {
     int setnum = 0;
     while (setnum < 4) {
-      mprintf(" %s",(*set)->Legend().c_str());
+      setNames.append(" " + (*set)->Legend());
       ++setnum;
       ++set;
     }
-    mprintf(" ...");
+    setNames.append(" ...");
     set = SetList_.end() - 4;
     setnum = 0;
     while (setnum < 4) {
-      mprintf(" %s",(*set)->Legend().c_str());
+      setNames.append(" " + (*set)->Legend());
       ++setnum;
       ++set;
     }
   } else {
     for (; set != SetList_.end(); set++)
-      mprintf(" %s",(*set)->Legend().c_str());
+      setNames.append(" " + (*set)->Legend());
   }
+  return setNames;
 }

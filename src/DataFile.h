@@ -54,8 +54,8 @@ class DataFile {
     int ProcessArgs(std::string const&);
     /// Write data in DataSets to disk.
     void WriteData();
-    /// List the names of all DataSets in DataFile.
-    void DataSetNames() const;
+    /// \return string listing the names of all DataSets in DataFile.
+    std::string DataSetNames() const;
     /// \return DataFile file name.
     FileName const& DataFilename() const { return filename_; }
     /// Used by DataFileList, indicates DataFile needs to be written. 
@@ -67,7 +67,7 @@ class DataFile {
     /// \return DataFile member num.
     int Member()                   const { return member_;   }
     /// Set DataFile member num.
-    void SetMember(int i)                { member_ = i;      }
+    void SetMember(int);
   private:
     static DataIO* DetectFormat(std::string const&, DataFormatType&);
 

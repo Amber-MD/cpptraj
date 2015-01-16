@@ -17,6 +17,8 @@ class FileName {
     void clear();
     /// \return true if string matches full or base file name.
     bool MatchFullOrBase(std::string const&) const;
+    /// Append given string to full and base file name.
+    void append(std::string const&);
 
     const std::string& Full()      const { return fullPathName_;         }
     const std::string& Base()      const { return baseName_;             }

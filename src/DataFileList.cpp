@@ -1,6 +1,7 @@
 // DataFileList
 #include "DataFileList.h"
 #include "CpptrajStdio.h"
+#include "MpiRoutines.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -50,8 +51,7 @@ void DataFileList::SetDebug(int debugIn) {
 #ifdef MPI
 void DataFileList::SetEnsembleMode(int memberIn) {
   for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
-    if ( (*df)->Member() == -1 ) // FIXME: Is this check necessary?
-      (*df)->SetMember( memberIn );
+    (*df)->SetMember( memberIn );
 }
 #endif
 // DataFileList::GetDataFile()
@@ -123,12 +123,11 @@ void DataFileList::List() const {
     //mprintf("NO DATASETS WILL BE OUTPUT\n");
     return;
   }
-
   mprintf("\nDATAFILES:\n");
+  parallel_barrier();
   for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
-    mprintf("  %s (%s): ",(*it)->DataFilename().base(), (*it)->FormatString());
-    (*it)->DataSetNames();
-    mprintf("\n");
+    rprintf("  %s (%s): %s\n", (*it)->DataFilename().base(), (*it)->FormatString(),
+            (*it)->DataSetNames().c_str());
   }
 }
 
