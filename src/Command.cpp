@@ -1009,7 +1009,12 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
       mprintf("Warning: 4 masks already defined. Skipping '%s'\n", maskExpr.c_str());
     else {
       AtomMask tmpmask( maskExpr );
-      if ( parm->SetupIntegerMask( tmpmask, RefCrd.Coord() ) ) {
+      int maskerr = 0;
+      if (!RefCrd.empty())
+        maskerr = parm->SetupIntegerMask( tmpmask, RefCrd.Coord() );
+      else
+        maskerr = parm->SetupIntegerMask( tmpmask );
+      if ( maskerr != 0 ) {
         mprinterr("Error: Could not set up mask '%s'\n", tmpmask.MaskString());
         return Command::C_ERR;
       }
