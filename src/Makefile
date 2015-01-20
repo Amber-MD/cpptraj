@@ -13,7 +13,9 @@ all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) cpp_ambpdb$(SFX) 
 	mv cpptraj$(SFX) $(CPPTRAJBIN)
-	mv cpp_ambpdb $(CPPTRAJBIN) 
+	(if [ -e "cpp_ambpdb" ]; then \
+	   mv cpp_ambpdb $(CPPTRAJBIN); \
+	 fi;) 
 
 findDepend: FindDepend.o 
 	$(CXX) -o findDepend FindDepend.o
