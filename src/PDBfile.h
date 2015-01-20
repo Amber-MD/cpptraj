@@ -47,7 +47,7 @@ class PDBfile : private CpptrajFile {
     /// Write TITLE
     void WriteTITLE(std::string const&);
     /// Write CRYST1
-    void WriteCRYST1(const double*);
+    void WriteCRYST1(const double*, const char*);
     /// Write MODEL
     void WriteMODEL(int);
     /// Write ENDMDL
