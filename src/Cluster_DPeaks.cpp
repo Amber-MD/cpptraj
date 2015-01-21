@@ -69,9 +69,9 @@ int Cluster_DPeaks::Cluster() {
     Cpoint& point0 = Points_[idx0];
     //mprintf("\nDBG:\tSearching for nearest neighbor to idx %u with higher density than %i.\n",
     //        idx0, point0.Density());
-    for (unsigned int idx1 = 0; idx1 != Points_.size(); idx1++)
+    // Since array is sorted by density we can start at the next point.
+    for (unsigned int idx1 = idx0+1; idx1 != Points_.size(); idx1++)
     {
-      if (idx0 != idx1) {
         Cpoint const& point1 = Points_[idx1];
         double dist1_2 = FrameDistances_.GetFdist(point0.Fnum(), point1.Fnum());
         max_dist = std::max(max_dist, dist1_2); 
@@ -89,17 +89,21 @@ int Cluster_DPeaks::Cluster() {
             //        nearestIdx, point1.Density(), min_dist);
           }
         }
-      }
     }
     // If min_dist is -1 at this point there is no point with higher density
     // i.e. this point has the highest density. Assign it the maximum observed
-    // distance.
-    //mprintf("DBG:\tClosest point to %u with higher density is %i (distance %g)\n",
-    //        idx0, nearestIdx, min_dist);
-    if (min_dist < 0.0)
+    // distance. Check all the points that were skipped.
+    if (min_dist < 0.0) {
+      for (unsigned int idx1 = 0; idx1 != idx0; idx1++)
+        max_dist = std::max(max_dist, FrameDistances_.GetFdist(point0.Fnum(),Points_[idx1].Fnum()));
       point0.SetDist( max_dist );
-    else
+      //mprintf("DBG:\tPoint %u has no neighbors with higher density."
+      //        " Max distance to another point is %g\n", idx0, max_dist);
+    } else {
       point0.SetDist( min_dist );
+      //mprintf("DBG:\tClosest point to %u with higher density is %i (distance %g)\n",
+      //        idx0, nearestIdx, min_dist);
+    }
     point0.SetNearestIdx( nearestIdx );
   }
   // DEBUG - Plot density vs distance for each point.
@@ -156,7 +160,7 @@ int Cluster_DPeaks::Cluster() {
   raDelta.OpenWrite("radelta.dat");
   raDelta.Printf("%-10s %10s %10s\n", "#Frame", "RnAvgPos", "Delta");
   unsigned int ra_position = 0;
-  unsigned int ra_end = Points_.size() - 1;
+  unsigned int ra_end = runavg.Size() - 1;
   int cnum = 0;
   for (Carray::iterator point = Points_.begin();
                         point != Points_.end(); ++point)
@@ -183,7 +187,7 @@ int Cluster_DPeaks::Cluster() {
   }
   raDelta.CloseFile();
   int nclusters = cnum;
-  mprintf("%i clusters.\n", nclusters);
+  mprintf("\tIdentified %i clusters from density vs distance peaks.\n", nclusters);
   // Each remaining point is assigned to the same cluster as its nearest
   // neighbor of higher density. Do this recursively until a cluster
   // center is found.
