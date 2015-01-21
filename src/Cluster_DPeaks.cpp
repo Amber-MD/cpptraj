@@ -3,6 +3,7 @@
 #include "Cluster_DPeaks.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Mesh.h"
+#include "ProgressBar.h"
 
 Cluster_DPeaks::Cluster_DPeaks() : epsilon_(-1.0) {}
 
@@ -25,6 +26,7 @@ void Cluster_DPeaks::ClusteringInfo() {
 }
 
 int Cluster_DPeaks::Cluster() {
+  mprintf("\tStarting DPeaks clustering.\n");
   Points_.clear();
   // First determine which frames are being clustered.
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
@@ -36,9 +38,12 @@ int Cluster_DPeaks::Cluster() {
     return 1;
   }
   // For each point, determine how many others are within epsilon
+  mprintf("\tDetermining local density of each point.\n");
+  ProgressBar cluster_progress( Points_.size() );
   for (Carray::iterator point0 = Points_.begin();
                         point0 != Points_.end(); ++point0)
   {
+    cluster_progress.Update(point0 - Points_.begin());
     int density = 0;
     for (Carray::const_iterator point1 = Points_.begin();
                                 point1 != Points_.end(); ++point1)
@@ -53,8 +58,11 @@ int Cluster_DPeaks::Cluster() {
   // Sort by density here. Otherwise array indices will be invalid later.
   std::sort( Points_.begin(), Points_.end() );
   // For each point, find the closest point that has higher density.
+  mprintf("\tFinding closest neighbor point with higher density for each point.\n");
+  cluster_progress.SetupProgress( Points_.size() );
   for (unsigned int idx0 = 0; idx0 != Points_.size(); idx0++)
   {
+    cluster_progress.Update( idx0 );
     double min_dist = -1.0;
     double max_dist = -1.0;
     int nearestIdx = -1; // Index of nearest neighbor with higher density
