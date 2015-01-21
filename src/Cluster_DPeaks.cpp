@@ -5,10 +5,10 @@
 #include "DataSet_Mesh.h"
 #include "ProgressBar.h"
 
-Cluster_DPeaks::Cluster_DPeaks() : epsilon_(-1.0) {}
+Cluster_DPeaks::Cluster_DPeaks() : epsilon_(-1.0), calc_noise_(false) {}
 
 void Cluster_DPeaks::Help() {
-  mprintf("\t[dpeaks epsilon <e>]\n");
+  mprintf("\t[dpeaks epsilon <e> [noise]]\n");
 }
 
 int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
@@ -18,11 +18,14 @@ int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
               "Error: Use 'epsilon <e>'\n");
     return 1;
   }
+  calc_noise_ = analyzeArgs.hasKey("noise");
   return 0;
 }
 
 void Cluster_DPeaks::ClusteringInfo() {
   mprintf("\tDPeaks: Cutoff (epsilon) for determining local density is %g\n", epsilon_);
+  if (calc_noise_)
+    mprintf("\t\tCalculating noise as all points within epsilon of another cluster.\n");
 }
 
 int Cluster_DPeaks::Cluster() {
@@ -56,7 +59,7 @@ int Cluster_DPeaks::Cluster() {
     point0->SetDensity( density );
   }
   // Sort by density here. Otherwise array indices will be invalid later.
-  std::sort( Points_.begin(), Points_.end() );
+  std::sort( Points_.begin(), Points_.end(), Cpoint::density_sort() );
   // For each point, find the closest point that has higher density.
   mprintf("\tFinding closest neighbor point with higher density for each point.\n");
   cluster_progress.SetupProgress( Points_.size() );
@@ -198,16 +201,107 @@ int Cluster_DPeaks::Cluster() {
       //mprintf("Finished recursion for index %i\n\n", idx);
     }
   }
-  // Add the clusters.
-  std::vector<ClusterDist::Cframes> TempClusters( nclusters );
+  // Sort by cluster number. NOTE: This invalidates NearestIdx
+  std::sort( Points_.begin(), Points_.end(), Cpoint::cnum_sort() );
+  // Determine where each cluster starts and stops in Points array
+  typedef std::vector<unsigned int> Parray;
+  Parray C_start_stop;
+  C_start_stop.reserve( nclusters * 2 );
+  cnum = -1;
   for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
-    TempClusters[point->Cnum()].push_back( point->Fnum() );
-  for (std::vector<ClusterDist::Cframes>::const_iterator clust = TempClusters.begin();
-                                                         clust != TempClusters.end();
-                                                       ++clust)
-    AddCluster( *clust );
+  {
+    if (point->Cnum() != cnum) {
+      if (!C_start_stop.empty()) C_start_stop.push_back(point - Points_.begin()); // end of cluster
+      C_start_stop.push_back(point - Points_.begin()); // beginning of cluster
+      cnum = point->Cnum();
+    }
+  }
+  C_start_stop.push_back( Points_.size() ); // end of last cluster
+  // Noise calculation.
+  if (calc_noise_) {
+    // For each cluster find a border region, defined as the set of points
+    // assigned to that cluster which are within epsilon of any other
+    // cluster.
+    // NOTE: Could use a set here to prevent duplicate frames.
+    typedef std::vector<Parray> Barray;
+    Barray borderIndices( nclusters ); // Hold indices of border points for each cluster.
+    for (Parray::const_iterator idx0 = C_start_stop.begin();
+                                idx0 != C_start_stop.end(); idx0 += 2)
+    {
+      int c0 = Points_[*idx0].Cnum();
+      mprintf("Cluster %i\n", c0);
+      // Check each frame in this cluster.
+      for (unsigned int i0 = *idx0; i0 != *(idx0+1); ++i0)
+      {
+        Cpoint const& point = Points_[i0];
+        // Look at each other cluster
+        for (Parray::const_iterator idx1 = idx0 + 2;
+                                    idx1 != C_start_stop.end(); idx1 += 2)
+        {
+          int c1 = Points_[*idx1].Cnum();
+          // Check each frame in other cluster
+          for (unsigned int i1 = *idx1; i1 != *(idx1+1); i1++)
+          {
+            Cpoint const& other_point = Points_[i1];
+            if (FrameDistances_.GetFdist(point.Fnum(), other_point.Fnum()) < epsilon_) {
+              mprintf("\tBorder frame: %i (to cluster %i frame %i)\n",
+                      point.Fnum() + 1, c1, other_point.Fnum() + 1);
+              borderIndices[c0].push_back( i0 );
+              borderIndices[c1].push_back( i1 );
+            }
+          }
+        }
+      }
+    }
+    mprintf("Border Frames:\n");
+    for (Parray::const_iterator idx = C_start_stop.begin();
+                                idx != C_start_stop.end(); idx += 2)
+    {
+      int c0 = Points_[*idx].Cnum();
+      mprintf("\tCluster %u: %u frames: %u border frames:", c0, *(idx+1) - *idx,
+              borderIndices[c0].size());
+      if (borderIndices[c0].empty())
+        mprintf(" No border points.\n");
+      else {
+        int highestDensity = -1;
+        // Find highest density in border region.
+        for (Parray::const_iterator bidx = borderIndices[c0].begin();
+                                    bidx != borderIndices[c0].end(); ++bidx)
+        {
+          if (highestDensity == -1)
+            highestDensity = Points_[*bidx].Density();
+          else
+            highestDensity = std::max(highestDensity, Points_[*bidx].Density());
+          mprintf(" %i", Points_[*bidx].Fnum()+1);
+        }
+        mprintf(". Highest density in border= %i\n", highestDensity);
+        // Mark any point with density <= highest border density as noise.
+        for (unsigned int i = *idx; i != *(idx+1); i++)
+        {
+          Cpoint& point = Points_[i];
+          if (point.Density() <= highestDensity) {
+            point.SetCluster( -1 );
+            mprintf("\t\tMarking frame %i as noise (density %i)\n", point.Fnum()+1, point.Density());
+          }
+        }
+      }
+    }
+  }
+  // Add the clusters.
+  for (Parray::const_iterator idx = C_start_stop.begin();
+                              idx != C_start_stop.end(); idx += 2)
+  {
+    ClusterDist::Cframes frames;
+    for (unsigned int i = *idx; i != *(idx+1); i++) {
+      if (Points_[i].Cnum() != -1)
+        frames.push_back( Points_[i].Fnum() );
+    }
+    if (!frames.empty())
+      AddCluster( frames );
+  }
   // Calculate the distances between each cluster based on centroids
   CalcClusterDistances();
+
   return 0;
 }
 

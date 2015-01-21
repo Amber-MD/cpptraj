@@ -14,6 +14,7 @@ class Cluster_DPeaks : public ClusterList {
     void AssignClusterNum(int, int&);
 
     double epsilon_;
+    bool calc_noise_;
     class Cpoint {
       public:
         Cpoint() : dist_(-1.0), density_(0), fnum_(-1), nidx_(-1), cnum_(-1) {}
@@ -27,13 +28,25 @@ class Cluster_DPeaks : public ClusterList {
           }
           return *this;
         }
-        /// Used to sort Carray
-        bool operator<(Cpoint const& second) const {
-          if (density_ == second.density_)
-            return (fnum_ < second.fnum_);
-          else
-            return (density_ < second.density_);
-        }
+        /// Used to sort Carray by density
+        //bool operator<(Cpoint const& second) const
+        struct density_sort {
+          inline bool operator()(Cpoint const& first, Cpoint const& second) const {
+            if (first.density_ == second.density_)
+              return (first.fnum_ < second.fnum_);
+            else
+              return (first.density_ < second.density_);
+          }
+        };
+        /// Used to sort Carray by cluster number
+        struct cnum_sort {
+          inline bool operator()(Cpoint const& first, Cpoint const& second) const {
+            if (first.cnum_ == second.cnum_)
+              return (first.fnum_ < second.fnum_);
+            else
+              return (first.cnum_ < second.cnum_);
+          }
+        };
         double Dist()    const { return dist_; }
         int Density()    const { return density_; }
         int Fnum()       const { return fnum_; }
