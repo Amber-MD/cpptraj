@@ -59,8 +59,8 @@ int Cluster_DPeaks::Cluster() {
     double max_dist = -1.0;
     int nearestIdx = -1; // Index of nearest neighbor with higher density
     Cpoint& point0 = Points_[idx0];
-    mprintf("\nDBG:\tSearching for nearest neighbor to idx %u with higher density than %i.\n",
-            idx0, point0.Density());
+    //mprintf("\nDBG:\tSearching for nearest neighbor to idx %u with higher density than %i.\n",
+    //        idx0, point0.Density());
     for (unsigned int idx1 = 0; idx1 != Points_.size(); idx1++)
     {
       if (idx0 != idx1) {
@@ -72,13 +72,13 @@ int Cluster_DPeaks::Cluster() {
           if (min_dist < 0.0) {
             min_dist = dist1_2;
             nearestIdx = (int)idx1;
-            mprintf("DBG:\t\tNeighbor idx %i is first point (density %i), distance %g\n",
-                    nearestIdx, point1.Density(), min_dist);
+            //mprintf("DBG:\t\tNeighbor idx %i is first point (density %i), distance %g\n",
+            //        nearestIdx, point1.Density(), min_dist);
           } else if (dist1_2 < min_dist) {
             min_dist = dist1_2;
             nearestIdx = (int)idx1;
-            mprintf("DBG:\t\tNeighbor idx %i is closer (density %i, distance %g)\n",
-                    nearestIdx, point1.Density(), min_dist);
+            //mprintf("DBG:\t\tNeighbor idx %i is closer (density %i, distance %g)\n",
+            //        nearestIdx, point1.Density(), min_dist);
           }
         }
       }
@@ -86,8 +86,8 @@ int Cluster_DPeaks::Cluster() {
     // If min_dist is -1 at this point there is no point with higher density
     // i.e. this point has the highest density. Assign it the maximum observed
     // distance.
-    mprintf("DBG:\tClosest point to %u with higher density is %i (distance %g)\n",
-            idx0, nearestIdx, min_dist);
+    //mprintf("DBG:\tClosest point to %u with higher density is %i (distance %g)\n",
+    //        idx0, nearestIdx, min_dist);
     if (min_dist < 0.0)
       point0.SetDist( max_dist );
     else
@@ -116,7 +116,6 @@ int Cluster_DPeaks::Cluster() {
   DataSet_Mesh runavg;
   unsigned int ra_size = Points_.size() - window_size + 1;
   runavg.Allocate1D( ra_size );
-  mprintf("DBG:\tRunning avg set should be size %u\n", ra_size);
   CpptrajFile raOut;
   raOut.OpenWrite("runavg.dpeaks.dat");
   double dwindow = (double)window_size;
@@ -139,7 +138,6 @@ int Cluster_DPeaks::Cluster() {
     raOut.Printf("%g %g\n", sumx / dwindow, avgy );
   }
   raOut.CloseFile();
-  mprintf("DBG:\tRunning avg set is size %zu\n", runavg.Size());
   double ra_sd;
   double ra_avg = runavg.Avg( ra_sd );
   // Double stdev
@@ -185,7 +183,7 @@ int Cluster_DPeaks::Cluster() {
   for (unsigned int idx = 0; idx != Points_.size(); idx++) {
     if (Points_[idx].Cnum() == -1) {// Point is unassigned.
       AssignClusterNum(idx, cnum);
-      mprintf("Finished recursion for index %i\n\n", idx);
+      //mprintf("Finished recursion for index %i\n\n", idx);
     }
   }
   // Add the clusters.
@@ -207,7 +205,7 @@ int Cluster_DPeaks::Cluster() {
 void Cluster_DPeaks::AssignClusterNum(int idx, int& cnum) {
   // Who is the nearest neighbor with higher density. 
   int neighbor_idx = Points_[idx].NearestIdx();
-  mprintf("Index %i nearest neighbor index %i\n", idx, neighbor_idx);
+  //mprintf("Index %i nearest neighbor index %i\n", idx, neighbor_idx);
   // SANITY CHECK
   if (neighbor_idx == -1) {
     mprinterr("Internal Error: In Cluster_DPeaks::AssignClusterNum nearest neighbor is -1.\n");
@@ -216,11 +214,11 @@ void Cluster_DPeaks::AssignClusterNum(int idx, int& cnum) {
   if (Points_[neighbor_idx].Cnum() != -1) {
     // Nearest neighbor has a cluster num assigned.
     cnum = Points_[neighbor_idx].Cnum();
-    mprintf("Neighbor index %i is cluster %i\n", neighbor_idx, cnum);
+    //mprintf("Neighbor index %i is cluster %i\n", neighbor_idx, cnum);
   } else
     // Ask neighbor to find cluster num.
     AssignClusterNum(neighbor_idx, cnum);
-  mprintf("Index %i cnum %i\n", idx, cnum);
+  //mprintf("Index %i cnum %i\n", idx, cnum);
   // At this point cnum should be set. One more sanity check.
   if (cnum == -1) {
     mprinterr("Internal Error: In Cluster_DPeaks::AssignClusterNum could not get"
