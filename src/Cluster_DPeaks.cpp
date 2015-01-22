@@ -8,7 +8,7 @@
 Cluster_DPeaks::Cluster_DPeaks() : epsilon_(-1.0), calc_noise_(false) {}
 
 void Cluster_DPeaks::Help() {
-  mprintf("\t[dpeaks epsilon <e> [noise] [dpeaks <density_vs_dist_file>]\n"
+  mprintf("\t[dpeaks epsilon <e> [noise] [dvdfile <density_vs_dist_file>]\n"
           "\t  [runavg <runavg_file>] [deltafile <file>]]\n");
 }
 
@@ -20,7 +20,7 @@ int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
     return 1;
   }
   calc_noise_ = analyzeArgs.hasKey("noise");
-  dpeaks_ = analyzeArgs.GetStringKey("dpeaks");
+  dpeaks_ = analyzeArgs.GetStringKey("dvdfile");
   rafile_ = analyzeArgs.GetStringKey("runavg");
   radelta_ = analyzeArgs.GetStringKey("deltafile");
   avg_factor_ = analyzeArgs.getKeyInt("avgfactor", -1);
