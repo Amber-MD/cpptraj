@@ -13,6 +13,9 @@ class Cluster_DPeaks : public ClusterList {
   private:
     void AssignClusterNum(int, int&);
 
+    std::string dpeaks_;
+    std::string rafile_;
+    std::string radelta_;
     double epsilon_;
     bool calc_noise_;
     class Cpoint {

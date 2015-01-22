@@ -8,7 +8,8 @@
 Cluster_DPeaks::Cluster_DPeaks() : epsilon_(-1.0), calc_noise_(false) {}
 
 void Cluster_DPeaks::Help() {
-  mprintf("\t[dpeaks epsilon <e> [noise]]\n");
+  mprintf("\t[dpeaks epsilon <e> [noise] [dpeaks <density_vs_dist_file>]\n"
+          "\t  [runavg <runavg_file>] [deltafile <file>]]\n");
 }
 
 int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
@@ -19,6 +20,9 @@ int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
     return 1;
   }
   calc_noise_ = analyzeArgs.hasKey("noise");
+  dpeaks_ = analyzeArgs.GetStringKey("dpeaks");
+  rafile_ = analyzeArgs.GetStringKey("runavg");
+  radelta_ = analyzeArgs.GetStringKey("deltafile");
   return 0;
 }
 
@@ -26,6 +30,13 @@ void Cluster_DPeaks::ClusteringInfo() {
   mprintf("\tDPeaks: Cutoff (epsilon) for determining local density is %g\n", epsilon_);
   if (calc_noise_)
     mprintf("\t\tCalculating noise as all points within epsilon of another cluster.\n");
+  if (!dpeaks_.empty())
+    mprintf("\t\tDensity vs min distance to point with next highest density written to %s\n",
+            dpeaks_.c_str());
+  if (!rafile_.empty())
+    mprintf("\t\tRunning avg of delta vs distance written to %s\n", rafile_.c_str());
+  if (!radelta_.empty())
+    mprintf("\t\tDelta of distance minus running avg written to %s\n", radelta_.c_str());
 }
 
 int Cluster_DPeaks::Cluster() {
@@ -109,15 +120,22 @@ int Cluster_DPeaks::Cluster() {
     }
     point0.SetNearestIdx( nearestIdx );
   }
-  // DEBUG - Plot density vs distance for each point.
-  CpptrajFile output;
-  output.OpenWrite("dpeaks.dat");
-  output.Printf("%-10s %10s %s %10s %10s\n", "#Density", "Distance", "Frame", "Idx", "Neighbor");
-  for (Carray::const_iterator point = Points_.begin();
-                              point != Points_.end(); ++point)
-    output.Printf("%-10i %10g \"%i\" %10u %10i\n", point->Density(), point->Dist(),
-                  point->Fnum()+1, point-Points_.begin(), point->NearestIdx());
-  output.CloseFile();
+  // Plot density vs distance for each point.
+  if (!dpeaks_.empty()) {
+    CpptrajFile output;
+    if (output.OpenWrite(dpeaks_))
+      mprinterr("Error: Could not open density vs distance plot '%s' for write.\n",
+                dpeaks_.c_str()); // TODO: Make fatal?
+    else {
+      output.Printf("%-10s %10s %s %10s %10s\n", "#Density", "Distance",
+                    "Frame", "Idx", "Neighbor");
+      for (Carray::const_iterator point = Points_.begin();
+                                  point != Points_.end(); ++point)
+        output.Printf("%-10i %10g \"%i\" %10u %10i\n", point->Density(), point->Dist(),
+                      point->Fnum()+1, point-Points_.begin(), point->NearestIdx());
+      output.CloseFile();
+    }
+  }
   // Choose points for which the min distance to point with higher density is
   // anomalously high.
   // Currently doing this by calculating the running average of density vs 
@@ -131,8 +149,6 @@ int Cluster_DPeaks::Cluster() {
   DataSet_Mesh runavg;
   unsigned int ra_size = Points_.size() - window_size + 1;
   runavg.Allocate1D( ra_size );
-  CpptrajFile raOut;
-  raOut.OpenWrite("runavg.dpeaks.dat");
   double dwindow = (double)window_size;
   double sumx = 0.0;
   double sumy = 0.0;
@@ -140,29 +156,40 @@ int Cluster_DPeaks::Cluster() {
     sumx += (double)Points_[i].Density();
     sumy += Points_[i].Dist();
   }
-  double avgy = sumy / dwindow;
-  runavg.AddXY( sumx / dwindow, avgy );
-  raOut.Printf("%g %g\n", sumx / dwindow, avgy );
+  runavg.AddXY( sumx / dwindow, sumy / dwindow );
   for (unsigned int i = 1; i < ra_size; i++) {
     unsigned int nextwin = i + window_size - 1;
     unsigned int prevwin = i - 1;
     sumx = (double)Points_[nextwin].Density() - (double)Points_[prevwin].Density() + sumx;
     sumy =         Points_[nextwin].Dist()    -         Points_[prevwin].Dist()    + sumy;
-    avgy = sumy / dwindow;
-    runavg.AddXY( sumx / dwindow, avgy );
-    raOut.Printf("%g %g\n", sumx / dwindow, avgy );
+    runavg.AddXY( sumx / dwindow, sumy / dwindow );
   }
-  raOut.CloseFile();
+  // Write running average
+  if (!rafile_.empty()) {
+    CpptrajFile raOut;
+    if (raOut.OpenWrite(rafile_))
+      mprinterr("Error: Could not open running avg file '%s' for write.\n", rafile_.c_str());
+    else {
+      for (unsigned int i = 0; i != runavg.Size(); i++)
+        raOut.Printf("%g %g\n", runavg.X(i), runavg.Y(i));
+      raOut.CloseFile();
+    }
+  }
   double ra_sd;
   double ra_avg = runavg.Avg( ra_sd );
-  // Double stdev
+  // Double stdev to use as cutoff for findning anomalously high peaks.
   ra_sd *= 2.0;
   mprintf("DBG:\tAvg of running avg set is %g, sd*2.0 is %g\n", ra_avg, ra_sd);
-  // For each point, what is the closest running avgd point?
+  // For each point in density vs distance plot, determine which running
+  // average point is closest. If the difference between the point and the
+  // running average point is > 2.0 the SD of the running average data,
+  // consider it a 'peak'. 
   CpptrajFile raDelta;
-  raDelta.OpenWrite("radelta.dat");
-  raDelta.Printf("%-10s %10s %10s\n", "#Frame", "RnAvgPos", "Delta");
-  unsigned int ra_position = 0;
+  if (!radelta_.empty())
+    raDelta.OpenWrite("radelta.dat");
+  if (raDelta.IsOpen())
+    raDelta.Printf("%-10s %10s %10s\n", "#Frame", "RnAvgPos", "Delta");
+  unsigned int ra_position = 0; // Position in the runavg DataSet
   unsigned int ra_end = runavg.Size() - 1;
   int cnum = 0;
   for (Carray::iterator point = Points_.begin();
@@ -181,12 +208,14 @@ int Cluster_DPeaks::Cluster() {
       }
     }
     double delta = point->Dist() - runavg.Y(ra_position);
-    raDelta.Printf("%-10i %10u %10g", point->Fnum()+1, ra_position, delta);
+    if (raDelta.IsOpen())
+      raDelta.Printf("%-10i %10u %10g", point->Fnum()+1, ra_position, delta);
     if (delta > ra_sd) {
-      raDelta.Printf(" POTENTIAL CLUSTER %i", cnum);
+      if (raDelta.IsOpen())
+        raDelta.Printf(" POTENTIAL CLUSTER %i", cnum);
       point->SetCluster(cnum++);
     }
-    raDelta.Printf("\n");
+    if (raDelta.IsOpen()) raDelta.Printf("\n");
   }
   raDelta.CloseFile();
   int nclusters = cnum;
