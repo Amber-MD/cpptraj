@@ -226,7 +226,7 @@ int Cluster_DPeaks::Cluster() {
   }
   raDelta.CloseFile();
   int nclusters = cnum;
-  mprintf("\tIdentified %i clusters from density vs distance peaks.\n", nclusters);
+  mprintf("\tIdentified %i cluster centers from density vs distance peaks.\n", nclusters);
   // Each remaining point is assigned to the same cluster as its nearest
   // neighbor of higher density. Do this recursively until a cluster
   // center is found.
@@ -255,6 +255,7 @@ int Cluster_DPeaks::Cluster() {
   C_start_stop.push_back( Points_.size() ); // end of last cluster
   // Noise calculation.
   if (calc_noise_) {
+    mprintf("\tDetermining noise frames from cluster borders.\n");
     // For each cluster find a border region, defined as the set of points
     // assigned to that cluster which are within epsilon of any other
     // cluster.
@@ -265,7 +266,7 @@ int Cluster_DPeaks::Cluster() {
                                 idx0 != C_start_stop.end(); idx0 += 2)
     {
       int c0 = Points_[*idx0].Cnum();
-      mprintf("Cluster %i\n", c0);
+      //mprintf("Cluster %i\n", c0);
       // Check each frame in this cluster.
       for (unsigned int i0 = *idx0; i0 != *(idx0+1); ++i0)
       {
@@ -280,8 +281,8 @@ int Cluster_DPeaks::Cluster() {
           {
             Cpoint const& other_point = Points_[i1];
             if (FrameDistances_.GetFdist(point.Fnum(), other_point.Fnum()) < epsilon_) {
-              mprintf("\tBorder frame: %i (to cluster %i frame %i)\n",
-                      point.Fnum() + 1, c1, other_point.Fnum() + 1);
+              //mprintf("\tBorder frame: %i (to cluster %i frame %i)\n",
+              //        point.Fnum() + 1, c1, other_point.Fnum() + 1);
               borderIndices[c0].push_back( i0 );
               borderIndices[c1].push_back( i1 );
             }
@@ -289,16 +290,19 @@ int Cluster_DPeaks::Cluster() {
         }
       }
     }
-    mprintf("Border Frames:\n");
+    if (debug_ > 0)
+      mprintf("Warning: Cluster numbers here may not match final cluster numbers.\n"
+              "\tBorder Frames:\n");
     for (Parray::const_iterator idx = C_start_stop.begin();
                                 idx != C_start_stop.end(); idx += 2)
     {
       int c0 = Points_[*idx].Cnum();
-      mprintf("\tCluster %u: %u frames: %u border frames:", c0, *(idx+1) - *idx,
-              borderIndices[c0].size());
-      if (borderIndices[c0].empty())
-        mprintf(" No border points.\n");
-      else {
+      if (debug_ > 0)
+        mprintf("\tCluster %u: %u frames: %u border frames:", c0, *(idx+1) - *idx,
+                borderIndices[c0].size());
+      if (borderIndices[c0].empty()) {
+        if (debug_ > 0) mprintf(" No border points.\n");
+      } else {
         int highestDensity = -1;
         // Find highest density in border region.
         for (Parray::const_iterator bidx = borderIndices[c0].begin();
@@ -308,16 +312,18 @@ int Cluster_DPeaks::Cluster() {
             highestDensity = Points_[*bidx].Density();
           else
             highestDensity = std::max(highestDensity, Points_[*bidx].Density());
-          mprintf(" %i", Points_[*bidx].Fnum()+1);
+          if (debug_ > 0) mprintf(" %i", Points_[*bidx].Fnum()+1);
         }
-        mprintf(". Highest density in border= %i\n", highestDensity);
+        if (debug_ > 0) mprintf(". Highest density in border= %i\n", highestDensity);
         // Mark any point with density <= highest border density as noise.
         for (unsigned int i = *idx; i != *(idx+1); i++)
         {
           Cpoint& point = Points_[i];
           if (point.Density() <= highestDensity) {
             point.SetCluster( -1 );
-            mprintf("\t\tMarking frame %i as noise (density %i)\n", point.Fnum()+1, point.Density());
+            if (debug_ > 1)
+              mprintf("\t\tMarking frame %i as noise (density %i)\n",
+                       point.Fnum()+1, point.Density());
           }
         }
       }
