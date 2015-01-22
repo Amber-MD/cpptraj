@@ -17,6 +17,7 @@ class Cluster_DPeaks : public ClusterList {
     std::string rafile_;
     std::string radelta_;
     double epsilon_;
+    int avg_factor_;
     bool calc_noise_;
     class Cpoint {
       public:

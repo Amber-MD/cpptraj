@@ -23,6 +23,11 @@ int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
   dpeaks_ = analyzeArgs.GetStringKey("dpeaks");
   rafile_ = analyzeArgs.GetStringKey("runavg");
   radelta_ = analyzeArgs.GetStringKey("deltafile");
+  avg_factor_ = analyzeArgs.getKeyInt("avgfactor", -1);
+  if (avg_factor_ != -1 && avg_factor_ < 1) {
+    mprinterr("Error: avgfactor must be >= 1.\n");
+    return 1;
+  }
   return 0;
 }
 
@@ -35,6 +40,8 @@ void Cluster_DPeaks::ClusteringInfo() {
             dpeaks_.c_str());
   if (!rafile_.empty())
     mprintf("\t\tRunning avg of delta vs distance written to %s\n", rafile_.c_str());
+  if (avg_factor_ != -1)
+    mprintf("\t\tRunning avg window size will be # clustered frames / %i\n", avg_factor_);
   if (!radelta_.empty())
     mprintf("\t\tDelta of distance minus running avg written to %s\n", radelta_.c_str());
 }
@@ -142,9 +149,9 @@ int Cluster_DPeaks::Cluster() {
   // distance, then choosing points with distance > twice the SD of the 
   // running average.
   // NOTE: Store in a mesh data set for now in case we want to spline etc later.
-  unsigned int avg_factor = 10;
-  unsigned int window_size = Points_.size() / avg_factor;
-  mprintf("DBG:\tRunning avg window size is %u\n", window_size);
+  if (avg_factor_ < 1) avg_factor_ = 10; 
+  unsigned int window_size = Points_.size() / (unsigned int)avg_factor_;
+  mprintf("\tRunning avg window size is %u\n", window_size);
   // FIXME: Handle case where window_size < frames
   DataSet_Mesh runavg;
   unsigned int ra_size = Points_.size() - window_size + 1;
@@ -179,7 +186,7 @@ int Cluster_DPeaks::Cluster() {
   double ra_avg = runavg.Avg( ra_sd );
   // Double stdev to use as cutoff for findning anomalously high peaks.
   ra_sd *= 2.0;
-  mprintf("DBG:\tAvg of running avg set is %g, sd*2.0 is %g\n", ra_avg, ra_sd);
+  mprintf("\tAvg of running avg set is %g, SD*2.0 (delta cutoff) is %g\n", ra_avg, ra_sd);
   // For each point in density vs distance plot, determine which running
   // average point is closest. If the difference between the point and the
   // running average point is > 2.0 the SD of the running average data,
@@ -365,6 +372,18 @@ void Cluster_DPeaks::AssignClusterNum(int idx, int& cnum) {
 
 void Cluster_DPeaks::ClusterResults(CpptrajFile& outfile) const {
    outfile.Printf("#Algorithm: DPeaks epsilon %g\n", epsilon_);
+   if (calc_noise_) {
+     outfile.Printf("#NOISE_FRAMES:");
+     std::vector<int> noiseFrames;
+     for (Carray::const_iterator point = Points_.begin();
+                                 point != Points_.end(); ++point)
+       if (point->Cnum() == -1) noiseFrames.push_back( point->Fnum()+1 );
+    std::sort( noiseFrames.begin(), noiseFrames.end() );
+    for (std::vector<int>::const_iterator f = noiseFrames.begin(); f != noiseFrames.end(); ++f)
+      outfile.Printf(" %i", *f); 
+    outfile.Printf("\n");
+    outfile.Printf("#Number_of_noise_frames: %zu\n", noiseFrames.size());
+  }
 }
 
 void Cluster_DPeaks::AddSievedFrames() {
