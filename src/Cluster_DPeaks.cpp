@@ -392,11 +392,12 @@ int Cluster_DPeaks::Cluster() {
     deltaSD = sqrt(deltaSD);
   else
     deltaSD = 0.0;
-  raDelta.Printf("#DeltaAvg= %g  DeltaSD= %g\n", deltaAv, deltaSD);
+  if (raDelta.IsOpen())
+    raDelta.Printf("#DeltaAvg= %g  DeltaSD= %g\n", deltaAv, deltaSD);
   raDelta.CloseFile();
   int cnum = 0;
   for (unsigned int i = 0; i != candidateIdxs.size(); i++) {
-    if (candidateDeltas[i] > (deltaSD + deltaAv)) {
+    if (candidateDeltas[i] > (deltaSD)) {
       Points_[candidateIdxs[i]].SetCluster( cnum++ );
       mprintf("\tPoint %u (frame %i, density %i) selected as candidate for cluster %i\n",
               candidateIdxs[i], Points_[candidateIdxs[i]].Fnum()+1,
