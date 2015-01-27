@@ -145,6 +145,265 @@ int Cluster_DPeaks::Cluster() {
   }
   // Choose points for which the min distance to point with higher density is
   // anomalously high.
+  // Right now all density values are discrete. Try to choose outliers at each
+  // value for which there is density.
+/*
+  CpptrajFile tempOut;
+  tempOut.OpenWrite("temp.dat");
+  int currentDensity = -1;
+  double distAv = 0.0;
+  double distSD = 0.0;
+  double sumWts = 0.0;
+  int nValues = 0;
+  Carray::const_iterator lastPoint = Points_.end() + 1;
+  for (Carray::const_iterator point = Points_.begin(); point != lastPoint; ++point)
+  {
+    if (point == Points_.end() || point->Density() != currentDensity) {
+      if (nValues > 0) {
+        distAv = distAv / sumWts; //(double)nValues;
+        distSD = (distSD / sumWts) - (distAv * distAv);
+        if (distSD > 0.0)
+          distSD = sqrt(distSD);
+        else
+          distSD = 0.0;
+        //mprintf("Density %i: %i values  Avg= %g  SD= %g  SumWts= %g\n", currentDensity,
+        //        nValues, distAv, distSD, sumWts);
+        tempOut.Printf("%i %g\n", currentDensity, distAv);
+      }
+      if (point == Points_.end()) break;
+      currentDensity = point->Density();
+      distAv = 0.0;
+      distSD = 0.0;
+      sumWts = 0.0;
+      nValues = 0;
+    }
+    double wt = exp(point->Dist());
+    double dval = point->Dist() * wt;
+    sumWts += wt;
+    distAv += dval;
+    distSD += (dval * dval);
+    nValues++;
+  }
+  tempOut.CloseFile(); 
+*/
+  CpptrajFile tempOut;
+  tempOut.OpenWrite("temp.dat");
+  DataSet_Mesh weightedAverage;
+  Carray::const_iterator cp = Points_.begin();
+  // Skip local density of 0.
+  //while (cp->Density() == 0 && cp != Points_.end()) ++cp;
+  while (cp != Points_.end())
+  {
+    int densityVal = cp->Density();
+    Carray densityArray;
+    // Add all points of current density.
+    while (cp->Density() == densityVal && cp != Points_.end())
+      densityArray.push_back( *(cp++) );
+    mprintf("Density value %i has %zu points.\n", densityVal, densityArray.size());
+    // Sort array by distance
+    std::sort(densityArray.begin(), densityArray.end(), Cpoint::dist_sort());
+    // Take the average of the points weighted by their position. 
+    double wtDistAv = 0.0;
+    double sumWts = 0.0;
+    //std::vector<double> weights;
+    //weights.reserve( densityArray.size() );
+    int maxPt = (int)densityArray.size() - 1;
+    for (int ip = 0; ip != (int)densityArray.size(); ++ip) 
+    {
+      double wt = exp( ip - maxPt );
+      //mprintf("\t%10i %10u %10u %10g\n", densityVal, ip, maxPt, wt);
+      wtDistAv += (densityArray[ip].Dist() * wt);
+      sumWts += wt;
+      //weights.push_back( wt );
+    }
+    wtDistAv /= sumWts;
+    // Calculate the weighted sample variance
+    //double distSD = 0.0;
+    //for (unsigned int ip = 0; ip != densityArray.size(); ++ip) {
+    //  double diff = densityArray[ip].Dist() - wtDistAv;
+    //  distSD += weights[ip] * (diff * diff);
+    //}
+    //distSD /= sumWts;
+    weightedAverage.AddXY(densityVal, wtDistAv); 
+    //tempOut.Printf("%i %g %g %g\n", densityVal, wtDistAv, sqrt(distSD), sumWts);
+    tempOut.Printf("%i %g %g\n", densityVal, wtDistAv, sumWts);
+/*
+    // Find the median.
+    double median, Q1, Q3;
+    if (densityArray.size() == 1) {
+      median = densityArray[0].Dist();
+      Q1 = median;
+      Q3 = median;
+    } else {
+      unsigned int q3_beg;
+      unsigned int med_idx = densityArray.size() / 2; // Always 0 <= Q1 < med_idx
+      if ((densityArray.size() % 2) == 0) {
+        median = (densityArray[med_idx].Dist() + densityArray[med_idx-1].Dist()) / 2.0;
+        q3_beg = med_idx;
+      } else {
+        median = densityArray[med_idx].Dist();
+        q3_beg = med_idx + 1;
+      }
+      if (densityArray.size() == 2) {
+        Q1 = densityArray[0].Dist();
+        Q3 = densityArray[1].Dist();
+      } else {
+        // Find lower quartile
+        unsigned int q1_idx = med_idx / 2;
+        if ((med_idx % 2) == 0)
+          Q1 = (densityArray[q1_idx].Dist() + densityArray[q1_idx-1].Dist()) / 2.0;
+        else
+          Q1 = densityArray[q1_idx].Dist();
+        // Find upper quartile
+        unsigned int q3_size = densityArray.size() - q3_beg;
+        unsigned int q3_idx = (q3_size / 2) + q3_beg;
+        if ((q3_size %2) == 0)
+          Q3 = (densityArray[q3_idx].Dist() + densityArray[q3_idx-1].Dist()) / 2.0;
+        else
+          Q3 = densityArray[q3_idx].Dist();
+      }
+    }
+    mprintf("\tMedian dist value is %g. Q1= %g   Q3= %g\n", median, Q1, Q3);
+*/
+  }
+  tempOut.CloseFile();
+/*
+  // TEST
+  tempOut.OpenWrite("temp2.dat");
+  std::vector<double> Hist( Points_.back().Density()+1, 0.0 );
+  int gWidth = 3;
+  double cval = 3.0;
+  double two_c_squared = 2.0 * cval * cval;
+  mprintf("DBG: cval= %g, Gaussian denominator is %g\n", cval, two_c_squared);
+  for (int wtIdx = 0; wtIdx != (int)weightedAverage.Size(); wtIdx++)
+  {
+    int bval = weightedAverage.X(wtIdx);
+    for (int xval = std::max(bval - gWidth, 0);
+             xval != std::min(bval + gWidth + 1, (int)Hist.size()); xval++)
+    {
+      // a: height (weighted average)
+      // b: center (density value)
+      // c: width
+      // x: density value in histogram 
+      //int xval = weightedAverage.X(idx);
+      //double bval = weightedAverage.X(wtIdx);
+      //double bval = (double)wtIdx;
+      double diff = (double)(xval - bval);
+      //Hist[xval] += (weightedAverage.Y(wtIdx) * exp( -( (diff * diff) / two_c_squared ) ));
+      Hist[xval] = std::max(Hist[xval],
+                            weightedAverage.Y(wtIdx) * exp( -( (diff * diff) / two_c_squared ) ));
+    }
+  }
+  for (unsigned int idx = 0; idx != Hist.size(); idx++)
+    tempOut.Printf("%u %g\n", idx, Hist[idx]);
+  tempOut.CloseFile();
+  // END TEST
+*/
+/*
+  // TEST
+  // Construct best-fit line segments
+  tempOut.OpenWrite("temp2.dat");
+  double slope, intercept, correl;
+  int segment_length = 3;
+  DataSet_Mesh Segment;
+  Segment.Allocate1D( segment_length );
+  for (int wtIdx = 0; wtIdx != (int)weightedAverage.Size(); wtIdx++)
+  {
+    Segment.Clear();
+    for (int idx = std::max(wtIdx - 1, 0); // TODO: use segment_length
+             idx != std::min(wtIdx + 2, (int)weightedAverage.Size()); idx++)
+        Segment.AddXY(weightedAverage.X(idx), weightedAverage.Y(idx));
+    Segment.LinearRegression(slope, intercept, correl, true);
+    for (int idx = std::max(wtIdx - 1, 0); // TODO: use segment_length
+             idx != std::min(wtIdx + 2, (int)weightedAverage.Size()); idx++)
+    {
+      double x = weightedAverage.X(idx);
+      double y = slope * x + intercept;
+      tempOut.Printf("%g %g %i\n", x, y, weightedAverage.X(wtIdx));
+    }
+  }
+  tempOut.CloseFile(); 
+  // END TEST
+*/
+  // For each point, determine if it is greater than the average of the
+  // weighted average distances of the previous, current, and next densities.
+  int width = 2;
+  int currentDensity = 0;
+  int wtIdx = 0;
+  double currentAvg = 0.0;
+  double deltaSD = 0.0;
+  double deltaAv = 0.0;
+  int    Ndelta = 0;
+  CpptrajFile raOut;
+  if (!rafile_.empty()) raOut.OpenWrite(rafile_);
+  CpptrajFile raDelta;
+  if (!radelta_.empty()) raDelta.OpenWrite(radelta_);
+  std::vector<unsigned int> candidateIdxs;
+  std::vector<double> candidateDeltas;
+  cp = Points_.begin();
+  // Skip over points with zero density
+  while (cp != Points_.end() && cp->Density() == 0) ++cp;
+  while (weightedAverage.X(wtIdx) != cp->Density() && wtIdx < (int)Points_.size())
+    ++wtIdx;
+  for (Carray::const_iterator point = cp; point != Points_.end(); ++point)
+  {
+    if (point->Density() != currentDensity) {
+      //currentAvg = weightedAverage.Y(wtIdx);
+      // New density value. Determine average.
+      currentAvg = 0.0;
+     // unsigned int Npt = 0; 
+      double currentWt = 0.0;
+      for (int idx = std::max(wtIdx - width, 0);
+               idx != std::min(wtIdx + width + 1, (int)weightedAverage.Size()); idx++)
+      {
+        //currentAvg += weightedAverage.Y(idx);
+        //Npt++;
+        double wt = weightedAverage.Y(idx);
+        currentAvg += (weightedAverage.Y(idx) * wt);
+        currentWt += wt;
+      }
+      //currentAvg /= (double)Npt;
+      currentAvg /= currentWt;
+      //smoothAv += currentAvg;
+      //smoothSD += (currentAvg * currentAvg);
+      //Nsmooth++;
+      currentDensity = point->Density();
+      if (raOut.IsOpen())
+        raOut.Printf("%i %g %g\n", currentDensity, currentAvg, weightedAverage.Y(wtIdx));
+      wtIdx++;
+    }
+    double delta = (point->Dist() - currentAvg);
+    if (delta > 0.0) {
+      //delta *= log((double)currentDensity);
+      if (raDelta.IsOpen())
+        raDelta.Printf("%8i %8.3f %8.3f %8.3f\n",
+                       currentDensity, delta, point->Dist(), currentAvg);
+      candidateIdxs.push_back( point - Points_.begin() );
+      candidateDeltas.push_back( delta );
+      deltaAv += delta;
+      deltaSD += (delta * delta);
+      Ndelta++;
+    }
+  }
+  raOut.CloseFile();
+  deltaAv /= (double)Ndelta;
+  deltaSD = (deltaSD / (double)Ndelta) - (deltaAv * deltaAv);
+  if (deltaSD > 0.0)
+    deltaSD = sqrt(deltaSD);
+  else
+    deltaSD = 0.0;
+  raDelta.Printf("#DeltaAvg= %g  DeltaSD= %g\n", deltaAv, deltaSD);
+  raDelta.CloseFile();
+  int cnum = 0;
+  for (unsigned int i = 0; i != candidateIdxs.size(); i++) {
+    if (candidateDeltas[i] > (deltaSD + deltaAv)) {
+      Points_[candidateIdxs[i]].SetCluster( cnum++ );
+      mprintf("\tPoint %u (frame %i, density %i) selected as candidate for cluster %i\n",
+              candidateIdxs[i], Points_[candidateIdxs[i]].Fnum()+1,
+              Points_[candidateIdxs[i]].Density(), cnum-1);
+    }
+  }
+/* 
   // Currently doing this by calculating the running average of density vs 
   // distance, then choosing points with distance > twice the SD of the 
   // running average.
@@ -225,6 +484,7 @@ int Cluster_DPeaks::Cluster() {
     if (raDelta.IsOpen()) raDelta.Printf("\n");
   }
   raDelta.CloseFile();
+*/
   int nclusters = cnum;
   mprintf("\tIdentified %i cluster centers from density vs distance peaks.\n", nclusters);
   // Each remaining point is assigned to the same cluster as its nearest

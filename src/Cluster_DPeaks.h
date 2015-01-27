@@ -51,6 +51,12 @@ class Cluster_DPeaks : public ClusterList {
               return (first.cnum_ < second.cnum_);
           }
         };
+        /// Used to sort Carray by distance
+        struct dist_sort {
+          inline bool operator()(Cpoint const& first, Cpoint const& second) const {
+            return (first.dist_ < second.dist_);
+          }
+        };
         double Dist()    const { return dist_; }
         int Density()    const { return density_; }
         int Fnum()       const { return fnum_; }
