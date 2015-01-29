@@ -64,17 +64,17 @@ void DataIO_Mdout::ReadHelp() {
 }
 
 // DataIO_Mdout::ReadData()
-int DataIO_Mdout::ReadData(std::string const& fname, ArgList& argIn,
+int DataIO_Mdout::ReadData(std::string const& fname,
                             DataSetList& datasetlist, std::string const& dsname)
 {
   Sarray mdoutFilenames;
   mdoutFilenames.push_back( fname );
   // Check if more than one mdout name was specified.
-  ArgList mdoutnames = argIn.RemainingArgs();
-  if (!mdoutnames.empty()) {
-    for (int i = 0; i < mdoutnames.Nargs(); i++)
-      mdoutFilenames.push_back( mdoutnames[i] );
-  }
+  //ArgList mdoutnames = argIn.RemainingArgs();
+  //if (!mdoutnames.empty()) {
+  //  for (int i = 0; i < mdoutnames.Nargs(); i++)
+  //    mdoutFilenames.push_back( mdoutnames[i] );
+  //}
   mprintf("\tReading from mdout files:");
   for (Sarray::const_iterator it = mdoutFilenames.begin();
                               it != mdoutFilenames.end(); ++it)

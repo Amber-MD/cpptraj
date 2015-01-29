@@ -12,6 +12,7 @@
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() :
   DataIO(true, true, true), // Valid for 1D, 2D, 3D
+  mode_(READ1D),
   isInverted_(false), 
   hasXcolumn_(true), 
   writeHeader_(true), 
@@ -32,31 +33,40 @@ void DataIO_Std::ReadHelp() {
 
 const char* DataIO_Std::SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
 
+int DataIO_Std::processReadArgs(ArgList& argIn) {
+  mode_ = READ1D;
+  if (argIn.hasKey("read1d")) mode_ = READ1D;
+  else if (argIn.hasKey("read2d")) mode_ = READ2D;
+  else if (argIn.hasKey("vector")) mode_ = READVEC;
+  indexcol_ = argIn.getKeyInt("index", -1);
+  return 0;
+}
+  
+
 // TODO: Set dimension labels
 // DataIO_Std::ReadData()
-int DataIO_Std::ReadData(std::string const& fname, ArgList& argIn,
+int DataIO_Std::ReadData(std::string const& fname, 
                          DataSetList& dsl, std::string const& dsname)
 {
   int err = 0;
-  if      (argIn.hasKey("read1d")) err = Read_1D(fname, argIn, dsl, dsname);
-  else if (argIn.hasKey("read2d")) err = Read_2D(fname, argIn, dsl, dsname);
-//  else if (argIn.hasKey("read3d")) err = Read_3D(fname, argIn, dsl, dsname);
-  else if (argIn.hasKey("vector")) err = Read_Vector(fname, argIn, dsl, dsname);
-  else                             err = Read_1D(fname, argIn, dsl, dsname);
+  switch ( mode_ ) {
+    case READ1D: err = Read_1D(fname, dsl, dsname); break;
+    case READ2D: err = Read_2D(fname, dsl, dsname); break;
+    case READVEC: err = Read_Vector(fname, dsl, dsname); break;
+  }
   return err;
 }
 
 // DataIO_Std::Read_1D()
-int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
+int DataIO_Std::Read_1D(std::string const& fname, 
                         DataSetList& datasetlist, std::string const& dsname)
 {
   ArgList labels;
   bool hasLabels = false;
   Array1D DsetList;
-  int indexcol = argIn.getKeyInt("index", -1);
   // Column user args start from 1
-  if (indexcol != -1)
-    mprintf("\tUsing column %i as index column.\n", indexcol--);
+  if (indexcol_ != -1)
+    mprintf("\tUsing column %i as index column.\n", indexcol_--);
 
   // Buffer file
   BufferedLine buffer;
@@ -84,8 +94,8 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
       if (!labels.empty()) {
         hasLabels = true;
         // If first label is Frame assume it is the index column
-        if (labels[0] == "Frame" && indexcol == -1)
-          indexcol = 0;
+        if (labels[0] == "Frame" && indexcol_ == -1)
+          indexcol_ = 0;
       }
       linebuffer = buffer.Line();
       ptr = linebuffer;
@@ -115,14 +125,14 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
                   token[0]=='-' ||
                   token[0]=='.'   )
     {
-      if ( col != indexcol )
+      if ( col != indexcol_ )
         dset = (DataSet_1D*)datasetlist.AddSetIdx( DataSet::DOUBLE, dsname, col+1 );
     } else {
       // Assume string
       // STRING columns cannot be index columns
-      if ( col == indexcol ) {
+      if ( col == indexcol_ ) {
         mprinterr("Error: DataFile %s index column %i has string values.\n", 
-                  buffer.Filename().full(), indexcol+1);
+                  buffer.Filename().full(), indexcol_+1);
         return 1;
       }
       dset = (DataSet_1D*)datasetlist.AddSetIdx( DataSet::STRING, dsname, col+1 );
@@ -131,7 +141,7 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
     if ( dset != 0 && hasLabels)
       dset->SetLegend( labels[col] );
     // Index column is the only one that should not have a DataSet.
-    if ( col != indexcol && dset == 0 ) {
+    if ( col != indexcol_ && dset == 0 ) {
       mprinterr("Error: DataFile %s: Could not identify column %i", 
                 buffer.Filename().full(), col+1);
       mprinterr(" (token=%s)\n",token);
@@ -174,8 +184,8 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
     labels.PrintList();
   }
   // Determine dimension
-  if (indexcol != -1) {
-    mprintf("\tIndex column is %i\n", indexcol + 1);
+  if (indexcol_ != -1) {
+    mprintf("\tIndex column is %i\n", indexcol_ + 1);
     if (Xvals.empty()) {
       mprinterr("Error: No indices read.\n");
       return 1;
@@ -193,7 +203,7 @@ int DataIO_Std::Read_1D(std::string const& fname, ArgList& argIn,
 }
 
 // DataIO_Std::Read_2D()
-int DataIO_Std::Read_2D(std::string const& fname, ArgList& argIn,
+int DataIO_Std::Read_2D(std::string const& fname, 
                         DataSetList& datasetlist, std::string const& dsname)
 {
   // Buffer file
@@ -240,14 +250,14 @@ int DataIO_Std::Read_2D(std::string const& fname, ArgList& argIn,
 }
 
 // DataIO_Std::Read_3D()
-int DataIO_Std::Read_3D(std::string const& fname, ArgList& argIn,
+int DataIO_Std::Read_3D(std::string const& fname, 
                         DataSetList& datasetlist, std::string const& dsname)
 {
   return 1;
 }
 
 // DataIO_Std::Read_Vector()
-int DataIO_Std::Read_Vector(std::string const& fname, ArgList& argIn,
+int DataIO_Std::Read_Vector(std::string const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
   // Buffer file

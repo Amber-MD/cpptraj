@@ -11,7 +11,7 @@ inline int ErrorMsg(const char* msg) {
 }
 
 // DataIO_Xplor::ReadData()
-int DataIO_Xplor::ReadData(std::string const& fname, ArgList& argIn,
+int DataIO_Xplor::ReadData(std::string const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
   // Add grid data set. Default to float for now.

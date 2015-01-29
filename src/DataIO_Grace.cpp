@@ -6,60 +6,64 @@
 
 // TODO: Set dimension labels
 // Dont assume anything about set ordering
-int DataIO_Grace::ReadData(std::string const& fname, ArgList& argIn,
+int DataIO_Grace::ReadData(std::string const& fname, 
                            DataSetList& datasetlist, std::string const& dsname)
 {
   ArgList dataline;
   int setnum = 0;
-  int frame = 0;
+  //int frame = 0;
   DataSet_1D* dset = 0;
   Array1D Dsets;
   std::vector<std::string> labels;
-  double dval, xval;
+  double yval, xval;
   const char* linebuffer;
-  std::vector<double> Xvals;
+  std::vector<double> Xvals, Yvals;
   
   // Allocate and set up read buffer
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
 
   // Read chunks from file
-  while ( (linebuffer = buffer.Line()) != 0 ) {
+  linebuffer = buffer.Line(); // First line
+  while (linebuffer != 0) {
     if (linebuffer[0] == '@') {
       // Command: create command line without the @
       dataline.SetList(linebuffer+1, " \t");
-      if ( !dataline.CommandIs("legend") && dataline.Contains("legend") ) {
-        // Legend keyword that does not come first. Dont store blanks.
-        std::string lbl = dataline.GetStringKey("legend");
-        if (!lbl.empty())
-          labels.push_back( lbl );
-      } else if (dataline.CommandIs("target")) {
-        if (dset != 0) {
-          // Set was previously allocated. Figure out X dimension.
-          dset->SetDim(Dimension::X, DataIO::DetermineXdim(Xvals));
-          Xvals.clear();
-        }
-        // Indicates dataset will be read soon. Allocate new set.
-        dset = (DataSet_1D*)datasetlist.AddSetIdx( DataSet::DOUBLE, dsname, setnum++);
-        if (dset == 0) {
-          mprinterr("Error: %s: Could not allocate data set.\n", buffer.Filename().full());
-          return 1;
-        }
-        Dsets.push_back( dset );
-        frame = 0;
+      if (dataline.empty()) {
+        linebuffer = buffer.Line();
+        continue;
       }
-    } else if (linebuffer[0] != '#' && linebuffer[0] != '&') { // Skip comments and dataset end
-      // Data
-      if (dset==0) {
-        mprinterr("Error: %s: Malformed grace file. Expected 'target' before data.\n", 
-                  buffer.Filename().full());
-        return 1;
-      }
-      sscanf(linebuffer,"%lf %lf", &xval, &dval);
-      dset->Add( frame++, &dval );
-      Xvals.push_back( xval );
-    }
-  } // END loop over file
+      if (dataline.CommandIs("target")) {
+        // Data to follow. Next line is 'type'
+        linebuffer = buffer.Line(); // type line
+        if (linebuffer == 0) return 1; // TODO: Better error
+        if (linebuffer[0] != '@') return 1; // TODO: Check type
+        linebuffer = buffer.Line(); // Should be first line of data.
+        while (linebuffer != 0 && linebuffer[0] != '@' && 
+               linebuffer[0] != '&' && linebuffer[0] != '#')
+        {
+          if (sscanf(linebuffer, "%lf %lf", &xval, &yval) != 2) break;
+          Xvals.push_back( xval );
+          Yvals.push_back( yval );
+          linebuffer = buffer.Line();
+        }
+        // Should now be positioned 1 line after last data line.
+        DataSet* ds = datasetlist.AddOrAppendSet(dsname, setnum, "", Xvals, Yvals);
+        if (ds == 0) return 1;
+        Dsets.push_back((DataSet_1D*)ds);
+        Xvals.clear();
+        Yvals.clear();
+        ++setnum;
+      } else if (dataline[0][0] == 's' || dataline[0][0] == 'S') {
+        // Set command
+        if (dataline.Nargs() == 3 && dataline[1] == "legend" && !dataline[2].empty())
+          labels.push_back(dataline[2]);
+        linebuffer = buffer.Line();
+      } else
+        linebuffer = buffer.Line();
+    } else
+      linebuffer = buffer.Line();
+  }
   buffer.CloseFile();
   // Figure out X dimension for last set read
   if (dset != 0)

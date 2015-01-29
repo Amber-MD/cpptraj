@@ -29,11 +29,15 @@ void DataSet_double::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
     cbuffer.Printf(data_format_, Data_[frame]);
 }
 
-void DataSet_double::Append(DataSet_double const& dsIn) {
-  if (dsIn.Size() < 1) return;
+void DataSet_double::Append(std::vector<double> const& dataIn) {
+  if (dataIn.empty()) return;
   size_t oldsize = Size();
-  Data_.resize( oldsize + dsIn.Size() );
-  std::copy( dsIn.Data_.begin(), dsIn.Data_.end(), Data_.begin() + oldsize );
+  Data_.resize( oldsize + dataIn.size() );
+  std::copy( dataIn.begin(), dataIn.end(), Data_.begin() + oldsize );
+}
+
+void DataSet_double::Append(DataSet_double const& dsIn) {
+  Append( dsIn.Data_ );
 }
 
 // DataSet_double::Sync()

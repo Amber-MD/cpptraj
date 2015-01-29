@@ -140,7 +140,17 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
   Timer dftimer;
   dftimer.Start();
 # endif
-  int err = dataio_->ReadData( filename_.Full(), argIn, datasetlist, dsname );
+  int err = dataio_->processReadArgs(argIn);
+  if (err == 0) {
+    err += dataio_->ReadData( filename_.Full(), datasetlist, dsname );
+    // Treat any remaining arguments as file names.
+    std::string nextFile = argIn.GetStringNext();
+    while (!nextFile.empty()) {
+      if (filename_.SetFileNameWithExpansion( nextFile )) return 1;
+      err += dataio_->ReadData( filename_.Full(), datasetlist, dsname );
+      nextFile = argIn.GetStringNext();
+    }
+  }
   if (err)
     mprinterr("Error: reading datafile %s\n", filename_.Full().c_str());
 # ifdef TIMER
@@ -161,8 +171,7 @@ int DataFile::ReadDataOfType(std::string const& fnameIn, DataFormatType typeIn,
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, typeIn, false );
   if (dataio_ == 0) return 1;
   dataio_->SetDebug( debug_ );
-  ArgList empty;
-  return dataio_->ReadData( filename_.Full(), empty, datasetlist, filename_.Full() );
+  return dataio_->ReadData( filename_.Full(), datasetlist, filename_.Full() );
 }
 
 // -----------------------------------------------------------------------------

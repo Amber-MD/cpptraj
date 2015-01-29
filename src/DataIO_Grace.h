@@ -7,7 +7,8 @@ class DataIO_Grace : public DataIO {
     DataIO_Grace() : DataIO(true, false, false), isInverted_(false) {} // Valid for 1D only
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Grace(); } 
     static void WriteHelp();
-    int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
+    int processReadArgs(ArgList &) { return 0; }
+    int ReadData(std::string const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList &);
     int WriteData(std::string const&,DataSetList const&);
     int WriteData2D(std::string const&, DataSetList const&) { return 1; }

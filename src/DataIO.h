@@ -18,7 +18,8 @@ class DataIO : public BaseIOtype {
                valid1d_(v1), valid2d_(v2), valid3d_(v3) {}
     virtual ~DataIO() {}
     // ----- Inherited Functions -----------------
-    virtual int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) = 0;
+    virtual int processReadArgs(ArgList&) = 0;
+    virtual int ReadData(std::string const&,DataSetList&,std::string const&) = 0;
     virtual int processWriteArgs(ArgList&) = 0;
     virtual int WriteData(std::string const&, DataSetList const&) = 0;
     virtual int WriteData2D(std::string const&, DataSetList const&) = 0;
