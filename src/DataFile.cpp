@@ -50,7 +50,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Xplor File",         0,                       0,                        DataIO_Xplor::Alloc  },
   { "OpenDX File",        0,                       0,                        DataIO_OpenDx::Alloc },
   { "Amber REM log",      DataIO_RemLog::ReadHelp, 0,                        DataIO_RemLog::Alloc },
-  { "Amber MDOUT file",   DataIO_Mdout::ReadHelp,  0,                        DataIO_Mdout::Alloc  },
+  { "Amber MDOUT file",   0,                       0,                        DataIO_Mdout::Alloc  },
   { "Evecs file",         DataIO_Evecs::ReadHelp,  0,                        DataIO_Evecs::Alloc  },
   { "Vector pseudo-traj", 0,                       DataIO_VecTraj::WriteHelp,DataIO_VecTraj::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
@@ -72,7 +72,8 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
 };
 
 void DataFile::WriteHelp() {
-  mprintf("\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>]\n"
+  mprintf("\t[<format keyword>]\n"
+          "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>]\n"
           "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n");
 }
 

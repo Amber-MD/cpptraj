@@ -59,10 +59,6 @@ DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
   return N_FIELDTYPES;
 }
 
-void DataIO_Mdout::ReadHelp() {
-  mprintf("\tMultiple MDOUT files may be specified.\n");
-}
-
 // DataIO_Mdout::ReadData()
 int DataIO_Mdout::ReadData(std::string const& fname,
                             DataSetList& datasetlist, std::string const& dsname)
