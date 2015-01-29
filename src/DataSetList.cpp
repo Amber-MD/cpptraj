@@ -230,7 +230,7 @@ DataSet* DataSetList::CheckForSet(std::string const& dsname, int idx,
 
 // DataSetList::GetMultipleSets()
 /** \return a list of all DataSets matching the given argument. */
-DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
+DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
   Range idxrange;
@@ -277,6 +277,12 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
   selected = SelectedSets.begin();
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ( *(selected++) == 'T' ) dsetOut.DataList_.push_back( *ds );
+  return dsetOut;
+}
+
+// DataSetList::GetMultipleSets()
+DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
+  DataSetList dsetOut = SelectSets(nameIn);
   if ( dsetOut.empty() ) {
     mprintf("Warning: '%s' selects no data sets.\n", nameIn.c_str());
     PendingWarning();

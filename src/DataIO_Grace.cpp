@@ -11,8 +11,6 @@ int DataIO_Grace::ReadData(std::string const& fname,
 {
   ArgList dataline;
   int setnum = 0;
-  //int frame = 0;
-  DataSet_1D* dset = 0;
   Array1D Dsets;
   std::vector<std::string> labels;
   double yval, xval;
@@ -65,9 +63,6 @@ int DataIO_Grace::ReadData(std::string const& fname,
       linebuffer = buffer.Line();
   }
   buffer.CloseFile();
-  // Figure out X dimension for last set read
-  if (dset != 0)
-    dset->SetDim(Dimension::X, DataIO::DetermineXdim(Xvals));
 
   // Set DataSet legends if specified
   if (!labels.empty()) {

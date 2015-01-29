@@ -67,39 +67,26 @@ void DataIO_Mdout::ReadHelp() {
 int DataIO_Mdout::ReadData(std::string const& fname,
                             DataSetList& datasetlist, std::string const& dsname)
 {
-  Sarray mdoutFilenames;
-  mdoutFilenames.push_back( fname );
-  // Check if more than one mdout name was specified.
-  //ArgList mdoutnames = argIn.RemainingArgs();
-  //if (!mdoutnames.empty()) {
-  //  for (int i = 0; i < mdoutnames.Nargs(); i++)
-  //    mdoutFilenames.push_back( mdoutnames[i] );
-  //}
-  mprintf("\tReading from mdout files:");
-  for (Sarray::const_iterator it = mdoutFilenames.begin();
-                              it != mdoutFilenames.end(); ++it)
-    mprintf(" %s", it->c_str());
-  mprintf("\n");
-
+  mprintf("\tReading from mdout file: %s\n", fname.c_str());
+  // Check if we are going to be appending to sets.
+  DataSetList check = datasetlist.SelectSets(dsname + "[*]");
+  bool isFirstFile = check.empty();
   // ----- CREATE DATASETS FOR ENERGIES -----
-  // NOTE: Using DataSet_double here to take advantage of the Add() function,
-  //       since energy terms can appear/vanish over the course of a sim.
-  std::vector<DataSet_double> Esets( N_FIELDTYPES );
-
-  // LOOP OVER ALL MDOUT FILES
+  std::vector<Darray> Esets( N_FIELDTYPES );
+  std::vector<double> TimeVals;
   BufferedLine buffer;
   double lastx = 0.0;
-  int count = 0; // DataSet index
-  std::vector<double> TimeVals;
-  for (Sarray::const_iterator mdoutname = mdoutFilenames.begin();
-                              mdoutname != mdoutFilenames.end(); ++mdoutname)
-  {
-    mprintf("\tProcessing MDOUT: %s\n", mdoutname->c_str() );
-    if (buffer.OpenFileRead( *mdoutname )) return 1;
+  if (!isFirstFile) {
+    DataSet_1D const& set = static_cast<DataSet_1D const&>( *(check[0]) );
+    lastx = set.Xcrd( set.Size() - 1 );
+    mprintf("\tAppending to sets named '%s'; start time is %g\n", dsname.c_str(), lastx);
+  }
+  unsigned int count = 0; // DataSet index TODO Use TimeVals size?
+    if (buffer.OpenFileRead( fname )) return 1;
     // Read first line
     const char* ptr = buffer.Line();
     if (ptr == 0) {
-      mprinterr("Error: Nothing in MDOUT file: %s\n", (*mdoutname).c_str());
+      mprinterr("Error: Nothing in MDOUT file: %s\n", fname.c_str());
       return 1;
     }
     int imin = -1;           // imin for this file
@@ -138,7 +125,7 @@ int DataIO_Mdout::ReadData(std::string const& fname,
           dt = convertToDouble( mdin_args[ col1 ] );
           if (debug_ > 0) mprintf("\t\tMDIN: dt is %f\n", dt);
         } else if (mdin_args[col] == "t") {
-          if (mdoutname == mdoutFilenames.begin()) {
+          if (isFirstFile) {
             t0 = convertToDouble( mdin_args[ col1 ] );
             if (debug_ > 0) mprintf("\t\tMDIN: t is %f\n", t0);
           }
@@ -163,7 +150,7 @@ int DataIO_Mdout::ReadData(std::string const& fname,
       ptr = buffer.Line();
       // If this is the first mdout file being read and it is a restart,
       // set the initial time value.
-      if (mdoutname == mdoutFilenames.begin() && irest == 1) {
+      if (isFirstFile && irest == 1) {
         if (strncmp(ptr, " begin time", 11) == 0) {
           sscanf(ptr, " begin time read from input coords = %lf", &lastx);
           if (debug_ > 0) mprintf("\t\tMD restart initial time= %f\n", lastx);
@@ -201,7 +188,12 @@ int DataIO_Mdout::ReadData(std::string const& fname,
         if (frame > -1) {
           // Data storage should go here
           for (int i = 0; i < (int)N_FIELDTYPES; i++)
-              if (EnergyExists[i]) Esets[i].Add( count, Energy + i );
+              if (EnergyExists[i]) {
+                // NOTE: Since energy terms can appear and vanish over the
+                //       course of the mdout file, resize if necessary.
+                if (count > Esets[i].size()) Esets[i].resize(count, 0.0);
+                Esets[i].push_back( Energy[i] );
+              }
           TimeVals.push_back( time );
           count++;
           nstep += ntpr;
@@ -257,16 +249,13 @@ int DataIO_Mdout::ReadData(std::string const& fname,
     mprintf("\t%i frames\n", frame);
     lastx = time;
     buffer.CloseFile();
-  } // END loop over mdout files
   // ----- SET UP DATA SETS -----
   for (int i = 0; i < (int)N_FIELDTYPES; i++) {
-    if (Esets[i].Size() > 0) {
-      Esets[i].SetupSet( dsname, -1, Enames[i] );
-      Esets[i].SetLegend( dsname + "_" + Enames[i] );
+    if (!Esets[i].empty()) {
+      DataSet* ds = datasetlist.AddOrAppendSet(dsname, -1, Enames[i], TimeVals, Esets[i]);
+      if (ds == 0) return 1;
+      ds->SetLegend( dsname + "_" + Enames[i] );
     }
   }
-  // Save DataSets to the DataSetList. If X step cannot be determined, save
-  // DataSets as Mesh.
-  if (DataIO::AddSetsToList(datasetlist, TimeVals, Esets, dsname)) return 1;
   return 0;
 }

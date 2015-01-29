@@ -64,6 +64,8 @@ class DataSetList {
     DataSet* CheckForSet( std::string const&, int, std::string const&) const;
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;
+    /// Select multiple sets, no warning if none found.
+    DataSetList SelectSets( std::string const& ) const;
     /// Generate name based on given default and # of DataSets.
     std::string GenerateDefaultName(std::string const&) const;
     /// Add or append to DataSet
