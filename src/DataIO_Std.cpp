@@ -147,11 +147,11 @@ int DataIO_Std::Read_1D(std::string const& fname,
       }
     }
   }
-  mprintf("DBG: SetIndices={");
-  for (std::vector<int>::const_iterator it = SetIndices.begin(); it != SetIndices.end(); ++it)
-    mprintf(" %i", *it);
-  mprintf(" }\n");
-  mprintf("%zu double sets, %zu string sets.\n", Dsets.size(), Ssets.size());
+  //mprintf("DBG: SetIndices={");
+  //for (std::vector<int>::const_iterator it = SetIndices.begin(); it != SetIndices.end(); ++it)
+  //  mprintf(" %i", *it);
+  //mprintf(" }\n");
+  //mprintf("%zu double sets, %zu string sets.\n", Dsets.size(), Ssets.size());
   if (Dsets.empty() && Ssets.empty()) {
     mprinterr("Error: No data detected.\n");
     return 1;
@@ -195,7 +195,6 @@ int DataIO_Std::Read_1D(std::string const& fname,
   }
   for (int i = 0; i != ntoken; i++) {
     DataSet* ds = 0;
-    mprintf("DBG: Adding set index %i from column %i\n", SetIndices[i], i+1);
     if (SetIndices[i] != 0) {
       if (SetIndices[i] > 0)
         ds = datasetlist.AddOrAppendSet(dsname, i+1, "", *Xptr, Dsets[SetIndices[i]-1]);
