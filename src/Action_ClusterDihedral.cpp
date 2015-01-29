@@ -58,8 +58,7 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
 }
 
 // Action_ClusterDihedral::init()
-Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;

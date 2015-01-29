@@ -26,8 +26,7 @@ void Action_CreateReservoir::Help() {
 }
 
 // Action_CreateReservoir::Init()
-Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
 # ifdef BINTRAJ
   // Get keywords

@@ -22,9 +22,7 @@ void Action_LIE::Help() {
 }
 
 // Action_LIE::init()
-Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL,
-                      FrameList *FL, DataSetList *DSL, DataFileList *DFL,
-                      int debugIn)
+Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Always use imaged distances
   InitImaging(true);

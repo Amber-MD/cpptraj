@@ -19,8 +19,7 @@ void Action_MinImage::Help() {
 }
 
 // Action_MinImage::Init()
-Action::RetType Action_MinImage::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MinImage::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get Keywords
   // Require imaging.

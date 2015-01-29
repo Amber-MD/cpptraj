@@ -12,8 +12,7 @@ class Action_Distance: public Action, ImagedAction {
     static void Help();
     static int NOE_Args(ArgList& argIn, double&, double&, double&);
   private:
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}

@@ -127,6 +127,7 @@ SOURCES=ActionFrameCounter.cpp \
         ClusterNode.cpp \
         ClusterSieve.cpp \
         Cluster_DBSCAN.cpp \
+        Cluster_DPeaks.cpp \
         Cluster_HierAgglo.cpp \
         Cluster_Kmeans.cpp \
         Cluster_ReadInfo.cpp \
@@ -157,6 +158,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_3D.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
+        DataSet_Coords_REF.cpp \
         DataSet_Coords_TRJ.cpp \
         DataSet_GridFlt.cpp \
         DataSet_MatrixDbl.cpp \
@@ -180,7 +182,6 @@ SOURCES=ActionFrameCounter.cpp \
         FileName.cpp \
         FileTypes.cpp \
         Frame.cpp \
-        FrameList.cpp \
         GridAction.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
@@ -207,7 +208,6 @@ SOURCES=ActionFrameCounter.cpp \
         RPNcalc.cpp \
         ReadLine.cpp \
         ReferenceAction.cpp \
-        ReferenceFrame.cpp \
         Residue.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \

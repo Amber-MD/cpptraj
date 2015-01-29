@@ -100,8 +100,7 @@ int Action_Molsurf::AllocateMemory() {
 }
 
 // Action_Molsurf::Init()
-Action::RetType Action_Molsurf::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Molsurf::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );

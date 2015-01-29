@@ -37,8 +37,7 @@ void Action_Matrix::Help() {
 }
 
 // Action_Matrix::Init()
-Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;

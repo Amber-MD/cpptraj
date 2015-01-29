@@ -162,7 +162,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tteradvance:  Increment record (atom) # for TER records (default no).\n"
           "\tmodel:       Write to single file separated by MODEL records.\n"
           "\tmulti:       Write each frame to separate files.\n"
-          "\tchainid <c>: Write character 'c' in chain ID column.\n");
+          "\tchainid <c>: Write character 'c' in chain ID column.\n"
+          "\tsg <group>:  Space group for CRYST1 record, only if box coordinates written.\n");
 }
 
 // Traj_PDBfile::processWriteArgs()
@@ -181,6 +182,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("teradvance")) ter_num_ = 1;
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
+  space_group_ = argIn.GetStringKey("sg");
   std::string temp = argIn.GetStringKey("chainid");
   if (!temp.empty()) chainchar_ = temp[0];
   return 0;
@@ -268,7 +270,8 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
   if (write_cryst1_) {
     if (pdbWriteMode_==MODEL)
       mprintf("Warning: For PDB with MODEL, box coords for first frame only will be written to CRYST1.\n");
-    mprintf("Warning: PDB space group is set to P 1 by default.\n");
+    if (space_group_.empty())
+      mprintf("Warning: No PDB space group specified.\n");
   }
   return 0;
 }
@@ -282,11 +285,11 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
     if (write_cryst1_)
-      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr() );
+      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
   } else {
     // Write box coords, first frame only.
     if (write_cryst1_) {
-      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr() );
+      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
       write_cryst1_ = false;
     }
   }

@@ -20,8 +20,7 @@ void Action_Dihedral::Help() {
 }
 
 // Action_Dihedral::init()
-Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );

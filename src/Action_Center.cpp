@@ -10,12 +10,11 @@ Action_Center::Action_Center() :
 
 void Action_Center::Help() {
   mprintf("\t<mask> [origin] [mass]\n"
-          "\t [ %s [<refmask>]]\n  Center coordinates in <mask>.\n", FrameList::RefArgs);
+          "\t [ %s [<refmask>]]\n  Center coordinates in <mask>.\n", DataSetList::RefArgs);
 }
 
 // Action_Center::Init()
-Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   if (actionArgs.hasKey("origin"))
@@ -23,7 +22,7 @@ Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   else
     centerMode_ = BOXCTR;
   useMass_ = actionArgs.hasKey("mass");
-  ReferenceFrame refFrm = FL->GetFrameFromArgs( actionArgs );
+  ReferenceFrame refFrm = DSL->GetReferenceFrame( actionArgs );
   if (refFrm.error()) return Action::ERR;
 
   // Get Masks

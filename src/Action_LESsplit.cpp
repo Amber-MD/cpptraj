@@ -16,8 +16,7 @@ void Action_LESsplit::Help() {
 }
 
 // Action_LESsplit::Init()
-Action::RetType Action_LESsplit::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_LESsplit::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   if (DSL->EnsembleNum() > -1) {
     mprinterr("Error: LESSPLIT currently cannot be used in ensemble mode.\n");

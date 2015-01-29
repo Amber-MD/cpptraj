@@ -45,8 +45,7 @@ int Action_Distance::NOE_Args(ArgList& argIn, double& noe_lbound,
 }
 
 // Action_Distance::Init()
-Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   double noe_bound = 0.0, noe_boundh = 0.0, noe_rexp = -1.0;
   // Get Keywords

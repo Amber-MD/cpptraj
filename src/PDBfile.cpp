@@ -299,11 +299,11 @@ void PDBfile::WriteTITLE(std::string const& titleIn) {
 }
 
 /** Expect x, y, z, alpha, beta, gamma */
-void PDBfile::WriteCRYST1(const double* box) {
+void PDBfile::WriteCRYST1(const double* box, const char* space_group) {
   if (box==0) return;
   // RECROD A B C ALPHA BETA GAMMA SGROUP Z
   Printf("CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f %-11s%4i\n",
-         box[0], box[1], box[2], box[3], box[4], box[5], "P 1", 1);
+         box[0], box[1], box[2], box[3], box[4], box[5], space_group, 1);
 }
 
 /** Write MODEL record: 1-6 MODEL, 11-14 model serial # */

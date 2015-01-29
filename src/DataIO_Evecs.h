@@ -7,11 +7,15 @@ class DataIO_Evecs : public DataIO {
     DataIO_Evecs();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Evecs(); }
     static void ReadHelp();
-    int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
+    int processReadArgs(ArgList &);
+    int ReadData(std::string const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList &)                     { return 0; }
     int WriteData(std::string const&,DataSetList const&);
     int WriteData2D(std::string const&, DataSetList const&) { return 1; }
     int WriteData3D(std::string const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&);
+  private:
+    int ibeg_, iend_;
+    bool hasIend_;
 };
 #endif

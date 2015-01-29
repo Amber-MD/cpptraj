@@ -9,20 +9,19 @@ void Action_DistRmsd::Help() {
   mprintf("\t[<name>] [<mask>] [<refmask>] [out filename]\n"
           "\t[ first | %s |\n"
           "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
-          "  Calculate distance RMSD (DME) for specified atoms.\n", FrameList::RefArgs);
+          "  Calculate distance RMSD (DME) for specified atoms.\n", DataSetList::RefArgs);
 }
 
 // Action_DistRmsd::Init()
 /** Called once before traj processing. Set up reference info. */
-Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Check for keywords
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Reference keywords
   // TODO: Can these just be put in the InitRef call?
   bool first = actionArgs.hasKey("first");
-  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
+  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
   Topology* RefParm = PFL->GetParm( actionArgs );
   // Get the RMS mask string for target 
@@ -34,8 +33,8 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     mask1 = mask0;
 
   // Initialize reference
-  if (InitRef(false, first, false, false, reftrajname, REF, RefParm, mask1, 
-              actionArgs, "distrmsd"))
+  if (refHolder_.InitRef(false, first, false, false, reftrajname, REF, RefParm,
+                         mask1, actionArgs, "distrmsd"))
     return Action::ERR;
  
   // Set up the RMSD data set
@@ -45,7 +44,7 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   if (outfile != 0) outfile->AddSet( drmsd_ );
 
   mprintf("    DISTRMSD: (%s), reference is %s\n",TgtMask_.MaskString(),
-          RefModeString());
+          refHolder_.RefModeString());
 
   return Action::OK;
 }
@@ -65,7 +64,7 @@ Action::RetType Action_DistRmsd::Setup(Topology* currentParm, Topology** parmAdd
   // correct masses in based on the mask.
   SelectedTgt_.SetupFrameFromMask(TgtMask_, currentParm->Atoms());
 
-  if (SetupRef(*currentParm, TgtMask_.Nselected(), "distrmsd"))
+  if (refHolder_.SetupRef(*currentParm, TgtMask_.Nselected(), "distrmsd"))
     return Action::ERR; 
 
   return Action::OK;
@@ -77,10 +76,10 @@ Action::RetType Action_DistRmsd::Setup(Topology* currentParm, Topology** parmAdd
   */
 Action::RetType Action_DistRmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Perform any needed reference actions
-  ActionRef( *currentFrame, false, false );
+  refHolder_.ActionRef( *currentFrame, false, false );
   // Set selected frame atoms. Masses have already been set.
   SelectedTgt_.SetCoordinates(*currentFrame, TgtMask_);
-  double DR = SelectedTgt_.DISTRMSD( SelectedRef() );
+  double DR = SelectedTgt_.DISTRMSD( refHolder_.SelectedRef() );
   drmsd_->Add(frameNum, &DR);
   return Action::OK;
 }

@@ -20,7 +20,7 @@ class DataSet {
     /// Type of data stored in DataSet
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
-      COORDS, VECTOR, MODES, GRID_FLT, REMLOG, XYMESH, TRAJ
+      COORDS, VECTOR, MODES, GRID_FLT, REMLOG, XYMESH, TRAJ, REF_FRAME
     };
     /// Source of data stored in DataSet, used by Analysis_Statistics
     enum scalarMode {
@@ -72,6 +72,8 @@ class DataSet {
     bool Matches(std::string const&, int, std::string const&) const;
     /// Write scalar mode/type description
     void ScalarDescription() const;
+    /// Write name/aspect/index to STDOUT
+    void PrintName() const;
     // -----------------------------------------------------
     // ---===== Functions that return private vars =====----
     /// True if DataSet is empty. 

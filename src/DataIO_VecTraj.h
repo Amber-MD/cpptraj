@@ -8,7 +8,8 @@ class DataIO_VecTraj : public DataIO {
     DataIO_VecTraj();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_VecTraj(); }
     static void WriteHelp();
-    int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) {return 1;}
+    int processReadArgs(ArgList&) { return 0; }
+    int ReadData(std::string const&,DataSetList&,std::string const&) {return 1;}
     int processWriteArgs(ArgList&);
     int WriteData(std::string const&,DataSetList const&);
     int WriteData2D(std::string const&, DataSetList const&) { return 1; }

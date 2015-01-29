@@ -12,8 +12,7 @@ void Action_Outtraj::Help() {
 }
 
 // Action_Outtraj::Init()
-Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Set up output traj
   outtraj_.SetDebug(debugIn);

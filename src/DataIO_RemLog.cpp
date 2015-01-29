@@ -6,7 +6,9 @@
 #include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
-DataIO_RemLog::DataIO_RemLog() : n_mremd_replicas_(0), processMREMD_(false) {
+DataIO_RemLog::DataIO_RemLog() : n_mremd_replicas_(0), processMREMD_(false),
+  searchForLogs_(true)
+{
   SetValid( DataSet::REMLOG );
 }
 
@@ -327,28 +329,15 @@ void DataIO_RemLog::ReadHelp() {
           "\tMultiple REM logs may be specified.\n");
 }
 
-// DataIO_RemLog::ReadData()
-int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
-                            DataSetList& datasetlist, std::string const& dsname)
-{
-  if (!fileExists( fname )) {
-    mprinterr("Error: File '%s' does not exist.\n", fname.c_str());
-    return 1;
-  }
-  logFilenames_.push_back( fname );
-  bool searchForLogs = !argIn.hasKey("nosearch");
+int DataIO_RemLog::processReadArgs(ArgList& argIn) {
+  searchForLogs_ = !argIn.hasKey("nosearch");
   // Get dimfile arg
-  std::string dimfile = argIn.GetStringKey("dimfile");
-  if (!dimfile.empty()) {
-    if (ReadRemdDimFile( dimfile )) {
-      mprinterr("Error: Reading remd.dim file '%s'\n", dimfile.c_str());
-      return 1;
-    }
-    mprintf("\tExpecting %zu replica dimensions.\n", GroupDims_.size());
-  }
-  // Get crdidx arg
-  ArgList idxArgs( argIn.GetStringKey("crdidx"), "," );
-  // Check if more than one log name was specified.
+  dimfile_ = argIn.GetStringKey("dimfile");
+  crdidx_ = argIn.GetStringKey("crdidx");
+  // Unlike other data sets, remlog will find all file names now
+  // in case of MREMD. Always add at least one entry to this array
+  // for the first file.
+  logFilenames_.push_back( std::string("") );
   std::string log_name = argIn.GetStringNext();
   while (!log_name.empty()) {
     if (!fileExists( log_name ))
@@ -357,6 +346,30 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
       logFilenames_.push_back( log_name );
     log_name = argIn.GetStringNext();
   }
+  return 0;
+}
+
+// DataIO_RemLog::ReadData()
+int DataIO_RemLog::ReadData(std::string const& fname, 
+                            DataSetList& datasetlist, std::string const& dsname)
+{
+  if (!fileExists( fname )) {
+    mprinterr("Error: File '%s' does not exist.\n", fname.c_str());
+    return 1;
+  }
+  if (logFilenames_.empty()) // processReadArgs not called
+    logFilenames_.push_back( fname );
+  else
+    logFilenames_[0] = fname;
+  if (!dimfile_.empty()) {
+    if (ReadRemdDimFile( dimfile_ )) {
+      mprinterr("Error: Reading remd.dim file '%s'\n", dimfile_.c_str());
+      return 1;
+    }
+    mprintf("\tExpecting %zu replica dimensions.\n", GroupDims_.size());
+  }
+  // Get crdidx arg
+  ArgList idxArgs( crdidx_, "," );
   mprintf("\tReading from log files:");
   for (Sarray::const_iterator it = logFilenames_.begin(); it != logFilenames_.end(); ++it)
     mprintf(" %s", it->c_str());
@@ -377,7 +390,7 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     // Ensure that each replica log has counterparts for each dimension
     // TODO: Read all headers and check dimensions in log.
     // Two cases; all log files were specified, or only lowest logs were specified.
-    if ( searchForLogs ) { 
+    if ( searchForLogs_ ) { 
       FileName fname;
       for (Sarray::const_iterator logfile = logFilenames_.begin();
                                   logfile != logFilenames_.end(); ++logfile)
@@ -513,10 +526,25 @@ int DataIO_RemLog::ReadData(std::string const& fname, ArgList& argIn,
     mprintf("\n");
 //  }
   // Allocate replica log DataSet
-  DataSet* ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
-  if (ds == 0) return 1;
+  DataSet* ds = datasetlist.CheckForSet(dsname, -1, "");
+  if (ds == 0) {
+    // New set
+    ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
+    if (ds == 0) return 1;
+    ((DataSet_RemLog*)ds)->AllocateReplicas(n_mremd_replicas_);
+  } else {
+    if (ds->Type() != DataSet::REMLOG) {
+      mprinterr("Error: Set '%s' is not replica log data.\n", ds->Legend().c_str());
+      return 1;
+    }
+    if ((int)ds->Size() != n_mremd_replicas_) {
+      mprinterr("Error: Replica log data '%s' is set up for %zu replicas,"
+                " current # replicas is %i\n", ds->Legend().c_str(), ds->Size(),
+                n_mremd_replicas_);
+      return 1;
+    }
+  }
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
-  ensemble.AllocateReplicas(n_mremd_replicas_);
   // Loop over all remlogs
   for (LogGroupType::const_iterator it = logFileGroups.begin(); it != logFileGroups.end(); ++it)
   { 

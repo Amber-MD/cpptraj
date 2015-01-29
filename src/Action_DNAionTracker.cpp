@@ -17,8 +17,7 @@ void Action_DNAionTracker::Help() {
           "\t[shortest | counttopcone| countbottomcone | count]\n");
 }
 
-Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   std::string filename_ = actionArgs.GetStringKey("out");

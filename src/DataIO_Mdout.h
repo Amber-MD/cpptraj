@@ -7,7 +7,8 @@ class DataIO_Mdout : public DataIO {
     DataIO_Mdout() {}
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Mdout(); }
     static void ReadHelp();
-    int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
+    int processReadArgs(ArgList&) { return 0; }
+    int ReadData(std::string const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList&) { return 0; }
     int WriteData(std::string const&, DataSetList const&)   { return 1; }
     int WriteData2D(std::string const&, DataSetList const&) { return 1; }
@@ -15,6 +16,7 @@ class DataIO_Mdout : public DataIO {
     bool ID_DataFormat(CpptrajFile&);
   private:
     typedef std::vector<std::string> Sarray;
+    typedef std::vector<double> Darray;
     enum FieldType { Etot= 0, EPtot, GMAX, BOND,
                      ANGLE, DIHED, VDWAALS, EEL, EGB,
                      VDW14, EEL14, RESTRAINT, EAMBER, Density,

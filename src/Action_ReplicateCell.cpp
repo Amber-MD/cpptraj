@@ -14,8 +14,7 @@ void Action_ReplicateCell::Help() {
 }
 
 // Action_ReplicateCell::Init()
-Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Require imaging.
   image_.InitImaging( true );

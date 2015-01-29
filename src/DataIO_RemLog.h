@@ -9,7 +9,8 @@ class DataIO_RemLog : public DataIO {
     DataIO_RemLog();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_RemLog(); }
     static void ReadHelp();
-    int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&);
+    int processReadArgs(ArgList&);
+    int ReadData(std::string const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList&) { return 0; }
     int WriteData(std::string const&, DataSetList const&) { return 1; }
     int WriteData2D(std::string const&, DataSetList const&) { return 1; }
@@ -29,8 +30,11 @@ class DataIO_RemLog : public DataIO {
     void PrintReplicaStats(DataSet_RemLog const&);
 
     Sarray logFilenames_; ///< Replica log file names.
+    std::string dimfile_;
+    std::string crdidx_;
     int n_mremd_replicas_;
     bool processMREMD_;
+    bool searchForLogs_;
     class GroupReplica;
     typedef std::vector<GroupReplica> GroupArray;
     typedef std::vector<GroupArray> GroupDimType;

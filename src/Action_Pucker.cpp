@@ -24,8 +24,7 @@ void Action_Pucker::Help() {
 }
 
 // Action_Pucker::Init()
-Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs);

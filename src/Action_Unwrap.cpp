@@ -12,14 +12,13 @@ Action_Unwrap::Action_Unwrap() :
 
 void Action_Unwrap::Help() {
   mprintf("\t[center] [{bymol | byres | byatom}]\n"
-          "\t[ %s ] [<mask>]\n", FrameList::RefArgs);
+          "\t[ %s ] [<mask>]\n", DataSetList::RefArgs);
   mprintf("  Reverse of 'image'; unwrap coordinates in <mask> according\n"
           "  to a reference structure.\n");
 }
 
 // Action_Unwrap::Init()
-Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get Keywords
   center_ = actionArgs.hasKey("center");
@@ -34,7 +33,7 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, Fram
   } else
     imageMode_ = Image::BYATOM;
   // Get reference
-  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
+  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) {
     RefFrame_ = REF.Coord();

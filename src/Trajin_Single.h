@@ -16,6 +16,11 @@ class Trajin_Single : public Trajin {
     void PrintInfo(int) const;
     bool HasVelocity() const;
     int NreplicaDimension() const;
+    // -------------------------------------------
+    std::string Title() {
+      if (trajio_==0) return std::string("");
+      else return trajio_->Title();
+    }
   private:
     TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.
     TrajectoryIO* velio_;  ///< Hold class that will interface with opt. mdvel file.

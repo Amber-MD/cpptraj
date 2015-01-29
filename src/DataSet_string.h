@@ -10,7 +10,9 @@ class DataSet_string : public DataSet_1D {
     DataSet_string() : DataSet_1D(STRING, 1, 0) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_string();}
     std::string& operator[](size_t idx)  { return Data_[idx];         }
+    void operator=(std::vector<std::string> const& rhs) { Data_ = rhs;}
     void AddElement(std::string const& s){ Data_.push_back( s );      }
+    void Append(std::vector<std::string> const&);
     /// Make set size sizeIn, all values set to 0.0.
     void Resize(size_t sizeIn)           { Data_.resize(sizeIn, "");  }
     // ----- DataSet functions -------------------

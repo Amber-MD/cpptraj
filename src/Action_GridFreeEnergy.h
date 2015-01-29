@@ -14,8 +14,7 @@ class Action_GridFreeEnergy : public Action, private GridAction {
     static void Help();
   private:
     // Action members
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();

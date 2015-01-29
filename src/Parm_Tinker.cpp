@@ -32,6 +32,7 @@ int Parm_Tinker::ReadParm(std::string const& fname, Topology &parmOut) {
                                          atom != Atoms.end();
                                        ++atom, XYZ += 3)
     parmOut.AddTopAtom( *atom, 0, tinker_res, XYZ );
+  delete[] Coords;
   // Add bond information
   for (std::vector<int>::const_iterator bond = Bonds.begin();
                                         bond != Bonds.end(); bond += 2)

@@ -55,8 +55,7 @@ int Action_Contacts::SetupContacts(Frame const& refframe, Topology const& refpar
 }
 
 // Action_Contacts::Init()
-Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
 
   byResidue_ = actionArgs.hasKey("byresidue");
@@ -66,7 +65,7 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Fr
   distance_ = dist * dist;
   first_ = actionArgs.hasKey("first");
   // Get reference
-  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
+  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
   std::string outfilename = actionArgs.GetStringKey("out"); 
   if (outfile_.OpenEnsembleWrite(outfilename, DSL->EnsembleNum()))

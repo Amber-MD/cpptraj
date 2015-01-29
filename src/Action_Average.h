@@ -11,8 +11,7 @@ class Action_Average: public Action, ActionFrameCounter {
     static void Help();
     ~Action_Average();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
@@ -26,5 +25,6 @@ class Action_Average: public Action, ActionFrameCounter {
     int Natom_;
     int Nframes_;
     std::string avgfilename_;
+    DataSet* crdset_;         ///< DataSet to save avg coords to.
 };
 #endif  

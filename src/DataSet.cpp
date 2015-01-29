@@ -142,9 +142,10 @@ int DataSet::SetDataSetFormat(bool leftAlignIn) {
     case MODES :
     case REMLOG:
     case MATRIX_DBL:
-    case XYMESH:
-    case TRAJ   :
-    case DOUBLE : format_ = SetDoubleFormatString(width_, precision_, 0); break;
+    case XYMESH   :
+    case TRAJ     :
+    case REF_FRAME:
+    case DOUBLE   : format_ = SetDoubleFormatString(width_, precision_, 0); break;
     case MATRIX_FLT:
     case GRID_FLT  :
     case COORDS : 
@@ -230,4 +231,12 @@ DataSet::scalarType DataSet::TypeFromKeyword(std::string const& key, scalarMode&
       return (scalarType)i;
     }
   return UNDEFINED;
+}
+
+void DataSet::PrintName() const {
+  mprintf("%s", Name().c_str());
+  if (!Aspect().empty())
+    mprintf("[%s]", Aspect().c_str());
+  if (Idx() != -1)
+    mprintf(":%i", Idx());
 }

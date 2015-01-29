@@ -9,8 +9,7 @@ void Action_Translate::Help() {
           "  Translate atoms in <mask>\n");
 }
 
-Action::RetType Action_Translate::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Translate::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   double x = actionArgs.getKeyDouble("x",0.0);
   double y = actionArgs.getKeyDouble("y",0.0);

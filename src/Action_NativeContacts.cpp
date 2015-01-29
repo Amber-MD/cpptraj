@@ -43,7 +43,7 @@ void Action_NativeContacts::Help() {
           "  reference structure (or first frame if not specified) and the specified\n"
           "  distance cut-off (7.0 Ang. default). If [byresidue] is specified contacts\n"
           "  between two residues spaced <resoffset> residues apart are ignored, and\n"
-          "  the map (if specified) is written per-residue.\n", FrameList::RefArgs);
+          "  the map (if specified) is written per-residue.\n", DataSetList::RefArgs);
 }
 
 /** Set up atom/residue indices corresponding to atoms selected in mask.
@@ -215,8 +215,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
 }
 // -----------------------------------------------------------------------------
 // Action_NativeContacts::Init()
-Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   masterDSL_ = DSL;
   ensembleNum_ = DSL->EnsembleNum();
@@ -241,7 +240,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   pdbcut_ = (float)actionArgs.getKeyDouble("pdbcut", -1.0);
   usepdbcut_ = (pdbcut_ > -1.0);
   // Get reference
-  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
+  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   if (!first_) {
     if (REF.error()) return Action::ERR;
     if (REF.empty()) {

@@ -11,8 +11,7 @@ class Action_Closest: public Action, ImagedAction {
     static void Help();
     ~Action_Closest();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
