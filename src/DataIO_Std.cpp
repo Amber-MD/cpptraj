@@ -4,8 +4,8 @@
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
 #include "StringRoutines.h" // SetStringFormatString
-#include "BufferedLine.h"
 #include "Array1D.h"
+#include "BufferedLine.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_3D.h"
 
@@ -194,11 +194,16 @@ int DataIO_Std::Read_1D(std::string const& fname,
     SetIndices[indexcol_] = 0;
   }
   for (int i = 0; i != ntoken; i++) {
-    if (SetIndices[i] > 0) {
-      DataSet* ds = datasetlist.AddOrAppendSet(dsname, i+1, "", *Xptr, Dsets[SetIndices[i]-1]);
+    DataSet* ds = 0;
+    mprintf("DBG: Adding set index %i from column %i\n", SetIndices[i], i+1);
+    if (SetIndices[i] != 0) {
+      if (SetIndices[i] > 0)
+        ds = datasetlist.AddOrAppendSet(dsname, i+1, "", *Xptr, Dsets[SetIndices[i]-1]);
+      else //if (SetIndices[i] < 0)
+        ds = datasetlist.AddOrAppendSet(dsname, i+1, "", Ssets[-SetIndices[i]-1]);
       if (ds == 0) return 1;
       if (hasLabels) ds->SetLegend( labels[i] );
-    } // FIXME Add/append string data
+    }
   }
 
   return 0;

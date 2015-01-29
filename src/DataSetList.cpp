@@ -300,16 +300,44 @@ DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string con
   return 0;
 }
 
-/** Create a new data set from the given arrays. */
+/** Create or append string data set from given array. */
+DataSet* DataSetList::AddOrAppendSet(std::string const& nameIn, int idxIn, std::string const& aspectIn,
+                                     std::vector<std::string> const& Svals)
+{
+  if (Svals.empty()) {
+    mprinterr("Internal Error: AddOrAppendSet() called with empty array.\n");
+    return 0;
+  }
+  DataSet* ds = CheckForSet(nameIn, idxIn, aspectIn);
+  if (ds == 0) {
+    ds = AddSetIdxAspect(DataSet::STRING, nameIn, idxIn, aspectIn);
+    if (ds == 0) {
+      mprinterr("Error: Could not allocate STRING data set %s\n", nameIn.c_str());
+      return 0;
+    }
+    DataSet_string& data = static_cast<DataSet_string&>( *ds );
+    data = Svals;
+  } else {
+    if (ds->Type() != DataSet::STRING) {
+      mprinterr("Error: Cannot append string values to set %s type %s\n", ds->Legend().c_str(),
+                DataArray[ds->Type()].Description);
+      return 0;
+    }
+    ((DataSet_string*)ds)->Append( Svals );
+  }
+  return ds;
+}
+
+/** Create or append to numerical data set from the given arrays. */
 DataSet* DataSetList::AddOrAppendSet(std::string const& nameIn, int idxIn, std::string const& aspectIn,
                                      std::vector<double> const& Xvals, std::vector<double> const& Yvals)
 {
   if (Xvals.empty() || Yvals.empty()) {
-    mprinterr("Internal Error: NewSet() called with empty arrays.\n");
+    mprinterr("Internal Error: AddOrAppendSet() called with empty arrays.\n");
     return 0;
   }
   if (Xvals.size() != Yvals.size()) {
-    mprinterr("Internal Error: NewSet() called with different size arrays.\n");
+    mprinterr("Internal Error: AddOrAppendSet() called with different size arrays.\n");
     return 0;
   }
   // First determine if X values increase monotonically with a regular step

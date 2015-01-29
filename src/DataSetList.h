@@ -68,6 +68,9 @@ class DataSetList {
     DataSetList SelectSets( std::string const& ) const;
     /// Generate name based on given default and # of DataSets.
     std::string GenerateDefaultName(std::string const&) const;
+    /// Add or append to string DataSet
+    DataSet* AddOrAppendSet(std::string const&, int, std::string const&,
+                            std::vector<std::string> const&);
     /// Add or append to DataSet
     DataSet* AddOrAppendSet(std::string const&, int, std::string const&,
                             std::vector<double> const&, std::vector<double> const&);
