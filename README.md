@@ -9,6 +9,10 @@ of AmberTools. The intent is to make the code more readable, leak-free, and
 thread-safe. The biggest functional change from PTRAJ is the ability to load and
 process trajectories with different topology files in the same run.
 
+Build Status
+=============
+[![Build Status](https://travis-ci.org/mojyt/cpptraj.svg?branch=master)](https://travis-ci.org/mojyt/cpptraj)
+
 Disclaimer and Copyright
 ========================
 
