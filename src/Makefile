@@ -24,6 +24,10 @@ depend: findDepend
 dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
+libcpptraj: $(OBJECTS) pub_fft.o $(READLINE)
+	$(CXX)  -shared -o libcpptraj.so $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
+	/bin/mv libcpptraj.so $(CPPTRAJLIB)
+
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(READLINE)
 	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
 
@@ -54,7 +58,7 @@ clean:
 	cd $(READLINE_HOME) && $(MAKE) clean
 
 uninstall:
-	/bin/rm -f $(CPPTRAJBIN)/cpptraj $(CPPTRAJBIN)/cpp_ambpdb readline/libreadline.a
+	/bin/rm -f $(CPPTRAJBIN)/cpptraj $(CPPTRAJBIN)/cpp_ambpdb readline/libreadline.a $(CPPTRAJLIB)/libcpptraj.so
 
 # Header dependencies
 include cpptrajdepend

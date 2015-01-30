@@ -18,6 +18,7 @@ Usage() {
   echo "    -debugon   : Add -DDEBUG flag to activate internal debugging"
   echo "    -noopt     : Do not use optimized compiler flags (default when -d specified)"
   echo "    -nolfs     : Do not enable large file support."
+  echo "    -shared    : Enable position-independent code for generating shared library."
   echo ""
   echo "  Library linking options:"
   echo "    --with-netcdf=<DIR>"
@@ -47,6 +48,8 @@ ParseArg() {
   VALUE=`echo "$1" | awk 'BEGIN{FS = "=";}{print $2;}'`
   if [[ $VALUE = $KEY ]] ; then
     VALUE=""
+  else
+    eval VALUE=$VALUE
   fi
 }
 
@@ -202,18 +205,21 @@ USEOPENMP=0
 USETIMER=0
 PROFILE=0
 USECRAY=0
+USESHARED=0
 CC=""
 CXX=""
 FC=""
 SFX=""
 CPPTRAJHOME=""
 CPPTRAJBIN=""
+CPPTRAJLIB=""
 DIRECTIVES=""
 DBGFLAGS=""
 OPTFLAGS=""
 OMPFLAGS=""
 FFLAGS=""
 FOPTFLAGS=""
+PICFLAG=""
 LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 INCLUDE=""
 # Library flags
@@ -251,6 +257,7 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
       FLIBS="$FLIBS -lgfortran -w"
+      PICFLAG="-fPIC"
       ;;
    "clang" )
       echo "Using clang/gfortran compilers"
@@ -262,6 +269,7 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
       FLIBS="$FLIBS -lgfortran -w"
+      PICFLAG="-fPIC"
       ;; 
     "intel" )
       echo "Using intel compilers"
@@ -273,6 +281,7 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-FR"
       FOPTFLAGS="-ip -O3"
       FLIBS="$FLIBS -lifport -lifcore"
+      PICFLAG="-fpic"
       ;;
     "pgi" )
       echo "Using PGI compilers"
@@ -284,6 +293,7 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-Mfree"
       FOPTFLAGS="-fast -O3"
       FLIBS="-pgf90libs"
+      PICFLAG="-fpic"
       ;;
     "cray" )
       echo "Using Cray compilers"
@@ -296,6 +306,7 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-f free -emf"
       FOPTFLAGS=""
       FLIBS=""
+      PICFLAG="-fpic"
       ;;
     "-cray" )
       echo "Using cray compiler wrappers (cc/CC/ftn)"
@@ -337,6 +348,10 @@ while [[ ! -z $1 ]] ; do
     "-static"       )
       echo "Using static linking."
       STATIC=1
+      ;;
+    "-shared"       )
+      echo "Enabling position-independent code for generating shared library."
+      USESHARED=1
       ;;
     "-amberlib"     )
       if [[ -z $AMBERHOME ]] ; then
@@ -414,7 +429,8 @@ while [[ ! -z $1 ]] ; do
 #      ;;
     "--prefix" )
       CPPTRAJHOME=$VALUE
-      CPPTRAJBIN=$VALUE
+      CPPTRAJBIN=$VALUE/bin
+      CPPTRAJLIB=$VALUE/lib
       ;;
     * )
       echo "Unrecognized OPTION: $1"
@@ -429,7 +445,8 @@ if [[ -z $CPPTRAJHOME ]] ; then
   # Default is to use current directory.
   CPPTRAJHOME=`pwd`
   CPPTRAJBIN=$CPPTRAJHOME/bin
-elif [[ ! -e $CPPTRAJHOME || ! -e $CPPTRAJBIN ]] ; then
+  CPPTRAJLIB=$CPPTRAJHOME/lib
+elif [[ ! -e $CPPTRAJHOME ]] ; then
   echo "Error: Install directory '$CPPTRAJHOME' does not exist."
   exit 1
 fi
@@ -608,6 +625,13 @@ CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 FFLAGS="$FFLAGS $DBGFLAGS $FOPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 
+# Add position-independent code if necessary
+if [[ $USESHARED -eq 1 ]] ; then
+  CFLAGS="$CFLAGS $PICFLAG"
+  CXXFLAGS="$CXXFLAGS $PICFLAG"
+  FFLAGS="$FFLAGS $PICFLAG"
+fi
+
 # Add debug flags for non-PGI compilers if debug info on
 if [[ ! -z $DBGFLAGS && $CXX != "pgc++" ]] ; then
   CFLAGS="-Wall $CFLAGS"
@@ -656,6 +680,7 @@ cat > config.h <<EOF
 
 CPPTRAJHOME=$CPPTRAJHOME
 CPPTRAJBIN=$CPPTRAJBIN
+CPPTRAJLIB=$CPPTRAJLIB
 
 DBGFLAGS=
 CC=$CC
@@ -675,6 +700,9 @@ EOF
 # Create directories if necessary
 if [[ ! -e $CPPTRAJBIN ]] ; then
   mkdir $CPPTRAJBIN
+fi
+if [[ ! -e $CPPTRAJLIB ]] ; then
+  mkdir $CPPTRAJLIB
 fi
 
 echo ""
