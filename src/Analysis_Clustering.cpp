@@ -10,6 +10,7 @@
 #include "Cluster_DBSCAN.h"
 #include "Cluster_Kmeans.h"
 #include "Cluster_ReadInfo.h"
+#include "Cluster_DPeaks.h"
 
 // CONSTRUCTOR
 Analysis_Clustering::Analysis_Clustering() :
@@ -19,6 +20,9 @@ Analysis_Clustering::Analysis_Clustering() :
   sieve_(1),
   sieveSeed_(-1),
   windowSize_(0),
+  drawGraph_(0),
+  draw_maxit_(0),
+  draw_tol_(0.0),
   cnumvtime_(0),
   clustersVtime_(0),
   cpopvtimefile_(0),
@@ -46,6 +50,7 @@ void Analysis_Clustering::Help() {
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
+  Cluster_DPeaks::Help();
   Cluster_Kmeans::Help();
   Cluster_ReadInfo::Help();
   mprintf("  Distance metric options: {rms | srmsd | dme | data}\n"
@@ -63,6 +68,8 @@ void Analysis_Clustering::Help() {
           "\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n"
           "\t[ repout <repprefix> [repfmt <repfmt>] [repframe] ]\n"
           "\t[ avgout <avgprefix> [avgfmt <avgfmt>] ]\n"
+          "  Experimental options:\n"
+          "\t[[drawgraph | drawgraph3d] [draw_tol <tolerance>] [draw_maxit <iterations]]\n"
           "  Cluster structures based on coordinates (RMSD/DME) or given data set(s).\n"
           "  <crd set> can be created with the 'createcrd' command.\n");
 }
@@ -123,6 +130,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   CList_ = 0;
   if (analyzeArgs.hasKey("hieragglo"))   CList_ = new Cluster_HierAgglo(); 
   else if (analyzeArgs.hasKey("dbscan")) CList_ = new Cluster_DBSCAN();
+  else if (analyzeArgs.hasKey("dpeaks")) CList_ = new Cluster_DPeaks();
   else if (analyzeArgs.hasKey("kmeans") ||
            analyzeArgs.hasKey("means" )) CList_ = new Cluster_Kmeans();
   else if (analyzeArgs.hasKey("readinfo") ||
@@ -164,6 +172,14 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       }
     }
   }
+  if (analyzeArgs.hasKey("drawgraph"))
+    drawGraph_ = 1;
+  else if (analyzeArgs.hasKey("drawgraph3d"))
+    drawGraph_ = 2;
+  else
+    drawGraph_ = 0;
+  draw_maxit_ = analyzeArgs.getKeyInt("draw_maxit", 1000);
+  draw_tol_ = analyzeArgs.getKeyDouble("draw_tol", 1.0E-5);
   
   DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   DataFile* clustersvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
@@ -305,6 +321,10 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   if (!avgfile_.empty())
     mprintf("\tAverage structures for clusters will be written to %s, format %s\n",
             avgfile_.c_str(), TrajectoryFile::FormatString(avgfmt_));
+  if (drawGraph_ > 0)
+    mprintf("\tEXPERIMENTAL: Force-directed graph will be drawn from pairwise distances.\n"
+            "\t              Max iterations= %i, min tolerance= %g\n",
+                             draw_maxit_, draw_tol_);
 
   return Analysis::OK;
 }
@@ -411,6 +431,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 
     // Create cluster v time data from clusters.
     CreateCnumvtime( *CList_, clusterDataSetSize );
+
+    // TEST: Draw graph based on point distances
+    if (drawGraph_ > 0)
+     CList_->DrawGraph( drawGraph_ == 2, cnumvtime_, draw_tol_, draw_maxit_ );
 
     // Create # clusters seen v time data.
     if (clustersVtime_ != 0)

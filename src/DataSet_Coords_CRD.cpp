@@ -1,7 +1,7 @@
 #include "DataSet_Coords_CRD.h"
 #include "CpptrajStdio.h"
 
-int DataSet_Coords_CRD::Allocate1D( size_t sizeIn ) {
+int DataSet_Coords_CRD::AllocateCoords( size_t sizeIn ) {
   coords_.reserve( sizeIn );
   return 0;
 }

@@ -2,14 +2,16 @@
 #define INC_DATASET_3D_H
 #include "DataSet.h"
 #include "CpptrajFile.h"
-#include "Vec3.h"
+#include "Box.h"
+#include "GridBin.h"
 /// Interface for 3D DataSets.
 // FIXME: Use DataSet Dims?
 class DataSet_3D : public DataSet {
   public:
-    DataSet_3D() {}
+    DataSet_3D() : gridBin_(0) {}
+    virtual ~DataSet_3D(); // Virtual since this class is inherited.
     DataSet_3D(DataSet::DataType tIn, int wIn, int pIn) :
-      DataSet(tIn, wIn, pIn, 3) {}
+      DataSet(tIn, wIn, pIn, 3), gridBin_(0) {}
     /// Write 3D data to file.
     virtual void Write3D(CpptrajFile&,int,int,int) const = 0;
     /// \return Data from grid at x/y/z point.
@@ -31,19 +33,34 @@ class DataSet_3D : public DataSet {
     int Allocate_N_C_D(size_t,size_t,size_t,Vec3 const&,Vec3 const&);
     /// Set up grid from sizes, center, and spacing.
     int Allocate_X_C_D(Vec3 const&,Vec3 const&,Vec3 const&);
-    /// Convert X, Y, and Z coords to index.
-    inline bool CalcBins(double,double,double,int&,int&,int&) const;
-    inline double DX() const { return dx_; }
-    inline double DY() const { return dy_; }
-    inline double DZ() const { return dz_; }
-    inline double OX() const { return ox_; }
-    inline double OY() const { return oy_; }
-    inline double OZ() const { return oz_; }
-    inline double MX() const { return mx_; }
-    inline double MY() const { return my_; }
-    inline double MZ() const { return mz_; }
-    inline Vec3 BinCorner(int,int,int);
-    inline Vec3 BinCenter(int,int,int);
+    /// Set up grid from dims, origin, and box.
+    int Allocate_N_O_Box(size_t,size_t,size_t, Vec3 const&, Box const&);
+    /// Print grid info.
+    void GridInfo() const;
+    /// Convert X, Y, and Z coords to indices. Check bounds.
+    bool CalcBins(double x,double y,double z,int& i,int& j,int& k) const { 
+      return gridBin_->CalcBins(x, y, z, i, j, k);
+    }
+    /// Convert X, Y, and Z coords to indices. No bounds check.
+    void BinIndices(double x,double y,double z,int& i,int& j,int& k) const {
+      return gridBin_->BinIndices(x, y, z, i, j, k);
+    }
+    /// \return coordinates of specified voxel corner.
+    Vec3 BinCorner(int i,int j,int k) const {
+      return gridBin_->BinCorner(i, j, k);
+    }
+    /// \return coordinates of specified voxel center.
+    Vec3 BinCenter(int i,int j,int k) const {
+      return gridBin_->BinCenter(i, j, k);
+    }
+    /// \return coordinates of grid origin.
+    Vec3 const& GridOrigin() const {
+      return gridBin_->GridOrigin();
+    }
+    /// \return unit cell matrix.
+    Matrix_3x3 Ucell() const { return gridBin_->Ucell(); }
+    /// \return voxel volume.
+    double VoxelVolume() const { return gridBin_->VoxelVolume(); }
   private:
     /// Check if grid dimension is even; if not, increment it by 1.
     static void CheckEven(size_t&, char);
@@ -51,46 +68,6 @@ class DataSet_3D : public DataSet {
     // TODO: Make public if grids will be used for other than binning.
     virtual int Allocate3D(size_t, size_t, size_t) = 0;
 
-    double dx_; ///< X grid spacing.
-    double dy_; ///< Y grid spacing.
-    double dz_; ///< Z grid spacing.
-    double ox_; ///< Grid X origin (minimum).
-    double oy_; ///< Grid Y origin (minimum).
-    double oz_; ///< Grid Z origin (minimum).
-    double mx_; ///< Grid X maximum.
-    double my_; ///< Grid Y maximum.
-    double mz_; ///< Grid Z maximum. 
+    GridBin* gridBin_; ///< Used to calculate bins/coords depending on grid type.
 };
-// ----- INLINE FUNCTIONS ------------------------------------------------------
-// DataSet_3D::CalcBins()
-bool DataSet_3D::CalcBins(double x, double y, double z,
-                          int& i, int& j, int& k) const
-{
-  // X
-  if (x >= ox_ && x < mx_) {
-    // Y
-    if (y >= oy_ && y < my_) {
-      // Z
-      if (z >= oz_ && z < mz_) {
-        i = (int)((x-ox_) / dx_);
-        j = (int)((y-oy_) / dy_);
-        k = (int)((z-oz_) / dz_);
-        return true;
-      }
-    }
-  }
-  return false;
-}
-// DataSet_3D::BinCorner()
-Vec3 DataSet_3D::BinCorner(int i, int j, int k) {
-  return Vec3( (double)i*dx_ + ox_,
-               (double)j*dy_ + oy_,
-               (double)k*dz_ + oz_ );
-}
-// DataSet_3D::BinCenter()
-Vec3 DataSet_3D::BinCenter(int i, int j, int k) {
-  return Vec3( (double)i*dx_ + ox_ + 0.5*dx_,
-               (double)j*dy_ + oy_ + 0.5*dy_,
-               (double)k*dz_ + oz_ + 0.5*dz_ );
-}
 #endif

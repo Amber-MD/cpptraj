@@ -23,6 +23,9 @@ class Analysis_Clustering: public Analysis {
     int sieve_;                 ///< If > 1, frames to skip on initial clustering pass.
     int sieveSeed_;             ///< Used to seed random number gen for sieve
     int windowSize_;            ///< Window size for # clusters seen vs time.
+    int drawGraph_;
+    int draw_maxit_;
+    double draw_tol_;
     std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
     DataSet* clustersVtime_;    ///< # clusters seen vs time dataset.

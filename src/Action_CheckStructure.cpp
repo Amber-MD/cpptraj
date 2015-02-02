@@ -37,8 +37,7 @@ Action_CheckStructure::~Action_CheckStructure() {
 }
 
 // Action_CheckStructure::Init()
-Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords
@@ -216,7 +215,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
 # pragma omp parallel private(i1, i2, mythread, D2) firstprivate(problem) reduction(+:Nproblems)
   { // First check overlaps
     mythread = omp_get_thread_num();
-    problemIndices_[mythread].clear();
+    if (problemIndices_ != 0) problemIndices_[mythread].clear();
 #   pragma omp for schedule(dynamic)
     for (i1 = 0; i1 < M1N; i1++) {
       problem.atom1_ = Mask1_[i1];
@@ -242,7 +241,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
         }
         if (problem.type_ != NONE) {
           problem.Dist_ = sqrt(D2);
-          problemIndices_[mythread].push_back( problem );
+          if (problemIndices_ != 0) problemIndices_[mythread].push_back( problem );
         }
       }
     }

@@ -219,7 +219,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
     RefTraj_->GetFrame(nref, RefFrame);
     // Set reference atoms and pre-center if fitting
     SelectedRef.SetCoordinates(RefFrame, RefMask_);
-    if (mode_ == RMS_FIT || SRMSD)
+    if (mode_ == RMS_FIT || mode_ == SRMSD)
       SelectedRef.CenterOnOrigin(useMass_);
     // LOOP OVER TARGET FRAMES
     for (size_t nframe=0; nframe < totaltgt; nframe++) {
@@ -276,7 +276,7 @@ int Analysis_Rms2d::Calculate_2D() {
       // Get the current reference frame
       coords_->GetFrame( nref, SelectedRef, RefMask_ );
       // Select and pre-center reference atoms (if fitting)
-      if (mode_ == RMS_FIT || SRMSD)
+      if (mode_ == RMS_FIT || mode_ == SRMSD)
         SelectedRef.CenterOnOrigin(useMass_);
       // LOOP OVER TARGET FRAMES
       if (calculateFullMatrix)

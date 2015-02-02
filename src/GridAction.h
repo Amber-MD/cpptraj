@@ -1,6 +1,5 @@
 #ifndef INC_GRIDACTION_H
 #define INC_GRIDACTION_H
-#include "ArgList.h"
 #include "DataSetList.h"
 #include "DataSet_GridFlt.h"
 #include "Topology.h"
@@ -27,7 +26,6 @@ class GridAction {
 void GridAction::GridFrame(Frame const& currentFrame, AtomMask const& mask, 
                            DataSet_GridFlt& grid) 
 {
-  Vec3 offset;
   if (mode_==BOX) {
     Vec3 offset = currentFrame.BoxCrd().Center();
     for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)

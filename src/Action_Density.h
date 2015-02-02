@@ -15,6 +15,10 @@
 /** \author Hannes H. Loeffler
   */
 
+#define ROUTINE_VERSION_STRING "1.0.1"
+
+typedef StatsMap<long,double> statmap;
+
 class Action_Density : public Action, ImagedAction {
 public:
   Action_Density();
@@ -26,11 +30,11 @@ public:
   static void Help();
 
 private:
-  Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-		       DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
   Action::RetType Setup(Topology*, Topology**);
   Action::RetType DoAction(int, Frame*, Frame**);
   void Print();
+  void Output(long, long, std::vector<statmap>&);
 
   static const std::string emptystring;
 
@@ -48,10 +52,11 @@ private:
 
   std::vector<AtomMask> masks_;
 
-  // std::unordered_map may be better but is C++11, some STL's may have
-  // hash_map but not same number of params
-  typedef StatsMap<int,double> statmap;
-  std::vector<statmap> histograms_;
+  // std::unordered_map may be better but it is C++11, some STL's may have
+  // hash_map but not same number of params,
+  // two separate maps are used to ensure we store negative and positive zeros,
+  // i.e. to properly bin ]-1,0[ and [0,1[
+  std::vector<statmap> minus_histograms_, plus_histograms_;
 
   std::vector<std::vector<double> > properties_;
 };

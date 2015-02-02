@@ -13,13 +13,12 @@ Action_Dipole::Action_Dipole() :
 {}
 
 void Action_Dipole::Help() {
-  mprintf("\t<filename> %s\n", GridAction::HelpText);
+  mprintf("\t<filename>\n%s\n", GridAction::HelpText);
   mprintf("\t<mask1> {origin | box} [max <max_percent>]\n");
 }
 
 // Action_Dipole::Init()
-Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   // Get output filename

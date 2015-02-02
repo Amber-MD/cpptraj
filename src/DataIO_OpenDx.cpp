@@ -18,7 +18,7 @@ bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
 }
 
 // DataIO_OpenDx::ReadData()
-int DataIO_OpenDx::ReadData(std::string const& fname, ArgList& argIn,
+int DataIO_OpenDx::ReadData(std::string const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
   // Add grid data set. Default to float for now.
@@ -37,6 +37,7 @@ int DataIO_OpenDx::ReadData(std::string const& fname, ArgList& argIn,
 // DataIO_OpenDx::LoadGrid()
 int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
 {
+  // TODO: This may need to be changed if new 3D types introduced.
   DataSet_GridFlt& grid = static_cast<DataSet_GridFlt&>( ds );
   // Open file
   BufferedLine infile;
@@ -68,24 +69,21 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   }
   // 3x 'delta hx hy hz'
   double dxyz[3];
-  double dx, dy, dz;
-  dx = dy = dz = 0.0;
-  for (int i = 0; i < 3; i++) {
+  Matrix_3x3 delta(0.0);
+  bool isNonortho = false;
+  int midx = 0;
+  for (int i = 0; i < 3; i++, midx += 3) {
     line = infile.GetLine();
     if (sscanf(line.c_str(), "delta %lg %lg %lg", dxyz, dxyz+1, dxyz+2) != 3) {
       mprinterr("Error: Reading delta line from DX file %s\n", filename);
       return 1;
     }
-    // Check that only 1 of the 3 values is non-zero
-    if (dxyz[i] != (dxyz[0] + dxyz[1] + dxyz[2])) {
-      mprinterr("Error: Rotated basis in DX file %s not yet supported.\n", filename);
-      return 1;
-    }
-    switch (i) {
-      case 0: dx = dxyz[0]; break;
-      case 1: dy = dxyz[1]; break;
-      case 2: dz = dxyz[2]; break;
-    }
+    // Check that only 1 of the 3 values is non-zero. Otherwise non-ortho.
+    if (dxyz[i] != (dxyz[0] + dxyz[1] + dxyz[2]))
+      isNonortho = true;
+    delta[midx  ] = dxyz[0];
+    delta[midx+1] = dxyz[1];
+    delta[midx+2] = dxyz[2];
   }
   // object 2 class gridconnections counts nx ny nz
   int nxyz[3];
@@ -93,14 +91,14 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   if (sscanf(line.c_str(), "object 2 class gridconnections counts %d %d %d",
              nxyz, nxyz+1, nxyz+2) != 3)
   {
-    mprintf("Error: Reading grid connections from DX file %s\n", filename);
+    mprinterr("Error: Reading grid connections from DX file %s\n", filename);
     return 1;
   }
   // Sanity check for conflicting grid dimensions
   if (nxyz[0] != nx || nxyz[1] != ny || nxyz[2] != nz) {
     mprinterr("Error: Conflicting grid dimensions in input DX density file %s.\n",
               filename);
-    mprinterr("Error: Grid positions: %d %d %d\n", grid.NX(), grid.NY(), grid.NZ());
+    mprinterr("Error: Grid positions: %d %d %d\n", nx, ny, nz);
     mprinterr("Error: Grid connections: %d %d %d\n", nxyz[0], nxyz[1], nxyz[2]);
     return 1;
   }
@@ -117,10 +115,20 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
     return 1;
   }
   // Allocate Grid from dims, origin, and spacing
-  if (grid.Allocate_N_O_D(nx,ny,nz, Vec3(oxyz), Vec3(dx,dy,dz))) {
+  int err = 0;
+  if (isNonortho) {
+    // Create unit cell from delta and bins.
+    delta[0] *= (double)nx; delta[1] *= (double)nx; delta[2] *= (double)nx;
+    delta[3] *= (double)ny; delta[4] *= (double)ny; delta[5] *= (double)ny;
+    delta[6] *= (double)nz; delta[7] *= (double)nz; delta[8] *= (double)nz;
+    err = grid.Allocate_N_O_Box(nx,ny,nz, Vec3(oxyz), Box(delta));
+  } else
+    err = grid.Allocate_N_O_D(nx,ny,nz, Vec3(oxyz), Vec3(delta[0],delta[4],delta[8]));
+  if (err != 0) { 
     mprinterr("Error: Could not allocate grid.\n");
     return 1;
   }
+  grid.GridInfo();
   // Read in data
   size_t gridsize = grid.Size();
   mprintf("\tReading in %zu data elements from DX file.\n", gridsize); 
@@ -144,9 +152,9 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
   }
   // Set dimensions
   // FIXME: This should be integrated with allocation
-  grid.SetDim(Dimension::X, Dimension(oxyz[0], dx, nx, "X"));
-  grid.SetDim(Dimension::Y, Dimension(oxyz[1], dy, ny, "Y"));
-  grid.SetDim(Dimension::Z, Dimension(oxyz[2], dz, nz, "Z"));
+  //grid.SetDim(Dimension::X, Dimension(oxyz[0], dx, nx, "X"));
+  //grid.SetDim(Dimension::Y, Dimension(oxyz[1], dy, ny, "Y"));
+  //grid.SetDim(Dimension::Z, Dimension(oxyz[2], dz, nz, "Z"));
   return 0;
 }
 
@@ -181,10 +189,15 @@ int DataIO_OpenDx::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
   size_t gridsize = set.Size();
   outfile.Printf("object 1 class gridpositions counts %d %d %d\n",
                  set.NX(), set.NY(), set.NZ());
-  outfile.Printf("origin %lg %lg %lg\n", set.OX(), set.OY(), set.OZ());
-  outfile.Printf("delta %lg 0 0\n", set.DX());
-  outfile.Printf("delta 0 %lg 0\n", set.DY());
-  outfile.Printf("delta 0 0 %lg\n", set.DZ());
+  Vec3 const& oxyz = set.GridOrigin();
+  outfile.Printf("origin %lg %lg %lg\n", oxyz[0], oxyz[1], oxyz[2]);
+  Matrix_3x3 ucell = set.Ucell();
+  double nx = (double)set.NX();
+  double ny = (double)set.NY();
+  double nz = (double)set.NZ();
+  outfile.Printf("delta %lg %lg %lg\n", ucell[0]/nx, ucell[1]/nx, ucell[2]/nx);
+  outfile.Printf("delta %lg %lg %lg\n", ucell[3]/ny, ucell[4]/ny, ucell[5]/ny);
+  outfile.Printf("delta %lg %lg %lg\n", ucell[6]/nz, ucell[7]/nz, ucell[8]/nz);
   outfile.Printf("object 2 class gridconnections counts %d %d %d\n",
                  set.NX(), set.NY(), set.NZ());
   outfile.Printf(

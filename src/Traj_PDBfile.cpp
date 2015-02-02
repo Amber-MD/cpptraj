@@ -54,6 +54,7 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
   int Frames = 0;
   int numMismatch = 0;
   bool scanPDB = true;
+  Box boxInfo;
   while (scanPDB) {
     atom = 0;
     while ( atom < trajParm->Natom() ) {
@@ -63,6 +64,12 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
         break;
       }
       //fprintf(stdout,"DEBUG: PDB buffer %i [%s]\n",atom,buffer);
+      if (file_.RecType() ==  PDBfile::CRYST1) {
+        // Read in box information
+        double box_crd[6];
+        file_.pdb_Box( box_crd );
+        boxInfo.SetBox( box_crd );
+      } 
       // Skip non-ATOM records
       if (file_.RecType() != PDBfile::ATOM) continue;
       // If still on first frame, check pdb atom name against the name in the 
@@ -106,6 +113,7 @@ int Traj_PDBfile::setupTrajin(std::string const& fname, Topology* trajParm)
   if (numMismatch > 0)
     mprintf("Warning: In PDB file %s: %i name mismatches with parm %s.\n",
             file_.Filename().base(), numMismatch, trajParm->c_str());
+  SetBox( boxInfo );
   return Frames;
 }
 
@@ -132,7 +140,9 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
   while (atom < pdbAtom_) {
     if ( file_.NextRecord() == PDBfile::END_OF_FILE ) return 1;
     // Skip non-ATOM records
-    if ( file_.RecType() == PDBfile::ATOM ) {
+    if ( file_.RecType() == PDBfile::CRYST1 )
+      file_.pdb_Box( frameIn.bAddress() );
+    else if ( file_.RecType() == PDBfile::ATOM ) {
       // Read current PDB record XYZ into Frame
       file_.pdb_XYZ( Xptr );
       ++atom; 
@@ -152,7 +162,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tteradvance:  Increment record (atom) # for TER records (default no).\n"
           "\tmodel:       Write to single file separated by MODEL records.\n"
           "\tmulti:       Write each frame to separate files.\n"
-          "\tchainid <c>: Write character 'c' in chain ID column.\n");
+          "\tchainid <c>: Write character 'c' in chain ID column.\n"
+          "\tsg <group>:  Space group for CRYST1 record, only if box coordinates written.\n");
 }
 
 // Traj_PDBfile::processWriteArgs()
@@ -171,6 +182,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("teradvance")) ter_num_ = 1;
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
+  space_group_ = argIn.GetStringKey("sg");
   std::string temp = argIn.GetStringKey("chainid");
   if (!temp.empty()) chainchar_ = temp[0];
   return 0;
@@ -255,8 +267,12 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
     if (!Title().empty()) file_.WriteTITLE( Title() );
   }
   write_cryst1_ = (TrajBox().Type() != Box::NOBOX);
-  if (write_cryst1_ && pdbWriteMode_!=SINGLE)
-    mprintf("Warning: For PDB, box coords for first frame only will be written to CRYST1.\n");
+  if (write_cryst1_) {
+    if (pdbWriteMode_==MODEL)
+      mprintf("Warning: For PDB with MODEL, box coords for first frame only will be written to CRYST1.\n");
+    if (space_group_.empty())
+      mprintf("Warning: No PDB space group specified.\n");
+  }
   return 0;
 }
 
@@ -268,11 +284,14 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     if (file_.OpenWriteNumbered( set + 1 )) return 1;
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
-  }
-  // Write box coords, first frame only.
-  if (write_cryst1_) {
-    file_.WriteCRYST1( frameOut.BoxCrd().boxPtr() );
-    write_cryst1_ = false;
+    if (write_cryst1_)
+      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
+  } else {
+    // Write box coords, first frame only.
+    if (write_cryst1_) {
+      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
+      write_cryst1_ = false;
+    }
   }
   // If specified, write MODEL keyword
   if (pdbWriteMode_==MODEL)
@@ -289,20 +308,24 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   else
     lastAtomInMol = -1;
   const double *Xptr = frameOut.xAddress();
-  for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom) {
-    int res = (*atom).ResNum();
+  for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom, ++aidx) {
+    int res = atom->ResNum();
     // If this atom belongs to a new molecule print a TER card
     // Use res instead of res+1 since this TER belongs to last mol/res
     if (aidx == lastAtomInMol) {
       file_.WriteTER( anum, resNames_[res-1], chainID_[aidx-1], pdbTop_->Res(res-1).OriginalResNum() );
       anum += ter_num_;
       ++mol;
-      lastAtomInMol = (*mol).EndAtom();
+      lastAtomInMol = mol->EndAtom();
     }
-    if (dumpq_) Occ = (float) (*atom).Charge();
-    if (dumpr_) B = (float) (*atom).GBRadius();
+    if (!pdbTop_->Extra().empty()) {
+      Occ = pdbTop_->Extra()[aidx].Occupancy();
+      B   = pdbTop_->Extra()[aidx].Bfactor();
+    }
+    if (dumpq_) Occ = (float) atom->Charge();
+    if (dumpr_) B = (float) atom->GBRadius();
     // If pdbatom change amber atom names to pdb v3
-    NameType atomName = (*atom).Name();
+    NameType atomName = atom->Name();
     if (pdbatom_) {
       if      (atomName == "H5'1") atomName = "H5'";
       else if (atomName == "H5'2") atomName = "H5''";
@@ -315,9 +338,9 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       else if (atomName == "HO'2") atomName = "HO2'";
     }
     file_.WriteCoord(PDBfile::ATOM, anum++, atomName, resNames_[res],
-                     chainID_[aidx++], pdbTop_->Res(res).OriginalResNum(), 
+                     chainID_[aidx], pdbTop_->Res(res).OriginalResNum(), 
                      Xptr[0], Xptr[1], Xptr[2], Occ, B, 
-                     (*atom).ElementName(), 0, dumpq_);
+                     atom->ElementName(), 0, dumpq_);
     Xptr += 3;
   }
   if (pdbWriteMode_==MULTI) {

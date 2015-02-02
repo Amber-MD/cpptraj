@@ -3,7 +3,8 @@
 
 // GridAction::HelpText
 const char* GridAction::HelpText =
-  "{data <dsname> | <nx> <dx> <ny> <dy> <nz> <dz> [gridcenter <cx> <cy> <cz>]}\n"
+  "\t{ data <dsname> | boxref <ref name/tag> <nx> <ny> <nz> |\n"
+  "\t  <nx> <dx> <ny> <dy> <nz> <dz> [gridcenter <cx> <cy> <cz>] }\n"
   "\t[box|origin|center <mask>] [negative] [name <gridname>]";
 
 static inline void CheckEven(int& N, char dir) {
@@ -14,12 +15,12 @@ static inline void CheckEven(int& N, char dir) {
 }
 
 // GridAction::GridInit()
-DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn, 
-                                      DataSetList& DSL) 
+DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn, DataSetList& DSL) 
 {
   DataSet_GridFlt* Grid = 0; 
   bool specifiedCenter = false;
   std::string dsname = argIn.GetStringKey("data");
+  std::string refname = argIn.GetStringKey("boxref");
   if (!dsname.empty()) { 
     // Get existing grid dataset
     Grid = (DataSet_GridFlt*)DSL.FindSetOfType( dsname, DataSet::GRID_FLT );
@@ -28,6 +29,24 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
                 callingRoutine, dsname.c_str());
       return 0;
     }
+  } else if (!refname.empty()) {
+    // Get grid parameters from reference structure box.
+    DataSet_Coords_REF* REF = (DataSet_Coords_REF*)DSL.GetReferenceFrame( refname );
+    if (REF == 0) return 0;
+    if (REF->Top().ParmBox().Type() == Box::NOBOX) {
+      mprinterr("Error: Reference '%s' does not have box information.\n", refname.c_str());
+      return 0;
+    }
+    int nx = argIn.getNextInteger(-1);
+    int ny = argIn.getNextInteger(-1);
+    int nz = argIn.getNextInteger(-1);
+    if (nx < 1 || ny < 1 || nz < 1) {
+      mprinterr("Error:  %s: Invalid grid sizes\n", callingRoutine);
+      return 0;
+    }
+    Grid = (DataSet_GridFlt*)DSL.AddSet( DataSet::GRID_FLT, argIn.GetStringKey("name"), "GRID" );
+    if (Grid == 0) return 0;
+    if (Grid->Allocate_N_O_Box(nx,ny,nz,Vec3(0.0),REF->RefFrame().BoxCrd())) return 0;
   } else {
     // Create new data set.
     // Get nx, dx, ny, dy, nz, dz
@@ -60,10 +79,6 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     // Set up grid from dims, center, and spacing
     // NOTE: # of grid points in each direction with be forced to be even.
     if (Grid->Allocate_N_C_D(nx, ny, nz, gridctr, Vec3(dx,dy,dz))) return 0;
-    //  DataSetList::const_iterator last = DSL.end();
-    //  --last;
-    //  DSL.erase( last );
-    //  Grid = 0;
   }
   // Determine offset, Box/origin/center
   mode_ = ORIGIN;
@@ -107,15 +122,7 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
     mprintf("\tCalculating positive density.\n");
   else
     mprintf("\tCalculating negative density.\n");
-  mprintf("\t-=Grid Dims=- %8s %8s %8s\n", "X", "Y", "Z");
-  mprintf("\tGrid points : %8i %8i %8i\n", grid.NX(), grid.NY(), grid.NZ());
-  mprintf("\tGrid spacing: %8.3f %8.3f %8.3f\n", grid.DX(), grid.DY(), grid.DZ());
-  mprintf("\tGrid origin : %8.3f %8.3f %8.3f\n", grid.OX(), grid.OY(), grid.OZ());
-  mprintf("\tGrid center : %8.3f %8.3f %8.3f\n",
-            grid.OX() + (grid.NX()/2)*grid.DX(),
-            grid.OY() + (grid.NY()/2)*grid.DY(),
-            grid.OZ() + (grid.NZ()/2)*grid.DZ());
-  mprintf("\tGrid max    : %8.3f %8.3f %8.3f\n", grid.MX(), grid.MY(), grid.MZ());
+  grid.GridInfo();
 }
 
 // GridAction::GridSetup()

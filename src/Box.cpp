@@ -19,6 +19,8 @@ Box::Box(const double* bIn) //: debug_(0)
   SetBox( bIn );
 }
 
+Box::Box(Matrix_3x3 const& ucell) { SetBox( ucell ); }
+
 // COPY CONSTRUCTOR
 Box::Box(const Box& rhs) : btype_(rhs.btype_) //, debug_(rhs.debug_)
 {
@@ -44,7 +46,7 @@ Box &Box::operator=(const Box& rhs) {
   return *this;
 }
 
-const double Box::TRUNCOCTBETA = 109.4712206344906917365733534097672;
+const double Box::TRUNCOCTBETA = 2.0*acos(1.0/sqrt(3.0))*Constants::RADDEG; 
 
 const char* Box::BoxNames[] = {
   "None", "Orthogonal", "Trunc. Oct.", "Rhombic Dodec.", "Non-orthogonal"
@@ -78,6 +80,20 @@ void Box::SetBox(const double* xyzabg) {
   box_[3] = xyzabg[3];
   box_[4] = xyzabg[4];
   box_[5] = xyzabg[5];
+  SetBoxType();
+}
+
+/** Set box from unit cell matrix. */
+void Box::SetBox(Matrix_3x3 const& ucell) {
+  Vec3 x_axis = ucell.Row1();
+  Vec3 y_axis = ucell.Row2();
+  Vec3 z_axis = ucell.Row3();
+  box_[0] = x_axis.Normalize(); // A
+  box_[1] = y_axis.Normalize(); // B
+  box_[2] = z_axis.Normalize(); // C
+  box_[3] = y_axis.Angle( z_axis ) * Constants::RADDEG; // alpha
+  box_[4] = x_axis.Angle( z_axis ) * Constants::RADDEG; // beta
+  box_[5] = x_axis.Angle( y_axis ) * Constants::RADDEG; // gamma
   SetBoxType();
 }
 
@@ -116,7 +132,7 @@ void Box::SetMissingInfo(const Box& rhs) {
   SetBoxType();
 }
 
-static bool IsTruncOct(double angle) {
+static inline bool IsTruncOct(double angle) {
   if (angle > 109.47 && angle < 109.48) return true;
   return false;
 }
@@ -154,7 +170,7 @@ void Box::SetBoxType() {
       box_[5]=60.0;
       //if (debug_>0) mprintf("\tSetting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n");
     } else {
-      mprintf("Warning: Box: Unrecognized beta (%lf); setting all angles to beta.\n",box_[4]);
+      mprintf("Warning: Box: Unrecognized beta (%g); setting all angles to beta.\n",box_[4]);
       box_[3] = box_[4];
       box_[5] = box_[4];
     }
@@ -163,7 +179,7 @@ void Box::SetBoxType() {
 }
 
 // Box::ToRecip()
-/** Use box coordinates to calculate reciprocal space conversions for use
+/** Use box coordinates to calculate unit cell and fractional matrix for use
   * with imaging routines. Return cell volume.
   */
 double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {

@@ -18,8 +18,7 @@ void Action_Projection::Help() {
 }
 
 // Action_Projection::Init()
-Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get ibeg, iend, start, stop, offset
   // NOTE: Must get 'end' before InitFrameCounter since the latter checks for 'end'

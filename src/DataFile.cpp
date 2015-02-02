@@ -50,7 +50,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Xplor File",         0,                       0,                        DataIO_Xplor::Alloc  },
   { "OpenDX File",        0,                       0,                        DataIO_OpenDx::Alloc },
   { "Amber REM log",      DataIO_RemLog::ReadHelp, 0,                        DataIO_RemLog::Alloc },
-  { "Amber MDOUT file",   DataIO_Mdout::ReadHelp,  0,                        DataIO_Mdout::Alloc  },
+  { "Amber MDOUT file",   0,                       0,                        DataIO_Mdout::Alloc  },
   { "Evecs file",         DataIO_Evecs::ReadHelp,  0,                        DataIO_Evecs::Alloc  },
   { "Vector pseudo-traj", 0,                       DataIO_VecTraj::WriteHelp,DataIO_VecTraj::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
@@ -72,7 +72,8 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
 };
 
 void DataFile::WriteHelp() {
-  mprintf("\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>]\n"
+  mprintf("\t[<format keyword>]\n"
+          "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>]\n"
           "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n");
 }
 
@@ -140,7 +141,17 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
   Timer dftimer;
   dftimer.Start();
 # endif
-  int err = dataio_->ReadData( filename_.Full(), argIn, datasetlist, dsname );
+  int err = dataio_->processReadArgs(argIn);
+  if (err == 0) {
+    err += dataio_->ReadData( filename_.Full(), datasetlist, dsname );
+    // Treat any remaining arguments as file names.
+    std::string nextFile = argIn.GetStringNext();
+    while (!nextFile.empty()) {
+      if (filename_.SetFileNameWithExpansion( nextFile )) return 1;
+      err += dataio_->ReadData( filename_.Full(), datasetlist, dsname );
+      nextFile = argIn.GetStringNext();
+    }
+  }
   if (err)
     mprinterr("Error: reading datafile %s\n", filename_.Full().c_str());
 # ifdef TIMER
@@ -161,8 +172,7 @@ int DataFile::ReadDataOfType(std::string const& fnameIn, DataFormatType typeIn,
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, typeIn, false );
   if (dataio_ == 0) return 1;
   dataio_->SetDebug( debug_ );
-  ArgList empty;
-  return dataio_->ReadData( filename_.Full(), empty, datasetlist, filename_.Full() );
+  return dataio_->ReadData( filename_.Full(), datasetlist, filename_.Full() );
 }
 
 // -----------------------------------------------------------------------------

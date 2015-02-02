@@ -85,6 +85,9 @@ class Vec3 {
     double operator*(const Vec3& rhs) const { // Dot product
       return ( (V_[0]*rhs.V_[0]) + (V_[1]*rhs.V_[1]) + (V_[2]*rhs.V_[2]) );
     }
+    Vec3 operator/(const Vec3& rhs) const {
+      return (Vec3(V_[0]/rhs.V_[0], V_[1]/rhs.V_[1], V_[2]/rhs.V_[2]));
+    }
     Vec3 Cross(Vec3 const& rhs) const { // Cross product
       return Vec3( (V_[1]*rhs.V_[2]) - (V_[2]*rhs.V_[1]),   // UYVZ+UZVY
                    (V_[2]*rhs.V_[0]) - (V_[0]*rhs.V_[2]),   // UZVX+UXVZ
@@ -118,6 +121,7 @@ class Vec3 {
       V_[2] = vz;
     }
     double Normalize();
+    double Length() const;
     void Print(const char*) const;
     double Angle(Vec3 const&) const;
     double SignedAngle(Vec3 const&, Vec3 const&) const;

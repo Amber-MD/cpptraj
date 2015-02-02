@@ -5,6 +5,7 @@
 #include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "Timer.h"
+#include "DataSet_Coords_REF.h" // AddReference
 
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
@@ -84,7 +85,7 @@ int CpptrajState::ListAll( ArgList& argIn ) const {
   std::vector<bool> enabled = ListsFromArg( argIn, true );
   if ( enabled[L_ACTION]   ) actionList_.List();
   if ( enabled[L_TRAJIN]   ) trajinList_.List();
-  if ( enabled[L_REF]      ) refFrames_.List();
+  if ( enabled[L_REF]      ) ReferenceInfo();
   if ( enabled[L_TRAJOUT]  ) trajoutList_.List();
   if ( enabled[L_PARM]     ) parmFileList_.List();
   if ( enabled[L_ANALYSIS] ) analysisList_.List();
@@ -99,7 +100,7 @@ int CpptrajState::SetListDebug( ArgList& argIn ) {
   std::vector<bool> enabled = ListsFromArg( argIn, true );
   if ( enabled[L_ACTION]   ) actionList_.SetDebug( debug_ );
   if ( enabled[L_TRAJIN]   ) trajinList_.SetDebug( debug_ );
-  if ( enabled[L_REF]      ) refFrames_.SetDebug( debug_ );
+//  if ( enabled[L_REF]      ) refFrames_.SetDebug( debug_ );
   if ( enabled[L_TRAJOUT]  ) trajoutList_.SetDebug( debug_ );
   if ( enabled[L_PARM]     ) parmFileList_.SetDebug( debug_ );
   if ( enabled[L_ANALYSIS] ) analysisList_.SetDebug( debug_ );
@@ -113,13 +114,20 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   std::vector<bool> enabled = ListsFromArg( argIn, false );
   if ( enabled[L_ACTION]   ) actionList_.Clear();
   if ( enabled[L_TRAJIN]   ) trajinList_.Clear();
-  if ( enabled[L_REF]      ) refFrames_.Clear();
+//  if ( enabled[L_REF]      ) refFrames_.Clear();
   if ( enabled[L_TRAJOUT]  ) trajoutList_.Clear();
   if ( enabled[L_PARM]     ) parmFileList_.Clear();
   if ( enabled[L_ANALYSIS] ) analysisList_.Clear();
   if ( enabled[L_DATAFILE] ) DFL_.Clear();
   if ( enabled[L_DATASET]  ) DSL_.Clear();
   return 0;
+}
+
+/** List reference information. */
+void CpptrajState::ReferenceInfo() const {
+  DSL_.ListReferenceFrames();
+  if (activeRef_ != 0)
+    mprintf("\tActive reference frame for distance-based masks is %i\n", activeRef_->RefIndex());
 }
 
 /** Remove DataSet from State */
@@ -224,6 +232,14 @@ int CpptrajState::Run() {
   return err;
 }
 
+// CpptrajState::ActiveReference()
+Frame CpptrajState::ActiveReference() const {
+  if (activeRef_ == 0)
+    return Frame();
+  else
+    return activeRef_->RefFrame();
+}
+
 // CpptrajState::RunEnsemble()
 int CpptrajState::RunEnsemble() {
   Timer init_time;
@@ -266,7 +282,7 @@ int CpptrajState::RunEnsemble() {
   // Parameter file information
   parmFileList_.List();
   // Print reference information 
-  refFrames_.List();
+  ReferenceInfo();
 # ifdef MPI
   // Each thread will process one member of the ensemble, so total ensemble
   // size is effectively 1.
@@ -329,7 +345,7 @@ int CpptrajState::RunEnsemble() {
         command.MarkArg(0); // TODO: Create separate CommandArg class?
         // Attempt to add same action to this ensemble. 
         if (ActionEnsemble[member].AddAction( actionList_.ActionAlloc(iaction), 
-                                              command, &parmFileList_, &refFrames_,
+                                              command, &parmFileList_, 
                                               &(DataSetEnsemble[member]), 
                                               &DataFileEnsemble ))
             return 1;
@@ -389,7 +405,7 @@ int CpptrajState::RunEnsemble() {
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set active reference for this parm
-      CurrentParm->SetReferenceCoords( refFrames_.ActiveReference() );
+      CurrentParm->SetReferenceCoords( ActiveReference() );
       // Set up actions for this parm
       bool setupOK = true;
       for (int member = 0; member < ensembleSize; ++member) {
@@ -563,8 +579,8 @@ int CpptrajState::RunNormal() {
   parmFileList_.List();
   // Input coordinate file information
   trajinList_.List();
-  // Print reference information 
-  refFrames_.List();
+  // Print reference information
+  ReferenceInfo(); 
   // Output traj
   trajoutList_.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
@@ -600,16 +616,16 @@ int CpptrajState::RunNormal() {
 #   ifdef TIMER
     setup_time.Start();
 #   endif
-    // If Parm has changed or trajectory velocity status has changed,
-    // reset the frame.
-    if (parmHasChanged || (TrajFrame.HasVelocity() != (*traj)->HasVelocity()))
+    // If Parm has changed or trajectory frame has changed, reset the frame.
+    if (parmHasChanged || 
+        (TrajFrame.HasVelocity() != (*traj)->HasVelocity()) ||
+        ((int)TrajFrame.RemdIndices().size() != (*traj)->NreplicaDimension()))
       TrajFrame.SetupFrameV(CurrentParm->Atoms(), (*traj)->HasVelocity(), 
                             (*traj)->NreplicaDimension());
-
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set active reference for this parm
-      CurrentParm->SetReferenceCoords( refFrames_.ActiveReference() );
+      CurrentParm->SetReferenceCoords( ActiveReference() );
       // Set up actions for this parm
       if (actionList_.SetupActions( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
@@ -717,4 +733,42 @@ int CpptrajState::RunAnalyses() {
   if ( err == 0) 
     analysisList_.Clear();
   return err;
+}
+
+// CpptrajState::AddReference()
+int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) {
+  if (fname.empty()) return 1;
+  ArgList argIn = args;
+  // 'average' keyword is deprecated
+  if ( argIn.hasKey("average") ) {
+    mprinterr("Error: 'average' for reference is deprecated. Please use\n"
+              "Error:   the 'average' action to create averaged coordinates.\n");
+    return 1;
+  }
+  // Get topology file.
+  Topology* refParm = parmFileList_.GetParm( argIn );
+  if (refParm == 0) {
+    mprinterr("Error: Cannot get topology for reference '%s'\n", fname.c_str());
+    return 1;
+  }
+  // Determine if there is a mask expression for stripping reference. // TODO: Remove?
+  std::string maskexpr = argIn.GetMaskNext();
+  // Check for tag. FIXME: need to do after SetupTrajRead?
+  std::string tag = argIn.getNextTag();
+  // Reference frames are a unique DataSet - they are set up OUTSIDE data set list.
+  DataSet_Coords_REF* ref = new DataSet_Coords_REF();
+  if (ref==0) return 1;
+  if (ref->SetupRefFrame(fname, tag, *refParm, argIn, refidx_)) return 1;
+  // If a mask expression was specified, strip to match the expression.
+  if (!maskexpr.empty()) {
+    AtomMask stripMask( maskexpr );
+    if (refParm->SetupIntegerMask(stripMask)) return 1;
+    if (ref->StripRef( stripMask )) return 1;
+  }
+  // Add DataSet to main DataSetList.
+  if (DSL_.AddSet( ref )) return 1; 
+  // Set default reference if not already set.
+  if (activeRef_ == 0) activeRef_ = ref;
+  refidx_++;
+  return 0;
 }

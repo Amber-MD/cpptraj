@@ -17,13 +17,9 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
     size_t Size() const { return maxFrames_;     }
     int Sync()          { return 1;              }
     void Info() const;
-    // ----- DataSet_1D functions ----------------
-    int Allocate1D(size_t)                       { return 0;   }
     void Add( size_t, const void* )              { return;     }
-    double Dval(size_t)                    const { return 0.0; }
-    double Xcrd(size_t idx)  const { return Dim(0).Coord(idx); }
-    void WriteBuffer(CpptrajFile&, size_t) const { return;     }
-    // -------------------------------------------
+    // ----- DataSet_Coords functions ------------
+    int AllocateCoords(size_t)                   { return 0;   }
     /// Add a frame.
     void AddFrame(Frame const& fIn) { }
     /// Set CRD at position with frame.

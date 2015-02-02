@@ -22,8 +22,7 @@ void Action_MultiDihedral::Help() {
   mprintf("  Calculate specified dihedral angle types for residues in given <range>.\n");
 }
 
-Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get keywords

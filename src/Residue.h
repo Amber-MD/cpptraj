@@ -22,6 +22,10 @@ class Residue {
     inline bool NameIsSolvent()   const {
       return (resname_=="WAT " || resname_=="HOH " || resname_=="TIP3");
     }
+    /// Convert 3-letter residue code to single letter.
+    static char ConvertResName(std::string const&);
+    /// Convert this residue name to single letter.
+    char SingleCharName() const { return ConvertResName( *resname_ ); }
   private:
     /// The first atom in the residue, atom numbering starts from 0
     int firstAtom_;

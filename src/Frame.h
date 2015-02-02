@@ -30,7 +30,6 @@
   */
 class Frame {
   public:
-    enum CenterMode { ORIGIN = 0, BOXCTR, POINT };
     // Construction/Destruction/Assignment
     Frame();
     ~Frame();
@@ -75,10 +74,15 @@ class Frame {
     int NrepDims()                    const { return (int)remd_indices_.size(); } // TODO: deprecate
     double Temperature()              const { return T_;             }
     double Time()                     const { return time_;          }
+    /// \return pointer to start of XYZ coords for given atom.
     const double* XYZ(int atnum)      const { return X_ + (atnum*3); } 
-    const double* CRD(int idx)        const { return X_ + idx;       } 
-    const double* VXYZ(int atnum)     const { return V_ + (atnum*3); } 
+    /// \return pointer to specified coordinate.
+    const double* CRD(int idx)        const { return X_ + idx;       }
+    /// \return pointer to start of velocity XYZ for given atom.
+    const double* VXYZ(int atnum)     const { return V_ + (atnum*3); }
+    /// \return mass of specified atom.
     double Mass(int atnum)            const { return Mass_[atnum];   }
+    /// \return Box information
     const Box& BoxCrd()               const { return box_;           }
     RemdIdxType const& RemdIndices()  const { return remd_indices_;  }
     // Routines for accessing internal data pointers
@@ -160,8 +164,6 @@ class Frame {
     // -------------------------------------------------------------------------
     /// Scale coordinates of atoms in mask by given X|Y|Z constants
     void Scale(AtomMask const&, double, double, double);
-    /// Translate atoms to box center or origin.
-    void Center(AtomMask const&, CenterMode, Vec3 const&, bool);
     /// Translate atoms to origin.
     Vec3 CenterOnOrigin(bool);
     // Coordinate calculation

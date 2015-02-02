@@ -2,6 +2,7 @@
 #define INC_TOPOLOGY_H
 #include <string>
 #include "Atom.h"
+#include "AtomExtra.h"
 #include "Residue.h"
 #include "Molecule.h"
 #include "ParameterTypes.h"
@@ -93,11 +94,9 @@ class Topology {
     // ----- CHAMBER info ------------------------
     ChamberParmType const& Chamber()        const { return chamber_;      }
     void SetChamber(ChamberParmType const& c)     { chamber_ = c;         }
-    // ----- Amber extra info ----- TODO: Generate automatically, consolidate
-    inline const std::vector<double>& Solty()   const { return solty_;  }
-    inline const std::vector<NameType>& Itree() const { return itree_;  }
-    inline const std::vector<int>& Join()       const { return join_;   }
-    inline const std::vector<int>& Irotat()     const { return irotat_; }
+    // ----- Extra atom info ---------------------
+    inline const std::vector<AtomExtra>& Extra() const { return extra_; }
+    inline int NatomTypes()                      const { return n_atom_types_; }
     // ----- Misc routines -----------------------
     /// Format: <res name><res num>@<atom name>
     std::string TruncResAtomName(int) const;
@@ -119,6 +118,7 @@ class Topology {
     void PrintDihedralInfo(std::string const&) const;
     void PrintMoleculeInfo(std::string const&) const;
     void PrintResidueInfo(std::string const&) const;
+    void PrintShortResInfo(std::string const&, int) const;
     int PrintChargeMassInfo(std::string const&, int) const;
     // ----- Routines to Access/Modify Box info --
     inline Box const& ParmBox()   const { return box_;        }
@@ -129,9 +129,7 @@ class Topology {
     void StartNewMol();
     int CommonSetup(bool);
     int Setup_NoResInfo();
-    // ----- Amber setup routines ----------------
-    int SetAmberExtra(std::vector<double> const&,std::vector<NameType> const&,
-                      std::vector<int> const&,std::vector<int> const&);
+    int SetExtraAtomInfo(int, std::vector<AtomExtra> const&);
     // ----- Mask Routines -----------------------
     bool SetupIntegerMask(AtomMask &) const;
     bool SetupCharMask(AtomMask &) const;
@@ -186,6 +184,9 @@ class Topology {
     BondArray StripBondArray(BondArray const&, std::vector<int> const&) const;
     AngleArray StripAngleArray(AngleArray const&, std::vector<int> const&) const;
     DihedralArray StripDihedralArray(DihedralArray const&, std::vector<int> const&) const;
+    void StripBondParmArray(BondArray&, std::vector<int>&, BondParmArray&) const;
+    void StripAngleParmArray(AngleArray&, std::vector<int>&, AngleParmArray&) const;
+    void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&) const;
     inline void AddBondArray(BondArray const&, int);
 
     static const NonbondType LJ_EMPTY;
@@ -211,11 +212,8 @@ class Topology {
     CapParmType cap_;                ///< Water cap information
     LES_ParmType lesparm_;           ///< LES parameters
     ChamberParmType chamber_;        ///< CHAMBER parameters
-    // Amber extra info
-    std::vector<double> solty_;
-    std::vector<NameType> itree_;
-    std::vector<int> join_;
-    std::vector<int> irotat_;
+    // Extra atom info
+    std::vector<AtomExtra> extra_;
 
     Box box_;
     Frame refCoords_;
@@ -227,6 +225,7 @@ class Topology {
     int pindex_;
     int nframes_;
     int n_extra_pts_;
+    int n_atom_types_;      ///< Number of unique atom types.
     bool hasVelInfo_; // TODO: This information should be passed separate from Topology
     int nRepDim_;     // TODO: This information should be passed separate from Topology
 };

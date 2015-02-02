@@ -12,8 +12,7 @@ void Action_SetVelocity::Help() {
 }
 
 // Action_SetVelocity::Init()
-Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Keywords
   tempi_ = actionArgs.getKeyDouble("tempi", 300.0);

@@ -37,8 +37,7 @@ void Action_Matrix::Help() {
 }
 
 // Action_Matrix::Init()
-Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
@@ -277,12 +276,29 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   // Allocate vector memory.
   Mat_->AllocateVector( vectsize );
   vect2_.resize( vectsize, 0.0 );
-  // Allocate matrix memory.
-  size_t previous_size = Mat_->Size();
-  if (nrows > 0) // Full matrix - no DISTCOVAR, IDEA, or IRED possible
-    Mat_->Allocate2D( ncols, nrows );
-  else           // "Upper right half" matrix, including main diagonal.
-    Mat_->AllocateHalf( ncols );
+  // Allocate matrix memory. If already allocated, do not allow sizes to change.
+  if (Mat_->Size() == 0) {
+    if (nrows > 0) // Full matrix - no DISTCOVAR, IDEA, or IRED possible
+      Mat_->Allocate2D( ncols, nrows );
+    else           // "Upper right half" matrix, including main diagonal.
+      Mat_->AllocateHalf( ncols );
+  } else {
+    bool dimensionsHaveChanged = false;
+    if (nrows > 0)
+      dimensionsHaveChanged = (nrows != Mat_->Nrows() || ncols != Mat_->Ncols());
+    else
+      dimensionsHaveChanged = (ncols != Mat_->Ncols());
+    if (dimensionsHaveChanged) {
+      mprinterr("Error: Attempting to reallocate matrix with different size.\n"
+                "Error:   Original # cols = %zu, new # cols = %zu.\n",
+                Mat_->Ncols(), ncols);
+      if (nrows > 0) mprinterr("Error:  Original # rows = %zu, new # rows = %zu.\n",
+                               Mat_->Nrows(), nrows);
+      mprinterr("Error:   This can occur when different #s of atoms are selected in\n"
+                "Error:   different topology files.\n");
+      return Action::ERR;
+    }
+  }
 # ifdef _OPENMP
   if (
        ( Mat_->Type() == DataSet_2D::COVAR ||
@@ -316,14 +332,6 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
 #   endif
   }
 # endif
-  // If matrix has already been allocated, make sure size did not change.
-  if (previous_size > 0 && previous_size != Mat_->Size()) {
-    mprinterr("Error: Attempting to reallocate matrix with different size.\n"
-              "Error:   Original size= %u, new size= %u\n"
-              "Error:   This can occur when different #s of atoms are selected in\n"
-              "Error:   different topology files.\n", previous_size, Mat_->Size());
-    return Action::ERR;
-  }
   CurrentParm_ = currentParm;
   return Action::OK;
 }

@@ -9,8 +9,7 @@ void Action_CreateCrd::Help() {
           "  specified topology.\n");
 }
 
-Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                                       DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Keywords
   Topology* parm = PFL->GetParm( actionArgs );

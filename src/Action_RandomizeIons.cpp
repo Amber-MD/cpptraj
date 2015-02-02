@@ -19,8 +19,7 @@ void Action_RandomizeIons::Help() {
 }
 
 // Action_RandomizeIons::Init()
-Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get first mask

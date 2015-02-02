@@ -11,8 +11,9 @@
 
 static void Help(const char* prgname, bool showAdditional) {
   mprinterr("\nUsage: %s -p <Top> -c <Coords> [Additional Options]\n"
-            "    -p <Top>      Topology file.\n"
-            "    -c <Coords>   Coordinate file.\n", prgname);
+            "    -p <Top>      Topology file (default: prmtop).\n"
+            "    -c <Coords>   Coordinate file.\n"
+            "  PDB is written to STDOUT.\n", prgname);
   if (showAdditional) {
     mprinterr(
             "  Additional Options:\n"
@@ -95,11 +96,7 @@ int main(int argc, char** argv) {
     }
   }
   // Check command line for errors.
-  if (topname.empty()) {
-    mprinterr("Error: Must specify topology name with '-p <topology file>'\n");
-    Help(argv[0], false);
-    return 1;
-  }
+  if (topname.empty()) topname.assign("prmtop");
   if (crdname.empty()) {
     mprinterr("Error: This version of %s requires input coordinates be specified with"
               " -c <coord file> instead of ' < <coord file>'\n", argv[0]);
@@ -135,11 +132,8 @@ int main(int argc, char** argv) {
   trajin.BeginTraj(false);
   if (trajin.ReadTrajFrame(0, TrajFrame)) return 1;
   trajin.EndTraj();
-  if (ctr_origin) {
-    AtomMask mask("*");
-    parm.SetupIntegerMask( mask );
-    TrajFrame.Center( mask, Frame::ORIGIN, Vec3(0.0), false );
-  }
+  if (ctr_origin) 
+    TrajFrame.CenterOnOrigin(false);
   // Output coords
   Trajout trajout;
   trajArgs.SetList( aatm + bres + pqr + title, " " );

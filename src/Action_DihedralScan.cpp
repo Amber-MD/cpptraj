@@ -45,8 +45,7 @@ void Action_DihedralScan::Help() {
 }
 
 // Action_DihedralScan::Init()
-Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   if (DSL->EnsembleNum() > -1) {
     mprinterr("Error: DIHEDRALSCAN currently cannot be used in ensemble mode.\n");
@@ -173,7 +172,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   ++backtrack_;
   // Initialize CheckStructure
   ArgList cs_args("noimage nobondcheck");
-  if (checkStructure_.Init( cs_args, PFL, FL, DSL, DFL, debug_) != Action::OK) {
+  if (checkStructure_.Init( cs_args, PFL, DSL, DFL, debug_) != Action::OK) {
     mprinterr("Error: Could not set up structure check for DIHEDRALSCAN.\n");
     return Action::ERR;
   }

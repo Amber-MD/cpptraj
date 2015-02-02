@@ -12,6 +12,8 @@ double Vec3::Normalize() {
   return r;
 } 
 
+double Vec3::Length() const { return sqrt( Magnitude2() ); }
+
 void Vec3::Print(const char *Name) const {
   mprintf("    %s: %8.4f %8.4f %8.4f\n", Name, V_[0], V_[1], V_[2]);
 }

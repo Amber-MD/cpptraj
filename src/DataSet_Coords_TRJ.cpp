@@ -85,6 +85,10 @@ int DataSet_Coords_TRJ::AddInputTraj(Trajin* tIn) {
 }
 
 void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn) {
+# ifdef _OPENMP
+# pragma omp critical
+  {
+# endif
   // Determine which trajectory has the desired index
   globalOffset_ = 0;
   int currentMax = 0;
@@ -95,6 +99,7 @@ void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn) {
     globalOffset_ += trajinList_[desiredTrajNum]->TotalReadFrames();
   }
   // If desired traj is different than current, open desired traj
+  int err = 0;
   if ( desiredTrajNum != currentTrajNum_ ) {
     if (Traj_ != 0) Traj_->EndTraj();
     Trajin* prevTraj = Traj_;
@@ -114,17 +119,22 @@ void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn) {
     if (Traj_->BeginTraj(false)) {
       mprinterr("Error: Could not open trajectory %i '%s'\n", desiredTrajNum,
                 Traj_->TrajFilename().full());
-      return;
+      err = 1;
     }
   }
-  // Convert desired index into trajectory internal index
-  int internalIdx = ((idx - globalOffset_) * Traj_->Offset()) + Traj_->Start();
-  // Read desired index
-  // TODO: May need to use readFrame here as well...
-  if (Traj_->ReadTrajFrame( internalIdx, fIn )) {
-    mprinterr("Error: Could not read '%s' frame %i\n", 
-              Traj_->TrajFilename().full(), internalIdx + 1);
+  if (err == 0) {
+    // Convert desired index into trajectory internal index
+    int internalIdx = ((idx - globalOffset_) * Traj_->Offset()) + Traj_->Start();
+    // Read desired index
+    // TODO: May need to use readFrame here as well...
+    if (Traj_->ReadTrajFrame( internalIdx, fIn )) {
+      mprinterr("Error: Could not read '%s' frame %i\n", 
+                Traj_->TrajFilename().full(), internalIdx + 1);
+    }
   }
+# ifdef _OPENMP
+  }
+# endif
 }
 
 void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn, AtomMask const& mask) {

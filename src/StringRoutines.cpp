@@ -12,6 +12,15 @@
 #endif
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
+#ifdef _MSC_VER
+# include <windows.h>
+#else
+# include <unistd.h>
+#endif
+#ifdef __APPLE__
+# include <sys/sysctl.h>
+# include <mach/mach_host.h>
+#endif
 
 // tildeExpansion()
 /** Use glob.h to perform tilde expansion on a filename, returning the
@@ -171,13 +180,19 @@ void RemoveTrailingWhitespace(std::string &line) {
   std::string::iterator p = line.end();
   --p;
   for (; p != line.begin(); p--)
-    if (!isspace( *p, loc)) break;
+    if (!isspace( *p, loc) && *p!='\n' && *p!='\r') break;
   size_t lastSpace = (size_t)(p - line.begin()) + 1;
   //mprintf("lastSpace = %zu\n",lastSpace);
   if (lastSpace==1)
     line.clear();
   else
     line.resize( lastSpace );
+}
+
+std::string NoTrailingWhitespace(std::string const& line) {
+  std::string duplicate(line);
+  RemoveTrailingWhitespace(duplicate);
+  return duplicate;
 }
 
 // integerToString()
@@ -205,16 +220,40 @@ std::string doubleToString(double d) {
 
 // validInteger()
 bool validInteger(std::string const &argument) {
+  if (argument.empty()) return false;
   std::locale loc;
-  if (isdigit(argument[0],loc) || argument[0]=='-') return true;
-  return false;
+  std::string::const_iterator c;
+  if (argument[0]=='-') {
+    c = argument.begin()+1;
+    if (c == argument.end()) return false;
+  } else
+    c = argument.begin();
+  for (; c != argument.end(); ++c)
+    if (!isdigit(*c,loc)) return false;
+  return true;
 }
 
 // validDouble()
 bool validDouble(std::string const &argument) {
+  if (argument.empty()) return false;
   std::locale loc;
-  if (isdigit(argument[0],loc) || argument[0]=='-' || argument[0]=='.' ) return true;
-  return false;
+  std::string::const_iterator c;
+  bool hasDecPt = (argument[0]=='.');
+  if (argument[0]=='-' || hasDecPt) {
+    c = argument.begin()+1;
+    if (c == argument.end()) return false;
+  } else
+    c = argument.begin();
+  if (!isdigit(*c,loc)) return false;
+  for (; c != argument.end(); ++c)
+  {
+    if (*c == 'e' || *c == 'E')
+      return validInteger( argument.substr(c - argument.begin() + 1) );
+    bool isDecPt = (*c == '.');
+    if (!isdigit(*c,loc) && (!isDecPt || (hasDecPt && isDecPt))) return false;
+    if (isDecPt) hasDecPt = true;
+  }
+  return true;
 }
 
 // ---------- STRING FORMAT ROUTINES -------------------------------------------
@@ -295,3 +334,50 @@ std::string TimeString() {
            timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
   return std::string( buffer );
 }
+// -----------------------------------------------------------------------------
+long long AvailableMemory() {
+#ifdef _MSC_VER
+  MEMORYSTATUS status;
+  GlobalMemoryStatus(&status);
+  if (status.dwLength != sizeof(status))
+    return -1;
+  return (long long)status.dwAvailPhys;
+#elif defined(__APPLE__)
+  mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+  vm_statistics_data_t vmstat;
+  if (KERN_SUCCESS == host_statistics(mach_host_self(), HOST_VM_INFO,
+                                      (host_info_t)&vmstat, &count)) {
+    double total = vmstat.wire_count + vmstat.active_count +
+                   vmstat.inactive_count + vmstat.free_count;
+    double free = vmstat.free_count / total; // fraction
+    return (long long)(TotalGlobalMemory() * free);
+  }
+  return -1;
+#elif defined(_SC_AVPHYS_PAGES) && defined(_SC_PAGE_SIZE)
+  long pages = sysconf(_SC_AVPHYS_PAGES);
+  long page_size = sysconf(_SC_PAGE_SIZE);
+  if (pages < 0L || page_size < 0L) return -1;
+  return (long long)(pages * page_size);
+#else
+  return -1;
+#endif
+}
+
+double AvailableMemory_MB() { 
+  double avail_in_bytes = AvailableMemory();
+  if (avail_in_bytes < 0.0) 
+    return -1.0;
+  else
+    return (double)AvailableMemory() / (1024 * 1024);
+}
+
+#ifdef __APPLE__
+long long TotalGlobalMemory() {
+    int mib[] = {CTL_HW, HW_MEMSIZE};
+    int64_t size = 0;
+    size_t len = sizeof(size);
+    if (sysctl(mib, 2, &size, &len, NULL, 0) == 0)
+        return (long long) size;
+    return 0ll;
+}
+#endif

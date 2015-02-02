@@ -3,7 +3,6 @@
 #include "Analysis_RmsAvgCorr.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
-#include "ReferenceFrame.h" // For reading in reference
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -22,17 +21,16 @@ Analysis_RmsAvgCorr::Analysis_RmsAvgCorr() :
 void Analysis_RmsAvgCorr::Help() {
   mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>] [mass]\n"
           "\t[stop <maxwindow>] [offset <offset>]\n"
-          "\t{reference <ref file> parm <parmfile> | first}\n"
+          "\t{%s | first}\n"
           "  Calculate the RMS average correlation, i.e. the average RMSD\n"
           "  of structures which have been averaged over increasing numbers\n"
           "  of frames.\n"
-          "  <crd set> can be created with the 'createcrd' command.\n");
+          "  <crd set> can be created with the 'createcrd' command.\n", DataSetList::RefArgs);
 }
 
 Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  Topology* refParm = 0; 
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
   coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
@@ -56,40 +54,35 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   useMass_ = analyzeArgs.hasKey("mass");
   maxwindow_ = analyzeArgs.getKeyInt("stop",-1);
   useFirst_ = analyzeArgs.hasKey("first");
-  // FIXME: Should have access to previously loaded reference structures. Make data sets?
-  std::string refFilename = analyzeArgs.GetStringKey("reference");
-  if (refFilename.empty()) {
+  ReferenceFrame REF = datasetlist->GetReferenceFrame( analyzeArgs );
+  if (REF.empty()) {
     if (!useFirst_) {
       mprintf("Warning: No reference specified; using first running-averaged frame for\n"
               "Warning:   each window as reference.\n");
       useFirst_ = true;
     }
   } else {
+    if (REF.error()) {
+      mprinterr("Error: Problem with specified reference frame.\n");
+      return Analysis::ERR;
+    }
     if (useFirst_) {
       mprintf("Warning: 'first' cannot be used with 'reference'; ignoring 'first'.\n");
       useFirst_ = false;
     }
-    // Check for ref parm
-    refParm = PFLin->GetParm(analyzeArgs);
-    if (refParm == 0) {
-      mprinterr("Error: Could not get ref parm.\n");
-      return Analysis::ERR;
-    }
   }
   // Get Mask
-  mask_.SetMaskString( analyzeArgs.GetMaskNext() );
+  tgtMask_.SetMaskString( analyzeArgs.GetMaskNext() );
   if (!useFirst_) {
-    // LOAD REFERENCE
     // Check for reference mask
     std::string refMaskExpr = analyzeArgs.GetMaskNext();
     if (refMaskExpr.empty())
-      refMaskExpr = mask_.MaskExpression();
-    ReferenceFrame REF;
-    if (REF.LoadRef(refFilename, analyzeArgs, refParm, refMaskExpr, debugIn))
-      return Analysis::ERR;
-    refFrame_ = REF.Coord();
-    REF.ClearRef();
-    // Pre-center reference
+      refMaskExpr = tgtMask_.MaskExpression();
+    // Set and pre-center the reference frame.
+    AtomMask refMask(refMaskExpr);
+    if (REF.Parm().SetupIntegerMask(refMask, REF.Coord())) return Analysis::ERR;
+    refFrame_.SetupFrameFromMask( refMask, REF.Parm().Atoms() );
+    refFrame_.SetCoordinates( REF.Coord(), refMask );
     refFrame_.CenterOnOrigin(useMass_);
   }
 
@@ -104,13 +97,13 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   }
 
   mprintf("    RMSAVGCORR: COORDS set [%s], mask [%s]", coords_->Legend().c_str(),
-          mask_.MaskString());
+          tgtMask_.MaskString());
   if (useMass_) mprintf(" (mass-weighted)");
   mprintf("\n");
   if (useFirst_)
     mprintf("\tReference will be first running-averaged frame each window.\n");
   else
-    mprintf("\tReference '%s'\n", refFilename.c_str());
+    mprintf("\tReference '%s'\n", REF.FrameName().base());
   if (maxwindow_!=-1) mprintf("\tMax window size %i\n",maxwindow_);
   if (lagOffset_ > 1) mprintf("\tWindow size offset %i\n", lagOffset_);
   if (outfile != 0) mprintf("\tOutput to %s\n",outfile->DataFilename().base());
@@ -140,29 +133,29 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     }
   }
   // Set up mask
-  if (coords_->Top().SetupIntegerMask( mask_ )) return Analysis::ERR;
-  mask_.MaskInfo();
-  if (mask_.None()) return Analysis::ERR;
+  if (coords_->Top().SetupIntegerMask( tgtMask_ )) return Analysis::ERR;
+  tgtMask_.MaskInfo();
+  if (tgtMask_.None()) return Analysis::ERR;
   // Set up target frame for COORDS based on mask.
   Frame tgtFrame;
-  tgtFrame.SetupFrameFromMask( mask_, coords_->Top().Atoms() );
+  tgtFrame.SetupFrameFromMask( tgtMask_, coords_->Top().Atoms() );
   if (useFirst_) {
     // If using first running avgd frames as ref, set up reference frame.
     // Use coords of first COORDS frame for window=1.
     refFrame_ = tgtFrame;
-    coords_->GetFrame( 0, refFrame_, mask_ );
+    coords_->GetFrame( 0, refFrame_, tgtMask_ );
     refFrame_.CenterOnOrigin( useMass_ );
   } else {
     // Ensure # target atoms equals # ref atoms.
     if (tgtFrame.Natom() != refFrame_.Natom()) {
       mprinterr("Error: Target mask %s (%i) does not correspond to reference mask (%i)\n",
-                mask_.MaskString(), tgtFrame.Natom(), refFrame_.Natom());
+                tgtMask_.MaskString(), tgtFrame.Natom(), refFrame_.Natom());
       return Analysis::ERR;
     }
   }
   // Set up frame for holding sum of coordinates over window frames. 
   // No need for mass. 
-  Frame sumFrame(mask_.Nselected());
+  Frame sumFrame(tgtMask_.Nselected());
 
   // Determine max window size to average over
   maxFrame = (int)coords_->Size();
@@ -191,7 +184,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   avg = 0.0;
   stdev = 0.0;
   for (frame = 0; frame < maxFrame; frame++) {
-    coords_->GetFrame( frame, tgtFrame, mask_ );
+    coords_->GetFrame( frame, tgtFrame, tgtMask_ );
     rmsd = tgtFrame.RMSD_CenteredRef(refFrame_, useMass_); 
     avg += rmsd;
     stdev += (rmsd * rmsd);
@@ -263,7 +256,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     stdev = 0.0;
     first = useFirst_;
     for (frame = 0; frame < maxFrame; frame++) {
-      coords_->GetFrame( frame, tgtFrame, mask_);
+      coords_->GetFrame( frame, tgtFrame, tgtMask_);
       // Add current coordinates to sumFrame
       sumFrame += tgtFrame;
       // Do we have enough frames to start calculating a running avg?
@@ -292,7 +285,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
         avg += rmsd;
         stdev += (rmsd * rmsd);
         // Subtract frame at subtractWindow from sumFrame 
-        coords_->GetFrame(subtractWindow, tgtFrame, mask_);
+        coords_->GetFrame(subtractWindow, tgtFrame, tgtMask_);
         sumFrame -= tgtFrame;
         ++subtractWindow;
       }

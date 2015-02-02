@@ -14,12 +14,11 @@ Action_GridFreeEnergy::Action_GridFreeEnergy() :
 {}
 
 void Action_GridFreeEnergy::Help() {
-  mprintf("\t<filename> %s <mask>\n", GridAction::HelpText);
+  mprintf("\t<filename>\n%s\n\t<mask>\n", GridAction::HelpText);
 }
 
 // Action_GridFreeEnergy::init()
-Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get output filename
   std::string filename = actionArgs.GetStringNext();

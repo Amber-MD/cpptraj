@@ -33,6 +33,13 @@ void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
     cbuffer.Printf(data_format_, Data_[frame].c_str());
 }
 
+void DataSet_string::Append(std::vector<std::string> const& dataIn) {
+  if (dataIn.empty()) return;
+  size_t oldsize = Size();
+  Data_.resize( oldsize + dataIn.size() );
+  std::copy( dataIn.begin(), dataIn.end(), Data_.begin() + oldsize );
+}
+
 // DataSet_string::Sync()
 /** First, non-master threads convert their vectors into C-arrays.
   * These arrays are then sent to the master, where they are put 
