@@ -34,11 +34,11 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
     trajFmt_ = TrajectoryFile::PDBFILE;
     // Set pdb output options: multi so that 1 file per frame is written; dumpq
     // so that charges are written out.
-    trajOpt_ = "multi dumpq";
+    trajOpt_ = "multi dumpq nobox";
   } else if (!maskmol2.empty()) {
     maskpdb_ = maskmol2;
     trajFmt_ = TrajectoryFile::MOL2FILE;
-    trajOpt_ = "multi";
+    trajOpt_ = "multi nobox";
   }
   // Get Mask
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );

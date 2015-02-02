@@ -5,6 +5,7 @@
 #include "StringRoutines.h" // convertToInteger and DigitWidth
 #include "ArgList.h"
 #include "Range.h"
+#include "Constants.h"
 // Data types go here
 #include "DataSet_double.h"
 #include "DataSet_float.h"
@@ -248,7 +249,7 @@ DataSet* DataSetList::CheckForSet(std::string const& dsname, int idx,
 
 // DataSetList::GetMultipleSets()
 /** \return a list of all DataSets matching the given argument. */
-DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
+DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
   Range idxrange, memberrange;
@@ -307,6 +308,12 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
   selected = SelectedSets.begin();
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ( *(selected++) == 'T' ) dsetOut.DataList_.push_back( *ds );
+  return dsetOut;
+}
+
+// DataSetList::GetMultipleSets()
+DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
+  DataSetList dsetOut = SelectSets(nameIn);
   if ( dsetOut.empty() ) {
     mprintf("Warning: '%s' selects no data sets.\n", nameIn.c_str());
     PendingWarning();
@@ -323,6 +330,101 @@ DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string con
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
     if ( (*ds)->Matches( dsname, idx, aspect, member ) ) return *ds;
   return 0;
+}
+
+/** Create or append string data set from given array. */
+DataSet* DataSetList::AddOrAppendSet(std::string const& nameIn, int idxIn, std::string const& aspectIn,
+                                     std::vector<std::string> const& Svals)
+{
+  if (Svals.empty()) {
+    mprinterr("Internal Error: AddOrAppendSet() called with empty array.\n");
+    return 0;
+  }
+  DataSet* ds = CheckForSet(nameIn, idxIn, aspectIn);
+  if (ds == 0) {
+    ds = AddSetIdxAspect(DataSet::STRING, nameIn, idxIn, aspectIn);
+    if (ds == 0) {
+      mprinterr("Error: Could not allocate STRING data set %s\n", nameIn.c_str());
+      return 0;
+    }
+    DataSet_string& data = static_cast<DataSet_string&>( *ds );
+    data = Svals;
+  } else {
+    if (ds->Type() != DataSet::STRING) {
+      mprinterr("Error: Cannot append string values to set %s type %s\n", ds->Legend().c_str(),
+                DataArray[ds->Type()].Description);
+      return 0;
+    }
+    ((DataSet_string*)ds)->Append( Svals );
+  }
+  return ds;
+}
+
+/** Create or append to numerical data set from the given arrays. */
+DataSet* DataSetList::AddOrAppendSet(std::string const& nameIn, int idxIn, std::string const& aspectIn,
+                                     std::vector<double> const& Xvals, std::vector<double> const& Yvals)
+{
+  if (Xvals.empty() || Yvals.empty()) {
+    mprinterr("Internal Error: AddOrAppendSet() called with empty arrays.\n");
+    return 0;
+  }
+  if (Xvals.size() != Yvals.size()) {
+    mprinterr("Internal Error: AddOrAppendSet() called with different size arrays.\n");
+    return 0;
+  }
+  // First determine if X values increase monotonically with a regular step
+  DataSet::DataType setType = DataSet::DOUBLE;
+  double xstep = 0.0;
+  if (Xvals.size() > 1) {
+    xstep = Xvals[1] - Xvals[0];
+    for (std::vector<double>::const_iterator X = Xvals.begin()+2; X != Xvals.end(); ++X)
+      if ((*X - *(X-1)) - xstep > Constants::SMALL) {
+        setType = DataSet::XYMESH;
+        break;
+      }
+    //mprintf("DBG: xstep %g format %i\n", xstep, (int)setType);
+  }
+  // Determine if we are appending or creating a new set.
+  DataSet* ds = CheckForSet(nameIn, idxIn, aspectIn);
+  if (ds == 0) {
+    // Create
+    ds = AddSetIdxAspect(setType, nameIn, idxIn, aspectIn);
+    if (ds == 0) {
+      mprinterr("Error: Could not add set '%s[%s]:%i\n", nameIn.c_str(), aspectIn.c_str(), idxIn);
+      return 0;
+    }
+    if (setType == DataSet::DOUBLE) {
+      DataSet_double& data = static_cast<DataSet_double&>( *ds );
+      data = Yvals;
+      data.SetDim(Dimension::X, Dimension(Xvals.front(), xstep, Xvals.size()));
+    } else { // XYMESH
+      DataSet_Mesh& data = static_cast<DataSet_Mesh&>( *ds );
+      data.SetMeshXY( Xvals, Yvals );
+    }
+  } else {
+    // Append
+    if (ds->Type() == DataSet::DOUBLE) {
+      if (setType == DataSet::XYMESH) {
+        mprinterr("Error: Can not append to double data set when x values are irregular.\n");
+        return 0;
+      }
+      if (xstep != ds->Dim(0).Step()) {
+        mprinterr("Error: Can not append to set '%s', X step %g does not match current"
+                  " data X step %g\n", ds->Legend().c_str(), ds->Dim(0).Step(), xstep);
+        return 0;
+      }
+      DataSet_double& data = static_cast<DataSet_double&>( *ds );
+      data.Append( Yvals );
+    } else if (ds->Type() == DataSet::XYMESH) {
+      // Doesnt matter if the step is regular or not.
+      DataSet_Mesh& data = static_cast<DataSet_Mesh&>( *ds );
+      data.Append( Xvals, Yvals );
+    } else {
+      mprinterr("Error: Can only append to double or mesh data sets.\n");
+      return 0;
+    }
+  }
+  return ds;
 }
 
 // DataSetList::AddSet()

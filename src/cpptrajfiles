@@ -127,6 +127,7 @@ SOURCES=ActionFrameCounter.cpp \
         ClusterNode.cpp \
         ClusterSieve.cpp \
         Cluster_DBSCAN.cpp \
+        Cluster_DPeaks.cpp \
         Cluster_HierAgglo.cpp \
         Cluster_Kmeans.cpp \
         Cluster_ReadInfo.cpp \

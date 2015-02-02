@@ -26,6 +26,17 @@ void DataSet_Mesh::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
 }
 
 // -----------------------------------------------------------------------------
+void DataSet_Mesh::Append(std::vector<double> const& xIn,
+                          std::vector<double> const& yIn)
+{
+  if (xIn.empty() || xIn.size() != yIn.size()) return;
+  size_t oldsize = Size();
+  mesh_x_.resize( oldsize + xIn.size() );
+  mesh_y_.resize( oldsize + yIn.size() );
+  std::copy( xIn.begin(), xIn.end(), mesh_x_.begin() + oldsize );
+  std::copy( yIn.begin(), yIn.end(), mesh_y_.begin() + oldsize );
+}
+
 // DataSet_Mesh::CalculateMeshX()
 void DataSet_Mesh::CalculateMeshX(int sizeIn, double ti, double tf) {
   mesh_x_.resize( sizeIn, 0 );

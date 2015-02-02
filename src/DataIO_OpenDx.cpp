@@ -18,7 +18,7 @@ bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
 }
 
 // DataIO_OpenDx::ReadData()
-int DataIO_OpenDx::ReadData(std::string const& fname, ArgList& argIn,
+int DataIO_OpenDx::ReadData(std::string const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
   // Add grid data set. Default to float for now.

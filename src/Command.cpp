@@ -1264,10 +1264,20 @@ Command::RetType ReadData(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 {
   DataFile dataIn;
   dataIn.SetDebug( State.DFL()->Debug() );
-  if (dataIn.ReadDataIn( argIn.GetStringNext(), argIn, *State.DSL() )!=0) {
-    mprinterr("Error: Could not read data file.\n");
+  std::string filenameIn = argIn.GetStringNext();
+  StrArray fnames = ExpandToFilenames( filenameIn );
+  if (fnames.empty()) {
+    mprinterr("Error: '%s' matches no files.\n", filenameIn.c_str());
     return Command::C_ERR;
   }
+  int err = 0;
+  for (StrArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
+    if (dataIn.ReadDataIn( *fn, argIn, *State.DSL() )!=0) {
+      mprinterr("Error: Could not read data file '%s'.\n", fn->c_str());
+      err++;
+    }
+  }
+  if (err > 0) return Command::C_ERR;
   return Command::C_OK;
 }
 
