@@ -1,8 +1,15 @@
-About CPPTRAJ
-=============
+CPPTRAJ
+=======
 
 CPPTRAJ is a program designed to load and analyze molecular dynamics
 trajectories and relevant data sets derived from their analysis.
+
+*Note that the GitHub version of CPPTRAJ should be considered BETA.*
+The official AmberTools release version of CPPTRAJ can be found
+at the [Amber website](http://ambermd.org).
+
+About CPPTRAJ
+=============
 
 CPPTRAJ is a rewrite of the PTRAJ trajectory analysis code in C++ that is part
 of AmberTools. The intent is to make the code more readable, leak-free, and
