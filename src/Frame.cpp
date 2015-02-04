@@ -4,6 +4,18 @@
 #include "Constants.h" // SMALL
 #include "CpptrajStdio.h"
 
+// DEBUG
+void Frame::PrintCoordInfo(const char* name, const char* parm, CoordinateInfo const& cInfo) {
+  mprintf("DBG: '%s' parm '%s' CoordInfo={ box type %s", name, parm, cInfo.TrajBox().TypeName());
+  if (cInfo.ReplicaDimensions().Ndims() > 0) mprintf(", %i rep dims", cInfo.ReplicaDimensions().Ndims());
+  if (cInfo.HasVel()) mprintf(", velocities");
+  if (cInfo.HasTemp()) mprintf(", temps");
+  if (cInfo.HasTime()) mprintf(", times");
+  if (cInfo.HasForce()) mprintf(", forces");
+  mprintf(" }\n");
+}
+// DEBUG
+
 const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 
 // ---------- CONSTRUCTION/DESTRUCTION/ASSIGNMENT ------------------------------
@@ -303,7 +315,7 @@ int Frame::SetupFrame(int natomIn) {
 
 // Frame::SetupFrameM()
 int Frame::SetupFrameM(std::vector<Atom> const& atoms) {
-  return SetupFrameV( atoms, false, 0 );
+  return SetupFrameV( atoms, CoordinateInfo() );
 }
 
 // Frame::SetupFrameXM()
@@ -321,10 +333,10 @@ int Frame::SetupFrameXM(Darray const& Xin, Darray const& massIn) {
 }
 
 // Frame::SetupFrameV()
-int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity, int nDim) {
+int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cinfo) {
   bool reallocate = ReallocateX( atoms.size() );
   // Velocity
-  if (hasVelocity) {
+  if (cinfo.HasVel()) {
     if (reallocate || V_ == 0) {
       if (V_ != 0) delete[] V_;
       V_ = new double[ maxnatom_*3 ];
@@ -343,7 +355,7 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, bool hasVelocity, int nDi
                                          atom != atoms.end(); ++atom)
     *(mass++) = (*atom).Mass();
   // Replica indices
-  remd_indices_.assign( nDim, 0 );
+  remd_indices_.assign( cinfo.ReplicaDimensions().Ndims(), 0 );
   return 0;
 }
 
