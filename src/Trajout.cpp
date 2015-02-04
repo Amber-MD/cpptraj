@@ -73,19 +73,21 @@ int Trajout::FirstFrameSetup(std::string const& trajoutName, TrajectoryIO* traji
   if (debug_>0) rprintf("\tSetting up %s for WRITE, %i atoms, originally %i atoms.\n",
                           TrajFilename().base(),tparmIn->Natom(),TrajParm()->Natom());
   SetTrajParm( tparmIn );
-  // Use parm to set up box info for the traj unless nobox was specified.
+  // Use parm to set up coord info for the traj. If 'nobox' was specified
+  // remove any box info.
+  CoordinateInfo cInfo = tparmIn->ParmCoordInfo();
   if (nobox_)
-    trajio->SetBox( Box() );
-  else
-    trajio->SetBox( tparmIn->ParmBox() );
+    cInfo.SetBox( Box() );
   // Determine how many frames will be written
   int NframesToWrite = TrajParm()->Nframes();
   if (hasRange_)
     NframesToWrite = FrameRange_.Size();
   // Set up write and open for the current parm file 
-  if (trajio->setupTrajout(trajoutName, TrajParm(), NframesToWrite, append_))
+  if (trajio->setupTrajout(trajoutName, TrajParm(), cInfo, NframesToWrite, append_))
     return 1;
-   trajIsOpen_ = true;
+  if (debug_ > 0)
+    Frame::PrintCoordInfo(TrajFilename().base(), tparmIn->c_str(), trajio->CoordInfo()); 
+  trajIsOpen_ = true;
   // If a framerange is defined set it to the beginning of the range
   if (hasRange_)
     rangeframe_ = FrameRange_.begin();
@@ -136,7 +138,7 @@ Range Trajout::MembersToWrite(std::string const& onlyMembers, int ensembleSize) 
 void Trajout::CommonInfo(TrajectoryIO* trajio) const {
   trajio->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
-  if (trajio->HasBox() && !nobox_) mprintf(" (with box info)");
+  if (nobox_) mprintf(" (no box info)");
   if (hasRange_)
     FrameRange_.PrintRange(": Writing frames", 1);
   else {

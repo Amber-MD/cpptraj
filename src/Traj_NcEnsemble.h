@@ -14,7 +14,7 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(std::string const&, Topology*);
-    int setupTrajout(std::string const&, Topology*, int, bool);
+    int setupTrajout(std::string const&, Topology*, CoordinateInfo const&, int, bool);
     int openTrajin();
     void closeTraj();
     int readFrame(int,Frame&);
@@ -26,11 +26,9 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     bool CanProcessEnsemble() { return true; }
     int readArray(int, FrameArray&);
     int writeArray(int, FramePtrArray const&);
-    int EnsembleSize() const { return ensembleSize_; }
   private:
     float *Coord_;
     FileName filename_;
-    int ensembleSize_;
     int ensembleStart_;
     int ensembleEnd_;
     bool readAccess_;

@@ -13,10 +13,10 @@ class Trajin : public TrajectoryFile {
     virtual int BeginTraj(bool) = 0;
     virtual void EndTraj() = 0;
     virtual void PrintInfo(int) const = 0;
-    virtual bool HasVelocity() const = 0;
-    virtual ReplicaDimArray const& TrajReplicaDimInfo() const = 0;
-    virtual int EnsembleSize() const = 0;
+    virtual CoordinateInfo const& TrajCoordInfo() const = 0;
+
     // NOTE: The following are currently for testing Trajin_Ensemble
+    virtual int EnsembleSize() const = 0;
     virtual void EnsembleInfo() const = 0;
     virtual int EnsembleSetup(FrameArray&, FramePtrArray&) = 0;
     virtual int ReadEnsemble(int, FrameArray&, FramePtrArray&) = 0;
@@ -27,13 +27,11 @@ class Trajin : public TrajectoryFile {
     inline int GetNextEnsemble(FrameArray&, FramePtrArray&);
     inline void SetTotalFrames(int); 
     int SetupTrajIO( std::string const&, TrajectoryIO&, ArgList& );
-    int CheckBoxInfo(const char*, Box&, Box const&) const; 
     int setupFrameInfo();
     void PrepareForRead(bool);
     void PrintInfoLine() const;
     void PrintFrameInfo() const;
 
-    int NreplicaDimension()  const { return TrajReplicaDimInfo().Ndims(); } 
     int TotalFrames()        const { return total_frames_;       }
     int TotalReadFrames()    const { return total_read_frames_;  }
     int Start()              const { return start_;              }

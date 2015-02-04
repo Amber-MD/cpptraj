@@ -16,9 +16,7 @@ Trajin_Multi::Trajin_Multi() :
   remdtrajtemp_(0.0),
   remdFrameFactor_(1.0),
   remdFrameOffset_(0),
-  Ndimensions_(0),
   lowestRepnum_(0),
-  hasVelocity_(false),
   replicasAreOpen_(false),
   targetType_(ReplicaInfo::NONE)
 {}
@@ -211,9 +209,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
   
   // Loop over all filenames in replica_filenames 
   bool lowestRep = true;
-  bool repBoxInfo = false;
-  Ndimensions_ = -1;
-  hasVelocity_ = false;
+  int Ndimensions = -1;
+  cInfo_ = CoordinateInfo();
   TrajFormatType rep0format = TrajectoryFile::UNKNOWN_TRAJ;
   for (NameListType::iterator repfile = replica_filenames_.begin();
                               repfile != replica_filenames_.end(); ++repfile)
@@ -230,28 +227,25 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
     if (lowestRep) {
       // Set up the lowest for reading and get the number of frames.
       if (SetupTrajIO( *repfile, *replica0, argIn )) return 1;
-      // If lowest has box coords, check type against parm box info 
-      Box parmBox = tparmIn->ParmBox();
-      if (CheckBoxInfo(tparmIn->c_str(), parmBox, replica0->TrajBox())) return 1;
-      tparmIn->SetBox( parmBox );
+      cInfo_ = replica0->CoordInfo();
+      Ndimensions = cInfo_.ReplicaDimensions().Ndims();
+      // If lowest has box coords, check type against parm box info
+      // FIXME: Should this ever be done here?
+      tparmIn->SetParmCoordInfo( cInfo_ ); 
       // If lowest rep has box info, all others must have box info.
-      repBoxInfo = replica0->HasBox();
       // If lowest rep has velocity, all others must have velocity.
-      hasVelocity_ = replica0->HasV();
       // If lowest rep has dimensions, all others must have same dimensions
-      trajRepDimInfo_ = replica0->ReplicaDimensions();
-      Ndimensions_ = trajRepDimInfo_.Ndims();
       // Check that replica dimension valid for desired indices.
-      if (targetType_ == ReplicaInfo::INDICES && Ndimensions_ != (int)remdtrajidx_.size())
+      if (targetType_ == ReplicaInfo::INDICES && Ndimensions != (int)remdtrajidx_.size())
       {
         mprinterr("Error: RemdTraj: Replica # of dim (%i) not equal to target # dim (%zu)\n",
-                  Ndimensions_, remdtrajidx_.size());
+                  Ndimensions, remdtrajidx_.size());
         return 1;
       }
-      if (Ndimensions_ > 0) {
+      if (Ndimensions > 0) {
         mprintf("\tReplica dimensions:\n");
-        for (int rd = 0; rd < Ndimensions_; rd++)
-          mprintf("\t\t%i: %s\n", rd+1, trajRepDimInfo_.Description(rd)); 
+        for (int rd = 0; rd < Ndimensions; rd++)
+          mprintf("\t\t%i: %s\n", rd+1, cInfo_.ReplicaDimensions().Description(rd)); 
       }
     } else {
       // Check total frames in this replica against lowest rep.
@@ -270,29 +264,35 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
         }
       }
       // Check box info against lowest rep.
-      if ( replica0->HasBox() != repBoxInfo ) {
+      if ( replica0->CoordInfo().HasBox() != cInfo_.HasBox() ) {
         mprinterr("Error: RemdTraj: Replica %s box info does not match first replica.\n",
                   (*repfile).c_str());
         return 1;
       }
+      // TODO: Check specific box type
       // Check velocity info against lowest rep.
-      if ( replica0->HasV() != hasVelocity_ ) {
+      if ( replica0->CoordInfo().HasVel() != cInfo_.HasVel() ) {
         mprinterr("Error: RemdTraj: Replica %s velocity info does not match first replica.\n",
                   (*repfile).c_str());
         return 1;
       }
       // Check # dimensions and types against lowest rep
-      if ( replica0->ReplicaDimensions() != trajRepDimInfo_ ) {
+      if ( replica0->CoordInfo().ReplicaDimensions() != cInfo_.ReplicaDimensions() ) {
         mprinterr("Error: RemdTraj: Replica %s dimension info does not match first replica.\n",
                   (*repfile).c_str());
-        ReplicaDimArray thisRepDims = replica0->ReplicaDimensions();
-        for (int rd = 0; rd < Ndimensions_; rd++)
+        ReplicaDimArray const& thisRepDims = replica0->CoordInfo().ReplicaDimensions();
+        for (int rd = 0; rd < Ndimensions; rd++)
           mprinterr("\t\t%i: %s\n", rd+1, thisRepDims.Description(rd)); 
         return 1;
       }
+      // If temperature/time info does not match set to false.
+      if (cInfo_.HasTemp() != replica0->CoordInfo().HasTemp())
+        cInfo_.SetTemperature( false );
+      if (cInfo_.HasTime() != replica0->CoordInfo().HasTime())
+        cInfo_.SetTime( false );
     }
     // Check for temperature information. Not needed if not sorting.
-    if ( !replica0->HasT() && !no_sort) {
+    if ( !replica0->CoordInfo().HasTemp() && !no_sort) {
       mprinterr("Error: RemdTraj: Replica %s does not have temperature info.\n",
                 (*repfile).c_str());
       return 1;
@@ -342,7 +342,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
     } else {
       // If dimensions are present index by replica indices, otherwise index
       // by temperature. 
-      if (Ndimensions_ > 0)
+      if (Ndimensions > 0)
         targetType_ = ReplicaInfo::INDICES;
       else
         targetType_ = ReplicaInfo::TEMP;
@@ -356,7 +356,8 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
     mprinterr("Error: Not all replica files were set up.\n");
     return 1;
   }
-  
+  if (debug_ > 0)
+    Frame::PrintCoordInfo( TrajFilename().base(), TrajParm()->c_str(), cInfo_ );
   return 0;
 }
 
@@ -528,7 +529,7 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sorted
   f_sorted.resize( REMDtraj_.size() );
   f_ensemble.resize( REMDtraj_.size() );
 # endif
-  f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity(), Ndimensions_ );
+  f_ensemble.SetupFrames( TrajParm()->Atoms(), cInfo_ );
   // Get a list of all temperatures/indices.
   TemperatureMap_.ClearMap();
   IndicesMap_.ClearMap();
@@ -564,7 +565,7 @@ int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sorted
       TemperatureMap_ = SetReplicaTmap(REMDtraj_.size(), f_ensemble);
       if (TemperatureMap_.empty()) return 1;
     } else if (targetType_ == ReplicaInfo::INDICES) {
-      IndicesMap_ = SetReplicaImap(REMDtraj_.size(), trajRepDimInfo_.Ndims(), f_ensemble);
+      IndicesMap_ = SetReplicaImap(REMDtraj_.size(),cInfo_.ReplicaDimensions().Ndims(),f_ensemble);
       if (IndicesMap_.empty()) return 1;
     }
   }  // Otherwise NONE, no sorting

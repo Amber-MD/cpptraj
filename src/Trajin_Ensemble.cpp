@@ -12,9 +12,9 @@ double Trajin_Ensemble::total_mpi_sendrecv_ = 0.0;
 Trajin_Ensemble::Trajin_Ensemble() :
   targetType_(ReplicaInfo::NONE),
   eio_(0),
+  ensembleSize_(0),
   trajIsOpen_(false),
-  badEnsemble_(false),
-  ensembleSize_(0)
+  badEnsemble_(false)
 {}
 
 // DESTRUCTOR
@@ -44,10 +44,11 @@ int Trajin_Ensemble::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, T
   // Set trajectory filename
   SetTrajFileName( tnameIn, true );
   mprintf("\tReading '%s' as %s\n", TrajFilename().full(), TrajectoryFile::FormatString(tformat));
-  // Should have already determined if this is single ensemble suitable,
-  // but better safe than sorry.
-  // TODO: There must be a better way. Pass in TrajectoryIO?
-  if (!eio_->CanProcessEnsemble()) {
+  // NOTE: ensembleSize_ is saved here as a shortcut. Should always equal whats in cInfo_
+  // Determine if this trajectory actually contains an ensemble.
+  // FIXME: Should check for < 2?
+  ensembleSize_ = eio_->CoordInfo().EnsembleSize();
+  if (ensembleSize_ < 1) {
     mprinterr("Error: Cannot process single file ensemble with '%s'\n", FormatString(tformat));
     return 1;
   }
@@ -56,24 +57,25 @@ int Trajin_Ensemble::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, T
   if (eio_->processReadArgs( argIn )) return 1;
   // Set up the format for reading and get the number of frames.
   if (SetupTrajIO( tnameIn, *eio_, argIn )) return 1;
+  // Set trajectory coordinate info.
+  cInfo_ = eio_->CoordInfo();
   // Check how many frames will actually be read
   if (setupFrameInfo() == 0) return 1;
   // Check traj box info against parm box info
-  Box parmBox = tparmIn->ParmBox();
-  if (CheckBoxInfo(tparmIn->c_str(), parmBox, eio_->TrajBox())) return 1;
-  tparmIn->SetBox( parmBox );
-  ensembleSize_ = eio_->EnsembleSize();
-  trajRepDimInfo_ = eio_->ReplicaDimensions();
+  // FIXME: Should this ever be done here?
+  tparmIn->SetParmCoordInfo( cInfo_ );
   // If dimensions are present, assume search by indices, otherwise by temp.
   targetType_ = ReplicaInfo::NONE;
-  if (trajRepDimInfo_.Ndims() > 0)
+  if (cInfo_.ReplicaDimensions().Ndims() > 0)
     targetType_ = ReplicaInfo::INDICES;
-  else if (eio_->HasT())
+  else if (cInfo_.HasTemp())
     targetType_ = ReplicaInfo::TEMP;
   else if (!nosort) {
     mprinterr("Error: Ensemble trajectory does not have indices or temperature.\n");
     return 1;
   }
+  if (debug_ > 0)
+    Frame::PrintCoordInfo( TrajFilename().base(), TrajParm()->c_str(), cInfo_ );
   return 0;
 }
 
@@ -116,21 +118,14 @@ void Trajin_Ensemble::TimingData(double trajin_time) {
 #endif
 #endif
 
-bool Trajin_Ensemble::HasVelocity() const {
-  if (eio_ != 0)
-    return eio_->HasV();
-  else
-    return false;
-}
-
 void Trajin_Ensemble::PrintInfo(int showExtended) const {
-  mprintf("'%s' (REMD ensemble size %i) ",TrajFilename().base(), ensembleSize_);
+  mprintf("'%s' (REMD ensemble size %i) ",TrajFilename().base(), ensembleSize_); 
   eio_->Info();
   mprintf(", Parm %s",TrajParm()->c_str());
-  if (eio_->HasBox()) mprintf(" (%s box)", eio_->TrajBox().TypeName());
+  if (cInfo_.HasBox()) mprintf(" (%s box)", cInfo_.TrajBox().TypeName());
   if (showExtended==1) PrintFrameInfo();
   if (debug_>0)
-    mprintf(", %i atoms, Box %i",TrajParm()->Natom(),(int)eio_->HasBox());
+    mprintf(", %i atoms, Box %i",TrajParm()->Natom(),(int)cInfo_.HasBox());
 }
 
 // -----------------------------------------------------------------------------
@@ -155,7 +150,7 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
   f_sorted.resize( ensembleSize_ );
   f_ensemble.resize( ensembleSize_ );
 # endif 
-  f_ensemble.SetupFrames( TrajParm()->Atoms(), HasVelocity(), trajRepDimInfo_.Ndims() );
+  f_ensemble.SetupFrames( TrajParm()->Atoms(), cInfo_ );
   // Get a list of all temperatures/indices.
   TemperatureMap_.ClearMap();
   IndicesMap_.ClearMap();
@@ -168,7 +163,7 @@ int Trajin_Ensemble::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sor
       TemperatureMap_ = SetReplicaTmap(ensembleSize_, f_ensemble);
       if (TemperatureMap_.empty()) return 1;
     } else if (targetType_ == ReplicaInfo::INDICES) {
-      IndicesMap_ = SetReplicaImap(ensembleSize_,  trajRepDimInfo_.Ndims(), f_ensemble);
+      IndicesMap_ = SetReplicaImap(ensembleSize_, cInfo_.ReplicaDimensions().Ndims(), f_ensemble);
       if (IndicesMap_.empty()) return 1;
     }
   }

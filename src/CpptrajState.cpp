@@ -373,9 +373,8 @@ int CpptrajState::RunEnsemble() {
     Topology* CurrentParm = (*traj)->TrajParm();
     for (int member = 0; member < ensembleSize; ++member)
       EnsembleParm[member] = CurrentParm;
-    CurrentParm->SetEnsembleSize( (*traj)->EnsembleSize() );
-    CurrentParm->SetVelInfo( (*traj)->HasVelocity() );
-    CurrentParm->SetRepDim( (*traj)->TrajReplicaDimInfo() );
+    CoordinateInfo const& currentCoordInfo = (*traj)->TrajCoordInfo();
+    CurrentParm->SetParmCoordInfo( currentCoordInfo );
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
 #   ifdef TIMER
@@ -383,10 +382,9 @@ int CpptrajState::RunEnsemble() {
 #   endif
     // If Parm has changed or trajectory velocity status has changed,
     // reset the frame.
-    if (parmHasChanged || (hasVelocity != (*traj)->HasVelocity()))
-      FrameEnsemble.SetupFrames(CurrentParm->Atoms(), (*traj)->HasVelocity(),
-                                (*traj)->NreplicaDimension());
-    hasVelocity = (*traj)->HasVelocity();
+    if (parmHasChanged || (hasVelocity != currentCoordInfo.HasVel()))
+      FrameEnsemble.SetupFrames(CurrentParm->Atoms(), currentCoordInfo);
+    hasVelocity = currentCoordInfo.HasVel();
 
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
@@ -568,9 +566,9 @@ int CpptrajState::RunNormal() {
       break;
     }
     // Set current parm from current traj.
+    CoordinateInfo const& currentCoordInfo = (*traj)->TrajCoordInfo();
     Topology* CurrentParm = (*traj)->TrajParm();
-    CurrentParm->SetVelInfo( (*traj)->HasVelocity() );
-    CurrentParm->SetRepDim( (*traj)->TrajReplicaDimInfo() );
+    CurrentParm->SetParmCoordInfo( currentCoordInfo );
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
 #   ifdef TIMER
@@ -578,10 +576,9 @@ int CpptrajState::RunNormal() {
 #   endif
     // If Parm has changed or trajectory frame has changed, reset the frame.
     if (parmHasChanged || 
-        (TrajFrame.HasVelocity() != (*traj)->HasVelocity()) ||
-        ((int)TrajFrame.RemdIndices().size() != (*traj)->NreplicaDimension()))
-      TrajFrame.SetupFrameV(CurrentParm->Atoms(), (*traj)->HasVelocity(), 
-                            (*traj)->NreplicaDimension());
+        (TrajFrame.HasVelocity() != currentCoordInfo.HasVel()) ||
+        ((int)TrajFrame.RemdIndices().size() != currentCoordInfo.ReplicaDimensions().Ndims()))
+      TrajFrame.SetupFrameV(CurrentParm->Atoms(), currentCoordInfo);
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set active reference for this parm

@@ -16,7 +16,6 @@
 // CONSTRUCTOR
 Traj_NcEnsemble::Traj_NcEnsemble() : 
   Coord_(0),
-  ensembleSize_(0),
   ensembleStart_(0),
   ensembleEnd_(0),
   readAccess_(false),
@@ -30,7 +29,7 @@ Traj_NcEnsemble::~Traj_NcEnsemble() {
 }
 
 void Traj_NcEnsemble::WriteHelp() {
-  mprintf("\t[remdtraj] [velocity]\n");
+  //mprintf("\t[remdtraj] [velocity]\n");
 }
 
 void Traj_NcEnsemble::ReadHelp() {
@@ -39,8 +38,8 @@ void Traj_NcEnsemble::ReadHelp() {
 
 // Traj_NcEnsemble::processWriteArgs()
 int Traj_NcEnsemble::processWriteArgs(ArgList& argIn) {
-  SetTemperature(argIn.hasKey("remdtraj"));
-  SetVelocity(argIn.hasKey("velocity"));
+  //SetTemperature(argIn.hasKey("remdtraj"));
+  //SetVelocity(argIn.hasKey("velocity"));
   return 0;
 }
 
@@ -121,15 +120,18 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
   SetTitle( GetAttrText("title") );
   // Get Frame info
   if ( SetupFrameDim()!=0 ) return TRAJIN_ERR;
+  if ( Ncframe() < 1 ) {
+    mprinterr("Error: Netcdf file is empty.\n");
+    return TRAJIN_ERR;
+  }
   // Get ensemble info
-  ensembleSize_ = SetupEnsembleDim();
-  if (ensembleSize_ < 1) {
+  int ensembleSize = SetupEnsembleDim();
+  if (ensembleSize < 1) {
     mprinterr("Error: Could not get ensemble dimension info.\n");
     return TRAJIN_ERR;
   }
   // Setup Coordinates/Velocities
   if ( SetupCoordsVelo( useVelAsCoords_ )!=0 ) return TRAJIN_ERR;
-  SetVelocity( HasVelocities() );
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n"
@@ -137,20 +139,20 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
               filename_.base(), Ncatom(), trajParm->Natom());
     return TRAJIN_ERR;
   }
-  // Setup Time
-  if ( SetupTime()!=0 ) return TRAJIN_ERR;
+  // Setup Time - FIXME: Allowed to fail silently
+  SetupTime();
   // Box info
   double boxcrd[6];
   if (SetupBox(boxcrd, NC_AMBERENSEMBLE) == 1) // 1 indicates an error
     return TRAJIN_ERR;
-  SetBox( boxcrd );
-  // Replica Temperatures - Allowed to fail silently
-  if (SetupTemperature() == 0)
-    SetTemperature( true );
+  // Replica Temperatures - FIXME: Allowed to fail silently
+  SetupTemperature();
   // Replica Dimensions
   ReplicaDimArray remdDim;
   if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
-  SetReplicaDims( remdDim );
+  // Set traj info: FIXME - no forces yet
+  SetCoordInfo( CoordinateInfo(ensembleSize, remdDim, Box(boxcrd), HasVelocities(),
+                               HasTemperatures(), HasTimes(), false) ); 
   if (debug_>1) NetcdfDebug();
   //closeTraj();
   // Close single thread for now
@@ -161,7 +163,7 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
   ensembleEnd_ = worldrank + 1;
 # else
   ensembleStart_ = 0;
-  ensembleEnd_ = ensembleSize_;
+  ensembleEnd_ = ensembleSize;
 # endif
   // DEBUG: Print info for all ranks
   WriteVIDs();
@@ -173,6 +175,7 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
 
 // Traj_NcEnsemble::setupTrajout()
 int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
+                                  CoordinateInfo const& cInfoIn,
                                   int NframesToWrite, bool append)
 {
   int err = 0;
@@ -181,13 +184,16 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
 # endif
   readAccess_ = false;
   if (!append) {
-    ensembleSize_ = trajParm->EnsembleSize();
+    CoordinateInfo cInfo = cInfoIn;
+    int ensembleSize = cInfo.EnsembleSize();
+    // TODO: File output modifications
+    SetCoordInfo( cInfo );
 #   ifdef USE_MPI
     ensembleStart_ = worldrank;
     ensembleEnd_ = worldrank + 1;
 #   else
     ensembleStart_ = 0;
-    ensembleEnd_ = ensembleSize_;
+    ensembleEnd_ = ensembleSize;
 #   endif
     filename_.SetFileName( fname );
     // Set up title
@@ -197,9 +203,7 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
     if (worldrank == 0) { // Only master creates file.
 #   endif
       // Create NetCDF file.
-      err = NC_create( filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(), HasV(),
-                       false, HasBox(), HasT(), true, trajParm->ParmReplicaDimInfo(),
-                       ensembleSize_, Title() );
+      err = NC_create(filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(), CoordInfo(), Title());
       if (debug_ > 1 && err == 0) NetcdfDebug();
       // Close Netcdf file. It will be reopened write.
       NC_close();
@@ -414,7 +418,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
       return 1;
     }
     // Write velocity.
-    if (HasV() && frm->HasVelocity()) { // TODO: Determine V beforehand
+    if (CoordInfo().HasVel() && frm->HasVelocity()) { // TODO: Determine V beforehand
       DoubleToFloat(Coord_, frm->vAddress());
 #     ifdef HAS_PNETCDF
       if (ncmpi_put_vara_float_all(ncid_, velocityVID_, start_, count_, Coord_))
@@ -492,8 +496,8 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
 void Traj_NcEnsemble::Info() {
   mprintf("is a NetCDF Ensemble AMBER trajectory");
   if (readAccess_ && !HasCoords()) mprintf(" (no coordinates)");
-  if (HasV()) mprintf(" containing velocities");
-  if (HasT()) mprintf(" with replica temperatures");
+  //if (HasV()) mprintf(" containing velocities");
+  //if (HasT()) mprintf(" with replica temperatures");
   if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
 }
 #endif

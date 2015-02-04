@@ -15,11 +15,10 @@ class Trajin_Single : public Trajin {
     int BeginTraj(bool);
     void EndTraj();
     void PrintInfo(int) const;
-    bool HasVelocity() const;
-    /// \return Any replica dimension information present.
-    ReplicaDimArray const& TrajReplicaDimInfo() const {return trajRepDimInfo_;}
-    int EnsembleSize() const { return 0; }
+    CoordinateInfo const& TrajCoordInfo() const { return cInfo_; }
+
     // NOTE: The following are currently for testing Trajin_Ensemble
+    int EnsembleSize() const { return 0; }
     void EnsembleInfo() const {} 
     int EnsembleSetup(FrameArray&,FramePtrArray&) {return 1;}
     int ReadEnsemble(int,FrameArray&,FramePtrArray&) {return 1;}
@@ -32,7 +31,7 @@ class Trajin_Single : public Trajin {
   private:
     TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.
     TrajectoryIO* velio_;  ///< Hold class that will interface with opt. mdvel file.
-    bool trajIsOpen_;      ///< True if trajectory is open.
-    ReplicaDimArray trajRepDimInfo_;
+    CoordinateInfo cInfo_; ///< Hold coordinate metadata.
+    bool trajIsOpen_;      ///< True if trajectory is open. 
 };
 #endif

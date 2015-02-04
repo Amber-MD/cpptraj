@@ -17,11 +17,12 @@ class Trajin_Multi : public Trajin {
     int ReadTrajFrame( int, Frame& );
     int BeginTraj(bool);
     void EndTraj();
-    void PrintInfo(int)     const;
-    bool HasVelocity()      const { return hasVelocity_; }
-    ReplicaDimArray const& TrajReplicaDimInfo() const { return trajRepDimInfo_; }
-    int EnsembleSize()      const { return (int)REMDtraj_.size(); }
-    void EnsembleInfo()     const;
+    void PrintInfo(int) const;
+    CoordinateInfo const& TrajCoordInfo() const { return cInfo_; }
+
+    // NOTE: The following are currently for testing Trajin_Ensemble
+    int EnsembleSize() const { return (int)REMDtraj_.size(); }
+    void EnsembleInfo() const;
     int EnsembleSetup( FrameArray&, FramePtrArray& );
     /// \return 0 if more frames to read, 1 if finished/error
     int ReadEnsemble( int, FrameArray&, FramePtrArray& );
@@ -44,15 +45,13 @@ class Trajin_Multi : public Trajin {
     NameListType SearchForReplicas();
     bool IsTarget(Frame const&);
 
+    CoordinateInfo cInfo_;    ///< Collective coord information for all replicas.
     double remdtrajtemp_;     ///< Get frames with this temperature on read
     double remdFrameFactor_;  ///< For HREMD sort, # frames written per remlog entry
     int remdFrameOffset_;     ///< If traj written less often than log, +1
     RemdIdxType remdtrajidx_; ///< Get frames with these indices on read
-    ReplicaDimArray trajRepDimInfo_; ///< Replica dimension info for all trajectories.
-    int Ndimensions_;         ///< # of dimensions in each trajectory.
     IOarrayType REMDtraj_;    ///< Input replica trajectories
     int lowestRepnum_;        ///< Hold the lowest replica number
-    bool hasVelocity_;        ///< True if all trajs have velocities.
     bool replicasAreOpen_;    ///< True is replicas are open.
     bool badEnsemble_;        ///< True if problem with any frames in the ensemble
     ReplicaInfo::TargetType targetType_; ///< Hold type of REMD frame being searched for.

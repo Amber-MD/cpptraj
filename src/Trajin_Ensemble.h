@@ -17,9 +17,9 @@ class Trajin_Ensemble : public Trajin {
     int BeginTraj(bool);
     void EndTraj();
     void PrintInfo(int) const;
-    bool HasVelocity() const;
-    ReplicaDimArray const& TrajReplicaDimInfo() const { return trajRepDimInfo_; }
-    int EnsembleSize() const { return ensembleSize_; }
+    CoordinateInfo const& TrajCoordInfo() const { return cInfo_; }
+
+    int EnsembleSize() const { return cInfo_.EnsembleSize(); }
     // NOTE: The following are currently for testing Trajin_Ensemble
     void EnsembleInfo() const;
     int EnsembleSetup(FrameArray&, FramePtrArray&);
@@ -35,10 +35,10 @@ class Trajin_Ensemble : public Trajin {
     typedef Frame::RemdIdxType RemdIdxType;
     ReplicaInfo::TargetType targetType_;
     TrajectoryIO* eio_;
+    int ensembleSize_; // Should always equal cInfo_.EnsembleSize()
     bool trajIsOpen_;
     bool badEnsemble_;
-    int ensembleSize_;
-    ReplicaDimArray trajRepDimInfo_;
+    CoordinateInfo cInfo_; 
     ReplicaMap<double> TemperatureMap_;
     ReplicaMap<RemdIdxType> IndicesMap_;
 #   ifdef MPI
