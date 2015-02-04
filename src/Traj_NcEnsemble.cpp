@@ -185,7 +185,6 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
   readAccess_ = false;
   if (!append) {
     CoordinateInfo cInfo = cInfoIn;
-    int ensembleSize = cInfo.EnsembleSize();
     // TODO: File output modifications
     SetCoordInfo( cInfo );
 #   ifdef USE_MPI
@@ -193,7 +192,7 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
     ensembleEnd_ = worldrank + 1;
 #   else
     ensembleStart_ = 0;
-    ensembleEnd_ = ensembleSize;
+    ensembleEnd_ = cInfo.EnsembleSize();;
 #   endif
     filename_.SetFileName( fname );
     // Set up title
