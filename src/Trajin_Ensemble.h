@@ -19,7 +19,6 @@ class Trajin_Ensemble : public Trajin {
     void PrintInfo(int) const;
     CoordinateInfo const& TrajCoordInfo() const { return cInfo_; }
 
-    int EnsembleSize() const { return cInfo_.EnsembleSize(); }
     // NOTE: The following are currently for testing Trajin_Ensemble
     void EnsembleInfo() const;
     int EnsembleSetup(FrameArray&, FramePtrArray&);

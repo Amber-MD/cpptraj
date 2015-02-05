@@ -256,7 +256,7 @@ int CpptrajState::RunEnsemble() {
   for (TrajinList::const_iterator traj = trajinList_.begin(); traj != trajinList_.end(); ++traj) 
   {
     if (ensembleSize == -1) {
-      ensembleSize = (*traj)->EnsembleSize();
+      ensembleSize = (*traj)->TrajCoordInfo().EnsembleSize();
 #     ifdef MPI
       // TODO: Eventually try to divide ensemble among MPI threads?
       if (worldsize != ensembleSize) {
@@ -265,9 +265,9 @@ int CpptrajState::RunEnsemble() {
         return 1;
       }
 #     endif
-    } else if (ensembleSize != (*traj)->EnsembleSize()) {
+    } else if (ensembleSize != (*traj)->TrajCoordInfo().EnsembleSize()) {
       mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
-                (*traj)->EnsembleSize(), ensembleSize);
+                (*traj)->TrajCoordInfo().EnsembleSize(), ensembleSize);
       return 1;
     }
     // Perform ensemble setup - this also resizes FrameEnsemble and SortedFrames
@@ -375,6 +375,7 @@ int CpptrajState::RunEnsemble() {
       EnsembleParm[member] = CurrentParm;
     CoordinateInfo const& currentCoordInfo = (*traj)->TrajCoordInfo();
     CurrentParm->SetParmCoordInfo( currentCoordInfo );
+    Frame::PrintCoordInfo( "ensemble0", CurrentParm->c_str(), EnsembleParm[0]->ParmCoordInfo() );
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
 #   ifdef TIMER

@@ -123,6 +123,7 @@ int TrajoutList::SetupTrajout(Topology* CurrentParm) {
   {
     // Check that input parm matches setup parm - if not, skip
     if (CurrentParm->Pindex() == (*traj)->TrajParm()->Pindex()) {
+      Frame::PrintCoordInfo("SetupTrajout", CurrentParm->c_str(), CurrentParm->ParmCoordInfo());
       if ( (*traj)->SetupTrajWrite( CurrentParm ) ) {
         mprinterr("Error: Setting up output trajectory %s\n", (*traj)->TrajFilename().base());
         return 1;

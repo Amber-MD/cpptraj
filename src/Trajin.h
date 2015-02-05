@@ -16,7 +16,6 @@ class Trajin : public TrajectoryFile {
     virtual CoordinateInfo const& TrajCoordInfo() const = 0;
 
     // NOTE: The following are currently for testing Trajin_Ensemble
-    virtual int EnsembleSize() const = 0;
     virtual void EnsembleInfo() const = 0;
     virtual int EnsembleSetup(FrameArray&, FramePtrArray&) = 0;
     virtual int ReadEnsemble(int, FrameArray&, FramePtrArray&) = 0;

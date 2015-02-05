@@ -230,8 +230,6 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
       cInfo_ = replica0->CoordInfo();
       Ndimensions = cInfo_.ReplicaDimensions().Ndims();
       // If lowest has box coords, check type against parm box info
-      // FIXME: Should this ever be done here?
-      tparmIn->SetParmCoordInfo( cInfo_ ); 
       // If lowest rep has box info, all others must have box info.
       // If lowest rep has velocity, all others must have velocity.
       // If lowest rep has dimensions, all others must have same dimensions
@@ -356,8 +354,13 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
     mprinterr("Error: Not all replica files were set up.\n");
     return 1;
   }
+  // Update ensemble size
+  cInfo_.SetEnsembleSize( (int)REMDtraj_.size() );
   if (debug_ > 0)
     Frame::PrintCoordInfo( TrajFilename().base(), TrajParm()->c_str(), cInfo_ );
+  // FIXME: Should this ever be done here?
+  TrajParm()->SetParmCoordInfo( cInfo_ ); 
+
   return 0;
 }
 

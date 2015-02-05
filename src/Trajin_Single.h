@@ -18,7 +18,6 @@ class Trajin_Single : public Trajin {
     CoordinateInfo const& TrajCoordInfo() const { return cInfo_; }
 
     // NOTE: The following are currently for testing Trajin_Ensemble
-    int EnsembleSize() const { return 0; }
     void EnsembleInfo() const {} 
     int EnsembleSetup(FrameArray&,FramePtrArray&) {return 1;}
     int ReadEnsemble(int,FrameArray&,FramePtrArray&) {return 1;}

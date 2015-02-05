@@ -15,6 +15,7 @@ void Frame::PrintCoordInfo(const char* name, const char* parm, CoordinateInfo co
   if (cInfo.HasTemp()) mprintf(", temps");
   if (cInfo.HasTime()) mprintf(", times");
   if (cInfo.HasForce()) mprintf(", forces");
+  if (cInfo.EnsembleSize() > 0) mprintf(", ensemble size %i", cInfo.EnsembleSize());
   mprintf(" }\n");
 }
 // DEBUG

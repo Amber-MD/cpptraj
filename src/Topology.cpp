@@ -65,9 +65,11 @@ void Topology::SetParmCoordInfo(CoordinateInfo const& cinfoIn)
       parmBox = boxIn;
     }
   }
-  coordInfo_ = CoordinateInfo(cinfoIn.ReplicaDimensions(), parmBox,
+  // TODO: Copy above and just set the box here.
+  coordInfo_ = CoordinateInfo(cinfoIn.EnsembleSize(), cinfoIn.ReplicaDimensions(), parmBox,
                               cinfoIn.HasVel(), cinfoIn.HasTemp(),
                               cinfoIn.HasTime(), cinfoIn.HasForce());
+  Frame::PrintCoordInfo("SetParmCoordInfo", c_str(), coordInfo_);
 }
 
 // Topology::SetReferenceCoords()

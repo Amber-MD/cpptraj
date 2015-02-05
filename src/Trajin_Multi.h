@@ -21,7 +21,6 @@ class Trajin_Multi : public Trajin {
     CoordinateInfo const& TrajCoordInfo() const { return cInfo_; }
 
     // NOTE: The following are currently for testing Trajin_Ensemble
-    int EnsembleSize() const { return (int)REMDtraj_.size(); }
     void EnsembleInfo() const;
     int EnsembleSetup( FrameArray&, FramePtrArray& );
     /// \return 0 if more frames to read, 1 if finished/error

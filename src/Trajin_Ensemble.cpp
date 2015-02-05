@@ -44,14 +44,6 @@ int Trajin_Ensemble::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, T
   // Set trajectory filename
   SetTrajFileName( tnameIn, true );
   mprintf("\tReading '%s' as %s\n", TrajFilename().full(), TrajectoryFile::FormatString(tformat));
-  // NOTE: ensembleSize_ is saved here as a shortcut. Should always equal whats in cInfo_
-  // Determine if this trajectory actually contains an ensemble.
-  // FIXME: Should check for < 2?
-  ensembleSize_ = eio_->CoordInfo().EnsembleSize();
-  if (ensembleSize_ < 1) {
-    mprinterr("Error: Cannot process single file ensemble with '%s'\n", FormatString(tformat));
-    return 1;
-  }
   bool nosort = argIn.hasKey("nosort");
   // Process format-specific read args
   if (eio_->processReadArgs( argIn )) return 1;
@@ -59,11 +51,17 @@ int Trajin_Ensemble::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, T
   if (SetupTrajIO( tnameIn, *eio_, argIn )) return 1;
   // Set trajectory coordinate info.
   cInfo_ = eio_->CoordInfo();
+  // NOTE: ensembleSize_ is saved here as a shortcut. Should always equal whats in cInfo_
+  // Determine if this trajectory actually contains an ensemble.
+  // FIXME: Should check for < 2?
+  ensembleSize_ = cInfo_.EnsembleSize();
+  if (ensembleSize_ < 1) {
+    mprinterr("Error: Cannot process single file ensemble with '%s'\n", FormatString(tformat));
+    return 1;
+  }
   // Check how many frames will actually be read
   if (setupFrameInfo() == 0) return 1;
   // Check traj box info against parm box info
-  // FIXME: Should this ever be done here?
-  tparmIn->SetParmCoordInfo( cInfo_ );
   // If dimensions are present, assume search by indices, otherwise by temp.
   targetType_ = ReplicaInfo::NONE;
   if (cInfo_.ReplicaDimensions().Ndims() > 0)
@@ -76,6 +74,8 @@ int Trajin_Ensemble::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, T
   }
   if (debug_ > 0)
     Frame::PrintCoordInfo( TrajFilename().base(), TrajParm()->c_str(), cInfo_ );
+  // FIXME: Should this ever be done here?
+  TrajParm()->SetParmCoordInfo( cInfo_ );
   return 0;
 }
 
