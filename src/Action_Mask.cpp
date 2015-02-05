@@ -21,8 +21,7 @@ void Action_Mask::Help() {
 // Action_Mask::Init()
 // NOTE: Could also split the arglist at maskpdb and make it so any type of 
 //       file can be written out.
-Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords
@@ -33,11 +32,11 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
     trajFmt_ = TrajectoryFile::PDBFILE;
     // Set pdb output options: multi so that 1 file per frame is written; dumpq
     // so that charges are written out.
-    trajOpt_ = "multi dumpq";
+    trajOpt_ = "multi dumpq nobox";
   } else if (!maskmol2.empty()) {
     maskpdb_ = maskmol2;
     trajFmt_ = TrajectoryFile::MOL2FILE;
-    trajOpt_ = "multi";
+    trajOpt_ = "multi nobox";
   }
   // Get Mask
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );

@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles rms.in rmsd1.dat rmsd2.dat ref.nc rmsd.mass.dat dme.dat trp.dat
+CleanFiles rms.in rmsd1.dat rmsd2.dat ref.nc rmsd.mass.dat dme.dat trp.dat nofit.dat
 
 CheckNetcdf
 TOP="../tz2.parm7"
@@ -61,6 +61,15 @@ trajin $CRD 1 10
 EOF
 RunCpptraj "2D RMSD with reference mask test."
 DoTest trp.dat.save trp.dat
+
+# Test 6 - No-fit RMS
+cat > rms.in <<EOF
+trajin $CRD 1 10
+rms first :2-12@CA
+2drms crd1 :2 nofit out nofit.dat
+EOF
+RunCpptraj "2D RMSD test, no fitting."
+DoTest nofit.dat.save nofit.dat
 
 EndTest
 

@@ -83,8 +83,7 @@ class Action_Spam: public Action, ImagedAction {
     int SetupParms(Topology*);
     double Calculate_Energy(Frame*, Residue const&);
 
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                         DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();

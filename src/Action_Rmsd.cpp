@@ -24,14 +24,14 @@ void Action_Rmsd::Help() {
           "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
           "\t [range <resRange>] [refrange <refRange>]\n"
-          "\t [perresmask <additional mask>] [perrescenter] [perresinvert]\n", FrameList::RefArgs);
+          "\t [perresmask <additional mask>] [perrescenter] [perresinvert]\n",
+          DataSetList::RefArgs);
   mprintf("  Calculate coordinate root-mean-squared deviation of atoms in <mask>\n");
 }
 
 // Action_Rmsd::Init()
 /** Called once before traj processing. Set up reference info. */
-Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Check for keywords
   fit_ = !actionArgs.hasKey("nofit");
@@ -42,7 +42,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, FrameL
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
   bool first = actionArgs.hasKey("first");
-  ReferenceFrame refFrm = FL->GetFrameFromArgs( actionArgs );
+  ReferenceFrame refFrm = DSL->GetReferenceFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
   RefParm_ = PFL->GetParm( actionArgs );
   // Per-res keywords

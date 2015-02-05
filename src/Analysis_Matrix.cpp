@@ -69,7 +69,10 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
     AtomMask nmwizMask( analyzeArgs.GetStringKey("nmwizmask") );
     if (parmIn->SetupIntegerMask( nmwizMask )) return Analysis::ERR;
     nmwizMask.MaskInfo();
-    nmwizParm_ = *(parmIn->partialModifyStateByMask( nmwizMask ));
+    Topology* nparm = parmIn->partialModifyStateByMask( nmwizMask );
+    if (nparm == 0) return Analysis::ERR;
+    nmwizParm_ = *nparm;
+    delete nparm;
     nmwizParm_.Brief("nmwiz topology");
   }
   

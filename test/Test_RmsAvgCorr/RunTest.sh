@@ -12,8 +12,9 @@ parm ../tz2.parm7
 trajin ../tz2.nc
 strip !(:2-12@CA)
 parm strip.tz2.parm7 [strip]
-rmsavgcorr out rmscorr.dat R2-12 reference avg.CA.rst7 parm [strip]
-rmsavgcorr out rmscorr.10.dat offset 10 reference avg.CA.rst7 parm [strip]
+reference avg.CA.rst7 parm [strip]
+rmsavgcorr out rmscorr.dat R2-12 ref avg.CA.rst7
+rmsavgcorr out rmscorr.10.dat Off10 offset 10 reference
 EOF
 RunCpptraj "RmsAvgCorr Reference"
 DoTest rmscorr.dat.save rmscorr.dat

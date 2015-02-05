@@ -86,6 +86,7 @@ int ParmFile::ReadTopology(Topology& Top, std::string const& fnameIn,
   }
   mprintf("\tReading '%s' as %s\n", parmName_.full(),
           FileTypes::FormatDescription(PF_AllocArray, pfType) );
+  parmio->SetDebug( debugIn );
   if (parmio->processReadArgs(argIn)) return 1;
   int err = parmio->ReadParm( parmName_.Full(), Top);
   // Perform setup common to all parm files.

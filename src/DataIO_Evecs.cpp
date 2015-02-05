@@ -5,7 +5,7 @@
 #include "DataSet_Modes.h"
 
 // CONSTRUCTOR
-DataIO_Evecs::DataIO_Evecs() {
+DataIO_Evecs::DataIO_Evecs() : ibeg_(1), iend_(50), hasIend_(false) {
   SetValid( DataSet::MODES );
 }
 
@@ -21,22 +21,30 @@ void DataIO_Evecs::ReadHelp() {
           "\tiend <lastmode>:  Last mode to read in (default 50).\n");
 }
 
+int DataIO_Evecs::processReadArgs(ArgList& argIn) {
+  ibeg_ = argIn.getKeyInt("ibeg",1);
+  hasIend_ = argIn.Contains("iend");
+  iend_ = argIn.getKeyInt("iend",50);
+  if (iend_ < 1 || ibeg_ < 1) {
+    mprinterr("Error: iend and ibeg must be > 0\n");
+    return 1;
+  }
+  if (iend_ < ibeg_) {
+    mprinterr("Error: iend cannot be less than ibeg\n");
+    return 1;
+  }
+  return 0;
+}
+
 // DataIO_Evecs::ReadData()
-int DataIO_Evecs::ReadData(std::string const& modesfile, ArgList& argIn,
+int DataIO_Evecs::ReadData(std::string const& modesfile,
                            DataSetList& datasetlist, std::string const& dsname)
 {
   // Process Arguments
-  int ibeg = argIn.getKeyInt("ibeg",1);
-  bool hasIend = argIn.Contains("iend");
-  int iend = argIn.getKeyInt("iend",50);
-  int modesToRead = iend - ibeg + 1;
-  if (modesToRead < 1) {
-    mprinterr("Error: Specified # of modes to read (%i) must be > 0\n",modesToRead);
-    return 1;
-  }
-  if (hasIend)
+  int modesToRead = iend_ - ibeg_ + 1;
+  if (hasIend_)
     mprintf("\tAttempting to read %i modes (%i to %i) from %s\n", modesToRead,
-            ibeg, iend, modesfile.c_str());
+            ibeg_, iend_, modesfile.c_str());
   else
     mprintf("\tReading modes from %s\n", modesfile.c_str());
   BufferedFrame infile;
@@ -50,7 +58,7 @@ int DataIO_Evecs::ReadData(std::string const& modesfile, ArgList& argIn,
   ArgList title(buffer);
   // Check if reduced
   bool reduced = title.hasKey("Reduced");
-  // Allocate MODES dataset
+  // Allocate MODES dataset. No appending allowed.
   DataSet* mds = datasetlist.AddSet( DataSet::MODES, dsname, "Evecs" );
   if (mds == 0) return 1;
   DataSet_Modes& modesData = static_cast<DataSet_Modes&>( *mds );
@@ -84,9 +92,9 @@ int DataIO_Evecs::ReadData(std::string const& modesfile, ArgList& argIn,
       mprintf("Warning: # modes to read (%i) > modes in file. Only reading %i modes.\n",
               modesToRead, modesInFile);
       modesToRead = modesInFile;
-    } else if (!hasIend && modesToRead < modesInFile) {
+    } else if (!hasIend_ && modesToRead < modesInFile) {
       modesToRead = modesInFile;
-      iend = modesInFile;
+      iend_ = modesInFile;
     }
   }
   // For newer modesfiles, get width of data elts
@@ -180,7 +188,7 @@ int DataIO_Evecs::ReadData(std::string const& modesfile, ArgList& argIn,
       }
       // Check if mode read was between ibeg and iend (which start from 1).
       // If so, increment number of modes.
-      if (currentMode+1 >= ibeg && currentMode < iend) ++nmodes;
+      if (currentMode+1 >= ibeg_ && currentMode < iend_) ++nmodes;
       if (nmodes == modesToRead) break;
       ++currentMode;
     } else if (vecsize == -1) {

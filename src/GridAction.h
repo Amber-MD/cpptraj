@@ -1,7 +1,6 @@
 #ifndef INC_GRIDACTION_H
 #define INC_GRIDACTION_H
 #include "DataSetList.h"
-#include "FrameList.h"
 #include "DataSet_GridFlt.h"
 #include "Topology.h"
 /// Class for setting up a grid within an action.
@@ -11,7 +10,7 @@ class GridAction {
     enum GridModeType { ORIGIN = 0, BOX, MASKCENTER, SPECIFIEDCENTER };
     GridAction() : increment_(1.0) {}
     static const char* HelpText;
-    DataSet_GridFlt* GridInit(const char*, ArgList&, DataSetList&, FrameList const&);
+    DataSet_GridFlt* GridInit(const char*, ArgList&, DataSetList&);
     void GridInfo(DataSet_GridFlt const&);
     int GridSetup(Topology const&);
     inline void GridFrame(Frame const&, AtomMask const&, DataSet_GridFlt&);

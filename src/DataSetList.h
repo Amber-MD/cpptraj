@@ -2,6 +2,8 @@
 #define INC_DATASETLIST_H
 #include <vector>
 #include "DataSet.h"
+#include "ArgList.h" // GetReferenceFrame
+#include "ReferenceFrame.h" // GetReferenceFrame
 // Class: DataSetList
 /// Hold list of data sets.
 /** Main class for handling datasets. All dataset types can be allocated 
@@ -58,10 +60,20 @@ class DataSetList {
     DataSet* GetDataSet( std::string const& ) const;
     /// Get DataSet matching specified argument, no warning if not found.
     DataSet* CheckForSet( std::string const& ) const;
+    /// Get DataSet matching specified attibutes.
+    DataSet* CheckForSet( std::string const&, int, std::string const&) const;
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;
+    /// Select multiple sets, no warning if none found.
+    DataSetList SelectSets( std::string const& ) const;
     /// Generate name based on given default and # of DataSets.
     std::string GenerateDefaultName(std::string const&) const;
+    /// Add or append to string DataSet
+    DataSet* AddOrAppendSet(std::string const&, int, std::string const&,
+                            std::vector<std::string> const&);
+    /// Add or append to DataSet
+    DataSet* AddOrAppendSet(std::string const&, int, std::string const&,
+                            std::vector<double> const&, std::vector<double> const&);
     /// Add DataSet to list with name, or default name if not specified.
     DataSet* AddSet( DataSet::DataType, std::string const&, const char*);
     /// Add DataSet to list with name and index.
@@ -73,6 +85,8 @@ class DataSetList {
     /// Add DataSet to list with name, idx, aspect, and legend.
     DataSet* AddSetIdxAspect( DataSet::DataType, std::string const&, int, std::string const&,
                               std::string const&);
+    /// Add already set up DataSet to list.
+    int AddSet( DataSet* );
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
     /// Print info on DataSets in the list
@@ -85,6 +99,14 @@ class DataSetList {
     DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
     /// Find COORDS DataSet or create default COORDS DataSet.
     DataSet* FindCoordsSet(std::string const&);
+    /// Get reference frame DataSet from name/tag
+    DataSet* GetReferenceFrame(std::string const&) const;
+    /// reference arg help text
+    static const char* RefArgs;
+    /// Get reference frame DataSet from args
+    ReferenceFrame GetReferenceFrame(ArgList&) const;
+    /// List all reference frames.
+    void ListReferenceFrames() const;
   private:
     /// Separate input string into DataSet args.
     static std::string ParseArgString(std::string const&, std::string&, std::string&);

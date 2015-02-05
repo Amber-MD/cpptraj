@@ -18,7 +18,7 @@ class ActionList {
     int Debug() const { return debug_; }
     /// Add given action to the action list and initialize.
     int AddAction(DispatchObject::DispatchAllocatorType, ArgList&,
-                  TopologyList*,FrameList*,DataSetList*,DataFileList*);
+                  TopologyList*,DataSetList*,DataFileList*);
     /// Set up actions for the given parm.
     int SetupActions(Topology **);
     /// Perform actions on the given frame.

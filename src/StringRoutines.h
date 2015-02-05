@@ -21,6 +21,7 @@ int FloatWidth(double);
 int convertToInteger(std::string const &);
 double convertToDouble(std::string const &);
 void RemoveTrailingWhitespace(std::string &);
+std::string NoTrailingWhitespace(std::string const&);
 std::string integerToString(int);
 std::string integerToString(int,int);
 std::string doubleToString(double);
@@ -37,4 +38,7 @@ std::string TimeString();
 // NOTE: Not really string routines, but here for convenience.
 long long AvailableMemory();
 double AvailableMemory_MB();
+# ifdef __APPLE__
+long long TotalGlobalMemory();
+# endif
 #endif

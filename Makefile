@@ -9,6 +9,10 @@ all: install
 install: config.h
 	cd src && $(MAKE) install 
 
+# Create libcpptraj.so
+libcpptraj: config.h
+	cd src && $(MAKE) libcpptraj
+
 # Run Tests
 check: config.h
 	cd test && $(MAKE) test

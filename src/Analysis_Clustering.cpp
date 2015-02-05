@@ -10,6 +10,7 @@
 #include "Cluster_DBSCAN.h"
 #include "Cluster_Kmeans.h"
 #include "Cluster_ReadInfo.h"
+#include "Cluster_DPeaks.h"
 
 // CONSTRUCTOR
 Analysis_Clustering::Analysis_Clustering() :
@@ -49,6 +50,7 @@ void Analysis_Clustering::Help() {
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
+  Cluster_DPeaks::Help();
   Cluster_Kmeans::Help();
   Cluster_ReadInfo::Help();
   mprintf("  Distance metric options: {rms | srmsd | dme | data}\n"
@@ -66,6 +68,8 @@ void Analysis_Clustering::Help() {
           "\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n"
           "\t[ repout <repprefix> [repfmt <repfmt>] [repframe] ]\n"
           "\t[ avgout <avgprefix> [avgfmt <avgfmt>] ]\n"
+          "  Experimental options:\n"
+          "\t[[drawgraph | drawgraph3d] [draw_tol <tolerance>] [draw_maxit <iterations]]\n"
           "  Cluster structures based on coordinates (RMSD/DME) or given data set(s).\n"
           "  <crd set> can be created with the 'createcrd' command.\n");
 }
@@ -126,6 +130,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   CList_ = 0;
   if (analyzeArgs.hasKey("hieragglo"))   CList_ = new Cluster_HierAgglo(); 
   else if (analyzeArgs.hasKey("dbscan")) CList_ = new Cluster_DBSCAN();
+  else if (analyzeArgs.hasKey("dpeaks")) CList_ = new Cluster_DPeaks();
   else if (analyzeArgs.hasKey("kmeans") ||
            analyzeArgs.hasKey("means" )) CList_ = new Cluster_Kmeans();
   else if (analyzeArgs.hasKey("readinfo") ||

@@ -286,6 +286,13 @@ Summary() {
     echo "No Test Results files (./*/$TEST_RESULTS) found."
   fi
 
+  if [[ $ERR -gt 0 ]]; then
+    echo "Obtained the following errors:"
+    echo "---------------------------------------------------------"
+    cat $TEST_ERROR
+    echo "---------------------------------------------------------"
+  fi
+
   if [[ ! -z $VALGRIND ]] ; then
     RESULTFILES=`ls */$ERROR`
     if [[ ! -z $RESULTFILES ]] ; then
@@ -300,11 +307,11 @@ Summary() {
 #      echo "---------------------------------------------------------"
     else
       echo "No valgrind test results found."
-      exit 0
+      exit $ERR
     fi
   fi
   echo "========================================================="
-  exit 0
+  exit $ERR
 }
 
 #===============================================================================

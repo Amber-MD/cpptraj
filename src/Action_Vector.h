@@ -13,12 +13,11 @@ class Action_Vector : public Action {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
       DIPOLE,    BOX,         MASK,        IRED,
       CORRPLANE, CENTER,      BOX_X,       BOX_Y,       BOX_Z,
-      MINIMAGE
+      BOX_CTR,   MINIMAGE
     };
     static const char* ModeString[];
 
-    Action::RetType Init(ArgList&, TopologyList*, FrameList*, DataSetList*,
-                          DataFileList*, int);
+    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();

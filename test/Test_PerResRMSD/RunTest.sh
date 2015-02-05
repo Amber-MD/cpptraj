@@ -23,7 +23,7 @@ cat > cpptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 reference ../tz2.truncoct.nc 1
 trajin ../tz2.truncoct.nc 2 4 
-rmsd :2-11 refindex 0 perres perresavg perresavg.dat
+rmsd R2-11 :2-11 refindex 0 perres perresavg perresavg.dat
 EOF
 INPUT="-i cpptraj.in"
 RunCpptraj "Per-Residue RMSD Test with averaging."

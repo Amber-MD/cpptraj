@@ -18,7 +18,8 @@ class DataIO : public BaseIOtype {
                valid1d_(v1), valid2d_(v2), valid3d_(v3) {}
     virtual ~DataIO() {}
     // ----- Inherited Functions -----------------
-    virtual int ReadData(std::string const&,ArgList&,DataSetList&,std::string const&) = 0;
+    virtual int processReadArgs(ArgList&) = 0;
+    virtual int ReadData(std::string const&,DataSetList&,std::string const&) = 0;
     virtual int processWriteArgs(ArgList&) = 0;
     virtual int WriteData(std::string const&, DataSetList const&) = 0;
     virtual int WriteData2D(std::string const&, DataSetList const&) = 0;
@@ -31,11 +32,6 @@ class DataIO : public BaseIOtype {
     // TODO: Move this to DataSet?
     static std::string SetupCoordFormat(size_t, Dimension const&, int, int);
     static Dimension DetermineXdim( std::vector<double> const& );
-    typedef std::vector<DataSet_double> ArrayDD;
-    typedef std::vector<double> Xarray;
-    /// Add non-empty sets to the given DataSetList, determine appropriate X dim.
-    static int AddSetsToList(DataSetList&, Xarray const&, ArrayDD const&, 
-                             std::string const&);
     /// Indicate this DataIO is valid for given DataSet type
     void SetValid(DataSet::DataType t) { valid_.push_back( t ); }
     int debug_;

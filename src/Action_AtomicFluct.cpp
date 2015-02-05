@@ -25,8 +25,7 @@ void Action_AtomicFluct::Help() {
 }
 
 // Action_AtomicFluct::Init()
-Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   // Get frame # keywords

@@ -30,7 +30,7 @@ void Action_NAstruct::Help() {
   mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
-          "\t[ %s ]\n", FrameList::RefArgs);
+          "\t[ %s ]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing is determined\n"
           "  from specified reference or first frame.\n"
           "  Base pair parameters are written to BP.<suffix>, base pair step parameters\n"
@@ -883,8 +883,7 @@ int Action_NAstruct::determineBasepairParameters(int frameNum) {
 // ----------------------------------------------------------------------------
 
 // Action_NAstruct::Init()
-Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, FrameList* FL,
-                          DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   masterDSL_ = DSL;
@@ -905,7 +904,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Fr
     resRange_.ShiftBy(-1); // User res args start from 1
   printheader_ = !actionArgs.hasKey("noheader");
   // Reference for setting up basepairs
-  ReferenceFrame REF = FL->GetFrameFromArgs( actionArgs );
+  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) 
     useReference_ = true;
