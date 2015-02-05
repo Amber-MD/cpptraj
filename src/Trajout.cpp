@@ -19,7 +19,6 @@ int Trajout::CommonTrajoutSetup(std::string const& tnameIn, ArgList& argIn, Topo
 {
   // Check and set associated parm file
   if ( SetTrajParm( tparmIn ) ) return 1;
-  Frame::PrintCoordInfo("Common", tparmIn->c_str(), tparmIn->ParmCoordInfo());
   // Mark as not yet open
   trajIsOpen_ = false;
   // Check for append keyword
@@ -79,7 +78,6 @@ int Trajout::FirstFrameSetup(std::string const& trajoutName, TrajectoryIO* traji
   CoordinateInfo cInfo = tparmIn->ParmCoordInfo();
   if (nobox_)
     cInfo.SetBox( Box() );
-  Frame::PrintCoordInfo("FirstFrame", tparmIn->c_str(), cInfo); 
   // Determine how many frames will be written
   int NframesToWrite = TrajParm()->Nframes();
   if (hasRange_)
@@ -87,7 +85,7 @@ int Trajout::FirstFrameSetup(std::string const& trajoutName, TrajectoryIO* traji
   // Set up write and open for the current parm file 
   if (trajio->setupTrajout(trajoutName, TrajParm(), cInfo, NframesToWrite, append_))
     return 1;
-  //if (debug_ > 0)
+  if (debug_ > 0)
     Frame::PrintCoordInfo(TrajFilename().base(), tparmIn->c_str(), trajio->CoordInfo()); 
   trajIsOpen_ = true;
   // If a framerange is defined set it to the beginning of the range

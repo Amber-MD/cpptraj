@@ -69,7 +69,7 @@ void Topology::SetParmCoordInfo(CoordinateInfo const& cinfoIn)
   coordInfo_ = CoordinateInfo(cinfoIn.EnsembleSize(), cinfoIn.ReplicaDimensions(), parmBox,
                               cinfoIn.HasVel(), cinfoIn.HasTemp(),
                               cinfoIn.HasTime(), cinfoIn.HasForce());
-  Frame::PrintCoordInfo("SetParmCoordInfo", c_str(), coordInfo_);
+  if (debug_ > 0) Frame::PrintCoordInfo("SetParmCoordInfo", c_str(), coordInfo_);
 }
 
 // Topology::SetReferenceCoords()

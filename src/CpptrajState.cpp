@@ -375,7 +375,6 @@ int CpptrajState::RunEnsemble() {
       EnsembleParm[member] = CurrentParm;
     CoordinateInfo const& currentCoordInfo = (*traj)->TrajCoordInfo();
     CurrentParm->SetParmCoordInfo( currentCoordInfo );
-    Frame::PrintCoordInfo( "ensemble0", CurrentParm->c_str(), EnsembleParm[0]->ParmCoordInfo() );
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
 #   ifdef TIMER
