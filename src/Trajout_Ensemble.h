@@ -14,7 +14,6 @@ class Trajout_Ensemble : public Trajout {
     int WriteEnsemble(int,FramePtrArray const&);
     int SetupTrajWrite(Topology*);
     void PrintInfo(int) const;
-    void SetEnsembleInfo(int i) { ensembleSize_ = i; }
     // -------------------------------------------
   private:
     TrajectoryIO* eio_;

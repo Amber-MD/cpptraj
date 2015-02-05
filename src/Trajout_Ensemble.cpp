@@ -20,6 +20,7 @@ int Trajout_Ensemble::InitTrajWrite(std::string const& tnameIn, ArgList const& a
     return 1;
   }
   // Require that ensemble size is set.
+  ensembleSize_ = tparmIn->ParmCoordInfo().EnsembleSize();
   if (ensembleSize_ < 1) {
     mprinterr("Internal Error: Ensemble size has not been set.\n");
     return 1;

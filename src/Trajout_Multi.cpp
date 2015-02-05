@@ -32,9 +32,10 @@ int Trajout_Multi::InitTrajWrite(std::string const& tnameIn, ArgList const& argI
     mprinterr("Internal Error: InitTrajWrite: No filename given.\n");
     return 1;
   }
+  ensembleSize_ = tparmIn->ParmCoordInfo().EnsembleSize();
   // Require that ensemble size is set.
   if (ensembleSize_ < 1) {
-    mprinterr("Internal Error: Ensemble size has not been set.\n");
+    mprinterr("Internal Error: Ensemble size too small for ensemble output.\n");
     return 1;
   }
   ArgList trajout_args = argIn;

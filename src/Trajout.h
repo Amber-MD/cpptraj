@@ -22,8 +22,7 @@ class Trajout : public TrajectoryFile {
                               TrajectoryFile::TrajFormatType) = 0;
     /// Perform topology-related setup if given topology Pindex matches.
     virtual int SetupTrajWrite(Topology*) = 0;
-    /// Set ensemble info, just size for now.
-    virtual void SetEnsembleInfo(int) = 0;
+
     int NumFramesProcessed()          const { return numFramesProcessed_; }
     bool TrajIsOpen()                 const { return trajIsOpen_;         }
     bool TrajoutAppend()              const { return append_;             }

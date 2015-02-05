@@ -28,8 +28,7 @@ void TrajoutList::Clear() {
 // TrajoutList::MakeEnsembleTrajout()
 /** Convert all current output trajectories to ensemble output trajectories.
   */
-int TrajoutList::MakeEnsembleTrajout(TopologyList const& topListIn,
-                                     TrajoutList& ensembleList, int ensembleSize)
+int TrajoutList::MakeEnsembleTrajout(TopologyList const& topListIn, TrajoutList& ensembleList)
 {
   ensembleList.Clear();
   for (ArgsArray::const_iterator arg = trajoutArgs_.begin();
@@ -48,7 +47,6 @@ int TrajoutList::MakeEnsembleTrajout(TopologyList const& topListIn,
       // Create new multi output trajectory.
       ensembleList.trajout_.push_back( new Trajout_Multi() );
     if (ensembleList.trajout_.back() == 0) return 1;
-    ensembleList.trajout_.back()->SetEnsembleInfo( ensembleSize );
     ensembleList.trajout_.back()->SetDebug( debug_ );
     if (ensembleList.trajout_.back()->InitTrajWrite(filename, *arg, tempParm,
                                                     TrajectoryFile::UNKNOWN_TRAJ))

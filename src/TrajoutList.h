@@ -11,7 +11,7 @@ class TrajoutList {
     void Clear();
     void SetDebug(int);
     /// Place current trajout in given list as ensemble trajectory output.
-    int MakeEnsembleTrajout(TopologyList const&, TrajoutList&, int);
+    int MakeEnsembleTrajout(TopologyList const&, TrajoutList&);
     /// Add trajectory to list for single trajectory output
     int AddTrajout(ArgList const&, TopologyList const&);
     /// Write frame array to ensemble output trajectories.

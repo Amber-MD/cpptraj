@@ -14,7 +14,6 @@ class Trajout_Multi : public Trajout {
     int WriteEnsemble(int,FramePtrArray const&);
     void PrintInfo(int) const;
     int SetupTrajWrite(Topology*);
-    void SetEnsembleInfo(int i) { ensembleSize_ = i; }
     // -------------------------------------------
   private:
     void Clear();

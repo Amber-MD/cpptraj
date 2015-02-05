@@ -290,7 +290,7 @@ int CpptrajState::RunEnsemble() {
   // Set up output trajectories for each member of the ensemble
   parallel_barrier();
   mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
-  if (trajoutList_.MakeEnsembleTrajout(parmFileList_, TrajoutEnsemble, ensembleSize))
+  if (trajoutList_.MakeEnsembleTrajout(parmFileList_, TrajoutEnsemble))
     return 1;
   parallel_barrier();
   TrajoutEnsemble.List();

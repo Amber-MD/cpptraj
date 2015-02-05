@@ -14,7 +14,6 @@ class Trajout_Single : public Trajout {
     int WriteEnsemble(int,FramePtrArray const&) { return 1; }
     void PrintInfo(int) const;
     int SetupTrajWrite(Topology*);
-    void SetEnsembleInfo(int) {}
     // -------------------------------------------
     /// For writing single traj to STDOUT (e.g. ambpdb mode)
     int InitStdoutTrajWrite(ArgList const&, Topology*, TrajectoryFile::TrajFormatType);
