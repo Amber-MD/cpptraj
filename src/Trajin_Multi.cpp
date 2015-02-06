@@ -661,14 +661,14 @@ int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
             parallel_send( (*frame).xAddress(), (*frame).size(), PARA_DOUBLE, recvrank, 1212 );
             parallel_send( (*frame).bAddress(), 6, PARA_DOUBLE, recvrank, 1213 );
             parallel_send( (*frame).tAddress(), 1, PARA_DOUBLE, recvrank, 1214 );
-            if (HasVelocity())
+            if (frame->HasVelocity())
               parallel_send( (*frame).vAddress(), (*frame).size(), PARA_DOUBLE, recvrank, 1215 );
           } else if (recvrank == worldrank) {
             //rprintf("RECEIVING FROM %i\n", sendrank); // DEBUG
             parallel_recv( f_ensemble[1].xAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1212 );
             parallel_recv( f_ensemble[1].bAddress(), 6, PARA_DOUBLE, sendrank, 1213 );
             parallel_recv( f_ensemble[1].tAddress(), 1, PARA_DOUBLE, sendrank, 1214 );
-            if (HasVelocity())
+            if (frame->HasVelocity())
               parallel_recv( f_ensemble[1].vAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1215 );
             // Since a frame was received, indicate position 1 should be used
             ensembleFrameNum_ = 1; 
