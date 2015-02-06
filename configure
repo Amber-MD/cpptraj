@@ -46,6 +46,7 @@ Usage() {
 ParseArg() {
   KEY=`echo "$1" | awk 'BEGIN{FS = "=";}{print $1;}'`
   VALUE=`echo "$1" | awk 'BEGIN{FS = "=";}{print $2;}'`
+  eval VALUE=$VALUE
   if [[ $VALUE = $KEY ]] ; then
     VALUE=""
   fi
