@@ -524,6 +524,7 @@ void Frame::StripUnmappedAtoms(Frame const& refIn, std::vector<int> const& mapIn
   }
   box_ = refIn.box_;
   T_ = refIn.T_;
+  time_ = refIn.time_;
   remd_indices_ = refIn.remd_indices_;
 
   double* newXptr = X_;
@@ -553,6 +554,7 @@ void Frame::ModifyByMap(Frame const& frameIn, std::vector<int> const& mapIn) {
   }
   box_ = frameIn.box_;
   T_ = frameIn.T_;
+  time_ = frameIn.time_;
   remd_indices_ = frameIn.remd_indices_;
 
   double* Xptr = X_;
@@ -1089,6 +1091,7 @@ int Frame::SendFrame(int recvrank) {
     parallel_send( V_,              ncoord_, PARA_DOUBLE, recvrank, 1215 );
   parallel_send( box_.boxPtr(),     6,       PARA_DOUBLE, recvrank, 1213 );
   parallel_send( &T_,               1,       PARA_DOUBLE, recvrank, 1214 );
+  parallel_send( &time_,            1,       PARA_DOUBLE, recvrank, 1217 );
   parallel_send( &remd_indices_[0], remd_indices_.size(), PARA_INT, recvrank, 1216 );
   return 0;
 }
@@ -1101,6 +1104,7 @@ int Frame::RecvFrame(int sendrank) {
     parallel_recv( V_,              ncoord_, PARA_DOUBLE, sendrank, 1215 );
   parallel_recv( box_.boxPtr(),     6,       PARA_DOUBLE, sendrank, 1213 );
   parallel_recv( &T_,               1,       PARA_DOUBLE, sendrank, 1214 );
+  parallel_recv( &time_,            1,       PARA_DOUBLE, sendrank, 1217 );
   parallel_recv( &remd_indices_[0], remd_indices_.size(), PARA_INT, sendrank, 1216 );
   return 0;
 }
