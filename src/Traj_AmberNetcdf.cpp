@@ -183,7 +183,6 @@ int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm,
     mprinterr("Error: Opening Netcdf file %s for Write.\n", filename_.base());
     return 1;
   }
- 
   return 0;
 }
 
@@ -210,10 +209,12 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
 
   // Get time
   if (timeVID_!=-1) {
-    if (checkNCerr(nc_get_vara_double(ncid_, timeVID_, start_, count_, frameIn.mAddress()))) {
+    float time;
+    if (checkNCerr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time))) {
       mprinterr("Error: Getting time for frame %i.\n", set + 1);
       return 1;
     }
+    frameIn.SetTime( (double)time );
   }
 
   // Read Coords 
@@ -284,7 +285,6 @@ int Traj_AmberNetcdf::readVelocity(int set, Frame& frameIn) {
 
 // Traj_AmberNetcdf::writeFrame() 
 int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
-
   DoubleToFloat(Coord_, frameOut.xAddress());
 
   // Write coords
@@ -330,15 +330,6 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
     }
   }
 
-  // Write indices
-  if (indicesVID_ != -1) {
-    count_[1] = remd_dimension_;
-    if ( checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frameOut.iAddress())) ) {
-      mprinterr("Error: Writing indices frame %i.\n", set+1);
-      return 1;
-    }
-  }
-
   // Write time
   if (timeVID_ != -1) {
     float tVal = (float)frameOut.Time();
@@ -348,6 +339,15 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
     }
   }
     
+  // Write indices
+  if (indicesVID_ != -1) {
+    count_[1] = remd_dimension_;
+    if ( checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frameOut.iAddress())) ) {
+      mprinterr("Error: Writing indices frame %i.\n", set+1);
+      return 1;
+    }
+  }
+
   nc_sync(ncid_); // Necessary after every write??
 
   ++ncframe_;

@@ -234,8 +234,22 @@ int NetcdfFile::SetupTime() {
   if ( nc_inq_varid(ncid_, NCTIME, &timeVID_) == NC_NOERR ) {
     std::string attrText = GetAttrText(timeVID_, "units");
     if (attrText!="picosecond")
-      mprintf("Warning: Netcdf file has time units of %s - expected picosecond.\n",
+      mprintf("Warning: NetCDF file has time units of %s - expected picosecond.\n",
               attrText.c_str());
+    // Check for time values which have NOT been filled, which was possible
+    // with netcdf trajectories created by older versions of ptraj/cpptraj.
+    if (ncframe_ > 0 && GetNetcdfConventions() == NC_AMBERTRAJ) {
+      float time;
+      start_[0] = 0; count_[0] = 1;
+      if (checkNCerr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time))) {
+        mprinterr("Error: Getting time value for NetCDF file.\n");
+        return -1;
+      }
+      if (time == NC_FILL_FLOAT) {
+        mprintf("Warning: NetCDF file time variable defined but empty. Disabling.\n");
+        timeVID_ = -1;
+      }
+    }
     return 0;
   }
   timeVID_=-1;
