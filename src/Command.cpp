@@ -475,7 +475,8 @@ static void Help_Trajout() {
 
 static void Help_Reference() {
   mprintf("\t<filename> [<frame#>] [<mask>] [TAG] [lastframe]\n"
-          "  Load trajectory <filename> as a reference frame.\n");
+          "\t           %s\n", TopologyList::ParmArgs);
+  mprintf("  Load trajectory <filename> as a reference frame.\n");
 }
 
 static void Help_Parm() {

@@ -606,7 +606,7 @@ DataSet* DataSetList::FindCoordsSet(std::string const& setname) {
       outset = FindSetOfType(setname, DataSet::TRAJ);
     // If TRAJ not found, look for REF_FRAME
     if (outset == 0)
-      outset = FindSetOfType(setname, DataSet::REF_FRAME);
+      outset = GetReferenceFrame(setname);
   }
   return outset;
 }
