@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_ROTATE_H
 #define INC_ACTION_ROTATE_H
 #include "Action.h"
+#include "DataSet_Mat3x3.h"
 class Action_Rotate : public Action {
   public:
     Action_Rotate();
@@ -9,6 +10,7 @@ class Action_Rotate : public Action {
   private:
     Matrix_3x3 RotMatrix_;
     AtomMask mask_;
+    DataSet_Mat3x3* rmatrices_;
 
     Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);

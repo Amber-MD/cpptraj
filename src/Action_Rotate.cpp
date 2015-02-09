@@ -3,7 +3,7 @@
 #include "Constants.h"
 
 // CONSTRUCTOR
-Action_Rotate::Action_Rotate() { }
+Action_Rotate::Action_Rotate() : rmatrices_(0) { }
 
 void Action_Rotate::Help() {
   mprintf("\t[<mask>] [x <xdeg>] [y <ydeg>] [z <zdeg>]\n"
@@ -12,18 +12,33 @@ void Action_Rotate::Help() {
 
 Action::RetType Action_Rotate::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  double xrot = actionArgs.getKeyDouble("x",0.0);
-  double yrot = actionArgs.getKeyDouble("y",0.0);
-  double zrot = actionArgs.getKeyDouble("z",0.0);
+  double xrot = 0.0, yrot = 0.0, zrot = 0.0;
+  std::string dsname = actionArgs.GetStringKey("usedata");
+  if (dsname.empty()) {
+    // Calc rotation matrix
+    xrot = actionArgs.getKeyDouble("x",0.0);
+    yrot = actionArgs.getKeyDouble("y",0.0);
+    zrot = actionArgs.getKeyDouble("z",0.0);
+    RotMatrix_.CalcRotationMatrix( xrot * Constants::DEGRAD, 
+                                   yrot * Constants::DEGRAD, 
+                                   zrot * Constants::DEGRAD );
+  } else {
+    // Check if DataSet exists
+    rmatrices_ = (DataSet_Mat3x3*)DSL->FindSetOfType( dsname, DataSet::MAT3X3 );
+    if (rmatrices_ == 0) {
+      mprinterr("Error: No 3x3 matrices data set '%s'\n", dsname.c_str());
+      return Action::ERR;
+    }
+  }
+  // Get mask
   mask_.SetMaskString( actionArgs.GetMaskNext() );
 
-  // Calc rotation matrix
-  RotMatrix_.CalcRotationMatrix( xrot * Constants::DEGRAD, yrot * Constants::DEGRAD, 
-                                 zrot * Constants::DEGRAD );
-
   mprintf("    ROTATE: Rotating atoms in mask %s\n", mask_.MaskString());
-  mprintf("\t%f degrees around X, %f degrees around Y, %f degrees around Z\n",
-          xrot, yrot, zrot);
+  if (rmatrices_ == 0)
+    mprintf("\t%f degrees around X, %f degrees around Y, %f degrees around Z\n",
+            xrot, yrot, zrot);
+  else
+    mprintf("\tUsing rotation matrices from set '%s'\n", rmatrices_->legend());
   return Action::OK;
 };
 
@@ -38,7 +53,14 @@ Action::RetType Action_Rotate::Setup(Topology* currentParm, Topology** parmAddre
 }
 
 Action::RetType Action_Rotate::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  currentFrame->Rotate(RotMatrix_, mask_);
+  if (rmatrices_ == 0)
+    currentFrame->Rotate(RotMatrix_, mask_);
+  else {
+    if (frameNum >= (int)rmatrices_->Size()) {
+      mprintf("Warning: Frame %i out of range for set '%s'\n", frameNum+1, rmatrices_->legend());
+      return Action::ERR;
+    }
+    currentFrame->Rotate((*rmatrices_)[frameNum], mask_);
+  }
   return Action::OK;
 }
-
