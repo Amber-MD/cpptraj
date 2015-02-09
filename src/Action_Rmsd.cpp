@@ -20,7 +20,8 @@ Action_Rmsd::Action_Rmsd() :
 { }
 
 void Action_Rmsd::Help() {
-  mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n"
+  mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate]\n"
+          "\t[mass] [savematrices]\n"
           "\t[ first | %s |\n"
           "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
