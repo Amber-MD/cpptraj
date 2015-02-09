@@ -161,6 +161,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_Coords_REF.cpp \
         DataSet_Coords_TRJ.cpp \
         DataSet_GridFlt.cpp \
+        DataSet_Mat3x3.cpp \
         DataSet_MatrixDbl.cpp \
         DataSet_MatrixFlt.cpp \
         DataSet_Mesh.cpp \

@@ -21,6 +21,7 @@
 #include "DataSet_Mesh.h"
 #include "DataSet_Coords_TRJ.h"
 #include "DataSet_Coords_REF.h"
+#include "DataSet_Mat3x3.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
@@ -40,6 +41,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "X-Y mesh",      DataSet_Mesh::Alloc       }, // XYMESH
   { "trajectories",  DataSet_Coords_TRJ::Alloc }, // TRAJ
   { "reference",     DataSet_Coords_REF::Alloc }, // REF_FRAME
+  { "3x3 matrices",  DataSet_Mat3x3::Alloc     }, // MAT3X3
   { 0, 0 }
 };
 

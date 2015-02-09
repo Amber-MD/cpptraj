@@ -156,6 +156,10 @@ int DataSet::SetDataSetFormat(bool leftAlignIn) {
       format_ = SetDoubleFormatString(width_, precision_, 0); 
       colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz
       break;
+    case MAT3X3:
+      format_ = SetDoubleFormatString(width_, precision_, 0);
+      colwidth_ = (width_ + 1) * 9;
+      break;
     default:
       mprinterr("Error: No format string defined for this data type (%s).\n", 
                 Legend().c_str());
