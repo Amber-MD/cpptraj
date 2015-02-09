@@ -6,7 +6,7 @@
 class DataSet_Mat3x3 : public DataSet_1D {
     typedef std::vector<Matrix_3x3> Marray;
   public:
-    DataSet_Mat3x3() {}
+    DataSet_Mat3x3() : DataSet_1D(MAT3X3,12,9) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_Mat3x3(); }
     // ----- DataSet functions -------------------
     size_t Size() const { return data_.size(); }

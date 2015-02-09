@@ -15,7 +15,8 @@ Action_Rmsd::Action_Rmsd() :
   fit_(true),
   rotate_(true),
   useMass_(false),
-  rmsd_(0)
+  rmsd_(0),
+  rmatrices_(0)
 { }
 
 void Action_Rmsd::Help() {
@@ -39,6 +40,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
     rotate_ = !actionArgs.hasKey("norotate");
   useMass_ = actionArgs.hasKey("mass");
   DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+  bool saveMatrices = actionArgs.hasKey("savematrices");
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
   bool first = actionArgs.hasKey("first");
@@ -84,7 +86,16 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   rmsd_->SetScalar( DataSet::M_RMS );
   // Add dataset to data file list
   if (outfile != 0) outfile->AddSet( rmsd_ );
-
+  // Set up rotation matrix data set if specified
+  if (saveMatrices) {
+    if (!fit_) {
+      mprinterr("Error: Must be fitting in order to save rotation matrices.\n");
+      return Action::ERR;
+    }
+    rmatrices_ = DSL->AddSetAspect(DataSet::MAT3X3, rmsd_->Name(), "RM");
+    if (rmatrices_ == 0) return Action::ERR;
+    rmatrices_->SetScalar( DataSet::M_RMS );
+  }
   mprintf("    RMSD: (%s), reference is %s", tgtMask_.MaskString(),
           REF_.RefModeString());
   if (!fit_)
@@ -97,6 +108,8 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   if (useMass_)
     mprintf(", mass-weighted");
   mprintf(".\n");
+  if (rmatrices_ != 0)
+    mprintf("\tRotation matrices will be saved to set '%s'\n", rmatrices_->legend());
   // Per-residue RMSD info.
   if (perres_) {
     mprintf("          No-fit RMSD will also be calculated for ");
@@ -283,10 +296,11 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
   double rmsdval;
   // Set selected frame atoms. Masses have already been set.
   tgtFrame_.SetCoordinates(*currentFrame, tgtMask_);
-  if (!fit_) {
+  if (!fit_)
     rmsdval = tgtFrame_.RMSD_NoFit(REF_.SelectedRef(), useMass_);
-  } else {
+  else {
     rmsdval = tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
+    if (rmatrices_ != 0) rmatrices_->Add(frameNum, rot_.Dptr());
     if (rotate_)
       currentFrame->Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
     else {
