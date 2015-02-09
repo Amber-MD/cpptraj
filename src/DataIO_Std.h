@@ -21,12 +21,13 @@ class DataIO_Std : public DataIO {
     int Read_2D(std::string const&,DataSetList&,std::string const&);
     int Read_3D(std::string const&,DataSetList&,std::string const&);
     int Read_Vector(std::string const&,DataSetList&,std::string const&);
+    int Read_Mat3x3(std::string const&,DataSetList&,std::string const&);
     static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);
     int WriteDataNormal(CpptrajFile&,DataSetList const&);
     int WriteDataInverted(CpptrajFile&,DataSetList const&);
     int WriteSet2D(DataSet const&, CpptrajFile&);
     int WriteSet3D(DataSet const&, CpptrajFile&);
-    enum modeType {READ1D=0, READ2D, READVEC};
+    enum modeType {READ1D=0, READ2D, READVEC, READMAT3X3};
     modeType mode_;
     int indexcol_;
     bool isInverted_;  ///< For 1D writes invert X/Y.
