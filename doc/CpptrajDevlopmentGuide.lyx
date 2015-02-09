@@ -1,5 +1,5 @@
-#LyX 2.0 created this file. For more info see http://www.lyx.org/
-\lyxformat 413
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
 \begin_document
 \begin_header
 \textclass article
@@ -12,13 +12,13 @@
 \font_roman default
 \font_sans default
 \font_typewriter default
+\font_math auto
 \font_default_family default
 \use_non_tex_fonts false
 \font_sc false
 \font_osf false
 \font_sf_scale 100
 \font_tt_scale 100
-
 \graphics default
 \default_output_format default
 \output_sync 0
@@ -38,15 +38,24 @@
 \pdf_pdfusetitle true
 \papersize default
 \use_geometry false
-\use_amsmath 1
-\use_esint 1
-\use_mhchem 1
-\use_mathdots 1
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
 \cite_engine basic
+\cite_engine_type default
+\biblio_style plain
 \use_bibtopic false
 \use_indices false
 \paperorientation portrait
 \suppress_date false
+\justification true
 \use_refstyle 0
 \index Index
 \shortcut idx
@@ -407,15 +416,32 @@ The ArgList class is used throughout Cpptraj.
  trajectory IO, etc.
  Basically, the ArgList class takes a string and separates it into tokens
  based on a given delimiter or delimiters.
- For example, the user input:
+ For example, the string:
 \end_layout
 
 \begin_layout LyX-Code
+myString = 
+\begin_inset Quotes eld
+\end_inset
+
 trajin mytraj.nc 1 100 10
+\begin_inset Quotes erd
+\end_inset
+
+;
 \end_layout
 
 \begin_layout Standard
-can be separated via a space (' ') delimeter into 5 tokens:
+can be separated via a space (' ') delimeter (the default) into 5 tokens
+ like so:
+\end_layout
+
+\begin_layout LyX-Code
+ArgList myArgs(myString);
+\end_layout
+
+\begin_layout Standard
+The resulting ArgList internally looks something like:
 \end_layout
 
 \begin_layout LyX-Code
@@ -439,15 +465,40 @@ can be separated via a space (' ') delimeter into 5 tokens:
 \end_layout
 
 \begin_layout Standard
-Similarly, the user input:
+A custom delimeter string containing 1 or more characters can also be used.
+ For example, the following string:
 \end_layout
 
 \begin_layout LyX-Code
+myString = 
+\begin_inset Quotes eld
+\end_inset
+
 d01,d02,d03,d04
+\begin_inset Quotes erd
+\end_inset
+
+;
 \end_layout
 
 \begin_layout Standard
-can be separated via a comma (',') delimiter into 4 tokens:
+can be separated via a comma (',') delimiter into 4 tokens like so:
+\end_layout
+
+\begin_layout LyX-Code
+ArgList myArgs(myString, 
+\begin_inset Quotes eld
+\end_inset
+
+,
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout Standard
+The resulting ArgList internall lookws something like:
 \end_layout
 
 \begin_layout LyX-Code
@@ -835,7 +886,7 @@ The Frame class is in many ways the workhorse of Cpptraj, as it holds all
  XYZ coordinates for a given input frame, and optionally box coordinates,
  masses, and/or velocities, all in double precision.
  Many routines are available to do things like calculate the center of mass
- of atoms, rotate, translate, scale, center, and so on.
+ of atoms, rotate, translate, scale, and so on.
  A major use of the Frame class is to perform RMSD calculations.
 \end_layout
 
@@ -950,8 +1001,18 @@ Trajectory Input/Output
 \end_layout
 
 \begin_layout Standard
-Trajectory input is provided by the Trajin_Single (for single trajectories)
- and Trajin_Multi (for multiple trajectories).
+Trajectory input and output (IO) is handled via high-level and low-level
+ classes.
+ At the highest level trajectory input is provided by the Trajin_Single
+ (for single input trajectories) and Trajin_Multi (for multiple input trajectori
+es) classes, and Trajout for single output trajectories.
+ At the lower level IO is handled by format-specific classes which inherit
+ from TrajectoryIO (TrajectoryIO.h), which are called Traj_X by convention
+ (e.g.
+ Traj_AmberNetcdf for Amber NetCDF trajectories).
+ TrajectoryIO classes are contained and set up within the higher level classes,
+ with information specific to each TrajectoryIO class being stored in the
+ TrajectoryFile base class.
 \end_layout
 
 \begin_layout Subsection
@@ -963,7 +1024,7 @@ Trajin_Multi
 \end_layout
 
 \begin_layout Subsection
-ReferenceFrame
+Trajout
 \end_layout
 
 \begin_layout Section
@@ -1110,7 +1171,7 @@ sideways false
 status open
 
 \begin_layout Plain Layout
-\begin_inset Caption
+\begin_inset Caption Standard
 
 \begin_layout Plain Layout
 Topology file formats currently implemented in Cpptraj.
@@ -1138,9 +1199,9 @@ ParmFile
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="5" columns="2">
-<features tabularvalignment="middle">
-<column alignment="center" valignment="top" width="0">
-<column alignment="center" valignment="top" width="0">
+<features rotate="0" tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -1542,38 +1603,10 @@ The implemented functions Init(), Setup(), DoAction(), and Print() can be
 \end_layout
 
 \begin_layout Standard
-The private section is where all variables specific to the class will go.
- For Action_Distance we will want a DataSet to hold the calculated distances,
- two AtomMasks to describe the points between which the distance should
- be calculated, and a flag to indicate whether the distance should be mass-weigh
-ted.
-\end_layout
-
-\begin_layout LyX-Code
-private:
-\end_layout
-
-\begin_layout LyX-Code
-  DataSet* dist_;  ///< Will hold DataSet of calculated distances.
-\end_layout
-
-\begin_layout LyX-Code
-  bool useMass_;   ///< If true, mass-weight distances.
-\end_layout
-
-\begin_layout LyX-Code
-  AtomMask Mask1_;
-\end_layout
-
-\begin_layout LyX-Code
-  AtomMask Mask2_;
-\end_layout
-
-\begin_layout Standard
-All variables related to imaging are already include via the ImagedAction
- class.
- We now add entries for the functions inherited from the Action base class
- which must be implemented.
+The private section is where all functions and variables specific to the
+ class will go.
+ First, we add entries for the functions inherited from the Action base
+ class which must be implemented.
  Since we will not need to do any post-processing for this action, the Print()
  function is empty:
 \end_layout
@@ -1593,6 +1626,40 @@ All variables related to imaging are already include via the ImagedAction
 
 \begin_layout LyX-Code
   void Print() {}
+\end_layout
+
+\begin_layout Standard
+Next we define the class variables.
+ For Action_Distance we will want a DataSet to hold the calculated distances,
+ two AtomMasks to describe the points between which the distance should
+ be calculated, and a variable to indicate whether the distance should be
+ mass-weighted.
+\end_layout
+
+\begin_layout LyX-Code
+private:
+\end_layout
+
+\begin_layout LyX-Code
+  DataSet* dist_;  ///< Will hold DataSet of calculated distances.
+\end_layout
+
+\begin_layout LyX-Code
+  bool useMass_;   ///< If true, mass-weight distances.
+\end_layout
+
+\begin_layout LyX-Code
+  AtomMask Mask1_; ///< First atom selection.
+\end_layout
+
+\begin_layout LyX-Code
+  AtomMask Mask2_; ///< Second atom selection
+\end_layout
+
+\begin_layout Standard
+All variables related to imaging are already include via the ImagedAction
+ class.
+ 
 \end_layout
 
 \begin_layout Standard
@@ -2066,7 +2133,8 @@ The first argument is the current frame number (starting at 0).
 
 \begin_layout Standard
 There are several variables needed for calculating the distance.
- First, we have two Vec3 classes to store the XYZ coordinates of the points:
+ First, we have two Vec3 classes (Vec3.h, which is already included from
+ other headers) to store the XYZ coordinates of the points:
 \end_layout
 
 \begin_layout LyX-Code
@@ -2074,8 +2142,11 @@ There are several variables needed for calculating the distance.
 \end_layout
 
 \begin_layout Standard
-If we are performing non-orthorhombic imaging we need to store unit cell
- and reciprocal XYZ vector coordinates (in Matrix_3x3 classes):
+If we are performing non-orthorhombic imaging we need to store the matrices
+ which perform conversion from Cartesian to fractional coordinates and vice
+ versa (using Matrix_3x3 classes, Matrix_3x3.h).
+ Note that these are called 'ucell' and 'recip' respectively throughout
+ CPPTRAJ, as these were the names used for the analogous structures in PTRAJ.
 \end_layout
 
 \begin_layout LyX-Code
@@ -2094,7 +2165,7 @@ Finally, we need a double to store the actual result of the distance calculation
 \begin_layout Standard
 In the first part of the actual calculation, we calculate the centers of
  the coordinates in Mask1_ and Mask2_, either mass-weighted or not depending
- on useMass_:
+ on useMass_, using the appropriate functions from the Frame class (Frame.h):
 \end_layout
 
 \begin_layout LyX-Code
@@ -2128,8 +2199,12 @@ In the first part of the actual calculation, we calculate the centers of
 \begin_layout Standard
 Next, we get the distance between the coordinates stored in a1 and a2.
  For non-orthorhombic imaging we first need to convert the current box coordinat
-e vectors (given as 3 lengths and 3 angles) into unit cell and reciprocal
- space coordinates:
+es (stored in the Frame class in double precision as 3 lengths and 3 angles)
+ into the coordinate conversion matrices using the ToRecip() function of
+ the Box class (Box.h).
+ Then, depending on the type of imaging that needs to be performed we call
+ the appropriate distance calculation routine (DIST2_XXX, found in DistRoutines.h
+):
 \end_layout
 
 \begin_layout LyX-Code

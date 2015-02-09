@@ -28,6 +28,8 @@ class ArgList {
     std::string const& operator[](int) const;
     /// \return Internal argument list as vector of strings
     std::vector<std::string> const& List() const { return arglist_; }
+    /// \return Whether argument at position has been marked.
+    bool Marked(int i) const { return marked_[i]; }
     // Iterators
     typedef std::vector<std::string>::const_iterator const_iterator;
     const_iterator begin() const { return arglist_.begin();     }
