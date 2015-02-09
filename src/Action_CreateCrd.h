@@ -1,7 +1,7 @@
 #ifndef ACTION_CREATECRD_H
 #define ACTION_CREATECRD_H
 #include "Action.h"
-#include "DataSet_Coords.h"
+#include "DataSet_Coords_CRD.h"
 class Action_CreateCrd : public Action {
   public:
     Action_CreateCrd();
@@ -13,7 +13,7 @@ class Action_CreateCrd : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
 
-    DataSet_Coords* coords_;
+    DataSet_Coords_CRD* coords_;
     int pindex_;
 };
 #endif
