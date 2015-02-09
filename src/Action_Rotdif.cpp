@@ -283,7 +283,7 @@ Action::RetType Action_Rotdif::DoAction(int frameNum, Frame* currentFrame, Frame
   // Set selected frame atoms. Masses have already been set.
   SelectedTgt_.SetCoordinates(*currentFrame, TargetMask_);
   SelectedTgt_.RMSD_CenteredRef(SelectedRef_, U, Trans, useMass_);
-  Rmatrices_.push_back( U );
+  Rmatrices_.AddMat3x3( U );
 
   return Action::OK;
 } 
@@ -1289,7 +1289,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
     olegendre_ = 2;
   }
   // Determine max length of autocorrelation fxn.
-   int vLength = (int)Rmatrices_.size() + 1;
+   int vLength = (int)Rmatrices_.Size() + 1;
    int ctMax = ncorr_;
    if (ncorr_ == 0)
      ctMax = vLength;
@@ -1320,9 +1320,9 @@ int Action_Rotdif::DetermineDeffsAlt() {
     // Assign normalized vector to rotated_vectors position 0
     rotated_vectors.AddVxyz( *rndvec );
     // Loop over rotation matrices
-    for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
-                                           rmatrix != Rmatrices_.end();
-                                           ++rmatrix)
+    for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_.begin();
+                                        rmatrix != Rmatrices_.end();
+                                      ++rmatrix)
       // Rotate normalized vector
       rotated_vectors.AddVxyz( *rmatrix * (*rndvec) );
     // Calculate spherical harmonics of given order for this vector.
@@ -1587,7 +1587,7 @@ int Action_Rotdif::DetermineDeffs() {
   mprintf("\tDetermining local diffusion constants for each vector.\n");
   ProgressBar progress( nvecs_ );
 
-  itotframes = (int) Rmatrices_.size();
+  itotframes = (int) Rmatrices_.Size();
   if (ncorr_ == 0) ncorr_ = itotframes;
   maxdat = ncorr_ + 1;
   // Allocate memory to hold calcd effective D values
@@ -1622,9 +1622,9 @@ int Action_Rotdif::DetermineDeffs() {
     // Assign normalized vector to rotated_vectors position 0
     rotated_vectors.AddVxyz( *rndvec );
     // Loop over rotation matrices
-    for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
-                                           rmatrix != Rmatrices_.end();
-                                           ++rmatrix)
+    for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_.begin();
+                                        rmatrix != Rmatrices_.end();
+                                      ++rmatrix)
     {
       // Rotate normalized vector
       rotated_vectors.AddVxyz( *rmatrix * (*rndvec) );
@@ -1718,12 +1718,12 @@ void Action_Rotdif::Print() {
   if (random_vectors_.Size() < 1) return;
   // ---------------------------------------------
   // If no rotation matrices generated, exit
-  if (Rmatrices_.empty()) return;
+  if (Rmatrices_.Empty()) return;
   // HACK: To match results from rmscorr.f (where rotation matrices are
   //       implicitly transposed), transpose each rotation matrix.
   // NOTE: Is this actually correct? Want inverse rotation?
-  for (std::vector<Matrix_3x3>::iterator rmatrix = Rmatrices_.begin();
-                                         rmatrix != Rmatrices_.end(); ++rmatrix)
+  for (DataSet_Mat3x3::iterator rmatrix = Rmatrices_.begin();
+                                rmatrix != Rmatrices_.end(); ++rmatrix)
     rmatrix->Transpose();
   // Print rotation matrices
   if (!rmOut_.empty()) {
@@ -1733,9 +1733,9 @@ void Action_Rotdif::Print() {
     } else {
       rmout.OpenFile();
       int rmframe=1;
-      for (std::vector<Matrix_3x3>::const_iterator rmatrix = Rmatrices_.begin();
-                                                   rmatrix != Rmatrices_.end();
-                                                 ++rmatrix, ++rmframe) 
+      for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_.begin();
+                                          rmatrix != Rmatrices_.end();
+                                        ++rmatrix, ++rmframe) 
       {
         rmout.Printf("%13i %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f\n",
             rmframe,
@@ -1746,7 +1746,7 @@ void Action_Rotdif::Print() {
       rmout.CloseFile();
     }
   }
-  mprintf("\t%i vectors, %u rotation matrices.\n",nvecs_,Rmatrices_.size());
+  mprintf("\t%i vectors, %u rotation matrices.\n",nvecs_,Rmatrices_.Size());
   if (usefft_) {
     // ---------------------------------------------
     // Test calculation; determine constants directly with SH and curve fitting.

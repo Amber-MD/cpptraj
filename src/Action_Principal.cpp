@@ -6,29 +6,39 @@
 Action_Principal::Action_Principal() :
   doRotation_(false),
   useMass_(false),
-  debug_(0)
+  debug_(0),
+  vecData_(0),
+  valData_(0)
 { }
 
 void Action_Principal::Help() {
-  mprintf("\t[<mask>] [dorotation] [mass] [out <filename>]\n"
+  mprintf("\t[<mask>] [dorotation] [out <filename>] [name <dsname>]\n"
           "  Calculate principal axes of atoms in <mask>. Align the system along\n"
           "  principal axes if 'dorotation' specified.\n");
 }
 
-// Action_Principal::init()
+// Action_Principal::Init()
 Action::RetType Action_Principal::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Keywords
+  std::string dsname = actionArgs.GetStringKey("name");
   doRotation_ = actionArgs.hasKey("dorotation");
+  // CPPTRAJ always uses mass no matter what this keyword says.
   useMass_ = actionArgs.hasKey("mass");
   std::string filename = actionArgs.GetStringKey("out");
-  if (!doRotation_ && filename.empty()) {
-    mprinterr("Error: principal: At least one of 'dorotation' or 'out <filename>' must be specified.\n");
+  if (!doRotation_ && filename.empty() && dsname.empty()) {
+    mprinterr("Error: At least one of 'dorotation', 'out <filename>', or 'name <dsname>' must be specified.\n");
     return Action::ERR;
   }
   // Masks
   mask_.SetMaskString( actionArgs.GetMaskNext() );
+  // Set up data
+  if (!dsname.empty()) {
+     vecData_ = (DataSet_Mat3x3*)DSL->AddSetAspect(DataSet::MAT3X3, dsname, "evec");
+     valData_ = (DataSet_Vector*)DSL->AddSetAspect(DataSet::VECTOR, dsname, "eval");
+     if (vecData_ == 0 || valData_ == 0) return Action::ERR;
+  }
 
   mprintf("    PRINCIPAL:");
   if (!filename.empty()) {
@@ -44,11 +54,14 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, TopologyList* PFL, D
   else
     mprintf(" center of geometry");
   mprintf(", atoms selected by [%s]\n", mask_.MaskString());
+  if (vecData_ != 0)
+    mprintf("\tSaving eigenvectors to '%s' (in rows of 3x3 matrices).\n"
+            "\tSaving eigenvalues to '%s'\n", vecData_->legend(), valData_->legend());
 
   return Action::OK;
 }
 
-// Action_Principal::setup()
+// Action_Principal::Setup()
 Action::RetType Action_Principal::Setup(Topology* currentParm, Topology** parmAddress) {
   if (currentParm->SetupIntegerMask(mask_)) return Action::ERR;
 
@@ -61,7 +74,7 @@ Action::RetType Action_Principal::Setup(Topology* currentParm, Topology** parmAd
   return Action::OK;
 }
 
-// Action_Principal::action()
+// Action_Principal::DoAction()
 Action::RetType Action_Principal::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   Matrix_3x3 Inertia;
   Vec3 Eval;
@@ -79,6 +92,10 @@ Action::RetType Action_Principal::DoAction(int frameNum, Frame* currentFrame, Fr
       fn, Inertia[6], Inertia[7], Inertia[8]);
     //Eval.Print("PRINCIPAL EIGENVALUES");
     //Inertia.Print("PRINCIPAL EIGENVECTORS (Rows)");
+  }
+  if (vecData_ != 0) {
+    vecData_->AddMat3x3( Inertia );
+    valData_->AddVxyz( Eval );
   }
   
   // Rotate - since Evec is already transposed (eigenvectors
