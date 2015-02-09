@@ -164,6 +164,7 @@ class Frame {
     inline void Rotate(Matrix_3x3 const&);
     /// Rotate all atoms in mask by matrix
     inline void Rotate(Matrix_3x3 const&, AtomMask const&);
+    inline void InverseRotate(Matrix_3x3 const&, AtomMask const&);
     /// Apply translation followed by rotation followed by second translation
     inline void Trans_Rot_Trans(Vec3 const&, Matrix_3x3 const&, Vec3 const&);
     // -------------------------------------------------------------------------
@@ -342,6 +343,18 @@ void Frame::Rotate(Matrix_3x3 const& RotMatrix, AtomMask const& mask) {
     XYZ[0] = (x*RotMatrix[0]) + (y*RotMatrix[1]) + (z*RotMatrix[2]);
     XYZ[1] = (x*RotMatrix[3]) + (y*RotMatrix[4]) + (z*RotMatrix[5]);
     XYZ[2] = (x*RotMatrix[6]) + (y*RotMatrix[7]) + (z*RotMatrix[8]);
+  }
+}
+
+void Frame::InverseRotate(Matrix_3x3 const& RotMatrix, AtomMask const& mask) {
+  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
+    double* XYZ = X_ + (*atom * 3) ;
+    double x = XYZ[0];
+    double y = XYZ[1];
+    double z = XYZ[2];
+    XYZ[0] = (x*RotMatrix[0]) + (y*RotMatrix[3]) + (z*RotMatrix[6]);
+    XYZ[1] = (x*RotMatrix[1]) + (y*RotMatrix[4]) + (z*RotMatrix[7]);
+    XYZ[2] = (x*RotMatrix[2]) + (y*RotMatrix[5]) + (z*RotMatrix[8]);
   }
 }
 

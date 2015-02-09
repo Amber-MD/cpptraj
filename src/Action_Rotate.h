@@ -11,6 +11,7 @@ class Action_Rotate : public Action {
     Matrix_3x3 RotMatrix_;
     AtomMask mask_;
     DataSet_Mat3x3* rmatrices_;
+    bool inverse_;
 
     Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
