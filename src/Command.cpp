@@ -89,6 +89,7 @@
 #include "Action_Energy.h"
 #include "Action_CheckChirality.h"
 #include "Action_Channel.h" // EXPERIMENTAL
+#include "Action_Volume.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1897,6 +1898,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, AddAction },
   { ACTION, "velocityautocorr", Action_VelocityAutoCorr::Alloc, Action_VelocityAutoCorr::Help, AddAction },
   { ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, AddAction},
+  { ACTION, "volume", Action_Volume::Alloc, Action_Volume::Help, AddAction},
   { ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, AddAction },
   // INC_ANALYSIS: ANALYSIS COMMANDS
   { ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
