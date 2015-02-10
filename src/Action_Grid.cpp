@@ -168,7 +168,7 @@ void Action_Grid::Print() {
     double dens = 1.0;
     if (normalize_ == TO_DENSITY) {
       dens = grid_->VoxelVolume() * density_;
-      mprintf(" to density %g mol/Ang^3, voxel volume= %g Ang^3, %g mols/voxel,",
+      mprintf(" to density %g molecules/Ang^3, voxel volume= %g Ang^3, %g mols/voxel,",
               density_, grid_->VoxelVolume(), dens);
     } else
       mprintf(" to");
