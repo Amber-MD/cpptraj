@@ -76,6 +76,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Vector.cpp \
         Action_VelocityAutoCorr.cpp \
         Action_Volmap.cpp \
+        Action_Volume.cpp \
         Action_Watershell.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
