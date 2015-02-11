@@ -535,11 +535,12 @@ void ClusterList::AddSievedFramesByCentroid() {
 }
 
 // -----------------------------------------------------------------------------
-/** The Davies-Bouldin Index (DBI) is a measure of clustering merit; the 
-  * smaller the DBI, the better. The DBI is defined as the average, for all 
-  * clusters X, of fred, where fred(X) = max, across other clusters Y, of 
-  * (Cx + Cy)/dXY ...here Cx is the average distance from points in X to the 
-  * centroid, similarly Cy, and dXY is the distance between cluster centroids.
+/** The Davies-Bouldin Index (DBI) measures the average similarity between each
+  * cluster and its most similar one; the smaller the DBI, the better. The DBI 
+  * is defined as the average, for all clusters X, of fred, where fred(X) = max,
+  * across other clusters Y, of (Cx + Cy)/dXY. Here Cx is the average distance
+  * from points in X to the centroid, similarly Cy, and dXY is the distance 
+  * between cluster centroids.
   */
 double ClusterList::ComputeDBI(CpptrajFile& outfile) {
   std::vector<double> averageDist;
@@ -572,9 +573,12 @@ double ClusterList::ComputeDBI(CpptrajFile& outfile) {
   return DBITotal;
 }
 
-/** The pseudo-F statistic is another measure of clustering goodness. High 
-  * values are good. Generally, one selects a cluster-count that gives a peak 
-  * in the pseudo-f statistic (or pSF, for short).
+/** The pseudo-F statistic is another measure of clustering goodness. It is 
+  * intended to capture the 'tightness' of clusters, and is in essence a ratio
+  * of the mean sum of squares between groups to the mean sum of squares within
+  * group (Lattin et al., 2003: 291) High values are good. Generally, one 
+  * selects a cluster-count that gives a peak in the pseudo-f statistic (or 
+  * pSF, for short).
   * Formula: A/B, where A = (T - P)/(G-1), and B = P / (n-G). Here n is the 
   * number of points, G is the number of clusters, T is the total distance from
   * the all-data centroid, and P is the sum (for all clusters) of the distances
