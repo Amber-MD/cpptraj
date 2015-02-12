@@ -69,8 +69,8 @@ class CpptrajFile {
     int Rewind()                           { return IO_->Rewind();        }
     int Flush()                            { return IO_->Flush();         }
     off_t Tell()                           { return IO_->Tell();          }
-  protected: // Protected for PDBfile/Mol2File
     static const size_t BUF_SIZE = 1024;
+  protected: // Protected for PDBfile/Mol2File
     char linebuffer_[BUF_SIZE]; ///< Used in Printf/GetLine functions
   private:
     static const char* FileTypeName[];
