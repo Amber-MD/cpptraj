@@ -14,6 +14,16 @@ bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
   return isPSF;
 }
 
+int Parm_CharmmPsf::FindTag(char* tag, const char* target, int tgtsize, CpptrajFile& infile) {
+  int nval = 0;
+  while (strncmp(tag,target,tgtsize)!=0) {
+    const char* buffer = infile.NextLine();
+    if ( buffer == 0 ) return 0;
+    sscanf(buffer,"%i %10s",&nval,tag);
+  }
+  return nval;
+}
+
 // Parm_CharmmPsf::ReadParm()
 /** Open the Charmm PSF file specified by filename and set up topology data.
   * Mask selection requires natom, nres, names, resnames, resnums.
@@ -30,11 +40,7 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
   const char* buffer = 0;
   if ( (buffer=infile.NextLine()) == 0 ) return 1;
   // Advance to <ntitle> !NTITLE
-  int ntitle = 0;
-  while (strncmp(tag,"!NTITLE",7)!=0) {
-    if ( (buffer=infile.NextLine()) == 0 ) return 1;
-    sscanf(buffer,"%i %10s",&ntitle, tag);
-  }
+  int ntitle = FindTag(tag, "!NTITLE", 7, infile); 
   // Only read in 1st title
   std::string psftitle;
   if (ntitle > 0) {
@@ -43,14 +49,10 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
   }
   parmOut.SetParmName( psftitle, infile.Filename() );
   // Advance to <natom> !NATOM
-  int natom = 0;
-  while (strncmp(tag,"!NATOM",6)!=0) {
-    if ( (buffer=infile.NextLine()) == 0 ) return 1;
-    sscanf(buffer,"%i %10s",&natom,tag);
-  }
+  int natom = FindTag(tag, "!NATOM", 6, infile);
   mprintf("\tPSF: !NATOM tag found, natom=%i\n", natom);
   // If no atoms, probably issue with PSF file
-  if (natom<=0) {
+  if (natom < 1) {
     mprinterr("Error: No atoms in PSF file.\n");
     return 1;
   }
@@ -73,27 +75,74 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
     parmOut.AddTopAtom( Atom( psfname, psfcharge, psfmass, psftype), psfresnum, psfresname, 0 );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
-  int nbond = 0;
   int bondatoms[8];
-  while (strncmp(tag,"!NBOND",6)!=0) {
-    if ( (buffer=infile.NextLine()) == 0 ) return 1;
-    sscanf(buffer,"%i %10s",&nbond,tag);
-  }
-  int nlines = nbond / 4;
-  if ( (nbond % 4) != 0) nlines++;
-  for (int bondline=0; bondline < nlines; bondline++) {
-    if ( (buffer=infile.NextLine()) == 0 ) {
-      mprinterr("Error: ReadParmPSF(): Reading bond line %i\n",bondline+1);
-      return 1;
+  int nbond = FindTag(tag, "!NBOND", 6, infile);
+  if (nbond > 0) {
+    mprintf("\tPSF: !NBOND tag found, nbond=%i\n", nbond);
+    int nlines = nbond / 4;
+    if ( (nbond % 4) != 0) nlines++;
+    for (int bondline=0; bondline < nlines; bondline++) {
+      if ( (buffer=infile.NextLine()) == 0 ) {
+        mprinterr("Error: ReadParmPSF(): Reading bond line %i\n",bondline+1);
+        return 1;
+      }
+      // Each line has 4 pairs of atom numbers
+      int nbondsread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
+                              bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
+                              bondatoms+6,bondatoms+7);
+      // NOTE: Charmm atom nums start from 1
+      for (int bondidx=0; bondidx < nbondsread; bondidx+=2)
+        parmOut.AddBond(bondatoms[bondidx]-1, bondatoms[bondidx+1]-1);
     }
-    // Each line has 4 pairs of atom numbers
-    int nbondsread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
-                            bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
-                            bondatoms+6,bondatoms+7);
-    // NOTE: Charmm atom nums start from 1
-    for (int bondidx=0; bondidx < nbondsread; bondidx+=2)
-      parmOut.AddBond(bondatoms[bondidx]-1, bondatoms[bondidx+1]-1);
-  }
+  } else
+    mprintf("Warning: PSF has no bonds.\n");
+  // Advance to <nangles> !NTHETA
+  int nangle = FindTag(tag, "!NTHETA", 7, infile);
+  if (nangle > 0) {
+    mprintf("\tPSF: !NTHETA tag found, nangle=%i\n", nangle);
+    int nlines = nangle / 3;
+    if ( (nangle % 3) != 0) nlines++;
+    for (int angleline=0; angleline < nlines; angleline++) {
+      if ( (buffer=infile.NextLine()) == 0) {
+        mprinterr("Error: Reading angle line %i\n", angleline+1);
+        return 1;
+      }
+      // Each line has 3 groups of atom numbers
+      int nanglesread = sscanf(buffer,"%i %i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
+                              bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
+                              bondatoms+6,bondatoms+7, bondatoms+8);
+      for (int angleidx=0; angleidx < nanglesread; angleidx+=3) {
+        parmOut.AddAngle( bondatoms[angleidx  ]-1,
+                          bondatoms[angleidx+1]-1,
+                          bondatoms[angleidx+2]-1 );
+      }
+    }
+  } else
+    mprintf("Warning: PSF has no angles.\n");
+  // Advance to <ndihedrals> !NPHI
+  int ndihedral = FindTag(tag, "!NPHI", 5, infile);
+  if (ndihedral > 0) {
+    mprintf("\tPSF: !NPHI tag found, ndihedral=%i\n", ndihedral);
+    int nlines = ndihedral / 2;
+    if ( (ndihedral % 2) != 0) nlines++;
+    for (int dihline = 0; dihline < nlines; dihline++) {
+      if ( (buffer=infile.NextLine()) == 0) {
+        mprinterr("Error: Reading dihedral line %i\n", dihline+1);
+        return 1;
+      }
+      // Each line has 2 groups of atom numbers
+      int ndihread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
+                              bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
+                              bondatoms+6,bondatoms+7);
+      for (int dihidx=0; dihidx < ndihread; dihidx += 4) {
+        parmOut.AddDihedral( bondatoms[dihidx  ]-1,
+                             bondatoms[dihidx+1]-1,
+                             bondatoms[dihidx+2]-1,
+                             bondatoms[dihidx+3]-1 );
+      }
+    }
+  } else
+    mprintf("Warning: PSF has no dihedrals.\n");
   mprintf("\tPSF contains %i atoms, %i residues.\n", parmOut.Natom(), parmOut.Nres());
 
   infile.CloseFile();

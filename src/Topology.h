@@ -72,11 +72,13 @@ class Topology {
     AngleArray        const& Angles()       const { return angles_;       }
     AngleArray        const& AnglesH()      const { return anglesh_;      }
     AngleParmArray    const& AngleParm()    const { return angleparm_;    }
+    void AddAngle(int, int, int);
     int SetAngleInfo(AngleArray const&, AngleArray const&, AngleParmArray const&);
     // ----- Dihedral-specific routines ----------
     DihedralArray     const& Dihedrals()    const { return dihedrals_;    }
     DihedralArray     const& DihedralsH()   const { return dihedralsh_;   }
     DihedralParmArray const& DihedralParm() const { return dihedralparm_; }
+    void AddDihedral(int, int, int, int);
     int SetDihedralInfo(DihedralArray const&, DihedralArray const&, DihedralParmArray const&);
     // ----- Non-bond routines -------------------
     NonbondParmType   const& Nonbond()      const { return nonbond_;      }
