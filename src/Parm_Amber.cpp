@@ -295,6 +295,66 @@ int Parm_Amber::processWriteArgs(ArgList& argIn) {
   return 0;
 }
 
+void Parm_Amber::ArrayFromBondParm(BondParmArray const& bpa, Darray& Rk, Darray& Req) {
+  // TODO: Use resize(0) instead?
+  Rk.clear();
+  Req.clear();
+  Rk.reserve( bpa.size() );
+  Req.reserve( bpa.size() );
+  for (BondParmArray::const_iterator parm = bpa.begin(); parm != bpa.end(); ++parm)
+  {
+    Rk.push_back( parm->Rk() );
+    Req.push_back( parm->Req() );
+  }
+}
+
+void Parm_Amber::ArrayFromAngleParm(AngleParmArray const& apa, Darray& Rk, Darray& Req) {
+  Rk.clear();
+  Req.clear();
+  Rk.reserve( apa.size() );
+  Req.reserve( apa.size() );
+  for (AngleParmArray::const_iterator parm = apa.begin(); parm != apa.end(); ++parm)
+  {
+    Rk.push_back( parm->Tk() );
+    Req.push_back( parm->Teq() );
+  }
+}
+
+void Parm_Amber::ArrayFromCharmmUB(BondParmArray const& bpa, int UBsize, Darray& Rk, Darray& Req, Iarray& UBC)
+{
+    UBC.resize(2);
+    UBC[0] = UBsize;
+    UBC[1] = bpa.size();
+    Rk.clear();
+    Req.clear();
+    Rk.reserve(  UBC[1] );
+    Req.reserve( UBC[1] );
+    for (BondParmArray::const_iterator parm = bpa.begin(); parm != bpa.end(); ++parm)
+    {
+      Rk.push_back( parm->Rk() );
+      Req.push_back( parm->Req() );
+    }
+}
+
+void Parm_Amber::ArrayFromDihedralParm(DihedralParmArray const& dpa, Darray& Rk, Darray& Req,
+                                       Darray& phase, Darray& scee, Darray& scnb)
+{
+  Rk.clear(); Req.clear(); phase.clear(); scee.clear(); scnb.clear();
+  Rk.reserve( dpa.size() );
+  Req.reserve( dpa.size() );
+  phase.reserve( dpa.size() );
+  scee.reserve( dpa.size() ); 
+  scnb.reserve( dpa.size() ); 
+  for (DihedralParmArray::const_iterator parm = dpa.begin(); parm != dpa.end(); ++parm)
+  {
+    Rk.push_back( parm->Pk() );
+    Req.push_back( parm->Pn() );
+    phase.push_back( parm->Phase() );
+    scee.push_back( parm->SCEE() );
+    scnb.push_back( parm->SCNB() );
+  }
+}
+
 // Parm_Amber::WriteParm()
 /** CHAMBER writes out topologies in slightly different order than LEaP,
   * namely the EXCLUDED and SOLVENT_POINTERS sections are in different
@@ -444,70 +504,28 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteName(F_RESNAMES, resnames);
   WriteInteger(F_RESNUMS, resnums);
   // BOND, ANGLE, and DIHEDRAL FORCE CONSTANT and EQUIL VALUES
-  std::vector<double> Rk, Req;
+  Darray Rk, Req;
   // Bond params
-  Rk.reserve( parmIn.BondParm().size() );
-  Req.reserve( parmIn.BondParm().size() );
-  for (BondParmArray::const_iterator parm = parmIn.BondParm().begin(); 
-                                     parm != parmIn.BondParm().end(); ++parm)
-  {
-    Rk.push_back( parm->Rk() );
-    Req.push_back( parm->Req() );
-  }
+  ArrayFromBondParm( parmIn.BondParm(), Rk, Req );
   WriteDouble(F_BONDRK,  Rk);
   WriteDouble(F_BONDREQ, Req);
-  // TODO: Use resize(0) instead?
-  Rk.clear();
-  Req.clear();
   // Angle params
-  Rk.reserve( parmIn.AngleParm().size() );
-  Req.reserve( parmIn.AngleParm().size() );
-  for (AngleParmArray::const_iterator parm = parmIn.AngleParm().begin(); 
-                                      parm != parmIn.AngleParm().end(); ++parm)
-  {
-    Rk.push_back( parm->Tk() );
-    Req.push_back( parm->Teq() );
-  }
+  ArrayFromAngleParm( parmIn.AngleParm(), Rk, Req );
   WriteDouble(F_ANGLETK, Rk);
   WriteDouble(F_ANGLETEQ, Req);
-  Rk.clear();
-  Req.clear();
   // CHARMM only - Urey-Bradley
   if (ptype_ == CHAMBER) {
-    std::vector<int> UBC(2);
-    UBC[0] = parmIn.Chamber().UB().size();
-    UBC[1] = parmIn.Chamber().UBparm().size();
-    Rk.reserve(  UBC[1] );
-    Req.reserve( UBC[1] );
-    for (BondParmArray::const_iterator parm = parmIn.Chamber().UBparm().begin();
-                                       parm != parmIn.Chamber().UBparm().end(); ++parm)
-    {
-      Rk.push_back( parm->Rk() );
-      Req.push_back( parm->Req() );
-    }
+    std::vector<int> UBC;
+    ArrayFromCharmmUB( parmIn.Chamber().UBparm(), parmIn.Chamber().UB().size(),
+                       Rk, Req, UBC );
     WriteInteger(F_CHM_UBC, UBC);
     WriteInteger(F_CHM_UB, BondArrayToIndex(parmIn.Chamber().UB(), true));
     WriteDouble(F_CHM_UBFC, Rk);
     WriteDouble(F_CHM_UBEQ, Req);
-    Rk.clear();
-    Req.clear();
   }
   // Dihedral params
-  Rk.reserve( parmIn.DihedralParm().size() );
-  Req.reserve( parmIn.DihedralParm().size() );
   std::vector<double> phase, scee, scnb;
-  phase.reserve( parmIn.DihedralParm().size() );
-  scee.reserve( parmIn.DihedralParm().size() ); 
-  scnb.reserve( parmIn.DihedralParm().size() ); 
-  for (DihedralParmArray::const_iterator parm = parmIn.DihedralParm().begin(); 
-                                         parm != parmIn.DihedralParm().end(); ++parm)
-  {
-    Rk.push_back( parm->Pk() );
-    Req.push_back( parm->Pn() );
-    phase.push_back( parm->Phase() );
-    scee.push_back( parm->SCEE() );
-    scnb.push_back( parm->SCNB() );
-  }
+  ArrayFromDihedralParm( parmIn.DihedralParm(), Rk, Req, phase, scee, scnb );
   WriteDouble(F_DIHPK, Rk);
   WriteDouble(F_DIHPN, Req);
   WriteDouble(F_DIHPHASE, phase);
