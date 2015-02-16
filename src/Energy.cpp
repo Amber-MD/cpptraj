@@ -272,3 +272,54 @@ void Energy_Amber::PrintTiming() const {
   time_NB_.WriteTiming(1, "NONBOND", total);
   mprintf("TIME: Total= %.4f\n", total);
 }
+#ifdef USE_SANDERLIB
+// =============================================================================
+Energy_Sander::~Energy_Sander() { if (is_setup()) sander_cleanup(); }
+
+int Energy_Sander::Initialize(Topology* topIn, Frame& fIn) { // TODO const&
+  if (topIn == 0) return 1;
+  if (is_setup()) sander_cleanup();
+  // FIXME: requires file name be set for now
+  if (topIn->OriginalFilename().empty()) return 2;
+  top_ = topIn;
+  if (top_->BoxType() == Box::NOBOX) {
+    //input_.extdiel;
+    //input_.intdiel;
+    //input_.rgbmax;
+    //input_.saltcon;
+    input_.cut = 9999.0;
+    //input_.dielc;
+    //input_.rdt;
+    input_.igb = 1;
+    //input_.alpb;
+    input_.gbsa = 0;
+    input_.ntb = 0;
+  } else {
+    //input_.lj1264;
+    //input_.ipb;
+    //input_.inp;
+    //input_.vdwmeth;
+    //input_.ew_type;
+    input_.ntb = 1;
+  }
+  input_.ifqnt = 0;
+  input_.jfastw = 1;
+
+  forces_.resize( top_->Natom() * 3, 0.0 );
+  
+  return sander_setup_mm(top_->OriginalFilename().full(), fIn.xAddress(),
+                         fIn.bAddress(), &input_);
+}
+
+int Energy_Sander::CalcEnergy(Topology* topIn, Frame& fIn) {
+  if (top_ == 0 || topIn != top_) {
+    int err = Initialize(topIn, fIn);
+    if (err != 0) return err;
+  }
+  set_positions( fIn.xAddress() );
+  set_box( fIn.BoxCrd().BoxX(), fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
+           fIn.BoxCrd().Alpha(), fIn.BoxCrd().Beta(), fIn.BoxCrd().Gamma() );
+  energy_forces( &energy_, &(forces_[0]) );
+  return 0;
+};
+#endif

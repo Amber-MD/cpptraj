@@ -189,6 +189,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
 #     ifdef TIMER
       loudPrintf(" -DTIMER");
 #     endif
+#     ifdef USE_SANDERLIB
+      loudPrintf(" -DUSE_SANDERLIB");
+#     endif
       loudPrintf("\n");
       return QUIT;
     }

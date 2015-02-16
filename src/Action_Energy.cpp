@@ -140,7 +140,14 @@ Action::RetType Action_Energy::DoAction(int frameNum, Frame* currentFrame,
   }
 
   Energy_[TOTAL]->Add(frameNum, &Etot);
-
+# ifdef USE_SANDERLIB
+  // DEBUG
+  SANDER_.CalcEnergy(currentParm_, *currentFrame);
+  mprintf("Ebond= %12.4f  Eangle= %12.4f  Edih= %12.4f\n"
+          "Elec14= %12.4f  Evdw14= %12.4f  Elec= %12.4f  VDW= %12.4f\n",
+          SANDER_.Ebond(), SANDER_.Eangle(), SANDER_.Edihedral(),
+          SANDER_.Eelec14(), SANDER_.Evdw14(), SANDER_.Eelec(), SANDER_.Evdw());
+#endif
   return Action::OK;
 }
 
