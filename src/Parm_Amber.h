@@ -83,6 +83,7 @@ class Parm_Amber : public ParmIO {
     static void ArrayFromAngleParm(AngleParmArray const&, Darray&, Darray&);
     static void ArrayFromCharmmUB(BondParmArray const&, int, Darray&, Darray&, Iarray&);
     static void ArrayFromDihedralParm(DihedralParmArray const&, Darray&, Darray&, Darray&, Darray&, Darray&);
+    static void ArrayFromCharmmImproper(DihedralParmArray const&, Darray&, Darray&);
 
     static void CheckNameWidth(const char*, NameType const&);
     static int AmberIfbox(const Box&);

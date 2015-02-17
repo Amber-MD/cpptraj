@@ -355,6 +355,18 @@ void Parm_Amber::ArrayFromDihedralParm(DihedralParmArray const& dpa, Darray& Rk,
   }
 }
 
+void Parm_Amber::ArrayFromCharmmImproper(DihedralParmArray const& dpa, Darray& Rk, Darray& phase) {
+    Rk.clear(); phase.clear();
+    int NIMP = dpa.size();
+    Rk.reserve( NIMP );
+    phase.reserve( NIMP );
+    for (DihedralParmArray::const_iterator parm = dpa.begin(); parm != dpa.end(); ++parm)
+    {
+      Rk.push_back( parm->Pk() );
+      phase.push_back( parm->Phase() );
+    }
+}
+
 // Parm_Amber::WriteParm()
 /** CHAMBER writes out topologies in slightly different order than LEaP,
   * namely the EXCLUDED and SOLVENT_POINTERS sections are in different
@@ -531,54 +543,29 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteDouble(F_DIHPHASE, phase);
   WriteDouble(F_SCEE, scee);
   WriteDouble(F_SCNB, scnb);
-  Rk.clear();
-  Req.clear();
   phase.clear();
-  scee.clear();
-  scnb.clear();
   // CHAMBER only - Impropers
   if (ptype_ == CHAMBER) {
     std::vector<int> NIMP(1, parmIn.Chamber().Impropers().size());
     WriteInteger(F_CHM_NIMP, NIMP);
     WriteInteger(F_CHM_IMP, DihedralArrayToIndex(parmIn.Chamber().Impropers(),true));
     NIMP[0] = parmIn.Chamber().ImproperParm().size();
-    Rk.reserve( NIMP[0] );
-    phase.reserve( NIMP[0] );
-    for (DihedralParmArray::const_iterator parm = parmIn.Chamber().ImproperParm().begin();
-                                           parm != parmIn.Chamber().ImproperParm().end(); ++parm)
-    {
-      Rk.push_back( parm->Pk() );
-      phase.push_back( parm->Phase() );
-    }
+    ArrayFromCharmmImproper( parmIn.Chamber().ImproperParm(), Rk, phase );
     WriteInteger(F_CHM_NIMPT, NIMP);
     WriteDouble(F_CHM_IMPFC, Rk);
     WriteDouble(F_CHM_IMPP, phase);
-    Rk.clear();
-    phase.clear();
   }
   // SOLTY - Currently unused
   WriteDouble(F_SOLTY, std::vector<double>(values[NATYP], 0.0));
   // LJ params
-  Rk.reserve( parmIn.Nonbond().NBarray().size() );
-  Req.reserve( parmIn.Nonbond().NBarray().size() );
-  for (NonbondArray::const_iterator nb = parmIn.Nonbond().NBarray().begin();
-                                    nb != parmIn.Nonbond().NBarray().end(); ++nb)
-  {
-    Rk.push_back( nb->A() );
-    Req.push_back( nb->B() );
-  }
+  NonbondParmType::NB_to_array( parmIn.Nonbond().NBarray(), Rk, Req );
   WriteDouble(F_LJ_A, Rk);
   WriteDouble(F_LJ_B, Req);
   Rk.clear();
   Req.clear();
   // CHAMBER only - LJ 1-4: Same size as LJ arrays above, no need to reserve.
   if (ptype_ == CHAMBER) {
-    for (NonbondArray::const_iterator nb = parmIn.Chamber().LJ14().begin();
-                                      nb != parmIn.Chamber().LJ14().end(); ++nb)
-    {
-      Rk.push_back( nb->A() );
-      Req.push_back( nb->B() );
-    }
+    NonbondParmType::NB_to_array( parmIn.Chamber().LJ14(), Rk, Req );
     WriteDouble(F_LJ14A, Rk);
     WriteDouble(F_LJ14B, Req);
     Rk.clear();
@@ -594,6 +581,7 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   // EXCLUDED ATOMS LIST
   WriteInteger(F_EXCLUDE, excluded);
   // HBOND
+  phase.clear();
   Rk.reserve( parmIn.Nonbond().HBarray().size() );
   Req.reserve( parmIn.Nonbond().HBarray().size() );
   phase.reserve( parmIn.Nonbond().HBarray().size() );
@@ -609,7 +597,6 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteDouble(F_HBCUT, phase);
   Rk.clear();
   Req.clear();
-  phase.clear();
   // AMBER ATOM TYPE
   WriteName(F_TYPES, types);
   // TREE CHAIN CLASSIFICATION, JOIN, IROTAT
