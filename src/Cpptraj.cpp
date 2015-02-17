@@ -192,6 +192,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
 #     ifdef HAS_PNETCDF
       loudPrintf(" -DHAS_PNETCDF");
 #     endif
+#     ifdef USE_SANDERLIB
+      loudPrintf(" -DUSE_SANDERLIB");
+#     endif
       loudPrintf("\n");
       return QUIT;
     }

@@ -940,6 +940,27 @@ void Topology::AddBond(int atom1, int atom2) {
   atoms_[atom2].AddBond( atom1 );
 }
 
+void Topology::AddAngle(int atom1, int atom2, int atom3) {
+  // FIXME: Check duplicate
+  if (atoms_[atom1].Element() == Atom::HYDROGEN ||
+      atoms_[atom2].Element() == Atom::HYDROGEN ||
+      atoms_[atom3].Element() == Atom::HYDROGEN)
+    anglesh_.push_back( AngleType(atom1, atom2, atom3, -1) );
+  else
+    angles_.push_back( AngleType(atom1, atom2, atom3, -1) );
+}
+
+void Topology::AddDihedral(int atom1, int atom2, int atom3, int atom4) {
+  // FIXME: Check duplicate
+  if (atoms_[atom1].Element() == Atom::HYDROGEN ||
+      atoms_[atom2].Element() == Atom::HYDROGEN ||
+      atoms_[atom3].Element() == Atom::HYDROGEN ||
+      atoms_[atom4].Element() == Atom::HYDROGEN)
+    dihedralsh_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+  else
+    dihedrals_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+}
+
 // Topology::VisitAtom()
 // NOTE: Use iterator instead of atom num?
 void Topology::VisitAtom(int atomnum, int mol) {

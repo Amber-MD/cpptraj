@@ -236,6 +236,7 @@ ZLIB="-lz"
 BLAS="-lblas"
 LAPACK="-llapack"
 ARPACK="-larpack"
+SANDERLIB=""
 READLINE=$READLINE_HOME/libreadline.a
 USE_AMBER_LIB=0
 USEMKL=0
@@ -350,6 +351,15 @@ while [[ ! -z $1 ]] ; do
       fi
       echo "Using BLAS/LAPACK/ARPACK/NetCDF libraries in $AMBERHOME"
       USE_AMBER_LIB=1 
+      ;;
+    "-sanderlib"    )
+      if [[ -z $AMBERHOME ]] ; then
+        echo "Error: '-sanderlib' requires AMBERHOME is set."
+        exit 1
+      fi
+      USE_AMBER_LIB=1 # FIXME Should not depend on other libraries
+      SANDERLIB="-lsander"
+      echo "Using libsander"
       ;;
     "-mkl" )
       if [[ -z $MKLROOT ]] ; then
@@ -610,6 +620,12 @@ if [[ $CC = "cc" ]] ; then
   if [[ $USEOPENMP -eq 0 ]] ; then
     DIRECTIVES="-h noomp "$DIRECTIVES
   fi
+fi
+
+# Flags for libsander
+if [[ ! -z $SANDERLIB ]] ; then
+  DIRECTIVES=$DIRECTIVES" -DUSE_SANDERLIB"
+  LDFLAGS=$LDFLAGS" $SANDERLIB"
 fi
 
 # Change to MPI compiler wrappers if specified

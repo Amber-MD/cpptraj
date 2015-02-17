@@ -49,6 +49,11 @@ cpp_ambpdb$(SFX): $(AMBPDB_OBJECTS)
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpp_ambpdb$(SFX) $(AMBPDB_OBJECTS) \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB)
 
+cpptraj.sander$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(LIBDIR)/libsander.so
+	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj.sander$(SFX) $(OBJECTS) pub_fft.o \
+	       -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)  \
+	       -lsander
+
 $(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install
 
