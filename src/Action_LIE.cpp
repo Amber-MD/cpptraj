@@ -31,7 +31,7 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSet
   // Get Keywords
   doelec_ = !(actionArgs.hasKey("noelec"));
   dovdw_ = !(actionArgs.hasKey("novdw"));
-  std::string datafile = actionArgs.GetStringKey("out");
+  DataFile* datafile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   dielc_ = actionArgs.getKeyDouble("diel", 1.0);
   cut = actionArgs.getKeyDouble("cutvdw", 12.0);
   cut2vdw_ = cut * cut; // store square of cut for computational efficiency
@@ -66,12 +66,12 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSet
   if (doelec_) {
     elec_ = DSL->AddSetAspect(DataSet::DOUBLE, ds_name, "EELEC");
     if (elec_ == 0) return Action::ERR;
-    DFL->AddSetToFile(datafile, elec_);
+    if (datafile != 0) datafile->AddSet(elec_);
   }
   if (dovdw_) {
     vdw_ = DSL->AddSetAspect(DataSet::DOUBLE, ds_name, "EVDW");
     if (vdw_ == 0) return Action::ERR;
-    DFL->AddSetToFile(datafile, vdw_);
+    if (datafile != 0) datafile->AddSet(vdw_);
   }
 
   mprintf("    LIE: Ligand mask is %s. Surroundings are ", Mask1_.MaskString());

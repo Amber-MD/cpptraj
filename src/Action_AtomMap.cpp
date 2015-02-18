@@ -691,7 +691,7 @@ int Action_AtomMap::MapAtoms(AtomMap& Ref, AtomMap& Tgt) {
 // Action_AtomMap::Init()
 Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  std::string rmsout;
+  DataFile* rmsout = 0;
   CpptrajFile outputfile;
   int refatom,targetatom;
   debug_ = debugIn; 
@@ -703,7 +703,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");
   if (rmsfit_)
-    rmsout = actionArgs.GetStringKey("rmsout");
+    rmsout = DFL->AddDataFile( actionArgs.GetStringKey("rmsout"), actionArgs );
   std::string targetName = actionArgs.GetStringNext();
   std::string refName = actionArgs.GetStringNext();
   if (targetName.empty()) {
@@ -736,10 +736,10 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     mprintf("             maponly: Map will only be written, not used in trajectory read.\n");
   if (!maponly_ && rmsfit_) {
     mprintf("             rmsfit: Will rms fit mapped atoms in tgt to reference.\n");
-    if (!rmsout.empty()) {
+    if (rmsout != 0) {
       rmsdata_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RMSD");
       if (rmsdata_==0) return Action::ERR;
-      DFL->AddSetToFile(rmsout, rmsdata_);
+      rmsout->AddSet(rmsdata_);
     }
   }
 

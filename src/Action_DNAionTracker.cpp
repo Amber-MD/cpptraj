@@ -20,7 +20,7 @@ void Action_DNAionTracker::Help() {
 Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
-  std::string filename_ = actionArgs.GetStringKey("out");
+  DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   poffset_ = actionArgs.getKeyDouble("poffset", 5.0);
   InitImaging( !actionArgs.hasKey("noimage") );
   if (actionArgs.hasKey("shortest"))
@@ -51,8 +51,8 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, TopologyList* PF
   // NOTE: Set to mode distance in PTRAJ
   distance_->SetScalar( DataSet::M_DISTANCE );
   if (distance_==0) return Action::ERR;
-  if (!filename_.empty())
-    DFL->AddSetToFile( filename_, distance_ );
+  if (outfile != 0)
+    outfile->AddSet( distance_ );
 
   // INFO
   mprintf("    DNAIONTRACKER: Data representing the ");
@@ -74,8 +74,8 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, TopologyList* PF
   mprintf("\tPhosphate2 Mask [%s]\n", p2_.MaskString());
   mprintf("\tBase Mask       [%s]\n", base_.MaskString());
   mprintf("\tIons Mask       [%s]\n", ions_.MaskString());
-  if (!filename_.empty())
-    mprintf("      Data will be printed to a file named %s\n", filename_.c_str());
+  if (outfile != 0)
+    mprintf("\tData will be printed to a file named %s\n", outfile->DataFilename().full());
 
   return Action::OK;
 }

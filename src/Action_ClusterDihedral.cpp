@@ -81,7 +81,7 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* 
   outfile_ = actionArgs.GetStringKey("out");
   framefile_ = actionArgs.GetStringKey("framefile");
   infofile_ = actionArgs.GetStringKey("clusterinfo");
-  std::string cvtfile = actionArgs.GetStringKey("clustervtime");
+  DataFile* cvtfile = DFL->AddDataFile( actionArgs.GetStringKey("clustervtime"), actionArgs );
   // Input dihedral file or scan mask
   std::string dihedralIn = actionArgs.GetStringKey("dihedralfile");
   if (!dihedralIn.empty()) {
@@ -91,10 +91,10 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* 
   }
 
   // CVT dataset
-  if (!cvtfile.empty()) {
+  if (cvtfile != 0) {
     CVT_ = DSL->AddSet(DataSet::INTEGER, actionArgs.GetStringNext(), "DCVT");
     if (CVT_ == 0) return Action::ERR;
-    DFL->AddSetToFile(cvtfile.c_str(), CVT_);
+    cvtfile->AddSet(CVT_);
   }
 
   // INFO
@@ -112,9 +112,9 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* 
     mprintf("\tFrame-Cluster data will be output to %s\n", framefile_.c_str());
   if (!infofile_.empty())
     mprintf("\tCluster information (pop. & ID) will be output to %s\n", infofile_.c_str());
-  if (!cvtfile.empty())
-    mprintf("\tNumber of clusters v time will be output to %s\n", cvtfile.c_str());
-  
+  if (cvtfile != 0)
+    mprintf("\tNumber of clusters v time will be output to %s\n", 
+            cvtfile->DataFilename().full());
   return Action::OK;
 }
 

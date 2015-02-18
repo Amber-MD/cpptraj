@@ -120,12 +120,12 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
     RN_.rn_set( iseed );
   }
   // Output file for # of problems
-  std::string problemFile = actionArgs.GetStringKey("out");
+  DataFile* problemFile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   // Dataset to store number of problems
   number_of_problems_ = DSL->AddSet(DataSet::INTEGER, actionArgs.GetStringNext(),"Nprob");
   if (number_of_problems_==0) return Action::ERR;
   // Add dataset to data file list
-  DFL->AddSetToFile(problemFile,number_of_problems_);
+  if (problemFile != 0) problemFile->AddSet(number_of_problems_);
 
   mprintf("    DIHEDRALSCAN: Dihedrals in");
   if (resRange_.Empty())

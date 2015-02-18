@@ -138,8 +138,11 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   // Set default precision for backwards compat.
   Mat_->SetPrecision(6, 3);
   // Add set to output file if doing BYATOM output
-  if (outtype_ == BYATOM)
-    outfile_ = DFL->AddSetToFile(filename_, Mat_);
+  if (outtype_ == BYATOM && !filename_.empty()) {
+    outfile_ = DFL->AddDataFile(filename_, actionArgs);
+    if (outfile_ == 0) return Action::ERR;
+    outfile_->AddSet( Mat_ );
+  }
 
   mprintf("    MATRIX: Calculating %s, output is", DataSet_2D::MatrixTypeString(mtype));
   switch (outtype_) {
