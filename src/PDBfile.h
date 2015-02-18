@@ -3,7 +3,7 @@
 #include "CpptrajFile.h"
 #include "Atom.h"
 /// Used to access PDB files
-class PDBfile : private CpptrajFile {
+class PDBfile : public CpptrajFile {
   public:
     // NOTE: PDB_RECNAME must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, UNKNOWN};
@@ -54,19 +54,6 @@ class PDBfile : private CpptrajFile {
     void WriteENDMDL();
     /// Write END
     void WriteEND();
-    // CpptrajFile functions that should be accessible.
-    using CpptrajFile::SetupRead;
-    using CpptrajFile::SetupWrite;
-    using CpptrajFile::SetupAppend;
-    using CpptrajFile::OpenFile;
-    using CpptrajFile::OpenRead;
-    using CpptrajFile::OpenWriteNumbered;
-    using CpptrajFile::OpenEnsembleWrite;
-    using CpptrajFile::OpenWrite;
-    using CpptrajFile::CloseFile;
-    using CpptrajFile::IsOpen;
-    using CpptrajFile::Filename;
-    using CpptrajFile::Rewind;
   private:
     /// \return true if the first 6 chars of buffer match a PDB keyword
     static bool IsPDBkeyword(std::string const&);
