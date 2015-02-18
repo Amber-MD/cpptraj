@@ -7,7 +7,6 @@
 // CONSTRUCTOR
 Action_Grid::Action_Grid() :
   normalize_(NONE),
-  ensembleNum_(-1),
   // Default particle density (molecules/Ang^3) for water based on 1.0 g/mL
   density_(0.033456),
   max_(0.80),
@@ -31,7 +30,6 @@ void Action_Grid::Help() {
 // Action_Grid::Init()
 Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   nframes_ = 0;
   // Get output filename
   std::string filename = actionArgs.GetStringNext();
@@ -48,7 +46,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   madura_ = actionArgs.getKeyDouble("madura", 0);
   smooth_ = actionArgs.getKeyDouble("smoothdensity", 0);
   invert_ = actionArgs.hasKey("invert");
-  pdbname_ = actionArgs.GetStringKey("pdb");
+  pdbfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("pdb"),"Grid PDB",DataFileList::PDB,true);
   density_ = actionArgs.getKeyDouble("density",0.033456);
   if (actionArgs.hasKey("normframe")) normalize_ = TO_FRAME;
   else if (actionArgs.hasKey("normdensity")) normalize_ = TO_DENSITY;
@@ -80,10 +78,8 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   GridInfo( *grid_ );
   mprintf("\tGrid will be printed to file %s\n",filename.c_str());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
-  if (pdbname_.empty())
-    mprintf("\tPseudo-PDB will be printed to STDOUT.\n");
-  else
-    mprintf("\tPseudo-PDB will be printed to %s\n", pdbname_.c_str());
+  if (pdbfile_ != 0)
+      mprintf("\tPseudo-PDB will be printed to %s\n", pdbfile_->Filename().full());
   if (normalize_ == TO_FRAME)
     mprintf("\tGrid will be normalized by number of frames.\n");
   else if (normalize_ == TO_DENSITY)
@@ -199,11 +195,7 @@ void Action_Grid::PrintPDB(double gridMax)
 //    norm = (double)*std::max_element(grid_->begin(), grid_->end());
 //  }
   // Write PDB
-  PDBfile pdbout;
-  if (pdbout.OpenEnsembleWrite(pdbname_, ensembleNum_)) {
-    mprinterr("Error: Cannot open PDB for grid output.\n");
-    return;
-  }
+  PDBfile& pdbout = static_cast<PDBfile&>( *pdbfile_ );
   mprintf("\tWriting PDB of grid points > %.2f%% of grid max.\n", max_*100.0);
   int res = 1;
   for (size_t k = 0; k < grid_->NZ(); ++k) {
