@@ -11,7 +11,6 @@
 // CONSTRUCTOR
 Action_Hbond::Action_Hbond() :
   debug_(0),
-  ensembleNum_(-1),
   Nframes_(0),
   avgout_(0), solvout_(0), bridgeout_(0),
   useAtomNum_(false),
@@ -53,7 +52,6 @@ void Action_Hbond::Help() {
 // Action_Hbond::Init()
 Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get keywords
   Image_.InitImaging( (actionArgs.hasKey("image")) );

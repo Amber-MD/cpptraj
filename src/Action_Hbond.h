@@ -32,7 +32,6 @@ class Action_Hbond : public Action {
     ImagedAction Image_;
     Matrix_3x3 ucell_, recip_;
     int debug_;
-    int ensembleNum_;
     int Nframes_;
     CpptrajFile* avgout_;
     CpptrajFile* solvout_;

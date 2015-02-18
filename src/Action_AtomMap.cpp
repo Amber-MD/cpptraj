@@ -692,14 +692,13 @@ int Action_AtomMap::MapAtoms(AtomMap& Ref, AtomMap& Tgt) {
 Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   DataFile* rmsout = 0;
-  CpptrajFile outputfile;
   int refatom,targetatom;
   debug_ = debugIn; 
   RefMap_.SetDebug(debug_);
   TgtMap_.SetDebug(debug_);
 
   // Get Args
-  std::string outputname = actionArgs.GetStringKey("mapout");
+  CpptrajFile* outputfile = DFL->AddCpptrajFile(actionArgs.GetStringKey("mapout"), "Atom Map");
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");
   if (rmsfit_)
@@ -730,8 +729,8 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   mprintf("    ATOMMAP: Atoms in trajectories associated with parm %s will be\n",
           TgtFrame_->Top().c_str());
   mprintf("             mapped according to parm %s.\n",RefFrame_->Top().c_str());
-  if (!outputname.empty())
-    mprintf("             Map will be written to %s\n",outputname.c_str());
+  if (outputfile != 0)
+    mprintf("             Map will be written to %s\n",outputfile->Filename().full());
   if (maponly_)
     mprintf("             maponly: Map will only be written, not used in trajectory read.\n");
   if (!maponly_ && rmsfit_) {
@@ -784,14 +783,13 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
 
   // Print atom map and count # mapped atoms
   numMappedAtoms = 0;
-  outputfile.OpenEnsembleWrite(outputname, DSL->EnsembleNum());
-  outputfile.Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
+  outputfile->Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
   for (refatom=0; refatom < RefMap_.Natom(); refatom++) {
     targetatom = AMap_[refatom];
     if (targetatom < 0) 
-      outputfile.Printf("%6s %4s %6i %4s\n","---","---",refatom+1,RefMap_[refatom].c_str());
+      outputfile->Printf("%6s %4s %6i %4s\n","---","---",refatom+1,RefMap_[refatom].c_str());
     else
-      outputfile.Printf("%6i %4s %6i %4s\n",targetatom+1,TgtMap_[targetatom].c_str(),
+      outputfile->Printf("%6i %4s %6i %4s\n",targetatom+1,TgtMap_[targetatom].c_str(),
                             refatom+1, RefMap_[refatom].c_str());
     if (targetatom>=0) {
       //mprintf("* TargetAtom %6i(%4s) maps to RefAtom %6i(%4s)\n",
@@ -803,7 +801,6 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     //                  refatom,RefMap_.P->names[refatom]);
     //}
   }
-  outputfile.CloseFile();
   mprintf("      %i total atoms were mapped.\n",numMappedAtoms);
   if (maponly_) return Action::OK;
 
