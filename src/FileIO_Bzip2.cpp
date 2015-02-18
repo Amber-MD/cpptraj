@@ -6,16 +6,15 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-FileIO_Bzip2::FileIO_Bzip2() {
-  //fprintf(stderr,"FileIO_Bzip2 CONSTRUCTOR\n");
-  fp_ = NULL;
-  infile_ = NULL;
-  err_ = BZ_OK;
-  isBzread_ = true;
-  bzfilename_ = NULL;
-  bzmode_ = NULL;
-  position_ = 0L;
-}
+FileIO_Bzip2::FileIO_Bzip2() : 
+  fp_(NULL),
+  infile_(NULL),
+  bzfilename_(NULL),
+  bzmode_(NULL),
+  position_(0L),
+  err_(BZ_OK),
+  isBzread_(true)
+{}
 
 // DESTRUCTOR
 FileIO_Bzip2::~FileIO_Bzip2() {
@@ -75,6 +74,7 @@ const char *FileIO_Bzip2::BZerror() {
 //   times can become very large. The default value of 30 gives reasonable 
 //   behaviour over a wide range of circumstances.
 int FileIO_Bzip2::Open(const char *filename, const char *mode) {
+  if (filename == 0) return 1;
   // Store filename and mode - reallocate in case of reopen
   if (bzfilename_!=filename) {
     bzfilename_ = (char*) realloc(bzfilename_, (strlen(filename)+1) * sizeof(char));
