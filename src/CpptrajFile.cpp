@@ -22,6 +22,9 @@ const char* CpptrajFile::FileTypeName[] = {
   "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
 };
 
+const char* CpptrajFile::AccessTypeName[] = {
+  "read", "write", "append", "update" };
+
 // CONSTRUCTOR
 CpptrajFile::CpptrajFile() :
   IO_(0),
@@ -32,6 +35,7 @@ CpptrajFile::CpptrajFile() :
   compressType_(NO_COMPRESSION),
   debug_(0),
   isOpen_(false),
+  isStream_(false),
   fileType_(STANDARD)
 { }
 
@@ -46,6 +50,7 @@ CpptrajFile::CpptrajFile(const CpptrajFile &rhs) :
   debug_(rhs.debug_),
   // Even if file is open, copy it closed?
   isOpen_(false),
+  isStream_(rhs.isStream_),
   fileType_(rhs.fileType_),
   fname_(rhs.fname_)
 {
@@ -57,26 +62,27 @@ CpptrajFile::CpptrajFile(const CpptrajFile &rhs) :
 
 // Assignment
 CpptrajFile &CpptrajFile::operator=(const CpptrajFile &rhs) {
-  // Self-assignment
-  if (this == &rhs) return *this;
-  // Deallocate
-  CloseFile();
-  if (IO_ != 0) delete IO_;
-  // Allocate and copy
-  debug_ = rhs.debug_;
-  access_ = rhs.access_;
-  uncompressed_size_ = rhs.uncompressed_size_;
-  file_size_ = rhs.file_size_;
-  fileType_ = rhs.fileType_;
-  fname_ = rhs.fname_;
-  compressType_ = rhs.compressType_;
-  isDos_ = rhs.isDos_;
-  // Set up the IO object
-  // NOTE: Should probably throw an exception if this fails.
-  if (rhs.IO_ != 0) 
-    IO_ = SetupFileIO( fileType_ );
-  else
-    IO_ = 0;
+  if (this != &rhs) { 
+    // Deallocate
+    CloseFile();
+    if (IO_ != 0) delete IO_;
+    // Allocate and copy
+    debug_ = rhs.debug_;
+    isStream_ = rhs.isStream_;
+    access_ = rhs.access_;
+    uncompressed_size_ = rhs.uncompressed_size_;
+    file_size_ = rhs.file_size_;
+    fileType_ = rhs.fileType_;
+    fname_ = rhs.fname_;
+    compressType_ = rhs.compressType_;
+    isDos_ = rhs.isDos_;
+    // Set up the IO object
+    // NOTE: Should probably throw an exception if this fails.
+    if (rhs.IO_ != 0) 
+      IO_ = SetupFileIO( fileType_ );
+    else
+      IO_ = 0;
+  }
   return *this;
 }
 
@@ -87,79 +93,57 @@ CpptrajFile::~CpptrajFile() {
    if (IO_ != 0) delete IO_;
 }
 
-// CpptrajFile::IsCompressed()
-bool CpptrajFile::IsCompressed() {
-  if (compressType_ == NO_COMPRESSION) return false;
-  return true;
-}
-
-int CpptrajFile::OpenFile() {
-  return OpenFile( access_ );
-}
-
 // CpptrajFile::OpenFile()
-/** Open the file. If already open, reopen.  */
+/** Open the file. If already open, reopen.
+  * NOTE: UPDATE access currently only used by Traj_CharmmDcd to update frame count.
+  */
 int CpptrajFile::OpenFile(AccessType accessIn) {
-  int err;
-  if (isOpen_) CloseFile();
-
-  switch (accessIn) {
-    case READ:
-      if (fname_.empty()) {
-        mprinterr("Error: CpptrajFile: Filename is null.\n");
-        return 1;
-      }
-      if ( IO_->Open(Filename().full(), "rb")  ) { 
-        rprintf("Could not open %s for reading.\n", Filename().full());
-        return 1;
-      }
-      if (debug_>0) rprintf("Opened %s for reading.\n", Filename().full());
-      break;
-    case APPEND:
-      if (fname_.empty()) {
-        mprinterr("Error: CpptrajFile: Filename is null.\n");
-        return 1;
-      }
-      if ( IO_->Open(Filename().full(), "ab") ) {
-        rprintf("Could not open %s for appending.\n", Filename().full());
-        return 1;
-      }
-      if (debug_>0) rprintf("Opened %s for appending.\n", Filename().full());
-      break;
-    case WRITE:
-      err = 0;
-      if ( fname_.empty() )
-        err = IO_->Open(0, "wb");
-      else
-        err = IO_->Open(Filename().full(), "wb");
-      if ( err != 0 ) { 
-        rprintf("Could not open %s for writing.\n", Filename().full());
-        return 1;
-      }
-      if (debug_>0) rprintf("Opened %s for writing.\n", Filename().full());
-      break;
-    case UPDATE:
-      if (fname_.empty()) {
-        mprinterr("Error: CpptrajFile: Filename is null.\n");
-        return 1;
-      }
-      if ( IO_->Open(Filename().full(), "r+b") ) {
-        rprintf("Could not open %s for updating.\n", Filename().full());
-        return 1;
-      }
-      if (debug_>0) rprintf("Opened %s for updating.\n", Filename().full());
-      break;
+  if (IO_ == 0) {
+    mprinterr("Internal Error: CpptrajFile has not been set up.\n");
+    return 1;
   }
-      
-  isOpen_ = true;
-  return 0;
+  int err = 0;
+  if (isOpen_) CloseFile();
+  if (isStream_) {
+    switch (accessIn) {
+      case READ : err = IO_->OpenStream( FileIO::STDIN ); break;
+      case WRITE: err = IO_->OpenStream( FileIO::STDOUT); break;
+      default:
+        mprinterr("Internal Error: %s access not supported for file streams.\n",
+                  AccessTypeName[accessIn]);
+        err = 1;
+    }
+    if (debug_ > 0 && err == 0)
+      rprintf("Opened stream %s\n", fname_.full());
+  } else {
+    if (fname_.empty()) {
+      mprinterr("Internal Error: CpptrajFile file name is empty.\n");
+      err = 1;
+    } else {
+      switch (accessIn) {
+        case READ:   err = IO_->Open(fname_.full(), "rb"); break;
+        case WRITE:  err = IO_->Open(fname_.full(), "wb"); break;
+        case APPEND: err = IO_->Open(fname_.full(), "ab"); break;
+        case UPDATE: err = IO_->Open(fname_.full(), "r+b"); break;
+      }
+      if (debug_ > 0 && err == 0)
+        rprintf("Opened file %s with access %s\n", fname_.full(), AccessTypeName[accessIn]);
+    }
+  }
+  if (err == 0)
+    isOpen_ = true;
+  else {
+    if (debug_ > 0)
+      rprinterr("Could not open %s with access %s\n", fname_.full(), AccessTypeName[accessIn]);
+  }
+  return err;
 }
 
 // CpptrajFile::CloseFile()
 void CpptrajFile::CloseFile() {
   if (isOpen_) {
     IO_->Close();
-    if (debug_>0) rprintf("Closed %s.\n", Filename().full());
+    if (debug_>0) rprintf("Closed %s.\n", fname_.full());
     isOpen_=false;
   }
 }
@@ -178,7 +162,7 @@ void CpptrajFile::Printf(const char *format, ...) {
 
 std::string CpptrajFile::GetLine() {
   if (IO_->Gets(linebuffer_, BUF_SIZE) != 0) {
-    //mprinterr("Error: Getting line from %s\n", Filename().full());
+    //mprinterr("Error: Getting line from %s\n", fname_.full());
     return std::string();
   }
   return std::string(linebuffer_);
@@ -186,7 +170,7 @@ std::string CpptrajFile::GetLine() {
 
 const char* CpptrajFile::NextLine() {
   if (IO_->Gets(linebuffer_, BUF_SIZE) != 0) {
-    //mprinterr("Error: Reading line from %s\n", Filename().full());
+    //mprinterr("Error: Reading line from %s\n", fname_.full());
     return 0;
   }
   return linebuffer_;
@@ -194,7 +178,7 @@ const char* CpptrajFile::NextLine() {
 
 // -----------------------------------------------------------------------------
 // CpptrajFile::UncompressedSize()
-off_t CpptrajFile::UncompressedSize() {
+off_t CpptrajFile::UncompressedSize() const {
   if (compressType_ == NO_COMPRESSION)
     return file_size_;
   else
@@ -210,17 +194,55 @@ void CpptrajFile::Reset() {
   IO_ = 0;
   fname_.clear();
   isOpen_ = false;
+  isStream_ = false;
   uncompressed_size_ = 0UL;
   compressType_ = NO_COMPRESSION;
   isDos_ = 0;
 }
 
+// -----------------------------------------------------------------------------
 // CpptrajFile::OpenRead()
 int CpptrajFile::OpenRead(std::string const& nameIn) {
   if (SetupRead( nameIn, debug_ )) return 1; 
   return OpenFile();
 }
 
+// CpptrajFile::OpenWrite()
+int CpptrajFile::OpenWrite(std::string const& nameIn) {
+  if (SetupWrite(nameIn, debug_)) return 1;
+  return OpenFile();
+}
+
+// CpptrajFile::OpenWriteNumbered()
+// NOTE: File MUST be previously set up. Primarily for use with traj files.
+int CpptrajFile::OpenWriteNumbered(int numIn) {
+  if (isStream_) {
+    mprinterr("Internal Error: CpptrajFile::OpenWriteNumbered cannot be used with streams.\n");
+    return 1;
+  }
+  std::string newName = NumberFilename( fname_.Full(), numIn );
+  if (IO_->Open( newName.c_str(), "wb")) return 1;
+  isOpen_ = true;
+  return 0;
+}
+
+// CpptrajFile::OpenEnsembleWrite()
+int CpptrajFile::OpenEnsembleWrite(std::string const& nameIn, int ensembleNum) {
+  if (!nameIn.empty() && ensembleNum > -1) {
+    if (SetupWrite( NumberFilename(nameIn, ensembleNum), debug_)) return 1;
+  } else {
+    if (SetupWrite( nameIn,                              debug_)) return 1;
+  }
+  return OpenFile();
+}
+
+// CpptrajFile::OpenAppend()
+int CpptrajFile::OpenAppend(std::string const& nameIn) {
+  if (SetupAppend(nameIn, debug_)) return 1;
+  return OpenFile();
+}
+
+// -----------------------------------------------------------------------------
 // CpptrajFile::SetupRead()
 /** Set up file for reading. Will autodetect the type.
   * \return 0 on success, 1 on error.
@@ -231,6 +253,7 @@ int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
     mprinterr("Internal Error: No filename specified for READ.\n");
     return 1;
   }
+  isStream_ = false;
   // Check if file exists. If not, fail silently
   if (!fileExists( nameIn )) return 1;
   // Clear file, set debug level
@@ -251,33 +274,8 @@ int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
   // Set up filename; sets base filename and extensions
   fname_.SetFileName( expandedName, IsCompressed() );
   if (debug_>0)
-    rprintf("\t[%s] is type %s with access READ\n", Filename().full(), FileTypeName[fileType_]);
+    rprintf("\t[%s] is type %s with access READ\n", fname_.full(), FileTypeName[fileType_]);
   return 0;
-}
-
-// CpptrajFile::OpenWriteNumbered()
-// NOTE: File MUST be previously set up. Primarily for use with traj files.
-int CpptrajFile::OpenWriteNumbered(int numIn) {
-  std::string newName = NumberFilename( Filename().Full(), numIn );
-  if (IO_->Open( newName.c_str(), "wb")) return 1;
-  isOpen_ = true;
-  return 0;
-}
-
-// CpptrajFile::OpenWrite()
-int CpptrajFile::OpenWrite(std::string const& nameIn) {
-  if (SetupWrite(nameIn, debug_)) return 1;
-  return OpenFile();
-}
-
-// CpptrajFile::OpenEnsembleWrite()
-int CpptrajFile::OpenEnsembleWrite(std::string const& nameIn, int ensembleNum) {
-  if (!nameIn.empty() && ensembleNum > -1) {
-    if (SetupWrite( NumberFilename(nameIn, ensembleNum), debug_)) return 1;
-  } else {
-    if (SetupWrite( nameIn,                              debug_)) return 1;
-  }
-  return OpenFile();
 }
 
 // CpptrajFile::SetupWrite()
@@ -297,12 +295,22 @@ int CpptrajFile::SetupWrite(std::string const& filenameIn, FileType typeIn, int 
   Reset();
   debug_ = debugIn;
   access_ = WRITE;
+  fileType_ = typeIn;
+  // If filenameIn is empty assume writing to STDOUT desired.
+  if (filenameIn.empty()) {
+    isStream_ = true;
+    // file type must be STANDARD for streams
+    fileType_ = STANDARD;
+    fname_.SetFileName("STDOUT");
+  } else {
+    isStream_ = false;
+    // Set up filename; sets base filename and extension
+    fname_.SetFileName(filenameIn);
+  }
   if (debug_>0)
-    mprintf("CpptrajFile: Setting up %s for WRITE.\n",filenameIn.c_str());
-  // Set up filename; sets base filename and extension
-  fname_.SetFileName(filenameIn);
+    mprintf("CpptrajFile: Setting up %s for WRITE.\n", fname_.full());
   // If file type is not specified, try to determine from filename extension
-  if (typeIn == UNKNOWN_TYPE) {
+  if (fileType_ == UNKNOWN_TYPE) {
     if (fname_.Compress() == ".gz")
       fileType_ = GZIPFILE;
     else if (fname_.Compress() == ".bz2")
@@ -314,37 +322,13 @@ int CpptrajFile::SetupWrite(std::string const& filenameIn, FileType typeIn, int 
   IO_ = SetupFileIO( fileType_ );
   if (IO_ == 0) return 1;
   if (debug_>0)
-    rprintf("\t[%s] is type %s with access WRITE\n", Filename().full(), FileTypeName[fileType_]);
+    rprintf("\t[%s] is type %s with access WRITE\n", fname_.full(), FileTypeName[fileType_]);
   return 0;
-}
-
-// CpptrajFile::OpenAppend()
-int CpptrajFile::OpenAppend(std::string const& nameIn) {
-  if (nameIn.empty()) {
-    if (SetupWrite(nameIn, debug_)) return 1;
-  } else {
-    if (SetupAppend(nameIn, debug_)) return 1;
-  }
-  return OpenFile();
-}
-
-// CpptrajFile::OpenEnsembleAppend()
-int CpptrajFile::OpenEnsembleAppend(std::string const& nameIn, int ensembleNum) {
-  if (nameIn.empty())
-    return OpenEnsembleWrite( nameIn, ensembleNum );
-  else {
-    if (ensembleNum > -1) {
-      if (SetupAppend( NumberFilename(nameIn, ensembleNum), debug_)) return 1;
-    } else {
-      if (SetupAppend( nameIn,                              debug_)) return 1;
-    }
-  }
-  return OpenFile();
 }
 
 // CpptrajFile::SetupAppend()
 /** Set up the file for appending. Will first set up for read to determine
-  * the type and format.
+  * the type and format. Set up for write if file does not exist.
   * \return 0 on success, 1 on error.
   */
 int CpptrajFile::SetupAppend(std::string const& filenameIn, int debugIn) {
@@ -363,13 +347,15 @@ int CpptrajFile::SetupAppend(std::string const& filenameIn, int debugIn) {
     if (SetupWrite(filenameIn, debugIn)!=0) return 1;
     if (debug_>0)
       mprintf("Warning: %s does not exist, changed access from APPEND to WRITE.\n",
-              Filename().full());
+              fname_.full());
   }
   // Appending and compression not supported.
   if (IsCompressed()) {
     mprinterr("Error: Appending to compressed files is not supported.\n");
     return 1;
   }
+  if (debug_>0)
+    rprintf("\t[%s] is type %s with access APPEND\n", fname_.full(), FileTypeName[fileType_]);
   return 0;
 }
 
@@ -413,6 +399,7 @@ FileIO* CpptrajFile::SetupFileIO(FileType typeIn) {
 // CpptrajFile::ID_Type() 
 /** Attempt to identify the file type for filenameIn. Also set file_size,
   * uncompressed_size, and compressType.
+  * FIXME: Will have to be modified to use OpenFile if STDIN ever enabled.
   */
 int CpptrajFile::ID_Type(const char* filenameIn) {
   if (filenameIn == 0) return 1;
