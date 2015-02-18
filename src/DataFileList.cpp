@@ -23,9 +23,14 @@ DataFileList::~DataFileList() {
 
 // DataFileList::Clear()
 void DataFileList::Clear() {
-  for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); it++)
+  for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); ++it)
     delete *it;
   fileList_.clear();
+  for (CFarray::iterator it = textList_.begin(); it != textList_.end(); ++it) {
+    (*it)->CloseFile();
+    delete *it;
+  }
+  textList_.clear();
 }
 
 // DataFileList::RemoveDataFile()
@@ -57,13 +62,23 @@ void DataFileList::SetDebug(int debugIn) {
 }
 
 // DataFileList::GetDataFile()
-/** Return DataFile specified by given file name if it exists in the list,
-  * otherwise return null. Must match full path.
+/** \return DataFile specified by given file name if it exists in the list,
+  *         otherwise return 0. Must match full path.
   */
 DataFile* DataFileList::GetDataFile(std::string const& nameIn) const {
   if (nameIn.empty()) return 0;
   for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
     if (nameIn == (*df)->DataFilename().Full()) return *df;
+  return 0;
+}
+
+/** \return CpptrajFile specified by given file name if it exists in the list,
+  *         otherwise return 0. Must match full path.
+  */
+CpptrajFile* DataFileList::GetCpptrajFile(std::string const& nameIn) const {
+  if (nameIn.empty()) return 0;
+  for (CFarray::const_iterator cf = textList_.begin(); cf != textList_.end(); ++cf)
+    if (nameIn == (*cf)->Filename().Full()) return *cf;
   return 0;
 }
 
@@ -78,13 +93,20 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
     // Ensemble mode, append rank to the output filename.
     name += ("." + integerToString(ensembleMode_));
 # endif
+  // Check if filename in use by CpptrajFile.
+  CpptrajFile* cf = GetCpptrajFile(name);
+  if (cf != 0) {
+    mprinterr("Error: Data file name '%s' already in use by text output file '%s'.\n",
+              nameIn.c_str(), cf->Filename().full());
+    return 0;
+  }
   // Check if this filename already in use
   DataFile* Current = GetDataFile(name);
-  // If no DataFile associated with name, create new datafile
+  // If no DataFile associated with name, create new DataFile
   if (Current==0) {
     Current = new DataFile();
     if (Current->SetupDatafile(name, argIn, debug_)) {
-      mprinterr("Error setting up DataFile %s\n",name.c_str());
+      mprinterr("Error: Setting up data file %s\n",name.c_str());
       delete Current;
       return 0;
     }
@@ -123,19 +145,73 @@ DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn)
   return DF;
 }
 
+/** Create new CpptrajFile, or return existing CpptrajFile. */
+// TODO: Accept const ArgList so arguments are not reset?
+CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn, std::string const& descrip)
+{
+  // If no filename, no output desired
+  if (nameIn.empty()) return 0;
+  std::string name = nameIn;
+# ifdef MPI
+  if (ensembleMode_ != -1)
+    // Ensemble mode, append rank to the output filename.
+    name += ("." + integerToString(ensembleMode_));
+# endif
+  // Check if filename in use by DataFile.
+  DataFile* df = GetDataFile(name);
+  if (df != 0) {
+    mprinterr("Error: Text output file name '%s' already in use by data file '%s'.\n",
+              nameIn.c_str(), df->DataFilename().full());
+    return 0;
+  }
+  // Check if this filename already in use
+  CpptrajFile* Current = GetCpptrajFile(name);
+  // If no CpptrajFile associated with name, create new CpptrajFile
+  if (Current==0) {
+    Current = new CpptrajFile();
+    Current->SetDebug(debug_);
+    // TODO: Open later?
+    if (Current->OpenWrite( name )) {
+      mprinterr("Error: Opening text output file %s\n",name.c_str());
+      delete Current;
+      return 0;
+    }
+    textList_.push_back(Current);
+    if (descrip.empty())
+      textDescrip_.push_back("text output");
+    else
+      textDescrip_.push_back(descrip);
+  } else {
+    Current->SetDebug(debug_);
+    if (!descrip.empty()) {
+      // Find position in textList and update description
+      unsigned int idx = 0;
+      for (; idx != textList_.size(); idx++)
+        if (textList_[idx] == Current) {
+          textDescrip_[idx].append(", " + descrip);
+          break;
+        }
+    }
+  }
+  return Current;
+}
+
 // DataFileList::List()
 /** Print information on what datasets are going to what datafiles */
 void DataFileList::List() const {
-  if (fileList_.empty()) {
-    //mprintf("NO DATASETS WILL BE OUTPUT\n");
-    return;
-  }
-
-  mprintf("\nDATAFILES:\n");
-  for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); it++) {
-    mprintf("  %s (%s): ",(*it)->DataFilename().base(), (*it)->FormatString());
-    (*it)->DataSetNames();
-    mprintf("\n");
+  if (!fileList_.empty() || !textList_.empty()) {
+    mprintf("\nDATAFILES:\n");
+    if (!fileList_.empty()) {
+      for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); ++it) {
+        mprintf("  %s (%s): ",(*it)->DataFilename().base(), (*it)->FormatString());
+        (*it)->DataSetNames();
+        mprintf("\n");
+      }
+    }
+    if (!textList_.empty()) {
+      for (unsigned int idx = 0; idx != textList_.size(); idx++)
+        mprintf("  %s (%s)\n", textList_[idx]->Filename().base(), textDescrip_[idx].c_str());
+    }
   }
 }
 

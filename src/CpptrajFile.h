@@ -14,6 +14,8 @@ class CpptrajFile {
     virtual ~CpptrajFile(); // Virtual since class is inherited
     CpptrajFile(const CpptrajFile&);
     CpptrajFile &operator=(const CpptrajFile &);
+    /// Set debug level.
+    void SetDebug(int d) { debug_ = d; }
     /// Set up and open file for reading.
     int OpenRead(std::string const&);
     /// Prepare file for reading. 
