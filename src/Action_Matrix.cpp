@@ -7,16 +7,23 @@
 // CONSTRUCTOR
 Action_Matrix::Action_Matrix() :
   Mat_(0),
+  matrixDS_(0),
   outfile_(0),
+  byMaskOut_(0),
   outtype_(BYATOM),
   snap_(0),
   debug_(0),
-  ensembleNum_(-1),
   order_(2),
   useMask2_(false),
   useMass_(false),
   CurrentParm_(0)
 {}
+
+// DESTRUCTOR
+Action_Matrix::~Action_Matrix() {
+  if (Mat_ != 0 && outtype_ != BYATOM)
+    delete Mat_;
+}
 
 void Action_Matrix::Help() {
   mprintf("\t[out <filename>] %s\n", ActionFrameCounter::HelpText);
@@ -39,10 +46,9 @@ void Action_Matrix::Help() {
 // Action_Matrix::Init()
 Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
-  filename_ = actionArgs.GetStringKey("out");
+  std::string outfilename = actionArgs.GetStringKey("out");
   // Get start/stop/offset
   if (InitFrameCounter(actionArgs)) return Action::ERR;
   // Determine matrix type
@@ -129,19 +135,31 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
       mkind = DataSet_2D::FULL;
     }
   }
- 
-  // Set up matrix DataSet and type
-  Mat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, name, "Mat");
-  if (Mat_ == 0) return Action::ERR;
-  // NOTE: Kind is set here so subsequent analyses/actions know about it.
-  Mat_->SetTypeAndKind( mtype, mkind );
-  // Set default precision for backwards compat.
-  Mat_->SetPrecision(6, 3);
-  // Add set to output file if doing BYATOM output
-  if (outtype_ == BYATOM && !filename_.empty()) {
-    outfile_ = DFL->AddDataFile(filename_, actionArgs);
-    if (outfile_ == 0) return Action::ERR;
-    outfile_->AddSet( Mat_ );
+
+  if (outtype_ == BYMASK) {
+    // BYMASK output - no final data set, just write to file/STDOUT.
+    byMaskOut_ = DFL->AddCpptrajFile(outfilename, "Matrix by mask",
+                                     DataFileList::TEXT, true);
+    if (byMaskOut_ == 0) return Action::ERR;
+    outfile_ = 0;
+    matrixDS_ = 0;
+    Mat_ = new DataSet_MatrixDbl();
+    Mat_->SetTypeAndKind( mtype, mkind );
+  } else { 
+    // BYATOM or BYRESIDUE output. Set up DataSet and type.
+    outfile_ = DFL->AddDataFile(outfilename, actionArgs);
+    matrixDS_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, name, "Mat");
+    if (matrixDS_ == 0) return Action::ERR;
+    // NOTE: Kind is set here so subsequent analyses/actions know about it.
+    matrixDS_->SetTypeAndKind( mtype, mkind );
+    // Set default precision for backwards compat.
+    matrixDS_->SetPrecision(6, 3);
+    if (outfile_ != 0) outfile_->AddSet( matrixDS_ );
+    byMaskOut_ = 0;
+    if (outtype_ == BYATOM)
+      Mat_ = matrixDS_;
+    else // BYRESIDUE. Create copy of matrixDS_ for use by atom.
+      Mat_ = new DataSet_MatrixDbl( *matrixDS_ );
   }
 
   mprintf("    MATRIX: Calculating %s, output is", DataSet_2D::MatrixTypeString(mtype));
@@ -158,30 +176,25 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   }
   mprintf("\n");
   if (mtype == DataSet_2D::IRED)
-    mprintf("            %u IRED vecs, Order of Legendre polynomials: %i\n",
+    mprintf("\t%u IRED vecs, Order of Legendre polynomials: %i\n",
             IredVectors_.size(), order_);
   else if (mtype == DataSet_2D::DIHCOVAR)
-    mprintf("            %u data sets.\n", DihedralSets_.size());
-  if (!filename_.empty()) {
-    mprintf("            Printing to file %s\n",filename_.c_str());
-    if (outtype_ != BYATOM) {
-      mprintf("Warning: Output type is not 'byatom'. File will not be stored on internal\n");
-      mprintf("Warning: DataFile stack, only basic formatting is possible.\n");
-    }
-  }
+    mprintf("\t%u data sets.\n", DihedralSets_.size());
+  if (outfile_ != 0)
+    mprintf("\tPrinting to file %s\n", outfile_->DataFilename().full());
+  if (byMaskOut_ != 0)
+    mprintf("\tBy mask output to %s\n", byMaskOut_->Filename().full());
   if (!name.empty())
-    mprintf("            Storing matrix on internal stack with name: %s\n", 
-            Mat_->Legend().c_str());
+    mprintf("\tStoring matrix on internal stack with name: %s\n", matrixDS_->Legend().c_str());
   FrameCounterInfo();
   if (mtype != DataSet_2D::IRED && mtype != DataSet_2D::DIHCOVAR) {
-    mprintf("            Mask1: %s\n",mask1_.MaskString());
+    mprintf("\tMask1: %s\n",mask1_.MaskString());
     if (useMask2_)
-      mprintf("            Mask2: %s\n",mask2_.MaskString());
+      mprintf("\tMask2: %s\n",mask2_.MaskString());
   }
 #ifdef NEW_MATRIX_PARA
   mprintf("DEBUG: NEW COVARIANCE MATRIX PARALLELIZATION SCHEME IN USE.\n");
 #endif
-
   return Action::OK;
 }
 
@@ -889,6 +902,34 @@ void Action_Matrix::FinishDistanceCovariance() {
       *(mat++) -= ((*pair_i) * (*pair_j));
 }
 
+// Action_Matrix::MaskToMatResArray()
+Action_Matrix::MatResArray Action_Matrix::MaskToMatResArray(AtomMask const& mask) const {
+  MatResArray residues;
+  int currentResNum = -1;
+  matrix_res blank_res;
+  for (int idx = 0; idx != mask.Nselected(); idx++)
+  {
+    int atom1 = mask[idx];
+    int resNum = (*CurrentParm_)[atom1].ResNum();
+    if (resNum != currentResNum) {
+      residues.push_back( blank_res );
+      residues.back().resnum_ = resNum;
+      currentResNum = resNum;
+    }
+    residues.back().maskIdxs_.push_back( idx );
+  }
+  if (debug_ > 0) {
+    mprintf("DEBUG: BYRES: MASK '%s'\n", mask.MaskString());
+    for (MatResArray::const_iterator res = residues.begin(); res != residues.end(); ++res) {
+      mprintf("\tRes %i:", res->resnum_+1);
+      for (Iarray::const_iterator it = res->maskIdxs_.begin(); it != res->maskIdxs_.end(); ++it)
+        mprintf(" %i (%i)", mask[*it] + 1, *it);
+      mprintf("\n");
+    }
+  }
+  return residues;
+}
+
 // Action_Matrix::Print()
 void Action_Matrix::Print() {
   if (debug_ > 1) {
@@ -926,69 +967,64 @@ void Action_Matrix::Print() {
   // it is not stored in DataFileList.
   // TODO: Convert byres to new matrix so it can be output formatted.
   // TODO: Check that currentParm is still valid?
-  if (!filename_.empty() && outtype_ == BYRESIDUE) {
+  if (outtype_ == BYRESIDUE) {
     // ---------- Print out BYRESIDUE
-    CpptrajFile outfile;
-    outfile.OpenEnsembleWrite(filename_, ensembleNum_);
-    // Convert masks to char masks in order to check whether an atom
-    // is selected.
-    mask1_.ConvertToCharMask();
-    if (useMask2_)
-      mask2_.ConvertToCharMask();
-    else
-      mask2_ = mask1_;
-    // Loop over residue pairs
-    int crow = 0;
+    matrixDS_->Dim(Dimension::X).SetLabel("Res");
+    // First determine which mask elements correspond to which residues,
+    // as well as how many residues are selected in mask1 (cols) and
+    // mask2 (rows) to determine output matrix dimensions.
+    MatResArray residues1 = MaskToMatResArray( mask1_ );
+    MatResArray residues2;
     double mass = 1.0;
-    for (Topology::res_iterator resi = CurrentParm_->ResStart(); 
-                                resi != CurrentParm_->ResEnd(); ++resi) { // Row
-      bool printnewline = false;
-      int crowold = crow;
-      int ccol = 0;
-      for (Topology::res_iterator resj = CurrentParm_->ResStart();
-                                  resj != CurrentParm_->ResEnd(); ++resj) { // Column
-        bool printval = false;
-        double val = 0;
-        double valnorm = 0;
-        crow = crowold;
-        int ccolold = ccol;
-        for (int atomi = (*resi).FirstAtom(); atomi < (*resi).LastAtom(); ++atomi)
+    if (useMask2_)
+      residues2 = MaskToMatResArray( mask2_ );
+    else {
+      mask2_ = mask1_;
+      residues2 = residues1;
+    }
+    // Always allocate full matrix for BYRESIDUE
+    matrixDS_->Allocate2D( residues1.size(), residues2.size() ); // cols, rows
+    mprintf("    MATRIX: By-residue matrix has %u rows, %u columns.\n", 
+            matrixDS_->Nrows(), matrixDS_->Ncols());
+    for (MatResArray::const_iterator resj = residues2.begin(); resj != residues2.end(); ++resj)
+    {
+      for (MatResArray::const_iterator resi = residues1.begin(); resi != residues1.end(); ++resi)
+      {
+        double val = 0.0;
+        double valnorm = 0.0;
+        for (Iarray::const_iterator itj = resj->maskIdxs_.begin();
+                                    itj != resj->maskIdxs_.end(); ++itj)
         {
-          if ( mask2_.AtomInCharMask(atomi) ) {
-            ccol = ccolold;
-            for (int atomj = (*resj).FirstAtom(); atomj < (*resj).LastAtom(); ++atomj)
-            {
-              if ( mask1_.AtomInCharMask(atomj) ) {
-                if (useMass_)
-                  mass = (*CurrentParm_)[atomi].Mass() * (*CurrentParm_)[atomj].Mass();
-                valnorm += mass;
-                printval = printnewline = true;
-                //mprintf("Res %i-%i row=%i col=%i\n",resi+1,resj+1,crow,ccol);
-                val += (Mat_->GetElement( ccol, crow ) * mass);
-                ++ccol;
-              }
-            }
-            ++crow;
+          int atj = mask2_[*itj];
+          for (Iarray::const_iterator iti = resi->maskIdxs_.begin();
+                                      iti != resi->maskIdxs_.end(); ++iti)
+          {
+            int ati = mask1_[*iti];
+            if (useMass_)
+              mass = (*CurrentParm_)[ati].Mass() * (*CurrentParm_)[atj].Mass();
+            valnorm += mass;
+            val += Mat_->GetElement( *iti, *itj ); // col, row
           }
         }
-        if (printval) outfile.Printf("%6.2f ",val / valnorm);
+        matrixDS_->AddElement( val / valnorm );
       }
-      if (printnewline) outfile.Printf("\n");
     }
-    outfile.CloseFile();
-  } else if (!filename_.empty() && outtype_ == BYMASK) {
+  } else if (outtype_ == BYMASK) {
     // ---------- Print out BYMASK
-    CpptrajFile outfile;
-    outfile.OpenEnsembleWrite(filename_, ensembleNum_);
     // If only 1 mask, internal average over mask1, otherwise
     //   i==0: mask1/mask1 
     //   i==1: mask1/mask2 
     //   i==2: mask2/mask2
     int iend;
-    if (!useMask2_)
+    if (!useMask2_) {
+      mprintf("    MATRIX: Writing internal average over mask '%s'\n", mask1_.MaskString());
       iend = 1;
-    else
+    } else {
+      mprintf("    MATRIX: Writing internal averages for mask1 '%s' and mask2 '%s':\n"
+              "            mask1/mask1, mask1/mask2, mask2/mask2\n",
+              mask1_.MaskString(), mask2_.MaskString());
       iend = 3;
+    }
     AtomMask::const_iterator maskAbegin = mask1_.begin();
     AtomMask::const_iterator maskAend = mask1_.end();
     AtomMask::const_iterator maskBbegin = mask1_.begin();
@@ -1017,15 +1053,14 @@ void Action_Matrix::Print() {
         }
         ++crow;
       }
-      outfile.Printf("%6.2f ", val / valnorm);
+      byMaskOut_->Printf("%6.2f ", val / valnorm);
     }
-    outfile.Printf("\n");
-    outfile.CloseFile();
-  }
+    byMaskOut_->Printf("\n");
+  } else // BYATOM
+    matrixDS_->Dim(Dimension::X).SetLabel("Atom");
 
-  // Process output file args
+  // Process output file args FIXME Can this be done in Init()?
   if (outfile_ != 0) {
-    Mat_->Dim(Dimension::X).SetLabel("Atom");
     outfile_->ProcessArgs("square2d noxcol noheader");
   }
   return;
