@@ -18,6 +18,7 @@ Action_CheckStructure::Action_CheckStructure() :
   bondcheck_(true),
   silent_(false),
   skipBadFrames_(false),
+  outfile_(0),
   CurrentParm_(0),
   debug_(0)
 {} 
@@ -30,7 +31,6 @@ void Action_CheckStructure::Help() {
 
 // DESTRUCTOR
 Action_CheckStructure::~Action_CheckStructure() {
-  outfile_.CloseFile();
 # ifdef _OPENMP
   if (problemIndices_ != 0) delete[] problemIndices_;
 # endif
@@ -48,15 +48,16 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   bondcheck_ = !actionArgs.hasKey("nobondcheck");
   skipBadFrames_ = actionArgs.hasKey("skipbadframes");
   silent_ = actionArgs.hasKey("silent");
-
+  if (!silent_) outfile_ = DFL->AddCpptrajFile(reportFile, "Structure check",
+                                               DataFileList::TEXT, true);
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask [%s]",Mask1_.MaskString());
   if (!UseImage()) 
     mprintf(", imaging off");
-  if (!reportFile.empty())
-    mprintf(", output to %s",reportFile.c_str());
+  if (outfile_ != 0)
+    mprintf(", output to %s", outfile_->Filename().full());
   mprintf(".\n");
   if (!bondcheck_) {
     mprintf("\tChecking inter-atomic distances only.\n");
@@ -73,9 +74,6 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
     mprintf("\tWarning messages will be suppressed.\n");
   // Square the non-bond cutoff
   nonbondcut2_ = nonbondcut * nonbondcut;
-  if (!silent_)
-    if (outfile_.OpenEnsembleWrite(reportFile, DSL->EnsembleNum()))
-      return Action::ERR;
 # ifdef _OPENMP
   // Create array so each thread can record what problems it finds.
 # pragma omp parallel
@@ -84,7 +82,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
     {
       numthreads_ = omp_get_num_threads();
       mprintf("\tParallelizing calculation with %i threads.\n", numthreads_);
-      if (outfile_.IsOpen())
+      if (outfile_ != 0)
         problemIndices_ = new std::vector<Problem>[ numthreads_ ];
     }
   }
@@ -228,7 +226,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
         if ( (problem.atom1_==currentBond->atom1) && (problem.atom2_==currentBond->atom2) ) {
           if (D2 > currentBond->req) {
             ++Nproblems;
-            if (outfile_.IsOpen())
+            if (outfile_ != 0)
               problem.type_ += BOND;
           }
           // Next bond
@@ -236,7 +234,7 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
         }
         if (D2 < nonbondcut2_) {
           ++Nproblems;
-          if (outfile_.IsOpen())
+          if (outfile_ != 0)
             problem.type_ += DISTANCE;
         }
         if (problem.type_ != NONE) {
@@ -247,19 +245,19 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
     }
   } // END parallel block
   // OUTPUT
-  if (outfile_.IsOpen()) {
+  if (outfile_ != 0) {
     for (int nt = 0; nt < numthreads_; nt++) {
       for (std::vector<Problem>::const_iterator prob = problemIndices_[nt].begin();
                                                 prob != problemIndices_[nt].end();
                                               ++prob)
       {
         if (prob->type_ == BOTH || prob->type_ == BOND)
-          outfile_.Printf(
+          outfile_->Printf(
             "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", prob->frameNum_,
             prob->atom1_+1, CurrentParm_->TruncResAtomName(prob->atom1_).c_str(),
             prob->atom2_+1, CurrentParm_->TruncResAtomName(prob->atom2_).c_str(), prob->Dist_);
         if (prob->type_ == BOTH || prob->type_ == DISTANCE)
-          outfile_.Printf(
+          outfile_->Printf(
             "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", prob->frameNum_,
             prob->atom1_+1, CurrentParm_->TruncResAtomName(prob->atom1_).c_str(),
             prob->atom2_+1, CurrentParm_->TruncResAtomName(prob->atom2_).c_str(), prob->Dist_);
@@ -281,8 +279,8 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
         // req has been precalced to (req + bondoffset)^2
         if (D2 > currentBond->req) {
           ++Nproblems;
-          if (outfile_.IsOpen())
-            outfile_.Printf(
+          if (outfile_ != 0)
+            outfile_->Printf(
                     "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
                     atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
                     atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));
@@ -293,8 +291,8 @@ int Action_CheckStructure::CheckFrame(int frameNum, Frame const& currentFrame) {
       // Always check overlap
       if (D2 < nonbondcut2_) {
         ++Nproblems;
-        if (outfile_.IsOpen())
-          outfile_.Printf(
+        if (outfile_ != 0)
+          outfile_->Printf(
                   "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
                   atom1+1, CurrentParm_->TruncResAtomName(atom1).c_str(), 
                   atom2+1, CurrentParm_->TruncResAtomName(atom2).c_str(), sqrt(D2));

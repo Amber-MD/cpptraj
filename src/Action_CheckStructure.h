@@ -52,7 +52,7 @@ class Action_CheckStructure: public Action, ImagedAction {
     bool bondcheck_;
     bool silent_;
     bool skipBadFrames_;
-    CpptrajFile outfile_;
+    CpptrajFile* outfile_;
     Topology* CurrentParm_;
     int debug_;
 };

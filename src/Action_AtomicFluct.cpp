@@ -10,6 +10,7 @@ Action_AtomicFluct::Action_AtomicFluct() :
   sets_(0),
   bfactor_(false),
   calc_adp_(false),
+  adpoutfile_(0),
   fluctParm_(0),
   outtype_(BYATOM),
   dataout_(0),

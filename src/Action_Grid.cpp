@@ -14,6 +14,7 @@ Action_Grid::Action_Grid() :
   smooth_(0),
   nframes_(0),
   invert_(false),
+  pdbfile_(0),
   grid_(0)
 {}
 
