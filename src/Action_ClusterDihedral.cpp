@@ -13,10 +13,10 @@ Action_ClusterDihedral::Action_ClusterDihedral() :
   CUT_(0),
   lastframe_(0),
   dcparm_(0),
+  outfile_(0), framefile_(0), infofile_(0),
   CVT_(0),
   minimum_(-180.0),
-  debug_(0),
-  ensembleNum_(-1)
+  debug_(0)
 {}
 
 void Action_ClusterDihedral::Help() {
@@ -57,10 +57,9 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
   return 0;
 }
 
-// Action_ClusterDihedral::init()
+// Action_ClusterDihedral::Init()
 Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // # of phi and psi bins
   phibins_ = actionArgs.getKeyInt("phibins", 10);
@@ -78,9 +77,10 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* 
   // Cluster pop cutoff
   CUT_ = actionArgs.getKeyInt("cut",0);
   // Output files
-  outfile_ = actionArgs.GetStringKey("out");
-  framefile_ = actionArgs.GetStringKey("framefile");
-  infofile_ = actionArgs.GetStringKey("clusterinfo");
+  outfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("out"), "Dihedral Cluster Results",
+                                 DataFileList::TEXT, true);
+  framefile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("framefile"), "Frame-Cluster data");
+  infofile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("clusterinfo"), "Cluster pop & ID");
   DataFile* cvtfile = DFL->AddDataFile( actionArgs.GetStringKey("clustervtime"), actionArgs );
   // Input dihedral file or scan mask
   std::string dihedralIn = actionArgs.GetStringKey("dihedralfile");
@@ -108,17 +108,19 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* 
   mprintf("\tLowest bin will be %.3f degrees.\n", minimum_);
   if (CUT_>0)
     mprintf("\tOnly clusters with population > %i will be printed.\n", CUT_);
-  if (!framefile_.empty())
-    mprintf("\tFrame-Cluster data will be output to %s\n", framefile_.c_str());
-  if (!infofile_.empty())
-    mprintf("\tCluster information (pop. & ID) will be output to %s\n", infofile_.c_str());
+  mprintf("\tResults output to '%s'\n", outfile_->Filename().full());
+  if (framefile_ != 0)
+    mprintf("\tFrame-Cluster data will be output to %s\n", framefile_->Filename().full());
+  if (infofile_ != 0)
+    mprintf("\tCluster information (pop. & ID) will be output to %s\n", 
+            infofile_->Filename().full());
   if (cvtfile != 0)
     mprintf("\tNumber of clusters v time will be output to %s\n", 
             cvtfile->DataFilename().full());
   return Action::OK;
 }
 
-// Action_ClusterDihedral::setup()
+// Action_ClusterDihedral::Setup()
 Action::RetType Action_ClusterDihedral::Setup(Topology* currentParm, Topology** parmAddress) {
   // Currently setup can only be performed based on first prmtop
   if (dcparm_!=0) {
@@ -179,56 +181,56 @@ Action::RetType Action_ClusterDihedral::Setup(Topology* currentParm, Topology** 
 
   // DEBUG - Print bin ranges
   if (debug_ > 0) {
-    for (std::vector<DCmask>::iterator dih = DCmasks_.begin();
-                                       dih != DCmasks_.end(); ++dih)
+    for (std::vector<DCmask>::const_iterator dih = DCmasks_.begin();
+                                             dih != DCmasks_.end(); ++dih)
     {
-      mprintf("\tDihedral %s-%s-%s-%s[", (*currentParm)[(*dih).A1()].c_str(),
-              (*currentParm)[(*dih).A2()].c_str(), (*currentParm)[(*dih).A3()].c_str(),
-              (*currentParm)[(*dih).A4()].c_str());
-      for (int phibin = 0; phibin < (*dih).Bins(); ++phibin) {
-        double PHI = ((double)phibin * (*dih).Step()) + (*dih).Min();
+      mprintf("\tDihedral %s-%s-%s-%s[",
+              (*currentParm)[dih->A1()].c_str(), (*currentParm)[dih->A2()].c_str(),
+              (*currentParm)[dih->A3()].c_str(), (*currentParm)[dih->A4()].c_str());
+      for (int phibin = 0; phibin < dih->Bins(); ++phibin) {
+        double PHI = ((double)phibin * dih->Step()) + dih->Min();
         mprintf("%6.2f] %3i [", PHI, phibin);
       }
-      mprintf("%6.2f]\n",((double)(*dih).Bins() * (*dih).Step()) + (*dih).Min());
+      mprintf("%6.2f]\n",((double)dih->Bins() * dih->Step()) + dih->Min());
     }
   }
 
   return Action::OK;
 }
 
-// Action_ClusterDihedral::action()
+// Action_ClusterDihedral::DoAction()
 Action::RetType Action_ClusterDihedral::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // For each dihedral, calculate which bin it should go into and store bin#
   int bidx = 0;
-  for (std::vector<DCmask>::iterator dih = DCmasks_.begin(); 
-                                     dih != DCmasks_.end(); ++dih)
+  for (std::vector<DCmask>::const_iterator dih = DCmasks_.begin(); 
+                                           dih != DCmasks_.end(); ++dih)
   {
-    double PHI = Torsion( currentFrame->XYZ((*dih).A1()),
-                          currentFrame->XYZ((*dih).A2()),
-                          currentFrame->XYZ((*dih).A3()),
-                          currentFrame->XYZ((*dih).A4()) );
+    double PHI = Torsion( currentFrame->XYZ(dih->A1()),
+                          currentFrame->XYZ(dih->A2()),
+                          currentFrame->XYZ(dih->A3()),
+                          currentFrame->XYZ(dih->A4()) );
     // NOTE: Torsion is in radians; should bins be converted to rads as well?
     PHI *= Constants::RADDEG;
-    //mprintf("[%6i]Dihedral=%8.3f", (*dih).A1(), PHI); // DEBUG
-    PHI -= (*dih).Min();
+    //mprintf("[%6i]Dihedral=%8.3f", dih->A1(), PHI); // DEBUG
+    PHI -= dih->Min();
     //mprintf(" Shifted=%8.3f", PHI); // DEBUG
     if (PHI < 0) PHI += 360;
     //mprintf(" Wrapped=%8.3f", PHI); // DEBUG
-    PHI /= (*dih).Step();
+    PHI /= dih->Step();
     int phibin = (int)PHI;
     //mprintf(" Bin=%3i\n", phibin); // DEBUG
     Bins_[bidx++] = phibin;
   }
   // DEBUG - print bins
   //mprintf("[");
-  //for (std::vector<int>::iterator bin = Bins_.begin(); bin != Bins_.end(); ++bin)
+  //for (std::vector<int>::const_iterator bin = Bins_.begin(); bin != Bins_.end(); ++bin)
   //  mprintf("%3i,",*bin);
   //mprintf("]\n");
   // Now search for this bin combo in the DCarray
   std::vector<DCnode>::iterator DC = dcarray_.begin();
   for (; DC != dcarray_.end(); ++DC)
   {
-    if ( (*DC).BinMatch( Bins_ ) ) break;
+    if ( DC->BinMatch( Bins_ ) ) break;
   }
   if (DC == dcarray_.end()) {
     // No match; create new bin combo and store frame num
@@ -237,37 +239,35 @@ Action::RetType Action_ClusterDihedral::DoAction(int frameNum, Frame* currentFra
   } else {
     // Match; increment bin count and store frame num
     //mprintf("DCNODE ALREADY PRESENT.\n");
-    (*DC).Increment();
-    (*DC).AddFrame( frameNum );
+    DC->Increment();
+    DC->AddFrame( frameNum );
   }
   // Store frame number
   lastframe_ = frameNum;
   return Action::OK;
 }
 
-// Action_ClusterDihedral::print()
+// Action_ClusterDihedral::Print()
 void Action_ClusterDihedral::Print() {
   // Setup output file
-  CpptrajFile output;
-  if (output.OpenEnsembleWrite( outfile_, ensembleNum_ )) return;
   mprintf("\tPrinting Dihedral Clustering Results.\n");
   // Print bin information
-  output.Printf("DIHEDRAL CLUSTER RESULTS");
+  outfile_->Printf("DIHEDRAL CLUSTER RESULTS");
   if (mask_.MaskStringSet())
-    output.Printf(" for %s", mask_.MaskString());
-  output.Printf("\n");
+    outfile_->Printf(" for %s", mask_.MaskString());
+  outfile_->Printf("\n");
   long int num = 0;
-  for (std::vector<DCmask>::iterator dih = DCmasks_.begin();
-                                     dih != DCmasks_.end(); ++dih)
+  for (std::vector<DCmask>::const_iterator dih = DCmasks_.begin();
+                                           dih != DCmasks_.end(); ++dih)
   {
-    output.Printf("    %6li ", num++);
-    output.Printf("%-s(%i)", (*dcparm_)[ (*dih).A1() ].c_str(), (*dih).A1() + 1);
-    output.Printf("%-s(%i)", (*dcparm_)[ (*dih).A2() ].c_str(), (*dih).A2() + 1);
-    output.Printf("%-s(%i)", (*dcparm_)[ (*dih).A3() ].c_str(), (*dih).A3() + 1);
-    output.Printf("%-s(%i)", (*dcparm_)[ (*dih).A4() ].c_str(), (*dih).A4() + 1);
-    output.Printf(" [Bins=%i]\n", (*dih).Bins());
+    outfile_->Printf("    %6li ", num++);
+    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A1() ].c_str(), dih->A1() + 1);
+    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A2() ].c_str(), dih->A2() + 1);
+    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A3() ].c_str(), dih->A3() + 1);
+    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A4() ].c_str(), dih->A4() + 1);
+    outfile_->Printf(" [Bins=%i]\n", dih->Bins());
   }
-  output.Printf("%zu clusters.\n", dcarray_.size());
+  outfile_->Printf("%zu clusters.\n", dcarray_.size());
 
   // Sort array by count
   std::sort( dcarray_.begin(), dcarray_.end() );
@@ -277,81 +277,75 @@ void Action_ClusterDihedral::Print() {
 
   // Print sorted cluster array
   if (CUT_ > 0)
-    output.Printf("Only printing clusters with pop > %i\n",CUT_);
+    outfile_->Printf("Only printing clusters with pop > %i\n",CUT_);
   num = 0;
-  for (std::vector<DCnode>::iterator DC = dcarray_.begin();
-                                     DC != dcarray_.end(); ++DC)
+  for (std::vector<DCnode>::const_iterator DC = dcarray_.begin();
+                                           DC != dcarray_.end(); ++DC)
   {
-    if ( (*DC).Count() > CUT_ ) {
-      //mprintf("DEBUG: Cluster %li has %i frames.\n", num, (*DC).NumFrames());
-      output.Printf("Cluster %10li %10li [ ", num+1, (*DC).Count());
-      for (DCnode::bin_it binid = (*DC).binbegin(); binid != (*DC).binend(); ++binid)
-        output.Printf("%3i ", *binid);
-      output.Printf(" ]\n");
-      for (DCnode::frame_it frame = (*DC).framebegin(); frame != (*DC).frameend(); ++frame)
+    if ( DC->Count() > CUT_ ) {
+      //mprintf("DEBUG: Cluster %li has %i frames.\n", num, DC->NumFrames());
+      outfile_->Printf("Cluster %10li %10li [ ", num+1, DC->Count());
+      for (DCnode::bin_it binid = DC->binbegin(); binid != DC->binend(); ++binid)
+        outfile_->Printf("%3i ", *binid);
+      outfile_->Printf(" ]\n");
+      for (DCnode::frame_it frame = DC->framebegin(); frame != DC->frameend(); ++frame)
       {
-        output.Printf("%i ", *frame + 1);
+        outfile_->Printf("%i ", *frame + 1);
         // store which cluster each frame belongs to. Not neccesary if user
         // didn't specify this option, but avoids a second loop if they did.
         framecluster[ *frame ] = num;
       }
-      output.Printf("\n");
+      outfile_->Printf("\n");
     }
     ++num;
   }
-  output.CloseFile();
 
   // Place reordered cluster nums in CVT
   if (CVT_ != 0) {
     DataSet_integer* iCVT = (DataSet_integer*)CVT_;
     iCVT->Resize( framecluster.size() );
     num = 0;
-    for (std::vector<long int>::iterator cnum = framecluster.begin();
-                                         cnum != framecluster.end(); ++cnum)
+    for (std::vector<long int>::const_iterator cnum = framecluster.begin();
+                                               cnum != framecluster.end(); ++cnum)
       (*iCVT)[ num++ ] = (int)*cnum + 1;
   }
 
   // Print cluster for each frame
-  if (!framefile_.empty()) {
-    if (output.OpenEnsembleWrite( framefile_, ensembleNum_ )) return;
+  if (framefile_ != 0) {
     mprintf("\tPrinting cluster number for each frame.\n");
     num = 1;
-    for (std::vector<long int>::iterator cnum = framecluster.begin(); 
-                                         cnum != framecluster.end(); ++cnum)
+    for (std::vector<long int>::const_iterator cnum = framecluster.begin(); 
+                                               cnum != framecluster.end(); ++cnum)
     {
       // Frame, cluster num, cluster count
-      output.Printf("%10li %10i %10li ", num++, *cnum + 1, dcarray_[*cnum].Count());
+      framefile_->Printf("%10li %10i %10li ", num++, *cnum + 1, dcarray_[*cnum].Count());
       // Print binID
       for (DCnode::bin_it binid = dcarray_[*cnum].binbegin();
                           binid != dcarray_[*cnum].binend(); ++binid)
-        output.Printf("%03i", *binid);
-      output.Printf("\n");
+        framefile_->Printf("%03i", *binid);
+      framefile_->Printf("\n");
     }
-    output.CloseFile();
   }
 
   // Print cluster information file
-  if (!infofile_.empty()) {
-    if (output.OpenEnsembleWrite( infofile_, ensembleNum_ )) return;
+  if (infofile_!=0) {
     mprintf("\tPrinting cluster information.\n");
-    output.Printf("%zu\n", DCmasks_.size());
-    for (std::vector<DCmask>::iterator dih = DCmasks_.begin();
-                                       dih != DCmasks_.end(); ++dih)
+    infofile_->Printf("%zu\n", DCmasks_.size());
+    for (std::vector<DCmask>::const_iterator dih = DCmasks_.begin();
+                                             dih != DCmasks_.end(); ++dih)
     {
-      output.Printf("%10i %10i %10i %10i %10i %8.3f\n", (*dih).A1()+1, (*dih).A2()+1,
-                    (*dih).A3()+1, (*dih).A4()+1, (*dih).Bins(), (*dih).Min());
+      infofile_->Printf("%10i %10i %10i %10i %10i %8.3f\n", dih->A1()+1, dih->A2()+1,
+                    dih->A3()+1, dih->A4()+1, dih->Bins(), dih->Min());
     }
-    output.Printf("%zu\n", dcarray_.size());
+    infofile_->Printf("%zu\n", dcarray_.size());
     num = 1;
-    for (std::vector<DCnode>::iterator DC = dcarray_.begin();
-                                       DC != dcarray_.end(); ++DC)
+    for (std::vector<DCnode>::const_iterator DC = dcarray_.begin();
+                                             DC != dcarray_.end(); ++DC)
     {
-      output.Printf("%10li %10li ", num++, (*DC).Count());
-      for (DCnode::bin_it binid = (*DC).binbegin(); binid != (*DC).binend(); ++binid)
-        output.Printf(" %3i", *binid);
-      output.Printf("\n");
+      infofile_->Printf("%10li %10li ", num++, DC->Count());
+      for (DCnode::bin_it binid = DC->binbegin(); binid != DC->binend(); ++binid)
+        infofile_->Printf(" %3i", *binid);
+      infofile_->Printf("\n");
     }
-    output.CloseFile();
   }
-
 }
