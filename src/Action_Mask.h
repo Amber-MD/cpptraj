@@ -16,10 +16,10 @@ class Action_Mask: public Action {
     Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    void Print();
+    void Print() {}
 
     AtomMask Mask1_;         ///< Atoms which will be selected each frame
-    CpptrajFile outfile_;    ///< File to write selected atom info to
+    CpptrajFile* outfile_;   ///< File to write selected atom info to
     std::string maskpdb_;    ///< Traj output file name
     Topology* CurrentParm_;
     int debug_;

@@ -9,10 +9,10 @@ const int Action_DSSP::NSSTYPE = 8;
 
 // CONSTRUCTOR
 Action_DSSP::Action_DSSP() :
-  ensembleNum_(-1),
   debug_(0),
   outfile_(0),
   dsspFile_(0),
+  assignout_(0),
   Nres_(0),
   Nselected_(0),
   Nframe_(0),
@@ -40,7 +40,6 @@ const char* Action_DSSP::SSname[]={"None", "Para", "Anti", "3-10", "Alpha", "Pi"
 // Action_DSSP::Init()
 Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   Nframe_ = 0;
   // Get keywords
@@ -50,7 +49,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
     temp = outfile_->DataFilename().Full() + ".sum";
   dsspFile_ = DFL->AddDataFile( temp );
   DataFile* totalout = DFL->AddDataFile( actionArgs.GetStringKey("totalout"), actionArgs );
-  assignout_ = actionArgs.GetStringKey("assignout");
+  assignout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("assignout"), "SS assignment");
   printString_ = actionArgs.hasKey("ptrajformat");
   temp = actionArgs.GetStringKey("namen");
   if (!temp.empty()) BB_N_ = temp;
@@ -98,8 +97,8 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
     for (int i = 0; i < NSSTYPE; i++)
       mprintf("\t\t%i = %s\n", i, SSname[i]);
   }
-  if (!assignout_.empty())
-    mprintf("\tOverall assigned SS will be written to %s\n", assignout_.c_str());
+  if (assignout_ != 0)
+    mprintf("\tOverall assigned SS will be written to %s\n", assignout_->Filename().full());
   mprintf("\tBackbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]  CA=[%s]\n",
           *BB_N_, *BB_H_, *BB_C_, *BB_O_, *BB_CA_ );
   mprintf("# Citation: Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:\n"
@@ -556,9 +555,7 @@ void Action_DSSP::Print() {
     }
   }
   // Print out SS assignment like PDB
-  if (!assignout_.empty()) {
-    CpptrajFile outfile;
-    if (outfile.OpenEnsembleWrite(assignout_, ensembleNum_) == 0) {
+  if (assignout_ != 0) {
       int total = 0;
       int startRes = -1;
       std::string resLine, ssLine;
@@ -581,8 +578,8 @@ void Action_DSSP::Print() {
           ssLine += '-';
         total++;
         if ((total % 50) == 0 || resi == max_res) {
-          outfile.Printf("%-8i %s\n", startRes+1, resLine.c_str());
-          outfile.Printf("%8s %s\n\n", " ", ssLine.c_str());
+          assignout_->Printf("%-8i %s\n", startRes+1, resLine.c_str());
+          assignout_->Printf("%8s %s\n\n", " ", ssLine.c_str());
           startRes = -1;
           resLine.clear();
           ssLine.clear();
@@ -591,6 +588,5 @@ void Action_DSSP::Print() {
           ssLine += ' ';
         }
       }
-    }
   }
 }
