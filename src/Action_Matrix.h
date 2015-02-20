@@ -9,7 +9,6 @@
 class Action_Matrix : public Action, ActionFrameCounter {
   public:
     Action_Matrix();
-    ~Action_Matrix();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Matrix(); }
     static void Help();
   private:
@@ -23,14 +22,13 @@ class Action_Matrix : public Action, ActionFrameCounter {
     typedef Darray::const_iterator    M_iterator; ///< Iterator over mass.
 
     DataSet_MatrixDbl* Mat_;      ///< Matrix used in calculations.
-    DataSet_MatrixDbl* matrixDS_; ///< Matrix data set, same as Mat_ when BYATOM
-    DataFile* outfile_;
-    CpptrajFile* byMaskOut_;
+    DataSet_MatrixDbl* matByRes_; ///< Matrix averaged by residue. 
+    DataFile* outfile_;           ///< DataFile for writing out matrix.
+    CpptrajFile* byMaskOut_;      ///< For outputting matrix averaged over mask(s).
     AtomMask mask1_;
     AtomMask mask2_;
     enum OutputType { BYATOM=0, BYRESIDUE, BYMASK };
     OutputType outtype_;
-    int snap_;
     int debug_;
     // IRED only
     int order_;                                ///< Legendre order
@@ -38,8 +36,8 @@ class Action_Matrix : public Action, ActionFrameCounter {
     // DIHCOVAR only
     Array1D DihedralSets_;
     // MWcovar only
-    Darray mass1_;
-    Darray mass2_;
+    Darray mass1_; ///< Atom masses corresponding to mask1_.
+    Darray mass2_; ///< Atom masses corresponding to mask2_.
 
     Darray vect2_; ///< Hold diagonal elements squared.
 #   ifdef _OPENMP
@@ -48,16 +46,17 @@ class Action_Matrix : public Action, ActionFrameCounter {
 #   endif
     bool useMask2_;
     bool useMass_;
-    Topology* CurrentParm_; // For ByResidue output
 
     // For ByResidue output.
     typedef std::vector<int> Iarray;
-    struct matrix_res { 
-      Iarray maskIdxs_; ///< Index into mask/matrix row/col
-      int resnum_;      ///< Residue number
+    struct matrix_res {
+      Iarray maskIdxs_; ///< Residue atom indices into mask, matrix row/col.
+      int resnum_;      ///< Topology residue number.
     };
     typedef std::vector<matrix_res> MatResArray;
-    MatResArray MaskToMatResArray(AtomMask const&) const;
+    MatResArray residues1_;
+    MatResArray residues2_;
+    MatResArray MaskToMatResArray(Topology const&, AtomMask const&) const;
 
     Darray FillMassArray(Topology const&, AtomMask const&) const;
     void CalcIredMatrix(int);
@@ -75,5 +74,6 @@ class Action_Matrix : public Action, ActionFrameCounter {
                                v_iterator&, v_iterator&, v_iterator&) const;
     void FinishCorrelation();
     void FinishDistanceCovariance();
+    double ByMaskAverage(unsigned int, unsigned int) const;
 };
 #endif

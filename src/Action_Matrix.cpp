@@ -7,23 +7,15 @@
 // CONSTRUCTOR
 Action_Matrix::Action_Matrix() :
   Mat_(0),
-  matrixDS_(0),
+  matByRes_(0),
   outfile_(0),
   byMaskOut_(0),
   outtype_(BYATOM),
-  snap_(0),
   debug_(0),
   order_(2),
   useMask2_(false),
-  useMass_(false),
-  CurrentParm_(0)
+  useMass_(false)
 {}
-
-// DESTRUCTOR
-Action_Matrix::~Action_Matrix() {
-  if (Mat_ != 0 && outtype_ != BYATOM)
-    delete Mat_;
-}
 
 void Action_Matrix::Help() {
   mprintf("\t[out <filename>] %s\n", ActionFrameCounter::HelpText);
@@ -136,45 +128,52 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
     }
   }
 
+  // Create matrix BYATOM DataSet
+  Mat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, name, "Mat");
+  if (Mat_ == 0) return Action::ERR;
+  // NOTE: Kind is set here so subsequent analyses/actions know about it.
+  Mat_->SetTypeAndKind( mtype, mkind );
+  // Set default precision for backwards compat.
+  Mat_->SetPrecision(6, 3);
+  Mat_->Dim(Dimension::X).SetLabel("Atom");
+  // Determine what will be output.
+  matByRes_ = 0;
+  outfile_ = 0;
+  byMaskOut_ = 0;
   if (outtype_ == BYMASK) {
     // BYMASK output - no final data set, just write to file/STDOUT.
     byMaskOut_ = DFL->AddCpptrajFile(outfilename, "Matrix by mask",
                                      DataFileList::TEXT, true);
     if (byMaskOut_ == 0) return Action::ERR;
-    outfile_ = 0;
-    matrixDS_ = 0;
-    Mat_ = new DataSet_MatrixDbl();
-    Mat_->SetTypeAndKind( mtype, mkind );
-  } else { 
-    // BYATOM or BYRESIDUE output. Set up DataSet and type.
+  } else {
+    // BYATOM or BYRESIDUE output. Set up DataFile. 
+    if (outtype_ == BYRESIDUE) {
+      matByRes_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, Mat_->Name(), "ByRes");
+      if (matByRes_ == 0) return Action::ERR;
+      matByRes_->SetPrecision(6, 3);
+      matByRes_->Dim(Dimension::X).SetLabel("Res");
+    } 
     outfile_ = DFL->AddDataFile(outfilename, actionArgs);
-    matrixDS_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, name, "Mat");
-    if (matrixDS_ == 0) return Action::ERR;
-    // NOTE: Kind is set here so subsequent analyses/actions know about it.
-    matrixDS_->SetTypeAndKind( mtype, mkind );
-    // Set default precision for backwards compat.
-    matrixDS_->SetPrecision(6, 3);
-    if (outfile_ != 0) outfile_->AddSet( matrixDS_ );
-    byMaskOut_ = 0;
-    if (outtype_ == BYATOM)
-      Mat_ = matrixDS_;
-    else // BYRESIDUE. Create copy of matrixDS_ for use by atom.
-      Mat_ = new DataSet_MatrixDbl( *matrixDS_ );
+    if (outfile_ != 0) {
+      if (outtype_ == BYATOM)
+        outfile_->AddSet( Mat_ );
+      else
+        outfile_->AddSet( matByRes_ );
+    }
   }
 
   mprintf("    MATRIX: Calculating %s, output is", DataSet_2D::MatrixTypeString(mtype));
   switch (outtype_) {
-    case BYATOM:    mprintf(" by atom"); break;
-    case BYRESIDUE: mprintf(" by residue"); break;
-    case BYMASK:    mprintf(" by mask"); break;
+    case BYATOM:    mprintf(" by atom.\n"); break;
+    case BYRESIDUE: mprintf(" averaged by residue.\n"); break;
+    case BYMASK:    mprintf(" averaged by mask.\n"); break;
   }
   if (outtype_ != BYATOM) {
     if (useMass_)
-      mprintf(" using mass weighting");
+      mprintf("\tAverages will be mass-weighted.\n");
     else
-      mprintf(" using no mass weighting");
+      mprintf("\tAverages will not be mass-weighted.\n");
   }
-  mprintf("\n");
   if (mtype == DataSet_2D::IRED)
     mprintf("\t%u IRED vecs, Order of Legendre polynomials: %i\n",
             IredVectors_.size(), order_);
@@ -183,14 +182,15 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   if (outfile_ != 0)
     mprintf("\tPrinting to file %s\n", outfile_->DataFilename().full());
   if (byMaskOut_ != 0)
-    mprintf("\tBy mask output to %s\n", byMaskOut_->Filename().full());
-  if (!name.empty())
-    mprintf("\tStoring matrix on internal stack with name: %s\n", matrixDS_->Legend().c_str());
+    mprintf("\tAveraged by mask output to %s\n", byMaskOut_->Filename().full());
+  mprintf("\tMatrix data set is '%s'\n", Mat_->legend());
+  if (matByRes_ != 0)
+    mprintf("\tAveraged by residue matrix data set is '%s'\n", matByRes_->legend());
   FrameCounterInfo();
   if (mtype != DataSet_2D::IRED && mtype != DataSet_2D::DIHCOVAR) {
-    mprintf("\tMask1: %s\n",mask1_.MaskString());
+    mprintf("\tMask1 is '%s'\n",mask1_.MaskString());
     if (useMask2_)
-      mprintf("\tMask2: %s\n",mask2_.MaskString());
+      mprintf("\tMask2 is '%s'\n",mask2_.MaskString());
   }
 #ifdef NEW_MATRIX_PARA
   mprintf("DEBUG: NEW COVARIANCE MATRIX PARALLELIZATION SCHEME IN USE.\n");
@@ -213,6 +213,36 @@ static Action::RetType PrintMask2Error() {
   mprinterr("Error: Second mask (full matrix) not supported for DISTCOVAR,\n"
             "Error:   IDEA, or IRED matrix.\n");
   return Action::ERR;
+}
+
+// Action_Matrix::MaskToMatResArray()
+Action_Matrix::MatResArray Action_Matrix::MaskToMatResArray(Topology const& currentParm,
+                                                            AtomMask const& mask) const
+{
+  MatResArray residues;
+  int currentResNum = -1;
+  matrix_res blank_res;
+  for (int idx = 0; idx != mask.Nselected(); idx++)
+  {
+    int atom1 = mask[idx];
+    int resNum = currentParm[atom1].ResNum();
+    if (resNum != currentResNum) {
+      residues.push_back( blank_res );
+      residues.back().resnum_ = resNum;
+      currentResNum = resNum;
+    }
+    residues.back().maskIdxs_.push_back( idx );
+  }
+  if (debug_ > 0) {
+    mprintf("DEBUG: BYRES: MASK '%s'\n", mask.MaskString());
+    for (MatResArray::const_iterator res = residues.begin(); res != residues.end(); ++res) {
+      mprintf("\tRes %i:", res->resnum_+1);
+      for (Iarray::const_iterator it = res->maskIdxs_.begin(); it != res->maskIdxs_.end(); ++it)
+        mprintf(" %i (%i)", mask[*it] + 1, *it);
+      mprintf("\n");
+    }
+  }
+  return residues;
 }
 
 // Action_Matrix::Setup()
@@ -249,7 +279,25 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
     mprinterr("Error: # of atoms in mask1 < # of atoms in mask2\n");
     return Action::ERR;
   }
-
+  // Store mass info for MWCOVAR matrix or when output BYRESIDUE or BYMASK.
+  if ( Mat_->Type() == DataSet_2D::MWCOVAR || (outtype_ != BYATOM && useMass_) ) {
+    mass1_ = FillMassArray(*currentParm, mask1_);
+    mass2_ = FillMassArray(*currentParm, mask2_);
+    if (outtype_ != BYATOM && !useMass_)
+      mprintf("Warning: Using mass-weighted covar matrix, byres/bymask output will be"
+              "weighted by mass.\n");
+  } else if (outtype_ != BYATOM && !useMass_) {
+    mass1_ = Darray(mask1_.Nselected(), 1.0);
+    if (useMask2_)
+      mass2_ = Darray(mask2_.Nselected(), 1.0);
+  }
+  // If output is BYRESIDUE, determine which mask elements correspond to 
+  // which residues, as well as how many residues are selected in mask1 (cols)
+  // and mask2 (rows) to determine output matrix dimensions.
+  if (outtype_ == BYRESIDUE) {
+    residues1_ = MaskToMatResArray( *currentParm, mask1_ );
+    residues2_ = MaskToMatResArray( *currentParm, mask2_ );
+  }
   // Determine matrix/vector dimensions. 
   size_t vectsize = 0;
   size_t ncols = 0;
@@ -267,9 +315,7 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
       if (mask2tot > 0) return PrintMask2Error();
       break;
     case DataSet_2D::MWCOVAR  :
-      // Mass info needed for MWCOVAR analysis, store in matrix dataset.
-      mass1_ = FillMassArray(*currentParm, mask1_);
-      mass2_ = FillMassArray(*currentParm, mask2_);
+      // Store mass info matrix DataSet for mass-weighting eigenvectors.
       Mat_->StoreMass( mass1_ );
     case DataSet_2D::COVAR    :
       vectsize = (mask1tot + mask2tot) * 3;
@@ -348,7 +394,6 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
 #   endif
   }
 # endif
-  CurrentParm_ = currentParm;
   return Action::OK;
 }
 
@@ -748,7 +793,7 @@ Action::RetType Action_Matrix::DoAction(int frameNum, Frame* currentFrame, Frame
   // Check if this frame should be processed
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Increment number of snapshots
-  ++snap_; 
+  Mat_->IncrementSnapshots();
 
   switch (Mat_->Type()) {
     case DataSet_2D::DIST     : CalcDistanceMatrix(*currentFrame); break;
@@ -776,11 +821,12 @@ void Action_Matrix::Vect2MinusVect() {
 void Action_Matrix::FinishCovariance(size_t element_size) {
   double Mass = 1.0;
   double mass2 = 1.0;
-  if (snap_ < (int)Mat_->Ncols())
-    mprintf("Warning: In covariance matrix '%s', # of frames %i is less than\n"
+  if (Mat_->Nsnapshots() < Mat_->Ncols())
+    mprintf("Warning: In covariance matrix '%s', # of frames %u is less than\n"
             "Warning:   # of columns %zu. If diagonalized, the max # of non-zero\n"
-            "Warning:   eigenvalues will be %i\n", Mat_->Legend().c_str(),
-            snap_, Mat_->Ncols(), snap_);
+            "Warning:   eigenvalues will be %u\n", Mat_->Legend().c_str(),
+            Mat_->Nsnapshots(), Mat_->Ncols(), Mat_->Nsnapshots());
+
   DataSet_MatrixDbl::iterator mat = Mat_->begin();
   // Calc <riri> - <ri><ri>
   Vect2MinusVect(); // Is vect2 used?
@@ -902,32 +948,17 @@ void Action_Matrix::FinishDistanceCovariance() {
       *(mat++) -= ((*pair_i) * (*pair_j));
 }
 
-// Action_Matrix::MaskToMatResArray()
-Action_Matrix::MatResArray Action_Matrix::MaskToMatResArray(AtomMask const& mask) const {
-  MatResArray residues;
-  int currentResNum = -1;
-  matrix_res blank_res;
-  for (int idx = 0; idx != mask.Nselected(); idx++)
-  {
-    int atom1 = mask[idx];
-    int resNum = (*CurrentParm_)[atom1].ResNum();
-    if (resNum != currentResNum) {
-      residues.push_back( blank_res );
-      residues.back().resnum_ = resNum;
-      currentResNum = resNum;
-    }
-    residues.back().maskIdxs_.push_back( idx );
-  }
-  if (debug_ > 0) {
-    mprintf("DEBUG: BYRES: MASK '%s'\n", mask.MaskString());
-    for (MatResArray::const_iterator res = residues.begin(); res != residues.end(); ++res) {
-      mprintf("\tRes %i:", res->resnum_+1);
-      for (Iarray::const_iterator it = res->maskIdxs_.begin(); it != res->maskIdxs_.end(); ++it)
-        mprintf(" %i (%i)", mask[*it] + 1, *it);
-      mprintf("\n");
+double Action_Matrix::ByMaskAverage(unsigned int ColMax, unsigned int RowMax) const {
+  double val = 0.0;
+  double valnorm = 0.0;
+  for (unsigned int idx2 = 0; idx2 != RowMax; idx2++) {
+    for (unsigned int idx1 = 0; idx1 != ColMax; idx1++) {
+      valnorm += (mass1_[idx1] * mass2_[idx2]);
+      val += Mat_->GetElement(idx1, idx2);
     }
   }
-  return residues;
+  if (valnorm > 0.0) return val / valnorm;
+  return 0.0;
 }
 
 // Action_Matrix::Print()
@@ -944,7 +975,11 @@ void Action_Matrix::Print() {
       mprintf("\t%u\t%f\n", i, vect2_[i]);
   }
   // ---------- Calculate average over number of sets ------
-  double norm = (double)snap_;
+  if (Mat_->Nsnapshots() < 1) {
+    mprintf("Warning: Matrix %s is empty.\n", Mat_->legend());
+    return;
+  }
+  double norm = (double)Mat_->Nsnapshots();
   if (Mat_->Type() == DataSet_2D::IDEA) norm *= 3.0;
   norm = 1.0 / norm;
   for (v_iterator v1 = Mat_->v1begin(); v1 != Mat_->v1end(); ++v1)
@@ -963,105 +998,57 @@ void Action_Matrix::Print() {
     default: break; 
   }
 
-  // If byres/bymask output is desired, write the current matrix now since 
-  // it is not stored in DataFileList.
-  // TODO: Convert byres to new matrix so it can be output formatted.
-  // TODO: Check that currentParm is still valid?
+  // Perform averaging BYRESIDUE or BYMASK if necessary.
   if (outtype_ == BYRESIDUE) {
     // ---------- Print out BYRESIDUE
-    matrixDS_->Dim(Dimension::X).SetLabel("Res");
     // First determine which mask elements correspond to which residues,
     // as well as how many residues are selected in mask1 (cols) and
     // mask2 (rows) to determine output matrix dimensions.
-    MatResArray residues1 = MaskToMatResArray( mask1_ );
-    MatResArray residues2;
-    double mass = 1.0;
-    if (useMask2_)
-      residues2 = MaskToMatResArray( mask2_ );
-    else {
+    if (!useMask2_) {
       mask2_ = mask1_;
-      residues2 = residues1;
+      mass2_ = mass1_;
+      residues2_ = residues1_;
     }
     // Always allocate full matrix for BYRESIDUE
-    matrixDS_->Allocate2D( residues1.size(), residues2.size() ); // cols, rows
+    matByRes_->Allocate2D( residues1_.size(), residues2_.size() ); // cols, rows
     mprintf("    MATRIX: By-residue matrix has %u rows, %u columns.\n", 
-            matrixDS_->Nrows(), matrixDS_->Ncols());
-    for (MatResArray::const_iterator resj = residues2.begin(); resj != residues2.end(); ++resj)
+            matByRes_->Nrows(), matByRes_->Ncols());
+    for (MatResArray::const_iterator resj = residues2_.begin(); resj != residues2_.end(); ++resj)
     {
-      for (MatResArray::const_iterator resi = residues1.begin(); resi != residues1.end(); ++resi)
+      for (MatResArray::const_iterator resi = residues1_.begin(); resi != residues1_.end(); ++resi)
       {
         double val = 0.0;
         double valnorm = 0.0;
         for (Iarray::const_iterator itj = resj->maskIdxs_.begin();
                                     itj != resj->maskIdxs_.end(); ++itj)
         {
-          int atj = mask2_[*itj];
           for (Iarray::const_iterator iti = resi->maskIdxs_.begin();
                                       iti != resi->maskIdxs_.end(); ++iti)
           {
-            int ati = mask1_[*iti];
-            if (useMass_)
-              mass = (*CurrentParm_)[ati].Mass() * (*CurrentParm_)[atj].Mass();
-            valnorm += mass;
+            valnorm += mass1_[*iti] * mass2_[*itj];
             val += Mat_->GetElement( *iti, *itj ); // col, row
           }
         }
-        matrixDS_->AddElement( val / valnorm );
+        matByRes_->AddElement( val / valnorm );
       }
     }
   } else if (outtype_ == BYMASK) {
     // ---------- Print out BYMASK
-    // If only 1 mask, internal average over mask1, otherwise
-    //   i==0: mask1/mask1 
-    //   i==1: mask1/mask2 
-    //   i==2: mask2/mask2
-    int iend;
     if (!useMask2_) {
+      mass2_ = mass1_;
       mprintf("    MATRIX: Writing internal average over mask '%s'\n", mask1_.MaskString());
-      iend = 1;
+      byMaskOut_->Printf("%6.2f \n", ByMaskAverage(mask1_.Nselected(), mask1_.Nselected()));
     } else {
       mprintf("    MATRIX: Writing internal averages for mask1 '%s' and mask2 '%s':\n"
               "            mask1/mask1, mask1/mask2, mask2/mask2\n",
               mask1_.MaskString(), mask2_.MaskString());
-      iend = 3;
+      byMaskOut_->Printf("%6.2f %6.2f %6.2f \n",
+                         ByMaskAverage(mask1_.Nselected(), mask1_.Nselected()),
+                         ByMaskAverage(mask1_.Nselected(), mask2_.Nselected()),
+                         ByMaskAverage(mask2_.Nselected(), mask2_.Nselected()));
     }
-    AtomMask::const_iterator maskAbegin = mask1_.begin();
-    AtomMask::const_iterator maskAend = mask1_.end();
-    AtomMask::const_iterator maskBbegin = mask1_.begin();
-    AtomMask::const_iterator maskBend = mask1_.end();
-    double mass = 1.0;
-    for (int i = 0; i < iend; ++i) {
-      if (i > 0) {
-        maskAbegin = maskBbegin;
-        maskAend = maskBend;
-        maskBbegin = mask2_.begin();
-        maskBend = mask2_.end();
-      }
-      double val = 0;
-      double valnorm = 0;
-      int crow = 0;
-      for (AtomMask::const_iterator atomj = maskBbegin; atomj != maskBend; ++atomj)
-      {
-        int ccol = 0;
-        for (AtomMask::const_iterator atomi = maskAbegin; atomi != maskAend; ++atomi)
-        {
-          if (useMass_)
-            mass = (*CurrentParm_)[*atomj].Mass() * (*CurrentParm_)[*atomi].Mass();
-          valnorm += mass;
-          val += (Mat_->GetElement( ccol, crow ) * mass);
-          ++ccol;
-        }
-        ++crow;
-      }
-      byMaskOut_->Printf("%6.2f ", val / valnorm);
-    }
-    byMaskOut_->Printf("\n");
-  } else // BYATOM
-    matrixDS_->Dim(Dimension::X).SetLabel("Atom");
-
-  // Process output file args FIXME Can this be done in Init()?
-  if (outfile_ != 0) {
-    outfile_->ProcessArgs("square2d noxcol noheader");
   }
-  return;
+  // Process output file args FIXME Can this be done in Init()?
+  if (outfile_ != 0)
+    outfile_->ProcessArgs("square2d noxcol noheader");
 }

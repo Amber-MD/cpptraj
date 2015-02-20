@@ -7,7 +7,7 @@
 /** This is the class used by Action_Matrix. */
 class DataSet_MatrixDbl : public DataSet_2D {
   public:
-    DataSet_MatrixDbl() : DataSet_2D(MATRIX_DBL, 12, 4) {}
+    DataSet_MatrixDbl() : DataSet_2D(MATRIX_DBL, 12, 4), snap_(0) {}
     double& operator[](size_t idx)             { return mat_[idx];          }
     static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixDbl();     }
     // ----- DataSet functions -------------------
@@ -26,6 +26,8 @@ class DataSet_MatrixDbl : public DataSet_2D {
     MatrixKind Kind()                    const { return kind_;              }
     MatrixType Type()                    const { return type_;              }
     // -------------------------------------------
+    unsigned int Nsnapshots()            const { return snap_;              }
+    void IncrementSnapshots()                  { ++snap_;                   }
     double& Element(size_t x, size_t y)        { return mat_.element(x,y);  }
     int AddElement(double d)                   { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,double d){ mat_.setElement(x,y,d);    }
@@ -56,5 +58,6 @@ class DataSet_MatrixDbl : public DataSet_2D {
     Darray mass_;              ///< Hold masses, for MWCOVAR quasiharmonic analysis. 
     MatrixType type_;          ///< Matrix type.
     MatrixKind kind_;          ///> Matrix kind.
+    unsigned int snap_;        ///< # snapshots used to generate matrix.
 };
 #endif
