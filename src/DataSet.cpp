@@ -189,21 +189,41 @@ bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const&
   return true;
 }
 
-const char* DataSet::Smodes[] = {"distance","angle","torsion","pucker","rms",0};
-const char* DataSet::Stypes[] = {"alpha","beta","gamma",
-  "delta","epsilon","zeta","pucker","chi","h1p","c2p",
-  "phi","psi","pchi","omega","noe",0};
-const DataSet::scalarMode DataSet::TypeModes[] = {M_TORSION,M_TORSION,M_TORSION,
-  M_TORSION,M_TORSION,M_TORSION,M_PUCKER,M_TORSION,M_TORSION,M_TORSION,
-  M_TORSION,M_TORSION,M_TORSION,M_TORSION,M_DISTANCE,UNKNOWN_MODE}; 
+void DataSet::PrintName() const {
+  mprintf("%s", Name().c_str());
+  if (!Aspect().empty())
+    mprintf("[%s]", Aspect().c_str());
+  if (Idx() != -1)
+    mprintf(":%i", Idx());
+}
+// -----------------------------------------------------------------------------
+const char* DataSet::Smodes[] = {"distance","angle","torsion","pucker","rms","matrix",0};
+const char* DataSet::Stypes[] = {
+  // Torsions
+  "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "pucker",
+  "chi",   "h1p",  "c2p",   "phi",   "psi",     "pchi", "omega",
+  // Distance
+  "noe",
+  // Matrix
+  "distance",    "covariance",          "mass-weighted covariance",
+  "correlation", "distance covariance", "IDEA",
+  "IRED",        "dihedral covariance",
+  0 };
+const DataSet::scalarMode DataSet::TypeModes[] = {
+  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_PUCKER,
+  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
+  M_DISTANCE,
+  M_MATRIX,  M_MATRIX, M_MATRIX,
+  M_MATRIX,  M_MATRIX, M_MATRIX,
+  M_MATRIX,  M_MATRIX,
+  UNKNOWN_MODE };
 
 // DataSet::ScalarDescription()
 void DataSet::ScalarDescription() const {
-  if (scalarmode_ != UNKNOWN_MODE) {
+  if (scalarmode_ != UNKNOWN_MODE)
     mprintf(", %s", Smodes[scalarmode_]);
-    if (scalartype_ != UNDEFINED)
-      mprintf("(%s)", Stypes[scalartype_]);
-  }
+  if (scalartype_ != UNDEFINED)
+    mprintf("(%s)", Stypes[scalartype_]);
 }
 
 // DataSet::ModeFromKeyword()
@@ -235,12 +255,4 @@ DataSet::scalarType DataSet::TypeFromKeyword(std::string const& key, scalarMode&
       return (scalarType)i;
     }
   return UNDEFINED;
-}
-
-void DataSet::PrintName() const {
-  mprintf("%s", Name().c_str());
-  if (!Aspect().empty())
-    mprintf("[%s]", Aspect().c_str());
-  if (Idx() != -1)
-    mprintf(":%i", Idx());
 }

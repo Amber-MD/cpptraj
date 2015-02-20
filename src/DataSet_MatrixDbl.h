@@ -23,8 +23,7 @@ class DataSet_MatrixDbl : public DataSet_2D {
     size_t Nrows()                       const { return mat_.Nrows();       }
     size_t Ncols()                       const { return mat_.Ncols();       }
     double* MatrixArray()                const;
-    MatrixKind Kind()                    const { return kind_;              }
-    MatrixType Type()                    const { return type_;              }
+    MatrixKindType MatrixKind()          const { return kind_;              }
     // -------------------------------------------
     unsigned int Nsnapshots()            const { return snap_;              }
     void IncrementSnapshots()                  { ++snap_;                   }
@@ -46,18 +45,17 @@ class DataSet_MatrixDbl : public DataSet_2D {
     Darray::iterator v1begin()                 { return vect_.begin();      }
     /// \return iterator to end of diagonal vector.
     Darray::iterator v1end()                   { return vect_.end();        }
-    /// Set matrix type and kind.
-    void SetTypeAndKind(MatrixType tIn, MatrixKind kIn) { type_ = tIn; kind_ = kIn; }
     /// Store masses associated with columns in matrix.
     void StoreMass(Darray const& mIn)          { mass_ = mIn;               }
     /// \return array of masses associated with columns in matrix.
     Darray const& Mass()                 const { return mass_;              }
+    /// Set matrix kind prior to allocation.
+    void SetMatrixKind( MatrixKindType t )     { kind_ = t;                 }
   private:
     Matrix<double> mat_;       ///< Matrix elements.
     Darray vect_;              ///< Hold diagonal elements | avg coords
     Darray mass_;              ///< Hold masses, for MWCOVAR quasiharmonic analysis. 
-    MatrixType type_;          ///< Matrix type.
-    MatrixKind kind_;          ///> Matrix kind.
+    MatrixKindType kind_;      ///> Matrix kind.
     unsigned int snap_;        ///< # snapshots used to generate matrix.
 };
 #endif

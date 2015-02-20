@@ -1196,9 +1196,9 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
       return Command::C_ERR;
   }
   if (dmode != DataSet::UNKNOWN_MODE)
-    mprintf("\tDataSet mode = %s\n", DataSet::Smodes[dmode]);
+    mprintf("\tDataSet mode = %s\n", DataSet::ModeString(dmode));
   if (dtype != DataSet::UNDEFINED)
-    mprintf("\tDataSet type = %s\n", DataSet::Stypes[dtype]);
+    mprintf("\tDataSet type = %s\n", DataSet::TypeString(dtype));
   // Loop over all DataSet arguments 
   std::string ds_arg = argIn.GetStringNext();
   while (!ds_arg.empty()) {
