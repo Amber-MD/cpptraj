@@ -56,6 +56,8 @@ class CpptrajFile {
     CompressType Compression()  const { return compressType_;         }
     /// \return true if the file is open
     bool IsOpen()               const { return isOpen_;               }
+    /// \return true if the file is a stream
+    bool IsStream()             const { return isStream_;             }
     /// \return file name class.
     const FileName& Filename()  const { return fname_;                }
     /// \return 1 if the file contains carriage returns in addition to newlines
