@@ -49,7 +49,7 @@ class Action_NMRrst: public Action {
     
     ImagedAction Image_;
     std::string setname_;
-    std::string findOutputName_;
+    CpptrajFile* findOutput_;
     AtomMask Mask_;
     DataSetList* masterDSL_; // TODO: Replace these with new DataSet type
     size_t numNoePairs_; ///< Used to check if # of pairs has changed

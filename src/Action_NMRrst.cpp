@@ -10,7 +10,7 @@
 
 // CONSTRUCTOR
 Action_NMRrst::Action_NMRrst() :
-   masterDSL_(0), numNoePairs_(0), max_cut_(6.0),
+   findOutput_(0), masterDSL_(0), numNoePairs_(0), max_cut_(6.0),
    strong_cut_(2.9), medium_cut_(3.5), weak_cut_(5.0),
    resOffset_(0), debug_(0), ensembleNum_(-1), nframes_(0), useMass_(false),
    findNOEs_(false), series_(false) {} 
@@ -43,7 +43,9 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Data
   Image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   findNOEs_ = actionArgs.hasKey("findnoes");
-  findOutputName_ = actionArgs.GetStringKey("findout");
+  findOutput_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("findout"), "Found NOEs",
+                                    DataFileList::TEXT, true);
+  if (findOutput_ == 0) return Action::ERR;
   resOffset_ = actionArgs.getKeyInt("resoffset", 0);
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   max_cut_ = actionArgs.getKeyDouble("cut", 6.0);
@@ -104,8 +106,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Data
     if (series_)
       mprintf("\tDistance data for NOEs less than cutoff will be saved as '%s[foundNOE]'.\n",
               setname_.c_str());
-    if (!findOutputName_.empty())
-      mprintf("\tFound NOEs will be written to '%s'\n", findOutputName_.c_str());
+    mprintf("\tFound NOEs will be written to '%s'\n", findOutput_->Filename().full());
   }
   if (!Image_.UseImage()) 
     mprintf("\tNon-imaged");
@@ -493,29 +494,26 @@ void Action_NMRrst::Print() {
     }
     noeArray_.resize( newSize );
     // Print Final found NOEs. Calculate distances from d^2 if necessary.
-    CpptrajFile outfile;
-    //if (outfile.OpenEnsembleWrite( findOutputName_, ensembleNum_ )) return;
-    if (outfile.OpenWrite( findOutputName_ )) return;
     std::vector<unsigned int> Bins(4, 0); // Strong, weak, medium, none
     double Cutoffs[3] = {strong_cut_, medium_cut_, weak_cut_};
     unsigned int current_cut = 0;
     const char* Labels[4] = {"STRONG", "MEDIUM", "WEAK", "NONE"};
     while (current_cut < 3 && noeArray_.front().R6_Avg() > Cutoffs[current_cut])
       ++current_cut;
-    outfile.Printf("#Format: <r1>:{ @<a1X>(c1X) ... } -- <r2>:{ @<a2X>(c2X) ... }"
+    findOutput_->Printf("#Format: <r1>:{ @<a1X>(c1X) ... } -- <r2>:{ @<a2X>(c2X) ... }"
                    " <Avg Dist. (Ang)> <Label>\n"
                    "# r1, r2: Residue Numbers\n"
                    "# a1X, a2X: Group atom numbers\n"
                    "# c1X, c2X: Number of times atom was part of shortest distance.\n");
-    outfile.Printf("#Final NOEs (%zu):\n#   %s\n", noeArray_.size(), Labels[current_cut]);
+    findOutput_->Printf("#Final NOEs (%zu):\n#   %s\n", noeArray_.size(), Labels[current_cut]);
     for (NOEtypeArray::iterator my_noe = noeArray_.begin();
                                 my_noe != noeArray_.end(); ++my_noe)
     {
       if (current_cut < 3 && my_noe->R6_Avg() > Cutoffs[current_cut]) {
         current_cut++;
-        outfile.Printf("#   %s\n", Labels[current_cut]);
+        findOutput_->Printf("#   %s\n", Labels[current_cut]);
       }
-      outfile.Printf("\t %s %g \"%s\"\n", my_noe->PrintNOE().c_str(),
+      findOutput_->Printf("\t %s %g \"%s\"\n", my_noe->PrintNOE().c_str(),
                      my_noe->R6_Avg(), my_noe->legend());
       if (my_noe->Data() != 0) {
         DataSet_float& data = static_cast<DataSet_float&>( *(my_noe->Data()) );
@@ -528,7 +526,7 @@ void Action_NMRrst::Print() {
       else if (my_noe->R6_Avg() < weak_cut_)   ++Bins[2];
       else                                     ++Bins[3];
     }
-    outfile.Printf("#Totals: %u strong, %u medium, %u weak, %u none.\n",
+    findOutput_->Printf("#Totals: %u strong, %u medium, %u weak, %u none.\n",
             Bins[0], Bins[1], Bins[2], Bins[3]);
   }
 }

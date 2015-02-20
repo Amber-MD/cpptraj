@@ -32,8 +32,8 @@ private:
   static const double MAXBOND;
   static const double MAXBOND2;
 
-  CpptrajFile output_;
-  CpptrajFile taildist_;
+  CpptrajFile* output_;
+  CpptrajFile* taildist_;
 
   enum DirectionType {DX = 0, DY, DZ};
   DirectionType axis_;
