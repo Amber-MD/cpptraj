@@ -20,6 +20,7 @@ Action_NAstruct::Action_NAstruct() :
   ensembleNum_(-1),
   printheader_(true),
   useReference_(false),
+  bpout_(0), stepout_(0), helixout_(0),
   masterDSL_(0)
 # ifdef NASTRUCTDEBUG
   ,calcparam_(true)
@@ -889,7 +890,15 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
   masterDSL_ = DSL;
   ensembleNum_ = DSL->EnsembleNum();
   // Get keywords
-  outputsuffix_ = actionArgs.GetStringKey("naout");
+  std::string outputsuffix = actionArgs.GetStringKey("naout");
+  if (!outputsuffix.empty()) {
+    // Set up output files.
+    FileName FName( outputsuffix );
+    bpout_ = DFL->AddCpptrajFile(FName.DirPrefix()   + "BP."     + FName.Base(), "Base Pair");
+    stepout_ = DFL->AddCpptrajFile(FName.DirPrefix() + "BPstep." + FName.Base(), "Base Pair Step");
+    helixout_ = DFL->AddCpptrajFile(FName.DirPrefix() + "Helix." + FName.Base(), "Helix");
+    if (bpout_ == 0 || stepout_ == 0 || helixout_ == 0) return Action::ERR;
+  }
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
   if (hbcut > 0) 
     HBdistCut2_ = hbcut * hbcut;
@@ -959,14 +968,15 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
 
   mprintf("    NAstruct: ");
   if (resRange_.Empty())
-    mprintf("Scanning all NA residues");
+    mprintf("Scanning all NA residues\n");
   else
-    mprintf("Scanning residues %s",resRange_.RangeArg());
-  if (!outputsuffix_.empty()) {
-      mprintf(", formatted output using file suffix %s",outputsuffix_.c_str());
-    if (!printheader_) mprintf(", no header");
+    mprintf("Scanning residues %s\n",resRange_.RangeArg());
+  if (bpout_ != 0) {
+    mprintf("\tBase pair parameters written to %s\n", bpout_->Filename().full());
+    mprintf("\tBase pair step parameters written to %s\n", stepout_->Filename().full());
+    mprintf("\tHelical parameters written to %s\n", helixout_->Filename().full());
+    if (!printheader_) mprintf("\tHeader line will not be written.\n");
   }
-  mprintf(".\n");
   mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( HBdistCut2_ ) );
   mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2f Angstroms.\n",
@@ -1095,26 +1105,23 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, Frame* currentFrame, Fra
   return Action::OK;
 } 
 
-// Action_NAstruct::print()
+// Action_NAstruct::Print()
 void Action_NAstruct::Print() {
-  CpptrajFile outfile;
   int nframes;
-  if (outputsuffix_.empty()) return;
+  if (bpout_ == 0) return;
 
   // ---------- Base pair parameters ----------
-  std::string outfilename = "BP." + outputsuffix_;
   // Check that there is actually data
   if ( SHEAR_.empty() || SHEAR_[0]->Empty() )
-    mprinterr("Error: Could not write BP file %s: No BP data.\n",outfilename.c_str()); 
+    mprinterr("Error: Could not write BP file %s: No BP data.\n", bpout_->Filename().full()); 
   else {
-    if (outfile.OpenEnsembleWrite( outfilename, ensembleNum_ ) == 0) {
       // Determine number of frames from SHEAR[0] DataSet
       nframes = SHEAR_[0]->Size();
       mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
-              outfilename.c_str(), nframes, BasePairAxes_.size());
+              bpout_->Filename().full(), nframes, BasePairAxes_.size());
       //  File header
       if (printheader_)
-        outfile.Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %10s %10s\n",
+        bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %10s %10s\n",
                        "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
                        "Buckle","Propeller","Opening", "HB", "Major", "Minor");
       // Loop over all frames
@@ -1126,7 +1133,7 @@ void Action_NAstruct::Print() {
           int bp_2 = (*BP).Res2();
           // FIXME: Hack for integer
           int n_of_hb = (int)BPHBONDS_[nbp]->Dval(frame);
-          outfile.Printf(BP_OUTPUT_FMT, frame+1, 
+          bpout_->Printf(BP_OUTPUT_FMT, frame+1, 
                          Bases_[bp_1].ResNum()+1, Bases_[bp_2].ResNum()+1,
                          SHEAR_[nbp]->Dval(frame), STRETCH_[nbp]->Dval(frame),
                          STAGGER_[nbp]->Dval(frame), BUCKLE_[nbp]->Dval(frame),
@@ -1134,37 +1141,27 @@ void Action_NAstruct::Print() {
                          n_of_hb, MAJOR_[nbp]->Dval(frame), MINOR_[nbp]->Dval(frame));
           ++nbp;
         }
-        outfile.Printf("\n");
+        bpout_->Printf("\n");
       }
-      outfile.CloseFile();
-    } else {
-      mprinterr("Error: Could not open %s for writing.\n", outfilename.c_str());
-    }
   }
 
   // ---------- Base pair step parameters ----------
-  CpptrajFile outfile2;
-  outfilename = "BPstep." + outputsuffix_;
-  std::string outfilename2 = "Helix." + outputsuffix_;
   // Check that there is actually data
   // TODO: Check helix data as well
   if ( SHIFT_.empty() || SHIFT_[0]->Empty() )
     mprinterr("Error: Could not write BPstep / helix files: No data.\n"); 
   else {
-    int err = 0;
-    err += outfile.OpenEnsembleWrite( outfilename, ensembleNum_ );
-    err += outfile2.OpenEnsembleWrite( outfilename2, ensembleNum_ );
-    if (err == 0) {
       // Determine number of frames from SHIFT[0] DataSet. Should be same as SHEAR.
       nframes = SHIFT_[0]->Size();
-      mprintf("\tBase pair step output file %s; ",outfilename.c_str());
-      mprintf("Helix output file %s; %i frames, %zu base pair steps.\n", outfilename2.c_str(),
+      mprintf("\tBase pair step output file %s, Helix output file %s;"
+              " %i frames, %zu base pair steps.\n", 
+              stepout_->Filename().full(), helixout_->Filename().full(),
               nframes, BasePairAxes_.size() - 1);
       //  File headers
       if (printheader_) {
-        outfile.Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+        stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
                        "Shift","Slide","Rise","Tilt","Roll","Twist");
-        outfile2.Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+        helixout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
                         "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
       }
       // Loop over all frames
@@ -1180,27 +1177,22 @@ void Action_NAstruct::Print() {
           int bp2_1 = Bases_[(*BP2).Res1()].ResNum() + 1;
           int bp2_2 = Bases_[(*BP2).Res2()].ResNum() + 1;
           // BPstep write
-          outfile.Printf(NA_OUTPUT_FMT, frame+1, 
+          stepout_->Printf(NA_OUTPUT_FMT, frame+1, 
                          bp1_1, bp1_2, bp2_1, bp2_2,
                          SHIFT_[nstep]->Dval(frame), SLIDE_[nstep]->Dval(frame),
                          RISE_[nstep]->Dval(frame), TILT_[nstep]->Dval(frame),
                          ROLL_[nstep]->Dval(frame), TWIST_[nstep]->Dval(frame));
           // Helix write
-          outfile2.Printf(NA_OUTPUT_FMT, frame+1,
+          helixout_->Printf(NA_OUTPUT_FMT, frame+1,
                           bp1_1, bp1_2, bp2_1, bp2_2,
                           XDISP_[nstep]->Dval(frame), YDISP_[nstep]->Dval(frame),
                           HRISE_[nstep]->Dval(frame), INCL_[nstep]->Dval(frame),
                           TIP_[nstep]->Dval(frame), HTWIST_[nstep]->Dval(frame));
           ++nstep;
         }
-        outfile.Printf("\n");
-        outfile2.Printf("\n");
+        stepout_->Printf("\n");
+        helixout_->Printf("\n");
       }
-      outfile.CloseFile();
-      outfile2.CloseFile();
-    } else {
-      mprinterr("Error: Could not open BPstep files for writing.\n");
-    }
   }
 }
 
