@@ -12,7 +12,6 @@
 
 // CONSTRUCTOR
 Action_Spam::Action_Spam() :
-  ensembleNum_(-1),
   bulk_(0.0),
   purewater_(false),
   reorder_(false),
@@ -48,7 +47,6 @@ void Action_Spam::Help() {
 // Action_Spam::init()
 Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   // Always use imaged distances
   InitImaging(true);
   // This is needed everywhere in this function scope

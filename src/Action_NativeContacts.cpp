@@ -12,7 +12,6 @@ Action_NativeContacts::Action_NativeContacts() :
   distance_(7.0),
   pdbcut_(0.0),
   debug_(0),
-  ensembleNum_(-1),
   matrix_min_(0),
   resoffset_(1),
   nframes_(0),
@@ -219,7 +218,6 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
 Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   masterDSL_ = DSL;
-  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );

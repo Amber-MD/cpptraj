@@ -28,7 +28,6 @@ class Action_NativeContacts : public Action {
     double distance_;     ///< Cutoff distance
     float pdbcut_;        ///< Only print pdb atoms with bfac > pdbcut.
     int debug_;           ///< Action debug level.
-    int ensembleNum_;
     int matrix_min_;      ///< Used for map output
     int resoffset_;       ///< When byResidue, ignore residues spaced this far apart
     unsigned int nframes_;///< Number of frames, for normalizing map

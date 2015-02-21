@@ -59,7 +59,6 @@ class Action_NMRrst: public Action {
     double weak_cut_;
     int resOffset_;
     int debug_;
-    int ensembleNum_;
     int nframes_; ///< Total # of frames.
     bool useMass_;
     bool findNOEs_;

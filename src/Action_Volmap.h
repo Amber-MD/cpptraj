@@ -16,7 +16,6 @@ class Action_Volmap : public Action {
     /// gets the LJ radius for a given atom from a topology
     double GetRadius_(Topology const&, int);
 
-    int ensembleNum_;
     /// grid resolutions
     double dx_, dy_, dz_;
     /// minimum values in the x-, y-, and z-dimensions

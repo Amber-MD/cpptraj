@@ -17,7 +17,6 @@ Action_NAstruct::Action_NAstruct() :
   originCut2_(6.25),   // Origin cutoff^2 for base-pairing: 2.5^2
   maxResSize_(0),
   debug_(0),
-  ensembleNum_(-1),
   printheader_(true),
   useReference_(false),
   bpout_(0), stepout_(0), helixout_(0),
@@ -888,7 +887,6 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
 {
   debug_ = debugIn;
   masterDSL_ = DSL;
-  ensembleNum_ = DSL->EnsembleNum();
   // Get keywords
   std::string outputsuffix = actionArgs.GetStringKey("naout");
   if (!outputsuffix.empty()) {
