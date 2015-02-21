@@ -21,14 +21,16 @@ void Action_GridFreeEnergy::Help() {
 Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get output filename
-  std::string filename = actionArgs.GetStringNext();
-  if (filename.empty()) {
+  DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringNext(), actionArgs);
+  if (outfile == 0) {
     mprinterr("Error: GridFreeEnergy: no output filename specified.\n");
     return Action::ERR;
   }
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
   grid_ = GridInit( "GridFreeEnergy", actionArgs, *DSL );
   if (grid_ == 0) return Action::ERR;
+  outfile->AddSet( grid_ );
+  //grid_.PrintXplor( filename_, "", "REMARKS Change in Free energy from bulk solvent with bin normalisation of " + integerToString(currentLargestVoxelOccupancyCount) );
 
   // Get mask
   std::string maskexpr = actionArgs.GetMaskNext();
@@ -41,18 +43,10 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* P
   // Get extra args
   tempInKevin_ = actionArgs.getKeyDouble("temp", 293.0);
 
-  // Setup output file
-  DataFile* outfile = DFL->AddSetToFile(filename, (DataSet*)grid_);
-  if (outfile == 0) {
-    mprinterr("Error: GridFreeEnergy: Could not set up output file %s\n", filename.c_str());
-    return Action::ERR;
-  }
-  //grid_.PrintXplor( filename_, "", "REMARKS Change in Free energy from bulk solvent with bin normalisation of " + integerToString(currentLargestVoxelOccupancyCount) );
-
   // Info
   mprintf("    GridFreeEnergy\n");
   GridInfo( *grid_ );
-  mprintf("\tGrid will be printed to file %s\n",filename.c_str());
+  mprintf("\tGrid will be printed to file %s\n",outfile->DataFilename().full());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   mprintf("\tTemp is : %f K\n",tempInKevin_);
 

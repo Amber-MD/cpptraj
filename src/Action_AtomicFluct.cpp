@@ -7,10 +7,10 @@
 
 // CONSTRUCTOR
 Action_AtomicFluct::Action_AtomicFluct() :
-  ensembleNum_(-1),
   sets_(0),
   bfactor_(false),
   calc_adp_(false),
+  adpoutfile_(0),
   fluctParm_(0),
   outtype_(BYATOM),
   dataout_(0),
@@ -27,14 +27,14 @@ void Action_AtomicFluct::Help() {
 // Action_AtomicFluct::Init()
 Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   // Get frame # keywords
   if (InitFrameCounter(actionArgs)) return Action::ERR;
   // Get other keywords
   bfactor_ = actionArgs.hasKey("bfactor");
   calc_adp_ = actionArgs.hasKey("calcadp");
-  adpoutname_ = actionArgs.GetStringKey("adpout");
-  if (!adpoutname_.empty()) calc_adp_ = true; // adpout implies calcadp
+  adpoutfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("adpout"), "PDB w/ADP",
+                                    DataFileList::PDB);;
+  if (adpoutfile_!=0) calc_adp_ = true; // adpout implies calcadp
   if (calc_adp_ && !bfactor_) bfactor_ = true;
   outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs ); 
   if (actionArgs.hasKey("byres"))
@@ -64,8 +64,10 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL,
     mprintf(", output to file %s",outfile_->DataFilename().base());
   mprintf("\n                 Atom mask: [%s]\n",Mask_.MaskString());
   FrameCounterInfo();
-  if (calc_adp_)
+  if (calc_adp_) {
     mprintf("\tCalculating anisotropic displacement parameters.\n");
+    if (adpoutfile_!=0) mprintf("\tWriting PDB with ADP to '%s'\n", adpoutfile_->Filename().full());
+  }
   if (!setname_.empty())
     mprintf("\tData will be saved to set named %s\n", setname_.c_str());
 
@@ -145,8 +147,6 @@ void Action_AtomicFluct::Print() {
   std::vector<double>::iterator result = Results.begin();
 
   if (bfactor_) {
-    PDBfile adpout;
-    if (calc_adp_) adpout.OpenEnsembleWrite( adpoutname_, ensembleNum_ );
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
     if (setname_.empty())
@@ -168,6 +168,7 @@ void Action_AtomicFluct::Print() {
           int u12 = (int)((Cross_[i  ] - SumCoords_[i  ] * SumCoords_[i+1]) * 10000);
           int u13 = (int)((Cross_[i+1] - SumCoords_[i  ] * SumCoords_[i+2]) * 10000);
           int u23 = (int)((Cross_[i+2] - SumCoords_[i+1] * SumCoords_[i+2]) * 10000);
+          PDBfile& adpout = static_cast<PDBfile&>( *adpoutfile_ );
           adpout.WriteANISOU(
             atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
             (*fluctParm_)[atom].ChainID(), fluctParm_->Res(resnum).OriginalResNum(),

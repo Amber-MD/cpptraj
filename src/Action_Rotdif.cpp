@@ -50,7 +50,8 @@ Action_Rotdif::Action_Rotdif() :
   amoeba_nsearch_(1),
   do_gridsearch_( false ),
   useMass_(false),
-  usefft_( true )
+  usefft_( true ),
+  outfile_(0)
 { } 
 // TODO: MAKE ANALYSIS
 void Action_Rotdif::Help() {
@@ -165,7 +166,9 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Data
   SelectedRef_.CenterOnOrigin(useMass_); 
 
   // Open output file. Defaults to stdout if no name specified
-  if (outfile_.OpenEnsembleWrite(outfilename, DSL->EnsembleNum())) {
+  outfile_ = DFL->AddCpptrajFile(outfilename, "Rotational diffusion",
+                                 DataFileList::TEXT, true);
+  if (outfile_ == 0) {
     mprinterr("Error: Could not open Rotdif output file %s.\n", outfilename.c_str());
     return Action::ERR;
   }
@@ -491,9 +494,9 @@ void Action_Rotdif::PrintVec6(CpptrajFile& outfile, const char* Title, SimplexMi
 // Action_Rotdif::PrintTau()
 void Action_Rotdif::PrintTau(std::vector<double> const& Tau)
 {
-  outfile_.Printf("     taueff(obs) taueff(calc)\n");
+  outfile_->Printf("     taueff(obs) taueff(calc)\n");
   for (int i = 0; i < nvecs_; i++)
-    outfile_.Printf("%5i %12.5e %12.5e\n", i+1, D_eff_[i], Tau[i]);
+    outfile_->Printf("%5i %12.5e %12.5e\n", i+1, D_eff_[i], Tau[i]);
 }
 
 // =============================================================================
@@ -885,14 +888,14 @@ int Action_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
   delete[] matrix_Vt;
   delete[] matrix_U;
 
-  outfile_.Printf("Results of small anisotropy (SVD) analysis:\n");
+  outfile_->Printf("Results of small anisotropy (SVD) analysis:\n");
   // Print Q vector
-  PrintVec6(outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz",vector_q);
+  PrintVec6(*outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz",vector_q);
   // ---------------------------------------------
 
   // Convert vector Q to diffusion tensor D
   Q_to_D(vector_q, D_tensor_);
-  PrintMatrix(outfile_,"D_tensor",D_tensor_);
+  PrintMatrix(*outfile_,"D_tensor",D_tensor_);
 
   // Save D for later use in back calculating deff from Q
   Matrix_3x3 matrix_D_local = D_tensor_;
@@ -906,12 +909,12 @@ int Action_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
   //matrix_transpose_3x3( D_tensor );
 
   // Print eigenvalues/eigenvectors
-  PrintVector(outfile_,"D eigenvalues",D_XYZ_);
-  PrintMatrix(outfile_,"D eigenvectors (in columns)",D_tensor_);
+  PrintVector(*outfile_,"D eigenvalues",D_XYZ_);
+  PrintMatrix(*outfile_,"D eigenvectors (in columns)",D_tensor_);
 
   // Calculate Dav, Daniso, Drhomb
   Vec3 d_props = calculate_D_properties(D_XYZ_);
-  PrintVector(outfile_,"Dav, Daniso, Drhomb",d_props);
+  PrintVector(*outfile_,"Dav, Daniso, Drhomb",d_props);
 
   // Back-calculate the local diffusion constants via At*Q=Deff
   // First convert original D back to Q
@@ -946,7 +949,7 @@ int Action_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
     sgn += (diff * diff);
   }
   PrintTau( deff_local );
-  outfile_.Printf("  chisq for above is %15.5g\n",sgn);
+  outfile_->Printf("  chisq for above is %15.5g\n",sgn);
 
   // Cleanup
   delete[] matrix_At;
@@ -1368,11 +1371,11 @@ int Action_Rotdif::DetermineDeffsAlt() {
   // We now in principal have A0 = -l(l+1)D, D = A0 / -l(l+1)
   double A0 = Params[0];
   double Deff = A0 / (double)(olegendre_ * (olegendre_ + 1));
-  outfile_.Printf("# Results from single-exponential fit: <C(t)> = exp(-t * A0)\n");
-  outfile_.Printf("# Corr= %g  ChiSq= %g  TheilU= %g  RMS_PE= %g\n",
+  outfile_->Printf("# Results from single-exponential fit: <C(t)> = exp(-t * A0)\n");
+  outfile_->Printf("# Corr= %g  ChiSq= %g  TheilU= %g  RMS_PE= %g\n",
                   stat_corr, stat_chisq, stat_theilu, stat_rpe);
-  outfile_.Printf("%-12s %12s %12s\n", "#A0", "D" ,"T");
-  outfile_.Printf("%12.5e %12.5e %12.5e\n", A0, Deff, 1.0 / A0);
+  outfile_->Printf("%-12s %12s %12s\n", "#A0", "D" ,"T");
+  outfile_->Printf("%12.5e %12.5e %12.5e\n", A0, Deff, 1.0 / A0);
 //  mprintf("\t\tA0= %12.5e    Deff= %12.5e    Vxyz={%12.5e, %12.5e, %12.5e}\n",
 //          A0, Deff, AvgVec[0], AvgVec[1], AvgVec[2]);
 //  D_eff_.push_back( Deff );
@@ -1412,12 +1415,12 @@ int Action_Rotdif::DetermineDeffsAlt() {
 //    mprintf("\t\t# %2i  c= %12.5f  T= %12.5e\n", i/2, Mparams[i], Mparams[i+1]);
   // Sort Dx <= Dy <= Dz
   std::sort( Cparams.begin() + 3, Cparams.end() );
-  outfile_.Printf("# Results from multi-exponential fit:"
+  outfile_->Printf("# Results from multi-exponential fit:"
                   " <C(t)> = SUM(l=-2,...,2)[ c(l) * exp(-t * E2(l)) ]\n");
-  outfile_.Printf("# Corr= %g  ChiSq= %g  TheilU= %g  RMS_PE= %g\n",
+  outfile_->Printf("# Corr= %g  ChiSq= %g  TheilU= %g  RMS_PE= %g\n",
                   stat_corr, stat_chisq, stat_theilu, stat_rpe);
-  outfile_.Printf("%-12s %12s %12s %12s %12s %12s\n", "#l", "m", "n", "dx", "dy", "dz");
-  outfile_.Printf("%12.5f %12.5f %12.5f %12.5e %12.5e %12.5e\n",
+  outfile_->Printf("%-12s %12s %12s %12s %12s %12s\n", "#l", "m", "n", "dx", "dy", "dz");
+  outfile_->Printf("%12.5f %12.5f %12.5f %12.5e %12.5e %12.5e\n",
                   Cparams[0], Cparams[1], Cparams[2],
                   Cparams[3], Cparams[4], Cparams[5]);
 //  mprintf("\t  l= %12.5f  m= %12.5f  n= %12.5f  L= %12.5f"
@@ -1429,7 +1432,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
   double DY = Cparams[4];
   double DZ = Cparams[5];
   Vec3 d_props = calculate_D_properties(Vec3(DX, DY, DZ));
-  outfile_.Printf("%-12s %12s %12s\n%12.5e %12.5e %12.5e\n", "#Dav",
+  outfile_->Printf("%-12s %12s %12s\n%12.5e %12.5e %12.5e\n", "#Dav",
                   "anisotropy", "rhombicity", d_props[0], d_props[1], d_props[2]);
   double t_2_p1 = 1.0 / (4.0 * DX + DY + DZ);
   double t_2_m1 = 1.0 / (4.0 * DY + DX + DZ);
@@ -1442,9 +1445,9 @@ int Action_Rotdif::DetermineDeffsAlt() {
   double t_2_p2 = 1.0 / (6.0 * (Dav + Dm2));
   double t_2_0  = 1.0 / (6.0 * (Dav - Dm2));
   double tR = 1.0 / (2.0 * (DX + DY + DZ));
-  outfile_.Printf("%-12s %12s %12s %12s %12s %12s\n",
+  outfile_->Printf("%-12s %12s %12s %12s %12s %12s\n",
                   "#t2,-2", "t2,-1", "t2,0", "t2,+1", "t2,+2", "tR");
-  outfile_.Printf("%12.5e %12.5e %12.5e %12.5e %12.5e %12.5e\n", 
+  outfile_->Printf("%12.5e %12.5e %12.5e %12.5e %12.5e %12.5e\n", 
                   t_2_m2, t_2_m1, t_2_0, t_2_p1, t_2_p2, tR);
 
   // Write out Ct and fit curves
@@ -1777,25 +1780,25 @@ void Action_Rotdif::Print() {
     // chi_squared performs diagonalization. The workspace for dsyev should
     // already have been set up in Tensor_Fit.
     double initial_chisq = chi_squared(fxn, Q_anisotropic, &random_vectors_, D_eff_, Tau);
-    outfile_.Printf("\nSame diffusion tensor, but full anisotropy:\n");
-    outfile_.Printf("  chi_squared for SVD tensor is %15.5g\n", initial_chisq);
+    outfile_->Printf("\nSame diffusion tensor, but full anisotropy:\n");
+    outfile_->Printf("  chi_squared for SVD tensor is %15.5g\n", initial_chisq);
     PrintTau( Tau );
     // Use the SVD solution as one of the initial points for the minimizer.
     minimizer.Minimize(fxn, Q_anisotropic, &random_vectors_, D_eff_, delqfrac_,
                        amoeba_itmax_, amoeba_ftol_, amoeba_nsearch_, RNgen_);
-    outfile_.Printf("\nOutput from amoeba:\n");
+    outfile_->Printf("\nOutput from amoeba:\n");
     // Print Q vector
-    PrintVec6(outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
+    PrintVec6(*outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
     Q_to_D( Q_anisotropic, D_tensor_ );
     Diagonalize( D_tensor_, D_XYZ_ );
     // Copy final Tau values from minimizer in case grid search needed.
     Tau = minimizer.FinalY();
     //mprintf("Output from amoeba - average at cycle %i\n",i+1);
     Vec3 d_props = calculate_D_properties(D_XYZ_);
-    outfile_.Printf("    Final chisq = %15.5g\n", minimizer.FinalChiSquared());
-    PrintVector(outfile_,"Dav, aniostropy, rhombicity:",d_props);
-    PrintVector(outfile_,"D tensor eigenvalues:",D_XYZ_);
-    PrintMatrix(outfile_,"D tensor eigenvectors (in columns):",D_tensor_);
+    outfile_->Printf("    Final chisq = %15.5g\n", minimizer.FinalChiSquared());
+    PrintVector(*outfile_,"Dav, aniostropy, rhombicity:",d_props);
+    PrintVector(*outfile_,"D tensor eigenvalues:",D_XYZ_);
+    PrintMatrix(*outfile_,"D tensor eigenvectors (in columns):",D_tensor_);
     PrintTau( Tau );
     // Brute force grid search
     if (do_gridsearch_) {
@@ -1845,11 +1848,10 @@ void Action_Rotdif::Print() {
       if (success) {
         mprintf("  Grid search succeeded.\n");
         Q_anisotropic = best;
-        PrintVec6(outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
+        PrintVec6(*outfile_,"Qxx Qyy Qzz Qxy Qyz Qxz", Q_anisotropic);
       } else
         mprintf("  Grid search could not find a better solution.\n");
     } // END grid search
 #   endif
   }
-  outfile_.CloseFile();
 }

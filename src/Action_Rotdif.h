@@ -64,7 +64,7 @@ class Action_Rotdif: public Action {
     Frame SelectedRef_;
     AtomMask TargetMask_;
     Frame SelectedTgt_;
-    CpptrajFile outfile_;
+    CpptrajFile* outfile_;
 
     // Variables used by the random number generator
     Random_Number RNgen_;

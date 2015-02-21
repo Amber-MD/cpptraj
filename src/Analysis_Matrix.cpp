@@ -47,7 +47,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
     return Analysis::ERR;
   }
   // Check that matrix is symmetric (half-matrix incl. diagonal).
-  if (matrix_->Kind() != DataSet_2D::HALF) {
+  if (matrix_->MatrixKind() != DataSet_2D::HALF) {
     mprinterr("Error: Only works for symmetric matrices (i.e. no mask2)\n");
     return Analysis::ERR;
   }
@@ -82,7 +82,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   thermopt_ = analyzeArgs.hasKey("thermo");
   outthermo_ = analyzeArgs.GetStringKey("outthermo");
   thermo_temp_ = analyzeArgs.getKeyDouble("temp", 298.15);
-  if (thermopt_ && matrix_->Type()!=DataSet_2D::MWCOVAR) {
+  if (thermopt_ && matrix_->ScalarType()!=DataSet::MWCOVAR) {
     mprinterr("Error: Parameter 'thermo' only works for mass-weighted covariance matrix ('mwcovar').\n");
     return Analysis::ERR;
   }
@@ -102,8 +102,8 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   std::string modesname = analyzeArgs.GetStringKey("name");
   modes_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesname, "Modes" );
   if (modes_==0) return Analysis::ERR;
-  // Output string for writing modes file.
-  modes_->SetType( matrix_->Type() );
+  // Set Modes DataSet type to be same as input matrix. 
+  modes_->SetScalar( matrix_->ScalarType() );
   if (outfile != 0) outfile->AddSet( modes_ );
 
   // Print Status
@@ -137,18 +137,26 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
 // Analysis_Matrix::Analyze()
 Analysis::RetType Analysis_Matrix::Analyze() {
   modes_->SetAvgCoords( *matrix_ );
+  // Check that the matrix was generated with enough snapshots.
+  if (matrix_->Type() == DataSet::MATRIX_DBL) {
+    DataSet_MatrixDbl const& Dmatrix = static_cast<DataSet_MatrixDbl const&>( *matrix_ );
+    if (Dmatrix.Nsnapshots() < Dmatrix.Ncols())
+      mprintf("Warning: In matrix '%s', # of frames %u is less than # of columns %zu."
+              "Warning: The max # of non-zero eigenvalues will be %u\n", Dmatrix.legend(),
+              Dmatrix.Nsnapshots(), Dmatrix.Ncols(), Dmatrix.Nsnapshots());
+  }
   // Calculate eigenvalues / eigenvectors
   if (modes_->CalcEigen( *matrix_, nevec_ )) return Analysis::ERR;
-  if (matrix_->Type() == DataSet_2D::MWCOVAR) {
-    DataSet_MatrixDbl* Dmatrix = static_cast<DataSet_MatrixDbl*>( matrix_ );
-    if ( Dmatrix->Mass().empty() ) {
+  if (matrix_->ScalarType() == DataSet::MWCOVAR) {
+    DataSet_MatrixDbl const& Dmatrix = static_cast<DataSet_MatrixDbl const&>( *matrix_ );
+    if ( Dmatrix.Mass().empty() ) {
       mprinterr("Error: MWCOVAR Matrix %s does not have mass info.\n", matrix_->Legend().c_str());
       return Analysis::ERR;
     }
     // Convert eigenvalues to cm^-1
     if (modes_->EigvalToFreq(thermo_temp_)) return Analysis::ERR;
     // Mass-wt eigenvectors // TODO Do not pass in Mass again, done above in SetAvgCoords
-    if (modes_->MassWtEigvect( Dmatrix->Mass() )) return Analysis::ERR;
+    if (modes_->MassWtEigvect( Dmatrix.Mass() )) return Analysis::ERR;
     // Calc thermo-chemistry if specified
     if (thermopt_) {
       CpptrajFile outfile;

@@ -17,7 +17,6 @@ class Action_STFC_Diffusion : public Action {
 
     void calculateMSD(const double*,int,int,Vec3 const&);
 
-    int ensembleNum_;
     bool printDistances_; // iarg1
     enum CalcType { DEFAULT = 0, COM, DIST };
     CalcType calcType_; // iarg2
@@ -25,10 +24,9 @@ class Action_STFC_Diffusion : public Action {
     DirectionType direction_; // iarg3
     AtomMask mask_;
     AtomMask mask2_;
-    CpptrajFile output_;
-    CpptrajFile outputnw_;
-    std::string outputAverDist_;
-    std::string outputNumWat_;
+    CpptrajFile* output_;
+    CpptrajFile* outputnw_;
+    CpptrajFile* outputad_;
     double time_;
     double lowerCutoff_;
     double upperCutoff_;

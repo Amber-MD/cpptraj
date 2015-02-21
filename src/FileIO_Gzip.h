@@ -8,7 +8,8 @@
 class FileIO_Gzip : public FileIO {
   public:
     FileIO_Gzip(); 
-    ~FileIO_Gzip(); 
+    ~FileIO_Gzip();
+    int OpenStream(StreamType) { return 1; }  
     int Open(const char *, const char *);    
     int Close();
     off_t Size(const char *);

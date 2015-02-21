@@ -57,10 +57,10 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   }
 
   // Check modes type
-  if (modinfo_->Type() != DataSet_2D::COVAR &&
-      modinfo_->Type() != DataSet_2D::MWCOVAR &&
-      modinfo_->Type() != DataSet_2D::DIHCOVAR &&
-      modinfo_->Type() != DataSet_2D::IDEA)
+  if (modinfo_->ScalarType() != DataSet::COVAR &&
+      modinfo_->ScalarType() != DataSet::MWCOVAR &&
+      modinfo_->ScalarType() != DataSet::DIHCOVAR &&
+      modinfo_->ScalarType() != DataSet::IDEA)
   {
     mprinterr("Error: evecs type is not COVAR, MWCOVAR, DIHCOVAR, or IDEA.\n");
     return Action::ERR;
@@ -70,7 +70,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   DataFile* DF = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
 
   // Get dihedral data sets 
-  if (modinfo_->Type() == DataSet_2D::DIHCOVAR) {
+  if (modinfo_->ScalarType() == DataSet::DIHCOVAR) {
     DihedralSets_.clear();
     DihedralSets_.AddTorsionSets( DSL->GetMultipleSets(actionArgs.GetStringKey("dihedrals")) );
     if ( DihedralSets_.empty() ) {
@@ -95,7 +95,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
     setname = DSL->GenerateDefaultName("Proj");
   for (int mode = beg_; mode < end_; ++mode) {
     int imode = mode + 1;
-    if (modinfo_->Type() != DataSet_2D::IDEA) { // COVAR, MWCOVAR
+    if (modinfo_->ScalarType() != DataSet::IDEA) { // COVAR, MWCOVAR
       DataSet* dout = DSL->AddSetIdx( DataSet::FLOAT, setname, imode );
       if (dout == 0) {
         mprinterr("Error: Could not create output dataset for mode %i\n", imode);
@@ -121,7 +121,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   if (DF != 0)
     mprintf("\tResults are written to %s\n", DF->DataFilename().full());
   FrameCounterInfo();
-  if (modinfo_->Type() == DataSet_2D::DIHCOVAR)
+  if (modinfo_->ScalarType() == DataSet::DIHCOVAR)
     mprintf("\t%zu dihedral data sets.\n", DihedralSets_.size());
   else
     mprintf("\tAtom Mask: [%s]\n", mask_.MaskString());
@@ -131,7 +131,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
 
 // Action_Projection::Setup()
 Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (modinfo_->Type() != DataSet_2D::DIHCOVAR) {
+  if (modinfo_->ScalarType() != DataSet::DIHCOVAR) {
     // Setup mask
     if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
     if (mask_.None()) {
@@ -140,8 +140,8 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
     }
     mask_.MaskInfo();
     // Check # of selected atoms against modes info
-    if ( modinfo_->Type() == DataSet_2D::COVAR || 
-         modinfo_->Type() == DataSet_2D::MWCOVAR)
+    if ( modinfo_->ScalarType() == DataSet::COVAR || 
+         modinfo_->ScalarType() == DataSet::MWCOVAR)
     {
       // Check if (3 * number of atoms in mask) and nvectelem agree
       int natom3 = mask_.Nselected() * 3;
@@ -155,7 +155,7 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
                   natom3, modinfo_->VectorSize() );
         return Action::ERR;
       }
-    } else if ( modinfo_->Type() == DataSet_2D::IDEA ) {
+    } else if ( modinfo_->ScalarType() == DataSet::IDEA ) {
       // Check if (number of atoms in mask) and nvectelem agree
       if (//mask_.Nselected() != modinfo_.Navgelem() ||
           mask_.Nselected() != modinfo_->VectorSize()) 
@@ -168,7 +168,7 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
 
     // Precalc sqrt of mass for each coordinate
     sqrtmasses_.clear();
-    if ( modinfo_->Type() == DataSet_2D::MWCOVAR ) {
+    if ( modinfo_->ScalarType() == DataSet::MWCOVAR ) {
       sqrtmasses_.reserve( mask_.Nselected() );
       for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
         sqrtmasses_.push_back( sqrt( (*currentParm)[*atom].Mass() ) );
@@ -188,8 +188,8 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame,
   // Always start at first eigenvector element of first mode.
   const double* Vec = modinfo_->Eigenvector(beg_);
   // Project snapshots on modes
-  if ( modinfo_->Type() == DataSet_2D::COVAR || 
-       modinfo_->Type() == DataSet_2D::MWCOVAR ) 
+  if ( modinfo_->ScalarType() == DataSet::COVAR || 
+       modinfo_->ScalarType() == DataSet::MWCOVAR ) 
   {
     for (int mode = beg_; mode < end_; ++mode) {
       DataSet_Modes::AvgIt Avg = modinfo_->AvgBegin();
@@ -207,7 +207,7 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame,
       float fproj = (float)proj;
       project_[mode]->Add( frameNum, &fproj );
     }
-  } else if (modinfo_->Type() == DataSet_2D::DIHCOVAR ) {
+  } else if (modinfo_->ScalarType() == DataSet::DIHCOVAR ) {
     for (int mode = beg_; mode < end_; ++mode) {
       DataSet_Modes::AvgIt Avg = modinfo_->AvgBegin();
       double proj = 0.0;
@@ -223,7 +223,7 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame,
       float fproj = (float)proj;
       project_[mode]->Add( frameNum, &fproj );
     }
-  } else { // if modinfo_.Type() == IDEA
+  } else { // if modinfo_.ScalarType() == IDEA
     int ip = 0;
     for (int mode = beg_; mode < end_; ++mode) {
       double proj1 = 0;

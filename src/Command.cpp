@@ -981,7 +981,8 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
   // Get optional reference coords
   ReferenceFrame RefCrd = State.DSL()->GetReferenceFrame(argIn);
   // Get arguments
-  bool overwrite = argIn.hasKey("overwrite");
+  if (argIn.hasKey("overwrite"))
+    mprintf("Warning: 'overwrite' keyword no longer necessary and is deprecated.\n");
   double r1 = argIn.getKeyDouble("r1", 0.0);
   double r2 = argIn.getKeyDouble("r2", 0.0);
   double r3 = argIn.getKeyDouble("r3", 0.0);
@@ -991,14 +992,9 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
   // crddist will be !RefCrd.empty()
   double offset = argIn.getKeyDouble("offset", 0.0);
   double width = argIn.getKeyDouble("width", 0.5);
-  std::string outName = argIn.GetStringKey("out");
-  CpptrajFile outfile;
-  int err = 0;
-  if (overwrite)
-    err = outfile.OpenWrite( outName );
-  else
-    err = outfile.OpenAppend( outName );
-  if (err != 0) {
+  CpptrajFile* outfile = State.DFL()->AddCpptrajFile(argIn.GetStringKey("out"), "Amber Rst",
+                                                     DataFileList::TEXT, true);
+  if (outfile == 0) {
     mprinterr("Error: Could not open output file.\n");
     return Command::C_ERR;
   }
@@ -1059,18 +1055,18 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
     mprintf("\tCoM value from ref will be used, r1=%f, r2=%f, r3=%f, r4=%f\n", r1,r2,r3,r4);
   } 
   // Print restraint header 
-  outfile.Printf(" &rst iat=");
+  outfile->Printf(" &rst iat=");
   for (std::vector<AtomMask>::const_iterator M = rstMasks.begin();
                                              M != rstMasks.end(); ++M)
   {
     if ((*M).Nselected() == 1)
-      outfile.Printf("%i,", (*M)[0] + 1);
+      outfile->Printf("%i,", (*M)[0] + 1);
     else
-      outfile.Printf("-1,");
+      outfile->Printf("-1,");
   }
-  outfile.Printf("0\n");
+  outfile->Printf("0\n");
   // Print Restraint boundaries and constants
-  outfile.Printf("   r1=%f, r2=%f, r3=%f, r4=%f, rk2=%f, rk3=%f,\n",
+  outfile->Printf("   r1=%f, r2=%f, r3=%f, r4=%f, rk2=%f, rk3=%f,\n",
                  r1, r2, r3, r4, rk2, rk3);
   // Print out atom groups if necessary
   unsigned int group = 1;
@@ -1078,17 +1074,16 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
                                              M != rstMasks.end(); ++M, group++)
   {
     if ((*M).Nselected() > 1) {
-      outfile.Printf("   ");
+      outfile->Printf("   ");
       unsigned int j = 1;
       for (AtomMask::const_iterator atom = (*M).begin();
                                     atom != (*M).end(); ++atom, j++)
-        outfile.Printf("IGR%u(%u)=%i,", group, j, (*atom) + 1);
-      outfile.Printf("\n");
+        outfile->Printf("IGR%u(%u)=%i,", group, j, (*atom) + 1);
+      outfile->Printf("\n");
     }
   }
   // Finish restraint
-  outfile.Printf("   nstep1=0, nstep2=0,\n &end\n");
-  outfile.CloseFile();
+  outfile->Printf("   nstep1=0, nstep2=0,\n &end\n");
   return Command::C_OK;
 }
 
@@ -1201,9 +1196,9 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
       return Command::C_ERR;
   }
   if (dmode != DataSet::UNKNOWN_MODE)
-    mprintf("\tDataSet mode = %s\n", DataSet::Smodes[dmode]);
+    mprintf("\tDataSet mode = %s\n", DataSet::ModeString(dmode));
   if (dtype != DataSet::UNDEFINED)
-    mprintf("\tDataSet type = %s\n", DataSet::Stypes[dtype]);
+    mprintf("\tDataSet type = %s\n", DataSet::TypeString(dtype));
   // Loop over all DataSet arguments 
   std::string ds_arg = argIn.GetStringNext();
   while (!ds_arg.empty()) {

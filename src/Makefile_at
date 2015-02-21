@@ -22,9 +22,9 @@ AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
 
 all: cpptraj$(SFX)
 
-install: cpptraj$(SFX) cpp_ambpdb$(SFX) 
+install: cpptraj$(SFX) ambpdb$(SFX) 
 	mv cpptraj$(SFX) $(BINDIR)/
-	mv cpp_ambpdb$(SFX) $(BINDIR)/
+	mv ambpdb$(SFX) $(BINDIR)/
 
 install_openmp: cpptraj$(SFX)
 	mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX)
@@ -45,8 +45,8 @@ cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
 
-cpp_ambpdb$(SFX): $(AMBPDB_OBJECTS)
-	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpp_ambpdb$(SFX) $(AMBPDB_OBJECTS) \
+ambpdb$(SFX): $(AMBPDB_OBJECTS)
+	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o ambpdb$(SFX) $(AMBPDB_OBJECTS) \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB)
 
 cpptraj.sander$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(LIBDIR)/libsander.so
@@ -79,12 +79,12 @@ ReadLine.o: ReadLine.cpp
 	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 clean:
-	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o cpp_ambpdb$(SFX)
+	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o ambpdb$(SFX)
 	cd readline && $(MAKE) -f Makefile_at clean
 
 uninstall:
 	/bin/rm -f $(BINDIR)/cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX) $(BINDIR)/cpptraj.MPI$(SFX)
-	/bin/rm -f $(BINDIR)/cpp_ambpdb$(SFX)
+	/bin/rm -f $(BINDIR)/ambpdb$(SFX)
 	cd readline && $(MAKE) -f Makefile_at uninstall
 
 # Header dependencies
