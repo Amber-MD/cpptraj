@@ -49,7 +49,7 @@ class Action_Spam: public Action, ImagedAction {
     /** \brief twice the cutoff (to test if boxes are big enough) */
     double doublecut_;
     /** \brief Name of the SPAM info file */
-    std::string infoname_;
+    CpptrajFile* infofile_;
     /** \brief Mask for selecting individual solvent residues */
     AtomMask mask_;
     /** \brief File containing the summary of all SPAM statistics */

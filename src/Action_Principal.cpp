@@ -7,6 +7,7 @@ Action_Principal::Action_Principal() :
   doRotation_(false),
   useMass_(false),
   debug_(0),
+  outfile_(0),
   vecData_(0),
   valData_(0)
 { }
@@ -42,8 +43,9 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, TopologyList* PFL, D
 
   mprintf("    PRINCIPAL:");
   if (!filename.empty()) {
-    mprintf(" output eigenvectors/eigenvalues to %s,", filename.c_str());
-    if (outfile_.OpenEnsembleWrite(filename, DSL->EnsembleNum())) return Action::ERR;
+    outfile_ = DFL->AddCpptrajFile(filename, "Eigenvectors/Eigenvalues");
+    if (outfile_ == 0) return Action::ERR;
+    mprintf(" output eigenvectors/eigenvalues to %s,", outfile_->Filename().full());
   }
   if (doRotation_)
     mprintf(" with rotation by");
@@ -83,9 +85,9 @@ Action::RetType Action_Principal::DoAction(int frameNum, Frame* currentFrame, Fr
 
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
   Inertia.Diagonalize_Sort_Chirality( Eval, debug_ );
-  if (outfile_.IsOpen()) {
+  if (outfile_ != 0) {
     int fn = frameNum+1; 
-    outfile_.Printf("%i EIGENVALUES: %f %f %f\n%i EIGENVECTOR 0: %f %f %f\n%i EIGENVECTOR 1: %f %f %f\n%i EIGENVECTOR 2: %f %f %f\n", 
+    outfile_->Printf("%i EIGENVALUES: %f %f %f\n%i EIGENVECTOR 0: %f %f %f\n%i EIGENVECTOR 1: %f %f %f\n%i EIGENVECTOR 2: %f %f %f\n", 
       fn, Eval[0], Eval[1], Eval[2],
       fn, Inertia[0], Inertia[1], Inertia[2],
       fn, Inertia[3], Inertia[4], Inertia[5],

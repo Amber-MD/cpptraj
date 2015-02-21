@@ -14,6 +14,7 @@ Action_Volmap::Action_Volmap() :
   Nframes_(0),
   setupGridOnMask_(false),
   grid_(0),
+  peakfile_(0),
   peakcut_(0.05),
   buffer_(3.0),
   radscale_(1.0)
@@ -59,7 +60,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Data
   dz_ = actionArgs.getNextDouble(0.0);
   // Get extra options
   peakcut_ = actionArgs.getKeyDouble("peakcut", 0.05);
-  peakfilename_ = actionArgs.GetStringKey("peakfile");
+  peakfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", 1.0);
   std::string sizestr = actionArgs.GetStringKey("size");
   std::string center = actionArgs.GetStringKey("centermask");
@@ -134,9 +135,9 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Data
   else
     mprintf("\tGrid centered at origin.\n");
   mprintf("\tDensity will wrtten to %s\n", filename.c_str());
-  if (!peakfilename_.empty())
+  if (peakfile_ != 0)
     mprintf("\tDensity peaks above %.3f will be printed to %s in XYZ-format\n",
-            peakcut_, peakfilename_.c_str());
+            peakcut_, peakfile_->Filename().full());
 
   return Action::OK;
 }
@@ -291,7 +292,7 @@ void Action_Volmap::Print() {
 //                      "rdparm generated grid density" );
   
   // See if we need to write the peaks out somewhere
-  if (!peakfilename_.empty()) {
+  if (peakfile_ != 0) {
     // Extract peaks from the current grid, setup another Grid instance. This
     // works by taking every grid point and analyzing all grid points adjacent
     // to it (including diagonals). If any of those grid points have a higher 
@@ -335,16 +336,10 @@ void Action_Volmap::Print() {
         }
     // If we have peaks, open up our peak data and print it
     if (npeaks > 0) {
-      CpptrajFile outfile;
-      if(outfile.OpenEnsembleWrite(peakfilename_, ensembleNum_)) {
-        mprinterr("Error: Could not open %s for writing.\n", peakfilename_.c_str());
-        return;
-      }
-      outfile.Printf("%d\n\n", npeaks);
+      peakfile_->Printf("%d\n\n", npeaks);
       for (int i = 0; i < npeaks; i++)
-        outfile.Printf("C %16.8f %16.8f %16.8f %16.8f\n", peakdata[4*i],
+        peakfile_->Printf("C %16.8f %16.8f %16.8f %16.8f\n", peakdata[4*i],
                        peakdata[4*i+1], peakdata[4*i+2], peakdata[4*i+3]);
-      outfile.CloseFile();
       mprintf("Volmap: %d density peaks found with higher density than %.4lf\n",
               npeaks, peakcut_);
     }else{

@@ -19,6 +19,7 @@ Action_Spam::Action_Spam() :
   cut2_(144.0),
   onecut2_(1.0 / 144.0),
   doublecut_(24.0),
+  infofile_(0),
   site_size_(2.5),
   sphere_(false),
   Nframes_(0),
@@ -92,9 +93,11 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
     cut2_ = cut * cut;
     doublecut_ = 2 * cut;
     onecut2_ = 1 / cut2_;
-    infoname_ = actionArgs.GetStringKey("info");
-    if (infoname_.empty())
-      infoname_ = std::string("spam.info");
+    std::string infoname = actionArgs.GetStringKey("info");
+    if (infoname.empty())
+      infoname = std::string("spam.info");
+    infofile_ = DFL->AddCpptrajFile(infoname, "SPAM info");
+    if (infofile_ == 0) return Action::ERR;
     // The default maskstr is the Oxygen atom of the solvent
     summaryfile_ = actionArgs.GetStringKey("summary");
     // Divide site size by 2 to make it half the edge length (or radius)
@@ -165,7 +168,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
             solvname_.c_str(), filename.c_str());
     mprintf("SPAM: %d density peaks will be analyzed from %s.\n",
             peaks_.size(), filename.c_str());
-    mprintf("SPAM: Occupation information printed to %s.\n", infoname_.c_str());
+    mprintf("SPAM: Occupation information printed to %s.\n", infofile_->Filename().full());
     mprintf("SPAM: Sites are ");
     if (sphere_)
       mprintf("spheres with diameter %.3lf\n", site_size_);
@@ -464,19 +467,12 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame* currentFrame) {
 void Action_Spam::Print() {
   // Print the spam info file if we didn't do pure water
   if (!purewater_) {
-    CpptrajFile info;
-    if (info.OpenEnsembleWrite(infoname_, ensembleNum_)) {
-      mprinterr("Error: SPAM: Could not open %s for writing.\n",
-                infoname_.c_str());
-      return;
-    }
-
     // Warn about any overflows
     if (overflow_)
       mprinterr("Warning: SPAM: Some frames had a box too small for the cutoff.\n");
 
     // Print information about each missing peak
-    info.Printf("# There are %d density peaks and %d frames\n\n",
+    infofile_->Printf("# There are %d density peaks and %d frames\n\n",
                 (int)peaks_.size(), Nframes_);
     // Loop over every Data set
     for (unsigned int i = 0; i < peakFrameData_.size(); i++) {
@@ -486,17 +482,14 @@ void Action_Spam::Print() {
       int ndouble = 0;
       for (unsigned int j = 0; j < peakFrameData_[i].size(); j++)
         if (peakFrameData_[i][j] < 0) ndouble++;
-      info.Printf("# Peak %u has %d omitted frames (%d double-occupied)\n",
+      infofile_->Printf("# Peak %u has %d omitted frames (%d double-occupied)\n",
                   i, peakFrameData_[i].size(), ndouble);
       for (unsigned int j = 0; j < peakFrameData_[i].size(); j++) {
-        if (j > 0 && j % 10 == 0) info.Printf("\n");
-        info.Printf("%7d ", peakFrameData_[i][j]);
+        if (j > 0 && j % 10 == 0) infofile_->Printf("\n");
+        infofile_->Printf("%7d ", peakFrameData_[i][j]);
       }
-      info.Printf("\n\n");
+      infofile_->Printf("\n\n");
     }
-
-    // Now close the info file
-    info.CloseFile();
   }
 
   // Print the summary file with the calculated SPAM energies

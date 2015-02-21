@@ -226,16 +226,6 @@ int CpptrajFile::OpenWriteNumbered(int numIn) {
   return 0;
 }
 
-// CpptrajFile::OpenEnsembleWrite()
-int CpptrajFile::OpenEnsembleWrite(std::string const& nameIn, int ensembleNum) {
-  if (!nameIn.empty() && ensembleNum > -1) {
-    if (SetupWrite( NumberFilename(nameIn, ensembleNum), debug_)) return 1;
-  } else {
-    if (SetupWrite( nameIn,                              debug_)) return 1;
-  }
-  return OpenFile();
-}
-
 // CpptrajFile::OpenAppend()
 int CpptrajFile::OpenAppend(std::string const& nameIn) {
   if (SetupAppend(nameIn, debug_)) return 1;

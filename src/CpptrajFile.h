@@ -36,8 +36,6 @@ class CpptrajFile {
     int OpenWrite(std::string const&);
     /// Open file previously set up for write with given numeric suffix.
     int OpenWriteNumbered(int);
-    /// Open file for writing in Actions; if ensemble, append numeric suffix to filename.
-    int OpenEnsembleWrite(std::string const&, int);
     /// Set up and open file for appending.
     int OpenAppend(std::string const&);
     // -------------------------------------------
