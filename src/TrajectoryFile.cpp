@@ -54,7 +54,9 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { AMBERNETCDF,    "cdf",       ".nc"      },
   { AMBERRESTARTNC, "ncrestart", ".ncrst"   },
   { AMBERRESTARTNC, "restartnc", ".ncrst"   },
+# ifdef ENABLE_SINGLE_ENSEMBLE
   { AMBERNCENSEMBLE,"ncensemble",".ncens"   },
+# endif
   { PDBFILE,        "pdb",       ".pdb"     },
   { MOL2FILE,       "mol2",      ".mol2"    },
   { CIF,            "cif",       ".cif"     },
