@@ -56,12 +56,14 @@ void DataFileList::SetDebug(int debugIn) {
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
     (*df)->SetDebug( debug_ );
 }
+
 #ifdef MPI
-void DataFileList::SetEnsembleMode(int memberIn) {
+void DataFileList::MakeDataFilesEnsemble(int memberIn) {
   for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
     (*df)->SetMember( memberIn );
 }
 #endif
+
 // DataFileList::GetDataFile()
 /** \return DataFile specified by given file name if it exists in the list,
   *         otherwise return 0. Must match full path.
@@ -97,11 +99,6 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
   std::string name = nameIn;
-# ifdef MPI
-  if (ensembleMode_ != -1)
-    // Ensemble mode, append rank to the output filename.
-    name += ("." + integerToString(ensembleMode_));
-# endif
   // Check if filename in use by CpptrajFile.
   CpptrajFile* cf = GetCpptrajFile(name);
   if (cf != 0) {
@@ -181,9 +178,10 @@ CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn,
   if (!nameIn.empty()) {
     name = nameIn;
 #   ifdef MPI
-    if (ensembleMode_ != -1)
-      // Ensemble mode, append rank to the output filename.
-      name += ("." + integerToString(ensembleMode_));
+    // FIXME: Unlike DataFiles, CpptrajFiles are opened immediately so append
+    //        worldrank to filename now. This will have to change if MPI does
+    //        not necessarily mean ensemble mode in the future.
+    name.append("." + integerToString(worldrank));
 #   endif
     // Check if filename in use by DataFile.
     DataFile* df = GetDataFile(name);
@@ -223,30 +221,8 @@ CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn,
     // Update description
     if (!descrip.empty())
       cfData_[currentIdx].UpdateDescrip( descrip );
-    // Update status
-    cfData_[currentIdx].UpdateStatus( REOPEN );
   }
   return Current;
-}
-
-int DataFileList::OpenCpptrajFiles() {
-  int err = 0;
-/*  for (unsigned int idx = 0; idx != cfList_.size(); idx++) {
-    if ( cfData_[idx].Mode() == FIRSTOPEN )
-      err += cfList_[idx]->OpenFile();
-    else if ( cfData_[idx].Mode() == REOPEN )
-      err += cfList_[idx]->OpenFile( CpptrajFile::APPEND );
-  }*/
-  return err;
-}
-
-void DataFileList::CloseCpptrajFiles() {
-/*  for (unsigned int idx = 0; idx != cfList_.size(); idx++) {
-    if (cfList_[idx]->IsOpen()) {
-      cfList_[idx]->CloseFile();
-      cfData_[idx].UpdateStatus( NO_ACTION );
-    }
-  }*/
 }
 
 // DataFileList::List()
