@@ -1,4 +1,5 @@
 #ifdef BINTRAJ
+#ifdef ENABLE_SINGLE_ENSEMBLE
 //#include <cstdio> // DEBUG
 #include "netcdf.h"
 #include "Traj_NcEnsemble.h"
@@ -499,4 +500,5 @@ void Traj_NcEnsemble::Info() {
   //if (HasT()) mprintf(" with replica temperatures");
   if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
 }
+#endif
 #endif

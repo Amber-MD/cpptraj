@@ -189,6 +189,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
 #     ifdef TIMER
       loudPrintf(" -DTIMER");
 #     endif
+#     ifdef ENABLE_SINGLE_ENSEMBLE
+      loudPrintf(" -DENABLE_SINGLE_ENSEMBLE");
+#     endif
 #     ifdef HAS_PNETCDF
       loudPrintf(" -DHAS_PNETCDF");
 #     endif

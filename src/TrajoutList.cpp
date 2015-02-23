@@ -40,10 +40,12 @@ int TrajoutList::MakeEnsembleTrajout(TopologyList const& topListIn, TrajoutList&
     // Get parm from TopologyList based on args
     Topology* tempParm = topListIn.GetParm( argIn );
     if (tempParm == 0) return 1;
+#   ifdef ENABLE_SINGLE_ENSEMBLE
     // See if single ensemble output desired.
     if (argIn.hasKey("ensemble"))
       ensembleList.trajout_.push_back( new Trajout_Ensemble() );
     else
+#   endif
       // Create new multi output trajectory.
       ensembleList.trajout_.push_back( new Trajout_Multi() );
     if (ensembleList.trajout_.back() == 0) return 1;

@@ -1,3 +1,4 @@
+#ifdef ENABLE_SINGLE_ENSEMBLE
 #include "Trajin_Ensemble.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
@@ -241,3 +242,4 @@ int Trajin_Ensemble::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
 # endif
   return 0;
 }
+#endif

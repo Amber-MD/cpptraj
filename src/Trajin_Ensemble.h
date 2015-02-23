@@ -1,5 +1,6 @@
 #ifndef TRAJIN_ENSEMBLE_H
 #define TRAJIN_ENSEMBLE_H
+#ifdef ENABLE_SINGLE_ENSEMBLE
 #include "Trajin.h"
 #ifdef MPI
 #  ifdef TIMER
@@ -50,4 +51,5 @@ class Trajin_Ensemble : public Trajin {
 #   endif
 #   endif 
 };
+#endif
 #endif

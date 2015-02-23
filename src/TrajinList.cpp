@@ -67,9 +67,11 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
       continue;
     }
     Trajin* traj = 0;
+#   ifdef ENABLE_SINGLE_ENSEMBLE
     if (tio->CanProcessEnsemble())
       traj = new Trajin_Ensemble();
     else
+#   endif
       traj = new Trajin_Multi();
     if (traj == 0) {
       mprinterr("Error: Memory allocation for input trajectory failed.\n");
@@ -91,7 +93,9 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
     //            save final CRDIDX for next ensemble command.
     // TODO: This is very clunky - remlog dataset should contain all exchanges
     //       so trajin doesnt have to worry about it.
+#   ifdef ENABLE_SINGLE_ENSEMBLE
     if ( !tio->CanProcessEnsemble() ) {
+#   endif
       Trajin_Multi const& mTraj = static_cast<Trajin_Multi const&>( *traj );
       if ( mTraj.TargetMode() == ReplicaInfo::CRDIDX ) {
         finalCrdIndicesArg_ = mTraj.FinalCrdIndices();
@@ -104,8 +108,10 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
         }
         //mprintf("DEBUG: Final crd indices arg: %s\n", finalCrdIndicesArg_.c_str());
       }
+#   ifdef ENABLE_SINGLE_ENSEMBLE
     } else
       mprintf("Warning: Single ensemble cannot process crdidx.\n");
+#   endif
     AddToList(traj);
     //err += AddInputTraj( *fn, traj, argIn, topListIn );
     delete tio;

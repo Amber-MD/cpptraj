@@ -1,6 +1,7 @@
 #ifndef INC_TRAJ_NCENSEMBLE_H
 #define INC_TRAJ_NCENSEMBLE_H
 #ifdef BINTRAJ
+#ifdef ENABLE_SINGLE_ENSEMBLE
 #include "TrajectoryIO.h"
 #include "NetcdfFile.h"
 /// Read/write single NetCDF ensemble trajectory.
@@ -34,5 +35,6 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     bool readAccess_;
     bool useVelAsCoords_;
 };
+#endif
 #endif
 #endif

@@ -1,5 +1,6 @@
 #ifndef INC_TRAJOUT_ENSEMBLE_H
 #define INC_TRAJOUT_ENSEMBLE_H
+#ifdef ENABLE_SINGLE_ENSEMBLE
 #include "Trajout.h"
 /// Class for writing ensemble as single file.
 class Trajout_Ensemble : public Trajout {
@@ -19,4 +20,5 @@ class Trajout_Ensemble : public Trajout {
     TrajectoryIO* eio_;
     int ensembleSize_;
 };
+#endif
 #endif

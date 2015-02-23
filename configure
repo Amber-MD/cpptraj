@@ -4,29 +4,37 @@
 # 2010-11-18
 # Simple script to set compiler vars. Create config.h, which will be used
 # by src/Makefile.
-# Usage: ./configure [gnu/intel] OPTIONS
 
 # Print help message
-Usage() {
-  echo "Usage: ./configure [gnu | intel | pgi] OPTIONS"
+UsageSimple() {
+  echo "Usage: ./configure <OPTIONS> [gnu | intel | pgi | clang | cray]"
   echo "  OPTIONS:"
-  echo "    --help     : Display this message."
-  echo "    -d, -debug : Turn on compiler debugging info"
-  echo "    -openmp    : Use openmp for parallelization of certain routines."
-  echo "    -mpi       : Use mpicc/mpicxx to compile."
-  echo "    -cray      : Use cray compiler wrappers (cc/CC/ftn)."
-  echo "    -debugon   : Add -DDEBUG flag to activate internal debugging"
-  echo "    -noopt     : Do not use optimized compiler flags (default when -d specified)"
-  echo "    -nolfs     : Do not enable large file support."
+  echo "    --help      : Display this message."
+  echo "    -openmp     : Use openmp for parallelization of certain routines."
+  echo "    -mpi        : Use mpicc/mpicxx to compile."
+  echo "    -cray       : Use cray compiler wrappers (cc/CC/ftn)."
+  echo "    --full-help : Display additional options."
   echo ""
-  echo "  Library linking options:"
+}
+
+UsageFull() {
+  echo "  ADDITIONAL OPTIONS:"
+  echo "    -debug     : Turn on compiler debugging info."
+  echo "    -noopt     : Do not use optimized compiler flags."
+  echo "    -d         : Turn on compiler debug info and disable optimization (i.e. -debug -noopt)."
+  echo "    -timer     : Enable additional timing info."
+  echo "    -debugon   : Add -DDEBUG flag to activate additional internal debugging."
+  echo "    -nolfs     : Do not enable large file support."
+  echo "    --prefix=<DIR>: Install CPPTRAJ binary to <DIR>/bin." 
+  echo ""
+  echo "  LIBRARY LINKING OPTIONS:"
   echo "    --with-netcdf=<DIR>"
-  echo "    --with-pnetcdf=<DIR>"
   echo "    --with-zlib=<DIR>"
   echo "    --with-bzlib=<DIR>"
   echo "    --with-blas=<DIR>"
   echo "    --with-lapack=<DIR>"
   echo "    --with-arpack=<DIR>"
+#  echo "   --with-hdf5=<DIR>"
   echo "    -static    : Use static linking."
   echo "    -amberlib  : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
   echo "    -nobzlib   : Do not use libbz2 (bzip2)"
@@ -35,11 +43,15 @@ Usage() {
   echo "    -nomathlib : Do not include routines which require ARPACK, LAPACK, or BLAS"
   echo ""
   echo "  EXPERIMENTAL OPTIONS:"
-  echo "    -profile   : Use Gnu compiler profiling (>= V4.5)"
-  echo "    -gprofile  : Use Gnu compiler GLIBC profiling (>= V4.5)"
-  echo "    -vtune     : Enable options for use with Intel Vtune"
-  echo "    NOTE: -openmp and -mpi are mutually exclusive, as are -profile and -gprofile."
-#  echo "   --with-hdf5=<DIR>"
+  echo "    -profile            : Use Gnu compiler profiling (>= V4.5)"
+  echo "    -gprofile           : Use Gnu compiler GLIBC profiling (>= V4.5)"
+  echo "    -vtune              : Enable options for use with Intel Vtune"
+  echo "    -sanderlib          : Link to sander API (requires AMBERHOME set)."
+  echo "    -single-ensemble    : Enable support for reading/writing single ensemble trajectories."
+  echo "    --with-pnetcdf=<DIR>: PNETCDF location, currently only used for single ensemble with MPI."
+  echo ""
+  echo "NOTE: -openmp and -mpi are mutually exclusive, as are -profile and -gprofile."
+  echo ""
 }
 
 # If arg is Key=Value, separate into Key and Value
@@ -185,8 +197,12 @@ EOF
 
 #---------------------------------------------------------------------
 
-if [[ -z $1  || $1 = "--help" ]] ; then
-  Usage
+if [[ -z $1  || $1 = "--help"  || $1 = "-h" ]] ; then
+  UsageSimple
+  exit 0
+elif [[ ! -z $1 && $1 = "--full-help" ]] ; then
+  UsageSimple
+  UsageFull
   exit 0
 fi
 
@@ -319,6 +335,10 @@ while [[ ! -z $1 ]] ; do
       echo "Turning on cpptraj internal debug info"
       DIRECTIVES="$DIRECTIVES -DDEBUG" 
       ;;
+    "-single-ensemble")
+      echo "Enabling support for single ensemble trajectories."
+      DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE"
+      ;;
     "-noopt"        ) 
       echo "Turning off optimization"
       OPT=0 
@@ -448,7 +468,7 @@ done
 if [[ -z $CC || -z $CXX || -z $FC ]] ; then
   echo "No compiler specified."
   echo "Specify 'gnu', 'intel', or 'pgi' as an argument to ./configure"
-  Usage
+  UsageSimple
   exit 1
 fi
 

@@ -1,3 +1,4 @@
+#ifdef ENABLE_SINGLE_ENSEMBLE
 #include "Trajout_Ensemble.h"
 #include "CpptrajStdio.h"
 
@@ -92,3 +93,4 @@ void Trajout_Ensemble::PrintInfo(int showExtended) const {
   mprintf("  '%s' (Single Ensemble, %i members) ",TrajFilename().base(), ensembleSize_);
   CommonInfo( eio_ );
 }
+#endif
