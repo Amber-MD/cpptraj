@@ -14,22 +14,19 @@
 DataFileList::DataFileList() : debug_(0) {}
 
 // DESTRUCTOR
-DataFileList::~DataFileList() {
-  Clear();
-}
+DataFileList::~DataFileList() { Clear(); }
 
 // DataFileList::Clear()
 void DataFileList::Clear() {
   for (DFarray::iterator it = fileList_.begin(); it != fileList_.end(); ++it)
     delete *it;
   fileList_.clear();
-  for (CFarray::iterator it = textList_.begin(); it != textList_.end(); ++it) {
+  for (CFarray::iterator it = cfList_.begin(); it != cfList_.end(); ++it) {
     (*it)->CloseFile();
     delete *it;
   }
-  textList_.clear();
-  textDescrip_.clear();
-  textType_.clear();
+  cfList_.clear();
+  cfData_.clear();
 }
 
 // DataFileList::RemoveDataFile()
@@ -82,8 +79,8 @@ DataFile* DataFileList::GetDataFile(std::string const& nameIn) const {
   */
 int DataFileList::GetCpptrajFileIdx(std::string const& nameIn) const {
   if (!nameIn.empty()) {
-    for (int idx = 0; idx != (int)textList_.size(); idx++)
-      if (nameIn == textList_[idx]->Filename().Full()) return idx;
+    for (int idx = 0; idx != (int)cfList_.size(); idx++)
+      if (nameIn == cfList_[idx]->Filename().Full()) return idx;
   }
   return -1;
 }
@@ -91,7 +88,7 @@ int DataFileList::GetCpptrajFileIdx(std::string const& nameIn) const {
 CpptrajFile* DataFileList::GetCpptrajFile(std::string const& nameIn) const {
   int idx = GetCpptrajFileIdx( nameIn );
   if (idx == -1) return 0;
-  return textList_[idx];
+  return cfList_[idx];
 }
 
 /** Create new DataFile, or return existing DataFile. */
@@ -197,7 +194,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn,
     }
     // Check if this filename already in use
     currentIdx = GetCpptrajFileIdx( name );
-    if (currentIdx != -1) Current = textList_[currentIdx];
+    if (currentIdx != -1) Current = cfList_[currentIdx];
   }
   // If no CpptrajFile associated with name, create new CpptrajFile
   if (Current==0) {
@@ -206,50 +203,66 @@ CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn,
       case PDB:  Current = (CpptrajFile*)(new PDBfile()); break;
     }
     Current->SetDebug(debug_);
-    // TODO: Open later?
-    if (Current->OpenWrite( name )) {
-      mprinterr("Error: Opening text output file %s\n",name.c_str());
+    // Set up file for writing. 
+    //if (Current->SetupWrite( name, debug_ ))
+    if (Current->OpenWrite( name ))
+    {
+      mprinterr("Error: Setting up text output file %s\n",name.c_str());
       delete Current;
       return 0;
     }
-    textList_.push_back(Current);
-    if (descrip.empty())
-      textDescrip_.push_back("text output");
-    else
-      textDescrip_.push_back(descrip);
-    textType_.push_back( typeIn );
+    cfList_.push_back( Current );
+    cfData_.push_back( CFstruct(descrip, typeIn) );
   } else {
     // If Current type does not match typeIn do not allow.
-    if (typeIn != textType_[currentIdx]) {
+    if (typeIn != cfData_[currentIdx].Type()) {
       mprinterr("Error: Cannot change type of text output for '%s'.\n", Current->Filename().full());
       return 0;
     }
     Current->SetDebug(debug_);
     // Update description
     if (!descrip.empty())
-      textDescrip_[currentIdx].append(", " + descrip);
+      cfData_[currentIdx].UpdateDescrip( descrip );
+    // Update status
+    cfData_[currentIdx].UpdateStatus( REOPEN );
   }
   return Current;
+}
+
+int DataFileList::OpenCpptrajFiles() {
+  int err = 0;
+/*  for (unsigned int idx = 0; idx != cfList_.size(); idx++) {
+    if ( cfData_[idx].Mode() == FIRSTOPEN )
+      err += cfList_[idx]->OpenFile();
+    else if ( cfData_[idx].Mode() == REOPEN )
+      err += cfList_[idx]->OpenFile( CpptrajFile::APPEND );
+  }*/
+  return err;
+}
+
+void DataFileList::CloseCpptrajFiles() {
+/*  for (unsigned int idx = 0; idx != cfList_.size(); idx++) {
+    if (cfList_[idx]->IsOpen()) {
+      cfList_[idx]->CloseFile();
+      cfData_[idx].UpdateStatus( NO_ACTION );
+    }
+  }*/
 }
 
 // DataFileList::List()
 /** Print information on what datasets are going to what datafiles */
 void DataFileList::List() const {
   parallel_barrier();
-  if (!fileList_.empty() || !textList_.empty()) {
+  if (!fileList_.empty() || !cfList_.empty()) {
     mprintf("\nDATAFILES:\n");
     if (!fileList_.empty()) {
-      for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); ++it) {
+      for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); ++it)
         rprintf("  %s (%s): %s\n",(*it)->DataFilename().base(), (*it)->FormatString(),
                 (*it)->DataSetNames().c_str());
-      }
     }
-    if (!textList_.empty()) {
-      for (unsigned int idx = 0; idx != textList_.size(); idx++)
-        if (!textList_[idx]->Filename().empty())
-          rprintf("  %s (%s)\n", textList_[idx]->Filename().base(), textDescrip_[idx].c_str());
-        else
-          rprintf("  STDOUT (%s)\n", textDescrip_[idx].c_str());
+    if (!cfList_.empty()) {
+      for (unsigned int idx = 0; idx != cfList_.size(); idx++)
+        rprintf("  %s (%s)\n", cfList_[idx]->Filename().base(), cfData_[idx].descrip());
     }
   }
 }

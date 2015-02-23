@@ -684,6 +684,10 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
     return Command::C_ERR;
   }
   actionargs.CheckForMoreArgs();
+  if (State.DFL()->OpenCpptrajFiles() != 0) {
+    mprinterr("Error: Could not open text output files.\n");
+    return Command::C_ERR;
+  }
   // Set up frame and parm for COORDS.
   Topology* originalParm = new Topology();
   *originalParm = CRD->Top();
@@ -719,6 +723,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   }
   act->Print();
   State.MasterDataFileWrite();
+  State.DFL()->CloseCpptrajFiles();
   delete originalFrame;
   delete originalParm;
   delete act;
@@ -1245,6 +1250,7 @@ Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocT
     mprinterr("Error: No data to filter. All sets must contain some data.\n");
     return Command::C_ERR;
   }
+  // NOTE: No need to open CpptrajFiles for Action_FilterByData.
   ProgressBar progress( nframes );
   for (size_t frame = 0; frame != nframes; frame++) {
     progress.Update( frame );

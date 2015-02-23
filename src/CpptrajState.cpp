@@ -230,6 +230,7 @@ int CpptrajState::Run() {
   // Print DataFile information and write DataFiles
   DFL_.List();
   MasterDataFileWrite();
+  DFL_.CloseCpptrajFiles();
   mprintf("---------- RUN END ---------------------------------------------------\n");
   return err;
 }
@@ -342,6 +343,11 @@ int CpptrajState::RunEnsemble() {
   }
   SetWorldSilent( false );
 # endif
+  // Open output CpptrajFiles
+  if (DFL_.OpenCpptrajFiles() != 0) {
+    mprinterr("Error: Opening output text files.\n");
+    return 1;
+  }
   init_time.Stop();
   // Re-enable output
   SetWorldSilent( false );
@@ -543,6 +549,11 @@ int CpptrajState::RunNormal() {
   trajoutList_.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
+  // Open output CpptrajFiles
+  if (DFL_.OpenCpptrajFiles() != 0) {
+    mprinterr("Error: Opening output text files.\n");
+    return 1;
+  }
   init_time.Stop();
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total());
   
