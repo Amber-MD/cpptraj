@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_MASK_H
 #define INC_ACTION_MASK_H
 #include "Action.h"
+#include "DataSet.h"
 #include "TrajectoryFile.h"
 // Class: Action_Mask
 /// Print out all atoms selected by a mask for each frame.
@@ -25,5 +26,9 @@ class Action_Mask: public Action {
     int debug_;
     TrajectoryFile::TrajFormatType trajFmt_; ///< Output trajectory format
     const char* trajOpt_;    ///< Output trajectory options
+
+    // for pytraj
+    DataSet* atomDs_;        /// holding atom index for pytraj
+    DataSet* frameIndexDs_;  /// holding frame index for pytraj
 };
 #endif  

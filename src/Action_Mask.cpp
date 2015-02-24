@@ -57,7 +57,11 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
       // Header
     outfile_.Printf("%-8s %8s %4s %8s %4s %8s\n","#Frame","AtomNum","Atom",
                     "ResNum","Res", "MolNum");
-  }
+  };
+
+  // for pytraj
+  frameIndexDs_ = DSL->AddSetAspect(DataSet::INTEGER, "frame_index", "frame_index");
+  atomDs_ = DSL->AddSetAspect(DataSet::INTEGER, "atom_index", "atom_index");
 
   return Action::OK;
 }
@@ -88,6 +92,10 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
       mprintf(" Charge=%lf",CurrentParm_->charge[atom]);
       mprintf(" Mass=%lf",CurrentParm_->mass[atom]);
       outfile.Printf("\n");*/
+
+      // for pytraj
+      frameIndexDs_->Add(frameNum, &frameNum);
+      atomDs_->Add(frameNum, &atom);
     }
   }
 
