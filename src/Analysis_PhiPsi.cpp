@@ -66,7 +66,7 @@ Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, DataSetList* data
           input_dsets_.size() / 2, input_dsets_.size());
   if (debugIn > 0)
     for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
-      mprintf("\t%s\n", (*set)->Legend().c_str());
+      mprintf("\t%s\n", (*set)->legend());
   if (!outname.empty())
     mprintf("\tWriting results to %s\n", outname.c_str());
   if (outfile_.OpenWrite( outname )) return Analysis::ERR;

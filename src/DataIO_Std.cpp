@@ -547,7 +547,7 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSetList const& setLis
 int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
   if (setIn.Ndim() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              setIn.Legend().c_str(), file.Filename().full(), setIn.Ndim());
+              setIn.legend(), file.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_2D const& set = static_cast<DataSet_2D const&>( setIn );
@@ -591,7 +591,7 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
     // x y val(x,y)
     if (writeHeader_)
       file.Printf("#%s %s %s\n", Xdim.Label().c_str(), 
-                  Ydim.Label().c_str(), set.Legend().c_str());
+                  Ydim.Label().c_str(), set.legend());
     std::string col_fmt = SetupCoordFormat( set.Ncols(), Xdim, 8, 3 ) + " " +
                           SetupCoordFormat( set.Nrows(), Ydim, 8, 3 ); 
     for (size_t iy = 0; iy < set.Nrows(); ++iy) {
@@ -626,7 +626,7 @@ int DataIO_Std::WriteData3D( std::string const& fname, DataSetList const& setLis
 int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   if (setIn.Ndim() != 3) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
-              setIn.Legend().c_str(), file.Filename().full(), setIn.Ndim());
+              setIn.legend(), file.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
@@ -639,7 +639,7 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   // x y z val(x,y,z)
   if (writeHeader_)
     file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
-                Ydim.Label().c_str(), Zdim.Label().c_str(), set.Legend().c_str());
+                Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());
   std::string col_fmt = SetupCoordFormat( set.NX(), Xdim, 8, 3 ) + " " +
                         SetupCoordFormat( set.NY(), Ydim, 8, 3 ) + " " +
                         SetupCoordFormat( set.NZ(), Zdim, 8, 3 );

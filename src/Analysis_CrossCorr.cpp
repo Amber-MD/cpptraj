@@ -52,7 +52,7 @@ Analysis::RetType Analysis_CrossCorr::Analyze() {
   mprintf("\tDataSet Legend:\n");
   std::string Ylabels("\"");
   for (int i = 0; i < Nsets; ++i) {
-    mprintf("\t\t%8i: %s\n", i+1, dsets_[i]->Legend().c_str());
+    mprintf("\t\t%8i: %s\n", i+1, dsets_[i]->legend());
     //Xlabels_ += (dsets_[i]->Legend() + ",");
     Ylabels += (integerToString(i+1) + ":" + dsets_[i]->Legend() + ",");
   }
@@ -62,7 +62,7 @@ Analysis::RetType Analysis_CrossCorr::Analyze() {
   for (int i = 0; i < Nsets1; ++i) {
     for (int j = i + 1; j < Nsets; ++j) {
       //mprinterr("DBG:\tCross corr between %i (%s) and %i (%s)\n",
-      //          i, dsets_[i]->Legend().c_str(), j, dsets_[j]->Legend().c_str());
+      //          i, dsets_[i]->legend(), j, dsets_[j]->legend());
       DataSet_1D const& set1 = static_cast<DataSet_1D const&>( *dsets_[i] );
       double corr = set1.CorrCoeff( *((DataSet_1D*)dsets_[j]) );
       tmatrix.AddElement( (float)corr );

@@ -443,8 +443,8 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         if (output == 0) return 1;
         if (Dval[0].IsDataSet()) {
           if (debug_>0)
-            mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->Legend().c_str(),
-                    output->Legend().c_str());
+            mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->legend(),
+                    output->legend());
           // Should be 1D by definition, allocated below in LocalList
           DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *Dval[0].DS() );
           for (unsigned int n = 0; n != D1.Size(); n++) {
@@ -453,8 +453,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           }
         } else {
           if (debug_>0)
-            mprintf("DEBUG: Assigning %f to '%s'\n", Dval[0].Value(),
-                    output->Legend().c_str());
+            mprintf("DEBUG: Assigning %f to '%s'\n", Dval[0].Value(), output->legend());
           double dval = Dval[0].Value();
           output->Add(0, &dval); 
         }
@@ -468,7 +467,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         // One operand that is a data set that will be converted to a scalar
         DataSet* ds1 = Dval[0].DS();
         if (debug_ > 0)
-          mprintf("DEBUG: [%s] '%s'\n", T->Description(), ds1->Legend().c_str());
+          mprintf("DEBUG: [%s] '%s'\n", T->Description(), ds1->legend());
         if (ds1->Ndim() != 1) {
           mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
           return 1;
@@ -505,11 +504,11 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             DataSet* ds1 = Dval[0].DS();
             DataSet* ds2 = Dval[1].DS();
             if (debug_>0)
-              mprintf("DEBUG: '%s' [%s] '%s' => '%s'\n", ds2->Legend().c_str(), T->Description(),
-                      ds1->Legend().c_str(), tempDS->Legend().c_str());
+              mprintf("DEBUG: '%s' [%s] '%s' => '%s'\n", ds2->legend(), T->Description(),
+                      ds1->legend(), tempDS->legend());
             if (ds1->Size() != ds2->Size()) {
               mprinterr("Error: Sets '%s' and '%s' do not have same size, required for %s\n",
-                        ds1->Legend().c_str(), ds2->Legend().c_str(), T->name());
+                        ds1->legend(), ds2->legend(), T->name());
               return 1;
             }
             if (ds1->Ndim() != 1 && ds2->Ndim() != 1) {
@@ -529,7 +528,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               DataSet* ds1 = Dval[0].DS();
               if (debug_ > 0)
                 mprintf("DEBUG: %f [%s] '%s' => '%s'\n", Dval[1].Value(), T->Description(),
-                        ds1->Legend().c_str(), tempDS->Legend().c_str());
+                        ds1->legend(), tempDS->legend());
               if (ds1->Ndim() != 1) {
                 mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
                 return 1;
@@ -544,8 +543,8 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               // Value OP DataSet
               DataSet* ds2 = Dval[1].DS();
               if (debug_ > 0)
-                mprintf("DEBUG: '%s' [%s] '%f' => '%s'\n", ds2->Legend().c_str(), T->Description(),
-                        Dval[0].Value(), tempDS->Legend().c_str());
+                mprintf("DEBUG: '%s' [%s] '%f' => '%s'\n", ds2->legend(), T->Description(),
+                        Dval[0].Value(), tempDS->legend());
               if (ds2->Ndim() != 1) {
                 mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
                 return 1;
@@ -563,7 +562,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           DataSet* ds1 = Dval[0].DS();
           if (debug_ > 0)
             mprintf("DEBUG: [%s] '%s' => '%s'\n", T->Description(),
-                    ds1->Legend().c_str(), tempDS->Legend().c_str());
+                    ds1->legend(), tempDS->legend());
           if (ds1->Ndim() != 1) {
             mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
             return 1;
@@ -585,7 +584,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
   if (output == 0)
     mprintf("Result: %f\n", Stack.top().Value());
   else
-    mprintf("Result stored in '%s'\n", output->Legend().c_str());
+    mprintf("Result stored in '%s'\n", output->legend());
   return 0;
 }
 

@@ -241,7 +241,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
 
   // Status
   mprintf("    ANALYZE MODES: Calculating %s using modes from %s", 
-          analysisTypeString[type_], modinfo_->Legend().c_str());
+          analysisTypeString[type_], modinfo_->legend());
   if ( type_ != TRAJ ) {
     if (type_ != EIGENVAL)
       mprintf(", modes %i to %i", beg_+1, end_);
@@ -266,7 +266,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       mprintf("\n");
     }
     if (type_ == RMSIP)
-      mprintf("\tRMSIP calculated to modes in %s\n", modinfo2_->Legend().c_str());
+      mprintf("\tRMSIP calculated to modes in %s\n", modinfo2_->legend());
   } else {
     mprintf("\n\tCreating trajectory for mode %i\n"
               "\tWriting to trajectory %s\n"
@@ -569,13 +569,13 @@ int Analysis_Modes::ProjectCoords() {
 int Analysis_Modes::CalcRMSIP(CpptrajFile& outfile) {
   if (modinfo_->VectorSize() != modinfo2_->VectorSize()) {
     mprinterr("Error: '%s' vector size (%i) != '%s' vector size (%i)\n",
-              modinfo_->Legend().c_str(), modinfo_->VectorSize(),
-              modinfo2_->Legend().c_str(), modinfo2_->VectorSize());
+              modinfo_->legend(), modinfo_->VectorSize(),
+              modinfo2_->legend(), modinfo2_->VectorSize());
     return 1;
   }
   if ( beg_ >= modinfo2_->Nmodes() || end_ > modinfo2_->Nmodes() ) {
     mprinterr("Error: beg/end out of range for %s (%i modes)\n",
-              modinfo2_->Legend().c_str(), modinfo2_->Nmodes());
+              modinfo2_->legend(), modinfo2_->Nmodes());
     return 1;
   }
   double sumsq = 0.0;

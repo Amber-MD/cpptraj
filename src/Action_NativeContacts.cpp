@@ -321,9 +321,9 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
     mprintf("\tMask selection will not include solvent.\n");
   mprintf("\tData set name: %s\n", name.c_str());
   if (maxdist_ != 0)
-    mprintf("\tSaving maximum observed distances in set '%s'\n", maxdist_->Legend().c_str());
+    mprintf("\tSaving maximum observed distances in set '%s'\n", maxdist_->legend());
   if (mindist_ != 0)
-    mprintf("\tSaving minimum observed distances in set '%s'\n", mindist_->Legend().c_str());
+    mprintf("\tSaving minimum observed distances in set '%s'\n", mindist_->legend());
   if (outfile != 0)
     mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
   mprintf("\tContact stats will be written to '%s'\n", cfile_->Filename().full());
@@ -335,7 +335,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   if (nativeMap_ != 0) {
     mprintf("\tNative contacts map will be saved as set '%s'\n"
             "\tNon-native contacts map will be saved as set '%s'\n",
-            nativeMap_->Legend().c_str(), nonnatMap_->Legend().c_str());
+            nativeMap_->legend(), nonnatMap_->legend());
     if (natmapfile!=0) mprintf("\tNative map output to '%s'\n",natmapfile->DataFilename().full());
     if (nonmapfile!=0) mprintf("\tNative map output to '%s'\n",nonmapfile->DataFilename().full());
   }

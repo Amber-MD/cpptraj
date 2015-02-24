@@ -83,7 +83,7 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   else {
     mprintf(" Using %zu data sets:\n", datasets_.size());
     for (Array1D::const_iterator set = datasets_.begin(); set != datasets_.end(); ++set)
-      mprintf("\t%s\n", (*set)->Legend().c_str());
+      mprintf("\t%s\n", (*set)->legend());
   }
   if (shift_ != 0)
     mprintf("\tShift (about %.2f) is begin applied.\n", shift_);
@@ -102,14 +102,14 @@ Analysis::RetType Analysis_Statistics::Analyze() {
   if (outfile_.OpenWrite( filename_ )) return Analysis::ERR;
   for (Array1D::const_iterator ds = datasets_.begin(); ds != datasets_.end(); ++ds)
   {
-    mprintf("\t'%s'", (*ds)->Legend().c_str());
+    mprintf("\t'%s'", (*ds)->legend());
     (*ds)->ScalarDescription();
     mprintf("\n");
     DataSet_1D const& data_set = static_cast<DataSet_1D const&>( *(*ds) );
     int Nelements = data_set.Size();
     if (Nelements < 1) {
       mprintf("Warning: analyze statistics: No data in dataset %s, skipping.\n",
-              data_set.Legend().c_str());
+              data_set.legend());
       continue;
     }
 
@@ -139,7 +139,7 @@ Analysis::RetType Analysis_Statistics::Analyze() {
 
     // Output average/stddev
     outfile_.Printf("__________________________________________________________________\n\n");
-    outfile_.Printf("STATISTICS %6s\n", data_set.Legend().c_str());
+    outfile_.Printf("STATISTICS %6s\n", data_set.legend());
     outfile_.Printf("   AVERAGE: %8.4f (%.4f stddev)\n", average, stddev);
     outfile_.Printf("   INITIAL: %8.4f\n   FINAL:   %8.4f\n",
                     data_set.Dval( 0 ), data_set.Dval( Nelements-1 ) );

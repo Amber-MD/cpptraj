@@ -416,7 +416,7 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
 // Action_Vector::Print()
 void Action_Vector::Print() {
   if (ptrajoutput_) {
-    mprintf("    VECTOR: writing ptraj-style vector information for %s\n", Vec_->Legend().c_str());
+    mprintf("    VECTOR: writing ptraj-style vector information for %s\n", Vec_->legend());
     outfile_->Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n"
                    "# FORMAT where v? is vector, c? is center of mass...\n");
     int totalFrames = Vec_->Size();

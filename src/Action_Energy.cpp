@@ -152,7 +152,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, Frame* currentFrame,
 }
 
 void Action_Energy::Print() {
-  mprintf("Timing for energy: '%s' ('%s')\n", Energy_[TOTAL]->Legend().c_str(),
+  mprintf("Timing for energy: '%s' ('%s')\n", Energy_[TOTAL]->legend(),
            Mask1_.MaskString());
   ENE_.PrintTiming();
 } 

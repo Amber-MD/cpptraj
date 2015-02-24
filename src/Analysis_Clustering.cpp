@@ -107,7 +107,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       // Clustering only allowed on 1D data sets.
       if ( (*ds)->Ndim() != 1 ) {
         mprinterr("Error: Clustering only allowed on 1D data sets, %s is %zuD.\n",
-                  (*ds)->Legend().c_str(), (*ds)->Ndim());
+                  (*ds)->legend(), (*ds)->Ndim());
         return Analysis::ERR;
       }
       cluster_dataset_.push_back( *ds );
@@ -238,7 +238,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   // Save master DSL for Cpopvtime
   masterDSL_ = datasetlist;
 
-  mprintf("    CLUSTER: Using coords dataset %s, clustering using", coords_->Legend().c_str());
+  mprintf("    CLUSTER: Using coords dataset %s, clustering using", coords_->legend());
   if ( metric_ != ClusterList::DATA ) {
     mprintf(" %s", ClusterList::MetricString( metric_ ));
     if (!maskexpr_.empty())
@@ -253,7 +253,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       mprintf(" best-fit");
   } else {
     if (cluster_dataset_.size() == 1)
-      mprintf(" dataset %s", cluster_dataset_[0]->Legend().c_str());
+      mprintf(" dataset %s", cluster_dataset_[0]->legend());
     else
       mprintf(" %u datasets.", cluster_dataset_.size());
   }
@@ -357,7 +357,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   int clusterDataSetSize = (int)cluster_dataset_[0]->Size();
   if (clusterDataSetSize < 1) {
     mprinterr("Error: cluster data set %s does not contain data.\n", 
-              cluster_dataset_[0]->Legend().c_str());
+              cluster_dataset_[0]->legend());
     return Analysis::ERR;
   }
   // If more than one data set, make sure they are all the same size.
@@ -366,8 +366,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   {
     if ((int)(*ds)->Size() != clusterDataSetSize) {
       mprinterr("Error: data set %s size (%i) != first data set %s size (%i)\n",
-                (*ds)->Legend().c_str(), (*ds)->Size(), 
-                cluster_dataset_[0]->Legend().c_str(), clusterDataSetSize);
+                (*ds)->legend(), (*ds)->Size(), 
+                cluster_dataset_[0]->legend(), clusterDataSetSize);
       return Analysis::ERR;
     }
   }

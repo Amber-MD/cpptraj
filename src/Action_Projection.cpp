@@ -117,7 +117,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, 
   }
   // Set datafile args
   mprintf("    PROJECTION: Calculating projection using eigenvectors %i to %i of %s\n",
-          beg_+1, end_, modinfo_->Legend().c_str());
+          beg_+1, end_, modinfo_->legend());
   if (DF != 0)
     mprintf("\tResults are written to %s\n", DF->DataFilename().full());
   FrameCounterInfo();
@@ -147,7 +147,7 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
       int natom3 = mask_.Nselected() * 3;
       if ( natom3 != modinfo_->NavgCrd() ) {
         mprinterr("Error: number selected coords (%i) != number avg coords (%i) in %s\n",
-                  natom3, modinfo_->NavgCrd(), modinfo_->Legend().c_str());
+                  natom3, modinfo_->NavgCrd(), modinfo_->legend());
         return Action::ERR;
       }
       if ( natom3 != modinfo_->VectorSize() ) {

@@ -54,7 +54,7 @@ Action::RetType Action_Bounds::Init(ArgList& actionArgs, TopologyList* PFL, Data
   if (grid_ != 0) {
     mprintf("\tGrid %s will be created after processing using\n"
             "\t  spacings dX= %g  dY= %g  dZ= %g  offset= %i Bins.\n",
-            grid_->Legend().c_str(), dxyz_[0], dxyz_[1], dxyz_[2], offset_);
+            grid_->legend(), dxyz_[0], dxyz_[1], dxyz_[2], offset_);
   }
   return Action::OK;
 }
@@ -104,6 +104,6 @@ void Action_Bounds::Print() {
   if (grid_ != 0) {
     DataSet_3D& grid3d = static_cast<DataSet_3D&>( *grid_ );
     if (grid3d.Allocate_N_C_D( nxyz[0], nxyz[1], nxyz[2], center, dxyz_ ))
-      mprinterr("Errror: Could not allocate grid %s\n", grid_->Legend().c_str());
+      mprinterr("Error: Could not allocate grid %s\n", grid_->legend());
   }
 }

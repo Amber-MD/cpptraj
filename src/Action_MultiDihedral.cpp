@@ -133,7 +133,7 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
     }
     data_.push_back( ds ); 
     if (debug_ > 0) {
-      mprintf("\tDIH [%s]:", ds->Legend().c_str());
+      mprintf("\tDIH [%s]:", ds->legend());
       mprintf(" :%i@%i",   (*currentParm)[dih->A0()].ResNum()+1, dih->A0() + 1);
       mprintf(" :%i@%i",   (*currentParm)[dih->A1()].ResNum()+1, dih->A1() + 1);
       mprintf(" :%i@%i",   (*currentParm)[dih->A2()].ResNum()+1, dih->A2() + 1);

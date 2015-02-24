@@ -540,12 +540,12 @@ int DataIO_RemLog::ReadData(std::string const& fname,
     ((DataSet_RemLog*)ds)->AllocateReplicas(n_mremd_replicas_);
   } else {
     if (ds->Type() != DataSet::REMLOG) {
-      mprinterr("Error: Set '%s' is not replica log data.\n", ds->Legend().c_str());
+      mprinterr("Error: Set '%s' is not replica log data.\n", ds->legend());
       return 1;
     }
     if ((int)ds->Size() != n_mremd_replicas_) {
       mprinterr("Error: Replica log data '%s' is set up for %zu replicas,"
-                " current # replicas is %i\n", ds->Legend().c_str(), ds->Size(),
+                " current # replicas is %i\n", ds->legend(), ds->Size(),
                 n_mremd_replicas_);
       return 1;
     }

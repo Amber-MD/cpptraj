@@ -99,7 +99,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, TopologyList* PF
   if (!parmfilename_.empty())
     mprintf("\tWriting topology %s\n", parmfilename_.c_str());
   if (coords_ != 0)
-    mprintf("\tSaving coords to data set %s\n", coords_->Legend().c_str());
+    mprintf("\tSaving coords to data set %s\n", coords_->legend());
 
   return Action::OK;
 }

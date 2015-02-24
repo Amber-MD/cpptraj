@@ -107,7 +107,7 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
   mprintf("\tSelected %zu vectors.\n", CrdIdx1_.size());
   for (std::vector<DataSet_Vector*>::const_iterator it = data_.begin();
                                                     it != data_.end(); ++it)
-    mprintf("\t  %s\n", (*it)->Legend().c_str());
+    mprintf("\t  %s\n", (*it)->legend());
 
   return Action::OK;
 }

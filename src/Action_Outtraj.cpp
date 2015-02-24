@@ -67,7 +67,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   outtraj_.PrintInfo(1);
   for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
     mprintf("\tmaxmin: Printing trajectory frames based on %g <= %s <= %g\n",
-            Min_[ds], Dsets_[ds]->Legend().c_str(), Max_[ds]);
+            Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
 
   return Action::OK;
 } 

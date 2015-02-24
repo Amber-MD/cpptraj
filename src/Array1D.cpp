@@ -56,9 +56,9 @@ int Array1D::AddTorsionSets(DataSetList const& SetList) {
       if ( ds1->IsTorsionArray() )
         array_.push_back( ds1 );
       else
-        mprintf("Warning: Set '%s' is not periodic, skipping.\n", (*ds)->Legend().c_str());
+        mprintf("Warning: Set '%s' is not periodic, skipping.\n", (*ds)->legend());
     } else
-      mprintf("Warning: Set '%s' is not 1D, skipping.\n", (*ds)->Legend().c_str());
+      mprintf("Warning: Set '%s' is not 1D, skipping.\n", (*ds)->legend());
   }
   return 0;
 }
@@ -95,11 +95,11 @@ int Array1D::CheckXDimension() const {
   for (std::vector<DataSet_1D*>::const_iterator set = array_.begin(); set != array_.end(); ++set)
   {
     if ((*set)->Dim(0) != Xdim) {
-      mprinterr("Error: X Dimension of %s != %s\n", (*set)->Legend().c_str(),
-                array_[0]->Legend().c_str());
-      mprinterr("Error:  %s: Min=%f Step=%f\n", (*set)->Legend().c_str(),
+      mprinterr("Error: X Dimension of %s != %s\n", (*set)->legend(),
+                array_[0]->legend());
+      mprinterr("Error:  %s: Min=%f Step=%f\n", (*set)->legend(),
                 (*set)->Dim(0).Min(), (*set)->Dim(0).Step());
-      mprinterr("Error:  %s: Min=%f Step=%f\n", array_[0]->Legend().c_str(),
+      mprinterr("Error:  %s: Min=%f Step=%f\n", array_[0]->legend(),
                 Xdim.Min(), Xdim.Step());
       ++err;
     }

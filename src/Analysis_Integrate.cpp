@@ -44,7 +44,7 @@ Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, DataSetList* d
     mprintf("\tOutfile name: %s\n", outfile_->DataFilename().base());
   }
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
-  //  mprintf("\t%s\n", (*set)->Legend().c_str());
+  //  mprintf("\t%s\n", (*set)->legend());
   return Analysis::OK;
 }
 
@@ -55,7 +55,7 @@ Analysis::RetType Analysis_Integrate::Analyze() {
                                DS != input_dsets_.end(); ++DS, ++idx)
   {
     if ( (*DS)->Size() < 1)
-      mprintf("Warning: Set [%i] \"%s\" has no data.\n", idx, (*DS)->Legend().c_str());
+      mprintf("Warning: Set [%i] \"%s\" has no data.\n", idx, (*DS)->legend());
     else {
       DataSet_Mesh mesh;
       // Set XY mesh
@@ -64,7 +64,7 @@ Analysis::RetType Analysis_Integrate::Analyze() {
         sum = mesh.Integrate_Trapezoid( *(output_dsets_[idx]) );
       else
         sum = mesh.Integrate_Trapezoid();
-      mprintf("\tIntegral of %s is %g\n", (*DS)->Legend().c_str(), sum);
+      mprintf("\tIntegral of %s is %g\n", (*DS)->legend(), sum);
     }
   }
   return Analysis::OK;
