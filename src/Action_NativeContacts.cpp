@@ -21,6 +21,7 @@ Action_NativeContacts::Action_NativeContacts() :
   series_(false),
   usepdbcut_(false),
   cfile_(0), pfile_(0), rfile_(0),
+  seriesout_(0),
   numnative_(0),
   nonnative_(0),
   mindist_(0),
@@ -37,7 +38,7 @@ void Action_NativeContacts::Help() {
           "\t[noimage] [distance <cut>] [out <filename>] [includesolvent]\n"
           "\t[ first | %s ]\n"
           "\t[resoffset <n>] [contactpdb <file>] [pdbcut <cut>] [mindist] [maxdist]\n"
-          "\t[name <dsname>] [byresidue] [map [mapout <mapfile>]] [series]\n"
+          "\t[name <dsname>] [byresidue] [map [mapout <mapfile>]] [series [seriesout <file>]]\n"
           "  Calculate number of contacts in <mask1>, or between <mask1> and <mask2>\n"
           "  if both are specified. Native contacts are determined based on the given\n"
           "  reference structure (or first frame if not specified) and the specified\n"
@@ -137,10 +138,13 @@ int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const
             int r1 = parmIn[*c1].ResNum(); \
             int r2 = parmIn[*c2].ResNum(); \
             ret = nativeContacts_.insert( Mpair(Cpair(*c1,*c2), contactType(legend,r1,r2)) ); \
-            if (ret.second && series_) \
-              ret.first->second.SetData(masterDSL_->AddSetIdxAspect(DataSet::INTEGER, \
-                                                numnative_->Name(), nativeContacts_.size(), \
-                                                "NC", legend)); \
+            if (ret.second && series_) {\
+              DataSet* ds = masterDSL_->AddSetIdxAspect(DataSet::INTEGER, \
+                                          numnative_->Name(), nativeContacts_.size(), \
+                                          "NC", legend); \
+              ret.first->second.SetData( ds ); \
+              if (seriesout_ != 0) seriesout_->AddSet( ds ); \
+            } \
           } \
         } \
 }
@@ -233,6 +237,10 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   distance_ = dist * dist; // Square the cutoff
   first_ = actionArgs.hasKey("first");
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  if (series_) {
+    seriesout_ = DFL->AddDataFile(actionArgs.GetStringKey("seriesout"), actionArgs);
+    DSL->SetDataSetsPending( true );
+  }
   cfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("writecontacts"), "Native Contacts",
                                DataFileList::TEXT, true);
   pfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("contactpdb"), "Contact PDB",
@@ -338,6 +346,11 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
             nativeMap_->legend(), nonnatMap_->legend());
     if (natmapfile!=0) mprintf("\tNative map output to '%s'\n",natmapfile->DataFilename().full());
     if (nonmapfile!=0) mprintf("\tNative map output to '%s'\n",nonmapfile->DataFilename().full());
+  }
+  if (series_) {
+    mprintf("\tSaving native contact time series %s[NC].\n", name.c_str());
+    if (seriesout_ != 0) mprintf("\tWriting native contact time series to %s\n",
+                                 seriesout_->DataFilename().full());
   }
   // Set up reference if necessary.
   if (!first_) {

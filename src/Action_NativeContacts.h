@@ -44,6 +44,7 @@ class Action_NativeContacts : public Action {
     CpptrajFile* cfile_;  ///< File to write native contact list to.
     CpptrajFile* pfile_;  ///< File to write contact PDB to.
     CpptrajFile* rfile_;  ///< File to write total fraction frames for res pairs.
+    DataFile* seriesout_; ///< DataFile to write time series data to.
     DataSet* numnative_;  ///< Hold # of native contacts
     DataSet* nonnative_;  ///< Hold # of non-native contacts
     DataSet* mindist_;    ///< Hold minimum observed distance among contacts

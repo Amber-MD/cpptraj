@@ -36,6 +36,8 @@ class Action_Hbond : public Action {
     CpptrajFile* avgout_;
     CpptrajFile* solvout_;
     CpptrajFile* bridgeout_;
+    DataFile* UUseriesout_;
+    DataFile* UVseriesout_;
     bool useAtomNum_;
     typedef std::map<int,HbondType> HBmapType;
     HBmapType HbondMap_;   ///< Track all solute-solute hbonds found

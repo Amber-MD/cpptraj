@@ -13,6 +13,7 @@ Action_Hbond::Action_Hbond() :
   debug_(0),
   Nframes_(0),
   avgout_(0), solvout_(0), bridgeout_(0),
+  UUseriesout_(0), UVseriesout_(0),
   useAtomNum_(false),
   hasDonorMask_(false),
   hasDonorHmask_(false),
@@ -33,11 +34,12 @@ Action_Hbond::Action_Hbond() :
 {}
 
 void Action_Hbond::Help() {
-  mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>] [series]\n"
+  mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>]\n"
           "\t[donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n"
           "\t[avgout <filename>] [printatomnum] [nointramol] [image]\n"
           "\t[solventdonor <mask>] [solventacceptor <mask>]\n"
           "\t[solvout <filename>] [bridgeout <filename>]\n"
+          "\t[series [uuseries <filename>] [uvseries <filename>]\n"
           "  Search for hydrogen bonds using atoms in the region specified by mask.\n"
           "  If just <mask> specified donors and acceptors will be automatically searched for.\n"
           "  If donormask is specified but not acceptormask, acceptors will be\n"
@@ -57,6 +59,11 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
   Image_.InitImaging( (actionArgs.hasKey("image")) );
   DataFile* DF = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   series_ = actionArgs.hasKey("series");
+  if (series_) {
+    UUseriesout_ = DFL->AddDataFile(actionArgs.GetStringKey("uuseries"), actionArgs);
+    UVseriesout_ = DFL->AddDataFile(actionArgs.GetStringKey("uvseries"), actionArgs);
+    DSL->SetDataSetsPending(true);
+  }
   avgout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("avgout"), "Avg. solute-solute HBonds");
   solvout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("solvout"), "Avg. solute-solvent HBonds");
   bridgeout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("bridgeout"), "Solvent bridging info");
@@ -147,20 +154,24 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
             SolventAcceptorMask_.MaskString());
   mprintf("\tDistance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*Constants::RADDEG);
   if (DF != 0) 
-    mprintf("\tDumping # Hbond v time results to %s\n", DF->DataFilename().base());
+    mprintf("\tWriting # Hbond v time results to %s\n", DF->DataFilename().full());
   if (avgout_ != 0)
-    mprintf("\tDumping Hbond avgs to %s\n",avgout_->Filename().full());
+    mprintf("\tWriting Hbond avgs to %s\n",avgout_->Filename().full());
   if (calcSolvent_ && solvout_ != 0)
-    mprintf("\tDumping solute-solvent hbond avgs to %s\n", solvout_->Filename().full());
+    mprintf("\tWriting solute-solvent hbond avgs to %s\n", solvout_->Filename().full());
   if (calcSolvent_ && bridgeout_ != 0)
-    mprintf("\tDumping solvent bridging info to %s\n", bridgeout_->Filename().full());
+    mprintf("\tWriting solvent bridging info to %s\n", bridgeout_->Filename().full());
   if (useAtomNum_)
     mprintf("\tAtom numbers will be written to output.\n");
-  if (series_)
+  if (series_) {
     mprintf("\tTime series data for each hbond will be saved for analysis.\n");
+    if (UUseriesout_ != 0) mprintf("\tWriting solute-solute time series to %s\n",
+                                   UUseriesout_->DataFilename().full());
+    if (UVseriesout_ != 0) mprintf("\tWriting solute-solvent time series to %s\n",
+                                   UVseriesout_->DataFilename().full());
+  }
   if (Image_.UseImage())
     mprintf("\tImaging enabled.\n");
-  DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }
@@ -486,6 +497,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
     if (series_) {
       HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_, 
                                                           hbidx, "solventhb" );
+      if (UVseriesout_ != 0) UVseriesout_->AddSet( HB.data_ );
       //mprinterr("Created Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,HB.data_);
       HB.data_->SetLegend( hblegend );
       HB.data_->AddVal( frameNum, 1 );
@@ -532,6 +544,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
                              (*CurrentParm_)[h_atom].Name().Truncated(); \
       HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_, \
                                                           hbidx, "solutehb" ); \
+      if (UUseriesout_ != 0) UUseriesout_->AddSet( HB.data_ ); \
       HB.data_->SetLegend( hblegend ); \
       HB.data_->AddVal( frameNum, 1 ); \
     } \
