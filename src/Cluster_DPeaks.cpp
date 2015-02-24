@@ -317,7 +317,7 @@ int Cluster_DPeaks::Cluster() {
     int maxPt = (int)densityArray.size() - 1;
     for (int ip = 0; ip != (int)densityArray.size(); ++ip) 
     {
-      double wt = exp( ip - maxPt );
+      double wt = exp( (double)(ip - maxPt) );
       //mprintf("\t%10i %10u %10u %10g\n", densityVal, ip, maxPt, wt);
       wtDistAv += (densityArray[ip].Dist() * wt);
       sumWts += wt;
