@@ -51,6 +51,7 @@ const char* DataSetList::SetString(DataSet::DataType d) {
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
+  maxFrames_(-1),
   debug_(0),
   ensembleNum_(-1),
   hasCopies_(false),
@@ -123,6 +124,7 @@ void DataSetList::SetDebug(int debugIn) {
 
 /** Call Allocate for each 1D DataSet in the list. */
 void DataSetList::AllocateSets(long int maxFrames) {
+  maxFrames_ = maxFrames;
   if (maxFrames < 1L) return;
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
   {

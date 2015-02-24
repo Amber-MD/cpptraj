@@ -380,7 +380,34 @@ Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddres
     mprintf("\tImaging on.\n");
   else
     mprintf("\tImaging off.\n");
+  // Estimate maximum memory usage by hbond data.
+  // Max # of U-U pairs.
+  size_t nPairs = (Acceptor_.size() * (Donor_.size()/2));
+  // If calculating solvent every U acceptor can have V donor etc.
+  if (calcSolvent_)
+    nPairs += (Acceptor_.size() + Donor_.size()/2);
+  mprintf("\tEstimated max potential memory usage: %.2f MB\n", 
+          MemoryUsage(nPairs, masterDSL_->MaxFrames()));
+
   return Action::OK;
+}
+
+double Action_Hbond::MemoryUsage(size_t nPairs, size_t nFrames) const {
+  static const size_t HBmapTypeElt = 32 + sizeof(int) + 
+                                     (2*sizeof(double) + sizeof(DataSet_integer*) + 4*sizeof(int));
+  static const size_t BridgeTypeElt = 32 + sizeof(std::set<int>) + sizeof(int);
+  size_t memTotal = nPairs * HBmapTypeElt;
+  // If calculating series every hbond will have time series.
+  // NOTE: This does not include memory used by DataSet.
+  if (series_ && nFrames > 0) {
+    size_t seriesSet = (nFrames * sizeof(int)) + sizeof(std::vector<int>);
+    memTotal += (seriesSet * nPairs);
+  }
+  // Current memory used by bridging solvent
+  for (BridgeType::const_iterator it = BridgeMap_.begin(); it != BridgeMap_.end(); ++it)
+    memTotal += (it->first.size() * sizeof(int));
+  memTotal += (BridgeMap_.size() * BridgeTypeElt);
+  return (double)memTotal / (1024*1024);
 }
 
 double Action_Hbond::ImagedAngle(const double* xyz_a, const double* xyz_h, const double* xyz_d) const
@@ -669,6 +696,15 @@ void Action_Hbond::HbondTypeCalcAvg(HbondType& hb) {
 void Action_Hbond::Print() {
   std::vector<HbondType> HbondList; // For sorting
   std::string Aname, Hname, Dname;
+
+  // Final memory usage
+  mprintf("    HBOND: Actual memory usage is %.2f MB\n",
+          MemoryUsage(HbondMap_.size()+SolventMap_.size(), Nframes_));
+  mprintf("\t%zu solute-solute hydrogen bonds.\n", HbondMap_.size());
+  if (calcSolvent_) {
+   mprintf("\t%zu solute-solvent hydrogen bonds.\n", SolventMap_.size());
+   mprintf("\t%zu unique solute-solvent bridging interactions.\n", BridgeMap_.size());
+  }
 
   // Ensure all series have been updated for all frames.
   if (series_) {
