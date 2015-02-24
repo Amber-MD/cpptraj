@@ -3,7 +3,7 @@
 #include "Action.h"
 #include "Action_CheckStructure.h"
 #include "Random.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "DihedralSearch.h"
 // Class: Action_DihedralScan
 /// Action to rotate dihedrals randomly or in intervals 
@@ -45,7 +45,7 @@ class Action_DihedralScan: public Action {
     std::vector<ResidueCheckType> ResCheck_;
 
     Range resRange_;
-    Trajout outtraj_;
+    Trajout_Single outtraj_;
     std::string outfilename_;
     int outframe_;
     double interval_;   ///< interval, value to shift by

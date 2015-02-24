@@ -250,7 +250,7 @@ int DataIO_Std::Read_2D(std::string const& fname,
   DataSet* ds = datasetlist.AddSet(DataSet::MATRIX_DBL, dsname, "Mat");
   if (ds == 0) return 1;
   DataSet_MatrixDbl& Mat = static_cast<DataSet_MatrixDbl&>( *ds );
-  Mat.SetTypeAndKind( DataSet_2D::DIST, DataSet_2D::FULL ); // TODO: FIXME 
+  Mat.SetScalar( DataSet::DIST ); // TODO: FIXME 
   Mat.Allocate2D( ncols, nrows );
   std::copy( matrixArray.begin(), matrixArray.end(), Mat.begin() );
 

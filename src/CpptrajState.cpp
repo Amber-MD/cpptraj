@@ -1,11 +1,15 @@
 #include "CpptrajState.h"
 #include "CpptrajStdio.h"
-#include "FrameArray.h" // for ensemble
-#include "Trajin_Multi.h" // for ensemble
 #include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "Timer.h"
 #include "DataSet_Coords_REF.h" // AddReference
+#ifdef TIMER
+#ifdef MPI
+#include "Trajin_Multi.h"
+#include "Trajin_Ensemble.h"
+#endif
+#endif
 
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
@@ -215,19 +219,17 @@ int CpptrajState::Run() {
     // Clean up Actions if run completed successfully.
     if (err == 0) {
       actionList_.Clear();
+      trajoutList_.Clear();
       DSL_.SetDataSetsPending(false);
     }
   }
-  // Analysis is currently disabled for ENSEMBLE
-  if ( trajinList_.Mode() != TrajinList::ENSEMBLE) {
-    // Run Analyses if any are specified.
-    if (err == 0)
-      err = RunAnalyses();
-    DSL_.List();
-    // Print DataFile information and write DataFiles
-    DFL_.List();
-    MasterDataFileWrite();
-  }
+  // Run Analyses if any are specified.
+  if (err == 0)
+    err = RunAnalyses();
+  DSL_.List();
+  // Print DataFile information and write DataFiles
+  DFL_.List();
+  MasterDataFileWrite();
   mprintf("---------- RUN END ---------------------------------------------------\n");
   return err;
 }
@@ -240,23 +242,21 @@ Frame CpptrajState::ActiveReference() const {
     return activeRef_->RefFrame();
 }
 
+// -----------------------------------------------------------------------------
 // CpptrajState::RunEnsemble()
 int CpptrajState::RunEnsemble() {
   Timer init_time;
   init_time.Start();
   FrameArray FrameEnsemble;
-  // No Analysis will be run. Warn user if analyses are defined.
-  if (!analysisList_.Empty())
-    mprintf("Warning: In ensemble mode, Analysis will not be performed.\n");
+  FramePtrArray SortedFrames;
 
   mprintf("\nINPUT ENSEMBLE:\n");
   // Ensure all ensembles are of the same size
   int ensembleSize = -1;
   for (TrajinList::const_iterator traj = trajinList_.begin(); traj != trajinList_.end(); ++traj) 
   {
-    Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
     if (ensembleSize == -1) {
-      ensembleSize = mtraj->EnsembleSize();
+      ensembleSize = (*traj)->TrajCoordInfo().EnsembleSize();
 #     ifdef MPI
       // TODO: Eventually try to divide ensemble among MPI threads?
       if (worldsize != ensembleSize) {
@@ -265,17 +265,17 @@ int CpptrajState::RunEnsemble() {
         return 1;
       }
 #     endif
-    } else if (ensembleSize != mtraj->EnsembleSize()) {
+    } else if (ensembleSize != (*traj)->TrajCoordInfo().EnsembleSize()) {
       mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
-                mtraj->EnsembleSize(), ensembleSize);
+                (*traj)->TrajCoordInfo().EnsembleSize(), ensembleSize);
       return 1;
     }
-    // Perform ensemble setup - this also resizes FrameEnsemble
-    if ( mtraj->EnsembleSetup( FrameEnsemble ) ) return 1;
+    // Perform ensemble setup - this also resizes FrameEnsemble and SortedFrames
+    if ( (*traj)->EnsembleSetup( FrameEnsemble, SortedFrames ) ) return 1;
   }
   mprintf("  Ensemble size is %i\n", ensembleSize); 
   // At this point all ensembles should match (i.e. same map etc.)
-  ((Trajin_Multi*)(trajinList_.front()))->EnsembleInfo();
+  trajinList_.front()->EnsembleInfo();
 
   // Calculate frame division among trajectories
   trajinList_.List();
@@ -283,59 +283,49 @@ int CpptrajState::RunEnsemble() {
   parmFileList_.List();
   // Print reference information 
   ReferenceInfo();
+  // Use separate TrajoutList. Existing trajout in current TrajoutList
+  // will be converted to ensemble trajout. Use actual ensemble size even
+  // when MPI.
+  TrajoutList TrajoutEnsemble;
+  // Set up output trajectories for each member of the ensemble
+  parallel_barrier();
+  mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
+  if (trajoutList_.MakeEnsembleTrajout(parmFileList_, TrajoutEnsemble))
+    return 1;
+  parallel_barrier();
+  TrajoutEnsemble.List();
+  // Allocate DataSets in the master DataSetList based on # frames to be read
+  DSL_.AllocateSets( trajinList_.MaxFrames() );
 # ifdef MPI
-  // Each thread will process one member of the ensemble, so total ensemble
+  // Each thread will process one member of the ensemble, so local ensemble
   // size is effectively 1.
   ensembleSize = 1;
 # endif
-  // Allocate an ActionList, TrajoutList, and DataSetList for each
-  // member of the ensemble. Use separate DataFileList.
-  std::vector<ActionList> ActionEnsemble( ensembleSize );
-  std::vector<TrajoutList> TrajoutEnsemble( ensembleSize );
-  std::vector<DataSetList> DataSetEnsemble( ensembleSize );
-  DataFileList DataFileEnsemble;
-# ifdef MPI
-  DataFileEnsemble.SetEnsembleMode( worldrank );
-# endif
+  // Allocate an ActionList for each member of the ensemble.
+  std::vector<ActionList*> ActionEnsemble( ensembleSize );
+  ActionEnsemble[0] = &actionList_;
+  for (int member = 1; member < ensembleSize; member++)
+    ActionEnsemble[member] = new ActionList();
   // If we are on a single thread, give each member its own copy of the
   // current topology address. This way if topology is modified by a member,
   // e.g. in strip or closest, subsequent members wont be trying to modify 
   // an already-modified topology.
   std::vector<Topology*> EnsembleParm( ensembleSize );
-
-  // Set up output trajectories for each member of the ensemble
-  for (TrajoutList::ArgIt targ = trajoutList_.argbegin(); targ != trajoutList_.argend(); ++targ)
-  {
-#   ifdef MPI
-    TrajoutEnsemble[0].AddEnsembleTrajout( *targ, parmFileList_, worldrank );
-#   else
-    for (int member = 0; member < ensembleSize; ++member) 
-      TrajoutEnsemble[member].AddEnsembleTrajout( *targ, parmFileList_, member );
-#   endif
-  }
-  mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
-  TrajoutEnsemble[0].List();
-  if (debug_ > 0) {
-    for (int member = 1; member < ensembleSize; ++member) {
-      mprintf("OUTPUT TRAJECTORIES Member %i:\n", member);
-      TrajoutEnsemble[member].List();
-    }
-  }
-
-  // TODO: One loop over member?
-  mprintf("\nENSEMBLE ACTIONS:\n");
-  int maxFrames = trajinList_.MaxFrames();
-  for (int member = 0; member < ensembleSize; ++member) {
-    // Set max frames in the data set list and allocate
-    DataSetEnsemble[member].AllocateSets( maxFrames );
-#   ifdef MPI
-    DataSetEnsemble[member].SetEnsembleNum( worldrank );
-#   else
-    DataSetEnsemble[member].SetEnsembleNum( member );
-    // If serial, silence action output for all beyond first member.
-    if (member > 0 && debug_ == 0)
-      SetWorldSilent( true );
-#   endif
+# ifdef MPI
+  // Make all sets not in an ensemble a member of this thread.
+  DSL_.MakeDataSetsEnsemble( worldrank );
+  // This tells all DataFiles to append member number.
+  DFL_.MakeDataFilesEnsemble( worldrank );
+  // Actions have already been set up for this ensemble.
+# else
+  // Make all sets not in an ensemble part of member 0.
+  DSL_.MakeDataSetsEnsemble( 0 );
+  // Silence action output for members > 0.
+  if (debug_ == 0) SetWorldSilent( true ); 
+  // Set up Actions for each ensemble member > 0.
+  for (int member = 1; member < ensembleSize; ++member) {
+    // All DataSets that will be set up will be part of this ensemble 
+    DSL_.SetEnsembleNum( member );
     // Initialize actions for this ensemble member based on original actionList_
     if (!actionList_.Empty()) {
       if (debug_ > 0) mprintf("***** ACTIONS FOR ENSEMBLE MEMBER %i:\n", member);
@@ -344,21 +334,20 @@ int CpptrajState::RunEnsemble() {
         ArgList command( actionList_.CmdString(iaction) );
         command.MarkArg(0); // TODO: Create separate CommandArg class?
         // Attempt to add same action to this ensemble. 
-        if (ActionEnsemble[member].AddAction( actionList_.ActionAlloc(iaction), 
-                                              command, &parmFileList_, 
-                                              &(DataSetEnsemble[member]), 
-                                              &DataFileEnsemble ))
+        if (ActionEnsemble[member]->AddAction( actionList_.ActionAlloc(iaction), 
+                                                command, &parmFileList_, &DSL_, &DFL_ ))
             return 1;
       }
     }
   }
+  SetWorldSilent( false );
+# endif
   init_time.Stop();
   // Re-enable output
   SetWorldSilent( false );
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total()); 
   // ========== A C T I O N  P H A S E ==========
   int lastPindex=-1;          // Index of the last loaded parm file
-  int pos = 0;                // Where member should be processed by actions
   int readSets = 0;
   int actionSet = 0;
   bool hasVelocity = false;
@@ -367,10 +356,6 @@ int CpptrajState::RunEnsemble() {
   Timer setup_time;
   Timer actions_time;
   Timer trajout_time;
-# ifdef MPI
-  double mpiallgather = 0.0;
-  double mpisendrecv = 0.0;
-# endif
 # endif
   Timer frames_time;
   frames_time.Start();
@@ -411,7 +396,7 @@ int CpptrajState::RunEnsemble() {
         // Silence action output for all beyond first member.
         if (member > 0)
           SetWorldSilent( true );
-        if (ActionEnsemble[member].SetupActions( &(EnsembleParm[member]) )) {
+        if (ActionEnsemble[member]->SetupActions( &(EnsembleParm[member]) )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
                   worldrank,EnsembleParm[member]->c_str());
@@ -425,6 +410,11 @@ int CpptrajState::RunEnsemble() {
       // Re-enable output
       SetWorldSilent( false );
       if (!setupOK) continue;
+      // Set up any related output trajectories.
+      // TODO: Currently assuming topology is always modified the same
+      //       way for all actions. If this behavior ever changes the
+      //       following line will cause undesireable behavior.
+      TrajoutEnsemble.SetupTrajout( EnsembleParm[0] );
       lastPindex = CurrentParm->Pindex();
     }
 #   ifdef TIMER
@@ -432,58 +422,47 @@ int CpptrajState::RunEnsemble() {
 #   endif
     // Loop over every collection of frames in the ensemble
     (*traj)->PrintInfoLine();
-    Trajin_Multi* mtraj = (Trajin_Multi*)*traj;
 #   ifdef TIMER
     trajin_time.Start();
-    bool readMoreFrames = mtraj->GetNextEnsemble(FrameEnsemble);
+    bool readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames);
     trajin_time.Stop();
     while ( readMoreFrames )
 #   else
-    while ( mtraj->GetNextEnsemble(FrameEnsemble) )
+    while ( (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames) )
 #   endif
     {
-      if (!mtraj->BadEnsemble()) {
-#       ifdef MPI
-        // For MPI, each thread has one ensemble frame. member is 1 if coords
-        // had to be sorted, 0 otherwise. pos is always 0.
-        int member = mtraj->EnsembleFrameNum();
-        pos = 0;
-#       else
-        // Loop over all members of the ensemble
-        for (int member = 0; member < ensembleSize; ++member) {
-          // Get this members current position
-          pos = mtraj->EnsemblePosition( member );
-#       endif
+      if (!(*traj)->BadEnsemble()) {
+        bool suppress_output = false;
+        for (int member = 0; member != ensembleSize; ++member) {
           // Since Frame can be modified by actions, save original and use CurrentFrame
-          Frame* CurrentFrame = &(FrameEnsemble[member]);
+          Frame* CurrentFrame = SortedFrames[member];
+          //rprintf("DEBUG: CurrentFrame=%x SortedFrames[0]=%x\n",CurrentFrame, SortedFrames[0]);
           if ( CurrentFrame->CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
-                    member, mtraj->CurrentFrame() - mtraj->Offset() + 1);
-#           ifdef TIMER
-            actions_time.Start();
-#           endif
-            // Perform Actions on Frame
-            bool suppress_output = ActionEnsemble[pos].DoActions(&CurrentFrame, actionSet);
-#           ifdef TIMER
-            actions_time.Stop();
-#           endif
-            // Do Output
-            if (!suppress_output) {
-#             ifdef TIMER
-              trajout_time.Start();
-#             endif 
-              if (TrajoutEnsemble[pos].WriteTrajout(actionSet, EnsembleParm[pos], CurrentFrame))
-              {
-                mprinterr("Error: Writing ensemble output traj, position %i\n", pos);
-                if (exitOnError_) return 1; 
-              }
-#             ifdef TIMER
-              trajout_time.Stop();
-#             endif
-            }
-#       ifndef MPI
-        } // END loop over ensemble
-#       endif
+                    member, (*traj)->CurrentFrameNumber());
+#         ifdef TIMER
+          actions_time.Start();
+#         endif
+          // Perform Actions on Frame
+          suppress_output = ActionEnsemble[member]->DoActions(&CurrentFrame, actionSet);
+#         ifdef TIMER
+          actions_time.Stop();
+#         endif
+        } // END loop over actions
+        // Do Output
+        if (!suppress_output) {
+#         ifdef TIMER
+          trajout_time.Start();
+#         endif 
+          if (TrajoutEnsemble.WriteEnsembleOut(actionSet, SortedFrames))
+          {
+            mprinterr("Error: Writing ensemble output traj, frame %i\n", actionSet+1);
+            if (exitOnError_) return 1; 
+          }
+#         ifdef TIMER
+          trajout_time.Stop();
+#         endif
+        }
       } else {
 #       ifdef MPI
         rprinterr("Error: Could not read frame %i for ensemble.\n", actionSet + 1);
@@ -495,19 +474,13 @@ int CpptrajState::RunEnsemble() {
       ++actionSet;
 #     ifdef TIMER
       trajin_time.Start();
-      readMoreFrames = mtraj->GetNextEnsemble(FrameEnsemble);
+      readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames);
       trajin_time.Stop();
 #     endif
     }
 
     // Close the trajectory file
     (*traj)->EndTraj();
-#   ifdef MPI
-#   ifdef TIMER
-    mpiallgather += mtraj->MPI_AllgatherTime();
-    mpisendrecv  += mtraj->MPI_SendRecvTime();
-#   endif
-#   endif
     // Update how many frames have been processed.
     readSets += (*traj)->NumFramesProcessed();
     mprintf("\n");
@@ -519,48 +492,34 @@ int CpptrajState::RunEnsemble() {
           (double)readSets / frames_time.Total());
 # ifdef TIMER
   trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time.Total());
-# ifdef MPI
-  rprintf("MPI_TIME:\tallgather: %.4f s (%.2f%%), sendrecv: %.4f s (%.2f%%), Other:  %.4f s\n",
-          mpiallgather, (mpiallgather / trajin_time.Total())*100.0,
-          mpisendrecv,  (mpisendrecv / trajin_time.Total())*100.0,
-          trajin_time.Total() - mpiallgather - mpisendrecv);
-# endif
   setup_time.WriteTiming(1,   "Action setup:           ", frames_time.Total());
   actions_time.WriteTiming(1, "Action frame processing:", frames_time.Total());
   trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time.Total());
+# ifdef MPI
+  Trajin_Multi::TimingData(trajin_time.Total());
+  Trajin_Ensemble::TimingData(trajin_time.Total());
+# endif
 # endif
 
   // Close output trajectories
-  for (int member = 0; member < ensembleSize; ++member)
-    TrajoutEnsemble[member].CloseTrajout();
+  TrajoutEnsemble.CloseTrajout();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
   for (int member = 0; member < ensembleSize; ++member)
-    ActionEnsemble[member].Print( );
-
-  // Sort DataSets and print DataSet information
-  // TODO - Also have datafilelist call a sync??
-  unsigned int total_data_sets = DataSetEnsemble[0].size();
-  mprintf("\nENSEMBLE DATASETS: Each member has %u sets total.\n", total_data_sets);
-  for (int member = 0; member < ensembleSize; ++member) {
-    //DataSetEnsemble[member].Sync(); // SYNC only necessary when splitting up data
-    if (total_data_sets != DataSetEnsemble[member].size())
-      mprintf("Warning: Ensemble member %i # data sets (%i) does not match member 0 (%i)\n",
-              member, DataSetEnsemble[member].size(), total_data_sets);
-    if (debug_ > 0)
-      DataSetEnsemble[member].List();
-  }
-
-  // Print Datafile information
-  DataFileEnsemble.List();
-  // Print DataFiles. When in parallel ensemble mode, each member of the 
-  // ensemble will write data to separate files with numeric extensions. 
-  DataFileEnsemble.WriteAllDF();
+    ActionEnsemble[member]->Print( );
+# ifdef MPI
+  // Sync DataSets across all threads. 
+  //DSL_.SynchronizeData(); // NOTE: Disabled, trajs are not currently divided.
+# endif
+  // Clean up ensemble action lists
+  for (int member = 1; member < ensembleSize; member++)
+    delete ActionEnsemble[member];
 
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // CpptrajState::RunNormal()
 /** Process trajectories in trajinList. Each frame in trajinList is sent
  *  to the actions in actionList for processing.
@@ -630,6 +589,8 @@ int CpptrajState::RunNormal() {
                 CurrentParm->c_str());
         continue;
       }
+      // Set up any related output trajectories 
+      trajoutList_.SetupTrajout( CurrentParm );
       lastPindex = CurrentParm->Pindex();
     }
 #   ifdef TIMER
@@ -649,7 +610,7 @@ int CpptrajState::RunNormal() {
       // Check that coords are valid.
       if ( TrajFrame.CheckCoordsInvalid() )
         mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
-                (*traj)->CurrentFrame() - (*traj)->Offset() + 1);
+                (*traj)->CurrentFrameNumber());
         // Since Frame can be modified by actions, save original and use CurrentFrame
         Frame* CurrentFrame = &TrajFrame;
         // Perform Actions on Frame
@@ -665,7 +626,7 @@ int CpptrajState::RunNormal() {
 #         ifdef TIMER
           trajout_time.Start();
 #         endif
-          if (trajoutList_.WriteTrajout(actionSet, CurrentParm, CurrentFrame)) {
+          if (trajoutList_.WriteTrajout(actionSet, *CurrentFrame)) {
             if (exitOnError_) return 1;
           }
 #         ifdef TIMER
@@ -712,12 +673,14 @@ int CpptrajState::RunNormal() {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // CpptrajState::MasterDataFileWrite()
-void CpptrajState::MasterDataFileWrite() {
-  // Only Master does DataFile output
-  if (worldrank==0)
-    DFL_.WriteAllDF();
-}
+// FIXME: If MPI ever used for trajin mode this may have to be protected.
+/** Trigger write of all pending DataFiles. When in parallel ensemble mode,
+  * each member of the ensemble will write data to separate files with 
+  * numeric extensions.
+  */
+void CpptrajState::MasterDataFileWrite() { DFL_.WriteAllDF(); }
 
 // CpptrajState::RunAnalyses()
 int CpptrajState::RunAnalyses() {

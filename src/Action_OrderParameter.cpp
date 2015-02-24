@@ -17,6 +17,7 @@ const double Action_OrderParameter::MAXBOND2 = 1.5;
 
 // CONSTRUCTOR
 Action_OrderParameter::Action_OrderParameter() :
+  output_(0), taildist_(0),
   axis_(DZ),
   delta_(0.1),
   scd_(false),
@@ -46,7 +47,8 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, TopologyList* P
     outfileName = "orderparam.dat";
   }
 
-  if (output_.OpenEnsembleWrite(outfileName, DSL->EnsembleNum()) ) {
+  output_ = DFL->AddCpptrajFile(outfileName, "Lipid order");
+  if (output_ == 0) {
     mprinterr("Error: OrderParameter: Could not open output file %s\n",
 	      outfileName.c_str());
     return Action::ERR;
@@ -63,9 +65,10 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, TopologyList* P
   std::string taildistName = actionArgs.GetStringKey("taildist");
 
   if (!taildistName.empty()) {
-    if (taildist_.OpenEnsembleWrite(taildistName, DSL->EnsembleNum()) ) {
+    taildist_ = DFL->AddCpptrajFile(taildistName, "Tail Dist");
+    if (taildist_ == 0) {
       mprinterr("Error: OrderParameter: Could not open output file %s\n",
-		outfileName.c_str());
+		taildistName.c_str());
       return Action::ERR;
     }
 
@@ -146,7 +149,7 @@ Action::RetType Action_OrderParameter::Setup(Topology* currentParm,
       return Action::ERR;
   }
 
-  if (taildist_.IsOpen() ) {
+  if (taildist_ != 0 ) {
     if (tailstart_mask_.MaskStringSet() &&
 	currentParm->SetupIntegerMask(tailstart_mask_) )
       return Action::ERR;
@@ -332,7 +335,7 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum,
 
   tmp.resize(tailhist_.size() );
 
-  if (taildist_.IsOpen() ) {
+  if (taildist_ != 0 ) {
     for (start_atom = tailstart_mask_.begin(), end_atom = tailend_mask_.begin();
 	 start_atom != tailstart_mask_.end() && end_atom != tailend_mask_.end();
 	 start_atom++, end_atom++) {
@@ -368,26 +371,26 @@ void Action_OrderParameter::Print()
   double Sx, Sy, Sz, SCD_1, SCD_2, prob, sd;
 
 
-  output_.Printf("# order parameters for masks");
+  output_->Printf("# order parameters for masks");
 
 
   for (std::vector<AtomMask>::iterator mask = masks_.begin();
        mask != masks_.end();
        mask++) {
-    output_.Printf(" %s", mask->MaskString() );
+    output_->Printf(" %s", mask->MaskString() );
   }
 
-  output_.Printf("\n");
+  output_->Printf("\n");
 
   if (scd_) {
-    output_.Printf("#Cn %10s %10s %10s %10s\n",
+    output_->Printf("#Cn %10s %10s %10s %10s\n",
 		   "SCD_H1", "sd(SCD_H1)", "SCD_H2", "sd(SCD_H2)");
 
     for (unsigned int i = 0; i < orderParameter_.size() / 3; i++) {
       Sx = -orderParameter_[i][0].mean();
       Sy = -orderParameter_[i][1].mean();
 
-      output_.Printf("%3u %10.7f %10.7f %10.7f %10.7f\n",
+      output_->Printf("%3u %10.7f %10.7f %10.7f %10.7f\n",
 		     i + 1,
 		     Sx,
                      sqrt(orderParameter_[i][0].variance()),
@@ -395,7 +398,7 @@ void Action_OrderParameter::Print()
                      sqrt(orderParameter_[i][1].variance()) );
     }
   } else {
-    output_.Printf("#Cn %10s %10s %10s %10s %10s %10s %10s %10s\n",
+    output_->Printf("#Cn %10s %10s %10s %10s %10s %10s %10s %10s\n",
 		   "Sx", "sd(Sx)", "Sy", "sd(Sy)", "Sz",  "sd(Sz)", "SCD_z",
 		   "SCD_xy");
 
@@ -407,7 +410,7 @@ void Action_OrderParameter::Print()
       SCD_1 = 0.5 * Sz;
       SCD_2 = -(2.0 * Sx + Sy) / 3.0;
 
-      output_.Printf("%3u %10.7f %10.7f %10.7f %10.7f %10.7f %10.7f "
+      output_->Printf("%3u %10.7f %10.7f %10.7f %10.7f %10.7f %10.7f "
 		     "%10.7f %10.7f\n",
 		     i + 1,
 		     Sx,
@@ -421,15 +424,15 @@ void Action_OrderParameter::Print()
     }
   }
 
-  if (taildist_.IsOpen() ) {
-    taildist_.Printf("# end-to-end distance\n");
+  if (taildist_ != 0 ) {
+    taildist_->Printf("# end-to-end distance\n");
 
     for (unsigned long i = 0; i < tailhist_.size(); i++) {
       prob = tailhist_[i].mean() / delta_;
       sd = sqrt(tailhist_[i].variance() );
 
       if (prob > 0.0) {
-	taildist_.Printf("%10.4f %10.4f %10.7f\n", ((double) i + 0.5) * delta_,
+	taildist_->Printf("%10.4f %10.4f %10.7f\n", ((double) i + 0.5) * delta_,
 			 prob, sd);
       }
     }

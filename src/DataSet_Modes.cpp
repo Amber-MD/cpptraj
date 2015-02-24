@@ -29,7 +29,6 @@ DataSet_Modes::DataSet_Modes() :
   evectors_(0),
   nmodes_(0),
   vecsize_(0),
-  type_(DataSet_2D::NO_OP),
   reduced_(false)
 {}
 
@@ -43,7 +42,8 @@ DataSet_Modes::~DataSet_Modes() {
 void DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
   avgcrd_.clear();
   mass_.clear();
-  if (mIn.Type() != DataSet_2D::NO_OP) { // May have avg coords 
+  if (mIn.Type() == DataSet::MATRIX_DBL && mIn.ScalarType() != DataSet::UNDEFINED) 
+  { // May have avg coords 
     DataSet_MatrixDbl const& mat = static_cast<DataSet_MatrixDbl const&>( mIn );
     avgcrd_ = mat.Vect();
     mass_ = mat.Mass();
@@ -87,7 +87,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
 #else
   bool eigenvaluesOnly;
   int info = 0;
-  if (mIn.Kind() != DataSet_2D::HALF) {
+  if (mIn.MatrixKind() != DataSet_2D::HALF) {
     mprinterr("Error: DataSet_Modes: Eigenvector/value calc only for symmetric matrices.\n");
     return 1;
   }
@@ -340,13 +340,12 @@ int DataSet_Modes::ReduceVectors() {
     mprintf("Warning: Cannot 'reduce', no eigenvectors present.\n");
     return 0;
   }
-  if ( type_ == DataSet_2D::COVAR || type_ == DataSet_2D::MWCOVAR )
+  if ( ScalarType() == DataSet::COVAR || ScalarType() == DataSet::MWCOVAR )
     return ReduceCovar();
-  else if ( type_ == DataSet_2D::DISTCOVAR )
+  else if ( ScalarType() == DataSet::DISTCOVAR )
     return ReduceDistCovar();
   else
-    mprintf("Warning: 'reduce' not supported for matrix type %s\n",
-            DataSet_2D::MatrixTypeString(type_));
+    mprintf("Warning: 'reduce' not supported for matrix type %s\n", TypeString());
   return 0;
 }
 

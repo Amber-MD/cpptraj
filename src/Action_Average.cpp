@@ -1,7 +1,7 @@
 // Action_Average
 #include "Action_Average.h"
 #include "CpptrajStdio.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "DataSet_Coords_REF.h"
 
 // CONSTRUCTOR
@@ -148,7 +148,7 @@ void Action_Average::Print() {
 
   mprintf("    AVERAGE:");
   if (crdset_ == 0) {
-    Trajout outfile;
+    Trajout_Single outfile;
     mprintf(" [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
     if (outfile.InitEnsembleTrajWrite(avgfilename_, trajArgs_, &AvgParm_, 
                                       TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 

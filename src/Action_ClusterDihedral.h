@@ -23,14 +23,13 @@ class Action_ClusterDihedral : public Action {
     int CUT_;
     int lastframe_;
     Topology* dcparm_;             ///< Set to first parm encountered.
-    std::string outfile_;
-    std::string framefile_; // filenames[1]
-    std::string infofile_;  // filenames[2]
+    CpptrajFile* outfile_;
+    CpptrajFile* framefile_; // filenames[1]
+    CpptrajFile* infofile_;  // filenames[2]
     AtomMask mask_;
     DataSet* CVT_; ///< Hold # clusters vs time.
     double minimum_; ///< Value of first bin 
     int debug_;
-    int ensembleNum_;
 };
 // -----------------------------------------------------------------------------
 class Action_ClusterDihedral::DCnode {
@@ -53,17 +52,17 @@ class Action_ClusterDihedral::DCnode {
     bool operator<(const DCnode& rhs) const  { return (count_ > rhs.count_);  }
     bool operator>(const DCnode& rhs) const  { return (count_ < rhs.count_);  }
     bool operator==(const DCnode& rhs) const { return (count_ == rhs.count_); }
-    bool BinMatch(std::vector<int>& binIn) {
+    bool BinMatch(std::vector<int>& binIn) const {
       return (std::equal(BinIDs_.begin(), BinIDs_.end(), binIn.begin()));
     }
-    long int Count()      { return count_; }
+    long int Count()  const { return count_; }
     typedef std::vector<int>::const_iterator bin_it;
-    bin_it binbegin()     { return BinIDs_.begin(); }
-    bin_it binend()       { return BinIDs_.end();   }
+    bin_it binbegin() const { return BinIDs_.begin(); }
+    bin_it binend()   const { return BinIDs_.end();   }
     typedef std::vector<int>::const_iterator frame_it;
-    frame_it framebegin() { return frames_.begin(); }
-    frame_it frameend()   { return frames_.end();   }
-    int NumFrames()       { return (int)frames_.size(); }
+    frame_it framebegin() const { return frames_.begin(); }
+    frame_it frameend()   const { return frames_.end();   }
+    int NumFrames()       const { return (int)frames_.size(); }
   private:
     std::vector<int> BinIDs_;
     std::vector<int> frames_;
@@ -76,13 +75,13 @@ class Action_ClusterDihedral::DCmask {
     DCmask(int a1, int a2, int a3, int a4, int bins, double min) :
            a1_(a1), a2_(a2), a3_(a3), a4_(a4), 
            bins_(bins), step_(360/(double)bins), min_(min) {}
-    int A1()   { return a1_; }
-    int A2()   { return a2_; }
-    int A3()   { return a3_; }
-    int A4()   { return a4_; }
-    int Bins() { return bins_; }
-    double Step() { return step_; }
-    double Min() { return min_; }
+    int A1()   const { return a1_; }
+    int A2()   const { return a2_; }
+    int A3()   const { return a3_; }
+    int A4()   const { return a4_; }
+    int Bins() const { return bins_; }
+    double Step() const { return step_; }
+    double Min()  const { return min_; }
   private:
     int a1_;
     int a2_;

@@ -14,6 +14,9 @@
 class FileIO {
   public:
     virtual ~FileIO() {}
+    enum StreamType { STDIN = 0, STDOUT, STDERR };
+    /// Open the specified stream (currently FileIO_Std only).
+    virtual int OpenStream( StreamType ) = 0;
     /// Open the file with given name and mode.
     virtual int Open(const char *, const char *) = 0;
     /// Close the file.

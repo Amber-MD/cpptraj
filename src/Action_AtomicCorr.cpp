@@ -31,14 +31,14 @@ const char* Action_AtomicCorr::ModeString[] = {"atom", "residue"};
 Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
-  std::string outname = actionArgs.GetStringKey("out");
-  if (outname.empty()) {
-    mprinterr("Error: atomiccorr: No output filename specified [out <filename>]\n");
+  outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  if (outfile_ == 0) {
+    mprinterr("Error: Output file is required [out <filename>]\n");
     return Action::ERR;
   }
   cut_ = actionArgs.getKeyDouble("cut", 0.0);
   if (cut_ < 0.0 || cut_ > 1.0) {
-    mprinterr("Error: atomiccorr: cut value must be between 0 and 1.\n");
+    mprinterr("Error: cut value must be between 0 and 1.\n");
     return Action::ERR;
   }
   min_ = actionArgs.getKeyInt("min",0);
@@ -55,15 +55,12 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, TopologyList* PFL, 
     return Action::ERR;
   }
   // Add DataSet to output file
-  outfile_ = DFL->AddSetToFile( outname, dset_ );
-  if (outfile_ == 0) {
-    mprinterr("Error: Unable to add set to DataFile %s\n", outname.c_str());
-    return Action::ERR;
-  }
+  outfile_->AddSet( dset_ );
 
   mprintf("    ATOMICCORR: Correlation of %s motions will be calculated for\n",
           ModeString[acorr_mode_]);
-  mprintf("\tatoms in mask [%s], output to file %s\n", mask_.MaskString(), outname.c_str());
+  mprintf("\tatoms in mask [%s], output to file %s\n", mask_.MaskString(), 
+          outfile_->DataFilename().full());
   if (cut_ != 0)
     mprintf("\tOnly correlations greater than %.2f or less than -%.2f will be printed.\n",
             cut_,cut_);

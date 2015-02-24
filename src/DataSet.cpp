@@ -6,6 +6,7 @@
 // CONSTRUCTOR
 DataSet::DataSet() :
   data_format_(0),
+  ensembleNum_(-1),
   idx_(-1),
   dType_(UNKNOWN_DATA),
   colwidth_(0),
@@ -19,6 +20,7 @@ DataSet::DataSet() :
 /// CONSTRUCTOR - Take type, width, precision, and dimension
 DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
   data_format_(0),
+  ensembleNum_(-1),
   idx_(-1),
   dType_(typeIn),
   dim_(dimIn),
@@ -36,6 +38,7 @@ DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
 DataSet::DataSet(const DataSet& rhs) :
   data_format_(0),
   name_(rhs.name_),
+  ensembleNum_(rhs.ensembleNum_),
   idx_(rhs.idx_),
   aspect_(rhs.aspect_),
   legend_(rhs.legend_),
@@ -57,6 +60,7 @@ DataSet::DataSet(const DataSet& rhs) :
 DataSet& DataSet::operator=(const DataSet& rhs) {
   if (this == &rhs) return *this;
   name_ = rhs.name_;
+  ensembleNum_ = rhs.ensembleNum_;
   idx_ = rhs.idx_;
   aspect_ = rhs.aspect_;
   legend_ = rhs.legend_;
@@ -97,7 +101,8 @@ void DataSet::SetPrecision(int widthIn, int precisionIn) {
   * \param idxIn DataSet index; if no index should be -1.
   * \param aspectIn DataSet aspect; if no aspect should be empty.
   */
-int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& aspectIn)
+int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& aspectIn,
+                      int ensembleNumIn)
 {
   // Dataset name
   if (nameIn.empty()) {
@@ -108,6 +113,7 @@ int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& a
   // Set index and aspect if given
   if (idxIn != -1) idx_ = idxIn;
   if (!aspectIn.empty()) aspect_ = aspectIn;
+  ensembleNum_ = ensembleNumIn;
   // If no legend set yet create a default one. Possible formats are:
   //  - Name[Aspect]
   //  - Name:idx
@@ -122,6 +128,8 @@ int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& a
       legend_ = aspect_ + ":" + integerToString( idx_ );
     else
       legend_ = name_;
+    if (ensembleNum_ != -1)
+      legend_ += ("%" + integerToString( ensembleNum_ ));
   }
   return 0;
 }
@@ -173,7 +181,8 @@ int DataSet::SetDataSetFormat(bool leftAlignIn) {
 }
 
 // DataSet::Matches()
-bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const& aspect ) const
+bool DataSet::Matches(std::string const& dsname, int idxnum, std::string const& aspect,
+                      int member) const
 {
   /*mprintf("DEBUG: Input: %s[%s]:%i  This Set: %s[%s]:%i\n",
           dsname.c_str(), aspect.c_str(), idxnum, 
@@ -181,6 +190,8 @@ bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const&
   if ( dsname != name_ && dsname != "*") return false;
   // Currently match any index if not specified.
   if (idxnum != -1 && idxnum != idx_) return false;
+  // Match any ensemble if not specified
+  if (member != -1 && member != ensembleNum_) return false;
   // If aspect specified make sure it matches. 
   if (!aspect.empty() && (aspect != aspect_ && aspect != "*")) return false;
   // If no aspect specified but dataset has aspect do not match.
@@ -189,21 +200,43 @@ bool DataSet::Matches( std::string const& dsname, int idxnum, std::string const&
   return true;
 }
 
-const char* DataSet::Smodes[] = {"distance","angle","torsion","pucker","rms",0};
-const char* DataSet::Stypes[] = {"alpha","beta","gamma",
-  "delta","epsilon","zeta","pucker","chi","h1p","c2p",
-  "phi","psi","pchi","omega","noe",0};
-const DataSet::scalarMode DataSet::TypeModes[] = {M_TORSION,M_TORSION,M_TORSION,
-  M_TORSION,M_TORSION,M_TORSION,M_PUCKER,M_TORSION,M_TORSION,M_TORSION,
-  M_TORSION,M_TORSION,M_TORSION,M_TORSION,M_DISTANCE,UNKNOWN_MODE}; 
+void DataSet::PrintName() const {
+  mprintf("%s", Name().c_str());
+  if (!Aspect().empty())
+    mprintf("[%s]", Aspect().c_str());
+  if (Idx() != -1)
+    mprintf(":%i", Idx());
+  if (Member() != -1)
+    mprintf("%%%i", Member());
+}
+// -----------------------------------------------------------------------------
+const char* DataSet::Smodes[] = {"distance","angle","torsion","pucker","rms","matrix",0};
+const char* DataSet::Stypes[] = {
+  // Torsions
+  "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "pucker",
+  "chi",   "h1p",  "c2p",   "phi",   "psi",     "pchi", "omega",
+  // Distance
+  "noe",
+  // Matrix
+  "distance",    "covariance",          "mass-weighted covariance",
+  "correlation", "distance covariance", "IDEA",
+  "IRED",        "dihedral covariance",
+  0 };
+const DataSet::scalarMode DataSet::TypeModes[] = {
+  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_PUCKER,
+  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
+  M_DISTANCE,
+  M_MATRIX,  M_MATRIX, M_MATRIX,
+  M_MATRIX,  M_MATRIX, M_MATRIX,
+  M_MATRIX,  M_MATRIX,
+  UNKNOWN_MODE };
 
 // DataSet::ScalarDescription()
 void DataSet::ScalarDescription() const {
-  if (scalarmode_ != UNKNOWN_MODE) {
+  if (scalarmode_ != UNKNOWN_MODE)
     mprintf(", %s", Smodes[scalarmode_]);
-    if (scalartype_ != UNDEFINED)
-      mprintf("(%s)", Stypes[scalartype_]);
-  }
+  if (scalartype_ != UNDEFINED)
+    mprintf("(%s)", Stypes[scalartype_]);
 }
 
 // DataSet::ModeFromKeyword()
@@ -235,12 +268,4 @@ DataSet::scalarType DataSet::TypeFromKeyword(std::string const& key, scalarMode&
       return (scalarType)i;
     }
   return UNDEFINED;
-}
-
-void DataSet::PrintName() const {
-  mprintf("%s", Name().c_str());
-  if (!Aspect().empty())
-    mprintf("[%s]", Aspect().c_str());
-  if (Idx() != -1)
-    mprintf(":%i", Idx());
 }

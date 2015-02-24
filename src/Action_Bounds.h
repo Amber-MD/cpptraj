@@ -13,11 +13,10 @@ class Action_Bounds : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
     AtomMask mask_;
-    std::string outfilename_;
+    CpptrajFile* outfile_;
     double max_[3];
     double min_[3];
     Vec3 dxyz_;
-    int ensembleNum_;
     int offset_;
     DataSet* grid_;
 };

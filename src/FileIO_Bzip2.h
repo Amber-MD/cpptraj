@@ -9,7 +9,8 @@
 class FileIO_Bzip2 : public FileIO {
   public:
     FileIO_Bzip2(); 
-    ~FileIO_Bzip2(); 
+    ~FileIO_Bzip2();
+    int OpenStream(StreamType) { return 1; } 
     int Open(const char *, const char *);    
     int Close();
     off_t Size(const char *);
@@ -22,13 +23,13 @@ class FileIO_Bzip2 : public FileIO {
     int Gets(char *, int );
     int SetSize(long int) { return 0; }
   private:
-    bool isBzread_;
     FILE *fp_;
     BZFILE *infile_;
-    int err_;
     char *bzfilename_;
     char *bzmode_;
     off_t position_;
+    int err_;
+    bool isBzread_;
 
     const char *BZerror();
 };

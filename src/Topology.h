@@ -16,14 +16,14 @@ class Topology {
   public:
     Topology();
     // ----- Set internal variables --------------
-    void SetOffset(double oIn)           { if (oIn > 0.0) offset_ = oIn;  }
-    void SetDebug(int dIn)               { debug_ = dIn;                  }
-    void SetIpol(int iIn)                { ipol_ = iIn;                   }
-    void SetPindex(int pIn)              { pindex_ = pIn;                 }
-    void IncreaseFrames(int fIn)         { nframes_ += fIn;               }
-    void SetNframes(int fIn)             { nframes_ = fIn;                }
-    void SetTag(std::string const& t)    { parmTag_ = t;                  }
-    void SetGBradiiSet(std::string const& s)   { radius_set_ = s;         }
+    void SetOffset(double oIn)               { if (oIn > 0.0) offset_ = oIn; }
+    void SetDebug(int dIn)                   { debug_ = dIn;                 }
+    void SetIpol(int iIn)                    { ipol_ = iIn;                  }
+    void SetPindex(int pIn)                  { pindex_ = pIn;                }
+    void IncreaseFrames(int fIn)             { nframes_ += fIn;              }
+    void SetNframes(int fIn)                 { nframes_ = fIn;               }
+    void SetTag(std::string const& t)        { parmTag_ = t;                 }
+    void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
     void SetParmCoordInfo(CoordinateInfo const& c);
     void SetParmName(std::string const&, FileName const&);
     void SetReferenceCoords( Frame const& );

@@ -2,7 +2,7 @@
 #include <cmath> //sqrt
 #include "Action_Pairwise.h"
 #include "CpptrajStdio.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "Constants.h" // ELECTOAMBER
 
 // CONSTRUCTOR
@@ -18,7 +18,8 @@ Action_Pairwise::Action_Pairwise() :
   ELJ_(0),
   Eelec_(0),
   cut_evdw_(1.0),
-  cut_eelec_(1.0)
+  cut_eelec_(1.0),
+  Eout_(0)
 {} 
 
 void Action_Pairwise::Help() {
@@ -96,7 +97,8 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Da
 
   // Output for individual atom energy | dEnergy
   if (!eout.empty()) {
-    if (Eout_.OpenEnsembleWrite(eout, DSL->EnsembleNum())) {
+    Eout_ = DFL->AddCpptrajFile(eout, "Atom Energies");
+    if (Eout_ == 0) {
       mprinterr("Error: Pairwise: Could not set up file %s for eout.\n",eout.c_str());
       return Action::ERR;
     }
@@ -219,13 +221,13 @@ void Action_Pairwise::WriteEnergies(Topology const& parmIn, int atom1, int atom2
                                     double evdw, double eelec, const char* etype)
 {
   if (fabs(evdw) > cut_evdw_) {
-    Eout_.Printf("\tAtom %6i@%4s-%6i@%4s %sEvdw= %12.4f\n",
+    Eout_->Printf("\tAtom %6i@%4s-%6i@%4s %sEvdw= %12.4f\n",
                     atom1+1, parmIn[atom1].c_str(),
                     atom2+1, parmIn[atom2].c_str(),
                     etype,  evdw);
   }
   if (fabs(eelec) > cut_eelec_) {
-    Eout_.Printf("\tAtom %6i@%4s-%6i@%4s %sEelec= %12.4f\n",
+    Eout_->Printf("\tAtom %6i@%4s-%6i@%4s %sEelec= %12.4f\n",
                     atom1+1, parmIn[atom1].c_str(),
                     atom2+1, parmIn[atom2].c_str(),
                     etype, eelec);
@@ -304,7 +306,7 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
           // dEelec
           double delta_eelec = refpair->eelec - e_elec;
           // Output
-          if (Eout_.IsOpen())
+          if (Eout_ != 0)
             WriteEnergies(parmIn, atom1, atom2, delta_vdw, delta_eelec, "d");
           vdwMat_->Element(atom1, atom2) += delta_vdw;
           eleMat_->Element(atom1, atom2) += delta_eelec;
@@ -318,7 +320,7 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
           atom_eelec_[atom2] += delta2;
         } else if (nb_calcType_ == NORMAL) {
           // 2 - No reference, just cumulative Energy on atoms
-          if (Eout_.IsOpen())
+          if (Eout_ != 0)
             WriteEnergies(parmIn, atom1, atom2, e_vdw, e_elec, "");
           vdwMat_->Element(atom1, atom2) += e_vdw;
           eleMat_->Element(atom1, atom2) += e_elec;
@@ -367,8 +369,8 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
     CutParm.AddTopAtom( cutatom, resnum, Parm.Res(resnum).Name(), 0 );
   } 
     
-  Trajout tout;
-  if (tout.InitTrajWriteWithArgs(outfilename,"multi",&CutParm,TrajectoryFile::MOL2FILE)) {
+  Trajout_Single tout;
+  if (tout.InitTrajWrite(outfilename,"multi",&CutParm,TrajectoryFile::MOL2FILE)) {
     mprinterr("Error: Pairwise: Could not set up cut mol2 file %s\n",outfilename.c_str());
     return 1;
   }
@@ -390,20 +392,20 @@ int Action_Pairwise::PrintCutAtoms(Frame const& frame, int frameNum, EoutType ct
   AtomMask CutMask;  // Hold atoms that satisfy the cutoff
   Darray CutCharges; // Hold evdw/eelec corresponding to CutMask atoms.
 
-  if (Eout_.IsOpen()) {
+  if (Eout_ != 0) {
     if (nb_calcType_==COMPARE_REF)
-      Eout_.Printf("\tPAIRWISE: Cumulative d%s:", CalcString[ctype]);
+      Eout_->Printf("\tPAIRWISE: Cumulative d%s:", CalcString[ctype]);
     else
-      Eout_.Printf("\tPAIRWISE: Cumulative %s:", CalcString[ctype]);
-    Eout_.Printf(" %s < %.4f, %s > %.4f\n", CalcString[ctype], -cutIn,
+      Eout_->Printf("\tPAIRWISE: Cumulative %s:", CalcString[ctype]);
+    Eout_->Printf(" %s < %.4f, %s > %.4f\n", CalcString[ctype], -cutIn,
                  CalcString[ctype], cutIn);
   }
   for (AtomMask::const_iterator atom = Mask0_.begin(); atom != Mask0_.end(); ++atom)
   {
     if (fabs(Earray[*atom]) > cutIn)
     {
-      if (Eout_.IsOpen()) 
-        Eout_.Printf("\t\t%6i@%s: %12.4f\n", *atom+1,
+      if (Eout_ != 0) 
+        Eout_->Printf("\t\t%6i@%s: %12.4f\n", *atom+1,
                     (*CurrentParm_)[*atom].c_str(), Earray[*atom]);
       CutMask.AddAtom(*atom);
       CutCharges.push_back(Earray[*atom]);
@@ -425,7 +427,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
   // Reset cumulative energy arrays
   atom_eelec_.assign(CurrentParm_->Natom(), 0.0);
   atom_evdw_.assign(CurrentParm_->Natom(), 0.0);
-  if (Eout_.IsOpen()) Eout_.Printf("PAIRWISE: Frame %i\n",frameNum);
+  if (Eout_ != 0) Eout_->Printf("PAIRWISE: Frame %i\n",frameNum);
   NonbondEnergy( *currentFrame, *CurrentParm_, Mask0_ );
   nframes_++;
   // Write cumulative energy arrays

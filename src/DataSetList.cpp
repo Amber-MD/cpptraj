@@ -81,21 +81,30 @@ DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   return *this;
 }
 
+// DataSetList::MakeDataSetsEnsemble()
+void DataSetList::MakeDataSetsEnsemble(int ensembleNumIn) {
+  ensembleNum_ = ensembleNumIn;
+  for (DataListType::const_iterator ds = DataList_.begin();
+                                    ds != DataList_.end(); ++ds)
+    if ( (*ds)->Member() == -1 )
+      (*ds)->SetMember( ensembleNum_ );
+}
+
 // DataSetList::RemoveSet()
 // NOTE: In order to call erase, must use iterator and not const_iterator.
 //       Hence, the conversion. The new standard *should* allow const_iterator
 //       to be passed to erase(), but this is currently not portable.
 /** Erase element pointed to by posIn from the list. */
 void DataSetList::RemoveSet( const_iterator posIn ) {
-  std::vector<DataSet*>::iterator pos = DataList_.begin() + (posIn - DataList_.begin());
+  DataListType::iterator pos = DataList_.begin() + (posIn - DataList_.begin());
   if (!hasCopies_) delete *pos;
   DataList_.erase( pos ); 
 } 
 
 // DataSetList::RemoveSet()
 void DataSetList::RemoveSet( DataSet* dsIn ) {
-  for (std::vector<DataSet*>::iterator pos = DataList_.begin();
-                                       pos != DataList_.end(); ++pos)
+  for (DataListType::iterator pos = DataList_.begin();
+                              pos != DataList_.end(); ++pos)
   {
     if ( (*pos) == dsIn ) {
       if (!hasCopies_) delete *pos;
@@ -150,13 +159,21 @@ void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
   *       Dataset with name, given attribute, and index (e.g. NA[shear]:1)
   */
 std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& idx_arg,
-                                        std::string& attr_arg)
+                                        std::string& attr_arg, std::string& member_arg)
 {
   std::string dsname( nameIn );
   attr_arg.clear();
   //mprinterr("DBG: ParseArgString called with %s\n", nameIn.c_str());
+  // Separate out ensemble arg if present
+  size_t idx_pos = dsname.find( '%' );
+  if ( idx_pos != std::string::npos ) {
+    // Advance to after the '.'
+    member_arg = dsname.substr( idx_pos + 1 );
+    // Drop the ensemble arg
+    dsname.resize( idx_pos );
+  }
   // Separate out index arg if present
-  size_t idx_pos = dsname.find( ':' );
+  idx_pos = dsname.find( ':' );
   if ( idx_pos != std::string::npos ) {
     // Advance to after the ':'
     idx_arg = dsname.substr( idx_pos + 1 );
@@ -196,12 +213,13 @@ void DataSetList::PendingWarning() const {
 
 // DataSetList::GetDataSet()
 DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
-  std::string attr_arg;
-  std::string idx_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
+  std::string attr_arg, idx_arg, member_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg, member_arg );
   int idx = -1;
   if (!idx_arg.empty()) idx = convertToInteger(idx_arg); // TODO: Set idx_arg to -1
-  DataSet* ds = GetSet( dsname, idx, attr_arg );
+  int member = -1;
+  if (!member_arg.empty()) member = convertToInteger(member_arg);
+  DataSet* ds = GetSet( dsname, idx, attr_arg, member );
   if (ds == 0) {
     mprintf("Warning: Data set '%s' not found.\n", nameIn.c_str());
     PendingWarning();
@@ -211,22 +229,23 @@ DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
 
 /** The set argument must match EXACTLY, so Data will not return Data:1 */
 DataSet* DataSetList::CheckForSet( std::string const& nameIn ) const {
-  std::string aspect_arg;
-  std::string idx_arg("-1");
-  std::string dsname = ParseArgString(nameIn, idx_arg, aspect_arg);
+  std::string aspect_arg, member_arg("-1"), idx_arg("-1");
+  std::string dsname = ParseArgString(nameIn, idx_arg, aspect_arg, member_arg);
   int idx = convertToInteger(idx_arg);
-  return CheckForSet(dsname, idx, aspect_arg);
+  int member = convertToInteger(member_arg);
+  return CheckForSet(dsname, idx, aspect_arg, member );
 }
 
 // DataSetList::CheckForSet()
 DataSet* DataSetList::CheckForSet(std::string const& dsname, int idx,
-                                  std::string const& aspect_arg) const
+                                  std::string const& aspect_arg, int member) const
 {
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ( (*ds)->Name() == dsname )
       if ( (*ds)->Aspect() == aspect_arg )
         if ( (*ds)->Idx() == idx )
-          return *ds;
+          if ( (*ds)->Member() == member )
+            return *ds;
   return 0;
 }
 
@@ -235,23 +254,27 @@ DataSet* DataSetList::CheckForSet(std::string const& dsname, int idx,
 DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
-  Range idxrange;
+  Range idxrange, memberrange;
 
-  std::string attr_arg;
-  std::string idx_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
-  //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str());
+  std::string attr_arg, idx_arg, member_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg, member_arg );
+  //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s%%%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str(), member_arg.c_str());
   // If index arg is empty make wildcard (-1)
   if (idx_arg.empty() || idx_arg == "*")
     idxrange.SetRange( -1, 0 ); 
   else
     idxrange.SetRange( idx_arg );
+  // If member arg is empty make none (-1)
+  if (member_arg.empty() || member_arg == "*")
+    memberrange.SetRange( -1, 0 );
+  else
+    memberrange.SetRange( member_arg );
   // If attribute arg not set and name is wildcard, make attribute wildcard.
   if (attr_arg.empty() && dsname == "*")
     attr_arg.assign("*");
   // All start selected
   std::vector<char> SelectedSets(DataList_.size(), 'T');
-  // First check name
+  // Check name
   std::vector<char>::iterator selected = SelectedSets.begin();
   if ( dsname != "*" ) {
     for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
@@ -259,7 +282,7 @@ DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
       ++selected;
     }
   }
-  // Second check aspect
+  // Check aspect
   if ( attr_arg != "*" ) {
     selected = SelectedSets.begin();
     for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
@@ -267,11 +290,19 @@ DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
       ++selected;
     }
   }
-  // Last check index
+  // Check index
   if ( !idx_arg.empty() && idx_arg != "*" ) {
     selected = SelectedSets.begin();
     for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
       if ( *selected == 'T' && !idxrange.InRange( (*ds)->Idx() ) ) *selected = 'F';
+      ++selected;
+    }
+  }
+  // Check ensemble
+  if (!member_arg.empty() && member_arg != "*" ) {
+    selected = SelectedSets.begin();
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+      if ( *selected == 'T' && !memberrange.InRange( (*ds)->Member() ) ) *selected = 'F';
       ++selected;
     }
   }
@@ -295,10 +326,11 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
 // DataSetList::GetSet()
 /** \return Specified Dataset or null if not found.
   */
-DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string const& aspect) const 
+DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string const& aspect,
+                             int member) const 
 {
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
-    if ( (*ds)->Matches( dsname, idx, aspect ) ) return *ds;
+    if ( (*ds)->Matches( dsname, idx, aspect, member ) ) return *ds;
   return 0;
 }
 
@@ -476,7 +508,7 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
   }
 
   // Check if DataSet with same attributes already present.
-  DataSet* DS = CheckForSet(nameIn, idxIn, aspectIn);
+  DataSet* DS = CheckForSet(nameIn, idxIn, aspectIn, ensembleNum_);
   if (DS != 0) {
     mprintf("Warning: DataSet '");
     DS->PrintName();
@@ -496,7 +528,7 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
   }
 
   // Set up dataset 
-  if ( DS->SetupSet(nameIn, idxIn, aspectIn) ) {
+  if ( DS->SetupSet(nameIn, idxIn, aspectIn, ensembleNum_) ) {
     mprinterr("Error setting up data set %s.\n",nameIn.c_str());
     delete DS;
     return 0;
@@ -509,7 +541,7 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
 
 int DataSetList::AddSet( DataSet* dsIn ) {
   if (dsIn == 0 || dsIn->Name().empty()) return 1;
-  DataSet* ds = CheckForSet( dsIn->Name(), dsIn->Idx(), dsIn->Aspect() );
+  DataSet* ds = CheckForSet( dsIn->Name(), dsIn->Idx(), dsIn->Aspect(), dsIn->Member() );
   if (ds != 0) {
     mprintf("Warning: DataSet '");
     ds->PrintName();
@@ -532,8 +564,7 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
 }
 
 // DataSetList::List()
-/** Print information on all data sets in the list, as well as any datafiles
-  * that will be written to.
+/** Print information on all DataSets in the list.
   */
 void DataSetList::List() const {
   if (!hasCopies_) { // No copies; this is a Master DSL.
@@ -574,14 +605,15 @@ void DataSetList::SynchronizeData() {
 // DataSetList::FindSetOfType()
 DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn) const
 {
-  std::string attr_arg;
-  std::string idx_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
+  std::string attr_arg, idx_arg, member_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg, member_arg );
   int idx = -1;
   if (!idx_arg.empty()) idx = convertToInteger(idx_arg);
+  int member = -1;
+  if (!member_arg.empty()) idx = convertToInteger(member_arg);
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
     if ( (*ds)->Type() == typeIn ) {
-      if ( (*ds)->Matches( dsname, idx, attr_arg ) )
+      if ( (*ds)->Matches( dsname, idx, attr_arg, member ) )
         return (*ds);
     }
   }

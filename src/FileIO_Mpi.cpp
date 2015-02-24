@@ -15,8 +15,8 @@ FileIO_Mpi::~FileIO_Mpi() {
 
 // FileIO_Mpi::Open()
 int FileIO_Mpi::Open(const char *filename, const char *mode) {
+  if (filename == 0) return 1;
   int err=0;
-
   switch( mode[0] ) {
     case 'r' : err=parallel_openFile_read(pfile_, filename); break;
     case 'w' : err=parallel_open_file_write(pfile_, filename); break;

@@ -21,13 +21,12 @@ class DataSet_MatrixFlt : public DataSet_2D {
     size_t Nrows()                       const { return mat_.Nrows();       }
     size_t Ncols()                       const { return mat_.Ncols();       }
     double* MatrixArray()                const;
-    MatrixKind Kind()                    const { return kind_;              }
-    MatrixType Type()                    const { return NO_OP;              }
+    MatrixKindType MatrixKind()          const { return kind_;              }
     // -------------------------------------------
     int AddElement(float d)                    { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,float d) { mat_.setElement(x,y,d);    }
   private:
     Matrix<float> mat_;
-    MatrixKind kind_;
+    MatrixKindType kind_;
 };
 #endif

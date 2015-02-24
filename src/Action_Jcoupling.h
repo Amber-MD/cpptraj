@@ -59,7 +59,7 @@ class Action_Jcoupling: public Action {
     int debug_;              ///< Debug level.
     int Nconstants_;
     Topology* CurrentParm_;
-    CpptrajFile outputfile_;
+    CpptrajFile* outputfile_;
     DataFile* outfile_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;

@@ -13,7 +13,7 @@ class Action_Principal : public Action {
     bool useMass_;
     int debug_;
     AtomMask mask_;
-    CpptrajFile outfile_;
+    CpptrajFile* outfile_;
     DataSet_Mat3x3* vecData_;
     DataSet_Vector* valData_;
 

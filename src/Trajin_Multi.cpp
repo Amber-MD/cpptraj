@@ -5,6 +5,10 @@
 #include "DataFile.h" // For CRDIDX
 #ifdef MPI
 #  include "MpiRoutines.h"
+#  ifdef TIMER
+double Trajin_Multi::total_mpi_allgather_ = 0.0;
+double Trajin_Multi::total_mpi_sendrecv_ = 0.0;
+#  endif
 #endif
 
 // CONSTRUCTOR
@@ -14,11 +18,7 @@ Trajin_Multi::Trajin_Multi() :
   remdFrameOffset_(0),
   lowestRepnum_(0),
   replicasAreOpen_(false),
-  targetType_(NONE),
-  frameidx_(0)
-# ifdef MPI
-  ,ensembleFrameNum_(0)
-# endif
+  targetType_(ReplicaInfo::NONE)
 {}
 
 // DESTRUCTOR
@@ -26,7 +26,6 @@ Trajin_Multi::~Trajin_Multi() {
   if (replicasAreOpen_) EndTraj();
   for (IOarrayType::iterator replica=REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
     delete *replica;
-  if (frameidx_ != 0) delete[] frameidx_;
 }
 
 // Trajin_Multi::SearchForReplicas()
@@ -166,11 +165,11 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
     for (ArgList::const_iterator arg = indicesArg.begin(); 
                                  arg != indicesArg.end(); ++arg)
       remdtrajidx_.push_back( convertToInteger( *arg ) );
-    targetType_ = INDICES;
+    targetType_ = ReplicaInfo::INDICES;
   } else if (argIn.Contains("remdtrajtemp")) {
     // Looking for target temperature
     remdtrajtemp_ = argIn.getKeyDouble("remdtrajtemp",0.0);
-    targetType_ = TEMP;
+    targetType_ = ReplicaInfo::TEMP;
   }
   // Process any remlog keywords so they are not processed by SetupTrajIO
   std::string remlog_name = argIn.GetStringKey("remlog");
@@ -180,9 +179,9 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
   bool no_sort = false;
   if ( IsEnsemble() ){
     no_sort = argIn.hasKey("nosort");
-    if (targetType_ != NONE || argIn.hasKey("remdtraj")) {
+    if (targetType_ != ReplicaInfo::NONE || argIn.hasKey("remdtraj")) {
       mprintf("Warning: 'ensemble' does not use 'remdtraj', 'remdtrajidx' or 'remdtrajtemp'\n");
-      targetType_ = NONE;
+      targetType_ = ReplicaInfo::NONE;
     }
   } else {
     if (!remlog_name.empty()) {
@@ -231,13 +230,11 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
       cInfo_ = replica0->CoordInfo();
       Ndimensions = cInfo_.ReplicaDimensions().Ndims();
       // If lowest has box coords, check type against parm box info
-      // FIXME: Should this ever be done here?
-      tparmIn->SetParmCoordInfo( cInfo_ ); 
       // If lowest rep has box info, all others must have box info.
       // If lowest rep has velocity, all others must have velocity.
       // If lowest rep has dimensions, all others must have same dimensions
       // Check that replica dimension valid for desired indices.
-      if (targetType_ == INDICES && Ndimensions != (int)remdtrajidx_.size())
+      if (targetType_ == ReplicaInfo::INDICES && Ndimensions != (int)remdtrajidx_.size())
       {
         mprinterr("Error: RemdTraj: Replica # of dim (%i) not equal to target # dim (%zu)\n",
                   Ndimensions, remdtrajidx_.size());
@@ -326,7 +323,7 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
         return 1;
       }
       remlogData_ = *((DataSet_RemLog*)tempDSL[0]); // FIXME: This feels clunky. Can we read direct?
-      targetType_ = CRDIDX;
+      targetType_ = ReplicaInfo::CRDIDX;
       remdFrameFactor_ = remlog_ntwx / remlog_nstlim;
       mprintf("\t%g exchanges for every trajectory frame written.\n", remdFrameFactor_);
       if (remdFrameFactor_ > 1.0)
@@ -344,9 +341,9 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
       // If dimensions are present index by replica indices, otherwise index
       // by temperature. 
       if (Ndimensions > 0)
-        targetType_ = INDICES;
+        targetType_ = ReplicaInfo::INDICES;
       else
-        targetType_ = TEMP;
+        targetType_ = ReplicaInfo::TEMP;
     }
   }
   if (REMDtraj_.empty()) {
@@ -357,8 +354,13 @@ int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topo
     mprinterr("Error: Not all replica files were set up.\n");
     return 1;
   }
+  // Update ensemble size
+  cInfo_.SetEnsembleSize( (int)REMDtraj_.size() );
   if (debug_ > 0)
     Frame::PrintCoordInfo( TrajFilename().base(), TrajParm()->c_str(), cInfo_ );
+  // FIXME: Should this ever be done here?
+  TrajParm()->SetParmCoordInfo( cInfo_ ); 
+
   return 0;
 }
 
@@ -398,9 +400,13 @@ int Trajin_Multi::BeginTraj(bool showProgress) {
 void Trajin_Multi::EndTraj() {
   if (replicasAreOpen_) {
 #   ifdef MPI
-    if (IsEnsemble())
+    if (IsEnsemble()) {
       REMDtraj_[worldrank]->closeTraj();
-    else
+#     ifdef TIMER
+      total_mpi_allgather_ += mpi_allgather_timer_.Total();
+      total_mpi_sendrecv_  += mpi_sendrecv_timer_.Total();
+#     endif
+    } else
 #   endif 
       for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
         (*replica)->closeTraj();
@@ -408,11 +414,26 @@ void Trajin_Multi::EndTraj() {
   }
 }
 
+#ifdef MPI
+#ifdef TIMER
+// Trajin_Multi::TimingData()
+void Trajin_Multi::TimingData(double trajin_time) {
+  if (total_mpi_allgather_ > 0.0 || total_mpi_sendrecv_ > 0.0) {
+    double other_time = trajin_time - total_mpi_allgather_ - total_mpi_sendrecv_;
+    rprintf("MPI_TIME:\tallgather: %.4f s (%.2f%%), sendrecv: %.4f s (%.2f%%), Other:  %.4f s (%.2f%%)\n",
+            total_mpi_allgather_, (total_mpi_allgather_ / trajin_time)*100.0,
+            total_mpi_sendrecv_,  (total_mpi_sendrecv_  / trajin_time)*100.0,
+            other_time, (other_time / trajin_time)*100.0 );
+  }
+}
+#endif
+#endif
+
 // Trajin_Multi::IsTarget()
 /** Determine if given frame is target. ReadTrajFrame (i.e. non-ensemble) only.
    */
 bool Trajin_Multi::IsTarget(Frame const& fIn) {
-  if ( targetType_ == TEMP ) {
+  if ( targetType_ == ReplicaInfo::TEMP ) {
     if ( fIn.Temperature() == remdtrajtemp_ ) return true;
   } else {
     Frame::RemdIdxType::const_iterator tgtIdx = fIn.RemdIndices().begin();
@@ -475,11 +496,11 @@ void Trajin_Multi::PrintInfo(int showExtended) const {
       mprintf(" ]\n");
     }
   } else {
-    if ( targetType_ == INDICES )
+    if ( targetType_ == ReplicaInfo::INDICES )
       mprintf("\tProcessing ensemble using replica indices\n");
-    else if ( targetType_ == TEMP )
+    else if ( targetType_ == ReplicaInfo::TEMP )
       mprintf("\tProcessing ensemble using replica temperatures\n");
-    else if ( targetType_ == CRDIDX )
+    else if ( targetType_ == ReplicaInfo::CRDIDX )
       mprintf("\tProcessing ensemble using remlog data, sorting by coordinate index.\n");
     else // NONE 
       mprintf("\tNot sorting ensemble.\n");
@@ -490,205 +511,155 @@ void Trajin_Multi::PrintInfo(int showExtended) const {
 // -----------------------------------------------------------------------------
 // Trajin_Multi::EnsembleInfo()
 void Trajin_Multi::EnsembleInfo() const {
-  if (targetType_ == TEMP) {
-    mprintf("  Ensemble Temperature Map:\n");
-    for (TmapType::const_iterator tmap = TemperatureMap_.begin();
-                                  tmap != TemperatureMap_.end(); ++tmap)
-      mprintf("\t%10.2f -> %i\n", (*tmap).first, (*tmap).second);
-  } else if (targetType_ == INDICES) { 
-    mprintf("  Ensemble Indices Map:\n");
-    for (ImapType::const_iterator imap = IndicesMap_.begin();
-                                  imap != IndicesMap_.end(); ++imap)
-    {
-      mprintf("\t{");
-      for (RemdIdxType::const_iterator idx = imap->first.begin();
-                                       idx != imap->first.end(); ++idx)
-        mprintf(" %i", *idx);
-      mprintf(" } -> %i\n", (*imap).second);
-    }
-  } else if (targetType_ == CRDIDX) {
+  if (targetType_ == ReplicaInfo::TEMP)
+    PrintReplicaTmap( TemperatureMap_ );
+  else if (targetType_ == ReplicaInfo::INDICES)
+    PrintReplicaImap( IndicesMap_ );
+  else if (targetType_ == ReplicaInfo::CRDIDX)
     mprintf("  Ensemble will be sorted by coordinate indices from remlog data.\n");
-  } 
 }
 
 // Trajin_Multi::EnsembleSetup()
-int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble ) {
-  std::set<double> tList;
-  std::set< RemdIdxType > iList;
+int Trajin_Multi::EnsembleSetup( FrameArray& f_ensemble, FramePtrArray& f_sorted ) {
   // Allocate space to hold position of each incoming frame in replica space.
-  // TODO: When actually perfoming read in MPI will only need room for 1
-  //frameidx_.resize( REMDtraj_.size() );
-  if (frameidx_ != 0) delete[] frameidx_;
-  frameidx_ = new int[ REMDtraj_.size() ];
+# ifdef MPI
+  // Only two frames needed; one for reading, one for receiving.
+  f_sorted.resize( 2 );
+  f_ensemble.resize( 2 );
+  // This array will let each thread know who has what frame.
+  frameidx_.resize( REMDtraj_.size() );
+# else
+  f_sorted.resize( REMDtraj_.size() );
   f_ensemble.resize( REMDtraj_.size() );
+# endif
   f_ensemble.SetupFrames( TrajParm()->Atoms(), cInfo_ );
-  if (targetType_ == TEMP) {
-    // Get a list of all temperature present in input REMD trajectories
-    // by reading the first frame.
-    // Assume that temperatures should be sorted lowest to highest.
-    TemperatureMap_.clear();
-    FrameArray::iterator frame = f_ensemble.begin();
-    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
-    {
-      if ( (*replica)->openTrajin() ) return 1;
-      if ( (*replica)->readFrame( Start(), *frame) )
-        return 1;
-      (*replica)->closeTraj();
-      std::pair<std::set<double>::iterator,bool> ret = tList.insert( (*frame).Temperature() );
-      //std::pair<TmapType::iterator,bool> ret = 
-      //  TemperatureMap_.insert(std::pair<double,int>((*frame).Temperature(),repnum++));
-      if (!ret.second) {
-        mprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n"
-                  "Error:   If this is an H-REMD ensemble try the 'nosort' keyword.\n",
-                   (*frame).Temperature(), TrajFilename().full());
-        return 1;
-      }
-    }
-    // Temperatures are already sorted lowest to highest in set.
-    int repnum = 0;
-    for (std::set<double>::iterator temp0 = tList.begin(); temp0 != tList.end(); ++temp0)
-      TemperatureMap_.insert(std::pair<double,int>(*temp0, repnum++)); 
-  } else if (targetType_ == INDICES) {
-    // Get a list of all indices present in input REMD trajectories
-    // by reading in the first frame.
-    IndicesMap_.clear();
-    FrameArray::iterator frame = f_ensemble.begin();
-    for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
-    {
-      if ( (*replica)->openTrajin() ) return 1;
-      if ( (*replica)->readFrame( Start(), *frame ) ) return 1;
-      (*replica)->closeTraj();
-      std::pair<std::set< RemdIdxType >::iterator,bool> ret = iList.insert(frame->RemdIndices());
-      if ( !ret.second ) {
-        mprinterr("Error: Ensemble: Duplicate indices detected in ensemble %s:",
-                  TrajFilename().full());
-        for (RemdIdxType::const_iterator idx = (*ret.first).begin(); 
-                                         idx != (*ret.first).end(); ++idx)
-          mprinterr(" %i", *idx);
-        mprinterr("\n");
-        return 1;
-      }
-    }
-    int repnum = 0;
-    for (std::set< RemdIdxType >::iterator idxs = iList.begin(); idxs != iList.end(); ++idxs)
-      IndicesMap_.insert(std::pair< RemdIdxType, int >(*idxs, repnum++));
-  } else { 
-    // NONE, no sorting
+  // Get a list of all temperatures/indices.
+  TemperatureMap_.ClearMap();
+  IndicesMap_.ClearMap();
+  if (targetType_ == ReplicaInfo::TEMP || targetType_ == ReplicaInfo::INDICES )
+  {
 #   ifdef MPI
-    frameidx_[0] = worldrank;
-#   else 
-    for (int rnum = 0; rnum < (int) REMDtraj_.size(); ++rnum)
-      frameidx_[rnum] = rnum;
+    int err = 0;
+    if (REMDtraj_[worldrank]->openTrajin()) {
+      rprinterr("Error: Opening %s\n", TrajFilename().base());
+      err = 1;
+    }
+    if (err == 0) {
+      if (REMDtraj_[worldrank]->readFrame( Start(), f_ensemble[0] )) {
+        rprinterr("Error: Reading %s\n", TrajFilename().base());
+        err = 2;
+      }
+      REMDtraj_[worldrank]->closeTraj();
+    }
+    int total_error;
+    parallel_allreduce( &total_error, &err, 1, PARA_INT, PARA_SUM );
+    if (total_error != 0) {
+      mprinterr("Error: Cannot setup ensemble trajectories.\n");
+      return 1;
+    }
+#   else
+    for (unsigned int member = 0; member != REMDtraj_.size(); member++) {
+      if ( REMDtraj_[member]->openTrajin() ) return 1;
+      if ( REMDtraj_[member]->readFrame( Start(), f_ensemble[member] ) ) return 1;
+      REMDtraj_[member]->closeTraj();
+    }
 #   endif
-  }
+    if (targetType_ == ReplicaInfo::TEMP) {
+      TemperatureMap_ = SetReplicaTmap(REMDtraj_.size(), f_ensemble);
+      if (TemperatureMap_.empty()) return 1;
+    } else if (targetType_ == ReplicaInfo::INDICES) {
+      IndicesMap_ = SetReplicaImap(REMDtraj_.size(),cInfo_.ReplicaDimensions().Ndims(),f_ensemble);
+      if (IndicesMap_.empty()) return 1;
+    }
+  }  // Otherwise NONE, no sorting
   return 0;
 }
 
-// Trajin_Multi::GetNextEnsemble()
-int Trajin_Multi::GetNextEnsemble( FrameArray& f_ensemble ) {
-  // If the current frame is out of range, exit
-  if ( CheckFinished() ) return 0;
-  FrameArray::iterator frame = f_ensemble.begin();
-  //RemdIdxType::iterator fidx = frameidx_.begin();
-  int* fidx = frameidx_;
+// Trajin_Multi::ReadEnsemble()
+int Trajin_Multi::ReadEnsemble( int currentFrame, FrameArray& f_ensemble, 
+                                FramePtrArray& f_sorted )
+{
+  int fidx = 0;
   badEnsemble_ = false;
   // Read in all replicas
-  //mprintf("DBG: Ensemble frame %i:",CurrentFrame()+1); // DEBUG
+  //mprintf("DBG: Ensemble frame %i:",currentFrame+1); // DEBUG
 # ifdef MPI
   int repIdx = worldrank; // for targetType==CRDIDX
+  unsigned int member = 0;
   // Read REMDtraj for this rank
-  if ( REMDtraj_[worldrank]->readFrame( CurrentFrame(), *frame) )
-    return 0;
+  if ( REMDtraj_[worldrank]->readFrame( currentFrame, f_ensemble[0]) )
+    return 1;
 # else
   int repIdx = 0; // for targetType==CRDIDX
-  for (IOarrayType::iterator replica = REMDtraj_.begin(); replica!=REMDtraj_.end(); ++replica)
+  for (unsigned int member = 0; member != REMDtraj_.size(); ++member)
   {
-    if ( (*replica)->readFrame( CurrentFrame(), *frame) )
-      return 0;
+    if ( REMDtraj_[member]->readFrame( currentFrame, f_ensemble[member]) )
+      return 1;
 # endif
-    if (targetType_ == TEMP) {
-      TmapType::iterator tmap = TemperatureMap_.find( (*frame).Temperature() );
-      if (tmap ==  TemperatureMap_.end())
-        badEnsemble_ = true;
-      else
-        *fidx = tmap->second;
-      //mprintf(" %.2f[%i]", (*frame).Temperature(), *fidx ); // DEBUG
-    } else if (targetType_ == INDICES) {
-      ImapType::iterator imap = IndicesMap_.find( frame->RemdIndices() );
-      if (imap == IndicesMap_.end())
-        badEnsemble_ = true;
-      else
-        *fidx = imap->second;
-      // DEBUG
-      //mprintf(" {");
-      //for (int idx = 0; idx < Ndimensions_; ++idx)
-      //  mprintf(" %i", remd_indices_[idx]);
-      //mprintf(" }[%i]", *fidx);
-    } else if (targetType_ == CRDIDX) {
-      int currentRemExchange = (int)((double)CurrentFrame() * remdFrameFactor_) + remdFrameOffset_;
-      //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", CurrentFrame()+1, currentRemExchange+1);
-      *fidx = remlogData_.RepFrame( currentRemExchange, repIdx++ ).CoordsIdx() - 1;
-      //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", CurrentFrame(), fidx - frameidx_, *fidx);
+    if (targetType_ == ReplicaInfo::TEMP)
+      fidx = TemperatureMap_.FindIndex( f_ensemble[member].Temperature() );
+    else if (targetType_ == ReplicaInfo::INDICES)
+      fidx = IndicesMap_.FindIndex( f_ensemble[member].RemdIndices() );
+    else if (targetType_ == ReplicaInfo::CRDIDX) {
+      int currentRemExchange = (int)((double)currentFrame * remdFrameFactor_) + remdFrameOffset_;
+      //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", currentFrame+1, currentRemExchange+1);
+      fidx = remlogData_.RepFrame( currentRemExchange, repIdx++ ).CoordsIdx() - 1;
+      //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", currentFrame, member, fidx);
     }
-#   ifdef MPI
-    // If calculated index is not worldrank, coords need to be sent to rank fidx.
-    //rprintf("Index=%i\n", *fidx); // DEBUG
-    ensembleFrameNum_ = 0;
-    if (targetType_ != NONE) {
-      // Each rank needs to know where to send its coords, and where to receive coords from.
-      int my_idx = *fidx;
-#     ifdef TIMER
-      mpi_allgather_timer_.Start();
-#     endif
-      if (parallel_allgather( &my_idx, 1, PARA_INT, frameidx_, 1, PARA_INT))
-        rprinterr("Error: Gathering frame indices.\n");
-#     ifdef TIMER
-      mpi_allgather_timer_.Stop();
-#     endif
-      //mprintf("Frame %i Table:\n", CurrentFrame()); // DEBUG
-      //for (unsigned int i = 0; i < REMDtraj_.size(); i++) // DEBUG
-      //  mprintf("Rank %i has index %i\n", i, frameidx_[i]); // DEBUG
-      // LOOP: one sendrecv at a time.
-#     ifdef TIMER
-      mpi_sendrecv_timer_.Start();
-#     endif
-      for (int sendrank = 0; sendrank < (int)REMDtraj_.size(); sendrank++) {
+#   ifndef MPI
+    else // NONE
+      fidx = member; // Not needed when MPI
+    if (fidx == -1)
+      badEnsemble_ = true;
+    else
+      f_sorted[fidx] = &f_ensemble[member];
+  }
+#   else 
+  // If calculated index is not worldrank, coords need to be sent to rank fidx.
+  //rprintf("Index=%i\n", fidx); // DEBUG
+  int ensembleFrameNum = 0;
+  if (targetType_ != ReplicaInfo::NONE) {
+    // Each rank needs to know where to send its coords, and where to receive coords from.
+#   ifdef TIMER
+    mpi_allgather_timer_.Start();
+#   endif
+    if (parallel_allgather( &fidx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
+      rprinterr("Error: Gathering frame indices.\n");
+      return 0; // TODO: Better parallel error check
+    }
+    for (unsigned int i = 0; i != REMDtraj_.size(); i++)
+      if (frameidx_[i] == -1) {
+        badEnsemble_ = true;
+        break;
+      }
+#   ifdef TIMER
+    mpi_allgather_timer_.Stop();
+    mpi_sendrecv_timer_.Start();
+#   endif
+    // LOOP: one sendrecv at a time.
+    if (!badEnsemble_) {
+      for (int sendrank = 0; sendrank != (int)REMDtraj_.size(); sendrank++) {
         int recvrank = frameidx_[sendrank];
         if (sendrank != recvrank) {
-          // TODO: Change Frame class so everything can be sent in one MPI call.
-          if (sendrank == worldrank) {
-            //rprintf("SENDING TO %i\n", recvrank); // DEBUG
-            parallel_send( (*frame).xAddress(), (*frame).size(), PARA_DOUBLE, recvrank, 1212 );
-            parallel_send( (*frame).bAddress(), 6, PARA_DOUBLE, recvrank, 1213 );
-            parallel_send( (*frame).tAddress(), 1, PARA_DOUBLE, recvrank, 1214 );
-            if (frame->HasVelocity())
-              parallel_send( (*frame).vAddress(), (*frame).size(), PARA_DOUBLE, recvrank, 1215 );
-          } else if (recvrank == worldrank) {
-            //rprintf("RECEIVING FROM %i\n", sendrank); // DEBUG
-            parallel_recv( f_ensemble[1].xAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1212 );
-            parallel_recv( f_ensemble[1].bAddress(), 6, PARA_DOUBLE, sendrank, 1213 );
-            parallel_recv( f_ensemble[1].tAddress(), 1, PARA_DOUBLE, sendrank, 1214 );
-            if (frame->HasVelocity())
-              parallel_recv( f_ensemble[1].vAddress(), (*frame).size(), PARA_DOUBLE, sendrank, 1215 );
+          if (sendrank == worldrank)
+            f_ensemble[0].SendFrame( recvrank ); 
+          else if (recvrank == worldrank) {
+            f_ensemble[1].RecvFrame( sendrank );
             // Since a frame was received, indicate position 1 should be used
-            ensembleFrameNum_ = 1; 
+            ensembleFrameNum = 1; 
           }
         }
         //else rprintf("SEND RANK == RECV RANK, NO COMM\n"); // DEBUG
       }
-#     ifdef TIMER
-      mpi_sendrecv_timer_.Stop();
-#     endif
     }
-    //rprintf("FRAME %i, FRAME RECEIVED= %i\n", CurrentFrame(), ensembleFrameNum_); // DEBUG 
-#   else
-    ++fidx;
-    ++frame;
-  }
+#   ifdef TIMER
+    mpi_sendrecv_timer_.Stop();
 #   endif
-  //mprintf("\n"); // DEBUG
-  UpdateCounters();
-  return 1;
+  }
+  f_sorted[0] = &f_ensemble[ensembleFrameNum];
+  //rprintf("FRAME %i, FRAME RECEIVED= %i\n", currentFrame, ensembleFrameNum); // DEBUG 
+#   endif
+  return 0;
 }
 
 /** CRDIDXARG:

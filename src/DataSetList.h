@@ -34,6 +34,10 @@ class DataSetList {
     bool empty()           const { return DataList_.empty(); }
     /// \return number of datasets in the list 
     size_t size()          const { return DataList_.size();  }
+    /// Set current ensemble number.
+    void SetEnsembleNum(int i)   { ensembleNum_ = i;         }
+    /// Make all sets not part of an ensemble part of given ensemble.
+    void MakeDataSetsEnsemble(int);
     /// \return Ensemble number; -1 if not an ensemble
     int EnsembleNum()      const { return ensembleNum_;      }
     /// \return True if Actions have indicated DataSets will be generated.
@@ -46,8 +50,6 @@ class DataSetList {
     DataSet* operator[](int didx) { return DataList_[didx]; } // FIXME: No bounds check
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
-    /// Set current ensemble number.
-    void SetEnsembleNum(int i)   { ensembleNum_ = i;        }
     /// Set DataSets pending status.
     void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
     /// Allocate 1D DataSet memory based on current max# expected frames.
@@ -55,13 +57,15 @@ class DataSetList {
     /// Set width.precision of all DataSets in the list.
     void SetPrecisionOfDataSets(std::string const&, int, int);
     /// Get DataSet with specified name, index, and aspect.
-    DataSet* GetSet(std::string const&, int, std::string const&) const;
+    inline DataSet* GetSet(std::string const&, int, std::string const&) const;
     /// Get DataSet matching specified argument.
     DataSet* GetDataSet( std::string const& ) const;
     /// Get DataSet matching specified argument, no warning if not found.
     DataSet* CheckForSet( std::string const& ) const;
     /// Get DataSet matching specified attibutes.
-    DataSet* CheckForSet( std::string const&, int, std::string const&) const;
+    DataSet* CheckForSet( std::string const&, int, std::string const&, int) const;
+    DataSet* CheckForSet( std::string const& n, int i, std::string const& a) const {
+      return CheckForSet(n, i, a, ensembleNum_); }
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;
     /// Select multiple sets, no warning if none found.
@@ -109,7 +113,9 @@ class DataSetList {
     void ListReferenceFrames() const;
   private:
     /// Separate input string into DataSet args.
-    static std::string ParseArgString(std::string const&, std::string&, std::string&);
+    static std::string ParseArgString(std::string const&, std::string&, std::string&, std::string&);
+    /// \return Set with name, index, aspect, ensemble number.
+    DataSet* GetSet(std::string const&, int, std::string const&, int) const;
     /// Warn if DataSet not found but may be pending.
     inline void PendingWarning() const;
 
@@ -132,4 +138,8 @@ class DataSetList {
     static const DataToken DataArray[];
     typedef const DataToken* TokenPtr;
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+DataSet* DataSetList::GetSet(std::string const& n, int i, std::string const& a) const {
+  return GetSet(n, i, a, ensembleNum_);
+}
 #endif

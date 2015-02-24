@@ -28,7 +28,6 @@ class Action_NativeContacts : public Action {
     double distance_;     ///< Cutoff distance
     float pdbcut_;        ///< Only print pdb atoms with bfac > pdbcut.
     int debug_;           ///< Action debug level.
-    int ensembleNum_;
     int matrix_min_;      ///< Used for map output
     int resoffset_;       ///< When byResidue, ignore residues spaced this far apart
     unsigned int nframes_;///< Number of frames, for normalizing map
@@ -42,9 +41,9 @@ class Action_NativeContacts : public Action {
     AtomMask Mask2_;      ///< Second mask in which to search
     Iarray contactIdx1_;  ///< Hold atom/residue indices for Mask1 (for map)
     Iarray contactIdx2_;  ///< Hold atom/residue indices for Mask2 (for map)
-    std::string cfile_;   ///< File to write native contact list to.
-    std::string pfile_;   ///< File to write contact PDB to.
-    std::string rfile_;   ///< File to write total fraction frames for res pairs.
+    CpptrajFile* cfile_;  ///< File to write native contact list to.
+    CpptrajFile* pfile_;  ///< File to write contact PDB to.
+    CpptrajFile* rfile_;  ///< File to write total fraction frames for res pairs.
     DataSet* numnative_;  ///< Hold # of native contacts
     DataSet* nonnative_;  ///< Hold # of non-native contacts
     DataSet* mindist_;    ///< Hold minimum observed distance among contacts

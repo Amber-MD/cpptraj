@@ -15,6 +15,7 @@ class DataIO_Evecs : public DataIO {
     int WriteData3D(std::string const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&);
   private:
+    static const char* MatrixOutputString(DataSet::scalarType);
     int ibeg_, iend_;
     bool hasIend_;
 };

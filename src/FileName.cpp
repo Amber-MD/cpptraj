@@ -109,3 +109,9 @@ int FileName::SetFileNameWithExpansion( std::string const& nameIn ) {
   }
   return 0;
 }
+
+// FIXME: Change extension?
+void FileName::append(std::string const& suffix) {
+  baseName_.append(suffix);
+  fullPathName_.append(suffix);
+}

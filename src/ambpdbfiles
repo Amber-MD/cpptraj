@@ -43,6 +43,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Trajin.cpp \
               Trajin_Single.cpp \
               Trajout.cpp \
+              Trajout_Single.cpp \
               Residue.cpp \
               Traj_AmberCoord.cpp \
               Traj_AmberRestart.cpp \
@@ -58,4 +59,5 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Traj_GmxTrX.cpp \
               Traj_PDBfile.cpp \
               Traj_Tinker.cpp \
+              Traj_NcEnsemble.cpp \
               Vec3.cpp

@@ -155,7 +155,6 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet.cpp \
         DataSetList.cpp \
         DataSet_1D.cpp \
-        DataSet_2D.cpp \
         DataSet_3D.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
@@ -230,6 +229,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_Conflib.cpp \
         Traj_GmxTrX.cpp \
         Traj_Mol2File.cpp \
+        Traj_NcEnsemble.cpp \
         Traj_PDBfile.cpp \
         Traj_SDF.cpp \
         Traj_SQM.cpp \
@@ -237,9 +237,13 @@ SOURCES=ActionFrameCounter.cpp \
         TrajectoryFile.cpp \
         Trajin.cpp \
         TrajinList.cpp \
+        Trajin_Ensemble.cpp \
         Trajin_Multi.cpp \
         Trajin_Single.cpp \
         Trajout.cpp \
+        Trajout_Ensemble.cpp \
+        Trajout_Multi.cpp \
+        Trajout_Single.cpp \
         TrajoutList.cpp \
         Vec3.cpp \
         main.cpp

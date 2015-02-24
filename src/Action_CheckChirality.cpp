@@ -3,10 +3,7 @@
 #include "TorsionRoutines.h"
 
 // CONSTRUCTOR
-Action_CheckChirality::Action_CheckChirality() :
-  ensembleNum_(-1)
-  //outfile_(0), masterDSL_(0)
-{}
+Action_CheckChirality::Action_CheckChirality() : outfile_(0) {}
 
 void Action_CheckChirality::Help() {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
@@ -16,11 +13,10 @@ void Action_CheckChirality::Help() {
 // Action_CheckChirality::Init()
 Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   // Get keywords
   //outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  outfilename_ = actionArgs.GetStringKey("out");
-
+  outfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("out"), "Chirality",
+                                 DataFileList::TEXT, true);
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
@@ -29,8 +25,7 @@ Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, TopologyList* P
 
   mprintf("    CHECKCHIRALITY: Check chirality for AA residues in mask '%s'\n",
           Mask1_.MaskString());
-  if (!outfilename_.empty())
-    mprintf("\tOutput to %s\n", outfilename_.c_str());
+  mprintf("\tOutput to %s\n", outfile_->Filename().full());
 //  if (outfile_ != 0)
 //    mprintf("\tOutput to file %s\n", outfile_->DataFilename().full());
 //  if (!setname_.empty())
@@ -143,11 +138,8 @@ Action::RetType Action_CheckChirality::DoAction(int frameNum, Frame* currentFram
 }
 
 void Action_CheckChirality::Print() {
-  if (outfilename_.empty())
-    mprintf("CHECKCHIRALITY: '%s'\n", Mask1_.MaskString());
-  CpptrajFile out;
-  if (out.OpenEnsembleWrite( outfilename_, ensembleNum_ )) return;
-  out.Printf("%-8s %8s %8s\n", "#Res", "#L", "#D");
+  mprintf("CHECKCHIRALITY: '%s', output to %s\n", Mask1_.MaskString(), outfile_->Filename().full());
+  outfile_->Printf("%-8s %8s %8s\n", "#Res", "#L", "#D");
   for (Rarray::const_iterator ri = resInfo_.begin(); ri != resInfo_.end(); ++ri)
-    out.Printf("%8i %8i %8i\n", ri->num_+1, ri->N_L_, ri->N_D_);
+    outfile_->Printf("%8i %8i %8i\n", ri->num_+1, ri->N_L_, ri->N_D_);
 }

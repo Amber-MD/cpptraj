@@ -5,7 +5,7 @@
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
 #include "Trajin_Single.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "StringRoutines.h"
 #define VERSION_STRING "V15.0b"
 
@@ -135,10 +135,10 @@ int main(int argc, char** argv) {
   if (ctr_origin) 
     TrajFrame.CenterOnOrigin(false);
   // Output coords
-  Trajout trajout;
+  Trajout_Single trajout;
   trajArgs.SetList( aatm + bres + pqr + title, " " );
   if ( trajout.InitStdoutTrajWrite(trajArgs, &parm, fmt) ) return 1;
-  trajout.WriteFrame(0, &parm, TrajFrame);
+  trajout.WriteSingle(0, TrajFrame);
   trajout.EndTraj();
   return 0;
 }

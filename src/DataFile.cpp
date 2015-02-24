@@ -3,6 +3,7 @@
 #endif
 #include "DataFile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 // All DataIO classes go here
 #include "DataIO_Std.h"
 #include "DataIO_Grace.h"
@@ -19,6 +20,7 @@
 // CONSTRUCTOR
 DataFile::DataFile() :
   debug_(0),
+  member_(-1), 
   dimension_(-1),
   dfType_(DATAFILE),
   dflWrite_(true),
@@ -203,6 +205,22 @@ int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
   return 0;
 }
 
+/** Assumes file has been already created by e.g. an Action, but we are now
+  * in CpptrajState::RunEnsemble() and this file needs to be set up for a
+  * particular member (only if not already done).
+  */
+void DataFile::SetMember(int memberIn) {
+  if (member_ == -1) { // Not yet designated member of ensemble.
+    member_ = memberIn;
+    if (!filename_.empty()) // Sanity check.
+      filename_.append("." + integerToString(member_));
+    else
+      rprinterr("Internal Error: DataFile::SetMember(): No filename set.\n");
+  } else if (member_ != memberIn) // Another sanity check.
+    rprinterr("Internal Error: DataFile::SetMember(): Trying to change member %i to %i\n",
+              member_, memberIn);
+}
+
 // DataFile::AddSet()
 int DataFile::AddSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
@@ -385,28 +403,30 @@ void DataFile::SetDataFilePrecision(int widthIn, int precisionIn) {
 }
 
 // DataFile::DataSetNames()
-/** Print Dataset names to one line. If the number of datasets is greater 
+/** Store DataSet names in one line. If the number of datasets is greater 
   * than 10 just print the first and last 4 data sets.
   */
-void DataFile::DataSetNames() const {
+std::string DataFile::DataSetNames() const {
+  std::string setNames;
   DataSetList::const_iterator set = SetList_.begin();
   if (SetList_.size() > 10) {
     int setnum = 0;
     while (setnum < 4) {
-      mprintf(" %s",(*set)->Legend().c_str());
+      setNames.append(" " + (*set)->Legend());
       ++setnum;
       ++set;
     }
-    mprintf(" ...");
+    setNames.append(" ...");
     set = SetList_.end() - 4;
     setnum = 0;
     while (setnum < 4) {
-      mprintf(" %s",(*set)->Legend().c_str());
+      setNames.append(" " + (*set)->Legend());
       ++setnum;
       ++set;
     }
   } else {
     for (; set != SetList_.end(); set++)
-      mprintf(" %s",(*set)->Legend().c_str());
+      setNames.append(" " + (*set)->Legend());
   }
+  return setNames;
 }

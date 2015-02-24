@@ -8,7 +8,6 @@ class Action_Contacts : public Action {
     Action_Contacts();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Contacts(); }
     static void Help();
-    ~Action_Contacts();
   private:
     Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
@@ -23,8 +22,8 @@ class Action_Contacts : public Action {
     double dt_;
     bool first_;
     Topology* CurrentParm_;
-    CpptrajFile outfile_;
-    CpptrajFile outfile2_;
+    CpptrajFile* outfile_;
+    CpptrajFile* outfile2_;
     typedef std::pair<int,int> contactType;
     //typedef std::vector< contactType > contactListType;
     typedef std::multimap<int,int> contactListType;

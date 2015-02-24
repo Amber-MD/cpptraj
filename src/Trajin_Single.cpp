@@ -55,8 +55,6 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   // Check how many frames will actually be read
   if (setupFrameInfo() == 0) return 1;
   // Check traj box info against parm box info
-  // FIXME: Should this ever be done here?
-  if (checkBox) tparmIn->SetParmCoordInfo( cInfo_ );
   // Check if a separate mdvel file will be read
   if (argIn.Contains("mdvel")) {
     std::string mdvelname = argIn.GetStringKey("mdvel");
@@ -81,6 +79,8 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   }
   if (debug_ > 0)
     Frame::PrintCoordInfo( TrajFilename().base(), TrajParm()->c_str(), cInfo_ );
+  // FIXME: Should this ever be done here?
+  if (checkBox) TrajParm()->SetParmCoordInfo( cInfo_ );
   return 0;
 }
 

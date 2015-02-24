@@ -49,7 +49,7 @@ class Action_NMRrst: public Action {
     
     ImagedAction Image_;
     std::string setname_;
-    std::string findOutputName_;
+    CpptrajFile* findOutput_;
     AtomMask Mask_;
     DataSetList* masterDSL_; // TODO: Replace these with new DataSet type
     size_t numNoePairs_; ///< Used to check if # of pairs has changed
@@ -59,7 +59,6 @@ class Action_NMRrst: public Action {
     double weak_cut_;
     int resOffset_;
     int debug_;
-    int ensembleNum_;
     int nframes_; ///< Total # of frames.
     bool useMass_;
     bool findNOEs_;

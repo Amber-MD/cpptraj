@@ -8,6 +8,7 @@ class FileIO_Std : public FileIO {
   public:
     FileIO_Std();
     ~FileIO_Std();
+    int OpenStream( StreamType );
     int Open(const char *, const char *);    
     int Close();
     int Read(void *, size_t );
@@ -21,6 +22,6 @@ class FileIO_Std : public FileIO {
     int SetSize(long int)   { return 0; }
   private:
     FILE *fp_;
-    bool isStdout_;
+    bool isStream_;
 };
 #endif

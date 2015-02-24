@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
 #include "DataSet_integer.h" // For converting cnumvtime
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "Timer.h"
 // Clustering Algorithms
 #include "Cluster_HierAgglo.h"
@@ -643,8 +643,8 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
     int cnum = C->Num();
     std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
     // Set up trajectory file 
-    Trajout clusterout;
-    if (clusterout.InitTrajWrite(cfilename, clusterparm, clusterfmt_)) 
+    Trajout_Single clusterout;
+    if (clusterout.InitTrajWrite(cfilename, ArgList(), clusterparm, clusterfmt_)) 
     {
       mprinterr("Error: Could not set up cluster trajectory %s for write.\n",
                 cfilename.c_str());
@@ -678,8 +678,8 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
     int cnum = C->Num();
     std::string cfilename = avgfile_ + ".c" + integerToString( cnum ) + tmpExt;
     // Set up trajectory file
-    Trajout clusterout;
-    if (clusterout.InitTrajWrite(cfilename, &avgparm, avgfmt_))
+    Trajout_Single clusterout;
+    if (clusterout.InitTrajWrite(cfilename, ArgList(), &avgparm, avgfmt_))
     {
       mprinterr("Error: Could not set up cluster average file %s for write.\n",
                 cfilename.c_str());
@@ -709,10 +709,10 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
 // Analysis_Clustering::WriteSingleRepTraj()
 /** Write representative frame of each cluster to a trajectory file.  */
 void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
-  Trajout clusterout;
+  Trajout_Single clusterout;
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-  if (clusterout.InitTrajWrite(singlerepfile_, clusterparm, singlerepfmt_)) 
+  if (clusterout.InitTrajWrite(singlerepfile_, ArgList(), clusterparm, singlerepfmt_)) 
   {
     mprinterr("Error: Could not set up single trajectory for represenatatives %s for write.\n",
                 singlerepfile_.c_str());
@@ -746,7 +746,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
   {
-    Trajout clusterout;
+    Trajout_Single clusterout;
     // Get best rep frame # 
     int framenum = C->BestRepFrame();
     // Create filename based on frame #
@@ -754,7 +754,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
     cfilename += tmpExt;
     // Set up trajectory file. 
-    if (clusterout.InitTrajWrite(cfilename, clusterparm, reptrajfmt_)) 
+    if (clusterout.InitTrajWrite(cfilename, ArgList(), clusterparm, reptrajfmt_)) 
     {
       mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
                 cfilename.c_str());

@@ -13,6 +13,7 @@
 
 // CONSTRUCTOR
 Action_PairDist::Action_PairDist() :
+  output_(0),
   delta_(0.0),
   maxbin_(0),
   same_mask_(false),
@@ -37,7 +38,8 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, TopologyList* PFL, Da
     outfileName = "pairdist.dat";
   }
 
-  if (output_.OpenEnsembleWrite(outfileName, DSL->EnsembleNum()) ) {
+  output_ = DFL->AddCpptrajFile(outfileName, "Pair Dist Fxn");
+  if (output_ == 0) {
     mprinterr("Error: PairDist: Could not open output file %s\n",
 	      outfileName.c_str());
     return Action::ERR;
@@ -179,7 +181,7 @@ void Action_PairDist::Print()
   double dist, Pr, sd;
 
 
-  output_.Printf("# pair-distance distribution P(r)\n"
+  output_->Printf("# pair-distance distribution P(r)\n"
 		 "#distance P(r) stddev\n");
 
   for (unsigned long i = 0; i < histogram_.size(); i++) {
@@ -189,7 +191,7 @@ void Action_PairDist::Print()
       dist = ((double) i + 0.5) * delta_;
       sd = sqrt(histogram_[i].variance() );
       
-      output_.Printf("%10.4f %16.2f %10.2f\n", dist, Pr, sd);
+      output_->Printf("%10.4f %16.2f %10.2f\n", dist, Pr, sd);
     }
   }
 }

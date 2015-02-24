@@ -1,8 +1,6 @@
 #ifndef INC_TRAJIN_MULTI_H
 #define INC_TRAJIN_MULTI_H
-#include <map>
 #include "Trajin.h"
-#include "FrameArray.h"
 #include "DataSet_RemLog.h"
 #ifdef MPI
 #  ifdef TIMER
@@ -14,37 +12,37 @@ class Trajin_Multi : public Trajin {
   public:
     Trajin_Multi();
     ~Trajin_Multi();
-
+    // ----- Inherited functions -----------------
     int SetupTrajRead(std::string const&, ArgList&, Topology*);
+    int ReadTrajFrame( int, Frame& );
     int BeginTraj(bool);
     void EndTraj();
-    int ReadTrajFrame( int, Frame& );
     void PrintInfo(int) const;
     CoordinateInfo const& TrajCoordInfo() const { return cInfo_; }
 
+    // NOTE: The following are currently for testing Trajin_Ensemble
     void EnsembleInfo() const;
-    int EnsembleSetup( FrameArray& );
-    int GetNextEnsemble( FrameArray& );
-    int EnsembleSize()               const { return (int)REMDtraj_.size(); }
+    int EnsembleSetup( FrameArray&, FramePtrArray& );
+    /// \return 0 if more frames to read, 1 if finished/error
+    int ReadEnsemble( int, FrameArray&, FramePtrArray& );
+    bool BadEnsemble()      const { return badEnsemble_;          }
+    // -------------------------------------------
+    // CRDIDXARG
+    ReplicaInfo::TargetType TargetMode() const { return targetType_; }
+    std::string FinalCrdIndices()        const; // TODO: Obsolete.
 #   ifdef MPI
-    int EnsembleFrameNum()           const { return ensembleFrameNum_;     }
 #   ifdef TIMER
-    double MPI_AllgatherTime()       const { return mpi_allgather_timer_.Total(); }
-    double MPI_SendRecvTime()        const { return mpi_sendrecv_timer_.Total();  }
+    static void TimingData(double);
 #   endif
-#   else
-    int EnsemblePosition(int member) const { return frameidx_[member];     }
 #   endif
-    bool BadEnsemble()               const { return badEnsemble_;          }
-    // CRDIDXARG: NOTE: This is public for CRDIDX in TrajinList
-    enum TargetType { NONE = 0, TEMP, INDICES, CRDIDX };
-    TargetType TargetMode()          const { return targetType_;           }
-    std::string FinalCrdIndices()    const;
   private:
     /// Define type that will hold REMD indices
     typedef Frame::RemdIdxType RemdIdxType;
     typedef std::vector<TrajectoryIO*> IOarrayType;
     typedef std::vector<std::string> NameListType;
+
+    NameListType SearchForReplicas();
+    bool IsTarget(Frame const&);
 
     CoordinateInfo cInfo_;    ///< Collective coord information for all replicas.
     double remdtrajtemp_;     ///< Get frames with this temperature on read
@@ -55,24 +53,20 @@ class Trajin_Multi : public Trajin {
     int lowestRepnum_;        ///< Hold the lowest replica number
     bool replicasAreOpen_;    ///< True is replicas are open.
     bool badEnsemble_;        ///< True if problem with any frames in the ensemble
-    TargetType targetType_;   ///< Hold type of REMD frame being searched for.
+    ReplicaInfo::TargetType targetType_; ///< Hold type of REMD frame being searched for.
     NameListType replica_filenames_;
     // ENSEMBLE
-    //RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
-    int* frameidx_;    ///< Hold position of each frame in ensemble.
-    typedef std::map<double,int> TmapType;
-    TmapType TemperatureMap_;
-    typedef std::map< RemdIdxType, int > ImapType;
-    ImapType IndicesMap_;
+    ReplicaMap<double> TemperatureMap_;
+    ReplicaMap<RemdIdxType> IndicesMap_;
 #   ifdef MPI
-    int ensembleFrameNum_;      ///< Position containing coords to use in FrameArray
+    RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
 #   ifdef TIMER
     Timer mpi_allgather_timer_;
     Timer mpi_sendrecv_timer_;
+    static double total_mpi_allgather_;
+    static double total_mpi_sendrecv_;
 #   endif
 #   endif
     DataSet_RemLog remlogData_; ///< For sorting by CRDIDX from remlog.
-    NameListType SearchForReplicas();
-    bool IsTarget(Frame const&);
 };
 #endif

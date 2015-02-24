@@ -8,7 +8,7 @@ class FileIO_Mpi : public FileIO {
   public:
     FileIO_Mpi(); 
     ~FileIO_Mpi(); 
-
+    int OpenStream(StreamType) { return 1; } 
     int Open(const char *, const char *);    
     int Close();
     int Read(void *, size_t );

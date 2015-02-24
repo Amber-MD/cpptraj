@@ -55,7 +55,7 @@ int DataSet_Coords_REF::SetupRefFrame(std::string const& fname, std::string cons
     setname = traj.TrajFilename().Full();
   else
     setname = nameIn;
-  SetupSet( setname, traj.Start()+1, "" );
+  SetupSet( setname, traj.Start()+1, "", -1 );
   SetLegend( traj.Title() );
   return 0;
 }

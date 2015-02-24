@@ -1,6 +1,9 @@
 #include "Trajin.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // SMALL
+#ifdef MPI
+# include "MpiRoutines.h"
+#endif
 
 // CONSTRUCTOR
 Trajin::Trajin() :
@@ -205,4 +208,88 @@ void Trajin::PrintFrameInfo() const {
     mprintf(" (reading %i)",total_read_frames_);
   else
     mprintf(", unknown #frames, start=%i offset=%i",start_,offset_);
+}
+
+// Trajin::SetReplicaTmap()
+ReplicaMap<double> Trajin::SetReplicaTmap(int ensembleSize, FrameArray& f_ensemble) const
+{
+  std::vector<double> all_temperatures( ensembleSize );
+  ReplicaMap<double> TemperatureMap;
+# ifdef MPI
+  // Consolidate temperatures
+  if (parallel_allgather(f_ensemble[0].tAddress(), 1, PARA_DOUBLE,
+                         &all_temperatures[0], 1, PARA_DOUBLE))
+  {
+    rprinterr("Error: Gathering temperatures\n");
+    return TemperatureMap; // TODO: Better parallel error check
+  }
+# else
+  for (int i = 0; i != ensembleSize; i++)
+    all_temperatures[i] = f_ensemble[i].Temperature();
+# endif
+  if (TemperatureMap.CreateMap( all_temperatures )) {
+    rprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n"
+              "Error:   If this is an H-REMD ensemble try the 'nosort' keyword.\n",
+               TemperatureMap.Duplicate(), TrajFilename().full());
+    return ReplicaMap<double>();
+  }
+  return TemperatureMap;
+}
+
+// Trajin::SetReplicaImap()
+ReplicaMap<Frame::RemdIdxType> Trajin::SetReplicaImap(int ensembleSize, int ndims,
+                                                      FrameArray& f_ensemble) const
+{
+  typedef Frame::RemdIdxType RemdIdxType;
+  ReplicaMap<RemdIdxType> IndicesMap;
+  std::vector<RemdIdxType> indices( ensembleSize );
+# ifdef MPI
+  // Consolidate replica indices
+  std::vector<int> all_indices( ensembleSize * ndims );
+  if (parallel_allgather( f_ensemble[0].iAddress(), ndims, PARA_INT,
+                          &all_indices[0], ndims, PARA_INT ))
+  {
+    rprinterr("Error: Gathering indices\n");
+    return IndicesMap; // TODO: Better parallel error check
+  }
+  std::vector<int>::const_iterator idx_it = all_indices.begin();
+  for (std::vector<RemdIdxType>::iterator it = indices.begin();
+                                          it != indices.end();
+                                        ++it, idx_it += ndims)
+    it->assign(idx_it, idx_it + ndims);
+# else
+  for (int i = 0; i != ensembleSize; i++)
+    indices[i] = f_ensemble[i].RemdIndices();
+# endif
+  if (IndicesMap.CreateMap( indices )) {
+    rprinterr("Error: Ensemble: Duplicate indices detected in ensemble %s:",
+              TrajFilename().full());
+    for (RemdIdxType::const_iterator idx = IndicesMap.Duplicate().begin();
+                                     idx != IndicesMap.Duplicate().end(); ++idx)
+      rprinterr(" %i", *idx);
+    rprinterr("\n");
+    return ReplicaMap<RemdIdxType>();
+  }
+  return IndicesMap;
+}
+
+// Trajin::PrintReplicaTmap()
+void Trajin::PrintReplicaTmap(ReplicaMap<double> const& TmapIn) {
+  mprintf("  Ensemble Temperature Map:\n");
+  for (ReplicaMap<double>::const_iterator tmap = TmapIn.begin();
+                                          tmap != TmapIn.end(); ++tmap)
+    mprintf("\t%10.2f -> %i\n", tmap->first, tmap->second);
+}
+
+void Trajin::PrintReplicaImap(ReplicaMap<Frame::RemdIdxType> const& ImapIn) {
+  mprintf("  Ensemble Indices Map:\n");
+  for (ReplicaMap<Frame::RemdIdxType>::const_iterator imap = ImapIn.begin();
+                                                      imap != ImapIn.end(); ++imap)
+  {
+    mprintf("\t{");
+    for (Frame::RemdIdxType::const_iterator idx = imap->first.begin();
+                                            idx != imap->first.end(); ++idx)
+      mprintf(" %i", *idx);
+    mprintf(" } -> %i\n", imap->second);
+  }
 }

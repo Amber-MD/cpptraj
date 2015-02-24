@@ -31,7 +31,6 @@ class Action_Vector : public Action {
     void UnitCell(Box const&);
     void MinImage(Frame const&);
 
-    int ensembleNum_;
     DataSet_Vector* Vec_;   ///< Hold vector values
     DataSet* Magnitude_;    ///< Hold vector magnitudes if requested
     double* vcorr_;         ///< Temp. space for calculating CorrPlane
@@ -41,6 +40,6 @@ class Action_Vector : public Action {
     Topology* CurrentParm_; ///< Current topology (for dipole)
     AtomMask mask_;
     AtomMask mask2_;
-    std::string filename_;
+    CpptrajFile* outfile_;
 };
 #endif
