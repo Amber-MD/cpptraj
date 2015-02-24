@@ -12,8 +12,10 @@ AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) cpp_ambpdb$(SFX) 
-	/bin/mv cpptraj$(SFX) $(CPPTRAJBIN)
-	/bin/mv cpp_ambpdb $(CPPTRAJBIN)
+	mv cpptraj$(SFX) $(CPPTRAJBIN)
+	(if [ -e "cpp_ambpdb" ]; then \
+	   mv cpp_ambpdb $(CPPTRAJBIN); \
+	 fi;) 
 
 findDepend: FindDepend.o 
 	$(CXX) -o findDepend FindDepend.o
