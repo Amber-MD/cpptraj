@@ -46,7 +46,7 @@ Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList*
   if (outfile != 0)
     mprintf("\tWriting results to %s\n", outfile->DataFilename().full());
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
-  //  mprintf("\t%s\n", (*set)->Legend().c_str());
+  //  mprintf("\t%s\n", (*set)->legend());
 
   return Analysis::OK;
 }
@@ -66,7 +66,7 @@ Analysis::RetType Analysis_LowestCurve::Analyze() {
     Xdim.SetStep( step_ );
     if (Xdim.CalcBinsOrStep()) continue;
     Larray bins_( Xdim.Bins() + 1 );
-    mprintf("\tSet '%s' has %i bins (%g < %g, %g)\n", (*DS)->Legend().c_str(),
+    mprintf("\tSet '%s' has %i bins (%g < %g, %g)\n", (*DS)->legend(),
             Xdim.Bins(), Xdim.Min(), Xdim.Max(), Xdim.Step());
     // Bin each data point. Only save points_ lowest points.
     for (unsigned int n = 0; n != (*DS)->Size(); ++n)
@@ -102,7 +102,7 @@ Analysis::RetType Analysis_LowestCurve::Analyze() {
       }
       if ((int)bins_[idx].size() < points_)
         mprintf("Warning: For set '%s'; bin %i had less than %i points.\n",
-                (*DS)->Legend().c_str(), idx, points_);
+                (*DS)->legend(), idx, points_);
       (*OUT)->Add( idx, &avg );
     }
     (*OUT)->SetDim(Dimension::X, Xdim);

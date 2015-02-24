@@ -107,7 +107,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   if (outfile != 0) outfile->AddSet( modes_ );
 
   // Print Status
-  mprintf("    DIAGMATRIX: Diagonalizing matrix %s",matrix_->Legend().c_str());
+  mprintf("    DIAGMATRIX: Diagonalizing matrix %s",matrix_->legend());
   if (outfile != 0)
     mprintf(" and writing modes to %s", outfile->DataFilename().full());
   mprintf("\n\tCalculating %i eigenvectors", nevec_);
@@ -150,7 +150,7 @@ Analysis::RetType Analysis_Matrix::Analyze() {
   if (matrix_->ScalarType() == DataSet::MWCOVAR) {
     DataSet_MatrixDbl const& Dmatrix = static_cast<DataSet_MatrixDbl const&>( *matrix_ );
     if ( Dmatrix.Mass().empty() ) {
-      mprinterr("Error: MWCOVAR Matrix %s does not have mass info.\n", matrix_->Legend().c_str());
+      mprinterr("Error: MWCOVAR Matrix %s does not have mass info.\n", matrix_->legend());
       return Analysis::ERR;
     }
     // Convert eigenvalues to cm^-1

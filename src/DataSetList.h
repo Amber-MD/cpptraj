@@ -34,6 +34,8 @@ class DataSetList {
     bool empty()           const { return DataList_.empty(); }
     /// \return number of datasets in the list 
     size_t size()          const { return DataList_.size();  }
+    /// \return Number of frames from last call to AllocateSets().
+    long int MaxFrames()   const { return maxFrames_;        }
     /// Set current ensemble number.
     void SetEnsembleNum(int i)   { ensembleNum_ = i;         }
     /// Make all sets not part of an ensemble part of given ensemble.
@@ -120,6 +122,8 @@ class DataSetList {
     inline void PendingWarning() const;
 
     typedef std::vector<DataSet*> DataListType;
+    /// Hold number of frames from most recent AllocateSets() call.
+    long int maxFrames_;
     /// DataSet debug level
     int debug_;
     /// Ensemble member number

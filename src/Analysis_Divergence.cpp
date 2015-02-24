@@ -21,7 +21,7 @@ static inline bool check_type(DataSet* ds, int n_ds) {
   if (ds->Type() != DataSet::FLOAT &&
       ds->Type() != DataSet::DOUBLE &&
       ds->Type() != DataSet::INTEGER) {
-    mprinterr("Error: %s: bad set type for overlap.\n", ds->Legend().c_str());
+    mprinterr("Error: %s: bad set type for overlap.\n", ds->legend());
     return true;
   }
   return false;
@@ -37,8 +37,8 @@ Analysis::RetType Analysis_Divergence::Setup(ArgList& analyzeArgs, DataSetList* 
   ds2_ = datasetlist->GetDataSet( analyzeArgs.GetStringKey("ds2") );
   if (check_type(ds2_,2)) return Analysis::ERR;
 
-  mprintf("    DIVERGENCE: Between %s and %s\n", ds1_->Legend().c_str(),
-          ds2_->Legend().c_str());
+  mprintf("    DIVERGENCE: Between %s and %s\n", ds1_->legend(),
+          ds2_->legend());
 
   return Analysis::OK;
 }
@@ -89,7 +89,7 @@ Analysis::RetType Analysis_Divergence::Analyze() {
   }
   if (nInvalid > 0)
     mprintf("Warning:\tEncountered %i invalid points when calculating divergence.\n", nInvalid);
-  mprintf("\tDivergence between %s and %s is %g\n", ds1_->Legend().c_str(),
-          ds2_->Legend().c_str(), divergence);
+  mprintf("\tDivergence between %s and %s is %g\n", ds1_->legend(),
+          ds2_->legend(), divergence);
   return Analysis::OK;
 }

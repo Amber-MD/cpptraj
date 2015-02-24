@@ -96,7 +96,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Data
   mprintf("\tShifting residue numbers in restraint file by %i\n", resOffset_);
   // DEBUG - print NOEs
   for (noeDataArray::const_iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe)
-    mprintf("\t'%s'  %f < %f < %f\n", noe->dist_->Legend().c_str(),
+    mprintf("\t'%s'  %f < %f < %f\n", noe->dist_->legend(),
             noe->bound_, noe->rexp_, noe->boundh_);
   if (findNOEs_) {
     mprintf("\tSearching for potential NOEs. Max cutoff is %g Ang.\n", max_cut_);
@@ -265,7 +265,7 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
     if (currentParm->SetupIntegerMask( noe->dMask2_ )) return Action::ERR;
     if (noe->dMask1_.None() || noe->dMask2_.None()) {
       mprintf("Warning: One or both masks for NOE '%s' have no atoms (%i and %i).\n",
-              noe->dist_->Legend().c_str(), noe->dMask1_.Nselected(),
+              noe->dist_->legend(), noe->dMask1_.Nselected(),
               noe->dMask2_.Nselected());
       noe->active_ = false; 
     } else

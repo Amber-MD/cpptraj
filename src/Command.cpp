@@ -665,7 +665,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
     mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
     return Command::C_ERR;
   }
-  mprintf("\tUsing set '%s'\n", CRD->Legend().c_str());
+  mprintf("\tUsing set '%s'\n", CRD->legend());
   Timer total_time;
   total_time.Start();
   // Start, stop, offset
@@ -714,7 +714,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   // Check if parm was modified. If so, update COORDS.
   if ( currentParm != originalParm ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
-            CRD->Legend().c_str(), actionargs.Command());
+            CRD->legend(), actionargs.Command());
     CRD->SetTopology( *currentParm );
   }
   act->Print();
@@ -740,7 +740,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
     mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
     return Command::C_ERR;
   }
-  mprintf("\tUsing set '%s'\n", CRD->Legend().c_str());
+  mprintf("\tUsing set '%s'\n", CRD->legend());
   setname = argIn.GetStringNext();
   // Start, stop, offset
   int start, stop, offset;
@@ -761,7 +761,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
     CRD->GetFrame( frame, currentFrame );
     if ( outtraj.WriteFrame( frame, currentParm, currentFrame ) ) {
       mprinterr("Error writing %s to output trajectory, frame %i.\n",
-                CRD->Legend().c_str(), frame + 1);
+                CRD->legend(), frame + 1);
       break;
     }
   }
@@ -808,11 +808,11 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
     if (parm->Natom() != coords->Top().Natom()) {
       mprinterr("Error: Trajectory '%s' # atoms %i does not match COORDS data set '%s' (%i)\n",
                 trajin.TrajFilename().full(), parm->Natom(),
-                coords->Legend().c_str(), coords->Top().Natom());
+                coords->legend(), coords->Top().Natom());
       return Command::C_ERR;
     }
     mprintf("\tAppending trajectory '%s' to COORDS data set '%s'\n", 
-            trajin.TrajFilename().full(), coords->Legend().c_str());
+            trajin.TrajFilename().full(), coords->legend());
   }
   // Read trajectory
   trajin.BeginTraj(true);
@@ -1099,9 +1099,9 @@ static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList&
     if (Sets.empty())
       mprintf("Warning: %s does not correspond to any data sets.\n", (*dsa).c_str());
     for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
-      mprintf(" %s", (*set)->Legend().c_str());
+      mprintf(" %s", (*set)->legend());
       if ( df.AddSet(*set) ) {
-        mprinterr("Error: Could not add data set %s to file.\n", (*set)->Legend().c_str());
+        mprinterr("Error: Could not add data set %s to file.\n", (*set)->legend());
         ++err;
       }
     }
@@ -1160,7 +1160,7 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
     std::string legend = argIn.GetStringKey("legend");
     DataSet* ds = State.DSL()->GetDataSet( argIn.GetStringNext() );
     if (ds == 0) return Command::C_ERR;
-    mprintf("\tChanging legend '%s' to '%s'\n", ds->Legend().c_str(), legend.c_str());
+    mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
     return Command::C_OK;
   }
@@ -1207,16 +1207,16 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
     {
       if ( (*ds)->Ndim() != 1 )
         mprintf("Warning:\t\t'%s': Can only set mode/type for 1D data sets.\n",
-                (*ds)->Legend().c_str());
+                (*ds)->legend());
       else {
         if ( dtype == DataSet::NOE ) {
           if ( (*ds)->Type() != DataSet::DOUBLE )
             mprintf("Warning:\t\t'%s': Can only set NOE parameters for 'double' data sets.\n",
-                (*ds)->Legend().c_str());
+                (*ds)->legend());
           else
             ((DataSet_double*)(*ds))->SetNOE(noe_lbound, noe_ubound, noe_rexp);
         }
-        mprintf("\t\t'%s'\n", (*ds)->Legend().c_str());
+        mprintf("\t\t'%s'\n", (*ds)->legend());
         (*ds)->SetScalar( dmode, dtype );
       }
     }
@@ -1681,7 +1681,7 @@ Command::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Command::AllocTy
   } else {
     DataSet_Coords* ds = (DataSet_Coords*)State.DSL()->FindCoordsSet(crdset);
     if (ds == 0) return Command::C_ERR;
-    mprintf("\tUsing topology from data set '%s'\n", ds->Legend().c_str());
+    mprintf("\tUsing topology from data set '%s'\n", ds->legend());
     err = pfile.WriteTopology(ds->Top(), outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug());
   }
   if (err != 0)

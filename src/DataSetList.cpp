@@ -51,6 +51,7 @@ const char* DataSetList::SetString(DataSet::DataType d) {
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
+  maxFrames_(-1),
   debug_(0),
   ensembleNum_(-1),
   hasCopies_(false),
@@ -123,6 +124,7 @@ void DataSetList::SetDebug(int debugIn) {
 
 /** Call Allocate for each 1D DataSet in the list. */
 void DataSetList::AllocateSets(long int maxFrames) {
+  maxFrames_ = maxFrames;
   if (maxFrames < 1L) return;
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
   {
@@ -353,7 +355,7 @@ DataSet* DataSetList::AddOrAppendSet(std::string const& nameIn, int idxIn, std::
     data = Svals;
   } else {
     if (ds->Type() != DataSet::STRING) {
-      mprinterr("Error: Cannot append string values to set %s type %s\n", ds->Legend().c_str(),
+      mprinterr("Error: Cannot append string values to set %s type %s\n", ds->legend(),
                 DataArray[ds->Type()].Description);
       return 0;
     }
@@ -412,7 +414,7 @@ DataSet* DataSetList::AddOrAppendSet(std::string const& nameIn, int idxIn, std::
       }
       if (xstep != ds->Dim(0).Step()) {
         mprinterr("Error: Can not append to set '%s', X step %g does not match current"
-                  " data X step %g\n", ds->Legend().c_str(), ds->Dim(0).Step(), xstep);
+                  " data X step %g\n", ds->legend(), ds->Dim(0).Step(), xstep);
         return 0;
       }
       DataSet_double& data = static_cast<DataSet_double&>( *ds );
@@ -556,7 +558,7 @@ int DataSetList::AddSet( DataSet* dsIn ) {
 void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   if (!hasCopies_ && !DataList_.empty()) {
     mprinterr("Internal Error: Adding DataSet (%s) copy to invalid list\n", 
-    dsetIn->Legend().c_str());
+    dsetIn->legend());
     return;
   }
   hasCopies_ = true;
@@ -582,7 +584,7 @@ void DataSetList::List() const {
     DataSet const& dset = static_cast<DataSet const&>(*DataList_[ds]);
     mprintf("\t");
     dset.PrintName();
-    mprintf(" \"%s\"", dset.Legend().c_str());
+    mprintf(" \"%s\"", dset.legend());
     mprintf(" (%s", DataArray[dset.Type()].Description);
     dset.ScalarDescription();
     mprintf("), size is %i", dset.Size());
@@ -596,7 +598,7 @@ void DataSetList::SynchronizeData() {
   // Sync datasets - does nothing if worldsize is 1
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
     if ( (*ds)->Sync() ) {
-      rprintf( "Error syncing dataset %s\n",(*ds)->Legend().c_str());
+      rprintf( "Error syncing dataset %s\n",(*ds)->legend());
       //return;
     }
   }

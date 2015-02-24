@@ -48,7 +48,7 @@ Analysis::RetType Analysis_Regression::Setup(ArgList& analyzeArgs, DataSetList* 
   //if (!outname.empty())
   //  mprintf("\tWriting results to %s\n", outname.c_str());
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
-  //  mprintf("\t%s\n", (*set)->Legend().c_str());
+  //  mprintf("\t%s\n", (*set)->legend());
   //if (outfile_.OpenWrite( outname )) return Analysis::ERR;
 
   return Analysis::OK;
@@ -65,13 +65,13 @@ Analysis::RetType Analysis_Regression::Analyze() {
   {
     if ( (*DS)->Size() < 2)
       mprintf("Warning: Set \"%s\" does not have enough data for regression (%zu points).\n", 
-              (*DS)->Legend().c_str(), (*DS)->Size());
+              (*DS)->legend(), (*DS)->Size());
     else {
       DataSet_Mesh mesh;
       double slope, intercept, correl;
       // Set XY mesh
       mesh.SetMeshXY( *(*DS) );
-      mprintf("  %zu: %s\n", DS - input_dsets_.begin(), (*DS)->Legend().c_str());
+      mprintf("  %zu: %s\n", DS - input_dsets_.begin(), (*DS)->legend());
       int err = mesh.LinearRegression( slope, intercept, correl, false );
       nerr += err;
       if (err == 0) {

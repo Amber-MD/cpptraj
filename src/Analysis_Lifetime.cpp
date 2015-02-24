@@ -97,7 +97,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
     {
       DataSet_1D* outSet = (DataSet_1D*)datasetlist->AddSetIdx( DataSet::FLOAT, setname, didx );
-      if (CheckDsetError(outSet, "output", (*set)->Legend().c_str())) 
+      if (CheckDsetError(outSet, "output", (*set)->legend())) 
         return Analysis::ERR;
       outSet->SetLegend( (*set)->Legend() );
       outputDsets_.push_back( outSet );
@@ -105,14 +105,14 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       if (!averageonly_) {
         // MAX
         outSet = (DataSet_1D*)datasetlist->AddSetIdxAspect(DataSet::INTEGER, setname, didx, "max");
-        if (CheckDsetError(outSet, "lifetime max", (*set)->Legend().c_str()))
+        if (CheckDsetError(outSet, "lifetime max", (*set)->legend()))
           return Analysis::ERR;
         outSet->SetLegend( (*set)->Legend() );
         maxDsets_.push_back( outSet );
         if (maxfile != 0) maxfile->AddSet( outSet );
         // AVG
         outSet = (DataSet_1D*)datasetlist->AddSetIdxAspect(DataSet::FLOAT, setname, didx, "avg");
-        if (CheckDsetError(outSet, "lifetime avg", (*set)->Legend().c_str()))
+        if (CheckDsetError(outSet, "lifetime avg", (*set)->legend()))
           return Analysis::ERR;
         outSet->SetLegend( (*set)->Legend() );
         avgDsets_.push_back( outSet );
@@ -139,7 +139,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     {
       DataSet_1D* outSet = (DataSet_1D*)
         datasetlist->AddSetIdxAspect(DataSet::DOUBLE, setname, didx, "curve");
-      if (CheckDsetError(outSet, "lifetime curve", inputDsets_[didx]->Legend().c_str()))
+      if (CheckDsetError(outSet, "lifetime curve", inputDsets_[didx]->legend()))
         return Analysis::ERR;
       curveSets_.push_back( outSet );
       if (crvfile != 0) crvfile->AddSet( outSet );
@@ -154,7 +154,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   if (!sortSets) mprintf("\tInput data sets will not be sorted.\n");
   if (debugIn > 0)
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
-      mprintf("\t%s\n", (*set)->Legend().c_str());
+      mprintf("\t%s\n", (*set)->legend());
   if (Compare_ == Compare_GreaterThan) 
     mprintf("\tValues greater than %f are considered present.\n", cut_);
   else
@@ -232,11 +232,11 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
     localCurve.clear();
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *inputDsets_[setIdx] );
     if (standalone)
-      mprintf("\t\tCalculating lifetimes for set %s\n", DS.Legend().c_str());
+      mprintf("\t\tCalculating lifetimes for set %s\n", DS.legend());
     else
       progress.Update( current++ );
     if (DS.Size() < 1) {
-      mprintf("Warning: Set %s is empty, skipping.\n", DS.Legend().c_str());
+      mprintf("Warning: Set %s is empty, skipping.\n", DS.legend());
       continue;
     }
     // Loop over all values in set.
@@ -437,7 +437,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         favg = (float)sumLifetimes / (float)Nlifetimes;
       standalone_out.Printf("%10u %10i %10i %10.4f %10.0f %s\n",setIdx,
                             Nlifetimes, maximumLifetimeCount, favg, sum,
-                            DS.Legend().c_str());
+                            DS.legend());
     }
     // Calculate normalized lifetime curve
     if (!lifetimeCurve.empty() && !curveSets_.empty()) {

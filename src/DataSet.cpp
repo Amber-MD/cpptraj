@@ -170,7 +170,7 @@ int DataSet::SetDataSetFormat(bool leftAlignIn) {
       break;
     default:
       mprinterr("Error: No format string defined for this data type (%s).\n", 
-                Legend().c_str());
+                legend());
       return 1;
   }
   // If we are not left-aligning prepend a space to the format string.

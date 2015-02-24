@@ -40,7 +40,7 @@ Analysis::RetType Analysis_MeltCurve::Setup(ArgList& analyzeArgs, DataSetList* d
     mprintf("\tOutfile name: %s", outfile->DataFilename().base());
   mprintf("\n");
   for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
-    mprintf("\t%s\n", (*set)->Legend().c_str());
+    mprintf("\t%s\n", (*set)->legend());
   return Analysis::OK;
 }
 
@@ -51,7 +51,7 @@ Analysis::RetType Analysis_MeltCurve::Analyze() {
                                DS != input_dsets_.end(); ++DS)
   {
     if ( (*DS)->Size() < 1)
-      mprintf("Warning: Set [%i] \"%s\" has no data.\n", idx, (*DS)->Legend().c_str());
+      mprintf("Warning: Set [%i] \"%s\" has no data.\n", idx, (*DS)->legend());
     else {
       int n_folded = 0;
       for (unsigned int i = 0; i < (*DS)->Size(); i++) {

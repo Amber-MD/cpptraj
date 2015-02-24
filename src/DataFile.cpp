@@ -245,20 +245,20 @@ int DataFile::AddSet(DataSet* dataIn) {
       if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
       mprintf("\tChanged DataFile '%s' type to %s for set %s\n", filename_.base(),
               FileTypes::FormatDescription(DF_AllocArray, dfType_),
-              dataIn->Legend().c_str());
+              dataIn->legend());
     }
   } else {
     if ((int)dataIn->Ndim() != dimension_) {
       mprinterr("Error: DataSets in DataFile %s have dimension %i\n" 
                 "Error: Attempting to add set %s of dimension %u\n", 
                 filename_.base(), dimension_,
-                dataIn->Legend().c_str(), dataIn->Ndim());
+                dataIn->legend(), dataIn->Ndim());
       return Error("Error: Adding DataSets with different dimensions to same file"
                    " is currently unsupported.\n");
     }
     if (!dataio_->CheckValidFor(*dataIn)) {
       mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
-                 dataIn->Legend().c_str(), filename_.base());
+                 dataIn->legend(), filename_.base());
       return 1;
     }
   }
@@ -332,19 +332,19 @@ void DataFile::WriteData() {
     DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
     // Check if set has no data.
     if ( ds.Empty() ) {
-      mprintf("Warning: Set '%s' contains no data.\n", ds.Legend().c_str());
+      mprintf("Warning: Set '%s' contains no data.\n", ds.legend());
       continue;
     }
     // Set the format to right-aligned initially.
     if ( ds.SetDataSetFormat(false) ) {
       mprinterr("Error: Could not set format string for set %s. Skipping.\n",
-                ds.Legend().c_str());
+                ds.legend());
       continue;
     }
     // Ensure current DataIO is valid for this set.
     if (!dataio_->CheckValidFor( ds )) {
       mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
-                 ds.Legend().c_str(), filename_.base());
+                 ds.legend(), filename_.base());
       continue;
     }
     // Set default min and step for all dimensions if not already set.

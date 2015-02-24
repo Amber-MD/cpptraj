@@ -28,7 +28,7 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
   if (!outname.empty())
     mprintf("\tWriting results to %s\n", outname.c_str());
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
-  //  mprintf("\t%s\n", (*set)->Legend().c_str());
+  //  mprintf("\t%s\n", (*set)->legend());
   if (outfile_.OpenWrite( outname )) return Analysis::ERR;
 
   return Analysis::OK;
@@ -42,13 +42,13 @@ Analysis::RetType Analysis_Average::Analyze() {
                                DS != input_dsets_.end(); ++DS)
   {
     if ( (*DS)->Size() < 1)
-      mprintf("Warning: Set \"%s\" has no data.\n", (*DS)->Legend().c_str());
+      mprintf("Warning: Set \"%s\" has no data.\n", (*DS)->legend());
     else {
       avg = (*DS)->Avg( stdev );
       double min = (*DS)->Min();
       double max = (*DS)->Max();
       outfile_.Printf("%u\t%f\t%f\t%f\t%f\t\"%s\"\n", DS - input_dsets_.begin(),
-                       avg, stdev, min, max, (*DS)->Legend().c_str());
+                       avg, stdev, min, max, (*DS)->legend());
     }
   }
   return Analysis::OK;

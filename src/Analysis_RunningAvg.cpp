@@ -47,7 +47,7 @@ Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("    RUNNINGAVG: Calculating the running average for %zu data sets"
             " with a %d-element window:\n", dsets_.size(), window_);
   for (Array1D::const_iterator set = dsets_.begin(); set != dsets_.end(); ++set)
-      mprintf("\t%s\n", (*set)->Legend().c_str());
+      mprintf("\t%s\n", (*set)->legend());
   if ( outfile != 0 )
     mprintf("\tOutfile name: %s\n", outfile->DataFilename().base());
 
@@ -62,7 +62,7 @@ Analysis::RetType Analysis_RunningAvg::Analyze() {
     DataSet_1D const& data = *(*DS);
     DataSet_Mesh& out = static_cast<DataSet_Mesh&>( *(*dsout) );
     if (data.Size() < 2)
-      mprintf("Warning: Set '%s' size is less than 2. Skipping.\n", data.Legend().c_str());
+      mprintf("Warning: Set '%s' size is less than 2. Skipping.\n", data.legend());
     else {
       // If input data set X dim does not have default min/step, set them.
       // FIXME: This should not be necessary!
@@ -70,14 +70,14 @@ Analysis::RetType Analysis_RunningAvg::Analyze() {
       if ((*DS)->Dim(0).Step() < 0 ) (*DS)->Dim(0).SetStep( 1.0 );
       if (cumulative_) {
         // Cumulative running average.
-        mprintf("\t\tCalculating Cumulative Running Average for set %s\n", data.Legend().c_str());
+        mprintf("\t\tCalculating Cumulative Running Average for set %s\n", data.legend());
         double running_sum = 0.0;
         for (unsigned int i = 0; i < data.Size(); i++) {
           running_sum += data.Dval(i);
           out.AddXY( data.Xcrd(i), running_sum / (double)(i + 1) );
         }
       } else {
-        mprintf("\t\tCalculating Running Average for set %s\n", data.Legend().c_str());
+        mprintf("\t\tCalculating Running Average for set %s\n", data.legend());
         // Straight running average. Calculate initial average over window.
         double dwindow = (double)window_;
         double sumx = 0.0;

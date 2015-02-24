@@ -63,7 +63,7 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
   // For now only 1D data sets can be histogrammed
   if (dset->Ndim() != 1) {
     mprinterr("Error: Hist: dataset %s has %u dimensions.\n",
-              dset->Legend().c_str(), dset->Ndim());
+              dset->legend(), dset->Ndim());
     mprinterr("Error: Hist: Currently only 1D data sets can be histogrammed.\n");
     return 1;
   }
@@ -71,7 +71,7 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
   // Check that dataset is not string
   if (dset->Type()==DataSet::STRING) {
     mprinterr("Error: Hist: Cannot histogram dataset %s, type STRING.\n", 
-            dset->Legend().c_str());
+            dset->legend());
     return 1;
   }
 
@@ -331,11 +331,11 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
           outfilename_.c_str(), N_dimensions_);
   mprintf("\t[ ");
   for (std::vector<DataSet_1D*>::iterator ds=histdata_.begin(); ds!=histdata_.end(); ++ds)
-    mprintf("%s ",(*ds)->Legend().c_str());
+    mprintf("%s ",(*ds)->legend());
   mprintf("]\n");
   if (calcAMD_)
     mprintf("\tPopulating bins using AMD boost from data set %s\n", 
-            amddata_->Legend().c_str());
+            amddata_->legend());
   if (calcFreeE_)
     mprintf("\tFree energy in kcal/mol will be calculated from bin populations at %f K.\n",Temp_);
   if (nativeOut_)
@@ -384,7 +384,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
     //mprintf("DEBUG: DS %s size %i\n",histdata[hd]->Name(),histdata[hd]->Xmax()+1);
     if (Ndata != (*ds)->Size()) {
       mprinterr("Error: Hist: Dataset %s has inconsistent # data points (%u), expected %u.\n",
-                (*ds)->Legend().c_str(), (*ds)->Size(), Ndata);
+                (*ds)->legend(), (*ds)->Size(), Ndata);
       return Analysis::ERR;
     }
   }

@@ -96,7 +96,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
     outfile->AddSet( Csd_ );
   }
 
-  mprintf("    RMSAVGCORR: COORDS set [%s], mask [%s]", coords_->Legend().c_str(),
+  mprintf("    RMSAVGCORR: COORDS set [%s], mask [%s]", coords_->legend(),
           tgtMask_.MaskString());
   if (useMass_) mprintf(" (mass-weighted)");
   mprintf("\n");

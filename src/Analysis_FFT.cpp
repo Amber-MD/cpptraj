@@ -69,14 +69,14 @@ Analysis::RetType Analysis_FFT::Analyze() {
   {
     // Check for empty set
     if ( (*DS)->Empty() ) {
-      mprintf("Warning: Set %s is empty, skipping.\n", (*DS)->Legend().c_str() );
+      mprintf("Warning: Set %s is empty, skipping.\n", (*DS)->legend() );
       continue;
     }
     if ( maxsize_ == 0 )
       maxsize_ = (*DS)->Size();
     else if ( (*DS)->Size() != maxsize_ ) {
       mprintf("Warning: Set %s does not have same size (%u) as initial set (%u). Skipping.\n",
-              (*DS)->Legend().c_str(), (*DS)->Size(), maxsize_ );
+              (*DS)->legend(), (*DS)->Size(), maxsize_ );
       continue;
     }
     *skip = false;
@@ -107,7 +107,7 @@ Analysis::RetType Analysis_FFT::Analyze() {
                              ++DS, ++dsout, ++skip)
   {
     if (*skip) continue;
-    mprintf("\t\tCalculating FFT for set %s\n", (*DS)->Legend().c_str());
+    mprintf("\t\tCalculating FFT for set %s\n", (*DS)->legend());
     // Reset data1 so it is padded with zeros
     data1.PadWithZero(0);
     // Place data from DS in real spots in data1

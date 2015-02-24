@@ -99,9 +99,9 @@ Analysis::RetType Analysis_Corr::Analyze() {
   size_t Nelements = D1_->Size(); 
   if (Nelements != D2_->Size()) {
     mprinterr("Error: Corr: # elements in dataset %s (%u) not equal to\n",
-              D1_->Legend().c_str(), Nelements);
+              D1_->legend(), Nelements);
     mprinterr("             # elements in dataset %s (%u)\n",
-              D2_->Legend().c_str(), D2_->Size());
+              D2_->legend(), D2_->Size());
     return Analysis::ERR;
   }
   if (lagmax_==-1) lagmax_ = (int)Nelements;
@@ -117,7 +117,7 @@ Analysis::RetType Analysis_Corr::Analyze() {
     DataSet_1D const& set2 = static_cast<DataSet_1D const&>( *D2_ );
     set1.CrossCorr( set2, *((DataSet_1D*)Ct_), lagmax_, calc_covar_, usefft_ );
     mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
-            D1_->Legend().c_str(), D2_->Legend().c_str(), set1.CorrCoeff( set2 ) );
+            D1_->legend(), D2_->legend(), set1.CorrCoeff( set2 ) );
   }
 
   return Analysis::OK;

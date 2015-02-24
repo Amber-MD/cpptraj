@@ -149,7 +149,7 @@ int CpptrajState::RemoveDataSet( ArgList& argIn ) {
     for (DataSetList::const_iterator ds = tempDSL.begin();
                                      ds != tempDSL.end(); ++ds)
     {
-      mprintf("\tRemoving \"%s\"\n", (*ds)->Legend().c_str());
+      mprintf("\tRemoving \"%s\"\n", (*ds)->legend());
       DFL_.RemoveDataSet( *ds );
       DSL_.RemoveSet( *ds );
     }

@@ -269,7 +269,7 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
       std::string label_fmt = "\"%s\" " + y_format;
       for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
         if (setnum>0) file_.Printf(",");
-        file_.Printf(label_fmt.c_str(), (*set)->Legend().c_str(), Ydim.Coord(setnum++));
+        file_.Printf(label_fmt.c_str(), (*set)->legend(), Ydim.Coord(setnum++));
       }
       file_.Printf(")\n");
       // Set up Z labels
@@ -339,7 +339,7 @@ int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSetList const& se
 int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
   if (setIn.Ndim() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              setIn.Legend().c_str(), file_.Filename().full(), setIn.Ndim());
+              setIn.legend(), file_.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_2D const& set = static_cast<DataSet_2D const&>( setIn );

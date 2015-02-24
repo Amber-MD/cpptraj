@@ -25,7 +25,7 @@ Analysis::RetType Analysis_AmdBias::Setup(ArgList& analyzeArgs, DataSetList* dat
   if (ds1_->Type() != DataSet::FLOAT &&
       ds1_->Type() != DataSet::DOUBLE &&
       ds1_->Type() != DataSet::INTEGER) {
-    mprinterr("Error: %s: bad set type for amdbias.\n", ds1_->Legend().c_str());
+    mprinterr("Error: %s: bad set type for amdbias.\n", ds1_->legend());
     return Analysis::ERR;
   }
   Ethresh_ = analyzeArgs.getKeyDouble("ethresh", -1.0);
@@ -45,7 +45,7 @@ Analysis::RetType Analysis_AmdBias::Setup(ArgList& analyzeArgs, DataSetList* dat
   if (outfile != 0) outfile->AddSet( bias_ );
 
   mprintf("    AMDBIAS: Using energy in data set %s, ethresh=%.4f, alpha=%.4f\n", 
-          ds1_->Legend().c_str(), Ethresh_, alpha_);
+          ds1_->legend(), Ethresh_, alpha_);
   if (outfile != 0)
     mprintf("\tBias energy will be written to %s\n", outfile->DataFilename().base());
 

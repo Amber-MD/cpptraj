@@ -30,7 +30,7 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, D
   // Do not set topology here since it may be modified later.
 
   mprintf("    CREATECRD: Saving coordinates from Top %s to \"%s\"\n",
-          parm->c_str(), coords_->Legend().c_str());
+          parm->c_str(), coords_->legend());
   return Action::OK;
 }
 
@@ -46,7 +46,7 @@ Action::RetType Action_CreateCrd::Setup(Topology* currentParm, Topology** parmAd
   if (currentParm->Natom() != coords_->Top().Natom())
     mprintf("Warning: # atoms in current topology (%i) != # atoms in coords set \"%s\" (%i)\n"
             "Warning:   The resulting COORDS data set may have problems.\n",
-            currentParm->Natom(), coords_->Legend().c_str(), coords_->Top().Natom());
+            currentParm->Natom(), coords_->legend(), coords_->Top().Natom());
   return Action::OK;
 }
 

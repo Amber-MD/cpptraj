@@ -272,7 +272,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
 
 // DataSet_Modes::PrintModes()
 void DataSet_Modes::PrintModes() {
-  mprintf("%s: %i modes.\n",Legend().c_str(),nmodes_);
+  mprintf("%s: %i modes.\n",legend(),nmodes_);
   for (int mode = 0; mode < nmodes_; ++mode) {
     mprintf("Mode %i: Eigenvalue= %f\n", mode, evalues_[mode]);
     if (evectors_!=0) {
