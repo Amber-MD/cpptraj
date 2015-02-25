@@ -60,8 +60,8 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   };
 
   // for pytraj
-  frameIndexDs_ = DSL->AddSetAspect(DataSet::INTEGER, "frame_index", "frame_index");
-  atomDs_ = DSL->AddSetAspect(DataSet::INTEGER, "atom_index", "atom_index");
+  frameIndexDs_ = DSL->AddSet(DataSet::INTEGER, "", "frame_index");
+  atomDs_ = DSL->AddSet(DataSet::INTEGER, "", "atom_index");
 
   return Action::OK;
 }
