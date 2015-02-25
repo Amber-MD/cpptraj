@@ -48,6 +48,8 @@ class DataSetList {
     void RemoveSet( const_iterator );
     /// Remove set from the list.
     void RemoveSet( DataSet* );
+    /// Remove set from list but do not destroy.
+    DataSet* PopSet( DataSet* );
     /// \return DataSet at didx.
     DataSet* operator[](int didx) { return DataList_[didx]; } // FIXME: No bounds check
     /// Set DataSetList and underlying DataSet debug level

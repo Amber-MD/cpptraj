@@ -111,8 +111,8 @@ int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& a
   }
   name_ = nameIn;
   // Set index and aspect if given
-  if (idxIn != -1) idx_ = idxIn;
-  if (!aspectIn.empty()) aspect_ = aspectIn;
+  idx_ = idxIn;
+  aspect_ = aspectIn;
   ensembleNum_ = ensembleNumIn;
   // If no legend set yet create a default one. Possible formats are:
   //  - Name[Aspect]

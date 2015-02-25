@@ -115,6 +115,20 @@ void DataSetList::RemoveSet( DataSet* dsIn ) {
   }
 }
 
+/** Remove DataSet from the list but do not destroy it. */
+DataSet* DataSetList::PopSet( DataSet* dsIn ) {
+  for (DataListType::iterator pos = DataList_.begin(); pos != DataList_.end(); ++pos)
+  {
+    if ( *pos == dsIn ) {
+      DataList_.erase( pos );
+      return dsIn;
+    }
+  }
+  if (dsIn != 0)
+    mprintf("Internal Error: Set '%s' is not a member of DataSetList.\n", dsIn->legend());
+  return 0;
+}
+
 // DataSetList::SetDebug()
 void DataSetList::SetDebug(int debugIn) {
   debug_ = debugIn;

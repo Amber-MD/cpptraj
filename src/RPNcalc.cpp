@@ -439,19 +439,19 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           mprinterr("Internal Error: Assigning to wrong data set!\n");
           return 1;
         }
-        output = DSL.AddSet(DataSet::DOUBLE, tokens_.front().Name(), "CALC");
-        if (output == 0) return 1;
         if (Dval[0].IsDataSet()) {
+          output = Dval[0].DS();
+          LocalList.PopSet( output );
+          // Reset DataSet info.
+          output->SetLegend("");
+          output->SetupSet(tokens_.front().Name(), -1, "", -1);
           if (debug_>0)
             mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->legend(),
                     output->legend());
-          // Should be 1D by definition, allocated below in LocalList
-          DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *Dval[0].DS() );
-          for (unsigned int n = 0; n != D1.Size(); n++) {
-            double dval = D1.Dval(n); // TODO: Direct copy
-            output->Add(n, &dval);
-          }
+          if (DSL.AddSet( output )) return 1;
         } else {
+          output = DSL.AddSet(DataSet::DOUBLE, tokens_.front().Name(), "CALC");
+          if (output == 0) return 1;
           if (debug_>0)
             mprintf("DEBUG: Assigning %f to '%s'\n", Dval[0].Value(), output->legend());
           double dval = Dval[0].Value();
