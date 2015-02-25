@@ -11,10 +11,10 @@ AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
 
 all: cpptraj$(SFX)
 
-install: cpptraj$(SFX) cpp_ambpdb$(SFX) 
+install: cpptraj$(SFX) ambpdb$(SFX) 
 	mv cpptraj$(SFX) $(CPPTRAJBIN)
-	(if [ -e "cpp_ambpdb" ]; then \
-	   mv cpp_ambpdb $(CPPTRAJBIN); \
+	(if [ -e "ambpdb" ]; then \
+	   mv ambpdb $(CPPTRAJBIN); \
 	 fi;) 
 
 findDepend: FindDepend.o 
@@ -29,17 +29,17 @@ dependclean:
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(READLINE)
 	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
 
-cpp_ambpdb: $(AMBPDB_OBJECTS)
-	$(CXX) -o cpp_ambpdb $(AMBPDB_OBJECTS) $(LDFLAGS)
+ambpdb: $(AMBPDB_OBJECTS)
+	$(CXX) -o ambpdb $(AMBPDB_OBJECTS) $(LDFLAGS)
 
-cpp_ambpdb.OMP:
+ambpdb.OMP:
 	@echo ""
-	@echo "INFO: cpp_ambpdb is not OpenMP-enabled. Skipping."
+	@echo "INFO: ambpdb is not OpenMP-enabled. Skipping."
 	@echo ""
 
-cpp_ambpdb.MPI:
+ambpdb.MPI:
 	@echo ""
-	@echo "INFO: cpp_ambpdb is not MPI-enabled. Skipping."
+	@echo "INFO: ambpdb is not MPI-enabled. Skipping."
 	@echo ""
 
 $(READLINE): $(READLINE_HOME)/Makefile
@@ -52,7 +52,7 @@ ReadLine.o: ReadLine.cpp
 	$(CXX) $(CXXFLAGS) -I$(READLINE_HOME) -c -o $@ ReadLine.cpp
 
 clean:
-	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o cpp_ambpdb
+	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o ambpdb
 	cd $(READLINE_HOME) && $(MAKE) clean
 
 # Header dependencies
