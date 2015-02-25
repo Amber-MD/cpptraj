@@ -59,6 +59,10 @@ Contributors:
   - Romelia F. Salomon (University of California, San Diego).
     Action_Gist
 
+  - Pawel Janowski (Rutgers University, NJ, USA).
+    Normal mode wizard output for Analysis_Matrix, original code for ADP 
+    calculation in Action_AtomicFluct.
+
   The following people wrote code in PTRAJ which was eventually adapted for
 use in CPPTRAJ:
   - Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)
