@@ -26,11 +26,14 @@ int Trajout_Single::InitTrajWrite(std::string const& tnameIn, ArgList const& arg
   return InitTrajout(tnameIn, argIn, tparmIn, writeFormatIn);
 }
 
-// Trajout_Single::InitStdoutTrajWrite()
-int Trajout_Single::InitStdoutTrajWrite(ArgList const& argIn, Topology *tparmIn,
+// Trajout_Single::PrepareStdoutTrajWrite()
+/** Initialize and set up output trajectory for STDOUT write. */
+int Trajout_Single::PrepareStdoutTrajWrite(ArgList const& argIn, Topology *tparmIn,
                                  TrajFormatType writeFormatIn)
 {
-  return InitTrajout("", argIn, tparmIn, writeFormatIn);
+  if (InitTrajout("", argIn, tparmIn, writeFormatIn)) return 1;
+  if (SetupTrajWrite(tparmIn)) return 1;
+  return 0;
 }
 
 // Trajout_Single::InitEnsembleTrajWrite()

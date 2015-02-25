@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
   // Output coords
   Trajout_Single trajout;
   trajArgs.SetList( aatm + bres + pqr + title, " " );
-  if ( trajout.InitStdoutTrajWrite(trajArgs, &parm, fmt) ) return 1;
+  if ( trajout.PrepareStdoutTrajWrite(trajArgs, &parm, fmt) ) return 1;
   trajout.WriteSingle(0, TrajFrame);
   trajout.EndTraj();
   return 0;
