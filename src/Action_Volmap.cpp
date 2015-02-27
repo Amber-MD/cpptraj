@@ -167,22 +167,13 @@ Action::RetType Action_Volmap::Setup(Topology* currentParm, Topology** parmAddre
   halfradii_.clear();
   halfradii_.reserve( currentParm->Natom() );
   for (int i = 0; i < currentParm->Natom(); i++)
-    halfradii_.push_back( (float)(GetRadius_(*currentParm, i) * radscale_ / 2) );
+    halfradii_.push_back( (float)(currentParm->GetVDWradius(i) * radscale_ / 2) );
 
   // DEBUG
 //for (AtomMask::const_iterator it = densitymask_.begin(); it != densitymask_.end(); it++)
 //  mprintf("Radius of atom %d is %f\n", *it, 2 * halfradii_[*it]);
   
   return Action::OK;
-}
-
-// Action_Volmap::GetRadius_()
-/** Takes an input topology and gives back the VDW radius
-  * \return vdW radius of the requested atom number from a Topology instance
-  */
-double Action_Volmap::GetRadius_(Topology const& top, int atom) {
-  NonbondType const& LJ = top.GetLJparam(atom, atom);
-  return 0.5 * pow(2 * LJ.A() / LJ.B(), one_over_6);
 }
 
 // Action_Volmap::DoAction()

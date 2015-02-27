@@ -1,5 +1,6 @@
 #include <stack> // For ParseMask
 #include <algorithm> // sort
+#include <cmath> // pow
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -779,6 +780,31 @@ int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn)
 int Topology::SetNonbondInfo(NonbondParmType const& nonbondIn) {
   nonbond_ = nonbondIn;
   return 0;
+}
+
+double Topology::GetVDWradius(int a1) const {
+  //TODO: return zero when no params?
+  NonbondType const& LJ = GetLJparam(a1, a1);
+  if (LJ.B() > 0.0)
+    return ( 0.5 * pow(2.0 * LJ.A() / LJ.B(), (1.0/6.0)) );
+  else
+    return 0.0;
+}
+
+double Topology::GetParseRadius(int a1) const {
+  double radius = 0.0;
+  switch ( atoms_[a1].Element() ) {
+    case Atom::HYDROGEN:   radius = 1.0; break;
+    case Atom::CARBON:     radius = 1.7; break;
+    case Atom::NITROGEN:   radius = 1.5; break;
+    case Atom::OXYGEN:     radius = 1.4; break;
+    case Atom::PHOSPHORUS: radius = 2.0; break;
+    case Atom::SULFUR:     radius = 1.85; break;
+    default:
+      mprintf("Warning: PARSE radius not found for element '%s'; setting to %g\n",
+              atoms_[a1].ElementName(), radius);
+  }
+  return radius;
 }
 
 // Topology::SetAtomBondInfo()

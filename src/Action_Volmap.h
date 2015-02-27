@@ -13,8 +13,6 @@ class Action_Volmap : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
     static void RawHelp();
-    /// gets the LJ radius for a given atom from a topology
-    double GetRadius_(Topology const&, int);
 
     /// grid resolutions
     double dx_, dy_, dz_;

@@ -76,14 +76,10 @@ Action::RetType Action_Channel::Setup(Topology* currentParm, Topology** parmAddr
     return Action::ERR;
   }
   // Set up solute van der Waals. FIXME: Handle case where no LJ params
-  const double one_over_6 = 1.0 / 6.0;
   radii_.clear();
   for (AtomMask::const_iterator uAtom = soluteMask_.begin();
                                 uAtom != soluteMask_.end(); ++uAtom)
-  {
-    NonbondType const& LJ = currentParm->GetLJparam(*uAtom, *uAtom);
-    radii_.push_back( 0.5 * pow(2 * LJ.A() / LJ.B(), one_over_6) );
-  }
+    radii_.push_back( currentParm->GetVDWradius( *uAtom ) );
   return Action::OK;
 }
 

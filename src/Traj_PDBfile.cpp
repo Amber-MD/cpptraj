@@ -158,6 +158,7 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
 void Traj_PDBfile::WriteHelp() {
   mprintf("\tdumpq:       Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
           "\tparse:       Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
+          "\tvdw:         Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
           "\tpdbres:      Use PDB V3 residue names.\n"
           "\tpdbatom:     Use PDB V3 atom names.\n"
           "\tpdbv3:       Use PDB V3 residue/atom names.\n"
@@ -177,10 +178,10 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   } else if (argIn.hasKey("parse")) {
     dumpq_ = true;
     radiiMode_ = PARSE;
-  } //else if (argIn.hasKey("dumpr")) {
-    //dumpq_ = true;
-    //radiiMode_ = VDW;
-  //}
+  } else if (argIn.hasKey("vdw") || argIn.hasKey("dumpr*")) {
+    dumpq_ = true;
+    radiiMode_ = VDW;
+  }
   pdbres_ = argIn.hasKey("pdbres");
   pdbatom_ = argIn.hasKey("pdbatom");
   if (argIn.hasKey("pdbv3")) {
@@ -286,24 +287,11 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
   // Set up radii
   if (dumpq_) {
     radii_.clear();
-    for (Topology::atom_iterator at = trajParm->begin(); at != trajParm->end(); ++at)
-    {
-      if (radiiMode_ == GB)
-        radii_.push_back( at->GBRadius() );
-      else if (radiiMode_ == PARSE) {
-        double radius = 0.0;
-        switch (at->Element()) {
-          case Atom::HYDROGEN:   radius = 1.0; break;
-          case Atom::CARBON:     radius = 1.7; break;
-          case Atom::NITROGEN:   radius = 1.5; break;
-          case Atom::OXYGEN:     radius = 1.4; break;
-          case Atom::PHOSPHORUS: radius = 2.0; break;
-          case Atom::SULFUR:     radius = 1.85; break;
-          default:
-            mprintf("Warning: PARSE radius not found for element '%s'; setting to %g\n",
-                    at->ElementName(), radius);
-        }
-        radii_.push_back( radius );
+    for (int iat = 0; iat != trajParm->Natom(); iat++) {
+      switch (radiiMode_) {
+        case GB:    radii_.push_back( (*trajParm)[iat].GBRadius() ); break;
+        case PARSE: radii_.push_back( trajParm->GetParseRadius(iat) ); break;
+        case VDW:   radii_.push_back( trajParm->GetVDWradius(iat) ); break;
       }
     }
   }
