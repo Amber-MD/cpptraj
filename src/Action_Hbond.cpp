@@ -148,19 +148,31 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
     Frame*    refFrame= (Frame*)    &(REF.Coord());
     bool calcSolvOriginal = calcSolvent_;
     calcSolvent_ = false;
+    DataSetList tempDSL;
+    masterDSL_ = &tempDSL;
     Setup( refParm, &refParm );
     DoAction( 0, refFrame, &refFrame );
     calcSolvent_ = calcSolvOriginal;
+    masterDSL_ = DSL;
     if (HbondMap_.empty()) {
       mprinterr("Error: No native hydrogen bonds detected.\n");
       return Action::ERR;
     }
-    // Everything in HbondMap_ is a native hbond
+    // Everything in HbondMap_ is a native hbond. Reset for actual run.
     for (HBmapType::iterator it = HbondMap_.begin(); it != HbondMap_.end(); ++it) {
       it->second.dist = 0.0;
       it->second.angle = 0.0;
       it->second.Frames = 0;
       it->second.native_ = true;
+      if (series_) {
+        // Re-aspect DataSets and transfer to master DSL
+        DataSet_integer* ds = it->second.data_;
+        ds->Clear();
+        ds->SetLegend("");
+        ds->SetupSet( ds->Name(), ds->Idx(), "nativehb", ds->Member() );
+        tempDSL.PopSet( ds );
+        DSL->AddSet( ds );
+      }
     }
     Nframes_ = 0;
     ((DataSet_integer*)NumHbonds_)->Clear();
