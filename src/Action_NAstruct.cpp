@@ -98,24 +98,24 @@ int Action_NAstruct::setupBaseAxes(Frame const& InputFrame) {
                                       base != Bases_.end(); ++base, ++baseAxis)
   {
     // Set input coords for entire NA residue. 
-    (*base).SetInputFrame( InputFrame );
+    base->SetInputFrame( InputFrame );
     // Set input coords for RMS fit.
-    inpFrame.SetCoordinates( (*base).Input(), (*base).InputFitMask());
+    inpFrame.SetCoordinates( base->Input(), base->InputFitMask() );
     // Set ref coords for RMS fit. 
-    refFrame.SetCoordinates( (*base).Ref(), (*base).RefFitMask());
+    refFrame.SetCoordinates( base->Ref(), base->RefFitMask() );
 #   ifdef NASTRUCTDEBUG
-    mprintf("Base %i:%4s\n", (*base).ResNum()+1, (*base).ResName()); 
-    (*base).InputFitMask().PrintMaskAtoms("InpMask");
-    (*base).RefFitMask().PrintMaskAtoms("RefMask");
+    mprintf("Base %i:%4s\n", base->ResNum()+1, base->ResName()); 
+    base->InputFitMask().PrintMaskAtoms("InpMask");
+    base->RefFitMask().PrintMaskAtoms("RefMask");
     mprintf("%-2s %4s %8s %8s %8s %2s %8s %8s %8s\n","#","Atom","Ex","Ey","Ez","#","Rx","Ry","Rz");
-    AtomMask::const_iterator refatom = (*base).RefFitMask().begin();
-    for (AtomMask::const_iterator inpatom = (*base).InputFitMask().begin();
-                                  inpatom != (*base).InputFitMask().end(); ++inpatom)
+    AtomMask::const_iterator refatom = base->RefFitMask().begin();
+    for (AtomMask::const_iterator inpatom = base->InputFitMask().begin();
+                                  inpatom != base->InputFitMask().end(); ++inpatom)
     {
-      const double* XYZ = (*base).Input().XYZ(*inpatom);
-      mprintf("%-2i %4s %8.3f %8.3f %8.3f", *inpatom+1, (*base).AtomName(*inpatom),
+      const double* XYZ = base->Input().XYZ(*inpatom);
+      mprintf("%-2i %4s %8.3f %8.3f %8.3f", *inpatom+1, base->AtomName(*inpatom),
               XYZ[0], XYZ[1], XYZ[2]);
-      XYZ = (*base).Ref().XYZ(*refatom);
+      XYZ = base->Ref().XYZ(*refatom);
       mprintf(" %2i %8.3f %8.3f %8.3f\n", *refatom+1, XYZ[0], XYZ[1], XYZ[2]);
       ++refatom;
     }
@@ -137,22 +137,22 @@ int Action_NAstruct::setupBaseAxes(Frame const& InputFrame) {
      * vectors of the base axes.
      */
     // Store the Rotation matrix and the rotated and translated origin.
-    (*baseAxis).SetupBaseAxis( RotMatrix, (RotMatrix*TransVec)+refTrans, (*base).ResNum() );
+    baseAxis->SetupBaseAxis( RotMatrix, (RotMatrix*TransVec)+refTrans, base->ResNum() );
     if (debug_>0) { 
       mprintf("Base %u: RMS of RefCoords from ExpCoords is %f\n",base-Bases_.begin(),rmsd);
-      (*baseAxis).PrintAxisInfo("BaseAxes");
+      baseAxis->PrintAxisInfo("BaseAxes");
     }
 #   ifdef NASTRUCTDEBUG
     // DEBUG - Write base axis to file
-    WriteAxes(baseaxesfile, (*base).ResNum()+1, (*base).ResName(), *baseAxis);
+    WriteAxes(baseaxesfile, base->ResNum()+1, base->ResName(), *baseAxis);
      // Overlap ref coords onto input coords.
-    Frame reftemp = (*base).Ref(); 
+    Frame reftemp = base->Ref(); 
     reftemp.Trans_Rot_Trans(TransVec, RotMatrix, refTrans);
     // DEBUG - Write reference frame to file
     for (int i = 0; i < reftemp.Natom(); i++) {
       const double* XYZ = reftemp.XYZ(i);
-      basesfile.WriteATOM( (*base).RefName(i), (*base).ResNum()+1, XYZ[0], XYZ[1], XYZ[2], 
-                           (*base).ResName(), 0.0 );
+      basesfile.WriteATOM( base->RefName(i), base->ResNum()+1, XYZ[0], XYZ[1], XYZ[2], 
+                           base->ResName(), 0.0 );
     }
 #   endif
   } // END loop over bases
@@ -1036,8 +1036,8 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
       std::string resname( currentParm->Res(*resnum).c_str() );
       ResMapType::iterator customRes = CustomMap_.find( resname );
       if (customRes != CustomMap_.end()) {
-        mprintf("\tCustom map found: %i [%s]\n",*resnum+1,(*customRes).first.c_str());
-        baseType = (*customRes).second;
+        mprintf("\tCustom map found: %i [%s]\n",*resnum+1, customRes->first.c_str());
+        baseType = customRes->second;
       }
     }
     // If not in custom map, attempt to identify base from name

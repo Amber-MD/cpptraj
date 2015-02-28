@@ -67,7 +67,7 @@ class NA_Axis {
     NA_Axis();
     /// Used to set up base axis.
     void SetupBaseAxis(Matrix_3x3 const&, Vec3 const&, int);
-    /// User to set up base pair axis.
+    /// Used to set up base pair axis.
     NA_Axis(int,int,bool);
     /// Used to set rotation matrix/origin for base pair axis
     void StoreRotMatrix(Matrix_3x3 const&, Vec3 const&);
