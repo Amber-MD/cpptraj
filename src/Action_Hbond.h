@@ -27,6 +27,7 @@ class Action_Hbond : public Action {
       int H;        ///< Hydrogen atom#
       int D;        ///< Donor atom#
       int Frames;   ///< # frames this hbond has been present
+      bool native_; ///< True if this is a native hbond.
     };
 
     ImagedAction Image_;
@@ -45,6 +46,8 @@ class Action_Hbond : public Action {
     typedef std::map< std::set<int>, int > BridgeType;
     BridgeType BridgeMap_; ///< Track all combos of residues bridged by solvent.
     typedef std::vector<int> HBlistType;
+    typedef std::vector<HbondType> HBarrayType;
+    
     HBlistType Donor_;                 ///< Array of hbond donor atoms (D0, H0, D1, H1, ...)
     HBlistType Acceptor_;              ///< Array of hbond acceptor atoms (A0, A1, ...)
     HBlistType SolventDonor_;
@@ -72,6 +75,7 @@ class Action_Hbond : public Action {
     DataSet* NumSolvent_;
     DataSet* NumBridge_;
     DataSet* BridgeID_;
+    DataSet* NumNative_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     /// Return true if the first hbond has more frames than the second.
@@ -108,5 +112,6 @@ class Action_Hbond : public Action {
     inline int AtomsAreHbonded(Frame const&, int, int, int, int, int,bool);
     inline void HbondTypeCalcAvg(HbondType&);
     inline double ImagedAngle(const double*, const double*, const double*) const;
+    void PrintHbondList(HBarrayType&, CpptrajFile*, int) const;
 };
 #endif
