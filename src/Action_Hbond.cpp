@@ -825,12 +825,13 @@ void Action_Hbond::Print() {
   if (avgout_ != 0) {
     HBarrayType nativeHbond; 
     // Place all detected Hbonds in a list and sort.
-    for (HBmapType::const_iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) {
-      HbondList.push_back( it->second );
+    for (HBmapType::iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) {
       // Calculate average distance and angle for this hbond.
-      HbondTypeCalcAvg( HbondList.back() );
-      if ( HbondList.back().native_ )
-        nativeHbond.push_back( HbondList.back() );
+      HbondTypeCalcAvg( it->second );
+      if ( it->second.native_ )
+        nativeHbond.push_back( it->second );
+      else
+        HbondList.push_back( it->second );
     }
     HbondMap_.clear();
     // Sort and Print
