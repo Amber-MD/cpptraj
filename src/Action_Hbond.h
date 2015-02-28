@@ -37,6 +37,7 @@ class Action_Hbond : public Action {
     CpptrajFile* avgout_;
     CpptrajFile* solvout_;
     CpptrajFile* bridgeout_;
+    CpptrajFile* nativeout_;
     DataFile* UUseriesout_;
     DataFile* UVseriesout_;
     bool useAtomNum_;

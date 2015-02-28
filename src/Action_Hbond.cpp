@@ -12,7 +12,7 @@
 Action_Hbond::Action_Hbond() :
   debug_(0),
   Nframes_(0),
-  avgout_(0), solvout_(0), bridgeout_(0),
+  avgout_(0), solvout_(0), bridgeout_(0), nativeout_(0),
   UUseriesout_(0), UVseriesout_(0),
   useAtomNum_(false),
   hasDonorMask_(false),
@@ -70,6 +70,12 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
   avgout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("avgout"), "Avg. solute-solute HBonds");
   solvout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("solvout"), "Avg. solute-solvent HBonds");
   bridgeout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("bridgeout"), "Solvent bridging info");
+  if (calcNative) {
+    // Allow native avgs to be written to STDOUT
+    nativeout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("nativeout"), "Native HBonds",
+                                     DataFileList::TEXT, true);
+    if (nativeout_ == 0) return Action::ERR;
+  }
   useAtomNum_ = actionArgs.hasKey("printatomnum");
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
@@ -211,6 +217,8 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
     mprintf("\tWriting solute-solvent hbond avgs to %s\n", solvout_->Filename().full());
   if (calcSolvent_ && bridgeout_ != 0)
     mprintf("\tWriting solvent bridging info to %s\n", bridgeout_->Filename().full());
+  if (calcNative)
+    mprintf("\tWriting native hbond avgs to %s\n", nativeout_->Filename().full());
   if (useAtomNum_)
     mprintf("\tAtom numbers will be written to output.\n");
   if (series_) {
@@ -836,9 +844,10 @@ void Action_Hbond::Print() {
     HbondMap_.clear();
     // Sort and Print
     PrintHbondList( HbondList, avgout_, NUM );
-    //TODO: Give it its own file
-    if (!nativeHbond.empty())
-      PrintHbondList( nativeHbond, avgout_, NUM );
+    if (!nativeHbond.empty()) {
+      nativeout_->Printf("#Native HBonds:\n");
+      PrintHbondList( nativeHbond, nativeout_, NUM );
+    }
   }
 
   // Solute-solvent Hbonds 
