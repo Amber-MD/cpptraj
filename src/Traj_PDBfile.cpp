@@ -4,12 +4,12 @@
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
+  radiiMode_(GB),
   pdbAtom_(0),
   currentSet_(0),
   ter_num_(0),
   pdbWriteMode_(NONE),
   dumpq_(false),
-  dumpr_(false),
   pdbres_(false),
   pdbatom_(false),
   write_cryst1_(false),
@@ -156,7 +156,8 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
 }
 
 void Traj_PDBfile::WriteHelp() {
-  mprintf("\tdumpq:       Write atom charge/radius in occupancy/B-factor columns (PQR format).\n"
+  mprintf("\tdumpq:       Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
+          "\tparse:       Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
           "\tpdbres:      Use PDB V3 residue names.\n"
           "\tpdbatom:     Use PDB V3 atom names.\n"
           "\tpdbv3:       Use PDB V3 residue/atom names.\n"
@@ -171,9 +172,15 @@ void Traj_PDBfile::WriteHelp() {
 int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   pdbWriteMode_ = SINGLE;
   if (argIn.hasKey("dumpq")) {
-   dumpq_ = true; 
-   dumpr_ = true;
-  }
+    dumpq_ = true; 
+    radiiMode_ = GB;
+  } else if (argIn.hasKey("parse")) {
+    dumpq_ = true;
+    radiiMode_ = PARSE;
+  } //else if (argIn.hasKey("dumpr")) {
+    //dumpq_ = true;
+    //radiiMode_ = VDW;
+  //}
   pdbres_ = argIn.hasKey("pdbres");
   pdbatom_ = argIn.hasKey("pdbatom");
   if (argIn.hasKey("pdbv3")) {
@@ -276,6 +283,30 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
     if (space_group_.empty())
       mprintf("Warning: No PDB space group specified.\n");
   }
+  // Set up radii
+  if (dumpq_) {
+    radii_.clear();
+    for (Topology::atom_iterator at = trajParm->begin(); at != trajParm->end(); ++at)
+    {
+      if (radiiMode_ == GB)
+        radii_.push_back( at->GBRadius() );
+      else if (radiiMode_ == PARSE) {
+        double radius = 0.0;
+        switch (at->Element()) {
+          case Atom::HYDROGEN:   radius = 1.0; break;
+          case Atom::CARBON:     radius = 1.7; break;
+          case Atom::NITROGEN:   radius = 1.5; break;
+          case Atom::OXYGEN:     radius = 1.4; break;
+          case Atom::PHOSPHORUS: radius = 2.0; break;
+          case Atom::SULFUR:     radius = 1.85; break;
+          default:
+            mprintf("Warning: PARSE radius not found for element '%s'; setting to %g\n",
+                    at->ElementName(), radius);
+        }
+        radii_.push_back( radius );
+      }
+    }
+  }
   return 0;
 }
 
@@ -325,8 +356,10 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       Occ = pdbTop_->Extra()[aidx].Occupancy();
       B   = pdbTop_->Extra()[aidx].Bfactor();
     }
-    if (dumpq_) Occ = (float) atom->Charge();
-    if (dumpr_) B = (float) atom->GBRadius();
+    if (dumpq_) {
+      Occ = (float) atom->Charge();
+      B = (float) radii_[aidx];
+    }
     // If pdbatom change amber atom names to pdb v3
     NameType atomName = atom->Name();
     if (pdbatom_) {
@@ -366,12 +399,15 @@ void Traj_PDBfile::Info() {
       mprintf(" (1 file per frame)");
     else if (pdbWriteMode_==MODEL)
       mprintf(" (1 MODEL per frame)");
-    if (dumpq_ && !dumpr_) 
-      mprintf(", writing charges to occupancy column");
-    else if (dumpr_ && !dumpq_) 
-      mprintf(", writing GB radii to B-factor column");
-    else if (dumpr_ && dumpq_)
-      mprintf(", writing charges/GB radii to occupancy/B-factor columns");
+    if (dumpq_) {
+      mprintf(", writing charges to occupancy column and ");
+      switch (radiiMode_) {
+        case GB: mprintf("GB radii"); break;
+        case PARSE: mprintf("PARSE radii"); break;
+        case VDW: mprintf("vdW radii"); break;
+      }
+      mprintf(" to B-factor column");
+    }
     if (pdbres_ && pdbatom_)
       mprintf(", using PDB V3 res/atom names");
     else if (pdbres_)
