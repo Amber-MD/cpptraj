@@ -12,11 +12,12 @@
 // CONSTRUCTOR
 Action_NAstruct::Action_NAstruct() :
   puckerMethod_(ALTONA),
-  HBdistCut2_(12.25),  // Hydrogen Bond distance cutoff^2: 3.5^2
+  HBdistCut2_(9.61),  // Hydrogen Bond distance cutoff^2: 3.1^2
   // NOTE: Is this too big?
   originCut2_(6.25),   // Origin cutoff^2 for base-pairing: 2.5^2
   maxResSize_(0),
   debug_(0),
+  nframes_(0),
   printheader_(true),
   useReference_(false),
   bpout_(0), stepout_(0), helixout_(0),
@@ -38,27 +39,11 @@ void Action_NAstruct::Help() {
           "  Helix.<suffix>\n");
 }
 
-// DESTRUCTOR
-Action_NAstruct::~Action_NAstruct() { 
-  ClearLists();
-  // NOTE: Since BasePairAxes are set up to correspond with SHEAR etc they 
-  //       are only freed at the very end.
-  BasePairAxes_.clear();
-}
-
 // Output Format Strings
 static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2i %10.4f %10.4f\n";
 static const char* NA_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f\n";
 
 // ------------------------- PRIVATE FUNCTIONS ---------------------------------
-// Action_NAstruct::ClearLists()
-/** Clear all parm-dependent lists */
-void Action_NAstruct::ClearLists() {
-  Bases_.clear();
-  BaseAxes_.clear();
-}
-
-// -----------------------------------------------------------------------------
 #ifdef NASTRUCTDEBUG
 /// Write given NA_Axis to a PDB file.
 static void WriteAxes(PDBfile& outfile, int resnum, const char* resname, NA_Axis const& axis)
@@ -76,14 +61,15 @@ static void WriteAxes(PDBfile& outfile, int resnum, const char* resname, NA_Axis
   vec = axis.Rz() + oxyz;
   outfile.WriteATOM("Z", resnum, vec[0], vec[1], vec[2], resname, 0.0);
 }
+// -----------------------------------------------------------------------------
 #endif
 
-// Action_NAstruct::setupBaseAxes()
+// Action_NAstruct::SetupBaseAxes()
 /** For each residue in Bases (set up in Setup()), get the corresponding input
   * coords and fit the reference coords on top of input coords. This sets up 
   * the reference axes for each base.
   */
-int Action_NAstruct::setupBaseAxes(Frame const& InputFrame) {
+int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
   Frame refFrame(maxResSize_); // Hold copy of base reference coords for RMS fit
   Frame inpFrame(maxResSize_); // Hold copy of input base coords for RMS fit
 # ifdef NASTRUCTDEBUG
@@ -93,9 +79,8 @@ int Action_NAstruct::setupBaseAxes(Frame const& InputFrame) {
   basesfile.OpenWrite("bases.pdb");
   mprintf("\n=================== Setup Base Axes ===================\n");
 # endif
-  std::vector<NA_Axis>::iterator baseAxis = BaseAxes_.begin();
   for (std::vector<NA_Base>::iterator base = Bases_.begin(); 
-                                      base != Bases_.end(); ++base, ++baseAxis)
+                                      base != Bases_.end(); ++base)
   {
     // Set input coords for entire NA residue. 
     base->SetInputFrame( InputFrame );
@@ -137,14 +122,14 @@ int Action_NAstruct::setupBaseAxes(Frame const& InputFrame) {
      * vectors of the base axes.
      */
     // Store the Rotation matrix and the rotated and translated origin.
-    baseAxis->SetupBaseAxis( RotMatrix, (RotMatrix*TransVec)+refTrans, base->ResNum() );
+    base->Axis().StoreRotMatrix( RotMatrix, (RotMatrix*TransVec)+refTrans );
     if (debug_>0) { 
-      mprintf("Base %u: RMS of RefCoords from ExpCoords is %f\n",base-Bases_.begin(),rmsd);
-      baseAxis->PrintAxisInfo("BaseAxes");
+      mprintf("Base %i: RMS of RefCoords from ExpCoords is %f\n",base->ResNum(), rmsd);
+      base->Axis().PrintAxisInfo("BaseAxes");
     }
 #   ifdef NASTRUCTDEBUG
     // DEBUG - Write base axis to file
-    WriteAxes(baseaxesfile, base->ResNum()+1, base->ResName(), *baseAxis);
+    WriteAxes(baseaxesfile, base->ResNum()+1, base->ResName(), base->Axis());
      // Overlap ref coords onto input coords.
     Frame reftemp = base->Ref(); 
     reftemp.Trans_Rot_Trans(TransVec, RotMatrix, refTrans);
@@ -159,59 +144,35 @@ int Action_NAstruct::setupBaseAxes(Frame const& InputFrame) {
   return 0;
 }
 
-// -----------------------------------------------------------------------------
-// Action_NAstruct::GCpair()
-/** Look for 3 HB based on heavy atom distances:
-  * 1. G:O6 -- C:N4  6 -- 6
-  * 2. G:N1 -- C:N3  7 -- 4
-  * 3. G:N2 -- C:O2  9 -- 3
-  */
-int Action_NAstruct::GCpair(NA_Base const& DG, NA_Base const& DC) {
-  int Nhbonds = 0;
-  for (int hb = 0; hb < 3; hb++) {
-    double dist2 = DIST2_NoImage(DG.HBxyz(hb), DC.HBxyz(hb));
-    if ( dist2 < HBdistCut2_ ) {
-      ++Nhbonds;
-#     ifdef NASTRUCTDEBUG
-      int dg_hbatom = DG.HBidx(hb);
-      int dc_hbatom = DC.HBidx(hb);
-      mprintf("\t\t%s:%s -- %s:%s = %f\n",
-              DG.ResName(), DG.AtomName(dg_hbatom),
-              DC.ResName(), DC.AtomName(dc_hbatom), sqrt(dist2));
-#     endif
-    }
-  }
-  return Nhbonds;
-}
-
-// Action_NAstruct::ATpair()
-/** Look for 2 HB based on heavy atom distances
-  * 1. A:N6 -- T:O4  6 -- 6
-  * 2. A:N1 -- T:N3  7 -- 4
-  */
-int Action_NAstruct::ATpair(NA_Base const& DA, NA_Base const& DT) {
-  int Nhbonds = 0;
-  for (int hb = 0; hb < 2; hb++) {
-    double dist2 = DIST2_NoImage(DA.HBxyz(hb), DT.HBxyz(hb)); 
-    if ( dist2 < HBdistCut2_ ) {
-      ++Nhbonds;
-#     ifdef NASTRUCTDEBUG
-      int da_hbatom = DA.HBidx(hb);
-      int dt_hbatom = DT.HBidx(hb);
-      mprintf("\t\t%s:%s -- %s:%s = %f\n",
-              DA.ResName(), DA.AtomName(da_hbatom),
-              DT.ResName(), DT.AtomName(dt_hbatom), sqrt(dist2));
-#     endif
-    }
-  }
-  return Nhbonds;
-}
-
 /** Given two NA_Bases for which IDs have been given and input coords set,
   * calculate the number of hydrogen bonds between them.
-  * NOTE: Currently only set up for WC detection
   */
+// TODO Identify type of base pairing (WC, Hoog., etc)
 int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2) {
+  int Nhbonds = 0;
+
+  for (int b1 = 0; b1 != base1.Natom(); b1++) {
+    if ( base1.HbondType(b1) != NA_Base::NONE ) {
+      const double* xyz1 = base1.HBxyz(b1);
+      for (int b2 = 0; b2 != base2.Natom(); b2++) {
+        if ( base2.HbondType(b2) != NA_Base::NONE &&
+             base2.HbondType(b2) != base1.HbondType(b1) )
+        {
+          const double* xyz2 = base2.HBxyz(b2);
+          double dist2 = DIST2_NoImage(xyz1, xyz2);
+          if (dist2 < HBdistCut2_) {
+            ++Nhbonds;
+#           ifdef NASTRUCTDEBUG
+            mprintf("\t\t%s:%s -- %s:%s = %f\n",
+                    base1.ResName(), base1.AtomName(b1),
+                    base2.ResName(), base2.AtomName(b2), sqrt(dist2));
+#           endif
+          }
+        }
+      }
+    }
+  }
+/*
   // G C
   if      ( base1.Type()==NA_Base::GUA && base2.Type()==NA_Base::CYT ) return GCpair(base1,base2);
   else if ( base1.Type()==NA_Base::CYT && base2.Type()==NA_Base::GUA ) return GCpair(base2,base1);
@@ -226,141 +187,79 @@ int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2) {
 //             NAbaseName[base2->ID]);
 //  }
   return 0;
+*/
+  return Nhbonds;
 }
 
-// Action_NAstruct::determineBasePairing()
+// Action_NAstruct::DetermineBasePairing()
 /** Determine which bases are paired from the individual base axes. Also 
   * sets up BP and BP step parameter DataSets. This routine should only
   * be called once.
   */
-int Action_NAstruct::determineBasePairing() {
+int Action_NAstruct::DetermineBasePairing() {
 # ifdef NASTRUCTDEBUG  
   mprintf("\n=================== Setup Base Pairing ===================\n");
 # endif
-  if (!BasePairAxes_.empty()) {
-    mprinterr("Internal Error: Base pairing has already been determined.\n");
-    return 1;
-  }
-  // For each unpaired base, find the closest potential pairing base 
-  // determined by the distance between their axis origins.
-  NumberOfHbonds_.clear();
-  int Nbases = (int)Bases_.size();
-  int Nbases1 = Nbases - 1;
-  std::vector<bool> isPaired( Nbases, false);
-  for (int base1 = 0; base1 < Nbases1; base1++) {
-#   ifdef NASTRUCTDEBUG
-    mprintf("Base %i:%s\n",Bases_[base1].ResNum()+1, Bases_[base1].ResName());
-#   endif
-    if (isPaired[base1]) continue;
-    int minBaseNum = -1;
-    double minDistance = 0;
-    for (int base2 = base1+1; base2 < Nbases; base2++) {
-      if (isPaired[base2]) continue;
-      double dist2 = DIST2_NoImage(BaseAxes_[base1].Oxyz(), BaseAxes_[base2].Oxyz());
+  // FIXME does data set name gen belong in Init()?
+  for (Barray::const_iterator base1 = Bases_.begin(); base1 != Bases_.end(); ++base1)
+  {
+    for (Barray::const_iterator base2 = base1 + 1; base2 != Bases_.end(); ++base2)
+    {
+      double dist2 = DIST2_NoImage(base1->Axis().Oxyz(), base2->Axis().Oxyz());
       if (dist2 < originCut2_) {
 #       ifdef NASTRUCTDEBUG
         mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
-                Bases_[base1].ResNum()+1, Bases_[base1].ResName(), 
-                Bases_[base2].ResNum()+1, Bases_[base2].ResName(), sqrt(dist2));
+                base1->ResNum()+1, base1->ResName(), 
+                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
 #       endif
-        if (minBaseNum == -1) {
-          minDistance = dist2;
-          minBaseNum = base2;
-        } else if (dist2 < minDistance) {
-            minDistance = dist2;
-            minBaseNum = base2;
-        }
-      }
-    }
-    if (minBaseNum != -1) {
-      // Closest base to base1 is minBaseNum
-#     ifdef NASTRUCTDEBUG
-      mprintf("    Closest base is %i, %f Ang.\n", 
-              Bases_[minBaseNum].ResNum()+1, sqrt(minDistance));
+        // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
+        bool AntiParallel;
+        double theta = base1->Axis().Rz().Angle( base2->Axis().Rz() );
+        //mprintf("    Dot product of Z vectors: %f\n", dist2);
+        if (theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
+#         ifdef NASTRUCTDEBUG
+          mprintf("      %s is anti-parallel to %s\n", base1->ResName(), base2->ResName());
 #         endif
-      // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
-      bool AntiParallel;
-      double dist2 = BaseAxes_[base1].Rz().Angle( BaseAxes_[minBaseNum].Rz() );
-      //mprintf("    Dot product of Z vectors: %f\n", dist2);
-      if (dist2 > Constants::PIOVER2) { // If theta(Z) > 90 deg.
-#       ifdef NASTRUCTDEBUG
-        mprintf("      %s is anti-parallel to %s\n", Bases_[base1].ResName(),
-                Bases_[minBaseNum].ResName());
-#       endif
-        AntiParallel = true;
-      } else {
-#       ifdef NASTRUCTDEBUG
-        mprintf("      %s is parallel to %s\n", Bases_[base1].ResName(),
-                Bases_[minBaseNum].ResName());
-#       endif
-        AntiParallel = false;
-      }
-      int NHB = CalcNumHB(Bases_[base1], Bases_[minBaseNum]);
-      if (NHB > 0) {
-        BasePairAxes_.push_back( NA_Axis(base1, minBaseNum, AntiParallel) );
-        NumberOfHbonds_.push_back( NHB );
-        isPaired[base1] = true;
-        isPaired[minBaseNum] = true;
-      }
-    } // END if minBaseNum!=-1
-  } // END Loop over base1
-
-  if (debug_>0) mprintf("    NAstruct: Detected %u base pairs.\n", BasePairAxes_.size());
-  // Print Base Pair info
-  if (debug_>1) {
-    int nBP = 1; //  Base pair #
-    for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
-                                        BP != BasePairAxes_.end(); ++BP)
-    {
-      int bp_1 = (*BP).Res1();
-      int bp_2 = (*BP).Res2();
-      mprintf("        BP %i: Res %i:%c to %i:%c", nBP++,
-              bp_1+1, Bases_[bp_1].BaseChar(), 
-              bp_2+1, Bases_[bp_2].BaseChar());
-      if ( (*BP).IsAnti() )
-        mprintf(" AntiParallel.\n");
-      else
-        mprintf(" Parallel.\n");
-    }
-  }
-  // For each BP, set up a dataset for each structural parameter
-  if (dataname_.empty())
-    dataname_ = masterDSL_->GenerateDefaultName("NA");
-  int dsidx = 1; // Base pair # and DataSet idx
-  for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
-                                      BP != BasePairAxes_.end(); ++BP)
-  {
-    // Create legend
-    int bp_1 = (*BP).Res1();
-    int bp_2 = (*BP).Res2();
-    std::string b1name = integerToString( Bases_[bp_1].ResNum()+1 ) +
-                         Bases_[bp_1].BaseChar();
-    std::string b2name = integerToString( Bases_[bp_2].ResNum()+1 ) + 
-                         Bases_[bp_2].BaseChar();
-    std::string bpname = b1name + b2name;
-    // Create pucker Data Sets
-    PUCKER_.push_back( 
-      (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT, dataname_,
-                                               Bases_[bp_1].ResNum()+1, "pucker",
-                                               b1name) );
-    PUCKER_.back()->SetScalar( DataSet::M_PUCKER, DataSet::PUCKER );
-    PUCKER_.push_back( 
-      (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT, dataname_,
-                                               Bases_[bp_2].ResNum()+1, "pucker",
-                                               b2name) );
-    PUCKER_.back()->SetScalar( DataSet::M_PUCKER, DataSet::PUCKER );
-    // Create sets
-    SHEAR_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname) );
-    STRETCH_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname));
-    STAGGER_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stagger",bpname));
-    BUCKLE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"buckle",bpname) );
-    PROPELLER_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"prop",bpname) );
-    OPENING_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"open",bpname) );
-    BPHBONDS_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::INTEGER,dataname_,dsidx,"hb",bpname) );
-    MAJOR_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"major",bpname) );
-    MINOR_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"minor",bpname) );
-    ++dsidx;
-  }
+          AntiParallel = true;
+        } else {
+#         ifdef NASTRUCTDEBUG
+          mprintf("      %s is parallel to %s\n", base1->ResName(), base2->ResName());
+#         endif
+          AntiParallel = false;
+        }
+        int NHB = CalcNumHB(*base1, *base2);
+        if (NHB > 0) {
+          Rpair respair(base1->ResNum(), base2->ResNum());
+          // Bases are paired. Try to find existing base pair.
+          BPmap::iterator entry = BasePairs_.find( respair );
+          if (entry == BasePairs_.end()) {
+            // New base pair
+            mprintf("      New base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
+            int dsidx = (int)BasePairs_.size() + 1;
+            BPtype BP;
+            std::string bpname = base1->BaseName() + base2->BaseName();
+            BP.shear_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname);
+            BP.stretch_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname);
+            BP.stagger_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stagger",bpname);
+            BP.buckle_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"buckle",bpname);
+            BP.prop_    = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"prop",bpname);
+            BP.opening_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"open",bpname);
+            BP.hbonds_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::INTEGER,dataname_,dsidx,"hb",bpname);
+            BP.major_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"major",bpname);
+            BP.minor_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"minor",bpname);
+            BP.base1idx_ = base1 - Bases_.begin();
+            BP.base2idx_ = base2 - Bases_.begin();
+            entry = BasePairs_.insert( entry, std::pair<Rpair, BPtype>(respair, BP) ); // FIXME does entry make more efficient?
+          } else
+            mprintf("      Existing base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
+          mprintf(", %i hbonds.\n", NHB);
+          entry->second.nhb_ = NHB;
+          entry->second.isAnti_ = AntiParallel;
+        } // END if # hydrogen bonds > 0
+      } // END if base to base origin distance < cut
+    } // END base2 loop
+  } // END base1 loop
+/*
   // For each BP step, set up a dataset for each structural parameter. 
   // One less than total # BP.
   if (BasePairAxes_.size() > 1) {
@@ -399,6 +298,7 @@ int Action_NAstruct::determineBasePairing() {
       ++dsidx;
     }
   }
+*/
   return 0;
 }
 
@@ -706,7 +606,7 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
 }
 
 /// Calculate nucleic acid sugar pucker.
-void Action_NAstruct::CalcPucker( NA_Base const& base, int framenum, int nbase ) {
+void Action_NAstruct::CalcPucker( NA_Base& base, int framenum ) {
   double pval=0.0, aval, tval;
   switch (puckerMethod_) {
     case ALTONA:
@@ -720,7 +620,7 @@ void Action_NAstruct::CalcPucker( NA_Base const& base, int framenum, int nbase )
       break;
   }
   float fval = (float)(pval * Constants::RADDEG);
-  PUCKER_[nbase]->Add(framenum, &fval);
+  base.Pucker()->Add(framenum, &fval);
 }
 
 // Action_NAstruct::determineBaseParameters()
@@ -736,17 +636,17 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
   mprintf("\n=================== Determine BP Parameters ===================\n");
 # endif
 
-  int nbasepair = 0;
-  for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
-                                      BP != BasePairAxes_.end(); ++BP)
+  for (BPmap::iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it)
   {
-    int b1 = (*BP).Res1();
-    int b2 = (*BP).Res2();
-    const NA_Base& base1 = Bases_[b1];
-    const NA_Base& base2 = Bases_[b2]; 
+    if (it->second.nhb_ < 1) continue;
+    BPtype& BP = it->second;
+    int b1 = BP.base1idx_;
+    int b2 = BP.base2idx_;
+    NA_Base& base1 = Bases_[b1];
+    NA_Base& base2 = Bases_[b2]; //TODO copy? 
 #   ifdef NASTRUCTDEBUG
     mprintf("BasePair %i:%s to %i:%s", b1+1, base1.ResName(), b2+1, base2.ResName());
-    if ((*BP).IsAnti())
+    if (BP.isAnti_)
       mprintf(" Anti-parallel.\n");
     else
       mprintf(" Parallel.\n");
@@ -754,10 +654,10 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
     // Check Antiparallel / Parallel
     // Flip YZ (rotate around X) for antiparallel
     // Flip XY (rotate around Z) for parallel
-    if ((*BP).IsAnti())
-      BaseAxes_[b2].FlipYZ();
+    if (BP.isAnti_)
+      base2.Axis().FlipYZ();
     else
-      BaseAxes_[b2].FlipXY();
+      base2.Axis().FlipXY();
     // TEST - calc P--P distance
     float dPtoP = 0.0;
     //mprintf("\tDEBUG: %i %i:", BaseAxes[base1].Pidx(), BaseAxes[base2].Pidx() );
@@ -779,13 +679,13 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
       dOtoO = (float)DO4;
     }
     if (base1.HasSugarAtoms())
-      CalcPucker( base1, frameNum, nbasepair*2 );
+      CalcPucker( base1, frameNum );
     if (base2.HasSugarAtoms())
-      CalcPucker( base2, frameNum, (nbasepair*2) + 1 );
+      CalcPucker( base2, frameNum );
     //mprintf("\n");
     // Calc BP parameters, set up basepair axes
     //calculateParameters(BaseAxes[base1],BaseAxes[base2],&BasePairAxes[nbasepair],Param);
-    calculateParameters(BaseAxes_[b2], BaseAxes_[b1], &(*BP), Param);
+    calculateParameters(base2.Axis(), base1.Axis(), &(BP.bpaxis_), Param);
     // Store data
     Param[3] *= Constants::RADDEG;
     Param[4] *= Constants::RADDEG;
@@ -798,22 +698,20 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
     float opening = (float)Param[3];
     float prop = (float)Param[4];
     float buckle = (float)Param[5];
-    int n_of_hb = NumberOfHbonds_[nbasepair];
     // Add to DataSets
-    SHEAR_[nbasepair]->Add(frameNum, &shear);
-    STRETCH_[nbasepair]->Add(frameNum, &stretch);
-    STAGGER_[nbasepair]->Add(frameNum, &stagger);
-    OPENING_[nbasepair]->Add(frameNum, &opening);
-    PROPELLER_[nbasepair]->Add(frameNum, &prop);
-    BUCKLE_[nbasepair]->Add(frameNum, &buckle);
-    BPHBONDS_[nbasepair]->Add(frameNum, &n_of_hb);
-    MAJOR_[nbasepair]->Add(frameNum, &dPtoP);
-    MINOR_[nbasepair]->Add(frameNum, &dOtoO);
+    BP.shear_->Add(frameNum, &shear);
+    BP.stretch_->Add(frameNum, &stretch);
+    BP.stagger_->Add(frameNum, &stagger);
+    BP.opening_->Add(frameNum, &opening);
+    BP.prop_->Add(frameNum, &prop);
+    BP.buckle_->Add(frameNum, &buckle);
+    BP.hbonds_->Add(frameNum, &(BP.nhb_));
+    BP.major_->Add(frameNum, &dPtoP);
+    BP.minor_->Add(frameNum, &dOtoO);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
-    WriteAxes(basepairaxesfile, b1+1, base1.ResName(), *BP);
+    WriteAxes(basepairaxesfile, b1+1, base1.ResName(), BP.bpaxis_);
 #   endif
-    ++nbasepair; 
   }
 
   return 0;
@@ -825,10 +723,11 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
   */
 int Action_NAstruct::determineBasepairParameters(int frameNum) {
   double Param[6];
+/*
 # ifdef NASTRUCTDEBUG
   mprintf("\n=================== Determine BPstep Parameters ===================\n");
 # endif
-  if (BasePairAxes_.size() < 2) return 0;
+  if (BasePairs_.size() < 2) return 0;
   int bpi = 0;
   std::vector<NA_Axis>::iterator NBPstep = BasePairAxes_.end() - 1;
   for (std::vector<NA_Axis>::iterator BP1 = BasePairAxes_.begin();
@@ -877,7 +776,7 @@ int Action_NAstruct::determineBasepairParameters(int frameNum) {
     HTWIST_[bpi]->Add(frameNum, &htwist);
     ++bpi; 
   }
-
+*/
   return 0;
 }
 // ----------------------------------------------------------------------------
@@ -985,10 +884,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
     mprintf("\tUsing reference %s to determine base-pairing.\n", REF.FrameName().base());
     if (Setup((Topology*)(&REF.Parm()), 0)) return Action::ERR;
     // Set up base axes
-    if ( setupBaseAxes(REF.Coord()) ) return Action::ERR;
+    if ( SetupBaseAxes(REF.Coord()) ) return Action::ERR;
     // Determine Base Pairing
-    if ( determineBasePairing() ) return Action::ERR;
-    mprintf("\tSet up %zu base pairs.\n", BasePairAxes_.size() ); 
+    if ( DetermineBasePairing() ) return Action::ERR;
+    mprintf("\tSet up %zu base pairs.\n", BasePairs_.size() ); 
   } else
     mprintf("\tUsing first frame to determine base pairing.\n");
   if (puckerMethod_==ALTONA)
@@ -1004,8 +903,6 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
   * the masks that correspond to the reference frame atoms.
   */
 Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAddress) {
-  // Clear Bases and BaseAxes
-  ClearLists();
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
   Range actualRange;
@@ -1018,7 +915,8 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
     mprinterr("Error: NAstruct::setup: No residues specified for %s\n",currentParm->c_str());
     return Action::ERR;
   }
-
+  if (dataname_.empty())
+    dataname_ = masterDSL_->GenerateDefaultName("NA");
   // DEBUG - print all residues
   //if (debug>0)
   //  actualRange.PrintRange("    NAstruct: NA res:",1);
@@ -1052,17 +950,16 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
       }
       continue;
     }
-    // Set up ref coords for this base type. If there is a problem
-    // the type will be reset to UNKNOWN.
-    Bases_.push_back( NA_Base( *currentParm, *resnum, baseType ) );
-    if (Bases_.back().Type() == NA_Base::UNKNOWN_BASE) {
-      mprinterr("Error: NAstruct::setup: Could not get ref coords for %i:%s\n",
+    // Set up ref coords for this base type.
+    NA_Base currentBase;
+    if (currentBase.Setup_Base( *currentParm, *resnum, baseType, *masterDSL_, dataname_ )) {
+      mprinterr("Error: Could not set up residue %i:%s for NA structure analysis.\n",
                 *resnum+1, currentParm->Res(*resnum).c_str());
       return Action::ERR;
     }
+    Bases_.push_back( currentBase );
     // Determine the largest residue for setting up frames for RMS fit later.
-    if (Bases_.back().InputFitMask().Nselected() > maxResSize_)
-      maxResSize_ = Bases_.back().InputFitMask().Nselected();
+    maxResSize_ = std::max( maxResSize_, currentBase.InputFitMask().Nselected() );
     if (debug_>1) {
       mprintf("\tNAstruct: Res %i:%s ", *resnum+1, currentParm->Res(*resnum).c_str());
       Bases_.back().PrintAtomNames();
@@ -1070,8 +967,6 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
       Bases_.back().RefFitMask().PrintMaskAtoms("RefMask");
     }
   } // End Loop over NA residues
-  // Allocate space for base axes
-  BaseAxes_.resize( Bases_.size() );
   mprintf("\tSet up %zu bases.\n", Bases_.size());
 
   return Action::OK;  
@@ -1080,18 +975,16 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
 // Action_NAstruct::DoAction()
 Action::RetType Action_NAstruct::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   // Set up base axes
-  if ( setupBaseAxes(*currentFrame) ) return Action::ERR;
+  if ( SetupBaseAxes(*currentFrame) ) return Action::ERR;
 
   if (!useReference_) {
     // Determine Base Pairing based on first frame
-    if ( determineBasePairing() ) return Action::ERR;
+    if ( DetermineBasePairing() ) return Action::ERR;
     useReference_ = true;
   } else {
     // Base pairing determined from ref. Just calc # hbonds for each pair.
-    int bp = 0;
-    for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
-                                        BP != BasePairAxes_.end(); ++BP)
-      NumberOfHbonds_[bp++] = CalcNumHB(Bases_[(*BP).Res1()], Bases_[(*BP).Res2()]);
+    for (BPmap::iterator BP = BasePairs_.begin(); BP != BasePairs_.end(); ++BP)
+      BP->second.nhb_ = CalcNumHB(Bases_[BP->second.base1idx_], Bases_[BP->second.base2idx_]);
   }
 
   // Determine base parameters
@@ -1099,50 +992,48 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, Frame* currentFrame, Fra
 
   // Determine base pair parameters
   determineBasepairParameters(frameNum);
-
+  nframes_++;
   return Action::OK;
 } 
 
 // Action_NAstruct::Print()
 void Action_NAstruct::Print() {
-  int nframes;
+  //int nframes;
   if (bpout_ == 0) return;
-
   // ---------- Base pair parameters ----------
   // Check that there is actually data
-  if ( SHEAR_.empty() || SHEAR_[0]->Empty() )
+  if ( BasePairs_.empty() || nframes_ < 1)
     mprinterr("Error: Could not write BP file %s: No BP data.\n", bpout_->Filename().full()); 
   else {
-      // Determine number of frames from SHEAR[0] DataSet
-      nframes = SHEAR_[0]->Size();
       mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
-              bpout_->Filename().full(), nframes, BasePairAxes_.size());
+              bpout_->Filename().full(), nframes_, BasePairs_.size());
       //  File header
       if (printheader_)
         bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %10s %10s\n",
                        "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
                        "Buckle","Propeller","Opening", "HB", "Major", "Minor");
       // Loop over all frames
-      for (int frame = 0; frame < nframes; ++frame) {
-        int nbp = 0;
-        for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
-                                        BP != BasePairAxes_.end(); ++BP) {
-          int bp_1 = (*BP).Res1();
-          int bp_2 = (*BP).Res2();
+      for (int frame = 0; frame < nframes_; ++frame) {
+        for (BPmap::const_iterator it = BasePairs_.begin();
+                                   it != BasePairs_.end(); ++it)
+        {
+          BPtype const& BP = it->second;
+          NA_Base const& base1 = Bases_[BP.base1idx_];
+          NA_Base const& base2 = Bases_[BP.base2idx_];
           // FIXME: Hack for integer
-          int n_of_hb = (int)BPHBONDS_[nbp]->Dval(frame);
+          int n_of_hb = (int)BP.hbonds_->Dval(frame);
           bpout_->Printf(BP_OUTPUT_FMT, frame+1, 
-                         Bases_[bp_1].ResNum()+1, Bases_[bp_2].ResNum()+1,
-                         SHEAR_[nbp]->Dval(frame), STRETCH_[nbp]->Dval(frame),
-                         STAGGER_[nbp]->Dval(frame), BUCKLE_[nbp]->Dval(frame),
-                         PROPELLER_[nbp]->Dval(frame), OPENING_[nbp]->Dval( frame),
-                         n_of_hb, MAJOR_[nbp]->Dval(frame), MINOR_[nbp]->Dval(frame));
-          ++nbp;
+                         base1.ResNum()+1, base2.ResNum()+1,
+                         BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
+                         BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
+                         BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
+                         n_of_hb, 
+                         BP.major_->Dval(frame),   BP.minor_->Dval(frame));
         }
         bpout_->Printf("\n");
       }
   }
-
+/*
   // ---------- Base pair step parameters ----------
   // Check that there is actually data
   // TODO: Check helix data as well
@@ -1192,5 +1083,6 @@ void Action_NAstruct::Print() {
         helixout_->Printf("\n");
       }
   }
+*/
 }
 
