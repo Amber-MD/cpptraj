@@ -33,7 +33,7 @@ class Action_NAstruct: public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
     // Functions
-
+    static int TravelBackbone(Topology const&, int, std::vector<int>&); 
     int SetupBaseAxes(Frame const&);
 
     //int GCpair(NA_Base const&, NA_Base const&);

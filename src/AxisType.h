@@ -43,11 +43,15 @@ class NA_Base {
     static NAType ID_BaseFromName(NameType const&);
     int Setup_Base(Topology const&, int, NAType, DataSetList&, std::string const&);
     void SetInputFrame(Frame const&);
+    void SetC3Idx(int i)                 { c3idx_ = i;             }
+    void SetC5Idx(int i)                 { c5idx_ = i;             }
     void PrintAtomNames() const;
-    NA_Axis&       Axis()               { return axis_;           }
-    NA_Axis const& Axis()         const { return axis_;           }
+    NA_Axis&       Axis()                { return axis_;           } //TODO: Remove?
+    NA_Axis const& Axis()          const { return axis_;           }
     NAType Type()                  const { return type_;           }
     int ResNum()                   const { return rnum_;           }
+    int C3resIdx()                 const { return c3idx_;          }
+    int C5resIdx()                 const { return c5idx_;          }
     char BaseChar()                const { return bchar_;          }
     Frame const& Ref()             const { return Ref_;            }
     Frame const& Input()           const { return Inp_;            }
@@ -73,9 +77,14 @@ class NA_Base {
     const double* C4xyz()      const { return Inp_.XYZ(atomIdx_[C4p]);  }
     DataSet_1D* Pucker()             { return pucker_;                  }
   private:
+    /// Find index in Input corresponding to atom name.
+    int FindAtom(NameType const&) const;
+
     NA_Axis axis_;                  ///< Reference axis.
-    DataSet_1D* pucker_;               ///< Hold sugar pucker data.
+    DataSet_1D* pucker_;            ///< Hold sugar pucker data.
     int rnum_;                      ///< Original residue number
+    int c3idx_;                     ///< Index of c3' neighbor res.
+    int c5idx_;                     ///< Index of c5' neighbor res.
     char bchar_;                    ///< 1 char base name.
     NAType type_;                   ///< Base type.
     Frame Ref_;                     ///< Reference coords.
@@ -86,13 +95,11 @@ class NA_Base {
     std::vector<NameType> refnames_; ///< Atom names (Ref)
 #   endif  
     Frame Inp_;                     ///< Input coords.
-    std::vector<HBType> hb_;        ///< Hydrogen bond type of each atom.
-    int atomIdx_[6];                ///< Indices of phosphate/sugar agoms.
+    std::vector<HBType> hb_;        ///< Hydrogen bond type of each Input atom.
+    int atomIdx_[6];                ///< Indices of Input phosphate/sugar atoms.
     AtomMask parmMask_;             ///< Mask corresponding to atoms in parm.
     AtomMask inpFitMask_;           ///< Mask of input atoms to be used in RMS fit.
     AtomMask refFitMask_;           ///< Mask of ref atoms to be used in RMS fit.
-
-    int FindAtom(NameType const&) const;
 };
 
 #endif  

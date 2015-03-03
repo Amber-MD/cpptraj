@@ -102,6 +102,8 @@ static const char* NAbaseName[] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
 NA_Base::NA_Base() :
   pucker_(0),
   rnum_(0),
+  c3idx_(-1),
+  c5idx_(-1),
   bchar_('?'),
   type_(UNKNOWN_BASE)
 {
@@ -112,6 +114,8 @@ NA_Base::NA_Base() :
 NA_Base::NA_Base(const NA_Base& rhs) :
   pucker_(rhs.pucker_),
   rnum_(rhs.rnum_),
+  c3idx_(rhs.c3idx_),
+  c5idx_(rhs.c5idx_),
   bchar_(rhs.bchar_),
   type_(rhs.type_),
   Ref_(rhs.Ref_),
@@ -135,6 +139,8 @@ NA_Base& NA_Base::operator=(const NA_Base& rhs) {
   if (this != &rhs) {
     pucker_ = rhs.pucker_;
     rnum_ = rhs.rnum_;
+    c3idx_ = rhs.c3idx_;
+    c5idx_ = rhs.c5idx_;
     bchar_ = rhs.bchar_;
     type_ = rhs.type_;
     Ref_ = rhs.Ref_;
@@ -314,6 +320,8 @@ int NA_Base::Setup_Base(Topology const& currentParm, int resnum, NA_Base::NAType
         return 1;
       } else {
         rnum_ = resnum;
+        c3idx_ = -1;
+        c5idx_ = -1;
         type_ = baseType;
         bchar_ = NAbaseChar[type_];
 #       ifdef NASTRUCTDEBUG

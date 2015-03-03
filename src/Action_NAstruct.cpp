@@ -895,6 +895,27 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
   return Action::OK;
 }
 
+/** Starting at atom, try to travel phosphate backbone to atom in next res. */
+int Action_NAstruct::TravelBackbone( Topology const& top, int atom, std::vector<int>& Visited ) {
+  Visited[atom] = 1;
+  for (Atom::bond_iterator bndat = top[atom].bondbegin();
+                           bndat != top[atom].bondend(); ++bndat)
+  {
+    if ( Visited[*bndat] == 0) {
+      if ( top[*bndat].Element() == Atom::CARBON || 
+           top[*bndat].Element() == Atom::HYDROGEN )
+        Visited[*bndat] = 1;
+      else if ( top[*bndat].ResNum() != top[atom].ResNum() )
+        return *bndat;
+      else {
+        int tatom = TravelBackbone( top, *bndat, Visited );
+        if (tatom != -1) return tatom;
+      }
+    }
+  }
+  return -1;
+}
+
 // Action_NAstruct::Setup()
 /** Determine the number of NA bases that will be analyzed, along with 
   * the masks that correspond to the reference frame atoms.
@@ -917,10 +938,11 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
   // DEBUG - print all residues
   //if (debug>0)
   //  actualRange.PrintRange("    NAstruct: NA res:",1);
-
+  bool firstTimeSetup = Bases_.empty();
+  unsigned int idx = 0;
   // Set up NA_base for each selected NA residue 
   for (Range::const_iterator resnum = actualRange.begin();
-                             resnum != actualRange.end(); ++resnum)
+                             resnum != actualRange.end(); ++resnum, ++idx)
   {
     NA_Base::NAType baseType = NA_Base::UNKNOWN_BASE;
 #   ifdef NASTRUCTDEBUG
@@ -947,25 +969,73 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
       }
       continue;
     }
-    // Set up ref coords for this base type.
-    NA_Base currentBase;
-    if (currentBase.Setup_Base( *currentParm, *resnum, baseType, *masterDSL_, dataname_ )) {
-      mprinterr("Error: Could not set up residue %i:%s for NA structure analysis.\n",
-                *resnum+1, currentParm->Res(*resnum).c_str());
-      return Action::ERR;
-    }
-    Bases_.push_back( currentBase );
-    // Determine the largest residue for setting up frames for RMS fit later.
-    maxResSize_ = std::max( maxResSize_, currentBase.InputFitMask().Nselected() );
-    if (debug_>1) {
-      mprintf("\tNAstruct: Res %i:%s ", *resnum+1, currentParm->Res(*resnum).c_str());
-      Bases_.back().PrintAtomNames();
-      Bases_.back().InputFitMask().PrintMaskAtoms("InpMask");
-      Bases_.back().RefFitMask().PrintMaskAtoms("RefMask");
+    if (firstTimeSetup) {
+      // Set up ref coords for this base type.
+      NA_Base currentBase;
+      if (currentBase.Setup_Base( *currentParm, *resnum, baseType, *masterDSL_, dataname_ )) {
+        mprinterr("Error: Could not set up residue %s for NA structure analysis.\n",
+                  currentParm->TruncResNameNum(*resnum).c_str());
+        return Action::ERR;
+      }
+      Bases_.push_back( currentBase );
+      // Determine the largest residue for setting up frames for RMS fit later.
+      maxResSize_ = std::max( maxResSize_, currentBase.InputFitMask().Nselected() );
+      if (debug_>1) {
+        mprintf("\tNAstruct: Res %i:%s ", *resnum+1, currentParm->Res(*resnum).c_str());
+        Bases_.back().PrintAtomNames();
+        Bases_.back().InputFitMask().PrintMaskAtoms("InpMask");
+        Bases_.back().RefFitMask().PrintMaskAtoms("RefMask");
+      }
+    } else {
+      // Ensure base type has not changed. //TODO: Re-set up reference?
+      if (baseType != Bases_[idx].Type()) {
+        mprinterr("Error: Residue %s base type has changed from %s\n",
+                  currentParm->TruncResNameNum(*resnum).c_str(), Bases_[idx].BaseName().c_str());
+        return Action::ERR;
+      }
     }
   } // End Loop over NA residues
   mprintf("\tSet up %zu bases.\n", Bases_.size());
-
+  // Determine base connectivity.
+  std::vector<int> Visited( currentParm->Res(Bases_.back().ResNum()).LastAtom(), 0 );
+  for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
+    Residue const& res = currentParm->Res( base->ResNum() );
+    int c5neighbor = -1;
+    int c3neighbor = -1;
+    for (int ratom = res.FirstAtom(); ratom != res.LastAtom(); ++ratom) {
+      if ( (*currentParm)[ratom].Name() == "C5' " ||
+           (*currentParm)[ratom].Name() == "C5* " )
+        c5neighbor = TravelBackbone( *currentParm, ratom, Visited );
+      else if ( (*currentParm)[ratom].Name() == "C3' " ||
+                (*currentParm)[ratom].Name() == "C3* " )
+        c3neighbor = TravelBackbone( *currentParm, ratom, Visited ); 
+    }
+    std::fill( Visited.begin()+res.FirstAtom(), Visited.begin()+res.LastAtom(), 0 );
+    // Convert from atom #s to residue #s
+    mprintf("\tResidue %s", currentParm->TruncResNameNum( base->ResNum() ).c_str());
+    if (c5neighbor != -1) {
+      c5neighbor = (*currentParm)[c5neighbor].ResNum();
+      mprintf(" (5'= %s)", currentParm->TruncResNameNum( c5neighbor ).c_str());
+    }
+    if (c3neighbor != -1) {
+      c3neighbor = (*currentParm)[c3neighbor].ResNum();
+      mprintf(" (3'= %s)", currentParm->TruncResNameNum( c3neighbor ).c_str());
+    }
+    mprintf("\n");
+    // Find residue #s in Bases_ and set indices.
+    for (idx = 0; idx != Bases_.size(); idx++) {
+      if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
+      if (c3neighbor == Bases_[idx].ResNum()) base->SetC3Idx( idx );
+    }
+  }
+  for (Barray::const_iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
+    mprintf("\tResidue %s", currentParm->TruncResNameNum( base->ResNum() ).c_str());
+    if (base->C5resIdx() != -1)
+      mprintf(" (5'= %s)", currentParm->TruncResNameNum( Bases_[base->C5resIdx()].ResNum() ).c_str());
+    if (base->C3resIdx() != -1)
+      mprintf(" (3'= %s)", currentParm->TruncResNameNum( Bases_[base->C3resIdx()].ResNum() ).c_str());
+    mprintf("\n");
+  }
   return Action::OK;  
 }
 
