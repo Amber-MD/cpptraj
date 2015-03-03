@@ -61,6 +61,7 @@ class Action_NAstruct: public Action {
       DataSet_1D* hbonds_;
       DataSet_1D* major_;
       DataSet_1D* minor_;
+      unsigned int bpidx_;
       unsigned int base1idx_; ///< Index of first base in Bases_
       unsigned int base2idx_; ///< Index of second base in Bases_
       int nhb_;               ///< Current # of hydrogen bonds in base bpair.
@@ -71,8 +72,6 @@ class Action_NAstruct: public Action {
     BPmap BasePairs_;     ///< Hold base pairs
     /// Hold a base pair step.
     struct StepType {
-      int BP1idx_; ///< Index of first base pair in BasePairs_
-      int BP2idx_; ///< Index of second base pair in BasePairs_
       DataSet_1D* shift_;
       DataSet_1D* slide_;
       DataSet_1D* rise_;
@@ -85,8 +84,13 @@ class Action_NAstruct: public Action {
       DataSet_1D* incl_;
       DataSet_1D* tip_;
       DataSet_1D* htwist_;
+      unsigned int b1idx_; ///< Index of base pair 1 base 1 in Bases_
+      unsigned int b2idx_;
+      unsigned int b3idx_;
+      unsigned int b4idx_;
     };
-    std::vector<StepType> Steps_;       ///< Hold base pair steps.
+    typedef std::map<Rpair,StepType> StepMap;
+    StepMap Steps_;       ///< Hold base pair steps.
     // Variables
     enum PmethodType { ALTONA=0, CREMER };
     PmethodType puckerMethod_;

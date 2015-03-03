@@ -247,6 +247,7 @@ int Action_NAstruct::DetermineBasePairing() {
             BP.hbonds_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::INTEGER,dataname_,dsidx,"hb",bpname);
             BP.major_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"major",bpname);
             BP.minor_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"minor",bpname);
+            BP.bpidx_ = BasePairs_.size();
             BP.base1idx_ = base1 - Bases_.begin();
             BP.base2idx_ = base2 - Bases_.begin();
             entry = BasePairs_.insert( entry, std::pair<Rpair, BPtype>(respair, BP) ); // FIXME does entry make more efficient?
@@ -259,46 +260,6 @@ int Action_NAstruct::DetermineBasePairing() {
       } // END if base to base origin distance < cut
     } // END base2 loop
   } // END base1 loop
-/*
-  // For each BP step, set up a dataset for each structural parameter. 
-  // One less than total # BP.
-  if (BasePairAxes_.size() > 1) {
-    dsidx = 1; // Base pair step # and DataSet idx
-    std::vector<NA_Axis>::iterator NBPstep = BasePairAxes_.end() - 1;
-    for (std::vector<NA_Axis>::iterator BP1 = BasePairAxes_.begin();
-                                        BP1 != NBPstep; ++BP1)
-    {
-      std::vector<NA_Axis>::iterator BP2 = BP1 + 1;
-      // Create legend
-      int bp_1 = (*BP1).Res1();
-      int bp_2 = (*BP1).Res2();
-      int bp_3 = (*BP2).Res1();
-      int bp_4 = (*BP2).Res2();
-      std::string sname = integerToString( Bases_[bp_1].ResNum()+1 ) +
-                          Bases_[bp_1].BaseChar() +
-                          integerToString( Bases_[bp_2].ResNum()+1 ) +
-                          Bases_[bp_2].BaseChar() + "-" +
-                          integerToString( Bases_[bp_3].ResNum()+1 ) +
-                          Bases_[bp_3].BaseChar() +
-                          integerToString( Bases_[bp_4].ResNum()+1 ) +
-                          Bases_[bp_4].BaseChar();
-      // Create Sets
-      SHIFT_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname) );
-      SLIDE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname) );
-      RISE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"rise",sname) );
-      TILT_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tilt",sname) );
-      ROLL_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"roll",sname) );
-      TWIST_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"twist",sname) );
-      XDISP_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"xdisp",sname) );
-      YDISP_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"ydisp",sname) );
-      HRISE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"hrise",sname) );
-      INCL_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname) );
-      TIP_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname) );
-      HTWIST_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname) );
-      ++dsidx;
-    }
-  }
-*/
   return 0;
 }
 
@@ -723,60 +684,96 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
   */
 int Action_NAstruct::determineBasepairParameters(int frameNum) {
   double Param[6];
-/*
 # ifdef NASTRUCTDEBUG
   mprintf("\n=================== Determine BPstep Parameters ===================\n");
 # endif
   if (BasePairs_.size() < 2) return 0;
-  int bpi = 0;
-  std::vector<NA_Axis>::iterator NBPstep = BasePairAxes_.end() - 1;
-  for (std::vector<NA_Axis>::iterator BP1 = BasePairAxes_.begin();
-                                      BP1 != NBPstep; ++BP1)
-  {
-    std::vector<NA_Axis>::iterator BP2 = BP1 + 1;
-#   ifdef NASTRUCTDEBUG
-    mprintf("BasePair step %i to %i\n", bpi+1, bpi+2);
-#   endif
-    // Calc step parameters
-    calculateParameters(*BP1, *BP2, 0, Param);
-    // Store data
-    Param[3] *= Constants::RADDEG;
-    Param[4] *= Constants::RADDEG;
-    Param[5] *= Constants::RADDEG;
-    // Convert everything to float to save space
-    float shift = (float)Param[0];
-    float slide = (float)Param[1];
-    float rise = (float)Param[2];
-    float twist = (float)Param[3];
-    float roll = (float)Param[4];
-    float tilt = (float)Param[5];
-    SHIFT_[bpi]->Add(frameNum, &shift);
-    SLIDE_[bpi]->Add(frameNum, &slide);
-    RISE_[bpi]->Add(frameNum, &rise);
-    TWIST_[bpi]->Add(frameNum, &twist);
-    ROLL_[bpi]->Add(frameNum, &roll);
-    TILT_[bpi]->Add(frameNum, &tilt);
-    // Calc helical parameters
-    helicalParameters(*BP1, *BP2, Param);
-    Param[3] *= Constants::RADDEG;
-    Param[4] *= Constants::RADDEG;
-    Param[5] *= Constants::RADDEG;
-    // Convert to float
-    float xdisp = (float)Param[0];
-    float ydisp = (float)Param[1];
-    float hrise = (float)Param[2];
-    float incl = (float)Param[3];
-    float tip = (float)Param[4];
-    float htwist = (float)Param[5];
-    XDISP_[bpi]->Add(frameNum, &xdisp);
-    YDISP_[bpi]->Add(frameNum, &ydisp);
-    HRISE_[bpi]->Add(frameNum, &hrise);
-    INCL_[bpi]->Add(frameNum, &incl);
-    TIP_[bpi]->Add(frameNum, &tip);
-    HTWIST_[bpi]->Add(frameNum, &htwist);
-    ++bpi; 
-  }
-*/
+  // Determine which base pair candidates can be steps.
+  for (BPmap::const_iterator bp1 = BasePairs_.begin(); bp1 != BasePairs_.end(); ++bp1) {
+    BPtype const& BP1 = bp1->second;
+    NA_Base const& base1 = Bases_[BP1.base1idx_];
+    NA_Base const& base2 = Bases_[BP1.base2idx_];
+    BPmap::const_iterator bp2 = bp1;
+    ++bp2;
+    for (; bp2 != BasePairs_.end(); ++bp2) {
+      BPtype const& BP2 = bp2->second;
+      NA_Base const& base3 = Bases_[BP2.base1idx_];
+      NA_Base const& base4 = Bases_[BP2.base2idx_];
+      double dist2 = DIST2_NoImage( BP1.bpaxis_.Oxyz(), BP2.bpaxis_.Oxyz() );
+      mprintf("\tBP (%s--%s)-(%s--%s) origin dist= %g\n",
+              base1.BaseName().c_str(), base2.BaseName().c_str(),
+              base3.BaseName().c_str(), base4.BaseName().c_str(),
+              sqrt(dist2));
+      if ( dist2 < 20.25 ) { // 4.5^2
+        Rpair steppair(BP1.bpidx_, BP2.bpidx_);
+        // Base pair step. Try to find existing base pair step.
+        StepMap::iterator entry = Steps_.find( steppair );
+        if (entry == Steps_.end()) {
+          int dsidx = (int)Steps_.size() + 1;
+          std::string sname = base1.BaseName()+base2.BaseName()+"-"+
+                              base3.BaseName()+base4.BaseName();
+          // New base pair step
+          StepType BS;
+          BS.shift_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname);
+          BS.slide_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname);
+          BS.rise_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"rise",sname);
+          BS.tilt_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tilt",sname);
+          BS.roll_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"roll",sname);
+          BS.twist_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"twist",sname);
+          BS.xdisp_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"xdisp",sname);
+          BS.ydisp_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"ydisp",sname);
+          BS.hrise_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"hrise",sname);
+          BS.incl_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname);
+          BS.tip_    = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname);
+          BS.htwist_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname);
+          BS.b1idx_ = BP1.base1idx_;
+          BS.b2idx_ = BP1.base2idx_;
+          BS.b3idx_ = BP2.base1idx_;
+          BS.b4idx_ = BP2.base2idx_;
+          entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
+          mprintf("  New base pair step: %s\n", sname.c_str());
+        }
+        StepType& currentStep = entry->second;
+        // Calc step parameters
+        calculateParameters(BP1.bpaxis_, BP2.bpaxis_, 0, Param);
+        // Store data
+        Param[3] *= Constants::RADDEG;
+        Param[4] *= Constants::RADDEG;
+        Param[5] *= Constants::RADDEG;
+        // Convert everything to float to save space
+        float shift = (float)Param[0];
+        float slide = (float)Param[1];
+        float rise = (float)Param[2];
+        float twist = (float)Param[3];
+        float roll = (float)Param[4];
+        float tilt = (float)Param[5];
+        currentStep.shift_->Add(frameNum, &shift);
+        currentStep.slide_->Add(frameNum, &slide);
+        currentStep.rise_->Add(frameNum, &rise);
+        currentStep.twist_->Add(frameNum, &twist);
+        currentStep.roll_->Add(frameNum, &roll);
+        currentStep.tilt_->Add(frameNum, &tilt);
+        // Calc helical parameters
+        helicalParameters(BP1.bpaxis_, BP2.bpaxis_, Param);
+        Param[3] *= Constants::RADDEG;
+        Param[4] *= Constants::RADDEG;
+        Param[5] *= Constants::RADDEG;
+        // Convert to float
+        float xdisp = (float)Param[0];
+        float ydisp = (float)Param[1];
+        float hrise = (float)Param[2];
+        float incl = (float)Param[3];
+        float tip = (float)Param[4];
+        float htwist = (float)Param[5];
+        currentStep.xdisp_->Add(frameNum, &xdisp);
+        currentStep.ydisp_->Add(frameNum, &ydisp);
+        currentStep.hrise_->Add(frameNum, &hrise);
+        currentStep.incl_->Add(frameNum, &incl);
+        currentStep.tip_->Add(frameNum, &tip);
+        currentStep.htwist_->Add(frameNum, &htwist);
+      } // END distance less than step cutoff
+    } // END bp2 loop
+  } // END bp1 loop
   return 0;
 }
 // ----------------------------------------------------------------------------
@@ -1018,12 +1015,10 @@ void Action_NAstruct::Print() {
                                    it != BasePairs_.end(); ++it)
         {
           BPtype const& BP = it->second;
-          NA_Base const& base1 = Bases_[BP.base1idx_];
-          NA_Base const& base2 = Bases_[BP.base2idx_];
           // FIXME: Hack for integer
           int n_of_hb = (int)BP.hbonds_->Dval(frame);
           bpout_->Printf(BP_OUTPUT_FMT, frame+1, 
-                         base1.ResNum()+1, base2.ResNum()+1,
+                         Bases_[BP.base1idx_].ResNum()+1, Bases_[BP.base2idx_].ResNum()+1,
                          BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
                          BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
                          BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
@@ -1033,56 +1028,54 @@ void Action_NAstruct::Print() {
         bpout_->Printf("\n");
       }
   }
-/*
+
   // ---------- Base pair step parameters ----------
   // Check that there is actually data
   // TODO: Check helix data as well
-  if ( SHIFT_.empty() || SHIFT_[0]->Empty() )
+  if ( Steps_.empty() || nframes_ < 1 )
     mprinterr("Error: Could not write BPstep / helix files: No data.\n"); 
   else {
-      // Determine number of frames from SHIFT[0] DataSet. Should be same as SHEAR.
-      nframes = SHIFT_[0]->Size();
-      mprintf("\tBase pair step output file %s, Helix output file %s;"
-              " %i frames, %zu base pair steps.\n", 
-              stepout_->Filename().full(), helixout_->Filename().full(),
-              nframes, BasePairAxes_.size() - 1);
-      //  File headers
-      if (printheader_) {
-        stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
-                       "Shift","Slide","Rise","Tilt","Roll","Twist");
-        helixout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
-                        "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
-      }
-      // Loop over all frames
-      for (int frame = 0; frame < nframes; ++frame) {
-        int nstep = 0;
-        std::vector<NA_Axis>::iterator NBPstep = BasePairAxes_.end() - 1;
-        for (std::vector<NA_Axis>::iterator BP1 = BasePairAxes_.begin();
-                                            BP1 != NBPstep; ++BP1)
-        {
-          std::vector<NA_Axis>::iterator BP2 = BP1 + 1;
-          int bp1_1 = Bases_[(*BP1).Res1()].ResNum() + 1;
-          int bp1_2 = Bases_[(*BP1).Res2()].ResNum() + 1;
-          int bp2_1 = Bases_[(*BP2).Res1()].ResNum() + 1;
-          int bp2_2 = Bases_[(*BP2).Res2()].ResNum() + 1;
-          // BPstep write
-          stepout_->Printf(NA_OUTPUT_FMT, frame+1, 
-                         bp1_1, bp1_2, bp2_1, bp2_2,
-                         SHIFT_[nstep]->Dval(frame), SLIDE_[nstep]->Dval(frame),
-                         RISE_[nstep]->Dval(frame), TILT_[nstep]->Dval(frame),
-                         ROLL_[nstep]->Dval(frame), TWIST_[nstep]->Dval(frame));
-          // Helix write
-          helixout_->Printf(NA_OUTPUT_FMT, frame+1,
-                          bp1_1, bp1_2, bp2_1, bp2_2,
-                          XDISP_[nstep]->Dval(frame), YDISP_[nstep]->Dval(frame),
-                          HRISE_[nstep]->Dval(frame), INCL_[nstep]->Dval(frame),
-                          TIP_[nstep]->Dval(frame), HTWIST_[nstep]->Dval(frame));
-          ++nstep;
-        }
-        stepout_->Printf("\n");
-        helixout_->Printf("\n");
-      }
-  }
-*/
-}
+    // Determine number of frames from SHIFT[0] DataSet. Should be same as SHEAR.
+    mprintf("\tBase pair step output file %s, Helix output file %s;"
+            " %i frames, %zu base pair steps.\n", 
+            stepout_->Filename().full(), helixout_->Filename().full(),
+            nframes_, Steps_.size() - 1);
+    // Base pair step frames
+    if (printheader_)
+      stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+                     "Shift","Slide","Rise","Tilt","Roll","Twist");
+    for (int frame = 0; frame < nframes_; ++frame) {
+      for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
+      {
+        StepType const& BS = it->second;
+        // BPstep write
+        stepout_->Printf(NA_OUTPUT_FMT, frame+1, 
+                       Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
+                       Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
+                       BS.shift_->Dval(frame), BS.slide_->Dval(frame),
+                       BS.rise_->Dval(frame),  BS.tilt_->Dval(frame),
+                       BS.roll_->Dval(frame),  BS.twist_->Dval(frame));
 
+      }
+      stepout_->Printf("\n");
+    }
+    // Helix frames
+    if (printheader_)
+      helixout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+                      "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
+    for (int frame = 0; frame < nframes_; ++frame) {
+      for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
+      {
+        StepType const& BS = it->second;
+        // Helix write
+        helixout_->Printf(NA_OUTPUT_FMT, frame+1,
+                          Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
+                          Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
+                          BS.xdisp_->Dval(frame), BS.ydisp_->Dval(frame),
+                          BS.hrise_->Dval(frame), BS.incl_->Dval(frame),
+                          BS.tip_->Dval(frame),   BS.htwist_->Dval(frame));
+      }
+      helixout_->Printf("\n");
+    }
+  }
+}
