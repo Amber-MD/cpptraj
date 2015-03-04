@@ -30,11 +30,12 @@ class NA_Axis {
 };
 /// Hold information for NA base.
 class NA_Base {
-  public:
-    /// Type for each standard NA base.
-    enum NAType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
     /// Type for phosphate/sugar atoms (index into atomIdx_).
     enum PSType { PHOS, O4p, C1p, C2p, C3p, C4p };
+  public:
+    enum PmethodType { ALTONA=0, CREMER };
+    /// Type for each standard NA base.
+    enum NAType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
     /// Type of hydrogen bond atom.
     enum HBType { NONE = 0, DONOR, ACCEPTOR };
     NA_Base();
@@ -42,6 +43,7 @@ class NA_Base {
     NA_Base& operator=(const NA_Base&);
     static NAType ID_BaseFromName(NameType const&);
     int Setup_Base(Topology const&, int, NAType, DataSetList&, std::string const&);
+    void CalcPucker(int, PmethodType);
     void SetInputFrame(Frame const&);
     void SetC3Idx(int i)                 { c3idx_ = i;             }
     void SetC5Idx(int i)                 { c5idx_ = i;             }
@@ -61,7 +63,6 @@ class NA_Base {
     std::string const& BaseName()  const { return basename_;       }
     bool HasPatom()                const { return atomIdx_[PHOS] != -1; }
     bool HasO4atom()               const { return atomIdx_[O4p] != -1;  }
-    bool HasSugarAtoms()           const;
 #   ifdef NASTRUCTDEBUG
     const char* ResName()       const { return *rname_;         }
     const char* RefName(int i)  const { return *(refnames_[i]); }
@@ -71,12 +72,11 @@ class NA_Base {
     const double* HBxyz(int i) const { return Inp_.XYZ(i);              }
     const double* Pxyz()       const { return Inp_.XYZ(atomIdx_[PHOS]); }
     const double* O4xyz()      const { return Inp_.XYZ(atomIdx_[O4p]);  }
+  private:
     const double* C1xyz()      const { return Inp_.XYZ(atomIdx_[C1p]);  }
     const double* C2xyz()      const { return Inp_.XYZ(atomIdx_[C2p]);  }
     const double* C3xyz()      const { return Inp_.XYZ(atomIdx_[C3p]);  }
     const double* C4xyz()      const { return Inp_.XYZ(atomIdx_[C4p]);  }
-    DataSet_1D* Pucker()             { return pucker_;                  }
-  private:
     /// Find index in Input corresponding to atom name.
     int FindAtom(NameType const&) const;
 
@@ -86,6 +86,7 @@ class NA_Base {
     int c3idx_;                     ///< Index of c3' neighbor res.
     int c5idx_;                     ///< Index of c5' neighbor res.
     char bchar_;                    ///< 1 char base name.
+    bool hasSugarAtoms_;            ///< True if base has all sugar atoms present.
     NAType type_;                   ///< Base type.
     Frame Ref_;                     ///< Reference coords.
     std::vector<NameType> anames_;  ///< Atom names (Input)
@@ -101,5 +102,4 @@ class NA_Base {
     AtomMask inpFitMask_;           ///< Mask of input atoms to be used in RMS fit.
     AtomMask refFitMask_;           ///< Mask of ref atoms to be used in RMS fit.
 };
-
 #endif  

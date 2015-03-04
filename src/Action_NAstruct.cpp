@@ -3,7 +3,6 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 #include "DistRoutines.h"
-#include "TorsionRoutines.h"
 #include "Constants.h" // RADDEG
 #ifdef NASTRUCTDEBUG
 #include "PDBfile.h"
@@ -11,7 +10,7 @@
 
 // CONSTRUCTOR
 Action_NAstruct::Action_NAstruct() :
-  puckerMethod_(ALTONA),
+  puckerMethod_(NA_Base::ALTONA),
   HBdistCut2_(9.61),  // Hydrogen Bond distance cutoff^2: 3.1^2
   // NOTE: Is this too big?
   originCut2_(6.25),   // Origin cutoff^2 for base-pairing: 2.5^2
@@ -234,7 +233,9 @@ int Action_NAstruct::DetermineBasePairing() {
           BPmap::iterator entry = BasePairs_.find( respair );
           if (entry == BasePairs_.end()) {
             // New base pair
+#           ifdef NASTRUCTDEBUG
             mprintf("      New base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
+#           endif
             int dsidx = (int)BasePairs_.size() + 1;
             BPtype BP;
             std::string bpname = base1->BaseName() + base2->BaseName();
@@ -251,9 +252,12 @@ int Action_NAstruct::DetermineBasePairing() {
             BP.base1idx_ = base1 - Bases_.begin();
             BP.base2idx_ = base2 - Bases_.begin();
             entry = BasePairs_.insert( entry, std::pair<Rpair, BPtype>(respair, BP) ); // FIXME does entry make more efficient?
-          } else
+          }
+#         ifdef NASTRUCTDEBUG
+          else
             mprintf("      Existing base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
           mprintf(", %i hbonds.\n", NHB);
+#         endif
           entry->second.nhb_ = NHB;
           entry->second.isAnti_ = AntiParallel;
         } // END if # hydrogen bonds > 0
@@ -566,30 +570,12 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   return 0;
 }
 
-/// Calculate nucleic acid sugar pucker.
-void Action_NAstruct::CalcPucker( NA_Base& base, int framenum ) {
-  double pval=0.0, aval, tval;
-  switch (puckerMethod_) {
-    case ALTONA:
-      pval = Pucker_AS( base.C1xyz(), base.C2xyz(), base.C3xyz(),
-                        base.C4xyz(), base.O4xyz(), aval );
-      break;
-    case CREMER:
-      pval = Pucker_CP( base.C1xyz(), base.C2xyz(), base.C3xyz(),
-                        base.C4xyz(), base.O4xyz(), 0,
-                        5, aval, tval );
-      break;
-  }
-  float fval = (float)(pval * Constants::RADDEG);
-  base.Pucker()->Add(framenum, &fval);
-}
-
-// Action_NAstruct::determineBaseParameters()
-/** For each base in a base pair, get the values of buckle, propeller twist,
+// Action_NAstruct::DeterminePairParameters()
+/** For each base pair, get the values of buckle, propeller twist,
   * opening, shear, stretch, and stagger. Also determine the origin and 
   * rotation matrix for each base pair reference frame.
   */
-int Action_NAstruct::determineBaseParameters(int frameNum) {
+int Action_NAstruct::DeterminePairParameters(int frameNum) {
   double Param[6];
 # ifdef NASTRUCTDEBUG
   PDBfile basepairaxesfile;
@@ -639,10 +625,8 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
       DO4 = sqrt(DO4);
       dOtoO = (float)DO4;
     }
-    if (base1.HasSugarAtoms())
-      CalcPucker( base1, frameNum );
-    if (base2.HasSugarAtoms())
-      CalcPucker( base2, frameNum );
+    base1.CalcPucker( frameNum, puckerMethod_ );
+    base2.CalcPucker( frameNum, puckerMethod_ );
     //mprintf("\n");
     // Calc BP parameters, set up basepair axes
     //calculateParameters(BaseAxes[base1],BaseAxes[base2],&BasePairAxes[nbasepair],Param);
@@ -678,21 +662,42 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
   return 0;
 }
 
-// Action_NAstruct::determineBasepairParameters() 
-/** For each base pair step, determine values of Tilt, Roll, Twist, Shift,
+// Action_NAstruct::DetermineStepParameters() 
+/** Determine base pair steps and values of Tilt, Roll, Twist, Shift,
   * Slide, and Rise.
   */
-int Action_NAstruct::determineBasepairParameters(int frameNum) {
+int Action_NAstruct::DetermineStepParameters(int frameNum) {
   double Param[6];
 # ifdef NASTRUCTDEBUG
   mprintf("\n=================== Determine BPstep Parameters ===================\n");
 # endif
   if (BasePairs_.size() < 2) return 0;
-  // Determine which base pair candidates can be steps.
+  // Determine which base pairs are in step configuration.
   for (BPmap::const_iterator bp1 = BasePairs_.begin(); bp1 != BasePairs_.end(); ++bp1) {
     BPtype const& BP1 = bp1->second;
     NA_Base const& base1 = Bases_[BP1.base1idx_];
     NA_Base const& base2 = Bases_[BP1.base2idx_];
+
+    // Find step
+    Rpair respair;
+    if (BP1.isAnti_) {
+      respair.first  = base1.C3resIdx();
+      respair.second = base2.C5resIdx();
+    } else {
+      respair.first = base1.C3resIdx();
+      respair.second = base1.C3resIdx();
+    }
+    BPmap::const_iterator bp2 = BasePairs_.find( respair );
+    if (bp2 != BasePairs_.end()) {
+      BPtype const& BP2 = bp2->second;
+      NA_Base const& base3 = Bases_[BP2.base1idx_];
+      NA_Base const& base4 = Bases_[BP2.base2idx_];
+#     ifdef NASTRUCTDEBUG
+      mprintf("  BP step (%s--%s)-(%s--%s)\n",
+              base1.BaseName().c_str(), base2.BaseName().c_str(),
+              base3.BaseName().c_str(), base4.BaseName().c_str());
+#     endif
+/*
     BPmap::const_iterator bp2 = bp1;
     ++bp2;
     for (; bp2 != BasePairs_.end(); ++bp2) {
@@ -700,11 +705,12 @@ int Action_NAstruct::determineBasepairParameters(int frameNum) {
       NA_Base const& base3 = Bases_[BP2.base1idx_];
       NA_Base const& base4 = Bases_[BP2.base2idx_];
       double dist2 = DIST2_NoImage( BP1.bpaxis_.Oxyz(), BP2.bpaxis_.Oxyz() );
-      mprintf("\tBP (%s--%s)-(%s--%s) origin dist= %g\n",
+      mprintf("\tBP step (%s--%s)-(%s--%s) origin dist= %g\n",
               base1.BaseName().c_str(), base2.BaseName().c_str(),
               base3.BaseName().c_str(), base4.BaseName().c_str(),
               sqrt(dist2));
-      if ( dist2 < 20.25 ) { // 4.5^2
+      if ( dist2 < 30.0 ) { // 4.5^2 = 20.25
+*/
         Rpair steppair(BP1.bpidx_, BP2.bpidx_);
         // Base pair step. Try to find existing base pair step.
         StepMap::iterator entry = Steps_.find( steppair );
@@ -731,7 +737,9 @@ int Action_NAstruct::determineBasepairParameters(int frameNum) {
           BS.b3idx_ = BP2.base1idx_;
           BS.b4idx_ = BP2.base2idx_;
           entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
+#         ifdef NASTRUCTDEBUG
           mprintf("  New base pair step: %s\n", sname.c_str());
+#         endif
         }
         StepType& currentStep = entry->second;
         // Calc step parameters
@@ -771,7 +779,7 @@ int Action_NAstruct::determineBasepairParameters(int frameNum) {
         currentStep.incl_->Add(frameNum, &incl);
         currentStep.tip_->Add(frameNum, &tip);
         currentStep.htwist_->Add(frameNum, &htwist);
-      } // END distance less than step cutoff
+//      } // END distance less than step cutoff
     } // END bp2 loop
   } // END bp1 loop
   return 0;
@@ -799,8 +807,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
   double origincut = actionArgs.getKeyDouble("origincut", -1);
   if (origincut > 0)
     originCut2_ = origincut * origincut;
-  if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
-  else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
+  if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
+  else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
   // Get residue range
   resRange_.SetRange(actionArgs.GetStringKey("resrange"));
   if (!resRange_.Empty())
@@ -856,9 +864,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
     }
   }
   // Get Masks
-  // Dataset
+  // DataSet name
   dataname_ = actionArgs.GetStringNext();
-  // DataSets are added to data file list in print()
 
   mprintf("    NAstruct: ");
   if (resRange_.Empty())
@@ -887,15 +894,17 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
     mprintf("\tSet up %zu base pairs.\n", BasePairs_.size() ); 
   } else
     mprintf("\tUsing first frame to determine base pairing.\n");
-  if (puckerMethod_==ALTONA)
+  if (puckerMethod_==NA_Base::ALTONA)
     mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
-  else if (puckerMethod_==CREMER)
+  else if (puckerMethod_==NA_Base::CREMER)
     mprintf("\tCalculating sugar pucker using Cremer & Pople method.\n");
   DSL->SetDataSetsPending(true);
   return Action::OK;
 }
 
-/** Starting at atom, try to travel phosphate backbone to atom in next res. */
+/** Starting at atom, try to travel phosphate backbone to atom in next res.
+  * \return Atom # of atom in next residue or -1 if no next residue.
+  */
 int Action_NAstruct::TravelBackbone( Topology const& top, int atom, std::vector<int>& Visited ) {
   Visited[atom] = 1;
   for (Atom::bond_iterator bndat = top[atom].bondbegin();
@@ -917,8 +926,7 @@ int Action_NAstruct::TravelBackbone( Topology const& top, int atom, std::vector<
 }
 
 // Action_NAstruct::Setup()
-/** Determine the number of NA bases that will be analyzed, along with 
-  * the masks that correspond to the reference frame atoms.
+/** Determine which bases to use in calculation and set up their reference frames.
   */
 Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAddress) {
   // If range is empty (i.e. no resrange arg given) look through all 
@@ -1012,29 +1020,25 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
     }
     std::fill( Visited.begin()+res.FirstAtom(), Visited.begin()+res.LastAtom(), 0 );
     // Convert from atom #s to residue #s
-    mprintf("\tResidue %s", currentParm->TruncResNameNum( base->ResNum() ).c_str());
-    if (c5neighbor != -1) {
-      c5neighbor = (*currentParm)[c5neighbor].ResNum();
-      mprintf(" (5'= %s)", currentParm->TruncResNameNum( c5neighbor ).c_str());
-    }
-    if (c3neighbor != -1) {
-      c3neighbor = (*currentParm)[c3neighbor].ResNum();
-      mprintf(" (3'= %s)", currentParm->TruncResNameNum( c3neighbor ).c_str());
-    }
-    mprintf("\n");
+    if (c5neighbor != -1) c5neighbor = (*currentParm)[c5neighbor].ResNum();
+    if (c3neighbor != -1) c3neighbor = (*currentParm)[c3neighbor].ResNum();
     // Find residue #s in Bases_ and set indices.
     for (idx = 0; idx != Bases_.size(); idx++) {
       if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
       if (c3neighbor == Bases_[idx].ResNum()) base->SetC3Idx( idx );
     }
   }
-  for (Barray::const_iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
-    mprintf("\tResidue %s", currentParm->TruncResNameNum( base->ResNum() ).c_str());
-    if (base->C5resIdx() != -1)
-      mprintf(" (5'= %s)", currentParm->TruncResNameNum( Bases_[base->C5resIdx()].ResNum() ).c_str());
-    if (base->C3resIdx() != -1)
-      mprintf(" (3'= %s)", currentParm->TruncResNameNum( Bases_[base->C3resIdx()].ResNum() ).c_str());
-    mprintf("\n");
+  // DEBUG - Print base connectivity.
+  if (debug_ > 0) {
+    mprintf("\tBase Connectivity:\n");
+    for (Barray::const_iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
+      mprintf("\t  Residue %s", currentParm->TruncResNameNum( base->ResNum() ).c_str());
+      if (base->C5resIdx() != -1)
+        mprintf(" (5'= %s)", currentParm->TruncResNameNum( Bases_[base->C5resIdx()].ResNum() ).c_str());
+      if (base->C3resIdx() != -1)
+        mprintf(" (3'= %s)", currentParm->TruncResNameNum( Bases_[base->C3resIdx()].ResNum() ).c_str());
+      mprintf("\n");
+    }
   }
   return Action::OK;  
 }
@@ -1055,17 +1059,16 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, Frame* currentFrame, Fra
   }
 
   // Determine base parameters
-  determineBaseParameters(frameNum);
+  DeterminePairParameters(frameNum);
 
-  // Determine base pair parameters
-  determineBasepairParameters(frameNum);
+  // Determine base pair step parameters
+  DetermineStepParameters(frameNum);
   nframes_++;
   return Action::OK;
 } 
 
 // Action_NAstruct::Print()
 void Action_NAstruct::Print() {
-  //int nframes;
   if (bpout_ == 0) return;
   // ---------- Base pair parameters ----------
   // Check that there is actually data

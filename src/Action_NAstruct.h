@@ -43,9 +43,9 @@ class Action_NAstruct: public Action {
 
     int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
     int helicalParameters(NA_Axis const&, NA_Axis const&, double *);
-    int determineBaseParameters(int);
+    int DeterminePairParameters(int);
     void CalcPucker(NA_Base&, int); // TODO: Move to NA_Base
-    int determineBasepairParameters(int);
+    int DetermineStepParameters(int);
 
     typedef std::vector<NA_Base> Barray;
     Barray Bases_;        ///< Hold nucleobases
@@ -92,8 +92,7 @@ class Action_NAstruct: public Action {
     typedef std::map<Rpair,StepType> StepMap;
     StepMap Steps_;       ///< Hold base pair steps.
     // Variables
-    enum PmethodType { ALTONA=0, CREMER };
-    PmethodType puckerMethod_;
+    NA_Base::PmethodType puckerMethod_;
     double HBdistCut2_;                 ///< distance Cutoff^2 for determining hydrogen bonds
     double originCut2_;                 ///< Cutoff^2 for determining base-pairing vi origins
     int maxResSize_;                    ///< Max residue size, used to set up frames for RMS fit.

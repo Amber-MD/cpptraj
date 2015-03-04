@@ -3,6 +3,8 @@
 #include "AxisType.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
+#include "TorsionRoutines.h" // pucker calc
+#include "Constants.h" // pucker calc
 #ifdef NASTRUCTDEBUG
 const char* HBSTRING[] = {" 0 ", "HBD", "HBA"};
 #endif
@@ -235,122 +237,127 @@ int NA_Base::Setup_Base(Topology const& currentParm, int resnum, NA_Base::NAType
       mprinterr("Internal Error: Residue %i is not a recognized NA residue.\n", resnum+1);
       return 1;
   }
-  if ( REF != 0 ) { // TODO Remove
-    int resstart = currentParm.Res(resnum).FirstAtom();
-    int resstop = currentParm.Res(resnum).LastAtom();
-    // Create mask for all input coords for this residue
-    parmMask_.AddAtomRange(resstart, resstop);
-    // Allocate space to hold input coords
-    Inp_.SetupFrame( parmMask_.Nselected() );
-    hb_.resize( parmMask_.Nselected(), NONE );
-    // Save atom names for input coords. Look for specific atom names for
-    // calculating things like groove width and pucker.
-    int inpatom = 0;
-    std::fill( atomIdx_, atomIdx_+6, -1 );
-    for (int atom = resstart; atom < resstop; ++atom) {
-      anames_.push_back( currentParm[atom].Name() );
-      // Is this atom P?
-      if (anames_.back() == "P   ")
-        atomIdx_[PHOS] = inpatom;
-      // Is this atom O4'/O4*?
-      else if (anames_.back() == "O4' " || anames_.back() == "O4* ")
-        atomIdx_[O4p] = inpatom;
-      else if (anames_.back() == "C1' " || anames_.back() == "C1* ")
-        atomIdx_[C1p] = inpatom;
-      else if (anames_.back() == "C2' " || anames_.back() == "C2* ")
-        atomIdx_[C2p] = inpatom;
-      else if (anames_.back() == "C3' " || anames_.back() == "C3* ")
-        atomIdx_[C3p] = inpatom;
-      else if (anames_.back() == "C4' " || anames_.back() == "C4* ")
-        atomIdx_[C4p] = inpatom;
-      inpatom++;
-    }
-    // For each atom defined as a reference atom for this base, find the
-    // corresponding atom in the parm.
-    std::map<int,int> BaseMap;
-    int refatom = 0;
-    for (RefPtr ref = REF; ref->aname != 0; ++ref) {
-      NameType atomName(ref->aname);
-      inpatom = FindAtom(atomName);
-      // Sometimes C1' is listed as C1*; if search for C1' fails look for C1*.
-      if (inpatom < 0 && atomName == "C1' ")
-        inpatom = FindAtom("C1* ");
-      if (inpatom < 0) {
-        mprinterr("Error: Ref Atom [%s] not found in NA base [%s].\n",
-                  ref->aname, currentParm.Res(resnum).c_str());
-        return 1;
-      } else {
-        BaseMap.insert( std::pair<int,int>(inpatom, refatom) );
-#       ifdef NASTRUCTDEBUG
-        mprintf("Ref atom %i:%s found in parm (%i:%s)\n",refatom+1,ref->aname,
-                inpatom+1,*anames_[inpatom]);
-#       endif
-      }
-      ++refatom;
-    }
-    if (!BaseMap.empty()) {
-      // Now create reference frame with same order as parm. Create RMS fit
-      // masks for Ref and Inp frames. If atom is indicated as H-bonding store
-      // its index in Inp.
-      int refidx = 0; // Index in this NA_Base Ref
-      for (std::map<int,int>::iterator atom = BaseMap.begin(); 
-                                       atom != BaseMap.end(); atom++, refidx++) {
-        inpatom = atom->first;  // Index in Inp 
-        refatom = atom->second; // Index in NA_RefAtom array 
-        // Store type of hbonding atom.
-        hb_[inpatom] = REF[refatom].hb_type;
-        // Store coords
-        Ref_.AddVec3( Vec3(REF[refatom].x, REF[refatom].y, REF[refatom].z) );
-#       ifdef NASTRUCTDEBUG
-        // Store reference atom names
-        refnames_.push_back( REF[refatom].aname );
-#       endif
-        // Will this atom be used for RMS fitting?
-        if (REF[refatom].rms_fit == 1) {
-          inpFitMask_.AddAtom( inpatom );
-          refFitMask_.AddAtom( refidx );
-#         ifdef NASTRUCTDEBUG
-          mprintf("\tFit atom: input parm atom= %i, ref atom= %i\n", inpatom+1, refidx+1);
-#         endif
-        }
-      }
-      // Make sure all masks have atoms
-      if (parmMask_.None() || inpFitMask_.None() || refFitMask_.None()) {
-        mprinterr("Error: One or more masks for NA residue %i has no atoms.\n", resnum+1);
-        return 1;
-      } else {
-        rnum_ = resnum;
-        c3idx_ = -1;
-        c5idx_ = -1;
-        type_ = baseType;
-        bchar_ = NAbaseChar[type_];
-#       ifdef NASTRUCTDEBUG
-        rname_ = currentParm.Res(resnum).Name();
-        mprintf("\tSet up residue %i:%s as %s (%c)\n", rnum_+1, *rname_, NAbaseName[type_], bchar_);
-        mprintf("\tReference Atoms:\n");
-        for (int atom = 0; atom < Ref_.Natom(); ++atom) {
-          mprintf("\t\t%s: ", *(refnames_[atom]));
-          Ref_.printAtomCoord(atom);
-        }
-        mprintf("\tResidue is %i atoms:\n", Inp_.Natom());
-        for (int atom = 0; atom < (int)anames_.size(); ++atom)
-          mprintf("\t\t%s: %i (%s)\n", *(anames_[atom]), atom+1, HBSTRING[hb_[atom]]);
-        mprintf("\tP=%i  O4'=%i\n", atomIdx_[PHOS]+1, atomIdx_[O4p]+1);
-        parmMask_.PrintMaskAtoms("ParmMask");
-        inpFitMask_.PrintMaskAtoms("InputFitMask");
-        refFitMask_.PrintMaskAtoms("RefFitMask");
-#       endif
-      }
-    } else {
-      mprinterr("Error: Could not set up reference for residue %i\n", resnum+1);
+  int resstart = currentParm.Res(resnum).FirstAtom();
+  int resstop = currentParm.Res(resnum).LastAtom();
+  // Create mask for all input coords for this residue
+  parmMask_.AddAtomRange(resstart, resstop);
+  // Allocate space to hold input coords
+  Inp_.SetupFrame( parmMask_.Nselected() );
+  hb_.resize( parmMask_.Nselected(), NONE );
+  // Save atom names for input coords. Look for specific atom names for
+  // calculating things like groove width and pucker.
+  int inpatom = 0;
+  std::fill( atomIdx_, atomIdx_+6, -1 );
+  for (int atom = resstart; atom < resstop; ++atom) {
+    anames_.push_back( currentParm[atom].Name() );
+    // Is this atom P?
+    if (anames_.back() == "P   ")
+      atomIdx_[PHOS] = inpatom;
+    // Is this atom O4'/O4*?
+    else if (anames_.back() == "O4' " || anames_.back() == "O4* ")
+      atomIdx_[O4p] = inpatom;
+    else if (anames_.back() == "C1' " || anames_.back() == "C1* ")
+      atomIdx_[C1p] = inpatom;
+    else if (anames_.back() == "C2' " || anames_.back() == "C2* ")
+      atomIdx_[C2p] = inpatom;
+    else if (anames_.back() == "C3' " || anames_.back() == "C3* ")
+      atomIdx_[C3p] = inpatom;
+    else if (anames_.back() == "C4' " || anames_.back() == "C4* ")
+      atomIdx_[C4p] = inpatom;
+    inpatom++;
+  }
+  // Determine whether sugar atoms are all present.
+  bool hasSugarAtoms = (atomIdx_[O4p] != -1 && atomIdx_[C1p] != -1 && 
+                        atomIdx_[C2p] != -1 && atomIdx_[C3p] != -1 &&
+                        atomIdx_[C4p] != -1);
+  // For each atom defined as a reference atom for this base, find the
+  // corresponding atom in the parm.
+  std::map<int,int> BaseMap;
+  int refatom = 0;
+  for (RefPtr ref = REF; ref->aname != 0; ++ref) {
+    NameType atomName(ref->aname);
+    inpatom = FindAtom(atomName);
+    // Sometimes C1' is listed as C1*; if search for C1' fails look for C1*.
+    if (inpatom < 0 && atomName == "C1' ")
+      inpatom = FindAtom("C1* ");
+    if (inpatom < 0) {
+      mprinterr("Error: Ref Atom [%s] not found in NA base [%s].\n",
+                ref->aname, currentParm.Res(resnum).c_str());
       return 1;
+    } else {
+      BaseMap.insert( std::pair<int,int>(inpatom, refatom) );
+#     ifdef NASTRUCTDEBUG
+      mprintf("Ref atom %i:%s found in parm (%i:%s)\n",refatom+1,ref->aname,
+              inpatom+1,*anames_[inpatom]);
+#     endif
     }
+    ++refatom;
+  }
+  if (!BaseMap.empty()) {
+    // Now create reference frame with same order as parm. Create RMS fit
+    // masks for Ref and Inp frames. If atom is indicated as H-bonding store
+    // its index in Inp.
+    int refidx = 0; // Index in this NA_Base Ref
+    for (std::map<int,int>::iterator atom = BaseMap.begin(); 
+                                     atom != BaseMap.end(); atom++, refidx++) {
+      inpatom = atom->first;  // Index in Inp 
+      refatom = atom->second; // Index in NA_RefAtom array 
+      // Store type of hbonding atom.
+      hb_[inpatom] = REF[refatom].hb_type;
+      // Store coords
+      Ref_.AddVec3( Vec3(REF[refatom].x, REF[refatom].y, REF[refatom].z) );
+#     ifdef NASTRUCTDEBUG
+      // Store reference atom names
+      refnames_.push_back( REF[refatom].aname );
+#     endif
+      // Will this atom be used for RMS fitting?
+      if (REF[refatom].rms_fit == 1) {
+        inpFitMask_.AddAtom( inpatom );
+        refFitMask_.AddAtom( refidx );
+#       ifdef NASTRUCTDEBUG
+        mprintf("\tFit atom: input parm atom= %i, ref atom= %i\n", inpatom+1, refidx+1);
+#       endif
+      }
+    }
+    // Make sure all masks have atoms
+    if (parmMask_.None() || inpFitMask_.None() || refFitMask_.None()) {
+      mprinterr("Error: One or more masks for NA residue %i has no atoms.\n", resnum+1);
+      return 1;
+    } else {
+      rnum_ = resnum;
+      c3idx_ = -1;
+      c5idx_ = -1;
+      type_ = baseType;
+      bchar_ = NAbaseChar[type_];
+#     ifdef NASTRUCTDEBUG
+      rname_ = currentParm.Res(resnum).Name();
+      mprintf("\tSet up residue %i:%s as %s (%c)\n", rnum_+1, *rname_, NAbaseName[type_], bchar_);
+      mprintf("\tReference Atoms:\n");
+      for (int atom = 0; atom < Ref_.Natom(); ++atom) {
+        mprintf("\t\t%s: ", *(refnames_[atom]));
+        Ref_.printAtomCoord(atom);
+      }
+      mprintf("\tResidue is %i atoms:\n", Inp_.Natom());
+      for (int atom = 0; atom < (int)anames_.size(); ++atom)
+        mprintf("\t\t%s: %i (%s)\n", *(anames_[atom]), atom+1, HBSTRING[hb_[atom]]);
+      mprintf("\tP=%i  O4'=%i\n", atomIdx_[PHOS]+1, atomIdx_[O4p]+1);
+      parmMask_.PrintMaskAtoms("ParmMask");
+      inpFitMask_.PrintMaskAtoms("InputFitMask");
+      refFitMask_.PrintMaskAtoms("RefFitMask");
+#     endif
+    }
+  } else {
+    mprinterr("Error: Could not set up reference for residue %i\n", resnum+1);
+    return 1;
   }
   basename_ = integerToString( rnum_+1 ) + BaseChar();
   // Add any base-related DataSets
-  pucker_ = (DataSet_1D*)masterDSL.AddSetIdxAspect(DataSet::FLOAT, dataname, rnum_+1, "pucker", basename_);
-  if (pucker_ == 0) return 1;
-  pucker_->SetScalar( DataSet::M_PUCKER, DataSet::PUCKER );
+  if (hasSugarAtoms) {
+    pucker_ = (DataSet_1D*)masterDSL.AddSetIdxAspect(DataSet::FLOAT, dataname, rnum_+1, "pucker", basename_);
+    if (pucker_ == 0) return 1;
+    pucker_->SetScalar( DataSet::M_PUCKER, DataSet::PUCKER );
+  } else
+    pucker_ = 0;
   return 0;
 }
 
@@ -366,11 +373,25 @@ void NA_Base::PrintAtomNames() const {
   mprintf("\n");
 }
 
-bool NA_Base::HasSugarAtoms() const {
-  for (int i = 1; i < 6; i++)
-    if (atomIdx_[i] < 0) return false;
-  return true;
+void NA_Base::CalcPucker(int framenum, PmethodType puckerMethod) {
+  if (pucker_ != 0) {
+    double pval=0.0, aval, tval;
+    switch (puckerMethod) {
+      case ALTONA:
+        pval = Pucker_AS( C1xyz(), C2xyz(), C3xyz(),
+                          C4xyz(), O4xyz(), aval );
+      break;
+      case CREMER:
+        pval = Pucker_CP( C1xyz(), C2xyz(), C3xyz(),
+                          C4xyz(), O4xyz(), 0,
+                          5, aval, tval );
+        break;
+    }
+    float fval = (float)(pval * Constants::RADDEG);
+    pucker_->Add(framenum, &fval);
+  }
 }
+
 // ---------- NA_Axis ----------------------------------------------------------
 // CONSTRUCTOR
 NA_Axis::NA_Axis() {}
