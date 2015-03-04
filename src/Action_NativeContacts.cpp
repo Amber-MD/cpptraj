@@ -468,12 +468,13 @@ void Action_NativeContacts::Print() {
     for (DataSet_MatrixDbl::iterator m = nonnatMap_->begin(); m != nonnatMap_->end(); ++m)
       *m *= norm;
   }
-  if (series_) {
+  if (series_ && nframes_ > 0) {
+    const int ZERO = 0;
     // Ensure all series have been updated for all frames.
     for (contactListType::iterator it = nativeContacts_.begin();
                                    it != nativeContacts_.end(); ++it)
       if (it->second.Data().Size() < nframes_)
-        it->second.Data().AddVal( nframes_ - 1, 0 );
+        it->second.Data().Add( nframes_ - 1, &ZERO );
   }
   if (!cfile_->IsStream()) {
     mprintf("    CONTACTS: %s: Writing native contacts to file '%s'\n",

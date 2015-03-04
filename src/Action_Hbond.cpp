@@ -807,20 +807,19 @@ void Action_Hbond::Print() {
   }
 
   // Ensure all series have been updated for all frames.
-  if (series_) {
+  if (series_ && Nframes_ > 0) {
+    const int ZERO = 0;
     for (HBmapType::iterator hb = HbondMap_.begin(); hb != HbondMap_.end(); ++hb)
     {
-      DataSet_integer& ds = static_cast<DataSet_integer&>( *((*hb).second.data_) );
-      if ( (int)ds.Size() < Nframes_ )
-        ds.AddVal( Nframes_ - 1, 0 );
+      if ((int)hb->second.data_->Size() < Nframes_)
+        hb->second.data_->Add( Nframes_-1, &ZERO );
     }
     for (HBmapType::iterator hb = SolventMap_.begin(); hb != SolventMap_.end(); ++hb)
     {
-      DataSet_integer& ds = static_cast<DataSet_integer&>( *((*hb).second.data_) );
-      if ( (int)ds.Size() < Nframes_ )
-        ds.AddVal( Nframes_ - 1, 0 );
+      if ((int)hb->second.data_->Size() < Nframes_)
+        hb->second.data_->Add( Nframes_-1, &ZERO );
     }
-  }
+  } 
 
   if (CurrentParm_ == 0) return;
   // Calculate necessary column width for strings based on how many residues.
