@@ -72,6 +72,7 @@ class NA_Base {
     const double* HBxyz(int i) const { return Inp_.XYZ(i);              }
     const double* Pxyz()       const { return Inp_.XYZ(atomIdx_[PHOS]); }
     const double* O4xyz()      const { return Inp_.XYZ(atomIdx_[O4p]);  }
+    DataSet_1D* Pucker()       const { return pucker_;                  }
   private:
     const double* C1xyz()      const { return Inp_.XYZ(atomIdx_[C1p]);  }
     const double* C2xyz()      const { return Inp_.XYZ(atomIdx_[C2p]);  }

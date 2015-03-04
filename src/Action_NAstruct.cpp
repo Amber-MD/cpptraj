@@ -39,7 +39,7 @@ void Action_NAstruct::Help() {
 }
 
 // Output Format Strings
-static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2i %10.4f %10.4f\n";
+static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f %10.4f %10.4f\n";
 static const char* NA_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f\n";
 
 // ------------------------- PRIVATE FUNCTIONS ---------------------------------
@@ -1067,6 +1067,18 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, Frame* currentFrame, Fra
   return Action::OK;
 } 
 
+static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
+  if (ds != 0) {
+    if (ds->Type() == DataSet::FLOAT) {
+      const float ZERO = 0.0;
+      if (ds->Size() < nframes_) ds->Add(nframes_ - 1, &ZERO);
+    } else if (ds->Type() == DataSet::INTEGER) {
+      const int ZERO = 0;
+      if (ds->Size() < nframes_) ds->Add(nframes_ - 1, &ZERO);
+    }
+  }
+}
+
 // Action_NAstruct::Print()
 void Action_NAstruct::Print() {
   if (bpout_ == 0) return;
@@ -1075,44 +1087,71 @@ void Action_NAstruct::Print() {
   if ( BasePairs_.empty() || nframes_ < 1)
     mprinterr("Error: Could not write BP file %s: No BP data.\n", bpout_->Filename().full()); 
   else {
-      mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
-              bpout_->Filename().full(), nframes_, BasePairs_.size());
-      //  File header
-      if (printheader_)
-        bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %10s %10s\n",
-                       "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
-                       "Buckle","Propeller","Opening", "HB", "Major", "Minor");
-      // Loop over all frames
-      for (int frame = 0; frame < nframes_; ++frame) {
-        for (BPmap::const_iterator it = BasePairs_.begin();
-                                   it != BasePairs_.end(); ++it)
-        {
-          BPtype const& BP = it->second;
-          // FIXME: Hack for integer
-          int n_of_hb = (int)BP.hbonds_->Dval(frame);
-          bpout_->Printf(BP_OUTPUT_FMT, frame+1, 
-                         Bases_[BP.base1idx_].ResNum()+1, Bases_[BP.base2idx_].ResNum()+1,
-                         BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
-                         BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
-                         BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
-                         n_of_hb, 
-                         BP.major_->Dval(frame),   BP.minor_->Dval(frame));
-        }
-        bpout_->Printf("\n");
+    mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
+            bpout_->Filename().full(), nframes_, BasePairs_.size());
+    // Update time series data
+    for (BPmap::iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it) {
+      BPtype& BP = it->second;
+      UpdateTimeSeries( nframes_, BP.shear_ );
+      UpdateTimeSeries( nframes_, BP.stretch_ );
+      UpdateTimeSeries( nframes_, BP.stagger_ );
+      UpdateTimeSeries( nframes_, BP.buckle_ );
+      UpdateTimeSeries( nframes_, BP.prop_ );
+      UpdateTimeSeries( nframes_, BP.opening_ );
+      UpdateTimeSeries( nframes_, BP.hbonds_ );
+      UpdateTimeSeries( nframes_, BP.major_ );
+      UpdateTimeSeries( nframes_, BP.minor_ );
+      UpdateTimeSeries( nframes_, Bases_[BP.base1idx_].Pucker() );
+      UpdateTimeSeries( nframes_, Bases_[BP.base2idx_].Pucker() );
+    }
+    //  File header
+    if (printheader_)
+      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %10s %10s\n",
+                     "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
+                     "Buckle","Propeller","Opening", "HB", "Major", "Minor");
+    // Loop over all frames
+    for (int frame = 0; frame < nframes_; ++frame) {
+      for (BPmap::const_iterator it = BasePairs_.begin();
+                                 it != BasePairs_.end(); ++it)
+      {
+        BPtype const& BP = it->second;
+        bpout_->Printf(BP_OUTPUT_FMT, frame+1, 
+                       Bases_[BP.base1idx_].ResNum()+1, Bases_[BP.base2idx_].ResNum()+1,
+                       BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
+                       BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
+                       BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
+                       BP.hbonds_->Dval(frame), 
+                       BP.major_->Dval(frame),   BP.minor_->Dval(frame));
       }
+      bpout_->Printf("\n");
+    }
   }
 
   // ---------- Base pair step parameters ----------
   // Check that there is actually data
-  // TODO: Check helix data as well
   if ( Steps_.empty() || nframes_ < 1 )
     mprinterr("Error: Could not write BPstep / helix files: No data.\n"); 
   else {
-    // Determine number of frames from SHIFT[0] DataSet. Should be same as SHEAR.
-    mprintf("\tBase pair step output file %s, Helix output file %s;"
-            " %i frames, %zu base pair steps.\n", 
+    mprintf("\tBase pair step output file %s\n\tHelix output file %s:\n"
+            "\t  %i frames, %zu base pair steps.\n", 
             stepout_->Filename().full(), helixout_->Filename().full(),
             nframes_, Steps_.size() - 1);
+    // Update time series data
+    for (StepMap::iterator it = Steps_.begin(); it != Steps_.end(); ++it) {
+      StepType& BS = it->second;
+      UpdateTimeSeries( nframes_, BS.shift_ );
+      UpdateTimeSeries( nframes_, BS.slide_ );
+      UpdateTimeSeries( nframes_, BS.rise_ );
+      UpdateTimeSeries( nframes_, BS.tilt_ );
+      UpdateTimeSeries( nframes_, BS.roll_ );
+      UpdateTimeSeries( nframes_, BS.twist_ );
+      UpdateTimeSeries( nframes_, BS.xdisp_ );
+      UpdateTimeSeries( nframes_, BS.ydisp_ );
+      UpdateTimeSeries( nframes_, BS.hrise_ );
+      UpdateTimeSeries( nframes_, BS.incl_ );
+      UpdateTimeSeries( nframes_, BS.tip_ );
+      UpdateTimeSeries( nframes_, BS.htwist_ );
+    }
     // Base pair step frames
     if (printheader_)
       stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
