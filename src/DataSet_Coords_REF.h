@@ -29,6 +29,8 @@ class DataSet_Coords_REF : public DataSet_Coords {
     // -------------------------------------------
     int LoadRef(std::string const&, Topology const&, int);
     int SetupRefFrame(std::string const&, std::string const&, Topology const&, ArgList&, int);
+    int SetupRefFrame(DataSet_Coords*, std::string const&, int, int);
+    int StripRef(std::string const&);
     int StripRef(AtomMask const&);
     Frame const& RefFrame()     const { return frame_; }
     FileName const& FrameName() const { return name_ ; }
