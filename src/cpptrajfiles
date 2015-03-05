@@ -224,6 +224,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_AmberRestart.cpp \
         Traj_AmberRestartNC.cpp \
         Traj_Binpos.cpp \
+        Traj_CharmmCor.cpp \
         Traj_CharmmDcd.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \

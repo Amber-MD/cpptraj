@@ -206,21 +206,6 @@ int Topology::FindAtomInResidue(int res, NameType const& atname) const {
   return -1;
 }
 
-// Topology::FindResidueMaxNatom()
-/** Return the # atoms in the largest residue. */
-int Topology::FindResidueMaxNatom() const {
-  if (residues_.size() <= 1)
-    return (int)atoms_.size();
-  int largest_natom = 0;
-  for (std::vector<Residue>::const_iterator res = residues_.begin();
-                                            res != residues_.end(); res++)
-  {
-    int diff = (*res).NumAtoms();
-    if (diff > largest_natom) largest_natom = diff;
-  }
-  return largest_natom;
-}
-
 // -----------------------------------------------------------------------------
 // Topology::Summary()
 void Topology::Summary() const {

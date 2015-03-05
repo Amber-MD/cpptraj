@@ -1,8 +1,10 @@
 // Parm_CharmmPsf.cpp
 #include <cstdio> // sscanf
 #include <cstring> // strncmp
+#include <cctype> // isdigit
 #include "Parm_CharmmPsf.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
   // Assumes already set up
@@ -41,16 +43,18 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
   if ( (buffer=infile.NextLine()) == 0 ) return 1;
   // Advance to <ntitle> !NTITLE
   int ntitle = FindTag(tag, "!NTITLE", 7, infile); 
-  // Only read in 1st title
+  // Only read in 1st title. Skip any asterisks.
   std::string psftitle;
   if (ntitle > 0) {
     buffer = infile.NextLine();
-    psftitle.assign( buffer );
+    const char* ptr = buffer;
+    while (*ptr != '\0' && (*ptr == ' ' || *ptr == '*')) ++ptr;
+    psftitle.assign( ptr );
   }
-  parmOut.SetParmName( psftitle, infile.Filename() );
+  parmOut.SetParmName( NoTrailingWhitespace(psftitle), infile.Filename() );
   // Advance to <natom> !NATOM
   int natom = FindTag(tag, "!NATOM", 6, infile);
-  mprintf("\tPSF: !NATOM tag found, natom=%i\n", natom);
+  if (debug_>0) mprintf("\tPSF: !NATOM tag found, natom=%i\n", natom);
   // If no atoms, probably issue with PSF file
   if (natom < 1) {
     mprinterr("Error: No atoms in PSF file.\n");
@@ -75,10 +79,10 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
     parmOut.AddTopAtom( Atom( psfname, psfcharge, psfmass, psftype), psfresnum, psfresname, 0 );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
-  int bondatoms[8];
+  int bondatoms[9];
   int nbond = FindTag(tag, "!NBOND", 6, infile);
   if (nbond > 0) {
-    mprintf("\tPSF: !NBOND tag found, nbond=%i\n", nbond);
+    if (debug_>0) mprintf("\tPSF: !NBOND tag found, nbond=%i\n", nbond);
     int nlines = nbond / 4;
     if ( (nbond % 4) != 0) nlines++;
     for (int bondline=0; bondline < nlines; bondline++) {
@@ -99,7 +103,7 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
   // Advance to <nangles> !NTHETA
   int nangle = FindTag(tag, "!NTHETA", 7, infile);
   if (nangle > 0) {
-    mprintf("\tPSF: !NTHETA tag found, nangle=%i\n", nangle);
+    if (debug_>0) mprintf("\tPSF: !NTHETA tag found, nangle=%i\n", nangle);
     int nlines = nangle / 3;
     if ( (nangle % 3) != 0) nlines++;
     for (int angleline=0; angleline < nlines; angleline++) {
@@ -107,22 +111,21 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
         mprinterr("Error: Reading angle line %i\n", angleline+1);
         return 1;
       }
-      // Each line has 3 groups of atom numbers
+      // Each line has 3 groups of 3 atom numbers
       int nanglesread = sscanf(buffer,"%i %i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
                               bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
                               bondatoms+6,bondatoms+7, bondatoms+8);
-      for (int angleidx=0; angleidx < nanglesread; angleidx+=3) {
+      for (int angleidx=0; angleidx < nanglesread; angleidx += 3)
         parmOut.AddAngle( bondatoms[angleidx  ]-1,
                           bondatoms[angleidx+1]-1,
                           bondatoms[angleidx+2]-1 );
-      }
     }
   } else
     mprintf("Warning: PSF has no angles.\n");
   // Advance to <ndihedrals> !NPHI
   int ndihedral = FindTag(tag, "!NPHI", 5, infile);
   if (ndihedral > 0) {
-    mprintf("\tPSF: !NPHI tag found, ndihedral=%i\n", ndihedral);
+    if (debug_>0) mprintf("\tPSF: !NPHI tag found, ndihedral=%i\n", ndihedral);
     int nlines = ndihedral / 2;
     if ( (ndihedral % 2) != 0) nlines++;
     for (int dihline = 0; dihline < nlines; dihline++) {
@@ -130,16 +133,15 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
         mprinterr("Error: Reading dihedral line %i\n", dihline+1);
         return 1;
       }
-      // Each line has 2 groups of atom numbers
+      // Each line has 2 groups of 4 atom numbers
       int ndihread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
                               bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
                               bondatoms+6,bondatoms+7);
-      for (int dihidx=0; dihidx < ndihread; dihidx += 4) {
+      for (int dihidx=0; dihidx < ndihread; dihidx += 4)
         parmOut.AddDihedral( bondatoms[dihidx  ]-1,
                              bondatoms[dihidx+1]-1,
                              bondatoms[dihidx+2]-1,
                              bondatoms[dihidx+3]-1 );
-      }
     }
   } else
     mprintf("Warning: PSF has no dihedrals.\n");
@@ -181,9 +183,15 @@ int Parm_CharmmPsf::WriteParm(std::string const& fname, Topology const& parm) {
         inSolvent = parm.Mol(atom->MolNum()).IsSolvent();
     }
     // TODO: Print type name for xplor-like PSF
-    outfile.Printf("%8i %-4s %4i %4s %4s %4i %14.6G %14.6g %8i\n", idx, segid,
+    int typeindex = atom->TypeIndex() + 1;
+    // If type begins with digit, assume charmm numbers were read as
+    // type. Currently Amber types all begin with letters.
+    if (isdigit(atom->Type()[0]))
+      typeindex = convertToInteger( *(atom->Type()) );
+    // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
+    outfile.Printf("%8i %-4s %-4i %-4s %-4s %4i %14.6G %9g  %10i\n", idx, segid,
                    parm.Res(resnum).OriginalResNum(), parm.Res(resnum).c_str(),
-                   atom->c_str(), atom->TypeIndex()+1, atom->Charge(),
+                   atom->c_str(), typeindex, atom->Charge(),
                    atom->Mass(), 0);
   }
   outfile.Printf("\n");
@@ -203,6 +211,40 @@ int Parm_CharmmPsf::WriteParm(std::string const& fname, Topology const& parm) {
     if ((idx % 4)==0) outfile.Printf("\n"); 
   }
   if ((idx % 4)!=0) outfile.Printf("\n");
+  outfile.Printf("\n");
+  // Write NTHETA section
+  outfile.Printf("%8u !NTHETA: angles\n", parm.Angles().size() + parm.AnglesH().size());
+  idx = 1;
+  for (AngleArray::const_iterator ang = parm.AnglesH().begin();
+                                  ang != parm.AnglesH().end(); ++ang, ++idx)
+  {
+    outfile.Printf("%8i%8i%8i", ang->A1()+1, ang->A2()+1, ang->A3()+1);
+    if ((idx % 3)==0) outfile.Printf("\n");
+  }
+  for (AngleArray::const_iterator ang = parm.Angles().begin();
+                                  ang != parm.Angles().end(); ++ang, ++idx)
+  {
+    outfile.Printf("%8i%8i%8i", ang->A1()+1, ang->A2()+1, ang->A3()+1);
+    if ((idx % 3)==0) outfile.Printf("\n");
+  }
+  if ((idx % 3)==0) outfile.Printf("\n");
+  outfile.Printf("\n");
+  // Write out NPHI section
+  outfile.Printf("%8u !NPHI: dihedrals\n", parm.Dihedrals().size() + parm.DihedralsH().size());
+  idx = 1;
+  for (DihedralArray::const_iterator dih = parm.DihedralsH().begin();
+                                     dih != parm.DihedralsH().end(); ++dih, ++idx)
+  {
+    outfile.Printf("%8i%8i%8i%8i", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
+    if ((idx % 2)==0) outfile.Printf("\n");
+  }
+  for (DihedralArray::const_iterator dih = parm.Dihedrals().begin();
+                                     dih != parm.Dihedrals().end(); ++dih, ++idx)
+  {
+    outfile.Printf("%8i%8i%8i%8i", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
+    if ((idx % 2)==0) outfile.Printf("\n");
+  }
+  if ((idx % 2)==0) outfile.Printf("\n");
   outfile.Printf("\n");
 
   outfile.CloseFile();

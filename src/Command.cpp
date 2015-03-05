@@ -475,9 +475,10 @@ static void Help_Trajout() {
 }
 
 static void Help_Reference() {
-  mprintf("\t<filename> [<frame#>] [<mask>] [TAG] [lastframe]\n"
+  mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
           "\t           %s\n", TopologyList::ParmArgs);
-  mprintf("  Load trajectory <filename> as a reference frame.\n");
+  mprintf("  Load trajectory file <name> as a reference frame.\n"
+          "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
 }
 
 static void Help_Parm() {
@@ -749,6 +750,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   if (State.Debug() > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   Trajout_Single outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
+  currentParm->SetNframes( CRD->Size() ); // FIXME: This is a hack to get correct # frames.
   if (outtraj.InitTrajWrite( setname, argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
     return Command::C_ERR;

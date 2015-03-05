@@ -460,6 +460,8 @@ void Atom::SetElementFromMass() {
     case 'P':
        if(mass_ > 29.0 && mass_ <= 33.0) 
           element_ = PHOSPHORUS; //15 !Phosphorus
+       else if(mass_ > 37.0 && mass_ <= 41.0) 
+          element_ = POTASSIUM; //19 !Potassium (CHARMM)
        else if(mass_ > 104.0 && mass_ <= 108.0) 
           element_ = PALLADIUM; //46 !Palladium
        else if(mass_ > 193.0 && mass_ <= 197.0) 
@@ -488,7 +490,9 @@ void Atom::SetElementFromMass() {
 
    case 's':
    case 'S':
-       if(mass_ > 26.0 && mass_ <= 30.0) 
+       if(mass_ > 22.1 && mass_ <= 23.0) 
+          element_ = SODIUM; //11 !Sodium (CHARMM)
+       else if(mass_ > 26.0 && mass_ <= 30.0) 
           element_ = SILICON; //14 !Silicon
        else if(mass_ > 30.0 && mass_ <= 34.0) 
           element_ = SULFUR; //16 !Sulfur

@@ -697,6 +697,9 @@ int CpptrajState::RunAnalyses() {
 }
 
 // CpptrajState::AddReference()
+/** Add specified file/COORDS set as reference. Reference frames are a unique
+  * DataSet - they are set up OUTSIDE data set list.
+  */
 int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) {
   if (fname.empty()) return 1;
   ArgList argIn = args;
@@ -706,25 +709,44 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
               "Error:   the 'average' action to create averaged coordinates.\n");
     return 1;
   }
-  // Get topology file.
-  Topology* refParm = parmFileList_.GetParm( argIn );
-  if (refParm == 0) {
-    mprinterr("Error: Cannot get topology for reference '%s'\n", fname.c_str());
-    return 1;
+  Topology* refParm = 0;
+  DataSet_Coords* CRD = 0;
+  if (argIn.hasKey("crdset")) {
+    CRD = (DataSet_Coords*)DSL_.FindCoordsSet( fname );
+    if (CRD == 0) {
+      mprinterr("COORDS set with name %s not found.\n", fname.c_str());
+      return 1;
+    }
+  } else {
+    // Get topology file.
+    refParm = parmFileList_.GetParm( argIn );
+    if (refParm == 0) {
+      mprinterr("Error: Cannot get topology for reference '%s'\n", fname.c_str());
+      return 1;
+    }
   }
   // Determine if there is a mask expression for stripping reference. // TODO: Remove?
   std::string maskexpr = argIn.GetMaskNext();
   // Check for tag. FIXME: need to do after SetupTrajRead?
   std::string tag = argIn.getNextTag();
-  // Reference frames are a unique DataSet - they are set up OUTSIDE data set list.
+  // Set up reference DataSet from file or COORDS set.
   DataSet_Coords_REF* ref = new DataSet_Coords_REF();
   if (ref==0) return 1;
-  if (ref->SetupRefFrame(fname, tag, *refParm, argIn, refidx_)) return 1;
+  if (refParm != 0) {
+    if (ref->SetupRefFrame(fname, tag, *refParm, argIn, refidx_)) return 1;
+  } else { // CRD != 0
+    int fnum;
+    if (argIn.hasKey("lastframe"))
+      fnum = (int)CRD->Size()-1;
+    else
+      fnum = argIn.getNextInteger(1) - 1;
+    mprintf("\tSetting up reference from COORDS set '%s', frame %i\n",
+            CRD->legend(), fnum+1);
+    if (ref->SetupRefFrame(CRD, tag, fnum, refidx_)) return 1;
+  }
   // If a mask expression was specified, strip to match the expression.
   if (!maskexpr.empty()) {
-    AtomMask stripMask( maskexpr );
-    if (refParm->SetupIntegerMask(stripMask)) return 1;
-    if (ref->StripRef( stripMask )) return 1;
+    if (ref->StripRef( maskexpr )) return 1;
   }
   // Add DataSet to main DataSetList.
   if (DSL_.AddSet( ref )) return 1; 
