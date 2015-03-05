@@ -475,9 +475,10 @@ static void Help_Trajout() {
 }
 
 static void Help_Reference() {
-  mprintf("\t<filename> [<frame#>] [<mask>] [TAG] [lastframe]\n"
+  mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
           "\t           %s\n", TopologyList::ParmArgs);
-  mprintf("  Load trajectory <filename> as a reference frame.\n");
+  mprintf("  Load trajectory file <name> as a reference frame.\n"
+          "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
 }
 
 static void Help_Parm() {
