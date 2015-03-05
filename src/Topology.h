@@ -109,7 +109,6 @@ class Topology {
     /// Format: <res name>:<res num> 
     std::string TruncResNameNum(int) const;
     int FindAtomInResidue(int, NameType const&) const;
-    int FindResidueMaxNatom() const;
     int SetSolvent(std::string const&);
     // ----- Print topology info -----------------
     void Summary() const;
