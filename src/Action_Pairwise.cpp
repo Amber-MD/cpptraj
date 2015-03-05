@@ -114,7 +114,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Da
   if (!eout.empty())
     mprintf("\tEnergy info for each atom will be written to %s\n",eout.c_str());
   if (nb_calcType_ == COMPARE_REF) { 
-    mprintf("\tReference %s, mask [%s]\n", REF.FrameName().base(), RefMask_.MaskString());
+    mprintf("\tReference %s, mask [%s]\n", REF.refName(), RefMask_.MaskString());
     mprintf("\tReference energy (kcal/mol): EVDW= %12.5e  EELEC= %12.5e\n", ELJ_, Eelec_);
     mprintf("\tSize of reference energy array is %zu elements (%.4f MB)\n",
             ref_nonbondEnergy_.size(),

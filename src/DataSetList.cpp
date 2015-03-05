@@ -685,7 +685,7 @@ DataSet* DataSetList::GetReferenceFrame(std::string const& refname) const {
       for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
         if ( (*ds)->Type() == DataSet::REF_FRAME) {
           DataSet_Coords_REF const& R = static_cast<DataSet_Coords_REF const&>(*(*ds));
-          if (refname == R.FrameName().Base()) {
+          if (refname == R.FrameFilename().Base()) {
             ref = *ds;
             break;
           }
@@ -750,8 +750,8 @@ void DataSetList::ListReferenceFrames() const {
     mprintf("\nREFERENCE FRAMES (%zu total):\n", refTemp.size());
     for (std::vector<DataSet_Coords_REF*>::const_iterator ds = refTemp.begin();
                                                           ds != refTemp.end(); ++ds)
-      if (!(*ds)->FrameName().empty())
-        mprintf("    %i: '%s', frame %i\n", (*ds)->RefIndex(), (*ds)->FrameName().full(),
+      if (!(*ds)->FrameFilename().empty())
+        mprintf("    %i: '%s', frame %i\n", (*ds)->RefIndex(), (*ds)->FrameFilename().full(),
                 (*ds)->Idx());
       else
         mprintf("    (DataSet) '%s'\n", (*ds)->Name().c_str());

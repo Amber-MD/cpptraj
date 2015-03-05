@@ -15,8 +15,15 @@ class ReferenceFrame {
     Topology const& Parm()      const { return ref_->Top();       }
     bool error()                const { return err_ != 0;         }
     bool empty()                const { return ref_ == 0;         }
-    FileName const& FrameName() const { return ref_->FrameName(); }
     DataSet_Coords_REF* RefPtr()const { return ref_;              }
+    /// \return base file name, or if that is empty data set name.
+    std::string const& RefName() const{
+      if (ref_->FrameFilename().empty())
+        return ref_->Name();
+      else
+        return ref_->FrameFilename().Base();
+    }
+    const char* refName() const { return RefName().c_str() ; }
   private:
     DataSet_Coords_REF* ref_; ///< Reference coords DataSet from e.g. DataSetList.
     int err_;                 ///< Error status.
