@@ -51,4 +51,3 @@ libclean:
 # Remove cpptraj binary from $AMBERHOME/bin
 uninstall:
 	cd src && $(MAKE) -f Makefile_at uninstall
-
