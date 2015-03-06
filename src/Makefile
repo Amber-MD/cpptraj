@@ -31,7 +31,7 @@ cpptraj$(SFX): $(OBJECTS) pub_fft.o $(READLINE)
 
 libcpptraj: $(OBJECTS) pub_fft.o $(READLINE)
 	$(CXX)  -shared -o libcpptraj.so $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
-	/bin/mv libcpptraj.so $(CPPTRAJLIB)
+	/bin/mv libcpptraj.so $(AMBERHOME)/lib
 
 ambpdb: $(AMBPDB_OBJECTS)
 	$(CXX) -o ambpdb $(AMBPDB_OBJECTS) $(LDFLAGS)
