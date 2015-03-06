@@ -43,13 +43,13 @@ int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList co
 {
   FileName tempName;
   tempName.SetFileName( tnameIn );
-  TrajFormatType extFmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
-  if (extFmt != UNKNOWN_TRAJ)
-    fmtIn = extFmt;
+  TrajFormatType fmt = fmtIn;
+  if (fmt == UNKNOWN_TRAJ)
+    fmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
   if (ensembleNum > -1)
-    return InitTrajWrite( NumberFilename(tnameIn, ensembleNum), argIn, tparmIn, extFmt );
+    return InitTrajWrite( NumberFilename(tnameIn, ensembleNum), argIn, tparmIn, fmt );
   else
-    return InitTrajWrite( tnameIn, argIn, tparmIn, extFmt );
+    return InitTrajWrite( tnameIn, argIn, tparmIn, fmt );
 }
 
 // Trajout_Single::InitTrajout()

@@ -312,7 +312,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   if (first_)
     mprintf(" first frame.\n");
   else
-    mprintf("'%s'.\n", REF.FrameName().base());
+    mprintf("'%s'.\n", REF.refName());
   if (byResidue_) {
     mprintf("\tContacts will be ignored for residues spaced < %i apart.\n", resoffset_);
     if (nativeMap_ != 0)

@@ -28,18 +28,18 @@ class DataSet_Coords_REF : public DataSet_Coords {
     inline void SetCRD(int idx, Frame const& fIn) { frame_ = fIn; }
     // -------------------------------------------
     int LoadRef(std::string const&, Topology const&, int);
+    /// Set up reference frame from file.
     int SetupRefFrame(std::string const&, std::string const&, Topology const&, ArgList&, int);
+    /// Set up reference frame from COORDS DataSet.
     int SetupRefFrame(DataSet_Coords*, std::string const&, int, int);
     int StripRef(std::string const&);
     int StripRef(AtomMask const&);
-    Frame const& RefFrame()     const { return frame_; }
-    FileName const& FrameName() const { return name_ ; }
-    int RefIndex()              const { return num_;   }
+    Frame const& RefFrame()         const { return frame_; }
+    FileName const& FrameFilename() const { return name_ ; }
+    int RefIndex()                  const { return num_;   }
   private:
     Frame frame_;       ///< Reference coords.
-    //Topology* parm_;    ///< Pointer to associated parm in TopologyList. FIXME: Just copy?
     FileName name_;     ///< Ref structure filename.
-    //std::string tag_;   ///< Ref structure optional tag.
     int num_;           ///< Internal reference index #.
 };
 #endif

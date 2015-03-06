@@ -885,7 +885,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
 
   // Use reference to determine base pairing
   if (useReference_) {
-    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.FrameName().base());
+    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.refName());
     if (Setup((Topology*)(&REF.Parm()), 0)) return Action::ERR;
     // Set up base axes
     if ( SetupBaseAxes(REF.Coord()) ) return Action::ERR;

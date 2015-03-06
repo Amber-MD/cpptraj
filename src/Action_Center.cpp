@@ -52,7 +52,7 @@ Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, Data
   mprintf(" of atoms in mask (%s) to\n", Mask_.MaskString());
   if (centerMode_ == POINT)
     mprintf("\tcenter of mask (%s) in reference '%s'.\n", refMask.MaskString(),
-            refFrm.FrameName().base());
+            refFrm.refName());
   else if (centerMode_ == ORIGIN)
     mprintf("\tcoordinate origin.\n");
   else

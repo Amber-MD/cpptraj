@@ -873,16 +873,6 @@ static void Help_CombineCoords() {
           "  Combined two COORDS data sets.\n");
 }
 
-static inline void CombinedCoords_AddBondArray(Topology* top, BondArray const& barray,
-                                               int atomOffset)
-{
-  for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
-  {
-    //mprintf("DBG:\t\tBonding %i and %i\n", bond->A1() + atomOffset + 1, bond->A2() + atomOffset + 1);
-    top->AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
-  }
-}
-
 /// Combine two COORDS DataSets
 Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {

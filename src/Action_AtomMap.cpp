@@ -827,7 +827,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
       }
       // Strip reference parm
       mprintf("    Modifying reference '%s' topology and frame to match mapped atoms.\n",
-              RefFrame_->FrameName().base());
+              RefFrame_->Name().c_str());
       if (RefFrame_->StripRef( M1 )) return Action::ERR;
       // Since AMap[ ref ] = tgt but ref is now missing any stripped atoms,
       // the indices of AMap must be shifted to match

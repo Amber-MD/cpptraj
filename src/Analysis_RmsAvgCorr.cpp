@@ -103,7 +103,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   if (useFirst_)
     mprintf("\tReference will be first running-averaged frame each window.\n");
   else
-    mprintf("\tReference '%s'\n", REF.FrameName().base());
+    mprintf("\tReference '%s'\n", REF.refName());
   if (maxwindow_!=-1) mprintf("\tMax window size %i\n",maxwindow_);
   if (lagOffset_ > 1) mprintf("\tWindow size offset %i\n", lagOffset_);
   if (outfile != 0) mprintf("\tOutput to %s\n",outfile->DataFilename().base());
