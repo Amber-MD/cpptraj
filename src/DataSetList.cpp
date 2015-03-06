@@ -526,9 +526,7 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
   // Check if DataSet with same attributes already present.
   DataSet* DS = CheckForSet(nameIn, idxIn, aspectIn, ensembleNum_);
   if (DS != 0) {
-    mprintf("Warning: DataSet '");
-    DS->PrintName();
-    mprintf("' already present.\n");
+    mprintf("Warning: DataSet '%s' already present.\n", DS->PrintName().c_str());
     // NOTE: Should return found dataset?
     return 0; 
   }
@@ -559,9 +557,7 @@ int DataSetList::AddSet( DataSet* dsIn ) {
   if (dsIn == 0 || dsIn->Name().empty()) return 1;
   DataSet* ds = CheckForSet( dsIn->Name(), dsIn->Idx(), dsIn->Aspect(), dsIn->Member() );
   if (ds != 0) {
-    mprintf("Warning: DataSet '");
-    ds->PrintName();
-    mprintf("' already present.\n");
+    mprintf("Warning: DataSet '%s' already present.\n", ds->PrintName().c_str());
     return 1;
   }
   DataList_.push_back( dsIn );
@@ -596,12 +592,9 @@ void DataSetList::List() const {
     mprintf("  %zu data sets:\n", DataList_.size());
   for (unsigned int ds=0; ds<DataList_.size(); ds++) {
     DataSet const& dset = static_cast<DataSet const&>(*DataList_[ds]);
-    mprintf("\t");
-    dset.PrintName();
-    mprintf(" \"%s\"", dset.legend());
-    mprintf(" (%s", DataArray[dset.Type()].Description);
-    dset.ScalarDescription();
-    mprintf("), size is %i", dset.Size());
+    mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.PrintName().c_str(), dset.legend(),
+            DataArray[dset.Type()].Description, dset.ScalarDescription().c_str(),
+            dset.Size());
     dset.Info();
     mprintf("\n");
   }
