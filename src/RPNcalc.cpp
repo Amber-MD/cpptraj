@@ -4,6 +4,7 @@
 #include <stack>
 #include "RPNcalc.h"
 #include "DataSet_Vector.h"
+#include "DataSet_double.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
 
@@ -377,7 +378,8 @@ double RPNcalc::DoOperation(double d1, double d2, TokenType op_type) {
 static inline bool ScalarTimeSeries(DataSet* ds) {
   return (ds->Type()==DataSet::DOUBLE ||
           ds->Type()==DataSet::FLOAT ||
-          ds->Type()==DataSet::INTEGER);
+          ds->Type()==DataSet::INTEGER ||
+          ds->Type()==DataSet::XYMESH); // FIXME X values will be lost
 }
 
 // RPNcalc::Evaluate()
@@ -468,16 +470,17 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         }
         if (Dval[0].IsDataSet()) {
           output = Dval[0].DS();
+          mprintf("DEBUG: output set is '%s'\n", output->legend());
           bool outputIsLocal = (LocalList.PopSet( output ) != 0);
           if (!outputIsLocal)
             mprintf("Warning: Data set copy not yet implemented. Renaming set '%s' to '%s'\n",
                     output->PrintName().c_str(), tokens_.front().Name().c_str());
+          if (debug_>0)
+            mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->legend(),
+                    tokens_.front().Name().c_str());
           // Reset DataSet info.
           output->SetLegend("");
           if (output->SetupSet(tokens_.front().Name(), -1, "", -1)) return 1;
-          if (debug_>0)
-            mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->legend(),
-                    output->legend());
           if (outputIsLocal) {
             if (DSL.AddSet( output )) return 1;
           } 
@@ -486,8 +489,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           if (output == 0) return 1;
           if (debug_>0)
             mprintf("DEBUG: Assigning %f to '%s'\n", Dval[0].Value(), output->legend());
-          double dval = Dval[0].Value();
-          output->Add(0, &dval); 
+          ((DataSet_double*)output)->AddElement( Dval[0].Value() );
         }
         Stack.push(ValType(output));
       // -----------------------------------------
@@ -553,17 +555,21 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                         ds1->legend(), ds2->legend(), T->name());
               return 1;
             }
-            if (ScalarTimeSeries(ds1) && ScalarTimeSeries(ds2)) {
+            if (ScalarTimeSeries(ds1) && ScalarTimeSeries(ds2))
+            {
               tempDS = LocalList.AddSetIdx(DataSet::DOUBLE, "TEMP", T-tokens_.begin());
+              DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
+              D0.Allocate1D( ds1->Size() );
               DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
               DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
-              for (unsigned int n = 0; n != D1.Size(); n++) {
-                double dval = DoOperation(D1.Dval(n), D2.Dval(n), T->Type());
-                tempDS->Add(n, &dval);
-              }
-            } else if (ds1->Type() == DataSet::VECTOR && ds2->Type() == DataSet::VECTOR) {
+              for (unsigned int n = 0; n != D1.Size(); n++)
+                D0.AddElement( DoOperation(D1.Dval(n), D2.Dval(n), T->Type()) );
+            } 
+            else if (ds1->Type() == DataSet::VECTOR && ds2->Type() == DataSet::VECTOR)
+            {
               tempDS = LocalList.AddSetIdx(DataSet::VECTOR, "TEMP", T-tokens_.begin());
               DataSet_Vector&       V0 = static_cast<DataSet_Vector&>(*tempDS);
+              V0.Allocate1D( ds1->Size() );
               DataSet_Vector const& V1 = static_cast<DataSet_Vector const&>(*ds1);
               DataSet_Vector const& V2 = static_cast<DataSet_Vector const&>(*ds2);
               // TODO: Worry about origin?
@@ -586,41 +592,65 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           } else {
             // DataSet OP Value or Value OP DataSet
             if (Dval[0].IsDataSet()) {
-              // DataSet OP Value
-              DataSet* ds1 = Dval[0].DS();
-              if (debug_ > 0)
-                mprintf("DEBUG: %f [%s] '%s' => 'TEMP:%u'\n", Dval[1].Value(), T->Description(),
-                        ds1->legend(), T-tokens_.begin());
-              if (ScalarTimeSeries( ds1 )) {
-                tempDS = LocalList.AddSetIdx(DataSet::DOUBLE, "TEMP", T-tokens_.begin());
-                DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
-                double d2 = Dval[1].Value();
-                for (unsigned int n = 0; n != D1.Size(); n++) {
-                  double dval = DoOperation(D1.Dval(n), d2, T->Type());
-                  tempDS->Add(n, &dval);
-                }
-              } else {
-                mprinterr("Error: Operation '%s' between set %s and value not yet permitted.\n",
-                          T->Description(), ds1->legend());
-                return 1;
-              }
-            } else {
               // Value OP DataSet
-              DataSet* ds2 = Dval[1].DS();
+              DataSet* ds2 = Dval[0].DS();
+              double   d1  = Dval[1].Value();
               if (debug_ > 0)
-                mprintf("DEBUG: '%s' [%s] '%f' => 'TEMP:%u'\n", ds2->legend(), T->Description(),
-                        Dval[0].Value(), T-tokens_.begin());
-              if (ScalarTimeSeries( ds2 )) {
+                mprintf("DEBUG: %f [%s] '%s' => 'TEMP:%u'\n", d1, T->Description(),
+                        ds2->legend(), T-tokens_.begin());
+              if (ScalarTimeSeries( ds2 ))
+              {
                 tempDS = LocalList.AddSetIdx(DataSet::DOUBLE, "TEMP", T-tokens_.begin());
+                DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
+                D0.Allocate1D( ds2->Size() );
                 DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
-                double d1 = Dval[0].Value();
-                for (unsigned int n = 0; n != D2.Size(); n++) {
-                  double dval = DoOperation(d1, D2.Dval(n), T->Type());
-                  tempDS->Add(n, &dval);
-                }
+                for (unsigned int n = 0; n != D2.Size(); n++)
+                  D0.AddElement( DoOperation(D2.Dval(n), d1, T->Type()) );
               } else {
                 mprinterr("Error: Operation '%s' between value and set %s not yet permitted.\n",
                           T->Description(), ds2->legend());
+                return 1;
+              }
+            } else {
+              // DataSet OP Value
+              DataSet* ds1 = Dval[1].DS();
+              double   d2  = Dval[0].Value();
+              if (debug_ > 0)
+                mprintf("DEBUG: '%s' [%s] '%f' => 'TEMP:%u'\n", ds1->legend(), T->Description(),
+                        d2, T-tokens_.begin());
+              if (ScalarTimeSeries( ds1 ))
+              {
+                tempDS = LocalList.AddSetIdx(DataSet::DOUBLE, "TEMP", T-tokens_.begin());
+                DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
+                D0.Allocate1D( ds1->Size() );
+                DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
+                for (unsigned int n = 0; n != D1.Size(); n++)
+                  D0.AddElement( DoOperation(d2, D1.Dval(n), T->Type()) );
+              }
+              else if ( ds1->Type() == DataSet::VECTOR )
+              {
+                tempDS = LocalList.AddSetIdx(DataSet::VECTOR, "TEMP", T-tokens_.begin());
+                DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
+                V0.Allocate1D( ds1->Size() );
+                DataSet_Vector const& V1 = static_cast<DataSet_Vector const&>(*ds1);
+                for (unsigned int n = 0; n != V1.Size(); n++) {
+                  switch (T->Type()) {
+                    case OP_MINUS: V0.AddVxyz( V1[n] - d2 ); break;
+                    case OP_PLUS:  V0.AddVxyz( V1[n] + d2 ); break;
+                    case OP_DIV:   V0.AddVxyz( V1[n] / d2 ); break;
+                    case OP_MULT:  V0.AddVxyz( V1[n] * d2 ); break;
+                    default:
+                      mprinterr("Error: Operation '%s' not valid for vector.\n", T->Description());
+                      return 1;
+                  }
+                  //mprintf("DBG: {%g,%g,%g} = {%g,%g,%g} '%s' %g\n",
+                  //        V0[n][0], V0[n][1], V0[n][2],
+                  //        V1[n][0], V1[n][1], V1[n][2], T->Description(), d2);
+                }
+
+              } else {
+                mprinterr("Error: Operation '%s' between set %s and value not yet permitted.\n",
+                          T->Description(), ds1->legend());
                 return 1;
               }
             }
