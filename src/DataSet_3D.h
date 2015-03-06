@@ -43,24 +43,18 @@ class DataSet_3D : public DataSet {
     }
     /// Convert X, Y, and Z coords to indices. No bounds check.
     void BinIndices(double x,double y,double z,int& i,int& j,int& k) const {
-      return gridBin_->BinIndices(x, y, z, i, j, k);
+      gridBin_->BinIndices(x, y, z, i, j, k);
     }
     /// \return coordinates of specified voxel corner.
-    Vec3 BinCorner(int i,int j,int k) const {
-      return gridBin_->BinCorner(i, j, k);
-    }
+    Vec3 BinCorner(int i,int j,int k) const { return gridBin_->BinCorner(i, j, k); }
     /// \return coordinates of specified voxel center.
-    Vec3 BinCenter(int i,int j,int k) const {
-      return gridBin_->BinCenter(i, j, k);
-    }
+    Vec3 BinCenter(int i,int j,int k) const { return gridBin_->BinCenter(i, j, k); }
     /// \return coordinates of grid origin.
-    Vec3 const& GridOrigin() const {
-      return gridBin_->GridOrigin();
-    }
+    Vec3 const& GridOrigin()          const { return gridBin_->GridOrigin();       }
     /// \return unit cell matrix.
-    Matrix_3x3 Ucell() const { return gridBin_->Ucell(); }
+    Matrix_3x3 Ucell()                const { return gridBin_->Ucell();            }
     /// \return voxel volume.
-    double VoxelVolume() const { return gridBin_->VoxelVolume(); }
+    double VoxelVolume()              const { return gridBin_->VoxelVolume();      }
   private:
     /// Check if grid dimension is even; if not, increment it by 1.
     static void CheckEven(size_t&, char);
