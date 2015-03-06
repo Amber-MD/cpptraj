@@ -1,9 +1,8 @@
-// Action_Rotdif
 #include <cmath>
 #include <cfloat> // DBL_MAX
 #include <cstdio> //sscanf
 #include <algorithm> // sort
-#include "Action_Rotdif.h"
+#include "Analysis_Rotdif.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // NumberFilename
 #include "Constants.h" // TWOPI
@@ -31,7 +30,7 @@ extern "C" {
 #endif
 
 // CONSTRUCTOR
-Action_Rotdif::Action_Rotdif() :
+Analysis_Rotdif::Analysis_Rotdif() :
   debug_(0),
   rseed_( 1 ),
   nvecs_( 0 ),
@@ -51,17 +50,15 @@ Action_Rotdif::Action_Rotdif() :
   do_gridsearch_( false ),
   useMass_(false),
   usefft_( true ),
-  outfile_(0)
+  outfile_(0),
+  Rmatrices_(0)
 { } 
-// TODO: MAKE ANALYSIS
-void Action_Rotdif::Help() {
+
+void Analysis_Rotdif::Help() {
   mprintf("\t[outfile <outfilename>] [usefft]\n"
-          "  Options for creating RMS best-fit rotation matrices:\n"
-          "\t[<mask>] {%s}\n"
-          "\t[rmout <rmOut>]\n"
           "  Options for generating random vectors:\n"
           "\t[nvecs <nvecs>] [rvecin <randvecIn>] [rseed <random seed>]\n"
-          "\t[rvecout <randvecOut>]\n"
+          "\t[rvecout <randvecOut>] [rmatrix <set name> [rmout <rmOut>]]\n"
           "  Options for calculating vector time correlation functions:\n"
           "\t[order <olegendre>] [ncorr <ncorr>] [corrout <corrOut>]\n"
           "  *** The options below only apply if 'usefft' IS NOT specified. ***\n"
@@ -82,101 +79,84 @@ void Action_Rotdif::Help() {
           "  to the following equation to obtain principal values of the diffusion\n"
           "  tensor:\n    C(t) = SUM[l=-2,...,+2]( cl * exp(-t / Tl)\n"
           "  (see equation 2.10b and related eqs. in Korzhnev et al., Prog. Nuc. Mag.\n"
-          "   Res. Spec. 38 (2001) 197-266 for details).\n", DataSetList::RefArgs);
+          "   Res. Spec. 38 (2001) 197-266 for details).\n");
 }
 
-// Action_Rotdif::Init()
-Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+// Analysis_Rotdif::Setup()
+Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, DataSetList* DSL,
+                                  TopologyList* PFLin, DataFileList* DFL, int debugIn)
 {
-  if (DSL->EnsembleNum() > -1) {
-    mprinterr("Error: Rotational Diffusion calc. currently cannot be used in ensemble mode.\n");
-    return Action::ERR;
-  }
   debug_ = debugIn;
   // Get Keywords
-  usefft_ = actionArgs.hasKey("usefft");
-  nvecs_ = actionArgs.getKeyInt("nvecs",1000);
-  rseed_ = actionArgs.getKeyInt("rseed",80531);
-  ncorr_ = actionArgs.getKeyInt("ncorr",0);
-  tfac_ = actionArgs.getKeyDouble("dt",0);
+  usefft_ = analyzeArgs.hasKey("usefft");
+  nvecs_ = analyzeArgs.getKeyInt("nvecs",1000);
+  rseed_ = analyzeArgs.getKeyInt("rseed",80531);
+  ncorr_ = analyzeArgs.getKeyInt("ncorr",0);
+  tfac_ = analyzeArgs.getKeyDouble("dt",0);
   if (tfac_<=0) {
     mprinterr("Error: 'dt <timestep>' must be specified and > 0.\n");
-    return Action::ERR;
+    return Analysis::ERR;
   }
-  ti_ = actionArgs.getKeyDouble("ti",0);
-  tf_ = actionArgs.getKeyDouble("tf",0);
+  ti_ = analyzeArgs.getKeyDouble("ti",0);
+  tf_ = analyzeArgs.getKeyDouble("tf",0);
   if (tf_ <= ti_) {
     mprinterr("Error: Initial time ti (%f) must be < final time tf (%f).\n",
               ti_, tf_);
-    return Action::ERR;
+    return Analysis::ERR;
   }
-  NmeshPoints_ = actionArgs.getKeyInt("nmesh", -1);
-  itmax_ = actionArgs.getKeyInt("itmax",500);
-  delmin_ = actionArgs.getKeyDouble("tol",0.000001);
-  d0_ = actionArgs.getKeyDouble("d0",0.03);
-  olegendre_ = actionArgs.getKeyInt("order",2);
+  NmeshPoints_ = analyzeArgs.getKeyInt("nmesh", -1);
+  itmax_ = analyzeArgs.getKeyInt("itmax",500);
+  delmin_ = analyzeArgs.getKeyDouble("tol",0.000001);
+  d0_ = analyzeArgs.getKeyDouble("d0",0.03);
+  olegendre_ = analyzeArgs.getKeyInt("order",2);
   if (olegendre_!=1 && olegendre_!=2) {
     mprinterr("Error: Order of legendre polynomial (%i) must be 1 or 2.\n",
               olegendre_);
-    return Action::ERR;
+    return Analysis::ERR;
   }
-  delqfrac_ = actionArgs.getKeyDouble("delqfrac", 0.5);
-  delqfrac_ = actionArgs.getKeyDouble("scalesimplex", delqfrac_);
-  randvecOut_ = actionArgs.GetStringKey("rvecout");
-  randvecIn_ = actionArgs.GetStringKey("rvecin");
-  rmOut_ = actionArgs.GetStringKey("rmout");
-  deffOut_ = actionArgs.GetStringKey("deffout");
-  std::string outfilename = actionArgs.GetStringKey("outfile");
-  if (outfilename.empty()) outfilename = actionArgs.GetStringKey("out");
-  corrOut_ = actionArgs.GetStringKey("corrout");
-  do_gridsearch_ = actionArgs.hasKey("gridsearch");
-  amoeba_ftol_ = actionArgs.getKeyDouble("amoeba_tol", amoeba_ftol_);
-  amoeba_itmax_ = actionArgs.getKeyInt("amoeba_itmax", amoeba_itmax_);
-  amoeba_nsearch_ = actionArgs.getKeyInt("amoeba_nsearch", 1);
+  delqfrac_ = analyzeArgs.getKeyDouble("delqfrac", 0.5);
+  delqfrac_ = analyzeArgs.getKeyDouble("scalesimplex", delqfrac_);
+  randvecOut_ = analyzeArgs.GetStringKey("rvecout");
+  randvecIn_ = analyzeArgs.GetStringKey("rvecin");
+  rmOut_ = analyzeArgs.GetStringKey("rmout");
+  deffOut_ = analyzeArgs.GetStringKey("deffout");
+  std::string outfilename = analyzeArgs.GetStringKey("outfile");
+  if (outfilename.empty()) outfilename = analyzeArgs.GetStringKey("out");
+  corrOut_ = analyzeArgs.GetStringKey("corrout");
+  do_gridsearch_ = analyzeArgs.hasKey("gridsearch");
+  amoeba_ftol_ = analyzeArgs.getKeyDouble("amoeba_tol", amoeba_ftol_);
+  amoeba_itmax_ = analyzeArgs.getKeyInt("amoeba_itmax", amoeba_itmax_);
+  amoeba_nsearch_ = analyzeArgs.getKeyInt("amoeba_nsearch", 1);
   if (usefft_) {
-    amoeba_ftol_ = actionArgs.getKeyDouble("fit_tol", amoeba_ftol_);
-    amoeba_itmax_ = actionArgs.getKeyInt("fit_itmax", amoeba_itmax_);
+    amoeba_ftol_ = analyzeArgs.getKeyDouble("fit_tol", amoeba_ftol_);
+    amoeba_itmax_ = analyzeArgs.getKeyInt("fit_itmax", amoeba_itmax_);
   }
-  // Reference Keywords
-  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
-  if (REF.error()) return Action::ERR;
-  if (REF.empty()) {
-    mprinterr("Error: Must specify a reference structure.\n");
-    return Action::ERR;
+  // Rotation matrices data set. TODO: Make optional
+  std::string rm_name = analyzeArgs.GetStringKey("rmatrix");
+  Rmatrices_ = (DataSet_Mat3x3*)DSL->FindSetOfType( rm_name, DataSet::MAT3X3 );
+  if (Rmatrices_ == 0) {
+    mprinterr("Error: Must specify data set containing rotation matrices.\n"
+              "Error: These can be generated with the 'rms' command and the 'savematrices'\n"
+              "Error:   keyword. The resulting data set has aspect [RM], e.g.:\n"
+              "         rms R0 @CA reference savematrices\n"
+              "         rotdif rmatrix R0[RM] ...\n");
+    return Analysis::ERR;
   }
-  // Get Masks
-  AtomMask RefMask( actionArgs.GetMaskNext() );
-  TargetMask_.SetMaskString( RefMask.MaskExpression() );
   
   // Initialize random number generator
   RNgen_.rn_set( rseed_ );
-
-  // Set up reference for RMSD
-  // Setup reference mask
-  if (REF.Parm().SetupIntegerMask( RefMask )) return Action::ERR;
-  if (RefMask.None()) {
-    mprinterr("Error: No atoms in reference mask.\n");
-    return Action::ERR;
-  }
-  // Allocate frame for selected reference atoms
-  SelectedRef_.SetupFrameFromMask(RefMask, REF.Parm().Atoms());
-  // Set reference frame coordinates
-  SelectedRef_.SetCoordinates(REF.Coord(), RefMask);
-  // Always fitting; Pre-center reference frame
-  SelectedRef_.CenterOnOrigin(useMass_); 
 
   // Open output file. Defaults to stdout if no name specified
   outfile_ = DFL->AddCpptrajFile(outfilename, "Rotational diffusion",
                                  DataFileList::TEXT, true);
   if (outfile_ == 0) {
     mprinterr("Error: Could not open Rotdif output file %s.\n", outfilename.c_str());
-    return Action::ERR;
+    return Analysis::ERR;
   }
 
   mprintf("    ROTDIF: Rotational diffusion tensor calculation.\n");
-  mprintf("\tRotation matrices for rotating vectors will be generated by RMS fitting\n"
-          "\t  to atoms in mask '%s', reference '%s'\n", TargetMask_.MaskString(),
-          REF.refName());
+  mprintf("\tUsing rotation matrices for rotating vectors from set '%s'\n",
+          Rmatrices_->legend()); 
   if (!rmOut_.empty())
     mprintf("\tRotation matrices will be written to file '%s'\n", rmOut_.c_str());
   if (randvecIn_.empty())
@@ -246,50 +226,8 @@ Action::RetType Action_Rotdif::Init(ArgList& actionArgs, TopologyList* PFL, Data
               "#           protein MD simulations.\"\n"
               "#           J. Phys. Chem. B (2008) V.112 pp.6013-6024.\n");
   }
-  return Action::OK;
+  return Analysis::OK;
 }
-
-// Action_Rotdif::Setup()
-/** Determine what atoms each mask pertains to for the current parm file.
-  * Also determine whether imaging should be performed.
-  */
-Action::RetType Action_Rotdif::Setup(Topology* currentParm, Topology** parmAddress) {
-
-  if ( currentParm->SetupIntegerMask( TargetMask_ ) ) return Action::ERR;
-  if ( TargetMask_.None() ) {
-    mprintf("Warning: No atoms in mask.\n");
-    return Action::ERR;
-  }
-  // Allocate space for selected atoms in the frame. This will also put the
-  // correct masses in based on the mask.
-  SelectedTgt_.SetupFrameFromMask(TargetMask_, currentParm->Atoms());
-  // Check that num atoms in frame mask from this parm match ref parm mask
-  if ( SelectedRef_.Natom() != TargetMask_.Nselected() ) {
-    mprinterr("Error: Number of atoms in RMS mask (%i) does not \n",TargetMask_.Nselected());
-    mprinterr("Error:   equal number of atoms in Ref mask (%i).\n",SelectedRef_.Natom());
-    return Action::ERR;
-  }
-  
-  // Print info for this parm
-  mprintf("    ROTDIF: %i atoms selected for RMS fit.\n",TargetMask_.Nselected());
-        
-  return Action::OK;  
-}
-
-// Action_Rotdif::DoAction()
-/** Calculate and store the rotation matrix for frame to reference.
-  */
-Action::RetType Action_Rotdif::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  Matrix_3x3 U;
-  Vec3 Trans; // Unused
-
-  // Set selected frame atoms. Masses have already been set.
-  SelectedTgt_.SetCoordinates(*currentFrame, TargetMask_);
-  SelectedTgt_.RMSD_CenteredRef(SelectedRef_, U, Trans, useMass_);
-  Rmatrices_.AddMat3x3( U );
-
-  return Action::OK;
-} 
 
 // ========== ROTATIONAL DIFFUSION CALC ROUTINES ===============================
 // Q_to_D()
@@ -402,7 +340,7 @@ static void Diagonalize(Matrix_3x3& Mat, Vec3& Vec) {
 }
 
 // =============================================================================
-// Action_Rotdif::RandomVectors()
+// Analysis_Rotdif::RandomVectors()
 /** If no input file is specified by randvecIn, generate nvecs vectors of length 
   * 1.0 centered at the coordinate origin that are randomly oriented. The x,
   * y, and z components of each vector are generated from a polar coordinate 
@@ -416,7 +354,7 @@ static void Diagonalize(Matrix_3x3& Mat, Vec3& Vec) {
   */
 // NOTE: Theta could also be generated in the same way as phi. Currently done
 //       to be consistent with the original implementation in randvec.F90
-DataSet_Vector Action_Rotdif::RandomVectors() {
+DataSet_Vector Analysis_Rotdif::RandomVectors() {
   DataSet_Vector XYZ;
   XYZ.ReserveVecs( nvecs_ );
   // ----- Read nvecs vectors from a file
@@ -468,31 +406,31 @@ DataSet_Vector Action_Rotdif::RandomVectors() {
 }
 
 // =============================================================================
-// Action_Rotdif::PrintMatrix()
-void Action_Rotdif::PrintMatrix(CpptrajFile& outfile, const char* Title, Matrix_3x3 const& U)
+// Analysis_Rotdif::PrintMatrix()
+void Analysis_Rotdif::PrintMatrix(CpptrajFile& outfile, const char* Title, Matrix_3x3 const& U)
 {
   outfile.Printf("    %s\n",Title);
   outfile.Printf(" %12.5e %12.5e %12.5e\n %12.5e %12.5e %12.5e\n %12.5e %12.5e %12.5e\n",
                  U[0], U[1], U[2], U[3], U[4], U[5], U[6], U[7], U[8]);
 }
 
-// Action_Rotdif::PrintVector()
-void Action_Rotdif::PrintVector(CpptrajFile& outfile, const char* Title, Vec3 const& V)
+// Analysis_Rotdif::PrintVector()
+void Analysis_Rotdif::PrintVector(CpptrajFile& outfile, const char* Title, Vec3 const& V)
 {
   outfile.Printf("    %s\n",Title);
   outfile.Printf(" %12.5e %12.5e %12.5e\n", V[0], V[1], V[2]);
 }
 
-// Action_Rotdif::PrintVec6()
-void Action_Rotdif::PrintVec6(CpptrajFile& outfile, const char* Title, SimplexMin::Darray const& V)
+// Analysis_Rotdif::PrintVec6()
+void Analysis_Rotdif::PrintVec6(CpptrajFile& outfile, const char* Title, SimplexMin::Darray const& V)
 {
   outfile.Printf("    %s\n",Title);
   outfile.Printf(" %12.5e %12.5e %12.5e %12.5e %12.5e %12.5e\n", 
                  V[0], V[1], V[2], V[3], V[4], V[5]);
 }
 
-// Action_Rotdif::PrintTau()
-void Action_Rotdif::PrintTau(std::vector<double> const& Tau)
+// Analysis_Rotdif::PrintTau()
+void Analysis_Rotdif::PrintTau(std::vector<double> const& Tau)
 {
   outfile_->Printf("     taueff(obs) taueff(calc)\n");
   for (int i = 0; i < nvecs_; i++)
@@ -748,7 +686,7 @@ int AsymmetricFxn_L1(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
 }
 
 // =============================================================================
-// Action_Rotdif::Tensor_Fit()
+// Analysis_Rotdif::Tensor_Fit()
 /** Based on random_vectors and effective diffusion constants D_eff previously
   * calculated, first find the tensor Q (and therefore D) in the small
   * anisotropic limit by solving:
@@ -757,7 +695,7 @@ int AsymmetricFxn_L1(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
   *   { x^2, y^2, z^2, 2xy, 2yz, 2xz }
   * \param vector_q Will be set with Q tensor for small anisotropic limit.
   */
-int Action_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
+int Analysis_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
 #ifdef NO_MATHLIB
   return 1;
 #else
@@ -1051,8 +989,8 @@ int Action_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
 }
 
 // =============================================================================
-// Action_Rotdif::fft_compute_corr()
-int Action_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int nsteps, 
+// Analysis_Rotdif::fft_compute_corr()
+int Analysis_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int nsteps, 
                                     std::vector<double>& pY)
 {
   int n_of_vecs = rotated_vectors.Size();
@@ -1279,20 +1217,20 @@ int Ctau_L2(CurveFit::Darray const& Tau, CurveFit::Darray const& Params,
   return 0;
 }
 
-// Action_Rotdif::DetermineDeffsAlt()
+// Analysis_Rotdif::DetermineDeffsAlt()
 /** For each randomly generated vector:
   *   1) Rotate the vector according to saved rotation matrices.
   *   2) Calculate the autocorrelation function of the vector.
   * Then take the average of the autocorrelation functions and
   *   fit the autocorrelation to a single exponential and multi exp.
   */
-int Action_Rotdif::DetermineDeffsAlt() {
+int Analysis_Rotdif::DetermineDeffsAlt() {
   if (olegendre_ != 2) {
     mprintf("Warning: This calculation currently only works for order=2. Setting order to 2.\n");
     olegendre_ = 2;
   }
   // Determine max length of autocorrelation fxn.
-   int vLength = (int)Rmatrices_.Size() + 1;
+   int vLength = (int)Rmatrices_->Size() + 1;
    int ctMax = ncorr_;
    if (ncorr_ == 0)
      ctMax = vLength;
@@ -1323,8 +1261,8 @@ int Action_Rotdif::DetermineDeffsAlt() {
     // Assign normalized vector to rotated_vectors position 0
     rotated_vectors.AddVxyz( *rndvec );
     // Loop over rotation matrices
-    for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_.begin();
-                                        rmatrix != Rmatrices_.end();
+    for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_->begin();
+                                        rmatrix != Rmatrices_->end();
                                       ++rmatrix)
       // Rotate normalized vector
       rotated_vectors.AddVxyz( *rmatrix * (*rndvec) );
@@ -1471,7 +1409,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
 }
 
 // =============================================================================
-// Action_Rotdif::direct_compute_corr()
+// Analysis_Rotdif::direct_compute_corr()
 /** Given a normalized vector that has been randomly rotated itotframes 
   * times, compute the time correlation functions of the vector.
   * \param rotated_vectors array of vector coords for each frame 
@@ -1479,7 +1417,7 @@ int Action_Rotdif::DetermineDeffsAlt() {
   * \param pY Will be set with values for correlation function, l=olegendre_
   */
 // TODO: Make rotated_vectors const&
-int Action_Rotdif::direct_compute_corr(DataSet_Vector const& rotated_vectors, int maxdat,
+int Analysis_Rotdif::direct_compute_corr(DataSet_Vector const& rotated_vectors, int maxdat,
                                        std::vector<double>& pY)
 {
   // Initialize output array 
@@ -1505,7 +1443,7 @@ int Action_Rotdif::direct_compute_corr(DataSet_Vector const& rotated_vectors, in
   return 0; 
 }
 
-// Action_Rotdif::calcEffectiveDiffusionConst()
+// Analysis_Rotdif::calcEffectiveDiffusionConst()
 /** computes effect diffusion constant for a vector using the integral over
   * its correlation function as input. Starting with definition:
   *
@@ -1526,7 +1464,7 @@ int Action_Rotdif::direct_compute_corr(DataSet_Vector const& rotated_vectors, in
   * /param f Integral of Cl(t) from ti to tf
   * /return Effective value of D
   */
-double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
+double Analysis_Rotdif::calcEffectiveDiffusionConst(double f ) {
 // Class variables used:
 //   ti,tf: Integration limits.
 //   itmax: Maximum number of iterations in subroutine itsolv.
@@ -1569,7 +1507,7 @@ double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
   return d; 
 }
 
-// Action_Rotdif::DetermineDeffs()
+// Analysis_Rotdif::DetermineDeffs()
 /** Calculate effective diffusion constant for each random vector. 
   * Vectors will be normalized during this phase. First rotate the vector 
   * by all rotation matrices, storing the resulting vectors. The first entry 
@@ -1579,7 +1517,7 @@ double Action_Rotdif::calcEffectiveDiffusionConst(double f ) {
   * Sets D_Eff, normalizes random_vectors.
   */
 // TODO: OpenMP Parallelize
-int Action_Rotdif::DetermineDeffs() {
+int Analysis_Rotdif::DetermineDeffs() {
   int itotframes;                 // Total number of frames (rotation matrices) 
   DataSet_Vector rotated_vectors; // Hold vectors after rotation with Rmatrices
   int maxdat;                     // Length of C(t) 
@@ -1590,7 +1528,7 @@ int Action_Rotdif::DetermineDeffs() {
   mprintf("\tDetermining local diffusion constants for each vector.\n");
   ProgressBar progress( nvecs_ );
 
-  itotframes = (int) Rmatrices_.Size();
+  itotframes = (int) Rmatrices_->Size();
   if (ncorr_ == 0) ncorr_ = itotframes;
   maxdat = ncorr_ + 1;
   // Allocate memory to hold calcd effective D values
@@ -1625,15 +1563,15 @@ int Action_Rotdif::DetermineDeffs() {
     // Assign normalized vector to rotated_vectors position 0
     rotated_vectors.AddVxyz( *rndvec );
     // Loop over rotation matrices
-    for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_.begin();
-                                        rmatrix != Rmatrices_.end();
+    for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_->begin();
+                                        rmatrix != Rmatrices_->end();
                                       ++rmatrix)
     {
       // Rotate normalized vector
       rotated_vectors.AddVxyz( *rmatrix * (*rndvec) );
       // DEBUG
       //Vec3 current = rotated_vectors.CurrentVec();
-      //mprintf("DBG:Rotated %6u: %15.8f%15.8f%15.8f\n", rmatrix - Rmatrices_.begin(),
+      //mprintf("DBG:Rotated %6u: %15.8f%15.8f%15.8f\n", rmatrix - Rmatrices_->begin(),
       //        current[0], current[1], current[2]); 
     }
     // Calculate time correlation function for this vector
@@ -1684,7 +1622,7 @@ int Action_Rotdif::DetermineDeffs() {
 }
 
 // =============================================================================
-void Action_Rotdif::PrintDeffs(std::string const& nameIn) const {
+void Analysis_Rotdif::PrintDeffs(std::string const& nameIn) const {
   // Print deffs
   if (!nameIn.empty()) {
     CpptrajFile dout;
@@ -1699,7 +1637,7 @@ void Action_Rotdif::PrintDeffs(std::string const& nameIn) const {
   }
 }
 
-// Action_Rotdif::Print()
+// Analysis_Rotdif::Analyze()
 /** Main tensorfit calculation.
   * - Read/generate random vectors.
   * - For each random vector:
@@ -1714,19 +1652,19 @@ void Action_Rotdif::PrintDeffs(std::string const& nameIn) const {
   * - Based on Q from small anisotropic limit, use downhill simplex
   *   minimizer to optimize Q in full anisotropic limit
   */
-void Action_Rotdif::Print() {
+Analysis::RetType Analysis_Rotdif::Analyze() {
   mprintf("    ROTDIF:\n");
   // Read/Generate nvecs random vectors
   random_vectors_ = RandomVectors();
-  if (random_vectors_.Size() < 1) return;
+  if (random_vectors_.Size() < 1) return Analysis::ERR;
   // ---------------------------------------------
   // If no rotation matrices generated, exit
-  if (Rmatrices_.Empty()) return;
+  if (Rmatrices_->Empty()) return Analysis::ERR;
   // HACK: To match results from rmscorr.f (where rotation matrices are
   //       implicitly transposed), transpose each rotation matrix.
   // NOTE: Is this actually correct? Want inverse rotation?
-  for (DataSet_Mat3x3::iterator rmatrix = Rmatrices_.begin();
-                                rmatrix != Rmatrices_.end(); ++rmatrix)
+  for (DataSet_Mat3x3::iterator rmatrix = Rmatrices_->begin();
+                                rmatrix != Rmatrices_->end(); ++rmatrix)
     rmatrix->Transpose();
   // Print rotation matrices
   if (!rmOut_.empty()) {
@@ -1736,8 +1674,8 @@ void Action_Rotdif::Print() {
     } else {
       rmout.OpenFile();
       int rmframe=1;
-      for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_.begin();
-                                          rmatrix != Rmatrices_.end();
+      for (DataSet_Mat3x3::const_iterator rmatrix = Rmatrices_->begin();
+                                          rmatrix != Rmatrices_->end();
                                         ++rmatrix, ++rmframe) 
       {
         rmout.Printf("%13i %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f %12.9f\n",
@@ -1749,7 +1687,7 @@ void Action_Rotdif::Print() {
       rmout.CloseFile();
     }
   }
-  mprintf("\t%i vectors, %u rotation matrices.\n",nvecs_,Rmatrices_.Size());
+  mprintf("\t%i vectors, %u rotation matrices.\n",nvecs_,Rmatrices_->Size());
   if (usefft_) {
     // ---------------------------------------------
     // Test calculation; determine constants directly with SH and curve fitting.
@@ -1764,7 +1702,7 @@ void Action_Rotdif::Print() {
     // All remaining functions require LAPACK
 #   ifndef NO_MATHLIB
     SimplexMin::Darray Q_isotropic(6);
-    if (Tensor_Fit( Q_isotropic )) return;
+    if (Tensor_Fit( Q_isotropic )) return Analysis::ERR;
     // Using Q (small anisotropy) as a guess, calculate Q with full anisotropy
     mprintf("\tDetermining diffusion tensor with full anisotropy.\n");
     SimplexMin::Darray Q_anisotropic = Q_isotropic;
@@ -1854,4 +1792,5 @@ void Action_Rotdif::Print() {
     } // END grid search
 #   endif
   }
+  return Analysis::OK;
 }

@@ -1,10 +1,9 @@
-#ifndef INC_ACTION_ROTDIF_H
-#define INC_ACTION_ROTDIF_H
-#include "Action.h"
+#ifndef INC_ANALYSIS_ROTDIF_H
+#define INC_ANALYSIS_ROTDIF_H
+#include "Analysis.h"
 #include "Random.h"
 #include "DataSet_Vector.h"
 #include "DataSet_Mat3x3.h"
-// Class: Action_Rotdif
 /// Estimate rotational diffusion tensors from MD simulations
 /** To estimate rotational diffusion tensors from MD simulations along the
   * lines described by Wong & Case, (Evaluating rotational diffusion from
@@ -20,16 +19,14 @@
   * \author Original code: Vance Wong, George Giambasu
   * \author Adapted by: DRR
   */
-class Action_Rotdif: public Action {
+class Analysis_Rotdif: public Analysis {
   public:
-    Action_Rotdif();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rotdif(); }
+    Analysis_Rotdif();
+    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Rotdif(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
-    void Print();
+    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Analyze();
 
     int debug_;
     int rseed_;          ///< Random seed
@@ -61,15 +58,12 @@ class Action_Rotdif: public Action {
     std::string deffOut_;
     std::string corrOut_;
 
-    Frame SelectedRef_;
-    AtomMask TargetMask_;
-    Frame SelectedTgt_;
     CpptrajFile* outfile_;
 
     // Variables used by the random number generator
     Random_Number RNgen_;
 
-    DataSet_Mat3x3 Rmatrices_;      ///< Store rotation matrices
+    DataSet_Mat3x3* Rmatrices_;      ///< Store rotation matrices
     DataSet_Vector random_vectors_; ///< Hold nvecs random vectors
     std::vector<double> D_eff_;     ///< Hold calculated effective D values for each vector
 //    std::vector<double> sumc2_;      
