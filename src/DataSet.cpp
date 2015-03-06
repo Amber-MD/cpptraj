@@ -1,7 +1,7 @@
 // DataSet
 #include "DataSet.h"
-#include "CpptrajStdio.h"
 #include "StringRoutines.h" // SetStringFormatString etc
+#include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 DataSet::DataSet() :
@@ -170,7 +170,7 @@ int DataSet::SetDataSetFormat(bool leftAlignIn) {
       break;
     default:
       mprinterr("Error: No format string defined for this data type (%s).\n", 
-                legend());
+                PrintName().c_str());
       return 1;
   }
   // If we are not left-aligning prepend a space to the format string.
@@ -200,14 +200,15 @@ bool DataSet::Matches(std::string const& dsname, int idxnum, std::string const& 
   return true;
 }
 
-void DataSet::PrintName() const {
-  mprintf("%s", Name().c_str());
-  if (!Aspect().empty())
-    mprintf("[%s]", Aspect().c_str());
-  if (Idx() != -1)
-    mprintf(":%i", Idx());
-  if (Member() != -1)
-    mprintf("%%%i", Member());
+std::string DataSet::PrintName() const {
+  std::string out( name_ );
+  if (!aspect_.empty())
+    out.append("[" + aspect_ + "]");
+  if (idx_ != -1)
+    out.append(":" + integerToString(idx_));
+  if (ensembleNum_ != -1)
+    out.append("%" + integerToString(ensembleNum_));
+  return out;
 }
 // -----------------------------------------------------------------------------
 const char* DataSet::Smodes[] = {"distance","angle","torsion","pucker","rms","matrix",0};
@@ -232,11 +233,13 @@ const DataSet::scalarMode DataSet::TypeModes[] = {
   UNKNOWN_MODE };
 
 // DataSet::ScalarDescription()
-void DataSet::ScalarDescription() const {
+std::string DataSet::ScalarDescription() const {
+  std::string out("");
   if (scalarmode_ != UNKNOWN_MODE)
-    mprintf(", %s", Smodes[scalarmode_]);
+    out.append(", " + std::string(Smodes[scalarmode_]));
   if (scalartype_ != UNDEFINED)
-    mprintf("(%s)", Stypes[scalartype_]);
+    out.append("(" + std::string(Stypes[scalartype_]) + ")");
+  return out;
 }
 
 // DataSet::ModeFromKeyword()
