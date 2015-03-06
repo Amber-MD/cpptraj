@@ -238,31 +238,35 @@ int CpptrajFile::OpenAppend(std::string const& nameIn) {
   * \return 0 on success, 1 on error.
   */
 int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
-  // null filename not allowed
-  if (nameIn.empty()) {
-    mprinterr("Internal Error: No filename specified for READ.\n");
-    return 1;
-  }
-  isStream_ = false;
-  // Check if file exists. If not, fail silently
-  if (!fileExists( nameIn )) return 1;
   // Clear file, set debug level
   Reset();
   debug_ = debugIn;
   access_ = READ;
-  fileType_ = UNKNOWN_TYPE;
   if (debug_>0)
     mprintf("CpptrajFile: Setting up %s for READ.\n", nameIn.c_str());
-  // Perform tilde-expansion
-  std::string expandedName = tildeExpansion( nameIn );
-  if (expandedName.empty()) {
-    mprinterr("Interal Error: CpptrajFile: Tilde-expansion failed.\n");
-    return 1;
-  }
-  // Determine file type. This sets up IO and determines compression. 
-  if (ID_Type( expandedName.c_str() )) return 1;
-  // Set up filename; sets base filename and extensions
-  fname_.SetFileName( expandedName, IsCompressed() );
+  // If nameIn is empty assume reading from STDIN desired. 
+  if (nameIn.empty()) {
+    isStream_ = true;
+    // file type must be STANDARD for streams
+    fileType_ = STANDARD;
+    fname_.SetFileName("STDIN");
+    IO_ = SetupFileIO( fileType_ );
+  } else {
+    isStream_ = false;
+    // Check if file exists. If not, fail silently
+    if (!fileExists( nameIn )) return 1;
+    fileType_ = UNKNOWN_TYPE;
+    // Perform tilde-expansion
+    std::string expandedName = tildeExpansion( nameIn );
+    if (expandedName.empty()) {
+      mprinterr("Interal Error: CpptrajFile: Tilde-expansion failed.\n");
+      return 1;
+    }
+    // Determine file type. This sets up IO and determines compression. 
+    if (ID_Type( expandedName.c_str() )) return 1;
+    // Set up filename; sets base filename and extensions
+    fname_.SetFileName( expandedName, IsCompressed() );
+  } 
   if (debug_>0)
     rprintf("\t[%s] is type %s with access READ\n", fname_.full(), FileTypeName[fileType_]);
   return 0;

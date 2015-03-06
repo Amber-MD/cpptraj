@@ -10,15 +10,16 @@ class Traj_AmberRestart : public TrajectoryIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_AmberRestart(); }
     static void WriteHelp();
     static void ReadHelp();
+
+    int setupTrajin(std::string const&, Topology*);
+    int openTrajin();
+    void closeTraj();
+    int readFrame(int,Frame&);
   private:
     // Inherited functions
     int processReadArgs(ArgList&);
     bool ID_TrajFormat(CpptrajFile&);
-    int setupTrajin(std::string const&, Topology*);
     int setupTrajout(std::string const&, Topology*, CoordinateInfo const&,int, bool);
-    int openTrajin();
-    void closeTraj();
-    int readFrame(int,Frame&);
     int readVelocity(int, Frame&);
     int writeFrame(int,Frame const&);
     int processWriteArgs(ArgList&);
@@ -26,10 +27,11 @@ class Traj_AmberRestart : public TrajectoryIO {
 
     int getBoxAngles(std::string const&, Box&);
 
-    int restartAtoms_;     ///< Number of atoms in restart file
-    int natom3_;           ///< Number of coords
+    std::vector<double> CRD_; ///< Store coords on read.
+    std::vector<double> VEL_; ///< Store velocities on read.
+    Box boxInfo_;             ///< Store box coords on read.
+    int natom3_;           ///< Number of coords.
     int numBoxCoords_;     ///< Number of box coords (3 or 6)
-    size_t coordSize_;     ///< Size of coords in bytes, for reading past coords.
     double restartTime_;   ///< Time in restart file, read in
     double restartTemp_;   ///< (Optional) replica temperature, read in.
     double time0_;         ///< For writes, restart time offset
