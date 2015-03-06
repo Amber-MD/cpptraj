@@ -145,8 +145,7 @@ int Traj_AmberRestart::getBoxAngles(std::string const& boxline, Box& trajBox) {
   if (numBoxCoords_==-1) {
     // This can occur if there is an extra newline or whitespace at the end
     // of the restart. Warn the user.
-    mprintf("Warning: Restart [%s] appears to have an extra newline or whitespace.\n",
-            file_.Filename().base());
+    mprintf("Warning: Restart appears to have an extra newline or whitespace.\n");
     mprintf("         Assuming no box information present.\n");
     trajBox.SetNoBox();
     numBoxCoords_ = 0;
@@ -176,14 +175,15 @@ int Traj_AmberRestart::processReadArgs(ArgList& argIn) {
   */
 int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
 {
-  if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
-  if (file_.OpenFile()) return TRAJIN_ERR;
+  BufferedFrame infile;
+  if (infile.SetupRead( fname, debug_ )) return TRAJIN_ERR;
+  if (infile.OpenFile()) return TRAJIN_ERR;
   readAccess_ = true;
   // Read in title
-  std::string title = file_.GetLine();
+  std::string title = infile.GetLine();
   SetTitle( NoTrailingWhitespace(title) );
   // Read in natoms, time, and Replica Temp if present
-  std::string nextLine = file_.GetLine();
+  std::string nextLine = infile.GetLine();
   if (nextLine.empty()) {
     mprinterr("Error: Could not read restart atoms/time.\n");
     return TRAJIN_ERR;
@@ -211,26 +211,26 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
   // Check that natoms matches parm natoms
   if (restartAtoms != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in Amber Restart %s (%i) does not\n",
-              file_.Filename().base(), restartAtoms);
+              infile.Filename().base(), restartAtoms);
     mprinterr("       match number in associated parmtop (%i)\n",trajParm->Natom());
     return TRAJIN_ERR;
   }
   natom3_ = restartAtoms * 3;
   // Calculate the length of coordinate frame in bytes
-  file_.SetupFrameBuffer( natom3_, 12, 6 );
+  infile.SetupFrameBuffer( natom3_, 12, 6 );
   // Read past restart coords 
-  if ( file_.ReadFrame() ) {
+  if ( infile.ReadFrame() ) {
     mprinterr("Error: AmberRestart::setupTrajin(): Error reading coordinates.\n");
     return TRAJIN_ERR; 
   }
   // Save coordinates
   CRD_.resize( natom3_ );
-  file_.BufferBegin();
-  file_.BufferToDouble(&CRD_[0], natom3_);
+  infile.BufferBegin();
+  infile.BufferToDouble(&CRD_[0], natom3_);
   // Attempt a second read to get velocities or box coords
   bool hasVel = false;
   boxInfo_.SetNoBox();
-  nread = file_.AttemptReadFrame();
+  nread = infile.AttemptReadFrame();
   if ( nread < 0 ) {
     mprinterr("Error: Error attempting to read box line of Amber restart file.\n");
     return TRAJIN_ERR;
@@ -239,26 +239,26 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
   //mprintf("DEBUG: Restart readSize on second read = %i\n",readSize);
   // If 0 no box or velo 
   if (readSize > 0) {
-    if (readSize == file_.FrameSize()) {
+    if (readSize == infile.FrameSize()) {
       // If filled framebuffer again, has velocity info. 
       hasVel = true;
       VEL_.resize( natom3_ );
-      file_.BufferBegin();
-      file_.BufferToDouble(&VEL_[0], natom3_);
+      infile.BufferBegin();
+      infile.BufferToDouble(&VEL_[0], natom3_);
       // If we can read 1 more line after velocity, should be box info.
-      nextLine = file_.GetLine();
+      nextLine = infile.GetLine();
       if (!nextLine.empty()) {
         if (getBoxAngles(nextLine, boxInfo_)) return TRAJIN_ERR;
       } 
     } else if (readSize<82) {
       // If we read something but didnt fill framebuffer, should have box coords.
-      nextLine.assign(file_.Buffer(), readSize);
+      nextLine.assign(infile.Buffer(), readSize);
       if (getBoxAngles(nextLine, boxInfo_)) return TRAJIN_ERR;
     } else {
       // Otherwise, who knows what was read?
       mprinterr("Error: AmberRestart::setupTrajin(): When attempting to read in\n"
                 "Error: box coords/velocity info got %lu chars, expected 0, 37,\n"
-                "Error: 73, or %lu.\n", readSize, file_.FrameSize());
+                "Error: 73, or %lu.\n", readSize, infile.FrameSize());
       mprinterr("Error: This usually indicates a malformed or corrupted restart file.\n");
       return TRAJIN_ERR;
     }
@@ -267,7 +267,7 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
     mprinterr("Error: 'usevelascoords' specified but no velocities in this restart.\n");
     return TRAJIN_ERR;
   }
-  file_.CloseFile();
+  infile.CloseFile();
   // Set coordinate info
   SetCoordInfo( CoordinateInfo(boxInfo_, hasVel, hasTemp, hasTime) );
   // Only 1 frame in restart by definition

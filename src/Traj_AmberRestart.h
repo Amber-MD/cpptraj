@@ -42,6 +42,6 @@ class Traj_AmberRestart : public TrajectoryIO {
     bool outputTemp_;
     bool outputVel_;
     bool outputTime_;
-    BufferedFrame file_;
+    BufferedFrame file_; ///< Only needed for writes.
 };
 #endif
