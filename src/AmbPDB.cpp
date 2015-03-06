@@ -2,6 +2,8 @@
     \brief Potential replacement for ambpdb using cpptraj file routines.
     \author Daniel R. Roe
  */
+#include <cstdio> // stdin, fileno
+#include <unistd.h> // isatty
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
 #include "Trajin_Single.h"
@@ -138,6 +140,11 @@ int main(int argc, char** argv) {
     trajin.EndTraj();
   } else {
     // Assume Amber restart from STDIN
+    // Check that input is from a redirect.
+    if ( isatty(fileno(stdin)) ) {
+      mprinterr("Error: No coordinates specified with '-c' and no STDIN '<'.\n");
+      return 1;
+    }
     Traj_AmberRestart restartIn;
     restartIn.SetDebug( debug );
     //restartIn.processReadArgs( trajArgs );
