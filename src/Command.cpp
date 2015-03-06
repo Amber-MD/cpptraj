@@ -37,7 +37,6 @@
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
 #include "Action_DihedralScan.h"
-#include "Action_Rotdif.h"
 #include "Action_RunningAvg.h"
 #include "Action_AtomicFluct.h"
 #include "Action_Watershell.h"
@@ -124,6 +123,7 @@
 #include "Analysis_LowestCurve.h"
 #include "Analysis_CurveFit.h"
 #include "Analysis_PhiPsi.h"
+#include "Analysis_Rotdif.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -1876,7 +1876,6 @@ const Command::Token Command::Commands[] = {
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, AddAction },
-  { ACTION, "rotdif", Action_Rotdif::Alloc, Action_Rotdif::Help, AddAction },
   { ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
   { ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
   { ACTION, "scale", Action_Scale::Alloc, Action_Scale::Help, AddAction },
@@ -1930,6 +1929,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, AddAnalysis },
   { ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
   { ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, AddAnalysis },
+  { ANALYSIS, "rotdif", Analysis_Rotdif::Alloc, Analysis_Rotdif::Help, AddAnalysis },
   { ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, AddAnalysis },
   { ANALYSIS, "spline", Analysis_Spline::Alloc, Analysis_Spline::Help, AddAnalysis },
   { ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
