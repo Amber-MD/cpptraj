@@ -262,8 +262,7 @@ DataSet::scalarType DataSet::TypeFromKeyword(std::string const& key, scalarMode&
       if (modeIn != UNKNOWN_MODE) {
         // Is type valid for given mode?
         if (modeIn != TypeModes[i]) {
-          mprinterr("Error: Type '%s' not valid for mode '%s'\n",
-                    Stypes[i], Smodes[TypeModes[i]]);
+          mprinterr("Error: Type '%s' not valid for mode '%s'\n",Stypes[i],Smodes[TypeModes[i]]);
           return UNDEFINED;
         }
       } else

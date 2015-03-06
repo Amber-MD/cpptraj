@@ -440,12 +440,19 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           mprinterr("Internal Error: Assigning to wrong data set!\n");
           return 1;
         }
+        // Check if set already exists.
+        DataSet* mainDS = DSL.CheckForSet(tokens_.front().Name(), -1, "", -1);
+        if (mainDS != 0) {
+          // Overwriting. TODO Only allow if dimensions match?
+          mprintf("Warning: Overwriting existing set '%s'\n", mainDS->legend());
+          DSL.RemoveSet( mainDS );
+        }
         if (Dval[0].IsDataSet()) {
           output = Dval[0].DS();
           LocalList.PopSet( output );
           // Reset DataSet info.
           output->SetLegend("");
-          output->SetupSet(tokens_.front().Name(), -1, "", -1);
+          if (output->SetupSet(tokens_.front().Name(), -1, "", -1)) return 1;
           if (debug_>0)
             mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->legend(),
                     output->legend());
@@ -459,6 +466,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           output->Add(0, &dval); 
         }
         Stack.push(ValType(output));
+      // -----------------------------------------
       } else if (!Dval[0].IsDataSet() && !Dval[1].IsDataSet()) {
         // Neither operand is a data set
         if (debug_>0)
@@ -578,6 +586,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         }
         Stack.push(ValType(tempDS));
       }
+      // -----------------------------------------
     }
   }
   if (Stack.size() != 1) {

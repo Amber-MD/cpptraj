@@ -55,7 +55,7 @@ int DataSet_Coords_REF::SetupRefFrame(std::string const& fname, std::string cons
     setname = traj.TrajFilename().Full();
   else
     setname = nameIn;
-  SetupSet( setname, traj.Start()+1, "", -1 );
+  if (SetupSet( setname, traj.Start()+1, "", -1 )) return 1;
   if (!traj.Title().empty())
     SetLegend( traj.Title() );
   return 0;
@@ -75,7 +75,7 @@ int DataSet_Coords_REF::SetupRefFrame(DataSet_Coords* CRD, std::string const& na
   else
     setname = nameIn;
   SetLegend("");
-  SetupSet( setname, fnum+1, "", -1 );
+  if (SetupSet( setname, fnum+1, "", -1 )) return 1;
   return 0;
 }
 
