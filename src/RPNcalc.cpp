@@ -5,6 +5,7 @@
 #include "RPNcalc.h"
 #include "DataSet_Vector.h"
 #include "DataSet_double.h"
+#include "DataSet_MatrixDbl.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
 
@@ -382,10 +383,10 @@ static inline bool ScalarTimeSeries(DataSet* ds) {
           ds->Type()==DataSet::XYMESH); // FIXME X values will be lost
 }
 
-//static inline bool IsMatrix(DataSte* ds) {
-//  return (ds->Type()==DataSet::MATRIXDBL ||
-//          ds->Type()==DataSet::MATRIXFLT);
-//}
+static inline bool IsMatrix(DataSet* ds) {
+  return (ds->Type()==DataSet::MATRIX_DBL ||
+          ds->Type()==DataSet::MATRIX_FLT);
+}
 
 // RPNcalc::Evaluate()
 int RPNcalc::Evaluate(DataSetList& DSL) const {
@@ -589,13 +590,36 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                     return 1;
                 }
               }
-//            }
-//            else if (IsMatrix(ds1) && IsMatrix(ds2))
-//            {
-//              DataSet_2D const& M1 = static_cast<DataSet_2D const&>( *ds1 );
-//              DataSet_2D const& M2 = static_cast<DataSet_2D const&>( *ds2 );
-//              tempDS = LocalList.AddSetIdx(DataSet::MATRIXDBL, "TEMP", T-tokens_.begin());
-//              DataSet_MatrixDbl& M0 = static_cast<DataSet_MatrixDbl&>(*tempDS);
+            }
+            else if (IsMatrix(ds1) && IsMatrix(ds2))
+            {
+              DataSet_2D const& M1 = static_cast<DataSet_2D const&>( *ds1 );
+              DataSet_2D const& M2 = static_cast<DataSet_2D const&>( *ds2 );
+              if (T->Type() == OP_MINUS || T->Type() == OP_PLUS) {
+                if (M1.Nrows() != M2.Nrows() || M1.Ncols() != M2.Ncols()) {
+                  mprinterr("Error: Matrix operation '%s' requires both matrices have same #"
+                            " of rows and columns.\n");
+                  return 1;
+                }
+              } else {
+                mprinterr("Error: Operation %s not yet supported for matrices.\n",T->Description());
+                return 1;
+              }
+              // For now require matrices have same underlying type.
+              if (M1.MatrixKind() != M2.MatrixKind()) {
+                mprinterr("Error: Matrices %s and %s are not the same kind.\n",
+                          M1.legend(), M2.legend());
+                return 1;
+              }
+              tempDS = LocalList.AddSetIdx(DataSet::MATRIX_DBL, "TEMP", T-tokens_.begin());
+              DataSet_MatrixDbl& M0 = static_cast<DataSet_MatrixDbl&>(*tempDS);
+              switch (M1.MatrixKind()) {
+                case DataSet_2D::FULL : M0.Allocate2D(M1.Nrows(), M1.Ncols()); break;
+                case DataSet_2D::HALF : M0.AllocateHalf(M1.Ncols()); break;
+                case DataSet_2D::TRI  : M0.AllocateTriangle(M1.Nrows()); break;
+              }
+              for (unsigned int n = 0; n != M1.Size(); n++)
+                M0.AddElement( DoOperation(M1.GetElement(n), M2.GetElement(n), T->Type()) );
             } else {
               mprinterr("Error: Operation '%s' not yet permitted between sets %s and %s type.\n",
                         T->Description(), ds1->legend(), ds2->legend());
@@ -659,7 +683,19 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                   //        V0[n][0], V0[n][1], V0[n][2],
                   //        V1[n][0], V1[n][1], V1[n][2], T->Description(), d2);
                 }
-
+              }
+              else if ( IsMatrix(ds1) )
+              {
+                DataSet_2D const& M1 = static_cast<DataSet_2D const&>( *ds1 );
+                tempDS = LocalList.AddSetIdx(DataSet::MATRIX_DBL, "TEMP", T-tokens_.begin());
+                DataSet_MatrixDbl& M0 = static_cast<DataSet_MatrixDbl&>(*tempDS);
+                switch (M1.MatrixKind()) {
+                  case DataSet_2D::FULL : M0.Allocate2D(M1.Nrows(), M1.Ncols()); break;
+                  case DataSet_2D::HALF : M0.AllocateHalf(M1.Ncols()); break;
+                  case DataSet_2D::TRI  : M0.AllocateTriangle(M1.Nrows()); break;
+                }
+                for (unsigned int n = 0; n != M1.Size(); n++)
+                  M0.AddElement( DoOperation(d2, M1.GetElement(n), T->Type()) );
               } else {
                 mprinterr("Error: Operation '%s' between set %s and value not yet permitted.\n",
                           T->Description(), ds1->legend());
