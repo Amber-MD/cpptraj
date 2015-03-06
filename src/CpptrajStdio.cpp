@@ -28,6 +28,7 @@ void loudPrintf(const char* format, ...) {
 // mprintf()
 /** Print message to STDOUT only if this is the master thread */
 void mprintf(const char *format, ...) {
+#ifndef PYTRAJ
   va_list args;
   if (worldsilent) return;
 #ifdef MPI
@@ -36,6 +37,9 @@ void mprintf(const char *format, ...) {
   va_start(args,format);
   vfprintf(stdout,format,args);
   va_end(args);
+#else
+  return;
+#endif
 }
 
 // mprinterr()
