@@ -382,6 +382,11 @@ static inline bool ScalarTimeSeries(DataSet* ds) {
           ds->Type()==DataSet::XYMESH); // FIXME X values will be lost
 }
 
+//static inline bool IsMatrix(DataSte* ds) {
+//  return (ds->Type()==DataSet::MATRIXDBL ||
+//          ds->Type()==DataSet::MATRIXFLT);
+//}
+
 // RPNcalc::Evaluate()
 int RPNcalc::Evaluate(DataSetList& DSL) const {
   if (tokens_.empty()) {
@@ -568,7 +573,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             else if (ds1->Type() == DataSet::VECTOR && ds2->Type() == DataSet::VECTOR)
             {
               tempDS = LocalList.AddSetIdx(DataSet::VECTOR, "TEMP", T-tokens_.begin());
-              DataSet_Vector&       V0 = static_cast<DataSet_Vector&>(*tempDS);
+              DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
               V0.Allocate1D( ds1->Size() );
               DataSet_Vector const& V1 = static_cast<DataSet_Vector const&>(*ds1);
               DataSet_Vector const& V2 = static_cast<DataSet_Vector const&>(*ds2);
@@ -584,6 +589,13 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                     return 1;
                 }
               }
+//            }
+//            else if (IsMatrix(ds1) && IsMatrix(ds2))
+//            {
+//              DataSet_2D const& M1 = static_cast<DataSet_2D const&>( *ds1 );
+//              DataSet_2D const& M2 = static_cast<DataSet_2D const&>( *ds2 );
+//              tempDS = LocalList.AddSetIdx(DataSet::MATRIXDBL, "TEMP", T-tokens_.begin());
+//              DataSet_MatrixDbl& M0 = static_cast<DataSet_MatrixDbl&>(*tempDS);
             } else {
               mprinterr("Error: Operation '%s' not yet permitted between sets %s and %s type.\n",
                         T->Description(), ds1->legend(), ds2->legend());
