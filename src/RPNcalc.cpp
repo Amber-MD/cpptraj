@@ -425,6 +425,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             Dval[i].DS()->Ndim()==1 && Dval[i].DS()->Size()==1)
           Dval[i].SetValue(((DataSet_1D*)Dval[i].DS())->Dval(0));
       }
+      // -----------------------------------------
       if (T->Type() == OP_ASSIGN) {
         // Assignment. This should be the last operation.
         if (!assigningResult) {
@@ -463,13 +464,14 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         if (debug_>0)
           mprintf("DEBUG: '%f' [%s] '%f'\n", Dval[1].Value(), T->Description(), Dval[0].Value());
         Stack.push(ValType(DoOperation(Dval[0].Value(), Dval[1].Value(), T->Type())));
+      // -----------------------------------------
       } else if (T->numOperands() == 1 && T->ResultIsScalar()) {
         // One operand that is a data set that will be converted to a scalar
         DataSet* ds1 = Dval[0].DS();
         if (debug_ > 0)
           mprintf("DEBUG: [%s] '%s'\n", T->Description(), ds1->legend());
         if (ds1->Ndim() != 1) {
-          mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
+          mprinterr("Error: OP %s currently restricted to 1D data sets.\n", T->Description());
           return 1;
         }
         DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
@@ -492,6 +494,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           mprinterr("Internal Error: OP %s is undefined for data set.\n", T->Description());
           return 1;
         }
+      // -----------------------------------------
       } else {
         // One or both operands is a DataSet. Result is DataSet.
         // Set up temporary data set to hold result.
@@ -564,7 +567,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             mprintf("DEBUG: [%s] '%s' => '%s'\n", T->Description(),
                     ds1->legend(), tempDS->legend());
           if (ds1->Ndim() != 1) {
-            mprinterr("Error: Data set math currently restricted to 1D data sets.\n");
+            mprinterr("Error: [%s] currently restricted to 1D data sets.\n", T->Description());
             return 1;
           }
           DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );

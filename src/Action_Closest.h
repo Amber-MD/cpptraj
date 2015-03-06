@@ -25,6 +25,7 @@ class Action_Closest: public Action, ImagedAction {
     std::string prefix_;    ///< Output topology prefix.
     int closestWaters_;     ///< Closest # of molecules to keep.
     bool firstAtom_;        ///< If true just calc based on molecule first atom.
+    bool useMaskCenter_;    ///< If true use geometric center of mask.
     AtomMask stripMask_;    ///< Mask including all solute and closest molecules.
     AtomMask distanceMask_; ///< Mask of atoms to calculate distance from solvent to.
     Topology *newParm_;     ///< New topology with solute and closest molecules.

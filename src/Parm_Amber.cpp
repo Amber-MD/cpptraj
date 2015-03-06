@@ -460,7 +460,9 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   values[NATYP] = parmIn.NatomTypes(); // Only for SOLTY
   values[NPHB] = (int)parmIn.Nonbond().HBarray().size();
   values[IFBOX] = AmberIfbox( parmIn.ParmBox() );
-  values[NMXRS] = parmIn.FindResidueMaxNatom();
+  values[NMXRS] = 0;
+  for (Topology::res_iterator res = parmIn.ResStart(); res != parmIn.ResEnd(); ++res)
+    values[NMXRS] = std::max(values[NMXRS], res->NumAtoms());
   if (parmIn.Cap().NatCap() > 0)
     values[IFCAP] = 1;
   values[NEXTRA] = parmIn.NextraPts();

@@ -149,6 +149,7 @@ void Action_Average::Print() {
   mprintf("    AVERAGE:");
   if (crdset_ == 0) {
     Trajout_Single outfile;
+    AvgParm_.SetNframes( 1 ); // FIXME: Should be passed to trajout
     mprintf(" [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
     if (outfile.InitEnsembleTrajWrite(avgfilename_, trajArgs_, &AvgParm_, 
                                       TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 

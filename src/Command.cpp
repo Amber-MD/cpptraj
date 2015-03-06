@@ -37,7 +37,6 @@
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
 #include "Action_DihedralScan.h"
-#include "Action_Rotdif.h"
 #include "Action_RunningAvg.h"
 #include "Action_AtomicFluct.h"
 #include "Action_Watershell.h"
@@ -124,6 +123,7 @@
 #include "Analysis_LowestCurve.h"
 #include "Analysis_CurveFit.h"
 #include "Analysis_PhiPsi.h"
+#include "Analysis_Rotdif.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -475,9 +475,10 @@ static void Help_Trajout() {
 }
 
 static void Help_Reference() {
-  mprintf("\t<filename> [<frame#>] [<mask>] [TAG] [lastframe]\n"
+  mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
           "\t           %s\n", TopologyList::ParmArgs);
-  mprintf("  Load trajectory <filename> as a reference frame.\n");
+  mprintf("  Load trajectory file <name> as a reference frame.\n"
+          "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
 }
 
 static void Help_Parm() {
@@ -749,6 +750,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   if (State.Debug() > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
   Trajout_Single outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
+  currentParm->SetNframes( CRD->Size() ); // FIXME: This is a hack to get correct # frames.
   if (outtraj.InitTrajWrite( setname, argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
     return Command::C_ERR;
@@ -869,16 +871,6 @@ Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 static void Help_CombineCoords() {
   mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>]\n"
           "  Combined two COORDS data sets.\n");
-}
-
-static inline void CombinedCoords_AddBondArray(Topology* top, BondArray const& barray,
-                                               int atomOffset)
-{
-  for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
-  {
-    //mprintf("DBG:\t\tBonding %i and %i\n", bond->A1() + atomOffset + 1, bond->A2() + atomOffset + 1);
-    top->AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
-  }
 }
 
 /// Combine two COORDS DataSets
@@ -1884,7 +1876,6 @@ const Command::Token Command::Commands[] = {
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, AddAction },
-  { ACTION, "rotdif", Action_Rotdif::Alloc, Action_Rotdif::Help, AddAction },
   { ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
   { ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
   { ACTION, "scale", Action_Scale::Alloc, Action_Scale::Help, AddAction },
@@ -1938,6 +1929,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, AddAnalysis },
   { ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
   { ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, AddAnalysis },
+  { ANALYSIS, "rotdif", Analysis_Rotdif::Alloc, Analysis_Rotdif::Help, AddAnalysis },
   { ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, AddAnalysis },
   { ANALYSIS, "spline", Analysis_Spline::Alloc, Analysis_Spline::Help, AddAnalysis },
   { ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },

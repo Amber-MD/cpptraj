@@ -55,6 +55,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Traj_Conflib.cpp \
               Traj_SQM.cpp \
               Traj_AmberRestartNC.cpp \
+              Traj_CharmmCor.cpp \
               Traj_CharmmDcd.cpp \
               Traj_GmxTrX.cpp \
               Traj_PDBfile.cpp \

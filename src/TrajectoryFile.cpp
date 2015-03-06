@@ -18,6 +18,7 @@
 #include "Traj_CIF.h"
 #include "Traj_SDF.h"
 #include "Traj_Tinker.h"
+#include "Traj_CharmmCor.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -42,6 +43,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
   { "Amber Restart",      Traj_AmberRestart::ReadHelp, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },
   { "Tinker file",        0, 0, Traj_Tinker::Alloc         },
+  { "Charmm COR",         0, 0, Traj_CharmmCor::Alloc      },
   { "Amber Trajectory",   0, Traj_AmberCoord::WriteHelp, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, Traj_SQM::WriteHelp, Traj_SQM::Alloc            },
   { "SDF",                0, 0, Traj_SDF::Alloc            },

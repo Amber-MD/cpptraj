@@ -602,18 +602,18 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
       }
       DBGPRINT("Final rank= %lu\n", rank);
       // Subtract 1 from rank to use as an index.
-      dsize rm1 = rank - 1;
+      long int rm1 = rank - 1;
       if (rm1 >= 0) {
-        for (dsize k = 0; k <= rm1; k++) {
-          dsize in = rm1 - k;
-          work1[in] /= jacobian_[in + in * m_];
-          DBGPRINT("wa1[%lu] /= %g\n", in+1, jacobian_[in + in * m_]);
-          long int in1 = (long int)in - 1;
+        for (long int k = 0; k <= rm1; k++) {
+          long int in = rm1 - k;
+          work1[in] /= jacobian_[in + in * (long int)m_];
+          DBGPRINT("wa1[%li] /= %g\n", in+1, jacobian_[in + in * (long int)m_]);
+          long int in1 = in - 1;
           if (in1 > -1) {
             double temp = work1[in];
             for (long int i = 0; i <= in1; i++) {
-              work1[i] -= jacobian_[i + in * m_] * temp;
-              DBGPRINT("  wa1[%li] -= %g\n", i+1, jacobian_[i + in * m_]);
+              work1[i] -= jacobian_[i + in * (long int)m_] * temp;
+              DBGPRINT("  wa1[%li] -= %g\n", i+1, jacobian_[i + in * (long int)m_]);
             }
           }
         }
@@ -770,24 +770,24 @@ int CurveFit::LevenbergMarquardt(FitFunctionType fxnIn, Darray const& Xvals_,
   
           // Solve the triangular system for z. if the system is singular,
           // then obtain a least-squares solution.
-          dsize nsing = n_;
+          dsize u_nsing = n_;
           for (dsize in = 0; in != n_; in++) {
-            if (Sdiag[in] == 0.0 && nsing == n_)
-              nsing = in;
-            if (nsing < n_)
+            if (Sdiag[in] == 0.0 && u_nsing == n_)
+              u_nsing = in;
+            if (u_nsing < n_)
               work2[in] = 0.0;
           }
-          DBGPRINT("nsing= %lu\n", nsing);
+          DBGPRINT("nsing= %lu\n", u_nsing);
           // Subtract 1 from nsing to use as an index.
-          --nsing; 
+          long int nsing = (long int)u_nsing - 1;
           if (nsing >= 0) {
-            for (dsize k = 0; k <= nsing; k++) {
-              dsize in = nsing - k;
+            for (long int k = 0; k <= nsing; k++) {
+              long int in = nsing - k;
               double sum = 0.0;
-              dsize in1 = in + 1;
+              long int in1 = in + 1;
               if (in1 <= nsing) {
-                for (dsize i = in1; i <= nsing; i++)
-                  sum += jacobian_[i + in * m_] * work2[i];
+                for (long int i = in1; i <= nsing; i++)
+                  sum += jacobian_[i + in * (long int)m_] * work2[i];
               }
               work2[in] = (work2[in] - sum) / Sdiag[in];
             }
