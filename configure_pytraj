@@ -19,6 +19,7 @@ Usage() {
   echo "    -noopt     : Do not use optimized compiler flags (default when -d specified)"
   echo "    -nolfs     : Do not enable large file support."
   echo "    -shared    : Enable position-independent code for generating shared library."
+  echo "    -pytraj    : Less verbose for pytraj in ipython notebook"
   echo ""
   echo "  Library linking options:"
   echo "    --with-netcdf=<DIR>"
@@ -352,6 +353,10 @@ while [[ ! -z $1 ]] ; do
     "-shared"       )
       echo "Enabling position-independent code for generating shared library."
       USESHARED=1
+      ;;
+    "-pytraj"       )
+      echo "Less verbose for pytraj in ipython notebook"
+      DIRECTIVES="$DIRECTIVES -DPYTRAJ"
       ;;
     "-amberlib"     )
       if [[ -z $AMBERHOME ]] ; then
