@@ -22,9 +22,10 @@ AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
 
 all: cpptraj$(SFX)
 
-install: cpptraj$(SFX) ambpdb$(SFX) 
-	mv cpptraj$(SFX) $(BINDIR)/
-	mv ambpdb$(SFX) $(BINDIR)/
+install: cpptraj$(SFX) ambpdb$(SFX) libcpptraj$(SHARED_SUFFIX)
+	/bin/mv cpptraj$(SFX) $(BINDIR)/
+	/bin/mv ambpdb$(SFX) $(BINDIR)/
+	/bin/mv libcpptraj$(SHARED_SUFFIX) $(LIBDIR)/
 
 install_openmp: cpptraj$(SFX)
 	mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX)
@@ -53,6 +54,10 @@ cpptraj.sander$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(LIBDIR)/libsander.
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj.sander$(SFX) $(OBJECTS) pub_fft.o \
 	       -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)  \
 	       -lsander
+
+libcpptraj$(SHARED_SUFFIX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
+	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) pub_fft.o \
+		-L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
 
 $(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install

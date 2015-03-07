@@ -1,6 +1,7 @@
 #ifndef INC_GRID_H
 #define INC_GRID_H
 #include "ArrayIterator.h"
+#include <algorithm>
 /// Three-dimensional grid template.
 template <class T> class Grid {
   public:
