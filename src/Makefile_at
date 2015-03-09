@@ -60,7 +60,7 @@ cpptraj.sander$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(LIBDIR)/libsander.
 
 libcpptraj$(SHARED_SUFFIX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
 	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) pub_fft.o \
-		-L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
+		-L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
 
 $(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install
