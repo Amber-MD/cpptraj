@@ -28,7 +28,7 @@ static void Help(const char* prgname, bool showAdditional) {
             "    -bres         Brookhaven Residue names (HIE->HIS, etc.).\n"
             "    -ctr          Center molecule on (0,0,0).\n"
             "    -noter        Do not write TER records.\n"
-//            "    -ext          Use PRMTOP extended PDB info, if present.\n"
+            "    -ext          Use PRMTOP extended PDB info, if present.\n"
 //            "    -ene <FLOAT>  Define H-bond energy cutoff for FIRST.\n"
 //            "    -bin          The coordinate file is in binary form.\n"
             "    -offset <INT> Add offset to residue numbers.\n"
@@ -59,6 +59,7 @@ int main(int argc, char** argv) {
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
   bool ctr_origin = false;
   bool noTER = false;
+  bool useExtendedInfo = false;
   int res_offset = 0;
   int debug = 0;
   int numSoloArgs = 0;
@@ -81,6 +82,8 @@ int main(int argc, char** argv) {
       aatm.clear();
     else if (arg == "-bres") // PDB residue names
       bres.assign(" pdbres");
+    else if (arg == "-ext") // Use extended PDB info from Topology
+      useExtendedInfo = true;
     else if (arg == "-ctr")  // Center on origin
       ctr_origin = true;
     else if (arg == "-noter") // No TER cards
@@ -124,6 +127,8 @@ int main(int argc, char** argv) {
   parm.IncreaseFrames( 1 );
   if (noTER)
     parm.ClearMoleculeInfo();
+  if (!useExtendedInfo)
+    parm.ResetPDBinfo();
   if (res_offset != 0)
     for (int r = 0; r < parm.Nres(); r++)
       parm.SetRes(r).SetOriginalNum( parm.Res(r).OriginalResNum() + res_offset );

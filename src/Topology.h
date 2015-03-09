@@ -129,6 +129,7 @@ class Topology {
     int AddTopAtom(Atom const&, int, NameType const&, const double*);
     void StartNewMol();
     int CommonSetup(bool);
+    void ResetPDBinfo();
     int Setup_NoResInfo();
     int SetExtraAtomInfo(int, std::vector<AtomExtra> const&);
     // ----- Mask Routines -----------------------

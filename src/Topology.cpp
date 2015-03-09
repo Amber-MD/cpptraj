@@ -654,6 +654,16 @@ int Topology::CommonSetup(bool bondsearch) {
   return 0;
 }
 
+/** Reset any extended PDB info. */
+void Topology::ResetPDBinfo() {
+  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom)
+    atom->SetChainID(' ');
+  int rnum = 1;
+  for (std::vector<Residue>::iterator res = residues_.begin(); 
+                                      res != residues_.end(); ++res, ++rnum)
+    res->SetOriginalNum(rnum);
+}
+
 /** For topology formats that do not contain residue info, base residues
   * on molecules.
   */
