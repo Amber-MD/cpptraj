@@ -389,7 +389,7 @@ static inline bool IsMatrix(DataSet* ds) {
           ds->Type()==DataSet::MATRIX_FLT);
 }
 
-//static inline bool IsGrid(DataSet* ds) { return ds->Type()==DataSet::GRID_FLT; }
+static inline bool IsGrid(DataSet* ds) { return ds->Type()==DataSet::GRID_FLT; }
 
 // RPNcalc::Evaluate()
 int RPNcalc::Evaluate(DataSetList& DSL) const {
@@ -623,7 +623,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               }
               for (unsigned int n = 0; n != M1.Size(); n++)
                 M0.AddElement( DoOperation(M1.GetElement(n), M2.GetElement(n), T->Type()) );
-/*            }
+            }
             else if (IsGrid(ds1) && IsGrid(ds2))
             {
               DataSet_3D const& G1 = static_cast<DataSet_3D const&>( *ds1 );
@@ -638,16 +638,17 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                 mprinterr("Error: Operation %s not yet supported for grids.\n", T->Description());
                 return 1;
               }
-              if (!G1.IsOrthoGrid() || !G2.IsOrthoGrid()) {
-                mprinterr("Error: Non-orthogonal grid math not yet supported.\n");
-                return 1;
-              }
-              // Check if origin/voxel volume is the same, warn if not.
+              // Check if spacing is the same, warn if not.
               if (G1.GridOrigin() != G2.GridOrigin())
                 mprintf("Warning: Grid origins do not match. Using origin %g %g %g\n",
                         G1.GridOrigin()[0], G1.GridOrigin()[1], G1.GridOrigin()[2]);
-              Vec3 G1corner = G1.BinCorner(0,0,0);
-              Vec3 G2corner = G2.BinCorner(0,0,0);*/
+              tempDS = LocalList.AddSetIdx(DataSet::GRID_FLT, "TEMP", T-tokens_.begin());
+              DataSet_GridFlt& G0 = static_cast<DataSet_GridFlt&>( *tempDS );
+              G0.Allocate_N_O_Box(G1.NX(), G1.NY(), G1.NZ(), G1.GridOrigin(), Box(G1.Ucell()));
+              G1.GridInfo();
+              G0.GridInfo();
+              for (unsigned int n = 0; n != G1.Size(); n++)
+                G0[n] = (float)(DoOperation(G1[n], G2[n], T->Type()));
             } else {
               mprinterr("Error: Operation '%s' not yet permitted between sets %s and %s type.\n",
                         T->Description(), ds1->legend(), ds2->legend());

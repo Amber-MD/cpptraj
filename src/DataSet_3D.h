@@ -10,6 +10,7 @@ class DataSet_3D : public DataSet {
   public:
     DataSet_3D() : gridBin_(0) {}
     virtual ~DataSet_3D(); // Virtual since this class is inherited.
+    DataSet_3D(DataSet_3D const&);
     DataSet_3D(DataSet::DataType tIn, int wIn, int pIn) :
       DataSet(tIn, wIn, pIn, 3), gridBin_(0) {}
     /// Write 3D data to file.
