@@ -1,4 +1,4 @@
-# Cpptraj stand-alone make file
+# Cpptraj standalone Makefile
 include ../config.h
 
 include cpptrajfiles
@@ -26,12 +26,13 @@ depend: findDepend
 dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
+libcpptraj: checkshared $(OBJECTS) pub_fft.o $(READLINE)
+	$(CXX)  -shared -o libcpptraj.so $(OBJECTS) pub_fft.o $(LDFLAGS)
+	/bin/mv libcpptraj.so $(CPPTRAJLIB)
+
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(READLINE)
 	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
 
-libcpptraj: $(OBJECTS) pub_fft.o $(READLINE)
-	$(CXX)  -shared -o libcpptraj.so $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
-	/bin/mv libcpptraj.so $(AMBERHOME)/lib
 
 ambpdb: $(AMBPDB_OBJECTS)
 	$(CXX) -o ambpdb $(AMBPDB_OBJECTS) $(LDFLAGS)
@@ -58,6 +59,9 @@ ReadLine.o: ReadLine.cpp
 clean:
 	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o ambpdb
 	cd $(READLINE_HOME) && $(MAKE) clean
+
+uninstall:
+	/bin/rm -f $(CPPTRAJBIN)/cpptraj $(CPPTRAJBIN)/cpp_ambpdb readline/libreadline.a $(CPPTRAJLIB)/libcpptraj.so
 
 # Header dependencies
 include cpptrajdepend

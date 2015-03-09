@@ -1,3 +1,4 @@
+# CPPTRAJ - AmberTools Makefile
 include ../../config.h
 
 CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
@@ -22,9 +23,11 @@ AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
 
 all: cpptraj$(SFX)
 
-install: cpptraj$(SFX) ambpdb$(SFX) libcpptraj$(SHARED_SUFFIX)
+install: cpptraj$(SFX) ambpdb$(SFX)
 	/bin/mv cpptraj$(SFX) $(BINDIR)/
 	/bin/mv ambpdb$(SFX) $(BINDIR)/
+
+libcpptraj: libcpptraj$(SHARED_SUFFIX)
 	/bin/mv libcpptraj$(SHARED_SUFFIX) $(LIBDIR)/
 
 install_openmp: cpptraj$(SFX)
@@ -57,7 +60,7 @@ cpptraj.sander$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(LIBDIR)/libsander.
 
 libcpptraj$(SHARED_SUFFIX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
 	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) pub_fft.o \
-		-L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
+		-L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
 
 $(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install

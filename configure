@@ -25,7 +25,7 @@ UsageFull() {
   echo "    -timer     : Enable additional timing info."
   echo "    -debugon   : Add -DDEBUG flag to activate additional internal debugging."
   echo "    -nolfs     : Do not enable large file support."
-  echo "    --prefix=<DIR>: Install CPPTRAJ binary to <DIR>/bin." 
+  echo "    -shared    : Enable position-independent code for generating shared library."
   echo ""
   echo "  LIBRARY LINKING OPTIONS:"
   echo "    --with-netcdf=<DIR>"
@@ -220,18 +220,21 @@ USEOPENMP=0
 USETIMER=0
 PROFILE=0
 USECRAY=0
+USESHARED=0
 CC=""
 CXX=""
 FC=""
 SFX=""
-CPPTRAJHOME=`pwd`
-CPPTRAJBIN=$CPPTRAJHOME/bin
+CPPTRAJHOME=""
+CPPTRAJBIN=""
+CPPTRAJLIB=""
 DIRECTIVES=""
 DBGFLAGS=""
 OPTFLAGS=""
 OMPFLAGS=""
 FFLAGS=""
 FOPTFLAGS=""
+PICFLAG=""
 LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 INCLUDE=""
 # Library flags
@@ -272,6 +275,7 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
       FLIBS="$FLIBS -lgfortran -w"
+      PICFLAG="-fPIC"
       ;;
    "clang" )
       echo "Using clang/gfortran compilers"
@@ -283,6 +287,7 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
       FLIBS="$FLIBS -lgfortran -w"
+      PICFLAG="-fPIC"
       ;; 
     "intel" )
       echo "Using intel compilers"
@@ -294,6 +299,7 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-FR"
       FOPTFLAGS="-ip -O3"
       FLIBS="$FLIBS -lifport -lifcore"
+      PICFLAG="-fpic"
       ;;
     "pgi" )
       echo "Using PGI compilers"
@@ -305,6 +311,7 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-Mfree"
       FOPTFLAGS="-fast -O3"
       FLIBS="-pgf90libs"
+      PICFLAG="-fpic"
       ;;
     "cray" )
       echo "Using Cray compilers"
@@ -317,6 +324,7 @@ while [[ ! -z $1 ]] ; do
       FFLAGS="-f free -emf"
       FOPTFLAGS=""
       FLIBS=""
+      PICFLAG="-fpic"
       ;;
     "-cray" )
       echo "Using cray compiler wrappers (cc/CC/ftn)"
@@ -362,6 +370,10 @@ while [[ ! -z $1 ]] ; do
     "-static"       )
       echo "Using static linking."
       STATIC=1
+      ;;
+    "-shared"       )
+      echo "Enabling position-independent code for generating shared library."
+      USESHARED=1
       ;;
     "-amberlib"     )
       if [[ -z $AMBERHOME ]] ; then
@@ -453,8 +465,8 @@ while [[ ! -z $1 ]] ; do
 #      ;;
     "--prefix" )
       CPPTRAJHOME=$VALUE
-      CPPTRAJBIN=$VALUE
-      echo "Installing cpptraj binary to $CPPTRAJBIN"
+      CPPTRAJBIN=$VALUE/bin
+      CPPTRAJLIB=$VALUE/lib
       ;;
     * )
       echo "Unrecognized OPTION: $1"
@@ -463,6 +475,18 @@ while [[ ! -z $1 ]] ; do
   esac
   shift
 done
+
+# Check install directory
+if [[ -z $CPPTRAJHOME ]] ; then
+  # Default is to use current directory.
+  CPPTRAJHOME=`pwd`
+  CPPTRAJBIN=$CPPTRAJHOME/bin
+  CPPTRAJLIB=$CPPTRAJHOME/lib
+elif [[ ! -e $CPPTRAJHOME ]] ; then
+  echo "Error: Install directory '$CPPTRAJHOME' does not exist."
+  exit 1
+fi
+echo "Installing cpptraj binary to $CPPTRAJBIN"
 
 # Check for compilers
 if [[ -z $CC || -z $CXX || -z $FC ]] ; then
@@ -663,6 +687,13 @@ CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 FFLAGS="$FFLAGS $DBGFLAGS $FOPTFLAGS $DIRECTIVES $LFS $INCLUDE"
 
+# Add position-independent code if necessary
+if [[ $USESHARED -eq 1 ]] ; then
+  CFLAGS="$CFLAGS $PICFLAG"
+  CXXFLAGS="$CXXFLAGS $PICFLAG"
+  FFLAGS="$FFLAGS $PICFLAG"
+fi
+
 # Add debug flags for non-PGI compilers if debug info on
 if [[ ! -z $DBGFLAGS && $CXX != "pgc++" ]] ; then
   CFLAGS="-Wall $CFLAGS"
@@ -711,6 +742,7 @@ cat > config.h <<EOF
 
 CPPTRAJHOME=$CPPTRAJHOME
 CPPTRAJBIN=$CPPTRAJBIN
+CPPTRAJLIB=$CPPTRAJLIB
 
 DBGFLAGS=
 CC=$CC
@@ -727,9 +759,24 @@ LDFLAGS=$LDFLAGS
 SFX=$SFX
 EOF
 
+# Add a rule to config to prevent libcpptraj from being built if not shared.
+if [[ $USESHARED -eq 1 ]] ; then
+  cat >> config.h <<EOF
+checkshared:
+EOF
+else
+  cat >> config.h <<EOF
+checkshared:
+	@(echo "Error: Cannot build libcpptraj; re-configure with '-shared'" ; exit 1 ; )
+EOF
+fi
+
 # Create directories if necessary
 if [[ ! -e $CPPTRAJBIN ]] ; then
   mkdir $CPPTRAJBIN
+fi
+if [[ ! -e $CPPTRAJLIB ]] ; then
+  mkdir $CPPTRAJLIB
 fi
 
 echo ""
