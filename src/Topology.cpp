@@ -757,7 +757,8 @@ int Topology::SetDihedralInfo(DihedralArray const& dihedralsIn, DihedralArray co
 /** This is for any extra information that is not necessarily pertinent to
   * all topologies, like Ambers ITREE or PDB chain ID etc.
   */
-int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn) 
+int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn,
+                               std::vector<NameType> const& icodeIn) 
 {
   n_atom_types_ = natyp;
   if (!extraIn.empty()) {
@@ -767,6 +768,20 @@ int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn)
       return 1;
     }
     extra_ = extraIn;
+  }
+  if (!icodeIn.empty()) {
+    if (icodeIn.size() == residues_.size()) {
+      for (unsigned int i = 0; i != icodeIn.size(); i++)
+        residues_[i].SetIcode( icodeIn[i][0] );
+    } else if (icodeIn.size() == atoms_.size()) { // from e.g. PDB, CIF
+      for (unsigned int r = 0; r != residues_.size(); r++)
+        residues_[r].SetIcode( icodeIn[residues_[r].FirstAtom()][0] );
+    } else {
+      mprinterr("Error: Size of residue insertion codes (%zu) != # "
+                " residues (%zu) or # atoms (%zu)\n",
+                icodeIn.size(), residues_.size(), atoms_.size());
+      return 1;
+    }
   }
   return 0;
 }

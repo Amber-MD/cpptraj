@@ -1188,7 +1188,7 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
           extra.push_back( AtomExtra(itree[n], join_array[n], irotat[n], ' ') );
       }
     }
-    error_count_ += TopIn.SetExtraAtomInfo(values[NATYP], extra);
+    error_count_ += TopIn.SetExtraAtomInfo(values[NATYP], extra, pdb_res_icode);
     if (values[IFBOX]>0) 
       TopIn.SetParmBox( parmbox );
     TopIn.SetChamber( chamberParm );

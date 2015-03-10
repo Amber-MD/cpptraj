@@ -5,12 +5,13 @@
 /// Hold information for a residue.
 class Residue {
   public:
-    Residue() : firstAtom_(0), lastAtom_(0), resname_("") {}
+    Residue() : resname_(""), firstAtom_(0), lastAtom_(0), icode_(' ') {}
     Residue(int onum, NameType const& resname, int firstAtomIn) :
-      firstAtom_(firstAtomIn), originalResNum_(onum), resname_(resname)
+      resname_(resname), firstAtom_(firstAtomIn), originalResNum_(onum), icode_(' ')
     {}
     inline void SetLastAtom(int i)      { lastAtom_ = i;          }
     inline void SetOriginalNum(int i)   { originalResNum_ = i;    }
+    inline void SetIcode(char c)        { icode_ = c;             }
     /// \return First atom in residue, indexing from 0
     inline int FirstAtom()        const { return firstAtom_;      }
     /// \return Atom _after_ the last in residue, indexing from 0
@@ -27,12 +28,10 @@ class Residue {
     /// Convert this residue name to single letter.
     char SingleCharName() const { return ConvertResName( *resname_ ); }
   private:
-    /// The first atom in the residue, atom numbering starts from 0
-    int firstAtom_;
-    /// Actually the atom _after_ the last atom in the residue.
-    int lastAtom_;
-    /// The original residue number.
-    int originalResNum_;
-    NameType resname_;
+    NameType resname_;   ///< Residue name.
+    int firstAtom_;      ///< Index of first atom (from 0).
+    int lastAtom_;       ///< Atom index after last atom in residue.
+    int originalResNum_; ///< Original residue number.
+    char icode_;         ///< Residue insertion code.
 };
 #endif

@@ -18,6 +18,9 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
   double XYZ[6]; // Hold XYZ/box coords.
   float occupancy, bfactor; // Read in occ/bfac
   std::vector<AtomExtra> extra; // Hold occ/bfac if not PQR
+  std::vector<NameType> Icodes; // Hold residue icodes
+  char icode[2];                // For reading in icode.
+  icode[1] = '\0';
   if (infile.OpenRead(fname)) return 1;
   // Loop over PDB records
   while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
@@ -35,7 +38,8 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
         pdbAtom.SetGBradius( bfactor );
       } else
         extra.push_back( AtomExtra(occupancy, bfactor) );
-      TopIn.AddTopAtom(pdbAtom, infile.pdb_ResNum(), infile.pdb_ResName(), XYZ);
+      TopIn.AddTopAtom(pdbAtom, infile.pdb_ResNum(icode[0]), infile.pdb_ResName(), XYZ);
+      Icodes.push_back( NameType(icode) );
     } else if ( infile.RecType() == PDBfile::TER || 
                 infile.RecType() == PDBfile::END )
     {
@@ -44,7 +48,7 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
       if (infile.RecType() == PDBfile::END) break;
     }
   }
-  TopIn.SetExtraAtomInfo(0, extra);
+  if (TopIn.SetExtraAtomInfo(0, extra, Icodes)) return 1;
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
   std::string pdbtitle;

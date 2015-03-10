@@ -22,8 +22,8 @@ class PDBfile : public CpptrajFile {
     void pdb_Box(double*) const;
     /// \return Residue name, only valid for ATOM/HETATM record.
     NameType pdb_ResName();
-    /// \return Residue number, only valid for ATOM/HETATM record.
-    int pdb_ResNum();
+    /// \return Residue number/icode, only valid for ATOM/HETATM record.
+    int pdb_ResNum(char&);
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
 

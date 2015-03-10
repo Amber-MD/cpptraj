@@ -158,12 +158,12 @@ NameType PDBfile::pdb_ResName() {
   return resName;
 }
 
-int PDBfile::pdb_ResNum() {
+int PDBfile::pdb_ResNum(char& icode) {
   // Res num (22-27)
-  char savechar = linebuffer_[27];
+  icode = linebuffer_[27];
   linebuffer_[27] = '\0';
   int resnum = atoi( linebuffer_+22 );
-  linebuffer_[27] = savechar;
+  linebuffer_[27] = icode;
   return resnum;
 }
 
