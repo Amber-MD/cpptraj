@@ -450,7 +450,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
       Atom const& AT = (*CurrentParm_)[*atom];
       int rn = AT.ResNum();
       PdbOut_.WriteCoord(PDBfile::ATOM, *atom+1, AT.c_str(), CurrentParm_->Res(rn).c_str(),
-                         ' ', rn + 1, XYZ[0], XYZ[1], XYZ[2], occ, bfac, AT.ElementName(),
+                         ' ', rn + 1, ' ', XYZ[0], XYZ[1], XYZ[2], occ, bfac, AT.ElementName(),
                          (int)AT.Charge(), false);
     }
     PdbOut_.WriteENDMDL();

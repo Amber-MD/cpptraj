@@ -335,7 +335,9 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     // If this atom belongs to a new molecule print a TER card
     // Use res instead of res+1 since this TER belongs to last mol/res
     if (aidx == lastAtomInMol) {
-      file_.WriteTER( anum, resNames_[res-1], chainID_[aidx-1], pdbTop_->Res(res-1).OriginalResNum() );
+      file_.WriteRecordHeader(PDBfile::TER, anum, "", resNames_[res-1], chainID_[aidx-1], 
+                              pdbTop_->Res(res-1).OriginalResNum(),
+                              pdbTop_->Res(res-1).Icode());
       anum += ter_num_;
       ++mol;
       lastAtomInMol = mol->EndAtom();
@@ -362,7 +364,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       else if (atomName == "HO'2") atomName = "HO2'";
     }
     file_.WriteCoord(PDBfile::ATOM, anum++, atomName, resNames_[res],
-                     chainID_[aidx], pdbTop_->Res(res).OriginalResNum(), 
+                     chainID_[aidx], pdbTop_->Res(res).OriginalResNum(),
+                     pdbTop_->Res(res).Icode(), 
                      Xptr[0], Xptr[1], Xptr[2], Occ, B, 
                      atom->ElementName(), 0, dumpq_);
     Xptr += 3;

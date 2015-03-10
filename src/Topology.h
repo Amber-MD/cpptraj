@@ -132,7 +132,7 @@ class Topology {
     void ResetPDBinfo();
     int Setup_NoResInfo();
     int SetExtraAtomInfo(int, std::vector<AtomExtra> const&,
-                         std::vector<NameType> const&);
+                         std::vector<NameType>&);
     // ----- Mask Routines -----------------------
     bool SetupIntegerMask(AtomMask &) const;
     bool SetupCharMask(AtomMask &) const;

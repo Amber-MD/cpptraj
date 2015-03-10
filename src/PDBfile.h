@@ -27,8 +27,9 @@ class PDBfile : public CpptrajFile {
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
 
-    /// Write TER record
-    void WriteTER(int, NameType const&, char, int);
+    /// Write PDB record header.
+    void WriteRecordHeader(PDB_RECTYPE, int, NameType const&,
+                           NameType const&, char, int, char);
     /// Write HETATM record using internal atom numbering
     void WriteHET(int, double, double, double);
     /// Write no-name ATOM record using internal atom numbering
@@ -40,7 +41,7 @@ class PDBfile : public CpptrajFile {
                     double, double, double);
     /// Write complete PDB ATOM/HETATM record
     void WriteCoord(PDB_RECTYPE, int, NameType const&, NameType const&, char, int,
-                    double, double, double, float, float, const char *, int, bool);
+                    char, double, double, double, float, float, const char *, int, bool);
     /// Write ANISOU record.
     void WriteANISOU(int, NameType const&, NameType const&, char, int,
                      int, int, int, int, int, int, const char *, int);
@@ -57,9 +58,6 @@ class PDBfile : public CpptrajFile {
   private:
     /// \return true if the first 6 chars of buffer match a PDB keyword
     static bool IsPDBkeyword(std::string const&);
-    /// Write PDB record header.
-    void WriteRecordHeader(PDB_RECTYPE, int, NameType const&,
-                           NameType const&, char, int);
 
     int anum_;            ///< Atom number for writing.
     PDB_RECTYPE recType_; ///< Current record type.

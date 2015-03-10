@@ -17,6 +17,7 @@ class Residue {
     /// \return Atom _after_ the last in residue, indexing from 0
     inline int LastAtom()         const { return lastAtom_;       }
     inline int OriginalResNum()   const { return originalResNum_; }
+    inline char Icode()           const { return icode_;          }
     inline const char *c_str()    const { return *resname_;       }
     inline NameType const& Name() const { return resname_;        }
     inline int NumAtoms()         const { return (lastAtom_ - firstAtom_); }

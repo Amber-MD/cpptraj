@@ -159,18 +159,19 @@ NameType PDBfile::pdb_ResName() {
 }
 
 int PDBfile::pdb_ResNum(char& icode) {
-  // Res num (22-27)
-  icode = linebuffer_[27];
-  linebuffer_[27] = '\0';
+  // Res num (22-26), insertion code (26)
+  icode = linebuffer_[26];
+  linebuffer_[26] = '\0';
   int resnum = atoi( linebuffer_+22 );
-  linebuffer_[27] = icode;
+  linebuffer_[26] = icode;
   return resnum;
 }
 
 // -----------------------------------------------------------------------------
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
-                                NameType const& resnameIn, char chain, int resnum)
+                                NameType const& resnameIn, char chain, int resnum,
+                                char icode)
 {
   char resName[5], atomName[5];
 
@@ -207,21 +208,15 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
     atomName[3] = name[2];
   }
 
-  Printf("%-6s%5i %-4s%4s %c%4i",PDB_RECNAME[Record], anum, atomName,
-               resName, chain, resnum);
-}
-
-// PDBfile::WriteTER()
-void PDBfile::WriteTER(int anum, NameType const& resnameIn, char chain, int resnum)
-{
-  WriteRecordHeader(TER, anum, "", resnameIn, chain, resnum);
-  Printf("\n"); 
+  Printf("%-6s%5i %-4s%4s %c%4i%c",PDB_RECNAME[Record], anum, atomName,
+               resName, chain, resnum, icode);
+  if (Record == TER) Printf("\n");
 }
 
 // PDBfile::WriteHET()
 void PDBfile::WriteHET(int res, double x, double y, double z) {
   WriteCoord(HETATM, anum_++, "XX", "XXX", ' ', 
-             res, x, y, z, 0.0, 0.0, "", 0, false);
+             res, ' ', x, y, z, 0.0, 0.0, "", 0, false);
 }
 
 // PDBfile::WriteATOM()
@@ -229,7 +224,7 @@ void PDBfile::WriteATOM(int res, double x, double y, double z,
                         const char* resnameIn, double Occ)
 {
   WriteCoord(ATOM, anum_++, "XX", resnameIn, ' ',
-             res, x, y, z, (float)Occ, 0.0, "", 0, false);
+             res, ' ', x, y, z, (float)Occ, 0.0, "", 0, false);
 }
 
 // PDBfile::WriteATOM()
@@ -237,7 +232,7 @@ void PDBfile::WriteATOM(const char* anameIn, int res, double x, double y, double
                         const char* resnameIn, double Occ)
 {
   WriteCoord(ATOM, anum_++, anameIn, resnameIn, ' ',
-             res, x, y, z, (float)Occ, 0.0, "", 0, false);
+             res, ' ', x, y, z, (float)Occ, 0.0, "", 0, false);
 }
 
 // PDBfile::WriteCoord()
@@ -246,20 +241,21 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          double X, double Y, double Z)
 {
   WriteCoord(Record, anum, name, resnameIn, chain, 
-             resnum, X, Y, Z, 0.0, 0.0, "", 0, false);
+             resnum, ' ', X, Y, Z, 0.0, 0.0, "", 0, false);
 }
 
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          NameType const& resnameIn, char chain, int resnum,
+                         char icode,
                          double X, double Y, double Z, float Occ, float B, 
                          const char* Elt, int charge, bool highPrecision) 
 {
-  WriteRecordHeader(Record, anum, name, resnameIn, chain, resnum);
+  WriteRecordHeader(Record, anum, name, resnameIn,  chain, resnum, icode);
   if (highPrecision)
-    Printf("    %8.3f%8.3f%8.3f%8.4f%8.4f      %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
+    Printf("   %8.3f%8.3f%8.3f%8.4f%8.4f      %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
   else
-    Printf("    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
+    Printf("   %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
 }
 
 // PDBfile::WriteANISOU()
@@ -268,8 +264,8 @@ void PDBfile::WriteANISOU(int anum, NameType const& name,
                           int u11, int u22, int u33, int u12, int u13, int u23,
                           const char* Elt, int charge)
 {
-  WriteRecordHeader(ANISOU, anum, name, resnameIn, chain, resnum);
-  Printf("%c %7i%7i%7i%7i%7i%7i      %2s%2i\n", ' ', u11, u22, u33, 
+  WriteRecordHeader(ANISOU, anum, name, resnameIn, chain, resnum, ' '); // TODO icode
+  Printf(" %7i%7i%7i%7i%7i%7i      %2s%2i\n", u11, u22, u33, 
          u12, u13, u23, Elt, charge);
 }
 

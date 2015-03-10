@@ -859,7 +859,7 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
     for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
                                            XV != Xarray.end(); ++XV)
       pdbout.WriteCoord(PDBfile::HETATM, XV - Xarray.begin() + 1, "HE", "HE", ' ',
-                        XV - Xarray.begin() + 1, (*XV)[0], (*XV)[1], (*XV)[2],
+                        XV - Xarray.begin() + 1, ' ', (*XV)[0], (*XV)[1], (*XV)[2],
                         1.0, Nums[XV - Xarray.begin()], "HE", 0, false);
     pdbout.CloseFile();
   }
