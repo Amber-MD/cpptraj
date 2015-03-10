@@ -80,17 +80,17 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
   return recType_;
 }
 
-Atom PDBfile::pdb_Atom() {
+Atom PDBfile::pdb_Atom(char& altLoc) {
   // ATOM or HETATM keyword.
   // Check line length before any modification.
   size_t lineLength = strlen( linebuffer_ );
-  // Atom number (6-11)
-  // Atom name (12-16), Replace asterisks with single quotes.
-  char savechar = linebuffer_[16];
+  // Atom number (6-11), Atom name (12-16), alt location indicator (16)
+  // Replace asterisks in name with single quotes.
+  altLoc = linebuffer_[16];
   linebuffer_[16] = '\0';
   NameType aname(linebuffer_+12);
   aname.ReplaceAsterisk();
-  linebuffer_[16] = savechar;
+  linebuffer_[16] = altLoc;
   // Chain ID (21)
   // Element (76-77), Protect against broken PDB files (lines too short).
   char eltString[2]; eltString[0] = ' '; eltString[1] = ' ';
@@ -148,11 +148,12 @@ void PDBfile::pdb_Box(double* box) const {
             " this usually indicates an invalid box.\n");
 }
 
+// TODO: Should chainID read go here?
 NameType PDBfile::pdb_ResName() {
-  // Res name (16-20), Replace asterisks with single quotes.
+  // Res name (17-20), Replace asterisks with single quotes.
   char savechar = linebuffer_[20];
   linebuffer_[20] = '\0';
-  NameType resName(linebuffer_+16);
+  NameType resName(linebuffer_+17);
   linebuffer_[20] = savechar;
   resName.ReplaceAsterisk();
   return resName;
@@ -170,8 +171,8 @@ int PDBfile::pdb_ResNum(char& icode) {
 // -----------------------------------------------------------------------------
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
-                                NameType const& resnameIn, char chain, int resnum,
-                                char icode)
+                                char altLoc, NameType const& resnameIn, char chain, 
+                                int resnum, char icode)
 {
   char resName[5], atomName[5];
 
@@ -181,20 +182,21 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   while (resnum>9999) resnum-=9999;
   // Atom number in PDB format can only be 5 digits wide
   while (anum>99999) anum-=99999;
-  // Residue names in PDB format 3 chars long start at column 18. Residue 
-  // names 2 chars long start at column 19. However in Amber residues can be 
-  // 4 characters long padded with spaces at the end; adjust accordingly.
-  resName[0] = resnameIn[0];
-  resName[1] = resnameIn[1];
-  if (resnameIn[2] == ' ')        // 2 chars
-    resName[2] = '\0';
-  else if (resnameIn[3] == ' ') { // 3 chars
-    resName[2] = resnameIn[2];
-    resName[3] = '\0';
-  } else {                        // >= 4 chars
-    resName[2] = resnameIn[2];
-    resName[3] = resnameIn[3];
-  }
+  // Residue names in PDB format are 3 chars long, right-justified, starting
+  // at column 18, while the alternate location indicator is column 17. 
+  // However in Amber residues can be 4 characters long; in this case overwrite
+  // the alternate location indicator.
+  resName[0] = altLoc;
+  resName[1] = ' ';
+  resName[2] = ' '; // TODO set location 3 as well?
+  const char* ptr = *resnameIn;
+  while (*ptr != ' ' && *ptr != '\0') ++ptr;
+  int rn_size = (int)(ptr - *resnameIn);
+  // Protect against residue names larger than 4 chars.
+  if (rn_size > 4) rn_size = 4;
+  int rn_idx = 3;
+  for (int i = rn_size - 1; i > -1; i--, rn_idx--)
+    resName[rn_idx] = resnameIn[i];
   // Atom names in PDB format start from col 14 when <= 3 chars, 13 when 4 chars.
   if (name[3]!=' ') { // 4 chars
     atomName[0] = name[0];
@@ -215,7 +217,7 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
 
 // PDBfile::WriteHET()
 void PDBfile::WriteHET(int res, double x, double y, double z) {
-  WriteCoord(HETATM, anum_++, "XX", "XXX", ' ', 
+  WriteCoord(HETATM, anum_++, "XX", ' ', "XXX", ' ', 
              res, ' ', x, y, z, 0.0, 0.0, "", 0, false);
 }
 
@@ -223,7 +225,7 @@ void PDBfile::WriteHET(int res, double x, double y, double z) {
 void PDBfile::WriteATOM(int res, double x, double y, double z, 
                         const char* resnameIn, double Occ)
 {
-  WriteCoord(ATOM, anum_++, "XX", resnameIn, ' ',
+  WriteCoord(ATOM, anum_++, "XX", ' ', resnameIn, ' ',
              res, ' ', x, y, z, (float)Occ, 0.0, "", 0, false);
 }
 
@@ -231,7 +233,7 @@ void PDBfile::WriteATOM(int res, double x, double y, double z,
 void PDBfile::WriteATOM(const char* anameIn, int res, double x, double y, double z, 
                         const char* resnameIn, double Occ)
 {
-  WriteCoord(ATOM, anum_++, anameIn, resnameIn, ' ',
+  WriteCoord(ATOM, anum_++, anameIn, ' ', resnameIn, ' ',
              res, ' ', x, y, z, (float)Occ, 0.0, "", 0, false);
 }
 
@@ -240,18 +242,28 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          NameType const& resnameIn, char chain, int resnum,
                          double X, double Y, double Z)
 {
-  WriteCoord(Record, anum, name, resnameIn, chain, 
+  WriteCoord(Record, anum, name, ' ', resnameIn, chain, 
              resnum, ' ', X, Y, Z, 0.0, 0.0, "", 0, false);
+}
+
+void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& aname,
+                         NameType const& rname, int resnum,
+                         double X, double Y, double Z,
+                         float Occ, float Bfac, const char* Elt, int charge)
+{
+  WriteCoord(Record, anum, aname, ' ', rname, ' ', resnum, ' ', X, Y, Z, 
+             Occ, Bfac, Elt, charge, false);
 }
 
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
+                         char altLoc,
                          NameType const& resnameIn, char chain, int resnum,
                          char icode,
                          double X, double Y, double Z, float Occ, float B, 
                          const char* Elt, int charge, bool highPrecision) 
 {
-  WriteRecordHeader(Record, anum, name, resnameIn,  chain, resnum, icode);
+  WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode);
   if (highPrecision)
     Printf("   %8.3f%8.3f%8.3f%8.4f%8.4f      %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
   else
@@ -264,7 +276,7 @@ void PDBfile::WriteANISOU(int anum, NameType const& name,
                           int u11, int u22, int u33, int u12, int u13, int u23,
                           const char* Elt, int charge)
 {
-  WriteRecordHeader(ANISOU, anum, name, resnameIn, chain, resnum, ' '); // TODO icode
+  WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' '); // TODO icode, altLoc
   Printf(" %7i%7i%7i%7i%7i%7i      %2s%2i\n", u11, u22, u33, 
          u12, u13, u23, Elt, charge);
 }

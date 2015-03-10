@@ -321,6 +321,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
 
   float Occ = 1.0; 
   float B = 0.0;
+  char altLoc = ' ';
   int anum = 1; // Actual PDB atom number
   int aidx = 0; // Atom index in topology
   Topology::mol_iterator mol = pdbTop_->MolStart();
@@ -330,21 +331,12 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   else
     lastAtomInMol = -1;
   const double *Xptr = frameOut.xAddress();
-  for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom, ++aidx) {
+  for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom) {
     int res = atom->ResNum();
-    // If this atom belongs to a new molecule print a TER card
-    // Use res instead of res+1 since this TER belongs to last mol/res
-    if (aidx == lastAtomInMol) {
-      file_.WriteRecordHeader(PDBfile::TER, anum, "", resNames_[res-1], chainID_[aidx-1], 
-                              pdbTop_->Res(res-1).OriginalResNum(),
-                              pdbTop_->Res(res-1).Icode());
-      anum += ter_num_;
-      ++mol;
-      lastAtomInMol = mol->EndAtom();
-    }
     if (!pdbTop_->Extra().empty()) {
       Occ = pdbTop_->Extra()[aidx].Occupancy();
       B   = pdbTop_->Extra()[aidx].Bfactor();
+      altLoc = pdbTop_->Extra()[aidx].AtomAltLoc();
     }
     if (dumpq_) {
       Occ = (float) atom->Charge();
@@ -363,12 +355,24 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       else if (atomName == "H3T ") atomName = "HO3'";
       else if (atomName == "HO'2") atomName = "HO2'";
     }
-    file_.WriteCoord(PDBfile::ATOM, anum++, atomName, resNames_[res],
+    file_.WriteCoord(PDBfile::ATOM, anum++, atomName, altLoc, resNames_[res],
                      chainID_[aidx], pdbTop_->Res(res).OriginalResNum(),
                      pdbTop_->Res(res).Icode(), 
                      Xptr[0], Xptr[1], Xptr[2], Occ, B, 
                      atom->ElementName(), 0, dumpq_);
     Xptr += 3;
+    ++aidx;
+    // For backwards compat., exit if last atom without TER FIXME write TER?
+    if (aidx == pdbTop_->Natom()) break;
+    // If this atom belongs to a new molecule print a TER card
+    if (aidx == lastAtomInMol) {
+      file_.WriteRecordHeader(PDBfile::TER, anum, "", ' ', resNames_[res], chainID_[aidx-1], 
+                              pdbTop_->Res(res).OriginalResNum(),
+                              pdbTop_->Res(res).Icode());
+      anum += ter_num_;
+      ++mol;
+      lastAtomInMol = mol->EndAtom();
+    }
   }
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame, close output file

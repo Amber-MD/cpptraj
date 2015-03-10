@@ -666,6 +666,9 @@ void Topology::ResetPDBinfo() {
     res->SetOriginalNum(rnum);
     res->SetIcode(' ');
   }
+  for (std::vector<AtomExtra>::iterator ex = extra_.begin();
+                                        ex != extra_.end(); ++ex)
+    ex->SetAltLoc(' '); // TODO bfactor, occupancy?
 }
 
 /** For topology formats that do not contain residue info, base residues

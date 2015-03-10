@@ -46,6 +46,7 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
   int occ_col = block.ColumnIndex("occupancy");
   int bfac_col = block.ColumnIndex("B_iso_or_equiv");
   int icode_col = block.ColumnIndex("pdbx_PDB_ins_code");
+  int altloc_col = block.ColumnIndex("label_alt_id");
   std::vector<AtomExtra> extra;
   std::vector<NameType> Icodes;
 
@@ -54,6 +55,7 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
   double XYZ[3];
   double occupancy = 1.0;
   double bfactor = 0.0;
+  char altloc = ' ';
   char icode[2];
   icode[0] = ' '; icode[1] = '\0';
   for (line = block.begin(); line != block.end(); ++line) {
@@ -64,7 +66,10 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
     }
     if (occ_col != -1) occupancy = convertToDouble( (*line)[ occ_col ] );
     if (bfac_col != -1) bfactor = convertToDouble( (*line)[ bfac_col ] );
-    extra.push_back( AtomExtra(occupancy, bfactor) );
+    if (altloc_col != -1) altloc = (*line)[ altloc_col ][0];
+    // '.' altloc means blank?
+    if (altloc == '.') altloc = ' ';
+    extra.push_back( AtomExtra(occupancy, bfactor, altloc) );
     if (icode_col != -1) {
       icode[0] = (*line)[ icode_col ][0];
       // '?' icode means blank
