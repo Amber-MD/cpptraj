@@ -65,7 +65,11 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
     if (occ_col != -1) occupancy = convertToDouble( (*line)[ occ_col ] );
     if (bfac_col != -1) bfactor = convertToDouble( (*line)[ bfac_col ] );
     extra.push_back( AtomExtra(occupancy, bfactor) );
-    if (icode_col != -1) icode[0] = (*line)[ icode_col ][0];
+    if (icode_col != -1) {
+      icode[0] = (*line)[ icode_col ][0];
+      // '?' icode means blank
+      if (icode[0] == '?') icode[0] = ' ';
+    }
     Icodes.push_back( NameType(icode) );
     XYZ[0] = convertToDouble( (*line)[ COL[X] ] );
     XYZ[1] = convertToDouble( (*line)[ COL[Y] ] );

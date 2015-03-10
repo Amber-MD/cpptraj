@@ -762,7 +762,7 @@ int Topology::SetDihedralInfo(DihedralArray const& dihedralsIn, DihedralArray co
   * all topologies, like Ambers ITREE or PDB chain ID etc.
   */
 int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn,
-                               std::vector<NameType>& icodeIn) 
+                               std::vector<NameType> const& icodeIn) 
 {
   n_atom_types_ = natyp;
   if (!extraIn.empty()) {
@@ -774,18 +774,6 @@ int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn,
     extra_ = extraIn;
   }
   if (!icodeIn.empty()) {
-    // Search for and replace/warn about invalid insertion codes.
-    unsigned int nInvalid = 0;
-    for (std::vector<NameType>::iterator it = icodeIn.begin(); it != icodeIn.end(); ++it)
-    {
-      if ( !isalpha( (*it)[0] ) ) {
-        ++nInvalid;
-        (*it) = "";
-      }
-    }
-    if (nInvalid > 0)
-      mprintf("Warning: %zu invalid residue insertion codes detected and replaced with ' '.\n",
-              nInvalid);
     if (icodeIn.size() == residues_.size()) {
       for (unsigned int i = 0; i != icodeIn.size(); i++)
         residues_[i].SetIcode( icodeIn[i][0] );
