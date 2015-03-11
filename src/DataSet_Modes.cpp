@@ -168,6 +168,8 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     else 
       ncv = nelem;
     evectors_ = new double[ ncv * nelem ];
+    // Temporary storage for eigenvectors to avoid memory overlap in dseupd
+    double* eigenvectors = new double[ ncv * nelem ];
     // Allocate memory to store eigenvalues
     if ( evalues_ != 0) delete[] evalues_;
     evalues_ = new double[ nelem ] ; // NOTE: Should this be nmodes?
@@ -215,7 +217,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
       }
 
       dsaupd_(ido, bmat, nelem, which, nmodes_, tol, resid,
-              ncv, evectors_, nelem, iparam, ipntr, workd, workl,
+              ncv, eigenvectors, nelem, iparam, ipntr, workd, workl,
               lworkl, info);
       loop = (ido == -1 || ido == 1);
     } while ( loop ); // END LOOP
@@ -229,7 +231,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
       int* select = new int[ ncv ];
       dseupd_(rvec, howmny, select, evalues_, evectors_, nelem, sigma,
               bmat, nelem, which, nmodes_, tol, resid,
-              ncv, evectors_, nelem, iparam, ipntr, workd, workl,
+              ncv, eigenvectors, nelem, iparam, ipntr, workd, workl,
               lworkl, info);
       delete[] select;
     } 
@@ -237,6 +239,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     delete[] workl;
     delete[] workd;
     delete[] resid;
+    delete[] eigenvectors;
     if (info != 0) { 
       mprinterr("Error: DataSet_Modes: dseupd returned %i\n",info);
       return 1;
