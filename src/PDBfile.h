@@ -12,8 +12,10 @@ class PDBfile : public CpptrajFile {
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
     PDB_RECTYPE NextRecord();
-    /// \return Atom info with name, chain, and element for ATOM/HETATM record.
-    Atom pdb_Atom();
+    /// \return Atom info with name, chain, and element for ATOM/HETATM; set altLoc.
+    Atom pdb_Atom(char&);
+    /// \return Atom info with name, chain, and element for ATOM/HETATM
+    Atom pdb_Atom() { char al; return pdb_Atom(al); }
     /// Get occupancy and B-factor from ATOM/HETATM record.
     void pdb_OccupanyAndBfactor(float&, float&);
     /// Set given XYZ array with coords from ATOM/HETATM record.
@@ -22,13 +24,14 @@ class PDBfile : public CpptrajFile {
     void pdb_Box(double*) const;
     /// \return Residue name, only valid for ATOM/HETATM record.
     NameType pdb_ResName();
-    /// \return Residue number, only valid for ATOM/HETATM record.
-    int pdb_ResNum();
+    /// \return Residue number/icode, only valid for ATOM/HETATM record.
+    int pdb_ResNum(char&);
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
 
-    /// Write TER record
-    void WriteTER(int, NameType const&, char, int);
+    /// Write PDB record header.
+    void WriteRecordHeader(PDB_RECTYPE, int, NameType const&, char,
+                           NameType const&, char, int, char);
     /// Write HETATM record using internal atom numbering
     void WriteHET(int, double, double, double);
     /// Write no-name ATOM record using internal atom numbering
@@ -38,9 +41,12 @@ class PDBfile : public CpptrajFile {
     /// Write PDB ATOM/HETATM record, no B-factor, occ, elt, or charge.
     void WriteCoord(PDB_RECTYPE, int, NameType const&, NameType const&, char, int,
                     double, double, double);
+    /// Write PDB ATOM/HETATM record, no alt loc, chain ID, icode.
+    void WriteCoord(PDB_RECTYPE, int, NameType const&, NameType const&, int,
+                         double, double, double, float, float, const char*, int);
     /// Write complete PDB ATOM/HETATM record
-    void WriteCoord(PDB_RECTYPE, int, NameType const&, NameType const&, char, int,
-                    double, double, double, float, float, const char *, int, bool);
+    void WriteCoord(PDB_RECTYPE, int, NameType const&, char, NameType const&, char, int,
+                    char, double, double, double, float, float, const char *, int, bool);
     /// Write ANISOU record.
     void WriteANISOU(int, NameType const&, NameType const&, char, int,
                      int, int, int, int, int, int, const char *, int);
@@ -57,9 +63,6 @@ class PDBfile : public CpptrajFile {
   private:
     /// \return true if the first 6 chars of buffer match a PDB keyword
     static bool IsPDBkeyword(std::string const&);
-    /// Write PDB record header.
-    void WriteRecordHeader(PDB_RECTYPE, int, NameType const&,
-                           NameType const&, char, int);
 
     int anum_;            ///< Atom number for writing.
     PDB_RECTYPE recType_; ///< Current record type.

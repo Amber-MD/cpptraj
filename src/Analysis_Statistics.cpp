@@ -102,9 +102,7 @@ Analysis::RetType Analysis_Statistics::Analyze() {
   if (outfile_.OpenWrite( filename_ )) return Analysis::ERR;
   for (Array1D::const_iterator ds = datasets_.begin(); ds != datasets_.end(); ++ds)
   {
-    mprintf("\t'%s'", (*ds)->legend());
-    (*ds)->ScalarDescription();
-    mprintf("\n");
+    mprintf("\t'%s'%s\n", (*ds)->legend(), (*ds)->ScalarDescription().c_str());
     DataSet_1D const& data_set = static_cast<DataSet_1D const&>( *(*ds) );
     int Nelements = data_set.Size();
     if (Nelements < 1) {

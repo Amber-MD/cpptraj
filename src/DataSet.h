@@ -78,10 +78,10 @@ class DataSet {
     int SetDataSetFormat(bool);
     /// Check if name and/or index and aspect match this DataSet.
     bool Matches(std::string const&, int, std::string const&, int) const;
-    /// Write scalar mode/type description
-    void ScalarDescription() const;
-    /// Write name/aspect/index to STDOUT
-    void PrintName() const;
+    /// \return scalar mode/type description
+    std::string ScalarDescription() const;
+    /// \return name/aspect/index/member as "<name>[<aspect>].<idx>%<member>"
+    std::string PrintName() const;
     // -----------------------------------------------------
     // ---===== Functions that return private vars =====----
     /// True if DataSet is empty. 

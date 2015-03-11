@@ -554,9 +554,9 @@ void Action_NativeContacts::Print() {
       if (!usepdbcut_ || (bfac > pdbcut_)) {
         int resnum = (*refParm_)[aidx].ResNum();
         contactPDB.WriteCoord(PDBfile::ATOM, aidx+1, (*refParm_)[aidx].Name(),
-                              refParm_->Res(resnum).Name(), ' ', resnum+1,
+                              refParm_->Res(resnum).Name(), resnum+1,
                               refFrame_[cidx], refFrame_[cidx+1], refFrame_[cidx+2],
-                              1.0, bfac, (*refParm_)[aidx].ElementName(), 0, false);
+                              1.0, bfac, (*refParm_)[aidx].ElementName(), 0);
       }
     }
   }

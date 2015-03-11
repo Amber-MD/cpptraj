@@ -105,7 +105,7 @@ int CIFfile::DataBlock::AddLoopColumn( const char* ptr ) {
 /** Add loop data. */
 int CIFfile::DataBlock::AddLoopData( const char* ptr, BufferedLine& infile ) {
   // Should be as much data as there are column headers
-  ArgList loopData( ptr, " " );
+  ArgList loopData( ptr, " " ); // FIXME: Handle ';' correctly
   if ( loopData.Nargs() != (int)columnHeaders_.size()) {
     // Could be there are more lines of data. As long as we dont hit
     // another loop or data, add until we reach the correct number of
@@ -124,7 +124,7 @@ int CIFfile::DataBlock::AddLoopData( const char* ptr, BufferedLine& infile ) {
       if (columns_read > (int)columnHeaders_.size()) {
         mprinterr("Error: Line %i: # of columns in loop data '%s' (%i) > # column headers (%zu)\n",
                   infile.LineNumber(), dataHeader_.c_str(),
-                  loopData.Nargs(), columnHeaders_.size());
+                  columns_read, columnHeaders_.size());
         return 1;
       }
       for (ArgList::const_iterator ia = nextData.begin(); ia != nextData.end(); ++ia)

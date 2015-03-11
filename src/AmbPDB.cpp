@@ -2,18 +2,23 @@
     \brief Potential replacement for ambpdb using cpptraj file routines.
     \author Daniel R. Roe
  */
+#include <cstdio> // stdin, fileno
+#include <unistd.h> // isatty
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
 #include "Trajin_Single.h"
 #include "Trajout_Single.h"
 #include "StringRoutines.h"
 #define VERSION_STRING "V16.00a"
+#include "Traj_AmberRestart.h"
 
 static void Help(const char* prgname, bool showAdditional) {
-  mprinterr("\nUsage: %s -p <Top> -c <Coords> [Additional Options]\n"
-            "    -p <Top>      Topology file (default: prmtop).\n"
-            "    -c <Coords>   Coordinate file.\n"
-            "  PDB is written to STDOUT.\n", prgname);
+  mprinterr("\nUsage: %s -p 'Top' -c 'Coords' [Additional Options]\n"
+              "       %s -p 'Top' < 'AmberRestart' [Additional Options]\n"
+              "    -p 'Top'       Topology file (default: prmtop).\n"
+              "    -c 'Coords'    Coordinate file.\n"
+              "    'AmberRestart' Amber restart file from STDIN.\n"
+              "  PDB is written to STDOUT.\n", prgname, prgname);
   if (showAdditional) {
     mprinterr(
             "  Additional Options:\n"
@@ -23,7 +28,7 @@ static void Help(const char* prgname, bool showAdditional) {
             "    -bres         Brookhaven Residue names (HIE->HIS, etc.).\n"
             "    -ctr          Center molecule on (0,0,0).\n"
             "    -noter        Do not write TER records.\n"
-//            "    -ext          Use PRMTOP extended PDB info, if present.\n"
+            "    -ext          Use PRMTOP extended PDB info, if present.\n"
 //            "    -ene <FLOAT>  Define H-bond energy cutoff for FIRST.\n"
 //            "    -bin          The coordinate file is in binary form.\n"
             "    -offset <INT> Add offset to residue numbers.\n"
@@ -35,7 +40,7 @@ static void Help(const char* prgname, bool showAdditional) {
 //            "    -atm          Mike Connolly surface/volume format.\n"
 //            "    -first        Add REMARKs for input to FIRST.\n"
   } else
-    mprinterr("  Use '%s -h' to see additional options.\n", prgname);
+    mprinterr("  Use '-h' or '--help' to see additional options.\n");
   mprinterr("\n");
 }
 
@@ -54,6 +59,7 @@ int main(int argc, char** argv) {
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
   bool ctr_origin = false;
   bool noTER = false;
+  bool useExtendedInfo = false;
   int res_offset = 0;
   int debug = 0;
   int numSoloArgs = 0;
@@ -76,6 +82,8 @@ int main(int argc, char** argv) {
       aatm.clear();
     else if (arg == "-bres") // PDB residue names
       bres.assign(" pdbres");
+    else if (arg == "-ext") // Use extended PDB info from Topology
+      useExtendedInfo = true;
     else if (arg == "-ctr")  // Center on origin
       ctr_origin = true;
     else if (arg == "-noter") // No TER cards
@@ -97,12 +105,8 @@ int main(int argc, char** argv) {
   }
   // Check command line for errors.
   if (topname.empty()) topname.assign("prmtop");
-  if (crdname.empty()) {
-    mprinterr("Error: This version of %s requires input coordinates be specified with"
-              " -c <coord file> instead of ' < <coord file>'\n", argv[0]);
-    Help(argv[0], false);
-    return 1;
-  }
+  if (crdname.empty())
+    mprinterr("| Reading Amber restart from STDIN\n");
   if (numSoloArgs > 1) {
     mprinterr("Error: Only one alternate output format option may be specified (found %i)\n",
               numSoloArgs);
@@ -116,22 +120,46 @@ int main(int argc, char** argv) {
   // Topology
   ParmFile pfile;
   Topology parm;
-  if (pfile.ReadTopology(parm, topname, debug)) return 1;
+  if (pfile.ReadTopology(parm, topname, debug)) {
+    if (topname == "prmtop") Help(argv[0], false);
+    return 1;
+  }
   parm.IncreaseFrames( 1 );
   if (noTER)
     parm.ClearMoleculeInfo();
+  if (!useExtendedInfo)
+    parm.ResetPDBinfo();
   if (res_offset != 0)
     for (int r = 0; r < parm.Nres(); r++)
       parm.SetRes(r).SetOriginalNum( parm.Res(r).OriginalResNum() + res_offset );
-  // Input coords
-  Trajin_Single trajin;
   ArgList trajArgs;
-  if (trajin.SetupTrajRead(crdname, trajArgs, &parm, false)) return 1;
+  // Input coords
   Frame TrajFrame;
-  TrajFrame.SetupFrameV(parm.Atoms(), trajin.TrajCoordInfo());
-  trajin.BeginTraj(false);
-  if (trajin.ReadTrajFrame(0, TrajFrame)) return 1;
-  trajin.EndTraj();
+  // TODO: Set coord info in parm?
+  if (!crdname.empty()) {
+    Trajin_Single trajin;
+    if (trajin.SetupTrajRead(crdname, trajArgs, &parm, false)) return 1;
+    TrajFrame.SetupFrameV(parm.Atoms(), trajin.TrajCoordInfo());
+    trajin.BeginTraj(false);
+    if (trajin.ReadTrajFrame(0, TrajFrame)) return 1;
+    trajin.EndTraj();
+  } else {
+    // Assume Amber restart from STDIN
+    // Check that input is from a redirect.
+    if ( isatty(fileno(stdin)) ) {
+      mprinterr("Error: No coordinates specified with '-c' and no STDIN '<'.\n");
+      return 1;
+    }
+    Traj_AmberRestart restartIn;
+    restartIn.SetDebug( debug );
+    //restartIn.processReadArgs( trajArgs );
+    int total_frames = restartIn.setupTrajin("", &parm);
+    if (total_frames < 1) return 1;
+    TrajFrame.SetupFrameV(parm.Atoms(), restartIn.CoordInfo());
+    if (restartIn.openTrajin()) return 1;
+    if (restartIn.readFrame(0, TrajFrame)) return 1;
+    restartIn.closeTraj();
+  }
   if (ctr_origin) 
     TrajFrame.CenterOnOrigin(false);
   // Output coords

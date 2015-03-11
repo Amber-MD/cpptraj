@@ -1,6 +1,14 @@
 #include <cmath> // sqrt
 #include "Vec3.h"
 #include "CpptrajStdio.h"
+#include "Constants.h"
+
+bool Vec3::operator!=(const Vec3& rhs) const {
+  if (V_[0] - rhs.V_[0] > Constants::SMALL) return true;
+  if (V_[1] - rhs.V_[1] > Constants::SMALL) return true;
+  if (V_[2] - rhs.V_[2] > Constants::SMALL) return true;
+  return false;
+}
 
 /** Normalize vector. Return vector length. */
 double Vec3::Normalize() {

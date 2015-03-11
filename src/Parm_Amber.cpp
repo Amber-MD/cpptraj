@@ -1140,6 +1140,7 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
       for (int rnum = 1; rnum <= values[NRES]; rnum++)
         pdb_resnum.push_back( rnum );
     if (pdb_res_chainID.empty()) pdb_res_chainID.resize(values[NRES]);
+    if (pdb_atom_alt.empty()) pdb_atom_alt.resize(values[NATOM]);
     // Add atoms to topology.
     for (int ai = 0; ai < values[NATOM]; ai++) {
       if (ai + 1 == resnums[ri+1]) ++ri;
@@ -1185,10 +1186,10 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
       if (!itree.empty()) {
         extra.reserve( itree.size() );
         for (size_t n = 0; n != itree.size(); n++)
-          extra.push_back( AtomExtra(itree[n], join_array[n], irotat[n], ' ') );
+          extra.push_back( AtomExtra(itree[n], join_array[n], irotat[n], pdb_atom_alt[n][0]) );
       }
     }
-    error_count_ += TopIn.SetExtraAtomInfo(values[NATYP], extra);
+    error_count_ += TopIn.SetExtraAtomInfo(values[NATYP], extra, pdb_res_icode);
     if (values[IFBOX]>0) 
       TopIn.SetParmBox( parmbox );
     TopIn.SetChamber( chamberParm );
