@@ -46,7 +46,7 @@ Analysis_Clustering::~Analysis_Clustering() {
 }
 
 void Analysis_Clustering::Help() {
-  mprintf("\t[crdset <crd set>]\n");
+  mprintf("\t[crdset <crd set> | nocoords]\n");
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
@@ -80,25 +80,29 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
-  // Attempt to get coords dataset from datasetlist
-  std::string setname = analyzeArgs.GetStringKey("crdset");
-  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
-  if (coords_ == 0) {
-    mprinterr("Error: clustering: Could not locate COORDS set corresponding to %s\n",
-              setname.c_str());
-    return Analysis::ERR;
+  if (analyzeArgs.hasKey("nocoords"))
+    coords_ = 0;
+  else {
+    // Attempt to get coords dataset from datasetlist
+    std::string setname = analyzeArgs.GetStringKey("crdset");
+    coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
+    if (coords_ == 0) {
+      mprinterr("Error: Could not locate COORDS set corresponding to %s\n",
+                setname.c_str());
+      return Analysis::ERR;
+    }
   }
   // Check for DataSet(s) to cluster on, otherwise coords will be used
   cluster_dataset_.clear();
-  setname = analyzeArgs.GetStringKey("data");
+  std::string dataSetname = analyzeArgs.GetStringKey("data");
   metric_ = ClusterList::RMS;
-  if (!setname.empty()) {
-    ArgList dsnames(setname, ",");
+  if (!dataSetname.empty()) {
+    ArgList dsnames(dataSetname, ",");
     DataSetList inputDsets;
     for (ArgList::const_iterator name = dsnames.begin(); name != dsnames.end(); ++name) {
       DataSetList tempDSL = datasetlist->GetMultipleSets( *name );
       if (tempDSL.empty()) {
-        mprinterr("Error: cluster: %s did not correspond to any data sets.\n");
+        mprinterr("Error: %s did not correspond to any data sets.\n", dataSetname.c_str());
         return Analysis::ERR;
       }
       inputDsets += tempDSL;
@@ -238,7 +242,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   // Save master DSL for Cpopvtime
   masterDSL_ = datasetlist;
 
-  mprintf("    CLUSTER: Using coords dataset %s, clustering using", coords_->legend());
+  mprintf("    CLUSTER:");
+  if (coords_ != 0) mprintf(" Using coords dataset %s,", coords_->legend());
+  mprintf(" clustering using");
   if ( metric_ != ClusterList::DATA ) {
     mprintf(" %s", ClusterList::MetricString( metric_ ));
     if (!maskexpr_.empty())
@@ -350,8 +356,13 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   if (load_pair_ && fileExists(pairdistfile_))
     pairdist_mode = ClusterList::USE_FILE;
   // If no dataset specified, use COORDS
-  if (cluster_dataset_.empty())
-     cluster_dataset_.push_back( (DataSet*)coords_ );
+  if (cluster_dataset_.empty()) {
+    if (coords_ == 0) {
+      mprinterr("Error: No data to cluster on.\n");
+      return Analysis::ERR;
+    }
+    cluster_dataset_.push_back( (DataSet*)coords_ );
+  }
   // Test that cluster data set contains data
   // FIXME make unsigned
   int clusterDataSetSize = (int)cluster_dataset_[0]->Size();
@@ -373,8 +384,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   }
   // If no coordinates were specified, disable coordinate output types
   bool has_coords = true;
-  if (coords_->Size() < 1) {
-    mprintf("Warning: Associated coordinate data set is empty.\n"
+  if (coords_ == 0 || coords_->Size() < 1) {
+    mprintf("Warning: No coordinates or associated coordinate data set is empty.\n"
             "Warning: Disabling coordinate output.\n");
     has_coords = false;
   }
