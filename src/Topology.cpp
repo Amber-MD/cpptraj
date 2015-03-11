@@ -1572,10 +1572,63 @@ bool Topology::ParseMask(Frame const& REF, AtomMask &maskIn, bool intMask) const
 }
 
 // -----------------------------------------------------------------------------
-void Topology::ScaleDihedralK(double scale_factor) {
-  for (DihedralParmArray::iterator dk = dihedralparm_.begin();
-                                   dk != dihedralparm_.end(); ++dk)
-    (*dk).Pk() *= scale_factor;
+int Topology::scale_dihedral_K(DihedralArray& dihedrals, AtomMask const& Mask,
+                               double scale_factor, bool useAll)
+{
+  std::vector<int> newDihedralParms( dihedralparm_.size(), -1 );
+  for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih)
+  {
+    bool validDihedral;
+    if (useAll)
+      validDihedral= ( Mask.AtomInCharMask(dih->A1()) && Mask.AtomInCharMask(dih->A2()) &&
+                       Mask.AtomInCharMask(dih->A3()) && Mask.AtomInCharMask(dih->A4()) );
+    else
+      validDihedral= ( Mask.AtomInCharMask(dih->A1()) || Mask.AtomInCharMask(dih->A2()) || 
+                       Mask.AtomInCharMask(dih->A3()) || Mask.AtomInCharMask(dih->A4()) );
+    if (validDihedral) {
+      // See if this dihedral type was previously scaled.
+      int oldidx = dih->Idx();
+      if (oldidx == -1) {
+        mprinterr("Error: No dihedral parameters.\n");
+        return 1;
+      }
+      int newidx = newDihedralParms[oldidx];
+      if (newidx == -1) {
+        // Scale and add new dihedral parameter type.
+        DihedralParmType newparm = dihedralparm_[oldidx];
+        newparm.Pk() *= scale_factor;
+        newidx = (int)dihedralparm_.size();
+        dihedralparm_.push_back( newparm );
+        newDihedralParms[oldidx] = newidx;
+      } 
+      // Update dihedral parameter index.
+      dih->SetIdx( newidx );
+      mprintf("\tDihedral %s-%s-%s-%s old PK= %g  new PK= %g\n",
+              AtomMaskName(dih->A1()).c_str(),
+              AtomMaskName(dih->A2()).c_str(),
+              AtomMaskName(dih->A3()).c_str(),
+              AtomMaskName(dih->A4()).c_str(),
+              dihedralparm_[oldidx].Pk(), dihedralparm_[newidx].Pk());
+    }
+  }
+  return 0;
+}
+
+int Topology::ScaleDihedralK(double scale_factor, std::string const& maskExpr, bool useAll)
+{
+  if (maskExpr.empty()) {
+    // Scale all
+    for (DihedralParmArray::iterator dk = dihedralparm_.begin();
+                                     dk != dihedralparm_.end(); ++dk)
+      dk->Pk() *= scale_factor;
+  } else {
+    // Scale only dihedrals with atoms in mask. Requires adding new types.
+    AtomMask Mask( maskExpr );
+    if (SetupCharMask( Mask )) return 1;
+    if (scale_dihedral_K( dihedrals_,  Mask, scale_factor, useAll )) return 1;
+    if (scale_dihedral_K( dihedralsh_, Mask, scale_factor, useAll )) return 1;
+  }
+  return 0;
 }
 
 // Topology::ModifyByMap()

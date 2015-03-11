@@ -139,7 +139,7 @@ class Topology {
     bool SetupIntegerMask(AtomMask &, Frame const&) const;
     bool SetupCharMask(AtomMask &, Frame const&) const;
     // ----- Topology modification routines ------
-    void ScaleDihedralK(double);
+    int ScaleDihedralK(double, std::string const&, bool);
     /// Strip atoms outside given mask, do not keep parameters.
     Topology* partialModifyStateByMask(AtomMask const& m) const {
       return ModifyByMap(m.Selected(), false);
@@ -183,6 +183,7 @@ class Topology {
     void MaskSelectAtoms(int, int, char*) const;
     bool ParseMask(Frame const&, AtomMask &,bool) const;
 
+    int scale_dihedral_K(DihedralArray&, AtomMask const&, double, bool);
     Topology* ModifyByMap(std::vector<int> const&, bool) const;
     BondArray StripBondArray(BondArray const&, std::vector<int> const&) const;
     AngleArray StripAngleArray(AngleArray const&, std::vector<int> const&) const;
