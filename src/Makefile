@@ -48,7 +48,7 @@ ambpdb.MPI:
 	@echo ""
 
 $(READLINE): $(READLINE_HOME)/Makefile
-	cd $(READLINE_HOME) && $(MAKE)
+	cd $(READLINE_HOME) && $(MAKE) all
 
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
