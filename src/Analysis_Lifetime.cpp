@@ -18,7 +18,7 @@ Analysis_Lifetime::Analysis_Lifetime() :
 void Analysis_Lifetime::Help() {
   mprintf("\t[out <filename>] <dsetarg0> [ <dsetarg1> ... ]\n"
           "\t[window <windowsize> [name <setname>]] [averageonly]\n"
-          "\t[cumulative] [cut <cutoff>] [greater | less] [rawcurve]\n"
+          "\t[cumulative] [delta] [cut <cutoff>] [greater | less] [rawcurve]\n"
           "\t[fuzz <fuzzcut>] [nosort]\n"
           "  Calculate lifetimes for specified data set(s), i.e. time that data is\n"
           "  either greater than or less than <cutoff> (default: > 0.5). If <windowsize>\n"
@@ -83,8 +83,8 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   DataFile* outfile = 0;
   DataFile* maxfile = 0;
   DataFile* avgfile = 0;
-    if (setname.empty()) 
-      setname = datasetlist->GenerateDefaultName( "lifetime" );
+  if (setname.empty())
+    setname = datasetlist->GenerateDefaultName( "lifetime" );
   if ( windowSize_ != -1) {
     outfile = DFLin->AddDataFile(outfileName_, analyzeArgs);
     if (!averageonly_ && outfile != 0) {
