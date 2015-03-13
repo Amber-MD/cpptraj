@@ -34,12 +34,15 @@ Action_Hbond::Action_Hbond() :
 {}
 
 void Action_Hbond::Help() {
-  mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>]\n"
-          "\t[donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n"
+  mprintf("\t[<dsname>] [out <filename>] [<mask>] [angle <acut>] [dist <dcut>]\n"
+          "\t[donormask <dmask> [donorhmask <dhmask>]] [acceptormask <amask>]\n"
           "\t[avgout <filename>] [printatomnum] [nointramol] [image]\n"
-          "\t[solventdonor <mask>] [solventacceptor <mask>]\n"
+          "\t[solventdonor <sdmask>] [solventacceptor <samask>]\n"
           "\t[solvout <filename>] [bridgeout <filename>]\n"
-          "\t[series [uuseries <filename>] [uvseries <filename>]\n"
+          "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
+          "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
+          "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
+          "  A to D distance < dcut and A-H-D angle > acut; if acut < 0 it is ignored.\n"
           "  Search for hydrogen bonds using atoms in the region specified by mask.\n"
           "  If just <mask> specified donors and acceptors will be automatically searched for.\n"
           "  If donormask is specified but not acceptormask, acceptors will be\n"
@@ -64,9 +67,12 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
     UVseriesout_ = DFL->AddDataFile(actionArgs.GetStringKey("uvseries"), actionArgs);
     DSL->SetDataSetsPending(true);
   }
-  avgout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("avgout"), "Avg. solute-solute HBonds");
-  solvout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("solvout"), "Avg. solute-solvent HBonds");
-  bridgeout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("bridgeout"), "Solvent bridging info");
+  std::string avgname = actionArgs.GetStringKey("avgout");
+  std::string solvname = actionArgs.GetStringKey("solvout");
+  if (solvname.empty()) solvname = avgname;
+  std::string bridgename = actionArgs.GetStringKey("bridgeout");
+  if (bridgename.empty()) bridgename = solvname;
+  
   useAtomNum_ = actionArgs.hasKey("printatomnum");
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
@@ -117,6 +123,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
   NumHbonds_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "UU");
   if (NumHbonds_==0) return Action::ERR;
   if (DF != 0) DF->AddSet( NumHbonds_ );
+  avgout_ = DFL->AddCpptrajFile(avgname, "Avg. solute-solute HBonds");
   if (calcSolvent_) {
     NumSolvent_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "UV");
     if (NumSolvent_ == 0) return Action::ERR;
@@ -127,7 +134,9 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
     BridgeID_ = DSL->AddSetAspect(DataSet::STRING, hbsetname_, "ID");
     if (BridgeID_ == 0) return Action::ERR;
     if (DF != 0) DF->AddSet( BridgeID_ );
-  } 
+    solvout_ = DFL->AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
+    bridgeout_ = DFL->AddCpptrajFile(bridgename,"Solvent bridging info");
+  }
 
   mprintf( "  HBOND: ");
   if (!hasDonorMask_ && !hasAcceptorMask_)
