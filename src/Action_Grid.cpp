@@ -20,12 +20,10 @@ Action_Grid::Action_Grid() :
 
 void Action_Grid::Help() {
   mprintf("\t<filename>\n%s\n", GridAction::HelpText);
-  mprintf("\t<mask> [[smoothdensity <value>] [invert]] [madura <madura>]\n"
-          "\t[pdb <pdbout> [max <fraction>]] [normframe | normdensity [density <density>]]\n"
-          "  Bin atoms in <mask> into a 3D grid.\n"
-          "    <fraction>: Percent of max to write.\n"
-          "    <madura>  : Grid values lower than <madura> become flipped in sign, exposes low density.\n"
-          "    <value>   : Used to smooth density.\n");
+  mprintf("\t<mask> [normframe | normdensity [density <density>]]\n"
+          "\t[pdb <pdbout> [max <fraction>]] \n"
+          "\t[[smoothdensity <value>] [invert]] [madura <madura>]\n"
+          "  Bin atoms in <mask> into a 3D grid written to <filename>.\n");
 }
 
 // Action_Grid::Init()
