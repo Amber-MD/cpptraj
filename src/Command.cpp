@@ -398,7 +398,13 @@ static void Help_DataFile() {
 static void Help_DataSetCmd() {
   mprintf("\t{ legend <legend> <set> | \n"
           "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
-          "\tOptions for 'type noe':\n"
+          "  <mode>: ");
+  for (int i = 0; i != (int)DataSet::M_MATRIX; i++) // TODO: Allow matrix?
+    mprintf(" %s", DataSet::ModeString((DataSet::scalarMode)i));
+  mprintf("\n  <type>: ");
+  for (int i = 0; i != (int)DataSet::DIST; i++)
+    mprintf(" %s", DataSet::TypeString((DataSet::scalarType)i));
+  mprintf("\n\tOptions for 'type noe':\n"
           "\t  %s\n"
           "  Either set the legend for a single data set, or change the mode/type for\n"
           "  one or more data sets.\n", Action_Distance::NOE_Help);
