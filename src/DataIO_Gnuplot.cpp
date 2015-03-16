@@ -16,13 +16,7 @@ DataIO_Gnuplot::DataIO_Gnuplot() :
 
 DataIO_Gnuplot::LabelArray DataIO_Gnuplot::LabelArg( std::string const& labelarg) 
 {
-  LabelArray labels;
-  if (!labelarg.empty()) {
-    ArgList commasep( labelarg, "," );
-    for (int i = 0; i < commasep.Nargs(); ++i)
-      labels.push_back( commasep[i] );
-  }
-  return labels;
+  return ArgList( labelarg, ",").List();
 }
 
 void DataIO_Gnuplot::WriteHelp() {
@@ -56,7 +50,6 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   Xlabels_ = LabelArg( argIn.GetStringKey( "xlabels" ) );
   Ylabels_ = LabelArg( argIn.GetStringKey( "ylabels" ) );
   Zlabels_ = LabelArg( argIn.GetStringKey( "zlabels" ) );
-
   if (pm3d_ == MAP) useMap_ = true;
   return 0;
 }
@@ -210,6 +203,22 @@ void DataIO_Gnuplot::WriteDefinedPalette(int ncolors) {
   file_.Printf("%i \"%s\")\n", (ncolors - 1), CurrentPalette[3]);
 }
 
+void DataIO_Gnuplot::WriteLabels(LabelArray const& labels, Dimension const& dim, char xyz)
+{
+  unsigned int offset = 1;
+  // If the number of labels is greater than max, write fewer labels.
+  const unsigned int max_labels = 20;
+  if ( labels.size() > max_labels ) 
+    offset = labels.size() / max_labels;
+  file_.Printf("set %ctics %8.3f,%8.3f\nset %ctics(", xyz, dim.Coord(0),
+               dim.Step() * (double)offset, xyz);
+  for (unsigned int i = 0; i < labels.size(); i += offset) {
+    if (i>0) file_.Printf(",");
+    file_.Printf("\"%s\" %8.3f", labels[i].c_str(), dim.Coord(i));
+  }
+  file_.Printf(")\n");
+}
+
 // DataIO_Gnuplot::WriteData()
 /** Write each frame from all sets in blocks in the following format:
   *   Frame Set   Value
@@ -246,11 +255,6 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
   // Turn off labels if number of sets is too large since they 
   // become unreadable. Should eventually have some sort of 
   // autotick option.
-/*  if (printLabels_ && SetList.size() > 30 ) {
-    mprintf("Warning: %s: gnuplot: number of sets (%i) > 30, turning off Y labels.\n",
-            BaseName(), SetList.size());
-    printLabels_ = false;
-  }*/
   if (writeHeader_) {
     // Check for JPEG output
     JpegOut( maxFrames, Sets.size() );
@@ -265,11 +269,10 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
       //outfile->file_.Printf("set style line 100 lt 2 lw 0.5\n");
       // Set up Y labels
       file_.Printf("set ytics %8.3f,%8.3f\nset ytics(", Ydim.Min(), Ydim.Step());
-      unsigned int setnum = 0;
       std::string label_fmt = "\"%s\" " + y_format;
-      for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
-        if (setnum>0) file_.Printf(",");
-        file_.Printf(label_fmt.c_str(), (*set)->legend(), Ydim.Coord(setnum++));
+      for (unsigned int iy = 0; iy != Sets.size(); iy++) {
+        if (iy>0) file_.Printf(",");
+        file_.Printf(label_fmt.c_str(), Sets[iy]->legend(), Ydim.Coord(iy));
       }
       file_.Printf(")\n");
       // Set up Z labels
@@ -360,24 +363,13 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
         if ( Ylabels_.size() != set.Nrows() )
           mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%u)\n",
                   Ylabels_.size(), set.Nrows());
-        file_.Printf("set ytics %8.3f,%8.3f\nset ytics(",
-                     Ydim.Coord(0), Ydim.Step());
-        for (size_t iy = 0; iy < Ylabels_.size(); ++iy) {
-          if (iy>0) file_.Printf(",");
-          file_.Printf("\"%s\" %8.3f", Ylabels_[iy].c_str(), Ydim.Coord(iy));
-        }
-        file_.Printf(")\n");
+        WriteLabels(Ylabels_, Ydim, 'y');
       }
       if (!Xlabels_.empty()) {
         if ( Xlabels_.size() != set.Ncols() )
           mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%u)\n",
-                  Xlabels_.size(), set.Ncols()); 
-        file_.Printf("set xtics %8.3f,%8.3f\nset xtics(",
-                     Xdim.Coord(0), Xdim.Step());
-        for (size_t ix = 0; ix < Xlabels_.size(); ++ix) {
-          if (ix>0) file_.Printf(",");
-          file_.Printf("\"%s\" %8.3f", Xlabels_[ix].c_str(), Xdim.Coord(ix));
-        }
+                  Xlabels_.size(), set.Ncols());
+        WriteLabels(Xlabels_, Xdim, 'x'); 
       }
     }
     // Set axis label and range, write plot command
