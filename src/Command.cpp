@@ -455,7 +455,8 @@ static void Help_SelectDS() {
 static void Help_Trajin() {
   mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
           "\t           %s\n", TopologyList::ParmArgs);
-  mprintf("\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
+  mprintf("\t           [ <Format Options> ]\n"
+          "\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
           "\t             [trajnames <rep1>,<rep2>,...,<repN> ] ]\n"
           "  Load trajectory specified by <filename> to the input trajectory list.\n");
   TrajectoryFile::ReadOptions();
@@ -961,8 +962,8 @@ static void Help_GenerateAmberRst() {
   mprintf("\t<mask1> <mask2> [<mask3>] [<mask4>]\n"
           "\tr1 <r1> r2 <r2> r3 <r3> r4 <r4> rk2 <rk2> rk3 <rk3>\n"
           "\t{%s}\n"
-          "\t[{%s} [offset <off>] [width <width>]\n"
-          "\t[out <outfile>] [overwrite]\n"
+          "\t[{%s} [offset <off>] [width <width>]]\n"
+          "\t[out <outfile>]\n"
           "  Generate Amber-format restraint from 2 or more mask expressions.\n",
           TopologyList::ParmArgs, DataSetList::RefArgs);
 }
