@@ -25,20 +25,16 @@ void Analysis_Modes::Help() {
           "\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n"
           "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
           "    Options for 'trajout': (Generate pseudo-trajectory)\n"
-          "\t[trajout <name> [<parm arg>] [trajoutfmt <format>] [trajoutmask <mask>]\n"
+          "\t[trajout <name> %s\n", TopologyList::ParmArgs);
+  mprintf("\t[trajoutfmt <format>] [trajoutmask <mask>]\n"
           "\t  [pcmin <pcmin>] [pcmax <pcmax>] [tmode <mode>]]\n"
           "  Perform one of the following analysis on calculated Eigenmodes.\n"
-          "    fluct: rms fluctations from normal modes\n"
-          "    displ: displacement of cartesian coordinates along normal mode directions\n"
+          "    fluct:    RMS fluctations from normal modes\n"
+          "    displ:    Displacement of cartesian coordinates along normal mode directions\n"
+          "    corr:     Calculate dipole-dipole correlation functions.\n"
           "    eigenval: Calculate eigenvalue fractions.\n"
-          "    rmsip: Root mean square inner product.\n"
-          "  Results vector usage:\n"
-          "    fluct:\n"
-          "\t[rmsx(at1), rmsy(at1), rmsz(at1), rms(at1), ..., rmsx(atN), ..., rms(atN)]\n"
-          "    displ:\n"
-          "\t[displx(at1), disply(at1), displz(at1), ..., displx(atN), ..., displz(atN)]\n"
-          "    corr:\n"
-          "\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n");
+          "    trajout:  Calculate pseudo-trajectory along given mode.\n"
+          "    rmsip:    Root mean square inner product.\n");
 }
 
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)

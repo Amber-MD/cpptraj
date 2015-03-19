@@ -12,8 +12,8 @@ Action_Projection::Action_Projection() :
 {}
 
 void Action_Projection::Help() {
-  mprintf("\tevecs <evecs dataset> [out <outfile>] [beg <beg>] [end <end>] [<mask>]\n"
-          "\t[dihedrals <dataset arg>]\n\t%s\n"
+  mprintf("\t[<name>] evecs <evecs dataset> [out <outfile>] [beg <beg>] [end <end>]\n"
+          "\t[<mask>] [dihedrals <dataset arg>]\n\t%s\n"
           "  Calculate projection along given eigenvectors.\n", ActionFrameCounter::HelpText);
 }
 

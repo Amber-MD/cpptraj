@@ -23,7 +23,7 @@ void Action_Matrix::Help() {
           "\t[ ired [order <#>] ]\n"
           "\t[ {distcovar | idea} <mask1> ]\n"
           "\t[ {dist | correl | covar | mwcovar} <mask1> [<mask2>] ]\n"
-          "\t[ dihcovar dihedrals <dataset arg>\n"
+          "\t[ dihcovar dihedrals <dataset arg> ]\n"
           "  Calculate a matrix of the specified type from input coordinates.\n"
           "    dist: Distance matrix (default).\n"
           "    correl: Correlation matrix (aka dynamic cross correlation).\n"
