@@ -26,9 +26,10 @@ Action_DSSP::Action_DSSP() :
 {}
 
 void Action_DSSP::Help() {
-  mprintf("\t[out <filename>] [<mask>] [sumout <filename>] [assignout <filename>]\n"
-          "\t[ptrajformat] [namen <N name>] [nameh <H name>] [nameca <CA name>]\n"
-          "\t[namec <C name>] [nameo <O name>] [totalout <filename>]\n"
+  mprintf("\t[<name>] [out <filename>] [<mask>] [sumout <filename>]\n"
+          "\t[assignout <filename>] [totalout <filename> [ptrajformat]\n"
+          "\t[namen <N name>] [nameh <H name>] [nameca <CA name>]\n"
+          "\t[namec <C name>] [nameo <O name>]\n"
           "  Calculate secondary structure content for residues in <mask>.\n"
           "  If sumout not specified, the filename specified by out is used with .sum suffix.\n");
 }

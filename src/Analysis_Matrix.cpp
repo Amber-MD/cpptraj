@@ -141,7 +141,7 @@ Analysis::RetType Analysis_Matrix::Analyze() {
   if (matrix_->Type() == DataSet::MATRIX_DBL) {
     DataSet_MatrixDbl const& Dmatrix = static_cast<DataSet_MatrixDbl const&>( *matrix_ );
     if (Dmatrix.Nsnapshots() < Dmatrix.Ncols())
-      mprintf("Warning: In matrix '%s', # of frames %u is less than # of columns %zu."
+      mprintf("Warning: In matrix '%s', # of frames %u is less than # of columns %zu.\n"
               "Warning: The max # of non-zero eigenvalues will be %u\n", Dmatrix.legend(),
               Dmatrix.Nsnapshots(), Dmatrix.Ncols(), Dmatrix.Nsnapshots());
   }

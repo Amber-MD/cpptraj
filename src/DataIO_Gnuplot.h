@@ -35,6 +35,7 @@ class DataIO_Gnuplot : public DataIO {
     std::string Pm3d(size_t);
     void WriteRangeAndHeader(Dimension const&, size_t, Dimension const&, size_t,
                              std::string const&);
+    void WriteLabels(LabelArray const&, Dimension const&, char);
     void Finish();
     void JpegOut(size_t,size_t);
     void WriteDefinedPalette(int);

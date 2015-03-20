@@ -128,9 +128,11 @@ Analysis_CurveFit::Analysis_CurveFit() :
 
 // Analysis_CurveFit::Help()
 void Analysis_CurveFit::Help() {
-  mprintf("\t<dset> {<equation> | nexp <m> [form {mexp|mexpk|mexpk_penalty}}\n"
-          "\t[out <outfile>] [resultsout <results>] [maxit <max iterations>]\n"
-          "\t[tol <tolerance>] [outxbins <NX> outxmin <xmin> outxmax <xmax>]\n"
+  mprintf("\t<dset> { <equation> |\n"
+          "\t         name <dsname> nexp <m> [form {mexp|mexpk|mexpk_penalty} }\n"
+          "\t[AX=<value> ...] [out <outfile>] [resultsout <results>]\n"
+          "\t[maxit <max iterations>] [tol <tolerance>]\n"
+          "\t[outxbins <NX> outxmin <xmin> outxmax <xmax>]\n"
           "  Fit data set <dset> to <equation>. The equation must have form:\n"
           "    <var> = <expression>\n"
           "  where <var> is the output data set name and <expression> can contain\n"

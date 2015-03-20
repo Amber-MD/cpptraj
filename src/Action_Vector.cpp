@@ -19,16 +19,19 @@ Action_Vector::Action_Vector() :
 void Action_Vector::Help() {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
           "\t[magnitude] [ired]\n"
-          "\t<Type> = { mask | principal [x|y|z] | dipole | box | center | corrplane |\n"
-          "             ucellx | ucelly | ucellz }\n"
+          "\t<Type> = { mask | minimage  | dipole | center | corrplane | \n"
+          "\t           box  | boxcenter | ucellx | ucelly | ucellz\n"
+          "\t           principal [x|y|z] }\n" 
           "  Calculate the specified coordinate vector.\n"
           "    mask: (Default) Vector from <mask1> to <mask2>.\n"
-          "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n"
+          "    minimage: Store the minimum image vector between atoms in <mask1> and <mask2>.\n"
           "    dipole: Dipole and center of mass of the atoms specified in <mask1>\n"
-          "    box: (No mask needed) Store the box lengths of the trajectory.\n"
           "    center: Store the center of mass of atoms in <mask1>.\n"
           "    corrplane: Vector perpendicular to plane through the atoms in <mask1>.\n"
-          "    ucell{x|y|z}: (No mask needed) Store specified unit cell vector.\n");
+          "    box: (No mask needed) Store the box lengths of the trajectory.\n"
+          "    boxcenter: (No mask needed) Store box center as vector.\n"
+          "    ucell{x|y|z}: (No mask needed) Store specified unit cell vector.\n"
+          "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n");
 }
 
 // DESTRUCTOR

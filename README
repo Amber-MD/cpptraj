@@ -1,6 +1,6 @@
   _______________________________________________________________________
 
-                  CPPTRAJ: 2014 - README FILE
+                  CPPTRAJ: 2015 - README FILE
   _______________________________________________________________________
 
 About CPPTRAJ
@@ -17,7 +17,7 @@ trajectories with different topology files in the same run.
 
 Disclaimer and Copyright
 ----------------------------------------
-  CPPTRAJ is Copyright (c) 2010-2014 Daniel R. Roe. 
+  CPPTRAJ is Copyright (c) 2010-2015 Daniel R. Roe.
   The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 

@@ -398,7 +398,13 @@ static void Help_DataFile() {
 static void Help_DataSetCmd() {
   mprintf("\t{ legend <legend> <set> | \n"
           "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
-          "\tOptions for 'type noe':\n"
+          "  <mode>: ");
+  for (int i = 0; i != (int)DataSet::M_MATRIX; i++) // TODO: Allow matrix?
+    mprintf(" %s", DataSet::ModeString((DataSet::scalarMode)i));
+  mprintf("\n  <type>: ");
+  for (int i = 0; i != (int)DataSet::DIST; i++)
+    mprintf(" %s", DataSet::TypeString((DataSet::scalarType)i));
+  mprintf("\n\tOptions for 'type noe':\n"
           "\t  %s\n"
           "  Either set the legend for a single data set, or change the mode/type for\n"
           "  one or more data sets.\n", Action_Distance::NOE_Help);
@@ -449,7 +455,8 @@ static void Help_SelectDS() {
 static void Help_Trajin() {
   mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
           "\t           %s\n", TopologyList::ParmArgs);
-  mprintf("\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
+  mprintf("\t           [ <Format Options> ]\n"
+          "\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
           "\t             [trajnames <rep1>,<rep2>,...,<repN> ] ]\n"
           "  Load trajectory specified by <filename> to the input trajectory list.\n");
   TrajectoryFile::ReadOptions();
@@ -476,7 +483,7 @@ static void Help_Trajout() {
 
 static void Help_Reference() {
   mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
-          "\t           %s\n", TopologyList::ParmArgs);
+          "\t       %s\n", TopologyList::ParmArgs);
   mprintf("  Load trajectory file <name> as a reference frame.\n"
           "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
 }
@@ -955,8 +962,8 @@ static void Help_GenerateAmberRst() {
   mprintf("\t<mask1> <mask2> [<mask3>] [<mask4>]\n"
           "\tr1 <r1> r2 <r2> r3 <r3> r4 <r4> rk2 <rk2> rk3 <rk3>\n"
           "\t{%s}\n"
-          "\t[{%s} [offset <off>] [width <width>]\n"
-          "\t[out <outfile>] [overwrite]\n"
+          "\t[{%s} [offset <off>] [width <width>]]\n"
+          "\t[out <outfile>]\n"
           "  Generate Amber-format restraint from 2 or more mask expressions.\n",
           TopologyList::ParmArgs, DataSetList::RefArgs);
 }
@@ -1873,7 +1880,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "multivector", Action_MultiVector::Alloc, Action_MultiVector::Help, AddAction },
   { ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, AddAction },
   { ACTION, "nativecontacts", Action_NativeContacts::Alloc, Action_NativeContacts::Help, AddAction },
-  { ACTION, "nmrrst", Action_NMRrst::Alloc, Action_NMRrst::Help, AddAction },
+//  { ACTION, "nmrrst", Action_NMRrst::Alloc, Action_NMRrst::Help, AddAction },
   { ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, AddAction },
   { ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, AddAction },
   { ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, AddAction },

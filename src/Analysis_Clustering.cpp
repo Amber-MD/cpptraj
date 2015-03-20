@@ -50,7 +50,7 @@ void Analysis_Clustering::Help() {
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
-  Cluster_DPeaks::Help();
+//  Cluster_DPeaks::Help();
   Cluster_Kmeans::Help();
   Cluster_ReadInfo::Help();
   mprintf("  Distance metric options: {rms | srmsd | dme | data}\n"
@@ -134,7 +134,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   CList_ = 0;
   if (analyzeArgs.hasKey("hieragglo"))   CList_ = new Cluster_HierAgglo(); 
   else if (analyzeArgs.hasKey("dbscan")) CList_ = new Cluster_DBSCAN();
-  else if (analyzeArgs.hasKey("dpeaks")) CList_ = new Cluster_DPeaks();
+//  else if (analyzeArgs.hasKey("dpeaks")) CList_ = new Cluster_DPeaks();
   else if (analyzeArgs.hasKey("kmeans") ||
            analyzeArgs.hasKey("means" )) CList_ = new Cluster_Kmeans();
   else if (analyzeArgs.hasKey("readinfo") ||

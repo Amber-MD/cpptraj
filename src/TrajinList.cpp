@@ -149,7 +149,7 @@ int TrajinList::AddTrajin(std::string const& fname, ArgList const& argIn,
       return 1;
     }
     traj->SetDebug(debug_);
-    if ( traj->SetupTrajRead(fname, args, tempParm) ) {
+    if ( traj->SetupTrajRead(*fn, args, tempParm) ) {
       mprinterr("Error: Could not set up input trajectory '%s'.\n", fname.c_str());
       delete traj;
       err++;
