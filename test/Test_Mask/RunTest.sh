@@ -12,7 +12,7 @@ noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 1
 mask "(:5 <:3.0) & :WAT" maskout mask.out maskpdb mask.pdb
-mask "(:5 <:3.0) & :WAT" maskout mask.out maskmol2 mask.mol2
+mask "(:5 <:3.0) & :WAT" maskmol2 mask.mol2
 EOF
 INPUT="-i mask.in"
 RunCpptraj "Mask command test."

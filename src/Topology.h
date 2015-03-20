@@ -16,14 +16,14 @@ class Topology {
   public:
     Topology();
     // ----- Set internal variables --------------
-    void SetOffset(double oIn)           { if (oIn > 0.0) offset_ = oIn;  }
-    void SetDebug(int dIn)               { debug_ = dIn;                  }
-    void SetIpol(int iIn)                { ipol_ = iIn;                   }
-    void SetPindex(int pIn)              { pindex_ = pIn;                 }
-    void IncreaseFrames(int fIn)         { nframes_ += fIn;               }
-    void SetNframes(int fIn)             { nframes_ = fIn;                }
-    void SetTag(std::string const& t)    { parmTag_ = t;                  }
-    void SetGBradiiSet(std::string const& s)   { radius_set_ = s;         }
+    void SetOffset(double oIn)               { if (oIn > 0.0) offset_ = oIn; }
+    void SetDebug(int dIn)                   { debug_ = dIn;                 }
+    void SetIpol(int iIn)                    { ipol_ = iIn;                  }
+    void SetPindex(int pIn)                  { pindex_ = pIn;                }
+    void IncreaseFrames(int fIn)             { nframes_ += fIn;              }
+    void SetNframes(int fIn)                 { nframes_ = fIn;               }
+    void SetTag(std::string const& t)        { parmTag_ = t;                 }
+    void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
     void SetParmCoordInfo(CoordinateInfo const& c);
     void SetParmName(std::string const&, FileName const&);
     void SetReferenceCoords( Frame const& );
@@ -72,15 +72,19 @@ class Topology {
     AngleArray        const& Angles()       const { return angles_;       }
     AngleArray        const& AnglesH()      const { return anglesh_;      }
     AngleParmArray    const& AngleParm()    const { return angleparm_;    }
+    void AddAngle(int, int, int);
     int SetAngleInfo(AngleArray const&, AngleArray const&, AngleParmArray const&);
     // ----- Dihedral-specific routines ----------
     DihedralArray     const& Dihedrals()    const { return dihedrals_;    }
     DihedralArray     const& DihedralsH()   const { return dihedralsh_;   }
     DihedralParmArray const& DihedralParm() const { return dihedralparm_; }
+    void AddDihedral(int, int, int, int);
     int SetDihedralInfo(DihedralArray const&, DihedralArray const&, DihedralParmArray const&);
     // ----- Non-bond routines -------------------
     NonbondParmType   const& Nonbond()      const { return nonbond_;      }
     int SetNonbondInfo(NonbondParmType const&);
+    double GetVDWradius(int) const;
+    double GetParseRadius(int) const;
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
     // ----- Water Cap Info ----------------------
@@ -105,7 +109,6 @@ class Topology {
     /// Format: <res name>:<res num> 
     std::string TruncResNameNum(int) const;
     int FindAtomInResidue(int, NameType const&) const;
-    int FindResidueMaxNatom() const;
     int SetSolvent(std::string const&);
     // ----- Print topology info -----------------
     void Summary() const;
@@ -126,8 +129,10 @@ class Topology {
     int AddTopAtom(Atom const&, int, NameType const&, const double*);
     void StartNewMol();
     int CommonSetup(bool);
+    void ResetPDBinfo();
     int Setup_NoResInfo();
-    int SetExtraAtomInfo(int, std::vector<AtomExtra> const&);
+    int SetExtraAtomInfo(int, std::vector<AtomExtra> const&,
+                         std::vector<NameType> const&);
     // ----- Mask Routines -----------------------
     bool SetupIntegerMask(AtomMask &) const;
     bool SetupCharMask(AtomMask &) const;

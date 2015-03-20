@@ -4,12 +4,12 @@
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
+  radiiMode_(GB),
   pdbAtom_(0),
   currentSet_(0),
   ter_num_(0),
   pdbWriteMode_(NONE),
   dumpq_(false),
-  dumpr_(false),
   pdbres_(false),
   pdbatom_(false),
   write_cryst1_(false),
@@ -156,7 +156,9 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
 }
 
 void Traj_PDBfile::WriteHelp() {
-  mprintf("\tdumpq:       Write atom charge/radius in occupancy/B-factor columns (PQR format).\n"
+  mprintf("\tdumpq:       Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
+          "\tparse:       Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
+          "\tvdw:         Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
           "\tpdbres:      Use PDB V3 residue names.\n"
           "\tpdbatom:     Use PDB V3 atom names.\n"
           "\tpdbv3:       Use PDB V3 residue/atom names.\n"
@@ -171,8 +173,14 @@ void Traj_PDBfile::WriteHelp() {
 int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   pdbWriteMode_ = SINGLE;
   if (argIn.hasKey("dumpq")) {
-   dumpq_ = true; 
-   dumpr_ = true;
+    dumpq_ = true; 
+    radiiMode_ = GB;
+  } else if (argIn.hasKey("parse")) {
+    dumpq_ = true;
+    radiiMode_ = PARSE;
+  } else if (argIn.hasKey("vdw") || argIn.hasKey("dumpr*")) {
+    dumpq_ = true;
+    radiiMode_ = VDW;
   }
   pdbres_ = argIn.hasKey("pdbres");
   pdbatom_ = argIn.hasKey("pdbatom");
@@ -276,6 +284,17 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
     if (space_group_.empty())
       mprintf("Warning: No PDB space group specified.\n");
   }
+  // Set up radii
+  if (dumpq_) {
+    radii_.clear();
+    for (int iat = 0; iat != trajParm->Natom(); iat++) {
+      switch (radiiMode_) {
+        case GB:    radii_.push_back( (*trajParm)[iat].GBRadius() ); break;
+        case PARSE: radii_.push_back( trajParm->GetParseRadius(iat) ); break;
+        case VDW:   radii_.push_back( trajParm->GetVDWradius(iat) ); break;
+      }
+    }
+  }
   return 0;
 }
 
@@ -302,6 +321,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
 
   float Occ = 1.0; 
   float B = 0.0;
+  char altLoc = ' ';
   int anum = 1; // Actual PDB atom number
   int aidx = 0; // Atom index in topology
   Topology::mol_iterator mol = pdbTop_->MolStart();
@@ -311,22 +331,17 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   else
     lastAtomInMol = -1;
   const double *Xptr = frameOut.xAddress();
-  for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom, ++aidx) {
+  for (Topology::atom_iterator atom = pdbTop_->begin(); atom != pdbTop_->end(); ++atom) {
     int res = atom->ResNum();
-    // If this atom belongs to a new molecule print a TER card
-    // Use res instead of res+1 since this TER belongs to last mol/res
-    if (aidx == lastAtomInMol) {
-      file_.WriteTER( anum, resNames_[res-1], chainID_[aidx-1], pdbTop_->Res(res-1).OriginalResNum() );
-      anum += ter_num_;
-      ++mol;
-      lastAtomInMol = mol->EndAtom();
-    }
     if (!pdbTop_->Extra().empty()) {
       Occ = pdbTop_->Extra()[aidx].Occupancy();
       B   = pdbTop_->Extra()[aidx].Bfactor();
+      altLoc = pdbTop_->Extra()[aidx].AtomAltLoc();
     }
-    if (dumpq_) Occ = (float) atom->Charge();
-    if (dumpr_) B = (float) atom->GBRadius();
+    if (dumpq_) {
+      Occ = (float) atom->Charge();
+      B = (float) radii_[aidx];
+    }
     // If pdbatom change amber atom names to pdb v3
     NameType atomName = atom->Name();
     if (pdbatom_) {
@@ -340,11 +355,24 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       else if (atomName == "H3T ") atomName = "HO3'";
       else if (atomName == "HO'2") atomName = "HO2'";
     }
-    file_.WriteCoord(PDBfile::ATOM, anum++, atomName, resNames_[res],
-                     chainID_[aidx], pdbTop_->Res(res).OriginalResNum(), 
+    file_.WriteCoord(PDBfile::ATOM, anum++, atomName, altLoc, resNames_[res],
+                     chainID_[aidx], pdbTop_->Res(res).OriginalResNum(),
+                     pdbTop_->Res(res).Icode(), 
                      Xptr[0], Xptr[1], Xptr[2], Occ, B, 
                      atom->ElementName(), 0, dumpq_);
     Xptr += 3;
+    ++aidx;
+    // For backwards compat., exit if last atom without TER FIXME write TER?
+    if (aidx == pdbTop_->Natom()) break;
+    // If this atom belongs to a new molecule print a TER card
+    if (aidx == lastAtomInMol) {
+      file_.WriteRecordHeader(PDBfile::TER, anum, "", ' ', resNames_[res], chainID_[aidx-1], 
+                              pdbTop_->Res(res).OriginalResNum(),
+                              pdbTop_->Res(res).Icode());
+      anum += ter_num_;
+      ++mol;
+      lastAtomInMol = mol->EndAtom();
+    }
   }
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame, close output file
@@ -366,12 +394,15 @@ void Traj_PDBfile::Info() {
       mprintf(" (1 file per frame)");
     else if (pdbWriteMode_==MODEL)
       mprintf(" (1 MODEL per frame)");
-    if (dumpq_ && !dumpr_) 
-      mprintf(", writing charges to occupancy column");
-    else if (dumpr_ && !dumpq_) 
-      mprintf(", writing GB radii to B-factor column");
-    else if (dumpr_ && dumpq_)
-      mprintf(", writing charges/GB radii to occupancy/B-factor columns");
+    if (dumpq_) {
+      mprintf(", writing charges to occupancy column and ");
+      switch (radiiMode_) {
+        case GB: mprintf("GB radii"); break;
+        case PARSE: mprintf("PARSE radii"); break;
+        case VDW: mprintf("vdW radii"); break;
+      }
+      mprintf(" to B-factor column");
+    }
     if (pdbres_ && pdbatom_)
       mprintf(", using PDB V3 res/atom names");
     else if (pdbres_)

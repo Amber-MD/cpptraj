@@ -7,28 +7,31 @@
 
 // CONSTRUCTOR
 Action_Vector::Action_Vector() :
-  ensembleNum_(-1),
   Vec_(0),
   Magnitude_(0),
   vcorr_(0),
   ptrajoutput_(false),
   needBoxInfo_(false),
-  CurrentParm_(0)
+  CurrentParm_(0),
+  outfile_(0)
 {}
 
 void Action_Vector::Help() {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
           "\t[magnitude] [ired]\n"
-          "\t<Type> = { mask | principal [x|y|z] | dipole | box | center | corrplane |\n"
-          "             ucellx | ucelly | ucellz }\n"
+          "\t<Type> = { mask | minimage  | dipole | center | corrplane | \n"
+          "\t           box  | boxcenter | ucellx | ucelly | ucellz\n"
+          "\t           principal [x|y|z] }\n" 
           "  Calculate the specified coordinate vector.\n"
           "    mask: (Default) Vector from <mask1> to <mask2>.\n"
-          "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n"
+          "    minimage: Store the minimum image vector between atoms in <mask1> and <mask2>.\n"
           "    dipole: Dipole and center of mass of the atoms specified in <mask1>\n"
-          "    box: (No mask needed) Store the box lengths of the trajectory.\n"
           "    center: Store the center of mass of atoms in <mask1>.\n"
           "    corrplane: Vector perpendicular to plane through the atoms in <mask1>.\n"
-          "    ucell{x|y|z}: (No mask needed) Store specified unit cell vector.\n");
+          "    box: (No mask needed) Store the box lengths of the trajectory.\n"
+          "    boxcenter: (No mask needed) Store box center as vector.\n"
+          "    ucell{x|y|z}: (No mask needed) Store specified unit cell vector.\n"
+          "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n");
 }
 
 // DESTRUCTOR
@@ -60,16 +63,19 @@ static inline Action::RetType DeprecatedErr(const char* key) {
 // Action_Vector::Init()
 Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   // filename is saved in case ptraj-compatible output is desired
-  filename_ = actionArgs.GetStringKey("out");
+  std::string filename = actionArgs.GetStringKey("out");
   if (actionArgs.hasKey("trajout")) return DeprecatedErr( "trajout" );
   if (actionArgs.hasKey("trajfmt")) return DeprecatedErr( "trajfmt" );
   if (actionArgs.hasKey("parmout")) return DeprecatedErr( "parmout" );
   ptrajoutput_ = actionArgs.hasKey("ptrajoutput");
-  if (ptrajoutput_ && filename_.empty()) {
-    mprinterr("Error: 'ptrajoutput' specified but no 'out <filename>' arg given.\n");
-    return Action::ERR;
+  if (ptrajoutput_) {
+    if (filename.empty()) {
+      mprinterr("Error: 'ptrajoutput' specified but no 'out <filename>' arg given.\n");
+      return Action::ERR;
+    }
+    outfile_ = DFL->AddCpptrajFile(filename, "Vector (PTRAJ)");
+    if (outfile_ == 0) return Action::ERR;
   }
   bool calc_magnitude = actionArgs.hasKey("magnitude");
   if (calc_magnitude && ptrajoutput_) {
@@ -134,12 +140,12 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Data
     Vec_->SetIred( );
   // Add set to output file if not doing ptraj-compatible output
   if (!ptrajoutput_)
-    DFL->AddSetToFile(filename_, Vec_);
+    DFL->AddSetToFile(filename, Vec_);
   // Set up magnitude data set.
   if (calc_magnitude) {
     Magnitude_ = DSL->AddSetAspect(DataSet::FLOAT, Vec_->Name(), "Mag");
     if (Magnitude_ == 0) return Action::ERR;
-    DFL->AddSetToFile(filename_, Magnitude_);
+    DFL->AddSetToFile(filename, Magnitude_);
   }
   
   mprintf("    VECTOR: Type %s", ModeString[ mode_ ]);
@@ -151,12 +157,12 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Data
      mprintf(", mask [%s]", mask_.MaskString());
   if (mask2_.MaskStringSet())
     mprintf(", second mask [%s]", mask2_.MaskString());
-  if (!filename_.empty()) {
+  if (!filename.empty()) {
     if (ptrajoutput_)
       mprintf(", ptraj-compatible output to");
     else
       mprintf(", output to");
-    mprintf(" %s", filename_.c_str());
+    mprintf(" %s", filename.c_str());
   }
   mprintf("\n");
 
@@ -413,20 +419,17 @@ Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame
 // Action_Vector::Print()
 void Action_Vector::Print() {
   if (ptrajoutput_) {
-    CpptrajFile outfile;
-    if (outfile.OpenEnsembleWrite(filename_, ensembleNum_)) return;
-    mprintf("    VECTOR: writing ptraj-style vector information for %s\n", Vec_->Legend().c_str());
-    outfile.Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n"
+    mprintf("    VECTOR: writing ptraj-style vector information for %s\n", Vec_->legend());
+    outfile_->Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n"
                    "# FORMAT where v? is vector, c? is center of mass...\n");
     int totalFrames = Vec_->Size();
     for (int i=0; i < totalFrames; ++i) {
       Vec3 const& vxyz = (*Vec_)[i];
       Vec3 const& cxyz = Vec_->OXYZ(i);
       Vec3 txyz  = cxyz + vxyz;
-      outfile.Printf("%i %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n",
+      outfile_->Printf("%i %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n",
               i+1, vxyz[0], vxyz[1], vxyz[2], cxyz[0], cxyz[1], cxyz[2],
               txyz[0], txyz[1], txyz[2]);
     }
-    outfile.CloseFile();
   }
 }

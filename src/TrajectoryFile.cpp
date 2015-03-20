@@ -5,6 +5,7 @@
 #ifdef BINTRAJ
   #include "Traj_AmberNetcdf.h"
   #include "Traj_AmberRestartNC.h"
+  #include "Traj_NcEnsemble.h"
 #endif
 #include "Traj_PDBfile.h"
 #include "Traj_AmberRestart.h"
@@ -17,6 +18,7 @@
 #include "Traj_CIF.h"
 #include "Traj_SDF.h"
 #include "Traj_Tinker.h"
+#include "Traj_CharmmCor.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -28,6 +30,11 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "Amber NetCDF",       0, 0, 0                          },
   { "Amber NC Restart",   0, 0, 0                          },
 # endif
+# if defined (ENABLE_SINGLE_ENSEMBLE) && defined (BINTRAJ)
+  { "Amber NC Ensemble",  Traj_NcEnsemble::ReadHelp, Traj_NcEnsemble::WriteHelp, Traj_NcEnsemble::Alloc },
+# else
+  { "Amber NC Ensemble",  0, 0, 0                          },
+# endif
   { "PDB",                0, Traj_PDBfile::WriteHelp, Traj_PDBfile::Alloc        },
   { "Mol2",               0, Traj_Mol2File::WriteHelp, Traj_Mol2File::Alloc       },
   { "CIF",                0, 0, Traj_CIF::Alloc            },
@@ -36,6 +43,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
   { "Amber Restart",      Traj_AmberRestart::ReadHelp, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },
   { "Tinker file",        0, 0, Traj_Tinker::Alloc         },
+  { "Charmm COR",         0, 0, Traj_CharmmCor::Alloc      },
   { "Amber Trajectory",   0, Traj_AmberCoord::WriteHelp, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, Traj_SQM::WriteHelp, Traj_SQM::Alloc            },
   { "SDF",                0, 0, Traj_SDF::Alloc            },
@@ -48,6 +56,9 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { AMBERNETCDF,    "cdf",       ".nc"      },
   { AMBERRESTARTNC, "ncrestart", ".ncrst"   },
   { AMBERRESTARTNC, "restartnc", ".ncrst"   },
+# ifdef ENABLE_SINGLE_ENSEMBLE
+  { AMBERNCENSEMBLE,"ncensemble",".ncens"   },
+# endif
   { PDBFILE,        "pdb",       ".pdb"     },
   { MOL2FILE,       "mol2",      ".mol2"    },
   { CIF,            "cif",       ".cif"     },

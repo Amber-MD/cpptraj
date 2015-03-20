@@ -51,5 +51,6 @@ class Action_Rmsd: public Action {
     Matrix_3x3 rot_;   ///< Hold best-fit rotation matrix.
     Frame tgtFrame_;   ///< Hold selected target atoms.
     DataSet* rmsd_;
+    DataSet* rmatrices_;
 };
 #endif

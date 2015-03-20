@@ -128,9 +128,11 @@ Analysis_CurveFit::Analysis_CurveFit() :
 
 // Analysis_CurveFit::Help()
 void Analysis_CurveFit::Help() {
-  mprintf("\t<dset> {<equation> | nexp <m> [form {mexp|mexpk|mexpk_penalty}}\n"
-          "\t[out <outfile>] [resultsout <results>] [maxit <max iterations>]\n"
-          "\t[tol <tolerance>] [outxbins <NX> outxmin <xmin> outxmax <xmax>]\n"
+  mprintf("\t<dset> { <equation> |\n"
+          "\t         name <dsname> nexp <m> [form {mexp|mexpk|mexpk_penalty} }\n"
+          "\t[AX=<value> ...] [out <outfile>] [resultsout <results>]\n"
+          "\t[maxit <max iterations>] [tol <tolerance>]\n"
+          "\t[outxbins <NX> outxmin <xmin> outxmax <xmax>]\n"
           "  Fit data set <dset> to <equation>. The equation must have form:\n"
           "    <var> = <expression>\n"
           "  where <var> is the output data set name and <expression> can contain\n"
@@ -277,7 +279,7 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
   if (outfile != 0) outfile->AddSet( finalY_ );
 
   mprintf("    CURVEFIT: Fitting set '%s' to equation '%s'\n",
-          dset_->Legend().c_str(), equation_.c_str());
+          dset_->legend(), equation_.c_str());
   if (nexp_ > 0) {
     mprintf("\tMulti-exponential form with %i exponentials.\n", nexp_);
     if (eqForm_ == MEXP_K_PENALTY)
@@ -285,7 +287,7 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
               " exponent parameters < 0.0\n");
   } else if (eqForm_ == GAUSS)
     mprintf("\tGaussian form.\n");
-  mprintf("\tFinal Y values will be saved in set '%s'\n", finalY_->Legend().c_str());
+  mprintf("\tFinal Y values will be saved in set '%s'\n", finalY_->legend());
   if (outXbins_ > 0)
     mprintf("\tFinal X range: %g to %g, %i points.\n", outXmin_, outXmax_, outXbins_);
   mprintf("\tTolerance= %g, maximum iterations= %i\n", tolerance_, maxIt_);
@@ -304,7 +306,7 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
 // Analysis_CurveFit::Analyze()
 Analysis::RetType Analysis_CurveFit::Analyze() {
   if (dset_->Size() < 1) {
-    mprinterr("Error: Set %s is empty.\n", dset_->Legend().c_str());
+    mprinterr("Error: Set %s is empty.\n", dset_->legend());
     return Analysis::ERR;
   }
   DataSet_1D& Set = static_cast<DataSet_1D&>( *dset_ );
@@ -377,7 +379,7 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
   if (!resultsName_.empty())
     HASH_TAB = "#";
   Results.Printf("%sFit equation '%s' to set '%s'\n", HASH_TAB, 
-                 equation_.c_str(), dset_->Legend().c_str());
+                 equation_.c_str(), dset_->legend());
   for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
     Results.Printf("%sFinal Param A%u = %g\n", HASH_TAB, ip - Params_.begin(), *ip);
 

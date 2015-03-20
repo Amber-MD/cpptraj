@@ -145,13 +145,13 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
     if (klOutfile != 0) klOutfile->AddSet( kldiv_ );
   }
 
-  mprintf("    KDE: Using gaussian KDE to histogram set \"%s\"\n", data_->Legend().c_str());
+  mprintf("    KDE: Using gaussian KDE to histogram set \"%s\"\n", data_->legend());
   if (amddata_!=0)
     mprintf("\tPopulating bins using AMD boost from data set %s\n",
-            amddata_->Legend().c_str());
+            amddata_->legend());
   if (q_data_ != 0) {
     mprintf("\tCalculating Kullback-Leibler divergence with set \"%s\"\n", 
-            q_data_->Legend().c_str());
+            q_data_->legend());
   }
   if (bandwidth_ < 0.0)
     mprintf("\tBandwidth will be estimated.\n");
@@ -285,7 +285,7 @@ Analysis::RetType Analysis_KDE::Analyze() {
     DataSet_1D const& Qdata = static_cast<DataSet_1D const&>( *q_data_ );
     if (inSize != (int)Qdata.Size()) {
       mprintf("Warning: Size of %s (%zu) != size of %s (%zu)\n",
-                Pdata.Legend().c_str(), Pdata.Size(), Qdata.Legend().c_str(), Qdata.Size());
+                Pdata.legend(), Pdata.Size(), Qdata.legend(), Qdata.Size());
       inSize = std::min( inSize, (int)Qdata.Size() );
       mprintf("Warning:  Only using %i data points.\n", inSize);
     }

@@ -94,10 +94,9 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
   // Process additional netcdf traj args
   //reservoir_.processWriteArgs( actionArgs );
 
-  mprintf("    CREATERESERVOIR: %s, energy data %s", filename_.c_str(),
-          ene_->Legend().c_str());
+  mprintf("    CREATERESERVOIR: %s, energy data %s", filename_.c_str(), ene_->legend());
   if (bin_ != 0)
-    mprintf(", bin data %s", bin_->Legend().c_str());
+    mprintf(", bin data %s", bin_->legend());
   mprintf("\n\tReservoir temperature= %.2f, random seed= %i\n", reservoirT_, iseed_);
   if (useVelocity_)
     mprintf("\tVelocities will be written to reservoir.\n");

@@ -1,7 +1,7 @@
 // Action_Average
 #include "Action_Average.h"
 #include "CpptrajStdio.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "DataSet_Coords_REF.h"
 
 // CONSTRUCTOR
@@ -15,8 +15,10 @@ Action_Average::Action_Average() :
 { } 
 
 void Action_Average::Help() {
-  mprintf("\t<filename> [<mask>] %s\n\t[TRAJOUT ARGS]\n"
-          "  Calculate the average structure of atoms in <mask> over specified input frames.\n",
+  mprintf("\t{crdset <set name> | <filename>} [<mask>]\n\t%s\n\t[TRAJOUT ARGS]\n"
+          "  Calculate the average structure of atoms in <mask> over specified input frames.\n"
+          "  If 'crdset' is specified a reference COORDS data set will be created with name\n"
+          "  <set name>, otherwise the averaged coords will be written to <filename>.\n",
           ActionFrameCounter::HelpText);
 }
 
@@ -146,7 +148,8 @@ void Action_Average::Print() {
 
   mprintf("    AVERAGE:");
   if (crdset_ == 0) {
-    Trajout outfile;
+    Trajout_Single outfile;
+    AvgParm_.SetNframes( 1 ); // FIXME: Should be passed to trajout
     mprintf(" [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
     if (outfile.InitEnsembleTrajWrite(avgfilename_, trajArgs_, &AvgParm_, 
                                       TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 

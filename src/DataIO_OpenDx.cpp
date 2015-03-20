@@ -180,7 +180,7 @@ int DataIO_OpenDx::WriteData3D(std::string const& fname, DataSetList const& setL
 int DataIO_OpenDx::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
   if (setIn.Ndim() != 3) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
-              setIn.Legend().c_str(), outfile.Filename().full(), setIn.Ndim());
+              setIn.legend(), outfile.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );

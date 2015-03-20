@@ -54,7 +54,7 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, Data
   }
   mprintf("\n");
   if ( !REF.empty())
-    mprintf("\tReference is %s", REF.FrameName().base());
+    mprintf("\tReference is %s", REF.refName());
   else
     mprintf("\tReference is first frame.");
   mprintf("\n");

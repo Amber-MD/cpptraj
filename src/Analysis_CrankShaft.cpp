@@ -69,7 +69,7 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
   }
   if (scalar1_->Type() != scalar2_->Type()) {
     mprinterr("Error: '%s' type does not match '%s' type.\n",
-              scalar1_->Legend().c_str(), scalar2_->Legend().c_str());
+              scalar1_->legend(), scalar2_->legend());
     return Analysis::ERR;
   }
   // Warn if type does not match data set type
@@ -118,9 +118,9 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
   size_t Nelements = scalar1_->Size();
   if (Nelements != scalar2_->Size()) {
     mprinterr("Error: crankshaft: # elements in dataset %s (%u) not equal to\n",
-              scalar1_->Legend().c_str(), Nelements);
+              scalar1_->legend(), Nelements);
     mprinterr("                   # elements in dataset %s (%u)\n",
-              scalar2_->Legend().c_str(), scalar2_->Size());
+              scalar2_->legend(), scalar2_->Size());
     return Analysis::ERR;
   }
   if (stop_ == -1)
@@ -248,22 +248,22 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
             // SMALL transition
             if (type_==DISTANCE) {
               mprintf("SMALL TRANSITION frame %6i (%s,%s): substate (%s) to (%s)\n",
-                      frame, scalar1_->Legend().c_str(), scalar2_->Legend().c_str(),
+                      frame, scalar1_->legend(), scalar2_->legend(),
                       distance_ss_2D[previous_i1][previous_i2], distance_ss_2D[i1][i2]);
             } else {
               mprintf("SMALL TRANSITION frame %6i (%s,%s): substate (%s) to (%s)\n",
-                      frame, scalar1_->Legend().c_str(), scalar2_->Legend().c_str(),
+                      frame, scalar1_->legend(), scalar2_->legend(),
                       torsion_ss_2D[previous_i1][previous_i2], torsion_ss_2D[i1][i2]);
             }
           } else {
             // LARGE transition
             if (type_==DISTANCE) {
               mprintf("LARGE TRANSITION frame %6i (%s,%s): substate (%s) to (%s)\n",
-                      frame, scalar1_->Legend().c_str(), scalar2_->Legend().c_str(),
+                      frame, scalar1_->legend(), scalar2_->legend(),
                       distance_ss_2D[previous_i1][previous_i2], distance_ss_2D[i1][i2]);
             } else {
               mprintf("LARGE TRANSITION frame %6i (%s,%s): substate (%s) to (%s)\n",
-                      frame, scalar1_->Legend().c_str(), scalar2_->Legend().c_str(),
+                      frame, scalar1_->legend(), scalar2_->legend(),
                       torsion_ss_2D[previous_i1][previous_i2], torsion_ss_2D[i1][i2]);
             }
           }

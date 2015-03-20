@@ -65,7 +65,7 @@ DoTest PhiPsi.dat.save PhiPsi.dat
 DoTest test.crd.save test.crd
 DoTest a1.dat.save a1.dat
 DoTest test.rst7.213.save Restart/test.rst7.213
-DoTest test.nc.save test.nc
+NcTest test.nc.save test.nc
 DoTest r4.dat.save r4.dat
 DoTest a2.dat.gz.save a2.dat.gz
 DoTest a3.dat.bz2.save a3.dat.bz2

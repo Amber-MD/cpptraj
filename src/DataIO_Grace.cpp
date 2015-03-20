@@ -132,7 +132,7 @@ int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& SetList)
     size_t maxFrames = (*set)->Size();
     // Set information
     file.Printf("@  s%u legend \"%s\"\n@target G0.S%u\n@type xy\n",
-                   setnum, (*set)->Legend().c_str(), setnum );
+                   setnum, (*set)->legend(), setnum );
     // Setup set X coord format.
     std::string x_col_format = SetupCoordFormat( maxFrames, (*set)->Dim(0), 8, 3 );
     // Write Data for set
@@ -176,7 +176,7 @@ int DataIO_Grace::WriteDataInverted(CpptrajFile& file, DataSetList const& SetLis
     for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set, ++setnum) {
       file.Printf(x_col_format.c_str(), Xdim.Coord( setnum ));
       (*set)->WriteBuffer(file, frame);
-      file.Printf(" \"%s\"\n", (*set)->Legend().c_str());
+      file.Printf(" \"%s\"\n", (*set)->legend());
     }
   }
   return 0;

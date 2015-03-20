@@ -1,6 +1,5 @@
 #ifndef INC_DATASET_REMLOG_H
 #define INC_DATASET_REMLOG_H
-#include <map>
 #include <vector>
 #include "DataSet.h"
 /** Store data from Amber REMD log. For each exchange, the replica index and
@@ -10,8 +9,6 @@ class DataSet_RemLog : public DataSet {
   public:
     DataSet_RemLog();
     static DataSet* Alloc() { return (DataSet*)new DataSet_RemLog();}
-    /// T-REMD temperature map.
-    typedef std::map<double,int> TmapType;
     /// Hold info for a single replica at one exchange.
     class ReplicaFrame;
     /// Allocate for given # of replicas

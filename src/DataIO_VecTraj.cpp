@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Vector.h"
 #include "ParmFile.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 
 // CONSTRUCTOR
 DataIO_VecTraj::DataIO_VecTraj() : trajoutFmt_(TrajectoryFile::UNKNOWN_TRAJ) {
@@ -37,8 +37,8 @@ int DataIO_VecTraj::WriteData(std::string const& fname, DataSetList const& SetLi
       return 1;
     }
   }
-  Trajout out;
-  if (out.InitTrajWrite(fname, &pseudo, trajoutFmt_) == 0) {
+  Trajout_Single out;
+  if (out.InitTrajWrite(fname, ArgList(), &pseudo, trajoutFmt_) == 0) {
     Frame outFrame(2);
     for (unsigned int i = 0; i != Vec.Size(); ++i) {
       outFrame.ClearAtoms();

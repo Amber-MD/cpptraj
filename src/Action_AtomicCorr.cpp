@@ -31,14 +31,14 @@ const char* Action_AtomicCorr::ModeString[] = {"atom", "residue"};
 Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
-  std::string outname = actionArgs.GetStringKey("out");
-  if (outname.empty()) {
-    mprinterr("Error: atomiccorr: No output filename specified [out <filename>]\n");
+  outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  if (outfile_ == 0) {
+    mprinterr("Error: Output file is required [out <filename>]\n");
     return Action::ERR;
   }
   cut_ = actionArgs.getKeyDouble("cut", 0.0);
   if (cut_ < 0.0 || cut_ > 1.0) {
-    mprinterr("Error: atomiccorr: cut value must be between 0 and 1.\n");
+    mprinterr("Error: cut value must be between 0 and 1.\n");
     return Action::ERR;
   }
   min_ = actionArgs.getKeyInt("min",0);
@@ -51,19 +51,16 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, TopologyList* PFL, 
   // Set up DataSet
   dset_ = DSL->AddSet( DataSet::MATRIX_FLT, actionArgs.GetStringNext(), "ACorr" );
   if (dset_ == 0) {
-    mprinterr("Error: atomiccorr: Could not allocate output dataset.\n");
+    mprinterr("Error: Could not allocate output data set.\n");
     return Action::ERR;
   }
   // Add DataSet to output file
-  outfile_ = DFL->AddSetToFile( outname, dset_ );
-  if (outfile_ == 0) {
-    mprinterr("Error: Unable to add set to DataFile %s\n", outname.c_str());
-    return Action::ERR;
-  }
+  outfile_->AddSet( dset_ );
 
   mprintf("    ATOMICCORR: Correlation of %s motions will be calculated for\n",
           ModeString[acorr_mode_]);
-  mprintf("\tatoms in mask [%s], output to file %s\n", mask_.MaskString(), outname.c_str());
+  mprintf("\tatoms in mask [%s], output to file %s\n", mask_.MaskString(), 
+          outfile_->DataFilename().full());
   if (cut_ != 0)
     mprintf("\tOnly correlations greater than %.2f or less than -%.2f will be printed.\n",
             cut_,cut_);
@@ -82,7 +79,7 @@ Action::RetType Action_AtomicCorr::Setup(Topology* currentParm, Topology** parmA
     // Setup output array; labels and index
     atom_vectors_.clear();
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
-      atom_vectors_.push_back( AtomVector(integerToString( *atom ), *atom) );
+      atom_vectors_.push_back( AtomVector(integerToString( *atom + 1 ), *atom) );
   } else {
     std::map<int,AtomMask> rmaskmap;
     // Find which residues selected atoms belong to.
@@ -97,20 +94,20 @@ Action::RetType Action_AtomicCorr::Setup(Topology* currentParm, Topology** parmA
         rmaskmap.insert( std::pair<int,AtomMask>( current_res, newmask ) );
       } else {
         // Residue is already in map. Add this atom.
-        (*rmask).second.AddAtom( *atom );
+        rmask->second.AddAtom( *atom );
       }
     }
     // Place selected residues in mask vector and setup output array; labels and index.
     resmasks_.clear();
     atom_vectors_.clear();
-    for (std::map<int,AtomMask>::iterator rmask = rmaskmap.begin();
-                                          rmask != rmaskmap.end(); ++rmask)
+    for (std::map<int,AtomMask>::const_iterator rmask = rmaskmap.begin();
+                                                rmask != rmaskmap.end(); ++rmask)
     {
       if (debug_ > 0)
-        mprintf("DBG:\tRes mask for %i has %i atoms\n",(*rmask).first,(*rmask).second.Nselected());
-      resmasks_.push_back( (*rmask).second );
-      atom_vectors_.push_back( AtomVector( currentParm->TruncResNameNum( (*rmask).first ),
-                                           (*rmask).first ) );
+        mprintf("DBG:\tRes mask for %i has %i atoms\n", rmask->first, rmask->second.Nselected());
+      resmasks_.push_back( rmask->second );
+      atom_vectors_.push_back( AtomVector( currentParm->TruncResNameNum( rmask->first ),
+                                           rmask->first ) );
     }
     mprintf("\tSelected %zu residues.\n", resmasks_.size());
   }
@@ -128,20 +125,20 @@ Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, F
       {
         const double* tgtxyz = currentFrame->XYZ( *atom );
         const double* refxyz = refframe_.XYZ( *atom );
-        (*atom_vector).push_back( (float)(tgtxyz[0] - refxyz[0]) );
-        (*atom_vector).push_back( (float)(tgtxyz[1] - refxyz[1]) );
-        (*atom_vector).push_back( (float)(tgtxyz[2] - refxyz[2]) );
+        atom_vector->push_back( (float)(tgtxyz[0] - refxyz[0]) );
+        atom_vector->push_back( (float)(tgtxyz[1] - refxyz[1]) );
+        atom_vector->push_back( (float)(tgtxyz[2] - refxyz[2]) );
         ++atom_vector;
       }
     } else {
-      for (std::vector<AtomMask>::iterator rmask = resmasks_.begin();
-                                           rmask != resmasks_.end(); ++rmask)
+      for (std::vector<AtomMask>::const_iterator rmask = resmasks_.begin();
+                                                 rmask != resmasks_.end(); ++rmask)
       {
         Vec3 CXYZ = currentFrame->VGeometricCenter( *rmask );
         Vec3 RXYZ = refframe_.VGeometricCenter( *rmask );
-        (*atom_vector).push_back( (float)(CXYZ[0] - RXYZ[0]) );
-        (*atom_vector).push_back( (float)(CXYZ[1] - RXYZ[1]) );
-        (*atom_vector).push_back( (float)(CXYZ[2] - RXYZ[2]) );
+        atom_vector->push_back( (float)(CXYZ[0] - RXYZ[0]) );
+        atom_vector->push_back( (float)(CXYZ[1] - RXYZ[1]) );
+        atom_vector->push_back( (float)(CXYZ[2] - RXYZ[2]) );
         ++atom_vector;
       } 
     }
@@ -157,7 +154,7 @@ void Action_AtomicCorr::Print() {
   mprintf("    ATOMICCORR: Calculating correlations between %s vectors:\n",
           ModeString[acorr_mode_]);
   if (atom_vectors_.empty()) {
-    mprinterr("Error: atomiccorr: No vectors calcd.\n");
+    mprinterr("Error: No vectors calculated.\n");
     return;
   }
   DataSet_MatrixFlt* tmatrix = static_cast<DataSet_MatrixFlt*>( dset_ );
@@ -167,24 +164,24 @@ void Action_AtomicCorr::Print() {
   ACvector::iterator av_end1 = av_end - 1;
   ProgressBar progress( tmatrix->Size() );
   int iprogress = 0;
-  for (ACvector::iterator vec1 = atom_vectors_.begin(); vec1 != av_end1; ++vec1)
+  for (ACvector::const_iterator vec1 = atom_vectors_.begin(); vec1 != av_end1; ++vec1)
   {
-    for (ACvector::iterator vec2 = vec1 + 1; vec2 != av_end; ++vec2)
+    for (ACvector::const_iterator vec2 = vec1 + 1; vec2 != av_end; ++vec2)
     {
       double corr_coeff = 0.0;
       progress.Update( iprogress++ );
       // If vectors are too close, skip. vec2 always > vec1
       if ( (*vec2) - (*vec1) > min_ ) {
         // Make sure same # of frames in each and not empty
-        if ( (*vec1).empty() || (*vec2).empty() ) {
-          mprintf("Warning: autocorr: A vector is empty: Vec%zu=%zu, Vec%zu=%zu\n",
-                  vec1 - atom_vectors_.begin(), (*vec1).size(),
-                  vec2 - atom_vectors_.begin(), (*vec2).size());
-        } else if ( (*vec1).size() != (*vec2).size() ) {
-          mprintf("Warning: atomiccorr: Vec %zu and Vec %zu do not have same # of frames.\n",
+        if ( vec1->empty() || vec2->empty() ) {
+          mprintf("Warning: A vector is empty: Vec%zu=%zu, Vec%zu=%zu\n",
+                  vec1 - atom_vectors_.begin(), vec1->size(),
+                  vec2 - atom_vectors_.begin(), vec2->size());
+        } else if ( vec1->size() != vec2->size() ) {
+          mprintf("Warning: Vec %zu and Vec %zu do not have same # of frames.\n",
                   vec1 - atom_vectors_.begin(), vec2 - atom_vectors_.begin());
         } else {
-          vec1size = (int)((*vec1).size() / 3);
+          vec1size = (int)(vec1->size() / 3);
 #ifdef _OPENMP
 #pragma omp parallel private(idx, idx3, V1, V2) reduction(+: corr_coeff)
 {
@@ -192,16 +189,11 @@ void Action_AtomicCorr::Print() {
 #endif
           for (idx = 0; idx < vec1size; ++idx) {
             idx3 = idx * 3;
-            V1 = (*vec1).VXYZ(idx3);
-            V2 = (*vec2).VXYZ(idx3);
+            V1 = vec1->VXYZ(idx3);
+            V2 = vec2->VXYZ(idx3);
             V1.Normalize();
             V2.Normalize();
             corr_coeff += (V1 * V2);
-            /*(*vec1).XYZ(V1, idx3);
-            (*vec2).XYZ(V2, idx3);
-            normalize( V1 );
-            normalize( V2 );
-            corr_coeff += dot_product( V1, V2 );*/
           }
 #ifdef _OPENMP
 } // END pragma omp parallel
@@ -215,13 +207,16 @@ void Action_AtomicCorr::Print() {
     } // END inner loop
   } // END outer loop
 
-  if (acorr_mode_ == ATOM)
+  if (acorr_mode_ == ATOM) {
     dset_->Dim(Dimension::X).SetLabel("Atom");
-  else
+    dset_->Dim(Dimension::Y).SetLabel("Atom");
+  } else {
     dset_->Dim(Dimension::X).SetLabel("Residue");
-  std::string ylabels = "ylabels ";
-  for (ACvector::iterator atom = atom_vectors_.begin();
-                          atom != atom_vectors_.end(); ++atom)
-    ylabels += ( (*atom).Label() + "," );
-  outfile_->ProcessArgs( ylabels );
+    dset_->Dim(Dimension::Y).SetLabel("Residue");
+  }
+  std::string labels;
+  for (ACvector::const_iterator atom = atom_vectors_.begin();
+                                atom != atom_vectors_.end(); ++atom)
+    labels += ( atom->Label() + "," );
+  outfile_->ProcessArgs( "xlabels " + labels + " ylabels " + labels );
 }

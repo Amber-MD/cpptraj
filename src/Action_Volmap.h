@@ -13,10 +13,7 @@ class Action_Volmap : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
     static void RawHelp();
-    /// gets the LJ radius for a given atom from a topology
-    double GetRadius_(Topology const&, int);
 
-    int ensembleNum_;
     /// grid resolutions
     double dx_, dy_, dz_;
     /// minimum values in the x-, y-, and z-dimensions
@@ -32,7 +29,7 @@ class Action_Volmap : public Action {
     /// the grid we are using
     DataSet_GridFlt* grid_;
     /// file name with the peak locations as Carbons in XYZ file format
-    std::string peakfilename_;
+    CpptrajFile* peakfile_;
     /// The value below which to ignore all peaks
     double peakcut_;
     /// the atomic radii of each atom in the gridded selection

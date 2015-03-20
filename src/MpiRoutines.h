@@ -51,6 +51,7 @@ int parallel_debug_end();
 #endif
 int parallel_init(int, char **);
 int parallel_end();
+void parallel_abort(int);
 void parallel_barrier();
 // ----- File Routines ---------------------------
 int parallel_openFile_read(parallelType, const char*);
@@ -70,6 +71,7 @@ int parallel_allreduce(void*, void*, int, parallelDataType, parallelOpType);
 int parallel_allgather(void*, int, parallelDataType, void*, int, parallelDataType);
 int parallel_send(void*, int, parallelDataType, int, int);
 int parallel_recv(void*, int, parallelDataType, int, int);
+int parallel_bcastMaster(void*, int, parallelDataType);
 #ifdef __cplusplus
 }
 #endif

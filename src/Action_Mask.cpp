@@ -1,10 +1,11 @@
 // Action_Mask
 #include "Action_Mask.h"
 #include "CpptrajStdio.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 
 // CONSTRUCTOR
 Action_Mask::Action_Mask() :
+  ensembleNum_(-1),
   CurrentParm_(0),
   debug_(0),
   trajFmt_(TrajectoryFile::PDBFILE),
@@ -23,9 +24,10 @@ void Action_Mask::Help() {
 //       file can be written out.
 Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
-  std::string maskFilename = actionArgs.GetStringKey("maskout");
+  outfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("maskout"), "Atoms in mask");
   maskpdb_ = actionArgs.GetStringKey("maskpdb");
   std::string maskmol2 = actionArgs.GetStringKey("maskmol2");
   if (!maskpdb_.empty()) {
@@ -43,22 +45,16 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
 
   mprintf("    ACTIONMASK: Information on atoms in mask %s will be printed",
           Mask1_.MaskString());
-  if (!maskFilename.empty())
-    mprintf(" to file %s",maskFilename.c_str());
+  if (outfile_ != 0)
+    mprintf(" to file %s",outfile_->Filename().full());
   mprintf(".\n");
   if (!maskpdb_.empty()) 
     mprintf("\t%ss of atoms in mask will be written to %s.X\n",
             TrajectoryFile::FormatString(trajFmt_), maskpdb_.c_str());
-
-  // Open output file
-  if (!maskFilename.empty()) {
-    if ( outfile_.OpenEnsembleWrite( maskFilename, DSL->EnsembleNum() ) )
-      return Action::ERR;
-      // Header
-    outfile_.Printf("%-8s %8s %4s %8s %4s %8s\n","#Frame","AtomNum","Atom",
-                    "ResNum","Res", "MolNum");
-  }
-
+  // Header
+  if (outfile_ != 0)
+    outfile_->Printf("%-8s %8s %4s %8s %4s %8s\n","#Frame","AtomNum","Atom",
+                     "ResNum","Res", "MolNum");
   return Action::OK;
 }
 
@@ -80,8 +76,8 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
   for (int atom=0; atom < CurrentParm_->Natom(); atom++) {
     if (Mask1_.AtomInCharMask(atom)) {
       int res = (*CurrentParm_)[atom].ResNum();
-      if (outfile_.IsOpen())
-        outfile_.Printf("%8i %8i %4s %8i %4s %8i\n", frameNum+1,
+      if (outfile_ != 0)
+        outfile_->Printf("%8i %8i %4s %8i %4s %8i\n", frameNum+1,
                         atom+1, (*CurrentParm_)[atom].c_str(), res+1,
                         CurrentParm_->Res(res).c_str(), (*CurrentParm_)[atom].MolNum()+1);
       /*mprintf(" Type=%4s",CurrentParm_->types[atom]);
@@ -93,7 +89,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
 
   // Optional PDB write out of selected atoms for the frame.
   if (!maskpdb_.empty()) {
-    Trajout pdbout;
+    Trajout_Single pdbout;
     // Convert Mask1 to an integer mask for use in parm/frame functions
     AtomMask Mask2 = Mask1_;
     Mask2.ConvertToIntMask();
@@ -106,7 +102,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
     pdbout.SetDebug(debug_);
     // Set pdb output options: multi so that 1 file per frame is written; dumpq
     // so that charges are written out. 
-    if (pdbout.InitTrajWriteWithArgs(maskpdb_,trajOpt_,pdbParm,trajFmt_)) 
+    if (pdbout.InitEnsembleTrajWrite(maskpdb_,trajOpt_,pdbParm,trajFmt_,ensembleNum_)) 
     {
       mprinterr("Error: %s: Could not set up for write of frame %i.\n",
                 maskpdb_.c_str(),frameNum);
@@ -120,9 +116,3 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
 
   return Action::OK;
 } 
-
-// Action_Mask::Print()
-/** Close the output file. */
-void Action_Mask::Print() {
-  outfile_.CloseFile();
-}

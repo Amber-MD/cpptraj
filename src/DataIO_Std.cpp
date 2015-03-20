@@ -27,6 +27,7 @@ void DataIO_Std::ReadHelp() {
   mprintf("\tread1d:      Read data as 1D data sets (default).\n"
           "\tread2d:      Read data as 2D square matrix.\n"
           "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
+          "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
           "\tindex <col>: (1D) Use column # (starting from 1) as index column.\n");
 
 }
@@ -38,11 +39,11 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   if (argIn.hasKey("read1d")) mode_ = READ1D;
   else if (argIn.hasKey("read2d")) mode_ = READ2D;
   else if (argIn.hasKey("vector")) mode_ = READVEC;
+  else if (argIn.hasKey("mat3x3")) mode_ = READMAT3X3;
   indexcol_ = argIn.getKeyInt("index", -1);
   return 0;
 }
   
-
 // TODO: Set dimension labels
 // DataIO_Std::ReadData()
 int DataIO_Std::ReadData(std::string const& fname, 
@@ -53,6 +54,7 @@ int DataIO_Std::ReadData(std::string const& fname,
     case READ1D: err = Read_1D(fname, dsl, dsname); break;
     case READ2D: err = Read_2D(fname, dsl, dsname); break;
     case READVEC: err = Read_Vector(fname, dsl, dsname); break;
+    case READMAT3X3: err = Read_Mat3x3(fname, dsl, dsname); break;
   }
   return err;
 }
@@ -248,7 +250,7 @@ int DataIO_Std::Read_2D(std::string const& fname,
   DataSet* ds = datasetlist.AddSet(DataSet::MATRIX_DBL, dsname, "Mat");
   if (ds == 0) return 1;
   DataSet_MatrixDbl& Mat = static_cast<DataSet_MatrixDbl&>( *ds );
-  Mat.SetTypeAndKind( DataSet_2D::DIST, DataSet_2D::FULL ); // TODO: FIXME 
+  Mat.SetScalar( DataSet::DIST ); // TODO: FIXME 
   Mat.Allocate2D( ncols, nrows );
   std::copy( matrixArray.begin(), matrixArray.end(), Mat.begin() );
 
@@ -269,7 +271,7 @@ int DataIO_Std::Read_Vector(std::string const& fname,
   // Buffer file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
-  mprintf("\tData will be read as a vector.\n");
+  mprintf("\tAttempting to read vector data.\n");
   // Skip comments
   const char* linebuffer = buffer.Line();
   while (linebuffer != 0 && linebuffer[0] == '#')
@@ -319,6 +321,58 @@ int DataIO_Std::Read_Vector(std::string const& fname,
   return 0;
 } 
 
+// DataIO_Std::Read_Mat3x3()
+int DataIO_Std::Read_Mat3x3(std::string const& fname, 
+                            DataSetList& datasetlist, std::string const& dsname)
+{
+  // Buffer file
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  mprintf("\tAttempting to read 3x3 matrix data.\n");
+  // Skip comments
+  const char* linebuffer = buffer.Line();
+  while (linebuffer != 0 && linebuffer[0] == '#')
+    linebuffer = buffer.Line();
+  double matBuffer[9];
+  std::fill(matBuffer, matBuffer+9, 0.0);
+  size_t ndata = 0;
+  int ncols = -1; // Should be 9
+  bool hasIndex = false; // True if there is an index column
+  DataSet* mat = 0;
+  while (linebuffer != 0) {
+    int ntokens = buffer.TokenizeLine( SEPARATORS );
+    if (ncols < 0) {
+      ncols = ntokens;
+      if (ntokens < 1) {
+        mprinterr("Error: Could not tokenize line.\n");
+        return 1;
+      }
+      if (ncols == 9)
+        hasIndex = false;
+      else if (ncols == 10) {
+        hasIndex = true;
+        mprintf("Warning: Not reading matrix data indices.\n");
+      } else {
+        mprinterr("Error: Expected 9 columns of 3x3 matrix data, got %i.\n", ncols);
+        return 1;
+      }
+      mat = datasetlist.AddSet(DataSet::MAT3X3, dsname, "M3X3");
+    } else if (ncols != ntokens) {
+      mprinterr("Error: In 3x3 matrix file, number of columns changes from %i to %i at line %i\n",
+                ncols, ntokens, buffer.LineNumber());
+      return 1;
+    }
+    if (hasIndex)
+      buffer.NextToken(); // Skip index
+    for (int i = 0; i < 9; i++)
+      matBuffer[i] = atof( buffer.NextToken() );
+    mat->Add( ndata, matBuffer ); 
+    ndata++;
+    linebuffer = buffer.Line();
+  }
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 void DataIO_Std::WriteHelp() {
   mprintf("\tinvert:     Flip X/Y axes.\n"
@@ -358,7 +412,11 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
       *tc = '_';
   // Set up header format string
   std::string header_format = SetStringFormatString(width, leftAlign);
-  fileIn.Printf(header_format.c_str(), temp_name.c_str());
+  // Protect against CpptrajFile buffer overflow
+  if (width >= (int)CpptrajFile::BUF_SIZE)
+    fileIn.Write(temp_name.c_str(), temp_name.size());
+  else
+    fileIn.Printf(header_format.c_str(), temp_name.c_str());
 }
 
 // DataIO_Std::WriteData()
@@ -489,7 +547,7 @@ int DataIO_Std::WriteData2D( std::string const& fname, DataSetList const& setLis
 int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
   if (setIn.Ndim() != 2) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 2.\n",
-              setIn.Legend().c_str(), file.Filename().full(), setIn.Ndim());
+              setIn.legend(), file.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_2D const& set = static_cast<DataSet_2D const&>( setIn );
@@ -533,7 +591,7 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
     // x y val(x,y)
     if (writeHeader_)
       file.Printf("#%s %s %s\n", Xdim.Label().c_str(), 
-                  Ydim.Label().c_str(), set.Legend().c_str());
+                  Ydim.Label().c_str(), set.legend());
     std::string col_fmt = SetupCoordFormat( set.Ncols(), Xdim, 8, 3 ) + " " +
                           SetupCoordFormat( set.Nrows(), Ydim, 8, 3 ); 
     for (size_t iy = 0; iy < set.Nrows(); ++iy) {
@@ -568,7 +626,7 @@ int DataIO_Std::WriteData3D( std::string const& fname, DataSetList const& setLis
 int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   if (setIn.Ndim() != 3) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
-              setIn.Legend().c_str(), file.Filename().full(), setIn.Ndim());
+              setIn.legend(), file.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
@@ -581,7 +639,7 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   // x y z val(x,y,z)
   if (writeHeader_)
     file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
-                Ydim.Label().c_str(), Zdim.Label().c_str(), set.Legend().c_str());
+                Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());
   std::string col_fmt = SetupCoordFormat( set.NX(), Xdim, 8, 3 ) + " " +
                         SetupCoordFormat( set.NY(), Ydim, 8, 3 ) + " " +
                         SetupCoordFormat( set.NZ(), Zdim, 8, 3 );

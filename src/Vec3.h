@@ -120,6 +120,7 @@ class Vec3 {
       V_[1] = vy;
       V_[2] = vz;
     }
+    bool operator!=(const Vec3&) const;
     double Normalize();
     double Length() const;
     void Print(const char*) const;

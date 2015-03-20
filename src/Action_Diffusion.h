@@ -28,11 +28,11 @@ class Action_Diffusion : public Action {
     std::vector<double> deltay_;
     std::vector<double> deltaz_;
     AtomMask mask_;
-    CpptrajFile outputx_;
-    CpptrajFile outputy_;
-    CpptrajFile outputz_;
-    CpptrajFile outputr_;
-    CpptrajFile outputa_;
+    CpptrajFile* outputx_;
+    CpptrajFile* outputy_;
+    CpptrajFile* outputz_;
+    CpptrajFile* outputr_;
+    CpptrajFile* outputa_;
     Vec3 boxcenter_; ///< Hold center of box each frame
 };
 #endif

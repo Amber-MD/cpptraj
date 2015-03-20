@@ -37,7 +37,6 @@
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
 #include "Action_DihedralScan.h"
-#include "Action_Rotdif.h"
 #include "Action_RunningAvg.h"
 #include "Action_AtomicFluct.h"
 #include "Action_Watershell.h"
@@ -89,6 +88,7 @@
 #include "Action_Energy.h"
 #include "Action_CheckChirality.h"
 #include "Action_Channel.h" // EXPERIMENTAL
+#include "Action_Volume.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -123,6 +123,7 @@
 #include "Analysis_LowestCurve.h"
 #include "Analysis_CurveFit.h"
 #include "Analysis_PhiPsi.h"
+#include "Analysis_Rotdif.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -397,7 +398,13 @@ static void Help_DataFile() {
 static void Help_DataSetCmd() {
   mprintf("\t{ legend <legend> <set> | \n"
           "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
-          "\tOptions for 'type noe':\n"
+          "  <mode>: ");
+  for (int i = 0; i != (int)DataSet::M_MATRIX; i++) // TODO: Allow matrix?
+    mprintf(" %s", DataSet::ModeString((DataSet::scalarMode)i));
+  mprintf("\n  <type>: ");
+  for (int i = 0; i != (int)DataSet::DIST; i++)
+    mprintf(" %s", DataSet::TypeString((DataSet::scalarType)i));
+  mprintf("\n\tOptions for 'type noe':\n"
           "\t  %s\n"
           "  Either set the legend for a single data set, or change the mode/type for\n"
           "  one or more data sets.\n", Action_Distance::NOE_Help);
@@ -448,7 +455,8 @@ static void Help_SelectDS() {
 static void Help_Trajin() {
   mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
           "\t           %s\n", TopologyList::ParmArgs);
-  mprintf("\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
+  mprintf("\t           [ <Format Options> ]\n"
+          "\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
           "\t             [trajnames <rep1>,<rep2>,...,<repN> ] ]\n"
           "  Load trajectory specified by <filename> to the input trajectory list.\n");
   TrajectoryFile::ReadOptions();
@@ -474,8 +482,10 @@ static void Help_Trajout() {
 }
 
 static void Help_Reference() {
-  mprintf("\t<filename> [<frame#>] [<mask>] [TAG] [lastframe]\n"
-          "  Load trajectory <filename> as a reference frame.\n");
+  mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
+          "\t       %s\n", TopologyList::ParmArgs);
+  mprintf("  Load trajectory file <name> as a reference frame.\n"
+          "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
 }
 
 static void Help_Parm() {
@@ -663,7 +673,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
     mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
     return Command::C_ERR;
   }
-  mprintf("\tUsing set '%s'\n", CRD->Legend().c_str());
+  mprintf("\tUsing set '%s'\n", CRD->legend());
   Timer total_time;
   total_time.Start();
   // Start, stop, offset
@@ -712,7 +722,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   // Check if parm was modified. If so, update COORDS.
   if ( currentParm != originalParm ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
-            CRD->Legend().c_str(), actionargs.Command());
+            CRD->legend(), actionargs.Command());
     CRD->SetTopology( *currentParm );
   }
   act->Print();
@@ -738,15 +748,16 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
     mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
     return Command::C_ERR;
   }
-  mprintf("\tUsing set '%s'\n", CRD->Legend().c_str());
+  mprintf("\tUsing set '%s'\n", CRD->legend());
   setname = argIn.GetStringNext();
   // Start, stop, offset
   int start, stop, offset;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
   if (Trajin::CheckFrameArgs(crdarg, CRD->Size(), start, stop, offset)) return Command::C_ERR;
   if (State.Debug() > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
-  Trajout outtraj;
+  Trajout_Single outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
+  currentParm->SetNframes( CRD->Size() ); // FIXME: This is a hack to get correct # frames.
   if (outtraj.InitTrajWrite( setname, argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
     return Command::C_ERR;
@@ -759,7 +770,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
     CRD->GetFrame( frame, currentFrame );
     if ( outtraj.WriteFrame( frame, currentParm, currentFrame ) ) {
       mprinterr("Error writing %s to output trajectory, frame %i.\n",
-                CRD->Legend().c_str(), frame + 1);
+                CRD->legend(), frame + 1);
       break;
     }
   }
@@ -806,11 +817,11 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
     if (parm->Natom() != coords->Top().Natom()) {
       mprinterr("Error: Trajectory '%s' # atoms %i does not match COORDS data set '%s' (%i)\n",
                 trajin.TrajFilename().full(), parm->Natom(),
-                coords->Legend().c_str(), coords->Top().Natom());
+                coords->legend(), coords->Top().Natom());
       return Command::C_ERR;
     }
     mprintf("\tAppending trajectory '%s' to COORDS data set '%s'\n", 
-            trajin.TrajFilename().full(), coords->Legend().c_str());
+            trajin.TrajFilename().full(), coords->legend());
   }
   // Read trajectory
   trajin.BeginTraj(true);
@@ -867,16 +878,6 @@ Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 static void Help_CombineCoords() {
   mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>]\n"
           "  Combined two COORDS data sets.\n");
-}
-
-static inline void CombinedCoords_AddBondArray(Topology* top, BondArray const& barray,
-                                               int atomOffset)
-{
-  for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
-  {
-    //mprintf("DBG:\t\tBonding %i and %i\n", bond->A1() + atomOffset + 1, bond->A2() + atomOffset + 1);
-    top->AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
-  }
 }
 
 /// Combine two COORDS DataSets
@@ -961,8 +962,8 @@ static void Help_GenerateAmberRst() {
   mprintf("\t<mask1> <mask2> [<mask3>] [<mask4>]\n"
           "\tr1 <r1> r2 <r2> r3 <r3> r4 <r4> rk2 <rk2> rk3 <rk3>\n"
           "\t{%s}\n"
-          "\t[{%s} [offset <off>] [width <width>]\n"
-          "\t[out <outfile>] [overwrite]\n"
+          "\t[{%s} [offset <off>] [width <width>]]\n"
+          "\t[out <outfile>]\n"
           "  Generate Amber-format restraint from 2 or more mask expressions.\n",
           TopologyList::ParmArgs, DataSetList::RefArgs);
 }
@@ -979,7 +980,8 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
   // Get optional reference coords
   ReferenceFrame RefCrd = State.DSL()->GetReferenceFrame(argIn);
   // Get arguments
-  bool overwrite = argIn.hasKey("overwrite");
+  if (argIn.hasKey("overwrite"))
+    mprintf("Warning: 'overwrite' keyword no longer necessary and is deprecated.\n");
   double r1 = argIn.getKeyDouble("r1", 0.0);
   double r2 = argIn.getKeyDouble("r2", 0.0);
   double r3 = argIn.getKeyDouble("r3", 0.0);
@@ -989,14 +991,9 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
   // crddist will be !RefCrd.empty()
   double offset = argIn.getKeyDouble("offset", 0.0);
   double width = argIn.getKeyDouble("width", 0.5);
-  std::string outName = argIn.GetStringKey("out");
-  CpptrajFile outfile;
-  int err = 0;
-  if (overwrite)
-    err = outfile.OpenWrite( outName );
-  else
-    err = outfile.OpenAppend( outName );
-  if (err != 0) {
+  CpptrajFile* outfile = State.DFL()->AddCpptrajFile(argIn.GetStringKey("out"), "Amber Rst",
+                                                     DataFileList::TEXT, true);
+  if (outfile == 0) {
     mprinterr("Error: Could not open output file.\n");
     return Command::C_ERR;
   }
@@ -1057,18 +1054,18 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
     mprintf("\tCoM value from ref will be used, r1=%f, r2=%f, r3=%f, r4=%f\n", r1,r2,r3,r4);
   } 
   // Print restraint header 
-  outfile.Printf(" &rst iat=");
+  outfile->Printf(" &rst iat=");
   for (std::vector<AtomMask>::const_iterator M = rstMasks.begin();
                                              M != rstMasks.end(); ++M)
   {
     if ((*M).Nselected() == 1)
-      outfile.Printf("%i,", (*M)[0] + 1);
+      outfile->Printf("%i,", (*M)[0] + 1);
     else
-      outfile.Printf("-1,");
+      outfile->Printf("-1,");
   }
-  outfile.Printf("0\n");
+  outfile->Printf("0\n");
   // Print Restraint boundaries and constants
-  outfile.Printf("   r1=%f, r2=%f, r3=%f, r4=%f, rk2=%f, rk3=%f,\n",
+  outfile->Printf("   r1=%f, r2=%f, r3=%f, r4=%f, rk2=%f, rk3=%f,\n",
                  r1, r2, r3, r4, rk2, rk3);
   // Print out atom groups if necessary
   unsigned int group = 1;
@@ -1076,17 +1073,16 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
                                              M != rstMasks.end(); ++M, group++)
   {
     if ((*M).Nselected() > 1) {
-      outfile.Printf("   ");
+      outfile->Printf("   ");
       unsigned int j = 1;
       for (AtomMask::const_iterator atom = (*M).begin();
                                     atom != (*M).end(); ++atom, j++)
-        outfile.Printf("IGR%u(%u)=%i,", group, j, (*atom) + 1);
-      outfile.Printf("\n");
+        outfile->Printf("IGR%u(%u)=%i,", group, j, (*atom) + 1);
+      outfile->Printf("\n");
     }
   }
   // Finish restraint
-  outfile.Printf("   nstep1=0, nstep2=0,\n &end\n");
-  outfile.CloseFile();
+  outfile->Printf("   nstep1=0, nstep2=0,\n &end\n");
   return Command::C_OK;
 }
 
@@ -1102,9 +1098,9 @@ static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList&
     if (Sets.empty())
       mprintf("Warning: %s does not correspond to any data sets.\n", (*dsa).c_str());
     for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
-      mprintf(" %s", (*set)->Legend().c_str());
+      mprintf(" %s", (*set)->legend());
       if ( df.AddSet(*set) ) {
-        mprinterr("Error: Could not add data set %s to file.\n", (*set)->Legend().c_str());
+        mprinterr("Error: Could not add data set %s to file.\n", (*set)->legend());
         ++err;
       }
     }
@@ -1163,7 +1159,7 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
     std::string legend = argIn.GetStringKey("legend");
     DataSet* ds = State.DSL()->GetDataSet( argIn.GetStringNext() );
     if (ds == 0) return Command::C_ERR;
-    mprintf("\tChanging legend '%s' to '%s'\n", ds->Legend().c_str(), legend.c_str());
+    mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
     return Command::C_OK;
   }
@@ -1199,9 +1195,9 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
       return Command::C_ERR;
   }
   if (dmode != DataSet::UNKNOWN_MODE)
-    mprintf("\tDataSet mode = %s\n", DataSet::Smodes[dmode]);
+    mprintf("\tDataSet mode = %s\n", DataSet::ModeString(dmode));
   if (dtype != DataSet::UNDEFINED)
-    mprintf("\tDataSet type = %s\n", DataSet::Stypes[dtype]);
+    mprintf("\tDataSet type = %s\n", DataSet::TypeString(dtype));
   // Loop over all DataSet arguments 
   std::string ds_arg = argIn.GetStringNext();
   while (!ds_arg.empty()) {
@@ -1210,16 +1206,16 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
     {
       if ( (*ds)->Ndim() != 1 )
         mprintf("Warning:\t\t'%s': Can only set mode/type for 1D data sets.\n",
-                (*ds)->Legend().c_str());
+                (*ds)->legend());
       else {
         if ( dtype == DataSet::NOE ) {
           if ( (*ds)->Type() != DataSet::DOUBLE )
             mprintf("Warning:\t\t'%s': Can only set NOE parameters for 'double' data sets.\n",
-                (*ds)->Legend().c_str());
+                (*ds)->legend());
           else
             ((DataSet_double*)(*ds))->SetNOE(noe_lbound, noe_ubound, noe_rexp);
         }
-        mprintf("\t\t'%s'\n", (*ds)->Legend().c_str());
+        mprintf("\t\t'%s'\n", (*ds)->legend());
         (*ds)->SetScalar( dmode, dtype );
       }
     }
@@ -1684,7 +1680,7 @@ Command::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Command::AllocTy
   } else {
     DataSet_Coords* ds = (DataSet_Coords*)State.DSL()->FindCoordsSet(crdset);
     if (ds == 0) return Command::C_ERR;
-    mprintf("\tUsing topology from data set '%s'\n", ds->Legend().c_str());
+    mprintf("\tUsing topology from data set '%s'\n", ds->legend());
     err = pfile.WriteTopology(ds->Top(), outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug());
   }
   if (err != 0)
@@ -1731,7 +1727,17 @@ Command::RetType AddAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
 /// Add an action to the State AnalysisList
 Command::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return ( (Command::RetType)State.AddAnalysis( Alloc, argIn ) );
+  if (State.AddAnalysis( Alloc, argIn )) {
+#   ifndef MPI
+    if (State.InputTrajList().Mode() == TrajinList::ENSEMBLE)
+      mprinterr("Info: Data sets for ensemble members beyond the first (member 0) have not\n"
+                "Info:   yet been created for current Actions. If any Analyses report warnings\n"
+                "Info:   or errors related to missing data sets, try entering a 'run' command\n"
+                "Info:   prior to any analysis commands.\n");
+#   endif
+    return Command::C_ERR;
+  }
+  return Command::C_OK;
 }
 
 // ================ LIST OF ALL COMMANDS =======================================
@@ -1877,7 +1883,6 @@ const Command::Token Command::Commands[] = {
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, AddAction },
-  { ACTION, "rotdif", Action_Rotdif::Alloc, Action_Rotdif::Help, AddAction },
   { ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
   { ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
   { ACTION, "scale", Action_Scale::Alloc, Action_Scale::Help, AddAction },
@@ -1896,6 +1901,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, AddAction },
   { ACTION, "velocityautocorr", Action_VelocityAutoCorr::Alloc, Action_VelocityAutoCorr::Help, AddAction },
   { ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, AddAction},
+  { ACTION, "volume", Action_Volume::Alloc, Action_Volume::Help, AddAction},
   { ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, AddAction },
   // INC_ANALYSIS: ANALYSIS COMMANDS
   { ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
@@ -1930,6 +1936,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, AddAnalysis },
   { ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
   { ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, AddAnalysis },
+  { ANALYSIS, "rotdif", Analysis_Rotdif::Alloc, Analysis_Rotdif::Help, AddAnalysis },
   { ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, AddAnalysis },
   { ANALYSIS, "spline", Analysis_Spline::Alloc, Analysis_Spline::Help, AddAnalysis },
   { ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },

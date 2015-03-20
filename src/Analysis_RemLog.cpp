@@ -102,7 +102,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
       ds->Resize( remlog_->NumExchange() ); 
     }
   }
-  mprintf("   REMLOG: %s, %i replicas, %i exchanges\n", remlog_->Legend().c_str(),
+  mprintf("   REMLOG: %s, %i replicas, %i exchanges\n", remlog_->legend(),
           remlog_->Size(), remlog_->NumExchange());
   if (mode_ == CRDIDX)
     mprintf("\tGetting coordinate index vs exchange.\n");

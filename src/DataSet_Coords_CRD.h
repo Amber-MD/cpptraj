@@ -28,7 +28,11 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     inline void SetCRD(int idx, Frame const& fIn) {
       coords_[idx] = fIn.ConvertToCRD(numBoxCrd_, hasVel_);
     }
+    /// \return estimated size in megabytes for given # of frames.
+    double SizeInMB(size_t n) const { return sizeInMB(n, Top().Natom(), numBoxCrd_); }
   private:
+    static double sizeInMB(size_t, size_t, size_t);
+
     typedef std::vector<Frame::CRDtype> CRDarray;
     CRDarray coords_;                  ///< Array of coordinate frames.
 };

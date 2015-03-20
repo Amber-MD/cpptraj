@@ -18,8 +18,8 @@ class TrajectoryFile {
   public:
     /// Known trajectory formats.
     enum TrajFormatType {
-      AMBERNETCDF = 0, AMBERRESTARTNC, PDBFILE, MOL2FILE, CIF, CHARMMDCD, 
-      GMXTRX, BINPOS, AMBERRESTART, TINKER, AMBERTRAJ, SQM, SDF, CONFLIB,
+      AMBERNETCDF = 0, AMBERRESTARTNC, AMBERNCENSEMBLE, PDBFILE, MOL2FILE, CIF, CHARMMDCD, 
+      GMXTRX, BINPOS, AMBERRESTART, TINKER, CHARMMCOR, AMBERTRAJ, SQM, SDF, CONFLIB,
       UNKNOWN_TRAJ
     };
 
@@ -31,7 +31,7 @@ class TrajectoryFile {
     static void WriteOptions(){ FileTypes::WriteOptions(TF_KeyArray,TF_AllocArray,UNKNOWN_TRAJ); }
     /// \return format type from keyword in ArgList. 
     static TrajFormatType GetFormatFromArg(ArgList& a) {
-      return (TrajFormatType)FileTypes::GetFormatFromArg(TF_KeyArray, a, AMBERTRAJ);
+      return (TrajFormatType)FileTypes::GetFormatFromArg(TF_KeyArray, a, UNKNOWN_TRAJ);
     }
     /// \return format type from keyword.
     static TrajFormatType GetFormatFromString(std::string const& s) {
@@ -49,6 +49,9 @@ class TrajectoryFile {
     static const char* FormatString( TrajFormatType tt ) { return 
       FileTypes::FormatDescription(TF_AllocArray, tt);
     }
+    // NOTE: This is made public in order to detect single ensemble trajs
+    /// Allocate TrajectoryIO appropriate for given file.
+    static TrajectoryIO* DetectFormat(std::string const&, TrajFormatType&);
 
     void SetDebug(int);
     void SetTrajFileName( std::string const&, bool );
@@ -57,12 +60,10 @@ class TrajectoryFile {
     const FileName& TrajFilename() const { return trajName_; }
   protected:
     int debug_;            ///< Trajectory debug level.
-    ///< Allocate TrajectoryIO for given format
+    /// Allocate TrajectoryIO for given format
     static TrajectoryIO* AllocTrajIO(TrajFormatType t) {
       return (TrajectoryIO*)FileTypes::AllocIO(TF_AllocArray, t, true);
     }
-    ///< Allocate TrajectoryIO appropriate for given file.
-    static TrajectoryIO* DetectFormat(std::string const&, TrajFormatType&);
   private:
     Topology *trajParm_;   ///< Associated parm
     FileName trajName_;    ///< The full path to trajectory file.

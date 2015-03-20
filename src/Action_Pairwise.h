@@ -45,7 +45,7 @@ class Action_Pairwise: public Action {
     std::string mol2Prefix_;   ///< Mol2 file prefix for atoms satisfying cutoffs
     std::string avgout_;       ///< Filename for printing final results
     PDBfile PdbOut_;           ///< PDB with atoms colored by evdw/eelec
-    CpptrajFile Eout_;         ///< Output file for atom energies.
+    CpptrajFile* Eout_;        ///< Output file for atom energies.
     static const double QFAC;  ///< Convert charges to kcal/mol units
     /// Hold nonbond energy for a given atom pair
     struct NonbondEnergyType {

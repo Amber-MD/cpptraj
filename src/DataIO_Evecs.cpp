@@ -36,6 +36,23 @@ int DataIO_Evecs::processReadArgs(ArgList& argIn) {
   return 0;
 }
 
+/** This routine should be updated when new matrix types are added. */
+const char* DataIO_Evecs::MatrixOutputString(DataSet::scalarType typeIn) {
+  const char* ptr = 0;
+  switch (typeIn) {
+    case DataSet::DIST :      ptr = "DIST"; break;
+    case DataSet::COVAR :     ptr = "COVAR"; break;
+    case DataSet::MWCOVAR :   ptr = "MWCOVAR"; break;
+    case DataSet::CORREL :    ptr = "CORREL"; break;
+    case DataSet::DISTCOVAR : ptr = "DISTCOVAR"; break;
+    case DataSet::IDEA :      ptr = "IDEA"; break;
+    case DataSet::IRED :      ptr = "IRED"; break;
+    case DataSet::DIHCOVAR :  ptr = "DIHCOVAR"; break;
+    default:                  ptr = "UNKNOWN";
+  }
+  return ptr;
+}
+
 // DataIO_Evecs::ReadData()
 int DataIO_Evecs::ReadData(std::string const& modesfile,
                            DataSetList& datasetlist, std::string const& dsname)
@@ -63,23 +80,23 @@ int DataIO_Evecs::ReadData(std::string const& modesfile,
   if (mds == 0) return 1;
   DataSet_Modes& modesData = static_cast<DataSet_Modes&>( *mds );
   // Determine modes file type
-  DataSet_2D::MatrixType modesType = DataSet_2D::NO_OP;
-  for (int matidx = (int)DataSet_2D::NO_OP + 1;
-           matidx != (int)DataSet_2D::NMAT; ++matidx)
+  DataSet::scalarType modesType = DataSet::UNDEFINED;
+  for (int matidx = (int)DataSet::DIST;
+           matidx != (int)DataSet::UNDEFINED; ++matidx)
   {
-    if ( title.hasKey( DataSet_2D::MatrixOutputString((DataSet_2D::MatrixType)matidx) ))
+    if (title.hasKey( MatrixOutputString((DataSet::scalarType)matidx) ))
     {
-      modesType = (DataSet_2D::MatrixType)matidx;
+      modesType = (DataSet::scalarType)matidx;
       break;
     }
   }
   // For compatibility with quasih and nmode output
-  if (modesType == DataSet_2D::NO_OP) {
-    mprintf("Warning: ReadEvecFile(): Unrecognized type [%s]\n", title.ArgLine());
-    mprintf("         Assuming MWCOVAR.\n");
-    modesType = DataSet_2D::MWCOVAR;
+  if (modesType == DataSet::UNDEFINED) {
+    mprintf("Warning: ReadEvecFile(): Unrecognized type [%s]. Assuming MWCOVAR.\n",
+            title.ArgLine());
+    modesType = DataSet::MWCOVAR;
   }
-  modesData.SetType( modesType );
+  modesData.SetScalar( modesType );
   // For newer modesfiles, get # of modes in file.
   int modesInFile = title.getKeyInt("nmodes",-1);
   if (modesInFile == -1) {
@@ -223,7 +240,7 @@ int DataIO_Evecs::WriteData(std::string const& fname, DataSetList const& SetList
     outfile.Printf(" Reduced Eigenvector file: ");
   else
     outfile.Printf(" Eigenvector file: ");
-  outfile.Printf("%s", DataSet_2D::MatrixOutputString(modesData.Type()));
+  outfile.Printf("%s", MatrixOutputString(modesData.ScalarType()));
   // Write out # of modes on title line to not break compat. with older modes files
   outfile.Printf(" nmodes %i", modesData.Nmodes());
   // Write out col width on title line to not break compat. with older modes files

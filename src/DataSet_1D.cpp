@@ -134,9 +134,9 @@ int DataSet_1D::CrossCorr( DataSet_1D const& D2, DataSet_1D& Ct,
   int Nelements = (int)Size();
   if (Nelements != (int)D2.Size()) {
     mprinterr("Error: CrossCorr: # elements in dataset %s (%i) not equal to\n",
-              Legend().c_str(), Nelements);
+              legend(), Nelements);
     mprinterr("Error:            # elements in dataset %s (%u)\n",
-              D2.Legend().c_str(), D2.Size());
+              D2.legend(), D2.Size());
     return 1;
   }
   if (Nelements < 2) {
@@ -154,7 +154,7 @@ int DataSet_1D::CrossCorr( DataSet_1D const& D2, DataSet_1D& Ct,
     lagmax = Nelements;
   else if (lagmaxIn > Nelements) {
     mprintf("Warning: CrossCorr [%s][%s]: max lag (%i) > Nelements (%i), setting to Nelements.\n",
-            Legend().c_str(), D2.Legend().c_str(), lagmaxIn, Nelements);
+            legend(), D2.legend(), lagmaxIn, Nelements);
     lagmax = Nelements;
   } else
     lagmax = lagmaxIn;
@@ -241,9 +241,9 @@ double DataSet_1D::CorrCoeff( DataSet_1D const& D2 ) const {
   int Nelements = (int)Size();
   if (Nelements != (int)D2.Size()) {
     mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",
-              Legend().c_str(), Nelements);
+              legend(), Nelements);
     mprinterr("Error:       # elements in dataset %s (%u)\n",
-              D2.Legend().c_str(), D2.Size());
+              D2.legend(), D2.Size());
     return 0;
   }
   // Calculate averages
@@ -263,7 +263,7 @@ double DataSet_1D::CorrCoeff( DataSet_1D const& D2 ) const {
   }
   if (sumdiff1_2 == 0.0 || sumdiff2_2 == 0.0) {
     mprintf("Warning: Corr: %s to %s, Normalization is 0\n",
-            Legend().c_str(),  D2.Legend().c_str());
+            legend(),  D2.legend());
     return 0;
   }
   // Correlation coefficient

@@ -40,6 +40,30 @@ DoTest() {
   fi
 }
 
+# NcTest(): Compare NetCDF files <1> and <2>. Use NCDUMP to convert to ASCII
+# first, removing ==> line and :programVersion attribute.
+NcTest() {
+  if [[ -z $1 || -z $2 ]] ; then
+    echo "Error: NcTest(): One or both files not specified." > /dev/stderr
+    exit 1
+  fi
+  if [[ -z $NCDUMP || ! -e $NCDUMP ]] ; then
+    echo "ncdump missing." > /dev/stderr
+    exit 1
+  fi
+  # Prepare files.
+  if [[ ! -e $1 ]] ; then
+    echo "Error: $1 missing." >> $TEST_ERROR
+  elif [[ ! -e $2 ]] ; then
+    echo "Error: $2 missing." >> $TEST_ERROR
+  else
+    $NCDUMP -n nctest $1 | grep -v "==>\|:programVersion" > nc0
+    $NCDUMP -n nctest $2 | grep -v "==>\|:programVersion" > nc1
+    DoTest nc0 nc1
+    /bin/rm -f nc0 nc1
+  fi
+}
+
 # TestFileExists(): Test that specified file exists.
 TestFileExists() {
   ((NUMTEST++))
@@ -94,6 +118,29 @@ RunCpptraj() {
   fi
   $TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $DEBUG $TOP $INPUT >> $OUTPUT 2>>$ERROR
   #$STOPMPI
+}
+
+# RunBench() <description> [<# runs>]
+# Run with high priority to hopefully avoid context switching.
+RunBench() {
+  if [[ -z $1 ]] ; then exit 1; fi
+  if [[ $CLEAN -eq 1 ]] ; then exit 0; fi
+  NBENCH=$2
+  if [[ -z $NBENCH ]] ; then NBENCH=1 ; fi
+  echo ""
+  echo "  CPPTRAJ BENCH ($NBENCH): $1"
+  B_TOTAL_TIME="0.0"
+  for ((i=0; i < $NBENCH; i++)) ; do
+    sudo chrt -f 99 /usr/bin/time -f "\n***\nBenchTime: %e\ncontext switches: %c\nwaits: %w" $CPPTRAJ $TOP $INPUT > bench.out 2> time.out
+    BTIME=`grep "BenchTime: " time.out`
+    CONTEXT=`grep "context switches: " time.out`
+    WAITS=`grep "waits: " time.out`
+    echo "  $i: $BTIME  $CONTEXT  $WAITS"
+    B_THIS_TIME=`echo "$BTIME" | awk '{printf("%f", $2);}'`
+    B_TOTAL_TIME=`echo "$B_TOTAL_TIME + $B_THIS_TIME" | bc -l`
+  done
+  AVG_TIME=`echo "$B_TOTAL_TIME / $NBENCH" | bc -l`
+  echo "`date +%c` $CPPTRAJ AvgTime: $AVG_TIME" 
 }
 
 # EndTest(): Called at the end of every test script if no errors found.
@@ -327,6 +374,7 @@ fi
 # will be tested. If AMBERHOME is not defined or if standalone is
 # specified then CPPTRAJHOME/bin/cpptraj will be tested. 
 DACDIF=""
+NCDUMP=""
 if [[ $CLEAN -eq 0 ]] ; then
   # Option defaults
   DIFFCMD=`which diff`
@@ -338,6 +386,7 @@ if [[ $CLEAN -eq 0 ]] ; then
   NODACDIF=0
   STANDALONE=0
   CPPTRAJ=""
+  AMBPDB=""
   SFX=""
   TIME=""
   VALGRIND=""
@@ -464,8 +513,10 @@ if [[ $CLEAN -eq 0 ]] ; then
   if [[ -z $CPPTRAJ ]] ; then
     if [[ ! -z $CPPTRAJHOME ]] ; then
       CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
+      AMBPDB=$CPPTRAJHOME/bin/ambpdb
     else
       CPPTRAJ=../../bin/cpptraj$SFX
+      AMBPDB=../../bin/ambpdb
     fi
 #    if [[ $STANDALONE -eq 0 && ! -z $AMBERHOME ]] ; then
 #      DACDIF=$AMBERHOME/AmberTools/test/dacdif
@@ -483,6 +534,9 @@ if [[ $CLEAN -eq 0 ]] ; then
 #      echo "cpptraj binary location with '-cpptraj <filename>'"
 #      exit 0
 #    fi
+  fi
+  if [[ -z $NCDUMP || ! -e $NCDUMP ]] ; then
+    NCDUMP=`which ncdump`
   fi
 
   # Check for existance of binary file
@@ -519,7 +573,7 @@ if [[ $CLEAN -eq 0 ]] ; then
   MPILIB=`echo $DEFINES | grep DMPI`
   NOMATHLIB=`echo $DEFINES | grep DNO_MATHLIB`
   OPENMP=`echo $DEFINES | grep D_OPENMP`
-  PNETCDFLIB=`echo $DEFINES | grep D_HAS_PNETCDF`
+  PNETCDFLIB=`echo $DEFINES | grep DHAS_PNETCDF`
 
   # Start test results file
   echo "**************************************************************"

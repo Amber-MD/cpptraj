@@ -36,7 +36,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   mask_.SetMaskString( analyzeArgs.GetMaskNext() );
 
   mprintf("    CRDFLUCT: Atomic fluctuations will be calcd for set %s, mask [%s]\n", 
-          coords_->Legend().c_str(), mask_.MaskString());
+          coords_->legend(), mask_.MaskString());
   if (windowSize_ != -1) mprintf("\tWindow size = %i\n", windowSize_);
   if (outfile != 0) mprintf("\tOutput to %s\n", outfile->DataFilename().base());
 
@@ -51,7 +51,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   } else {
     if (coords_->Size() == 0) {
       mprinterr("Error: window size > 0 and COORDS data set %s is empty.\n", 
-                 coords_->Legend().c_str());
+                 coords_->legend());
       mprinterr("Error: Cannot predict how many window data sets will be needed.\n");
       return Analysis::ERR;
     }
@@ -74,7 +74,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
       if (outfile != 0) outfile->AddSet( ds );
     }
     for (SetList::iterator out = outSets_.begin(); out != outSets_.end(); ++out)
-      mprintf("\t%s\n", (*out)->Legend().c_str());
+      mprintf("\t%s\n", (*out)->legend());
   }
   // Setup output file
 /*  if (bfactor_)

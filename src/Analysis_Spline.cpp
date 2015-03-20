@@ -94,7 +94,7 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
     mprintf("\tOutfile name: %s\n", outfile_->DataFilename().base());
   }
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
-  //  mprintf("\t%s\n", (*set)->Legend().c_str());
+  //  mprintf("\t%s\n", (*set)->legend());
   return Analysis::OK;
 }
 
@@ -117,15 +117,15 @@ Analysis::RetType Analysis_Spline::Analyze() {
     else
       msize = meshsize_;
     // Set up output dimension
-    mprintf("\t%s: Setting mesh from %f->%f, size=%i,", ds.Legend().c_str(), mmin, mmax, msize);
+    mprintf("\t%s: Setting mesh from %f->%f, size=%i,", ds.legend(), mmin, mmax, msize);
     output_dsets_[idx]->SetDim( Dimension::X,
         Dimension(mmin, (mmax - mmin)/(double)msize, msize, ds.Dim(0).Label()) );
     output_dsets_[idx]->CalculateMeshX(msize, mmin, mmax);
     mprintf(" set min=%f, set step=%f\n", ds.Dim(0).Min(), ds.Dim(0).Step());
     if (!ds.Dim(0).MinIsSet())
-      mprinterr("Internal Error: %s min is not set!\n", ds.Legend().c_str());
+      mprinterr("Internal Error: %s min is not set!\n", ds.legend());
     if (ds.Dim(0).Step() < 0.0)
-      mprinterr("Internal Error: %s step is not set!\n", ds.Legend().c_str());
+      mprinterr("Internal Error: %s step is not set!\n", ds.legend());
     // Calculate mesh Y values.
     output_dsets_[idx]->SetSplinedMesh( ds );
     // DEBUG

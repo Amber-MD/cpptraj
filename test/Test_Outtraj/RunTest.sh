@@ -35,6 +35,16 @@ INPUT="maxmin.in"
 RunCpptraj "Outtraj Test with filtering."
 DoTest maxmin.crd.save maxmin.crd
 
+# Test 3
+cat > maxmin.in <<EOF
+trajin ../tz2.truncoct.nc
+rms R1 first :2-11
+outtraj maxmin.crd maxmin R1 min 0.7 max 0.8
+EOF
+INPUT="maxmin.in"
+RunCpptraj "Outtraj Test with maxmin."
+DoTest maxmin.crd.save maxmin.crd
+
 CheckTest
 
 EndTest

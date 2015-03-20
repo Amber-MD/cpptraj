@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles ptraj.in out.dipole out.xplor out.dx out.dx.2 test.dx box.dx mask.dx \
-           nonortho.dx triclinic.nc nonortho.pdb
+           nonortho.dx triclinic.nc nonortho.pdb bounds.dat bounds.mol2 \
+           bounds.xplor avg.mol2
 
 CheckNetcdf
 INPUT="ptraj.in"
@@ -13,9 +14,8 @@ Dipole() {
   TOP="../tz2.ortho.parm7"
   cat > ptraj.in <<EOF
 trajin ../tz2.ortho.nc
+autoimage origin
 rms first :1-13
-center :1-13 mass origin 
-image origin center familiar
 dipole out.dipole 20 0.5 20 0.5 20 0.5 :WAT
 EOF
   RunCpptraj "Dipole test"
@@ -28,9 +28,9 @@ Grid() {
   TOP="../tz2.truncoct.parm7"
   cat > ptraj.in <<EOF
 trajin ../tz2.truncoct.nc
+autoimage origin
 rms first :1-13
-center :1-13 mass origin 
-image origin center familiar
+average avg.mol2 :1-13 
 grid out.xplor 20 0.5 20 0.5 20 0.5 :WAT@O  
 grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O
 EOF
@@ -101,6 +101,24 @@ EOF
   DoTest nonortho.dx.save nonortho.dx
 }
 
+# Generate grid from bounds
+Bounds() {
+  TOP="../tz2.ortho.parm7"
+  cat > ptraj.in <<EOF
+trajin ../tz2.ortho.nc
+autoimage
+rms first :1-13&!@H= mass
+bounds :1-13 dx .5 name MyGrid out bounds.dat
+#average bounds.mol2 :1-13
+createcrd MyCoords
+run
+crdaction MyCoords grid bounds.xplor data MyGrid :WAT@O
+EOF
+  RunCpptraj "Grid generationg from bounds test."
+  DoTest bounds.dat.save bounds.dat
+  DoTest bounds.xplor.save bounds.xplor 
+}
+
 Dipole
 Grid
 GridDxRead
@@ -108,6 +126,7 @@ SpecifiedCenter
 BoxCenterOffset
 MaskCenterOffset
 NonorthogonalGrid
+Bounds
 
 EndTest
 exit 0

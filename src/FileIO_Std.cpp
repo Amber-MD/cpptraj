@@ -2,39 +2,40 @@
 #include "FileIO_Std.h" // FileIO.h, cstdio
 
 // CONSTRUCTOR
-FileIO_Std::FileIO_Std() {
-  fp_ = NULL;
-  isStdout_=false;
-}
+FileIO_Std::FileIO_Std() : fp_(NULL), isStream_(false) {}
 
 // DESTRUCTOR
-FileIO_Std::~FileIO_Std() {
-  if (fp_!=NULL) this->Close();
+FileIO_Std::~FileIO_Std() { Close(); }
+
+/** Open the specified stream. */
+int FileIO_Std::OpenStream(StreamType type) {
+  Close();
+  switch (type) {
+    case STDIN : fp_ = stdin; break;
+    case STDOUT: fp_ = stdout; break;
+    case STDERR: fp_ = stderr; break;
+  }
+  isStream_ = true;
+  return 0;
 }
 
 // FileIO_Std::Open()
-/** Open file using standard C routines. If mode is WRITE and no
-  * filename given default to stdout.
-  */
+/** Open file using standard C routines. */
 int FileIO_Std::Open(const char *filename, const char *mode) {
-  if (filename==NULL) {
-    if (mode[0]=='w') 
-      fp_=stdout;
-    else
-      return 1;
-    isStdout_=true;
-  } else
-    fp_ = fopen(filename, mode);
+  if (filename == 0) return 1;
+  Close();
+  fp_ = fopen(filename, mode);
   if (fp_==NULL) return 1;
+  isStream_ = false;
   return 0;
 }
 
 // FileIO_Std::Close()
-/** Close stream if not stdout
-  */
+/** Close file if not stream. */
 int FileIO_Std::Close() {
-  if (fp_!=NULL && !isStdout_) fclose(fp_);
+  if (fp_!=NULL && !isStream_) fclose(fp_);
   fp_=NULL;
+  isStream_ = false;
   return 0;
 }
 
@@ -91,4 +92,3 @@ int FileIO_Std::Gets(char *str, int num) {
   } else
     return 0;
 }
-

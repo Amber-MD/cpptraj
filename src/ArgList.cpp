@@ -6,11 +6,11 @@
 const std::string ArgList::emptystring = "";
 
 ArgList::ArgList(const char* input) {
-  if (input != 0) SetList( std::string(input), " ");
+  if (input != 0) SetList( std::string(input), " \t");
 }
 
 ArgList::ArgList(std::string const& input) {
-  SetList( input, " " );
+  SetList( input, " \t" );
 }
 
 ArgList::ArgList(std::string const& input, const char* sep) {

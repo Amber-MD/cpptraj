@@ -7,9 +7,9 @@
 // CONSTRUCTOR
 Action_Dipole::Action_Dipole() :
   grid_(0),
+  outfile_(0),
   max_(0),
-  CurrentParm_(0),
-  ensembleNum_(-1)
+  CurrentParm_(0)
 {}
 
 void Action_Dipole::Help() {
@@ -20,13 +20,14 @@ void Action_Dipole::Help() {
 // Action_Dipole::Init()
 Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   // Get output filename
-  filename_ = actionArgs.GetStringNext();
-  if (filename_.empty()) {
+  std::string filename = actionArgs.GetStringNext();
+  if (filename.empty()) {
     mprinterr("Error: Dipole: no filename specified.\n");
     return Action::ERR;
   }
+  outfile_ = DFL->AddCpptrajFile(filename, "dipole");
+  if (outfile_ == 0) return Action::ERR;
   // 'negative' means something different here than for other grid actions,
   // so get it here. Done this way to be consistent with PTRAJ behavior.
   if (actionArgs.hasKey("negative"))
@@ -50,7 +51,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, Data
   // Info
   mprintf("    DIPOLE:\n");
   GridInfo( *grid_ );
-  mprintf("\tGrid will be printed to file %s\n",filename_.c_str());
+  mprintf("\tGrid will be printed to file %s\n",outfile_->Filename().full());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   if (max_ > 0)
     mprintf("\tOnly keeping density >= to %.0lf%% of the maximum density\n", max_);
@@ -165,15 +166,9 @@ Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame
   */
 void Action_Dipole::Print() {
   double max_density;
-  CpptrajFile outfile;
-
-  if (outfile.OpenEnsembleWrite(filename_, ensembleNum_)) {
-    mprinterr("Error: Dipole: Cannot open output file.\n");
-    return;
-  }
 
   // Write header
-  outfile.Printf("field 8\nsize 1\nnside 3\nnlayer 1\ndirectional\nvector\ndata\n");
+  outfile_->Printf("field 8\nsize 1\nnside 3\nnlayer 1\ndirectional\nvector\ndata\n");
 
   // Determine max density
   float maxF = *std::max_element(grid_->begin(), grid_->end());
@@ -194,17 +189,16 @@ void Action_Dipole::Print() {
         if ( density >= max_density ) {
           // Print Bin Coords
           Vec3 binCorner = grid_->BinCorner(i, j, k);
-          outfile.Printf("%8.3f %8.3f %8.3f", binCorner[0], binCorner[1], binCorner[2]);
+          outfile_->Printf("%8.3f %8.3f %8.3f", binCorner[0], binCorner[1], binCorner[2]);
           // Normalize dipoles by density
           size_t idx = grid_->CalcIndex(i,j,k);
           dipole_[idx] /= density;
           // Write dipole components and length
-          outfile.Printf(" %8.3f %8.3f %8.3f", 
+          outfile_->Printf(" %8.3f %8.3f %8.3f", 
                          dipole_[idx][0], dipole_[idx][1], dipole_[idx][2]);
-          outfile.Printf(" %8.3f %8.3f\n", sqrt(dipole_[idx].Magnitude2()), density);
+          outfile_->Printf(" %8.3f %8.3f\n", sqrt(dipole_[idx].Magnitude2()), density);
         }
       }
     }
   }
-  outfile.CloseFile();
 } 

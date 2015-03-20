@@ -183,6 +183,19 @@ class NonbondParmType {
       nbindex_[ntypes_ * type2 + type1] = ndx;
       hbarray_.push_back( HB );
     }
+    /// 
+    static void NB_to_array(NonbondArray const& nba, std::vector<double>& Rk, std::vector<double>& Req)
+    {
+      Rk.clear();
+      Req.clear();
+      Rk.reserve( nba.size() );
+      Req.reserve( nba.size() );
+      for (NonbondArray::const_iterator nb = nba.begin(); nb != nba.end(); ++nb)
+      {
+        Rk.push_back( nb->A() );
+        Req.push_back( nb->B() );
+      }
+    }
   private:
     int ntypes_;               ///< Number of unique atom types
     std::vector<int> nbindex_; ///< Hold indices into arrays nbarray/hbarray for atom type pairs

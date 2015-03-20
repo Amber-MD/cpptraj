@@ -25,20 +25,16 @@ void Analysis_Modes::Help() {
           "\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n"
           "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
           "    Options for 'trajout': (Generate pseudo-trajectory)\n"
-          "\t[trajout <name> [<parm arg>] [trajoutfmt <format>] [trajoutmask <mask>]\n"
+          "\t[trajout <name> %s\n", TopologyList::ParmArgs);
+  mprintf("\t[trajoutfmt <format>] [trajoutmask <mask>]\n"
           "\t  [pcmin <pcmin>] [pcmax <pcmax>] [tmode <mode>]]\n"
           "  Perform one of the following analysis on calculated Eigenmodes.\n"
-          "    fluct: rms fluctations from normal modes\n"
-          "    displ: displacement of cartesian coordinates along normal mode directions\n"
+          "    fluct:    RMS fluctations from normal modes\n"
+          "    displ:    Displacement of cartesian coordinates along normal mode directions\n"
+          "    corr:     Calculate dipole-dipole correlation functions.\n"
           "    eigenval: Calculate eigenvalue fractions.\n"
-          "    rmsip: Root mean square inner product.\n"
-          "  Results vector usage:\n"
-          "    fluct:\n"
-          "\t[rmsx(at1), rmsy(at1), rmsz(at1), rms(at1), ..., rmsx(atN), ..., rms(atN)]\n"
-          "    displ:\n"
-          "\t[displx(at1), disply(at1), displz(at1), ..., displx(atN), ..., displz(atN)]\n"
-          "    corr:\n"
-          "\t[corr(pair1, vec1), ..., corr(pair1, vecN), ..., corr(pairM, vec1), ..., corr(pairM, vecN)\n");
+          "    trajout:  Calculate pseudo-trajectory along given mode.\n"
+          "    rmsip:    Root mean square inner product.\n");
 }
 
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
@@ -155,7 +151,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       return Analysis::ERR;
     }
     // Setup output traj
-    if (trajout_.InitTrajWrite( tOutName, tOutParm_, tOutFmt ) != 0) {
+    if (trajout_.InitTrajWrite( tOutName, ArgList(), tOutParm_, tOutFmt ) != 0) {
       mprinterr("Error: Could not setup output trajectory.\n");
       return Analysis::ERR;
     }
@@ -191,8 +187,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
 
   // Check modes type for specified analysis
   if (type_ == FLUCT || type_ == DISPLACE || type_ == CORR || type_ == TRAJ) {
-    if (modinfo_->Type() != DataSet_2D::COVAR && 
-        modinfo_->Type() != DataSet_2D::MWCOVAR)
+    if (modinfo_->ScalarType() != DataSet::COVAR && 
+        modinfo_->ScalarType() != DataSet::MWCOVAR)
     {
       mprinterr("Error: Modes must be of type COVAR or MWCOVAR for %s.\n",
                 analysisTypeString[type_]);
@@ -241,7 +237,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
 
   // Status
   mprintf("    ANALYZE MODES: Calculating %s using modes from %s", 
-          analysisTypeString[type_], modinfo_->Legend().c_str());
+          analysisTypeString[type_], modinfo_->legend());
   if ( type_ != TRAJ ) {
     if (type_ != EIGENVAL)
       mprintf(", modes %i to %i", beg_+1, end_);
@@ -266,7 +262,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       mprintf("\n");
     }
     if (type_ == RMSIP)
-      mprintf("\tRMSIP calculated to modes in %s\n", modinfo2_->Legend().c_str());
+      mprintf("\tRMSIP calculated to modes in %s\n", modinfo2_->legend());
   } else {
     mprintf("\n\tCreating trajectory for mode %i\n"
               "\tWriting to trajectory %s\n"
@@ -569,13 +565,13 @@ int Analysis_Modes::ProjectCoords() {
 int Analysis_Modes::CalcRMSIP(CpptrajFile& outfile) {
   if (modinfo_->VectorSize() != modinfo2_->VectorSize()) {
     mprinterr("Error: '%s' vector size (%i) != '%s' vector size (%i)\n",
-              modinfo_->Legend().c_str(), modinfo_->VectorSize(),
-              modinfo2_->Legend().c_str(), modinfo2_->VectorSize());
+              modinfo_->legend(), modinfo_->VectorSize(),
+              modinfo2_->legend(), modinfo2_->VectorSize());
     return 1;
   }
   if ( beg_ >= modinfo2_->Nmodes() || end_ > modinfo2_->Nmodes() ) {
     mprinterr("Error: beg/end out of range for %s (%i modes)\n",
-              modinfo2_->Legend().c_str(), modinfo2_->Nmodes());
+              modinfo2_->legend(), modinfo2_->Nmodes());
     return 1;
   }
   double sumsq = 0.0;

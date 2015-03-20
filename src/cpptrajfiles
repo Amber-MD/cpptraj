@@ -61,7 +61,6 @@ SOURCES=ActionFrameCounter.cpp \
         Action_ReplicateCell.cpp \
         Action_Rmsd.cpp \
         Action_Rotate.cpp \
-        Action_Rotdif.cpp \
         Action_RunningAvg.cpp \
         Action_STFC_Diffusion.cpp \
         Action_Scale.cpp \
@@ -76,6 +75,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Vector.cpp \
         Action_VelocityAutoCorr.cpp \
         Action_Volmap.cpp \
+        Action_Volume.cpp \
         Action_Watershell.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
@@ -105,6 +105,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_RemLog.cpp \
         Analysis_Rms2d.cpp \
         Analysis_RmsAvgCorr.cpp \
+        Analysis_Rotdif.cpp \
         Analysis_RunningAvg.cpp \
         Analysis_Spline.cpp \
         Analysis_Statistics.cpp \
@@ -154,13 +155,13 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet.cpp \
         DataSetList.cpp \
         DataSet_1D.cpp \
-        DataSet_2D.cpp \
         DataSet_3D.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
         DataSet_Coords_REF.cpp \
         DataSet_Coords_TRJ.cpp \
         DataSet_GridFlt.cpp \
+        DataSet_Mat3x3.cpp \
         DataSet_MatrixDbl.cpp \
         DataSet_MatrixFlt.cpp \
         DataSet_Mesh.cpp \
@@ -223,11 +224,13 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_AmberRestart.cpp \
         Traj_AmberRestartNC.cpp \
         Traj_Binpos.cpp \
+        Traj_CharmmCor.cpp \
         Traj_CharmmDcd.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
         Traj_GmxTrX.cpp \
         Traj_Mol2File.cpp \
+        Traj_NcEnsemble.cpp \
         Traj_PDBfile.cpp \
         Traj_SDF.cpp \
         Traj_SQM.cpp \
@@ -235,9 +238,13 @@ SOURCES=ActionFrameCounter.cpp \
         TrajectoryFile.cpp \
         Trajin.cpp \
         TrajinList.cpp \
+        Trajin_Ensemble.cpp \
         Trajin_Multi.cpp \
         Trajin_Single.cpp \
         Trajout.cpp \
+        Trajout_Ensemble.cpp \
+        Trajout_Multi.cpp \
+        Trajout_Single.cpp \
         TrajoutList.cpp \
         Vec3.cpp \
         main.cpp

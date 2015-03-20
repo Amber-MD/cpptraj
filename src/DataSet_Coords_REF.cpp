@@ -55,9 +55,35 @@ int DataSet_Coords_REF::SetupRefFrame(std::string const& fname, std::string cons
     setname = traj.TrajFilename().Full();
   else
     setname = nameIn;
-  SetupSet( setname, traj.Start()+1, "" );
-  SetLegend( traj.Title() );
+  if (SetupSet( setname, traj.Start()+1, "", -1 )) return 1;
+  if (!traj.Title().empty())
+    SetLegend( traj.Title() );
   return 0;
+}
+
+int DataSet_Coords_REF::SetupRefFrame(DataSet_Coords* CRD, std::string const& nameIn,
+                                      int fnum, int refidx)
+{
+  if (CRD==0) return 1;
+  frame_ = CRD->AllocateFrame();
+  CRD->GetFrame( fnum, frame_ );
+  SetTopology( CRD->Top() );
+  num_ = refidx;
+  std::string setname;
+  if (nameIn.empty())
+    setname = CRD->Name();
+  else
+    setname = nameIn;
+  SetLegend("");
+  if (SetupSet( setname, fnum+1, "", -1 )) return 1;
+  return 0;
+}
+
+int DataSet_Coords_REF::StripRef(std::string const& maskexpr) {
+  if (maskexpr.empty()) return 1;
+  AtomMask stripMask( maskexpr );
+  if (Top().SetupIntegerMask( stripMask )) return 1;
+  return StripRef( stripMask );
 }
 
 /** Currently used by 'reference' and 'atommap' */

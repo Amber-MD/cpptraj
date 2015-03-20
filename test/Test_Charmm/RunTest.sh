@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles charmm.in test.ala3.pdb test.ala3.nc first.ala3.crd test.ala3.dcd second.ala3.crd
+CleanFiles charmm.in test.ala3.pdb test.ala3.nc first.ala3.crd \
+           test.psf test.ala3.dcd second.ala3.crd
 CheckNetcdf
 cat > charmm.in <<EOF
 parm ala3.psf
@@ -34,6 +35,14 @@ trajout second.ala3.crd
 EOF
 RunCpptraj "CHARMM DCD Write, step 2."
 DoTest first.ala3.crd second.ala3.crd
+
+# Third test; psf -> psf
+cat > charmm.in <<EOF
+parm ala3.psf
+parminfo
+parmwrite out test.psf
+EOF
+#RunCpptraj "CHARMM PSF Write test."
 
 EndTest
 

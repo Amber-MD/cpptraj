@@ -241,7 +241,7 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
     fname = filename_.Full();
   else
     fname = NumberFilename(filename_.Full(), set+1);
-  // TODO: Add option to write replica indices
+  // Create Netcdf file 
   if ( NC_create( fname, NC_AMBERRESTART, Ncatom(), CoordInfo(), Title() ) )
     return 1;
   // write coords
@@ -289,6 +289,14 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   if (TempVID_ != -1) {
     if (checkNCerr(nc_put_var_double(ncid_,TempVID_,frameOut.tAddress())) ) {
       mprinterr("Error: Writing restart temperature.\n"); 
+      return 1;
+    }
+  }
+  // write indices
+  if (indicesVID_ != -1) {
+    count_[0] = remd_dimension_;
+    if ( checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frameOut.iAddress())) ) {
+      mprinterr("Error: Writing indices frame %i.\n", set+1);
       return 1;
     }
   }

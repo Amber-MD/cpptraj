@@ -17,7 +17,8 @@ Action_Density::Action_Density() :
   axis_(DZ),
   //area_coord_{DZ, DY},		// this is C++11!
   property_(NUMBER),
-  delta_(0.0)
+  delta_(0.0),
+  output_(0)
 {
   area_coord_[0] = DX; area_coord_[1] = DY;
 }
@@ -40,9 +41,9 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     outfileName = "density.dat";
   }
 
-  if (output_.OpenEnsembleWrite(outfileName, DSL->EnsembleNum()) ) {
-    mprinterr("Error: Density: Could not open output file %s\n",
-	      outfileName.c_str());
+  output_ = DFL->AddCpptrajFile(outfileName, "Density");
+  if (output_ == 0) {
+    mprinterr("Error: Density: Could not open output file %s\n", outfileName.c_str());
     return Action::ERR;
   }
 
@@ -240,15 +241,15 @@ void Action_Density::Print()
     }
   }
 
-  output_.Printf("# routine version: %s\n#density", ROUTINE_VERSION_STRING);
+  output_->Printf("# routine version: %s\n#density", ROUTINE_VERSION_STRING);
 
   for (std::vector<AtomMask>::const_iterator mask = masks_.begin();
        mask != masks_.end();
        mask++) {
-    output_.Printf(" %s sd(%s)", mask->MaskString(), mask->MaskString() );
+    output_->Printf(" %s sd(%s)", mask->MaskString(), mask->MaskString() );
   }
 
-  output_.Printf("\n");
+  output_->Printf("\n");
 
   // make sure we have zero values at beginning and end as this
   // "correctly" integrates the histogram
@@ -262,7 +263,7 @@ void Action_Density::Print()
       curr = minus_histograms_[j];
 
       if (first_round) {
-        output_.Printf("%10.4f", -delta_ + ((double) i + 0.5) * delta_);
+        output_->Printf("%10.4f", -delta_ + ((double) i + 0.5) * delta_);
 	first_round = false;
       }
       
@@ -274,10 +275,10 @@ void Action_Density::Print()
 	sd /= area;
       }
 
-      output_.Printf(" %10.3f %10.5f", density, sd);
+      output_->Printf(" %10.3f %10.5f", density, sd);
     }
 
-    output_.Printf("\n");
+    output_->Printf("\n");
   }
 
   for (long i = plus_minidx; i <= plus_maxidx; i++) {
@@ -287,7 +288,7 @@ void Action_Density::Print()
       curr = plus_histograms_[j];
 
       if (first_round) {
-        output_.Printf("%10.4f", ((double) i + 0.5) * delta_);
+        output_->Printf("%10.4f", ((double) i + 0.5) * delta_);
 	first_round = false;
       }
 
@@ -299,10 +300,10 @@ void Action_Density::Print()
 	sd /= area;
       }
 
-      output_.Printf(" %10.3f %10.5f", density, sd);
+      output_->Printf(" %10.3f %10.5f", density, sd);
     }
 
-    output_.Printf("\n");
+    output_->Printf("\n");
   }
 }
 

@@ -110,7 +110,7 @@ int TopologyList::AddParmFile(std::string const& filenameIn, ArgList& argIn)
                                                 tf != TopList_.end(); ++tf)
     {
       if ( (*tf)->OriginalFilename().Full() == *fn ) {
-        mprintf("Warning: Parm '%s' already loaded, skipping.\n",(*fn).c_str());
+        mprintf("Warning: Parm '%s' already loaded, skipping.\n", fn->c_str());
         skipFile = true;
       }
       if ( !ParmTag.empty() && (*tf)->Tag() == ParmTag ) {
@@ -125,7 +125,7 @@ int TopologyList::AddParmFile(std::string const& filenameIn, ArgList& argIn)
     ParmFile pfile;
     // NOTE: Arg list will not be modified for multiple parms 
     if (pfile.ReadTopology(*parm, *fn, argIn, debug_)) {
-      mprinterr("Error: Could not open topology '%s'\n",(*fn).c_str());
+      mprinterr("Error: Could not open topology '%s'\n", fn->c_str());
       delete parm;
       numErr++;
       continue;

@@ -7,12 +7,10 @@ Action_Diffusion::Action_Diffusion() :
   printIndividual_(false),
   time_(1),
   hasBox_(false),
-  debug_(0)
-{
-  boxcenter_[0] = 0;
-  boxcenter_[1] = 0;
-  boxcenter_[2] = 0;
-}
+  debug_(0),
+  outputx_(0), outputy_(0), outputz_(0), outputr_(0), outputa_(0),
+  boxcenter_(0.0)
+{}
 
 void Action_Diffusion::Help() {
   mprintf("\t<mask> <time per frame> [average] [<prefix>]\n"
@@ -41,16 +39,13 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, D
     outputNameRoot.assign("diffusion");
   
   // Open output files
-  std::string fname = outputNameRoot + "_x.xmgr";
-  if (outputx_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
-  fname = outputNameRoot + "_y.xmgr";
-  if (outputy_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
-  fname = outputNameRoot + "_z.xmgr";
-  if (outputz_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
-  fname = outputNameRoot + "_r.xmgr";
-  if (outputr_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
-  fname = outputNameRoot + "_a.xmgr";
-  if (outputa_.OpenEnsembleWrite( fname, DSL->EnsembleNum() )) return Action::ERR;
+  outputx_ = DFL->AddCpptrajFile(outputNameRoot+"_x.xmgr", "X MSD");
+  outputy_ = DFL->AddCpptrajFile(outputNameRoot+"_y.xmgr", "Y MSD");
+  outputz_ = DFL->AddCpptrajFile(outputNameRoot+"_z.xmgr", "Z MSD");
+  outputr_ = DFL->AddCpptrajFile(outputNameRoot+"_r.xmgr", "Overall MSD");
+  outputa_ = DFL->AddCpptrajFile(outputNameRoot+"_a.xmgr", "Total Distance");
+  if (outputx_ == 0 || outputy_ == 0 || outputz_ == 0 ||
+      outputr_ == 0 || outputa_ == 0) return Action::ERR;
 
   mprintf("    DIFFUSION:\n");
   mprintf("\tAtom Mask is [%s]\n", mask_.MaskString());
@@ -226,27 +221,27 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, Frame* currentFrame, Fr
     // ----- OUTPUT -----
     // Output averages
     double Time = time_ * (double)frameNum;
-    outputx_.Printf("%8.3f  %8.3f", Time, avgx);
-    outputy_.Printf("%8.3f  %8.3f", Time, avgy);
-    outputz_.Printf("%8.3f  %8.3f", Time, avgz);
-    outputr_.Printf("%8.3f  %8.3f", Time, average);
-    outputa_.Printf("%8.3f  %8.3f", Time, sqrt(average));
+    outputx_->Printf("%8.3f  %8.3f", Time, avgx);
+    outputy_->Printf("%8.3f  %8.3f", Time, avgy);
+    outputz_->Printf("%8.3f  %8.3f", Time, avgz);
+    outputr_->Printf("%8.3f  %8.3f", Time, average);
+    outputa_->Printf("%8.3f  %8.3f", Time, sqrt(average));
     // Individual values
     if (printIndividual_) {
       for (int i = 0; i < mask_.Nselected(); ++i) {
-        outputx_.Printf("  %8.3f", distancex_[i]);
-        outputy_.Printf("  %8.3f", distancey_[i]);
-        outputz_.Printf("  %8.3f", distancez_[i]);
-        outputr_.Printf("  %8.3f", distance_[i]);
-        outputa_.Printf("  %8.3f", sqrt(distance_[i]));
+        outputx_->Printf("  %8.3f", distancex_[i]);
+        outputy_->Printf("  %8.3f", distancey_[i]);
+        outputz_->Printf("  %8.3f", distancez_[i]);
+        outputr_->Printf("  %8.3f", distance_[i]);
+        outputa_->Printf("  %8.3f", sqrt(distance_[i]));
       }
     }
     // Print newlines
-    outputx_.Printf("\n");
-    outputy_.Printf("\n");
-    outputz_.Printf("\n");
-    outputr_.Printf("\n");
-    outputa_.Printf("\n");
+    outputx_->Printf("\n");
+    outputy_->Printf("\n");
+    outputz_->Printf("\n");
+    outputr_->Printf("\n");
+    outputa_->Printf("\n");
   }
 
   return Action::OK;
