@@ -40,7 +40,6 @@ class BufferedLine : private CpptrajFile {
     size_t tokenidx_;      ///< Current position in tokens array
     char saveChar_;        ///< Saved last char of current token
     char* lineEnd_;        ///< End of current line in buffer
-//    char endChar_;         ///< Character that was at *lineend
     char* endBuffer_;      ///< End of character buffer
     size_t nline_;         ///< Current line number.
 };
