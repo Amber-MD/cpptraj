@@ -72,24 +72,13 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
     UVseriesout_ = DFL->AddDataFile(actionArgs.GetStringKey("uvseries"), actionArgs);
     DSL->SetDataSetsPending(true);
   }
-<<<<<<< HEAD
-  avgout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("avgout"), "Avg. solute-solute HBonds");
-  solvout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("solvout"), "Avg. solute-solvent HBonds");
-  bridgeout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("bridgeout"), "Solvent bridging info");
-  if (calcNative) {
-    // Allow native avgs to be written to STDOUT
-    nativeout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("nativeout"), "Native HBonds",
-                                     DataFileList::TEXT, true);
-    if (nativeout_ == 0) return Action::ERR;
-  }
-=======
+
   std::string avgname = actionArgs.GetStringKey("avgout");
   std::string solvname = actionArgs.GetStringKey("solvout");
   if (solvname.empty()) solvname = avgname;
   std::string bridgename = actionArgs.GetStringKey("bridgeout");
   if (bridgename.empty()) bridgename = solvname;
   
->>>>>>> master
   useAtomNum_ = actionArgs.hasKey("printatomnum");
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
@@ -152,7 +141,8 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
     BridgeID_ = DSL->AddSetAspect(DataSet::STRING, hbsetname_, "ID");
     if (BridgeID_ == 0) return Action::ERR;
     if (DF != 0) DF->AddSet( BridgeID_ );
-<<<<<<< HEAD
+    solvout_ = DFL->AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
+    bridgeout_ = DFL->AddCpptrajFile(bridgename,"Solvent bridging info");
   }
   if (calcNative) {
     NumNative_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "Native");
@@ -199,10 +189,6 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
     Nframes_ = 0;
     ((DataSet_integer*)NumHbonds_)->Clear();
     ((DataSet_integer*)NumNative_)->Clear();
-=======
-    solvout_ = DFL->AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
-    bridgeout_ = DFL->AddCpptrajFile(bridgename,"Solvent bridging info");
->>>>>>> master
   }
 
   mprintf( "  HBOND: ");
