@@ -32,7 +32,8 @@ const char* DataIO_Mdout::Enames[] = {
   "Etot",   "EPtot", "GMAX",   "BOND", 
   "ANGLE",  "DIHED",  "VDW",   "EELEC",  "EGB",
   "VDW1-4", "EEL1-4", "RST",   "EAMBER", "Density",
-  "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", 0
+  "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", "VOLUME", "TEMP",
+  "PRESS", 0
 };
 
 /// \return index of name in Energy[] array, N_FIELDTYPES if not recognized.
@@ -56,6 +57,9 @@ DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
   if (Name[0]=="EKtot") return EKtot;
   if (Name[0]=="ESURF") return ESURF;
   if (Name[0]=="EAMD_BOOST") return EAMD_BOOST;
+  if (Name[0]=="VOLUME") return VOLUME;
+  if (Name[0]=="TEMP(K)") return TEMP;
+  if (Name[0]=="PRESS") return PRESS;
   return N_FIELDTYPES;
 }
 
