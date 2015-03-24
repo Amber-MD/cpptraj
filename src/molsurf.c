@@ -7315,10 +7315,10 @@ REAL_T molsurf(REAL_T probe_rad, ATOM *atom, int natomIn,
     // NOTE: previously call had extra arg, 'concave_circles'
     if (concave_edges (probe_rad, atom, n_probes, probelist, &n_vertex, vertexlist,
                    &n_concave_edges, concave_edge_list, &n_concave_faces, concave_face,
-                   n_torus, toruslist)) return 1; // NOTE: no check prev.
+                   n_torus, toruslist)) return ERROR; // NOTE: no check prev.
     if (sort_edges (n_concave_edges, concave_edge_list, n_torus,
                 toruslist, n_vertex, vertexlist, convex_circle_list))
-      return 1; // NOTE: no check prev.
+      return ERROR; // NOTE: no check prev.
 #ifdef DEBUG
      write_verts(n_vertex, vertexlist, atom);
 #endif
