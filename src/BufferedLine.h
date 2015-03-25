@@ -32,15 +32,15 @@ class BufferedLine : private CpptrajFile {
     int ResetBuffer();
     static const size_t DEFAULT_BUFFERSIZE = 16384;
 
-    char* buffer_;         ///< Character buffer
+    size_t currentBufSize_; ///< Current size of buffer.
+    char* buffer_;         ///< Beginning of character buffer.
     char* bufferPosition_; ///< Position in buffer/start of current line.
     /// Array of pointers to beginning and ends of tokens in current line. 
     std::vector<char*> tokens_;
     size_t tokenidx_;      ///< Current position in tokens array
     char saveChar_;        ///< Saved last char of current token
     char* lineEnd_;        ///< End of current line in buffer
-    char endChar_;         ///< Character that was at *lineend
-    char* endBuffer_;      ///< End position of buffer
+    char* endBuffer_;      ///< End of character buffer
     size_t nline_;         ///< Current line number.
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------

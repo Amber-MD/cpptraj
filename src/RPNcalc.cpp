@@ -479,7 +479,8 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         }
         if (Dval[0].IsDataSet()) {
           output = Dval[0].DS();
-          mprintf("DEBUG: output set is '%s'\n", output->legend());
+          if (debug_>0)
+            mprintf("DEBUG: output set is '%s'\n", output->legend());
           bool outputIsLocal = (LocalList.PopSet( output ) != 0);
           if (!outputIsLocal)
             mprintf("Warning: Data set copy not yet implemented. Renaming set '%s' to '%s'\n",

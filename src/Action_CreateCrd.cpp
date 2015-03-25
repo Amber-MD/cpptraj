@@ -39,7 +39,8 @@ Action::RetType Action_CreateCrd::Setup(Topology* currentParm, Topology** parmAd
   if (currentParm->Pindex() == pindex_ && coords_->Top().Natom() == 0) {
     coords_->SetTopology( *currentParm );
     // Estimate memory usage
-    mprintf("\tEstimated memory usage (%i frames): %.2g MB\n", 
+    mprintf("\tEstimated memory usage (%i frames): %.2g MB\n",
+            currentParm->Nframes(),
             coords_->SizeInMB(currentParm->Nframes()));
   }
   // If # atoms in currentParm does not match coords, warn user.
