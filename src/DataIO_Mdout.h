@@ -20,7 +20,8 @@ class DataIO_Mdout : public DataIO {
     enum FieldType { Etot= 0, EPtot, GMAX, BOND,
                      ANGLE, DIHED, VDWAALS, EEL, EGB,
                      VDW14, EEL14, RESTRAINT, EAMBER, Density,
-                     RMS, EKtot, ESURF, EAMD_BOOST, N_FIELDTYPES };
+                     RMS, EKtot, ESURF, EAMD_BOOST, VOLUME, TEMP,
+                     PRESS, N_FIELDTYPES };
     static FieldType getEindex(Sarray const&);
     static const char* Enames[];
 };
