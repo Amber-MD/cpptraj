@@ -23,6 +23,7 @@ class Action_Closest: public Action, ImagedAction {
     DataSet *atomdata_;     ///< First atom of each closest molecule.
     int Nclosest_;          ///< Index into Closest molecule DataSets.
     std::string prefix_;    ///< Output topology prefix.
+    std::string parmoutName_; ///< Output topology file name.
     int closestWaters_;     ///< Closest # of molecules to keep.
     bool firstAtom_;        ///< If true just calc based on molecule first atom.
     bool useMaskCenter_;    ///< If true use geometric center of mask.

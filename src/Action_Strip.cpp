@@ -13,7 +13,7 @@ Action_Strip::Action_Strip() :
 } 
 
 void Action_Strip::Help() {
-  mprintf("\t<mask> [outprefix <name>] [nobox]\n"
+  mprintf("\t<mask> [outprefix <name>] [parmout <file>] [nobox]\n"
           "  Strip atoms in <mask> from the system.\n");
 }
 
@@ -33,6 +33,7 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, TopologyList* PFL, DataS
 {
   // Get output stripped parm filename
   prefix_ = actionArgs.GetStringKey("outprefix");
+  parmoutName_ = actionArgs.GetStringKey("parmout");
   removeBoxInfo_ = actionArgs.hasKey("nobox");
 
   // Get mask of atoms to be stripped
@@ -97,6 +98,11 @@ Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddres
     ParmFile pfile;
     if ( pfile.WritePrefixTopology( *newParm_, prefix_, ParmFile::AMBERPARM, 0 ) )
       mprinterr("Error: Could not write out stripped parm file.\n");
+  }
+  if (!parmoutName_.empty()) {
+    ParmFile pfile;
+    if ( pfile.WriteTopology( *newParm_, parmoutName_, ParmFile::AMBERPARM, 0 ) )
+      mprinterr("Error: Could not write out stripped parm file %s\n", parmoutName_.c_str());
   }
 
   // Set parm
