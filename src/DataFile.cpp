@@ -14,6 +14,7 @@
 #include "DataIO_Mdout.h"
 #include "DataIO_Evecs.h"
 #include "DataIO_VecTraj.h"
+#include "DataIO_XVG.h"
 
 // TODO: Support these args:
 //       - xlabel, xmin, xstep, time (all dimensions).
@@ -55,6 +56,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Amber MDOUT file",   0,                       0,                        DataIO_Mdout::Alloc  },
   { "Evecs file",         DataIO_Evecs::ReadHelp,  0,                        DataIO_Evecs::Alloc  },
   { "Vector pseudo-traj", 0,                       DataIO_VecTraj::WriteHelp,DataIO_VecTraj::Alloc},
+  { "XVG file",           0,                       0,                        DataIO_XVG::Alloc    },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -70,6 +72,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { MDOUT,        "mdout",  ".mdout" },
   { EVECS,        "evecs",  ".evecs" },
   { VECTRAJ,      "vectraj",".vectraj" },
+  { XVG,          "xvg",    ".xvg"   },
   { UNKNOWN_DATA, 0,        0        }
 };
 

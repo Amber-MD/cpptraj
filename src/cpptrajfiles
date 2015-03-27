@@ -152,6 +152,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataIO_Std.cpp \
         DataIO_VecTraj.cpp \
         DataIO_Xplor.cpp \
+        DataIO_XVG.cpp \
         DataSet.cpp \
         DataSetList.cpp \
         DataSet_1D.cpp \
