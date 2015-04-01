@@ -42,6 +42,7 @@ class Action_Rmsd: public Action {
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     // ------------------------
+    int debug_;
     ReferenceAction REF_;              ///< Hold reference frame/traj/options
     AtomMask tgtMask_; ///< Mask of selected target atoms.
     bool fit_;         ///< If true, best-fit RMS.

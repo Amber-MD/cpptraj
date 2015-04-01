@@ -12,6 +12,7 @@ Action_Rmsd::Action_Rmsd() :
   perresavg_(0),
   RefParm_(0),
   masterDSL_(0),
+  debug_(0),
   fit_(true),
   rotate_(true),
   useMass_(false),
@@ -35,6 +36,7 @@ void Action_Rmsd::Help() {
 /** Called once before traj processing. Set up reference info. */
 Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  debug_ = debugIn;
   // Check for keywords
   fit_ = !actionArgs.hasKey("nofit");
   if (fit_)
@@ -47,7 +49,8 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   bool first = actionArgs.hasKey("first");
   ReferenceFrame refFrm = DSL->GetReferenceFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
-  RefParm_ = PFL->GetParm( actionArgs );
+  if (!reftrajname.empty())
+    RefParm_ = PFL->GetParm( actionArgs );
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
@@ -227,6 +230,16 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
     if (PerRes->tgtResMask_.Nselected() != PerRes->refResMask_.Nselected()) {
       mprintf("Warning: Res %i: # atoms in Tgt (%i) != # atoms in Ref (%i)\n",
               tgtRes, PerRes->tgtResMask_.Nselected(), PerRes->refResMask_.Nselected());
+      if (debug_ > 0) {
+        mprintf("    Target Atoms:\n");
+        for (AtomMask::const_iterator t = PerRes->tgtResMask_.begin();
+                                      t != PerRes->tgtResMask_.end(); ++t)
+          mprintf("\t%s\n", currentParm->AtomMaskName(*t).c_str());
+        mprintf("    Ref Atoms:\n");
+        for (AtomMask::const_iterator r = PerRes->refResMask_.begin();
+                                      r != PerRes->refResMask_.end(); ++r)
+          mprintf("\t%s\n", RefParm->AtomMaskName(*r).c_str());
+      }
       continue;
     }
     if ( PerRes->tgtResMask_.Nselected() > maxNatom ) maxNatom = PerRes->tgtResMask_.Nselected();
