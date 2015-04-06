@@ -33,7 +33,11 @@ class Action_NMRrst: public Action {
       bool active_;     ///< True if NOE was properly set up.
     };
     typedef std::vector<noeDataType> noeDataArray;
-    noeDataArray NOEs_;
+    noeDataArray NOEs_; ///< NOEs from file.
+
+    typedef std::pair<AtomMask,AtomMask> MaskPairType;
+    typedef std::vector<MaskPairType> MaskPairArray;
+    MaskPairArray Pairs_; ///< NOEs specified on command line
 
     typedef std::vector<int> Iarray;
 
@@ -45,9 +49,15 @@ class Action_NMRrst: public Action {
 
     class NOEtype;
     typedef std::vector<NOEtype> NOEtypeArray;
-    NOEtypeArray noeArray_;
+    NOEtypeArray noeArray_; ///< Found NOEs
+    NOEtypeArray specifiedNOEs_; ///< Specified NOEs
+
+    void ProcessNoeArray(NOEtypeArray&, Frame const&, int) const;
+    int CheckSameResidue(Topology const&, AtomMask const&) const;
+    void AnalyzeNoeArray(NOEtypeArray&, CpptrajFile*) const;
     
     ImagedAction Image_;
+    Matrix_3x3 ucell_, recip_;
     std::string setname_;
     CpptrajFile* findOutput_;
     AtomMask Mask_;
