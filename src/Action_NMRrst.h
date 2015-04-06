@@ -60,6 +60,7 @@ class Action_NMRrst: public Action {
     Matrix_3x3 ucell_, recip_;
     std::string setname_;
     CpptrajFile* findOutput_;
+    CpptrajFile* specOutput_;
     AtomMask Mask_;
     DataSetList* masterDSL_; // TODO: Replace these with new DataSet type
     size_t numNoePairs_; ///< Used to check if # of pairs has changed

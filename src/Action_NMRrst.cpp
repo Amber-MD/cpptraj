@@ -10,7 +10,7 @@
 
 // CONSTRUCTOR
 Action_NMRrst::Action_NMRrst() :
-   findOutput_(0), masterDSL_(0), numNoePairs_(0), max_cut_(6.0),
+   findOutput_(0), specOutput_(0), masterDSL_(0), numNoePairs_(0), max_cut_(6.0),
    strong_cut_(2.9), medium_cut_(3.5), weak_cut_(5.0),
    resOffset_(0), debug_(0), nframes_(0), useMass_(false),
    findNOEs_(false), series_(false) {} 
@@ -44,7 +44,9 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Data
   findNOEs_ = actionArgs.hasKey("findnoes");
   findOutput_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("findout"), "Found NOEs",
                                     DataFileList::TEXT, true);
-  if (findOutput_ == 0) return Action::ERR;
+  specOutput_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("specout"), "Specified NOEs",
+                                    DataFileList::TEXT, true);
+  if (findOutput_ == 0 || specOutput_ == 0) return Action::ERR;
   resOffset_ = actionArgs.getKeyInt("resoffset", 0);
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   max_cut_ = actionArgs.getKeyDouble("cut", 6.0);
@@ -125,6 +127,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Data
     mprintf("\tSpecified NOE pairs:\n");
     for (MaskPairArray::const_iterator mp = Pairs_.begin(); mp != Pairs_.end(); ++mp)
       mprintf("\t\t[%s] to [%s]\n", mp->first.MaskString(), mp->second.MaskString());
+    mprintf("\tSpecified NOE data will be written to '%s'\n", specOutput_->Filename().full());
   }
   if (!Image_.UseImage()) 
     mprintf("\tNon-imaged");
@@ -607,10 +610,7 @@ void Action_NMRrst::Print() {
       AnalyzeNoeArray(noeArray_, findOutput_);
     if (!specifiedNOEs_.empty()) {
       max_cut_  = 1000.00; // FIXME: Make sure specified NOEs do not get deleted.
-      CpptrajFile out;
-      out.OpenWrite("");
-      AnalyzeNoeArray(specifiedNOEs_, &out);
-      out.CloseFile();
+      AnalyzeNoeArray(specifiedNOEs_, specOutput_);
     }
   }
 }
