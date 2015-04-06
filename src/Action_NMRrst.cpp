@@ -573,10 +573,11 @@ void Action_NMRrst::AnalyzeNoeArray(NOEtypeArray& Narray, CpptrajFile* out) cons
     for (NOEtypeArray::iterator my_noe = Narray.begin();
                                 my_noe != Narray.end(); ++my_noe)
     {
-      if (current_cut < 3 && my_noe->R6_Avg() > Cutoffs[current_cut]) {
+      unsigned int old_cut = current_cut;
+      while (current_cut < 3 && my_noe->R6_Avg() > Cutoffs[current_cut]) 
         current_cut++;
+      if (old_cut != current_cut)
         out->Printf("#   %s\n", Labels[current_cut]);
-      }
       out->Printf("\t %s %g \"%s\"\n", my_noe->PrintNOE().c_str(),
                      my_noe->R6_Avg(), my_noe->legend());
       if (my_noe->Data() != 0) {
