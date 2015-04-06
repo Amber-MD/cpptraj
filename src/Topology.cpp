@@ -643,10 +643,10 @@ int Topology::CommonSetup(bool bondsearch) {
   // Determine molecule info
   if (molecules_.empty())  
     if (DetermineMolecules()) 
-      mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
+      mprintf("Error: Could not determine molecule information for %s.\n", c_str());
   // Set up solvent information
   if (SetSolventInfo())
-    mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
+    mprintf("Error: Could not determine solvent information for %s.\n", c_str());
   // Determine excluded atoms
   DetermineExcludedAtoms();
   // Determine # of extra points.
@@ -1064,7 +1064,7 @@ int Topology::DetermineMolecules() {
       (*molecule).SetFirst( atomNum );
       lastMol = (*atom).MolNum();
     } else if ( (*atom).MolNum()  < lastMol) {
-      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom. This can\n"
+      mprintf  ("Error: Atom %u was assigned a lower molecule # than previous atom. This can\n"
                 "Error:   happen if 1) bond information is incorrect or missing, or 2) if the\n"
                 "Error:   atom numbering in molecules is not sequential. If topology did not\n"
                 "Error:   originally contain bond info, 1) can potentially be fixed by\n"
@@ -1185,7 +1185,7 @@ int Topology::SetSolvent(std::string const& maskexpr) {
 int Topology::SetSolventInfo() {
   // Require molecule information
   if (molecules_.empty()) {
-    mprinterr("Error: SetSolventInfo: No molecule information.\n");
+    mprintf("Error: SetSolventInfo: No molecule information.\n");
     return 1;
   }
   // Loop over each molecule. Check if first residue of molecule is solvent.
