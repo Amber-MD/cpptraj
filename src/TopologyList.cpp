@@ -122,6 +122,7 @@ int TopologyList::AddParmFile(std::string const& filenameIn, ArgList& argIn)
     if (skipFile) continue;
 
     Topology* parm = new Topology();
+    parm->SetDebug(debug_);
     ParmFile pfile;
     // NOTE: Arg list will not be modified for multiple parms 
     if (pfile.ReadTopology(*parm, *fn, argIn, debug_)) {
