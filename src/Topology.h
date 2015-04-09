@@ -61,7 +61,6 @@ class Topology {
     inline mol_iterator MolStart() const { return molecules_.begin(); }
     inline mol_iterator MolEnd()   const { return molecules_.end();   }
     const Molecule& Mol(int idx)   const { return molecules_[idx];    }
-    void ClearMoleculeInfo()             { molecules_.clear();        }
     // ----- Bond-specific routines --------------
     BondArray         const& Bonds()        const { return bonds_;        }
     BondArray         const& BondsH()       const { return bondsh_;       }
