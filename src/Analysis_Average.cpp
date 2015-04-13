@@ -1,10 +1,8 @@
 #include "Analysis_Average.h"
 #include "CpptrajStdio.h"
 
-Analysis_Average::Analysis_Average() {}
-
 void Analysis_Average::Help() {
-  mprintf("\t<dset0> [<dset1> ...] [out <file>]\n"
+  mprintf("\t<dset0> [<dset1> ...] [out <file>] [noheader]\n"
           "  Calculate the average, standard deviation, min, and max of given data sets.\n");
 }
 
@@ -12,7 +10,10 @@ void Analysis_Average::Help() {
 Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
-  std::string outname = analyzeArgs.GetStringKey("out");
+  writeHeader_ = !analyzeArgs.hasKey("noheader");
+  outfile_ = DFLin->AddCpptrajFile(analyzeArgs.GetStringKey("out"), "DataSet Average",
+                                   DataFileList::TEXT, true);
+  if (outfile_ == 0) return Analysis::ERR;
   // Select datasets from remaining args
   if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
     mprinterr("Error: Could not add data sets.\n");
@@ -25,20 +26,19 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
 
   mprintf("    AVERAGE: Calculating average of %i data sets.\n",
           input_dsets_.size());
-  if (!outname.empty())
-    mprintf("\tWriting results to %s\n", outname.c_str());
+  mprintf("\tWriting results to %s\n", outfile_->Filename().full());
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
   //  mprintf("\t%s\n", (*set)->legend());
-  if (outfile_.OpenWrite( outname )) return Analysis::ERR;
 
   return Analysis::OK;
 }
 
 // Analysis_Average::Analyze()
 Analysis::RetType Analysis_Average::Analyze() {
-  outfile_.Printf("%-6s %10s %10s %10s %10s %10s %10s %s\n",
-                  "#Set", "Average", "Stdev", "Ymin", "YminIdx", 
-                  "Ymax", "YmaxIdx", "Name");
+  if (writeHeader_)
+    outfile_->Printf("%-6s %10s %10s %10s %10s %10s %10s %s\n",
+                     "#Set", "Average", "Stdev", "Ymin", "YminIdx", 
+                     "Ymax", "YmaxIdx", "Name");
   for (Array1D::const_iterator DS = input_dsets_.begin();
                                DS != input_dsets_.end(); ++DS)
   {
@@ -64,8 +64,9 @@ Analysis::RetType Analysis_Average::Analyze() {
           idxYmax = idx;
         }
       }
-      outfile_.Printf("%-6u %10g %10g %10g %10u %10g %10u \"%s\"\n", DS - input_dsets_.begin(),
-                       avg, stdev, Ymin, idxYmin, Ymax, idxYmax, (*DS)->legend());
+      outfile_->Printf("%-6u %10.4g %10.4g %10.4g %10u %10.4g %10u \"%s\"\n",
+                       DS - input_dsets_.begin(), avg, stdev, 
+                       Ymin, idxYmin+1, Ymax, idxYmax+1, (*DS)->legend());
     }
   }
   return Analysis::OK;
