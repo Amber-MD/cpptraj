@@ -32,7 +32,7 @@ int DataIO_Xplor::ReadData(std::string const& fname,
   mprintf("\t%i remarks\n", nremarks);
   for (int i = 0; i < nremarks; i++) {
     ptr = infile.Line();
-    mprintf("\t%s", ptr);
+    mprintf("\t%s\n", ptr);
   }
   // Next is num grid points, start grid point, stop grid point for XYZ.
   int GridPts[9];
