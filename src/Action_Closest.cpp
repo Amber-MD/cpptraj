@@ -28,6 +28,7 @@ Action_Closest::Action_Closest() :
 void Action_Closest::Help() {
   mprintf("\t<# to keep> <mask> [noimage] [first | oxygen] [center]\n"
           "\t[closestout <filename> [name <setname>]] [outprefix <parmprefix>]\n"
+          "\t[parmout <file>]\n"
           "  Keep only the closest <# to keep> solvent molecules to atoms in <mask>.\n"
           "  Molecules can be marked as solvent with the 'solvent' command.\n"
           "  If 'center' specified use geometric center of atoms in <mask>.\n");
@@ -54,6 +55,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   useMaskCenter_ = actionArgs.hasKey("center");
   InitImaging( !(actionArgs.hasKey("noimage")) );
   prefix_ = actionArgs.GetStringKey("outprefix");
+  parmoutName_ = actionArgs.GetStringKey("parmout");
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
   std::string filename = actionArgs.GetStringKey("closestout");
@@ -228,6 +230,11 @@ Action::RetType Action_Closest::Setup(Topology* currentParm, Topology** parmAddr
     ParmFile pfile;
     if ( pfile.WritePrefixTopology(*newParm_, prefix_, ParmFile::AMBERPARM, debug_ ) )
       mprinterr("Error: Could not write out 'closest' parm file.\n");
+  }
+  if (!parmoutName_.empty()) {
+    ParmFile pfile;
+    if ( pfile.WriteTopology(*newParm_, parmoutName_, ParmFile::AMBERPARM, debug_) )
+      mprinterr("Error: Could not write out topology to file %s\n", parmoutName_.c_str());
   }
   // Set parm
   *parmAddress = newParm_;

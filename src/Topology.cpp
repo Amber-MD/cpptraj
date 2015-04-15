@@ -1027,13 +1027,13 @@ int Topology::DetermineMolecules() {
   if (debug_>0) mprintf("\t%s: determining molecule info from bonds.\n",c_str());
   // Reset molecule info for each atom
   for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
-    (*atom).SetMol( -1 );
+    atom->SetMol( -1 );
   // Perform recursive search along bonds of each atom
   int mol = 0;
   int atomnum = 0;
   for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
   {
-    if ( (*atom).NoMol() ) {
+    if ( atom->NoMol() ) {
       VisitAtom( atomnum, mol );
       ++mol;
     }
@@ -1043,27 +1043,27 @@ int Topology::DetermineMolecules() {
     mprintf("\t%i molecules.\n",mol);
     if (debug_ > 1)
     for (atom = atoms_.begin(); atom != atoms_.end(); ++atom)
-      mprintf("\t\tAtom %i assigned to molecule %i\n", atom - atoms_.begin(), (*atom).MolNum());
+      mprintf("\t\tAtom %i assigned to molecule %i\n", atom - atoms_.begin(), atom->MolNum());
   }
 
   // Update molecule information
   molecules_.resize( mol );
   if (mol == 0) return 0;
   std::vector<Molecule>::iterator molecule = molecules_.begin();
-  (*molecule).SetFirst(0);
+  molecule->SetFirst(0);
   atom = atoms_.begin(); 
-  int lastMol = (*atom).MolNum();
+  int lastMol = atom->MolNum();
   int atomNum = 0;
   for (; atom != atoms_.end(); atom++)
   {
-    if ( (*atom).MolNum() > lastMol ) {
+    if ( atom->MolNum() > lastMol ) {
       // Set last atom of molecule
-      (*molecule).SetLast( atomNum );
+      molecule->SetLast( atomNum );
       // Set first atom of next molecule
       ++molecule;
-      (*molecule).SetFirst( atomNum );
-      lastMol = (*atom).MolNum();
-    } else if ( (*atom).MolNum()  < lastMol) {
+      molecule->SetFirst( atomNum );
+      lastMol = atom->MolNum();
+    } else if ( atom->MolNum()  < lastMol) {
       mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom. This can\n"
                 "Error:   happen if 1) bond information is incorrect or missing, or 2) if the\n"
                 "Error:   atom numbering in molecules is not sequential. If topology did not\n"
@@ -1075,12 +1075,12 @@ int Topology::DetermineMolecules() {
       molecules_.clear();
       // Reset molecule info for each atom
       for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
-        (*atom).SetMol( -1 );
+        atom->SetMol( -1 );
       return 1;
     }
     ++atomNum;
   }
-  (*molecule).SetLast( atoms_.size() );
+  molecule->SetLast( atoms_.size() );
   return 0;
 }
 

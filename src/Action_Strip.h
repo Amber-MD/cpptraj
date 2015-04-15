@@ -19,6 +19,7 @@ class Action_Strip: public Action {
     Topology *newParm_;
     Frame newFrame_;
     std::string prefix_;
+    std::string parmoutName_;
     AtomMask M1_;
     bool removeBoxInfo_;
 };

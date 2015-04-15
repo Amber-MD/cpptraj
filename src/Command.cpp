@@ -693,11 +693,10 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   }
   actionargs.CheckForMoreArgs();
   // Set up frame and parm for COORDS.
-  Topology* originalParm = new Topology();
-  *originalParm = CRD->Top();
-  Frame* originalFrame = new Frame( CRD->Top().Atoms() );
+  Topology originalParm = CRD->Top();
+  Frame originalFrame = CRD->AllocateFrame();
   // Set up for this topology
-  Topology* currentParm = originalParm;
+  Topology* currentParm = &originalParm;
   if ( act->Setup( currentParm, &currentParm ) == Action::ERR ) {
     delete act;
     return Command::C_ERR;
@@ -707,28 +706,26 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   int set = 0;
   for (int frame = start; frame < stop; frame += offset) {
     progress.Update( set );
-    CRD->GetFrame( frame, *originalFrame );
-    Frame* currentFrame = originalFrame;
+    CRD->GetFrame( frame, originalFrame );
+    Frame* currentFrame = &originalFrame;
     if (act->DoAction( set, currentFrame, &currentFrame ) == Action::ERR) {
       mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
       break;
     }
     // Check if frame was modified. If so, update COORDS.
     // TODO: Have actions indicate whether they will modify coords
-    //if ( currentFrame != originalFrame ) 
+    //if ( currentFrame != &originalFrame ) 
       CRD->SetCRD( frame, *currentFrame );
     set++;
   }
   // Check if parm was modified. If so, update COORDS.
-  if ( currentParm != originalParm ) {
+  if ( currentParm != &originalParm ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
             CRD->legend(), actionargs.Command());
     CRD->SetTopology( *currentParm );
   }
   act->Print();
   State.MasterDataFileWrite();
-  delete originalFrame;
-  delete originalParm;
   delete act;
   total_time.Stop();
   mprintf("TIME: Total action execution time: %.4f seconds.\n", total_time.Total());
