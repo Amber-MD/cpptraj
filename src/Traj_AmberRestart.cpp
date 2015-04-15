@@ -65,6 +65,7 @@ int Traj_AmberRestart::processWriteArgs(ArgList& argIn) {
   outputTemp_ = argIn.hasKey("remdtraj");
   time0_ = argIn.getKeyDouble("time0", -1.0);
   dt_ = argIn.getKeyDouble("dt",1.0);
+  singleWrite_ = argIn.hasKey("single");
   return 0;
 }
 

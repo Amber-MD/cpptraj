@@ -29,6 +29,7 @@ static void Help(const char* prgname, bool showAdditional) {
             "    -ctr          Center molecule on (0,0,0).\n"
             "    -noter        Do not write TER records.\n"
             "    -ext          Use PRMTOP extended PDB info, if present.\n"
+            "    -nobox        Do not write CRYST1 record if box coordinates present.\n"
 //            "    -ene <FLOAT>  Define H-bond energy cutoff for FIRST.\n"
 //            "    -bin          The coordinate file is in binary form.\n"
             "    -offset <INT> Add offset to residue numbers.\n"
@@ -55,10 +56,10 @@ static bool Unsupported(std::string const& arg) {
 int main(int argc, char** argv) {
   SetWorldSilent(true); // No STDOUT output from cpptraj routines.
   mprinterr("| ambpdb (C++) Version %s\n", VERSION_STRING);
-  std::string topname, crdname, title, aatm(" pdbatom"), bres, pqr;
+  std::string topname, crdname, title, bres, pqr;
+  std::string aatm(" pdbatom"), ter_opt(" terbyres"), box(" sg \"P 1\"");
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
   bool ctr_origin = false;
-  bool noTER = false;
   bool useExtendedInfo = false;
   int res_offset = 0;
   int debug = 0;
@@ -75,7 +76,7 @@ int main(int argc, char** argv) {
       res_offset = convertToInteger( argv[++i] );
     else if ((arg == "-d" || arg == "--debug") && i+1 != argc) // Debug level
       debug = convertToInteger( argv[++i] );
-    else if (arg == "-h" || arg == "--help") {// Help
+    else if (arg == "-h" || arg == "--help") { // Help
       Help(argv[0], true);
       return 0;
     } else if (arg == "-aatm") // Amber atom names
@@ -87,7 +88,9 @@ int main(int argc, char** argv) {
     else if (arg == "-ctr")  // Center on origin
       ctr_origin = true;
     else if (arg == "-noter") // No TER cards
-      noTER = true;
+      ter_opt.assign(" noter");
+    else if (arg == "-nobox") // No CRYST1 record
+      box.assign(" nobox");
     else if (arg == "-pqr") { // Charge/Radii in occ/bfactor cols
       pqr.assign(" dumpq");
       ++numSoloArgs;
@@ -125,8 +128,6 @@ int main(int argc, char** argv) {
     return 1;
   }
   parm.IncreaseFrames( 1 );
-  if (noTER)
-    parm.ClearMoleculeInfo();
   if (!useExtendedInfo)
     parm.ResetPDBinfo();
   if (res_offset != 0)
@@ -164,7 +165,7 @@ int main(int argc, char** argv) {
     TrajFrame.CenterOnOrigin(false);
   // Output coords
   Trajout_Single trajout;
-  trajArgs.SetList( aatm + bres + pqr + title, " " );
+  trajArgs.SetList( aatm + bres + pqr + title + ter_opt + box, " " );
   if ( trajout.PrepareStdoutTrajWrite(trajArgs, &parm, fmt) ) return 1;
   trajout.WriteSingle(0, TrajFrame);
   trajout.EndTraj();
