@@ -10,10 +10,11 @@ Action_Pucker::Action_Pucker() :
   pucker_(0),
   amplitude_(0),
   theta_(0),
+  puckerMin_(0.0),
+  puckerMax_(0.0),
+  offset_(0.0),
   puckerMethod_(ALTONA),
-  useMass_(true),
-  range360_(false),
-  offset_(0.0)
+  useMass_(true)
 { } 
 
 void Action_Pucker::Help() {
@@ -33,7 +34,11 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Data
   bool calc_amp = actionArgs.hasKey("amplitude");
   bool calc_theta = actionArgs.hasKey("theta");
   offset_ = actionArgs.getKeyDouble("offset",0.0);
-  range360_ = actionArgs.hasKey("range360");
+  if (actionArgs.hasKey("range360"))
+    puckerMin_ = 0.0;
+  else
+    puckerMin_ = -180.0;
+  puckerMax_ = puckerMin_ + 360.0;
   useMass_ = !actionArgs.hasKey("geom");
   DataSet::scalarType stype = DataSet::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
@@ -88,21 +93,21 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Data
   }
   mprintf("\n");
   if (puckerMethod_==ALTONA) 
-    mprintf("            Using Altona & Sundaralingam method.\n");
+    mprintf("\tUsing Altona & Sundaralingam method.\n");
   else if (puckerMethod_==CREMER)
-    mprintf("            Using Cremer & Pople method.\n");
+    mprintf("\tUsing Cremer & Pople method.\n");
   if (outfile != 0) 
-    mprintf("            Data will be written to %s\n", outfile->DataFilename().base());
+    mprintf("\tData will be written to %s\n", outfile->DataFilename().base());
   if (amplitude_!=0)
-    mprintf("            Amplitudes will be stored.\n");
+    mprintf("\tAmplitudes will be stored.\n");
   if (theta_!=0)
-    mprintf("            Thetas will be stored.\n");
+    mprintf("\tThetas will be stored.\n");
   if (offset_!=0)
-    mprintf("            Offset: %f will be added to values.\n");
-  if (range360_)
-    mprintf("              Output range is 0 to 360 degrees.\n");
+    mprintf("\tOffset: %f deg. will be added to values.\n");
+  if (puckerMin_ > -180.0)
+    mprintf("\tOutput range is 0 to 360 degrees.\n");
   else
-    mprintf("              Output range is -180 to 180 degrees.\n");
+    mprintf("\tOutput range is -180 to 180 degrees.\n");
 
   return Action::OK;
 }
@@ -158,17 +163,12 @@ Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame
     tval *= Constants::RADDEG;
     theta_->Add(frameNum, &tval);
   }
-  pval *= Constants::RADDEG;
+  pval = (pval * Constants::RADDEG) + offset_;
+  if (pval > puckerMax_)
+    pval -= 360.0;
+  else if (pval < puckerMin_)
+    pval += 360.0;
   pucker_->Add(frameNum, &pval);
 
   return Action::OK;
 } 
-
-void Action_Pucker::Print() {
-  double puckermin;
-  if (range360_)
-    puckermin = 0.0;
-  else
-    puckermin = -180.0;
-  ((DataSet_double*)pucker_)->ShiftTorsions(puckermin, offset_);
-}

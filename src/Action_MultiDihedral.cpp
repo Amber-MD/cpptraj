@@ -6,8 +6,8 @@
 #include "StringRoutines.h" // convertToInteger
 
 Action_MultiDihedral::Action_MultiDihedral() :
+  minTorsion_(-180.0),
   debug_(0),
-  range360_(false),
   outfile_(0),
   masterDSL_(0)
 {}
@@ -27,7 +27,10 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
   debug_ = debugIn;
   // Get keywords
   outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
-  range360_ = actionArgs.hasKey("range360");
+  if (actionArgs.hasKey("range360"))
+    minTorsion_ = 0.0;
+  else
+    minTorsion_ = -180.0;
   std::string resrange_arg = actionArgs.GetStringKey("resrange");
   if (!resrange_arg.empty())
     if (resRange_.SetRange( resrange_arg )) return Action::ERR;
@@ -61,7 +64,7 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, TopologyList* PF
   if (!dsetname_.empty())
     mprintf("\tDataSet name: %s\n", dsetname_.c_str());
   if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().base());
-  if (range360_) 
+  if (minTorsion_ > -180.0) 
     mprintf("\tOutput range is 0 to 360 degrees.\n");
   else
     mprintf("\tOutput range is -180 to 180 degrees.\n");
@@ -156,15 +159,9 @@ Action::RetType Action_MultiDihedral::DoAction(int frameNum, Frame* currentFrame
                               currentFrame->XYZ(dih->A2()),
                               currentFrame->XYZ(dih->A3()) );
     torsion *= Constants::RADDEG;
+    if (torsion < minTorsion_)
+      torsion += 360.0;
     (*ds)->Add(frameNum, &torsion);
   }
   return Action::OK;
-}
-
-void Action_MultiDihedral::Print() {
-  if (range360_) {
-    for (std::vector<DataSet*>::const_iterator ds = data_.begin();
-                                               ds != data_.end(); ++ds)
-      ((DataSet_double*)*ds)->ShiftTorsions(0.0, 0.0);
-  }
 }
