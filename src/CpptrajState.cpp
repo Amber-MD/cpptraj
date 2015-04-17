@@ -311,6 +311,9 @@ int CpptrajState::RunEnsemble() {
   // e.g. in strip or closest, subsequent members wont be trying to modify 
   // an already-modified topology.
   std::vector<Topology*> EnsembleParm( ensembleSize );
+  // Give each member its own copy of current frame address. This way if 
+  // frame is modified by a member things like trajout know about it.
+  FramePtrArray CurrentFrames( ensembleSize );
 # ifdef MPI
   // Make all sets not in an ensemble a member of this thread.
   DSL_.MakeDataSetsEnsemble( worldrank );
@@ -445,6 +448,7 @@ int CpptrajState::RunEnsemble() {
 #         endif
           // Perform Actions on Frame
           suppress_output = ActionEnsemble[member]->DoActions(&CurrentFrame, actionSet);
+          CurrentFrames[member] = CurrentFrame;
 #         ifdef TIMER
           actions_time.Stop();
 #         endif
@@ -454,7 +458,7 @@ int CpptrajState::RunEnsemble() {
 #         ifdef TIMER
           trajout_time.Start();
 #         endif 
-          if (TrajoutEnsemble.WriteEnsembleOut(actionSet, SortedFrames))
+          if (TrajoutEnsemble.WriteEnsembleOut(actionSet, CurrentFrames))
           {
             mprinterr("Error: Writing ensemble output traj, frame %i\n", actionSet+1);
             if (exitOnError_) return 1; 
