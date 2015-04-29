@@ -8,11 +8,13 @@ class Hungarian {
     Hungarian() : nrows_(0), ncols_(0) {}
     /// Initialize NxN full matrix for Hungarian algorithm.
     int Initialize(size_t);
+    int Initialize(size_t,size_t);
     /// Add an element to matrix for Hungarian algorithm.
     void AddElement(double d) { matrix_.addElement( d ); }
     /// \return Array containing Map[col] = row
     std::vector<int> Optimize();
   private:
+    void CommonInit();
     int AssignRowsToColumns();
     void CoverZeroElements();
     void UpdateMatrix();
