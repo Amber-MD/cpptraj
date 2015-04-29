@@ -5,25 +5,15 @@
 #  include "CpptrajStdio.h"
 #endif
 
-void Hungarian::CommonInit() {
+/** Initialize matrix for Hungarian algorithm. **/
+int Hungarian::Initialize(size_t Ncols) {
+  if (matrix_.resize( Ncols, Ncols )) return 1;
   lineThroughRow_.assign(matrix_.Nrows(), false);
   lineThroughCol_.assign(matrix_.Ncols(), false);
   assignRowToCol_.assign(matrix_.Ncols(), -1);
   assignColToRow_.assign(matrix_.Nrows(), -1);
   nrows_ = (int)matrix_.Nrows();
   ncols_ = (int)matrix_.Ncols();
-}
-
-/** Initialize matrix for Hungarian algorithm. **/
-int Hungarian::Initialize(size_t Ncols) {
-  if (matrix_.resize( Ncols, Ncols )) return 1;
-  CommonInit();
-  return 0;
-}
-
-int Hungarian::Initialize(size_t Ncols, size_t Nrows) {
-  if (matrix_.resize( Ncols, Nrows )) return 1;
-  CommonInit();
   return 0;
 }
 
