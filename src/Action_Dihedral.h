@@ -11,11 +11,11 @@ class Action_Dihedral: public Action {
     Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    void Print();
+    void Print() {}
 
     DataSet* dih_;
+    double minTorsion_; ///< Values less than this will be shifted +360.0
     bool useMass_;
-    bool range360_;
     AtomMask M1_;
     AtomMask M2_;
     AtomMask M3_;

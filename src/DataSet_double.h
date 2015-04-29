@@ -37,8 +37,6 @@ class DataSet_double : public DataSet_1D {
     double NOE_bound()  const { return bound_;  }
     double NOE_boundH() const { return boundh_; }
     double NOE_rexp()   const { return rexp_;   }
-    /// For dihedral/multidihedral/pucker, offset/wrap torsions.
-    void ShiftTorsions(double,double);
   private:
     std::vector<double> Data_;
     // For Analysis_Statistics DISTANCE NOE
