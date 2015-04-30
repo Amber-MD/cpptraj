@@ -84,6 +84,10 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
       mprintf(" Charge=%lf",CurrentParm_->charge[atom]);
       mprintf(" Mass=%lf",CurrentParm_->mass[atom]);
       outfile.Printf("\n");*/
+
+      // for pytraj
+      frameIndexDs_->Add(frameNum, &frameNum);
+      atomDs_->Add(frameNum, &atom);
     }
   }
 
